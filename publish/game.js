@@ -22,6 +22,8 @@ document.addEventListener('alpine:init', () => {
     busy: false,
     started: false,
     playerName: '',
+    selectedSlot: 'slot-1',
+    saveSlots: window.GameModules.storage.slots,
     modelId: cfg.defaultModelId,
     characters: cfg.characters,
     works: [],
@@ -45,6 +47,8 @@ document.addEventListener('alpine:init', () => {
     ragResults: [],
     ragBusy: false,
     ragError: '',
+    rpgStates: {},
+    rpgPanelCharacterId: '',
 
     get character() {
       return window.GameModules.catalog.find(this.selectedCharacterId)
@@ -60,13 +64,24 @@ document.addEventListener('alpine:init', () => {
       return this.character.refs || [];
     },
 
+    get currentRpgState() {
+      return this.rpgStates[this.rpgPanelCharacterId] || this.rpgStates[this.character.id] || null;
+    },
+
+    get rpgStateList() {
+      return Object.values(this.rpgStates);
+    },
+
     async init() {
       await dzmmReady;
       await this.loadCatalog();
       await this.loadModelAndUser();
+      await window.GameModules.storage.open(this.selectedSlot);
       const save = await window.GameModules.storage.get();
       window.GameModules.storage.restore(this, save);
       this.ensureCatalogSelection();
+      this.loadSavedRpgStates();
+      await this.ensureRpgForCurrentCharacter();
       this.loading = false;
     },
 
@@ -106,45 +121,6 @@ document.addEventListener('alpine:init', () => {
       }
     },
 
-    selectWork(name) {
-      this.selectedWork = name;
-      this.selectedCharacterId = window.GameModules.catalog.firstCharacter(name) || this.selectedCharacterId;
-    },
-
-    selectCharacter(id) {
-      this.selectedCharacterId = id;
-    },
-
-    async start() {
-      this.started = true;
-      this.log = [];
-      this.turn = 1;
-      this.mindText = `${this.character.name}感觉到意识深处多了一道陌生的注视。`;
-      this.addLog('system', '系统', `操控链路已连接：${this.playerName} → ${this.character.name}`);
-      this.addLog('story', '旁白', `${this.character.name}在一座异常安静的前厅醒来。视野边缘闪烁着「上线」标记。`);
-      this.addLog('mind', `${this.character.name}的心理`, this.mindText);
-      await this.save();
-    },
-
-    setOnline(value) {
-      if (this.online === value) return;
-      this.online = value;
-      const text = value ? '操控者上线，角色身体行动权被接管。' : '操控者下线，角色重新获得身体控制权。';
-      this.addLog('system', '控制权', text);
-      this.save();
-    },
-
-    async submitFreeInput() {
-      const action = this.input.trim();
-      if (!action) return;
-      this.input = '';
-      await this.submitAction(action);
-    },
-
-    async autoplay() {
-      await this.submitAction(this.online ? '按照当前局势做最有效的行动' : '让角色完全自主决定下一步');
-    },
-
     async submitAction(action) {
       if (this.busy) return;
       this.busy = true;
@@ -162,7 +138,8 @@ document.addEventListener('alpine:init', () => {
       }
     },
 
-    applyResult(result) {
+    async applyResult(result) {
+      await this.ensureRpgFromResults(result);
       this.sceneTitle = result.sceneTitle;
       this.mood = result.mood;
       this.trust = result.trust;
@@ -184,6 +161,8 @@ document.addEventListener('alpine:init', () => {
     },
 
     ...window.GameModules.actions,
+    ...window.GameModules.saveActions,
+    ...window.GameModules.coreActions,
   });
 
   queueMicrotask(() => Alpine.store('game').init());

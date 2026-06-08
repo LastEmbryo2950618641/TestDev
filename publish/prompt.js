@@ -49,6 +49,7 @@ ${state.ragContext || '暂无资料。'}
   "resistance":0到100整数,
   "quest":"新的当前目标，18字内",
   "choices":["3到5个下一步行动选项，每个12字内"],
+  "appearedCharacters":["本回合新出现或被提到的角色名，最多3个"],
   "statChanges":{"will":-3到3,"sense":-3到3,"charm":-3到3,"combat":-3到3}
 }`;
 };
@@ -72,6 +73,7 @@ window.GameModules.createFallbackResult = function createFallbackResult(state, a
     resistance,
     quest: '调查操控裂隙',
     choices: ['使用技能调查', '主动交涉', '避开危险', '触碰异常物'],
+    appearedCharacters: [name],
     statChanges: { will: online ? 1 : 0, sense: 1, charm: 0, combat: 0 },
   };
 };

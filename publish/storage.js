@@ -1,64 +1,32 @@
 /**
- * 存档管理：dzmm.kv 优先，localStorage 防御性兜底。
+ * 存档管理：多 slot SQLite 存储，序列化后走 dzmm.kv/localStorage。
  */
 window.GameModules = window.GameModules || {};
 
 window.GameModules.storage = {
-  key: 'control-rpg-save',
+  slots: ['slot-1', 'slot-2', 'slot-3'],
+
+  async open(slot) {
+    await window.GameModules.sqliteSave.open(slot);
+  },
 
   async put(value) {
-    try {
-      if (window.dzmm?.kv) {
-        await window.dzmm.kv.put(this.key, value);
-        return;
-      }
-    } catch (err) {
-      console.warn('KV 保存失败:', err.code, err.message);
-    }
-
-    try {
-      localStorage.setItem(this.key, JSON.stringify(value));
-    } catch (_) {
-      // 沙箱环境可能禁用 localStorage，忽略即可。
-    }
+    await window.GameModules.sqliteSave.saveGameState(value);
   },
 
   async get() {
-    try {
-      if (window.dzmm?.kv) {
-        const data = await window.dzmm.kv.get(this.key);
-        if (data?.value) return data.value;
-      }
-    } catch (err) {
-      console.warn('KV 读取失败:', err.code, err.message);
-    }
-
-    try {
-      const raw = localStorage.getItem(this.key);
-      return raw ? JSON.parse(raw) : null;
-    } catch (_) {
-      return null;
-    }
+    return window.GameModules.sqliteSave.loadGameState();
   },
 
-  async remove() {
-    try {
-      if (window.dzmm?.kv) await window.dzmm.kv.delete(this.key);
-    } catch (err) {
-      console.warn('KV 删除失败:', err.code, err.message);
-    }
-
-    try {
-      localStorage.removeItem(this.key);
-    } catch (_) {
-      // 忽略。
-    }
+  async remove(slot) {
+    await window.GameModules.sqliteSave.deleteSlot(slot || window.GameModules.sqliteSave.activeSlot);
   },
 
   snapshot(store) {
     return {
       started: store.started,
       playerName: store.playerName,
+      selectedSlot: store.selectedSlot,
       selectedWork: store.selectedWork,
       selectedCharacterId: store.selectedCharacterId,
       online: store.online,
@@ -71,7 +39,7 @@ window.GameModules.storage = {
       mindText: store.mindText,
       choices: store.choices,
       log: store.log.slice(-30),
-      characterStats: store.character.stats,
+      rpgPanelCharacterId: store.rpgPanelCharacterId,
     };
   },
 
@@ -90,11 +58,8 @@ window.GameModules.storage = {
     store.mindText = save.mindText || store.mindText;
     store.choices = save.choices || store.choices;
     store.log = save.log || store.log;
+    store.rpgPanelCharacterId = save.rpgPanelCharacterId || store.selectedCharacterId;
     store.started = true;
-
-    if (save.characterStats) {
-      Object.assign(store.character.stats, save.characterStats);
-    }
     return true;
   },
 };

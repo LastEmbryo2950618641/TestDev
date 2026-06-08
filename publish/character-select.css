@@ -1,3 +1,26 @@
+.slot-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.slot-btn,
+.ghost-wide {
+  background: rgba(255, 255, 255, .08);
+  border: 1px solid rgba(255, 255, 255, .16);
+  font-weight: 800;
+}
+
+.slot-btn.active {
+  border-color: #71f3ff;
+  background: linear-gradient(135deg, rgba(113, 243, 255, .2), rgba(160, 104, 255, .2));
+}
+
+.ghost-wide {
+  width: 100%;
+  margin-top: 8px;
+}
+
 .character-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

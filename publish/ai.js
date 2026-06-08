@@ -28,16 +28,16 @@ window.GameModules.ai = {
         model: store.modelId,
         messages,
         maxTokens: 1200,
-      }, (chunk, done) => {
+      }, async (chunk, done) => {
         if (requestId !== this.latestRequestId) return;
         buffer += chunk;
         if (!done) return;
-        store.applyResult(this.parse(buffer, store, action));
+        await store.applyResult(this.parse(buffer, store, action));
       }));
     } catch (err) {
       console.error('AI 推演失败:', err.code, err.message, err.stack);
       if (requestId === this.latestRequestId) {
-        store.applyResult(window.GameModules.createFallbackResult(store, action));
+        await store.applyResult(window.GameModules.createFallbackResult(store, action));
       }
     }
   },
@@ -68,6 +68,7 @@ window.GameModules.ai = {
       resistance: this.clampNumber(data.resistance, fallback.resistance),
       quest: String(data.quest || fallback.quest).slice(0, 24),
       choices: Array.isArray(data.choices) && data.choices.length ? data.choices.slice(0, 5).map((x) => String(x).slice(0, 14)) : fallback.choices,
+      appearedCharacters: Array.isArray(data.appearedCharacters) ? data.appearedCharacters.slice(0, 3).map((x) => String(x).slice(0, 16)) : fallback.appearedCharacters,
       statChanges: {
         will: this.clampDelta(changes.will),
         sense: this.clampDelta(changes.sense),
