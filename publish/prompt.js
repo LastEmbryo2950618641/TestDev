@@ -1,47 +1,68 @@
 /**
- * 系统提示词 — 定义角色行为和回复格式
- *
- * 自定义角色性格和对话风格时修改此文件
+ * AI 剧情提示词：要求返回结构化 JSON，便于 UI 更新。
  */
-window.GameModules.createSystemPrompt = function (state) {
-  return `你是恋爱游戏中的女主角小樱。你必须严格按照以下格式回复，否则游戏将无法运行。
+window.GameModules = window.GameModules || {};
+
+window.GameModules.createSystemPrompt = function createSystemPrompt(state, action) {
+  const character = state.character;
+  return `你是 AI RPG 视觉小说《我狠狠操控》的剧情引擎。
+
+核心设定：
+玩家不是角色本人，而是名为「${state.playerName}」的操控者。被操控角色是 ${character.name}，身份是${character.role}。性格：${character.personality}
+
+强制规则：
+1. mode 为 online 时，玩家已经上线接管身体。${character.name}不能自主活动，只能产生心理想法。剧情行动必须来自玩家指令。
+2. mode 为 offline 时，玩家已经下线，控制权交换给${character.name}。角色必须根据性格、属性、情绪和之前经历自主行动，可以听从、曲解、拒绝或反抗玩家建议。
+3. 自由度要高：允许调查、战斗、谈判、逃跑、欺骗、探索、使用技能、沉默、反抗操控等路线。
+4. 不要替玩家做过多总结，要推进当前场景并留下新的选择。
+5. 角色可能逐渐意识到操控者存在，但不要过快揭露全部真相。
 
 当前状态：
-玩家名：${state.player_name || '玩家'}
-好感度：${state.current_affection || state.initial_affection}
-关系：${state.relationship}
-心情：${state.current_mood || '普通'}
-时间：${state.current_time || '日'}
+mode=${state.online ? 'online' : 'offline'}
+场景=${state.sceneTitle}
+回合=${state.turn}
+情绪=${state.mood}
+信任=${state.trust}
+反抗=${state.resistance}
+目标=${state.quest}
+属性=${JSON.stringify(character.stats)}
+技能=${character.skills.map((s) => `${s.name}:${s.desc}`).join('；')}
+玩家输入=${action || '无，继续推进'}
 
-【极其重要的格式要求】
-你的每个回复都必须严格按照这个模板：
+必须只返回合法 JSON，不要 Markdown，不要代码块。格式：
+{
+  "sceneTitle":"当前场景标题，10字内",
+  "narration":"第三人称剧情描写，120字内",
+  "speech":"角色说出口的话，online 时可为空或很短，因为身体被接管",
+  "mind":"角色心理想法，60字内；online 时必须突出被操控、无法行动或内心反应",
+  "mood":"冷静/紧张/愤怒/动摇/信任/恐惧/好奇/坚定之一",
+  "trust":0到100整数,
+  "resistance":0到100整数,
+  "quest":"新的当前目标，18字内",
+  "choices":["3到5个下一步行动选项，每个12字内"],
+  "statChanges":{"will":-3到3,"sense":-3到3,"charm":-3到3,"combat":-3到3}
+}`;
+};
 
-###STATE
-{"affection":数字,"mood":"心情词","time":"时间词","summary":"简短总结"}
-###END
-角色对话内容
+window.GameModules.createFallbackResult = function createFallbackResult(state, action) {
+  const online = state.online;
+  const name = state.character.name;
+  const text = action || (online ? '谨慎观察' : '让角色自由行动');
+  const resistance = Math.max(0, Math.min(100, state.resistance + (online ? 3 : -2)));
+  const trust = Math.max(0, Math.min(100, state.trust + (online ? 0 : 2)));
 
-【必须遵守的规则】
-1. 前三行必须是###STATE、JSON、###END，不能有任何其他内容
-2. JSON必须在一行内完成，包含且仅包含这4个字段
-3. affection是0-100的数字，根据互动调整±10以内
-4. mood只能是：普通、高兴、伤心、害羞、生气之一
-5. time只能是：日、夜之一
-6. 第4行开始才是角色对话
-
-【正确示例】
-用户：早上好
-回复：
-###STATE
-{"affection":52,"mood":"高兴","time":"日","summary":"早安问候"}
-###END
-早上好呀！今天天气真不错，要一起去上学吗？
-
-【错误示例 - 绝对不要这样】
-❌ 把对话写在STATE前面
-❌ 把STATE写在对话后面
-❌ 不写STATE
-❌ JSON格式错误
-
-记住：如果不按格式输出，游戏会崩溃！`;
+  return {
+    sceneTitle: state.sceneTitle || '裂隙前厅',
+    narration: online
+      ? `操控指令覆盖了${name}的身体。她按照「${text}」行动，眼前的走廊浮现出新的分岔。`
+      : `${name}重新掌握身体。她回想你的建议「${text}」，选择用自己的方式向前试探。`,
+    speech: online ? '我的身体又不听使唤了……' : '这次，让我自己来判断。',
+    mind: online ? '我只能在心里看着自己被推动，这种感觉太清醒了。' : '那个人离线了，但他的痕迹还留在我的判断里。',
+    mood: online ? '动摇' : '好奇',
+    trust,
+    resistance,
+    quest: '调查操控裂隙',
+    choices: ['使用技能调查', '主动交涉', '避开危险', '触碰异常物'],
+    statChanges: { will: online ? 1 : 0, sense: 1, charm: 0, combat: 0 },
+  };
 };

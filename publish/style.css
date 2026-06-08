@@ -1,473 +1,536 @@
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
 }
 
+html,
 body {
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  min-height: 100vh;
+  margin: 0;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
-  position: relative;
+  overscroll-behavior: none;
+  background: #070914;
+  color: #eef3ff;
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-/* 响应式：移动端适配 */
-@media (max-width: 768px) {
-  body {
-    overflow-x: hidden;
-    padding: 0;
-  }
-}
-
-/* 加载中样式 */
-.loading-container {
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.3);
-}
-
-.loading-card {
-  text-align: center;
-  padding: 40px;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border-radius: 20px;
-}
-
-.loading-spinner {
-  width: 60px;
-  height: 60px;
-  margin: 0 auto 20px;
-  border: 4px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.loading-card p {
-  font-size: 18px;
-  opacity: 0.9;
-}
-
-/* 设置界面 */
-.setup {
-  background: rgba(0, 0, 0, 0.3);
-  padding: 25px;
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-@media (max-width: 768px) {
-  .setup {
-    padding: 10px;
-  }
-}
-
-.card {
-  max-width: 650px;
-  width: 90%;
-  padding: 40px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  backdrop-filter: blur(10px);
-}
-
-@media (max-width: 768px) {
-  .card {
-    padding: 20px 15px;
-    width: 100%;
-    max-height: 95vh;
-    overflow-y: auto;
-    border-radius: 0;
-  }
-}
-
-.setup-avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
-.avatar-img {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid rgba(255,255,255,0.4);
-}
-
-.setup-avatar span {
-  font-size: 16px;
-  opacity: 0.9;
-}
-
-h1 {
-  font-size: 36px;
-  margin-bottom: 30px;
-  letter-spacing: 2px;
-}
-
-@media (max-width: 768px) {
-  h1 {
-    font-size: 28px;
-    margin-bottom: 20px;
-  }
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-label {
-  font-size: 16px;
-  font-weight: bold;
-  margin-bottom: 8px;
-  display: block;
-}
-
-input,
-select {
-  width: 100%;
-  padding: 12px;
-  font-size: 16px;
-  border: none;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-}
-
-input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.range-display {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 8px;
-  font-size: 14px;
+button,
+input {
+  font: inherit;
 }
 
 button {
-  width: 100%;
-  padding: 15px;
-  font-size: 18px;
-  font-weight: bold;
-  background: #4caf50;
-  color: white;
-  border: none;
-  border-radius: 8px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 14px;
+  color: #f8fbff;
   cursor: pointer;
-  transition: all 0.3s;
-}
-
-button:hover:not(:disabled) {
-  background: #45a049;
-  transform: translateY(-2px);
+  transition: transform .16s ease, border-color .16s ease, background .16s ease;
 }
 
 button:disabled {
-  background: #666;
   cursor: not-allowed;
-  opacity: 0.5;
+  opacity: .55;
 }
 
-.instructions {
-  margin-top: 20px;
-  padding: 15px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  font-size: 13px;
-}
-
-.instructions h3 {
-  margin-bottom: 10px;
-}
-
-.instructions ul {
-  padding-left: 20px;
-}
-
-.badge {
-  padding: 4px 8px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: bold;
-}
-
-/* 游戏界面 */
-.game {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  overflow: hidden;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: fill;
-  background-color: transparent;
-}
-
-.game[data-time='日'] {
-  background-image: url('https://opengameart.org/sites/default/files/entrance_-_brightly_lit.png');
-}
-
-.game[data-time='夜'] {
-  background-image: url('https://opengameart.org/sites/default/files/entrance_-_dark_night.png');
-}
-
-/* 状态栏 */
-.status-bar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 60px;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(10px);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 20px;
-  z-index: 100;
-}
-
-@media (max-width: 768px) {
-  .status-bar {
-    height: 50px;
-    padding: 0 12px;
-    flex-wrap: nowrap;
-  }
-}
-
-.affection {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-@media (max-width: 768px) {
-  .affection {
-    gap: 6px;
-    font-size: 14px;
-  }
-
-  .affection>span:first-child {
-    display: none;
-  }
-}
-
-.progress-bar {
-  width: 150px;
-  height: 20px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-@media (max-width: 768px) {
-  .progress-bar {
-    width: 100px;
-    height: 16px;
-  }
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #ff6b9d, #ff4757);
-  transition: width 0.3s ease;
-}
-
-.time {
-  font-size: 18px;
-}
-
-/* 角色立绘 */
-.character-area {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: 20px;
-  width: 100vw;
-  max-height: 80vh;
-  aspect-ratio: 5/7;
-  z-index: 50;
-  pointer-events: none;
-}
-
-@media (max-width: 768px) {
-  .character-area {
-    bottom: 180px;
-    max-height: 50vh;
-    width: 80vw;
-  }
-}
-
-@media (max-width: 480px) {
-  .character-area {
-    bottom: 190px;
-    max-height: 40vh;
-  }
-}
-
-.character-image {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  filter: drop-shadow(0 0 20px rgba(0, 0, 0, 0.5));
-}
-
-/* 对话框 */
-.dialogue {
-  position: absolute;
-  bottom: 120px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 90%;
-  max-width: 700px;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 15px;
-  padding: 20px;
-  z-index: 90;
-}
-
-@media (max-width: 768px) {
-  .dialogue {
-    bottom: 90px;
-    width: 92%;
-    padding: 15px;
-    border-radius: 12px;
-  }
-}
-
-@media (max-width: 480px) {
-  .dialogue {
-    bottom: 80px;
-    padding: 12px;
-  }
-}
-
-.speaker {
-  color: #ff6b9d;
-  font-size: 18px;
-  margin-bottom: 10px;
-  font-weight: bold;
-}
-
-@media (max-width: 768px) {
-  .speaker {
-    font-size: 16px;
-    margin-bottom: 8px;
-  }
-}
-
-.dialogue .content {
-  color: white;
-  font-size: 16px;
-  line-height: 1.6;
-  min-height: 60px;
-}
-
-@media (max-width: 768px) {
-  .dialogue .content {
-    font-size: 14px;
-    line-height: 1.5;
-    min-height: 50px;
-  }
-}
-
-/* 输入区域 */
-.input-area {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 20px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.7));
-  display: flex;
-  gap: 10px;
-  z-index: 1000;
-}
-
-@media (max-width: 768px) {
-  .input-area {
-    padding: 12px;
-    gap: 8px;
-  }
-}
-
-.input-area input {
-  flex: 1;
-  padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 25px;
-  color: white;
-  font-size: 16px;
-  outline: none;
-}
-
-@media (max-width: 768px) {
-  .input-area input {
-    padding: 10px 14px;
-    font-size: 14px;
-  }
-}
-
-.input-area input:focus {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: #4caf50;
-}
-
-.input-area button {
-  width: auto;
-  padding: 12px 24px;
-  background: linear-gradient(135deg, #4caf50, #45a049);
-  border-radius: 25px;
-}
-
-@media (max-width: 768px) {
-  .input-area button {
-    padding: 10px 18px;
-    font-size: 14px;
-  }
-}
-
-/* 动画 */
-.loading {
-  animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+button:not(:disabled):active {
+  transform: scale(.98);
 }
 
 [x-cloak] {
   display: none !important;
 }
 
-[x-transition] {
-  transition: all 0.3s ease;
+.loading-screen,
+.start-screen,
+.game-shell {
+  height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+.loading-screen,
+.start-screen {
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background:
+    radial-gradient(circle at top left, rgba(120, 87, 255, .38), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(0, 223, 255, .2), transparent 38%),
+    #070914;
+}
+
+.loading-card,
+.start-card,
+.panel,
+.control-dock,
+.top-bar {
+  border: 1px solid rgba(146, 170, 255, .24);
+  background: rgba(13, 18, 38, .82);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, .36);
+  backdrop-filter: blur(16px);
+}
+
+.loading-card {
+  min-width: 260px;
+  padding: 32px;
+  text-align: center;
+  border-radius: 24px;
+}
+
+.spinner {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 18px;
+  border: 4px solid rgba(255, 255, 255, .18);
+  border-top-color: #71f3ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.start-card {
+  width: min(760px, 100%);
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 28px;
+  border-radius: 28px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #74f6ff;
+  font-size: 13px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 12px;
+  font-size: clamp(36px, 8vw, 68px);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  text-shadow: 0 0 26px rgba(113, 243, 255, .34);
+}
+
+.intro,
+.rules-box,
+.role,
+.quest-text,
+.skill-chip small {
+  color: #aeb9d6;
+  line-height: 1.6;
+}
+
+.field-label {
+  display: block;
+  margin: 18px 0 8px;
+  color: #dce5ff;
+  font-weight: 700;
+}
+
+.text-input,
+.free-input input {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid rgba(166, 188, 255, .28);
+  border-radius: 14px;
+  outline: none;
+  background: rgba(255, 255, 255, .08);
+  color: #fff;
+  padding: 0 14px;
+}
+
+.text-input:focus,
+.free-input input:focus {
+  border-color: #71f3ff;
+  box-shadow: 0 0 0 3px rgba(113, 243, 255, .12);
+}
+
+.character-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.character-card {
+  display: grid;
+  gap: 8px;
+  min-height: 130px;
+  padding: 14px;
+  border: 1px solid rgba(166, 188, 255, .2);
+  background: rgba(255, 255, 255, .06);
+  text-align: left;
+}
+
+.character-card.selected {
+  border-color: #71f3ff;
+  background: linear-gradient(135deg, rgba(113, 243, 255, .2), rgba(160, 104, 255, .2));
+}
+
+.portrait-mark,
+.avatar-orb {
+  display: grid;
+  place-items: center;
+  color: #07101a;
+  font-weight: 900;
+  background: linear-gradient(135deg, #78f6ff, #ff78d2);
+}
+
+.portrait-mark {
+  width: 46px;
+  height: 46px;
+  border-radius: 15px;
+  font-size: 12px;
+}
+
+.character-card small {
+  color: #aeb9d6;
+}
+
+.rules-box {
+  margin: 18px 0;
+  padding: 14px;
+  border: 1px solid rgba(113, 243, 255, .18);
+  border-radius: 16px;
+  background: rgba(113, 243, 255, .06);
+}
+
+.rules-box p {
+  margin: 6px 0 0;
+}
+
+.primary-btn,
+.choice-btn,
+.free-input button {
+  background: linear-gradient(135deg, #5e6bff, #d65bff);
+  font-weight: 800;
+}
+
+.game-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  background:
+    linear-gradient(rgba(7, 9, 20, .78), rgba(7, 9, 20, .9)),
+    radial-gradient(circle at 50% 20%, rgba(113, 243, 255, .2), transparent 30%),
+    linear-gradient(135deg, #10172d, #11071f 55%, #07151b);
+}
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 54px;
+  padding: 0 14px;
+  border-radius: 18px;
+}
+
+.mode-dot {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: #9da8bf;
+}
+
+.mode-dot.online {
+  background: #52ff96;
+  box-shadow: 0 0 14px #52ff96;
+}
+
+.mode-dot.offline {
+  background: #ffcf5a;
+  box-shadow: 0 0 14px #ffcf5a;
+}
+
+.small-btn,
+.ghost-btn {
+  padding: 0 14px;
+  background: rgba(255, 255, 255, .08);
+  border: 1px solid rgba(255, 255, 255, .16);
+}
+
+.rpg-layout {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 290px minmax(0, 1fr) 280px;
+  gap: 12px;
+}
+
+.panel {
+  min-height: 0;
+  border-radius: 22px;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.character-panel,
+.mind-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.avatar-orb {
+  width: 92px;
+  height: 92px;
+  border-radius: 28px;
+  font-size: 22px;
+  box-shadow: 0 0 28px rgba(113, 243, 255, .24);
+}
+
+.stat-list,
+.skill-list,
+.tag-list {
+  display: grid;
+  gap: 9px;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: 42px 1fr 30px;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.stat-bar {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .1);
+}
+
+.stat-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #71f3ff, #ff78d2);
+}
+
+.skill-chip {
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .06);
+}
+
+.skill-chip strong,
+.skill-chip small {
+  display: block;
+}
+
+.story-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.scene-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  color: #74f6ff;
+  font-weight: 800;
+}
+
+.scroll-area {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 6px;
+}
+
+.log-entry {
+  margin: 0 0 11px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .06);
+  border-left: 3px solid rgba(255, 255, 255, .2);
+}
+
+.log-entry span {
+  display: block;
+  margin-bottom: 5px;
+  color: #74f6ff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.log-entry p {
+  margin: 0;
+  line-height: 1.65;
+}
+
+.log-entry.player { border-left-color: #52ff96; }
+.log-entry.advice { border-left-color: #ffcf5a; }
+.log-entry.mind { border-left-color: #ff78d2; background: rgba(255, 120, 210, .08); }
+.log-entry.system { border-left-color: #8d96ff; }
+.log-entry.speech { border-left-color: #71f3ff; }
+
+.thinking-line {
+  padding: 12px;
+  color: #ffcf5a;
+  animation: pulse 1.2s infinite;
+}
+
+@keyframes pulse {
+  50% { opacity: .55; }
+}
+
+.mind-box {
+  min-height: 120px;
+  padding: 14px;
+  border-radius: 18px;
+  color: #ffe6f7;
+  line-height: 1.7;
+  background: linear-gradient(135deg, rgba(255, 120, 210, .16), rgba(113, 243, 255, .08));
+}
+
+.tag-list span {
+  padding: 9px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .08);
+  color: #dce5ff;
+  font-size: 13px;
+}
+
+.control-dock {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 22px;
+}
+
+.switch-row,
+.choice-row,
+.free-input {
+  display: flex;
+  gap: 8px;
+}
+
+.toggle-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, .08);
+  border: 1px solid rgba(255, 255, 255, .16);
+  font-weight: 900;
+}
+
+.toggle-btn.active:first-child {
+  background: linear-gradient(135deg, #12c978, #5e6bff);
+}
+
+.toggle-btn.active:last-child {
+  background: linear-gradient(135deg, #ffb13c, #d65bff);
+}
+
+.choice-row {
+  overflow-x: auto;
+  overscroll-behavior: contain;
+  padding-bottom: 2px;
+}
+
+.choice-btn {
+  flex: 0 0 auto;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
+.free-input input {
+  flex: 1;
+}
+
+.free-input button {
+  flex: 0 0 auto;
+  padding: 0 15px;
+}
+
+@media (max-width: 980px) {
+  .rpg-layout {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+  .mind-panel {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .game-shell {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .top-bar {
+    font-size: 13px;
+  }
+
+  .rpg-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .character-panel {
+    display: grid;
+    grid-template-columns: 72px 1fr;
+    gap: 8px 12px;
+    padding: 12px;
+  }
+
+  .avatar-orb {
+    width: 64px;
+    height: 64px;
+    border-radius: 20px;
+    font-size: 16px;
+    grid-row: span 2;
+  }
+
+  .character-panel h2,
+  .character-panel .role {
+    margin: 0;
+  }
+
+  .stat-list,
+  .skill-list,
+  .character-panel h3 {
+    display: none;
+  }
+
+  .panel {
+    border-radius: 18px;
+  }
+
+  .start-card {
+    padding: 20px;
+  }
+
+  .character-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .free-input {
+    display: grid;
+    grid-template-columns: 1fr auto;
+  }
+
+  .ghost-btn {
+    grid-column: 1 / -1;
+  }
 }

@@ -1,61 +1,98 @@
 /**
- * 存档管理 — 保存/恢复游戏设置和进度
+ * 存档管理：dzmm.kv 优先，localStorage 防御性兜底。
  */
+window.GameModules = window.GameModules || {};
+
 window.GameModules.storage = {
-  /**
-   * 保存玩家设置到 KV
-   */
-  async saveSettings(store) {
-    try {
-      await window.dzmm.kv.put('galgame-settings', {
-        player_name: store.player_name,
-        relationship: store.relationship,
-        initial_affection: store.initial_affection,
-      });
-    } catch (e) { console.warn('[SDK] kv.put settings failed:', e.message); }
-  },
+  key: 'control-rpg-save',
 
-  /**
-   * 从 KV 恢复玩家设置
-   */
-  async loadSettings(store) {
+  async put(value) {
     try {
-      const saved = await window.dzmm.kv.get('galgame-settings');
-      if (saved?.value) {
-        if (saved.value.relationship) store.relationship = saved.value.relationship;
-        if (typeof saved.value.initial_affection === 'number') {
-          store.initial_affection = saved.value.initial_affection;
-        }
+      if (window.dzmm?.kv) {
+        await window.dzmm.kv.put(this.key, value);
+        return;
       }
-    } catch (e) { console.warn('[SDK] kv.get settings failed:', e.message); }
-  },
-
-  /**
-   * 从聊天记录恢复游戏进度
-   */
-  async restoreProgress(store) {
-    try {
-      const messages = await window.dzmm.chat.list();
-
-      if (messages && messages.length > 0) {
-        for (let i = messages.length - 1; i >= 0; i--) {
-          if (messages[i].role === 'assistant') {
-            const parsed = window.GameModules.ai.parseAIResponse(messages[i].content);
-            if (parsed.ready) {
-              window.GameModules.ai.updateGameState(store, parsed.state);
-              store.chat_content = parsed.dialogue;
-              store.started = true;
-              break;
-            }
-          }
-        }
-
-        if (!store.started && messages.length > 0) {
-          store.started = true;
-        }
-      }
-    } catch (error) {
-      console.warn('读取存档失败:', error.message);
+    } catch (err) {
+      console.warn('KV 保存失败:', err.code, err.message);
     }
+
+    try {
+      localStorage.setItem(this.key, JSON.stringify(value));
+    } catch (_) {
+      // 沙箱环境可能禁用 localStorage，忽略即可。
+    }
+  },
+
+  async get() {
+    try {
+      if (window.dzmm?.kv) {
+        const data = await window.dzmm.kv.get(this.key);
+        if (data?.value) return data.value;
+      }
+    } catch (err) {
+      console.warn('KV 读取失败:', err.code, err.message);
+    }
+
+    try {
+      const raw = localStorage.getItem(this.key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) {
+      return null;
+    }
+  },
+
+  async remove() {
+    try {
+      if (window.dzmm?.kv) await window.dzmm.kv.delete(this.key);
+    } catch (err) {
+      console.warn('KV 删除失败:', err.code, err.message);
+    }
+
+    try {
+      localStorage.removeItem(this.key);
+    } catch (_) {
+      // 忽略。
+    }
+  },
+
+  snapshot(store) {
+    return {
+      started: store.started,
+      playerName: store.playerName,
+      selectedCharacterId: store.selectedCharacterId,
+      online: store.online,
+      turn: store.turn,
+      sceneTitle: store.sceneTitle,
+      mood: store.mood,
+      trust: store.trust,
+      resistance: store.resistance,
+      quest: store.quest,
+      mindText: store.mindText,
+      choices: store.choices,
+      log: store.log.slice(-30),
+      characterStats: store.character.stats,
+    };
+  },
+
+  restore(store, save) {
+    if (!save?.started) return false;
+    store.playerName = save.playerName || store.playerName;
+    store.selectedCharacterId = save.selectedCharacterId || store.selectedCharacterId;
+    store.online = save.online ?? store.online;
+    store.turn = save.turn || 1;
+    store.sceneTitle = save.sceneTitle || store.sceneTitle;
+    store.mood = save.mood || store.mood;
+    store.trust = save.trust ?? store.trust;
+    store.resistance = save.resistance ?? store.resistance;
+    store.quest = save.quest || store.quest;
+    store.mindText = save.mindText || store.mindText;
+    store.choices = save.choices || store.choices;
+    store.log = save.log || store.log;
+    store.started = true;
+
+    if (save.characterStats) {
+      Object.assign(store.character.stats, save.characterStats);
+    }
+    return true;
   },
 };

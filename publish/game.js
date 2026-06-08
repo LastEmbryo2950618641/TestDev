@@ -1,105 +1,165 @@
 /**
- * Galgame 恋爱游戏 — 主入口
- *
- * 组装各模块到 Alpine store，处理初始化和用户交互
- * 模块依赖：config.js, prompt.js, ai.js, storage.js
+ * 主入口：Alpine store 与玩家交互。
  */
+if (window.parent !== window) window.parent.postMessage('iframe:content-ready', '*');
 
-// 通知父窗口 iframe 已准备好
-if (window.parent !== window) {
-  window.parent.postMessage('iframe:content-ready', '*');
-}
-
-// 等待 DZMM API 就绪
 const dzmmReady = new Promise((resolve) => {
+  if (window.dzmm) return resolve();
   window.addEventListener('message', function handler(event) {
     if (event.data?.type === 'dzmm:ready') {
       window.removeEventListener('message', handler);
       resolve();
     }
   });
+  setTimeout(resolve, 1200);
 });
 
 document.addEventListener('alpine:init', () => {
   const cfg = window.GameModules.config;
 
   Alpine.store('game', {
-    // 游戏状态
-    started: false,
-    disabled: false,
     loading: true,
-
-    // 玩家配置
-    player_name: '',
-    initial_affection: cfg.initial_affection,
-    relationship: cfg.relationship,
-    input: '',
-
-    // 角色配置
-    character_name: cfg.character_name,
-    character_image: cfg.character_image,
+    busy: false,
+    started: false,
+    playerName: '',
     modelId: cfg.defaultModelId,
-    _userAvatar: null,
+    characters: cfg.characters,
+    selectedCharacterId: cfg.characters[0].id,
+    stats: cfg.stats,
+    online: true,
+    input: '',
+    turn: 1,
+    sceneTitle: '裂隙前厅',
+    mood: '冷静',
+    trust: 45,
+    resistance: 20,
+    quest: '确认操控连接',
+    mindText: '',
+    choices: cfg.openingChoices,
+    log: [],
+    nextId: 1,
 
-    // 游戏变量
-    current_affection: cfg.initial_affection,
-    current_time: '日',
-    current_mood: '普通',
-    chat_content: '',
-
-    /**
-     * 开始游戏
-     */
-    async start() {
-      this.current_affection = this.initial_affection;
-      this.started = true;
-      await window.GameModules.storage.saveSettings(this);
-      this.next();
+    get character() {
+      return this.characters.find((c) => c.id === this.selectedCharacterId) || this.characters[0];
     },
 
-    /**
-     * 初始化：获取用户信息、模型列表、恢复存档
-     */
     async init() {
-      this.loading = true;
       await dzmmReady;
-
-      // 获取用户信息自动填充
-      try {
-        const info = await window.dzmm.user.info();
-        if (info?.name && !this.player_name) this.player_name = info.name;
-        this._userAvatar = info?.avatarUrl || null;
-      } catch (e) { console.warn('[SDK] user.info failed:', e.message); }
-
-      // 获取可用模型
-      try {
-        const models = await window.dzmm.models.list();
-        const first = models?.models?.[0];
-        const id = models?.defaultModel || (typeof first === 'string' ? first : first?.internalName);
-        if (id) this.modelId = id;
-      } catch (e) { console.warn('[SDK] models.list failed:', e.message); }
-
-      // 恢复设置和进度
-      await window.GameModules.storage.loadSettings(this);
-      await window.GameModules.storage.restoreProgress(this);
+      await this.loadModelAndUser();
+      const save = await window.GameModules.storage.get();
+      window.GameModules.storage.restore(this, save);
       this.loading = false;
     },
 
-    /**
-     * 发送消息
-     */
-    async next() {
-      this.disabled = true;
+    async loadModelAndUser() {
       try {
-        const userMessage = this.input;
-        this.input = '';
-        this.chat_content = '<span class="loading">...</span>';
-        await window.GameModules.ai.requestAIResponse(this, userMessage);
-      } finally {
-        this.disabled = false;
+        const info = await window.dzmm?.user?.info?.();
+        if (info?.name && !this.playerName) this.playerName = info.name;
+      } catch (err) {
+        console.warn('读取用户信息失败:', err.code, err.message);
       }
+
+      try {
+        const result = await window.dzmm?.models?.list?.();
+        this.modelId = result?.defaultModel || result?.models?.[0]?.internalName || this.modelId;
+      } catch (err) {
+        console.warn('读取模型列表失败:', err.code, err.message);
+      }
+    },
+
+    selectCharacter(id) {
+      this.selectedCharacterId = id;
+    },
+
+    async start() {
+      this.started = true;
+      this.log = [];
+      this.turn = 1;
+      this.mindText = `${this.character.name}感觉到意识深处多了一道陌生的注视。`;
+      this.addLog('system', '系统', `操控链路已连接：${this.playerName} → ${this.character.name}`);
+      this.addLog('story', '旁白', `${this.character.name}在一座异常安静的前厅醒来。视野边缘闪烁着「上线」标记。`);
+      this.addLog('mind', `${this.character.name}的心理`, this.mindText);
+      await this.save();
+    },
+
+    setOnline(value) {
+      if (this.online === value) return;
+      this.online = value;
+      const text = value ? '操控者上线，角色身体行动权被接管。' : '操控者下线，角色重新获得身体控制权。';
+      this.addLog('system', '控制权', text);
+      this.save();
+    },
+
+    async submitFreeInput() {
+      const action = this.input.trim();
+      if (!action) return;
+      this.input = '';
+      await this.submitAction(action);
+    },
+
+    async autoplay() {
+      await this.submitAction(this.online ? '按照当前局势做最有效的行动' : '让角色完全自主决定下一步');
+    },
+
+    async submitAction(action) {
+      if (this.busy) return;
+      this.busy = true;
+      const speaker = this.online ? this.playerName : `${this.playerName}的建议`;
+      this.addLog(this.online ? 'player' : 'advice', speaker, action);
+
+      try {
+        await window.GameModules.ai.generate(this, action);
+      } finally {
+        this.busy = false;
+        this.turn += 1;
+        await this.save();
+        this.scrollLog();
+      }
+    },
+
+    applyResult(result) {
+      this.sceneTitle = result.sceneTitle;
+      this.mood = result.mood;
+      this.trust = result.trust;
+      this.resistance = result.resistance;
+      this.quest = result.quest;
+      this.choices = result.choices;
+      this.mindText = result.mind;
+      this.applyStatChanges(result.statChanges);
+      this.addLog('story', '旁白', result.narration);
+      if (result.speech) this.addLog('speech', this.character.name, result.speech);
+      this.addLog('mind', `${this.character.name}的心理`, result.mind);
+    },
+
+    applyStatChanges(changes) {
+      Object.entries(changes || {}).forEach(([key, delta]) => {
+        if (typeof this.character.stats[key] !== 'number') return;
+        this.character.stats[key] = Math.max(0, Math.min(100, this.character.stats[key] + delta));
+      });
+    },
+
+    addLog(type, speaker, text) {
+      this.log.push({ id: this.nextId++, type, speaker, text });
+      if (this.log.length > 40) this.log.shift();
+      this.scrollLog();
+    },
+
+    scrollLog() {
+      queueMicrotask(() => {
+        const el = this.$refs?.storyLog || document.querySelector('.story-log');
+        if (el) el.scrollTop = el.scrollHeight;
+      });
+    },
+
+    async save() {
+      await window.GameModules.storage.put(window.GameModules.storage.snapshot(this));
+    },
+
+    async resetGame() {
+      await window.GameModules.storage.remove();
+      location.reload();
     },
   });
 
-  queueMicrotask(() => Alpine.store('game').init?.());
+  queueMicrotask(() => Alpine.store('game').init());
 });

@@ -2,114 +2,136 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Galgame</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content, user-scalable=no">
+  <title>我狠狠操控</title>
   <link rel="stylesheet" href="style.css">
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  <!-- 游戏模块按依赖顺序加载 -->
   <script src="config.js"></script>
   <script src="prompt.js"></script>
-  <script src="ai.js"></script>
   <script src="storage.js"></script>
+  <script src="ai.js"></script>
   <script src="game.js"></script>
 </head>
 <body x-data="">
-  <!-- 加载中状态 -->
-  <div x-show="$store.game.loading" class="loading-container">
+  <div x-show="$store.game.loading" class="loading-screen">
     <div class="loading-card">
-      <div class="loading-spinner"></div>
-      <p>正在初始化游戏...</p>
+      <div class="spinner"></div>
+      <p>正在接入操控链路...</p>
     </div>
   </div>
 
-  <!-- 设置界面 -->
-  <div x-show="!$store.game.started && !$store.game.loading" x-transition class="setup">
-    <div class="card">
-      <h1>💝 恋爱物语</h1>
-      <div class="setup-avatar" x-show="$store.game._userAvatar">
-        <img :src="$store.game._userAvatar" class="avatar-img" />
-        <span x-text="$store.game.player_name || '玩家'"></span>
+  <section x-show="!$store.game.started && !$store.game.loading" class="start-screen" x-cloak>
+    <div class="start-card">
+      <p class="eyebrow">AI RPG 视觉小说</p>
+      <h1>我狠狠操控</h1>
+      <p class="intro">选择一个动漫角色作为被操控者。上线时，你接管身体，角色只能在心里想；下线时，控制权回到角色，她会按性格、属性和情绪自主行动。</p>
+
+      <label class="field-label">操控者代号</label>
+      <input class="text-input" x-model="$store.game.playerName" placeholder="输入你的名字或代号">
+
+      <label class="field-label">选择被操控角色</label>
+      <div class="character-grid">
+        <template x-for="char in $store.game.characters" :key="char.id">
+          <button class="character-card" :class="{ selected: $store.game.selectedCharacterId === char.id }" @click="$store.game.selectCharacter(char.id)">
+            <span class="portrait-mark" x-text="char.mark"></span>
+            <strong x-text="char.name"></strong>
+            <small x-text="char.role"></small>
+          </button>
+        </template>
       </div>
 
-      <div class="form-group">
-        <label>你的名字：</label>
-        <input x-model="$store.game.player_name" placeholder="请输入你的名字" />
+      <div class="rules-box">
+        <strong>核心规则</strong>
+        <p>上线：玩家决定下一步行动，被操控角色只能显示心理想法。</p>
+        <p>下线：角色夺回行动权，根据人格和状态自主推进剧情。</p>
       </div>
 
-      <div class="form-group">
-        <label>初始好感度：</label>
-        <input type="range" x-model="$store.game.initial_affection" min="0" max="100" />
-        <div class="range-display">
-          <span>冷淡 (0)</span>
-          <span class="badge" x-text="$store.game.initial_affection"></span>
-          <span>热情 (100)</span>
+      <button class="primary-btn" @click="$store.game.start()" :disabled="!$store.game.playerName || $store.game.busy">开始连接</button>
+    </div>
+  </section>
+
+  <main x-show="$store.game.started && !$store.game.loading" class="game-shell" x-cloak>
+    <header class="top-bar">
+      <div>
+        <span class="mode-dot" :class="$store.game.online ? 'online' : 'offline'"></span>
+        <strong x-text="$store.game.online ? '上线中：玩家接管身体' : '下线中：角色自主行动'"></strong>
+      </div>
+      <button class="small-btn" @click="$store.game.resetGame()">重新开始</button>
+    </header>
+
+    <section class="rpg-layout">
+      <aside class="panel character-panel">
+        <div class="avatar-orb" x-text="$store.game.character.mark"></div>
+        <h2 x-text="$store.game.character.name"></h2>
+        <p class="role" x-text="$store.game.character.role"></p>
+        <div class="stat-list">
+          <template x-for="stat in $store.game.stats" :key="stat.key">
+            <div class="stat-row">
+              <span x-text="stat.label"></span>
+              <div class="stat-bar"><i :style="`width: ${$store.game.character.stats[stat.key]}%`"></i></div>
+              <b x-text="$store.game.character.stats[stat.key]"></b>
+            </div>
+          </template>
         </div>
-      </div>
-
-      <div class="form-group">
-        <label>初始关系：</label>
-        <select x-model="$store.game.relationship">
-          <option value="同学">同学</option>
-          <option value="青梅竹马">青梅竹马</option>
-          <option value="初次见面">初次见面</option>
-          <option value="朋友">朋友</option>
-          <option value="前辈后辈">前辈后辈</option>
-        </select>
-      </div>
-
-      <button @click="$store.game.start()" :disabled="!$store.game.player_name">
-        💖 开始游戏
-      </button>
-
-      <div class="instructions">
-        <h3>游戏说明：</h3>
-        <ul>
-          <li>好感度会影响小樱对你的态度</li>
-          <li>不同的选择会改变好感度</li>
-          <li>达到100好感度会触发特殊剧情</li>
-          <li>注意观察小樱的心情变化</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <!-- 游戏界面 -->
-  <div x-show="$store.game.started && !$store.game.loading" x-transition class="game"
-    :data-time="$store.game.current_time">
-    <!-- 状态栏 -->
-    <div class="status-bar">
-      <div class="affection">
-        <span>💕 好感度</span>
-        <div class="progress-bar">
-          <div class="progress-fill" :style="`width: ${$store.game.current_affection || 0}%`"></div>
+        <h3>技能</h3>
+        <div class="skill-list">
+          <template x-for="skill in $store.game.character.skills" :key="skill.name">
+            <div class="skill-chip">
+              <strong x-text="skill.name"></strong>
+              <small x-text="skill.desc"></small>
+            </div>
+          </template>
         </div>
-        <span class="badge" x-text="$store.game.current_affection || 0"></span>
+      </aside>
+
+      <section class="panel story-panel">
+        <div class="scene-title">
+          <span x-text="$store.game.sceneTitle"></span>
+          <b x-text="`第 ${$store.game.turn} 回合`"></b>
+        </div>
+        <div class="story-log scroll-area" x-ref="storyLog">
+          <template x-for="entry in $store.game.log" :key="entry.id">
+            <article class="log-entry" :class="entry.type">
+              <span x-text="entry.speaker"></span>
+              <p x-text="entry.text"></p>
+            </article>
+          </template>
+          <div x-show="$store.game.busy" class="thinking-line">AI 正在推演剧情，约 20 秒...</div>
+        </div>
+      </section>
+
+      <aside class="panel mind-panel">
+        <h3>心理想法</h3>
+        <div class="mind-box" x-text="$store.game.mindText || '角色正在观察操控者的意图。'"></div>
+        <h3>状态</h3>
+        <div class="tag-list">
+          <span x-text="`情绪：${$store.game.mood}`"></span>
+          <span x-text="`信任：${$store.game.trust}`"></span>
+          <span x-text="`反抗：${$store.game.resistance}`"></span>
+        </div>
+        <h3>当前目标</h3>
+        <p class="quest-text" x-text="$store.game.quest"></p>
+      </aside>
+    </section>
+
+    <footer class="control-dock">
+      <div class="switch-row">
+        <button class="toggle-btn" :class="{ active: $store.game.online }" @click="$store.game.setOnline(true)" :disabled="$store.game.busy">上线</button>
+        <button class="toggle-btn" :class="{ active: !$store.game.online }" @click="$store.game.setOnline(false)" :disabled="$store.game.busy">下线</button>
       </div>
-      <div class="time">
-        <span x-text="$store.game.current_time === '夜' ? '🌙' : '☀️'"></span>
-        <span x-text="$store.game.current_time || '日'"></span>
+
+      <div class="choice-row">
+        <template x-for="choice in $store.game.choices" :key="choice">
+          <button class="choice-btn" @click="$store.game.submitAction(choice)" :disabled="$store.game.busy" x-text="choice"></button>
+        </template>
       </div>
-    </div>
 
-    <!-- 角色立绘 -->
-    <div class="character-area">
-      <img
-        :src="$store.game.character_image || 'https://opengameart.org/sites/default/files/illyustraciya_bez_nazvaniya_2.png'"
-        :alt="$store.game.character_name" class="character-image" />
-    </div>
-
-    <!-- 对话框 -->
-    <div class="dialogue">
-      <div class="speaker" x-text="$store.game.character_name"></div>
-      <div class="content" x-html="$store.game.chat_content || '对话加载中...'"></div>
-    </div>
-
-    <!-- 输入区域 -->
-    <div class="input-area">
-      <input x-model="$store.game.input" placeholder="输入你的回复..." :disabled="$store.game.disabled"
-        @keydown.enter="$store.game.next()" />
-      <button @click="$store.game.next()" :disabled="$store.game.disabled">发送</button>
-    </div>
-  </div>
+      <div class="free-input">
+        <input x-model="$store.game.input" :placeholder="$store.game.online ? '直接输入下一步行动...' : '给角色一句建议，然后让她自己决定...'" :disabled="$store.game.busy" @keydown.enter="$store.game.submitFreeInput()">
+        <button @click="$store.game.submitFreeInput()" :disabled="$store.game.busy || !$store.game.input.trim()">执行</button>
+        <button class="ghost-btn" @click="$store.game.autoplay()" :disabled="$store.game.busy">自由推进</button>
+      </div>
+    </footer>
+  </main>
 </body>
 </html>

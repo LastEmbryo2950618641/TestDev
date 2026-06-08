@@ -1,80 +1,88 @@
 /**
- * AI 交互 — 请求、解析响应、更新游戏状态
+ * AI 剧情请求与结果解析。
  */
+window.GameModules = window.GameModules || {};
+
 window.GameModules.ai = {
-  /**
-   * 请求 AI 回复
-   */
-  async requestAIResponse(store, userMessage) {
-    let content = '';
+  latestRequestId: 0,
 
-    const chatHistory = await window.dzmm.chat.list();
-
-    const messages = [
-      { role: 'user', content: window.GameModules.createSystemPrompt(store) },
-      ...chatHistory.map(msg => ({ role: msg.role, content: msg.content })),
-    ];
-
-    if (userMessage) {
-      messages.push({ role: 'user', content: userMessage });
+  async withRetry(fn, max = 3) {
+    for (let i = 0; i < max; i += 1) {
+      try {
+        return await fn();
+      } catch (err) {
+        const retryable = window.dzmm?.errors?.isDzmmError?.(err) && err.retryable;
+        if (!retryable || i === max - 1) throw err;
+        await new Promise((resolve) => setTimeout(resolve, 1000 * 2 ** i));
+      }
     }
-
-    await window.dzmm.completions(
-      { model: store.modelId, messages, maxTokens: 1500 },
-      async (newContent, done) => {
-        content = newContent;
-        const parsed = window.GameModules.ai.parseAIResponse(content);
-
-        if (parsed.ready) {
-          window.GameModules.ai.updateGameState(store, parsed.state);
-          store.chat_content = parsed.dialogue;
-        }
-
-        if (done && content) {
-          const messagesToSave = [];
-          if (userMessage) {
-            messagesToSave.push({ role: 'user', content: userMessage });
-          }
-          messagesToSave.push({ role: 'assistant', content });
-          await window.dzmm.chat.insert(null, messagesToSave);
-        }
-      },
-    );
   },
 
-  /**
-   * 解析 AI 回复中的 STATE 块
-   */
-  parseAIResponse(content) {
-    const stateMarker = '###STATE';
-    const endMarker = '###END';
-    const stateIndex = content.indexOf(stateMarker);
-    const endIndex = content.indexOf(endMarker, stateIndex + stateMarker.length);
-
-    if (stateIndex === -1 || endIndex === -1) {
-      return { ready: false };
-    }
-
-    const jsonRaw = content.slice(stateIndex + stateMarker.length, endIndex).trim();
+  async generate(store, action) {
+    const requestId = ++this.latestRequestId;
+    let buffer = '';
+    const messages = [{ role: 'user', content: window.GameModules.createSystemPrompt(store, action) }];
 
     try {
-      const state = JSON.parse(jsonRaw);
-      const dialogue = content.slice(endIndex + endMarker.length).trim();
-      return { ready: true, state, dialogue };
-    } catch (error) {
-      console.warn('状态解析失败:', error.message);
-      return { ready: false };
+      await this.withRetry(() => window.dzmm.completions({
+        model: store.modelId,
+        messages,
+        maxTokens: 1200,
+      }, (chunk, done) => {
+        if (requestId !== this.latestRequestId) return;
+        buffer += chunk;
+        if (!done) return;
+        store.applyResult(this.parse(buffer, store, action));
+      }));
+    } catch (err) {
+      console.error('AI 推演失败:', err.code, err.message, err.stack);
+      if (requestId === this.latestRequestId) {
+        store.applyResult(window.GameModules.createFallbackResult(store, action));
+      }
     }
   },
 
-  /**
-   * 根据 AI 返回的 state 更新游戏变量
-   */
-  updateGameState(store, state) {
-    if (typeof state.affection === 'number') {
-      store.current_affection = Math.max(0, Math.min(100, state.affection));
+  parse(content, store, action) {
+    try {
+      const start = content.indexOf('{');
+      const end = content.lastIndexOf('}');
+      if (start === -1 || end === -1) throw new Error('AI 没有返回 JSON');
+      const data = JSON.parse(content.slice(start, end + 1));
+      return this.normalize(data, store, action);
+    } catch (err) {
+      console.warn('AI 返回解析失败:', err.message);
+      return window.GameModules.createFallbackResult(store, action);
     }
-    if (state.mood) store.current_mood = state.mood;
-    if (state.time) store.current_time = state.time;
+  },
+
+  normalize(data, store, action) {
+    const fallback = window.GameModules.createFallbackResult(store, action);
+    const changes = data.statChanges || {};
+    return {
+      sceneTitle: String(data.sceneTitle || fallback.sceneTitle).slice(0, 12),
+      narration: String(data.narration || fallback.narration),
+      speech: String(data.speech || fallback.speech),
+      mind: String(data.mind || fallback.mind),
+      mood: ['冷静', '紧张', '愤怒', '动摇', '信任', '恐惧', '好奇', '坚定'].includes(data.mood) ? data.mood : fallback.mood,
+      trust: this.clampNumber(data.trust, fallback.trust),
+      resistance: this.clampNumber(data.resistance, fallback.resistance),
+      quest: String(data.quest || fallback.quest).slice(0, 24),
+      choices: Array.isArray(data.choices) && data.choices.length ? data.choices.slice(0, 5).map((x) => String(x).slice(0, 14)) : fallback.choices,
+      statChanges: {
+        will: this.clampDelta(changes.will),
+        sense: this.clampDelta(changes.sense),
+        charm: this.clampDelta(changes.charm),
+        combat: this.clampDelta(changes.combat),
+      },
+    };
+  },
+
+  clampNumber(value, fallback) {
+    return Math.max(0, Math.min(100, Number.isFinite(value) ? Math.round(value) : fallback));
+  },
+
+  clampDelta(value) {
+    if (!Number.isFinite(value)) return 0;
+    return Math.max(-3, Math.min(3, Math.round(value)));
   },
 };
