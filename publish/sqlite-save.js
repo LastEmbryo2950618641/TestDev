@@ -24,6 +24,20 @@ window.GameModules.sqliteSave = {
     await this.persist();
   },
 
+  async inspectSlot(slot) {
+    await this.init();
+    const raw = await this.readRaw(slot);
+    if (!raw) return { slot, exists: false, savedAt: '' };
+    const db = new this.SQL.Database(this.fromBase64(raw));
+    let savedAt = '';
+    try {
+      const row = db.exec('SELECT updated_at FROM game_state WHERE key="main" LIMIT 1')?.[0]?.values?.[0];
+      savedAt = row?.[0] || '';
+    } catch (_) { /* 忽略 */ }
+    db.close();
+    return { slot, exists: true, savedAt };
+  },
+
   migrate() {
     this.db.run(`
       CREATE TABLE IF NOT EXISTS metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);

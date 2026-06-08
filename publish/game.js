@@ -26,6 +26,8 @@ document.addEventListener('alpine:init', () => {
     saveSlots: window.GameModules.storage.slots,
     savePanelOpen: false,
     saveMessage: '',
+    saveMetas: {},
+    characterTab: 'profile',
     modelId: cfg.defaultModelId,
     characters: cfg.characters,
     works: [],
@@ -78,6 +80,7 @@ document.addEventListener('alpine:init', () => {
       await dzmmReady;
       await this.loadCatalog();
       await this.loadModelAndUser();
+      await this.refreshSaveMetas();
       await window.GameModules.storage.open(this.selectedSlot);
       const save = await window.GameModules.storage.get();
       window.GameModules.storage.restore(this, save);

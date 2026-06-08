@@ -34,6 +34,10 @@
 }
 
 .slot-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
 
 .slot-btn,
 .ghost-wide {
@@ -89,15 +93,87 @@
 
 .save-slot-item.active {
   border-color: #71f3ff;
+  background: rgba(113, 243, 255, .1);
 }
 
-.save-slot-item button {
+.save-slot-item.empty {
+  opacity: .76;
+}
+
+.save-slot-info {
+  display: grid;
+  gap: 3px;
+}
+
+.save-slot-info span {
+  color: #71f3ff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.save-slot-info small {
+  color: #aeb9d6;
+  font-size: 11px;
+}
+
+.save-slot-actions button {
   min-height: 34px;
   padding: 0 12px;
   margin-left: 6px;
+  border-radius: 10px;
+  font-weight: 900;
+}
+
+.save-slot-actions .load-btn {
+  background: #dce7ff;
+  border: 1px solid #dce7ff;
+  color: #14203d;
+}
+
+.save-slot-actions .overwrite-btn {
+  background: #ffcb66;
+  border: 1px solid #ffcb66;
+  color: #2d1600;
+}
+
+.save-slot-actions button:disabled {
+  opacity: .45;
+}
+
+.profile-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.profile-tabs button {
+  min-height: 36px;
+  border: 1px solid rgba(255, 255, 255, .14);
   background: rgba(255, 255, 255, .08);
-  border: 1px solid rgba(255, 255, 255, .16);
-  color: #eef3ff;
+  color: #cdd7f4;
+  font-weight: 900;
+}
+
+.profile-tabs button.active {
+  border-color: #71f3ff;
+  background: linear-gradient(135deg, rgba(113, 243, 255, .22), rgba(160, 104, 255, .2));
+  color: #fff;
+}
+
+.profile-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .06);
+}
+
+.profile-card p {
+  margin: 0;
+  color: #aeb9d6;
+  line-height: 1.55;
+  font-size: 13px;
 }
 
 .character-grid {

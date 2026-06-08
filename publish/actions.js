@@ -44,6 +44,7 @@ window.GameModules.actions = {
 
   async save() {
     await window.GameModules.storage.put(window.GameModules.storage.snapshot(this));
+    if (this.refreshSaveMetas) await this.refreshSaveMetas();
   },
 
   async resetGame() {

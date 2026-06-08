@@ -4,6 +4,22 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.saveActions = {
+  async refreshSaveMetas() {
+    const entries = await Promise.all(this.saveSlots.map(async (slot) => [slot, await window.GameModules.sqliteSave.inspectSlot(slot)]));
+    this.saveMetas = Object.fromEntries(entries);
+  },
+
+  saveMeta(slot) {
+    return this.saveMetas[slot] || { slot, exists: false, savedAt: '' };
+  },
+
+  formatSaveTime(value) {
+    if (!value) return '无存档';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '时间未知';
+    return date.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  },
+
   async openSlot(slot) {
     this.selectedSlot = slot;
     await window.GameModules.storage.open(slot);
@@ -15,8 +31,9 @@ window.GameModules.saveActions = {
   },
 
   async loadSlot(slot) {
-    if (this.busy) return;
+    if (this.busy || !this.saveMeta(slot).exists) return;
     await this.openSlot(slot);
+    await this.refreshSaveMetas();
     this.saveMessage = `已读取 ${slot}`;
     this.savePanelOpen = false;
   },
@@ -34,6 +51,7 @@ window.GameModules.saveActions = {
     this.loadSavedRpgStates();
     await this.ensureRpgForCurrentCharacter();
     await this.save();
+    await this.refreshSaveMetas();
     this.saveMessage = `已删除旧档并覆盖保存 ${slot}`;
   },
 
