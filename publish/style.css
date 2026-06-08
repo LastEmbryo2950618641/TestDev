@@ -159,6 +159,17 @@ h1 {
   box-shadow: 0 0 0 3px rgba(113, 243, 255, .12);
 }
 
+select.text-input {
+  background: #151b35;
+  color: #eef3ff;
+  color-scheme: dark;
+}
+
+select.text-input option {
+  background: #151b35;
+  color: #eef3ff;
+}
+
 .rules-box {
   margin: 18px 0;
   padding: 14px;
