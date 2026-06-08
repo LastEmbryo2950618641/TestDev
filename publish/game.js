@@ -38,6 +38,11 @@ document.addEventListener('alpine:init', () => {
     choices: cfg.openingChoices,
     log: [],
     nextId: 1,
+    ragQuery: '',
+    ragContext: '',
+    ragResults: [],
+    ragBusy: false,
+    ragError: '',
 
     get character() {
       return this.characters.find((c) => c.id === this.selectedCharacterId) || this.characters[0];
@@ -108,12 +113,37 @@ document.addEventListener('alpine:init', () => {
       this.addLog(this.online ? 'player' : 'advice', speaker, action);
 
       try {
+        await this.refreshRagContext(action);
         await window.GameModules.ai.generate(this, action);
       } finally {
         this.busy = false;
         this.turn += 1;
         await this.save();
         this.scrollLog();
+      }
+    },
+
+    async refreshRagContext(action) {
+      const query = `${action} ${this.sceneTitle} ${this.quest} ${this.character.name} Fate 圣杯战争`;
+      const results = await window.GameModules.rag.search(query, { limit: 3 });
+      this.ragResults = results;
+      this.ragContext = window.GameModules.rag.formatContext(results);
+    },
+
+    async searchLore() {
+      const query = this.ragQuery.trim();
+      if (!query || this.ragBusy) return;
+      this.ragBusy = true;
+      this.ragError = '';
+      try {
+        const results = await window.GameModules.rag.search(query, { limit: 5 });
+        this.ragResults = results;
+        this.ragContext = window.GameModules.rag.formatContext(results);
+      } catch (err) {
+        console.error('资料查询失败:', err.message, err.stack);
+        this.ragError = '资料查询失败，请稍后重试';
+      } finally {
+        this.ragBusy = false;
       }
     },
 

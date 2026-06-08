@@ -5,10 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content, user-scalable=no">
   <title>我狠狠操控</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="layout.css">
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <script src="config.js"></script>
   <script src="prompt.js"></script>
   <script src="storage.js"></script>
+  <script src="rag.js"></script>
   <script src="ai.js"></script>
   <script src="game.js"></script>
 </head>
@@ -111,6 +113,21 @@
         </div>
         <h3>当前目标</h3>
         <p class="quest-text" x-text="$store.game.quest"></p>
+        <h3>资料查询</h3>
+        <div class="lore-search">
+          <input x-model="$store.game.ragQuery" placeholder="查 Fate 资料..." @keydown.enter="$store.game.searchLore()">
+          <button @click="$store.game.searchLore()" :disabled="$store.game.ragBusy || !$store.game.ragQuery.trim()">查</button>
+        </div>
+        <p class="lore-error" x-show="$store.game.ragError" x-text="$store.game.ragError"></p>
+        <div class="lore-results scroll-area">
+          <template x-for="item in $store.game.ragResults" :key="`${item.path}-${item.chunk}`">
+            <article class="lore-item">
+              <strong x-text="`${item.novel} #${item.chunk}`"></strong>
+              <p x-text="item.text"></p>
+            </article>
+          </template>
+          <p class="empty-lore" x-show="!$store.game.ragResults.length">主线推进时会自动检索资料，也可以手动查询。</p>
+        </div>
       </aside>
     </section>
 

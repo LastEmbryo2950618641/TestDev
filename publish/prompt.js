@@ -29,6 +29,15 @@ mode=${state.online ? 'online' : 'offline'}
 技能=${character.skills.map((s) => `${s.name}:${s.desc}`).join('；')}
 玩家输入=${action || '无，继续推进'}
 
+RAG 检索到的 Fate 原作资料：
+${state.ragContext || '暂无资料。'}
+
+资料使用规则：
+1. 资料相关时优先贴合资料推进主线。
+2. 不要逐字复述长段原文，要改写成游戏剧情。
+3. 资料不足时允许原创，但不要伪称来自原作。
+4. 如果资料与当前原创角色冲突，以当前游戏角色设定为主，Fate 资料作为世界观参考。
+
 必须只返回合法 JSON，不要 Markdown，不要代码块。格式：
 {
   "sceneTitle":"当前场景标题，10字内",
