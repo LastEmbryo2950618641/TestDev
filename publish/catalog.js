@@ -8,10 +8,11 @@ window.GameModules.catalog = {
 
   async load() {
     if (this.data) return this.data;
-    const response = await fetch('./character-catalog.json');
-    if (!response.ok) throw new Error('角色目录加载失败');
-    this.data = await response.json();
-    return this.data;
+    if (window.GameData?.characterCatalog) {
+      this.data = window.GameData.characterCatalog;
+      return this.data;
+    }
+    throw new Error('角色目录未加载');
   },
 
   firstWork() {

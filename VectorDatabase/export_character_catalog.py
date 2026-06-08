@@ -105,7 +105,11 @@ def main():
             chars.sort(key=lambda c: c["name"])
             works.append({"name": work, "characters": chars})
 
-    json.dump({"version": "fate-character-catalog-v1", "works": works}, open(OUT_PATH, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
+    data = {"version": "fate-character-catalog-v1", "works": works}
+    json.dump(data, open(OUT_PATH, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
+    js_path = BASE_DIR.parent / "publish" / "character-catalog-data.js"
+    payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+    js_path.write_text(f"window.GameData = window.GameData || {{}};\nwindow.GameData.characterCatalog = {payload};\n", encoding="utf-8")
     print(f"导出 {sum(len(w['characters']) for w in works)} 个角色，{len(works)} 部作品到 {OUT_PATH}")
 
 

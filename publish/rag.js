@@ -8,10 +8,11 @@ window.GameModules.rag = {
 
   async load() {
     if (this.index) return this.index;
-    const response = await fetch('./rag-index.json');
-    if (!response.ok) throw new Error('RAG 索引加载失败');
-    this.index = await response.json();
-    return this.index;
+    if (window.GameData?.ragIndex) {
+      this.index = window.GameData.ragIndex;
+      return this.index;
+    }
+    throw new Error('RAG 索引未加载');
   },
 
   async search(query, options = {}) {

@@ -97,6 +97,9 @@ def main():
     }
     with open(OUT_PATH, "w", encoding="utf-8") as file:
         json.dump(data, file, ensure_ascii=False, separators=(",", ":"))
+    js_path = BASE_DIR.parent / "publish" / "rag-index.js"
+    payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+    js_path.write_text(f"window.GameData = window.GameData || {{}};\nwindow.GameData.ragIndex = {payload};\n", encoding="utf-8")
     print(f"导出 {len(items)} 条 RAG 索引到 {OUT_PATH}")
 
 
