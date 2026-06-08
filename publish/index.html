@@ -32,19 +32,38 @@
     </div>
   </div>
 
+  <button x-show="!$store.game.loading" class="save-fab" @click="$store.game.savePanelOpen = true" x-cloak>设置</button>
+
+  <section x-show="$store.game.savePanelOpen" class="save-modal-backdrop" @click.self="$store.game.savePanelOpen = false" x-cloak>
+    <div class="save-modal">
+      <header>
+        <strong>存档设置</strong>
+        <button class="small-btn" @click="$store.game.savePanelOpen = false">关闭</button>
+      </header>
+      <p>默认提供 10 个存档位。读取会切换到该存档；覆盖会清空该存档后保存当前进度。</p>
+      <div class="save-slot-list">
+        <template x-for="slot in $store.game.saveSlots" :key="slot">
+          <article class="save-slot-item" :class="{ active: $store.game.selectedSlot === slot }">
+            <b x-text="slot"></b>
+            <div>
+              <button @click="$store.game.loadSlot(slot)" :disabled="$store.game.busy">读取</button>
+              <button @click="$store.game.overwriteSlot(slot)" :disabled="$store.game.busy">覆盖</button>
+            </div>
+          </article>
+        </template>
+      </div>
+      <small x-show="$store.game.saveMessage" x-text="$store.game.saveMessage"></small>
+    </div>
+  </section>
+
   <section x-show="!$store.game.started && !$store.game.loading" class="start-screen" x-cloak>
     <div class="start-card">
       <p class="eyebrow">AI RPG 视觉小说</p>
       <h1>我狠狠操控</h1>
       <p class="intro">选择一个动漫角色作为被操控者。上线时，你接管身体，角色只能在心里想；下线时，控制权回到角色，她会按性格、属性和情绪自主行动。</p>
 
-      <label class="field-label">选择存档</label>
-      <div class="slot-row">
-        <template x-for="slot in $store.game.saveSlots" :key="slot">
-          <button class="slot-btn" :class="{ active: $store.game.selectedSlot === slot }" @click="$store.game.openSlot(slot)" x-text="slot"></button>
-        </template>
-      </div>
-      <button class="ghost-wide" @click="$store.game.newSlot($store.game.selectedSlot)">清空当前存档重新开始</button>
+      <label class="field-label">当前存档</label>
+      <button class="ghost-wide" @click="$store.game.savePanelOpen = true" x-text="`打开存档设置｜${$store.game.selectedSlot}`"></button>
 
       <label class="field-label">操控者代号</label>
       <input class="text-input" x-model="$store.game.playerName" placeholder="输入你的名字或代号">
@@ -97,7 +116,10 @@
         <span class="mode-dot" :class="$store.game.online ? 'online' : 'offline'"></span>
         <strong x-text="$store.game.online ? '上线中：玩家接管身体' : '下线中：角色自主行动'"></strong>
       </div>
-      <button class="small-btn" @click="$store.game.resetGame()">重新开始</button>
+      <div class="top-actions">
+        <button class="small-btn" @click="$store.game.savePanelOpen = true">存档</button>
+        <button class="small-btn" @click="$store.game.resetGame()">重新开始</button>
+      </div>
     </header>
 
     <section class="rpg-layout">

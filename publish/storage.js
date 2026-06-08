@@ -4,7 +4,7 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.storage = {
-  slots: ['slot-1', 'slot-2', 'slot-3'],
+  slots: Array.from({ length: 10 }, (_, index) => `slot-${index + 1}`),
 
   async open(slot) {
     await window.GameModules.sqliteSave.open(slot);

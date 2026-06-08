@@ -1,8 +1,39 @@
-.slot-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+.save-fab {
+  position: fixed;
+  top: max(10px, env(safe-area-inset-top));
+  right: max(10px, env(safe-area-inset-right));
+  z-index: 20;
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(113, 243, 255, .35);
+  background: rgba(13, 18, 38, .9);
+  color: #eef3ff;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .3);
 }
+
+.save-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(3, 5, 14, .72);
+}
+
+.save-modal {
+  width: min(520px, 100%);
+  max-height: min(720px, 86dvh);
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(146, 170, 255, .28);
+  border-radius: 20px;
+  background: #11182f;
+  overflow: hidden;
+}
+
+.slot-row {
 
 .slot-btn,
 .ghost-wide {
@@ -19,6 +50,54 @@
 .ghost-wide {
   width: 100%;
   margin-top: 8px;
+}
+
+.save-modal header,
+.save-slot-item,
+.top-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.top-actions {
+  justify-content: flex-end;
+}
+
+.save-modal p,
+.save-modal small {
+  margin: 0;
+  color: #aeb9d6;
+  line-height: 1.5;
+}
+
+.save-slot-list {
+  display: grid;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.save-slot-item {
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .06);
+}
+
+.save-slot-item.active {
+  border-color: #71f3ff;
+}
+
+.save-slot-item button {
+  min-height: 34px;
+  padding: 0 12px;
+  margin-left: 6px;
+  background: rgba(255, 255, 255, .08);
+  border: 1px solid rgba(255, 255, 255, .16);
+  color: #eef3ff;
 }
 
 .character-grid {

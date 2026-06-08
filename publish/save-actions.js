@@ -14,6 +14,29 @@ window.GameModules.saveActions = {
     await this.ensureRpgForCurrentCharacter();
   },
 
+  async loadSlot(slot) {
+    if (this.busy) return;
+    await this.openSlot(slot);
+    this.saveMessage = `已读取 ${slot}`;
+    this.savePanelOpen = false;
+  },
+
+  async overwriteSlot(slot) {
+    if (this.busy) return;
+    const states = Object.values(this.rpgStates);
+    await window.GameModules.storage.remove(slot);
+    this.selectedSlot = slot;
+    await window.GameModules.storage.open(slot);
+    for (const state of states) {
+      await window.GameModules.sqliteSave.saveSchema(state.worldTag, state.schema);
+      await window.GameModules.sqliteSave.saveCharacterState(state);
+    }
+    this.loadSavedRpgStates();
+    await this.ensureRpgForCurrentCharacter();
+    await this.save();
+    this.saveMessage = `已删除旧档并覆盖保存 ${slot}`;
+  },
+
   async newSlot(slot) {
     await window.GameModules.storage.remove(slot);
     this.selectedSlot = slot;

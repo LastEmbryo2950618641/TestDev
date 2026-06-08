@@ -60,14 +60,40 @@ window.GameModules.rpgState = {
         buffer += chunk;
         if (!done) return;
       });
-      const start = buffer.indexOf('{');
-      const end = buffer.lastIndexOf('}');
-      if (start === -1 || end === -1) throw new Error('schema JSON missing');
-      return this.validateSchema(JSON.parse(buffer.slice(start, end + 1)), worldTag);
+      return this.validateSchema(this.parseSchema(buffer), worldTag);
     } catch (err) {
       console.warn('RPG schema 生成失败，使用兜底:', err.message);
       return this.defaultSchema(worldTag);
     }
+  },
+
+  parseSchema(text) {
+    const raw = String(text || '').replace(/```json|```/g, '').trim();
+    const json = this.extractJson(raw);
+    const attempts = [json, json.replace(/[\u0000-\u001F]/g, '')];
+    for (const value of attempts) {
+      try { return JSON.parse(value); } catch (_) { /* 继续尝试 */ }
+    }
+    throw new Error('schema JSON parse failed');
+  },
+
+  extractJson(text) {
+    const start = text.indexOf('{');
+    if (start === -1) throw new Error('schema JSON missing');
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let i = start; i < text.length; i += 1) {
+      const ch = text[i];
+      if (escaped) { escaped = false; continue; }
+      if (ch === '\\') { escaped = true; continue; }
+      if (ch === '"') inString = !inString;
+      if (inString) continue;
+      if (ch === '{') depth += 1;
+      if (ch === '}') depth -= 1;
+      if (depth === 0) return text.slice(start, i + 1);
+    }
+    throw new Error('schema JSON incomplete');
   },
 
   schemaPrompt(worldTag) {

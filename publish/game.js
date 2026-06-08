@@ -24,6 +24,8 @@ document.addEventListener('alpine:init', () => {
     playerName: '',
     selectedSlot: 'slot-1',
     saveSlots: window.GameModules.storage.slots,
+    savePanelOpen: false,
+    saveMessage: '',
     modelId: cfg.defaultModelId,
     characters: cfg.characters,
     works: [],
