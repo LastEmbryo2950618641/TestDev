@@ -24,6 +24,8 @@ document.addEventListener('alpine:init', () => {
     playerName: '',
     modelId: cfg.defaultModelId,
     characters: cfg.characters,
+    works: [],
+    selectedWork: '',
     selectedCharacterId: cfg.characters[0].id,
     stats: cfg.stats,
     online: true,
@@ -45,15 +47,38 @@ document.addEventListener('alpine:init', () => {
     ragError: '',
 
     get character() {
-      return this.characters.find((c) => c.id === this.selectedCharacterId) || this.characters[0];
+      return window.GameModules.catalog.find(this.selectedCharacterId)
+        || this.characters.find((c) => c.id === this.selectedCharacterId)
+        || this.characters[0];
+    },
+
+    get workCharacters() {
+      return window.GameModules.catalog.characters(this.selectedWork);
+    },
+
+    get characterRefs() {
+      return this.character.refs || [];
     },
 
     async init() {
       await dzmmReady;
+      await this.loadCatalog();
       await this.loadModelAndUser();
       const save = await window.GameModules.storage.get();
       window.GameModules.storage.restore(this, save);
+      this.ensureCatalogSelection();
       this.loading = false;
+    },
+
+    async loadCatalog() {
+      try {
+        await window.GameModules.catalog.load();
+        this.works = window.GameModules.catalog.works();
+        this.selectedWork = this.selectedWork || window.GameModules.catalog.firstWork();
+        this.selectedCharacterId = window.GameModules.catalog.firstCharacter(this.selectedWork) || this.selectedCharacterId;
+      } catch (err) {
+        console.error('角色目录加载失败:', err.message, err.stack);
+      }
     },
 
     async loadModelAndUser() {
@@ -70,6 +95,20 @@ document.addEventListener('alpine:init', () => {
       } catch (err) {
         console.warn('读取模型列表失败:', err.code, err.message);
       }
+    },
+
+    ensureCatalogSelection() {
+      if (!this.works.some((work) => work.name === this.selectedWork)) {
+        this.selectedWork = window.GameModules.catalog.firstWork();
+      }
+      if (!window.GameModules.catalog.find(this.selectedCharacterId)) {
+        this.selectedCharacterId = window.GameModules.catalog.firstCharacter(this.selectedWork) || this.selectedCharacterId;
+      }
+    },
+
+    selectWork(name) {
+      this.selectedWork = name;
+      this.selectedCharacterId = window.GameModules.catalog.firstCharacter(name) || this.selectedCharacterId;
     },
 
     selectCharacter(id) {
@@ -123,30 +162,6 @@ document.addEventListener('alpine:init', () => {
       }
     },
 
-    async refreshRagContext(action) {
-      const query = `${action} ${this.sceneTitle} ${this.quest} ${this.character.name} Fate 圣杯战争`;
-      const results = await window.GameModules.rag.search(query, { limit: 3 });
-      this.ragResults = results;
-      this.ragContext = window.GameModules.rag.formatContext(results);
-    },
-
-    async searchLore() {
-      const query = this.ragQuery.trim();
-      if (!query || this.ragBusy) return;
-      this.ragBusy = true;
-      this.ragError = '';
-      try {
-        const results = await window.GameModules.rag.search(query, { limit: 5 });
-        this.ragResults = results;
-        this.ragContext = window.GameModules.rag.formatContext(results);
-      } catch (err) {
-        console.error('资料查询失败:', err.message, err.stack);
-        this.ragError = '资料查询失败，请稍后重试';
-      } finally {
-        this.ragBusy = false;
-      }
-    },
-
     applyResult(result) {
       this.sceneTitle = result.sceneTitle;
       this.mood = result.mood;
@@ -168,27 +183,7 @@ document.addEventListener('alpine:init', () => {
       });
     },
 
-    addLog(type, speaker, text) {
-      this.log.push({ id: this.nextId++, type, speaker, text });
-      if (this.log.length > 40) this.log.shift();
-      this.scrollLog();
-    },
-
-    scrollLog() {
-      queueMicrotask(() => {
-        const el = this.$refs?.storyLog || document.querySelector('.story-log');
-        if (el) el.scrollTop = el.scrollHeight;
-      });
-    },
-
-    async save() {
-      await window.GameModules.storage.put(window.GameModules.storage.snapshot(this));
-    },
-
-    async resetGame() {
-      await window.GameModules.storage.remove();
-      location.reload();
-    },
+    ...window.GameModules.actions,
   });
 
   queueMicrotask(() => Alpine.store('game').init());

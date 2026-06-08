@@ -5,13 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content, user-scalable=no">
   <title>我狠狠操控</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="character-select.css">
   <link rel="stylesheet" href="layout.css">
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <script src="config.js"></script>
   <script src="prompt.js"></script>
   <script src="storage.js"></script>
   <script src="rag.js"></script>
+  <script src="catalog.js"></script>
   <script src="ai.js"></script>
+  <script src="actions.js"></script>
   <script src="game.js"></script>
 </head>
 <body x-data="">
@@ -31,14 +34,35 @@
       <label class="field-label">操控者代号</label>
       <input class="text-input" x-model="$store.game.playerName" placeholder="输入你的名字或代号">
 
-      <label class="field-label">选择被操控角色</label>
-      <div class="character-grid">
-        <template x-for="char in $store.game.characters" :key="char.id">
-          <button class="character-card" :class="{ selected: $store.game.selectedCharacterId === char.id }" @click="$store.game.selectCharacter(char.id)">
-            <span class="portrait-mark" x-text="char.mark"></span>
-            <strong x-text="char.name"></strong>
-            <small x-text="char.role"></small>
-          </button>
+      <label class="field-label">选择作品</label>
+      <select class="text-input" x-model="$store.game.selectedWork" @change="$store.game.selectWork($event.target.value)">
+        <template x-for="work in $store.game.works" :key="work.name">
+          <option :value="work.name" x-text="work.name"></option>
+        </template>
+      </select>
+
+      <label class="field-label">选择可操控角色</label>
+      <select class="text-input" x-model="$store.game.selectedCharacterId">
+        <template x-for="char in $store.game.workCharacters" :key="char.id">
+          <option :value="char.id" x-text="`${char.name}｜${char.role}`"></option>
+        </template>
+      </select>
+
+      <div class="character-detail-card">
+        <div class="portrait-mark" x-text="$store.game.character.mark"></div>
+        <div>
+          <strong x-text="$store.game.character.name"></strong>
+          <small x-text="`${$store.game.character.work || '原创'}｜${$store.game.character.role}`"></small>
+          <p x-text="$store.game.character.detail || $store.game.character.personality"></p>
+        </div>
+      </div>
+
+      <div class="ref-list" x-show="$store.game.characterRefs.length">
+        <template x-for="ref in $store.game.characterRefs" :key="`${ref.novel}-${ref.chunk}`">
+          <article>
+            <strong x-text="`${ref.novel} #${ref.chunk}`"></strong>
+            <p x-text="ref.text"></p>
+          </article>
         </template>
       </div>
 

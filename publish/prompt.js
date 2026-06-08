@@ -8,7 +8,7 @@ window.GameModules.createSystemPrompt = function createSystemPrompt(state, actio
   return `你是 AI RPG 视觉小说《我狠狠操控》的剧情引擎。
 
 核心设定：
-玩家不是角色本人，而是名为「${state.playerName}」的操控者。被操控角色是 ${character.name}，身份是${character.role}。性格：${character.personality}
+玩家不是角色本人，而是名为「${state.playerName}」的操控者。被操控角色是 ${character.name}，出自《${character.work || '原创世界'}》，身份是${character.role}。性格/资料：${character.detail || character.personality}
 
 强制规则：
 1. mode 为 online 时，玩家已经上线接管身体。${character.name}不能自主活动，只能产生心理想法。剧情行动必须来自玩家指令。

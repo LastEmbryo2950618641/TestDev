@@ -1,0 +1,93 @@
+.character-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.character-card {
+  display: grid;
+  gap: 8px;
+  min-height: 130px;
+  padding: 14px;
+  border: 1px solid rgba(166, 188, 255, .2);
+  background: rgba(255, 255, 255, .06);
+  text-align: left;
+}
+
+.character-card.selected {
+  border-color: #71f3ff;
+  background: linear-gradient(135deg, rgba(113, 243, 255, .2), rgba(160, 104, 255, .2));
+}
+
+.portrait-mark,
+.avatar-orb {
+  display: grid;
+  place-items: center;
+  color: #07101a;
+  font-weight: 900;
+  background: linear-gradient(135deg, #78f6ff, #ff78d2);
+}
+
+.portrait-mark {
+  width: 46px;
+  height: 46px;
+  border-radius: 15px;
+  font-size: 12px;
+}
+
+.character-card small {
+  color: #aeb9d6;
+}
+
+.character-detail-card {
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid rgba(113, 243, 255, .18);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .06);
+}
+
+.character-detail-card strong,
+.character-detail-card small {
+  display: block;
+}
+
+.character-detail-card small,
+.character-detail-card p,
+.ref-list p {
+  color: #aeb9d6;
+  line-height: 1.55;
+}
+
+.character-detail-card p {
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+
+.ref-list {
+  display: grid;
+  gap: 8px;
+  max-height: 150px;
+  margin-top: 10px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ref-list article {
+  padding: 9px;
+  border-radius: 12px;
+  background: rgba(113, 243, 255, .07);
+}
+
+.ref-list strong {
+  color: #74f6ff;
+  font-size: 12px;
+}
+
+.ref-list p {
+  margin: 4px 0 0;
+  font-size: 12px;
+}

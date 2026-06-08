@@ -59,6 +59,7 @@ window.GameModules.storage = {
     return {
       started: store.started,
       playerName: store.playerName,
+      selectedWork: store.selectedWork,
       selectedCharacterId: store.selectedCharacterId,
       online: store.online,
       turn: store.turn,
@@ -77,6 +78,7 @@ window.GameModules.storage = {
   restore(store, save) {
     if (!save?.started) return false;
     store.playerName = save.playerName || store.playerName;
+    store.selectedWork = save.selectedWork || store.selectedWork;
     store.selectedCharacterId = save.selectedCharacterId || store.selectedCharacterId;
     store.online = save.online ?? store.online;
     store.turn = save.turn || 1;
