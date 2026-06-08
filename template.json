@@ -1,0 +1,5 @@
+{
+  "id": "galgame-template",
+  "name": "Galgame 恋爱游戏",
+  "description": "AI 驱动的视觉小说/恋爱游戏模板，使用 Alpine.js + DZMM Chat API，支持好感度系统和自动存档"
+}
