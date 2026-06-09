@@ -56,7 +56,8 @@ window.GameModules.rag = {
       seen.add(key);
       const parts = items.filter((x) => x.novel === hit.novel && x.title === hit.title && Number(x.chunk) >= start && Number(x.chunk) <= end)
         .sort((a, b) => Number(a.chunk) - Number(b.chunk));
-      output.push({ ...hit, chunk: `${start}-${end}`, text: parts.map((x) => x.text).join('\n') || hit.text });
+      const text = this.paragraphExcerpt(parts.map((x) => x.text).join('\n'), hit.text);
+      output.push({ ...hit, chunk: `${start}-${end}`, text: text || this.paragraphExcerpt(hit.text) || hit.text });
     }
     return output;
   },
@@ -66,6 +67,35 @@ window.GameModules.rag = {
     const sourceHint = options.sourceHint || '';
     const items = (index.items || []).filter((item) => !sourceHint || this.sameSource(item.novel, sourceHint));
     return this.expandContext(refs.filter((ref) => items.some((item) => item.novel === ref.novel && item.title === ref.title && Number(item.chunk) === Number(ref.chunk))), items, options.contextRadius || 1);
+  },
+
+  paragraphExcerpt(text, fallback = '') {
+    const normalized = String(text || '').replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim();
+    const paragraphs = normalized.split(/\n\s*\n/).map((x) => this.trimToSentences(x)).filter((x) => x.length >= 24);
+    const full = paragraphs.filter((x) => this.isCleanStart(x) && this.isCleanEnd(x));
+    const picked = (full.length ? full : paragraphs).slice(0, 3).join('\n\n');
+    return picked || this.trimToSentences(fallback);
+  },
+
+  trimToSentences(text) {
+    const value = String(text || '').replace(/\s+/g, ' ').trim();
+    const sentences = value.match(/[^。！？]+[。！？]/g) || [];
+    while (sentences.length && !this.isCleanStart(sentences[0].trim())) sentences.shift();
+    const picked = [];
+    for (const sentence of sentences) {
+      if (picked.join('').length + sentence.length > 360) break;
+      picked.push(sentence.trim());
+      if (picked.length >= 5) break;
+    }
+    return picked.join(' ').trim();
+  },
+
+  isCleanStart(text) {
+    return !/^[，。！？、；：」”）\]】]|^(的|了|的话|但是|而且|因为|所以|这种|那人|她|他|我|不|总之|因此)[^。！？]{0,18}[，。]/.test(text);
+  },
+
+  isCleanEnd(text) {
+    return /[。！？」”）\]】]$/.test(text) && !/[，、：；]$/.test(text);
   },
 
   sameSource(novel, sourceHint) {
