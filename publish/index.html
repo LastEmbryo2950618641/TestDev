@@ -154,7 +154,7 @@
             </div>
           </div>
         </button>
-        <section class="compact-metrics dev-section" data-section-title="简洁数值栏">
+        <section class="compact-metrics dev-section" data-section-title="简洁数值栏" x-show="!$store.game.profileOpen">
           <button class="metrics-summary" @click="$store.game.metricsOpen = !$store.game.metricsOpen">
             <template x-for="metric in $store.game.summaryMetrics()" :key="metric[0]">
               <span><b x-text="metric[0]"></b><em x-text="metric[1]"></em></span>
