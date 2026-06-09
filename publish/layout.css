@@ -50,15 +50,15 @@
 
 .vital-bars {
   display: grid;
-  gap: 3px;
+  gap: 2px;
 }
 
 .vital-row {
   display: grid;
-  grid-template-columns: 20px minmax(36px, 1fr) 36px;
+  grid-template-columns: 18px minmax(32px, 1fr) 30px;
   align-items: center;
-  gap: 4px;
-  font-size: 9px;
+  gap: 3px;
+  font-size: 8px;
   font-weight: 900;
 }
 
@@ -79,7 +79,7 @@
 }
 
 .vital-row i {
-  height: 7px;
+  height: 5px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, .12);
   border-radius: 999px;
@@ -134,7 +134,7 @@
   }
 
   .top-bar {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .rpg-layout {
@@ -149,24 +149,24 @@
   }
 
   .character-status-card {
-    grid-template-columns: 36px minmax(0, 1fr);
-    gap: 6px;
-    padding: 6px;
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 5px;
+    padding: 4px;
   }
 
   .avatar-orb {
-    width: 36px;
-    height: 36px;
-    border-radius: 12px;
-    font-size: 12px;
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+    font-size: 10px;
   }
 
   .name-role-block h2 {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .vital-row {
-    grid-template-columns: 20px minmax(54px, 1fr) 36px;
+    grid-template-columns: 18px minmax(48px, 1fr) 30px;
   }
 
   .stat-list,
