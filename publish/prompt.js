@@ -32,6 +32,9 @@ mode=${state.online ? 'online' : 'offline'}
 RAG 检索到的 Fate 原作资料：
 ${state.ragContext || '暂无资料。'}
 
+当前人物记忆：
+${state.memoryContext || '暂无人物记忆。'}
+
 资料使用规则：
 1. 资料相关时优先贴合资料推进主线。
 2. 不要逐字复述长段原文，要改写成游戏剧情。

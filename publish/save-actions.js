@@ -41,12 +41,17 @@ window.GameModules.saveActions = {
   async overwriteSlot(slot) {
     if (this.busy) return;
     const states = Object.values(this.rpgStates);
+    const memories = states.map((state) => [state.id, window.GameModules.sqliteSave.getCharacterMemory(state.id), window.GameModules.sqliteSave.listMemoryArchives(state.id)]);
     await window.GameModules.storage.remove(slot);
     this.selectedSlot = slot;
     await window.GameModules.storage.open(slot);
     for (const state of states) {
       await window.GameModules.sqliteSave.saveSchema(state.worldTag, state.schema);
       await window.GameModules.sqliteSave.saveCharacterState(state);
+    }
+    for (const [id, memory, archives] of memories) {
+      if (memory) await window.GameModules.sqliteSave.saveCharacterMemory(id, memory);
+      for (const archive of archives) await window.GameModules.sqliteSave.saveMemoryArchive(id, archive);
     }
     this.loadSavedRpgStates();
     await this.ensureRpgForCurrentCharacter();

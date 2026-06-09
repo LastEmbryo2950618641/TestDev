@@ -35,6 +35,7 @@ document.addEventListener('alpine:init', () => {
     stats: cfg.stats,
     online: true,
     input: '',
+    lastAction: '',
     turn: 1,
     sceneTitle: '裂隙前厅',
     mood: '冷静',
@@ -47,6 +48,7 @@ document.addEventListener('alpine:init', () => {
     nextId: 1,
     ragQuery: '',
     ragContext: '',
+    memoryContext: '',
     ragResults: [],
     ragBusy: false,
     ragError: '',
@@ -140,7 +142,9 @@ document.addEventListener('alpine:init', () => {
       this.addLog(this.online ? 'player' : 'advice', speaker, action);
 
       try {
+        this.lastAction = action;
         await this.refreshRagContext(action);
+        this.memoryContext = await window.GameModules.characterMemory.contextFor(this, action);
         await window.GameModules.ai.generate(this, action);
       } finally {
         this.busy = false;
@@ -160,6 +164,7 @@ document.addEventListener('alpine:init', () => {
       this.choices = result.choices;
       this.mindText = result.mind;
       await this.applyStatChanges(result.statChanges);
+      await window.GameModules.characterMemory.recordTurn(this, result);
       this.addLog('story', '旁白', result.narration);
       if (result.speech) this.addLog('speech', this.character.name, result.speech);
       this.addLog('mind', `${this.character.name}的心理`, result.mind);
