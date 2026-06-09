@@ -253,11 +253,15 @@
 }
 
 .profile-card {
+  position: relative;
+  z-index: 2;
   display: grid;
   gap: 8px;
   padding: 9px;
+  border: 1px solid rgba(255, 255, 255, .1);
   border-radius: 12px;
-  background: rgba(255, 255, 255, .06);
+  background: #11182f;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .24);
 }
 
 .profile-card p,
