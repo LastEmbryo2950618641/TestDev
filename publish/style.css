@@ -298,6 +298,7 @@ select.text-input option {
 }
 
 .character-status-card {
+  width: 100%;
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);
   align-items: start;
@@ -306,6 +307,12 @@ select.text-input option {
   border: 1px solid rgba(113, 243, 255, .16);
   border-radius: 14px;
   background: rgba(255, 255, 255, .055);
+  color: inherit;
+  text-align: left;
+}
+
+.character-status-card:not(:disabled):active {
+  transform: scale(.99);
 }
 
 .character-status-main {

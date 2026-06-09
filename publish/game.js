@@ -52,6 +52,7 @@ document.addEventListener('alpine:init', () => {
     ragError: '',
     rpgStates: {},
     rpgPanelCharacterId: '',
+    profileOpen: false,
 
     get character() {
       return window.GameModules.catalog.find(this.selectedCharacterId)

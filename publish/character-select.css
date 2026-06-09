@@ -176,11 +176,21 @@
   background: rgba(255, 255, 255, .06);
 }
 
-.profile-card p {
+.profile-card p,
+.profile-card small {
   margin: 0;
   color: #aeb9d6;
   line-height: 1.5;
   font-size: var(--ui-small-font);
+}
+
+.feedback-panel {
+  display: grid;
+  gap: 7px;
+}
+
+.feedback-panel b {
+  color: #ffe6f7;
 }
 
 .character-grid {
