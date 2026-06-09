@@ -87,15 +87,30 @@ window.GameModules.entryActions = {
     let buffer = '';
     await window.dzmm.completions({
       model: this.modelId,
-      maxTokens: 260,
+      maxTokens: 220,
       messages: [{ role: 'user', content: this.entryPrompt(reason) }],
-    }, (chunk) => { buffer += chunk; });
-    return (buffer.trim() || `${this.character.name}正在观察周围变化。`).slice(0, 180);
+    }, (chunk) => { buffer = this.mergeEntryChunk(buffer, chunk); });
+    return this.cleanEntryAction(buffer) || `${this.character.name}正在观察周围变化。`;
+  },
+
+  mergeEntryChunk(buffer, chunk) {
+    const text = String(chunk || '');
+    if (!text) return buffer;
+    if (!buffer || text.startsWith(buffer)) return text;
+    if (buffer.endsWith(text)) return buffer;
+    let overlap = Math.min(buffer.length, text.length);
+    while (overlap > 0 && !buffer.endsWith(text.slice(0, overlap))) overlap -= 1;
+    return buffer + text.slice(overlap);
+  },
+
+  cleanEntryAction(text) {
+    return String(text || '').replace(/[“”"']/g, '').replace(/\s+/g, '')
+      .replace(/^(.*?)(\1)+/, '$1').slice(0, 90);
   },
 
   entryPrompt(reason) {
     const lore = window.GameModules.sqliteSave.getWorldLore(this.character.work || '原创世界');
-    return `基于世界观和人物性格，生成角色当前正在做的事情。只输出一句中文，80字内，不要JSON。原因：${reason}。时间：${this.entryTimeLabel()}。角色：${this.character.name}｜${this.character.role}｜${this.character.personality || ''}。世界观：${lore?.background || this.character.work}`;
+    return `基于世界观和人物性格，生成角色当前正在做的事情。只输出一句中文，60字内，不要JSON，不要重复词句。原因：${reason}。时间：${this.entryTimeLabel()}。角色：${this.character.name}｜${this.character.role}｜${this.character.personality || ''}。世界观：${lore?.background || this.character.work}`;
   },
 
   async advanceEntryTime() {
