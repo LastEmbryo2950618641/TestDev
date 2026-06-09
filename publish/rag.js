@@ -72,12 +72,18 @@ window.GameModules.rag = {
   paragraphExcerpt(text, fallback = '') {
     const lines = this.cleanLines(text);
     const picked = lines.slice(0, 8).join('\n');
-    return picked || this.cleanLines(fallback).slice(0, 8).join('\n');
+    return picked || this.sentenceExcerpt(text) || this.cleanLines(fallback).slice(0, 8).join('\n') || this.sentenceExcerpt(fallback);
   },
 
   cleanLines(text) {
     return String(text || '').replace(/\r/g, '').split('\n')
       .map((x) => x.trim()).filter((x) => x.length >= 8 && this.isCleanStart(x) && this.isCleanEnd(x));
+  },
+
+  sentenceExcerpt(text) {
+    const sentences = String(text || '').replace(/\s+/g, ' ').match(/[^。！？]+[。！？]/g) || [];
+    const picked = sentences.map((x) => x.trim()).filter((x) => x.length >= 8 && this.isCleanStart(x) && this.isCleanEnd(x)).slice(0, 6);
+    return picked.join('\n');
   },
 
   isCleanStart(text) {

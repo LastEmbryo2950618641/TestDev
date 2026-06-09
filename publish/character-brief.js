@@ -22,14 +22,14 @@ window.GameModules.characterBrief = {
         contextRadius: 1,
         requiredTerms: terms,
       });
-      const cleanRefs = refs.length ? refs : knownRefs;
+      const cleanRefs = this.cleanRefs(refs.length ? refs : knownRefs);
       store.characterLoreRefs = { ...store.characterLoreRefs, [character.id]: cleanRefs };
       const context = cleanRefs.map((x) => x.text).join('\n').slice(0, 1800);
       const brief = await this.generate(character, context);
       store.characterBriefs = { ...store.characterBriefs, [character.id]: brief };
     } catch (err) {
       console.warn('角色简介生成失败:', err.message, err.stack);
-      store.characterLoreRefs = { ...store.characterLoreRefs, [character.id]: this.fallbackRefs(character) };
+      store.characterLoreRefs = { ...store.characterLoreRefs, [character.id]: this.cleanRefs(this.fallbackRefs(character)) };
       store.characterBriefs = { ...store.characterBriefs, [character.id]: this.fallback(character) };
     } finally {
       store.characterBriefBusy = false;
@@ -46,6 +46,11 @@ window.GameModules.characterBrief = {
 
   fallbackRefs(character) {
     return (character.refs || []).filter((ref) => this.terms(character).some((term) => ref.text?.includes(term))).slice(0, 4);
+  },
+
+  cleanRefs(refs) {
+    return (refs || []).map((ref) => ({ ...ref, text: window.GameModules.rag.paragraphExcerpt(ref.text) }))
+      .filter((ref) => ref.text).slice(0, 4);
   },
 
   fallback(character) {
