@@ -36,7 +36,11 @@ window.GameModules.actions = {
   },
 
   metricsLine() {
-    return this.metrics().map(([key, value]) => `${key}(${value})`).join('  ');
+    return this.metrics().slice(0, 3).map(([key, value]) => `${key} ${value}`).join('  ');
+  },
+
+  expandedMetrics() {
+    return this.metrics().slice(3);
   },
 
   async searchLore() {
