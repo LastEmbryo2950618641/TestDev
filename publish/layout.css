@@ -50,23 +50,41 @@
 
 .vital-bars {
   display: grid;
-  gap: 7px;
+  gap: 5px;
 }
 
 .vital-row {
   display: grid;
-  grid-template-columns: 34px 1fr 26px;
+  grid-template-columns: 22px minmax(42px, 1fr) 42px;
   align-items: center;
-  gap: 7px;
-  font-size: var(--ui-small-font);
-  font-weight: 800;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.vital-row span,
+.vital-row em {
+  overflow: hidden;
+  color: #dce5ff;
+  font-style: normal;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vital-row em {
+  color: #f8fbff;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .vital-row i {
-  height: 8px;
+  height: 9px;
   overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .12);
   border-radius: 999px;
-  background: rgba(255, 255, 255, .12);
+  background: rgba(0, 0, 0, .26);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, .45);
 }
 
 .vital-row b {
@@ -74,6 +92,7 @@
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, #58ff9a, #c8ff6b);
+  box-shadow: 0 0 8px rgba(88, 255, 154, .35);
 }
 
 .vital-row.stamina b { background: linear-gradient(90deg, #ffd45a, #ff9d4d); }
@@ -124,23 +143,30 @@
   }
 
   .character-panel {
-    display: grid;
-    grid-template-columns: 58px 1fr;
-    gap: 6px 9px;
+    display: flex;
+    gap: 6px;
     padding: 9px;
   }
 
-  .avatar-orb {
-    width: 54px;
-    height: 54px;
-    border-radius: 17px;
-    font-size: 15px;
-    grid-row: span 2;
+  .character-status-card {
+    grid-template-columns: 46px minmax(0, 1fr);
+    gap: 8px;
+    padding: 7px;
   }
 
-  .character-panel h2,
-  .character-panel .role {
-    margin: 0;
+  .avatar-orb {
+    width: 46px;
+    height: 46px;
+    border-radius: 15px;
+    font-size: 14px;
+  }
+
+  .name-role-block h2 {
+    font-size: 13px;
+  }
+
+  .vital-row {
+    grid-template-columns: 22px minmax(64px, 1fr) 42px;
   }
 
   .stat-list,

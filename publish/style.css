@@ -8,8 +8,8 @@
   --ui-gap: clamp(7px, 1vw, 10px);
   --shell-pad: clamp(6px, 1.15vw, 10px);
   --panel-pad: clamp(10px, 1.25vw, 14px);
-  --left-col: clamp(170px, 18vw, 210px);
-  --right-col: clamp(190px, 20vw, 230px);
+  --left-col: clamp(150px, 16vw, 185px);
+  --right-col: clamp(160px, 17vw, 200px);
 }
 
 html,
@@ -272,12 +272,57 @@ select.text-input option {
   gap: var(--ui-gap);
 }
 
+.character-status-card {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid rgba(113, 243, 255, .16);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .055);
+}
+
+.character-status-main {
+  min-width: 0;
+}
+
+.name-role-block {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  margin-bottom: 6px;
+}
+
+.name-role-block h2 {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: clamp(13px, 1.25vw, 16px);
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.name-role-block .role {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .avatar-orb {
-  width: clamp(68px, 7.5vw, 82px);
-  height: clamp(68px, 7.5vw, 82px);
-  border-radius: 22px;
-  font-size: 20px;
-  box-shadow: 0 0 24px rgba(113, 243, 255, .24);
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  font-size: 15px;
+  box-shadow: 0 0 18px rgba(113, 243, 255, .22);
 }
 
 .stat-list,
