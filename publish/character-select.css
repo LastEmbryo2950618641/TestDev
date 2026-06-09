@@ -162,6 +162,82 @@
   opacity: .45;
 }
 
+.function-modal {
+  width: min(560px, 100%);
+}
+
+.function-actions {
+  display: flex;
+  gap: 7px;
+}
+
+.function-actions button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .08);
+  color: #dce5ff;
+  font-weight: 900;
+}
+
+.function-actions button.active {
+  border-color: #71f3ff;
+  background: rgba(113, 243, 255, .16);
+  color: #fff;
+}
+
+.library-panel,
+.world-lore-card {
+  display: grid;
+  gap: 7px;
+}
+
+.library-panel {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.library-panel h3 {
+  margin: 0;
+  color: #74f6ff;
+  font-size: 14px;
+}
+
+.world-lore-card {
+  padding: 9px;
+  border: 1px solid rgba(113, 243, 255, .16);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .055);
+}
+
+.world-lore-card strong {
+  color: #fff;
+}
+
+.world-lore-card p,
+.world-lore-card small {
+  margin: 0;
+  color: #aeb9d6;
+  line-height: 1.45;
+}
+
+.lore-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.lore-chip-row span {
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(113, 243, 255, .12);
+  color: #74f6ff;
+  font-size: 11px;
+  font-weight: 900;
+}
+
 .profile-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;

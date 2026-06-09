@@ -107,8 +107,15 @@ window.GameModules.sqliteSave = {
   },
 
   getWorldLore(worldTag) {
-    if (!this.db) return null;
-    return this.getJson('SELECT lore_json FROM world_lore WHERE world_tag=?', [worldTag]);
+    return this.db ? this.getJson('SELECT lore_json FROM world_lore WHERE world_tag=?', [worldTag]) : null;
+  },
+
+  listWorldLores() {
+    if (!this.db) return [];
+    const rows = [];
+    const stmt = this.db.prepare('SELECT lore_json FROM world_lore ORDER BY updated_at DESC');
+    while (stmt.step()) rows.push(JSON.parse(stmt.getAsObject().lore_json));
+    stmt.free(); return rows;
   },
 
   async saveWorldLore(worldTag, lore) {
@@ -121,8 +128,7 @@ window.GameModules.sqliteSave = {
   },
 
   getSchema(worldTag) {
-    if (!this.db) return null;
-    return this.getJson('SELECT schema_json FROM rpg_schema WHERE world_tag=?', [worldTag]);
+    return this.db ? this.getJson('SELECT schema_json FROM rpg_schema WHERE world_tag=?', [worldTag]) : null;
   },
 
   async saveSchema(worldTag, schema) {
@@ -131,8 +137,7 @@ window.GameModules.sqliteSave = {
   },
 
   getCharacterState(characterId) {
-    if (!this.db) return null;
-    return this.getJson('SELECT state_json FROM character_state WHERE character_id=?', [characterId]);
+    return this.db ? this.getJson('SELECT state_json FROM character_state WHERE character_id=?', [characterId]) : null;
   },
 
   listCharacterStates() {
@@ -140,8 +145,7 @@ window.GameModules.sqliteSave = {
     const rows = [];
     const stmt = this.db.prepare('SELECT state_json FROM character_state ORDER BY created_at');
     while (stmt.step()) rows.push(JSON.parse(stmt.getAsObject().state_json));
-    stmt.free();
-    return rows;
+    stmt.free(); return rows;
   },
 
   async saveCharacterState(character) {
@@ -171,8 +175,7 @@ window.GameModules.sqliteSave = {
       const row = stmt.getAsObject();
       rows.push({ id: row.id, text: row.text, vector: JSON.parse(row.vector_json), meta: JSON.parse(row.meta_json), createdAt: row.created_at });
     }
-    stmt.free();
-    return rows;
+    stmt.free(); return rows;
   },
 
   async saveMemoryArchive(characterId, item) {
@@ -185,16 +188,13 @@ window.GameModules.sqliteSave = {
 
   toBase64(bytes) {
     let binary = '';
-    for (let i = 0; i < bytes.length; i += 0x8000) {
-      binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-    }
+    for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
     return btoa(binary);
   },
 
   fromBase64(raw) {
     const binary = atob(raw);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+    const bytes = new Uint8Array(binary.length); for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
     return bytes;
   },
 };

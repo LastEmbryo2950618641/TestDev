@@ -27,6 +27,8 @@ document.addEventListener('alpine:init', () => {
     selectedSlot: 'slot-1',
     saveSlots: window.GameModules.storage.slots,
     savePanelOpen: false,
+    functionPanelOpen: false,
+    libraryTab: 'worlds',
     saveMessage: '',
     saveMetas: {},
     modelId: cfg.defaultModelId,
@@ -90,6 +92,10 @@ document.addEventListener('alpine:init', () => {
 
     get currentMemory() {
       const id = this.currentRpgState?.id; return id ? window.GameModules.characterMemory.ensure(id) : { shortTerm: [], longTerm: [] };
+    },
+
+    get savedWorldLores() {
+      return window.GameModules.sqliteSave.db ? window.GameModules.sqliteSave.listWorldLores() : [];
     },
 
     async init() {

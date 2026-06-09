@@ -39,8 +39,6 @@
     </div>
   </div>
 
-  <button x-show="!$store.game.loading" class="save-fab" @click="$store.game.savePanelOpen = true" x-cloak>设置</button>
-
   <section x-show="$store.game.savePanelOpen" class="save-modal-backdrop" @click.self="$store.game.savePanelOpen = false" x-cloak>
     <div class="save-modal">
       <header>
@@ -72,6 +70,32 @@
         </template>
       </div>
       <small x-show="$store.game.saveMessage" x-text="$store.game.saveMessage"></small>
+    </div>
+  </section>
+
+  <section x-show="$store.game.functionPanelOpen" class="save-modal-backdrop" @click.self="$store.game.functionPanelOpen = false" x-cloak>
+    <div class="save-modal function-modal">
+      <header>
+        <strong>功能</strong>
+        <button class="small-btn" @click="$store.game.functionPanelOpen = false">关闭</button>
+      </header>
+      <div class="function-actions">
+        <button :class="{ active: $store.game.libraryTab === 'worlds' }" @click="$store.game.libraryTab = 'worlds'">图书馆</button>
+      </div>
+      <section class="library-panel" x-show="$store.game.libraryTab === 'worlds'">
+        <h3>已知世界观设定</h3>
+        <template x-for="lore in $store.game.savedWorldLores" :key="lore.worldTag">
+          <article class="world-lore-card">
+            <strong x-text="lore.worldTag"></strong>
+            <p x-text="lore.background"></p>
+            <div class="lore-chip-row"><template x-for="faction in lore.factions" :key="faction.name"><span x-text="faction.name"></span></template></div>
+            <small x-text="`特殊职业：${lore.specialJobs.map(x => x.name).join('、') || '无'}`"></small>
+            <small x-text="`职业等级：${lore.jobRanks.join(' / ') || '无'}`"></small>
+            <small x-text="`固化属性：${lore.specialFields.map(x => x.label).join('、') || '无'}`"></small>
+          </article>
+        </template>
+        <p class="empty-lore" x-show="!$store.game.savedWorldLores.length">暂无已保存世界观。开始游戏或进入新作品后会自动生成。</p>
+      </section>
     </div>
   </section>
 
@@ -138,6 +162,10 @@
           <option value="online">上线</option>
           <option value="offline">下线</option>
         </select>
+      </div>
+      <div class="top-actions">
+        <button @click="$store.game.functionPanelOpen = true">功能</button>
+        <button @click="$store.game.savePanelOpen = true">设置</button>
       </div>
     </header>
 
