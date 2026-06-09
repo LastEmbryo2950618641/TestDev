@@ -32,10 +32,15 @@ window.GameModules.entryYear = {
     const text = `${calendar.label || ''} ${store?.character?.work || ''} ${lore?.background || ''}`;
     const years = text.match(/\b(1[5-9]\d{2}|20\d{2}|21\d{2})\b/g);
     if (years?.length) return Number(years[0]);
-    if (/现代|公元|都市|学校|科技/.test(text)) return 2026;
+    if (/现代|公元|都市|学校|科技/.test(text) && this.isOriginalWorld(store)) return 2026;
     let hash = 0;
     for (const char of text) hash = (hash + char.charCodeAt(0)) % 900;
     return 1000 + hash;
+  },
+
+  isOriginalWorld(store) {
+    const work = String(store?.character?.work || '');
+    return !work || /原创|自定义|异界|原创世界/.test(work);
   },
 
   async localEvidence(store, mode) {
