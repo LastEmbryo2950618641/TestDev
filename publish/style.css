@@ -66,24 +66,49 @@ button:not(:disabled):active {
   filter: saturate(1.12);
 }
 
+.section-hints .dev-section .dev-section:hover,
+.section-hints .dev-section .dev-section:focus-within {
+  border-color: rgba(255, 120, 210, .9) !important;
+  box-shadow: 0 0 0 2px rgba(255, 120, 210, .2), 0 0 24px rgba(255, 120, 210, .18);
+}
+
 .section-hints .dev-section:hover::before,
 .section-hints .dev-section:focus-within::before {
   content: attr(data-section-title);
   position: absolute;
   top: 4px;
   left: 4px;
-  z-index: 8;
+  z-index: 30;
   max-width: calc(100% - 8px);
   padding: 2px 7px;
   border: 1px solid rgba(116, 246, 255, .6);
   border-radius: 999px;
-  background: rgba(5, 10, 24, .92);
+  background: rgba(5, 10, 24, .94);
   color: #74f6ff;
   font-size: 10px;
   font-weight: 900;
   line-height: 1.4;
   pointer-events: none;
   white-space: nowrap;
+}
+
+.section-hints .dev-section:has(.dev-section:hover)::before,
+.section-hints .dev-section:has(.dev-section:focus-within)::before {
+  top: auto;
+  bottom: 4px;
+  left: 4px;
+  border-color: rgba(255, 207, 90, .72);
+  color: #ffcf5a;
+}
+
+.section-hints .dev-section .dev-section:hover::before,
+.section-hints .dev-section .dev-section:focus-within::before {
+  top: 4px;
+  right: 4px;
+  bottom: auto;
+  left: auto;
+  border-color: rgba(255, 120, 210, .72);
+  color: #ff9ee0;
 }
 
 .loading-screen,
