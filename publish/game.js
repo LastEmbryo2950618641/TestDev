@@ -19,6 +19,8 @@ document.addEventListener('alpine:init', () => {
 
   Alpine.store('game', {
     loading: true,
+    loadingStep: '正在接入操控链路，请稍等…',
+    loadingDetail: '首次进入或存档较大时会更慢，这是正常现象。',
     busy: false,
     started: false,
     playerName: '',
@@ -96,17 +98,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     async init() {
-      await dzmmReady;
-      await this.loadCatalog();
-      await this.loadModelAndUser();
-      await this.refreshSaveMetas();
-      await window.GameModules.storage.open(this.selectedSlot);
-      const save = await window.GameModules.storage.get();
-      window.GameModules.storage.restore(this, save);
-      this.ensureCatalogSelection();
-      this.loadSavedRpgStates();
-      await this.ensureRpgForCurrentCharacter();
-      this.loading = false;
+      await this.initGame();
     },
 
     async loadCatalog() {
@@ -192,6 +184,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     ...window.GameModules.actions,
+    ...window.GameModules.loadingActions,
     ...window.GameModules.saveActions,
     ...window.GameModules.coreActions,
   });
