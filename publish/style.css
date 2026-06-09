@@ -284,15 +284,41 @@ p { margin-bottom: 8px; }
   display: grid;
 }
 
-.age-grid {
-  display: grid;
-  grid-template-columns: 120px minmax(0, 1fr);
-  gap: 7px;
-}
-
 .age-field small {
   margin-top: 5px;
   color: #aeb9d6;
+}
+
+.age-combo-box {
+  padding: 0 6px 0 12px;
+}
+
+.age-combo-box input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #eef3ff;
+  font: inherit;
+}
+
+.age-combo-box button {
+  width: 34px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.age-combo-box button i {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #74f6ff;
+  border-bottom: 2px solid #74f6ff;
+  transform: rotate(45deg) translateY(-2px);
 }
 
 .text-input,

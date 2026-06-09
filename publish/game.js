@@ -36,7 +36,7 @@ document.addEventListener('alpine:init', () => {
     selectedWork: '',
     selectedCharacterId: cfg.characters[0].id,
     workMenuOpen: false,
-    characterMenuOpen: false,
+    characterMenuOpen: false, ageMenuOpen: false,
     characterBriefs: {},
     characterLoreRefs: {},
     characterBriefBusy: false,

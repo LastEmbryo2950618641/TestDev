@@ -29,6 +29,12 @@ window.GameModules.coreActions = {
     this.resetEntryTimeForAge();
   },
 
+  selectAge(age) {
+    this.characterAge = age;
+    this.ageMenuOpen = false;
+    this.onAgeInput();
+  },
+
   async start() {
     await this.prepareEntrySetup();
   },
