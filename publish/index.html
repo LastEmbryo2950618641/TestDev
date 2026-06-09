@@ -106,33 +106,41 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.started && !$store.game.loading" class="start-screen" x-cloak>
-    <div class="start-card">
+  <section x-show="!$store.game.started && !$store.game.loading" class="start-screen" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+    <div class="start-card dev-section" data-section-title="首页选择面板">
       <p class="eyebrow">AI RPG 视觉小说</p>
       <h1>我狠狠操控</h1>
       <p class="intro">选择一个动漫角色作为被操控者。上线时，你接管身体，角色只能在心里想；下线时，控制权回到角色，她会按性格、属性和情绪自主行动。</p>
 
-      <label class="field-label">当前存档</label>
-      <button class="ghost-wide" @click="$store.game.savePanelOpen = true" x-text="`打开存档设置｜${$store.game.selectedSlot}`"></button>
+      <div class="start-field dev-section" data-section-title="存档选择区">
+        <label class="field-label">当前存档</label>
+        <button class="ghost-wide" @click="$store.game.savePanelOpen = true" x-text="`打开存档设置｜${$store.game.selectedSlot}`"></button>
+      </div>
 
-      <label class="field-label">操控者代号</label>
-      <input class="text-input" x-model="$store.game.playerName" placeholder="输入你的名字或代号">
+      <div class="start-field dev-section" data-section-title="操控者输入区">
+        <label class="field-label">操控者代号</label>
+        <input class="text-input" x-model="$store.game.playerName" placeholder="输入你的名字或代号">
+      </div>
 
-      <label class="field-label">选择作品</label>
-      <select class="text-input" x-model="$store.game.selectedWork" @change="$store.game.selectWork($event.target.value)">
-        <template x-for="work in $store.game.works" :key="work.name">
-          <option :value="work.name" x-text="work.name"></option>
-        </template>
-      </select>
+      <div class="start-field dev-section" data-section-title="作品选择区">
+        <label class="field-label">选择作品</label>
+        <select class="text-input" x-model="$store.game.selectedWork" @change="$store.game.selectWork($event.target.value)">
+          <template x-for="work in $store.game.works" :key="work.name">
+            <option :value="work.name" x-text="work.name"></option>
+          </template>
+        </select>
+      </div>
 
-      <label class="field-label">选择可操控角色</label>
-      <select class="text-input" x-model="$store.game.selectedCharacterId">
-        <template x-for="char in $store.game.workCharacters" :key="char.id">
-          <option :value="char.id" x-text="`${char.name}｜${char.role}`"></option>
-        </template>
-      </select>
+      <div class="start-field dev-section" data-section-title="角色选择区">
+        <label class="field-label">选择可操控角色</label>
+        <select class="text-input" x-model="$store.game.selectedCharacterId">
+          <template x-for="char in $store.game.workCharacters" :key="char.id">
+            <option :value="char.id" x-text="`${char.name}｜${char.role}`"></option>
+          </template>
+        </select>
+      </div>
 
-      <div class="character-detail-card">
+      <div class="character-detail-card dev-section" data-section-title="角色预览区">
         <div class="portrait-mark" x-text="$store.game.character.mark"></div>
         <div>
           <strong x-text="$store.game.character.name"></strong>
@@ -141,7 +149,7 @@
         </div>
       </div>
 
-      <div class="ref-list" x-show="$store.game.characterRefs.length">
+      <div class="ref-list dev-section" data-section-title="原作资料预览区" x-show="$store.game.characterRefs.length">
         <template x-for="ref in $store.game.characterRefs" :key="`${ref.novel}-${ref.chunk}`">
           <article>
             <strong x-text="`${ref.novel} #${ref.chunk}`"></strong>
@@ -150,7 +158,7 @@
         </template>
       </div>
 
-      <div class="rules-box">
+      <div class="rules-box dev-section" data-section-title="规则说明区">
         <strong>核心规则</strong>
         <p>上线：玩家决定下一步行动，被操控角色只能显示心理想法。</p>
         <p>下线：角色夺回行动权，根据人格和状态自主推进剧情。</p>

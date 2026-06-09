@@ -280,6 +280,10 @@ p { margin-bottom: 8px; }
   font-weight: 700;
 }
 
+.start-field {
+  display: grid;
+}
+
 .text-input,
 .free-input input {
   width: 100%;
