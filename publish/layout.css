@@ -1,15 +1,15 @@
 .control-dock {
   display: grid;
-  gap: 10px;
-  padding: 12px;
-  border-radius: 22px;
+  gap: var(--ui-gap);
+  padding: var(--panel-pad);
+  border-radius: 18px;
 }
 
 .switch-row,
 .choice-row,
 .free-input {
   display: flex;
-  gap: 8px;
+  gap: 7px;
 }
 
 .toggle-btn {
@@ -35,7 +35,7 @@
 
 .choice-btn {
   flex: 0 0 auto;
-  padding: 0 14px;
+  padding: 0 12px;
   white-space: nowrap;
 }
 
@@ -45,12 +45,12 @@
 
 .free-input button {
   flex: 0 0 auto;
-  padding: 0 15px;
+  padding: 0 12px;
 }
 
 @media (max-width: 980px) {
   .rpg-layout {
-    grid-template-columns: 220px minmax(0, 1fr);
+    grid-template-columns: minmax(180px, 26vw) minmax(0, 1fr);
   }
 
   .mind-panel {
@@ -59,13 +59,20 @@
 }
 
 @media (max-width: 720px) {
+  :root {
+    --ui-font: 12px;
+    --ui-gap: 6px;
+    --shell-pad: 6px;
+    --panel-pad: 9px;
+  }
+
   .game-shell {
-    gap: 8px;
-    padding: 8px;
+    gap: var(--ui-gap);
+    padding: var(--shell-pad);
   }
 
   .top-bar {
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .rpg-layout {
@@ -75,16 +82,16 @@
 
   .character-panel {
     display: grid;
-    grid-template-columns: 72px 1fr;
-    gap: 8px 12px;
-    padding: 12px;
+    grid-template-columns: 58px 1fr;
+    gap: 6px 9px;
+    padding: 9px;
   }
 
   .avatar-orb {
-    width: 64px;
-    height: 64px;
-    border-radius: 20px;
-    font-size: 16px;
+    width: 54px;
+    height: 54px;
+    border-radius: 17px;
+    font-size: 15px;
     grid-row: span 2;
   }
 
@@ -100,11 +107,11 @@
   }
 
   .panel {
-    border-radius: 18px;
+    border-radius: 15px;
   }
 
   .start-card {
-    padding: 20px;
+    padding: 14px;
   }
 
   .character-grid {
