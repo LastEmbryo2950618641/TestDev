@@ -36,21 +36,8 @@ window.GameModules.characterBrief = {
     }
   },
 
-  async generate(character, context) {
-    if (!context || !window.dzmm?.completions) return this.fallback(character);
-    let buffer = '';
-    await window.dzmm.completions({
-      model: 'nalang-turbo-0826',
-      maxTokens: 180,
-      messages: [{ role: 'user', content: `把资料整理成角色出生/身世/背景摘要，只输出一句中文，60字内。不要引用原文，不要对白，不要动作剧情，不要分析资料。资料不足就写“${this.fallback(character)}”。角色：${character.name}｜${character.work}｜${character.role}。资料：${context}` }],
-    }, (chunk) => { buffer += chunk; });
-    return this.clean(buffer, character);
-  },
-
-  clean(text, character) {
-    const value = String(text || '').replace(/[`*_#>「」"“”\n\r]/g, '').replace(/\s+/g, ' ').trim();
-    if (!value || /资料|对白|chunk|来源|────|我认为|他说|她说/.test(value)) return this.fallback(character);
-    return value.slice(0, 80);
+  async generate(character) {
+    return this.fallback(character);
   },
 
   terms(character) {
@@ -62,8 +49,18 @@ window.GameModules.characterBrief = {
   },
 
   fallback(character) {
-    const ref = this.fallbackRefs(character)[0]?.text;
-    const text = ref || `${character.name}来自${character.work || '未知世界'}，身份为${character.role || '角色'}。`;
-    return String(text).replace(/\s+/g, ' ').slice(0, 90);
+    const work = character.work || '未知世界';
+    const role = character.role || '角色';
+    const family = this.familyHint(character);
+    return `${character.name}来自《${work}》，${family}${role}。`;
+  },
+
+  familyHint(character) {
+    const text = `${character.name} ${character.role || ''} ${(character.aliases || []).join(' ')}`;
+    if (/爱因兹|伊莉雅/.test(text)) return '与爱因兹贝伦家族相关，身份为';
+    if (/间桐|远坂樱|Sakura/.test(text)) return '与间桐家和远坂家因缘相关，身份为';
+    if (/远坂|凛/.test(text)) return '与远坂家魔术师血脉相关，身份为';
+    if (/卫宫/.test(text)) return '与卫宫家和圣杯战争因缘相关，身份为';
+    return '身份为';
   },
 };
