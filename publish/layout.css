@@ -179,6 +179,10 @@
     border-radius: 15px;
   }
 
+  .log-entry {
+    width: min(86%, 520px);
+  }
+
   .start-card {
     padding: 14px;
   }

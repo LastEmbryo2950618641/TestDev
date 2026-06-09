@@ -451,12 +451,37 @@ select.text-input option {
   padding-right: 5px;
 }
 
+.story-log {
+  display: flex;
+  flex-direction: column;
+}
+
 .log-entry {
+  width: min(74%, 520px);
   margin: 0 0 8px;
   padding: 10px 12px;
   border-radius: 14px;
   background: rgba(255, 255, 255, .06);
   border-left: 3px solid rgba(255, 255, 255, .2);
+}
+
+.log-entry.player,
+.log-entry.advice {
+  align-self: flex-start;
+}
+
+.log-entry.story,
+.log-entry.speech,
+.log-entry.mind {
+  align-self: flex-end;
+  border-left: 0;
+  border-right: 3px solid rgba(255, 255, 255, .2);
+}
+
+.log-entry.system {
+  align-self: center;
+  width: min(86%, 580px);
+  text-align: center;
 }
 
 .log-entry span {
@@ -474,9 +499,10 @@ select.text-input option {
 
 .log-entry.player { border-left-color: #52ff96; }
 .log-entry.advice { border-left-color: #ffcf5a; }
-.log-entry.mind { border-left-color: #ff78d2; background: rgba(255, 120, 210, .08); }
+.log-entry.story { border-right-color: #8d96ff; }
+.log-entry.mind { border-right-color: #ff78d2; background: rgba(255, 120, 210, .08); }
 .log-entry.system { border-left-color: #8d96ff; }
-.log-entry.speech { border-left-color: #71f3ff; }
+.log-entry.speech { border-right-color: #71f3ff; }
 
 .thinking-line {
   padding: 10px;
