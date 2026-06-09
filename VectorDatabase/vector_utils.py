@@ -2,6 +2,7 @@ import hashlib
 import math
 import re
 import struct
+from pathlib import Path
 
 DIMENSION = 384
 CHUNK_SIZE = 1200
@@ -9,14 +10,15 @@ CHUNK_OVERLAP = 180
 
 
 def read_text(path):
-    for encoding in ("utf-8", "utf-8-sig", "gb18030"):
+    data = Path(path).read_bytes()
+    for encoding in ("utf-8-sig", "utf-16", "utf-16-le", "utf-16-be", "gb18030"):
         try:
-            with open(path, "r", encoding=encoding) as file:
-                return file.read()
+            text = data.decode(encoding)
+            if text.count("\x00") < max(1, len(text) // 100):
+                return text
         except UnicodeDecodeError:
             continue
-    with open(path, "r", encoding="utf-8", errors="ignore") as file:
-        return file.read()
+    return data.decode("utf-8", errors="ignore")
 
 
 def clean_text(text):

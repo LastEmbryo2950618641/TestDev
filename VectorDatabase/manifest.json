@@ -6,107 +6,107 @@
     "chunkSize": 1200,
     "chunkOverlap": 180,
     "documentCount": 14,
-    "chunkCount": 8684,
-    "builtAt": "2026-06-08T17:51:33+0000",
+    "chunkCount": 8645,
+    "builtAt": "2026-06-09T12:23:07+0000",
     "embedding": "local-hashed-char-ngram-v1"
   },
   "documents": [
     {
       "novel": "Fate  kaleid liner☆伊莉雅",
-      "title": "Fate Kaleid Liner Prism ☆ illya",
-      "path": "同人素材/Fate/Fate  kaleid liner☆伊莉雅/Fate Kaleid Liner Prism ☆ illya.txt",
-      "charCount": 180912,
+      "title": "正文",
+      "path": "同人素材/Fate/Fate  kaleid liner☆伊莉雅/正文.txt",
+      "charCount": 180903,
       "chunkCount": 162
     },
     {
       "novel": "Fate Apocrypha",
-      "title": "Fate Apocrypha",
-      "path": "同人素材/Fate/Fate Apocrypha/Fate Apocrypha.txt",
-      "charCount": 862004,
+      "title": "正文",
+      "path": "同人素材/Fate/Fate Apocrypha/正文.txt",
+      "charCount": 861991,
       "chunkCount": 798
     },
     {
       "novel": "Fate Labyrinth",
-      "title": "FateLabyrinth",
-      "path": "同人素材/Fate/Fate Labyrinth/FateLabyrinth.txt",
-      "charCount": 152454,
-      "chunkCount": 154
+      "title": "正文",
+      "path": "同人素材/Fate/Fate Labyrinth/正文.txt",
+      "charCount": 111066,
+      "chunkCount": 115
     },
     {
       "novel": "Fate Lost Einherjar",
-      "title": "Fate：Lost Einherjar",
-      "path": "同人素材/Fate/Fate Lost Einherjar/Fate：Lost Einherjar.txt",
-      "charCount": 108576,
+      "title": "正文",
+      "path": "同人素材/Fate/Fate Lost Einherjar/正文.txt",
+      "charCount": 108572,
       "chunkCount": 98
     },
     {
       "novel": "Fate Prototype苍银的碎片",
-      "title": "Fate Prototype 苍银的碎片",
-      "path": "同人素材/Fate/Fate Prototype苍银的碎片/Fate Prototype 苍银的碎片.txt",
-      "charCount": 432149,
+      "title": "正文",
+      "path": "同人素材/Fate/Fate Prototype苍银的碎片/正文.txt",
+      "charCount": 432137,
       "chunkCount": 385
     },
     {
       "novel": "Fate Requiem",
-      "title": "Fate Requiem",
-      "path": "同人素材/Fate/Fate Requiem/Fate Requiem.txt",
-      "charCount": 260617,
+      "title": "正文",
+      "path": "同人素材/Fate/Fate Requiem/正文.txt",
+      "charCount": 260611,
       "chunkCount": 240
     },
     {
       "novel": "Fate Stay Night",
-      "title": "FSN",
-      "path": "同人素材/Fate/Fate Stay Night/FSN.txt",
-      "charCount": 1966800,
+      "title": "正文",
+      "path": "同人素材/Fate/Fate Stay Night/正文.txt",
+      "charCount": 1966797,
       "chunkCount": 1721
     },
     {
       "novel": "Fate Strange Fake",
-      "title": "Fate Strange Fake",
-      "path": "同人素材/Fate/Fate Strange Fake/Fate Strange Fake.txt",
-      "charCount": 1018200,
+      "title": "正文",
+      "path": "同人素材/Fate/Fate Strange Fake/正文.txt",
+      "charCount": 1018180,
       "chunkCount": 927
     },
     {
       "novel": "Fate Zero",
-      "title": "Fate Zero",
-      "path": "同人素材/Fate/Fate Zero/Fate Zero.txt",
-      "charCount": 645410,
+      "title": "正文",
+      "path": "同人素材/Fate/Fate Zero/正文.txt",
+      "charCount": 645397,
       "chunkCount": 607
     },
     {
       "novel": "Fate 君主埃尔梅罗二世事件簿",
-      "title": "Lord·埃尔梅罗二世事件簿",
-      "path": "同人素材/Fate/Fate 君主埃尔梅罗二世事件簿/Lord·埃尔梅罗二世事件簿.txt",
-      "charCount": 1136299,
+      "title": "正文",
+      "path": "同人素材/Fate/Fate 君主埃尔梅罗二世事件簿/正文.txt",
+      "charCount": 1136277,
       "chunkCount": 1030
     },
     {
       "novel": "Fate 君主埃尔梅罗二世的冒险",
-      "title": "君主·埃尔梅罗二世的冒险",
-      "path": "同人素材/Fate/Fate 君主埃尔梅罗二世的冒险/君主·埃尔梅罗二世的冒险.txt",
-      "charCount": 877785,
+      "title": "正文",
+      "path": "同人素材/Fate/Fate 君主埃尔梅罗二世的冒险/正文.txt",
+      "charCount": 877769,
       "chunkCount": 784
     },
     {
       "novel": "Fate 月姬",
-      "title": "月姬",
-      "path": "同人素材/Fate/Fate 月姬/月姬.txt",
-      "charCount": 1354199,
+      "title": "正文",
+      "path": "同人素材/Fate/Fate 月姬/正文.txt",
+      "charCount": 1354196,
       "chunkCount": 1208
     },
     {
       "novel": "Fate 空之境界",
-      "title": "空之境界",
-      "path": "同人素材/Fate/Fate 空之境界/空之境界.txt",
-      "charCount": 574467,
+      "title": "正文",
+      "path": "同人素材/Fate/Fate 空之境界/正文.txt",
+      "charCount": 574456,
       "chunkCount": 526
     },
     {
       "novel": "Fate 阿瓦隆之庭",
-      "title": "阿瓦隆之庭",
-      "path": "同人素材/Fate/Fate 阿瓦隆之庭/阿瓦隆之庭.txt",
-      "charCount": 44019,
+      "title": "正文",
+      "path": "同人素材/Fate/Fate 阿瓦隆之庭/正文.txt",
+      "charCount": 43973,
       "chunkCount": 44
     }
   ]

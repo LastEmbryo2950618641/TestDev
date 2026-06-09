@@ -63,7 +63,7 @@ def build():
     if not SOURCE_DIR.exists():
         raise SystemExit(f"源目录不存在：{SOURCE_DIR}")
 
-    txt_files = sorted(SOURCE_DIR.rglob("*.txt"))
+    txt_files = sorted(path for path in SOURCE_DIR.rglob("正文.txt"))
     if not txt_files:
         raise SystemExit(f"没有找到 txt 文件：{SOURCE_DIR}")
 

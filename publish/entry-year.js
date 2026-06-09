@@ -6,6 +6,8 @@ window.GameModules = window.GameModules || {};
 window.GameModules.entryYear = {
   async baseYear(calendar, store) {
     const fallback = this.fallbackBaseYear(calendar, store);
+    const timelineYear = this.timelineYear(store);
+    if (timelineYear) return timelineYear;
     const local = await this.localEvidence(store, 'storyYear');
     const localYear = await this.audit(store, 'storyYear', local, fallback);
     if (localYear) return localYear;
@@ -41,6 +43,12 @@ window.GameModules.entryYear = {
   isOriginalWorld(store) {
     const work = String(store?.character?.work || '');
     return !work || /原创|自定义|异界|原创世界/.test(work);
+  },
+
+  timelineYear(store) {
+    const rows = window.GameData?.timelines?.[store?.character?.work || ''] || [];
+    const years = rows.map((x) => Number((String(x.time || '').match(/(\d{3,4})年/) || [])[1])).filter((x) => x >= 1000);
+    return years.length ? years[Math.min(1, years.length - 1)] : 0;
   },
 
   async localEvidence(store, mode) {
@@ -91,11 +99,9 @@ window.GameModules.entryYear = {
   },
 
   async mediawikiSearchText(source, data) {
-    const rows = (data?.query?.search || []).slice(0, 3);
-    let text = rows.map((x) => `${x.title}\n${this.stripHtml(x.snippet)}`).join('\n');
+    const rows = (data?.query?.search || []).slice(0, 3), text = rows.map((x) => `${x.title}\n${this.stripHtml(x.snippet)}`).join('\n');
     return `${text}\n${await this.extractTitles(source, rows.map((x) => x.title))}`.slice(0, 2600);
   },
-
 
   async extractTitles(source, titles) {
     if (!source.extractUrl) return '';
@@ -131,8 +137,7 @@ window.GameModules.entryYear = {
     const values = [];
     for (const raw of list) {
       const text = String(raw || '').trim();
-      if (!text) continue;
-      values.push(text, text.replace(/\s+/g, '/'), text.replace(/\s+/g, ''), text.replace(/[·・]/g, ' '));
+      if (text) values.push(text, text.replace(/\s+/g, '/'), text.replace(/\s+/g, ''), text.replace(/[·・]/g, ' '));
     }
     return [...new Set(values)].filter(Boolean);
   },
