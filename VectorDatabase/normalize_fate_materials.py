@@ -73,7 +73,7 @@ def paragraph_units(text):
     return units
 
 
-def build_index(text):
+def build_entries(text):
     units = paragraph_units(text)
     entries, buf, start_line = [], [], 1
     line_no = 1
@@ -83,20 +83,46 @@ def build_index(text):
         buf.append(unit)
         line_no += unit.count("\n") + 1
         if sum(len(x) for x in buf) >= MAX_CHARS:
-            entries.append((start_line, line_no - 1, "\n".join(buf)))
+            entries.append(make_entry(start_line, line_no - 1, "\n".join(buf), len(entries) + 1))
             buf = []
     if buf:
-        entries.append((start_line, line_no - 1, "\n".join(buf)))
+        entries.append(make_entry(start_line, line_no - 1, "\n".join(buf), len(entries) + 1))
+    return entries
+
+
+def build_index(entries):
     lines = []
-    for i, (start, end, content) in enumerate(entries, 1):
-        title = make_title(content, i)
-        lines += [f"开始-{title}", f"行数 {start}-{end}", f"时间 {infer_time(content)}", f"每段剧情 {summarize(content)}", f"结束-{title}", ""]
+    for item in entries:
+        title = item["title"]
+        lines += [f"- 开始-{title}", f" - 标题：{title}", f" - 介绍：{item['intro']}", f" - 行数：{item['lines']}", f" - 时间：{item['time']}", "每段剧情", item["content"], f"- 结束-{title}", ""]
     return "\n".join(lines)
 
 
-def make_title(text, index):
-    first = re.sub(r"\s+", "", text)[:24]
-    return first or f"剧情段落{index:04d}"
+def build_meta_index(entries):
+    lines = []
+    for item in entries:
+        lines += [f"- 标题：{item['title']}", f" - 介绍：{item['intro']}", f" - 行数：{item['lines']}", f" - 时间：{item['time']}", ""]
+    return "\n".join(lines)
+
+
+def make_entry(start, end, content, index):
+    intro = make_intro(content)
+    return {"title": make_title(content, intro, index), "intro": intro, "lines": f"{start}-{end}", "time": infer_time(content), "content": content}
+
+
+def make_title(text, intro, index):
+    rules = [
+        ("圣杯战争", "圣杯战局"), ("召唤", "从者召唤"), ("御主", "御主行动"), ("从者", "从者交锋"),
+        ("魔术", "魔术冲突"), ("令咒", "令咒变动"), ("间桐", "间桐家事"), ("远坂", "远坂家事"),
+        ("卫宫", "卫宫抉择"), ("Saber", "剑阶行动"), ("Archer", "弓阶行动"), ("Rider", "骑阶行动"),
+        ("Lancer", "枪阶行动"), ("Berserker", "狂阶行动"), ("Assassin", "暗杀行动"), ("Caster", "术阶行动"),
+        ("战斗", "正面战斗"), ("死亡", "死亡事件"), ("城堡", "城堡场景"), ("学校", "学校日常"),
+        ("理想", "理想动机"), ("母亲", "亲子对话"), ("婴儿", "新生事件"), ("调查", "调查推进"),
+    ]
+    for key, title in rules:
+        if key in text:
+            return title
+    return f"剧情{index:04d}"
 
 
 def infer_time(text):
@@ -111,9 +137,19 @@ def infer_time(text):
     return "时间未明，按上下文近似"
 
 
-def summarize(text):
+def make_intro(text):
     clean = re.sub(r"\s+", " ", text).strip()
-    return clean[:180]
+    if len(clean) <= 60:
+        return clean
+    for mark in ("。", "！", "？", "；"):
+        pos = clean.find(mark, 20)
+        if 20 <= pos <= 60:
+            return clean[:pos + 1]
+    return clean[:58] + "…"
+
+
+def summarize(text):
+    return make_intro(text)
 
 
 def timeline_for(work, text):
@@ -122,7 +158,8 @@ def timeline_for(work, text):
         snippets = []
         for unit in paragraph_units(text)[:20]:
             if any(p.search(unit) for p in TIME_PATTERNS):
-                snippets.append((make_title(unit, len(snippets) + 1), infer_time(unit), summarize(unit)))
+                intro = summarize(unit)
+                snippets.append((make_title(unit, intro, len(snippets) + 1), infer_time(unit), intro))
             if len(snippets) >= 6:
                 break
         items = snippets or [("剧情起点", "时间未明，按作品上下文近似", summarize(text))]
@@ -139,7 +176,8 @@ def display_work_name(work_dir):
 
 def normalize_dir(work_dir):
     work = display_work_name(work_dir)
-    txts = sorted(p for p in work_dir.glob("*.txt") if p.name not in {"正文.txt", "时间线梗概.txt", "正文索引.txt"})
+    generated = {"正文.txt", "时间线梗概.txt", "正文索引.txt", "剧情索引.txt"}
+    txts = sorted(p for p in work_dir.glob("*.txt") if p.name not in generated)
     if not txts:
         body = work_dir / "正文.txt"
     else:
@@ -150,8 +188,10 @@ def normalize_dir(work_dir):
             p.unlink()
     text = normalize_text(read_text(body))
     body.write_text(text, encoding="utf-8")
+    entries = build_entries(text)
     (work_dir / "时间线梗概.txt").write_text(timeline_for(work, text), encoding="utf-8")
-    (work_dir / "正文索引.txt").write_text(build_index(text), encoding="utf-8")
+    (work_dir / "正文索引.txt").write_text(build_index(entries), encoding="utf-8")
+    (work_dir / "剧情索引.txt").write_text(build_meta_index(entries), encoding="utf-8")
     return work
 
 
