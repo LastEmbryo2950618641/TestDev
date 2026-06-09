@@ -312,12 +312,28 @@
 }
 
 .feedback-full {
-  max-height: 120px;
+  display: grid;
+  gap: 7px;
+  max-height: 140px;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 7px;
   border-radius: 8px;
   background: rgba(255, 255, 255, .045);
+}
+
+.feedback-full p {
+  display: grid;
+  gap: 3px;
+}
+
+.feedback-full b {
+  color: #ffe6f7;
+  font-size: 11px;
+}
+
+.feedback-full span {
+  color: #aeb9d6;
 }
 
 .character-grid {

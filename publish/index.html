@@ -171,7 +171,10 @@
           <template x-if="!$store.game.profileOpen">
             <div class="feedback-panel">
               <button class="feedback-summary" @click="$store.game.feedbackOpen = !$store.game.feedbackOpen" x-text="$store.game.feedbackSummary()"></button>
-              <p class="feedback-full" x-show="$store.game.feedbackOpen" x-text="$store.game.feedbackText()"></p>
+              <div class="feedback-full" x-show="$store.game.feedbackOpen">
+                <p><b>当前心理</b><span x-text="$store.game.feedbackText()"></span></p>
+                <p><b>下一步打算</b><span x-text="$store.game.feedbackPlan()"></span></p>
+              </div>
             </div>
           </template>
           <div class="profile-details" x-show="$store.game.profileOpen && $store.game.currentRpgState">

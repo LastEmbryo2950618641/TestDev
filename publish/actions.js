@@ -47,9 +47,15 @@ window.GameModules.actions = {
     return this.mindText || '角色正在观察操控者的意图。';
   },
 
+  feedbackPlan() {
+    const next = this.choices?.[0] || this.quest || '继续观察当前局势';
+    return this.online ? `身体仍受操控，若被放开控制，倾向于：${next}` : `下一步打算：${next}`;
+  },
+
   feedbackSummary() {
     const text = this.feedbackText();
-    return text.length > 28 ? `${text.slice(0, 28)}…` : text;
+    const summary = text.length > 18 ? `${text.slice(0, 18)}…` : text;
+    return `${summary} / ${this.feedbackPlan()}`;
   },
 
   async searchLore() {
