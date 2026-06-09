@@ -58,12 +58,22 @@ window.GameModules.entryTime = {
   baseYear(calendar, store) {
     const lore = window.GameModules.sqliteSave?.getWorldLore?.(store?.character?.work || '原创世界');
     const text = `${calendar.label || ''} ${store?.character?.work || ''} ${lore?.background || ''}`;
+    const fixed = this.knownStoryYear(text);
+    if (fixed) return fixed;
     const years = text.match(/\b(1[5-9]\d{2}|20\d{2}|21\d{2})\b/g);
     if (years?.length) return Number(years[0]);
     if (/现代|公元|都市|学校|科技/.test(text)) return 2026;
     let hash = 0;
     for (const char of text) hash = (hash + char.charCodeAt(0)) % 900;
     return 1000 + hash;
+  },
+
+  knownStoryYear(text) {
+    const rules = [
+      [/Fate\s*Zero|Fate\/Zero|fate\s*zore|第四次圣杯战争/i, 1994],
+      [/Fate\s*stay\s*night|第五次圣杯战争/i, 2004],
+    ];
+    return rules.find(([re]) => re.test(text))?.[1] || 0;
   },
 
   format(time, calendar) {
