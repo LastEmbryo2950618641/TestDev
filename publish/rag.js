@@ -57,7 +57,7 @@ window.GameModules.rag = {
       const parts = items.filter((x) => x.novel === hit.novel && x.title === hit.title && Number(x.chunk) >= start && Number(x.chunk) <= end)
         .sort((a, b) => Number(a.chunk) - Number(b.chunk));
       const text = this.paragraphExcerpt(parts.map((x) => x.text).join('\n'), hit.text);
-      output.push({ ...hit, chunk: `${start}-${end}`, text: text || this.paragraphExcerpt(hit.text) || hit.text });
+      if (text) output.push({ ...hit, chunk: `${start}-${end}`, text });
     }
     return output;
   },
@@ -70,24 +70,14 @@ window.GameModules.rag = {
   },
 
   paragraphExcerpt(text, fallback = '') {
-    const normalized = String(text || '').replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim();
-    const paragraphs = normalized.split(/\n\s*\n/).map((x) => this.trimToSentences(x)).filter((x) => x.length >= 24);
-    const full = paragraphs.filter((x) => this.isCleanStart(x) && this.isCleanEnd(x));
-    const picked = (full.length ? full : paragraphs).slice(0, 3).join('\n\n');
-    return picked || this.trimToSentences(fallback);
+    const lines = this.cleanLines(text);
+    const picked = lines.slice(0, 8).join('\n');
+    return picked || this.cleanLines(fallback).slice(0, 8).join('\n');
   },
 
-  trimToSentences(text) {
-    const value = String(text || '').replace(/\s+/g, ' ').trim();
-    const sentences = value.match(/[^。！？]+[。！？]/g) || [];
-    while (sentences.length && !this.isCleanStart(sentences[0].trim())) sentences.shift();
-    const picked = [];
-    for (const sentence of sentences) {
-      if (picked.join('').length + sentence.length > 360) break;
-      picked.push(sentence.trim());
-      if (picked.length >= 5) break;
-    }
-    return picked.join(' ').trim();
+  cleanLines(text) {
+    return String(text || '').replace(/\r/g, '').split('\n')
+      .map((x) => x.trim()).filter((x) => x.length >= 8 && this.isCleanStart(x) && this.isCleanEnd(x));
   },
 
   isCleanStart(text) {
