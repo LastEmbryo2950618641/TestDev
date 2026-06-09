@@ -329,9 +329,11 @@ select.text-input option {
   gap: var(--ui-gap);
   overflow-y: auto;
   overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .character-status-card {
+  flex: 0 0 auto;
   width: 100%;
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);
