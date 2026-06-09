@@ -45,6 +45,10 @@
         <button class="load-btn" @click="$store.game.save()" :disabled="$store.game.busy">保存当前进度</button>
         <button class="overwrite-btn" @click="$store.game.resetGame()" :disabled="$store.game.busy">重新开始</button>
       </div>
+      <label class="dev-toggle">
+        <input type="checkbox" x-model="$store.game.sectionHintsEnabled">
+        <span>显示开发栏目提示</span>
+      </label>
       <div class="save-slot-list">
         <template x-for="slot in $store.game.saveSlots" :key="slot">
           <article class="save-slot-item" :class="{ active: $store.game.selectedSlot === slot, empty: !$store.game.saveMeta(slot).exists }">
@@ -118,8 +122,8 @@
     </div>
   </section>
 
-  <main x-show="$store.game.started && !$store.game.loading" class="game-shell" x-cloak>
-    <header class="top-bar">
+  <main x-show="$store.game.started && !$store.game.loading" class="game-shell" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+    <header class="top-bar dev-section" data-section-title="顶部状态栏">
       <div class="mode-status">
         <span class="mode-dot" :class="$store.game.online ? 'online' : 'offline'"></span>
         <strong x-text="$store.game.online ? '上线中：玩家接管身体' : '下线中：角色自主行动'"></strong>
@@ -131,8 +135,8 @@
     </header>
 
     <section class="rpg-layout">
-      <aside class="panel character-panel">
-        <button class="character-status-card" @click="$store.game.profileOpen = !$store.game.profileOpen">
+      <aside class="panel character-panel dev-section" data-section-title="角色侧栏">
+        <button class="character-status-card dev-section" data-section-title="角色状态栏" @click="$store.game.profileOpen = !$store.game.profileOpen">
           <div class="avatar-orb" x-text="$store.game.character.mark"></div>
           <div class="character-status-main">
             <div class="name-role-block">
@@ -150,17 +154,16 @@
             </div>
           </div>
         </button>
-        <div class="compact-metrics">
+        <div class="compact-metrics dev-section" data-section-title="简洁数值栏">
           <span><b>情绪</b><em x-text="$store.game.moodScore()"></em></span>
           <span><b>信任</b><em x-text="$store.game.trust"></em></span>
           <span><b>反抗</b><em x-text="$store.game.resistance"></em></span>
           <span><b>好感</b><em x-text="$store.game.affection()"></em></span>
           <span><b>心动</b><em x-text="$store.game.heartbeat()"></em></span>
         </div>
-        <section class="profile-card">
+        <section class="profile-card dev-section" data-section-title="角色反馈区">
           <template x-if="!$store.game.profileOpen">
             <div class="feedback-panel">
-              <b x-text="`${$store.game.character.name}的反馈`"></b>
               <p x-text="$store.game.mindText || '角色正在观察操控者的意图。'"></p>
             </div>
           </template>
@@ -189,12 +192,12 @@
         </section>
       </aside>
 
-      <section class="panel story-panel">
-        <div class="scene-title">
+      <section class="panel story-panel dev-section" data-section-title="剧情日志区">
+        <div class="scene-title dev-section" data-section-title="场景标题栏">
           <span x-text="$store.game.sceneTitle"></span>
           <b x-text="`第 ${$store.game.turn} 回合`"></b>
         </div>
-        <div class="story-log scroll-area" x-ref="storyLog">
+        <div class="story-log scroll-area dev-section" data-section-title="对话记录列表" x-ref="storyLog">
           <template x-for="entry in $store.game.log" :key="entry.id">
             <article class="log-entry" :class="entry.type">
               <span x-text="entry.speaker"></span>
@@ -205,24 +208,24 @@
         </div>
       </section>
 
-      <aside class="panel mind-panel">
+      <aside class="panel mind-panel dev-section" data-section-title="右侧信息栏">
         <h3>心理想法</h3>
-        <div class="mind-box" x-text="$store.game.mindText || '角色正在观察操控者的意图。'"></div>
+        <div class="mind-box dev-section" data-section-title="心理想法区" x-text="$store.game.mindText || '角色正在观察操控者的意图。'"></div>
         <h3>状态</h3>
-        <div class="tag-list">
+        <div class="tag-list dev-section" data-section-title="状态标签区">
           <span x-text="`情绪：${$store.game.mood}`"></span>
           <span x-text="`信任：${$store.game.trust}`"></span>
           <span x-text="`反抗：${$store.game.resistance}`"></span>
         </div>
         <h3>当前目标</h3>
-        <p class="quest-text" x-text="$store.game.quest"></p>
+        <p class="quest-text dev-section" data-section-title="当前目标区" x-text="$store.game.quest"></p>
         <h3>资料查询</h3>
-        <div class="lore-search">
+        <div class="lore-search dev-section" data-section-title="资料查询输入区">
           <input x-model="$store.game.ragQuery" placeholder="查 Fate 资料..." @keydown.enter="$store.game.searchLore()">
           <button @click="$store.game.searchLore()" :disabled="$store.game.ragBusy || !$store.game.ragQuery.trim()">查</button>
         </div>
         <p class="lore-error" x-show="$store.game.ragError" x-text="$store.game.ragError"></p>
-        <div class="lore-results scroll-area">
+        <div class="lore-results scroll-area dev-section" data-section-title="资料查询结果区">
           <template x-for="item in $store.game.ragResults" :key="`${item.path}-${item.chunk}`">
             <article class="lore-item">
               <strong x-text="`${item.novel} #${item.chunk}`"></strong>
@@ -234,14 +237,14 @@
       </aside>
     </section>
 
-    <footer class="control-dock">
-      <div class="choice-row">
+    <footer class="control-dock dev-section" data-section-title="底部操作栏">
+      <div class="choice-row dev-section" data-section-title="行动选项栏">
         <template x-for="choice in $store.game.choices" :key="choice">
           <button class="choice-btn" @click="$store.game.submitAction(choice)" :disabled="$store.game.busy" x-text="choice"></button>
         </template>
       </div>
 
-      <div class="free-input">
+      <div class="free-input dev-section" data-section-title="自由输入栏">
         <input x-model="$store.game.input" :placeholder="$store.game.online ? '直接输入下一步行动...' : '给角色一句建议，然后让她自己决定...'" :disabled="$store.game.busy" @keydown.enter="$store.game.submitFreeInput()">
         <button @click="$store.game.submitFreeInput()" :disabled="$store.game.busy || !$store.game.input.trim()">执行</button>
         <button class="ghost-btn" @click="$store.game.autoplay()" :disabled="$store.game.busy">自由推进</button>

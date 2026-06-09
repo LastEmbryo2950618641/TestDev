@@ -53,6 +53,7 @@ document.addEventListener('alpine:init', () => {
     rpgStates: {},
     rpgPanelCharacterId: '',
     profileOpen: false,
+    sectionHintsEnabled: cfg.sectionHintsEnabled,
 
     get character() {
       return window.GameModules.catalog.find(this.selectedCharacterId)

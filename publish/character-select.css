@@ -80,6 +80,21 @@
   line-height: 1.5;
 }
 
+.dev-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #dce5ff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.dev-toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: #71f3ff;
+}
+
 .save-slot-list {
   display: grid;
   gap: 7px;

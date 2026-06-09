@@ -4,6 +4,7 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.config = {
+  sectionHintsEnabled: true,
   defaultModelId: 'nalang-medium-0826',
   stats: [
     { key: 'will', label: '意志' },

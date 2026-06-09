@@ -54,6 +54,38 @@ button:not(:disabled):active {
   display: none !important;
 }
 
+.section-hints .dev-section {
+  position: relative;
+  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease, filter .16s ease;
+}
+
+.section-hints .dev-section:hover,
+.section-hints .dev-section:focus-within {
+  border-color: rgba(116, 246, 255, .85) !important;
+  box-shadow: 0 0 0 2px rgba(116, 246, 255, .18), 0 0 24px rgba(116, 246, 255, .18);
+  filter: saturate(1.12);
+}
+
+.section-hints .dev-section:hover::before,
+.section-hints .dev-section:focus-within::before {
+  content: attr(data-section-title);
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  z-index: 8;
+  max-width: calc(100% - 8px);
+  padding: 2px 7px;
+  border: 1px solid rgba(116, 246, 255, .6);
+  border-radius: 999px;
+  background: rgba(5, 10, 24, .92);
+  color: #74f6ff;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.4;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
 .loading-screen,
 .start-screen,
 .game-shell {
