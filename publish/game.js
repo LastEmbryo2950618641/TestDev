@@ -19,8 +19,9 @@ document.addEventListener('alpine:init', () => {
 
   Alpine.store('game', {
     loading: true,
-    loadingStep: '正在接入操控链路，请稍等…',
+    loadingStep: '等待平台连接',
     loadingDetail: '首次进入或存档较大时会更慢，这是正常现象。',
+    loadingStages: [],
     busy: false,
     started: false,
     playerName: '',

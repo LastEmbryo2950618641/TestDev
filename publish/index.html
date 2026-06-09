@@ -32,10 +32,17 @@
   <div x-show="$store.game.loading" class="loading-screen">
     <div class="loading-card">
       <div class="spinner"></div>
-      <strong>正在启动游戏</strong>
-      <p x-text="$store.game.loadingStep || '正在接入操控链路…'"></p>
+      <p x-text="$store.game.loadingStep || '等待平台连接'"></p>
       <small x-text="$store.game.loadingDetail || '请稍等，不要关闭或反复刷新。'"></small>
-      <div class="loading-hint">人物、世界观和记忆库较多时，首次加载会慢一些。</div>
+      <div class="loading-stages">
+        <template x-for="stage in $store.game.loadingStages" :key="stage.key">
+          <div class="loading-stage" :class="stage.status">
+            <span x-text="stage.name"></span>
+            <b x-text="$store.game.stageText ? $store.game.stageText(stage.status) : stage.status"></b>
+          </div>
+        </template>
+      </div>
+      <div class="loading-hint">会并行加载无依赖资源；存档、世界观和记忆恢复完成后进入游戏。</div>
     </div>
   </div>
 
