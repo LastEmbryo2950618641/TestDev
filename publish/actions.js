@@ -94,7 +94,34 @@ window.GameModules.actions = {
   },
 
   async resetGame() {
-    await window.GameModules.storage.remove();
-    location.reload();
+    if (this.busy) return;
+    this.busy = true;
+    try {
+      await window.GameModules.storage.remove(this.selectedSlot);
+      await window.GameModules.storage.open(this.selectedSlot);
+      this.started = false;
+      this.turn = 1;
+      this.sceneTitle = '裂隙前厅';
+      this.mood = '冷静';
+      this.trust = 45;
+      this.resistance = 20;
+      this.quest = '确认操控连接';
+      this.mindText = '';
+      this.choices = window.GameModules.config.openingChoices;
+      this.log = [];
+      this.nextId = 1;
+      this.ragContext = '';
+      this.memoryContext = '';
+      this.ragResults = [];
+      this.rpgStates = {};
+      this.rpgPanelCharacterId = this.selectedCharacterId;
+      this.profileOpen = false;
+      this.metricsOpen = false;
+      this.feedbackOpen = false;
+      this.savePanelOpen = false;
+      await this.refreshSaveMetas();
+    } finally {
+      this.busy = false;
+    }
   },
 };
