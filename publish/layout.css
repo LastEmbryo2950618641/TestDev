@@ -48,9 +48,52 @@
   padding: 0 12px;
 }
 
+.vital-bars {
+  display: grid;
+  gap: 7px;
+}
+
+.vital-row {
+  display: grid;
+  grid-template-columns: 34px 1fr 26px;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--ui-small-font);
+  font-weight: 800;
+}
+
+.vital-row i {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .12);
+}
+
+.vital-row b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #58ff9a, #c8ff6b);
+}
+
+.vital-row.stamina b { background: linear-gradient(90deg, #ffd45a, #ff9d4d); }
+.vital-row.mana b { background: linear-gradient(90deg, #65d8ff, #b184ff); }
+
+.profile-details {
+  display: grid;
+  gap: 8px;
+}
+
+.profile-details summary {
+  color: #74f6ff;
+  cursor: pointer;
+  font-size: var(--ui-small-font);
+  font-weight: 900;
+}
+
 @media (max-width: 980px) {
   .rpg-layout {
-    grid-template-columns: minmax(180px, 26vw) minmax(0, 1fr);
+    grid-template-columns: minmax(160px, 24vw) minmax(0, 1fr);
   }
 
   .mind-panel {

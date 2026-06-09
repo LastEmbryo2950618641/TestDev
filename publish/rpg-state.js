@@ -12,8 +12,8 @@ window.GameModules.rpgState = {
         {
           title: fate ? '魔术资质' : '基础资质',
           fields: [
-            { key: 'mana', label: fate ? '魔力量' : '能量', type: 'number', min: 0, max: 100 },
-            { key: 'mystery', label: fate ? '神秘' : '特殊性', type: 'number', min: 0, max: 100 },
+            { key: 'affinity', label: fate ? '魔术适性' : '特殊性', type: 'number', min: 0, max: 100 },
+            { key: 'mystery', label: fate ? '神秘' : '感知', type: 'number', min: 0, max: 100 },
             { key: 'will', label: '意志', type: 'number', min: 0, max: 100 },
             { key: 'luck', label: '幸运', type: 'number', min: 0, max: 100 },
           ],
@@ -131,9 +131,10 @@ window.GameModules.rpgState = {
 
   createCharacterState(character, schema) {
     const seed = this.seed(character.name + character.role + schema.worldTag);
-    const values = {};
+    const values = { health: 100, stamina: 100, mana: 100 };
     for (const section of schema.sections) {
       for (const field of section.fields) {
+        if (['health', 'stamina', 'mana'].includes(field.key)) continue;
         values[field.key] = this.valueFor(field, seed + field.key.length);
       }
     }

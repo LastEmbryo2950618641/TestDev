@@ -8,8 +8,8 @@
   --ui-gap: clamp(7px, 1vw, 10px);
   --shell-pad: clamp(6px, 1.15vw, 10px);
   --panel-pad: clamp(10px, 1.25vw, 14px);
-  --left-col: clamp(210px, 22vw, 250px);
-  --right-col: clamp(200px, 21vw, 240px);
+  --left-col: clamp(170px, 18vw, 210px);
+  --right-col: clamp(190px, 20vw, 230px);
 }
 
 html,

@@ -131,34 +131,40 @@
         <div class="avatar-orb" x-text="$store.game.character.mark"></div>
         <h2 x-text="$store.game.character.name"></h2>
         <p class="role" x-text="$store.game.character.role"></p>
-        <div class="profile-tabs">
-          <button :class="{ active: $store.game.characterTab === 'profile' }" @click="$store.game.characterTab = 'profile'">角色资料</button>
-          <button :class="{ active: $store.game.characterTab === 'rpg' }" @click="$store.game.characterTab = 'rpg'">RPG数据</button>
+        <div class="vital-bars" x-show="$store.game.characterRpgState">
+          <template x-for="vital in $store.game.rpgVitals($store.game.characterRpgState)" :key="vital.key">
+            <div class="vital-row" :class="vital.key">
+              <span x-text="vital.label"></span>
+              <i><b :style="`width: ${Math.max(0, Math.min(100, vital.value))}%`"></b></i>
+              <em x-text="vital.value"></em>
+            </div>
+          </template>
         </div>
-        <section class="profile-card" x-show="$store.game.characterTab === 'profile'">
+        <section class="profile-card">
           <b x-text="$store.game.character.work || '原创世界'"></b>
           <p x-text="$store.game.character.detail || $store.game.character.personality"></p>
-        </section>
-        <section x-show="$store.game.characterTab === 'rpg'">
-          <label class="mini-label">RPG 状态角色</label>
-          <select class="mini-select" x-model="$store.game.rpgPanelCharacterId">
-            <template x-for="state in $store.game.rpgStateList" :key="state.id">
-              <option :value="state.id" x-text="`${state.name}｜${state.worldTag}`"></option>
-            </template>
-          </select>
-          <div class="dynamic-rpg" x-show="$store.game.currentRpgState">
-            <template x-for="section in $store.game.rpgEntries($store.game.currentRpgState)" :key="section.title">
-              <section>
-                <h3 x-text="section.title"></h3>
-                <template x-for="field in section.fields" :key="field.label">
-                  <div class="dynamic-row">
-                    <span x-text="field.label"></span>
-                    <b x-text="Array.isArray(field.value) ? field.value.join('、') || '无' : field.value"></b>
-                  </div>
-                </template>
-              </section>
-            </template>
-          </div>
+          <details class="profile-details" x-show="$store.game.currentRpgState">
+            <summary>个人资料 / 固化属性</summary>
+            <label class="mini-label">查看角色</label>
+            <select class="mini-select" x-model="$store.game.rpgPanelCharacterId">
+              <template x-for="state in $store.game.rpgStateList" :key="state.id">
+                <option :value="state.id" x-text="`${state.name}｜${state.worldTag}`"></option>
+              </template>
+            </select>
+            <div class="dynamic-rpg">
+              <template x-for="section in $store.game.rpgEntries($store.game.currentRpgState)" :key="section.title">
+                <section>
+                  <h3 x-text="section.title"></h3>
+                  <template x-for="field in section.fields" :key="field.label">
+                    <div class="dynamic-row">
+                      <span x-text="field.label"></span>
+                      <b x-text="Array.isArray(field.value) ? field.value.join('、') || '无' : field.value"></b>
+                    </div>
+                  </template>
+                </section>
+              </template>
+            </div>
+          </details>
         </section>
       </aside>
 

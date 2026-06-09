@@ -25,7 +25,7 @@ mode=${state.online ? 'online' : 'offline'}
 信任=${state.trust}
 反抗=${state.resistance}
 目标=${state.quest}
-属性=${JSON.stringify(character.stats)}
+基础状态=${JSON.stringify(state.rpgVitals(state.characterRpgState))}
 技能=${character.skills.map((s) => `${s.name}:${s.desc}`).join('；')}
 玩家输入=${action || '无，继续推进'}
 
@@ -50,7 +50,7 @@ ${state.ragContext || '暂无资料。'}
   "quest":"新的当前目标，18字内",
   "choices":["3到5个下一步行动选项，每个12字内"],
   "appearedCharacters":["本回合新出现或被提到的角色名，最多3个"],
-  "statChanges":{"will":-3到3,"sense":-3到3,"charm":-3到3,"combat":-3到3}
+  "statChanges":{"health":-8到8,"stamina":-8到8,"mana":-8到8}
 }`;
 };
 
@@ -74,6 +74,6 @@ window.GameModules.createFallbackResult = function createFallbackResult(state, a
     quest: '调查操控裂隙',
     choices: ['使用技能调查', '主动交涉', '避开危险', '触碰异常物'],
     appearedCharacters: [name],
-    statChanges: { will: online ? 1 : 0, sense: 1, charm: 0, combat: 0 },
+    statChanges: { health: 0, stamina: online ? -2 : 1, mana: 0 },
   };
 };

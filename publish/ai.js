@@ -70,10 +70,9 @@ window.GameModules.ai = {
       choices: Array.isArray(data.choices) && data.choices.length ? data.choices.slice(0, 5).map((x) => String(x).slice(0, 14)) : fallback.choices,
       appearedCharacters: Array.isArray(data.appearedCharacters) ? data.appearedCharacters.slice(0, 3).map((x) => String(x).slice(0, 16)) : fallback.appearedCharacters,
       statChanges: {
-        will: this.clampDelta(changes.will),
-        sense: this.clampDelta(changes.sense),
-        charm: this.clampDelta(changes.charm),
-        combat: this.clampDelta(changes.combat),
+        health: this.clampVitalDelta(changes.health),
+        stamina: this.clampVitalDelta(changes.stamina),
+        mana: this.clampVitalDelta(changes.mana),
       },
     };
   },
@@ -82,8 +81,8 @@ window.GameModules.ai = {
     return Math.max(0, Math.min(100, Number.isFinite(value) ? Math.round(value) : fallback));
   },
 
-  clampDelta(value) {
+  clampVitalDelta(value) {
     if (!Number.isFinite(value)) return 0;
-    return Math.max(-3, Math.min(3, Math.round(value)));
+    return Math.max(-8, Math.min(8, Math.round(value)));
   },
 };

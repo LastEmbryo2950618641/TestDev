@@ -27,7 +27,6 @@ document.addEventListener('alpine:init', () => {
     savePanelOpen: false,
     saveMessage: '',
     saveMetas: {},
-    characterTab: 'profile',
     modelId: cfg.defaultModelId,
     characters: cfg.characters,
     works: [],
@@ -68,8 +67,12 @@ document.addEventListener('alpine:init', () => {
       return this.character.refs || [];
     },
 
+    get characterRpgState() {
+      return this.rpgStates[this.character.id] || null;
+    },
+
     get currentRpgState() {
-      return this.rpgStates[this.rpgPanelCharacterId] || this.rpgStates[this.character.id] || null;
+      return this.rpgStates[this.rpgPanelCharacterId] || this.characterRpgState;
     },
 
     get rpgStateList() {
@@ -152,17 +155,22 @@ document.addEventListener('alpine:init', () => {
       this.quest = result.quest;
       this.choices = result.choices;
       this.mindText = result.mind;
-      this.applyStatChanges(result.statChanges);
+      await this.applyStatChanges(result.statChanges);
       this.addLog('story', '旁白', result.narration);
       if (result.speech) this.addLog('speech', this.character.name, result.speech);
       this.addLog('mind', `${this.character.name}的心理`, result.mind);
     },
 
-    applyStatChanges(changes) {
+    async applyStatChanges(changes) {
+      const state = this.characterRpgState;
+      if (!state?.values) return;
       Object.entries(changes || {}).forEach(([key, delta]) => {
-        if (typeof this.character.stats[key] !== 'number') return;
-        this.character.stats[key] = Math.max(0, Math.min(100, this.character.stats[key] + delta));
+        if (!['health', 'stamina', 'mana'].includes(key)) return;
+        const current = Number.isFinite(state.values[key]) ? state.values[key] : 100;
+        state.values[key] = Math.max(0, Math.min(100, current + delta));
       });
+      this.rpgStates = { ...this.rpgStates, [state.id]: state };
+      await window.GameModules.sqliteSave.saveCharacterState(state);
     },
 
     ...window.GameModules.actions,

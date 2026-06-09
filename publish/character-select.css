@@ -164,7 +164,7 @@
 
 .profile-card {
   display: grid;
-  gap: 7px;
+  gap: 8px;
   padding: 9px;
   border-radius: 12px;
   background: rgba(255, 255, 255, .06);

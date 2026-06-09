@@ -99,11 +99,23 @@ window.GameModules.saveActions = {
     return null;
   },
 
+  rpgVitals(state) {
+    const values = state?.values || {};
+    return [
+      { key: 'health', label: '生命', value: values.health ?? 100 },
+      { key: 'stamina', label: '精力', value: values.stamina ?? 100 },
+      { key: 'mana', label: '魔力', value: values.mana ?? 100 },
+    ];
+  },
+
   rpgEntries(state) {
     if (!state?.schema) return [];
+    const core = new Set(['health', 'stamina', 'mana']);
     return state.schema.sections.map((section) => ({
       title: section.title,
-      fields: section.fields.map((field) => ({ label: field.label, value: state.values[field.key] })),
-    }));
+      fields: section.fields
+        .filter((field) => !core.has(field.key))
+        .map((field) => ({ label: field.label, value: state.values[field.key] })),
+    })).filter((section) => section.fields.length);
   },
 };
