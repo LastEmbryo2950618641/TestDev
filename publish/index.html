@@ -183,11 +183,20 @@
       <section class="entry-setup dev-section" data-section-title="进入时机配置区" x-show="$store.game.entrySetupOpen">
         <h3>选择进入时机</h3>
         <p class="entry-note" x-text="$store.game.entryCalendar ? `当前世界历法：${$store.game.entryCalendar.label}` : '正在固化世界历法…'"></p>
+        <small class="entry-stage-detail" x-show="$store.game.busy" x-text="$store.game.entryStageDetail()"></small>
+        <div class="loading-stages entry-stages" x-show="$store.game.entryStages.length">
+          <template x-for="stage in $store.game.entryStages" :key="stage.key">
+            <div class="loading-stage" :class="stage.status" :title="stage.detail">
+              <span x-text="stage.name"></span>
+              <b x-text="$store.game.stageText ? $store.game.stageText(stage.status) : stage.status"></b>
+            </div>
+          </template>
+        </div>
         <div class="entry-grid">
-          <select class="text-input" x-model="$store.game.entryTime.year" @change="$store.game.generateEntryAction('玩家调整进入时间')"><template x-for="x in $store.game.entryTimeOptions.years" :key="x"><option x-text="x"></option></template></select>
-          <select class="text-input" x-model="$store.game.entryTime.month" @change="$store.game.generateEntryAction('玩家调整进入时间')"><template x-for="x in $store.game.entryTimeOptions.months" :key="x"><option x-text="x"></option></template></select>
-          <select class="text-input" x-model="$store.game.entryTime.day" @change="$store.game.generateEntryAction('玩家调整进入时间')"><template x-for="x in $store.game.entryTimeOptions.days" :key="x"><option x-text="x"></option></template></select>
-          <select class="text-input" x-model="$store.game.entryTime.hour" @change="$store.game.generateEntryAction('玩家调整进入时间')"><template x-for="x in $store.game.entryTimeOptions.hours" :key="x"><option x-text="x"></option></template></select>
+          <select class="text-input" x-model="$store.game.entryTime.year" @change="$store.game.generateEntryAction('玩家调整进入时间')" :disabled="$store.game.busy"><template x-for="x in $store.game.entryTimeOptions.years" :key="x"><option x-text="x"></option></template></select>
+          <select class="text-input" x-model="$store.game.entryTime.month" @change="$store.game.generateEntryAction('玩家调整进入时间')" :disabled="$store.game.busy"><template x-for="x in $store.game.entryTimeOptions.months" :key="x"><option x-text="x"></option></template></select>
+          <select class="text-input" x-model="$store.game.entryTime.day" @change="$store.game.generateEntryAction('玩家调整进入时间')" :disabled="$store.game.busy"><template x-for="x in $store.game.entryTimeOptions.days" :key="x"><option x-text="x"></option></template></select>
+          <select class="text-input" x-model="$store.game.entryTime.hour" @change="$store.game.generateEntryAction('玩家调整进入时间')" :disabled="$store.game.busy"><template x-for="x in $store.game.entryTimeOptions.hours" :key="x"><option x-text="x"></option></template></select>
         </div>
         <article class="entry-action-card">
           <strong>当前正在发生</strong>
@@ -198,8 +207,8 @@
           <button class="small-btn" @click="$store.game.advanceEntryTime()" :disabled="$store.game.busy">推进时间</button>
         </div>
         <div class="entry-mode-row">
-          <button :class="{ active: $store.game.controlMode === 'possess' }" @click="$store.game.controlMode = 'possess'">附身方式</button>
-          <button :class="{ active: $store.game.controlMode === 'rpg' }" @click="$store.game.controlMode = 'rpg'">RPG方式</button>
+          <button :class="{ active: $store.game.controlMode === 'possess' }" @click="$store.game.controlMode = 'possess'" :disabled="$store.game.busy">附身方式</button>
+          <button :class="{ active: $store.game.controlMode === 'rpg' }" @click="$store.game.controlMode = 'rpg'" :disabled="$store.game.busy">RPG方式</button>
         </div>
         <small x-text="$store.game.controlMode === 'possess' ? '第二人称直接控制人物身体。' : '第三人称通过手机式界面发出操作。'"></small>
         <button class="primary-btn" @click="$store.game.confirmControl()" :disabled="$store.game.busy || !$store.game.entryCurrentAction">控制</button>

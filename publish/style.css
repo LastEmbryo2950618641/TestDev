@@ -372,6 +372,10 @@ select.text-input option,
   line-height: 1.5;
 }
 
+.entry-stage-detail {
+  color: #74f6ff !important;
+}
+
 .entry-mode-row button {
   min-height: 34px;
   background: rgba(255, 255, 255, .08);

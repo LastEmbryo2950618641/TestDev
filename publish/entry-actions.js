@@ -4,25 +4,66 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.entryActions = {
+  resetEntryStages() {
+    this.entryStages = [
+      { key: 'calendar', name: '世界历法', status: 'waiting', detail: '等待固化世界时间规则。' },
+      { key: 'time', name: '时间选项', status: 'waiting', detail: '等待生成可选日期。' },
+      { key: 'rpg', name: '角色状态', status: 'waiting', detail: '等待准备 RPG 属性。' },
+      { key: 'action', name: '当前行动', status: 'waiting', detail: '等待推演角色正在做什么。' },
+      { key: 'ready', name: '控制准备', status: 'waiting', detail: '等待进入控制确认。' },
+    ];
+  },
+
+  setEntryStage(key, status, detail = '') {
+    this.entryStages = this.entryStages.map((x) => (x.key === key ? { ...x, status, detail: detail || x.detail } : x));
+  },
+
+  async runEntryStage(key, detail, fn) {
+    this.setEntryStage(key, 'running', detail);
+    try {
+      const result = await fn();
+      this.setEntryStage(key, 'done', detail);
+      return result;
+    } catch (err) {
+      this.setEntryStage(key, 'error', `${detail}失败：${err.message || '未知错误'}`);
+      throw err;
+    }
+  },
+
+  entryStageDetail() {
+    const current = this.entryStages.find((x) => ['running', 'error'].includes(x.status)) || this.entryStages.find((x) => x.status === 'waiting') || this.entryStages.at(-1);
+    return current?.detail || '正在准备进入配置。';
+  },
+
   async prepareEntrySetup() {
     if (this.busy) return;
+    this.entrySetupOpen = true;
+    this.entryCurrentAction = '';
+    this.resetEntryStages();
     this.busy = true;
+    await new Promise((resolve) => requestAnimationFrame(resolve));
     try {
-      await this.ensureRpgForCurrentCharacter();
-      const calendar = await window.GameModules.entryTime.ensureCalendar(this);
+      const calendar = await this.runEntryStage('calendar', '正在生成或读取当前世界的固化历法。', () => window.GameModules.entryTime.ensureCalendar(this));
       this.entryCalendar = calendar;
-      this.entryTimeOptions = window.GameModules.entryTime.options(calendar);
-      this.entryTime = {
-        year: this.entryTime.year || this.entryTimeOptions.years[0],
-        month: this.entryTime.month || this.entryTimeOptions.months[0],
-        day: this.entryTime.day || this.entryTimeOptions.days[0],
-        hour: this.entryTime.hour || this.entryTimeOptions.hours[0],
-      };
-      this.entrySetupOpen = true;
-      await this.generateEntryAction('初始进入时机');
+      await this.runEntryStage('time', '正在把历法转换成玩家可选日期。', async () => this.prepareEntryTimeOptions(calendar));
+      await Promise.all([
+        this.runEntryStage('rpg', '正在准备被控制角色的完整 RPG 状态。', () => this.ensureRpgForCurrentCharacter()),
+        this.runEntryStage('action', '正在根据时间、世界观和性格推演当前行动。', () => this.generateEntryAction('初始进入时机')),
+      ]);
+      await this.runEntryStage('ready', '进入配置已准备好，可以选择操控方式。', async () => true);
     } finally {
       this.busy = false;
     }
+  },
+
+  prepareEntryTimeOptions(calendar) {
+    this.entryTimeOptions = window.GameModules.entryTime.options(calendar);
+    this.entryTime = {
+      year: this.entryTime.year || this.entryTimeOptions.years[0],
+      month: this.entryTime.month || this.entryTimeOptions.months[0],
+      day: this.entryTime.day || this.entryTimeOptions.days[0],
+      hour: this.entryTime.hour || this.entryTimeOptions.hours[0],
+    };
   },
 
   entryTimeLabel() {

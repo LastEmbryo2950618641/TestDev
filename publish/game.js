@@ -18,10 +18,9 @@ document.addEventListener('alpine:init', () => {
   const cfg = window.GameModules.config;
 
   Alpine.store('game', {
-    loading: true,
-    loadingStep: '等待平台连接',
+    loading: true, loadingStep: '等待平台连接',
     loadingDetail: '首次进入或存档较大时会更慢，这是正常现象。',
-    loadingStages: [],
+    loadingStages: [], entryStages: [],
     busy: false, started: false, entrySetupOpen: false,
     playerName: '',
     selectedSlot: 'slot-1',
