@@ -20,7 +20,8 @@ window.GameModules.rag = {
     const terms = this.expandTerms(query, index.aliases || {});
     const sourceHint = options.sourceHint || '';
     const allItems = index.items || [];
-    const sourceItems = sourceHint ? allItems.filter((item) => item.novel.includes(sourceHint)) : [];
+    const sourceItems = sourceHint ? allItems.filter((item) => this.sameSource(item.novel, sourceHint)) : [];
+    if (options.strictSource && sourceHint && !sourceItems.length) return [];
     const items = options.strictSource && sourceItems.length ? sourceItems : allItems;
     const results = [];
 
@@ -32,7 +33,8 @@ window.GameModules.rag = {
         const count = this.countMatches(text, term);
         score += count * (term.length >= 3 ? 8 : 2);
       }
-      if (sourceHint && item.novel.includes(sourceHint)) score += 10;
+      if (options.requiredTerms && !this.hasAny(text, options.requiredTerms)) continue;
+      if (sourceHint && this.sameSource(item.novel, sourceHint)) score += 10;
       if (score > 0) results.push({ ...item, ragScore: score + (item.score || 0) * 0.15 });
     }
 
@@ -57,6 +59,21 @@ window.GameModules.rag = {
       output.push({ ...hit, chunk: `${start}-${end}`, text: parts.map((x) => x.text).join('\n') || hit.text });
     }
     return output;
+  },
+
+  async expandKnownRefs(refs, options = {}) {
+    const index = await this.load();
+    const sourceHint = options.sourceHint || '';
+    const items = (index.items || []).filter((item) => !sourceHint || this.sameSource(item.novel, sourceHint));
+    return this.expandContext(refs.filter((ref) => items.some((item) => item.novel === ref.novel && item.title === ref.title && Number(item.chunk) === Number(ref.chunk))), items, options.contextRadius || 1);
+  },
+
+  sameSource(novel, sourceHint) {
+    return String(novel || '').replace(/\s+/g, '').toLowerCase() === String(sourceHint || '').replace(/\s+/g, '').toLowerCase();
+  },
+
+  hasAny(text, terms) {
+    return terms.some((term) => term && text.includes(term));
   },
 
   expandTerms(query, aliases) {

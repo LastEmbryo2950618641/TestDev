@@ -10,19 +10,26 @@ window.GameModules.characterBrief = {
     store.characterBriefs = { ...store.characterBriefs, [character.id]: this.fallback(character) };
     store.characterBriefBusy = true;
     try {
-      const refs = await window.GameModules.rag.search(`${character.name} ${character.work} 出生 背景 身世 经历`, {
-        limit: 6,
+      const terms = this.terms(character);
+      const knownRefs = this.fallbackRefs(character);
+      const refs = knownRefs.length ? await window.GameModules.rag.expandKnownRefs(knownRefs, {
+        sourceHint: character.work,
+        contextRadius: 1,
+      }) : await window.GameModules.rag.search(`${terms.join(' ')} 身世 背景 家族 经历`, {
+        limit: 4,
         sourceHint: character.work,
         strictSource: true,
         contextRadius: 1,
+        requiredTerms: terms,
       });
-      store.characterLoreRefs = { ...store.characterLoreRefs, [character.id]: refs };
-      const context = refs.map((x) => x.text).join('\n').slice(0, 1600);
+      const cleanRefs = refs.length ? refs : knownRefs;
+      store.characterLoreRefs = { ...store.characterLoreRefs, [character.id]: cleanRefs };
+      const context = cleanRefs.map((x) => x.text).join('\n').slice(0, 1800);
       const brief = await this.generate(character, context);
       store.characterBriefs = { ...store.characterBriefs, [character.id]: brief };
     } catch (err) {
       console.warn('角色简介生成失败:', err.message, err.stack);
-      store.characterLoreRefs = { ...store.characterLoreRefs, [character.id]: character.refs || [] };
+      store.characterLoreRefs = { ...store.characterLoreRefs, [character.id]: this.fallbackRefs(character) };
       store.characterBriefs = { ...store.characterBriefs, [character.id]: this.fallback(character) };
     } finally {
       store.characterBriefBusy = false;
@@ -30,18 +37,33 @@ window.GameModules.characterBrief = {
   },
 
   async generate(character, context) {
-    if (!window.dzmm?.completions) return this.fallback(character);
+    if (!context || !window.dzmm?.completions) return this.fallback(character);
     let buffer = '';
     await window.dzmm.completions({
       model: 'nalang-turbo-0826',
-      maxTokens: 260,
-      messages: [{ role: 'user', content: `基于资料为角色生成首页简短预览，只写出生/身世/背景，80字内，不要剧透长剧情。角色：${character.name}｜${character.work}｜${character.role}。资料：${context || character.detail || character.personality}` }],
+      maxTokens: 180,
+      messages: [{ role: 'user', content: `把资料整理成角色出生/身世/背景摘要，只输出一句中文，60字内。不要引用原文，不要对白，不要动作剧情，不要分析资料。资料不足就写“${this.fallback(character)}”。角色：${character.name}｜${character.work}｜${character.role}。资料：${context}` }],
     }, (chunk) => { buffer += chunk; });
-    return (buffer.trim() || this.fallback(character)).slice(0, 90);
+    return this.clean(buffer, character);
+  },
+
+  clean(text, character) {
+    const value = String(text || '').replace(/[`*_#>「」"“”\n\r]/g, '').replace(/\s+/g, ' ').trim();
+    if (!value || /资料|对白|chunk|来源|────|我认为|他说|她说/.test(value)) return this.fallback(character);
+    return value.slice(0, 80);
+  },
+
+  terms(character) {
+    return [character.name, ...(character.aliases || [])].filter((x) => String(x || '').length >= 2);
+  },
+
+  fallbackRefs(character) {
+    return (character.refs || []).filter((ref) => this.terms(character).some((term) => ref.text?.includes(term))).slice(0, 4);
   },
 
   fallback(character) {
-    const text = character.detail || character.personality || `${character.name}来自${character.work || '未知世界'}，身份为${character.role || '角色'}。`;
-    return String(text).slice(0, 90);
+    const ref = this.fallbackRefs(character)[0]?.text;
+    const text = ref || `${character.name}来自${character.work || '未知世界'}，身份为${character.role || '角色'}。`;
+    return String(text).replace(/\s+/g, ' ').slice(0, 90);
   },
 };
