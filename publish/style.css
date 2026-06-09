@@ -340,6 +340,49 @@ select.text-input option,
   margin: 6px 0 0;
 }
 
+.entry-setup,
+.entry-action-card {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255, 207, 90, .24);
+  border-radius: 14px;
+  background: rgba(255, 207, 90, .07);
+}
+
+.entry-grid,
+.entry-mode-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.entry-advance-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px;
+}
+
+.entry-note,
+.entry-action-card p,
+.entry-setup small {
+  margin: 0;
+  color: #aeb9d6;
+  line-height: 1.5;
+}
+
+.entry-mode-row button {
+  min-height: 34px;
+  background: rgba(255, 255, 255, .08);
+  border: 1px solid rgba(255, 255, 255, .14);
+}
+
+.entry-mode-row button.active {
+  border-color: #71f3ff;
+  background: rgba(113, 243, 255, .18);
+}
+
 .primary-btn,
 .choice-btn,
 .free-input button {

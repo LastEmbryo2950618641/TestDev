@@ -16,15 +16,7 @@ window.GameModules.coreActions = {
   },
 
   async start() {
-    this.started = true;
-    this.log = [];
-    this.turn = 1;
-    await this.ensureRpgForCurrentCharacter();
-    this.mindText = `${this.character.name}感觉到意识深处多了一道陌生的注视。`;
-    this.addLog('system', '系统', `操控链路已连接：${this.playerName} → ${this.character.name}`);
-    this.addLog('story', '旁白', `${this.character.name}在一座异常安静的前厅醒来。视野边缘闪烁着「上线」标记。`);
-    this.addLog('mind', `${this.character.name}的心理`, this.mindText);
-    await this.save();
+    await this.prepareEntrySetup();
   },
 
   setOnline(value) {

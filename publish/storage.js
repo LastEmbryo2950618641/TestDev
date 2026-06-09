@@ -29,6 +29,10 @@ window.GameModules.storage = {
       selectedSlot: store.selectedSlot,
       selectedWork: store.selectedWork,
       selectedCharacterId: store.selectedCharacterId,
+      entryTime: store.entryTime,
+      entryCalendar: store.entryCalendar,
+      entryCurrentAction: store.entryCurrentAction,
+      controlMode: store.controlMode,
       online: store.online,
       turn: store.turn,
       sceneTitle: store.sceneTitle,
@@ -48,6 +52,10 @@ window.GameModules.storage = {
     store.playerName = save.playerName || store.playerName;
     store.selectedWork = save.selectedWork || store.selectedWork;
     store.selectedCharacterId = save.selectedCharacterId || store.selectedCharacterId;
+    store.entryTime = save.entryTime || store.entryTime;
+    store.entryCalendar = save.entryCalendar || store.entryCalendar;
+    store.entryCurrentAction = save.entryCurrentAction || store.entryCurrentAction;
+    store.controlMode = save.controlMode || store.controlMode;
     store.online = save.online ?? store.online;
     store.turn = save.turn || 1;
     store.sceneTitle = save.sceneTitle || store.sceneTitle;

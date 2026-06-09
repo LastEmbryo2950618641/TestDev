@@ -30,7 +30,7 @@ window.GameModules.worldLore = {
   },
 
   prompt(worldTag, context) {
-    return `为 AI RPG 视觉小说生成世界《${worldTag}》的固化世界观设定。当前剧情上下文：${context || '暂无'}。只返回 JSON：{"worldTag":"${worldTag}","background":"背景介绍","factions":[{"name":"势力名","desc":"说明"}],"specialJobs":[{"name":"特殊职业","desc":"说明"}],"jobRanks":["等级体系"],"coreRules":["世界规则"],"specialFields":[{"key":"ascii_key","label":"中文属性","type":"number|rank|list","desc":"用途"}]}。specialFields 是该世界人物都可能拥有的固化特殊属性，4到10个。不要 Markdown。`;
+    return `为 AI RPG 视觉小说生成世界《${worldTag}》的固化世界观设定。当前剧情上下文：${context || '暂无'}。只返回 JSON：{"worldTag":"${worldTag}","background":"背景介绍","factions":[{"name":"势力名","desc":"说明"}],"specialJobs":[{"name":"特殊职业","desc":"说明"}],"jobRanks":["等级体系"],"coreRules":["世界规则"],"calendar":{"label":"纪年名","months":["月份或相位"],"days":30,"hours":["时段名"],"units":{"year":"年单位","month":"月单位","day":"日单位","hour":"时单位"}},"specialFields":[{"key":"ascii_key","label":"中文属性","type":"number|rank|list","desc":"用途"}]}。calendar 要符合世界风格，现代可用公元纪年，异世界可用元素、星相、王朝、月相等通用规则。specialFields 是该世界人物都可能拥有的固化特殊属性，4到10个。不要 Markdown。`;
   },
 
   parse(text) {
@@ -46,6 +46,7 @@ window.GameModules.worldLore = {
     lore.specialJobs = this.list(lore.specialJobs, '职业');
     lore.jobRanks = (lore.jobRanks || []).slice(0, 8).map(String);
     lore.coreRules = (lore.coreRules || []).slice(0, 8).map(String);
+    lore.calendar = this.calendar(lore.calendar, worldTag);
     lore.specialFields = (lore.specialFields || []).slice(0, 10).map((field, index) => ({
       key: /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(field.key) ? field.key : `world_field_${index}`,
       label: String(field.label || field.key || '属性').slice(0, 12),
@@ -60,6 +61,17 @@ window.GameModules.worldLore = {
       name: String(item.name || `${prefix}${index + 1}`).slice(0, 18),
       desc: String(item.desc || '').slice(0, 90),
     }));
+  },
+
+  calendar(raw, worldTag) {
+    const fallback = window.GameModules.entryTime?.calendarFor(worldTag, { worldTag }) || { label: '公元纪年', months: ['1月'], days: 31, hours: ['上午'], units: { year: '年', month: '月', day: '日', hour: '时' } };
+    return {
+      label: String(raw?.label || fallback.label).slice(0, 14),
+      months: (raw?.months?.length ? raw.months : fallback.months).slice(0, 12).map((x) => String(x).slice(0, 10)),
+      days: Math.max(7, Math.min(60, Number(raw?.days) || fallback.days || 30)),
+      hours: (raw?.hours?.length ? raw.hours : fallback.hours).slice(0, 8).map((x) => String(x).slice(0, 10)),
+      units: raw?.units || fallback.units,
+    };
   },
 
   fallback(worldTag) {

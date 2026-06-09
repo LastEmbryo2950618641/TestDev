@@ -22,8 +22,7 @@ document.addEventListener('alpine:init', () => {
     loadingStep: '等待平台连接',
     loadingDetail: '首次进入或存档较大时会更慢，这是正常现象。',
     loadingStages: [],
-    busy: false,
-    started: false,
+    busy: false, started: false, entrySetupOpen: false,
     playerName: '',
     selectedSlot: 'slot-1',
     saveSlots: window.GameModules.storage.slots,
@@ -42,6 +41,10 @@ document.addEventListener('alpine:init', () => {
     characterBriefs: {},
     characterLoreRefs: {},
     characterBriefBusy: false,
+    entryCalendar: null,
+    entryTime: { year: '当前年', month: '', day: '', hour: '' },
+    entryTimeOptions: { years: [], months: [], days: [], hours: [] },
+    entryCurrentAction: '', entryAdvanceInput: '10', controlMode: 'possess',
     stats: cfg.stats,
     online: true,
     input: '',
@@ -69,9 +72,7 @@ document.addEventListener('alpine:init', () => {
     memoryInput: '',
     memoryArchiveQuery: '',
     memoryArchiveResults: [],
-    profileOpen: false,
-    metricsOpen: false,
-    feedbackOpen: false,
+    profileOpen: false, metricsOpen: false, feedbackOpen: false,
     sectionHintsEnabled: cfg.sectionHintsEnabled,
 
     get character() {
@@ -190,6 +191,7 @@ document.addEventListener('alpine:init', () => {
     ...window.GameModules.actions,
     ...window.GameModules.loadingActions,
     ...window.GameModules.saveActions,
+    ...window.GameModules.entryActions,
     ...window.GameModules.coreActions,
   });
 
