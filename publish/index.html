@@ -41,6 +41,10 @@
         <button class="small-btn" @click="$store.game.savePanelOpen = false">关闭</button>
       </header>
       <p>默认提供 10 个存档位。读取会切换到该存档；覆盖会清空该存档后保存当前进度。</p>
+      <div class="settings-actions">
+        <button class="load-btn" @click="$store.game.save()" :disabled="$store.game.busy">保存当前进度</button>
+        <button class="overwrite-btn" @click="$store.game.resetGame()" :disabled="$store.game.busy">重新开始</button>
+      </div>
       <div class="save-slot-list">
         <template x-for="slot in $store.game.saveSlots" :key="slot">
           <article class="save-slot-item" :class="{ active: $store.game.selectedSlot === slot, empty: !$store.game.saveMeta(slot).exists }">
@@ -123,10 +127,6 @@
           <option value="online">上线</option>
           <option value="offline">下线</option>
         </select>
-      </div>
-      <div class="top-actions">
-        <button class="small-btn" @click="$store.game.savePanelOpen = true">存档</button>
-        <button class="small-btn" @click="$store.game.resetGame()">重新开始</button>
       </div>
     </header>
 

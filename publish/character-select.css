@@ -59,15 +59,18 @@
 
 .save-modal header,
 .save-slot-item,
-.top-actions {
+.settings-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
 
-.top-actions {
-  justify-content: flex-end;
+.settings-actions button {
+  flex: 1;
+  min-height: 34px;
+  border-radius: 10px;
+  font-weight: 900;
 }
 
 .save-modal p,
@@ -125,19 +128,22 @@
   font-weight: 900;
 }
 
-.save-slot-actions .load-btn {
+.save-slot-actions .load-btn,
+.settings-actions .load-btn {
   background: #dce7ff;
   border: 1px solid #dce7ff;
   color: #14203d;
 }
 
-.save-slot-actions .overwrite-btn {
+.save-slot-actions .overwrite-btn,
+.settings-actions .overwrite-btn {
   background: #ffcb66;
   border: 1px solid #ffcb66;
   color: #2d1600;
 }
 
-.save-slot-actions button:disabled {
+.save-slot-actions button:disabled,
+.settings-actions button:disabled {
   opacity: .45;
 }
 
