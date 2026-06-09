@@ -335,11 +335,12 @@ select.text-input option {
 .character-status-card {
   flex: 0 0 auto;
   width: 100%;
+  min-height: 0;
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
+  grid-template-columns: 38px minmax(0, 1fr);
   align-items: start;
-  gap: 8px;
-  padding: 8px;
+  gap: 6px;
+  padding: 6px;
   border: 1px solid rgba(113, 243, 255, .16);
   border-radius: 14px;
   background: rgba(255, 255, 255, .055);
@@ -358,9 +359,9 @@ select.text-input option {
 .name-role-block {
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: 5px;
   min-width: 0;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .name-role-block h2 {
@@ -368,7 +369,7 @@ select.text-input option {
   min-width: 0;
   margin: 0;
   overflow: hidden;
-  font-size: clamp(13px, 1.25vw, 16px);
+  font-size: clamp(12px, 1.1vw, 14px);
   line-height: 1.15;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -386,10 +387,10 @@ select.text-input option {
 }
 
 .avatar-orb {
-  width: 48px;
-  height: 48px;
-  border-radius: 16px;
-  font-size: 15px;
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  font-size: 12px;
   box-shadow: 0 0 18px rgba(113, 243, 255, .22);
 }
 
