@@ -6,8 +6,8 @@ window.GameModules = window.GameModules || {};
 window.GameModules.actions = {
   async refreshRagContext(action) {
     const aliases = (this.character.aliases || []).join(' ');
-    const query = `${action} ${this.sceneTitle} ${this.quest} ${this.character.name} ${aliases} Fate 圣杯战争`;
-    const results = await window.GameModules.rag.search(query, { limit: 3, sourceHint: this.character.work });
+    const query = `${action} ${this.sceneTitle} ${this.quest} ${this.character.work || ''} ${this.character.name} ${aliases}`;
+    const results = await window.GameModules.rag.search(query, { limit: 3, sourceHint: this.character.work, strictSource: true });
     this.ragResults = results;
     this.ragContext = window.GameModules.rag.formatContext(results);
   },

@@ -19,9 +19,12 @@ window.GameModules.rag = {
     const index = await this.load();
     const terms = this.expandTerms(query, index.aliases || {});
     const sourceHint = options.sourceHint || '';
+    const allItems = index.items || [];
+    const sourceItems = sourceHint ? allItems.filter((item) => item.novel.includes(sourceHint)) : [];
+    const items = options.strictSource && sourceItems.length ? sourceItems : allItems;
     const results = [];
 
-    for (const item of index.items || []) {
+    for (const item of items) {
       const text = `${item.novel} ${item.title} ${item.text}`;
       let score = 0;
       for (const term of terms) {
