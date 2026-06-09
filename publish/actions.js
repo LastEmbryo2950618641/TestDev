@@ -49,7 +49,7 @@ window.GameModules.actions = {
 
   feedbackPlan() {
     const next = this.choices?.[0] || this.quest || '继续观察当前局势';
-    return this.online ? `身体仍受操控，若被放开控制，倾向于：${next}` : `下一步打算：${next}`;
+    return this.online ? `她心里倾向于：${next}（玩家可无视）` : `她想要：${next}（玩家可建议但不强制）`;
   },
 
   feedbackSummary() {
