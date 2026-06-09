@@ -1,15 +1,15 @@
 .control-dock {
   display: grid;
-  gap: var(--ui-gap);
-  padding: var(--panel-pad);
-  border-radius: 18px;
+  gap: 5px;
+  padding: 6px;
+  border-radius: 12px;
 }
 
 .switch-row,
 .choice-row,
 .free-input {
   display: flex;
-  gap: 7px;
+  gap: 5px;
 }
 
 .toggle-btn {
@@ -30,12 +30,12 @@
 .choice-row {
   overflow-x: auto;
   overscroll-behavior: contain;
-  padding-bottom: 2px;
+  padding-bottom: 1px;
 }
 
 .choice-btn {
   flex: 0 0 auto;
-  padding: 0 12px;
+  padding: 0 9px;
   white-space: nowrap;
 }
 
@@ -45,7 +45,19 @@
 
 .free-input button {
   flex: 0 0 auto;
-  padding: 0 12px;
+  padding: 0 9px;
+}
+
+.control-dock button,
+.control-dock input {
+  min-height: 30px;
+  border-radius: 9px;
+  font-size: 12px;
+}
+
+.choice-row .ghost-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .vital-bars {

@@ -249,12 +249,12 @@
         <template x-for="choice in $store.game.choices" :key="choice">
           <button class="choice-btn" @click="$store.game.submitAction(choice)" :disabled="$store.game.busy" x-text="choice"></button>
         </template>
+        <button class="ghost-btn" @click="$store.game.autoplay()" :disabled="$store.game.busy">放开控制</button>
       </div>
 
       <div class="free-input dev-section" data-section-title="自由输入栏">
         <input x-model="$store.game.input" :placeholder="$store.game.online ? '直接输入下一步行动...' : '给角色一句建议，然后让她自己决定...'" :disabled="$store.game.busy" @keydown.enter="$store.game.submitFreeInput()">
         <button @click="$store.game.submitFreeInput()" :disabled="$store.game.busy || !$store.game.input.trim()">执行</button>
-        <button class="ghost-btn" @click="$store.game.autoplay()" :disabled="$store.game.busy">自由推进</button>
       </div>
     </footer>
   </main>
