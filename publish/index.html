@@ -154,13 +154,14 @@
             </div>
           </div>
         </button>
-        <div class="compact-metrics dev-section" data-section-title="简洁数值栏">
-          <span><b>情绪</b><em x-text="$store.game.moodScore()"></em></span>
-          <span><b>信任</b><em x-text="$store.game.trust"></em></span>
-          <span><b>反抗</b><em x-text="$store.game.resistance"></em></span>
-          <span><b>好感</b><em x-text="$store.game.affection()"></em></span>
-          <span><b>心动</b><em x-text="$store.game.heartbeat()"></em></span>
-        </div>
+        <section class="compact-metrics dev-section" data-section-title="简洁数值栏">
+          <button class="metrics-summary" @click="$store.game.metricsOpen = !$store.game.metricsOpen" x-text="$store.game.metricsLine()"></button>
+          <div class="metrics-detail" x-show="$store.game.metricsOpen">
+            <template x-for="metric in $store.game.metrics()" :key="metric[0]">
+              <span><b x-text="metric[0]"></b><em x-text="metric[1]"></em></span>
+            </template>
+          </div>
+        </section>
         <section class="profile-card dev-section" data-section-title="角色反馈区">
           <template x-if="!$store.game.profileOpen">
             <div class="feedback-panel">

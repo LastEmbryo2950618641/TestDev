@@ -327,6 +327,8 @@ select.text-input option {
   display: flex;
   flex-direction: column;
   gap: var(--ui-gap);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .character-status-card {

@@ -25,6 +25,20 @@ window.GameModules.actions = {
     return Math.max(0, Math.min(100, Math.round(30 + this.trust * 0.25 + this.resistance * 0.25 + mood)));
   },
 
+  metrics() {
+    return [
+      ['情绪', this.moodScore()],
+      ['信任', this.trust],
+      ['反抗', this.resistance],
+      ['好感', this.affection()],
+      ['心动', this.heartbeat()],
+    ];
+  },
+
+  metricsLine() {
+    return this.metrics().map(([key, value]) => `${key}(${value})`).join('  ');
+  },
+
   async searchLore() {
     const query = this.ragQuery.trim();
     if (!query || this.ragBusy) return;
