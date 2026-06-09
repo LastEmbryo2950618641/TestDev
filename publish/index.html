@@ -16,6 +16,7 @@
   <script src="world-lore.js"></script>
   <script src="character-profile.js"></script>
   <script src="character-memory.js"></script>
+  <script src="character-brief.js"></script>
   <script src="storage.js"></script>
   <script src="rag-index.js"></script>
   <script src="character-catalog-data.js"></script>
@@ -124,20 +125,30 @@
 
       <div class="start-field dev-section" data-section-title="作品选择区">
         <label class="field-label">选择作品</label>
-        <select class="text-input" x-model="$store.game.selectedWork" @change="$store.game.selectWork($event.target.value)">
-          <template x-for="work in $store.game.works" :key="work.name">
-            <option :value="work.name" x-text="work.name"></option>
-          </template>
-        </select>
+        <div class="custom-select" @click.outside="$store.game.workMenuOpen = false">
+          <button class="custom-select-btn" type="button" @click="$store.game.workMenuOpen = !$store.game.workMenuOpen">
+            <span x-text="$store.game.selectedWork || '选择作品'"></span><i></i>
+          </button>
+          <div class="custom-select-menu" x-show="$store.game.workMenuOpen">
+            <template x-for="work in $store.game.works" :key="work.name">
+              <button type="button" @click="$store.game.selectWork(work.name); $store.game.workMenuOpen = false" x-text="work.name"></button>
+            </template>
+          </div>
+        </div>
       </div>
 
       <div class="start-field dev-section" data-section-title="角色选择区">
         <label class="field-label">选择可操控角色</label>
-        <select class="text-input" x-model="$store.game.selectedCharacterId">
-          <template x-for="char in $store.game.workCharacters" :key="char.id">
-            <option :value="char.id" x-text="`${char.name}｜${char.role}`"></option>
-          </template>
-        </select>
+        <div class="custom-select" @click.outside="$store.game.characterMenuOpen = false">
+          <button class="custom-select-btn" type="button" @click="$store.game.characterMenuOpen = !$store.game.characterMenuOpen">
+            <span x-text="`${$store.game.character.name}｜${$store.game.character.role}`"></span><i></i>
+          </button>
+          <div class="custom-select-menu" x-show="$store.game.characterMenuOpen">
+            <template x-for="char in $store.game.workCharacters" :key="char.id">
+              <button type="button" @click="$store.game.selectCharacter(char.id); $store.game.characterMenuOpen = false" x-text="`${char.name}｜${char.role}`"></button>
+            </template>
+          </div>
+        </div>
       </div>
 
       <div class="character-detail-card dev-section" data-section-title="角色预览区">
@@ -145,7 +156,7 @@
         <div>
           <strong x-text="$store.game.character.name"></strong>
           <small x-text="`${$store.game.character.work || '原创'}｜${$store.game.character.role}`"></small>
-          <p x-text="$store.game.character.detail || $store.game.character.personality"></p>
+          <p x-text="$store.game.characterBriefBusy ? '正在查询作品资料并生成简短背景…' : ($store.game.characterBriefs[$store.game.character.id] || '正在准备角色背景摘要…')"></p>
         </div>
       </div>
 

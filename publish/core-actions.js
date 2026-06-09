@@ -7,10 +7,12 @@ window.GameModules.coreActions = {
   selectWork(name) {
     this.selectedWork = name;
     this.selectedCharacterId = window.GameModules.catalog.firstCharacter(name) || this.selectedCharacterId;
+    window.GameModules.characterBrief.ensure(this);
   },
 
   selectCharacter(id) {
     this.selectedCharacterId = id;
+    window.GameModules.characterBrief.ensure(this);
   },
 
   async start() {

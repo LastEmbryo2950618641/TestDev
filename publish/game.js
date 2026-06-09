@@ -37,6 +37,10 @@ document.addEventListener('alpine:init', () => {
     works: [],
     selectedWork: '',
     selectedCharacterId: cfg.characters[0].id,
+    workMenuOpen: false,
+    characterMenuOpen: false,
+    characterBriefs: {},
+    characterBriefBusy: false,
     stats: cfg.stats,
     online: true,
     input: '',
@@ -109,6 +113,7 @@ document.addEventListener('alpine:init', () => {
         this.works = window.GameModules.catalog.works();
         this.selectedWork = this.selectedWork || window.GameModules.catalog.firstWork();
         this.selectedCharacterId = window.GameModules.catalog.firstCharacter(this.selectedWork) || this.selectedCharacterId;
+        window.GameModules.characterBrief.ensure(this);
       } catch (err) {
         console.error('角色目录加载失败:', err.message, err.stack);
       }
