@@ -1,11 +1,23 @@
 [
   {
-    "name": "Wikipedia 中文",
+    "name": "Wikipedia 中文搜索",
+    "kind": "mediawikiSearch",
+    "url": "https://zh.wikipedia.org/w/api.php?action=query&origin=*&format=json&list=search&srlimit=3&srsearch={query}",
+    "extractUrl": "https://zh.wikipedia.org/w/api.php?action=query&origin=*&format=json&prop=extracts&exintro=1&explaintext=1&redirects=1&titles={title}"
+  },
+  {
+    "name": "Wikipedia English Search",
+    "kind": "mediawikiSearch",
+    "url": "https://en.wikipedia.org/w/api.php?action=query&origin=*&format=json&list=search&srlimit=3&srsearch={query}",
+    "extractUrl": "https://en.wikipedia.org/w/api.php?action=query&origin=*&format=json&prop=extracts&exintro=1&explaintext=1&redirects=1&titles={title}"
+  },
+  {
+    "name": "Wikipedia 中文精确页",
     "kind": "mediawikiExtract",
     "url": "https://zh.wikipedia.org/w/api.php?action=query&origin=*&format=json&prop=extracts&exintro=1&explaintext=1&redirects=1&titles={query}"
   },
   {
-    "name": "Wikipedia English",
+    "name": "Wikipedia English Exact",
     "kind": "mediawikiExtract",
     "url": "https://en.wikipedia.org/w/api.php?action=query&origin=*&format=json&prop=extracts&exintro=1&explaintext=1&redirects=1&titles={query}"
   },

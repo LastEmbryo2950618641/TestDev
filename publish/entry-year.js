@@ -9,7 +9,7 @@ window.GameModules.entryYear = {
     const local = await this.localEvidence(store, 'storyYear');
     const localYear = await this.audit(store, 'storyYear', local, fallback);
     if (localYear) return localYear;
-    const publicYear = await this.publicAudited(store, 'storyYear', this.workQuery(store), fallback);
+    const publicYear = await this.publicAudited(store, 'storyYear', this.queriesFor(store, 'storyYear'), fallback);
     return publicYear || fallback;
   },
 
@@ -24,7 +24,7 @@ window.GameModules.entryYear = {
     const local = await this.localEvidence(store, 'characterAge');
     const localAge = await this.audit(store, 'characterAge', local, 0, base);
     if (localAge) return localAge;
-    return await this.publicAudited(store, 'characterAge', this.characterQuery(store), base) || 0;
+    return await this.publicAudited(store, 'characterAge', this.queriesFor(store, 'characterAge'), base) || 0;
   },
 
   fallbackBaseYear(calendar, store) {
@@ -47,9 +47,9 @@ window.GameModules.entryYear = {
     const character = store?.character || {};
     const lore = window.GameModules.sqliteSave?.getWorldLore?.(character.work || '原创世界');
     const refs = (store?.characterLoreRefs?.[character.id] || []).map((x) => x.text).join('\n');
-    const base = `${character.name || ''} ${character.role || ''} ${character.detail || ''}\n${lore?.background || ''}\n${refs}`;
+    const base = `${character.name || ''} ${(character.aliases || []).join(' ')} ${character.role || ''} ${character.detail || ''}\n${lore?.background || ''}\n${refs}`;
     try {
-      const query = mode === 'storyYear' ? `${character.work} 故事 发生 年份 时间线` : `${character.name} 年龄 出生 岁 寿命`;
+      const query = mode === 'storyYear' ? `${character.work} 故事 发生 年份 时间线` : `${character.name} ${(character.aliases || []).join(' ')} 年龄 出生 岁 寿命`;
       const hits = await window.GameModules.rag?.search?.(query, { limit: 4, sourceHint: character.work, strictSource: true, contextRadius: 1 });
       return `${base}\n${(hits || []).map((x) => x.text).join('\n')}`.slice(0, 2600);
     } catch (err) {
@@ -58,13 +58,14 @@ window.GameModules.entryYear = {
     }
   },
 
-  async publicAudited(store, mode, query, base = 0) {
+  async publicAudited(store, mode, queries, base = 0) {
     if (!window.fetch) return 0;
     try {
       const sources = await fetch('./public-year-sources.json').then((r) => r.json());
       for (const source of sources) {
-        const evidence = await this.fetchEvidence(source, query);
-        const value = await this.audit(store, mode, evidence, 0, base);
+        let evidence = '';
+        for (const query of this.limitQueries(queries)) evidence += `\n# ${source.name} / ${query}\n${await this.fetchEvidence(source, query)}`;
+        const value = await this.audit(store, mode, evidence.slice(0, 4200), 0, base);
         if (value) return value;
       }
     } catch (err) {
@@ -73,15 +74,38 @@ window.GameModules.entryYear = {
     return 0;
   },
 
+  limitQueries(queries) {
+    return [...new Set((Array.isArray(queries) ? queries : [queries]).filter(Boolean))].slice(0, 8);
+  },
+
   async fetchEvidence(source, query) {
     try {
       const url = source.url.replace('{query}', encodeURIComponent(query));
       const data = await fetch(url).then((r) => (r.ok ? r.json() : null));
+      if (source.kind === 'mediawikiSearch') return await this.mediawikiSearchText(source, data);
       return this.publicText(source.kind, data).slice(0, 2200);
     } catch (err) {
       console.warn('公共资料源跳过:', source.name, err.message);
       return '';
     }
+  },
+
+  async mediawikiSearchText(source, data) {
+    const rows = (data?.query?.search || []).slice(0, 3);
+    let text = rows.map((x) => `${x.title}\n${this.stripHtml(x.snippet)}`).join('\n');
+    return `${text}\n${await this.extractTitles(source, rows.map((x) => x.title))}`.slice(0, 2600);
+  },
+
+
+  async extractTitles(source, titles) {
+    if (!source.extractUrl) return '';
+    let text = '';
+    for (const title of titles.slice(0, 3)) {
+      const url = source.extractUrl.replace('{title}', encodeURIComponent(title));
+      const data = await fetch(url).then((r) => (r.ok ? r.json() : null));
+      text += `\n${this.publicText('mediawikiExtract', data)}`;
+    }
+    return text;
   },
 
   publicText(kind, data) {
@@ -92,6 +116,25 @@ window.GameModules.entryYear = {
     if (kind === 'mediawikiExtract') return Object.values(data?.query?.pages || {}).map((x) => x.extract).join('\n');
     if (kind === 'wikidataSearch') return (data?.search || []).map((x) => `${x.label} ${x.description}`).join('\n');
     return JSON.stringify(data || '');
+  },
+
+  queriesFor(store, mode) {
+    const c = store?.character || {};
+    const works = this.termVariants([c.work || 'anime']);
+    const names = this.termVariants([c.name, ...(c.aliases || [])]);
+    if (mode === 'storyYear') return works.flatMap((w) => [`${w} 故事年份 时间线`, `${w} 背景年份`, `${w} setting story year`, `${w} timeline`]);
+    const pairs = works.flatMap((w) => names.map((n) => `${n} ${w}`)).slice(0, 8);
+    return pairs.flatMap((q) => [`${q} 年龄 出生 生日`, `${q} age birth year birthday`, `${q} profile`]);
+  },
+
+  termVariants(list) {
+    const values = [];
+    for (const raw of list) {
+      const text = String(raw || '').trim();
+      if (!text) continue;
+      values.push(text, text.replace(/\s+/g, '/'), text.replace(/\s+/g, ''), text.replace(/[·・]/g, ' '));
+    }
+    return [...new Set(values)].filter(Boolean);
   },
 
   async audit(store, mode, evidence, fallback, base = 0) {
@@ -106,8 +149,10 @@ window.GameModules.entryYear = {
 
   auditPrompt(store, mode, evidence, base) {
     const character = store?.character || {};
-    const target = mode === 'storyYear' ? `作品《${character.work}》当前剧情基准年份` : `${character.name}在${base}年这一剧情基准年时的年龄`;
-    return `请只根据证据推断${target}。必须自审：只有证据直接说明，或可由证据中的明确年份/年龄做简单算术推出，pass 才能为 true；出版年份、动画播出年份、无关年份不能用。只返回JSON：{"pass":true|false,"value":数字,"reason":"引用证据"}。证据：${evidence}`;
+    const target = mode === 'storyYear'
+      ? `作品《${character.work}》当前剧情基准年份`
+      : `${character.name}在${base}年这一剧情基准年时的年龄；若证据给出出生年份/生日，可用${base}-出生年份简单算术推出`;
+    return `请只根据证据推断${target}。必须自审：只有证据直接说明，或可由证据中的明确年份/年龄做简单算术推出，pass 才能为 true；出版年份、动画播出年份、演员/声优年龄、无关年份不能用。只返回JSON：{"pass":true|false,"value":数字,"reason":"引用证据"}。证据：${evidence}`;
   },
 
   parseAudit(text, fallback) {
@@ -142,12 +187,9 @@ window.GameModules.entryYear = {
     return pass && Number.isFinite(value) && value > 0 ? Math.round(value) : 0;
   },
 
-  workQuery(store) {
-    return store?.character?.work || 'anime story year';
-  },
-
-  characterQuery(store) {
-    const c = store?.character || {};
-    return `${c.name || ''} ${c.work || ''} age`;
+  stripHtml(text) {
+    const div = document.createElement('div');
+    div.innerHTML = String(text || '');
+    return div.textContent || '';
   },
 };
