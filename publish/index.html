@@ -116,9 +116,13 @@
 
   <main x-show="$store.game.started && !$store.game.loading" class="game-shell" x-cloak>
     <header class="top-bar">
-      <div>
+      <div class="mode-status">
         <span class="mode-dot" :class="$store.game.online ? 'online' : 'offline'"></span>
         <strong x-text="$store.game.online ? '上线中：玩家接管身体' : '下线中：角色自主行动'"></strong>
+        <select class="mode-select" :value="$store.game.online ? 'online' : 'offline'" @change="$store.game.setOnline($event.target.value === 'online')" :disabled="$store.game.busy">
+          <option value="online">上线</option>
+          <option value="offline">下线</option>
+        </select>
       </div>
       <div class="top-actions">
         <button class="small-btn" @click="$store.game.savePanelOpen = true">存档</button>
@@ -220,11 +224,6 @@
     </section>
 
     <footer class="control-dock">
-      <div class="switch-row">
-        <button class="toggle-btn" :class="{ active: $store.game.online }" @click="$store.game.setOnline(true)" :disabled="$store.game.busy">上线</button>
-        <button class="toggle-btn" :class="{ active: !$store.game.online }" @click="$store.game.setOnline(false)" :disabled="$store.game.busy">下线</button>
-      </div>
-
       <div class="choice-row">
         <template x-for="choice in $store.game.choices" :key="choice">
           <button class="choice-btn" @click="$store.game.submitAction(choice)" :disabled="$store.game.busy" x-text="choice"></button>

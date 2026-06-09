@@ -224,11 +224,24 @@ select.text-input option {
   border-radius: 16px;
 }
 
+.mode-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mode-status strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .mode-dot {
+  flex: 0 0 auto;
   display: inline-block;
   width: 11px;
   height: 11px;
-  margin-right: 8px;
   border-radius: 50%;
   background: #9da8bf;
 }
@@ -241,6 +254,18 @@ select.text-input option {
 .mode-dot.offline {
   background: #ffcf5a;
   box-shadow: 0 0 14px #ffcf5a;
+}
+
+.mode-select {
+  flex: 0 0 auto;
+  min-height: 30px;
+  border: 1px solid rgba(113, 243, 255, .28);
+  border-radius: 10px;
+  background: #151b35;
+  color: #eef3ff;
+  padding: 0 8px;
+  font-weight: 900;
+  color-scheme: dark;
 }
 
 .small-btn,
