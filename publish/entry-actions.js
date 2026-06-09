@@ -45,7 +45,7 @@ window.GameModules.entryActions = {
     try {
       const calendar = await this.runEntryStage('calendar', '正在生成或读取当前世界的固化历法。', () => window.GameModules.entryTime.ensureCalendar(this));
       this.entryCalendar = calendar;
-      await this.runEntryStage('time', '正在把历法转换成玩家可选日期。', async () => this.prepareEntryTimeOptions(calendar));
+      await this.runEntryStage('time', '正在联网查询公共资料并生成可选日期。', async () => this.prepareEntryTimeOptions(calendar));
       await Promise.all([
         this.runEntryStage('rpg', '正在准备被控制角色的完整 RPG 状态。', () => this.ensureRpgForCurrentCharacter()),
         this.runEntryStage('action', '正在根据时间、世界观和性格推演当前行动。', () => this.generateEntryAction('初始进入时机')),
@@ -56,8 +56,8 @@ window.GameModules.entryActions = {
     }
   },
 
-  prepareEntryTimeOptions(calendar) {
-    this.entryTimeOptions = window.GameModules.entryTime.options(calendar, this);
+  async prepareEntryTimeOptions(calendar) {
+    this.entryTimeOptions = await window.GameModules.entryTime.options(calendar, this);
     this.entryTime = {
       year: this.entryTimeOptions.years[0],
       month: this.entryTime.month || this.entryTimeOptions.months[0],

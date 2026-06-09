@@ -32,9 +32,10 @@ window.GameModules.entryTime = {
     return { label: `${base}历`, units: { year: '纪年', month: '月', day: '日', hour: '时段' }, months: ['新芽月', '晴火月', '长雨月', '白霜月'], days: 28, hours: ['晨祷', '正昼', '暮钟', '星夜'] };
   },
 
-  options(calendar, store) {
+  async options(calendar, store) {
+    const base = await this.baseYear(calendar, store);
     return {
-      years: [this.birthYear(calendar, store), ...this.nearYears(calendar, store)],
+      years: [this.birthYear(calendar, store, base), ...this.nearYears(calendar, base)],
       months: calendar.months,
       days: Array.from({ length: Math.min(calendar.days || 30, 31) }, (_, i) => `${i + 1}${calendar.units.day}`),
       hours: Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}时`),
@@ -43,25 +44,25 @@ window.GameModules.entryTime = {
     };
   },
 
-  birthYear(calendar, store) {
+  birthYear(calendar, store, base) {
     const age = Math.max(1, Math.min(9999, parseInt(store?.characterAge, 10) || 16));
-    const base = this.baseYear(calendar, store);
     return `${base - age}${calendar.units.year || '年'}`;
   },
 
-  nearYears(calendar, store) {
-    const base = this.baseYear(calendar, store);
+  nearYears(calendar, base) {
     const unit = calendar.units.year || '年';
     return [-1, 1, 3].map((delta) => `${base + delta}${unit}`);
   },
 
-  baseYear(calendar, store) {
+  async baseYear(calendar, store) {
     const lore = window.GameModules.sqliteSave?.getWorldLore?.(store?.character?.work || '原创世界');
     const text = `${calendar.label || ''} ${store?.character?.work || ''} ${lore?.background || ''}`;
     const fixed = this.knownStoryYear(text);
     if (fixed) return fixed;
     const years = text.match(/\b(1[5-9]\d{2}|20\d{2}|21\d{2})\b/g);
     if (years?.length) return Number(years[0]);
+    const publicYear = await this.fetchPublicYear(store?.character?.work || text);
+    if (publicYear) return publicYear;
     if (/现代|公元|都市|学校|科技/.test(text)) return 2026;
     let hash = 0;
     for (const char of text) hash = (hash + char.charCodeAt(0)) % 900;
@@ -74,6 +75,37 @@ window.GameModules.entryTime = {
       [/Fate\s*stay\s*night|第五次圣杯战争/i, 2004],
     ];
     return rules.find(([re]) => re.test(text))?.[1] || 0;
+  },
+
+  async fetchPublicYear(query) {
+    if (!window.fetch) return 0;
+    try {
+      const sources = await fetch('./public-year-sources.json').then((r) => r.json());
+      for (const source of sources) {
+        const year = await this.fetchYearFromSource(source, query);
+        if (year) return year;
+      }
+    } catch (err) {
+      console.warn('公共资料年份查询失败:', err.message);
+    }
+    return 0;
+  },
+
+  async fetchYearFromSource(source, query) {
+    try {
+      const url = source.url.replace('{query}', encodeURIComponent(query));
+      const data = await fetch(url).then((r) => (r.ok ? r.json() : null));
+      return this.yearFromPublicData(source.kind, data);
+    } catch (err) {
+      console.warn('公共资料源跳过:', source.name, err.message);
+      return 0;
+    }
+  },
+
+  yearFromPublicData(kind, data) {
+    const text = kind === 'jikanAnime' ? data?.data?.[0]?.synopsis : JSON.stringify(data || '');
+    const years = String(text || '').match(/\b(1[5-9]\d{2}|20\d{2}|21\d{2})\b/g);
+    return years?.length ? Number(years[0]) : 0;
   },
 
   format(time, calendar) {

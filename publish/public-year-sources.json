@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Wikipedia 中文",
+    "kind": "mediawikiExtract",
+    "url": "https://zh.wikipedia.org/w/api.php?action=query&origin=*&format=json&prop=extracts&exintro=1&explaintext=1&redirects=1&titles={query}"
+  },
+  {
+    "name": "Wikipedia English",
+    "kind": "mediawikiExtract",
+    "url": "https://en.wikipedia.org/w/api.php?action=query&origin=*&format=json&prop=extracts&exintro=1&explaintext=1&redirects=1&titles={query}"
+  },
+  {
+    "name": "Jikan Anime API",
+    "kind": "jikanAnime",
+    "url": "https://api.jikan.moe/v4/anime?q={query}&limit=1"
+  },
+  {
+    "name": "Wikidata Search",
+    "kind": "wikidataSearch",
+    "url": "https://www.wikidata.org/w/api.php?action=wbsearchentities&origin=*&format=json&language=zh&search={query}"
+  }
+]
