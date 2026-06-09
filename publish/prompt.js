@@ -49,7 +49,7 @@ ${state.ragContext || '暂无资料。'}
   "resistance":0到100整数,
   "quest":"新的当前目标，18字内",
   "choices":["必须给4个AI推荐行动选项，每个12字内；不要包含放开控制"],
-  "appearedCharacters":["本回合新出现或被提到的角色名，最多3个"],
+  "appearedCharacters":[{"name":"姓名","role":"身份","detail":"基础资料","personality":"性格","work":"所属作品或世界","isMinor":true,"importance":"minor|support|main"}],
   "statChanges":{"health":-8到8,"stamina":-8到8,"mana":-8到8}
 }`;
 };
@@ -73,7 +73,7 @@ window.GameModules.createFallbackResult = function createFallbackResult(state, a
     resistance,
     quest: '调查操控裂隙',
     choices: ['使用技能调查', '主动交涉', '避开危险', '触碰异常物'],
-    appearedCharacters: [name],
+    appearedCharacters: [{ name, role: state.character.role, detail: state.character.detail || state.character.personality, personality: state.character.personality || '', work: state.character.work, isMinor: false, importance: 'main' }],
     statChanges: { health: 0, stamina: online ? -2 : 1, mana: 0 },
   };
 };

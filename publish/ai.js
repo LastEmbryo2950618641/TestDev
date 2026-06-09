@@ -68,12 +68,26 @@ window.GameModules.ai = {
       resistance: this.clampNumber(data.resistance, fallback.resistance),
       quest: String(data.quest || fallback.quest).slice(0, 24),
       choices: Array.isArray(data.choices) && data.choices.length ? data.choices.slice(0, 4).map((x) => String(x).slice(0, 14)) : fallback.choices.slice(0, 4),
-      appearedCharacters: Array.isArray(data.appearedCharacters) ? data.appearedCharacters.slice(0, 3).map((x) => String(x).slice(0, 16)) : fallback.appearedCharacters,
+      appearedCharacters: Array.isArray(data.appearedCharacters) ? data.appearedCharacters.slice(0, 6).map((x) => this.normalizeCharacter(x, store)).filter(Boolean) : fallback.appearedCharacters,
       statChanges: {
         health: this.clampVitalDelta(changes.health),
         stamina: this.clampVitalDelta(changes.stamina),
         mana: this.clampVitalDelta(changes.mana),
       },
+    };
+  },
+
+  normalizeCharacter(value, store) {
+    if (typeof value === 'string') return { name: value.slice(0, 16), work: store.character.work, isMinor: false, importance: 'support' };
+    if (!value?.name) return null;
+    return {
+      name: String(value.name).slice(0, 16),
+      role: String(value.role || (value.isMinor ? '路人' : '出场人物')).slice(0, 18),
+      detail: String(value.detail || value.desc || '').slice(0, 120),
+      personality: String(value.personality || '').slice(0, 80),
+      work: String(value.work || store.character.work || '原创世界').slice(0, 24),
+      isMinor: Boolean(value.isMinor),
+      importance: ['minor', 'support', 'main'].includes(value.importance) ? value.importance : (value.isMinor ? 'minor' : 'support'),
     };
   },
 

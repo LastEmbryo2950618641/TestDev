@@ -4,9 +4,9 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.rpgState = {
-  defaultSchema(worldTag) {
+  defaultSchema(worldTag, lore = null) {
     const fate = String(worldTag || '').includes('Fate');
-    return {
+    const schema = {
       worldTag,
       sections: [
         {
@@ -37,33 +37,50 @@ window.GameModules.rpgState = {
         },
       ],
     };
+    return this.withLoreFields(schema, lore);
+  },
+
+  withLoreFields(schema, lore) {
+    const fields = (lore?.specialFields || []).slice(0, 10).map((field) => ({
+      key: field.key,
+      label: field.label,
+      type: field.type,
+      min: 0,
+      max: 100,
+    }));
+    if (fields.length) {
+      if (schema.sections.length >= 4) schema.sections = schema.sections.slice(0, 3);
+      schema.sections.push({ title: '世界固有属性', fields });
+    }
+    return this.validateSchema(schema, schema.worldTag);
   },
 
   async ensureSchema(worldTag) {
     const save = window.GameModules.sqliteSave;
     const existing = save.getSchema(worldTag);
     if (existing) return existing;
-    const schema = await this.generateSchema(worldTag);
+    const lore = await window.GameModules.worldLore.ensure(worldTag);
+    const schema = await this.generateSchema(worldTag, lore);
     await save.saveSchema(worldTag, schema);
     return schema;
   },
 
-  async generateSchema(worldTag) {
+  async generateSchema(worldTag, lore = null) {
     try {
-      if (!window.dzmm?.completions) return this.defaultSchema(worldTag);
+      if (!window.dzmm?.completions) return this.defaultSchema(worldTag, lore);
       let buffer = '';
       await window.dzmm.completions({
         model: 'nalang-medium-0826',
         maxTokens: 900,
-        messages: [{ role: 'user', content: this.schemaPrompt(worldTag) }],
+        messages: [{ role: 'user', content: this.schemaPrompt(worldTag, lore) }],
       }, (chunk, done) => {
         buffer += chunk;
         if (!done) return;
       });
-      return this.validateSchema(this.parseSchema(buffer), worldTag);
+      return this.withLoreFields(this.validateSchema(this.parseSchema(buffer), worldTag), lore);
     } catch (err) {
       console.warn('RPG schema 生成失败，使用兜底:', err.message);
-      return this.defaultSchema(worldTag);
+      return this.defaultSchema(worldTag, lore);
     }
   },
 
@@ -96,8 +113,9 @@ window.GameModules.rpgState = {
     throw new Error('schema JSON incomplete');
   },
 
-  schemaPrompt(worldTag) {
-    return `为 AI RPG 视觉小说的世界《${worldTag}》生成角色状态字段 schema。要求只返回 JSON：{"worldTag":"${worldTag}","sections":[{"title":"分组名","fields":[{"key":"ascii_key","label":"中文名","type":"number|rank|list","min":0,"max":100}]}]}。字段必须贴合该世界观，section 2-4 个，每组 3-5 个字段。不要 Markdown。`;
+  schemaPrompt(worldTag, lore = null) {
+    const loreText = lore ? `世界观：${lore.background}；势力：${lore.factions.map((x) => x.name).join('、')}；特殊职业：${lore.specialJobs.map((x) => x.name).join('、')}。` : '';
+    return `为 AI RPG 视觉小说的世界《${worldTag}》生成角色状态字段 schema。${loreText}要求只返回 JSON：{"worldTag":"${worldTag}","sections":[{"title":"分组名","fields":[{"key":"ascii_key","label":"中文名","type":"number|rank|list","min":0,"max":100}]}]}。字段必须贴合该世界观，section 2-4 个，每组 3-5 个字段。不要 Markdown。`;
   },
 
   validateSchema(schema, worldTag) {
@@ -105,7 +123,7 @@ window.GameModules.rpgState = {
     schema.worldTag = worldTag;
     schema.sections = schema.sections.slice(0, 4).map((section, si) => ({
       title: String(section.title || `状态${si + 1}`).slice(0, 12),
-      fields: (section.fields || []).slice(0, 5).map((field, fi) => ({
+      fields: (section.fields || []).slice(0, section.title === '世界固有属性' ? 10 : 5).map((field, fi) => ({
         key: /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(field.key) ? field.key : `field_${si}_${fi}`,
         label: String(field.label || field.key || '状态').slice(0, 12),
         type: ['number', 'rank', 'list'].includes(field.type) ? field.type : 'number',
@@ -130,7 +148,7 @@ window.GameModules.rpgState = {
   },
 
   createCharacterState(character, schema) {
-    const seed = this.seed(character.name + character.role + schema.worldTag);
+    const seed = this.seed(character.name + character.role + schema.worldTag + (character.detail || ''));
     const values = { health: 100, stamina: 100, mana: 100 };
     for (const section of schema.sections) {
       for (const field of section.fields) {
@@ -139,13 +157,15 @@ window.GameModules.rpgState = {
       }
     }
     values.skills = character.skills?.map((skill) => skill.name) || values.skills;
-    values.status_tags = [character.role, '可被操控', schema.worldTag];
+    Object.assign(values, character.worldValues || {});
+    values.status_tags = [character.role, character.importance === 'minor' ? '路人' : '可被操控', schema.worldTag];
     return {
       id: character.id,
       name: character.name,
       worldTag: schema.worldTag,
       schema,
       values,
+      profile: character,
       note: character.detail || character.personality || '',
     };
   },

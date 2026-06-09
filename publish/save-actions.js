@@ -73,6 +73,8 @@ window.GameModules.saveActions = {
 
   async ensureRpgForCurrentCharacter() {
     if (!window.GameModules.sqliteSave.db) return;
+    const worldTag = this.character.work || '原创世界';
+    await window.GameModules.worldLore.ensure(worldTag, this.sceneTitle || '首次进入');
     const state = await window.GameModules.rpgState.ensureCharacter(this.character);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
     this.rpgPanelCharacterId = this.rpgPanelCharacterId || state.id;
@@ -80,13 +82,12 @@ window.GameModules.saveActions = {
 
   async ensureRpgFromResults(result) {
     await this.ensureRpgForCurrentCharacter();
-    const names = [this.character.name, ...(result.appearedCharacters || [])];
-    for (const name of names) {
-      const found = this.findKnownCharacter(name);
-      if (found) {
-        const state = await window.GameModules.rpgState.ensureCharacter(found);
-        this.rpgStates = { ...this.rpgStates, [state.id]: state };
-      }
+    const entries = [this.character, ...(result.appearedCharacters || [])];
+    const context = `${this.sceneTitle} ${this.quest} ${result.narration || ''}`;
+    for (const entry of entries) {
+      const profile = await window.GameModules.characterProfile.ensure(entry, this, context);
+      const state = await window.GameModules.rpgState.ensureCharacter(profile);
+      this.rpgStates = { ...this.rpgStates, [state.id]: state };
     }
   },
 

@@ -42,6 +42,7 @@ window.GameModules.sqliteSave = {
     this.db.run(`
       CREATE TABLE IF NOT EXISTS metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS game_state(key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS world_lore(world_tag TEXT PRIMARY KEY, lore_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS rpg_schema(world_tag TEXT PRIMARY KEY, schema_json TEXT NOT NULL, created_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS character_state(character_id TEXT PRIMARY KEY, name TEXT NOT NULL, world_tag TEXT NOT NULL, state_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
     `);
@@ -91,7 +92,7 @@ window.GameModules.sqliteSave = {
     stmt.bind(params);
     const row = stmt.step() ? stmt.getAsObject() : null;
     stmt.free();
-    return row ? JSON.parse(row.value || row.schema_json || row.state_json) : null;
+    return row ? JSON.parse(row.value || row.lore_json || row.schema_json || row.state_json) : null;
   },
 
   async saveGameState(value) {
@@ -102,6 +103,20 @@ window.GameModules.sqliteSave = {
   loadGameState() {
     if (!this.db) return null;
     return this.getJson('SELECT value FROM game_state WHERE key=?', ['main']);
+  },
+
+  getWorldLore(worldTag) {
+    if (!this.db) return null;
+    return this.getJson('SELECT lore_json FROM world_lore WHERE world_tag=?', [worldTag]);
+  },
+
+  async saveWorldLore(worldTag, lore) {
+    const now = new Date().toISOString();
+    this.db.run(
+      'INSERT OR REPLACE INTO world_lore(world_tag,lore_json,created_at,updated_at) VALUES (?,?,COALESCE((SELECT created_at FROM world_lore WHERE world_tag=?),?),?)',
+      [worldTag, JSON.stringify(lore), worldTag, now, now],
+    );
+    await this.persist();
   },
 
   getSchema(worldTag) {
