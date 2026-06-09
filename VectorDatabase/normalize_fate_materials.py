@@ -4,7 +4,8 @@ from pathlib import Path
 MATERIAL_ROOT = Path(__file__).resolve().parent.parent / "同人素材"
 ROOT = MATERIAL_ROOT / "Fate"
 PUBLISH_DIR = Path(__file__).resolve().parent.parent / "publish"
-MAX_CHARS = 300
+MIN_CHARS = 1000
+TARGET_CHARS = 1400
 
 TIMELINE_HINTS = {
     "Fate Zero": [
@@ -46,14 +47,14 @@ def normalize_text(text):
 
 
 def split_long_line(line):
-    if len(line) <= MAX_CHARS * 2:
+    if len(line) <= TARGET_CHARS * 2:
         return [line]
     parts = re.split(r"(?<=[。！？；])", line)
     out, buf = [], ""
     for part in parts:
         if not part:
             continue
-        if len(buf) >= MAX_CHARS and len(buf) + len(part) > MAX_CHARS:
+        if len(buf) >= TARGET_CHARS and len(buf) + len(part) > TARGET_CHARS:
             out.append(buf.strip())
             buf = part
         else:
@@ -82,11 +83,16 @@ def build_entries(text):
             start_line = line_no
         buf.append(unit)
         line_no += unit.count("\n") + 1
-        if sum(len(x) for x in buf) >= MAX_CHARS:
+        if sum(len(x) for x in buf) >= TARGET_CHARS:
             entries.append(make_entry(start_line, line_no - 1, "\n".join(buf), len(entries) + 1))
             buf = []
     if buf:
-        entries.append(make_entry(start_line, line_no - 1, "\n".join(buf), len(entries) + 1))
+        if entries and sum(len(x) for x in buf) < MIN_CHARS:
+            entries[-1]["content"] += "\n" + "\n".join(buf)
+            entries[-1]["lines"] = f"{entries[-1]['lines'].split('-')[0]}-{line_no - 1}"
+            entries[-1].update(make_summary_fields(entries[-1]["content"], len(entries)))
+        else:
+            entries.append(make_entry(start_line, line_no - 1, "\n".join(buf), len(entries) + 1))
     return entries
 
 
@@ -106,23 +112,29 @@ def build_meta_index(entries):
 
 
 def make_entry(start, end, content, index):
-    intro = make_intro(content)
-    return {"title": make_title(content, intro, index), "intro": intro, "lines": f"{start}-{end}", "time": infer_time(content), "content": content}
+    return {**make_summary_fields(content, index), "lines": f"{start}-{end}", "time": infer_time(content), "content": content}
 
 
-def make_title(text, intro, index):
+def make_summary_fields(content, index):
+    base = make_title(content, index)
+    title = base if base.startswith("剧情") else f"{base[:7]}{index:03d}"
+    return {"title": title, "intro": make_intro(content)}
+
+
+def make_title(text, index):
     rules = [
-        ("圣杯战争", "圣杯战局"), ("召唤", "从者召唤"), ("御主", "御主行动"), ("从者", "从者交锋"),
-        ("魔术", "魔术冲突"), ("令咒", "令咒变动"), ("间桐", "间桐家事"), ("远坂", "远坂家事"),
-        ("卫宫", "卫宫抉择"), ("Saber", "剑阶行动"), ("Archer", "弓阶行动"), ("Rider", "骑阶行动"),
-        ("Lancer", "枪阶行动"), ("Berserker", "狂阶行动"), ("Assassin", "暗杀行动"), ("Caster", "术阶行动"),
-        ("战斗", "正面战斗"), ("死亡", "死亡事件"), ("城堡", "城堡场景"), ("学校", "学校日常"),
-        ("理想", "理想动机"), ("母亲", "亲子对话"), ("婴儿", "新生事件"), ("调查", "调查推进"),
+        (("圣杯战争", "御主", "从者"), "圣杯战局"), (("召唤", "英灵"), "从者召唤"),
+        (("御主", "令咒"), "御主行动"), (("Saber", "剑"), "剑阶行动"), (("Archer", "弓"), "弓阶行动"),
+        (("Rider", "骑"), "骑阶行动"), (("Lancer", "枪"), "枪阶行动"), (("Berserker", "狂"), "狂阶行动"),
+        (("Assassin", "暗杀"), "暗杀行动"), (("Caster", "术"), "术阶行动"), (("间桐", "脏砚", "樱"), "间桐家事"),
+        (("远坂", "凛", "时臣"), "远坂家事"), (("卫宫", "士郎", "切嗣"), "卫宫抉择"),
+        (("言峰", "绮礼", "教会"), "教会暗线"), (("爱因兹", "爱丽", "伊莉雅"), "城堡亲缘"),
+        (("战斗", "攻击", "杀"), "正面冲突"), (("调查", "搜查", "发现"), "调查推进"),
+        (("理想", "愿望", "救赎"), "理想动机"), (("日常", "学校", "午餐"), "日常铺垫"),
     ]
-    for key, title in rules:
-        if key in text:
-            return title
-    return f"剧情{index:04d}"
+    scores = [(sum(text.count(k) for k in keys), title) for keys, title in rules]
+    score, title = max(scores, key=lambda x: x[0])
+    return title if score else f"剧情{index:04d}"
 
 
 def infer_time(text):
@@ -139,13 +151,22 @@ def infer_time(text):
 
 def make_intro(text):
     clean = re.sub(r"\s+", " ", text).strip()
-    if len(clean) <= 60:
-        return clean
-    for mark in ("。", "！", "？", "；"):
-        pos = clean.find(mark, 20)
-        if 20 <= pos <= 60:
-            return clean[:pos + 1]
-    return clean[:58] + "…"
+    names = pick_terms(clean, 2)
+    actions = pick_actions(clean, 2)
+    subject = "、".join(names) if names else "本段剧情"
+    action = "，".join(actions) if actions else "推进人物关系与事件线索"
+    intro = f"{subject}围绕{action}展开，推动当前场景发展。"
+    return intro[:60]
+
+
+def pick_terms(text, limit):
+    keys = ["卫宫切嗣", "卫宫士郎", "间桐樱", "间桐脏砚", "远坂凛", "远坂时臣", "言峰绮礼", "爱丽丝菲尔", "伊莉雅", "Saber", "Archer", "Rider", "Lancer", "Caster", "Berserker", "Assassin", "圣杯战争", "御主", "从者", "魔术师"]
+    return [x for x in keys if x in text][:limit]
+
+
+def pick_actions(text, limit):
+    rules = [("战斗", "发生冲突"), ("召唤", "召唤英灵"), ("令咒", "令咒变化"), ("调查", "调查线索"), ("死亡", "死亡危机"), ("理想", "揭示动机"), ("愿望", "表明愿望"), ("母亲", "亲缘对话"), ("城堡", "城堡场景"), ("学校", "日常铺垫"), ("魔术", "魔术交涉")]
+    return [label for key, label in rules if key in text][:limit]
 
 
 def summarize(text):
@@ -159,7 +180,7 @@ def timeline_for(work, text):
         for unit in paragraph_units(text)[:20]:
             if any(p.search(unit) for p in TIME_PATTERNS):
                 intro = summarize(unit)
-                snippets.append((make_title(unit, intro, len(snippets) + 1), infer_time(unit), intro))
+                snippets.append((make_title(unit, len(snippets) + 1), infer_time(unit), intro))
             if len(snippets) >= 6:
                 break
         items = snippets or [("剧情起点", "时间未明，按作品上下文近似", summarize(text))]
