@@ -54,6 +54,7 @@ document.addEventListener('alpine:init', () => {
     rpgPanelCharacterId: '',
     profileOpen: false,
     metricsOpen: false,
+    feedbackOpen: false,
     sectionHintsEnabled: cfg.sectionHintsEnabled,
 
     get character() {

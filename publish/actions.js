@@ -43,6 +43,15 @@ window.GameModules.actions = {
     return this.metrics().slice(5);
   },
 
+  feedbackText() {
+    return this.mindText || '角色正在观察操控者的意图。';
+  },
+
+  feedbackSummary() {
+    const text = this.feedbackText();
+    return text.length > 28 ? `${text.slice(0, 28)}…` : text;
+  },
+
   async searchLore() {
     const query = this.ragQuery.trim();
     if (!query || this.ragBusy) return;

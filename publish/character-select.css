@@ -275,8 +275,8 @@
   position: relative;
   z-index: 2;
   display: grid;
-  gap: 8px;
-  padding: 9px;
+  gap: 5px;
+  padding: 6px;
   border: 1px solid rgba(255, 255, 255, .1);
   border-radius: 12px;
   background: #11182f;
@@ -293,11 +293,31 @@
 
 .feedback-panel {
   display: grid;
-  gap: 7px;
+  gap: 5px;
 }
 
-.feedback-panel b {
+.feedback-summary {
+  min-height: 26px;
+  overflow: hidden;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 120, 210, .18);
+  border-radius: 8px;
+  background: rgba(255, 120, 210, .08);
   color: #ffe6f7;
+  font-size: 11px;
+  font-weight: 800;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.feedback-full {
+  max-height: 120px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 7px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .045);
 }
 
 .character-grid {

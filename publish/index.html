@@ -170,7 +170,8 @@
         <section class="profile-card dev-section" :data-section-title="$store.game.profileOpen ? '个人资料区' : '角色反馈区'">
           <template x-if="!$store.game.profileOpen">
             <div class="feedback-panel">
-              <p x-text="$store.game.mindText || '角色正在观察操控者的意图。'"></p>
+              <button class="feedback-summary" @click="$store.game.feedbackOpen = !$store.game.feedbackOpen" x-text="$store.game.feedbackSummary()"></button>
+              <p class="feedback-full" x-show="$store.game.feedbackOpen" x-text="$store.game.feedbackText()"></p>
             </div>
           </template>
           <div class="profile-details" x-show="$store.game.profileOpen && $store.game.currentRpgState">
