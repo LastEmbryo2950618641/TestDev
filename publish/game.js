@@ -54,6 +54,10 @@ document.addEventListener('alpine:init', () => {
     ragError: '',
     rpgStates: {},
     rpgPanelCharacterId: '',
+    profileViewMode: 'profile',
+    memoryInput: '',
+    memoryArchiveQuery: '',
+    memoryArchiveResults: [],
     profileOpen: false,
     metricsOpen: false,
     feedbackOpen: false,
@@ -82,7 +86,13 @@ document.addEventListener('alpine:init', () => {
     },
 
     get rpgStateList() {
-      return Object.values(this.rpgStates);
+      const states = window.GameModules.sqliteSave.db ? window.GameModules.sqliteSave.listCharacterStates() : Object.values(this.rpgStates);
+      this.rpgStates = { ...this.rpgStates, ...Object.fromEntries(states.map((state) => [state.id, state])) };
+      return states;
+    },
+
+    get currentMemory() {
+      const id = this.currentRpgState?.id; return id ? window.GameModules.characterMemory.ensure(id) : { shortTerm: [], longTerm: [] };
     },
 
     async init() {
@@ -112,8 +122,7 @@ document.addEventListener('alpine:init', () => {
 
     async loadModelAndUser() {
       try {
-        const info = await window.dzmm?.user?.info?.();
-        if (info?.name && !this.playerName) this.playerName = info.name;
+        const info = await window.dzmm?.user?.info?.(); if (info?.name && !this.playerName) this.playerName = info.name;
       } catch (err) {
         console.warn('读取用户信息失败:', err.code, err.message);
       }

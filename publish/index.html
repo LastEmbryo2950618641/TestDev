@@ -181,14 +181,22 @@
             </div>
           </template>
           <div class="profile-details" x-show="$store.game.profileOpen && $store.game.currentRpgState">
-            <b>个人资料 / 固化属性</b>
+            <b>个人资料 / 记忆系统</b>
             <label class="mini-label">查看角色</label>
-            <select class="mini-select" x-model="$store.game.rpgPanelCharacterId">
+            <select class="mini-select" x-model="$store.game.rpgPanelCharacterId" @change="$store.game.memoryArchiveResults = []">
               <template x-for="state in $store.game.rpgStateList" :key="state.id">
                 <option :value="state.id" x-text="`${state.name}｜${state.worldTag}`"></option>
               </template>
             </select>
-            <div class="dynamic-rpg">
+            <label class="mini-label">查看内容</label>
+            <select class="mini-select" x-model="$store.game.profileViewMode">
+              <option value="profile">个人资料 / 固化属性</option>
+              <option value="addMemory">新增记忆</option>
+              <option value="shortTerm">查看短期记忆</option>
+              <option value="longTerm">查看长期记忆</option>
+              <option value="archive">搜索记忆归档</option>
+            </select>
+            <div class="dynamic-rpg" x-show="$store.game.profileViewMode === 'profile'">
               <template x-for="section in $store.game.rpgEntries($store.game.currentRpgState)" :key="section.title">
                 <section>
                   <h3 x-text="section.title"></h3>
@@ -200,6 +208,28 @@
                   </template>
                 </section>
               </template>
+            </div>
+            <div class="memory-editor" x-show="$store.game.profileViewMode === 'addMemory'">
+              <textarea x-model="$store.game.memoryInput" placeholder="输入要写入该角色的记忆..."></textarea>
+              <button @click="$store.game.addManualMemory()" :disabled="!$store.game.memoryInput.trim()">写入记忆</button>
+            </div>
+            <div class="memory-list" x-show="$store.game.profileViewMode === 'shortTerm'">
+              <template x-for="item in $store.game.memoryItems('shortTerm')" :key="`${item.turn}-${item.text}`"><p x-text="item.text"></p></template>
+              <small x-show="!$store.game.memoryItems('shortTerm').length">暂无短期记忆</small>
+            </div>
+            <div class="memory-list" x-show="$store.game.profileViewMode === 'longTerm'">
+              <template x-for="item in $store.game.memoryItems('longTerm')" :key="`${item.turn}-${item.title}`"><p><b x-text="item.title"></b><span x-text="item.summary"></span></p></template>
+              <small x-show="!$store.game.memoryItems('longTerm').length">暂无长期记忆</small>
+            </div>
+            <div class="memory-editor" x-show="$store.game.profileViewMode === 'archive'">
+              <div class="memory-search-row">
+                <input x-model="$store.game.memoryArchiveQuery" placeholder="输入意图，搜索该角色记忆归档..." @keydown.enter="$store.game.searchMemoryArchive()">
+                <button @click="$store.game.searchMemoryArchive()" :disabled="!$store.game.memoryArchiveQuery.trim()">搜索</button>
+              </div>
+              <div class="memory-list">
+                <template x-for="item in $store.game.memoryArchiveResults" :key="item.id"><p x-text="item.text"></p></template>
+                <small x-show="!$store.game.memoryArchiveResults.length">暂无搜索结果</small>
+              </div>
             </div>
           </div>
         </section>

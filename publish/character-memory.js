@@ -22,6 +22,16 @@ window.GameModules.characterMemory = {
     };
   },
 
+  async addManual(characterId, text, store) {
+    const memory = this.ensure(characterId);
+    memory.shortTerm.push({ turn: store.turn, scene: store.sceneTitle, text: `手动记忆：${text}` });
+    if (memory.shortTerm.length > 8) memory.shortTerm.shift();
+    memory.longTerm.push({ turn: store.turn, title: `手动新增 / ${store.sceneTitle}`, summary: text.slice(0, 180) });
+    if (memory.longTerm.length > 24) memory.longTerm.shift();
+    await window.GameModules.sqliteSave.saveCharacterMemory(characterId, memory);
+    await window.GameModules.sqliteSave.saveMemoryArchive(characterId, this.archiveItem(characterId, `手动记忆：${text}`, store, {}));
+  },
+
   async recordTurn(store, result) {
     const states = this.relatedStates(store, result);
     const text = this.eventText(store, result);

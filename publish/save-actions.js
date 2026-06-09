@@ -124,4 +124,23 @@ window.GameModules.saveActions = {
         .map((field) => ({ label: field.label, value: state.values[field.key] })),
     })).filter((section) => section.fields.length);
   },
+
+  memoryItems(kind) {
+    return this.currentMemory?.[kind] || [];
+  },
+
+  async addManualMemory() {
+    const text = this.memoryInput.trim();
+    const state = this.currentRpgState;
+    if (!text || !state) return;
+    await window.GameModules.characterMemory.addManual(state.id, text, this);
+    this.memoryInput = '';
+  },
+
+  async searchMemoryArchive() {
+    const state = this.currentRpgState;
+    const query = this.memoryArchiveQuery.trim();
+    if (!state || !query) return;
+    this.memoryArchiveResults = await window.GameModules.characterMemory.queryArchive(state.id, query);
+  },
 };

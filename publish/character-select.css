@@ -336,6 +336,67 @@
   color: #aeb9d6;
 }
 
+.memory-editor,
+.memory-list {
+  display: grid;
+  gap: 6px;
+}
+
+.memory-editor textarea,
+.memory-search-row input {
+  width: 100%;
+  min-height: 70px;
+  padding: 7px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .07);
+  color: #f8fbff;
+  resize: vertical;
+}
+
+.memory-search-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 5px;
+}
+
+.memory-search-row input {
+  min-height: 30px;
+}
+
+.memory-editor button,
+.memory-search-row button {
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 9px;
+  background: #dce7ff;
+  color: #14203d;
+  font-weight: 900;
+}
+
+.memory-list {
+  max-height: 180px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.memory-list p {
+  display: grid;
+  gap: 3px;
+  padding: 7px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .055);
+  white-space: pre-wrap;
+}
+
+.memory-list b {
+  color: #74f6ff;
+}
+
+.memory-list span {
+  color: #aeb9d6;
+}
+
 .character-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
