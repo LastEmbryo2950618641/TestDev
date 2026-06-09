@@ -153,6 +153,17 @@
         </div>
       </div>
 
+      <div class="start-field age-field dev-section" data-section-title="年龄设定区">
+        <label class="field-label">角色年龄</label>
+        <div class="age-grid">
+          <select class="text-input" x-model="$store.game.characterAge" @change="$store.game.onAgeInput()">
+            <template x-for="age in ['6','10','12','14','16','18','20','30','100']" :key="age"><option x-text="age"></option></template>
+          </select>
+          <input class="text-input" type="number" min="1" max="9999" inputmode="numeric" x-model="$store.game.characterAge" @change="$store.game.onAgeInput()" @blur="$store.game.onAgeInput()" placeholder="输入年龄">
+        </div>
+        <small>进入年份会按该年龄和当前世界观推断，不再使用“当前年”。</small>
+      </div>
+
       <div class="character-detail-card dev-section" data-section-title="角色预览区">
         <div class="portrait-mark" x-text="$store.game.character.mark"></div>
         <div>
@@ -197,6 +208,8 @@
           <select class="text-input" x-model="$store.game.entryTime.month" @change="$store.game.generateEntryAction('玩家调整进入时间')" :disabled="$store.game.busy"><template x-for="x in $store.game.entryTimeOptions.months" :key="x"><option x-text="x"></option></template></select>
           <select class="text-input" x-model="$store.game.entryTime.day" @change="$store.game.generateEntryAction('玩家调整进入时间')" :disabled="$store.game.busy"><template x-for="x in $store.game.entryTimeOptions.days" :key="x"><option x-text="x"></option></template></select>
           <select class="text-input" x-model="$store.game.entryTime.hour" @change="$store.game.generateEntryAction('玩家调整进入时间')" :disabled="$store.game.busy"><template x-for="x in $store.game.entryTimeOptions.hours" :key="x"><option x-text="x"></option></template></select>
+          <select class="text-input" x-model="$store.game.entryTime.minute" @change="$store.game.generateEntryAction('玩家调整进入时间')" :disabled="$store.game.busy"><template x-for="x in $store.game.entryTimeOptions.minutes" :key="x"><option x-text="x"></option></template></select>
+          <select class="text-input" x-model="$store.game.entryTime.second" @change="$store.game.generateEntryAction('玩家调整进入时间')" :disabled="$store.game.busy"><template x-for="x in $store.game.entryTimeOptions.seconds" :key="x"><option x-text="x"></option></template></select>
         </div>
         <article class="entry-action-card">
           <strong>当前正在发生</strong>

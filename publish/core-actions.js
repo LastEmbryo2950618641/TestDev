@@ -7,12 +7,26 @@ window.GameModules.coreActions = {
   selectWork(name) {
     this.selectedWork = name;
     this.selectedCharacterId = window.GameModules.catalog.firstCharacter(name) || this.selectedCharacterId;
+    this.resetEntryTimeForAge();
     window.GameModules.characterBrief.ensure(this);
   },
 
   selectCharacter(id) {
     this.selectedCharacterId = id;
+    this.resetEntryTimeForAge();
     window.GameModules.characterBrief.ensure(this);
+  },
+
+  resetEntryTimeForAge() {
+    this.entryCalendar = null;
+    this.entryTime.year = '';
+    this.entryCurrentAction = '';
+    this.entrySetupOpen = false;
+  },
+
+  onAgeInput() {
+    this.characterAge = String(Math.max(1, Math.min(9999, parseInt(this.characterAge, 10) || 16)));
+    this.resetEntryTimeForAge();
   },
 
   async start() {

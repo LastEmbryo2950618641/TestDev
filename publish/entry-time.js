@@ -32,16 +32,41 @@ window.GameModules.entryTime = {
     return { label: `${base}历`, units: { year: '纪年', month: '月', day: '日', hour: '时段' }, months: ['新芽月', '晴火月', '长雨月', '白霜月'], days: 28, hours: ['晨祷', '正昼', '暮钟', '星夜'] };
   },
 
-  options(calendar) {
+  options(calendar, store) {
     return {
-      years: ['当前年', '一年前', '三年前', '十年前'],
+      years: [this.birthYear(calendar, store), ...this.nearYears(calendar, store)],
       months: calendar.months,
       days: Array.from({ length: Math.min(calendar.days || 30, 31) }, (_, i) => `${i + 1}${calendar.units.day}`),
-      hours: calendar.hours,
+      hours: Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}时`),
+      minutes: Array.from({ length: 12 }, (_, i) => `${String(i * 5).padStart(2, '0')}分`),
+      seconds: Array.from({ length: 12 }, (_, i) => `${String(i * 5).padStart(2, '0')}秒`),
     };
   },
 
+  birthYear(calendar, store) {
+    const age = Math.max(1, Math.min(9999, parseInt(store?.characterAge, 10) || 16));
+    const base = this.baseYear(calendar, store);
+    return `${base - age}${calendar.units.year || '年'}`;
+  },
+
+  nearYears(calendar, store) {
+    const base = this.baseYear(calendar, store);
+    const unit = calendar.units.year || '年';
+    return [-1, 1, 3].map((delta) => `${base + delta}${unit}`);
+  },
+
+  baseYear(calendar, store) {
+    const lore = window.GameModules.sqliteSave?.getWorldLore?.(store?.character?.work || '原创世界');
+    const text = `${calendar.label || ''} ${store?.character?.work || ''} ${lore?.background || ''}`;
+    const years = text.match(/\b(1[5-9]\d{2}|20\d{2}|21\d{2})\b/g);
+    if (years?.length) return Number(years[0]);
+    if (/现代|公元|都市|学校|科技/.test(text)) return 2026;
+    let hash = 0;
+    for (const char of text) hash = (hash + char.charCodeAt(0)) % 900;
+    return 1000 + hash;
+  },
+
   format(time, calendar) {
-    return `${calendar.label}｜${time.year} ${time.month} ${time.day} ${time.hour}`;
+    return `${calendar.label}｜${time.year} ${time.month} ${time.day} ${time.hour}${time.minute}${time.second}`;
   },
 };

@@ -284,6 +284,17 @@ p { margin-bottom: 8px; }
   display: grid;
 }
 
+.age-grid {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 7px;
+}
+
+.age-field small {
+  margin-top: 5px;
+  color: #aeb9d6;
+}
+
 .text-input,
 .free-input input {
   width: 100%;
@@ -356,6 +367,10 @@ select.text-input option,
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 7px;
+}
+
+.entry-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .entry-advance-row {
