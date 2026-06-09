@@ -35,12 +35,12 @@ window.GameModules.actions = {
     ];
   },
 
-  metricsLine() {
-    return this.metrics().slice(0, 3).map(([key, value]) => `${key} ${value}`).join('  ');
+  summaryMetrics() {
+    return this.metrics().slice(0, 5);
   },
 
   expandedMetrics() {
-    return this.metrics().slice(3);
+    return this.metrics().slice(5);
   },
 
   async searchLore() {
