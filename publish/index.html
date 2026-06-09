@@ -150,12 +150,18 @@
             </div>
           </div>
         </button>
+        <div class="compact-metrics">
+          <span><b>情绪</b><em x-text="$store.game.moodScore()"></em></span>
+          <span><b>信任</b><em x-text="$store.game.trust"></em></span>
+          <span><b>反抗</b><em x-text="$store.game.resistance"></em></span>
+          <span><b>好感</b><em x-text="$store.game.affection()"></em></span>
+          <span><b>心动</b><em x-text="$store.game.heartbeat()"></em></span>
+        </div>
         <section class="profile-card">
           <template x-if="!$store.game.profileOpen">
             <div class="feedback-panel">
               <b x-text="`${$store.game.character.name}的反馈`"></b>
               <p x-text="$store.game.mindText || '角色正在观察操控者的意图。'"></p>
-              <small x-text="`情绪：${$store.game.mood}｜信任：${$store.game.trust}｜反抗：${$store.game.resistance}`"></small>
             </div>
           </template>
           <div class="profile-details" x-show="$store.game.profileOpen && $store.game.currentRpgState">

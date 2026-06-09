@@ -12,6 +12,19 @@ window.GameModules.actions = {
     this.ragContext = window.GameModules.rag.formatContext(results);
   },
 
+  moodScore() {
+    return { 冷静: 50, 紧张: 42, 愤怒: 30, 动摇: 38, 信任: 72, 恐惧: 25, 好奇: 60, 坚定: 68 }[this.mood] || 50;
+  },
+
+  affection() {
+    return Math.max(0, Math.min(100, Math.round(this.trust * 0.8 + (100 - this.resistance) * 0.2)));
+  },
+
+  heartbeat() {
+    const mood = { 紧张: 12, 动摇: 10, 恐惧: 8, 好奇: 7, 信任: 6, 坚定: 4, 愤怒: 3, 冷静: 0 }[this.mood] || 0;
+    return Math.max(0, Math.min(100, Math.round(30 + this.trust * 0.25 + this.resistance * 0.25 + mood)));
+  },
+
   async searchLore() {
     const query = this.ragQuery.trim();
     if (!query || this.ragBusy) return;
