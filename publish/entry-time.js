@@ -33,9 +33,9 @@ window.GameModules.entryTime = {
   },
 
   async options(calendar, store) {
-    const base = await this.baseYear(calendar, store);
+    const base = await window.GameModules.entryYear.baseYear(calendar, store);
     return {
-      years: [this.targetYear(calendar, store, base), ...this.nearYears(calendar, base)],
+      years: [await window.GameModules.entryYear.targetYear(calendar, store, base), ...this.nearYears(calendar, base)],
       months: calendar.months,
       days: Array.from({ length: Math.min(calendar.days || 30, 31) }, (_, i) => `${i + 1}${calendar.units.day}`),
       hours: Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}时`),
@@ -44,86 +44,9 @@ window.GameModules.entryTime = {
     };
   },
 
-  targetYear(calendar, store, base) {
-    const age = Math.max(1, Math.min(9999, parseInt(store?.characterAge, 10) || 16));
-    const currentAge = this.currentCharacterAge(store);
-    const year = currentAge ? base - (currentAge - age) : base;
-    return `${year}${calendar.units.year || '年'}`;
-  },
-
-  currentCharacterAge(store) {
-    const text = `${store?.character?.name || ''} ${store?.character?.role || ''} ${store?.character?.detail || ''}`;
-    const fixed = this.knownCharacterAge(text, store?.character?.work || '');
-    if (fixed) return fixed;
-    const found = text.match(/(\d{1,4})\s*岁/);
-    return found ? Number(found[1]) : 0;
-  },
-
-  knownCharacterAge(text, work) {
-    if (/Fate\s*Zero|Fate\/Zero|fate\s*zore/i.test(work)) {
-      if (/间桐樱|远坂樱|Sakura/i.test(text)) return 7;
-      if (/间桐脏研|间桐臓砚|Zouken/i.test(text)) return 500;
-    }
-    return 0;
-  },
-
   nearYears(calendar, base) {
     const unit = calendar.units.year || '年';
     return [-1, 1, 3].map((delta) => `${base + delta}${unit}`);
-  },
-
-  async baseYear(calendar, store) {
-    const lore = window.GameModules.sqliteSave?.getWorldLore?.(store?.character?.work || '原创世界');
-    const text = `${calendar.label || ''} ${store?.character?.work || ''} ${lore?.background || ''}`;
-    const fixed = this.knownStoryYear(text);
-    if (fixed) return fixed;
-    const years = text.match(/\b(1[5-9]\d{2}|20\d{2}|21\d{2})\b/g);
-    if (years?.length) return Number(years[0]);
-    const publicYear = await this.fetchPublicYear(store?.character?.work || text);
-    if (publicYear) return publicYear;
-    if (/现代|公元|都市|学校|科技/.test(text)) return 2026;
-    let hash = 0;
-    for (const char of text) hash = (hash + char.charCodeAt(0)) % 900;
-    return 1000 + hash;
-  },
-
-  knownStoryYear(text) {
-    const rules = [
-      [/Fate\s*Zero|Fate\/Zero|fate\s*zore|第四次圣杯战争/i, 1994],
-      [/Fate\s*stay\s*night|第五次圣杯战争/i, 2004],
-    ];
-    return rules.find(([re]) => re.test(text))?.[1] || 0;
-  },
-
-  async fetchPublicYear(query) {
-    if (!window.fetch) return 0;
-    try {
-      const sources = await fetch('./public-year-sources.json').then((r) => r.json());
-      for (const source of sources) {
-        const year = await this.fetchYearFromSource(source, query);
-        if (year) return year;
-      }
-    } catch (err) {
-      console.warn('公共资料年份查询失败:', err.message);
-    }
-    return 0;
-  },
-
-  async fetchYearFromSource(source, query) {
-    try {
-      const url = source.url.replace('{query}', encodeURIComponent(query));
-      const data = await fetch(url).then((r) => (r.ok ? r.json() : null));
-      return this.yearFromPublicData(source.kind, data);
-    } catch (err) {
-      console.warn('公共资料源跳过:', source.name, err.message);
-      return 0;
-    }
-  },
-
-  yearFromPublicData(kind, data) {
-    const text = kind === 'jikanAnime' ? data?.data?.[0]?.synopsis : JSON.stringify(data || '');
-    const years = String(text || '').match(/\b(1[5-9]\d{2}|20\d{2}|21\d{2})\b/g);
-    return years?.length ? Number(years[0]) : 0;
   },
 
   format(time, calendar) {
