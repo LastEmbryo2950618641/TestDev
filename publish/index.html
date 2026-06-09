@@ -187,13 +187,20 @@
           <div class="profile-details" x-show="$store.game.profileOpen && $store.game.currentRpgState">
             <b x-text="`个人资料 / 记忆系统｜${$store.game.character.name}`"></b>
             <label class="mini-label">查看内容</label>
-            <select class="mini-select" x-model="$store.game.profileViewMode">
-              <option value="profile">个人资料 / 固化属性</option>
-              <option value="addMemory">新增记忆</option>
-              <option value="shortTerm">查看短期记忆</option>
-              <option value="longTerm">查看长期记忆</option>
-              <option value="archive">搜索记忆归档</option>
-            </select>
+            <div class="custom-select" @click.outside="$store.game.profileMenuOpen = false">
+              <button class="custom-select-btn" @click="$store.game.profileMenuOpen = !$store.game.profileMenuOpen" type="button">
+                <span x-text="({ profile: '个人资料 / 固化属性', addMemory: '新增记忆', shortTerm: '查看短期记忆', longTerm: '查看长期记忆', archive: '搜索记忆归档' })[$store.game.profileViewMode]"></span>
+                <i></i>
+              </button>
+              <div class="custom-select-menu" x-show="$store.game.profileMenuOpen">
+                <button type="button" @click="$store.game.profileViewMode = 'profile'; $store.game.profileMenuOpen = false">个人资料 / 固化属性</button>
+                <button type="button" @click="$store.game.profileViewMode = 'addMemory'; $store.game.profileMenuOpen = false">新增记忆</button>
+                <button type="button" @click="$store.game.profileViewMode = 'shortTerm'; $store.game.profileMenuOpen = false">查看短期记忆</button>
+                <button type="button" @click="$store.game.profileViewMode = 'longTerm'; $store.game.profileMenuOpen = false">查看长期记忆</button>
+                <button type="button" @click="$store.game.profileViewMode = 'archive'; $store.game.profileMenuOpen = false">搜索记忆归档</button>
+              </div>
+            </div>
+            <div class="profile-content-fixed">
             <div class="dynamic-rpg" x-show="$store.game.profileViewMode === 'profile'">
               <template x-for="section in $store.game.rpgEntries($store.game.currentRpgState)" :key="section.title">
                 <section>
@@ -228,6 +235,7 @@
                 <template x-for="item in $store.game.memoryArchiveResults" :key="item.id"><p x-text="item.text"></p></template>
                 <small x-show="!$store.game.memoryArchiveResults.length">暂无搜索结果</small>
               </div>
+            </div>
             </div>
           </div>
         </section>

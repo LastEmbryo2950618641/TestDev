@@ -57,6 +57,7 @@ document.addEventListener('alpine:init', () => {
     rpgStates: {},
     rpgPanelCharacterId: '',
     profileViewMode: 'profile',
+    profileMenuOpen: false,
     memoryInput: '',
     memoryArchiveQuery: '',
     memoryArchiveResults: [],
