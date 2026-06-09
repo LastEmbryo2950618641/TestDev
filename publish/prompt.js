@@ -48,7 +48,7 @@ ${state.ragContext || '暂无资料。'}
   "trust":0到100整数,
   "resistance":0到100整数,
   "quest":"新的当前目标，18字内",
-  "choices":["3到5个下一步行动选项，每个12字内"],
+  "choices":["必须给4个AI推荐行动选项，每个12字内；不要包含放开控制"],
   "appearedCharacters":["本回合新出现或被提到的角色名，最多3个"],
   "statChanges":{"health":-8到8,"stamina":-8到8,"mana":-8到8}
 }`;
