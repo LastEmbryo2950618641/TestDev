@@ -84,23 +84,16 @@ window.GameModules.entryActions = {
 
   async requestEntryAction(reason) {
     if (!window.dzmm?.completions) return `${this.character.name}正在处理与身份相关的日常事务。`;
-    let buffer = '';
+    let latest = '';
     await window.dzmm.completions({
       model: this.modelId,
       maxTokens: 220,
       messages: [{ role: 'user', content: this.entryPrompt(reason) }],
-    }, (chunk) => { buffer = this.mergeEntryChunk(buffer, chunk); });
-    return this.cleanEntryAction(buffer) || `${this.character.name}正在观察周围变化。`;
-  },
-
-  mergeEntryChunk(buffer, chunk) {
-    const text = String(chunk || '');
-    if (!text) return buffer;
-    if (!buffer || text.startsWith(buffer)) return text;
-    if (buffer.endsWith(text)) return buffer;
-    let overlap = Math.min(buffer.length, text.length);
-    while (overlap > 0 && !buffer.endsWith(text.slice(0, overlap))) overlap -= 1;
-    return buffer + text.slice(overlap);
+    }, (chunk) => {
+      latest = this.cleanEntryAction(chunk);
+      if (latest) this.entryCurrentAction = latest;
+    });
+    return latest || `${this.character.name}正在观察周围变化。`;
   },
 
   cleanEntryAction(text) {
