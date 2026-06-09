@@ -185,13 +185,7 @@
             </div>
           </template>
           <div class="profile-details" x-show="$store.game.profileOpen && $store.game.currentRpgState">
-            <b>个人资料 / 记忆系统</b>
-            <label class="mini-label">查看角色</label>
-            <select class="mini-select" x-model="$store.game.rpgPanelCharacterId" @change="$store.game.memoryArchiveResults = []">
-              <template x-for="state in $store.game.rpgStateList" :key="state.id">
-                <option :value="state.id" x-text="`${state.name}｜${state.worldTag}`"></option>
-              </template>
-            </select>
+            <b x-text="`个人资料 / 记忆系统｜${$store.game.character.name}`"></b>
             <label class="mini-label">查看内容</label>
             <select class="mini-select" x-model="$store.game.profileViewMode">
               <option value="profile">个人资料 / 固化属性</option>

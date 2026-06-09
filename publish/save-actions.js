@@ -138,7 +138,7 @@ window.GameModules.saveActions = {
   },
 
   async searchMemoryArchive() {
-    const state = this.currentRpgState;
+    const state = this.characterRpgState;
     const query = this.memoryArchiveQuery.trim();
     if (!state || !query) return;
     this.memoryArchiveResults = await window.GameModules.characterMemory.queryArchive(state.id, query);

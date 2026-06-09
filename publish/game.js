@@ -84,13 +84,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     get currentRpgState() {
-      return this.rpgStates[this.rpgPanelCharacterId] || this.characterRpgState;
-    },
-
-    get rpgStateList() {
-      const states = window.GameModules.sqliteSave.db ? window.GameModules.sqliteSave.listCharacterStates() : Object.values(this.rpgStates);
-      this.rpgStates = { ...this.rpgStates, ...Object.fromEntries(states.map((state) => [state.id, state])) };
-      return states;
+      return this.characterRpgState;
     },
 
     get currentMemory() {
