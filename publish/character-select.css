@@ -618,7 +618,7 @@
 .ref-list {
   display: grid;
   gap: 7px;
-  max-height: 120px;
+  max-height: min(28dvh, 220px);
   margin-top: 8px;
   overflow-y: auto;
   overscroll-behavior: contain;

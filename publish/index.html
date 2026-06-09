@@ -160,10 +160,11 @@
         </div>
       </div>
 
-      <div class="ref-list dev-section" data-section-title="原作资料预览区" x-show="$store.game.characterRefs.length">
-        <template x-for="ref in $store.game.characterRefs" :key="`${ref.novel}-${ref.chunk}`">
+      <div class="ref-list dev-section" data-section-title="原作资料预览区" x-show="$store.game.characterBriefBusy || ($store.game.characterLoreRefs[$store.game.character.id] || []).length">
+        <p class="empty-lore" x-show="$store.game.characterBriefBusy">正在检索当前角色的完整原作资料…</p>
+        <template x-for="ref in $store.game.characterLoreRefs[$store.game.character.id] || []" :key="`${ref.novel}-${ref.chunk}`">
           <article>
-            <strong x-text="`${ref.novel} #${ref.chunk}`"></strong>
+            <strong x-text="`${ref.novel} / ${ref.title || '资料'} #${ref.chunk}`"></strong>
             <p x-text="ref.text"></p>
           </article>
         </template>

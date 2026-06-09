@@ -37,7 +37,26 @@ window.GameModules.rag = {
     }
 
     results.sort((a, b) => b.ragScore - a.ragScore);
-    return results.slice(0, options.limit || 4);
+    const limited = results.slice(0, options.limit || 4);
+    return options.contextRadius ? this.expandContext(limited, items, options.contextRadius) : limited;
+  },
+
+  expandContext(results, items, radius) {
+    const output = [];
+    const seen = new Set();
+    for (const hit of results) {
+      const chunk = Number(hit.chunk);
+      if (!Number.isFinite(chunk)) { output.push(hit); continue; }
+      const start = Math.max(0, chunk - radius);
+      const end = chunk + radius;
+      const key = `${hit.novel}|${hit.title}|${start}-${end}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const parts = items.filter((x) => x.novel === hit.novel && x.title === hit.title && Number(x.chunk) >= start && Number(x.chunk) <= end)
+        .sort((a, b) => Number(a.chunk) - Number(b.chunk));
+      output.push({ ...hit, chunk: `${start}-${end}`, text: parts.map((x) => x.text).join('\n') || hit.text });
+    }
+    return output;
   },
 
   expandTerms(query, aliases) {

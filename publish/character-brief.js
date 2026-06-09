@@ -10,16 +10,19 @@ window.GameModules.characterBrief = {
     store.characterBriefs = { ...store.characterBriefs, [character.id]: this.fallback(character) };
     store.characterBriefBusy = true;
     try {
-      const refs = await window.GameModules.rag.search(`${character.name} ${character.work} 出生 背景 身世`, {
-        limit: 3,
+      const refs = await window.GameModules.rag.search(`${character.name} ${character.work} 出生 背景 身世 经历`, {
+        limit: 6,
         sourceHint: character.work,
         strictSource: true,
+        contextRadius: 1,
       });
-      const context = refs.map((x) => x.text).join('\n').slice(0, 1200);
+      store.characterLoreRefs = { ...store.characterLoreRefs, [character.id]: refs };
+      const context = refs.map((x) => x.text).join('\n').slice(0, 1600);
       const brief = await this.generate(character, context);
       store.characterBriefs = { ...store.characterBriefs, [character.id]: brief };
     } catch (err) {
       console.warn('角色简介生成失败:', err.message, err.stack);
+      store.characterLoreRefs = { ...store.characterLoreRefs, [character.id]: character.refs || [] };
       store.characterBriefs = { ...store.characterBriefs, [character.id]: this.fallback(character) };
     } finally {
       store.characterBriefBusy = false;

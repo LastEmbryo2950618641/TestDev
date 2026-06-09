@@ -40,6 +40,7 @@ document.addEventListener('alpine:init', () => {
     workMenuOpen: false,
     characterMenuOpen: false,
     characterBriefs: {},
+    characterLoreRefs: {},
     characterBriefBusy: false,
     stats: cfg.stats,
     online: true,
@@ -81,10 +82,6 @@ document.addEventListener('alpine:init', () => {
 
     get workCharacters() {
       return window.GameModules.catalog.characters(this.selectedWork);
-    },
-
-    get characterRefs() {
-      return this.character.refs || [];
     },
 
     get characterRpgState() {
