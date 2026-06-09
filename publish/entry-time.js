@@ -35,7 +35,7 @@ window.GameModules.entryTime = {
   async options(calendar, store) {
     const base = await this.baseYear(calendar, store);
     return {
-      years: [this.birthYear(calendar, store, base), ...this.nearYears(calendar, base)],
+      years: [this.targetYear(calendar, store, base), ...this.nearYears(calendar, base)],
       months: calendar.months,
       days: Array.from({ length: Math.min(calendar.days || 30, 31) }, (_, i) => `${i + 1}${calendar.units.day}`),
       hours: Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}时`),
@@ -44,9 +44,27 @@ window.GameModules.entryTime = {
     };
   },
 
-  birthYear(calendar, store, base) {
+  targetYear(calendar, store, base) {
     const age = Math.max(1, Math.min(9999, parseInt(store?.characterAge, 10) || 16));
-    return `${base - age}${calendar.units.year || '年'}`;
+    const currentAge = this.currentCharacterAge(store);
+    const year = currentAge ? base - (currentAge - age) : base;
+    return `${year}${calendar.units.year || '年'}`;
+  },
+
+  currentCharacterAge(store) {
+    const text = `${store?.character?.name || ''} ${store?.character?.role || ''} ${store?.character?.detail || ''}`;
+    const fixed = this.knownCharacterAge(text, store?.character?.work || '');
+    if (fixed) return fixed;
+    const found = text.match(/(\d{1,4})\s*岁/);
+    return found ? Number(found[1]) : 0;
+  },
+
+  knownCharacterAge(text, work) {
+    if (/Fate\s*Zero|Fate\/Zero|fate\s*zore/i.test(work)) {
+      if (/间桐樱|远坂樱|Sakura/i.test(text)) return 7;
+      if (/间桐脏研|间桐臓砚|Zouken/i.test(text)) return 500;
+    }
+    return 0;
   },
 
   nearYears(calendar, base) {
