@@ -427,7 +427,16 @@
 
 .custom-select {
   position: relative;
-  z-index: 20;
+  z-index: 80;
+}
+
+.start-field {
+  position: relative;
+  z-index: 90;
+}
+
+.start-field:focus-within {
+  z-index: 120;
 }
 
 .custom-select-btn {
@@ -456,6 +465,7 @@
 
 .custom-select-menu {
   position: absolute;
+  z-index: 130;
   top: calc(100% + 4px);
   right: 0;
   left: 0;
@@ -585,6 +595,13 @@
 
 .character-card small {
   color: #aeb9d6;
+}
+
+.character-detail-card,
+.ref-list,
+.rules-box {
+  position: relative;
+  z-index: 1;
 }
 
 .character-detail-card {
