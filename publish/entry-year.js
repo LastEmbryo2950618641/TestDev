@@ -106,14 +106,35 @@ window.GameModules.entryYear = {
   },
 
   parseAudit(text, fallback) {
-    try {
-      const json = JSON.parse(String(text).slice(String(text).indexOf('{'), String(text).lastIndexOf('}') + 1));
-      const value = Number(json.value);
-      if (json.pass === true && Number.isFinite(value) && value > 0) return Math.round(value);
-    } catch (err) {
-      console.warn('年份自审解析失败:', err.message);
-    }
+    const raw = String(text || '');
+    const json = this.parseAuditJson(raw);
+    if (json) return this.auditValue(json, fallback);
+    const pass = /pass\s*[:：=]\s*(true|是|通过)/i.test(raw) || /通过/.test(raw);
+    const value = Number((raw.match(/value\s*[:：=]\s*(\d{1,4})/i) || raw.match(/(?:年份|年龄|value|结果)[^\d]{0,8}(\d{1,4})/) || [])[1]);
+    if (pass && Number.isFinite(value) && value > 0) return Math.round(value);
     return 0;
+  },
+
+  parseAuditJson(raw) {
+    try {
+      const start = raw.indexOf('{');
+      const end = raw.lastIndexOf('}');
+      if (start === -1 || end === -1 || end <= start) return null;
+      let body = raw.slice(start, end + 1)
+        .replace(/[“”]/g, '"')
+        .replace(/([{,]\s*)([a-zA-Z_][\w-]*|[\u4e00-\u9fa5]+)(\s*:)/g, '$1"$2"$3')
+        .replace(/:\s*是([,}])/g, ':true$1')
+        .replace(/:\s*否([,}])/g, ':false$1');
+      return JSON.parse(body);
+    } catch (_) {
+      return null;
+    }
+  },
+
+  auditValue(json, fallback) {
+    const value = Number(json.value ?? json.值 ?? json.年份 ?? json.年龄);
+    const pass = json.pass === true || json.pass === 'true' || json.pass === '是' || json.pass === '通过';
+    return pass && Number.isFinite(value) && value > 0 ? Math.round(value) : 0;
   },
 
   workQuery(store) {
