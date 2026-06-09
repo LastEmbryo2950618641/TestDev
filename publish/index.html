@@ -154,6 +154,7 @@
             </div>
           </div>
         </button>
+        <div class="profile-stack" :class="{ 'profile-stack-expanded': $store.game.profileOpen }">
         <section class="compact-metrics dev-section" data-section-title="简洁数值栏">
           <button class="metrics-summary" @click="$store.game.metricsOpen = !$store.game.metricsOpen">
             <template x-for="metric in $store.game.summaryMetrics()" :key="metric[0]">
@@ -195,6 +196,7 @@
             </div>
           </div>
         </section>
+        </div>
       </aside>
 
       <section class="panel story-panel dev-section" data-section-title="剧情日志区">
