@@ -94,12 +94,13 @@ window.GameModules.entryActions = {
 
   async requestEntryAction(reason) {
     if (!window.dzmm?.completions) return `${this.character.name}正在处理与身份相关的日常事务。`;
-    console.log('[进入行动] 请求开始:', reason, this.entryTimeLabel(), this.character.name, this.character.work);
+    const storyContext = await window.GameModules.entryTime.storyContextFor(this);
+    console.log('[进入行动] 请求开始:', reason, this.entryTimeLabel(), this.character.name, this.character.work, 'storyContextLength=', storyContext.length);
     let buffer = '';
     await window.dzmm.completions({
       model: this.modelId,
       maxTokens: 220,
-      messages: [{ role: 'user', content: this.entryPrompt(reason) }],
+      messages: [{ role: 'user', content: this.entryPrompt(reason, storyContext) }],
     }, (chunk, done) => {
       buffer = this.mergeStreamText(buffer, chunk);
       const latest = this.cleanEntryAction(buffer);
@@ -126,9 +127,9 @@ window.GameModules.entryActions = {
       .replace(/^(.*?)(\1)+/, '$1').slice(0, 90);
   },
 
-  entryPrompt(reason) {
+  entryPrompt(reason, storyContext) {
     const lore = window.GameModules.cache.enabled('generatedLore') ? window.GameModules.sqliteSave.getWorldLore(this.character.work || '原创世界') : null;
-    return `基于世界观和人物性格，生成角色当前正在做的事情。只输出一句中文，60字内，不要JSON，不要重复词句。原因：${reason}。时间：${this.entryTimeLabel()}。角色：${this.character.name}｜${this.character.role}｜${this.character.personality || ''}。世界观：${lore?.background || this.character.work}`;
+    return `基于剧情索引、世界观和人物性格，推演角色在当前时间正在发生的事情。必须优先依据剧情索引范围，不要凭空捏造；如果当前角色未出现在索引摘要中，则根据其身份推断她此刻与主线的合理关系，并明确保持克制。只输出一句中文，60字内，不要JSON，不要重复词句。原因：${reason}。时间：${this.entryTimeLabel()}。角色：${this.character.name}｜${this.character.role}｜${this.character.personality || ''}。世界观：${lore?.background || this.character.work}。剧情索引上下文：${storyContext}`;
   },
 
   async advanceEntryTime() {

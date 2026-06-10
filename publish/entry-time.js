@@ -198,5 +198,37 @@ window.GameModules.entryTime = {
     return `${label}｜${time.year} ${time.month} ${time.day} ${time.hour}${time.minute}${time.second}`;
   },
 
+  async storyContextFor(store) {
+    const source = window.GameModules.characterBrief.sourceFor(store.character.work);
+    const start = store.entryTimeOptions.start || await this.storyStart(store);
+    const current = this.selectedDate(store.entryTime);
+    if (!source || !start || !current) return '未读取到剧情索引上下文。';
+    const url = `${source.base}/02_按需加载_剧情/剧情索引.md`;
+    const text = await window.GameModules.rag.fetchText(url);
+    const rows = this.storyIndexRows(text)
+      .filter((row) => row.value >= this.dateValue([start.year, start.month, start.day, start.hour, start.minute, start.second]) && row.value <= this.dateValue(current))
+      .sort((a, b) => a.value - b.value);
+    const picked = rows.length > 40 ? [...rows.slice(0, 8), ...rows.slice(-32)] : rows;
+    console.log('[剧情上下文] 起点到当前时间索引:', { total: rows.length, used: picked.length, current: store.entryTimeLabel() });
+    if (!picked.length) return '剧情索引中没有命中起点到当前时间范围内的条目。';
+    return `剧情索引范围：从小说起点到${store.entryTimeLabel()}，共${rows.length}条，以下为用于推演的摘要：\n${picked.map((row) => `${row.time}｜${row.title}｜${row.intro}`).join('\n')}`.slice(0, 3600);
+  },
+
+  storyIndexRows(markdown) {
+    return String(markdown || '').split('\n').map((line) => {
+      if (!/^\|\s*\d+\s*\|/.test(line)) return null;
+      const cells = line.split('|').slice(1, -1).map((x) => x.trim());
+      const time = cells[2] || '';
+      const parts = (time.match(/(\d{3,4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})/) || []).slice(1).map(Number);
+      if (parts.length !== 6) return null;
+      return { no: cells[0], title: cells[1], time, intro: cells[3] || '无摘要', file: cells[6], value: this.dateValue(parts) };
+    }).filter(Boolean);
+  },
+
+  selectedDate(time) {
+    const nums = [time.year, time.month, time.day, time.hour, time.minute, time.second].map((x) => parseInt(String(x || '').replace(/\D/g, ''), 10));
+    return nums.every((x) => Number.isFinite(x)) ? nums : null;
+  },
+
   unique(list) { return [...new Set(list.filter(Boolean))]; },
 };
