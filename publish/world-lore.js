@@ -29,7 +29,7 @@ window.GameModules.worldLore = {
         model: 'nalang-medium-0826',
         maxTokens: 1200,
         messages: [{ role: 'user', content: prompt }],
-      }, (chunk) => { buffer += chunk; });
+      }, (chunk) => { buffer = window.GameModules.rpgState.mergeStreamText(buffer, chunk); });
       console.log('[世界观] AI返回:', { worldTag, length: buffer.length, preview: buffer.slice(0, 180) });
       return this.validate(this.parse(buffer), worldTag);
     } catch (err) {

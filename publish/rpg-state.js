@@ -82,7 +82,7 @@ window.GameModules.rpgState = {
         maxTokens: 900,
         messages: [{ role: 'user', content: prompt }],
       }, (chunk, done) => {
-        buffer += chunk;
+        buffer = this.mergeStreamText(buffer, chunk);
         if (!done) return;
       });
       console.log('[RPG状态] schema 返回长度:', buffer.length, '预览:', buffer.slice(0, 180));
@@ -93,6 +93,18 @@ window.GameModules.rpgState = {
       console.warn('RPG schema 生成失败，使用兜底:', err.message);
       return this.defaultSchema(worldTag, lore);
     }
+  },
+
+  mergeStreamText(buffer, chunk) {
+    const text = String(chunk || '');
+    if (!text) return buffer;
+    if (!buffer || text.startsWith(buffer)) return text;
+    if (buffer.endsWith(text)) return buffer;
+    const overlap = Math.min(buffer.length, text.length);
+    for (let size = overlap; size > 0; size -= 1) {
+      if (buffer.endsWith(text.slice(0, size))) return buffer + text.slice(size);
+    }
+    return buffer + text;
   },
 
   parseSchema(text) {
