@@ -4,7 +4,7 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.rag = {
-  sources: null, fileCache: {},
+  sources: null, fileCache: {}, sourceCache: {},
 
   async load() {
     if (window.GameModules.cache.enabled('files') && this.sources) return this.sources;
@@ -87,6 +87,11 @@ window.GameModules.rag = {
   async fetchText(url) {
     const useCache = window.GameModules.cache.enabled('files');
     if (useCache && this.fileCache[url] !== undefined) return this.fileCache[url];
+    const cached = await this.fetchCachedText(url);
+    if (cached !== null) {
+      if (useCache) this.fileCache[url] = cached;
+      return cached;
+    }
     let text = '';
     for (const candidate of this.urlCandidates(url)) {
       try {
@@ -103,6 +108,43 @@ window.GameModules.rag = {
     }
     if (useCache) this.fileCache[url] = text;
     return text;
+  },
+
+  async fetchCachedText(url) {
+    const source = this.sourceForUrl(url);
+    if (!source?.cache) return null;
+    const rel = this.relativePath(source, url);
+    if (!rel) return null;
+    const cache = await this.loadSourceCache(source);
+    if (!cache) return null;
+    const text = cache.files?.[rel];
+    if (typeof text !== 'string') return null;
+    this.log('读取资料快照', source.name, rel);
+    return text;
+  },
+
+  sourceForUrl(url) {
+    return (window.GameData?.loreSources || []).find((source) => url.startsWith(`${source.base}/`));
+  },
+
+  relativePath(source, url) {
+    return url.slice(source.base.length + 1).replace(/^AI设定库\//, '').replace(/^\.\//, '');
+  },
+
+  async loadSourceCache(source) {
+    if (this.sourceCache[source.name]) return this.sourceCache[source.name];
+    try {
+      this.log('读取资料快照文件', source.cache);
+      const res = await fetch(encodeURI(source.cache));
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      this.sourceCache[source.name] = data;
+      return data;
+    } catch (err) {
+      console.warn('资料快照读取失败:', source.name, source.cache, err.message);
+      this.sourceCache[source.name] = null;
+      return null;
+    }
   },
 
   urlCandidates(url) {
