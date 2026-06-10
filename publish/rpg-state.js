@@ -132,6 +132,9 @@ window.GameModules.rpgState = {
       })),
     })).filter((section) => section.fields.length);
     if (!schema.sections.length) throw new Error('schema empty');
+    if (!schema.sections.some((section) => section.fields.some((field) => field.key === 'age'))) {
+      schema.sections[0].fields.unshift({ key: 'age', label: '年龄', type: 'number', min: 0, max: 999 });
+    }
     return schema;
   },
 

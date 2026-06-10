@@ -35,12 +35,13 @@ window.GameModules.entryTime = {
   async options(calendar, store) {
     const start = await this.storyStart(store);
     const base = start?.year || await window.GameModules.entryYear.baseYear(calendar, store);
+    const unit = start ? '年' : (calendar.units.year || '年');
     const startMonth = start ? `${start.month}月` : '';
-    const startDay = start ? `${start.day}${calendar.units.day}` : '';
+    const startDay = start ? `${start.day}日` : '';
     return {
-      years: this.unique([`${base}${calendar.units.year || '年'}`, ...this.nearYears(calendar, base)]),
+      years: this.unique([`${base}${unit}`, ...this.nearYears({ units: { year: unit } }, base)]),
       months: this.unique([startMonth, ...calendar.months]),
-      days: this.unique([startDay, ...Array.from({ length: Math.min(calendar.days || 30, 31) }, (_, i) => `${i + 1}${calendar.units.day}`)]),
+      days: this.unique([startDay, ...Array.from({ length: Math.min(calendar.days || 30, 31) }, (_, i) => `${i + 1}${start ? '日' : calendar.units.day}`)]),
       hours: Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}时`),
       minutes: Array.from({ length: 12 }, (_, i) => `${String(i * 5).padStart(2, '0')}分`),
       seconds: Array.from({ length: 12 }, (_, i) => `${String(i * 5).padStart(2, '0')}秒`),
@@ -52,7 +53,8 @@ window.GameModules.entryTime = {
     const source = window.GameModules.characterBrief.sourceFor(store.character.work);
     if (!source) return null;
     const text = await window.GameModules.rag.fetchText(`${source.base}/02_按需加载_剧情/剧情索引.md`);
-    const times = [...String(text || '').matchAll(/(\d{3,4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/g)];
+    const head = String(text || '').split('\n').slice(0, 50).join('\n');
+    const times = [...head.matchAll(/(\d{3,4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})/g)];
     if (!times.length) return null;
     const first = times.map((m) => m.slice(1).map(Number)).sort((a, b) => this.dateValue(a) - this.dateValue(b))[0];
     return { year: first[0], month: first[1], day: first[2], hour: first[3], minute: first[4], second: first[5] };
@@ -66,11 +68,48 @@ window.GameModules.entryTime = {
     const start = store.entryTimeOptions.start;
     if (!start) return false;
     store.entryTime.month = `${start.month}月`;
-    store.entryTime.day = `${start.day}${store.entryCalendar.units.day}`;
+    store.entryTime.day = `${start.day}日`;
     store.entryTime.hour = `${String(start.hour).padStart(2, '0')}时`;
     store.entryTime.minute = `${String(start.minute).padStart(2, '0')}分`;
     store.entryTime.second = `${String(start.second).padStart(2, '0')}秒`;
+    this.applyCharacterAge(store);
     return true;
+  },
+
+  applyCharacterAge(store) {
+    const start = store.entryTimeOptions.start;
+    const birth = this.birthDate(store.characterProfiles[store.character.id]);
+    const age = this.ageAt(birth, start);
+    if (age === null) return;
+    store.characterAge = `${age}岁`;
+    const state = store.rpgStates[store.character.id];
+    if (state?.values) {
+      this.ensureAgeField(state);
+      state.values.age = age;
+      state.values.age_label = `${age}岁`;
+      store.rpgStates = { ...store.rpgStates, [state.id]: state };
+      if (window.GameModules.sqliteSave.db) window.GameModules.sqliteSave.saveCharacterState(state);
+    }
+  },
+
+  ensureAgeField(state) {
+    const section = state.schema?.sections?.[0];
+    if (!section || section.fields.some((field) => field.key === 'age')) return;
+    section.fields.unshift({ key: 'age', label: '年龄', type: 'number', min: 0, max: 999 });
+  },
+
+  birthDate(profile) {
+    const rows = profile?.basics || [];
+    const value = rows.find((x) => /出生|生日|生年月日/.test(x.label))?.value || '';
+    const match = String(value).match(/(\d{3,4})[年\/-](\d{1,2})[月\/-](\d{1,2})/);
+    return match ? { year: +match[1], month: +match[2], day: +match[3] } : null;
+  },
+
+  ageAt(birth, at) {
+    if (!birth || !at) return null;
+    let age = at.year - birth.year;
+    if (at.month < birth.month || (at.month === birth.month && at.day < birth.day)) age -= 1;
+    return age >= 0 && age < 1000 ? age : null;
   },
 
   nearYears(calendar, base) {
@@ -79,7 +118,9 @@ window.GameModules.entryTime = {
   },
 
   format(time, calendar) {
-    return `${calendar.label}｜${time.year} ${time.month} ${time.day} ${time.hour}${time.minute}${time.second}`;
+    const hasRealDate = /^\d{3,4}年$/.test(time.year) && /月$/.test(time.month) && /日$/.test(time.day);
+    const label = hasRealDate ? '剧情起始时间' : calendar.label;
+    return `${label}｜${time.year} ${time.month} ${time.day} ${time.hour}${time.minute}${time.second}`;
   },
 
   unique(list) { return [...new Set(list.filter(Boolean))]; },

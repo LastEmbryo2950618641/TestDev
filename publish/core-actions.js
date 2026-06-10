@@ -36,6 +36,7 @@ window.GameModules.coreActions = {
   },
 
   entryAgeLabel() {
+    if (this.characterAge) return this.characterAge;
     const rows = this.characterProfiles[this.character.id]?.basics || [];
     const age = rows.find((x) => /年龄|年纪|岁数/.test(x.label))?.value;
     const detailAge = (String(this.character.detail || '').match(/(?:年龄[:：|｜\s]*)?([^｜|，,。\s]*\d+[^｜|，,。\s]*)/) || [])[1];
