@@ -23,7 +23,7 @@ window.GameModules.characterBrief = {
     const source = this.sourceFor(character.work);
     if (!source) return this.fallbackProfile(character);
     const index = await this.fetchText(`${source.base}/01_按需加载_人物/人物索引.md`);
-    const path = this.findCardPath(index, character) || await this.searchCardPath(source, character);
+    const path = character.profilePath || this.findCardPath(index, character) || await this.searchCardPath(source, character);
     const markdown = path ? await this.fetchText(`${source.base}/${path}`) : '';
     return this.parseProfile(character, source, path, markdown);
   },
