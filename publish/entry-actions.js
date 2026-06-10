@@ -85,6 +85,7 @@ window.GameModules.entryActions = {
   async generateEntryAction(reason) {
     this.entryCurrentAction = '正在根据世界观和角色性格推演当前行动…';
     try {
+      await window.GameModules.entryTime.applyCharacterAge(this);
       this.entryCurrentAction = await this.requestEntryAction(reason);
     } catch (err) {
       console.warn('进入行动生成失败:', err.code, err.message, err.stack);

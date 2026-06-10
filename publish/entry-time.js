@@ -126,12 +126,19 @@ window.GameModules.entryTime = {
   },
 
   async applyCharacterAge(store) {
-    const start = store.entryTimeOptions.start;
+    const at = this.selectedDate(store.entryTime) || (store.entryTimeOptions.start ? [
+      store.entryTimeOptions.start.year,
+      store.entryTimeOptions.start.month,
+      store.entryTimeOptions.start.day,
+      store.entryTimeOptions.start.hour,
+      store.entryTimeOptions.start.minute,
+      store.entryTimeOptions.start.second,
+    ] : null);
     const birth = await this.birthDateFor(store);
-    const age = this.ageAt(birth, start);
+    const age = this.ageAt(birth, at ? { year: at[0], month: at[1], day: at[2] } : null);
     const state = store.rpgStates[store.character.id];
     if (age === null) {
-      store.characterAge = start ? '出生日期缺失' : '';
+      store.characterAge = at ? '出生日期缺失' : '';
       if (state?.values) {
         delete state.values.age;
         delete state.values.age_label;
