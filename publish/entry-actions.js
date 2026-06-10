@@ -151,10 +151,12 @@ window.GameModules.entryActions = {
     this.turn = 1;
     this.sceneTitle = this.entryTimeLabel();
     const possessText = '第二人称上线：操控者的“我”直接附到角色肉体上行动，角色本人会清醒感到身体完全不受自己掌控，只能在内心想法中反应。';
-    const ageText = this.characterAge ? `以${this.characterAge}的身体` : '以当前身体状态';
+    const ageNumber = parseInt(String(this.characterAge || '').replace(/\D/g, ''), 10);
+    this.mood = this.controlMode === 'possess' && Number.isFinite(ageNumber) && ageNumber <= 12 ? '恐惧' : '动摇';
+    this.resistance = this.controlMode === 'possess' ? Math.max(this.resistance, 45) : this.resistance;
     this.mindText = this.controlMode === 'possess'
-      ? `${this.character.name}${ageText}感到主导权被外来意识夺走，内心反应取决于她此刻的经历、性格和处境。`
-      : `${this.character.name}察觉意识深处出现陌生操控链路，正在按自己的经历和处境判断它。`;
+      ? '怎、怎么回事……我的身体为什么不听我使唤了？'
+      : '脑海里多了什么陌生的东西……它想让我怎么做？';
     const mode = this.controlMode === 'possess' ? `附身方式：${possessText}` : 'RPG方式：第三人称通过手机式界面控制。';
     this.addLog('system', '进入时机', `${this.sceneTitle}｜${mode}`);
     this.addLog('story', '旁白', this.entryCurrentAction || `${this.character.name}正在行动。`);
