@@ -11,9 +11,11 @@ window.GameModules.rpgState = {
         { title: '必备属性', fields: [
           { key: 'world_tag', label: '所属世界', type: 'text', min: 0, max: 100 },
           { key: 'age', label: '年龄', type: 'number', min: 0, max: 999 },
-          { key: 'health', label: '生命', type: 'number', min: 0, max: 100 },
+          { key: 'health', label: '生命值', type: 'number', min: 0, max: 100 },
           { key: 'stamina', label: '精力', type: 'number', min: 0, max: 100 },
-          { key: 'mana', label: '魔力', type: 'number', min: 0, max: 100 },
+          { key: 'learning_ability', label: '学习能力', type: 'number', min: 0, max: 100 },
+          { key: 'mental_stability', label: '精神稳定', type: 'number', min: 0, max: 100 },
+          { key: 'action_ability', label: '行动能力', type: 'number', min: 0, max: 100 },
           { key: 'control_resistance', label: '操控抗性', type: 'number', min: 0, max: 100 },
         ] },
         { title: '世界固有属性', fields: this.worldFields(attrs) },
@@ -40,9 +42,9 @@ window.GameModules.rpgState = {
 
   async ensureWorldAttributes(worldTag) {
     const save = window.GameModules.sqliteSave;
-    const existing = save.getWorldAttributes(worldTag);
-    if (existing) return existing;
     const attrs = window.GameModules.worldAttributes.defaults(worldTag);
+    const existing = save.getWorldAttributes(worldTag);
+    if (existing && this.sameFieldKeys(existing.fields, attrs.fields)) return existing;
     await save.saveWorldAttributes(worldTag, attrs);
     return attrs;
   },
@@ -60,7 +62,14 @@ window.GameModules.rpgState = {
 
   schemaMatchesAttrs(schema, attrs) {
     const keys = new Set(schema.sections?.flatMap((section) => section.fields.map((field) => field.key)) || []);
-    return (attrs.fields || []).every((field) => keys.has(field.key));
+    const baseKeys = ['world_tag', 'age', 'health', 'stamina', 'learning_ability', 'mental_stability', 'action_ability'];
+    return baseKeys.every((key) => keys.has(key)) && (attrs.fields || []).every((field) => keys.has(field.key));
+  },
+
+  sameFieldKeys(left, right) {
+    const a = (left || []).map((field) => field.key).join('|');
+    const b = (right || []).map((field) => field.key).join('|');
+    return a === b;
   },
 
 
@@ -115,7 +124,7 @@ window.GameModules.rpgState = {
     const seed = this.seed(state.name + state.worldTag);
     schema.sections.forEach((section) => section.fields.forEach((field) => {
       if (state.values[field.key] === undefined) {
-        state.values[field.key] = ['health', 'stamina', 'mana'].includes(field.key) ? 100 : this.valueFor(field, seed + field.key.length);
+        state.values[field.key] = ['health', 'stamina'].includes(field.key) ? 100 : this.valueFor(field, seed + field.key.length);
         changed = true;
       }
     }));
@@ -140,10 +149,10 @@ window.GameModules.rpgState = {
 
   createCharacterState(character, schema) {
     const seed = this.seed(character.name + character.role + schema.worldTag + (character.detail || ''));
-    const values = { world_tag: schema.worldTag, health: 100, stamina: 100, mana: 100 };
+    const values = { world_tag: schema.worldTag, health: 100, stamina: 100 };
     for (const section of schema.sections) {
       for (const field of section.fields) {
-        if (['world_tag', 'health', 'stamina', 'mana', 'age'].includes(field.key)) continue;
+        if (['world_tag', 'health', 'stamina', 'age'].includes(field.key)) continue;
         values[field.key] = this.valueFor(field, seed + field.key.length);
       }
     }
