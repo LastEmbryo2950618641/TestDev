@@ -81,10 +81,8 @@ window.GameModules.entryTime = {
 
   async storyStart(store) {
     const source = window.GameModules.characterBrief.sourceFor(store.character.work);
-    if (window.GameModules.cache.enabled('storyStarts')) {
-      const cached = this.cachedStart(store.character.work, source);
-      if (cached) return cached;
-    }
+    const precomputed = this.precomputedStart(store.character.work, source);
+    if (precomputed) return precomputed;
     if (!source) return null;
     const url = `${source.base}/02_按需加载_剧情/剧情索引.md`;
     const text = await window.GameModules.rag.fetchText(url);
@@ -100,7 +98,7 @@ window.GameModules.entryTime = {
     return { year: first[0], month: first[1], day: first[2], hour: first[3], minute: first[4], second: first[5] };
   },
 
-  cachedStart(work, source) {
+  precomputedStart(work, source) {
     const starts = window.GameData?.storyStarts || {};
     const names = [work, source?.name, ...(source?.aliases || [])].filter(Boolean);
     return names.map((name) => starts[name]).find(Boolean) || null;
@@ -121,6 +119,7 @@ window.GameModules.entryTime = {
   applyStart(store) {
     const start = store.entryTimeOptions.start;
     if (!start) return false;
+    store.entryTime.year = `${start.year}年`;
     store.entryTime.month = `${start.month}月`;
     store.entryTime.day = `${start.day}日`;
     store.entryTime.hour = `${String(start.hour).padStart(2, '0')}时`;
