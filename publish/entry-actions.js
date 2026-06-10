@@ -96,12 +96,24 @@ window.GameModules.entryActions = {
       maxTokens: 220,
       messages: [{ role: 'user', content: this.entryPrompt(reason) }],
     }, (chunk, done) => {
-      buffer += chunk;
+      buffer = this.mergeStreamText(buffer, chunk);
       const latest = this.cleanEntryAction(buffer);
       if (latest) this.entryCurrentAction = latest;
       if (done) console.log('[进入行动] 生成完成:', latest);
     });
     return this.cleanEntryAction(buffer) || `${this.character.name}正在观察周围变化。`;
+  },
+
+  mergeStreamText(buffer, chunk) {
+    const text = String(chunk || '');
+    if (!text) return buffer;
+    if (!buffer || text.startsWith(buffer)) return text;
+    if (buffer.endsWith(text)) return buffer;
+    const overlap = Math.min(buffer.length, text.length);
+    for (let size = overlap; size > 0; size -= 1) {
+      if (buffer.endsWith(text.slice(0, size))) return buffer + text.slice(size);
+    }
+    return buffer + text;
   },
 
   cleanEntryAction(text) {
