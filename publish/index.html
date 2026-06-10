@@ -220,7 +220,7 @@
           <div><strong x-text="$store.game.character.name"></strong><small x-text="`${$store.game.character.work}｜${$store.game.character.role}`"></small></div>
           <span x-text="`此时年龄：${$store.game.entryAgeLabel()}`"></span>
         </section>
-        <p class="entry-note" x-text="$store.game.entryCalendar ? `默认进入小说最开始时机｜${$store.game.entryTimeLabel()}` : '正在读取小说起始时机…'"></p>
+        <p class="entry-note" x-text="$store.game.entryTimeOptions.start ? `默认进入小说最开始时机｜${$store.game.entryTimeLabel()}` : '正在读取剧情索引前50行，定位小说最开始时机…'"></p>
         <small class="entry-stage-detail" x-show="$store.game.busy" x-text="$store.game.entryStageDetail()"></small>
         <div class="loading-stages entry-stages" x-show="$store.game.entryStages.length">
           <template x-for="stage in $store.game.entryStages" :key="stage.key">

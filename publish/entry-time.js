@@ -63,7 +63,7 @@ window.GameModules.entryTime = {
     if (!source) return null;
     const text = await window.GameModules.rag.fetchText(`${source.base}/02_按需加载_剧情/剧情索引.md`);
     const head = String(text || '').split('\n').slice(0, 50).join('\n');
-    const times = [...head.matchAll(/(\d{3,4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})/g)];
+    const times = [...head.matchAll(/\|\s*\d+\s*\|[^|]*\|\s*(\d{3,4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})\s*\|/g)];
     if (!times.length) return null;
     const first = times.map((m) => m.slice(1).map(Number)).sort((a, b) => this.dateValue(a) - this.dateValue(b))[0];
     return { year: first[0], month: first[1], day: first[2], hour: first[3], minute: first[4], second: first[5] };

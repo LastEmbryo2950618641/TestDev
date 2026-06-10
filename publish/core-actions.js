@@ -19,7 +19,9 @@ window.GameModules.coreActions = {
 
   resetEntryTime() {
     this.entryCalendar = null;
-    this.entryTime.year = '';
+    this.characterAge = '';
+    this.entryTime = { year: '', month: '', day: '', hour: '', minute: '', second: '' };
+    this.entryTimeOptions = { years: [], months: [], days: [], hours: [], minutes: [], seconds: [], start: null };
     this.entryCurrentAction = '';
     this.entrySetupOpen = false;
   },
@@ -37,10 +39,8 @@ window.GameModules.coreActions = {
 
   entryAgeLabel() {
     if (this.characterAge) return this.characterAge;
-    const rows = this.characterProfiles[this.character.id]?.basics || [];
-    const age = rows.find((x) => /年龄|年纪|岁数/.test(x.label))?.value;
-    const detailAge = (String(this.character.detail || '').match(/(?:年龄[:：|｜\s]*)?([^｜|，,。\s]*\d+[^｜|，,。\s]*)/) || [])[1];
-    return age || detailAge || '未知';
+    if (this.busy || !this.entryTimeOptions.start) return '计算中…';
+    return '未知';
   },
 
   async start() {

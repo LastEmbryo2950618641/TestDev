@@ -38,6 +38,9 @@ window.GameModules.entryActions = {
   async prepareEntrySetup() {
     if (this.busy) return;
     this.entrySetupOpen = true;
+    this.characterAge = '';
+    this.entryTime = { year: '', month: '', day: '', hour: '', minute: '', second: '' };
+    this.entryTimeOptions = { years: [], months: [], days: [], hours: [], minutes: [], seconds: [], start: null };
     this.entryCurrentAction = '';
     this.resetEntryStages();
     this.busy = true;
