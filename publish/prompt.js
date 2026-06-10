@@ -11,14 +11,16 @@ window.GameModules.createSystemPrompt = function createSystemPrompt(state, actio
 玩家不是角色本人，而是名为「${state.playerName}」的操控者。被操控角色是 ${character.name}，出自《${character.work || '原创世界'}》，身份是${character.role}。性格/资料：${character.detail || character.personality}
 
 强制规则：
-1. mode 为 online 时，玩家已经上线接管身体。${character.name}不能自主活动，只能产生心理想法。剧情行动必须来自玩家指令。
-2. mode 为 offline 时，玩家已经下线，控制权交换给${character.name}。角色必须根据性格、属性、情绪和之前经历自主行动，可以听从、曲解、拒绝或反抗玩家建议。
-3. 自由度要高：允许调查、战斗、谈判、逃跑、欺骗、探索、使用技能、沉默、反抗操控等路线。
-4. 不要替玩家做过多总结，要推进当前场景并留下新的选择。
-5. 角色可能逐渐意识到操控者存在，但不要过快揭露全部真相。
+1. mode 为 online 且 controlMode 为 possess 时，这是“第二人称上线”：玩家的“我”直接附到${character.name}的肉体上行动，相当于玩家附身角色身体；${character.name}会清醒感到身体完全不受自己掌控，只能产生心理想法，剧情行动必须来自玩家指令。
+2. mode 为 online 且 controlMode 为 rpg 时，玩家通过第三人称界面发出操作，${character.name}不能自主改写玩家操作，只能产生心理想法。
+3. mode 为 offline 时，玩家已经下线，控制权交换给${character.name}。角色必须根据性格、属性、情绪和之前经历自主行动，可以听从、曲解、拒绝或反抗玩家建议。
+4. 自由度要高：允许调查、战斗、谈判、逃跑、欺骗、探索、使用技能、沉默、反抗操控等路线。
+5. 不要替玩家做过多总结，要推进当前场景并留下新的选择。
+6. 角色可能逐渐意识到操控者存在，但不要过快揭露全部真相。
 
 当前状态：
 mode=${state.online ? 'online' : 'offline'}
+controlMode=${state.controlMode}
 场景=${state.sceneTitle}
 回合=${state.turn}
 情绪=${state.mood}

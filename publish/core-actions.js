@@ -52,7 +52,9 @@ window.GameModules.coreActions = {
   setOnline(value) {
     if (this.online === value) return;
     this.online = value;
-    const text = value ? '操控者上线，角色身体行动权被接管。' : '操控者下线，角色重新获得身体控制权。';
+    const text = value && this.controlMode === 'possess'
+      ? '第二人称上线：操控者的“我”直接附到角色肉体上行动，角色本人清醒感到身体完全不受自己掌控。'
+      : (value ? '操控者上线，角色身体行动权被接管。' : '操控者下线，角色重新获得身体控制权。');
     this.addLog('system', '控制权', text);
     this.save();
   },

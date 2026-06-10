@@ -150,8 +150,9 @@ window.GameModules.entryActions = {
     this.log = [];
     this.turn = 1;
     this.sceneTitle = this.entryTimeLabel();
-    this.mindText = `${this.character.name}在这一刻感觉到意识深处出现了陌生的操控链路。`;
-    const mode = this.controlMode === 'possess' ? '附身方式：第二人称直接控制人物。' : 'RPG方式：第三人称通过手机式界面控制。';
+    const possessText = '第二人称上线：操控者的“我”直接附到角色肉体上行动，角色本人会清醒感到身体完全不受自己掌控，只能在内心想法中反应。';
+    this.mindText = this.controlMode === 'possess' ? `${this.character.name}感觉自己的身体被另一个“我”接管，意识清醒却无法夺回控制。` : `${this.character.name}在这一刻感觉到意识深处出现了陌生的操控链路。`;
+    const mode = this.controlMode === 'possess' ? `附身方式：${possessText}` : 'RPG方式：第三人称通过手机式界面控制。';
     this.addLog('system', '进入时机', `${this.sceneTitle}｜${mode}`);
     this.addLog('story', '旁白', this.entryCurrentAction || `${this.character.name}正在行动。`);
     this.addLog('system', '系统', `操控链路已连接：${this.playerName} → ${this.character.name}`);
