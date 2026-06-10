@@ -6,8 +6,9 @@ window.GameModules = window.GameModules || {};
 window.GameModules.characterBrief = {
   async ensure(store) {
     const character = store.character;
+    const useCache = window.GameModules.cache.enabled('characterProfiles');
     const current = character?.id ? store.characterProfiles[character.id] : null;
-    if (!character?.id || (current && this.hasBirthDate(current))) return;
+    if (!character?.id || (useCache && current && this.hasBirthDate(current))) return;
     store.characterBriefBusy = true;
     try {
       const profile = await this.loadProfile(character);

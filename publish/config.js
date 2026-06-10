@@ -5,6 +5,11 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.config = {
   sectionHintsEnabled: true,
+  cache: {
+    enabled: false,
+    // 只控制可重新计算/重新读取的缓存；存档、角色记忆、当前运行状态不受影响。
+    scopes: { files: true, catalog: true, characterProfiles: true, storyStarts: true, generatedLore: true, generatedSchema: true, generatedProfiles: true },
+  },
   defaultModelId: 'nalang-medium-0826',
   stats: [
     { key: 'will', label: '意志' },
@@ -54,4 +59,13 @@ window.GameModules.config = {
     },
   ],
   openingChoices: ['观察四周', '询问陌生声音', '检查角色状态', '向前探索'],
+};
+
+window.GameModules.cache = {
+  enabled(scope = 'default') {
+    const cache = window.GameModules.config?.cache;
+    if (typeof cache === 'boolean') return cache;
+    if (!cache?.enabled) return false;
+    return cache.scopes?.[scope] !== false;
+  },
 };

@@ -107,7 +107,7 @@ window.GameModules.entryActions = {
   },
 
   entryPrompt(reason) {
-    const lore = window.GameModules.sqliteSave.getWorldLore(this.character.work || '原创世界');
+    const lore = window.GameModules.cache.enabled('generatedLore') ? window.GameModules.sqliteSave.getWorldLore(this.character.work || '原创世界') : null;
     return `基于世界观和人物性格，生成角色当前正在做的事情。只输出一句中文，60字内，不要JSON，不要重复词句。原因：${reason}。时间：${this.entryTimeLabel()}。角色：${this.character.name}｜${this.character.role}｜${this.character.personality || ''}。世界观：${lore?.background || this.character.work}`;
   },
 

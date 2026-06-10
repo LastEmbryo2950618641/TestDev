@@ -81,8 +81,10 @@ window.GameModules.entryTime = {
 
   async storyStart(store) {
     const source = window.GameModules.characterBrief.sourceFor(store.character.work);
-    const cached = this.cachedStart(store.character.work, source);
-    if (cached) return cached;
+    if (window.GameModules.cache.enabled('storyStarts')) {
+      const cached = this.cachedStart(store.character.work, source);
+      if (cached) return cached;
+    }
     if (!source) return null;
     const url = `${source.base}/02_按需加载_剧情/剧情索引.md`;
     const text = await window.GameModules.rag.fetchText(url);

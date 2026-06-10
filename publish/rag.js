@@ -7,10 +7,11 @@ window.GameModules.rag = {
   sources: null, fileCache: {},
 
   async load() {
-    if (this.sources) return this.sources;
-    this.sources = window.GameData?.loreSources || [];
-    if (!this.sources.length) throw new Error('资料入口未配置');
-    return this.sources;
+    if (window.GameModules.cache.enabled('files') && this.sources) return this.sources;
+    const sources = window.GameData?.loreSources || [];
+    if (window.GameModules.cache.enabled('files')) this.sources = sources;
+    if (!sources.length) throw new Error('资料入口未配置');
+    return sources;
   },
 
   async search(query, options = {}) {
@@ -76,15 +77,17 @@ window.GameModules.rag = {
   },
 
   async fetchText(url) {
-    if (this.fileCache[url] !== undefined) return this.fileCache[url];
+    const useCache = window.GameModules.cache.enabled('files');
+    if (useCache && this.fileCache[url] !== undefined) return this.fileCache[url];
+    let text = '';
     try {
       const res = await fetch(encodeURI(url));
-      this.fileCache[url] = res.ok ? await res.text() : '';
+      text = res.ok ? await res.text() : '';
     } catch (err) {
       console.warn('资料文件读取失败:', url, err.message);
-      this.fileCache[url] = '';
     }
-    return this.fileCache[url];
+    if (useCache) this.fileCache[url] = text;
+    return text;
   },
 
   result(source, path, text, score) {

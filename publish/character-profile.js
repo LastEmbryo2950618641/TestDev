@@ -8,8 +8,10 @@ window.GameModules.characterProfile = {
     const known = this.findKnown(raw, store);
     if (known) return known;
     const base = this.normalize(raw, store);
-    const existing = window.GameModules.sqliteSave.getCharacterState(base.id);
-    if (existing?.profile) return existing.profile;
+    if (window.GameModules.cache.enabled('generatedProfiles')) {
+      const existing = window.GameModules.sqliteSave.getCharacterState(base.id);
+      if (existing?.profile) return existing.profile;
+    }
     const lore = await window.GameModules.worldLore.ensure(base.work, context);
     return this.generate(base, lore, context);
   },

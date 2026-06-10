@@ -6,8 +6,10 @@ window.GameModules = window.GameModules || {};
 window.GameModules.worldLore = {
   async ensure(worldTag, context = '') {
     const save = window.GameModules.sqliteSave;
-    const existing = save.getWorldLore(worldTag);
-    if (existing) return existing;
+    if (window.GameModules.cache.enabled('generatedLore')) {
+      const existing = save.getWorldLore(worldTag);
+      if (existing) return existing;
+    }
     const lore = await this.generate(worldTag, context);
     await save.saveWorldLore(worldTag, lore);
     return lore;

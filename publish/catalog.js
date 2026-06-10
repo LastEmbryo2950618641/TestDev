@@ -7,20 +7,25 @@ window.GameModules.catalog = {
   data: null,
 
   async load() {
-    if (this.data) return this.data;
-    if (window.GameData?.characterCatalog) {
-      this.data = window.GameData.characterCatalog;
-      return this.data;
+    if (window.GameModules.cache.enabled('catalog') && this.data) return this.data;
+    const data = window.GameData?.characterCatalog;
+    if (data) {
+      if (window.GameModules.cache.enabled('catalog')) this.data = data;
+      return data;
     }
     throw new Error('角色目录未加载');
   },
 
+  current() {
+    return window.GameModules.cache.enabled('catalog') ? this.data : window.GameData?.characterCatalog;
+  },
+
   firstWork() {
-    return this.data?.works?.[0]?.name || '';
+    return this.current()?.works?.[0]?.name || '';
   },
 
   works() {
-    return this.data?.works || [];
+    return this.current()?.works || [];
   },
 
   characters(workName) {

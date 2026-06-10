@@ -57,8 +57,10 @@ window.GameModules.rpgState = {
 
   async ensureSchema(worldTag) {
     const save = window.GameModules.sqliteSave;
-    const existing = save.getSchema(worldTag);
-    if (existing) return existing;
+    if (window.GameModules.cache.enabled('generatedSchema')) {
+      const existing = save.getSchema(worldTag);
+      if (existing) return existing;
+    }
     const lore = await window.GameModules.worldLore.ensure(worldTag);
     const schema = await this.generateSchema(worldTag, lore);
     await save.saveSchema(worldTag, schema);
