@@ -25,7 +25,7 @@ window.GameModules.characterFeedback = {
 
   prompt(store) {
     const profile = store.characterProfiles[store.character.id]?.summary || store.character.detail || store.character.personality || '';
-    return `根据角色当前设定生成被操控后的内心反馈。必须只返回合法JSON，不要Markdown。角色：${store.character.name}｜${store.character.role}｜${store.character.work}。年龄：${store.characterAge || '未知'}。操控方式：${store.controlMode}。当前正在发生：${store.entryCurrentAction || '未知'}。人物资料：${profile}。规则：mind 必须是角色自己的第一人称内心独白，不要旁白说明，不要写角色名字；intent 是角色自己下一步想要做什么，不是玩家行动选项，必须根据角色性格、年龄、身体状态、经历和当前处境判断，不要固定成恐惧/挣扎模板。格式：{"mind":"60字内","intent":"${store.character.name}下一步想要……，40字内","mood":"冷静/紧张/愤怒/动摇/信任/恐惧/好奇/坚定之一","resistance":0到100整数}`;
+    return `根据角色当前设定生成被操控后的内心反馈。必须只返回合法JSON，不要Markdown。角色：${store.character.name}｜${store.character.role}｜${store.character.work}。年龄：${store.characterAge || '未知'}。操控方式：${store.controlMode}。当前正在发生：${store.entryCurrentAction || '未知'}。人物资料：${profile}。核心处境：对角色本人来说，身体是突然不受控制的；她不知道是谁在控制，也不知道控制来源，只能先感到自己的身体突然自己行动。上线后她像被困在身体里旁观外界，无法控制动作和发声，但视觉、听觉、嗅觉、味觉、触觉、疼痛、疲劳等身体感觉仍然能感受到。规则：mind 必须是角色自己的第一人称内心独白，不要旁白说明，不要写角色名字；intent 是角色自己下一步想要做什么，不是玩家行动选项，必须根据角色性格、年龄、身体状态、经历和当前处境判断，不要固定模板。格式：{"mind":"60字内","intent":"${store.character.name}下一步想要……，40字内","mood":"冷静/紧张/愤怒/动摇/信任/恐惧/好奇/坚定之一","resistance":0到100整数}`;
   },
 
   parse(text, fallback) {
