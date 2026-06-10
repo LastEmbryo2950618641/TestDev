@@ -24,10 +24,10 @@ window.GameModules.worldLore = {
       if (!window.dzmm?.completions) return this.fallback(worldTag);
       let buffer = '';
       const prompt = this.prompt(worldTag, context);
-      console.log('[世界观] AI请求:', { worldTag, promptLength: prompt.length, model: 'nalang-medium-0826', maxTokens: 1200 });
+      console.log('[世界观] AI请求:', { worldTag, promptLength: prompt.length, model: 'nalang-medium-0826', maxTokens: 2000 });
       await window.dzmm.completions({
         model: 'nalang-medium-0826',
-        maxTokens: 1200,
+        maxTokens: 2000,
         messages: [{ role: 'user', content: prompt }],
       }, (chunk) => { buffer = window.GameModules.rpgState.mergeStreamText(buffer, chunk); });
       console.log('[世界观] AI返回:', { worldTag, length: buffer.length, preview: buffer.slice(0, 180) });
@@ -39,7 +39,7 @@ window.GameModules.worldLore = {
   },
 
   prompt(worldTag, context) {
-    return `为 AI RPG 视觉小说生成世界《${worldTag}》的固化世界观设定。当前剧情上下文：${context || '暂无'}。只返回 JSON：{"worldTag":"${worldTag}","background":"背景介绍","factions":[{"name":"势力名","desc":"说明"}],"specialJobs":[{"name":"特殊职业","desc":"说明"}],"jobRanks":["等级体系"],"coreRules":["世界规则"],"calendar":{"label":"纪年名","months":["月份或相位"],"days":30,"hours":["时段名"],"units":{"year":"年单位","month":"月单位","day":"日单位","hour":"时单位"}},"specialFields":[{"key":"ascii_key","label":"中文属性","type":"number|rank|list","desc":"用途"}]}。calendar 要符合世界风格，现代可用公元纪年，异世界可用元素、星相、王朝、月相等通用规则。specialFields 是该世界人物都可能拥有的固化特殊属性，4到10个。不要 Markdown。`;
+    return `为 AI RPG 视觉小说生成世界《${worldTag}》的固化世界观设定。当前剧情上下文：${String(context || '暂无').slice(0, 240)}。只返回一行紧凑 JSON，不要 Markdown，不要换行，不要解释。严格控制长度：background 不超过80字；factions 2到4个，每个 desc 不超过30字；specialJobs 1到4个，每个 desc 不超过30字；jobRanks 3到6项；coreRules 3到6项，每项不超过24字；specialFields 4到8个，desc 不超过24字。格式：{"worldTag":"${worldTag}","background":"背景介绍","factions":[{"name":"势力名","desc":"说明"}],"specialJobs":[{"name":"特殊职业","desc":"说明"}],"jobRanks":["等级体系"],"coreRules":["世界规则"],"calendar":{"label":"纪年名","months":["月份"],"days":30,"hours":["时段名"],"units":{"year":"年","month":"月","day":"日","hour":"时"}},"specialFields":[{"key":"ascii_key","label":"中文属性","type":"number|rank|list","desc":"用途"}]}`;
   },
 
   parse(text) {
