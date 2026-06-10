@@ -147,11 +147,18 @@ window.GameModules.entryTime = {
 
   async birthDateFor(store) {
     const character = store.character;
+    const indexed = this.birthDateFromData(character);
+    if (indexed) return indexed;
     const current = this.birthDate(store.characterProfiles[character.id]);
     if (current) return current;
     const profile = await window.GameModules.characterBrief.loadProfile(character);
     store.characterProfiles = { ...store.characterProfiles, [character.id]: profile };
     return this.birthDate(profile);
+  },
+
+  birthDateFromData(character) {
+    const dates = window.GameData?.characterBirthDates || {};
+    return dates[character.id] || dates[`${character.work}::${character.name}`] || null;
   },
 
   birthDate(profile) {
