@@ -88,16 +88,30 @@ window.GameModules.rag = {
     const useCache = window.GameModules.cache.enabled('files');
     if (useCache && this.fileCache[url] !== undefined) return this.fileCache[url];
     let text = '';
-    try {
-      this.log('读取资料文件', url);
-      const res = await fetch(encodeURI(url));
-      text = res.ok ? await res.text() : '';
-      if (!res.ok) console.warn('资料文件读取失败:', url, res.status);
-    } catch (err) {
-      console.warn('资料文件读取失败:', url, err.message);
+    for (const candidate of this.urlCandidates(url)) {
+      try {
+        this.log('读取资料文件', candidate);
+        const res = await fetch(encodeURI(candidate));
+        if (res.ok) {
+          text = await res.text();
+          break;
+        }
+        console.warn('资料文件读取失败:', candidate, res.status);
+      } catch (err) {
+        console.warn('资料文件读取失败:', candidate, err.message);
+      }
     }
     if (useCache) this.fileCache[url] = text;
     return text;
+  },
+
+  urlCandidates(url) {
+    const values = [url];
+    if (url.startsWith('../assets/')) {
+      values.push(url.replace(/^\.\.\//, ''));
+      values.push(url.replace(/^\.\./, ''));
+    }
+    return this.unique(values);
   },
 
   result(source, path, text, score) {
