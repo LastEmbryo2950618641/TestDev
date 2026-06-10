@@ -6,7 +6,8 @@ window.GameModules = window.GameModules || {};
 window.GameModules.characterBrief = {
   async ensure(store) {
     const character = store.character;
-    if (!character?.id || store.characterProfiles[character.id]) return;
+    const current = character?.id ? store.characterProfiles[character.id] : null;
+    if (!character?.id || (current && this.hasBirthDate(current))) return;
     store.characterBriefBusy = true;
     try {
       const profile = await this.loadProfile(character);
@@ -90,6 +91,10 @@ window.GameModules.characterBrief = {
       const body = block.split('\n').slice(1).filter((line) => line.trim() && !line.trim().startsWith('|')).join('\n').trim();
       return { title, items, body };
     }).filter(Boolean).slice(0, 12);
+  },
+
+  hasBirthDate(profile) {
+    return (profile?.basics || []).some((row) => /出生|生日|生年月日/.test(row.label));
   },
 
   fallbackProfile(character) {

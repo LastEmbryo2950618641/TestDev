@@ -162,7 +162,8 @@ window.GameModules.entryTime = {
   birthDate(profile) {
     const rows = profile?.basics || [];
     const value = rows.find((x) => /出生|生日|生年月日/.test(x.label))?.value || '';
-    const match = String(value).match(/(\d{3,4})\s*[年\/-]\s*(\d{1,2})\s*[月\/-]\s*(\d{1,2})/);
+    const source = value || profile?.raw || '';
+    const match = String(source).match(/(\d{3,4})\s*[年\/-]\s*(\d{1,2})\s*[月\/-]\s*(\d{1,2})/);
     return match ? { year: +match[1], month: +match[2], day: +match[3] } : null;
   },
 
