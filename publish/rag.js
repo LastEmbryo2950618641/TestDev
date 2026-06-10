@@ -133,6 +133,11 @@ window.GameModules.rag = {
 
   async loadSourceCache(source) {
     if (this.sourceCache[source.name]) return this.sourceCache[source.name];
+    const embedded = this.embeddedSourceCache(source);
+    if (embedded) {
+      this.sourceCache[source.name] = embedded;
+      return embedded;
+    }
     for (const url of this.cacheUrlCandidates(source.cache)) {
       try {
         this.log('读取资料快照文件', url);
@@ -147,6 +152,13 @@ window.GameModules.rag = {
     }
     this.sourceCache[source.name] = null;
     return null;
+  },
+
+  embeddedSourceCache(source) {
+    const key = String(source.cache || '').split('/').pop();
+    const data = window.GameData?.loreCache?.[key];
+    if (data) this.log('读取内联资料快照', source.name, key);
+    return data || null;
   },
 
   cacheUrlCandidates(cachePath) {
@@ -169,10 +181,11 @@ window.GameModules.rag = {
     const values = [url];
     const rel = url.replace(/^\.\.\//, '').replace(/^\//, '');
     if (rel.startsWith('assets/')) {
+      const withoutAssets = rel.replace(/^assets\//, '');
       for (const root of this.roots('sourceRoots')) {
-        values.push(this.joinRoot(root, rel.replace(/^assets\//, '')));
-        values.push(this.joinRoot(root, rel));
+        values.push(this.joinRoot(root, withoutAssets));
       }
+      values.push(rel);
     }
     if (url.startsWith('../assets/')) {
       values.push(url.replace(/^\.\.\//, ''));

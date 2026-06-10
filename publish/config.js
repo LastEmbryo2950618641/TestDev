@@ -12,8 +12,8 @@ window.GameModules.config = {
   },
   assetEnv: 'dev',
   assetRoots: {
-    dev: { cacheRoots: ['./', ''], sourceRoots: ['assets/'] },
-    prod: { cacheRoots: ['./', ''], sourceRoots: ['assets/'] },
+    dev: { cacheRoots: ['./', ''], sourceRoots: ['assets'] },
+    prod: { cacheRoots: ['./', ''], sourceRoots: ['assets'] },
   },
   rag: { maxIndexFiles: 3, maxCandidateFiles: 8, defaultResultLimit: 3, logFiles: true },
   defaultModelId: 'nalang-medium-0826',
