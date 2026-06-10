@@ -423,7 +423,7 @@
 
     <footer class="control-dock dev-section" data-section-title="底部操作栏">
       <div class="choice-row dev-section" data-section-title="行动选项栏">
-        <template x-for="choice in $store.game.choices" :key="choice">
+        <template x-for="choice in $store.game.choices.slice(0, 4)" :key="choice">
           <button class="choice-btn" @click="$store.game.submitAction(choice)" :disabled="$store.game.busy" x-text="choice"></button>
         </template>
         <button class="ghost-btn" @click="$store.game.autoplay()" :disabled="$store.game.busy">放开控制</button>

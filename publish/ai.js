@@ -73,7 +73,7 @@ window.GameModules.ai = {
       controlFeeling: String(data.controlFeeling || fallback.controlFeeling || '疑惑').slice(0, 40),
       controlAdaptation: this.clampNumber(data.controlAdaptation, fallback.controlAdaptation || 0),
       controlExperienceSummary: String(data.controlExperienceSummary || fallback.controlExperienceSummary || '').slice(0, 80),
-      choices: Array.isArray(data.choices) && data.choices.length ? data.choices.slice(0, 4).map((x) => String(x).slice(0, 14)) : fallback.choices.slice(0, 4),
+      choices: this.normalizeChoices(data.choices, fallback.choices),
       appearedCharacters: Array.isArray(data.appearedCharacters) ? data.appearedCharacters.slice(0, 6).map((x) => this.normalizeCharacter(x, store)).filter(Boolean) : fallback.appearedCharacters,
       statChanges: {
         health: this.clampVitalDelta(changes.health),
@@ -81,6 +81,13 @@ window.GameModules.ai = {
         mana: this.clampVitalDelta(changes.mana),
       },
     };
+  },
+
+  normalizeChoices(value, fallback) {
+    const base = Array.isArray(fallback) ? fallback : [];
+    const list = Array.isArray(value) ? value : [];
+    const merged = list.concat(base).map((item) => String(item || '').trim().slice(0, 14)).filter(Boolean);
+    return [...new Set(merged)].slice(0, 4);
   },
 
   normalizeCharacter(value, store) {

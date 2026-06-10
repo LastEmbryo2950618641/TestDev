@@ -64,7 +64,7 @@ ${state.memoryContext || '暂无人物记忆。'}
   "controlFeeling":"被上线感觉；可参考 ${feelingExamples}，也可以自定义一个词、短句或简短感受描述；结合上线次数、适应度、记忆和角色设定判断",
   "controlAdaptation":0到100整数,
   "controlExperienceSummary":"40字内，概括这次被上线后的感受变化",
-  "choices":["必须给4个AI推荐行动选项，每个12字内；不要包含放开控制"],
+  "choices":["必须给4个AI推荐行动选项，正好4个，每个12字内；根据当前场景、角色状态、玩家输入和危险生成；不要包含放开控制，不要固定套用默认选项"],
   "appearedCharacters":[{"name":"姓名","role":"身份","detail":"基础资料","personality":"性格","work":"所属作品或世界","isMinor":true,"importance":"minor|support|main"}],
   "statChanges":{"health":-8到8,"stamina":-8到8,"mana":-8到8}
 }`;
