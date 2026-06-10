@@ -215,10 +215,19 @@ window.GameModules.entryTime = {
     const rows = this.storyIndexRows(text)
       .filter((row) => row.value >= this.dateValue([start.year, start.month, start.day, start.hour, start.minute, start.second]) && row.value <= this.dateValue(current))
       .sort((a, b) => a.value - b.value);
-    const picked = rows.length > 40 ? [...rows.slice(0, 8), ...rows.slice(-32)] : rows;
-    console.log('[剧情上下文] 起点到当前时间索引:', { total: rows.length, used: picked.length, current: store.entryTimeLabel() });
+    const picked = this.pickStoryContextRows(rows, store.character);
+    console.log('[剧情上下文] 起点到当前时间索引:', { total: rows.length, used: picked.length, current: store.entryTimeLabel(), character: store.character.name });
     if (!picked.length) return '剧情索引中没有命中起点到当前时间范围内的条目。';
-    return `剧情索引范围：从小说起点到${store.entryTimeLabel()}，共${rows.length}条，以下为用于推演的摘要：\n${picked.map((row) => `${row.time}｜${row.title}｜${row.intro}`).join('\n')}`.slice(0, 3600);
+    return `剧情索引范围：从小说起点到${store.entryTimeLabel()}，共${rows.length}条，以下为用于推演的摘要：\n${picked.map((row) => `${row.time}｜${row.title}｜人物:${row.people || '未标注'}｜${row.intro}`).join('\n')}`.slice(0, 4800);
+  },
+
+  pickStoryContextRows(rows, character) {
+    if (rows.length <= 40) return rows;
+    const names = [character.name, ...(character.aliases || [])].filter(Boolean);
+    const related = rows.filter((row) => names.some((name) => `${row.title} ${row.intro} ${row.people || ''}`.includes(name)));
+    const map = new Map();
+    [...rows.slice(0, 8), ...related, ...rows.slice(-24)].forEach((row) => map.set(row.no, row));
+    return [...map.values()].sort((a, b) => a.value - b.value).slice(-60);
   },
 
   storyIndexRows(markdown) {
@@ -228,7 +237,7 @@ window.GameModules.entryTime = {
       const time = cells[2] || '';
       const parts = (time.match(/(\d{3,4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})/) || []).slice(1).map(Number);
       if (parts.length !== 6) return null;
-      return { no: cells[0], title: cells[1], time, intro: cells[3] || '无摘要', file: cells[6], value: this.dateValue(parts) };
+      return { no: cells[0], title: cells[1], time, intro: cells[3] || '无摘要', people: cells[4] || '', file: cells[6], value: this.dateValue(parts) };
     }).filter(Boolean);
   },
 
