@@ -150,11 +150,9 @@ window.GameModules.saveActions = {
 
   rpgEntries(state) {
     if (!state?.schema) return [];
-    const core = new Set(['health', 'stamina', 'mana']);
     return state.schema.sections.map((section) => ({
       title: section.title,
       fields: section.fields
-        .filter((field) => !core.has(field.key))
         .map((field) => ({ label: field.label, value: this.rpgFieldValue(state.values[field.key]) })),
     })).filter((section) => section.fields.length);
   },

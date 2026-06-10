@@ -42,7 +42,9 @@ window.GameModules.sqliteSave = {
       CREATE TABLE IF NOT EXISTS metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS game_state(key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS world_lore(world_tag TEXT PRIMARY KEY, lore_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS world_attributes(world_tag TEXT PRIMARY KEY, attrs_json TEXT NOT NULL, source TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS rpg_schema(world_tag TEXT PRIMARY KEY, schema_json TEXT NOT NULL, created_at TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS character_world(character_id TEXT PRIMARY KEY, world_tag TEXT NOT NULL, updated_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS character_state(character_id TEXT PRIMARY KEY, name TEXT NOT NULL, world_tag TEXT NOT NULL, state_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS character_memory(character_id TEXT PRIMARY KEY, memory_json TEXT NOT NULL, updated_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS memory_archive(id TEXT PRIMARY KEY, character_id TEXT NOT NULL, text TEXT NOT NULL, vector_json TEXT NOT NULL, meta_json TEXT NOT NULL, created_at TEXT NOT NULL);
@@ -93,7 +95,7 @@ window.GameModules.sqliteSave = {
     stmt.bind(params);
     const row = stmt.step() ? stmt.getAsObject() : null;
     stmt.free();
-    return row ? JSON.parse(row.value || row.lore_json || row.schema_json || row.state_json || row.memory_json || row.meta_json || row.vector_json) : null;
+    return row ? JSON.parse(row.value || row.lore_json || row.attrs_json || row.schema_json || row.state_json || row.memory_json || row.meta_json || row.vector_json) : null;
   },
 
   async saveGameState(value) {
@@ -127,6 +129,7 @@ window.GameModules.sqliteSave = {
     await this.persist();
   },
 
+
   getSchema(worldTag) {
     return this.db ? this.getJson('SELECT schema_json FROM rpg_schema WHERE world_tag=?', [worldTag]) : null;
   },
@@ -148,8 +151,10 @@ window.GameModules.sqliteSave = {
     stmt.free(); return rows;
   },
 
+
   async saveCharacterState(character) {
     const now = new Date().toISOString();
+    await this.saveCharacterWorld(character.id, character.worldTag);
     this.db.run(
       'INSERT OR REPLACE INTO character_state(character_id,name,world_tag,state_json,created_at,updated_at) VALUES (?,?,?,?,COALESCE((SELECT created_at FROM character_state WHERE character_id=?),?),?)',
       [character.id, character.name, character.worldTag, JSON.stringify(character), character.id, now, now],
@@ -157,34 +162,6 @@ window.GameModules.sqliteSave = {
     await this.persist();
   },
 
-  getCharacterMemory(characterId) {
-    return this.db ? this.getJson('SELECT memory_json FROM character_memory WHERE character_id=?', [characterId]) : null;
-  },
-
-  async saveCharacterMemory(characterId, memory) {
-    this.db.run('INSERT OR REPLACE INTO character_memory(character_id,memory_json,updated_at) VALUES (?,?,?)', [characterId, JSON.stringify(memory), new Date().toISOString()]);
-    await this.persist();
-  },
-
-  listMemoryArchives(characterId) {
-    if (!this.db) return [];
-    const rows = [];
-    const stmt = this.db.prepare('SELECT id,text,vector_json,meta_json,created_at FROM memory_archive WHERE character_id=? ORDER BY created_at DESC');
-    stmt.bind([characterId]);
-    while (stmt.step()) {
-      const row = stmt.getAsObject();
-      rows.push({ id: row.id, text: row.text, vector: JSON.parse(row.vector_json), meta: JSON.parse(row.meta_json), createdAt: row.created_at });
-    }
-    stmt.free(); return rows;
-  },
-
-  async saveMemoryArchive(characterId, item) {
-    this.db.run(
-      'INSERT OR REPLACE INTO memory_archive(id,character_id,text,vector_json,meta_json,created_at) VALUES (?,?,?,?,?,?)',
-      [item.id, characterId, item.text, JSON.stringify(item.vector), JSON.stringify(item.meta || {}), item.createdAt || new Date().toISOString()],
-    );
-    await this.persist();
-  },
 
   toBase64(bytes) {
     let binary = '';
@@ -193,8 +170,8 @@ window.GameModules.sqliteSave = {
   },
 
   fromBase64(raw) {
-    const binary = atob(raw);
-    const bytes = new Uint8Array(binary.length); for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+    const binary = atob(raw); const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
     return bytes;
   },
 };

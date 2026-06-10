@@ -13,7 +13,8 @@ window.GameModules.characterProfile = {
       if (existing?.profile) return existing.profile;
     }
     const lore = await window.GameModules.worldLore.ensure(base.work, context);
-    return this.generate(base, lore, context);
+    const attrs = await window.GameModules.rpgState.ensureWorldAttributes(base.work);
+    return this.generate(base, lore, attrs, context);
   },
 
   findKnown(raw, store) {
@@ -41,33 +42,33 @@ window.GameModules.characterProfile = {
     };
   },
 
-  async generate(base, lore, context) {
+  async generate(base, lore, attrs, context) {
     try {
-      if (!window.dzmm?.completions) return this.fallback(base, lore);
+      if (!window.dzmm?.completions) return this.fallback(base, lore, attrs);
       let buffer = '';
       await window.dzmm.completions({
         model: 'nalang-medium-0826',
         maxTokens: 900,
-        messages: [{ role: 'user', content: this.prompt(base, lore, context) }],
+        messages: [{ role: 'user', content: this.prompt(base, lore, attrs, context) }],
       }, (chunk) => { buffer += chunk; });
-      return this.validate(this.parse(buffer), base, lore);
+      return this.validate(this.parse(buffer), base, lore, attrs);
     } catch (err) {
       console.warn('人物设定生成失败，使用兜底:', err.message);
-      return this.fallback(base, lore);
+      return this.fallback(base, lore, attrs);
     }
   },
 
-  prompt(base, lore, context) {
-    return `为 AI RPG 视觉小说生成出场人物固化设定。人物基础：${JSON.stringify(base)}。当前剧情：${context || '暂无'}。世界观：${lore.background}；势力：${lore.factions.map((x) => x.name).join('、')}；特殊职业：${lore.specialJobs.map((x) => x.name).join('、')}；职业等级：${lore.jobRanks.join('、')}。只返回 JSON：{"name":"姓名","role":"身份","detail":"个人背景","personality":"性格","faction":"所属势力或无","job":"职业","rank":"等级","skills":[{"name":"技能","desc":"说明"}],"worldValues":{"字段key":"该人物固化取值"}}。worldValues 必须覆盖这些世界固有字段：${lore.specialFields.map((x) => `${x.key}(${x.label})`).join('、')}。不要 Markdown。`;
+  prompt(base, lore, attrs, context) {
+    return `为 AI RPG 视觉小说生成出场人物固化设定。人物基础：${JSON.stringify(base)}。当前剧情：${context || '暂无'}。世界观：${lore.background}；势力：${lore.factions.map((x) => x.name).join('、')}；特殊职业：${lore.specialJobs.map((x) => x.name).join('、')}；职业等级：${lore.jobRanks.join('、')}。只返回 JSON：{"name":"姓名","role":"身份","detail":"个人背景","personality":"性格","faction":"所属势力或无","job":"职业","rank":"等级","skills":[{"name":"技能","desc":"说明"}],"worldValues":{"字段key":"该人物固化取值"}}。worldValues 必须覆盖该角色所属世界的固有字段：${attrs.fields.map((x) => `${x.key}(${x.label}:${x.type})`).join('、')}。不要 Markdown。`;
   },
 
   parse(text) {
     const raw = String(text || '').replace(/```json|```/g, '').trim();
-    const json = window.GameModules.rpgState.extractJson(raw);
+    const json = window.GameModules.jsonUtils.extractJson(raw);
     return JSON.parse(json.replace(/[\u0000-\u001F]/g, ''));
   },
 
-  validate(profile, base, lore) {
+  validate(profile, base, lore, attrs) {
     const skills = Array.isArray(profile.skills) ? profile.skills : [];
     return {
       ...base,
@@ -82,11 +83,11 @@ window.GameModules.characterProfile = {
         name: String(skill.name || `能力${index + 1}`).slice(0, 16),
         desc: String(skill.desc || '').slice(0, 60),
       })),
-      worldValues: this.worldValues(profile.worldValues, lore, base.name),
+      worldValues: this.worldValues(profile.worldValues, attrs, base.name),
     };
   },
 
-  fallback(base, lore) {
+  fallback(base, lore, attrs) {
     return this.validate({
       ...base,
       faction: lore.factions[0]?.name || '无',
@@ -94,12 +95,12 @@ window.GameModules.characterProfile = {
       rank: lore.jobRanks[0] || '普通',
       skills: base.skills?.length ? base.skills : [{ name: '观察', desc: '从细节中判断局势。' }],
       worldValues: {},
-    }, base, lore);
+    }, base, lore, attrs);
   },
 
-  worldValues(values, lore, seedText) {
+  worldValues(values, attrs, seedText) {
     const seed = window.GameModules.rpgState.seed(seedText);
-    return Object.fromEntries((lore.specialFields || []).map((field, index) => [field.key, values?.[field.key] ?? this.valueFor(field, seed + index)]));
+    return Object.fromEntries((attrs.fields || []).map((field, index) => [field.key, values?.[field.key] ?? this.valueFor(field, seed + index)]));
   },
 
   valueFor(field, seed) {

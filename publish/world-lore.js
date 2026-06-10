@@ -29,7 +29,7 @@ window.GameModules.worldLore = {
         model: 'nalang-medium-0826',
         maxTokens: 2000,
         messages: [{ role: 'user', content: prompt }],
-      }, (chunk) => { buffer = window.GameModules.rpgState.mergeStreamText(buffer, chunk); });
+      }, (chunk) => { buffer = window.GameModules.jsonUtils.mergeStreamText(buffer, chunk); });
       console.log('[世界观] AI返回:', { worldTag, length: buffer.length, preview: buffer.slice(0, 180) });
       return this.validate(this.parse(buffer), worldTag);
     } catch (err) {
@@ -39,12 +39,12 @@ window.GameModules.worldLore = {
   },
 
   prompt(worldTag, context) {
-    return `为 AI RPG 视觉小说生成世界《${worldTag}》的固化世界观设定。当前剧情上下文：${String(context || '暂无').slice(0, 240)}。只返回一行紧凑 JSON，不要 Markdown，不要换行，不要解释。严格控制长度：background 不超过80字；factions 2到4个，每个 desc 不超过30字；specialJobs 1到4个，每个 desc 不超过30字；jobRanks 3到6项；coreRules 3到6项，每项不超过24字；specialFields 4到8个，desc 不超过24字。格式：{"worldTag":"${worldTag}","background":"背景介绍","factions":[{"name":"势力名","desc":"说明"}],"specialJobs":[{"name":"特殊职业","desc":"说明"}],"jobRanks":["等级体系"],"coreRules":["世界规则"],"calendar":{"label":"纪年名","months":["月份"],"days":30,"hours":["时段名"],"units":{"year":"年","month":"月","day":"日","hour":"时"}},"specialFields":[{"key":"ascii_key","label":"中文属性","type":"number|rank|list","desc":"用途"}]}`;
+    return `为 AI RPG 视觉小说生成世界《${worldTag}》的固化世界观设定。当前剧情上下文：${String(context || '暂无').slice(0, 240)}。只返回一行紧凑 JSON，不要 Markdown，不要换行，不要解释。严格控制长度：background 不超过80字；factions 2到4个，每个 desc 不超过30字；specialJobs 1到4个，每个 desc 不超过30字；jobRanks 3到6项；coreRules 3到6项，每项不超过24字。不要生成属性字段，世界专属属性会从能力维度文档固化。格式：{"worldTag":"${worldTag}","background":"背景介绍","factions":[{"name":"势力名","desc":"说明"}],"specialJobs":[{"name":"特殊职业","desc":"说明"}],"jobRanks":["等级体系"],"coreRules":["世界规则"],"calendar":{"label":"纪年名","months":["月份"],"days":30,"hours":["时段名"],"units":{"year":"年","month":"月","day":"日","hour":"时"}}}`;
   },
 
   parse(text) {
     const raw = String(text || '').replace(/```json|```/g, '').trim();
-    const json = window.GameModules.rpgState.extractJson(raw);
+    const json = window.GameModules.jsonUtils.extractJson(raw);
     return JSON.parse(json.replace(/[\u0000-\u001F]/g, ''));
   },
 
@@ -56,12 +56,7 @@ window.GameModules.worldLore = {
     lore.jobRanks = (lore.jobRanks || []).slice(0, 8).map(String);
     lore.coreRules = (lore.coreRules || []).slice(0, 8).map(String);
     lore.calendar = this.calendar(lore.calendar, worldTag);
-    lore.specialFields = (lore.specialFields || []).slice(0, 10).map((field, index) => ({
-      key: /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(field.key) ? field.key : `world_field_${index}`,
-      label: String(field.label || field.key || '属性').slice(0, 12),
-      type: ['number', 'rank', 'list'].includes(field.type) ? field.type : 'number',
-      desc: String(field.desc || '').slice(0, 60),
-    }));
+    lore.specialFields = window.GameModules.worldAttributes.defaults(worldTag).fields;
     return lore;
   },
 
@@ -92,12 +87,7 @@ window.GameModules.worldLore = {
       specialJobs: [{ name: fate ? '魔术师' : '异能者', desc: '掌握特殊力量的人。' }],
       jobRanks: fate ? ['见习', '正式', '开位', '祭位', '色位'] : ['低阶', '中阶', '高阶'],
       coreRules: ['力量与身份绑定', '秘密会改变角色处境'],
-      specialFields: [
-        { key: 'origin', label: '起源', type: 'list', desc: '内在倾向' },
-        { key: 'lineage', label: '血统', type: 'rank', desc: '家系质量' },
-        { key: 'faction_relation', label: '势力关系', type: 'list', desc: '阵营牵连' },
-        { key: 'mystery_depth', label: '神秘深度', type: 'number', desc: '与超常体系的牵连程度' },
-      ],
+      specialFields: window.GameModules.worldAttributes.defaults(worldTag).fields,
     }, worldTag);
   },
 };
