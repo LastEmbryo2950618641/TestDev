@@ -178,6 +178,7 @@ document.addEventListener('alpine:init', () => {
       this.choices = result.choices;
       this.mindText = result.mind;
       await this.applyStatChanges(result.statChanges);
+      await this.applyControlExperience(result);
       await window.GameModules.characterMemory.recordTurn(this, result);
       this.addLog('story', '旁白', result.narration);
       if (result.speech) this.addLog('speech', this.character.name, result.speech);
@@ -192,6 +193,21 @@ document.addEventListener('alpine:init', () => {
         const current = Number.isFinite(state.values[key]) ? state.values[key] : 100;
         state.values[key] = Math.max(0, Math.min(100, current + delta));
       });
+      this.rpgStates = { ...this.rpgStates, [state.id]: state };
+      await window.GameModules.sqliteSave.saveCharacterState(state);
+    },
+
+    async applyControlExperience(result) {
+      if (!this.online || this.controlMode !== 'possess') return;
+      const state = this.characterRpgState;
+      if (!state?.values) return;
+      const exp = state.values.control_experience || { onlineCount: 0, feeling: '未知', adaptation: 0, summary: '', lastUpdated: '' };
+      exp.onlineCount = Math.max(0, Number(exp.onlineCount) || 0);
+      exp.feeling = result.controlFeeling || exp.feeling || '疑惑';
+      exp.adaptation = Math.max(0, Math.min(100, Math.round(Number(result.controlAdaptation ?? exp.adaptation) || 0)));
+      exp.summary = result.controlExperienceSummary || exp.summary || '';
+      exp.lastUpdated = new Date().toISOString();
+      state.values.control_experience = exp;
       this.rpgStates = { ...this.rpgStates, [state.id]: state };
       await window.GameModules.sqliteSave.saveCharacterState(state);
     },

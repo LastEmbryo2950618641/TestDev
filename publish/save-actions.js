@@ -140,6 +140,14 @@ window.GameModules.saveActions = {
     ];
   },
 
+  rpgFieldValue(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+    if (Object.prototype.hasOwnProperty.call(value, 'onlineCount')) {
+      return `上线${value.onlineCount || 0}次｜${value.feeling || '未知'}｜适应${value.adaptation || 0}/100｜${value.summary || ''}`;
+    }
+    return JSON.stringify(value);
+  },
+
   rpgEntries(state) {
     if (!state?.schema) return [];
     const core = new Set(['health', 'stamina', 'mana']);
@@ -147,7 +155,7 @@ window.GameModules.saveActions = {
       title: section.title,
       fields: section.fields
         .filter((field) => !core.has(field.key))
-        .map((field) => ({ label: field.label, value: state.values[field.key] })),
+        .map((field) => ({ label: field.label, value: this.rpgFieldValue(state.values[field.key]) })),
     })).filter((section) => section.fields.length);
   },
 

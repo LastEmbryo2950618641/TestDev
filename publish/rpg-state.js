@@ -33,6 +33,7 @@ window.GameModules.rpgState = {
             { key: 'equipment', label: '装备', type: 'list' },
             { key: 'skills', label: '技能', type: 'list' },
             { key: 'status_tags', label: '状态标签', type: 'list' },
+            { key: 'control_experience', label: '上线体验', type: 'text' },
           ],
         },
       ],
@@ -149,7 +150,7 @@ window.GameModules.rpgState = {
       fields: (section.fields || []).slice(0, section.title === '世界固有属性' ? 10 : 5).map((field, fi) => ({
         key: /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(field.key) ? field.key : `field_${si}_${fi}`,
         label: String(field.label || field.key || '状态').slice(0, 12),
-        type: ['number', 'rank', 'list'].includes(field.type) ? field.type : 'number',
+        type: ['number', 'rank', 'list', 'text'].includes(field.type) ? field.type : 'number',
         min: Number.isFinite(field.min) ? field.min : 0,
         max: Number.isFinite(field.max) ? field.max : 100,
       })),
@@ -167,6 +168,8 @@ window.GameModules.rpgState = {
     const existing = save.getCharacterState(id);
     if (existing) {
       console.log('[RPG状态] 使用已保存角色状态:', id, existing.worldTag);
+      const upgraded = this.ensureControlExperience(existing);
+      if (upgraded) await save.saveCharacterState(existing);
       return existing;
     }
     const worldTag = character.work || '原创世界';
@@ -175,6 +178,22 @@ window.GameModules.rpgState = {
     const created = this.createCharacterState(character, schema);
     await save.saveCharacterState(created);
     return created;
+  },
+
+  ensureControlExperience(state) {
+    let changed = false;
+    if (!state.values) state.values = {};
+    if (!state.values.control_experience) {
+      state.values.control_experience = { onlineCount: 0, feeling: '未知', adaptation: 0, summary: '尚未经历上线操控。', lastUpdated: '' };
+      changed = true;
+    }
+    const sections = state.schema?.sections || [];
+    const itemSection = sections.find((section) => section.title === '持有物') || sections.at(-1);
+    if (itemSection && !itemSection.fields.some((field) => field.key === 'control_experience')) {
+      itemSection.fields.push({ key: 'control_experience', label: '上线体验', type: 'text' });
+      changed = true;
+    }
+    return changed;
   },
 
   createCharacterState(character, schema) {
@@ -189,7 +208,14 @@ window.GameModules.rpgState = {
     values.skills = character.skills?.map((skill) => skill.name) || values.skills;
     Object.assign(values, character.worldValues || {});
     values.status_tags = [character.role, character.importance === 'minor' ? '路人' : '可被操控', schema.worldTag];
-    return {
+    values.control_experience = {
+      onlineCount: 0,
+      feeling: '未知',
+      adaptation: 0,
+      summary: '尚未经历上线操控。',
+      lastUpdated: '',
+    };
+    const state = {
       id: character.id,
       name: character.name,
       worldTag: schema.worldTag,
@@ -198,6 +224,8 @@ window.GameModules.rpgState = {
       profile: character,
       note: character.detail || character.personality || '',
     };
+    this.ensureControlExperience(state);
+    return state;
   },
 
   valueFor(field, seed) {

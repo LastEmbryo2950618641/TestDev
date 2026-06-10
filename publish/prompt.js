@@ -5,6 +5,8 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.createSystemPrompt = function createSystemPrompt(state, action) {
   const character = state.character;
+  const experience = state.characterRpgState?.values?.control_experience || { onlineCount: 0, feeling: '未知', adaptation: 0, summary: '尚未经历上线操控。' };
+  const feelingOptions = '极度惊恐/非常害怕/恐惧/疑惑/警惕/愤怒/屈辱/麻木/担忧/习惯/冷静分析';
   return `你是 AI RPG 视觉小说《我狠狠操控》的剧情引擎。
 
 核心设定：
@@ -31,6 +33,8 @@ controlMode=${state.controlMode}
 反抗=${state.resistance}
 目标=${state.quest}
 基础状态=${JSON.stringify(state.rpgVitals(state.characterRpgState))}
+被上线体验=上线次数${experience.onlineCount}次；当前感觉=${experience.feeling}；适应度=${experience.adaptation}/100；摘要=${experience.summary}
+可选被上线感觉=${feelingOptions}
 技能=${character.skills.map((s) => `${s.name}:${s.desc}`).join('；')}
 玩家输入=${action || '无，继续推进'}
 
@@ -57,6 +61,9 @@ ${state.memoryContext || '暂无人物记忆。'}
   "resistance":0到100整数,
   "quest":"新的当前目标，18字内",
   "characterIntent":"${character.name}自己下一步想要做什么，40字内；必须按角色性格、年龄、身体状态、经历和当前处境判断，不要固定模板，不要等同玩家行动选项",
+  "controlFeeling":"被上线感觉，必须从 ${feelingOptions} 中选一个；结合上线次数、适应度、记忆和角色设定判断",
+  "controlAdaptation":0到100整数,
+  "controlExperienceSummary":"40字内，概括这次被上线后的感受变化",
   "choices":["必须给4个AI推荐行动选项，每个12字内；不要包含放开控制"],
   "appearedCharacters":[{"name":"姓名","role":"身份","detail":"基础资料","personality":"性格","work":"所属作品或世界","isMinor":true,"importance":"minor|support|main"}],
   "statChanges":{"health":-8到8,"stamina":-8到8,"mana":-8到8}
@@ -82,6 +89,9 @@ window.GameModules.createFallbackResult = function createFallbackResult(state, a
     resistance,
     quest: '调查操控裂隙',
     characterIntent: online ? `${name}下一步想要夺回身体的主导权。` : `${name}下一步想要用自己的方式判断局势。`,
+    controlFeeling: state.characterRpgState?.values?.control_experience?.feeling || '疑惑',
+    controlAdaptation: state.characterRpgState?.values?.control_experience?.adaptation || 0,
+    controlExperienceSummary: '身体控制权异常，来源仍然未知。',
     choices: ['使用技能调查', '主动交涉', '避开危险', '触碰异常物'],
     appearedCharacters: [{ name, role: state.character.role, detail: state.character.detail || state.character.personality, personality: state.character.personality || '', work: state.character.work, isMinor: false, importance: 'main' }],
     statChanges: { health: 0, stamina: online ? -2 : 1, mana: 0 },

@@ -49,13 +49,22 @@ window.GameModules.coreActions = {
     await this.prepareEntrySetup();
   },
 
-  setOnline(value) {
-    if (this.online === value) return;
+  async setOnline(value) {
+    if (this.online === value || this.busy) return;
     this.online = value;
     const text = value && this.controlMode === 'possess'
-      ? '第二人称上线：操控者的“我”直接附到角色肉体上行动，角色本人清醒感到身体完全不受自己掌控。'
+      ? '第二人称上线：身体突然不受角色控制；角色不知道控制来源，只能旁观身体行动但五感仍在。'
       : (value ? '操控者上线，角色身体行动权被接管。' : '操控者下线，角色重新获得身体控制权。');
     this.addLog('system', '控制权', text);
+    if (value && this.controlMode === 'possess') {
+      const feedback = await window.GameModules.characterFeedback.initial(this);
+      this.mood = feedback.mood;
+      this.resistance = feedback.resistance;
+      this.mindText = feedback.mind;
+      this.characterIntent = feedback.intent;
+      await window.GameModules.characterFeedback.applyExperience(this, feedback);
+      this.addLog('mind', `${this.character.name}的心理`, this.mindText);
+    }
     this.save();
   },
 
