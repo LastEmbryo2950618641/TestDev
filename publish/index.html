@@ -141,7 +141,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.started && !$store.game.loading" class="start-screen" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <section x-show="!$store.game.started && !$store.game.loading && !$store.game.entrySetupOpen" class="start-screen" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <div class="start-card dev-section" data-section-title="首页选择面板">
       <p class="eyebrow">AI RPG 视觉小说</p>
       <h1>我狠狠操控</h1>
@@ -207,9 +207,20 @@
 
       <button class="primary-btn" @click="$store.game.start()" :disabled="!$store.game.playerName || $store.game.busy">开始连接</button>
 
-      <section class="entry-setup dev-section" data-section-title="进入时机配置区" x-show="$store.game.entrySetupOpen">
+
+    </div>
+  </section>
+
+  <section x-show="!$store.game.started && !$store.game.loading && $store.game.entrySetupOpen" class="start-screen entry-screen" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+    <div class="start-card entry-card dev-section" data-section-title="进入时机配置区">
+      <button class="back-home-btn" type="button" @click="$store.game.backToHome()" :disabled="$store.game.busy">← 返回首页</button>
         <h3>选择进入时机</h3>
-        <p class="entry-note" x-text="$store.game.entryCalendar ? `当前世界历法：${$store.game.entryCalendar.label}` : '正在固化世界历法…'"></p>
+        <section class="entry-character-summary">
+          <div class="portrait-mark" x-text="$store.game.character.mark"></div>
+          <div><strong x-text="$store.game.character.name"></strong><small x-text="`${$store.game.character.work}｜${$store.game.character.role}`"></small></div>
+          <span x-text="`此时年龄：${$store.game.entryAgeLabel()}`"></span>
+        </section>
+        <p class="entry-note" x-text="$store.game.entryCalendar ? `默认进入小说最开始时机｜${$store.game.entryTimeLabel()}` : '正在读取小说起始时机…'"></p>
         <small class="entry-stage-detail" x-show="$store.game.busy" x-text="$store.game.entryStageDetail()"></small>
         <div class="loading-stages entry-stages" x-show="$store.game.entryStages.length">
           <template x-for="stage in $store.game.entryStages" :key="stage.key">
@@ -241,7 +252,6 @@
         </div>
         <small x-text="$store.game.controlMode === 'possess' ? '第二人称直接控制人物身体。' : '第三人称通过手机式界面发出操作。'"></small>
         <button class="primary-btn" @click="$store.game.confirmControl()" :disabled="$store.game.busy || !$store.game.entryCurrentAction">控制</button>
-      </section>
     </div>
   </section>
 

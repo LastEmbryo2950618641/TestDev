@@ -66,6 +66,7 @@ window.GameModules.entryActions = {
       minute: this.entryTime.minute || this.entryTimeOptions.minutes[0],
       second: this.entryTime.second || this.entryTimeOptions.seconds[0],
     };
+    window.GameModules.entryTime.applyStart(this);
   },
 
   entryTimeLabel() {

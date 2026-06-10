@@ -1,5 +1,5 @@
 /**
- * 进入时机：为每个世界固化历法，选择进入时间并生成角色当前行动。
+ * 进入时机：为每个世界固化历法，默认取小说最开始的剧情时间。
  */
 window.GameModules = window.GameModules || {};
 
@@ -14,7 +14,7 @@ window.GameModules.entryTime = {
 
   calendarFor(worldTag, lore) {
     const text = `${worldTag} ${lore.background || ''} ${(lore.coreRules || []).join(' ')}`;
-    if (/Fate|现代|公元|圣杯|魔术/.test(text)) return this.modernCalendar();
+    if (/Fate|现代|公元|圣杯|魔术|学校|都市/.test(text)) return this.modernCalendar();
     if (/五行|金|木|水|火|土|灵|仙|修/.test(text)) return this.wuxingCalendar();
     return this.fantasyCalendar(worldTag);
   },
@@ -33,15 +33,44 @@ window.GameModules.entryTime = {
   },
 
   async options(calendar, store) {
-    const base = await window.GameModules.entryYear.baseYear(calendar, store);
+    const start = await this.storyStart(store);
+    const base = start?.year || await window.GameModules.entryYear.baseYear(calendar, store);
+    const startMonth = start ? `${start.month}月` : '';
+    const startDay = start ? `${start.day}${calendar.units.day}` : '';
     return {
-      years: [await window.GameModules.entryYear.targetYear(calendar, store, base), ...this.nearYears(calendar, base)],
-      months: calendar.months,
-      days: Array.from({ length: Math.min(calendar.days || 30, 31) }, (_, i) => `${i + 1}${calendar.units.day}`),
+      years: this.unique([`${base}${calendar.units.year || '年'}`, ...this.nearYears(calendar, base)]),
+      months: this.unique([startMonth, ...calendar.months]),
+      days: this.unique([startDay, ...Array.from({ length: Math.min(calendar.days || 30, 31) }, (_, i) => `${i + 1}${calendar.units.day}`)]),
       hours: Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}时`),
       minutes: Array.from({ length: 12 }, (_, i) => `${String(i * 5).padStart(2, '0')}分`),
       seconds: Array.from({ length: 12 }, (_, i) => `${String(i * 5).padStart(2, '0')}秒`),
+      start,
     };
+  },
+
+  async storyStart(store) {
+    const source = window.GameModules.characterBrief.sourceFor(store.character.work);
+    if (!source) return null;
+    const text = await window.GameModules.rag.fetchText(`${source.base}/02_按需加载_剧情/剧情索引.md`);
+    const times = [...String(text || '').matchAll(/(\d{3,4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/g)];
+    if (!times.length) return null;
+    const first = times.map((m) => m.slice(1).map(Number)).sort((a, b) => this.dateValue(a) - this.dateValue(b))[0];
+    return { year: first[0], month: first[1], day: first[2], hour: first[3], minute: first[4], second: first[5] };
+  },
+
+  dateValue(parts) {
+    return parts[0] * 1e10 + parts[1] * 1e8 + parts[2] * 1e6 + parts[3] * 1e4 + parts[4] * 100 + parts[5];
+  },
+
+  applyStart(store) {
+    const start = store.entryTimeOptions.start;
+    if (!start) return false;
+    store.entryTime.month = `${start.month}月`;
+    store.entryTime.day = `${start.day}${store.entryCalendar.units.day}`;
+    store.entryTime.hour = `${String(start.hour).padStart(2, '0')}时`;
+    store.entryTime.minute = `${String(start.minute).padStart(2, '0')}分`;
+    store.entryTime.second = `${String(start.second).padStart(2, '0')}秒`;
+    return true;
   },
 
   nearYears(calendar, base) {
@@ -52,4 +81,6 @@ window.GameModules.entryTime = {
   format(time, calendar) {
     return `${calendar.label}｜${time.year} ${time.month} ${time.day} ${time.hour}${time.minute}${time.second}`;
   },
+
+  unique(list) { return [...new Set(list.filter(Boolean))]; },
 };

@@ -29,6 +29,19 @@ window.GameModules.coreActions = {
     this.characterDetailOpen = true;
   },
 
+  backToHome() {
+    if (this.busy) return;
+    this.entrySetupOpen = false;
+    this.entryCurrentAction = '';
+  },
+
+  entryAgeLabel() {
+    const rows = this.characterProfiles[this.character.id]?.basics || [];
+    const age = rows.find((x) => /年龄|年纪|岁数/.test(x.label))?.value;
+    const detailAge = (String(this.character.detail || '').match(/(?:年龄[:：|｜\s]*)?([^｜|，,。\s]*\d+[^｜|，,。\s]*)/) || [])[1];
+    return age || detailAge || '未知';
+  },
+
   async start() {
     await this.prepareEntrySetup();
   },
