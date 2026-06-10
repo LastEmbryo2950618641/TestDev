@@ -313,7 +313,7 @@
               <button class="feedback-summary" @click="$store.game.feedbackOpen = !$store.game.feedbackOpen" x-text="$store.game.feedbackSummary()"></button>
               <div class="feedback-full" x-show="$store.game.feedbackOpen">
                 <p><b>当前心理</b><span x-text="$store.game.feedbackText()"></span></p>
-                <p><b>樱的想法</b><span x-text="$store.game.feedbackPlan()"></span></p>
+                <p><b x-text="`${$store.game.character.name}的想法`"></b><span x-text="$store.game.feedbackPlan()"></span></p>
               </div>
             </div>
           </template>
