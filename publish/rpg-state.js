@@ -155,7 +155,7 @@ window.GameModules.rpgState = {
     const values = { health: 100, stamina: 100, mana: 100 };
     for (const section of schema.sections) {
       for (const field of section.fields) {
-        if (['health', 'stamina', 'mana'].includes(field.key)) continue;
+        if (['health', 'stamina', 'mana', 'age'].includes(field.key)) continue;
         values[field.key] = this.valueFor(field, seed + field.key.length);
       }
     }

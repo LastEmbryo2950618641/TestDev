@@ -5,11 +5,27 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.entryTime = {
   async ensureCalendar(store) {
+    const start = await this.storyStart(store);
+    if (start) {
+      const calendar = this.modernCalendar();
+      store.entryTimeOptions = { ...store.entryTimeOptions, start };
+      await this.persistCalendar(store, calendar);
+      return calendar;
+    }
     const lore = await window.GameModules.worldLore.ensure(store.character.work || '原创世界', store.sceneTitle || '进入前');
     if (lore.calendar?.months?.length) return lore.calendar;
     lore.calendar = this.calendarFor(lore.worldTag, lore);
     await window.GameModules.sqliteSave.saveWorldLore(lore.worldTag, lore);
     return lore.calendar;
+  },
+
+  async persistCalendar(store, calendar) {
+    const save = window.GameModules.sqliteSave;
+    if (!save?.db) return;
+    const worldTag = store.character.work || '原创世界';
+    const lore = save.getWorldLore(worldTag) || await window.GameModules.worldLore.ensure(worldTag, store.sceneTitle || '进入前');
+    lore.calendar = calendar;
+    await save.saveWorldLore(worldTag, lore);
   },
 
   calendarFor(worldTag, lore) {
@@ -33,7 +49,7 @@ window.GameModules.entryTime = {
   },
 
   async options(calendar, store) {
-    const start = await this.storyStart(store);
+    const start = store.entryTimeOptions.start || await this.storyStart(store);
     if (start) {
       store.entryCalendar = this.modernCalendar();
       return {
@@ -61,7 +77,8 @@ window.GameModules.entryTime = {
   async storyStart(store) {
     const source = window.GameModules.characterBrief.sourceFor(store.character.work);
     if (!source) return null;
-    const text = await window.GameModules.rag.fetchText(`${source.base}/02_按需加载_剧情/剧情索引.md`);
+    const url = `${source.base}/02_按需加载_剧情/剧情索引.md`;
+    const text = await window.GameModules.rag.fetchText(url);
     const head = String(text || '').split('\n').slice(0, 50).join('\n');
     const times = [...head.matchAll(/\|\s*\d+\s*\|[^|]*\|\s*(\d{3,4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})\s*\|/g)];
     if (!times.length) return null;
@@ -89,9 +106,17 @@ window.GameModules.entryTime = {
     const start = store.entryTimeOptions.start;
     const birth = this.birthDate(store.characterProfiles[store.character.id]);
     const age = this.ageAt(birth, start);
-    if (age === null) return;
-    store.characterAge = `${age}岁`;
     const state = store.rpgStates[store.character.id];
+    if (age === null) {
+      if (state?.values) {
+        delete state.values.age;
+        delete state.values.age_label;
+        store.rpgStates = { ...store.rpgStates, [state.id]: state };
+        if (window.GameModules.sqliteSave.db) window.GameModules.sqliteSave.saveCharacterState(state);
+      }
+      return;
+    }
+    store.characterAge = `${age}岁`;
     if (state?.values) {
       this.ensureAgeField(state);
       state.values.age = age;
