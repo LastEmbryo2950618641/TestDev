@@ -101,7 +101,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     async init() {
-      await this.initGame();
+      try { await this.initGame(); } catch (err) { console.error('游戏初始化失败:', err.message, err.stack); this.loadingDetail = `初始化失败：${err.message || '未知错误'}`; this.loading = false; }
     },
 
     async loadCatalog() {
