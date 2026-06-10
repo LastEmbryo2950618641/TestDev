@@ -52,7 +52,7 @@ window.GameModules.entryActions = {
       await this.runEntryStage('time', '正在定位默认进入时间并校正角色出生日期。', async () => this.prepareEntryTimeOptions(calendar));
       await this.runEntryStage('rpg', '正在准备被控制角色的完整 RPG 状态。', async () => {
         await this.ensureRpgForCurrentCharacter();
-        window.GameModules.entryTime.applyCharacterAge(this);
+        await window.GameModules.entryTime.applyCharacterAge(this);
       });
       await this.runEntryStage('ready', '进入配置已准备好，可以选择操控方式。', async () => true);
     } finally {
@@ -70,7 +70,7 @@ window.GameModules.entryActions = {
       minute: this.entryTimeOptions.minutes[0],
       second: this.entryTimeOptions.seconds[0],
     };
-    window.GameModules.entryTime.applyStart(this);
+    await window.GameModules.entryTime.applyStart(this);
   },
 
   entryTimeLabel() {

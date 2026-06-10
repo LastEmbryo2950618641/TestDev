@@ -6,17 +6,11 @@ window.GameModules = window.GameModules || {};
 window.GameModules.entryTime = {
   async ensureCalendar(store) {
     const start = await this.storyStart(store);
-    if (start) {
-      const calendar = this.modernCalendar();
-      store.entryTimeOptions = { ...store.entryTimeOptions, start };
-      await this.persistCalendar(store, calendar);
-      return calendar;
-    }
-    const lore = await window.GameModules.worldLore.ensure(store.character.work || '原创世界', store.sceneTitle || '进入前');
-    if (lore.calendar?.months?.length) return lore.calendar;
-    lore.calendar = this.calendarFor(lore.worldTag, lore);
-    await window.GameModules.sqliteSave.saveWorldLore(lore.worldTag, lore);
-    return lore.calendar;
+    if (!start) throw new Error('剧情索引缺少可用的默认进入时间');
+    const calendar = this.modernCalendar();
+    store.entryTimeOptions = { ...store.entryTimeOptions, start };
+    await this.persistCalendar(store, calendar);
+    return calendar;
   },
 
   async persistCalendar(store, calendar) {
@@ -52,7 +46,7 @@ window.GameModules.entryTime = {
   async options(calendar, store) {
     let start = store.entryTimeOptions.start || await this.storyStart(store);
     if (start) {
-      const birth = this.birthDate(store.characterProfiles[store.character.id]);
+      const birth = await this.birthDateFor(store);
       if (birth && this.dateValue([birth.year, birth.month, birth.day, 0, 0, 0]) > this.dateValue([start.year, start.month, start.day, start.hour, start.minute, start.second])) {
         start = { year: birth.year, month: birth.month, day: birth.day, ...this.randomClock() };
       }
@@ -67,16 +61,7 @@ window.GameModules.entryTime = {
         start,
       };
     }
-    const base = await window.GameModules.entryYear.baseYear(calendar, store);
-    return {
-      years: this.unique([`${base}${calendar.units.year || '年'}`, ...this.nearYears(calendar, base)]),
-      months: calendar.months,
-      days: Array.from({ length: Math.min(calendar.days || 30, 31) }, (_, i) => `${i + 1}${calendar.units.day}`),
-      hours: Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}时`),
-      minutes: Array.from({ length: 12 }, (_, i) => `${String(i * 5).padStart(2, '0')}分`),
-      seconds: Array.from({ length: 12 }, (_, i) => `${String(i * 5).padStart(2, '0')}秒`),
-      start: null,
-    };
+    throw new Error('剧情索引缺少可用的默认进入时间');
   },
 
   async storyStart(store) {
@@ -116,7 +101,7 @@ window.GameModules.entryTime = {
     };
   },
 
-  applyStart(store) {
+  async applyStart(store) {
     const start = store.entryTimeOptions.start;
     if (!start) return false;
     store.entryTime.year = `${start.year}年`;
@@ -125,13 +110,13 @@ window.GameModules.entryTime = {
     store.entryTime.hour = `${String(start.hour).padStart(2, '0')}时`;
     store.entryTime.minute = `${String(start.minute).padStart(2, '0')}分`;
     store.entryTime.second = `${String(start.second).padStart(2, '0')}秒`;
-    this.applyCharacterAge(store);
+    await this.applyCharacterAge(store);
     return true;
   },
 
-  applyCharacterAge(store) {
+  async applyCharacterAge(store) {
     const start = store.entryTimeOptions.start;
-    const birth = this.birthDate(store.characterProfiles[store.character.id]);
+    const birth = await this.birthDateFor(store);
     const age = this.ageAt(birth, start);
     const state = store.rpgStates[store.character.id];
     if (age === null) {
@@ -158,6 +143,15 @@ window.GameModules.entryTime = {
     const section = state.schema?.sections?.[0];
     if (!section || section.fields.some((field) => field.key === 'age')) return;
     section.fields.unshift({ key: 'age', label: '年龄', type: 'number', min: 0, max: 999 });
+  },
+
+  async birthDateFor(store) {
+    const character = store.character;
+    const current = this.birthDate(store.characterProfiles[character.id]);
+    if (current) return current;
+    const profile = await window.GameModules.characterBrief.loadProfile(character);
+    store.characterProfiles = { ...store.characterProfiles, [character.id]: profile };
+    return this.birthDate(profile);
   },
 
   birthDate(profile) {
