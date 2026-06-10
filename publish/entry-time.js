@@ -34,18 +34,27 @@ window.GameModules.entryTime = {
 
   async options(calendar, store) {
     const start = await this.storyStart(store);
-    const base = start?.year || await window.GameModules.entryYear.baseYear(calendar, store);
-    const unit = start ? '年' : (calendar.units.year || '年');
-    const startMonth = start ? `${start.month}月` : '';
-    const startDay = start ? `${start.day}日` : '';
+    if (start) {
+      store.entryCalendar = this.modernCalendar();
+      return {
+        years: this.unique([`${start.year}年`, ...this.nearYears({ units: { year: '年' } }, start.year)]),
+        months: Array.from({ length: 12 }, (_, i) => `${i + 1}月`),
+        days: Array.from({ length: 31 }, (_, i) => `${i + 1}日`),
+        hours: Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}时`),
+        minutes: Array.from({ length: 12 }, (_, i) => `${String(i * 5).padStart(2, '0')}分`),
+        seconds: Array.from({ length: 12 }, (_, i) => `${String(i * 5).padStart(2, '0')}秒`),
+        start,
+      };
+    }
+    const base = await window.GameModules.entryYear.baseYear(calendar, store);
     return {
-      years: this.unique([`${base}${unit}`, ...this.nearYears({ units: { year: unit } }, base)]),
-      months: this.unique([startMonth, ...calendar.months]),
-      days: this.unique([startDay, ...Array.from({ length: Math.min(calendar.days || 30, 31) }, (_, i) => `${i + 1}${start ? '日' : calendar.units.day}`)]),
+      years: this.unique([`${base}${calendar.units.year || '年'}`, ...this.nearYears(calendar, base)]),
+      months: calendar.months,
+      days: Array.from({ length: Math.min(calendar.days || 30, 31) }, (_, i) => `${i + 1}${calendar.units.day}`),
       hours: Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}时`),
       minutes: Array.from({ length: 12 }, (_, i) => `${String(i * 5).padStart(2, '0')}分`),
       seconds: Array.from({ length: 12 }, (_, i) => `${String(i * 5).padStart(2, '0')}秒`),
-      start,
+      start: null,
     };
   },
 

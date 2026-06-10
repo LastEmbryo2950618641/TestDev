@@ -61,11 +61,11 @@ window.GameModules.entryActions = {
     this.entryTimeOptions = await window.GameModules.entryTime.options(calendar, this);
     this.entryTime = {
       year: this.entryTimeOptions.years[0],
-      month: this.entryTime.month || this.entryTimeOptions.months[0],
-      day: this.entryTime.day || this.entryTimeOptions.days[0],
-      hour: this.entryTime.hour || this.entryTimeOptions.hours[9],
-      minute: this.entryTime.minute || this.entryTimeOptions.minutes[0],
-      second: this.entryTime.second || this.entryTimeOptions.seconds[0],
+      month: this.entryTimeOptions.months[0],
+      day: this.entryTimeOptions.days[0],
+      hour: this.entryTimeOptions.hours[9],
+      minute: this.entryTimeOptions.minutes[0],
+      second: this.entryTimeOptions.seconds[0],
     };
     window.GameModules.entryTime.applyStart(this);
   },
