@@ -49,8 +49,11 @@ window.GameModules.entryActions = {
       await window.GameModules.characterBrief.ensure(this);
       const calendar = await this.runEntryStage('calendar', '正在生成或读取当前世界的固化历法。', () => window.GameModules.entryTime.ensureCalendar(this));
       this.entryCalendar = calendar;
-      await this.runEntryStage('time', '正在读取剧情索引前50行并定位最早剧情时间。', async () => this.prepareEntryTimeOptions(calendar));
-      await this.runEntryStage('rpg', '正在准备被控制角色的完整 RPG 状态。', () => this.ensureRpgForCurrentCharacter());
+      await this.runEntryStage('time', '正在定位默认进入时间并校正角色出生日期。', async () => this.prepareEntryTimeOptions(calendar));
+      await this.runEntryStage('rpg', '正在准备被控制角色的完整 RPG 状态。', async () => {
+        await this.ensureRpgForCurrentCharacter();
+        window.GameModules.entryTime.applyCharacterAge(this);
+      });
       await this.runEntryStage('ready', '进入配置已准备好，可以选择操控方式。', async () => true);
     } finally {
       this.busy = false;

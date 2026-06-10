@@ -50,8 +50,12 @@ window.GameModules.entryTime = {
   },
 
   async options(calendar, store) {
-    const start = store.entryTimeOptions.start || await this.storyStart(store);
+    let start = store.entryTimeOptions.start || await this.storyStart(store);
     if (start) {
+      const birth = this.birthDate(store.characterProfiles[store.character.id]);
+      if (birth && this.dateValue([birth.year, birth.month, birth.day, 0, 0, 0]) > this.dateValue([start.year, start.month, start.day, start.hour, start.minute, start.second])) {
+        start = { year: birth.year, month: birth.month, day: birth.day, hour: 0, minute: 0, second: 0 };
+      }
       store.entryCalendar = this.modernCalendar();
       return {
         years: this.unique([`${start.year}年`, ...this.nearYears({ units: { year: '年' } }, start.year)]),
