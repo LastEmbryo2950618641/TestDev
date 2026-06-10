@@ -54,8 +54,8 @@ window.GameModules.entryYear = {
   async localEvidence(store, mode) {
     const character = store?.character || {};
     const lore = window.GameModules.sqliteSave?.getWorldLore?.(character.work || '原创世界');
-    const refs = (store?.characterLoreRefs?.[character.id] || []).map((x) => x.text).join('\n');
-    const base = `${character.name || ''} ${(character.aliases || []).join(' ')} ${character.role || ''} ${character.detail || ''}\n${lore?.background || ''}\n${refs}`;
+    const profile = store?.characterProfiles?.[character.id], basics = (profile?.basics || []).map((x) => `${x.label}:${x.value}`).join('\n');
+    const base = `${character.name || ''} ${(character.aliases || []).join(' ')} ${character.role || ''} ${character.detail || ''}\n${lore?.background || ''}\n${profile?.summary || ''}\n${basics}`;
     try {
       const query = mode === 'storyYear' ? `${character.work} 故事 发生 年份 时间线` : `${character.name} ${(character.aliases || []).join(' ')} 年龄 出生 岁 寿命`;
       const hits = await window.GameModules.rag?.search?.(query, { limit: 4, sourceHint: character.work, strictSource: true, contextRadius: 1 });

@@ -6,6 +6,7 @@
   <title>我狠狠操控</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="character-select.css">
+  <link rel="stylesheet" href="profile-preview.css">
   <link rel="stylesheet" href="layout.css">
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js"></script>
@@ -111,6 +112,35 @@
     </div>
   </section>
 
+  <section x-show="$store.game.characterDetailOpen" class="save-modal-backdrop" @click.self="$store.game.characterDetailOpen = false" x-cloak>
+    <div class="save-modal character-detail-modal">
+      <header>
+        <strong x-text="`${$store.game.character.name}｜人物设定`"></strong>
+        <button class="small-btn" @click="$store.game.characterDetailOpen = false">关闭</button>
+      </header>
+      <p x-text="$store.game.characterProfiles[$store.game.character.id]?.summary || '正在读取人物设定。'"></p>
+      <section class="profile-basic-panel">
+        <h3>基础档案</h3>
+        <div class="profile-basic-grid">
+          <template x-for="row in ($store.game.characterProfiles[$store.game.character.id]?.basics || [])" :key="row.label">
+            <article><span x-text="row.label"></span><b x-text="row.value"></b></article>
+          </template>
+        </div>
+      </section>
+      <section class="profile-section-list scroll-area">
+        <template x-for="section in ($store.game.characterProfiles[$store.game.character.id]?.sections || [])" :key="section.title">
+          <article>
+            <h3 x-text="section.title"></h3>
+            <template x-if="section.items.length">
+              <ul><template x-for="item in section.items.slice(0, 8)" :key="item"><li x-text="item"></li></template></ul>
+            </template>
+            <p x-show="!section.items.length" x-text="section.body.slice(0, 420)"></p>
+          </article>
+        </template>
+      </section>
+    </div>
+  </section>
+
   <section x-show="!$store.game.started && !$store.game.loading" class="start-screen" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <div class="start-card dev-section" data-section-title="首页选择面板">
       <p class="eyebrow">AI RPG 视觉小说</p>
@@ -155,40 +185,19 @@
         </div>
       </div>
 
-      <div class="start-field age-field dev-section" data-section-title="年龄设定区">
-        <label class="field-label">角色年龄</label>
-        <div class="custom-select age-combo" @click.outside="$store.game.ageMenuOpen = false">
-          <div class="custom-select-btn age-combo-box">
-            <input type="number" min="1" max="9999" inputmode="numeric" x-model="$store.game.characterAge" @input="$store.game.resetEntryTimeForAge()" @change="$store.game.onAgeInput()" @blur="$store.game.onAgeInput()" placeholder="输入或选择年龄">
-            <button type="button" @click="$store.game.ageMenuOpen = !$store.game.ageMenuOpen" aria-label="选择年龄"><i></i></button>
-          </div>
-          <div class="custom-select-menu" x-show="$store.game.ageMenuOpen">
-            <template x-for="age in ['6','10','12','14','16','18','20','30','100']" :key="age">
-              <button type="button" @click="$store.game.selectAge(age)" x-text="age"></button>
+      <button class="character-detail-card dev-section" data-section-title="角色预览区" type="button" @click="$store.game.openCharacterDetail()">
+        <div class="portrait-mark" x-text="$store.game.character.mark"></div>
+        <div class="profile-preview-main">
+          <strong x-text="$store.game.character.name"></strong>
+          <small x-text="`${$store.game.character.work || '原创'}｜${$store.game.character.role}`"></small>
+          <p x-text="$store.game.characterBriefBusy ? '正在读取本地人物设定…' : ($store.game.characterProfiles[$store.game.character.id]?.summary || '点击查看完整人物设定')"></p>
+          <div class="profile-chip-grid">
+            <template x-for="row in ($store.game.characterProfiles[$store.game.character.id]?.basics || []).slice(0, 6)" :key="row.label">
+              <span><b x-text="row.label"></b><em x-text="row.value"></em></span>
             </template>
           </div>
         </div>
-        <small>进入年份会按该年龄和当前世界观推断，不再使用“当前年”。</small>
-      </div>
-
-      <div class="character-detail-card dev-section" data-section-title="角色预览区">
-        <div class="portrait-mark" x-text="$store.game.character.mark"></div>
-        <div>
-          <strong x-text="$store.game.character.name"></strong>
-          <small x-text="`${$store.game.character.work || '原创'}｜${$store.game.character.role}`"></small>
-          <p x-text="$store.game.characterBriefBusy ? '正在查询作品资料并生成简短背景…' : ($store.game.characterBriefs[$store.game.character.id] || '正在准备角色背景摘要…')"></p>
-        </div>
-      </div>
-
-      <div class="ref-list dev-section" data-section-title="原作资料预览区" x-show="$store.game.characterBriefBusy || ($store.game.characterLoreRefs[$store.game.character.id] || []).length">
-        <p class="empty-lore" x-show="$store.game.characterBriefBusy">正在检索当前角色的完整原作资料…</p>
-        <template x-for="ref in $store.game.characterLoreRefs[$store.game.character.id] || []" :key="`${ref.novel}-${ref.chunk}`">
-          <article>
-            <strong x-text="`${ref.novel} / ${ref.title || '资料'} #${ref.chunk}`"></strong>
-            <p x-text="ref.text"></p>
-          </article>
-        </template>
-      </div>
+      </button>
 
       <div class="rules-box dev-section" data-section-title="规则说明区">
         <strong>核心规则</strong>
