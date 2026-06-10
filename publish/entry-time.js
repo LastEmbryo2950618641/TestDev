@@ -83,6 +83,11 @@ window.GameModules.entryTime = {
     const url = `${source.base}/02_按需加载_剧情/剧情索引.md`;
     const text = await window.GameModules.rag.fetchText(url);
     const head = String(text || '').split('\n').slice(0, 50).join('\n');
+    const defaultTime = head.match(/默认进入剧情起始时间[:：]\s*(\d{3,4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})/);
+    if (defaultTime) {
+      const parts = defaultTime.slice(1).map(Number);
+      return { year: parts[0], month: parts[1], day: parts[2], hour: parts[3], minute: parts[4], second: parts[5] };
+    }
     const times = [...head.matchAll(/\|\s*\d+\s*\|[^|]*\|\s*(\d{3,4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})\s*\|/g)];
     if (!times.length) return null;
     const first = times.map((m) => m.slice(1).map(Number)).sort((a, b) => this.dateValue(a) - this.dateValue(b))[0];
