@@ -59,7 +59,10 @@ window.GameModules.rpgState = {
     const save = window.GameModules.sqliteSave;
     if (window.GameModules.cache.enabled('generatedSchema')) {
       const existing = save.getSchema(worldTag);
-      if (existing) return existing;
+      if (existing) {
+        console.log('[RPG状态] 使用已保存 schema:', worldTag, existing.sections?.length || 0);
+        return existing;
+      }
     }
     console.log('[RPG状态] 生成角色 schema:', worldTag);
     const lore = await window.GameModules.worldLore.ensure(worldTag);
@@ -72,16 +75,20 @@ window.GameModules.rpgState = {
     try {
       if (!window.dzmm?.completions) return this.defaultSchema(worldTag, lore);
       let buffer = '';
+      const prompt = this.schemaPrompt(worldTag, lore);
+      console.log('[RPG状态] schema AI请求:', { worldTag, promptLength: prompt.length, model: 'nalang-medium-0826', maxTokens: 900 });
       await window.dzmm.completions({
         model: 'nalang-medium-0826',
         maxTokens: 900,
-        messages: [{ role: 'user', content: this.schemaPrompt(worldTag, lore) }],
+        messages: [{ role: 'user', content: prompt }],
       }, (chunk, done) => {
         buffer += chunk;
         if (!done) return;
       });
-      console.log('[RPG状态] schema 返回长度:', buffer.length);
-      return this.withLoreFields(this.validateSchema(this.parseSchema(buffer), worldTag), lore);
+      console.log('[RPG状态] schema 返回长度:', buffer.length, '预览:', buffer.slice(0, 180));
+      const parsed = this.parseSchema(buffer);
+      console.log('[RPG状态] schema 解析成功:', worldTag, parsed.sections?.length || 0);
+      return this.withLoreFields(this.validateSchema(parsed, worldTag), lore);
     } catch (err) {
       console.warn('RPG schema 生成失败，使用兜底:', err.message);
       return this.defaultSchema(worldTag, lore);
@@ -146,8 +153,12 @@ window.GameModules.rpgState = {
     const save = window.GameModules.sqliteSave;
     const id = character.id || character.name;
     const existing = save.getCharacterState(id);
-    if (existing) return existing;
+    if (existing) {
+      console.log('[RPG状态] 使用已保存角色状态:', id, existing.worldTag);
+      return existing;
+    }
     const worldTag = character.work || '原创世界';
+    console.log('[RPG状态] 创建角色状态:', id, character.name, worldTag);
     const schema = await this.ensureSchema(worldTag);
     const created = this.createCharacterState(character, schema);
     await save.saveCharacterState(created);

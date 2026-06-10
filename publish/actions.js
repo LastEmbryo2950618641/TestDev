@@ -7,7 +7,9 @@ window.GameModules.actions = {
   async refreshRagContext(action) {
     const aliases = (this.character.aliases || []).join(' ');
     const query = `${action} ${this.sceneTitle} ${this.quest} ${this.character.work || ''} ${this.character.name} ${aliases}`;
+    console.log('[资料检索] 回合检索开始:', { query, sourceHint: this.character.work });
     const results = await window.GameModules.rag.search(query, { limit: 3, sourceHint: this.character.work, strictSource: true });
+    console.log('[资料检索] 回合检索完成:', results.map((x) => ({ title: x.title, score: x.ragScore, length: String(x.text || '').length })));
     this.ragResults = results;
     this.ragContext = window.GameModules.rag.formatContext(results);
   },

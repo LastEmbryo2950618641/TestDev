@@ -66,21 +66,32 @@ window.GameModules.entryTime = {
 
   async storyStart(store) {
     const source = window.GameModules.characterBrief.sourceFor(store.character.work);
+    console.log('[剧情起点] 查找剧情起点:', store.character.work, 'source=', source?.name || '未匹配');
     const precomputed = this.precomputedStart(store.character.work, source);
-    if (precomputed) return precomputed;
+    if (precomputed) {
+      console.log('[剧情起点] 使用预计算剧情起点:', precomputed);
+      return precomputed;
+    }
     if (!source) return null;
     const url = `${source.base}/02_按需加载_剧情/剧情索引.md`;
+    console.log('[剧情起点] 读取剧情索引:', url);
     const text = await window.GameModules.rag.fetchText(url);
     const head = String(text || '').split('\n').slice(0, 50).join('\n');
+    console.log('[剧情起点] 剧情索引读取完成:', { totalLength: String(text || '').length, headLength: head.length, preview: head.slice(0, 220) });
     const defaultTime = head.match(/默认进入剧情起始时间[:：]\s*(\d{3,4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})/);
     if (defaultTime) {
       const parts = defaultTime.slice(1).map(Number);
-      return { year: parts[0], month: parts[1], day: parts[2], hour: parts[3], minute: parts[4], second: parts[5] };
+      const result = { year: parts[0], month: parts[1], day: parts[2], hour: parts[3], minute: parts[4], second: parts[5] };
+      console.log('[剧情起点] 命中默认进入剧情起始时间:', result);
+      return result;
     }
     const times = [...head.matchAll(/\|\s*\d+\s*\|[^|]*\|\s*(\d{3,4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})\s*\|/g)];
+    console.log('[剧情起点] 表格时间候选数量:', times.length);
     if (!times.length) return null;
     const first = times.map((m) => m.slice(1).map(Number)).sort((a, b) => this.dateValue(a) - this.dateValue(b))[0];
-    return { year: first[0], month: first[1], day: first[2], hour: first[3], minute: first[4], second: first[5] };
+    const result = { year: first[0], month: first[1], day: first[2], hour: first[3], minute: first[4], second: first[5] };
+    console.log('[剧情起点] 使用最早表格时间:', result);
+    return result;
   },
 
   precomputedStart(work, source) {

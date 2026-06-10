@@ -22,6 +22,7 @@ window.GameModules.ai = {
     const requestId = ++this.latestRequestId;
     let buffer = '';
     const messages = [{ role: 'user', content: window.GameModules.createSystemPrompt(store, action) }];
+    console.log('[AI推演] 请求开始:', { requestId, action, model: store.modelId, promptLength: messages[0].content.length, ragLength: String(store.ragContext || '').length, memoryLength: String(store.memoryContext || '').length });
 
     try {
       await this.withRetry(() => window.dzmm.completions({
@@ -32,6 +33,7 @@ window.GameModules.ai = {
         if (requestId !== this.latestRequestId) return;
         buffer += chunk;
         if (!done) return;
+        console.log('[AI推演] 返回完成:', { requestId, length: buffer.length, preview: buffer.slice(0, 180) });
         await store.applyResult(this.parse(buffer, store, action));
       }));
     } catch (err) {
@@ -48,6 +50,7 @@ window.GameModules.ai = {
       const end = content.lastIndexOf('}');
       if (start === -1 || end === -1) throw new Error('AI 没有返回 JSON');
       const data = JSON.parse(content.slice(start, end + 1));
+      console.log('[AI推演] JSON解析成功:', Object.keys(data));
       return this.normalize(data, store, action);
     } catch (err) {
       console.warn('AI 返回解析失败:', err.message);

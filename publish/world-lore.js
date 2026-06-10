@@ -8,8 +8,12 @@ window.GameModules.worldLore = {
     const save = window.GameModules.sqliteSave;
     if (window.GameModules.cache.enabled('generatedLore')) {
       const existing = save.getWorldLore(worldTag);
-      if (existing) return existing;
+      if (existing) {
+        console.log('[世界观] 使用已保存设定:', worldTag);
+        return existing;
+      }
     }
+    console.log('[世界观] 开始生成设定:', worldTag, 'contextLength=', String(context || '').length);
     const lore = await this.generate(worldTag, context);
     await save.saveWorldLore(worldTag, lore);
     return lore;
@@ -19,11 +23,14 @@ window.GameModules.worldLore = {
     try {
       if (!window.dzmm?.completions) return this.fallback(worldTag);
       let buffer = '';
+      const prompt = this.prompt(worldTag, context);
+      console.log('[世界观] AI请求:', { worldTag, promptLength: prompt.length, model: 'nalang-medium-0826', maxTokens: 1200 });
       await window.dzmm.completions({
         model: 'nalang-medium-0826',
         maxTokens: 1200,
-        messages: [{ role: 'user', content: this.prompt(worldTag, context) }],
+        messages: [{ role: 'user', content: prompt }],
       }, (chunk) => { buffer += chunk; });
+      console.log('[世界观] AI返回:', { worldTag, length: buffer.length, preview: buffer.slice(0, 180) });
       return this.validate(this.parse(buffer), worldTag);
     } catch (err) {
       console.warn('世界观设定生成失败，使用兜底:', err.message);

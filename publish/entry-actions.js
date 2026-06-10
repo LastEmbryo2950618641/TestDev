@@ -19,12 +19,15 @@ window.GameModules.entryActions = {
   },
 
   async runEntryStage(key, detail, fn) {
+    console.log('[进入流程] 阶段开始:', key, detail);
     this.setEntryStage(key, 'running', detail);
     try {
       const result = await fn();
+      console.log('[进入流程] 阶段完成:', key);
       this.setEntryStage(key, 'done', detail);
       return result;
     } catch (err) {
+      console.warn('[进入流程] 阶段失败:', key, err.message, err.stack);
       this.setEntryStage(key, 'error', `${detail}失败：${err.message || '未知错误'}`);
       throw err;
     }
@@ -37,6 +40,7 @@ window.GameModules.entryActions = {
 
   async prepareEntrySetup() {
     if (this.busy) return;
+    console.log('[进入流程] 打开进入配置:', this.selectedWork, this.character?.name, this.character?.id);
     this.entrySetupOpen = true;
     this.characterAge = '';
     this.entryTime = { year: '', month: '', day: '', hour: '', minute: '', second: '' };
@@ -90,6 +94,7 @@ window.GameModules.entryActions = {
 
   async requestEntryAction(reason) {
     if (!window.dzmm?.completions) return `${this.character.name}正在处理与身份相关的日常事务。`;
+    console.log('[进入行动] 请求开始:', reason, this.entryTimeLabel(), this.character.name, this.character.work);
     let buffer = '';
     await window.dzmm.completions({
       model: this.modelId,
@@ -99,7 +104,7 @@ window.GameModules.entryActions = {
       buffer = this.mergeStreamText(buffer, chunk);
       const latest = this.cleanEntryAction(buffer);
       if (latest) this.entryCurrentAction = latest;
-      if (done) console.log('[进入行动] 生成完成:', latest);
+      if (done) console.log('[进入行动] 生成完成:', { length: buffer.length, text: latest });
     });
     return this.cleanEntryAction(buffer) || `${this.character.name}正在观察周围变化。`;
   },

@@ -27,12 +27,15 @@ window.GameModules.loadingActions = {
   },
 
   async runStage(key, detail, fn) {
+    console.log('[启动流程] 阶段开始:', key, detail);
     this.setStage(key, 'running', detail);
     try {
       const result = await fn();
+      console.log('[启动流程] 阶段完成:', key);
       this.setStage(key, 'done');
       return result;
     } catch (err) {
+      console.warn('[启动流程] 阶段失败:', key, err.message, err.stack);
       this.setStage(key, 'error', `${detail}失败：${err.message || '未知错误'}`);
       throw err;
     }

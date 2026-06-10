@@ -11,7 +11,9 @@ window.GameModules.characterBrief = {
     if (!character?.id || (useCache && current && this.hasBirthDate(current))) return;
     store.characterBriefBusy = true;
     try {
+      console.log('[人物资料] 开始读取:', character.work, character.name, character.id);
       const profile = await this.loadProfile(character);
+      console.log('[人物资料] 读取完成:', character.name, profile.path || '无路径', 'summaryLength=', String(profile.summary || '').length);
       store.characterProfiles = { ...store.characterProfiles, [character.id]: profile };
     } catch (err) {
       console.warn('人物设定读取失败:', err.message, err.stack);
