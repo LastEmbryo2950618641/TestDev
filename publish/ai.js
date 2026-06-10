@@ -5,8 +5,6 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.ai = {
   latestRequestId: 0,
-  controlFeelings: ['极度惊恐', '非常害怕', '恐惧', '疑惑', '警惕', '愤怒', '屈辱', '麻木', '担忧', '习惯', '冷静分析'],
-
   async withRetry(fn, max = 3) {
     for (let i = 0; i < max; i += 1) {
       try {
@@ -72,7 +70,7 @@ window.GameModules.ai = {
       resistance: this.clampNumber(data.resistance, fallback.resistance),
       quest: String(data.quest || fallback.quest).slice(0, 24),
       characterIntent: String(data.characterIntent || fallback.characterIntent || '').slice(0, 80),
-      controlFeeling: this.controlFeelings.includes(data.controlFeeling) ? data.controlFeeling : fallback.controlFeeling,
+      controlFeeling: String(data.controlFeeling || fallback.controlFeeling || '疑惑').slice(0, 40),
       controlAdaptation: this.clampNumber(data.controlAdaptation, fallback.controlAdaptation || 0),
       controlExperienceSummary: String(data.controlExperienceSummary || fallback.controlExperienceSummary || '').slice(0, 80),
       choices: Array.isArray(data.choices) && data.choices.length ? data.choices.slice(0, 4).map((x) => String(x).slice(0, 14)) : fallback.choices.slice(0, 4),

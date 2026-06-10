@@ -4,7 +4,7 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.characterFeedback = {
-  feelingOptions: ['极度惊恐', '非常害怕', '恐惧', '疑惑', '警惕', '愤怒', '屈辱', '麻木', '担忧', '习惯', '冷静分析'],
+  feelingExamples: ['极度惊恐', '非常害怕', '恐惧', '疑惑', '警惕', '愤怒', '屈辱', '麻木', '担忧', '习惯', '冷静分析'],
 
   async initial(store) {
     this.ensureExperience(store);
@@ -29,7 +29,7 @@ window.GameModules.characterFeedback = {
   prompt(store) {
     const profile = store.characterProfiles[store.character.id]?.summary || store.character.detail || store.character.personality || '';
     const experience = this.experience(store);
-    return `根据角色当前设定生成被操控后的内心反馈，并更新该角色对“被上线”的感觉。必须只返回合法JSON，不要Markdown。角色：${store.character.name}｜${store.character.role}｜${store.character.work}。年龄：${store.characterAge || '未知'}。操控方式：${store.controlMode}。当前正在发生：${store.entryCurrentAction || '未知'}。人物资料：${profile}。已有上线体验：上线次数=${experience.onlineCount}；当前被上线感觉=${experience.feeling}；适应度=${experience.adaptation}/100；体验摘要=${experience.summary}。核心处境：对角色本人来说，身体是突然不受控制的；她不知道是谁在控制，也不知道控制来源，只能先感到自己的身体突然自己行动。上线后她像被困在身体里旁观外界，无法控制动作和发声，但视觉、听觉、嗅觉、味觉、触觉、疼痛、疲劳等身体感觉仍然能感受到。规则：mind 必须是角色自己的第一人称内心独白，不要旁白说明，不要写角色名字；intent 是角色自己下一步想要做什么，不是玩家行动选项；controlFeeling 必须从这些状态中选择：${this.feelingOptions.join('、')}。请根据角色性格、年龄、身体状态、经历、记忆、当前处境、上线次数和适应度综合判断：上线次数多可能逐渐适应，但不是必然；有些角色会疑惑、警惕或冷静分析，有些会害怕、屈辱或愤怒，不要固定模板。格式：{"mind":"60字内","intent":"${store.character.name}下一步想要……，40字内","mood":"冷静/紧张/愤怒/动摇/信任/恐惧/好奇/坚定之一","resistance":0到100整数,"controlFeeling":"从候选状态中选一个","adaptation":0到100整数,"experienceSummary":"40字内，概括她这次对被上线的感受变化"}`;
+    return `根据角色当前设定生成被操控后的内心反馈，并更新该角色对“被上线”的感觉。必须只返回合法JSON，不要Markdown。角色：${store.character.name}｜${store.character.role}｜${store.character.work}。年龄：${store.characterAge || '未知'}。操控方式：${store.controlMode}。当前正在发生：${store.entryCurrentAction || '未知'}。人物资料：${profile}。已有上线体验：上线次数=${experience.onlineCount}；当前被上线感觉=${experience.feeling}；适应度=${experience.adaptation}/100；体验摘要=${experience.summary}。核心处境：对角色本人来说，身体是突然不受控制的；她不知道是谁在控制，也不知道控制来源，只能先感到自己的身体突然自己行动。上线后她像被困在身体里旁观外界，无法控制动作和发声，但视觉、听觉、嗅觉、味觉、触觉、疼痛、疲劳等身体感觉仍然能感受到。规则：mind 必须是角色自己的第一人称内心独白，不要旁白说明，不要写角色名字；intent 是角色自己下一步想要做什么，不是玩家行动选项；controlFeeling 可参考这些状态：${this.feelingExamples.join('、')}；也可以根据角色状态自定义一个更贴切的词、短句或简短感受描述。请根据角色性格、年龄、身体状态、经历、记忆、当前处境、上线次数和适应度综合判断：上线次数多可能逐渐适应，但不是必然；有些角色会疑惑、警惕或冷静分析，有些会害怕、屈辱或愤怒，不要固定模板。格式：{"mind":"60字内","intent":"${store.character.name}下一步想要……，40字内","mood":"冷静/紧张/愤怒/动摇/信任/恐惧/好奇/坚定之一","resistance":0到100整数,"controlFeeling":"可参考候选，也可自定义词、短句或简短感受描述","adaptation":0到100整数,"experienceSummary":"40字内，概括她这次对被上线的感受变化"}`;
   },
 
   parse(text, fallback) {
@@ -38,7 +38,7 @@ window.GameModules.characterFeedback = {
       const end = text.lastIndexOf('}');
       if (start < 0 || end < 0) throw new Error('反馈 JSON 缺失');
       const data = JSON.parse(text.slice(start, end + 1));
-      const feeling = this.feelingOptions.includes(data.controlFeeling) ? data.controlFeeling : fallback.controlFeeling;
+      const feeling = String(data.controlFeeling || fallback.controlFeeling || '疑惑').slice(0, 40);
       return {
         mind: String(data.mind || fallback.mind).slice(0, 80),
         intent: String(data.intent || fallback.intent).slice(0, 80),
