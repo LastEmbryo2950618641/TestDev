@@ -64,7 +64,7 @@ window.GameModules.actions = {
     this.ragBusy = true;
     this.ragError = '';
     try {
-      const results = await window.GameModules.rag.search(query, { limit: 5 });
+      const results = await window.GameModules.rag.search(query, { limit: 5, sourceHint: this.character.work });
       this.ragResults = results;
       this.ragContext = window.GameModules.rag.formatContext(results);
     } catch (err) {

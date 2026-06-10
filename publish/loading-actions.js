@@ -42,7 +42,7 @@ window.GameModules.loadingActions = {
     this.resetLoadingStages();
     await this.runStage('sdk', '正在连接 Gamefy SDK。', () => dzmmReady);
     await Promise.all([
-      this.runStage('catalog', '正在读取作品、角色和资料索引。', () => this.loadCatalog()),
+      this.runStage('catalog', '正在读取作品、角色和本地设定库入口。', () => this.loadCatalog()),
       this.runStage('user', '正在读取玩家信息并选择 AI 模型。', () => this.loadModelAndUser()),
       this.runStage('slots', '正在并行检查 10 个存档位。', () => this.refreshSaveMetas()),
     ]);

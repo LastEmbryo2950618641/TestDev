@@ -21,7 +21,7 @@
   <script src="character-memory.js"></script>
   <script src="character-brief.js"></script>
   <script src="storage.js"></script>
-  <script src="rag-index.js"></script>
+  <script src="lore-sources.js"></script>
   <script src="character-catalog-data.js"></script>
   <script src="rag.js"></script>
   <script src="catalog.js"></script>
@@ -382,7 +382,7 @@
         <p class="quest-text dev-section" data-section-title="当前目标区" x-text="$store.game.quest"></p>
         <h3>资料查询</h3>
         <div class="lore-search dev-section" data-section-title="资料查询输入区">
-          <input x-model="$store.game.ragQuery" placeholder="查 Fate 资料..." @keydown.enter="$store.game.searchLore()">
+          <input x-model="$store.game.ragQuery" placeholder="查当前作品设定..." @keydown.enter="$store.game.searchLore()">
           <button @click="$store.game.searchLore()" :disabled="$store.game.ragBusy || !$store.game.ragQuery.trim()">查</button>
         </div>
         <p class="lore-error" x-show="$store.game.ragError" x-text="$store.game.ragError"></p>

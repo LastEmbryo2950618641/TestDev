@@ -1,72 +1,94 @@
 /**
- * 前端轻量 RAG：加载 Fate 索引，做别名扩展 + 关键词重排。
+ * 前端资料查询：以 assets/作品名/AI设定库/README.md 为入口，按索引精确加载本地设定卡。
  */
 window.GameModules = window.GameModules || {};
 
 window.GameModules.rag = {
-  index: null,
+  sources: null, fileCache: {},
 
   async load() {
-    if (this.index) return this.index;
-    if (window.GameData?.ragIndex) {
-      this.index = window.GameData.ragIndex;
-      return this.index;
-    }
-    throw new Error('RAG 索引未加载');
+    if (this.sources) return this.sources;
+    this.sources = window.GameData?.loreSources || [];
+    if (!this.sources.length) throw new Error('资料入口未配置');
+    return this.sources;
   },
 
   async search(query, options = {}) {
-    const index = await this.load();
-    const terms = this.expandTerms(query, index.aliases || {});
-    const sourceHint = options.sourceHint || '';
-    const allItems = index.items || [];
-    const sourceItems = sourceHint ? allItems.filter((item) => this.sameSource(item.novel, sourceHint)) : [];
-    if (options.strictSource && sourceHint && !sourceItems.length) return [];
-    const items = options.strictSource && sourceItems.length ? sourceItems : allItems;
+    const sources = await this.load();
+    const source = this.pickSource(sources, query, options.sourceHint);
+    if (!source) return [];
+    const terms = this.expandTerms(`${query} ${options.sourceHint || ''}`);
+    const candidates = await this.candidateFiles(source, terms);
     const results = [];
-
-    for (const item of items) {
-      const text = `${item.novel} ${item.title} ${item.text}`;
-      let score = 0;
-      for (const term of terms) {
-        if (!term) continue;
-        const count = this.countMatches(text, term);
-        score += count * (term.length >= 3 ? 8 : 2);
-      }
-      if (options.requiredTerms && !this.hasAny(text, options.requiredTerms)) continue;
-      if (sourceHint && this.sameSource(item.novel, sourceHint)) score += 10;
-      if (score > 0) results.push({ ...item, ragScore: score + (item.score || 0) * 0.15 });
+    for (const path of candidates.slice(0, 18)) {
+      const text = await this.fetchText(`${source.base}/${path}`);
+      const score = this.score(`${path}\n${text}`, terms) + (path === 'README.md' ? 2 : 0);
+      if (score > 0 || path === 'README.md') results.push(this.result(source, path, text, score));
     }
-
     results.sort((a, b) => b.ragScore - a.ragScore);
-    const limited = results.slice(0, options.limit || 4);
-    return options.contextRadius ? this.expandContext(limited, items, options.contextRadius) : limited;
-  },
-
-  expandContext(results, items, radius) {
-    const output = [];
-    const seen = new Set();
-    for (const hit of results) {
-      const chunk = Number(hit.chunk);
-      if (!Number.isFinite(chunk)) { output.push(hit); continue; }
-      const start = Math.max(0, chunk - radius);
-      const end = chunk + radius;
-      const key = `${hit.novel}|${hit.title}|${start}-${end}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      const parts = items.filter((x) => x.novel === hit.novel && x.title === hit.title && Number(x.chunk) >= start && Number(x.chunk) <= end)
-        .sort((a, b) => Number(a.chunk) - Number(b.chunk));
-      const text = this.paragraphExcerpt(parts.map((x) => x.text).join('\n'), hit.text);
-      if (text) output.push({ ...hit, chunk: `${start}-${end}`, text });
-    }
-    return output;
+    return results.slice(0, options.limit || 4);
   },
 
   async expandKnownRefs(refs, options = {}) {
-    const index = await this.load();
-    const sourceHint = options.sourceHint || '';
-    const items = (index.items || []).filter((item) => !sourceHint || this.sameSource(item.novel, sourceHint));
-    return this.expandContext(refs.filter((ref) => items.some((item) => item.novel === ref.novel && item.title === ref.title && Number(item.chunk) === Number(ref.chunk))), items, options.contextRadius || 1);
+    if (!refs?.length) return [];
+    return this.search(refs.map((ref) => `${ref.title || ''} ${ref.text || ''}`).join(' '), options);
+  },
+
+  pickSource(sources, query, sourceHint = '') {
+    const text = this.normalize(`${sourceHint} ${query}`);
+    return sources.find((source) => [source.name, ...(source.aliases || [])].some((name) => text.includes(this.normalize(name))))
+      || (sourceHint ? null : sources[0]);
+  },
+
+  async candidateFiles(source, terms) {
+    const readme = await this.fetchText(`${source.base}/README.md`);
+    const files = ['README.md', ...this.extractPaths(readme)];
+    for (const indexPath of files.filter((p) => /索引\.md$/.test(p)).slice(0, 10)) {
+      const text = await this.fetchText(`${source.base}/${indexPath}`);
+      files.push(...this.extractPaths(text, indexPath));
+    }
+    return this.unique(files).sort((a, b) => this.score(b, terms) - this.score(a, terms));
+  },
+
+  extractPaths(text, from = '') {
+    const paths = [];
+    const re = /`([^`]+\.md)`|(?:^|[\s|：:])([^\s|`]+\.md)/gm;
+    let match;
+    while ((match = re.exec(String(text || '')))) {
+      const raw = (match[1] || match[2] || '').trim();
+      const path = this.resolvePath(raw, from);
+      if (path && !path.includes('..')) paths.push(path);
+    }
+    return paths;
+  },
+
+  resolvePath(raw, from) {
+    let path = raw.replace(/^AI设定库\//, '').replace(/^\.\//, '');
+    if (!path.endsWith('.md')) return '';
+    if (path.startsWith('../')) return '';
+    if (!path.includes('/') && from.includes('/')) path = `${from.split('/').slice(0, -1).join('/')}/${path}`;
+    const stack = [];
+    for (const part of path.split('/')) {
+      if (!part || part === '.') continue;
+      if (part === '..') stack.pop(); else stack.push(part);
+    }
+    return stack.join('/');
+  },
+
+  async fetchText(url) {
+    if (this.fileCache[url] !== undefined) return this.fileCache[url];
+    try {
+      const res = await fetch(encodeURI(url));
+      this.fileCache[url] = res.ok ? await res.text() : '';
+    } catch (err) {
+      console.warn('资料文件读取失败:', url, err.message);
+      this.fileCache[url] = '';
+    }
+    return this.fileCache[url];
+  },
+
+  result(source, path, text, score) {
+    return { novel: source.name, title: path, path, chunk: 'file', text: this.paragraphExcerpt(text), ragScore: score };
   },
 
   paragraphExcerpt(text, fallback = '') {
@@ -82,52 +104,34 @@ window.GameModules.rag = {
 
   sentenceExcerpt(text) {
     const sentences = String(text || '').replace(/\s+/g, ' ').match(/[^。！？]+[。！？]/g) || [];
-    const picked = sentences.map((x) => x.trim()).filter((x) => x.length >= 8 && this.isCleanStart(x) && this.isCleanEnd(x)).slice(0, 6);
-    return picked.join('\n');
+    return sentences.map((x) => x.trim()).filter((x) => x.length >= 8 && this.isCleanStart(x) && this.isCleanEnd(x)).slice(0, 6).join('\n');
   },
 
-  isCleanStart(text) {
-    return !/^[，。！？、；：」”）\]】]|^(的|了|的话|但是|而且|因为|所以|这种|那人|她|他|我|不|总之|因此)[^。！？]{0,18}[，。]/.test(text);
+  isCleanStart(text) { return !/^[，。！？、；：」”）\]】]|^(的|了|的话|但是|而且|因为|所以|这种|那人|她|他|我|不|总之|因此)[^。！？]{0,18}[，。]/.test(text); },
+  isCleanEnd(text) { return /[。！？」”）\]】]$/.test(text) && !/[，、：；]$/.test(text); },
+  sameSource(novel, sourceHint) { return this.normalize(novel) === this.normalize(sourceHint); },
+  hasAny(text, terms) { return terms.some((term) => term && text.includes(term)); },
+
+  expandTerms(query) {
+    return this.unique(String(query || '').split(/[\s,，。！？、：:；;《》「」『』（）()\[\]]+/).filter((x) => x.length >= 2)).slice(0, 18);
   },
 
-  isCleanEnd(text) {
-    return /[。！？」”）\]】]$/.test(text) && !/[，、：；]$/.test(text);
-  },
-
-  sameSource(novel, sourceHint) {
-    return String(novel || '').replace(/\s+/g, '').toLowerCase() === String(sourceHint || '').replace(/\s+/g, '').toLowerCase();
-  },
-
-  hasAny(text, terms) {
-    return terms.some((term) => term && text.includes(term));
-  },
-
-  expandTerms(query, aliases) {
-    const base = String(query || '').split(/[\s,，。！？、：:；;]+/).filter(Boolean);
-    const terms = new Set(base);
-    for (const [name, list] of Object.entries(aliases)) {
-      if (query.includes(name) || list.some((alias) => query.includes(alias))) {
-        terms.add(name);
-        list.forEach((alias) => terms.add(alias));
-      }
-    }
-    return [...terms].slice(0, 18);
+  score(text, terms) {
+    const raw = String(text || '');
+    return terms.reduce((sum, term) => sum + this.countMatches(raw, term) * (term.length >= 3 ? 8 : 2), 0);
   },
 
   countMatches(text, term) {
-    let count = 0;
-    let pos = String(text).indexOf(term);
-    while (pos !== -1 && count < 8) {
-      count += 1;
-      pos = text.indexOf(term, pos + term.length);
-    }
+    let count = 0, pos = String(text).indexOf(term);
+    while (pos !== -1 && count < 8) { count += 1; pos = text.indexOf(term, pos + term.length); }
     return count;
   },
 
   formatContext(results) {
     if (!results?.length) return '未检索到可用原作资料。';
-    return results.map((item, index) => (
-      `[资料${index + 1}] 来源=${item.novel}/${item.title} chunk=${item.chunk}\n${item.text}`
-    )).join('\n\n');
+    return results.map((item, index) => `[资料${index + 1}] 来源=${item.novel}/${item.title}\n${item.text}`).join('\n\n');
   },
+
+  normalize(text) { return String(text || '').replace(/[\s·・／/【】\[\]（）()「」『』:：-]+/g, '').toLowerCase(); },
+  unique(list) { return [...new Set(list.filter(Boolean))]; },
 };
