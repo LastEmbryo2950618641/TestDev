@@ -14,6 +14,7 @@ window.GameModules.rpgState = {
           { key: 'health', label: '生命值', type: 'number', min: 0, max: 100 },
           { key: 'stamina', label: '精力', type: 'number', min: 0, max: 100 },
           { key: 'learning_ability', label: '学习能力', type: 'number', min: 0, max: 100 },
+          { key: 'perception_ability', label: '感知能力', type: 'number', min: 0, max: 100 },
           { key: 'mental_stability', label: '精神稳定', type: 'number', min: 0, max: 100 },
           { key: 'action_ability', label: '行动能力', type: 'number', min: 0, max: 100 },
           { key: 'control_resistance', label: '操控抗性', type: 'number', min: 0, max: 100 },
@@ -62,7 +63,7 @@ window.GameModules.rpgState = {
 
   schemaMatchesAttrs(schema, attrs) {
     const keys = new Set(schema.sections?.flatMap((section) => section.fields.map((field) => field.key)) || []);
-    const baseKeys = ['world_tag', 'age', 'health', 'stamina', 'learning_ability', 'mental_stability', 'action_ability'];
+    const baseKeys = ['world_tag', 'age', 'health', 'stamina', 'learning_ability', 'perception_ability', 'mental_stability', 'action_ability'];
     return baseKeys.every((key) => keys.has(key)) && (attrs.fields || []).every((field) => keys.has(field.key));
   },
 
@@ -78,7 +79,7 @@ window.GameModules.rpgState = {
     schema.worldTag = worldTag;
     schema.sections = schema.sections.slice(0, 4).map((section, si) => ({
       title: String(section.title || `状态${si + 1}`).slice(0, 12),
-      fields: (section.fields || []).slice(0, section.title === '世界固有属性' ? 16 : 5).map((field, fi) => ({
+      fields: (section.fields || []).slice(0, section.title === '必备属性' ? 12 : (section.title === '世界固有属性' ? 16 : 5)).map((field, fi) => ({
         key: /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(field.key) ? field.key : `field_${si}_${fi}`,
         label: String(field.label || field.key || '状态').slice(0, 12),
         type: ['number', 'rank', 'list', 'text'].includes(field.type) ? field.type : 'number',

@@ -35,7 +35,7 @@ window.GameModules.resultActions = {
     const state = this.characterRpgState;
     if (!state?.values) return;
     Object.entries(changes || {}).forEach(([key, delta]) => {
-      if (!['health', 'stamina', 'mana'].includes(key)) return;
+      if (!['health', 'stamina', 'mental_stability'].includes(key)) return;
       const current = Number.isFinite(state.values[key]) ? state.values[key] : 100;
       state.values[key] = Math.max(0, Math.min(100, current + delta));
     });

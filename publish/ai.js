@@ -79,7 +79,7 @@ window.GameModules.ai = {
       statChanges: {
         health: this.clampVitalDelta(changes.health),
         stamina: this.clampVitalDelta(changes.stamina),
-        mana: this.clampVitalDelta(changes.mana),
+        mental_stability: this.clampVitalDelta(changes.mental_stability),
       },
     };
   },

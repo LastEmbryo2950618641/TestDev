@@ -134,9 +134,9 @@ window.GameModules.saveActions = {
   rpgVitals(state) {
     const values = state?.values || {};
     return [
-      { key: 'health', label: '生命', value: values.health ?? 100 },
+      { key: 'health', label: '生命值', value: values.health ?? 100 },
       { key: 'stamina', label: '精力', value: values.stamina ?? 100 },
-      { key: 'mana', label: '魔力', value: values.mana ?? 100 },
+      { key: 'mental_stability', label: '精神稳定', value: values.mental_stability ?? 100 },
     ];
   },
 
