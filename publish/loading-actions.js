@@ -11,7 +11,7 @@ window.GameModules.loadingActions = {
       { key: 'user', name: '玩家与模型', status: 'waiting' },
       { key: 'slots', name: '存档扫描', status: 'waiting' },
       { key: 'db', name: '当前存档', status: 'waiting' },
-      { key: 'rpg', name: 'RPG 与记忆', status: 'waiting' },
+      { key: 'rpg', name: 'RPG 缓存', status: 'waiting' },
     ];
   },
 
@@ -54,10 +54,9 @@ window.GameModules.loadingActions = {
       const save = await window.GameModules.storage.get();
       window.GameModules.storage.restore(this, save);
     });
-    await this.runStage('rpg', '正在恢复世界观、角色属性和记忆索引。', async () => {
+    await this.runStage('rpg', '正在恢复已保存的角色状态缓存。', async () => {
       this.ensureCatalogSelection();
       this.loadSavedRpgStates();
-      await this.ensureRpgForCurrentCharacter();
     });
     this.loading = false;
   },

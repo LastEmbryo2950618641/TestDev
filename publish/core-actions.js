@@ -9,12 +9,14 @@ window.GameModules.coreActions = {
     this.selectedCharacterId = window.GameModules.catalog.firstCharacter(name) || this.selectedCharacterId;
     this.resetEntryTime();
     window.GameModules.characterBrief.ensure(this);
+    this.prepareRpgForSelectedCharacter();
   },
 
   selectCharacter(id) {
     this.selectedCharacterId = id;
     this.resetEntryTime();
     window.GameModules.characterBrief.ensure(this);
+    this.prepareRpgForSelectedCharacter();
   },
 
   resetEntryTime() {

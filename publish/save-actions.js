@@ -27,7 +27,7 @@ window.GameModules.saveActions = {
     if (save) window.GameModules.storage.restore(this, save);
     this.ensureCatalogSelection();
     this.loadSavedRpgStates();
-    await this.ensureRpgForCurrentCharacter();
+    this.prepareRpgForSelectedCharacter();
   },
 
   async loadSlot(slot) {
@@ -76,13 +76,39 @@ window.GameModules.saveActions = {
     this.rpgStates = Object.fromEntries(states.map((state) => [state.id, state]));
   },
 
-  async ensureRpgForCurrentCharacter() {
-    if (!window.GameModules.sqliteSave.db) return;
-    const worldTag = this.character.work || '原创世界';
-    console.log('[RPG状态] 准备当前角色状态:', worldTag, this.character.name);
-    const state = await window.GameModules.rpgState.ensureCharacter(this.character);
+  prepareRpgForSelectedCharacter() {
+    if (!window.GameModules.sqliteSave.db || !this.character?.id) return null;
+    if (this.rpgStates[this.character.id]) return Promise.resolve(this.rpgStates[this.character.id]);
+    const token = ++this.rpgPrepareToken;
+    const character = this.character;
+    this.rpgPrepareCharacterId = character.id;
+    console.log('[RPG状态] 后台预生成开始:', character.work || '原创世界', character.name);
+    const task = this.ensureRpgForCharacter(character).catch((err) => {
+      console.warn('[RPG状态] 后台预生成失败:', character.name, err.message, err.stack);
+      return null;
+    });
+    this.rpgPreparePromise = task.then((state) => {
+      if (token === this.rpgPrepareToken && state) console.log('[RPG状态] 后台预生成完成:', state.id, state.worldTag);
+      return state;
+    });
+    return this.rpgPreparePromise;
+  },
+
+  async ensureRpgForCharacter(character) {
+    if (!window.GameModules.sqliteSave.db || !character) return null;
+    const worldTag = character.work || '原创世界';
+    console.log('[RPG状态] 准备角色状态:', worldTag, character.name);
+    const state = await window.GameModules.rpgState.ensureCharacter(character);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
     this.rpgPanelCharacterId = this.rpgPanelCharacterId || state.id;
+    return state;
+  },
+
+  async ensureRpgForCurrentCharacter() {
+    if (this.rpgStates[this.character.id]) return this.rpgStates[this.character.id];
+    if (this.rpgPreparePromise && this.rpgPrepareCharacterId === this.character.id) await this.rpgPreparePromise;
+    if (this.rpgStates[this.character.id]) return this.rpgStates[this.character.id];
+    return this.ensureRpgForCharacter(this.character);
   },
 
   async ensureRpgFromResults(result) {
