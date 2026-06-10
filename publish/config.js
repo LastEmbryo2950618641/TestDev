@@ -10,6 +10,11 @@ window.GameModules.config = {
     // 只控制可重新计算/重新读取的缓存；存档、角色记忆、当前运行状态不受影响。
     scopes: { files: true, catalog: true, characterProfiles: true, generatedLore: true, generatedSchema: true, generatedProfiles: true },
   },
+  assetEnv: 'dev',
+  assetRoots: {
+    dev: { cacheRoots: ['./', ''], sourceRoots: ['assets/'] },
+    prod: { cacheRoots: ['./', ''], sourceRoots: ['assets/'] },
+  },
   rag: { maxIndexFiles: 3, maxCandidateFiles: 8, defaultResultLimit: 3, logFiles: true },
   defaultModelId: 'nalang-medium-0826',
   stats: [

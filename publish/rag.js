@@ -133,22 +133,47 @@ window.GameModules.rag = {
 
   async loadSourceCache(source) {
     if (this.sourceCache[source.name]) return this.sourceCache[source.name];
-    try {
-      this.log('读取资料快照文件', source.cache);
-      const res = await fetch(encodeURI(source.cache));
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      this.sourceCache[source.name] = data;
-      return data;
-    } catch (err) {
-      console.warn('资料快照读取失败:', source.name, source.cache, err.message);
-      this.sourceCache[source.name] = null;
-      return null;
+    for (const url of this.cacheUrlCandidates(source.cache)) {
+      try {
+        this.log('读取资料快照文件', url);
+        const res = await fetch(encodeURI(url));
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        this.sourceCache[source.name] = data;
+        return data;
+      } catch (err) {
+        console.warn('资料快照读取失败:', source.name, url, err.message);
+      }
     }
+    this.sourceCache[source.name] = null;
+    return null;
+  },
+
+  cacheUrlCandidates(cachePath) {
+    return this.roots('cacheRoots').map((root) => this.joinRoot(root, cachePath));
+  },
+
+  roots(type) {
+    const cfg = window.GameModules.config || {};
+    const env = cfg.assetEnv || 'dev';
+    const roots = cfg.assetRoots?.[env]?.[type] || cfg.assetRoots?.dev?.[type] || [''];
+    return Array.isArray(roots) && roots.length ? roots : [''];
+  },
+
+  joinRoot(root, value) {
+    if (!root) return value;
+    return `${String(root).replace(/\/$/, '')}/${String(value).replace(/^\.\//, '').replace(/^\//, '')}`;
   },
 
   urlCandidates(url) {
     const values = [url];
+    const rel = url.replace(/^\.\.\//, '').replace(/^\//, '');
+    if (rel.startsWith('assets/')) {
+      for (const root of this.roots('sourceRoots')) {
+        values.push(this.joinRoot(root, rel.replace(/^assets\//, '')));
+        values.push(this.joinRoot(root, rel));
+      }
+    }
     if (url.startsWith('../assets/')) {
       values.push(url.replace(/^\.\.\//, ''));
       values.push(url.replace(/^\.\./, ''));
