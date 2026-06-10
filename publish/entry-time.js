@@ -54,16 +54,16 @@ window.GameModules.entryTime = {
     if (start) {
       const birth = this.birthDate(store.characterProfiles[store.character.id]);
       if (birth && this.dateValue([birth.year, birth.month, birth.day, 0, 0, 0]) > this.dateValue([start.year, start.month, start.day, start.hour, start.minute, start.second])) {
-        start = { year: birth.year, month: birth.month, day: birth.day, hour: 0, minute: 0, second: 0 };
+        start = { year: birth.year, month: birth.month, day: birth.day, ...this.randomClock() };
       }
       store.entryCalendar = this.modernCalendar();
       return {
         years: this.unique([`${start.year}年`, ...this.nearYears({ units: { year: '年' } }, start.year)]),
         months: Array.from({ length: 12 }, (_, i) => `${i + 1}月`),
         days: Array.from({ length: 31 }, (_, i) => `${i + 1}日`),
-        hours: Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}时`),
-        minutes: Array.from({ length: 12 }, (_, i) => `${String(i * 5).padStart(2, '0')}分`),
-        seconds: Array.from({ length: 12 }, (_, i) => `${String(i * 5).padStart(2, '0')}秒`),
+        hours: this.unique([`${String(start.hour).padStart(2, '0')}时`, ...Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}时`)]),
+        minutes: this.unique([`${String(start.minute).padStart(2, '0')}分`, ...Array.from({ length: 12 }, (_, i) => `${String(i * 5).padStart(2, '0')}分`)]),
+        seconds: this.unique([`${String(start.second).padStart(2, '0')}秒`, ...Array.from({ length: 12 }, (_, i) => `${String(i * 5).padStart(2, '0')}秒`)]),
         start,
       };
     }
@@ -106,6 +106,14 @@ window.GameModules.entryTime = {
 
   dateValue(parts) {
     return parts[0] * 1e10 + parts[1] * 1e8 + parts[2] * 1e6 + parts[3] * 1e4 + parts[4] * 100 + parts[5];
+  },
+
+  randomClock() {
+    return {
+      hour: Math.floor(Math.random() * 24),
+      minute: Math.floor(Math.random() * 60),
+      second: Math.floor(Math.random() * 60),
+    };
   },
 
   applyStart(store) {
