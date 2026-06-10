@@ -51,9 +51,6 @@ window.GameModules.entryActions = {
       this.entryCalendar = calendar;
       await this.runEntryStage('time', '正在读取剧情索引前50行并定位最早剧情时间。', async () => this.prepareEntryTimeOptions(calendar));
       await this.runEntryStage('rpg', '正在准备被控制角色的完整 RPG 状态。', () => this.ensureRpgForCurrentCharacter());
-      window.GameModules.entryTime.applyCharacterAge(this);
-      await this.runEntryStage('action', '正在根据时间、世界观和性格推演当前行动。', () => this.generateEntryAction('初始进入时机'));
-
       await this.runEntryStage('ready', '进入配置已准备好，可以选择操控方式。', async () => true);
     } finally {
       this.busy = false;

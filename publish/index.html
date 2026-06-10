@@ -23,6 +23,7 @@
   <script src="character-brief.js"></script>
   <script src="storage.js"></script>
   <script src="lore-sources.js"></script>
+  <script src="story-start-data.js"></script>
   <script src="character-catalog-data.js"></script>
   <script src="rag.js"></script>
   <script src="catalog.js"></script>
@@ -240,7 +241,7 @@
         </div>
         <article class="entry-action-card">
           <strong>当前正在发生</strong>
-          <p x-text="$store.game.entryCurrentAction || '等待生成当前行动…'"></p>
+          <p x-text="$store.game.entryCurrentAction || '角色将按当前时间点的日常状态进入。'"></p>
         </article>
         <div class="entry-advance-row">
           <input class="text-input" x-model="$store.game.entryAdvanceInput" placeholder="推进分钟，例如 10 / 20">
@@ -251,7 +252,7 @@
           <button :class="{ active: $store.game.controlMode === 'rpg' }" @click="$store.game.controlMode = 'rpg'" :disabled="$store.game.busy">RPG方式</button>
         </div>
         <small x-text="$store.game.controlMode === 'possess' ? '第二人称直接控制人物身体。' : '第三人称通过手机式界面发出操作。'"></small>
-        <button class="primary-btn" @click="$store.game.confirmControl()" :disabled="$store.game.busy || !$store.game.entryCurrentAction">控制</button>
+        <button class="primary-btn" @click="$store.game.confirmControl()" :disabled="$store.game.busy || !$store.game.entryTimeOptions.start">控制</button>
     </div>
   </section>
 

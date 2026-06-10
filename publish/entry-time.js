@@ -23,7 +23,8 @@ window.GameModules.entryTime = {
     const save = window.GameModules.sqliteSave;
     if (!save?.db) return;
     const worldTag = store.character.work || '原创世界';
-    const lore = save.getWorldLore(worldTag) || await window.GameModules.worldLore.ensure(worldTag, store.sceneTitle || '进入前');
+    const lore = save.getWorldLore(worldTag);
+    if (!lore) return;
     lore.calendar = calendar;
     await save.saveWorldLore(worldTag, lore);
   },
@@ -76,6 +77,8 @@ window.GameModules.entryTime = {
 
   async storyStart(store) {
     const source = window.GameModules.characterBrief.sourceFor(store.character.work);
+    const cached = this.cachedStart(store.character.work, source);
+    if (cached) return cached;
     if (!source) return null;
     const url = `${source.base}/02_按需加载_剧情/剧情索引.md`;
     const text = await window.GameModules.rag.fetchText(url);
@@ -84,6 +87,12 @@ window.GameModules.entryTime = {
     if (!times.length) return null;
     const first = times.map((m) => m.slice(1).map(Number)).sort((a, b) => this.dateValue(a) - this.dateValue(b))[0];
     return { year: first[0], month: first[1], day: first[2], hour: first[3], minute: first[4], second: first[5] };
+  },
+
+  cachedStart(work, source) {
+    const starts = window.GameData?.storyStarts || {};
+    const names = [work, source?.name, ...(source?.aliases || [])].filter(Boolean);
+    return names.map((name) => starts[name]).find(Boolean) || null;
   },
 
   dateValue(parts) {
@@ -108,6 +117,7 @@ window.GameModules.entryTime = {
     const age = this.ageAt(birth, start);
     const state = store.rpgStates[store.character.id];
     if (age === null) {
+      store.characterAge = start ? '出生日期缺失' : '';
       if (state?.values) {
         delete state.values.age;
         delete state.values.age_label;
@@ -135,7 +145,7 @@ window.GameModules.entryTime = {
   birthDate(profile) {
     const rows = profile?.basics || [];
     const value = rows.find((x) => /出生|生日|生年月日/.test(x.label))?.value || '';
-    const match = String(value).match(/(\d{3,4})[年\/-](\d{1,2})[月\/-](\d{1,2})/);
+    const match = String(value).match(/(\d{3,4})\s*[年\/-]\s*(\d{1,2})\s*[月\/-]\s*(\d{1,2})/);
     return match ? { year: +match[1], month: +match[2], day: +match[3] } : null;
   },
 

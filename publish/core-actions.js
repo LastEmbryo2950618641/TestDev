@@ -40,7 +40,7 @@ window.GameModules.coreActions = {
   entryAgeLabel() {
     if (this.characterAge) return this.characterAge;
     if (this.busy || !this.entryTimeOptions.start) return '计算中…';
-    return '未知';
+    return '出生日期缺失';
   },
 
   async start() {
