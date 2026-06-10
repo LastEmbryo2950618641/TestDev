@@ -61,6 +61,7 @@ window.GameModules.rpgState = {
       const existing = save.getSchema(worldTag);
       if (existing) return existing;
     }
+    console.log('[RPG状态] 生成角色 schema:', worldTag);
     const lore = await window.GameModules.worldLore.ensure(worldTag);
     const schema = await this.generateSchema(worldTag, lore);
     await save.saveSchema(worldTag, schema);
@@ -79,6 +80,7 @@ window.GameModules.rpgState = {
         buffer += chunk;
         if (!done) return;
       });
+      console.log('[RPG状态] schema 返回长度:', buffer.length);
       return this.withLoreFields(this.validateSchema(this.parseSchema(buffer), worldTag), lore);
     } catch (err) {
       console.warn('RPG schema 生成失败，使用兜底:', err.message);

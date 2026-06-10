@@ -54,6 +54,7 @@ window.GameModules.entryActions = {
         await this.ensureRpgForCurrentCharacter();
         await window.GameModules.entryTime.applyCharacterAge(this);
       });
+      await this.runEntryStage('action', '正在推演角色当前行动。', async () => this.generateEntryAction('默认进入时机'));
       await this.runEntryStage('ready', '进入配置已准备好，可以选择操控方式。', async () => true);
     } finally {
       this.busy = false;
@@ -89,16 +90,18 @@ window.GameModules.entryActions = {
 
   async requestEntryAction(reason) {
     if (!window.dzmm?.completions) return `${this.character.name}正在处理与身份相关的日常事务。`;
-    let latest = '';
+    let buffer = '';
     await window.dzmm.completions({
       model: this.modelId,
       maxTokens: 220,
       messages: [{ role: 'user', content: this.entryPrompt(reason) }],
-    }, (chunk) => {
-      latest = this.cleanEntryAction(chunk);
+    }, (chunk, done) => {
+      buffer += chunk;
+      const latest = this.cleanEntryAction(buffer);
       if (latest) this.entryCurrentAction = latest;
+      if (done) console.log('[进入行动] 生成完成:', latest);
     });
-    return latest || `${this.character.name}正在观察周围变化。`;
+    return this.cleanEntryAction(buffer) || `${this.character.name}正在观察周围变化。`;
   },
 
   cleanEntryAction(text) {

@@ -79,7 +79,7 @@ window.GameModules.saveActions = {
   async ensureRpgForCurrentCharacter() {
     if (!window.GameModules.sqliteSave.db) return;
     const worldTag = this.character.work || '原创世界';
-    await window.GameModules.worldLore.ensure(worldTag, this.sceneTitle || '首次进入');
+    console.log('[RPG状态] 准备当前角色状态:', worldTag, this.character.name);
     const state = await window.GameModules.rpgState.ensureCharacter(this.character);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
     this.rpgPanelCharacterId = this.rpgPanelCharacterId || state.id;

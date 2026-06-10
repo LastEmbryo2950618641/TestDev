@@ -18,16 +18,19 @@ window.GameModules.rag = {
     const sources = await this.load();
     const source = this.pickSource(sources, query, options.sourceHint);
     if (!source) return [];
+    const cfg = window.GameModules.config.rag || {};
     const terms = this.expandTerms(`${query} ${options.sourceHint || ''}`);
     const candidates = await this.candidateFiles(source, terms);
+    const maxFiles = options.maxFiles || cfg.maxCandidateFiles || 8;
     const results = [];
-    for (const path of candidates.slice(0, 18)) {
+    this.log('候选资料文件', source.name, candidates.slice(0, maxFiles));
+    for (const path of candidates.slice(0, maxFiles)) {
       const text = await this.fetchText(`${source.base}/${path}`);
       const score = this.score(`${path}\n${text}`, terms) + (path === 'README.md' ? 2 : 0);
       if (score > 0 || path === 'README.md') results.push(this.result(source, path, text, score));
     }
     results.sort((a, b) => b.ragScore - a.ragScore);
-    return results.slice(0, options.limit || 4);
+    return results.slice(0, options.limit || cfg.defaultResultLimit || 3);
   },
 
   async expandKnownRefs(refs, options = {}) {
@@ -42,9 +45,14 @@ window.GameModules.rag = {
   },
 
   async candidateFiles(source, terms) {
+    const cfg = window.GameModules.config.rag || {};
     const readme = await this.fetchText(`${source.base}/README.md`);
     const files = ['README.md', ...this.extractPaths(readme)];
-    for (const indexPath of files.filter((p) => /索引\.md$/.test(p)).slice(0, 10)) {
+    const indexes = files.filter((p) => /索引\.md$/.test(p))
+      .sort((a, b) => this.score(b, terms) - this.score(a, terms))
+      .slice(0, cfg.maxIndexFiles || 3);
+    this.log('读取资料索引', source.name, indexes);
+    for (const indexPath of indexes) {
       const text = await this.fetchText(`${source.base}/${indexPath}`);
       files.push(...this.extractPaths(text, indexPath));
     }
@@ -81,8 +89,10 @@ window.GameModules.rag = {
     if (useCache && this.fileCache[url] !== undefined) return this.fileCache[url];
     let text = '';
     try {
+      this.log('读取资料文件', url);
       const res = await fetch(encodeURI(url));
       text = res.ok ? await res.text() : '';
+      if (!res.ok) console.warn('资料文件读取失败:', url, res.status);
     } catch (err) {
       console.warn('资料文件读取失败:', url, err.message);
     }
@@ -137,4 +147,8 @@ window.GameModules.rag = {
 
   normalize(text) { return String(text || '').replace(/[\s·・／/【】\[\]（）()「」『』:：-]+/g, '').toLowerCase(); },
   unique(list) { return [...new Set(list.filter(Boolean))]; },
+
+  log(message, ...args) {
+    if (window.GameModules.config.rag?.logFiles) console.log(`[资料读取] ${message}:`, ...args);
+  },
 };
