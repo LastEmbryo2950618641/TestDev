@@ -14,35 +14,32 @@ window.GameModules.actions = {
     this.ragContext = window.GameModules.rag.formatContext(results);
   },
 
-  moodScore() {
-    return { 冷静: 50, 紧张: 42, 愤怒: 30, 动摇: 38, 信任: 72, 恐惧: 25, 好奇: 60, 坚定: 68 }[this.mood] || 50;
-  },
-
-  affection() {
-    return Math.max(0, Math.min(100, Math.round(this.trust * 0.8 + (100 - this.resistance) * 0.2)));
-  },
-
-  heartbeat() {
-    const mood = { 紧张: 12, 动摇: 10, 恐惧: 8, 好奇: 7, 信任: 6, 坚定: 4, 愤怒: 3, 冷静: 0 }[this.mood] || 0;
-    return Math.max(0, Math.min(100, Math.round(30 + this.trust * 0.25 + this.resistance * 0.25 + mood)));
-  },
-
-  metrics() {
+  metricGroups() {
+    window.GameModules.metrics.ensure(this);
     return [
-      ['情绪', this.moodScore()],
-      ['信任', this.trust],
-      ['反抗', this.resistance],
-      ['好感', this.affection()],
-      ['心动', this.heartbeat()],
+      { title: '当前情绪', type: 'emotion', values: this.emotions },
+      { title: '对玩家感觉', type: 'player', values: this.playerFeelings },
     ];
   },
 
-  summaryMetrics() {
-    return this.metrics().slice(0, 5);
+  metricEntries(group) {
+    return Object.entries(group.values).map(([key, value]) => ({ key, value }));
   },
 
-  expandedMetrics() {
-    return this.metrics().slice(5);
+  metricNote(type, key) {
+    const base = window.GameModules.metrics.descriptions[key] || '';
+    const note = this.metricNotes?.[`${type}:${key}`] || '等待 AI 根据剧情更新解释。';
+    const stage = key === '爱情' ? `阶段：${window.GameModules.metrics.stage(this.playerFeelings.爱情)}。` : '';
+    return `${stage}${base} 当前解释：${note}`;
+  },
+
+  toggleMetric(type, key) {
+    const id = `${type}:${key}`;
+    this.expandedMetricKey = this.expandedMetricKey === id ? '' : id;
+  },
+
+  isMetricOpen(type, key) {
+    return this.expandedMetricKey === `${type}:${key}`;
   },
 
   feedbackText() {
@@ -107,6 +104,11 @@ window.GameModules.actions = {
       this.mood = '冷静';
       this.trust = 45;
       this.resistance = 20;
+      const metrics = window.GameModules.metrics.fresh();
+      this.emotions = metrics.emotions;
+      this.playerFeelings = metrics.playerFeelings;
+      this.metricNotes = {};
+      this.expandedMetricKey = '';
       this.quest = '确认操控连接';
       this.mindText = '';
       this.choices = window.GameModules.config.openingChoices;

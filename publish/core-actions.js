@@ -63,6 +63,7 @@ window.GameModules.coreActions = {
       this.mindText = feedback.mind;
       this.characterIntent = feedback.intent;
       this.choices = feedback.choices || this.choices;
+      this.applyMetricUpdates(feedback.metricUpdates);
       await window.GameModules.characterFeedback.applyExperience(this, feedback);
       this.addLog('mind', `${this.character.name}的心理`, this.mindText);
     }

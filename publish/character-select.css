@@ -279,73 +279,76 @@
   overscroll-behavior: contain;
 }
 
-.compact-metrics {
+.compact-metrics,
+.metric-group {
   display: grid;
   gap: 5px;
 }
 
-.metrics-summary {
-  min-height: 28px;
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 4px;
-  overflow: hidden;
-  padding: 3px;
+.metric-group-title {
+  padding: 4px 7px;
   border: 1px solid rgba(255, 255, 255, .12);
   border-radius: 9px;
   background: rgba(255, 255, 255, .055);
   color: #f8fbff;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 800;
 }
 
-.metrics-summary span {
+.metrics-summary {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  min-width: 0;
-  padding: 2px 3px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, .045);
-}
-
-.metrics-detail {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  flex-wrap: wrap;
   gap: 4px;
-  max-height: 96px;
+  max-height: 122px;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
 
-.metrics-detail span {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 5px;
-  min-width: 0;
-  padding: 5px 7px;
+.metric-pill {
+  min-width: 54px;
+  max-width: 100%;
+  padding: 4px 6px;
   border: 1px solid rgba(255, 255, 255, .1);
   border-radius: 9px;
   background: rgba(255, 255, 255, .055);
+  color: #f8fbff;
+  text-align: left;
 }
 
-.metrics-summary b,
-.metrics-detail b {
-  overflow: hidden;
+.metric-pill.active {
+  border-color: rgba(122, 167, 255, .55);
+  background: rgba(122, 167, 255, .12);
+}
+
+.metric-pill span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.metric-pill b {
   color: #aeb9d6;
   font-size: 10px;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.metrics-summary em,
-.metrics-detail em {
+.metric-pill em {
   color: #f8fbff;
   font-style: normal;
   font-size: 13px;
   font-weight: 900;
   line-height: 1;
   font-variant-numeric: tabular-nums;
+}
+
+.metric-pill small {
+  display: block;
+  margin-top: 4px;
+  color: #dfe6ff;
+  font-size: 10px;
+  line-height: 1.35;
 }
 
 .profile-card {

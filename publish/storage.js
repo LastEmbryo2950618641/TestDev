@@ -40,6 +40,9 @@ window.GameModules.storage = {
       mood: store.mood,
       trust: store.trust,
       resistance: store.resistance,
+      emotions: store.emotions,
+      playerFeelings: store.playerFeelings,
+      metricNotes: store.metricNotes,
       quest: store.quest,
       mindText: store.mindText,
       characterIntent: store.characterIntent,
@@ -65,6 +68,10 @@ window.GameModules.storage = {
     store.mood = save.mood || store.mood;
     store.trust = save.trust ?? store.trust;
     store.resistance = save.resistance ?? store.resistance;
+    store.emotions = save.emotions || store.emotions;
+    store.playerFeelings = save.playerFeelings || store.playerFeelings;
+    store.metricNotes = save.metricNotes || store.metricNotes;
+    window.GameModules.metrics.ensure(store);
     store.quest = save.quest || store.quest;
     store.mindText = save.mindText || store.mindText;
     store.characterIntent = save.characterIntent || store.characterIntent;

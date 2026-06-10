@@ -7,6 +7,9 @@ window.GameModules.createSystemPrompt = function createSystemPrompt(state, actio
   const character = state.character;
   const experience = state.characterRpgState?.values?.control_experience || { onlineCount: 0, feeling: '未知', adaptation: 0, summary: '尚未经历上线操控。' };
   const feelingExamples = '极度惊恐/非常害怕/恐惧/疑惑/警惕/愤怒/屈辱/麻木/担忧/习惯/冷静分析';
+  window.GameModules.metrics.ensure(state);
+  const metricDefs = window.GameModules.metrics.descriptions;
+  const metricState = `当前情绪=${JSON.stringify(state.emotions)}；对玩家感觉=${JSON.stringify(state.playerFeelings)}`;
   return `你是 AI RPG 视觉小说《我狠狠操控》的剧情引擎。
 
 核心设定：
@@ -31,6 +34,7 @@ controlMode=${state.controlMode}
 情绪=${state.mood}
 信任=${state.trust}
 反抗=${state.resistance}
+固定数值=${metricState}
 目标=${state.quest}
 基础状态=${JSON.stringify(state.rpgVitals(state.characterRpgState))}
 被上线体验=上线次数${experience.onlineCount}次；当前感觉=${experience.feeling}；适应度=${experience.adaptation}/100；摘要=${experience.summary}
@@ -43,6 +47,14 @@ ${state.ragContext || '暂无资料。'}
 
 当前人物记忆：
 ${state.memoryContext || '暂无人物记忆。'}
+
+固定数值规则：
+1. emotions 只能使用这些固定情绪维度：${window.GameModules.metrics.emotionKeys.join('、')}。
+2. playerFeelings 只能使用这些固定对玩家感觉维度：${window.GameModules.metrics.playerKeys.join('、')}。
+3. 每个 value 必须是 0-100 整数；0=完全没有，1-20=轻微萌芽，21-40=明显存在，41-60=强烈影响判断，61-80=主导当前反应，81-100=压倒性支配心理。
+4. 含义定义：${Object.entries(metricDefs).map(([k, v]) => `${k}=${v}`).join('；')}
+5. 爱情分8阶段，每约12.5分晋级：心动（初见好感、心生涟漪）、爱恋（倾心喜欢、萌生爱意）、倾心（满心偏向、满眼皆是）、眷恋（不舍分离、时时牵挂）、深爱（掏心交付、甘愿付出）、执念（深陷其中、难以割舍）、依存（彼此依靠、密不可分）、相守（至死不渝、长久相伴）。
+6. AI 只返回本回合需要更新的维度，不要全量重复；reason 写清这次数值变化的原因，玩家点击词语时会看到。
 
 资料使用规则：
 1. 资料相关时优先贴合资料推进主线。
@@ -64,6 +76,7 @@ ${state.memoryContext || '暂无人物记忆。'}
   "controlFeeling":"被上线感觉；可参考 ${feelingExamples}，也可以自定义一个词、短句或简短感受描述；结合上线次数、适应度、记忆和角色设定判断",
   "controlAdaptation":0到100整数,
   "controlExperienceSummary":"40字内，概括这次被上线后的感受变化",
+  "metricUpdates":{"emotions":[{"key":"固定情绪名","value":0到100整数,"reason":"40字内解释"}],"playerFeelings":[{"key":"固定感觉名","value":0到100整数,"reason":"40字内解释"}]},
   "choices":["必须给4个AI推荐行动选项，正好4个，每个12字内；根据当前场景、角色状态、玩家输入和危险生成；不要包含放开控制，不要固定套用默认选项"],
   "appearedCharacters":[{"name":"姓名","role":"身份","detail":"基础资料","personality":"性格","work":"所属作品或世界","isMinor":true,"importance":"minor|support|main"}],
   "statChanges":{"health":-8到8,"stamina":-8到8,"mana":-8到8}
@@ -92,6 +105,10 @@ window.GameModules.createFallbackResult = function createFallbackResult(state, a
     controlFeeling: state.characterRpgState?.values?.control_experience?.feeling || '疑惑',
     controlAdaptation: state.characterRpgState?.values?.control_experience?.adaptation || 0,
     controlExperienceSummary: '身体控制权异常，来源仍然未知。',
+    metricUpdates: {
+      emotions: [{ key: online ? '恐惧' : '好奇', value: online ? 35 : 25, reason: online ? '身体失控带来明显恐惧。' : '恢复行动后想理解现状。' }],
+      playerFeelings: [{ key: '警惕', value: online ? 45 : 35, reason: '操控来源未知，仍保持防备。' }],
+    },
     choices: ['使用技能调查', '主动交涉', '避开危险', '触碰异常物'],
     appearedCharacters: [{ name, role: state.character.role, detail: state.character.detail || state.character.personality, personality: state.character.personality || '', work: state.character.work, isMinor: false, importance: 'main' }],
     statChanges: { health: 0, stamina: online ? -2 : 1, mana: 0 },

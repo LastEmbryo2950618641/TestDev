@@ -157,6 +157,7 @@ window.GameModules.entryActions = {
     this.mindText = feedback.mind;
     this.characterIntent = feedback.intent;
     this.choices = feedback.choices || this.choices;
+    this.applyMetricUpdates(feedback.metricUpdates);
     await window.GameModules.characterFeedback.applyExperience(this, feedback);
     const mode = this.controlMode === 'possess' ? `附身方式：${possessText}` : 'RPG方式：第三人称通过手机式界面控制。';
     this.addLog('system', '进入时机', `${this.sceneTitle}｜${mode}`);

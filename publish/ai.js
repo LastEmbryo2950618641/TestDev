@@ -27,7 +27,7 @@ window.GameModules.ai = {
       await this.withRetry(() => window.dzmm.completions({
         model: store.modelId,
         messages,
-        maxTokens: 1200,
+        maxTokens: 1700,
       }, async (chunk, done) => {
         if (requestId !== this.latestRequestId) return;
         buffer += chunk;
@@ -73,6 +73,7 @@ window.GameModules.ai = {
       controlFeeling: String(data.controlFeeling || fallback.controlFeeling || '疑惑').slice(0, 40),
       controlAdaptation: this.clampNumber(data.controlAdaptation, fallback.controlAdaptation || 0),
       controlExperienceSummary: String(data.controlExperienceSummary || fallback.controlExperienceSummary || '').slice(0, 80),
+      metricUpdates: this.normalizeMetricUpdates(data.metricUpdates, fallback.metricUpdates),
       choices: this.normalizeChoices(data.choices, fallback.choices),
       appearedCharacters: Array.isArray(data.appearedCharacters) ? data.appearedCharacters.slice(0, 6).map((x) => this.normalizeCharacter(x, store)).filter(Boolean) : fallback.appearedCharacters,
       statChanges: {
@@ -81,6 +82,22 @@ window.GameModules.ai = {
         mana: this.clampVitalDelta(changes.mana),
       },
     };
+  },
+
+  normalizeMetricUpdates(value, fallback) {
+    return {
+      emotions: this.normalizeMetricGroup(value?.emotions, fallback?.emotions, window.GameModules.metrics.emotionKeys),
+      playerFeelings: this.normalizeMetricGroup(value?.playerFeelings, fallback?.playerFeelings, window.GameModules.metrics.playerKeys),
+    };
+  },
+
+  normalizeMetricGroup(value, fallback, keys) {
+    const list = Array.isArray(value) ? value : (Array.isArray(fallback) ? fallback : []);
+    return list.filter((item) => keys.includes(item?.key)).slice(0, 8).map((item) => ({
+      key: item.key,
+      value: window.GameModules.metrics.clamp(item.value),
+      reason: String(item.reason || '').slice(0, 80),
+    }));
   },
 
   normalizeChoices(value, fallback) {

@@ -12,6 +12,7 @@
   <script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js"></script>
   <script src="config.js"></script>
   <script src="prompt.js"></script>
+  <script src="metrics.js"></script>
   <script src="sqlite-save.js"></script>
   <script src="rpg-state.js"></script>
   <script src="timeline-data.js"></script>
@@ -34,6 +35,7 @@
   <script src="actions.js"></script>
   <script src="loading-actions.js"></script>
   <script src="save-actions.js"></script>
+  <script src="result-actions.js"></script>
   <script src="entry-actions.js"></script>
   <script src="core-actions.js"></script>
   <script src="game.js"></script>
@@ -297,16 +299,19 @@
         </button>
         <div class="profile-stack" :class="{ 'profile-stack-expanded': $store.game.profileOpen }">
         <section class="compact-metrics dev-section" data-section-title="简洁数值栏">
-          <button class="metrics-summary" @click="$store.game.metricsOpen = !$store.game.metricsOpen">
-            <template x-for="metric in $store.game.summaryMetrics()" :key="metric[0]">
-              <span><b x-text="metric[0]"></b><em x-text="metric[1]"></em></span>
-            </template>
-          </button>
-          <div class="metrics-detail" x-show="$store.game.metricsOpen && $store.game.expandedMetrics().length">
-            <template x-for="metric in $store.game.expandedMetrics()" :key="metric[0]">
-              <span><b x-text="metric[0]"></b><em x-text="metric[1]"></em></span>
-            </template>
-          </div>
+          <template x-for="group in $store.game.metricGroups()" :key="group.type">
+            <div class="metric-group">
+              <button class="metric-group-title" @click="$store.game.metricsOpen = !$store.game.metricsOpen" x-text="group.title"></button>
+              <div class="metrics-summary">
+                <template x-for="metric in $store.game.metricEntries(group)" :key="`${group.type}-${metric.key}`">
+                  <button class="metric-pill" @click="$store.game.toggleMetric(group.type, metric.key)" :class="{ active: $store.game.isMetricOpen(group.type, metric.key) }">
+                    <span><b x-text="metric.key"></b><em x-text="metric.value"></em></span>
+                    <small x-show="$store.game.isMetricOpen(group.type, metric.key)" x-text="$store.game.metricNote(group.type, metric.key)"></small>
+                  </button>
+                </template>
+              </div>
+            </div>
+          </template>
         </section>
         <section class="profile-card dev-section" :data-section-title="$store.game.profileOpen ? '个人资料区' : '角色反馈区'">
           <template x-if="!$store.game.profileOpen">
