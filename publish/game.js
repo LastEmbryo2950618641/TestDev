@@ -55,6 +55,7 @@ document.addEventListener('alpine:init', () => {
     resistance: 20,
     quest: '确认操控连接',
     mindText: '',
+    characterIntent: '',
     choices: cfg.openingChoices,
     log: [],
     nextId: 1,
@@ -173,6 +174,7 @@ document.addEventListener('alpine:init', () => {
       this.trust = result.trust;
       this.resistance = result.resistance;
       this.quest = result.quest;
+      this.characterIntent = result.characterIntent || this.characterIntent;
       this.choices = result.choices;
       this.mindText = result.mind;
       await this.applyStatChanges(result.statChanges);

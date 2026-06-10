@@ -42,6 +42,7 @@ window.GameModules.storage = {
       resistance: store.resistance,
       quest: store.quest,
       mindText: store.mindText,
+      characterIntent: store.characterIntent,
       choices: store.choices,
       log: store.log.slice(-30),
       rpgPanelCharacterId: store.rpgPanelCharacterId,
@@ -66,6 +67,7 @@ window.GameModules.storage = {
     store.resistance = save.resistance ?? store.resistance;
     store.quest = save.quest || store.quest;
     store.mindText = save.mindText || store.mindText;
+    store.characterIntent = save.characterIntent || store.characterIntent;
     store.choices = save.choices || store.choices;
     store.log = save.log || store.log;
     store.rpgPanelCharacterId = save.rpgPanelCharacterId || store.selectedCharacterId;

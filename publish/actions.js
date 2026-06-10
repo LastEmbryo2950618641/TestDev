@@ -50,12 +50,8 @@ window.GameModules.actions = {
   },
 
   feedbackPlan() {
-    const next = this.quest || '夺回身体的主导权';
     const name = this.character?.name || '角色';
-    if (!this.online) return `${name}下一步想要：${next}`;
-    const feeling = this.mood === '恐惧' ? '恐惧' : (this.mood === '愤怒' ? '愤怒' : '不安');
-    if (this.controlMode === 'possess') return `${name}下一步想要挣扎摆脱令她${feeling}的操控。`;
-    return `${name}下一步想要弄清这条操控链路，并尽量保住自己的判断。`;
+    return this.characterIntent || `${name}下一步想要按自己的处境重新判断。`;
   },
 
   feedbackSummary() {

@@ -70,6 +70,7 @@ window.GameModules.ai = {
       trust: this.clampNumber(data.trust, fallback.trust),
       resistance: this.clampNumber(data.resistance, fallback.resistance),
       quest: String(data.quest || fallback.quest).slice(0, 24),
+      characterIntent: String(data.characterIntent || fallback.characterIntent || '').slice(0, 80),
       choices: Array.isArray(data.choices) && data.choices.length ? data.choices.slice(0, 4).map((x) => String(x).slice(0, 14)) : fallback.choices.slice(0, 4),
       appearedCharacters: Array.isArray(data.appearedCharacters) ? data.appearedCharacters.slice(0, 6).map((x) => this.normalizeCharacter(x, store)).filter(Boolean) : fallback.appearedCharacters,
       statChanges: {
