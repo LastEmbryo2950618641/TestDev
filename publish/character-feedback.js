@@ -25,6 +25,7 @@ window.GameModules.characterFeedback = {
         buffer = this.merge(buffer, chunk);
       });
       await Promise.race([request, new Promise((_, reject) => setTimeout(() => reject(new Error('角色反馈生成超时')), 12000))]);
+      console.log('[角色反馈] AI返回完成:', { length: buffer.length, preview: buffer.slice(0, 120) });
       return this.parse(buffer, fallback, store);
     } catch (err) {
       console.warn('角色反馈生成失败:', err.code, err.message, err.stack);
@@ -49,7 +50,7 @@ window.GameModules.characterFeedback = {
       const completeMetrics = this.hasCompleteInitialMetrics(data.metricUpdates);
       if (!data.mind && !data.intent) throw new Error('角色反馈缺少 mind/intent');
       const feeling = String(data.controlFeeling || fallback.controlFeeling || '疑惑').slice(0, 40);
-      return {
+      const result = {
         mind: String(data.mind || fallback.mind).slice(0, 80),
         intent: String(data.intent || fallback.intent).slice(0, 80),
         mood: ['冷静', '紧张', '愤怒', '动摇', '信任', '恐惧', '好奇', '坚定'].includes(data.mood) ? data.mood : fallback.mood,
@@ -61,6 +62,8 @@ window.GameModules.characterFeedback = {
         choices: this.normalizeChoices(data.choices, fallback.choices),
         source: 'ai',
       };
+      console.log('[角色反馈] AI解析成功:', { mindLength: result.mind.length, intentLength: result.intent.length, metrics: completeMetrics ? 'ai' : 'fallback' });
+      return result;
     } catch (err) {
       console.warn('角色反馈解析失败:', err.message);
       return fallback;

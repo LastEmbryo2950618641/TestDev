@@ -11,10 +11,8 @@ window.GameModules.resultActions = {
     this.trust = result.trust;
     this.resistance = result.resistance;
     this.quest = result.quest;
-    this.characterIntent = result.source === 'ai' ? (result.characterIntent || '') : '';
+    this.updateFeedbackFromResult(result);
     this.choices = result.choices;
-    this.mindText = result.source === 'ai' ? (result.mind || '') : '';
-    this.feedbackSource = result.source || 'fallback';
     this.applyMetricUpdates(result.metricUpdates);
     await window.GameModules.entryTime.advance(this, result.elapsedSeconds || 60);
     await this.ensureRpgFromResults(result);
@@ -25,6 +23,19 @@ window.GameModules.resultActions = {
       const id = this.addNovelEntry(this.lastAction || '继续推进');
       this.finalizeNovelEntry(id, result);
     }
+  },
+
+  updateFeedbackFromResult(result) {
+    const mind = String(result.mind || '').trim();
+    const intent = String(result.characterIntent || '').trim();
+    if (result.source === 'ai' && (mind || intent)) {
+      this.mindText = mind || this.mindText;
+      this.characterIntent = intent || this.characterIntent;
+      this.feedbackSource = 'ai';
+      console.log('[角色反馈] 剧情AI回填:', { mindLength: mind.length, intentLength: intent.length });
+      return;
+    }
+    console.log('[角色反馈] 保留现有反馈:', { source: result.source, hasMind: Boolean(mind), currentSource: this.feedbackSource });
   },
 
   applyMetricUpdates(updates) {
