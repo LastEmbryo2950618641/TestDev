@@ -61,7 +61,7 @@ window.GameModules.rpgState = {
     return schema;
   },
 
-  async ensureCharacter(character) {
+  async ensureCharacter(character, store = null) {
     const save = window.GameModules.sqliteSave;
     const id = character.id || character.name;
     const existing = save.getCharacterState(id);
@@ -75,7 +75,17 @@ window.GameModules.rpgState = {
     const worldTag = save.getCharacterWorld(id) || character.work || '原创世界';
     console.log('[RPG状态] 创建角色状态:', id, character.name, worldTag);
     const schema = await this.ensureSchema(worldTag);
-    const created = this.createCharacterState(character, schema);
+    const created = this.createCharacterState(character, schema, store);
+    await save.saveCharacterState(created);
+    return created;
+  },
+
+  async rebuildCharacter(character, store = null) {
+    const save = window.GameModules.sqliteSave;
+    const id = character.id || character.name;
+    const worldTag = save.getCharacterWorld(id) || character.work || '原创世界';
+    const schema = await this.ensureSchema(worldTag);
+    const created = this.createCharacterState(character, schema, store);
     await save.saveCharacterState(created);
     return created;
   },
@@ -117,8 +127,8 @@ window.GameModules.rpgState = {
     return changed;
   },
 
-  createCharacterState(character, schema) {
-    const seed = this.seed(character.name + character.role + schema.worldTag + (character.detail || ''));
+  createCharacterState(character, schema, store = null) {
+    const seed = this.seed(character.name + character.role + schema.worldTag + (character.detail || '') + (store?.entryCurrentAction || ''));
     const values = { world_tag: schema.worldTag, health: 100, stamina: 100 };
     for (const section of schema.sections) {
       for (const field of section.fields) {
@@ -127,9 +137,16 @@ window.GameModules.rpgState = {
       }
     }
     Object.assign(values, window.GameModules.progression.createValues(character, seed, values));
+    const worldFields = schema.sections.find((section) => section.title === '世界固有属性')?.fields || [];
+    window.GameModules.rpgInitializer?.apply(values, character, store, seed, { fields: worldFields });
     values.derived = window.GameModules.progression.derived(values);
     values.combat_simulation = window.GameModules.progression.defaultCombat(values);
     Object.assign(values, character.worldValues || {});
+    const age = parseInt(String(store?.characterAge || ''), 10);
+    if (Number.isFinite(age)) {
+      values.age = age;
+      values.age_label = `${age}岁`;
+    }
     values.status_tags = [character.role, character.importance === 'minor' ? '路人' : '可被操控', schema.worldTag];
     values.control_experience = {
       onlineCount: 0,

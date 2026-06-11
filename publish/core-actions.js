@@ -9,16 +9,18 @@ window.GameModules.coreActions = {
     this.selectedCharacterId = window.GameModules.catalog.firstCharacter(name) || this.selectedCharacterId;
     this.resetEntryTime();
     this.resetMetricsForCharacter();
+    delete this.rpgStates[this.selectedCharacterId];
     window.GameModules.characterBrief.ensure(this);
-    this.prepareRpgForSelectedCharacter();
+    this.prepareRpgSchemaForSelectedWork();
   },
 
   selectCharacter(id) {
     this.selectedCharacterId = id;
     this.resetEntryTime();
     this.resetMetricsForCharacter();
+    delete this.rpgStates[this.selectedCharacterId];
     window.GameModules.characterBrief.ensure(this);
-    this.prepareRpgForSelectedCharacter();
+    this.prepareRpgSchemaForSelectedWork();
   },
 
   resetMetricsForCharacter() {

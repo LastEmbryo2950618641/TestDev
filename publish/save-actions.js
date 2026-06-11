@@ -76,39 +76,34 @@ window.GameModules.saveActions = {
     this.rpgStates = Object.fromEntries(states.map((state) => [state.id, state]));
   },
 
-  prepareRpgForSelectedCharacter() {
-    if (!window.GameModules.sqliteSave.db || !this.character?.id) return null;
-    if (this.rpgStates[this.character.id]) return Promise.resolve(this.rpgStates[this.character.id]);
-    const token = ++this.rpgPrepareToken;
-    const character = this.character;
-    this.rpgPrepareCharacterId = character.id;
-    console.log('[RPG状态] 后台预生成开始:', character.work || '原创世界', character.name);
-    const task = this.ensureRpgForCharacter(character).catch((err) => {
-      console.warn('[RPG状态] 后台预生成失败:', character.name, err.message, err.stack);
+  prepareRpgSchemaForSelectedWork() {
+    if (!window.GameModules.sqliteSave.db || !this.character?.work) return null;
+    const worldTag = this.character.work || '原创世界';
+    return window.GameModules.rpgState.ensureSchema(worldTag).catch((err) => {
+      console.warn('[RPG状态] schema 预热失败:', worldTag, err.message, err.stack);
       return null;
     });
-    this.rpgPreparePromise = task.then((state) => {
-      if (token === this.rpgPrepareToken && state) console.log('[RPG状态] 后台预生成完成:', state.id, state.worldTag);
-      return state;
-    });
-    return this.rpgPreparePromise;
   },
 
-  async ensureRpgForCharacter(character) {
+  prepareRpgForSelectedCharacter() {
+    return this.prepareRpgSchemaForSelectedWork();
+  },
+
+  async ensureRpgForCharacter(character, options = {}) {
     if (!window.GameModules.sqliteSave.db || !character) return null;
     const worldTag = character.work || '原创世界';
     console.log('[RPG状态] 准备角色状态:', worldTag, character.name);
-    const state = await window.GameModules.rpgState.ensureCharacter(character);
+    const state = options.rebuild
+      ? await window.GameModules.rpgState.rebuildCharacter(character, this)
+      : await window.GameModules.rpgState.ensureCharacter(character, this);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
     this.rpgPanelCharacterId = this.rpgPanelCharacterId || state.id;
     return state;
   },
 
-  async ensureRpgForCurrentCharacter() {
-    if (this.rpgStates[this.character.id]) return this.rpgStates[this.character.id];
-    if (this.rpgPreparePromise && this.rpgPrepareCharacterId === this.character.id) await this.rpgPreparePromise;
-    if (this.rpgStates[this.character.id]) return this.rpgStates[this.character.id];
-    return this.ensureRpgForCharacter(this.character);
+  async ensureRpgForCurrentCharacter(options = {}) {
+    if (!options.rebuild && this.rpgStates[this.character.id]) return this.rpgStates[this.character.id];
+    return this.ensureRpgForCharacter(this.character, options);
   },
 
   async ensureRpgFromResults(result) {
@@ -117,7 +112,7 @@ window.GameModules.saveActions = {
     const context = `${this.sceneTitle} ${this.quest} ${result.narration || ''}`;
     for (const entry of entries) {
       const profile = await window.GameModules.characterProfile.ensure(entry, this, context);
-      const state = await window.GameModules.rpgState.ensureCharacter(profile);
+      const state = await window.GameModules.rpgState.ensureCharacter(profile, this);
       this.rpgStates = { ...this.rpgStates, [state.id]: state };
     }
   },

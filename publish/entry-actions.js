@@ -54,11 +54,11 @@ window.GameModules.entryActions = {
       const calendar = await this.runEntryStage('calendar', '正在生成或读取当前世界的固化历法。', () => window.GameModules.entryTime.ensureCalendar(this));
       this.entryCalendar = calendar;
       await this.runEntryStage('time', '正在定位默认进入时间并校正角色出生日期。', async () => this.prepareEntryTimeOptions(calendar));
-      await this.runEntryStage('rpg', '正在准备被控制角色的完整 RPG 状态。', async () => {
-        await this.ensureRpgForCurrentCharacter();
-        await window.GameModules.entryTime.applyCharacterAge(this);
-      });
       await this.runEntryStage('action', '正在推演角色当前行动。', async () => this.generateEntryAction('默认进入时机'));
+      await this.runEntryStage('rpg', '正在结合人物资料、当前状态与上下文固化 RPG 数值。', async () => {
+        await window.GameModules.entryTime.applyCharacterAge(this);
+        await this.ensureRpgForCurrentCharacter({ rebuild: true });
+      });
       await this.runEntryStage('ready', '进入配置已准备好，可以选择操控方式。', async () => true);
     } finally {
       this.busy = false;
