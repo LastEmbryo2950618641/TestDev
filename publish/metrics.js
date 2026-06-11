@@ -20,10 +20,18 @@ window.GameModules.metrics = {
   fresh() { return JSON.parse(JSON.stringify(this.defaults)); },
   clamp(v) { const n = Number(v); return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : 0; },
   stage(value) { return this.loveStages[Math.min(7, Math.floor(this.clamp(value) / 12.5))]; },
+  stageOptionsFor(key) { return key === '爱情' ? this.loveStages : this.intensityStages; },
+  normalizeStage(key, stage, value) {
+    const options = this.stageOptionsFor(key);
+    return options.includes(stage) ? stage : this.stageFor(key, value);
+  },
   stageFor(key, value) {
     if (key === '爱情') return this.stage(value);
     const n = this.clamp(value);
     return this.intensityStages[n === 0 ? 0 : Math.min(5, Math.floor((n - 1) / 20) + 1)];
+  },
+  stageGuide() {
+    return [...this.emotionKeys, ...this.playerKeys].map((key) => `${key}=${this.stageOptionsFor(key).join('/')}`).join('；');
   },
   stageDescription(key, stage) {
     if (key === '爱情') return `对玩家产生恋爱意义的${stage}。`;
@@ -49,7 +57,7 @@ window.GameModules.metrics = {
     items.forEach((item) => {
       if (!Object.prototype.hasOwnProperty.call(target, item?.key)) return;
       const value = this.clamp(item.value);
-      const stage = String(item.stage || this.stageFor(item.key, value)).slice(0, 12);
+      const stage = this.normalizeStage(item.key, String(item.stage || ''), value).slice(0, 12);
       target[item.key] = value;
       notes[`${group}:${item.key}`] = {
         stage,

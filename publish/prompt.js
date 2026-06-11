@@ -52,11 +52,12 @@ ${state.memoryContext || '暂无人物记忆。'}
 1. emotions 只能使用这些固定情绪维度：${window.GameModules.metrics.emotionKeys.join('、')}。
 2. playerFeelings 只能使用这些固定对玩家感觉维度：${window.GameModules.metrics.playerKeys.join('、')}。
 3. 每个 value 必须是 0-100 整数；0=完全没有，1-20=轻微萌芽，21-40=明显存在，41-60=强烈影响判断，61-80=主导当前反应，81-100=压倒性支配心理。
-4. 每个数值项必须返回 stage、description、reason 三个说明字段：stage 是当前阶段名；description 是该阶段的状态说明；reason 是本回合为什么是这个数值。
-5. 含义定义：${Object.entries(metricDefs).map(([k, v]) => `${k}=${v}`).join('；')}
-6. 爱情分8阶段，每约12.5分晋级：心动（初见好感、心生涟漪）、爱恋（倾心喜欢、萌生爱意）、倾心（满心偏向、满眼皆是）、眷恋（不舍分离、时时牵挂）、深爱（掏心交付、甘愿付出）、执念（深陷其中、难以割舍）、依存（彼此依靠、密不可分）、相守（至死不渝、长久相伴）。例如爱情 value 落在“心动”时，description 写“对玩家产生恋爱意义的心动”。
-7. emotions 必须每回合完整返回全部 ${window.GameModules.metrics.emotionKeys.length} 个当前情绪维度，并根据当前场景、角色性格、身体状态、危险程度、玩家输入和上下文重新推演所有 value；不要只返回变化项。
-8. playerFeelings 可以只返回本回合需要更新的维度；玩家点击词语时会看到 stage、description、reason。
+4. 每个数值项必须返回 stage、description、reason 三个说明字段：stage 必须从对应维度的可选阶段中选择；description 是该阶段的状态说明；reason 是本回合为什么是这个数值。
+5. 阶段可选表：${window.GameModules.metrics.stageGuide()}。
+6. 含义定义：${Object.entries(metricDefs).map(([k, v]) => `${k}=${v}`).join('；')}
+7. 爱情分8阶段，每约12.5分晋级：心动（初见好感、心生涟漪）、爱恋（倾心喜欢、萌生爱意）、倾心（满心偏向、满眼皆是）、眷恋（不舍分离、时时牵挂）、深爱（掏心交付）、执念（深陷其中、难以割舍）、依存（彼此依靠）、相守（长久相伴）。例如爱情 stage 为“相守”时，description 可写“AI解释：对玩家形成长久相伴、难以割舍的恋爱意义相守”。
+8. emotions 必须每回合完整返回全部 ${window.GameModules.metrics.emotionKeys.length} 个当前情绪维度，并根据当前场景、角色性格、身体状态、危险程度、玩家输入和上下文重新推演所有 value；不要只返回变化项。
+9. playerFeelings 可以只返回本回合需要更新的维度；玩家点击词语时会看到 stage、description、reason。
 
 资料使用规则：
 1. 资料相关时优先贴合资料推进主线。

@@ -107,7 +107,7 @@ window.GameModules.ai = {
     const list = Array.isArray(value) ? value : (Array.isArray(fallback) ? fallback : []);
     return list.filter((item) => keys.includes(item?.key)).slice(0, 16).map((item) => {
       const value = window.GameModules.metrics.clamp(item.value);
-      const stage = String(item.stage || window.GameModules.metrics.stageFor(item.key, value)).slice(0, 12);
+      const stage = window.GameModules.metrics.normalizeStage(item.key, String(item.stage || ''), value).slice(0, 12);
       return {
         key: item.key,
         value,
