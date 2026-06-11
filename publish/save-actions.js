@@ -130,7 +130,6 @@ window.GameModules.saveActions = {
     return [
       { key: 'health', label: '生命力', value: values.health ?? percent(values.vitality), text: this.rpgFieldValue(values.vitality) },
       { key: 'stamina', label: '精力', value: values.stamina ?? percent(values.stamina_pool), text: this.rpgFieldValue(values.stamina_pool) },
-      { key: 'mental_stability', label: '精神', value: percent(values.mental_stability), text: this.rpgFieldValue(values.mental_stability) },
     ];
   },
 
