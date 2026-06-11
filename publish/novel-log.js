@@ -57,15 +57,23 @@ Object.assign(window.GameModules.actions, {
   },
 
   updateNovelStream(id, raw) {
+    const entry = this.log.find((item) => item.id === id);
+    if (!entry) return false;
     const thinking = this.thinkingMode ? this.extractStreamingField(raw, 'thinking') : '';
     const text = this.extractStreamingField(raw, 'narration');
     const patch = { streaming: true };
-    if (thinking) {
+    let changed = !entry.streaming;
+    if (thinking && thinking !== entry.thinking) {
       patch.thinking = thinking;
       patch.thinkingOpen = true;
+      changed = true;
     }
-    if (text) patch.storyText = text;
-    this.updateNovelEntry(id, patch);
+    if (text && text !== entry.storyText) {
+      patch.storyText = text;
+      changed = true;
+    }
+    if (changed) this.updateNovelEntry(id, patch);
+    return changed;
   },
 
   finalizeNovelEntry(id, result) {
@@ -110,6 +118,6 @@ Object.assign(window.GameModules.actions, {
     const end = value.search(/"\s*,\s*"(?:thinking|narration|speech|mind|mood|trust|resistance|quest|characterIntent|controlFeeling|controlAdaptation|controlExperienceSummary|metricUpdates|choices|appearedCharacters|statChanges|combatEvent)"/);
     if (end >= 0) value = value.slice(0, end);
     value = value.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\').trim();
-    return value.length > 6 ? value : '';
+    return value.length ? value : '';
   },
 });

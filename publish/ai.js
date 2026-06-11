@@ -26,8 +26,7 @@ window.GameModules.ai = {
     console.log('[AI推演] 请求开始:', { requestId, action, model: store.modelId, promptLength: messages[0].content.length, ragLength: String(store.ragContext || '').length, memoryLength: String(store.memoryContext || '').length });
 
     try {
-      let chunkCount = 0;
-      let resolveDone;
+      let chunkCount = 0, lastPaint = 0, resolveDone;
       let resultPromise = Promise.resolve();
       const donePromise = new Promise((resolve) => { resolveDone = resolve; });
       await Promise.race([Promise.all([this.withRetry(() => window.dzmm.completions({
@@ -40,9 +39,11 @@ window.GameModules.ai = {
         buffer = window.GameModules.jsonUtils.mergeStreamText(buffer, chunk);
         if (!done) {
           if (chunkCount === 1 || chunkCount % 10 === 0) console.log('[AI推演] 流式片段:', { requestId, chunkCount, length: buffer.length });
-          if (logId && store.updateNovelStream) store.updateNovelStream(logId, buffer);
+          const changed = logId && store.updateNovelStream ? store.updateNovelStream(logId, buffer) : false;
+          if (changed && performance.now() - lastPaint > 50) lastPaint = performance.now(), await new Promise((resolve) => (window.requestAnimationFrame || setTimeout)(resolve));
           return;
         }
+        if (logId && store.updateNovelStream) store.updateNovelStream(logId, buffer);
         applied = true;
         console.log('[AI推演] 返回完成:', { requestId, chunkCount, length: buffer.length, preview: buffer.slice(0, 180) });
         resultPromise = store.applyResult(this.parse(buffer, store, action), logId);
@@ -100,11 +101,7 @@ window.GameModules.ai = {
       metricUpdates: this.normalizeMetricUpdates(data.metricUpdates),
       choices: this.normalizeChoices(data.choices, fallback.choices),
       appearedCharacters: Array.isArray(data.appearedCharacters) ? data.appearedCharacters.slice(0, 6).map((x) => this.normalizeCharacter(x, store)).filter(Boolean) : fallback.appearedCharacters,
-      statChanges: {
-        health: this.clampVitalDelta(changes.health),
-        stamina: this.clampVitalDelta(changes.stamina),
-        mental_stability: this.clampVitalDelta(changes.mental_stability),
-      },
+      statChanges: { health: this.clampVitalDelta(changes.health), stamina: this.clampVitalDelta(changes.stamina), mental_stability: this.clampVitalDelta(changes.mental_stability) },
       combatEvent: this.normalizeCombatEvent(data.combatEvent),
     };
   },
