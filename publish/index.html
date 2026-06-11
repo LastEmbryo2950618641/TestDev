@@ -370,8 +370,8 @@
               <template x-for="section in $store.game.rpgEntries($store.game.currentRpgState)" :key="section.title">
                 <section>
                   <h3 x-text="section.title"></h3>
-                  <template x-for="field in section.fields" :key="field.label">
-                    <div class="dynamic-row" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.canExpandRpgField(field) && $store.game.toggleRpgField(field)">
+                  <template x-for="field in section.fields" :key="`${section.title}:${field.key}`">
+                    <div class="dynamic-row" role="button" tabindex="0" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.toggleRpgField(field)" @keydown.enter.prevent="$store.game.toggleRpgField(field)" @keydown.space.prevent="$store.game.toggleRpgField(field)">
                       <span x-text="field.label"></span>
                       <b x-text="Array.isArray(field.value) ? field.value.join('、') || '无' : field.value"></b>
                       <p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p>

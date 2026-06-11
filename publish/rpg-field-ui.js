@@ -1,22 +1,33 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.rpgFieldUi = {
+  rpgFieldKey(field) {
+    return `${field?.key || ''}:${field?.label || ''}`;
+  },
+
   toggleRpgField(field) {
-    const key = `${field.key}:${field.label}`;
+    const key = this.rpgFieldKey(field);
+    if (!key) return;
     this.expandedRpgFieldKey = this.expandedRpgFieldKey === key ? '' : key;
   },
 
   isRpgFieldOpen(field) {
-    return this.expandedRpgFieldKey === `${field.key}:${field.label}`;
+    return this.expandedRpgFieldKey === this.rpgFieldKey(field);
   },
 
   canExpandRpgField(field) {
-    return Boolean(field?.desc || field?.key === 'professions');
+    return Boolean(field && this.rpgFieldDetail(field));
+  },
+
+  fallbackDesc(field) {
+    return {
+      exp: '当前经验与升到下一级所需经验。', magic_circuit_quality: '魔术回路单条质量、转换效率与稳定性。',
+      magic_circuit_quantity: '魔术回路的数量。', mana_capacity: '当前可调用魔力储备。',
+    }[field?.key] || `${field?.label || '该属性'}的固化数值、状态或记录。`;
   },
 
   rpgFieldDetail(field) {
-    const lines = [];
-    if (field.desc) lines.push(`说明: ${field.desc}`);
+    const lines = [`说明: ${field?.desc || this.fallbackDesc(field)}`];
     const item = Array.isArray(field.raw) ? field.raw[0] : null;
     if (!item || item.type !== '职业') return lines.join('\n');
     const info = item.info || {};
