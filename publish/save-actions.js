@@ -152,7 +152,10 @@ window.GameModules.saveActions = {
     return state.schema.sections.map((section) => ({
       title: section.title,
       fields: section.fields
-        .map((field) => ({ label: field.label, value: this.rpgFieldValue(state.values[field.key]) })),
+        .map((field) => {
+          const raw = field.key === 'exp' ? window.GameModules.progression.normalizeCharacterExp(state.values.exp, state.values.level) : state.values[field.key];
+          return { label: field.label, value: this.rpgFieldValue(raw) };
+        }),
     })).filter((section) => section.fields.length);
   },
 

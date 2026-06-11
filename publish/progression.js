@@ -34,9 +34,13 @@ window.GameModules.progression = {
   },
 
   field(key, label, type, min = 0, max = 100) { return { key, label, type, min, max }; },
-  nextCharacterExp(level) { return Math.round(100 * Math.max(1, level) ** 1.65); },
+  nextCharacterExp(level) { return Math.round(100 * Math.max(1, Number(level) || 1) ** 1.65); },
   clamp(value, min, max) { return Math.max(min, Math.min(max, Math.round(Number(value) || 0))); },
   pool(current, max) { return { current: this.clamp(current, 0, max), max: Math.max(1, Math.round(max)) }; },
+  normalizeCharacterExp(exp, level, fallbackCurrent = 0) {
+    const next = this.nextCharacterExp(level);
+    return { current: this.clamp(exp?.current ?? fallbackCurrent, 0, next), next, curve: 'nextExp=round(100*level^1.65)' };
+  },
 
   ensureStateMechanics(state, character = state?.profile || {}) {
     if (!state?.values) return false;
@@ -45,6 +49,8 @@ window.GameModules.progression = {
     let changed = false;
     const incomplete = !values.level || !values.exp?.next || !values.skills?.[0]?.level || !values.professions?.[0]?.level;
     if (incomplete) { Object.assign(values, this.createValues(character, seed, values)); changed = true; }
+    const normalizedExp = this.normalizeCharacterExp(values.exp, values.level, seed % 60);
+    if (!values.exp?.next || values.exp.next !== normalizedExp.next || values.exp.curve !== normalizedExp.curve) { values.exp = normalizedExp; changed = true; }
     if (!values.vitality?.max || !values.stamina_pool?.max) { this.recalculatePools(values, true); changed = true; }
     if (!values.derived?.attackPower) { values.derived = this.derived(values); changed = true; }
     if (!values.combat_simulation) { values.combat_simulation = this.defaultCombat(values); changed = true; }
@@ -63,7 +69,7 @@ window.GameModules.progression = {
     const staminaMax = level * 8 + intrinsic.constitution * 5 + this.trainingBonus(character);
     return {
       level,
-      exp: existing.exp?.next ? existing.exp : { current: seed % 60, next: this.nextCharacterExp(level), curve: '100*level^1.65' },
+      exp: this.normalizeCharacterExp(existing.exp, level, seed % 60),
       vitality: existing.vitality?.max ? existing.vitality : this.pool(existing.health ?? vitalityMax, vitalityMax),
       stamina_pool: existing.stamina_pool?.max ? existing.stamina_pool : this.pool(existing.stamina ?? staminaMax, staminaMax),
       satiety: existing.satiety || this.pool(70 + seed % 20, 100),

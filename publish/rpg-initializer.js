@@ -43,7 +43,7 @@ window.GameModules.rpgInitializer = {
     values.charisma = this.clamp(values.charisma + ctx.leader - Math.floor(ctx.trauma / 2), 1, 100);
     values.learning_ability = this.clamp(values.learning_ability + ctx.scholar + ctx.mage, 0, 100);
     values.growth_potential = this.clamp(values.growth_potential + (ctx.weak ? 8 : 0) - Math.floor(values.level / 8), 0, 100);
-    values.exp = { current: values.exp?.current || 0, next: window.GameModules.progression.nextCharacterExp(values.level), curve: '100*level^1.65' };
+    values.exp = window.GameModules.progression.normalizeCharacterExp(values.exp, values.level);
     this.applyPools(values, ctx);
     this.applyWorld(values, attrs, ctx, seed);
     values.initial_context = this.summary(character, store, ctx);
