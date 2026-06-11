@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="character-select.css">
   <link rel="stylesheet" href="profile-preview.css">
+  <link rel="stylesheet" href="prompt-dialog.css">
   <link rel="stylesheet" href="layout.css">
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js"></script>
@@ -190,6 +191,21 @@
           </article>
         </template>
       </section>
+    </div>
+  </section>
+
+  <section x-show="$store.game.promptDialogOpen" class="prompt-modal-backdrop" @click.self="$store.game.promptDialogOpen = false" x-cloak>
+    <div class="prompt-modal">
+      <header><strong>生成提示词</strong><button class="small-btn" @click="$store.game.promptDialogOpen = false">关闭</button></header>
+      <div class="prompt-meta">
+        <span x-text="`模型：${$store.game.promptDialogEntry?.promptPack?.model || '未知'}`"></span>
+        <span x-text="`正文ID：${$store.game.promptDialogEntry?.id || '-'}`"></span>
+      </div>
+      <div class="prompt-tabs">
+        <button :class="{ active: $store.game.promptDialogTab === 'system' }" @click="$store.game.promptDialogTab = 'system'">系统提示词</button>
+        <button :class="{ active: $store.game.promptDialogTab === 'user' }" @click="$store.game.promptDialogTab = 'user'">用户提示词</button>
+      </div>
+      <pre class="prompt-content" x-text="$store.game.promptDialogText()"></pre>
     </div>
   </section>
 
@@ -451,7 +467,10 @@
                 <div class="novel-player dev-section" data-section-title="玩家回复内容" x-show="entry.playerVisible !== false"><p x-text="entry.playerText"></p></div>
                 <div class="novel-story dev-section" data-section-title="AI生成内容" :class="{ streaming: entry.streaming }">
                   <div class="novel-thinking dev-section" data-section-title="AI思考内容" x-show="entry.thinking && (entry.streaming || entry.thinkingOpen)"><p><b>【AI思考】</b><span x-text="entry.thinking"></span></p></div>
-                  <button class="thinking-toggle" x-show="entry.thinking && !entry.streaming" @click="$store.game.toggleNovelThinking(entry.id)" x-text="entry.thinkingOpen ? '▾' : '▸'"></button>
+                  <div class="novel-tool-row">
+                    <button class="thinking-toggle" x-show="entry.thinking && !entry.streaming" @click="$store.game.toggleNovelThinking(entry.id)" x-text="entry.thinkingOpen ? '▾' : '▸'"></button>
+                    <button class="prompt-toggle" x-show="entry.promptPack" @click="$store.game.openNovelPrompt(entry.id)">文</button>
+                  </div>
                   <p class="novel-body-text" x-text="entry.storyText"></p>
                 </div>
               </div>

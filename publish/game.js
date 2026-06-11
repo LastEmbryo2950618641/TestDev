@@ -86,6 +86,7 @@ document.addEventListener('alpine:init', () => {
     memoryArchiveQuery: '',
     memoryArchiveResults: [],
     profileOpen: false, metricsOpen: false, feedbackOpen: false,
+    promptDialogOpen: false, promptDialogEntry: null, promptDialogTab: 'system',
     sectionHintsEnabled: cfg.sectionHintsEnabled,
 
     get character() { return window.GameModules.catalog.find(this.selectedCharacterId) || this.characters.find((c) => c.id === this.selectedCharacterId) || this.characters[0]; },

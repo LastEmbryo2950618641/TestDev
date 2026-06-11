@@ -15,6 +15,7 @@ Object.assign(window.GameModules.actions, {
       thinking: '',
       speech: '',
       mind: '',
+      promptPack: null,
       thinkingOpen: false,
       streaming: true,
     };
@@ -36,6 +37,23 @@ Object.assign(window.GameModules.actions, {
     Object.assign(entry, patch);
     this.log = [...this.log];
     this.scrollLog();
+  },
+
+  attachNovelPrompt(id, promptPack) {
+    this.updateNovelEntry(id, { promptPack });
+  },
+
+  openNovelPrompt(id) {
+    const entry = this.log.find((item) => item.id === id);
+    if (!entry?.promptPack) return;
+    this.promptDialogEntry = entry;
+    this.promptDialogTab = 'system';
+    this.promptDialogOpen = true;
+  },
+
+  promptDialogText() {
+    const pack = this.promptDialogEntry?.promptPack || {};
+    return this.promptDialogTab === 'user' ? pack.userPrompt : pack.systemPrompt;
   },
 
   updateNovelStream(id, raw) {

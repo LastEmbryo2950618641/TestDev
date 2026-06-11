@@ -22,6 +22,7 @@ window.GameModules.ai = {
     let buffer = '';
     let applied = false;
     const messages = [{ role: 'user', content: window.GameModules.createSystemPrompt(store, action) }];
+    if (logId && store.attachNovelPrompt) store.attachNovelPrompt(logId, { systemPrompt: messages[0].content, userPrompt: action || '无，继续推进', model: store.modelId });
     console.log('[AI推演] 请求开始:', { requestId, action, model: store.modelId, promptLength: messages[0].content.length, ragLength: String(store.ragContext || '').length, memoryLength: String(store.memoryContext || '').length });
 
     try {
