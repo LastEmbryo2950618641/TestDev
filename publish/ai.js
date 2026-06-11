@@ -81,6 +81,7 @@ window.GameModules.ai = {
         stamina: this.clampVitalDelta(changes.stamina),
         mental_stability: this.clampVitalDelta(changes.mental_stability),
       },
+      combatEvent: this.normalizeCombatEvent(data.combatEvent),
     };
   },
 
@@ -105,6 +106,17 @@ window.GameModules.ai = {
     const list = Array.isArray(value) ? value : [];
     const merged = list.concat(base).map((item) => String(item || '').trim().slice(0, 14)).filter(Boolean);
     return [...new Set(merged)].slice(0, 4);
+  },
+
+  normalizeCombatEvent(value) {
+    if (!value || typeof value !== 'object') return null;
+    if (!Number.isFinite(value.effectiveDamage) && !Number.isFinite(value.attackPower) && !value.summary) return null;
+    return {
+      summary: String(value.summary || '战斗命中，按攻防差结算。').slice(0, 80),
+      attackPower: Number.isFinite(value.attackPower) ? Math.round(value.attackPower) : undefined,
+      defensePower: Number.isFinite(value.defensePower) ? Math.round(value.defensePower) : undefined,
+      effectiveDamage: Number.isFinite(value.effectiveDamage) ? Math.max(0, Math.round(value.effectiveDamage)) : undefined,
+    };
   },
 
   normalizeCharacter(value, store) {

@@ -15,7 +15,7 @@ window.GameModules.resultActions = {
     this.characterIntent = result.characterIntent || this.characterIntent;
     this.choices = result.choices;
     this.mindText = result.mind;
-    await this.applyStatChanges(result.statChanges);
+    await this.applyStatChanges(result.statChanges, result);
     this.applyMetricUpdates(result.metricUpdates);
     await this.applyControlExperience(result);
     await window.GameModules.characterMemory.recordTurn(this, result);
@@ -31,14 +31,10 @@ window.GameModules.resultActions = {
     this.mood = Object.entries(this.emotions).sort((a, b) => b[1] - a[1])[0]?.[0] || this.mood;
   },
 
-  async applyStatChanges(changes) {
+  async applyStatChanges(changes, result = {}) {
     const state = this.characterRpgState;
     if (!state?.values) return;
-    Object.entries(changes || {}).forEach(([key, delta]) => {
-      if (!['health', 'stamina', 'mental_stability'].includes(key)) return;
-      const current = Number.isFinite(state.values[key]) ? state.values[key] : 100;
-      state.values[key] = Math.max(0, Math.min(100, current + delta));
-    });
+    window.GameModules.progression.applySceneChanges(state, changes, result);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
     await window.GameModules.sqliteSave.saveCharacterState(state);
   },

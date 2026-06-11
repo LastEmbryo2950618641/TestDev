@@ -5,40 +5,7 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.rpgState = {
   baseSchema(worldTag, attrs) {
-    return this.validateSchema({
-      worldTag,
-      sections: [
-        { title: '必备属性', fields: [
-          { key: 'world_tag', label: '所属世界', type: 'text', min: 0, max: 100 },
-          { key: 'age', label: '年龄', type: 'number', min: 0, max: 999 },
-          { key: 'health', label: '生命值', type: 'number', min: 0, max: 100 },
-          { key: 'stamina', label: '精力', type: 'number', min: 0, max: 100 },
-          { key: 'learning_ability', label: '学习能力', type: 'number', min: 0, max: 100 },
-          { key: 'perception_ability', label: '感知能力', type: 'number', min: 0, max: 100 },
-          { key: 'mental_stability', label: '精神稳定', type: 'number', min: 0, max: 100 },
-          { key: 'action_ability', label: '行动能力', type: 'number', min: 0, max: 100 },
-          { key: 'control_resistance', label: '操控抗性', type: 'number', min: 0, max: 100 },
-        ] },
-        { title: '世界固有属性', fields: this.worldFields(attrs) },
-        { title: '持有物', fields: [
-          { key: 'equipment', label: '装备', type: 'list' },
-          { key: 'skills', label: '技能', type: 'list' },
-          { key: 'status_tags', label: '状态标签', type: 'list' },
-          { key: 'control_experience', label: '上线体验', type: 'text' },
-        ] },
-      ],
-    }, worldTag);
-  },
-
-  worldFields(attrs) {
-    return (attrs?.fields || []).slice(0, 16).map((field, index) => ({
-      key: /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(field.key) ? field.key : `world_field_${index}`,
-      label: String(field.label || field.key || '属性').slice(0, 12),
-      type: ['number', 'rank', 'list', 'text'].includes(field.type) ? field.type : 'number',
-      min: 0,
-      max: 100,
-      desc: String(field.desc || '').slice(0, 80),
-    }));
+    return this.validateSchema({ worldTag, sections: window.GameModules.progression.schemaSections(attrs) }, worldTag);
   },
 
   async ensureWorldAttributes(worldTag) {
@@ -63,7 +30,7 @@ window.GameModules.rpgState = {
 
   schemaMatchesAttrs(schema, attrs) {
     const keys = new Set(schema.sections?.flatMap((section) => section.fields.map((field) => field.key)) || []);
-    const baseKeys = ['world_tag', 'age', 'health', 'stamina', 'learning_ability', 'perception_ability', 'mental_stability', 'action_ability'];
+    const baseKeys = ['world_tag', 'age', 'level', 'exp', 'vitality', 'stamina_pool', 'learning_ability', 'mental_stability', 'action_ability', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'knowledge', 'skills', 'professions', 'derived', 'combat_simulation'];
     return baseKeys.every((key) => keys.has(key)) && (attrs.fields || []).every((field) => keys.has(field.key));
   },
 
@@ -79,7 +46,7 @@ window.GameModules.rpgState = {
     schema.worldTag = worldTag;
     schema.sections = schema.sections.slice(0, 4).map((section, si) => ({
       title: String(section.title || `状态${si + 1}`).slice(0, 12),
-      fields: (section.fields || []).slice(0, section.title === '必备属性' ? 12 : (section.title === '世界固有属性' ? 16 : 5)).map((field, fi) => ({
+      fields: (section.fields || []).slice(0, section.title === '基础能力' ? 14 : (section.title === '世界固有属性' ? 16 : 10)).map((field, fi) => ({
         key: /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(field.key) ? field.key : `field_${si}_${fi}`,
         label: String(field.label || field.key || '状态').slice(0, 12),
         type: ['number', 'rank', 'list', 'text'].includes(field.type) ? field.type : 'number',
@@ -129,7 +96,9 @@ window.GameModules.rpgState = {
         changed = true;
       }
     }));
-    return this.ensureControlExperience(state) || changed;
+    const controlChanged = this.ensureControlExperience(state);
+    const mechanicsChanged = window.GameModules.progression.ensureStateMechanics(state);
+    return controlChanged || mechanicsChanged || changed;
   },
 
   ensureControlExperience(state) {
@@ -140,7 +109,7 @@ window.GameModules.rpgState = {
       changed = true;
     }
     const sections = state.schema?.sections || [];
-    const itemSection = sections.find((section) => section.title === '持有物') || sections.at(-1);
+    const itemSection = sections.find((section) => section.title === '习得与职业') || sections.find((section) => section.fields.some((field) => field.key === 'status_tags')) || sections.at(-1);
     if (itemSection && !itemSection.fields.some((field) => field.key === 'control_experience')) {
       itemSection.fields.push({ key: 'control_experience', label: '上线体验', type: 'text' });
       changed = true;
@@ -157,7 +126,9 @@ window.GameModules.rpgState = {
         values[field.key] = this.valueFor(field, seed + field.key.length);
       }
     }
-    values.skills = character.skills?.map((skill) => skill.name) || values.skills;
+    Object.assign(values, window.GameModules.progression.createValues(character, seed, values));
+    values.derived = window.GameModules.progression.derived(values);
+    values.combat_simulation = window.GameModules.progression.defaultCombat(values);
     Object.assign(values, character.worldValues || {});
     values.status_tags = [character.role, character.importance === 'minor' ? '路人' : '可被操控', schema.worldTag];
     values.control_experience = {

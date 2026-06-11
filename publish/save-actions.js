@@ -133,18 +133,25 @@ window.GameModules.saveActions = {
 
   rpgVitals(state) {
     const values = state?.values || {};
+    const percent = (pool) => pool?.max ? Math.round((pool.current / pool.max) * 100) : 100;
     return [
-      { key: 'health', label: '生命值', value: values.health ?? 100 },
-      { key: 'stamina', label: '精力', value: values.stamina ?? 100 },
-      { key: 'mental_stability', label: '精神稳定', value: values.mental_stability ?? 100 },
+      { key: 'health', label: '生命力', value: values.health ?? percent(values.vitality), text: this.rpgFieldValue(values.vitality) },
+      { key: 'stamina', label: '精力', value: values.stamina ?? percent(values.stamina_pool), text: this.rpgFieldValue(values.stamina_pool) },
+      { key: 'mental_stability', label: '精神', value: percent(values.mental_stability), text: this.rpgFieldValue(values.mental_stability) },
     ];
   },
 
   rpgFieldValue(value) {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+    if (Array.isArray(value)) return value.map((item) => this.rpgFieldValue(item));
+    if (!value || typeof value !== 'object') return value;
+    if (Object.prototype.hasOwnProperty.call(value, 'current')) return `${value.current}/${value.max}`;
+    if (Object.prototype.hasOwnProperty.call(value, 'curve')) return `${value.current || 0}/${value.next || 'max'}｜${value.curve}`;
     if (Object.prototype.hasOwnProperty.call(value, 'onlineCount')) {
       return `上线${value.onlineCount || 0}次｜${value.feeling || '未知'}｜适应${value.adaptation || 0}/100｜${value.summary || ''}`;
     }
+    if (value.attackPower || value.defensePower) return `攻${value.attackPower || 0}｜防${value.defensePower || 0}｜${value.damageRuleNote || ''}`;
+    if (value.effectiveDamage !== undefined) return `${value.summary || '战斗模拟'}｜伤害${value.effectiveDamage}`;
+    if (value.level) return `${value.name} lv${value.level}（${value.type || '能力'}）`;
     return JSON.stringify(value);
   },
 

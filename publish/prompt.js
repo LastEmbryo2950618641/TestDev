@@ -79,7 +79,8 @@ ${state.memoryContext || '暂无人物记忆。'}
   "metricUpdates":{"emotions":[{"key":"固定情绪名","value":0到100整数,"reason":"40字内解释"}],"playerFeelings":[{"key":"固定感觉名","value":0到100整数,"reason":"40字内解释"}]},
   "choices":["必须给4个AI推荐行动选项，正好4个，每个12字内；根据当前场景、角色状态、玩家输入和危险生成；不要包含放开控制，不要固定套用默认选项"],
   "appearedCharacters":[{"name":"姓名","role":"身份","detail":"基础资料","personality":"性格","work":"所属作品或世界","isMinor":true,"importance":"minor|support|main"}],
-  "statChanges":{"health":-8到8,"stamina":-8到8,"mental_stability":-8到8}
+  "statChanges":{"health":-8到8,"stamina":-8到8,"mental_stability":-8到8},
+  "combatEvent":{"summary":"若本回合发生攻击/防御，40字内描述","attackPower":数字,"defensePower":数字,"effectiveDamage":数字}
 }`;
 };
 
@@ -112,5 +113,6 @@ window.GameModules.createFallbackResult = function createFallbackResult(state, a
     choices: ['使用技能调查', '主动交涉', '避开危险', '触碰异常物'],
     appearedCharacters: [{ name, role: state.character.role, detail: state.character.detail || state.character.personality, personality: state.character.personality || '', work: state.character.work, isMinor: false, importance: 'main' }],
     statChanges: { health: 0, stamina: online ? -2 : 1, mental_stability: online ? -1 : 1 },
+    combatEvent: null,
   };
 };

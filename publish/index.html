@@ -17,6 +17,8 @@
   <script src="sqlite-world.js"></script>
   <script src="sqlite-memory.js"></script>
   <script src="json-utils.js"></script>
+  <script src="progression.js"></script>
+  <script src="progression-combat.js"></script>
   <script src="rpg-state.js"></script>
   <script src="timeline-data.js"></script>
   <script src="entry-year.js"></script>
@@ -295,7 +297,7 @@
                 <div class="vital-row" :class="vital.key">
                   <span x-text="vital.label"></span>
                   <i><b :style="`width: ${Math.max(0, Math.min(100, vital.value))}%`"></b></i>
-                  <em x-text="`${vital.value}/100`"></em>
+                  <em x-text="vital.text || `${vital.value}%`"></em>
                 </div>
               </template>
             </div>
