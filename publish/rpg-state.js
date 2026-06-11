@@ -75,6 +75,7 @@ window.GameModules.rpgState = {
       const upgraded = this.upgradeCharacterState(existing, schema);
       const updated = this.updateExistingCharacter(existing, character, store);
       const professionChanged = await window.GameModules.rpgProfessionState.ensureInfo(existing, character, schema);
+      await window.GameModules.rpgLexicon.syncState(existing);
       if (upgraded || updated || professionChanged) await save.saveCharacterState(existing);
       return existing;
     }
@@ -83,6 +84,7 @@ window.GameModules.rpgState = {
     const schema = await this.ensureSchema(worldTag);
     const created = this.createCharacterState(character, schema, store);
     await window.GameModules.rpgProfessionState.ensureInfo(created, character, schema);
+    await window.GameModules.rpgLexicon.syncState(created);
     await save.saveCharacterState(created);
     return created;
   },

@@ -1,0 +1,40 @@
+window.GameModules = window.GameModules || {};
+
+Object.assign(window.GameModules.rpgLexicon, {
+  collectFromState(state) {
+    const worldTag = state?.worldTag || '原创世界';
+    const values = state?.values || {};
+    const entries = [];
+    for (const section of state?.schema?.sections || []) {
+      for (const field of section.fields || []) {
+        entries.push({ worldTag, kind: '属性', name: field.label, desc: field.desc, source: 'schema', meta: { key: field.key, type: field.type, grade: Boolean(field.grade) } });
+      }
+    }
+    this.collectLearned(entries, worldTag, '知识', values.knowledge);
+    this.collectLearned(entries, worldTag, '技能', values.skills);
+    this.collectLearned(entries, worldTag, '职业', values.professions);
+    this.collectLearned(entries, worldTag, '装备', values.equipment);
+    for (const name of values.factions || []) entries.push({ worldTag, kind: '阵营', name, desc: `${name}相关势力、组织或社会位置。`, source: 'state' });
+    for (const name of values.status_tags || []) entries.push({ worldTag, kind: '状态', name, desc: `${name}表示角色当前处境、身份或剧情状态。`, source: 'state' });
+    return entries;
+  },
+
+  collectLearned(entries, worldTag, kind, list) {
+    for (const item of list || []) {
+      const name = typeof item === 'string' ? item : item?.name;
+      if (!name) continue;
+      entries.push({
+        worldTag, kind, name,
+        summary: item.summary || item.desc || item.source,
+        description: item.info?.description || item.desc || item.source || `${name}的资料。`,
+        related: [...(item.linkedStats || []), ...(item.info?.learnedAbilities || []), ...(item.info?.worldAbilities || [])],
+        meta: item.info ? { info: item.info } : {},
+        source: item.info ? 'ai' : 'state',
+      });
+    }
+  },
+
+  async syncState(state) {
+    await this.saveMany(this.collectFromState(state));
+  },
+});

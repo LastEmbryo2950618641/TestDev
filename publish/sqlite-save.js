@@ -45,6 +45,7 @@ window.GameModules.sqliteSave = {
       CREATE TABLE IF NOT EXISTS world_attributes(world_tag TEXT PRIMARY KEY, attrs_json TEXT NOT NULL, source TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS rpg_schema(world_tag TEXT PRIMARY KEY, schema_json TEXT NOT NULL, created_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS profession_info(world_tag TEXT NOT NULL, name TEXT NOT NULL, info_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY(world_tag,name));
+      CREATE TABLE IF NOT EXISTS lexicon_entries(world_tag TEXT NOT NULL, kind TEXT NOT NULL, name TEXT NOT NULL, entry_json TEXT NOT NULL, source TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY(world_tag,kind,name));
       CREATE TABLE IF NOT EXISTS character_world(character_id TEXT PRIMARY KEY, world_tag TEXT NOT NULL, updated_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS character_state(character_id TEXT PRIMARY KEY, name TEXT NOT NULL, world_tag TEXT NOT NULL, state_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS character_memory(character_id TEXT PRIMARY KEY, memory_json TEXT NOT NULL, updated_at TEXT NOT NULL);
@@ -96,7 +97,7 @@ window.GameModules.sqliteSave = {
     stmt.bind(params);
     const row = stmt.step() ? stmt.getAsObject() : null;
     stmt.free();
-    return row ? JSON.parse(row.value || row.lore_json || row.attrs_json || row.schema_json || row.info_json || row.state_json || row.memory_json || row.meta_json || row.vector_json) : null;
+    return row ? JSON.parse(row.value || row.lore_json || row.attrs_json || row.schema_json || row.info_json || row.entry_json || row.state_json || row.memory_json || row.meta_json || row.vector_json) : null;
   },
 
   async saveGameState(value) {

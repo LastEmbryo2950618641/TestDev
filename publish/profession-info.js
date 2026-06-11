@@ -18,6 +18,7 @@ window.GameModules.professionInfo = {
     const info = await this.generate(worldTag, jobName, context);
     if (!info) return null;
     await save.saveProfessionInfo?.(worldTag, info);
+    await window.GameModules.rpgLexicon.save(worldTag, '职业', info.name, { summary: info.summary, description: info.description, related: [...info.intrinsicStats, ...info.learnedAbilities, ...info.worldAbilities], meta: { info }, source: 'ai' });
     return info;
   },
 

@@ -42,4 +42,17 @@ Object.assign(window.GameModules.sqliteSave, {
     );
     await this.persist();
   },
+
+  getLexiconEntry(worldTag, kind, name) {
+    return this.db ? this.getJson('SELECT entry_json FROM lexicon_entries WHERE world_tag=? AND kind=? AND name=?', [worldTag, kind, name]) : null;
+  },
+
+  async saveLexiconEntry(entry) {
+    const now = new Date().toISOString();
+    this.db.run(
+      'INSERT OR REPLACE INTO lexicon_entries(world_tag,kind,name,entry_json,source,created_at,updated_at) VALUES (?,?,?,?,?,COALESCE((SELECT created_at FROM lexicon_entries WHERE world_tag=? AND kind=? AND name=?),?),?)',
+      [entry.worldTag, entry.kind, entry.name, JSON.stringify(entry), entry.source || 'runtime', entry.worldTag, entry.kind, entry.name, now, now],
+    );
+    await this.persist();
+  },
 });
