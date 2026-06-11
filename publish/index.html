@@ -200,6 +200,7 @@
       <header><strong>生成提示词</strong><button class="small-btn" @click="$store.game.promptDialogOpen = false">关闭</button></header>
       <div class="prompt-meta">
         <span x-text="`模型：${$store.game.promptDialogEntry?.promptPack?.model || '未知'}`"></span>
+        <span x-text="`总提示词：约 ${$store.game.promptDialogEntry?.promptPack?.promptTokens || '-'} tokens`"></span>
         <span x-text="`正文ID：${$store.game.promptDialogEntry?.id || '-'}`"></span>
       </div>
       <div class="prompt-tabs">
@@ -470,7 +471,7 @@
                   <div class="novel-thinking dev-section" data-section-title="AI思考内容" x-show="entry.thinking && (entry.streaming || entry.thinkingOpen)"><p><b>【AI思考】</b><span x-text="entry.thinking"></span></p></div>
                   <div class="novel-tool-row">
                     <button class="thinking-toggle" x-show="entry.thinking && !entry.streaming" @click="$store.game.toggleNovelThinking(entry.id)" x-text="entry.thinkingOpen ? '▾' : '▸'"></button>
-                    <button class="prompt-toggle" x-show="entry.promptPack" @click="$store.game.openNovelPrompt(entry.id)">文</button>
+                    <button class="prompt-toggle" x-show="entry.promptPack" @click="$store.game.openNovelPrompt(entry.id)" title="查看生成提示词">≡</button>
                   </div>
                   <p class="novel-body-text" x-text="entry.storyText"></p>
                 </div>
