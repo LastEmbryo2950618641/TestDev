@@ -739,7 +739,7 @@ select.text-input option,
 .novel-player,
 .novel-story,
 .legacy-log,
-.novel-mind {
+.novel-thinking {
   padding: 10px 12px;
   border-radius: 14px;
   background: rgba(255, 255, 255, .06);
@@ -796,23 +796,30 @@ select.text-input option,
   margin: 0;
 }
 
-.mind-toggle {
-  justify-self: start;
-  min-height: 28px;
-  padding: 0 10px;
-  border: 1px solid rgba(255, 120, 210, .28);
-  background: rgba(255, 120, 210, .1);
-  color: #ffd8f3;
+.thinking-toggle {
+  float: right;
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 207, 90, .28);
+  background: rgba(255, 207, 90, .1);
+  color: #ffdf8a;
   font-size: var(--ui-small-font);
 }
 
-.novel-mind {
-  justify-self: start;
-  width: min(76%, 580px);
-  border-left: 3px solid #ff78d2;
-  background: rgba(255, 120, 210, .08);
-  color: #ffe6f7;
+.novel-thinking {
+  margin: 0 0 8px;
+  border-left: 3px solid #ffcf5a;
+  background: rgba(255, 207, 90, .08);
+  color: #ffe9ad;
   white-space: pre-line;
+}
+
+.novel-thinking em {
+  display: block;
+  margin-bottom: 4px;
+  color: #ffcf5a;
+  font-style: normal;
+  font-weight: 800;
 }
 
 .thinking-line {

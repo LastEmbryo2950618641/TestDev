@@ -11,9 +11,10 @@ Object.assign(window.GameModules.actions, {
       type: this.online ? 'player' : 'advice',
       playerText,
       storyText: '作者正在续写这一段剧情…',
+      thinking: 'AI 正在整理角色状态、玩家输入与当前场景…',
       speech: '',
       mind: '',
-      mindOpen: false,
+      thinkingOpen: true,
       streaming: true,
     };
     this.log.push(entry);
@@ -31,8 +32,12 @@ Object.assign(window.GameModules.actions, {
   },
 
   updateNovelStream(id, raw) {
-    const text = this.extractStreamingNarration(raw);
-    if (text) this.updateNovelEntry(id, { storyText: text, streaming: true });
+    const thinking = this.extractStreamingField(raw, 'thinking');
+    const text = this.extractStreamingField(raw, 'narration');
+    const patch = { streaming: true };
+    if (thinking) patch.thinking = thinking;
+    if (text) patch.storyText = text;
+    this.updateNovelEntry(id, patch);
   },
 
   finalizeNovelEntry(id, result) {
@@ -42,16 +47,18 @@ Object.assign(window.GameModules.actions, {
     const speech = result.speech ? `\n\n「${result.speech}」` : '';
     this.updateNovelEntry(id, {
       storyText: `${result.narration || '剧情继续向前推进。'}${speech}`,
+      thinking: result.thinking || entry.thinking || '',
+      thinkingOpen: false,
       mind: result.mind || '',
       streaming: false,
     });
     return true;
   },
 
-  toggleNovelMind(id) {
+  toggleNovelThinking(id) {
     const entry = this.log.find((item) => item.id === id);
     if (!entry) return;
-    entry.mindOpen = !entry.mindOpen;
+    entry.thinkingOpen = !entry.thinkingOpen;
     this.log = [...this.log];
   },
 
@@ -59,14 +66,14 @@ Object.assign(window.GameModules.actions, {
     return `${entry.speaker || '记录'}：${entry.text || ''}`;
   },
 
-  extractStreamingNarration(raw) {
+  extractStreamingField(raw, field) {
     const text = String(raw || '').replace(/```(?:json)?|```/g, '');
-    const match = text.match(/"narration"\s*:\s*"([\s\S]*)/);
+    const match = text.match(new RegExp(`"${field}"\\s*:\\s*"([\\s\\S]*)`));
     if (!match) return '';
     let value = match[1];
-    const end = value.search(/"\s*,\s*"(?:speech|mind|mood|trust|resistance|quest|characterIntent|controlFeeling|controlAdaptation|controlExperienceSummary|metricUpdates|choices|appearedCharacters|statChanges|combatEvent)"/);
+    const end = value.search(/"\s*,\s*"(?:thinking|narration|speech|mind|mood|trust|resistance|quest|characterIntent|controlFeeling|controlAdaptation|controlExperienceSummary|metricUpdates|choices|appearedCharacters|statChanges|combatEvent)"/);
     if (end >= 0) value = value.slice(0, end);
     value = value.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\').trim();
-    return value.length > 8 ? value : '';
+    return value.length > 6 ? value : '';
   },
 });
