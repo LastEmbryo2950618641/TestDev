@@ -749,19 +749,16 @@ select.text-input option,
 .novel-player {
   justify-self: end;
   width: min(70%, 500px);
-  border-right: 3px solid #52ff96;
   background: rgba(82, 255, 150, .08);
 }
 
 .novel-entry.advice .novel-player {
-  border-right-color: #ffcf5a;
   background: rgba(255, 207, 90, .08);
 }
 
 .novel-story {
   justify-self: start;
   width: min(82%, 640px);
-  border-left: 3px solid #8d96ff;
   background: rgba(141, 150, 255, .09);
   user-select: text;
   -webkit-user-select: text;
@@ -769,7 +766,6 @@ select.text-input option,
 }
 
 .novel-story.streaming {
-  border-left-color: #ffcf5a;
   animation: pulse 1.2s infinite;
 }
 
@@ -783,14 +779,13 @@ select.text-input option,
 .novel-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 6px;
   margin-bottom: 4px;
 }
 
-.novel-player span,
-.novel-story span,
-.legacy-log span {
+.novel-head > span,
+.legacy-log > span {
   color: #74f6ff;
   font-size: var(--ui-small-font);
   font-weight: 800;
@@ -803,27 +798,25 @@ select.text-input option,
 }
 
 .thinking-toggle {
+  min-width: 24px;
   min-height: 22px;
-  padding: 0 7px;
-  border: 1px solid rgba(255, 207, 90, .28);
-  background: rgba(255, 207, 90, .1);
+  padding: 0 6px;
+  border: 1px solid rgba(255, 207, 90, .24);
+  background: rgba(255, 207, 90, .08);
   color: #ffdf8a;
   font-size: var(--ui-small-font);
 }
 
 .novel-thinking {
+  width: 100%;
   margin: 0 0 6px;
-  border-left: 3px solid #ffcf5a;
   background: rgba(255, 207, 90, .08);
   color: #ffe9ad;
   white-space: pre-line;
 }
 
-.novel-thinking em {
-  display: block;
-  margin-bottom: 3px;
+.novel-thinking b {
   color: #ffcf5a;
-  font-style: normal;
   font-weight: 800;
 }
 
