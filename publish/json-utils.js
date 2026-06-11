@@ -33,12 +33,36 @@ window.GameModules.jsonUtils = {
   },
 
   parseLoose(text) {
-    const json = this.extractJson(String(text || '').replace(/```(?:json)?|```/g, '').trim());
+    const raw = String(text || '').replace(/```(?:json)?|```/g, '').trim();
+    let json = '';
+    try { json = this.extractJson(raw); } catch (err) {
+      if (err.message !== 'JSON incomplete') throw err;
+      json = this.completePartialJson(raw);
+    }
     try {
       return JSON.parse(json);
     } catch (_) {
       return JSON.parse(this.repairJson(json));
     }
+  },
+
+  completePartialJson(text) {
+    const start = text.indexOf('{');
+    if (start === -1) throw new Error('JSON missing');
+    let inString = false; let escaped = false; const stack = [];
+    let out = text.slice(start).replace(/```(?:json)?|```/g, '').trim();
+    for (let i = 0; i < out.length; i += 1) {
+      const ch = out[i];
+      if (escaped) { escaped = false; continue; }
+      if (ch === '\\') { escaped = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === '{') stack.push('}');
+      if (ch === '[') stack.push(']');
+      if ((ch === '}' || ch === ']') && stack[stack.length - 1] === ch) stack.pop();
+    }
+    if (inString) out += '"';
+    return out.replace(/,\s*$/, '') + stack.reverse().join('');
   },
 
   repairJson(json) {

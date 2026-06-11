@@ -27,10 +27,13 @@ window.GameModules.ai = {
 
     try {
       let chunkCount = 0;
-      await Promise.race([this.withRetry(() => window.dzmm.completions({
+      let resolveDone;
+      let resultPromise = Promise.resolve();
+      const donePromise = new Promise((resolve) => { resolveDone = resolve; });
+      await Promise.race([Promise.all([this.withRetry(() => window.dzmm.completions({
         model: store.modelId,
         messages,
-        maxTokens: 3000,
+        maxTokens: 4500,
       }, async (chunk, done) => {
         if (requestId !== this.latestRequestId) return;
         chunkCount += chunk ? 1 : 0;
@@ -42,8 +45,10 @@ window.GameModules.ai = {
         }
         applied = true;
         console.log('[AI推演] 返回完成:', { requestId, chunkCount, length: buffer.length, preview: buffer.slice(0, 180) });
-        await store.applyResult(this.parse(buffer, store, action), logId);
-      })), new Promise((_, reject) => setTimeout(() => reject(new Error('AI推演超时')), 45000))]);
+        resultPromise = store.applyResult(this.parse(buffer, store, action), logId);
+        await resultPromise;
+        resolveDone();
+      })), donePromise, resultPromise]), new Promise((_, reject) => setTimeout(() => reject(new Error('AI推演超时')), 45000))]);
       if (!applied && requestId === this.latestRequestId) {
         console.warn('[AI推演] 已结束但未收到 done，使用当前内容结算:', { requestId, length: buffer.length });
         applied = true;
