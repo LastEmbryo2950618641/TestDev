@@ -89,8 +89,8 @@ window.GameModules.ai = {
     const emotions = this.normalizeMetricGroup(value?.emotions, fallback?.emotions, window.GameModules.metrics.emotionKeys);
     const feelings = this.normalizeMetricGroup(value?.playerFeelings, fallback?.playerFeelings, window.GameModules.metrics.playerKeys);
     return {
-      emotions: this.completeMetricGroup(emotions, window.GameModules.metrics.emotionKeys, store.emotions, window.GameModules.metrics.defaults.emotions),
-      playerFeelings: this.completeMetricGroup(feelings, window.GameModules.metrics.playerKeys, store.playerFeelings, window.GameModules.metrics.defaults.playerFeelings),
+      emotions: this.completeMetricGroup(emotions, window.GameModules.metrics.emotionKeys, store?.emotions, window.GameModules.metrics.defaults.emotions),
+      playerFeelings: this.completeMetricGroup(feelings, window.GameModules.metrics.playerKeys, store?.playerFeelings, window.GameModules.metrics.defaults.playerFeelings),
     };
   },
 
@@ -102,29 +102,21 @@ window.GameModules.ai = {
       const stage = window.GameModules.metrics.stageFor(key, value);
       return {
         key,
-        value,
-        stage,
+        delta: 0,
         status: window.GameModules.metrics.stageStatus(key, stage),
-        reason: '结合当前剧情上下文与既有关系推断为当前基线。',
-        description: window.GameModules.metrics.descriptions[key] || key,
+        reason: '本回合没有直接触发变化，保持原值。',
       };
     });
   },
 
   normalizeMetricGroup(value, fallback, keys) {
     const list = Array.isArray(value) ? value : (Array.isArray(fallback) ? fallback : []);
-    return list.filter((item) => keys.includes(item?.key)).slice(0, 16).map((item) => {
-      const value = window.GameModules.metrics.clamp(item.value);
-      const stage = window.GameModules.metrics.normalizeStage(item.key, String(item.stage || ''), value).slice(0, 12);
-      return {
-        key: item.key,
-        value,
-        stage,
-        status: String(item.status || window.GameModules.metrics.stageStatus(item.key, stage)).slice(0, 80),
-        reason: String(item.reason || '').slice(0, 80),
-        description: String(item.description || window.GameModules.metrics.descriptions[item.key] || item.key).slice(0, 80),
-      };
-    });
+    return list.filter((item) => keys.includes(item?.key)).slice(0, 16).map((item) => ({
+      key: item.key,
+      delta: window.GameModules.metrics.clampDelta(item.delta),
+      status: String(item.status || '').slice(0, 80),
+      reason: String(item.reason || '').slice(0, 80),
+    }));
   },
 
   normalizeChoices(value, fallback) {

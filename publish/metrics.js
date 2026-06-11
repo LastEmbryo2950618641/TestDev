@@ -19,6 +19,7 @@ window.GameModules.metrics = {
 
   fresh() { return JSON.parse(JSON.stringify(this.defaults)); },
   clamp(v) { const n = Number(v); return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : 0; },
+  clampDelta(v) { const n = Number(v); return Number.isFinite(n) ? Math.max(-30, Math.min(30, Math.round(n))) : 0; },
   stage(value) { return this.loveStages[Math.min(7, Math.floor(this.clamp(value) / 12.5))]; },
   stageOptionsFor(key) { return key === '爱情' ? this.loveStages : this.intensityStages; },
   normalizeStage(key, stage, value) {
@@ -58,14 +59,15 @@ window.GameModules.metrics = {
     if (!Array.isArray(items)) return;
     items.forEach((item) => {
       if (!Object.prototype.hasOwnProperty.call(target, item?.key)) return;
-      const value = this.clamp(item.value);
-      const stage = this.normalizeStage(item.key, String(item.stage || ''), value).slice(0, 12);
+      const delta = this.clampDelta(item.delta);
+      const value = this.clamp(target[item.key] + delta);
+      const stage = this.stageFor(item.key, value);
       target[item.key] = value;
       notes[`${group}:${item.key}`] = {
         stage,
         status: String(item.status || this.stageStatus(item.key, stage)).slice(0, 80),
-        reason: String(item.reason || '结合当前剧情上下文与既有状态推断为当前阶段。').slice(0, 80),
-        description: String(item.description || this.descriptions[item.key] || item.key).slice(0, 80),
+        reason: String(item.reason || '本回合没有直接触发变化，保持原值。').slice(0, 80),
+        description: String(this.descriptions[item.key] || item.key).slice(0, 80),
       };
     });
   },

@@ -62,7 +62,7 @@ window.GameModules.actions = {
     const raw = this.metricNotes?.[`${type}:${key}`];
     const stage = raw?.stage || window.GameModules.metrics.stageFor(key, value);
     const status = raw?.status || window.GameModules.metrics.stageStatus(key, stage);
-    const reason = raw?.reason || raw || '结合当前剧情上下文与既有状态推断为当前阶段。';
+    const reason = raw?.reason || raw || '本回合没有直接触发变化，保持原值。';
     const description = raw?.description || window.GameModules.metrics.descriptions[key] || key;
     return `阶段: ${stage}\n状态: ${status}\n原因: ${reason}\n说明: ${description}`;
   },

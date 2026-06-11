@@ -10,6 +10,8 @@ window.GameModules.createSystemPrompt = function createSystemPrompt(state, actio
   window.GameModules.metrics.ensure(state);
   const metricDefs = window.GameModules.metrics.descriptions;
   const metricState = `当前情绪=${JSON.stringify(state.emotions)}；对玩家感觉=${JSON.stringify(state.playerFeelings)}`;
+  const metricShape = (key) => `{"key":"${key}","delta":-30到30整数,"status":"变化后的状态含义","reason":"导致变化的具体原因"}`;
+  const metricJson = `{"emotions":[${window.GameModules.metrics.emotionKeys.map(metricShape).join(',')}],"playerFeelings":[${window.GameModules.metrics.playerKeys.map(metricShape).join(',')}]}`;
   return `你是 AI RPG 视觉小说《我狠狠操控》的剧情引擎。
 
 核心设定：
@@ -51,13 +53,14 @@ ${state.memoryContext || '暂无人物记忆。'}
 固定数值规则：
 1. emotions 只能使用这些固定情绪维度：${window.GameModules.metrics.emotionKeys.join('、')}。
 2. playerFeelings 只能使用这些固定对玩家感觉维度：${window.GameModules.metrics.playerKeys.join('、')}。
-3. 每个 value 必须是 0-100 整数；0=完全没有，1-20=轻微萌芽，21-40=明显存在，41-60=强烈影响判断，61-80=主导当前反应，81-100=压倒性支配心理。
-4. 每个数值项必须返回 stage、status、reason、description 四个说明字段：stage 是阶段名，必须从对应维度可选阶段中选择；status 是这个阶段此刻代表的心理状态含义；reason 是本回合为什么是这个阶段/数值；description 是该情绪或感觉属性本身的定义，不是阶段含义。
-5. 阶段可选表：${window.GameModules.metrics.stageGuide()}。
-6. 属性定义：${Object.entries(metricDefs).map(([k, v]) => `${k}=${v}`).join('；')}
-7. 爱情分8阶段，每约12.5分晋级：心动（初见好感、心生涟漪）、爱恋（倾心喜欢、萌生爱意）、倾心（满心偏向、满眼皆是）、眷恋（不舍分离、时时牵挂）、深爱（掏心交付）、执念（深陷其中、难以割舍）、依存（彼此依靠）、相守（长久相伴）。例如爱情 stage 为“心动”时，status 可写“不知为什么，想到你就扑通扑通心跳，产生心动的感觉”，description 必须仍写爱情这个属性是什么。
-8. emotions 必须每回合完整返回全部 ${window.GameModules.metrics.emotionKeys.length} 个当前情绪维度，并根据当前场景、角色性格、身体状态、危险程度、玩家输入和上下文重新推演所有 value；不要只返回变化项。
-9. playerFeelings 也必须每回合完整返回全部 ${window.GameModules.metrics.playerKeys.length} 个对玩家感觉维度，并根据当前剧情、记忆、玩家行为、信任/反抗和角色性格推断所有 value、stage、status、reason、description；不要只返回变化项。
+3. 每个数值项只返回 delta、status、reason：delta 是本回合变化量，必须是 -30 到 30 的整数；正数表示增强，负数表示减弱，0 表示本回合无明显变化。
+4. 你不要返回 value、stage、description；代码会用“当前值 + delta”计算新 value，再根据新 value 计算 stage，并由代码填充 description。
+5. status 必须根据“当前值 + delta 后的新状态”来写，必须与变化方向和阶段含义一致；reason 必须写导致这个 delta 变化的具体原因，不要写“根据上下文推断”这类空话。
+6. 阶段由代码按数值计算，阶段表仅供你写 status 时参考：${window.GameModules.metrics.stageGuide()}。
+7. 属性定义供你理解指标含义：${Object.entries(metricDefs).map(([k, v]) => `${k}=${v}`).join('；')}
+8. 爱情分8阶段，每约12.5分晋级：心动（初见好感、心生涟漪）、爱恋（倾心喜欢、萌生爱意）、倾心（满心偏向、满眼皆是）、眷恋（不舍分离、时时牵挂）、深爱（掏心交付）、执念（深陷其中、难以割舍）、依存（彼此依靠）、相守（长久相伴）。例如爱情 delta 后进入心动区间时，status 可写“不知为什么，想到你就扑通扑通心跳，产生心动的感觉”。
+9. emotions 必须每回合完整返回全部 ${window.GameModules.metrics.emotionKeys.length} 个当前情绪维度的 delta、status、reason，并根据当前场景、角色性格、身体状态、危险程度、玩家输入和上下文判断变化量；不要只返回变化项。
+10. playerFeelings 也必须每回合完整返回全部 ${window.GameModules.metrics.playerKeys.length} 个对玩家感觉维度的 delta、status、reason，并根据当前剧情、记忆、玩家行为、信任/反抗和角色性格判断变化量；不要只返回变化项。
 
 资料使用规则：
 1. 资料相关时优先贴合资料推进主线。
@@ -79,7 +82,7 @@ ${state.memoryContext || '暂无人物记忆。'}
   "controlFeeling":"被上线感觉；可参考 ${feelingExamples}，也可以自定义一个词、短句或简短感受描述；结合上线次数、适应度、记忆和角色设定判断",
   "controlAdaptation":0到100整数,
   "controlExperienceSummary":"40字内，概括这次被上线后的感受变化",
-  "metricUpdates":{"emotions":[{"key":"冷静","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"恐惧","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"担忧","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"高兴","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"紧张","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"愤怒","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"羞耻","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"悲伤","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"好奇","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"麻木","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"嫉妒","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"绝望","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"}],"playerFeelings":[{"key":"信任","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"反抗","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"好感","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"友情","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"亲情","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"爱情","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"肉欲","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"畏惧","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"尊敬","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"崇拜","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"讨厌","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"依赖","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"警惕","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"支配欲","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"占有欲","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"服从","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"}]},
+  "metricUpdates":${metricJson},
   "choices":["必须给4个AI推荐行动选项，正好4个，每个12字内；根据当前场景、角色状态、玩家输入和危险生成；不要包含放开控制，不要固定套用默认选项"],
   "appearedCharacters":[{"name":"姓名","role":"身份","detail":"基础资料","personality":"性格","work":"所属作品或世界","isMinor":true,"importance":"minor|support|main"}],
   "statChanges":{"health":-8到8,"stamina":-8到8,"mental_stability":-8到8},
@@ -93,13 +96,14 @@ window.GameModules.createFallbackResult = function createFallbackResult(state, a
   const text = action || (online ? '谨慎观察' : '让角色自由行动');
   const resistance = Math.max(0, Math.min(100, state.resistance + (online ? 3 : -2)));
   const trust = Math.max(0, Math.min(100, state.trust + (online ? 0 : 2)));
-  const emotionValues = online
-    ? { 冷静: 20, 恐惧: 35, 担忧: 32, 高兴: 0, 紧张: 38, 愤怒: 12, 羞耻: 5, 悲伤: 6, 好奇: 18, 麻木: 3, 嫉妒: 0, 绝望: 8 }
-    : { 冷静: 42, 恐惧: 12, 担忧: 20, 高兴: 5, 紧张: 18, 愤怒: 6, 羞耻: 0, 悲伤: 4, 好奇: 28, 麻木: 2, 嫉妒: 0, 绝望: 3 };
+  const emotionDeltas = online
+    ? { 冷静: -6, 恐惧: 8, 担忧: 6, 高兴: -2, 紧张: 7, 愤怒: 3, 羞耻: 1, 悲伤: 1, 好奇: 2, 麻木: 0, 嫉妒: 0, 绝望: 2 }
+    : { 冷静: 4, 恐惧: -4, 担忧: -2, 高兴: 1, 紧张: -3, 愤怒: -1, 羞耻: 0, 悲伤: 0, 好奇: 3, 麻木: -1, 嫉妒: 0, 绝望: -1 };
   const emotions = window.GameModules.metrics.emotionKeys.map((key) => ({
     key,
-    value: emotionValues[key] ?? 0,
-    reason: online ? '身体被操控，按失控处境推演。' : '恢复自主行动，按当前处境推演。',
+    delta: emotionDeltas[key] ?? 0,
+    status: online ? '身体失控让这一项情绪随之波动。' : '恢复自主后这一项情绪趋于重新稳定。',
+    reason: online ? '身体被玩家接管，失去行动主导权。' : '控制权回到自己手中，能按自身判断行动。',
   }));
 
   return {
@@ -119,7 +123,12 @@ window.GameModules.createFallbackResult = function createFallbackResult(state, a
     controlExperienceSummary: '身体控制权异常，来源仍然未知。',
     metricUpdates: {
       emotions,
-      playerFeelings: [{ key: '警惕', value: online ? 45 : 35, reason: '操控来源未知，仍保持防备。' }],
+      playerFeelings: window.GameModules.metrics.playerKeys.map((key) => ({
+        key,
+        delta: key === '警惕' ? (online ? 5 : -2) : 0,
+        status: key === '警惕' ? '仍在观察玩家意图，保持防备。' : '本回合关系感受没有明显变化。',
+        reason: key === '警惕' ? '操控来源未知，角色无法确认玩家目的。' : '本回合没有直接触发该关系感受变化的事件。',
+      })),
     },
     choices: ['使用技能调查', '主动交涉', '避开危险', '触碰异常物'],
     appearedCharacters: [{ name, role: state.character.role, detail: state.character.detail || state.character.personality, personality: state.character.personality || '', work: state.character.work, isMinor: false, importance: 'main' }],
