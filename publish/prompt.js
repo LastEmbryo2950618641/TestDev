@@ -32,7 +32,7 @@ window.GameModules.createSystemPrompt = function createSystemPrompt(state, actio
     controlAdaptation: 0,
     controlExperienceSummary: '40字内感受变化',
     metricUpdates: metricJson,
-    choices: ['四个可选的下一个玩家行动或想法'],
+    choices: ['观察周围异常', '尝试开口交流', '移动到安全位置', '使用当前能力'],
     appearedCharacters: [{ name: '姓名', role: '身份', detail: '基础资料', personality: '性格', work: '所属作品或世界', isMinor: true, importance: 'minor' }],
     statChanges: { health: 0, stamina: 0, mental_stability: 0 },
     combatEvent: { summary: '若发生攻防则描述', attackPower: 0, defensePower: 0, effectiveDamage: 0 },
@@ -177,9 +177,11 @@ ${Object.entries(metricDefs).map(([k, v]) => `- ${k}：${v}`).join('\n')}
 
 ## JSON要求:
 1. 必须只返回合法 JSON，不要 Markdown，不要代码块。
-2. 除 narration、mind、choices 这类本回合必须展示的内容外，任何字段若没有新信息、没有变化或不需要更改，都可以省略。
-3. 不要为了凑格式返回空字符串、0 或重复旧值。
-4. 数值字段一旦返回就必须填真实数字，不要填中文占位词。
+2. 所有 key 必须使用英文双引号；字符串值也必须使用英文双引号。
+3. 每个属性之间必须用英文逗号分隔，严禁漏逗号；最后一个属性后不要加逗号。
+4. 除 narration、mind、choices 这类本回合必须展示的内容外，任何字段若没有新信息、没有变化或不需要更改，都可以省略。
+5. 不要为了凑格式返回空字符串、0 或重复旧值。
+6. 数值字段一旦返回就必须填真实数字，不要填中文占位词。
 
 ## 格式示例:
 ${outputJson}`;

@@ -8,6 +8,13 @@ window.GameModules.worldLore = {
     const save = window.GameModules.sqliteSave;
     const existing = save.getWorldLore(worldTag);
     if (existing) {
+      if (!existing.worldline && !save.getWorldline?.(worldTag)) {
+        console.log('[世界观] 旧设定缺少世界线，正在补齐:', worldTag);
+        const upgraded = this.validate(existing, worldTag);
+        await save.saveWorldLore(worldTag, upgraded);
+        return upgraded;
+      }
+      if (!existing.worldline) existing.worldline = save.getWorldline?.(worldTag);
       console.log('[世界观] 使用已保存设定:', worldTag);
       return existing;
     }

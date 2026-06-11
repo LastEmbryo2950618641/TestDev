@@ -41,6 +41,12 @@ window.GameModules.worldlineActions = {
   async ensureWorldline(context = '') {
     const worldTag = this.character?.work || '原创世界';
     const lore = await window.GameModules.worldLore.ensure(worldTag, context || this.entryCurrentAction || this.sceneTitle);
+    const line = this.loreWorldline(lore) || window.GameModules.worldLore.worldline(null, lore, worldTag);
+    if (!line.events?.length) {
+      line.events = [{ eventId: 'connection_start', name: '玩家上线连接', time: this.entryTimeLabel?.() || this.sceneTitle || '当前时间', summary: String(context || this.entryCurrentAction || '玩家接入当前世界线。').slice(0, 90), detail: String(context || this.entryCurrentAction || '玩家首次连接角色，世界线开始记录偏移。').slice(0, 420), storyIndexes: line.storyIndexes || ['默认剧情起点'], factionIds: Object.keys(line.factions || {}).slice(0, 2), status: '进行中' }];
+      lore.worldline = line;
+      await window.GameModules.sqliteSave.saveWorldLore(worldTag, lore);
+    }
     if (!this.expandedWorldlineTag) this.expandedWorldlineTag = worldTag;
     return lore;
   },

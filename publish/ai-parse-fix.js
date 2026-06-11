@@ -41,7 +41,7 @@ window.GameModules = window.GameModules || {};
 
   ai.pickStringField = function pickStringField(text, key) {
     const next = 'thinking|narration|speech|mind|mood|quest|characterIntent|controlFeeling|controlExperienceSummary|choices|metricUpdates|appearedCharacters|statChanges|combatEvent|elapsedSeconds|trust|resistance|controlAdaptation';
-    const match = text.match(new RegExp(`"${key}"\\s*:\\s*"([\\s\\S]*?)(?:"\\s*,\\s*"(?:${next})"\\s*:|"\\s*[,}])`));
+    const match = text.match(new RegExp(`"${key}"\\s*:\\s*"([\\s\\S]*?)(?:"\\s*,\\s*"(?:${next})"\\s*:|"\\s+"(?:${next})"\\s*:|"\\s*[,}])`));
     return match ? match[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').trim() : '';
   };
 

@@ -41,8 +41,12 @@ window.GameModules.jsonUtils = {
     }
     try {
       return JSON.parse(json);
-    } catch (_) {
-      return JSON.parse(this.repairJson(json));
+    } catch (firstErr) {
+      const repaired = this.repairJson(json);
+      try { return JSON.parse(repaired); } catch (secondErr) {
+        console.warn('[JSON解析] 修复失败:', { first: firstErr.message, second: secondErr.message, preview: repaired.slice(0, 180) });
+        throw secondErr;
+      }
     }
   },
 
@@ -73,6 +77,9 @@ window.GameModules.jsonUtils = {
       .replace(/([{,]\s*)([A-Za-z_$][\w$]*)(\s*:)/g, '$1"$2"$3')
       .replace(/([{,]\s*)([\u4e00-\u9fa5][\u4e00-\u9fa5\w-]*)(\s*:)/g, '$1"$2"$3')
       .replace(/:\s*'([^'\\]*(?:\\.[^'\\]*)*)'/g, (_, value) => `:"${value.replace(/"/g, '\\"')}"`)
+      .replace(/"\s+("[A-Za-z_$\u4e00-\u9fa5][\w\u4e00-\u9fa5-]*"\s*:)/g, '",$1')
+      .replace(/(\d|true|false|null)\s+("[A-Za-z_$\u4e00-\u9fa5][\w\u4e00-\u9fa5-]*"\s*:)/g, '$1,$2')
+      .replace(/([}\]])\s+("[A-Za-z_$\u4e00-\u9fa5][\w\u4e00-\u9fa5-]*"\s*:)/g, '$1,$2')
       .replace(/,\s*([}\]])/g, '$1');
   },
 };
