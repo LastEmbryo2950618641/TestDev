@@ -155,7 +155,24 @@ window.GameModules.entryActions = {
       this.sceneTitle = this.entryTimeLabel();
       this.online = true;
       this.metricsReady = false;
-      const feedback = await window.GameModules.characterFeedback.initial(this);
+      const action = `你在手机上的《我狠狠控制》APP里选中${this.character.name}，按下连接按钮。意识陷入黑暗后，你在${this.entryTimeLabel()}醒来，发现自己已经附身到${this.character.name}身上。当前场景：${this.entryCurrentAction || `${this.character.name}正在行动。`}`;
+      const logId = this.addNovelEntry(action, { playerVisible: false });
+      console.log('[控制上线] 已创建开场日志，开始生成:', { logId, character: this.character.name });
+      const feedbackTask = window.GameModules.characterFeedback.initial(this);
+      try {
+        await Promise.race([this.refreshRagContext(action), new Promise((_, reject) => setTimeout(() => reject(new Error('资料检索超时')), 8000))]);
+      } catch (err) {
+        console.warn('[控制上线] 资料检索跳过:', err.message, err.stack);
+        this.ragContext = '';
+        this.ragResults = [];
+      }
+      try {
+        this.memoryContext = await window.GameModules.characterMemory.contextFor(this, action);
+      } catch (err) {
+        console.warn('[控制上线] 记忆上下文跳过:', err.message, err.stack);
+        this.memoryContext = '暂无人物记忆。';
+      }
+      const feedback = await feedbackTask;
       this.mood = feedback.mood;
       this.resistance = feedback.resistance;
       this.mindText = feedback.mind;
@@ -165,10 +182,6 @@ window.GameModules.entryActions = {
       this.choices = feedback.choices || this.choices;
       this.applyInitialMetrics(feedback.metricUpdates);
       await window.GameModules.characterFeedback.applyExperience(this, feedback);
-      const action = `你在手机上的《我狠狠控制》APP里选中${this.character.name}，按下连接按钮。意识陷入黑暗后，你在${this.entryTimeLabel()}醒来，发现自己已经附身到${this.character.name}身上。当前场景：${this.entryCurrentAction || `${this.character.name}正在行动。`}`;
-      const logId = this.addNovelEntry(action, { playerVisible: false });
-      await this.refreshRagContext(action);
-      this.memoryContext = await window.GameModules.characterMemory.contextFor(this, action);
       await window.GameModules.ai.generate(this, action, logId);
       await this.save();
     } finally {
