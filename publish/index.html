@@ -426,12 +426,11 @@
             <article class="novel-entry" :class="entry.type">
               <div>
                 <div class="novel-story" :class="{ streaming: entry.streaming }">
-                  <span>AI生成</span>
-                  <button class="thinking-toggle" x-show="entry.thinking && !entry.streaming" @click="$store.game.toggleNovelThinking(entry.id)" x-text="entry.thinkingOpen ? '收起AI思考' : '展开AI思考'"></button>
+                  <div class="novel-head"><span>AI生成</span><button class="thinking-toggle" x-show="entry.thinking && !entry.streaming" @click="$store.game.toggleNovelThinking(entry.id)" x-text="entry.thinkingOpen ? '收起思考' : '展开思考'"></button></div>
                   <div class="novel-thinking" x-show="entry.thinking && (entry.streaming || entry.thinkingOpen)"><em>AI思考</em><p x-text="entry.thinking"></p></div>
                   <p x-text="entry.storyText"></p>
                 </div>
-                <div class="novel-player"><span>玩家回复</span><p x-text="entry.playerText"></p></div>
+                <div class="novel-player"><div class="novel-head"><span>玩家回复</span></div><p x-text="entry.playerText"></p></div>
               </div>
             </article>
           </template>

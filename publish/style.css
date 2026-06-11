@@ -728,22 +728,22 @@ select.text-input option,
 .story-log {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .novel-entry {
   display: grid;
-  gap: 7px;
+  gap: 5px;
 }
 
 .novel-player,
 .novel-story,
 .legacy-log,
 .novel-thinking {
-  padding: 10px 12px;
-  border-radius: 14px;
+  padding: 8px 10px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, .06);
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 .novel-player {
@@ -780,11 +780,17 @@ select.text-input option,
   text-align: center;
 }
 
+.novel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
 .novel-player span,
 .novel-story span,
 .legacy-log span {
-  display: block;
-  margin-bottom: 4px;
   color: #74f6ff;
   font-size: var(--ui-small-font);
   font-weight: 800;
@@ -797,9 +803,8 @@ select.text-input option,
 }
 
 .thinking-toggle {
-  float: right;
-  min-height: 24px;
-  padding: 0 8px;
+  min-height: 22px;
+  padding: 0 7px;
   border: 1px solid rgba(255, 207, 90, .28);
   background: rgba(255, 207, 90, .1);
   color: #ffdf8a;
@@ -807,7 +812,7 @@ select.text-input option,
 }
 
 .novel-thinking {
-  margin: 0 0 8px;
+  margin: 0 0 6px;
   border-left: 3px solid #ffcf5a;
   background: rgba(255, 207, 90, .08);
   color: #ffe9ad;
@@ -816,7 +821,7 @@ select.text-input option,
 
 .novel-thinking em {
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
   color: #ffcf5a;
   font-style: normal;
   font-weight: 800;
