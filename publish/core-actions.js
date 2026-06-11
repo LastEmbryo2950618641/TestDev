@@ -8,6 +8,7 @@ window.GameModules.coreActions = {
     this.selectedWork = name;
     this.selectedCharacterId = window.GameModules.catalog.firstCharacter(name) || this.selectedCharacterId;
     this.resetEntryTime();
+    this.resetMetricsForCharacter();
     window.GameModules.characterBrief.ensure(this);
     this.prepareRpgForSelectedCharacter();
   },
@@ -15,8 +16,19 @@ window.GameModules.coreActions = {
   selectCharacter(id) {
     this.selectedCharacterId = id;
     this.resetEntryTime();
+    this.resetMetricsForCharacter();
     window.GameModules.characterBrief.ensure(this);
     this.prepareRpgForSelectedCharacter();
+  },
+
+  resetMetricsForCharacter() {
+    const metrics = window.GameModules.metrics.fresh();
+    this.emotions = metrics.emotions;
+    this.playerFeelings = metrics.playerFeelings;
+    this.metricNotes = {};
+    this.trust = this.playerFeelings.信任;
+    this.resistance = this.playerFeelings.反抗;
+    this.expandedMetricKey = '';
   },
 
   resetEntryTime() {

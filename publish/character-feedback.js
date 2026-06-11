@@ -14,7 +14,7 @@ window.GameModules.characterFeedback = {
     try {
       await window.dzmm.completions({
         model: store.modelId,
-        maxTokens: 760,
+        maxTokens: 2200,
         messages: [{ role: 'user', content: this.prompt(store) }],
       }, (chunk) => {
         buffer = this.merge(buffer, chunk);
@@ -67,20 +67,42 @@ window.GameModules.characterFeedback = {
   fallback(store) {
     const name = store.character?.name || '角色';
     const experience = this.experience(store);
+    const metrics = this.fallbackMetrics(store);
     return {
       mind: store.controlMode === 'possess' ? '怎、怎么回事……我的身体为什么不听我使唤了？' : '脑海里多了什么陌生的东西……它想让我怎么做？',
       intent: store.controlMode === 'possess' ? `${name}下一步想要夺回身体的主导权。` : `${name}下一步想要弄清这条操控链路。`,
-      mood: '动摇',
-      resistance: Math.max(store.resistance || 0, 35),
+      mood: metrics.emotions.sort((a, b) => b.value - a.value)[0]?.key || '动摇',
+      resistance: metrics.playerFeelings.find((x) => x.key === '反抗')?.value || 35,
       controlFeeling: experience.onlineCount > 0 ? experience.feeling : '疑惑',
       adaptation: experience.adaptation,
-      experienceSummary: '身体突然失控，来源仍然未知。',
-      metricUpdates: {
-        emotions: [{ key: '恐惧', value: 35, status: '身体失控让恐惧明显存在。', reason: '身体突然脱离自身控制。' }],
-        playerFeelings: [{ key: '警惕', value: 45, status: '无法确认操控者目的，戒备较强。', reason: '不知道控制来源，必须保持戒备。' }],
-      },
+      experienceSummary: '按角色处境生成初始被上线感受。',
+      metricUpdates: metrics,
       choices: ['确认周围状况', '尝试移动身体', '寻找安全位置', '接近关键人物'],
     };
+  },
+
+  fallbackMetrics(store) {
+    const text = `${store.character?.name || ''} ${store.character?.role || ''} ${store.character?.personality || ''} ${store.character?.detail || ''} ${store.entryCurrentAction || ''}`;
+    const vulnerable = /幼|小|弱|病|囚|虐|恐|孤|樱|间桐|虫|牺牲|受害/.test(text);
+    const proud = /王|骑士|强|冷静|自信|支配|高傲|魔术师/.test(text);
+    const possess = store.controlMode === 'possess';
+    const emotionBase = vulnerable
+      ? { 冷静: 12, 恐惧: 72, 担忧: 68, 高兴: 0, 紧张: 76, 愤怒: 18, 羞耻: 34, 悲伤: 58, 好奇: 8, 麻木: 44, 嫉妒: 0, 绝望: 48 }
+      : { 冷静: proud ? 54 : 32, 恐惧: possess ? 34 : 16, 担忧: 28, 高兴: 2, 紧张: possess ? 46 : 24, 愤怒: proud ? 30 : 12, 羞耻: 10, 悲伤: 8, 好奇: 22, 麻木: 4, 嫉妒: 0, 绝望: 6 };
+    const feelingBase = vulnerable
+      ? { 信任: 6, 反抗: 18, 好感: 2, 友情: 0, 亲情: 0, 爱情: 0, 肉欲: 0, 畏惧: 72, 尊敬: 0, 崇拜: 0, 讨厌: 22, 依赖: 16, 警惕: 82, 支配欲: 0, 占有欲: 0, 服从: 28 }
+      : { 信任: 18, 反抗: proud ? 48 : 34, 好感: 4, 友情: 0, 亲情: 0, 爱情: 0, 肉欲: 0, 畏惧: possess ? 38 : 18, 尊敬: 0, 崇拜: 0, 讨厌: 16, 依赖: 0, 警惕: 60, 支配欲: proud ? 28 : 6, 占有欲: 0, 服从: possess ? 8 : 2 };
+    return {
+      emotions: this.metricList(emotionBase, '角色当前处境与资料决定初始情绪。'),
+      playerFeelings: this.metricList(feelingBase, '首次接触玩家且目的未知，按角色背景推定初始感觉。'),
+    };
+  },
+
+  metricList(values, reason) {
+    return Object.entries(values).map(([key, value]) => {
+      const stage = window.GameModules.metrics.stageFor(key, value);
+      return { key, value, status: window.GameModules.metrics.stageStatus(key, stage), reason };
+    });
   },
 
   ensureExperience(store) {
