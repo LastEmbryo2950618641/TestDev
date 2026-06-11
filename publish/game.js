@@ -28,7 +28,7 @@ document.addEventListener('alpine:init', () => {
     saveSlots: window.GameModules.storage.slots,
     savePanelOpen: false,
     functionPanelOpen: false,
-    libraryTab: 'worlds',
+    libraryTab: 'worlds', expandedWorldlineTag: '',
     activeStyleIds: ['literary'], customWritingStyles: [], customStyleName: '', customStylePrompt: '',
     saveMessage: '',
     saveMetas: {},

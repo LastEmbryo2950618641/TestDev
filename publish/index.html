@@ -156,14 +156,14 @@
       <section class="library-panel" x-show="$store.game.libraryTab === 'worlds'">
         <h3>已知世界观设定</h3>
         <template x-for="lore in $store.game.savedWorldLores" :key="lore.worldTag">
-          <article class="world-lore-card">
-            <strong x-text="lore.worldTag"></strong>
+          <article class="world-lore-card" :class="{ open: $store.game.isWorldlineOpen(lore) }" @click="$store.game.toggleWorldline(lore)">
+            <div class="world-lore-title"><strong x-text="lore.worldTag"></strong><span x-show="$store.game.loreWorldline(lore)" x-text="$store.game.isWorldlineOpen(lore) ? '▾' : '▸'"></span></div>
             <p x-text="lore.background"></p>
             <div class="lore-chip-row"><template x-for="faction in lore.factions" :key="faction.name"><span x-text="faction.name"></span></template></div>
             <small x-text="`特殊职业：${$store.game.loreNames(lore.specialJobs, 'name')}`"></small>
             <small x-text="`职业等级：${lore.jobRanks.join(' / ') || '无'}`"></small>
             <small x-text="`固化属性：${$store.game.loreNames(lore.specialFields, 'label')}`"></small>
-            <div class="worldline-box" x-show="$store.game.loreWorldline(lore)">
+            <div class="worldline-box" x-show="$store.game.isWorldlineOpen(lore) && $store.game.loreWorldline(lore)" @click.stop>
               <div class="worldline-head">
                 <b>世界线</b>
                 <small x-text="$store.game.loreWorldline(lore)?.timeRange || '时间未知'"></small>

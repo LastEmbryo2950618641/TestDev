@@ -4,6 +4,17 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.worldlineActions = {
+  toggleWorldline(lore) {
+    if (!this.loreWorldline(lore)) return;
+    const tag = lore?.worldTag || '';
+    if (!tag) return;
+    this.expandedWorldlineTag = this.expandedWorldlineTag === tag ? '' : tag;
+  },
+
+  isWorldlineOpen(lore) {
+    return Boolean(lore?.worldTag && this.expandedWorldlineTag === lore.worldTag);
+  },
+
   loreWorldline(lore) {
     return lore?.worldline || window.GameModules.sqliteSave.getWorldline?.(lore?.worldTag) || null;
   },
