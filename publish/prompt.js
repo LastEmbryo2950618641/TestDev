@@ -52,12 +52,12 @@ ${state.memoryContext || '暂无人物记忆。'}
 1. emotions 只能使用这些固定情绪维度：${window.GameModules.metrics.emotionKeys.join('、')}。
 2. playerFeelings 只能使用这些固定对玩家感觉维度：${window.GameModules.metrics.playerKeys.join('、')}。
 3. 每个 value 必须是 0-100 整数；0=完全没有，1-20=轻微萌芽，21-40=明显存在，41-60=强烈影响判断，61-80=主导当前反应，81-100=压倒性支配心理。
-4. 每个数值项必须返回 stage、description、reason 三个说明字段：stage 必须从对应维度的可选阶段中选择；description 是该阶段的状态说明；reason 是本回合为什么是这个数值。
+4. 每个数值项必须返回 stage、status、reason、description 四个说明字段：stage 是阶段名，必须从对应维度可选阶段中选择；status 是这个阶段此刻代表的心理状态含义；reason 是本回合为什么是这个阶段/数值；description 是该情绪或感觉属性本身的定义，不是阶段含义。
 5. 阶段可选表：${window.GameModules.metrics.stageGuide()}。
-6. 含义定义：${Object.entries(metricDefs).map(([k, v]) => `${k}=${v}`).join('；')}
-7. 爱情分8阶段，每约12.5分晋级：心动（初见好感、心生涟漪）、爱恋（倾心喜欢、萌生爱意）、倾心（满心偏向、满眼皆是）、眷恋（不舍分离、时时牵挂）、深爱（掏心交付）、执念（深陷其中、难以割舍）、依存（彼此依靠）、相守（长久相伴）。例如爱情 stage 为“相守”时，description 可写“AI解释：对玩家形成长久相伴、难以割舍的恋爱意义相守”。
+6. 属性定义：${Object.entries(metricDefs).map(([k, v]) => `${k}=${v}`).join('；')}
+7. 爱情分8阶段，每约12.5分晋级：心动（初见好感、心生涟漪）、爱恋（倾心喜欢、萌生爱意）、倾心（满心偏向、满眼皆是）、眷恋（不舍分离、时时牵挂）、深爱（掏心交付）、执念（深陷其中、难以割舍）、依存（彼此依靠）、相守（长久相伴）。例如爱情 stage 为“心动”时，status 可写“不知为什么，想到你就扑通扑通心跳，产生心动的感觉”，description 必须仍写爱情这个属性是什么。
 8. emotions 必须每回合完整返回全部 ${window.GameModules.metrics.emotionKeys.length} 个当前情绪维度，并根据当前场景、角色性格、身体状态、危险程度、玩家输入和上下文重新推演所有 value；不要只返回变化项。
-9. playerFeelings 可以只返回本回合需要更新的维度；玩家点击词语时会看到 stage、description、reason。
+9. playerFeelings 可以只返回本回合需要更新的维度；玩家点击词语时会看到 stage、status、reason、description。
 
 资料使用规则：
 1. 资料相关时优先贴合资料推进主线。
@@ -79,7 +79,7 @@ ${state.memoryContext || '暂无人物记忆。'}
   "controlFeeling":"被上线感觉；可参考 ${feelingExamples}，也可以自定义一个词、短句或简短感受描述；结合上线次数、适应度、记忆和角色设定判断",
   "controlAdaptation":0到100整数,
   "controlExperienceSummary":"40字内，概括这次被上线后的感受变化",
-  "metricUpdates":{"emotions":[{"key":"冷静","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"},{"key":"恐惧","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"},{"key":"担忧","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"},{"key":"高兴","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"},{"key":"紧张","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"},{"key":"愤怒","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"},{"key":"羞耻","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"},{"key":"悲伤","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"},{"key":"好奇","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"},{"key":"麻木","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"},{"key":"嫉妒","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"},{"key":"绝望","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"}],"playerFeelings":[{"key":"固定感觉名","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"}]},
+  "metricUpdates":{"emotions":[{"key":"冷静","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"恐惧","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"担忧","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"高兴","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"紧张","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"愤怒","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"羞耻","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"悲伤","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"好奇","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"麻木","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"嫉妒","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"},{"key":"绝望","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"}],"playerFeelings":[{"key":"固定感觉名","value":0到100整数,"stage":"阶段名","status":"阶段状态含义","reason":"40字内依据","description":"属性定义"}]},
   "choices":["必须给4个AI推荐行动选项，正好4个，每个12字内；根据当前场景、角色状态、玩家输入和危险生成；不要包含放开控制，不要固定套用默认选项"],
   "appearedCharacters":[{"name":"姓名","role":"身份","detail":"基础资料","personality":"性格","work":"所属作品或世界","isMinor":true,"importance":"minor|support|main"}],
   "statChanges":{"health":-8到8,"stamina":-8到8,"mental_stability":-8到8},

@@ -60,11 +60,11 @@ window.GameModules.actions = {
   metricNote(type, key) {
     const value = type === 'emotion' ? this.emotions[key] : this.playerFeelings[key];
     const raw = this.metricNotes?.[`${type}:${key}`];
-    if (raw && typeof raw === 'object') return `阶段：${raw.stage}。说明：${raw.description} 当前解释：${raw.reason}`;
-    const stage = window.GameModules.metrics.stageFor(key, value);
-    const description = window.GameModules.metrics.stageDescription(key, stage);
-    const reason = raw || '等待 AI 根据剧情更新解释。';
-    return `阶段：${stage}。说明：${description} 当前解释：${reason}`;
+    const stage = raw?.stage || window.GameModules.metrics.stageFor(key, value);
+    const status = raw?.status || window.GameModules.metrics.stageStatus(key, stage);
+    const reason = raw?.reason || raw || '等待 AI 根据剧情更新解释。';
+    const description = raw?.description || window.GameModules.metrics.descriptions[key] || key;
+    return `阶段: ${stage}\n状态: ${status}\n原因: ${reason}\n说明: ${description}`;
   },
 
   toggleMetric(type, key) {

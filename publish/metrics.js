@@ -33,9 +33,11 @@ window.GameModules.metrics = {
   stageGuide() {
     return [...this.emotionKeys, ...this.playerKeys].map((key) => `${key}=${this.stageOptionsFor(key).join('/')}`).join('；');
   },
-  stageDescription(key, stage) {
-    if (key === '爱情') return `对玩家产生恋爱意义的${stage}。`;
-    return `${this.descriptions[key] || key} 当前阶段为${stage}。`;
+  stageStatus(key, stage) {
+    const love = { 心动: '不知为什么，想到对方会心跳加快，产生初见好感。', 爱恋: '喜欢开始成形，会主动期待靠近与回应。', 倾心: '感情明显偏向对方，判断会被爱意牵引。', 眷恋: '不舍分离，会反复牵挂对方的存在。', 深爱: '愿意交付真心，把对方放进重要位置。', 执念: '深陷其中，感情变得难以割舍。', 依存: '心理与现实上都倾向彼此依靠。', 相守: '形成长久相伴、难以割舍的恋爱愿望。' };
+    const intensity = { 无感: '当前几乎没有这种感受。', 轻微萌芽: '这种感受刚出现，只在心底轻微波动。', 明显存在: '这种感受已经清楚存在，会影响当下反应。', 强烈影响: '这种感受持续压过其他念头，明显影响判断。', 主导反应: '这种感受成为当前主要心理驱动力。', 压倒支配: '这种感受几乎压倒性支配心理与反应。' };
+    const text = key === '爱情' ? love[stage] : intensity[stage];
+    return text || `${key}处于${stage}阶段。`;
   },
   ensure(store) {
     store.emotions = this.fill(store.emotions, this.emotionKeys, this.defaults.emotions);
@@ -61,8 +63,9 @@ window.GameModules.metrics = {
       target[item.key] = value;
       notes[`${group}:${item.key}`] = {
         stage,
-        description: String(item.description || this.stageDescription(item.key, stage)).slice(0, 80),
-        reason: String(item.reason || this.descriptions[item.key] || '').slice(0, 80),
+        status: String(item.status || this.stageStatus(item.key, stage)).slice(0, 80),
+        reason: String(item.reason || '等待 AI 根据剧情更新解释。').slice(0, 80),
+        description: String(item.description || this.descriptions[item.key] || item.key).slice(0, 80),
       };
     });
   },

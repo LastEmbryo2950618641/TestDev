@@ -99,7 +99,14 @@ window.GameModules.ai = {
       if (map.get(key)) return map.get(key);
       const value = window.GameModules.metrics.clamp(store.emotions?.[key] ?? window.GameModules.metrics.defaults.emotions[key]);
       const stage = window.GameModules.metrics.stageFor(key, value);
-      return { key, value, stage, description: window.GameModules.metrics.stageDescription(key, stage), reason: 'AI 未返回该项，本回合沿用当前情绪基线。' };
+      return {
+        key,
+        value,
+        stage,
+        status: window.GameModules.metrics.stageStatus(key, stage),
+        reason: 'AI 未返回该项，本回合沿用当前情绪基线。',
+        description: window.GameModules.metrics.descriptions[key] || key,
+      };
     });
   },
 
@@ -112,8 +119,9 @@ window.GameModules.ai = {
         key: item.key,
         value,
         stage,
-        description: String(item.description || window.GameModules.metrics.stageDescription(item.key, stage)).slice(0, 80),
+        status: String(item.status || window.GameModules.metrics.stageStatus(item.key, stage)).slice(0, 80),
         reason: String(item.reason || '').slice(0, 80),
+        description: String(item.description || window.GameModules.metrics.descriptions[item.key] || item.key).slice(0, 80),
       };
     });
   },
