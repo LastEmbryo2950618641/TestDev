@@ -1,19 +1,96 @@
 .worldline-box {
   display: grid;
-  gap: 5px;
+  gap: 8px;
   margin-top: 5px;
-  padding: 8px;
+  padding: 9px;
   border: 1px solid rgba(255, 207, 90, .16);
-  border-radius: 10px;
+  border-radius: 12px;
   background: rgba(255, 207, 90, .055);
 }
 
-.worldline-box p {
+.worldline-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.worldline-head b,
+.timeline-item h4,
+.faction-details b {
+  color: #ffdf8a;
+}
+
+.timeline-list {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  padding-left: 15px;
+}
+
+.timeline-list::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: linear-gradient(#74f6ff, rgba(255, 207, 90, .35));
+}
+
+.timeline-item {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  padding: 7px 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .055);
+}
+
+.timeline-dot {
+  position: absolute;
+  left: -14px;
+  top: 12px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #74f6ff;
+  box-shadow: 0 0 12px rgba(116, 246, 255, .55);
+}
+
+.timeline-item.story .timeline-dot {
+  background: #ffdf8a;
+  box-shadow: 0 0 12px rgba(255, 223, 138, .5);
+}
+
+.timeline-item small,
+.timeline-item em,
+.faction-details summary {
+  color: #9eabc9;
+  font-size: 11px;
+}
+
+.timeline-item h4,
+.timeline-item p,
+.faction-details p {
   margin: 0;
+}
+
+.timeline-item p,
+.faction-details p {
   color: #cfd8f4;
   line-height: 1.45;
 }
 
-.worldline-box b {
-  color: #ffdf8a;
+.timeline-item em {
+  font-style: normal;
+}
+
+.faction-details {
+  display: grid;
+  gap: 5px;
+}
+
+.faction-details summary {
+  cursor: pointer;
 }

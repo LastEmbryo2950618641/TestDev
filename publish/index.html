@@ -164,14 +164,29 @@
             <small x-text="`职业等级：${lore.jobRanks.join(' / ') || '无'}`"></small>
             <small x-text="`固化属性：${$store.game.loreNames(lore.specialFields, 'label')}`"></small>
             <div class="worldline-box" x-show="$store.game.loreWorldline(lore)">
-              <small x-text="`世界线时间：${$store.game.loreWorldline(lore)?.timeRange || '未知'}`"></small>
-              <small x-text="`原著剧情：${($store.game.loreWorldline(lore)?.storyIndexes || []).join('、') || '无'}`"></small>
-              <template x-for="event in $store.game.worldlineEvents(lore)" :key="event.eventId">
-                <p><b x-text="`${event.time}｜${event.name}`"></b><span x-text="` ${event.summary || event.detail}`"></span></p>
-              </template>
-              <template x-for="faction in $store.game.worldlineFactions(lore)" :key="faction.id">
-                <p><b x-text="`${faction.名称}｜${faction.类型}｜${faction.状态}`"></b><span x-text="` 目标:${faction.当前目标 || '无'}；属性:${$store.game.factionAttrs(faction)}；关系:${$store.game.factionRelations(faction)}`"></span></p>
-              </template>
+              <div class="worldline-head">
+                <b>世界线</b>
+                <small x-text="$store.game.loreWorldline(lore)?.timeRange || '时间未知'"></small>
+              </div>
+              <div class="timeline-list">
+                <template x-for="item in $store.game.timelineItems(lore)" :key="`${item.kind}-${item.eventId || item.order}`">
+                  <article class="timeline-item" :class="item.kind">
+                    <span class="timeline-dot"></span>
+                    <div>
+                      <small x-text="item.time || '时间未知'"></small>
+                      <h4 x-text="item.name"></h4>
+                      <p x-text="item.summary || item.detail"></p>
+                      <em x-text="$store.game.timelineMeta(item)"></em>
+                    </div>
+                  </article>
+                </template>
+              </div>
+              <details class="faction-details">
+                <summary>查看势力详情</summary>
+                <template x-for="faction in $store.game.worldlineFactions(lore)" :key="faction.id">
+                  <p><b x-text="`${faction.名称}｜${faction.类型}｜${faction.状态}`"></b><span x-text="` 目标:${faction.当前目标 || '无'}；属性:${$store.game.factionAttrs(faction)}；关系:${$store.game.factionRelations(faction)}`"></span></p>
+                </template>
+              </details>
             </div>
           </article>
         </template>
