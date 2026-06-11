@@ -7,6 +7,7 @@ window.GameModules.createSystemPrompt = function createSystemPrompt(state, actio
   const character = state.character;
   const experience = state.characterRpgState?.values?.control_experience || { onlineCount: 0, feeling: '未知', adaptation: 0, summary: '尚未经历上线操控。' };
   const feelingExamples = '极度惊恐/非常害怕/恐惧/疑惑/警惕/愤怒/屈辱/麻木/担忧/习惯/冷静分析';
+  const actor = /男性|男人|少年|青年|父亲|哥哥|弟弟|叔叔|丈夫|王子|皇帝/.test(`${character.name} ${character.role} ${character.detail}`) ? '他' : '她';
   window.GameModules.metrics.ensure(state);
   const metricDefs = window.GameModules.metrics.descriptions;
   const metricState = `当前情绪=${JSON.stringify(state.emotions)}；对玩家感觉=${JSON.stringify(state.playerFeelings)}`;
@@ -77,10 +78,10 @@ ${state.memoryContext || '暂无人物记忆。'}
 2. playerFeelings 只能使用这些固定对玩家感觉维度：${window.GameModules.metrics.playerKeys.join('、')}。
 3. 每个数值项只返回 delta、status、reason：delta 是本回合变化量，必须是 -30 到 30 的整数；正数表示增强，负数表示减弱，0 表示本回合无明显变化。
 4. 你不要返回 value、stage、description；代码会用“当前值 + delta”计算新 value，再根据新 value 计算 stage，并由代码填充 description。
-5. status 必须根据“当前值 + delta 后的新状态”来写，必须与变化方向和阶段含义一致；reason 必须写导致这个 delta 变化的具体原因，不要写“根据上下文推断”这类空话。
+5. status 必须根据“当前值 + delta 后的新状态”来写，必须与变化方向和阶段含义一致；reason 必须写导致这个 delta 变化的具体原因，不要写“根据上下文推断”“按角色背景推定”“目的未知”这类空话。status 和 reason 站在第三者上帝/作者视角描述，用“你”指玩家，用“${actor}”指角色。
 6. 阶段由代码按数值计算，阶段表仅供你写 status 时参考：${window.GameModules.metrics.stageGuide()}。
 7. 属性定义供你理解指标含义：${Object.entries(metricDefs).map(([k, v]) => `${k}=${v}`).join('；')}
-8. 爱情分8阶段，每约12.5分晋级：心动（初见好感、心生涟漪）、爱恋（倾心喜欢、萌生爱意）、倾心（满心偏向、满眼皆是）、眷恋（不舍分离、时时牵挂）、深爱（掏心交付）、执念（深陷其中、难以割舍）、依存（彼此依靠）、相守（长久相伴）。例如爱情 delta 后进入心动区间时，status 可写“不知为什么，想到你就扑通扑通心跳，产生心动的感觉”。
+8. 爱情分8阶段，每约12.5分晋级：心动（初见好感、心生涟漪）、爱恋（倾心喜欢、萌生爱意）、倾心（满心偏向、满眼皆是）、眷恋（不舍分离、时时牵挂）、深爱（掏心交付）、执念（深陷其中、难以割舍）、依存（彼此依靠）、相守（长久相伴）。例如爱情 delta 后进入心动区间时，status 可写“${actor}看到你时心里扑通扑通，似乎是心动了。”；reason 可写“你拯救了${actor}，外貌也符合${actor}的偏好，所以${actor}对你心动。”。
 9. emotions 必须每回合完整返回全部 ${window.GameModules.metrics.emotionKeys.length} 个当前情绪维度的 delta、status、reason，并根据当前场景、角色性格、身体状态、危险程度、玩家输入和上下文判断变化量；不要只返回变化项。
 10. playerFeelings 也必须每回合完整返回全部 ${window.GameModules.metrics.playerKeys.length} 个对玩家感觉维度的 delta、status、reason，并根据当前剧情、记忆、玩家行为、信任/反抗和角色性格判断变化量；不要只返回变化项。
 
@@ -97,6 +98,7 @@ ${outputJson}`;
 window.GameModules.createFallbackResult = function createFallbackResult(state, action) {
   const online = state.online;
   const name = state.character.name;
+  const actor = /男性|男人|少年|青年|父亲|哥哥|弟弟|叔叔|丈夫|王子|皇帝/.test(`${name} ${state.character.role} ${state.character.detail}`) ? '他' : '她';
   const text = action || (online ? '谨慎观察' : '让角色自由行动');
   const resistance = Math.max(0, Math.min(100, state.resistance + (online ? 3 : -2)));
   const trust = Math.max(0, Math.min(100, state.trust + (online ? 0 : 2)));
@@ -106,8 +108,8 @@ window.GameModules.createFallbackResult = function createFallbackResult(state, a
   const emotions = window.GameModules.metrics.emotionKeys.map((key) => ({
     key,
     delta: emotionDeltas[key] ?? 0,
-    status: online ? '身体失控让这一项情绪随之波动。' : '恢复自主后这一项情绪趋于重新稳定。',
-    reason: online ? '身体被玩家接管，失去行动主导权。' : '控制权回到自己手中，能按自身判断行动。',
+    status: online ? `${actor}身体失控，这项情绪随之波动。` : `${actor}重新获得自主，这项情绪趋于稳定。`,
+    reason: online ? `你接管了${actor}的身体，让${actor}失去行动主导权。` : `你暂时退开，${actor}终于能按自己的判断行动。`,
   }));
 
   return {
@@ -130,8 +132,8 @@ window.GameModules.createFallbackResult = function createFallbackResult(state, a
       playerFeelings: window.GameModules.metrics.playerKeys.map((key) => ({
         key,
         delta: key === '警惕' ? (online ? 5 : -2) : 0,
-        status: key === '警惕' ? '仍在观察玩家意图，保持防备。' : '本回合关系感受没有明显变化。',
-        reason: key === '警惕' ? '操控来源未知，角色无法确认玩家目的。' : '本回合没有直接触发该关系感受变化的事件。',
+        status: key === '警惕' ? `${actor}仍在观察你，保持防备。` : `${actor}对你的这项感受没有明显变化。`,
+        reason: key === '警惕' ? `${actor}不知道你接下来会怎么使用这具身体，所以继续戒备。` : `你本回合没有做出直接改变${actor}这项感受的事。`,
       })),
     },
     choices: ['使用技能调查', '主动交涉', '避开危险', '触碰异常物'],

@@ -72,7 +72,7 @@ window.GameModules.metrics = {
     if (!Array.isArray(items)) return;
     items.forEach((item) => {
       if (!Object.prototype.hasOwnProperty.call(target, item?.key)) return;
-      this.writeMetric(target, notes, group, item, this.clamp(item.value), '首次见面时根据角色处境与资料推定初始值。');
+      this.writeMetric(target, notes, group, item, this.clamp(item.value), '你刚介入她/他的处境，因此这项感受还在形成。');
     });
   },
   writeMetric(target, notes, group, item, value, fallbackReason) {

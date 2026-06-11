@@ -95,10 +95,10 @@ window.GameModules.ai = {
     };
   },
 
-  normalizeInitialMetricUpdates(value, fallback) {
+  normalizeInitialMetricUpdates(value, fallback, store) {
     return {
-      emotions: this.normalizeInitialGroup(value?.emotions, fallback?.emotions, window.GameModules.metrics.emotionKeys),
-      playerFeelings: this.normalizeInitialGroup(value?.playerFeelings, fallback?.playerFeelings, window.GameModules.metrics.playerKeys),
+      emotions: this.normalizeInitialGroup(value?.emotions, fallback?.emotions, window.GameModules.metrics.emotionKeys, store, 'emotion'),
+      playerFeelings: this.normalizeInitialGroup(value?.playerFeelings, fallback?.playerFeelings, window.GameModules.metrics.playerKeys, store, 'player'),
     };
   },
 
@@ -127,8 +127,10 @@ window.GameModules.ai = {
     }));
   },
 
-  normalizeInitialGroup(value, fallback, keys) {
+  normalizeInitialGroup(value, fallback, keys, store, type) {
     const list = Array.isArray(value) ? value : (Array.isArray(fallback) ? fallback : []);
+    const c = store?.character || {};
+    const actor = /男性|男人|少年|青年|父亲|哥哥|弟弟|叔叔|丈夫|王子|皇帝/.test(`${c.name || ''} ${c.role || ''} ${c.detail || ''}`) ? '他' : '她';
     const map = new Map(list.filter((item) => keys.includes(item?.key)).map((item) => [item.key, item]));
     return keys.map((key) => {
       const item = map.get(key) || {};
@@ -137,10 +139,16 @@ window.GameModules.ai = {
       return {
         key,
         value,
-        status: String(item.status || window.GameModules.metrics.stageStatus(key, stage)).slice(0, 80),
-        reason: String(item.reason || '首次见面时根据角色处境与资料推定初始值。').slice(0, 80),
+        status: String(item.status || (key === '爱情' ? `${actor}看着你时还没有恋爱意义上的心动。` : `${actor}对你或当前处境的${key}处于“${stage}”状态。`)).slice(0, 80),
+        reason: String(item.reason || this.metricReason(actor, key, type)).slice(0, 80),
       };
     });
+  },
+
+  metricReason(actor, key, type) {
+    if (type === 'emotion') return `你突然介入${actor}的处境，让${actor}的${key}随之波动。`;
+    if (key === '信任') return `你第一次出现就影响了${actor}的身体，所以${actor}暂时无法信任你。`;
+    return key === '警惕' ? `${actor}不知道你接下来会做什么，只能继续戒备。` : `你刚介入${actor}的处境，${actor}还没有形成更深的${key}。`;
   },
 
   normalizeChoices(value, fallback) {
