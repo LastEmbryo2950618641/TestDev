@@ -479,6 +479,12 @@
               </div>
             </article>
           </template>
+          <div class="story-choice-list dev-section" data-section-title="剧情行动选项" x-show="!$store.game.busy && $store.game.choices.length">
+            <template x-for="choice in $store.game.choices.slice(0, 4)" :key="choice">
+              <button class="story-choice-btn" @click="$store.game.submitAction(choice)" x-text="choice"></button>
+            </template>
+            <button class="story-choice-btn ghost" @click="$store.game.autoplay()">放开控制</button>
+          </div>
           <div x-show="$store.game.busy" class="thinking-line">AI 正在以作者视角续写，约 20 秒...</div>
         </div>
       </section>
@@ -513,13 +519,6 @@
     </section>
 
     <footer class="control-dock dev-section" data-section-title="底部操作栏">
-      <div class="choice-row dev-section" data-section-title="行动选项栏">
-        <template x-for="choice in $store.game.choices.slice(0, 4)" :key="choice">
-          <button class="choice-btn" @click="$store.game.submitAction(choice)" :disabled="$store.game.busy" x-text="choice"></button>
-        </template>
-        <button class="ghost-btn" @click="$store.game.autoplay()" :disabled="$store.game.busy">放开控制</button>
-      </div>
-
       <div class="free-input dev-section" data-section-title="自由输入栏">
         <input x-model="$store.game.input" :placeholder="$store.game.online ? '直接输入下一步行动...' : '给角色一句建议，然后让她自己决定...'" :disabled="$store.game.busy" @keydown.enter="$store.game.submitFreeInput()">
         <button @click="$store.game.submitFreeInput()" :disabled="$store.game.busy || !$store.game.input.trim()">执行</button>

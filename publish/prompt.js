@@ -32,7 +32,7 @@ window.GameModules.createSystemPrompt = function createSystemPrompt(state, actio
     controlAdaptation: 0,
     controlExperienceSummary: '40字内感受变化',
     metricUpdates: metricJson,
-    choices: ['行动一', '行动二', '行动三', '行动四'],
+    choices: ['四个可选的下一个玩家行动或想法'],
     appearedCharacters: [{ name: '姓名', role: '身份', detail: '基础资料', personality: '性格', work: '所属作品或世界', isMinor: true, importance: 'minor' }],
     statChanges: { health: 0, stamina: 0, mental_stability: 0 },
     combatEvent: { summary: '若发生攻防则描述', attackPower: 0, defensePower: 0, effectiveDamage: 0 },
@@ -164,6 +164,14 @@ ${Object.entries(metricDefs).map(([k, v]) => `- ${k}：${v}`).join('\n')}
 2. 不要逐字复述长段原文，要改写成游戏剧情。
 3. 资料不足时允许原创，但不要伪称来自原作。
 4. 如果资料与当前原创角色冲突，以当前游戏角色设定为主，本地设定库资料作为世界观参考。
+
+# 【行动选项】
+
+1. choices 必须返回四个可选的下一个玩家行动或想法。
+2. 每个选项要像玩家可以直接点击发送的回复，使用简短自然语言，不要写成系统说明。
+3. 选项应从不同方向推进剧情，例如观察、交涉、移动、使用能力、隐藏意图、冒险尝试等。
+4. online 时 choices 是玩家接下来操控身体的行动或脑内想法；offline 时 choices 是玩家给角色的建议、提醒或态度。
+5. 不要返回“放开控制”，该选项由界面固定提供。
 
 # 【输出格式】
 
