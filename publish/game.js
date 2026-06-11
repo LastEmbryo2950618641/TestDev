@@ -62,7 +62,7 @@ document.addEventListener('alpine:init', () => {
     metricSummaryObserver: null,
     expandedMetricKey: '',
     expandedRpgFieldKey: '',
-    quest: '确认操控连接',
+    quest: '确认操控连接', thinkingMode: true,
     mindText: '',
     characterIntent: '',
     choices: cfg.openingChoices,

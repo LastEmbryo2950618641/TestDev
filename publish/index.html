@@ -480,6 +480,7 @@
       <div class="free-input dev-section" data-section-title="自由输入栏">
         <input x-model="$store.game.input" :placeholder="$store.game.online ? '直接输入下一步行动...' : '给角色一句建议，然后让她自己决定...'" :disabled="$store.game.busy" @keydown.enter="$store.game.submitFreeInput()">
         <button @click="$store.game.submitFreeInput()" :disabled="$store.game.busy || !$store.game.input.trim()">执行</button>
+        <label class="thinking-switch" :class="{ active: $store.game.thinkingMode }"><input type="checkbox" x-model="$store.game.thinkingMode">思考</label>
       </div>
     </footer>
   </main>

@@ -11,10 +11,10 @@ Object.assign(window.GameModules.actions, {
       type: this.online ? 'player' : 'advice',
       playerText,
       storyText: '作者正在续写这一段剧情…',
-      thinking: 'AI 正在整理角色状态、玩家输入与当前场景…',
+      thinking: this.thinkingMode ? 'AI 正在整理角色状态、玩家输入与当前场景…' : '',
       speech: '',
       mind: '',
-      thinkingOpen: true,
+      thinkingOpen: Boolean(this.thinkingMode),
       streaming: true,
     };
     this.log.push(entry);
@@ -32,7 +32,7 @@ Object.assign(window.GameModules.actions, {
   },
 
   updateNovelStream(id, raw) {
-    const thinking = this.extractStreamingField(raw, 'thinking');
+    const thinking = this.thinkingMode ? this.extractStreamingField(raw, 'thinking') : '';
     const text = this.extractStreamingField(raw, 'narration');
     const patch = { streaming: true };
     if (thinking) patch.thinking = thinking;
@@ -47,7 +47,7 @@ Object.assign(window.GameModules.actions, {
     const speech = result.speech ? `\n\n「${result.speech}」` : '';
     this.updateNovelEntry(id, {
       storyText: `${result.narration || '剧情继续向前推进。'}${speech}`,
-      thinking: result.thinking || entry.thinking || '',
+      thinking: this.thinkingMode ? (result.thinking || entry.thinking || '') : '',
       thinkingOpen: false,
       mind: result.mind || '',
       streaming: false,

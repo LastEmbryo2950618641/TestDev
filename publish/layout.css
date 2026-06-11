@@ -48,6 +48,29 @@
   padding: 0 9px;
 }
 
+.thinking-switch {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid rgba(255, 207, 90, .24);
+  border-radius: 9px;
+  color: #ffdf8a;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.thinking-switch.active {
+  background: rgba(255, 207, 90, .12);
+}
+
+.thinking-switch input {
+  width: auto;
+  min-height: 0;
+}
+
 .control-dock button,
 .control-dock input {
   min-height: 30px;
@@ -205,7 +228,7 @@
 
   .free-input {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr auto auto;
   }
 
   .ghost-btn {

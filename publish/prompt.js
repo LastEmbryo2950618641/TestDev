@@ -18,7 +18,7 @@ window.GameModules.createSystemPrompt = function createSystemPrompt(state, actio
   const outputJson = JSON.stringify({
     sceneTitle: '当前场景标题',
     elapsedSeconds: 60,
-    thinking: '80到160字，概括你如何依据玩家输入、角色状态和场景推进本回合，不写隐藏推理',
+    ...(state.thinkingMode ? { thinking: '80到160字，概括你如何依据玩家输入、角色状态和场景推进本回合，不写隐藏推理' } : {}),
     narration: '必须以作者口吻直接续写小说正文，第三人称剧情描写，220到420字，可读性高，细节充足',
     speech: '角色说出口的话，可为空',
     mind: `${character.name}自己的第一人称内心独白，80到160字`,
@@ -52,7 +52,7 @@ window.GameModules.createSystemPrompt = function createSystemPrompt(state, actio
 8. 玩家输入可能是一瞬间动作，也可能是学习、准备、训练、旅行、等待等长时间计划；必须根据行动内容推演合理流逝时间，并返回 elapsedSeconds。
 9. narration 必须以作者口吻直接开始续写小说正文，不能写“好的/下面/我将/本回合/AI生成”等说明语，不能解释规则或总结任务。
 10. 为了提高可读性，narration 要写得充实、有画面和因果，不要过短；但不要灌水，不要复述规则。
-11. thinking 是展示给玩家看的 AI 思考摘要，只概括依据哪些状态推进剧情，不输出隐藏推理链，不替代正文。
+11. ${state.thinkingMode ? 'thinking 是展示给玩家看的 AI 思考摘要，只概括依据哪些状态推进剧情，不输出隐藏推理链，不替代正文。' : '当前思考模式关闭，不要返回 thinking 字段。'}
 12. 不要替玩家做过多总结，要推进当前场景并留下新的选择。
 13. 角色可能逐渐意识到操控者存在，但不要过快揭露全部真相。
 
@@ -127,7 +127,7 @@ window.GameModules.createFallbackResult = function createFallbackResult(state, a
   return {
     sceneTitle: state.sceneTitle || '裂隙前厅',
     elapsedSeconds: /学习|训练|准备|研究|等待|旅行|赶路|休息|睡|一天|小时/.test(text) ? 3600 : 60,
-    thinking: `依据玩家输入「${text}」、当前上线状态与${name}的心理压力，优先推进可见行动结果，同时保留角色对操控的反应。`,
+    thinking: state.thinkingMode ? `依据玩家输入「${text}」、当前上线状态与${name}的心理压力，优先推进可见行动结果，同时保留角色对操控的反应。` : '',
     narration: online
       ? `操控指令覆盖了${name}的身体。她按照「${text}」行动，眼前的走廊浮现出新的分岔。`
       : `${name}重新掌握身体。她回想你的建议「${text}」，选择用自己的方式向前试探。`,

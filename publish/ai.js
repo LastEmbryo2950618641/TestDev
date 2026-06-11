@@ -67,7 +67,7 @@ window.GameModules.ai = {
     return {
       sceneTitle: String(data.sceneTitle || fallback.sceneTitle).slice(0, 12),
       elapsedSeconds: this.clampElapsed(data.elapsedSeconds, fallback.elapsedSeconds),
-      thinking: String(data.thinking || fallback.thinking || '').slice(0, 220),
+      thinking: store.thinkingMode ? String(data.thinking || fallback.thinking || '').slice(0, 220) : '',
       narration: String(data.narration || fallback.narration),
       speech: String(data.speech || fallback.speech),
       mind: String(data.mind || fallback.mind),
