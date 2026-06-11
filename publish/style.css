@@ -763,6 +763,7 @@ select.text-input option,
   position: relative;
   justify-self: start;
   width: min(82%, 640px);
+  padding: 0;
   background: rgba(141, 150, 255, .09);
   user-select: text;
   -webkit-user-select: text;
@@ -818,9 +819,9 @@ select.text-input option,
 
 .novel-thinking {
   width: 100%;
-  margin: 0 0 3px;
-  padding: 5px 7px;
-  border-radius: 8px;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
   background: rgba(255, 207, 90, .07);
   color: #ffe9ad;
   white-space: pre-line;
