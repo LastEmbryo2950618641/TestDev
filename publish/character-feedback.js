@@ -24,7 +24,7 @@ window.GameModules.characterFeedback = {
       }, (chunk) => {
         buffer = this.merge(buffer, chunk);
       });
-      await Promise.race([request, new Promise((_, reject) => setTimeout(() => reject(new Error('角色反馈生成超时')), 6000))]);
+      await Promise.race([request, new Promise((_, reject) => setTimeout(() => reject(new Error('角色反馈生成超时')), 12000))]);
       return this.parse(buffer, fallback, store);
     } catch (err) {
       console.warn('角色反馈生成失败:', err.code, err.message, err.stack);
@@ -49,7 +49,8 @@ window.GameModules.characterFeedback = {
   parse(text, fallback, store) {
     try {
       const data = window.GameModules.jsonUtils.parseLoose(text);
-      if (!this.hasCompleteInitialMetrics(data.metricUpdates)) throw new Error('初始固定数值不完整');
+      const completeMetrics = this.hasCompleteInitialMetrics(data.metricUpdates);
+      if (!data.mind && !data.intent) throw new Error('角色反馈缺少 mind/intent');
       const feeling = String(data.controlFeeling || fallback.controlFeeling || '疑惑').slice(0, 40);
       return {
         mind: String(data.mind || fallback.mind).slice(0, 80),
@@ -59,7 +60,7 @@ window.GameModules.characterFeedback = {
         controlFeeling: feeling,
         adaptation: this.clamp(data.adaptation, fallback.adaptation),
         experienceSummary: String(data.experienceSummary || fallback.experienceSummary).slice(0, 80),
-        metricUpdates: window.GameModules.ai.normalizeInitialMetricUpdates(data.metricUpdates, null, store),
+        metricUpdates: completeMetrics ? window.GameModules.ai.normalizeInitialMetricUpdates(data.metricUpdates, null, store) : fallback.metricUpdates,
         choices: this.normalizeChoices(data.choices, fallback.choices),
         source: 'ai',
       };

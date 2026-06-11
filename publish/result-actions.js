@@ -11,9 +11,9 @@ window.GameModules.resultActions = {
     this.trust = result.trust;
     this.resistance = result.resistance;
     this.quest = result.quest;
-    this.characterIntent = result.characterIntent || this.characterIntent;
+    this.characterIntent = result.source === 'ai' ? (result.characterIntent || '') : '';
     this.choices = result.choices;
-    this.mindText = result.mind;
+    this.mindText = result.source === 'ai' ? (result.mind || '') : '';
     this.feedbackSource = result.source || 'fallback';
     this.applyMetricUpdates(result.metricUpdates);
     await window.GameModules.entryTime.advance(this, result.elapsedSeconds || 60);
