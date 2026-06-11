@@ -45,10 +45,11 @@ window.GameModules.ai = {
 
   parse(content, store, action) {
     try {
-      const start = content.indexOf('{');
-      const end = content.lastIndexOf('}');
+      const cleaned = String(content || '').replace(/```(?:json)?|```/g, '').trim();
+      const start = cleaned.indexOf('{');
+      const end = cleaned.lastIndexOf('}');
       if (start === -1 || end === -1) throw new Error('AI 没有返回 JSON');
-      const data = JSON.parse(content.slice(start, end + 1));
+      const data = JSON.parse(cleaned.slice(start, end + 1));
       console.log('[AI推演] JSON解析成功:', Object.keys(data));
       return this.normalize(data, store, action);
     } catch (err) {

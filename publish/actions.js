@@ -35,7 +35,14 @@ window.GameModules.actions = {
   installMetricSummaryObserver(el) {
     if (!window.ResizeObserver || !el) return;
     if (this.metricSummaryObserver) this.metricSummaryObserver.disconnect();
-    const update = () => this.refreshMetricSummaryLimit(el);
+    let frame = 0;
+    const update = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        this.refreshMetricSummaryLimit(el);
+      });
+    };
     this.metricSummaryObserver = new ResizeObserver(update);
     this.metricSummaryObserver.observe(el);
     update();
@@ -54,7 +61,8 @@ window.GameModules.actions = {
       used += width + 5;
       count += 1;
     }
-    this.metricSummaryLimit = Math.max(1, count);
+    const next = Math.max(1, count);
+    if (this.metricSummaryLimit !== next) this.metricSummaryLimit = next;
   },
 
   metricNote(type, key) {

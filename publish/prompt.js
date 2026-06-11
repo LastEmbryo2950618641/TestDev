@@ -10,8 +10,30 @@ window.GameModules.createSystemPrompt = function createSystemPrompt(state, actio
   window.GameModules.metrics.ensure(state);
   const metricDefs = window.GameModules.metrics.descriptions;
   const metricState = `当前情绪=${JSON.stringify(state.emotions)}；对玩家感觉=${JSON.stringify(state.playerFeelings)}`;
-  const metricShape = (key) => `{"key":"${key}","delta":-30到30整数,"status":"变化后的状态含义","reason":"导致变化的具体原因"}`;
-  const metricJson = `{"emotions":[${window.GameModules.metrics.emotionKeys.map(metricShape).join(',')}],"playerFeelings":[${window.GameModules.metrics.playerKeys.map(metricShape).join(',')}]}`;
+  const metricShape = (key) => ({ key, delta: 0, status: '变化后的状态含义', reason: '导致变化的具体原因' });
+  const metricJson = {
+    emotions: window.GameModules.metrics.emotionKeys.map(metricShape),
+    playerFeelings: window.GameModules.metrics.playerKeys.map(metricShape),
+  };
+  const outputJson = JSON.stringify({
+    sceneTitle: '当前场景标题',
+    narration: '第三人称剧情描写，120字内',
+    speech: '角色说出口的话',
+    mind: `${character.name}自己的第一人称内心独白，60字内`,
+    mood: '冷静',
+    trust: 45,
+    resistance: 20,
+    quest: '新的当前目标',
+    characterIntent: `${character.name}自己下一步想要做什么`,
+    controlFeeling: '疑惑',
+    controlAdaptation: 0,
+    controlExperienceSummary: '40字内感受变化',
+    metricUpdates: metricJson,
+    choices: ['行动一', '行动二', '行动三', '行动四'],
+    appearedCharacters: [{ name: '姓名', role: '身份', detail: '基础资料', personality: '性格', work: '所属作品或世界', isMinor: true, importance: 'minor' }],
+    statChanges: { health: 0, stamina: 0, mental_stability: 0 },
+    combatEvent: { summary: '若发生攻防则描述', attackPower: 0, defensePower: 0, effectiveDamage: 0 },
+  });
   return `你是 AI RPG 视觉小说《我狠狠操控》的剧情引擎。
 
 核心设定：
@@ -68,26 +90,8 @@ ${state.memoryContext || '暂无人物记忆。'}
 3. 资料不足时允许原创，但不要伪称来自原作。
 4. 如果资料与当前原创角色冲突，以当前游戏角色设定为主，本地设定库资料作为世界观参考。
 
-必须只返回合法 JSON，不要 Markdown，不要代码块。格式：
-{
-  "sceneTitle":"当前场景标题，10字内",
-  "narration":"第三人称剧情描写，120字内",
-  "speech":"角色说出口的话，online 时可为空或很短，因为身体被接管",
-  "mind":"${character.name}自己的第一人称内心独白，60字内；online 时强调身体突然不受控制、未知来源、五感仍在但无法行动；只写心理反应，不写行动",
-  "mood":"冷静/紧张/愤怒/动摇/信任/恐惧/好奇/坚定之一",
-  "trust":0到100整数,
-  "resistance":0到100整数,
-  "quest":"新的当前目标，18字内",
-  "characterIntent":"${character.name}自己下一步想要做什么，40字内；必须按角色性格、年龄、身体状态、经历和当前处境判断，不要固定模板，不要等同玩家行动选项",
-  "controlFeeling":"被上线感觉；可参考 ${feelingExamples}，也可以自定义一个词、短句或简短感受描述；结合上线次数、适应度、记忆和角色设定判断",
-  "controlAdaptation":0到100整数,
-  "controlExperienceSummary":"40字内，概括这次被上线后的感受变化",
-  "metricUpdates":${metricJson},
-  "choices":["必须给4个AI推荐行动选项，正好4个，每个12字内；根据当前场景、角色状态、玩家输入和危险生成；不要包含放开控制，不要固定套用默认选项"],
-  "appearedCharacters":[{"name":"姓名","role":"身份","detail":"基础资料","personality":"性格","work":"所属作品或世界","isMinor":true,"importance":"minor|support|main"}],
-  "statChanges":{"health":-8到8,"stamina":-8到8,"mental_stability":-8到8},
-  "combatEvent":{"summary":"若本回合发生攻击/防御，40字内描述","attackPower":数字,"defensePower":数字,"effectiveDamage":数字}
-}`;
+必须只返回合法 JSON，不要 Markdown，不要代码块。数值字段必须填真实数字，不要填中文占位词。格式示例：
+${outputJson}`;
 };
 
 window.GameModules.createFallbackResult = function createFallbackResult(state, action) {

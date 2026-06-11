@@ -30,16 +30,18 @@ window.GameModules.characterFeedback = {
     const profile = store.characterProfiles[store.character.id]?.summary || store.character.detail || store.character.personality || '';
     const experience = this.experience(store);
     const metricDefs = Object.entries(window.GameModules.metrics.descriptions).map(([k, v]) => `${k}=${v}`).join('；');
-    const shape = '{"key":"固定名","delta":-30到30整数,"status":"变化后的状态含义","reason":"导致变化的具体原因"}';
-    return `根据角色当前设定生成被操控后的内心反馈，并更新该角色对“被上线”的感觉。必须只返回合法JSON，不要Markdown。角色：${store.character.name}｜${store.character.role}｜${store.character.work}。年龄：${store.characterAge || '未知'}。操控方式：${store.controlMode}。当前正在发生：${store.entryCurrentAction || '未知'}。人物资料：${profile}。已有上线体验：上线次数=${experience.onlineCount}；当前被上线感觉=${experience.feeling}；适应度=${experience.adaptation}/100；体验摘要=${experience.summary}。固定数值：当前情绪=${JSON.stringify(store.emotions)}；对玩家感觉=${JSON.stringify(store.playerFeelings)}。固定维度含义：${metricDefs}。爱情阶段每约12.5分晋级：心动、爱恋、倾心、眷恋、深爱、执念、依存、相守。核心处境：对角色本人来说，身体是突然不受控制的；她不知道是谁在控制，也不知道控制来源，只能先感到自己的身体突然自己行动。上线后她像被困在身体里旁观外界，无法控制动作和发声，但视觉、听觉、嗅觉、味觉、触觉、疼痛、疲劳等身体感觉仍然能感受到。规则：mind 必须是角色自己的第一人称内心独白，不要旁白说明，不要写角色名字；intent 是角色自己下一步想要做什么，不是玩家行动选项；choices 必须根据当前角色、场景、上线状态、危险与目标生成4个玩家可执行行动，每个12字内，不能包含“放开控制”，不能固定套用默认选项；metricUpdates 只能返回 delta、status、reason，不要返回 value/stage/description；delta 是本回合变化量，reason 必须解释导致变化的具体事件或心理触发点。controlFeeling 可参考这些状态：${this.feelingExamples.join('、')}；也可以根据角色状态自定义一个更贴切的词、短句或简短感受描述。请根据角色性格、年龄、身体状态、经历、记忆、当前处境、上线次数和适应度综合判断：上线次数多可能逐渐适应，但不是必然；有些角色会疑惑、警惕或冷静分析，有些会害怕、屈辱或愤怒，不要固定模板。格式：{"mind":"60字内","intent":"${store.character.name}下一步想要……，40字内","mood":"冷静/紧张/愤怒/动摇/信任/恐惧/好奇/坚定之一","resistance":0到100整数,"controlFeeling":"可参考候选，也可自定义词、短句或简短感受描述","adaptation":0到100整数,"experienceSummary":"40字内，概括她这次对被上线的感受变化","metricUpdates":{"emotions":[${shape}],"playerFeelings":[${shape}]},"choices":["4个AI推荐行动选项"]}`;
+    const metricJson = JSON.stringify({ emotions: [{ key: '恐惧', delta: 0, status: '变化后的状态含义', reason: '导致变化的具体原因' }], playerFeelings: [{ key: '警惕', delta: 0, status: '变化后的状态含义', reason: '导致变化的具体原因' }] });
+    const outputJson = JSON.stringify({ mind: '60字内', intent: `${store.character.name}下一步想要……，40字内`, mood: '冷静', resistance: 0, controlFeeling: '可参考候选，也可自定义词、短句或简短感受描述', adaptation: 0, experienceSummary: '40字内，概括她这次对被上线的感受变化', metricUpdates: JSON.parse(metricJson), choices: ['4个AI推荐行动选项'] });
+    return `根据角色当前设定生成被操控后的内心反馈，并更新该角色对“被上线”的感觉。必须只返回合法JSON，不要Markdown。角色：${store.character.name}｜${store.character.role}｜${store.character.work}。年龄：${store.characterAge || '未知'}。操控方式：${store.controlMode}。当前正在发生：${store.entryCurrentAction || '未知'}。人物资料：${profile}。已有上线体验：上线次数=${experience.onlineCount}；当前被上线感觉=${experience.feeling}；适应度=${experience.adaptation}/100；体验摘要=${experience.summary}。固定数值：当前情绪=${JSON.stringify(store.emotions)}；对玩家感觉=${JSON.stringify(store.playerFeelings)}。固定维度含义：${metricDefs}。爱情阶段每约12.5分晋级：心动、爱恋、倾心、眷恋、深爱、执念、依存、相守。核心处境：对角色本人来说，身体是突然不受控制的；她不知道是谁在控制，也不知道控制来源，只能先感到自己的身体突然自己行动。上线后她像被困在身体里旁观外界，无法控制动作和发声，但视觉、听觉、嗅觉、味觉、触觉、疼痛、疲劳等身体感觉仍然能感受到。规则：mind 必须是角色自己的第一人称内心独白，不要旁白说明，不要写角色名字；intent 是角色自己下一步想要做什么，不是玩家行动选项；choices 必须根据当前角色、场景、上线状态、危险与目标生成4个玩家可执行行动，每个12字内，不能包含“放开控制”，不能固定套用默认选项；metricUpdates 只能返回 delta、status、reason，不要返回 value/stage/description；delta 是本回合变化量，reason 必须解释导致变化的具体事件或心理触发点。controlFeeling 可参考这些状态：${this.feelingExamples.join('、')}；也可以根据角色状态自定义一个更贴切的词、短句或简短感受描述。请根据角色性格、年龄、身体状态、经历、记忆、当前处境、上线次数和适应度综合判断：上线次数多可能逐渐适应，但不是必然；有些角色会疑惑、警惕或冷静分析，有些会害怕、屈辱或愤怒，不要固定模板。格式示例：${outputJson}`;
   },
 
   parse(text, fallback, store) {
     try {
-      const start = text.indexOf('{');
-      const end = text.lastIndexOf('}');
+      const cleaned = String(text || '').replace(/```(?:json)?|```/g, '').trim();
+      const start = cleaned.indexOf('{');
+      const end = cleaned.lastIndexOf('}');
       if (start < 0 || end < 0) throw new Error('反馈 JSON 缺失');
-      const data = JSON.parse(text.slice(start, end + 1));
+      const data = JSON.parse(cleaned.slice(start, end + 1));
       const feeling = String(data.controlFeeling || fallback.controlFeeling || '疑惑').slice(0, 40);
       return {
         mind: String(data.mind || fallback.mind).slice(0, 80),
