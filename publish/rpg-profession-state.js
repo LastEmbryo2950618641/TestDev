@@ -5,10 +5,13 @@ window.GameModules.rpgProfessionState = {
     const jobs = state.values?.professions || [];
     if (!jobs.length) return false;
     let changed = false;
-    jobs.forEach((job) => {
+    const normalized = jobs.map((job) => {
       const clean = window.GameModules.professionInfo.normalizeJobName(job.name);
-      if (job.name !== clean) { job.name = clean; changed = true; }
-    });
+      if (job.name !== clean) changed = true;
+      return { ...job, name: clean };
+    }).filter((job) => job.name);
+    if (normalized.length !== jobs.length) changed = true;
+    if (changed) state.values.professions = normalized;
     return changed;
   },
 

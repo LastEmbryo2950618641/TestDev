@@ -43,7 +43,7 @@ window.GameModules.professionInfo = {
   },
 
   validate(raw, worldTag, name) {
-    if (raw.confirmed !== true) return null;
+    if (!raw || typeof raw !== 'object' || raw.confirmed !== true) return null;
     const arr = (value) => (Array.isArray(value) ? value : []).slice(0, 6).map((x) => String(x).slice(0, 24));
     const cleanName = this.normalizeJobName(raw.name || name);
     if (!cleanName || !raw.summary || !raw.description) return null;
