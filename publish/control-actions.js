@@ -2,10 +2,15 @@
  * 控制上线流程：玩家确认连接后的详细调试日志。
  */
 window.GameModules = window.GameModules || {};
+console.log('[控制上线] control-actions.js 已加载', { hasEntryActions: Boolean(window.GameModules.entryActions) });
 
 Object.assign(window.GameModules.entryActions, {
   async confirmControl() {
-    if (this.busy) return;
+    console.log('[控制上线] confirmControl 入口:', { busy: this.busy, started: this.started, entrySetupOpen: this.entrySetupOpen, ready: Boolean(this.entryTimeOptions?.start) });
+    if (this.busy) {
+      console.warn('[控制上线] confirmControl 被 busy 拦截:', { busy: this.busy });
+      return;
+    }
     const debug = window.GameModules.debug;
     const flow = debug.start('[控制上线] 总流程', {
       character: this.character?.name,
