@@ -26,9 +26,35 @@ window.GameModules.actions = {
     return Object.entries(group.values).map(([key, value]) => ({ key, value }));
   },
 
-  metricCollapsedText() {
+  metricCollapsedItems() {
     window.GameModules.metrics.ensure(this);
-    return '当前情绪 ' + window.GameModules.metrics.emotionKeys.map((key) => `${key}${this.emotions[key]}`).join(' ');
+    const list = window.GameModules.metrics.emotionKeys.map((key) => ({ key, value: this.emotions[key] }));
+    return list.slice(0, Math.max(1, this.metricSummaryLimit || 3));
+  },
+
+  installMetricSummaryObserver(el) {
+    if (!window.ResizeObserver || !el) return;
+    if (this.metricSummaryObserver) this.metricSummaryObserver.disconnect();
+    const update = () => this.refreshMetricSummaryLimit(el);
+    this.metricSummaryObserver = new ResizeObserver(update);
+    this.metricSummaryObserver.observe(el);
+    update();
+  },
+
+  refreshMetricSummaryLimit(el) {
+    const line = el?.querySelector?.('.metrics-collapsed-line');
+    if (!line) return;
+    const available = Math.max(40, line.clientWidth - 82);
+    let used = 0;
+    let count = 0;
+    for (const key of window.GameModules.metrics.emotionKeys) {
+      const text = `${key}${this.emotions[key] ?? 0}`;
+      const width = Array.from(text).length * 12 + 10;
+      if (used + width > available) break;
+      used += width + 5;
+      count += 1;
+    }
+    this.metricSummaryLimit = Math.max(1, count);
   },
 
   metricNote(type, key) {

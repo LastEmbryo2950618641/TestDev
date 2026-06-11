@@ -56,6 +56,8 @@ document.addEventListener('alpine:init', () => {
     emotions: window.GameModules.metrics.fresh().emotions,
     playerFeelings: window.GameModules.metrics.fresh().playerFeelings,
     metricNotes: {},
+    metricSummaryLimit: 3,
+    metricSummaryObserver: null,
     expandedMetricKey: '',
     quest: '确认操控连接',
     mindText: '',

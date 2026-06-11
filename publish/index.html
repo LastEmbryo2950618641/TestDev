@@ -304,14 +304,18 @@
           </div>
         </button>
         <div class="profile-stack" :class="{ 'profile-stack-expanded': $store.game.profileOpen }">
-        <section class="compact-metrics dev-section" :class="{ collapsed: !$store.game.metricsOpen }" data-section-title="简洁数值栏">
+        <section class="compact-metrics dev-section" :class="{ collapsed: !$store.game.metricsOpen }" data-section-title="简洁数值栏" x-init="$nextTick(() => $store.game.installMetricSummaryObserver($el))">
           <button class="metrics-collapsed-line" @click="$store.game.metricsOpen = !$store.game.metricsOpen" type="button">
-            <span x-text="$store.game.metricCollapsedText()"></span><b x-text="$store.game.metricsOpen ? '收起' : '展开'"></b>
+            <span class="metric-line-title">当前情绪</span>
+            <span class="metric-inline-items" x-show="!$store.game.metricsOpen">
+              <template x-for="metric in $store.game.metricCollapsedItems()" :key="metric.key"><i x-text="`${metric.key}${metric.value}`"></i></template>
+            </span>
+            <b x-text="$store.game.metricsOpen ? '收起' : '展开'"></b>
           </button>
           <div class="metrics-expanded" x-show="$store.game.metricsOpen">
           <template x-for="group in $store.game.metricGroups()" :key="group.type">
             <div class="metric-group">
-              <button class="metric-group-title" @click="$store.game.metricsOpen = false" x-text="`${group.title} － 点击收起`"></button>
+              <button class="metric-group-title" x-show="group.type !== 'emotion'" @click="$store.game.metricsOpen = false" x-text="`${group.title} － 点击收起`"></button>
               <div class="metrics-summary">
                 <template x-for="metric in $store.game.metricEntries(group)" :key="`${group.type}-${metric.key}`">
                   <button class="metric-pill" @click="$store.game.toggleMetric(group.type, metric.key)" :class="{ active: $store.game.isMetricOpen(group.type, metric.key) }">

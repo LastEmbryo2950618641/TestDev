@@ -305,16 +305,31 @@
   text-align: left;
 }
 
-.metrics-collapsed-line span {
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
+.metric-line-title {
+  flex: 0 0 auto;
   color: #dfe6ff;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.metric-inline-items {
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #eef3ff;
   font-size: 11px;
   font-weight: 800;
   line-height: 1.35;
-  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.metric-inline-items i {
+  flex: 0 0 auto;
+  font-style: normal;
 }
 
 .metrics-collapsed-line b {
@@ -325,6 +340,23 @@
 
 .compact-metrics.collapsed .metric-group {
   display: none;
+}
+
+.compact-metrics:not(.collapsed) {
+  gap: 0;
+}
+
+.compact-metrics:not(.collapsed) .metrics-collapsed-line {
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.compact-metrics:not(.collapsed) .metrics-expanded {
+  padding: 5px 6px 6px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-top: 0;
+  border-radius: 0 0 9px 9px;
+  background: rgba(255, 255, 255, .035);
 }
 
 .metric-group-title {
