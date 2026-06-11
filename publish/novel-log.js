@@ -4,12 +4,13 @@
 window.GameModules = window.GameModules || {};
 
 Object.assign(window.GameModules.actions, {
-  addNovelEntry(playerText) {
+  addNovelEntry(playerText, options = {}) {
     const entry = {
       id: this.nextId++,
       kind: 'novel',
       type: this.online ? 'player' : 'advice',
       playerText,
+      playerVisible: options.playerVisible !== false,
       storyText: '作者正在续写这一段剧情…',
       thinking: '',
       speech: '',
@@ -74,6 +75,7 @@ Object.assign(window.GameModules.actions, {
   novelLogEntries() {
     return (this.log || []).filter((entry) => entry.kind === 'novel').map((entry) => ({
       ...entry,
+      playerVisible: entry.playerVisible !== false && !/《我狠狠控制》APP里选中/.test(entry.playerText || ''),
       thinking: this.normalizeNovelThinking(entry.thinking),
     }));
   },

@@ -165,7 +165,7 @@ window.GameModules.entryActions = {
       this.applyInitialMetrics(feedback.metricUpdates);
       await window.GameModules.characterFeedback.applyExperience(this, feedback);
       const action = `你在手机上的《我狠狠控制》APP里选中${this.character.name}，按下连接按钮。意识陷入黑暗后，你在${this.entryTimeLabel()}醒来，发现自己已经附身到${this.character.name}身上。当前场景：${this.entryCurrentAction || `${this.character.name}正在行动。`}`;
-      const logId = this.addNovelEntry(action);
+      const logId = this.addNovelEntry(action, { playerVisible: false });
       await this.refreshRagContext(action);
       this.memoryContext = await window.GameModules.characterMemory.contextFor(this, action);
       await window.GameModules.ai.generate(this, action, logId);
