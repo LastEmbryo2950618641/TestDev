@@ -189,6 +189,7 @@ document.addEventListener('alpine:init', () => {
     ...window.GameModules.loadingActions,
     ...window.GameModules.saveActions,
     ...window.GameModules.styleActions,
+    ...window.GameModules.worldlineActions,
     ...window.GameModules.entryActions,
     ...window.GameModules.coreActions,
   });

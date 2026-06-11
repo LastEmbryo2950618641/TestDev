@@ -1,0 +1,19 @@
+.worldline-box {
+  display: grid;
+  gap: 5px;
+  margin-top: 5px;
+  padding: 8px;
+  border: 1px solid rgba(255, 207, 90, .16);
+  border-radius: 10px;
+  background: rgba(255, 207, 90, .055);
+}
+
+.worldline-box p {
+  margin: 0;
+  color: #cfd8f4;
+  line-height: 1.45;
+}
+
+.worldline-box b {
+  color: #ffdf8a;
+}

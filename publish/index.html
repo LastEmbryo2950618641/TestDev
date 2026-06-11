@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="character-select.css">
   <link rel="stylesheet" href="profile-preview.css">
   <link rel="stylesheet" href="prompt-dialog.css">
+  <link rel="stylesheet" href="worldline.css">
   <link rel="stylesheet" href="layout.css">
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js"></script>
@@ -18,6 +19,7 @@
   <script src="metrics.js"></script>
   <script src="sqlite-save.js"></script>
   <script src="sqlite-world.js"></script>
+  <script src="sqlite-worldline.js"></script>
   <script src="sqlite-memory.js"></script>
   <script src="json-utils.js"></script>
   <script src="progression.js"></script>
@@ -62,6 +64,7 @@
   <script src="save-actions.js"></script>
   <script src="result-actions.js"></script>
   <script src="style-actions.js"></script>
+  <script src="worldline-actions.js"></script>
   <script src="entry-actions.js"></script>
   <script src="control-actions.js"></script>
   <script src="core-actions.js"></script>
@@ -160,6 +163,16 @@
             <small x-text="`特殊职业：${$store.game.loreNames(lore.specialJobs, 'name')}`"></small>
             <small x-text="`职业等级：${lore.jobRanks.join(' / ') || '无'}`"></small>
             <small x-text="`固化属性：${$store.game.loreNames(lore.specialFields, 'label')}`"></small>
+            <div class="worldline-box" x-show="$store.game.loreWorldline(lore)">
+              <small x-text="`世界线时间：${$store.game.loreWorldline(lore)?.timeRange || '未知'}`"></small>
+              <small x-text="`原著剧情：${($store.game.loreWorldline(lore)?.storyIndexes || []).join('、') || '无'}`"></small>
+              <template x-for="event in $store.game.worldlineEvents(lore)" :key="event.eventId">
+                <p><b x-text="`${event.time}｜${event.name}`"></b><span x-text="` ${event.summary || event.detail}`"></span></p>
+              </template>
+              <template x-for="faction in $store.game.worldlineFactions(lore)" :key="faction.id">
+                <p><b x-text="`${faction.名称}｜${faction.类型}｜${faction.状态}`"></b><span x-text="` 目标:${faction.当前目标 || '无'}；属性:${$store.game.factionAttrs(faction)}；关系:${$store.game.factionRelations(faction)}`"></span></p>
+              </template>
+            </div>
           </article>
         </template>
         <p class="empty-lore" x-show="!$store.game.savedWorldLores.length">暂无已保存世界观。开始游戏或进入新作品后会自动生成。</p>
