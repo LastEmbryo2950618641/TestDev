@@ -79,12 +79,14 @@ window.GameModules.rpgInitializer = {
   updateExisting(state, character, store, seed) {
     const ctx = this.infer(character, store, seed);
     const elapsed = this.elapsedSeconds(state.values?.updatedGameTimeValue, store);
-    const scale = Math.min(1, Math.max(0.08, elapsed / 86400));
+    const scale = elapsed > 0 ? Math.min(1, Math.max(0.08, elapsed / 86400)) : 0;
     const v = state.values;
-    this.driftPool(v.vitality, (ctx.weak ? -ctx.weak : 1) * scale);
-    this.driftPool(v.stamina_pool, (1 - ctx.danger - ctx.weak) * scale);
-    this.driftPool(v.mental_stability, (1 - ctx.trauma - ctx.danger) * scale);
-    v.fatigue = window.GameModules.progression.pool(this.clamp((v.fatigue?.current || 0) + (ctx.danger + ctx.weak) * 3 * scale, 0, 100), 100);
+    if (scale > 0) {
+      this.driftPool(v.vitality, (ctx.weak ? -ctx.weak : 1) * scale);
+      this.driftPool(v.stamina_pool, (1 - ctx.danger - ctx.weak) * scale);
+      this.driftPool(v.mental_stability, (1 - ctx.trauma - ctx.danger) * scale);
+      v.fatigue = window.GameModules.progression.pool(this.clamp((v.fatigue?.current || 0) + (ctx.danger + ctx.weak) * 3 * scale, 0, 100), 100);
+    }
     v.health = window.GameModules.progression.percent(v.vitality);
     v.stamina = window.GameModules.progression.percent(v.stamina_pool);
     v.current_context = this.summary(character, store, ctx, elapsed);

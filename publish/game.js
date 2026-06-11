@@ -22,6 +22,7 @@ document.addEventListener('alpine:init', () => {
     loadingDetail: '首次进入或存档较大时会更慢，这是正常现象。',
     loadingStages: [], entryStages: [],
     busy: false, started: false, entrySetupOpen: false,
+    initStarted: false, initPromise: null,
     playerName: '',
     selectedSlot: 'slot-1',
     saveSlots: window.GameModules.storage.slots,
@@ -113,7 +114,19 @@ document.addEventListener('alpine:init', () => {
     },
 
     async init() {
-      try { window.GameModules.metrics.ensure(this); await this.initGame(); } catch (err) { console.error('游戏初始化失败:', err.message, err.stack); this.loadingDetail = `初始化失败：${err.message || '未知错误'}`; this.loading = false; }
+      if (this.initPromise) return this.initPromise;
+      this.initStarted = true;
+      this.initPromise = (async () => {
+        try {
+          window.GameModules.metrics.ensure(this);
+          await this.initGame();
+        } catch (err) {
+          console.error('游戏初始化失败:', err.message, err.stack);
+          this.loadingDetail = `初始化失败：${err.message || '未知错误'}`;
+          this.loading = false;
+        }
+      })();
+      return this.initPromise;
     },
 
     async loadCatalog() {

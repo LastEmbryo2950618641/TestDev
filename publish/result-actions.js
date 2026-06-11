@@ -6,7 +6,6 @@ window.GameModules = window.GameModules || {};
 window.GameModules.resultActions = {
   async applyResult(result, logId = null) {
     console.log('[回合流程] 应用AI结果:', { sceneTitle: result.sceneTitle, appearedCharacters: result.appearedCharacters?.length || 0, choices: result.choices?.length || 0 });
-    await this.ensureRpgFromResults(result);
     this.sceneTitle = result.sceneTitle;
     this.mood = result.mood;
     this.trust = result.trust;
@@ -15,11 +14,12 @@ window.GameModules.resultActions = {
     this.characterIntent = result.characterIntent || this.characterIntent;
     this.choices = result.choices;
     this.mindText = result.mind;
-    await this.applyStatChanges(result.statChanges, result);
     this.applyMetricUpdates(result.metricUpdates);
+    await window.GameModules.entryTime.advance(this, result.elapsedSeconds || 60);
+    await this.ensureRpgFromResults(result);
+    await this.applyStatChanges(result.statChanges, result);
     await this.applyControlExperience(result);
     await window.GameModules.characterMemory.recordTurn(this, result);
-    await window.GameModules.entryTime.advance(this, result.elapsedSeconds || 60);
     if (!this.finalizeNovelEntry(logId, result)) {
       this.addLog('story', '作者叙事', result.narration);
       if (result.speech) this.addLog('speech', this.character.name, result.speech);
