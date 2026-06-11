@@ -733,6 +733,10 @@ select.text-input option,
 
 .novel-entry {
   display: grid;
+}
+
+.novel-entry > div {
+  display: grid;
   gap: 5px;
 }
 
