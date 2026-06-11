@@ -31,7 +31,7 @@ window.GameModules.progression = {
         key: /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(field.key) ? field.key : `world_field_${index}`,
         label: String(field.label || field.key || '属性').slice(0, 12),
         type: ['number', 'rank', 'list', 'text'].includes(field.type) ? field.type : 'number',
-        min: 0, max: 100, desc: String(field.desc || '').slice(0, 80),
+        min: 0, max: 100, desc: String(field.desc || '').slice(0, 80), grade: Boolean(field.grade),
       })) },
     ];
   },

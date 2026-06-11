@@ -136,7 +136,7 @@ window.GameModules.saveActions = {
   rpgFieldValue(value) {
     if (Array.isArray(value)) return value.map((item) => this.rpgFieldValue(item));
     if (!value || typeof value !== 'object') return value;
-    if (Object.prototype.hasOwnProperty.call(value, 'next')) return `${value.current || 0}/${value.next || 'max'}｜${value.curve || ''}`;
+    if (Object.prototype.hasOwnProperty.call(value, 'next')) return `${value.current || 0}/${value.next || 'max'}`;
     if (Object.prototype.hasOwnProperty.call(value, 'current')) return `${value.current}/${value.max}`;
     if (value.type === '职业') return `${value.name} lv.${value.level || 1}`;
     if (Object.prototype.hasOwnProperty.call(value, 'onlineCount')) {
