@@ -96,8 +96,8 @@ window.GameModules.characterFeedback = {
       ? { 冷静: 12, 恐惧: 72, 担忧: 68, 高兴: 0, 紧张: 76, 愤怒: 18, 羞耻: 34, 悲伤: 58, 好奇: 8, 麻木: 44, 嫉妒: 0, 绝望: 48 }
       : { 冷静: proud ? 54 : 32, 恐惧: possess ? 34 : 16, 担忧: 28, 高兴: 2, 紧张: possess ? 46 : 24, 愤怒: proud ? 30 : 12, 羞耻: 10, 悲伤: 8, 好奇: 22, 麻木: 4, 嫉妒: 0, 绝望: 6 };
     const feelingBase = vulnerable
-      ? { 信任: 6, 反抗: 18, 好感: 2, 友情: 0, 亲情: 0, 爱情: 0, 肉欲: 0, 畏惧: 72, 尊敬: 0, 崇拜: 0, 讨厌: 22, 依赖: 16, 警惕: 82, 支配欲: 0, 占有欲: 0, 服从: 28 }
-      : { 信任: 18, 反抗: proud ? 48 : 34, 好感: 4, 友情: 0, 亲情: 0, 爱情: 0, 肉欲: 0, 畏惧: possess ? 38 : 18, 尊敬: 0, 崇拜: 0, 讨厌: 16, 依赖: 0, 警惕: 60, 支配欲: proud ? 28 : 6, 占有欲: 0, 服从: possess ? 8 : 2 };
+      ? { 了解: 1, 信任: 6, 反抗: 18, 好感: 2, 友情: 0, 亲情: 0, 爱情: 0, 肉欲: 0, 畏惧: 72, 尊敬: 0, 崇拜: 0, 讨厌: 22, 依赖: 16, 警惕: 82, 支配欲: 0, 占有欲: 0, 服从: 28 }
+      : { 了解: 1, 信任: 18, 反抗: proud ? 48 : 34, 好感: 4, 友情: 0, 亲情: 0, 爱情: 0, 肉欲: 0, 畏惧: possess ? 38 : 18, 尊敬: 0, 崇拜: 0, 讨厌: 16, 依赖: 0, 警惕: 60, 支配欲: proud ? 28 : 6, 占有欲: 0, 服从: possess ? 8 : 2 };
     const actor = this.pronoun(store);
     return {
       emotions: this.metricList(emotionBase, actor, 'emotion', vulnerable, possess),
@@ -114,12 +114,14 @@ window.GameModules.characterFeedback = {
 
   metricStatus(actor, key, stage) {
     if (key === '爱情') return stage === '无感' ? `${actor}看着你时没有恋爱意义上的心动。` : `${actor}看到你时心里扑通扑通，似乎是${stage}了。`;
+    if (key === '了解') return `${actor}对你的了解处于“${stage}”：${window.GameModules.metrics.stageStatus(key, stage)}`;
     return `${actor}对你或当前处境的${key}处于“${stage}”状态。`;
   },
 
   metricReason(actor, key, type, vulnerable, possess) {
     if (type === 'emotion') return vulnerable ? `${actor}曾经受过伤害，身体又突然失控，所以${key}被明显牵动。` : `${actor}突然面对身体失控和陌生干预，所以${key}随之变化。`;
     const base = {
+      了解: `${actor}第一次接触你，只知道你能介入这具身体，却不知道你的身份、来历和真正意图。`,
       信任: `你第一次出现就${possess ? '控制了' : '影响了'}${actor}的身体，所以${actor}暂时无法信任你。`,
       反抗: `${actor}发现自己的行动权被你夺走，本能地想把身体夺回来。`,
       好感: `你还没有做出足以让${actor}安心或亲近的事。`,

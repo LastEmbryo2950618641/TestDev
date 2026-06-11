@@ -139,7 +139,7 @@ window.GameModules.ai = {
       return {
         key,
         value,
-        status: String(item.status || (key === '爱情' ? `${actor}看着你时还没有恋爱意义上的心动。` : `${actor}对你或当前处境的${key}处于“${stage}”状态。`)).slice(0, 80),
+        status: String(item.status || (key === '爱情' ? `${actor}看着你时还没有恋爱意义上的心动。` : (key === '了解' ? `${actor}对你的了解处于“${stage}”：${window.GameModules.metrics.stageStatus(key, stage)}` : `${actor}对你或当前处境的${key}处于“${stage}”状态。`))).slice(0, 80),
         reason: String(item.reason || this.metricReason(actor, key, type)).slice(0, 80),
       };
     });
@@ -147,6 +147,7 @@ window.GameModules.ai = {
 
   metricReason(actor, key, type) {
     if (type === 'emotion') return `你突然介入${actor}的处境，让${actor}的${key}随之波动。`;
+    if (key === '了解') return `${actor}只知道你能介入这具身体，却不知道你的身份、来历和真正意图。`;
     if (key === '信任') return `你第一次出现就影响了${actor}的身体，所以${actor}暂时无法信任你。`;
     return key === '警惕' ? `${actor}不知道你接下来会做什么，只能继续戒备。` : `你刚介入${actor}的处境，${actor}还没有形成更深的${key}。`;
   },
