@@ -39,7 +39,7 @@ window.GameModules.professionInfo = {
 
   prompt(worldTag, name, context) {
     const fields = (context.worldFields || []).map((x) => `${x.key}:${x.label}`).join('、') || '无';
-    return `为 AI RPG 建立职业资料。世界=${worldTag}，职业=${name}，角色=${context.characterName || ''}，身份=${context.role || ''}，背景=${context.detail || ''}，世界专属能力字段=${fields}。职业必须是真实身份/训练/社会功能，不要把“主角/配角/悲剧核心/重要人物”等叙事标签当职业。只有百分之百确认该职业适用时 confirmed=true，否则 confirmed=false。只返回 JSON：{"name":"职业名","confirmed":true,"summary":"30字内简单介绍","description":"120字内详细介绍","intrinsicStats":["strength"],"learnedAbilities":["能力名"],"worldAbilities":["字段key或能力名"]}。不要 Markdown。`;
+    return `为 AI RPG 建立职业资料。世界=${worldTag}，职业=${name}，角色=${context.characterName || ''}，身份=${context.role || ''}，背景=${context.detail || ''}，世界专属能力字段=${fields}。职业必须是真实身份/训练/社会功能，不要把“主角/配角/悲剧核心/重要人物”等叙事标签当职业。只有百分之百确认该职业适用时 confirmed=true，否则 confirmed=false。只返回 JSON：{"name":"职业名","confirmed":true,"summary":"30字内简单介绍","description":"120字内详细介绍","intrinsicStats":["strength"],"learnedAbilities":["能力名"],"worldAbilities":["字段key或能力名"]}。除 name、confirmed、summary、description 外，其它字段没有依据或不需要更改就不要返回。不要 Markdown。`;
   },
 
   validate(raw, worldTag, name) {

@@ -11,10 +11,9 @@ window.GameModules.createSystemPrompt = function createSystemPrompt(state, actio
   window.GameModules.metrics.ensure(state);
   const metricDefs = window.GameModules.metrics.descriptions;
   const metricState = `当前情绪=${JSON.stringify(state.emotions)}；对玩家感觉=${JSON.stringify(state.playerFeelings)}`;
-  const metricShape = (key) => ({ key, delta: 0, status: '变化后的状态含义', reason: '导致变化的具体原因' });
   const metricJson = {
-    emotions: window.GameModules.metrics.emotionKeys.map(metricShape),
-    playerFeelings: window.GameModules.metrics.playerKeys.map(metricShape),
+    emotions: [{ key: '只返回本回合需要变化或解释的情绪名', delta: 0, status: '变化后的状态含义', reason: '导致变化的具体原因' }],
+    playerFeelings: [{ key: '只返回本回合需要变化或解释的感觉名', delta: 0, status: '变化后的状态含义', reason: '导致变化的具体原因' }],
   };
   const outputJson = JSON.stringify({
     sceneTitle: '当前场景标题',
@@ -80,16 +79,14 @@ ${state.memoryContext || '暂无人物记忆。'}
 固定数值规则：
 1. emotions 只能使用这些固定情绪维度：${window.GameModules.metrics.emotionKeys.join('、')}。
 2. playerFeelings 只能使用这些固定对玩家感觉维度：${window.GameModules.metrics.playerKeys.join('、')}。
-3. 每个数值项只返回 delta、status、reason：delta 是本回合变化量，必须是 -30 到 30 的整数；正数表示增强，负数表示减弱，0 表示本回合无明显变化。
-4. 即使 delta 为 0，也必须写 status 和 reason；reason 写为什么保持这种状态，而不是写“没有变化”“保持原值”。
+3. metricUpdates 只返回本回合确实变化、或虽然 delta=0 但需要补充解释的项目；没有变化且不需要说明的字段不要返回，代码会保留原值。
+4. 每个返回的数值项只写 key、delta、status、reason：delta 必须是 -30 到 30 的整数；正数表示增强，负数表示减弱，0 表示本回合无明显变化但需要解释。
 5. 你不要返回 value、stage、description；代码会用“当前值 + delta”计算新 value，再根据新 value 计算 stage，并由代码填充 description。
-6. status 必须根据“当前值 + delta 后的新状态”来写，必须与变化方向和阶段含义一致；reason 必须写导致这个 delta 变化或保持的具体原因，不要写“根据上下文推断”“按角色背景推定”“目的未知”“本回合没有触发变化”“保持原值”这类空话。status 和 reason 站在第三者上帝/作者视角描述，用“你”指玩家，用“${actor}”指角色。
+6. status 必须根据“当前值 + delta 后的新状态”来写，必须与变化方向和阶段含义一致；reason 必须写导致这个 delta 变化或维持的具体原因，不要写“根据上下文推断”“按角色背景推定”“目的未知”“本回合没有触发变化”“保持原值”这类空话。status 和 reason 站在第三者上帝/作者视角描述，用“你”指玩家，用“${actor}”指角色。
 7. 阶段由代码按数值计算，阶段表仅供你写 status 时参考：${window.GameModules.metrics.stageGuide()}。
 8. 属性定义供你理解指标含义：${Object.entries(metricDefs).map(([k, v]) => `${k}=${v}`).join('；')}
 9. 了解分9阶段：神秘、陌生、面善/眼熟、认识、知晓、熟悉、熟识、深知、洞悉；它表示${actor}对你的身份、经历、性格、意图和秘密知道多少，首次接触通常是神秘或陌生，除非剧情里你已暴露身份或长期相处。
-10. 爱情分8阶段，每约12.5分晋级：心动（初见好感、心生涟漪）、爱恋（倾心喜欢、萌生爱意）、倾心（满心偏向、满眼皆是）、眷恋（不舍分离、时时牵挂）、深爱（掏心交付）、执念（深陷其中、难以割舍）、依存（彼此依靠）、相守（长久相伴）。例如爱情 delta 后进入心动区间时，status 可写“${actor}看到你时心里扑通扑通，似乎是心动了。”；reason 可写“你拯救了${actor}，外貌也符合${actor}的偏好，所以${actor}对你心动。”。
-11. emotions 必须每回合完整返回全部 ${window.GameModules.metrics.emotionKeys.length} 个当前情绪维度的 delta、status、reason，并根据当前场景、角色性格、身体状态、危险程度、玩家输入和上下文判断变化量；不要只返回变化项。
-12. playerFeelings 也必须每回合完整返回全部 ${window.GameModules.metrics.playerKeys.length} 个对玩家感觉维度的 delta、status、reason，并根据当前剧情、记忆、玩家行为、信任/反抗和角色性格判断变化量；不要只返回变化项。
+10. 爱情分8阶段，每约12.5分晋级：心动、爱恋、倾心、眷恋、深爱、执念、依存、相守；只有本回合确实触发爱情变化或需要说明时才返回爱情项。
 
 时间流逝规则：
 1. elapsedSeconds 必须是整数秒，表示本回合剧情从玩家行动开始到结果稳定时经过的游戏内时间。
@@ -103,7 +100,7 @@ ${state.memoryContext || '暂无人物记忆。'}
 3. 资料不足时允许原创，但不要伪称来自原作。
 4. 如果资料与当前原创角色冲突，以当前游戏角色设定为主，本地设定库资料作为世界观参考。
 
-必须只返回合法 JSON，不要 Markdown，不要代码块。数值字段必须填真实数字，不要填中文占位词。格式示例：
+必须只返回合法 JSON，不要 Markdown，不要代码块。除 narration、mind、choices 这类本回合必须展示的内容外，任何字段若没有新信息、没有变化或不需要更改，都可以省略；不要为了凑格式返回空字符串、0 或重复旧值。数值字段一旦返回就必须填真实数字，不要填中文占位词。格式示例：
 ${outputJson}`;
 };
 

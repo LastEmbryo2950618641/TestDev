@@ -59,7 +59,7 @@ window.GameModules.characterProfile = {
   },
 
   prompt(base, lore, attrs, context) {
-    return `为 AI RPG 视觉小说生成出场人物固化设定。人物基础：${JSON.stringify(base)}。当前剧情：${context || '暂无'}。世界观：${lore.background}；势力：${lore.factions.map((x) => x.name).join('、')}；特殊职业：${lore.specialJobs.map((x) => x.name).join('、')}；职业等级：${lore.jobRanks.join('、')}。只返回 JSON：{"name":"姓名","role":"身份","detail":"个人背景","personality":"性格","faction":"所属势力或无","job":"职业，无法可靠判断则空字符串","jobConfirmed":false,"rank":"等级","skills":[{"name":"技能","desc":"说明"}],"worldValues":{"字段key":"该人物固化取值"}}。职业一旦提出就会固化，除非有明确手段不会移除；所以除非百分之百确认该角色拥有该职业，否则 job 必须写空字符串且 jobConfirmed=false。不能把主角/配角/悲剧核心等叙事标签写成职业。worldValues 必须覆盖该角色所属世界的固有字段：${attrs.fields.map((x) => `${x.key}(${x.label}:${x.type})`).join('、')}。不要 Markdown。`;
+    return `为 AI RPG 视觉小说生成出场人物固化设定。人物基础：${JSON.stringify(base)}。当前剧情：${context || '暂无'}。世界观：${lore.background}；势力：${lore.factions.map((x) => x.name).join('、')}；特殊职业：${lore.specialJobs.map((x) => x.name).join('、')}；职业等级：${lore.jobRanks.join('、')}。只返回 JSON：{"name":"姓名","role":"身份","detail":"个人背景","personality":"性格","faction":"所属势力或无","job":"职业，无法可靠判断则空字符串","jobConfirmed":false,"rank":"等级","skills":[{"name":"技能","desc":"说明"}],"worldValues":{"字段key":"该人物固化取值"}}。职业一旦提出就会固化，除非有明确手段不会移除；所以除非百分之百确认该角色拥有该职业，否则不要返回 job 和 jobConfirmed。不能把主角/配角/悲剧核心等叙事标签写成职业。除 name、role、detail、personality 这类人物固化资料外，其它字段若没有或不需要更改就不要返回；worldValues 只返回有明确依据的字段：${attrs.fields.map((x) => `${x.key}(${x.label}:${x.type})`).join('、')}。不要 Markdown。`;
   },
 
   parse(text) {
@@ -100,15 +100,10 @@ window.GameModules.characterProfile = {
     }, base, lore, attrs);
   },
 
-  worldValues(values, attrs, seedText) {
-    const seed = window.GameModules.rpgState.seed(seedText);
-    return Object.fromEntries((attrs.fields || []).map((field, index) => [field.key, values?.[field.key] ?? this.valueFor(field, seed + index)]));
-  },
-
-  valueFor(field, seed) {
-    if (field.type === 'number') return seed % 101;
-    if (field.type === 'rank') return ['E', 'D', 'C', 'B', 'A', 'EX'][seed % 6];
-    return [];
+  worldValues(values, attrs) {
+    if (!values || typeof values !== 'object') return {};
+    const keys = new Set((attrs.fields || []).map((field) => field.key));
+    return Object.fromEntries(Object.entries(values).filter(([key]) => keys.has(key)));
   },
 
   slug(text) {

@@ -78,7 +78,7 @@ window.GameModules.ai = {
       controlFeeling: String(data.controlFeeling || fallback.controlFeeling || '疑惑').slice(0, 40),
       controlAdaptation: this.clampNumber(data.controlAdaptation, fallback.controlAdaptation || 0),
       controlExperienceSummary: String(data.controlExperienceSummary || fallback.controlExperienceSummary || '').slice(0, 80),
-      metricUpdates: this.normalizeMetricUpdates(data.metricUpdates, fallback.metricUpdates, store),
+      metricUpdates: this.normalizeMetricUpdates(data.metricUpdates, null, store),
       choices: this.normalizeChoices(data.choices, fallback.choices),
       appearedCharacters: Array.isArray(data.appearedCharacters) ? data.appearedCharacters.slice(0, 6).map((x) => this.normalizeCharacter(x, store)).filter(Boolean) : fallback.appearedCharacters,
       statChanges: {
@@ -91,35 +91,13 @@ window.GameModules.ai = {
   },
 
   normalizeMetricUpdates(value, fallback, store) {
-    const emotions = this.normalizeMetricGroup(value?.emotions, fallback?.emotions, window.GameModules.metrics.emotionKeys);
-    const feelings = this.normalizeMetricGroup(value?.playerFeelings, fallback?.playerFeelings, window.GameModules.metrics.playerKeys);
-    const actor = this.actorPronoun(store);
-    return {
-      emotions: this.completeMetricGroup(emotions, window.GameModules.metrics.emotionKeys, store?.emotions, window.GameModules.metrics.defaults.emotions, actor, 'emotion'),
-      playerFeelings: this.completeMetricGroup(feelings, window.GameModules.metrics.playerKeys, store?.playerFeelings, window.GameModules.metrics.defaults.playerFeelings, actor, 'player'),
-    };
+    const source = value || fallback || {};
+    return { emotions: this.normalizeMetricGroup(source.emotions, null, window.GameModules.metrics.emotionKeys), playerFeelings: this.normalizeMetricGroup(source.playerFeelings, null, window.GameModules.metrics.playerKeys) };
   },
 
   normalizeInitialMetricUpdates(value, fallback, store) {
-    return {
-      emotions: this.normalizeInitialGroup(value?.emotions, fallback?.emotions, window.GameModules.metrics.emotionKeys, store, 'emotion'),
-      playerFeelings: this.normalizeInitialGroup(value?.playerFeelings, fallback?.playerFeelings, window.GameModules.metrics.playerKeys, store, 'player'),
-    };
-  },
-
-  completeMetricGroup(items, keys, current, defaults, actor, type) {
-    const map = new Map(items.map((item) => [item.key, item]));
-    return keys.map((key) => {
-      const value = window.GameModules.metrics.clamp(current?.[key] ?? defaults[key]);
-      const stage = window.GameModules.metrics.stageFor(key, value);
-      const item = map.get(key) || { key, delta: 0 };
-      return {
-        key,
-        delta: window.GameModules.metrics.clampDelta(item.delta),
-        status: String(item.status || this.fallbackMetricStatus(actor, key, stage, type)).slice(0, 80),
-        reason: String(item.reason || this.fallbackMetricReason(actor, key, type)).slice(0, 80),
-      };
-    });
+    const source = value || fallback || {};
+    return { emotions: this.normalizeInitialGroup(source.emotions, null, window.GameModules.metrics.emotionKeys, store, 'emotion'), playerFeelings: this.normalizeInitialGroup(source.playerFeelings, null, window.GameModules.metrics.playerKeys, store, 'player') };
   },
 
   normalizeMetricGroup(value, fallback, keys) {
@@ -140,16 +118,14 @@ window.GameModules.ai = {
   normalizeInitialGroup(value, fallback, keys, store, type) {
     const list = Array.isArray(value) ? value : (Array.isArray(fallback) ? fallback : []);
     const actor = this.actorPronoun(store);
-    const map = new Map(list.filter((item) => keys.includes(item?.key)).map((item) => [item.key, item]));
-    return keys.map((key) => {
-      const item = map.get(key) || {};
-      const value = window.GameModules.metrics.clamp(item.value ?? window.GameModules.metrics.defaults.emotions[key] ?? window.GameModules.metrics.defaults.playerFeelings[key]);
-      const stage = window.GameModules.metrics.stageFor(key, value);
+    return list.filter((item) => keys.includes(item?.key)).map((item) => {
+      const metricValue = window.GameModules.metrics.clamp(item.value);
+      const stage = window.GameModules.metrics.stageFor(item.key, metricValue);
       return {
-        key,
-        value,
-        status: String(item.status || this.fallbackMetricStatus(actor, key, stage, type)).slice(0, 80),
-        reason: String(item.reason || this.fallbackMetricReason(actor, key, type)).slice(0, 80),
+        key: item.key,
+        value: metricValue,
+        status: String(item.status || this.fallbackMetricStatus(actor, item.key, stage, type)).slice(0, 80),
+        reason: String(item.reason || this.fallbackMetricReason(actor, item.key, type)).slice(0, 80),
       };
     });
   },
