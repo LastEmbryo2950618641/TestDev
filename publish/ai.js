@@ -17,7 +17,7 @@ window.GameModules.ai = {
     }
   },
 
-  async generate(store, action) {
+  async generate(store, action, logId = null) {
     const requestId = ++this.latestRequestId;
     let buffer = '';
     const messages = [{ role: 'user', content: window.GameModules.createSystemPrompt(store, action) }];
@@ -31,14 +31,17 @@ window.GameModules.ai = {
       }, async (chunk, done) => {
         if (requestId !== this.latestRequestId) return;
         buffer += chunk;
-        if (!done) return;
+        if (!done) {
+          if (logId && store.updateNovelStream) store.updateNovelStream(logId, buffer);
+          return;
+        }
         console.log('[AI推演] 返回完成:', { requestId, length: buffer.length, preview: buffer.slice(0, 180) });
-        await store.applyResult(this.parse(buffer, store, action));
+        await store.applyResult(this.parse(buffer, store, action), logId);
       }));
     } catch (err) {
       console.error('AI 推演失败:', err.code, err.message, err.stack);
       if (requestId === this.latestRequestId) {
-        await store.applyResult(window.GameModules.createFallbackResult(store, action));
+        await store.applyResult(window.GameModules.createFallbackResult(store, action), logId);
       }
     }
   },

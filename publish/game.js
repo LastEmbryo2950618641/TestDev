@@ -156,8 +156,7 @@ document.addEventListener('alpine:init', () => {
       if (this.busy) return;
       console.log('[回合流程] 玩家提交行动:', { turn: this.turn, action, online: this.online, character: this.character.name });
       this.busy = true;
-      const speaker = this.online ? this.playerName : `${this.playerName}的建议`;
-      this.addLog(this.online ? 'player' : 'advice', speaker, action);
+      const logId = this.addNovelEntry(action);
 
       try {
         this.lastAction = action;
@@ -165,7 +164,7 @@ document.addEventListener('alpine:init', () => {
         console.log('[回合流程] RAG上下文完成:', { length: String(this.ragContext || '').length, results: this.ragResults?.length || 0 });
         this.memoryContext = await window.GameModules.characterMemory.contextFor(this, action);
         console.log('[回合流程] 记忆上下文完成:', { length: String(this.memoryContext || '').length });
-        await window.GameModules.ai.generate(this, action);
+        await window.GameModules.ai.generate(this, action, logId);
       } finally {
         this.busy = false;
         this.turn += 1;

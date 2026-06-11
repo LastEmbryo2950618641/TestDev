@@ -191,8 +191,10 @@
     border-radius: 15px;
   }
 
-  .log-entry {
-    width: min(86%, 520px);
+  .novel-player,
+  .novel-story,
+  .novel-mind {
+    width: min(92%, 520px);
   }
 
   .start-card {

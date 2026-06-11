@@ -41,6 +41,7 @@
   <script src="catalog.js"></script>
   <script src="ai.js"></script>
   <script src="actions.js"></script>
+  <script src="novel-log.js"></script>
   <script src="loading-actions.js"></script>
   <script src="save-actions.js"></script>
   <script src="result-actions.js"></script>
@@ -405,14 +406,23 @@
           <span x-text="$store.game.sceneTitle"></span>
           <b x-text="`第 ${$store.game.turn} 回合`"></b>
         </div>
-        <div class="story-log scroll-area dev-section" data-section-title="对话记录列表" x-ref="storyLog">
+        <div class="story-log scroll-area dev-section" data-section-title="小说记录列表" x-ref="storyLog">
           <template x-for="entry in $store.game.log" :key="entry.id">
-            <article class="log-entry" :class="entry.type">
-              <span x-text="entry.speaker"></span>
-              <p x-text="entry.text"></p>
+            <article class="novel-entry" :class="entry.kind === 'novel' ? entry.type : 'system'">
+              <template x-if="entry.kind === 'novel'">
+                <div>
+                  <div class="novel-player"><span>你的行动/想法</span><p x-text="entry.playerText"></p></div>
+                  <div class="novel-story" :class="{ streaming: entry.streaming }"><span>作者叙事</span><p x-text="entry.storyText"></p></div>
+                  <button class="mind-toggle" x-show="entry.mind" @click="$store.game.toggleNovelMind(entry.id)" x-text="entry.mindOpen ? '收起角色心理' : '展开角色心理'"></button>
+                  <div class="novel-mind" x-show="entry.mind && entry.mindOpen" x-text="entry.mind"></div>
+                </div>
+              </template>
+              <template x-if="entry.kind !== 'novel'">
+                <div class="legacy-log"><span x-text="entry.speaker"></span><p x-text="entry.text"></p></div>
+              </template>
             </article>
           </template>
-          <div x-show="$store.game.busy" class="thinking-line">AI 正在推演剧情，约 20 秒...</div>
+          <div x-show="$store.game.busy" class="thinking-line">AI 正在以作者视角续写，约 20 秒...</div>
         </div>
       </section>
 

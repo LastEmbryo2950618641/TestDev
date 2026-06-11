@@ -710,37 +710,61 @@ select.text-input option,
 .story-log {
   display: flex;
   flex-direction: column;
+  gap: 10px;
 }
 
-.log-entry {
-  width: min(74%, 520px);
-  margin: 0 0 8px;
+.novel-entry {
+  display: grid;
+  gap: 7px;
+}
+
+.novel-player,
+.novel-story,
+.legacy-log,
+.novel-mind {
   padding: 10px 12px;
   border-radius: 14px;
   background: rgba(255, 255, 255, .06);
-  border-left: 3px solid rgba(255, 255, 255, .2);
+  line-height: 1.6;
 }
 
-.log-entry.player,
-.log-entry.advice {
-  align-self: flex-start;
+.novel-player {
+  justify-self: end;
+  width: min(70%, 500px);
+  border-right: 3px solid #52ff96;
+  background: rgba(82, 255, 150, .08);
 }
 
-.log-entry.story,
-.log-entry.speech,
-.log-entry.mind {
-  align-self: flex-end;
-  border-left: 0;
-  border-right: 3px solid rgba(255, 255, 255, .2);
+.novel-entry.advice .novel-player {
+  border-right-color: #ffcf5a;
+  background: rgba(255, 207, 90, .08);
 }
 
-.log-entry.system {
-  align-self: center;
+.novel-story {
+  justify-self: start;
+  width: min(82%, 640px);
+  border-left: 3px solid #8d96ff;
+  background: rgba(141, 150, 255, .09);
+  user-select: text;
+  -webkit-user-select: text;
+  white-space: pre-line;
+}
+
+.novel-story.streaming {
+  border-left-color: #ffcf5a;
+  animation: pulse 1.2s infinite;
+}
+
+.legacy-log {
   width: min(86%, 580px);
+  margin: 0 auto;
+  border-left: 3px solid #8d96ff;
   text-align: center;
 }
 
-.log-entry span {
+.novel-player span,
+.novel-story span,
+.legacy-log span {
   display: block;
   margin-bottom: 4px;
   color: #74f6ff;
@@ -748,17 +772,30 @@ select.text-input option,
   font-weight: 800;
 }
 
-.log-entry p {
+.novel-player p,
+.novel-story p,
+.legacy-log p {
   margin: 0;
-  line-height: 1.55;
 }
 
-.log-entry.player { border-left-color: #52ff96; }
-.log-entry.advice { border-left-color: #ffcf5a; }
-.log-entry.story { border-right-color: #8d96ff; }
-.log-entry.mind { border-right-color: #ff78d2; background: rgba(255, 120, 210, .08); }
-.log-entry.system { border-left-color: #8d96ff; }
-.log-entry.speech { border-right-color: #71f3ff; }
+.mind-toggle {
+  justify-self: start;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 120, 210, .28);
+  background: rgba(255, 120, 210, .1);
+  color: #ffd8f3;
+  font-size: var(--ui-small-font);
+}
+
+.novel-mind {
+  justify-self: start;
+  width: min(76%, 580px);
+  border-left: 3px solid #ff78d2;
+  background: rgba(255, 120, 210, .08);
+  color: #ffe6f7;
+  white-space: pre-line;
+}
 
 .thinking-line {
   padding: 10px;

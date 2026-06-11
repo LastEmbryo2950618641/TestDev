@@ -162,9 +162,9 @@ window.GameModules.entryActions = {
     await window.GameModules.characterFeedback.applyExperience(this, feedback);
     const mode = this.controlMode === 'possess' ? `附身方式：${possessText}` : 'RPG方式：第三人称通过手机式界面控制。';
     this.addLog('system', '进入时机', `${this.sceneTitle}｜${mode}`);
-    this.addLog('story', '旁白', this.entryCurrentAction || `${this.character.name}正在行动。`);
-    this.addLog('system', '系统', `操控链路已连接：${this.playerName} → ${this.character.name}`);
-    this.addLog('mind', `${this.character.name}的心理`, this.mindText);
+    const logId = this.addNovelEntry(`操控链路接入：${this.playerName} → ${this.character.name}`);
+    this.finalizeNovelEntry(logId, { narration: this.entryCurrentAction || `${this.character.name}正在行动。`, speech: '', mind: this.mindText });
+    this.addLog('system', '系统', '操控链路已连接，之后记录将以小说形式展开。');
     await this.save();
   },
 };
