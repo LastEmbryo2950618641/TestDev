@@ -67,7 +67,7 @@
 
 .vital-row {
   display: grid;
-  grid-template-columns: 18px minmax(32px, 1fr) 30px;
+  grid-template-columns: max-content minmax(20px, 1fr) max-content;
   align-items: center;
   gap: 3px;
   font-size: 8px;
@@ -76,11 +76,9 @@
 
 .vital-row span,
 .vital-row em {
-  overflow: hidden;
   color: #dce5ff;
   font-style: normal;
   line-height: 1;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -178,7 +176,7 @@
   }
 
   .vital-row {
-    grid-template-columns: 18px minmax(48px, 1fr) 30px;
+    grid-template-columns: max-content minmax(16px, 1fr) max-content;
   }
 
   .stat-list,
