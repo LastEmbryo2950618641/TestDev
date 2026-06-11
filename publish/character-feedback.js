@@ -75,12 +75,11 @@ window.GameModules.characterFeedback = {
   },
 
   fallback(store) {
-    const name = store.character?.name || '角色';
     const experience = this.experience(store);
     const metrics = this.fallbackMetrics(store);
     return {
-      mind: store.controlMode === 'possess' ? '怎、怎么回事……我的身体为什么不听我使唤了？' : '脑海里多了什么陌生的东西……它想让我怎么做？',
-      intent: store.controlMode === 'possess' ? `${name}下一步想要夺回身体的主导权。` : `${name}下一步想要弄清这条操控链路。`,
+      mind: '--',
+      intent: '--',
       mood: metrics.emotions.sort((a, b) => b.value - a.value)[0]?.key || '动摇',
       resistance: metrics.playerFeelings.find((x) => x.key === '反抗')?.value || 35,
       controlFeeling: experience.onlineCount > 0 ? experience.feeling : '疑惑',

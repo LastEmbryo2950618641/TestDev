@@ -95,12 +95,11 @@ window.GameModules.actions = {
   },
 
   feedbackText() {
-    return this.mindText || '角色正在观察操控者的意图。';
+    return this.feedbackSource === 'ai' ? (this.mindText || '--') : '--';
   },
 
   feedbackPlan() {
-    const name = this.character?.name || '角色';
-    return this.characterIntent || `${name}下一步想要按自己的处境重新判断。`;
+    return this.feedbackSource === 'ai' ? (this.characterIntent || '--') : '--';
   },
 
   feedbackSourceText() {

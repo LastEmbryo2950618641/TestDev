@@ -30,7 +30,7 @@ window.GameModules.ai = {
         maxTokens: 3000,
       }, async (chunk, done) => {
         if (requestId !== this.latestRequestId) return;
-        buffer += chunk;
+        buffer = window.GameModules.jsonUtils.mergeStreamText(buffer, chunk);
         if (!done) {
           if (logId && store.updateNovelStream) store.updateNovelStream(logId, buffer);
           return;
@@ -48,11 +48,7 @@ window.GameModules.ai = {
 
   parse(content, store, action) {
     try {
-      const cleaned = String(content || '').replace(/```(?:json)?|```/g, '').trim();
-      const start = cleaned.indexOf('{');
-      const end = cleaned.lastIndexOf('}');
-      if (start === -1 || end === -1) throw new Error('AI 没有返回 JSON');
-      const data = JSON.parse(cleaned.slice(start, end + 1));
+      const data = window.GameModules.jsonUtils.parseLoose(content);
       console.log('[AI推演] JSON解析成功:', Object.keys(data));
       return { ...this.normalize(data, store, action), source: 'ai' };
     } catch (err) {
