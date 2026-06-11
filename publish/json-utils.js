@@ -31,4 +31,24 @@ window.GameModules.jsonUtils = {
     }
     throw new Error('JSON incomplete');
   },
+
+  parseLoose(text) {
+    const json = this.extractJson(String(text || '').replace(/```(?:json)?|```/g, '').trim());
+    try {
+      return JSON.parse(json);
+    } catch (_) {
+      return JSON.parse(this.repairJson(json));
+    }
+  },
+
+  repairJson(json) {
+    return String(json || '')
+      .replace(/：/g, ':')
+      .replace(/[“”]/g, '"')
+      .replace(/[‘’]/g, "'")
+      .replace(/([{,]\s*)([A-Za-z_$][\w$]*)(\s*:)/g, '$1"$2"$3')
+      .replace(/([{,]\s*)([\u4e00-\u9fa5][\u4e00-\u9fa5\w-]*)(\s*:)/g, '$1"$2"$3')
+      .replace(/:\s*'([^'\\]*(?:\\.[^'\\]*)*)'/g, (_, value) => `:"${value.replace(/"/g, '\\"')}"`)
+      .replace(/,\s*([}\]])/g, '$1');
+  },
 };

@@ -17,13 +17,14 @@ window.GameModules.characterFeedback = {
     if (!window.dzmm?.completions) return fallback;
     let buffer = '';
     try {
-      await window.dzmm.completions({
-        model: store.modelId,
-        maxTokens: 2200,
+      const request = window.dzmm.completions({
+        model: 'nalang-turbo-0826',
+        maxTokens: 1600,
         messages: [{ role: 'user', content: this.prompt(store) }],
       }, (chunk) => {
         buffer = this.merge(buffer, chunk);
       });
+      await Promise.race([request, new Promise((_, reject) => setTimeout(() => reject(new Error('角色反馈生成超时')), 6000))]);
       return this.parse(buffer, fallback, store);
     } catch (err) {
       console.warn('角色反馈生成失败:', err.code, err.message, err.stack);
@@ -47,11 +48,7 @@ window.GameModules.characterFeedback = {
 
   parse(text, fallback, store) {
     try {
-      const cleaned = String(text || '').replace(/```(?:json)?|```/g, '').trim();
-      const start = cleaned.indexOf('{');
-      const end = cleaned.lastIndexOf('}');
-      if (start < 0 || end < 0) throw new Error('反馈 JSON 缺失');
-      const data = JSON.parse(cleaned.slice(start, end + 1));
+      const data = window.GameModules.jsonUtils.parseLoose(text);
       if (!this.hasCompleteInitialMetrics(data.metricUpdates)) throw new Error('初始固定数值不完整');
       const feeling = String(data.controlFeeling || fallback.controlFeeling || '疑惑').slice(0, 40);
       return {
