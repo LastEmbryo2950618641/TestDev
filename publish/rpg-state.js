@@ -69,7 +69,8 @@ window.GameModules.rpgState = {
       console.log('[RPG状态] 使用已保存角色状态:', id, existing.worldTag);
       const schema = await this.ensureSchema(existing.worldTag || character.work || '原创世界');
       const upgraded = this.upgradeCharacterState(existing, schema);
-      if (upgraded) await save.saveCharacterState(existing);
+      const updated = this.updateExistingCharacter(existing, character, store);
+      if (upgraded || updated) await save.saveCharacterState(existing);
       return existing;
     }
     const worldTag = save.getCharacterWorld(id) || character.work || '原创世界';
@@ -80,14 +81,10 @@ window.GameModules.rpgState = {
     return created;
   },
 
-  async rebuildCharacter(character, store = null) {
-    const save = window.GameModules.sqliteSave;
-    const id = character.id || character.name;
-    const worldTag = save.getCharacterWorld(id) || character.work || '原创世界';
-    const schema = await this.ensureSchema(worldTag);
-    const created = this.createCharacterState(character, schema, store);
-    await save.saveCharacterState(created);
-    return created;
+  updateExistingCharacter(state, character, store = null) {
+    if (!state?.values || !store) return false;
+    const seed = this.seed(`${state.name}${state.worldTag}${store.entryCurrentAction || ''}${store.entryTimeLabel?.() || ''}`);
+    return Boolean(window.GameModules.rpgInitializer?.updateExisting(state, character || state.profile || {}, store, seed));
   },
 
   upgradeCharacterState(state, schema) {
@@ -139,6 +136,7 @@ window.GameModules.rpgState = {
     Object.assign(values, window.GameModules.progression.createValues(character, seed, values));
     const worldFields = schema.sections.find((section) => section.title === '世界固有属性')?.fields || [];
     window.GameModules.rpgInitializer?.apply(values, character, store, seed, { fields: worldFields });
+    window.GameModules.rpgInitializer?.touch(values, store);
     values.derived = window.GameModules.progression.derived(values);
     values.combat_simulation = window.GameModules.progression.defaultCombat(values);
     Object.assign(values, character.worldValues || {});
@@ -163,6 +161,8 @@ window.GameModules.rpgState = {
       values,
       profile: character,
       note: character.detail || character.personality || '',
+      firstAppearedAt: values.updatedAt,
+      firstAppearedGameTime: values.updatedGameTime,
     };
     this.ensureControlExperience(state);
     return state;

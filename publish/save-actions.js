@@ -89,21 +89,19 @@ window.GameModules.saveActions = {
     return this.prepareRpgSchemaForSelectedWork();
   },
 
-  async ensureRpgForCharacter(character, options = {}) {
+  async ensureRpgForCharacter(character) {
     if (!window.GameModules.sqliteSave.db || !character) return null;
     const worldTag = character.work || '原创世界';
     console.log('[RPG状态] 准备角色状态:', worldTag, character.name);
-    const state = options.rebuild
-      ? await window.GameModules.rpgState.rebuildCharacter(character, this)
-      : await window.GameModules.rpgState.ensureCharacter(character, this);
+    const state = await window.GameModules.rpgState.ensureCharacter(character, this);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
     this.rpgPanelCharacterId = this.rpgPanelCharacterId || state.id;
     return state;
   },
 
   async ensureRpgForCurrentCharacter(options = {}) {
-    if (!options.rebuild && this.rpgStates[this.character.id]) return this.rpgStates[this.character.id];
-    return this.ensureRpgForCharacter(this.character, options);
+    if (!options.refresh && this.rpgStates[this.character.id]) return this.rpgStates[this.character.id];
+    return this.ensureRpgForCharacter(this.character);
   },
 
   async ensureRpgFromResults(result) {

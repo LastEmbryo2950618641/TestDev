@@ -57,7 +57,7 @@ window.GameModules.entryActions = {
       await this.runEntryStage('action', '正在推演角色当前行动。', async () => this.generateEntryAction('默认进入时机'));
       await this.runEntryStage('rpg', '正在结合人物资料、当前状态与上下文固化 RPG 数值。', async () => {
         await window.GameModules.entryTime.applyCharacterAge(this);
-        await this.ensureRpgForCurrentCharacter({ rebuild: true });
+        await this.ensureRpgForCurrentCharacter({ refresh: true });
       });
       await this.runEntryStage('ready', '进入配置已准备好，可以选择操控方式。', async () => true);
     } finally {

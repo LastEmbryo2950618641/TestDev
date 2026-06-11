@@ -76,8 +76,44 @@ window.GameModules.rpgInitializer = {
     }
   },
 
-  summary(character, store, ctx) {
-    return `基于${character.name}的人物资料、${store?.entryTimeLabel?.() || '未知时间'}、当前行动“${store?.entryCurrentAction || '未知'}”推导。危险${ctx.danger}，创伤${ctx.trauma}，魔术${ctx.mage}，战斗${ctx.fighter}。`;
+  updateExisting(state, character, store, seed) {
+    const ctx = this.infer(character, store, seed);
+    const elapsed = this.elapsedSeconds(state.values?.updatedGameTimeValue, store);
+    const scale = Math.min(1, Math.max(0.08, elapsed / 86400));
+    const v = state.values;
+    this.driftPool(v.vitality, (ctx.weak ? -ctx.weak : 1) * scale);
+    this.driftPool(v.stamina_pool, (1 - ctx.danger - ctx.weak) * scale);
+    this.driftPool(v.mental_stability, (1 - ctx.trauma - ctx.danger) * scale);
+    v.fatigue = window.GameModules.progression.pool(this.clamp((v.fatigue?.current || 0) + (ctx.danger + ctx.weak) * 3 * scale, 0, 100), 100);
+    v.health = window.GameModules.progression.percent(v.vitality);
+    v.stamina = window.GameModules.progression.percent(v.stamina_pool);
+    v.current_context = this.summary(character, store, ctx, elapsed);
+    this.touch(v, store);
+    return true;
+  },
+
+  touch(values, store) {
+    values.updatedAt = new Date().toISOString();
+    values.updatedGameTime = store?.entryTimeLabel?.() || '时间未知';
+    values.updatedGameTimeValue = window.GameModules.characterMemory?.timeValue?.(store?.entryTime) || null;
+  },
+
+  elapsedSeconds(prev, store) {
+    const now = window.GameModules.characterMemory?.timeValue?.(store?.entryTime);
+    if (!prev || !now) return 0;
+    const a = new Date(prev.year, prev.month - 1, prev.day, prev.hour, prev.minute, prev.second);
+    const b = new Date(now.year, now.month - 1, now.day, now.hour, now.minute, now.second);
+    return Math.max(0, Math.round((b - a) / 1000));
+  },
+
+  driftPool(pool, delta) {
+    if (!pool?.max) return;
+    pool.current = this.clamp(pool.current + delta, 0, pool.max);
+  },
+
+  summary(character, store, ctx, elapsed = 0) {
+    const gap = elapsed ? `距上次更新约${elapsed}秒。` : '';
+    return `基于${character.name}的人物资料、${store?.entryTimeLabel?.() || '未知时间'}、当前行动“${store?.entryCurrentAction || '未知'}”推导。${gap}危险${ctx.danger}，创伤${ctx.trauma}，魔术${ctx.mage}，战斗${ctx.fighter}。`;
   },
 
   magicAttributes(text) {

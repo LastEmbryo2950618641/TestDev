@@ -49,6 +49,7 @@ window.GameModules.resultActions = {
     const state = this.characterRpgState;
     if (!state?.values) return;
     window.GameModules.progression.applySceneChanges(state, changes, result);
+    window.GameModules.rpgInitializer?.touch(state.values, this);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
     await window.GameModules.sqliteSave.saveCharacterState(state);
   },
@@ -64,6 +65,7 @@ window.GameModules.resultActions = {
     exp.summary = result.controlExperienceSummary || exp.summary || '';
     exp.lastUpdated = new Date().toISOString();
     state.values.control_experience = exp;
+    window.GameModules.rpgInitializer?.touch(state.values, this);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
     await window.GameModules.sqliteSave.saveCharacterState(state);
   },
