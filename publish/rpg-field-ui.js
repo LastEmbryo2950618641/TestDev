@@ -20,10 +20,10 @@ window.GameModules.rpgFieldUi = {
   },
 
   fallbackDesc(field) {
-    return {
-      exp: '当前经验与升到下一级所需经验。', magic_circuit_quality: '魔术回路单条质量、转换效率与稳定性。',
-      magic_circuit_quantity: '魔术回路的数量。', mana_capacity: '当前可调用魔力储备。',
-    }[field?.key] || `${field?.label || '该属性'}的固化数值、状态或记录。`;
+    const worldTag = this.currentRpgState?.worldTag || this.character?.work || '';
+    const attrs = window.GameModules.worldAttributes.defaults(worldTag);
+    const sections = this.currentRpgState?.schema?.sections || window.GameModules.progression.schemaSections(attrs);
+    return sections.flatMap((section) => section.fields || []).find((item) => item.key === field?.key)?.desc || '暂无说明。';
   },
 
   rpgFieldDetail(field) {

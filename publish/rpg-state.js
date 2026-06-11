@@ -22,7 +22,8 @@ window.GameModules.rpgState = {
     const attrs = await this.ensureWorldAttributes(worldTag);
     const existing = save.getSchema(worldTag);
     const schema = this.baseSchema(worldTag, attrs);
-    if (existing && this.schemaMatchesAttrs(existing, { fields: schema.sections.flatMap((section) => section.fields) })) return existing;
+    const schemaFields = schema.sections.flatMap((section) => section.fields);
+    if (existing && this.schemaMatchesAttrs(existing, { fields: schemaFields })) return existing;
     console.log('[RPG状态] 固化世界属性 schema:', worldTag, attrs.fields?.length || 0);
     await save.saveSchema(worldTag, schema);
     return schema;
@@ -30,10 +31,7 @@ window.GameModules.rpgState = {
 
   schemaMatchesAttrs(schema, attrs) {
     const fields = schema.sections?.flatMap((section) => section.fields) || [];
-    const keys = new Set(fields.map((field) => field.key));
-    const baseKeys = ['world_tag', 'age', 'level', 'exp', 'vitality', 'stamina_pool', 'learning_ability', 'mental_stability', 'action_ability', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'knowledge', 'skills', 'professions', 'derived', 'combat_simulation'];
-    const world = attrs.fields || [];
-    return baseKeys.every((key) => keys.has(key)) && world.every((field) => {
+    return (attrs.fields || []).every((field) => {
       const current = fields.find((item) => item.key === field.key);
       return current && current.type === field.type && (current.desc || '') === (field.desc || '') && Boolean(current.grade) === Boolean(field.grade);
     });
