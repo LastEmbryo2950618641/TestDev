@@ -429,7 +429,6 @@ select.text-input option,
 }
 
 .primary-btn,
-.choice-btn,
 .free-input button {
   background: linear-gradient(135deg, #5e6bff, #d65bff);
   font-weight: 800;
@@ -514,8 +513,7 @@ select.text-input option,
   font-weight: 900;
 }
 
-.small-btn,
-.ghost-btn {
+.small-btn {
   padding: 0 12px;
   background: rgba(255, 255, 255, .08);
   border: 1px solid rgba(255, 255, 255, .16);

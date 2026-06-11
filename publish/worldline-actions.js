@@ -16,11 +16,9 @@ window.GameModules.worldlineActions = {
   },
 
   loreWorldline(lore) {
-    return lore?.worldline || window.GameModules.sqliteSave.getWorldline?.(lore?.worldTag) || null;
-  },
-
-  worldlineEvents(lore) {
-    return this.timelineItems(lore).filter((item) => item.kind === 'event');
+    if (!lore?.worldTag) return null;
+    if (!lore.worldline) lore.worldline = window.GameModules.sqliteSave.getWorldline?.(lore.worldTag) || null;
+    return lore.worldline;
   },
 
   timelineItems(lore) {
@@ -59,7 +57,6 @@ window.GameModules.worldlineActions = {
     const eventId = `turn_${this.turn}`;
     if (!(line.events || []).some((event) => event.eventId === eventId)) {
       line.events = [...(line.events || []), { eventId, name: result.sceneTitle || this.sceneTitle, time: this.entryTimeLabel?.() || this.sceneTitle, summary: String(result.narration || this.lastAction || '').slice(0, 90), detail: String(result.narration || '').slice(0, 420), storyIndexes: line.storyIndexes || [], factionIds: Object.keys(line.factions || {}).slice(0, 2), status: '进行中' }].slice(-12);
-      await window.GameModules.sqliteSave.saveWorldline(worldTag, line);
       lore.worldline = line;
       await window.GameModules.sqliteSave.saveWorldLore(worldTag, lore);
     }

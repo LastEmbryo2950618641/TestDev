@@ -82,4 +82,32 @@ window.GameModules.jsonUtils = {
       .replace(/([}\]])\s+("[A-Za-z_$\u4e00-\u9fa5][\w\u4e00-\u9fa5-]*"\s*:)/g, '$1,$2')
       .replace(/,\s*([}\]])/g, '$1');
   },
+
+  recoverAiResult(content) {
+    const text = String(content || '').replace(/```(?:json)?|```/g, '');
+    const data = {};
+    ['sceneTitle', 'thinking', 'narration', 'speech', 'mind', 'mood', 'quest', 'characterIntent', 'controlFeeling', 'controlExperienceSummary'].forEach((key) => {
+      const value = this.pickStringField(text, key);
+      if (value) data[key] = value;
+    });
+    ['elapsedSeconds', 'trust', 'resistance', 'controlAdaptation'].forEach((key) => {
+      const match = text.match(new RegExp(`"${key}"\\s*:\\s*(-?\\d+)`));
+      if (match) data[key] = Number(match[1]);
+    });
+    const choices = this.pickStringArray(text, 'choices');
+    if (choices.length) data.choices = choices;
+    return data.narration || data.mind || data.choices ? data : null;
+  },
+
+  pickStringField(text, key) {
+    const next = 'thinking|narration|speech|mind|mood|quest|characterIntent|controlFeeling|controlExperienceSummary|choices|metricUpdates|appearedCharacters|statChanges|combatEvent|elapsedSeconds|trust|resistance|controlAdaptation';
+    const match = text.match(new RegExp(`"${key}"\\s*:\\s*"([\\s\\S]*?)(?:"\\s*,\\s*"(?:${next})"\\s*:|"\\s+"(?:${next})"\\s*:|"\\s*[,}])`));
+    return match ? match[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').trim() : '';
+  },
+
+  pickStringArray(text, key) {
+    const match = text.match(new RegExp(`"${key}"\\s*:\\s*\\[([\\s\\S]*?)(?:\\]|$)`));
+    if (!match) return [];
+    return Array.from(match[1].matchAll(/"([^"\\]*(?:\\.[^"\\]*)*)"/g)).map((x) => x[1].replace(/\\"/g, '"').trim()).filter(Boolean).slice(0, 4);
+  },
 };

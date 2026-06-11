@@ -69,7 +69,12 @@ window.GameModules.ai = {
       console.log('[AI推演] JSON解析成功:', Object.keys(data));
       return { ...this.normalize(data, store, action), source: 'ai' };
     } catch (err) {
-      console.warn('AI 返回解析失败:', err.message);
+      const recovered = window.GameModules.jsonUtils.recoverAiResult(content);
+      if (recovered) {
+        console.warn('[AI推演] JSON不完整，已恢复可用字段:', { fields: Object.keys(recovered), error: err.message });
+        return { ...this.normalize(recovered, store, action), source: 'ai' };
+      }
+      console.warn('AI 返回解析失败，使用兜底:', err.message);
       return { ...window.GameModules.createFallbackResult(store, action), source: 'fallback' };
     }
   },

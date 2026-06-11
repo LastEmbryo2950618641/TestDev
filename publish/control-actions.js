@@ -35,7 +35,7 @@ Object.assign(window.GameModules.entryActions, {
       const logId = this.addNovelEntry(action, { playerVisible: false });
       debug.step('[控制上线] 开场日志已创建', { logId, actionLength: action.length });
 
-      await this.runLoggedControlTask('世界线生成', () => this.ensureWorldline(action));
+      this.runBestEffortControlTask('世界线生成', () => this.ensureWorldline(action));
       const feedbackTask = this.runLoggedControlTask('角色反馈', () => window.GameModules.characterFeedback.initial(this));
       await this.runLoggedControlTask('资料检索', async () => {
         await Promise.race([this.refreshRagContext(action), new Promise((_, reject) => setTimeout(() => reject(new Error('资料检索超时')), 8000))]);
@@ -83,5 +83,11 @@ Object.assign(window.GameModules.entryActions, {
       if (fallback) return fallback(err);
       throw err;
     }
+  },
+
+  runBestEffortControlTask(name, fn) {
+    this.runLoggedControlTask(name, fn, () => null).catch((err) => {
+      console.warn(`[控制上线] ${name}已跳过:`, err.code, err.message);
+    });
   },
 });

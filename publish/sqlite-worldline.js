@@ -47,20 +47,37 @@ window.GameModules = window.GameModules || {};
   save.saveWorldline = async function saveWorldline(worldTag, worldline) {
     if (!this.db || !worldline) return;
     const now = new Date().toISOString();
+    const worldlineJson = JSON.stringify(worldline);
+    const oldJson = this.getJson('SELECT worldline_json FROM worldline_state WHERE world_tag=?', [worldTag]);
+    if (JSON.stringify(oldJson) === worldlineJson) return;
     this.db.run(
       'INSERT OR REPLACE INTO worldline_state(world_tag,worldline_json,created_at,updated_at) VALUES (?,?,COALESCE((SELECT created_at FROM worldline_state WHERE world_tag=?),?),?)',
-      [worldTag, JSON.stringify(worldline), worldTag, now, now],
+      [worldTag, worldlineJson, worldTag, now, now],
     );
-    this.db.run('DELETE FROM worldline_events WHERE world_tag=?', [worldTag]);
+    const eventIds = [];
     for (const event of worldline.events || []) {
       const id = event.eventId || event.事件ID || event.id;
-      if (id) this.db.run('INSERT OR REPLACE INTO worldline_events(world_tag,event_id,event_json,updated_at) VALUES (?,?,?,?)', [worldTag, id, JSON.stringify(event), now]);
+      if (id) {
+        eventIds.push(id);
+        this.db.run('INSERT OR REPLACE INTO worldline_events(world_tag,event_id,event_json,updated_at) VALUES (?,?,?,?)', [worldTag, id, JSON.stringify(event), now]);
+      }
     }
-    this.db.run('DELETE FROM worldline_factions WHERE world_tag=?', [worldTag]);
+    this.pruneWorldlineRows('worldline_events', 'event_id', worldTag, eventIds);
+    const factionIds = Object.keys(worldline.factions || {});
     for (const [id, faction] of Object.entries(worldline.factions || {})) {
       this.db.run('INSERT OR REPLACE INTO worldline_factions(world_tag,faction_id,faction_json,updated_at) VALUES (?,?,?,?)', [worldTag, id, JSON.stringify(faction), now]);
     }
+    this.pruneWorldlineRows('worldline_factions', 'faction_id', worldTag, factionIds);
     await this.persist();
+  };
+
+  save.pruneWorldlineRows = function pruneWorldlineRows(table, column, worldTag, ids) {
+    if (!ids.length) {
+      this.db.run(`DELETE FROM ${table} WHERE world_tag=?`, [worldTag]);
+      return;
+    }
+    const marks = ids.map(() => '?').join(',');
+    this.db.run(`DELETE FROM ${table} WHERE world_tag=? AND ${column} NOT IN (${marks})`, [worldTag, ...ids]);
   };
 
   save.saveWorldLore = async function saveWorldLore(worldTag, lore) {

@@ -6,7 +6,6 @@
 }
 
 .switch-row,
-.choice-row,
 .free-input {
   display: flex;
   gap: 5px;
@@ -25,18 +24,6 @@
 
 .toggle-btn.active:last-child {
   background: linear-gradient(135deg, #ffb13c, #d65bff);
-}
-
-.choice-row {
-  overflow-x: auto;
-  overscroll-behavior: contain;
-  padding-bottom: 1px;
-}
-
-.choice-btn {
-  flex: 0 0 auto;
-  padding: 0 9px;
-  white-space: nowrap;
 }
 
 .free-input input {
@@ -76,11 +63,6 @@
   min-height: 30px;
   border-radius: 9px;
   font-size: 12px;
-}
-
-.choice-row .ghost-btn {
-  flex: 0 0 auto;
-  white-space: nowrap;
 }
 
 .story-choice-list {
@@ -267,7 +249,4 @@
     grid-template-columns: 1fr auto auto;
   }
 
-  .ghost-btn {
-    grid-column: 1 / -1;
-  }
 }

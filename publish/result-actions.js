@@ -19,7 +19,7 @@ window.GameModules.resultActions = {
     await this.applyStatChanges(result.statChanges, result);
     await this.applyControlExperience(result);
     await window.GameModules.characterMemory.recordTurn(this, result);
-    if (this.updateWorldlineFromTurn) await this.updateWorldlineFromTurn(result);
+    if (this.updateWorldlineFromTurn) this.updateWorldlineFromTurn(result).catch((err) => console.warn('[世界线] 回合更新跳过:', err.code, err.message));
     if (!this.finalizeNovelEntry(logId, result)) {
       const id = this.addNovelEntry(this.lastAction || '继续推进');
       this.finalizeNovelEntry(id, result);
