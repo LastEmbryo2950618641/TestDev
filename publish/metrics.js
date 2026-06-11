@@ -55,20 +55,34 @@ window.GameModules.metrics = {
     this.applyGroup(store.emotions, updates?.emotions, store.metricNotes, 'emotion');
     this.applyGroup(store.playerFeelings, updates?.playerFeelings, store.metricNotes, 'player');
   },
+  applyInitial(store, updates) {
+    this.ensure(store);
+    this.setGroup(store.emotions, updates?.emotions, store.metricNotes, 'emotion');
+    this.setGroup(store.playerFeelings, updates?.playerFeelings, store.metricNotes, 'player');
+  },
   applyGroup(target, items, notes, group) {
     if (!Array.isArray(items)) return;
     items.forEach((item) => {
       if (!Object.prototype.hasOwnProperty.call(target, item?.key)) return;
-      const delta = this.clampDelta(item.delta);
-      const value = this.clamp(target[item.key] + delta);
-      const stage = this.stageFor(item.key, value);
-      target[item.key] = value;
-      notes[`${group}:${item.key}`] = {
-        stage,
-        status: String(item.status || this.stageStatus(item.key, stage)).slice(0, 80),
-        reason: String(item.reason || '本回合没有直接触发变化，保持原值。').slice(0, 80),
-        description: String(this.descriptions[item.key] || item.key).slice(0, 80),
-      };
+      const value = this.clamp(target[item.key] + this.clampDelta(item.delta));
+      this.writeMetric(target, notes, group, item, value, '本回合没有直接触发变化，保持原值。');
     });
+  },
+  setGroup(target, items, notes, group) {
+    if (!Array.isArray(items)) return;
+    items.forEach((item) => {
+      if (!Object.prototype.hasOwnProperty.call(target, item?.key)) return;
+      this.writeMetric(target, notes, group, item, this.clamp(item.value), '首次见面时根据角色处境与资料推定初始值。');
+    });
+  },
+  writeMetric(target, notes, group, item, value, fallbackReason) {
+    const stage = this.stageFor(item.key, value);
+    target[item.key] = value;
+    notes[`${group}:${item.key}`] = {
+      stage,
+      status: String(item.status || this.stageStatus(item.key, stage)).slice(0, 80),
+      reason: String(item.reason || fallbackReason).slice(0, 80),
+      description: String(this.descriptions[item.key] || item.key).slice(0, 80),
+    };
   },
 };

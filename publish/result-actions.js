@@ -26,6 +26,15 @@ window.GameModules.resultActions = {
 
   applyMetricUpdates(updates) {
     window.GameModules.metrics.apply(this, updates);
+    this.syncMetricDerived();
+  },
+
+  applyInitialMetrics(updates) {
+    window.GameModules.metrics.applyInitial(this, updates);
+    this.syncMetricDerived();
+  },
+
+  syncMetricDerived() {
     this.trust = this.playerFeelings.信任;
     this.resistance = this.playerFeelings.反抗;
     this.mood = Object.entries(this.emotions).sort((a, b) => b[1] - a[1])[0]?.[0] || this.mood;

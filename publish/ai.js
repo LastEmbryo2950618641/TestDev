@@ -95,6 +95,13 @@ window.GameModules.ai = {
     };
   },
 
+  normalizeInitialMetricUpdates(value, fallback) {
+    return {
+      emotions: this.normalizeInitialGroup(value?.emotions, fallback?.emotions, window.GameModules.metrics.emotionKeys),
+      playerFeelings: this.normalizeInitialGroup(value?.playerFeelings, fallback?.playerFeelings, window.GameModules.metrics.playerKeys),
+    };
+  },
+
   completeMetricGroup(items, keys, current, defaults) {
     const map = new Map(items.map((item) => [item.key, item]));
     return keys.map((key) => {
@@ -118,6 +125,22 @@ window.GameModules.ai = {
       status: String(item.status || '').slice(0, 80),
       reason: String(item.reason || '').slice(0, 80),
     }));
+  },
+
+  normalizeInitialGroup(value, fallback, keys) {
+    const list = Array.isArray(value) ? value : (Array.isArray(fallback) ? fallback : []);
+    const map = new Map(list.filter((item) => keys.includes(item?.key)).map((item) => [item.key, item]));
+    return keys.map((key) => {
+      const item = map.get(key) || {};
+      const value = window.GameModules.metrics.clamp(item.value ?? window.GameModules.metrics.defaults.emotions[key] ?? window.GameModules.metrics.defaults.playerFeelings[key]);
+      const stage = window.GameModules.metrics.stageFor(key, value);
+      return {
+        key,
+        value,
+        status: String(item.status || window.GameModules.metrics.stageStatus(key, stage)).slice(0, 80),
+        reason: String(item.reason || '首次见面时根据角色处境与资料推定初始值。').slice(0, 80),
+      };
+    });
   },
 
   normalizeChoices(value, fallback) {
