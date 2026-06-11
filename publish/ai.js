@@ -78,7 +78,7 @@ window.GameModules.ai = {
       controlFeeling: String(data.controlFeeling || fallback.controlFeeling || '疑惑').slice(0, 40),
       controlAdaptation: this.clampNumber(data.controlAdaptation, fallback.controlAdaptation || 0),
       controlExperienceSummary: String(data.controlExperienceSummary || fallback.controlExperienceSummary || '').slice(0, 80),
-      metricUpdates: this.normalizeMetricUpdates(data.metricUpdates, null, store),
+      metricUpdates: this.normalizeMetricUpdates(data.metricUpdates),
       choices: this.normalizeChoices(data.choices, fallback.choices),
       appearedCharacters: Array.isArray(data.appearedCharacters) ? data.appearedCharacters.slice(0, 6).map((x) => this.normalizeCharacter(x, store)).filter(Boolean) : fallback.appearedCharacters,
       statChanges: {
@@ -90,9 +90,9 @@ window.GameModules.ai = {
     };
   },
 
-  normalizeMetricUpdates(value, fallback, store) {
-    const source = value || fallback || {};
-    return { emotions: this.normalizeMetricGroup(source.emotions, null, window.GameModules.metrics.emotionKeys), playerFeelings: this.normalizeMetricGroup(source.playerFeelings, null, window.GameModules.metrics.playerKeys) };
+  normalizeMetricUpdates(value) {
+    const source = value || {};
+    return { emotions: this.normalizeMetricGroup(source.emotions, window.GameModules.metrics.emotionKeys), playerFeelings: this.normalizeMetricGroup(source.playerFeelings, window.GameModules.metrics.playerKeys) };
   },
 
   normalizeInitialMetricUpdates(value, fallback, store) {
@@ -100,11 +100,10 @@ window.GameModules.ai = {
     return { emotions: this.normalizeInitialGroup(source.emotions, null, window.GameModules.metrics.emotionKeys, store, 'emotion'), playerFeelings: this.normalizeInitialGroup(source.playerFeelings, null, window.GameModules.metrics.playerKeys, store, 'player') };
   },
 
-  normalizeMetricGroup(value, fallback, keys) {
+  normalizeMetricGroup(value, keys) {
     const main = Array.isArray(value) ? value : [];
-    const fallbackMap = new Map((Array.isArray(fallback) ? fallback : []).filter((item) => keys.includes(item?.key)).map((item) => [item.key, item]));
     return keys.map((key) => {
-      const item = main.find((x) => x?.key === key) || fallbackMap.get(key);
+      const item = main.find((x) => x?.key === key);
       if (!item) return null;
       return {
         key,
