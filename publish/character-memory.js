@@ -7,12 +7,16 @@ window.GameModules.characterMemory = {
   limits: { recent: 1200, summaryBuffer: 1600, summarized: 900, forgotten: 500, vivid: 1200, permanent: 800, archiveHits: 5, vividThreshold: 60, permanentThreshold: 88, summaryTargetChars: 180 },
 
   async contextFor(store, action) {
+    const debug = window.GameModules.debug;
+    const token = debug?.start?.('[记忆上下文] 组装', { characterId: store.characterRpgState?.id, actionLength: String(action || '').length });
     const state = store.characterRpgState;
     if (!state) return '暂无人物记忆。';
     const memory = this.ensure(state.id);
     const archive = await this.queryArchive(state.id, `${action} ${store.sceneTitle} ${store.quest} ${store.mindText}`);
     memory.archive = this.archiveStats(state.id);
-    return this.format(memory, archive);
+    const text = this.format(memory, archive);
+    debug?.done?.(token, { archiveHits: archive.length, contextLength: text.length });
+    return text;
   },
 
   ensure(characterId) {

@@ -25,19 +25,22 @@ window.GameModules.ai = {
     console.log('[AI推演] 请求开始:', { requestId, action, model: store.modelId, promptLength: messages[0].content.length, ragLength: String(store.ragContext || '').length, memoryLength: String(store.memoryContext || '').length });
 
     try {
+      let chunkCount = 0;
       await Promise.race([this.withRetry(() => window.dzmm.completions({
         model: store.modelId,
         messages,
         maxTokens: 3000,
       }, async (chunk, done) => {
         if (requestId !== this.latestRequestId) return;
+        chunkCount += chunk ? 1 : 0;
         buffer = window.GameModules.jsonUtils.mergeStreamText(buffer, chunk);
         if (!done) {
+          if (chunkCount === 1 || chunkCount % 10 === 0) console.log('[AI推演] 流式片段:', { requestId, chunkCount, length: buffer.length });
           if (logId && store.updateNovelStream) store.updateNovelStream(logId, buffer);
           return;
         }
         applied = true;
-        console.log('[AI推演] 返回完成:', { requestId, length: buffer.length, preview: buffer.slice(0, 180) });
+        console.log('[AI推演] 返回完成:', { requestId, chunkCount, length: buffer.length, preview: buffer.slice(0, 180) });
         await store.applyResult(this.parse(buffer, store, action), logId);
       })), new Promise((_, reject) => setTimeout(() => reject(new Error('AI推演超时')), 45000))]);
       if (!applied && requestId === this.latestRequestId) {
@@ -175,26 +178,11 @@ window.GameModules.ai = {
   normalizeCharacter(value, store) {
     if (typeof value === 'string') return { name: value.slice(0, 16), work: store.character.work, isMinor: false, importance: 'support' };
     if (!value?.name) return null;
-    return {
-      name: String(value.name).slice(0, 16),
-      role: String(value.role || (value.isMinor ? '路人' : '出场人物')).slice(0, 18),
-      detail: String(value.detail || value.desc || '').slice(0, 120),
-      personality: String(value.personality || '').slice(0, 80),
-      work: String(value.work || store.character.work || '原创世界').slice(0, 24),
-      isMinor: Boolean(value.isMinor),
-      importance: ['minor', 'support', 'main'].includes(value.importance) ? value.importance : (value.isMinor ? 'minor' : 'support'),
-    };
+    const importance = ['minor', 'support', 'main'].includes(value.importance) ? value.importance : (value.isMinor ? 'minor' : 'support');
+    return { name: String(value.name).slice(0, 16), role: String(value.role || (value.isMinor ? '路人' : '出场人物')).slice(0, 18), detail: String(value.detail || value.desc || '').slice(0, 120), personality: String(value.personality || '').slice(0, 80), work: String(value.work || store.character.work || '原创世界').slice(0, 24), isMinor: Boolean(value.isMinor), importance };
   },
 
   clampNumber(value, fallback) { return Math.max(0, Math.min(100, Number.isFinite(value) ? Math.round(value) : fallback)); },
-
-  clampElapsed(value, fallback = 60) {
-    const n = Number(value);
-    return Number.isFinite(n) ? Math.max(1, Math.min(2592000, Math.round(n))) : fallback;
-  },
-
-  clampVitalDelta(value) {
-    if (!Number.isFinite(value)) return 0;
-    return Math.max(-8, Math.min(8, Math.round(value)));
-  },
+  clampElapsed(value, fallback = 60) { const n = Number(value); return Number.isFinite(n) ? Math.max(1, Math.min(2592000, Math.round(n))) : fallback; },
+  clampVitalDelta(value) { return Number.isFinite(value) ? Math.max(-8, Math.min(8, Math.round(value))) : 0; },
 };

@@ -14,15 +14,19 @@ window.GameModules.characterFeedback = {
   async initial(store) {
     this.ensureExperience(store);
     const fallback = this.fallback(store);
+    console.log('[角色反馈] 初始请求准备:', { character: store.character?.name, model: 'nalang-turbo-0826', controlMode: store.controlMode, hasCompletions: Boolean(window.dzmm?.completions) });
     if (!window.dzmm?.completions) return fallback;
     let buffer = '';
     try {
+      const prompt = this.prompt(store);
+      console.log('[角色反馈] completions 调用:', { promptLength: prompt.length });
       const request = window.dzmm.completions({
         model: 'nalang-turbo-0826',
         maxTokens: 600,
-        messages: [{ role: 'user', content: this.prompt(store) }],
-      }, (chunk) => {
+        messages: [{ role: 'user', content: prompt }],
+      }, (chunk, done) => {
         buffer = this.merge(buffer, chunk);
+        if (done) console.log('[角色反馈] 流式 done:', { length: buffer.length });
       });
       await Promise.race([request, new Promise((_, reject) => setTimeout(() => reject(new Error('角色反馈生成超时')), 12000))]);
       console.log('[角色反馈] AI返回完成:', { length: buffer.length, preview: buffer.slice(0, 120) });
