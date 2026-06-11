@@ -15,7 +15,7 @@ window.GameModules.rpgProfessionState = {
   async ensureInfo(state, character, schema) {
     this.normalizeProfessions(state);
     const job = state.values?.professions?.[0];
-    if (!job) return false;
+    if (!job?.name) return false;
     const worldFields = schema.sections.find((section) => section.title === '世界固有属性')?.fields || [];
     const info = await window.GameModules.professionInfo.ensure(state.worldTag, job.name, {
       characterName: state.name,
@@ -24,6 +24,7 @@ window.GameModules.rpgProfessionState = {
       skills: state.values.skills,
       worldFields,
     });
+    if (!info) return false;
     const before = JSON.stringify(job.info || null);
     job.name = info.name;
     job.info = info;

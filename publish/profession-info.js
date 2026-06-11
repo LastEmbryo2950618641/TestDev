@@ -5,12 +5,13 @@ window.GameModules.professionInfo = {
 
   normalizeJobName(name) {
     const text = String(name || '').trim();
-    if (!text || this.roleWords.test(text)) return '无固定职业';
+    if (!text || this.roleWords.test(text)) return '';
     return text.slice(0, 18);
   },
 
   async ensure(worldTag, name, context = {}) {
     const jobName = this.normalizeJobName(name);
+    if (!jobName) return null;
     const save = window.GameModules.sqliteSave;
     const existing = save.getProfessionInfo?.(worldTag, jobName);
     if (existing) return existing;

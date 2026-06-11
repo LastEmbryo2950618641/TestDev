@@ -59,7 +59,7 @@ window.GameModules.characterProfile = {
   },
 
   prompt(base, lore, attrs, context) {
-    return `为 AI RPG 视觉小说生成出场人物固化设定。人物基础：${JSON.stringify(base)}。当前剧情：${context || '暂无'}。世界观：${lore.background}；势力：${lore.factions.map((x) => x.name).join('、')}；特殊职业：${lore.specialJobs.map((x) => x.name).join('、')}；职业等级：${lore.jobRanks.join('、')}。只返回 JSON：{"name":"姓名","role":"身份","detail":"个人背景","personality":"性格","faction":"所属势力或无","job":"职业","rank":"等级","skills":[{"name":"技能","desc":"说明"}],"worldValues":{"字段key":"该人物固化取值"}}。worldValues 必须覆盖该角色所属世界的固有字段：${attrs.fields.map((x) => `${x.key}(${x.label}:${x.type})`).join('、')}。不要 Markdown。`;
+    return `为 AI RPG 视觉小说生成出场人物固化设定。人物基础：${JSON.stringify(base)}。当前剧情：${context || '暂无'}。世界观：${lore.background}；势力：${lore.factions.map((x) => x.name).join('、')}；特殊职业：${lore.specialJobs.map((x) => x.name).join('、')}；职业等级：${lore.jobRanks.join('、')}。只返回 JSON：{"name":"姓名","role":"身份","detail":"个人背景","personality":"性格","faction":"所属势力或无","job":"职业，无法可靠判断则空字符串","rank":"等级","skills":[{"name":"技能","desc":"说明"}],"worldValues":{"字段key":"该人物固化取值"}}。职业必须由角色当前资料和世界规则直接推断，不能把主角/配角/悲剧核心等叙事标签写成职业，无法判断时 job 写空字符串。worldValues 必须覆盖该角色所属世界的固有字段：${attrs.fields.map((x) => `${x.key}(${x.label}:${x.type})`).join('、')}。不要 Markdown。`;
   },
 
   parse(text) {
@@ -77,7 +77,7 @@ window.GameModules.characterProfile = {
       detail: String(profile.detail || base.detail).slice(0, 160),
       personality: String(profile.personality || base.personality).slice(0, 100),
       faction: String(profile.faction || '无').slice(0, 18),
-      job: window.GameModules.professionInfo.normalizeJobName(profile.job || this.jobFromRole(base.role, base.detail)),
+      job: window.GameModules.professionInfo.normalizeJobName(profile.job),
       rank: String(profile.rank || lore.jobRanks[0] || '普通').slice(0, 12),
       skills: skills.slice(0, 4).map((skill, index) => ({
         name: String(skill.name || `能力${index + 1}`).slice(0, 16),
@@ -91,7 +91,7 @@ window.GameModules.characterProfile = {
     return this.validate({
       ...base,
       faction: lore.factions[0]?.name || '无',
-      job: this.jobFromRole(base.role, base.detail),
+      job: '',
       rank: lore.jobRanks[0] || '普通',
       skills: base.skills?.length ? base.skills : [{ name: '观察', desc: '从细节中判断局势。' }],
       worldValues: {},
@@ -101,15 +101,6 @@ window.GameModules.characterProfile = {
   worldValues(values, attrs, seedText) {
     const seed = window.GameModules.rpgState.seed(seedText);
     return Object.fromEntries((attrs.fields || []).map((field, index) => [field.key, values?.[field.key] ?? this.valueFor(field, seed + index)]));
-  },
-
-  jobFromRole(role, detail = '') {
-    const text = `${role || ''}${detail || ''}`;
-    if (/魔术/.test(text)) return '魔术师';
-    if (/学生|儿童|少女|少年|小学生/.test(text)) return '学生';
-    if (/骑士|剑士|战士|军人|杀手|弓兵|枪兵/.test(text)) return '战斗人员';
-    if (/王|贵族|领主|皇帝|公主/.test(text)) return '统治者';
-    return '无固定职业';
   },
 
   valueFor(field, seed) {

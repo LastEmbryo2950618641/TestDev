@@ -47,7 +47,7 @@ window.GameModules.progression = {
     const values = state.values;
     const seed = window.GameModules.rpgState.seed(`${state.name}${state.worldTag}${character.role || ''}`);
     let changed = false;
-    const incomplete = !values.level || !values.exp?.next || !values.skills?.[0]?.level || !values.professions?.[0]?.level;
+    const incomplete = !values.level || !values.exp?.next || !values.skills?.[0]?.level;
     if (incomplete) { Object.assign(values, this.createValues(character, seed, values)); changed = true; }
     const normalizedExp = this.normalizeCharacterExp(values.exp, values.level, seed % 60);
     if (!values.exp?.next || values.exp.next !== normalizedExp.next || values.exp.curve !== normalizedExp.curve) { values.exp = normalizedExp; changed = true; }
@@ -111,17 +111,8 @@ window.GameModules.progression = {
   },
 
   professions(character, seed) {
-    const name = window.GameModules.professionInfo.normalizeJobName(character.job || this.jobFromRole(character.role));
-    return [this.learned(name, '职业', 1 + seed % 3, ['intelligence', 'willpower', 'charisma'], character.rank || '长期身份与社会功能')];
-  },
-
-  jobFromRole(role) {
-    const text = String(role || '');
-    if (/魔术/.test(text)) return '魔术师';
-    if (/学生|儿童|少女|少年/.test(text)) return '学生';
-    if (/骑士|战士|剑/.test(text)) return '战士';
-    if (/王|贵族|领主/.test(text)) return '统治者';
-    return '无固定职业';
+    const name = window.GameModules.professionInfo.normalizeJobName(character.job);
+    return name ? [this.learned(name, '职业', 1 + seed % 3, ['intelligence', 'willpower', 'charisma'], character.rank || '长期身份与社会功能')] : [];
   },
 
   learned(name, type, level, linkedStats, source) {
