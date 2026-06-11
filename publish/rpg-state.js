@@ -12,7 +12,7 @@ window.GameModules.rpgState = {
     const save = window.GameModules.sqliteSave;
     const attrs = window.GameModules.worldAttributes.defaults(worldTag);
     const existing = save.getWorldAttributes(worldTag);
-    if (existing && this.sameFieldKeys(existing.fields, attrs.fields)) return existing;
+    if (existing && this.sameFields(existing.fields, attrs.fields)) return existing;
     await save.saveWorldAttributes(worldTag, attrs);
     return attrs;
   },
@@ -21,23 +21,27 @@ window.GameModules.rpgState = {
     const save = window.GameModules.sqliteSave;
     const attrs = await this.ensureWorldAttributes(worldTag);
     const existing = save.getSchema(worldTag);
-    if (existing && this.schemaMatchesAttrs(existing, attrs)) return existing;
-    console.log('[RPG状态] 固化世界属性 schema:', worldTag, attrs.fields?.length || 0);
     const schema = this.baseSchema(worldTag, attrs);
+    if (existing && this.schemaMatchesAttrs(existing, { fields: schema.sections.flatMap((section) => section.fields) })) return existing;
+    console.log('[RPG状态] 固化世界属性 schema:', worldTag, attrs.fields?.length || 0);
     await save.saveSchema(worldTag, schema);
     return schema;
   },
 
   schemaMatchesAttrs(schema, attrs) {
-    const keys = new Set(schema.sections?.flatMap((section) => section.fields.map((field) => field.key)) || []);
+    const fields = schema.sections?.flatMap((section) => section.fields) || [];
+    const keys = new Set(fields.map((field) => field.key));
     const baseKeys = ['world_tag', 'age', 'level', 'exp', 'vitality', 'stamina_pool', 'learning_ability', 'mental_stability', 'action_ability', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'knowledge', 'skills', 'professions', 'derived', 'combat_simulation'];
-    return baseKeys.every((key) => keys.has(key)) && (attrs.fields || []).every((field) => keys.has(field.key));
+    const world = attrs.fields || [];
+    return baseKeys.every((key) => keys.has(key)) && world.every((field) => {
+      const current = fields.find((item) => item.key === field.key);
+      return current && current.type === field.type && (current.desc || '') === (field.desc || '') && Boolean(current.grade) === Boolean(field.grade);
+    });
   },
 
-  sameFieldKeys(left, right) {
-    const a = (left || []).map((field) => field.key).join('|');
-    const b = (right || []).map((field) => field.key).join('|');
-    return a === b;
+  sameFields(left, right) {
+    const sig = (fields) => (fields || []).map((field) => [field.key, field.type, field.desc || '', field.grade ? 1 : 0].join(':')).join('|');
+    return sig(left) === sig(right);
   },
 
 
@@ -52,6 +56,8 @@ window.GameModules.rpgState = {
         type: ['number', 'rank', 'list', 'text'].includes(field.type) ? field.type : 'number',
         min: Number.isFinite(field.min) ? field.min : 0,
         max: Number.isFinite(field.max) ? field.max : 100,
+        desc: String(field.desc || '').slice(0, 100),
+        grade: Boolean(field.grade),
       })),
     })).filter((section) => section.fields.length);
     if (!schema.sections.length) throw new Error('schema empty');
@@ -105,10 +111,11 @@ window.GameModules.rpgState = {
         changed = true;
       }
     }));
+    const worldChanged = this.normalizeWorldValues(state);
     const jobChanged = window.GameModules.rpgProfessionState.normalizeProfessions(state);
     const controlChanged = this.ensureControlExperience(state);
     const mechanicsChanged = window.GameModules.progression.ensureStateMechanics(state);
-    return jobChanged || controlChanged || mechanicsChanged || changed;
+    return worldChanged || jobChanged || controlChanged || mechanicsChanged || changed;
   },
 
 

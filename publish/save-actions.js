@@ -136,8 +136,8 @@ window.GameModules.saveActions = {
   rpgFieldValue(value) {
     if (Array.isArray(value)) return value.map((item) => this.rpgFieldValue(item));
     if (!value || typeof value !== 'object') return value;
+    if (Object.prototype.hasOwnProperty.call(value, 'next')) return `${value.current || 0}/${value.next || 'max'}｜${value.curve || ''}`;
     if (Object.prototype.hasOwnProperty.call(value, 'current')) return `${value.current}/${value.max}`;
-    if (Object.prototype.hasOwnProperty.call(value, 'curve')) return `${value.current || 0}/${value.next || 'max'}｜${value.curve}`;
     if (value.type === '职业') return `${value.name} lv.${value.level || 1}`;
     if (Object.prototype.hasOwnProperty.call(value, 'onlineCount')) {
       return `上线${value.onlineCount || 0}次｜${value.feeling || '未知'}｜适应${value.adaptation || 0}/100｜${value.summary || ''}`;
@@ -155,7 +155,8 @@ window.GameModules.saveActions = {
       fields: section.fields
         .map((field) => {
           const raw = field.key === 'exp' ? window.GameModules.progression.normalizeCharacterExp(state.values.exp, state.values.level) : state.values[field.key];
-          return { key: field.key, label: field.label, value: this.rpgFieldValue(raw), raw };
+          const display = window.GameModules.worldAttributes.displayValue(field, raw);
+          return { key: field.key, label: field.label, value: this.rpgFieldValue(display), raw, desc: field.desc || '' };
         }),
     })).filter((section) => section.fields.length);
   },

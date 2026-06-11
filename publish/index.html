@@ -24,6 +24,7 @@
   <script src="progression-combat.js"></script>
   <script src="rpg-initializer.js"></script>
   <script src="rpg-state.js"></script>
+  <script src="rpg-world-values.js"></script>
   <script src="timeline-data.js"></script>
   <script src="entry-year.js"></script>
   <script src="entry-year-public.js"></script>
@@ -370,7 +371,7 @@
                 <section>
                   <h3 x-text="section.title"></h3>
                   <template x-for="field in section.fields" :key="field.label">
-                    <div class="dynamic-row" :class="{ clickable: field.key === 'professions' }" @click="field.key === 'professions' && $store.game.toggleRpgField(field)">
+                    <div class="dynamic-row" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.canExpandRpgField(field) && $store.game.toggleRpgField(field)">
                       <span x-text="field.label"></span>
                       <b x-text="Array.isArray(field.value) ? field.value.join('、') || '无' : field.value"></b>
                       <p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p>

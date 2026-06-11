@@ -6,23 +6,26 @@ window.GameModules.progression = {
   schemaSections(attrs) {
     return [
       { title: '基础能力', fields: [
-        this.field('world_tag', '所属世界', 'text'), this.field('age', '年龄', 'number', 0, 999),
-        this.field('level', '个人等级', 'number', 1, 100), this.field('exp', '个人经验', 'text'),
-        this.field('vitality', '生命力', 'text'), this.field('stamina_pool', '精力池', 'text'),
-        this.field('satiety', '饱食度', 'text'), this.field('hydration', '水分', 'text'),
-        this.field('fatigue', '疲劳度', 'text'), this.field('learning_ability', '学习能力', 'number'),
-        this.field('mental_stability', '精神稳定', 'text'), this.field('growth_potential', '成长潜力', 'number'),
-        this.field('action_ability', '行动能力', 'text'),
+        this.field('world_tag', '所属世界', 'text', 0, 100, '角色所属的作品或世界。'), this.field('age', '年龄', 'number', 0, 999, '角色在当前进入时间点的年龄。'),
+        this.field('level', '个人等级', 'number', 1, 100, '角色综合成长阶段。'), this.field('exp', '个人经验', 'text', 0, 100, '当前经验与升到下一级所需经验。'),
+        this.field('vitality', '生命力', 'text', 0, 100, '当前承伤、生存与身体完整状态。'), this.field('stamina_pool', '精力池', 'text', 0, 100, '体能、耐力与持续行动余量。'),
+        this.field('satiety', '饱食度', 'text', 0, 100, '进食状态对体力与恢复的影响。'), this.field('hydration', '水分', 'text', 0, 100, '补水状态对体力与判断的影响。'),
+        this.field('fatigue', '疲劳度', 'text', 0, 100, '累积疲惫、伤痛和行动消耗。'), this.field('learning_ability', '学习能力', 'number', 0, 100, '理解、模仿和掌握新知识技能的效率。'),
+        this.field('mental_stability', '精神稳定', 'text', 0, 100, '心理稳定、创伤压力和判断能力。'), this.field('growth_potential', '成长潜力', 'number', 0, 100, '未来继续成长与突破的空间。'),
+        this.field('action_ability', '行动能力', 'text', 0, 100, '可执行行动的灵活度、协调性与主动性。'),
       ] },
-      { title: '身内能力', fields: ['strength:力量', 'agility:敏捷', 'constitution:体质', 'intelligence:智力', 'perception:感知', 'willpower:意志', 'charisma:魅力'].map((x) => {
-        const [key, label] = x.split(':'); return this.field(key, label, 'number');
-      }) },
+      { title: '身内能力', fields: [
+        ['strength', '力量', '肌肉力量、爆发力与近战压制能力。'], ['agility', '敏捷', '速度、反应和身体协调性。'],
+        ['constitution', '体质', '抗伤、耐受、恢复和身体基础强度。'], ['intelligence', '智力', '理解、推理、知识运用和术式分析能力。'],
+        ['perception', '感知', '观察、直觉、索敌和异常察觉能力。'], ['willpower', '意志', '忍耐、抗压、抵抗精神干涉和坚持目标的能力。'],
+        ['charisma', '魅力', '外在吸引力、表达力和影响他人的能力。'],
+      ].map(([key, label, desc]) => this.field(key, label, 'number', 0, 100, desc)) },
       { title: '习得与职业', fields: [
-        this.field('knowledge', '知识储备', 'list'), this.field('skills', '技能等级', 'list'),
-        this.field('professions', '职业等级', 'list'), this.field('factions', '阵营地位', 'list'),
-        this.field('equipment', '装备', 'list'), this.field('status_tags', '状态标签', 'list'),
-        this.field('control_experience', '上线体验', 'text'), this.field('derived', '攻防衍生', 'text'),
-        this.field('combat_simulation', '战斗模拟', 'text'),
+        this.field('knowledge', '知识储备', 'list', 0, 100, '已掌握的知识领域及等级。'), this.field('skills', '技能等级', 'list', 0, 100, '经过学习或训练获得的技能等级。'),
+        this.field('professions', '职业等级', 'list', 0, 100, '已固化的真实职业、训练身份或社会功能。'), this.field('factions', '阵营地位', 'list', 0, 100, '所属势力、社会关系或阵营位置。'),
+        this.field('equipment', '装备', 'list', 0, 100, '当前持有或可调用的重要装备。'), this.field('status_tags', '状态标签', 'list', 0, 100, '当前处境、身份标签或剧情状态。'),
+        this.field('control_experience', '上线体验', 'text', 0, 100, '角色对被玩家上线操控的经历记录。'), this.field('derived', '攻防衍生', 'text', 0, 100, '由基础能力推导出的攻防表现。'),
+        this.field('combat_simulation', '战斗模拟', 'text', 0, 100, '基于当前状态估算的一次战斗表现。'),
       ] },
       { title: '世界固有属性', fields: (attrs?.fields || []).slice(0, 16).map((field, index) => ({
         key: /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(field.key) ? field.key : `world_field_${index}`,
@@ -33,7 +36,7 @@ window.GameModules.progression = {
     ];
   },
 
-  field(key, label, type, min = 0, max = 100) { return { key, label, type, min, max }; },
+  field(key, label, type, min = 0, max = 100, desc = '') { return { key, label, type, min, max, desc }; },
   nextCharacterExp(level) { return Math.round(100 * Math.max(1, Number(level) || 1) ** 1.65); },
   clamp(value, min, max) { return Math.max(min, Math.min(max, Math.round(Number(value) || 0))); },
   pool(current, max) { return { current: this.clamp(current, 0, max), max: Math.max(1, Math.round(max)) }; },

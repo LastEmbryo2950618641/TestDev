@@ -65,7 +65,7 @@ window.GameModules.rpgInitializer = {
 
   applyWorld(values, attrs, ctx, seed) {
     for (const field of attrs?.fields || []) {
-      if (field.key === 'magic_circuit_quality') values[field.key] = ctx.mage >= 3 ? 'A' : ctx.mage >= 1 ? 'C' : 'E';
+      if (field.key === 'magic_circuit_quality') values[field.key] = this.clamp(20 + ctx.mage * 18 + seed % 16, 0, 100);
       else if (field.key === 'magic_circuit_quantity') values[field.key] = this.clamp(18 + ctx.mage * 16 + seed % 18, 0, 100);
       else if (field.key === 'mana_capacity') values[field.key] = this.clamp(20 + ctx.mage * 14 + values.willpower * 2, 0, 100);
       else if (field.key === 'magic_attribute') values[field.key] = this.magicAttributes(ctx.text);
