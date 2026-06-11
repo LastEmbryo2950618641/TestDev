@@ -20,11 +20,12 @@ window.GameModules.ai = {
   async generate(store, action, logId = null) {
     const requestId = ++this.latestRequestId;
     let buffer = '';
+    let applied = false;
     const messages = [{ role: 'user', content: window.GameModules.createSystemPrompt(store, action) }];
     console.log('[AI推演] 请求开始:', { requestId, action, model: store.modelId, promptLength: messages[0].content.length, ragLength: String(store.ragContext || '').length, memoryLength: String(store.memoryContext || '').length });
 
     try {
-      await this.withRetry(() => window.dzmm.completions({
+      await Promise.race([this.withRetry(() => window.dzmm.completions({
         model: store.modelId,
         messages,
         maxTokens: 3000,
@@ -35,12 +36,19 @@ window.GameModules.ai = {
           if (logId && store.updateNovelStream) store.updateNovelStream(logId, buffer);
           return;
         }
+        applied = true;
         console.log('[AI推演] 返回完成:', { requestId, length: buffer.length, preview: buffer.slice(0, 180) });
         await store.applyResult(this.parse(buffer, store, action), logId);
-      }));
+      })), new Promise((_, reject) => setTimeout(() => reject(new Error('AI推演超时')), 45000))]);
+      if (!applied && requestId === this.latestRequestId) {
+        console.warn('[AI推演] 已结束但未收到 done，使用当前内容结算:', { requestId, length: buffer.length });
+        applied = true;
+        await store.applyResult(buffer ? this.parse(buffer, store, action) : { ...window.GameModules.createFallbackResult(store, action), source: 'fallback' }, logId);
+      }
     } catch (err) {
       console.error('AI 推演失败:', err.code, err.message, err.stack);
       if (requestId === this.latestRequestId) {
+        this.latestRequestId += 1;
         await store.applyResult({ ...window.GameModules.createFallbackResult(store, action), source: 'fallback' }, logId);
       }
     }

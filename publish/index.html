@@ -280,7 +280,7 @@
           <button :class="{ active: $store.game.controlMode === 'rpg' }" @click="$store.game.controlMode = 'rpg'" :disabled="$store.game.busy">RPG方式</button>
         </div>
         <small x-text="$store.game.controlMode === 'possess' ? '第二人称上线：玩家的“我”直接附到角色肉体上行动；对角色本人来说身体会突然失控，不知道是谁在控制，只能旁观外界和身体行动，但五感仍在。' : '第三人称通过手机式界面发出操作。'"></small>
-        <button class="primary-btn" @click="$store.game.confirmControl()" :disabled="$store.game.busy || !$store.game.entryTimeOptions.start" x-text="$store.game.busy ? '连接中…约6秒内进入' : '控制'"></button>
+        <button class="primary-btn" @click="$store.game.confirmControl()" :disabled="$store.game.busy || !$store.game.entryTimeOptions.start" x-text="$store.game.busy ? 'AI续写中…约45秒内' : '控制'"></button>
     </div>
   </section>
 
