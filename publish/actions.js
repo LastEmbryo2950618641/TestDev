@@ -26,6 +26,11 @@ window.GameModules.actions = {
     return Object.entries(group.values).map(([key, value]) => ({ key, value }));
   },
 
+  metricCollapsedText() {
+    window.GameModules.metrics.ensure(this);
+    return '当前情绪 ' + window.GameModules.metrics.emotionKeys.map((key) => `${key}${this.emotions[key]}`).join(' ');
+  },
+
   metricNote(type, key) {
     const base = window.GameModules.metrics.descriptions[key] || '';
     const note = this.metricNotes?.[`${type}:${key}`] || '等待 AI 根据剧情更新解释。';
