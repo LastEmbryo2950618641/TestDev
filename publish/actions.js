@@ -109,6 +109,10 @@ window.GameModules.actions = {
     return `${summary} / ${this.feedbackPlan()}`;
   },
 
+  loreNames(list, key) {
+    return (Array.isArray(list) ? list : []).map((item) => item?.[key] || '').filter(Boolean).join('、') || '无';
+  },
+
   async searchLore() {
     const query = this.ragQuery.trim();
     if (!query || this.ragBusy) return;

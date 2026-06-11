@@ -62,6 +62,10 @@ Object.assign(window.GameModules.actions, {
     this.log = [...this.log];
   },
 
+  novelLogEntries() {
+    return (this.log || []).filter((entry) => entry.kind === 'novel');
+  },
+
   legacyLogText(entry) {
     return `${entry.speaker || '记录'}：${entry.text || ''}`;
   },

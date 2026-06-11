@@ -116,7 +116,7 @@ document.addEventListener('alpine:init', () => {
 
     async init() {
       if (this.initPromise) return this.initPromise;
-      this.initPromise = (async () => {
+      document.getElementById('boot-fallback')?.remove(); this.initPromise = (async () => {
         try {
           window.GameModules.metrics.ensure(this);
           await this.initGame();

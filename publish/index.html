@@ -61,6 +61,9 @@
   <script src="game.js"></script>
 </head>
 <body x-data="{}">
+  <div id="boot-fallback" class="loading-screen">
+    <div class="loading-card"><div class="spinner"></div><p>正在启动游戏…</p><small>如果长时间停留，请打开 Console 查看错误。</small></div>
+  </div>
   <div x-show="$store.game.loading" class="loading-screen">
     <div class="loading-card">
       <div class="spinner"></div>
@@ -128,9 +131,9 @@
             <strong x-text="lore.worldTag"></strong>
             <p x-text="lore.background"></p>
             <div class="lore-chip-row"><template x-for="faction in lore.factions" :key="faction.name"><span x-text="faction.name"></span></template></div>
-            <small x-text="`特殊职业：${lore.specialJobs.map(x => x.name).join('、') || '无'}`"></small>
+            <small x-text="`特殊职业：${$store.game.loreNames(lore.specialJobs, 'name')}`"></small>
             <small x-text="`职业等级：${lore.jobRanks.join(' / ') || '无'}`"></small>
-            <small x-text="`固化属性：${lore.specialFields.map(x => x.label).join('、') || '无'}`"></small>
+            <small x-text="`固化属性：${$store.game.loreNames(lore.specialFields, 'label')}`"></small>
           </article>
         </template>
         <p class="empty-lore" x-show="!$store.game.savedWorldLores.length">暂无已保存世界观。开始游戏或进入新作品后会自动生成。</p>
@@ -419,7 +422,7 @@
           <b x-text="`第 ${$store.game.turn} 回合`"></b>
         </div>
         <div class="story-log scroll-area dev-section" data-section-title="小说记录列表" x-ref="storyLog">
-          <template x-for="entry in $store.game.log.filter((item) => item.kind === 'novel')" :key="entry.id">
+          <template x-for="entry in $store.game.novelLogEntries()" :key="entry.id">
             <article class="novel-entry" :class="entry.type">
               <div>
                 <div class="novel-story" :class="{ streaming: entry.streaming }">
