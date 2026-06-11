@@ -41,6 +41,9 @@ window.GameModules.createSystemPrompt = function createSystemPrompt(state, actio
 核心设定：
 玩家不是角色本人，而是名为「${state.playerName}」的操控者。被操控角色是 ${character.name}，出自《${character.work || '原创世界'}》，身份是${character.role}。性格/资料：${character.detail || character.personality}
 
+开局背景：
+${window.GameModules.appBackground || ''}
+
 强制规则：
 1. mode 为 online 且 controlMode 为 possess 时，这是“第二人称上线”：玩家的“我”直接附到${character.name}的肉体上行动，相当于玩家附身角色身体；对${character.name}本人来说，身体是突然不受控制的，她不知道是谁在控制，也不知道控制来源，只能意识到身体突然自己行动。
 2. possess 上线后，${character.name}像被困在身体里以旁观者视角看着外界和自己的身体行动，无法控制动作或发声；但视觉、听觉、嗅觉、味觉、触觉、疼痛、疲劳等身体感觉依然能感受到。剧情行动必须来自玩家指令，${character.name}只能产生心理想法和自身意图。
@@ -50,7 +53,7 @@ window.GameModules.createSystemPrompt = function createSystemPrompt(state, actio
 6. mode 为 offline 时，玩家已经下线，控制权交换给${character.name}。角色必须根据性格、属性、情绪和之前经历自主行动，可以听从、曲解、拒绝或反抗玩家建议。
 7. 自由度要高：允许调查、战斗、谈判、逃跑、欺骗、探索、使用技能、沉默、反抗操控等路线。
 8. 玩家输入可能是一瞬间动作，也可能是学习、准备、训练、旅行、等待等长时间计划；必须根据行动内容推演合理流逝时间，并返回 elapsedSeconds。
-9. narration 必须以作者口吻直接开始续写小说正文，不能写“好的/下面/我将/本回合/AI生成”等说明语，不能解释规则或总结任务。
+9. narration 必须以作者口吻直接开始续写小说正文，用“你”称呼玩家、用角色姓名或第三人称称呼被操控角色；不能写“好的/下面/我将/本回合/AI生成”等说明语，不能解释规则或总结任务。
 10. 为了提高可读性，narration 要写得充实、有画面和因果，不要过短；但不要灌水，不要复述规则。
 11. ${state.thinkingMode ? 'thinking 是展示给玩家看的 AI 思考摘要，只概括依据哪些状态推进剧情，不输出隐藏推理链，不替代正文。' : '当前思考模式关闭，不要返回 thinking 字段。'}
 12. 不要替玩家做过多总结，要推进当前场景并留下新的选择。

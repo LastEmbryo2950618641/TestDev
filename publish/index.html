@@ -11,6 +11,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js"></script>
   <script src="config.js"></script>
+  <script src="app-background.js"></script>
   <script src="prompt.js"></script>
   <script src="metrics.js"></script>
   <script src="sqlite-save.js"></script>
@@ -418,22 +419,17 @@
           <b x-text="`第 ${$store.game.turn} 回合`"></b>
         </div>
         <div class="story-log scroll-area dev-section" data-section-title="小说记录列表" x-ref="storyLog">
-          <template x-for="entry in $store.game.log" :key="entry.id">
-            <article class="novel-entry" :class="entry.kind === 'novel' ? entry.type : 'system'">
-              <template x-if="entry.kind === 'novel'">
-                <div>
-                  <div class="novel-story" :class="{ streaming: entry.streaming }">
-                    <span>AI生成</span>
-                    <button class="thinking-toggle" x-show="entry.thinking && !entry.streaming" @click="$store.game.toggleNovelThinking(entry.id)" x-text="entry.thinkingOpen ? '收起AI思考' : '展开AI思考'"></button>
-                    <div class="novel-thinking" x-show="entry.thinking && (entry.streaming || entry.thinkingOpen)"><em>AI思考</em><p x-text="entry.thinking"></p></div>
-                    <p x-text="entry.storyText"></p>
-                  </div>
-                  <div class="novel-player"><span>玩家回复</span><p x-text="entry.playerText"></p></div>
+          <template x-for="entry in $store.game.log.filter((item) => item.kind === 'novel')" :key="entry.id">
+            <article class="novel-entry" :class="entry.type">
+              <div>
+                <div class="novel-story" :class="{ streaming: entry.streaming }">
+                  <span>AI生成</span>
+                  <button class="thinking-toggle" x-show="entry.thinking && !entry.streaming" @click="$store.game.toggleNovelThinking(entry.id)" x-text="entry.thinkingOpen ? '收起AI思考' : '展开AI思考'"></button>
+                  <div class="novel-thinking" x-show="entry.thinking && (entry.streaming || entry.thinkingOpen)"><em>AI思考</em><p x-text="entry.thinking"></p></div>
+                  <p x-text="entry.storyText"></p>
                 </div>
-              </template>
-              <template x-if="entry.kind !== 'novel'">
-                <div class="legacy-log"><span x-text="entry.speaker"></span><p x-text="entry.text"></p></div>
-              </template>
+                <div class="novel-player"><span>玩家回复</span><p x-text="entry.playerText"></p></div>
+              </div>
             </article>
           </template>
           <div x-show="$store.game.busy" class="thinking-line">AI 正在以作者视角续写，约 20 秒...</div>

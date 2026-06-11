@@ -21,9 +21,8 @@ window.GameModules.resultActions = {
     await this.applyControlExperience(result);
     await window.GameModules.characterMemory.recordTurn(this, result);
     if (!this.finalizeNovelEntry(logId, result)) {
-      this.addLog('story', '作者叙事', result.narration);
-      if (result.speech) this.addLog('speech', this.character.name, result.speech);
-      this.addLog('mind', `${this.character.name}的心理`, result.mind);
+      const id = this.addNovelEntry(this.lastAction || '继续推进');
+      this.finalizeNovelEntry(id, result);
     }
   },
 

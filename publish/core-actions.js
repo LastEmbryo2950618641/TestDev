@@ -65,10 +65,6 @@ window.GameModules.coreActions = {
   async setOnline(value) {
     if (this.online === value || this.busy) return;
     this.online = value;
-    const text = value && this.controlMode === 'possess'
-      ? '第二人称上线：身体突然不受角色控制；角色不知道控制来源，只能旁观身体行动但五感仍在。'
-      : (value ? '操控者上线，角色身体行动权被接管。' : '操控者下线，角色重新获得身体控制权。');
-    this.addLog('system', '控制权', text);
     if (value && this.controlMode === 'possess') {
       this.metricsReady = false;
       const feedback = await window.GameModules.characterFeedback.initial(this);
@@ -79,7 +75,6 @@ window.GameModules.coreActions = {
       this.choices = feedback.choices || this.choices;
       this.applyInitialMetrics(feedback.metricUpdates);
       await window.GameModules.characterFeedback.applyExperience(this, feedback);
-      this.addLog('mind', `${this.character.name}的心理`, this.mindText);
     }
     this.save();
   },
