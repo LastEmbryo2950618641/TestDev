@@ -53,6 +53,7 @@ window.GameModules.loadingActions = {
       await window.GameModules.storage.open(this.selectedSlot);
       const save = await window.GameModules.storage.get();
       window.GameModules.storage.restore(this, save);
+      await this.loadWritingStyles();
     });
     await this.runStage('rpg', '正在恢复已保存的角色状态缓存。', async () => {
       this.ensureCatalogSelection();

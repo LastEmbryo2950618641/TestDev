@@ -25,6 +25,7 @@ window.GameModules.saveActions = {
     await window.GameModules.storage.open(slot);
     const save = await window.GameModules.storage.get();
     if (save) window.GameModules.storage.restore(this, save);
+    await this.loadWritingStyles();
     this.ensureCatalogSelection();
     this.loadSavedRpgStates();
     this.prepareRpgForSelectedCharacter();
@@ -64,6 +65,7 @@ window.GameModules.saveActions = {
     await window.GameModules.storage.remove(slot);
     this.selectedSlot = slot;
     await window.GameModules.storage.open(slot);
+    await this.loadWritingStyles();
     this.started = false;
     this.turn = 1;
     this.log = [];

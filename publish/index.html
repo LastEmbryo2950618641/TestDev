@@ -58,6 +58,7 @@
   <script src="loading-actions.js"></script>
   <script src="save-actions.js"></script>
   <script src="result-actions.js"></script>
+  <script src="style-actions.js"></script>
   <script src="entry-actions.js"></script>
   <script src="control-actions.js"></script>
   <script src="core-actions.js"></script>
@@ -126,7 +127,26 @@
       </header>
       <div class="function-actions">
         <button :class="{ active: $store.game.libraryTab === 'worlds' }" @click="$store.game.libraryTab = 'worlds'">图书馆</button>
+        <button :class="{ active: $store.game.libraryTab === 'styles' }" @click="$store.game.libraryTab = 'styles'">小说文风</button>
       </div>
+      <section class="style-panel" x-show="$store.game.libraryTab === 'styles'">
+        <h3>小说文风</h3>
+        <p>可多选，所选文风会写入当前存档数据库，并注入后续 AI 正文提示词。</p>
+        <div class="style-list">
+          <template x-for="style in $store.game.allWritingStyles()" :key="style.id">
+            <label class="style-item">
+              <input type="checkbox" :checked="$store.game.isStyleActive(style.id)" @change="$store.game.toggleWritingStyle(style.id, $event.target.checked)">
+              <span><b x-text="style.name"></b><small x-text="style.prompt"></small></span>
+              <button x-show="style.id.startsWith('custom-')" class="tiny-danger" type="button" @click.prevent="$store.game.removeCustomWritingStyle(style.id)">删除</button>
+            </label>
+          </template>
+        </div>
+        <div class="custom-style-form">
+          <input x-model="$store.game.customStyleName" placeholder="自定义文风名">
+          <textarea x-model="$store.game.customStylePrompt" placeholder="自定义文风提示词，例如：正文偏冷峻克制，少用比喻，多用动作细节推动心理变化。"></textarea>
+          <button class="small-btn" @click="$store.game.addCustomWritingStyle()" :disabled="!$store.game.customStyleName.trim() || !$store.game.customStylePrompt.trim()">新增文风</button>
+        </div>
+      </section>
       <section class="library-panel" x-show="$store.game.libraryTab === 'worlds'">
         <h3>已知世界观设定</h3>
         <template x-for="lore in $store.game.savedWorldLores" :key="lore.worldTag">
@@ -430,9 +450,9 @@
               <div>
                 <div class="novel-player dev-section" data-section-title="玩家回复内容" x-show="entry.playerVisible !== false"><p x-text="entry.playerText"></p></div>
                 <div class="novel-story dev-section" data-section-title="AI生成内容" :class="{ streaming: entry.streaming }">
-                  <div class="novel-head" x-show="entry.thinking"><button class="thinking-toggle" @click="$store.game.toggleNovelThinking(entry.id)" x-text="entry.thinkingOpen || entry.streaming ? '▾' : '▸'"></button></div>
                   <div class="novel-thinking dev-section" data-section-title="AI思考内容" x-show="entry.thinking && (entry.streaming || entry.thinkingOpen)"><p><b>【AI思考】</b><span x-text="entry.thinking"></span></p></div>
-                  <p x-text="entry.storyText"></p>
+                  <button class="thinking-toggle" x-show="entry.thinking && !entry.streaming" @click="$store.game.toggleNovelThinking(entry.id)" x-text="entry.thinkingOpen ? '▾' : '▸'"></button>
+                  <p class="novel-body-text" x-text="entry.storyText"></p>
                 </div>
               </div>
             </article>

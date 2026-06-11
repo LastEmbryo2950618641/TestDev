@@ -763,7 +763,7 @@ select.text-input option,
   position: relative;
   justify-self: start;
   width: min(82%, 640px);
-  padding: 0;
+  padding: 7px 9px;
   background: rgba(141, 150, 255, .09);
   user-select: text;
   -webkit-user-select: text;
@@ -781,16 +781,6 @@ select.text-input option,
   text-align: center;
 }
 
-.novel-head {
-  position: absolute;
-  top: 4px;
-  right: 6px;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-}
-
-.novel-head > span,
 .legacy-log > span {
   color: #74f6ff;
   font-size: var(--ui-small-font);
@@ -813,21 +803,25 @@ select.text-input option,
 }
 
 .thinking-toggle {
-  min-width: 20px;
-  min-height: 20px;
-  padding: 0 5px;
-  border: 1px solid rgba(255, 207, 90, .2);
-  background: rgba(255, 207, 90, .06);
+  display: block;
+  width: max-content;
+  min-width: 0;
+  min-height: 0;
+  margin: 0 0 3px;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: #ffdf8a;
-  font-size: var(--ui-small-font);
+  font-size: 16px;
+  line-height: 1;
 }
 
 .novel-thinking {
   width: 100%;
-  margin: 0;
-  padding: 0;
-  border-radius: 0;
-  background: rgba(255, 207, 90, .07);
+  margin: 0 0 5px;
+  padding: 7px 9px;
+  border-radius: 9px;
+  background: rgba(255, 207, 90, .11);
   color: #ffe9ad;
   white-space: normal;
 }
@@ -917,6 +911,70 @@ select.text-input option,
 }
 
 .lore-error {
+  color: #ff9aa8;
+}
+
+.style-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.style-panel p {
+  margin: 0;
+  color: #aeb9d6;
+  font-size: 12px;
+}
+
+.style-list {
+  display: grid;
+  gap: 7px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.style-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: start;
+  padding: 9px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .06);
+}
+
+.style-item span {
+  display: grid;
+  gap: 3px;
+}
+
+.style-item small {
+  color: #b9c3dd;
+  line-height: 1.45;
+}
+
+.custom-style-form {
+  display: grid;
+  gap: 7px;
+}
+
+.custom-style-form input,
+.custom-style-form textarea {
+  width: 100%;
+  border: 1px solid rgba(166, 188, 255, .24);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .08);
+  color: #fff;
+  padding: 8px;
+}
+
+.custom-style-form textarea {
+  min-height: 74px;
+  resize: vertical;
+}
+
+.tiny-danger {
+  padding: 3px 6px;
+  background: rgba(255, 87, 117, .14);
   color: #ff9aa8;
 }
 

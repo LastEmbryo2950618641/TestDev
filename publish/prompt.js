@@ -15,6 +15,7 @@ window.GameModules.createSystemPrompt = function createSystemPrompt(state, actio
     emotions: [{ key: '只返回本回合需要变化或解释的情绪名', delta: 0, status: '变化后的状态含义', reason: '导致变化的具体原因' }],
     playerFeelings: [{ key: '只返回本回合需要变化或解释的感觉名', delta: 0, status: '变化后的状态含义', reason: '导致变化的具体原因' }],
   };
+  const writingStyle = state.writingStylePrompt?.() || '正文采用小说文风，重视画面、动作和心理反应，避免复述玩家指令。';
   const outputJson = JSON.stringify({
     sceneTitle: '当前场景标题',
     elapsedSeconds: 60,
@@ -54,10 +55,12 @@ ${window.GameModules.appBackground || ''}
 7. 自由度要高：允许调查、战斗、谈判、逃跑、欺骗、探索、使用技能、沉默、反抗操控等路线。
 8. 玩家输入可能是一瞬间动作，也可能是学习、准备、训练、旅行、等待等长时间计划；必须根据行动内容推演合理流逝时间，并返回 elapsedSeconds。
 9. narration 必须以作者口吻直接开始续写小说正文，用“你”称呼玩家、用角色姓名或第三人称称呼被操控角色；不能写“好的/下面/我将/本回合/AI生成”等说明语，不能解释规则或总结任务。
-10. 为了提高可读性，narration 要写得充实、有画面和因果，不要过短；但不要灌水，不要复述规则。
-11. ${state.thinkingMode ? 'thinking 是展示给玩家看的 AI 思考摘要，只概括依据哪些状态推进剧情，不输出隐藏推理链，不替代正文。' : '当前思考模式关闭，不要返回 thinking 字段。'}
-12. 不要替玩家做过多总结，要推进当前场景并留下新的选择。
-13. 角色可能逐渐意识到操控者存在，但不要过快揭露全部真相。
+10. 为了提高可读性，narration 要写得充实、有画面和因果，不要过短；但不要灌水，不要复述规则，也不要把玩家输入整句包进正文。
+11. 小说文风要求：
+${writingStyle}
+12. ${state.thinkingMode ? 'thinking 是展示给玩家看的 AI 思考摘要，只概括依据哪些状态推进剧情，不输出隐藏推理链，不替代正文。' : '当前思考模式关闭，不要返回 thinking 字段。'}
+13. 不要替玩家做过多总结，要推进当前场景并留下新的选择。
+14. 角色可能逐渐意识到操控者存在，但不要过快揭露全部真相。
 
 当前状态：
 mode=${state.online ? 'online' : 'offline'}
@@ -115,6 +118,7 @@ window.GameModules.createFallbackResult = function createFallbackResult(state, a
   const name = state.character.name;
   const actor = /男性|男人|少年|青年|父亲|哥哥|弟弟|叔叔|丈夫|王子|皇帝/.test(`${name} ${state.character.role} ${state.character.detail}`) ? '他' : '她';
   const text = action || (online ? '谨慎观察' : '让角色自由行动');
+  const place = state.entryCurrentAction || state.sceneTitle || '昏暗的现场';
   const resistance = Math.max(0, Math.min(100, state.resistance + (online ? 3 : -2)));
   const trust = Math.max(0, Math.min(100, state.trust + (online ? 0 : 2)));
   const emotionDeltas = online
@@ -132,8 +136,8 @@ window.GameModules.createFallbackResult = function createFallbackResult(state, a
     elapsedSeconds: /学习|训练|准备|研究|等待|旅行|赶路|休息|睡|一天|小时/.test(text) ? 3600 : 60,
     thinking: state.thinkingMode ? `依据玩家输入「${text}」、当前上线状态与${name}的心理压力，优先推进可见行动结果，同时保留角色对操控的反应。` : '',
     narration: online
-      ? `操控指令覆盖了${name}的身体。她按照「${text}」行动，眼前的走廊浮现出新的分岔。`
-      : `${name}重新掌握身体。她回想你的建议「${text}」，选择用自己的方式向前试探。`,
+      ? `意识沉下去的瞬间，空气像冰水一样灌进肺里。你在${name}的身体里睁开眼，皮肤、骨节与呼吸都变得陌生而真实；${place}的阴影贴在四周，细小的声响沿着神经爬过来。身体先于迟疑做出反应，向能避开危险的方向挪动半步，而真正的${name}被困在更深处，只能感到这具身体正一点点脱离自己的意志。`
+      : `${name}重新掌握身体时，指尖还残留着不属于自己的僵硬。她没有立刻照做你的建议，而是先压住呼吸，确认四周的动静，再用自己的判断向前试探。`,
     speech: online ? '我的身体又不听使唤了……' : '这次，让我自己来判断。',
     mind: online ? '怎、怎么回事……我的身体为什么不听我使唤了？' : '身体终于又能动了，但那个人的痕迹还压在心里。',
     mood: online ? '动摇' : '好奇',

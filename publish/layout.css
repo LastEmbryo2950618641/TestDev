@@ -213,8 +213,7 @@
   }
 
   .novel-player,
-  .novel-story,
-  .novel-thinking {
+  .novel-story {
     width: min(92%, 520px);
   }
 

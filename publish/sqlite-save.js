@@ -110,6 +110,21 @@ window.GameModules.sqliteSave = {
     return this.getJson('SELECT value FROM game_state WHERE key=?', ['main']);
   },
 
+  getMetaJson(key) {
+    if (!this.db) return null;
+    const stmt = this.db.prepare('SELECT value FROM metadata WHERE key=?');
+    stmt.bind([key]);
+    const row = stmt.step() ? stmt.getAsObject() : null;
+    stmt.free();
+    try { return row ? JSON.parse(row.value) : null; } catch (_) { return null; }
+  },
+
+  async saveMetaJson(key, value) {
+    if (!this.db) return;
+    this.db.run('INSERT OR REPLACE INTO metadata(key,value) VALUES (?,?)', [key, JSON.stringify(value)]);
+    await this.persist();
+  },
+
   getWorldLore(worldTag) {
     return this.db ? this.getJson('SELECT lore_json FROM world_lore WHERE world_tag=?', [worldTag]) : null;
   },

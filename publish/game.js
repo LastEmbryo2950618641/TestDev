@@ -29,6 +29,7 @@ document.addEventListener('alpine:init', () => {
     savePanelOpen: false,
     functionPanelOpen: false,
     libraryTab: 'worlds',
+    activeStyleIds: ['literary'], customWritingStyles: [], customStyleName: '', customStylePrompt: '',
     saveMessage: '',
     saveMetas: {},
     modelId: cfg.defaultModelId,
@@ -87,15 +88,9 @@ document.addEventListener('alpine:init', () => {
     profileOpen: false, metricsOpen: false, feedbackOpen: false,
     sectionHintsEnabled: cfg.sectionHintsEnabled,
 
-    get character() {
-      return window.GameModules.catalog.find(this.selectedCharacterId)
-        || this.characters.find((c) => c.id === this.selectedCharacterId)
-        || this.characters[0];
-    },
+    get character() { return window.GameModules.catalog.find(this.selectedCharacterId) || this.characters.find((c) => c.id === this.selectedCharacterId) || this.characters[0]; },
 
-    get workCharacters() {
-      return window.GameModules.catalog.characters(this.selectedWork);
-    },
+    get workCharacters() { return window.GameModules.catalog.characters(this.selectedWork); },
 
     get characterRpgState() {
       return this.rpgStates[this.character.id] || null;
@@ -192,6 +187,7 @@ document.addEventListener('alpine:init', () => {
     ...window.GameModules.resultActions,
     ...window.GameModules.loadingActions,
     ...window.GameModules.saveActions,
+    ...window.GameModules.styleActions,
     ...window.GameModules.entryActions,
     ...window.GameModules.coreActions,
   });
