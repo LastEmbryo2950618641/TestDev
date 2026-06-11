@@ -95,20 +95,27 @@ window.GameModules.ai = {
 
   completeEmotionGroup(items, store) {
     const map = new Map(items.map((item) => [item.key, item]));
-    return window.GameModules.metrics.emotionKeys.map((key) => map.get(key) || {
-      key,
-      value: window.GameModules.metrics.clamp(store.emotions?.[key] ?? window.GameModules.metrics.defaults.emotions[key]),
-      reason: 'AI 未返回该项，本回合沿用当前情绪基线。',
+    return window.GameModules.metrics.emotionKeys.map((key) => {
+      if (map.get(key)) return map.get(key);
+      const value = window.GameModules.metrics.clamp(store.emotions?.[key] ?? window.GameModules.metrics.defaults.emotions[key]);
+      const stage = window.GameModules.metrics.stageFor(key, value);
+      return { key, value, stage, description: window.GameModules.metrics.stageDescription(key, stage), reason: 'AI 未返回该项，本回合沿用当前情绪基线。' };
     });
   },
 
   normalizeMetricGroup(value, fallback, keys) {
     const list = Array.isArray(value) ? value : (Array.isArray(fallback) ? fallback : []);
-    return list.filter((item) => keys.includes(item?.key)).slice(0, 8).map((item) => ({
-      key: item.key,
-      value: window.GameModules.metrics.clamp(item.value),
-      reason: String(item.reason || '').slice(0, 80),
-    }));
+    return list.filter((item) => keys.includes(item?.key)).slice(0, 16).map((item) => {
+      const value = window.GameModules.metrics.clamp(item.value);
+      const stage = String(item.stage || window.GameModules.metrics.stageFor(item.key, value)).slice(0, 12);
+      return {
+        key: item.key,
+        value,
+        stage,
+        description: String(item.description || window.GameModules.metrics.stageDescription(item.key, stage)).slice(0, 80),
+        reason: String(item.reason || '').slice(0, 80),
+      };
+    });
   },
 
   normalizeChoices(value, fallback) {

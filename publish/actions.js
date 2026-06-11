@@ -58,10 +58,13 @@ window.GameModules.actions = {
   },
 
   metricNote(type, key) {
-    const base = window.GameModules.metrics.descriptions[key] || '';
-    const note = this.metricNotes?.[`${type}:${key}`] || '等待 AI 根据剧情更新解释。';
-    const stage = key === '爱情' ? `阶段：${window.GameModules.metrics.stage(this.playerFeelings.爱情)}。` : '';
-    return `${stage}${base} 当前解释：${note}`;
+    const value = type === 'emotion' ? this.emotions[key] : this.playerFeelings[key];
+    const raw = this.metricNotes?.[`${type}:${key}`];
+    if (raw && typeof raw === 'object') return `阶段：${raw.stage}。说明：${raw.description} 当前解释：${raw.reason}`;
+    const stage = window.GameModules.metrics.stageFor(key, value);
+    const description = window.GameModules.metrics.stageDescription(key, stage);
+    const reason = raw || '等待 AI 根据剧情更新解释。';
+    return `阶段：${stage}。说明：${description} 当前解释：${reason}`;
   },
 
   toggleMetric(type, key) {

@@ -52,10 +52,11 @@ ${state.memoryContext || '暂无人物记忆。'}
 1. emotions 只能使用这些固定情绪维度：${window.GameModules.metrics.emotionKeys.join('、')}。
 2. playerFeelings 只能使用这些固定对玩家感觉维度：${window.GameModules.metrics.playerKeys.join('、')}。
 3. 每个 value 必须是 0-100 整数；0=完全没有，1-20=轻微萌芽，21-40=明显存在，41-60=强烈影响判断，61-80=主导当前反应，81-100=压倒性支配心理。
-4. 含义定义：${Object.entries(metricDefs).map(([k, v]) => `${k}=${v}`).join('；')}
-5. 爱情分8阶段，每约12.5分晋级：心动（初见好感、心生涟漪）、爱恋（倾心喜欢、萌生爱意）、倾心（满心偏向、满眼皆是）、眷恋（不舍分离、时时牵挂）、深爱（掏心交付、甘愿付出）、执念（深陷其中、难以割舍）、依存（彼此依靠、密不可分）、相守（至死不渝、长久相伴）。
-6. emotions 必须每回合完整返回全部 ${window.GameModules.metrics.emotionKeys.length} 个当前情绪维度，并根据当前场景、角色性格、身体状态、危险程度、玩家输入和上下文重新推演所有 value；不要只返回变化项。reason 写清当前数值依据。
-7. playerFeelings 可以只返回本回合需要更新的维度；reason 写清变化原因，玩家点击词语时会看到。
+4. 每个数值项必须返回 stage、description、reason 三个说明字段：stage 是当前阶段名；description 是该阶段的状态说明；reason 是本回合为什么是这个数值。
+5. 含义定义：${Object.entries(metricDefs).map(([k, v]) => `${k}=${v}`).join('；')}
+6. 爱情分8阶段，每约12.5分晋级：心动（初见好感、心生涟漪）、爱恋（倾心喜欢、萌生爱意）、倾心（满心偏向、满眼皆是）、眷恋（不舍分离、时时牵挂）、深爱（掏心交付、甘愿付出）、执念（深陷其中、难以割舍）、依存（彼此依靠、密不可分）、相守（至死不渝、长久相伴）。例如爱情 value 落在“心动”时，description 写“对玩家产生恋爱意义的心动”。
+7. emotions 必须每回合完整返回全部 ${window.GameModules.metrics.emotionKeys.length} 个当前情绪维度，并根据当前场景、角色性格、身体状态、危险程度、玩家输入和上下文重新推演所有 value；不要只返回变化项。
+8. playerFeelings 可以只返回本回合需要更新的维度；玩家点击词语时会看到 stage、description、reason。
 
 资料使用规则：
 1. 资料相关时优先贴合资料推进主线。
@@ -77,7 +78,7 @@ ${state.memoryContext || '暂无人物记忆。'}
   "controlFeeling":"被上线感觉；可参考 ${feelingExamples}，也可以自定义一个词、短句或简短感受描述；结合上线次数、适应度、记忆和角色设定判断",
   "controlAdaptation":0到100整数,
   "controlExperienceSummary":"40字内，概括这次被上线后的感受变化",
-  "metricUpdates":{"emotions":[{"key":"冷静","value":0到100整数,"reason":"40字内解释"},{"key":"恐惧","value":0到100整数,"reason":"40字内解释"},{"key":"担忧","value":0到100整数,"reason":"40字内解释"},{"key":"高兴","value":0到100整数,"reason":"40字内解释"},{"key":"紧张","value":0到100整数,"reason":"40字内解释"},{"key":"愤怒","value":0到100整数,"reason":"40字内解释"},{"key":"羞耻","value":0到100整数,"reason":"40字内解释"},{"key":"悲伤","value":0到100整数,"reason":"40字内解释"},{"key":"好奇","value":0到100整数,"reason":"40字内解释"},{"key":"麻木","value":0到100整数,"reason":"40字内解释"},{"key":"嫉妒","value":0到100整数,"reason":"40字内解释"},{"key":"绝望","value":0到100整数,"reason":"40字内解释"}],"playerFeelings":[{"key":"固定感觉名","value":0到100整数,"reason":"40字内解释"}]},
+  "metricUpdates":{"emotions":[{"key":"冷静","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"},{"key":"恐惧","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"},{"key":"担忧","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"},{"key":"高兴","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"},{"key":"紧张","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"},{"key":"愤怒","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"},{"key":"羞耻","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"},{"key":"悲伤","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"},{"key":"好奇","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"},{"key":"麻木","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"},{"key":"嫉妒","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"},{"key":"绝望","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"}],"playerFeelings":[{"key":"固定感觉名","value":0到100整数,"stage":"阶段名","description":"阶段说明","reason":"40字内依据"}]},
   "choices":["必须给4个AI推荐行动选项，正好4个，每个12字内；根据当前场景、角色状态、玩家输入和危险生成；不要包含放开控制，不要固定套用默认选项"],
   "appearedCharacters":[{"name":"姓名","role":"身份","detail":"基础资料","personality":"性格","work":"所属作品或世界","isMinor":true,"importance":"minor|support|main"}],
   "statChanges":{"health":-8到8,"stamina":-8到8,"mental_stability":-8到8},
