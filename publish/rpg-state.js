@@ -70,13 +70,15 @@ window.GameModules.rpgState = {
       const schema = await this.ensureSchema(existing.worldTag || character.work || '原创世界');
       const upgraded = this.upgradeCharacterState(existing, schema);
       const updated = this.updateExistingCharacter(existing, character, store);
-      if (upgraded || updated) await save.saveCharacterState(existing);
+      const professionChanged = await window.GameModules.rpgProfessionState.ensureInfo(existing, character, schema);
+      if (upgraded || updated || professionChanged) await save.saveCharacterState(existing);
       return existing;
     }
     const worldTag = save.getCharacterWorld(id) || character.work || '原创世界';
     console.log('[RPG状态] 创建角色状态:', id, character.name, worldTag);
     const schema = await this.ensureSchema(worldTag);
     const created = this.createCharacterState(character, schema, store);
+    await window.GameModules.rpgProfessionState.ensureInfo(created, character, schema);
     await save.saveCharacterState(created);
     return created;
   },
@@ -103,10 +105,12 @@ window.GameModules.rpgState = {
         changed = true;
       }
     }));
+    const jobChanged = window.GameModules.rpgProfessionState.normalizeProfessions(state);
     const controlChanged = this.ensureControlExperience(state);
     const mechanicsChanged = window.GameModules.progression.ensureStateMechanics(state);
-    return controlChanged || mechanicsChanged || changed;
+    return jobChanged || controlChanged || mechanicsChanged || changed;
   },
+
 
   ensureControlExperience(state) {
     let changed = false;

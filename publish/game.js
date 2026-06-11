@@ -22,7 +22,7 @@ document.addEventListener('alpine:init', () => {
     loadingDetail: '首次进入或存档较大时会更慢，这是正常现象。',
     loadingStages: [], entryStages: [],
     busy: false, started: false, entrySetupOpen: false,
-    initStarted: false, initPromise: null,
+    initPromise: null,
     playerName: '',
     selectedSlot: 'slot-1',
     saveSlots: window.GameModules.storage.slots,
@@ -61,6 +61,7 @@ document.addEventListener('alpine:init', () => {
     metricSummaryLimit: 3,
     metricSummaryObserver: null,
     expandedMetricKey: '',
+    expandedRpgFieldKey: '',
     quest: '确认操控连接',
     mindText: '',
     characterIntent: '',
@@ -115,7 +116,6 @@ document.addEventListener('alpine:init', () => {
 
     async init() {
       if (this.initPromise) return this.initPromise;
-      this.initStarted = true;
       this.initPromise = (async () => {
         try {
           window.GameModules.metrics.ensure(this);
@@ -188,6 +188,7 @@ document.addEventListener('alpine:init', () => {
 
 
     ...window.GameModules.actions,
+    ...window.GameModules.rpgFieldUi,
     ...window.GameModules.resultActions,
     ...window.GameModules.loadingActions,
     ...window.GameModules.saveActions,

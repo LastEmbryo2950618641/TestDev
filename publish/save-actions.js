@@ -138,6 +138,7 @@ window.GameModules.saveActions = {
     if (!value || typeof value !== 'object') return value;
     if (Object.prototype.hasOwnProperty.call(value, 'current')) return `${value.current}/${value.max}`;
     if (Object.prototype.hasOwnProperty.call(value, 'curve')) return `${value.current || 0}/${value.next || 'max'}｜${value.curve}`;
+    if (value.type === '职业') return `${value.name} lv.${value.level || 1}`;
     if (Object.prototype.hasOwnProperty.call(value, 'onlineCount')) {
       return `上线${value.onlineCount || 0}次｜${value.feeling || '未知'}｜适应${value.adaptation || 0}/100｜${value.summary || ''}`;
     }
@@ -154,10 +155,11 @@ window.GameModules.saveActions = {
       fields: section.fields
         .map((field) => {
           const raw = field.key === 'exp' ? window.GameModules.progression.normalizeCharacterExp(state.values.exp, state.values.level) : state.values[field.key];
-          return { label: field.label, value: this.rpgFieldValue(raw) };
+          return { key: field.key, label: field.label, value: this.rpgFieldValue(raw), raw };
         }),
     })).filter((section) => section.fields.length);
   },
+
 
   memoryItems(kind) {
     const memory = this.currentMemory;

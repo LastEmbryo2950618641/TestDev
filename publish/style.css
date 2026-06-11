@@ -635,12 +635,26 @@ select.text-input option,
 }
 
 .dynamic-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 8px;
   padding: 4px 0;
   border-bottom: 1px solid rgba(255, 255, 255, .08);
   font-size: var(--ui-small-font);
+}
+
+.dynamic-row.clickable {
+  cursor: pointer;
+}
+
+.rpg-field-detail {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+  padding: 6px;
+  border-radius: 8px;
+  color: #e8edff;
+  background: rgba(116, 246, 255, .08);
+  white-space: pre-line;
 }
 
 .dynamic-row:last-child {
@@ -649,6 +663,10 @@ select.text-input option,
 
 .dynamic-row span {
   color: #aeb9d6;
+}
+
+.dynamic-row b {
+  text-align: right;
 }
 
 .stat-row {

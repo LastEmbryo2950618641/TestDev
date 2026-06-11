@@ -111,8 +111,17 @@ window.GameModules.progression = {
   },
 
   professions(character, seed) {
-    const name = character.job || character.role || '冒险者';
+    const name = window.GameModules.professionInfo.normalizeJobName(character.job || this.jobFromRole(character.role));
     return [this.learned(name, '职业', 1 + seed % 3, ['intelligence', 'willpower', 'charisma'], character.rank || '长期身份与社会功能')];
+  },
+
+  jobFromRole(role) {
+    const text = String(role || '');
+    if (/魔术/.test(text)) return '魔术师';
+    if (/学生|儿童|少女|少年/.test(text)) return '学生';
+    if (/骑士|战士|剑/.test(text)) return '战士';
+    if (/王|贵族|领主/.test(text)) return '统治者';
+    return '无固定职业';
   },
 
   learned(name, type, level, linkedStats, source) {

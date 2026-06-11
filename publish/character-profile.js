@@ -77,7 +77,7 @@ window.GameModules.characterProfile = {
       detail: String(profile.detail || base.detail).slice(0, 160),
       personality: String(profile.personality || base.personality).slice(0, 100),
       faction: String(profile.faction || '无').slice(0, 18),
-      job: String(profile.job || lore.specialJobs[0]?.name || base.role).slice(0, 18),
+      job: window.GameModules.professionInfo.normalizeJobName(profile.job || this.jobFromRole(base.role, base.detail)),
       rank: String(profile.rank || lore.jobRanks[0] || '普通').slice(0, 12),
       skills: skills.slice(0, 4).map((skill, index) => ({
         name: String(skill.name || `能力${index + 1}`).slice(0, 16),
@@ -91,7 +91,7 @@ window.GameModules.characterProfile = {
     return this.validate({
       ...base,
       faction: lore.factions[0]?.name || '无',
-      job: lore.specialJobs[0]?.name || base.role,
+      job: this.jobFromRole(base.role, base.detail),
       rank: lore.jobRanks[0] || '普通',
       skills: base.skills?.length ? base.skills : [{ name: '观察', desc: '从细节中判断局势。' }],
       worldValues: {},
@@ -101,6 +101,15 @@ window.GameModules.characterProfile = {
   worldValues(values, attrs, seedText) {
     const seed = window.GameModules.rpgState.seed(seedText);
     return Object.fromEntries((attrs.fields || []).map((field, index) => [field.key, values?.[field.key] ?? this.valueFor(field, seed + index)]));
+  },
+
+  jobFromRole(role, detail = '') {
+    const text = `${role || ''}${detail || ''}`;
+    if (/魔术/.test(text)) return '魔术师';
+    if (/学生|儿童|少女|少年|小学生/.test(text)) return '学生';
+    if (/骑士|剑士|战士|军人|杀手|弓兵|枪兵/.test(text)) return '战斗人员';
+    if (/王|贵族|领主|皇帝|公主/.test(text)) return '统治者';
+    return '无固定职业';
   },
 
   valueFor(field, seed) {

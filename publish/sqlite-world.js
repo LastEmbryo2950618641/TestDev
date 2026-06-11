@@ -29,4 +29,17 @@ Object.assign(window.GameModules.sqliteSave, {
     this.db.run('INSERT OR REPLACE INTO character_world(character_id,world_tag,updated_at) VALUES (?,?,?)', [characterId, worldTag, new Date().toISOString()]);
     await this.persist();
   },
+
+  getProfessionInfo(worldTag, name) {
+    return this.db ? this.getJson('SELECT info_json FROM profession_info WHERE world_tag=? AND name=?', [worldTag, name]) : null;
+  },
+
+  async saveProfessionInfo(worldTag, info) {
+    const now = new Date().toISOString();
+    this.db.run(
+      'INSERT OR REPLACE INTO profession_info(world_tag,name,info_json,created_at,updated_at) VALUES (?,?,?,COALESCE((SELECT created_at FROM profession_info WHERE world_tag=? AND name=?),?),?)',
+      [worldTag, info.name, JSON.stringify(info), worldTag, info.name, now, now],
+    );
+    await this.persist();
+  },
 });
