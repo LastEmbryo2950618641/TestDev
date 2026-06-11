@@ -46,6 +46,7 @@ window.GameModules.storage = {
       metricNotes: store.metricNotes,
       quest: store.quest,
       mindText: store.mindText,
+      feedbackSource: store.feedbackSource,
       characterIntent: store.characterIntent,
       choices: store.choices,
       log: store.log.slice(-30).map((entry) => ({ ...entry, thinking: store.normalizeNovelThinking ? store.normalizeNovelThinking(entry.thinking) : entry.thinking })),
@@ -76,6 +77,7 @@ window.GameModules.storage = {
     window.GameModules.metrics.ensure(store);
     store.quest = save.quest || store.quest;
     store.mindText = save.mindText || store.mindText;
+    store.feedbackSource = save.feedbackSource || store.feedbackSource || 'fallback';
     store.characterIntent = save.characterIntent || store.characterIntent;
     store.choices = save.choices || store.choices;
     store.log = save.log || store.log;

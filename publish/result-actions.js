@@ -14,6 +14,7 @@ window.GameModules.resultActions = {
     this.characterIntent = result.characterIntent || this.characterIntent;
     this.choices = result.choices;
     this.mindText = result.mind;
+    this.feedbackSource = result.source || 'fallback';
     this.applyMetricUpdates(result.metricUpdates);
     await window.GameModules.entryTime.advance(this, result.elapsedSeconds || 60);
     await this.ensureRpgFromResults(result);

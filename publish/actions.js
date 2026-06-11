@@ -103,10 +103,14 @@ window.GameModules.actions = {
     return this.characterIntent || `${name}下一步想要按自己的处境重新判断。`;
   },
 
+  feedbackSourceText() {
+    return this.feedbackSource === 'ai' ? 'AI生成' : '本地兜底';
+  },
+
   feedbackSummary() {
     const text = this.feedbackText();
     const summary = text.length > 18 ? `${text.slice(0, 18)}…` : text;
-    return `${summary} / ${this.feedbackPlan()}`;
+    return `【${this.feedbackSourceText()}】${summary} / ${this.feedbackPlan()}`;
   },
 
   loreNames(list, key) {

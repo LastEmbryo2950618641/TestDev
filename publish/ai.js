@@ -41,7 +41,7 @@ window.GameModules.ai = {
     } catch (err) {
       console.error('AI 推演失败:', err.code, err.message, err.stack);
       if (requestId === this.latestRequestId) {
-        await store.applyResult(window.GameModules.createFallbackResult(store, action), logId);
+        await store.applyResult({ ...window.GameModules.createFallbackResult(store, action), source: 'fallback' }, logId);
       }
     }
   },
@@ -54,15 +54,15 @@ window.GameModules.ai = {
       if (start === -1 || end === -1) throw new Error('AI 没有返回 JSON');
       const data = JSON.parse(cleaned.slice(start, end + 1));
       console.log('[AI推演] JSON解析成功:', Object.keys(data));
-      return this.normalize(data, store, action);
+      return { ...this.normalize(data, store, action), source: 'ai' };
     } catch (err) {
       console.warn('AI 返回解析失败:', err.message);
-      return window.GameModules.createFallbackResult(store, action);
+      return { ...window.GameModules.createFallbackResult(store, action), source: 'fallback' };
     }
   },
 
   normalize(data, store, action) {
-    const fallback = window.GameModules.createFallbackResult(store, action);
+    const fallback = { ...window.GameModules.createFallbackResult(store, action), source: 'fallback' };
     const changes = data.statChanges || {};
     return {
       sceneTitle: String(data.sceneTitle || fallback.sceneTitle).slice(0, 12),

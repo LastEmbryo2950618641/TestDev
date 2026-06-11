@@ -159,6 +159,7 @@ window.GameModules.entryActions = {
       this.mood = feedback.mood;
       this.resistance = feedback.resistance;
       this.mindText = feedback.mind;
+      this.feedbackSource = feedback.source || 'fallback';
       this.characterIntent = feedback.intent;
       this.choices = feedback.choices || this.choices;
       this.applyInitialMetrics(feedback.metricUpdates);

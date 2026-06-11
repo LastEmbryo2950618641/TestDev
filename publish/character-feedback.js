@@ -61,6 +61,7 @@ window.GameModules.characterFeedback = {
         experienceSummary: String(data.experienceSummary || fallback.experienceSummary).slice(0, 80),
         metricUpdates: window.GameModules.ai.normalizeInitialMetricUpdates(data.metricUpdates, null, store),
         choices: this.normalizeChoices(data.choices, fallback.choices),
+        source: 'ai',
       };
     } catch (err) {
       console.warn('角色反馈解析失败:', err.message);
@@ -87,6 +88,7 @@ window.GameModules.characterFeedback = {
       experienceSummary: '身体突然失控，她/他还无法确认你会做什么。',
       metricUpdates: metrics,
       choices: ['确认周围状况', '尝试移动身体', '寻找安全位置', '接近关键人物'],
+      source: 'fallback',
     };
   },
 
