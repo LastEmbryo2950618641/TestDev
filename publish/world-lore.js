@@ -6,12 +6,10 @@ window.GameModules = window.GameModules || {};
 window.GameModules.worldLore = {
   async ensure(worldTag, context = '') {
     const save = window.GameModules.sqliteSave;
-    if (window.GameModules.cache.enabled('generatedLore')) {
-      const existing = save.getWorldLore(worldTag);
-      if (existing) {
-        console.log('[世界观] 使用已保存设定:', worldTag);
-        return existing;
-      }
+    const existing = save.getWorldLore(worldTag);
+    if (existing) {
+      console.log('[世界观] 使用已保存设定:', worldTag);
+      return existing;
     }
     console.log('[世界观] 开始生成设定:', worldTag, 'contextLength=', String(context || '').length);
     const lore = await this.generate(worldTag, context);
@@ -43,9 +41,7 @@ window.GameModules.worldLore = {
   },
 
   parse(text) {
-    const raw = String(text || '').replace(/```json|```/g, '').trim();
-    const json = window.GameModules.jsonUtils.extractJson(raw);
-    return JSON.parse(json.replace(/[\u0000-\u001F]/g, ''));
+    return window.GameModules.jsonUtils.parseLoose(String(text || '').replace(/[\u0000-\u001F]/g, ''));
   },
 
   validate(lore, worldTag) {

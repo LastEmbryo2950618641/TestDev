@@ -38,6 +38,27 @@ window.GameModules.worldlineActions = {
     return parts.join('｜') || (item.kind === 'story' ? '原著剧情索引' : '世界线事件');
   },
 
+  async ensureWorldline(context = '') {
+    const worldTag = this.character?.work || '原创世界';
+    const lore = await window.GameModules.worldLore.ensure(worldTag, context || this.entryCurrentAction || this.sceneTitle);
+    if (!this.expandedWorldlineTag) this.expandedWorldlineTag = worldTag;
+    return lore;
+  },
+
+  async updateWorldlineFromTurn(result = {}) {
+    const worldTag = this.character?.work || '原创世界';
+    const lore = await this.ensureWorldline(`${this.entryTimeLabel?.() || this.sceneTitle} ${result.narration || ''}`);
+    const line = this.loreWorldline(lore);
+    if (!line) return;
+    const eventId = `turn_${this.turn}`;
+    if (!(line.events || []).some((event) => event.eventId === eventId)) {
+      line.events = [...(line.events || []), { eventId, name: result.sceneTitle || this.sceneTitle, time: this.entryTimeLabel?.() || this.sceneTitle, summary: String(result.narration || this.lastAction || '').slice(0, 90), detail: String(result.narration || '').slice(0, 420), storyIndexes: line.storyIndexes || [], factionIds: Object.keys(line.factions || {}).slice(0, 2), status: '进行中' }].slice(-12);
+      await window.GameModules.sqliteSave.saveWorldline(worldTag, line);
+      lore.worldline = line;
+      await window.GameModules.sqliteSave.saveWorldLore(worldTag, lore);
+    }
+  },
+
   worldlineFactions(lore) {
     const factions = this.loreWorldline(lore)?.factions || {};
     return Object.entries(factions).map(([id, value]) => ({ id, ...value }));

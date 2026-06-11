@@ -19,6 +19,7 @@ window.GameModules.resultActions = {
     await this.applyStatChanges(result.statChanges, result);
     await this.applyControlExperience(result);
     await window.GameModules.characterMemory.recordTurn(this, result);
+    if (this.updateWorldlineFromTurn) await this.updateWorldlineFromTurn(result);
     if (!this.finalizeNovelEntry(logId, result)) {
       const id = this.addNovelEntry(this.lastAction || '继续推进');
       this.finalizeNovelEntry(id, result);
