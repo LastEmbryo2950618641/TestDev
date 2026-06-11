@@ -27,6 +27,8 @@
   <script src="world-attributes.js"></script>
   <script src="character-profile.js"></script>
   <script src="character-memory.js"></script>
+  <script src="character-memory-flow.js"></script>
+  <script src="entry-time-flow.js"></script>
   <script src="character-feedback.js"></script>
   <script src="character-brief.js"></script>
   <script src="storage.js"></script>
@@ -373,11 +375,13 @@
               <button @click="$store.game.addManualMemory()" :disabled="!$store.game.memoryInput.trim()">写入记忆</button>
             </div>
             <div class="memory-list" x-show="$store.game.profileViewMode === 'shortTerm'">
-              <template x-for="item in $store.game.memoryItems('shortTerm')" :key="`${item.turn}-${item.text}`"><p x-text="item.text"></p></template>
+              <small x-text="$store.game.memoryStatus('shortTerm')"></small>
+              <template x-for="item in $store.game.memoryItems('shortTerm')" :key="item.id"><p><b x-text="`${item.time?.label || '时间未知'}｜印象${item.impression}`"></b><span x-text="item.summary || item.text"></span></p></template>
               <small x-show="!$store.game.memoryItems('shortTerm').length">暂无短期记忆</small>
             </div>
             <div class="memory-list" x-show="$store.game.profileViewMode === 'longTerm'">
-              <template x-for="item in $store.game.memoryItems('longTerm')" :key="`${item.turn}-${item.title}`"><p><b x-text="item.title"></b><span x-text="item.summary"></span></p></template>
+              <small x-text="$store.game.memoryStatus('longTerm')"></small>
+              <template x-for="item in $store.game.memoryItems('longTerm')" :key="item.id"><p><b x-text="`${item.time?.label || '时间未知'}｜印象${item.impression}`"></b><span x-text="item.summary || item.text"></span></p></template>
               <small x-show="!$store.game.memoryItems('longTerm').length">暂无长期记忆</small>
             </div>
             <div class="memory-editor" x-show="$store.game.profileViewMode === 'archive'">

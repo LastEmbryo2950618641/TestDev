@@ -104,7 +104,8 @@ document.addEventListener('alpine:init', () => {
     },
 
     get currentMemory() {
-      const id = this.currentRpgState?.id; return id ? window.GameModules.characterMemory.ensure(id) : { shortTerm: [], longTerm: [] };
+      const id = this.currentRpgState?.id;
+      return id ? window.GameModules.characterMemory.ensure(id) : window.GameModules.characterMemory.normalize(null, 'none');
     },
 
     get savedWorldLores() {

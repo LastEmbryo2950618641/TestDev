@@ -165,7 +165,17 @@ window.GameModules.saveActions = {
   },
 
   memoryItems(kind) {
-    return this.currentMemory?.[kind] || [];
+    const memory = this.currentMemory;
+    if (kind === 'shortTerm') return [...(memory.shortTerm.recent || []), ...(memory.shortTerm.summarized || [])];
+    if (kind === 'longTerm') return [...(memory.longTerm.vivid || []), ...(memory.longTerm.permanent || [])];
+    return [];
+  },
+
+  memoryStatus(kind) {
+    const memory = this.currentMemory;
+    const m = window.GameModules.characterMemory;
+    if (kind === 'shortTerm') return [m.statLine('刚发生记忆', m.stats(memory.shortTerm.recent, m.limits.recent)), m.statLine('近发生记忆', m.stats(memory.shortTerm.summarized, m.limits.summarized)), m.statLine('遗忘区', m.stats(memory.shortTerm.forgotten, m.limits.forgotten))].join('｜');
+    return [m.statLine('难以忘记', m.stats(memory.longTerm.vivid, m.limits.vivid)), m.statLine('不可忘记', m.stats(memory.longTerm.permanent, m.limits.permanent))].join('｜');
   },
 
   async addManualMemory() {

@@ -19,6 +19,7 @@ window.GameModules.resultActions = {
     this.applyMetricUpdates(result.metricUpdates);
     await this.applyControlExperience(result);
     await window.GameModules.characterMemory.recordTurn(this, result);
+    await window.GameModules.entryTime.advance(this, 60);
     this.addLog('story', '旁白', result.narration);
     if (result.speech) this.addLog('speech', this.character.name, result.speech);
     this.addLog('mind', `${this.character.name}的心理`, result.mind);
