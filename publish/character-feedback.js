@@ -114,7 +114,7 @@ window.GameModules.characterFeedback = {
 
   metricStatus(actor, key, stage) {
     if (key === '爱情') return stage === '无感' ? `${actor}看着你时没有恋爱意义上的心动。` : `${actor}看到你时心里扑通扑通，似乎是${stage}了。`;
-    if (key === '了解') return `${actor}对你的了解处于“${stage}”：${window.GameModules.metrics.stageStatus(key, stage)}`;
+    if (key === '了解') return `${actor}对你的了解处于“${stage}”：${actor}只掌握你显露出的少量线索，还无法确认你的身份、来历和真正意图。`;
     return `${actor}对你或当前处境的${key}处于“${stage}”状态。`;
   },
 

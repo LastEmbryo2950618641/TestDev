@@ -74,8 +74,13 @@ window.GameModules.actions = {
     const value = type === 'emotion' ? this.emotions[key] : this.playerFeelings[key];
     const raw = this.metricNotes?.[`${type}:${key}`];
     const stage = raw?.stage || window.GameModules.metrics.stageFor(key, value);
-    const status = raw?.status || window.GameModules.metrics.stageStatus(key, stage);
-    const reason = raw?.reason || raw || '本回合没有直接触发变化，保持原值。';
+    const actor = window.GameModules.ai?.actorPronoun?.(this) || '她/他';
+    const fallbackStatus = window.GameModules.ai?.fallbackMetricStatus?.(actor, key, stage, type) || `${actor}的${key}处于“${stage}”状态。`;
+    const fallbackReason = window.GameModules.ai?.fallbackMetricReason?.(actor, key, type) || `你与${actor}的关系还没有出现足以明显改变${key}的具体事件。`;
+    const oldStageText = window.GameModules.metrics.stageStatus(key, stage);
+    const status = raw?.status && raw.status !== oldStageText ? raw.status : fallbackStatus;
+    const oldReason = /本回合没有直接触发变化|保持原值|保持原址/.test(String(raw?.reason || ''));
+    const reason = raw?.reason && !oldReason ? raw.reason : fallbackReason;
     const description = raw?.description || window.GameModules.metrics.descriptions[key] || key;
     return `阶段: ${stage}\n状态: ${status}\n原因: ${reason}\n说明: ${description}`;
   },

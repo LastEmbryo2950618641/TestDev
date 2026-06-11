@@ -27,7 +27,7 @@ window.GameModules.ai = {
       await this.withRetry(() => window.dzmm.completions({
         model: store.modelId,
         messages,
-        maxTokens: 2600,
+        maxTokens: 3000,
       }, async (chunk, done) => {
         if (requestId !== this.latestRequestId) return;
         buffer += chunk;
@@ -93,9 +93,10 @@ window.GameModules.ai = {
   normalizeMetricUpdates(value, fallback, store) {
     const emotions = this.normalizeMetricGroup(value?.emotions, fallback?.emotions, window.GameModules.metrics.emotionKeys);
     const feelings = this.normalizeMetricGroup(value?.playerFeelings, fallback?.playerFeelings, window.GameModules.metrics.playerKeys);
+    const actor = this.actorPronoun(store);
     return {
-      emotions: this.completeMetricGroup(emotions, window.GameModules.metrics.emotionKeys, store?.emotions, window.GameModules.metrics.defaults.emotions),
-      playerFeelings: this.completeMetricGroup(feelings, window.GameModules.metrics.playerKeys, store?.playerFeelings, window.GameModules.metrics.defaults.playerFeelings),
+      emotions: this.completeMetricGroup(emotions, window.GameModules.metrics.emotionKeys, store?.emotions, window.GameModules.metrics.defaults.emotions, actor, 'emotion'),
+      playerFeelings: this.completeMetricGroup(feelings, window.GameModules.metrics.playerKeys, store?.playerFeelings, window.GameModules.metrics.defaults.playerFeelings, actor, 'player'),
     };
   },
 
@@ -106,35 +107,39 @@ window.GameModules.ai = {
     };
   },
 
-  completeMetricGroup(items, keys, current, defaults) {
+  completeMetricGroup(items, keys, current, defaults, actor, type) {
     const map = new Map(items.map((item) => [item.key, item]));
     return keys.map((key) => {
-      if (map.get(key)) return map.get(key);
       const value = window.GameModules.metrics.clamp(current?.[key] ?? defaults[key]);
       const stage = window.GameModules.metrics.stageFor(key, value);
+      const item = map.get(key) || { key, delta: 0 };
       return {
         key,
-        delta: 0,
-        status: window.GameModules.metrics.stageStatus(key, stage),
-        reason: '本回合没有直接触发变化，保持原值。',
+        delta: window.GameModules.metrics.clampDelta(item.delta),
+        status: String(item.status || this.fallbackMetricStatus(actor, key, stage, type)).slice(0, 80),
+        reason: String(item.reason || this.fallbackMetricReason(actor, key, type)).slice(0, 80),
       };
     });
   },
 
   normalizeMetricGroup(value, fallback, keys) {
-    const list = Array.isArray(value) ? value : (Array.isArray(fallback) ? fallback : []);
-    return list.filter((item) => keys.includes(item?.key)).slice(0, 16).map((item) => ({
-      key: item.key,
-      delta: window.GameModules.metrics.clampDelta(item.delta),
-      status: String(item.status || '').slice(0, 80),
-      reason: String(item.reason || '').slice(0, 80),
-    }));
+    const main = Array.isArray(value) ? value : [];
+    const fallbackMap = new Map((Array.isArray(fallback) ? fallback : []).filter((item) => keys.includes(item?.key)).map((item) => [item.key, item]));
+    return keys.map((key) => {
+      const item = main.find((x) => x?.key === key) || fallbackMap.get(key);
+      if (!item) return null;
+      return {
+        key,
+        delta: window.GameModules.metrics.clampDelta(item.delta),
+        status: String(item.status || '').slice(0, 80),
+        reason: String(item.reason || '').slice(0, 80),
+      };
+    }).filter(Boolean);
   },
 
   normalizeInitialGroup(value, fallback, keys, store, type) {
     const list = Array.isArray(value) ? value : (Array.isArray(fallback) ? fallback : []);
-    const c = store?.character || {};
-    const actor = /男性|男人|少年|青年|父亲|哥哥|弟弟|叔叔|丈夫|王子|皇帝/.test(`${c.name || ''} ${c.role || ''} ${c.detail || ''}`) ? '他' : '她';
+    const actor = this.actorPronoun(store);
     const map = new Map(list.filter((item) => keys.includes(item?.key)).map((item) => [item.key, item]));
     return keys.map((key) => {
       const item = map.get(key) || {};
@@ -143,17 +148,30 @@ window.GameModules.ai = {
       return {
         key,
         value,
-        status: String(item.status || (key === '爱情' ? `${actor}看着你时还没有恋爱意义上的心动。` : (key === '了解' ? `${actor}对你的了解处于“${stage}”：${window.GameModules.metrics.stageStatus(key, stage)}` : `${actor}对你或当前处境的${key}处于“${stage}”状态。`))).slice(0, 80),
-        reason: String(item.reason || this.metricReason(actor, key, type)).slice(0, 80),
+        status: String(item.status || this.fallbackMetricStatus(actor, key, stage, type)).slice(0, 80),
+        reason: String(item.reason || this.fallbackMetricReason(actor, key, type)).slice(0, 80),
       };
     });
   },
 
-  metricReason(actor, key, type) {
-    if (type === 'emotion') return `你突然介入${actor}的处境，让${actor}的${key}随之波动。`;
-    if (key === '了解') return `${actor}只知道你能介入这具身体，却不知道你的身份、来历和真正意图。`;
-    if (key === '信任') return `你第一次出现就影响了${actor}的身体，所以${actor}暂时无法信任你。`;
-    return key === '警惕' ? `${actor}不知道你接下来会做什么，只能继续戒备。` : `你刚介入${actor}的处境，${actor}还没有形成更深的${key}。`;
+  actorPronoun(store) {
+    const c = store?.character || {};
+    return /男性|男人|少年|青年|父亲|哥哥|弟弟|叔叔|丈夫|王子|皇帝/.test(`${c.name || ''} ${c.role || ''} ${c.detail || ''}`) ? '他' : '她';
+  },
+
+  fallbackMetricStatus(actor, key, stage, type) {
+    if (type === 'emotion') return `${actor}的${key}处于“${stage}”：这项情绪正在影响${actor}对当前处境的反应。`;
+    if (key === '爱情') return stage === '无感' ? `${actor}看着你时没有恋爱意义上的心动。` : `${actor}看到你时心里扑通扑通，似乎是${stage}了。`;
+    if (key === '了解') return `${actor}对你的了解处于“${stage}”：${actor}只掌握你显露出的少量线索，还无法确认你的身份、来历和真正意图。`;
+    return `${actor}对你的${key}处于“${stage}”：这项感觉正在影响${actor}如何看待你。`;
+  },
+
+  fallbackMetricReason(actor, key, type) {
+    if (type === 'emotion') return `你介入了${actor}的行动与处境，使${actor}的${key}随当前剧情发生波动。`;
+    if (key === '了解') return `${actor}只知道你能影响这具身体，还没有从你这里得到足以确认身份、来历或意图的信息。`;
+    if (key === '信任') return `你曾直接影响${actor}的身体与行动权，所以${actor}暂时难以完全信任你。`;
+    if (key === '警惕') return `${actor}不知道你下一步会如何使用这具身体，所以仍然对你保持戒备。`;
+    return `你与${actor}的关系还没有出现足以明显改变${key}的具体事件。`;
   },
 
   normalizeChoices(value, fallback) {

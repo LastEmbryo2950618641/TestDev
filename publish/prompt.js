@@ -81,14 +81,15 @@ ${state.memoryContext || '暂无人物记忆。'}
 1. emotions 只能使用这些固定情绪维度：${window.GameModules.metrics.emotionKeys.join('、')}。
 2. playerFeelings 只能使用这些固定对玩家感觉维度：${window.GameModules.metrics.playerKeys.join('、')}。
 3. 每个数值项只返回 delta、status、reason：delta 是本回合变化量，必须是 -30 到 30 的整数；正数表示增强，负数表示减弱，0 表示本回合无明显变化。
-4. 你不要返回 value、stage、description；代码会用“当前值 + delta”计算新 value，再根据新 value 计算 stage，并由代码填充 description。
-5. status 必须根据“当前值 + delta 后的新状态”来写，必须与变化方向和阶段含义一致；reason 必须写导致这个 delta 变化的具体原因，不要写“根据上下文推断”“按角色背景推定”“目的未知”这类空话。status 和 reason 站在第三者上帝/作者视角描述，用“你”指玩家，用“${actor}”指角色。
-6. 阶段由代码按数值计算，阶段表仅供你写 status 时参考：${window.GameModules.metrics.stageGuide()}。
-7. 属性定义供你理解指标含义：${Object.entries(metricDefs).map(([k, v]) => `${k}=${v}`).join('；')}
-8. 了解分9阶段：神秘、陌生、面善/眼熟、认识、知晓、熟悉、熟识、深知、洞悉；它表示${actor}对你的身份、经历、性格、意图和秘密知道多少，首次接触通常是神秘或陌生，除非剧情里你已暴露身份或长期相处。
-9. 爱情分8阶段，每约12.5分晋级：心动（初见好感、心生涟漪）、爱恋（倾心喜欢、萌生爱意）、倾心（满心偏向、满眼皆是）、眷恋（不舍分离、时时牵挂）、深爱（掏心交付）、执念（深陷其中、难以割舍）、依存（彼此依靠）、相守（长久相伴）。例如爱情 delta 后进入心动区间时，status 可写“${actor}看到你时心里扑通扑通，似乎是心动了。”；reason 可写“你拯救了${actor}，外貌也符合${actor}的偏好，所以${actor}对你心动。”。
-10. emotions 必须每回合完整返回全部 ${window.GameModules.metrics.emotionKeys.length} 个当前情绪维度的 delta、status、reason，并根据当前场景、角色性格、身体状态、危险程度、玩家输入和上下文判断变化量；不要只返回变化项。
-11. playerFeelings 也必须每回合完整返回全部 ${window.GameModules.metrics.playerKeys.length} 个对玩家感觉维度的 delta、status、reason，并根据当前剧情、记忆、玩家行为、信任/反抗和角色性格判断变化量；不要只返回变化项。
+4. 即使 delta 为 0，也必须写 status 和 reason；reason 写为什么保持这种状态，而不是写“没有变化”“保持原值”。
+5. 你不要返回 value、stage、description；代码会用“当前值 + delta”计算新 value，再根据新 value 计算 stage，并由代码填充 description。
+6. status 必须根据“当前值 + delta 后的新状态”来写，必须与变化方向和阶段含义一致；reason 必须写导致这个 delta 变化或保持的具体原因，不要写“根据上下文推断”“按角色背景推定”“目的未知”“本回合没有触发变化”“保持原值”这类空话。status 和 reason 站在第三者上帝/作者视角描述，用“你”指玩家，用“${actor}”指角色。
+7. 阶段由代码按数值计算，阶段表仅供你写 status 时参考：${window.GameModules.metrics.stageGuide()}。
+8. 属性定义供你理解指标含义：${Object.entries(metricDefs).map(([k, v]) => `${k}=${v}`).join('；')}
+9. 了解分9阶段：神秘、陌生、面善/眼熟、认识、知晓、熟悉、熟识、深知、洞悉；它表示${actor}对你的身份、经历、性格、意图和秘密知道多少，首次接触通常是神秘或陌生，除非剧情里你已暴露身份或长期相处。
+10. 爱情分8阶段，每约12.5分晋级：心动（初见好感、心生涟漪）、爱恋（倾心喜欢、萌生爱意）、倾心（满心偏向、满眼皆是）、眷恋（不舍分离、时时牵挂）、深爱（掏心交付）、执念（深陷其中、难以割舍）、依存（彼此依靠）、相守（长久相伴）。例如爱情 delta 后进入心动区间时，status 可写“${actor}看到你时心里扑通扑通，似乎是心动了。”；reason 可写“你拯救了${actor}，外貌也符合${actor}的偏好，所以${actor}对你心动。”。
+11. emotions 必须每回合完整返回全部 ${window.GameModules.metrics.emotionKeys.length} 个当前情绪维度的 delta、status、reason，并根据当前场景、角色性格、身体状态、危险程度、玩家输入和上下文判断变化量；不要只返回变化项。
+12. playerFeelings 也必须每回合完整返回全部 ${window.GameModules.metrics.playerKeys.length} 个对玩家感觉维度的 delta、status、reason，并根据当前剧情、记忆、玩家行为、信任/反抗和角色性格判断变化量；不要只返回变化项。
 
 时间流逝规则：
 1. elapsedSeconds 必须是整数秒，表示本回合剧情从玩家行动开始到结果稳定时经过的游戏内时间。
