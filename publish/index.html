@@ -308,7 +308,7 @@
           <button class="metrics-collapsed-line" @click="$store.game.metricsOpen = !$store.game.metricsOpen" type="button">
             <span class="metric-line-title">当前情绪</span>
             <span class="metric-inline-items" x-show="!$store.game.metricsOpen">
-              <template x-for="metric in $store.game.metricCollapsedItems()" :key="metric.key"><i x-text="`${metric.key}${metric.value}`"></i></template>
+              <template x-for="metric in $store.game.metricCollapsedItems()" :key="metric.key"><i x-text="`${metric.key}${metric.text}`"></i></template>
             </span>
             <b x-text="$store.game.metricsOpen ? '收起' : '展开'"></b>
           </button>
@@ -319,7 +319,7 @@
               <div class="metrics-summary">
                 <template x-for="metric in $store.game.metricEntries(group)" :key="`${group.type}-${metric.key}`">
                   <button class="metric-pill" @click="$store.game.toggleMetric(group.type, metric.key)" :class="{ active: $store.game.isMetricOpen(group.type, metric.key) }">
-                    <span><b x-text="metric.key"></b><em x-text="metric.value"></em></span>
+                    <span><b x-text="metric.key"></b><em x-text="metric.text"></em></span>
                     <small x-show="$store.game.isMetricOpen(group.type, metric.key)" x-text="$store.game.metricNote(group.type, metric.key)"></small>
                   </button>
                 </template>

@@ -23,12 +23,16 @@ window.GameModules.actions = {
   },
 
   metricEntries(group) {
-    return Object.entries(group.values).map(([key, value]) => ({ key, value }));
+    return Object.entries(group.values).map(([key, value]) => ({ key, value, text: this.metricValueText(value) }));
+  },
+
+  metricValueText(value) {
+    return this.metricsReady && Number.isFinite(Number(value)) ? value : '--';
   },
 
   metricCollapsedItems() {
     window.GameModules.metrics.ensure(this);
-    const list = window.GameModules.metrics.emotionKeys.map((key) => ({ key, value: this.emotions[key] }));
+    const list = window.GameModules.metrics.emotionKeys.map((key) => ({ key, value: this.emotions[key], text: this.metricValueText(this.emotions[key]) }));
     return list.slice(0, Math.max(1, this.metricSummaryLimit || 3));
   },
 
@@ -55,7 +59,7 @@ window.GameModules.actions = {
     let used = 0;
     let count = 0;
     for (const key of window.GameModules.metrics.emotionKeys) {
-      const text = `${key}${this.emotions[key] ?? 0}`;
+      const text = `${key}${this.metricValueText(this.emotions[key])}`;
       const width = Array.from(text).length * 12 + 10;
       if (used + width > available) break;
       used += width + 5;
@@ -66,6 +70,7 @@ window.GameModules.actions = {
   },
 
   metricNote(type, key) {
+    if (!this.metricsReady) return '阶段: 未知\n状态: 等待推演\n原因: 数值正在刷新，尚未完成初始推演。\n说明: ' + (window.GameModules.metrics.descriptions[key] || key);
     const value = type === 'emotion' ? this.emotions[key] : this.playerFeelings[key];
     const raw = this.metricNotes?.[`${type}:${key}`];
     const stage = raw?.stage || window.GameModules.metrics.stageFor(key, value);
@@ -149,6 +154,7 @@ window.GameModules.actions = {
       const metrics = window.GameModules.metrics.fresh();
       this.emotions = metrics.emotions;
       this.playerFeelings = metrics.playerFeelings;
+      this.metricsReady = false;
       this.metricNotes = {};
       this.expandedMetricKey = '';
       this.quest = '确认操控连接';

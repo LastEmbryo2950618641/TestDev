@@ -151,6 +151,7 @@ window.GameModules.entryActions = {
     this.turn = 1;
     this.sceneTitle = this.entryTimeLabel();
     const possessText = '第二人称上线：操控者的“我”直接附到角色肉体上行动；对角色本人来说，身体是突然不受控制的，她不知道控制来源，只能像旁观者一样看着身体行动，但视觉、听觉、嗅觉、味觉、触觉等身体感觉仍然存在。';
+    this.metricsReady = false;
     const feedback = await window.GameModules.characterFeedback.initial(this);
     this.mood = feedback.mood;
     this.resistance = feedback.resistance;

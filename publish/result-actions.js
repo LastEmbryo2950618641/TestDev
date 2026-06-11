@@ -26,11 +26,13 @@ window.GameModules.resultActions = {
 
   applyMetricUpdates(updates) {
     window.GameModules.metrics.apply(this, updates);
+    this.metricsReady = true;
     this.syncMetricDerived();
   },
 
   applyInitialMetrics(updates) {
     window.GameModules.metrics.applyInitial(this, updates);
+    this.metricsReady = true;
     this.syncMetricDerived();
   },
 

@@ -25,6 +25,7 @@ window.GameModules.coreActions = {
     const metrics = window.GameModules.metrics.fresh();
     this.emotions = metrics.emotions;
     this.playerFeelings = metrics.playerFeelings;
+    this.metricsReady = false;
     this.metricNotes = {};
     this.trust = this.playerFeelings.信任;
     this.resistance = this.playerFeelings.反抗;
@@ -69,6 +70,7 @@ window.GameModules.coreActions = {
       : (value ? '操控者上线，角色身体行动权被接管。' : '操控者下线，角色重新获得身体控制权。');
     this.addLog('system', '控制权', text);
     if (value && this.controlMode === 'possess') {
+      this.metricsReady = false;
       const feedback = await window.GameModules.characterFeedback.initial(this);
       this.mood = feedback.mood;
       this.resistance = feedback.resistance;

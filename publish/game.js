@@ -55,6 +55,7 @@ document.addEventListener('alpine:init', () => {
     resistance: 20,
     emotions: window.GameModules.metrics.fresh().emotions,
     playerFeelings: window.GameModules.metrics.fresh().playerFeelings,
+    metricsReady: false,
     metricNotes: {},
     metricSummaryLimit: 3,
     metricSummaryObserver: null,
