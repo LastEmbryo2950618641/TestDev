@@ -23,9 +23,15 @@ Object.assign(window.GameModules.actions, {
     return entry.id;
   },
 
+  normalizeNovelThinking(text) {
+    const value = String(text || '').trim();
+    return /AI\s*正在整理角色状态|正在整理角色状态、玩家输入/.test(value) ? '' : value;
+  },
+
   updateNovelEntry(id, patch = {}) {
     const entry = this.log.find((item) => item.id === id);
     if (!entry) return;
+    if (Object.prototype.hasOwnProperty.call(patch, 'thinking')) patch.thinking = this.normalizeNovelThinking(patch.thinking);
     Object.assign(entry, patch);
     this.log = [...this.log];
     this.scrollLog();
@@ -66,7 +72,10 @@ Object.assign(window.GameModules.actions, {
   },
 
   novelLogEntries() {
-    return (this.log || []).filter((entry) => entry.kind === 'novel');
+    return (this.log || []).filter((entry) => entry.kind === 'novel').map((entry) => ({
+      ...entry,
+      thinking: this.normalizeNovelThinking(entry.thinking),
+    }));
   },
 
   legacyLogText(entry) {

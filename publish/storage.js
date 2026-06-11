@@ -48,7 +48,7 @@ window.GameModules.storage = {
       mindText: store.mindText,
       characterIntent: store.characterIntent,
       choices: store.choices,
-      log: store.log.slice(-30),
+      log: store.log.slice(-30).map((entry) => ({ ...entry, thinking: store.normalizeNovelThinking ? store.normalizeNovelThinking(entry.thinking) : entry.thinking })),
       rpgPanelCharacterId: store.rpgPanelCharacterId,
     };
   },
