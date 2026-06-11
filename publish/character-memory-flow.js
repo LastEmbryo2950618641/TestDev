@@ -50,6 +50,7 @@ Object.assign(window.GameModules.characterMemory, {
     return [
       `地点：${store.sceneTitle}`,
       `玩家行动：${store.lastAction || '无'}`,
+      `流逝时间：${result.elapsedSeconds || 60}秒`,
       `发生：${result.narration || ''}`,
       result.speech ? `她/他说过：${result.speech}` : '',
       result.mind ? `她/他心里想：${result.mind}` : '',

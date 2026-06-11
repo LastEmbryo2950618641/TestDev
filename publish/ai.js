@@ -27,7 +27,7 @@ window.GameModules.ai = {
       await this.withRetry(() => window.dzmm.completions({
         model: store.modelId,
         messages,
-        maxTokens: 1700,
+        maxTokens: 2600,
       }, async (chunk, done) => {
         if (requestId !== this.latestRequestId) return;
         buffer += chunk;
@@ -63,6 +63,7 @@ window.GameModules.ai = {
     const changes = data.statChanges || {};
     return {
       sceneTitle: String(data.sceneTitle || fallback.sceneTitle).slice(0, 12),
+      elapsedSeconds: this.clampElapsed(data.elapsedSeconds, fallback.elapsedSeconds),
       narration: String(data.narration || fallback.narration),
       speech: String(data.speech || fallback.speech),
       mind: String(data.mind || fallback.mind),
@@ -184,8 +185,11 @@ window.GameModules.ai = {
     };
   },
 
-  clampNumber(value, fallback) {
-    return Math.max(0, Math.min(100, Number.isFinite(value) ? Math.round(value) : fallback));
+  clampNumber(value, fallback) { return Math.max(0, Math.min(100, Number.isFinite(value) ? Math.round(value) : fallback)); },
+
+  clampElapsed(value, fallback = 60) {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.max(1, Math.min(2592000, Math.round(n))) : fallback;
   },
 
   clampVitalDelta(value) {

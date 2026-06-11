@@ -18,9 +18,10 @@ window.GameModules.createSystemPrompt = function createSystemPrompt(state, actio
   };
   const outputJson = JSON.stringify({
     sceneTitle: '当前场景标题',
-    narration: '第三人称剧情描写，120字内',
-    speech: '角色说出口的话',
-    mind: `${character.name}自己的第一人称内心独白，60字内`,
+    elapsedSeconds: 60,
+    narration: '第三人称剧情描写，220到420字，可读性高，细节充足',
+    speech: '角色说出口的话，可为空',
+    mind: `${character.name}自己的第一人称内心独白，80到160字`,
     mood: '冷静',
     trust: 45,
     resistance: 20,
@@ -48,13 +49,16 @@ window.GameModules.createSystemPrompt = function createSystemPrompt(state, actio
 5. online 时 mind 要体现身体突然失控、未知控制来源、五感仍在但行动权丧失后的合理内心反应；具体可以是恐惧、震惊、麻木、愤怒、抗拒、计算、求生等，由角色设定和当前处境决定，不要固定模板，也不要无依据地过度镇定。禁止写“${character.name}感到……”“内心反应取决于……”这类旁白说明。
 6. mode 为 offline 时，玩家已经下线，控制权交换给${character.name}。角色必须根据性格、属性、情绪和之前经历自主行动，可以听从、曲解、拒绝或反抗玩家建议。
 7. 自由度要高：允许调查、战斗、谈判、逃跑、欺骗、探索、使用技能、沉默、反抗操控等路线。
-8. 不要替玩家做过多总结，要推进当前场景并留下新的选择。
-9. 角色可能逐渐意识到操控者存在，但不要过快揭露全部真相。
+8. 玩家输入可能是一瞬间动作，也可能是学习、准备、训练、旅行、等待等长时间计划；必须根据行动内容推演合理流逝时间，并返回 elapsedSeconds。
+9. 为了提高可读性，narration 要写得充实、有画面和因果，不要过短；但不要灌水，不要复述规则。
+10. 不要替玩家做过多总结，要推进当前场景并留下新的选择。
+11. 角色可能逐渐意识到操控者存在，但不要过快揭露全部真相。
 
 当前状态：
 mode=${state.online ? 'online' : 'offline'}
 controlMode=${state.controlMode}
 场景=${state.sceneTitle}
+游戏内时间=${state.entryTimeLabel?.() || '时间未知'}
 回合=${state.turn}
 情绪=${state.mood}
 信任=${state.trust}
@@ -86,6 +90,12 @@ ${state.memoryContext || '暂无人物记忆。'}
 10. emotions 必须每回合完整返回全部 ${window.GameModules.metrics.emotionKeys.length} 个当前情绪维度的 delta、status、reason，并根据当前场景、角色性格、身体状态、危险程度、玩家输入和上下文判断变化量；不要只返回变化项。
 11. playerFeelings 也必须每回合完整返回全部 ${window.GameModules.metrics.playerKeys.length} 个对玩家感觉维度的 delta、status、reason，并根据当前剧情、记忆、玩家行为、信任/反抗和角色性格判断变化量；不要只返回变化项。
 
+时间流逝规则：
+1. elapsedSeconds 必须是整数秒，表示本回合剧情从玩家行动开始到结果稳定时经过的游戏内时间。
+2. 瞬间动作通常 3-30 秒；短对话/观察/移动通常 30-300 秒；学习、训练、准备、等待、旅行可为数小时或数天。
+3. 如果玩家输入包含“学习魔术并准备圣杯战争”等长期计划，必须让 elapsedSeconds 覆盖合理准备时间，而不是固定一分钟。
+4. elapsedSeconds 不得小于 1，不得超过 2592000（三十天）；不确定时选择最符合行动规模的保守值。
+
 资料使用规则：
 1. 资料相关时优先贴合资料推进主线。
 2. 不要逐字复述长段原文，要改写成游戏剧情。
@@ -115,6 +125,7 @@ window.GameModules.createFallbackResult = function createFallbackResult(state, a
 
   return {
     sceneTitle: state.sceneTitle || '裂隙前厅',
+    elapsedSeconds: /学习|训练|准备|研究|等待|旅行|赶路|休息|睡|一天|小时/.test(text) ? 3600 : 60,
     narration: online
       ? `操控指令覆盖了${name}的身体。她按照「${text}」行动，眼前的走廊浮现出新的分岔。`
       : `${name}重新掌握身体。她回想你的建议「${text}」，选择用自己的方式向前试探。`,
