@@ -9,6 +9,8 @@ window.GameModules.createFallbackResult = function createFallbackResult(state, a
   const actor = /男性|男人|少年|青年|父亲|哥哥|弟弟|叔叔|丈夫|王子|皇帝/.test(`${name} ${state.character.role} ${state.character.detail}`) ? '他' : '她';
   const text = action || (online ? '谨慎观察' : '让角色自由行动');
   const place = state.entryCurrentAction || state.sceneTitle || '昏暗的现场';
+  const onlineCount = state.characterRpgState?.values?.control_experience?.onlineCount || 0;
+  const firstOnline = onlineCount <= 1;
   const resistance = Math.max(0, Math.min(100, state.resistance + (online ? 3 : -2)));
   const trust = Math.max(0, Math.min(100, state.trust + (online ? 0 : 2)));
   const emotionDeltas = online
@@ -28,8 +30,8 @@ window.GameModules.createFallbackResult = function createFallbackResult(state, a
     narration: online
       ? `意识沉下去的瞬间，空气像冰水一样灌进肺里。你在${name}的身体里睁开眼，皮肤、骨节与呼吸都变得陌生而真实；${place}的阴影贴在四周，细小的声响沿着神经爬过来。身体先于迟疑做出反应，向能避开危险的方向挪动半步，而真正的${name}被困在更深处，只能感到这具身体正一点点脱离自己的意志。`
       : `${name}重新掌握身体时，指尖还残留着不属于自己的僵硬。她没有立刻照做你的建议，而是先压住呼吸，确认四周的动静，再用自己的判断向前试探。`,
-    speech: online ? '我的身体又不听使唤了……' : '这次，让我自己来判断。',
-    mind: online ? '怎、怎么回事……我的身体为什么不听我使唤了？' : '身体终于又能动了，但那个人的痕迹还压在心里。',
+    speech: online ? (firstOnline ? '我的身体……为什么不听使唤了？' : '我的身体又不听使唤了……') : '这次，让我自己来判断。',
+    mind: online ? (firstOnline ? '怎、怎么回事……我的身体为什么突然不听我使唤了？' : '又来了……我的身体为什么又不听我使唤了？') : '身体终于又能动了，但那个人的痕迹还压在心里。',
     mood: online ? '动摇' : '好奇',
     trust,
     resistance,

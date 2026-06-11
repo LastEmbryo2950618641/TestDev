@@ -108,6 +108,7 @@ ${metricState}
 
 ## 被上线体验:
 - 上线次数：${experience.onlineCount}次
+- 上线次数含义：1次表示这是第一次被玩家上线操控；只有大于1次时，角色台词、内心和正文才可以使用“又、再次、又来了、已经习惯”等重复经历表达。
 - 当前感觉：${experience.feeling}
 - 适应度：${experience.adaptation}/100
 - 摘要：${experience.summary}
