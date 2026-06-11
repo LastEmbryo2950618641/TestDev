@@ -64,7 +64,7 @@ window.GameModules.metrics = {
       notes[`${group}:${item.key}`] = {
         stage,
         status: String(item.status || this.stageStatus(item.key, stage)).slice(0, 80),
-        reason: String(item.reason || '等待 AI 根据剧情更新解释。').slice(0, 80),
+        reason: String(item.reason || '结合当前剧情上下文与既有状态推断为当前阶段。').slice(0, 80),
         description: String(item.description || this.descriptions[item.key] || item.key).slice(0, 80),
       };
     });

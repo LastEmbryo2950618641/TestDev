@@ -87,24 +87,25 @@ window.GameModules.ai = {
 
   normalizeMetricUpdates(value, fallback, store) {
     const emotions = this.normalizeMetricGroup(value?.emotions, fallback?.emotions, window.GameModules.metrics.emotionKeys);
+    const feelings = this.normalizeMetricGroup(value?.playerFeelings, fallback?.playerFeelings, window.GameModules.metrics.playerKeys);
     return {
-      emotions: this.completeEmotionGroup(emotions, store),
-      playerFeelings: this.normalizeMetricGroup(value?.playerFeelings, fallback?.playerFeelings, window.GameModules.metrics.playerKeys),
+      emotions: this.completeMetricGroup(emotions, window.GameModules.metrics.emotionKeys, store.emotions, window.GameModules.metrics.defaults.emotions),
+      playerFeelings: this.completeMetricGroup(feelings, window.GameModules.metrics.playerKeys, store.playerFeelings, window.GameModules.metrics.defaults.playerFeelings),
     };
   },
 
-  completeEmotionGroup(items, store) {
+  completeMetricGroup(items, keys, current, defaults) {
     const map = new Map(items.map((item) => [item.key, item]));
-    return window.GameModules.metrics.emotionKeys.map((key) => {
+    return keys.map((key) => {
       if (map.get(key)) return map.get(key);
-      const value = window.GameModules.metrics.clamp(store.emotions?.[key] ?? window.GameModules.metrics.defaults.emotions[key]);
+      const value = window.GameModules.metrics.clamp(current?.[key] ?? defaults[key]);
       const stage = window.GameModules.metrics.stageFor(key, value);
       return {
         key,
         value,
         stage,
         status: window.GameModules.metrics.stageStatus(key, stage),
-        reason: 'AI 未返回该项，本回合沿用当前情绪基线。',
+        reason: '结合当前剧情上下文与既有关系推断为当前基线。',
         description: window.GameModules.metrics.descriptions[key] || key,
       };
     });
