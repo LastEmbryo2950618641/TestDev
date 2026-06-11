@@ -425,10 +425,10 @@
           <template x-for="entry in $store.game.novelLogEntries()" :key="entry.id">
             <article class="novel-entry" :class="entry.type">
               <div>
-                <div class="novel-player"><p x-text="entry.playerText"></p></div>
-                <div class="novel-story" :class="{ streaming: entry.streaming }">
+                <div class="novel-player dev-section" data-section-title="玩家回复内容"><p x-text="entry.playerText"></p></div>
+                <div class="novel-story dev-section" data-section-title="AI生成内容" :class="{ streaming: entry.streaming }">
                   <div class="novel-head" x-show="entry.thinking"><button class="thinking-toggle" @click="$store.game.toggleNovelThinking(entry.id)" x-text="entry.thinkingOpen || entry.streaming ? '▾' : '▸'"></button></div>
-                  <div class="novel-thinking" x-show="entry.thinking && (entry.streaming || entry.thinkingOpen)"><p><b>【AI思考】</b><span x-text="entry.thinking"></span></p></div>
+                  <div class="novel-thinking dev-section" data-section-title="AI思考内容" x-show="entry.thinking && (entry.streaming || entry.thinkingOpen)"><p><b>【AI思考】</b><span x-text="entry.thinking"></span></p></div>
                   <p x-text="entry.storyText"></p>
                 </div>
               </div>

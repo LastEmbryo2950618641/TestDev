@@ -760,6 +760,7 @@ select.text-input option,
 }
 
 .novel-story {
+  position: relative;
   justify-self: start;
   width: min(82%, 640px);
   background: rgba(141, 150, 255, .09);
@@ -780,10 +781,12 @@ select.text-input option,
 }
 
 .novel-head {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  z-index: 2;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  margin-bottom: 1px;
 }
 
 .novel-head > span,
