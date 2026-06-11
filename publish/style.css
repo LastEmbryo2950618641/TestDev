@@ -767,7 +767,7 @@ select.text-input option,
   background: rgba(141, 150, 255, .09);
   user-select: text;
   -webkit-user-select: text;
-  white-space: pre-line;
+  white-space: normal;
 }
 
 .novel-story.streaming {
@@ -803,6 +803,11 @@ select.text-input option,
   margin: 0;
 }
 
+.novel-story > p,
+.novel-thinking p {
+  white-space: pre-line;
+}
+
 .novel-thinking + p {
   margin-top: 0;
 }
@@ -824,7 +829,7 @@ select.text-input option,
   border-radius: 0;
   background: rgba(255, 207, 90, .07);
   color: #ffe9ad;
-  white-space: pre-line;
+  white-space: normal;
 }
 
 .novel-thinking b {
