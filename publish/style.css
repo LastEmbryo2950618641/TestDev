@@ -783,8 +783,7 @@ select.text-input option,
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 5px;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
 }
 
 .novel-head > span,
@@ -805,11 +804,11 @@ select.text-input option,
 }
 
 .thinking-toggle {
-  min-width: 24px;
-  min-height: 22px;
-  padding: 0 6px;
-  border: 1px solid rgba(255, 207, 90, .24);
-  background: rgba(255, 207, 90, .08);
+  min-width: 20px;
+  min-height: 20px;
+  padding: 0 5px;
+  border: 1px solid rgba(255, 207, 90, .2);
+  background: rgba(255, 207, 90, .06);
   color: #ffdf8a;
   font-size: var(--ui-small-font);
 }
