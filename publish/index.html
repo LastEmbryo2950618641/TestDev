@@ -304,7 +304,6 @@
       </header>
       <section class="identity-profile dev-section" data-section-title="身份资料区">
         <strong x-text="$store.game.identityTargetProfile().name"></strong>
-        <p x-text="$store.game.identityTargetProfile().detail || $store.game.identityTargetProfile().personality || '暂无身份说明。'"></p>
         <div class="profile-lexicon-list">
           <template x-for="field in $store.game.identityTargetFields()" :key="field.key">
             <button class="rpg-item-card lexicon-tag" type="button" @click="$store.game.toggleRpgField(field)"><strong x-text="`${field.label}：${field.value}`"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
