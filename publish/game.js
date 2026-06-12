@@ -21,7 +21,7 @@ document.addEventListener('alpine:init', () => {
     loading: true, loadingStep: '等待平台连接',
     loadingDetail: '首次进入或存档较大时会更慢，这是正常现象。',
     loadingStages: [], entryStages: [],
-    busy: false, started: false, desktopUnlocked: false, appHasOpened: false, appClosing: false, appSwitcherOpen: false, entrySetupOpen: false, identityAppOpen: false, appDragStartY: 0, appDragY: 0, appDragPeakY: 0, appGestureFromHomeZone: false, appDragging: false,
+    busy: false, started: false, desktopUnlocked: false, appHasOpened: false, appClosing: false, appSwitcherOpen: false, entrySetupOpen: false, identityAppOpen: false, appDragStartY: 0, appDragY: 0, appDragPeakY: 0, appGestureFromHomeZone: false, appGesturePointerId: null, appDragging: false,
     desktopDragStartY: 0, desktopDragY: 0, desktopDragging: false,
     initPromise: null, phoneSetupDone: false, profileSetupBusy: false,
     playerProfile: { name: '', birthday: '', age: '', city: '', refinedCity: '', dailyRole: '', refinedRole: '', livingStatus: '', refinedLivingStatus: '', relationships: '', parents: '', parentStatus: '', parentDeathCause: '', worldbuildingNote: '', notes: '', profileEnrichedAt: '', initializedAt: '' }, playerName: '',

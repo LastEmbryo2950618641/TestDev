@@ -56,6 +56,9 @@ window.GameModules.playerIdentityActions = {
   },
 
   async openIdentityApp() {
+    this.appHasOpened = true;
+    this.appSwitcherOpen = false;
+    this.appClosing = false;
     this.identityAppOpen = true;
     this.desktopUnlocked = true;
     await this.ensurePlayerRpgState();

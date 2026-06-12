@@ -19,7 +19,9 @@ window.GameModules.coreActions = {
     const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
     if (!fromGestureZone && viewportHeight && y < viewportHeight - 88) return;
     event.preventDefault();
+    if (this.appDragging) return;
     event.currentTarget?.setPointerCapture?.(event.pointerId);
+    this.appGesturePointerId = event.pointerId;
     this.appDragStartY = y;
     this.appDragY = 0;
     this.appDragPeakY = 0;
@@ -28,17 +30,19 @@ window.GameModules.coreActions = {
   },
 
   appGestureMove(event) {
-    if (!this.appDragging) return;
+    if (!this.appDragging || (this.appGesturePointerId !== null && event.pointerId !== this.appGesturePointerId)) return;
     event.preventDefault();
     this.appDragY = Math.min(0, (event.clientY || 0) - this.appDragStartY);
     this.appDragPeakY = Math.min(this.appDragPeakY || 0, this.appDragY);
   },
 
-  appGestureEnd() {
-    if (!this.appDragging) return;
-    const threshold = this.appGestureFromHomeZone ? -36 : -96;
-    const shouldClose = Math.min(this.appDragY, this.appDragPeakY || 0) < threshold;
+  appGestureEnd(event = null) {
+    if (!this.appDragging || (event && this.appGesturePointerId !== null && event.pointerId !== this.appGesturePointerId)) return;
+    const distance = Math.abs(Math.min(this.appDragY, this.appDragPeakY || 0));
+    const threshold = this.appGestureFromHomeZone ? 28 : 88;
+    const shouldClose = distance >= threshold;
     this.appDragging = false;
+    this.appGesturePointerId = null;
     this.appDragY = 0;
     this.appDragPeakY = 0;
     this.appGestureFromHomeZone = false;
@@ -53,8 +57,12 @@ window.GameModules.coreActions = {
 
   closeAppToDesktop() {
     if (this.appClosing) return;
+    this.appDragging = false;
+    this.appGesturePointerId = null;
+    this.appDragY = 0;
+    this.appDragPeakY = 0;
     this.appClosing = true;
-    setTimeout(() => {
+    window.setTimeout(() => {
       this.desktopUnlocked = false;
       this.appClosing = false;
       this.appSwitcherOpen = false;
