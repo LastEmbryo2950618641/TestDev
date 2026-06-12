@@ -139,7 +139,11 @@ window.GameModules.playerSetupActions = {
     const worldTag = window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
     await window.GameModules.rpgLexicon.saveMany(this.playerProfileLexiconFields().map((field) => ({
       worldTag, kind: '玩家设定', name: field.label, value: field.raw || field.value, summary: field.value,
-      description: field.desc, aiGenerated: !['姓名', '生日', '年龄', '人际关系', '备注'].includes(field.label), source: 'ai',
+      description: field.desc,
+      nameAiGenerated: false,
+      valueAiGenerated: !['姓名', '生日', '年龄', '人际关系', '备注'].includes(field.label),
+      changeMode: ['姓名', '生日', '人际关系', '备注'].includes(field.label) ? '用户主动' : 'AI演算',
+      source: 'ai',
     })));
   },
 

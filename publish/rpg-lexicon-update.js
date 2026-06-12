@@ -25,6 +25,9 @@ Object.assign(window.GameModules.rpgLexicon, {
       if (!Object.prototype.hasOwnProperty.call(patch, key) || patch[key] === undefined || patch[key] === null) continue;
       next[key] = Array.isArray(patch[key]) ? patch[key].map(String) : patch[key];
     }
+    next.nameAiGenerated = existing.nameAiGenerated;
+    next.valueAiGenerated = existing.valueAiGenerated;
+    next.changeMode = existing.changeMode;
     next.promptInstruction = existing.promptInstruction || this.defaultPromptInstruction(kind, name);
     next.source = patch.source || 'ai';
     return this.entry(worldTag, kind, name, next);

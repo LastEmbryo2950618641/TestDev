@@ -15,13 +15,21 @@ window.GameModules.rpgLexicon = {
       summary: String(data.summary || data.desc || data.description || '').slice(0, 80),
       description: String(data.description || data.desc || data.summary || '').slice(0, 240),
       value: Object.prototype.hasOwnProperty.call(data, 'value') ? data.value : null,
-      aiGenerated: Boolean(data.aiGenerated),
+      nameAiGenerated: Boolean(data.nameAiGenerated ?? data.aiGenerated),
+      valueAiGenerated: Boolean(data.valueAiGenerated),
+      changeMode: String(data.changeMode || this.defaultChangeMode(data.source)).slice(0, 80),
       promptInstruction: String(data.promptInstruction || this.defaultPromptInstruction(kind, clean)).slice(0, 260),
       aliases: Array.isArray(data.aliases) ? data.aliases.slice(0, 6).map(String) : [],
       related: Array.isArray(data.related) ? data.related.slice(0, 12).map(String) : [],
       meta: data.meta || {},
       source: data.source || 'runtime',
     };
+  },
+
+  defaultChangeMode(source) {
+    if (source === 'schema' || source === 'system') return '代码计算';
+    if (source === 'player') return '用户主动';
+    return 'AI演算';
   },
 
   defaultPromptInstruction(kind, name) {
@@ -38,7 +46,7 @@ window.GameModules.rpgLexicon = {
   async save(worldTag, kind, name, data) {
     const clean = this.normalizeName(name);
     const old = this.get(worldTag, kind, clean);
-    const entry = this.entry(worldTag, kind, clean, { ...data, aiGenerated: old?.aiGenerated ?? data?.aiGenerated, promptInstruction: old?.promptInstruction || data?.promptInstruction });
+    const entry = this.entry(worldTag, kind, clean, { ...data, nameAiGenerated: old?.nameAiGenerated ?? old?.aiGenerated ?? data?.nameAiGenerated ?? data?.aiGenerated, valueAiGenerated: old?.valueAiGenerated ?? data?.valueAiGenerated, changeMode: old?.changeMode || data?.changeMode, promptInstruction: old?.promptInstruction || data?.promptInstruction });
     if (!entry) return null;
     await window.GameModules.sqliteSave.saveLexiconEntry?.(entry);
     return entry;
@@ -50,7 +58,7 @@ window.GameModules.rpgLexicon = {
     const now = new Date().toISOString();
     for (const raw of entries) {
       const old = this.get(raw.worldTag, raw.kind, raw.name);
-      const entry = this.entry(raw.worldTag, raw.kind, raw.name, { ...raw, aiGenerated: old?.aiGenerated ?? raw.aiGenerated, promptInstruction: old?.promptInstruction || raw.promptInstruction });
+      const entry = this.entry(raw.worldTag, raw.kind, raw.name, { ...raw, nameAiGenerated: old?.nameAiGenerated ?? old?.aiGenerated ?? raw.nameAiGenerated ?? raw.aiGenerated, valueAiGenerated: old?.valueAiGenerated ?? raw.valueAiGenerated, changeMode: old?.changeMode || raw.changeMode, promptInstruction: old?.promptInstruction || raw.promptInstruction });
       if (!entry) continue;
       save.db.run(
         'INSERT OR REPLACE INTO lexicon_entries(world_tag,kind,name,entry_json,source,created_at,updated_at) VALUES (?,?,?,?,?,COALESCE((SELECT created_at FROM lexicon_entries WHERE world_tag=? AND kind=? AND name=?),?),?)',

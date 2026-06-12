@@ -7,15 +7,15 @@ Object.assign(window.GameModules.rpgLexicon, {
     const entries = [];
     for (const section of state?.schema?.sections || []) {
       for (const field of section.fields || []) {
-        entries.push({ worldTag, kind: '属性', name: field.label, value: values[field.key], desc: field.desc, aiGenerated: false, source: 'schema', meta: { key: field.key, type: field.type, grade: Boolean(field.grade) } });
+        entries.push({ worldTag, kind: '属性', name: field.label, value: values[field.key], desc: field.desc, nameAiGenerated: false, valueAiGenerated: false, changeMode: '代码计算', source: 'schema', meta: { key: field.key, type: field.type, grade: Boolean(field.grade) } });
       }
     }
     this.collectLearned(entries, worldTag, '知识', values.knowledge);
     this.collectLearned(entries, worldTag, '技能', values.skills);
     this.collectLearned(entries, worldTag, '职业', values.professions);
     this.collectLearned(entries, worldTag, '装备', values.equipment);
-    for (const name of values.factions || []) entries.push({ worldTag, kind: '阵营', name, desc: `${name}相关势力、组织或社会位置。`, aiGenerated: false, source: 'state' });
-    for (const name of values.status_tags || []) entries.push({ worldTag, kind: '状态', name, desc: `${name}表示角色当前处境、身份或剧情状态。`, aiGenerated: false, source: 'state' });
+    for (const name of values.factions || []) entries.push({ worldTag, kind: '阵营', name, desc: `${name}相关势力、组织或社会位置。`, nameAiGenerated: false, valueAiGenerated: false, changeMode: '代码计算', source: 'state' });
+    for (const name of values.status_tags || []) entries.push({ worldTag, kind: '状态', name, desc: `${name}表示角色当前处境、身份或剧情状态。`, nameAiGenerated: false, valueAiGenerated: false, changeMode: '代码计算', source: 'state' });
     return entries;
   },
 
@@ -28,7 +28,9 @@ Object.assign(window.GameModules.rpgLexicon, {
         summary: item.summary || item.effect || item.desc || item.source,
         description: item.info?.description || item.effect || item.desc || item.source || `${name}的资料。`,
         value: typeof item === 'string' ? item : item,
-        aiGenerated: true,
+        nameAiGenerated: true,
+        valueAiGenerated: true,
+        changeMode: 'AI演算',
         related: [...(item.linkedStats || []), ...(item.info?.learnedAbilities || []), ...(item.info?.worldAbilities || [])],
         meta: { info: { ...(item.info || {}), levelDescription: item.levelDescription, effect: item.effect } },
         source: item.info ? 'ai' : 'state',

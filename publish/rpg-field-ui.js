@@ -50,7 +50,9 @@ window.GameModules.rpgFieldUi = {
       `等级说明: ${obj?.levelDescription || info.levelDescription || '暂无'}`,
       `当前作用: ${obj?.effect || info.effect || '暂无'}`,
       `来源: ${obj?.source || info.summary || lexicon?.summary || '暂无'}`,
-      `AI生成: ${lexicon?.aiGenerated ? '是' : '否'}`,
+      `词条名AI生成: ${(lexicon?.nameAiGenerated ?? lexicon?.aiGenerated) ? '是' : '否'}`,
+      `值AI生成: ${lexicon?.valueAiGenerated ? '是' : '否'}`,
+      `变化方式: ${lexicon?.changeMode || '暂无'}`,
       `提示词说明: ${lexicon?.promptInstruction || '暂无'}`,
       `关联身内能力: ${linkedStats.join('、') || '暂无'}`,
     ];
@@ -65,7 +67,9 @@ window.GameModules.rpgFieldUi = {
   rpgFieldDetail(field) {
     const lexicon = this.lexiconFor(field);
     const lines = [`说明: ${lexicon?.description || lexicon?.summary || field?.desc || this.fallbackDesc(field)}`];
-    lines.push(`AI生成: ${lexicon?.aiGenerated ? '是' : '否'}`);
+    lines.push(`词条名AI生成: ${(lexicon?.nameAiGenerated ?? lexicon?.aiGenerated) ? '是' : '否'}`);
+    lines.push(`值AI生成: ${lexicon?.valueAiGenerated ? '是' : '否'}`);
+    lines.push(`变化方式: ${lexicon?.changeMode || '暂无'}`);
     if (lexicon?.promptInstruction) lines.push(`提示词说明: ${lexicon.promptInstruction}`);
     if (field?.source) lines.push(`来源: 初始值(${field.source.initial || 0}) + 等级值(${field.source.level || 0}) + 分配值(${field.source.allocated || 0}) + 非玩家成长(${field.source.npc || 0}) = ${field.raw || 0}`);
     if (field?.key === 'free_attribute_points') lines.push('用途: 可分配到力量、敏捷、体质、智力、感知、意志、魅力；每次真实升级获得1点。');

@@ -24,7 +24,9 @@ worldTag：所属世界或现实设定
 ownerId：所属角色、阵营、地点或存档 ID，可为空
 summary：短说明，用于列表和标签
 description：详细说明，用于展开卡片
-aiGenerated：是否由 AI 首次生成并固化，true 表示 AI 首次生成后入库，false 表示代码/schema 规定
+nameAiGenerated：词条名是否由 AI 首次生成并固化
+valueAiGenerated：词条值是否由 AI 首次生成并固化
+changeMode：变化方式，AI演算 / 代码计算（{计算公式}）/ 用户主动
 promptInstruction：提示词说明，定义 AI 生成/修改该词条时必须遵守的生成内容与改变要求
 source：来源，schema / ai / state / player / system / imported
 visibility：可见性，public / discovered / hidden / system
@@ -37,9 +39,10 @@ meta：类型专属扩展字段
 字段说明：
 
 - `promptInstruction` 与 `description` 不同：`description` 给玩家/AI 解释词条含义，`promptInstruction` 约束 AI 如何生成或何时允许修改该词条。
-- `aiGenerated` 只用于固化记录和界面展示，不进入剧情提示词；知识、技能、职业、玩家设定等 AI 首次生成词条为 `true`，代码/schema 固定词条为 `false`。
+- `nameAiGenerated` 只记录词条名初始来源，`valueAiGenerated` 只记录词条值初始来源；两者都只用于固化记录和界面展示，不进入剧情提示词。旧字段 `aiGenerated` 仅作为兼容旧存档的词条名来源回退。
+- `changeMode` 只用于开发者/玩家查看，不进入剧情提示词：`AI演算` 表示完全由 AI 根据上下文推演变化，`代码计算（{计算公式}）` 表示按固定公式变化，`用户主动` 表示由玩家手动增加或完成任务获得具体变化。
 - AI 批量修改词条时只能修改传入字段；未传字段必须保持原值。
-- AI 可以修改 `summary`、`description`、`value`、`aliases`、`related`、`meta`，但不能修改 `promptInstruction`。
+- AI 可以修改 `summary`、`description`、`value`、`aliases`、`related`、`meta`，但不能修改 `promptInstruction`、`nameAiGenerated`、`valueAiGenerated`、`changeMode`。
 - AI 批量修改接口为 `window.GameModules.rpgLexicon.applyAiUpdates(updates)`，每项必须定位 `worldTag + kind + name`；示例：`{ worldTag, kind, name, value, description }`。
 - 示例：具体地址的 `promptInstruction` 为“生成内容：精确为省 / 市州 / 区县 / 镇街道 / 社区或小区 / 楼栋 / 门牌。改变要求：玩家明确已经搬到了指定地区，则可以改变。”
 - `scope=global`：全游戏通用概念，如“经验值”“等级”。
