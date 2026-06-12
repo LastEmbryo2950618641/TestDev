@@ -6,7 +6,7 @@ window.GameModules.playerSetupActions = {
     return [
       `姓名/代号：${p.name || this.playerName || '未填写'}`,
       `生日/年龄：${p.birthday || '未填写'}｜${p.age || '未知'}岁`,
-      `城市：${p.refinedCity || p.city || '未填写'}`,
+      `具体地址：${p.refinedCity || p.city || '未填写'}`,
       `身份：${p.refinedRole || p.dailyRole || '未填写'}`,
       `居住：${p.refinedLivingStatus || p.livingStatus || '未填写'}`,
       `父母：${p.parentStatus || p.parents || '父母已故'}`,
@@ -72,7 +72,7 @@ window.GameModules.playerSetupActions = {
 
   async enrichPlayerProfile(base) {
     if (!window.dzmm?.completions) throw new Error('dzmm.completions unavailable');
-    const prompt = `你负责补全2026现代都市互动小说的玩家现实身份。只返回JSON。不要改玩家姓名和生日。若parents为空，必须设parentStatus为“父母已故”，并生成现实、克制、合理的parentDeathCause。根据birthday计算出的年龄${base.age}补全身份；例如高中生应细化为具体学校与年级。城市不够具体时细化到区县/街道/小区等未知但合理地点。\n输入=${JSON.stringify(base)}\n返回字段:{"refinedCity":"更具体地点","refinedRole":"更具体身份","refinedLivingStatus":"更具体居住状态","parentStatus":"父母状态","parentDeathCause":"父母去世原因或空","worldbuildingNote":"60字内现实背景补充"}`;
+    const prompt = `你负责补全2026现代都市互动小说的玩家现实身份。只返回JSON。不要改玩家姓名和生日。若parents为空，必须设parentStatus为“父母已故”，并生成现实、克制、合理的parentDeathCause。根据birthday计算出的年龄${base.age}补全身份；例如高中生应细化为具体学校与年级。玩家填写的是具体地址，不是城市；若只写“四川省”这类省/市/县级信息，refinedCity必须补成省-市/州-区县-镇/街道-社区/小区-楼栋-门牌的准确格式，例如“四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号”。所有词条值都必须可落库、可判定、不可含“某处/一处/普通/未知/等/附近/片区”这类模糊词。\n输入=${JSON.stringify(base)}\n返回字段:{"refinedCity":"省市区县镇街道小区楼栋门牌","refinedRole":"更具体身份","refinedLivingStatus":"更具体居住状态","parentStatus":"父母状态","parentDeathCause":"父母去世原因或空","worldbuildingNote":"60字内现实背景补充"}`;
     let buffer = '';
     await Promise.race([
       window.dzmm.completions({ model: this.modelId, messages: [{ role: 'user', content: prompt }], maxTokens: 1200 }, (chunk) => {
@@ -84,7 +84,7 @@ window.GameModules.playerSetupActions = {
   },
 
   normalizeEnrichedPlayerProfile(base, data = {}) {
-    const city = String(data?.refinedCity || this.fallbackRefinedCity(base.city)).slice(0, 80);
+    const city = this.ensurePreciseAddress(data?.refinedCity || base.city);
     const role = String(data?.refinedRole || this.fallbackRefinedRole(base.dailyRole, base.age, city)).slice(0, 80);
     const noParents = !base.parents;
     const status = String(data?.parentStatus || (noParents ? '父母已故' : base.parents)).slice(0, 80);
@@ -93,22 +93,32 @@ window.GameModules.playerSetupActions = {
       ...base,
       refinedCity: city,
       refinedRole: role,
-      refinedLivingStatus: String(data?.refinedLivingStatus || base.livingStatus || `${city}普通住处`).slice(0, 80),
+      refinedLivingStatus: String(data?.refinedLivingStatus || base.livingStatus || `${city}，长期居住地址已登记`).slice(0, 100),
       parentStatus: noParents ? (status.includes('已故') ? status : '父母已故') : status,
       parentDeathCause: noParents ? cause : cause,
-      worldbuildingNote: String(data?.worldbuildingNote || `${base.age}岁的${role}，生活在${city}，刚激活一台新手机。`).slice(0, 120),
+      worldbuildingNote: String(data?.worldbuildingNote || `${base.age}岁的${role}，登记住址为${city}，刚激活一台新手机。`).slice(0, 120),
       profileEnrichedAt: new Date().toISOString(),
     };
   },
 
-  fallbackRefinedCity(city) {
-    const value = city || '未设定城市';
-    if (/县|市|区|省/.test(value)) return `${value}城南片区一处普通居民小区`;
-    return value;
+  ensurePreciseAddress(address) {
+    const value = String(address || '').trim();
+    const vague = !value || /某|一处|普通|未知|附近|片区|等/.test(value);
+    const precise = /省.+(市|州).+(区|县|市).+(镇|街道).+(社区|小区|家属院|公寓|花园).+(栋|号楼).+(号|室)/.test(value);
+    if (!vague && precise) return value.slice(0, 100);
+    return this.fallbackPreciseAddress(value).slice(0, 100);
+  },
+
+  fallbackPreciseAddress(address) {
+    if (/四川/.test(address || '')) return '四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号';
+    if (/北京/.test(address || '')) return '北京市朝阳区望京街道花家地社区望京西园一区6号楼2单元502号';
+    if (/上海/.test(address || '')) return '上海市浦东新区花木街道牡丹社区牡丹苑小区12号楼1单元803号';
+    if (/广东|广州/.test(address || '')) return '广东省广州市天河区石牌街道龙口西社区天誉花园8栋1单元701号';
+    return `${address || '四川省成都市武侯区'}玉林街道玉林北路社区锦苑小区3栋2单元601号`;
   },
 
   fallbackRefinedRole(role, age, city) {
-    const place = (city || '本地').replace(/(省|市|县|区|街道|片区|一处普通居民小区)/g, '').slice(-4) || '本地';
+    const place = (city || '本地').replace(/(省|市|县|区|镇|街道|社区|小区|家属院|公寓|花园|栋|号楼|单元|号|室)/g, '').slice(-4) || '本地';
     if (/高中|学生/.test(role || '') && age) {
       const grade = age <= 16 ? '高一年级' : (age >= 18 ? '高三年级' : '高二年级');
       return `${place}第一中学${grade}学生`;

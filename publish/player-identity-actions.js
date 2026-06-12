@@ -15,7 +15,7 @@ window.GameModules.playerIdentityActions = {
     return {
       id: 'player-self', name, age: p.age || '', birthday: p.birthday || '', work: world.label || '2026 现代都市现实世界', role, job: role,
       rank: living, faction: city, importance: 'main', isPlayer: true,
-      detail: `年龄：${p.age || '未知'}；生日：${p.birthday || '未知'}；城市：${city}；居住：${living}；父母：${parents}；去世原因：${deathCause}；关系：${relations}；备注：${notes}`,
+      detail: `年龄：${p.age || '未知'}；生日：${p.birthday || '未知'}；具体地址：${city}；居住：${living}；父母：${parents}；去世原因：${deathCause}；关系：${relations}；备注：${notes}`,
       personality: notes,
       skills: [
         { name: '手机操作', desc: '熟悉现代智能手机与移动互联网基础操作。' },
