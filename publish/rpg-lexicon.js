@@ -94,14 +94,14 @@ window.GameModules.rpgLexicon = {
   defaultPromptInstruction(kind, name) {
     if (kind === '玩家设定') return this.playerPromptInstruction(name);
     if (kind === '属性') return this.attributePromptInstruction(name);
-    if (kind === '职业树') return this.compactPrompt('职业等级父词条，汇总角色长期社会功能或专业身份产生的职业子词条', '新增、失去、升级或修正任一职业子词条时才可改变。');
+    if (kind === '职业树') return this.compactPrompt('职业等级父词条，汇总角色内化的长期能力、经验与胜任资格', '获得长期训练、遗忘失能、升级或修正任一职业子词条时才可改变。');
     if (kind === '知识树') return this.compactPrompt('知识储备父词条，汇总角色已掌握知识领域及其等级子词条', '新增、遗忘、升级或修正任一知识子词条时才可改变。');
     if (kind === '技能树') return this.compactPrompt('技能等级父词条，汇总角色经过训练或实践获得的技能子词条', '新增、遗忘、升级、伤病限制或修正任一技能子词条时才可改变。');
-    if (kind === '职业') return this.compactPrompt('真实职业、训练身份或社会功能，含等级、经验、职责与当前作用', '获得/失去职位、训练认证、长期实践、剧情判定升级或身份被撤销时才可改变。');
+    if (kind === '职业') return this.compactPrompt('内化职业能力、经验与胜任资格，含等级、经验和可胜任范围，不等同当前岗位', '获得长期训练、遗忘失能、职业升级或设定修正时才可改变。');
     if (kind === '知识') return this.compactPrompt('具体知识领域，含等级、经验、来源与当前可用范围', '学习、调查、阅读、授课、记忆恢复或遗忘事件明确结算时才可改变。');
     if (kind === '技能') return this.compactPrompt('可执行行动能力，含等级、经验、熟练度与当前效果', '训练、实战使用、教学、失败复盘、伤病限制或升级结算时才可改变。');
     if (kind === '装备') return this.compactPrompt('当前持有或可调用的重要物品，含效果、状态与持有者', '获得、消耗、损坏、丢失、转让、维修或升级改造时才可改变。');
-    if (kind === '阵营') return this.compactPrompt('所属组织、社会位置、权限、声望与关系状态', '加入、退出、背叛、任命、处罚、声望结算或组织关系变化时才可改变。');
+    if (kind === '阵营') return this.compactPrompt('阵营地位叶子词条，名称与定义都必须写明阵营和地位两个字段', '加入退出阵营、住址工作单位变化、任免岗位或关系变化时才可改变。');
     if (kind === '状态') return this.compactPrompt('当前处境、身份标签或异常状态，含触发原因与持续条件', '触发条件出现、强度变化、持续时间结束或解除条件达成时才可改变。');
     return this.compactPrompt(`${kind || '词条'}“${name}”的准确、可落库、可判定内容`, '同类词条对应的数值、归属、状态或规则来源完成结算时才可改变。');
   },

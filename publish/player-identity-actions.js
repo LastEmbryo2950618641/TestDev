@@ -9,13 +9,15 @@ window.GameModules.playerIdentityActions = {
     const role = p.refinedRole || p.dailyRole || world.defaults?.dailyRole || '现代都市居民';
     const living = p.refinedLivingStatus || p.livingStatus || world.defaults?.livingStatus || '生活状态未设定';
     const parents = p.parentStatus || p.parents || '父母已故';
+    const workplace = p.workplace || window.GameModules.socialPosition?.workplace(role, city) || city;
+    const position = p.position || window.GameModules.socialPosition?.position(role) || living;
     const deathCause = p.parentDeathCause || '父母去世原因未记录';
     const relations = p.relationships || '人际关系由玩家自行设定，当前未填写';
     const notes = [p.worldbuildingNote, p.notes].filter(Boolean).join('；') || '暂无补充设定';
     return {
       id: 'player-self', name, age: p.age || '', birthday: p.birthday || '', gender: p.gender || '', work: world.label || '2026 现代都市现实世界', role, job: role,
-      rank: living, faction: city, importance: 'main', isPlayer: true,
-      detail: `性别：${p.gender || '未知'}；年龄：${p.age || '未知'}；生日：${p.birthday || '未知'}；具体地址：${city}；居住：${living}；父母：${parents}；去世原因：${deathCause}；关系：${relations}；备注：${notes}`,
+      rank: position, faction: workplace, city, workplace, position, importance: 'main', isPlayer: true,
+      detail: `性别：${p.gender || '未知'}；年龄：${p.age || '未知'}；生日：${p.birthday || '未知'}；具体地址：${city}；工作阵营：${workplace}；地位：${position}；居住：${living}；父母：${parents}；去世原因：${deathCause}；关系：${relations}；备注：${notes}`,
       personality: notes,
       skills: [
         { name: '手机操作', desc: '能够使用智能手机完成通讯、检索、拍摄、设置、应用切换和信息处理等操作。' },
@@ -72,7 +74,7 @@ window.GameModules.playerIdentityActions = {
     state.note = character.detail;
     state.values.age = Number.isFinite(Number(character.age)) ? Number(character.age) : state.values.age;
     state.values.status_tags = ['玩家本人', '手机主人', character.work, character.role];
-    state.values.factions = [character.faction, character.rank].filter(Boolean);
+    state.values.factions = window.GameModules.socialPosition.playerItems({ ...this.playerProfile, workplace: character.workplace, position: character.position });
     window.GameModules.progression.ensureStateMechanics(state, character);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
     await window.GameModules.sqliteSave.saveCharacterState(state);

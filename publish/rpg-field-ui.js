@@ -26,7 +26,7 @@ window.GameModules.rpgFieldUi = {
   lexiconFor(field, item = null) {
     const worldTag = field?.worldTag || this.currentRpgState?.worldTag || this.character?.work || '原创世界';
     const kind = this.lexiconKind(field, item);
-    const name = (typeof item === 'string' ? item : item?.name) || field?.label;
+    const name = this.rpgItemSummary(item) || field?.label;
     return window.GameModules.rpgLexicon.get(worldTag, kind, name) || null;
   },
 
@@ -40,7 +40,8 @@ window.GameModules.rpgFieldUi = {
 
   rpgItemSummary(item) {
     if (typeof item === 'string') return item;
-    return Number(item?.level) > 0 ? `${item?.name || '未命名'} lv.${item.level}` : (item?.name || '未命名');
+    const name = item?.name || (item?.faction ? `${item.faction} / ${item.position || '成员'}` : '未命名');
+    return Number(item?.level) > 0 ? `${name} lv.${item.level}` : name;
   },
 
   learnedDefinition(kind, name, obj = {}, lexicon = null, info = {}) {
@@ -50,7 +51,12 @@ window.GameModules.rpgFieldUi = {
     if (name === '手机操作') return '能够使用智能手机完成通讯、检索、拍摄、设置、应用切换和信息处理等操作。';
     if (name === '现实观察' || name === '观察') return '通过细节、环境变化和他人反应判断局势的能力。';
     if (kind === '知识') return `对“${name}”这一知识领域的概念、规则、背景和应用范围的理解程度。`;
-    if (kind === '职业') return `以“${name}”为核心的职业身份、职责范围、专业能力和社会资源。`;
+    if (kind === '职业') return `以“${name}”为核心的内化职业能力、经验与胜任资格；不等同当前雇佣单位或岗位，失业也不直接失去该职业。`;
+    if (kind === '阵营') {
+      const faction = obj.faction || info.faction || name.split('/')[0]?.trim();
+      const position = obj.position || info.position || name.split('/')[1]?.trim() || '成员';
+      return `阵营：${faction}；地位：${position}。该词条说明角色所属组织、地点或群体，以及其在其中的身份层级。`;
+    }
     return `执行“${name}”相关行动时所需的理解、操作熟练度和稳定发挥能力。`;
   },
 
@@ -65,6 +71,7 @@ window.GameModules.rpgFieldUi = {
     const name = obj?.name || field?.label || '未知';
     const hasLevel = Number(obj?.level) > 0;
     const lines = [`名称: ${name}`, `定义: ${this.learnedDefinition(kind, name, obj, lexicon, info)}`, `类型: ${kind}`];
+    if (kind === '阵营' && (obj?.faction || info.faction)) lines.push(`阵营: ${obj.faction || info.faction}`, `地位: ${obj.position || info.position || '成员'}`);
     if (hasLevel) {
       lines.push(`等级: lv${obj.level}`);
       lines.push(`当前等级含义: ${obj?.levelDescription || info.levelDescription || window.GameModules.progression.levelDescription(kind, obj.level)}`);

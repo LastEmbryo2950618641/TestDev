@@ -23,7 +23,7 @@ window.GameModules.progression = {
       ].map(([key, label, desc]) => this.field(key, label, 'number', 0, 100, desc)) },
       { title: '习得与职业', fields: [
         this.field('knowledge', '知识储备', 'list', 0, 100, '已掌握的知识领域及等级。'), this.field('skills', '技能等级', 'list', 0, 100, '经过学习或训练获得的技能等级。'),
-        this.field('professions', '职业等级', 'list', 0, 100, '已固化的真实职业、训练身份或社会功能。'), this.field('factions', '阵营地位', 'list', 0, 100, '所属势力、社会关系或阵营位置。'),
+        this.field('professions', '职业等级', 'list', 0, 100, '已内化的职业能力、经验与胜任资格。'), this.field('factions', '阵营地位', 'list', 0, 100, '所属阵营与在其中的地位。'),
         this.field('equipment', '装备', 'list', 0, 100, '当前持有或可调用的重要装备。'), this.field('status_tags', '状态标签', 'list', 0, 100, '当前处境、身份标签或剧情状态。'),
         this.field('control_experience', '上线体验', 'text', 0, 100, '角色对被玩家上线操控的经历记录。'), this.field('derived', '攻防衍生', 'text', 0, 100, '由基础能力推导出的攻防表现。'),
         this.field('combat_simulation', '战斗模拟', 'text', 0, 100, '基于当前状态估算的一次战斗表现。'),
@@ -94,7 +94,7 @@ window.GameModules.progression = {
       knowledge: existing.knowledge?.length ? existing.knowledge : this.knowledge(character, seed),
       skills: existing.skills?.[0]?.level ? existing.skills : this.skills(character, seed),
       professions: existing.professions?.length ? existing.professions : this.professions(character, seed),
-      factions: existing.factions || [character.faction || character.role || '无'].filter((x) => x && x !== '无'),
+      factions: existing.factions || this.factions(character),
       derived: {},
     };
   },
@@ -121,10 +121,13 @@ window.GameModules.progression = {
   },
 
   professions(character, seed) {
-    const name = window.GameModules.professionInfo.normalizeJobName(character.job);
-    return name && !this.isStageIdentity(name) ? [this.learned(name, '职业', 1 + seed % 3, ['intelligence', 'willpower', 'charisma'], character.rank || this.learnedDefinition(name, '职业'))] : [];
+    return (window.GameModules.socialPosition?.splitRole(character.job) || [character.job]).map((x) => window.GameModules.professionInfo.normalizeJobName(x)).filter((x) => x && !this.isStageIdentity(x)).slice(0, 3).map((name, index) => this.learned(name, '职业', 1 + ((seed + index) % 3), ['intelligence', 'willpower', 'charisma'], this.learnedDefinition(name, '职业')));
   },
-
+  factions(character) {
+    const social = window.GameModules.socialPosition;
+    if (character.isPlayer && social) return social.playerItems(character.profile || character);
+    return character.faction ? [social?.item?.(character.faction, character.rank || character.role || '成员') || character.faction] : [character.role || '无'].filter((x) => x && x !== '无');
+  },
   normalizeLearnedLists(values) {
     if (!values) return false;
     let changed = false;
@@ -144,8 +147,6 @@ window.GameModules.progression = {
     const definition = this.learnedDefinition(cleanName, type, source);
     return { name: cleanName, type, level: lv, exp: { current: 0, next: this.learnedNext[lv] }, linkedStats, source: definition, description: definition, levelDescription: this.levelDescription(type, lv), effect: this.levelEffect(cleanName, type, lv) };
   },
-
-
   linkedStats(name) {
     if (/剑|战|拳|武|射|枪/.test(name)) return ['strength', 'agility', 'perception'];
     if (/魔|术|医|学|分析/.test(name)) return ['intelligence', 'perception', 'willpower'];

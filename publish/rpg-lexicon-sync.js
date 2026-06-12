@@ -15,13 +15,26 @@ Object.assign(window.GameModules.rpgLexicon, {
     this.collectLearned(entries, worldTag, '技能', values.skills);
     this.collectLearned(entries, worldTag, '职业', values.professions);
     this.collectLearned(entries, worldTag, '装备', values.equipment);
-    for (const name of values.factions || []) entries.push({ worldTag, kind: '阵营', name, desc: `${name}相关势力、组织或社会位置。`, nameAiGenerated: this.isAiStateName(name, state), valueAiGenerated: true, changeMode: 'AI演算', source: 'state' });
+    for (const item of values.factions || []) {
+      const entry = this.factionEntry(worldTag, item, state);
+      if (entry) entries.push(entry);
+    }
     for (const name of values.status_tags || []) entries.push({ worldTag, kind: '状态', name, desc: `${name}表示角色当前处境、身份或剧情状态。`, nameAiGenerated: this.isAiStateName(name, state), valueAiGenerated: true, changeMode: 'AI演算', source: 'state' });
     return entries;
   },
 
   isAiStateName(name, state) {
     return ![state?.name, state?.worldTag, state?.profile?.role, '路人', '可被操控', '玩家本人', '手机主人'].includes(name);
+  },
+
+  factionEntry(worldTag, item, state) {
+    const obj = typeof item === 'string' ? { faction: item, position: '成员' } : item;
+    const faction = String(obj?.faction || obj?.name || '').trim();
+    const position = String(obj?.position || obj?.rank || '成员').trim();
+    if (!faction) return null;
+    const name = obj.name && obj.name.includes('/') ? obj.name : `${faction} / ${position}`;
+    const description = obj.description || `阵营：${faction}；地位：${position}。该词条表示角色所属组织、地点或群体，以及其在其中的身份层级。`;
+    return { worldTag, kind: '阵营', name, summary: `${faction}中的${position}`, description, value: { ...obj, name, faction, position, level: -1 }, nameAiGenerated: this.isAiStateName(name, state), valueAiGenerated: true, changeMode: obj.changeMode || 'AI演算', source: 'state', meta: { info: { faction, position, level: -1 } } };
   },
 
   learnedDescription(kind, name, item) {
@@ -31,7 +44,8 @@ Object.assign(window.GameModules.rpgLexicon, {
     if (name === '手机操作') return '能够使用智能手机完成通讯、检索、拍摄、设置、应用切换和信息处理等操作。';
     if (name === '现实观察' || name === '观察') return '通过细节、环境变化和他人反应判断局势的能力。';
     if (kind === '知识') return `对“${name}”这一知识领域的概念、规则、背景和应用范围的理解程度。`;
-    if (kind === '职业') return `以“${name}”为核心的职业身份、职责范围、专业能力和社会资源。`;
+    if (kind === '职业') return `以“${name}”为核心的内化职业能力、经验与胜任资格；不等同当前雇佣单位或岗位，失业也不直接失去该职业。`;
+    if (kind === '阵营') return `阵营与地位词条，说明角色所属组织、地点或群体，以及其在其中的身份层级。`;
     return `执行“${name}”相关行动时所需的理解、操作熟练度和稳定发挥能力。`;
   },
 

@@ -12,6 +12,8 @@ window.GameModules.playerSetupActions = {
       row('年龄', p.age ? `${p.age}岁` : '', '由生日按2026-06-12计算得到。'),
       row('具体地址', p.refinedCity || p.city, '玩家当前登记住址。'),
       row('现实身份', p.refinedRole || p.dailyRole, '玩家在2026现实世界中的日常身份。'),
+      row('工作阵营', p.workplace, '玩家当前工作、学习或活动阵营。'),
+      row('阵营地位', p.position, '玩家在该阵营中的岗位或身份层级。'),
       row('居住状态', p.refinedLivingStatus || p.livingStatus, '玩家当前居住与生活状态。'),
       row('父母状态', p.parentStatus || p.parents || '父母已故', '玩家父母当前状态。'),
       row('父母去世原因', p.parentDeathCause || '待生成', '父母已故时的入库死因。'),
@@ -45,7 +47,7 @@ window.GameModules.playerSetupActions = {
       city: '四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号',
       refinedCity: '四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号',
       dailyRole: '程序工程师lv.5，计算机科学与技术硕士lv.5',
-      refinedRole: '程序工程师lv.5，计算机科学与技术硕士lv.5',
+      refinedRole: '程序工程师lv.5，计算机科学与技术硕士lv.5', workplace: '成都星河云栈科技有限公司', position: '高级后端工程师',
       livingStatus: '与妹妹同居', refinedLivingStatus: '与妹妹同居，日常生活高度绑定',
       parents: '父母资料未同步', parentStatus: '父母资料未同步', parentDeathCause: '',
       relationships: '妹妹：与刘悠同居，有严重兄控倾向，喜欢看缘之空，私底下喜欢一句话“既然怀上了，那打掉不就好了吗”。',
@@ -105,6 +107,7 @@ window.GameModules.playerSetupActions = {
       gender: (p.gender || '').trim(),
       city: (p.city || '').trim(),
       dailyRole: (p.dailyRole || '').trim(),
+      workplace: (p.workplace || '').trim(), position: (p.position || '').trim(),
       livingStatus: (p.livingStatus || '').trim(),
       parents: (p.parents || '').trim(),
       relationships: (p.relationships || '').trim(),
@@ -115,7 +118,7 @@ window.GameModules.playerSetupActions = {
 
   async enrichPlayerProfile(base) {
     if (!window.dzmm?.completions) throw new Error('dzmm.completions unavailable');
-    const prompt = `你负责补全2026现代都市互动小说的玩家现实身份。只返回JSON。不要改玩家姓名、性别和生日。若parents为空，必须设parentStatus为“父母已故”，并生成现实、克制、合理的parentDeathCause。根据birthday计算出的年龄${base.age}与性别${base.gender || '未填写'}补全身份；例如高中生应细化为具体学校与年级。玩家填写的是具体地址，不是城市；若只写“四川省”这类省/市/县级信息，refinedCity必须补成省-市/州-区县-镇/街道-社区/小区-楼栋-门牌的准确格式，例如“四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号”。所有词条值都必须可落库、可判定、不可含“某处/一处/普通/未知/等/附近/片区”这类模糊词。\n输入=${JSON.stringify(base)}\n返回字段:{"refinedCity":"省市区县镇街道小区楼栋门牌","refinedRole":"更具体身份","refinedLivingStatus":"更具体居住状态","parentStatus":"父母状态","parentDeathCause":"父母去世原因或空","worldbuildingNote":"60字内现实背景补充"}`;
+    const prompt = `你负责补全2026现代都市互动小说的玩家现实身份。只返回JSON。不要改玩家姓名、性别和生日。若parents为空，必须设parentStatus为“父母已故”，并生成现实、克制、合理的parentDeathCause。根据birthday计算出的年龄${base.age}与性别${base.gender || '未填写'}补全身份；例如高中生应细化为具体学校与年级。职业是内化能力，workplace/position才记录当前公司学校与职位地位，必须根据refinedRole生成。玩家填写的是具体地址，不是城市；若只写“四川省”这类省/市/县级信息，refinedCity必须补成省-市/州-区县-镇/街道-社区/小区-楼栋-门牌的准确格式，例如“四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号”。所有词条值都必须可落库、可判定、不可含“某处/一处/普通/未知/等/附近/片区”这类模糊词。\n输入=${JSON.stringify(base)}\n返回字段:{"refinedCity":"省市区县镇街道小区楼栋门牌","refinedRole":"更具体身份","workplace":"根据职业生成的公司/学校/组织","position":"根据职业生成的职位/身份层级","refinedLivingStatus":"更具体居住状态","parentStatus":"父母状态","parentDeathCause":"父母去世原因或空","worldbuildingNote":"60字内现实背景补充"}`;
     return await Promise.race([
       window.GameModules.jsonUtils.generateJsonWithRetry({ model: this.modelId, maxTokens: 1200, prompt, format: prompt, max: 2 }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('身份补全超时')), 30000)),
@@ -125,17 +128,20 @@ window.GameModules.playerSetupActions = {
   normalizeEnrichedPlayerProfile(base, data = {}) {
     const city = this.ensurePreciseAddress(data?.refinedCity || base.city);
     const role = String(data?.refinedRole || this.fallbackRefinedRole(base.dailyRole, base.age, city)).slice(0, 80);
+    const social = window.GameModules.socialPosition || {};
+    const workplace = String(data?.workplace || base.workplace || social.workplace?.(role, city) || '').slice(0, 80);
+    const position = String(data?.position || base.position || social.position?.(role) || '').slice(0, 60);
     const noParents = !base.parents;
     const status = String(data?.parentStatus || (noParents ? '父母已故' : base.parents)).slice(0, 80);
     const cause = String(data?.parentDeathCause || (noParents ? this.fallbackParentDeathCause(base.age) : '')).slice(0, 120);
     return {
       ...base,
       refinedCity: city,
-      refinedRole: role,
+      refinedRole: role, workplace, position,
       refinedLivingStatus: String(data?.refinedLivingStatus || base.livingStatus || `${city}，长期居住地址已登记`).slice(0, 100),
       parentStatus: noParents ? (status.includes('已故') ? status : '父母已故') : status,
       parentDeathCause: noParents ? cause : cause,
-      worldbuildingNote: String(data?.worldbuildingNote || `${base.age}岁的${role}，登记住址为${city}，刚激活一台新手机。`).slice(0, 120),
+      worldbuildingNote: String(data?.worldbuildingNote || `${base.age}岁的${role}，就职/活动于${workplace}，地位为${position}。`).slice(0, 120),
       profileEnrichedAt: new Date().toISOString(),
     };
   },
