@@ -23,7 +23,6 @@ window.GameModules.appSwitchActions = {
   },
 
   closeAppToDesktop(keepBackground = true, targetApp = '') {
-    if (this.appClosing) return;
     const target = targetApp || this.appPausedName || this.activeAppName();
     this.appDragging = false;
     this.appGesturePointerId = null;
@@ -32,16 +31,14 @@ window.GameModules.appSwitchActions = {
     this.appGestureFromHomeZone = false;
     this.appExitChoiceOpen = false;
     this.appPausedName = '';
+    this.appClosing = false;
+    this.appSwitcherOpen = false;
     this.desktopUnlocked = false;
+    this.appActiveName = 'main';
     this.appBackgroundName = keepBackground ? target : '';
     this.appHasOpened = Boolean(this.appBackgroundName);
-    this.appClosing = true;
-    window.setTimeout(() => {
-      this.appClosing = false;
-      this.appSwitcherOpen = false;
-      if (target === 'identity') this.identityAppOpen = false;
-      if (target === 'wechat') this.wechatAppOpen = false;
-    }, 260);
+    this.identityAppOpen = false;
+    this.wechatAppOpen = false;
   },
 
   runAppInBackground() {

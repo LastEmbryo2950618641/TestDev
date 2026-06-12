@@ -249,7 +249,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.phoneSetupDone && (!$store.game.desktopUnlocked || $store.game.appClosing || $store.game.appDragging)" class="phone-desktop-screen" :class="{ 'switcher-open': $store.game.appSwitcherOpen }" @pointerdown="$store.game.desktopGestureStart($event)" @pointermove.window="$store.game.desktopGestureMove($event)" @pointerup.window="$store.game.desktopGestureEnd()" @pointercancel.window="$store.game.desktopGestureEnd()" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.phoneSetupDone && (!$store.game.desktopUnlocked || $store.game.appClosing || $store.game.appDragging || $store.game.appExitChoiceOpen)" class="phone-desktop-screen" :class="{ 'switcher-open': $store.game.appSwitcherOpen }" @pointerdown="$store.game.desktopGestureStart($event)" @pointermove.window="$store.game.desktopGestureMove($event)" @pointerup.window="$store.game.desktopGestureEnd()" @pointercancel.window="$store.game.desktopGestureEnd()" x-cloak>
     <div class="phone-frame" :class="{ 'has-running-app': $store.game.hasBackgroundApp() }">
       <div class="phone-status-bar">
         <span>21:08</span>
