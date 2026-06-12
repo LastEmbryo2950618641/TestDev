@@ -323,7 +323,7 @@
     <div class="app-home-gesture" @pointerdown="$store.game.appGestureStart($event)" @pointermove="$store.game.appGestureMove($event)" @pointerup="$store.game.appGestureEnd($event)" @pointercancel="$store.game.appGestureEnd($event)" aria-hidden="true"></div>
   </section>
 
-  <section class="app-exit-actions single" x-show="$store.game.appExitChoiceOpen" @pointerdown.stop x-cloak><button type="button" @click.stop="$store.game.closeAppToDesktop(false)">返回桌面</button></section>
+  <section class="app-exit-actions single" x-show="$store.game.appExitChoiceOpen" @pointerdown.stop.prevent x-cloak><button type="button" @pointerdown.stop.prevent="$store.game.closeAppToDesktop(false)" @click.stop.prevent="$store.game.closeAppToDesktop(false)">返回桌面</button></section>
 
   <section x-show="!$store.game.loading && $store.game.wechatAppOpen" class="wechat-app-screen app-window section-hints" :class="{ 'app-window-dragging': $store.game.appDragging, 'app-window-paused': $store.game.appExitChoiceOpen, 'app-window-closing': $store.game.appClosing }" :style="$store.game.appWindowStyle()" @pointerdown="$store.game.appGestureStart($event)" @pointermove.window="$store.game.appGestureMove($event)" @pointerup.window="$store.game.appGestureEnd($event)" @pointercancel.window="$store.game.appGestureEnd($event)" x-cloak>
     <div class="wechat-phone dev-section" data-section-title="微信模拟界面">

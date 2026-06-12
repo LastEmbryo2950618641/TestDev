@@ -515,7 +515,7 @@
   position: fixed;
   left: 50%;
   bottom: max(28px, calc(20px + env(safe-area-inset-bottom)));
-  z-index: 260;
+  z-index: 999;
   width: min(260px, calc(100vw - 32px));
   display: grid;
   grid-template-columns: 1fr;
@@ -525,6 +525,7 @@
 
 .app-exit-actions button {
   min-height: 48px;
+  touch-action: manipulation;
   border: 0;
   border-radius: 18px;
   color: #fff;
