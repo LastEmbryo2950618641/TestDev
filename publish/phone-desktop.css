@@ -503,12 +503,32 @@
   pointer-events: none;
 }
 
+.rpg-tree-title {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 8px 0 4px;
+  border: 0;
+  color: #eef4ff;
+  text-align: left;
+  background: transparent;
+}
+
+.rpg-tree-title strong {
+  font-size: var(--ui-font);
+}
+
+.rpg-tree-title .rpg-field-detail {
+  margin-top: 4px;
+}
+
 .rpg-item-list {
   grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 6px;
+  margin-top: 2px;
 }
 
 .rpg-item-card {
