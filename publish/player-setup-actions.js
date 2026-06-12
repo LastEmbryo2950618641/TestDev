@@ -7,6 +7,7 @@ window.GameModules.playerSetupActions = {
     const row = (name, value, desc) => ({ key: `player-${name}`, label: name, kind: '玩家设定', value: value || '未填写', raw: value || '', desc, worldTag });
     return [
       row('姓名', p.name || this.playerName, '玩家登记的姓名或代号。'),
+      row('性别', p.gender, '玩家登记的性别。'),
       row('生日', p.birthday, '玩家登记生日，用于计算年龄与现实身份。'),
       row('年龄', p.age ? `${p.age}岁` : '', '由生日按2026-06-12计算得到。'),
       row('具体地址', p.refinedCity || p.city, '玩家当前登记住址。'),
@@ -24,6 +25,28 @@ window.GameModules.playerSetupActions = {
     return this.playerProfileLexiconFields().map((x) => `${x.label}：${x.value}`).join('\n');
   },
 
+  chooseNewAccountSetup() {
+    this.phoneActivationChoice = 'new';
+  },
+
+  async useExistingAccountSetup() {
+    if (this.profileSetupBusy) return;
+    this.playerProfile = {
+      ...this.playerProfile,
+      name: '刘悠', gender: '男', birthday: '1998-11-19', age: this.playerAgeFromBirthday('1998-11-19'),
+      city: '四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号',
+      refinedCity: '四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号',
+      dailyRole: '程序工程师lv.5，计算机科学与技术硕士lv.5',
+      refinedRole: '程序工程师lv.5，计算机科学与技术硕士lv.5',
+      livingStatus: '与妹妹同居', refinedLivingStatus: '与妹妹同居，日常生活高度绑定',
+      parents: '父母资料未同步', parentStatus: '父母资料未同步', parentDeathCause: '',
+      relationships: '妹妹：与刘悠同居，有严重兄控倾向，喜欢看缘之空，私底下喜欢一句话“既然怀上了，那打掉不就好了吗”。',
+      worldbuildingNote: '刘悠是1998年出生的男性程序工程师，拥有计算机科学与技术硕士背景，与妹妹同居。',
+      notes: '已有账号同步资料。', profileEnrichedAt: new Date().toISOString(), initializedAt: new Date().toISOString(),
+    };
+    await this.completePlayerSetup({ skipAi: true });
+  },
+
   playerAgeFromBirthday(birthday) {
     const birth = new Date(`${birthday}T00:00:00`);
     const now = new Date('2026-06-12T00:00:00');
@@ -34,7 +57,7 @@ window.GameModules.playerSetupActions = {
     return Math.max(0, age);
   },
 
-  async completePlayerSetup() {
+  async completePlayerSetup(options = {}) {
     if (this.profileSetupBusy) return;
     const name = (this.playerProfile.name || this.playerName || '').trim();
     const birthday = (this.playerProfile.birthday || '').trim();
@@ -43,14 +66,17 @@ window.GameModules.playerSetupActions = {
     try {
       const base = this.normalizePlayerSetupBase(name, birthday);
       let enriched = null;
-      try {
-        enriched = await this.enrichPlayerProfile(base);
-      } catch (err) {
-        console.warn('[玩家身份] AI补全失败，使用本地兜底:', err.code, err.message, err.stack);
+      if (!options.skipAi) {
+        try {
+          enriched = await this.enrichPlayerProfile(base);
+        } catch (err) {
+          console.warn('[玩家身份] AI补全失败，使用本地兜底:', err.code, err.message, err.stack);
+        }
       }
       this.playerProfile = this.normalizeEnrichedPlayerProfile(base, enriched);
       await this.syncPlayerProfileLexicon();
       this.playerName = name;
+      this.phoneActivationChoice = '';
       this.phoneSetupDone = true;
       this.desktopUnlocked = false;
       this.appHasOpened = false;
@@ -68,6 +94,7 @@ window.GameModules.playerSetupActions = {
       name,
       birthday,
       age: this.playerAgeFromBirthday(birthday),
+      gender: (p.gender || '').trim(),
       city: (p.city || '').trim(),
       dailyRole: (p.dailyRole || '').trim(),
       livingStatus: (p.livingStatus || '').trim(),
@@ -80,7 +107,7 @@ window.GameModules.playerSetupActions = {
 
   async enrichPlayerProfile(base) {
     if (!window.dzmm?.completions) throw new Error('dzmm.completions unavailable');
-    const prompt = `你负责补全2026现代都市互动小说的玩家现实身份。只返回JSON。不要改玩家姓名和生日。若parents为空，必须设parentStatus为“父母已故”，并生成现实、克制、合理的parentDeathCause。根据birthday计算出的年龄${base.age}补全身份；例如高中生应细化为具体学校与年级。玩家填写的是具体地址，不是城市；若只写“四川省”这类省/市/县级信息，refinedCity必须补成省-市/州-区县-镇/街道-社区/小区-楼栋-门牌的准确格式，例如“四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号”。所有词条值都必须可落库、可判定、不可含“某处/一处/普通/未知/等/附近/片区”这类模糊词。\n输入=${JSON.stringify(base)}\n返回字段:{"refinedCity":"省市区县镇街道小区楼栋门牌","refinedRole":"更具体身份","refinedLivingStatus":"更具体居住状态","parentStatus":"父母状态","parentDeathCause":"父母去世原因或空","worldbuildingNote":"60字内现实背景补充"}`;
+    const prompt = `你负责补全2026现代都市互动小说的玩家现实身份。只返回JSON。不要改玩家姓名、性别和生日。若parents为空，必须设parentStatus为“父母已故”，并生成现实、克制、合理的parentDeathCause。根据birthday计算出的年龄${base.age}与性别${base.gender || '未填写'}补全身份；例如高中生应细化为具体学校与年级。玩家填写的是具体地址，不是城市；若只写“四川省”这类省/市/县级信息，refinedCity必须补成省-市/州-区县-镇/街道-社区/小区-楼栋-门牌的准确格式，例如“四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号”。所有词条值都必须可落库、可判定、不可含“某处/一处/普通/未知/等/附近/片区”这类模糊词。\n输入=${JSON.stringify(base)}\n返回字段:{"refinedCity":"省市区县镇街道小区楼栋门牌","refinedRole":"更具体身份","refinedLivingStatus":"更具体居住状态","parentStatus":"父母状态","parentDeathCause":"父母去世原因或空","worldbuildingNote":"60字内现实背景补充"}`;
     return await Promise.race([
       window.GameModules.jsonUtils.generateJsonWithRetry({ model: this.modelId, maxTokens: 1200, prompt, format: prompt, max: 2 }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('身份补全超时')), 30000)),
@@ -137,8 +164,8 @@ window.GameModules.playerSetupActions = {
       worldTag, kind: '玩家设定', name: field.label, value: field.raw || field.value, summary: field.value,
       description: field.desc,
       nameAiGenerated: false,
-      valueAiGenerated: !['姓名', '生日', '年龄', '人际关系', '备注'].includes(field.label),
-      changeMode: ['姓名', '生日', '人际关系', '备注'].includes(field.label) ? '用户主动' : 'AI演算',
+      valueAiGenerated: !['姓名', '性别', '生日', '年龄', '人际关系', '备注'].includes(field.label),
+      changeMode: ['姓名', '性别', '生日', '人际关系', '备注'].includes(field.label) ? '用户主动' : 'AI演算',
       source: 'ai',
     })));
   },
@@ -149,5 +176,6 @@ window.GameModules.playerSetupActions = {
 
   reopenPlayerSetup() {
     this.phoneSetupDone = false;
+    this.phoneActivationChoice = '';
   },
 };

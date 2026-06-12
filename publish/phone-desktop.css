@@ -281,6 +281,7 @@
 
 .phone-setup-hero,
 .phone-setup-actions,
+.activation-choice-grid,
 .identity-header,
 .identity-profile,
 .identity-rpg-section {
@@ -324,7 +325,8 @@
 }
 
 .phone-setup-card label,
-.phone-setup-wide {
+.phone-setup-wide,
+.activation-choice {
   display: grid;
   gap: 6px;
   padding: 10px;
@@ -343,6 +345,28 @@
 .identity-app-screen .dev-section:focus-within {
   border-color: rgba(116, 246, 255, .85) !important;
   box-shadow: 0 0 0 2px rgba(116, 246, 255, .18), 0 0 24px rgba(116, 246, 255, .16);
+}
+
+.activation-choice-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.activation-choice {
+  min-height: 118px;
+  color: #fff;
+  text-align: left;
+}
+
+.activation-choice strong,
+.activation-choice span {
+  display: block;
+}
+
+.activation-choice span {
+  margin-top: 8px;
+  color: #aeb9d6;
+  line-height: 1.5;
 }
 
 .phone-setup-card label span {

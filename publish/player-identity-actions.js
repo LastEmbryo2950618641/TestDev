@@ -13,9 +13,9 @@ window.GameModules.playerIdentityActions = {
     const relations = p.relationships || '人际关系由玩家自行设定，当前未填写';
     const notes = [p.worldbuildingNote, p.notes].filter(Boolean).join('；') || '暂无补充设定';
     return {
-      id: 'player-self', name, age: p.age || '', birthday: p.birthday || '', work: world.label || '2026 现代都市现实世界', role, job: role,
+      id: 'player-self', name, age: p.age || '', birthday: p.birthday || '', gender: p.gender || '', work: world.label || '2026 现代都市现实世界', role, job: role,
       rank: living, faction: city, importance: 'main', isPlayer: true,
-      detail: `年龄：${p.age || '未知'}；生日：${p.birthday || '未知'}；具体地址：${city}；居住：${living}；父母：${parents}；去世原因：${deathCause}；关系：${relations}；备注：${notes}`,
+      detail: `性别：${p.gender || '未知'}；年龄：${p.age || '未知'}；生日：${p.birthday || '未知'}；具体地址：${city}；居住：${living}；父母：${parents}；去世原因：${deathCause}；关系：${relations}；备注：${notes}`,
       personality: notes,
       skills: [
         { name: '手机操作', desc: '熟悉现代智能手机与移动互联网基础操作。' },
@@ -56,7 +56,7 @@ window.GameModules.playerIdentityActions = {
   playerIdentitySummary() {
     const v = this.playerIdentityState()?.values || {};
     if (!v.level) return '玩家本人属性尚未生成。';
-    return `年龄${v.age ?? this.playerProfile.age ?? '未知'}｜等级${v.level}｜经验${v.exp?.current || 0}/${v.exp?.next || 'max'}｜力量${v.strength}｜敏捷${v.agility}｜体质${v.constitution}｜智力${v.intelligence}｜感知${v.perception}｜意志${v.willpower}｜魅力${v.charisma}`;
+    return `性别${this.playerProfile.gender || '未知'}｜年龄${v.age ?? this.playerProfile.age ?? '未知'}｜等级${v.level}｜经验${v.exp?.current || 0}/${v.exp?.next || 'max'}｜力量${v.strength}｜敏捷${v.agility}｜体质${v.constitution}｜智力${v.intelligence}｜感知${v.perception}｜意志${v.willpower}｜魅力${v.charisma}`;
   },
 
   async ensurePlayerRpgState(refresh = false) {
