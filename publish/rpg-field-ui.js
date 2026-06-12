@@ -25,8 +25,7 @@ window.GameModules.rpgFieldUi = {
   },
 
   rpgItemSummary(item) {
-    const exp = item?.exp || {};
-    return `${item?.name || '未命名'}｜${item?.type || '能力'} lv${item?.level || 1}｜经验${exp.current || 0}/${exp.next || 'max'}`;
+    return `${item?.name || '未命名'} lv.${item?.level || 1}`;
   },
 
   rpgItemDetail(field, item) {

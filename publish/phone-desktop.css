@@ -416,21 +416,22 @@
 
 .rpg-item-list {
   grid-column: 1 / -1;
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   margin-top: 6px;
 }
 
 .rpg-item-card {
-  width: 100%;
-  display: grid;
+  display: inline-grid;
   gap: 4px;
-  padding: 8px 10px;
-  border: 1px solid rgba(146, 170, 255, .2);
-  border-radius: 12px;
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid rgba(146, 170, 255, .28);
+  border-radius: 999px;
   color: #eef4ff;
   text-align: left;
-  background: rgba(255, 255, 255, .06);
+  background: rgba(255, 255, 255, .08);
 }
 
 .rpg-item-card:hover,
@@ -439,8 +440,13 @@
   box-shadow: 0 0 0 2px rgba(116, 246, 255, .14);
 }
 
-.rpg-item-card small {
-  color: #aeb9d6;
+.rpg-item-card:has(.rpg-field-detail:not([style*="display: none"])) {
+  width: 100%;
+  border-radius: 12px;
+}
+
+.rpg-item-card strong {
+  font-size: var(--ui-small-font);
 }
 
 @media (max-height: 620px) {
