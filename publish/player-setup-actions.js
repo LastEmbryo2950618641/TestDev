@@ -28,6 +28,8 @@ window.GameModules.playerSetupActions = {
     };
     this.playerName = name;
     this.phoneSetupDone = true;
+    this.desktopUnlocked = false;
+    this.appHasOpened = false;
     this.save();
   },
 

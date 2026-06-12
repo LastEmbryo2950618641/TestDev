@@ -264,16 +264,39 @@
   backdrop-filter: blur(18px);
 }
 
+.phone-setup-hero,
+.phone-setup-actions {
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, .09);
+  background: rgba(255, 255, 255, .035);
+}
+
 .phone-setup-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, .09);
+  background: rgba(255, 255, 255, .025);
 }
 
 .phone-setup-card label,
 .phone-setup-wide {
   display: grid;
   gap: 6px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, .09);
+  background: rgba(255, 255, 255, .035);
+}
+
+.phone-setup-screen .dev-section {
+  border-radius: 16px;
+}
+
+.phone-setup-screen .dev-section:hover,
+.phone-setup-screen .dev-section:focus-within {
+  border-color: rgba(116, 246, 255, .85) !important;
+  box-shadow: 0 0 0 2px rgba(116, 246, 255, .18), 0 0 24px rgba(116, 246, 255, .16);
 }
 
 .phone-setup-card label span {
