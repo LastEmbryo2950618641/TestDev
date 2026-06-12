@@ -349,6 +349,7 @@
           </template>
         </section>
         <section class="wechat-list-page" x-show="$store.game.wechatView === 'home' && $store.game.wechatTab === 'contacts'">
+          <p class="wechat-empty" x-show="!$store.game.wechatContacts().filter(x => !x.group).length">暂无联系人</p>
           <template x-for="contact in $store.game.wechatContacts().filter(x => !x.group)" :key="contact.id">
             <button class="wechat-contact-row" type="button" @pointerdown.stop @click.stop="$store.game.selectWechatContact(contact.id)"><span class="wechat-avatar" x-text="contact.mark"></span><b x-text="contact.name"></b></button>
           </template>
