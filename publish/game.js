@@ -65,7 +65,7 @@ document.addEventListener('alpine:init', () => {
     mindText: '', feedbackSource: 'pending',
     characterIntent: '',
     choices: cfg.openingChoices,
-    log: [], realWorldOpen: false, realWorldBusy: false, realWorldInput: '', realWorldSceneTitle: '现实世界', realWorldQuest: '确认手机异常与现实处境', realWorldStatus: '现实稳定', realWorldChoices: ['检查手机记录', '观察居住环境', '联系熟人确认', '暂时休息'], realWorldLog: [],
+    log: [], realWorldOpen: false, realWorldBusy: false, realWorldInput: '', realWorldSceneTitle: '现实世界', realWorldQuest: '确认手机异常与现实处境', realWorldStatus: '现实稳定', realWorldChoices: ['检查手机记录', '观察居住环境', '联系熟人确认', '暂时休息'], realWorldLog: [], realWorldProfileOpen: true,
     nextId: 1,
     ragQuery: '',
     ragContext: '',
