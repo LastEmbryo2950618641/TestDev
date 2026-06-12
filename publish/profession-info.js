@@ -33,8 +33,8 @@ window.GameModules.professionInfo = {
       }, (chunk) => { buffer = window.GameModules.jsonUtils.mergeStreamText(buffer, chunk); });
       return this.validate(window.GameModules.jsonUtils.parseLoose(buffer), worldTag, name);
     } catch (err) {
-      console.warn('职业资料生成失败，跳过职业固化:', err.message);
-      return null;
+      console.error('职业资料生成失败，等待重新生成:', err.message, err.stack);
+      throw err;
     }
   },
 
