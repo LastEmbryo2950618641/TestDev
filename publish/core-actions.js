@@ -15,11 +15,10 @@ window.GameModules.coreActions = {
 
   appGestureStart(event) {
     const fromGestureZone = event.target.closest('.app-home-gesture');
-    if (this.loading || (!fromGestureZone && event.target.closest('button, input, textarea, select, a'))) return;
+    if (this.loading || (!fromGestureZone && event.target.closest('input, textarea, select, a'))) return;
     const y = event.clientY || 0;
     const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
     if (!fromGestureZone && viewportHeight && y < viewportHeight - 88) return;
-    event.preventDefault();
     if (this.appDragging) return;
     event.currentTarget?.setPointerCapture?.(event.pointerId);
     this.appGesturePointerId = event.pointerId;
@@ -40,7 +39,7 @@ window.GameModules.coreActions = {
   appGestureEnd(event = null) {
     if (!this.appDragging || (event && this.appGesturePointerId !== null && event.pointerId !== this.appGesturePointerId)) return;
     const distance = Math.abs(Math.min(this.appDragY, this.appDragPeakY || 0));
-    const threshold = this.appGestureFromHomeZone ? 28 : 88;
+    const threshold = this.appGestureFromHomeZone ? 28 : 96;
     const shouldClose = distance >= threshold;
     if (shouldClose) {
       this.closeAppToDesktop();

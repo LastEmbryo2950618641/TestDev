@@ -367,7 +367,7 @@
           <div class="wechat-input"><button type="button">＋</button><input x-model="$store.game.wechatInput" placeholder="输入消息"><button type="button">发送</button></div>
         </section>
       </main>
-      <nav class="wechat-tabs" x-show="$store.game.wechatView === 'home'" @pointerdown.stop><button type="button" :class="{ active: $store.game.wechatTab === 'chats' }" @click.stop="$store.game.setWechatTab('chats')">聊天</button><button type="button" :class="{ active: $store.game.wechatTab === 'contacts' }" @click.stop="$store.game.setWechatTab('contacts')">通讯录</button><button type="button" :class="{ active: $store.game.wechatTab === 'me' }" @click.stop="$store.game.setWechatTab('me')">我</button></nav>
+      <nav class="wechat-tabs" x-show="$store.game.wechatView === 'home'"><button type="button" :class="{ active: $store.game.wechatTab === 'chats' }" @click.stop="$store.game.setWechatTab('chats')">聊天</button><button type="button" :class="{ active: $store.game.wechatTab === 'contacts' }" @click.stop="$store.game.setWechatTab('contacts')">通讯录</button><button type="button" :class="{ active: $store.game.wechatTab === 'me' }" @click.stop="$store.game.setWechatTab('me')">我</button></nav>
     </div>
     <div class="app-home-gesture" @pointerdown="$store.game.appGestureStart($event)" @pointermove="$store.game.appGestureMove($event)" @pointerup="$store.game.appGestureEnd($event)" @pointercancel="$store.game.appGestureEnd($event)" aria-hidden="true"></div>
   </section>
