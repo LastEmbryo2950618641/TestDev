@@ -49,24 +49,20 @@ window.GameModules.coreActions = {
     return `transform: translateY(${y}px) scale(${scale});`;
   },
 
-  desktopGestureStart(event) {
-    if (this.desktopUnlocked || event.target.closest('button')) return;
-    this.desktopDragStartY = event.clientY || 0;
+  desktopGestureStart() {
+    this.desktopDragging = false;
     this.desktopDragY = 0;
-    this.desktopDragging = true;
   },
 
-  desktopGestureMove(event) {
-    if (!this.desktopDragging) return;
-    this.desktopDragY = Math.min(0, (event.clientY || 0) - this.desktopDragStartY);
+  desktopGestureMove() {
+    this.desktopDragging = false;
+    this.desktopDragY = 0;
   },
 
   desktopGestureEnd() {
-    if (!this.desktopDragging) return;
-    const shouldShowSwitcher = this.desktopDragY < -70 && this.hasBackgroundApp();
     this.desktopDragging = false;
     this.desktopDragY = 0;
-    if (shouldShowSwitcher) this.appSwitcherOpen = true;
+    this.appSwitcherOpen = false;
   },
 
   closeSwitcher() {

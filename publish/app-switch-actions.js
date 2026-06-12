@@ -22,8 +22,7 @@ window.GameModules.appSwitchActions = {
     this.appExitChoiceOpen = true;
   },
 
-  closeAppToDesktop(keepBackground = true, targetApp = '') {
-    const target = targetApp || this.appPausedName || this.activeAppName();
+  closeAppToDesktop(_keepBackground = false, _targetApp = '') {
     this.appDragging = false;
     this.appGesturePointerId = null;
     this.appDragY = 0;
@@ -35,18 +34,18 @@ window.GameModules.appSwitchActions = {
     this.appSwitcherOpen = false;
     this.desktopUnlocked = false;
     this.appActiveName = 'main';
-    this.appBackgroundName = keepBackground ? target : '';
-    this.appHasOpened = Boolean(this.appBackgroundName);
+    this.appBackgroundName = '';
+    this.appHasOpened = false;
     this.identityAppOpen = false;
     this.wechatAppOpen = false;
   },
 
   runAppInBackground() {
-    this.closeAppToDesktop(true, this.appPausedName || this.activeAppName());
+    this.closeAppToDesktop(false);
   },
 
-  forceQuitApp(targetApp = '') {
-    this.closeAppToDesktop(false, targetApp || this.appPausedName || this.activeAppName());
+  forceQuitApp() {
+    this.closeAppToDesktop(false);
   },
 
   restoreBackgroundApp() {

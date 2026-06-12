@@ -516,9 +516,9 @@
   left: 50%;
   bottom: max(28px, calc(20px + env(safe-area-inset-bottom)));
   z-index: 260;
-  width: min(360px, calc(100vw - 32px));
+  width: min(260px, calc(100vw - 32px));
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 12px;
   transform: translateX(-50%);
 }
@@ -531,10 +531,6 @@
   font-weight: 900;
   background: rgba(24, 33, 56, .92);
   box-shadow: 0 14px 36px rgba(0, 0, 0, .32);
-}
-
-.app-exit-actions button:last-child {
-  background: rgba(208, 57, 73, .95);
 }
 
 .rpg-tree-title {

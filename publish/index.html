@@ -281,18 +281,6 @@
           <b>微信</b>
         </button>
       </div>
-      <div class="app-switcher" x-show="$store.game.appSwitcherOpen" x-cloak>
-        <div class="switcher-header">
-          <strong>后台运行</strong>
-          <button type="button" @click="$store.game.closeSwitcher()">完成</button>
-        </div>
-        <button class="switcher-card" type="button" @click="$store.game.restoreBackgroundApp()">
-          <span class="switcher-card-bar"></span>
-          <strong x-text="$store.game.appLabel()"></strong>
-          <small x-text="$store.game.appBackgroundName ? '后台运行中｜点击继续' : ($store.game.started ? '游戏进行中｜点击继续' : '首页选择面板｜点击继续')"></small>
-        </button>
-      </div>
-      <div class="desktop-hint" x-show="$store.game.hasBackgroundApp() && !$store.game.appSwitcherOpen">从桌面向上滑动查看后台</div>
       <div class="phone-dock">
         <span></span><span></span><span></span><span></span>
       </div>
@@ -335,7 +323,7 @@
     <div class="app-home-gesture" @pointerdown="$store.game.appGestureStart($event)" @pointermove="$store.game.appGestureMove($event)" @pointerup="$store.game.appGestureEnd($event)" @pointercancel="$store.game.appGestureEnd($event)" aria-hidden="true"></div>
   </section>
 
-  <section class="app-exit-actions" x-show="$store.game.appExitChoiceOpen" @pointerdown.stop x-cloak><button type="button" @click.stop="$store.game.runAppInBackground()">后台运行</button><button type="button" @click.stop="$store.game.forceQuitApp()">强制退出</button></section>
+  <section class="app-exit-actions single" x-show="$store.game.appExitChoiceOpen" @pointerdown.stop x-cloak><button type="button" @click.stop="$store.game.closeAppToDesktop(false)">返回桌面</button></section>
 
   <section x-show="!$store.game.loading && $store.game.wechatAppOpen" class="wechat-app-screen app-window section-hints" :class="{ 'app-window-dragging': $store.game.appDragging, 'app-window-paused': $store.game.appExitChoiceOpen, 'app-window-closing': $store.game.appClosing }" :style="$store.game.appWindowStyle()" @pointerdown="$store.game.appGestureStart($event)" @pointermove.window="$store.game.appGestureMove($event)" @pointerup.window="$store.game.appGestureEnd($event)" @pointercancel.window="$store.game.appGestureEnd($event)" x-cloak>
     <div class="wechat-phone dev-section" data-section-title="微信模拟界面">
