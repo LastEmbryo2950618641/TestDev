@@ -138,6 +138,82 @@
   text-shadow: 0 1px 8px rgba(0, 0, 0, .6);
 }
 
+.desktop-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 88px;
+  padding: 7px 12px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, .2);
+  color: rgba(255, 255, 255, .78);
+  font-size: 11px;
+  transform: translateX(-50%);
+  backdrop-filter: blur(10px);
+}
+
+.app-switcher {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 18px;
+  padding: 68px 24px 32px;
+  background: rgba(5, 8, 18, .46);
+  backdrop-filter: blur(16px);
+}
+
+.switcher-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #fff;
+}
+
+.switcher-header button {
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, .2);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .14);
+}
+
+.switcher-card {
+  align-self: start;
+  width: 100%;
+  min-height: 330px;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, .22);
+  border-radius: 28px;
+  background:
+    linear-gradient(rgba(7, 9, 20, .6), rgba(7, 9, 20, .82)),
+    radial-gradient(circle at 50% 8%, rgba(113, 243, 255, .2), transparent 35%),
+    linear-gradient(135deg, #10172d, #11071f 58%, #07151b);
+  color: #fff;
+  text-align: left;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .38);
+}
+
+.switcher-card-bar {
+  width: 44px;
+  height: 5px;
+  margin: 0 auto 96px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .42);
+}
+
+.switcher-card strong {
+  font-size: 20px;
+}
+
+.switcher-card small {
+  color: rgba(238, 243, 255, .72);
+}
+
 .phone-dock {
   position: absolute;
   left: 18px;
@@ -189,7 +265,7 @@
 }
 
 .app-window-closing {
-  transform: translateY(34dvh) scale(.18) !important;
+  transform: translateY(-34dvh) scale(.18) !important;
   border-radius: 30px;
   opacity: .2;
   overflow: hidden;

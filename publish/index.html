@@ -241,8 +241,8 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && (!$store.game.desktopUnlocked || $store.game.appClosing)" class="phone-desktop-screen" x-cloak>
-    <div class="phone-frame" :class="{ 'has-running-app': $store.game.started || $store.game.entrySetupOpen }">
+  <section x-show="!$store.game.loading && (!$store.game.desktopUnlocked || $store.game.appClosing)" class="phone-desktop-screen" :class="{ 'switcher-open': $store.game.appSwitcherOpen }" @pointerdown="$store.game.desktopGestureStart($event)" @pointermove.window="$store.game.desktopGestureMove($event)" @pointerup.window="$store.game.desktopGestureEnd()" @pointercancel.window="$store.game.desktopGestureEnd()" x-cloak>
+    <div class="phone-frame" :class="{ 'has-running-app': $store.game.hasBackgroundApp() }">
       <div class="phone-status-bar">
         <span>21:08</span>
         <span>5G  88%</span>
@@ -263,6 +263,18 @@
         <span class="app-glyph">控</span>
         <b>我要狠狠操控</b>
       </button>
+      <div class="app-switcher" x-show="$store.game.appSwitcherOpen" x-cloak>
+        <div class="switcher-header">
+          <strong>后台运行</strong>
+          <button type="button" @click="$store.game.closeSwitcher()">完成</button>
+        </div>
+        <button class="switcher-card" type="button" @click="$store.game.restoreBackgroundApp()">
+          <span class="switcher-card-bar"></span>
+          <strong>我要狠狠操控</strong>
+          <small x-text="$store.game.started ? '游戏进行中｜点击全屏展开' : ($store.game.entrySetupOpen ? '进入配置中｜点击继续' : '首页选择面板｜点击继续')"></small>
+        </button>
+      </div>
+      <div class="desktop-hint" x-show="$store.game.hasBackgroundApp() && !$store.game.appSwitcherOpen">从桌面向上滑动查看后台</div>
       <div class="phone-dock">
         <span></span><span></span><span></span><span></span>
       </div>

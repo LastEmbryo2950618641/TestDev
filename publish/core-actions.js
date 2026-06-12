@@ -6,6 +6,8 @@ window.GameModules = window.GameModules || {};
 window.GameModules.coreActions = {
   openDesktopApp() {
     this.appClosing = false;
+    this.appSwitcherOpen = false;
+    this.appHasOpened = true;
     this.desktopUnlocked = true;
   },
 
@@ -19,12 +21,12 @@ window.GameModules.coreActions = {
 
   appGestureMove(event) {
     if (!this.appDragging) return;
-    this.appDragY = Math.max(0, (event.clientY || 0) - this.appDragStartY);
+    this.appDragY = Math.min(0, (event.clientY || 0) - this.appDragStartY);
   },
 
   appGestureEnd() {
     if (!this.appDragging) return;
-    const shouldClose = this.appDragY > 90;
+    const shouldClose = this.appDragY < -80;
     this.appDragging = false;
     this.appDragY = 0;
     if (shouldClose) this.closeAppToDesktop();
@@ -32,7 +34,7 @@ window.GameModules.coreActions = {
 
   appWindowStyle() {
     const y = this.appDragging ? this.appDragY : 0;
-    const scale = this.appDragging ? Math.max(.86, 1 - y / 900) : 1;
+    const scale = this.appDragging ? Math.max(.84, 1 - Math.abs(y) / 760) : 1;
     return `transform: translateY(${y}px) scale(${scale});`;
   },
 
@@ -42,7 +44,41 @@ window.GameModules.coreActions = {
     setTimeout(() => {
       this.desktopUnlocked = false;
       this.appClosing = false;
+      this.appSwitcherOpen = false;
     }, 260);
+  },
+
+  hasBackgroundApp() {
+    return Boolean(this.appHasOpened || this.started || this.entrySetupOpen);
+  },
+
+  desktopGestureStart(event) {
+    if (this.desktopUnlocked || event.target.closest('button')) return;
+    this.desktopDragStartY = event.clientY || 0;
+    this.desktopDragY = 0;
+    this.desktopDragging = true;
+  },
+
+  desktopGestureMove(event) {
+    if (!this.desktopDragging) return;
+    this.desktopDragY = Math.min(0, (event.clientY || 0) - this.desktopDragStartY);
+  },
+
+  desktopGestureEnd() {
+    if (!this.desktopDragging) return;
+    const shouldShowSwitcher = this.desktopDragY < -70 && this.hasBackgroundApp();
+    this.desktopDragging = false;
+    this.desktopDragY = 0;
+    if (shouldShowSwitcher) this.appSwitcherOpen = true;
+  },
+
+  restoreBackgroundApp() {
+    this.appSwitcherOpen = false;
+    this.openDesktopApp();
+  },
+
+  closeSwitcher() {
+    this.appSwitcherOpen = false;
   },
 
   selectWork(name) {
