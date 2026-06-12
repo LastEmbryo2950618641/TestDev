@@ -42,12 +42,15 @@ window.GameModules.coreActions = {
     const distance = Math.abs(Math.min(this.appDragY, this.appDragPeakY || 0));
     const threshold = this.appGestureFromHomeZone ? 28 : 88;
     const shouldClose = distance >= threshold;
+    if (shouldClose) {
+      this.closeAppToDesktop();
+      return;
+    }
     this.appDragging = false;
     this.appGesturePointerId = null;
     this.appDragY = 0;
     this.appDragPeakY = 0;
     this.appGestureFromHomeZone = false;
-    if (shouldClose) this.closeAppToDesktop();
   },
 
   appWindowStyle() {
@@ -62,9 +65,10 @@ window.GameModules.coreActions = {
     this.appGesturePointerId = null;
     this.appDragY = 0;
     this.appDragPeakY = 0;
+    this.appGestureFromHomeZone = false;
+    this.desktopUnlocked = false;
     this.appClosing = true;
     window.setTimeout(() => {
-      this.desktopUnlocked = false;
       this.appClosing = false;
       this.appSwitcherOpen = false;
       this.identityAppOpen = false;
