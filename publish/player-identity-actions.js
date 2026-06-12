@@ -61,6 +61,38 @@ window.GameModules.playerIdentityActions = {
     return `性别${this.playerProfile.gender || '未知'}｜年龄${v.age ?? this.playerProfile.age ?? '未知'}｜等级${v.level}｜经验${v.exp?.current || 0}/${v.exp?.next || 'max'}｜力量${v.strength}｜敏捷${v.agility}｜体质${v.constitution}｜智力${v.intelligence}｜感知${v.perception}｜意志${v.willpower}｜魅力${v.charisma}`;
   },
 
+  playerMemory() {
+    return window.GameModules.characterMemory.ensure('player-self');
+  },
+
+  playerMemoryItems(kind) {
+    const memory = this.playerMemory();
+    if (kind === 'shortTerm') return [...(memory.shortTerm.recent || []), ...(memory.shortTerm.summarized || [])];
+    if (kind === 'longTerm') return [...(memory.longTerm.vivid || []), ...(memory.longTerm.permanent || [])];
+    return [];
+  },
+
+  playerMemoryStatus(kind) {
+    const memory = this.playerMemory();
+    const m = window.GameModules.characterMemory;
+    if (kind === 'shortTerm') return [m.statLine('刚发生记忆', m.stats(memory.shortTerm.recent, m.limits.recent)), m.statLine('近发生记忆', m.stats(memory.shortTerm.summarized, m.limits.summarized)), m.statLine('遗忘区', m.stats(memory.shortTerm.forgotten, m.limits.forgotten))].join('｜');
+    return [m.statLine('难以忘记', m.stats(memory.longTerm.vivid, m.limits.vivid)), m.statLine('不可忘记', m.stats(memory.longTerm.permanent, m.limits.permanent))].join('｜');
+  },
+
+  async addPlayerManualMemory() {
+    const text = this.realWorldMemoryInput.trim();
+    if (!text) return;
+    const realStore = { ...this, sceneTitle: this.realWorldSceneTitle || '现实世界' };
+    await window.GameModules.characterMemory.addManual('player-self', text, realStore);
+    this.realWorldMemoryInput = '';
+  },
+
+  async searchPlayerMemoryArchive() {
+    const query = this.realWorldMemoryArchiveQuery.trim();
+    if (!query) return;
+    this.realWorldMemoryArchiveResults = await window.GameModules.characterMemory.queryArchive('player-self', query);
+  },
+
   async ensurePlayerRpgState(refresh = false) {
     if (!window.GameModules.sqliteSave.db) return this.playerIdentityState();
     const existing = this.playerIdentityState();

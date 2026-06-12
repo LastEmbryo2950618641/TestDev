@@ -60,6 +60,7 @@ window.GameModules.realWorldActions = {
       entry.promptPack = { systemPrompt: prompt, userPrompt: text, model: this.modelId, promptTokens: Math.ceil(prompt.length / 2) };
       const result = await window.GameModules.realWorldAi.generate(this, prompt, text);
       this.applyRealWorldResult(entry.id, result);
+      await this.recordPlayerRealWorldMemory(text, result);
       await this.save();
     } finally {
       this.realWorldBusy = false;
@@ -72,6 +73,16 @@ window.GameModules.realWorldActions = {
     this.realWorldStatus = result.status || this.realWorldStatus;
     this.realWorldChoices = result.choices || this.realWorldChoices;
     this.realWorldLog = this.realWorldLog.map((entry) => (entry.id === id ? { ...entry, ...result, type: 'ai', streaming: false } : entry)).slice(-30);
+  },
+
+  async recordPlayerRealWorldMemory(action, result) {
+    const text = [`现实行动：${action}`, `发生：${result.narration || ''}`, result.thinking ? `推演：${result.thinking}` : '', `目标：${result.quest || this.realWorldQuest}`].filter(Boolean).join('\n');
+    const store = { ...this, sceneTitle: result.sceneTitle || this.realWorldSceneTitle, entryTime: null, entryTimeLabel: () => `${this.phoneDateText()} ${this.phoneTimeText()}` };
+    const memory = window.GameModules.characterMemory.ensure('player-self');
+    const item = window.GameModules.characterMemory.memoryItem(store, { text, source: 'real-world', impression: 55 });
+    memory.shortTerm.recent.push(item);
+    window.GameModules.characterMemory.promote(memory, item);
+    await window.GameModules.characterMemory.compact('player-self', memory);
   },
 
   openRealWorldPrompt(id) {
