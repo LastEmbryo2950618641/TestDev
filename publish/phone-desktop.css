@@ -373,9 +373,10 @@
 }
 
 .activation-choice-grid {
+  display: grid;
   grid-template-columns: 1fr;
   align-self: center;
-  gap: 28px;
+  gap: 42px;
   padding: 0;
   border: 0;
   background: transparent;
