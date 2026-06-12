@@ -44,6 +44,12 @@
   min-height: 0;
 }
 
+.real-world-layout .character-panel.real-world-profile-collapsed {
+  align-self: start;
+  min-height: 0;
+  overflow: visible;
+}
+
 @media (max-width: 760px) {
   .real-world-dialog {
     height: 100%;
