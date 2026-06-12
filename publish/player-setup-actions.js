@@ -42,6 +42,7 @@ window.GameModules.playerSetupActions = {
         console.warn('[玩家身份] AI补全失败，使用本地兜底:', err.code, err.message, err.stack);
       }
       this.playerProfile = this.normalizeEnrichedPlayerProfile(base, enriched);
+      await this.syncPlayerProfileLexicon();
       this.playerName = name;
       this.phoneSetupDone = true;
       this.desktopUnlocked = false;
@@ -124,6 +125,16 @@ window.GameModules.playerSetupActions = {
       return `${place}第一中学${grade}学生`;
     }
     return role || `${age || ''}岁现代都市居民`;
+  },
+
+  async syncPlayerProfileLexicon() {
+    const p = this.playerProfile || {};
+    const worldTag = window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
+    await window.GameModules.rpgLexicon.saveMany([
+      { worldTag, kind: '玩家设定', name: '具体地址', value: p.refinedCity || p.city, summary: p.refinedCity || p.city, description: `玩家当前登记住址：${p.refinedCity || p.city}`, source: 'ai' },
+      { worldTag, kind: '玩家设定', name: '现实身份', value: p.refinedRole || p.dailyRole, summary: p.refinedRole || p.dailyRole, description: `玩家当前现实身份：${p.refinedRole || p.dailyRole}`, source: 'ai' },
+      { worldTag, kind: '玩家设定', name: '居住状态', value: p.refinedLivingStatus || p.livingStatus, summary: p.refinedLivingStatus || p.livingStatus, description: `玩家当前居住状态：${p.refinedLivingStatus || p.livingStatus}`, source: 'ai' },
+    ]);
   },
 
   fallbackParentDeathCause(age) {

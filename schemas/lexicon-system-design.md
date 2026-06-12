@@ -24,6 +24,7 @@ worldTag：所属世界或现实设定
 ownerId：所属角色、阵营、地点或存档 ID，可为空
 summary：短说明，用于列表和标签
 description：详细说明，用于展开卡片
+promptInstruction：提示词说明，定义 AI 生成/修改该词条时必须遵守的生成内容与改变要求
 source：来源，schema / ai / state / player / system / imported
 visibility：可见性，public / discovered / hidden / system
 createdAt：创建时间
@@ -34,6 +35,11 @@ meta：类型专属扩展字段
 
 字段说明：
 
+- `promptInstruction` 与 `description` 不同：`description` 给玩家/AI 解释词条含义，`promptInstruction` 约束 AI 如何生成或何时允许修改该词条。
+- AI 批量修改词条时只能修改传入字段；未传字段必须保持原值。
+- AI 可以修改 `summary`、`description`、`value`、`aliases`、`related`、`meta`，但不能修改 `promptInstruction`。
+- AI 批量修改接口为 `window.GameModules.rpgLexicon.applyAiUpdates(updates)`，每项必须定位 `worldTag + kind + name`；示例：`{ worldTag, kind, name, value, description }`。
+- 示例：具体地址的 `promptInstruction` 为“生成内容：精确为省 / 市州 / 区县 / 镇街道 / 社区或小区 / 楼栋 / 门牌。改变要求：玩家明确已经搬到了指定地区，则可以改变。”
 - `scope=global`：全游戏通用概念，如“经验值”“等级”。
 - `scope=world`：某世界内通用概念，如“魔术”“圣杯战争”。
 - `scope=character`：角色专属状态、技能、记忆、关系、装备。

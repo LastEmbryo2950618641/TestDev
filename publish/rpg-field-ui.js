@@ -41,6 +41,7 @@ window.GameModules.rpgFieldUi = {
       `等级说明: ${item?.levelDescription || info.levelDescription || '暂无'}`,
       `当前作用: ${item?.effect || info.effect || '暂无'}`,
       `来源: ${item?.source || info.summary || lexicon?.summary || '暂无'}`,
+      `提示词说明: ${lexicon?.promptInstruction || '暂无'}`,
       `关联身内能力: ${linkedStats.join('、') || '暂无'}`,
     ];
     if (item?.type === '职业') {
@@ -54,6 +55,7 @@ window.GameModules.rpgFieldUi = {
   rpgFieldDetail(field) {
     const lexicon = this.lexiconFor(field);
     const lines = [`说明: ${lexicon?.description || lexicon?.summary || field?.desc || this.fallbackDesc(field)}`];
+    if (lexicon?.promptInstruction) lines.push(`提示词说明: ${lexicon.promptInstruction}`);
     if (field?.source) lines.push(`来源: 初始值(${field.source.initial || 0}) + 等级值(${field.source.level || 0}) + 分配值(${field.source.allocated || 0}) + 非玩家成长(${field.source.npc || 0}) = ${field.raw || 0}`);
     if (field?.key === 'free_attribute_points') lines.push('用途: 可分配到力量、敏捷、体质、智力、感知、意志、魅力；每次真实升级获得1点。');
     if (field?.key === 'level_growth' && field.raw?.history?.length) lines.push(`最近升级: ${field.raw.history.map((x) => `${x.from}->${x.to} 自动${Object.entries(x.auto || {}).map(([k, v]) => `${k}+${v}`).join('/')} 自由+${x.free}`).join('；')}`);

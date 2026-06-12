@@ -7,7 +7,7 @@ Object.assign(window.GameModules.rpgLexicon, {
     const entries = [];
     for (const section of state?.schema?.sections || []) {
       for (const field of section.fields || []) {
-        entries.push({ worldTag, kind: '属性', name: field.label, desc: field.desc, source: 'schema', meta: { key: field.key, type: field.type, grade: Boolean(field.grade) } });
+        entries.push({ worldTag, kind: '属性', name: field.label, value: values[field.key], desc: field.desc, source: 'schema', meta: { key: field.key, type: field.type, grade: Boolean(field.grade) } });
       }
     }
     this.collectLearned(entries, worldTag, '知识', values.knowledge);
@@ -27,6 +27,7 @@ Object.assign(window.GameModules.rpgLexicon, {
         worldTag, kind, name,
         summary: item.summary || item.effect || item.desc || item.source,
         description: item.info?.description || item.effect || item.desc || item.source || `${name}的资料。`,
+        value: typeof item === 'string' ? item : item,
         related: [...(item.linkedStats || []), ...(item.info?.learnedAbilities || []), ...(item.info?.worldAbilities || [])],
         meta: { info: { ...(item.info || {}), levelDescription: item.levelDescription, effect: item.effect } },
         source: item.info ? 'ai' : 'state',
