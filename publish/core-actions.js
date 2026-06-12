@@ -42,7 +42,7 @@ window.GameModules.coreActions = {
     const threshold = this.appGestureFromHomeZone ? 28 : 96;
     const shouldClose = distance >= threshold;
     if (shouldClose) {
-      this.closeAppToDesktop();
+      this.showAppExitChoices();
       return;
     }
     this.appDragging = false;
@@ -67,6 +67,7 @@ window.GameModules.coreActions = {
     this.appGestureFromHomeZone = false;
     this.desktopUnlocked = false;
     this.appHasOpened = keepBackground;
+    this.appExitChoiceOpen = false;
     this.appClosing = true;
     window.setTimeout(() => {
       this.appClosing = false;

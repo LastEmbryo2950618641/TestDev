@@ -105,7 +105,8 @@ window.GameModules.playerIdentityActions = {
   },
 
   closeIdentityApp() {
-    this.closeAppToDesktop(false);
+    if (this.forceQuitApp) this.forceQuitApp();
+    else this.closeAppToDesktop(false);
   },
 
   closeWechatApp() {

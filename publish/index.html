@@ -76,6 +76,7 @@
   <script src="entry-actions.js"></script>
   <script src="control-actions.js"></script>
   <script src="core-actions.js"></script>
+  <script src="app-switch-actions.js"></script>
   <script src="game.js"></script>
 </head>
 <body x-data="{}">
@@ -298,7 +299,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.identityAppOpen" class="identity-app-screen app-window section-hints" :class="{ 'app-window-dragging': $store.game.appDragging, 'app-window-closing': $store.game.appClosing }" :style="$store.game.appWindowStyle()" @pointerdown="$store.game.appGestureStart($event)" @pointermove.window="$store.game.appGestureMove($event)" @pointerup.window="$store.game.appGestureEnd($event)" @pointercancel.window="$store.game.appGestureEnd($event)" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.identityAppOpen" class="identity-app-screen app-window section-hints" :class="{ 'app-window-dragging': $store.game.appDragging, 'app-window-paused': $store.game.appExitChoiceOpen, 'app-window-closing': $store.game.appClosing }" :style="$store.game.appWindowStyle()" @pointerdown="$store.game.appGestureStart($event)" @pointermove.window="$store.game.appGestureMove($event)" @pointerup.window="$store.game.appGestureEnd($event)" @pointercancel.window="$store.game.appGestureEnd($event)" x-cloak>
     <div class="identity-card dev-section" data-section-title="身份证主面板">
       <header class="identity-header dev-section" data-section-title="身份证标题区">
         <div><p class="eyebrow">ID CARD</p><h2>身份证</h2><small x-text="$store.game.identityTargetProfile().work || '现实世界'"></small></div>
@@ -334,7 +335,9 @@
     <div class="app-home-gesture" @pointerdown="$store.game.appGestureStart($event)" @pointermove="$store.game.appGestureMove($event)" @pointerup="$store.game.appGestureEnd($event)" @pointercancel="$store.game.appGestureEnd($event)" aria-hidden="true"></div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.wechatAppOpen" class="wechat-app-screen app-window section-hints" :class="{ 'app-window-dragging': $store.game.appDragging, 'app-window-closing': $store.game.appClosing }" :style="$store.game.appWindowStyle()" @pointerdown="$store.game.appGestureStart($event)" @pointermove.window="$store.game.appGestureMove($event)" @pointerup.window="$store.game.appGestureEnd($event)" @pointercancel.window="$store.game.appGestureEnd($event)" x-cloak>
+  <section class="app-exit-actions" x-show="$store.game.appExitChoiceOpen" x-cloak><button type="button" @click="$store.game.runAppInBackground()">后台运行</button><button type="button" @click="$store.game.forceQuitApp()">强制退出</button></section>
+
+  <section x-show="!$store.game.loading && $store.game.wechatAppOpen" class="wechat-app-screen app-window section-hints" :class="{ 'app-window-dragging': $store.game.appDragging, 'app-window-paused': $store.game.appExitChoiceOpen, 'app-window-closing': $store.game.appClosing }" :style="$store.game.appWindowStyle()" @pointerdown="$store.game.appGestureStart($event)" @pointermove.window="$store.game.appGestureMove($event)" @pointerup.window="$store.game.appGestureEnd($event)" @pointercancel.window="$store.game.appGestureEnd($event)" x-cloak>
     <div class="wechat-phone dev-section" data-section-title="微信模拟界面">
       <header class="wechat-top" x-show="$store.game.wechatView === 'home'">
         <button type="button" @click="$store.game.closeWechatApp()">返回桌面</button><strong></strong><button type="button">⋯</button>

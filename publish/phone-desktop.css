@@ -495,12 +495,45 @@
   filter: drop-shadow(0 26px 58px rgba(0, 0, 0, .45));
 }
 
+.app-window-paused {
+  transform: translateY(-18dvh) scale(.72) !important;
+  border-radius: 30px;
+  overflow: hidden;
+  pointer-events: none;
+  filter: drop-shadow(0 28px 60px rgba(0, 0, 0, .38));
+}
+
 .app-window-closing {
   transform: translateY(-48dvh) scale(.18) !important;
   border-radius: 30px;
   opacity: .2;
   overflow: hidden;
   pointer-events: none;
+}
+
+.app-exit-actions {
+  position: fixed;
+  left: 50%;
+  bottom: max(28px, calc(20px + env(safe-area-inset-bottom)));
+  z-index: 260;
+  width: min(360px, calc(100vw - 32px));
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.app-exit-actions button {
+  min-height: 48px;
+  border: 0;
+  border-radius: 18px;
+  color: #fff;
+  font-weight: 900;
+  background: rgba(24, 33, 56, .92);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, .32);
+}
+
+.app-exit-actions button:last-child {
+  background: rgba(208, 57, 73, .95);
 }
 
 .rpg-tree-title {
