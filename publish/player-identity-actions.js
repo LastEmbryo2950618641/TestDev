@@ -100,30 +100,58 @@ window.GameModules.playerIdentityActions = {
     this.identityAppOpen = false;
     this.wechatAppOpen = true;
     this.desktopUnlocked = true;
+    this.wechatTab = this.wechatTab || 'chats';
+    this.wechatView = this.wechatView || 'home';
   },
 
   closeIdentityApp() {
     this.closeAppToDesktop(false);
   },
 
+  closeWechatApp() {
+    this.closeAppToDesktop(false);
+  },
+
+  ensureWechatId() {
+    if (!this.playerProfile.wechatId) {
+      this.playerProfile.wechatId = `wx${Math.random().toString(36).slice(2, 8)}${Date.now().toString(36).slice(-3)}`;
+      this.save?.();
+    }
+    return this.playerProfile.wechatId;
+  },
+
   wechatContacts() {
-    const player = this.playerCharacter();
     const states = Object.values(this.rpgStates || {}).filter((state) => state.id !== 'player-self');
-    const contacts = [{ id: 'player-self', name: player.name, mark: '我', subtitle: player.role || '手机主人' }];
-    for (const state of states) contacts.push({ id: state.id, name: state.name, mark: String(state.name || '?').slice(0, 1), subtitle: state.profile?.role || state.worldTag || '聊天对象' });
-    if (!contacts.some((item) => item.id === this.character.id)) contacts.push({ id: this.character.id, name: this.character.name, mark: this.character.mark || this.character.name.slice(0, 1), subtitle: this.character.role || '当前角色' });
+    const contacts = states.map((state) => ({ id: state.id, name: state.name, mark: String(state.name || '?').slice(0, 1), subtitle: state.profile?.role || state.worldTag || '联系人', latest: '身份资料已同步。', unread: 1, group: false }));
+    if (!contacts.some((item) => item.id === this.character.id)) contacts.unshift({ id: this.character.id, name: this.character.name, mark: this.character.mark || this.character.name.slice(0, 1), subtitle: this.character.role || '当前角色', latest: '当前角色等待你的行动。', unread: 2, group: false });
+    contacts.push({ id: 'group-main', name: '操控者交流群', mark: '群', subtitle: '聊天群', latest: '系统：新手机已激活。', unread: 8, group: true });
     return contacts;
   },
 
+  wechatThreads() { return this.wechatContacts(); },
+
   wechatSelected() {
-    return this.wechatContacts().find((item) => item.id === this.wechatSelectedContact) || this.wechatContacts()[0];
+    return this.wechatThreads().find((item) => item.id === this.wechatSelectedContact) || this.wechatThreads()[0];
   },
 
   selectWechatContact(id) {
-    this.wechatSelectedContact = id || 'player-self';
+    this.wechatSelectedContact = id || this.wechatThreads()[0]?.id || 'player-self';
+    this.wechatView = 'chat';
+  },
+
+  setWechatTab(tab) {
+    this.wechatTab = tab;
+    this.wechatView = 'home';
+  },
+
+  wechatMessages() {
+    const target = this.wechatSelected();
+    if (target?.group) return [{ side: 'other', name: '系统', mark: '系', text: '新手机已激活，微信数据同步完成。' }, { side: 'self', name: this.playerCharacter().name, mark: '我', text: '收到。' }];
+    return [{ side: 'other', name: target?.name, mark: target?.mark, text: target?.latest || '资料已同步。' }, { side: 'self', name: this.playerCharacter().name, mark: '我', text: '我看到了。' }];
   },
 
   async openWechatIdentity() {
-    await this.openIdentityApp(this.wechatSelectedContact || 'player-self');
+    const id = this.wechatSelectedContact || 'player-self';
+    await this.openIdentityApp(id === 'group-main' ? 'player-self' : id);
   },
 };

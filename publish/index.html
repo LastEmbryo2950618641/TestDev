@@ -335,31 +335,38 @@
   </section>
 
   <section x-show="!$store.game.loading && $store.game.wechatAppOpen" class="wechat-app-screen app-window section-hints" :class="{ 'app-window-dragging': $store.game.appDragging, 'app-window-closing': $store.game.appClosing }" :style="$store.game.appWindowStyle()" @pointerdown="$store.game.appGestureStart($event)" @pointermove.window="$store.game.appGestureMove($event)" @pointerup.window="$store.game.appGestureEnd($event)" @pointercancel.window="$store.game.appGestureEnd($event)" x-cloak>
-    <div class="wechat-shell dev-section" data-section-title="微信模拟界面">
-      <aside class="wechat-list">
-        <header><strong>微信</strong><small>点击头像查看资料</small></header>
-        <template x-for="contact in $store.game.wechatContacts()" :key="contact.id">
-          <button class="wechat-contact" type="button" :class="{ active: $store.game.wechatSelectedContact === contact.id }" @click="$store.game.selectWechatContact(contact.id)">
-            <span class="wechat-avatar" x-text="contact.mark"></span>
-            <span><b x-text="contact.name"></b><small x-text="contact.subtitle"></small></span>
-          </button>
-        </template>
-      </aside>
-      <main class="wechat-chat">
-        <header>
-          <button class="wechat-avatar large" type="button" @click="$store.game.openWechatIdentity()" x-text="$store.game.wechatSelected().mark"></button>
-          <div><strong x-text="$store.game.wechatSelected().name"></strong><small x-text="$store.game.wechatSelected().subtitle"></small></div>
-        </header>
-        <section class="wechat-messages">
-          <p class="wechat-bubble other" x-text="$store.game.wechatSelected().id === 'player-self' ? '这是你自己的微信资料页。' : '当前聊天对象已同步到角色卡。'"></p>
-          <p class="wechat-bubble self">点击头像打开资料，再用身份证查看身份信息。</p>
+    <div class="wechat-phone dev-section" data-section-title="微信模拟界面">
+      <header class="wechat-top" x-show="$store.game.wechatView === 'home'">
+        <button type="button" @click="$store.game.closeWechatApp()">返回桌面</button><strong></strong><button type="button">⋯</button>
+      </header>
+      <header class="wechat-chat-top" x-show="$store.game.wechatView === 'chat'">
+        <button type="button" @click="$store.game.wechatView = 'home'">‹</button><strong x-text="$store.game.wechatSelected().name"></strong><span></span>
+      </header>
+      <main class="wechat-body">
+        <section class="wechat-list-page" x-show="$store.game.wechatView === 'home' && $store.game.wechatTab === 'chats'">
+          <template x-for="thread in $store.game.wechatThreads()" :key="thread.id">
+            <button class="wechat-thread" type="button" @click="$store.game.selectWechatContact(thread.id)"><span class="wechat-avatar" x-text="thread.mark"></span><span><b x-text="thread.name"></b><small x-text="thread.latest"></small></span><em x-show="thread.unread" x-text="thread.unread"></em></button>
+          </template>
         </section>
-        <section class="wechat-profile-panel">
-          <button class="wechat-avatar large" type="button" @click="$store.game.openWechatIdentity()" x-text="$store.game.wechatSelected().mark"></button>
-          <div><b x-text="$store.game.wechatSelected().name"></b><small x-text="$store.game.wechatSelected().subtitle"></small></div>
-          <button class="small-btn" type="button" @click="$store.game.openWechatIdentity()">身份证</button>
+        <section class="wechat-list-page" x-show="$store.game.wechatView === 'home' && $store.game.wechatTab === 'contacts'">
+          <template x-for="contact in $store.game.wechatContacts().filter(x => !x.group)" :key="contact.id">
+            <button class="wechat-contact-row" type="button" @click="$store.game.selectWechatContact(contact.id)"><span class="wechat-avatar" x-text="contact.mark"></span><b x-text="contact.name"></b></button>
+          </template>
+        </section>
+        <section class="wechat-me-page" x-show="$store.game.wechatView === 'home' && $store.game.wechatTab === 'me'">
+          <div class="wechat-me-card"><span class="wechat-avatar large" x-text="$store.game.playerCharacter().name.slice(0, 1)"></span><div><h3 x-text="$store.game.playerCharacter().name"></h3><p x-text="`微信号：${$store.game.ensureWechatId()}`"></p></div></div>
+          <button class="wechat-wallet" type="button"><span>钱包</span><b>¥ 0.00</b></button>
+        </section>
+        <section class="wechat-chat-page" x-show="$store.game.wechatView === 'chat'">
+          <div class="wechat-messages">
+            <template x-for="(msg, index) in $store.game.wechatMessages()" :key="index">
+              <div class="wechat-msg" :class="msg.side"><button class="wechat-avatar" type="button" @click="$store.game.openWechatIdentity()" x-text="msg.mark"></button><p x-text="msg.text"></p></div>
+            </template>
+          </div>
+          <div class="wechat-input"><button type="button">＋</button><input x-model="$store.game.wechatInput" placeholder="输入消息"><button type="button">发送</button></div>
         </section>
       </main>
+      <nav class="wechat-tabs" x-show="$store.game.wechatView === 'home'"><button type="button" :class="{ active: $store.game.wechatTab === 'chats' }" @click="$store.game.setWechatTab('chats')">聊天</button><button type="button" :class="{ active: $store.game.wechatTab === 'contacts' }" @click="$store.game.setWechatTab('contacts')">通讯录</button><button type="button" :class="{ active: $store.game.wechatTab === 'me' }" @click="$store.game.setWechatTab('me')">我</button></nav>
     </div>
     <div class="app-home-gesture" @pointerdown="$store.game.appGestureStart($event)" @pointermove="$store.game.appGestureMove($event)" @pointerup="$store.game.appGestureEnd($event)" @pointercancel="$store.game.appGestureEnd($event)" aria-hidden="true"></div>
   </section>
