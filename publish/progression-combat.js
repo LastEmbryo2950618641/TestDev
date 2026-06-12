@@ -19,6 +19,8 @@ Object.assign(window.GameModules.progression, {
       const lv = this.clamp(item.level || 1, 1, 7);
       item.level = lv;
       item.exp = item.exp || { current: 0, next: this.learnedNext[lv] };
+      item.description = this.learnedDefinition(item.name, item.type, item.description || item.source);
+      item.source = item.description;
       item.levelDescription = item.levelDescription || this.levelDescription(item.type, lv);
       item.effect = item.effect || this.levelEffect(item.name, item.type, lv);
       item.exp.curve = 'lv1-7:100/250/600/1400/3200/7200/max';

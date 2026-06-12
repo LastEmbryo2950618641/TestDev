@@ -1,6 +1,3 @@
-/**
- * 多存档与 RPG 状态动作。
- */
 window.GameModules = window.GameModules || {};
 
 window.GameModules.saveActions = {

@@ -18,8 +18,8 @@ window.GameModules.playerIdentityActions = {
       detail: `性别：${p.gender || '未知'}；年龄：${p.age || '未知'}；生日：${p.birthday || '未知'}；具体地址：${city}；居住：${living}；父母：${parents}；去世原因：${deathCause}；关系：${relations}；备注：${notes}`,
       personality: notes,
       skills: [
-        { name: '手机操作', desc: '熟悉现代智能手机与移动互联网基础操作。' },
-        { name: '现实观察', desc: '根据现代都市生活经验观察环境与人际线索。' },
+        { name: '手机操作', desc: '能够使用智能手机完成通讯、检索、拍摄、设置、应用切换和信息处理等操作。' },
+        { name: '现实观察', desc: '通过细节、环境变化和他人反应判断局势的能力。' },
       ],
     };
   },

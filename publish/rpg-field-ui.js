@@ -34,12 +34,24 @@ window.GameModules.rpgFieldUi = {
     const worldTag = this.currentRpgState?.worldTag || this.character?.work || '';
     const attrs = window.GameModules.worldAttributes.defaults(worldTag);
     const sections = this.currentRpgState?.schema?.sections || window.GameModules.progression.schemaSections(attrs);
-    return sections.flatMap((section) => section.fields || []).find((item) => item.key === field?.key)?.desc || '暂无说明。';
+    const found = sections.flatMap((section) => section.fields || []).find((item) => item.key === field?.key)?.desc;
+    return found || `${field?.label || '该词条'}用于记录可被剧情判定和成长系统引用的具体状态。`;
   },
 
   rpgItemSummary(item) {
     if (typeof item === 'string') return item;
     return item?.level ? `${item?.name || '未命名'} lv.${item.level}` : (item?.name || '未命名');
+  },
+
+  learnedDefinition(kind, name, obj = {}, lexicon = null, info = {}) {
+    const explicit = [info.description, lexicon?.description, obj.description, obj.desc, obj.source].find((x) => x && !/暂无|资料|当前作用/.test(String(x)));
+    if (explicit) return explicit;
+    if (name === '世界常识') return '对整个世界的认知程度，包括国家、文化风俗、社会规则、地理环境和日常常识。';
+    if (name === '手机操作') return '能够使用智能手机完成通讯、检索、拍摄、设置、应用切换和信息处理等操作。';
+    if (name === '现实观察' || name === '观察') return '通过细节、环境变化和他人反应判断局势的能力。';
+    if (kind === '知识') return `对“${name}”这一知识领域的概念、规则、背景和应用范围的理解程度。`;
+    if (kind === '职业') return `以“${name}”为核心的职业身份、职责范围、专业能力和社会资源。`;
+    return `执行“${name}”相关行动时所需的理解、操作熟练度和稳定发挥能力。`;
   },
 
   rpgItemDetail(field, item) {
@@ -49,25 +61,20 @@ window.GameModules.rpgFieldUi = {
     const exp = obj?.exp || {};
     const statName = { strength: '力量', agility: '敏捷', constitution: '体质', intelligence: '智力', perception: '感知', willpower: '意志', charisma: '魅力' };
     const linkedStats = (info.intrinsicStats || obj?.linkedStats || []).map((x) => statName[x] || x);
+    const kind = obj?.type || field?.label || '能力';
+    const name = obj?.name || field?.label || '未知';
     const lines = [
-      `名称: ${obj?.name || field?.label || '未知'}`,
-      `类型/等级: ${obj?.type || field?.label || '能力'}${obj?.level ? ` lv${obj.level}` : ''}`,
+      `名称: ${name}`,
+      `定义: ${this.learnedDefinition(kind, name, obj, lexicon, info)}`,
+      `类型/等级: ${kind}${obj?.level ? ` lv${obj.level}` : ''}`,
+      `等级含义: ${obj?.levelDescription || info.levelDescription || window.GameModules.progression.levelDescription(kind, obj?.level || 1)}`,
+      `等级效果: ${obj?.effect || info.effect || window.GameModules.progression.levelEffect(name, kind, obj?.level || 1)}`,
       `经验值/升级所需经验值: ${exp.current || 0}/${exp.next || 'max'}`,
-      `等级说明: ${obj?.levelDescription || info.levelDescription || '暂无'}`,
-      `当前作用: ${obj?.effect || info.effect || '暂无'}`,
-      `来源: ${obj?.source || info.summary || lexicon?.summary || '暂无'}`,
-      `层级: ${lexicon?.hierarchy === 'tree' ? '树词条' : '叶子词条'}`,
-      `词条名AI生成: ${(lexicon?.nameAiGenerated ?? lexicon?.aiGenerated) ? '是' : '否'}`,
-      `值AI生成: ${lexicon?.valueAiGenerated ? '是' : '否'}`,
-      `变化方式: ${lexicon?.changeMode || '暂无'}`,
-      `提示词说明: ${lexicon?.promptInstruction || '暂无'}`,
-      `关联身内能力: ${linkedStats.join('、') || '暂无'}`,
+      `关联身内能力: ${linkedStats.join('、') || '无直接关联'}`,
+      `词条层级: ${lexicon?.hierarchy === 'tree' ? '树词条' : '叶子词条'}`,
+      `生成来源: 词条名${(lexicon?.nameAiGenerated ?? lexicon?.aiGenerated) ? 'AI生成' : '系统/用户给定'}，值${lexicon?.valueAiGenerated ? 'AI生成' : '系统/用户给定'}，变化方式${lexicon?.changeMode || '系统结算'}`,
     ];
-    if (obj?.type === '职业') {
-      lines.push(`关联习得能力: ${(info.learnedAbilities || []).join('、') || '暂无'}`);
-      lines.push(`世界专属能力: ${(info.worldAbilities || []).join('、') || '暂无'}`);
-    }
-    lines.push(`详细说明: ${info.description || lexicon?.description || obj?.description || obj?.source || '暂无'}`);
+    if (obj?.type === '职业' && ((info.learnedAbilities || []).length || (info.worldAbilities || []).length)) lines.push(`职业关联: ${(info.learnedAbilities || []).concat(info.worldAbilities || []).join('、')}`);
     return lines.join('\n');
   },
 
@@ -77,7 +84,7 @@ window.GameModules.rpgFieldUi = {
     lines.push(`层级: ${lexicon?.hierarchy === 'tree' ? '树词条' : '叶子词条'}`);
     lines.push(`词条名AI生成: ${(lexicon?.nameAiGenerated ?? lexicon?.aiGenerated) ? '是' : '否'}`);
     lines.push(`值AI生成: ${lexicon?.valueAiGenerated ? '是' : '否'}`);
-    lines.push(`变化方式: ${lexicon?.changeMode || '暂无'}`);
+    lines.push(`变化方式: ${lexicon?.changeMode || '系统结算'}`);
     if (lexicon?.promptInstruction) lines.push(`提示词说明: ${lexicon.promptInstruction}`);
     if (field?.source) lines.push(`来源: 初始值(${field.source.initial || 0}) + 等级值(${field.source.level || 0}) + 分配值(${field.source.allocated || 0}) + 非玩家成长(${field.source.npc || 0}) = ${field.raw || 0}`);
     if (field?.key === 'free_attribute_points') lines.push('用途: 可分配到力量、敏捷、体质、智力、感知、意志、魅力；每次真实升级获得1点。');

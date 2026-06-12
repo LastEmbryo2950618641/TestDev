@@ -112,22 +112,17 @@ window.GameModules.progression = {
     };
   },
 
-  knowledge(character, seed) {
-    return [this.learned('世界常识', '知识', 1 + seed % 3, ['intelligence', 'perception'], '成长经历与原作背景')];
-  },
-
-  isStageIdentity(name) {
-    return /学生|中学生|高中生|初中生|小学生|大学生|年级|班学生/.test(String(name || ''));
-  },
+  knowledge(character, seed) { return [this.learned('世界常识', '知识', 1 + seed % 3, ['intelligence', 'perception'], '对整个世界的认知程度，包括国家、文化风俗、社会规则、地理环境和日常常识。')]; },
+  isStageIdentity(name) { return /学生|中学生|高中生|初中生|小学生|大学生|年级|班学生/.test(String(name || '')); },
 
   skills(character, seed) {
-    const list = (character.skills || [{ name: '观察', desc: '从细节中判断局势。' }]).filter((skill) => !this.isStageIdentity(skill.name)).slice(0, 5);
-    return list.map((skill, index) => this.learned(skill.name || `技能${index + 1}`, '技能', 1 + ((seed + index) % 3), this.linkedStats(skill.name), skill.desc || '角色已掌握的行动能力'));
+    const list = (character.skills || [{ name: '观察', desc: '通过细节、环境变化和他人反应判断局势的能力。' }]).filter((skill) => !this.isStageIdentity(skill.name)).slice(0, 5);
+    return list.map((skill, index) => this.learned(skill.name || `技能${index + 1}`, '技能', 1 + ((seed + index) % 3), this.linkedStats(skill.name), skill.desc || this.learnedDefinition(skill.name, '技能')));
   },
 
   professions(character, seed) {
     const name = window.GameModules.professionInfo.normalizeJobName(character.job);
-    return name && !this.isStageIdentity(name) ? [this.learned(name, '职业', 1 + seed % 3, ['intelligence', 'willpower', 'charisma'], character.rank || '长期身份与社会功能')] : [];
+    return name && !this.isStageIdentity(name) ? [this.learned(name, '职业', 1 + seed % 3, ['intelligence', 'willpower', 'charisma'], character.rank || this.learnedDefinition(name, '职业'))] : [];
   },
 
   normalizeLearnedLists(values) {
@@ -146,18 +141,10 @@ window.GameModules.progression = {
   learned(name, type, level, linkedStats, source) {
     const lv = this.clamp(level, 1, 7);
     const cleanName = String(name).slice(0, 16);
-    return { name: cleanName, type, level: lv, exp: { current: 0, next: this.learnedNext[lv] }, linkedStats, source, levelDescription: this.levelDescription(type, lv), effect: this.levelEffect(cleanName, type, lv) };
+    const definition = this.learnedDefinition(cleanName, type, source);
+    return { name: cleanName, type, level: lv, exp: { current: 0, next: this.learnedNext[lv] }, linkedStats, source: definition, description: definition, levelDescription: this.levelDescription(type, lv), effect: this.levelEffect(cleanName, type, lv) };
   },
 
-  levelDescription(type, lv) {
-    const map = ['无', '入门：知道基本概念或能做最简单动作。', '初学：能在低压环境稳定使用。', '熟练：能处理常见情况。', '专业：能独立应对复杂情况。', '专家：能创新、优化或指导他人。', '大师：领域内极少数高位者。', '传说：世界观顶级或规格外。'];
-    return `${type || '能力'}lv${lv}｜${map[lv]}`;
-  },
-
-  levelEffect(name, type, lv) {
-    const scope = lv <= 2 ? '基础场景' : lv <= 4 ? '常见与复杂场景' : lv <= 6 ? '高压或专业场景' : '世界观顶级场景';
-    return `${name}达到lv${lv}后，可在${scope}中提供${type === '职业' ? '职责、身份与资源影响' : '行动判定与成长效率'}加成。`;
-  },
 
   linkedStats(name) {
     if (/剑|战|拳|武|射|枪/.test(name)) return ['strength', 'agility', 'perception'];
