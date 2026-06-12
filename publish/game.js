@@ -22,7 +22,7 @@ document.addEventListener('alpine:init', () => {
     loadingDetail: '首次进入或存档较大时会更慢，这是正常现象。',
     loadingStages: [], entryStages: [],
     busy: false, started: false, desktopUnlocked: false, appHasOpened: false, appClosing: false, appSwitcherOpen: false, entrySetupOpen: false,
-    appDragStartY: 0, appDragY: 0, appDragging: false, desktopDragStartY: 0, desktopDragY: 0, desktopDragging: false,
+    appDragStartY: 0, appDragY: 0, appDragPeakY: 0, appGestureFromHomeZone: false, appDragging: false, desktopDragStartY: 0, desktopDragY: 0, desktopDragging: false,
     initPromise: null,
     playerName: '',
     selectedSlot: 'slot-1',

@@ -21,6 +21,8 @@ window.GameModules.coreActions = {
     event.currentTarget?.setPointerCapture?.(event.pointerId);
     this.appDragStartY = y;
     this.appDragY = 0;
+    this.appDragPeakY = 0;
+    this.appGestureFromHomeZone = Boolean(fromGestureZone);
     this.appDragging = true;
   },
 
@@ -28,13 +30,17 @@ window.GameModules.coreActions = {
     if (!this.appDragging) return;
     event.preventDefault();
     this.appDragY = Math.min(0, (event.clientY || 0) - this.appDragStartY);
+    this.appDragPeakY = Math.min(this.appDragPeakY || 0, this.appDragY);
   },
 
   appGestureEnd() {
     if (!this.appDragging) return;
-    const shouldClose = this.appDragY < -96;
+    const threshold = this.appGestureFromHomeZone ? -36 : -96;
+    const shouldClose = Math.min(this.appDragY, this.appDragPeakY || 0) < threshold;
     this.appDragging = false;
     this.appDragY = 0;
+    this.appDragPeakY = 0;
+    this.appGestureFromHomeZone = false;
     if (shouldClose) this.closeAppToDesktop();
   },
 
