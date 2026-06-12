@@ -241,8 +241,8 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.started && !$store.game.loading && !$store.game.desktopUnlocked" class="phone-desktop-screen" x-cloak>
-    <div class="phone-frame">
+  <section x-show="!$store.game.loading && (!$store.game.desktopUnlocked || $store.game.appClosing)" class="phone-desktop-screen" x-cloak>
+    <div class="phone-frame" :class="{ 'has-running-app': $store.game.started || $store.game.entrySetupOpen }">
       <div class="phone-status-bar">
         <span>21:08</span>
         <span>5G  88%</span>
@@ -269,7 +269,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && !$store.game.entrySetupOpen" class="start-screen" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && !$store.game.entrySetupOpen" class="start-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled, 'app-window-dragging': $store.game.appDragging, 'app-window-closing': $store.game.appClosing }" :style="$store.game.appWindowStyle()" @pointerdown="$store.game.appGestureStart($event)" @pointermove.window="$store.game.appGestureMove($event)" @pointerup.window="$store.game.appGestureEnd()" @pointercancel.window="$store.game.appGestureEnd()" x-cloak>
     <div class="start-card dev-section" data-section-title="首页选择面板">
       <p class="eyebrow">AI RPG 视觉小说</p>
       <h1>我狠狠操控</h1>
@@ -339,7 +339,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.started && !$store.game.loading && $store.game.entrySetupOpen" class="start-screen entry-screen" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.entrySetupOpen" class="start-screen entry-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled, 'app-window-dragging': $store.game.appDragging, 'app-window-closing': $store.game.appClosing }" :style="$store.game.appWindowStyle()" @pointerdown="$store.game.appGestureStart($event)" @pointermove.window="$store.game.appGestureMove($event)" @pointerup.window="$store.game.appGestureEnd()" @pointercancel.window="$store.game.appGestureEnd()" x-cloak>
     <div class="start-card entry-card dev-section" data-section-title="进入时机配置区">
       <button class="back-home-btn" type="button" @click="$store.game.backToHome()" :disabled="$store.game.busy">← 返回首页</button>
         <h3>选择进入时机</h3>
@@ -383,7 +383,7 @@
     </div>
   </section>
 
-  <main x-show="$store.game.started && !$store.game.loading" class="game-shell" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <main x-show="$store.game.started && !$store.game.loading && $store.game.desktopUnlocked" class="game-shell app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled, 'app-window-dragging': $store.game.appDragging, 'app-window-closing': $store.game.appClosing }" :style="$store.game.appWindowStyle()" @pointerdown="$store.game.appGestureStart($event)" @pointermove.window="$store.game.appGestureMove($event)" @pointerup.window="$store.game.appGestureEnd()" @pointercancel.window="$store.game.appGestureEnd()" x-cloak>
     <header class="top-bar dev-section" data-section-title="顶部状态栏">
       <div class="mode-status">
         <span class="mode-dot" :class="$store.game.online ? 'online' : 'offline'"></span>

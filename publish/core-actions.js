@@ -5,7 +5,44 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.coreActions = {
   openDesktopApp() {
+    this.appClosing = false;
     this.desktopUnlocked = true;
+  },
+
+  appGestureStart(event) {
+    if (this.loading || event.target.closest('input, textarea, select')) return;
+    if ((event.clientY || 0) > 110) return;
+    this.appDragStartY = event.clientY || 0;
+    this.appDragY = 0;
+    this.appDragging = true;
+  },
+
+  appGestureMove(event) {
+    if (!this.appDragging) return;
+    this.appDragY = Math.max(0, (event.clientY || 0) - this.appDragStartY);
+  },
+
+  appGestureEnd() {
+    if (!this.appDragging) return;
+    const shouldClose = this.appDragY > 90;
+    this.appDragging = false;
+    this.appDragY = 0;
+    if (shouldClose) this.closeAppToDesktop();
+  },
+
+  appWindowStyle() {
+    const y = this.appDragging ? this.appDragY : 0;
+    const scale = this.appDragging ? Math.max(.86, 1 - y / 900) : 1;
+    return `transform: translateY(${y}px) scale(${scale});`;
+  },
+
+  closeAppToDesktop() {
+    if (this.appClosing) return;
+    this.appClosing = true;
+    setTimeout(() => {
+      this.desktopUnlocked = false;
+      this.appClosing = false;
+    }, 260);
   },
 
   selectWork(name) {
