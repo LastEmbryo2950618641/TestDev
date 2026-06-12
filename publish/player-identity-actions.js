@@ -36,7 +36,12 @@ window.GameModules.playerIdentityActions = {
   },
 
   async ensurePlayerRpgState(refresh = false) {
-    if (!window.GameModules.sqliteSave.db || (!refresh && this.playerIdentityState())) return this.playerIdentityState();
+    if (!window.GameModules.sqliteSave.db) return this.playerIdentityState();
+    const existing = this.playerIdentityState();
+    if (!refresh && existing) {
+      if (window.GameModules.progression.ensureStateMechanics(existing, existing.profile || this.playerCharacter())) await window.GameModules.sqliteSave.saveCharacterState(existing);
+      return existing;
+    }
     const character = this.playerCharacter();
     const state = await window.GameModules.rpgState.ensureCharacter(character, this);
     state.profile = character;

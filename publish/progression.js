@@ -157,6 +157,7 @@ window.GameModules.progression = {
     const spent = Object.values(values.intrinsic_sources || {}).reduce((sum, s) => sum + (s.allocated || 0), 0);
     const expected = Math.max(0, earned - spent);
     if (values.level_growth) values.level_growth.allocatedSpent = spent;
+    if (values.level_growth?.totalLevelUps === 0 && values.free_attribute_points !== 0) { values.free_attribute_points = 0; return true; }
     if (!Number.isFinite(values.free_attribute_points) || values.free_attribute_points > earned || values.free_attribute_points < 0) { values.free_attribute_points = expected; return true; }
     return false;
   },

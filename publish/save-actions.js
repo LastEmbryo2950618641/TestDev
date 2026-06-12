@@ -155,6 +155,7 @@ window.GameModules.saveActions = {
 
   rpgEntries(state) {
     if (!state?.schema) return [];
+    window.GameModules.progression.ensureStateMechanics(state, state.profile || {});
     return state.schema.sections.map((section) => ({
       title: section.title,
       fields: section.fields
