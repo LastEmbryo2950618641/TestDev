@@ -32,6 +32,7 @@ window.GameModules.realWorldActions = {
 
   openRealWorldPanel() {
     this.realWorldOpen = true;
+    this.checkWorkReminder?.();
     if (!this.realWorldLog.length) this.seedRealWorldLog();
   },
 

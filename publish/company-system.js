@@ -1,0 +1,57 @@
+window.GameModules = window.GameModules || {};
+
+window.GameModules.companySystem = {
+  defaultState(profile = {}) {
+    const companyName = profile.workplace || '成都星河云栈科技有限公司';
+    return {
+      open: false,
+      panelTab: 'profile',
+      workPromptOpen: false,
+      pendingWork: null,
+      currentCompanyId: 'main-company',
+      workStats: { month: '2026-06', lateCount: 0, absentCount: 0, performance: 100, commissionRate: 0, lastDecisionAt: '' },
+      companies: [this.defaultCompany(companyName, profile)],
+      contracts: [],
+      submissions: [],
+    };
+  },
+
+  defaultCompany(name, profile = {}) {
+    const role = profile.refinedRole || profile.dailyRole || '现代都市员工';
+    return {
+      id: 'main-company', name, type: this.companyType(name, role), industry: this.industry(role),
+      scale: '中小型公司', location: profile.refinedCity || profile.city || '现实城市未登记',
+      workMode: { type: '员工', schedule: '996', workDays: '周一至周六', startTime: '09:00', endTime: '21:00', lateGraceMinutes: 10 },
+      salary: { monthlyBase: this.baseSalary(role), commissionMonths: 2, minRate: 0, maxRate: 0.3, payday: '月底', currency: 'CNY' },
+      rules: ['按上班时间打卡', '迟到自动扣部分绩效', '旷班大幅扣绩效', '月底按评价生成提成百分比'],
+      openings: [
+        { id: 'employee', name: '员工制岗位', type: '员工', desc: '按公司规章制度上班，稳定月薪，月底按绩效计算提成。' },
+        { id: 'timed-task', name: '定时工任务', type: '定时工', desc: '规定时间内完成单项工作，按完成度给钱，不合格无报酬，超预期额外奖励。' },
+        { id: 'creator', name: '创作者征稿', type: '创作者模式', desc: '向公司投稿方案、小说、作品，通过后可签稳定低分成或低保高分成合同。' },
+      ],
+      lexicon: [],
+      updatedAt: new Date().toISOString(),
+    };
+  },
+
+  companyType(name, role) {
+    if (/工作室|studio/i.test(name)) return '工作室';
+    if (/个体|自由|独立/.test(role)) return '个体户';
+    if (/学校|学院|大学|中学/.test(name)) return '学校/机构';
+    return '公司';
+  },
+
+  industry(role) {
+    if (/程序|软件|计算机|后端|前端|AI|算法/.test(role)) return '互联网软件';
+    if (/学生|学校/.test(role)) return '教育';
+    if (/写作|小说|创作|画师|设计/.test(role)) return '内容创作';
+    return '现代服务业';
+  },
+
+  baseSalary(role) {
+    if (/高级|硕士|lv\.5|架构/.test(role)) return 18000;
+    if (/程序|软件|设计|运营/.test(role)) return 9000;
+    if (/学生/.test(role)) return 0;
+    return 6000;
+  },
+};

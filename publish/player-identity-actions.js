@@ -115,6 +115,7 @@ window.GameModules.playerIdentityActions = {
 
   async openIdentityApp(targetId = 'player-self') {
     this.wechatAppOpen = false;
+    if (this.companyState) this.companyState.open = false;
     this.identityTargetId = targetId || 'player-self';
     this.identityAppOpen = true;
     this.desktopUnlocked = true;
@@ -124,6 +125,7 @@ window.GameModules.playerIdentityActions = {
 
   openWechatApp() {
     this.identityAppOpen = false;
+    if (this.companyState) this.companyState.open = false;
     this.wechatAppOpen = true;
     this.desktopUnlocked = true;
     this.wechatTab = this.wechatTab || 'chats';

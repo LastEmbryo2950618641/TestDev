@@ -57,6 +57,7 @@ window.GameModules.storage = {
       realWorldStatus: store.realWorldStatus,
       realWorldChoices: store.realWorldChoices,
       realWorldLog: (store.realWorldLog || []).slice(-30),
+      companyState: store.companyState,
       rpgPanelCharacterId: store.rpgPanelCharacterId,
     };
   },
@@ -71,6 +72,7 @@ window.GameModules.storage = {
     store.realWorldStatus = save.realWorldStatus || store.realWorldStatus;
     store.realWorldChoices = save.realWorldChoices || store.realWorldChoices;
     store.realWorldLog = save.realWorldLog || store.realWorldLog;
+    store.companyState = save.companyState || store.companyState;
     if (!save.started) return false;
     store.selectedWork = save.selectedWork || store.selectedWork;
     store.selectedCharacterId = save.selectedCharacterId || store.selectedCharacterId;

@@ -1,0 +1,91 @@
+.company-app-screen {
+  display: grid;
+  place-items: center;
+  padding: max(14px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+}
+
+.company-card {
+  width: min(920px, 100%);
+  max-height: min(760px, 96dvh);
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 10px;
+  overflow: hidden;
+  padding: 16px;
+  border: 1px solid rgba(116, 246, 255, .22);
+  border-radius: 22px;
+  background: rgba(6, 12, 28, .9);
+  box-shadow: 0 22px 80px rgba(0, 0, 0, .36);
+}
+
+.company-tabs,
+.work-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.company-tabs button,
+.work-dialog-actions button {
+  min-height: 36px;
+  border: 1px solid rgba(116, 246, 255, .2);
+  border-radius: 999px;
+  padding: 0 12px;
+  color: #eafcff;
+  background: rgba(255, 255, 255, .07);
+  font-weight: 900;
+}
+
+.company-tabs button.active {
+  border-color: #74f6ff;
+  background: linear-gradient(135deg, rgba(116, 246, 255, .25), rgba(255, 207, 90, .14));
+}
+
+.company-body {
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  gap: 10px;
+  overscroll-behavior: contain;
+}
+
+.company-grid,
+.recruit-grid,
+.contract-list {
+  display: grid;
+  gap: 8px;
+}
+
+.company-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.recruit-card,
+.contract-card,
+.work-dialog {
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .06);
+}
+
+.work-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(1, 4, 12, .72);
+  backdrop-filter: blur(16px);
+}
+
+.work-dialog {
+  width: min(520px, 100%);
+  color: #eef3ff;
+}
+
+@media (max-width: 640px) {
+  .company-grid { grid-template-columns: 1fr; }
+  .company-card { padding: 12px; }
+}

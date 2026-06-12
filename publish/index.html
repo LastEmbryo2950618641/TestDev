@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="phone-desktop.css">
   <link rel="stylesheet" href="real-world.css">
   <link rel="stylesheet" href="phone-wechat.css">
+  <link rel="stylesheet" href="company-system.css">
   <link rel="stylesheet" href="character-select.css">
   <link rel="stylesheet" href="profile-preview.css">
   <link rel="stylesheet" href="prompt-dialog.css">
@@ -77,6 +78,8 @@
   <script src="player-setup-actions.js"></script>
   <script src="player-identity-actions.js"></script>
   <script src="real-world-actions.js"></script>
+  <script src="company-system.js"></script>
+  <script src="company-actions.js"></script>
   <script src="entry-actions.js"></script>
   <script src="control-actions.js"></script>
   <script src="core-actions.js"></script>
@@ -393,7 +396,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.phoneSetupDone && !$store.game.desktopUnlocked" class="phone-desktop-screen" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.phoneSetupDone && !$store.game.desktopUnlocked" class="phone-desktop-screen" x-init="setInterval(() => $store.game.checkWorkReminder?.(), 60000)" x-cloak>
     <div class="phone-frame">
       <div class="phone-status-bar">
         <span x-text="$store.game.phoneTimeText().slice(0, 5)"></span>
@@ -428,6 +431,10 @@
           <span class="app-glyph">微</span>
           <b>微信</b>
         </button>
+        <button class="desktop-app-icon" type="button" @click="$store.game.openCompanyApp()" aria-label="打开公司">
+          <span class="app-glyph">司</span>
+          <b>公司</b>
+        </button>
       </div>
       <div class="phone-dock">
         <span></span><span></span><span></span><span></span>
@@ -435,7 +442,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.identityAppOpen" class="identity-app-screen app-window section-hints" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.identityAppOpen && !$store.game.companyState?.open" class="identity-app-screen app-window section-hints" x-cloak>
     <div class="identity-card dev-section" data-section-title="身份证主面板">
       <header class="identity-header dev-section" data-section-title="身份证标题区">
         <div><p class="eyebrow">ID CARD</p><h2>身份证</h2><small x-text="$store.game.identityTargetProfile().work || '现实世界'"></small></div>
@@ -470,7 +477,50 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.wechatAppOpen" class="wechat-app-screen app-window section-hints" x-cloak>
+  <section x-show="$store.game.companyState?.workPromptOpen" class="work-dialog-backdrop" x-cloak>
+    <div class="work-dialog dev-section" data-section-title="上班提示弹窗">
+      <h2>到上班时间了</h2>
+      <p x-text="`${$store.game.companyState?.pendingWork?.companyName || '公司'} 要求 ${$store.game.companyState?.pendingWork?.startTime || '09:00'} 上班。请选择处理方式。`"></p>
+      <div class="work-dialog-actions">
+        <button type="button" @click="$store.game.decideWorkAttendance('work')">上班</button>
+        <button type="button" @click="$store.game.decideWorkAttendance('delay')">推迟上班（迟到）</button>
+        <button type="button" @click="$store.game.decideWorkAttendance('absent')">旷班</button>
+      </div>
+    </div>
+  </section>
+
+  <section x-show="!$store.game.loading && $store.game.companyState?.open" class="company-app-screen app-window section-hints" x-cloak>
+    <div class="company-card dev-section" data-section-title="公司系统主面板">
+      <header class="identity-header dev-section" data-section-title="公司标题区">
+        <div><p class="eyebrow">COMPANY</p><h2 x-text="$store.game.currentCompany().name"></h2><small x-text="$store.game.workStatusText()"></small></div>
+        <button class="small-btn" type="button" @click="$store.game.closeCompanyApp()">回到桌面</button>
+      </header>
+      <nav class="company-tabs dev-section" data-section-title="公司系统分页">
+        <button type="button" :class="{ active: $store.game.companyState.panelTab === 'profile' }" @click="$store.game.companyState.panelTab = 'profile'">公司词条</button>
+        <button type="button" :class="{ active: $store.game.companyState.panelTab === 'recruit' }" @click="$store.game.companyState.panelTab = 'recruit'">招聘制度</button>
+        <button type="button" :class="{ active: $store.game.companyState.panelTab === 'pay' }" @click="$store.game.companyState.panelTab = 'pay'">薪酬绩效</button>
+      </nav>
+      <main class="company-body scroll-area">
+        <section class="company-grid" x-show="$store.game.companyState.panelTab === 'profile'">
+          <template x-for="field in $store.game.companyFields()" :key="field.key">
+            <button class="rpg-item-card lexicon-tag" type="button" @click="$store.game.toggleRpgField(field)"><strong x-text="$store.game.rpgFieldSummary(field)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
+          </template>
+        </section>
+        <section class="recruit-grid" x-show="$store.game.companyState.panelTab === 'recruit'">
+          <article class="recruit-card"><h3>员工制</h3><p>按公司规章制度上班，固定月薪 + 月底绩效提成。</p><button class="story-choice-btn" @click="$store.game.applyRecruitment('employee')">申请员工岗位</button></article>
+          <article class="recruit-card"><h3>定时工</h3><p>规定时间内完成一件事，不合格无报酬，合格拿100%，超预期额外奖励。</p><button class="story-choice-btn" @click="$store.game.applyRecruitment('timed')">接定时工任务</button></article>
+          <article class="recruit-card"><h3>创作者模式</h3><p>向公司投稿方案、小说、作品，通过后可签合同。</p><button class="story-choice-btn" @click="$store.game.applyRecruitment('creator-low')">签稳定低分成</button><button class="story-choice-btn" @click="$store.game.applyRecruitment('creator-high')">签低保高分成</button></article>
+        </section>
+        <section class="contract-list" x-show="$store.game.companyState.panelTab === 'pay'">
+          <article class="contract-card"><h3>月底收入预览</h3><p x-text="`固定工资：${$store.game.monthlyPayPreview().base}元｜提成：${$store.game.monthlyPayPreview().commission}元｜总计：${$store.game.monthlyPayPreview().total}元`"></p><p x-text="`提成百分比：${Math.round($store.game.monthlyPayPreview().rate * 100)}%`"></p></article>
+          <template x-for="item in $store.game.companyState.contracts" :key="item.id"><article class="contract-card"><h3 x-text="item.type"></h3><p x-text="item.terms"></p><small x-text="item.signedAt"></small></article></template>
+          <template x-for="item in $store.game.companyState.submissions" :key="item.id"><article class="contract-card"><h3 x-text="item.type"></h3><p x-text="`${item.target}｜${item.rewardRule}`"></p><small x-text="item.status"></small></article></template>
+        </section>
+      </main>
+    </div>
+  </section>
+
+  <section x-show="!$store.game.loading && $store.game.wechatAppOpen && !$store.game.companyState?.open" class="wechat-app-screen app-window section-hints" x-cloak>
     <div class="wechat-phone dev-section" data-section-title="微信模拟界面">
       <header class="wechat-top" x-show="$store.game.wechatView === 'home'">
         <button type="button" @click="$store.game.closeWechatApp()">返回桌面</button><strong></strong><button type="button">⋯</button>

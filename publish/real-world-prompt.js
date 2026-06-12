@@ -7,6 +7,7 @@ window.GameModules.createRealWorldPrompt = function createRealWorldPrompt(state,
   const realWorld = window.GameModules.realWorld2026 || {};
   const profile = state.playerSetupSummary?.() || `姓名/代号：${state.playerName || '玩家'}`;
   const identity = state.playerIdentitySummary?.() || '玩家本人属性尚未生成。';
+  const company = state.companyPromptContext?.() || '暂无公司系统词条。';
   const recent = (state.realWorldLog || []).slice(-6).map((entry) => {
     if (entry.type === 'user') return `玩家行动：${entry.text}`;
     return `推演结果：${entry.narration || entry.text || ''}`;
@@ -35,6 +36,9 @@ ${profile}
 
 # 【玩家本人属性】
 ${identity}
+
+# 【公司与工作系统】
+${company}
 
 # 【当前现实状态】
 - 场景：${state.realWorldSceneTitle || '现实世界'}
