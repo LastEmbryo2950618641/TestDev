@@ -6,6 +6,7 @@
   <title>我狠狠操控</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="phone-desktop.css">
+  <link rel="stylesheet" href="real-world.css">
   <link rel="stylesheet" href="phone-wechat.css">
   <link rel="stylesheet" href="character-select.css">
   <link rel="stylesheet" href="profile-preview.css">
@@ -18,6 +19,7 @@
   <script src="app-background.js"></script>
   <script src="assets/data/real-world-2026.js"></script>
   <script src="prompt.js"></script>
+  <script src="real-world-prompt.js"></script>
   <script src="prompt-fallback.js"></script>
   <script src="metrics.js"></script>
   <script src="sqlite-save.js"></script>
@@ -61,6 +63,7 @@
   <script src="rag-cache.js"></script>
   <script src="catalog.js"></script>
   <script src="ai.js"></script>
+  <script src="real-world-ai.js"></script>
   <script src="actions.js"></script>
   <script src="novel-log.js"></script>
   <script src="debug.js"></script>
@@ -73,6 +76,7 @@
   <script src="social-position.js"></script>
   <script src="player-setup-actions.js"></script>
   <script src="player-identity-actions.js"></script>
+  <script src="real-world-actions.js"></script>
   <script src="entry-actions.js"></script>
   <script src="control-actions.js"></script>
   <script src="core-actions.js"></script>
@@ -80,6 +84,7 @@
   <script src="game.js"></script>
 </head>
 <body x-data="{}">
+  <button x-show="!$store.game.loading && $store.game.phoneSetupDone" class="phone-collapse-btn" type="button" @click="$store.game.openRealWorldPanel()" x-cloak>收起手机</button>
   <div id="boot-fallback" class="loading-screen">
     <div class="loading-card"><div class="spinner"></div><p>正在启动游戏…</p><small>如果长时间停留，请打开 Console 查看错误。</small></div>
   </div>
@@ -249,11 +254,90 @@
     </div>
   </section>
 
+  <section x-show="$store.game.realWorldOpen" class="real-world-overlay" x-cloak>
+    <div class="real-world-dialog game-shell" :class="{ 'section-hints': $store.game.sectionHintsEnabled }">
+      <header class="top-bar dev-section" data-section-title="现实世界顶部状态栏">
+        <div class="mode-status">
+          <span class="mode-dot online"></span>
+          <strong>现实世界推演：手机已收起</strong>
+          <span class="real-world-clock" x-text="`${$store.game.phoneDateText()} ${$store.game.phoneTimeText()}`"></span>
+        </div>
+        <div class="top-actions">
+          <button type="button" @click="$store.game.closeRealWorldPanel()">展开手机</button>
+        </div>
+      </header>
+
+      <section class="rpg-layout real-world-layout">
+        <aside class="panel character-panel dev-section" data-section-title="现实身份侧栏">
+          <button class="character-status-card dev-section" data-section-title="玩家本人状态栏" type="button">
+            <div class="avatar-orb" x-text="$store.game.playerCharacter().name.slice(0, 1)"></div>
+            <div class="character-status-main">
+              <div class="name-role-block"><h2 x-text="$store.game.playerCharacter().name"></h2><p class="role" x-text="$store.game.playerProfile.refinedRole || $store.game.playerProfile.dailyRole || '现实世界居民'"></p></div>
+              <small x-text="$store.game.playerProfile.refinedLivingStatus || $store.game.playerProfile.refinedCity || '现实位置未登记'"></small>
+            </div>
+          </button>
+          <section class="profile-card dev-section" data-section-title="本人资料区">
+            <div class="profile-details">
+              <b>现实身份 / 固化资料</b>
+              <div class="profile-content-fixed">
+                <div class="dynamic-rpg">
+                  <template x-for="field in $store.game.playerProfileLexiconFields().slice(0, 8)" :key="field.key">
+                    <button class="rpg-item-card lexicon-tag" type="button"><strong x-text="`${field.label}：${field.value}`"></strong></button>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </section>
+        </aside>
+
+        <section class="panel story-panel dev-section" data-section-title="现实推演日志区">
+          <div class="scene-title dev-section" data-section-title="现实场景标题栏"><span x-text="$store.game.realWorldSceneTitle"></span><b>现实侧</b></div>
+          <div class="story-log scroll-area dev-section" data-section-title="现实记录列表">
+            <template x-for="entry in $store.game.realWorldLog" :key="entry.id">
+              <article class="novel-entry" :class="entry.type === 'user' ? 'player' : 'advice'">
+                <div class="novel-player dev-section" data-section-title="现实行动输入" x-show="entry.type === 'user'"><p x-text="entry.text"></p></div>
+                <div class="novel-story dev-section" data-section-title="现实AI生成内容" x-show="entry.type !== 'user'" :class="{ streaming: entry.streaming }">
+                  <div class="novel-thinking dev-section" data-section-title="现实AI思考" x-show="entry.thinking"><p><b>【现实推演】</b><span x-text="entry.thinking"></span></p></div>
+                  <div class="novel-tool-row"><button class="prompt-toggle" x-show="entry.promptPack" @click="$store.game.openRealWorldPrompt(entry.id)" title="查看生成提示词">≡</button></div>
+                  <p class="novel-body-text" x-text="entry.narration || entry.text"></p>
+                </div>
+              </article>
+            </template>
+            <div class="story-choice-list dev-section" data-section-title="现实行动选项" x-show="!$store.game.realWorldBusy && $store.game.realWorldChoices.length">
+              <template x-for="choice in $store.game.realWorldChoices" :key="choice"><button class="story-choice-btn" type="button" @click="$store.game.submitRealWorldAction(choice)" x-text="choice"></button></template>
+            </div>
+            <div x-show="$store.game.realWorldBusy" class="thinking-line">现实世界正在推演，约 20 秒...</div>
+          </div>
+        </section>
+
+        <aside class="panel mind-panel dev-section" data-section-title="现实信息栏">
+          <h3>现实状态</h3>
+          <div class="mind-box dev-section" data-section-title="现实状态区" x-text="$store.game.realWorldStatus"></div>
+          <h3>当前目标</h3>
+          <p class="quest-text dev-section" data-section-title="现实目标区" x-text="$store.game.realWorldQuest"></p>
+          <h3>世界观</h3>
+          <p class="quest-text dev-section" data-section-title="现实世界观区" x-text="window.GameModules.realWorld2026.summary"></p>
+        </aside>
+      </section>
+
+      <footer class="control-dock dev-section" data-section-title="现实底部操作栏">
+        <div class="free-input dev-section" data-section-title="现实自由输入栏">
+          <input x-model="$store.game.realWorldInput" placeholder="输入你在现实世界的下一步行动..." :disabled="$store.game.realWorldBusy" @keydown.enter="$store.game.submitRealWorldAction()">
+          <button type="button" @click="$store.game.submitRealWorldAction()" :disabled="$store.game.realWorldBusy || !$store.game.realWorldInput.trim()">执行</button>
+        </div>
+      </footer>
+    </div>
+  </section>
+
   <section x-show="!$store.game.loading && $store.game.phoneSetupDone && !$store.game.desktopUnlocked" class="phone-desktop-screen" x-cloak>
     <div class="phone-frame">
       <div class="phone-status-bar">
-        <span>21:08</span>
+        <span x-text="$store.game.phoneTimeText().slice(0, 5)"></span>
         <span>5G  88%</span>
+      </div>
+      <div class="desktop-time-card">
+        <strong x-text="$store.game.phoneTimeText()"></strong>
+        <span x-text="$store.game.phoneDateText()"></span>
       </div>
       <div class="desktop-widgets">
         <article>

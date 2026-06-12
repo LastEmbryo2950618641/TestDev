@@ -1,0 +1,62 @@
+.phone-collapse-btn {
+  position: fixed;
+  top: max(10px, env(safe-area-inset-top));
+  right: max(10px, env(safe-area-inset-right));
+  z-index: 80;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(116, 246, 255, .38);
+  border-radius: 999px;
+  color: #eafcff;
+  font-size: 12px;
+  font-weight: 900;
+  background: rgba(7, 12, 28, .72);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .28);
+  backdrop-filter: blur(14px);
+}
+
+.real-world-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  background: rgba(1, 4, 12, .68);
+  backdrop-filter: blur(18px);
+}
+
+.real-world-dialog {
+  width: min(1180px, 100%);
+  height: min(720px, 100%);
+  border: 1px solid rgba(116, 246, 255, .24);
+  border-radius: 22px;
+  overflow: hidden;
+}
+
+.real-world-clock {
+  color: #aeb9d6;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.real-world-layout .profile-card {
+  min-height: 0;
+}
+
+@media (max-width: 760px) {
+  .real-world-dialog {
+    height: 100%;
+    border-radius: 18px;
+  }
+
+  .real-world-dialog .rpg-layout {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .real-world-dialog .character-panel,
+  .real-world-dialog .mind-panel {
+    min-height: 180px;
+  }
+}

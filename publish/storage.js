@@ -52,6 +52,11 @@ window.GameModules.storage = {
       characterIntent: store.characterIntent,
       choices: store.choices,
       log: store.log.slice(-30).map((entry) => ({ ...entry, thinking: store.normalizeNovelThinking ? store.normalizeNovelThinking(entry.thinking) : entry.thinking })),
+      realWorldSceneTitle: store.realWorldSceneTitle,
+      realWorldQuest: store.realWorldQuest,
+      realWorldStatus: store.realWorldStatus,
+      realWorldChoices: store.realWorldChoices,
+      realWorldLog: (store.realWorldLog || []).slice(-30),
       rpgPanelCharacterId: store.rpgPanelCharacterId,
     };
   },
@@ -61,6 +66,11 @@ window.GameModules.storage = {
     store.phoneSetupDone = save.phoneSetupDone ?? store.phoneSetupDone;
     store.playerProfile = { ...store.playerProfile, ...(save.playerProfile || {}) };
     store.playerName = save.playerName || store.playerProfile?.name || store.playerName;
+    store.realWorldSceneTitle = save.realWorldSceneTitle || store.realWorldSceneTitle;
+    store.realWorldQuest = save.realWorldQuest || store.realWorldQuest;
+    store.realWorldStatus = save.realWorldStatus || store.realWorldStatus;
+    store.realWorldChoices = save.realWorldChoices || store.realWorldChoices;
+    store.realWorldLog = save.realWorldLog || store.realWorldLog;
     if (!save.started) return false;
     store.selectedWork = save.selectedWork || store.selectedWork;
     store.selectedCharacterId = save.selectedCharacterId || store.selectedCharacterId;

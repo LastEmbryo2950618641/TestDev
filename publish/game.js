@@ -22,7 +22,7 @@ document.addEventListener('alpine:init', () => {
     loadingDetail: '首次进入或存档较大时会更慢，这是正常现象。',
     loadingStages: [], entryStages: [],
     busy: false, started: false, desktopUnlocked: false, entrySetupOpen: false, identityAppOpen: false, wechatAppOpen: false, identityTargetId: 'player-self', wechatSelectedContact: 'player-self', wechatTab: 'chats', wechatView: 'home', wechatInput: '',
-    initPromise: null, phoneSetupDone: false, phoneActivationChoice: '', profileSetupBusy: false,
+    initPromise: null, phoneSetupDone: false, phoneActivationChoice: '', profileSetupBusy: false, phoneClockNow: Date.now(), phoneClockSessionStart: Date.now(), phoneClockTimer: null,
     playerProfile: { name: '', gender: '', birthday: '', age: '', city: '', refinedCity: '', dailyRole: '', refinedRole: '', livingStatus: '', refinedLivingStatus: '', relationships: '', parents: '', parentStatus: '', parentDeathCause: '', worldbuildingNote: '', notes: '', wechatId: '', profileEnrichedAt: '', initializedAt: '' }, playerName: '',
     selectedSlot: 'slot-1', saveSlots: window.GameModules.storage.slots,
     savePanelOpen: false, functionPanelOpen: false,
@@ -65,7 +65,7 @@ document.addEventListener('alpine:init', () => {
     mindText: '', feedbackSource: 'pending',
     characterIntent: '',
     choices: cfg.openingChoices,
-    log: [],
+    log: [], realWorldOpen: false, realWorldBusy: false, realWorldInput: '', realWorldSceneTitle: '现实世界', realWorldQuest: '确认手机异常与现实处境', realWorldStatus: '现实稳定', realWorldChoices: ['检查手机记录', '观察居住环境', '联系熟人确认', '暂时休息'], realWorldLog: [],
     nextId: 1,
     ragQuery: '',
     ragContext: '',
@@ -114,6 +114,7 @@ document.addEventListener('alpine:init', () => {
         try {
           window.GameModules.metrics.ensure(this);
           await this.initGame();
+          this.startPhoneClock?.();
         } catch (err) {
           console.error('游戏初始化失败:', err.message, err.stack);
           this.loadingDetail = `初始化失败：${err.message || '未知错误'}`;
@@ -180,7 +181,6 @@ document.addEventListener('alpine:init', () => {
       }
     },
 
-
     ...window.GameModules.actions,
     ...window.GameModules.rpgFieldUi,
     ...window.GameModules.resultActions,
@@ -193,6 +193,7 @@ document.addEventListener('alpine:init', () => {
     ...window.GameModules.entryActions,
     ...window.GameModules.coreActions,
     ...window.GameModules.appSwitchActions,
+    ...window.GameModules.realWorldActions,
   });
 
   queueMicrotask(() => Alpine.store('game').init());

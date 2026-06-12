@@ -1,0 +1,68 @@
+/**
+ * 现实世界 AI 推演请求。
+ */
+window.GameModules = window.GameModules || {};
+
+window.GameModules.realWorldAi = {
+  latestRequestId: 0,
+
+  async generate(store, prompt, action) {
+    const requestId = ++this.latestRequestId;
+    let buffer = '';
+    try {
+      let resolveDone;
+      const donePromise = new Promise((resolve) => { resolveDone = resolve; });
+      await Promise.race([
+        window.GameModules.ai.withRetry(() => window.dzmm.completions({
+          model: store.modelId,
+          messages: [{ role: 'user', content: prompt }],
+          maxTokens: 2200,
+        }, (chunk, done) => {
+          if (requestId !== this.latestRequestId) return;
+          buffer = window.GameModules.jsonUtils.mergeStreamText(buffer, chunk);
+          if (done) resolveDone();
+        })),
+        donePromise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('现实世界推演超时')), 35000)),
+      ]);
+      return this.parse(buffer, store, action);
+    } catch (err) {
+      console.error('现实世界推演失败:', err.code, err.message, err.stack);
+      return this.fallback(store, action);
+    }
+  },
+
+  parse(content, store, action) {
+    try {
+      const data = window.GameModules.jsonUtils.parseLoose(content);
+      return {
+        sceneTitle: String(data.sceneTitle || '现实世界').slice(0, 14),
+        thinking: String(data.thinking || '').slice(0, 180),
+        narration: String(data.narration || this.fallback(store, action).narration),
+        status: String(data.status || '现实推演继续中').slice(0, 40),
+        quest: String(data.quest || '确认现实处境').slice(0, 24),
+        choices: this.normalizeChoices(data.choices),
+      };
+    } catch (err) {
+      console.warn('现实世界返回解析失败，使用兜底:', err.message);
+      return this.fallback(store, action);
+    }
+  },
+
+  normalizeChoices(value) {
+    const list = Array.isArray(value) ? value : [];
+    return [...new Set(list.map((x) => String(x || '').trim().slice(0, 14)).filter(Boolean).concat(['观察手机异常', '处理现实事务', '联系熟人', '暂时休息']))].slice(0, 4);
+  },
+
+  fallback(store, action) {
+    const text = action || '继续观察现实世界';
+    return {
+      sceneTitle: store.realWorldSceneTitle || '现实世界',
+      thinking: store.thinkingMode ? `依据玩家行动「${text}」与本人资料，现实推演先保持日常逻辑，并保留手机异常带来的不安。` : '',
+      narration: `你暂时把《我要狠狠操控》的界面收起，现实里的光线、空气和细碎声响重新占据感官。你按照“${text}”开始行动，先确认周围没有立刻失控的变化，再把注意力落回自己的住处、身份与眼前必须处理的事务上。那台手机安静地躺在一旁，像是什么都没有发生，却又让现实边缘多出一层无法忽视的裂痕。`,
+      status: '现实稳定，手机异常仍在',
+      quest: '确认手机异常与现实处境',
+      choices: ['检查手机记录', '观察居住环境', '联系熟人确认', '暂时休息'],
+    };
+  },
+};

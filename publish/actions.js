@@ -141,7 +141,7 @@ window.GameModules.actions = {
 
   scrollLog() {
     queueMicrotask(() => {
-      const el = document.querySelector('.story-log');
+      const el = document.querySelector('.app-window .story-log') || document.querySelector('.story-log');
       if (el) el.scrollTop = el.scrollHeight;
     });
   },
