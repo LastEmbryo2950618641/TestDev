@@ -45,13 +45,15 @@ window.GameModules.characterProfile = {
   async generate(base, lore, attrs, context) {
     try {
       if (!window.dzmm?.completions) return this.fallback(base, lore, attrs);
-      let buffer = '';
-      await window.dzmm.completions({
+      const prompt = this.prompt(base, lore, attrs, context);
+      return await window.GameModules.jsonUtils.generateJsonWithRetry({
         model: 'nalang-medium-0826',
         maxTokens: 900,
-        messages: [{ role: 'user', content: this.prompt(base, lore, attrs, context) }],
-      }, (chunk) => { buffer += chunk; });
-      return this.validate(this.parse(buffer), base, lore, attrs);
+        prompt,
+        format: prompt,
+        parse: (text) => this.parse(text),
+        validate: (raw) => this.validate(raw, base, lore, attrs),
+      });
     } catch (err) {
       console.warn('人物设定生成失败，使用兜底:', err.message);
       return this.fallback(base, lore, attrs);

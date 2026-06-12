@@ -27,16 +27,16 @@ window.GameModules.worldLore = {
   async generate(worldTag, context) {
     try {
       if (!window.dzmm?.completions) return this.fallback(worldTag);
-      let buffer = '';
       const prompt = this.prompt(worldTag, context);
       console.log('[世界观] AI请求:', { worldTag, promptLength: prompt.length, model: 'nalang-medium-0826', maxTokens: 2000 });
-      await window.dzmm.completions({
+      return await window.GameModules.jsonUtils.generateJsonWithRetry({
         model: 'nalang-medium-0826',
         maxTokens: 2000,
-        messages: [{ role: 'user', content: prompt }],
-      }, (chunk) => { buffer = window.GameModules.jsonUtils.mergeStreamText(buffer, chunk); });
-      console.log('[世界观] AI返回:', { worldTag, length: buffer.length, preview: buffer.slice(0, 180) });
-      return this.validate(this.parse(buffer), worldTag);
+        prompt,
+        format: prompt,
+        parse: (text) => this.parse(text),
+        validate: (raw) => this.validate(raw, worldTag),
+      });
     } catch (err) {
       console.warn('世界观设定生成失败，使用兜底:', err.message);
       return this.fallback(worldTag);

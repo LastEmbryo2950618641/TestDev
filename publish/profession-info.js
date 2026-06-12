@@ -25,13 +25,14 @@ window.GameModules.professionInfo = {
   async generate(worldTag, name, context) {
     try {
       if (!window.dzmm?.completions) return null;
-      let buffer = '';
-      await window.dzmm.completions({
+      const prompt = this.prompt(worldTag, name, context);
+      return await window.GameModules.jsonUtils.generateJsonWithRetry({
         model: 'nalang-medium-0826',
         maxTokens: 900,
-        messages: [{ role: 'user', content: this.prompt(worldTag, name, context) }],
-      }, (chunk) => { buffer = window.GameModules.jsonUtils.mergeStreamText(buffer, chunk); });
-      return this.validate(window.GameModules.jsonUtils.parseLoose(buffer), worldTag, name);
+        prompt,
+        format: prompt,
+        validate: (raw) => this.validate(raw, worldTag, name),
+      });
     } catch (err) {
       console.error('职业资料生成失败，等待重新生成:', err.message, err.stack);
       throw err;

@@ -87,12 +87,19 @@ window.GameModules.entryYear = {
 
   async audit(store, mode, evidence, fallback, base = 0) {
     if (!evidence || !window.dzmm?.completions) return 0;
-    let buffer = '';
-    await window.dzmm.completions({ model: store.modelId, maxTokens: 360, messages: [{ role: 'user', content: this.auditPrompt(store, mode, evidence, base) }] }, (chunk) => {
-      const text = String(chunk || '');
-      buffer = text.startsWith(buffer) ? text : buffer + text;
-    });
-    return this.parseAudit(buffer, fallback);
+    const prompt = this.auditPrompt(store, mode, evidence, base);
+    try {
+      return await window.GameModules.jsonUtils.generateJsonWithRetry({
+        model: store.modelId,
+        maxTokens: 360,
+        prompt,
+        format: prompt,
+        validate: (raw) => this.auditValue(raw, fallback),
+      });
+    } catch (err) {
+      console.warn('年份证据自审格式失败:', err.message);
+      return this.parseAudit(err.rawOutput, fallback);
+    }
   },
 
   auditPrompt(store, mode, evidence, base) {

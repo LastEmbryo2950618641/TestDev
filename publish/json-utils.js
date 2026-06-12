@@ -69,6 +69,40 @@ window.GameModules.jsonUtils = {
     return out.replace(/,\s*$/, '') + stack.reverse().join('');
   },
 
+  async generateJsonWithRetry(options) {
+    const max = options.max ?? 2;
+    let prompt = options.prompt;
+    let lastText = '';
+    let lastError = null;
+    for (let i = 0; i < max; i += 1) {
+      lastText = await this.requestCompletion({ model: options.model, prompt, maxTokens: options.maxTokens });
+      try {
+        const parsed = options.parse ? options.parse(lastText) : this.parseLoose(lastText);
+        return options.validate ? options.validate(parsed) : parsed;
+      } catch (err) {
+        lastError = err;
+        if (i === max - 1) break;
+        prompt = this.repairPrompt(options.format || options.prompt, lastText, err);
+      }
+    }
+    const error = new Error(`AI返回格式错误: ${lastError?.message || 'unknown'}`);
+    error.cause = lastError;
+    error.rawOutput = lastText;
+    throw error;
+  },
+
+  async requestCompletion({ model, prompt, maxTokens }) {
+    let buffer = '';
+    await window.dzmm.completions({ model, maxTokens, messages: [{ role: 'user', content: prompt }] }, (chunk) => {
+      buffer = this.mergeStreamText(buffer, chunk);
+    });
+    return buffer;
+  },
+
+  repairPrompt(format, badOutput, err) {
+    return `上一次输出不是合法目标JSON，错误=${err?.message || 'unknown'}。请只根据原要求重新输出完整合法JSON，不要Markdown，不要解释，不要省略字段。原要求：${String(format || '').slice(0, 1800)}\n错误输出：${String(badOutput || '').slice(0, 1200)}`;
+  },
+
   repairJson(json) {
     return String(json || '')
       .replace(/：/g, ':')

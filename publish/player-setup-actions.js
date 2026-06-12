@@ -81,14 +81,10 @@ window.GameModules.playerSetupActions = {
   async enrichPlayerProfile(base) {
     if (!window.dzmm?.completions) throw new Error('dzmm.completions unavailable');
     const prompt = `你负责补全2026现代都市互动小说的玩家现实身份。只返回JSON。不要改玩家姓名和生日。若parents为空，必须设parentStatus为“父母已故”，并生成现实、克制、合理的parentDeathCause。根据birthday计算出的年龄${base.age}补全身份；例如高中生应细化为具体学校与年级。玩家填写的是具体地址，不是城市；若只写“四川省”这类省/市/县级信息，refinedCity必须补成省-市/州-区县-镇/街道-社区/小区-楼栋-门牌的准确格式，例如“四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号”。所有词条值都必须可落库、可判定、不可含“某处/一处/普通/未知/等/附近/片区”这类模糊词。\n输入=${JSON.stringify(base)}\n返回字段:{"refinedCity":"省市区县镇街道小区楼栋门牌","refinedRole":"更具体身份","refinedLivingStatus":"更具体居住状态","parentStatus":"父母状态","parentDeathCause":"父母去世原因或空","worldbuildingNote":"60字内现实背景补充"}`;
-    let buffer = '';
-    await Promise.race([
-      window.dzmm.completions({ model: this.modelId, messages: [{ role: 'user', content: prompt }], maxTokens: 1200 }, (chunk) => {
-        buffer = window.GameModules.jsonUtils.mergeStreamText(buffer, chunk);
-      }),
+    return await Promise.race([
+      window.GameModules.jsonUtils.generateJsonWithRetry({ model: this.modelId, maxTokens: 1200, prompt, format: prompt, max: 2 }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('身份补全超时')), 30000)),
     ]);
-    return window.GameModules.jsonUtils.parseLoose(buffer);
   },
 
   normalizeEnrichedPlayerProfile(base, data = {}) {
