@@ -8,6 +8,7 @@ window.GameModules.coreActions = {
     this.appClosing = false;
     this.appSwitcherOpen = false;
     this.identityAppOpen = false;
+    this.wechatAppOpen = false;
     this.appHasOpened = true;
     this.desktopUnlocked = true;
   },
@@ -67,6 +68,7 @@ window.GameModules.coreActions = {
       this.appClosing = false;
       this.appSwitcherOpen = false;
       this.identityAppOpen = false;
+      this.wechatAppOpen = false;
     }, 260);
   },
 

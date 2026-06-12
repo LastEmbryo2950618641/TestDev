@@ -28,6 +28,31 @@ window.GameModules.playerIdentityActions = {
     return this.rpgStates['player-self'] || null;
   },
 
+  identityTargetState() {
+    return this.rpgStates[this.identityTargetId || 'player-self'] || null;
+  },
+
+  identityTargetProfile() {
+    const id = this.identityTargetId || 'player-self';
+    if (id === 'player-self') return this.playerCharacter();
+    return this.identityTargetState()?.profile || (id === this.character.id ? this.character : { name: '未知角色', work: '未知世界', role: '身份未知', detail: '暂无角色卡。', personality: '' });
+  },
+
+  identityTargetFields() {
+    if ((this.identityTargetId || 'player-self') === 'player-self') return this.playerProfileLexiconFields();
+    const p = this.identityTargetProfile();
+    const worldTag = p.work || this.identityTargetState()?.worldTag || '原创世界';
+    const row = (key, label, value, desc) => ({ key: `id-${this.identityTargetId}-${key}`, label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, worldTag });
+    return [
+      row('name', '姓名', p.name, '角色卡固化姓名。'),
+      row('work', '所属世界', worldTag, '角色出身作品或世界。'),
+      row('role', '身份', p.role, '角色卡固化身份。'),
+      row('faction', '所属势力', p.faction, '角色当前阵营或社会位置。'),
+      row('job', '职业', p.job, '角色真实职业、训练身份或社会功能。'),
+      row('rank', '等级/地位', p.rank, '角色职业等级或地位。'),
+    ];
+  },
+
   playerIdentitySummary() {
     const v = this.playerIdentityState()?.values || {};
     if (!v.level) return '玩家本人属性尚未生成。';
@@ -54,17 +79,50 @@ window.GameModules.playerIdentityActions = {
     return state;
   },
 
-  async openIdentityApp() {
+  async openIdentityApp(targetId = 'player-self') {
     this.appHasOpened = true;
     this.appSwitcherOpen = false;
     this.appClosing = false;
+    this.wechatAppOpen = false;
+    this.identityTargetId = targetId || 'player-self';
     this.identityAppOpen = true;
     this.desktopUnlocked = true;
-    await this.ensurePlayerRpgState();
+    if (this.identityTargetId === 'player-self') await this.ensurePlayerRpgState();
+    else if (!this.rpgStates[this.identityTargetId] && this.identityTargetId === this.character.id) await this.ensureRpgForCurrentCharacter();
+  },
+
+  openWechatApp() {
+    this.appHasOpened = true;
+    this.appSwitcherOpen = false;
+    this.appClosing = false;
+    this.identityAppOpen = false;
+    this.wechatAppOpen = true;
+    this.desktopUnlocked = true;
   },
 
   closeIdentityApp() {
     this.identityAppOpen = false;
     this.desktopUnlocked = false;
+  },
+
+  wechatContacts() {
+    const player = this.playerCharacter();
+    const states = Object.values(this.rpgStates || {}).filter((state) => state.id !== 'player-self');
+    const contacts = [{ id: 'player-self', name: player.name, mark: '我', subtitle: player.role || '手机主人' }];
+    for (const state of states) contacts.push({ id: state.id, name: state.name, mark: String(state.name || '?').slice(0, 1), subtitle: state.profile?.role || state.worldTag || '聊天对象' });
+    if (!contacts.some((item) => item.id === this.character.id)) contacts.push({ id: this.character.id, name: this.character.name, mark: this.character.mark || this.character.name.slice(0, 1), subtitle: this.character.role || '当前角色' });
+    return contacts;
+  },
+
+  wechatSelected() {
+    return this.wechatContacts().find((item) => item.id === this.wechatSelectedContact) || this.wechatContacts()[0];
+  },
+
+  selectWechatContact(id) {
+    this.wechatSelectedContact = id || 'player-self';
+  },
+
+  async openWechatIdentity() {
+    await this.openIdentityApp(this.wechatSelectedContact || 'player-self');
   },
 };

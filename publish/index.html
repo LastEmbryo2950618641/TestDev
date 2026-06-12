@@ -6,6 +6,7 @@
   <title>我狠狠操控</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="phone-desktop.css">
+  <link rel="stylesheet" href="phone-wechat.css">
   <link rel="stylesheet" href="character-select.css">
   <link rel="stylesheet" href="profile-preview.css">
   <link rel="stylesheet" href="prompt-dialog.css">
@@ -268,9 +269,13 @@
           <span class="app-glyph">控</span>
           <b>我要狠狠操控</b>
         </button>
-        <button class="desktop-app-icon identity-icon" type="button" @click="$store.game.openIdentityApp()" aria-label="打开身份信息">
-          <span class="app-glyph">身</span>
-          <b>身份信息</b>
+        <button class="desktop-app-icon identity-icon" type="button" @click="$store.game.openIdentityApp('player-self')" aria-label="打开身份证">
+          <span class="app-glyph">证</span>
+          <b>身份证</b>
+        </button>
+        <button class="desktop-app-icon wechat-icon" type="button" @click="$store.game.openWechatApp()" aria-label="打开微信">
+          <span class="app-glyph">微</span>
+          <b>微信</b>
         </button>
       </div>
       <div class="app-switcher" x-show="$store.game.appSwitcherOpen" x-cloak>
@@ -292,28 +297,29 @@
   </section>
 
   <section x-show="!$store.game.loading && $store.game.identityAppOpen" class="identity-app-screen app-window section-hints" :class="{ 'app-window-dragging': $store.game.appDragging, 'app-window-closing': $store.game.appClosing }" :style="$store.game.appWindowStyle()" @pointerdown="$store.game.appGestureStart($event)" @pointermove.window="$store.game.appGestureMove($event)" @pointerup.window="$store.game.appGestureEnd($event)" @pointercancel.window="$store.game.appGestureEnd($event)" x-cloak>
-    <div class="identity-card dev-section" data-section-title="身份信息APP主面板">
-      <header class="identity-header dev-section" data-section-title="身份信息标题区">
-        <div><p class="eyebrow">IDENTITY</p><h2>身份信息</h2></div>
+    <div class="identity-card dev-section" data-section-title="身份证主面板">
+      <header class="identity-header dev-section" data-section-title="身份证标题区">
+        <div><p class="eyebrow">ID CARD</p><h2>身份证</h2><small x-text="$store.game.identityTargetProfile().work || '现实世界'"></small></div>
         <button class="small-btn" type="button" @click="$store.game.closeIdentityApp()">回到桌面</button>
       </header>
-      <section class="identity-profile dev-section" data-section-title="玩家现实资料区">
-        <strong x-text="$store.game.playerProfile.name || $store.game.playerName"></strong>
+      <section class="identity-profile dev-section" data-section-title="身份资料区">
+        <strong x-text="$store.game.identityTargetProfile().name"></strong>
+        <p x-text="$store.game.identityTargetProfile().detail || $store.game.identityTargetProfile().personality || '暂无身份说明。'"></p>
         <div class="profile-lexicon-list">
-          <template x-for="field in $store.game.playerProfileLexiconFields()" :key="field.key">
+          <template x-for="field in $store.game.identityTargetFields()" :key="field.key">
             <button class="rpg-item-card lexicon-tag" type="button" @click="$store.game.toggleRpgField(field)"><strong x-text="`${field.label}：${field.value}`"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
           </template>
         </div>
       </section>
-      <section class="identity-rpg dev-section" data-section-title="玩家属性与升级体系区">
-        <template x-for="section in $store.game.rpgEntries($store.game.playerIdentityState())" :key="section.title">
+      <section class="identity-rpg dev-section" data-section-title="身份属性与升级体系区">
+        <template x-for="section in $store.game.rpgEntries($store.game.identityTargetState())" :key="section.title">
           <article class="identity-rpg-section dev-section" :data-section-title="`${section.title}区`">
             <h3 x-text="section.title"></h3>
             <template x-for="field in section.fields" :key="field.key">
               <div class="dynamic-row" role="button" tabindex="0" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.toggleRpgField(field)" @keydown.enter.prevent="$store.game.toggleRpgField(field)" @keydown.space.prevent="$store.game.toggleRpgField(field)">
                 <button class="rpg-item-card lexicon-tag" type="button" @click.stop="$store.game.toggleRpgField(field)"><strong x-text="$store.game.isRpgListField(field) ? `${field.label}：${field.raw.length}项` : `${field.label}：${field.value}`"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
                 <div class="rpg-item-list" x-show="$store.game.isRpgListField(field)" @click.stop>
-                  <template x-for="(item, index) in field.raw" :key="`${field.key}:${item.name}:${index}`">
+                  <template x-for="(item, index) in field.raw" :key="`${field.key}:${item.name || item}:${index}`">
                     <button class="rpg-item-card" type="button" @click="$store.game.toggleRpgItem(field, index)"><strong x-text="$store.game.rpgItemSummary(item)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgItemOpen(field, index)" x-text="$store.game.rpgItemDetail(field, item)"></p></button>
                   </template>
                 </div>
@@ -323,6 +329,36 @@
           </article>
         </template>
       </section>
+    </div>
+    <div class="app-home-gesture" @pointerdown="$store.game.appGestureStart($event)" @pointermove="$store.game.appGestureMove($event)" @pointerup="$store.game.appGestureEnd($event)" @pointercancel="$store.game.appGestureEnd($event)" aria-hidden="true"></div>
+  </section>
+
+  <section x-show="!$store.game.loading && $store.game.wechatAppOpen" class="wechat-app-screen app-window section-hints" :class="{ 'app-window-dragging': $store.game.appDragging, 'app-window-closing': $store.game.appClosing }" :style="$store.game.appWindowStyle()" @pointerdown="$store.game.appGestureStart($event)" @pointermove.window="$store.game.appGestureMove($event)" @pointerup.window="$store.game.appGestureEnd($event)" @pointercancel.window="$store.game.appGestureEnd($event)" x-cloak>
+    <div class="wechat-shell dev-section" data-section-title="微信模拟界面">
+      <aside class="wechat-list">
+        <header><strong>微信</strong><small>点击头像查看资料</small></header>
+        <template x-for="contact in $store.game.wechatContacts()" :key="contact.id">
+          <button class="wechat-contact" type="button" :class="{ active: $store.game.wechatSelectedContact === contact.id }" @click="$store.game.selectWechatContact(contact.id)">
+            <span class="wechat-avatar" x-text="contact.mark"></span>
+            <span><b x-text="contact.name"></b><small x-text="contact.subtitle"></small></span>
+          </button>
+        </template>
+      </aside>
+      <main class="wechat-chat">
+        <header>
+          <button class="wechat-avatar large" type="button" @click="$store.game.openWechatIdentity()" x-text="$store.game.wechatSelected().mark"></button>
+          <div><strong x-text="$store.game.wechatSelected().name"></strong><small x-text="$store.game.wechatSelected().subtitle"></small></div>
+        </header>
+        <section class="wechat-messages">
+          <p class="wechat-bubble other" x-text="$store.game.wechatSelected().id === 'player-self' ? '这是你自己的微信资料页。' : '当前聊天对象已同步到角色卡。'"></p>
+          <p class="wechat-bubble self">点击头像打开资料，再用身份证查看身份信息。</p>
+        </section>
+        <section class="wechat-profile-panel">
+          <button class="wechat-avatar large" type="button" @click="$store.game.openWechatIdentity()" x-text="$store.game.wechatSelected().mark"></button>
+          <div><b x-text="$store.game.wechatSelected().name"></b><small x-text="$store.game.wechatSelected().subtitle"></small></div>
+          <button class="small-btn" type="button" @click="$store.game.openWechatIdentity()">身份证</button>
+        </section>
+      </main>
     </div>
     <div class="app-home-gesture" @pointerdown="$store.game.appGestureStart($event)" @pointermove="$store.game.appGestureMove($event)" @pointerup="$store.game.appGestureEnd($event)" @pointercancel="$store.game.appGestureEnd($event)" aria-hidden="true"></div>
   </section>
@@ -355,7 +391,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.entrySetupOpen" class="start-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled, 'app-window-dragging': $store.game.appDragging, 'app-window-closing': $store.game.appClosing }" :style="$store.game.appWindowStyle()" @pointerdown="$store.game.appGestureStart($event)" @pointermove.window="$store.game.appGestureMove($event)" @pointerup.window="$store.game.appGestureEnd($event)" @pointercancel.window="$store.game.appGestureEnd($event)" x-cloak>
+  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.entrySetupOpen" class="start-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled, 'app-window-dragging': $store.game.appDragging, 'app-window-closing': $store.game.appClosing }" :style="$store.game.appWindowStyle()" @pointerdown="$store.game.appGestureStart($event)" @pointermove.window="$store.game.appGestureMove($event)" @pointerup.window="$store.game.appGestureEnd($event)" @pointercancel.window="$store.game.appGestureEnd($event)" x-cloak>
     <div class="start-card dev-section" data-section-title="首页选择面板">
       <p class="eyebrow">AI RPG 视觉小说</p>
       <h1>我狠狠操控</h1>
@@ -427,7 +463,7 @@
     <div class="app-home-gesture" @pointerdown="$store.game.appGestureStart($event)" @pointermove="$store.game.appGestureMove($event)" @pointerup="$store.game.appGestureEnd($event)" @pointercancel="$store.game.appGestureEnd($event)" aria-hidden="true"></div>
   </section>
 
-  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && $store.game.entrySetupOpen" class="start-screen entry-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled, 'app-window-dragging': $store.game.appDragging, 'app-window-closing': $store.game.appClosing }" :style="$store.game.appWindowStyle()" @pointerdown="$store.game.appGestureStart($event)" @pointermove.window="$store.game.appGestureMove($event)" @pointerup.window="$store.game.appGestureEnd($event)" @pointercancel.window="$store.game.appGestureEnd($event)" x-cloak>
+  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && $store.game.entrySetupOpen" class="start-screen entry-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled, 'app-window-dragging': $store.game.appDragging, 'app-window-closing': $store.game.appClosing }" :style="$store.game.appWindowStyle()" @pointerdown="$store.game.appGestureStart($event)" @pointermove.window="$store.game.appGestureMove($event)" @pointerup.window="$store.game.appGestureEnd($event)" @pointercancel.window="$store.game.appGestureEnd($event)" x-cloak>
     <div class="start-card entry-card dev-section" data-section-title="进入时机配置区">
       <button class="back-home-btn" type="button" @click="$store.game.backToHome()" :disabled="$store.game.busy">← 返回首页</button>
         <h3>选择进入时机</h3>
@@ -472,7 +508,7 @@
     <div class="app-home-gesture" @pointerdown="$store.game.appGestureStart($event)" @pointermove="$store.game.appGestureMove($event)" @pointerup="$store.game.appGestureEnd($event)" @pointercancel="$store.game.appGestureEnd($event)" aria-hidden="true"></div>
   </section>
 
-  <main x-show="$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen" class="game-shell app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled, 'app-window-dragging': $store.game.appDragging, 'app-window-closing': $store.game.appClosing }" :style="$store.game.appWindowStyle()" @pointerdown="$store.game.appGestureStart($event)" @pointermove.window="$store.game.appGestureMove($event)" @pointerup.window="$store.game.appGestureEnd($event)" @pointercancel.window="$store.game.appGestureEnd($event)" x-cloak>
+  <main x-show="$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen" class="game-shell app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled, 'app-window-dragging': $store.game.appDragging, 'app-window-closing': $store.game.appClosing }" :style="$store.game.appWindowStyle()" @pointerdown="$store.game.appGestureStart($event)" @pointermove.window="$store.game.appGestureMove($event)" @pointerup.window="$store.game.appGestureEnd($event)" @pointercancel.window="$store.game.appGestureEnd($event)" x-cloak>
     <header class="top-bar dev-section" data-section-title="顶部状态栏">
       <div class="mode-status">
         <span class="mode-dot" :class="$store.game.online ? 'online' : 'offline'"></span>
