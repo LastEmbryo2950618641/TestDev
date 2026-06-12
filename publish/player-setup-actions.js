@@ -89,7 +89,6 @@ window.GameModules.playerSetupActions = {
       this.phoneActivationChoice = '';
       this.phoneSetupDone = true;
       this.desktopUnlocked = false;
-      this.appHasOpened = false;
       await this.ensurePlayerRpgState?.(true);
       await this.save();
     } finally {

@@ -29,16 +29,6 @@
   box-shadow: 0 28px 90px rgba(0, 0, 0, .48), inset 0 0 0 1px rgba(255, 255, 255, .18);
 }
 
-.phone-frame.has-running-app .desktop-app-icon::after {
-  content: "";
-  width: 6px;
-  height: 6px;
-  margin-top: -4px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, .86);
-  box-shadow: 0 0 8px rgba(116, 246, 255, .8);
-}
-
 .phone-frame::before {
   content: "";
   position: absolute;
@@ -149,82 +139,6 @@
   font-size: 12px;
   line-height: 1.2;
   text-shadow: 0 1px 8px rgba(0, 0, 0, .6);
-}
-
-.desktop-hint {
-  position: absolute;
-  left: 50%;
-  bottom: 88px;
-  padding: 7px 12px;
-  border: 1px solid rgba(255, 255, 255, .18);
-  border-radius: 999px;
-  background: rgba(0, 0, 0, .2);
-  color: rgba(255, 255, 255, .78);
-  font-size: 11px;
-  transform: translateX(-50%);
-  backdrop-filter: blur(10px);
-}
-
-.app-switcher {
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  gap: 18px;
-  padding: 68px 24px 32px;
-  background: rgba(5, 8, 18, .46);
-  backdrop-filter: blur(16px);
-}
-
-.switcher-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: #fff;
-}
-
-.switcher-header button {
-  min-height: 30px;
-  padding: 0 12px;
-  border: 1px solid rgba(255, 255, 255, .2);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, .14);
-}
-
-.switcher-card {
-  align-self: start;
-  width: 100%;
-  min-height: 330px;
-  display: grid;
-  align-content: start;
-  gap: 8px;
-  padding: 16px;
-  border: 1px solid rgba(255, 255, 255, .22);
-  border-radius: 28px;
-  background:
-    linear-gradient(rgba(7, 9, 20, .6), rgba(7, 9, 20, .82)),
-    radial-gradient(circle at 50% 8%, rgba(113, 243, 255, .2), transparent 35%),
-    linear-gradient(135deg, #10172d, #11071f 58%, #07151b);
-  color: #fff;
-  text-align: left;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, .38);
-}
-
-.switcher-card-bar {
-  width: 44px;
-  height: 5px;
-  margin: 0 auto 96px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, .42);
-}
-
-.switcher-card strong {
-  font-size: 20px;
-}
-
-.switcher-card small {
-  color: rgba(238, 243, 255, .72);
 }
 
 .phone-dock {
@@ -464,74 +378,15 @@
   }
 }
 
-.app-home-gesture {
-  position: fixed;
-  left: 50%;
-  bottom: 0;
-  z-index: 120;
-  width: min(220px, 64vw);
-  height: max(34px, calc(22px + env(safe-area-inset-bottom)));
-  transform: translateX(-50%);
-  touch-action: none;
-}
-
-.app-home-gesture::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: max(8px, env(safe-area-inset-bottom));
-  width: 86px;
-  height: 5px;
+.back-desktop-btn {
+  justify-self: start;
+  min-height: 36px;
+  padding: 8px 14px;
+  border: 1px solid rgba(255, 255, 255, .18);
   border-radius: 999px;
-  background: rgba(255, 255, 255, .62);
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-
-.app-window-dragging {
-  transition: none;
-  border-radius: 28px;
-  overflow: hidden;
-  filter: drop-shadow(0 26px 58px rgba(0, 0, 0, .45));
-}
-
-.app-window-paused {
-  transform: translateY(-18dvh) scale(.72) !important;
-  border-radius: 30px;
-  overflow: hidden;
-  pointer-events: none;
-  filter: drop-shadow(0 28px 60px rgba(0, 0, 0, .38));
-}
-
-.app-window-closing {
-  transform: translateY(-48dvh) scale(.18) !important;
-  border-radius: 30px;
-  opacity: .2;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.app-exit-actions {
-  position: fixed;
-  left: 50%;
-  bottom: max(28px, calc(20px + env(safe-area-inset-bottom)));
-  z-index: 999;
-  width: min(260px, calc(100vw - 32px));
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-  transform: translateX(-50%);
-}
-
-.app-exit-actions button {
-  min-height: 48px;
-  touch-action: manipulation;
-  border: 0;
-  border-radius: 18px;
-  color: #fff;
+  color: #eaf1ff;
   font-weight: 900;
-  background: rgba(24, 33, 56, .92);
-  box-shadow: 0 14px 36px rgba(0, 0, 0, .32);
+  background: rgba(255, 255, 255, .1);
 }
 
 .rpg-tree-title {
