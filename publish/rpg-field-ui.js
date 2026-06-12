@@ -40,7 +40,7 @@ window.GameModules.rpgFieldUi = {
 
   rpgItemSummary(item) {
     if (typeof item === 'string') return item;
-    return item?.level ? `${item?.name || '未命名'} lv.${item.level}` : (item?.name || '未命名');
+    return Number(item?.level) > 0 ? `${item?.name || '未命名'} lv.${item.level}` : (item?.name || '未命名');
   },
 
   learnedDefinition(kind, name, obj = {}, lexicon = null, info = {}) {
@@ -63,17 +63,17 @@ window.GameModules.rpgFieldUi = {
     const linkedStats = (info.intrinsicStats || obj?.linkedStats || []).map((x) => statName[x] || x);
     const kind = obj?.type || field?.label || '能力';
     const name = obj?.name || field?.label || '未知';
-    const lines = [
-      `名称: ${name}`,
-      `定义: ${this.learnedDefinition(kind, name, obj, lexicon, info)}`,
-      `类型/等级: ${kind}${obj?.level ? ` lv${obj.level}` : ''}`,
-      `等级含义: ${obj?.levelDescription || info.levelDescription || window.GameModules.progression.levelDescription(kind, obj?.level || 1)}`,
-      `等级效果: ${obj?.effect || info.effect || window.GameModules.progression.levelEffect(name, kind, obj?.level || 1)}`,
-      `经验值/升级所需经验值: ${exp.current || 0}/${exp.next || 'max'}`,
-      `关联身内能力: ${linkedStats.join('、') || '无直接关联'}`,
-      `词条层级: ${lexicon?.hierarchy === 'tree' ? '树词条' : '叶子词条'}`,
-      `生成来源: 词条名${(lexicon?.nameAiGenerated ?? lexicon?.aiGenerated) ? 'AI生成' : '系统/用户给定'}，值${lexicon?.valueAiGenerated ? 'AI生成' : '系统/用户给定'}，变化方式${lexicon?.changeMode || '系统结算'}`,
-    ];
+    const hasLevel = Number(obj?.level) > 0;
+    const lines = [`名称: ${name}`, `定义: ${this.learnedDefinition(kind, name, obj, lexicon, info)}`, `类型: ${kind}`];
+    if (hasLevel) {
+      lines.push(`等级: lv${obj.level}`);
+      lines.push(`等级含义: ${obj?.levelDescription || info.levelDescription || window.GameModules.progression.levelDescription(kind, obj.level)}`);
+      lines.push(`等级效果: ${obj?.effect || info.effect || window.GameModules.progression.levelEffect(name, kind, obj.level)}`);
+      lines.push(`经验值/升级所需经验值: ${exp.current || 0}/${exp.next || 'max'}`);
+    }
+    lines.push(`关联身内能力: ${linkedStats.join('、') || '无直接关联'}`);
+    lines.push(`词条层级: ${lexicon?.hierarchy === 'tree' ? '树词条' : '叶子词条'}`);
+    lines.push(`生成来源: 词条名${(lexicon?.nameAiGenerated ?? lexicon?.aiGenerated) ? 'AI生成' : '系统/用户给定'}，值${lexicon?.valueAiGenerated ? 'AI生成' : '系统/用户给定'}，变化方式${lexicon?.changeMode || '系统结算'}`);
     if (obj?.type === '职业' && ((info.learnedAbilities || []).length || (info.worldAbilities || []).length)) lines.push(`职业关联: ${(info.learnedAbilities || []).concat(info.worldAbilities || []).join('、')}`);
     return lines.join('\n');
   },

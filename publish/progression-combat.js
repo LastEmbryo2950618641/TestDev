@@ -2,7 +2,7 @@ window.GameModules = window.GameModules || {};
 
 Object.assign(window.GameModules.progression, {
   derived(values) {
-    const skillBonus = (values.skills || []).reduce((sum, skill) => sum + (skill.level || 0) * 2, 0);
+    const skillBonus = (values.skills || []).reduce((sum, skill) => sum + Math.max(0, Number(skill.level) || 0) * 2, 0);
     const attackPower = Math.round(values.level * 4 + values.strength * 8 + skillBonus);
     const defensePower = Math.round(values.level * 3 + values.constitution * 8 + Math.floor((values.willpower || 0) / 2));
     return { attackPower, defensePower, damageRuleNote: '攻击力=等级+力量+技能；防御力=等级+体质+意志修正。' };
@@ -15,12 +15,22 @@ Object.assign(window.GameModules.progression, {
 
   ensureProgressionNotes(values) {
     values.exp.curve = 'nextExp=round(100*level^1.65)';
+    for (const item of [...(values.factions || []), ...(values.equipment || []), ...(values.status_tags || [])]) {
+      if (item && typeof item === 'object' && Object.prototype.hasOwnProperty.call(item, 'level')) item.level = -1;
+    }
     for (const item of [...(values.knowledge || []), ...(values.skills || []), ...(values.professions || [])]) {
+      item.description = this.learnedDefinition(item.name, item.type, item.description || item.source);
+      item.source = item.description;
+      if (!this.hasLearnedLevel(item)) {
+        item.level = -1;
+        delete item.exp;
+        delete item.levelDescription;
+        delete item.effect;
+        continue;
+      }
       const lv = this.clamp(item.level || 1, 1, 7);
       item.level = lv;
       item.exp = item.exp || { current: 0, next: this.learnedNext[lv] };
-      item.description = this.learnedDefinition(item.name, item.type, item.description || item.source);
-      item.source = item.description;
       item.levelDescription = item.levelDescription || this.levelDescription(item.type, lv);
       item.effect = item.effect || this.levelEffect(item.name, item.type, lv);
       item.exp.curve = 'lv1-7:100/250/600/1400/3200/7200/max';
@@ -54,7 +64,7 @@ Object.assign(window.GameModules.progression, {
   },
 
   addLearnedExp(item, amount) {
-    if (!item || item.level >= 7) return;
+    if (!item || !this.hasLearnedLevel(item) || item.level >= 7) return;
     item.exp = item.exp || { current: 0, next: this.learnedNext[item.level || 1] };
     item.exp.current += amount;
     while (item.level < 7 && item.exp.current >= item.exp.next) {
