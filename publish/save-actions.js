@@ -146,6 +146,7 @@ window.GameModules.saveActions = {
     if (Object.prototype.hasOwnProperty.call(value, 'onlineCount')) {
       return `上线${value.onlineCount || 0}次｜${value.feeling || '未知'}｜适应${value.adaptation || 0}/100｜${value.summary || ''}`;
     }
+    if (Object.prototype.hasOwnProperty.call(value, 'totalLevelUps')) return `累计升级${value.totalLevelUps || 0}次｜自动${value.autoPointsPerLevel || 2}点/级｜自由${value.freePointsPerLevel || 1}点/级`;
     if (value.attackPower || value.defensePower) return `攻${value.attackPower || 0}｜防${value.defensePower || 0}｜${value.damageRuleNote || ''}`;
     if (value.effectiveDamage !== undefined) return `${value.summary || '战斗模拟'}｜伤害${value.effectiveDamage}`;
     if (value.level) return `${value.name} lv${value.level}（${value.type || '能力'}）`;

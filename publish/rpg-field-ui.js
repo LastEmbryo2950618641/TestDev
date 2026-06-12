@@ -37,6 +37,8 @@ window.GameModules.rpgFieldUi = {
     const item = Array.isArray(field.raw) ? field.raw[0] : null;
     const lexicon = this.lexiconFor(field, item);
     const lines = [`说明: ${lexicon?.description || lexicon?.summary || field?.desc || this.fallbackDesc(field)}`];
+    if (field?.key === 'free_attribute_points') lines.push('用途: 后续可分配到力量、敏捷、体质、智力、感知、意志、魅力。');
+    if (field?.key === 'level_growth' && field.raw?.history?.length) lines.push(`最近升级: ${field.raw.history.map((x) => `${x.from}->${x.to} 自动${Object.entries(x.auto || {}).map(([k, v]) => `${k}+${v}`).join('/')} 自由+${x.free}`).join('；')}`);
     if (!item || item.type !== '职业') return lines.join('\n');
     const info = lexicon?.meta?.info || item.info || {};
     const exp = item.exp || {};

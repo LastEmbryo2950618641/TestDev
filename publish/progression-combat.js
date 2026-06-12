@@ -24,7 +24,7 @@ Object.assign(window.GameModules.progression, {
   applySceneChanges(state, changes = {}, result = {}) {
     this.ensureStateMechanics(state);
     const v = state.values;
-    this.addExp(v, 12 + (result.combatEvent ? 12 : 0));
+    this.addExp(v, 12 + (result.combatEvent ? 12 : 0), state.profile || {});
     if (Number.isFinite(changes.stamina)) this.deltaPool(v.stamina_pool, changes.stamina);
     if (Number.isFinite(changes.mental_stability)) this.deltaPool(v.mental_stability, changes.mental_stability);
     if (Number.isFinite(changes.health)) this.applyVitalityChange(v, changes.health, result.combatEvent);
@@ -70,13 +70,48 @@ Object.assign(window.GameModules.progression, {
     values.combat_simulation = { summary: event?.summary || '外部威胁命中，生命力按攻防差扣减。', attackPower, defensePower, effectiveDamage, vitalityBefore: before, vitalityAfter: values.vitality.current };
   },
 
-  addExp(values, amount) {
+  addExp(values, amount, character = {}) {
     values.exp.current += Math.max(0, Math.round(amount));
     while (values.level < 100 && values.exp.current >= values.exp.next) {
       values.exp.current -= values.exp.next;
-      values.level += 1;
-      values.exp.next = this.nextCharacterExp(values.level);
-      this.recalculatePools(values, true);
+      this.applyLevelUp(values, character);
     }
+  },
+
+  applyLevelUp(values, character = {}) {
+    const before = values.level;
+    values.level += 1;
+    values.exp.next = this.nextCharacterExp(values.level);
+    const applied = this.applyAutoIntrinsicGrowth(values, character, 2);
+    values.free_attribute_points = Math.max(0, Number(values.free_attribute_points) || 0) + 1;
+    values.level_growth = values.level_growth || { totalLevelUps: 0, autoPointsPerLevel: 2, freePointsPerLevel: 1, history: [] };
+    values.level_growth.totalLevelUps += 1;
+    values.level_growth.history = [{ from: before, to: values.level, auto: applied, free: 1, at: new Date().toISOString() }, ...(values.level_growth.history || [])].slice(0, 10);
+    this.recalculatePools(values, true, character);
+  },
+
+  applyAutoIntrinsicGrowth(values, character, points) {
+    const keys = ['strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma'];
+    const weights = this.growthWeights(character, values);
+    const applied = {};
+    for (let i = 0; i < points; i += 1) {
+      const key = keys.filter((x) => values[x] < 100).sort((a, b) => (weights[b] - values[b] / 50) - (weights[a] - values[a] / 50))[0];
+      if (!key) break;
+      values[key] = this.clamp(values[key] + 1, 1, 100);
+      applied[key] = (applied[key] || 0) + 1;
+      weights[key] *= 0.72;
+    }
+    return applied;
+  },
+
+  growthWeights(character = {}, values = {}) {
+    const text = `${character.role || ''}${character.job || ''}${character.detail || ''}${character.personality || ''}`;
+    const w = { strength: 1, agility: 1, constitution: 1, intelligence: 1, perception: 1, willpower: 1, charisma: 1 };
+    const add = (list, n) => list.forEach((k) => { w[k] += n; });
+    if (/战|武|剑|骑士|士兵|军人|运动|拳|枪/.test(text)) add(['strength', 'agility', 'constitution'], 3);
+    if (/学生|学者|医生|教师|魔术|研究|技术|工程/.test(text)) add(['intelligence', 'perception', 'willpower'], 3);
+    if (/领袖|偶像|贵族|王|交涉|销售|主播|演员/.test(text)) add(['charisma', 'willpower', 'perception'], 3);
+    for (const item of [...(values.skills || []), ...(values.knowledge || []), ...(values.professions || [])]) add((item.linkedStats || []).filter((k) => w[k] !== undefined), 1.2);
+    return w;
   },
 });

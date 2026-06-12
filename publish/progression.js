@@ -8,6 +8,7 @@ window.GameModules.progression = {
       { title: '基础能力', fields: [
         this.field('world_tag', '所属世界', 'text', 0, 100, '角色所属的作品或世界。'), this.field('age', '年龄', 'number', 0, 999, '角色在当前进入时间点的年龄。'),
         this.field('level', '个人等级', 'number', 1, 100, '角色综合成长阶段。'), this.field('exp', '个人经验', 'text', 0, 100, '当前经验与升到下一级所需经验。'),
+        this.field('free_attribute_points', '自由属性点', 'number', 0, 999, '升级获得、可用于分配到身内能力的点数。'), this.field('level_growth', '升级成长记录', 'text', 0, 100, '个人等级提升时自动加点与自由属性点记录。'),
         this.field('vitality', '生命力', 'text', 0, 100, '当前承伤、生存与身体完整状态。'), this.field('stamina_pool', '精力池', 'text', 0, 100, '体能、耐力与持续行动余量。'),
         this.field('satiety', '饱食度', 'text', 0, 100, '进食状态对体力与恢复的影响。'), this.field('hydration', '水分', 'text', 0, 100, '补水状态对体力与判断的影响。'),
         this.field('fatigue', '疲劳度', 'text', 0, 100, '累积疲惫、伤痛和行动消耗。'), this.field('learning_ability', '学习能力', 'number', 0, 100, '理解、模仿和掌握新知识技能的效率。'),
@@ -54,7 +55,9 @@ window.GameModules.progression = {
     if (incomplete) { Object.assign(values, this.createValues(character, seed, values)); changed = true; }
     const normalizedExp = this.normalizeCharacterExp(values.exp, values.level, seed % 60);
     if (!values.exp?.next || values.exp.next !== normalizedExp.next || values.exp.curve !== normalizedExp.curve) { values.exp = normalizedExp; changed = true; }
-    if (!values.vitality?.max || !values.stamina_pool?.max) { this.recalculatePools(values, true); changed = true; }
+    if (!values.level_growth) { values.free_attribute_points = 0; values.level_growth = { totalLevelUps: 0, autoPointsPerLevel: 2, freePointsPerLevel: 1, history: [] }; changed = true; }
+    if (!Number.isFinite(values.free_attribute_points)) { values.free_attribute_points = 0; changed = true; }
+    if (!values.vitality?.max || !values.stamina_pool?.max) { this.recalculatePools(values, true, character); changed = true; }
     if (!values.derived?.attackPower) { values.derived = this.derived(values); changed = true; }
     if (!values.combat_simulation) { values.combat_simulation = this.defaultCombat(values); changed = true; }
     this.ensureProgressionNotes(values);
@@ -73,6 +76,8 @@ window.GameModules.progression = {
     return {
       level,
       exp: this.normalizeCharacterExp(existing.exp, level, seed % 60),
+      free_attribute_points: Number.isFinite(existing.free_attribute_points) ? existing.free_attribute_points : 0,
+      level_growth: existing.level_growth || { totalLevelUps: 0, autoPointsPerLevel: 2, freePointsPerLevel: 1, history: [] },
       vitality: existing.vitality?.max ? existing.vitality : this.pool(existing.health ?? vitalityMax, vitalityMax),
       stamina_pool: existing.stamina_pool?.max ? existing.stamina_pool : this.pool(existing.stamina ?? staminaMax, staminaMax),
       satiety: existing.satiety || this.pool(70 + seed % 20, 100),
@@ -133,10 +138,21 @@ window.GameModules.progression = {
   trainingBonus(character) { return /士兵|骑士|运动|佣兵|从者|英灵/.test(`${character.role || ''}${character.job || ''}`) ? 20 : 0; },
   percent(pool) { return pool?.max ? this.clamp((pool.current / pool.max) * 100, 0, 100) : 100; },
 
-  recalculatePools(values, keepRatio) {
+  recalculatePools(values, keepRatio, character = {}) {
     const hpRatio = keepRatio && values.vitality?.max ? values.vitality.current / values.vitality.max : 1;
     const spRatio = keepRatio && values.stamina_pool?.max ? values.stamina_pool.current / values.stamina_pool.max : 1;
-    values.vitality = this.pool((values.level * 10 + values.constitution * 8) * hpRatio, values.level * 10 + values.constitution * 8);
-    values.stamina_pool = this.pool((values.level * 8 + values.constitution * 5) * spRatio, values.level * 8 + values.constitution * 5);
+    const msRatio = keepRatio && values.mental_stability?.max ? values.mental_stability.current / values.mental_stability.max : 1;
+    const acRatio = keepRatio && values.action_ability?.max ? values.action_ability.current / values.action_ability.max : 1;
+    const hpMax = values.level * 10 + values.constitution * 8;
+    const spMax = values.level * 8 + values.constitution * 5 + this.trainingBonus(character);
+    const msMax = 70 + values.willpower * 4;
+    const acMax = 35 + values.agility * 5 + values.constitution * 2;
+    values.vitality = this.pool(hpMax * hpRatio, hpMax);
+    values.stamina_pool = this.pool(spMax * spRatio, spMax);
+    values.mental_stability = this.pool(msMax * msRatio, msMax);
+    values.action_ability = this.pool(acMax * acRatio, acMax);
+    values.learning_ability = this.clamp(25 + values.intelligence * 4 + Math.floor((values.perception + values.willpower) / 4), 0, 100);
+    values.derived = this.derived(values);
+    values.combat_simulation = this.defaultCombat(values);
   },
 };
