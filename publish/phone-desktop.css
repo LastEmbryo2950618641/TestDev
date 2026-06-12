@@ -424,13 +424,15 @@
 
 .rpg-item-card {
   display: inline-grid;
+  place-items: center;
   gap: 4px;
   max-width: 100%;
+  min-height: 32px;
   padding: 6px 10px;
   border: 1px solid rgba(146, 170, 255, .28);
   border-radius: 999px;
   color: #eef4ff;
-  text-align: left;
+  text-align: center;
   background: rgba(255, 255, 255, .08);
 }
 
@@ -443,6 +445,11 @@
 .rpg-item-card:has(.rpg-field-detail:not([style*="display: none"])) {
   width: 100%;
   border-radius: 12px;
+}
+
+.rpg-item-card .rpg-field-detail {
+  justify-self: stretch;
+  text-align: left;
 }
 
 .rpg-item-card strong {
