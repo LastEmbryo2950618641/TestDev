@@ -8,6 +8,11 @@ window.GameModules.rpgFieldUi = {
   isRpgFieldOpen(field) { return this.expandedRpgFieldKey === this.rpgFieldKey(field); },
   isRpgItemOpen(field, index) { return this.expandedRpgFieldKey === this.rpgItemKey(field, index); },
   isRpgListField(field) { return ['knowledge', 'skills', 'professions', 'factions', 'equipment', 'status_tags'].includes(field?.key) && Array.isArray(field.raw); },
+  rpgFieldSummary(field) {
+    if (!this.isRpgListField(field)) return `${field.label}：${Array.isArray(field.value) ? field.value.join('、') || '无' : field.value}`;
+    const unit = { knowledge: '知识', skills: '技能', professions: '职业' }[field.key] || '项';
+    return `${field.label}：${field.raw.length}${unit}`;
+  },
   canExpandRpgField(field) { return Boolean(field && this.rpgFieldDetail(field)); },
   isLexiconField(field) { return Boolean(field); },
 
