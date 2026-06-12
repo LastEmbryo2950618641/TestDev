@@ -28,6 +28,7 @@ window.GameModules.saveActions = {
     await this.loadWritingStyles();
     this.ensureCatalogSelection();
     this.loadSavedRpgStates();
+    if (this.phoneSetupDone) await this.ensurePlayerRpgState?.();
     this.prepareRpgForSelectedCharacter();
   },
 
@@ -71,6 +72,7 @@ window.GameModules.saveActions = {
     this.log = [];
     this.rpgStates = {};
     this.rpgPanelCharacterId = this.selectedCharacterId;
+    if (this.phoneSetupDone) await this.ensurePlayerRpgState?.(true);
   },
 
   loadSavedRpgStates() {

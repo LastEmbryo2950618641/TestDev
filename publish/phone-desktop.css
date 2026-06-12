@@ -96,13 +96,20 @@
   line-height: 1;
 }
 
+.desktop-apps {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 18px 0 0 24px;
+}
+
 .desktop-app-icon {
   width: 88px;
   min-height: 110px;
   display: grid;
   justify-items: center;
   gap: 8px;
-  margin: 18px 0 0 24px;
+  margin: 0;
   padding: 0;
   border: 0;
   background: transparent;
@@ -128,6 +135,12 @@
   box-shadow: 0 12px 26px rgba(8, 10, 24, .38), inset 0 -10px 24px rgba(0, 0, 0, .16);
   font-size: 30px;
   font-weight: 1000;
+}
+
+.identity-icon .app-glyph {
+  background:
+    radial-gradient(circle at 28% 22%, rgba(255, 255, 255, .4), transparent 24%),
+    linear-gradient(135deg, #2bdc9f, #3d6bff 58%, #7df3ff);
 }
 
 .desktop-app-icon b {
@@ -243,14 +256,16 @@
   will-change: transform;
 }
 
-.phone-setup-screen {
+.phone-setup-screen,
+.identity-app-screen {
   display: grid;
   place-items: center;
   padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(42px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
   background: radial-gradient(circle at 30% 12%, rgba(113, 243, 255, .24), transparent 30%), linear-gradient(145deg, #10172d, #070914 60%, #17112c);
 }
 
-.phone-setup-card {
+.phone-setup-card,
+.identity-card {
   width: min(720px, 100%);
   max-height: calc(100dvh - 36px);
   overflow-y: auto;
@@ -265,10 +280,31 @@
 }
 
 .phone-setup-hero,
-.phone-setup-actions {
+.phone-setup-actions,
+.identity-header,
+.identity-profile,
+.identity-rpg-section {
   padding: 10px;
   border: 1px solid rgba(255, 255, 255, .09);
   background: rgba(255, 255, 255, .035);
+}
+
+.identity-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.identity-profile p {
+  white-space: pre-line;
+  color: #aeb9d6;
+  line-height: 1.55;
+}
+
+.identity-rpg {
+  display: grid;
+  gap: 10px;
 }
 
 .phone-setup-grid {
@@ -289,12 +325,15 @@
   background: rgba(255, 255, 255, .035);
 }
 
-.phone-setup-screen .dev-section {
+.phone-setup-screen .dev-section,
+.identity-app-screen .dev-section {
   border-radius: 16px;
 }
 
 .phone-setup-screen .dev-section:hover,
-.phone-setup-screen .dev-section:focus-within {
+.identity-app-screen .dev-section:hover,
+.phone-setup-screen .dev-section:focus-within,
+.identity-app-screen .dev-section:focus-within {
   border-color: rgba(116, 246, 255, .85) !important;
   box-shadow: 0 0 0 2px rgba(116, 246, 255, .18), 0 0 24px rgba(116, 246, 255, .16);
 }

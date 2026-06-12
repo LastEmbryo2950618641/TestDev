@@ -13,7 +13,7 @@ window.GameModules.playerSetupActions = {
     ].join('\n');
   },
 
-  completePlayerSetup() {
+  async completePlayerSetup() {
     const name = (this.playerProfile.name || this.playerName || '').trim();
     if (!name) return;
     this.playerProfile = {
@@ -30,7 +30,8 @@ window.GameModules.playerSetupActions = {
     this.phoneSetupDone = true;
     this.desktopUnlocked = false;
     this.appHasOpened = false;
-    this.save();
+    await this.ensurePlayerRpgState?.(true);
+    await this.save();
   },
 
   reopenPlayerSetup() {

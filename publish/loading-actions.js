@@ -58,6 +58,7 @@ window.GameModules.loadingActions = {
     await this.runStage('rpg', '正在恢复已保存的角色状态缓存。', async () => {
       this.ensureCatalogSelection();
       this.loadSavedRpgStates();
+      if (this.phoneSetupDone) await this.ensurePlayerRpgState?.();
     });
     this.loading = false;
   },

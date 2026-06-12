@@ -7,6 +7,7 @@ window.GameModules.coreActions = {
   openDesktopApp() {
     this.appClosing = false;
     this.appSwitcherOpen = false;
+    this.identityAppOpen = false;
     this.appHasOpened = true;
     this.desktopUnlocked = true;
   },
@@ -57,6 +58,7 @@ window.GameModules.coreActions = {
       this.desktopUnlocked = false;
       this.appClosing = false;
       this.appSwitcherOpen = false;
+      this.identityAppOpen = false;
     }, 260);
   },
 

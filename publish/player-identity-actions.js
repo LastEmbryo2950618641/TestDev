@@ -1,0 +1,60 @@
+window.GameModules = window.GameModules || {};
+
+window.GameModules.playerIdentityActions = {
+  playerCharacter() {
+    const p = this.playerProfile || {};
+    const world = window.GameModules.realWorld2026 || {};
+    const name = p.name || this.playerName || '手机主人';
+    const city = p.city || world.defaults?.city || '未设定城市';
+    const role = p.dailyRole || world.defaults?.dailyRole || '现代都市居民';
+    const living = p.livingStatus || world.defaults?.livingStatus || '生活状态未设定';
+    const relations = p.relationships || '人际关系由玩家自行设定，当前未填写';
+    const notes = p.notes || '暂无补充设定';
+    return {
+      id: 'player-self', name, work: world.label || '2026 现代都市现实世界', role, job: role,
+      rank: living, faction: city, importance: 'main', isPlayer: true,
+      detail: `城市：${city}；居住：${living}；关系：${relations}；备注：${notes}`,
+      personality: notes,
+      skills: [
+        { name: '手机操作', desc: '熟悉现代智能手机与移动互联网基础操作。' },
+        { name: '现实观察', desc: '根据现代都市生活经验观察环境与人际线索。' },
+        { name: role, desc: `来自玩家填写的现实身份：${role}` },
+      ],
+    };
+  },
+
+  playerIdentityState() {
+    return this.rpgStates['player-self'] || null;
+  },
+
+  playerIdentitySummary() {
+    const v = this.playerIdentityState()?.values || {};
+    if (!v.level) return '玩家本人属性尚未生成。';
+    return `等级${v.level}｜经验${v.exp?.current || 0}/${v.exp?.next || 'max'}｜力量${v.strength}｜敏捷${v.agility}｜体质${v.constitution}｜智力${v.intelligence}｜感知${v.perception}｜意志${v.willpower}｜魅力${v.charisma}`;
+  },
+
+  async ensurePlayerRpgState(refresh = false) {
+    if (!window.GameModules.sqliteSave.db || (!refresh && this.playerIdentityState())) return this.playerIdentityState();
+    const character = this.playerCharacter();
+    const state = await window.GameModules.rpgState.ensureCharacter(character, this);
+    state.profile = character;
+    state.note = character.detail;
+    state.values.status_tags = ['玩家本人', '手机主人', character.work, character.role];
+    state.values.factions = [character.faction, character.rank].filter(Boolean);
+    window.GameModules.progression.ensureStateMechanics(state, character);
+    this.rpgStates = { ...this.rpgStates, [state.id]: state };
+    await window.GameModules.sqliteSave.saveCharacterState(state);
+    return state;
+  },
+
+  async openIdentityApp() {
+    this.identityAppOpen = true;
+    this.desktopUnlocked = true;
+    await this.ensurePlayerRpgState();
+  },
+
+  closeIdentityApp() {
+    this.identityAppOpen = false;
+    this.desktopUnlocked = false;
+  },
+};
