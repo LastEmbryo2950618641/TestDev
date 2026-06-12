@@ -21,7 +21,7 @@ document.addEventListener('alpine:init', () => {
     loading: true, loadingStep: '等待平台连接',
     loadingDetail: '首次进入或存档较大时会更慢，这是正常现象。',
     loadingStages: [], entryStages: [],
-    busy: false, started: false, desktopUnlocked: false, appHasOpened: false, appClosing: false, appSwitcherOpen: false, appExitChoiceOpen: false, entrySetupOpen: false, identityAppOpen: false, wechatAppOpen: false, identityTargetId: 'player-self', wechatSelectedContact: 'player-self', wechatTab: 'chats', wechatView: 'home', wechatInput: '', appDragStartY: 0, appDragY: 0, appDragPeakY: 0, appGestureFromHomeZone: false, appGesturePointerId: null, appDragging: false,
+    busy: false, started: false, desktopUnlocked: false, appHasOpened: false, appClosing: false, appSwitcherOpen: false, appExitChoiceOpen: false, appActiveName: '', appPausedName: '', appBackgroundName: '', entrySetupOpen: false, identityAppOpen: false, wechatAppOpen: false, identityTargetId: 'player-self', wechatSelectedContact: 'player-self', wechatTab: 'chats', wechatView: 'home', wechatInput: '', appDragStartY: 0, appDragY: 0, appDragPeakY: 0, appGestureFromHomeZone: false, appGesturePointerId: null, appDragging: false,
     desktopDragStartY: 0, desktopDragY: 0, desktopDragging: false,
     initPromise: null, phoneSetupDone: false, phoneActivationChoice: '', profileSetupBusy: false,
     playerProfile: { name: '', gender: '', birthday: '', age: '', city: '', refinedCity: '', dailyRole: '', refinedRole: '', livingStatus: '', refinedLivingStatus: '', relationships: '', parents: '', parentStatus: '', parentDeathCause: '', worldbuildingNote: '', notes: '', wechatId: '', profileEnrichedAt: '', initializedAt: '' }, playerName: '',

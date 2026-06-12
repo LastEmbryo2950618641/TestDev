@@ -4,15 +4,6 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.coreActions = {
-  openDesktopApp() {
-    this.appClosing = false;
-    this.appSwitcherOpen = false;
-    this.identityAppOpen = false;
-    this.wechatAppOpen = false;
-    this.appHasOpened = true;
-    this.desktopUnlocked = true;
-  },
-
   appGestureStart(event) {
     const fromGestureZone = event.target.closest('.app-home-gesture');
     if (this.loading || (!fromGestureZone && event.target.closest('input, textarea, select, a'))) return;
@@ -58,29 +49,6 @@ window.GameModules.coreActions = {
     return `transform: translateY(${y}px) scale(${scale});`;
   },
 
-  closeAppToDesktop(keepBackground = true) {
-    if (this.appClosing) return;
-    this.appDragging = false;
-    this.appGesturePointerId = null;
-    this.appDragY = 0;
-    this.appDragPeakY = 0;
-    this.appGestureFromHomeZone = false;
-    this.desktopUnlocked = false;
-    this.appHasOpened = keepBackground;
-    this.appExitChoiceOpen = false;
-    this.appClosing = true;
-    window.setTimeout(() => {
-      this.appClosing = false;
-      this.appSwitcherOpen = false;
-      this.identityAppOpen = false;
-      this.wechatAppOpen = false;
-    }, 260);
-  },
-
-  hasBackgroundApp() {
-    return Boolean(this.appHasOpened || this.started || this.entrySetupOpen);
-  },
-
   desktopGestureStart(event) {
     if (this.desktopUnlocked || event.target.closest('button')) return;
     this.desktopDragStartY = event.clientY || 0;
@@ -99,11 +67,6 @@ window.GameModules.coreActions = {
     this.desktopDragging = false;
     this.desktopDragY = 0;
     if (shouldShowSwitcher) this.appSwitcherOpen = true;
-  },
-
-  restoreBackgroundApp() {
-    this.appSwitcherOpen = false;
-    this.openDesktopApp();
   },
 
   closeSwitcher() {

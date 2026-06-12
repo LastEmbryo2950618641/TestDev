@@ -82,9 +82,10 @@ window.GameModules.playerIdentityActions = {
   },
 
   async openIdentityApp(targetId = 'player-self') {
-    this.appHasOpened = true;
+    this.appActiveName = 'identity';
     this.appSwitcherOpen = false;
     this.appClosing = false;
+    this.appExitChoiceOpen = false;
     this.wechatAppOpen = false;
     this.identityTargetId = targetId || 'player-self';
     this.identityAppOpen = true;
@@ -94,9 +95,10 @@ window.GameModules.playerIdentityActions = {
   },
 
   openWechatApp() {
-    this.appHasOpened = true;
+    this.appActiveName = 'wechat';
     this.appSwitcherOpen = false;
     this.appClosing = false;
+    this.appExitChoiceOpen = false;
     this.identityAppOpen = false;
     this.wechatAppOpen = true;
     this.desktopUnlocked = true;
@@ -105,12 +107,13 @@ window.GameModules.playerIdentityActions = {
   },
 
   closeIdentityApp() {
-    if (this.forceQuitApp) this.forceQuitApp();
-    else this.closeAppToDesktop(false);
+    if (this.forceQuitApp) this.forceQuitApp('identity');
+    else this.closeAppToDesktop(false, 'identity');
   },
 
   closeWechatApp() {
-    this.closeAppToDesktop(false);
+    if (this.forceQuitApp) this.forceQuitApp('wechat');
+    else this.closeAppToDesktop(false, 'wechat');
   },
 
   ensureWechatId() {
