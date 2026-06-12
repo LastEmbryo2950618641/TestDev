@@ -16,6 +16,8 @@ window.GameModules.createSystemPrompt = function createSystemPrompt(state, actio
     playerFeelings: [{ key: '只返回本回合需要变化或解释的感觉名', delta: 0, status: '变化后的状态含义', reason: '导致变化的具体原因' }],
   };
   const writingStyle = state.writingStylePrompt?.() || '正文采用小说文风，重视画面、动作和心理反应，避免复述玩家指令。';
+  const realWorld = window.GameModules.realWorld2026 || {};
+  const playerProfile = state.playerSetupSummary?.() || `姓名/代号：${state.playerName || '玩家'}`;
   const outputJson = JSON.stringify({
     sceneTitle: '当前场景标题',
     elapsedSeconds: 60,
@@ -50,6 +52,11 @@ ${window.GameModules.appBackground || '你手机上无意中多了一个名为�
 
 ## 核心设定:
 - 玩家不是角色本人，而是操控者「${state.playerName || '玩家'}」。
+- 玩家现实世界：${realWorld.label || '2026 现代都市现实世界'}。
+- 现实背景：${realWorld.summary || '玩家生活在现代都市，个人信息由玩家自行设定。'}
+- 玩家信息与人际关系：
+${playerProfile}
+- 关系边界：${realWorld.relationHint || '玩家相关人际关系只以玩家填写为准，未填写不要擅自补完。'}
 - 被操控者是 ${character.name}，出自《${character.work || '原创世界'}》，身份是${character.role}。
 - 性格/资料：${character.detail || character.personality || '暂无补充资料'}
 

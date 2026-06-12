@@ -25,6 +25,8 @@ window.GameModules.storage = {
   snapshot(store) {
     return {
       started: store.started,
+      phoneSetupDone: store.phoneSetupDone,
+      playerProfile: store.playerProfile,
       playerName: store.playerName,
       selectedSlot: store.selectedSlot,
       selectedWork: store.selectedWork,
@@ -55,8 +57,11 @@ window.GameModules.storage = {
   },
 
   restore(store, save) {
-    if (!save?.started) return false;
-    store.playerName = save.playerName || store.playerName;
+    if (!save) return false;
+    store.phoneSetupDone = save.phoneSetupDone ?? store.phoneSetupDone;
+    store.playerProfile = { ...store.playerProfile, ...(save.playerProfile || {}) };
+    store.playerName = save.playerName || store.playerProfile?.name || store.playerName;
+    if (!save.started) return false;
     store.selectedWork = save.selectedWork || store.selectedWork;
     store.selectedCharacterId = save.selectedCharacterId || store.selectedCharacterId;
     store.characterAge = save.characterAge || store.characterAge;

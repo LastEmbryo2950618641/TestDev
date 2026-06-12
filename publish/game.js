@@ -23,8 +23,8 @@ document.addEventListener('alpine:init', () => {
     loadingStages: [], entryStages: [],
     busy: false, started: false, desktopUnlocked: false, appHasOpened: false, appClosing: false, appSwitcherOpen: false, entrySetupOpen: false,
     appDragStartY: 0, appDragY: 0, appDragPeakY: 0, appGestureFromHomeZone: false, appDragging: false, desktopDragStartY: 0, desktopDragY: 0, desktopDragging: false,
-    initPromise: null,
-    playerName: '',
+    initPromise: null, phoneSetupDone: false,
+    playerProfile: { name: '', city: '', dailyRole: '', livingStatus: '', relationships: '', notes: '', initializedAt: '' }, playerName: '',
     selectedSlot: 'slot-1',
     saveSlots: window.GameModules.storage.slots,
     savePanelOpen: false,
@@ -140,7 +140,7 @@ document.addEventListener('alpine:init', () => {
 
     async loadModelAndUser() {
       try {
-        const info = await window.dzmm?.user?.info?.(); if (info?.name && !this.playerName) this.playerName = info.name;
+        const info = await window.dzmm?.user?.info?.(); if (info?.name && !this.playerName && !this.playerProfile.name) this.playerName = info.name;
       } catch (err) {
         console.warn('读取用户信息失败:', err.code, err.message);
       }
@@ -191,6 +191,7 @@ document.addEventListener('alpine:init', () => {
     ...window.GameModules.saveActions,
     ...window.GameModules.styleActions,
     ...window.GameModules.worldlineActions,
+    ...window.GameModules.playerSetupActions,
     ...window.GameModules.entryActions,
     ...window.GameModules.coreActions,
   });

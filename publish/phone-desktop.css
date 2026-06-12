@@ -243,6 +243,76 @@
   will-change: transform;
 }
 
+.phone-setup-screen {
+  display: grid;
+  place-items: center;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(42px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  background: radial-gradient(circle at 30% 12%, rgba(113, 243, 255, .24), transparent 30%), linear-gradient(145deg, #10172d, #070914 60%, #17112c);
+}
+
+.phone-setup-card {
+  width: min(720px, 100%);
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+  display: grid;
+  gap: 12px;
+  padding: clamp(16px, 2.5vw, 24px);
+  border: 1px solid rgba(146, 170, 255, .26);
+  border-radius: 26px;
+  background: rgba(13, 18, 38, .86);
+  box-shadow: 0 26px 80px rgba(0, 0, 0, .42);
+  backdrop-filter: blur(18px);
+}
+
+.phone-setup-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.phone-setup-card label,
+.phone-setup-wide {
+  display: grid;
+  gap: 6px;
+}
+
+.phone-setup-card label span {
+  color: #aeb9d6;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.phone-setup-card textarea {
+  width: 100%;
+  min-height: 74px;
+  padding: 10px 12px;
+  border: 1px solid rgba(166, 188, 255, .28);
+  border-radius: 12px;
+  outline: none;
+  background: rgba(255, 255, 255, .08);
+  color: #fff;
+  resize: vertical;
+}
+
+.real-world-note {
+  padding: 12px;
+  border: 1px solid rgba(113, 243, 255, .18);
+  border-radius: 16px;
+  background: rgba(113, 243, 255, .07);
+}
+
+.real-world-note p {
+  margin: 6px 0 0;
+  color: #aeb9d6;
+  line-height: 1.55;
+}
+
+@media (max-width: 640px) {
+  .phone-setup-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .app-home-gesture {
   position: fixed;
   left: 50%;
