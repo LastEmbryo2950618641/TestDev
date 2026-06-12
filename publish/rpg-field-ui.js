@@ -7,13 +7,20 @@ window.GameModules.rpgFieldUi = {
   toggleRpgItem(field, index) { const key = this.rpgItemKey(field, index); if (key) this.expandedRpgFieldKey = this.expandedRpgFieldKey === key ? '' : key; },
   isRpgFieldOpen(field) { return this.expandedRpgFieldKey === this.rpgFieldKey(field); },
   isRpgItemOpen(field, index) { return this.expandedRpgFieldKey === this.rpgItemKey(field, index); },
-  isRpgListField(field) { return ['knowledge', 'skills', 'professions'].includes(field?.key) && Array.isArray(field.raw); },
+  isRpgListField(field) { return ['knowledge', 'skills', 'professions', 'factions', 'equipment', 'status_tags'].includes(field?.key) && Array.isArray(field.raw); },
   canExpandRpgField(field) { return Boolean(field && !this.isRpgListField(field) && this.rpgFieldDetail(field)); },
+  isLexiconField(field) { return Boolean(field && !this.isRpgListField(field)); },
+
+  lexiconKind(field, item = null) {
+    if (field?.kind) return field.kind;
+    if (item?.type) return item.type;
+    return { factions: '阵营', equipment: '装备', status_tags: '状态' }[field?.key] || '属性';
+  },
 
   lexiconFor(field, item = null) {
-    const worldTag = this.currentRpgState?.worldTag || this.character?.work || '原创世界';
-    const kind = item?.type || (field?.key === 'equipment' ? '装备' : '属性');
-    const name = item?.name || field?.label;
+    const worldTag = field?.worldTag || this.currentRpgState?.worldTag || this.character?.work || '原创世界';
+    const kind = this.lexiconKind(field, item);
+    const name = (typeof item === 'string' ? item : item?.name) || field?.label;
     return window.GameModules.rpgLexicon.get(worldTag, kind, name) || null;
   },
 
@@ -25,30 +32,32 @@ window.GameModules.rpgFieldUi = {
   },
 
   rpgItemSummary(item) {
-    return `${item?.name || '未命名'} lv.${item?.level || 1}`;
+    if (typeof item === 'string') return item;
+    return item?.level ? `${item?.name || '未命名'} lv.${item.level}` : (item?.name || '未命名');
   },
 
   rpgItemDetail(field, item) {
     const lexicon = this.lexiconFor(field, item);
-    const info = lexicon?.meta?.info || item?.info || {};
-    const exp = item?.exp || {};
+    const obj = typeof item === 'string' ? { name: item, type: this.lexiconKind(field, item) } : item;
+    const info = lexicon?.meta?.info || obj?.info || {};
+    const exp = obj?.exp || {};
     const statName = { strength: '力量', agility: '敏捷', constitution: '体质', intelligence: '智力', perception: '感知', willpower: '意志', charisma: '魅力' };
-    const linkedStats = (info.intrinsicStats || item?.linkedStats || []).map((x) => statName[x] || x);
+    const linkedStats = (info.intrinsicStats || obj?.linkedStats || []).map((x) => statName[x] || x);
     const lines = [
-      `名称: ${item?.name || field?.label || '未知'}`,
-      `类型/等级: ${item?.type || field?.label || '能力'} lv${item?.level || 1}`,
+      `名称: ${obj?.name || field?.label || '未知'}`,
+      `类型/等级: ${obj?.type || field?.label || '能力'}${obj?.level ? ` lv${obj.level}` : ''}`,
       `经验值/升级所需经验值: ${exp.current || 0}/${exp.next || 'max'}`,
-      `等级说明: ${item?.levelDescription || info.levelDescription || '暂无'}`,
-      `当前作用: ${item?.effect || info.effect || '暂无'}`,
-      `来源: ${item?.source || info.summary || lexicon?.summary || '暂无'}`,
+      `等级说明: ${obj?.levelDescription || info.levelDescription || '暂无'}`,
+      `当前作用: ${obj?.effect || info.effect || '暂无'}`,
+      `来源: ${obj?.source || info.summary || lexicon?.summary || '暂无'}`,
       `提示词说明: ${lexicon?.promptInstruction || '暂无'}`,
       `关联身内能力: ${linkedStats.join('、') || '暂无'}`,
     ];
-    if (item?.type === '职业') {
+    if (obj?.type === '职业') {
       lines.push(`关联习得能力: ${(info.learnedAbilities || []).join('、') || '暂无'}`);
       lines.push(`世界专属能力: ${(info.worldAbilities || []).join('、') || '暂无'}`);
     }
-    lines.push(`详细说明: ${info.description || lexicon?.description || item?.description || item?.source || '暂无'}`);
+    lines.push(`详细说明: ${info.description || lexicon?.description || obj?.description || obj?.source || '暂无'}`);
     return lines.join('\n');
   },
 

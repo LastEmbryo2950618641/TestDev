@@ -163,7 +163,8 @@ window.GameModules.saveActions = {
           const raw = field.key === 'exp' ? window.GameModules.progression.normalizeCharacterExp(state.values.exp, state.values.level) : state.values[field.key];
           const display = window.GameModules.worldAttributes.displayValue(field, raw);
           const source = state.values.intrinsic_sources?.[field.key] || null;
-          return { key: field.key, label: field.label, value: this.rpgFieldValue(display), raw, source, desc: field.desc || '' };
+          const kind = { factions: '阵营', equipment: '装备', status_tags: '状态' }[field.key] || '属性';
+          return { key: field.key, label: field.label, kind, value: this.rpgFieldValue(display), raw, source, desc: field.desc || '', worldTag: state.worldTag };
         }),
     })).filter((section) => section.fields.length);
   },

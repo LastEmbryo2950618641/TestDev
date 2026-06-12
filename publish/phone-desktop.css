@@ -456,6 +456,17 @@
   font-size: var(--ui-small-font);
 }
 
+.lexicon-tag {
+  grid-column: 1 / -1;
+  width: fit-content;
+  max-width: 100%;
+  justify-self: start;
+}
+
+.lexicon-tag:has(.rpg-field-detail:not([style*="display: none"])) {
+  width: 100%;
+}
+
 @media (max-height: 620px) {
   .phone-frame {
     min-height: 0;
