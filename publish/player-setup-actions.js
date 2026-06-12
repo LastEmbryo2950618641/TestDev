@@ -25,8 +25,16 @@ window.GameModules.playerSetupActions = {
     return this.playerProfileLexiconFields().map((x) => `${x.label}：${x.value}`).join('\n');
   },
 
+  chooseExistingAccountSetup() {
+    this.phoneActivationChoice = 'existing';
+  },
+
   chooseNewAccountSetup() {
     this.phoneActivationChoice = 'new';
+  },
+
+  backActivationChoice() {
+    this.phoneActivationChoice = '';
   },
 
   async useExistingAccountSetup() {

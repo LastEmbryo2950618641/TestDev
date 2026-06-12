@@ -347,26 +347,83 @@
   box-shadow: 0 0 0 2px rgba(116, 246, 255, .18), 0 0 24px rgba(116, 246, 255, .16);
 }
 
+.activation-home,
+.activation-confirm,
+.activation-form {
+  width: min(430px, 100%);
+  min-height: min(760px, calc(100dvh - 28px));
+  max-height: calc(100dvh - 28px);
+  align-content: stretch;
+  padding: 68px 20px 24px;
+  border-radius: 42px;
+  background:
+    radial-gradient(circle at 28% 18%, rgba(255, 255, 255, .24), transparent 20%),
+    linear-gradient(150deg, rgba(141, 98, 255, .92), rgba(22, 35, 77, .96) 46%, rgba(6, 19, 33, .98) 78%, rgba(230, 92, 168, .92));
+  box-shadow: 0 28px 90px rgba(0, 0, 0, .48), inset 0 0 0 9px rgba(3, 6, 17, .94);
+}
+
+.activation-home,
+.activation-confirm {
+  grid-template-rows: 1fr auto;
+  overflow: hidden;
+}
+
+.activation-form {
+  overflow-y: auto;
+}
+
 .activation-choice-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: 1fr;
+  align-self: center;
+  gap: 14px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.activation-choice-grid.single {
+  align-self: center;
 }
 
 .activation-choice {
-  min-height: 118px;
+  min-height: 72px;
+  place-items: center;
+  padding: 14px 16px;
+  border-color: rgba(255, 255, 255, .22);
+  border-radius: 22px;
   color: #fff;
-  text-align: left;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: .02em;
+  background: rgba(255, 255, 255, .12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 12px 30px rgba(0, 0, 0, .22);
 }
 
-.activation-choice strong,
-.activation-choice span {
-  display: block;
+.activation-choice.selected,
+.activation-choice:hover,
+.activation-choice:focus-visible {
+  border-color: rgba(116, 246, 255, .86);
+  box-shadow: 0 0 0 2px rgba(116, 246, 255, .16), 0 16px 34px rgba(0, 0, 0, .3);
 }
 
-.activation-choice span {
-  margin-top: 8px;
-  color: #aeb9d6;
-  line-height: 1.5;
+.activation-nav,
+.activation-form .phone-setup-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
+  padding: 12px;
+  border-radius: 22px;
+  background: rgba(3, 6, 17, .38);
+  backdrop-filter: blur(14px);
+}
+
+.activation-form .phone-setup-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
 }
 
 .phone-setup-card label span {

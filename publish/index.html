@@ -365,21 +365,27 @@
 
   <section x-show="!$store.game.loading && !$store.game.phoneSetupDone && !$store.game.phoneActivationChoice" class="phone-setup-screen section-hints" x-cloak>
     <div class="phone-setup-card activation-home dev-section" data-section-title="新手机激活首页">
-      <section class="phone-setup-hero dev-section" data-section-title="激活方式选择说明区">
-        <p class="eyebrow">PHONE ACTIVATION</p>
-        <h2>激活你的新手机</h2>
-        <p class="intro">请选择使用已有账号同步资料，或创建一个新账号并填写身份信息。</p>
-      </section>
       <div class="activation-choice-grid">
-        <button class="activation-choice" type="button" @click="$store.game.useExistingAccountSetup()" :disabled="$store.game.profileSetupBusy"><strong>使用已有账号激活新手机</strong><span>同步刘悠的预设身份资料。</span></button>
-        <button class="activation-choice" type="button" @click="$store.game.chooseNewAccountSetup()"><strong>创建新账号激活新手机</strong><span>打开身份表单，自行填写资料。</span></button>
+        <button class="activation-choice" type="button" @click="$store.game.chooseExistingAccountSetup()" :disabled="$store.game.profileSetupBusy">使用已有账号激活新手机</button>
+        <button class="activation-choice" type="button" @click="$store.game.chooseNewAccountSetup()">创建新账号激活新手机</button>
       </div>
-      <small x-show="$store.game.profileSetupBusy">正在同步已有账号资料，请稍等。</small>
+    </div>
+  </section>
+
+  <section x-show="!$store.game.loading && !$store.game.phoneSetupDone && $store.game.phoneActivationChoice === 'existing'" class="phone-setup-screen section-hints" x-cloak>
+    <div class="phone-setup-card activation-confirm dev-section" data-section-title="已有账号确认页">
+      <div class="activation-choice-grid single">
+        <button class="activation-choice selected" type="button">使用已有账号激活新手机</button>
+      </div>
+      <div class="phone-setup-actions activation-nav dev-section" data-section-title="已有账号确认操作区">
+        <button class="small-btn" type="button" @click="$store.game.backActivationChoice()" :disabled="$store.game.profileSetupBusy">上一步</button>
+        <button class="primary-btn" type="button" @click="$store.game.useExistingAccountSetup()" :disabled="$store.game.profileSetupBusy" x-text="$store.game.profileSetupBusy ? '同步中…' : '确认'"></button>
+      </div>
     </div>
   </section>
 
   <section x-show="!$store.game.loading && !$store.game.phoneSetupDone && $store.game.phoneActivationChoice === 'new'" class="phone-setup-screen section-hints" x-cloak>
-    <div class="phone-setup-card dev-section" data-section-title="新手机激活面板">
+    <div class="phone-setup-card activation-form dev-section" data-section-title="新手机激活面板">
       <section class="phone-setup-hero dev-section" data-section-title="激活说明区">
         <p class="eyebrow">NEW PHONE SETUP</p>
         <h2>激活你的新手机</h2>
@@ -402,8 +408,8 @@
         <p x-text="window.GameModules.realWorld2026.summary"></p>
       </article>
       <div class="phone-setup-actions dev-section" data-section-title="激活操作区">
-        <button class="small-btn" type="button" @click="$store.game.phoneActivationChoice = ''" :disabled="$store.game.profileSetupBusy">返回</button>
-        <button class="primary-btn" @click="$store.game.completePlayerSetup()" :disabled="$store.game.profileSetupBusy || !$store.game.playerProfile.name.trim() || !$store.game.playerProfile.birthday"> <span x-text="$store.game.profileSetupBusy ? '正在生成身份资料…' : '完成手机激活'"></span></button>
+        <button class="small-btn" type="button" @click="$store.game.backActivationChoice()" :disabled="$store.game.profileSetupBusy">上一步</button>
+        <button class="primary-btn" @click="$store.game.completePlayerSetup()" :disabled="$store.game.profileSetupBusy || !$store.game.playerProfile.name.trim() || !$store.game.playerProfile.birthday"> <span x-text="$store.game.profileSetupBusy ? '生成中…' : '确认'"></span></button>
       </div>
     </div>
   </section>
