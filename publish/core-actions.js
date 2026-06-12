@@ -4,6 +4,10 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.coreActions = {
+  openDesktopApp() {
+    this.desktopUnlocked = true;
+  },
+
   selectWork(name) {
     this.selectedWork = name;
     this.selectedCharacterId = window.GameModules.catalog.firstCharacter(name) || this.selectedCharacterId;

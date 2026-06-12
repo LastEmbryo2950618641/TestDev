@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content, user-scalable=no">
   <title>我狠狠操控</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="phone-desktop.css">
   <link rel="stylesheet" href="character-select.css">
   <link rel="stylesheet" href="profile-preview.css">
   <link rel="stylesheet" href="prompt-dialog.css">
@@ -240,7 +241,35 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.started && !$store.game.loading && !$store.game.entrySetupOpen" class="start-screen" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <section x-show="!$store.game.started && !$store.game.loading && !$store.game.desktopUnlocked" class="phone-desktop-screen" x-cloak>
+    <div class="phone-frame">
+      <div class="phone-status-bar">
+        <span>21:08</span>
+        <span>5G  88%</span>
+      </div>
+      <div class="desktop-widgets">
+        <article>
+          <small>今日任务</small>
+          <strong>选择目标</strong>
+          <span>等待操控者接入</span>
+        </article>
+        <article>
+          <small>系统状态</small>
+          <strong>在线</strong>
+          <span>隐秘连接可用</span>
+        </article>
+      </div>
+      <button class="desktop-app-icon" type="button" @click="$store.game.openDesktopApp()" aria-label="打开我要狠狠操控">
+        <span class="app-glyph">控</span>
+        <b>我要狠狠操控</b>
+      </button>
+      <div class="phone-dock">
+        <span></span><span></span><span></span><span></span>
+      </div>
+    </div>
+  </section>
+
+  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && !$store.game.entrySetupOpen" class="start-screen" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <div class="start-card dev-section" data-section-title="首页选择面板">
       <p class="eyebrow">AI RPG 视觉小说</p>
       <h1>我狠狠操控</h1>

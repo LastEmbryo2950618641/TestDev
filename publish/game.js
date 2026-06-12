@@ -21,7 +21,7 @@ document.addEventListener('alpine:init', () => {
     loading: true, loadingStep: '等待平台连接',
     loadingDetail: '首次进入或存档较大时会更慢，这是正常现象。',
     loadingStages: [], entryStages: [],
-    busy: false, started: false, entrySetupOpen: false,
+    busy: false, started: false, desktopUnlocked: false, entrySetupOpen: false,
     initPromise: null,
     playerName: '',
     selectedSlot: 'slot-1',
