@@ -5,9 +5,16 @@ Object.assign(window.GameModules.progression, {
     return ['知识', '技能', '职业'].includes(item?.type) && Number(item?.level) !== -1;
   },
 
+  levelMeaningMap() {
+    return ['无', '入门：知道基本概念或能做最简单动作。', '初学：能在低压环境稳定使用。', '熟练：能处理常见情况。', '专业：能独立应对复杂情况。', '专家：能创新、优化或指导他人。', '大师：领域内极少数高位者。', '传说：世界观顶级或规格外。'];
+  },
+
   levelDescription(type, lv) {
-    const map = ['无', '入门：知道基本概念或能做最简单动作。', '初学：能在低压环境稳定使用。', '熟练：能处理常见情况。', '专业：能独立应对复杂情况。', '专家：能创新、优化或指导他人。', '大师：领域内极少数高位者。', '传说：世界观顶级或规格外。'];
-    return `${type || '能力'}lv${lv}｜${map[lv]}`;
+    return `${type || '能力'}lv${lv}｜${this.levelMeaningMap()[lv]}`;
+  },
+
+  levelDescriptionList(type) {
+    return this.levelMeaningMap().slice(1).map((text, index) => `${type || '能力'}lv${index + 1}｜${text}`).join('；');
   },
 
   levelEffect(name, type, lv) {

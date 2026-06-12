@@ -67,7 +67,8 @@ window.GameModules.rpgFieldUi = {
     const lines = [`名称: ${name}`, `定义: ${this.learnedDefinition(kind, name, obj, lexicon, info)}`, `类型: ${kind}`];
     if (hasLevel) {
       lines.push(`等级: lv${obj.level}`);
-      lines.push(`等级含义: ${obj?.levelDescription || info.levelDescription || window.GameModules.progression.levelDescription(kind, obj.level)}`);
+      lines.push(`当前等级含义: ${obj?.levelDescription || info.levelDescription || window.GameModules.progression.levelDescription(kind, obj.level)}`);
+      lines.push(`完整等级含义: ${window.GameModules.progression.levelDescriptionList(kind)}`);
       lines.push(`等级效果: ${obj?.effect || info.effect || window.GameModules.progression.levelEffect(name, kind, obj.level)}`);
       lines.push(`经验值/升级所需经验值: ${exp.current || 0}/${exp.next || 'max'}`);
     }
