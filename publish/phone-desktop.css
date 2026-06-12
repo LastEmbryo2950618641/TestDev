@@ -520,6 +520,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+  transform: translateX(-50%);
 }
 
 .app-exit-actions button {
