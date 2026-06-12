@@ -107,7 +107,9 @@ window.GameModules.rpgState = {
     const seed = this.seed(state.name + state.worldTag);
     schema.sections.forEach((section) => section.fields.forEach((field) => {
       if (state.values[field.key] === undefined) {
-        state.values[field.key] = ['health', 'stamina'].includes(field.key) ? 100 : this.valueFor(field, seed + field.key.length);
+        if (field.key === 'free_attribute_points') state.values[field.key] = 0;
+        else if (field.key === 'level_growth') state.values[field.key] = { totalLevelUps: 0, autoPointsPerLevel: 2, freePointsPerLevel: 1, history: [] };
+        else state.values[field.key] = ['health', 'stamina'].includes(field.key) ? 100 : this.valueFor(field, seed + field.key.length);
         changed = true;
       }
     }));

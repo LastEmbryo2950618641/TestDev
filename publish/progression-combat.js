@@ -82,7 +82,8 @@ Object.assign(window.GameModules.progression, {
     const before = values.level;
     values.level += 1;
     values.exp.next = this.nextCharacterExp(values.level);
-    const applied = this.applyAutoIntrinsicGrowth(values, character, 2);
+    this.ensureIntrinsicSources(values);
+    const applied = this.applyAutoIntrinsicGrowth(values, character, 2, 'level');
     values.free_attribute_points = Math.max(0, Number(values.free_attribute_points) || 0) + 1;
     values.level_growth = values.level_growth || { totalLevelUps: 0, autoPointsPerLevel: 2, freePointsPerLevel: 1, history: [] };
     values.level_growth.totalLevelUps += 1;
@@ -90,14 +91,15 @@ Object.assign(window.GameModules.progression, {
     this.recalculatePools(values, true, character);
   },
 
-  applyAutoIntrinsicGrowth(values, character, points) {
-    const keys = ['strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma'];
+  applyAutoIntrinsicGrowth(values, character, points, bucket = 'level') {
+    const keys = this.intrinsicKeys();
     const weights = this.growthWeights(character, values);
     const applied = {};
     for (let i = 0; i < points; i += 1) {
       const key = keys.filter((x) => values[x] < 100).sort((a, b) => (weights[b] - values[b] / 50) - (weights[a] - values[a] / 50))[0];
       if (!key) break;
       values[key] = this.clamp(values[key] + 1, 1, 100);
+      values.intrinsic_sources[key][bucket] = (values.intrinsic_sources[key][bucket] || 0) + 1;
       applied[key] = (applied[key] || 0) + 1;
       weights[key] *= 0.72;
     }

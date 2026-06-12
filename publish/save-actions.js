@@ -161,7 +161,8 @@ window.GameModules.saveActions = {
         .map((field) => {
           const raw = field.key === 'exp' ? window.GameModules.progression.normalizeCharacterExp(state.values.exp, state.values.level) : state.values[field.key];
           const display = window.GameModules.worldAttributes.displayValue(field, raw);
-          return { key: field.key, label: field.label, value: this.rpgFieldValue(display), raw, desc: field.desc || '' };
+          const source = state.values.intrinsic_sources?.[field.key] || null;
+          return { key: field.key, label: field.label, value: this.rpgFieldValue(display), raw, source, desc: field.desc || '' };
         }),
     })).filter((section) => section.fields.length);
   },

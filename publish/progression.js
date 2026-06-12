@@ -56,7 +56,8 @@ window.GameModules.progression = {
     const normalizedExp = this.normalizeCharacterExp(values.exp, values.level, seed % 60);
     if (!values.exp?.next || values.exp.next !== normalizedExp.next || values.exp.curve !== normalizedExp.curve) { values.exp = normalizedExp; changed = true; }
     if (!values.level_growth) { values.free_attribute_points = 0; values.level_growth = { totalLevelUps: 0, autoPointsPerLevel: 2, freePointsPerLevel: 1, history: [] }; changed = true; }
-    if (!Number.isFinite(values.free_attribute_points)) { values.free_attribute_points = 0; changed = true; }
+    if (this.ensureIntrinsicSources(values)) changed = true;
+    if (this.normalizeFreeAttributePoints(values)) changed = true;
     if (!values.vitality?.max || !values.stamina_pool?.max) { this.recalculatePools(values, true, character); changed = true; }
     if (!values.derived?.attackPower) { values.derived = this.derived(values); changed = true; }
     if (!values.combat_simulation) { values.combat_simulation = this.defaultCombat(values); changed = true; }
@@ -76,8 +77,9 @@ window.GameModules.progression = {
     return {
       level,
       exp: this.normalizeCharacterExp(existing.exp, level, seed % 60),
-      free_attribute_points: Number.isFinite(existing.free_attribute_points) ? existing.free_attribute_points : 0,
-      level_growth: existing.level_growth || { totalLevelUps: 0, autoPointsPerLevel: 2, freePointsPerLevel: 1, history: [] },
+      free_attribute_points: 0,
+      level_growth: { totalLevelUps: 0, autoPointsPerLevel: 2, freePointsPerLevel: 1, history: [] },
+      intrinsic_sources: this.createIntrinsicSources(intrinsic),
       vitality: existing.vitality?.max ? existing.vitality : this.pool(existing.health ?? vitalityMax, vitalityMax),
       stamina_pool: existing.stamina_pool?.max ? existing.stamina_pool : this.pool(existing.stamina ?? staminaMax, staminaMax),
       satiety: existing.satiety || this.pool(70 + seed % 20, 100),
@@ -137,6 +139,27 @@ window.GameModules.progression = {
 
   trainingBonus(character) { return /士兵|骑士|运动|佣兵|从者|英灵/.test(`${character.role || ''}${character.job || ''}`) ? 20 : 0; },
   percent(pool) { return pool?.max ? this.clamp((pool.current / pool.max) * 100, 0, 100) : 100; },
+  intrinsicKeys() { return ['strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma']; },
+  createIntrinsicSources(values) { return Object.fromEntries(this.intrinsicKeys().map((k) => [k, { initial: values[k] || 1, level: 0, allocated: 0, npc: 0 }])); },
+  ensureIntrinsicSources(values) {
+    let changed = false;
+    if (!values.intrinsic_sources) { values.intrinsic_sources = {}; changed = true; }
+    for (const k of this.intrinsicKeys()) {
+      if (!values.intrinsic_sources[k]) { values.intrinsic_sources[k] = { initial: values[k] || 1, level: 0, allocated: 0, npc: 0 }; changed = true; }
+      const s = values.intrinsic_sources[k];
+      const total = (s.initial || 0) + (s.level || 0) + (s.allocated || 0) + (s.npc || 0);
+      if (total !== values[k]) { s.initial = this.clamp((s.initial || 1) + values[k] - total, 1, 100); changed = true; }
+    }
+    return changed;
+  },
+  normalizeFreeAttributePoints(values) {
+    const earned = (values.level_growth?.totalLevelUps || 0) * (values.level_growth?.freePointsPerLevel || 1);
+    const spent = Object.values(values.intrinsic_sources || {}).reduce((sum, s) => sum + (s.allocated || 0), 0);
+    const expected = Math.max(0, earned - spent);
+    if (values.level_growth) values.level_growth.allocatedSpent = spent;
+    if (!Number.isFinite(values.free_attribute_points) || values.free_attribute_points > earned || values.free_attribute_points < 0) { values.free_attribute_points = expected; return true; }
+    return false;
+  },
 
   recalculatePools(values, keepRatio, character = {}) {
     const hpRatio = keepRatio && values.vitality?.max ? values.vitality.current / values.vitality.max : 1;

@@ -86,6 +86,7 @@ window.GameModules.rpgInitializer = {
       this.driftPool(v.stamina_pool, (1 - ctx.danger - ctx.weak) * scale);
       this.driftPool(v.mental_stability, (1 - ctx.trauma - ctx.danger) * scale);
       v.fatigue = window.GameModules.progression.pool(this.clamp((v.fatigue?.current || 0) + (ctx.danger + ctx.weak) * 3 * scale, 0, 100), 100);
+      this.applyNpcGrowth(v, character, ctx, scale);
     }
     v.health = window.GameModules.progression.percent(v.vitality);
     v.stamina = window.GameModules.progression.percent(v.stamina_pool);
@@ -111,6 +112,17 @@ window.GameModules.rpgInitializer = {
   driftPool(pool, delta) {
     if (!pool?.max) return;
     pool.current = this.clamp(pool.current + delta, 0, pool.max);
+  },
+
+  applyNpcGrowth(values, character, ctx, scale) {
+    if (character?.isPlayer || values.level_growth?.playerControlled) return;
+    const effort = ctx.fighter + ctx.mage + ctx.scholar + ctx.leader + ctx.danger;
+    const points = Math.min(2, Math.floor(scale * Math.max(0, effort) / 6));
+    if (points <= 0) return;
+    window.GameModules.progression.ensureIntrinsicSources(values);
+    const applied = window.GameModules.progression.applyAutoIntrinsicGrowth(values, character, points, 'npc');
+    values.npc_growth = { at: new Date().toISOString(), reason: `时间流逝与努力方向：战斗${ctx.fighter}/魔术${ctx.mage}/学习${ctx.scholar}/领导${ctx.leader}/压力${ctx.danger}`, applied };
+    window.GameModules.progression.recalculatePools(values, true, character);
   },
 
   summary(character, store, ctx, elapsed = 0) {
