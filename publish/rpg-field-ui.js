@@ -32,16 +32,21 @@ window.GameModules.rpgFieldUi = {
     const lexicon = this.lexiconFor(field, item);
     const info = lexicon?.meta?.info || item?.info || {};
     const exp = item?.exp || {};
-    return [
+    const statName = { strength: '力量', agility: '敏捷', constitution: '体质', intelligence: '智力', perception: '感知', willpower: '意志', charisma: '魅力' };
+    const linkedStats = (info.intrinsicStats || item?.linkedStats || []).map((x) => statName[x] || x);
+    const lines = [
       `名称: ${item?.name || field?.label || '未知'}`,
       `类型/等级: ${item?.type || field?.label || '能力'} lv${item?.level || 1}`,
       `经验值/升级所需经验值: ${exp.current || 0}/${exp.next || 'max'}`,
       `来源: ${item?.source || info.summary || lexicon?.summary || '暂无'}`,
-      `关联身内能力: ${(info.intrinsicStats || item?.linkedStats || []).join('、') || '暂无'}`,
-      `关联习得能力: ${(info.learnedAbilities || []).join('、') || '暂无'}`,
-      `世界专属能力: ${(info.worldAbilities || []).join('、') || '暂无'}`,
-      `详细说明: ${info.description || lexicon?.description || item?.source || '暂无'}`,
-    ].join('\n');
+      `关联身内能力: ${linkedStats.join('、') || '暂无'}`,
+    ];
+    if (item?.type === '职业') {
+      lines.push(`关联习得能力: ${(info.learnedAbilities || []).join('、') || '暂无'}`);
+      lines.push(`世界专属能力: ${(info.worldAbilities || []).join('、') || '暂无'}`);
+    }
+    lines.push(`详细说明: ${info.description || lexicon?.description || item?.description || item?.source || '暂无'}`);
+    return lines.join('\n');
   },
 
   rpgFieldDetail(field) {
