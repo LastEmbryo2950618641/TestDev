@@ -243,12 +243,22 @@
   will-change: transform;
 }
 
-.app-window::before {
-  content: "";
+.app-home-gesture {
   position: fixed;
-  bottom: max(8px, env(safe-area-inset-bottom));
   left: 50%;
-  z-index: 90;
+  bottom: 0;
+  z-index: 120;
+  width: min(220px, 64vw);
+  height: max(34px, calc(22px + env(safe-area-inset-bottom)));
+  transform: translateX(-50%);
+  touch-action: none;
+}
+
+.app-home-gesture::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: max(8px, env(safe-area-inset-bottom));
   width: 86px;
   height: 5px;
   border-radius: 999px;

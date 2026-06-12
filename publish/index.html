@@ -349,6 +349,7 @@
 
 
     </div>
+    <div class="app-home-gesture" @pointerdown="$store.game.appGestureStart($event)" aria-hidden="true"></div>
   </section>
 
   <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.entrySetupOpen" class="start-screen entry-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled, 'app-window-dragging': $store.game.appDragging, 'app-window-closing': $store.game.appClosing }" :style="$store.game.appWindowStyle()" @pointerdown="$store.game.appGestureStart($event)" @pointermove.window="$store.game.appGestureMove($event)" @pointerup.window="$store.game.appGestureEnd()" @pointercancel.window="$store.game.appGestureEnd()" x-cloak>
@@ -393,6 +394,7 @@
         <small x-text="$store.game.controlMode === 'possess' ? '第二人称上线：玩家的“我”直接附到角色肉体上行动；对角色本人来说身体会突然失控，不知道是谁在控制，只能旁观外界和身体行动，但五感仍在。' : '第三人称通过手机式界面发出操作。'"></small>
         <button class="primary-btn" @click="$store.game.confirmControl()" :disabled="$store.game.busy || !$store.game.entryTimeOptions.start" x-text="$store.game.busy ? 'AI续写中…约45秒内' : '控制'"></button>
     </div>
+    <div class="app-home-gesture" @pointerdown="$store.game.appGestureStart($event)" aria-hidden="true"></div>
   </section>
 
   <main x-show="$store.game.started && !$store.game.loading && $store.game.desktopUnlocked" class="game-shell app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled, 'app-window-dragging': $store.game.appDragging, 'app-window-closing': $store.game.appClosing }" :style="$store.game.appWindowStyle()" @pointerdown="$store.game.appGestureStart($event)" @pointermove.window="$store.game.appGestureMove($event)" @pointerup.window="$store.game.appGestureEnd()" @pointercancel.window="$store.game.appGestureEnd()" x-cloak>
@@ -594,6 +596,7 @@
         <label class="thinking-switch" :class="{ active: $store.game.thinkingMode }"><input type="checkbox" x-model="$store.game.thinkingMode">思考</label>
       </div>
     </footer>
+    <div class="app-home-gesture" @pointerdown="$store.game.appGestureStart($event)" aria-hidden="true"></div>
   </main>
 </body>
 </html>

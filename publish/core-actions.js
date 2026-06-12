@@ -12,10 +12,13 @@ window.GameModules.coreActions = {
   },
 
   appGestureStart(event) {
-    if (this.loading || event.target.closest('input, textarea, select')) return;
+    const fromGestureZone = event.target.closest('.app-home-gesture');
+    if (this.loading || (!fromGestureZone && event.target.closest('input, textarea, select'))) return;
     const y = event.clientY || 0;
     const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-    if (viewportHeight && y < viewportHeight - 88) return;
+    if (!fromGestureZone && viewportHeight && y < viewportHeight - 88) return;
+    event.preventDefault();
+    event.currentTarget?.setPointerCapture?.(event.pointerId);
     this.appDragStartY = y;
     this.appDragY = 0;
     this.appDragging = true;
