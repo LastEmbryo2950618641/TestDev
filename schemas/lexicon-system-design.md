@@ -38,13 +38,14 @@ meta：类型专属扩展字段
 
 字段说明：
 
-- `promptInstruction` 与 `description` 不同：`description` 给玩家/AI 解释词条含义，`promptInstruction` 约束 AI 如何生成或何时允许修改该词条。
+- `promptInstruction` 与 `description` 不同：`description` 给玩家/AI 解释词条含义，`promptInstruction` 约束 AI 如何生成或何时允许修改该词条。格式固定为“{内容}，{改变要求}”，用一段话表达，避免“生成内容：/改变要求：”等长标签浪费 token。
 - `nameAiGenerated` 只记录词条名初始来源，`valueAiGenerated` 只记录词条值初始来源；两者都只用于固化记录和界面展示，不进入剧情提示词。旧字段 `aiGenerated` 仅作为兼容旧存档的词条名来源回退。
 - `changeMode` 只用于开发者/玩家查看，不进入剧情提示词：`AI演算` 表示完全由 AI 根据上下文推演变化，`代码计算（{计算公式}）` 表示按固定公式变化，`用户主动` 表示由玩家手动增加或完成任务获得具体变化。
 - AI 批量修改词条时只能修改传入字段；未传字段必须保持原值。
 - AI 可以修改 `summary`、`description`、`value`、`aliases`、`related`、`meta`，但不能修改 `promptInstruction`、`nameAiGenerated`、`valueAiGenerated`、`changeMode`。
 - AI 批量修改接口为 `window.GameModules.rpgLexicon.applyAiUpdates(updates)`，每项必须定位 `worldTag + kind + name`；示例：`{ worldTag, kind, name, value, description }`。
-- 示例：具体地址的 `promptInstruction` 为“生成内容：精确为省 / 市州 / 区县 / 镇街道 / 社区或小区 / 楼栋 / 门牌。改变要求：玩家明确已经搬到了指定地区，则可以改变。”
+- 示例：具体地址的 `promptInstruction` 为“精确到省/市州/区县/镇街道/社区或小区/楼栋/门牌，玩家明确搬家、主动改址或剧情确认住址变更时才可改变。”
+- 默认提示词说明必须按词条类型给出具体改变条件，不允许大面积使用“只有剧情事实明确改变该词条时才可改变”这类泛化条件。
 - `scope=global`：全游戏通用概念，如“经验值”“等级”。
 - `scope=world`：某世界内通用概念，如“魔术”“圣杯战争”。
 - `scope=character`：角色专属状态、技能、记忆、关系、装备。

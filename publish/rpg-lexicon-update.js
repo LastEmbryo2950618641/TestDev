@@ -28,7 +28,7 @@ Object.assign(window.GameModules.rpgLexicon, {
     next.nameAiGenerated = existing.nameAiGenerated;
     next.valueAiGenerated = existing.valueAiGenerated;
     next.changeMode = existing.changeMode;
-    next.promptInstruction = existing.promptInstruction || this.defaultPromptInstruction(kind, name);
+    next.promptInstruction = this.shouldRefreshPromptInstruction(existing.promptInstruction) ? this.defaultPromptInstruction(kind, name) : existing.promptInstruction;
     next.source = patch.source || 'ai';
     return this.entry(worldTag, kind, name, next);
   },
