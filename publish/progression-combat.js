@@ -16,7 +16,11 @@ Object.assign(window.GameModules.progression, {
   ensureProgressionNotes(values) {
     values.exp.curve = 'nextExp=round(100*level^1.65)';
     for (const item of [...(values.knowledge || []), ...(values.skills || []), ...(values.professions || [])]) {
-      item.exp = item.exp || { current: 0, next: this.learnedNext[item.level || 1] };
+      const lv = this.clamp(item.level || 1, 1, 7);
+      item.level = lv;
+      item.exp = item.exp || { current: 0, next: this.learnedNext[lv] };
+      item.levelDescription = item.levelDescription || this.levelDescription(item.type, lv);
+      item.effect = item.effect || this.levelEffect(item.name, item.type, lv);
       item.exp.curve = 'lv1-7:100/250/600/1400/3200/7200/max';
     }
   },

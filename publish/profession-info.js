@@ -40,7 +40,7 @@ window.GameModules.professionInfo = {
 
   prompt(worldTag, name, context) {
     const fields = (context.worldFields || []).map((x) => `${x.key}:${x.label}`).join('、') || '无';
-    return `为 AI RPG 建立职业资料。世界=${worldTag}，职业=${name}，角色=${context.characterName || ''}，身份=${context.role || ''}，背景=${context.detail || ''}，世界专属能力字段=${fields}。职业必须是真实身份/训练/社会功能，不要把“主角/配角/悲剧核心/重要人物”等叙事标签当职业。只有百分之百确认该职业适用时 confirmed=true，否则 confirmed=false。只返回 JSON：{"name":"职业名","confirmed":true,"summary":"30字内简单介绍","description":"120字内详细介绍","intrinsicStats":["strength"],"learnedAbilities":["能力名"],"worldAbilities":["字段key或能力名"]}。除 name、confirmed、summary、description 外，其它字段没有依据或不需要更改就不要返回。不要 Markdown。`;
+    return `为 AI RPG 建立职业资料。世界=${worldTag}，职业=${name}，角色=${context.characterName || ''}，身份=${context.role || ''}，背景=${context.detail || ''}，世界专属能力字段=${fields}。职业必须是真实身份/训练/社会功能，不要把“主角/配角/悲剧核心/重要人物”等叙事标签当职业。只有百分之百确认该职业适用时 confirmed=true，否则 confirmed=false。必须体现职业升级后如何变强：levelDescription 写该职业当前等级代表的职责/熟练度，effect 写该等级在剧情判定、资源、社会承认或行动中的实际作用。只返回 JSON：{"name":"职业名","confirmed":true,"summary":"30字内简单介绍","description":"120字内详细介绍","levelDescription":"当前等级说明","effect":"当前等级实际作用","intrinsicStats":["strength"],"learnedAbilities":["能力名"],"worldAbilities":["字段key或能力名"]}。除 name、confirmed、summary、description、levelDescription、effect 外，其它字段没有依据或不需要更改就不要返回。不要 Markdown。`;
   },
 
   validate(raw, worldTag, name) {
@@ -53,6 +53,8 @@ window.GameModules.professionInfo = {
       name: cleanName,
       summary: String(raw.summary).slice(0, 60),
       description: String(raw.description).slice(0, 180),
+      levelDescription: raw.levelDescription ? String(raw.levelDescription).slice(0, 100) : '',
+      effect: raw.effect ? String(raw.effect).slice(0, 120) : '',
       intrinsicStats: arr(raw.intrinsicStats),
       learnedAbilities: arr(raw.learnedAbilities),
       worldAbilities: arr(raw.worldAbilities),

@@ -25,10 +25,10 @@ Object.assign(window.GameModules.rpgLexicon, {
       if (!name) continue;
       entries.push({
         worldTag, kind, name,
-        summary: item.summary || item.desc || item.source,
-        description: item.info?.description || item.desc || item.source || `${name}的资料。`,
+        summary: item.summary || item.effect || item.desc || item.source,
+        description: item.info?.description || item.effect || item.desc || item.source || `${name}的资料。`,
         related: [...(item.linkedStats || []), ...(item.info?.learnedAbilities || []), ...(item.info?.worldAbilities || [])],
-        meta: item.info ? { info: item.info } : {},
+        meta: { info: { ...(item.info || {}), levelDescription: item.levelDescription, effect: item.effect } },
         source: item.info ? 'ai' : 'state',
       });
     }

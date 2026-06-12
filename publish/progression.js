@@ -127,7 +127,18 @@ window.GameModules.progression = {
 
   learned(name, type, level, linkedStats, source) {
     const lv = this.clamp(level, 1, 7);
-    return { name: String(name).slice(0, 16), type, level: lv, exp: { current: 0, next: this.learnedNext[lv] }, linkedStats, source };
+    const cleanName = String(name).slice(0, 16);
+    return { name: cleanName, type, level: lv, exp: { current: 0, next: this.learnedNext[lv] }, linkedStats, source, levelDescription: this.levelDescription(type, lv), effect: this.levelEffect(cleanName, type, lv) };
+  },
+
+  levelDescription(type, lv) {
+    const map = ['无', '入门：知道基本概念或能做最简单动作。', '初学：能在低压环境稳定使用。', '熟练：能处理常见情况。', '专业：能独立应对复杂情况。', '专家：能创新、优化或指导他人。', '大师：领域内极少数高位者。', '传说：世界观顶级或规格外。'];
+    return `${type || '能力'}lv${lv}｜${map[lv]}`;
+  },
+
+  levelEffect(name, type, lv) {
+    const scope = lv <= 2 ? '基础场景' : lv <= 4 ? '常见与复杂场景' : lv <= 6 ? '高压或专业场景' : '世界观顶级场景';
+    return `${name}达到lv${lv}后，可在${scope}中提供${type === '职业' ? '职责、身份与资源影响' : '行动判定与成长效率'}加成。`;
   },
 
   linkedStats(name) {

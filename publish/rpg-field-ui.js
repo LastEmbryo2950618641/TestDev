@@ -38,6 +38,8 @@ window.GameModules.rpgFieldUi = {
       `名称: ${item?.name || field?.label || '未知'}`,
       `类型/等级: ${item?.type || field?.label || '能力'} lv${item?.level || 1}`,
       `经验值/升级所需经验值: ${exp.current || 0}/${exp.next || 'max'}`,
+      `等级说明: ${item?.levelDescription || info.levelDescription || '暂无'}`,
+      `当前作用: ${item?.effect || info.effect || '暂无'}`,
       `来源: ${item?.source || info.summary || lexicon?.summary || '暂无'}`,
       `关联身内能力: ${linkedStats.join('、') || '暂无'}`,
     ];

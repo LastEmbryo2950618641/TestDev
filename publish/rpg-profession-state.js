@@ -32,6 +32,8 @@ window.GameModules.rpgProfessionState = {
     job.name = info.name;
     job.info = info;
     job.linkedStats = info.intrinsicStats;
+    job.levelDescription = info.levelDescription || job.levelDescription;
+    job.effect = info.effect || job.effect;
     return before !== JSON.stringify(info);
   },
 };
