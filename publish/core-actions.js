@@ -59,7 +59,7 @@ window.GameModules.coreActions = {
     return `transform: translateY(${y}px) scale(${scale});`;
   },
 
-  closeAppToDesktop() {
+  closeAppToDesktop(keepBackground = true) {
     if (this.appClosing) return;
     this.appDragging = false;
     this.appGesturePointerId = null;
@@ -67,6 +67,7 @@ window.GameModules.coreActions = {
     this.appDragPeakY = 0;
     this.appGestureFromHomeZone = false;
     this.desktopUnlocked = false;
+    this.appHasOpened = keepBackground;
     this.appClosing = true;
     window.setTimeout(() => {
       this.appClosing = false;

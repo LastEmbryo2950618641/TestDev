@@ -103,7 +103,7 @@ window.GameModules.playerIdentityActions = {
   },
 
   closeIdentityApp() {
-    this.closeAppToDesktop();
+    this.closeAppToDesktop(false);
   },
 
   wechatContacts() {
