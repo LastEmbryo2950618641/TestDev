@@ -306,8 +306,13 @@
             <h3 x-text="section.title"></h3>
             <template x-for="field in section.fields" :key="field.key">
               <div class="dynamic-row" role="button" tabindex="0" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.toggleRpgField(field)" @keydown.enter.prevent="$store.game.toggleRpgField(field)" @keydown.space.prevent="$store.game.toggleRpgField(field)">
-                <span x-text="field.label"></span><b x-text="field.value"></b>
-                <p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p>
+                <span x-text="field.label"></span><b x-text="$store.game.isRpgListField(field) ? `${field.raw.length}项` : field.value"></b>
+                <div class="rpg-item-list" x-show="$store.game.isRpgListField(field)" @click.stop>
+                  <template x-for="(item, index) in field.raw" :key="`${field.key}:${item.name}:${index}`">
+                    <button class="rpg-item-card" type="button" @click="$store.game.toggleRpgItem(field, index)"><strong x-text="$store.game.rpgItemSummary(item)"></strong><small x-text="item.source || '点击查看详情'"></small><p class="rpg-field-detail" x-show="$store.game.isRpgItemOpen(field, index)" x-text="$store.game.rpgItemDetail(field, item)"></p></button>
+                  </template>
+                </div>
+                <p class="rpg-field-detail" x-show="!$store.game.isRpgListField(field) && $store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p>
               </div>
             </template>
           </article>
@@ -557,8 +562,13 @@
                   <template x-for="field in section.fields" :key="`${section.title}:${field.key}`">
                     <div class="dynamic-row" role="button" tabindex="0" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.toggleRpgField(field)" @keydown.enter.prevent="$store.game.toggleRpgField(field)" @keydown.space.prevent="$store.game.toggleRpgField(field)">
                       <span x-text="field.label"></span>
-                      <b x-text="Array.isArray(field.value) ? field.value.join('、') || '无' : field.value"></b>
-                      <p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p>
+                      <b x-text="$store.game.isRpgListField(field) ? `${field.raw.length}项` : (Array.isArray(field.value) ? field.value.join('、') || '无' : field.value)"></b>
+                      <div class="rpg-item-list" x-show="$store.game.isRpgListField(field)" @click.stop>
+                        <template x-for="(item, index) in field.raw" :key="`${field.key}:${item.name}:${index}`">
+                          <button class="rpg-item-card" type="button" @click="$store.game.toggleRpgItem(field, index)"><strong x-text="$store.game.rpgItemSummary(item)"></strong><small x-text="item.source || '点击查看详情'"></small><p class="rpg-field-detail" x-show="$store.game.isRpgItemOpen(field, index)" x-text="$store.game.rpgItemDetail(field, item)"></p></button>
+                        </template>
+                      </div>
+                      <p class="rpg-field-detail" x-show="!$store.game.isRpgListField(field) && $store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p>
                     </div>
                   </template>
                 </section>

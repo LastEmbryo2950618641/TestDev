@@ -414,6 +414,35 @@
   pointer-events: none;
 }
 
+.rpg-item-list {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.rpg-item-card {
+  width: 100%;
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid rgba(146, 170, 255, .2);
+  border-radius: 12px;
+  color: #eef4ff;
+  text-align: left;
+  background: rgba(255, 255, 255, .06);
+}
+
+.rpg-item-card:hover,
+.rpg-item-card:focus-visible {
+  border-color: rgba(116, 246, 255, .82);
+  box-shadow: 0 0 0 2px rgba(116, 246, 255, .14);
+}
+
+.rpg-item-card small {
+  color: #aeb9d6;
+}
+
 @media (max-height: 620px) {
   .phone-frame {
     min-height: 0;
