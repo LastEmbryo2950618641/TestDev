@@ -375,7 +375,7 @@
 .activation-choice-grid {
   grid-template-columns: 1fr;
   align-self: center;
-  gap: 14px;
+  gap: 28px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -386,9 +386,9 @@
 }
 
 .activation-choice {
-  min-height: 72px;
+  min-height: 52px;
   place-items: center;
-  padding: 14px 16px;
+  padding: 10px 16px;
   border-color: rgba(255, 255, 255, .22);
   border-radius: 22px;
   color: #fff;
