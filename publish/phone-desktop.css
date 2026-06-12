@@ -302,6 +302,13 @@
   line-height: 1.55;
 }
 
+.profile-lexicon-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
 .identity-rpg {
   display: grid;
   gap: 10px;

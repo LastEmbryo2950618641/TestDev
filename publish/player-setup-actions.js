@@ -1,20 +1,27 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.playerSetupActions = {
-  playerSetupSummary() {
+  playerProfileLexiconFields() {
     const p = this.playerProfile || {};
+    const worldTag = window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
+    const row = (name, value, desc) => ({ key: `player-${name}`, label: name, kind: '玩家设定', value: value || '未填写', raw: value || '', desc, worldTag });
     return [
-      `姓名/代号：${p.name || this.playerName || '未填写'}`,
-      `生日/年龄：${p.birthday || '未填写'}｜${p.age || '未知'}岁`,
-      `具体地址：${p.refinedCity || p.city || '未填写'}`,
-      `身份：${p.refinedRole || p.dailyRole || '未填写'}`,
-      `居住：${p.refinedLivingStatus || p.livingStatus || '未填写'}`,
-      `父母：${p.parentStatus || p.parents || '父母已故'}`,
-      `父母去世原因：${p.parentDeathCause || '待生成'}`,
-      `关系：${p.relationships || '由玩家自行设定，暂无补充'}`,
-      `世界观补全：${p.worldbuildingNote || '暂无'}`,
-      `备注：${p.notes || '无'}`,
-    ].join('\n');
+      row('姓名', p.name || this.playerName, '玩家登记的姓名或代号。'),
+      row('生日', p.birthday, '玩家登记生日，用于计算年龄与现实身份。'),
+      row('年龄', p.age ? `${p.age}岁` : '', '由生日按2026-06-12计算得到。'),
+      row('具体地址', p.refinedCity || p.city, '玩家当前登记住址。'),
+      row('现实身份', p.refinedRole || p.dailyRole, '玩家在2026现实世界中的日常身份。'),
+      row('居住状态', p.refinedLivingStatus || p.livingStatus, '玩家当前居住与生活状态。'),
+      row('父母状态', p.parentStatus || p.parents || '父母已故', '玩家父母当前状态。'),
+      row('父母去世原因', p.parentDeathCause || '待生成', '父母已故时的入库死因。'),
+      row('人际关系', p.relationships || '由玩家自行设定，暂无补充', '玩家明确填写的人际关系。'),
+      row('世界观补全', p.worldbuildingNote || '暂无', 'AI围绕玩家资料补全的现实背景。'),
+      row('备注', p.notes || '无', '玩家补充设定。'),
+    ];
+  },
+
+  playerSetupSummary() {
+    return this.playerProfileLexiconFields().map((x) => `${x.label}：${x.value}`).join('\n');
   },
 
   playerAgeFromBirthday(birthday) {
@@ -130,11 +137,10 @@ window.GameModules.playerSetupActions = {
   async syncPlayerProfileLexicon() {
     const p = this.playerProfile || {};
     const worldTag = window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
-    await window.GameModules.rpgLexicon.saveMany([
-      { worldTag, kind: '玩家设定', name: '具体地址', value: p.refinedCity || p.city, summary: p.refinedCity || p.city, description: `玩家当前登记住址：${p.refinedCity || p.city}`, aiGenerated: true, source: 'ai' },
-      { worldTag, kind: '玩家设定', name: '现实身份', value: p.refinedRole || p.dailyRole, summary: p.refinedRole || p.dailyRole, description: `玩家当前现实身份：${p.refinedRole || p.dailyRole}`, aiGenerated: true, source: 'ai' },
-      { worldTag, kind: '玩家设定', name: '居住状态', value: p.refinedLivingStatus || p.livingStatus, summary: p.refinedLivingStatus || p.livingStatus, description: `玩家当前居住状态：${p.refinedLivingStatus || p.livingStatus}`, aiGenerated: true, source: 'ai' },
-    ]);
+    await window.GameModules.rpgLexicon.saveMany(this.playerProfileLexiconFields().map((field) => ({
+      worldTag, kind: '玩家设定', name: field.label, value: field.raw || field.value, summary: field.value,
+      description: field.desc, aiGenerated: !['姓名', '生日', '年龄', '人际关系', '备注'].includes(field.label), source: 'ai',
+    })));
   },
 
   fallbackParentDeathCause(age) {
