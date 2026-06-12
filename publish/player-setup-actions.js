@@ -131,9 +131,9 @@ window.GameModules.playerSetupActions = {
     const p = this.playerProfile || {};
     const worldTag = window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
     await window.GameModules.rpgLexicon.saveMany([
-      { worldTag, kind: '玩家设定', name: '具体地址', value: p.refinedCity || p.city, summary: p.refinedCity || p.city, description: `玩家当前登记住址：${p.refinedCity || p.city}`, source: 'ai' },
-      { worldTag, kind: '玩家设定', name: '现实身份', value: p.refinedRole || p.dailyRole, summary: p.refinedRole || p.dailyRole, description: `玩家当前现实身份：${p.refinedRole || p.dailyRole}`, source: 'ai' },
-      { worldTag, kind: '玩家设定', name: '居住状态', value: p.refinedLivingStatus || p.livingStatus, summary: p.refinedLivingStatus || p.livingStatus, description: `玩家当前居住状态：${p.refinedLivingStatus || p.livingStatus}`, source: 'ai' },
+      { worldTag, kind: '玩家设定', name: '具体地址', value: p.refinedCity || p.city, summary: p.refinedCity || p.city, description: `玩家当前登记住址：${p.refinedCity || p.city}`, aiGenerated: true, source: 'ai' },
+      { worldTag, kind: '玩家设定', name: '现实身份', value: p.refinedRole || p.dailyRole, summary: p.refinedRole || p.dailyRole, description: `玩家当前现实身份：${p.refinedRole || p.dailyRole}`, aiGenerated: true, source: 'ai' },
+      { worldTag, kind: '玩家设定', name: '居住状态', value: p.refinedLivingStatus || p.livingStatus, summary: p.refinedLivingStatus || p.livingStatus, description: `玩家当前居住状态：${p.refinedLivingStatus || p.livingStatus}`, aiGenerated: true, source: 'ai' },
     ]);
   },
 

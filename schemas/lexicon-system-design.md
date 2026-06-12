@@ -24,6 +24,7 @@ worldTag：所属世界或现实设定
 ownerId：所属角色、阵营、地点或存档 ID，可为空
 summary：短说明，用于列表和标签
 description：详细说明，用于展开卡片
+aiGenerated：是否由 AI 首次生成并固化，true 表示 AI 首次生成后入库，false 表示代码/schema 规定
 promptInstruction：提示词说明，定义 AI 生成/修改该词条时必须遵守的生成内容与改变要求
 source：来源，schema / ai / state / player / system / imported
 visibility：可见性，public / discovered / hidden / system
@@ -36,6 +37,7 @@ meta：类型专属扩展字段
 字段说明：
 
 - `promptInstruction` 与 `description` 不同：`description` 给玩家/AI 解释词条含义，`promptInstruction` 约束 AI 如何生成或何时允许修改该词条。
+- `aiGenerated` 只用于固化记录和界面展示，不进入剧情提示词；知识、技能、职业、玩家设定等 AI 首次生成词条为 `true`，代码/schema 固定词条为 `false`。
 - AI 批量修改词条时只能修改传入字段；未传字段必须保持原值。
 - AI 可以修改 `summary`、`description`、`value`、`aliases`、`related`、`meta`，但不能修改 `promptInstruction`。
 - AI 批量修改接口为 `window.GameModules.rpgLexicon.applyAiUpdates(updates)`，每项必须定位 `worldTag + kind + name`；示例：`{ worldTag, kind, name, value, description }`。
