@@ -20,7 +20,6 @@ window.GameModules.playerIdentityActions = {
       skills: [
         { name: '手机操作', desc: '熟悉现代智能手机与移动互联网基础操作。' },
         { name: '现实观察', desc: '根据现代都市生活经验观察环境与人际线索。' },
-        { name: role, desc: `来自玩家填写并补全的现实身份：${role}` },
       ],
     };
   },

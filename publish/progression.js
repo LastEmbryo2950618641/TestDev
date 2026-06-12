@@ -58,6 +58,7 @@ window.GameModules.progression = {
     if (!values.level_growth) { values.free_attribute_points = 0; values.level_growth = { totalLevelUps: 0, autoPointsPerLevel: 2, freePointsPerLevel: 1, history: [] }; changed = true; }
     if (this.ensureIntrinsicSources(values)) changed = true;
     if (this.normalizeFreeAttributePoints(values)) changed = true;
+    if (this.normalizeLearnedLists(values)) changed = true;
     if (!values.vitality?.max || !values.stamina_pool?.max) { this.recalculatePools(values, true, character); changed = true; }
     if (!values.derived?.attackPower) { values.derived = this.derived(values); changed = true; }
     if (!values.combat_simulation) { values.combat_simulation = this.defaultCombat(values); changed = true; }
@@ -115,14 +116,31 @@ window.GameModules.progression = {
     return [this.learned('世界常识', '知识', 1 + seed % 3, ['intelligence', 'perception'], '成长经历与原作背景')];
   },
 
+  isStageIdentity(name) {
+    return /学生|中学生|高中生|初中生|小学生|大学生|年级|班学生/.test(String(name || ''));
+  },
+
   skills(character, seed) {
-    const list = (character.skills || [{ name: '观察', desc: '从细节中判断局势。' }]).slice(0, 5);
+    const list = (character.skills || [{ name: '观察', desc: '从细节中判断局势。' }]).filter((skill) => !this.isStageIdentity(skill.name)).slice(0, 5);
     return list.map((skill, index) => this.learned(skill.name || `技能${index + 1}`, '技能', 1 + ((seed + index) % 3), this.linkedStats(skill.name), skill.desc || '角色已掌握的行动能力'));
   },
 
   professions(character, seed) {
     const name = window.GameModules.professionInfo.normalizeJobName(character.job);
-    return name ? [this.learned(name, '职业', 1 + seed % 3, ['intelligence', 'willpower', 'charisma'], character.rank || '长期身份与社会功能')] : [];
+    return name && !this.isStageIdentity(name) ? [this.learned(name, '职业', 1 + seed % 3, ['intelligence', 'willpower', 'charisma'], character.rank || '长期身份与社会功能')] : [];
+  },
+
+  normalizeLearnedLists(values) {
+    if (!values) return false;
+    let changed = false;
+    const clean = (list) => (list || []).filter((item) => {
+      const keep = !this.isStageIdentity(typeof item === 'string' ? item : item?.name);
+      if (!keep) changed = true;
+      return keep;
+    });
+    values.skills = clean(values.skills);
+    values.professions = clean(values.professions);
+    return changed;
   },
 
   learned(name, type, level, linkedStats, source) {

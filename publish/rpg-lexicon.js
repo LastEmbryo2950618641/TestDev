@@ -18,6 +18,7 @@ window.GameModules.rpgLexicon = {
       nameAiGenerated: Boolean(data.nameAiGenerated ?? data.aiGenerated),
       valueAiGenerated: Boolean(data.valueAiGenerated),
       changeMode: String(data.changeMode || this.defaultChangeMode(data.source)).slice(0, 80),
+      hierarchy: ['tree', 'leaf'].includes(data.hierarchy) ? data.hierarchy : this.defaultHierarchy(kind),
       promptInstruction: String(data.promptInstruction || this.defaultPromptInstruction(kind, clean)).slice(0, 260),
       aliases: Array.isArray(data.aliases) ? data.aliases.slice(0, 6).map(String) : [],
       related: Array.isArray(data.related) ? data.related.slice(0, 12).map(String) : [],
@@ -30,6 +31,10 @@ window.GameModules.rpgLexicon = {
     if (source === 'schema' || source === 'system') return '代码计算';
     if (source === 'player') return '用户主动';
     return 'AI演算';
+  },
+
+  defaultHierarchy(kind) {
+    return ['知识树', '技能树', '职业树'].includes(kind) ? 'tree' : 'leaf';
   },
 
   compactPrompt(content, change) {
@@ -80,6 +85,9 @@ window.GameModules.rpgLexicon = {
   defaultPromptInstruction(kind, name) {
     if (kind === '玩家设定') return this.playerPromptInstruction(name);
     if (kind === '属性') return this.attributePromptInstruction(name);
+    if (kind === '职业树') return this.compactPrompt('职业等级父词条，汇总角色长期社会功能或专业身份产生的职业子词条', '新增、失去、升级或修正任一职业子词条时才可改变。');
+    if (kind === '知识树') return this.compactPrompt('知识储备父词条，汇总角色已掌握知识领域及其等级子词条', '新增、遗忘、升级或修正任一知识子词条时才可改变。');
+    if (kind === '技能树') return this.compactPrompt('技能等级父词条，汇总角色经过训练或实践获得的技能子词条', '新增、遗忘、升级、伤病限制或修正任一技能子词条时才可改变。');
     if (kind === '职业') return this.compactPrompt('真实职业、训练身份或社会功能，含等级、经验、职责与当前作用', '获得/失去职位、训练认证、长期实践、剧情判定升级或身份被撤销时才可改变。');
     if (kind === '知识') return this.compactPrompt('具体知识领域，含等级、经验、来源与当前可用范围', '学习、调查、阅读、授课、记忆恢复或遗忘事件明确结算时才可改变。');
     if (kind === '技能') return this.compactPrompt('可执行行动能力，含等级、经验、熟练度与当前效果', '训练、实战使用、教学、失败复盘、伤病限制或升级结算时才可改变。');
@@ -102,7 +110,7 @@ window.GameModules.rpgLexicon = {
     const clean = this.normalizeName(name);
     const old = this.get(worldTag, kind, clean);
     const promptInstruction = this.shouldRefreshPromptInstruction(old?.promptInstruction) ? (data?.promptInstruction || this.defaultPromptInstruction(kind, clean)) : old?.promptInstruction;
-    const entry = this.entry(worldTag, kind, clean, { ...data, nameAiGenerated: old?.nameAiGenerated ?? old?.aiGenerated ?? data?.nameAiGenerated ?? data?.aiGenerated, valueAiGenerated: old?.valueAiGenerated ?? data?.valueAiGenerated, changeMode: old?.changeMode || data?.changeMode, promptInstruction });
+    const entry = this.entry(worldTag, kind, clean, { ...data, nameAiGenerated: old?.nameAiGenerated ?? old?.aiGenerated ?? data?.nameAiGenerated ?? data?.aiGenerated, valueAiGenerated: old?.valueAiGenerated ?? data?.valueAiGenerated, changeMode: old?.changeMode || data?.changeMode, hierarchy: old?.hierarchy || data?.hierarchy, promptInstruction });
     if (!entry) return null;
     await window.GameModules.sqliteSave.saveLexiconEntry?.(entry);
     return entry;
@@ -115,7 +123,7 @@ window.GameModules.rpgLexicon = {
     for (const raw of entries) {
       const old = this.get(raw.worldTag, raw.kind, raw.name);
       const promptInstruction = this.shouldRefreshPromptInstruction(old?.promptInstruction) ? (raw.promptInstruction || this.defaultPromptInstruction(raw.kind, this.normalizeName(raw.name))) : old?.promptInstruction;
-      const entry = this.entry(raw.worldTag, raw.kind, raw.name, { ...raw, nameAiGenerated: old?.nameAiGenerated ?? old?.aiGenerated ?? raw.nameAiGenerated ?? raw.aiGenerated, valueAiGenerated: old?.valueAiGenerated ?? raw.valueAiGenerated, changeMode: old?.changeMode || raw.changeMode, promptInstruction });
+      const entry = this.entry(raw.worldTag, raw.kind, raw.name, { ...raw, nameAiGenerated: old?.nameAiGenerated ?? old?.aiGenerated ?? raw.nameAiGenerated ?? raw.aiGenerated, valueAiGenerated: old?.valueAiGenerated ?? raw.valueAiGenerated, changeMode: old?.changeMode || raw.changeMode, hierarchy: old?.hierarchy || raw.hierarchy, promptInstruction });
       if (!entry) continue;
       save.db.run(
         'INSERT OR REPLACE INTO lexicon_entries(world_tag,kind,name,entry_json,source,created_at,updated_at) VALUES (?,?,?,?,?,COALESCE((SELECT created_at FROM lexicon_entries WHERE world_tag=? AND kind=? AND name=?),?),?)',

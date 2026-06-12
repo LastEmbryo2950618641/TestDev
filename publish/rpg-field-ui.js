@@ -8,12 +8,13 @@ window.GameModules.rpgFieldUi = {
   isRpgFieldOpen(field) { return this.expandedRpgFieldKey === this.rpgFieldKey(field); },
   isRpgItemOpen(field, index) { return this.expandedRpgFieldKey === this.rpgItemKey(field, index); },
   isRpgListField(field) { return ['knowledge', 'skills', 'professions', 'factions', 'equipment', 'status_tags'].includes(field?.key) && Array.isArray(field.raw); },
-  canExpandRpgField(field) { return Boolean(field && !this.isRpgListField(field) && this.rpgFieldDetail(field)); },
-  isLexiconField(field) { return Boolean(field && !this.isRpgListField(field)); },
+  canExpandRpgField(field) { return Boolean(field && this.rpgFieldDetail(field)); },
+  isLexiconField(field) { return Boolean(field); },
 
   lexiconKind(field, item = null) {
-    if (field?.kind) return field.kind;
     if (item?.type) return item.type;
+    if (field?.key && !item) return { knowledge: '知识树', skills: '技能树', professions: '职业树', factions: '阵营', equipment: '装备', status_tags: '状态' }[field.key] || field.kind || '属性';
+    if (field?.kind) return field.kind;
     return { factions: '阵营', equipment: '装备', status_tags: '状态' }[field?.key] || '属性';
   },
 
@@ -50,6 +51,7 @@ window.GameModules.rpgFieldUi = {
       `等级说明: ${obj?.levelDescription || info.levelDescription || '暂无'}`,
       `当前作用: ${obj?.effect || info.effect || '暂无'}`,
       `来源: ${obj?.source || info.summary || lexicon?.summary || '暂无'}`,
+      `层级: ${lexicon?.hierarchy === 'tree' ? '树词条' : '叶子词条'}`,
       `词条名AI生成: ${(lexicon?.nameAiGenerated ?? lexicon?.aiGenerated) ? '是' : '否'}`,
       `值AI生成: ${lexicon?.valueAiGenerated ? '是' : '否'}`,
       `变化方式: ${lexicon?.changeMode || '暂无'}`,
@@ -67,6 +69,7 @@ window.GameModules.rpgFieldUi = {
   rpgFieldDetail(field) {
     const lexicon = this.lexiconFor(field);
     const lines = [`说明: ${lexicon?.description || lexicon?.summary || field?.desc || this.fallbackDesc(field)}`];
+    lines.push(`层级: ${lexicon?.hierarchy === 'tree' ? '树词条' : '叶子词条'}`);
     lines.push(`词条名AI生成: ${(lexicon?.nameAiGenerated ?? lexicon?.aiGenerated) ? '是' : '否'}`);
     lines.push(`值AI生成: ${lexicon?.valueAiGenerated ? '是' : '否'}`);
     lines.push(`变化方式: ${lexicon?.changeMode || '暂无'}`);

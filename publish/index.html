@@ -311,8 +311,7 @@
             <h3 x-text="section.title"></h3>
             <template x-for="field in section.fields" :key="field.key">
               <div class="dynamic-row" role="button" tabindex="0" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.toggleRpgField(field)" @keydown.enter.prevent="$store.game.toggleRpgField(field)" @keydown.space.prevent="$store.game.toggleRpgField(field)">
-                <span x-show="!$store.game.isLexiconField(field)" x-text="field.label"></span><b x-show="!$store.game.isLexiconField(field)" x-text="$store.game.isRpgListField(field) ? `${field.raw.length}项` : field.value"></b>
-                <button class="rpg-item-card lexicon-tag" type="button" x-show="$store.game.isLexiconField(field)" @click.stop="$store.game.toggleRpgField(field)"><strong x-text="`${field.label}：${field.value}`"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
+                <button class="rpg-item-card lexicon-tag" type="button" @click.stop="$store.game.toggleRpgField(field)"><strong x-text="$store.game.isRpgListField(field) ? `${field.label}：${field.raw.length}项` : `${field.label}：${field.value}`"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
                 <div class="rpg-item-list" x-show="$store.game.isRpgListField(field)" @click.stop>
                   <template x-for="(item, index) in field.raw" :key="`${field.key}:${item.name}:${index}`">
                     <button class="rpg-item-card" type="button" @click="$store.game.toggleRpgItem(field, index)"><strong x-text="$store.game.rpgItemSummary(item)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgItemOpen(field, index)" x-text="$store.game.rpgItemDetail(field, item)"></p></button>
@@ -567,9 +566,7 @@
                   <h3 x-text="section.title"></h3>
                   <template x-for="field in section.fields" :key="`${section.title}:${field.key}`">
                     <div class="dynamic-row" role="button" tabindex="0" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.toggleRpgField(field)" @keydown.enter.prevent="$store.game.toggleRpgField(field)" @keydown.space.prevent="$store.game.toggleRpgField(field)">
-                      <span x-show="!$store.game.isLexiconField(field)" x-text="field.label"></span>
-                      <b x-show="!$store.game.isLexiconField(field)" x-text="$store.game.isRpgListField(field) ? `${field.raw.length}项` : (Array.isArray(field.value) ? field.value.join('、') || '无' : field.value)"></b>
-                      <button class="rpg-item-card lexicon-tag" type="button" x-show="$store.game.isLexiconField(field)" @click.stop="$store.game.toggleRpgField(field)"><strong x-text="`${field.label}：${Array.isArray(field.value) ? field.value.join('、') || '无' : field.value}`"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
+                      <button class="rpg-item-card lexicon-tag" type="button" @click.stop="$store.game.toggleRpgField(field)"><strong x-text="$store.game.isRpgListField(field) ? `${field.label}：${field.raw.length}项` : `${field.label}：${Array.isArray(field.value) ? field.value.join('、') || '无' : field.value}`"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
                       <div class="rpg-item-list" x-show="$store.game.isRpgListField(field)" @click.stop>
                         <template x-for="(item, index) in field.raw" :key="`${field.key}:${item.name}:${index}`">
                           <button class="rpg-item-card" type="button" @click="$store.game.toggleRpgItem(field, index)"><strong x-text="$store.game.rpgItemSummary(item)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgItemOpen(field, index)" x-text="$store.game.rpgItemDetail(field, item)"></p></button>
