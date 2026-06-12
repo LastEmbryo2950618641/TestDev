@@ -15,7 +15,7 @@ window.GameModules.coreActions = {
 
   appGestureStart(event) {
     const fromGestureZone = event.target.closest('.app-home-gesture');
-    if (this.loading || (!fromGestureZone && event.target.closest('input, textarea, select'))) return;
+    if (this.loading || (!fromGestureZone && event.target.closest('button, input, textarea, select, a'))) return;
     const y = event.clientY || 0;
     const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
     if (!fromGestureZone && viewportHeight && y < viewportHeight - 88) return;

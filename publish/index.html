@@ -345,12 +345,12 @@
       <main class="wechat-body">
         <section class="wechat-list-page" x-show="$store.game.wechatView === 'home' && $store.game.wechatTab === 'chats'">
           <template x-for="thread in $store.game.wechatThreads()" :key="thread.id">
-            <button class="wechat-thread" type="button" @click="$store.game.selectWechatContact(thread.id)"><span class="wechat-avatar" x-text="thread.mark"></span><span><b x-text="thread.name"></b><small x-text="thread.latest"></small></span><em x-show="thread.unread" x-text="thread.unread"></em></button>
+            <button class="wechat-thread" type="button" @pointerdown.stop @click.stop="$store.game.selectWechatContact(thread.id)"><span class="wechat-avatar" x-text="thread.mark"></span><span><b x-text="thread.name"></b><small x-text="thread.latest"></small></span><em x-show="thread.unread" x-text="thread.unread"></em></button>
           </template>
         </section>
         <section class="wechat-list-page" x-show="$store.game.wechatView === 'home' && $store.game.wechatTab === 'contacts'">
           <template x-for="contact in $store.game.wechatContacts().filter(x => !x.group)" :key="contact.id">
-            <button class="wechat-contact-row" type="button" @click="$store.game.selectWechatContact(contact.id)"><span class="wechat-avatar" x-text="contact.mark"></span><b x-text="contact.name"></b></button>
+            <button class="wechat-contact-row" type="button" @pointerdown.stop @click.stop="$store.game.selectWechatContact(contact.id)"><span class="wechat-avatar" x-text="contact.mark"></span><b x-text="contact.name"></b></button>
           </template>
         </section>
         <section class="wechat-me-page" x-show="$store.game.wechatView === 'home' && $store.game.wechatTab === 'me'">
@@ -366,7 +366,7 @@
           <div class="wechat-input"><button type="button">＋</button><input x-model="$store.game.wechatInput" placeholder="输入消息"><button type="button">发送</button></div>
         </section>
       </main>
-      <nav class="wechat-tabs" x-show="$store.game.wechatView === 'home'"><button type="button" :class="{ active: $store.game.wechatTab === 'chats' }" @click="$store.game.setWechatTab('chats')">聊天</button><button type="button" :class="{ active: $store.game.wechatTab === 'contacts' }" @click="$store.game.setWechatTab('contacts')">通讯录</button><button type="button" :class="{ active: $store.game.wechatTab === 'me' }" @click="$store.game.setWechatTab('me')">我</button></nav>
+      <nav class="wechat-tabs" x-show="$store.game.wechatView === 'home'" @pointerdown.stop><button type="button" :class="{ active: $store.game.wechatTab === 'chats' }" @click.stop="$store.game.setWechatTab('chats')">聊天</button><button type="button" :class="{ active: $store.game.wechatTab === 'contacts' }" @click.stop="$store.game.setWechatTab('contacts')">通讯录</button><button type="button" :class="{ active: $store.game.wechatTab === 'me' }" @click.stop="$store.game.setWechatTab('me')">我</button></nav>
     </div>
     <div class="app-home-gesture" @pointerdown="$store.game.appGestureStart($event)" @pointermove="$store.game.appGestureMove($event)" @pointerup="$store.game.appGestureEnd($event)" @pointercancel="$store.game.appGestureEnd($event)" aria-hidden="true"></div>
   </section>
