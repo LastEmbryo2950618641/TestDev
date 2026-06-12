@@ -238,21 +238,21 @@
   position: relative;
   z-index: 4;
   min-height: 100dvh;
-  transform-origin: top center;
-  transition: transform .18s ease, border-radius .18s ease, filter .18s ease, opacity .18s ease;
+  transform-origin: bottom center;
+  transition: transform .22s ease, border-radius .22s ease, filter .22s ease, opacity .22s ease;
   will-change: transform;
 }
 
 .app-window::before {
   content: "";
   position: fixed;
-  top: max(8px, env(safe-area-inset-top));
+  bottom: max(8px, env(safe-area-inset-bottom));
   left: 50%;
   z-index: 90;
-  width: 56px;
+  width: 86px;
   height: 5px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, .5);
+  background: rgba(255, 255, 255, .62);
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -265,7 +265,7 @@
 }
 
 .app-window-closing {
-  transform: translateY(-34dvh) scale(.18) !important;
+  transform: translateY(-48dvh) scale(.18) !important;
   border-radius: 30px;
   opacity: .2;
   overflow: hidden;

@@ -13,20 +13,23 @@ window.GameModules.coreActions = {
 
   appGestureStart(event) {
     if (this.loading || event.target.closest('input, textarea, select')) return;
-    if ((event.clientY || 0) > 110) return;
-    this.appDragStartY = event.clientY || 0;
+    const y = event.clientY || 0;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    if (viewportHeight && y < viewportHeight - 88) return;
+    this.appDragStartY = y;
     this.appDragY = 0;
     this.appDragging = true;
   },
 
   appGestureMove(event) {
     if (!this.appDragging) return;
+    event.preventDefault();
     this.appDragY = Math.min(0, (event.clientY || 0) - this.appDragStartY);
   },
 
   appGestureEnd() {
     if (!this.appDragging) return;
-    const shouldClose = this.appDragY < -80;
+    const shouldClose = this.appDragY < -96;
     this.appDragging = false;
     this.appDragY = 0;
     if (shouldClose) this.closeAppToDesktop();
@@ -34,7 +37,7 @@ window.GameModules.coreActions = {
 
   appWindowStyle() {
     const y = this.appDragging ? this.appDragY : 0;
-    const scale = this.appDragging ? Math.max(.84, 1 - Math.abs(y) / 760) : 1;
+    const scale = this.appDragging ? Math.max(.76, 1 - Math.abs(y) / 560) : 1;
     return `transform: translateY(${y}px) scale(${scale});`;
   },
 
