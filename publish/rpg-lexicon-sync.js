@@ -15,9 +15,13 @@ Object.assign(window.GameModules.rpgLexicon, {
     this.collectLearned(entries, worldTag, '技能', values.skills);
     this.collectLearned(entries, worldTag, '职业', values.professions);
     this.collectLearned(entries, worldTag, '装备', values.equipment);
-    for (const name of values.factions || []) entries.push({ worldTag, kind: '阵营', name, desc: `${name}相关势力、组织或社会位置。`, nameAiGenerated: false, valueAiGenerated: false, changeMode: '代码计算', source: 'state' });
-    for (const name of values.status_tags || []) entries.push({ worldTag, kind: '状态', name, desc: `${name}表示角色当前处境、身份或剧情状态。`, nameAiGenerated: false, valueAiGenerated: false, changeMode: '代码计算', source: 'state' });
+    for (const name of values.factions || []) entries.push({ worldTag, kind: '阵营', name, desc: `${name}相关势力、组织或社会位置。`, nameAiGenerated: this.isAiStateName(name, state), valueAiGenerated: true, changeMode: 'AI演算', source: 'state' });
+    for (const name of values.status_tags || []) entries.push({ worldTag, kind: '状态', name, desc: `${name}表示角色当前处境、身份或剧情状态。`, nameAiGenerated: this.isAiStateName(name, state), valueAiGenerated: true, changeMode: 'AI演算', source: 'state' });
     return entries;
+  },
+
+  isAiStateName(name, state) {
+    return ![state?.name, state?.worldTag, state?.profile?.role, '路人', '可被操控', '玩家本人', '手机主人'].includes(name);
   },
 
   collectLearned(entries, worldTag, kind, list) {

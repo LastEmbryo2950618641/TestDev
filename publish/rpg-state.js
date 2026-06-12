@@ -1,6 +1,3 @@
-/**
- * 动态 RPG 状态：同一存档内按世界固化 schema，角色首次出现固化状态。
- */
 window.GameModules = window.GameModules || {};
 
 window.GameModules.rpgState = {
@@ -72,11 +69,12 @@ window.GameModules.rpgState = {
     if (existing) {
       console.log('[RPG状态] 使用已保存角色状态:', id, existing.worldTag);
       const schema = await this.ensureSchema(existing.worldTag || character.work || '原创世界');
+      const profileChanged = this.ensureRoleCard(existing, character);
       const upgraded = this.upgradeCharacterState(existing, schema);
       const updated = this.updateExistingCharacter(existing, character, store);
       const professionChanged = await window.GameModules.rpgProfessionState?.ensureInfo?.call(window.GameModules.rpgProfessionState, existing, character, schema);
       await window.GameModules.rpgLexicon.syncState(existing);
-      if (upgraded || updated || professionChanged) await save.saveCharacterState(existing);
+      if (profileChanged || upgraded || updated || professionChanged) await save.saveCharacterState(existing);
       return existing;
     }
     const worldTag = save.getCharacterWorld(id) || character.work || '原创世界';
@@ -89,6 +87,12 @@ window.GameModules.rpgState = {
     return created;
   },
 
+  ensureRoleCard(state, character) {
+    if (!state || !character?.roleCard || (state.profile?.roleCard && state.profile.roleCardUpdatedAt)) return false;
+    state.profile = { ...(state.profile || {}), ...character, roleCard: true };
+    state.note = state.profile.detail || state.profile.personality || state.note || '';
+    return true;
+  },
   updateExistingCharacter(state, character, store = null) {
     if (!state?.values || !store) return false;
     const seed = this.seed(`${state.name}${state.worldTag}${store.entryCurrentAction || ''}${store.entryTimeLabel?.() || ''}`);

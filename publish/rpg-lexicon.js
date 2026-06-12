@@ -8,6 +8,7 @@ window.GameModules.rpgLexicon = {
   entry(worldTag, kind, name, data = {}) {
     const clean = this.normalizeName(name);
     if (!clean) return null;
+    const ai = this.aiFlags(kind, data);
     return {
       worldTag: worldTag || '原创世界',
       kind,
@@ -15,8 +16,8 @@ window.GameModules.rpgLexicon = {
       summary: String(data.summary || data.desc || data.description || '').slice(0, 80),
       description: String(data.description || data.desc || data.summary || '').slice(0, 240),
       value: Object.prototype.hasOwnProperty.call(data, 'value') ? data.value : null,
-      nameAiGenerated: Boolean(data.nameAiGenerated ?? data.aiGenerated),
-      valueAiGenerated: Boolean(data.valueAiGenerated),
+      nameAiGenerated: ai.name,
+      valueAiGenerated: ai.value,
       changeMode: String(data.changeMode || this.defaultChangeMode(data.source)).slice(0, 80),
       hierarchy: ['tree', 'leaf'].includes(data.hierarchy) ? data.hierarchy : this.defaultHierarchy(kind),
       promptInstruction: String(data.promptInstruction || this.defaultPromptInstruction(kind, clean)).slice(0, 260),
@@ -25,6 +26,14 @@ window.GameModules.rpgLexicon = {
       meta: data.meta || {},
       source: data.source || 'runtime',
     };
+  },
+
+  aiFlags(kind, data = {}) {
+    const source = String(data.source || '');
+    const mode = String(data.changeMode || '');
+    const nameFlag = data.nameAiGenerated ?? data.aiGenerated ?? (source === 'ai' && kind !== '玩家设定');
+    const valueFlag = data.valueAiGenerated ?? data.aiGenerated ?? (source === 'ai' || mode.includes('AI'));
+    return { name: Boolean(nameFlag), value: Boolean(valueFlag) };
   },
 
   defaultChangeMode(source) {
@@ -110,7 +119,7 @@ window.GameModules.rpgLexicon = {
     const clean = this.normalizeName(name);
     const old = this.get(worldTag, kind, clean);
     const promptInstruction = this.shouldRefreshPromptInstruction(old?.promptInstruction) ? (data?.promptInstruction || this.defaultPromptInstruction(kind, clean)) : old?.promptInstruction;
-    const entry = this.entry(worldTag, kind, clean, { ...data, nameAiGenerated: old?.nameAiGenerated ?? old?.aiGenerated ?? data?.nameAiGenerated ?? data?.aiGenerated, valueAiGenerated: old?.valueAiGenerated ?? data?.valueAiGenerated, changeMode: old?.changeMode || data?.changeMode, hierarchy: old?.hierarchy || data?.hierarchy, promptInstruction });
+    const entry = this.entry(worldTag, kind, clean, { ...data, nameAiGenerated: (old?.nameAiGenerated || old?.aiGenerated) ? true : (data?.nameAiGenerated ?? data?.aiGenerated), valueAiGenerated: old?.valueAiGenerated ? true : (data?.valueAiGenerated ?? data?.aiGenerated), changeMode: old?.changeMode || data?.changeMode, hierarchy: old?.hierarchy || data?.hierarchy, promptInstruction });
     if (!entry) return null;
     await window.GameModules.sqliteSave.saveLexiconEntry?.(entry);
     return entry;
@@ -123,7 +132,7 @@ window.GameModules.rpgLexicon = {
     for (const raw of entries) {
       const old = this.get(raw.worldTag, raw.kind, raw.name);
       const promptInstruction = this.shouldRefreshPromptInstruction(old?.promptInstruction) ? (raw.promptInstruction || this.defaultPromptInstruction(raw.kind, this.normalizeName(raw.name))) : old?.promptInstruction;
-      const entry = this.entry(raw.worldTag, raw.kind, raw.name, { ...raw, nameAiGenerated: old?.nameAiGenerated ?? old?.aiGenerated ?? raw.nameAiGenerated ?? raw.aiGenerated, valueAiGenerated: old?.valueAiGenerated ?? raw.valueAiGenerated, changeMode: old?.changeMode || raw.changeMode, hierarchy: old?.hierarchy || raw.hierarchy, promptInstruction });
+      const entry = this.entry(raw.worldTag, raw.kind, raw.name, { ...raw, nameAiGenerated: (old?.nameAiGenerated || old?.aiGenerated) ? true : (raw.nameAiGenerated ?? raw.aiGenerated), valueAiGenerated: old?.valueAiGenerated ? true : (raw.valueAiGenerated ?? raw.aiGenerated), changeMode: old?.changeMode || raw.changeMode, hierarchy: old?.hierarchy || raw.hierarchy, promptInstruction });
       if (!entry) continue;
       save.db.run(
         'INSERT OR REPLACE INTO lexicon_entries(world_tag,kind,name,entry_json,source,created_at,updated_at) VALUES (?,?,?,?,?,COALESCE((SELECT created_at FROM lexicon_entries WHERE world_tag=? AND kind=? AND name=?),?),?)',

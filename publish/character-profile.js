@@ -5,16 +5,23 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.characterProfile = {
   async ensure(raw, store, context = '') {
-    const known = this.findKnown(raw, store);
-    if (known) return known;
-    const base = this.normalize(raw, store);
-    if (window.GameModules.cache.enabled('generatedProfiles')) {
-      const existing = window.GameModules.sqliteSave.getCharacterState(base.id);
-      if (existing?.profile) return existing.profile;
-    }
+    const base = this.normalize(this.withKnown(raw, store), store);
+    const existing = window.GameModules.sqliteSave.getCharacterState(base.id);
+    if (this.isRoleCard(existing?.profile)) return existing.profile;
     const lore = await window.GameModules.worldLore.ensure(base.work, context);
     const attrs = await window.GameModules.rpgState.ensureWorldAttributes(base.work);
     return this.generate(base, lore, attrs, context);
+  },
+
+  withKnown(raw, store) {
+    const known = this.findKnown(raw, store);
+    if (!known) return raw;
+    if (typeof raw !== 'object' || !raw) return known;
+    return { ...known, ...raw, aliases: [...(known.aliases || []), ...(raw.aliases || [])] };
+  },
+
+  isRoleCard(profile) {
+    return Boolean(profile?.roleCard && profile?.name && profile?.role && profile?.detail && profile?.personality);
   },
 
   findKnown(raw, store) {
@@ -39,6 +46,7 @@ window.GameModules.characterProfile = {
       skills: Array.isArray(data.skills) ? data.skills.slice(0, 4) : [],
       importance: data.importance || (data.isMinor ? 'minor' : 'support'),
       isMinor: Boolean(data.isMinor),
+      roleCard: true,
     };
   },
 
@@ -87,6 +95,9 @@ window.GameModules.characterProfile = {
         desc: String(skill.desc || '').slice(0, 60),
       })),
       worldValues: this.worldValues(profile.worldValues, attrs, base.name),
+      roleCard: true,
+      roleCardSource: 'ai',
+      roleCardUpdatedAt: new Date().toISOString(),
     };
   },
 
