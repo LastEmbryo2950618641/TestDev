@@ -8,7 +8,7 @@ Object.assign(window.GameModules.rpgLexicon, {
     for (const section of state?.schema?.sections || []) {
       for (const field of section.fields || []) {
         const treeKind = { knowledge: '知识树', skills: '技能树', professions: '职业树' }[field.key];
-        entries.push({ worldTag, kind: treeKind || '属性', name: field.label, value: values[field.key], desc: field.desc, nameAiGenerated: false, valueAiGenerated: false, changeMode: '代码计算', hierarchy: treeKind ? 'tree' : 'leaf', source: 'schema', meta: { key: field.key, type: field.type, grade: Boolean(field.grade) } });
+        entries.push({ worldTag, kind: treeKind || '属性', name: field.label, value: values[field.key], desc: field.desc, nameAiGenerated: false, valueAiGenerated: false, changeMode: '代码计算', hierarchy: treeKind ? 'tree' : 'leaf', source: 'schema', meta: { key: field.key, type: field.type, grade: Boolean(field.grade), targetType: state?.profile?.isPlayer ? '非角色' : '角色', commonField: section.title !== '世界固有属性' } });
       }
     }
     this.collectLearned(entries, worldTag, '知识', values.knowledge);

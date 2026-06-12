@@ -70,7 +70,7 @@ window.GameModules.rpgFieldUi = {
     const kind = obj?.type || field?.label || '能力';
     const name = obj?.name || field?.label || '未知';
     const hasLevel = Number(obj?.level) > 0;
-    const lines = [`名称: ${name}`, `定义: ${this.learnedDefinition(kind, name, obj, lexicon, info)}`, `类型: ${kind}`];
+    const lines = [`名称: ${name}`, `定义: ${this.learnedDefinition(kind, name, obj, lexicon, info)}`, `类型: ${kind}`, `所属世界: ${field?.worldTag || lexicon?.worldTag || '公共'}`, `词条类型: ${field?.targetType || lexicon?.meta?.targetType || '角色'}`];
     if (kind === '阵营' && (obj?.faction || info.faction)) lines.push(`阵营: ${obj.faction || info.faction}`, `地位: ${obj.position || info.position || '成员'}`);
     if (hasLevel) {
       lines.push(`等级: lv${obj.level}`);
@@ -89,6 +89,9 @@ window.GameModules.rpgFieldUi = {
   rpgFieldDetail(field) {
     const lexicon = this.lexiconFor(field);
     const lines = [`说明: ${lexicon?.description || lexicon?.summary || field?.desc || this.fallbackDesc(field)}`];
+    lines.push(`所属世界: ${field?.worldTag || lexicon?.worldTag || '公共'}`);
+    lines.push(`字段范围: ${(field?.commonField ?? lexicon?.meta?.commonField) ? '公共字段' : '世界专属字段'}`);
+    lines.push(`词条类型: ${field?.targetType || lexicon?.meta?.targetType || '角色'}`);
     lines.push(`层级: ${lexicon?.hierarchy === 'tree' ? '树词条' : '叶子词条'}`);
     lines.push(`词条名AI生成: ${(lexicon?.nameAiGenerated ?? lexicon?.aiGenerated) ? '是' : '否'}`);
     lines.push(`值AI生成: ${lexicon?.valueAiGenerated ? '是' : '否'}`);

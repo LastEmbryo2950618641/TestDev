@@ -274,6 +274,11 @@
             <div class="character-status-main">
               <div class="name-role-block"><h2 x-text="$store.game.playerCharacter().name"></h2><p class="role" x-text="$store.game.playerProfile.refinedRole || $store.game.playerProfile.dailyRole || '现实世界居民'"></p></div>
               <small x-text="$store.game.playerProfile.refinedLivingStatus || $store.game.playerProfile.refinedCity || '现实位置未登记'"></small>
+              <div class="vital-bars" x-show="$store.game.playerIdentityState()">
+                <template x-for="vital in $store.game.rpgVitals($store.game.playerIdentityState())" :key="`player-${vital.key}`">
+                  <div class="vital-row" :class="vital.key"><span x-text="vital.label"></span><i><b :style="`width: ${Math.max(0, Math.min(100, vital.value))}%`"></b></i><em x-text="vital.text || `${vital.value}%`"></em></div>
+                </template>
+              </div>
             </div>
           </button>
           <section class="profile-card dev-section" data-section-title="本人资料区">
@@ -284,7 +289,9 @@
                   <section>
                     <h3>基础身份</h3>
                     <template x-for="field in $store.game.playerProfileLexiconFields()" :key="field.key">
-                      <button class="rpg-item-card lexicon-tag" type="button" @click="$store.game.toggleRpgField(field)"><strong x-text="`${field.label}：${field.value}`"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
+                      <div class="dynamic-row" role="button" tabindex="0" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.toggleRpgField(field)" @keydown.enter.prevent="$store.game.toggleRpgField(field)" @keydown.space.prevent="$store.game.toggleRpgField(field)">
+                        <button class="rpg-item-card lexicon-tag" type="button" @click.stop="$store.game.toggleRpgField(field)"><strong x-text="$store.game.rpgFieldSummary(field)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
+                      </div>
                     </template>
                   </section>
                   <template x-for="section in $store.game.rpgEntries($store.game.playerIdentityState()).filter(section => section.title !== '世界固有属性')" :key="`player-${section.title}`">

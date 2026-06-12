@@ -4,8 +4,9 @@ window.GameModules.playerSetupActions = {
   playerProfileLexiconFields() {
     const p = this.playerProfile || {};
     const worldTag = window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
-    const row = (name, value, desc) => ({ key: `player-${name}`, label: name, kind: '玩家设定', value: value || '未填写', raw: value || '', desc, worldTag });
+    const row = (name, value, desc) => ({ key: `player-${name}`, label: name, kind: '玩家设定', value: value || '未填写', raw: value || '', desc, worldTag, targetType: '非角色', commonField: true });
     return [
+      row('所属世界', worldTag, '玩家当前所在的现实世界。'),
       row('姓名', p.name || this.playerName, '玩家登记的姓名或代号。'),
       row('性别', p.gender, '玩家登记的性别。'),
       row('生日', p.birthday, '玩家登记生日，用于计算年龄与现实身份。'),
@@ -179,7 +180,7 @@ window.GameModules.playerSetupActions = {
       nameAiGenerated: false,
       valueAiGenerated: !['姓名', '性别', '生日', '年龄', '人际关系', '备注'].includes(field.label),
       changeMode: ['姓名', '性别', '生日', '人际关系', '备注'].includes(field.label) ? '用户主动' : 'AI演算',
-      source: 'ai',
+      source: 'ai', meta: { targetType: '非角色', commonField: true },
     })));
   },
 

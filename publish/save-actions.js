@@ -161,7 +161,9 @@ window.GameModules.saveActions = {
           const display = window.GameModules.worldAttributes.displayValue(field, raw);
           const source = state.values.intrinsic_sources?.[field.key] || null;
           const kind = { factions: '阵营', equipment: '装备', status_tags: '状态' }[field.key] || '属性';
-          return { key: field.key, label: field.label, kind, value: this.rpgFieldValue(display), raw, source, desc: field.desc || '', worldTag: state.worldTag };
+          const targetType = state.profile?.isPlayer ? '非角色' : '角色';
+          const commonField = section.title !== '世界固有属性';
+          return { key: field.key, label: field.label, kind, value: this.rpgFieldValue(display), raw, source, desc: field.desc || '', worldTag: state.worldTag, targetType, commonField };
         }),
     })).filter((section) => section.fields.length);
   },
