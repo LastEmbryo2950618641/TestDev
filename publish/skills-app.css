@@ -130,6 +130,7 @@
 .prompt-title {
   width: 100%;
   min-height: 34px;
+  display: flex;
   align-items: center;
   border: 0;
   color: inherit;
@@ -137,11 +138,9 @@
   background: transparent;
 }
 
-.prompt-title em {
-  align-self: center;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: rgba(116, 246, 255, .1);
+.prompt-title strong {
+  white-space: normal;
+  line-height: 1.35;
 }
 
 .prompt-modal-backdrop {
@@ -181,8 +180,9 @@
 }
 
 .prompt-markdown {
-  max-height: 360px;
-  margin: 10px 0 0;
+  min-height: 0;
+  max-height: none;
+  margin: 0;
   padding: 12px;
   overflow: auto;
   border: 1px solid rgba(255, 255, 255, .1);
