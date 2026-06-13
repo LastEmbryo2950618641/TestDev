@@ -14,17 +14,13 @@ window.GameModules.bossActions = {
 
   openBossApp() {
     this.initBossRecruitment();
-    this.identityAppOpen = false;
-    this.wechatAppOpen = false;
+    this.identityAppOpen = false; this.wechatAppOpen = false;
     if (this.companyState) this.companyState.open = false;
     if (this.calendarState) this.calendarState.open = false;
     if (this.factionState) this.factionState.open = false;
     if (this.skillsState) this.skillsState.open = false;
-    this.bossState.companyDetailOpen = false;
-    this.bossState.detailJobId = '';
-    this.bossState.applyMessage = '';
-    this.bossState.generating = false;
-    this.bossState.open = true;
+    if (this.promptState) this.promptState.open = false;
+    Object.assign(this.bossState, { companyDetailOpen: false, detailJobId: '', applyMessage: '', generating: false, open: true });
     this.desktopUnlocked = true;
     if (!this.currentBossJobs().length) this.randomBossJobs();
   },
@@ -70,20 +66,9 @@ window.GameModules.bossActions = {
     return job[key];
   },
 
-  bossAddressParts(address = '') {
-    const parts = String(address).split(/\s+/).filter(Boolean);
-    return { province: parts[0] || '', city: parts[1] || '', county: parts[2] || '', town: parts[3] || '' };
-  },
-
-  filteredBossJobs() {
-    this.initBossRecruitment();
-    return this.bossState.jobs.filter((job) => this.bossMatchesJob(job, this.bossState.filters));
-  },
-
-  currentBossJobs() {
-    return this.bossState.jobs.filter((job) => this.bossMatchesJob(job, this.bossState.filters));
-  },
-
+  bossAddressParts(address = '') { const parts = String(address).split(/\s+/).filter(Boolean); return { province: parts[0] || '', city: parts[1] || '', county: parts[2] || '', town: parts[3] || '' }; },
+  filteredBossJobs() { this.initBossRecruitment(); return this.bossState.jobs.filter((job) => this.bossMatchesJob(job, this.bossState.filters)); },
+  currentBossJobs() { return this.bossState.jobs.filter((job) => this.bossMatchesJob(job, this.bossState.filters)); },
 
   bossMatchesJob(job, f) {
     if (f.industry && job.industry !== f.industry) return false;

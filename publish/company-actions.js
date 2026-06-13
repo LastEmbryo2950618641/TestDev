@@ -164,6 +164,7 @@ window.GameModules.companyActions = {
     if (this.calendarState) this.calendarState.open = false;
     if (this.factionState) this.factionState.open = false;
     if (this.skillsState) this.skillsState.open = false;
+    if (this.promptState) this.promptState.open = false;
     this.companyState.open = true;
     this.desktopUnlocked = true;
   },

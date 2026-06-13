@@ -10,6 +10,7 @@ window.GameModules.appSwitchActions = {
     if (this.calendarState) this.calendarState.open = false;
     if (this.factionState) this.factionState.open = false;
     if (this.skillsState) this.skillsState.open = false;
+    if (this.promptState) this.promptState.open = false;
   },
 
   openDesktopApp() {
@@ -20,6 +21,7 @@ window.GameModules.appSwitchActions = {
     if (this.calendarState) this.calendarState.open = false;
     if (this.factionState) this.factionState.open = false;
     if (this.skillsState) this.skillsState.open = false;
+    if (this.promptState) this.promptState.open = false;
     this.desktopUnlocked = true;
   },
 };

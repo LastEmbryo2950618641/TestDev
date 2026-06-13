@@ -87,7 +87,12 @@ window.GameModules.rpgState = {
   },
 
   ensureRoleCard(state, character) {
-    if (!state || !character?.roleCard || (state.profile?.roleCard && state.profile.roleCardUpdatedAt)) return false;
+    if (!state || !character?.roleCard) return false;
+    if (state.profile?.roleCard && state.profile.roleCardUpdatedAt) {
+      if (!character.initialMetrics || state.profile.initialMetrics) return false;
+      state.profile.initialMetrics = character.initialMetrics;
+      return window.GameModules.rpgProfileMetrics?.apply(state, state.profile) || true;
+    }
     state.profile = { ...(state.profile || {}), ...character, roleCard: true };
     state.note = state.profile.detail || state.profile.personality || state.note || '';
     return true;
@@ -128,6 +133,7 @@ window.GameModules.rpgState = {
     state.metrics.emotions = window.GameModules.metrics.fill(state.metrics.emotions, window.GameModules.metrics.emotionKeys, fresh.emotions);
     state.metrics.playerFeelings = window.GameModules.metrics.fill(state.metrics.playerFeelings, window.GameModules.metrics.playerKeys, fresh.playerFeelings);
     state.metrics.notes = state.metrics.notes || {};
+    window.GameModules.rpgProfileMetrics?.apply(state, state.profile);
     return before !== JSON.stringify(state.metrics);
   },
 
@@ -188,11 +194,7 @@ window.GameModules.rpgState = {
   valueFor(field, seed) {
     if (field.type === 'number') return field.min + (seed % ((field.max - field.min) + 1));
     if (field.type === 'rank') return ['E', 'D', 'C', 'B', 'A', 'EX'][seed % 6];
-    if (field.type === 'list') return [];
-    return '';
+    return field.type === 'list' ? [] : '';
   },
-
-  seed(text) {
-    return [...String(text)].reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
-  },
+  seed(text) { return [...String(text)].reduce((sum, ch) => sum + ch.charCodeAt(0), 0); },
 };

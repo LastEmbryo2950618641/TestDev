@@ -27,6 +27,7 @@ window.GameModules.factionActions = {
     if (this.bossState) this.bossState.open = false;
     if (this.calendarState) this.calendarState.open = false;
     if (this.skillsState) this.skillsState.open = false;
+    if (this.promptState) this.promptState.open = false;
     this.factionState.open = true;
     this.desktopUnlocked = true;
   },

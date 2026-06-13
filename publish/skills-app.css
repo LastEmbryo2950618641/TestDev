@@ -4,6 +4,12 @@
     linear-gradient(135deg, #8f6bff, #23d8ff 62%, #62ffb8);
 }
 
+.prompt-icon .app-glyph {
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, .45), transparent 24%),
+    linear-gradient(135deg, #ff9f43, #ff4ec7 58%, #784bff);
+}
+
 .skills-app-screen {
   display: grid;
   place-items: center;
@@ -115,6 +121,27 @@
 .skill-row:focus-visible {
   border-color: rgba(116, 246, 255, .78);
   box-shadow: 0 0 0 2px rgba(116, 246, 255, .13);
+}
+
+.prompt-title {
+  width: 100%;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+}
+
+.prompt-markdown {
+  max-height: 360px;
+  margin: 10px 0 0;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 12px;
+  color: #eaf1ff;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: rgba(0, 0, 0, .22);
 }
 
 .skill-row small,

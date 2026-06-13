@@ -4,30 +4,20 @@ window.GameModules.bossAiActions = {
   async generateBossJobsByAI() {
     this.initBossRecruitment();
     if (this.bossState.generating) return;
-    this.bossState.generating = true;
-    this.bossState.generationError = '';
-    const requestId = (this.bossState.requestId || 0) + 1;
-    this.bossState.requestId = requestId;
+    Object.assign(this.bossState, { generating: true, generationError: '', requestId: (this.bossState.requestId || 0) + 1 });
+    const requestId = this.bossState.requestId;
     try {
-      const text = await Promise.race([
-        this.requestBossJobsText(),
-        new Promise((resolve) => setTimeout(() => resolve(''), 35000)),
-      ]);
+      const text = await Promise.race([this.requestBossJobsText(), new Promise((resolve) => setTimeout(() => resolve(''), 35000))]);
       if (requestId !== this.bossState.requestId) return;
       const jobs = this.parseBossJobs(text).slice(0, this.bossState.pageSize);
       if (!jobs.length) jobs.push(...this.fallbackBossJobsFromAI(text || 'AI响应超时，已本地补齐岗位'));
-      this.cacheBossJobs(jobs);
-      this.bossState.selectedJobId = this.currentBossJobs()[0]?.id || '';
-      this.save?.();
+      this.cacheBossJobs(jobs); this.bossState.selectedJobId = this.currentBossJobs()[0]?.id || ''; this.save?.();
     } catch (err) {
       if (requestId !== this.bossState.requestId) return;
       console.error('AI生成招聘岗位失败:', err.code, err.message, err.stack);
       this.cacheBossJobs(this.fallbackBossJobsFromAI(err.message || 'AI生成失败，已本地补齐岗位'));
-      this.bossState.selectedJobId = this.currentBossJobs()[0]?.id || '';
-      this.bossState.generationError = 'AI生成暂时不可用，已用本地岗位补齐当前随机列表。';
-    } finally {
-      if (requestId === this.bossState.requestId) this.bossState.generating = false;
-    }
+      this.bossState.selectedJobId = this.currentBossJobs()[0]?.id || ''; this.bossState.generationError = 'AI生成暂时不可用，已用本地岗位补齐当前随机列表。';
+    } finally { if (requestId === this.bossState.requestId) this.bossState.generating = false; }
   },
 
   async requestBossJobsText() {
@@ -44,20 +34,18 @@ window.GameModules.bossAiActions = {
   },
 
   bossJobsPrompt() {
-    const f = this.bossState.filters;
-    const count = Number(this.bossState.pageSize) || 10;
+    const f = this.bossState.filters, count = Number(this.bossState.pageSize) || 10;
     const area = [f.province, f.city, f.county, f.town].filter(Boolean).join(' ') || '不限，优先玩家所在地';
     const player = this.bossState.usePlayerFit ? this.bossPlayerFitPrompt() : '关闭玩家适配：像真实招聘软件一样随机混合热门、冷门、白领、蓝领、创作者、兼职岗位。';
     const custom = String(this.bossState.customPrompt || '').trim() || '无';
-    return `你是现实招聘软件的岗位生成器。请一次性随机生成${count}个互不重复的可申请职位，只返回严格JSON数组，不要Markdown、解释、注释或尾逗号。字段固定为：id,title,company,industry,scale,address,payType,base,performanceMonths,creatorPay,level,royalty,buyout,hourly,skills,desc,matchProfessions,matchSkills,matchKnowledge。matchProfessions/matchSkills/matchKnowledge必须由AI从玩家已有能力中推断，只填玩家已拥有且确实符合该岗位的职业/技能/知识原名，没有匹配就返回空数组，禁止编造新能力。玩家已有能力：${this.bossPlayerAbilitiesPrompt()}。多样性要求：默认必须覆盖不同领域，优先从这些领域抽样：互联网软件、人工智能、数据分析、医疗医院、药房健康、教育培训、法律合规、金融银行、财务会计、智能制造、建筑工程、物流供应链、电商零售、本地生活、餐饮酒店、旅游会展、公共服务、农业食品、媒体广告、游戏动漫、内容文娱、设计摄影、心理咨询、物业安保、家政护理、汽车新能源。若筛选或玩家文本指定领域，则围绕指定方向生成，但仍要给出不同岗位层级和公司类型。岗位真实性：title必须是具体职位名，禁止“岗位1/员工岗位/创作者岗位/定时工岗位”等泛称；公司名、行业、地址、薪资要互相匹配。薪酬规则：payType只能是员工、创作者、定时工。员工必须有base和performanceMonths；创作者提成制度必须有level、base、royalty；创作者一次性买断必须有buyout；定时工必须有hourly。无关字段用空字符串或0。筛选：公司领域=${f.industry || '不限'}；规模=${f.scale || '不限'}；地址=${area}；薪酬类型=${f.payType || '不限'}；底薪=${f.baseMin || '不限'}-${f.baseMax || '不限'}；年底绩效月数=${f.performanceMonths || '不限'}；创作者薪酬=${f.creatorPay || '不限'}；签约等级=${f.creatorLevel || '不限'}。玩家适配：${player}。玩家输入文本：${custom}。skills数组给出3-5项真实技能；desc用一句话说明职责、工作方式、为什么适合该薪酬。随机种子=${this.bossState.randomSeed || Date.now()}。`;
+    return `你是现实招聘软件的岗位生成器。生成${count}个互不重复职位，只返回JSON数组。字段：id,title,company,industry,scale,address,payType,base,performanceMonths,creatorPay,level,royalty,buyout,hourly,skills,desc,matchProfessions,matchSkills,matchKnowledge。匹配字段只能填玩家已拥有能力：${this.bossPlayerAbilitiesPrompt()}。默认覆盖互联网软件、AI、数据、医疗、教育、法律、金融、财会、制造、建筑、物流、电商、本地生活、餐饮酒店、公共服务、媒体、游戏动漫、心理咨询、物业安保等领域；筛选或玩家文本指定领域时围绕指定方向生成。title必须具体，公司名、行业、地址、薪资互相匹配。payType只能是员工/创作者/定时工；员工有base/performanceMonths，创作者按提成或买断填字段，定时工有hourly。筛选：领域=${f.industry || '不限'}；规模=${f.scale || '不限'}；地址=${area}；类型=${f.payType || '不限'}；底薪=${f.baseMin || '不限'}-${f.baseMax || '不限'}；绩效=${f.performanceMonths || '不限'}；创作者薪酬=${f.creatorPay || '不限'}；等级=${f.creatorLevel || '不限'}。玩家适配：${player}。玩家输入：${custom}。skills给3-5项真实技能，desc一句话说明职责。随机种子=${this.bossState.randomSeed || Date.now()}。`;
   },
 
   bossPlayerFitPrompt() {
     const p = this.playerProfile || {};
     const fields = this.playerProfileLexiconFields?.().filter((x) => ['现实身份', '工作阵营', '阵营地位', '世界观补全', '备注'].includes(x.label)).map((x) => `${x.label}:${x.value}`).join('；') || '';
-    return `开启玩家适配：优先生成与玩家知识、技能、职业相匹配的职位，同时保留约20%跨领域入门机会。玩家资料：姓名=${p.name || this.playerName || '玩家'}；职业/身份=${p.refinedRole || p.dailyRole || '未知'}；所在地=${p.refinedCity || p.city || '未知'}；能力=${this.bossPlayerAbilitiesPrompt()}；${fields}`;
+    return `开启玩家适配：优先匹配玩家能力，保留约20%跨领域机会。姓名=${p.name || this.playerName || '玩家'}；身份=${p.refinedRole || p.dailyRole || '未知'}；所在地=${p.refinedCity || p.city || '未知'}；能力=${this.bossPlayerAbilitiesPrompt()}；${fields}`;
   },
-
   bossPlayerAbilitiesPrompt() {
     const values = this.currentRpgState?.values || this.playerIdentityState?.()?.values || {};
     const line = (key, label) => `${label}:${(values[key] || []).slice(0, 12).map((x) => `${x.name || x}lv${x.level || 1}`).join('、') || '无'}`;
@@ -76,30 +64,14 @@ window.GameModules.bossAiActions = {
 
   parseBossJobs(text) {
     const source = String(text || '').replace(/```(?:json)?|```/gi, '').trim();
-    const candidates = this.bossJsonCandidates(source);
-    for (const item of candidates) {
-      try {
-        const raw = JSON.parse(item);
-        if (Array.isArray(raw)) return raw;
-        if (Array.isArray(raw?.jobs)) return raw.jobs;
-      } catch (_) {}
-    }
+    for (const item of this.bossJsonCandidates(source)) try { const raw = JSON.parse(item); if (Array.isArray(raw)) return raw; if (Array.isArray(raw?.jobs)) return raw.jobs; } catch (_) {}
     return this.parseBossTextJobs(source);
   },
-
   bossJsonCandidates(source) {
     const compact = source.replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/，/g, ',').replace(/：/g, ':');
-    const start = compact.indexOf('[');
-    const end = compact.lastIndexOf(']');
-    const arrayText = start >= 0 && end >= start ? compact.slice(start, end + 1) : compact;
-    const objectStart = compact.indexOf('{');
-    const objectEnd = compact.lastIndexOf('}');
-    const objectText = objectStart >= 0 && objectEnd >= objectStart ? compact.slice(objectStart, objectEnd + 1) : '';
-    return [arrayText, objectText].filter(Boolean).flatMap((text) => {
-      const noComments = text.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
-      const fixed = noComments.replace(/([{,]\s*)([A-Za-z_][\w]*)(\s*:)/g, '$1"$2"$3').replace(/,\s*([}\]])/g, '$1').replace(/'([^'\\]*(?:\\.[^'\\]*)*)'/g, '"$1"');
-      return [noComments, fixed];
-    });
+    const start = compact.indexOf('['), end = compact.lastIndexOf(']'), objectStart = compact.indexOf('{'), objectEnd = compact.lastIndexOf('}');
+    const arrayText = start >= 0 && end >= start ? compact.slice(start, end + 1) : compact, objectText = objectStart >= 0 && objectEnd >= objectStart ? compact.slice(objectStart, objectEnd + 1) : '';
+    return [arrayText, objectText].filter(Boolean).flatMap((text) => { const noComments = text.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, ''); const fixed = noComments.replace(/([{,]\s*)([A-Za-z_][\w]*)(\s*:)/g, '$1"$2"$3').replace(/,\s*([}\]])/g, '$1').replace(/'([^'\\]*(?:\\.[^'\\]*)*)'/g, '"$1"'); return [noComments, fixed]; });
   },
 
   parseBossTextJobs(source) {
