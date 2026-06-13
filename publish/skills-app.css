@@ -123,12 +123,61 @@
   box-shadow: 0 0 0 2px rgba(116, 246, 255, .13);
 }
 
+.prompt-row {
+  cursor: pointer;
+}
+
 .prompt-title {
   width: 100%;
+  min-height: 34px;
+  align-items: center;
   border: 0;
   color: inherit;
   text-align: left;
   background: transparent;
+}
+
+.prompt-title em {
+  align-self: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(116, 246, 255, .1);
+}
+
+.prompt-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: max(16px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  background: rgba(0, 0, 0, .62);
+  backdrop-filter: blur(10px);
+}
+
+.prompt-modal {
+  width: min(860px, 100%);
+  max-height: min(720px, 92dvh);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 18px;
+  background: rgba(8, 15, 30, .97);
+  box-shadow: 0 24px 90px rgba(0, 0, 0, .5);
+}
+
+.prompt-modal header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.prompt-modal h3 {
+  margin: 0;
+  color: #fff;
 }
 
 .prompt-markdown {

@@ -24,6 +24,8 @@ window.GameModules.promptActions = {
   },
   promptCategories() { return [...new Set(window.GameModules.promptTemplates.list().map((item) => item.category))]; },
   isPromptOpen(id) { return this.promptState?.selectedId === id; },
+  currentPromptItem() { return window.GameModules.promptTemplates.find(this.promptState?.selectedId); },
+  closePromptDetail() { if (this.promptState) { this.promptState.selectedId = ''; this.promptState.selectedText = ''; this.promptState.error = ''; } },
   async togglePromptDetail(id) {
     this.initPromptApp();
     if (this.promptState.selectedId === id) { this.promptState.selectedId = ''; this.promptState.selectedText = ''; return; }
