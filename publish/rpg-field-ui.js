@@ -16,6 +16,37 @@ window.GameModules.rpgFieldUi = {
   canExpandRpgField(field) { return Boolean(field && this.rpgFieldDetail(field)); },
   isLexiconField(field) { return Boolean(field); },
 
+  profileIdentityFields(state, provided = []) {
+    if (Array.isArray(provided) && provided.length) return provided;
+    const p = state?.profile || {};
+    const worldTag = p.work || state?.worldTag || '原创世界';
+    const row = (key, label, value, desc) => ({ key: `profile-${state?.id || 'target'}-${key}`, label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: true });
+    return [
+      row('name', '姓名', p.name || state?.name, '角色卡固化姓名。'), row('work', '所属世界', worldTag, '角色出身作品或世界。'),
+      row('role', '身份', p.role || p.job, '角色当前身份。'), row('faction', '所属势力', p.faction, '角色当前阵营或社会位置。'),
+      row('job', '职业', p.job, '角色真实职业、训练身份或社会功能。'), row('rank', '等级/地位', p.rank, '角色职业等级或地位。'),
+      row('gender', '性别', p.gender, '角色性别资料。'), row('birthday', '生日', p.birthday, '角色生日资料。'),
+      row('detail', '人物说明', p.detail || p.personality, '角色卡补充说明。'),
+    ];
+  },
+
+  profileSections(state, identityFields = []) {
+    const entries = this.rpgEntries?.(state) || [];
+    const all = entries.flatMap((section) => section.fields || []);
+    const byKey = (key) => all.find((field) => field.key === key);
+    const take = (keys) => keys.map(byKey).filter(Boolean);
+    const used = new Set(['world_tag', 'age', 'factions', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'equipment', 'status_tags']);
+    const personal = all.filter((field) => !used.has(field.key));
+    const groups = [
+      { title: '个人能力', fields: personal },
+      { title: '身内能力', fields: take(['strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma']) },
+      { title: '装备', fields: take(['equipment']) },
+      { title: '状态标签', fields: take(['status_tags']) },
+      { title: '身份信息', fields: [...this.profileIdentityFields(state, identityFields), ...take(['world_tag', 'age', 'factions'])] },
+    ];
+    return groups.filter((group) => group.fields.length);
+  },
+
   lexiconKind(field, item = null) {
     if (item?.type) return item.type;
     if (field?.key && !item) return { knowledge: '知识树', skills: '技能树', professions: '职业树', factions: '阵营', equipment: '装备', status_tags: '状态' }[field.key] || field.kind || '属性';

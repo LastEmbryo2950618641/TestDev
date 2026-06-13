@@ -324,15 +324,7 @@
               </div>
               <div class="profile-content-fixed">
                 <div class="dynamic-rpg" x-show="$store.game.realWorldProfileViewMode === 'profile'">
-                  <section>
-                    <h3>基础身份</h3>
-                    <template x-for="field in $store.game.playerProfileLexiconFields()" :key="field.key">
-                      <div class="dynamic-row" role="button" tabindex="0" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.toggleRpgField(field)" @keydown.enter.prevent="$store.game.toggleRpgField(field)" @keydown.space.prevent="$store.game.toggleRpgField(field)">
-                        <button class="rpg-item-card lexicon-tag" type="button" @click.stop="$store.game.toggleRpgField(field)"><strong x-text="$store.game.rpgFieldSummary(field)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
-                      </div>
-                    </template>
-                  </section>
-                  <template x-for="section in $store.game.rpgEntries($store.game.playerIdentityState())" :key="`player-${section.title}`">
+                  <template x-for="section in $store.game.profileSections($store.game.playerIdentityState(), $store.game.playerProfileLexiconFields())" :key="`player-${section.title}`">
                     <section>
                       <h3 x-text="section.title"></h3>
                       <template x-for="field in section.fields" :key="`player-${section.title}:${field.key}`">
@@ -487,14 +479,9 @@
       </header>
       <section class="identity-profile dev-section" data-section-title="身份资料区">
         <strong x-text="$store.game.identityTargetProfile().name"></strong>
-        <div class="profile-lexicon-list">
-          <template x-for="field in $store.game.identityTargetFields()" :key="field.key">
-            <button class="rpg-item-card lexicon-tag" type="button" @click="$store.game.toggleRpgField(field)"><strong x-text="`${field.label}：${field.value}`"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
-          </template>
-        </div>
       </section>
       <section class="identity-rpg dev-section" data-section-title="身份属性与升级体系区">
-        <template x-for="section in $store.game.rpgEntries($store.game.identityTargetState())" :key="section.title">
+        <template x-for="section in $store.game.profileSections($store.game.identityTargetState(), $store.game.identityTargetFields())" :key="section.title">
           <article class="identity-rpg-section dev-section" :data-section-title="`${section.title}区`">
             <h3 x-text="section.title"></h3>
             <template x-for="field in section.fields" :key="field.key">
@@ -1002,7 +989,7 @@
             </div>
             <div class="profile-content-fixed">
             <div class="dynamic-rpg" x-show="$store.game.profileViewMode === 'profile'">
-              <template x-for="section in $store.game.rpgEntries($store.game.currentRpgState)" :key="section.title">
+              <template x-for="section in $store.game.profileSections($store.game.currentRpgState)" :key="section.title">
                 <section>
                   <h3 x-text="section.title"></h3>
                   <template x-for="field in section.fields" :key="`${section.title}:${field.key}`">
