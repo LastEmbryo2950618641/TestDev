@@ -5,6 +5,7 @@ window.GameModules.factionActions = {
     const base = window.GameModules.factionSystem.defaultState(this.playerProfile || {});
     this.factionState = { ...base, ...(this.factionState || {}) };
     this.factionState.factions = this.factionState.factions?.length ? this.factionState.factions : base.factions;
+    this.factionState.factions = this.factionState.factions.map((faction) => ({ ...faction, fieldReasons: this.completeFactionReasons?.(faction, faction.fieldReasons) || faction.fieldReasons || {} }));
     this.syncCompanyFaction?.();
   },
 
@@ -14,7 +15,9 @@ window.GameModules.factionActions = {
     if (!c) return;
     const item = this.factionState.factions.find((x) => x.id === 'company-main');
     if (!item) return;
-    Object.assign(item, { name: c.name, type: c.type || item.type, location: c.location || item.location, domain: c.industry || item.domain, parentId: 'country-china', parentName: '中华人民共和国' });
+    const updates = { name: c.name, type: c.type || item.type, location: c.location || item.location, domain: c.industry || item.domain, parentId: 'country-china', parentName: '中华人民共和国' };
+    Object.assign(item, updates);
+    item.fieldReasons = this.completeFactionReasons?.(item, item.fieldReasons, '根据当前公司系统上下文同步并固化。') || item.fieldReasons || {};
   },
 
   openFactionApp() {

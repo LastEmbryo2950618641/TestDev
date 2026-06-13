@@ -17,7 +17,7 @@ window.GameModules.factionSystem = {
         { name: '地方层级', roles: ['省市区县', '基层治理', profile.refinedCity || profile.city || '玩家所在地'] },
       ],
       rules: ['所有公司、学校、工作室等现实组织默认归属于所在国家。', '国家级规则优先于普通组织规则。'],
-      resources: ['法律体系', '行政资源', '公共基础设施'], relations: [], fixed: true, updatedAt: new Date().toISOString(),
+      resources: ['法律体系', '行政资源', '公共基础设施'], relations: [], fieldReasons: this.defaultReasons('国家级上下文初始化字段，作为公司等现实组织归属基准。'), fixed: true, updatedAt: new Date().toISOString(),
     };
   },
 
@@ -27,7 +27,14 @@ window.GameModules.factionSystem = {
       id: 'company-main', name, type: /工作室|studio/i.test(name) ? '工作室' : '公司', parentId, parentName: '中华人民共和国', level: '公司级',
       location: profile.refinedCity || profile.city || '现实城市未登记', domain: '现代服务业', scale: '中小型', stance: '雇佣与经营', influence: 35,
       description: '玩家当前工作或默认关联的公司势力，归属于国家级势力。',
-      structure: [], rules: ['内部组织结构由AI按现实合理性生成后固化。'], resources: ['雇佣关系', '薪酬制度', '工作任务'], relations: [], fixed: true, updatedAt: new Date().toISOString(),
+      structure: [], rules: ['内部组织结构由AI按现实合理性生成后固化。'], resources: ['雇佣关系', '薪酬制度', '工作任务'], relations: [], fieldReasons: this.defaultReasons('当前公司上下文初始化字段，后续由AI全量检视补全理由与组织构成。'), fixed: true, updatedAt: new Date().toISOString(),
     };
+  },
+
+  defaultReasons(text) {
+    return ['name', 'type', 'parentId', 'parentName', 'level', 'location', 'domain', 'scale', 'stance', 'influence', 'description', 'structure', 'rules', 'resources', 'relations'].reduce((out, key) => {
+      out[key] = text;
+      return out;
+    }, {});
   },
 };

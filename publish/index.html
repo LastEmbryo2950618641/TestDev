@@ -642,9 +642,10 @@
   <section x-show="!$store.game.loading && $store.game.factionState?.open" class="faction-app-screen app-window section-hints" x-cloak>
     <div class="faction-card dev-section" data-section-title="势力主面板">
       <header class="identity-header"><div><p class="eyebrow">FACTIONS</p><h2>势力</h2><small>国家、公司、工作室、学校等组织均为势力，必须有归属字段</small></div><button class="small-btn" type="button" @click="$store.game.closeFactionApp()">回到桌面</button></header>
-      <section class="faction-toolbar dev-section" data-section-title="势力生成区">
+      <section class="faction-toolbar dev-section" data-section-title="势力初始化与审计区">
         <input x-model="$store.game.factionState.customPrompt" placeholder="输入调整要求，例如：补全本地政府、行业协会、上级集团、竞争公司">
-        <button type="button" @click="$store.game.generateFactionsByAI()" :disabled="$store.game.factionState.generating" x-text="$store.game.factionState.generating ? 'AI推演中…约30秒' : 'AI推演/调整势力'"></button>
+        <button type="button" @click="$store.game.generateFactionsByAI()" :disabled="$store.game.factionState.generating" x-text="$store.game.factionState.generating ? '全量检视中…约30秒' : '初始化/全量检视势力'"></button>
+        <p class="faction-note">数据库无该势力时按上下文初始化并固化；已有势力只允许有理由地调整或增加词条。</p>
       </section>
       <main class="faction-body">
         <section class="faction-list dev-section" data-section-title="势力列表区">
@@ -656,8 +657,10 @@
         <section class="faction-detail dev-section" data-section-title="势力详情区" x-show="$store.game.selectedFaction()">
           <article class="faction-panel"><h3 x-text="$store.game.selectedFaction()?.name"></h3><p x-text="$store.game.selectedFaction()?.description"></p></article>
           <div class="faction-meta"><article class="faction-panel"><strong>类型</strong><p x-text="$store.game.selectedFaction()?.type"></p></article><article class="faction-panel"><strong>归属</strong><p x-text="$store.game.factionParentName($store.game.selectedFaction())"></p></article><article class="faction-panel"><strong>领域</strong><p x-text="$store.game.selectedFaction()?.domain"></p></article><article class="faction-panel"><strong>影响力</strong><p x-text="$store.game.selectedFaction()?.influence"></p></article></div>
-          <section class="faction-panel"><h3>组织架构</h3><p class="faction-note">架构显示样式固定，具体内容由AI推演后固化。</p><div class="faction-structure"><template x-for="node in ($store.game.selectedFaction()?.structure || [])" :key="node.name"><article><h4 x-text="node.name"></h4><p x-text="(node.roles || []).join('、')"></p></article></template><p x-show="!($store.game.selectedFaction()?.structure || []).length">暂无架构，点击AI推演/调整势力生成。</p></div></section>
+          <section class="faction-panel"><h3>组织架构</h3><p class="faction-note">架构显示样式固定，具体内容由AI推演后固化。</p><div class="faction-structure"><template x-for="node in ($store.game.selectedFaction()?.structure || [])" :key="node.name"><article><h4 x-text="node.name"></h4><p x-text="(node.roles || []).join('、')"></p></article></template><p x-show="!($store.game.selectedFaction()?.structure || []).length">暂无架构，点击初始化/全量检视势力生成。</p></div></section>
           <section class="faction-panel"><h3>规则 / 资源 / 下级势力</h3><ul><li x-text="`规则：${($store.game.selectedFaction()?.rules || []).join('；') || '暂无'}`"></li><li x-text="`资源：${($store.game.selectedFaction()?.resources || []).join('、') || '暂无'}`"></li><li x-text="`下级势力：${$store.game.factionChildren($store.game.selectedFaction()?.id).map(x => x.name).join('、') || '无'}`"></li></ul></section>
+          <section class="faction-panel"><h3>全量词条理由</h3><div class="faction-reasons"><template x-for="field in Object.keys($store.game.selectedFaction()?.fieldReasons || {})" :key="field"><p><b x-text="field"></b><span x-text="$store.game.selectedFaction()?.fieldReasons?.[field]"></span></p></template></div></section>
+          <section class="faction-panel"><h3>调整/新增记录</h3><div class="faction-reasons"><template x-for="log in ($store.game.selectedFaction()?.changeLog || []).slice(0, 12)" :key="`${log.at}-${log.field}-${log.action}`"><p><b x-text="`${log.action}:${log.field}`"></b><span x-text="log.reason"></span></p></template><p x-show="!($store.game.selectedFaction()?.changeLog || []).length">暂无调整记录。</p></div></section>
         </section>
       </main>
     </div>
