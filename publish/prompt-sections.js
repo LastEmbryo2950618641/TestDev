@@ -33,7 +33,7 @@ window.GameModules.promptSections = {
 
   characterBase(base) {
     return this.lines([
-      ['候选姓名', base.name], ['候选性别', base.gender], ['身份/关系/叙事定位', base.role], ['人物背景摘要', base.detail],
+      ['候选姓名', base.name], ['候选性别', base.gender], ['候选年龄', base.age], ['身份/关系/叙事定位', base.role], ['人物背景摘要', base.detail],
       ['外貌线索', base.appearance], ['性格线索', base.personality], ['所属作品或世界', base.work], ['命名要求', base.nameRule], ['已整理关系', base.relationships],
     ]);
   },

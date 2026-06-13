@@ -1,15 +1,11 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.rpgState = {
-  baseSchema(worldTag, attrs) {
-    return this.validateSchema({ worldTag, sections: window.GameModules.progression.schemaSections(attrs) }, worldTag);
-  },
-
   async ensureWorldAttributes(worldTag) {
     const save = window.GameModules.sqliteSave;
     const attrs = window.GameModules.worldAttributes.defaults(worldTag);
     const existing = save.getWorldAttributes(worldTag);
-    if (existing && this.sameFields(existing.fields, attrs.fields)) return existing;
+    if (existing && window.GameModules.rpgSchema.sameFields(existing.fields, attrs.fields)) return existing;
     await save.saveWorldAttributes(worldTag, attrs);
     return attrs;
   },
@@ -18,46 +14,11 @@ window.GameModules.rpgState = {
     const save = window.GameModules.sqliteSave;
     const attrs = await this.ensureWorldAttributes(worldTag);
     const existing = save.getSchema(worldTag);
-    const schema = this.baseSchema(worldTag, attrs);
+    const schema = window.GameModules.rpgSchema.base(worldTag, attrs);
     const schemaFields = schema.sections.flatMap((section) => section.fields);
-    if (existing && this.schemaMatchesAttrs(existing, { fields: schemaFields })) return existing;
+    if (existing && window.GameModules.rpgSchema.matchesAttrs(existing, { fields: schemaFields })) return existing;
     console.log('[RPG状态] 固化世界属性 schema:', worldTag, attrs.fields?.length || 0);
     await save.saveSchema(worldTag, schema);
-    return schema;
-  },
-
-  schemaMatchesAttrs(schema, attrs) {
-    const fields = schema.sections?.flatMap((section) => section.fields) || [];
-    return (attrs.fields || []).every((field) => {
-      const current = fields.find((item) => item.key === field.key);
-      return current && current.type === field.type && (current.desc || '') === (field.desc || '') && Boolean(current.grade) === Boolean(field.grade);
-    });
-  },
-
-  sameFields(left, right) {
-    const sig = (fields) => (fields || []).map((field) => [field.key, field.type, field.desc || '', field.grade ? 1 : 0].join(':')).join('|');
-    return sig(left) === sig(right);
-  },
-
-  validateSchema(schema, worldTag) {
-    if (!Array.isArray(schema.sections)) throw new Error('schema sections invalid');
-    schema.worldTag = worldTag;
-    schema.sections = schema.sections.slice(0, 4).map((section, si) => ({
-      title: String(section.title || `状态${si + 1}`).slice(0, 12),
-      fields: (section.fields || []).slice(0, section.title === '基础能力' ? 15 : (section.title === '世界固有属性' ? 16 : 10)).map((field, fi) => ({
-        key: /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(field.key) ? field.key : `field_${si}_${fi}`,
-        label: String(field.label || field.key || '状态').slice(0, 12),
-        type: ['number', 'rank', 'list', 'text'].includes(field.type) ? field.type : 'number',
-        min: Number.isFinite(field.min) ? field.min : 0,
-        max: Number.isFinite(field.max) ? field.max : 100,
-        desc: String(field.desc || '').slice(0, 100),
-        grade: Boolean(field.grade),
-      })),
-    })).filter((section) => section.fields.length);
-    if (!schema.sections.length) throw new Error('schema empty');
-    if (!schema.sections.some((section) => section.fields.some((field) => field.key === 'age'))) {
-      schema.sections[0].fields.unshift({ key: 'age', label: '年龄', type: 'number', min: 0, max: 999 });
-    }
     return schema;
   },
 
@@ -105,14 +66,16 @@ window.GameModules.rpgState = {
   },
   updateExistingCharacter(state, character, store = null) {
     if (!state?.values || !store) return false;
+    const profile = character || state.profile || {};
     const seed = this.seed(`${state.name}${state.worldTag}${store.entryCurrentAction || ''}${store.entryTimeLabel?.() || ''}`);
-    return Boolean(window.GameModules.rpgInitializer?.updateExisting(state, character || state.profile || {}, store, seed));
+    const updated = Boolean(window.GameModules.rpgInitializer?.updateExisting(state, profile, store, seed));
+    return window.GameModules.rpgAge.sync(state.values, profile, store) || updated;
   },
 
   upgradeCharacterState(state, schema) {
     let changed = false;
     state.worldTag = schema.worldTag;
-    if (!state.schema || !this.schemaMatchesAttrs(state.schema, { fields: schema.sections.flatMap((section) => section.fields) })) {
+    if (!state.schema || !window.GameModules.rpgSchema.matchesAttrs(state.schema, { fields: schema.sections.flatMap((section) => section.fields) })) {
       state.schema = schema;
       changed = true;
     }
@@ -177,8 +140,7 @@ window.GameModules.rpgState = {
     values.derived = window.GameModules.progression.derived(values);
     values.combat_simulation = window.GameModules.progression.defaultCombat(values);
     Object.assign(values, character.worldValues || {});
-    const age = parseInt(String(store?.characterAge || ''), 10);
-    if (Number.isFinite(age)) { values.age = age; values.age_label = `${age}岁`; }
+    window.GameModules.rpgAge.sync(values, character, store);
     values.status_tags = [character.role, character.importance === 'minor' ? '路人' : '可被操控', schema.worldTag];
     values.control_experience = { onlineCount: 0, feeling: '未知', adaptation: 0, summary: '尚未经历上线操控。', lastUpdated: '' };
     const state = {
@@ -196,6 +158,7 @@ window.GameModules.rpgState = {
     this.ensureCharacterMetrics(state);
     return state;
   },
+
 
   valueFor(field, seed) {
     if (field.type === 'number') return field.min + (seed % ((field.max - field.min) + 1));
