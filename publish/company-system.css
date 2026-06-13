@@ -54,7 +54,8 @@
 .contract-list,
 .org-chart,
 .org-job-list,
-.company-tools {
+.company-tools,
+.employment-records {
   display: grid;
   gap: 8px;
 }
@@ -67,7 +68,9 @@
 .contract-card,
 .org-dept-card,
 .org-job-card,
+.record-card,
 .tool-card,
+.company-empty,
 .work-dialog {
   padding: 12px;
   border: 1px solid rgba(255, 255, 255, .12);
@@ -75,9 +78,24 @@
   background: rgba(255, 255, 255, .06);
 }
 
-.tool-card p {
+.tool-card p,
+.record-card p,
+.company-empty {
   color: #aeb9d6;
   line-height: 1.5;
+}
+
+.record-card p {
+  display: grid;
+  gap: 5px;
+}
+
+.record-card b {
+  width: fit-content;
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: #07141d;
+  background: #74f6ff;
 }
 
 .danger-btn {

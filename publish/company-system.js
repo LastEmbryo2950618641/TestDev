@@ -13,8 +13,13 @@ window.GameModules.companySystem = {
       companies: [this.defaultCompany(companyName, profile)],
       contracts: [],
       submissions: [],
-      employment: { active: true, resignedAt: '', resignedCompany: '' },
+      employment: { active: true, startAt: new Date().toISOString(), resignedAt: '', resignedCompany: '' },
+      employmentRecords: [this.defaultEmploymentRecord(companyName)],
     };
+  },
+
+  defaultEmploymentRecord(companyName) {
+    return { id: `job-${Date.now()}`, company: companyName, status: '在职', startAt: new Date().toISOString(), endAt: '', duration: '' };
   },
 
   defaultCompany(name, profile = {}) {
