@@ -25,7 +25,7 @@ window.GameModules.skillsActions = {
   skillsList() {
     this.initSkillsApp();
     const q = String(this.skillsState.query || '').trim().toLowerCase();
-    return window.GameModules.skillsApp.definitions.filter((skill) => {
+    return window.GameModules.skillsApp.definitions().filter((skill) => {
       const matchesCategory = !this.skillsState.category || skill.category === this.skillsState.category;
       const haystack = [skill.name, skill.category, skill.method, skill.description, skill.detail].join(' ').toLowerCase();
       return matchesCategory && (!q || haystack.includes(q));
@@ -33,7 +33,7 @@ window.GameModules.skillsActions = {
   },
 
   skillCategories() {
-    return [...new Set(window.GameModules.skillsApp.definitions.map((skill) => skill.category))];
+    return [...new Set(window.GameModules.skillsApp.definitions().map((skill) => skill.category))];
   },
 
   selectedSkill() {
