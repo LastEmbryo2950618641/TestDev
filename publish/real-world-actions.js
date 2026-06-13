@@ -66,7 +66,7 @@ window.GameModules.realWorldActions = {
       const prompt = window.GameModules.createRealWorldPrompt(this, text);
       entry.promptPack = { systemPrompt: prompt, userPrompt: text, model: this.modelId, promptTokens: Math.ceil(prompt.length / 2) };
       const result = await window.GameModules.realWorldAi.generate(this, prompt, text);
-      this.applyRealWorldResult(entry.id, result);
+      await this.applyRealWorldResult(entry.id, result);
       await this.recordPlayerRealWorldMemory(text, result);
       await this.save();
     } finally {
@@ -74,7 +74,8 @@ window.GameModules.realWorldActions = {
     }
   },
 
-  applyRealWorldResult(id, result) {
+  async applyRealWorldResult(id, result) {
+    await window.GameModules.rpgLexicon.applyLexiconSkill?.(result.lexiconUpdates || []);
     this.advancePhoneTime(result.elapsedSeconds || 300);
     this.checkWorkReminder?.();
     this.realWorldSceneTitle = result.sceneTitle || this.realWorldSceneTitle;

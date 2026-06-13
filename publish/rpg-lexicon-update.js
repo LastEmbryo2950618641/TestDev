@@ -2,16 +2,9 @@ window.GameModules = window.GameModules || {};
 
 Object.assign(window.GameModules.rpgLexicon, {
   async applyAiUpdates(updates = []) {
-    const save = window.GameModules.sqliteSave;
-    if (!save.db || !Array.isArray(updates)) return [];
-    const changed = [];
-    for (const patch of updates) {
-      const next = this.mergeAiPatch(patch);
-      if (!next) continue;
-      await save.saveLexiconEntry(next);
-      changed.push(next);
-    }
-    return changed;
+    if (!Array.isArray(updates)) return [];
+    const entries = updates.map((patch) => this.mergeAiPatch(patch)).filter(Boolean);
+    return this.applyLexiconSkill?.(entries) || [];
   },
 
   mergeAiPatch(patch) {

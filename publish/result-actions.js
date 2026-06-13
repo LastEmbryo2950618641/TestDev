@@ -14,6 +14,7 @@ window.GameModules.resultActions = {
     this.updateFeedbackFromResult(result);
     this.choices = result.choices;
     this.applyMetricUpdates(result.metricUpdates);
+    await this.applyLexiconUpdatesFromResult(result);
     await window.GameModules.entryTime.advance(this, result.elapsedSeconds || 60);
     this.advancePhoneTime?.(result.elapsedSeconds || 60);
     this.checkWorkReminder?.();
@@ -45,6 +46,11 @@ window.GameModules.resultActions = {
     window.GameModules.metrics.apply(this, updates);
     this.metricsReady = true;
     this.syncMetricDerived();
+  },
+
+  async applyLexiconUpdatesFromResult(result) {
+    if (!Array.isArray(result.lexiconUpdates) || !result.lexiconUpdates.length) return;
+    await window.GameModules.rpgLexicon.applyLexiconSkill(result.lexiconUpdates);
   },
 
   applyInitialMetrics(updates) {

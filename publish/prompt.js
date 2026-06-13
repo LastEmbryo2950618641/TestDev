@@ -39,6 +39,7 @@ window.GameModules.createSystemPrompt = function createSystemPrompt(state, actio
     appearedCharacters: [{ name: '姓名', role: '身份', detail: '基础资料', personality: '性格', work: '所属作品或世界', isMinor: true, importance: 'minor' }],
     statChanges: { health: 0, stamina: 0, mental_stability: 0 },
     combatEvent: { summary: '若发生攻防则描述', attackPower: 0, defensePower: 0, effectiveDamage: 0 },
+    lexiconUpdates: [{ worldTag: character.work || '原创世界', kind: '状态', name: '词条名', value: '新值', summary: '摘要', description: '说明', reason: '为什么本回合必须修改或新增该词条' }],
   });
   return `# 【AI角色设定】
 
@@ -183,7 +184,6 @@ ${Object.entries(metricDefs).map(([k, v]) => `- ${k}：${v}`).join('\n')}
 5. 不要返回“放开控制”，该选项由界面固定提供。
 
 # 【输出格式】
-
 ## JSON要求:
 1. 必须只返回合法 JSON，不要 Markdown，不要代码块。
 2. 所有 key 必须使用英文双引号；字符串值也必须使用英文双引号。
@@ -191,6 +191,9 @@ ${Object.entries(metricDefs).map(([k, v]) => `- ${k}：${v}`).join('\n')}
 4. 除 narration、mind、choices 这类本回合必须展示的内容外，任何字段若没有新信息、没有变化或不需要更改，都可以省略。
 5. 不要为了凑格式返回空字符串、0 或重复旧值。
 6. 数值字段一旦返回就必须填真实数字，不要填中文占位词。
+
+## 词条修改Skill:
+所有词条调整都必须通过 lexiconUpdates 批量提交；每条含 worldTag、kind、name、value、reason。无明确事实变化不要返回。
 
 ## 格式示例:
 ${outputJson}`;

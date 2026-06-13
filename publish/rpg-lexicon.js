@@ -116,29 +116,11 @@ window.GameModules.rpgLexicon = {
   },
 
   async save(worldTag, kind, name, data) {
-    const clean = this.normalizeName(name);
-    const old = this.get(worldTag, kind, clean);
-    const promptInstruction = this.shouldRefreshPromptInstruction(old?.promptInstruction) ? (data?.promptInstruction || this.defaultPromptInstruction(kind, clean)) : old?.promptInstruction;
-    const entry = this.entry(worldTag, kind, clean, { ...data, nameAiGenerated: (old?.nameAiGenerated || old?.aiGenerated) ? true : (data?.nameAiGenerated ?? data?.aiGenerated), valueAiGenerated: old?.valueAiGenerated ? true : (data?.valueAiGenerated ?? data?.aiGenerated), changeMode: old?.changeMode || data?.changeMode, hierarchy: old?.hierarchy || data?.hierarchy, promptInstruction });
-    if (!entry) return null;
-    await window.GameModules.sqliteSave.saveLexiconEntry?.(entry);
-    return entry;
+    const changed = await this.applyLexiconSkill?.([{ worldTag, kind, name, ...(data || {}) }]);
+    return changed?.[0] || null;
   },
 
   async saveMany(entries) {
-    const save = window.GameModules.sqliteSave;
-    if (!save.db || !entries.length) return;
-    const now = new Date().toISOString();
-    for (const raw of entries) {
-      const old = this.get(raw.worldTag, raw.kind, raw.name);
-      const promptInstruction = this.shouldRefreshPromptInstruction(old?.promptInstruction) ? (raw.promptInstruction || this.defaultPromptInstruction(raw.kind, this.normalizeName(raw.name))) : old?.promptInstruction;
-      const entry = this.entry(raw.worldTag, raw.kind, raw.name, { ...raw, nameAiGenerated: (old?.nameAiGenerated || old?.aiGenerated) ? true : (raw.nameAiGenerated ?? raw.aiGenerated), valueAiGenerated: old?.valueAiGenerated ? true : (raw.valueAiGenerated ?? raw.aiGenerated), changeMode: old?.changeMode || raw.changeMode, hierarchy: old?.hierarchy || raw.hierarchy, promptInstruction });
-      if (!entry) continue;
-      save.db.run(
-        'INSERT OR REPLACE INTO lexicon_entries(world_tag,kind,name,entry_json,source,created_at,updated_at) VALUES (?,?,?,?,?,COALESCE((SELECT created_at FROM lexicon_entries WHERE world_tag=? AND kind=? AND name=?),?),?)',
-        [entry.worldTag, entry.kind, entry.name, JSON.stringify(entry), entry.source, entry.worldTag, entry.kind, entry.name, now, now],
-      );
-    }
-    await save.persist();
+    return this.applyLexiconSkill?.(entries) || [];
   },
 };

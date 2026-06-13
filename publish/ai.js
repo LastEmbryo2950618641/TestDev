@@ -103,8 +103,10 @@ window.GameModules.ai = {
       appearedCharacters: Array.isArray(data.appearedCharacters) ? data.appearedCharacters.slice(0, 6).map((x) => this.normalizeCharacter(x, store)).filter(Boolean) : fallback.appearedCharacters,
       statChanges: { health: this.clampVitalDelta(changes.health), stamina: this.clampVitalDelta(changes.stamina), mental_stability: this.clampVitalDelta(changes.mental_stability) },
       combatEvent: this.normalizeCombatEvent(data.combatEvent),
+      lexiconUpdates: this.normalizeLexiconUpdates(data.lexiconUpdates, store),
     };
   },
+
 
   normalizeMetricUpdates(value) {
     const source = value || {};

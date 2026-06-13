@@ -43,6 +43,7 @@ window.GameModules.realWorldAi = {
         quest: String(data.quest || '确认现实处境').slice(0, 24),
         choices: this.normalizeChoices(data.choices),
         elapsedSeconds: window.GameModules.ai.clampElapsed?.(data.elapsedSeconds, 300) || 300,
+        lexiconUpdates: window.GameModules.ai.normalizeLexiconUpdates?.(data.lexiconUpdates, store) || [],
       };
     } catch (err) {
       console.warn('现实世界返回解析失败，使用兜底:', err.message);

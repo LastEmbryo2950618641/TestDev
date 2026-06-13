@@ -20,6 +20,7 @@ window.GameModules.createRealWorldPrompt = function createRealWorldPrompt(state,
     status: '现实状态简述',
     quest: '新的现实目标',
     choices: ['处理现实事务', '联系某个人', '观察周围', '暂时休息'],
+    lexiconUpdates: [{ worldTag: realWorld.label || '2026 现代都市现实世界', kind: '玩家设定', name: '词条名', value: '新值', summary: '摘要', description: '说明', reason: '为什么现实行动导致该词条需要修改或新增' }],
   });
   return `# 【现实世界推演引擎】
 
@@ -58,6 +59,7 @@ ${action || '继续观察现实世界'}
 5. elapsedSeconds 是本次现实行动实际消耗的时间，必须按行动强度给出：看一眼/发消息30-180秒，简单事务5-30分钟，通勤/购物/上班30分钟到8小时，睡觉1-10小时。
 6. choices 必须给出四个现实世界下一步行动。
 7. 必须只返回合法 JSON，不要 Markdown，不要代码块。
+8. 现实世界中任何玩家资料、公司、职业、状态、阵营等词条变化，都必须通过 lexiconUpdates 批量提交；每条必须写 reason，没有明确事实变化就不要返回。
 
 # 【输出格式】
 ${outputJson}`;
