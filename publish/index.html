@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="company-system.css">
   <link rel="stylesheet" href="boss-recruitment.css">
   <link rel="stylesheet" href="calendar-system.css">
+  <link rel="stylesheet" href="faction-system.css">
   <link rel="stylesheet" href="skills-app.css">
   <link rel="stylesheet" href="character-select.css">
   <link rel="stylesheet" href="profile-preview.css">
@@ -89,6 +90,9 @@
   <script src="boss-ai-actions.js"></script>
   <script src="calendar-system.js"></script>
   <script src="calendar-actions.js"></script>
+  <script src="faction-system.js"></script>
+  <script src="faction-actions.js"></script>
+  <script src="faction-ai-actions.js"></script>
   <script src="skills-definitions-core.js"></script>
   <script src="skills-definitions-apps.js"></script>
   <script src="skills-definitions-boss-save.js"></script>
@@ -457,6 +461,10 @@
           <span class="app-glyph">历</span>
           <b>日历</b>
         </button>
+        <button class="desktop-app-icon faction-icon" type="button" @click="$store.game.openFactionApp()" aria-label="打开势力">
+          <span class="app-glyph">势</span>
+          <b>势力</b>
+        </button>
         <button class="desktop-app-icon skills-icon" type="button" @click="$store.game.openSkillsApp()" aria-label="打开Skills">
           <span class="app-glyph">技</span>
           <b>Skills</b>
@@ -468,7 +476,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.identityAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.skillsState?.open" class="identity-app-screen app-window section-hints" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.identityAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open" class="identity-app-screen app-window section-hints" x-cloak>
     <div class="identity-card dev-section" data-section-title="身份证主面板">
       <header class="identity-header dev-section" data-section-title="身份证标题区">
         <div><p class="eyebrow">ID CARD</p><h2>身份证</h2><small x-text="$store.game.identityTargetProfile().work || '现实世界'"></small></div>
@@ -631,6 +639,30 @@
     </div>
   </section>
 
+  <section x-show="!$store.game.loading && $store.game.factionState?.open" class="faction-app-screen app-window section-hints" x-cloak>
+    <div class="faction-card dev-section" data-section-title="势力主面板">
+      <header class="identity-header"><div><p class="eyebrow">FACTIONS</p><h2>势力</h2><small>国家、公司、工作室、学校等组织均为势力，必须有归属字段</small></div><button class="small-btn" type="button" @click="$store.game.closeFactionApp()">回到桌面</button></header>
+      <section class="faction-toolbar dev-section" data-section-title="势力生成区">
+        <input x-model="$store.game.factionState.customPrompt" placeholder="输入调整要求，例如：补全本地政府、行业协会、上级集团、竞争公司">
+        <button type="button" @click="$store.game.generateFactionsByAI()" :disabled="$store.game.factionState.generating" x-text="$store.game.factionState.generating ? 'AI推演中…约30秒' : 'AI推演/调整势力'"></button>
+      </section>
+      <main class="faction-body">
+        <section class="faction-list dev-section" data-section-title="势力列表区">
+          <p class="faction-note" x-show="$store.game.factionState.error" x-text="$store.game.factionState.error"></p>
+          <template x-for="faction in $store.game.factionState.factions" :key="faction.id">
+            <button class="faction-row" type="button" :class="{ active: $store.game.selectedFaction()?.id === faction.id }" @click="$store.game.selectFaction(faction.id)"><strong x-text="faction.name"></strong><small x-text="`${faction.type}｜${faction.level}｜归属：${$store.game.factionParentName(faction)}`"></small></button>
+          </template>
+        </section>
+        <section class="faction-detail dev-section" data-section-title="势力详情区" x-show="$store.game.selectedFaction()">
+          <article class="faction-panel"><h3 x-text="$store.game.selectedFaction()?.name"></h3><p x-text="$store.game.selectedFaction()?.description"></p></article>
+          <div class="faction-meta"><article class="faction-panel"><strong>类型</strong><p x-text="$store.game.selectedFaction()?.type"></p></article><article class="faction-panel"><strong>归属</strong><p x-text="$store.game.factionParentName($store.game.selectedFaction())"></p></article><article class="faction-panel"><strong>领域</strong><p x-text="$store.game.selectedFaction()?.domain"></p></article><article class="faction-panel"><strong>影响力</strong><p x-text="$store.game.selectedFaction()?.influence"></p></article></div>
+          <section class="faction-panel"><h3>组织架构</h3><p class="faction-note">架构显示样式固定，具体内容由AI推演后固化。</p><div class="faction-structure"><template x-for="node in ($store.game.selectedFaction()?.structure || [])" :key="node.name"><article><h4 x-text="node.name"></h4><p x-text="(node.roles || []).join('、')"></p></article></template><p x-show="!($store.game.selectedFaction()?.structure || []).length">暂无架构，点击AI推演/调整势力生成。</p></div></section>
+          <section class="faction-panel"><h3>规则 / 资源 / 下级势力</h3><ul><li x-text="`规则：${($store.game.selectedFaction()?.rules || []).join('；') || '暂无'}`"></li><li x-text="`资源：${($store.game.selectedFaction()?.resources || []).join('、') || '暂无'}`"></li><li x-text="`下级势力：${$store.game.factionChildren($store.game.selectedFaction()?.id).map(x => x.name).join('、') || '无'}`"></li></ul></section>
+        </section>
+      </main>
+    </div>
+  </section>
+
   <section x-show="!$store.game.loading && $store.game.skillsState?.open" class="skills-app-screen app-window section-hints" x-cloak>
     <div class="skills-card dev-section" data-section-title="Skills主面板">
       <header class="identity-header dev-section" data-section-title="Skills标题区">
@@ -670,7 +702,7 @@
     </section>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.wechatAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.skillsState?.open" class="wechat-app-screen app-window section-hints" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.wechatAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open" class="wechat-app-screen app-window section-hints" x-cloak>
     <div class="wechat-phone dev-section" data-section-title="微信模拟界面">
       <header class="wechat-top" x-show="$store.game.wechatView === 'home'">
         <button type="button" @click="$store.game.closeWechatApp()">返回桌面</button><strong></strong><button type="button">⋯</button>
@@ -758,7 +790,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.skillsState?.open && !$store.game.entrySetupOpen" class="start-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.entrySetupOpen" class="start-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <div class="start-card dev-section" data-section-title="首页选择面板">
       <button class="back-desktop-btn" type="button" @click="$store.game.closeAppToDesktop()">返回桌面</button>
       <p class="eyebrow">AI RPG 视觉小说</p>
@@ -830,7 +862,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.skillsState?.open && $store.game.entrySetupOpen" class="start-screen entry-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && $store.game.entrySetupOpen" class="start-screen entry-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <div class="start-card entry-card dev-section" data-section-title="进入时机配置区">
       <button class="back-desktop-btn" type="button" @click="$store.game.closeAppToDesktop()" :disabled="$store.game.busy">返回桌面</button>
       <button class="back-home-btn" type="button" @click="$store.game.backToHome()" :disabled="$store.game.busy">← 返回首页</button>
@@ -875,7 +907,7 @@
     </div>
   </section>
 
-  <main x-show="$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.skillsState?.open" class="game-shell app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <main x-show="$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open" class="game-shell app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <header class="top-bar dev-section" data-section-title="顶部状态栏">
       <div class="mode-status">
         <span class="mode-dot" :class="$store.game.online ? 'online' : 'offline'"></span>

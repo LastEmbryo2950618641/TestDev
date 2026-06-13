@@ -1,0 +1,33 @@
+window.GameModules = window.GameModules || {};
+
+window.GameModules.factionSystem = {
+  defaultState(profile = {}) {
+    const country = this.countryFaction(profile);
+    const company = this.companyFaction(profile, country.id);
+    return { open: false, generating: false, error: '', requestId: 0, selectedId: company.id, customPrompt: '', factions: [country, company] };
+  },
+
+  countryFaction(profile = {}) {
+    return {
+      id: 'country-china', name: '中华人民共和国', type: '国家', parentId: '', parentName: '无势力归属', level: '国家级',
+      location: '东亚', domain: '国家治理', scale: '超大型', stance: '现实秩序维护', influence: 95,
+      description: '玩家所在现代现实世界的国家级势力，提供法律、行政区划、公共服务和节假日规则。',
+      structure: [
+        { name: '中央层级', roles: ['国家机构', '宏观政策', '公共秩序'] },
+        { name: '地方层级', roles: ['省市区县', '基层治理', profile.refinedCity || profile.city || '玩家所在地'] },
+      ],
+      rules: ['所有公司、学校、工作室等现实组织默认归属于所在国家。', '国家级规则优先于普通组织规则。'],
+      resources: ['法律体系', '行政资源', '公共基础设施'], relations: [], fixed: true, updatedAt: new Date().toISOString(),
+    };
+  },
+
+  companyFaction(profile = {}, parentId = 'country-china') {
+    const name = profile.workplace || '成都星河云栈科技有限公司';
+    return {
+      id: 'company-main', name, type: /工作室|studio/i.test(name) ? '工作室' : '公司', parentId, parentName: '中华人民共和国', level: '公司级',
+      location: profile.refinedCity || profile.city || '现实城市未登记', domain: '现代服务业', scale: '中小型', stance: '雇佣与经营', influence: 35,
+      description: '玩家当前工作或默认关联的公司势力，归属于国家级势力。',
+      structure: [], rules: ['内部组织结构由AI按现实合理性生成后固化。'], resources: ['雇佣关系', '薪酬制度', '工作任务'], relations: [], fixed: true, updatedAt: new Date().toISOString(),
+    };
+  },
+};

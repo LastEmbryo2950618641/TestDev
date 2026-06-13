@@ -15,6 +15,7 @@ window.GameModules.calendarActions = {
     this.wechatAppOpen = false;
     if (this.companyState) this.companyState.open = false;
     if (this.bossState) this.bossState.open = false;
+    if (this.factionState) this.factionState.open = false;
     if (this.skillsState) this.skillsState.open = false;
     this.calendarState.open = true;
     this.desktopUnlocked = true;
