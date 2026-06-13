@@ -718,10 +718,17 @@
 
   <section x-show="!$store.game.loading && $store.game.promptState?.open" class="skills-app-screen prompt-app-screen app-window section-hints" x-cloak>
     <div class="skills-card prompt-card dev-section" data-section-title="提示词管理主面板">
-      <header class="identity-header dev-section" data-section-title="提示词标题区"><div><p class="eyebrow">PROMPTS</p><h2>提示词管理</h2><small>AI生成提示词 Markdown 模板；点击标题展开原文</small></div><button class="small-btn" type="button" @click="$store.game.closePromptApp()">回到桌面</button></header>
+      <header class="identity-header dev-section" data-section-title="提示词标题区"><div><p class="eyebrow">PROMPTS</p><h2>提示词管理</h2><small>AI生成提示词 Markdown 模板；点击标题用弹窗查看原文</small></div><button class="small-btn" type="button" @click="$store.game.closePromptApp()">回到桌面</button></header>
       <section class="skills-toolbar dev-section" data-section-title="提示词筛选区"><input x-model="$store.game.promptState.query" placeholder="搜索提示词标题、分类、说明"><select x-model="$store.game.promptState.category"><option value="">全部分类</option><template x-for="category in $store.game.promptCategories()" :key="category"><option :value="category" x-text="category"></option></template></select></section>
-      <main class="skills-body"><section class="skills-list prompt-list dev-section" data-section-title="提示词列表区"><p class="skills-note" x-show="!$store.game.promptList().length">没有匹配的提示词。</p><p class="skills-note" x-show="$store.game.promptState.error" x-text="$store.game.promptState.error"></p><template x-for="item in $store.game.promptList()" :key="item.id"><article class="prompt-row-wrap"><button class="skill-row prompt-row" type="button" @click="$store.game.togglePromptDetail(item.id)"><span class="skill-row-title prompt-title"><strong x-text="item.title"></strong></span><small x-text="`${item.category}｜${item.summary}`"></small></button><section class="prompt-inline-detail" x-show="$store.game.promptState.selectedId === item.id"><header><p class="eyebrow">PROMPT MD</p><button class="small-btn" type="button" @click="$store.game.closePromptDetail()">关闭</button></header><pre class="prompt-markdown" x-text="$store.game.promptState.loading ? '读取中…' : ($store.game.promptState.selectedText || $store.game.promptState.error || '暂无内容')"></pre></section></article></template></section></main>
+      <main class="skills-body"><section class="skills-list prompt-list dev-section" data-section-title="提示词列表区"><p class="skills-note" x-show="!$store.game.promptList().length">没有匹配的提示词。</p><p class="skills-note" x-show="$store.game.promptState.error" x-text="$store.game.promptState.error"></p><template x-for="item in $store.game.promptList()" :key="item.id"><button class="skill-row prompt-row" type="button" @click="$store.game.togglePromptDetail(item.id)"><span class="skill-row-title prompt-title"><strong x-text="item.title"></strong></span><small x-text="`${item.category}｜${item.summary}`"></small></button></template></section></main>
     </div>
+  </section>
+
+  <section class="prompt-app-modal-backdrop" x-show="$store.game.promptState?.selectedId" @click.self="$store.game.closePromptDetail()" x-cloak>
+    <article class="prompt-app-modal dev-section" data-section-title="提示词内容弹窗">
+      <header><div><p class="eyebrow">PROMPT MD</p><h3 x-text="$store.game.currentPromptItem()?.title || '提示词模板'"></h3></div><button class="small-btn" type="button" @click="$store.game.closePromptDetail()">关闭</button></header>
+      <pre class="prompt-markdown" x-text="$store.game.promptState.loading ? '读取中…' : ($store.game.promptState.selectedText || $store.game.promptState.error || '暂无内容')"></pre>
+    </article>
   </section>
 
   <section x-show="!$store.game.loading && $store.game.wechatAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open" class="wechat-app-screen app-window section-hints" x-cloak>
