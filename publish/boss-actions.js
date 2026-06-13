@@ -16,13 +16,17 @@ window.GameModules.bossActions = {
     this.identityAppOpen = false;
     this.wechatAppOpen = false;
     if (this.companyState) this.companyState.open = false;
+    if (this.calendarState) this.calendarState.open = false;
     this.bossState.open = true;
     this.desktopUnlocked = true;
     this.generateBossJobsByAI?.(this.bossState.page);
   },
 
   closeBossApp() {
-    if (this.bossState) this.bossState.open = false;
+    if (this.bossState) {
+      this.bossState.open = false;
+      this.bossState.companyDetailOpen = false;
+    }
     this.closeAppToDesktop();
   },
 
@@ -109,7 +113,13 @@ window.GameModules.bossActions = {
   openBossCompanyDetail(id) {
     this.bossState.detailJobId = id;
     this.bossState.companyDetailOpen = true;
+    this.bossState.applyMessage = '';
     this.selectBossJob(id);
+  },
+
+  closeBossCompanyDetail() {
+    this.bossState.companyDetailOpen = false;
+    this.bossState.applyMessage = '';
   },
 
   selectedBossJob() {
@@ -129,9 +139,44 @@ window.GameModules.bossActions = {
       row('industry', '所属行业', job.industry, '公司主营行业，与岗位筛选一致。'),
       row('scale', '组织规模', job.scale, '公司人数规模，影响制度与岗位容量。'),
       row('location', '办公地点', job.address, '现实办公地点或登记地址。'),
-      row('workMode', '招聘制度', job.payType, '员工、创作者、定时工三类制度。'),
+      row('workMode', '岗位类型', job.payType, '员工、创作者、定时工三类岗位类型。'),
+      row('jobTitle', '招聘职位', job.title, '具体岗位名称，例如软件开发工程师、前端开发工程师。'),
+      row('skills', '职业技能要求', (job.skills || []).join('、'), '申请该岗位需要具备的技能或职业才能。'),
       row('salary', '薪酬制度', this.bossJobPayText(job), '按当前招聘岗位给出的薪酬规则。'),
     ];
+  },
+
+  bossApplyButtonText(job = this.selectedBossCompanyJob()) {
+    if (!job) return '申请岗位';
+    if (job.payType === '创作者') return '投稿并约定通知时间';
+    if (job.payType === '定时工') return '提交小时工到岗预约';
+    return '申请岗位并约定面试';
+  },
+
+  bossApplyHint(job = this.selectedBossCompanyJob()) {
+    if (!job) return '';
+    if (job.payType === '创作者') return '投递作品后，系统会约定通知时间。';
+    if (job.payType === '定时工') return '填写需要工作小时数，并约定正式到岗上班时间。';
+    return '投递简历后，系统会约定面试时间。';
+  },
+
+  applyBossJob() {
+    const job = this.selectedBossCompanyJob();
+    if (!job) return;
+    const event = this.createBossAppointment(job);
+    this.addCalendarEvent?.(event);
+    this.bossState.applyMessage = `已录入日历：${event.title}`;
+    this.save?.();
+  },
+
+  createBossAppointment(job) {
+    const now = this.phoneDate?.() || new Date();
+    const hours = Math.max(Number(this.bossState.applyHours) || 1, 1);
+    const time = new Date(now.getTime() + (job.payType === '创作者' ? 48 : 24) * 60 * 60 * 1000);
+    const type = job.payType === '创作者' ? '投稿通知' : job.payType === '定时工' ? '到岗上班' : '面试';
+    const title = `${job.company}｜${job.title}｜${type}`;
+    const note = job.payType === '定时工' ? `预约${hours}小时，${this.bossJobPayText(job)}` : this.bossJobPayText(job);
+    return { title, type, time: time.toISOString(), company: job.company, jobTitle: job.title, note };
   },
 
   bossJobPayText(job) {

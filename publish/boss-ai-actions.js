@@ -133,6 +133,15 @@ window.GameModules.bossAiActions = {
     });
   },
 
+  defaultBossSkills(job) {
+    const title = String(job.title || '岗位');
+    if (/前端|软件|开发|工程师/.test(title)) return ['JavaScript', '页面开发', '问题排查'];
+    if (/运营|内容/.test(title)) return ['内容策划', '数据整理', '沟通执行'];
+    if (job.payType === '创作者') return ['作品创作', '按要求投稿', '版权沟通'];
+    if (job.payType === '定时工') return ['准时到岗', '基础执行', '现场配合'];
+    return ['岗位基础技能', '沟通协作'];
+  },
+
   normalizeBossJob(job, index) {
     if (!job?.title || !job?.company) return null;
     const idSeed = `${job.company}-${job.title}-${index}`.replace(/\s+/g, '-');
@@ -142,6 +151,7 @@ window.GameModules.bossAiActions = {
       scale: String(job.scale || this.bossState.filters.scale || '20-50人'),
       address: String(job.address || '四川省 成都市 武侯区 玉林街道'), payType: String(job.payType || this.bossState.filters.payType || '员工'),
       base: Number(job.base) || 0, performanceMonths: Number(job.performanceMonths) || 0,
+      skills: Array.isArray(job.skills) ? job.skills.map(String) : this.defaultBossSkills(job),
       creatorPay: job.creatorPay || '', level: job.level || '', royalty: job.royalty || '', buyout: job.buyout || '', hourly: Number(job.hourly) || 0,
       desc: String(job.desc || '岗位详情待面谈。'),
     };

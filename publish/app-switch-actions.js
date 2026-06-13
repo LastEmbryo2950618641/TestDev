@@ -7,6 +7,7 @@ window.GameModules.appSwitchActions = {
     this.wechatAppOpen = false;
     if (this.companyState) this.companyState.open = false;
     if (this.bossState) this.bossState.open = false;
+    if (this.calendarState) this.calendarState.open = false;
   },
 
   openDesktopApp() {
@@ -14,6 +15,7 @@ window.GameModules.appSwitchActions = {
     this.wechatAppOpen = false;
     if (this.companyState) this.companyState.open = false;
     if (this.bossState) this.bossState.open = false;
+    if (this.calendarState) this.calendarState.open = false;
     this.desktopUnlocked = true;
   },
 };

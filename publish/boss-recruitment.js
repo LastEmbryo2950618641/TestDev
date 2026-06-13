@@ -13,6 +13,9 @@ window.GameModules.bossRecruitment = {
       selectedJobId: '',
       companyDetailOpen: false,
       detailJobId: '',
+      applyJobId: '',
+      applyHours: 1,
+      applyMessage: '',
       jobCache: {},
       filters: {
         industry: '',
