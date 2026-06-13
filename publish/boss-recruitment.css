@@ -85,6 +85,13 @@
   flex: 1 1 260px;
 }
 
+.boss-custom-prompt small {
+  flex: 1 1 100%;
+  color: #aeb9d6;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .boss-filter-head button,
 .boss-custom-prompt button {
   min-height: 34px;
