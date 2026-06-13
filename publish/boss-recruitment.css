@@ -24,14 +24,40 @@
   box-shadow: 0 22px 80px rgba(0, 0, 0, .36);
 }
 
-.boss-filters {
+.boss-filter-panel {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   padding: 10px;
   border: 1px solid rgba(255, 255, 255, .09);
   border-radius: 16px;
   background: rgba(255, 255, 255, .045);
+}
+
+.boss-filter-head,
+.boss-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.boss-filter-head {
+  justify-content: space-between;
+}
+
+.boss-filter-head label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #aeb9d6;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.boss-filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .boss-filters label {
@@ -43,7 +69,8 @@
 }
 
 .boss-filters select,
-.boss-filters input {
+.boss-filters input,
+.boss-filter-head select {
   width: 100%;
   min-height: 34px;
   border: 1px solid rgba(166, 188, 255, .28);
@@ -51,6 +78,31 @@
   padding: 0 9px;
   color: #fff;
   background: rgba(255, 255, 255, .08);
+}
+
+.boss-filter-head button,
+.boss-pagination button {
+  min-height: 34px;
+  border: 1px solid rgba(83, 255, 178, .24);
+  border-radius: 999px;
+  padding: 0 12px;
+  color: #eafff5;
+  background: rgba(83, 255, 178, .08);
+  font-weight: 900;
+}
+
+.boss-pagination button.active {
+  border-color: rgba(83, 255, 178, .82);
+  background: rgba(83, 255, 178, .2);
+}
+
+.boss-pagination button:disabled {
+  opacity: .45;
+}
+
+.boss-pagination {
+  justify-content: center;
+  margin-top: 4px;
 }
 
 .boss-body {

@@ -6,6 +6,8 @@ window.GameModules.bossActions = {
     this.bossState = { ...base, ...(this.bossState || {}) };
     this.bossState.filters = { ...base.filters, ...(this.bossState.filters || {}) };
     this.bossState.jobs = this.bossState.jobs?.length ? this.bossState.jobs : base.jobs;
+    this.bossState.pageSize = Number(this.bossState.pageSize) || 10;
+    this.bossState.page = Math.max(Number(this.bossState.page) || 1, 1);
   },
 
   openBossApp() {
@@ -44,6 +46,29 @@ window.GameModules.bossActions = {
     this.initBossRecruitment();
     const f = this.bossState.filters;
     return this.bossState.jobs.filter((job) => this.bossMatchesJob(job, f));
+  },
+
+  pagedBossJobs() {
+    const jobs = this.filteredBossJobs();
+    const size = Number(this.bossState.pageSize) || 10;
+    const page = Math.min(Math.max(Number(this.bossState.page) || 1, 1), this.bossPageCount());
+    if (page !== this.bossState.page) this.bossState.page = page;
+    return jobs.slice((page - 1) * size, page * size);
+  },
+
+  bossPageCount() {
+    const size = Number(this.bossState?.pageSize) || 10;
+    const total = this.bossState?.jobs?.filter((job) => this.bossMatchesJob(job, this.bossState.filters || {})).length || 0;
+    return Math.max(1, Math.ceil(total / size));
+  },
+
+  bossPageNumbers() {
+    const count = this.bossPageCount();
+    return Array.from({ length: Math.min(5, count) }, (_, i) => i + 1);
+  },
+
+  setBossPage(page) {
+    this.bossState.page = Math.min(Math.max(Number(page) || 1, 1), this.bossPageCount());
   },
 
   bossMatchesJob(job, f) {

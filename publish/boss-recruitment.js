@@ -4,6 +4,9 @@ window.GameModules.bossRecruitment = {
   defaultBossState(profile = {}) {
     return {
       open: false,
+      filtersCollapsed: false,
+      page: 1,
+      pageSize: 10,
       selectedJobId: 'employee-fe',
       filters: {
         industry: '',
