@@ -14,6 +14,7 @@ window.GameModules.skillsActions = {
     if (this.bossState) this.bossState.open = false;
     if (this.calendarState) this.calendarState.open = false;
     if (this.factionState) this.factionState.open = false;
+    if (this.knownProfessionState) this.knownProfessionState.open = false;
     if (this.promptState) this.promptState.open = false;
     this.skillsState.open = true;
     this.desktopUnlocked = true;

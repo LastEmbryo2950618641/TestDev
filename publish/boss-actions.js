@@ -19,6 +19,7 @@ window.GameModules.bossActions = {
     if (this.calendarState) this.calendarState.open = false;
     if (this.factionState) this.factionState.open = false;
     if (this.skillsState) this.skillsState.open = false;
+    if (this.knownProfessionState) this.knownProfessionState.open = false;
     if (this.promptState) this.promptState.open = false;
     Object.assign(this.bossState, { companyDetailOpen: false, detailJobId: '', applyMessage: '', generating: false, open: true });
     this.desktopUnlocked = true;

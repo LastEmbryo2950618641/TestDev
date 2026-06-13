@@ -41,14 +41,29 @@ window.GameModules.professionInfo = {
 
   prompt(worldTag, name, context) {
     const fields = (context.worldFields || []).map((x) => `${x.key}:${x.label}`).join('、') || '无';
-    return window.GameModules.promptTemplates.render('profession-info', { 世界: worldTag, 职业: name, 角色: context.characterName || '', 身份: context.role || '', 背景: context.detail || '', 世界字段: fields });
+    const list = (items, pick) => (items || []).map((x) => pick ? pick(x) : (x.name || x.key || x.label || x)).filter(Boolean).join('、') || '无';
+    return window.GameModules.promptTemplates.render('profession-info', {
+      世界: worldTag,
+      职业: name,
+      角色: context.characterName || '',
+      身份: context.role || '',
+      背景: context.detail || '',
+      身内能力候选: context.intrinsicStats || 'strength、agility、constitution、intelligence、perception、willpower、charisma、learning_ability、mental_stability、action_ability',
+      世界专属能力候选: fields,
+      技能候选: list(context.skills),
+      知识储备候选: list(context.knowledge),
+    });
   },
 
   validate(raw, worldTag, name) {
     if (!raw || typeof raw !== 'object' || raw.confirmed !== true) return null;
-    const arr = (value) => (Array.isArray(value) ? value : []).slice(0, 6).map((x) => String(x).slice(0, 24));
+    const arr = (value) => (Array.isArray(value) ? value : []).slice(0, 6).map((x) => String(x).slice(0, 24)).filter(Boolean);
     const cleanName = this.normalizeJobName(raw.name || name);
-    if (!cleanName || !raw.summary || !raw.description) return null;
+    const intrinsicStats = arr(raw.intrinsicStats);
+    const learnedAbilities = arr(raw.learnedAbilities);
+    const knowledgeAreas = arr(raw.knowledgeAreas);
+    const worldAbilities = arr(raw.worldAbilities);
+    if (!cleanName || !raw.summary || !raw.description || !intrinsicStats.length || !learnedAbilities.length || !knowledgeAreas.length) return null;
     return {
       worldTag,
       name: cleanName,
@@ -56,9 +71,17 @@ window.GameModules.professionInfo = {
       description: String(raw.description).slice(0, 180),
       levelDescription: raw.levelDescription ? String(raw.levelDescription).slice(0, 100) : '',
       effect: raw.effect ? String(raw.effect).slice(0, 120) : '',
-      intrinsicStats: arr(raw.intrinsicStats),
-      learnedAbilities: arr(raw.learnedAbilities),
-      worldAbilities: arr(raw.worldAbilities),
+      intrinsicStats,
+      learnedAbilities,
+      knowledgeAreas,
+      worldAbilities,
+      requirements: {
+        intrinsicStats: arr(raw.requirements?.intrinsicStats || intrinsicStats),
+        worldAbilities: arr(raw.requirements?.worldAbilities || worldAbilities),
+        learnedAbilities: arr(raw.requirements?.learnedAbilities || learnedAbilities),
+        knowledgeAreas: arr(raw.requirements?.knowledgeAreas || knowledgeAreas),
+        reason: String(raw.requirements?.reason || '满足该职业lv.1所需基础构成。').slice(0, 120),
+      },
     };
   },
 };

@@ -18,7 +18,7 @@ document.addEventListener('alpine:init', () => {
     gm.actions, gm.rpgFieldUi, gm.resultActions, gm.loadingActions, gm.saveActions, gm.styleActions,
     gm.worldlineActions, gm.playerSetupActions, gm.playerIdentityActions, gm.wechatActions, gm.entryActions,
     gm.coreActions, gm.appSwitchActions, gm.realWorldActions, gm.companyActions, gm.companyAttendanceActions,
-    gm.bossActions, gm.bossAiActions, gm.calendarActions, gm.factionActions, gm.factionAiActions, gm.skillsActions, gm.promptActions,
+    gm.bossActions, gm.bossAiActions, gm.calendarActions, gm.factionActions, gm.factionAiActions, gm.skillsActions, gm.knownProfessionActions, gm.promptActions,
   ].map((module) => module || {});
 
   Alpine.store('game', {
@@ -116,7 +116,7 @@ document.addEventListener('alpine:init', () => {
           window.GameModules.metrics.ensure(this);
           await this.initGame();
           this.startPhoneClock?.();
-          this.initCompanySystem?.(); this.initBossRecruitment?.(); this.initCalendar?.(); this.initFactionSystem?.(); this.initSkillsApp?.(); this.initPromptApp?.();
+          this.initCompanySystem?.(); this.initBossRecruitment?.(); this.initCalendar?.(); this.initFactionSystem?.(); this.initSkillsApp?.(); this.initKnownProfessionApp?.(); this.initPromptApp?.();
         } catch (err) {
           console.error('游戏初始化失败:', err.message, err.stack);
           this.loadingDetail = `初始化失败：${err.message || '未知错误'}`;

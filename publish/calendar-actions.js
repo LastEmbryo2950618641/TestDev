@@ -17,6 +17,7 @@ window.GameModules.calendarActions = {
     if (this.bossState) this.bossState.open = false;
     if (this.factionState) this.factionState.open = false;
     if (this.skillsState) this.skillsState.open = false;
+    if (this.knownProfessionState) this.knownProfessionState.open = false;
     if (this.promptState) this.promptState.open = false;
     this.calendarState.open = true;
     this.desktopUnlocked = true;

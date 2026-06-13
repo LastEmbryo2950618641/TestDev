@@ -10,6 +10,7 @@ window.GameModules.promptActions = {
     if (this.calendarState) this.calendarState.open = false;
     if (this.factionState) this.factionState.open = false;
     if (this.skillsState) this.skillsState.open = false;
+    if (this.knownProfessionState) this.knownProfessionState.open = false;
     this.promptState.open = true; this.desktopUnlocked = true;
   },
   closePromptApp() { if (this.promptState) this.promptState.open = false; this.closeAppToDesktop(); },

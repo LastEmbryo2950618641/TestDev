@@ -61,7 +61,7 @@ Object.assign(window.GameModules.rpgLexicon, {
         nameAiGenerated: true,
         valueAiGenerated: true,
         changeMode: 'AI演算',
-        related: [...(item.linkedStats || []), ...(item.info?.learnedAbilities || []), ...(item.info?.worldAbilities || [])],
+        related: [...(item.linkedStats || []), ...(item.info?.learnedAbilities || []), ...(item.info?.knowledgeAreas || []), ...(item.info?.worldAbilities || [])],
         meta: { info: { ...(item.info || {}), levelDescription: Number(item.level) > 0 ? item.levelDescription : undefined, effect: Number(item.level) > 0 ? item.effect : undefined } },
         source: item.info ? 'ai' : 'state',
       });

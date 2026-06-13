@@ -26,6 +26,8 @@ window.GameModules.rpgProfessionState = {
       role: character?.role || state.profile?.role,
       detail: character?.detail || state.profile?.detail,
       skills: state.values.skills,
+      knowledge: state.values.knowledge,
+      intrinsicStats: 'strength、agility、constitution、intelligence、perception、willpower、charisma、learning_ability、mental_stability、action_ability',
       worldFields,
     });
     if (!info) return false;
