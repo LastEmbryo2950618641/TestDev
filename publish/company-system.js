@@ -29,6 +29,7 @@ window.GameModules.companySystem = {
         { id: 'timed-task', name: '定时工任务', type: '定时工', desc: '规定时间内完成单项工作，按完成度给钱，不合格无报酬，超预期额外奖励。' },
         { id: 'creator', name: '创作者征稿', type: '创作者模式', desc: '向公司投稿方案、小说、作品，通过后可签稳定低分成或低保高分成合同。' },
       ],
+      organization: this.defaultOrganization(profile),
       lexicon: [],
       updatedAt: new Date().toISOString(),
     };
@@ -46,6 +47,16 @@ window.GameModules.companySystem = {
     if (/学生|学校/.test(role)) return '教育';
     if (/写作|小说|创作|画师|设计/.test(role)) return '内容创作';
     return '现代服务业';
+  },
+
+  defaultOrganization(profile = {}) {
+    const player = profile.name || '玩家本人';
+    return [
+      { name: '管理层', jobs: [{ title: '总经理', people: ['林墨'] }, { title: '行政主管', people: ['周澜'] }] },
+      { name: '产品研发部', jobs: [{ title: '产品经理', people: ['许青'] }, { title: '前端开发', people: [player] }, { title: '测试工程师', people: ['陈雨'] }] },
+      { name: '内容创作部', jobs: [{ title: '签约编辑', people: ['沈鸢'] }, { title: '签约创作者', people: ['外部作者A', '外部作者B'] }] },
+      { name: '运营支持部', jobs: [{ title: '内容运营', people: ['唐可'] }, { title: '定时工', people: ['临时工池'] }] },
+    ];
   },
 
   baseSalary(role) {

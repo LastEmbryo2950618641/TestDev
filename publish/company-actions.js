@@ -20,6 +20,11 @@ window.GameModules.companyActions = {
     company.salary = company.salary || {};
     company.salary.performanceMonths = Number(company.salary.performanceMonths ?? company.salary.commissionMonths ?? 2);
     company.rules = ['以底薪为每月收入核心', '休息日为每月周六和周日', '日薪=底薪÷当月完整上班天数', '年底绩效=公司绩效月数×底薪×绩效提成'];
+    company.organization = company.organization?.length ? company.organization : window.GameModules.companySystem.defaultOrganization(this.playerProfile || {});
+  },
+
+  companyOrganization() {
+    return this.currentCompany().organization || [];
   },
 
   companyFields() {
@@ -53,7 +58,8 @@ window.GameModules.companyActions = {
     const c = this.currentCompany();
     const stats = this.companyState?.workStats || {};
     const fields = this.companyFields().map((f) => `- ${f.label}：${f.value}（${f.desc}）`).join('\n');
-    return `# 【公司系统词条】\n${fields}\n# 【本月上班状态】\n- 迟到：${stats.lateCount || 0}次\n- 旷班：${stats.absentCount || 0}次\n- 当前绩效：${stats.performance ?? 100}/100\n- 公司规则：${(c.rules || []).join('；')}`;
+    const org = this.companyOrganization().map((d) => `- ${d.name}：${d.jobs.map((j) => `${j.title}(${j.people.join('、')})`).join('；')}`).join('\n');
+    return `# 【公司系统词条】\n${fields}\n# 【组织架构】\n${org}\n# 【本月上班状态】\n- 迟到：${stats.lateCount || 0}次\n- 旷班：${stats.absentCount || 0}次\n- 当前绩效：${stats.performance ?? 100}/100\n- 公司规则：${(c.rules || []).join('；')}`;
   },
 
   workStatusText() {

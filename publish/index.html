@@ -505,6 +505,7 @@
       <nav class="company-tabs dev-section" data-section-title="公司系统分页">
         <button type="button" :class="{ active: $store.game.companyState.panelTab === 'profile' }" @click="$store.game.companyState.panelTab = 'profile'">公司词条</button>
         <button type="button" :class="{ active: $store.game.companyState.panelTab === 'recruit' }" @click="$store.game.companyState.panelTab = 'recruit'">招聘制度</button>
+        <button type="button" :class="{ active: $store.game.companyState.panelTab === 'org' }" @click="$store.game.companyState.panelTab = 'org'">组织架构</button>
         <button type="button" :class="{ active: $store.game.companyState.panelTab === 'pay' }" @click="$store.game.companyState.panelTab = 'pay'">薪酬绩效</button>
       </nav>
       <main class="company-body scroll-area">
@@ -517,6 +518,11 @@
           <article class="recruit-card"><h3>员工制</h3><p>按公司规章制度上班，双休制；每月收入为底薪，年底按绩效月数×底薪×绩效提成结算。</p><button class="story-choice-btn" @click="$store.game.applyRecruitment('employee')">申请员工岗位</button></article>
           <article class="recruit-card"><h3>定时工</h3><p>规定时间内完成一件事，不合格无报酬，合格拿100%，超预期额外奖励。</p><button class="story-choice-btn" @click="$store.game.applyRecruitment('timed')">接定时工任务</button></article>
           <article class="recruit-card"><h3>创作者模式</h3><p>向公司投稿方案、小说、作品，通过后可签合同。</p><button class="story-choice-btn" @click="$store.game.applyRecruitment('creator-low')">签稳定低分成</button><button class="story-choice-btn" @click="$store.game.applyRecruitment('creator-high')">签低保高分成</button></article>
+        </section>
+        <section class="org-chart" x-show="$store.game.companyState.panelTab === 'org'">
+          <template x-for="dept in $store.game.companyOrganization()" :key="dept.name">
+            <article class="org-dept-card dev-section" :data-section-title="`${dept.name}组织区`"><h3 x-text="dept.name"></h3><div class="org-job-list"><template x-for="job in dept.jobs" :key="`${dept.name}-${job.title}`"><section class="org-job-card"><strong x-text="job.title"></strong><p x-text="`在岗人员：${job.people.join('、')}`"></p></section></template></div></article>
+          </template>
         </section>
         <section class="contract-list" x-show="$store.game.companyState.panelTab === 'pay'">
           <article class="contract-card"><h3>薪酬绩效预览</h3><p x-text="`底薪：${$store.game.monthlyPayPreview().base}元｜本月完整上班天数：${$store.game.monthlyPayPreview().workDays}天｜日薪：${$store.game.monthlyPayPreview().daily}元`"></p><p x-text="`每月收入：${$store.game.monthlyPayPreview().total}元｜年底绩效：${$store.game.monthlyPayPreview().annualPerformance}元｜绩效提成：${Math.round($store.game.monthlyPayPreview().rate * 100)}%`"></p></article>

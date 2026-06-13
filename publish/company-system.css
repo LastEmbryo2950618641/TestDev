@@ -51,7 +51,9 @@
 
 .company-grid,
 .recruit-grid,
-.contract-list {
+.contract-list,
+.org-chart,
+.org-job-list {
   display: grid;
   gap: 8px;
 }
@@ -62,11 +64,27 @@
 
 .recruit-card,
 .contract-card,
+.org-dept-card,
+.org-job-card,
 .work-dialog {
   padding: 12px;
   border: 1px solid rgba(255, 255, 255, .12);
   border-radius: 16px;
   background: rgba(255, 255, 255, .06);
+}
+
+.org-dept-card h3 {
+  margin: 0 0 8px;
+}
+
+.org-job-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.org-job-card p {
+  margin: 6px 0 0;
+  color: #aeb9d6;
+  line-height: 1.45;
 }
 
 .work-dialog-backdrop {
@@ -86,6 +104,7 @@
 }
 
 @media (max-width: 640px) {
-  .company-grid { grid-template-columns: 1fr; }
+  .company-grid,
+  .org-job-list { grid-template-columns: 1fr; }
   .company-card { padding: 12px; }
 }
