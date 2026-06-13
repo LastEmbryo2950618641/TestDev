@@ -46,16 +46,13 @@ window.GameModules.playerSetupActions = {
       ...this.playerProfile,
       name: '刘悠', gender: '男', birthday: '1998-11-19', age: this.playerAgeFromBirthday('1998-11-19'),
       city: '四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号',
-      refinedCity: '四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号',
       dailyRole: '程序工程师lv.5，计算机科学与技术硕士lv.5',
-      refinedRole: '程序工程师lv.5，计算机科学与技术硕士lv.5', workplace: '成都星河云栈科技有限公司', position: '高级后端工程师',
-      livingStatus: '与妹妹同居', refinedLivingStatus: '与妹妹同居，日常生活高度绑定',
-      parents: '父母资料未同步', parentStatus: '父母资料未同步', parentDeathCause: '',
-      relationships: '妹妹：与刘悠同居，有严重兄控倾向，喜欢看缘之空，私底下喜欢一句话“既然怀上了，那打掉不就好了吗”。',
-      worldbuildingNote: '刘悠是1998年出生的男性程序工程师，拥有计算机科学与技术硕士背景，与妹妹同居。',
-      notes: '已有账号同步资料。', profileEnrichedAt: new Date().toISOString(), initializedAt: new Date().toISOString(),
+      livingStatus: '与妹妹同居',
+      parents: '父母资料未同步', parentDeathCause: '',
+      relationships: '妹妹：需要AI按现实世界观、文化习俗和同居关系生成正式姓名',
+      notes: '已有账号同步资料。', initializedAt: new Date().toISOString(),
     };
-    await this.completePlayerSetup({ skipAi: true });
+    await this.completePlayerSetup();
   },
 
   playerAgeFromBirthday(birthday) {
@@ -119,7 +116,7 @@ window.GameModules.playerSetupActions = {
 
   async enrichPlayerProfile(base) {
     if (!window.dzmm?.completions) throw new Error('dzmm.completions unavailable');
-    const prompt = `你负责补全2026现代都市互动小说的玩家现实身份。只返回JSON。不要改玩家姓名、性别和生日。若parents为空，必须设parentStatus为“父母已故”，并生成现实、克制、合理的parentDeathCause。根据birthday计算出的年龄${base.age}与性别${base.gender || '未填写'}补全身份；例如高中生应细化为具体学校与年级。职业是内化能力，workplace/position才记录当前公司学校与职位地位，必须根据refinedRole生成。玩家填写的是具体地址，不是城市；若只写“四川省”这类省/市/县级信息，refinedCity必须补成省-市/州-区县-镇/街道-社区/小区-楼栋-门牌的准确格式，例如“四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号”。所有词条值都必须可落库、可判定、不可含“某处/一处/普通/未知/等/附近/片区”这类模糊词。玩家relationships必须作为现实联系人上下文：不要照抄长描述，要按世界观、文化习俗与社会关系推理或调整为“关系：姓名”的列表，多项用中文分号；只保留玩家明写或能从上下文确认的人际关系，不要擅自新增未填写关系。\n输入=${JSON.stringify(base)}\n返回字段:{"refinedCity":"省市区县镇街道小区楼栋门牌","refinedRole":"更具体身份","workplace":"根据职业生成的公司/学校/组织","position":"根据职业生成的职位/身份层级","refinedLivingStatus":"更具体居住状态","relationships":"妹妹：姓名；父亲：姓名","parentStatus":"父母状态","parentDeathCause":"父母去世原因或空","worldbuildingNote":"60字内现实背景补充"}`;
+    const prompt = `你负责补全2026现代都市互动小说的玩家现实身份。只返回JSON。不要改玩家姓名、性别和生日。若parents为空，必须设parentStatus为“父母已故”，并生成现实、克制、合理的parentDeathCause。根据birthday计算出的年龄${base.age}与性别${base.gender || '未填写'}补全身份；例如高中生应细化为具体学校与年级。职业是内化能力，workplace/position才记录当前公司学校与职位地位，必须根据refinedRole生成。玩家填写的是具体地址，不是城市；若只写“四川省”这类省/市/县级信息，refinedCity必须补成省-市/州-区县-镇/街道-社区/小区-楼栋-门牌的准确格式，例如“四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号”。所有词条值都必须可落库、可判定、不可含“某处/一处/普通/未知/等/附近/片区”这类模糊词。玩家relationships必须作为现实联系人上下文：不要照抄长描述，要按世界观、文化习俗与社会关系推理或调整为“关系：姓名”的列表，多项用中文分号；如果输入只有“妹妹/父亲”等关系而没有姓名，必须生成正式姓名；不得返回“需要AI生成/未知/待补全/与某人同居”这类占位或描述；只保留玩家明写或能从上下文确认的人际关系，不要擅自新增未填写关系。\n输入=${JSON.stringify(base)}\n返回字段:{"refinedCity":"省市区县镇街道小区楼栋门牌","refinedRole":"更具体身份","workplace":"根据职业生成的公司/学校/组织","position":"根据职业生成的职位/身份层级","refinedLivingStatus":"更具体居住状态","relationships":"妹妹：姓名；父亲：姓名","parentStatus":"父母状态","parentDeathCause":"父母去世原因或空","worldbuildingNote":"60字内现实背景补充"}`;
     return await Promise.race([
       window.GameModules.jsonUtils.generateJsonWithRetry({ model: this.modelId, maxTokens: 1200, prompt, format: prompt, max: 2 }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('身份补全超时')), 30000)),
@@ -140,7 +137,7 @@ window.GameModules.playerSetupActions = {
       refinedCity: city,
       refinedRole: role, workplace, position,
       refinedLivingStatus: String(data?.refinedLivingStatus || base.livingStatus || `${city}，长期居住地址已登记`).slice(0, 100),
-      relationships: window.GameModules.characterProfile.formatRelationships(data?.relationships || base.relationships) || base.relationships,
+      relationships: window.GameModules.characterProfile.formatRelationships(data?.relationships || base.relationships),
       parentStatus: noParents ? (status.includes('已故') ? status : '父母已故') : status,
       parentDeathCause: noParents ? cause : cause,
       worldbuildingNote: String(data?.worldbuildingNote || `${base.age}岁的${role}，就职/活动于${workplace}，地位为${position}。`).slice(0, 120),

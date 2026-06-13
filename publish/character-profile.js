@@ -130,7 +130,8 @@ window.GameModules.characterProfile = {
       const pair = part.split(/[：:]/);
       const rel = String(pair[0] || '').replace(/[，。,.].*$/, '').trim();
       const name = String(pair.slice(1).join('：') || '').replace(/[，。；;、,.].*$/, '').trim();
-      return rel && name ? `${rel}：${name}` : '';
+      const invalid = /同居|喜欢|倾向|关系|需要|生成|资料|补全|未知|待/.test(name) || name.length > 12;
+      return rel && name && !invalid ? `${rel}：${name}` : '';
     }).filter(Boolean).join('；');
   },
 

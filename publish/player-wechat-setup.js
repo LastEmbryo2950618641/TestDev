@@ -8,7 +8,7 @@ window.GameModules = window.GameModules || {};
 
   actions.enrichPlayerProfile = async function enrichPlayerProfileWithRelations(base) {
     if (!window.dzmm?.completions) throw new Error('dzmm.completions unavailable');
-    const relationHint = '玩家relationships是微信联系人推断的重要上下文：请保留玩家明写的人名、关系和可能互有微信的现实联系，不要擅自新增未填写的人际关系。';
+    const relationHint = '玩家relationships是微信联系人推断的重要上下文：必须整理为“关系：姓名”，不要照抄长描述；关系由AI按世界观和社会关系推理或调整，不要擅自新增未填写的人际关系。';
     const data = await originalPrompt.call(this, { ...base, relationHint });
     return data;
   };
