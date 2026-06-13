@@ -13,12 +13,25 @@ window.GameModules.styleActions = {
   ],
 
   async loadWritingStyles() {
+    this.defaultWritingStyles = this.parseWritingStylesTemplate(await window.GameModules.promptTemplates.load('writing-styles'));
     const saved = window.GameModules.sqliteSave.getMetaJson?.('writing_styles');
     this.customWritingStyles = Array.isArray(saved?.custom) ? saved.custom : [];
     this.activeStyleIds = Array.isArray(saved?.active) ? saved.active : ['literary'];
     this.customStyleName = '';
     this.customStylePrompt = '';
     await this.saveWritingStyles();
+  },
+
+  parseWritingStylesTemplate(markdown) {
+    const idMap = { 文学细腻: 'literary', 黑暗压抑: 'dark', 轻小说节奏: 'light-novel', 史诗庄重: 'epic', 悬疑紧张: 'suspense' };
+    const matches = [...String(markdown || '').matchAll(/##\s+([^\n]+)\n+([\s\S]*?)(?=\n##\s+|$)/g)];
+    const styles = matches.map((match) => {
+      const name = match[1].trim();
+      const prompt = match[2].trim().replace(/\n+/g, ' ');
+      return { id: idMap[name] || `template-${name}`, name, prompt };
+    }).filter((style) => style.prompt && style.name !== '小说文风预设');
+    if (!styles.length) throw new Error('小说文风模板解析失败');
+    return styles;
   },
 
   allWritingStyles() {
