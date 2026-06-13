@@ -17,8 +17,8 @@ window.GameModules.wechatActions = {
   async ensureWechatUserProfile(contact) {
     if (!contact || contact.group) return null;
     const hint = this.wechatRelationProfileHint(contact);
-    const raw = { id: contact.id, name: contact.needsNameAi ? hint.placeholderName : contact.name, role: contact.relation || '微信联系人', gender: hint.gender, detail: contact.context || contact.latest || hint.detail, work: '现实世界', isMinor: false, importance: 'support', nameRule: hint.nameRule };
-    const context = `玩家姓名：${this.playerProfile?.name || this.playerName || '未知'}；玩家性别：${this.playerProfile?.gender || '未知'}；玩家关系：${this.playerProfile?.relationships || '未填写'}；微信关系：${contact.relation || '联系人'}；姓名规则：${hint.nameRule}；性别规则：${hint.genderRule}；补充：${contact.context || contact.latest || ''}`;
+    const raw = { id: contact.id, name: contact.needsNameAi ? hint.placeholderName : contact.name, role: contact.relation || '微信联系人', detail: contact.context || contact.latest || hint.detail, work: '现实世界', isMinor: false, importance: 'support', nameRule: hint.nameRule };
+    const context = `玩家姓名：${this.playerProfile?.name || this.playerName || '未知'}；玩家性别：${this.playerProfile?.gender || '未知'}；玩家关系：${this.playerProfile?.relationships || '未填写'}；微信关系：${contact.relation || '联系人'}；命名要求：${hint.nameRule}；补充：${contact.context || contact.latest || ''}`;
     const profile = await window.GameModules.characterProfile.ensure(raw, this, context);
     const state = await window.GameModules.rpgState.ensureCharacter(profile, this);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
@@ -28,11 +28,8 @@ window.GameModules.wechatActions = {
 
   wechatRelationProfileHint(contact) {
     const relation = String(contact?.relation || contact?.name || '联系人');
-    const self = String(this.playerProfile?.name || this.playerName || '').trim();
-    const surname = /^[\u4e00-\u9fa5]/.test(self) ? self[0] : '';
-    const gender = /妹妹|姐姐|母亲|妈妈|妻|女友|女性|女同学|女同事/.test(relation) ? '女' : (/哥哥|弟弟|父亲|爸爸|丈夫|男友|男性|男同学|男同事/.test(relation) ? '男' : '');
-    const nameRule = surname && /妹|姐|哥|弟|父|母|爸|妈|儿|女/.test(relation) ? `必须生成${surname}姓中文全名，不要直接用“${relation}”当姓名。` : `必须根据现实世界观和社会关系生成正式姓名，不要直接用“${relation}”当姓名。`;
-    return { gender, genderRule: gender ? `必须是${gender}性。` : '按关系上下文判断性别。', nameRule, placeholderName: `${relation}待命名`, detail: `玩家的${relation}，需要按世界观与社会关系补全姓名和资料。` };
+    const nameRule = `必须由AI根据世界观、地区文化、家庭制度、玩家姓名、玩家性别与“${relation}”这段社会关系推理正式姓名和性别；不要硬套同姓规则，母亲/配偶/继亲/养亲等可能不同姓；不要直接用关系称谓当姓名。`;
+    return { nameRule, placeholderName: `${relation}待命名`, detail: `玩家的${relation}，需要按世界观、文化习俗和社会关系补全姓名、性别与资料。` };
   },
 
   renameWechatContact(id, name) {
