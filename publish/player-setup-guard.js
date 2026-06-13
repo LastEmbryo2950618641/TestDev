@@ -29,9 +29,12 @@ window.GameModules = window.GameModules || {};
       return this.playerProfileLexiconFields().map((x) => `${x.label}：${x.value}`).join('\n');
     },
     async defaultExistingAccountProfile() {
-      const res = await fetch('./config/default-existing-profile.json');
-      if (!res.ok) throw new Error(`已有账号默认资料读取失败：${res.status}`);
-      const data = await res.json();
+      let data = window.GameModules.defaultExistingProfile;
+      if (!data) {
+        const res = await fetch('./config/default-existing-profile.json');
+        if (!res.ok) throw new Error(`已有账号默认资料读取失败：${res.status}`);
+        data = await res.json();
+      }
       if (!data?.name || !data?.birthday) throw new Error('已有账号默认资料缺少 name 或 birthday');
       return { ...data, age: this.playerAgeFromBirthday(data.birthday), initializedAt: new Date().toISOString() };
     },
