@@ -18,8 +18,21 @@ window.GameModules.skillsActions = {
   },
 
   closeSkillsApp() {
-    if (this.skillsState) this.skillsState.open = false;
+    if (this.skillsState) {
+      this.skillsState.open = false;
+      this.skillsState.detailOpen = false;
+    }
     this.closeAppToDesktop();
+  },
+
+  openSkillDetail(id) {
+    this.initSkillsApp();
+    this.skillsState.selectedSkillId = id;
+    this.skillsState.detailOpen = true;
+  },
+
+  closeSkillDetail() {
+    if (this.skillsState) this.skillsState.detailOpen = false;
   },
 
   skillsList() {

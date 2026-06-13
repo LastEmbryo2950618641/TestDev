@@ -43,7 +43,7 @@
 .skills-body {
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(240px, .85fr) minmax(0, 1.15fr);
+  grid-template-columns: 1fr;
   gap: 10px;
   overflow: hidden;
 }
@@ -60,6 +60,17 @@
   background: rgba(255, 255, 255, .055);
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+.skills-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: max(16px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  background: rgba(0, 0, 0, .58);
+  backdrop-filter: blur(10px);
 }
 
 .skill-row {
@@ -100,20 +111,6 @@
   opacity: .82;
 }
 
-.skill-row-details {
-  min-width: 0;
-  display: grid;
-  gap: 4px;
-  padding-top: 8px;
-}
-
-.skill-row-details small {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-.skill-row.active,
 .skill-row:hover,
 .skill-row:focus-visible {
   border-color: rgba(116, 246, 255, .78);
@@ -127,7 +124,6 @@
   line-height: 1.5;
 }
 
-.skill-row-details em,
 .skills-detail em {
   color: #74f6ff;
   font-style: normal;
@@ -135,8 +131,11 @@
 }
 
 .skills-detail {
+  width: min(720px, 100%);
+  max-height: min(620px, 88dvh);
   overflow-wrap: anywhere;
   word-break: break-word;
+  box-shadow: 0 24px 90px rgba(0, 0, 0, .45);
 }
 
 .skills-detail ul {
@@ -157,7 +156,7 @@
   .skills-card { padding: 12px; }
   .skills-toolbar { grid-template-columns: 1fr; }
   .skills-body { grid-template-columns: 1fr; overflow-y: auto; }
-  .skills-list,
-  .skills-detail { overflow: visible; }
+  .skills-list { overflow: visible; }
+  .skills-detail { overflow-y: auto; }
   .skill-row-title { grid-template-columns: minmax(0, 1fr); }
 }

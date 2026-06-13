@@ -655,29 +655,26 @@
         <section class="skills-list dev-section" data-section-title="Skill列表区">
           <p class="skills-note" x-show="!$store.game.skillsList().length">没有匹配的skill。</p>
           <template x-for="skill in $store.game.skillsList()" :key="skill.id">
-            <button class="skill-row" type="button" :class="{ active: $store.game.selectedSkill()?.id === skill.id }" @click="$store.game.skillsState.selectedSkillId = skill.id">
-              <span class="skill-row-title"><strong x-text="skill.name"></strong><em x-text="$store.game.selectedSkill()?.id === skill.id ? '已展开' : '点击展开'"></em></span>
-              <span class="skill-row-details" x-show="$store.game.selectedSkill()?.id === skill.id">
-                <small><em x-text="skill.category"></em><span x-text="`｜${skill.method}`"></span></small>
-                <small x-text="skill.description"></small>
-              </span>
+            <button class="skill-row" type="button" @click="$store.game.openSkillDetail(skill.id)">
+              <span class="skill-row-title"><strong x-text="skill.name"></strong><em>查看详情</em></span>
             </button>
           </template>
         </section>
-        <article class="skills-detail dev-section" data-section-title="Skill详情区" x-show="$store.game.selectedSkill()">
-          <h3 x-text="$store.game.selectedSkill()?.name"></h3>
-          <p x-text="$store.game.selectedSkill()?.description"></p>
-          <ul>
-            <li><strong>分类：</strong><span x-text="$store.game.selectedSkill()?.category"></span></li>
-            <li><strong>方法：</strong><em x-text="$store.game.selectedSkill()?.method"></em></li>
-            <li><strong>参数：</strong><span x-text="$store.game.selectedSkill()?.params"></span></li>
-            <li><strong>返回：</strong><span x-text="$store.game.selectedSkill()?.returns"></span></li>
-            <li><strong>详细：</strong><span x-text="$store.game.selectedSkill()?.detail"></span></li>
-          </ul>
-          <p class="skills-note">说明：这些skill面向手机现实系统和AI现实推演整理；不会改动或暴露《我要狠狠操控》APP内部控制接口。</p>
-        </article>
       </main>
     </div>
+    <section class="skills-modal-backdrop" x-show="$store.game.skillsState?.detailOpen" @click.self="$store.game.closeSkillDetail()" x-cloak>
+      <article class="skills-detail dev-section" data-section-title="Skill详情弹窗" x-show="$store.game.selectedSkill()">
+        <header class="identity-header"><div><p class="eyebrow" x-text="$store.game.selectedSkill()?.category"></p><h3 x-text="$store.game.selectedSkill()?.name"></h3><small x-text="$store.game.selectedSkill()?.description"></small></div><button class="small-btn" type="button" @click="$store.game.closeSkillDetail()">关闭</button></header>
+        <ul>
+          <li><strong>分类：</strong><span x-text="$store.game.selectedSkill()?.category"></span></li>
+          <li><strong>方法：</strong><em x-text="$store.game.selectedSkill()?.method"></em></li>
+          <li><strong>参数：</strong><span x-text="$store.game.selectedSkill()?.params"></span></li>
+          <li><strong>返回：</strong><span x-text="$store.game.selectedSkill()?.returns"></span></li>
+          <li><strong>详细：</strong><span x-text="$store.game.selectedSkill()?.detail"></span></li>
+        </ul>
+        <p class="skills-note">说明：这些skill面向手机现实系统和AI现实推演整理；不会改动或暴露《我要狠狠操控》APP内部控制接口。</p>
+      </article>
+    </section>
   </section>
 
   <section x-show="!$store.game.loading && $store.game.wechatAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.skillsState?.open" class="wechat-app-screen app-window section-hints" x-cloak>
