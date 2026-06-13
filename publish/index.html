@@ -83,6 +83,7 @@
   <script src="real-world-actions.js"></script>
   <script src="company-system.js"></script>
   <script src="company-actions.js"></script>
+  <script src="company-attendance-actions.js"></script>
   <script src="boss-recruitment.js"></script>
   <script src="boss-actions.js"></script>
   <script src="boss-ai-actions.js"></script>
@@ -502,18 +503,6 @@
     </div>
   </section>
 
-  <section x-show="$store.game.companyState?.workPromptOpen" class="work-dialog-backdrop" x-cloak>
-    <div class="work-dialog dev-section" data-section-title="上班提示弹窗">
-      <h2>到上班时间了</h2>
-      <p x-text="`${$store.game.companyState?.pendingWork?.companyName || '公司'} 要求 ${$store.game.companyState?.pendingWork?.startTime || '09:00'} 上班。请选择处理方式。`"></p>
-      <div class="work-dialog-actions">
-        <button type="button" @click="$store.game.decideWorkAttendance('work')">上班</button>
-        <button type="button" @click="$store.game.decideWorkAttendance('delay')">推迟上班（迟到）</button>
-        <button type="button" @click="$store.game.decideWorkAttendance('absent')">旷班</button>
-      </div>
-    </div>
-  </section>
-
   <section x-show="!$store.game.loading && $store.game.companyState?.open" class="company-app-screen app-window section-hints" x-cloak>
     <div class="company-card dev-section" data-section-title="公司系统主面板">
       <header class="identity-header dev-section" data-section-title="公司标题区">
@@ -529,6 +518,10 @@
         <button type="button" :class="{ active: $store.game.companyState.panelTab === 'tools' }" @click="$store.game.companyState.panelTab = 'tools'">功能面板</button>
       </nav>
       <main class="company-body scroll-area">
+        <article class="attendance-card dev-section" :class="$store.game.currentWorkAttendance().className" data-section-title="上班状态区">
+          <div><small>今日上班状态</small><strong x-text="$store.game.currentWorkAttendance().status"></strong><p x-text="$store.game.currentWorkAttendance().detail"></p></div>
+          <button class="small-btn" type="button" x-show="$store.game.currentWorkAttendance().canCheckIn" @click="$store.game.checkInWork()">记录到岗</button>
+        </article>
         <section class="company-grid" x-show="$store.game.companyState.panelTab === 'profile'">
           <p class="company-empty" x-show="$store.game.companyState.employment?.active === false">暂无在职公司信息</p>
           <template x-for="field in $store.game.companyFields()" :key="field.key">

@@ -18,15 +18,13 @@
   box-shadow: 0 22px 80px rgba(0, 0, 0, .36);
 }
 
-.company-tabs,
-.work-dialog-actions {
+.company-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.company-tabs button,
-.work-dialog-actions button {
+.company-tabs button {
   min-height: 36px;
   border: 1px solid rgba(116, 246, 255, .2);
   border-radius: 999px;
@@ -71,12 +69,41 @@
 .record-card,
 .tool-card,
 .company-empty,
-.work-dialog {
+.attendance-card {
   padding: 12px;
   border: 1px solid rgba(255, 255, 255, .12);
   border-radius: 16px;
   background: rgba(255, 255, 255, .06);
 }
+
+.attendance-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.attendance-card small {
+  color: #aeb9d6;
+  font-weight: 900;
+}
+
+.attendance-card strong {
+  display: block;
+  margin: 3px 0;
+  font-size: 22px;
+}
+
+.attendance-card p {
+  margin: 0;
+  color: #c8d3ef;
+  line-height: 1.45;
+}
+
+.attendance-card.work { border-color: rgba(116, 246, 255, .35); }
+.attendance-card.late { border-color: rgba(255, 207, 90, .5); background: rgba(255, 207, 90, .08); }
+.attendance-card.absent { border-color: rgba(255, 107, 129, .55); background: rgba(255, 77, 109, .1); }
+.attendance-card.holiday { border-color: rgba(98, 255, 184, .36); background: rgba(98, 255, 184, .08); }
 
 .tool-card p,
 .record-card p,
@@ -126,21 +153,6 @@
   line-height: 1.45;
 }
 
-.work-dialog-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 130;
-  display: grid;
-  place-items: center;
-  padding: 16px;
-  background: rgba(1, 4, 12, .72);
-  backdrop-filter: blur(16px);
-}
-
-.work-dialog {
-  width: min(520px, 100%);
-  color: #eef3ff;
-}
 
 @media (max-width: 640px) {
   .company-grid,

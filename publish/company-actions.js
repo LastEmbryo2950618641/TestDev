@@ -115,25 +115,10 @@ window.GameModules.companyActions = {
     return days - restDays;
   },
 
-  checkWorkReminder() {
-    this.initCompanySystem();
-    const c = this.currentCompany();
-    const work = c.workMode || {};
-    if (this.companyState.employment?.active === false || work.type !== '员工' || this.companyState.workPromptOpen) return;
-    const now = this.phoneDate?.() || new Date();
-    const key = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
-    if (this.companyState.workStats?.lastDecisionAt === key) return;
-    const [h, m] = String(work.startTime || '09:00').split(':').map(Number);
-    const start = new Date(now); start.setHours(h || 9, m || 0, 0, 0);
-    if (now >= start) {
-      this.companyState.pendingWork = { dateKey: key, companyId: c.id, startTime: work.startTime, companyName: c.name };
-      this.companyState.workPromptOpen = true;
-    }
-  },
-
   decideWorkAttendance(choice) {
     const stats = this.companyState.workStats;
-    const key = this.companyState.pendingWork?.dateKey || new Date().toISOString().slice(0, 10);
+    const key = this.companyDateKey?.() || new Date().toISOString().slice(0, 10);
+    if (stats.lastDecisionAt === key) return;
     if (choice === 'delay') { stats.lateCount += 1; stats.performance = Math.max(0, stats.performance - 6); }
     if (choice === 'absent') { stats.absentCount += 1; stats.performance = Math.max(0, stats.performance - 22); }
     stats.lastDecisionAt = key;

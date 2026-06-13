@@ -190,6 +190,7 @@ document.addEventListener('alpine:init', () => {
     ...window.GameModules.appSwitchActions,
     ...window.GameModules.realWorldActions,
     ...window.GameModules.companyActions,
+    ...window.GameModules.companyAttendanceActions,
     ...window.GameModules.bossActions,
     ...window.GameModules.bossAiActions,
     ...window.GameModules.calendarActions,
