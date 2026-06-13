@@ -123,8 +123,34 @@
   box-shadow: 0 0 0 2px rgba(116, 246, 255, .13);
 }
 
+.prompt-row-wrap {
+  display: grid;
+  gap: 8px;
+}
+
 .prompt-row {
   cursor: pointer;
+}
+
+.prompt-inline-detail {
+  min-height: 0;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, .18);
+}
+
+.prompt-inline-detail header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.prompt-inline-detail .eyebrow {
+  margin: 0;
 }
 
 .prompt-title {
