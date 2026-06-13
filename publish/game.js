@@ -26,7 +26,7 @@ document.addEventListener('alpine:init', () => {
     loadingDetail: '首次进入或存档较大时会更慢，这是正常现象。',
     loadingStages: [], entryStages: [],
     busy: false, started: false, desktopUnlocked: false, desktopPage: 0, desktopSwipeStart: null, entrySetupOpen: false, identityAppOpen: false, wechatAppOpen: false, identityTargetId: 'player-self', wechatSelectedContact: 'player-self', wechatTab: 'chats', wechatView: 'home', wechatInput: '', wechatUsers: [], wechatAddName: '', wechatAddRelation: '',
-    initPromise: null, phoneSetupDone: false, phoneActivationChoice: '', profileSetupBusy: false, phoneFixedTime: 0, phoneClockTimer: null, existingProfileExpanded: false,
+    initPromise: null, phoneSetupDone: false, phoneActivationChoice: '', profileSetupBusy: false, setupError: '', phoneFixedTime: 0, phoneClockTimer: null, existingProfileExpanded: false,
     playerProfile: { name: '', gender: '', birthday: '', age: '', city: '', refinedCity: '', dailyRole: '', refinedRole: '', livingStatus: '', refinedLivingStatus: '', relationships: '', parents: '', parentStatus: '', parentDeathCause: '', worldbuildingNote: '', notes: '', wechatId: '', profileEnrichedAt: '', initializedAt: '' }, playerName: '',
     selectedSlot: 'slot-1', saveSlots: window.GameModules.storage.slots,
     savePanelOpen: false, functionPanelOpen: false,

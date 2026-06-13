@@ -28,22 +28,28 @@ window.GameModules.playerSetupActions = {
     return this.playerProfileLexiconFields().map((x) => `${x.label}：${x.value}`).join('\n');
   },
 
-  defaultExistingAccountProfile() {
-    return {
-      name: '刘悠', gender: '男', birthday: '1998-11-19', age: this.playerAgeFromBirthday('1998-11-19'),
-      city: '四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号',
-      dailyRole: '程序工程师，计算机科学与技术硕士',
-      livingStatus: '与妹妹同居',
-      parents: '父母资料未同步', parentDeathCause: '',
-      relationships: '妹妹：需要AI按现实世界观、文化习俗和同居关系生成正式姓名',
-      notes: '已有账号同步资料。刘悠的妹妹已成年，对刘悠有极强依恋与占有欲，平时十分在乎外貌与整洁；如今两人同住，她常在家以精致打扮和亲近举动试探刘悠，但又担心刘悠过于正经、会因此疏远她，所以始终克制。刘悠并未明确察觉妹妹的心思，只认为妹妹格外精致讲究。妹妹外貌精致可爱，黑长直、黑瞳，常穿JK风制服与黑色过膝袜，身高155cm，体态娇小但已成年，气质清秀，曲线柔和，双腿纤细。刘悠也对妹妹有严重的保护欲与依恋倾向，但出于现实伦理与害怕妹妹反感，一直保持镇定与距离。', initializedAt: new Date().toISOString(),
-    };
+  async defaultExistingAccountProfile() {
+    const res = await fetch('./config/default-existing-profile.json');
+    if (!res.ok) throw new Error(`已有账号默认资料读取失败：${res.status}`);
+    const data = await res.json();
+    if (!data?.name || !data?.birthday) throw new Error('已有账号默认资料缺少 name 或 birthday');
+    return { ...data, age: this.playerAgeFromBirthday(data.birthday), initializedAt: new Date().toISOString() };
   },
 
-  chooseExistingAccountSetup() {
-    this.playerProfile = { ...this.playerProfile, ...this.defaultExistingAccountProfile() };
-    this.existingProfileExpanded = false;
-    this.phoneActivationChoice = 'existing';
+  async chooseExistingAccountSetup() {
+    if (this.profileSetupBusy) return;
+    this.profileSetupBusy = true;
+    try {
+      this.setupError = '';
+      this.playerProfile = { ...this.playerProfile, ...await this.defaultExistingAccountProfile() };
+      this.existingProfileExpanded = false;
+      this.phoneActivationChoice = 'existing';
+    } catch (err) {
+      console.error('[玩家身份] 已有账号默认资料读取失败:', err.message, err.stack);
+      this.setupError = err.message || '已有账号默认资料读取失败';
+    } finally {
+      this.profileSetupBusy = false;
+    }
   },
 
   chooseNewAccountSetup() {
@@ -76,6 +82,7 @@ window.GameModules.playerSetupActions = {
     if (!name || !birthday) return;
     this.profileSetupBusy = true;
     try {
+      this.setupError = '';
       const base = this.normalizePlayerSetupBase(name, birthday);
       let enriched = null;
       if (!options.skipAi) {
