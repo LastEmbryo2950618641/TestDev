@@ -2,34 +2,20 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.characterProfileSource = {
   async resolve(raw, store) {
-    const known = this.findKnown(raw, store);
-    if (!known?.profilePath) return { raw, preset: null };
-    const merged = typeof raw === 'object' && raw ? { ...known, ...raw, aliases: [...(known.aliases || []), ...(raw.aliases || [])] } : known;
+    const candidate = this.candidate(raw, store);
     try {
-      const profile = await window.GameModules.characterBrief?.loadProfile?.(merged);
-      if (profile?.path) return { raw: merged, preset: profile };
+      const profile = await window.GameModules.characterBrief?.loadProfile?.(candidate);
+      if (profile?.path) return { raw: candidate, preset: profile };
     } catch (err) {
       console.warn('[角色卡] 预设资料读取失败，改用上下文生成:', err.message, err.stack);
     }
-    return { raw, preset: null };
+    return { raw: candidate, preset: null };
   },
 
-  findKnown(raw, store) {
-    const name = typeof raw === 'string' ? raw : raw?.name;
-    if (!name) return null;
-    const workHint = typeof raw === 'object' ? raw?.work : store?.character?.work;
-    const works = Array.isArray(store?.works) ? store.works : window.GameModules.catalog?.works?.() || [];
-    const candidates = works.flatMap((work) => (work.characters || []).map((char) => ({ ...char, work: char.work || work.name })));
-    return candidates.find((char) => this.sameWork(char.work, workHint) && this.sameName(char, name)) || null;
-  },
-
-  sameWork(a, b) {
-    if (!a || !b) return true;
-    return window.GameModules.rag?.normalize?.(a) === window.GameModules.rag?.normalize?.(b);
-  },
-
-  sameName(char, name) {
-    return char.name === name || (char.aliases || []).includes(name);
+  candidate(raw, store) {
+    const data = typeof raw === 'object' && raw ? { ...raw } : { name: String(raw || '无名路人') };
+    if (!data.work) data.work = store?.character?.work || '原创世界';
+    return data;
   },
 
   presetText(profile) {
