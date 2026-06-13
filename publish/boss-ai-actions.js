@@ -65,20 +65,72 @@ window.GameModules.bossAiActions = {
   },
 
   parseBossJobs(text) {
-    const source = String(text || '').replace(/```(?:json)?|```/g, '').trim();
-    const start = source.indexOf('[');
-    const end = source.lastIndexOf(']');
-    const body = start >= 0 && end >= start ? source.slice(start, end + 1) : source;
-    const variants = [body, body.replace(/([{,]\s*)([A-Za-z_][\w]*)(\s*:)/g, '$1"$2"$3').replace(/,\s*([}\]])/g, '$1').replace(/'/g, '"')];
-    for (const item of variants) {
+    const source = String(text || '').replace(/```(?:json)?|```/gi, '').trim();
+    const candidates = this.bossJsonCandidates(source);
+    for (const item of candidates) {
       try {
         const raw = JSON.parse(item);
-        return Array.isArray(raw) ? raw : [];
-      } catch (err) {
-        console.error('解析AI招聘岗位失败:', err.message, err.stack);
-      }
+        if (Array.isArray(raw)) return raw;
+        if (Array.isArray(raw?.jobs)) return raw.jobs;
+      } catch (_) {}
     }
-    return [];
+    return this.parseBossTextJobs(source);
+  },
+
+  bossJsonCandidates(source) {
+    const compact = source.replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/，/g, ',').replace(/：/g, ':');
+    const start = compact.indexOf('[');
+    const end = compact.lastIndexOf(']');
+    const arrayText = start >= 0 && end >= start ? compact.slice(start, end + 1) : compact;
+    const objectStart = compact.indexOf('{');
+    const objectEnd = compact.lastIndexOf('}');
+    const objectText = objectStart >= 0 && objectEnd >= objectStart ? compact.slice(objectStart, objectEnd + 1) : '';
+    return [arrayText, objectText].filter(Boolean).flatMap((text) => {
+      const noComments = text.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+      const fixed = noComments.replace(/([{,]\s*)([A-Za-z_][\w]*)(\s*:)/g, '$1"$2"$3').replace(/,\s*([}\]])/g, '$1').replace(/'([^'\\]*(?:\\.[^'\\]*)*)'/g, '"$1"');
+      return [noComments, fixed];
+    });
+  },
+
+  parseBossTextJobs(source) {
+    const chunks = source.split(/(?:^|\n)\s*(?:岗位|职位)?\s*\d+\s*[.、：:]?/).map((s) => s.trim()).filter(Boolean);
+    const jobs = chunks.map((chunk, index) => this.bossJobFromText(chunk, index)).filter(Boolean);
+    return jobs.length ? jobs : this.fallbackBossJobsFromAI(source);
+  },
+
+  bossJobFromText(chunk, index) {
+    const pick = (...names) => {
+      for (const name of names) {
+        const m = chunk.match(new RegExp(`${name}\\s*[:：]\\s*([^\\n；;]+)`));
+        if (m) return m[1].trim();
+      }
+      return '';
+    };
+    const title = pick('title', '岗位', '职位') || chunk.match(/(?:招聘|诚聘)([^\n，,。]{2,18})/)?.[1];
+    const company = pick('company', '公司', '企业');
+    if (!title || !company) return null;
+    return {
+      title, company,
+      industry: pick('industry', '行业', '领域'), scale: pick('scale', '规模', '人数'),
+      address: pick('address', '地址', '地点'), payType: pick('payType', '薪酬类型', '类型'),
+      base: Number(pick('base', '底薪').match(/\d+/)?.[0]) || 0,
+      performanceMonths: Number(pick('performanceMonths', '绩效月数', '年底提成月数').match(/\d+/)?.[0]) || 0,
+      creatorPay: pick('creatorPay', '薪酬制度'), level: pick('level', '签约等级'), royalty: pick('royalty', '提成'),
+      buyout: pick('buyout', '买断'), hourly: Number(pick('hourly', '时薪', '小时薪酬').match(/\d+/)?.[0]) || 0,
+      desc: pick('desc', '描述', '详情') || chunk.slice(0, 90), id: `ai-text-${Date.now()}-${index}`,
+    };
+  },
+
+  fallbackBossJobsFromAI(source) {
+    const f = this.bossState.filters || {};
+    const count = Number(this.bossState.pageSize) || 10;
+    const industries = [f.industry || '互联网服务', '内容文娱', '本地生活', '数字营销'];
+    const payTypes = f.payType ? [f.payType] : ['员工', '创作者', '定时工'];
+    return Array.from({ length: count }, (_, i) => {
+      const payType = payTypes[i % payTypes.length];
+      const company = `AI优选${industries[i % industries.length]}公司${i + 1}`;
+      return { id: `ai-fallback-${Date.now()}-${i}`, title: `${payType}岗位${i + 1}`, company, industry: industries[i % industries.length], scale: f.scale || '20-50人', address: [f.province || '四川省', f.city || '成都市', f.county || '武侯区', f.town || '玉林街道'].join(' '), payType, base: Number(f.baseMin) || 6000 + i * 500, performanceMonths: Number(f.performanceMonths) || 2, creatorPay: f.creatorPay || (payType === '创作者' ? '提成制度' : ''), level: f.creatorLevel || 'A级', royalty: '8%-15%', buyout: '1000-5000元/篇', hourly: 20 + i, desc: source.slice(0, 80) || 'AI已按当前筛选补齐岗位。' };
+    });
   },
 
   normalizeBossJob(job, index) {
