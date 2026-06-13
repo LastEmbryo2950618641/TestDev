@@ -157,6 +157,38 @@
   grid-template-columns: 48px 1fr;
 }
 
+.wechat-add-user {
+  display: grid;
+  grid-template-columns: 1fr 1fr 64px;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #ddd;
+  background: #f7f7f7;
+}
+
+.wechat-add-user input {
+  min-width: 0;
+  height: 36px;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  outline: none;
+  background: #fff;
+  color: #111;
+}
+
+.wechat-add-user button {
+  border: 0;
+  border-radius: 8px;
+  background: #07c160;
+  color: #fff;
+  font-weight: 800;
+}
+
+.wechat-add-user button:disabled {
+  opacity: .45;
+}
+
 .wechat-empty {
   margin: 72px 0 0;
   color: #888;

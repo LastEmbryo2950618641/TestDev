@@ -2,7 +2,8 @@ window.GameModules = window.GameModules || {};
 window.GameModules.skillsDefinitions = (window.GameModules.skillsDefinitions || []).concat([
   { id: 'wechat.open', category: '微信', name: '打开微信APP', method: 'openWechatApp()', params: '无', returns: '微信首页、联系人或聊天界面。', description: '进入手机通讯入口。', detail: '当前不会自动替玩家发送消息。' },
   { id: 'wechat.id.ensure', category: '微信', name: '读取/生成微信号', method: 'ensureWechatId()', params: '无', returns: '玩家微信号。', description: '确保玩家本人有微信ID。', detail: '缺失时会根据姓名生成并保存。' },
-  { id: 'wechat.contacts.list', category: '微信', name: '列出微信联系人', method: 'wechatContacts() / wechatThreads()', params: '无', returns: '联系人/会话数组。', description: '读取微信通讯录和会话列表。', detail: '当前包含操控者交流群等占位联系人。' },
+  { id: 'wechat.contacts.list', category: '微信', name: '列出微信联系人', method: 'wechatContacts() / wechatThreads()', params: '无', returns: '联系人/会话数组。', description: '读取微信通讯录和会话列表。', detail: '包含系统群聊与已同步/手动添加的微信联系人。' },
+  { id: 'wechat.user.add', category: '微信', name: '添加微信用户', method: 'addWechatUser(user) / addWechatUsers(users)', params: 'user: { name, relation?, id?, latest? } 或数组', returns: '写入后的联系人对象或联系人数组。', description: '给玩家微信新增或更新联系人。', detail: 'AI确认某个角色可能拥有玩家微信时调用；同名或同id会更新而不是重复添加，并自动保存。' },
   { id: 'wechat.contact.select', category: '微信', name: '选择微信联系人', method: 'selectWechatContact(id)', params: 'id: 联系人或群id', returns: '进入对应聊天页。', description: '切换当前微信会话。', detail: '会设置wechatSelectedContact并把wechatView切到chat。' },
   { id: 'wechat.messages.view', category: '微信', name: '读取当前会话消息', method: 'wechatMessages()', params: '无，依赖当前联系人', returns: '当前会话消息数组。', description: '查看选中联系人/群的消息。', detail: '当前消息为系统占位，后续可扩展为真实社交通讯。' },
   { id: 'wechat.tab.set', category: '微信', name: '切换微信分页', method: 'setWechatTab(tab)', params: 'tab: chats | contacts | me', returns: '切换微信首页分页。', description: '在聊天、通讯录、我之间切换。', detail: '会把wechatView重置为home。' },

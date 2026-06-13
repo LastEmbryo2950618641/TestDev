@@ -28,6 +28,7 @@ window.GameModules.storage = {
       phoneSetupDone: store.phoneSetupDone,
       playerProfile: store.playerProfile,
       playerName: store.playerName,
+      wechatUsers: store.wechatUsers || [],
       phoneFixedTime: store.phoneFixedTime,
       selectedSlot: store.selectedSlot,
       selectedWork: store.selectedWork,
@@ -72,6 +73,7 @@ window.GameModules.storage = {
     store.phoneFixedTime = Number(save.phoneFixedTime) || new Date(save.playerProfile?.initializedAt || Date.now()).getTime();
     store.playerProfile = { ...store.playerProfile, ...(save.playerProfile || {}) };
     store.playerName = save.playerName || store.playerProfile?.name || store.playerName;
+    store.wechatUsers = Array.isArray(save.wechatUsers) ? save.wechatUsers : (store.wechatUsers || []);
     store.realWorldSceneTitle = save.realWorldSceneTitle || store.realWorldSceneTitle;
     store.realWorldQuest = save.realWorldQuest || store.realWorldQuest;
     store.realWorldStatus = save.realWorldStatus || store.realWorldStatus;

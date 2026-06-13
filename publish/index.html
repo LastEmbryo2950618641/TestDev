@@ -82,6 +82,8 @@
   <script src="worldline-actions.js"></script>
   <script src="social-position.js"></script>
   <script src="player-setup-actions.js"></script>
+  <script src="wechat-actions.js"></script>
+  <script src="player-wechat-setup.js"></script>
   <script src="player-identity-actions.js"></script>
   <script src="real-world-actions.js"></script>
   <script src="company-system.js"></script>
@@ -713,6 +715,11 @@
           </template>
         </section>
         <section class="wechat-list-page" x-show="$store.game.wechatView === 'home' && $store.game.wechatTab === 'contacts'">
+          <div class="wechat-add-user">
+            <input x-model="$store.game.wechatAddName" placeholder="添加联系人姓名">
+            <input x-model="$store.game.wechatAddRelation" placeholder="关系/备注">
+            <button type="button" @click="$store.game.submitWechatAddUser()" :disabled="!$store.game.wechatAddName.trim()">添加</button>
+          </div>
           <p class="wechat-empty" x-show="!$store.game.wechatContacts().filter(x => !x.group).length">暂无联系人</p>
           <template x-for="contact in $store.game.wechatContacts().filter(x => !x.group)" :key="contact.id">
             <button class="wechat-contact-row" type="button" @pointerdown.stop @click.stop="$store.game.selectWechatContact(contact.id)"><span class="wechat-avatar" x-text="contact.mark"></span><b x-text="contact.name"></b></button>

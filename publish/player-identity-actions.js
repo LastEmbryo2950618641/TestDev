@@ -157,7 +157,8 @@ window.GameModules.playerIdentityActions = {
   },
 
   wechatContacts() {
-    return [{ id: 'group-main', name: '操控者交流群', mark: '群', subtitle: '聊天群', latest: '系统：新手机已激活。', unread: 8, group: true }];
+    const group = this.defaultWechatGroup?.() || { id: 'group-main', name: '操控者交流群', mark: '群', subtitle: '聊天群', latest: '系统：新手机已激活。', unread: 8, group: true };
+    return [group, ...(this.wechatUsers || [])];
   },
 
   wechatThreads() { return this.wechatContacts(); },
