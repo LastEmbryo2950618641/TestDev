@@ -41,7 +41,7 @@ window.GameModules.bossAiActions = {
 
   bossPlayerFitPrompt() {
     const p = this.playerProfile || {};
-    const fields = this.playerProfileLexiconFields?.().filter((x) => ['现实身份', '工作阵营', '阵营地位', '世界观补全', '备注'].includes(x.label)).map((x) => `${x.label}:${x.value}`).join('；') || '';
+    const fields = this.playerProfileLexiconFields?.().filter((x) => ['现实身份', '势力地位', '社群角色', '世界观补全', '备注'].includes(x.label)).map((x) => `${x.label}:${x.value}`).join('；') || '';
     return `开启玩家适配：优先匹配玩家能力，保留约20%跨领域机会。姓名=${p.name || this.playerName || '玩家'}；身份=${p.refinedRole || p.dailyRole || '未知'}；所在地=${p.refinedCity || p.city || '未知'}；能力=${this.bossPlayerAbilitiesPrompt()}；${fields}`;
   },
   bossPlayerAbilitiesPrompt() {

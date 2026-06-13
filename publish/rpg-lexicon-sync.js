@@ -37,8 +37,8 @@ Object.assign(window.GameModules.rpgLexicon, {
     const role = String(obj?.role || obj?.position || obj?.rank || '成员').trim();
     if (!faction) return null;
     const name = obj.name && obj.name.includes('/') ? obj.name : `${faction} / ${role}`;
-    const description = obj.description || `阵营：${faction}；角色：${role}。该词条表示角色所属组织、地点或群体，以及其在其中承担的社会角色。`;
-    return { worldTag, kind: '阵营', name, summary: `${faction}中的${role}`, description, value: { ...obj, name, faction, role, position: role, level: -1 }, nameAiGenerated: this.isAiStateName(name, state), valueAiGenerated: true, changeMode: obj.changeMode || 'AI演算', source: 'state', meta: { info: { faction, role, level: -1 } } };
+    const description = obj.description || `社群：${faction}；角色：${role}。该词条表示角色所属居住社区、家庭、社交圈或临时群体，以及其在其中承担的社会角色。`;
+    return { worldTag, kind: '社群角色', name, summary: `${faction}中的${role}`, description, value: { ...obj, name, faction, community: faction, role, position: role, level: -1 }, nameAiGenerated: this.isAiStateName(name, state), valueAiGenerated: true, changeMode: obj.changeMode || 'AI演算', source: 'state', meta: { info: { faction, community: faction, role, level: -1 } } };
   },
 
   forcePositionEntry(worldTag, item, state) {
@@ -47,7 +47,7 @@ Object.assign(window.GameModules.rpgLexicon, {
     const position = String(obj?.position || obj?.rank || '成员').trim();
     if (!force) return null;
     const name = obj.name && obj.name.includes('/') ? obj.name : `${force} / ${position}`;
-    const description = obj.description || `势力：${force}；地位：${position}。该词条表示角色在有层级结构势力中的等级、职级或职位。`;
+    const description = obj.description || `势力：${force}；地位：${position}。该词条表示角色在有层级制度势力中的等级、职级、年级或职位。`;
     return { worldTag, kind: '势力地位', name, summary: `${force}中的${position}`, description, value: { ...obj, name, force, faction: force, position, level: -1 }, nameAiGenerated: this.isAiStateName(name, state), valueAiGenerated: true, changeMode: obj.changeMode || 'AI演算', source: 'state', meta: { info: { force, faction: force, position, level: -1 } } };
   },
 
@@ -59,8 +59,8 @@ Object.assign(window.GameModules.rpgLexicon, {
     if (name === '现实观察' || name === '观察') return '通过细节、环境变化和他人反应判断局势的能力。';
     if (kind === '知识') return `对“${name}”这一知识领域的概念、规则、背景和应用范围的理解程度。`;
     if (kind === '职业') return `以“${name}”为核心的内化职业能力、经验与胜任资格；不等同当前雇佣单位或岗位，失业也不直接失去该职业。`;
-    if (kind === '阵营') return `阵营角色词条，说明角色所属组织、地点或群体，以及其在其中承担的社会角色。`;
-    if (kind === '势力地位') return `势力地位词条，说明角色在有层级结构势力中的等级、职级或职位。`;
+    if (kind === '社群角色' || kind === '阵营') return `社群角色词条，说明角色所属居住社区、家庭、社交圈或临时群体，以及其在其中承担的社会角色。`;
+    if (kind === '势力地位') return `势力地位词条，说明角色在有层级制度势力中的等级、职级、年级或职位。`;
     return `执行“${name}”相关行动时所需的理解、操作熟练度和稳定发挥能力。`;
   },
 

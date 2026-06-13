@@ -23,8 +23,8 @@ window.GameModules.rpgFieldUi = {
     const row = (key, label, value, desc) => ({ key: `profile-${state?.id || 'target'}-${key}`, label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: key !== 'work' });
     return [
       row('name', '姓名', p.name || state?.name, '角色卡固化姓名。'), row('work', '所属世界', worldTag, '角色出身作品或世界。'),
-      row('role', '身份', p.role || p.job, '角色当前身份。'), row('faction', '所属势力', p.faction, '角色当前阵营或社会位置。'),
-      row('job', '职业', p.job, '角色真实职业、训练身份或社会功能。'), row('rank', '等级/地位', p.rank, '角色职业等级或地位。'),
+      row('role', '身份', p.role || p.job, '角色当前身份。'), row('faction', '首要社群', p.faction, '角色当前主要社群或社会位置。'),
+      row('job', '职业', p.job, '角色真实职业、训练身份或社会功能。'), row('rank', '首要势力地位', p.rank, '角色在首要势力中的地位、职级或职位。'),
       row('gender', '性别', p.gender, '角色性别资料。'), row('birthday', '生日', p.birthday, '角色生日资料。'),
       row('relationships', '人际关系', p.relationships, '关系必须使用“关系：姓名”的格式。'), row('appearance', '外貌', p.appearance, '角色卡固化外貌。'),
       row('personality', '性格', p.personality, '角色卡固化性格。'), row('detail', '人物说明', p.detail, '角色卡补充说明。'),
@@ -54,9 +54,9 @@ window.GameModules.rpgFieldUi = {
 
   lexiconKind(field, item = null) {
     if (item?.type) return item.type;
-    if (field?.key && !item) return { knowledge: '知识树', skills: '技能树', professions: '职业树', factions: '阵营', force_positions: '势力地位', equipment: '装备', status_tags: '状态' }[field.key] || field.kind || '属性';
+    if (field?.key && !item) return { knowledge: '知识树', skills: '技能树', professions: '职业树', factions: '社群角色', force_positions: '势力地位', equipment: '装备', status_tags: '状态' }[field.key] || field.kind || '属性';
     if (field?.kind) return field.kind;
-    return { factions: '阵营', force_positions: '势力地位', equipment: '装备', status_tags: '状态' }[field?.key] || '属性';
+    return { factions: '社群角色', force_positions: '势力地位', equipment: '装备', status_tags: '状态' }[field?.key] || '属性';
   },
 
   lexiconFor(field, item = null) {
@@ -88,15 +88,15 @@ window.GameModules.rpgFieldUi = {
     if (name === '现实观察' || name === '观察') return '通过细节、环境变化和他人反应判断局势的能力。';
     if (kind === '知识') return `对“${name}”这一知识领域的概念、规则、背景和应用范围的理解程度。`;
     if (kind === '职业') return `以“${name}”为核心的内化职业能力、经验与胜任资格；不等同当前雇佣单位或岗位，失业也不直接失去该职业。`;
-    if (kind === '阵营') {
-      const faction = obj.faction || info.faction || name.split('/')[0]?.trim();
+    if (kind === '社群角色' || kind === '阵营') {
+      const community = obj.community || obj.faction || info.community || info.faction || name.split('/')[0]?.trim();
       const role = obj.role || info.role || obj.position || info.position || name.split('/')[1]?.trim() || '成员';
-      return `阵营：${faction}；角色：${role}。该词条说明角色所属组织、地点或群体，以及其在其中承担的社会角色。`;
+      return `社群：${community}；角色：${role}。该词条说明角色所属居住社区、家庭、社交圈或临时群体，以及其在其中承担的社会角色。`;
     }
     if (kind === '势力地位') {
       const force = obj.force || obj.faction || info.force || info.faction || name.split('/')[0]?.trim();
       const position = obj.position || info.position || name.split('/')[1]?.trim() || '成员';
-      return `势力：${force}；地位：${position}。该词条说明角色在有层级结构势力中的等级、职级或职位。`;
+      return `势力：${force}；地位：${position}。该词条说明角色在有层级制度势力中的等级、职级、年级或职位。`;
     }
     return `执行“${name}”相关行动时所需的理解、操作熟练度和稳定发挥能力。`;
   },
@@ -112,7 +112,7 @@ window.GameModules.rpgFieldUi = {
     const name = obj?.name || field?.label || '未知';
     const hasLevel = Number(obj?.level) > 0;
     const lines = [`名称: ${name}`, `定义: ${this.learnedDefinition(kind, name, obj, lexicon, info)}`, `类型: ${kind}`, `所属世界: ${field?.worldTag || lexicon?.worldTag || '公共'}`, `词条类型: ${field?.targetType || lexicon?.meta?.targetType || '角色'}`];
-    if (kind === '阵营' && (obj?.faction || info.faction)) lines.push(`阵营: ${obj.faction || info.faction}`, `角色: ${obj.role || info.role || obj.position || info.position || '成员'}`);
+    if ((kind === '社群角色' || kind === '阵营') && (obj?.community || obj?.faction || info.community || info.faction)) lines.push(`社群: ${obj.community || obj.faction || info.community || info.faction}`, `角色: ${obj.role || info.role || obj.position || info.position || '成员'}`);
     if (kind === '势力地位' && (obj?.force || obj?.faction || info.force || info.faction)) lines.push(`势力: ${obj.force || obj.faction || info.force || info.faction}`, `地位: ${obj.position || info.position || '成员'}`);
     if (hasLevel) {
       lines.push(`等级: lv${obj.level}`);

@@ -17,7 +17,7 @@ window.GameModules.playerIdentityActions = {
     return {
       id: 'player-self', name, age: p.age || '', birthday: p.birthday || '', gender: p.gender || '', work: world.label || '2026 现代都市现实世界', role, job: role,
       rank: position, faction: workplace, city, workplace, position, importance: 'main', isPlayer: true,
-      detail: `性别：${p.gender || '未知'}；年龄：${p.age || '未知'}；生日：${p.birthday || '未知'}；具体地址：${city}；工作阵营：${workplace}；地位：${position}；居住：${living}；父母：${parents}；去世原因：${deathCause}；关系：${relations}；备注：${notes}`,
+      detail: `性别：${p.gender || '未知'}；年龄：${p.age || '未知'}；生日：${p.birthday || '未知'}；具体地址：${city}；势力地位：${workplace}/${position}；社群角色：${city}/居民；居住：${living}；父母：${parents}；去世原因：${deathCause}；关系：${relations}；备注：${notes}`,
       personality: notes,
       skills: [
         { name: '手机操作', desc: '能够使用智能手机完成通讯、检索、拍摄、设置、应用切换和信息处理等操作。' },
@@ -51,9 +51,9 @@ window.GameModules.playerIdentityActions = {
       row('role', '身份', p.role, '角色卡固化身份。'),
       row('appearance', '外貌', p.appearance, '角色卡固化外貌。'),
       row('personality', '性格', p.personality, '角色卡固化性格。'),
-      row('faction', '所属势力', p.faction, '角色当前阵营或社会位置。'),
+      row('faction', '首要社群', p.faction, '角色当前主要社群或社会位置。'),
       row('job', '职业', p.job, '角色真实职业、训练身份或社会功能。'),
-      row('rank', '等级/地位', p.rank, '角色职业等级或地位。'),
+      row('rank', '首要势力地位', p.rank, '角色在首要势力中的地位、职级或职位。'),
     ];
   },
 
@@ -109,6 +109,7 @@ window.GameModules.playerIdentityActions = {
     state.values.age = Number.isFinite(Number(character.age)) ? Number(character.age) : state.values.age;
     state.values.status_tags = ['玩家本人', '手机主人', character.work, character.role];
     state.values.factions = window.GameModules.socialPosition.playerItems({ ...this.playerProfile, workplace: character.workplace, position: character.position });
+    state.values.force_positions = window.GameModules.socialPosition.playerForceItems({ ...this.playerProfile, workplace: character.workplace, position: character.position });
     window.GameModules.progression.ensureStateMechanics(state, character);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
     await window.GameModules.sqliteSave.saveCharacterState(state);
