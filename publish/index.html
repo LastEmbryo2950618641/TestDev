@@ -108,7 +108,6 @@
   <script src="game.js"></script>
 </head>
 <body x-data="{}">
-  <button x-show="!$store.game.loading && $store.game.phoneSetupDone" class="phone-collapse-btn" type="button" @click="$store.game.openRealWorldPanel()" x-cloak>收起手机</button>
   <div id="boot-fallback" class="loading-screen">
     <div class="loading-card"><div class="spinner"></div><p>正在启动游戏…</p><small>如果长时间停留，请打开 Console 查看错误。</small></div>
   </div>
@@ -140,6 +139,7 @@
         <button class="load-btn" @click="$store.game.save()" :disabled="$store.game.busy">保存当前进度</button>
         <button class="overwrite-btn" @click="$store.game.resetGame()" :disabled="$store.game.busy">重新开始</button>
       </div>
+      <button x-show="$store.game.phoneSetupDone" class="ghost-wide real-world-settings-btn" type="button" @click="$store.game.savePanelOpen = false; $store.game.openRealWorldPanel()">收起手机</button>
       <label class="dev-toggle">
         <input type="checkbox" x-model="$store.game.sectionHintsEnabled">
         <span>显示开发栏目提示</span>
