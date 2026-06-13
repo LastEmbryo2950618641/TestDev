@@ -5,10 +5,11 @@ window.GameModules.bossActions = {
     const base = window.GameModules.bossRecruitment.defaultBossState(this.playerProfile || {});
     this.bossState = { ...base, ...(this.bossState || {}) };
     this.bossState.filters = { ...base.filters, ...(this.bossState.filters || {}) };
-    this.bossState.jobCache = this.bossState.jobCache || {};
     this.bossState.jobs = this.bossState.jobs || [];
     this.bossState.pageSize = Number(this.bossState.pageSize) || 10;
-    this.bossState.page = Math.max(Number(this.bossState.page) || 1, 1);
+    this.bossState.randomSeed = Number(this.bossState.randomSeed) || 0;
+    this.bossState.customPrompt = this.bossState.customPrompt || '';
+    this.bossState.usePlayerFit = Boolean(this.bossState.usePlayerFit);
   },
 
   openBossApp() {
@@ -23,7 +24,7 @@ window.GameModules.bossActions = {
     this.bossState.generating = false;
     this.bossState.open = true;
     this.desktopUnlocked = true;
-    this.generateBossJobsByAI?.(this.bossState.page);
+    if (!this.currentBossJobs().length) this.randomBossJobs();
   },
 
   closeBossApp() {
@@ -36,8 +37,22 @@ window.GameModules.bossActions = {
   },
 
   clearBossCache() {
-    Object.assign(this.bossState, { companyDetailOpen: false, detailJobId: '', applyMessage: '', generating: false, jobCache: {}, jobs: [], selectedJobId: '', page: 1 });
+    Object.assign(this.bossState, { companyDetailOpen: false, detailJobId: '', applyMessage: '', generating: false, jobs: [], selectedJobId: '' });
     this.bossState.requestId = (this.bossState.requestId || 0) + 1;
+  },
+
+  randomBossJobs() {
+    this.initBossRecruitment();
+    if (this.bossState.generating) return;
+    this.bossState.randomSeed = Date.now();
+    Object.assign(this.bossState, { jobs: [], selectedJobId: '', companyDetailOpen: false, detailJobId: '', applyMessage: '' });
+    this.generateBossJobsByAI?.();
+  },
+
+  toggleBossPlayerFit() {
+    this.initBossRecruitment();
+    this.bossState.usePlayerFit = !this.bossState.usePlayerFit;
+    this.randomBossJobs();
   },
 
   bossOptions(key) {
@@ -63,27 +78,10 @@ window.GameModules.bossActions = {
     return this.bossState.jobs.filter((job) => this.bossMatchesJob(job, this.bossState.filters));
   },
 
-  pagedBossJobs() {
-    const key = this.bossCacheKey?.(this.bossState.page);
-    const cached = key ? this.bossState.jobCache[key] || [] : [];
-    return cached.filter((job) => this.bossMatchesJob(job, this.bossState.filters));
+  currentBossJobs() {
+    return this.bossState.jobs.filter((job) => this.bossMatchesJob(job, this.bossState.filters));
   },
 
-  bossPageCount() {
-    return Math.max(1, Number(this.bossState?.page) || 1);
-  },
-
-  bossPageNumbers() {
-    const current = Math.max(Number(this.bossState?.page) || 1, 1); return current === 1 ? [1] : [1, current];
-  },
-
-  setBossPage(page) {
-    this.initBossRecruitment();
-    this.bossState.page = Math.max(Number(page) || 1, 1);
-    const cached = this.pagedBossJobs();
-    this.bossState.selectedJobId = cached[0]?.id || '';
-    if (!cached.length) this.generateBossJobsByAI?.(this.bossState.page);
-  },
 
   bossMatchesJob(job, f) {
     if (f.industry && job.industry !== f.industry) return false;
@@ -133,7 +131,7 @@ window.GameModules.bossActions = {
 
   selectedBossJob() {
     this.initBossRecruitment();
-    return this.bossState.jobs.find((job) => job.id === this.bossState.selectedJobId) || this.pagedBossJobs()[0] || null;
+    return this.bossState.jobs.find((job) => job.id === this.bossState.selectedJobId) || this.currentBossJobs()[0] || null;
   },
 
   selectedBossCompanyJob() {

@@ -34,7 +34,7 @@
 }
 
 .boss-filter-head,
-.boss-pagination {
+.boss-custom-prompt {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -70,7 +70,8 @@
 
 .boss-filters select,
 .boss-filters input,
-.boss-filter-head select {
+.boss-filter-head select,
+.boss-custom-prompt input {
   width: 100%;
   min-height: 34px;
   border: 1px solid rgba(166, 188, 255, .28);
@@ -80,8 +81,12 @@
   background: rgba(255, 255, 255, .08);
 }
 
+.boss-custom-prompt input {
+  flex: 1 1 260px;
+}
+
 .boss-filter-head button,
-.boss-pagination button {
+.boss-custom-prompt button {
   min-height: 34px;
   border: 1px solid rgba(83, 255, 178, .24);
   border-radius: 999px;
@@ -91,13 +96,13 @@
   font-weight: 900;
 }
 
-.boss-pagination button.active {
+.boss-filter-head button.active {
   border-color: rgba(83, 255, 178, .82);
   background: rgba(83, 255, 178, .2);
 }
 
 .boss-filter-head button:disabled,
-.boss-pagination button:disabled {
+.boss-custom-prompt button:disabled {
   opacity: .45;
 }
 
@@ -106,11 +111,6 @@
   color: #ffb4c0;
   font-size: 12px;
   font-weight: 800;
-}
-
-.boss-pagination {
-  justify-content: center;
-  margin-top: 4px;
 }
 
 .boss-body {
