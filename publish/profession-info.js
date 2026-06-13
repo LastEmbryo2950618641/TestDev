@@ -25,7 +25,7 @@ window.GameModules.professionInfo = {
   async generate(worldTag, name, context) {
     try {
       if (!window.dzmm?.completions) return null;
-      const prompt = this.prompt(worldTag, name, context);
+      const prompt = await this.prompt(worldTag, name, context);
       return await window.GameModules.jsonUtils.generateJsonWithRetry({
         model: 'nalang-medium-0826',
         maxTokens: 900,
@@ -41,7 +41,7 @@ window.GameModules.professionInfo = {
 
   prompt(worldTag, name, context) {
     const fields = (context.worldFields || []).map((x) => `${x.key}:${x.label}`).join('、') || '无';
-    return `为 AI RPG 建立职业资料。世界=${worldTag}，职业=${name}，角色=${context.characterName || ''}，身份=${context.role || ''}，背景=${context.detail || ''}，世界专属能力字段=${fields}。职业必须是内化到角色自身的能力、经验与胜任资格，不等同当前公司、雇佣状态或岗位；工程师失业也仍可拥有工程师职业。学生/高中生/中学生/年级身份不算职业，属于阵营或角色地位，必须 confirmed=false。只有百分之百确认该职业适用时 confirmed=true，否则 confirmed=false。必须体现职业升级后如何变强：levelDescription 写该职业当前等级代表的职责/熟练度，effect 写该等级在剧情判定、资源、社会承认或行动中的实际作用。只返回 JSON：{"name":"职业名","confirmed":true,"summary":"30字内简单介绍","description":"120字内详细介绍","levelDescription":"当前等级说明","effect":"当前等级实际作用","intrinsicStats":["strength"],"learnedAbilities":["能力名"],"worldAbilities":["字段key或能力名"]}。除 name、confirmed、summary、description、levelDescription、effect 外，其它字段没有依据或不需要更改就不要返回。不要 Markdown。`;
+    return window.GameModules.promptTemplates.render('profession-info', { 世界: worldTag, 职业: name, 角色: context.characterName || '', 身份: context.role || '', 背景: context.detail || '', 世界字段: fields });
   },
 
   validate(raw, worldTag, name) {

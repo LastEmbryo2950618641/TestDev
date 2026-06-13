@@ -21,8 +21,9 @@ window.GameModules.ai = {
     const requestId = ++this.latestRequestId;
     let buffer = '';
     let applied = false;
-    const messages = [{ role: 'user', content: window.GameModules.createSystemPrompt(store, action) }];
-    if (logId && store.attachNovelPrompt) store.attachNovelPrompt(logId, { systemPrompt: messages[0].content, userPrompt: action || '无，继续推进', model: store.modelId, promptTokens: window.GameModules.characterMemory?.estimateTokens?.(messages[0].content) || Math.ceil(messages[0].content.length / 2) });
+    const systemPrompt = await window.GameModules.createSystemPrompt(store, action);
+    const messages = [{ role: 'user', content: systemPrompt }];
+    if (logId && store.attachNovelPrompt) store.attachNovelPrompt(logId, { systemPrompt, userPrompt: action || '无，继续推进', model: store.modelId, promptTokens: window.GameModules.characterMemory?.estimateTokens?.(systemPrompt) || Math.ceil(systemPrompt.length / 2) });
     console.log('[AI推演] 请求开始:', { requestId, action, model: store.modelId, promptLength: messages[0].content.length, ragLength: String(store.ragContext || '').length, memoryLength: String(store.memoryContext || '').length });
 
     try {

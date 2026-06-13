@@ -25,7 +25,7 @@ window.GameModules.factionAiActions = {
 
   async requestFactionText(requestId) {
     let buffer = '';
-    await window.dzmm.completions({ model: this.modelId || 'nalang-turbo-0826', maxTokens: 3000, messages: [{ role: 'user', content: this.factionPrompt() }] }, (content) => {
+    await window.dzmm.completions({ model: this.modelId || 'nalang-turbo-0826', maxTokens: 3000, messages: [{ role: 'user', content: await this.factionPrompt() }] }, (content) => {
       if (requestId !== this.factionState.requestId) return;
       buffer += content;
     });
@@ -33,10 +33,8 @@ window.GameModules.factionAiActions = {
   },
 
   factionPrompt() {
-    const p = this.playerProfile || {};
-    const company = this.currentCompany?.() || {};
-    const existing = JSON.stringify(this.factionState.factions || []);
-    return `你是现代现实世界势力数据库初始化与审计器。只返回严格JSON，不要Markdown。返回格式：{"factions":[...] }。势力定义：任何具有组织形式的实体都算势力；每个势力必须有parentId和parentName，无上级时parentId为空且parentName为“无势力归属”；所有公司必须归属于国家级势力。字段固定：id,name,type,parentId,parentName,level,location,domain,scale,stance,influence,description,structure,rules,resources,relations,fieldReasons。structure数组项为{name,roles}；relations数组项为{target,relation,detail}。fieldReasons必须覆盖除id外每个字段，每个字段都写一句审计理由。规则：1. 首次初始化时，根据上下文推演当前已存在势力和已知部分构成；数据库没有的势力，可按部分构成推演大致组织结构并固化。2. 数据库已有势力不能随意重写；发现不同处只能调整或增加，并且每个被调整/新增词条必须在fieldReasons里给合理理由。3. 全量检视每个势力，每个词条都必须有理由；无变化也说明为什么保持。4. 保留国家与当前公司，公司归属于国家。玩家资料：姓名=${p.name || '玩家'}，地址=${p.refinedCity || p.city || '未知'}，身份=${p.refinedRole || p.dailyRole || '未知'}。当前公司：${company.name || p.workplace || '未知公司'}，行业=${company.industry || '未知'}，地点=${company.location || p.refinedCity || p.city || '未知'}。数据库现有势力：${existing}。额外调整要求：${this.factionState.customPrompt || '无'}。`;
+    const p = this.playerProfile || {}, company = this.currentCompany?.() || {};
+    return window.GameModules.promptTemplates.render('faction-audit', { 玩家姓名: p.name || '玩家', 玩家地址: p.refinedCity || p.city || '未知', 玩家身份: p.refinedRole || p.dailyRole || '未知', 当前公司: company.name || p.workplace || '未知公司', 公司行业: company.industry || '未知', 公司地点: company.location || p.refinedCity || p.city || '未知', 已有势力: JSON.stringify(this.factionState.factions || []), 额外要求: this.factionState.customPrompt || '无' });
   },
 
   parseFactions(text) {

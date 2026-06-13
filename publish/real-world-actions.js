@@ -63,7 +63,7 @@ window.GameModules.realWorldActions = {
     const entry = { id: this.nextId++, type: 'ai', narration: '现实世界正在推演…', thinking: '', streaming: true };
     this.realWorldLog.push(entry);
     try {
-      const prompt = window.GameModules.createRealWorldPrompt(this, text);
+      const prompt = await window.GameModules.createRealWorldPrompt(this, text);
       entry.promptPack = { systemPrompt: prompt, userPrompt: text, model: this.modelId, promptTokens: Math.ceil(prompt.length / 2) };
       const result = await window.GameModules.realWorldAi.generate(this, prompt, text);
       await this.applyRealWorldResult(entry.id, result);

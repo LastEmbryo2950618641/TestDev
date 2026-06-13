@@ -87,7 +87,7 @@ window.GameModules.entryYear = {
 
   async audit(store, mode, evidence, fallback, base = 0) {
     if (!evidence || !window.dzmm?.completions) return 0;
-    const prompt = this.auditPrompt(store, mode, evidence, base);
+    const prompt = await this.auditPrompt(store, mode, evidence, base);
     try {
       return await window.GameModules.jsonUtils.generateJsonWithRetry({
         model: store.modelId,
@@ -104,10 +104,8 @@ window.GameModules.entryYear = {
 
   auditPrompt(store, mode, evidence, base) {
     const character = store?.character || {};
-    const target = mode === 'storyYear'
-      ? `作品《${character.work}》当前剧情基准年份`
-      : `${character.name}在${base}年这一剧情基准年时的年龄；若证据给出出生年份/生日，可用${base}-出生年份简单算术推出`;
-    return `请只根据证据推断${target}。必须自审：只有证据直接说明，或可由证据中的明确年份/年龄做简单算术推出，pass 才能为 true；出版年份、动画播出年份、演员/声优年龄、无关年份不能用。只返回JSON：{"pass":true|false,"value":数字,"reason":"引用证据"}。证据：${evidence}`;
+    const target = mode === 'storyYear' ? `作品《${character.work}》当前剧情基准年份` : `${character.name}在${base}年这一剧情基准年时的年龄；若证据给出出生年份/生日，可用${base}-出生年份简单算术推出`;
+    return window.GameModules.promptTemplates.render('entry-year-audit', { 目标: target, 证据: evidence });
   },
 
   parseAudit(text, fallback) {

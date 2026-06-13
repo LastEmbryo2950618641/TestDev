@@ -110,7 +110,8 @@ window.GameModules.characterMemory = {
     try {
       if (!window.dzmm?.completions) return rawQuery;
       let buffer = '';
-      await window.dzmm.completions({ model: 'nalang-turbo-0826', maxTokens: 240, messages: [{ role: 'user', content: `理解玩家意图，提取用于检索角色记忆的关键词短句。只返回一句话，不要解释：${rawQuery}` }] }, (chunk) => { buffer += chunk; });
+      const prompt = await window.GameModules.promptTemplates.render('memory-intent-query', { 玩家输入: rawQuery });
+      await window.dzmm.completions({ model: 'nalang-turbo-0826', maxTokens: 240, messages: [{ role: 'user', content: prompt }] }, (chunk) => { buffer += chunk; });
       return buffer.trim() || rawQuery;
     } catch (err) {
       console.warn('记忆检索意图解析失败:', err.code, err.message);

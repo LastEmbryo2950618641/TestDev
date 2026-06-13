@@ -82,7 +82,7 @@ window.GameModules.jsonUtils = {
       } catch (err) {
         lastError = err;
         if (i === max - 1) break;
-        prompt = this.repairPrompt(options.format || options.prompt, lastText, err);
+        prompt = await this.repairPrompt(options.format || options.prompt, lastText, err);
       }
     }
     const error = new Error(`AI返回格式错误: ${lastError?.message || 'unknown'}`);
@@ -99,8 +99,8 @@ window.GameModules.jsonUtils = {
     return buffer;
   },
 
-  repairPrompt(format, badOutput, err) {
-    return `上一次输出不是合法目标JSON，错误=${err?.message || 'unknown'}。请只根据原要求重新输出完整合法JSON，不要Markdown，不要解释，不要省略字段。原要求：${String(format || '').slice(0, 1800)}\n错误输出：${String(badOutput || '').slice(0, 1200)}`;
+  async repairPrompt(format, badOutput, err) {
+    return window.GameModules.promptTemplates.render('json-repair', { 错误: err?.message || 'unknown', 原要求: String(format || '').slice(0, 1800), 错误输出: String(badOutput || '').slice(0, 1200) });
   },
 
   repairJson(json) {

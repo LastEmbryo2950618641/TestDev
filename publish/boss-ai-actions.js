@@ -25,7 +25,7 @@ window.GameModules.bossAiActions = {
     await window.dzmm.completions({
       model: this.modelId || 'nalang-turbo-0826',
       maxTokens: 2600,
-      messages: [{ role: 'user', content: this.bossJobsPrompt() }],
+      messages: [{ role: 'user', content: await this.bossJobsPrompt() }],
     }, (content, done) => {
       if (this.bossState.requestId) buffer += content;
       if (done) this.bossState.generationDoneAt = this.phoneDateText?.() || '';
@@ -34,11 +34,9 @@ window.GameModules.bossAiActions = {
   },
 
   bossJobsPrompt() {
-    const f = this.bossState.filters, count = Number(this.bossState.pageSize) || 10;
-    const area = [f.province, f.city, f.county, f.town].filter(Boolean).join(' ') || '不限，优先玩家所在地';
+    const f = this.bossState.filters, count = Number(this.bossState.pageSize) || 10, area = [f.province, f.city, f.county, f.town].filter(Boolean).join(' ') || '不限，优先玩家所在地';
     const player = this.bossState.usePlayerFit ? this.bossPlayerFitPrompt() : '关闭玩家适配：像真实招聘软件一样随机混合热门、冷门、白领、蓝领、创作者、兼职岗位。';
-    const custom = String(this.bossState.customPrompt || '').trim() || '无';
-    return `你是现实招聘软件的岗位生成器。生成${count}个互不重复职位，只返回JSON数组。字段：id,title,company,industry,scale,address,payType,base,performanceMonths,creatorPay,level,royalty,buyout,hourly,skills,desc,matchProfessions,matchSkills,matchKnowledge。匹配字段只能填玩家已拥有能力：${this.bossPlayerAbilitiesPrompt()}。默认覆盖互联网软件、AI、数据、医疗、教育、法律、金融、财会、制造、建筑、物流、电商、本地生活、餐饮酒店、公共服务、媒体、游戏动漫、心理咨询、物业安保等领域；筛选或玩家文本指定领域时围绕指定方向生成。title必须具体，公司名、行业、地址、薪资互相匹配。payType只能是员工/创作者/定时工；员工有base/performanceMonths，创作者按提成或买断填字段，定时工有hourly。筛选：领域=${f.industry || '不限'}；规模=${f.scale || '不限'}；地址=${area}；类型=${f.payType || '不限'}；底薪=${f.baseMin || '不限'}-${f.baseMax || '不限'}；绩效=${f.performanceMonths || '不限'}；创作者薪酬=${f.creatorPay || '不限'}；等级=${f.creatorLevel || '不限'}。玩家适配：${player}。玩家输入：${custom}。skills给3-5项真实技能，desc一句话说明职责。随机种子=${this.bossState.randomSeed || Date.now()}。`;
+    return window.GameModules.promptTemplates.render('boss-jobs', { 数量: count, 玩家能力: this.bossPlayerAbilitiesPrompt(), 领域: f.industry || '不限', 规模: f.scale || '不限', 地址: area, 类型: f.payType || '不限', 底薪: `${f.baseMin || '不限'}-${f.baseMax || '不限'}`, 绩效: f.performanceMonths || '不限', 创作者薪酬: f.creatorPay || '不限', 等级: f.creatorLevel || '不限', 玩家适配: player, 玩家输入: String(this.bossState.customPrompt || '').trim() || '无', 随机种子: this.bossState.randomSeed || Date.now() });
   },
 
   bossPlayerFitPrompt() {

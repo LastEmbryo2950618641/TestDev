@@ -18,7 +18,7 @@ window.GameModules.characterFeedback = {
     if (!window.dzmm?.completions) return fallback;
     let buffer = '';
     try {
-      const prompt = this.prompt(store);
+      const prompt = await this.prompt(store);
       console.log('[角色反馈] completions 调用:', { promptLength: prompt.length });
       const request = window.dzmm.completions({
         model: 'nalang-turbo-0826',
@@ -41,11 +41,7 @@ window.GameModules.characterFeedback = {
     const profile = store.characterProfiles[store.character.id]?.summary || store.character.detail || store.character.personality || '';
     const experience = this.experience(store);
     const outputJson = JSON.stringify({ mind: '角色第一人称内心，40到70字', intent: `${store.character.name}自己下一步想做什么，30到50字`, mood: '冷静', resistance: 0, controlFeeling: '疑惑/恐惧/愤怒等短语', adaptation: 0, experienceSummary: '40字内', choices: ['4个行动选项，每个12字内'] });
-    return `只生成角色反馈，不生成数值表。必须只返回合法 JSON，不要 Markdown。
-角色：${store.character.name}｜${store.character.role}｜${store.character.work}。年龄：${store.characterAge || '未知'}。操控方式：${store.controlMode}。当前场景：${store.entryCurrentAction || '未知'}。人物资料：${String(profile).slice(0, 260)}。已有上线体验：次数=${experience.onlineCount}；感觉=${experience.feeling}；适应=${experience.adaptation}/100；摘要=${experience.summary}。
-处境：角色突然失去身体控制权，只能在身体里旁观；不知道操控者是谁，但仍能感到疼痛、疲劳、气味、触觉和恐惧。
-要求：mind 必须是角色自己的第一人称内心独白，不写角色名，不写旁白；intent 是角色本人想做什么，不是玩家选项；choices 是玩家可执行行动，不能包含“放开控制”；不要返回 metricUpdates。
-格式示例：${outputJson}`;
+    return window.GameModules.promptTemplates.render('character-feedback', { 角色: `${store.character.name}｜${store.character.role}｜${store.character.work}`, 年龄: store.characterAge || '未知', 操控方式: store.controlMode, 当前场景: store.entryCurrentAction || '未知', 人物资料: String(profile).slice(0, 260), 上线次数: experience.onlineCount, 上线感觉: experience.feeling, 适应度: experience.adaptation, 上线摘要: experience.summary, 输出示例: outputJson });
   },
 
   parse(text, fallback, store) {

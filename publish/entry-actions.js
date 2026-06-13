@@ -101,7 +101,7 @@ window.GameModules.entryActions = {
     await window.dzmm.completions({
       model: this.modelId,
       maxTokens: 220,
-      messages: [{ role: 'user', content: this.entryPrompt(reason, storyContext) }],
+      messages: [{ role: 'user', content: await this.entryPrompt(reason, storyContext) }],
     }, (chunk, done) => {
       buffer = this.mergeStreamText(buffer, chunk);
       const latest = this.cleanEntryAction(buffer);
@@ -130,7 +130,7 @@ window.GameModules.entryActions = {
 
   entryPrompt(reason, storyContext) {
     const lore = window.GameModules.cache.enabled('generatedLore') ? window.GameModules.sqliteSave.getWorldLore(this.character.work || '原创世界') : null;
-    return `基于剧情索引、世界观和人物性格，推演角色在当前时间正在发生的事情。必须优先依据剧情索引范围，不要凭空捏造；如果当前角色未出现在索引摘要中，则根据其身份推断她此刻与主线的合理关系，并明确保持克制。只输出一句中文，60字内，不要JSON，不要重复词句。原因：${reason}。时间：${this.entryTimeLabel()}。角色：${this.character.name}｜${this.character.role}｜${this.character.personality || ''}。世界观：${lore?.background || this.character.work}。剧情索引上下文：${storyContext}`;
+    return window.GameModules.promptTemplates.render('entry-action', { 原因: reason, 时间: this.entryTimeLabel(), 角色: `${this.character.name}｜${this.character.role}｜${this.character.personality || ''}`, 世界观: lore?.background || this.character.work, 剧情索引: storyContext });
   },
 
   async advanceEntryTime() {

@@ -12,7 +12,7 @@ Object.assign(window.GameModules.characterFeedback, {
     let buffer = '';
     let doneSeen = false;
     try {
-      const prompt = this.prompt(store);
+      const prompt = await this.prompt(store);
       console.log('[角色反馈] completions 调用:', { promptLength: prompt.length });
       let resolveDone;
       const donePromise = new Promise((resolve) => { resolveDone = resolve; });
