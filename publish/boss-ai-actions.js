@@ -44,7 +44,7 @@ window.GameModules.bossAiActions = {
   bossJobsPrompt(page) {
     const f = this.bossState.filters;
     const count = Number(this.bossState.pageSize) || 10;
-    return `请模拟现实中的BOSS招聘，生成第${page}页的${count}个岗位。只返回严格JSON数组，不要Markdown，不要注释，不要尾逗号，所有键名和字符串必须使用双引号。字段：id,title,company,industry,scale,address,payType,base,performanceMonths,creatorPay,level,royalty,buyout,hourly,skills,desc。title必须是现实中的具体职位名称，禁止写“员工岗位1/创作者岗位1/定时工岗位1/岗位1”等泛称；示例：软件开发工程师、前端开发工程师、大数据开发工程师、医生、护士、法务专员、短视频编导、小说签约作者、展会协助员。筛选：公司领域=${f.industry || '不限'}；规模=${f.scale || '不限'}；地址=${[f.province, f.city, f.county, f.town].filter(Boolean).join(' ') || '不限'}；薪酬类型=${f.payType || '不限'}；底薪=${f.baseMin || '不限'}-${f.baseMax || '不限'}；年底提成月数=${f.performanceMonths || '不限'}；创作者薪酬=${f.creatorPay || '不限'}；签约等级=${f.creatorLevel || '不限'}。规则：员工有底薪和performanceMonths；创作者提成制度有level、base、royalty；买断有buyout；定时工有hourly。`;
+    return `请模拟现实中的BOSS招聘，生成第${page}页的${count}个岗位。只返回严格JSON数组，不要Markdown，不要注释，不要尾逗号，所有键名和字符串必须使用双引号。字段：id,title,company,industry,scale,address,payType,base,performanceMonths,creatorPay,level,royalty,buyout,hourly,skills,desc。title必须是具体职位名称且必须匹配公司领域，禁止写“员工岗位1/创作者岗位1/定时工岗位1/岗位1”等泛称。行业匹配规则：互联网/软件/科技只能生成软件开发工程师、前端开发工程师、大数据开发工程师、产品经理、测试工程师、UI设计师等；医疗/医院/健康才可生成医生、护士、药师；法律才可生成律师、法务；教育才可生成教师、教研员；内容/文娱可生成小说签约作者、短视频编导、漫画主笔。筛选：公司领域=${f.industry || '不限'}；规模=${f.scale || '不限'}；地址=${[f.province, f.city, f.county, f.town].filter(Boolean).join(' ') || '不限'}；薪酬类型=${f.payType || '不限'}；底薪=${f.baseMin || '不限'}-${f.baseMax || '不限'}；年底提成月数=${f.performanceMonths || '不限'}；创作者薪酬=${f.creatorPay || '不限'}；签约等级=${f.creatorLevel || '不限'}。规则：员工有底薪和performanceMonths；创作者提成制度有level、base、royalty；买断有buyout；定时工有hourly。`;
   },
 
   bossCacheKey(page) {
@@ -126,7 +126,7 @@ window.GameModules.bossAiActions = {
     const count = Number(this.bossState.pageSize) || 10;
     const industries = [f.industry || '互联网服务', '内容文娱', '本地生活', '数字营销'];
     const payTypes = f.payType ? [f.payType] : ['员工', '创作者', '定时工'];
-    const titles = { 员工: ['软件开发工程师', '前端开发工程师', '大数据开发工程师', '医生', '法务专员'], 创作者: ['小说签约作者', '短视频编导', '漫画主笔', '剧情策划', '游戏文案作者'], 定时工: ['展会协助员', '资料整理员', '门店临时导购', '仓库分拣员', '活动执行助理'] };
+    const titles = { 员工: ['软件开发工程师', '前端开发工程师', '大数据开发工程师', '产品经理', '测试工程师'], 创作者: ['小说签约作者', '短视频编导', '漫画主笔', '剧情策划', '游戏文案作者'], 定时工: ['展会协助员', '资料整理员', '门店临时导购', '仓库分拣员', '活动执行助理'] };
     return Array.from({ length: count }, (_, i) => {
       const payType = payTypes[i % payTypes.length];
       const typeTitles = titles[payType] || titles.员工;
@@ -138,9 +138,27 @@ window.GameModules.bossAiActions = {
 
   normalizeBossTitle(job, index) {
     const raw = String(job.title || '').trim();
-    if (raw && !/^(员工|创作者|定时工)?岗位\d*$/.test(raw)) return raw;
-    const titles = job.payType === '创作者' ? ['小说签约作者', '短视频编导', '漫画主笔'] : job.payType === '定时工' ? ['展会协助员', '仓库分拣员', '活动执行助理'] : ['软件开发工程师', '前端开发工程师', '大数据开发工程师', '医生', '法务专员'];
+    const invalid = /^(员工|创作者|定时工)?岗位\d*$/.test(raw) || this.titleMismatchesIndustry(raw, job.industry);
+    if (raw && !invalid) return raw;
+    const titles = this.industryBossTitles(job);
     return titles[Number(String(index).split('-').pop()) % titles.length];
+  },
+
+  titleMismatchesIndustry(title, industry = '') {
+    const text = `${industry} ${this.bossState.filters?.industry || ''}`;
+    if (/互联网|软件|科技|数字|营销/.test(text) && /医生|护士|药师|教师|律师/.test(title)) return true;
+    if (/医疗|医院|健康/.test(text)) return !/医生|护士|药师|康复|检验/.test(title);
+    return false;
+  },
+
+  industryBossTitles(job) {
+    const industry = `${job.industry || ''} ${this.bossState.filters?.industry || ''}`;
+    if (job.payType === '创作者') return ['小说签约作者', '短视频编导', '漫画主笔', '剧情策划'];
+    if (job.payType === '定时工') return ['展会协助员', '资料整理员', '仓库分拣员', '活动执行助理'];
+    if (/医疗|医院|健康/.test(industry)) return ['医生', '护士', '药师', '医学检验员'];
+    if (/法律|律所|法务/.test(industry)) return ['法务专员', '律师助理', '合规专员'];
+    if (/教育|学校|培训/.test(industry)) return ['教师', '课程顾问', '教研员'];
+    return ['软件开发工程师', '前端开发工程师', '大数据开发工程师', '产品经理', '测试工程师'];
   },
 
   defaultBossSkills(job) {
