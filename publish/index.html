@@ -669,13 +669,16 @@
             <button class="faction-row" type="button" :class="{ active: $store.game.selectedFaction()?.id === faction.id }" @click="$store.game.selectFaction(faction.id)"><strong x-text="faction.name"></strong><small x-text="`${faction.type}｜${faction.level}｜归属：${$store.game.factionParentName(faction)}`"></small></button>
           </template>
         </section>
-        <section class="faction-detail dev-section" data-section-title="势力详情区" x-show="$store.game.selectedFaction()">
+        <section class="faction-modal-backdrop" x-show="$store.game.factionState?.detailOpen" @click.self="$store.game.closeFactionDetail()" x-cloak>
+          <div class="faction-detail dev-section" data-section-title="势力详情弹窗" x-show="$store.game.selectedFaction()" @click.stop>
+            <header class="identity-header"><div><p class="eyebrow">FACTION DETAIL</p><h3 x-text="$store.game.selectedFaction()?.name"></h3><small x-text="$store.game.selectedFaction()?.description"></small></div><button class="small-btn" type="button" @click.stop="$store.game.closeFactionDetail()">关闭</button></header>
           <article class="faction-panel"><h3 x-text="$store.game.selectedFaction()?.name"></h3><p x-text="$store.game.selectedFaction()?.description"></p></article>
           <div class="faction-meta"><article class="faction-panel"><strong>类型</strong><p x-text="$store.game.selectedFaction()?.type"></p></article><article class="faction-panel"><strong>归属</strong><p x-text="$store.game.factionParentName($store.game.selectedFaction())"></p></article><article class="faction-panel"><strong>领域</strong><p x-text="$store.game.selectedFaction()?.domain"></p></article><article class="faction-panel"><strong>影响力</strong><p x-text="$store.game.selectedFaction()?.influence"></p></article></div>
           <section class="faction-panel"><h3>组织架构</h3><p class="faction-note">架构显示样式固定，具体内容由AI推演后固化。</p><div class="faction-structure"><template x-for="node in ($store.game.selectedFaction()?.structure || [])" :key="node.name"><article><h4 x-text="node.name"></h4><p x-text="(node.roles || []).join('、')"></p></article></template><p x-show="!($store.game.selectedFaction()?.structure || []).length">暂无架构，点击初始化/全量检视势力生成。</p></div></section>
           <section class="faction-panel"><h3>规则 / 资源 / 下级势力</h3><ul><li x-text="`规则：${($store.game.selectedFaction()?.rules || []).join('；') || '暂无'}`"></li><li x-text="`资源：${($store.game.selectedFaction()?.resources || []).join('、') || '暂无'}`"></li><li x-text="`下级势力：${$store.game.factionChildren($store.game.selectedFaction()?.id).map(x => x.name).join('、') || '无'}`"></li></ul></section>
           <section class="faction-panel"><h3>全量词条理由</h3><div class="faction-reasons"><template x-for="field in Object.keys($store.game.selectedFaction()?.fieldReasons || {})" :key="field"><p><b x-text="field"></b><span x-text="$store.game.selectedFaction()?.fieldReasons?.[field]"></span></p></template></div></section>
           <section class="faction-panel"><h3>调整/新增记录</h3><div class="faction-reasons"><template x-for="log in ($store.game.selectedFaction()?.changeLog || []).slice(0, 12)" :key="`${log.at}-${log.field}-${log.action}`"><p><b x-text="`${log.action}:${log.field}`"></b><span x-text="log.reason"></span></p></template><p x-show="!($store.game.selectedFaction()?.changeLog || []).length">暂无调整记录。</p></div></section>
+          </div>
         </section>
       </main>
     </div>

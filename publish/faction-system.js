@@ -4,7 +4,7 @@ window.GameModules.factionSystem = {
   defaultState(profile = {}) {
     const country = this.countryFaction(profile);
     const company = this.companyFaction(profile, country.id);
-    return { open: false, generating: false, error: '', requestId: 0, selectedId: company.id, customPrompt: '', factions: [country, company] };
+    return { open: false, detailOpen: false, generating: false, error: '', requestId: 0, selectedId: company.id, customPrompt: '', factions: [country, company] };
   },
 
   countryFaction(profile = {}) {

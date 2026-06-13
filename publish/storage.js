@@ -62,7 +62,7 @@ window.GameModules.storage = {
       companyState: store.companyState ? { ...store.companyState, open: false } : store.companyState,
       bossState: store.bossState ? { ...store.bossState, open: false, companyDetailOpen: false, generating: false } : store.bossState,
       calendarState: store.calendarState ? { ...store.calendarState, open: false } : store.calendarState,
-      factionState: store.factionState ? { ...store.factionState, open: false, generating: false } : store.factionState,
+      factionState: store.factionState ? { ...store.factionState, open: false, detailOpen: false, generating: false } : store.factionState,
       rpgPanelCharacterId: store.rpgPanelCharacterId,
     };
   },
@@ -82,7 +82,7 @@ window.GameModules.storage = {
     store.companyState = save.companyState ? { ...save.companyState, open: false } : store.companyState;
     store.bossState = save.bossState ? { ...save.bossState, open: false, companyDetailOpen: false, generating: false } : store.bossState;
     store.calendarState = save.calendarState ? { ...save.calendarState, open: false } : store.calendarState;
-    store.factionState = save.factionState ? { ...save.factionState, open: false, generating: false } : store.factionState;
+    store.factionState = save.factionState ? { ...save.factionState, open: false, detailOpen: false, generating: false } : store.factionState;
     if (!save.started) return false;
     store.selectedWork = save.selectedWork || store.selectedWork;
     store.selectedCharacterId = save.selectedCharacterId || store.selectedCharacterId;

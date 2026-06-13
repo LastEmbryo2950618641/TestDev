@@ -34,7 +34,10 @@ window.GameModules.factionActions = {
   },
 
   closeFactionApp() {
-    if (this.factionState) this.factionState.open = false;
+    if (this.factionState) {
+      this.factionState.open = false;
+      this.factionState.detailOpen = false;
+    }
     this.closeAppToDesktop();
   },
 
@@ -45,6 +48,12 @@ window.GameModules.factionActions = {
 
   selectFaction(id) {
     this.factionState.selectedId = id;
+    this.factionState.detailOpen = true;
+  },
+
+  closeFactionDetail() {
+    if (!this.factionState) return;
+    this.factionState.detailOpen = false;
   },
 
   factionParentName(faction) {
