@@ -118,7 +118,9 @@ window.GameModules.bossActions = {
   },
 
   closeBossCompanyDetail() {
+    if (!this.bossState) return;
     this.bossState.companyDetailOpen = false;
+    this.bossState.detailJobId = '';
     this.bossState.applyMessage = '';
   },
 

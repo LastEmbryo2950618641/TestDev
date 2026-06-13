@@ -597,7 +597,7 @@
           </ul>
         </article>
       </main>
-      <section class="boss-modal-backdrop" x-show="$store.game.bossState.companyDetailOpen" @click.self="$store.game.closeBossCompanyDetail()" x-cloak>
+      <section class="boss-modal-backdrop" x-if="$store.game.bossState.companyDetailOpen" @click.self="$store.game.closeBossCompanyDetail()" x-cloak>
         <article class="boss-company-modal dev-section" data-section-title="公司详情弹窗">
           <header class="identity-header"><div><p class="eyebrow">COMPANY</p><h3 x-text="$store.game.selectedBossCompanyJob()?.company"></h3><small x-text="$store.game.bossApplyHint()"></small></div><button class="small-btn" type="button" @click="$store.game.closeBossCompanyDetail()">关闭</button></header>
           <div class="boss-company-fields"><template x-for="field in $store.game.bossCompanyFields()" :key="field.key"><section class="boss-company-field"><strong x-text="`${field.label}：${field.value}`"></strong><p x-text="field.desc"></p></section></template></div>
