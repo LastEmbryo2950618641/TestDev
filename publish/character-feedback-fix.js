@@ -40,7 +40,7 @@ Object.assign(window.GameModules.characterFeedback, {
 
   prompt(store) {
     const base = store.character || {};
-    const card = store.characterProfiles?.[base.id] || {};
+    const card = store.characterRpgState?.profile || store.characterProfiles?.[base.id] || {};
     const skills = (card.skills || base.skills || []).map((item) => typeof item === 'string' ? item : `${item.name || ''}${item.desc ? `：${item.desc}` : ''}`).filter(Boolean).join('；');
     const worldValues = card.worldValues ? Object.entries(card.worldValues).map(([key, value]) => `${key}：${value}`).join('；') : '';
     const line = (label, value) => value ? `${label}：${value}` : '';
@@ -73,8 +73,8 @@ Object.assign(window.GameModules.characterFeedback, {
   },
 
   normalizeFeedbackData(data, fallback, store, source) {
-    const completeMetrics = this.hasCompleteInitialMetrics(data.metricUpdates);
     if (!data.mind && !data.intent) throw new Error('角色反馈缺少 mind/intent');
+    const metricUpdates = this.feedbackMetrics(data.metricUpdates, fallback.metricUpdates, store);
     const result = {
       mind: String(data.mind || fallback.mind).slice(0, 80),
       intent: String(data.intent || fallback.intent).slice(0, 80),
@@ -83,12 +83,34 @@ Object.assign(window.GameModules.characterFeedback, {
       controlFeeling: String(data.controlFeeling || fallback.controlFeeling || '疑惑').slice(0, 40),
       adaptation: this.clamp(data.adaptation, fallback.adaptation),
       experienceSummary: String(data.experienceSummary || fallback.experienceSummary).slice(0, 80),
-      metricUpdates: completeMetrics ? window.GameModules.ai.normalizeInitialMetricUpdates(data.metricUpdates, null, store) : fallback.metricUpdates,
+      metricUpdates,
       choices: this.normalizeChoices(data.choices, fallback.choices),
       source,
     };
-    console.log('[角色反馈] AI解析成功:', { source, mindLength: result.mind.length, intentLength: result.intent.length, metrics: completeMetrics ? 'ai' : 'fallback' });
+    console.log('[角色反馈] AI解析成功:', { source, mindLength: result.mind.length, intentLength: result.intent.length, metrics: data.metricUpdates ? 'ai' : 'profile' });
     return result;
+  },
+
+  feedbackMetrics(updates, fallback, store) {
+    const base = this.profileMetrics(store, fallback);
+    const source = this.hasAnyMetrics(updates) ? {
+      emotions: Array.isArray(updates.emotions) ? updates.emotions : base.emotions,
+      playerFeelings: Array.isArray(updates.playerFeelings) ? updates.playerFeelings : base.playerFeelings,
+    } : base;
+    return window.GameModules.ai.normalizeInitialMetricUpdates(source, fallback, store);
+  },
+
+  hasAnyMetrics(updates) {
+    return Array.isArray(updates?.emotions) || Array.isArray(updates?.playerFeelings);
+  },
+
+  profileMetrics(store, fallback) {
+    const profile = store.characterRpgState?.profile || store.characterProfiles?.[store.character?.id] || store.character || {};
+    const source = profile.initialMetrics || {};
+    return {
+      emotions: Array.isArray(source.emotions) && source.emotions.length ? source.emotions : fallback?.emotions,
+      playerFeelings: Array.isArray(source.playerFeelings) && source.playerFeelings.length ? source.playerFeelings : fallback?.playerFeelings,
+    };
   },
 
   recoverFeedbackFields(text) {
