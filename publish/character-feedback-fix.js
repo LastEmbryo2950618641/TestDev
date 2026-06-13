@@ -38,6 +38,24 @@ Object.assign(window.GameModules.characterFeedback, {
     }
   },
 
+  prompt(store) {
+    const base = store.character || {};
+    const card = store.characterProfiles?.[base.id] || {};
+    const skills = (card.skills || base.skills || []).map((item) => typeof item === 'string' ? item : `${item.name || ''}${item.desc ? `：${item.desc}` : ''}`).filter(Boolean).join('；');
+    const worldValues = card.worldValues ? Object.entries(card.worldValues).map(([key, value]) => `${key}：${value}`).join('；') : '';
+    const line = (label, value) => value ? `${label}：${value}` : '';
+    const profile = [
+      line('姓名', card.name || base.name), line('性别', card.gender || base.gender), line('年龄', store.characterAge),
+      line('作品/世界', base.work || card.work), line('身份', card.role || base.role), line('人际关系', card.relationships || base.relationships),
+      line('外貌', card.appearance || base.appearance), line('性格', card.personality || base.personality), line('人物说明', card.detail || base.detail),
+      line('势力', card.faction || base.faction), line('职业', card.job || base.job), line('等级', card.rank || base.rank), line('技能', skills),
+      line('属性/世界词条', worldValues), line('摘要', card.summary),
+    ].filter(Boolean).join('\n');
+    const experience = this.experience(store);
+    const outputJson = JSON.stringify({ mind: '角色第一人称内心，40到70字', intent: `${base.name}自己下一步想做什么，30到50字`, mood: '冷静', resistance: 0, controlFeeling: '疑惑/恐惧/愤怒等短语', adaptation: 0, experienceSummary: '40字内', choices: ['4个行动选项，每个12字内'] });
+    return window.GameModules.promptTemplates.render('character-feedback', { 角色: `${base.name}｜${base.role}｜${base.work}`, 年龄: store.characterAge || '未知', 操控方式: store.controlMode, 当前场景: store.entryCurrentAction || '未知', 人物资料: profile.slice(0, 1600), 上线次数: experience.onlineCount, 上线感觉: experience.feeling, 适应度: experience.adaptation, 上线摘要: experience.summary, 输出示例: outputJson });
+  },
+
   parse(text, fallback, store) {
     try {
       const data = window.GameModules.jsonUtils.parseLoose(text);
