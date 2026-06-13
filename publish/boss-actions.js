@@ -29,9 +29,15 @@ window.GameModules.bossActions = {
   closeBossApp() {
     if (this.bossState) {
       this.bossState.open = false;
-      this.bossState.companyDetailOpen = false;
+      this.clearBossCache();
+      this.save?.();
     }
     this.closeAppToDesktop();
+  },
+
+  clearBossCache() {
+    Object.assign(this.bossState, { companyDetailOpen: false, detailJobId: '', applyMessage: '', generating: false, jobCache: {}, jobs: [], selectedJobId: '', page: 1 });
+    this.bossState.requestId = (this.bossState.requestId || 0) + 1;
   },
 
   bossOptions(key) {
@@ -68,18 +74,15 @@ window.GameModules.bossActions = {
   },
 
   bossPageNumbers() {
-    return [1];
+    const current = Math.max(Number(this.bossState?.page) || 1, 1); return current === 1 ? [1] : [1, current];
   },
 
   setBossPage(page) {
     this.initBossRecruitment();
     this.bossState.page = Math.max(Number(page) || 1, 1);
-    this.bossState.selectedJobId = this.pagedBossJobs()[0]?.id || '';
-    this.generateBossJobsByAI?.(this.bossState.page);
-  },
-
-  bossHasMorePages() {
-    return true;
+    const cached = this.pagedBossJobs();
+    this.bossState.selectedJobId = cached[0]?.id || '';
+    if (!cached.length) this.generateBossJobsByAI?.(this.bossState.page);
   },
 
   bossMatchesJob(job, f) {
