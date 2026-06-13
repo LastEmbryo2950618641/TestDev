@@ -10,17 +10,33 @@ window.GameModules.wechatActions = {
     if (!name) return null;
     const relation = String(raw.relation || raw.subtitle || '联系人').trim().slice(0, 30);
     const id = String(raw.id || `wx-${name}-${relation}`).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || `wx-${window.GameModules.rpgState.seed(`${name}-${relation}`)}`;
-    return { id, name, relation, subtitle: relation, mark: String(raw.mark || name.slice(0, 1)).slice(0, 2), latest: String(raw.latest || `${relation}资料已同步。`).slice(0, 80), unread: Number(raw.unread) || 0, group: false, source: raw.source || 'manual', context: raw.context || '' };
+    const needsNameAi = raw.needsNameAi ?? (/^(妹妹|姐姐|哥哥|弟弟|父亲|母亲|爸爸|妈妈|女友|男友|妻子|丈夫)$/.test(name) && !raw.id);
+    return { id, name, relation, subtitle: relation, mark: String(raw.mark || name.slice(0, 1)).slice(0, 2), latest: String(raw.latest || `${relation}资料已同步。`).slice(0, 80), unread: Number(raw.unread) || 0, group: false, source: raw.source || 'manual', context: raw.context || '', needsNameAi };
   },
 
   async ensureWechatUserProfile(contact) {
     if (!contact || contact.group) return null;
-    const raw = { id: contact.id, name: contact.name, role: contact.relation || '微信联系人', detail: contact.context || contact.latest || '与玩家互有微信的现实联系人。', work: '现实世界', isMinor: false, importance: 'support' };
-    const context = `玩家姓名：${this.playerProfile?.name || this.playerName || '未知'}；玩家关系：${this.playerProfile?.relationships || '未填写'}；微信关系：${contact.relation || '联系人'}；补充：${contact.context || contact.latest || ''}`;
+    const hint = this.wechatRelationProfileHint(contact);
+    const raw = { id: contact.id, name: contact.needsNameAi ? hint.placeholderName : contact.name, role: contact.relation || '微信联系人', gender: hint.gender, detail: contact.context || contact.latest || hint.detail, work: '现实世界', isMinor: false, importance: 'support', nameRule: hint.nameRule };
+    const context = `玩家姓名：${this.playerProfile?.name || this.playerName || '未知'}；玩家性别：${this.playerProfile?.gender || '未知'}；玩家关系：${this.playerProfile?.relationships || '未填写'}；微信关系：${contact.relation || '联系人'}；姓名规则：${hint.nameRule}；性别规则：${hint.genderRule}；补充：${contact.context || contact.latest || ''}`;
     const profile = await window.GameModules.characterProfile.ensure(raw, this, context);
     const state = await window.GameModules.rpgState.ensureCharacter(profile, this);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
+    if (contact.needsNameAi && profile.name && profile.name !== contact.name) this.renameWechatContact(contact.id, profile.name);
     return state;
+  },
+
+  wechatRelationProfileHint(contact) {
+    const relation = String(contact?.relation || contact?.name || '联系人');
+    const self = String(this.playerProfile?.name || this.playerName || '').trim();
+    const surname = /^[\u4e00-\u9fa5]/.test(self) ? self[0] : '';
+    const gender = /妹妹|姐姐|母亲|妈妈|妻|女友|女性|女同学|女同事/.test(relation) ? '女' : (/哥哥|弟弟|父亲|爸爸|丈夫|男友|男性|男同学|男同事/.test(relation) ? '男' : '');
+    const nameRule = surname && /妹|姐|哥|弟|父|母|爸|妈|儿|女/.test(relation) ? `必须生成${surname}姓中文全名，不要直接用“${relation}”当姓名。` : `必须根据现实世界观和社会关系生成正式姓名，不要直接用“${relation}”当姓名。`;
+    return { gender, genderRule: gender ? `必须是${gender}性。` : '按关系上下文判断性别。', nameRule, placeholderName: `${relation}待命名`, detail: `玩家的${relation}，需要按世界观与社会关系补全姓名和资料。` };
+  },
+
+  renameWechatContact(id, name) {
+    this.wechatUsers = (this.wechatUsers || []).map((item) => item.id === id ? { ...item, name, mark: String(name).slice(0, 1), subtitle: item.relation || item.subtitle } : item);
   },
 
   async addWechatUser(user = {}) {
@@ -64,10 +80,11 @@ window.GameModules.wechatActions = {
       const relation = (pair[0] || '').trim().slice(0, 18);
       const rest = pair.slice(1).join('：').trim();
       const named = rest.match(/(?:姓名|名字|名叫|叫作|叫做|叫|名为)\s*([\u4e00-\u9fa5A-Za-z0-9_·]{2,12})/);
+      const needsNameAi = !named;
       let name = String(named?.[1] || relation || `联系人${index + 1}`).replace(/[，。；;、,.].*$/, '').trim().slice(0, 24);
       if (selfName && name.includes(selfName)) name = relation || `联系人${index + 1}`;
       if (!relation && !name) return null;
-      return { id: `rel-${index}-${name}`, name, relation: relation || '关系联系人', latest: `${relation || name}资料已从玩家人际关系同步。`, source: 'relationships', context: rest || part };
+      return { id: `rel-${index}-${name}`, name, relation: relation || '关系联系人', latest: `${relation || name}资料已从玩家人际关系同步。`, source: 'relationships', context: rest || part, needsNameAi };
     }).filter((user) => user && user.name && user.name !== selfName).slice(0, 20);
   },
 
