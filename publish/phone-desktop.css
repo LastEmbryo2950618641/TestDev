@@ -112,14 +112,15 @@
 }
 
 .desktop-apps {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin: 18px 0 0 24px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+  gap: 8px;
+  margin: 18px 18px 0;
 }
 
 .desktop-app-icon {
-  width: 88px;
+  width: 100%;
   min-height: 110px;
   display: grid;
   justify-items: center;
