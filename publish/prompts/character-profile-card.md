@@ -15,8 +15,9 @@
 使用规则：
 1. 候选姓名若是“妹妹/父亲/联系人”等称谓，必须结合命名要求和玩家资料生成正式姓名。
 2. 身份/关系/叙事定位不能直接当职业。
-3. 人物背景摘要和性格线索只作为证据，不得无依据扩写亲密关系。
-4. 已整理关系为空时，不要编造关系；必须从下方玩家区、微信区或剧情区找证据。
+3. 人物背景摘要、外貌线索和性格线索只作为证据，不得无依据扩写亲密关系。
+4. 外貌必须单独固化到 appearance，性格必须单独固化到 personality，不要把二者混入 detail。
+5. 已整理关系为空时，不要编造关系；必须从下方玩家区、微信区或剧情区找证据。
 
 ## 玩家基础资料区
 
@@ -168,8 +169,9 @@ worldValues 只返回有明确依据的字段：{世界字段}。
 - gender：性别。
 - relationships：与玩家或其它核心人物的固化关系。
 - role：身份/社会角色/关系定位。
-- detail：个人背景，说明生活处境、经历、与上下文的联系。
-- personality：性格摘要。
+- detail：个人背景，说明生活处境、经历、与上下文的联系，不写外貌和性格长段。
+- appearance：外貌词条，描述可见外观、气质、穿着、体态或辨识特征；没有证据时根据世界观克制生成。
+- personality：性格词条，描述稳定性格、处事方式、关系边界和心理倾向；必须与上下文证据一致。
 - faction：所属势力或“无”。
 - job：确认职业；无可靠依据则空字符串。
 - jobConfirmed：职业是否确认。
@@ -181,5 +183,5 @@ worldValues 只返回有明确依据的字段：{世界字段}。
 ## 返回 JSON 结构
 
 ```json
-{"name":"姓名","gender":"性别","relationships":"妹妹：姓名；父亲：姓名","role":"身份","detail":"个人背景","personality":"性格","faction":"所属势力或无","job":"职业，无法可靠判断则空字符串","jobConfirmed":false,"rank":"等级","skills":[{"name":"技能","desc":"说明"}],"worldValues":{"字段key":"该人物固化取值"},"initialMetrics":{"emotions":[{"key":"担忧","value":40,"status":"当前状态","reason":"原因"}],"playerFeelings":[{"key":"亲情","value":85,"status":"当前状态","reason":"原因"}]}}
+{"name":"姓名","gender":"性别","relationships":"妹妹：姓名；父亲：姓名","role":"身份","detail":"个人背景","appearance":"外貌","personality":"性格","faction":"所属势力或无","job":"职业，无法可靠判断则空字符串","jobConfirmed":false,"rank":"等级","skills":[{"name":"技能","desc":"说明"}],"worldValues":{"字段key":"该人物固化取值"},"initialMetrics":{"emotions":[{"key":"担忧","value":40,"status":"当前状态","reason":"原因"}],"playerFeelings":[{"key":"亲情","value":85,"status":"当前状态","reason":"原因"}]}}
 ```

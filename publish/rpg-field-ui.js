@@ -26,7 +26,8 @@ window.GameModules.rpgFieldUi = {
       row('role', '身份', p.role || p.job, '角色当前身份。'), row('faction', '所属势力', p.faction, '角色当前阵营或社会位置。'),
       row('job', '职业', p.job, '角色真实职业、训练身份或社会功能。'), row('rank', '等级/地位', p.rank, '角色职业等级或地位。'),
       row('gender', '性别', p.gender, '角色性别资料。'), row('birthday', '生日', p.birthday, '角色生日资料。'),
-      row('relationships', '人际关系', p.relationships, '关系必须使用“关系：姓名”的格式。'), row('detail', '人物说明', p.detail || p.personality, '角色卡补充说明。'),
+      row('relationships', '人际关系', p.relationships, '关系必须使用“关系：姓名”的格式。'), row('appearance', '外貌', p.appearance, '角色卡固化外貌。'),
+      row('personality', '性格', p.personality, '角色卡固化性格。'), row('detail', '人物说明', p.detail, '角色卡补充说明。'),
     ];
   },
 

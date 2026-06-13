@@ -21,7 +21,7 @@ window.GameModules.characterProfile = {
   },
 
   isRoleCard(profile) {
-    return Boolean(profile?.roleCard && profile?.name && profile?.role && profile?.detail && profile?.personality);
+    return Boolean(profile?.roleCard && profile?.name && profile?.role && profile?.detail && profile?.personality && profile?.appearance);
   },
 
   findKnown(raw, store) {
@@ -44,6 +44,7 @@ window.GameModules.characterProfile = {
       relationships: this.formatRelationships(data.relationships || ''),
       nameRule: String(data.nameRule || '').slice(0, 80),
       detail: String(data.detail || data.desc || '刚被剧情卷入的人物。').slice(0, 120),
+      appearance: String(data.appearance || '外貌尚未固化。').slice(0, 120),
       personality: String(data.personality || '谨慎观察局势。').slice(0, 80),
       aliases: Array.isArray(data.aliases) ? data.aliases.slice(0, 4).map(String) : [],
       skills: Array.isArray(data.skills) ? data.skills.slice(0, 4) : [],
@@ -105,6 +106,7 @@ window.GameModules.characterProfile = {
       relationships: this.formatRelationships(profile.relationships || base.relationships || ''),
       role: String(profile.role || base.role).slice(0, 18),
       detail: String(profile.detail || base.detail).slice(0, 160),
+      appearance: String(profile.appearance || base.appearance || '外貌尚未固化。').slice(0, 140),
       personality: String(profile.personality || base.personality).slice(0, 100),
       faction: String(profile.faction || '无').slice(0, 18),
       job: confirmedJob,
