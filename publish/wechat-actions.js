@@ -17,9 +17,17 @@ window.GameModules.wechatActions = {
   async ensureWechatUserProfile(contact) {
     if (!contact || contact.group) return null;
     const hint = this.wechatRelationProfileHint(contact);
+    const sections = window.GameModules.promptSections;
+    const player = sections.playerProfile(this);
     const raw = { id: contact.id, name: contact.needsNameAi ? hint.placeholderName : contact.name, role: contact.relation || '微信联系人', detail: contact.context || contact.latest || hint.detail, work: '现实世界', isMinor: false, importance: 'support', nameRule: hint.nameRule };
-    const p = this.playerProfile || {};
-    const context = await window.GameModules.promptTemplates.render('wechat-relation-profile', { 玩家姓名: p.name || this.playerName || '未知', 玩家性别: p.gender || '未知', 玩家关系: p.relationships || '未填写', 居住状态: p.refinedLivingStatus || p.livingStatus || '未填写', 父母状态: p.parentStatus || p.parents || '未填写', 父母去世原因: p.parentDeathCause || '未填写', 现实身份: p.refinedRole || p.dailyRole || '未填写', 玩家地址: p.refinedCity || p.city || '未填写', 玩家备注: [p.worldbuildingNote, p.notes].filter(Boolean).join('；') || '无', 微信关系: contact.relation || '联系人', 命名要求: hint.nameRule, 补充: contact.context || contact.latest || '' });
+    const context = await window.GameModules.promptTemplates.render('wechat-relation-profile', {
+      玩家基础资料区: player.playerBasic,
+      玩家现实身份区: player.playerIdentity,
+      玩家居住家庭区: player.playerHome,
+      玩家人际关系区: player.playerRelations,
+      玩家备注区: player.playerNotes,
+      微信联系人资料区: sections.wechatContact(contact, hint),
+    });
     const profile = await window.GameModules.characterProfile.ensure(raw, this, context);
     const state = await window.GameModules.rpgState.ensureCharacter(profile, this);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
