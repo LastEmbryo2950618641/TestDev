@@ -103,7 +103,7 @@ window.GameModules.saveActions = {
   },
 
   async ensureRpgForCurrentCharacter(options = {}) {
-    if (!options.refresh && this.rpgStates[this.character.id]) {
+    if (!options.refresh && window.GameModules.cache.enabled('generatedProfiles') && this.rpgStates[this.character.id]) {
       this.loadMetricsFromCharacterState(this.rpgStates[this.character.id]);
       return this.rpgStates[this.character.id];
     }

@@ -7,8 +7,8 @@ window.GameModules.characterProfile = {
   async ensure(raw, store, context = '') {
     const base = this.normalize(this.withKnown(raw, store), store);
     const signature = this.inputSignature(base, context, store);
-    const existing = window.GameModules.sqliteSave.getCharacterState(base.id);
-    if (this.isRoleCard(existing?.profile) && existing.profile.initialMetrics && existing.profile.roleCardInputSignature === signature) return existing.profile;
+    const existing = window.GameModules.cache.enabled('generatedProfiles') ? window.GameModules.sqliteSave.getCharacterState(base.id) : null;
+    if (existing && this.isRoleCard(existing.profile) && existing.profile.initialMetrics && existing.profile.roleCardInputSignature === signature) return existing.profile;
     const lore = await window.GameModules.worldLore.ensure(base.work, context);
     const attrs = await window.GameModules.rpgState.ensureWorldAttributes(base.work);
     return this.generate(base, lore, attrs, context, store, signature);
