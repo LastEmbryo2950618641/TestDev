@@ -5,7 +5,8 @@ window.GameModules.bossActions = {
     const base = window.GameModules.bossRecruitment.defaultBossState(this.playerProfile || {});
     this.bossState = { ...base, ...(this.bossState || {}) };
     this.bossState.filters = { ...base.filters, ...(this.bossState.filters || {}) };
-    this.bossState.jobs = this.bossState.jobs?.length ? this.bossState.jobs : base.jobs;
+    this.bossState.jobCache = this.bossState.jobCache || {};
+    this.bossState.jobs = this.bossState.jobs || [];
     this.bossState.pageSize = Number(this.bossState.pageSize) || 10;
     this.bossState.page = Math.max(Number(this.bossState.page) || 1, 1);
   },
@@ -17,6 +18,7 @@ window.GameModules.bossActions = {
     if (this.companyState) this.companyState.open = false;
     this.bossState.open = true;
     this.desktopUnlocked = true;
+    this.generateBossJobsByAI?.(this.bossState.page);
   },
 
   closeBossApp() {
@@ -44,31 +46,32 @@ window.GameModules.bossActions = {
 
   filteredBossJobs() {
     this.initBossRecruitment();
-    const f = this.bossState.filters;
-    return this.bossState.jobs.filter((job) => this.bossMatchesJob(job, f));
+    return this.bossState.jobs.filter((job) => this.bossMatchesJob(job, this.bossState.filters));
   },
 
   pagedBossJobs() {
-    const jobs = this.filteredBossJobs();
-    const size = Number(this.bossState.pageSize) || 10;
-    const page = Math.min(Math.max(Number(this.bossState.page) || 1, 1), this.bossPageCount());
-    if (page !== this.bossState.page) this.bossState.page = page;
-    return jobs.slice((page - 1) * size, page * size);
+    const key = this.bossCacheKey?.(this.bossState.page);
+    const cached = key ? this.bossState.jobCache[key] || [] : [];
+    return cached.filter((job) => this.bossMatchesJob(job, this.bossState.filters));
   },
 
   bossPageCount() {
-    const size = Number(this.bossState?.pageSize) || 10;
-    const total = this.bossState?.jobs?.filter((job) => this.bossMatchesJob(job, this.bossState.filters || {})).length || 0;
-    return Math.max(1, Math.ceil(total / size));
+    return Math.max(1, Number(this.bossState?.page) || 1);
   },
 
   bossPageNumbers() {
-    const count = this.bossPageCount();
-    return Array.from({ length: Math.min(5, count) }, (_, i) => i + 1);
+    return [1];
   },
 
   setBossPage(page) {
-    this.bossState.page = Math.min(Math.max(Number(page) || 1, 1), this.bossPageCount());
+    this.initBossRecruitment();
+    this.bossState.page = Math.max(Number(page) || 1, 1);
+    this.bossState.selectedJobId = this.pagedBossJobs()[0]?.id || '';
+    this.generateBossJobsByAI?.(this.bossState.page);
+  },
+
+  bossHasMorePages() {
+    return true;
   },
 
   bossMatchesJob(job, f) {
@@ -103,9 +106,32 @@ window.GameModules.bossActions = {
     this.bossState.selectedJobId = id;
   },
 
+  openBossCompanyDetail(id) {
+    this.bossState.detailJobId = id;
+    this.bossState.companyDetailOpen = true;
+    this.selectBossJob(id);
+  },
+
   selectedBossJob() {
     this.initBossRecruitment();
-    return this.bossState.jobs.find((job) => job.id === this.bossState.selectedJobId) || this.filteredBossJobs()[0] || null;
+    return this.bossState.jobs.find((job) => job.id === this.bossState.selectedJobId) || this.pagedBossJobs()[0] || null;
+  },
+
+  selectedBossCompanyJob() {
+    return this.bossState.jobs.find((job) => job.id === this.bossState.detailJobId) || this.selectedBossJob();
+  },
+
+  bossCompanyFields(job = this.selectedBossCompanyJob()) {
+    if (!job) return [];
+    const row = (key, label, value, desc) => ({ key: `boss-company-${key}`, label, value: value || '未设定', desc });
+    return [
+      row('name', '公司名称', job.company, '招聘岗位所属公司名称。'),
+      row('industry', '所属行业', job.industry, '公司主营行业，与岗位筛选一致。'),
+      row('scale', '组织规模', job.scale, '公司人数规模，影响制度与岗位容量。'),
+      row('location', '办公地点', job.address, '现实办公地点或登记地址。'),
+      row('workMode', '招聘制度', job.payType, '员工、创作者、定时工三类制度。'),
+      row('salary', '薪酬制度', this.bossJobPayText(job), '按当前招聘岗位给出的薪酬规则。'),
+    ];
   },
 
   bossJobPayText(job) {

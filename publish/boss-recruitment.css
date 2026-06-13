@@ -159,6 +159,28 @@
   line-height: 1.5;
 }
 
+.boss-job-row span {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.boss-job-row em {
+  color: #74f6ff;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.boss-company-field {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .05);
+}
+
 .boss-detail ul {
   display: grid;
   gap: 6px;

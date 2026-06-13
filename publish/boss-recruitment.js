@@ -10,13 +10,16 @@ window.GameModules.bossRecruitment = {
       requestId: 0,
       page: 1,
       pageSize: 10,
-      selectedJobId: 'employee-fe',
+      selectedJobId: '',
+      companyDetailOpen: false,
+      detailJobId: '',
+      jobCache: {},
       filters: {
         industry: '',
         scale: '', province: '', city: '', county: '', town: '', payType: '',
         baseMin: '', baseMax: '', performanceMonths: '', creatorPay: '', creatorLevel: '',
       },
-      jobs: this.defaultBossJobs(profile),
+      jobs: [],
     };
   },
 

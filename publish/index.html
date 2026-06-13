@@ -573,13 +573,14 @@
       </section>
       <main class="boss-body scroll-area">
         <section class="boss-list dev-section" data-section-title="职位列表区">
-          <p class="wechat-empty" x-show="!$store.game.filteredBossJobs().length">暂无符合条件的职位</p>
+          <p class="wechat-empty" x-show="!$store.game.pagedBossJobs().length && !$store.game.bossState.generating">暂无符合条件的职位，点击生成或下一页补齐</p>
+          <p class="wechat-empty" x-show="$store.game.bossState.generating">AI正在生成当前页岗位，约30秒…</p>
           <template x-for="job in $store.game.pagedBossJobs()" :key="job.id">
-            <button class="boss-job-row" type="button" :class="{ active: $store.game.bossState.selectedJobId === job.id }" @click="$store.game.selectBossJob(job.id)"><strong x-text="job.title"></strong><span x-text="`${job.company}｜${job.industry}｜${job.scale}`"></span><small x-text="$store.game.bossJobPayText(job)"></small></button>
+            <button class="boss-job-row" type="button" :class="{ active: $store.game.bossState.selectedJobId === job.id }" @click="$store.game.selectBossJob(job.id)"><strong x-text="job.title"></strong><span><b x-text="job.company"></b><em @click.stop="$store.game.openBossCompanyDetail(job.id)">查看公司</em></span><small x-text="$store.game.bossJobPayText(job)"></small></button>
           </template>
-          <nav class="boss-pagination" x-show="$store.game.filteredBossJobs().length"><button type="button" @click="$store.game.setBossPage($store.game.bossState.page - 1)" :disabled="$store.game.bossState.page <= 1">上一页</button><template x-for="page in $store.game.bossPageNumbers()" :key="page"><button type="button" :class="{ active: $store.game.bossState.page === page }" @click="$store.game.setBossPage(page)" x-text="page"></button></template><span x-show="$store.game.bossPageCount() > 5">……</span><button type="button" @click="$store.game.setBossPage($store.game.bossState.page + 1)" :disabled="$store.game.bossState.page >= $store.game.bossPageCount()">下一页</button></nav>
+          <nav class="boss-pagination"><button type="button" @click="$store.game.setBossPage($store.game.bossState.page - 1)" :disabled="$store.game.bossState.page <= 1">上一页</button><template x-for="page in $store.game.bossPageNumbers()" :key="page"><button type="button" :class="{ active: $store.game.bossState.page === page }" @click="$store.game.setBossPage(page)" x-text="page"></button></template><span>……</span><button type="button" @click="$store.game.setBossPage($store.game.bossState.page + 1)">下一页</button></nav>
         </section>
-        <article class="boss-detail dev-section" data-section-title="职位详情区" x-show="$store.game.selectedBossJob()">
+        <article class="boss-detail dev-section" data-section-title="职位详情区" x-show="$store.game.selectedBossJob() && !$store.game.bossState.companyDetailOpen">
           <h3 x-text="$store.game.selectedBossJob()?.title"></h3>
           <p x-text="$store.game.selectedBossJob()?.desc"></p>
           <ul>
@@ -587,6 +588,13 @@
             <li x-text="`地址：${$store.game.selectedBossJob()?.address}`"></li>
             <li x-text="`薪酬：${$store.game.bossJobPayText($store.game.selectedBossJob())}`"></li>
           </ul>
+        </article>
+        <article class="boss-detail dev-section" data-section-title="公司详情区" x-show="$store.game.bossState.companyDetailOpen">
+          <button class="small-btn" type="button" @click="$store.game.bossState.companyDetailOpen = false">返回职位详情</button>
+          <h3 x-text="$store.game.selectedBossCompanyJob()?.company"></h3>
+          <template x-for="field in $store.game.bossCompanyFields()" :key="field.key">
+            <section class="boss-company-field"><strong x-text="`${field.label}：${field.value}`"></strong><p x-text="field.desc"></p></section>
+          </template>
         </article>
       </main>
     </div>
