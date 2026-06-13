@@ -33,10 +33,16 @@ window.GameModules.socialPosition = {
     return job && !/居民/.test(job) ? job : '居民';
   },
 
-  item(faction, position, source = 'AI演算') {
+  item(faction, role, source = 'AI演算') {
     const f = String(faction || '未设定阵营').trim();
+    const r = String(role || '成员').trim();
+    return { name: `${f} / ${r}`, type: '阵营', faction: f, role: r, position: r, level: -1, description: `阵营：${f}；角色：${r}。该词条表示角色当前隶属或活动的组织、地点、群体，以及其在其中承担的社会角色。`, source, changeMode: source };
+  },
+
+  forceItem(force, position, source = 'AI演算') {
+    const f = String(force || '未设定势力').trim();
     const p = String(position || '成员').trim();
-    return { name: `${f} / ${p}`, type: '阵营', faction: f, position: p, level: -1, description: `阵营：${f}；地位：${p}。该词条表示角色当前隶属或活动的组织、地点、群体，以及其在其中承担的身份层级。`, source, changeMode: source };
+    return { name: `${f} / ${p}`, type: '势力地位', force: f, faction: f, position: p, level: -1, description: `势力：${f}；地位：${p}。该词条表示角色在有层级结构的组织、公司、学校、宗门、军队或机构中的等级、职级或职位。`, source, changeMode: source };
   },
 
   playerItems(profile = {}) {

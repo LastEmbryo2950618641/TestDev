@@ -101,7 +101,8 @@ window.GameModules.characterProfile = {
   validate(profile, base, lore, attrs) {
     const skills = Array.isArray(profile.skills) ? profile.skills : [];
     const confirmedJob = profile.jobConfirmed === true ? window.GameModules.professionInfo.normalizeJobName(profile.job) : '';
-    const factions = this.socialPositions(profile, base);
+    const factions = this.factionRoles(profile, base);
+    const forcePositions = this.forcePositions(profile);
     return {
       ...base,
       name: this.validName(profile.name, base),
@@ -113,9 +114,12 @@ window.GameModules.characterProfile = {
       appearance: String(profile.appearance || base.appearance || '外貌尚未固化。').slice(0, 140),
       personality: String(profile.personality || base.personality).slice(0, 100),
       faction: String(factions[0]?.faction || profile.faction || '无').slice(0, 30),
+      factionRole: String(factions[0]?.role || factions[0]?.position || profile.factionRole || profile.role || '').slice(0, 24),
       job: confirmedJob,
-      rank: String(factions[0]?.position || profile.rank || '').slice(0, 24),
+      rank: String(forcePositions[0]?.position || profile.rank || '').slice(0, 30),
       factions,
+      forcePositions,
+      force_positions: forcePositions,
       skills: skills.slice(0, 4).map((skill, index) => ({
         name: String(skill.name || `能力${index + 1}`).slice(0, 16),
         desc: String(skill.desc || '').slice(0, 60),
@@ -139,6 +143,7 @@ window.GameModules.characterProfile = {
         id: base.id, name: base.name, work: base.work, role: base.role, gender: base.gender,
         relationships: base.relationships, nameRule: base.nameRule, detail: base.detail,
         appearance: base.appearance, personality: base.personality, presetProfilePath: base.presetProfilePath,
+        factions: base.factions, forcePositions: base.forcePositions || base.force_positions,
       },
       preset: { path: preset?.path || '', summary: preset?.summary || '' },
       player: {
@@ -166,20 +171,32 @@ window.GameModules.characterProfile = {
     }, base, lore, attrs);
   },
 
-  socialPositions(profile, base) {
+  factionRoles(profile, base) {
     const social = window.GameModules.socialPosition;
     const list = Array.isArray(profile.factions) ? profile.factions : [];
     const items = list.map((item) => {
       if (typeof item === 'string') {
-        const [faction, position] = item.split('/').map((x) => x.trim());
-        return social?.item?.(faction, position || '成员') || { name: item, faction, position: position || '成员' };
+        const [faction, role] = item.split('/').map((x) => x.trim());
+        return social?.item?.(faction, role || '成员') || { name: item, faction, role: role || '成员' };
       }
-      return social?.item?.(item.faction || item.name, item.position || item.rank || '成员') || item;
+      return social?.item?.(item.faction || item.name, item.role || item.position || '成员') || item;
     }).filter((item) => item?.faction || item?.name);
     if (items.length) return items.slice(0, 4);
     const faction = profile.faction || base.faction;
-    const position = profile.rank || base.rank || base.role || '成员';
-    return faction && faction !== '无' ? [social?.item?.(faction, position) || { name: `${faction} / ${position}`, faction, position }] : [];
+    const role = profile.factionRole || base.factionRole || base.role || '成员';
+    return faction && faction !== '无' ? [social?.item?.(faction, role) || { name: `${faction} / ${role}`, faction, role }] : [];
+  },
+
+  forcePositions(profile) {
+    const social = window.GameModules.socialPosition;
+    const list = Array.isArray(profile.forcePositions) ? profile.forcePositions : (Array.isArray(profile.force_positions) ? profile.force_positions : []);
+    return list.map((item) => {
+      if (typeof item === 'string') {
+        const [force, position] = item.split('/').map((x) => x.trim());
+        return social?.forceItem?.(force, position || '成员') || { name: item, force, position: position || '成员' };
+      }
+      return social?.forceItem?.(item.force || item.faction || item.name, item.position || item.rank || '成员') || item;
+    }).filter((item) => item?.force || item?.faction || item?.name).slice(0, 4);
   },
 
   worldValues(values, attrs) {

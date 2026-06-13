@@ -7,7 +7,7 @@ window.GameModules.rpgFieldUi = {
   toggleRpgItem(field, index) { const key = this.rpgItemKey(field, index); if (key) this.expandedRpgFieldKey = this.expandedRpgFieldKey === key ? '' : key; },
   isRpgFieldOpen(field) { return this.expandedRpgFieldKey === this.rpgFieldKey(field); },
   isRpgItemOpen(field, index) { return this.expandedRpgFieldKey === this.rpgItemKey(field, index); },
-  isRpgListField(field) { return ['knowledge', 'skills', 'professions', 'factions', 'equipment', 'status_tags'].includes(field?.key) && Array.isArray(field.raw); },
+  isRpgListField(field) { return ['knowledge', 'skills', 'professions', 'factions', 'force_positions', 'equipment', 'status_tags'].includes(field?.key) && Array.isArray(field.raw); },
   rpgFieldSummary(field) {
     if (!this.isRpgListField(field)) return `${field.label}：${Array.isArray(field.value) ? field.value.join('、') || '无' : field.value}`;
     const unit = { knowledge: '知识', skills: '技能', professions: '职业' }[field.key] || '项';
@@ -39,7 +39,7 @@ window.GameModules.rpgFieldUi = {
     const identity = this.profileIdentityFields(state, identityFields);
     const relations = identity.filter((field) => field.label === '人际关系' || /relationships|人际关系/.test(field.key));
     const identityRest = identity.filter((field) => !relations.includes(field));
-    const used = new Set(['world_tag', 'age', 'factions', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'equipment', 'status_tags']);
+    const used = new Set(['world_tag', 'age', 'factions', 'force_positions', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'equipment', 'status_tags']);
     const personal = all.filter((field) => !used.has(field.key));
     const groups = [
       { title: '个人能力', fields: personal },
@@ -47,16 +47,16 @@ window.GameModules.rpgFieldUi = {
       { title: '装备', fields: take(['equipment']) },
       { title: '状态标签', fields: take(['status_tags']) },
       { title: '人际关系', fields: relations },
-      { title: '身份信息', fields: [...identityRest, ...take(['world_tag', 'age', 'factions'])] },
+      { title: '身份信息', fields: [...identityRest, ...take(['world_tag', 'age', 'factions', 'force_positions'])] },
     ];
     return groups.filter((group) => group.fields.length);
   },
 
   lexiconKind(field, item = null) {
     if (item?.type) return item.type;
-    if (field?.key && !item) return { knowledge: '知识树', skills: '技能树', professions: '职业树', factions: '阵营', equipment: '装备', status_tags: '状态' }[field.key] || field.kind || '属性';
+    if (field?.key && !item) return { knowledge: '知识树', skills: '技能树', professions: '职业树', factions: '阵营', force_positions: '势力地位', equipment: '装备', status_tags: '状态' }[field.key] || field.kind || '属性';
     if (field?.kind) return field.kind;
-    return { factions: '阵营', equipment: '装备', status_tags: '状态' }[field?.key] || '属性';
+    return { factions: '阵营', force_positions: '势力地位', equipment: '装备', status_tags: '状态' }[field?.key] || '属性';
   },
 
   lexiconFor(field, item = null) {
@@ -76,7 +76,7 @@ window.GameModules.rpgFieldUi = {
 
   rpgItemSummary(item) {
     if (typeof item === 'string') return item;
-    const name = item?.name || (item?.faction ? `${item.faction} / ${item.position || '成员'}` : '未命名');
+    const name = item?.name || (item?.force ? `${item.force} / ${item.position || '成员'}` : (item?.faction ? `${item.faction} / ${item.role || item.position || '成员'}` : '未命名'));
     return Number(item?.level) > 0 ? `${name} lv.${item.level}` : name;
   },
 
@@ -90,8 +90,13 @@ window.GameModules.rpgFieldUi = {
     if (kind === '职业') return `以“${name}”为核心的内化职业能力、经验与胜任资格；不等同当前雇佣单位或岗位，失业也不直接失去该职业。`;
     if (kind === '阵营') {
       const faction = obj.faction || info.faction || name.split('/')[0]?.trim();
+      const role = obj.role || info.role || obj.position || info.position || name.split('/')[1]?.trim() || '成员';
+      return `阵营：${faction}；角色：${role}。该词条说明角色所属组织、地点或群体，以及其在其中承担的社会角色。`;
+    }
+    if (kind === '势力地位') {
+      const force = obj.force || obj.faction || info.force || info.faction || name.split('/')[0]?.trim();
       const position = obj.position || info.position || name.split('/')[1]?.trim() || '成员';
-      return `阵营：${faction}；地位：${position}。该词条说明角色所属组织、地点或群体，以及其在其中的身份层级。`;
+      return `势力：${force}；地位：${position}。该词条说明角色在有层级结构势力中的等级、职级或职位。`;
     }
     return `执行“${name}”相关行动时所需的理解、操作熟练度和稳定发挥能力。`;
   },
@@ -107,7 +112,8 @@ window.GameModules.rpgFieldUi = {
     const name = obj?.name || field?.label || '未知';
     const hasLevel = Number(obj?.level) > 0;
     const lines = [`名称: ${name}`, `定义: ${this.learnedDefinition(kind, name, obj, lexicon, info)}`, `类型: ${kind}`, `所属世界: ${field?.worldTag || lexicon?.worldTag || '公共'}`, `词条类型: ${field?.targetType || lexicon?.meta?.targetType || '角色'}`];
-    if (kind === '阵营' && (obj?.faction || info.faction)) lines.push(`阵营: ${obj.faction || info.faction}`, `地位: ${obj.position || info.position || '成员'}`);
+    if (kind === '阵营' && (obj?.faction || info.faction)) lines.push(`阵营: ${obj.faction || info.faction}`, `角色: ${obj.role || info.role || obj.position || info.position || '成员'}`);
+    if (kind === '势力地位' && (obj?.force || obj?.faction || info.force || info.faction)) lines.push(`势力: ${obj.force || obj.faction || info.force || info.faction}`, `地位: ${obj.position || info.position || '成员'}`);
     if (hasLevel) {
       lines.push(`等级: lv${obj.level}`);
       lines.push(`当前等级含义: ${obj?.levelDescription || info.levelDescription || window.GameModules.progression.levelDescription(kind, obj.level)}`);
