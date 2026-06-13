@@ -286,8 +286,11 @@
           <strong>现实世界推演：手机已收起</strong>
           <span class="real-world-clock" x-text="`${$store.game.phoneDateText()} ${$store.game.phoneTimeText()}`"></span>
         </div>
-        <div class="top-actions">
-          <button type="button" @click="$store.game.closeRealWorldPanel()">展开手机</button>
+        <div class="top-actions real-world-actions" x-data="{ open: false }" @click.outside="open = false">
+          <button type="button" @click="open = !open">功能</button>
+          <div class="real-world-action-menu" x-show="open" x-cloak>
+            <button type="button" @click="open = false; $store.game.closeRealWorldPanel()">展开手机</button>
+          </div>
         </div>
       </header>
 

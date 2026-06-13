@@ -29,6 +29,27 @@
   font-weight: 800;
 }
 
+.real-world-actions {
+  position: relative;
+}
+
+.real-world-action-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 140;
+  min-width: 96px;
+  padding: 6px;
+  border: 1px solid rgba(116, 246, 255, .26);
+  border-radius: 12px;
+  background: rgba(7, 12, 28, .96);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, .36);
+}
+
+.real-world-action-menu button {
+  width: 100%;
+}
+
 .real-world-layout .profile-card {
   min-height: 0;
 }
