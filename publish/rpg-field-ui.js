@@ -20,7 +20,7 @@ window.GameModules.rpgFieldUi = {
     if (Array.isArray(provided) && provided.length) return provided;
     const p = state?.profile || {};
     const worldTag = p.work || state?.worldTag || '原创世界';
-    const row = (key, label, value, desc) => ({ key: `profile-${state?.id || 'target'}-${key}`, label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: true });
+    const row = (key, label, value, desc) => ({ key: `profile-${state?.id || 'target'}-${key}`, label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: key !== 'work' });
     return [
       row('name', '姓名', p.name || state?.name, '角色卡固化姓名。'), row('work', '所属世界', worldTag, '角色出身作品或世界。'),
       row('role', '身份', p.role || p.job, '角色当前身份。'), row('faction', '所属势力', p.faction, '角色当前阵营或社会位置。'),

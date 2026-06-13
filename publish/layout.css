@@ -223,7 +223,7 @@
 
   .stat-list,
   .skill-list,
-  .character-panel h3 {
+  .character-panel > h3 {
     display: none;
   }
 

@@ -193,7 +193,7 @@ ${Object.entries(metricDefs).map(([k, v]) => `- ${k}：${v}`).join('\n')}
 6. 数值字段一旦返回就必须填真实数字，不要填中文占位词。
 
 ## 词条修改Skill:
-所有词条调整都必须通过 lexiconUpdates 批量提交；每条含 worldTag、kind、name、value、reason。无明确事实变化不要返回。
+所有词条调整都必须通过 lexiconUpdates 批量提交；每条含 worldTag、kind、name、value、reason。字段归属必须先判定：身内能力、个人等级、经验、生命力、精力、饱食、水分、疲劳、学习能力、精神稳定、成长潜力、行动能力、知识、技能、职业、阵营、装备、状态标签是全世界通用字段；所属世界/world_tag 与世界固有属性必须视为该世界专属字段，不得标为公共字段；无明确事实变化不要返回。
 
 ## 格式示例:
 ${outputJson}`;
