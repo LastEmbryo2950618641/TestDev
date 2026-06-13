@@ -125,6 +125,10 @@ window.GameModules.playerIdentityActions = {
     this.desktopUnlocked = true;
     if (this.identityTargetId === 'player-self') await this.ensurePlayerRpgState();
     else if (!this.rpgStates[this.identityTargetId] && this.identityTargetId === this.character.id) await this.ensureRpgForCurrentCharacter();
+    else if (!this.rpgStates[this.identityTargetId]) {
+      const contact = (this.wechatUsers || []).find((item) => item.id === this.identityTargetId);
+      if (contact) await this.ensureWechatUserProfile?.(contact);
+    }
   },
 
   openWechatApp() {
