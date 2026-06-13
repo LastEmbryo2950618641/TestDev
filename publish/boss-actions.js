@@ -17,6 +17,9 @@ window.GameModules.bossActions = {
     this.wechatAppOpen = false;
     if (this.companyState) this.companyState.open = false;
     if (this.calendarState) this.calendarState.open = false;
+    this.bossState.companyDetailOpen = false;
+    this.bossState.detailJobId = '';
+    this.bossState.applyMessage = '';
     this.bossState.open = true;
     this.desktopUnlocked = true;
     this.generateBossJobsByAI?.(this.bossState.page);
