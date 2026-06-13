@@ -15,6 +15,8 @@ window.GameModules.resultActions = {
     this.choices = result.choices;
     this.applyMetricUpdates(result.metricUpdates);
     await window.GameModules.entryTime.advance(this, result.elapsedSeconds || 60);
+    this.advancePhoneTime?.(result.elapsedSeconds || 60);
+    this.checkWorkReminder?.();
     await this.ensureRpgFromResults(result);
     await this.applyStatChanges(result.statChanges, result);
     await this.applyControlExperience(result);

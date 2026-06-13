@@ -5,18 +5,24 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldActions = {
   startPhoneClock() {
-    if (this.phoneClockTimer) return;
-    this.phoneClockSessionStart = Date.now();
-    this.phoneClockNow = this.phoneClockSessionStart;
-    this.phoneClockTimer = setInterval(() => { this.phoneClockNow = Date.now(); }, 1000);
+    this.ensurePhoneFixedTime();
+  },
+
+  ensurePhoneFixedTime() {
+    const initialized = new Date(this.playerProfile?.initializedAt || Date.now()).getTime();
+    const base = Number.isFinite(initialized) ? initialized : Date.now();
+    if (!Number.isFinite(Number(this.phoneFixedTime))) this.phoneFixedTime = base;
+  },
+
+  advancePhoneTime(seconds = 60) {
+    this.ensurePhoneFixedTime();
+    const delta = Math.max(0, Math.min(2592000, Math.round(Number(seconds) || 0))) * 1000;
+    this.phoneFixedTime += delta;
   },
 
   phoneDate() {
-    const now = this.phoneClockNow || Date.now();
-    const sessionStart = this.phoneClockSessionStart || now;
-    const initialized = new Date(this.playerProfile?.initializedAt || sessionStart).getTime();
-    const base = Number.isFinite(initialized) ? initialized : sessionStart;
-    return new Date(base + Math.max(0, now - sessionStart));
+    this.ensurePhoneFixedTime();
+    return new Date(this.phoneFixedTime);
   },
 
   phoneTimeText() {
@@ -69,6 +75,8 @@ window.GameModules.realWorldActions = {
   },
 
   applyRealWorldResult(id, result) {
+    this.advancePhoneTime(result.elapsedSeconds || 300);
+    this.checkWorkReminder?.();
     this.realWorldSceneTitle = result.sceneTitle || this.realWorldSceneTitle;
     this.realWorldQuest = result.quest || this.realWorldQuest;
     this.realWorldStatus = result.status || this.realWorldStatus;

@@ -28,6 +28,7 @@ window.GameModules.storage = {
       phoneSetupDone: store.phoneSetupDone,
       playerProfile: store.playerProfile,
       playerName: store.playerName,
+      phoneFixedTime: store.phoneFixedTime,
       selectedSlot: store.selectedSlot,
       selectedWork: store.selectedWork,
       selectedCharacterId: store.selectedCharacterId,
@@ -67,6 +68,7 @@ window.GameModules.storage = {
   restore(store, save) {
     if (!save) return false;
     store.phoneSetupDone = save.phoneSetupDone ?? store.phoneSetupDone;
+    store.phoneFixedTime = Number(save.phoneFixedTime) || new Date(save.playerProfile?.initializedAt || Date.now()).getTime();
     store.playerProfile = { ...store.playerProfile, ...(save.playerProfile || {}) };
     store.playerName = save.playerName || store.playerProfile?.name || store.playerName;
     store.realWorldSceneTitle = save.realWorldSceneTitle || store.realWorldSceneTitle;

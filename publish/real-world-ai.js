@@ -42,6 +42,7 @@ window.GameModules.realWorldAi = {
         status: String(data.status || '现实推演继续中').slice(0, 40),
         quest: String(data.quest || '确认现实处境').slice(0, 24),
         choices: this.normalizeChoices(data.choices),
+        elapsedSeconds: window.GameModules.ai.clampElapsed?.(data.elapsedSeconds, 300) || 300,
       };
     } catch (err) {
       console.warn('现实世界返回解析失败，使用兜底:', err.message);
@@ -63,6 +64,7 @@ window.GameModules.realWorldAi = {
       status: '现实稳定，手机异常仍在',
       quest: '确认手机异常与现实处境',
       choices: ['检查手机记录', '观察居住环境', '联系熟人确认', '暂时休息'],
+      elapsedSeconds: 300,
     };
   },
 };
