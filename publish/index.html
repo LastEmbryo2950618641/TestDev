@@ -583,7 +583,7 @@
           <p class="wechat-empty" x-show="!$store.game.currentBossJobs().length && !$store.game.bossState.generating">暂无符合条件的职位，点击随机生成或输入文本生成。</p>
           <p class="wechat-empty" x-show="$store.game.bossState.generating">AI正在随机生成岗位，约30秒；若超时会自动补齐…</p>
           <template x-for="job in $store.game.currentBossJobs()" :key="job.id">
-            <button class="boss-job-row" type="button" :class="{ active: $store.game.bossState.selectedJobId === job.id }" @click="$store.game.selectBossJob(job.id)"><strong x-text="job.title"></strong><span><b x-text="job.company"></b><em @click.stop="$store.game.openBossCompanyDetail(job.id)">查看公司</em></span><small x-text="$store.game.bossJobPayText(job)"></small></button>
+            <button class="boss-job-row" type="button" :class="{ active: $store.game.bossState.selectedJobId === job.id }" @click="$store.game.selectBossJob(job.id)"><strong x-text="job.title"></strong><span><b x-text="job.company"></b><em @click.stop="$store.game.openBossCompanyDetail(job.id)">查看公司</em></span><small x-text="$store.game.bossJobPayText(job)"></small><small x-show="$store.game.bossMatchSummary(job)" x-text="$store.game.bossMatchSummary(job)"></small></button>
           </template>
         </section>
         <article class="boss-detail dev-section" data-section-title="职位详情区" x-show="$store.game.selectedBossJob() && !$store.game.bossState.companyDetailOpen">
@@ -593,6 +593,9 @@
             <li x-text="`公司：${$store.game.selectedBossJob()?.company}`"></li>
             <li x-text="`地址：${$store.game.selectedBossJob()?.address}`"></li>
             <li x-text="`薪酬：${$store.game.bossJobPayText($store.game.selectedBossJob())}`"></li>
+            <li x-show="$store.game.bossMatchText($store.game.selectedBossJob(), 'matchProfessions')" x-text="`匹配职业：${$store.game.bossMatchText($store.game.selectedBossJob(), 'matchProfessions')}`"></li>
+            <li x-show="$store.game.bossMatchText($store.game.selectedBossJob(), 'matchSkills')" x-text="`匹配技能：${$store.game.bossMatchText($store.game.selectedBossJob(), 'matchSkills')}`"></li>
+            <li x-show="$store.game.bossMatchText($store.game.selectedBossJob(), 'matchKnowledge')" x-text="`匹配知识：${$store.game.bossMatchText($store.game.selectedBossJob(), 'matchKnowledge')}`"></li>
           </ul>
         </article>
       </main>

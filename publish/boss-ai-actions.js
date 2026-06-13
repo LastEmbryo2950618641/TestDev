@@ -49,15 +49,19 @@ window.GameModules.bossAiActions = {
     const area = [f.province, f.city, f.county, f.town].filter(Boolean).join(' ') || '不限，优先玩家所在地';
     const player = this.bossState.usePlayerFit ? this.bossPlayerFitPrompt() : '关闭玩家适配：像真实招聘软件一样随机混合热门、冷门、白领、蓝领、创作者、兼职岗位。';
     const custom = String(this.bossState.customPrompt || '').trim() || '无';
-    return `你是现实招聘软件的岗位生成器。请一次性随机生成${count}个互不重复的可申请职位，只返回严格JSON数组，不要Markdown、解释、注释或尾逗号。字段固定为：id,title,company,industry,scale,address,payType,base,performanceMonths,creatorPay,level,royalty,buyout,hourly,skills,desc。多样性要求：默认必须覆盖不同领域，优先从这些领域抽样：互联网软件、人工智能、数据分析、医疗医院、药房健康、教育培训、法律合规、金融银行、财务会计、智能制造、建筑工程、物流供应链、电商零售、本地生活、餐饮酒店、旅游会展、公共服务、农业食品、媒体广告、游戏动漫、内容文娱、设计摄影、心理咨询、物业安保、家政护理、汽车新能源。若筛选或玩家文本指定领域，则围绕指定方向生成，但仍要给出不同岗位层级和公司类型。岗位真实性：title必须是具体职位名，禁止“岗位1/员工岗位/创作者岗位/定时工岗位”等泛称；公司名、行业、地址、薪资要互相匹配；不要把医生放到软件公司，不要把律师放到医院，除非title是医疗法务/医院合规这类交叉岗位。薪酬规则：payType只能是员工、创作者、定时工。员工必须有base和performanceMonths；创作者提成制度必须有level、base、royalty；创作者一次性买断必须有buyout；定时工必须有hourly。无关字段用空字符串或0。筛选：公司领域=${f.industry || '不限'}；规模=${f.scale || '不限'}；地址=${area}；薪酬类型=${f.payType || '不限'}；底薪=${f.baseMin || '不限'}-${f.baseMax || '不限'}；年底绩效月数=${f.performanceMonths || '不限'}；创作者薪酬=${f.creatorPay || '不限'}；签约等级=${f.creatorLevel || '不限'}。玩家适配：${player}。玩家输入文本：${custom}。skills数组给出3-5项真实技能；desc用一句话说明职责、工作方式、为什么适合该薪酬。随机种子=${this.bossState.randomSeed || Date.now()}。`;
+    return `你是现实招聘软件的岗位生成器。请一次性随机生成${count}个互不重复的可申请职位，只返回严格JSON数组，不要Markdown、解释、注释或尾逗号。字段固定为：id,title,company,industry,scale,address,payType,base,performanceMonths,creatorPay,level,royalty,buyout,hourly,skills,desc,matchProfessions,matchSkills,matchKnowledge。matchProfessions/matchSkills/matchKnowledge必须由AI从玩家已有能力中推断，只填玩家已拥有且确实符合该岗位的职业/技能/知识原名，没有匹配就返回空数组，禁止编造新能力。玩家已有能力：${this.bossPlayerAbilitiesPrompt()}。多样性要求：默认必须覆盖不同领域，优先从这些领域抽样：互联网软件、人工智能、数据分析、医疗医院、药房健康、教育培训、法律合规、金融银行、财务会计、智能制造、建筑工程、物流供应链、电商零售、本地生活、餐饮酒店、旅游会展、公共服务、农业食品、媒体广告、游戏动漫、内容文娱、设计摄影、心理咨询、物业安保、家政护理、汽车新能源。若筛选或玩家文本指定领域，则围绕指定方向生成，但仍要给出不同岗位层级和公司类型。岗位真实性：title必须是具体职位名，禁止“岗位1/员工岗位/创作者岗位/定时工岗位”等泛称；公司名、行业、地址、薪资要互相匹配。薪酬规则：payType只能是员工、创作者、定时工。员工必须有base和performanceMonths；创作者提成制度必须有level、base、royalty；创作者一次性买断必须有buyout；定时工必须有hourly。无关字段用空字符串或0。筛选：公司领域=${f.industry || '不限'}；规模=${f.scale || '不限'}；地址=${area}；薪酬类型=${f.payType || '不限'}；底薪=${f.baseMin || '不限'}-${f.baseMax || '不限'}；年底绩效月数=${f.performanceMonths || '不限'}；创作者薪酬=${f.creatorPay || '不限'}；签约等级=${f.creatorLevel || '不限'}。玩家适配：${player}。玩家输入文本：${custom}。skills数组给出3-5项真实技能；desc用一句话说明职责、工作方式、为什么适合该薪酬。随机种子=${this.bossState.randomSeed || Date.now()}。`;
   },
 
   bossPlayerFitPrompt() {
     const p = this.playerProfile || {};
     const fields = this.playerProfileLexiconFields?.().filter((x) => ['现实身份', '工作阵营', '阵营地位', '世界观补全', '备注'].includes(x.label)).map((x) => `${x.label}:${x.value}`).join('；') || '';
+    return `开启玩家适配：优先生成与玩家知识、技能、职业相匹配的职位，同时保留约20%跨领域入门机会。玩家资料：姓名=${p.name || this.playerName || '玩家'}；职业/身份=${p.refinedRole || p.dailyRole || '未知'}；所在地=${p.refinedCity || p.city || '未知'}；能力=${this.bossPlayerAbilitiesPrompt()}；${fields}`;
+  },
+
+  bossPlayerAbilitiesPrompt() {
     const values = this.currentRpgState?.values || this.playerIdentityState?.()?.values || {};
-    const learned = ['knowledge', 'skills', 'professions'].map((key) => (values[key] || []).slice(0, 8).map((x) => `${x.name || x}lv${x.level || 1}`).join('、')).filter(Boolean).join('；');
-    return `开启玩家适配：优先生成与玩家知识、技能、职业相匹配的职位，同时保留约20%跨领域入门机会。玩家资料：姓名=${p.name || this.playerName || '玩家'}；职业/身份=${p.refinedRole || p.dailyRole || '未知'}；所在地=${p.refinedCity || p.city || '未知'}；能力=${learned || '暂无能力树记录'}；${fields}`;
+    const line = (key, label) => `${label}:${(values[key] || []).slice(0, 12).map((x) => `${x.name || x}lv${x.level || 1}`).join('、') || '无'}`;
+    return [line('professions', '职业'), line('skills', '技能'), line('knowledge', '知识')].join('；');
   },
 
   cacheBossJobs(jobs) {
@@ -136,7 +140,7 @@ window.GameModules.bossAiActions = {
       const industry = industries[(i + (this.bossState.randomSeed || 0)) % industries.length];
       const payType = payTypes[i % payTypes.length];
       const title = this.fallbackBossTitle(industry, payType, i);
-      return { id: `ai-fallback-${Date.now()}-${i}`, title, company: `${industry}优选公司${i + 1}`, industry, scale: f.scale || ['10-20人', '20-50人', '50-150人', '150-500人'][i % 4], address: [f.province || '四川省', f.city || '成都市', f.county || '武侯区', f.town || '玉林街道'].join(' '), payType, base: Number(f.baseMin) || 4500 + i * 650, performanceMonths: Number(f.performanceMonths) || 1 + (i % 3), creatorPay: f.creatorPay || (payType === '创作者' ? (i % 2 ? '一次性买断' : '提成制度') : ''), level: f.creatorLevel || ['C级签约', 'B级签约', 'A级签约'][i % 3], royalty: '8%-22%', buyout: '800-8000元/件', hourly: payType === '定时工' ? 24 + i * 3 : 0, skills: this.defaultBossSkills({ title, payType }), desc: source.slice(0, 80) || 'AI暂不可用，已按真实行业与筛选随机补齐岗位。' };
+      return { id: `ai-fallback-${Date.now()}-${i}`, title, company: `${industry}优选公司${i + 1}`, industry, scale: f.scale || ['10-20人', '20-50人', '50-150人', '150-500人'][i % 4], address: [f.province || '四川省', f.city || '成都市', f.county || '武侯区', f.town || '玉林街道'].join(' '), payType, base: Number(f.baseMin) || 4500 + i * 650, performanceMonths: Number(f.performanceMonths) || 1 + (i % 3), creatorPay: f.creatorPay || (payType === '创作者' ? (i % 2 ? '一次性买断' : '提成制度') : ''), level: f.creatorLevel || ['C级签约', 'B级签约', 'A级签约'][i % 3], royalty: '8%-22%', buyout: '800-8000元/件', hourly: payType === '定时工' ? 24 + i * 3 : 0, skills: this.defaultBossSkills({ title, payType }), desc: source.slice(0, 80) || 'AI暂不可用，已按真实行业与筛选随机补齐岗位。', matchProfessions: [], matchSkills: [], matchKnowledge: [] };
     });
   },
 
@@ -205,7 +209,17 @@ window.GameModules.bossAiActions = {
       base: Number(job.base) || 0, performanceMonths: Number(job.performanceMonths) || 0,
       skills: Array.isArray(job.skills) ? job.skills.map(String) : this.defaultBossSkills(job),
       creatorPay: job.creatorPay || '', level: job.level || '', royalty: job.royalty || '', buyout: job.buyout || '', hourly: Number(job.hourly) || 0,
+      matchProfessions: this.normalizeBossMatches(job.matchProfessions, 'professions'),
+      matchSkills: this.normalizeBossMatches(job.matchSkills, 'skills'),
+      matchKnowledge: this.normalizeBossMatches(job.matchKnowledge, 'knowledge'),
       desc: String(job.desc || '岗位详情待面谈。'),
     };
+  },
+
+  normalizeBossMatches(value, key) {
+    const values = this.currentRpgState?.values || this.playerIdentityState?.()?.values || {};
+    const owned = new Map((values[key] || []).map((x) => [String(x.name || x), x]));
+    const raw = Array.isArray(value) ? value : String(value || '').split(/[、,，]/);
+    return raw.map((x) => String(x?.name || x).trim()).filter((name, index, arr) => name && owned.has(name) && arr.indexOf(name) === index);
   },
 };

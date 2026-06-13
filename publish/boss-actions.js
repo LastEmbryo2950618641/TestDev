@@ -149,8 +149,21 @@ window.GameModules.bossActions = {
       row('workMode', '岗位类型', job.payType, '员工、创作者、定时工三类岗位类型。'),
       row('jobTitle', '招聘职位', job.title, '具体岗位名称，例如软件开发工程师、前端开发工程师。'),
       row('skills', '职业技能要求', (job.skills || []).join('、'), '申请该岗位需要具备的技能或职业才能。'),
+      row('matchProfessions', '匹配玩家职业', this.bossMatchText(job, 'matchProfessions'), 'AI根据玩家已有职业推断出的岗位匹配项；没有匹配则为空。'),
+      row('matchSkills', '匹配玩家技能', this.bossMatchText(job, 'matchSkills'), 'AI根据玩家已有技能推断出的岗位匹配项；没有匹配则为空。'),
+      row('matchKnowledge', '匹配玩家知识', this.bossMatchText(job, 'matchKnowledge'), 'AI根据玩家已有知识推断出的岗位匹配项；没有匹配则为空。'),
       row('salary', '薪酬制度', this.bossJobPayText(job), '按当前招聘岗位给出的薪酬规则。'),
     ];
+  },
+
+  bossMatchText(job, key) {
+    const list = Array.isArray(job?.[key]) ? job[key] : [];
+    return list.length ? list.join('、') : '';
+  },
+
+  bossMatchSummary(job) {
+    const items = [this.bossMatchText(job, 'matchProfessions'), this.bossMatchText(job, 'matchSkills'), this.bossMatchText(job, 'matchKnowledge')].filter(Boolean);
+    return items.length ? `匹配：${items.join('｜')}` : '';
   },
 
   bossApplyButtonText(job = this.selectedBossCompanyJob()) {
