@@ -28,8 +28,11 @@ window.GameModules = window.GameModules || {};
     playerSetupSummary() {
       return this.playerProfileLexiconFields().map((x) => `${x.label}：${x.value}`).join('\n');
     },
-    chooseExistingAccountSetup() { this.phoneActivationChoice = 'existing'; },
-    chooseNewAccountSetup() { this.phoneActivationChoice = 'new'; },
+    defaultExistingAccountProfile() {
+      return { name: '刘悠', gender: '男', birthday: '1998-11-19', age: this.playerAgeFromBirthday('1998-11-19'), city: '四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号', dailyRole: '程序工程师lv.5，计算机科学与技术硕士lv.5', livingStatus: '与妹妹同居', parents: '父母资料未同步', relationships: '妹妹：需要AI按现实世界观、文化习俗和同居关系生成正式姓名', notes: '已有账号同步资料。', initializedAt: new Date().toISOString() };
+    },
+    chooseExistingAccountSetup() { this.playerProfile = { ...this.playerProfile, ...this.defaultExistingAccountProfile() }; this.existingProfileExpanded = false; this.phoneActivationChoice = 'existing'; },
+    chooseNewAccountSetup() { this.existingProfileExpanded = true; this.phoneActivationChoice = 'new'; },
     backActivationChoice() { this.phoneActivationChoice = ''; },
     playerAgeFromBirthday(birthday) {
       const birth = new Date(`${birthday}T00:00:00`), now = new Date('2026-06-12T00:00:00');
@@ -39,9 +42,7 @@ window.GameModules = window.GameModules || {};
       return Math.max(0, age);
     },
     async useExistingAccountSetup() {
-      if (this.profileSetupBusy) return;
-      this.playerProfile = { ...this.playerProfile, name: '刘悠', gender: '男', birthday: '1998-11-19', age: this.playerAgeFromBirthday('1998-11-19'), city: '四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号', dailyRole: '程序工程师lv.5，计算机科学与技术硕士lv.5', livingStatus: '与妹妹同居', parents: '父母资料未同步', relationships: '妹妹：需要AI按现实世界观、文化习俗和同居关系生成正式姓名', notes: '已有账号同步资料。', initializedAt: new Date().toISOString() };
-      await this.completePlayerSetup?.({ skipAi: true });
+      await this.completePlayerSetup?.();
     },
     async completePlayerSetup() {
       if (this.profileSetupBusy) return;

@@ -435,6 +435,19 @@
   line-height: 1.55;
 }
 
+.activation-profile-summary {
+  max-height: 220px;
+  margin: 10px 0;
+  padding: 10px;
+  overflow: auto;
+  white-space: pre-wrap;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 12px;
+  background: rgba(3, 6, 17, .26);
+  color: #d8e0ff;
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
 @media (max-width: 640px) {
   .phone-setup-grid {
     grid-template-columns: 1fr;
