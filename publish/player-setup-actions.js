@@ -88,13 +88,7 @@ window.GameModules.playerSetupActions = {
       this.setupError = '';
       const base = this.normalizePlayerSetupBase(name, birthday);
       let enriched = null;
-      if (!options.skipAi) {
-        try {
-          enriched = await this.enrichPlayerProfile(base);
-        } catch (err) {
-          console.warn('[玩家身份] AI补全失败，使用本地兜底:', err.code, err.message, err.stack);
-        }
-      }
+      if (!options.skipAi) enriched = await this.enrichPlayerProfile(base);
       this.playerProfile = this.normalizeEnrichedPlayerProfile(base, enriched);
       this.phoneFixedTime = new Date(this.playerProfile.initializedAt || Date.now()).getTime();
       await this.syncPlayerProfileLexicon();
@@ -105,6 +99,9 @@ window.GameModules.playerSetupActions = {
       await this.ensurePlayerRpgState?.(true);
       await this.syncKnownProfessionsFromProfile?.(this.playerProfile.knownProfessions);
       await this.save();
+    } catch (err) {
+      console.error('[玩家身份] 激活失败:', err.code, err.message, err.stack);
+      this.setupError = err.message || '激活失败';
     } finally {
       this.profileSetupBusy = false;
     }
