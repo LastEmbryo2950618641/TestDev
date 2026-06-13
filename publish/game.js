@@ -13,6 +13,13 @@ const dzmmReady = new Promise((resolve) => {
 
 document.addEventListener('alpine:init', () => {
   const cfg = window.GameModules.config;
+  const gm = window.GameModules;
+  const modules = [
+    gm.actions, gm.rpgFieldUi, gm.resultActions, gm.loadingActions, gm.saveActions, gm.styleActions,
+    gm.worldlineActions, gm.playerSetupActions, gm.playerIdentityActions, gm.wechatActions, gm.entryActions,
+    gm.coreActions, gm.appSwitchActions, gm.realWorldActions, gm.companyActions, gm.companyAttendanceActions,
+    gm.bossActions, gm.bossAiActions, gm.calendarActions, gm.factionActions, gm.factionAiActions, gm.skillsActions, gm.promptActions,
+  ].map((module) => module || {});
 
   Alpine.store('game', {
     loading: true, loadingStep: '等待平台连接',
@@ -176,14 +183,7 @@ document.addEventListener('alpine:init', () => {
       }
     },
 
-    ...window.GameModules.actions, ...window.GameModules.rpgFieldUi, ...window.GameModules.resultActions,
-    ...window.GameModules.loadingActions, ...window.GameModules.saveActions, ...window.GameModules.styleActions,
-    ...window.GameModules.worldlineActions, ...window.GameModules.playerSetupActions, ...window.GameModules.playerIdentityActions,
-    ...window.GameModules.wechatActions, ...window.GameModules.entryActions, ...window.GameModules.coreActions,
-    ...window.GameModules.appSwitchActions, ...window.GameModules.realWorldActions, ...window.GameModules.companyActions,
-    ...window.GameModules.companyAttendanceActions, ...window.GameModules.bossActions, ...window.GameModules.bossAiActions,
-    ...window.GameModules.calendarActions, ...window.GameModules.factionActions, ...window.GameModules.factionAiActions,
-    ...window.GameModules.skillsActions, ...window.GameModules.promptActions,
+    ...Object.assign({}, ...modules),
   });
 
   queueMicrotask(() => Alpine.store('game').init());
