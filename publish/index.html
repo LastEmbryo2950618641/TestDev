@@ -624,7 +624,7 @@
         <div class="calendar-weekdays"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
         <div class="calendar-grid">
           <template x-for="cell in $store.game.calendarDays()" :key="cell.key">
-            <article class="calendar-day" :class="{ blank: cell.blank, marked: cell.events?.length }"><b x-text="cell.blank ? '' : cell.day"></b><template x-for="event in cell.events" :key="event.id"><p x-text="event.title"></p></template></article>
+            <article class="calendar-day" :class="{ blank: cell.blank, marked: cell.events?.length, holiday: cell.holiday }"><b x-text="cell.blank ? '' : cell.day"></b><span class="calendar-holiday" x-show="cell.holiday" x-text="cell.holiday"></span><template x-for="event in cell.events" :key="event.id"><p x-text="event.title"></p></template></article>
           </template>
         </div>
       </main>

@@ -56,8 +56,10 @@ window.GameModules.calendarActions = {
     const total = new Date(y, m + 1, 0).getDate();
     const cells = Array.from({ length: first }, (_, i) => ({ key: `blank-${i}`, blank: true }));
     for (let day = 1; day <= total; day += 1) {
+      const date = new Date(y, m, day);
       const events = this.eventsForCalendarDay(day);
-      cells.push({ key: `${y}-${m}-${day}`, day, events, blank: false });
+      const holiday = this.companyHolidayName?.(date) || '';
+      cells.push({ key: `${y}-${m}-${day}`, day, events, holiday, blank: false });
     }
     while (cells.length % 7) cells.push({ key: `blank-end-${cells.length}`, blank: true });
     return cells;

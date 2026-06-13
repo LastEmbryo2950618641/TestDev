@@ -79,7 +79,24 @@
 
 .calendar-day.blank { opacity: .28; }
 .calendar-day.marked { border-color: rgba(255, 159, 28, .68); }
+.calendar-day.holiday {
+  border-color: rgba(98, 255, 184, .48);
+  background: rgba(98, 255, 184, .08);
+}
 .calendar-day b { color: #fff; font-size: 13px; }
+.calendar-holiday {
+  width: fit-content;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 5px;
+  border-radius: 999px;
+  color: #062016;
+  background: #62ffb8;
+  font-size: 10px;
+  font-weight: 900;
+}
 .calendar-day p {
   margin: 0;
   padding: 3px 5px;
