@@ -30,7 +30,7 @@ Object.assign(window.GameModules.entryActions, {
       this.turn = 1;
       this.sceneTitle = this.entryTimeLabel();
       this.online = true;
-      this.metricsReady = false;
+      this.loadMetricsFromCharacterState();
       const action = `你在手机上的《我狠狠控制》APP里选中${this.character.name}，按下连接按钮。意识陷入黑暗后，你在${this.entryTimeLabel()}醒来，发现自己已经附身到${this.character.name}身上。当前场景：${this.entryCurrentAction || `${this.character.name}正在行动。`}`;
       const logId = this.addNovelEntry(action, { playerVisible: false });
       debug.step('[控制上线] 开场日志已创建', { logId, actionLength: action.length });
@@ -51,13 +51,10 @@ Object.assign(window.GameModules.entryActions, {
 
       const feedback = await feedbackTask;
       debug.step('[控制上线] 应用角色反馈', { source: feedback.source, mindLength: String(feedback.mind || '').length, intentLength: String(feedback.intent || '').length });
-      this.mood = feedback.mood;
-      this.resistance = feedback.resistance;
       this.mindText = feedback.mind;
       this.feedbackSource = feedback.source || 'fallback';
       this.characterIntent = feedback.intent;
       this.choices = feedback.choices || this.choices;
-      this.applyInitialMetrics(feedback.metricUpdates);
       await this.runLoggedControlTask('上线体验写入', () => window.GameModules.characterFeedback.applyExperience(this, feedback));
       await this.runLoggedControlTask('AI剧情推演', () => window.GameModules.ai.generate(this, action, logId));
       await this.runLoggedControlTask('存档保存', () => this.save());

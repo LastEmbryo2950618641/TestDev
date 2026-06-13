@@ -90,19 +90,24 @@ window.GameModules.saveActions = {
     return this.prepareRpgSchemaForSelectedWork();
   },
 
-  async ensureRpgForCharacter(character) {
+  async ensureRpgForCharacter(character, context = '', options = {}) {
     if (!window.GameModules.sqliteSave.db || !character) return null;
     const worldTag = character.work || '原创世界';
     console.log('[RPG状态] 准备角色状态:', worldTag, character.name);
-    const state = await window.GameModules.rpgState.ensureCharacter(character, this);
+    const profile = await window.GameModules.characterProfile.ensure(character, this, context || this.entryCurrentAction || this.sceneTitle || '');
+    const state = await window.GameModules.rpgState.ensureCharacter(profile, this);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
+    if (options.loadMetrics !== false && state.id === this.character.id) this.loadMetricsFromCharacterState(state);
     this.rpgPanelCharacterId = this.rpgPanelCharacterId || state.id;
     return state;
   },
 
   async ensureRpgForCurrentCharacter(options = {}) {
-    if (!options.refresh && this.rpgStates[this.character.id]) return this.rpgStates[this.character.id];
-    return this.ensureRpgForCharacter(this.character);
+    if (!options.refresh && this.rpgStates[this.character.id]) {
+      this.loadMetricsFromCharacterState(this.rpgStates[this.character.id]);
+      return this.rpgStates[this.character.id];
+    }
+    return this.ensureRpgForCharacter(this.character, this.entryCurrentAction || this.sceneTitle || '');
   },
 
   async ensureRpgFromResults(result) {
@@ -110,9 +115,7 @@ window.GameModules.saveActions = {
     const entries = [this.character, ...(result.appearedCharacters || [])];
     const context = `${this.sceneTitle} ${this.quest} ${result.narration || ''}`;
     for (const entry of entries) {
-      const profile = await window.GameModules.characterProfile.ensure(entry, this, context);
-      const state = await window.GameModules.rpgState.ensureCharacter(profile, this);
-      this.rpgStates = { ...this.rpgStates, [state.id]: state };
+      await this.ensureRpgForCharacter(entry, context, { loadMetrics: entry.id === this.character.id });
     }
   },
 

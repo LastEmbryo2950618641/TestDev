@@ -66,16 +66,13 @@ window.GameModules.coreActions = {
     if (this.online === value || this.busy) return;
     this.online = value;
     if (value && this.controlMode === 'possess') {
-      this.metricsReady = false;
+      this.loadMetricsFromCharacterState();
       const feedback = await window.GameModules.characterFeedback.initial(this);
-      this.mood = feedback.mood;
-      this.resistance = feedback.resistance;
       this.mindText = feedback.mind;
       this.feedbackSource = feedback.source || 'fallback';
       this.characterIntent = feedback.intent;
       console.log('[角色反馈] 切换在线生成结果:', { source: this.feedbackSource, mindLength: String(this.mindText || '').length, intentLength: String(this.characterIntent || '').length });
       this.choices = feedback.choices || this.choices;
-      this.applyInitialMetrics(feedback.metricUpdates);
       await window.GameModules.characterFeedback.applyExperience(this, feedback);
     }
     this.save();

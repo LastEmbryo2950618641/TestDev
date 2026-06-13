@@ -52,7 +52,7 @@ Object.assign(window.GameModules.characterFeedback, {
       line('属性/世界词条', worldValues), line('摘要', card.summary),
     ].filter(Boolean).join('\n');
     const experience = this.experience(store);
-    const outputJson = JSON.stringify({ mind: '角色第一人称内心，40到70字', intent: `${base.name}自己下一步想做什么，30到50字`, mood: '冷静', resistance: 0, controlFeeling: '疑惑/恐惧/愤怒等短语', adaptation: 0, experienceSummary: '40字内', choices: ['4个行动选项，每个12字内'] });
+    const outputJson = JSON.stringify({ mind: '角色第一人称内心，40到70字', intent: `${base.name}自己下一步想做什么，30到50字`, controlFeeling: '疑惑/恐惧/愤怒等短语', adaptation: 0, experienceSummary: '40字内', choices: ['4个行动选项，每个12字内'] });
     return window.GameModules.promptTemplates.render('character-feedback', { 角色: `${base.name}｜${base.role}｜${base.work}`, 年龄: store.characterAge || '未知', 操控方式: store.controlMode, 当前场景: store.entryCurrentAction || '未知', 人物资料: profile.slice(0, 1600), 上线次数: experience.onlineCount, 上线感觉: experience.feeling, 适应度: experience.adaptation, 上线摘要: experience.summary, 输出示例: outputJson });
   },
 
@@ -74,7 +74,6 @@ Object.assign(window.GameModules.characterFeedback, {
 
   normalizeFeedbackData(data, fallback, store, source) {
     if (!data.mind && !data.intent) throw new Error('角色反馈缺少 mind/intent');
-    const metricUpdates = this.feedbackMetrics(data.metricUpdates, fallback.metricUpdates, store);
     const result = {
       mind: String(data.mind || fallback.mind).slice(0, 80),
       intent: String(data.intent || fallback.intent).slice(0, 80),
@@ -83,34 +82,11 @@ Object.assign(window.GameModules.characterFeedback, {
       controlFeeling: String(data.controlFeeling || fallback.controlFeeling || '疑惑').slice(0, 40),
       adaptation: this.clamp(data.adaptation, fallback.adaptation),
       experienceSummary: String(data.experienceSummary || fallback.experienceSummary).slice(0, 80),
-      metricUpdates,
       choices: this.normalizeChoices(data.choices, fallback.choices),
       source,
     };
-    console.log('[角色反馈] AI解析成功:', { source, mindLength: result.mind.length, intentLength: result.intent.length, metrics: data.metricUpdates ? 'ai' : 'profile' });
+    console.log('[角色反馈] AI解析成功:', { source, mindLength: result.mind.length, intentLength: result.intent.length });
     return result;
-  },
-
-  feedbackMetrics(updates, fallback, store) {
-    const base = this.profileMetrics(store, fallback);
-    const source = this.hasAnyMetrics(updates) ? {
-      emotions: Array.isArray(updates.emotions) ? updates.emotions : base.emotions,
-      playerFeelings: Array.isArray(updates.playerFeelings) ? updates.playerFeelings : base.playerFeelings,
-    } : base;
-    return window.GameModules.ai.normalizeInitialMetricUpdates(source, fallback, store);
-  },
-
-  hasAnyMetrics(updates) {
-    return Array.isArray(updates?.emotions) || Array.isArray(updates?.playerFeelings);
-  },
-
-  profileMetrics(store, fallback) {
-    const profile = store.characterRpgState?.profile || store.characterProfiles?.[store.character?.id] || store.character || {};
-    const source = profile.initialMetrics || {};
-    return {
-      emotions: Array.isArray(source.emotions) && source.emotions.length ? source.emotions : fallback?.emotions,
-      playerFeelings: Array.isArray(source.playerFeelings) && source.playerFeelings.length ? source.playerFeelings : fallback?.playerFeelings,
-    };
   },
 
   recoverFeedbackFields(text) {

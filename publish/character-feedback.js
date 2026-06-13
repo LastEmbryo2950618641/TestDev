@@ -86,7 +86,6 @@ window.GameModules.characterFeedback = {
       controlFeeling: experience.onlineCount > 0 ? experience.feeling : '疑惑',
       adaptation: experience.adaptation,
       experienceSummary: '身体突然失控，她/他还无法确认你会做什么。',
-      metricUpdates: metrics,
       choices: ['确认周围状况', '尝试移动身体', '寻找安全位置', '接近关键人物'],
       source: 'fallback',
     };

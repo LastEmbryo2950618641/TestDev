@@ -62,6 +62,15 @@ window.GameModules.resultActions = {
     this.syncMetricDerived();
   },
 
+  loadMetricsFromCharacterState(state = this.characterRpgState) {
+    const metrics = this.ensureStateMetrics(state);
+    this.emotions = { ...metrics.emotions };
+    this.playerFeelings = { ...metrics.playerFeelings };
+    this.metricNotes = { ...(metrics.notes || {}) };
+    this.metricsReady = true;
+    this.syncMetricDerived();
+  },
+
   syncMetricDerived() {
     this.trust = this.playerFeelings.信任;
     this.resistance = this.playerFeelings.反抗;
