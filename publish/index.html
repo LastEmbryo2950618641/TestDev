@@ -424,6 +424,7 @@
 
   <section x-show="!$store.game.loading && $store.game.phoneSetupDone && !$store.game.desktopUnlocked" class="phone-desktop-screen" x-init="setInterval(() => $store.game.checkWorkReminder?.(), 60000)" x-cloak>
     <div class="phone-frame">
+      <button class="phone-collapse-btn" type="button" @click="$store.game.openRealWorldPanel()" aria-label="收起手机">收起手机</button>
       <div class="phone-status-bar">
         <span x-text="$store.game.phoneTimeText().slice(0, 5)"></span>
         <span>5G  88%</span>
