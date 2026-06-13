@@ -16,8 +16,8 @@ Object.assign(window.GameModules.rpgLexicon, {
       ...raw,
       nameAiGenerated: (old?.nameAiGenerated || old?.aiGenerated) ? true : (raw.nameAiGenerated ?? raw.aiGenerated),
       valueAiGenerated: old?.valueAiGenerated ? true : (raw.valueAiGenerated ?? raw.aiGenerated),
-      changeMode: raw.changeMode || old?.changeMode,
-      hierarchy: raw.hierarchy || old?.hierarchy,
+      changeMode: old?.changeMode || raw.changeMode,
+      hierarchy: old?.hierarchy || raw.hierarchy,
       promptInstruction,
       meta: {
         ...(old?.meta || {}),
@@ -36,14 +36,19 @@ Object.assign(window.GameModules.rpgLexicon, {
     const now = new Date().toISOString();
     for (const raw of entries) {
       const entry = this.buildSkillEntry({ source: 'skill', ...raw });
-      if (!entry) continue;
+      if (!entry || this.isSameLexiconEntry(this.get(entry.worldTag, entry.kind, entry.name), entry)) continue;
       save.db.run(
         'INSERT OR REPLACE INTO lexicon_entries(world_tag,kind,name,entry_json,source,created_at,updated_at) VALUES (?,?,?,?,?,COALESCE((SELECT created_at FROM lexicon_entries WHERE world_tag=? AND kind=? AND name=?),?),?)',
         [entry.worldTag, entry.kind, entry.name, JSON.stringify(entry), entry.source, entry.worldTag, entry.kind, entry.name, now, now],
       );
       changed.push(entry);
     }
-    await save.persist();
+    if (changed.length) await save.persist();
     return changed;
+  },
+
+  isSameLexiconEntry(a, b) {
+    if (!a || !b) return false;
+    return JSON.stringify(a) === JSON.stringify(b);
   },
 });
