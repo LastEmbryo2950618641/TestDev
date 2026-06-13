@@ -97,8 +97,9 @@
 2. 必须从全量上下文推断：dailyRole、refinedRole、学历、工作/学校/组织、position、notes、人际关系等能证明玩家知道该职业时才返回。
 3. 例如玩家现实身份是“后端工程师/程序工程师/计算机硕士”，可以返回“后端工程师、程序工程师、软件工程师”等合理职业；但具体名称由 AI 根据上下文判断，不要机械照抄。
 4. 只能返回符合 2026 现代都市现实世界的职业。现实世界没有魔法师、修仙者、灵力师等超自然职业，除非世界观明确存在。
-5. 不要生成随机职业列表；每个职业都必须有 sourceReason 说明玩家为什么知道它。
+5. 不要生成随机职业列表；每个职业都必须可由玩家资料解释。
 6. 数量 0 到 5 个，宁缺毋滥。
+7. 为降低 JSON 出错率，knownProfessions 必须返回字符串，不要返回数组或对象；多个职业用中文顿号分隔，没有则返回空字符串。
 
 ## JSON 输出硬性规则
 
@@ -106,11 +107,11 @@
 2. 整个 JSON 必须是一行；所有 key 和字符串必须使用英文双引号。
 3. 每个字段之间必须用英文逗号分隔；最后一个字段后不能有逗号。
 4. 字符串里不要直接写未转义的英文双引号；需要引用时改用中文引号或省略引号。
-5. knownProfessions 是数组；数组元素之间必须用英文逗号分隔。
-6. 如果无法确认已知职业，knownProfessions 返回 []，不要省略字段。
+5. knownProfessions 必须是字符串，不要写数组、对象、方括号或大括号；多个职业用中文顿号分隔。
+6. 如果无法确认已知职业，knownProfessions 返回空字符串 ""，不要省略字段。
 
 ## 返回字段
 
 ```json
-{"refinedCity":"省市区县镇街道小区楼栋门牌","refinedRole":"更具体身份","workplace":"根据职业生成的公司/学校/组织","position":"根据职业生成的职位/身份层级","refinedLivingStatus":"更具体居住状态","relationships":"妹妹：姓名；父亲：姓名","parentStatus":"父母状态","parentDeathCause":"父母去世原因或空","worldbuildingNote":"60字内现实背景补充","knownProfessions":[{"name":"职业名","worldTag":"2026 现代都市现实世界","sourceReason":"为什么玩家知道这个职业"}]}
+{"refinedCity":"省市区县镇街道小区楼栋门牌","refinedRole":"更具体身份","workplace":"根据职业生成的公司/学校/组织","position":"根据职业生成的职位/身份层级","refinedLivingStatus":"更具体居住状态","relationships":"妹妹：姓名；父亲：姓名","parentStatus":"父母状态","parentDeathCause":"父母去世原因或空","worldbuildingNote":"60字内现实背景补充","knownProfessions":"后端工程师、软件工程师"}
 ```

@@ -159,10 +159,17 @@ window.GameModules.playerSetupActions = {
   },
 
   normalizeKnownProfessionHints(value) {
-    if (!Array.isArray(value)) return [];
     const world = window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
+    if (typeof value === 'string') {
+      return value.split(/[、,，;；\n]+/).map((name) => ({
+        name: String(name || '').trim().slice(0, 24),
+        worldTag: world,
+        sourceReason: '玩家现实身份上下文表明其知道该职业。',
+      })).filter((item) => item.name).slice(0, 5);
+    }
+    if (!Array.isArray(value)) return [];
     return value.map((item) => ({
-      name: String(item?.name || '').trim().slice(0, 24),
+      name: String(item?.name || item || '').trim().slice(0, 24),
       worldTag: String(item?.worldTag || world).trim().slice(0, 32),
       sourceReason: String(item?.sourceReason || '玩家现实身份上下文表明其知道该职业。').trim().slice(0, 120),
     })).filter((item) => item.name).slice(0, 5);
