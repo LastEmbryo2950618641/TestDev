@@ -12,17 +12,22 @@ window.GameModules.bossAiActions = {
     const requestId = (this.bossState.requestId || 0) + 1;
     this.bossState.requestId = requestId;
     try {
-      const text = await this.requestBossJobsText(targetPage);
+      const text = await Promise.race([
+        this.requestBossJobsText(targetPage),
+        new Promise((resolve) => setTimeout(() => resolve(''), 35000)),
+      ]);
       if (requestId !== this.bossState.requestId) return;
       const jobs = this.parseBossJobs(text).slice(0, this.bossState.pageSize);
-      if (!jobs.length) throw new Error('AI未返回可用岗位');
+      if (!jobs.length) jobs.push(...this.fallbackBossJobsFromAI(text || 'AI响应超时，已本地补齐岗位'));
       this.cacheBossJobs(targetPage, jobs);
       this.bossState.selectedJobId = this.pagedBossJobs()[0]?.id || '';
       this.save?.();
     } catch (err) {
       if (requestId !== this.bossState.requestId) return;
       console.error('AI生成招聘岗位失败:', err.code, err.message, err.stack);
-      this.bossState.generationError = 'AI生成失败，请稍后重试。';
+      this.cacheBossJobs(targetPage, this.fallbackBossJobsFromAI(err.message || 'AI生成失败，已本地补齐岗位'));
+      this.bossState.selectedJobId = this.pagedBossJobs()[0]?.id || '';
+      this.bossState.generationError = 'AI生成暂时不可用，已用本地岗位补齐当前页。';
     } finally {
       if (requestId === this.bossState.requestId) this.bossState.generating = false;
     }

@@ -20,6 +20,7 @@ window.GameModules.bossActions = {
     this.bossState.companyDetailOpen = false;
     this.bossState.detailJobId = '';
     this.bossState.applyMessage = '';
+    this.bossState.generating = false;
     this.bossState.open = true;
     this.desktopUnlocked = true;
     this.generateBossJobsByAI?.(this.bossState.page);

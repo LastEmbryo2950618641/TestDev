@@ -581,7 +581,7 @@
       <main class="boss-body scroll-area">
         <section class="boss-list dev-section" data-section-title="职位列表区">
           <p class="wechat-empty" x-show="!$store.game.pagedBossJobs().length && !$store.game.bossState.generating">暂无符合条件的职位，点击生成或下一页补齐</p>
-          <p class="wechat-empty" x-show="$store.game.bossState.generating">AI正在生成当前页岗位，约30秒…</p>
+          <p class="wechat-empty" x-show="$store.game.bossState.generating">AI正在生成当前页岗位，约30秒；若超时会自动补齐…</p>
           <template x-for="job in $store.game.pagedBossJobs()" :key="job.id">
             <button class="boss-job-row" type="button" :class="{ active: $store.game.bossState.selectedJobId === job.id }" @click="$store.game.selectBossJob(job.id)"><strong x-text="job.title"></strong><span><b x-text="job.company"></b><em @click.stop="$store.game.openBossCompanyDetail(job.id)">查看公司</em></span><small x-text="$store.game.bossJobPayText(job)"></small></button>
           </template>
