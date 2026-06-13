@@ -101,6 +101,7 @@ window.GameModules.characterProfile = {
   validate(profile, base, lore, attrs) {
     const skills = Array.isArray(profile.skills) ? profile.skills : [];
     const confirmedJob = profile.jobConfirmed === true ? window.GameModules.professionInfo.normalizeJobName(profile.job) : '';
+    const factions = this.socialPositions(profile, base);
     return {
       ...base,
       name: this.validName(profile.name, base),
@@ -111,9 +112,10 @@ window.GameModules.characterProfile = {
       detail: String(profile.detail || base.detail).slice(0, 160),
       appearance: String(profile.appearance || base.appearance || '外貌尚未固化。').slice(0, 140),
       personality: String(profile.personality || base.personality).slice(0, 100),
-      faction: String(profile.faction || '无').slice(0, 18),
+      faction: String(factions[0]?.faction || profile.faction || '无').slice(0, 30),
       job: confirmedJob,
-      rank: confirmedJob ? String(profile.rank || lore.jobRanks[0] || '普通').slice(0, 12) : '',
+      rank: String(factions[0]?.position || profile.rank || '').slice(0, 24),
+      factions,
       skills: skills.slice(0, 4).map((skill, index) => ({
         name: String(skill.name || `能力${index + 1}`).slice(0, 16),
         desc: String(skill.desc || '').slice(0, 60),
@@ -158,10 +160,26 @@ window.GameModules.characterProfile = {
       faction: lore.factions[0]?.name || '无',
       job: '',
       jobConfirmed: false,
-      rank: '',
+      rank: base.role || '成员',
       skills: base.skills?.length ? base.skills : [{ name: '观察', desc: '从细节中判断局势。' }],
       worldValues: {},
     }, base, lore, attrs);
+  },
+
+  socialPositions(profile, base) {
+    const social = window.GameModules.socialPosition;
+    const list = Array.isArray(profile.factions) ? profile.factions : [];
+    const items = list.map((item) => {
+      if (typeof item === 'string') {
+        const [faction, position] = item.split('/').map((x) => x.trim());
+        return social?.item?.(faction, position || '成员') || { name: item, faction, position: position || '成员' };
+      }
+      return social?.item?.(item.faction || item.name, item.position || item.rank || '成员') || item;
+    }).filter((item) => item?.faction || item?.name);
+    if (items.length) return items.slice(0, 4);
+    const faction = profile.faction || base.faction;
+    const position = profile.rank || base.rank || base.role || '成员';
+    return faction && faction !== '无' ? [social?.item?.(faction, position) || { name: `${faction} / ${position}`, faction, position }] : [];
   },
 
   worldValues(values, attrs) {
