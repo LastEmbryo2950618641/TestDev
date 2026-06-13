@@ -21,11 +21,11 @@ window.GameModules.companySystem = {
     return {
       id: 'main-company', name, type: this.companyType(name, role), industry: this.industry(role),
       scale: '中小型公司', location: profile.refinedCity || profile.city || '现实城市未登记',
-      workMode: { type: '员工', schedule: '996', workDays: '周一至周六', startTime: '09:00', endTime: '21:00', lateGraceMinutes: 10 },
-      salary: { monthlyBase: this.baseSalary(role), commissionMonths: 2, minRate: 0, maxRate: 0.3, payday: '月底', currency: 'CNY' },
-      rules: ['按上班时间打卡', '迟到自动扣部分绩效', '旷班大幅扣绩效', '月底按评价生成提成百分比'],
+      workMode: { type: '员工', schedule: '双休制', workDays: '周一至周五', startTime: '09:00', endTime: '18:00', lateGraceMinutes: 10 },
+      salary: { monthlyBase: this.baseSalary(role), performanceMonths: 2, minRate: 0, maxRate: 0.3, payday: '月底', currency: 'CNY' },
+      rules: ['以底薪为每月收入核心', '休息日为每月周六和周日', '日薪=底薪÷当月完整上班天数', '年底绩效=公司绩效月数×底薪×绩效提成'],
       openings: [
-        { id: 'employee', name: '员工制岗位', type: '员工', desc: '按公司规章制度上班，稳定月薪，月底按绩效计算提成。' },
+        { id: 'employee', name: '员工制岗位', type: '员工', desc: '双休制，月收入为底薪，年底按绩效月数×底薪×绩效提成结算。' },
         { id: 'timed-task', name: '定时工任务', type: '定时工', desc: '规定时间内完成单项工作，按完成度给钱，不合格无报酬，超预期额外奖励。' },
         { id: 'creator', name: '创作者征稿', type: '创作者模式', desc: '向公司投稿方案、小说、作品，通过后可签稳定低分成或低保高分成合同。' },
       ],

@@ -507,12 +507,12 @@
           </template>
         </section>
         <section class="recruit-grid" x-show="$store.game.companyState.panelTab === 'recruit'">
-          <article class="recruit-card"><h3>员工制</h3><p>按公司规章制度上班，固定月薪 + 月底绩效提成。</p><button class="story-choice-btn" @click="$store.game.applyRecruitment('employee')">申请员工岗位</button></article>
+          <article class="recruit-card"><h3>员工制</h3><p>按公司规章制度上班，双休制；每月收入为底薪，年底按绩效月数×底薪×绩效提成结算。</p><button class="story-choice-btn" @click="$store.game.applyRecruitment('employee')">申请员工岗位</button></article>
           <article class="recruit-card"><h3>定时工</h3><p>规定时间内完成一件事，不合格无报酬，合格拿100%，超预期额外奖励。</p><button class="story-choice-btn" @click="$store.game.applyRecruitment('timed')">接定时工任务</button></article>
           <article class="recruit-card"><h3>创作者模式</h3><p>向公司投稿方案、小说、作品，通过后可签合同。</p><button class="story-choice-btn" @click="$store.game.applyRecruitment('creator-low')">签稳定低分成</button><button class="story-choice-btn" @click="$store.game.applyRecruitment('creator-high')">签低保高分成</button></article>
         </section>
         <section class="contract-list" x-show="$store.game.companyState.panelTab === 'pay'">
-          <article class="contract-card"><h3>月底收入预览</h3><p x-text="`固定工资：${$store.game.monthlyPayPreview().base}元｜提成：${$store.game.monthlyPayPreview().commission}元｜总计：${$store.game.monthlyPayPreview().total}元`"></p><p x-text="`提成百分比：${Math.round($store.game.monthlyPayPreview().rate * 100)}%`"></p></article>
+          <article class="contract-card"><h3>薪酬绩效预览</h3><p x-text="`底薪：${$store.game.monthlyPayPreview().base}元｜本月完整上班天数：${$store.game.monthlyPayPreview().workDays}天｜日薪：${$store.game.monthlyPayPreview().daily}元`"></p><p x-text="`每月收入：${$store.game.monthlyPayPreview().total}元｜年底绩效：${$store.game.monthlyPayPreview().annualPerformance}元｜绩效提成：${Math.round($store.game.monthlyPayPreview().rate * 100)}%`"></p></article>
           <template x-for="item in $store.game.companyState.contracts" :key="item.id"><article class="contract-card"><h3 x-text="item.type"></h3><p x-text="item.terms"></p><small x-text="item.signedAt"></small></article></template>
           <template x-for="item in $store.game.companyState.submissions" :key="item.id"><article class="contract-card"><h3 x-text="item.type"></h3><p x-text="`${item.target}｜${item.rewardRule}`"></p><small x-text="item.status"></small></article></template>
         </section>
