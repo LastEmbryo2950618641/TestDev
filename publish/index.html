@@ -698,8 +698,8 @@
         <section class="skills-list dev-section" data-section-title="Skill列表区">
           <p class="skills-note" x-show="!$store.game.skillsList().length">没有匹配的skill。</p>
           <template x-for="skill in $store.game.skillsList()" :key="skill.id">
-            <button class="skill-row" type="button" @click="$store.game.openSkillDetail(skill.id)">
-              <span class="skill-row-title"><strong x-text="skill.name"></strong><em>查看详情</em></span>
+            <button class="skill-row prompt-row" type="button" @click="$store.game.openSkillDetail(skill.id)">
+              <span class="skill-row-title prompt-title"><strong x-text="skill.name"></strong></span><small x-text="`${skill.category}｜${skill.description || '查看详情'}`"></small>
             </button>
           </template>
         </section>

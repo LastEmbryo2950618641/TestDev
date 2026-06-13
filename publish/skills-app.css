@@ -83,14 +83,16 @@
   width: 100%;
   min-width: 0;
   display: grid;
-  gap: 0;
+  align-content: center;
+  gap: 6px;
   padding: 12px;
   border: 1px solid rgba(255, 255, 255, .1);
   border-radius: 14px;
   color: #eef4ff;
   text-align: left;
   background: rgba(255, 255, 255, .06);
-  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .skill-row-title {
@@ -103,18 +105,21 @@
 
 .skill-row-title strong {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  line-height: 1.35;
 }
 
 .skill-row-title em {
   flex: none;
+  max-width: 100%;
   color: #74f6ff;
   font-size: 11px;
   font-style: normal;
   font-weight: 900;
   opacity: .82;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .skill-row:hover,
@@ -125,8 +130,6 @@
 
 .prompt-row {
   cursor: pointer;
-  align-content: center;
-  gap: 6px;
   min-height: 74px;
 }
 
@@ -142,14 +145,9 @@
   background: transparent;
 }
 
-.prompt-title strong {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  white-space: normal;
-  line-height: 1.35;
-}
-
-.prompt-row small {
+.prompt-title strong,
+.prompt-row small,
+.skill-row small {
   min-width: 0;
   overflow-wrap: anywhere;
   white-space: normal;
