@@ -77,7 +77,7 @@ document.addEventListener('alpine:init', () => {
     rpgPrepareCharacterId: '',
     profileViewMode: 'profile', profileMenuOpen: false, memoryInput: '', memoryArchiveQuery: '', memoryArchiveResults: [],
     realWorldProfileViewMode: 'profile', realWorldProfileMenuOpen: false, realWorldMemoryInput: '', realWorldMemoryArchiveQuery: '', realWorldMemoryArchiveResults: [],
-    profileOpen: false, metricsOpen: false, feedbackOpen: false,
+    profileOpen: false, metricsOpen: false, identityMetricsOpen: false, feedbackOpen: false,
     promptDialogOpen: false, promptDialogEntry: null, promptDialogTab: 'system',
     sectionHintsEnabled: cfg.sectionHintsEnabled,
 

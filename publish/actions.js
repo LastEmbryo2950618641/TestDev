@@ -14,21 +14,27 @@ window.GameModules.actions = {
     this.ragContext = window.GameModules.rag.formatContext(results);
   },
 
-  metricGroups() {
-    window.GameModules.metrics.ensure(this);
-    return [
-      { title: '当前情绪', type: 'emotion', values: this.emotions },
-      { title: '对玩家感觉', type: 'player', values: this.playerFeelings },
-    ];
+  metricGroups(state = null) {
+    if (!state || state.id === this.character?.id) {
+      window.GameModules.metrics.ensure(this);
+      return [{ title: '情绪', type: 'emotion', values: this.emotions, ready: this.metricsReady }, { title: '其余', type: 'player', values: this.playerFeelings, ready: this.metricsReady }];
+    }
+    const metrics = this.ensureStateMetrics(state);
+    return [{ title: '情绪', type: 'emotion', values: metrics.emotions, ready: true }, { title: '其余', type: 'player', values: metrics.playerFeelings, ready: true }];
   },
 
-  metricEntries(group) {
-    return Object.entries(group.values).map(([key, value]) => ({ key, value, text: this.metricValueText(value) }));
+  ensureStateMetrics(state) {
+    const fresh = window.GameModules.metrics.fresh();
+    state.metrics = state.metrics || {};
+    state.metrics.emotions = window.GameModules.metrics.fill(state.metrics.emotions, window.GameModules.metrics.emotionKeys, fresh.emotions);
+    state.metrics.playerFeelings = window.GameModules.metrics.fill(state.metrics.playerFeelings, window.GameModules.metrics.playerKeys, fresh.playerFeelings);
+    state.metrics.notes = state.metrics.notes || {};
+    return state.metrics;
   },
 
-  metricValueText(value) {
-    return this.metricsReady && Number.isFinite(Number(value)) ? value : '--';
-  },
+  metricEntries(group) { return Object.entries(group.values).map(([key, value]) => ({ key, value, text: this.metricValueText(value, group.ready) })); },
+
+  metricValueText(value, ready = this.metricsReady) { return ready && Number.isFinite(Number(value)) ? value : '--'; },
 
   metricCollapsedItems() {
     window.GameModules.metrics.ensure(this);

@@ -39,7 +39,6 @@ window.GameModules.rpgState = {
     return sig(left) === sig(right);
   },
 
-
   validateSchema(schema, worldTag) {
     if (!Array.isArray(schema.sections)) throw new Error('schema sections invalid');
     schema.worldTag = worldTag;
@@ -117,13 +116,20 @@ window.GameModules.rpgState = {
         changed = true;
       }
     }));
-    const worldChanged = this.normalizeWorldValues(state);
-    const jobChanged = window.GameModules.rpgProfessionState.normalizeProfessions(state);
-    const controlChanged = this.ensureControlExperience(state);
+    const worldChanged = this.normalizeWorldValues(state), jobChanged = window.GameModules.rpgProfessionState.normalizeProfessions(state), controlChanged = this.ensureControlExperience(state), metricsChanged = this.ensureCharacterMetrics(state);
     const mechanicsChanged = window.GameModules.progression.ensureStateMechanics(state);
-    return worldChanged || jobChanged || controlChanged || mechanicsChanged || changed;
+    return worldChanged || jobChanged || controlChanged || metricsChanged || mechanicsChanged || changed;
   },
 
+  ensureCharacterMetrics(state) {
+    if (!state || state.id === 'player-self') return false;
+    const before = JSON.stringify(state.metrics || {}), fresh = window.GameModules.metrics.fresh();
+    state.metrics = state.metrics || {};
+    state.metrics.emotions = window.GameModules.metrics.fill(state.metrics.emotions, window.GameModules.metrics.emotionKeys, fresh.emotions);
+    state.metrics.playerFeelings = window.GameModules.metrics.fill(state.metrics.playerFeelings, window.GameModules.metrics.playerKeys, fresh.playerFeelings);
+    state.metrics.notes = state.metrics.notes || {};
+    return before !== JSON.stringify(state.metrics);
+  },
 
   ensureControlExperience(state) {
     let changed = false;
@@ -160,18 +166,9 @@ window.GameModules.rpgState = {
     values.combat_simulation = window.GameModules.progression.defaultCombat(values);
     Object.assign(values, character.worldValues || {});
     const age = parseInt(String(store?.characterAge || ''), 10);
-    if (Number.isFinite(age)) {
-      values.age = age;
-      values.age_label = `${age}岁`;
-    }
+    if (Number.isFinite(age)) { values.age = age; values.age_label = `${age}岁`; }
     values.status_tags = [character.role, character.importance === 'minor' ? '路人' : '可被操控', schema.worldTag];
-    values.control_experience = {
-      onlineCount: 0,
-      feeling: '未知',
-      adaptation: 0,
-      summary: '尚未经历上线操控。',
-      lastUpdated: '',
-    };
+    values.control_experience = { onlineCount: 0, feeling: '未知', adaptation: 0, summary: '尚未经历上线操控。', lastUpdated: '' };
     const state = {
       id: character.id,
       name: character.name,
@@ -184,6 +181,7 @@ window.GameModules.rpgState = {
       firstAppearedGameTime: values.updatedGameTime,
     };
     this.ensureControlExperience(state);
+    this.ensureCharacterMetrics(state);
     return state;
   },
 
