@@ -26,7 +26,7 @@ window.GameModules.rpgFieldUi = {
       row('role', '身份', p.role || p.job, '角色当前身份。'), row('faction', '所属势力', p.faction, '角色当前阵营或社会位置。'),
       row('job', '职业', p.job, '角色真实职业、训练身份或社会功能。'), row('rank', '等级/地位', p.rank, '角色职业等级或地位。'),
       row('gender', '性别', p.gender, '角色性别资料。'), row('birthday', '生日', p.birthday, '角色生日资料。'),
-      row('detail', '人物说明', p.detail || p.personality, '角色卡补充说明。'),
+      row('relationships', '人际关系', p.relationships, '关系必须使用“关系：姓名”的格式。'), row('detail', '人物说明', p.detail || p.personality, '角色卡补充说明。'),
     ];
   },
 
@@ -35,6 +35,9 @@ window.GameModules.rpgFieldUi = {
     const all = entries.flatMap((section) => section.fields || []);
     const byKey = (key) => all.find((field) => field.key === key);
     const take = (keys) => keys.map(byKey).filter(Boolean);
+    const identity = this.profileIdentityFields(state, identityFields);
+    const relations = identity.filter((field) => field.label === '人际关系' || /relationships|人际关系/.test(field.key));
+    const identityRest = identity.filter((field) => !relations.includes(field));
     const used = new Set(['world_tag', 'age', 'factions', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'equipment', 'status_tags']);
     const personal = all.filter((field) => !used.has(field.key));
     const groups = [
@@ -42,7 +45,8 @@ window.GameModules.rpgFieldUi = {
       { title: '身内能力', fields: take(['strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma']) },
       { title: '装备', fields: take(['equipment']) },
       { title: '状态标签', fields: take(['status_tags']) },
-      { title: '身份信息', fields: [...this.profileIdentityFields(state, identityFields), ...take(['world_tag', 'age', 'factions'])] },
+      { title: '人际关系', fields: relations },
+      { title: '身份信息', fields: [...identityRest, ...take(['world_tag', 'age', 'factions'])] },
     ];
     return groups.filter((group) => group.fields.length);
   },

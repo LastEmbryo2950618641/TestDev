@@ -41,6 +41,7 @@ window.GameModules.characterProfile = {
       work,
       role: String(data.role || (data.isMinor ? '路人' : '出场人物')).slice(0, 18),
       gender: String(data.gender || '').slice(0, 8),
+      relationships: this.formatRelationships(data.relationships || ''),
       nameRule: String(data.nameRule || '').slice(0, 80),
       detail: String(data.detail || data.desc || '刚被剧情卷入的人物。').slice(0, 120),
       personality: String(data.personality || '谨慎观察局势。').slice(0, 80),
@@ -71,7 +72,7 @@ window.GameModules.characterProfile = {
   },
 
   prompt(base, lore, attrs, context) {
-    return `为 AI RPG 视觉小说生成出场人物固化设定。人物基础：${JSON.stringify(base)}。当前剧情：${context || '暂无'}。世界观：${lore.background}；势力：${lore.factions.map((x) => x.name).join('、')}；特殊职业：${lore.specialJobs.map((x) => x.name).join('、')}；职业等级：${lore.jobRanks.join('、')}。只返回 JSON：{"name":"姓名","gender":"性别","role":"身份","detail":"个人背景","personality":"性格","faction":"所属势力或无","job":"职业，无法可靠判断则空字符串","jobConfirmed":false,"rank":"等级","skills":[{"name":"技能","desc":"说明"}],"worldValues":{"字段key":"该人物固化取值"}}。姓名与性别必须由AI结合世界观、地区文化、家庭制度、玩家资料和社会关系推理生成；若人物基础含 nameRule 必须严格执行，但不要硬套同姓规则，母亲、配偶、继亲、养亲等可能不同姓；不能把“妹妹/父亲/联系人”等关系称谓直接当姓名。职业一旦提出就会固化，除非有明确手段不会移除；所以除非百分之百确认该角色拥有该职业，否则不要返回 job 和 jobConfirmed。不能把主角/配角/悲剧核心等叙事标签写成职业。除 name、gender、role、detail、personality 这类人物固化资料外，其它字段若没有或不需要更改就不要返回；worldValues 只返回有明确依据的字段：${attrs.fields.map((x) => `${x.key}(${x.label}:${x.type})`).join('、')}。不要 Markdown。`;
+    return `为 AI RPG 视觉小说生成出场人物固化设定。人物基础：${JSON.stringify(base)}。当前剧情：${context || '暂无'}。世界观：${lore.background}；势力：${lore.factions.map((x) => x.name).join('、')}；特殊职业：${lore.specialJobs.map((x) => x.name).join('、')}；职业等级：${lore.jobRanks.join('、')}。只返回 JSON：{"name":"姓名","gender":"性别","relationships":"妹妹：姓名；父亲：姓名","role":"身份","detail":"个人背景","personality":"性格","faction":"所属势力或无","job":"职业，无法可靠判断则空字符串","jobConfirmed":false,"rank":"等级","skills":[{"name":"技能","desc":"说明"}],"worldValues":{"字段key":"该人物固化取值"}}。姓名、性别与relationships必须由AI结合世界观、地区文化、家庭制度、玩家资料和社会关系推理生成；relationships只写已经可从上下文推理或调整出的关系，格式必须是“关系：姓名”，多项用中文分号；不要照抄长描述。若人物基础含 nameRule 必须严格执行，但不要硬套同姓规则，母亲、配偶、继亲、养亲等可能不同姓；不能把“妹妹/父亲/联系人”等关系称谓直接当姓名。职业一旦提出就会固化，除非有明确手段不会移除；所以除非百分之百确认该角色拥有该职业，否则不要返回 job 和 jobConfirmed。不能把主角/配角/悲剧核心等叙事标签写成职业。除 name、gender、role、detail、personality 这类人物固化资料外，其它字段若没有或不需要更改就不要返回；worldValues 只返回有明确依据的字段：${attrs.fields.map((x) => `${x.key}(${x.label}:${x.type})`).join('、')}。不要 Markdown。`;
   },
 
   parse(text) {
@@ -87,6 +88,7 @@ window.GameModules.characterProfile = {
       ...base,
       name: this.validName(profile.name, base),
       gender: String(base.gender || profile.gender || '').slice(0, 8),
+      relationships: this.formatRelationships(profile.relationships || base.relationships || ''),
       role: String(profile.role || base.role).slice(0, 18),
       detail: String(profile.detail || base.detail).slice(0, 160),
       personality: String(profile.personality || base.personality).slice(0, 100),
@@ -120,6 +122,16 @@ window.GameModules.characterProfile = {
     if (!values || typeof values !== 'object') return {};
     const keys = new Set((attrs.fields || []).map((field) => field.key));
     return Object.fromEntries(Object.entries(values).filter(([key]) => keys.has(key)));
+  },
+
+  formatRelationships(value) {
+    const parts = String(value || '').split(/[；;\n]+/).map((part) => part.trim()).filter(Boolean);
+    return parts.map((part) => {
+      const pair = part.split(/[：:]/);
+      const rel = String(pair[0] || '').replace(/[，。,.].*$/, '').trim();
+      const name = String(pair.slice(1).join('：') || '').replace(/[，。；;、,.].*$/, '').trim();
+      return rel && name ? `${rel}：${name}` : '';
+    }).filter(Boolean).join('；');
   },
 
   validName(name, base) {
