@@ -4,6 +4,7 @@ window.GameModules.companyActions = {
   initCompanySystem() {
     const base = window.GameModules.companySystem.defaultState(this.playerProfile || {});
     this.companyState = { ...base, ...(this.companyState || {}) };
+    this.companyState.employment = { ...base.employment, ...(this.companyState.employment || {}) };
     this.companyState.companies = this.companyState.companies?.length ? this.companyState.companies : base.companies;
     this.syncCompanyLexicon();
   },
@@ -63,6 +64,7 @@ window.GameModules.companyActions = {
   },
 
   workStatusText() {
+    if (this.companyState?.employment?.active === false) return `已从${this.companyState.employment.resignedCompany || '公司'}离职`;
     const stats = this.companyState?.workStats || {};
     const pay = this.monthlyPayPreview();
     return `本月绩效${stats.performance ?? 100}/100｜迟到${stats.lateCount || 0}次｜旷班${stats.absentCount || 0}次｜本月收入${pay.total}元`;
@@ -98,7 +100,7 @@ window.GameModules.companyActions = {
     this.initCompanySystem();
     const c = this.currentCompany();
     const work = c.workMode || {};
-    if (work.type !== '员工' || this.companyState.workPromptOpen) return;
+    if (this.companyState.employment?.active === false || work.type !== '员工' || this.companyState.workPromptOpen) return;
     const now = this.phoneDate?.() || new Date();
     const key = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
     if (this.companyState.workStats?.lastDecisionAt === key) return;
@@ -128,6 +130,15 @@ window.GameModules.companyActions = {
     if (type === 'timed') this.companyState.submissions.push({ id, type: '定时工', company: c.name, target: '规定时间内完成单项任务', rewardRule: '不合格0，合格100%，超预期额外奖励', status: '待执行' });
     if (type === 'creator-low') this.companyState.contracts.push({ id, type: '创作者稳定合约', company: c.name, terms: '每月固定稿酬 + 5%作品收益分成', signedAt: this.phoneDateText?.() || '' });
     if (type === 'creator-high') this.companyState.contracts.push({ id, type: '创作者高分成合约', company: c.name, terms: '少量月钱 + 30%作品收益分成', signedAt: this.phoneDateText?.() || '' });
+    if (type === 'employee') this.companyState.employment = { active: true, resignedAt: '', resignedCompany: '' };
+    this.save?.();
+  },
+
+  resignCompany() {
+    const c = this.currentCompany();
+    this.companyState.employment = { active: false, resignedAt: this.phoneDateText?.() || '', resignedCompany: c.name };
+    this.companyState.workPromptOpen = false;
+    this.companyState.pendingWork = null;
     this.save?.();
   },
 

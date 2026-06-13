@@ -13,6 +13,7 @@ window.GameModules.companySystem = {
       companies: [this.defaultCompany(companyName, profile)],
       contracts: [],
       submissions: [],
+      employment: { active: true, resignedAt: '', resignedCompany: '' },
     };
   },
 

@@ -83,6 +83,7 @@
   <script src="company-actions.js"></script>
   <script src="boss-recruitment.js"></script>
   <script src="boss-actions.js"></script>
+  <script src="boss-ai-actions.js"></script>
   <script src="entry-actions.js"></script>
   <script src="control-actions.js"></script>
   <script src="core-actions.js"></script>
@@ -507,6 +508,7 @@
         <button type="button" :class="{ active: $store.game.companyState.panelTab === 'recruit' }" @click="$store.game.companyState.panelTab = 'recruit'">招聘制度</button>
         <button type="button" :class="{ active: $store.game.companyState.panelTab === 'org' }" @click="$store.game.companyState.panelTab = 'org'">组织架构</button>
         <button type="button" :class="{ active: $store.game.companyState.panelTab === 'pay' }" @click="$store.game.companyState.panelTab = 'pay'">薪酬绩效</button>
+        <button type="button" :class="{ active: $store.game.companyState.panelTab === 'tools' }" @click="$store.game.companyState.panelTab = 'tools'">功能面板</button>
       </nav>
       <main class="company-body scroll-area">
         <section class="company-grid" x-show="$store.game.companyState.panelTab === 'profile'">
@@ -529,6 +531,9 @@
           <template x-for="item in $store.game.companyState.contracts" :key="item.id"><article class="contract-card"><h3 x-text="item.type"></h3><p x-text="item.terms"></p><small x-text="item.signedAt"></small></article></template>
           <template x-for="item in $store.game.companyState.submissions" :key="item.id"><article class="contract-card"><h3 x-text="item.type"></h3><p x-text="`${item.target}｜${item.rewardRule}`"></p><small x-text="item.status"></small></article></template>
         </section>
+        <section class="company-tools" x-show="$store.game.companyState.panelTab === 'tools'">
+          <article class="tool-card dev-section" data-section-title="辞职功能区"><h3>辞职</h3><p x-text="$store.game.companyState.employment?.active === false ? `已于${$store.game.companyState.employment.resignedAt || '未知时间'}从${$store.game.companyState.employment.resignedCompany || '公司'}离职。` : '离职后将停止上班提醒，并保留公司资料用于查看。'"></p><button class="danger-btn" type="button" @click="$store.game.resignCompany()" :disabled="$store.game.companyState.employment?.active === false">确认辞职</button></article>
+        </section>
       </main>
     </div>
   </section>
@@ -540,7 +545,7 @@
         <button class="small-btn" type="button" @click="$store.game.closeBossApp()">回到桌面</button>
       </header>
       <section class="boss-filter-panel dev-section" data-section-title="招聘筛选区">
-        <div class="boss-filter-head"><button type="button" @click="$store.game.bossState.filtersCollapsed = !$store.game.bossState.filtersCollapsed" x-text="$store.game.bossState.filtersCollapsed ? '展开筛选' : '收起筛选'"></button><span x-text="`共${$store.game.filteredBossJobs().length}个职位`"></span><label><span>展示数量</span><select x-model.number="$store.game.bossState.pageSize" @change="$store.game.setBossPage(1)"><option value="10">10</option><option value="20">20</option><option value="50">50</option></select></label></div>
+        <div class="boss-filter-head"><button type="button" @click="$store.game.bossState.filtersCollapsed = !$store.game.bossState.filtersCollapsed" x-text="$store.game.bossState.filtersCollapsed ? '展开筛选' : '收起筛选'"></button><button type="button" @click="$store.game.generateBossJobsByAI()" :disabled="$store.game.bossState.generating" x-text="$store.game.bossState.generating ? 'AI生成中…约30秒' : '按筛选AI生成岗位'"></button><span x-text="`共${$store.game.filteredBossJobs().length}个职位`"></span><label><span>展示数量</span><select x-model.number="$store.game.bossState.pageSize" @change="$store.game.setBossPage(1)"><option value="10">10</option><option value="20">20</option><option value="50">50</option></select></label></div><p class="boss-error" x-show="$store.game.bossState.generationError" x-text="$store.game.bossState.generationError"></p>
         <div class="boss-filters" x-show="!$store.game.bossState.filtersCollapsed">
           <label><span>公司领域</span><select x-model="$store.game.bossState.filters.industry" @change="$store.game.setBossPage(1)"><option value="">全部</option><template x-for="v in $store.game.bossOptions('industry')" :key="v"><option :value="v" x-text="v"></option></template></select></label>
           <label><span>人数规模</span><select x-model="$store.game.bossState.filters.scale" @change="$store.game.setBossPage(1)"><option value="">全部</option><template x-for="v in $store.game.bossOptions('scale')" :key="v"><option :value="v" x-text="v"></option></template></select></label>

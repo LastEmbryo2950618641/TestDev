@@ -53,7 +53,8 @@
 .recruit-grid,
 .contract-list,
 .org-chart,
-.org-job-list {
+.org-job-list,
+.company-tools {
   display: grid;
   gap: 8px;
 }
@@ -66,11 +67,31 @@
 .contract-card,
 .org-dept-card,
 .org-job-card,
+.tool-card,
 .work-dialog {
   padding: 12px;
   border: 1px solid rgba(255, 255, 255, .12);
   border-radius: 16px;
   background: rgba(255, 255, 255, .06);
+}
+
+.tool-card p {
+  color: #aeb9d6;
+  line-height: 1.5;
+}
+
+.danger-btn {
+  min-height: 38px;
+  border: 1px solid rgba(255, 107, 129, .45);
+  border-radius: 999px;
+  padding: 0 14px;
+  color: #fff;
+  background: rgba(255, 77, 109, .18);
+  font-weight: 900;
+}
+
+.danger-btn:disabled {
+  opacity: .45;
 }
 
 .org-dept-card h3 {

@@ -96,8 +96,16 @@
   background: rgba(83, 255, 178, .2);
 }
 
+.boss-filter-head button:disabled,
 .boss-pagination button:disabled {
   opacity: .45;
+}
+
+.boss-error {
+  margin: 0;
+  color: #ffb4c0;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .boss-pagination {

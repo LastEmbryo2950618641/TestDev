@@ -192,6 +192,7 @@ document.addEventListener('alpine:init', () => {
     ...window.GameModules.realWorldActions,
     ...window.GameModules.companyActions,
     ...window.GameModules.bossActions,
+    ...window.GameModules.bossAiActions,
   });
 
   queueMicrotask(() => Alpine.store('game').init());

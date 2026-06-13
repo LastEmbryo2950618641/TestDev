@@ -5,6 +5,9 @@ window.GameModules.bossRecruitment = {
     return {
       open: false,
       filtersCollapsed: false,
+      generating: false,
+      generationError: '',
+      requestId: 0,
       page: 1,
       pageSize: 10,
       selectedJobId: 'employee-fe',
