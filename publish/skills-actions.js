@@ -35,7 +35,9 @@ window.GameModules.skillsActions = {
   },
 
   closeSkillDetail() {
-    if (this.skillsState) this.skillsState.detailOpen = false;
+    if (!this.skillsState) return;
+    this.skillsState.detailOpen = false;
+    this.skillsState.selectedSkillId = '';
   },
 
   skillsList() {
@@ -54,7 +56,8 @@ window.GameModules.skillsActions = {
 
   selectedSkill() {
     this.initSkillsApp();
+    if (!this.skillsState.selectedSkillId) return null;
     const list = this.skillsList();
-    return list.find((skill) => skill.id === this.skillsState.selectedSkillId) || list[0] || null;
+    return list.find((skill) => skill.id === this.skillsState.selectedSkillId) || null;
   },
 };

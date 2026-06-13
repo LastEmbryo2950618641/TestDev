@@ -706,8 +706,8 @@
       </main>
     </div>
     <section class="skills-modal-backdrop" x-show="$store.game.skillsState?.detailOpen" @click.self="$store.game.closeSkillDetail()" x-cloak>
-      <article class="skills-detail dev-section" data-section-title="Skill详情弹窗" x-show="$store.game.selectedSkill()">
-        <header class="identity-header"><div><p class="eyebrow" x-text="$store.game.selectedSkill()?.category"></p><h3 x-text="$store.game.selectedSkill()?.name"></h3><small x-text="$store.game.selectedSkill()?.description"></small></div><button class="small-btn" type="button" @click="$store.game.closeSkillDetail()">关闭</button></header>
+      <article class="skills-detail dev-section" data-section-title="Skill详情弹窗" x-show="$store.game.selectedSkill()" @click.stop>
+        <header class="identity-header"><div><p class="eyebrow" x-text="$store.game.selectedSkill()?.category"></p><h3 x-text="$store.game.selectedSkill()?.name"></h3><small x-text="$store.game.selectedSkill()?.description"></small></div><button class="small-btn" type="button" @click.stop="$store.game.closeSkillDetail()">关闭</button></header>
         <ul>
           <li><strong>分类：</strong><span x-text="$store.game.selectedSkill()?.category"></span></li>
           <li><strong>方法：</strong><em x-text="$store.game.selectedSkill()?.method"></em></li>
