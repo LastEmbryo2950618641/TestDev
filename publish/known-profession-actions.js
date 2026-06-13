@@ -2,7 +2,7 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.knownProfessionActions = {
   initKnownProfessionApp() {
-    this.knownProfessionState = { open: false, query: '', message: '', selectedName: '', ...(this.knownProfessionState || {}) };
+    this.knownProfessionState = { open: false, query: '', message: '', selectedName: '', detailOpen: false, ...(this.knownProfessionState || {}) };
   },
 
   openKnownProfessionApp() {
@@ -20,7 +20,10 @@ window.GameModules.knownProfessionActions = {
   },
 
   closeKnownProfessionApp() {
-    if (this.knownProfessionState) this.knownProfessionState.open = false;
+    if (this.knownProfessionState) {
+      this.knownProfessionState.open = false;
+      this.knownProfessionState.detailOpen = false;
+    }
     this.closeAppToDesktop();
   },
 
@@ -31,9 +34,24 @@ window.GameModules.knownProfessionActions = {
     return data.filter((item) => !q || [item.name, item.worldTag, item.summary, item.sourceReason].join(' ').toLowerCase().includes(q));
   },
 
+  openKnownProfessionDetail(job) {
+    this.initKnownProfessionApp();
+    if (!job?.name) return;
+    this.knownProfessionState.selectedName = job.name;
+    this.knownProfessionState.detailOpen = true;
+  },
+
+  closeKnownProfessionDetail() {
+    if (!this.knownProfessionState) return;
+    this.knownProfessionState.detailOpen = false;
+    this.knownProfessionState.selectedName = '';
+  },
+
   selectedKnownProfession() {
+    this.initKnownProfessionApp();
+    if (!this.knownProfessionState.selectedName) return null;
     const list = this.knownProfessions();
-    return list.find((item) => item.name === this.knownProfessionState.selectedName) || list[0] || null;
+    return list.find((item) => item.name === this.knownProfessionState.selectedName) || null;
   },
 
   async knowProfession(name, worldTag, context = {}) {

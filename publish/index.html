@@ -731,15 +731,19 @@
         <section class="skills-list dev-section" data-section-title="已知职业列表区">
           <p class="skills-note" x-show="!$store.game.knownProfessions().length">暂无已知职业。职业必须在剧情推演中出现、玩家知道其含义且符合当前世界观后，才会进入这里。</p>
           <template x-for="job in $store.game.knownProfessions()" :key="`${job.worldTag}-${job.name}`">
-            <button class="skill-row" type="button" :class="{ active: $store.game.knownProfessionState.selectedName === job.name }" @click="$store.game.knownProfessionState.selectedName = job.name"><span class="skill-row-title"><strong x-text="job.name"></strong><em x-text="job.worldTag"></em></span><small x-text="job.summary"></small></button>
+            <button class="skill-row prompt-row" type="button" @click="$store.game.openKnownProfessionDetail(job)"><span class="skill-row-title prompt-title"><strong x-text="job.name"></strong></span><small x-text="`${job.worldTag}｜${job.summary || '暂无说明'}`"></small></button>
           </template>
         </section>
-        <article class="skills-detail inline-detail dev-section" data-section-title="已知职业详情区" x-show="$store.game.selectedKnownProfession()">
-          <header class="identity-header"><div><p class="eyebrow">JOB LV.1</p><h3 x-text="$store.game.selectedKnownProfession()?.name"></h3><small x-text="$store.game.selectedKnownProfession()?.description"></small></div><button class="small-btn" type="button" @click="$store.game.addProfessionToPlayer($store.game.selectedKnownProfession())">考核并添加职业</button></header>
-          <pre class="prompt-markdown" x-text="$store.game.professionRequirementText($store.game.selectedKnownProfession())"></pre>
-        </article>
       </main>
     </div>
+  </section>
+
+  <section class="skills-modal-backdrop" x-show="$store.game.knownProfessionState?.detailOpen" @click.self="$store.game.closeKnownProfessionDetail()" x-cloak>
+    <article class="skills-detail dev-section" data-section-title="已知职业详情弹窗" x-show="$store.game.selectedKnownProfession()" @click.stop>
+      <header class="identity-header"><div><p class="eyebrow">JOB LV.1</p><h3 x-text="$store.game.selectedKnownProfession()?.name"></h3><small x-text="$store.game.selectedKnownProfession()?.description"></small></div><button class="small-btn" type="button" @click.stop="$store.game.closeKnownProfessionDetail()">关闭</button></header>
+      <pre class="prompt-markdown" x-text="$store.game.professionRequirementText($store.game.selectedKnownProfession())"></pre>
+      <button class="primary-btn" type="button" @click.stop="$store.game.addProfessionToPlayer($store.game.selectedKnownProfession())">考核并添加职业</button>
+    </article>
   </section>
 
   <section x-show="!$store.game.loading && $store.game.promptState?.open" class="skills-app-screen prompt-app-screen app-window section-hints" x-cloak>
