@@ -8,6 +8,7 @@ window.GameModules.appSwitchActions = {
     if (this.companyState) this.companyState.open = false;
     if (this.bossState) this.bossState.open = false;
     if (this.calendarState) this.calendarState.open = false;
+    if (this.skillsState) this.skillsState.open = false;
   },
 
   openDesktopApp() {
@@ -16,6 +17,7 @@ window.GameModules.appSwitchActions = {
     if (this.companyState) this.companyState.open = false;
     if (this.bossState) this.bossState.open = false;
     if (this.calendarState) this.calendarState.open = false;
+    if (this.skillsState) this.skillsState.open = false;
     this.desktopUnlocked = true;
   },
 };

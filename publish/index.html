@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="company-system.css">
   <link rel="stylesheet" href="boss-recruitment.css">
   <link rel="stylesheet" href="calendar-system.css">
+  <link rel="stylesheet" href="skills-app.css">
   <link rel="stylesheet" href="character-select.css">
   <link rel="stylesheet" href="profile-preview.css">
   <link rel="stylesheet" href="prompt-dialog.css">
@@ -87,6 +88,8 @@
   <script src="boss-ai-actions.js"></script>
   <script src="calendar-system.js"></script>
   <script src="calendar-actions.js"></script>
+  <script src="skills-app.js"></script>
+  <script src="skills-actions.js"></script>
   <script src="entry-actions.js"></script>
   <script src="control-actions.js"></script>
   <script src="core-actions.js"></script>
@@ -450,6 +453,10 @@
           <span class="app-glyph">历</span>
           <b>日历</b>
         </button>
+        <button class="desktop-app-icon skills-icon" type="button" @click="$store.game.openSkillsApp()" aria-label="打开Skills">
+          <span class="app-glyph">技</span>
+          <b>Skills</b>
+        </button>
       </div>
       <div class="phone-dock">
         <span></span><span></span><span></span><span></span>
@@ -457,7 +464,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.identityAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open" class="identity-app-screen app-window section-hints" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.identityAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.skillsState?.open" class="identity-app-screen app-window section-hints" x-cloak>
     <div class="identity-card dev-section" data-section-title="身份证主面板">
       <header class="identity-header dev-section" data-section-title="身份证标题区">
         <div><p class="eyebrow">ID CARD</p><h2>身份证</h2><small x-text="$store.game.identityTargetProfile().work || '现实世界'"></small></div>
@@ -628,7 +635,43 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.wechatAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open" class="wechat-app-screen app-window section-hints" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.skillsState?.open" class="skills-app-screen app-window section-hints" x-cloak>
+    <div class="skills-card dev-section" data-section-title="Skills主面板">
+      <header class="identity-header dev-section" data-section-title="Skills标题区">
+        <div><p class="eyebrow">AI SKILLS</p><h2>Skills</h2><small>现实推演可调用能力总览；《我要狠狠操控》APP内接口暂不纳入</small></div>
+        <button class="small-btn" type="button" @click="$store.game.closeSkillsApp()">回到桌面</button>
+      </header>
+      <section class="skills-toolbar dev-section" data-section-title="Skills筛选区">
+        <input x-model="$store.game.skillsState.query" placeholder="搜索skill名、方法、说明">
+        <select x-model="$store.game.skillsState.category">
+          <option value="">全部分类</option>
+          <template x-for="category in $store.game.skillCategories()" :key="category"><option :value="category" x-text="category"></option></template>
+        </select>
+      </section>
+      <main class="skills-body">
+        <section class="skills-list dev-section" data-section-title="Skill列表区">
+          <p class="skills-note" x-show="!$store.game.skillsList().length">没有匹配的skill。</p>
+          <template x-for="skill in $store.game.skillsList()" :key="skill.id">
+            <button class="skill-row" type="button" :class="{ active: $store.game.selectedSkill()?.id === skill.id }" @click="$store.game.skillsState.selectedSkillId = skill.id"><strong x-text="skill.name"></strong><small><em x-text="skill.category"></em><span x-text="`｜${skill.method}`"></span></small><small x-text="skill.description"></small></button>
+          </template>
+        </section>
+        <article class="skills-detail dev-section" data-section-title="Skill详情区" x-show="$store.game.selectedSkill()">
+          <h3 x-text="$store.game.selectedSkill()?.name"></h3>
+          <p x-text="$store.game.selectedSkill()?.description"></p>
+          <ul>
+            <li><strong>分类：</strong><span x-text="$store.game.selectedSkill()?.category"></span></li>
+            <li><strong>方法：</strong><em x-text="$store.game.selectedSkill()?.method"></em></li>
+            <li><strong>参数：</strong><span x-text="$store.game.selectedSkill()?.params"></span></li>
+            <li><strong>返回：</strong><span x-text="$store.game.selectedSkill()?.returns"></span></li>
+            <li><strong>详细：</strong><span x-text="$store.game.selectedSkill()?.detail"></span></li>
+          </ul>
+          <p class="skills-note">说明：这些skill面向手机现实系统和AI现实推演整理；不会改动或暴露《我要狠狠操控》APP内部控制接口。</p>
+        </article>
+      </main>
+    </div>
+  </section>
+
+  <section x-show="!$store.game.loading && $store.game.wechatAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.skillsState?.open" class="wechat-app-screen app-window section-hints" x-cloak>
     <div class="wechat-phone dev-section" data-section-title="微信模拟界面">
       <header class="wechat-top" x-show="$store.game.wechatView === 'home'">
         <button type="button" @click="$store.game.closeWechatApp()">返回桌面</button><strong></strong><button type="button">⋯</button>
@@ -716,7 +759,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.entrySetupOpen" class="start-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.skillsState?.open && !$store.game.entrySetupOpen" class="start-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <div class="start-card dev-section" data-section-title="首页选择面板">
       <button class="back-desktop-btn" type="button" @click="$store.game.closeAppToDesktop()">返回桌面</button>
       <p class="eyebrow">AI RPG 视觉小说</p>
@@ -788,7 +831,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && $store.game.entrySetupOpen" class="start-screen entry-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.skillsState?.open && $store.game.entrySetupOpen" class="start-screen entry-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <div class="start-card entry-card dev-section" data-section-title="进入时机配置区">
       <button class="back-desktop-btn" type="button" @click="$store.game.closeAppToDesktop()" :disabled="$store.game.busy">返回桌面</button>
       <button class="back-home-btn" type="button" @click="$store.game.backToHome()" :disabled="$store.game.busy">← 返回首页</button>
@@ -833,7 +876,7 @@
     </div>
   </section>
 
-  <main x-show="$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open" class="game-shell app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <main x-show="$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.skillsState?.open" class="game-shell app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <header class="top-bar dev-section" data-section-title="顶部状态栏">
       <div class="mode-status">
         <span class="mode-dot" :class="$store.game.online ? 'online' : 'offline'"></span>
