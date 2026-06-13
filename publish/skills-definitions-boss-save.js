@@ -26,6 +26,6 @@ window.GameModules.skillsDefinitions = (window.GameModules.skillsDefinitions || 
   { id: 'save.slot.load', category: '存档', name: '读取存档位', method: 'loadSlot(slot)', params: 'slot: 存档位id', returns: '恢复该slot状态并关闭存档面板。', description: '切换到指定存档。', detail: '会影响当前游戏状态，应由玩家确认后调用。' },
   { id: 'save.slot.overwrite', category: '存档', name: '覆盖存档位', method: 'overwriteSlot(slot)', params: 'slot: 存档位id', returns: '删除旧档并保存当前状态。', description: '把当前进度写入指定slot。', detail: '有覆盖副作用，需明确玩家意图。' },
   { id: 'save.slot.new', category: '存档', name: '新建空存档', method: 'newSlot(slot)', params: 'slot: 存档位id', returns: '删除旧档、打开新库并重置主流程状态。', description: '创建新的空存档位。', detail: '有清空指定slot副作用，需明确玩家意图。' },
-  { id: 'storage.snapshot', category: '存档', name: '生成状态快照', method: 'window.GameModules.storage.snapshot(store)', params: 'store: Alpine game store', returns: '可保存的主状态快照。', description: '把当前状态整理成存档对象。', detail: '包含核心字段但这里只作为存档内部能力，不把核心控制接口skill化。' },
+  { id: 'storage.snapshot', category: '存档', name: '生成状态快照', method: 'window.GameModules.storage.snapshot(store)', params: 'store: Alpine game store', returns: '可保存的主状态快照。', description: '把当前状态整理成存档对象。', detail: '包含手机现实系统、核心角色、RPG、词条与各APP状态，是全游戏存档内部能力。' },
   { id: 'storage.restore', category: '存档', name: '从快照恢复状态', method: 'window.GameModules.storage.restore(store, save)', params: 'store: game store；save: 存档对象', returns: '恢复是否成功。', description: '把存档快照恢复到当前store。', detail: '应只由存档加载流程调用。' },
 ]);

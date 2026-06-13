@@ -672,7 +672,7 @@
   <section x-show="!$store.game.loading && $store.game.skillsState?.open" class="skills-app-screen app-window section-hints" x-cloak>
     <div class="skills-card dev-section" data-section-title="Skills主面板">
       <header class="identity-header dev-section" data-section-title="Skills标题区">
-        <div><p class="eyebrow">AI SKILLS</p><h2>Skills</h2><small>现实推演可调用能力总览；《我要狠狠操控》APP内接口暂不纳入</small></div>
+        <div><p class="eyebrow">AI SKILLS</p><h2>Skills</h2><small>全游戏AI可调用能力注册表；所有系统入口都应能在这里检索</small></div>
         <button class="small-btn" type="button" @click="$store.game.closeSkillsApp()">回到桌面</button>
       </header>
       <section class="skills-toolbar dev-section" data-section-title="Skills筛选区">
@@ -703,7 +703,7 @@
           <li><strong>返回：</strong><span x-text="$store.game.selectedSkill()?.returns"></span></li>
           <li><strong>详细：</strong><span x-text="$store.game.selectedSkill()?.detail"></span></li>
         </ul>
-        <p class="skills-note">说明：这些skill面向手机现实系统和AI现实推演整理；不会改动或暴露《我要狠狠操控》APP内部控制接口。</p>
+        <p class="skills-note">说明：这些skill面向全游戏AI调用整理，包含手机现实系统、《我要狠狠操控》角色生成、词条修改、存档与各APP能力。</p>
       </article>
     </section>
   </section>
