@@ -613,10 +613,13 @@
     <div class="calendar-card dev-section" data-section-title="日历主面板">
       <header class="identity-header"><div><p class="eyebrow">CALENDAR</p><h2>日历</h2><small>面试、投稿通知、到岗上班约定</small></div><button class="small-btn" type="button" @click="$store.game.closeCalendarApp()">回到桌面</button></header>
       <main class="calendar-list scroll-area">
-        <p class="wechat-empty" x-show="!$store.game.sortedCalendarEvents().length">暂无约定事项</p>
-        <template x-for="event in $store.game.sortedCalendarEvents()" :key="event.id">
-          <article class="calendar-event"><strong x-text="event.title"></strong><span x-text="$store.game.formatCalendarTime(event.time)"></span><p x-text="event.note"></p></article>
-        </template>
+        <nav class="calendar-toolbar"><button type="button" @click="$store.game.changeCalendarMonth(-1)">上个月</button><strong x-text="$store.game.calendarMonthTitle()"></strong><button type="button" @click="$store.game.changeCalendarMonth(1)">下个月</button></nav>
+        <div class="calendar-weekdays"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+        <div class="calendar-grid">
+          <template x-for="cell in $store.game.calendarDays()" :key="cell.key">
+            <article class="calendar-day" :class="{ blank: cell.blank, marked: cell.events?.length }"><b x-text="cell.blank ? '' : cell.day"></b><template x-for="event in cell.events" :key="event.id"><p x-text="event.title"></p></template></article>
+          </template>
+        </div>
       </main>
     </div>
   </section>

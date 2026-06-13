@@ -2,6 +2,7 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.calendarSystem = {
   defaultCalendarState() {
-    return { open: false, events: [] };
+    const now = new Date();
+    return { open: false, events: [], year: now.getFullYear(), month: now.getMonth() };
   },
 };
