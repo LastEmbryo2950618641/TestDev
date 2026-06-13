@@ -6,11 +6,12 @@ window.GameModules = window.GameModules || {};
 window.GameModules.characterProfile = {
   async ensure(raw, store, context = '') {
     const base = this.normalize(this.withKnown(raw, store), store);
+    const signature = this.inputSignature(base, context, store);
     const existing = window.GameModules.sqliteSave.getCharacterState(base.id);
-    if (this.isRoleCard(existing?.profile) && existing.profile.initialMetrics) return existing.profile;
+    if (this.isRoleCard(existing?.profile) && existing.profile.initialMetrics && existing.profile.roleCardInputSignature === signature) return existing.profile;
     const lore = await window.GameModules.worldLore.ensure(base.work, context);
     const attrs = await window.GameModules.rpgState.ensureWorldAttributes(base.work);
-    return this.generate(base, lore, attrs, context, store);
+    return this.generate(base, lore, attrs, context, store, signature);
   },
 
   withKnown(raw, store) {
@@ -54,21 +55,21 @@ window.GameModules.characterProfile = {
     };
   },
 
-  async generate(base, lore, attrs, context, store) {
+  async generate(base, lore, attrs, context, store, signature = '') {
     try {
-      if (!window.dzmm?.completions) return this.fallback(base, lore, attrs);
+      if (!window.dzmm?.completions) return this.withSignature(this.fallback(base, lore, attrs), signature);
       const prompt = await this.prompt(base, lore, attrs, context, store);
-      return await window.GameModules.jsonUtils.generateJsonWithRetry({
+      return this.withSignature(await window.GameModules.jsonUtils.generateJsonWithRetry({
         model: 'nalang-medium-0826',
         maxTokens: 900,
         prompt,
         format: prompt,
         parse: (text) => this.parse(text),
         validate: (raw) => this.validate(raw, base, lore, attrs),
-      });
+      }), signature);
     } catch (err) {
       console.warn('人物设定生成失败，使用兜底:', err.message);
-      return this.fallback(base, lore, attrs);
+      return this.withSignature(this.fallback(base, lore, attrs), signature);
     }
   },
 
@@ -121,6 +122,31 @@ window.GameModules.characterProfile = {
       roleCardSource: 'ai',
       roleCardUpdatedAt: new Date().toISOString(),
     };
+  },
+
+  withSignature(profile, signature) {
+    return { ...profile, roleCardInputSignature: signature || profile.roleCardInputSignature || '' };
+  },
+
+  inputSignature(base, context, store) {
+    const p = store?.playerProfile || {};
+    const data = {
+      base: {
+        id: base.id, name: base.name, work: base.work, role: base.role, gender: base.gender,
+        relationships: base.relationships, nameRule: base.nameRule, detail: base.detail,
+        appearance: base.appearance, personality: base.personality,
+      },
+      player: {
+        name: p.name || store?.playerName, gender: p.gender, birthday: p.birthday, age: p.age,
+        city: p.refinedCity || p.city, role: p.refinedRole || p.dailyRole, workplace: p.workplace,
+        position: p.position, livingStatus: p.refinedLivingStatus || p.livingStatus,
+        parents: p.parentStatus || p.parents, parentDeathCause: p.parentDeathCause,
+        relationships: p.relationships, notes: p.notes, worldbuildingNote: p.worldbuildingNote,
+      },
+      context: String(context || '').slice(0, 1200),
+    };
+    const raw = JSON.stringify(data);
+    return `v2:${raw.length}-${window.GameModules.rpgState.seed(raw)}`;
   },
 
   fallback(base, lore, attrs) {

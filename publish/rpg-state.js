@@ -88,12 +88,17 @@ window.GameModules.rpgState = {
 
   ensureRoleCard(state, character) {
     if (!state || !character?.roleCard) return false;
-    if (state.profile?.roleCard && state.profile.roleCardUpdatedAt) {
-      if (!character.initialMetrics || state.profile.initialMetrics) return false;
-      state.profile.initialMetrics = character.initialMetrics;
-      return window.GameModules.rpgProfileMetrics?.apply(state, state.profile) || true;
+    const oldProfile = state.profile || {};
+    if (oldProfile.roleCard && oldProfile.roleCardUpdatedAt) {
+      if (oldProfile.roleCardInputSignature === character.roleCardInputSignature && (!character.initialMetrics || oldProfile.initialMetrics)) return false;
+      state.profile = { ...oldProfile, ...character, roleCard: true };
+      state.note = state.profile.detail || state.profile.personality || state.note || '';
+      const metricsChanged = oldProfile.roleCardInputSignature === character.roleCardInputSignature
+        ? window.GameModules.rpgProfileMetrics?.apply(state, state.profile)
+        : window.GameModules.rpgProfileMetrics?.rebase(state, state.profile, oldProfile);
+      return metricsChanged || true;
     }
-    state.profile = { ...(state.profile || {}), ...character, roleCard: true };
+    state.profile = { ...oldProfile, ...character, roleCard: true };
     state.note = state.profile.detail || state.profile.personality || state.note || '';
     return true;
   },
