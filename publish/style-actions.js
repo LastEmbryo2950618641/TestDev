@@ -27,9 +27,10 @@ window.GameModules.styleActions = {
     const matches = [...String(markdown || '').matchAll(/##\s+([^\n]+)\n+([\s\S]*?)(?=\n##\s+|$)/g)];
     const styles = matches.map((match) => {
       const name = match[1].trim();
+      if (!idMap[name]) return null;
       const prompt = match[2].trim().replace(/\n+/g, ' ');
-      return { id: idMap[name] || `template-${name}`, name, prompt };
-    }).filter((style) => style.prompt && style.name !== '小说文风预设');
+      return { id: idMap[name], name, prompt };
+    }).filter(Boolean);
     if (!styles.length) throw new Error('小说文风模板解析失败');
     return styles;
   },
