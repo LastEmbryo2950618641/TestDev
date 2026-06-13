@@ -5,20 +5,18 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.characterProfile = {
   async ensure(raw, store, context = '') {
-    const base = this.normalize(this.withKnown(raw, store), store);
-    const signature = this.inputSignature(base, context, store);
+    const source = await window.GameModules.characterProfileSource.resolve(raw, store);
+    const base = this.normalize(source.raw, store, source.preset);
+    const signature = this.inputSignature(base, context, store, source.preset);
     const existing = window.GameModules.cache.enabled('generatedProfiles') ? window.GameModules.sqliteSave.getCharacterState(base.id) : null;
     if (existing && this.isRoleCard(existing.profile) && existing.profile.initialMetrics && existing.profile.roleCardInputSignature === signature) return existing.profile;
     const lore = await window.GameModules.worldLore.ensure(base.work, context);
     const attrs = await window.GameModules.rpgState.ensureWorldAttributes(base.work);
-    return this.generate(base, lore, attrs, context, store, signature);
+    return this.generate(base, lore, attrs, context, store, signature, source.preset);
   },
 
   withKnown(raw, store) {
-    const known = this.findKnown(raw, store);
-    if (!known) return raw;
-    if (typeof raw !== 'object' || !raw) return known;
-    return { ...known, ...raw, aliases: [...(known.aliases || []), ...(raw.aliases || [])] };
+    return raw;
   },
 
   isRoleCard(profile) {
@@ -31,7 +29,7 @@ window.GameModules.characterProfile = {
     return store.findKnownCharacter?.(name) || null;
   },
 
-  normalize(raw, store) {
+  normalize(raw, store, preset = null) {
     const data = typeof raw === 'object' && raw ? raw : { name: String(raw || '无名路人') };
     const name = String(data.name || '无名路人').slice(0, 16);
     const work = String(data.work || store.character.work || '原创世界').slice(0, 24);
@@ -44,22 +42,23 @@ window.GameModules.characterProfile = {
       gender: String(data.gender || '').slice(0, 8),
       relationships: this.formatRelationships(data.relationships || ''),
       nameRule: String(data.nameRule || '').slice(0, 80),
-      detail: String(data.detail || data.desc || '刚被剧情卷入的人物。').slice(0, 120),
+      detail: String(data.detail || data.desc || preset?.summary || '刚被剧情卷入的人物。').slice(0, 120),
       appearance: String(data.appearance || '外貌尚未固化。').slice(0, 120),
       personality: String(data.personality || '谨慎观察局势。').slice(0, 80),
-      age: data.age || (String(`${data.role || ''} ${data.relationships || ''} ${data.detail || data.desc || ''}`).match(/(\d{1,3})\s*岁/)?.[1] || ''),
+      age: data.age || (String(`${data.role || ''} ${data.relationships || ''} ${data.detail || data.desc || preset?.summary || ''}`).match(/(\d{1,3})\s*岁/)?.[1] || ''),
       aliases: Array.isArray(data.aliases) ? data.aliases.slice(0, 4).map(String) : [],
       skills: Array.isArray(data.skills) ? data.skills.slice(0, 4) : [],
       importance: data.importance || (data.isMinor ? 'minor' : 'support'),
       isMinor: Boolean(data.isMinor),
       roleCard: true,
+      presetProfilePath: preset?.path || '',
     };
   },
 
-  async generate(base, lore, attrs, context, store, signature = '') {
+  async generate(base, lore, attrs, context, store, signature = '', preset = null) {
     try {
       if (!window.dzmm?.completions) return this.withSignature(this.fallback(base, lore, attrs), signature);
-      const prompt = await this.prompt(base, lore, attrs, context, store);
+      const prompt = await this.prompt(base, lore, attrs, context, store, preset);
       return this.withSignature(await window.GameModules.jsonUtils.generateJsonWithRetry({
         model: 'nalang-medium-0826',
         maxTokens: 900,
@@ -74,10 +73,11 @@ window.GameModules.characterProfile = {
     }
   },
 
-  async prompt(base, lore, attrs, context, store) {
+  async prompt(base, lore, attrs, context, store, preset = null) {
     const sections = window.GameModules.promptSections;
     const player = sections.playerProfile(store);
     return window.GameModules.promptTemplates.render('character-profile-card', {
+      人物预设资料区: window.GameModules.characterProfileSource.presetText(preset),
       人物基础区: sections.characterBase(base),
       玩家基础资料区: player.playerBasic,
       玩家现实身份区: player.playerIdentity,
@@ -130,14 +130,15 @@ window.GameModules.characterProfile = {
     return { ...profile, roleCardInputSignature: signature || profile.roleCardInputSignature || '' };
   },
 
-  inputSignature(base, context, store) {
+  inputSignature(base, context, store, preset = null) {
     const p = store?.playerProfile || {};
     const data = {
       base: {
         id: base.id, name: base.name, work: base.work, role: base.role, gender: base.gender,
         relationships: base.relationships, nameRule: base.nameRule, detail: base.detail,
-        appearance: base.appearance, personality: base.personality,
+        appearance: base.appearance, personality: base.personality, presetProfilePath: base.presetProfilePath,
       },
+      preset: { path: preset?.path || '', summary: preset?.summary || '' },
       player: {
         name: p.name || store?.playerName, gender: p.gender, birthday: p.birthday, age: p.age,
         city: p.refinedCity || p.city, role: p.refinedRole || p.dailyRole, workplace: p.workplace,
