@@ -1,0 +1,113 @@
+.boss-icon .app-glyph {
+  background:
+    radial-gradient(circle at 28% 22%, rgba(255, 255, 255, .45), transparent 24%),
+    linear-gradient(135deg, #19c37d, #1e7cff 58%, #68f0ff);
+}
+
+.boss-app-screen {
+  display: grid;
+  place-items: center;
+  padding: max(14px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+}
+
+.boss-card {
+  width: min(980px, 100%);
+  max-height: min(780px, 96dvh);
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 10px;
+  overflow: hidden;
+  padding: 16px;
+  border: 1px solid rgba(83, 255, 178, .24);
+  border-radius: 22px;
+  background: rgba(6, 18, 28, .92);
+  box-shadow: 0 22px 80px rgba(0, 0, 0, .36);
+}
+
+.boss-filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, .09);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .045);
+}
+
+.boss-filters label {
+  display: grid;
+  gap: 5px;
+  color: #aeb9d6;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.boss-filters select,
+.boss-filters input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid rgba(166, 188, 255, .28);
+  border-radius: 10px;
+  padding: 0 9px;
+  color: #fff;
+  background: rgba(255, 255, 255, .08);
+}
+
+.boss-body {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(260px, .9fr) minmax(0, 1.1fr);
+  gap: 10px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.boss-list,
+.boss-detail {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .055);
+}
+
+.boss-job-row {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 14px;
+  color: #eef4ff;
+  text-align: left;
+  background: rgba(255, 255, 255, .06);
+}
+
+.boss-job-row.active,
+.boss-job-row:hover,
+.boss-job-row:focus-visible {
+  border-color: rgba(83, 255, 178, .78);
+  box-shadow: 0 0 0 2px rgba(83, 255, 178, .13);
+}
+
+.boss-job-row span,
+.boss-job-row small,
+.boss-detail p,
+.boss-detail li {
+  color: #aeb9d6;
+  line-height: 1.5;
+}
+
+.boss-detail ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+@media (max-width: 760px) {
+  .boss-card { padding: 12px; }
+  .boss-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .boss-body { grid-template-columns: 1fr; }
+}

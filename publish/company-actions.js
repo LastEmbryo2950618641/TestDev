@@ -129,6 +129,7 @@ window.GameModules.companyActions = {
     this.initCompanySystem();
     this.identityAppOpen = false;
     this.wechatAppOpen = false;
+    if (this.bossState) this.bossState.open = false;
     this.companyState.open = true;
     this.desktopUnlocked = true;
   },

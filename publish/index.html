@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="real-world.css">
   <link rel="stylesheet" href="phone-wechat.css">
   <link rel="stylesheet" href="company-system.css">
+  <link rel="stylesheet" href="boss-recruitment.css">
   <link rel="stylesheet" href="character-select.css">
   <link rel="stylesheet" href="profile-preview.css">
   <link rel="stylesheet" href="prompt-dialog.css">
@@ -80,6 +81,8 @@
   <script src="real-world-actions.js"></script>
   <script src="company-system.js"></script>
   <script src="company-actions.js"></script>
+  <script src="boss-recruitment.js"></script>
+  <script src="boss-actions.js"></script>
   <script src="entry-actions.js"></script>
   <script src="control-actions.js"></script>
   <script src="core-actions.js"></script>
@@ -435,6 +438,10 @@
           <span class="app-glyph">司</span>
           <b>公司</b>
         </button>
+        <button class="desktop-app-icon boss-icon" type="button" @click="$store.game.openBossApp()" aria-label="打开BOSS招聘">
+          <span class="app-glyph">聘</span>
+          <b>BOSS招聘</b>
+        </button>
       </div>
       <div class="phone-dock">
         <span></span><span></span><span></span><span></span>
@@ -442,7 +449,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.identityAppOpen && !$store.game.companyState?.open" class="identity-app-screen app-window section-hints" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.identityAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open" class="identity-app-screen app-window section-hints" x-cloak>
     <div class="identity-card dev-section" data-section-title="身份证主面板">
       <header class="identity-header dev-section" data-section-title="身份证标题区">
         <div><p class="eyebrow">ID CARD</p><h2>身份证</h2><small x-text="$store.game.identityTargetProfile().work || '现实世界'"></small></div>
@@ -520,7 +527,47 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.wechatAppOpen && !$store.game.companyState?.open" class="wechat-app-screen app-window section-hints" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.bossState?.open" class="boss-app-screen app-window section-hints" x-cloak>
+    <div class="boss-card dev-section" data-section-title="BOSS招聘主面板">
+      <header class="identity-header dev-section" data-section-title="BOSS招聘标题区">
+        <div><p class="eyebrow">BOSS</p><h2>BOSS招聘</h2><small>筛选现实招聘职位</small></div>
+        <button class="small-btn" type="button" @click="$store.game.closeBossApp()">回到桌面</button>
+      </header>
+      <section class="boss-filters dev-section" data-section-title="招聘筛选区">
+        <label><span>公司领域</span><select x-model="$store.game.bossState.filters.industry"><option value="">全部</option><template x-for="v in $store.game.bossOptions('industry')" :key="v"><option :value="v" x-text="v"></option></template></select></label>
+        <label><span>人数规模</span><select x-model="$store.game.bossState.filters.scale"><option value="">全部</option><template x-for="v in $store.game.bossOptions('scale')" :key="v"><option :value="v" x-text="v"></option></template></select></label>
+        <label><span>省</span><select x-model="$store.game.bossState.filters.province"><option value="">全部</option><template x-for="v in $store.game.bossOptions('province')" :key="v"><option :value="v" x-text="v"></option></template></select></label>
+        <label><span>市</span><select x-model="$store.game.bossState.filters.city"><option value="">全部</option><template x-for="v in $store.game.bossOptions('city')" :key="v"><option :value="v" x-text="v"></option></template></select></label>
+        <label><span>县/区</span><select x-model="$store.game.bossState.filters.county"><option value="">全部</option><template x-for="v in $store.game.bossOptions('county')" :key="v"><option :value="v" x-text="v"></option></template></select></label>
+        <label><span>镇/街道</span><select x-model="$store.game.bossState.filters.town"><option value="">全部</option><template x-for="v in $store.game.bossOptions('town')" :key="v"><option :value="v" x-text="v"></option></template></select></label>
+        <label><span>薪酬类型</span><select x-model="$store.game.bossState.filters.payType"><option value="">全部</option><option>员工</option><option>创作者</option><option>定时工</option></select></label>
+        <label x-show="$store.game.bossState.filters.payType === '员工'"><span>底薪下限</span><input type="number" x-model="$store.game.bossState.filters.baseMin" placeholder="例如6000"></label>
+        <label x-show="$store.game.bossState.filters.payType === '员工'"><span>底薪上限</span><input type="number" x-model="$store.game.bossState.filters.baseMax" placeholder="例如12000"></label>
+        <label x-show="$store.game.bossState.filters.payType === '员工'"><span>年底提成月数</span><select x-model="$store.game.bossState.filters.performanceMonths"><option value="">全部</option><option value="1">1个月</option><option value="2">2个月</option><option value="3">3个月</option></select></label>
+        <label x-show="$store.game.bossState.filters.payType === '创作者'"><span>薪酬制度</span><select x-model="$store.game.bossState.filters.creatorPay"><option value="">全部</option><option>提成制度</option><option>一次性买断</option></select></label>
+        <label x-show="$store.game.bossState.filters.payType === '创作者' && $store.game.bossState.filters.creatorPay === '提成制度'"><span>签约等级</span><select x-model="$store.game.bossState.filters.creatorLevel"><option value="">全部</option><template x-for="v in $store.game.bossOptions('creatorLevel')" :key="v"><option :value="v" x-text="v"></option></template></select></label>
+      </section>
+      <main class="boss-body scroll-area">
+        <section class="boss-list dev-section" data-section-title="职位列表区">
+          <p class="wechat-empty" x-show="!$store.game.filteredBossJobs().length">暂无符合条件的职位</p>
+          <template x-for="job in $store.game.filteredBossJobs()" :key="job.id">
+            <button class="boss-job-row" type="button" :class="{ active: $store.game.bossState.selectedJobId === job.id }" @click="$store.game.selectBossJob(job.id)"><strong x-text="job.title"></strong><span x-text="`${job.company}｜${job.industry}｜${job.scale}`"></span><small x-text="$store.game.bossJobPayText(job)"></small></button>
+          </template>
+        </section>
+        <article class="boss-detail dev-section" data-section-title="职位详情区" x-show="$store.game.selectedBossJob()">
+          <h3 x-text="$store.game.selectedBossJob()?.title"></h3>
+          <p x-text="$store.game.selectedBossJob()?.desc"></p>
+          <ul>
+            <li x-text="`公司：${$store.game.selectedBossJob()?.company}`"></li>
+            <li x-text="`地址：${$store.game.selectedBossJob()?.address}`"></li>
+            <li x-text="`薪酬：${$store.game.bossJobPayText($store.game.selectedBossJob())}`"></li>
+          </ul>
+        </article>
+      </main>
+    </div>
+  </section>
+
+  <section x-show="!$store.game.loading && $store.game.wechatAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open" class="wechat-app-screen app-window section-hints" x-cloak>
     <div class="wechat-phone dev-section" data-section-title="微信模拟界面">
       <header class="wechat-top" x-show="$store.game.wechatView === 'home'">
         <button type="button" @click="$store.game.closeWechatApp()">返回桌面</button><strong></strong><button type="button">⋯</button>
@@ -608,7 +655,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.entrySetupOpen" class="start-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.entrySetupOpen" class="start-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <div class="start-card dev-section" data-section-title="首页选择面板">
       <button class="back-desktop-btn" type="button" @click="$store.game.closeAppToDesktop()">返回桌面</button>
       <p class="eyebrow">AI RPG 视觉小说</p>
@@ -680,7 +727,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && $store.game.entrySetupOpen" class="start-screen entry-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && $store.game.entrySetupOpen" class="start-screen entry-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <div class="start-card entry-card dev-section" data-section-title="进入时机配置区">
       <button class="back-desktop-btn" type="button" @click="$store.game.closeAppToDesktop()" :disabled="$store.game.busy">返回桌面</button>
       <button class="back-home-btn" type="button" @click="$store.game.backToHome()" :disabled="$store.game.busy">← 返回首页</button>
@@ -725,7 +772,7 @@
     </div>
   </section>
 
-  <main x-show="$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen" class="game-shell app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <main x-show="$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open" class="game-shell app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <header class="top-bar dev-section" data-section-title="顶部状态栏">
       <div class="mode-status">
         <span class="mode-dot" :class="$store.game.online ? 'online' : 'offline'"></span>

@@ -1,6 +1,3 @@
-/**
- * 主入口：Alpine store 与玩家交互。
- */
 if (window.parent !== window) window.parent.postMessage('iframe:content-ready', '*');
 
 const dzmmReady = new Promise((resolve) => {
@@ -65,7 +62,7 @@ document.addEventListener('alpine:init', () => {
     mindText: '', feedbackSource: 'pending',
     characterIntent: '',
     choices: cfg.openingChoices,
-    log: [], realWorldOpen: false, realWorldBusy: false, realWorldInput: '', realWorldSceneTitle: '现实世界', realWorldQuest: '确认手机异常与现实处境', realWorldStatus: '现实稳定', realWorldChoices: ['检查手机记录', '观察居住环境', '联系熟人确认', '暂时休息'], realWorldLog: [], realWorldProfileOpen: true, companyState: null,
+    log: [], realWorldOpen: false, realWorldBusy: false, realWorldInput: '', realWorldSceneTitle: '现实世界', realWorldQuest: '确认手机异常与现实处境', realWorldStatus: '现实稳定', realWorldChoices: ['检查手机记录', '观察居住环境', '联系熟人确认', '暂时休息'], realWorldLog: [], realWorldProfileOpen: true, companyState: null, bossState: null,
     nextId: 1,
     ragQuery: '',
     ragContext: '',
@@ -113,6 +110,7 @@ document.addEventListener('alpine:init', () => {
           await this.initGame();
           this.startPhoneClock?.();
           this.initCompanySystem?.();
+          this.initBossRecruitment?.();
         } catch (err) {
           console.error('游戏初始化失败:', err.message, err.stack);
           this.loadingDetail = `初始化失败：${err.message || '未知错误'}`;
@@ -193,6 +191,7 @@ document.addEventListener('alpine:init', () => {
     ...window.GameModules.appSwitchActions,
     ...window.GameModules.realWorldActions,
     ...window.GameModules.companyActions,
+    ...window.GameModules.bossActions,
   });
 
   queueMicrotask(() => Alpine.store('game').init());
