@@ -103,6 +103,7 @@ window.GameModules.playerSetupActions = {
       this.phoneSetupDone = true;
       this.desktopUnlocked = false;
       await this.ensurePlayerRpgState?.(true);
+      await this.syncKnownProfessionsFromProfile?.(this.playerProfile.knownProfessions);
       await this.save();
     } finally {
       this.profileSetupBusy = false;
@@ -155,8 +156,32 @@ window.GameModules.playerSetupActions = {
       parentStatus: noParents ? (status.includes('已故') ? status : '父母已故') : status,
       parentDeathCause: noParents ? cause : cause,
       worldbuildingNote: String(data?.worldbuildingNote || `${base.age}岁的${role}，就职/活动于${workplace}，地位为${position}。`).slice(0, 120),
+      knownProfessions: this.normalizeKnownProfessionHints(data?.knownProfessions),
       profileEnrichedAt: new Date().toISOString(),
     };
+  },
+
+  normalizeKnownProfessionHints(value) {
+    if (!Array.isArray(value)) return [];
+    const world = window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
+    return value.map((item) => ({
+      name: String(item?.name || '').trim().slice(0, 24),
+      worldTag: String(item?.worldTag || world).trim().slice(0, 32),
+      sourceReason: String(item?.sourceReason || '玩家现实身份上下文表明其知道该职业。').trim().slice(0, 120),
+    })).filter((item) => item.name).slice(0, 5);
+  },
+
+  async syncKnownProfessionsFromProfile(items) {
+    if (!Array.isArray(items) || !items.length || typeof this.knowProfession !== 'function') return;
+    this.initKnownProfessionApp?.();
+    for (const item of items) {
+      await this.knowProfession(item.name, item.worldTag, {
+        sourceReason: item.sourceReason,
+        characterName: this.playerProfile?.name || this.playerName,
+        role: this.playerProfile?.refinedRole || this.playerProfile?.dailyRole,
+        detail: this.playerProfile?.worldbuildingNote || this.playerProfile?.notes,
+      });
+    }
   },
 
   ensurePreciseAddress(address) {

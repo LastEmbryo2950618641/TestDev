@@ -125,11 +125,15 @@
 
 .prompt-row {
   cursor: pointer;
+  align-content: center;
+  gap: 6px;
+  min-height: 74px;
 }
 
 .prompt-title {
   width: 100%;
-  min-height: 34px;
+  min-width: 0;
+  min-height: 0;
   display: flex;
   align-items: center;
   border: 0;
@@ -139,6 +143,15 @@
 }
 
 .prompt-title strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  line-height: 1.35;
+}
+
+.prompt-row small {
+  min-width: 0;
+  overflow-wrap: anywhere;
   white-space: normal;
   line-height: 1.35;
 }
