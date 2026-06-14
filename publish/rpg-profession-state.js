@@ -19,7 +19,7 @@ window.GameModules.rpgProfessionState = {
     this.normalizeProfessions(state);
     const jobs = state.values?.professions || [];
     const job = jobs.find((item) => item?.name && !item.info) || jobs[0];
-    if (!job?.name) return false;
+    if (!job?.name || job.info) return false;
     const worldFields = schema.sections.find((section) => section.title === '世界固有属性')?.fields || [];
     const info = await window.GameModules.professionInfo.ensure(state.worldTag, job.name, {
       characterName: state.name,

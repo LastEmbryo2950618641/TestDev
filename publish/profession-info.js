@@ -1,6 +1,7 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.professionInfo = {
+  pending: {},
   roleWords: /主角|配角|路人|核心|悲剧|女主|男主|反派|支持|重要|可被操控|出场人物|学生|中学生|高中生|初中生|小学生|大学生|年级|班学生/,
 
   normalizeJobName(name) {
@@ -15,9 +16,16 @@ window.GameModules.professionInfo = {
     const save = window.GameModules.sqliteSave;
     const existing = save.getProfessionInfo?.(worldTag, jobName);
     if (existing) return existing;
+    const key = `${worldTag}::${jobName}`;
+    if (!this.pending[key]) this.pending[key] = this.createAndSave(worldTag, jobName, context);
+    try { return await this.pending[key]; }
+    finally { delete this.pending[key]; }
+  },
+
+  async createAndSave(worldTag, jobName, context) {
     const info = await this.generate(worldTag, jobName, context);
     if (!info) return null;
-    await save.saveProfessionInfo?.(worldTag, info);
+    await window.GameModules.sqliteSave.saveProfessionInfo?.(worldTag, info);
     await window.GameModules.rpgLexicon.save(worldTag, '职业', info.name, { summary: info.summary, description: info.description, nameAiGenerated: true, valueAiGenerated: true, changeMode: 'AI演算', related: [...info.intrinsicStats, ...info.learnedAbilities, ...info.worldAbilities], meta: { info }, source: 'ai' });
     return info;
   },
