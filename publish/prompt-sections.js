@@ -12,12 +12,13 @@ window.GameModules.promptSections = {
 
   playerProfile(store) {
     const p = store?.playerProfile || {};
+    const factions = this.knownFactions(store);
     return {
       playerBasic: this.lines([
         ['姓名', p.name || store?.playerName], ['性别', p.gender], ['生日', p.birthday], ['年龄', p.age],
       ]),
       playerIdentity: this.lines([
-        ['现实身份', p.refinedRole || p.dailyRole], ['工作/学校/组织', p.workplace], ['地位/岗位/年级', p.position], ['世界观补全', p.worldbuildingNote || '无'],
+        ['现实身份', p.refinedRole || p.dailyRole], ['工作/学校/组织', p.workplace], ['地位/岗位/年级', p.position], ['已知势力库', factions], ['世界观补全', p.worldbuildingNote || '无'],
       ]),
       playerHome: this.lines([
         ['具体地址', p.refinedCity || p.city], ['居住状态', p.refinedLivingStatus || p.livingStatus], ['父母状态', p.parentStatus || p.parents], ['父母去世原因', p.parentDeathCause || '无'],
@@ -51,6 +52,11 @@ window.GameModules.promptSections = {
 
   worldFields(attrs) {
     return (attrs?.fields || []).map((x) => `${x.key}(${x.label}:${x.type})`).join('、') || '无';
+  },
+
+  knownFactions(store) {
+    const list = store?.factionState?.factions || [];
+    return list.map((x) => `${x.name}(${x.type}/${x.level})`).join('、') || '未初始化';
   },
 
   wechatContact(contact, hint) {

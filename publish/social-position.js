@@ -42,7 +42,7 @@ window.GameModules.socialPosition = {
   forceItem(force, position, source = 'AI演算') {
     const f = String(force || '未设定势力').trim();
     const p = String(position || '成员').trim();
-    return { name: `${f} / ${p}`, type: '势力地位', force: f, faction: f, position: p, level: -1, description: `势力：${f}；地位：${p}。该词条表示角色在有层级制度的公司、学校、部门、军队、宗门、机构或组织中的等级、职级、年级或职位。`, source, changeMode: source };
+    return { name: `${f} / ${p}`, type: '势力地位', force: f, faction: f, position: p, level: -1, description: `势力：${f}；地位：${p}。该词条表示角色在有层级制度的国家、公司、学校、部门、军队、宗门、机构或组织中的等级、职级、年级、职位或法定身份。`, source, changeMode: source };
   },
 
   playerItems(profile = {}) {
@@ -51,11 +51,17 @@ window.GameModules.socialPosition = {
     return [this.item(community, '居民')];
   },
 
-  playerForceItems(profile = {}) {
+  countryForceItems(factions = [], position = '公民') {
+    const country = factions.find((x) => x?.type === '国家' || x?.level === '国家级');
+    return country?.name ? [this.forceItem(country.name, position)] : [];
+  },
+
+  playerForceItems(profile = {}, factions = []) {
     const role = profile.refinedRole || profile.dailyRole || profile.role || profile.job;
     const city = profile.refinedCity || profile.city || profile.faction || '';
     const workplace = profile.workplace || this.workplace(role, city);
     const position = profile.position || this.position(role);
-    return workplace ? [this.forceItem(workplace, position || '成员')] : [];
+    const items = [...this.countryForceItems(factions), ...(workplace ? [this.forceItem(workplace, position || '成员')] : [])];
+    return items;
   },
 };

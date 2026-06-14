@@ -103,13 +103,14 @@ window.GameModules.playerIdentityActions = {
       return existing;
     }
     const character = this.playerCharacter();
+    this.initFactionSystem?.();
     const state = await window.GameModules.rpgState.ensureCharacter(character, this);
     state.profile = character;
     state.note = character.detail;
     state.values.age = Number.isFinite(Number(character.age)) ? Number(character.age) : state.values.age;
     state.values.status_tags = ['玩家本人', '手机主人', character.work, character.role];
     state.values.factions = window.GameModules.socialPosition.playerItems({ ...this.playerProfile, workplace: character.workplace, position: character.position });
-    state.values.force_positions = window.GameModules.socialPosition.playerForceItems({ ...this.playerProfile, workplace: character.workplace, position: character.position });
+    state.values.force_positions = window.GameModules.socialPosition.playerForceItems({ ...this.playerProfile, workplace: character.workplace, position: character.position }, this.factionState?.factions || []);
     window.GameModules.progression.ensureStateMechanics(state, character);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
     await window.GameModules.sqliteSave.saveCharacterState(state);
