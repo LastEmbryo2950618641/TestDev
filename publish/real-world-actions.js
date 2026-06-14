@@ -37,6 +37,7 @@ window.GameModules.realWorldActions = {
   },
 
   openRealWorldPanel() {
+    window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
     this.realWorldOpen = true;
     this.checkWorkReminder?.();
     if (!this.realWorldLog.length) this.seedRealWorldLog();
@@ -75,8 +76,9 @@ window.GameModules.realWorldActions = {
   },
 
   seedRealWorldLog() {
+    const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
     this.realWorldLog = [{
-      id: this.nextId++, type: 'system',
+      id: this.nextId++, type: 'system', locationName: map.current,
       narration: `你把手机屏幕压暗，现实世界的声音重新浮上来。${this.playerProfile?.refinedLivingStatus || '你的住处'}仍保持着原本的秩序，但那台新手机带来的异常感并没有消失。`,
       thinking: '现实世界推演已接入玩家本人资料，只追踪手机外的现实行动。',
     }];
@@ -107,6 +109,7 @@ window.GameModules.realWorldActions = {
     await this.applyInventoryUpdatesToState(this.playerIdentityState?.(), result.lexiconUpdates || []);
     this.advancePhoneTime(result.elapsedSeconds || 300);
     this.checkWorkReminder?.();
+    window.GameModules.realWorldMap.update(this, result.locationName || this.realWorldLocationName, result);
     this.realWorldSceneTitle = result.sceneTitle || this.realWorldSceneTitle;
     this.realWorldQuest = result.quest || this.realWorldQuest;
     this.realWorldStatus = result.status || this.realWorldStatus;

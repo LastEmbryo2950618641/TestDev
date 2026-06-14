@@ -26,6 +26,7 @@
   <script src="assets/data/real-world-2026.js"></script>
   <script src="prompt.js"></script>
   <script src="real-world-prompt.js"></script>
+  <script src="real-world-map.js"></script>
   <script src="prompt-fallback.js"></script>
   <script src="prompt-templates.js"></script>
   <script src="prompt-templates-inline.js"></script>
@@ -466,13 +467,18 @@
         </aside>
 
         <section class="panel story-panel dev-section" data-section-title="现实推演日志区">
-          <div class="scene-title dev-section" data-section-title="现实场景标题栏"><span x-text="$store.game.realWorldSceneTitle"></span><b>现实侧</b></div>
+          <div class="scene-title dev-section" data-section-title="现实场景标题栏"><span x-text="$store.game.realWorldSceneTitle"></span><b x-text="$store.game.realWorldLocationName || '现实地点'"></b></div>
+          <div class="real-world-map dev-section" data-section-title="现实文字地图">
+            <strong>现实地图</strong>
+            <code x-text="$store.game.realWorldMap?.lastText || $store.game.realWorldLocationName || '现实地点'"></code>
+          </div>
           <div class="story-log scroll-area dev-section" data-section-title="现实记录列表">
             <template x-for="entry in $store.game.realWorldLog" :key="entry.id">
               <article class="novel-entry" :class="entry.type === 'user' ? 'player' : 'advice'">
                 <div class="novel-player dev-section" data-section-title="现实行动输入" x-show="entry.type === 'user'"><p x-text="entry.text"></p></div>
                 <div class="novel-story dev-section" data-section-title="现实AI生成内容" x-show="entry.type !== 'user'" :class="{ streaming: entry.streaming }">
                   <div class="novel-thinking dev-section" data-section-title="现实AI思考" x-show="entry.thinking"><p><b>【现实推演】</b><span x-text="entry.thinking"></span></p></div>
+                  <small class="real-world-entry-location" x-show="entry.locationName" x-text="`地点｜${entry.locationName}`"></small>
                   <div class="novel-tool-row"><button class="prompt-toggle" x-show="entry.promptPack" @click="$store.game.openRealWorldPrompt(entry.id)" title="查看生成提示词">≡</button></div>
                   <p class="novel-body-text" x-text="entry.narration || entry.text"></p>
                 </div>
@@ -486,6 +492,8 @@
         </section>
 
         <aside class="panel mind-panel dev-section" data-section-title="现实信息栏">
+          <h3>当前位置</h3>
+          <p class="quest-text dev-section" data-section-title="现实地点区" x-text="$store.game.realWorldLocationName || '现实地点'"></p>
           <h3>现实状态</h3>
           <div class="mind-box dev-section" data-section-title="现实状态区" x-text="$store.game.realWorldStatus"></div>
           <h3>当前目标</h3>
