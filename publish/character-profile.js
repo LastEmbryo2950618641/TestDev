@@ -22,7 +22,14 @@ window.GameModules.characterProfile = {
   isRoleCard(profile) {
     const hasFactions = Array.isArray(profile?.factions) && profile.factions.length;
     const hasForces = (Array.isArray(profile?.forcePositions) && profile.forcePositions.length) || (Array.isArray(profile?.force_positions) && profile.force_positions.length);
-    return Boolean(profile?.roleCard && profile?.name && profile?.role && profile?.detail && profile?.personality && profile?.appearance && hasFactions && hasForces);
+    return Boolean(profile?.roleCard && this.isConcreteName(profile.name) && profile?.role && profile?.detail && profile?.personality && profile?.appearance && hasFactions && hasForces);
+  },
+
+  isConcreteName(name) {
+    const raw = String(name || '').trim();
+    return Boolean(raw) && !/待命名|待AI补全|等待AI补全|等待ai补全|姓名待AI补全|未知|需要AI/i.test(raw)
+      && !/^(妹妹|姐姐|哥哥|弟弟|父亲|母亲|爸爸|妈妈|联系人|微信联系人)$/.test(raw)
+      && !/^(双胞胎|三胞胎|多胞胎)?(妹妹|姐姐|哥哥|弟弟|兄弟|姐妹|联系人)(之一|之二|之三|其一|其二|其三)$/.test(raw);
   },
 
   findKnown(raw, store) {
@@ -258,8 +265,7 @@ window.GameModules.characterProfile = {
 
   validName(name, base) {
     const raw = String(name || '').trim();
-    const bad = !raw || /^(妹妹|姐姐|哥哥|弟弟|父亲|母亲|爸爸|妈妈|联系人|微信联系人|.+待命名)$/.test(raw);
-    if (!bad) return raw.slice(0, 16);
+    if (this.isConcreteName(raw)) return raw.slice(0, 16);
     return '姓名待AI补全';
   },
 

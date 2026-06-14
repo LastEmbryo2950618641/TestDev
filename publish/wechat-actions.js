@@ -49,10 +49,14 @@ window.GameModules.wechatActions = {
 
   async ensureWechatUserProfile(contact) {
     if (!contact || contact.group) return null;
+    const existing = this.rpgStates?.[contact.id] || window.GameModules.sqliteSave.getCharacterState(contact.id);
+    const existingName = existing?.profile?.name || '';
+    const profileNameMissing = !window.GameModules.characterProfile.isConcreteName(existingName);
+    if (existing?.profile && !profileNameMissing && !contact.needsNameAi && !this.isWechatPlaceholderName(contact.name)) return existing;
     const hint = this.wechatRelationProfileHint(contact);
     const sections = window.GameModules.promptSections;
     const player = sections.playerProfile(this);
-    const needsName = contact.needsNameAi || this.isWechatPlaceholderName(contact.name);
+    const needsName = contact.needsNameAi || this.isWechatPlaceholderName(contact.name) || profileNameMissing;
     const raw = { id: contact.id, name: needsName ? hint.placeholderName : contact.name, role: contact.relation || '微信联系人', detail: contact.context || contact.latest || hint.detail, work: '现实世界', isMinor: false, importance: 'support', nameRule: hint.nameRule };
     const context = await window.GameModules.promptTemplates.render('wechat-relation-profile', {
       玩家基础资料区: player.playerBasic,
