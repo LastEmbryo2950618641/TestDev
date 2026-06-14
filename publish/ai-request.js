@@ -33,7 +33,12 @@ window.GameModules.aiRequest = {
 
   timeout(promise, ms, source) {
     if (!ms) return promise;
-    return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error(`${source || 'AI请求'}超时`)), ms))]);
+    return Promise.race([promise, new Promise((_, reject) => setTimeout(() => {
+      const err = new Error(`${source || 'AI请求'}超时`);
+      err.code = 'AI_TIMEOUT';
+      err.retryable = true;
+      reject(err);
+    }, ms))]);
   },
 
   async complete(options = {}) {

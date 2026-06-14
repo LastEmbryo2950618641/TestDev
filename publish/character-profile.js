@@ -68,6 +68,7 @@ window.GameModules.characterProfile = {
         source: 'character-profile-card',
         model: 'nalang-medium-0826',
         maxTokens: 900,
+        timeoutMs: 90000,
         prompt,
         format: prompt,
         parse: (text) => this.parse(text),

@@ -75,7 +75,7 @@ window.GameModules.jsonUtils = {
     let lastText = '';
     let lastError = null;
     for (let i = 0; i < max; i += 1) {
-      lastText = await this.requestCompletion({ model: options.model, prompt, maxTokens: options.maxTokens, source: options.source || 'json-utils' });
+      lastText = await this.requestCompletion({ model: options.model, prompt, maxTokens: options.maxTokens, source: options.source || 'json-utils', timeoutMs: options.timeoutMs || 90000 });
       try {
         const parsed = options.parse ? options.parse(lastText) : this.parseLoose(lastText);
         return options.validate ? options.validate(parsed) : parsed;
@@ -91,8 +91,8 @@ window.GameModules.jsonUtils = {
     throw error;
   },
 
-  async requestCompletion({ model, prompt, maxTokens, source = 'json-utils' }) {
-    return window.GameModules.aiRequest.complete({ source, model, maxTokens, prompt, timeoutMs: 35000 });
+  async requestCompletion({ model, prompt, maxTokens, source = 'json-utils', timeoutMs = 90000 }) {
+    return window.GameModules.aiRequest.complete({ source, model, maxTokens, prompt, timeoutMs });
   },
 
   async repairPrompt(format, badOutput, err) {
