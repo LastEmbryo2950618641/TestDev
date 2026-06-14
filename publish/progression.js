@@ -37,13 +37,13 @@ window.GameModules.progression = {
     ];
   },
 
-  field(key, label, type, min = 0, max = 100, desc = '') { return { key, label, type, min, max, desc }; },
-  nextCharacterExp(level) { return Math.round(100 * Math.max(1, Number(level) || 1) ** 1.65); },
-  clamp(value, min, max) { return Math.max(min, Math.min(max, Math.round(Number(value) || 0))); },
-  pool(current, max) { return { current: this.clamp(current, 0, max), max: Math.max(1, Math.round(max)) }; },
-  normalizeCharacterExp(exp, level, fallbackCurrent = 0) {
-    const next = this.nextCharacterExp(level);
-    return { current: this.clamp(exp?.current ?? fallbackCurrent, 0, next), next, curve: 'nextExp=round(100*level^1.65)' };
+  field(key, label, type, min = 0, max = 100, desc = '') { return { key, label, type, min, max, desc }; }, nextCharacterExp(level) { return Math.round(100 * Math.max(1, Number(level) || 1) ** 1.65); },
+  clamp(value, min, max) { return Math.max(min, Math.min(max, Math.round(Number(value) || 0))); }, pool(current, max) { return { current: this.clamp(current, 0, max), max: Math.max(1, Math.round(max)) }; },
+  normalizeCharacterExp(exp, level, fallbackCurrent = 0) { const next = this.nextCharacterExp(level); return { current: this.clamp(exp?.current ?? fallbackCurrent, 0, next), next, curve: 'nextExp=round(100*level^1.65)' }; },
+
+  ensureProgressionNotes(values) {
+    if (!values) return; if (values.exp) values.exp.curve = 'nextExp=round(100*level^1.65)';
+    for (const item of [...(values.factions || []), ...(values.force_positions || []), ...(values.equipment || []), ...(values.items || []), ...(values.wearing || []), ...(values.status_tags || [])]) if (item && typeof item === 'object' && Object.prototype.hasOwnProperty.call(item, 'level')) item.level = -1;
   },
 
   ensureStateMechanics(state, character = state?.profile || {}) {
@@ -136,12 +136,9 @@ window.GameModules.progression = {
     return [];
   },
   normalizeLearnedLists(values) {
-    if (!values) return false;
-    let changed = false;
+    if (!values) return false; let changed = false;
     const clean = (list) => (list || []).filter((item) => {
-      const keep = !this.isStageIdentity(typeof item === 'string' ? item : item?.name);
-      if (!keep) changed = true;
-      return keep;
+      const keep = !this.isStageIdentity(typeof item === 'string' ? item : item?.name); if (!keep) changed = true; return keep;
     });
     values.skills = clean(values.skills);
     values.professions = clean(values.professions);
@@ -155,14 +152,11 @@ window.GameModules.progression = {
     return { name: cleanName, type, level: lv, exp: { current: 0, next: this.learnedNext[lv] }, linkedStats, source: definition, description: definition, levelDescription: this.levelDescription(type, lv), effect: this.levelEffect(cleanName, type, lv) };
   },
   linkedStats(name) {
-    if (/剑|战|拳|武|射|枪/.test(name)) return ['strength', 'agility', 'perception'];
-    if (/魔|术|医|学|分析/.test(name)) return ['intelligence', 'perception', 'willpower'];
-    if (/交涉|说服|领导/.test(name)) return ['charisma', 'willpower', 'perception'];
-    return ['agility', 'perception', 'intelligence'];
+    if (/剑|战|拳|武|射|枪/.test(name)) return ['strength', 'agility', 'perception']; if (/魔|术|医|学|分析/.test(name)) return ['intelligence', 'perception', 'willpower'];
+    if (/交涉|说服|领导/.test(name)) return ['charisma', 'willpower', 'perception']; return ['agility', 'perception', 'intelligence'];
   },
 
-  trainingBonus(character) { return /士兵|骑士|运动|佣兵|从者|英灵/.test(`${character.role || ''}${character.job || ''}`) ? 20 : 0; },
-  percent(pool) { return pool?.max ? this.clamp((pool.current / pool.max) * 100, 0, 100) : 100; },
+  trainingBonus(character) { return /士兵|骑士|运动|佣兵|从者|英灵/.test(`${character.role || ''}${character.job || ''}`) ? 20 : 0; }, percent(pool) { return pool?.max ? this.clamp((pool.current / pool.max) * 100, 0, 100) : 100; },
   intrinsicKeys() { return ['strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma']; },
   createIntrinsicSources(values) { return Object.fromEntries(this.intrinsicKeys().map((k) => [k, { initial: values[k] || 1, level: 0, allocated: 0, npc: 0 }])); },
   ensureIntrinsicSources(values) {
