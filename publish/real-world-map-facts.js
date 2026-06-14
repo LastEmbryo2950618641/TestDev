@@ -5,9 +5,11 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldMapFacts = {
   nowLabel(state) {
-    const raw = Number(state?.phoneFixedTime);
-    const base = Number.isFinite(raw) && raw > 946684800000 ? raw : Date.now();
-    const d = new Date(base);
+    state?.ensurePhoneFixedTime?.();
+    const dateText = state?.phoneDateText?.();
+    const timeText = state?.phoneTimeText?.();
+    if (dateText && timeText && !/^1970年/u.test(dateText)) return `${dateText.replace(/\s*周[一二三四五六日天]/u, '')}${timeText}`;
+    const d = new Date();
     const time = [d.getHours(), d.getMinutes(), d.getSeconds()].map((x) => String(x).padStart(2, '0')).join(':');
     return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日${time}`;
   },

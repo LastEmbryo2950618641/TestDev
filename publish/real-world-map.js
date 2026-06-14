@@ -38,7 +38,7 @@ window.GameModules.realWorldMap = {
   },
 
   factTime(state) {
-    return window.GameModules.realWorldMapFacts?.nowLabel?.(state) || new Date().toISOString();
+    return window.GameModules.realWorldMapFacts?.nowLabel?.(state) || `${state.phoneDateText?.() || ''}${state.phoneTimeText?.() || ''}` || new Date().toISOString();
   },
 
   syncFacts(node, fallback = '', time = '') {

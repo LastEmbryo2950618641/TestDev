@@ -10,8 +10,9 @@ window.GameModules.realWorldActions = {
 
   ensurePhoneFixedTime() {
     const initialized = new Date(this.playerProfile?.initializedAt || Date.now()).getTime();
-    const base = Number.isFinite(initialized) ? initialized : Date.now();
-    if (!Number.isFinite(Number(this.phoneFixedTime))) this.phoneFixedTime = base;
+    const base = Number.isFinite(initialized) && initialized > 946684800000 ? initialized : Date.now();
+    const current = Number(this.phoneFixedTime);
+    if (!Number.isFinite(current) || current <= 946684800000) this.phoneFixedTime = base;
   },
 
   advancePhoneTime(seconds = 60) {
@@ -101,7 +102,7 @@ window.GameModules.realWorldActions = {
   realWorldMapInfoFacts() {
     const node = this.realWorldMapInfoNode();
     if (!node) return [];
-    return window.GameModules.realWorldMapFacts?.normalizeFacts?.(node, node.description, `${this.phoneDateText()} ${this.phoneTimeText()}`) || [];
+    return window.GameModules.realWorldMapFacts?.normalizeFacts?.(node, node.description, window.GameModules.realWorldMapFacts.nowLabel(this)) || [];
   },
 
   realWorldMapFactText(fact, index) {
