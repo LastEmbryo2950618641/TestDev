@@ -29,8 +29,7 @@ window.GameModules.bossActions = {
 
   closeBossApp() {
     if (this.bossState) {
-      this.bossState.open = false;
-      this.clearBossCache();
+      Object.assign(this.bossState, { open: false, companyDetailOpen: false, detailJobId: '', applyMessage: '', generating: false });
       this.save?.();
     }
     this.closeAppToDesktop();

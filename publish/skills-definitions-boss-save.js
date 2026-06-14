@@ -1,7 +1,7 @@
 window.GameModules = window.GameModules || {};
 window.GameModules.skillsDefinitions = (window.GameModules.skillsDefinitions || []).concat([
   { id: 'boss.open', category: 'BOSS招聘', name: '打开BOSS招聘APP', method: 'openBossApp()', params: '无', returns: '招聘筛选、随机岗位列表和岗位详情界面。', description: '进入外部招聘市场。', detail: '首次打开且没有岗位时会自动随机生成一批岗位。' },
-  { id: 'boss.generate', category: 'BOSS招聘', name: '生成岗位列表', method: 'randomBossJobs() / generateBossJobsByAI()', params: 'filters, pageSize, customPrompt, usePlayerFit', returns: '随机岗位列表，含薪酬、技能要求、匹配玩家能力。', description: '按筛选、玩家文本和可选玩家适配生成岗位。', detail: '无分页缓存；每次调用都会重新随机。AI失败会本地兜底。' },
+  { id: 'boss.generate', category: 'BOSS招聘', name: '生成岗位列表', method: 'randomBossJobs() / generateBossJobsByAI()', params: 'filters, pageSize, customPrompt, usePlayerFit', returns: '随机岗位列表，含薪酬、技能要求、匹配玩家能力。', description: '按筛选、玩家文本和可选玩家适配生成岗位。', detail: '岗位列表会随全局存档保存；只有玩家主动刷新/筛选切换时才重新生成。AI失败会本地兜底。' },
   { id: 'boss.fit.toggle', category: 'BOSS招聘', name: '切换玩家能力适配', method: 'toggleBossPlayerFit()', params: '无', returns: '切换usePlayerFit后重新生成岗位。', description: '决定岗位生成是否优先参考玩家职业、技能、知识。', detail: '匹配字段会过滤为玩家已拥有能力。' },
   { id: 'boss.jobs.current', category: 'BOSS招聘', name: '读取当前岗位列表', method: 'currentBossJobs() / filteredBossJobs()', params: '无，依赖当前filters', returns: '符合筛选条件的岗位数组。', description: '查看当前可申请岗位。', detail: '列表来自最近一次随机生成，不分页缓存。' },
   { id: 'boss.job.select', category: 'BOSS招聘', name: '选择岗位', method: 'selectBossJob(id)', params: 'id: 岗位id', returns: '设置bossState.selectedJobId。', description: '把指定岗位设为当前操作目标。', detail: '申请岗位前通常先选择岗位。' },
