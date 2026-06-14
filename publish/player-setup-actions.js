@@ -92,7 +92,6 @@ window.GameModules.playerSetupActions = {
         try {
           enriched = await this.enrichPlayerProfile(base);
         } catch (err) {
-          if (window.dzmm?.errors?.isDzmmError?.(err)) throw err;
           console.warn('[玩家身份] AI补全失败，使用本地兜底:', err.code, err.message, err.stack);
           enriched = this.recoverEnrichedPlayerProfile(err.rawOutput, base);
         }

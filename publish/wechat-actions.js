@@ -53,7 +53,10 @@ window.GameModules.wechatActions = {
     if (index >= 0) list[index] = { ...list[index], ...contact };
     else list.push(contact);
     this.wechatUsers = list;
-    if (options.generateProfile) await this.ensureWechatUserProfile(contact);
+    if (options.generateProfile !== false) {
+      try { await this.ensureWechatUserProfile(contact); }
+      catch (err) { console.warn('[微信] 联系人资料生成失败:', err.code, err.message, err.stack); }
+    }
     await this.save?.();
     return contact;
   },

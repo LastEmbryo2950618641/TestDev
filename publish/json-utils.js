@@ -91,12 +91,51 @@ window.GameModules.jsonUtils = {
     throw error;
   },
 
-  async requestCompletion({ model, prompt, maxTokens }) {
-    let buffer = '';
-    await window.dzmm.completions({ model, maxTokens, messages: [{ role: 'user', content: prompt }] }, (chunk) => {
-      buffer = this.mergeStreamText(buffer, chunk);
+  completionQueue: Promise.resolve(),
+  lastCompletionAt: 0,
+  minCompletionGapMs: 1800,
+
+  wait(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); },
+
+  async withCompletionSlot(task) {
+    const run = this.completionQueue.then(async () => {
+      const waitMs = Math.max(0, this.minCompletionGapMs - (Date.now() - this.lastCompletionAt));
+      if (waitMs) await this.wait(waitMs);
+      try { return await task(); }
+      finally { this.lastCompletionAt = Date.now(); }
     });
-    return buffer;
+    this.completionQueue = run.catch(() => {});
+    return run;
+  },
+
+  isRetryableCompletionError(err) {
+    return Boolean(err?.retryable || err?.code === 'RATE_LIMITED' || err?.code === 'TIMEOUT' || err?.code === 'NETWORK_ERROR' || err?.code === 'INTERNAL_ERROR' || err?.code === 'SERVICE_UNAVAILABLE');
+  },
+
+  completionRetryDelay(err, attempt) {
+    const base = err?.code === 'RATE_LIMITED' ? 3000 : 1200;
+    return Math.min(9000, base * (attempt + 1));
+  },
+
+  async requestCompletion({ model, prompt, maxTokens }) {
+    return this.withCompletionSlot(async () => {
+      let lastErr = null;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        let buffer = '';
+        try {
+          await window.dzmm.completions({ model, maxTokens, messages: [{ role: 'user', content: prompt }] }, (chunk) => {
+            buffer = this.mergeStreamText(buffer, chunk);
+          });
+          return buffer;
+        } catch (err) {
+          lastErr = err;
+          if (!this.isRetryableCompletionError(err) || attempt === 2) throw err;
+          console.warn('[AI请求] 请求过快或暂时失败，等待后重试:', err.code, err.message);
+          await this.wait(this.completionRetryDelay(err, attempt));
+        }
+      }
+      throw lastErr;
+    });
   },
 
   async repairPrompt(format, badOutput, err) {
@@ -118,6 +157,8 @@ window.GameModules.jsonUtils = {
       .replace(/"\s+("[A-Za-z_$\u4e00-\u9fa5][\w\u4e00-\u9fa5-]*"\s*:)/g, '",$1')
       .replace(/(\d|true|false|null)\s+("[A-Za-z_$\u4e00-\u9fa5][\w\u4e00-\u9fa5-]*"\s*:)/g, '$1,$2')
       .replace(/([}\]])\s+("[A-Za-z_$\u4e00-\u9fa5][\w\u4e00-\u9fa5-]*"\s*:)/g, '$1,$2')
+      .replace(/:\s*([}\]])/g, ':null$1')
+      .replace(/:\s*null\s*\]/g, ':null}]')
       .replace(/,\s*([}\]])/g, '$1');
   },
 

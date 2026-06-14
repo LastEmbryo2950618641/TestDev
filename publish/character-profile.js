@@ -73,11 +73,7 @@ window.GameModules.characterProfile = {
         validate: (raw) => this.validate(raw, base, lore, attrs, store),
       }), signature);
     } catch (err) {
-      if (window.dzmm?.errors?.isDzmmError?.(err)) {
-        console.error('人物设定生成请求失败:', err.code, err.message, err.stack);
-        throw err;
-      }
-      console.warn('人物设定生成失败，使用兜底:', err.message);
+      console.warn('人物设定生成失败，使用兜底:', err.code, err.message, err.stack);
       return this.withSignature(this.fallback(base, lore, attrs), signature);
     }
   },

@@ -4,6 +4,8 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.worldLore = {
+  inflight: {},
+
   async ensure(worldTag, context = '') {
     const save = window.GameModules.sqliteSave;
     const existing = save.getWorldLore(worldTag);
@@ -18,10 +20,16 @@ window.GameModules.worldLore = {
       console.log('[世界观] 使用已保存设定:', worldTag);
       return existing;
     }
-    console.log('[世界观] 开始生成设定:', worldTag, 'contextLength=', String(context || '').length);
-    const lore = await this.generate(worldTag, context);
-    await save.saveWorldLore(worldTag, lore);
-    return lore;
+    const key = String(worldTag || '未知世界');
+    if (this.inflight[key]) return this.inflight[key];
+    this.inflight[key] = (async () => {
+      console.log('[世界观] 开始生成设定:', worldTag, 'contextLength=', String(context || '').length);
+      const lore = await this.generate(worldTag, context);
+      await save.saveWorldLore(worldTag, lore);
+      return lore;
+    })();
+    try { return await this.inflight[key]; }
+    finally { delete this.inflight[key]; }
   },
 
   async generate(worldTag, context) {
