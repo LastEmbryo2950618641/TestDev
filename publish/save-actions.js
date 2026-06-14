@@ -35,35 +35,32 @@ window.GameModules.saveActions = {
     await this.refreshSaveMetas();
     this.saveMessage = `已读取 ${slot}`;
     this.savePanelOpen = false;
+    this.saveAppOpen = false;
   },
 
   async overwriteSlot(slot) {
     if (this.busy) return;
-    const states = Object.values(this.rpgStates);
-    const memories = states.map((state) => [state.id, window.GameModules.sqliteSave.getCharacterMemory(state.id), window.GameModules.sqliteSave.listMemoryArchives(state.id)]);
-    await window.GameModules.storage.remove(slot);
-    this.selectedSlot = slot;
-    await window.GameModules.storage.open(slot);
-    for (const state of states) {
-      await window.GameModules.sqliteSave.saveSchema(state.worldTag, state.schema);
-      await window.GameModules.sqliteSave.saveCharacterState(state);
-    }
-    for (const [id, memory, archives] of memories) {
-      if (memory) await window.GameModules.sqliteSave.saveCharacterMemory(id, memory);
-      for (const archive of archives) await window.GameModules.sqliteSave.saveMemoryArchive(id, archive);
-    }
-    this.loadSavedRpgStates();
-    await this.ensureRpgForCurrentCharacter();
+    const source = this.selectedSlot;
     await this.save();
+    if (slot !== source) {
+      const raw = await window.GameModules.sqliteSave.readRaw(source);
+      await window.GameModules.storage.remove(slot);
+      if (raw) await window.GameModules.sqliteSave.writeRaw(slot, raw);
+      this.selectedSlot = slot;
+      await window.GameModules.storage.open(slot);
+      const save = await window.GameModules.storage.get();
+      if (save) window.GameModules.storage.restore(this, save);
+      await this.loadWritingStyles(); this.loadSavedRpgStates();
+      if (this.phoneSetupDone) await this.ensurePlayerRpgState?.(); this.prepareRpgForSelectedCharacter();
+    }
     await this.refreshSaveMetas();
-    this.saveMessage = `已删除旧档并覆盖保存 ${slot}`;
+    this.saveMessage = slot === source ? `已覆盖保存 ${slot}` : `已完整复制当前数据并覆盖 ${slot}`;
   },
 
   async newSlot(slot) {
     await window.GameModules.storage.remove(slot);
     this.selectedSlot = slot;
-    await window.GameModules.storage.open(slot);
-    await this.loadWritingStyles();
+    await window.GameModules.storage.open(slot); await this.loadWritingStyles();
     this.started = false;
     this.turn = 1;
     this.log = [];

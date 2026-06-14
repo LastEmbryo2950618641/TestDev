@@ -196,6 +196,34 @@
     linear-gradient(135deg, #2bdc9f, #3d6bff 58%, #7df3ff);
 }
 
+.save-icon .app-glyph {
+  background:
+    radial-gradient(circle at 28% 22%, rgba(255, 255, 255, .42), transparent 24%),
+    linear-gradient(135deg, #ffcb66, #ff7d6b 58%, #9d6bff);
+}
+
+.save-app-screen {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(42px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  background: radial-gradient(circle at 30% 12%, rgba(255, 203, 102, .22), transparent 30%), linear-gradient(145deg, #10172d, #070914 60%, #17112c);
+}
+
+.save-app-card {
+  width: min(560px, 100%);
+  max-height: calc(100dvh - 36px);
+}
+
+.save-app-card header {
+  align-items: flex-start;
+}
+
+.save-app-card header div {
+  display: grid;
+  gap: 3px;
+}
+
 .desktop-app-icon b {
   max-width: 88px;
   color: #fff;

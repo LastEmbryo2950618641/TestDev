@@ -121,7 +121,7 @@ window.GameModules.playerIdentityActions = {
   },
 
   async openIdentityApp(targetId = 'player-self') {
-    this.wechatAppOpen = false;
+    this.wechatAppOpen = false; this.saveAppOpen = false;
     if (this.companyState) this.companyState.open = false;
     if (this.bossState) this.bossState.open = false;
     if (this.calendarState) this.calendarState.open = false;
@@ -140,7 +140,7 @@ window.GameModules.playerIdentityActions = {
   },
 
   openWechatApp() {
-    this.identityAppOpen = false;
+    this.identityAppOpen = false; this.saveAppOpen = false;
     if (this.companyState) this.companyState.open = false;
     if (this.bossState) this.bossState.open = false;
     if (this.calendarState) this.calendarState.open = false;
@@ -153,13 +153,9 @@ window.GameModules.playerIdentityActions = {
     this.wechatView = this.wechatView || 'home';
   },
 
-  closeIdentityApp() {
-    this.closeAppToDesktop();
-  },
+  closeIdentityApp() { this.closeAppToDesktop(); },
 
-  closeWechatApp() {
-    this.closeAppToDesktop();
-  },
+  closeWechatApp() { this.closeAppToDesktop(); },
 
   ensureWechatId() {
     if (!this.playerProfile.wechatId) {

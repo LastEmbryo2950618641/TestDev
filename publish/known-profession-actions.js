@@ -9,6 +9,7 @@ window.GameModules.knownProfessionActions = {
     this.initKnownProfessionApp();
     this.identityAppOpen = false;
     this.wechatAppOpen = false;
+    this.saveAppOpen = false;
     if (this.companyState) this.companyState.open = false;
     if (this.bossState) this.bossState.open = false;
     if (this.calendarState) this.calendarState.open = false;

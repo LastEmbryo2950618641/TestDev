@@ -8,7 +8,7 @@ window.GameModules.config = {
   cache: {
     enabled: false,
     // 只控制可重新计算/重新读取的缓存；存档、角色记忆、当前运行状态不受影响。
-    scopes: { files: true, catalog: true, characterProfiles: true, generatedLore: true, generatedSchema: true, generatedProfiles: true },
+    scopes: { files: true, catalog: true, promptTemplates: true, characterProfiles: true, generatedLore: true, generatedSchema: true, generatedProfiles: true },
   },
   assetEnv: 'dev',
   assetRoots: {

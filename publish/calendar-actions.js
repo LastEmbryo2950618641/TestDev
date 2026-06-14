@@ -13,6 +13,7 @@ window.GameModules.calendarActions = {
     this.initCalendar();
     this.identityAppOpen = false;
     this.wechatAppOpen = false;
+    this.saveAppOpen = false;
     if (this.companyState) this.companyState.open = false;
     if (this.bossState) this.bossState.open = false;
     if (this.factionState) this.factionState.open = false;

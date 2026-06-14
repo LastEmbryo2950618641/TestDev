@@ -87,9 +87,9 @@ window.GameModules.rag = {
   async fetchText(url) {
     const useCache = window.GameModules.cache.enabled('files');
     if (useCache && this.fileCache[url] !== undefined) return this.fileCache[url];
-    const cached = await this.fetchCachedText(url);
+    const cached = useCache ? await this.fetchCachedText(url) : null;
     if (cached !== null) {
-      if (useCache) this.fileCache[url] = cached;
+      this.fileCache[url] = cached;
       return cached;
     }
     let text = '';

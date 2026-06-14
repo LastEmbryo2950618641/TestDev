@@ -13,31 +13,40 @@ window.GameModules.appSwitchActions = {
     this.setDesktopPage(this.desktopPage + (dx < 0 ? 1 : -1));
   },
 
-  closeAppToDesktop() {
-    this.desktopUnlocked = false;
+  closeDesktopApps() {
     this.identityAppOpen = false;
     this.wechatAppOpen = false;
+    this.saveAppOpen = false;
+    this.savePanelOpen = false;
     if (this.companyState) this.companyState.open = false;
     if (this.bossState) this.bossState.open = false;
     if (this.calendarState) this.calendarState.open = false;
     if (this.factionState) this.factionState.open = false;
-    if (this.skillsState) this.skillsState.open = false;
-    if (this.knownProfessionState) this.knownProfessionState.open = false;
-    if (this.promptState) this.promptState.open = false;
-    if (this.tokenStatsState) this.tokenStatsState.open = false;
+    if (this.skillsState) Object.assign(this.skillsState, { open: false, detailOpen: false });
+    if (this.knownProfessionState) Object.assign(this.knownProfessionState, { open: false, detailOpen: false });
+    if (this.promptState) Object.assign(this.promptState, { open: false, selectedId: '', selectedText: '', loading: false });
+    if (this.tokenStatsState) Object.assign(this.tokenStatsState, { open: false, selectedId: '' });
+  },
+
+  closeAppToDesktop() {
+    this.desktopUnlocked = false;
+    this.closeDesktopApps();
   },
 
   openDesktopApp() {
-    this.identityAppOpen = false;
-    this.wechatAppOpen = false;
-    if (this.companyState) this.companyState.open = false;
-    if (this.bossState) this.bossState.open = false;
-    if (this.calendarState) this.calendarState.open = false;
-    if (this.factionState) this.factionState.open = false;
-    if (this.skillsState) this.skillsState.open = false;
-    if (this.knownProfessionState) this.knownProfessionState.open = false;
-    if (this.promptState) this.promptState.open = false;
-    if (this.tokenStatsState) this.tokenStatsState.open = false;
+    this.closeDesktopApps();
     this.desktopUnlocked = true;
+  },
+
+  openSaveApp() {
+    this.closeDesktopApps();
+    this.saveAppOpen = true;
+    this.desktopUnlocked = true;
+    this.refreshSaveMetas?.();
+  },
+
+  closeSaveApp() {
+    this.saveAppOpen = false;
+    this.closeAppToDesktop();
   },
 };

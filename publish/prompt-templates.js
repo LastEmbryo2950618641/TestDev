@@ -28,16 +28,18 @@ window.GameModules.promptTemplates = {
   async load(id) {
     const item = this.find(id);
     if (!item) return '';
-    if (this.cache[item.id]) return this.cache[item.id];
+    const useCache = window.GameModules.cache?.enabled?.('promptTemplates');
+    if (useCache && this.cache[item.id]) return this.cache[item.id];
     if (this.inline?.[item.id]) {
-      this.cache[item.id] = this.inline[item.id];
-      return this.cache[item.id];
+      if (useCache) this.cache[item.id] = this.inline[item.id];
+      return this.inline[item.id];
     }
     try {
       const res = await fetch(item.file);
       if (!res.ok) throw new Error(`模板读取失败：${item.file}`);
-      this.cache[item.id] = await res.text();
-      return this.cache[item.id];
+      const text = await res.text();
+      if (useCache) this.cache[item.id] = text;
+      return text;
     } catch (err) {
       console.error('提示词模板读取失败:', item.file, err.message, err.stack);
       throw err;

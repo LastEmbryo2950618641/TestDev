@@ -24,10 +24,11 @@ Object.assign(window.GameModules.rag, {
   },
 
   async loadSourceCache(source) {
-    if (this.sourceCache[source.name]) return this.sourceCache[source.name];
+    const useCache = window.GameModules.cache.enabled('files');
+    if (useCache && this.sourceCache[source.name]) return this.sourceCache[source.name];
     const embedded = this.embeddedSourceCache(source);
     if (embedded) {
-      this.sourceCache[source.name] = embedded;
+      if (useCache) this.sourceCache[source.name] = embedded;
       return embedded;
     }
     for (const url of this.cacheUrlCandidates(source.cache)) {
@@ -36,13 +37,13 @@ Object.assign(window.GameModules.rag, {
         const res = await fetch(encodeURI(url));
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        this.sourceCache[source.name] = data;
+        if (useCache) this.sourceCache[source.name] = data;
         return data;
       } catch (err) {
         console.warn('资料快照读取失败:', source.name, url, err.message);
       }
     }
-    this.sourceCache[source.name] = null;
+    if (useCache) this.sourceCache[source.name] = null;
     return null;
   },
 
