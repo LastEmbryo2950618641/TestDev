@@ -5,16 +5,19 @@ window.GameModules.tokenStats = {
   seq: 0,
   maxRecords: 120,
   defaultState() { return { open: false, query: '', category: '', selectedId: '' }; },
+  estimateCredits(tokens) { return Math.max(1, Math.ceil((Number(tokens) || 0) / 1000)); },
   record(promptId, text) {
     if (!promptId) return text;
     const item = window.GameModules.promptTemplates?.find?.(promptId);
     const createdAt = Date.now();
     const fullText = String(text || '');
+    const tokens = window.GameModules.characterMemory?.estimateTokens?.(fullText) || Math.ceil(fullText.length / 2);
     const record = {
       id: `${createdAt}-${++this.seq}-${promptId}`,
       promptId,
       text: fullText,
-      tokens: window.GameModules.characterMemory?.estimateTokens?.(fullText) || Math.ceil(fullText.length / 2),
+      tokens,
+      credits: this.estimateCredits(tokens),
       title: item?.title || promptId,
       category: item?.category || '未分类',
       summary: item?.summary || '',
@@ -63,5 +66,5 @@ window.GameModules.tokenStatsActions = {
   closeTokenPromptDetail() { if (this.tokenStatsState) this.tokenStatsState.selectedId = ''; },
   currentTokenPromptRecord() { return window.GameModules.tokenStats.item(this.tokenStatsState?.selectedId); },
   tokenPromptText(id) { return window.GameModules.tokenStats.item(id)?.text || '暂无请求记录。先触发对应 AI 生成流程后，这里会显示变量已替换的完整提示词。'; },
-  tokenPromptTokenText(id) { const stat = window.GameModules.tokenStats.item(id); return stat ? `${stat.tokens} token` : '未生成'; },
+  tokenPromptCostText(id) { const stat = window.GameModules.tokenStats.item(id); return stat ? `${stat.tokens} token｜约 ${stat.credits} 积分` : '未生成'; },
 };
