@@ -153,7 +153,7 @@
 3. 只有百分之百确认该角色拥有职业时，才返回 job 且 jobConfirmed=true。
 4. 不确定时 job 为空字符串，jobConfirmed=false，但仍必须通过 factions 写出住址、家庭、社区、社交圈或特殊处境；如存在公司/学校/部门等层级势力，则通过 forcePositions 写出其势力地位。
 5. 职业一旦提出会落库固化，所以不能为了丰富人物而硬造职业。
-6. rank 表示首要势力地位，来自 forcePositions[0].position；如果没有层级势力地位，rank 可以为空。
+6. rank 只是兼容字段，来自 forcePositions[0].position；正式展示统一以 forcePositions 势力地位列表为准。
 
 ## 世界属性规则
 
@@ -222,12 +222,12 @@ worldValues 只返回有明确依据的字段：{世界字段}。
 - detail：个人背景，说明生活处境、经历、与上下文的联系，不写外貌和性格长段。
 - appearance：外貌词条，描述可见外观、气质、穿着、体态或辨识特征；没有证据时根据世界观克制生成。
 - personality：性格词条，描述稳定性格、处事方式、关系边界和心理倾向；必须与上下文证据一致。
-- faction：首要社群名称，来自 factions[0].faction；不要写“无”，除非确实没有任何社群归属。
+- faction：兼容字段，取 factions[0].faction；界面统一展示 factions 为“社群角色”，不要把它当作独立展示词条。
 - factions：社群角色数组，每项含 faction 与 role，表示“社群 / 角色”；必须尽可能补全居住社区、家庭、社交圈、临时群体等必要信息。
 - forcePositions：势力地位数组，每项含 force 与 position，表示“势力 / 地位”；填写有等级制度、组织层级、职级、年级、职位划分的公司、学校、部门或组织。
 - job：确认职业；无可靠依据则空字符串。
 - jobConfirmed：职业是否确认。
-- rank：首要势力地位，来自 forcePositions[0].position；没有层级势力地位时可为空。
+- rank：兼容字段，来自 forcePositions[0].position；界面统一展示 forcePositions 为“势力地位”，不要把它当作独立展示词条。
 - skills：可确认技能数组，每项含 name 和 desc。
 - equipment：初始装备数组，每项含 name、description、equipSlots。
 - items：初始物品数组，每项含 name、description、quantity，可装备物也要含 equipSlots。
@@ -238,5 +238,5 @@ worldValues 只返回有明确依据的字段：{世界字段}。
 ## 返回 JSON 结构
 
 ```json
-{"name":"姓名","gender":"性别","relationships":"妹妹：姓名；父亲：姓名","role":"身份","detail":"个人背景，必须说明住址/学校/工作/特殊处境的推断依据","appearance":"外貌","personality":"性格","faction":"首要社群","factions":[{"faction":"锦苑小区3栋2单元601号","role":"居民"},{"faction":"刘悠家庭","role":"同居妹妹"}],"forcePositions":[{"force":"成都市第七中学","position":"高三学生"},{"force":"成都星河云栈科技有限公司","position":"软件工程师"}],"job":"职业，无法可靠判断则空字符串","jobConfirmed":false,"rank":"首要势力地位","skills":[{"name":"技能","desc":"说明"}],"equipment":[{"name":"手机","description":"日常通讯工具","equipSlots":["装备"]}],"items":[{"name":"钥匙","description":"住所门钥匙","quantity":1}],"wearing":[{"slot":"上衣","name":"日常上衣","description":"当前穿着"},{"slot":"鞋子","name":"运动鞋","description":"当前穿着"}],"worldValues":{"字段key":"该人物固化取值"},"initialMetrics":{"emotions":[{"key":"担忧","value":40,"status":"当前状态","reason":"原因"}],"playerFeelings":[{"key":"亲情","value":85,"status":"当前状态","reason":"原因"}]}}
+{"name":"姓名","gender":"性别","relationships":"妹妹：姓名；父亲：姓名","role":"身份","detail":"个人背景，必须说明住址/学校/工作/特殊处境的推断依据","appearance":"外貌","personality":"性格","faction":"社群名称","factions":[{"faction":"锦苑小区3栋2单元601号","role":"居民"},{"faction":"刘悠家庭","role":"同居妹妹"}],"forcePositions":[{"force":"成都市第七中学","position":"高三学生"},{"force":"成都星河云栈科技有限公司","position":"软件工程师"}],"job":"职业，无法可靠判断则空字符串","jobConfirmed":false,"rank":"首要势力地位","skills":[{"name":"技能","desc":"说明"}],"equipment":[{"name":"手机","description":"日常通讯工具","equipSlots":["装备"]}],"items":[{"name":"钥匙","description":"住所门钥匙","quantity":1}],"wearing":[{"slot":"上衣","name":"日常上衣","description":"当前穿着"},{"slot":"鞋子","name":"运动鞋","description":"当前穿着"}],"worldValues":{"字段key":"该人物固化取值"},"initialMetrics":{"emotions":[{"key":"担忧","value":40,"status":"当前状态","reason":"原因"}],"playerFeelings":[{"key":"亲情","value":85,"status":"当前状态","reason":"原因"}]}}
 ```

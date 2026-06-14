@@ -52,9 +52,7 @@ window.GameModules.playerIdentityActions = {
       row('role', '身份', p.role, '角色卡固化身份。'),
       row('appearance', '外貌', p.appearance, '角色卡固化外貌。'),
       row('personality', '性格', p.personality, '角色卡固化性格。'),
-      row('faction', '首要社群', p.faction, '角色当前主要社群或社会位置。'),
       row('job', '职业', p.job, '角色真实职业、训练身份或社会功能。'),
-      row('rank', '首要势力地位', p.rank, '角色在首要势力中的地位、职级或职位。'),
     ];
   },
 
