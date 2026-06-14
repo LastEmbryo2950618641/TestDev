@@ -6,19 +6,32 @@ window.GameModules = window.GameModules || {};
 window.GameModules.sqliteSave = {
   SQL: null,
   db: null,
+  fallback: false,
+  fallbackState: null,
   activeSlot: 'slot-1',
 
   async init() {
-    if (this.SQL) return this.SQL;
-    if (!window.initSqlJs) throw new Error('sql.js 未加载');
-    this.SQL = await window.initSqlJs({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/${f}` });
-    return this.SQL;
+    if (this.SQL || this.fallback) return this.SQL;
+    try {
+      if (!window.initSqlJs) throw new Error('sql.js 未加载');
+      this.SQL = await window.initSqlJs({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/${f}` });
+      return this.SQL;
+    } catch (err) {
+      console.warn('SQLite 初始化失败，改用基础 JSON 存档:', err.message, err.stack);
+      this.fallback = true;
+      return null;
+    }
   },
 
   async open(slot) {
-    await this.init();
     this.activeSlot = slot || this.activeSlot;
+    await this.init();
     const raw = await this.readRaw(this.activeSlot);
+    if (this.fallback) {
+      this.db = null;
+      this.fallbackState = this.readFallbackState(raw);
+      return;
+    }
     this.db = raw ? new this.SQL.Database(this.fromBase64(raw)) : new this.SQL.Database();
     this.migrate();
     await this.persist();
@@ -28,6 +41,10 @@ window.GameModules.sqliteSave = {
     await this.init();
     const raw = await this.readRaw(slot);
     if (!raw) return { slot, exists: false, savedAt: '' };
+    if (this.fallback) {
+      const state = this.readFallbackState(raw);
+      return { slot, exists: Boolean(state?.main), savedAt: state?.updatedAt || '' };
+    }
     const db = new this.SQL.Database(this.fromBase64(raw));
     let savedAt = '';
     try {
@@ -88,11 +105,26 @@ window.GameModules.sqliteSave = {
   },
 
   async persist() {
+    if (this.fallback) {
+      await this.writeRaw(this.activeSlot, JSON.stringify(this.fallbackState || { version: 1, main: null, updatedAt: '' }));
+      return;
+    }
     if (!this.db) return;
     await this.writeRaw(this.activeSlot, this.toBase64(this.db.export()));
   },
 
+  readFallbackState(raw) {
+    if (!raw) return { version: 1, main: null, updatedAt: '' };
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? { version: 1, main: parsed.main || null, updatedAt: parsed.updatedAt || '' } : { version: 1, main: null, updatedAt: '' };
+    } catch (_) {
+      return { version: 1, main: null, updatedAt: '' };
+    }
+  },
+
   getJson(sql, params = []) {
+    if (!this.db) return null;
     const stmt = this.db.prepare(sql);
     stmt.bind(params);
     const row = stmt.step() ? stmt.getAsObject() : null;
@@ -101,16 +133,24 @@ window.GameModules.sqliteSave = {
   },
 
   async saveGameState(value) {
-    this.db.run('INSERT OR REPLACE INTO game_state(key,value,updated_at) VALUES (?,?,?)', ['main', JSON.stringify(value), new Date().toISOString()]);
+    const now = new Date().toISOString();
+    if (this.fallback) {
+      this.fallbackState = { ...(this.fallbackState || {}), version: 1, main: value, updatedAt: now };
+      await this.persist();
+      return;
+    }
+    this.db.run('INSERT OR REPLACE INTO game_state(key,value,updated_at) VALUES (?,?,?)', ['main', JSON.stringify(value), now]);
     await this.persist();
   },
 
   loadGameState() {
+    if (this.fallback) return this.fallbackState?.main || null;
     if (!this.db) return null;
     return this.getJson('SELECT value FROM game_state WHERE key=?', ['main']);
   },
 
   getMetaJson(key) {
+    if (this.fallback) return null;
     if (!this.db) return null;
     const stmt = this.db.prepare('SELECT value FROM metadata WHERE key=?');
     stmt.bind([key]);
@@ -138,6 +178,7 @@ window.GameModules.sqliteSave = {
   },
 
   async saveWorldLore(worldTag, lore) {
+    if (!this.db) return;
     const now = new Date().toISOString();
     this.db.run(
       'INSERT OR REPLACE INTO world_lore(world_tag,lore_json,created_at,updated_at) VALUES (?,?,COALESCE((SELECT created_at FROM world_lore WHERE world_tag=?),?),?)',
@@ -152,6 +193,7 @@ window.GameModules.sqliteSave = {
   },
 
   async saveSchema(worldTag, schema) {
+    if (!this.db) return;
     this.db.run('INSERT OR REPLACE INTO rpg_schema(world_tag,schema_json,created_at) VALUES (?,?,?)', [worldTag, JSON.stringify(schema), new Date().toISOString()]);
     await this.persist();
   },
@@ -170,6 +212,7 @@ window.GameModules.sqliteSave = {
 
 
   async saveCharacterState(character) {
+    if (!this.db || !character) return;
     const now = new Date().toISOString();
     await this.saveCharacterWorld(character.id, character.worldTag);
     this.db.run(

@@ -8,6 +8,7 @@ Object.assign(window.GameModules.sqliteSave, {
   },
 
   async saveWorldAttributes(worldTag, attrs) {
+    if (!this.db) return;
     const now = new Date().toISOString();
     this.db.run(
       'INSERT OR REPLACE INTO world_attributes(world_tag,attrs_json,source,created_at,updated_at) VALUES (?,?,?,COALESCE((SELECT created_at FROM world_attributes WHERE world_tag=?),?),?)',
@@ -26,6 +27,7 @@ Object.assign(window.GameModules.sqliteSave, {
   },
 
   async saveCharacterWorld(characterId, worldTag) {
+    if (!this.db) return;
     this.db.run('INSERT OR REPLACE INTO character_world(character_id,world_tag,updated_at) VALUES (?,?,?)', [characterId, worldTag, new Date().toISOString()]);
     await this.persist();
   },
@@ -35,6 +37,7 @@ Object.assign(window.GameModules.sqliteSave, {
   },
 
   async saveProfessionInfo(worldTag, info) {
+    if (!this.db || !info) return;
     const now = new Date().toISOString();
     this.db.run(
       'INSERT OR REPLACE INTO profession_info(world_tag,name,info_json,created_at,updated_at) VALUES (?,?,?,COALESCE((SELECT created_at FROM profession_info WHERE world_tag=? AND name=?),?),?)',
@@ -48,6 +51,7 @@ Object.assign(window.GameModules.sqliteSave, {
   },
 
   async saveLexiconEntry(entry) {
+    if (!this.db || !entry) return;
     const now = new Date().toISOString();
     this.db.run(
       'INSERT OR REPLACE INTO lexicon_entries(world_tag,kind,name,entry_json,source,created_at,updated_at) VALUES (?,?,?,?,?,COALESCE((SELECT created_at FROM lexicon_entries WHERE world_tag=? AND kind=? AND name=?),?),?)',

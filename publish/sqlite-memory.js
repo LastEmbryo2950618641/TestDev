@@ -8,6 +8,7 @@ Object.assign(window.GameModules.sqliteSave, {
   },
 
   async saveCharacterMemory(characterId, memory) {
+    if (!this.db) return;
     this.db.run('INSERT OR REPLACE INTO character_memory(character_id,memory_json,updated_at) VALUES (?,?,?)', [characterId, JSON.stringify(memory), new Date().toISOString()]);
     await this.persist();
   },
@@ -25,6 +26,7 @@ Object.assign(window.GameModules.sqliteSave, {
   },
 
   async saveMemoryArchive(characterId, item) {
+    if (!this.db || !item) return;
     this.db.run(
       'INSERT OR REPLACE INTO memory_archive(id,character_id,text,vector_json,meta_json,created_at) VALUES (?,?,?,?,?,?)',
       [item.id, characterId, item.text, JSON.stringify(item.vector), JSON.stringify(item.meta || {}), item.createdAt || new Date().toISOString()],
