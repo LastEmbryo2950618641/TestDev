@@ -27,16 +27,30 @@ window.GameModules.rpgProfessionState = {
       detail: character?.detail || state.profile?.detail,
       skills: state.values.skills,
       knowledge: state.values.knowledge,
-      intrinsicStats: 'strength、agility、constitution、intelligence、perception、willpower、charisma、learning_ability、mental_stability、action_ability',
+      intrinsicStats: 'strength(力量)、agility(敏捷)、constitution(体质)、intelligence(智力)、perception(感知)、willpower(意志)、charisma(魅力)',
       worldFields,
     });
     if (!info) return false;
-    const before = JSON.stringify(job.info || null);
+    const before = JSON.stringify({ info: job.info || null, skills: state.values.skills, knowledge: state.values.knowledge });
     job.name = info.name;
     job.info = info;
     job.linkedStats = info.intrinsicStats;
     job.levelDescription = info.levelDescription || job.levelDescription;
     job.effect = info.effect || job.effect;
-    return before !== JSON.stringify(info);
+    this.ensurePrerequisites(state, info);
+    return before !== JSON.stringify({ info, skills: state.values.skills, knowledge: state.values.knowledge });
+  },
+
+  ensurePrerequisites(state, info) {
+    const p = window.GameModules.progression;
+    const has = (list, name) => (list || []).some((item) => String(item?.name || item).includes(name) || name.includes(String(item?.name || item)));
+    state.values.skills = state.values.skills || [];
+    state.values.knowledge = state.values.knowledge || [];
+    for (const name of info.learnedAbilities || []) {
+      if (!has(state.values.skills, name)) state.values.skills.push(p.learned(name, '技能', 1, info.intrinsicStats, `${info.name}职业前置技能。`));
+    }
+    for (const name of info.knowledgeAreas || []) {
+      if (!has(state.values.knowledge, name)) state.values.knowledge.push(p.learned(name, '知识', 1, info.intrinsicStats, `${info.name}职业前置知识。`));
+    }
   },
 };

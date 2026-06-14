@@ -15,7 +15,13 @@ window.GameModules.professionInfo = {
     if (!jobName) return null;
     const save = window.GameModules.sqliteSave;
     const existing = save.getProfessionInfo?.(worldTag, jobName);
-    if (existing) return existing;
+    if (existing) {
+      const normalized = this.validate({ ...existing, confirmed: true }, worldTag, existing.name || jobName, context);
+      if (normalized) {
+        if (JSON.stringify(normalized) !== JSON.stringify(existing)) await save.saveProfessionInfo?.(worldTag, normalized);
+        return normalized;
+      }
+    }
     const key = `${worldTag}::${jobName}`;
     if (!this.pending[key]) this.pending[key] = this.createAndSave(worldTag, jobName, context);
     try { return await this.pending[key]; }
@@ -26,7 +32,7 @@ window.GameModules.professionInfo = {
     const info = await this.generate(worldTag, jobName, context);
     if (!info) return null;
     await window.GameModules.sqliteSave.saveProfessionInfo?.(worldTag, info);
-    await window.GameModules.rpgLexicon.save(worldTag, '职业', info.name, { summary: info.summary, description: info.description, nameAiGenerated: true, valueAiGenerated: true, changeMode: 'AI演算', related: [...info.intrinsicStats, ...info.learnedAbilities, ...info.worldAbilities], meta: { info }, source: 'ai' });
+    await window.GameModules.rpgLexicon.save(worldTag, '职业', info.name, { summary: info.summary, description: info.description, nameAiGenerated: true, valueAiGenerated: true, changeMode: 'AI演算', related: [...info.intrinsicStats, ...info.learnedAbilities, ...info.knowledgeAreas, ...info.worldAbilities], meta: { info }, source: 'ai' });
     return info;
   },
 
@@ -39,7 +45,7 @@ window.GameModules.professionInfo = {
         maxTokens: 900,
         prompt,
         format: prompt,
-        validate: (raw) => this.validate(raw, worldTag, name),
+        validate: (raw) => this.validate(raw, worldTag, name, context),
       });
     } catch (err) {
       console.error('职业资料生成失败，等待重新生成:', err.message, err.stack);
@@ -56,22 +62,26 @@ window.GameModules.professionInfo = {
       角色: context.characterName || '',
       身份: context.role || '',
       背景: context.detail || '',
-      身内能力候选: context.intrinsicStats || 'strength、agility、constitution、intelligence、perception、willpower、charisma、learning_ability、mental_stability、action_ability',
+      身内能力候选: context.intrinsicStats || 'strength(力量)、agility(敏捷)、constitution(体质)、intelligence(智力)、perception(感知)、willpower(意志)、charisma(魅力)',
       世界专属能力候选: fields,
       技能候选: list(context.skills),
       知识储备候选: list(context.knowledge),
     });
   },
 
-  validate(raw, worldTag, name) {
+  validate(raw, worldTag, name, context = {}) {
     if (!raw || typeof raw !== 'object' || raw.confirmed !== true) return null;
     const arr = (value) => (Array.isArray(value) ? value : []).slice(0, 6).map((x) => String(x).slice(0, 24)).filter(Boolean);
     const cleanName = this.normalizeJobName(raw.name || name);
-    const intrinsicStats = arr(raw.intrinsicStats);
-    const learnedAbilities = arr(raw.learnedAbilities);
-    const knowledgeAreas = arr(raw.knowledgeAreas);
-    const worldAbilities = arr(raw.worldAbilities);
+    const intrinsicStats = this.pickIntrinsic(arr(raw.intrinsicStats));
+    const learnedAbilities = this.ensureList(arr(raw.learnedAbilities), context.skills);
+    const knowledgeAreas = this.ensureList(arr(raw.knowledgeAreas), context.knowledge);
+    const worldAbilities = this.pickWorldAbilities(arr(raw.worldAbilities), context.worldFields);
     if (!cleanName || !raw.summary || !raw.description || !intrinsicStats.length || !learnedAbilities.length || !knowledgeAreas.length) return null;
+    const reqStats = this.pickIntrinsic(arr(raw.requirements?.intrinsicStats?.length ? raw.requirements.intrinsicStats : intrinsicStats));
+    const reqSkills = this.ensureList(arr(raw.requirements?.learnedAbilities?.length ? raw.requirements.learnedAbilities : learnedAbilities), context.skills);
+    const reqKnowledge = this.ensureList(arr(raw.requirements?.knowledgeAreas?.length ? raw.requirements.knowledgeAreas : knowledgeAreas), context.knowledge);
+    if (!reqStats.length || !reqSkills.length || !reqKnowledge.length) return null;
     return {
       worldTag,
       name: cleanName,
@@ -84,12 +94,28 @@ window.GameModules.professionInfo = {
       knowledgeAreas,
       worldAbilities,
       requirements: {
-        intrinsicStats: arr(raw.requirements?.intrinsicStats || intrinsicStats),
-        worldAbilities: arr(raw.requirements?.worldAbilities || worldAbilities),
-        learnedAbilities: arr(raw.requirements?.learnedAbilities || learnedAbilities),
-        knowledgeAreas: arr(raw.requirements?.knowledgeAreas || knowledgeAreas),
+        intrinsicStats: reqStats,
+        worldAbilities: this.pickWorldAbilities(arr(raw.requirements?.worldAbilities?.length ? raw.requirements.worldAbilities : worldAbilities), context.worldFields),
+        learnedAbilities: reqSkills,
+        knowledgeAreas: reqKnowledge,
         reason: String(raw.requirements?.reason || '满足该职业lv.1所需基础构成。').slice(0, 120),
       },
     };
+  },
+
+  pickIntrinsic(items) {
+    const allowed = ['strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma'];
+    return items.filter((x) => allowed.includes(x)).slice(0, 4);
+  },
+
+  pickWorldAbilities(items, fields = []) {
+    const keys = new Set((fields || []).flatMap((x) => [x.key, x.label].filter(Boolean).map(String)));
+    return items.filter((x) => keys.has(x)).slice(0, 4);
+  },
+
+  ensureList(items, candidates = []) {
+    const names = (candidates || []).map((x) => String(x?.name || x || '').trim()).filter(Boolean);
+    const matched = names.filter((name) => items.some((item) => name.includes(item) || item.includes(name)));
+    return [...new Set([...items, ...matched])].slice(0, 6);
   },
 };

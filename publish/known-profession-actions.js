@@ -74,12 +74,17 @@ window.GameModules.knownProfessionActions = {
     if (!job) return '';
     const req = job.requirements || job;
     return [
-      `身内能力：${(req.intrinsicStats || []).join('、') || '无'}`,
+      `身内能力：${this.statLabels(req.intrinsicStats).join('、') || '无'}`,
       `世界专属能力：${(req.worldAbilities || []).join('、') || '无'}`,
       `技能：${(req.learnedAbilities || []).join('、') || '无'}`,
       `知识储备：${(req.knowledgeAreas || []).join('、') || '无'}`,
       req.reason ? `原因：${req.reason}` : '',
     ].filter(Boolean).join('\n');
+  },
+
+  statLabels(keys = []) {
+    const map = { strength: '力量', agility: '敏捷', constitution: '体质', intelligence: '智力', perception: '感知', willpower: '意志', charisma: '魅力' };
+    return (keys || []).map((key) => map[key] || key);
   },
 
   professionExamResult(job) {
@@ -97,6 +102,7 @@ window.GameModules.knownProfessionActions = {
   async addProfessionToPlayer(job) {
     const state = await this.ensurePlayerRpgState?.(true);
     if (!state?.values || !job?.name) return false;
+    window.GameModules.rpgProfessionState.ensurePrerequisites(state, job);
     const result = this.professionExamResult(job);
     if (!result.pass) {
       this.knownProfessionState.message = `考核未通过：缺少 ${[...result.missingStats, ...result.missingWorld, ...result.missingSkills, ...result.missingKnowledge].join('、')}`;

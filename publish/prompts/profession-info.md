@@ -34,14 +34,13 @@
 
 ## 职业构成规则
 
-1. confirmed=true 时，intrinsicStats、learnedAbilities、knowledgeAreas 三类都至少返回 1 项。
-2. worldAbilities 只在当前世界确实存在专属能力体系时返回；现实世界没有灵力、魔力、查克拉等，就不得创建这些世界能力。
-3. 每一项构成都必须与职业强相关，不能为了凑数塞无关词条。
-4. 优先使用“当前词条候选区”已有名称；候选不足时可以创建新技能或知识，但必须符合世界观。
-5. 身内能力只能使用通用身体/心智/行动能力 key，例如 strength、agility、constitution、intelligence、perception、willpower、charisma、learning_ability、mental_stability、action_ability。
-6. learnedAbilities 是可训练、可考核、可升级的技能名。
-7. knowledgeAreas 是职业需要掌握的知识储备名。
-8. requirements 描述 lv.1 考核最低要求，必须包含 intrinsicStats、worldAbilities、learnedAbilities、knowledgeAreas 四个数组；没有世界专属能力时 worldAbilities 为空数组并说明原因。
+1. confirmed=true 时，requirements 必须有三类非空前置：身内能力、技能、知识储备；若世界专属能力候选非“无”，还必须从候选中选出强相关世界专属能力。
+2. 每一项都必须与职业强相关；优先使用当前词条候选区已有名称，候选不足时才创建最合适的新技能或知识。
+3. 身内能力只能从七个固定 key 中选择：strength(力量)、agility(敏捷)、constitution(体质)、intelligence(智力)、perception(感知)、willpower(意志)、charisma(魅力)；返回 JSON 时只写英文 key，不要返回学习能力、精神稳定、行动能力或中文名。
+4. worldAbilities 只能使用世界专属能力候选中的 key 或名称；现实世界候选为“无”时返回 []，不得创建灵力、魔力等不属于该世界的能力。
+5. learnedAbilities 是可训练、可考核、可升级的技能名，至少 1 项。
+6. knowledgeAreas 是职业需要掌握的知识储备名，至少 1 项。
+7. requirements 描述 lv.1 考核最低要求，必须包含 intrinsicStats、worldAbilities、learnedAbilities、knowledgeAreas 四个数组。
 
 ## 字段生成规则
 
@@ -50,10 +49,10 @@
 3. description：120字内详细介绍。
 4. levelDescription：lv.1 代表的职责、熟练度或资格。
 5. effect：lv.1 在剧情判定、资源、社会承认或行动中的实际作用。
-6. intrinsicStats：该职业天然依赖或强化的身内能力 key，至少 1 项。
-7. learnedAbilities：通过职业训练学会的技能名，至少 1 项。
-8. knowledgeAreas：该职业必须具备的知识储备名，至少 1 项。
-9. worldAbilities：与世界专属能力字段相关的字段 key 或能力名；不存在合理世界专属能力时返回 []。
+6. intrinsicStats：该职业天然依赖或强化的七项身内能力 key，至少 1 项且只能使用固定 key。
+7. learnedAbilities：通过职业训练学会的技能名，至少 1 项；优先复用已有技能，缺失时创建最贴切的新技能。
+8. knowledgeAreas：该职业必须具备的知识储备名，至少 1 项；优先复用已有知识，缺失时创建最贴切的新知识。
+9. worldAbilities：与世界专属能力字段相关的字段 key 或能力名；有候选且强相关时至少 1 项，无候选或不相关时返回 []。
 10. requirements：职业 lv.1 考核要求，供已知职业 APP 对比玩家/角色能力。
 
 ## 输出规则
