@@ -13,6 +13,7 @@
 .faction-modal-backdrop { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); background: rgba(0,0,0,.58); backdrop-filter: blur(10px); }
 .faction-detail { width: min(760px, 100%); max-height: min(720px, 90dvh); min-height: 0; display: grid; align-content: start; gap: 8px; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; padding: 14px; border: 1px solid rgba(98,255,184,.28); border-radius: 22px; background: rgba(7,18,25,.96); box-shadow: 0 26px 90px rgba(0,0,0,.45); }
 .faction-row, .faction-panel { padding: 12px; border: 1px solid rgba(255,255,255,.12); border-radius: 16px; background: rgba(255,255,255,.06); color: #eef4ff; }
+.faction-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .faction-row { text-align: left; display: grid; gap: 4px; cursor: pointer; touch-action: manipulation; }
 .faction-row.active { border-color: rgba(98,255,184,.72); box-shadow: 0 0 0 2px rgba(98,255,184,.12); }
 .faction-row em { justify-self: start; color: #62ffb8; font-size: 12px; font-style: normal; font-weight: 900; }
@@ -22,6 +23,16 @@
 .faction-structure article { padding: 10px; border-radius: 12px; background: rgba(255,255,255,.055); }
 .faction-structure h4 { margin: 0 0 6px; }
 .faction-note { color: #aeb9d6; font-size: 12px; font-weight: 800; }
+.faction-org-modal { width: min(860px, 100%); max-height: min(760px, 90dvh); display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; overflow: hidden; padding: 14px; border: 1px solid rgba(98,255,184,.28); border-radius: 22px; background: rgba(7,18,25,.98); box-shadow: 0 26px 90px rgba(0,0,0,.45); }
+.faction-org-scroll { min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 8px; }
+.faction-tree, .faction-tree ul { margin: 0; padding-left: 26px; list-style: none; position: relative; }
+.faction-tree ul::before { content: ''; position: absolute; left: 10px; top: 0; bottom: 14px; border-left: 1px solid rgba(98,255,184,.34); }
+.faction-tree li { position: relative; padding: 7px 0 7px 14px; }
+.faction-tree li::before { content: ''; position: absolute; left: 0; top: 26px; width: 14px; border-top: 1px solid rgba(98,255,184,.34); }
+.faction-tree > li::before { display: none; }
+.faction-tree-node { min-width: 220px; display: inline-grid; gap: 4px; padding: 10px 12px; border: 1px solid rgba(98,255,184,.22); border-radius: 14px; background: rgba(255,255,255,.07); color: #eef4ff; }
+.faction-tree-node.root { border-color: rgba(98,255,184,.62); background: rgba(98,255,184,.12); }
+.faction-tree-node small { color: #aeb9d6; }
 .faction-reasons { display: grid; gap: 8px; }
 .faction-reasons p { margin: 0; padding: 8px; border-radius: 10px; background: rgba(255,255,255,.045); }
 .faction-reasons b { display: block; color: #eafff5; margin-bottom: 4px; }

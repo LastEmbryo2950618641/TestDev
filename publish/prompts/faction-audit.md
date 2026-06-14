@@ -46,7 +46,7 @@ id,name,type,parentId,parentName,level,location,domain,scale,stance,influence,de
 - stance：对玩家或当前局势的态度。
 - influence：影响力描述。
 - description：势力概要。
-- structure：数组项为 {name,roles}。
+- structure：必须是可画树状组织架构图的数组，数组项为 {name,roles}；name 写层级/部门/节点名，roles 写该节点职责或职位列表。
 - rules：内部规则。
 - resources：资源。
 - relations：数组项为 {target,relation,detail}。
@@ -58,6 +58,7 @@ id,name,type,parentId,parentName,level,location,domain,scale,stance,influence,de
 2. 数据库已有势力不能随意重写；发现不同处只能调整或增加，并且每个被调整/新增词条必须在 fieldReasons 里给合理理由。
 3. 全量检视每个势力，每个词条都必须有理由；无变化也说明为什么保持。
 4. 保留国家与当前公司，公司归属于国家。
+5. 每个势力都必须尽量补齐 structure；国家可写中央/地方/基层层级，公司可写管理/业务/支持部门，学校可写校级/年级/班级。
 
 ## 玩家资料
 

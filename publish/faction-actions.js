@@ -38,6 +38,7 @@ window.GameModules.factionActions = {
     if (this.factionState) {
       this.factionState.open = false;
       this.factionState.detailOpen = false;
+      this.factionState.orgChartOpen = false;
     }
     this.closeAppToDesktop();
   },
@@ -56,6 +57,23 @@ window.GameModules.factionActions = {
   closeFactionDetail() {
     if (!this.factionState) return;
     this.factionState.detailOpen = false;
+    this.factionState.orgChartOpen = false;
+  },
+
+  openFactionOrgChart() {
+    if (!this.factionState) this.initFactionSystem();
+    this.factionState.orgChartOpen = true;
+  },
+
+  closeFactionOrgChart() {
+    if (this.factionState) this.factionState.orgChartOpen = false;
+  },
+
+  factionOrgNodes() {
+    const faction = this.selectedFaction();
+    const nodes = (faction?.structure || []).map((node, index) => ({ key: `s-${index}-${node.name}`, name: node.name, roles: (node.roles || []).join('、') || '职责未记录' }));
+    const children = this.factionChildren(faction?.id).map((child) => ({ key: `c-${child.id}`, name: child.name, roles: `${child.type}｜${child.level}` }));
+    return [...nodes, ...children];
   },
 
   factionParentName(faction) {
