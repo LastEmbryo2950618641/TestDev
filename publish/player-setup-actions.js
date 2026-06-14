@@ -88,7 +88,14 @@ window.GameModules.playerSetupActions = {
       this.setupError = '';
       const base = this.normalizePlayerSetupBase(name, birthday);
       let enriched = null;
-      if (!options.skipAi) enriched = await this.enrichPlayerProfile(base);
+      if (!options.skipAi) {
+        try {
+          enriched = await this.enrichPlayerProfile(base);
+        } catch (err) {
+          console.warn('[玩家身份] AI补全失败，使用本地兜底:', err.code, err.message, err.stack);
+          enriched = this.recoverEnrichedPlayerProfile(err.rawOutput, base);
+        }
+      }
       this.playerProfile = this.normalizeEnrichedPlayerProfile(base, enriched);
       this.phoneFixedTime = new Date(this.playerProfile.initializedAt || Date.now()).getTime();
       await this.syncPlayerProfileLexicon();
@@ -135,6 +142,26 @@ window.GameModules.playerSetupActions = {
     ]);
   },
 
+  recoverEnrichedPlayerProfile(raw, base) {
+    const text = String(raw || '');
+    const pick = (key) => window.GameModules.jsonUtils.pickStringField(text, key);
+    return {
+      refinedCity: pick('refinedCity') || base.city,
+      refinedRole: pick('refinedRole') || base.dailyRole,
+      workplace: pick('workplace') || base.workplace,
+      position: pick('position') || base.position,
+      refinedLivingStatus: pick('refinedLivingStatus') || base.livingStatus,
+      relationships: pick('relationships') || base.relationships,
+      parentStatus: pick('parentStatus') || base.parents,
+      parentDeathCause: pick('parentDeathCause'),
+      worldbuildingNote: pick('worldbuildingNote') || base.notes,
+      knownProfessions: pick('knownProfessions'),
+      equipment: this.recoverCarryArray(text, 'equipment'),
+      items: this.recoverCarryArray(text, 'items'),
+      wearing: this.recoverWearingArray(text),
+    };
+  },
+
   normalizeEnrichedPlayerProfile(base, data = {}) {
     const city = this.ensurePreciseAddress(data?.refinedCity || base.city);
     const role = String(data?.refinedRole || this.fallbackRefinedRole(base.dailyRole, base.age, city)).slice(0, 80);
@@ -178,14 +205,29 @@ window.GameModules.playerSetupActions = {
     })).filter((item) => item.name).slice(0, 5);
   },
 
+  recoverCarryArray(text, key) {
+    const names = window.GameModules.jsonUtils.pickObjectArrayNames(text, key);
+    return names.map((name) => ({ name }));
+  },
+
+  recoverWearingArray(text) {
+    const names = window.GameModules.jsonUtils.pickObjectArrayNames(text, 'wearing');
+    return names.map((name, index) => ({ slot: index === 0 ? '上衣' : '装备', name }));
+  },
+
   normalizeCarryHints(value, kind) {
     const list = Array.isArray(value) ? value : String(value || '').split(/[、,，;；\n]+/).map((name) => ({ name }));
     return list.map((item) => window.GameModules.progression.normalizeCarryItem(item, kind)).filter((item) => item.name && item.name !== '未命名物品').slice(0, 20);
   },
 
   normalizeWearingHints(value) {
-    const list = Array.isArray(value) ? value : [];
-    return list.map((item) => ({ slot: String(item?.slot || '').slice(0, 12), name: String(item?.name || '未穿戴').slice(0, 32), type: '穿着', description: String(item?.description || '').slice(0, 80), level: -1 })).filter((item) => item.slot);
+    const raw = Array.isArray(value) ? value : String(value || '').split(/[、,，;；\n]+/).map((name) => ({ name }));
+    const p = window.GameModules.progression;
+    return raw.map((item, index) => {
+      const name = String(item?.name || item || '未穿戴').slice(0, 32);
+      const slot = String(item?.slot || p.inferEquipSlots?.({ name }, '装备')?.[0] || (index === 0 ? '上衣' : '装备')).slice(0, 12);
+      return { slot, name, type: '穿着', description: String(item?.description || '').slice(0, 80), level: -1 };
+    }).filter((item) => item.slot && item.name !== '未穿戴');
   },
 
   async syncKnownProfessionsFromProfile(items) {

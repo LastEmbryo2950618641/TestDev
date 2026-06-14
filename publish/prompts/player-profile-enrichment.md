@@ -105,12 +105,12 @@
 
 ### 10. 初始装备 / 物品 / 穿着
 
-1. equipment 返回数组，每项包含 name、description、equipSlots；装备是重要工具或可装备物，equipSlots 可写身体槽位或“装备”。
-2. items 返回数组，每项包含 name、description、quantity；物品是普通持有物或消耗品。
-3. wearing 返回数组，每项包含 slot、name、description；只返回实际穿戴或携带在槽位上的项目。
-4. 可用穿着槽位：内衣、上衣、内裤、下衣、袜子、鞋子、外套、手套、头部、颈部、腰部、包具、饰品、装备。饰品和装备可以不写数字，系统会自动分配饰品1、装备1等槽位。
+1. 为降低 JSON 出错率，equipment、items、wearing 都必须返回字符串，不要返回数组或对象。
+2. equipment 写重要工具或可装备物名称，多个用中文顿号分隔，例如“手机、双肩包、手表”。
+3. items 写普通持有物或消耗品名称，多个用中文顿号分隔，例如“钥匙、钱包、身份证件”。
+4. wearing 写当前实际穿戴名称，多个用中文顿号分隔，例如“日常上衣、长裤、运动鞋”。
 5. 不要生成夸张武器；现代现实默认手机、钥匙、钱包、身份证件、日常衣物、背包、眼镜、手表等。
-6. 每件可装备/可穿戴物必须标明能装备到哪个部位；不可穿戴普通物品可省略 equipSlots。
+6. 系统会根据名称自动推断可装备部位并绑定穿着槽位。
 
 ## JSON 输出硬性规则
 
@@ -118,11 +118,11 @@
 2. 整个 JSON 必须是一行；所有 key 和字符串必须使用英文双引号。
 3. 每个字段之间必须用英文逗号分隔；最后一个字段后不能有逗号。
 4. 字符串里不要直接写未转义的英文双引号；需要引用时改用中文引号或省略引号。
-5. knownProfessions 必须是字符串，不要写数组、对象、方括号或大括号；多个职业用中文顿号分隔。
+5. knownProfessions、equipment、items、wearing 必须是字符串，不要写数组、对象、方括号或大括号；多个项目用中文顿号分隔。
 6. 如果无法确认已知职业，knownProfessions 返回空字符串 ""，不要省略字段。
 
 ## 返回字段
 
 ```json
-{"refinedCity":"省市区县镇街道小区楼栋门牌","refinedRole":"更具体身份","workplace":"根据职业生成的公司/学校/组织","position":"根据职业生成的职位/身份层级","refinedLivingStatus":"更具体居住状态","relationships":"妹妹：姓名；父亲：姓名","parentStatus":"父母状态","parentDeathCause":"父母去世原因或空","worldbuildingNote":"60字内现实背景补充","knownProfessions":"后端工程师、软件工程师","equipment":[{"name":"手机","description":"日常通讯与异常APP载体","equipSlots":["装备"]}],"items":[{"name":"钥匙","description":"住所门钥匙","quantity":1}],"wearing":[{"slot":"上衣","name":"日常上衣","description":"当前穿着"},{"slot":"下衣","name":"日常长裤","description":"当前穿着"}]}
+{"refinedCity":"省市区县镇街道小区楼栋门牌","refinedRole":"更具体身份","workplace":"根据职业生成的公司/学校/组织","position":"根据职业生成的职位/身份层级","refinedLivingStatus":"更具体居住状态","relationships":"妹妹：姓名；父亲：姓名","parentStatus":"父母状态","parentDeathCause":"父母去世原因或空","worldbuildingNote":"60字内现实背景补充","knownProfessions":"后端工程师、软件工程师","equipment":"手机、双肩包、手表","items":"钥匙、钱包、身份证件","wearing":"日常上衣、长裤、运动鞋"}
 ```

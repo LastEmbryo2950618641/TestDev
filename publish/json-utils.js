@@ -135,7 +135,8 @@ window.GameModules.jsonUtils = {
   },
 
   pickStringField(text, key) {
-    const next = 'thinking|narration|speech|mind|mood|quest|characterIntent|controlFeeling|controlExperienceSummary|choices|metricUpdates|appearedCharacters|statChanges|combatEvent|elapsedSeconds|trust|resistance|controlAdaptation';
+    const playerNext = 'refinedCity|refinedRole|workplace|position|refinedLivingStatus|relationships|parentStatus|parentDeathCause|worldbuildingNote|knownProfessions|equipment|items|wearing|profileEnrichedAt';
+    const next = `thinking|narration|speech|mind|mood|quest|characterIntent|controlFeeling|controlExperienceSummary|choices|metricUpdates|appearedCharacters|statChanges|combatEvent|elapsedSeconds|trust|resistance|controlAdaptation|${playerNext}`;
     const match = text.match(new RegExp(`"${key}"\\s*:\\s*"([\\s\\S]*?)(?:"\\s*,\\s*"(?:${next})"\\s*:|"\\s+"(?:${next})"\\s*:|"\\s*[,}])`));
     return match ? match[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').trim() : '';
   },
@@ -144,5 +145,11 @@ window.GameModules.jsonUtils = {
     const match = text.match(new RegExp(`"${key}"\\s*:\\s*\\[([\\s\\S]*?)(?:\\]|$)`));
     if (!match) return [];
     return Array.from(match[1].matchAll(/"([^"\\]*(?:\\.[^"\\]*)*)"/g)).map((x) => x[1].replace(/\\"/g, '"').trim()).filter(Boolean).slice(0, 4);
+  },
+
+  pickObjectArrayNames(text, key) {
+    const match = String(text || '').match(new RegExp(`"${key}"\\s*:\\s*\\[([\\s\\S]*?)(?:\\]\\s*,\\s*"|\\]\\s*}|$)`));
+    if (!match) return [];
+    return Array.from(match[1].matchAll(/"name"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/g)).map((x) => x[1].replace(/\\"/g, '"').trim()).filter(Boolean).slice(0, 12);
   },
 };
