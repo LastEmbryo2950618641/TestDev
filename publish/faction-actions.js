@@ -42,11 +42,12 @@ window.GameModules.factionActions = {
   },
 
   selectedFaction() {
-    this.initFactionSystem();
+    if (!this.factionState) this.initFactionSystem();
     return this.factionState.factions.find((x) => x.id === this.factionState.selectedId) || this.factionState.factions[0];
   },
 
   selectFaction(id) {
+    if (!this.factionState) this.initFactionSystem();
     this.factionState.selectedId = id;
     this.factionState.detailOpen = true;
   },

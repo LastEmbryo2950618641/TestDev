@@ -670,7 +670,7 @@
         <section class="faction-list dev-section" data-section-title="势力列表区">
           <p class="faction-note" x-show="$store.game.factionState.error" x-text="$store.game.factionState.error"></p>
           <template x-for="faction in $store.game.factionState.factions" :key="faction.id">
-            <button class="faction-row" type="button" :class="{ active: $store.game.selectedFaction()?.id === faction.id }" @click="$store.game.selectFaction(faction.id)"><strong x-text="faction.name"></strong><small x-text="`${faction.type}｜${faction.level}｜归属：${$store.game.factionParentName(faction)}`"></small></button>
+            <button class="faction-row" type="button" :class="{ active: $store.game.selectedFaction()?.id === faction.id }" @click.stop="$store.game.selectFaction(faction.id)" @keydown.enter.prevent="$store.game.selectFaction(faction.id)"><strong x-text="faction.name"></strong><small x-text="`${faction.type}｜${faction.level}｜归属：${$store.game.factionParentName(faction)}`"></small><em>点击查看详情</em></button>
           </template>
         </section>
         <section class="faction-modal-backdrop" x-show="$store.game.factionState?.detailOpen" @click.self="$store.game.closeFactionDetail()" x-cloak>

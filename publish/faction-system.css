@@ -13,8 +13,9 @@
 .faction-modal-backdrop { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); background: rgba(0,0,0,.58); backdrop-filter: blur(10px); }
 .faction-detail { width: min(760px, 100%); max-height: min(720px, 90dvh); min-height: 0; display: grid; align-content: start; gap: 8px; overflow-y: auto; overscroll-behavior: contain; padding: 14px; border: 1px solid rgba(98,255,184,.28); border-radius: 22px; background: rgba(7,18,25,.96); box-shadow: 0 26px 90px rgba(0,0,0,.45); }
 .faction-row, .faction-panel { padding: 12px; border: 1px solid rgba(255,255,255,.12); border-radius: 16px; background: rgba(255,255,255,.06); color: #eef4ff; }
-.faction-row { text-align: left; display: grid; gap: 4px; }
+.faction-row { text-align: left; display: grid; gap: 4px; cursor: pointer; touch-action: manipulation; }
 .faction-row.active { border-color: rgba(98,255,184,.72); box-shadow: 0 0 0 2px rgba(98,255,184,.12); }
+.faction-row em { justify-self: start; color: #62ffb8; font-size: 12px; font-style: normal; font-weight: 900; }
 .faction-row small, .faction-panel p, .faction-panel li { color: #aeb9d6; line-height: 1.45; }
 .faction-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .faction-structure { display: grid; gap: 8px; }
