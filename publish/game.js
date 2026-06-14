@@ -16,7 +16,7 @@ document.addEventListener('alpine:init', () => {
   const gm = window.GameModules;
   const modules = [
     gm.actions, gm.rpgFieldUi, gm.resultActions, gm.loadingActions, gm.saveActions, gm.styleActions,
-    gm.worldlineActions, gm.playerSetupActions, gm.playerIdentityActions, gm.wechatActions, gm.entryActions,
+    gm.worldlineActions, gm.playerSetupActions, gm.playerIdentityActions, gm.wechatActions, gm.wechatChatActions, gm.entryActions,
     gm.coreActions, gm.appSwitchActions, gm.inventoryActions, gm.realWorldActions, gm.companyActions, gm.companyAttendanceActions,
     gm.bossActions, gm.bossAiActions, gm.calendarActions, gm.factionActions, gm.factionAiActions, gm.skillsActions, gm.knownProfessionActions, gm.promptActions, gm.tokenStatsActions,
   ].map((module) => module || {});
@@ -25,7 +25,7 @@ document.addEventListener('alpine:init', () => {
     loading: true, loadingStep: '等待平台连接',
     loadingDetail: '首次进入或存档较大时会更慢，这是正常现象。',
     loadingStages: [], entryStages: [],
-    busy: false, started: false, desktopUnlocked: false, desktopPage: 0, desktopSwipeStart: null, entrySetupOpen: false, identityAppOpen: false, wechatAppOpen: false, identityTargetId: 'player-self', wechatSelectedContact: 'player-self', wechatTab: 'chats', wechatView: 'home', wechatInput: '', wechatUsers: [], wechatAddName: '', wechatAddRelation: '',
+    busy: false, started: false, desktopUnlocked: false, desktopPage: 0, desktopSwipeStart: null, entrySetupOpen: false, identityAppOpen: false, wechatAppOpen: false, identityTargetId: 'player-self', wechatSelectedContact: 'player-self', wechatTab: 'chats', wechatView: 'home', wechatInput: '', wechatSending: false, wechatError: '', wechatReplyRequestId: 0, wechatMessagesByContact: {}, wechatUsers: [], wechatAddName: '', wechatAddRelation: '',
     initPromise: null, phoneSetupDone: false, phoneActivationChoice: '', profileSetupBusy: false, setupError: '', phoneFixedTime: 0, phoneClockTimer: null, existingProfileExpanded: false,
     knownProfessionState: { open: false, query: '', message: '', selectedName: '', detailOpen: false },
     playerProfile: { name: '', gender: '', birthday: '', age: '', city: '', refinedCity: '', dailyRole: '', refinedRole: '', livingStatus: '', refinedLivingStatus: '', relationships: '', parents: '', parentStatus: '', parentDeathCause: '', worldbuildingNote: '', notes: '', knownProfessions: [], wechatId: '', profileEnrichedAt: '', initializedAt: '' }, playerName: '',

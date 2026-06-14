@@ -271,6 +271,16 @@
   background: #95ec69;
 }
 
+.wechat-replying,
+.wechat-error {
+  margin: 0;
+  padding: 4px 14px;
+  color: #888;
+  font-size: 12px;
+}
+
+.wechat-error { color: #d4380d; }
+
 .wechat-input {
   display: grid;
   grid-template-columns: 38px 1fr 52px;

@@ -29,6 +29,7 @@ window.GameModules.storage = {
       playerProfile: store.playerProfile,
       playerName: store.playerName,
       wechatUsers: store.wechatUsers || [],
+      wechatMessagesByContact: store.wechatMessagesByContact || {},
       phoneFixedTime: store.phoneFixedTime,
       selectedSlot: store.selectedSlot,
       selectedWork: store.selectedWork,
@@ -76,6 +77,7 @@ window.GameModules.storage = {
     store.playerProfile = { ...store.playerProfile, ...(save.playerProfile || {}) };
     store.playerName = save.playerName || store.playerProfile?.name || store.playerName;
     store.wechatUsers = Array.isArray(save.wechatUsers) ? save.wechatUsers : (store.wechatUsers || []);
+    store.wechatMessagesByContact = save.wechatMessagesByContact && typeof save.wechatMessagesByContact === 'object' ? save.wechatMessagesByContact : (store.wechatMessagesByContact || {});
     store.realWorldSceneTitle = save.realWorldSceneTitle || store.realWorldSceneTitle;
     store.realWorldLocationName = save.realWorldLocationName || store.realWorldLocationName;
     store.realWorldMap = save.realWorldMap || store.realWorldMap;
