@@ -31,12 +31,16 @@ window.GameModules.inventoryActions = {
     return [item.kind || item.type, item.slot, slots, item.quantity ? `数量${item.quantity}` : '', item.description, item.source, item.changeMode].filter(Boolean).join('｜') || '暂无详细说明';
   },
 
+  isEmptyWear(item) {
+    return !item?.name || item.name === '未穿戴' || item.name === '未记录';
+  },
+
   wearingName(item) {
-    return item?.name && item.name !== '未穿戴' ? item.name : '未穿戴';
+    return this.isEmptyWear(item) ? '未穿戴' : item.name;
   },
 
   wearingDetail(item) {
-    if (!item?.name || item.name === '未穿戴') return '该槽位暂无已记录穿着。';
+    if (this.isEmptyWear(item)) return '该槽位当前未穿戴，表示对应部位空置；基础衣物缺失只应出现在特殊情况。';
     return [item.type || '穿着', item.description, item.source].filter(Boolean).join('｜');
   },
 
@@ -53,7 +57,7 @@ window.GameModules.inventoryActions = {
     const raw = String(slot || '装备').trim();
     const base = p.slotBase(raw);
     const dynamic = ['饰品', '装备'].includes(base) && !/\d+$/.test(raw);
-    const empty = (item) => !item?.name || item.name === '未穿戴';
+    const empty = (item) => !item?.name || this.isEmptyWear(item);
     let target = !alwaysNew && dynamic ? values.wearing.find((item) => p.slotBase(item.slot) === base && empty(item))?.slot : '';
     target = target || (dynamic || alwaysNew ? p.nextSlot(values.wearing, base) : raw);
     if (!values.wearing.some((item) => item.slot === target)) values.wearing.push({ slot: target, name: '未穿戴', type: '穿着', description: '玩家或AI新增的可穿戴槽位。', level: -1 });
