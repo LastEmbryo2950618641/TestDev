@@ -300,13 +300,43 @@
           <strong>现实世界推演：手机已收起</strong>
           <span class="real-world-clock" x-text="`${$store.game.phoneDateText()} ${$store.game.phoneTimeText()}`"></span>
         </div>
-        <div class="top-actions real-world-actions" x-data="{ open: false }" @click.outside="open = false">
-          <button type="button" @click="open = !open">功能</button>
-          <div class="real-world-action-menu" x-show="open" x-cloak>
-            <button type="button" @click="open = false; $store.game.closeRealWorldPanel()">展开手机</button>
-          </div>
+        <div class="top-actions real-world-actions">
+          <button type="button" @click="$store.game.openRealWorldFunctionPanel()">功能</button>
         </div>
       </header>
+
+      <section class="real-world-function-backdrop" x-show="$store.game.realWorldFunctionOpen" @click.self="$store.game.closeRealWorldFunctionPanel()" @keydown.escape.window="$store.game.closeRealWorldFunctionPanel()" x-cloak>
+        <article class="real-world-function-modal dev-section" data-section-title="现实功能弹窗" role="dialog" aria-modal="true" @click.stop>
+          <header class="identity-header">
+            <div>
+              <p class="eyebrow" x-text="$store.game.realWorldFunctionView === 'inventory' ? 'INVENTORY' : 'REAL WORLD' "></p>
+              <h3 x-text="$store.game.realWorldFunctionView === 'inventory' ? '背包' : '现实功能' "></h3>
+              <small x-text="$store.game.realWorldFunctionView === 'inventory' ? '查看玩家本人当前持有或可调用的重要装备。' : '选择现实世界中要执行的功能。' "></small>
+            </div>
+            <button class="small-btn" type="button" @click.stop="$store.game.closeRealWorldFunctionPanel()">关闭</button>
+          </header>
+          <div class="real-world-function-body" x-show="$store.game.realWorldFunctionView === 'menu'">
+            <button class="real-world-function-option" type="button" @click="$store.game.openPhoneFromRealWorld()">
+              <strong>拿出手机</strong>
+              <small>回到手机桌面，继续使用各个 APP。</small>
+            </button>
+            <button class="real-world-function-option" type="button" @click="$store.game.openRealWorldFunctionPanel('inventory')">
+              <strong>背包</strong>
+              <small>查看当前装备、物品与可调用资源。</small>
+            </button>
+          </div>
+          <div class="real-world-inventory" x-show="$store.game.realWorldFunctionView === 'inventory'">
+            <button class="small-btn" type="button" @click="$store.game.realWorldFunctionView = 'menu'">返回功能</button>
+            <template x-for="(item, index) in $store.game.realWorldInventoryItems()" :key="`inventory-${$store.game.realWorldInventoryName(item)}:${index}`">
+              <article class="real-world-inventory-item">
+                <strong x-text="$store.game.realWorldInventoryName(item)"></strong>
+                <small x-text="$store.game.realWorldInventoryDetail(item)"></small>
+              </article>
+            </template>
+            <p class="real-world-empty" x-show="!$store.game.realWorldInventoryItems().length">背包暂无物品。</p>
+          </div>
+        </article>
+      </section>
 
       <section class="rpg-layout real-world-layout">
         <aside class="panel character-panel dev-section" :class="{ 'real-world-profile-collapsed': !$store.game.realWorldProfileOpen }" data-section-title="现实身份侧栏">

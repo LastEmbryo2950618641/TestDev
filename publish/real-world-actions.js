@@ -44,6 +44,36 @@ window.GameModules.realWorldActions = {
 
   closeRealWorldPanel() {
     this.realWorldOpen = false;
+    this.realWorldFunctionOpen = false;
+  },
+
+  openRealWorldFunctionPanel(view = 'menu') {
+    this.realWorldFunctionView = view;
+    this.realWorldFunctionOpen = true;
+  },
+
+  closeRealWorldFunctionPanel() {
+    this.realWorldFunctionOpen = false;
+    this.realWorldFunctionView = 'menu';
+  },
+
+  openPhoneFromRealWorld() {
+    this.realWorldFunctionOpen = false;
+    this.closeRealWorldPanel();
+  },
+
+  realWorldInventoryItems() {
+    const items = this.playerIdentityState()?.values?.equipment || [];
+    return Array.isArray(items) ? items : [];
+  },
+
+  realWorldInventoryName(item) {
+    return String(item?.name || item || '未命名物品');
+  },
+
+  realWorldInventoryDetail(item) {
+    if (!item || typeof item === 'string') return '暂无详细说明';
+    return [item.description, item.source, item.changeMode].filter(Boolean).join('｜') || '暂无详细说明';
   },
 
   seedRealWorldLog() {
