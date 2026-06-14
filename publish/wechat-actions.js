@@ -49,6 +49,12 @@ window.GameModules.wechatActions = {
 
   async ensureWechatUserProfile(contact) {
     if (!contact || contact.group) return null;
+    this.wechatProfileInflight = this.wechatProfileInflight || {};
+    if (this.wechatProfileInflight[contact.id]) return this.wechatProfileInflight[contact.id];
+    return this.wechatProfileInflight[contact.id] = this.ensureWechatUserProfileRun(contact).finally(() => { delete this.wechatProfileInflight[contact.id]; });
+  },
+
+  async ensureWechatUserProfileRun(contact) {
     const existing = this.rpgStates?.[contact.id] || window.GameModules.sqliteSave.getCharacterState(contact.id);
     const existingName = existing?.profile?.name || '';
     const profileNameMissing = !window.GameModules.characterProfile.isConcreteName(existingName);
@@ -69,7 +75,8 @@ window.GameModules.wechatActions = {
     const profile = await window.GameModules.characterProfile.ensure(raw, this, context);
     const state = await window.GameModules.rpgState.ensureCharacter(profile, this);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
-    this.syncWechatContactProfileName(contact.id, state.profile || profile);
+    const renamed = this.syncWechatContactProfileName(contact.id, state.profile || profile);
+    if (renamed) await this.save?.();
     return state;
   },
 

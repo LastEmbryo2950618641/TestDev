@@ -133,9 +133,11 @@ window.GameModules.playerIdentityActions = {
     this.desktopUnlocked = true;
     if (this.identityTargetId === 'player-self') await this.ensurePlayerRpgState();
     else if (!this.rpgStates[this.identityTargetId] && this.identityTargetId === this.character.id) await this.ensureRpgForCurrentCharacter();
-    else if (!this.rpgStates[this.identityTargetId]) {
+    else {
       const contact = (this.wechatUsers || []).find((item) => item.id === this.identityTargetId);
-      if (contact) await this.ensureWechatUserProfile?.(contact);
+      const profile = this.rpgStates[this.identityTargetId]?.profile;
+      const needsProfileRefresh = contact && !window.GameModules.characterProfile.isConcreteName(profile?.name);
+      if (contact && (!this.rpgStates[this.identityTargetId] || needsProfileRefresh)) await this.ensureWechatUserProfile?.(contact);
     }
   },
 

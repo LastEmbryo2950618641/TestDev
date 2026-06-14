@@ -3,6 +3,11 @@ window.GameModules = window.GameModules || {};
 window.GameModules.wechatChatActions = {
   selectWechatContact(id) {
     this.wechatSelectedContact = id || this.wechatThreads()[0]?.id || 'player-self';
+    const selected = (this.wechatUsers || []).find((item) => item.id === this.wechatSelectedContact);
+    const profile = this.rpgStates?.[this.wechatSelectedContact]?.profile;
+    if (selected && !window.GameModules.characterProfile.isConcreteName(profile?.name)) {
+      this.ensureWechatUserProfile?.(selected).then(() => this.save?.()).catch((err) => console.warn('[微信] 选中联系人资料补全失败:', err.code, err.message, err.stack));
+    }
     const renamed = this.syncWechatContactsFromRpgStates?.();
     this.wechatUsers = (this.wechatUsers || []).map((item) => item.id === this.wechatSelectedContact ? { ...item, unread: 0 } : item);
     this.wechatView = 'chat';
