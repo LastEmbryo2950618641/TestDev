@@ -37,10 +37,13 @@ window.GameModules.realWorldActions = {
   },
 
   openRealWorldPanel() {
-    window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
+    const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
     this.realWorldOpen = true;
     this.checkWorkReminder?.();
-    if (!this.realWorldLog.length) this.seedRealWorldLog();
+    if (!this.realWorldLog.length) {
+      if (map.current) this.seedRealWorldLog();
+      else this.submitRealWorldAction('根据我的现实资料确认当前所在的具体地点，并建立电子地图根节点');
+    }
   },
 
   closeRealWorldPanel() {
@@ -97,9 +100,10 @@ window.GameModules.realWorldActions = {
 
   seedRealWorldLog() {
     const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
+    if (!map.current) return;
     this.realWorldLog = [{
       id: this.nextId++, type: 'system', locationName: map.current,
-      narration: `你把手机屏幕压暗，现实世界的声音重新浮上来。${this.playerProfile?.refinedLivingStatus || '你的住处'}仍保持着原本的秩序，但那台新手机带来的异常感并没有消失。`,
+      narration: `你把手机屏幕压暗，现实世界的声音重新浮上来。${map.current}仍保持着原本的秩序，但那台新手机带来的异常感并没有消失。`,
       thinking: '现实世界推演已接入玩家本人资料，只追踪手机外的现实行动。',
     }];
   },

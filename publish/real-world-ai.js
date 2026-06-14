@@ -37,7 +37,7 @@ window.GameModules.realWorldAi = {
       const data = window.GameModules.jsonUtils.parseLoose(content);
       return {
         sceneTitle: String(data.sceneTitle || '现实世界').slice(0, 14),
-        locationName: String(data.locationName || store.realWorldLocationName || data.sceneTitle || '现实地点').slice(0, 28),
+        locationName: this.normalizeLocationName(data.locationName || store.realWorldLocationName),
         parentLocationName: String(data.parentLocationName || data.parentLocation || '').slice(0, 28),
         locationDescription: String(data.locationDescription || data.locationSummary || '').slice(0, 160),
         mapNodes: Array.isArray(data.mapNodes) ? data.mapNodes.slice(0, 8) : [],
@@ -56,6 +56,11 @@ window.GameModules.realWorldAi = {
     }
   },
 
+  normalizeLocationName(value) {
+    const name = String(value || '').trim().slice(0, 28);
+    return /^(玩家住处|住处|现实地点|当前位置|未知地点|现实起点)$/u.test(name) || /现实起点$/u.test(name) ? '' : name;
+  },
+
   normalizeChoices(value) {
     const list = Array.isArray(value) ? value : [];
     return [...new Set(list.map((x) => String(x || '').trim().slice(0, 14)).filter(Boolean).concat(['观察手机异常', '处理现实事务', '联系熟人', '暂时休息']))].slice(0, 4);
@@ -65,7 +70,7 @@ window.GameModules.realWorldAi = {
     const text = action || '继续观察现实世界';
     return {
       sceneTitle: store.realWorldSceneTitle || '现实世界',
-      locationName: store.realWorldLocationName || store.realWorldMap?.current || '现实起点',
+      locationName: this.normalizeLocationName(store.realWorldLocationName || store.realWorldMap?.current),
       parentLocationName: '',
       locationDescription: '现实推演暂时无法生成新地点说明，保留当前位置。',
       mapNodes: [],

@@ -6,23 +6,18 @@ window.GameModules = window.GameModules || {};
 window.GameModules.realWorldMap = {
   defaultState(profile = {}) {
     const home = this.inferHomeName(profile);
-    return {
-      current: home,
-      currentId: this.nodeId(home),
-      nodes: [this.makeNode(home, '', this.defaultDescription(home, profile))],
-      edges: [],
-      expanded: { [this.nodeId(home)]: true },
-      infoNodeId: '',
-      lastText: home,
-    };
+    const node = home ? this.makeNode(home, '', this.defaultDescription(home, profile)) : null;
+    return { current: home, currentId: node?.id || '', nodes: node ? [node] : [], edges: [], expanded: node ? { [node.id]: true } : {}, infoNodeId: '', lastText: home };
+  },
+
+  isAbstractName(name) {
+    const text = this.cleanName(name);
+    return !text || /^(玩家住处|住处|现实地点|当前位置|未知地点|现实起点)$/u.test(text) || /现实起点$/u.test(text);
   },
 
   inferHomeName(profile = {}) {
-    const raw = profile.homeLocation || profile.locationName || profile.refinedCity || profile.city || profile.refinedLivingStatus || '';
-    const text = this.cleanName(raw);
-    if (text && !/^(玩家住处|住处|现实地点|当前位置|未知地点)$/u.test(text)) return text;
-    const name = this.cleanName(profile.name || window.GameModules?.config?.playerName || '玩家');
-    return `${name}现实起点`;
+    const candidates = [profile.homeLocation, profile.locationName, profile.refinedCity, profile.city];
+    return candidates.map((x) => this.cleanName(x)).find((x) => !this.isAbstractName(x) && /区|县|镇|街|路|巷|号|栋|楼|室|小区|公寓|学校|公司|工位/u.test(x)) || '';
   },
 
   defaultDescription(name, profile = {}) {
@@ -39,11 +34,12 @@ window.GameModules.realWorldMap = {
   },
 
   nodeId(name) {
-    return `loc_${this.cleanName(name).replace(/[^\w\u4e00-\u9fa5]+/gu, '_') || 'current'}`;
+    return `loc_${this.cleanName(name).replace(/[^\w\u4e00-\u9fa5]+/gu, '_')}`;
   },
 
   makeNode(name, parentId = '', description = '') {
-    const clean = this.cleanName(name) || '现实地点';
+    const clean = this.cleanName(name);
+    if (this.isAbstractName(clean)) return null;
     return { id: this.nodeId(clean), name: clean, parentId, description: this.cleanDescription(description), order: Date.now() };
   },
 
@@ -53,12 +49,19 @@ window.GameModules.realWorldMap = {
     map.expanded = map.expanded && typeof map.expanded === 'object' ? map.expanded : {};
     map.nodes = this.normalizeNodes(map, profile);
     map.edges = Array.isArray(map.edges) ? map.edges : [];
-    const currentName = this.cleanName(map.current || state.realWorldLocationName) || this.inferHomeName(profile);
-    const currentNode = this.upsertNode(map, { name: currentName, description: this.defaultDescription(currentName, profile) });
-    map.current = currentNode.name;
-    map.currentId = currentNode.id;
-    map.expanded[currentNode.id] = true;
-    state.realWorldLocationName = currentNode.name;
+    const inferred = this.inferHomeName(profile);
+    const currentName = this.isAbstractName(map.current || state.realWorldLocationName) ? inferred : this.cleanName(map.current || state.realWorldLocationName);
+    const currentNode = currentName ? this.upsertNode(map, { name: currentName, description: this.defaultDescription(currentName, profile) }) : this.currentNode(map);
+    if (currentNode) {
+      map.current = currentNode.name;
+      map.currentId = currentNode.id;
+      map.expanded[currentNode.id] = true;
+      state.realWorldLocationName = currentNode.name;
+    } else {
+      map.current = '';
+      map.currentId = '';
+      state.realWorldLocationName = '';
+    }
     map.lastText = this.render(map);
     return map;
   },
@@ -68,7 +71,7 @@ window.GameModules.realWorldMap = {
     const nodes = [];
     const add = (node) => {
       const name = this.cleanName(node?.name || node);
-      if (!name) return;
+      if (this.isAbstractName(name)) return;
       const id = node?.id || this.nodeId(name);
       if (nodes.some((item) => item.id === id)) return;
       nodes.push({
@@ -81,7 +84,7 @@ window.GameModules.realWorldMap = {
     };
     existing.forEach(add);
     if (Array.isArray(map.edges)) map.edges.forEach((edge) => { add(edge.from); add(edge.to); });
-    if (!nodes.length) add(this.inferHomeName(profile));
+    if (!nodes.length && this.inferHomeName(profile)) add(this.inferHomeName(profile));
     const ids = new Set(nodes.map((node) => node.id));
     nodes.forEach((node) => { if (node.parentId && !ids.has(node.parentId)) node.parentId = ''; });
     return nodes.slice(-40);
@@ -89,7 +92,9 @@ window.GameModules.realWorldMap = {
 
   update(state, locationName, result = {}) {
     const map = this.ensure(state, state.playerProfile || {});
-    const nextName = this.cleanName(locationName || result.locationName || map.current) || map.current;
+    const rawNext = this.cleanName(locationName || result.locationName || map.current);
+    const nextName = this.isAbstractName(rawNext) ? this.inferHomeName(state.playerProfile || {}) : rawNext;
+    if (!nextName) return map;
     const parentName = this.cleanName(result.parentLocationName || result.parentLocation || '');
     const description = this.cleanDescription(result.locationDescription || result.description, `${nextName}，当前现实行动发生或停留的位置。`);
     const parent = parentName ? this.upsertNode(map, { name: parentName, description: `${parentName}，${nextName} 的上级地点。` }) : this.currentNode(map);
@@ -130,6 +135,7 @@ window.GameModules.realWorldMap = {
     let node = map.nodes.find((item) => item.id === id || item.name === name);
     if (!node) {
       node = this.makeNode(name, data.parentId || '', data.description || `${name}，现实推演记录到的地点。`);
+      if (!node) return null;
       map.nodes.push(node);
     }
     if (data.parentId !== undefined && data.parentId !== node.id) node.parentId = data.parentId;
@@ -178,7 +184,7 @@ window.GameModules.realWorldMap = {
 
   render(map) {
     const rows = this.visibleNodes(map || {});
-    if (!rows.length) return '现实地点';
+    if (!rows.length) return '等待 AI 根据现实上下文生成具体地点';
     return rows.map((node) => `${'  '.repeat(node.depth)}${node.current ? `【${node.name}】` : node.name}`).join('-----');
   },
 };
