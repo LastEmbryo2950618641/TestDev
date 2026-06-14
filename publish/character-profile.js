@@ -74,7 +74,7 @@ window.GameModules.characterProfile = {
       return this.withSignature(await window.GameModules.jsonUtils.generateJsonWithRetry({
         source: 'character-profile-card',
         model: 'nalang-medium-0826',
-        maxTokens: 900,
+        maxTokens: 1600,
         timeoutMs: 90000,
         prompt,
         format: prompt,

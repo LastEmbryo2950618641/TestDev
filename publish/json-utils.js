@@ -54,7 +54,7 @@ window.GameModules.jsonUtils = {
     const start = text.indexOf('{');
     if (start === -1) throw new Error('JSON missing');
     let inString = false; let escaped = false; const stack = [];
-    let out = text.slice(start).replace(/```(?:json)?|```/g, '').trim();
+    let out = this.trimDanglingProperty(text.slice(start).replace(/```(?:json)?|```/g, '').trim());
     for (let i = 0; i < out.length; i += 1) {
       const ch = out[i];
       if (escaped) { escaped = false; continue; }
@@ -67,6 +67,20 @@ window.GameModules.jsonUtils = {
     }
     if (inString) out += '"';
     return out.replace(/,\s*$/, '') + stack.reverse().join('');
+  },
+
+  trimDanglingProperty(text) {
+    let out = String(text || '').trim();
+    for (let i = 0; i < 3; i += 1) {
+      const next = out
+        .replace(/,\s*"[^"\\]*(?:\\.[^"\\]*)*"\s*$/s, '')
+        .replace(/,\s*"[^"\\]*(?:\\.[^"\\]*)*"\s*:\s*$/s, '')
+        .replace(/,\s*"[^"\\]*(?:\\.[^"\\]*)*"\s*:\s*\{\s*$/s, '')
+        .replace(/,\s*"[^"\\]*(?:\\.[^"\\]*)*"\s*:\s*\[\s*$/s, '');
+      if (next === out) break;
+      out = next.trim();
+    }
+    return out;
   },
 
   async generateJsonWithRetry(options) {
@@ -100,7 +114,7 @@ window.GameModules.jsonUtils = {
   },
 
   repairJson(json) {
-    return String(json || '')
+    return this.trimDanglingProperty(String(json || ''))
       .replace(/：/g, ':')
       .replace(/[“”]/g, '"')
       .replace(/[‘’]/g, "'")
@@ -116,6 +130,7 @@ window.GameModules.jsonUtils = {
       .replace(/([}\]])\s+("[A-Za-z_$\u4e00-\u9fa5][\w\u4e00-\u9fa5-]*"\s*:)/g, '$1,$2')
       .replace(/:\s*([}\]])/g, ':null$1')
       .replace(/:\s*null\s*\]/g, ':null}]')
+      .replace(/,\s*"[^"\\]*(?:\\.[^"\\]*)*"\s*([}\]])/g, '$1')
       .replace(/,\s*([}\]])/g, '$1');
   },
 
