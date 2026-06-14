@@ -45,7 +45,7 @@ window.GameModules.wechatActions = {
     this.wechatUsers = (this.wechatUsers || []).map((item) => item.id === id ? { ...item, name, mark: String(name).slice(0, 1), subtitle: item.relation || item.subtitle } : item);
   },
 
-  async addWechatUser(user = {}) {
+  async addWechatUser(user = {}, options = {}) {
     const contact = this.normalizeWechatContact(user);
     if (!contact) return null;
     const list = Array.isArray(this.wechatUsers) ? [...this.wechatUsers] : [];
@@ -53,23 +53,23 @@ window.GameModules.wechatActions = {
     if (index >= 0) list[index] = { ...list[index], ...contact };
     else list.push(contact);
     this.wechatUsers = list;
-    try { await this.ensureWechatUserProfile(contact); } catch (err) { console.warn('[微信] 联系人资料生成失败:', err.code, err.message, err.stack); }
+    if (options.generateProfile) await this.ensureWechatUserProfile(contact);
     await this.save?.();
     return contact;
   },
 
-  async addWechatUsers(users = []) {
+  async addWechatUsers(users = [], options = {}) {
     if (!Array.isArray(users)) return [];
     const added = [];
     for (const user of users) {
-      const contact = await this.addWechatUser(user);
+      const contact = await this.addWechatUser(user, options);
       if (contact) added.push(contact);
     }
     return added;
   },
 
   async submitWechatAddUser() {
-    const contact = await this.addWechatUser({ name: this.wechatAddName, relation: this.wechatAddRelation || '微信联系人', source: 'manual' });
+    const contact = await this.addWechatUser({ name: this.wechatAddName, relation: this.wechatAddRelation || '微信联系人', source: 'manual' }, { generateProfile: true });
     if (!contact) return null;
     this.wechatAddName = '';
     this.wechatAddRelation = '';

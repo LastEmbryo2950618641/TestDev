@@ -92,6 +92,7 @@ window.GameModules.playerSetupActions = {
         try {
           enriched = await this.enrichPlayerProfile(base);
         } catch (err) {
+          if (window.dzmm?.errors?.isDzmmError?.(err)) throw err;
           console.warn('[玩家身份] AI补全失败，使用本地兜底:', err.code, err.message, err.stack);
           enriched = this.recoverEnrichedPlayerProfile(err.rawOutput, base);
         }
@@ -135,7 +136,7 @@ window.GameModules.playerSetupActions = {
 
   async enrichPlayerProfile(base) {
     if (!window.dzmm?.completions) throw new Error('dzmm.completions unavailable');
-    const prompt = await window.GameModules.promptTemplates.render('player-profile-enrichment', { 年龄: base.age, 性别: base.gender || '未填写', 输入: JSON.stringify(base, null, 2) });
+    const prompt = await window.GameModules.promptTemplates.render('player-profile-enrichment', { 年龄: base.age, 性别: base.gender || '未填写', 输入: JSON.stringify(base, null, 2), relationshipRule: base.relationshipRule || '无额外规则。' });
     return await Promise.race([
       window.GameModules.jsonUtils.generateJsonWithRetry({ model: this.modelId, maxTokens: 1200, prompt, format: prompt, max: 2 }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('身份补全超时')), 30000)),
