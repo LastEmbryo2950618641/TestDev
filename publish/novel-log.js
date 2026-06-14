@@ -16,6 +16,8 @@ Object.assign(window.GameModules.actions, {
       speech: '',
       mind: '',
       promptPack: null,
+      characterCardChanges: [],
+      cardChangesOpen: false,
       thinkingOpen: false,
       streaming: true,
     };
@@ -86,6 +88,8 @@ Object.assign(window.GameModules.actions, {
       thinking: this.thinkingMode ? (result.thinking || entry.thinking || '') : '',
       thinkingOpen: false,
       mind: result.mind || '',
+      characterCardChanges: result.characterCardChanges || [],
+      cardChangesOpen: false,
       streaming: false,
     });
     return true;
@@ -96,6 +100,14 @@ Object.assign(window.GameModules.actions, {
     if (!entry) return;
     entry.thinkingOpen = !entry.thinkingOpen;
     this.log = [...this.log];
+  },
+
+  toggleCardChanges(entry) {
+    if (!entry) return;
+    entry.cardChangesOpen = !entry.cardChangesOpen;
+    this.log = [...this.log];
+    this.realWorldLog = [...(this.realWorldLog || [])];
+    this.wechatMessagesByContact = { ...(this.wechatMessagesByContact || {}) };
   },
 
   novelLogEntries() {

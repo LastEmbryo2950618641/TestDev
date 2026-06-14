@@ -16,7 +16,7 @@ document.addEventListener('alpine:init', () => {
   const gm = window.GameModules;
   const modules = [
     gm.actions, gm.rpgFieldUi, gm.resultActions, gm.loadingActions, gm.saveActions, gm.styleActions,
-    gm.worldlineActions, gm.playerSetupActions, gm.playerIdentityActions, gm.wechatActions, gm.wechatChatActions, gm.entryActions,
+    gm.worldlineActions, gm.playerSetupActions, gm.playerIdentityActions, gm.identityMemoryActions, gm.wechatActions, gm.wechatChatActions, gm.entryActions,
     gm.coreActions, gm.appSwitchActions, gm.inventoryActions, gm.realWorldActions, gm.companyActions, gm.companyAttendanceActions,
     gm.bossActions, gm.bossAiActions, gm.calendarActions, gm.factionActions, gm.factionAiActions, gm.skillsActions, gm.knownProfessionActions, gm.promptActions, gm.tokenStatsActions,
   ].map((module) => module || {});
@@ -85,6 +85,7 @@ document.addEventListener('alpine:init', () => {
     rpgPrepareCharacterId: '',
     profileViewMode: 'profile', profileMenuOpen: false, memoryInput: '', memoryArchiveQuery: '', memoryArchiveResults: [],
     realWorldProfileViewMode: 'profile', realWorldProfileMenuOpen: false, realWorldMemoryInput: '', realWorldMemoryArchiveQuery: '', realWorldMemoryArchiveResults: [],
+    identityMemoryViewMode: 'shortTerm', identityMemoryArchiveQuery: '', identityMemoryArchiveResults: [],
     profileOpen: false, metricsOpen: false, identityMetricsOpen: false, feedbackOpen: false,
     promptDialogOpen: false, promptDialogEntry: null, promptDialogTab: 'system',
     sectionHintsEnabled: cfg.sectionHintsEnabled,

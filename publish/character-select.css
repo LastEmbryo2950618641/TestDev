@@ -581,9 +581,36 @@
 }
 
 .memory-editor,
-.memory-list {
+.memory-list,
+.identity-memory-panel {
   display: grid;
   gap: 6px;
+}
+
+.identity-memory-panel {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid rgba(116, 246, 255, .16);
+  border-radius: 14px;
+  background: rgba(9, 18, 36, .56);
+}
+
+.identity-memory-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #dce7ff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.identity-memory-select select {
+  min-height: 30px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .08);
+  color: #f8fbff;
 }
 
 .memory-editor textarea,

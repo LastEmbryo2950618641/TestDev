@@ -52,7 +52,8 @@ window.GameModules.wechatChatActions = {
     try {
       const result = await this.generateWechatReply(contact, playerText);
       if (reqId !== this.wechatReplyRequestId) return;
-      this.appendWechatMessage(contact.id, { side: 'other', name: contact.name, mark: contact.mark, text: result.reply });
+      result.characterCardChanges = await window.GameModules.characterCardLexicon?.applyToState?.(this.rpgStates?.[contact.id], result.lexiconUpdates || []) || [];
+      this.appendWechatMessage(contact.id, { side: 'other', name: contact.name, mark: contact.mark, text: result.reply, characterCardChanges: result.characterCardChanges, cardChangesOpen: false });
       this.advancePhoneTime?.(result.elapsedSeconds || 60);
       await this.save?.();
     } catch (err) {
@@ -116,7 +117,7 @@ window.GameModules.wechatChatActions = {
 
   validateWechatReply(raw, contact) {
     const reply = String(raw?.reply || '').trim().slice(0, 120) || this.fallbackWechatReply(contact, '');
-    return { reply, mood: String(raw?.mood || '平常').slice(0, 20), elapsedSeconds: Math.max(20, Math.min(1800, Number(raw?.elapsedSeconds) || 60)) };
+    return { reply, mood: String(raw?.mood || '平常').slice(0, 20), elapsedSeconds: Math.max(20, Math.min(1800, Number(raw?.elapsedSeconds) || 60)), lexiconUpdates: window.GameModules.ai.normalizeLexiconUpdates?.(raw?.lexiconUpdates, { character: { work: '2026 现代都市现实世界' } }) || [] };
   },
 
   fallbackWechatReply(contact, text) {

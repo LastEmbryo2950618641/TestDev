@@ -1,0 +1,71 @@
+window.GameModules = window.GameModules || {};
+
+window.GameModules.characterCardLexicon = {
+  modifySkillId: 'character.card.modify',
+  addSkillId: 'character.card.add',
+
+  fieldMap: { 姓名: 'name', 性别: 'gender', 身份: 'role', 职业: 'job', 人物说明: 'detail', 背景: 'detail', 外貌: 'appearance', 性格: 'personality', 人际关系: 'relationships', 关系: 'relationships', 技能: 'skills' },
+
+  normalizeField(raw) {
+    const text = String(raw || '').trim();
+    return this.fieldMap[text] || text;
+  },
+
+  displayField(field) {
+    return Object.entries(this.fieldMap).find(([, key]) => key === field)?.[0] || field;
+  },
+
+  normalizeUpdate(raw = {}) {
+    const kind = String(raw.kind || '').trim();
+    const field = this.normalizeField(raw.field || raw.name);
+    const reason = String(raw.reason || raw.modifyReason || '').trim().slice(0, 160);
+    if (!reason || !['角色卡', '角色技能'].includes(kind)) return null;
+    const value = Object.prototype.hasOwnProperty.call(raw, 'value') ? raw.value : raw.description;
+    if (!field || value === undefined || value === null) return null;
+    return { ...raw, kind, field, value, reason };
+  },
+
+  async applyToState(state, updates = []) {
+    if (!state?.profile || !Array.isArray(updates)) return [];
+    const changed = [];
+    for (const raw of updates) {
+      const update = this.normalizeUpdate(raw);
+      if (!update) continue;
+      if (this.applyOne(state.profile, update)) changed.push(this.changeRecord(update));
+    }
+    if (!changed.length) return [];
+    state.profile.roleCardUpdatedAt = new Date().toISOString();
+    state.profile.roleCardChangeLog = [...(state.profile.roleCardChangeLog || []), ...changed].slice(-30);
+    window.GameModules.rpgInitializer?.touch?.(state.values, window.Alpine?.store?.('game'));
+    await window.GameModules.sqliteSave.saveCharacterState(state);
+    return changed;
+  },
+
+  applyOne(profile, update) {
+    if (update.kind === '角色技能' || update.field === 'skills') return this.applySkill(profile, update);
+    const key = update.field;
+    if (!['name', 'gender', 'role', 'job', 'detail', 'appearance', 'personality', 'relationships'].includes(key)) return false;
+    const next = String(update.value || '').trim().slice(0, key === 'detail' ? 180 : 120);
+    if (!next || profile[key] === next) return false;
+    profile[key] = next;
+    return true;
+  },
+
+  applySkill(profile, update) {
+    const value = update.value && typeof update.value === 'object' ? update.value : { name: update.name, desc: update.value || update.description || update.summary };
+    const name = String(value.name || update.skillName || update.name || '').trim().slice(0, 16);
+    const desc = String(value.desc || value.description || update.description || update.summary || update.reason).trim().slice(0, 80);
+    if (!name) return false;
+    const skills = Array.isArray(profile.skills) ? [...profile.skills] : [];
+    const index = skills.findIndex((item) => item?.name === name);
+    const next = { name, desc };
+    if (index >= 0) skills[index] = next;
+    else skills.push(next);
+    profile.skills = skills.slice(0, 8);
+    return true;
+  },
+
+  changeRecord(update) {
+    return { at: new Date().toISOString(), skillId: update.kind === '角色技能' ? this.addSkillId : this.modifySkillId, field: this.displayField(update.field), name: update.name || update.field, value: update.value, reason: update.reason };
+  },
+};

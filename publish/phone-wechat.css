@@ -258,8 +258,13 @@
   flex-direction: row-reverse;
 }
 
-.wechat-msg p {
+.wechat-msg > div {
+  display: grid;
+  gap: 5px;
   max-width: 70%;
+}
+
+.wechat-msg p {
   margin: 0;
   padding: 10px 12px;
   border-radius: 8px;
@@ -267,8 +272,17 @@
   line-height: 1.5;
 }
 
+.wechat-msg.self > div {
+  justify-items: end;
+}
+
 .wechat-msg.self p {
   background: #95ec69;
+}
+
+.wechat-msg .card-change-panel p {
+  padding: 0;
+  background: transparent;
 }
 
 .wechat-replying,

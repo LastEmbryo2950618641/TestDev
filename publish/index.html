@@ -50,6 +50,7 @@
   <script src="lexicon-skill.js"></script>
   <script src="rpg-lexicon-sync.js"></script>
   <script src="rpg-lexicon-update.js"></script>
+  <script src="character-card-lexicon.js"></script>
   <script src="rpg-field-ui.js"></script>
   <script src="progression-combat.js"></script>
   <script src="rpg-initializer.js"></script>
@@ -100,6 +101,7 @@
   <script src="wechat-chat-actions.js"></script>
   <script src="player-wechat-setup.js"></script>
   <script src="player-identity-actions.js"></script>
+  <script src="identity-memory-actions.js"></script>
   <script src="inventory-actions.js"></script>
   <script src="real-world-actions.js"></script>
   <script src="company-system.js"></script>
@@ -509,8 +511,9 @@
                 <div class="novel-story dev-section" data-section-title="现实AI生成内容" x-show="entry.type !== 'user'" :class="{ streaming: entry.streaming }">
                   <div class="novel-thinking dev-section" data-section-title="现实AI思考" x-show="entry.thinking"><p><b>【现实推演】</b><span x-text="entry.thinking"></span></p></div>
                   <small class="real-world-entry-location" x-show="entry.locationName" x-text="`地点｜${entry.locationName}`"></small>
-                  <div class="novel-tool-row"><button class="prompt-toggle" x-show="entry.promptPack" @click="$store.game.openRealWorldPrompt(entry.id)" title="查看生成提示词">≡</button></div>
+                  <div class="novel-tool-row"><button class="card-change-toggle" x-show="entry.characterCardChanges?.length" @click="$store.game.toggleCardChanges(entry)" x-text="entry.cardChangesOpen ? '角色卡变更▾' : '角色卡变更▸'"></button><button class="prompt-toggle" x-show="entry.promptPack" @click="$store.game.openRealWorldPrompt(entry.id)" title="查看生成提示词">≡</button></div>
                   <p class="novel-body-text" x-text="entry.narration || entry.text"></p>
+                  <div class="card-change-panel" x-show="entry.cardChangesOpen"><template x-for="change in entry.characterCardChanges" :key="`${change.at}-${change.field}-${change.name}`"><p><b x-text="change.field"></b><span x-text="`${change.name || ''}：${typeof change.value === 'object' ? JSON.stringify(change.value) : change.value}｜理由：${change.reason}`"></span></p></template></div>
                 </div>
               </article>
             </template>
@@ -626,6 +629,23 @@
               </div>
             </div>
           </template>
+        </div>
+      </section>
+      <section class="identity-memory-panel dev-section" data-section-title="身份证记忆档案区">
+        <label class="identity-memory-select"><span>记忆档案</span><select x-model="$store.game.identityMemoryViewMode"><option value="shortTerm">短期记忆</option><option value="longTerm">长期记忆</option><option value="archive">搜索归档</option></select></label>
+        <div class="memory-list" x-show="$store.game.identityMemoryViewMode === 'shortTerm'">
+          <small x-text="$store.game.identityMemoryStatus('shortTerm')"></small>
+          <template x-for="item in $store.game.identityMemoryItems('shortTerm')" :key="item.id"><p><b x-text="`${item.time?.label || '时间未知'}｜印象${item.impression}`"></b><span x-text="item.summary || item.text"></span></p></template>
+          <small x-show="!$store.game.identityMemoryItems('shortTerm').length">暂无短期记忆</small>
+        </div>
+        <div class="memory-list" x-show="$store.game.identityMemoryViewMode === 'longTerm'">
+          <small x-text="$store.game.identityMemoryStatus('longTerm')"></small>
+          <template x-for="item in $store.game.identityMemoryItems('longTerm')" :key="item.id"><p><b x-text="`${item.time?.label || '时间未知'}｜印象${item.impression}`"></b><span x-text="item.summary || item.text"></span></p></template>
+          <small x-show="!$store.game.identityMemoryItems('longTerm').length">暂无长期记忆</small>
+        </div>
+        <div class="memory-editor" x-show="$store.game.identityMemoryViewMode === 'archive'">
+          <div class="memory-search-row"><input x-model="$store.game.identityMemoryArchiveQuery" placeholder="输入关键词，搜索当前身份证目标的记忆..." @keydown.enter="$store.game.searchIdentityMemoryArchive()"><button @click="$store.game.searchIdentityMemoryArchive()" :disabled="!$store.game.identityMemoryArchiveQuery.trim()">搜索</button></div>
+          <div class="memory-list"><template x-for="item in $store.game.identityMemoryArchiveResults" :key="item.id"><p><b x-text="`${item.meta?.time || '时间未知'}｜${item.meta?.place || '地点未知'}`"></b><span x-text="item.meta?.summary || item.text"></span></p></template><small x-show="!$store.game.identityMemoryArchiveResults.length">暂无搜索结果</small></div>
         </div>
       </section>
       <section class="identity-rpg dev-section" data-section-title="身份属性与升级体系区">
@@ -975,7 +995,7 @@
         <section class="wechat-chat-page" x-show="$store.game.wechatView === 'chat'">
           <div class="wechat-messages">
             <template x-for="(msg, index) in $store.game.wechatMessages()" :key="index">
-              <div class="wechat-msg" :class="msg.side"><button class="wechat-avatar" type="button" @click="$store.game.openWechatIdentity()" x-text="msg.mark"></button><p x-text="msg.text"></p></div>
+              <div class="wechat-msg" :class="msg.side"><button class="wechat-avatar" type="button" @click="$store.game.openWechatIdentity()" x-text="msg.mark"></button><div><p x-text="msg.text"></p><button class="card-change-toggle" x-show="msg.characterCardChanges?.length" @click="$store.game.toggleCardChanges(msg)" x-text="msg.cardChangesOpen ? '角色卡变更▾' : '角色卡变更▸'"></button><div class="card-change-panel" x-show="msg.cardChangesOpen"><template x-for="change in msg.characterCardChanges" :key="`${change.at}-${change.field}-${change.name}`"><p><b x-text="change.field"></b><span x-text="`${change.name || ''}：${typeof change.value === 'object' ? JSON.stringify(change.value) : change.value}｜理由：${change.reason}`"></span></p></template></div></div></div>
             </template>
           </div>
           <p class="wechat-replying" x-show="$store.game.wechatSending">对方正在输入…</p>
@@ -1300,9 +1320,11 @@
                   <div class="novel-thinking dev-section" data-section-title="AI思考内容" x-show="entry.thinking && (entry.streaming || entry.thinkingOpen)"><p><b>【AI思考】</b><span x-text="entry.thinking"></span></p></div>
                   <div class="novel-tool-row">
                     <button class="thinking-toggle" x-show="entry.thinking && !entry.streaming" @click="$store.game.toggleNovelThinking(entry.id)" x-text="entry.thinkingOpen ? '▾' : '▸'"></button>
+                    <button class="card-change-toggle" x-show="entry.characterCardChanges?.length" @click="$store.game.toggleCardChanges(entry)" x-text="entry.cardChangesOpen ? '角色卡变更▾' : '角色卡变更▸'"></button>
                     <button class="prompt-toggle" x-show="entry.promptPack" @click="$store.game.openNovelPrompt(entry.id)" title="查看生成提示词">≡</button>
                   </div>
                   <p class="novel-body-text" x-text="entry.storyText"></p>
+                  <div class="card-change-panel" x-show="entry.cardChangesOpen"><template x-for="change in entry.characterCardChanges" :key="`${change.at}-${change.field}-${change.name}`"><p><b x-text="change.field"></b><span x-text="`${change.name || ''}：${typeof change.value === 'object' ? JSON.stringify(change.value) : change.value}｜理由：${change.reason}`"></span></p></template></div>
                 </div>
               </div>
             </article>

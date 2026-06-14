@@ -50,7 +50,9 @@ window.GameModules.resultActions = {
 
   async applyLexiconUpdatesFromResult(result) {
     if (!Array.isArray(result.lexiconUpdates) || !result.lexiconUpdates.length) return;
-    await window.GameModules.rpgLexicon.applyLexiconSkill(result.lexiconUpdates);
+    const cardChanges = await window.GameModules.characterCardLexicon?.applyToState?.(this.currentRpgState, result.lexiconUpdates) || [];
+    result.characterCardChanges = cardChanges;
+    await window.GameModules.rpgLexicon.applyLexiconSkill(result.lexiconUpdates.filter((item) => item?.kind !== '角色卡' && item?.kind !== '角色技能'));
     await this.applyInventoryUpdatesToState?.(this.currentRpgState, result.lexiconUpdates);
     for (const item of result.lexiconUpdates) {
       if (item?.kind === '职业' && item?.name) await this.knowProfession?.(item.name, item.worldTag || this.character?.work, { sourceReason: item.reason || '剧情推演中出现并确认该职业', characterName: this.character?.name, role: this.character?.role, detail: item.description || item.summary || this.character?.detail });

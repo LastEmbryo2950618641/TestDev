@@ -140,8 +140,10 @@ window.GameModules.realWorldActions = {
   },
 
   async applyRealWorldResult(id, result) {
-    await window.GameModules.rpgLexicon.applyLexiconSkill?.(result.lexiconUpdates || []);
-    await this.applyInventoryUpdatesToState(this.playerIdentityState?.(), result.lexiconUpdates || []);
+    const state = this.playerIdentityState?.();
+    result.characterCardChanges = await window.GameModules.characterCardLexicon?.applyToState?.(state, result.lexiconUpdates || []) || [];
+    await window.GameModules.rpgLexicon.applyLexiconSkill?.((result.lexiconUpdates || []).filter((item) => item?.kind !== '角色卡' && item?.kind !== '角色技能'));
+    await this.applyInventoryUpdatesToState(state, result.lexiconUpdates || []);
     this.advancePhoneTime(result.elapsedSeconds || 300);
     this.checkWorkReminder?.();
     window.GameModules.realWorldMap.update(this, result.locationName || this.realWorldLocationName, result);
