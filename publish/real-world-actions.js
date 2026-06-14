@@ -98,6 +98,15 @@ window.GameModules.realWorldActions = {
     return window.GameModules.realWorldMap.infoNode(this.realWorldMap);
   },
 
+  realWorldMapInfoFacts() {
+    const node = this.realWorldMapInfoNode();
+    return window.GameModules.realWorldMapFacts?.normalizeFacts?.(node, node?.description, `${this.phoneDateText()} ${this.phoneTimeText()}`) || [];
+  },
+
+  realWorldMapFactText(fact, index) {
+    return window.GameModules.realWorldMapFacts?.formatFact?.(fact, index) || '';
+  },
+
   seedRealWorldLog() {
     const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
     if (!map.current) return;

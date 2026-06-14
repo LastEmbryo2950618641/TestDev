@@ -55,6 +55,8 @@ window.GameModules.storage = {
       choices: store.choices,
       log: store.log.slice(-30).map((entry) => ({ ...entry, thinking: store.normalizeNovelThinking ? store.normalizeNovelThinking(entry.thinking) : entry.thinking })),
       realWorldSceneTitle: store.realWorldSceneTitle,
+      realWorldLocationName: store.realWorldLocationName,
+      realWorldMap: store.realWorldMap,
       realWorldQuest: store.realWorldQuest,
       realWorldStatus: store.realWorldStatus,
       realWorldChoices: store.realWorldChoices,
@@ -75,6 +77,9 @@ window.GameModules.storage = {
     store.playerName = save.playerName || store.playerProfile?.name || store.playerName;
     store.wechatUsers = Array.isArray(save.wechatUsers) ? save.wechatUsers : (store.wechatUsers || []);
     store.realWorldSceneTitle = save.realWorldSceneTitle || store.realWorldSceneTitle;
+    store.realWorldLocationName = save.realWorldLocationName || store.realWorldLocationName;
+    store.realWorldMap = save.realWorldMap || store.realWorldMap;
+    window.GameModules.realWorldMap?.ensure?.(store, store.playerProfile || {});
     store.realWorldQuest = save.realWorldQuest || store.realWorldQuest;
     store.realWorldStatus = save.realWorldStatus || store.realWorldStatus;
     store.realWorldChoices = save.realWorldChoices || store.realWorldChoices;
