@@ -160,6 +160,11 @@
   line-height: 1.35;
 }
 
+.token-row { min-width: 0; }
+.token-row .prompt-title { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.token-row .prompt-title em { white-space: nowrap; }
+.token-list { overflow-x: hidden; }
+
 .prompt-app-modal-backdrop {
   position: fixed;
   inset: 0;

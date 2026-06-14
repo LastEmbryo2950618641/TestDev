@@ -772,15 +772,15 @@
 
   <section x-show="!$store.game.loading && $store.game.tokenStatsState?.open" class="skills-app-screen prompt-app-screen app-window section-hints" x-cloak>
     <div class="skills-card prompt-card dev-section" data-section-title="Token统计主面板">
-      <header class="identity-header dev-section" data-section-title="Token统计标题区"><div><p class="eyebrow">PROMPT TOKENS</p><h2>提示词 Token 统计</h2><small>列表标题与提示词 APP 一一对应；点击查看变量已替换的完整提示词</small></div><button class="small-btn" type="button" @click="$store.game.closeTokenStatsApp()">回到桌面</button></header>
+      <header class="identity-header dev-section" data-section-title="Token统计标题区"><div><p class="eyebrow">PROMPT TOKENS</p><h2>提示词 Token 统计</h2><small>按每次 AI 请求记录；同一提示词标题可出现多次，点击查看完整提示词</small></div><button class="small-btn" type="button" @click="$store.game.closeTokenStatsApp()">回到桌面</button></header>
       <section class="skills-toolbar dev-section" data-section-title="Token筛选区"><input x-model="$store.game.tokenStatsState.query" placeholder="搜索提示词标题、分类、说明"><select x-model="$store.game.tokenStatsState.category"><option value="">全部分类</option><template x-for="category in $store.game.tokenPromptCategories()" :key="category"><option :value="category" x-text="category"></option></template></select></section>
-      <main class="skills-body"><section class="skills-list prompt-list dev-section" data-section-title="Token列表区"><p class="skills-note" x-show="!$store.game.tokenPromptList().length">没有匹配的提示词。</p><template x-for="item in $store.game.tokenPromptList()" :key="item.id"><button class="skill-row prompt-row" type="button" @click="$store.game.openTokenPromptDetail(item.id)"><span class="skill-row-title prompt-title"><strong x-text="item.title"></strong><em x-text="$store.game.tokenPromptTokenText(item.id)"></em></span><small x-text="item.stat ? `${item.category}｜${item.stat.updatedAt}` : `${item.category}｜尚未调用`"></small></button></template></section></main>
+      <main class="skills-body"><section class="skills-list prompt-list token-list dev-section" data-section-title="Token列表区"><p class="skills-note" x-show="!$store.game.tokenPromptList().length">暂无请求记录。先触发 AI 生成流程后，这里会按每次请求显示。</p><template x-for="item in $store.game.tokenPromptList()" :key="item.id"><button class="skill-row prompt-row token-row" type="button" @click="$store.game.openTokenPromptDetail(item.id)"><span class="skill-row-title prompt-title"><strong x-text="item.title"></strong><em x-text="`${item.tokens} token`"></em></span><small x-text="`${item.category}｜${item.updatedAt}`"></small></button></template></section></main>
     </div>
   </section>
 
-  <section class="prompt-app-modal-backdrop" x-show="$store.game.tokenStatsState?.selectedId" @click.self="$store.game.closeTokenPromptDetail()" x-cloak>
-    <article class="prompt-app-modal dev-section" data-section-title="完整提示词弹窗">
-      <header><div><p class="eyebrow">FINAL PROMPT</p><h3 x-text="$store.game.currentTokenPromptItem()?.title || '完整提示词'"></h3><small x-text="$store.game.tokenPromptTokenText($store.game.tokenStatsState?.selectedId)"></small></div><button class="small-btn" type="button" @click="$store.game.closeTokenPromptDetail()">关闭</button></header>
+  <section class="prompt-app-modal-backdrop" x-show="$store.game.tokenStatsState?.open && $store.game.tokenStatsState?.selectedId" @click.self="$store.game.closeTokenPromptDetail()" @keydown.escape.window="$store.game.closeTokenPromptDetail()" x-cloak>
+    <article class="prompt-app-modal dev-section" data-section-title="完整提示词弹窗" role="dialog" aria-modal="true">
+      <header><div><p class="eyebrow">FINAL PROMPT</p><h3 x-text="$store.game.currentTokenPromptRecord()?.title || '完整提示词'"></h3><small x-text="$store.game.currentTokenPromptRecord() ? `${$store.game.tokenPromptTokenText($store.game.tokenStatsState?.selectedId)}｜${$store.game.currentTokenPromptRecord().updatedAt}` : '未生成'"></small></div><button class="small-btn" type="button" @click="$store.game.closeTokenPromptDetail()">关闭</button></header>
       <pre class="prompt-markdown" x-text="$store.game.tokenPromptText($store.game.tokenStatsState?.selectedId)"></pre>
     </article>
   </section>
