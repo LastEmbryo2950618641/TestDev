@@ -34,16 +34,27 @@ window.GameModules.promptTemplates = {
       if (useCache) this.cache[item.id] = this.inline[item.id];
       return this.inline[item.id];
     }
-    try {
-      const res = await fetch(item.file);
-      if (!res.ok) throw new Error(`模板读取失败：${item.file}`);
-      const text = await res.text();
-      if (useCache) this.cache[item.id] = text;
-      return text;
-    } catch (err) {
-      console.error('提示词模板读取失败:', item.file, err.message, err.stack);
-      throw err;
+    const urls = this.fileCandidates(item.file);
+    let lastError = null;
+    for (const url of urls) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text = await res.text();
+        if (useCache) this.cache[item.id] = text;
+        return text;
+      } catch (err) {
+        lastError = err;
+        console.warn('提示词模板候选读取失败:', url, err.message);
+      }
     }
+    const detail = `${item.file}（已尝试：${urls.join('、')}）`;
+    console.error('提示词模板读取失败:', detail, lastError?.message, lastError?.stack);
+    throw new Error(`模板读取失败：${detail}`);
+  },
+  fileCandidates(file) {
+    const raw = String(file || '').replace(/^\.\//, '');
+    return [...new Set([raw, `./${raw}`, `/${raw}`])];
   },
   async render(id, vars = {}) {
     const source = await this.load(id);
