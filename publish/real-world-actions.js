@@ -64,15 +64,35 @@ window.GameModules.realWorldActions = {
   },
 
   realWorldFunctionTitle() {
-    return { inventory: '背包', wearing: '穿着' }[this.realWorldFunctionView] || '现实功能';
+    return { inventory: '背包', wearing: '穿着', map: '电子地图' }[this.realWorldFunctionView] || '现实功能';
   },
 
   realWorldFunctionEyebrow() {
-    return { inventory: 'INVENTORY', wearing: 'WEARING' }[this.realWorldFunctionView] || 'REAL WORLD';
+    return { inventory: 'INVENTORY', wearing: 'WEARING', map: 'E-MAP' }[this.realWorldFunctionView] || 'REAL WORLD';
   },
 
   realWorldFunctionHint() {
-    return { inventory: '查看玩家本人当前持有或可调用的装备与物品。', wearing: '查看内衣、上衣、下衣、鞋子、饰品和装备槽位等当前穿戴。' }[this.realWorldFunctionView] || '选择现实世界中要执行的功能。';
+    return { inventory: '查看玩家本人当前持有或可调用的装备与物品。', wearing: '查看内衣、上衣、下衣、鞋子、饰品和装备槽位等当前穿戴。', map: '查看当前现实地点树，展开子地点或查看地点说明。' }[this.realWorldFunctionView] || '选择现实世界中要执行的功能。';
+  },
+
+  realWorldMapRows() {
+    return window.GameModules.realWorldMap.visibleNodes(window.GameModules.realWorldMap.ensure(this, this.playerProfile || {}));
+  },
+
+  toggleRealWorldMapNode(id) {
+    window.GameModules.realWorldMap.toggle(this, id);
+  },
+
+  showRealWorldMapInfo(id) {
+    window.GameModules.realWorldMap.showInfo(this, id);
+  },
+
+  closeRealWorldMapInfo() {
+    window.GameModules.realWorldMap.closeInfo(this);
+  },
+
+  realWorldMapInfoNode() {
+    return window.GameModules.realWorldMap.infoNode(this.realWorldMap);
   },
 
   seedRealWorldLog() {

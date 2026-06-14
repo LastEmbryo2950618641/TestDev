@@ -29,31 +29,104 @@
   font-weight: 800;
 }
 
-.real-world-map {
-  margin: 8px 0 10px;
-  padding: 10px 12px;
-  border: 1px solid rgba(116, 246, 255, .18);
-  border-radius: 14px;
-  background: rgba(116, 246, 255, .07);
-  display: grid;
-  gap: 6px;
-}
-
-.real-world-map strong,
 .real-world-entry-location {
   color: #74f6ff;
   font-size: 11px;
   letter-spacing: .08em;
 }
 
-.real-world-map code {
-  color: #eef3ff;
-  white-space: normal;
-  word-break: break-word;
-  font-family: inherit;
+.real-world-actions { position: relative; }
+
+.real-world-electronic-map {
+  position: relative;
 }
 
-.real-world-actions { position: relative; }
+.real-world-map-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid rgba(116, 246, 255, .2);
+  border-radius: 14px;
+  background: rgba(116, 246, 255, .08);
+  color: #eef3ff;
+}
+
+.real-world-map-summary strong,
+.real-world-map-summary span { color: #74f6ff; }
+
+.real-world-map-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: calc(var(--depth, 0) * 18px);
+  padding: 10px;
+  border: 1px solid rgba(116, 246, 255, .16);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .05);
+}
+
+.real-world-map-node.current {
+  border-color: rgba(116, 246, 255, .46);
+  background: rgba(116, 246, 255, .12);
+}
+
+.real-world-map-term {
+  flex: 1;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  color: #eef3ff;
+  text-align: left;
+}
+
+.real-world-map-term span { color: #74f6ff; width: 14px; }
+.real-world-map-term b { font-size: 13px; }
+
+.real-world-map-info-btn {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgba(116, 246, 255, .28);
+  border-radius: 999px;
+  background: rgba(116, 246, 255, .1);
+  color: #74f6ff;
+  font-size: 12px;
+}
+
+.real-world-map-info-pop {
+  position: fixed;
+  inset: 0;
+  z-index: 190;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(1, 4, 12, .62);
+}
+
+.real-world-map-info-pop article {
+  width: min(420px, 100%);
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(116, 246, 255, .28);
+  border-radius: 18px;
+  background: rgba(7, 12, 28, .98);
+  color: #eef3ff;
+}
+
+.real-world-map-info-pop header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.real-world-map-info-pop p { color: #aeb9d6; line-height: 1.6; }
+
+
 
 .real-world-function-backdrop {
   position: fixed;

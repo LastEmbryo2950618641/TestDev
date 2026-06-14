@@ -362,6 +362,10 @@
               <strong>穿着</strong>
               <small>查看内衣、上衣、下衣、鞋子、手套和饰品等穿戴槽位。</small>
             </button>
+            <button class="real-world-function-option" type="button" @click="$store.game.openRealWorldFunctionPanel('map')">
+              <strong>电子地图</strong>
+              <small>查看现实地点树、当前位置和地点说明。</small>
+            </button>
           </div>
           <div class="real-world-inventory" x-show="$store.game.realWorldFunctionView === 'inventory'">
             <button class="small-btn" type="button" @click="$store.game.realWorldFunctionView = 'menu'">返回功能</button>
@@ -383,6 +387,29 @@
                 <small x-text="$store.game.realWorldWearingDetail(item)"></small>
               </article>
             </template>
+          </div>
+          <div class="real-world-inventory real-world-electronic-map" x-show="$store.game.realWorldFunctionView === 'map'">
+            <button class="small-btn" type="button" @click="$store.game.realWorldFunctionView = 'menu'">返回功能</button>
+            <div class="real-world-map-summary">
+              <strong>当前位置</strong>
+              <span x-text="$store.game.realWorldLocationName || '现实地点'"></span>
+            </div>
+            <template x-for="node in $store.game.realWorldMapRows()" :key="node.id">
+              <article class="real-world-map-node" :class="{ current: node.current }" :style="`--depth:${node.depth}`">
+                <button class="real-world-map-term" type="button" @click="$store.game.toggleRealWorldMapNode(node.id)">
+                  <span x-text="node.hasChildren ? ($store.game.realWorldMap.expanded?.[node.id] ? '▾' : '▸') : '•'"></span>
+                  <b x-text="node.name"></b>
+                </button>
+                <button class="real-world-map-info-btn" type="button" @click.stop="$store.game.showRealWorldMapInfo(node.id)">说明</button>
+              </article>
+            </template>
+            <p class="real-world-empty" x-show="!$store.game.realWorldMapRows().length">电子地图暂无地点。</p>
+            <div class="real-world-map-info-pop" x-show="$store.game.realWorldMapInfoNode()" @click.self="$store.game.closeRealWorldMapInfo()" x-cloak>
+              <article>
+                <header><strong x-text="$store.game.realWorldMapInfoNode()?.name"></strong><button class="small-btn" type="button" @click="$store.game.closeRealWorldMapInfo()">关闭</button></header>
+                <p x-text="$store.game.realWorldMapInfoNode()?.description"></p>
+              </article>
+            </div>
           </div>
         </article>
       </section>
@@ -468,10 +495,6 @@
 
         <section class="panel story-panel dev-section" data-section-title="现实推演日志区">
           <div class="scene-title dev-section" data-section-title="现实场景标题栏"><span x-text="$store.game.realWorldSceneTitle"></span><b x-text="$store.game.realWorldLocationName || '现实地点'"></b></div>
-          <div class="real-world-map dev-section" data-section-title="现实文字地图">
-            <strong>现实地图</strong>
-            <code x-text="$store.game.realWorldMap?.lastText || $store.game.realWorldLocationName || '现实地点'"></code>
-          </div>
           <div class="story-log scroll-area dev-section" data-section-title="现实记录列表">
             <template x-for="entry in $store.game.realWorldLog" :key="entry.id">
               <article class="novel-entry" :class="entry.type === 'user' ? 'player' : 'advice'">

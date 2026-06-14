@@ -37,7 +37,10 @@ window.GameModules.realWorldAi = {
       const data = window.GameModules.jsonUtils.parseLoose(content);
       return {
         sceneTitle: String(data.sceneTitle || '现实世界').slice(0, 14),
-        locationName: String(data.locationName || store.realWorldLocationName || data.sceneTitle || '现实地点').slice(0, 18),
+        locationName: String(data.locationName || store.realWorldLocationName || data.sceneTitle || '现实地点').slice(0, 28),
+        parentLocationName: String(data.parentLocationName || data.parentLocation || '').slice(0, 28),
+        locationDescription: String(data.locationDescription || data.locationSummary || '').slice(0, 160),
+        mapNodes: Array.isArray(data.mapNodes) ? data.mapNodes.slice(0, 8) : [],
         mapLinks: Array.isArray(data.mapLinks) ? data.mapLinks.slice(0, 4) : [],
         thinking: String(data.thinking || '').slice(0, 180),
         narration: String(data.narration || this.fallback(store, action).narration),
@@ -62,7 +65,10 @@ window.GameModules.realWorldAi = {
     const text = action || '继续观察现实世界';
     return {
       sceneTitle: store.realWorldSceneTitle || '现实世界',
-      locationName: store.realWorldLocationName || store.realWorldMap?.current || '玩家住处',
+      locationName: store.realWorldLocationName || store.realWorldMap?.current || '现实起点',
+      parentLocationName: '',
+      locationDescription: '现实推演暂时无法生成新地点说明，保留当前位置。',
+      mapNodes: [],
       mapLinks: [],
       thinking: store.thinkingMode ? `依据玩家行动「${text}」与本人资料，现实推演先保持日常逻辑，并保留手机异常带来的不安。` : '',
       narration: `你暂时把《我要狠狠操控》的界面收起，现实里的光线、空气和细碎声响重新占据感官。你按照“${text}”开始行动，先确认周围没有立刻失控的变化，再把注意力落回自己的住处、身份与眼前必须处理的事务上。那台手机安静地躺在一旁，像是什么都没有发生，却又让现实边缘多出一层无法忽视的裂痕。`,
