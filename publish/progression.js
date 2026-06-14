@@ -94,8 +94,8 @@ window.GameModules.progression = {
       knowledge: existing.knowledge?.length ? existing.knowledge : this.knowledge(character, seed),
       skills: existing.skills?.[0]?.level ? existing.skills : this.skills(character, seed),
       professions: existing.professions?.length ? existing.professions : this.professions(character, seed),
-      factions: existing.factions || this.factions(character),
-      force_positions: existing.force_positions || this.forcePositions(character),
+      factions: existing.factions?.length ? existing.factions : this.factions(character),
+      force_positions: existing.force_positions?.length ? existing.force_positions : this.forcePositions(character),
       derived: {},
     };
   },

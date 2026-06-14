@@ -425,7 +425,7 @@
                       <template x-for="field in section.fields" :key="`player-${section.title}:${field.key}`">
                         <div class="dynamic-row" role="button" tabindex="0" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.toggleRpgField(field)" @keydown.enter.prevent="$store.game.toggleRpgField(field)" @keydown.space.prevent="$store.game.toggleRpgField(field)">
                           <button class="rpg-item-card lexicon-tag" :class="{ open: $store.game.isRpgFieldOpen(field) }" type="button" @click.stop="$store.game.toggleRpgField(field)"><strong x-text="$store.game.rpgFieldSummary(field)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
-                          <div class="rpg-item-list" x-show="$store.game.isRpgListField(field) && $store.game.isRpgFieldOpen(field)" @click.stop>
+                          <div class="rpg-item-list" x-show="$store.game.isRpgListField(field)" @click.stop>
                             <template x-for="(item, index) in field.raw" :key="`player-${field.key}:${item.name || item}:${index}`">
                               <button class="rpg-item-card" :class="{ open: $store.game.isRpgItemOpen(field, index) }" type="button" @click="$store.game.toggleRpgItem(field, index)"><strong x-text="$store.game.rpgItemSummary(item)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgItemOpen(field, index)" x-text="$store.game.rpgItemDetail(field, item)"></p></button>
                             </template>
@@ -596,7 +596,7 @@
             <template x-for="field in section.fields" :key="field.key">
               <div class="dynamic-row" role="button" tabindex="0" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.toggleRpgField(field)" @keydown.enter.prevent="$store.game.toggleRpgField(field)" @keydown.space.prevent="$store.game.toggleRpgField(field)">
                 <button :class="[$store.game.isRpgListField(field) ? 'rpg-tree-title' : 'rpg-item-card lexicon-tag', { open: $store.game.isRpgFieldOpen(field) }]" type="button" @click.stop="$store.game.toggleRpgField(field)"><strong x-text="$store.game.rpgFieldSummary(field)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
-                <div class="rpg-item-list" x-show="$store.game.isRpgListField(field) && $store.game.isRpgFieldOpen(field)" @click.stop>
+                <div class="rpg-item-list" x-show="$store.game.isRpgListField(field)" @click.stop>
                   <template x-for="(item, index) in field.raw" :key="`${field.key}:${item.name || item}:${index}`">
                     <button class="rpg-item-card" :class="{ open: $store.game.isRpgItemOpen(field, index) }" type="button" @click="$store.game.toggleRpgItem(field, index)"><strong x-text="$store.game.rpgItemSummary(item)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgItemOpen(field, index)" x-text="$store.game.rpgItemDetail(field, item)"></p></button>
                   </template>
@@ -1169,7 +1169,7 @@
                   <template x-for="field in section.fields" :key="`${section.title}:${field.key}`">
                     <div class="dynamic-row" role="button" tabindex="0" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.toggleRpgField(field)" @keydown.enter.prevent="$store.game.toggleRpgField(field)" @keydown.space.prevent="$store.game.toggleRpgField(field)">
                       <button class="rpg-item-card lexicon-tag" :class="{ open: $store.game.isRpgFieldOpen(field) }" type="button" @click.stop="$store.game.toggleRpgField(field)"><strong x-text="$store.game.rpgFieldSummary(field)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
-                      <div class="rpg-item-list" x-show="$store.game.isRpgListField(field) && $store.game.isRpgFieldOpen(field)" @click.stop>
+                      <div class="rpg-item-list" x-show="$store.game.isRpgListField(field)" @click.stop>
                         <template x-for="(item, index) in field.raw" :key="`${field.key}:${item.name}:${index}`">
                           <button class="rpg-item-card" :class="{ open: $store.game.isRpgItemOpen(field, index) }" type="button" @click="$store.game.toggleRpgItem(field, index)"><strong x-text="$store.game.rpgItemSummary(item)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgItemOpen(field, index)" x-text="$store.game.rpgItemDetail(field, item)"></p></button>
                         </template>

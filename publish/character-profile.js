@@ -20,7 +20,9 @@ window.GameModules.characterProfile = {
   },
 
   isRoleCard(profile) {
-    return Boolean(profile?.roleCard && profile?.name && profile?.role && profile?.detail && profile?.personality && profile?.appearance);
+    const hasFactions = Array.isArray(profile?.factions) && profile.factions.length;
+    const hasForces = (Array.isArray(profile?.forcePositions) && profile.forcePositions.length) || (Array.isArray(profile?.force_positions) && profile.force_positions.length);
+    return Boolean(profile?.roleCard && profile?.name && profile?.role && profile?.detail && profile?.personality && profile?.appearance && hasFactions && hasForces);
   },
 
   findKnown(raw, store) {
@@ -68,7 +70,7 @@ window.GameModules.characterProfile = {
         prompt,
         format: prompt,
         parse: (text) => this.parse(text),
-        validate: (raw) => this.validate(raw, base, lore, attrs),
+        validate: (raw) => this.validate(raw, base, lore, attrs, store),
       }), signature);
     } catch (err) {
       console.warn('人物设定生成失败，使用兜底:', err.message);
@@ -101,11 +103,11 @@ window.GameModules.characterProfile = {
     return JSON.parse(json.replace(/[\u0000-\u001F]/g, ''));
   },
 
-  validate(profile, base, lore, attrs) {
+  validate(profile, base, lore, attrs, store = null) {
     const skills = Array.isArray(profile.skills) ? profile.skills : [];
     const confirmedJob = profile.jobConfirmed === true ? window.GameModules.professionInfo.normalizeJobName(profile.job) : '';
-    const factions = this.factionRoles(profile, base);
-    const forcePositions = this.forcePositions(profile);
+    const factions = this.factionRoles(profile, base, store);
+    const forcePositions = this.forcePositions(profile, base, store);
     return {
       ...base,
       name: this.validName(profile.name, base),
@@ -162,22 +164,22 @@ window.GameModules.characterProfile = {
       context: String(context || '').slice(0, 1200),
     };
     const raw = JSON.stringify(data);
-    return `v2:${raw.length}-${window.GameModules.rpgState.seed(raw)}`;
+    return `v3:${raw.length}-${window.GameModules.rpgState.seed(raw)}`;
   },
 
   fallback(base, lore, attrs) {
     return this.validate({
       ...base,
-      faction: lore.factions[0]?.name || '无',
+      faction: lore.factions[0]?.name || '临时关系社群',
       job: '',
       jobConfirmed: false,
       rank: base.role || '成员',
       skills: base.skills?.length ? base.skills : [{ name: '观察', desc: '从细节中判断局势。' }],
       worldValues: {},
-    }, base, lore, attrs);
+    }, base, lore, attrs, window.Alpine?.store?.('game'));
   },
 
-  factionRoles(profile, base) {
+  factionRoles(profile, base, store = null) {
     const social = window.GameModules.socialPosition;
     const list = Array.isArray(profile.factions) ? profile.factions : [];
     const items = list.map((item) => {
@@ -188,21 +190,31 @@ window.GameModules.characterProfile = {
       return social?.item?.(item.faction || item.name, item.role || item.position || '成员') || item;
     }).filter((item) => item?.faction || item?.name);
     if (items.length) return items.slice(0, 4);
-    const faction = profile.faction || base.faction;
-    const role = profile.factionRole || base.factionRole || base.role || '成员';
-    return faction && faction !== '无' ? [social?.item?.(faction, role) || { name: `${faction} / ${role}`, faction, role }] : [];
+    const faction = profile.faction || base.faction || store?.playerProfile?.refinedCity || store?.playerProfile?.city || '临时关系社群';
+    const role = profile.factionRole || base.factionRole || base.role || profile.role || '成员';
+    return [social?.item?.(faction, role) || { name: `${faction} / ${role}`, faction, role }].filter((item) => item?.faction || item?.name).slice(0, 4);
   },
 
-  forcePositions(profile) {
+  forcePositions(profile, base = {}, store = null) {
     const social = window.GameModules.socialPosition;
     const list = Array.isArray(profile.forcePositions) ? profile.forcePositions : (Array.isArray(profile.force_positions) ? profile.force_positions : []);
-    return list.map((item) => {
+    const items = list.map((item) => {
       if (typeof item === 'string') {
         const [force, position] = item.split('/').map((x) => x.trim());
         return social?.forceItem?.(force, position || '成员') || { name: item, force, position: position || '成员' };
       }
       return social?.forceItem?.(item.force || item.faction || item.name, item.position || item.rank || '成员') || item;
-    }).filter((item) => item?.force || item?.faction || item?.name).slice(0, 4);
+    }).filter((item) => item?.force || item?.faction || item?.name);
+    const country = social?.countryForceItems?.(store?.factionState?.factions || []) || [];
+    const modern = /原创世界|现实|现代|2026/.test(`${profile.work || base.work || ''}${store?.realWorld2026?.label || ''}`);
+    if (modern && country.length && !items.some((item) => item.force === country[0].force || item.name === country[0].name)) items.unshift(country[0]);
+    if (!items.length) {
+      const force = profile.force || base.force || profile.workplace || base.workplace || '';
+      const position = profile.position || base.position || profile.rank || base.rank || '';
+      if (force && position) items.push(social?.forceItem?.(force, position) || { name: `${force} / ${position}`, force, position });
+    }
+    if (!items.length) items.push(social?.forceItem?.('现实社会', profile.rank || base.rank || profile.role || base.role || '成员') || { name: '现实社会 / 成员', force: '现实社会', position: '成员' });
+    return items.slice(0, 4);
   },
 
   carryItems(value, kind) {

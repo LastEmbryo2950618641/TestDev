@@ -110,7 +110,7 @@
 
 ## 社群角色规则
 
-1. 必须返回 factions 数组，每项包含 faction 与 role；显示会合并为“社群 / 角色”。
+1. 必须返回非空 factions 数组，每项包含 faction 与 role；显示会合并为“社群 / 角色”。
 2. faction 只表示居住社区、家庭、社交圈、临时群体、生活圈或无层级公共地点；role 是其在其中承担的社会角色，不是等级。
 3. 同一角色可以有多个社群角色，最多 4 个；例如“锦苑小区3栋2单元601号 / 居民”、“刘悠家庭 / 同居妹妹”、“本地跑团社群 / 群友”。
 4. 玩家亲属或同住者必须根据玩家具体地址补出居住社群；如果住址具体到小区楼栋门牌，优先使用该具体住址作为 faction，role 写“居民/同住者/家庭成员”等。
@@ -120,7 +120,7 @@
 
 ## 势力地位规则
 
-1. 必须返回 forcePositions 数组，每项包含 force 与 position；显示会合并为“势力 / 地位”。
+1. 必须返回非空 forcePositions 数组，每项包含 force 与 position；显示会合并为“势力 / 地位”。
 2. 已知势力库出现的国家级势力也可作为 force；现代中国居民通常应包含“中华人民共和国 / 公民”，不要新造同义国家名。
 3. 其他 force 必须有内部层级、职级、年级、职位或等级划分，例如公司、学校、科室、部门、军队、宗门、教会、贵族家族、魔术家系。
 4. force 写组织架构中的具体势力层级，现代公司至少到公司级；医院可到科室，学校可到学校或年级。
@@ -238,5 +238,5 @@ worldValues 只返回有明确依据的字段：{世界字段}。
 ## 返回 JSON 结构
 
 ```json
-{"name":"姓名","gender":"性别","relationships":"妹妹：姓名；父亲：姓名","role":"身份","detail":"个人背景，必须说明住址/学校/工作/特殊处境的推断依据","appearance":"外貌","personality":"性格","faction":"社群名称","factions":[{"faction":"锦苑小区3栋2单元601号","role":"居民"},{"faction":"刘悠家庭","role":"同居妹妹"}],"forcePositions":[{"force":"成都市第七中学","position":"高三学生"},{"force":"成都星河云栈科技有限公司","position":"软件工程师"}],"job":"职业，无法可靠判断则空字符串","jobConfirmed":false,"rank":"首要势力地位","skills":[{"name":"技能","desc":"说明"}],"equipment":[{"name":"手机","description":"日常通讯工具","equipSlots":["装备"]}],"items":[{"name":"钥匙","description":"住所门钥匙","quantity":1}],"wearing":[{"slot":"上衣","name":"日常上衣","description":"当前穿着"},{"slot":"鞋子","name":"运动鞋","description":"当前穿着"}],"worldValues":{"字段key":"该人物固化取值"},"initialMetrics":{"emotions":[{"key":"担忧","value":40,"status":"当前状态","reason":"原因"}],"playerFeelings":[{"key":"亲情","value":85,"status":"当前状态","reason":"原因"}]}}
+{"name":"姓名","gender":"性别","relationships":"妹妹：姓名；父亲：姓名","role":"身份","detail":"个人背景，必须说明住址/学校/工作/特殊处境的推断依据","appearance":"外貌","personality":"性格","faction":"社群名称","factions":[{"faction":"锦苑小区3栋2单元601号","role":"居民"},{"faction":"刘悠家庭","role":"同居妹妹"}],"forcePositions":[{"force":"成都市第七中学","position":"高三学生"},{"force":"成都星河云栈科技有限公司","position":"软件工程师"}],"job":"职业，无法可靠判断则空字符串","jobConfirmed":false,"rank":"首要势力职位","skills":[{"name":"技能","desc":"说明"}],"equipment":[{"name":"手机","description":"日常通讯工具","equipSlots":["装备"]}],"items":[{"name":"钥匙","description":"住所门钥匙","quantity":1}],"wearing":[{"slot":"上衣","name":"日常上衣","description":"当前穿着"},{"slot":"鞋子","name":"运动鞋","description":"当前穿着"}],"worldValues":{"字段key":"该人物固化取值"},"initialMetrics":{"emotions":[{"key":"担忧","value":40,"status":"当前状态","reason":"原因"}],"playerFeelings":[{"key":"亲情","value":85,"status":"当前状态","reason":"原因"}]}}
 ```

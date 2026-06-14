@@ -91,9 +91,10 @@ window.GameModules.rpgState = {
       }
     }));
     const worldChanged = this.normalizeWorldValues(state), jobChanged = window.GameModules.rpgProfessionState.normalizeProfessions(state), controlChanged = this.ensureControlExperience(state), metricsChanged = this.ensureCharacterMetrics(state);
+    const socialChanged = this.syncSocialPositions(state);
     const inventoryChanged = window.GameModules.progression.ensureInventoryFields?.(state.values);
     const mechanicsChanged = window.GameModules.progression.ensureStateMechanics(state);
-    return worldChanged || jobChanged || controlChanged || metricsChanged || inventoryChanged || mechanicsChanged || changed;
+    return worldChanged || jobChanged || controlChanged || metricsChanged || socialChanged || inventoryChanged || mechanicsChanged || changed;
   },
 
   ensureCharacterMetrics(state) {
@@ -105,6 +106,23 @@ window.GameModules.rpgState = {
     state.metrics.notes = state.metrics.notes || {};
     window.GameModules.rpgProfileMetrics?.apply(state, state.profile);
     return before !== JSON.stringify(state.metrics);
+  },
+
+  syncSocialPositions(state) {
+    if (!state?.values || !state?.profile) return false;
+    let changed = false;
+    const profile = state.profile;
+    const factions = Array.isArray(profile.factions) ? profile.factions : [];
+    const forces = Array.isArray(profile.forcePositions) ? profile.forcePositions : (Array.isArray(profile.force_positions) ? profile.force_positions : []);
+    if ((!Array.isArray(state.values.factions) || !state.values.factions.length) && factions.length) {
+      state.values.factions = factions;
+      changed = true;
+    }
+    if ((!Array.isArray(state.values.force_positions) || !state.values.force_positions.length) && forces.length) {
+      state.values.force_positions = forces;
+      changed = true;
+    }
+    return changed;
   },
 
   ensureControlExperience(state) {
