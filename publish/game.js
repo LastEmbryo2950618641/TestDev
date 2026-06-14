@@ -17,7 +17,7 @@ document.addEventListener('alpine:init', () => {
   const modules = [
     gm.actions, gm.rpgFieldUi, gm.resultActions, gm.loadingActions, gm.saveActions, gm.styleActions,
     gm.worldlineActions, gm.playerSetupActions, gm.playerIdentityActions, gm.wechatActions, gm.entryActions,
-    gm.coreActions, gm.appSwitchActions, gm.realWorldActions, gm.companyActions, gm.companyAttendanceActions,
+    gm.coreActions, gm.appSwitchActions, gm.inventoryActions, gm.realWorldActions, gm.companyActions, gm.companyAttendanceActions,
     gm.bossActions, gm.bossAiActions, gm.calendarActions, gm.factionActions, gm.factionAiActions, gm.skillsActions, gm.knownProfessionActions, gm.promptActions, gm.tokenStatsActions,
   ].map((module) => module || {});
 

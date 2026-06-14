@@ -154,6 +154,9 @@ window.GameModules.playerSetupActions = {
       parentDeathCause: noParents ? cause : cause,
       worldbuildingNote: String(data?.worldbuildingNote || `${base.age}岁的${role}，就职/活动于${workplace}，地位为${position}。`).slice(0, 120),
       knownProfessions: this.normalizeKnownProfessionHints(data?.knownProfessions),
+      equipment: this.normalizeCarryHints(data?.equipment, '装备'),
+      items: this.normalizeCarryHints(data?.items, '物品'),
+      wearing: this.normalizeWearingHints(data?.wearing),
       profileEnrichedAt: new Date().toISOString(),
     };
   },
@@ -173,6 +176,16 @@ window.GameModules.playerSetupActions = {
       worldTag: String(item?.worldTag || world).trim().slice(0, 32),
       sourceReason: String(item?.sourceReason || '玩家现实身份上下文表明其知道该职业。').trim().slice(0, 120),
     })).filter((item) => item.name).slice(0, 5);
+  },
+
+  normalizeCarryHints(value, kind) {
+    const list = Array.isArray(value) ? value : String(value || '').split(/[、,，;；\n]+/).map((name) => ({ name }));
+    return list.map((item) => window.GameModules.progression.normalizeCarryItem(item, kind)).filter((item) => item.name && item.name !== '未命名物品').slice(0, 20);
+  },
+
+  normalizeWearingHints(value) {
+    const list = Array.isArray(value) ? value : [];
+    return list.map((item) => ({ slot: String(item?.slot || '').slice(0, 12), name: String(item?.name || '未穿戴').slice(0, 32), type: '穿着', description: String(item?.description || '').slice(0, 80), level: -1 })).filter((item) => item.slot);
   },
 
   async syncKnownProfessionsFromProfile(items) {

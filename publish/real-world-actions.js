@@ -62,12 +62,6 @@ window.GameModules.realWorldActions = {
     this.closeRealWorldPanel();
   },
 
-  realWorldValues() {
-    const values = this.playerIdentityState()?.values || {};
-    window.GameModules.progression.ensureInventoryFields?.(values);
-    return values;
-  },
-
   realWorldFunctionTitle() {
     return { inventory: '背包', wearing: '穿着' }[this.realWorldFunctionView] || '现实功能';
   },
@@ -77,67 +71,7 @@ window.GameModules.realWorldActions = {
   },
 
   realWorldFunctionHint() {
-    return { inventory: '查看玩家本人当前持有或可调用的装备与物品。', wearing: '查看内衣、上衣、下衣、鞋子、饰品等当前穿戴。' }[this.realWorldFunctionView] || '选择现实世界中要执行的功能。';
-  },
-
-  realWorldInventoryItems() {
-    const v = this.realWorldValues();
-    const tag = (kind, list) => (Array.isArray(list) ? list : []).map((item) => (typeof item === 'string' ? { name: item, kind } : { kind, ...item }));
-    return [...tag('装备', v.equipment), ...tag('物品', v.items)];
-  },
-
-  realWorldWearingItems() {
-    return this.realWorldValues().wearing || [];
-  },
-
-  realWorldInventoryName(item) {
-    return String(item?.name || item || '未命名物品');
-  },
-
-  realWorldInventoryDetail(item) {
-    if (!item || typeof item === 'string') return '暂无详细说明';
-    return [item.kind || item.type, item.slot, item.quantity ? `数量${item.quantity}` : '', item.description, item.source, item.changeMode].filter(Boolean).join('｜') || '暂无详细说明';
-  },
-
-  realWorldWearingName(item) {
-    return item?.name && item.name !== '未穿戴' ? item.name : '未穿戴';
-  },
-
-  realWorldWearingDetail(item) {
-    if (!item?.name || item.name === '未穿戴') return '该部位暂无已记录穿着。';
-    return [item.type || '穿着', item.description, item.source].filter(Boolean).join('｜');
-  },
-
-  async applyRealWorldInventoryUpdates(updates = []) {
-    const state = this.playerIdentityState?.();
-    const values = state?.values;
-    if (!values) return;
-    window.GameModules.progression.ensureInventoryFields?.(values);
-    const slots = window.GameModules.progression.wearableSlots?.() || [];
-    let changed = false;
-    const upsert = (list, item) => {
-      const name = this.realWorldInventoryName(item);
-      const index = list.findIndex((old) => this.realWorldInventoryName(old) === name);
-      if (index >= 0) list[index] = { ...(typeof list[index] === 'string' ? { name: list[index] } : list[index]), ...item };
-      else list.push(item);
-      changed = true;
-    };
-    for (const raw of updates || []) {
-      const kind = raw?.kind;
-      const value = raw?.value && typeof raw.value === 'object' ? raw.value : {};
-      const item = { ...value, name: raw?.name || value.name, type: kind, description: raw?.description || raw?.summary || value.description, changeMode: raw?.reason || raw?.changeMode || 'AI演算' };
-      if (kind === '装备') upsert(values.equipment, item);
-      if (kind === '物品') upsert(values.items, item);
-      if (kind === '穿着') {
-        const slot = item.slot || slots.find((name) => String(raw?.name || '').includes(name));
-        const index = values.wearing.findIndex((old) => old.slot === slot);
-        if (index >= 0) { values.wearing[index] = { ...values.wearing[index], ...item, slot }; changed = true; }
-      }
-    }
-    if (changed) {
-      this.rpgStates = { ...this.rpgStates, [state.id]: state };
-      await window.GameModules.sqliteSave.saveCharacterState(state);
-    }
+    return { inventory: '查看玩家本人当前持有或可调用的装备与物品。', wearing: '查看内衣、上衣、下衣、鞋子、饰品和装备槽位等当前穿戴。' }[this.realWorldFunctionView] || '选择现实世界中要执行的功能。';
   },
 
   seedRealWorldLog() {
@@ -170,7 +104,7 @@ window.GameModules.realWorldActions = {
 
   async applyRealWorldResult(id, result) {
     await window.GameModules.rpgLexicon.applyLexiconSkill?.(result.lexiconUpdates || []);
-    await this.applyRealWorldInventoryUpdates(result.lexiconUpdates || []);
+    await this.applyInventoryUpdatesToState(this.playerIdentityState?.(), result.lexiconUpdates || []);
     this.advancePhoneTime(result.elapsedSeconds || 300);
     this.checkWorkReminder?.();
     this.realWorldSceneTitle = result.sceneTitle || this.realWorldSceneTitle;

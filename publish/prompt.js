@@ -17,7 +17,7 @@ window.GameModules.createSystemPrompt = async function createSystemPrompt(state,
     metricUpdates: { emotions: [{ key: '只返回本回合需要变化或解释的情绪名', delta: 0, status: '变化后的状态含义', reason: '导致变化的具体原因' }], playerFeelings: [{ key: '只返回本回合需要变化或解释的感觉名', delta: 0, status: '变化后的状态含义', reason: '导致变化的具体原因' }] },
     choices: ['观察周围异常', '尝试开口交流', '移动到安全位置', '使用当前能力'], appearedCharacters: [{ name: '姓名', role: '身份', detail: '基础资料', personality: '性格', work: '所属作品或世界', isMinor: true, importance: 'minor' }],
     statChanges: { health: 0, stamina: 0, mental_stability: 0 }, combatEvent: { summary: '若发生攻防则描述', attackPower: 0, defensePower: 0, effectiveDamage: 0 },
-    lexiconUpdates: [{ worldTag: character.work || '原创世界', kind: '状态', name: '词条名', value: '新值', summary: '摘要', description: '说明', reason: '为什么本回合必须修改或新增该词条' }],
+    lexiconUpdates: [{ worldTag: character.work || '原创世界', kind: '装备/物品/穿着/状态', name: '词条名', value: { description: '说明', equipSlots: ['装备'], slot: '装备' }, summary: '摘要', description: '说明', reason: '为什么本回合必须修改或新增该词条' }],
   });
   return window.GameModules.promptTemplates.render('story-engine', {
     玩家姓名: state.playerName || '玩家', 游戏介绍: window.GameModules.appBackground || '你手机上无意中多了一个名为《我狠狠控制》的 APP。你选择作品、角色与进入时机后，按下连接按钮，意识坠入黑暗，并在陌生身体的真实感官里醒来。',

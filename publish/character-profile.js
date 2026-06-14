@@ -48,6 +48,9 @@ window.GameModules.characterProfile = {
       age: data.age || (String(`${data.role || ''} ${data.relationships || ''} ${data.detail || data.desc || preset?.summary || ''}`).match(/(\d{1,3})\s*岁/)?.[1] || ''),
       aliases: Array.isArray(data.aliases) ? data.aliases.slice(0, 4).map(String) : [],
       skills: Array.isArray(data.skills) ? data.skills.slice(0, 4) : [],
+      equipment: this.carryItems(data.equipment, '装备'),
+      items: this.carryItems(data.items, '物品'),
+      wearing: this.wearingItems(data.wearing),
       importance: data.importance || (data.isMinor ? 'minor' : 'support'),
       isMinor: Boolean(data.isMinor),
       roleCard: true,
@@ -124,6 +127,9 @@ window.GameModules.characterProfile = {
         name: String(skill.name || `能力${index + 1}`).slice(0, 16),
         desc: String(skill.desc || '').slice(0, 60),
       })),
+      equipment: this.carryItems(profile.equipment || base.equipment, '装备'),
+      items: this.carryItems(profile.items || base.items, '物品'),
+      wearing: this.wearingItems(profile.wearing || base.wearing),
       worldValues: this.worldValues(profile.worldValues, attrs, base.name),
       initialMetrics: this.initialMetrics(profile.initialMetrics),
       roleCard: true,
@@ -197,6 +203,23 @@ window.GameModules.characterProfile = {
       }
       return social?.forceItem?.(item.force || item.faction || item.name, item.position || item.rank || '成员') || item;
     }).filter((item) => item?.force || item?.faction || item?.name).slice(0, 4);
+  },
+
+  carryItems(value, kind) {
+    const p = window.GameModules.progression;
+    const list = Array.isArray(value) ? value : [];
+    return list.map((item) => p.normalizeCarryItem(item, kind)).filter((item) => item.name && item.name !== '未命名物品').slice(0, 20);
+  },
+
+  wearingItems(value) {
+    const list = Array.isArray(value) ? value : [];
+    return list.map((item) => ({
+      slot: String(item?.slot || '').slice(0, 12),
+      name: String(item?.name || '未穿戴').slice(0, 32),
+      type: '穿着',
+      description: String(item?.description || '').slice(0, 80),
+      level: -1,
+    })).filter((item) => item.slot && item.name !== '未穿戴').slice(0, 20);
   },
 
   worldValues(values, attrs) {

@@ -15,6 +15,7 @@
 9. 人际关系整理：把玩家填写的关系整理为“关系：姓名”。
 10. 世界观备注：生成 worldbuildingNote，供现实推演和联系人生成使用。
 11. 已知职业推断：根据玩家现实身份、学历、工作经历、家庭上下文和备注，判断玩家本人是否已经知道某些现实可确认职业。
+12. 初始持有物推断：根据现实身份、住址、工作/学校、备注，生成玩家合理持有的装备、物品，并把可穿戴项绑定到穿着槽位。
 
 ## 可调项说明
 
@@ -102,6 +103,15 @@
 6. 数量 0 到 5 个，宁缺毋滥。
 7. 为降低 JSON 出错率，knownProfessions 必须返回字符串，不要返回数组或对象；多个职业用中文顿号分隔，没有则返回空字符串。
 
+### 10. 初始装备 / 物品 / 穿着
+
+1. equipment 返回数组，每项包含 name、description、equipSlots；装备是重要工具或可装备物，equipSlots 可写身体槽位或“装备”。
+2. items 返回数组，每项包含 name、description、quantity；物品是普通持有物或消耗品。
+3. wearing 返回数组，每项包含 slot、name、description；只返回实际穿戴或携带在槽位上的项目。
+4. 可用穿着槽位：内衣、上衣、内裤、下衣、袜子、鞋子、外套、手套、头部、颈部、腰部、包具、饰品、装备。饰品和装备可以不写数字，系统会自动分配饰品1、装备1等槽位。
+5. 不要生成夸张武器；现代现实默认手机、钥匙、钱包、身份证件、日常衣物、背包、眼镜、手表等。
+6. 每件可装备/可穿戴物必须标明能装备到哪个部位；不可穿戴普通物品可省略 equipSlots。
+
 ## JSON 输出硬性规则
 
 1. 必须只返回一个完整 JSON 对象，不能返回数组、Markdown、代码块或解释文字。
@@ -114,5 +124,5 @@
 ## 返回字段
 
 ```json
-{"refinedCity":"省市区县镇街道小区楼栋门牌","refinedRole":"更具体身份","workplace":"根据职业生成的公司/学校/组织","position":"根据职业生成的职位/身份层级","refinedLivingStatus":"更具体居住状态","relationships":"妹妹：姓名；父亲：姓名","parentStatus":"父母状态","parentDeathCause":"父母去世原因或空","worldbuildingNote":"60字内现实背景补充","knownProfessions":"后端工程师、软件工程师"}
+{"refinedCity":"省市区县镇街道小区楼栋门牌","refinedRole":"更具体身份","workplace":"根据职业生成的公司/学校/组织","position":"根据职业生成的职位/身份层级","refinedLivingStatus":"更具体居住状态","relationships":"妹妹：姓名；父亲：姓名","parentStatus":"父母状态","parentDeathCause":"父母去世原因或空","worldbuildingNote":"60字内现实背景补充","knownProfessions":"后端工程师、软件工程师","equipment":[{"name":"手机","description":"日常通讯与异常APP载体","equipSlots":["装备"]}],"items":[{"name":"钥匙","description":"住所门钥匙","quantity":1}],"wearing":[{"slot":"上衣","name":"日常上衣","description":"当前穿着"},{"slot":"下衣","name":"日常长裤","description":"当前穿着"}]}
 ```

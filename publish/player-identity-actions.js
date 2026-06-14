@@ -17,6 +17,7 @@ window.GameModules.playerIdentityActions = {
     return {
       id: 'player-self', name, age: p.age || '', birthday: p.birthday || '', gender: p.gender || '', work: world.label || '2026 现代都市现实世界', role, job: role,
       rank: position, faction: workplace, city, workplace, position, importance: 'main', isPlayer: true,
+      equipment: p.equipment || [], items: p.items || [], wearing: p.wearing || [],
       detail: `性别：${p.gender || '未知'}；年龄：${p.age || '未知'}；生日：${p.birthday || '未知'}；具体地址：${city}；势力地位：${workplace}/${position}；社群角色：${city}/居民；居住：${living}；父母：${parents}；去世原因：${deathCause}；关系：${relations}；备注：${notes}`,
       personality: notes,
       skills: [
@@ -110,6 +111,9 @@ window.GameModules.playerIdentityActions = {
     state.note = character.detail;
     state.values.age = Number.isFinite(Number(character.age)) ? Number(character.age) : state.values.age;
     state.values.status_tags = ['玩家本人', '手机主人', character.work, character.role];
+    if (!state.values.equipment?.length) state.values.equipment = character.equipment || [];
+    if (!state.values.items?.length) state.values.items = character.items || [];
+    if (!state.values.wearing?.some((item) => item?.name && item.name !== '未穿戴')) state.values.wearing = character.wearing || state.values.wearing;
     state.values.factions = window.GameModules.socialPosition.playerItems({ ...this.playerProfile, workplace: character.workplace, position: character.position });
     state.values.force_positions = window.GameModules.socialPosition.playerForceItems({ ...this.playerProfile, workplace: character.workplace, position: character.position }, this.factionState?.factions || []);
     window.GameModules.progression.ensureStateMechanics(state, character);

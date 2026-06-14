@@ -489,6 +489,7 @@
 .rpg-tree-title {
   grid-column: 1 / -1;
   display: grid;
+  min-width: 0;
   gap: 4px;
   width: 100%;
   padding: 8px 0 4px;
@@ -517,6 +518,7 @@
 .rpg-item-card {
   display: inline-grid;
   place-items: center;
+  min-width: 0;
   gap: 4px;
   max-width: 100%;
   min-height: 28px;
@@ -534,7 +536,7 @@
   box-shadow: 0 0 0 2px rgba(116, 246, 255, .14);
 }
 
-.rpg-item-card:has(.rpg-field-detail:not([style*="display: none"])) {
+.rpg-item-card.open {
   width: 100%;
   border-radius: 12px;
 }
@@ -555,7 +557,20 @@
   justify-self: start;
 }
 
-.lexicon-tag:has(.rpg-field-detail:not([style*="display: none"])) {
+.rpg-item-card strong,
+.rpg-tree-title strong {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rpg-item-card.open strong,
+.rpg-tree-title.open strong {
+  white-space: normal;
+}
+
+.lexicon-tag.open {
   width: 100%;
 }
 

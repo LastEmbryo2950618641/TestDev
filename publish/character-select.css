@@ -168,6 +168,7 @@
 
 .function-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 7px;
 }
 
@@ -188,9 +189,15 @@
 }
 
 .library-panel,
-.world-lore-card {
+.world-lore-card,
+.function-inventory-list,
+.wear-slot-actions {
   display: grid;
   gap: 7px;
+}
+
+.wear-slot-actions {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
 }
 
 .library-panel {
