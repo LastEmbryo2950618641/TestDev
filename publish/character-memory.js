@@ -109,9 +109,8 @@ window.GameModules.characterMemory = {
   async intentQuery(rawQuery) {
     try {
       if (!window.dzmm?.completions) return rawQuery;
-      let buffer = '';
       const prompt = await window.GameModules.promptTemplates.render('memory-intent-query', { 玩家输入: rawQuery });
-      await window.dzmm.completions({ model: 'nalang-turbo-0826', maxTokens: 240, messages: [{ role: 'user', content: prompt }] }, (chunk) => { buffer += chunk; });
+      const buffer = await window.GameModules.aiRequest.complete({ source: 'memory-intent-query', model: 'nalang-turbo-0826', maxTokens: 240, prompt, timeoutMs: 15000 });
       return buffer.trim() || rawQuery;
     } catch (err) {
       console.warn('记忆检索意图解析失败:', err.code, err.message);

@@ -22,13 +22,13 @@ window.GameModules.bossAiActions = {
 
   async requestBossJobsText() {
     let buffer = '';
-    await window.dzmm.completions({
-      model: this.modelId || 'nalang-turbo-0826',
-      maxTokens: 2600,
-      messages: [{ role: 'user', content: await this.bossJobsPrompt() }],
-    }, (content, done) => {
-      if (this.bossState.requestId) buffer += content;
-      if (done) this.bossState.generationDoneAt = this.phoneDateText?.() || '';
+    const prompt = await this.bossJobsPrompt();
+    await window.GameModules.aiRequest.complete({
+      source: 'boss-jobs', model: this.modelId || 'nalang-turbo-0826', maxTokens: 2600, prompt, timeoutMs: 35000,
+      onChunk: (content, done, info) => {
+        if (this.bossState.requestId) buffer = info.buffer;
+        if (done) this.bossState.generationDoneAt = this.phoneDateText?.() || '';
+      },
     });
     return buffer;
   },

@@ -98,15 +98,15 @@ window.GameModules.entryActions = {
     const storyContext = await window.GameModules.entryTime.storyContextFor(this);
     console.log('[进入行动] 请求开始:', reason, this.entryTimeLabel(), this.character.name, this.character.work, 'storyContextLength=', storyContext.length);
     let buffer = '';
-    await window.dzmm.completions({
-      model: this.modelId,
-      maxTokens: 220,
-      messages: [{ role: 'user', content: await this.entryPrompt(reason, storyContext) }],
-    }, (chunk, done) => {
-      buffer = this.mergeStreamText(buffer, chunk);
-      const latest = this.cleanEntryAction(buffer);
-      if (latest) this.entryCurrentAction = latest;
-      if (done) console.log('[进入行动] 生成完成:', { length: buffer.length, text: latest });
+    const prompt = await this.entryPrompt(reason, storyContext);
+    await window.GameModules.aiRequest.complete({
+      source: 'entry-action', model: this.modelId, maxTokens: 220, prompt, timeoutMs: 18000,
+      onChunk: (chunk, done, info) => {
+        buffer = info.buffer;
+        const latest = this.cleanEntryAction(buffer);
+        if (latest) this.entryCurrentAction = latest;
+        if (done) console.log('[进入行动] 生成完成:', { length: buffer.length, text: latest });
+      },
     });
     return this.cleanEntryAction(buffer) || `${this.character.name}正在观察周围变化。`;
   },

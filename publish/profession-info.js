@@ -41,6 +41,7 @@ window.GameModules.professionInfo = {
       if (!window.dzmm?.completions) return null;
       const prompt = await this.prompt(worldTag, name, context);
       return await window.GameModules.jsonUtils.generateJsonWithRetry({
+        source: 'profession-info',
         model: 'nalang-medium-0826',
         maxTokens: 900,
         prompt,

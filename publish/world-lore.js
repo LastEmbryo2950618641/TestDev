@@ -38,6 +38,7 @@ window.GameModules.worldLore = {
       const prompt = await this.prompt(worldTag, context);
       console.log('[世界观] AI请求:', { worldTag, promptLength: prompt.length, model: 'nalang-medium-0826', maxTokens: 2000 });
       return await window.GameModules.jsonUtils.generateJsonWithRetry({
+        source: 'world-lore',
         model: 'nalang-medium-0826',
         maxTokens: 2000,
         prompt,

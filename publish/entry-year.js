@@ -90,6 +90,7 @@ window.GameModules.entryYear = {
     const prompt = await this.auditPrompt(store, mode, evidence, base);
     try {
       return await window.GameModules.jsonUtils.generateJsonWithRetry({
+        source: 'entry-year-audit',
         model: store.modelId,
         maxTokens: 360,
         prompt,

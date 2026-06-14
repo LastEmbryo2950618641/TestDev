@@ -16,17 +16,16 @@ Object.assign(window.GameModules.characterFeedback, {
       console.log('[角色反馈] completions 调用:', { promptLength: prompt.length });
       let resolveDone;
       const donePromise = new Promise((resolve) => { resolveDone = resolve; });
-      const request = window.dzmm.completions({
-        model: 'nalang-turbo-0826',
-        maxTokens: 900,
-        messages: [{ role: 'user', content: prompt }],
-      }, (chunk, done) => {
-        buffer = this.merge(buffer, chunk);
-        if (done) {
-          doneSeen = true;
-          console.log('[角色反馈] 流式 done:', { length: buffer.length });
-          resolveDone();
-        }
+      const request = window.GameModules.aiRequest.complete({
+        source: 'character-feedback', model: 'nalang-turbo-0826', maxTokens: 900, prompt, timeoutMs: 18000, requireDone: true,
+        onChunk: (chunk, done, info) => {
+          buffer = info.buffer;
+          if (done) {
+            doneSeen = true;
+            console.log('[角色反馈] 流式 done:', { length: buffer.length });
+            resolveDone();
+          }
+        },
       });
       await Promise.race([Promise.all([request, donePromise]), new Promise((_, reject) => setTimeout(() => reject(new Error('角色反馈生成超时')), 18000))]);
       if (!doneSeen) throw new Error('角色反馈流式未完成');

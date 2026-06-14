@@ -65,6 +65,7 @@ window.GameModules.characterProfile = {
       if (!window.dzmm?.completions) return this.withSignature(this.fallback(base, lore, attrs), signature);
       const prompt = await this.prompt(base, lore, attrs, context, store, preset);
       return this.withSignature(await window.GameModules.jsonUtils.generateJsonWithRetry({
+        source: 'character-profile-card',
         model: 'nalang-medium-0826',
         maxTokens: 900,
         prompt,

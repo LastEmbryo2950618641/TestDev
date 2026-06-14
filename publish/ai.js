@@ -30,27 +30,25 @@ window.GameModules.ai = {
       let chunkCount = 0, lastPaint = 0, resolveDone;
       let resultPromise = Promise.resolve();
       const donePromise = new Promise((resolve) => { resolveDone = resolve; });
-      await Promise.race([Promise.all([this.withRetry(() => window.dzmm.completions({
-        model: store.modelId,
-        messages,
-        maxTokens: 4500,
-      }, async (chunk, done) => {
-        if (requestId !== this.latestRequestId) return;
-        chunkCount += chunk ? 1 : 0;
-        buffer = window.GameModules.jsonUtils.mergeStreamText(buffer, chunk);
-        if (!done) {
-          if (chunkCount === 1 || chunkCount % 10 === 0) console.log('[AI推演] 流式片段:', { requestId, chunkCount, length: buffer.length });
-          const changed = logId && store.updateNovelStream ? store.updateNovelStream(logId, buffer) : false;
-          if (changed && performance.now() - lastPaint > 50) lastPaint = performance.now(), await new Promise((resolve) => (window.requestAnimationFrame || setTimeout)(resolve));
-          return;
-        }
-        if (logId && store.updateNovelStream) store.updateNovelStream(logId, buffer);
-        applied = true;
-        console.log('[AI推演] 返回完成:', { requestId, chunkCount, length: buffer.length, preview: buffer.slice(0, 180) });
-        resultPromise = store.applyResult(this.parse(buffer, store, action), logId);
-        await resultPromise;
-        resolveDone();
-      })), donePromise, resultPromise]), new Promise((_, reject) => setTimeout(() => reject(new Error('AI推演超时')), 45000))]);
+      await Promise.race([Promise.all([window.GameModules.aiRequest.complete({
+        source: 'story-engine', model: store.modelId, messages, maxTokens: 4500, timeoutMs: 45000, requireDone: true,
+        onChunk: async (chunk, done, info) => {
+          if (requestId !== this.latestRequestId) return;
+          chunkCount = info.chunkCount;
+          buffer = info.buffer;
+          if (!done) {
+            const changed = logId && store.updateNovelStream ? store.updateNovelStream(logId, buffer) : false;
+            if (changed && performance.now() - lastPaint > 50) lastPaint = performance.now(), await new Promise((resolve) => (window.requestAnimationFrame || setTimeout)(resolve));
+            return;
+          }
+          if (logId && store.updateNovelStream) store.updateNovelStream(logId, buffer);
+          applied = true;
+          console.log('[AI推演] 返回完成:', { requestId, chunkCount, length: buffer.length, preview: buffer.slice(0, 180) });
+          resultPromise = store.applyResult(this.parse(buffer, store, action), logId);
+          await resultPromise;
+          resolveDone();
+        },
+      }), donePromise, resultPromise]), new Promise((_, reject) => setTimeout(() => reject(new Error('AI推演超时')), 45000))]);
       if (!applied && requestId === this.latestRequestId) {
         console.warn('[AI推演] 已结束但未收到 done，使用当前内容结算:', { requestId, length: buffer.length });
         applied = true;

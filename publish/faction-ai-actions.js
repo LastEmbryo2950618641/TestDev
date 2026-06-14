@@ -25,9 +25,13 @@ window.GameModules.factionAiActions = {
 
   async requestFactionText(requestId) {
     let buffer = '';
-    await window.dzmm.completions({ model: this.modelId || 'nalang-turbo-0826', maxTokens: 3000, messages: [{ role: 'user', content: await this.factionPrompt() }] }, (content) => {
-      if (requestId !== this.factionState.requestId) return;
-      buffer += content;
+    const prompt = await this.factionPrompt();
+    await window.GameModules.aiRequest.complete({
+      source: 'faction-audit', model: this.modelId || 'nalang-turbo-0826', maxTokens: 3000, prompt, timeoutMs: 35000,
+      onChunk: (content, done, info) => {
+        if (requestId !== this.factionState.requestId) return;
+        buffer = info.buffer;
+      },
     });
     return buffer;
   },

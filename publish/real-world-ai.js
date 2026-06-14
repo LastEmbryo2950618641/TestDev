@@ -13,15 +13,14 @@ window.GameModules.realWorldAi = {
       let resolveDone;
       const donePromise = new Promise((resolve) => { resolveDone = resolve; });
       await Promise.race([
-        window.GameModules.ai.withRetry(() => window.dzmm.completions({
-          model: store.modelId,
-          messages: [{ role: 'user', content: prompt }],
-          maxTokens: 2200,
-        }, (chunk, done) => {
-          if (requestId !== this.latestRequestId) return;
-          buffer = window.GameModules.jsonUtils.mergeStreamText(buffer, chunk);
-          if (done) resolveDone();
-        })),
+        window.GameModules.aiRequest.complete({
+          source: 'real-world-engine', model: store.modelId, maxTokens: 2200, prompt, timeoutMs: 35000, requireDone: true,
+          onChunk: (chunk, done, info) => {
+            if (requestId !== this.latestRequestId) return;
+            buffer = info.buffer;
+            if (done) resolveDone();
+          },
+        }),
         donePromise,
         new Promise((_, reject) => setTimeout(() => reject(new Error('现实世界推演超时')), 35000)),
       ]);
