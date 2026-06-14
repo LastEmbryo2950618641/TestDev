@@ -72,7 +72,18 @@ window.GameModules.wechatActions = {
       玩家备注区: player.playerNotes,
       微信联系人资料区: sections.wechatContact(contact, hint),
     });
-    const profile = await window.GameModules.characterProfile.ensure(raw, this, context);
+    let profile;
+    try {
+      profile = await window.GameModules.characterProfile.ensure(raw, this, context);
+    } catch (err) {
+      console.warn('[微信] 联系人姓名补全失败，保留旧资料:', err.code, err.message, err.stack);
+      this.wechatError = '联系人姓名补全暂时失败，请稍后重试。';
+      return existing || null;
+    }
+    if (!window.GameModules.characterProfile.isConcreteName(profile.name)) {
+      this.wechatError = '联系人姓名仍未补全，请稍后重试。';
+      return existing || null;
+    }
     const state = await window.GameModules.rpgState.ensureCharacter(profile, this);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
     const renamed = this.syncWechatContactProfileName(contact.id, state.profile || profile);

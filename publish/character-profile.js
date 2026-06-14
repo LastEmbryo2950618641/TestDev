@@ -83,6 +83,7 @@ window.GameModules.characterProfile = {
       }), signature);
     } catch (err) {
       console.warn('人物设定生成失败，使用兜底:', err.code, err.message, err.stack);
+      if (base.nameRule && !this.isConcreteName(base.name)) throw err;
       return this.withSignature(this.fallback(base, lore, attrs), signature);
     }
   },

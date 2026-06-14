@@ -38,11 +38,14 @@ window.GameModules.aiRequest = {
   },
 
   isRetryable(err) {
-    return Boolean(err?.retryable || ['RATE_LIMITED', 'TIMEOUT', 'NETWORK_ERROR', 'INTERNAL_ERROR', 'SERVICE_UNAVAILABLE', 'DRAW_TIMEOUT'].includes(err?.code));
+    const message = String(err?.message || '').toLowerCase();
+    return Boolean(err?.retryable || ['RATE_LIMITED', 'TIMEOUT', 'NETWORK_ERROR', 'INTERNAL_ERROR', 'SERVICE_UNAVAILABLE', 'DRAW_TIMEOUT', 'AI_TIMEOUT'].includes(err?.code)
+      || message.includes('failed to fetch') || message.includes('network') || message.includes('fetch failed'));
   },
 
   retryDelay(err, attempt) {
     if (err?.code === 'RATE_LIMITED') return Math.min(30000, 12000 + attempt * 8000);
+    if (String(err?.message || '').toLowerCase().includes('failed to fetch')) return Math.min(20000, 5000 * (attempt + 1));
     return Math.min(12000, 2000 * (2 ** attempt));
   },
 
@@ -101,7 +104,7 @@ window.GameModules.aiRequest = {
         this.log('失败', { id: options.id, source: options.source, attempt: attempt + 1, code: err.code, message: err.message, retryable: this.isRetryable(err) });
         if (!this.isRetryable(err) || attempt === maxAttempts - 1) throw err;
         const delay = this.retryDelay(err, attempt);
-        if (err.code === 'RATE_LIMITED') this.cooldownUntil = Date.now() + delay;
+        if (err.code === 'RATE_LIMITED' || String(err?.message || '').toLowerCase().includes('failed to fetch')) this.cooldownUntil = Date.now() + delay;
         this.retryCount += 1;
         this.log('重试等待', { id: options.id, source: options.source, nextAttempt: attempt + 2, delay });
         await this.wait(delay);
