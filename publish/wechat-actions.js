@@ -10,8 +10,41 @@ window.GameModules.wechatActions = {
     if (!name) return null;
     const relation = String(raw.relation || raw.subtitle || '联系人').trim().slice(0, 30);
     const id = String(raw.id || `wx-${name}-${relation}`).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || `wx-${window.GameModules.rpgState.seed(`${name}-${relation}`)}`;
-    const needsNameAi = raw.needsNameAi ?? (/^(妹妹|姐姐|哥哥|弟弟|父亲|母亲|爸爸|妈妈|女友|男友|妻子|丈夫)$/.test(name) && !raw.id);
+    const needsNameAi = raw.needsNameAi ?? (this.isWechatPlaceholderName(name) && !raw.id);
     return { id, name, relation, subtitle: relation, mark: String(raw.mark || name.slice(0, 1)).slice(0, 2), latest: String(raw.latest || `${relation}资料已同步。`).slice(0, 80), unread: Number(raw.unread) || 0, group: false, source: raw.source || 'manual', context: raw.context || '', needsNameAi };
+  },
+
+  isWechatPlaceholderName(name = '') {
+    const text = String(name || '').trim();
+    return !text || /待命名|待AI补全|等待AI补全|等待ai补全|姓名待AI补全/i.test(text)
+      || /^(妹妹|姐姐|哥哥|弟弟|父亲|母亲|爸爸|妈妈|女友|男友|妻子|丈夫|联系人)$/.test(text)
+      || /^(双胞胎|三胞胎|多胞胎)?(妹妹|姐姐|哥哥|弟弟|兄弟|姐妹|联系人)(之一|之二|之三|其一|其二|其三)$/.test(text);
+  },
+
+  concreteWechatProfileName(profile, contact = {}) {
+    const name = String(profile?.name || '').trim();
+    if (!name || this.isWechatPlaceholderName(name) || name === contact.relation) return '';
+    return name.slice(0, 24);
+  },
+
+  displayWechatContact(contact) {
+    if (!contact || contact.group) return contact;
+    const name = this.concreteWechatProfileName(this.rpgStates?.[contact.id]?.profile, contact);
+    return name ? { ...contact, name, mark: name.slice(0, 1), needsNameAi: false } : contact;
+  },
+
+  syncWechatContactProfileName(id, profile) {
+    const old = (this.wechatUsers || []).find((item) => item.id === id);
+    const name = this.concreteWechatProfileName(profile, old);
+    if (!old || !name || old.name === name) return false;
+    this.renameWechatContact(id, name);
+    return true;
+  },
+
+  syncWechatContactsFromRpgStates() {
+    let changed = false;
+    (this.wechatUsers || []).forEach((item) => { if (this.syncWechatContactProfileName(item.id, this.rpgStates?.[item.id]?.profile)) changed = true; });
+    return changed;
   },
 
   async ensureWechatUserProfile(contact) {
@@ -19,7 +52,8 @@ window.GameModules.wechatActions = {
     const hint = this.wechatRelationProfileHint(contact);
     const sections = window.GameModules.promptSections;
     const player = sections.playerProfile(this);
-    const raw = { id: contact.id, name: contact.needsNameAi ? hint.placeholderName : contact.name, role: contact.relation || '微信联系人', detail: contact.context || contact.latest || hint.detail, work: '现实世界', isMinor: false, importance: 'support', nameRule: hint.nameRule };
+    const needsName = contact.needsNameAi || this.isWechatPlaceholderName(contact.name);
+    const raw = { id: contact.id, name: needsName ? hint.placeholderName : contact.name, role: contact.relation || '微信联系人', detail: contact.context || contact.latest || hint.detail, work: '现实世界', isMinor: false, importance: 'support', nameRule: hint.nameRule };
     const context = await window.GameModules.promptTemplates.render('wechat-relation-profile', {
       玩家基础资料区: player.playerBasic,
       玩家现实身份区: player.playerIdentity,
@@ -31,7 +65,7 @@ window.GameModules.wechatActions = {
     const profile = await window.GameModules.characterProfile.ensure(raw, this, context);
     const state = await window.GameModules.rpgState.ensureCharacter(profile, this);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
-    if (contact.needsNameAi && profile.name && profile.name !== contact.name) this.renameWechatContact(contact.id, profile.name);
+    this.syncWechatContactProfileName(contact.id, state.profile || profile);
     return state;
   },
 
@@ -42,19 +76,20 @@ window.GameModules.wechatActions = {
   },
 
   renameWechatContact(id, name) {
-    this.wechatUsers = (this.wechatUsers || []).map((item) => item.id === id ? { ...item, name, mark: String(name).slice(0, 1), subtitle: item.relation || item.subtitle } : item);
+    this.wechatUsers = (this.wechatUsers || []).map((item) => item.id === id ? { ...item, name, mark: String(name).slice(0, 1), subtitle: item.relation || item.subtitle, needsNameAi: false } : item);
   },
 
   async addWechatUser(user = {}, options = {}) {
     const contact = this.normalizeWechatContact(user);
     if (!contact) return null;
     const list = Array.isArray(this.wechatUsers) ? [...this.wechatUsers] : [];
-    const index = list.findIndex((item) => item.id === contact.id || item.name === contact.name);
-    if (index >= 0) list[index] = { ...list[index], ...contact };
+    const index = list.findIndex((item) => item.id === contact.id || (!this.isWechatPlaceholderName(item.name) && item.name === contact.name));
+    if (index >= 0) list[index] = { ...list[index], ...contact, name: this.isWechatPlaceholderName(contact.name) ? list[index].name : contact.name };
     else list.push(contact);
     this.wechatUsers = list;
+    const stored = this.wechatUsers[index >= 0 ? index : this.wechatUsers.length - 1];
     if (options.generateProfile !== false) {
-      try { await this.ensureWechatUserProfile(contact); }
+      try { await this.ensureWechatUserProfile(stored); }
       catch (err) { console.warn('[微信] 联系人资料生成失败:', err.code, err.message, err.stack); }
     }
     await this.save?.();

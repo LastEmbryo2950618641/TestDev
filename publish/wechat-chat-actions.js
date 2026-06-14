@@ -3,8 +3,10 @@ window.GameModules = window.GameModules || {};
 window.GameModules.wechatChatActions = {
   selectWechatContact(id) {
     this.wechatSelectedContact = id || this.wechatThreads()[0]?.id || 'player-self';
+    const renamed = this.syncWechatContactsFromRpgStates?.();
     this.wechatUsers = (this.wechatUsers || []).map((item) => item.id === this.wechatSelectedContact ? { ...item, unread: 0 } : item);
     this.wechatView = 'chat';
+    if (renamed) this.save?.();
   },
 
   wechatMessages() {
@@ -91,10 +93,11 @@ window.GameModules.wechatChatActions = {
   },
 
   wechatContactProfileText(contact) {
+    const display = this.displayWechatContact?.(contact) || contact;
     const state = this.rpgStates?.[contact.id];
     const profile = state?.profile || {};
     const rows = [
-      ['姓名', profile.name || contact.name], ['微信关系', contact.relation || contact.subtitle], ['角色定位', profile.role || contact.context],
+      ['姓名', profile.name || display.name], ['微信关系', display.relation || display.subtitle], ['角色定位', profile.role || display.context],
       ['背景', profile.detail || contact.latest], ['外貌', profile.appearance], ['性格', profile.personality], ['关系', profile.relationships],
     ];
     return rows.map(([label, value]) => `- ${label}：${String(value || '未记录')}`).join('\n');

@@ -149,6 +149,7 @@ window.GameModules.playerIdentityActions = {
     if (this.knownProfessionState) this.knownProfessionState.open = false;
     if (this.promptState) this.promptState.open = false; if (this.tokenStatsState) this.tokenStatsState.open = false;
     this.wechatAppOpen = true; this.desktopUnlocked = true;
+    if (this.syncWechatContactsFromRpgStates?.()) this.save?.();
     this.wechatTab = this.wechatTab || 'chats';
     this.wechatView = this.wechatView || 'home';
   },
@@ -167,7 +168,7 @@ window.GameModules.playerIdentityActions = {
 
   wechatContacts() {
     const group = this.defaultWechatGroup?.() || { id: 'group-main', name: '操控者交流群', mark: '群', subtitle: '聊天群', latest: '系统：新手机已激活。', unread: 8, group: true };
-    return [group, ...(this.wechatUsers || [])];
+    return [group, ...(this.wechatUsers || []).map((item) => this.displayWechatContact?.(item) || item)];
   },
 
   wechatThreads() { return this.wechatContacts(); },
