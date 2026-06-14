@@ -98,9 +98,7 @@ window.GameModules.characterProfile = {
   },
 
   parse(text) {
-    const raw = String(text || '').replace(/```json|```/g, '').trim();
-    const json = window.GameModules.jsonUtils.extractJson(raw);
-    return JSON.parse(json.replace(/[\u0000-\u001F]/g, ''));
+    return window.GameModules.jsonUtils.parseLoose(text);
   },
 
   validate(profile, base, lore, attrs, store = null) {
