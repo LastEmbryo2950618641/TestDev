@@ -127,13 +127,11 @@
 .real-world-map-facts {
   display: grid;
   gap: 8px;
-  margin: 0;
-  padding-left: 18px;
   color: #aeb9d6;
   line-height: 1.6;
 }
 
-.real-world-map-facts li { padding-left: 4px; }
+.real-world-map-facts p { margin: 0; }
 
 .real-world-function-backdrop {
   position: fixed;

@@ -408,11 +408,11 @@
             <div class="real-world-map-info-pop" x-show="$store.game.realWorldMapInfoNode()" @click.self="$store.game.closeRealWorldMapInfo()" x-cloak>
               <article>
                 <header><strong x-text="$store.game.realWorldMapInfoNode()?.name"></strong><button class="small-btn" type="button" @click="$store.game.closeRealWorldMapInfo()">关闭</button></header>
-                <ol class="real-world-map-facts">
+                <div class="real-world-map-facts">
                   <template x-for="(fact, index) in $store.game.realWorldMapInfoFacts()" :key="fact.id || index">
-                    <li x-text="$store.game.realWorldMapFactText(fact, index)"></li>
+                    <p x-text="$store.game.realWorldMapFactText(fact, index)"></p>
                   </template>
-                </ol>
+                </div>
               </article>
             </div>
           </div>
