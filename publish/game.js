@@ -185,6 +185,9 @@ document.addEventListener('alpine:init', () => {
     },
 
     ...Object.assign({}, ...modules),
+    knownProfessions() { return gm.knownProfessionActions?.knownProfessions?.call(this) || []; },
+    selectedKnownProfession() { return gm.knownProfessionActions?.selectedKnownProfession?.call(this) || null; },
+    professionRequirementText(job) { return gm.knownProfessionActions?.professionRequirementText?.call(this, job) || ''; },
   });
 
   queueMicrotask(() => Alpine.store('game').init());
