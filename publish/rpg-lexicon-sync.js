@@ -15,6 +15,8 @@ Object.assign(window.GameModules.rpgLexicon, {
     this.collectLearned(entries, worldTag, '技能', values.skills);
     this.collectLearned(entries, worldTag, '职业', values.professions);
     this.collectLearned(entries, worldTag, '装备', values.equipment);
+    this.collectLearned(entries, worldTag, '物品', values.items);
+    this.collectLearned(entries, worldTag, '穿着', values.wearing);
     for (const item of values.factions || []) {
       const entry = this.factionEntry(worldTag, item, state);
       if (entry) entries.push(entry);
@@ -59,6 +61,9 @@ Object.assign(window.GameModules.rpgLexicon, {
     if (name === '现实观察' || name === '观察') return '通过细节、环境变化和他人反应判断局势的能力。';
     if (kind === '知识') return `对“${name}”这一知识领域的概念、规则、背景和应用范围的理解程度。`;
     if (kind === '职业') return `以“${name}”为核心的内化职业能力、经验与胜任资格；不等同当前雇佣单位或岗位，失业也不直接失去该职业。`;
+    if (kind === '装备') return `装备词条，说明“${name}”的当前状态、效果、持有者、可调用方式和是否可穿戴。`;
+    if (kind === '物品') return `物品词条，说明“${name}”的数量、用途、所在位置和消耗或转让条件。`;
+    if (kind === '穿着') return `穿着词条，说明“${name}”占用的槽位、外观、状态和对现实行动的影响。`;
     if (kind === '社群角色' || kind === '阵营') return `社群角色词条，说明角色所属居住社区、家庭、社交圈或临时群体，以及其在其中承担的社会角色。`;
     if (kind === '势力地位') return `势力地位词条，说明角色在有层级制度势力中的等级、职级、年级或职位。`;
     return `执行“${name}”相关行动时所需的理解、操作熟练度和稳定发挥能力。`;

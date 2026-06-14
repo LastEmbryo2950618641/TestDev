@@ -38,6 +38,7 @@
   <script src="sqlite-memory.js"></script>
   <script src="json-utils.js"></script>
   <script src="progression.js"></script>
+  <script src="progression-wearables.js"></script>
   <script src="rpg-schema.js"></script>
   <script src="progression-definitions.js"></script>
   <script src="profession-info.js"></script>
@@ -309,9 +310,9 @@
         <article class="real-world-function-modal dev-section" data-section-title="现实功能弹窗" role="dialog" aria-modal="true" @click.stop>
           <header class="identity-header">
             <div>
-              <p class="eyebrow" x-text="$store.game.realWorldFunctionView === 'inventory' ? 'INVENTORY' : 'REAL WORLD' "></p>
-              <h3 x-text="$store.game.realWorldFunctionView === 'inventory' ? '背包' : '现实功能' "></h3>
-              <small x-text="$store.game.realWorldFunctionView === 'inventory' ? '查看玩家本人当前持有或可调用的重要装备。' : '选择现实世界中要执行的功能。' "></small>
+              <p class="eyebrow" x-text="$store.game.realWorldFunctionEyebrow()"></p>
+              <h3 x-text="$store.game.realWorldFunctionTitle()"></h3>
+              <small x-text="$store.game.realWorldFunctionHint()"></small>
             </div>
             <button class="small-btn" type="button" @click.stop="$store.game.closeRealWorldFunctionPanel()">关闭</button>
           </header>
@@ -324,6 +325,10 @@
               <strong>背包</strong>
               <small>查看当前装备、物品与可调用资源。</small>
             </button>
+            <button class="real-world-function-option" type="button" @click="$store.game.openRealWorldFunctionPanel('wearing')">
+              <strong>穿着</strong>
+              <small>查看内衣、上衣、下衣、鞋子、手套和饰品等穿戴槽位。</small>
+            </button>
           </div>
           <div class="real-world-inventory" x-show="$store.game.realWorldFunctionView === 'inventory'">
             <button class="small-btn" type="button" @click="$store.game.realWorldFunctionView = 'menu'">返回功能</button>
@@ -334,6 +339,15 @@
               </article>
             </template>
             <p class="real-world-empty" x-show="!$store.game.realWorldInventoryItems().length">背包暂无物品。</p>
+          </div>
+          <div class="real-world-inventory real-world-wearing" x-show="$store.game.realWorldFunctionView === 'wearing'">
+            <button class="small-btn" type="button" @click="$store.game.realWorldFunctionView = 'menu'">返回功能</button>
+            <template x-for="(item, index) in $store.game.realWorldWearingItems()" :key="`wearing-${item.slot}:${index}`">
+              <article class="real-world-inventory-item real-world-wearing-item" :class="{ empty: $store.game.realWorldWearingName(item) === '未穿戴' }">
+                <strong><span x-text="item.slot"></span><em x-text="$store.game.realWorldWearingName(item)"></em></strong>
+                <small x-text="$store.game.realWorldWearingDetail(item)"></small>
+              </article>
+            </template>
           </div>
         </article>
       </section>

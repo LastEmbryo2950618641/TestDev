@@ -15,7 +15,7 @@ Object.assign(window.GameModules.progression, {
 
   ensureProgressionNotes(values) {
     values.exp.curve = 'nextExp=round(100*level^1.65)';
-    for (const item of [...(values.factions || []), ...(values.force_positions || []), ...(values.equipment || []), ...(values.status_tags || [])]) {
+    for (const item of [...(values.factions || []), ...(values.force_positions || []), ...(values.equipment || []), ...(values.items || []), ...(values.wearing || []), ...(values.status_tags || [])]) {
       if (item && typeof item === 'object' && Object.prototype.hasOwnProperty.call(item, 'level')) item.level = -1;
     }
     for (const item of [...(values.knowledge || []), ...(values.skills || []), ...(values.professions || [])]) {

@@ -91,8 +91,9 @@ window.GameModules.rpgState = {
       }
     }));
     const worldChanged = this.normalizeWorldValues(state), jobChanged = window.GameModules.rpgProfessionState.normalizeProfessions(state), controlChanged = this.ensureControlExperience(state), metricsChanged = this.ensureCharacterMetrics(state);
+    const inventoryChanged = window.GameModules.progression.ensureInventoryFields?.(state.values);
     const mechanicsChanged = window.GameModules.progression.ensureStateMechanics(state);
-    return worldChanged || jobChanged || controlChanged || metricsChanged || mechanicsChanged || changed;
+    return worldChanged || jobChanged || controlChanged || metricsChanged || inventoryChanged || mechanicsChanged || changed;
   },
 
   ensureCharacterMetrics(state) {

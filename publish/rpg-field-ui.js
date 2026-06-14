@@ -7,7 +7,7 @@ window.GameModules.rpgFieldUi = {
   toggleRpgItem(field, index) { const key = this.rpgItemKey(field, index); if (key) this.expandedRpgFieldKey = this.expandedRpgFieldKey === key ? '' : key; },
   isRpgFieldOpen(field) { return this.expandedRpgFieldKey === this.rpgFieldKey(field); },
   isRpgItemOpen(field, index) { return this.expandedRpgFieldKey === this.rpgItemKey(field, index); },
-  isRpgListField(field) { return ['knowledge', 'skills', 'professions', 'factions', 'force_positions', 'equipment', 'status_tags'].includes(field?.key) && Array.isArray(field.raw); },
+  isRpgListField(field) { return ['knowledge', 'skills', 'professions', 'factions', 'force_positions', 'equipment', 'items', 'wearing', 'status_tags'].includes(field?.key) && Array.isArray(field.raw); },
   rpgFieldSummary(field) {
     if (!this.isRpgListField(field)) return `${field.label}：${Array.isArray(field.value) ? field.value.join('、') || '无' : field.value}`;
     const unit = { knowledge: '知识', skills: '技能', professions: '职业' }[field.key] || '项';
@@ -39,12 +39,12 @@ window.GameModules.rpgFieldUi = {
     const identity = this.profileIdentityFields(state, identityFields);
     const relations = identity.filter((field) => field.label === '人际关系' || /relationships|人际关系/.test(field.key));
     const identityRest = identity.filter((field) => !relations.includes(field));
-    const used = new Set(['world_tag', 'age', 'factions', 'force_positions', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'equipment', 'status_tags']);
+    const used = new Set(['world_tag', 'age', 'factions', 'force_positions', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'equipment', 'items', 'wearing', 'status_tags']);
     const personal = all.filter((field) => !used.has(field.key));
     const groups = [
       { title: '个人能力', fields: personal },
       { title: '身内能力', fields: take(['strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma']) },
-      { title: '装备', fields: take(['equipment']) },
+      { title: '装备与物品', fields: take(['equipment', 'items', 'wearing']) },
       { title: '状态标签', fields: take(['status_tags']) },
       { title: '人际关系', fields: relations },
       { title: '身份信息', fields: [...identityRest, ...take(['world_tag', 'age', 'factions', 'force_positions'])] },
@@ -54,9 +54,9 @@ window.GameModules.rpgFieldUi = {
 
   lexiconKind(field, item = null) {
     if (item?.type) return item.type;
-    if (field?.key && !item) return { knowledge: '知识树', skills: '技能树', professions: '职业树', factions: '社群角色', force_positions: '势力地位', equipment: '装备', status_tags: '状态' }[field.key] || field.kind || '属性';
+    if (field?.key && !item) return { knowledge: '知识树', skills: '技能树', professions: '职业树', factions: '社群角色', force_positions: '势力地位', equipment: '装备', items: '物品', wearing: '穿着', status_tags: '状态' }[field.key] || field.kind || '属性';
     if (field?.kind) return field.kind;
-    return { factions: '社群角色', force_positions: '势力地位', equipment: '装备', status_tags: '状态' }[field?.key] || '属性';
+    return { factions: '社群角色', force_positions: '势力地位', equipment: '装备', items: '物品', wearing: '穿着', status_tags: '状态' }[field?.key] || '属性';
   },
 
   lexiconFor(field, item = null) {
@@ -88,6 +88,9 @@ window.GameModules.rpgFieldUi = {
     if (name === '现实观察' || name === '观察') return '通过细节、环境变化和他人反应判断局势的能力。';
     if (kind === '知识') return `对“${name}”这一知识领域的概念、规则、背景和应用范围的理解程度。`;
     if (kind === '职业') return `以“${name}”为核心的内化职业能力、经验与胜任资格；不等同当前雇佣单位或岗位，失业也不直接失去该职业。`;
+    if (kind === '装备') return `装备词条，说明“${name}”的当前状态、效果、持有者、可调用方式和是否可穿戴。`;
+    if (kind === '物品') return `物品词条，说明“${name}”的数量、用途、所在位置和消耗或转让条件。`;
+    if (kind === '穿着') return `穿着词条，说明“${name}”占用的槽位、外观、状态和对现实行动的影响。`;
     if (kind === '社群角色' || kind === '阵营') {
       const community = obj.community || obj.faction || info.community || info.faction || name.split('/')[0]?.trim();
       const role = obj.role || info.role || obj.position || info.position || name.split('/')[1]?.trim() || '成员';

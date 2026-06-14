@@ -83,6 +83,30 @@
 .real-world-inventory-item small,
 .real-world-empty { color: #aeb9d6; line-height: 1.5; }
 
+.real-world-wearing {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.real-world-wearing > .small-btn {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+.real-world-wearing-item strong {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.real-world-wearing-item em {
+  color: #74f6ff;
+  font-style: normal;
+}
+
+.real-world-wearing-item.empty {
+  opacity: .72;
+}
+
 .real-world-layout .profile-card {
   min-height: 0;
 }

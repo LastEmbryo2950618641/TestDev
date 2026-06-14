@@ -23,7 +23,7 @@ window.GameModules.rpgSchema = {
     schema.worldTag = worldTag;
     schema.sections = schema.sections.slice(0, 4).map((section, si) => ({
       title: String(section.title || `状态${si + 1}`).slice(0, 12),
-      fields: (section.fields || []).slice(0, section.title === '基础能力' ? 15 : (section.title === '世界固有属性' ? 16 : 10)).map((field, fi) => ({
+      fields: (section.fields || []).slice(0, section.title === '基础能力' ? 15 : (section.title === '世界固有属性' ? 16 : (section.title === '习得与职业' ? 12 : 10))).map((field, fi) => ({
         key: /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(field.key) ? field.key : `field_${si}_${fi}`,
         label: String(field.label || field.key || '状态').slice(0, 12),
         type: ['number', 'rank', 'list', 'text'].includes(field.type) ? field.type : 'number',
