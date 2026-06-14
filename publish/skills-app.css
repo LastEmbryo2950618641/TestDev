@@ -10,6 +10,12 @@
     linear-gradient(135deg, #ff9f43, #ff4ec7 58%, #784bff);
 }
 
+.token-icon .app-glyph {
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, .45), transparent 24%),
+    linear-gradient(135deg, #35e0ff, #4b7bff 58%, #24ff9a);
+}
+
 .skills-app-screen {
   display: grid;
   place-items: center;

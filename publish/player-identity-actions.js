@@ -124,9 +124,8 @@ window.GameModules.playerIdentityActions = {
     if (this.factionState) this.factionState.open = false;
     if (this.skillsState) this.skillsState.open = false;
     if (this.knownProfessionState) this.knownProfessionState.open = false;
-    if (this.promptState) this.promptState.open = false;
-    this.identityTargetId = targetId || 'player-self';
-    this.identityAppOpen = true;
+    if (this.promptState) this.promptState.open = false; if (this.tokenStatsState) this.tokenStatsState.open = false;
+    this.identityTargetId = targetId || 'player-self'; this.identityAppOpen = true;
     this.desktopUnlocked = true;
     if (this.identityTargetId === 'player-self') await this.ensurePlayerRpgState();
     else if (!this.rpgStates[this.identityTargetId] && this.identityTargetId === this.character.id) await this.ensureRpgForCurrentCharacter();
@@ -144,9 +143,8 @@ window.GameModules.playerIdentityActions = {
     if (this.factionState) this.factionState.open = false;
     if (this.skillsState) this.skillsState.open = false;
     if (this.knownProfessionState) this.knownProfessionState.open = false;
-    if (this.promptState) this.promptState.open = false;
-    this.wechatAppOpen = true;
-    this.desktopUnlocked = true;
+    if (this.promptState) this.promptState.open = false; if (this.tokenStatsState) this.tokenStatsState.open = false;
+    this.wechatAppOpen = true; this.desktopUnlocked = true;
     this.wechatTab = this.wechatTab || 'chats';
     this.wechatView = this.wechatView || 'home';
   },

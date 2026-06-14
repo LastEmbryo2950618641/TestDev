@@ -166,6 +166,7 @@ window.GameModules.companyActions = {
     if (this.skillsState) this.skillsState.open = false;
     if (this.knownProfessionState) this.knownProfessionState.open = false;
     if (this.promptState) this.promptState.open = false;
+    if (this.tokenStatsState) this.tokenStatsState.open = false;
     this.companyState.open = true;
     this.desktopUnlocked = true;
   },

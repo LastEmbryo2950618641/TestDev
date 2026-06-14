@@ -15,6 +15,7 @@ window.GameModules.knownProfessionActions = {
     if (this.factionState) this.factionState.open = false;
     if (this.skillsState) this.skillsState.open = false;
     if (this.promptState) this.promptState.open = false;
+    if (this.tokenStatsState) this.tokenStatsState.open = false;
     this.knownProfessionState.open = true;
     this.desktopUnlocked = true;
   },
