@@ -250,3 +250,55 @@
   }
 
 }
+
+.save-modal-backdrop,
+.prompt-modal-backdrop,
+.boss-modal-backdrop,
+.faction-modal-backdrop,
+.skills-modal-backdrop,
+.prompt-app-modal-backdrop,
+.real-world-overlay {
+  place-items: stretch;
+  padding: 0;
+}
+
+.save-modal,
+.prompt-modal,
+.boss-company-modal,
+.faction-detail,
+.faction-org-modal,
+.prompt-app-modal,
+.real-world-dialog,
+.skills-modal-backdrop > .skills-detail,
+.save-modal.character-detail-modal {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  min-height: 0;
+  border-radius: 0;
+}
+
+.save-modal,
+.boss-company-modal,
+.faction-detail,
+.skills-modal-backdrop > .skills-detail {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.prompt-modal,
+.faction-org-modal,
+.prompt-app-modal,
+.real-world-dialog,
+.save-modal.character-detail-modal {
+  overflow: hidden;
+}
+
+.faction-modal-backdrop .identity-header,
+.skills-modal-backdrop .identity-header,
+.prompt-app-modal header,
+.prompt-modal header,
+.save-modal header {
+  padding-top: env(safe-area-inset-top);
+}
