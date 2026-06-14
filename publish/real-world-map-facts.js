@@ -19,8 +19,9 @@ window.GameModules.realWorldMapFacts = {
   },
 
   normalizeFacts(node = {}, fallback = '', time = '') {
-    const existing = this.cleanFactsInput(node.descriptionFacts || node.facts);
-    const base = existing.length ? existing : this.cleanFactsInput(node.description || fallback);
+    const safeNode = node || {};
+    const existing = this.cleanFactsInput(safeNode.descriptionFacts || safeNode.facts);
+    const base = existing.length ? existing : this.cleanFactsInput(safeNode.description || fallback);
     return base.map((item, index) => {
       const text = this.cleanText(item?.text || item?.description || item);
       if (!text) return null;

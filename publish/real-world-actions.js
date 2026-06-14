@@ -100,7 +100,8 @@ window.GameModules.realWorldActions = {
 
   realWorldMapInfoFacts() {
     const node = this.realWorldMapInfoNode();
-    return window.GameModules.realWorldMapFacts?.normalizeFacts?.(node, node?.description, `${this.phoneDateText()} ${this.phoneTimeText()}`) || [];
+    if (!node) return [];
+    return window.GameModules.realWorldMapFacts?.normalizeFacts?.(node, node.description, `${this.phoneDateText()} ${this.phoneTimeText()}`) || [];
   },
 
   realWorldMapFactText(fact, index) {
