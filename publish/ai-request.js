@@ -8,6 +8,12 @@ window.GameModules.aiRequest = {
   seq: 0,
   queued: 0,
   active: 0,
+  logicalCount: 0,
+  actualCount: 0,
+  completedCount: 0,
+  failedAttemptCount: 0,
+  retryCount: 0,
+  sourceCounts: {},
   lastStartedAt: 0,
   minGapMs: 4200,
   cooldownUntil: 0,
@@ -18,8 +24,17 @@ window.GameModules.aiRequest = {
     return (messages || []).map((msg) => String(msg?.content || '').length);
   },
 
+  countSource(source) {
+    this.sourceCounts[source] = (this.sourceCounts[source] || 0) + 1;
+    return this.sourceCounts[source];
+  },
+
+  stats() {
+    return { logicalCount: this.logicalCount, actualCount: this.actualCount, completedCount: this.completedCount, failedAttemptCount: this.failedAttemptCount, retryCount: this.retryCount, queued: this.queued, active: this.active, sourceCounts: { ...this.sourceCounts } };
+  },
+
   log(event, data = {}) {
-    console.log(`[AI请求] ${event}:`, data);
+    console.log(`[AI请求] ${event}:`, { ...data, stats: this.stats() });
   },
 
   isRetryable(err) {
@@ -49,8 +64,10 @@ window.GameModules.aiRequest = {
     const model = options.model || 'nalang-turbo-0826';
     const maxTokens = options.maxTokens || 1000;
     const enqueueAt = Date.now();
+    const sourceCount = this.countSource(source);
+    this.logicalCount += 1;
     this.queued += 1;
-    this.log('入队', { id, source, model, maxTokens, queued: this.queued, active: this.active, messageLengths: this.lengths(messages) });
+    this.log('入队', { id, source, sourceCount, logicalNo: this.logicalCount, model, maxTokens, queued: this.queued, active: this.active, messageLengths: this.lengths(messages) });
     const run = this.queue.then(async () => {
       this.queued = Math.max(0, this.queued - 1);
       this.active += 1;
@@ -80,10 +97,12 @@ window.GameModules.aiRequest = {
         return await this.callOnce(options, attempt);
       } catch (err) {
         lastErr = err;
+        this.failedAttemptCount += 1;
         this.log('失败', { id: options.id, source: options.source, attempt: attempt + 1, code: err.code, message: err.message, retryable: this.isRetryable(err) });
         if (!this.isRetryable(err) || attempt === maxAttempts - 1) throw err;
         const delay = this.retryDelay(err, attempt);
         if (err.code === 'RATE_LIMITED') this.cooldownUntil = Date.now() + delay;
+        this.retryCount += 1;
         this.log('重试等待', { id: options.id, source: options.source, nextAttempt: attempt + 2, delay });
         await this.wait(delay);
       }
@@ -97,14 +116,15 @@ window.GameModules.aiRequest = {
     let doneSeen = false;
     let callbackChain = Promise.resolve();
     const startAt = Date.now();
+    this.actualCount += 1;
     this.lastStartedAt = startAt;
-    this.log('开始', { id: options.id, source: options.source, attempt: attempt + 1, queueWaitMs: startAt - options.enqueueAt, model: options.model, maxTokens: options.maxTokens, messageLengths: this.lengths(options.messages) });
+    this.log('开始', { id: options.id, source: options.source, actualNo: this.actualCount, attempt: attempt + 1, queueWaitMs: startAt - options.enqueueAt, model: options.model, maxTokens: options.maxTokens, messageLengths: this.lengths(options.messages) });
     const request = window.dzmm.completions({ model: options.model, maxTokens: options.maxTokens, messages: options.messages }, (chunk, done) => {
       const text = String(chunk || '');
       if (text) {
         chunkCount += 1;
         buffer = window.GameModules.jsonUtils?.mergeStreamText?.(buffer, text) ?? (buffer + text);
-        if (chunkCount === 1 || chunkCount % 10 === 0) this.log('流式片段', { id: options.id, source: options.source, chunkCount, length: buffer.length });
+        if (options.logChunks && (chunkCount === 1 || chunkCount % 20 === 0)) this.log('流式片段', { id: options.id, source: options.source, chunkCount, length: buffer.length });
       }
       if (done) doneSeen = true;
       const info = { id: options.id, source: options.source, buffer, chunkCount, done: Boolean(done), doneSeen };
@@ -115,6 +135,7 @@ window.GameModules.aiRequest = {
     });
     await this.timeout(Promise.resolve(request).then(() => callbackChain), options.timeoutMs, options.source);
     if (options.requireDone && !doneSeen) throw new Error(`${options.source}流式未完成`);
+    this.completedCount += 1;
     this.log('完成', { id: options.id, source: options.source, chunkCount, length: buffer.length, doneSeen, durationMs: Date.now() - startAt });
     return buffer;
   },
