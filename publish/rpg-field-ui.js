@@ -75,6 +75,38 @@ window.GameModules.rpgFieldUi = {
     return found || `${field?.label || '该词条'}用于记录可被剧情判定和成长系统引用的具体状态。`;
   },
 
+  activeDetailState() {
+    return this.identityTargetState?.() || this.currentRpgState || this.playerIdentityState?.() || null;
+  },
+
+  fieldChangeReason(field, lexicon = null) {
+    const state = this.activeDetailState();
+    const values = state?.values || {};
+    if (field?.reason) return field.reason;
+    if (lexicon?.meta?.modifyReason) return lexicon.meta.modifyReason;
+    if (field?.key === 'level') {
+      const latest = values.level_growth?.history?.at?.(-1);
+      if (latest) return `个人等级从${latest.from}提升到${latest.to}，因此当前等级字段发生变化。`;
+      return '角色初始化或经验成长系统结算出的当前个人等级；暂无最近升级记录。';
+    }
+    if (field?.key === 'exp') return '个人经验由剧情行动、现实行动、训练或系统结算累积，并按等级曲线决定升级进度。';
+    if (field?.key === 'free_attribute_points') return '自由属性点由个人等级提升时发放，并在玩家分配属性时减少。';
+    if (field?.key === 'level_growth') return values.level_growth?.history?.length ? '个人等级提升时记录自动加点、自由点和升级来源。' : '当前尚无升级事件，保留初始化成长规则。';
+    if (field?.source) return '该字段由初始值、等级成长、自由分配与非玩家成长来源合计而来。';
+    if (lexicon?.changeMode) return lexicon.changeMode;
+    return `${field?.label || '该词条'}由角色资料、世界规则、剧情/现实行动或系统结算维护。`;
+  },
+
+  itemChangeReason(field, obj = {}, lexicon = null) {
+    if (lexicon?.meta?.modifyReason) return lexicon.meta.modifyReason;
+    if (obj.reason) return obj.reason;
+    if (obj.changeMode) return obj.changeMode;
+    if (obj.description) return obj.description;
+    if (obj.source) return obj.source;
+    if (field?.key === 'wearing') return `${obj.slot || '该部位'}的穿着状态由角色初始资料、玩家设定、现实换装或剧情动作结算。`;
+    return `${obj.name || field?.label || '该词条'}由角色资料、剧情/现实行动或系统结算维护。`;
+  },
+
   rpgItemSummary(item) {
     if (typeof item === 'string') return item;
     const name = item?.name || (item?.force ? `${item.force} / ${item.position || '成员'}` : (item?.faction ? `${item.faction} / ${item.role || item.position || '成员'}` : '未命名'));
@@ -128,16 +160,15 @@ window.GameModules.rpgFieldUi = {
     lines.push(`关联身内能力: ${linkedStats.join('、') || '无直接关联'}`);
     lines.push(`词条层级: ${lexicon?.hierarchy === 'tree' ? '树词条' : '叶子词条'}`);
     lines.push(`生成来源: 词条名${(lexicon?.nameAiGenerated ?? lexicon?.aiGenerated) ? 'AI生成' : '系统/用户给定'}，值${lexicon?.valueAiGenerated ? 'AI生成' : '系统/用户给定'}，变化方式${lexicon?.changeMode || '系统结算'}`);
-    if (lexicon?.meta?.modifyReason || obj?.reason || obj?.changeMode) lines.push(`修改原因: ${lexicon?.meta?.modifyReason || obj.reason || obj.changeMode}`);
+    lines.push(`reason/变化原因: ${this.itemChangeReason(field, obj, lexicon)}`);
     if (obj?.type === '职业' && ((info.learnedAbilities || []).length || (info.worldAbilities || []).length)) lines.push(`职业关联: ${(info.learnedAbilities || []).concat(info.worldAbilities || []).join('、')}`);
     return lines.join('\n');
   },
 
   rpgFieldDetail(field) {
     const lexicon = this.lexiconFor(field);
-    const reason = field?.reason || lexicon?.meta?.modifyReason || lexicon?.reason || '';
     const lines = [`说明: ${lexicon?.description || lexicon?.summary || field?.desc || this.fallbackDesc(field)}`];
-    if (reason) lines.push(`修改原因: ${reason}`);
+    lines.push(`reason/变化原因: ${this.fieldChangeReason(field, lexicon)}`);
     lines.push(`所属世界: ${field?.worldTag || lexicon?.worldTag || '公共'}`);
     lines.push(`字段范围: ${(field?.commonField ?? lexicon?.meta?.commonField) ? '公共字段' : '世界专属字段'}`);
     lines.push(`词条类型: ${field?.targetType || lexicon?.meta?.targetType || '角色'}`);
