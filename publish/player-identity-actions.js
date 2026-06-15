@@ -100,6 +100,12 @@ window.GameModules.playerIdentityActions = {
     const existing = this.playerIdentityState();
     if (!refresh && existing) {
       let changed = false;
+      const expectedName = this.playerProfile?.name || this.playerName || '';
+      if (expectedName && existing.profile?.name !== expectedName) {
+        existing.name = expectedName;
+        existing.profile = { ...(existing.profile || {}), id: 'player-self', name: expectedName, isPlayer: true };
+        changed = true;
+      }
       try {
         window.GameModules.characterProfile.requireRpgFieldReasons(existing.profile, existing.profile?.worldAttributes, existing.profile?.name || '玩家本人');
       } catch (err) {
@@ -121,6 +127,7 @@ window.GameModules.playerIdentityActions = {
       character = window.GameModules.characterReasonFallback.apply(this.playerCharacterBase(), window.GameModules.worldAttributes.defaults(this.playerCharacterBase().work));
     }
     character.id = 'player-self';
+    character.name = this.playerProfile?.name || this.playerName || character.name;
     character.isPlayer = true;
     this.initFactionSystem?.();
     const state = await window.GameModules.rpgState.ensureCharacter(character, this);

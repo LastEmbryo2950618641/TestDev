@@ -119,7 +119,7 @@ window.GameModules.characterProfile = {
     const forcePositions = this.forcePositions(profile, base, store);
     const validated = {
       ...base,
-      name: this.validName(profile.name, base),
+      name: base.id === 'player-self' ? base.name : this.validName(profile.name, base),
       gender: String(base.gender || profile.gender || '').slice(0, 8),
       age: base.age || profile.age || '',
       relationships: this.formatRelationships(profile.relationships || base.relationships || ''),
