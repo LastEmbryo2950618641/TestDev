@@ -46,8 +46,18 @@ Object.assign(window.GameModules.sqliteSave, {
     await this.persist();
   },
 
+  cleanLexiconReason(entry) {
+    const reason = String(entry?.meta?.modifyReason || '').trim();
+    if (!reason) return entry;
+    const blocked = [entry.description, entry.summary].filter(Boolean).map((x) => String(x).trim());
+    const isDescription = blocked.includes(reason) || /词条说明|当前作用|用于记录|暂无详细说明/.test(reason);
+    if (!isDescription && !/^(AI演算|系统结算|系统词条调整|用户主动)$/.test(reason)) return entry;
+    return { ...entry, meta: { ...(entry.meta || {}), modifyReason: '' } };
+  },
+
   getLexiconEntry(worldTag, kind, name) {
-    return this.db ? this.getJson('SELECT entry_json FROM lexicon_entries WHERE world_tag=? AND kind=? AND name=?', [worldTag, kind, name]) : null;
+    if (!this.db) return null;
+    return this.cleanLexiconReason(this.getJson('SELECT entry_json FROM lexicon_entries WHERE world_tag=? AND kind=? AND name=?', [worldTag, kind, name]));
   },
 
   async saveLexiconEntry(entry) {

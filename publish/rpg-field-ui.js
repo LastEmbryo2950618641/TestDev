@@ -79,28 +79,31 @@ window.GameModules.rpgFieldUi = {
     return this.identityTargetState?.() || this.currentRpgState || this.playerIdentityState?.() || null;
   },
 
+  usableChangeReason(reason, blocked = []) {
+    const text = String(reason || '').trim();
+    if (!text || /^(AI演算|系统结算|系统词条调整|用户主动)$/.test(text)) return '';
+    if (/词条说明|当前作用|用于记录|暂无详细说明/.test(text)) return '';
+    return blocked.some((item) => item && text === String(item).trim()) ? '' : text;
+  },
+
   fieldChangeReason(field, lexicon = null) {
     const state = this.activeDetailState();
     const values = state?.values || {};
-    if (field?.reason) return field.reason;
-    if (lexicon?.meta?.modifyReason) return lexicon.meta.modifyReason;
+    const explicit = this.usableChangeReason(field?.reason || lexicon?.meta?.modifyReason, [lexicon?.description, lexicon?.summary, field?.desc]);
+    if (explicit) return explicit;
     if (field?.key === 'level' && values.level_growth?.history?.length) {
       const latest = values.level_growth.history.at(-1);
-      return `最近的成长记录显示该字段从${latest.from}变化到${latest.to}，触发来源是对应经历与成长结算。`;
+      return `最近的成长记录显示该字段从${latest.from}变化到${latest.to}，触发来源是对应经历与成长记录。`;
     }
-    if (field?.key === 'level_growth' && values.level_growth?.history?.length) return '该字段来自角色成长记录，说明能力变化由近期经历、训练或剧情结算触发。';
+    if (field?.key === 'level_growth' && values.level_growth?.history?.length) return '该字段来自角色成长记录，能力变化由近期经历、训练或剧情结果触发。';
     if (field?.source) return '该字段来自角色资料、成长来源、分配记录和近期状态证据。';
-    if (lexicon?.changeMode && lexicon.changeMode !== '系统结算') return lexicon.changeMode;
-    return `${field?.label || '该词条'}当前值来自角色资料、剧情证据、世界规则或近期状态；若后续 AI 修改，应在 reason 中写明触发事件、证据和角色动机。`;
+    return `${field?.label || '该词条'}当前值来自角色资料、剧情证据、世界规则或近期状态；后续 AI 修改时会写明具体触发事件、证据和角色动机。`;
   },
 
   itemChangeReason(field, obj = {}, lexicon = null) {
-    if (lexicon?.meta?.modifyReason) return lexicon.meta.modifyReason;
-    if (obj.reason) return obj.reason;
-    if (obj.changeMode) return obj.changeMode;
-    if (obj.description) return obj.description;
-    if (obj.source) return obj.source;
-    return `${obj.name || field?.label || '该词条'}当前状态来自角色资料、剧情证据、持有/穿戴状态或近期状态；若后续 AI 修改，应在 reason 中写明触发事件、证据和角色动机。`;
+    const explicit = this.usableChangeReason(lexicon?.meta?.modifyReason || obj.reason || obj.changeMode, [lexicon?.description, lexicon?.summary, obj.description, obj.desc, obj.source]);
+    if (explicit) return explicit;
+    return `${obj.name || field?.label || '该词条'}当前状态来自角色资料、剧情证据、持有/穿戴状态或近期状态；后续 AI 修改时会写明具体触发事件、证据和角色动机。`;
   },
 
   rpgItemSummary(item) {

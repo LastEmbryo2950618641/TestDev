@@ -3,6 +3,14 @@ window.GameModules = window.GameModules || {};
 Object.assign(window.GameModules.rpgLexicon, {
   lexiconSkillId: 'lexicon.modify.batch',
 
+  cleanSkillReason(reason, raw = {}, old = {}) {
+    const text = String(reason || '').trim();
+    if (!text || /^(AI演算|系统结算|系统词条调整|用户主动)$/.test(text)) return '';
+    const blocked = [raw.description, raw.summary, old.description, old.summary].filter(Boolean).map((x) => String(x).trim());
+    if (blocked.includes(text) || /词条说明|当前作用|用于记录|暂无详细说明/.test(text)) return '';
+    return text;
+  },
+
   buildSkillEntry(raw = {}) {
     const worldTag = raw.worldTag || raw.world || '原创世界';
     const kind = raw.kind || raw.type || '词条';
@@ -23,7 +31,7 @@ Object.assign(window.GameModules.rpgLexicon, {
         ...(old?.meta || {}),
         ...(raw.meta || {}),
         modifiedBySkill: this.lexiconSkillId,
-        modifyReason: raw.reason || raw.modifyReason || raw.description || '系统词条调整',
+        modifyReason: this.cleanSkillReason(raw.reason || raw.modifyReason || old?.meta?.modifyReason, raw, old),
       },
     });
   },
