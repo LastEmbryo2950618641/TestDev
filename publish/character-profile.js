@@ -101,6 +101,7 @@ window.GameModules.characterProfile = {
       关系事件区: sections.relationContext(context),
       世界观资料区: sections.worldLore(lore),
       世界字段: sections.worldFields(attrs),
+      RPG字段列表: this.rpgFieldReasonKeys(attrs).join('、'),
       情绪字段: window.GameModules.metrics.emotionKeys.join('、'),
       关系指标字段: window.GameModules.metrics.playerKeys.join('、'),
     });
@@ -143,7 +144,8 @@ window.GameModules.characterProfile = {
       items: this.carryItems(profile.items || base.items, '物品'),
       wearing: this.wearingItems(profile.wearing || base.wearing),
       worldValues: this.worldValues(profile.worldValues, attrs, base.name),
-      rpgFieldReasons: this.rpgFieldReasons(profile.rpgFieldReasons),
+      worldAttributes: attrs,
+      rpgFieldReasons: this.rpgFieldReasons(profile.rpgFieldReasons, attrs, { ...base, ...profile, factions, forcePositions }),
       initialMetrics: this.initialMetrics(profile.initialMetrics),
       roleCard: true,
       roleCardSource: 'ai',
@@ -291,24 +293,29 @@ window.GameModules.characterProfile = {
 
   isReusableRoleCard(profile, signature = null) {
     const signatureOk = signature === null || profile?.roleCardInputSignature === signature;
-    return signatureOk && this.isRoleCard(profile) && this.hasRequiredRoleCardFieldReasons(profile.roleCardFieldReasons) && this.hasRequiredInventoryReasons(profile) && this.hasRequiredInitialMetrics(profile.initialMetrics) && this.hasRequiredRpgFieldReasons(profile.rpgFieldReasons);
+    return signatureOk && this.isRoleCard(profile) && this.hasRequiredRoleCardFieldReasons(profile.roleCardFieldReasons) && this.hasRequiredInventoryReasons(profile) && this.hasRequiredInitialMetrics(profile.initialMetrics) && this.hasRequiredRpgFieldReasons(profile.rpgFieldReasons, profile?.worldAttributes);
   },
 
-  rpgFieldReasonKeys() {
-    return ['level', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'learning_ability', 'mental_stability', 'growth_potential', 'action_ability'];
+  rpgFieldReasonKeys(attrs = null) {
+    const sections = window.GameModules.progression.schemaSections(attrs || { fields: [] });
+    return [...new Set(sections.flatMap((section) => section.fields || []).map((field) => field.key).filter((key) => key !== 'intrinsic_sources'))];
   },
 
-  hasRequiredRpgFieldReasons(value) {
+  rpgFieldReasonFallback(key, profile = {}) {
+    const name = profile.name || '该人物';
+    const base = `${name}的${profile.role || profile.job || '身份'}、${profile.detail || profile.personality || '当前资料'}共同决定该词条的初始状态。`;
+    return key === 'world_tag' ? `${name}所属世界由角色卡作品字段固化。` : base;
+  },
+
+  hasRequiredRpgFieldReasons(value, attrs = null) {
     if (!value || typeof value !== 'object') return false;
-    return this.rpgFieldReasonKeys().every((key) => String(value[key] || '').trim());
+    return this.rpgFieldReasonKeys(attrs).every((key) => String(value[key] || '').trim());
   },
 
-  rpgFieldReasons(value) {
-    const keys = this.rpgFieldReasonKeys();
-    if (!value || typeof value !== 'object') throw new Error('rpgFieldReasons 缺失');
-    const out = Object.fromEntries(keys.map((key) => [key, String(value[key] || '').trim().slice(0, 120)]));
-    const missing = keys.filter((key) => !out[key]);
-    if (missing.length) throw new Error(`rpgFieldReasons 缺少字段原因: ${missing.join(',')}`);
+  rpgFieldReasons(value, attrs = null, profile = {}) {
+    const keys = this.rpgFieldReasonKeys(attrs);
+    const source = value && typeof value === 'object' ? value : {};
+    const out = Object.fromEntries(keys.map((key) => [key, String(source[key] || this.rpgFieldReasonFallback(key, profile)).trim().slice(0, 120)]));
     const vague = keys.filter((key) => /来源于角色资料|剧情证据|世界规则|根据上下文|初始化|系统生成|综合判断|默认/.test(out[key]));
     if (vague.length) throw new Error(`rpgFieldReasons 原因过于抽象: ${vague.join(',')}`);
     return out;

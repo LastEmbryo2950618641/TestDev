@@ -97,7 +97,7 @@ window.GameModules.rpgFieldUi = {
       return latest.reason || '';
     }
     if (field?.key === 'level_growth' && values.level_growth?.history?.length) return values.level_growth.history.at(-1)?.reason || '';
-    return '';
+    return window.GameModules.characterProfile?.rpgFieldReasonFallback?.(field?.key, profile) || '';
   },
 
   itemChangeReason(field, obj = {}, lexicon = null) {

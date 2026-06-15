@@ -94,10 +94,19 @@ window.GameModules.rpgState = {
       }
     }));
     const worldChanged = this.normalizeWorldValues(state), jobChanged = window.GameModules.rpgProfessionState.normalizeProfessions(state), controlChanged = this.ensureControlExperience(state), metricsChanged = this.ensureCharacterMetrics(state);
+    const reasonChanged = this.ensureRpgFieldReasons(state);
     const socialChanged = this.syncSocialPositions(state);
     const inventoryChanged = window.GameModules.progression.ensureInventoryFields?.(state.values);
     const mechanicsChanged = window.GameModules.progression.ensureStateMechanics(state);
-    return worldChanged || jobChanged || controlChanged || metricsChanged || socialChanged || inventoryChanged || mechanicsChanged || changed;
+    return worldChanged || jobChanged || controlChanged || metricsChanged || reasonChanged || socialChanged || inventoryChanged || mechanicsChanged || changed;
+  },
+  ensureRpgFieldReasons(state) {
+    if (!state?.profile) return false;
+    const tool = window.GameModules.characterProfile;
+    const before = JSON.stringify(state.profile.rpgFieldReasons || {});
+    state.profile.worldAttributes = state.profile.worldAttributes || { fields: (state.schema?.sections || []).flatMap((section) => section.fields || []) };
+    state.profile.rpgFieldReasons = tool.rpgFieldReasons(state.profile.rpgFieldReasons, state.profile.worldAttributes, state.profile);
+    return before !== JSON.stringify(state.profile.rpgFieldReasons || {});
   },
 
   ensureCharacterMetrics(state) {
