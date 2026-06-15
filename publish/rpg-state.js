@@ -102,7 +102,6 @@ window.GameModules.rpgState = {
   },
   ensureRpgFieldReasons(state) {
     if (!state?.profile) throw new Error('个人资料缺失，无法校验RPG变化原因');
-    if (state.profile.roleCardSource === 'local-skip') return false;
     const tool = window.GameModules.characterProfile;
     const before = JSON.stringify(state.profile.rpgFieldReasons || {});
     state.profile.worldAttributes = state.profile.worldAttributes || { fields: (state.schema?.sections || []).flatMap((section) => section.fields || []) };
