@@ -173,7 +173,7 @@ window.GameModules.characterProfile = {
       context: String(context || '').slice(0, 1200),
     };
     const raw = JSON.stringify(data);
-    return `v4:${raw.length}-${window.GameModules.rpgState.seed(raw)}`;
+    return `v5:${raw.length}-${window.GameModules.rpgState.seed(raw)}`;
   },
 
   fallback(base, lore, attrs) {
@@ -250,9 +250,14 @@ window.GameModules.characterProfile = {
   },
 
   rpgFieldReasons(value) {
-    if (!value || typeof value !== 'object') return {};
     const keys = ['level', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'learning_ability', 'mental_stability', 'growth_potential', 'action_ability'];
-    return Object.fromEntries(keys.map((key) => [key, String(value[key] || '').trim().slice(0, 120)]).filter(([, text]) => text));
+    if (!value || typeof value !== 'object') throw new Error('rpgFieldReasons 缺失');
+    const out = Object.fromEntries(keys.map((key) => [key, String(value[key] || '').trim().slice(0, 120)]));
+    const missing = keys.filter((key) => !out[key]);
+    if (missing.length) throw new Error(`rpgFieldReasons 缺少字段原因: ${missing.join(',')}`);
+    const vague = keys.filter((key) => /来源于角色资料|剧情证据|世界规则|根据上下文|初始化|系统生成|综合判断|默认/.test(out[key]));
+    if (vague.length) throw new Error(`rpgFieldReasons 原因过于抽象: ${vague.join(',')}`);
+    return out;
   },
 
   initialMetrics(value) {
