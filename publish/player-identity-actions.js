@@ -1,5 +1,4 @@
 window.GameModules = window.GameModules || {};
-
 window.GameModules.playerIdentityActions = {
   playerCharacter() {
     const p = this.playerProfile || {};
@@ -14,27 +13,28 @@ window.GameModules.playerIdentityActions = {
     const deathCause = p.parentDeathCause || '父母去世原因未记录';
     const relations = p.relationships || '人际关系由玩家自行设定，当前未填写';
     const notes = [p.worldbuildingNote, p.notes].filter(Boolean).join('；') || '暂无补充设定';
+    const fieldReason = `来自玩家已有账号资料：${name}，${city}，${role}，${living}。`;
+    const rpgReason = `${name}作为${role}在${city}生活，初始数值由现实身份、年龄、居住状态与玩家资料本地固化。`;
     return {
       id: 'player-self', name, age: p.age || '', birthday: p.birthday || '', gender: p.gender || '', work: world.label || '2026 现代都市现实世界', role, job: role,
-      rank: position, faction: workplace, city, workplace, position, importance: 'main', isPlayer: true,
+      rank: position, faction: workplace, city, workplace, position, importance: 'main', isPlayer: true, roleCard: true,
       equipment: p.equipment || [], items: p.items || [], wearing: p.wearing || [],
       detail: `性别：${p.gender || '未知'}；年龄：${p.age || '未知'}；生日：${p.birthday || '未知'}；具体地址：${city}；势力地位：${workplace}/${position}；社群角色：${city}/居民；居住：${living}；父母：${parents}；去世原因：${deathCause}；关系：${relations}；备注：${notes}`,
       personality: notes,
+      roleCardFieldReasons: Object.fromEntries(['姓名', '所属世界', '身份', '职业', '性别', '生日', '人际关系', '外貌', '性格', '人物说明', '社群角色', '势力地位'].map((key) => [key, fieldReason])),
+      rpgFieldReasons: Object.fromEntries(['level', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'learning_ability', 'mental_stability', 'growth_potential', 'action_ability'].map((key) => [key, rpgReason])),
       skills: [
-        { name: '手机操作', desc: '能够使用智能手机完成通讯、检索、拍摄、设置、应用切换和信息处理等操作。' },
-        { name: '现实观察', desc: '通过细节、环境变化和他人反应判断局势的能力。' },
+        { name: '手机操作', desc: '能够使用智能手机完成通讯、检索、拍摄、设置、应用切换和信息处理等操作。', reason: '玩家通过新手机激活和现实应用入口获得该基础操作能力。', changeMode: '玩家通过新手机激活和现实应用入口获得该基础操作能力。' },
+        { name: '现实观察', desc: '通过细节、环境变化和他人反应判断局势的能力。', reason: '玩家在现实身份与环境交互中需要观察地点、联系人和系统反馈。', changeMode: '玩家在现实身份与环境交互中需要观察地点、联系人和系统反馈。' },
       ],
     };
   },
-
   playerIdentityState() {
     return this.rpgStates['player-self'] || null;
   },
-
   identityTargetState() {
     return this.rpgStates[this.identityTargetId || 'player-self'] || null;
   },
-
   identityTargetProfile() {
     const id = this.identityTargetId || 'player-self';
     if (id === 'player-self') return this.playerCharacter();
@@ -42,7 +42,6 @@ window.GameModules.playerIdentityActions = {
   },
 
   identityTargetFields() {
-    if ((this.identityTargetId || 'player-self') === 'player-self') return this.playerProfileLexiconFields();
     const p = this.identityTargetProfile();
     const worldTag = p.work || this.identityTargetState()?.worldTag || '原创世界';
     const reasonFor = (label, key) => p.roleCardFieldReasons?.[label] || p.roleCardFieldReasons?.[key] || (p.roleCardChangeLog || []).slice().reverse().find((item) => item.field === label || item.field === key || item.name === label || item.name === key)?.reason || '';
@@ -63,25 +62,21 @@ window.GameModules.playerIdentityActions = {
     const names = (list) => (list || []).map((item) => item?.slot ? `${item.slot}:${item.name || '未穿戴'}` : (item?.name || item)).slice(0, 16).join('、') || '无';
     return `性别${this.playerProfile.gender || '未知'}｜年龄${v.age ?? this.playerProfile.age ?? '未知'}｜等级${v.level}｜经验${v.exp?.current || 0}/${v.exp?.next || 'max'}｜力量${v.strength}｜敏捷${v.agility}｜体质${v.constitution}｜智力${v.intelligence}｜感知${v.perception}｜意志${v.willpower}｜魅力${v.charisma}｜装备${names(v.equipment)}｜物品${names(v.items)}｜穿着${names(v.wearing)}`;
   },
-
   playerMemory() {
     return window.GameModules.characterMemory.ensure('player-self');
   },
-
   playerMemoryItems(kind) {
     const memory = this.playerMemory();
     if (kind === 'shortTerm') return [...(memory.shortTerm.recent || []), ...(memory.shortTerm.summarized || [])];
     if (kind === 'longTerm') return [...(memory.longTerm.vivid || []), ...(memory.longTerm.permanent || [])];
     return [];
   },
-
   playerMemoryStatus(kind) {
     const memory = this.playerMemory();
     const m = window.GameModules.characterMemory;
     if (kind === 'shortTerm') return [m.statLine('刚发生记忆', m.stats(memory.shortTerm.recent, m.limits.recent)), m.statLine('近发生记忆', m.stats(memory.shortTerm.summarized, m.limits.summarized)), m.statLine('遗忘区', m.stats(memory.shortTerm.forgotten, m.limits.forgotten))].join('｜');
     return [m.statLine('难以忘记', m.stats(memory.longTerm.vivid, m.limits.vivid)), m.statLine('不可忘记', m.stats(memory.longTerm.permanent, m.limits.permanent))].join('｜');
   },
-
   async addPlayerManualMemory() {
     const text = this.realWorldMemoryInput.trim();
     if (!text) return;
@@ -89,7 +84,6 @@ window.GameModules.playerIdentityActions = {
     await window.GameModules.characterMemory.addManual('player-self', text, realStore);
     this.realWorldMemoryInput = '';
   },
-
   async searchPlayerMemoryArchive() {
     const query = this.realWorldMemoryArchiveQuery.trim();
     if (!query) return;
@@ -99,11 +93,13 @@ window.GameModules.playerIdentityActions = {
   async ensurePlayerRpgState(refresh = false) {
     if (!window.GameModules.sqliteSave.db) return this.playerIdentityState();
     const existing = this.playerIdentityState();
+    const character = this.playerCharacter();
     if (!refresh && existing) {
-      if (window.GameModules.progression.ensureStateMechanics(existing, existing.profile || this.playerCharacter())) await window.GameModules.sqliteSave.saveCharacterState(existing);
+      existing.profile = { ...(existing.profile || {}), ...character };
+      window.GameModules.progression.ensureStateMechanics(existing, existing.profile);
+      await window.GameModules.sqliteSave.saveCharacterState(existing);
       return existing;
     }
-    const character = this.playerCharacter();
     this.initFactionSystem?.();
     const state = await window.GameModules.rpgState.ensureCharacter(character, this);
     state.profile = character;
