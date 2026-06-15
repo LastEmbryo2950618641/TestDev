@@ -87,14 +87,13 @@ window.GameModules.playerSetupActions = {
     try {
       this.setupError = '';
       const base = this.normalizePlayerSetupBase(name, birthday);
+      if (options.skipAi) throw new Error('玩家个人资料必须由AI补全并给出原因，不能跳过AI。');
       let enriched = null;
-      if (!options.skipAi) {
-        try {
-          enriched = await this.enrichPlayerProfile(base);
-        } catch (err) {
-          console.warn('[玩家身份] AI补全失败，使用本地兜底:', err.code, err.message, err.stack);
-          enriched = this.recoverEnrichedPlayerProfile(err.rawOutput, base);
-        }
+      try {
+        enriched = await this.enrichPlayerProfile(base);
+      } catch (err) {
+        console.error('[玩家身份] AI补全失败:', err.code, err.message, err.stack);
+        throw err;
       }
       this.playerProfile = this.normalizeEnrichedPlayerProfile(base, enriched);
       this.phoneFixedTime = new Date(this.playerProfile.initializedAt || Date.now()).getTime();

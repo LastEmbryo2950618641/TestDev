@@ -1,6 +1,6 @@
 window.GameModules = window.GameModules || {};
 window.GameModules.playerIdentityActions = {
-  playerCharacter() {
+  playerCharacterBase() {
     const p = this.playerProfile || {};
     const world = window.GameModules.realWorld2026 || {};
     const name = p.name || this.playerName || '手机主人';
@@ -13,21 +13,23 @@ window.GameModules.playerIdentityActions = {
     const deathCause = p.parentDeathCause || '父母去世原因未记录';
     const relations = p.relationships || '人际关系由玩家自行设定，当前未填写';
     const notes = [p.worldbuildingNote, p.notes].filter(Boolean).join('；') || '暂无补充设定';
-    const fieldReason = `${name}在${city}以“${role}”生活，居住状态是“${living}”，家庭状态为“${parents}”，这些经历决定该身份字段。`;
-    const profileTool = window.GameModules.characterProfile;
     return {
       id: 'player-self', name, age: p.age || '', birthday: p.birthday || '', gender: p.gender || '', work: world.label || '2026 现代都市现实世界', role, job: role,
-      rank: position, faction: workplace, city, workplace, position, importance: 'main', isPlayer: true, roleCard: true,
+      rank: position, faction: workplace, city, workplace, position, importance: 'main', isPlayer: true,
       equipment: p.equipment || [], items: p.items || [], wearing: p.wearing || [],
       detail: `性别：${p.gender || '未知'}；年龄：${p.age || '未知'}；生日：${p.birthday || '未知'}；具体地址：${city}；势力地位：${workplace}/${position}；社群角色：${city}/居民；居住：${living}；父母：${parents}；去世原因：${deathCause}；关系：${relations}；备注：${notes}`,
       personality: notes,
-      roleCardFieldReasons: Object.fromEntries(profileTool.roleCardFieldKeys().map((key) => [key, fieldReason])),
-      rpgFieldReasons: {},
       skills: [
         { name: '手机操作', desc: '能够使用智能手机完成通讯、检索、拍摄、设置、应用切换和信息处理等操作。', reason: '玩家通过新手机激活和现实应用入口获得该基础操作能力。' },
         { name: '现实观察', desc: '通过细节、环境变化和他人反应判断局势的能力。', reason: '玩家在现实身份与环境交互中需要观察地点、联系人和系统反馈。' },
       ],
     };
+  },
+  playerCharacter() {
+    const saved = this.playerIdentityState?.()?.profile;
+    if (!saved?.roleCard) throw new Error('玩家本人个人资料尚未由AI生成，不能读取本地兜底模板。');
+    window.GameModules.characterProfile.requireRpgFieldReasons(saved, saved.worldAttributes, saved.name || '玩家本人');
+    return saved;
   },
   playerIdentityState() {
     return this.rpgStates['player-self'] || null;
@@ -43,7 +45,7 @@ window.GameModules.playerIdentityActions = {
   identityTargetFields() {
     const p = this.identityTargetProfile();
     const worldTag = p.work || this.identityTargetState()?.worldTag || '原创世界';
-    const reasonFor = this.roleCardReasonGetter(p, (label) => `${label}来自${p.name || '该人物'}的经历“${p.detail || p.personality || p.worldbuildingNote || '当前经历尚少'}”以及最近身份处境。`);
+    const reasonFor = this.roleCardReasonGetter(p);
     const row = (key, label, value, desc) => ({ key: `id-${this.identityTargetId}-${key}`, label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: '角色', commonField: true });
     return [
       row('name', '姓名', p.name, '角色卡固化姓名。'),
@@ -92,14 +94,13 @@ window.GameModules.playerIdentityActions = {
     if (!window.GameModules.sqliteSave.db) return this.playerIdentityState();
     const existing = this.playerIdentityState();
     if (!refresh && existing) {
-      const character = this.playerCharacter();
-      existing.profile = existing.profile || {};
-      const profileChanged = !existing.profile.roleCard || JSON.stringify(existing.profile.roleCardFieldReasons || {}) !== JSON.stringify(character.roleCardFieldReasons) || JSON.stringify(existing.profile.rpgFieldReasons || {}) !== JSON.stringify(character.rpgFieldReasons);
-      Object.assign(existing.profile, { roleCard: true, roleCardFieldReasons: character.roleCardFieldReasons, rpgFieldReasons: character.rpgFieldReasons });
-      if (window.GameModules.progression.ensureStateMechanics(existing, existing.profile) || profileChanged) await window.GameModules.sqliteSave.saveCharacterState(existing);
+      window.GameModules.characterProfile.requireRpgFieldReasons(existing.profile, existing.profile?.worldAttributes, existing.profile?.name || '玩家本人');
+      if (window.GameModules.progression.ensureStateMechanics(existing, existing.profile)) await window.GameModules.sqliteSave.saveCharacterState(existing);
       return existing;
     }
-    const character = this.playerCharacter();
+    const character = await window.GameModules.characterProfile.ensure(this.playerCharacterBase(), this, this.playerSetupSummary?.() || '玩家本人资料');
+    character.id = 'player-self';
+    character.isPlayer = true;
     this.initFactionSystem?.();
     const state = await window.GameModules.rpgState.ensureCharacter(character, this);
     state.profile = character;

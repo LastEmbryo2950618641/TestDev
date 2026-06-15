@@ -8,7 +8,8 @@ Object.assign(window.GameModules.rpgLexicon, {
     for (const section of state?.schema?.sections || []) {
       for (const field of section.fields || []) {
         const treeKind = { knowledge: '知识树', skills: '技能树', professions: '职业树' }[field.key];
-        entries.push({ worldTag, kind: treeKind || '属性', name: field.label, value: values[field.key], desc: field.desc, nameAiGenerated: false, valueAiGenerated: false, changeMode: '代码计算', hierarchy: treeKind ? 'tree' : 'leaf', source: 'schema', meta: { key: field.key, type: field.type, grade: Boolean(field.grade), targetType: state?.profile?.isPlayer ? '非角色' : '角色', commonField: section.title !== '世界固有属性' && field.key !== 'world_tag' } });
+        const reason = state?.profile?.rpgFieldReasons?.[field.key];
+        entries.push({ worldTag, kind: treeKind || '属性', name: field.label, value: values[field.key], desc: field.desc, reason, nameAiGenerated: false, valueAiGenerated: false, changeMode: reason, hierarchy: treeKind ? 'tree' : 'leaf', source: 'schema', meta: { key: field.key, type: field.type, grade: Boolean(field.grade), targetType: state?.profile?.isPlayer ? '非角色' : '角色', commonField: section.title !== '世界固有属性' && field.key !== 'world_tag' } });
       }
     }
     this.collectLearned(entries, worldTag, '知识', values.knowledge);
@@ -25,7 +26,7 @@ Object.assign(window.GameModules.rpgLexicon, {
       const entry = this.forcePositionEntry(worldTag, item, state);
       if (entry) entries.push(entry);
     }
-    for (const name of values.status_tags || []) entries.push({ worldTag, kind: '状态', name, desc: `${name}表示角色当前处境、身份或剧情状态。`, nameAiGenerated: this.isAiStateName(name, state), valueAiGenerated: true, changeMode: 'AI演算', source: 'state' });
+    for (const name of values.status_tags || []) entries.push({ worldTag, kind: '状态', name, desc: `${name}表示角色当前处境、身份或剧情状态。`, reason: state?.profile?.rpgFieldReasons?.status_tags, nameAiGenerated: this.isAiStateName(name, state), valueAiGenerated: true, changeMode: state?.profile?.rpgFieldReasons?.status_tags, source: 'state' });
     return entries;
   },
 
@@ -40,7 +41,8 @@ Object.assign(window.GameModules.rpgLexicon, {
     if (!faction) return null;
     const name = obj.name && obj.name.includes('/') ? obj.name : `${faction} / ${role}`;
     const description = obj.description || `社群：${faction}；角色：${role}。该词条表示角色所属居住社区、家庭、社交圈或临时群体，以及其在其中承担的社会角色。`;
-    return { worldTag, kind: '社群角色', name, summary: `${faction}中的${role}`, description, value: { ...obj, name, faction, community: faction, role, position: role, level: -1 }, nameAiGenerated: this.isAiStateName(name, state), valueAiGenerated: true, changeMode: obj.changeMode || 'AI演算', source: 'state', meta: { info: { faction, community: faction, role, level: -1 } } };
+    const reason = obj.reason || obj.changeMode || state?.profile?.rpgFieldReasons?.factions;
+    return { worldTag, kind: '社群角色', name, summary: `${faction}中的${role}`, description, reason, value: { ...obj, name, faction, community: faction, role, position: role, level: -1 }, nameAiGenerated: this.isAiStateName(name, state), valueAiGenerated: true, changeMode: reason, source: 'state', meta: { info: { faction, community: faction, role, level: -1 } } };
   },
 
   forcePositionEntry(worldTag, item, state) {
@@ -50,7 +52,8 @@ Object.assign(window.GameModules.rpgLexicon, {
     if (!force) return null;
     const name = obj.name && obj.name.includes('/') ? obj.name : `${force} / ${position}`;
     const description = obj.description || `势力：${force}；地位：${position}。该词条表示角色在有层级制度势力中的等级、职级、年级或职位。`;
-    return { worldTag, kind: '势力地位', name, summary: `${force}中的${position}`, description, value: { ...obj, name, force, faction: force, position, level: -1 }, nameAiGenerated: this.isAiStateName(name, state), valueAiGenerated: true, changeMode: obj.changeMode || 'AI演算', source: 'state', meta: { info: { force, faction: force, position, level: -1 } } };
+    const reason = obj.reason || obj.changeMode || state?.profile?.rpgFieldReasons?.force_positions;
+    return { worldTag, kind: '势力地位', name, summary: `${force}中的${position}`, description, reason, value: { ...obj, name, force, faction: force, position, level: -1 }, nameAiGenerated: this.isAiStateName(name, state), valueAiGenerated: true, changeMode: reason, source: 'state', meta: { info: { force, faction: force, position, level: -1 } } };
   },
 
   learnedDescription(kind, name, item) {
@@ -80,7 +83,8 @@ Object.assign(window.GameModules.rpgLexicon, {
         value: typeof item === 'string' ? item : item,
         nameAiGenerated: true,
         valueAiGenerated: true,
-        changeMode: 'AI演算',
+        reason: item.reason || item.changeMode,
+        changeMode: item.reason || item.changeMode,
         related: [...(item.linkedStats || []), ...(item.info?.learnedAbilities || []), ...(item.info?.knowledgeAreas || []), ...(item.info?.worldAbilities || [])],
         meta: { info: { ...(item.info || {}), levelDescription: Number(item.level) > 0 ? item.levelDescription : undefined, effect: Number(item.level) > 0 ? item.effect : undefined } },
         source: item.info ? 'ai' : 'state',
@@ -89,6 +93,7 @@ Object.assign(window.GameModules.rpgLexicon, {
   },
 
   async syncState(state) {
+    window.GameModules.characterProfile.requireRpgFieldReasons(state?.profile, state?.profile?.worldAttributes, state?.profile?.name || state?.name || '个人资料');
     await this.saveMany(this.collectFromState(state));
   },
 });

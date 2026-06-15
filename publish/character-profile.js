@@ -57,9 +57,9 @@ window.GameModules.characterProfile = {
       age: data.age || (String(`${data.role || ''} ${data.relationships || ''} ${data.detail || data.desc || preset?.summary || ''}`).match(/(\d{1,3})\s*岁/)?.[1] || ''),
       aliases: Array.isArray(data.aliases) ? data.aliases.slice(0, 4).map(String) : [],
       skills: Array.isArray(data.skills) ? data.skills.slice(0, 4) : [],
-      equipment: this.carryItems(data.equipment, '装备'),
-      items: this.carryItems(data.items, '物品'),
-      wearing: this.wearingItems(data.wearing),
+      equipment: this.carryItemsLoose(data.equipment, '装备'),
+      items: this.carryItemsLoose(data.items, '物品'),
+      wearing: this.wearingItemsLoose(data.wearing),
       importance: data.importance || (data.isMinor ? 'minor' : 'support'),
       isMinor: Boolean(data.isMinor),
       roleCard: true,
@@ -69,7 +69,7 @@ window.GameModules.characterProfile = {
 
   async generate(base, lore, attrs, context, store, signature = '', preset = null) {
     try {
-      if (!window.dzmm?.completions) return this.withSignature(this.fallback(base, lore, attrs), signature);
+      if (!window.dzmm?.completions) throw new Error('无法生成个人资料：AI接口不可用，不能使用本地兜底原因。');
       const prompt = await this.prompt(base, lore, attrs, context, store, preset);
       return this.withSignature(await window.GameModules.jsonUtils.generateJsonWithRetry({
         source: 'character-profile-card',
@@ -236,24 +236,36 @@ window.GameModules.characterProfile = {
     return items.slice(0, 4);
   },
 
-  carryItems(value, kind) {
+  carryItemsLoose(value, kind) {
     const p = window.GameModules.progression;
     const list = Array.isArray(value) ? value : [];
-    return list.map((item) => {
-      const normalized = p.normalizeCarryItem(item, kind);
-      const reason = String(item?.reason || item?.changeMode || normalized.reason || normalized.changeMode || '').trim().slice(0, 120);
-      return { ...normalized, reason, changeMode: reason };
-    }).filter((item) => item.name && item.name !== '未命名物品').slice(0, 20);
+    return list.map((item) => p.normalizeCarryItem(item, kind)).filter((item) => item.name && item.name !== '未命名物品').slice(0, 20);
   },
 
-  wearingItems(value) {
+  wearingItemsLoose(value) {
     const list = Array.isArray(value) ? value : [];
     return list.map((item) => {
       const name = String(item?.name || '未穿戴').slice(0, 32);
       const slot = String(item?.slot || '').slice(0, 12);
-      const reason = String(item?.reason || item?.changeMode || `${slot || '穿着'}槽位的${name}来自角色卡穿戴资料。`).trim().slice(0, 120);
-      return { slot, name, type: '穿着', description: String(item?.description || '').slice(0, 80), reason, changeMode: reason, level: -1 };
+      return { slot, name, type: '穿着', description: String(item?.description || '').slice(0, 80), reason: String(item?.reason || item?.changeMode || '').trim().slice(0, 120), changeMode: String(item?.reason || item?.changeMode || '').trim().slice(0, 120), level: -1 };
     }).filter((item) => item.slot && item.name !== '未穿戴').slice(0, 20);
+  },
+
+  carryItems(value, kind) {
+    const list = this.carryItemsLoose(value, kind);
+    return list.map((item) => {
+      const reason = String(item?.reason || item?.changeMode || '').trim().slice(0, 120);
+      if (this.abstractReason(reason)) throw new Error(`${kind}${item.name || ''}缺少AI给出的具体变化原因`);
+      return { ...item, reason, changeMode: reason };
+    });
+  },
+
+  wearingItems(value) {
+    return this.wearingItemsLoose(value).map((item) => {
+      const reason = String(item?.reason || item?.changeMode || '').trim().slice(0, 120);
+      if (this.abstractReason(reason)) throw new Error(`穿着${item.name || ''}缺少AI给出的具体变化原因`);
+      return { ...item, reason, changeMode: reason };
+    });
   },
 
   worldValues(values, attrs) {
@@ -306,17 +318,19 @@ window.GameModules.characterProfile = {
   },
 
   cleanRpgFieldReasons(value, attrs = null) {
-    const keys = this.rpgFieldReasonKeys(attrs);
-    const source = value && typeof value === 'object' ? value : {};
-    return Object.fromEntries(keys.map((key) => [key, String(source[key] || '').trim().slice(0, 120)]).filter(([, reason]) => !this.abstractReason(reason)));
+    return this.requireRpgFieldReasons({ rpgFieldReasons: value, worldAttributes: attrs }, attrs, '个人资料');
+  },
+
+  requireRpgFieldReasons(profile, attrs = null, label = '个人资料') {
+    const keys = this.rpgFieldReasonKeys(attrs || profile?.worldAttributes || null);
+    const reasons = profile?.rpgFieldReasons || {};
+    const missing = keys.filter((key) => this.abstractReason(reasons[key]));
+    if (missing.length) throw new Error(`${label} 缺少AI给出的具体RPG变化原因: ${missing.join('、')}`);
+    return Object.fromEntries(keys.map((key) => [key, String(reasons[key]).trim().slice(0, 120)]));
   },
 
   rpgFieldReasons(value, attrs = null, profile = {}) {
-    const keys = this.rpgFieldReasonKeys(attrs);
-    const out = this.cleanRpgFieldReasons(value, attrs);
-    const vague = keys.filter((key) => this.abstractReason(out[key]));
-    if (vague.length) throw new Error(`rpgFieldReasons 原因过于抽象: ${vague.join(',')}`);
-    return out;
+    return this.requireRpgFieldReasons({ ...profile, rpgFieldReasons: value, worldAttributes: attrs }, attrs, profile?.name || '角色卡');
   },
 
   hasRequiredInitialMetrics(value) {

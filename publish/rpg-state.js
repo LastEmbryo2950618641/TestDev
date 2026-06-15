@@ -101,11 +101,11 @@ window.GameModules.rpgState = {
     return worldChanged || jobChanged || controlChanged || metricsChanged || reasonChanged || socialChanged || inventoryChanged || mechanicsChanged || changed;
   },
   ensureRpgFieldReasons(state) {
-    if (!state?.profile || state.profile.isPlayer || state.id === 'player-self') return false;
+    if (!state?.profile) throw new Error('个人资料缺失，无法校验RPG变化原因');
     const tool = window.GameModules.characterProfile;
     const before = JSON.stringify(state.profile.rpgFieldReasons || {});
     state.profile.worldAttributes = state.profile.worldAttributes || { fields: (state.schema?.sections || []).flatMap((section) => section.fields || []) };
-    state.profile.rpgFieldReasons = tool.cleanRpgFieldReasons(state.profile.rpgFieldReasons, state.profile.worldAttributes);
+    state.profile.rpgFieldReasons = tool.requireRpgFieldReasons(state.profile, state.profile.worldAttributes, state.profile.name || state.name || state.id);
     return before !== JSON.stringify(state.profile.rpgFieldReasons || {});
   },
 

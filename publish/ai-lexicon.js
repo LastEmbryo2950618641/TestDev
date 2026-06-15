@@ -10,7 +10,9 @@ Object.assign(window.GameModules.ai, {
     const name = String(item?.name || item?.field || '').trim().slice(0, 32);
     const kind = String(item?.kind || '').trim().slice(0, 16);
     const reason = String(item?.reason || item?.modifyReason || '').trim().slice(0, 120);
-    if (!name || !kind || !reason) return null;
+    if (!name || !kind) return null;
+    if (!reason) throw new Error(`${name || '词条'}缺少AI给出的具体变化原因`);
+    if (window.GameModules.characterProfile?.abstractReason?.(reason)) throw new Error(`${name}变化原因过于抽象: ${reason}`);
     const update = {
       worldTag: String(item.worldTag || store.character?.work || '原创世界').slice(0, 40),
       kind,

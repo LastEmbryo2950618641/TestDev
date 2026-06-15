@@ -15,18 +15,22 @@ window.GameModules.rpgFieldUi = {
   },
   canExpandRpgField(field) { return Boolean(field); },
   isLexiconField(field) { return Boolean(field); },
-  roleCardReasonGetter(profile = {}, fallback = (label) => `${label}由当前角色卡资料固化。`) {
+  roleCardReasonGetter(profile = {}) {
     const reasons = profile.roleCardFieldReasons || {}, log = {};
     (profile.roleCardChangeLog || []).forEach((item) => [item.field, item.name].filter(Boolean).forEach((key) => { log[key] = item.reason || log[key] || ''; }));
     const usable = (text) => !window.GameModules.characterProfile?.abstractReason?.(text) && String(text || '').trim();
-    return (label, key) => usable(reasons[label]) || usable(reasons[key]) || usable(log[label]) || usable(log[key]) || fallback(label, key);
+    return (label, key) => {
+      const reason = usable(reasons[label]) || usable(reasons[key]) || usable(log[label]) || usable(log[key]);
+      if (!reason) throw new Error(`${profile?.name || '个人资料'}的${label}缺少AI给出的具体变化原因`);
+      return reason;
+    };
   },
 
   profileIdentityFields(state, provided = []) {
     if (Array.isArray(provided) && provided.length) return provided;
     const p = state?.profile || {};
     const worldTag = p.work || state?.worldTag || '原创世界';
-    const reasonFor = this.roleCardReasonGetter(p, (label) => `${label}来自${p.name || '该人物'}的经历“${p.detail || p.personality || '当前经历尚少'}”以及最近关系处境，因此在身份卡中保留该字段。`);
+    const reasonFor = this.roleCardReasonGetter(p);
     const row = (key, label, value, desc) => ({ key: `profile-${state?.id || 'target'}-${key}`, label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: key !== 'work' });
     return [
       row('name', '姓名', p.name || state?.name, '角色卡固化姓名。'), row('work', '所属世界', worldTag, '角色出身作品或世界。'),
@@ -117,12 +121,15 @@ window.GameModules.rpgFieldUi = {
   },
 
   fieldChangeReason(field, lexicon = null) {
-    return this.explicitFieldChangeReason(field, lexicon) || '未写入';
+    const reason = this.explicitFieldChangeReason(field, lexicon);
+    if (!reason) throw new Error(`${field?.label || field?.key || 'RPG字段'}缺少AI给出的具体变化原因`);
+    return reason;
   },
 
   itemChangeReason(field, obj = {}, lexicon = null) {
     const explicit = this.usableChangeReason(lexicon?.meta?.modifyReason || obj.reason || obj.changeMode, [lexicon?.description, lexicon?.summary, obj.description, obj.desc, obj.source]);
-    return explicit || '未写入';
+    if (!explicit) throw new Error(`${obj?.name || field?.label || '词条'}缺少AI给出的具体变化原因`);
+    return explicit;
   },
 
   rpgItemSummary(item) {

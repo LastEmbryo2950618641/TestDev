@@ -32,7 +32,7 @@ window.GameModules.professionInfo = {
     const info = await this.generate(worldTag, jobName, context);
     if (!info) return null;
     await window.GameModules.sqliteSave.saveProfessionInfo?.(worldTag, info);
-    await window.GameModules.rpgLexicon.save(worldTag, '职业', info.name, { summary: info.summary, description: info.description, nameAiGenerated: true, valueAiGenerated: true, changeMode: 'AI演算', related: [...info.intrinsicStats, ...info.learnedAbilities, ...info.knowledgeAreas, ...info.worldAbilities], meta: { info }, source: 'ai' });
+    await window.GameModules.rpgLexicon.save(worldTag, '职业', info.name, { summary: info.summary, description: info.description, reason: info.requirements.reason, nameAiGenerated: true, valueAiGenerated: true, changeMode: info.requirements.reason, related: [...info.intrinsicStats, ...info.learnedAbilities, ...info.knowledgeAreas, ...info.worldAbilities], meta: { info }, source: 'ai' });
     return info;
   },
 
@@ -78,7 +78,8 @@ window.GameModules.professionInfo = {
     const learnedAbilities = this.ensureList(arr(raw.learnedAbilities), context.skills);
     const knowledgeAreas = this.ensureList(arr(raw.knowledgeAreas), context.knowledge);
     const worldAbilities = this.pickWorldAbilities(arr(raw.worldAbilities), context.worldFields);
-    if (!cleanName || !raw.summary || !raw.description || !intrinsicStats.length || !learnedAbilities.length || !knowledgeAreas.length) return null;
+    const reason = String(raw.requirements?.reason || raw.reason || '').trim().slice(0, 120);
+    if (!cleanName || !raw.summary || !raw.description || !reason || window.GameModules.characterProfile?.abstractReason?.(reason) || !intrinsicStats.length || !learnedAbilities.length || !knowledgeAreas.length) return null;
     const reqStats = this.pickIntrinsic(arr(raw.requirements?.intrinsicStats?.length ? raw.requirements.intrinsicStats : intrinsicStats));
     const reqSkills = this.ensureList(arr(raw.requirements?.learnedAbilities?.length ? raw.requirements.learnedAbilities : learnedAbilities), context.skills);
     const reqKnowledge = this.ensureList(arr(raw.requirements?.knowledgeAreas?.length ? raw.requirements.knowledgeAreas : knowledgeAreas), context.knowledge);
@@ -99,7 +100,7 @@ window.GameModules.professionInfo = {
         worldAbilities: this.pickWorldAbilities(arr(raw.requirements?.worldAbilities?.length ? raw.requirements.worldAbilities : worldAbilities), context.worldFields),
         learnedAbilities: reqSkills,
         knowledgeAreas: reqKnowledge,
-        reason: String(raw.requirements?.reason || '满足该职业lv.1所需基础构成。').slice(0, 120),
+        reason,
       },
     };
   },
