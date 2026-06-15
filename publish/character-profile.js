@@ -141,6 +141,7 @@ window.GameModules.characterProfile = {
       items: this.carryItems(profile.items || base.items, '物品'),
       wearing: this.wearingItems(profile.wearing || base.wearing),
       worldValues: this.worldValues(profile.worldValues, attrs, base.name),
+      rpgFieldReasons: this.rpgFieldReasons(profile.rpgFieldReasons),
       initialMetrics: this.initialMetrics(profile.initialMetrics),
       roleCard: true,
       roleCardSource: 'ai',
@@ -172,7 +173,7 @@ window.GameModules.characterProfile = {
       context: String(context || '').slice(0, 1200),
     };
     const raw = JSON.stringify(data);
-    return `v3:${raw.length}-${window.GameModules.rpgState.seed(raw)}`;
+    return `v4:${raw.length}-${window.GameModules.rpgState.seed(raw)}`;
   },
 
   fallback(base, lore, attrs) {
@@ -246,6 +247,12 @@ window.GameModules.characterProfile = {
     if (!values || typeof values !== 'object') return {};
     const keys = new Set((attrs.fields || []).map((field) => field.key));
     return Object.fromEntries(Object.entries(values).filter(([key]) => keys.has(key)));
+  },
+
+  rpgFieldReasons(value) {
+    if (!value || typeof value !== 'object') return {};
+    const keys = ['level', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'learning_ability', 'mental_stability', 'growth_potential', 'action_ability'];
+    return Object.fromEntries(keys.map((key) => [key, String(value[key] || '').trim().slice(0, 120)]).filter(([, text]) => text));
   },
 
   initialMetrics(value) {

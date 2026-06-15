@@ -217,6 +217,13 @@ worldValues 只返回有明确依据的字段：{世界字段}。
 8. wearing 省略某基础槽位不等于“未知”，系统会按常规衣物补齐；如果确实未穿，必须显式返回该 slot 的 name 为“未穿戴”并在 description 写明特殊原因。
 9. “未穿戴”表示该部位真实空置：内衣未穿戴就是无内衣，上衣/内衣/下衣/内裤均未穿戴就是赤裸；这种情况只能由明确特殊上下文触发，不能因信息不足生成。
 
+## RPG 字段原因规则
+
+1. 必须返回 rpgFieldReasons 对象，key 使用固定英文键：level、strength、agility、constitution、intelligence、perception、willpower、charisma、learning_ability、mental_stability、growth_potential、action_ability。
+2. 每个原因都必须结合人物过去经历、教育/训练、家庭处境、职业履历、创伤、长期生活环境或当前关系事实说明，不能写“来源于角色资料/剧情证据/世界规则/根据上下文推理/初始化”等抽象套话。
+3. 原因要解释为什么当前字段是这个水平。比如“普通人约4级，她读完985研究生并长期做程序工程师，所以个人等级高于普通日常成年人”；或“长期病弱又缺少运动经历，使体质低于同龄健康成年人”。
+4. 不要用固定模板；不同字段必须从该人物具体经历中找不同依据。没有明确证据时也要说明“缺少训练/长期普通生活/没有相关经历”这类具体缺失原因，而不是写抽象来源。
+
 ## 返回字段拆分
 
 - name：正式姓名。
@@ -237,10 +244,11 @@ worldValues 只返回有明确依据的字段：{世界字段}。
 - items：初始物品数组，每项含 name、description、quantity，可装备物也要含 equipSlots。
 - wearing：当前穿着数组，每项含 slot、name、description。
 - worldValues：世界专属字段取值。
+- rpgFieldReasons：RPG 基础字段原因对象，说明个人等级、身内能力、学习能力、精神稳定等为什么是当前水平。
 - initialMetrics：初始情绪与对玩家感觉。
 
 ## 返回 JSON 结构
 
 ```json
-{"name":"姓名","gender":"性别","relationships":"妹妹：姓名；父亲：姓名","role":"身份","detail":"个人背景，必须说明住址/学校/工作/特殊处境的推断依据","appearance":"外貌","personality":"性格","faction":"社群名称","factions":[{"faction":"锦苑小区3栋2单元601号","role":"居民"},{"faction":"刘悠家庭","role":"同居妹妹"}],"forcePositions":[{"force":"成都市第七中学","position":"高三学生"},{"force":"成都星河云栈科技有限公司","position":"软件工程师"}],"job":"职业，无法可靠判断则空字符串","jobConfirmed":false,"rank":"首要势力职位","skills":[{"name":"技能","desc":"说明"}],"equipment":[{"name":"手机","description":"日常通讯工具","equipSlots":["装备"]}],"items":[{"name":"钥匙","description":"住所门钥匙","quantity":1}],"wearing":[{"slot":"上衣","name":"日常上衣","description":"当前穿着"},{"slot":"鞋子","name":"运动鞋","description":"当前穿着"}],"worldValues":{"字段key":"该人物固化取值"},"initialMetrics":{"emotions":[{"key":"担忧","value":40,"status":"当前状态","reason":"原因"}],"playerFeelings":[{"key":"亲情","value":85,"status":"当前状态","reason":"原因"}]}}
+{"name":"姓名","gender":"性别","relationships":"妹妹：姓名；父亲：姓名","role":"身份","detail":"个人背景，必须说明住址/学校/工作/特殊处境的推断依据","appearance":"外貌","personality":"性格","faction":"社群名称","factions":[{"faction":"锦苑小区3栋2单元601号","role":"居民"},{"faction":"刘悠家庭","role":"同居妹妹"}],"forcePositions":[{"force":"成都市第七中学","position":"高三学生"},{"force":"成都星河云栈科技有限公司","position":"软件工程师"}],"job":"职业，无法可靠判断则空字符串","jobConfirmed":false,"rank":"首要势力职位","skills":[{"name":"技能","desc":"说明"}],"equipment":[{"name":"手机","description":"日常通讯工具","equipSlots":["装备"]}],"items":[{"name":"钥匙","description":"住所门钥匙","quantity":1}],"wearing":[{"slot":"上衣","name":"日常上衣","description":"当前穿着"},{"slot":"鞋子","name":"运动鞋","description":"当前穿着"}],"worldValues":{"字段key":"该人物固化取值"},"rpgFieldReasons":{"level":"个人等级原因，要结合具体经历说明","intelligence":"智力原因，要结合教育/职业/经历说明"},"initialMetrics":{"emotions":[{"key":"担忧","value":40,"status":"当前状态","reason":"原因"}],"playerFeelings":[{"key":"亲情","value":85,"status":"当前状态","reason":"原因"}]}}
 ```

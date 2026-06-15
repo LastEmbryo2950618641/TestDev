@@ -90,39 +90,20 @@ window.GameModules.rpgFieldUi = {
     const state = this.activeDetailState(), values = state?.values || {}, profile = state?.profile || {};
     const explicit = this.usableChangeReason(field?.reason || lexicon?.meta?.modifyReason, [lexicon?.description, lexicon?.summary, field?.desc]);
     if (explicit) return explicit;
-    const evidence = this.profileEvidence(profile, state);
+    const aiReason = profile.rpgFieldReasons?.[field?.key] || profile.rpgFieldReasons?.[field?.label];
+    if (aiReason) return String(aiReason).slice(0, 120);
     if (field?.key === 'level' && values.level_growth?.history?.length) {
       const latest = values.level_growth.history.at(-1);
-      return `${evidence}最近成长记录显示个人等级从${latest.from}升到${latest.to}，说明这些经历已经转化为稳定成长。`;
+      return `最近成长记录显示个人等级从${latest.from}升到${latest.to}，原因见该次成长记录。`;
     }
-    if (field?.key === 'level') return this.fieldExperienceReason(field, profile, state, `${evidence}普通现代人通常约4级；当前${field.value}级需要由其过往学习、工作、训练、创伤或特殊经历解释。`);
-    if (field?.key === 'level_growth' && values.level_growth?.history?.length) return `${evidence}升级记录来自已发生的训练、行动和剧情成长，而不是单纯系统初始化。`;
-    if (field?.source) return this.fieldExperienceReason(field, profile, state, `${evidence}${field.label}当前为${field.raw}，由初始经历${field.source.initial || 0}、升级成长${field.source.level || 0}、自由分配${field.source.allocated || 0}和非玩家成长${field.source.npc || 0}共同形成。`);
-    return `${evidence}${field?.label || '该词条'}当前值需要按角色过去经历、职业训练、生活压力和近期事件解释，不能只写抽象系统来源。`;
-  },
-
-  fieldExperienceReason(field, profile = {}, state = null, fallback = '') {
-    const text = [profile.role || profile.refinedRole, profile.job, profile.detail || profile.worldbuildingNote, profile.personality, profile.relationships].filter(Boolean).join('；');
-    const label = field?.label || '该能力';
-    const value = field?.value || field?.raw || 0;
-    if (/985|硕士|研究生|博士|大学|学习|程序|工程师|教师|医生|学者|研究|分析/.test(text) && /等级|智力|学习/.test(label)) return `${label}为${value}，因为其经历包含高等教育、专业学习或分析型工作；例如研究生/工程师背景会把理解、学习和综合成长推到普通人之上。`;
-    if (/士兵|骑士|战士|军人|杀手|运动|训练|战斗|从者|英灵/.test(text) && /等级|力量|敏捷|体质|感知|行动/.test(label)) return `${label}为${value}，因为其经历包含战斗训练、体能锻炼或高风险行动，身体与反应能力高于普通生活水平。`;
-    if (/病弱|受伤|囚禁|疲惫|饥饿|创伤|虐|压力/.test(text) && /体质|生命|精力|精神|疲劳|行动/.test(label)) return `${label}为${value}，因为其过去经历过病弱、伤害、囚禁或长期压力，身体储备与精神状态受到具体经历影响。`;
-    if (/王|领袖|经理|队长|贵族|公主|皇帝|统率|支配/.test(text) && /等级|魅力|意志|感知/.test(label)) return `${label}为${value}，因为其长期处在领导、管理或支配性身份中，决断、表达和抗压能力由这些经历支撑。`;
-    if (/同居|家人|妹妹|姐姐|哥哥|弟弟|父母|父母已故|相依为命/.test(text) && /精神|意志|成长|等级/.test(label)) return `${label}为${value}，因为其家庭处境和长期共同生活经历塑造了心理承受力、依赖关系和成长阶段。`;
-    return fallback;
-  },
-
-  profileEvidence(profile = {}, state = null) {
-    const text = [profile.name || state?.name, profile.role || profile.refinedRole, profile.job, profile.detail || profile.worldbuildingNote, profile.personality, profile.relationships].filter(Boolean).join('；');
-    return text ? `依据角色经历：${String(text).slice(0, 90)}。` : '依据当前角色已知经历。';
+    if (field?.key === 'level_growth' && values.level_growth?.history?.length) return '升级记录来自已保存的训练、行动或剧情成长记录。';
+    return '该词条尚未记录具体原因；后续由 AI 在角色卡或词条更新中补充可落库的经历原因。';
   },
 
   itemChangeReason(field, obj = {}, lexicon = null) {
     const explicit = this.usableChangeReason(lexicon?.meta?.modifyReason || obj.reason || obj.changeMode, [lexicon?.description, lexicon?.summary, obj.description, obj.desc, obj.source]);
     if (explicit) return explicit;
-    const evidence = this.profileEvidence(this.activeDetailState()?.profile, this.activeDetailState());
-    return `${evidence}${obj.name || field?.label || '该词条'}应由具体学习、训练、持有、穿戴或社会身份经历解释，不能只写通用资料来源。`;
+    return '该词条尚未记录具体原因；后续由 AI 在角色卡或词条更新中补充可落库的经历原因。';
   },
 
   rpgItemSummary(item) {
