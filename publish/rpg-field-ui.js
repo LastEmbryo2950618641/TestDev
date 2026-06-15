@@ -122,7 +122,9 @@ window.GameModules.rpgFieldUi = {
   itemChangeReason(field, obj = {}, lexicon = null, kind = '', name = '') {
     const explicit = this.usableChangeReason(lexicon?.meta?.modifyReason || obj.reason || obj.changeMode, [lexicon?.description, lexicon?.summary, obj.description, obj.desc, obj.source]);
     if (explicit) return explicit;
-    return window.GameModules.progression?.itemReason?.(obj, kind || this.lexiconKind(field, obj)) || this.fallbackChangeReason(field, obj, kind, name);
+    const finalKind = kind || this.lexiconKind(field, obj);
+    const generated = window.GameModules.progression?.itemReason?.(obj, finalKind);
+    return generated || this.fallbackChangeReason(field, obj, finalKind, name || this.rpgItemSummary(obj));
   },
 
   rpgItemSummary(item) {
@@ -186,8 +188,7 @@ window.GameModules.rpgFieldUi = {
   rpgFieldDetail(field) {
     const lexicon = this.lexiconFor(field);
     const lines = [`说明: ${lexicon?.description || lexicon?.summary || field?.desc || this.fallbackDesc(field)}`];
-    const explicitReason = this.explicitFieldChangeReason(field, lexicon);
-    lines.push(`${explicitReason ? '变化原因' : '生成依据'}: ${explicitReason || this.fallbackChangeReason(field)}`);
+    lines.push(`变化原因: ${this.fieldChangeReason(field, lexicon)}`);
     lines.push(`所属世界: ${field?.worldTag || lexicon?.worldTag || '公共'}`);
     lines.push(`字段范围: ${(field?.commonField ?? lexicon?.meta?.commonField) ? '公共字段' : '世界专属字段'}`);
     lines.push(`词条类型: ${field?.targetType || lexicon?.meta?.targetType || '角色'}`);
