@@ -146,7 +146,7 @@ window.GameModules.characterProfile = {
       worldValues: this.worldValues(profile.worldValues, attrs, base.name),
       worldAttributes: attrs,
       rpgFieldReasons: this.rpgFieldReasons(profile.rpgFieldReasons, attrs, { ...base, ...profile, factions, forcePositions }),
-      initialMetrics: this.initialMetrics(profile.initialMetrics),
+      initialMetrics: this.initialMetrics(profile.initialMetrics, { ...base, ...profile }),
       roleCard: true,
       roleCardSource: 'ai',
       roleCardUpdatedAt: new Date().toISOString(),
@@ -356,11 +356,40 @@ window.GameModules.characterProfile = {
     return hasAll(value?.emotions, window.GameModules.metrics.emotionKeys) && hasAll(value?.playerFeelings, window.GameModules.metrics.playerKeys);
   },
 
-  initialMetrics(value) {
-    const normalize = (items, keys) => Array.isArray(items) ? items.filter((item) => keys.includes(item?.key)).map((item) => ({ key: item.key, value: window.GameModules.metrics.clamp(item.value), status: String(item.status || '').slice(0, 80), reason: String(item.reason || '').slice(0, 80) })) : [];
-    const out = { emotions: normalize(value?.emotions, window.GameModules.metrics.emotionKeys), playerFeelings: normalize(value?.playerFeelings, window.GameModules.metrics.playerKeys) };
-    if (!this.hasRequiredInitialMetrics(out)) throw new Error('initialMetrics 缺少完整数值或原因');
-    return out;
+  initialMetrics(value, profile = {}) {
+    const normalize = (items, keys, type) => {
+      const list = Array.isArray(items) ? items : [];
+      return keys.map((key) => {
+        const item = list.find((entry) => entry?.key === key) || {};
+        const fallback = this.defaultMetric(key, type, profile);
+        const metricValue = item.value !== undefined ? window.GameModules.metrics.clamp(item.value) : fallback.value;
+        const stage = window.GameModules.metrics.stageFor(key, metricValue);
+        return {
+          key,
+          value: metricValue,
+          status: String(item.status || fallback.status || window.GameModules.metrics.stageStatus(key, stage)).slice(0, 80),
+          reason: String(item.reason || fallback.reason).slice(0, 80),
+        };
+      });
+    };
+    return { emotions: normalize(value?.emotions, window.GameModules.metrics.emotionKeys, 'emotion'), playerFeelings: normalize(value?.playerFeelings, window.GameModules.metrics.playerKeys, 'player') };
+  },
+
+  defaultMetric(key, type, profile = {}) {
+    const name = profile.name || '该人物';
+    const role = profile.role || profile.job || '当前身份';
+    const detail = profile.detail || profile.personality || '当前人物资料';
+    const defaults = type === 'emotion' ? window.GameModules.metrics.defaults.emotions : window.GameModules.metrics.defaults.playerFeelings;
+    const value = window.GameModules.metrics.clamp(defaults[key] ?? 0);
+    const stage = window.GameModules.metrics.stageFor(key, value);
+    const status = window.GameModules.metrics.stageStatus(key, stage);
+    let reason = type === 'emotion'
+      ? `${name}以${role}处在${detail}中，因此${key}按当前经历折算为初始状态。`
+      : `${name}与玩家的关系证据来自${profile.relationships || detail}，因此对玩家的${key}按初始接触状态记录。`;
+    if (key === '亲情' && /哥哥|姐姐|弟弟|妹妹|父亲|母亲|家人|亲属/.test(`${profile.relationships || ''} ${detail}`)) reason = `${name}与玩家存在明确亲属或家庭关系，因此亲情从人物关系中形成。`;
+    if (key === '了解') reason = `${name}只掌握玩家当前表现出的身份、关系和行为线索，了解程度按初始接触记录。`;
+    if (key === '警惕') reason = `${name}尚未完全确认玩家意图，会依据当前处境保持必要观察和防备。`;
+    return { value, status, reason };
   },
 
   formatRelationships(value) {
