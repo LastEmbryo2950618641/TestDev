@@ -1,10 +1,12 @@
 /**
- * 全局 AI 请求入口：统一串行限流、重试与日志。
+ * 全局 AI 请求入口：统一受控并行、限流、重试与日志。
  */
 window.GameModules = window.GameModules || {};
 
 window.GameModules.aiRequest = {
-  queue: Promise.resolve(),
+  pending: [],
+  maxConcurrent: 2,
+  startGate: Promise.resolve(),
   seq: 0,
   queued: 0,
   active: 0,
@@ -30,7 +32,7 @@ window.GameModules.aiRequest = {
   },
 
   stats() {
-    return { logicalCount: this.logicalCount, actualCount: this.actualCount, completedCount: this.completedCount, failedAttemptCount: this.failedAttemptCount, retryCount: this.retryCount, queued: this.queued, active: this.active, sourceCounts: { ...this.sourceCounts } };
+    return { logicalCount: this.logicalCount, actualCount: this.actualCount, completedCount: this.completedCount, failedAttemptCount: this.failedAttemptCount, retryCount: this.retryCount, queued: this.queued, active: this.active, maxConcurrent: this.maxConcurrent, sourceCounts: { ...this.sourceCounts } };
   },
 
   log(event, data = {}) {
@@ -70,32 +72,51 @@ window.GameModules.aiRequest = {
     const sourceCount = this.countSource(source);
     this.logicalCount += 1;
     this.queued += 1;
-    this.log('入队', { id, source, sourceCount, logicalNo: this.logicalCount, model, maxTokens, queued: this.queued, active: this.active, messageLengths: this.lengths(messages) });
-    const run = this.queue.then(async () => {
+    this.log('入队', { id, source, sourceCount, logicalNo: this.logicalCount, model, maxTokens, queued: this.queued, active: this.active, maxConcurrent: this.maxConcurrent, messageLengths: this.lengths(messages) });
+    return new Promise((resolve, reject) => {
+      this.pending.push({ options: { ...options, id, source, model, maxTokens, messages, enqueueAt }, resolve, reject });
+      this.pump();
+    });
+  },
+
+  pump() {
+    while (this.active < this.maxConcurrent && this.pending.length) {
+      const task = this.pending.shift();
       this.queued = Math.max(0, this.queued - 1);
       this.active += 1;
-      try {
-        return await this.runWithRetries({ ...options, id, source, model, maxTokens, messages, enqueueAt });
-      } finally {
-        this.active = Math.max(0, this.active - 1);
-      }
-    });
-    this.queue = run.catch(() => {});
-    return run;
+      this.log('出队', { id: task.options.id, source: task.options.source, queued: this.queued, active: this.active, maxConcurrent: this.maxConcurrent });
+      Promise.resolve()
+        .then(() => this.runWithRetries(task.options))
+        .then(task.resolve, task.reject)
+        .finally(() => {
+          this.active = Math.max(0, this.active - 1);
+          this.pump();
+        });
+    }
+  },
+
+  async enterStartGate(options, attempt) {
+    const previous = this.startGate;
+    let release;
+    this.startGate = new Promise((resolve) => { release = resolve; });
+    await previous.catch(() => {});
+    const now = Date.now();
+    const gapWait = Math.max(0, this.minGapMs - (now - this.lastStartedAt));
+    const cooldownWait = Math.max(0, this.cooldownUntil - now);
+    const waitMs = Math.max(gapWait, cooldownWait);
+    if (waitMs) {
+      this.log('等待限流', { id: options.id, source: options.source, attempt: attempt + 1, waitMs, queued: this.queued, active: this.active });
+      await this.wait(waitMs);
+    }
+    this.lastStartedAt = Date.now();
+    release();
   },
 
   async runWithRetries(options) {
     let lastErr = null;
     const maxAttempts = options.maxAttempts || 2;
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-      const now = Date.now();
-      const gapWait = Math.max(0, this.minGapMs - (now - this.lastStartedAt));
-      const cooldownWait = Math.max(0, this.cooldownUntil - now);
-      const waitMs = Math.max(gapWait, cooldownWait);
-      if (waitMs) {
-        this.log('等待限流', { id: options.id, source: options.source, attempt: attempt + 1, waitMs, queued: this.queued, active: this.active });
-        await this.wait(waitMs);
-      }
+      await this.enterStartGate(options, attempt);
       try {
         return await this.callOnce(options, attempt);
       } catch (err) {
@@ -120,7 +141,6 @@ window.GameModules.aiRequest = {
     let callbackChain = Promise.resolve();
     const startAt = Date.now();
     this.actualCount += 1;
-    this.lastStartedAt = startAt;
     this.log('开始', { id: options.id, source: options.source, actualNo: this.actualCount, attempt: attempt + 1, queueWaitMs: startAt - options.enqueueAt, model: options.model, maxTokens: options.maxTokens, messageLengths: this.lengths(options.messages) });
     const request = window.dzmm.completions({ model: options.model, maxTokens: options.maxTokens, messages: options.messages }, (chunk, done) => {
       const text = String(chunk || '');
