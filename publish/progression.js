@@ -1,8 +1,6 @@
 window.GameModules = window.GameModules || {};
-
 window.GameModules.progression = {
   learnedNext: [0, 100, 250, 600, 1400, 3200, 7200, Infinity],
-
   schemaSections(attrs) {
     return [
       { title: '基础能力', fields: [
@@ -40,7 +38,6 @@ window.GameModules.progression = {
   field(key, label, type, min = 0, max = 100, desc = '') { return { key, label, type, min, max, desc }; }, nextCharacterExp(level) { return Math.round(100 * Math.max(1, Number(level) || 1) ** 1.65); },
   clamp(value, min, max) { return Math.max(min, Math.min(max, Math.round(Number(value) || 0))); }, pool(current, max) { return { current: this.clamp(current, 0, max), max: Math.max(1, Math.round(max)) }; },
   normalizeCharacterExp(exp, level, fallbackCurrent = 0) { const next = this.nextCharacterExp(level); return { current: this.clamp(exp?.current ?? fallbackCurrent, 0, next), next, curve: 'nextExp=round(100*level^1.65)' }; },
-
   ensureProgressionNotes(values) {
     if (!values) return; if (values.exp) values.exp.curve = 'nextExp=round(100*level^1.65)';
     for (const item of [...(values.factions || []), ...(values.force_positions || []), ...(values.equipment || []), ...(values.items || []), ...(values.wearing || []), ...(values.status_tags || [])]) if (item && typeof item === 'object' && Object.prototype.hasOwnProperty.call(item, 'level')) item.level = -1;
@@ -118,7 +115,11 @@ window.GameModules.progression = {
 
   skills(character, seed) {
     const list = (character.skills || [{ name: '观察', desc: '通过细节、环境变化和他人反应判断局势的能力。' }]).filter((skill) => !this.isStageIdentity(skill.name)).slice(0, 5);
-    return list.map((skill, index) => this.learned(skill.name || `技能${index + 1}`, '技能', 1 + ((seed + index) % 3), this.linkedStats(skill.name), skill.desc || this.learnedDefinition(skill.name, '技能'), skill.reason || skill.changeMode));
+    return list.map((skill, index) => {
+      const item = this.learned(skill.name || `技能${index + 1}`, '技能', 1 + ((seed + index) % 3), this.linkedStats(skill.name), skill.desc || this.learnedDefinition(skill.name, '技能'));
+      const r = String(skill.reason || skill.changeMode || '').trim().slice(0, 120);
+      return r ? { ...item, reason: r, changeMode: r } : item;
+    });
   },
 
   professions(character, seed) {
@@ -144,12 +145,11 @@ window.GameModules.progression = {
     values.professions = clean(values.professions);
     return changed;
   },
-  learned(name, type, level, linkedStats, source, reason = '') {
+  learned(name, type, level, linkedStats, source) {
     const lv = this.clamp(level, 1, 7);
     const cleanName = String(name).slice(0, 16);
     const definition = this.learnedDefinition(cleanName, type, source);
-    const text = String(reason || '').trim().slice(0, 120);
-    return { name: cleanName, type, level: lv, exp: { current: 0, next: this.learnedNext[lv] }, linkedStats, source: definition, description: definition, levelDescription: this.levelDescription(type, lv), effect: this.levelEffect(cleanName, type, lv), ...(text ? { reason: text, changeMode: text } : {}) };
+    return { name: cleanName, type, level: lv, exp: { current: 0, next: this.learnedNext[lv] }, linkedStats, source: definition, description: definition, levelDescription: this.levelDescription(type, lv), effect: this.levelEffect(cleanName, type, lv) };
   },
   linkedStats(name) {
     if (/剑|战|拳|武|射|枪/.test(name)) return ['strength', 'agility', 'perception']; if (/魔|术|医|学|分析/.test(name)) return ['intelligence', 'perception', 'willpower'];

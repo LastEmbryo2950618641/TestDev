@@ -9,7 +9,7 @@ window.GameModules.characterProfile = {
     const base = this.normalize(source.raw, store, source.preset);
     const signature = this.inputSignature(base, context, store, source.preset);
     const existing = window.GameModules.sqliteSave.getCharacterState(base.id);
-    if (existing && this.isRoleCard(existing.profile) && this.hasRequiredRoleCardFieldReasons(existing.profile.roleCardFieldReasons) && this.hasRequiredInventoryReasons(existing.profile) && this.hasRequiredInitialMetrics(existing.profile.initialMetrics) && this.hasRequiredRpgFieldReasons(existing.profile.rpgFieldReasons) && existing.profile.roleCardInputSignature === signature) return existing.profile;
+    if (existing && this.isReusableRoleCard(existing.profile, signature)) return existing.profile;
     const lore = await window.GameModules.worldLore.ensure(base.work, context);
     const attrs = await window.GameModules.rpgState.ensureWorldAttributes(base.work);
     return this.generate(base, lore, attrs, context, store, signature, source.preset);
@@ -287,6 +287,11 @@ window.GameModules.characterProfile = {
   hasRequiredInventoryReasons(profile) {
     const hasReason = (items) => Array.isArray(items) && items.length && items.every((item) => String(item?.reason || item?.changeMode || '').trim());
     return hasReason(profile?.factions) && hasReason(profile?.forcePositions || profile?.force_positions) && hasReason(profile?.equipment) && hasReason(profile?.items) && hasReason(profile?.wearing) && hasReason(profile?.skills);
+  },
+
+  isReusableRoleCard(profile, signature = null) {
+    const signatureOk = signature === null || profile?.roleCardInputSignature === signature;
+    return signatureOk && this.isRoleCard(profile) && this.hasRequiredRoleCardFieldReasons(profile.roleCardFieldReasons) && this.hasRequiredInventoryReasons(profile) && this.hasRequiredInitialMetrics(profile.initialMetrics) && this.hasRequiredRpgFieldReasons(profile.rpgFieldReasons);
   },
 
   rpgFieldReasonKeys() {

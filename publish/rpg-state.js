@@ -52,14 +52,10 @@ window.GameModules.rpgState = {
     const oldProfile = state.profile || {};
     if (oldProfile.roleCard && oldProfile.roleCardUpdatedAt) {
       const sameRoleCard = oldProfile.roleCardInputSignature === character.roleCardInputSignature;
-      const oldNameOk = window.GameModules.characterProfile?.isConcreteName?.(oldProfile.name) !== false;
-      const newNameOk = window.GameModules.characterProfile?.isConcreteName?.(character.name) !== false;
       const profileTool = window.GameModules.characterProfile;
-      const oldRoleReasonsOk = profileTool?.hasRequiredRoleCardFieldReasons?.(oldProfile.roleCardFieldReasons) !== false;
-      const oldItemReasonsOk = profileTool?.hasRequiredInventoryReasons?.(oldProfile) !== false;
-      const oldReasonsOk = profileTool?.hasRequiredRpgFieldReasons?.(oldProfile.rpgFieldReasons) !== false;
-      const oldMetricsOk = profileTool?.hasRequiredInitialMetrics?.(oldProfile.initialMetrics) !== false;
-      if (sameRoleCard && oldNameOk && newNameOk && oldRoleReasonsOk && oldItemReasonsOk && oldReasonsOk && oldMetricsOk) return false;
+      const oldNameOk = profileTool?.isConcreteName?.(oldProfile.name) !== false;
+      const newNameOk = profileTool?.isConcreteName?.(character.name) !== false;
+      if (oldNameOk && newNameOk && profileTool?.isReusableRoleCard?.(oldProfile, character.roleCardInputSignature)) return false;
       state.profile = { ...oldProfile, ...character, roleCard: true };
       state.note = state.profile.detail || state.profile.personality || state.note || '';
       const metricsChanged = sameRoleCard
