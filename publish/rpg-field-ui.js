@@ -90,18 +90,19 @@ window.GameModules.rpgFieldUi = {
     if (window.GameModules.characterProfile?.abstractReason?.(text)) return '';
     if (/性别：|年龄：|生日：|具体地址：|势力地位：|社群角色：|居住：|父母：|关系：|备注：|关系为.*备注为|居住在.*生活状态.*家庭状态/.test(text)) return '';
     if (/^(AI演算|系统结算|系统词条调整|用户主动)$/.test(text) || /词条说明|当前作用|用于记录|暂无详细说明/.test(text)) return '';
+    if (/依据.*(当前值|上限|已落库|经验曲线)|当前为.*依据|被记录为当前|后续(获得|使用|消耗|转让|遗失|损坏|穿戴|由明确行动|状态变化)时会更新|当前属于.*词条/.test(text)) return '';
     return blocked.some((item) => item && text === String(item).trim()) ? '' : text;
   },
 
-  fallbackChangeReason(field, obj = null, kind = '', name = '') {
+  fallbackBasis(field, obj = null, kind = '', name = '') {
     const finalKind = kind || (obj ? this.lexiconKind(field, obj) : (field?.kind || this.lexiconKind(field)));
     const finalName = name || (obj ? this.rpgItemSummary(obj) : (field?.label || field?.key || '该词条'));
-    if (obj) return `${finalName}当前作为${finalKind}子词条显示，依据其名称、类型、等级、槽位或数量等已落库值生成。`;
+    if (obj) return `${finalName}按${finalKind}子词条的名称、类型、等级、槽位或数量等已落库值展示。`;
     if (field?.source) return `${finalName}由初始值${field.source.initial || 0}、等级成长${field.source.level || 0}、自由分配${field.source.allocated || 0}和非玩家成长${field.source.npc || 0}合计得到。`;
-    if (field?.raw?.current !== undefined && field.raw?.max !== undefined) return `${finalName}当前为${field.raw.current}/${field.raw.max}，依据该状态池的当前值与上限展示。`;
-    if (field?.key === 'exp' && field.raw?.current !== undefined) return `${finalName}当前为${field.raw.current}/${field.raw.next}，依据个人等级对应的经验曲线展示。`;
-    if (Array.isArray(field?.raw)) return `${finalName}当前汇总${field.raw.length}个已落库子词条，展开后查看各子词条依据。`;
-    return `${finalName}当前值为“${field?.value || '未记录'}”，依据已落库状态展示。`;
+    if (field?.raw?.current !== undefined && field.raw?.max !== undefined) return `${finalName}当前为${field.raw.current}/${field.raw.max}。`;
+    if (field?.key === 'exp' && field.raw?.current !== undefined) return `${finalName}当前为${field.raw.current}/${field.raw.next}。`;
+    if (Array.isArray(field?.raw)) return `${finalName}当前汇总${field.raw.length}个已落库子词条。`;
+    return `${finalName}当前值为“${field?.value || '未记录'}”。`;
   },
 
   explicitFieldChangeReason(field, lexicon = null) {
@@ -116,15 +117,12 @@ window.GameModules.rpgFieldUi = {
   },
 
   fieldChangeReason(field, lexicon = null) {
-    return this.explicitFieldChangeReason(field, lexicon) || this.fallbackChangeReason(field);
+    return this.explicitFieldChangeReason(field, lexicon) || '未写入';
   },
 
-  itemChangeReason(field, obj = {}, lexicon = null, kind = '', name = '') {
+  itemChangeReason(field, obj = {}, lexicon = null) {
     const explicit = this.usableChangeReason(lexicon?.meta?.modifyReason || obj.reason || obj.changeMode, [lexicon?.description, lexicon?.summary, obj.description, obj.desc, obj.source]);
-    if (explicit) return explicit;
-    const finalKind = kind || this.lexiconKind(field, obj);
-    const generated = window.GameModules.progression?.itemReason?.(obj, finalKind);
-    return generated || this.fallbackChangeReason(field, obj, finalKind, name || this.rpgItemSummary(obj));
+    return explicit || '未写入';
   },
 
   rpgItemSummary(item) {
@@ -180,7 +178,8 @@ window.GameModules.rpgFieldUi = {
     lines.push(`关联身内能力: ${linkedStats.join('、') || '无直接关联'}`);
     lines.push(`词条层级: ${lexicon?.hierarchy === 'tree' ? '树词条' : '叶子词条'}`);
     lines.push(`生成来源: 词条名${(lexicon?.nameAiGenerated ?? lexicon?.aiGenerated) ? 'AI生成' : '系统/用户给定'}，值${lexicon?.valueAiGenerated ? 'AI生成' : '系统/用户给定'}，变化方式${lexicon?.changeMode || '系统结算'}`);
-    lines.push(`变化原因: ${this.itemChangeReason(field, obj, lexicon, kind, name)}`);
+    lines.push(`变化原因: ${this.itemChangeReason(field, obj, lexicon)}`);
+    lines.push(`当前依据: ${this.fallbackBasis(field, obj, kind, name)}`);
     if (obj?.type === '职业' && ((info.learnedAbilities || []).length || (info.worldAbilities || []).length)) lines.push(`职业关联: ${(info.learnedAbilities || []).concat(info.worldAbilities || []).join('、')}`);
     return lines.join('\n');
   },
@@ -189,6 +188,7 @@ window.GameModules.rpgFieldUi = {
     const lexicon = this.lexiconFor(field);
     const lines = [`说明: ${lexicon?.description || lexicon?.summary || field?.desc || this.fallbackDesc(field)}`];
     lines.push(`变化原因: ${this.fieldChangeReason(field, lexicon)}`);
+    lines.push(`当前依据: ${this.fallbackBasis(field)}`);
     lines.push(`所属世界: ${field?.worldTag || lexicon?.worldTag || '公共'}`);
     lines.push(`字段范围: ${(field?.commonField ?? lexicon?.meta?.commonField) ? '公共字段' : '世界专属字段'}`);
     lines.push(`词条类型: ${field?.targetType || lexicon?.meta?.targetType || '角色'}`);
