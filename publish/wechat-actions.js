@@ -155,8 +155,8 @@ window.GameModules.wechatActions = {
     }).filter((user) => user && user.name && user.name !== selfName).slice(0, 20);
   },
 
-  async syncRelationshipWechatUsers(options = {}) {
+  async syncRelationshipWechatUsers() {
     const users = this.inferWechatUsersFromRelationships(this.playerProfile?.relationships || '');
-    return this.addWechatUsers(users, options);
+    return this.addWechatUsers(users);
   },
 };

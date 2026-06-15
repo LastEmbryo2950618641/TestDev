@@ -60,6 +60,7 @@ window.GameModules.loadingActions = {
       this.loadSavedRpgStates();
     });
     this.loading = false;
+    this.startStartupWarmup?.();
   },
 
   startStartupWarmup() {
