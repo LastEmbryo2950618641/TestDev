@@ -74,10 +74,11 @@ window.GameModules.characterProfile = {
       return this.withSignature(await window.GameModules.jsonUtils.generateJsonWithRetry({
         source: 'character-profile-card',
         model: 'nalang-medium-0826',
-        maxTokens: 5000,
-        timeoutMs: 90000,
+        maxTokens: 8000,
+        timeoutMs: 120000,
         prompt,
         format: prompt,
+        repairHint: this.repairHint(base, attrs),
         parse: (text) => this.parse(text),
         validate: (raw) => this.validate(raw, base, lore, attrs, store),
       }), signature);
@@ -109,6 +110,16 @@ window.GameModules.characterProfile = {
 
   parse(text) {
     return window.GameModules.jsonUtils.parseLoose(text);
+  },
+
+  repairHint(base, attrs = null) {
+    return [
+      `目标人物只能是：${base.name}。不要改成亲属、联系人或关系对象。`,
+      '必须返回根字段 roleCardFieldReasons，不是 roleCardField、中文字段平铺或社群映射。',
+      'roleCardFieldReasons 必须完整包含：姓名、所属世界、身份、职业、性别、生日、人际关系、外貌、性格、人物说明、社群角色、势力地位。每个值写一句具体事实原因。',
+      `必须返回根字段 rpgFieldReasons，并完整包含：${this.rpgFieldReasonKeys(attrs).join('、')}。`,
+      'relationships 必须是字符串，格式“关系：姓名”；不要对象。',
+    ].join('\n');
   },
 
   validate(profile, base, lore, attrs, store = null) {

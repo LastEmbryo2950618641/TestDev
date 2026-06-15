@@ -104,7 +104,7 @@ window.GameModules.jsonUtils = {
           rawPreview: String(lastText || '').slice(0, 1200),
         });
         if (i === max - 1) break;
-        prompt = await this.repairPrompt(options.format || options.prompt, lastText, err);
+        prompt = await this.repairPrompt(options.format || options.prompt, lastText, err, options.repairHint || '');
       }
     }
     const error = new Error(`AI返回格式错误: ${lastError?.message || 'unknown'}`);
@@ -117,8 +117,8 @@ window.GameModules.jsonUtils = {
     return window.GameModules.aiRequest.complete({ source, model, maxTokens, prompt, timeoutMs });
   },
 
-  async repairPrompt(format, badOutput, err) {
-    return window.GameModules.promptTemplates.render('json-repair', { 错误: err?.message || 'unknown', 原要求: String(format || '').slice(0, 3200), 错误输出: String(badOutput || '').slice(0, 1200) });
+  async repairPrompt(format, badOutput, err, hint = '') {
+    return window.GameModules.promptTemplates.render('json-repair', { 错误: err?.message || 'unknown', 原要求: String(format || '').slice(0, 3200), 修复补充要求: String(hint || '').slice(0, 1400), 错误输出: String(badOutput || '').slice(0, 1200) });
   },
 
   repairJson(json) {

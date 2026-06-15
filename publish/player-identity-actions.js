@@ -156,13 +156,18 @@ window.GameModules.playerIdentityActions = {
     if (this.promptState) this.promptState.open = false; if (this.tokenStatsState) this.tokenStatsState.open = false;
     this.identityTargetId = targetId || 'player-self'; this.identityAppOpen = true;
     this.desktopUnlocked = true;
-    if (this.identityTargetId === 'player-self') await this.ensurePlayerRpgState();
-    else if (!this.rpgStates[this.identityTargetId] && this.identityTargetId === this.character.id) await this.ensureRpgForCurrentCharacter();
-    else {
-      const contact = (this.wechatUsers || []).find((item) => item.id === this.identityTargetId);
-      const profile = this.rpgStates[this.identityTargetId]?.profile;
-      const needsProfileRefresh = contact && !window.GameModules.characterProfile.isConcreteName(profile?.name);
-      if (contact && (!this.rpgStates[this.identityTargetId] || needsProfileRefresh)) await this.ensureWechatUserProfile?.(contact);
+    try {
+      if (this.identityTargetId === 'player-self') await this.ensurePlayerRpgState();
+      else if (!this.rpgStates[this.identityTargetId] && this.identityTargetId === this.character.id) await this.ensureRpgForCurrentCharacter();
+      else {
+        const contact = (this.wechatUsers || []).find((item) => item.id === this.identityTargetId);
+        const profile = this.rpgStates[this.identityTargetId]?.profile;
+        const needsProfileRefresh = contact && !window.GameModules.characterProfile.isConcreteName(profile?.name);
+        if (contact && (!this.rpgStates[this.identityTargetId] || needsProfileRefresh)) await this.ensureWechatUserProfile?.(contact);
+      }
+    } catch (err) {
+      console.warn('[身份证] 资料生成失败:', err.code, err.message, err.stack);
+      this.setupError = `身份证资料生成失败：${err.message || '请稍后重试'}`;
     }
   },
 
