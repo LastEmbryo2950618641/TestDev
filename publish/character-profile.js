@@ -112,6 +112,7 @@ window.GameModules.characterProfile = {
   },
 
   validate(profile, base, lore, attrs, store = null) {
+    profile = window.GameModules.characterReasonFallback?.apply?.({ ...base, ...(profile || {}) }, attrs) || profile;
     const skills = Array.isArray(profile.skills) ? profile.skills : [];
     const confirmedJob = profile.jobConfirmed === true ? window.GameModules.professionInfo.normalizeJobName(profile.job) : '';
     const factions = this.factionRoles(profile, base, store);
