@@ -12,12 +12,12 @@ Object.assign(window.GameModules.rpgLexicon, {
         entries.push({ worldTag, kind: treeKind || '属性', name: field.label, value: values[field.key], desc: field.desc, reason, nameAiGenerated: false, valueAiGenerated: false, changeMode: reason, hierarchy: treeKind ? 'tree' : 'leaf', source: 'schema', meta: { key: field.key, type: field.type, grade: Boolean(field.grade), targetType: state?.profile?.isPlayer ? '非角色' : '角色', commonField: section.title !== '世界固有属性' && field.key !== 'world_tag' } });
       }
     }
-    this.collectLearned(entries, worldTag, '知识', values.knowledge);
-    this.collectLearned(entries, worldTag, '技能', values.skills);
-    this.collectLearned(entries, worldTag, '职业', values.professions);
-    this.collectLearned(entries, worldTag, '装备', values.equipment);
-    this.collectLearned(entries, worldTag, '物品', values.items);
-    this.collectLearned(entries, worldTag, '穿着', values.wearing);
+    this.collectLearned(entries, worldTag, '知识', values.knowledge, state?.profile?.rpgFieldReasons?.knowledge, state);
+    this.collectLearned(entries, worldTag, '技能', values.skills, state?.profile?.rpgFieldReasons?.skills, state);
+    this.collectLearned(entries, worldTag, '职业', values.professions, state?.profile?.rpgFieldReasons?.professions, state);
+    this.collectLearned(entries, worldTag, '装备', values.equipment, state?.profile?.rpgFieldReasons?.equipment, state);
+    this.collectLearned(entries, worldTag, '物品', values.items, state?.profile?.rpgFieldReasons?.items, state);
+    this.collectLearned(entries, worldTag, '穿着', values.wearing, state?.profile?.rpgFieldReasons?.wearing, state);
     for (const item of values.factions || []) {
       const entry = this.factionEntry(worldTag, item, state);
       if (entry) entries.push(entry);
@@ -72,10 +72,26 @@ Object.assign(window.GameModules.rpgLexicon, {
     return `执行“${name}”相关行动时所需的理解、操作熟练度和稳定发挥能力。`;
   },
 
-  collectLearned(entries, worldTag, kind, list) {
+  learnedReason(kind, name, item = {}, parentReason = '', state = null) {
+    const explicit = item.reason || item.changeMode;
+    if (explicit && !window.GameModules.characterProfile?.abstractReason?.(explicit)) return explicit;
+    const actor = state?.profile?.name || state?.name || '该人物';
+    if (parentReason && !window.GameModules.characterProfile?.abstractReason?.(parentReason)) return `${actor}拥有“${name}”这一${kind}，因为${parentReason}`.slice(0, 120);
+    if (name === '世界常识') return `${actor}长期生活在${state?.worldTag || '当前世界'}，日常交流、出行和判断都需要理解当地社会规则与常识。`;
+    if (kind === '知识') return `${actor}在学习、工作或日常生活中接触过“${name}”，所以能够把它作为可调用知识。`;
+    if (kind === '技能') return `${actor}的经历中已经反复使用“${name}”，因此它成为可执行技能。`;
+    if (kind === '职业') return `${actor}围绕“${name}”形成过长期职责、训练或胜任经验，因此记录为职业能力。`;
+    if (kind === '装备') return `${actor}当前处境允许调用“${name}”，它会影响行动选择和判定。`;
+    if (kind === '物品') return `${actor}随身或生活场景中持有“${name}”，后续可被消耗、转让或使用。`;
+    if (kind === '穿着') return `${actor}此刻穿戴“${name}”，它符合当前身份、环境和行动状态。`;
+    return `${actor}的当前经历支持记录“${name}”这一${kind}。`;
+  },
+
+  collectLearned(entries, worldTag, kind, list, parentReason = '', state = null) {
     for (const item of list || []) {
       const name = typeof item === 'string' ? item : item?.name;
       if (!name) continue;
+      const reason = this.learnedReason(kind, name, item, parentReason, state);
       entries.push({
         worldTag, kind, name,
         summary: item.description || item.info?.description || item.desc || item.source,
@@ -83,8 +99,8 @@ Object.assign(window.GameModules.rpgLexicon, {
         value: typeof item === 'string' ? item : item,
         nameAiGenerated: true,
         valueAiGenerated: true,
-        reason: item.reason || item.changeMode,
-        changeMode: item.reason || item.changeMode,
+        reason,
+        changeMode: reason,
         related: [...(item.linkedStats || []), ...(item.info?.learnedAbilities || []), ...(item.info?.knowledgeAreas || []), ...(item.info?.worldAbilities || [])],
         meta: { info: { ...(item.info || {}), levelDescription: Number(item.level) > 0 ? item.levelDescription : undefined, effect: Number(item.level) > 0 ? item.effect : undefined } },
         source: item.info ? 'ai' : 'state',
