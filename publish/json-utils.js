@@ -95,6 +95,14 @@ window.GameModules.jsonUtils = {
         return options.validate ? options.validate(parsed) : parsed;
       } catch (err) {
         lastError = err;
+        console.warn('[JSON重试] AI返回格式校验失败，准备生成修复提示:', {
+          source: options.source || 'json-utils',
+          attempt: i + 1,
+          max,
+          error: err?.message || 'unknown',
+          stack: err?.stack || '',
+          rawPreview: String(lastText || '').slice(0, 1200),
+        });
         if (i === max - 1) break;
         prompt = await this.repairPrompt(options.format || options.prompt, lastText, err);
       }
