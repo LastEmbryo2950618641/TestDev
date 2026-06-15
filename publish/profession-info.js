@@ -42,8 +42,8 @@ window.GameModules.professionInfo = {
       const prompt = await this.prompt(worldTag, name, context);
       return await window.GameModules.jsonUtils.generateJsonWithRetry({
         source: 'profession-info',
-        model: 'nalang-medium-0826',
-        maxTokens: 900,
+        model: 'nalang-turbo-0826',
+        maxTokens: 700,
         prompt,
         format: prompt,
         validate: (raw) => this.validate(raw, worldTag, name, context),

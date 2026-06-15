@@ -74,9 +74,9 @@ window.GameModules.characterProfile = {
       const prompt = await this.prompt(base, lore, attrs, context, store, preset);
       return this.withSignature(await window.GameModules.jsonUtils.generateJsonWithRetry({
         source: 'character-profile-card',
-        model: 'nalang-medium-0826',
-        maxTokens: 3000,
-        timeoutMs: 120000,
+        model: 'nalang-turbo-0826',
+        maxTokens: 1800,
+        timeoutMs: 60000,
         prompt,
         format: prompt,
         repairHint: this.repairHint(base, attrs),

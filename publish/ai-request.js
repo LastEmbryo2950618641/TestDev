@@ -15,7 +15,7 @@ window.GameModules.aiRequest = {
   retryCount: 0,
   sourceCounts: {},
   lastStartedAt: 0,
-  minGapMs: 4200,
+  minGapMs: 900,
   cooldownUntil: 0,
 
   wait(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); },
@@ -44,9 +44,9 @@ window.GameModules.aiRequest = {
   },
 
   retryDelay(err, attempt) {
-    if (err?.code === 'RATE_LIMITED') return Math.min(30000, 12000 + attempt * 8000);
-    if (String(err?.message || '').toLowerCase().includes('failed to fetch')) return Math.min(20000, 5000 * (attempt + 1));
-    return Math.min(12000, 2000 * (2 ** attempt));
+    if (err?.code === 'RATE_LIMITED') return Math.min(12000, 4000 + attempt * 4000);
+    if (String(err?.message || '').toLowerCase().includes('failed to fetch')) return Math.min(8000, 2500 * (attempt + 1));
+    return Math.min(6000, 1200 * (2 ** attempt));
   },
 
   timeout(promise, ms, source) {
@@ -86,7 +86,7 @@ window.GameModules.aiRequest = {
 
   async runWithRetries(options) {
     let lastErr = null;
-    const maxAttempts = options.maxAttempts || 3;
+    const maxAttempts = options.maxAttempts || 2;
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       const now = Date.now();
       const gapWait = Math.max(0, this.minGapMs - (now - this.lastStartedAt));
