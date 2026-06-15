@@ -31,7 +31,7 @@ Object.assign(window.GameModules.rpgLexicon, {
         ...(old?.meta || {}),
         ...(raw.meta || {}),
         modifiedBySkill: this.lexiconSkillId,
-        modifyReason: this.cleanSkillReason(raw.reason || raw.modifyReason || old?.meta?.modifyReason, raw, old),
+        modifyReason: this.cleanSkillReason(raw.reason || raw.modifyReason || raw.meta?.modifyReason || old?.meta?.modifyReason, raw, old),
       },
     });
   },

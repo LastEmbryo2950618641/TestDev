@@ -22,6 +22,7 @@ Object.assign(window.GameModules.rpgLexicon, {
     next.valueAiGenerated = Boolean(existing.valueAiGenerated || patch.valueAiGenerated || patch.aiGenerated || patch.source === 'ai');
     next.changeMode = existing.changeMode;
     next.hierarchy = existing.hierarchy;
+    next.meta.modifyReason = this.cleanSkillReason?.(patch.reason || patch.modifyReason || patch.meta?.modifyReason || next.meta.modifyReason, patch, existing) || next.meta.modifyReason || '';
     next.promptInstruction = this.shouldRefreshPromptInstruction(existing.promptInstruction) ? this.defaultPromptInstruction(kind, name) : existing.promptInstruction;
     next.source = patch.source || 'ai';
     return this.entry(worldTag, kind, name, next);
