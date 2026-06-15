@@ -18,8 +18,14 @@ window.GameModules.rpgFieldUi = {
   roleCardReasonGetter(profile = {}) {
     const reasons = profile.roleCardFieldReasons || {}, log = {};
     (profile.roleCardChangeLog || []).forEach((item) => [item.field, item.name].filter(Boolean).forEach((key) => { log[key] = item.reason || log[key] || ''; }));
-    const usable = (text) => !/^错误：.*缺少AI给出的具体变化原因/.test(String(text || '').trim()) && !window.GameModules.characterProfile?.abstractReason?.(text) && String(text || '').trim();
-    return (label, key) => usable(reasons[label]) || usable(reasons[key]) || usable(log[label]) || usable(log[key]) || `${profile?.name || '个人资料'}的${label}按当前已落库角色资料展示。`;
+    const wrongSubject = (text, label = '') => {
+      const value = String(text || '').trim(), name = String(profile?.name || '').trim();
+      if (!name || label === '人际关系') return false;
+      if (value.includes(name)) return false;
+      return /(作为|是|属于|承担|体现了).{0,18}(妹妹|姐姐|哥哥|弟弟|父亲|母亲|女儿|儿子)/.test(value) || /(妹妹|姐姐|哥哥|弟弟|父亲|母亲|女儿|儿子).{0,12}(身份|性格|外貌|生日|职业|资料)/.test(value);
+    };
+    const usable = (text, label) => !/^错误：.*缺少AI给出的具体变化原因/.test(String(text || '').trim()) && !wrongSubject(text, label) && !window.GameModules.characterProfile?.abstractReason?.(text) && String(text || '').trim();
+    return (label, key) => usable(reasons[label], label) || usable(reasons[key], label) || usable(log[label], label) || usable(log[key], label) || this.missingReasonText(`${profile?.name || '个人资料'}-${label}`);
   },
 
   missingReasonText(name = '词条') { return `错误：${name}缺少AI给出的具体变化原因，请重新生成个人资料或重新触发AI更新。`; },
@@ -122,12 +128,12 @@ window.GameModules.rpgFieldUi = {
   },
 
   fieldChangeReason(field, lexicon = null) {
-    return this.explicitFieldChangeReason(field, lexicon) || this.fallbackBasis(field);
+    return this.explicitFieldChangeReason(field, lexicon) || this.missingReasonText(field?.label || field?.key || '词条');
   },
 
   itemChangeReason(field, obj = {}, lexicon = null) {
     const explicit = this.usableChangeReason(lexicon?.meta?.modifyReason || obj.reason || obj.changeMode, [lexicon?.description, lexicon?.summary, obj.description, obj.desc, obj.source]);
-    return explicit || this.fallbackBasis(field, obj);
+    return explicit || this.missingReasonText(this.rpgItemSummary(obj) || field?.label || '词条');
   },
 
   rpgItemSummary(item) {

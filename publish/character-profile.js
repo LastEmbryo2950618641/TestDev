@@ -112,7 +112,7 @@ window.GameModules.characterProfile = {
   },
 
   validate(profile, base, lore, attrs, store = null) {
-    profile = window.GameModules.characterReasonFallback?.apply?.({ ...base, ...(profile || {}) }, attrs) || profile;
+    profile = { ...base, ...(profile || {}) };
     const skills = Array.isArray(profile.skills) ? profile.skills : [];
     const confirmedJob = profile.jobConfirmed === true ? window.GameModules.professionInfo.normalizeJobName(profile.job) : '';
     const factions = this.factionRoles(profile, base, store);
@@ -139,7 +139,7 @@ window.GameModules.characterProfile = {
         const reason = this.inventoryReason({ ...skill, ...item }, '技能', { ...base, ...profile });
         return { ...item, reason, changeMode: reason };
       }),
-      roleCardFieldReasons: this.roleCardFieldReasons(profile.roleCardFieldReasons),
+      roleCardFieldReasons: this.roleCardFieldReasons(profile.roleCardFieldReasons, { ...base, ...profile }),
       equipment: this.carryItems(profile.equipment || base.equipment, '装备', { ...base, ...profile }),
       items: this.carryItems(profile.items || base.items, '物品', { ...base, ...profile }),
       wearing: this.wearingItems(profile.wearing || base.wearing, { ...base, ...profile }),
@@ -293,21 +293,29 @@ window.GameModules.characterProfile = {
     if (!value) return true;
     return /^(来源于角色资料|剧情证据|世界规则|根据上下文|根据上下文推断|根据上下文判断|初始化|系统生成|综合判断|默认|身份信息|资料|固化|共同确定)$/.test(value)
       || /^(来源于|根据|基于).{0,8}(角色资料|剧情证据|世界规则|上下文)$/.test(value)
-      || /^缺少明确证据所以默认/.test(value);
+      || /^缺少明确证据所以默认/.test(value)
+      || /当前人物资料、生活经历和世界规则固化|按当前人物资料|首次落库|缺少.*证据|没有明确.*证据|当前经历只显示|可见形象按年龄|后续由明确剧情事件更新/.test(value);
   },
 
-  roleCardFieldReasons(value) {
+  wrongSubjectReason(text, profile = {}, key = '') {
+    const value = String(text || '').trim(), name = String(profile?.name || '').trim();
+    if (!name || key === '人际关系') return false;
+    if (value.includes(name)) return false;
+    return /(作为|是|属于|承担|体现了).{0,18}(妹妹|姐姐|哥哥|弟弟|父亲|母亲|女儿|儿子)/.test(value) || /(妹妹|姐姐|哥哥|弟弟|父亲|母亲|女儿|儿子).{0,12}(身份|性格|外貌|生日|职业|资料)/.test(value);
+  },
+
+  roleCardFieldReasons(value, profile = {}) {
     const keys = this.roleCardFieldKeys();
     if (!value || typeof value !== 'object') throw new Error('roleCardFieldReasons 缺失');
     const out = Object.fromEntries(keys.map((key) => [key, String(value[key] || '').trim().slice(0, 140)]));
-    const vague = keys.filter((key) => this.abstractReason(out[key]));
+    const vague = keys.filter((key) => this.abstractReason(out[key]) || this.wrongSubjectReason(out[key], profile, key));
     if (vague.length) throw new Error(`roleCardFieldReasons 缺少具体经历原因: ${vague.join(',')}`);
     return out;
   },
 
-  hasRequiredRoleCardFieldReasons(value) {
+  hasRequiredRoleCardFieldReasons(value, profile = {}) {
     if (!value || typeof value !== 'object') return false;
-    return this.roleCardFieldKeys().every((key) => !this.abstractReason(value[key]));
+    return this.roleCardFieldKeys().every((key) => !this.abstractReason(value[key]) && !this.wrongSubjectReason(value[key], profile, key));
   },
 
   hasRequiredInventoryReasons(profile) {
@@ -336,7 +344,7 @@ window.GameModules.characterProfile = {
 
   isReusableRoleCard(profile, signature = null) {
     const signatureOk = signature === null || profile?.roleCardInputSignature === signature;
-    return signatureOk && this.isRoleCard(profile) && this.hasRequiredRoleCardFieldReasons(profile.roleCardFieldReasons) && this.hasRequiredInventoryReasons(profile) && this.hasRequiredInitialMetrics(profile.initialMetrics) && this.hasRequiredRpgFieldReasons(profile.rpgFieldReasons, profile?.worldAttributes);
+    return signatureOk && this.isRoleCard(profile) && this.hasRequiredRoleCardFieldReasons(profile.roleCardFieldReasons, profile) && this.hasRequiredInventoryReasons(profile) && this.hasRequiredInitialMetrics(profile.initialMetrics) && this.hasRequiredRpgFieldReasons(profile.rpgFieldReasons, profile?.worldAttributes);
   },
 
   rpgFieldReasonKeys(attrs = null) {

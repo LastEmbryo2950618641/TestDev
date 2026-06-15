@@ -109,11 +109,9 @@ window.GameModules.playerIdentityActions = {
       try {
         window.GameModules.characterProfile.requireRpgFieldReasons(existing.profile, existing.profile?.worldAttributes, existing.profile?.name || '玩家本人');
       } catch (err) {
-        console.warn('[玩家身份] 已保存个人资料缺少AI变化原因，已本地补齐:', err.message, err.stack);
-        const fields = existing.schema?.sections?.find((section) => section.title === '世界固有属性')?.fields || [];
-        existing.profile = window.GameModules.characterReasonFallback.apply(existing.profile || this.playerCharacterBase(), existing.profile?.worldAttributes || { fields });
-        window.GameModules.characterProfile.requireRpgFieldReasons(existing.profile, existing.profile?.worldAttributes, existing.profile?.name || '玩家本人');
-        changed = true;
+        console.warn('[玩家身份] 已保存个人资料缺少AI变化原因，拒绝使用本地兜底:', err.message, err.stack);
+        this.setupError = `玩家本人资料需要重新生成：${err.message || '缺少AI变化原因'}`;
+        throw err;
       }
       if (window.GameModules.progression.ensureStateMechanics(existing, existing.profile)) changed = true;
       if (changed) await window.GameModules.sqliteSave.saveCharacterState(existing);
@@ -123,8 +121,9 @@ window.GameModules.playerIdentityActions = {
     try {
       character = await window.GameModules.characterProfile.ensure(this.playerCharacterBase(), this, this.playerSetupSummary?.() || '玩家本人资料');
     } catch (err) {
-      console.warn('[玩家身份] 个人资料生成失败，使用本地原因兜底:', err.code, err.message, err.stack);
-      character = window.GameModules.characterReasonFallback.apply(this.playerCharacterBase(), window.GameModules.worldAttributes.defaults(this.playerCharacterBase().work));
+      console.warn('[玩家身份] 个人资料生成失败，拒绝使用本地原因兜底:', err.code, err.message, err.stack);
+      this.setupError = `玩家本人资料生成失败：${err.message || 'AI暂时不可用'}`;
+      throw err;
     }
     character.id = 'player-self';
     character.name = this.playerProfile?.name || this.playerName || character.name;

@@ -92,8 +92,8 @@ window.GameModules.playerSetupActions = {
       try {
         enriched = await this.enrichPlayerProfile(base);
       } catch (err) {
-        console.warn('[玩家身份] AI补全失败，改用本地资料继续激活:', err.code, err.message, err.stack);
-        enriched = this.localPlayerProfileFallback(base);
+        console.warn('[玩家身份] AI补全失败，拒绝使用本地资料继续激活:', err.code, err.message, err.stack);
+        throw new Error(`AI身份补全失败，不能使用本地兜底资料：${err.message || '请稍后重试'}`);
       }
       this.playerProfile = this.normalizeEnrichedPlayerProfile(base, enriched);
       this.phoneFixedTime = new Date(this.playerProfile.initializedAt || Date.now()).getTime();
