@@ -55,6 +55,7 @@ window.GameModules.characterProfile = {
       appearance: String(data.appearance || '外貌尚未固化。').slice(0, 120),
       personality: String(data.personality || '谨慎观察局势。').slice(0, 80),
       age: data.age || (String(`${data.role || ''} ${data.relationships || ''} ${data.detail || data.desc || preset?.summary || ''}`).match(/(\d{1,3})\s*岁/)?.[1] || ''),
+      birthday: String(data.birthday || '').slice(0, 20),
       aliases: Array.isArray(data.aliases) ? data.aliases.slice(0, 4).map(String) : [],
       skills: Array.isArray(data.skills) ? data.skills.slice(0, 4) : [],
       equipment: this.carryItemsLoose(data.equipment, '装备'),
@@ -91,7 +92,7 @@ window.GameModules.characterProfile = {
   async prompt(base, lore, attrs, context, store, preset = null) {
     const sections = window.GameModules.promptSections;
     const player = sections.playerProfile(store);
-    return window.GameModules.promptTemplates.render('character-profile-card', {
+    const text = await window.GameModules.promptTemplates.render('character-profile-card', {
       人物预设资料区: window.GameModules.characterProfileSource.presetText(preset),
       人物基础区: sections.characterBase(base),
       玩家基础资料区: player.playerBasic,
@@ -106,6 +107,8 @@ window.GameModules.characterProfile = {
       情绪字段: window.GameModules.metrics.emotionKeys.join('、'),
       关系指标字段: window.GameModules.metrics.playerKeys.join('、'),
     });
+    if (base.id !== 'player-self') return text;
+    return `${text}\n\n## 玩家本人目标锁定（最高优先级）\n本次只生成玩家本人“${base.name}”的角色卡。\nJSON 根字段 name 必须写“${base.name}”，不得写妹妹、姐姐、父母、联系人或关系事件里的任何其他姓名。\n如果上下文提到刘思瑶、刘思琪或其他亲属，她们只能写进 relationships/detail 作为关系对象，不能成为本角色卡主语。\ngender、age、birthday 优先沿用人物基础区；不要根据亲属资料改写玩家本人身份。`;
   },
 
   parse(text) {
@@ -123,10 +126,13 @@ window.GameModules.characterProfile = {
   },
 
   validate(profile, base, lore, attrs, store = null) {
-    const rawProfile = profile || {};
+    let rawProfile = profile || {};
     const expectedName = String(base.name || '').trim();
-    if (base.id === 'player-self' && rawProfile.name && rawProfile.name !== expectedName) throw new Error(`目标人物漂移: 需要生成${expectedName}本人，AI返回了${rawProfile.name}`);
-    if (base.id !== 'player-self' && this.isConcreteName(expectedName) && rawProfile.name && rawProfile.name !== expectedName) throw new Error(`目标人物漂移: 需要生成${expectedName}，AI返回了${rawProfile.name}`);
+    if (base.id === 'player-self') {
+      rawProfile = this.lockPlayerSelfProfile(rawProfile, base);
+    } else if (this.isConcreteName(expectedName) && rawProfile.name && rawProfile.name !== expectedName) {
+      throw new Error(`目标人物漂移: 需要生成${expectedName}，AI返回了${rawProfile.name}`);
+    }
     profile = { ...base, ...rawProfile, name: base.id === 'player-self' ? expectedName : (rawProfile.name || base.name) };
     const fallbackApplied = window.GameModules.characterReasonFallback?.apply?.(profile, attrs) || profile;
     profile = { ...profile, roleCardFieldReasons: fallbackApplied.roleCardFieldReasons, rpgFieldReasons: fallbackApplied.rpgFieldReasons };
@@ -169,6 +175,29 @@ window.GameModules.characterProfile = {
       roleCardUpdatedAt: new Date().toISOString(),
     };
     return this.ensureInventoryReasons(validated);
+  },
+
+  lockPlayerSelfProfile(profile, base) {
+    const locked = { ...profile, id: 'player-self', name: base.name, isPlayer: true };
+    ['gender', 'age', 'birthday'].forEach((key) => {
+      if (base[key] !== undefined && base[key] !== null && String(base[key]).trim()) locked[key] = base[key];
+    });
+    ['work', 'role', 'job', 'faction', 'workplace', 'position', 'rank'].forEach((key) => {
+      if (base[key] !== undefined && base[key] !== null && String(base[key]).trim()) locked[key] = base[key];
+    });
+    const wrongName = String(profile?.name || '').trim();
+    if (wrongName && wrongName !== base.name) {
+      console.warn('[角色卡] 玩家本人姓名被AI写成其他人物，已强制锁回:', { expected: base.name, actual: wrongName });
+      locked.detail = base.detail || locked.detail;
+      locked.personality = base.personality || locked.personality;
+      locked.appearance = base.appearance || locked.appearance;
+      locked.relationships = base.relationships || locked.relationships;
+    }
+    return locked;
+  },
+
+  escapeRegExp(text) {
+    return String(text || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   },
 
   withSignature(profile, signature) {
