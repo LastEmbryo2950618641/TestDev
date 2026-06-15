@@ -42,8 +42,16 @@ window.GameModules = window.GameModules || {};
     },
 
     itemReason(item = {}, kind = '物品') {
+      const raw = String(item.reason || item.changeMode || '').trim();
+      const vague = window.GameModules.characterProfile?.abstractReason?.(raw) || /当前角色资料|持有状态|穿戴槽位|固化/.test(raw);
+      if (raw && !vague) return raw.slice(0, 120);
       const name = item.name || item.label || '未命名物品';
-      return String(item.reason || item.changeMode || `${name}由当前角色资料、持有状态或穿戴槽位固化为${kind}词条。`).trim().slice(0, 120);
+      const slot = item.slot ? String(item.slot) : '';
+      const slots = (Array.isArray(item.equipSlots) ? item.equipSlots : String(item.equipSlots || '').split(/[、,，/|；;\s]+/)).filter(Boolean).join('、');
+      if (kind === '穿着' || item.type === '穿着') return item.name === '未穿戴' ? `${slot || '该'}槽位当前为空，表示该部位没有实际穿戴记录。` : `${name}当前${slot ? `占用${slot}槽位` : '处于已穿戴状态'}，因此会影响角色此刻外观和行动。`;
+      if (kind === '装备' || item.type === '装备') return `${name}被记录为当前可调用装备${slots ? `，可装备在${slots}` : ''}，后续获得、损坏、转让或穿戴时会更新。`;
+      if (kind === '物品' || item.type === '物品') return `${name}被记录为当前持有物${item.quantity ? `，数量为${item.quantity}` : ''}，后续使用、消耗、转让或遗失时会更新。`;
+      return `${name}当前属于${kind}词条，后续由明确行动或状态变化更新。`;
     },
 
     normalizeCarryItem(item, kind = '物品') {

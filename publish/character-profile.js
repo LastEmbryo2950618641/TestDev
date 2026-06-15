@@ -302,18 +302,17 @@ window.GameModules.characterProfile = {
   rpgFieldReasonFallback(key, profile = {}) {
     const name = profile.name || '该人物';
     const role = profile.role || profile.job || '当前身份';
-    const detail = profile.detail || profile.personality || profile.worldbuildingNote || '缺少详细经历';
     const map = {
-      world_tag: `${name}被放入${profile.work || '当前世界'}行动，后续经历都以该世界规则和地点为边界。`,
-      level: `${name}目前仍处在${role}的起步阶段，过去经历主要是${detail}，尚未累积足以跨阶段成长的事件。`,
-      exp: `${name}近期只完成了与${role}相关的基础适应，经验来自日常行动和当前事件，还没有形成可升级的连续训练。`,
-      vitality: `${name}当前没有重伤证据，身体承受力按${detail}中的生活处境维持在可行动状态。`,
-      stamina_pool: `${name}的精力由${role}日常节奏决定；${detail}显示其能完成常规行动但没有长期高强度训练优势。`,
-      satiety: `${name}最近没有饥饿或进食异常事件，饱食状态沿用当前生活节奏中的普通饮食水平。`,
-      hydration: `${name}最近没有脱水、剧烈运动或缺水事件，水分状态保持日常活动下的稳定水平。`,
-      fatigue: `${name}近期处境是${detail}，没有连续熬夜或重体力消耗证据，因此疲劳只按当前压力轻度累积。`,
+      world_tag: `${name}当前归属${profile.work || '当前世界'}，相关行动和词条按该世界规则记录。`,
+      level: `${name}仍处在${role}的早期成长阶段，尚未记录足以升级的连续事件。`,
+      exp: `${name}近期只有零散行动经验，尚未形成可结算升级的训练或任务成果。`,
+      vitality: `${name}当前没有重伤或治疗记录，生命力保持在可行动状态。`,
+      stamina_pool: `${name}当前没有长期高强度消耗记录，精力池维持常规行动水平。`,
+      satiety: `${name}最近没有饥饿或进食异常记录，饱食度沿用日常状态。`,
+      hydration: `${name}最近没有脱水、剧烈流汗或补水异常记录，水分保持日常状态。`,
+      fatigue: `${name}最近没有连续熬夜或重体力消耗记录，疲劳只按当前压力轻度累积。`,
     };
-    return map[key] || `${name}作为${role}，其${key}由过去经历“${detail}”、当前关系处境和最近行动压力共同推定。`;
+    return map[key] || `${name}的${key}暂无具体变化记录，当前按${role}的已知状态保留；后续行动或成长结算会写入更具体原因。`;
   },
 
   hasRequiredRpgFieldReasons(value, attrs = null) {

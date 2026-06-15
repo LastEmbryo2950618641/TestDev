@@ -88,25 +88,24 @@ window.GameModules.rpgFieldUi = {
   usableChangeReason(reason, blocked = []) {
     const text = String(reason || '').trim();
     if (window.GameModules.characterProfile?.abstractReason?.(text)) return '';
+    if (/性别：|年龄：|生日：|具体地址：|势力地位：|社群角色：|居住：|父母：|关系：|备注：|关系为.*备注为|居住在.*生活状态.*家庭状态/.test(text)) return '';
     if (/^(AI演算|系统结算|系统词条调整|用户主动)$/.test(text) || /词条说明|当前作用|用于记录|暂无详细说明/.test(text)) return '';
     return blocked.some((item) => item && text === String(item).trim()) ? '' : text;
   },
 
   fallbackChangeReason(field, obj = null, kind = '', name = '') {
-    const state = this.activeDetailState(), p = state?.profile || {};
-    const detail = p.detail || p.personality || p.worldbuildingNote || '当前经历尚少';
     const finalKind = kind || (obj ? this.lexiconKind(field, obj) : (field?.kind || this.lexiconKind(field)));
     const finalName = name || (obj ? this.rpgItemSummary(obj) : (field?.label || field?.key || '该词条'));
-    if (obj) return `${finalName}成为${finalKind}子词条，是因为${p.name || '该人物'}过去经历“${detail}”与当前${field?.label || '父词条'}状态中需要它发挥作用。`;
-    if (this.isRpgListField(field)) return `${finalName}作为${finalKind}树词条，来自${p.name || '该人物'}的经历“${detail}”中已经出现的长期能力、关系或持有状态。`;
-    return `${finalName}作为${finalKind}词条，由${p.name || '该人物'}过去经历“${detail}”、当前身体状态和最近行动压力共同推定。`;
+    if (obj) return `${finalName}当前作为${finalKind}子词条显示；需要后续明确剧情、现实行动或玩家编辑来写入更具体的变化原因。`;
+    if (this.isRpgListField(field)) return `${finalName}是${finalKind}树词条，用于汇总其子词条；具体变化原因以展开后的子词条为准。`;
+    return `${finalName}当前没有可引用的具体变化记录；后续发生明确行动、成长结算或玩家编辑时会更新原因。`;
   },
 
   fieldChangeReason(field, lexicon = null) {
     const state = this.activeDetailState(), values = state?.values || {}, profile = state?.profile || {};
     const explicit = this.usableChangeReason(field?.reason || lexicon?.meta?.modifyReason, [lexicon?.description, lexicon?.summary, field?.desc]);
     if (explicit) return explicit;
-    const aiReason = profile.rpgFieldReasons?.[field?.key] || profile.rpgFieldReasons?.[field?.label];
+    const aiReason = this.usableChangeReason(profile.rpgFieldReasons?.[field?.key] || profile.rpgFieldReasons?.[field?.label], [lexicon?.description, lexicon?.summary, field?.desc]);
     if (aiReason) return String(aiReason).slice(0, 120);
     if (field?.key === 'level' && values.level_growth?.history?.length) {
       const latest = values.level_growth.history.at(-1);
