@@ -82,15 +82,9 @@ window.GameModules.actions = {
     const stage = raw?.stage || window.GameModules.metrics.stageFor(key, value);
     const actor = window.GameModules.ai?.actorPronoun?.(this) || '她/他';
     const fallbackStatus = window.GameModules.ai?.fallbackMetricStatus?.(actor, key, stage, type) || `${actor}的${key}处于“${stage}”状态。`;
-    const metricFallbackReason = () => {
-      if (key === '爱情') return `${actor}在某个瞬间被你的表现触动，觉得你很有吸引力，所以爱情感受发生波动。`;
-      if (key === '好感') return `${actor}从你的态度、选择或保护中感到被善待，所以好感发生变化。`;
-      if (key === '信任') return `${actor}观察到你没有立刻伤害她/他，并开始重新评估是否可以相信你。`;
-      if (key === '警惕') return `${actor}仍不确定你接下来会怎么行动，所以保持戒备。`;
-      if (type === 'emotion') return `${actor}受到当前场景、你的行动和自身处境影响，因此${key}情绪发生变化。`;
-      return `${actor}根据你刚才的表现与两人的关系变化，重新调整了对你的${key}。`;
-    };
-    const fallbackReason = metricFallbackReason();
+    const fallbackReason = type === 'emotion'
+      ? `${actor}受到当前场景、你的行动、自身处境和关系证据影响，因此${key}情绪发生变化。`
+      : `${actor}根据你的表现、两人的关系证据、当下处境和自身动机，重新调整了对你的${key}。`;
     const oldStageText = window.GameModules.metrics.stageStatus(key, stage);
     const status = raw?.status && raw.status !== oldStageText ? raw.status : fallbackStatus;
     const oldReason = /本回合没有直接触发变化|保持原值|保持原址/.test(String(raw?.reason || ''));

@@ -79,43 +79,28 @@ window.GameModules.rpgFieldUi = {
     return this.identityTargetState?.() || this.currentRpgState || this.playerIdentityState?.() || null;
   },
 
-  levelReason(value) {
-    if (value >= 9) return `个人等级${value}代表顶尖层级，说明这个角色在当前世界里拥有极强的综合能力与影响力。`;
-    if (value >= 7) return `个人等级${value}高于普通人的5级基准，说明这个角色在同龄或同处境人群中属于佼佼者。`;
-    if (value >= 5) return `个人等级${value}接近普通成熟个体基准，说明这个角色具备稳定的日常行动与应对能力。`;
-    return `个人等级${value}低于普通人的5级基准，说明这个角色受年龄、经验、身体状态或处境限制影响。`;
-  },
-
   fieldChangeReason(field, lexicon = null) {
     const state = this.activeDetailState();
     const values = state?.values || {};
     if (field?.reason) return field.reason;
     if (lexicon?.meta?.modifyReason) return lexicon.meta.modifyReason;
-    if (field?.key === 'level') {
-      const latest = values.level_growth?.history?.at?.(-1);
-      if (latest) return `个人等级从${latest.from}提升到${latest.to}，说明最近的经历让角色综合能力进入了新的层级。`;
-      return this.levelReason(Number(field.raw ?? field.value ?? values.level ?? 5));
+    if (field?.key === 'level' && values.level_growth?.history?.length) {
+      const latest = values.level_growth.history.at(-1);
+      return `最近的成长记录显示该字段从${latest.from}变化到${latest.to}，触发来源是对应经历与成长结算。`;
     }
-    if (field?.key === 'exp') return '这些经验来自角色经历过的行动、训练、学习、风险承担与剧情推进。';
-    if (field?.key === 'free_attribute_points') return '这些可分配点数来自等级成长，代表角色仍有可塑空间可以投入到具体身内能力。';
-    if (field?.key === 'level_growth') return values.level_growth?.history?.length ? '这里记录角色每次成长后能力如何被强化。' : '角色目前还没有发生新的等级跃迁，因此只保留既有成长规则。';
-    if (field?.source) return '该能力值反映角色天赋、成长经历、训练方向与最近状态共同形成的结果。';
-    if (lexicon?.changeMode) return lexicon.changeMode;
-    return `${field?.label || '该词条'}反映角色当前设定、经历和世界规则共同造成的状态。`;
+    if (field?.key === 'level_growth' && values.level_growth?.history?.length) return '该字段来自角色成长记录，说明能力变化由近期经历、训练或剧情结算触发。';
+    if (field?.source) return '该字段来自角色资料、成长来源、分配记录和近期状态证据。';
+    if (lexicon?.changeMode && lexicon.changeMode !== '系统结算') return lexicon.changeMode;
+    return `${field?.label || '该词条'}当前值来自角色资料、剧情证据、世界规则或近期状态；若后续 AI 修改，应在 reason 中写明触发事件、证据和角色动机。`;
   },
 
   itemChangeReason(field, obj = {}, lexicon = null) {
     if (lexicon?.meta?.modifyReason) return lexicon.meta.modifyReason;
     if (obj.reason) return obj.reason;
     if (obj.changeMode) return obj.changeMode;
-    if (field?.key === 'wearing') {
-      if (!obj.name || obj.name === '未穿戴') return `${obj.slot || '该部位'}没有穿戴，通常表示正在洗澡、换衣、睡觉或剧情中明确脱下了对应衣物。`;
-      if (/jk|百褶裙|短裙|裙/i.test(obj.name)) return `${obj.slot || '该部位'}穿着“${obj.name}”，说明她喜欢这种打扮，也可能是希望被在意的人觉得好看。`;
-      return `${obj.slot || '该部位'}穿着“${obj.name}”，体现角色当下的打扮偏好、场景需要或想给特定对象留下的印象。`;
-    }
     if (obj.description) return obj.description;
     if (obj.source) return obj.source;
-    return `${obj.name || field?.label || '该词条'}反映角色当前经历、持有状态与世界规则共同造成的结果。`;
+    return `${obj.name || field?.label || '该词条'}当前状态来自角色资料、剧情证据、持有/穿戴状态或近期状态；若后续 AI 修改，应在 reason 中写明触发事件、证据和角色动机。`;
   },
 
   rpgItemSummary(item) {
