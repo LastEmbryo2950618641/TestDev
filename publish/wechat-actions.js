@@ -115,7 +115,7 @@ window.GameModules.wechatActions = {
       try { await this.ensureWechatUserProfile(stored); }
       catch (err) { console.warn('[微信] 联系人资料生成失败:', err.code, err.message, err.stack); }
     }
-    await this.save?.();
+    if (options.save !== false) await this.save?.();
     return contact;
   },
 
@@ -155,8 +155,8 @@ window.GameModules.wechatActions = {
     }).filter((user) => user && user.name && user.name !== selfName).slice(0, 20);
   },
 
-  async syncRelationshipWechatUsers() {
+  async syncRelationshipWechatUsers(options = {}) {
     const users = this.inferWechatUsersFromRelationships(this.playerProfile?.relationships || '');
-    return this.addWechatUsers(users);
+    return this.addWechatUsers(users, options);
   },
 };
