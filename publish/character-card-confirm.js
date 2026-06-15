@@ -7,7 +7,7 @@ window.GameModules.characterCardConfirm = {
 
   async request(store, characters) {
     const pending = this.missingCharacters(store, characters);
-    if (!pending.length) return null;
+    if (!pending.length || pending.length <= 5) return null;
     if (store.characterCardConfirm?.open) throw new Error('已有角色卡确认弹窗，请先完成当前选择。');
     return await new Promise((resolve) => {
       store.characterCardConfirm = {
