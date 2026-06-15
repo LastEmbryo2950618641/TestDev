@@ -280,7 +280,11 @@ window.GameModules.characterProfile = {
   },
 
   abstractReason(text) {
-    return !String(text || '').trim() || /来源于角色资料|剧情证据|世界规则|根据上下文|初始化|系统生成|综合判断|默认|身份信息|资料|固化|共同确定/.test(text);
+    const value = String(text || '').trim();
+    if (!value) return true;
+    return /^(来源于角色资料|剧情证据|世界规则|根据上下文|根据上下文推断|根据上下文判断|初始化|系统生成|综合判断|默认|身份信息|资料|固化|共同确定)$/.test(value)
+      || /^(来源于|根据|基于).{0,8}(角色资料|剧情证据|世界规则|上下文)$/.test(value)
+      || /^缺少明确证据所以默认/.test(value);
   },
 
   roleCardFieldReasons(value) {

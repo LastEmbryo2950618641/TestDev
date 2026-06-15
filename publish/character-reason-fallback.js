@@ -22,18 +22,18 @@ window.GameModules.characterReasonFallback = {
     const role = profile.role || profile.job || '当前身份';
     const detail = profile.detail || profile.personality || '已有资料';
     return {
-      姓名: `${name}来自玩家资料、人物基础区或当前关系上下文，因此固化为当前姓名。`,
-      所属世界: `${name}的行动与身份资料归属于${world}，因此所属世界固化为该世界。`,
-      身份: `${detail}支持${name}以“${role}”作为当前社会身份。`,
-      职业: profile.job ? `${name}的履历或岗位资料明确指向${profile.job}，因此职业被固化。` : `${name}目前只有身份和生活处境证据，缺少可确认长期职业资格，因此职业留空。`,
-      性别: profile.gender ? `${name}的基础资料提供了性别信息，因此固化为${profile.gender}。` : `${name}的当前资料没有可靠性别证据，因此性别保持未记录。`,
-      生日: profile.birthday ? `${name}的基础资料提供了生日，因此按该日期固化。` : `${name}的资料只支持当前年龄或身份判断，缺少明确生日证据。`,
-      人际关系: profile.relationships ? `${profile.relationships}来自玩家人际关系或当前联系人上下文，因此作为已知关系固化。` : `${name}当前没有被玩家资料确认的亲密关系，因此人际关系保持未记录。`,
-      外貌: `${name}的外貌按人物基础区、世界观和当前生活处境克制固化，避免使用无依据夸张特征。`,
-      性格: `${profile.personality || detail}体现了${name}的稳定处事方式，因此作为性格依据。`,
-      人物说明: `${detail}整合了${name}的生活处境、关系和当前上下文，因此写入人物说明。`,
-      社群角色: `${name}的住址、家庭、社交圈或当前处境需要在社群中定位，因此生成社群角色。`,
-      势力地位: `${name}的国家、公民、学校、公司或组织归属需要用于现实判定，因此生成势力地位。`,
+      姓名: `${name}这个称呼与当前家庭、社交或人物关系链一致，能让他人在剧情里明确指认本人。`,
+      所属世界: `${name}的生活地点、社会规则和行动范围都落在${world}，后续事件需要按这个世界处理。`,
+      身份: `${detail}让${name}在当前场景中承担“${role}”这一社会位置。`,
+      职业: profile.job ? `${name}长期承担${profile.job}相关工作或训练，所以职业写为${profile.job}。` : `${name}当前经历只显示日常身份和生活处境，还没有足够履历证明一个长期职业。`,
+      性别: profile.gender ? `${name}在当前人物记录中以${profile.gender}参与家庭、社交和身体状态判定。` : `${name}目前的关系和行动记录没有给出可靠性别线索。`,
+      生日: profile.birthday ? `${name}的生日已用于年龄和人生阶段计算，因此记录为${profile.birthday}。` : `${name}只暴露了身份阶段或关系称谓，还没有出现明确生日。`,
+      人际关系: profile.relationships ? `${profile.relationships}会直接影响${name}对玩家的亲疏、信任和日常互动。` : `${name}暂时没有与玩家形成可确认的亲属、同事、同学或朋友关系。`,
+      外貌: `${name}的可见形象按年龄、生活环境、职业或家庭处境克制描写，避免脱离当前经历。`,
+      性格: `${profile.personality || detail}体现了${name}面对压力、关系和日常选择时的稳定反应。`,
+      人物说明: `${detail}说明了${name}此刻的生活位置、关系牵连和可行动边界。`,
+      社群角色: `${name}需要通过居住地、家庭、朋友圈或临时处境确定自己属于哪个社群。`,
+      势力地位: `${name}在国家、学校、公司或组织中的层级会影响资源、责任和可用行动。`,
     };
   },
 
