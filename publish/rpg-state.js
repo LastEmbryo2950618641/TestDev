@@ -101,11 +101,11 @@ window.GameModules.rpgState = {
     return worldChanged || jobChanged || controlChanged || metricsChanged || reasonChanged || socialChanged || inventoryChanged || mechanicsChanged || changed;
   },
   ensureRpgFieldReasons(state) {
-    if (!state?.profile) return false;
+    if (!state?.profile || state.profile.isPlayer || state.id === 'player-self') return false;
     const tool = window.GameModules.characterProfile;
     const before = JSON.stringify(state.profile.rpgFieldReasons || {});
     state.profile.worldAttributes = state.profile.worldAttributes || { fields: (state.schema?.sections || []).flatMap((section) => section.fields || []) };
-    state.profile.rpgFieldReasons = tool.rpgFieldReasons(state.profile.rpgFieldReasons, state.profile.worldAttributes, state.profile);
+    state.profile.rpgFieldReasons = tool.cleanRpgFieldReasons(state.profile.rpgFieldReasons, state.profile.worldAttributes);
     return before !== JSON.stringify(state.profile.rpgFieldReasons || {});
   },
 

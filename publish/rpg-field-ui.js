@@ -111,8 +111,8 @@ window.GameModules.rpgFieldUi = {
       const latest = values.level_growth.history.at(-1);
       return latest.reason || '';
     }
-    if (field?.key === 'level_growth' && values.level_growth?.history?.length) return values.level_growth.history.at(-1)?.reason || this.fallbackChangeReason(field);
-    return window.GameModules.characterProfile?.rpgFieldReasonFallback?.(field?.key, profile) || this.fallbackChangeReason(field);
+    if (field?.key === 'level_growth' && values.level_growth?.history?.length) return values.level_growth.history.at(-1)?.reason || '';
+    return '';
   },
 
   itemChangeReason(field, obj = {}, lexicon = null, kind = '', name = '') {

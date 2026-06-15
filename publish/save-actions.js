@@ -163,7 +163,7 @@ window.GameModules.saveActions = {
           const kind = { factions: '社群角色', force_positions: '势力地位', equipment: '装备', items: '物品', wearing: '穿着', status_tags: '状态' }[field.key] || '属性';
           const targetType = state.profile?.isPlayer ? '非角色' : '角色';
           const commonField = section.title !== '世界固有属性' && field.key !== 'world_tag';
-          const reason = state.profile?.rpgFieldReasons?.[field.key] || window.GameModules.characterProfile?.rpgFieldReasonFallback?.(field.key, state.profile || {}) || '';
+          const reason = state.profile?.rpgFieldReasons?.[field.key] || '';
           return { key: field.key, label: field.label, kind, value: this.rpgFieldValue(display), raw, source, desc: field.desc || '', reason, worldTag: state.worldTag, targetType, commonField };
         }),
     })).filter((section) => section.fields.length);

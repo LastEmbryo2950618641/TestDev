@@ -299,31 +299,21 @@ window.GameModules.characterProfile = {
     return [...new Set(sections.flatMap((section) => section.fields || []).map((field) => field.key).filter((key) => key !== 'intrinsic_sources'))];
   },
 
-  rpgFieldReasonFallback(key, profile = {}) {
-    const name = profile.name || '该人物';
-    const role = profile.role || profile.job || '当前身份';
-    const map = {
-      world_tag: `${name}当前归属${profile.work || '当前世界'}，相关行动和词条按该世界规则记录。`,
-      level: `${name}仍处在${role}的早期成长阶段，尚未记录足以升级的连续事件。`,
-      exp: `${name}近期只有零散行动经验，尚未形成可结算升级的训练或任务成果。`,
-      vitality: `${name}当前没有重伤或治疗记录，生命力保持在可行动状态。`,
-      stamina_pool: `${name}当前没有长期高强度消耗记录，精力池维持常规行动水平。`,
-      satiety: `${name}最近没有饥饿或进食异常记录，饱食度沿用日常状态。`,
-      hydration: `${name}最近没有脱水、剧烈流汗或补水异常记录，水分保持日常状态。`,
-      fatigue: `${name}最近没有连续熬夜或重体力消耗记录，疲劳只按当前压力轻度累积。`,
-    };
-    return map[key] || `${name}的${key}暂无具体变化记录，当前按${role}的已知状态保留；后续行动或成长结算会写入更具体原因。`;
-  },
 
   hasRequiredRpgFieldReasons(value, attrs = null) {
     if (!value || typeof value !== 'object') return false;
     return this.rpgFieldReasonKeys(attrs).every((key) => !this.abstractReason(value[key]));
   },
 
-  rpgFieldReasons(value, attrs = null, profile = {}) {
+  cleanRpgFieldReasons(value, attrs = null) {
     const keys = this.rpgFieldReasonKeys(attrs);
     const source = value && typeof value === 'object' ? value : {};
-    const out = Object.fromEntries(keys.map((key) => [key, String(this.abstractReason(source[key]) ? this.rpgFieldReasonFallback(key, profile) : source[key]).trim().slice(0, 120)]));
+    return Object.fromEntries(keys.map((key) => [key, String(source[key] || '').trim().slice(0, 120)]).filter(([, reason]) => !this.abstractReason(reason)));
+  },
+
+  rpgFieldReasons(value, attrs = null, profile = {}) {
+    const keys = this.rpgFieldReasonKeys(attrs);
+    const out = this.cleanRpgFieldReasons(value, attrs);
     const vague = keys.filter((key) => this.abstractReason(out[key]));
     if (vague.length) throw new Error(`rpgFieldReasons 原因过于抽象: ${vague.join(',')}`);
     return out;
