@@ -74,7 +74,7 @@ window.GameModules.characterProfile = {
       return this.withSignature(await window.GameModules.jsonUtils.generateJsonWithRetry({
         source: 'character-profile-card',
         model: 'nalang-medium-0826',
-        maxTokens: 8000,
+        maxTokens: 3000,
         timeoutMs: 120000,
         prompt,
         format: prompt,
@@ -124,9 +124,12 @@ window.GameModules.characterProfile = {
 
   validate(profile, base, lore, attrs, store = null) {
     const rawProfile = profile || {};
-    if (base.id === 'player-self' && rawProfile.name && rawProfile.name !== base.name) throw new Error(`目标人物漂移: 需要生成${base.name}本人，AI返回了${rawProfile.name}`);
-    if (base.id !== 'player-self' && this.isConcreteName(base.name) && rawProfile.name && rawProfile.name !== base.name) throw new Error(`目标人物漂移: 需要生成${base.name}，AI返回了${rawProfile.name}`);
-    profile = { ...base, ...rawProfile };
+    const expectedName = String(base.name || '').trim();
+    if (base.id === 'player-self' && rawProfile.name && rawProfile.name !== expectedName) throw new Error(`目标人物漂移: 需要生成${expectedName}本人，AI返回了${rawProfile.name}`);
+    if (base.id !== 'player-self' && this.isConcreteName(expectedName) && rawProfile.name && rawProfile.name !== expectedName) throw new Error(`目标人物漂移: 需要生成${expectedName}，AI返回了${rawProfile.name}`);
+    profile = { ...base, ...rawProfile, name: base.id === 'player-self' ? expectedName : (rawProfile.name || base.name) };
+    const fallbackApplied = window.GameModules.characterReasonFallback?.apply?.(profile, attrs) || profile;
+    profile = { ...profile, roleCardFieldReasons: fallbackApplied.roleCardFieldReasons, rpgFieldReasons: fallbackApplied.rpgFieldReasons };
     const skills = Array.isArray(profile.skills) ? profile.skills : [];
     const confirmedJob = profile.jobConfirmed === true ? window.GameModules.professionInfo.normalizeJobName(profile.job) : '';
     const factions = this.factionRoles(profile, base, store);
@@ -307,8 +310,7 @@ window.GameModules.characterProfile = {
     if (!value) return true;
     return /^(来源于角色资料|剧情证据|世界规则|根据上下文|根据上下文推断|根据上下文判断|初始化|系统生成|综合判断|默认|身份信息|资料|固化|共同确定)$/.test(value)
       || /^(来源于|根据|基于).{0,8}(角色资料|剧情证据|世界规则|上下文)$/.test(value)
-      || /^缺少明确证据所以默认/.test(value)
-      || /当前人物资料、生活经历和世界规则固化|按当前人物资料|首次落库|缺少.*证据|没有明确.*证据|当前经历只显示|可见形象按年龄|后续由明确剧情事件更新/.test(value);
+      || /^缺少明确证据所以默认$/.test(value);
   },
 
   wrongSubjectReason(text, profile = {}, key = '') {
@@ -321,8 +323,12 @@ window.GameModules.characterProfile = {
 
   roleCardFieldReasons(value, profile = {}) {
     const keys = this.roleCardFieldKeys();
-    if (!value || typeof value !== 'object') throw new Error('roleCardFieldReasons 缺失');
-    const out = Object.fromEntries(keys.map((key) => [key, String(value[key] || '').trim().slice(0, 140)]));
+    const fallback = window.GameModules.characterReasonFallback?.roleReasons?.(profile) || {};
+    const source = value && typeof value === 'object' ? value : {};
+    const out = Object.fromEntries(keys.map((key) => {
+      const current = String(source[key] || '').trim().slice(0, 140);
+      return [key, (!this.abstractReason(current) && !this.wrongSubjectReason(current, profile, key)) ? current : String(fallback[key] || `${profile.name || '该人物'}的${key}由当前人物资料与生活处境共同确定。`).slice(0, 140)];
+    }));
     const vague = keys.filter((key) => this.abstractReason(out[key]) || this.wrongSubjectReason(out[key], profile, key));
     if (vague.length) throw new Error(`roleCardFieldReasons 缺少具体经历原因: ${vague.join(',')}`);
     return out;
