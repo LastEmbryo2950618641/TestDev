@@ -20,7 +20,7 @@ window.GameModules.rpgFieldUi = {
     if (Array.isArray(provided) && provided.length) return provided;
     const p = state?.profile || {};
     const worldTag = p.work || state?.worldTag || '原创世界';
-    const reasonFor = (label, key) => p.roleCardFieldReasons?.[label] || p.roleCardFieldReasons?.[key] || (p.roleCardChangeLog || []).slice().reverse().find((item) => item.field === label || item.field === key || item.name === label || item.name === key)?.reason || '';
+    const reasonFor = (label, key) => p.roleCardFieldReasons?.[label] || p.roleCardFieldReasons?.[key] || (p.roleCardChangeLog || []).slice().reverse().find((item) => item.field === label || item.field === key || item.name === label || item.name === key)?.reason || `${label}由当前角色卡资料、身份信息和已固化状态共同确定。`;
     const row = (key, label, value, desc) => ({ key: `profile-${state?.id || 'target'}-${key}`, label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: key !== 'work' });
     return [
       row('name', '姓名', p.name || state?.name, '角色卡固化姓名。'), row('work', '所属世界', worldTag, '角色出身作品或世界。'),
@@ -86,6 +86,14 @@ window.GameModules.rpgFieldUi = {
     return blocked.some((item) => item && text === String(item).trim()) ? '' : text;
   },
 
+  fallbackChangeReason(field, obj = null) {
+    const kind = obj ? this.lexiconKind(field, obj) : (field?.kind || this.lexiconKind(field));
+    const name = obj ? this.rpgItemSummary(obj) : (field?.label || field?.key || '该词条');
+    if (obj) return `${name}作为${kind}子词条，由当前${field?.label || '父词条'}列表、角色状态和已固化资料共同确定。`;
+    if (this.isRpgListField(field)) return `${name}作为${kind}树词条，由当前子词条列表、角色状态和已固化资料共同确定。`;
+    return `${name}作为${kind}词条，由当前取值、角色状态和已固化资料共同确定。`;
+  },
+
   fieldChangeReason(field, lexicon = null) {
     const state = this.activeDetailState(), values = state?.values || {}, profile = state?.profile || {};
     const explicit = this.usableChangeReason(field?.reason || lexicon?.meta?.modifyReason, [lexicon?.description, lexicon?.summary, field?.desc]);
@@ -96,14 +104,14 @@ window.GameModules.rpgFieldUi = {
       const latest = values.level_growth.history.at(-1);
       return latest.reason || '';
     }
-    if (field?.key === 'level_growth' && values.level_growth?.history?.length) return values.level_growth.history.at(-1)?.reason || '';
-    return window.GameModules.characterProfile?.rpgFieldReasonFallback?.(field?.key, profile) || '';
+    if (field?.key === 'level_growth' && values.level_growth?.history?.length) return values.level_growth.history.at(-1)?.reason || this.fallbackChangeReason(field);
+    return window.GameModules.characterProfile?.rpgFieldReasonFallback?.(field?.key, profile) || this.fallbackChangeReason(field);
   },
 
   itemChangeReason(field, obj = {}, lexicon = null) {
     const explicit = this.usableChangeReason(lexicon?.meta?.modifyReason || obj.reason || obj.changeMode, [lexicon?.description, lexicon?.summary, obj.description, obj.desc, obj.source]);
     if (explicit) return explicit;
-    return window.GameModules.progression?.itemReason?.(obj, this.lexiconKind(field, obj)) || '';
+    return window.GameModules.progression?.itemReason?.(obj, this.lexiconKind(field, obj)) || this.fallbackChangeReason(field, obj);
   },
 
   rpgItemSummary(item) {
@@ -159,8 +167,7 @@ window.GameModules.rpgFieldUi = {
     lines.push(`关联身内能力: ${linkedStats.join('、') || '无直接关联'}`);
     lines.push(`词条层级: ${lexicon?.hierarchy === 'tree' ? '树词条' : '叶子词条'}`);
     lines.push(`生成来源: 词条名${(lexicon?.nameAiGenerated ?? lexicon?.aiGenerated) ? 'AI生成' : '系统/用户给定'}，值${lexicon?.valueAiGenerated ? 'AI生成' : '系统/用户给定'}，变化方式${lexicon?.changeMode || '系统结算'}`);
-    const reason = this.itemChangeReason(field, obj, lexicon);
-    if (reason) lines.push(`变化原因: ${reason}`);
+    lines.push(`变化原因: ${this.itemChangeReason(field, obj, lexicon)}`);
     if (obj?.type === '职业' && ((info.learnedAbilities || []).length || (info.worldAbilities || []).length)) lines.push(`职业关联: ${(info.learnedAbilities || []).concat(info.worldAbilities || []).join('、')}`);
     return lines.join('\n');
   },
@@ -168,8 +175,7 @@ window.GameModules.rpgFieldUi = {
   rpgFieldDetail(field) {
     const lexicon = this.lexiconFor(field);
     const lines = [`说明: ${lexicon?.description || lexicon?.summary || field?.desc || this.fallbackDesc(field)}`];
-    const reason = this.fieldChangeReason(field, lexicon);
-    if (reason) lines.push(`变化原因: ${reason}`);
+    lines.push(`变化原因: ${this.fieldChangeReason(field, lexicon)}`);
     lines.push(`所属世界: ${field?.worldTag || lexicon?.worldTag || '公共'}`);
     lines.push(`字段范围: ${(field?.commonField ?? lexicon?.meta?.commonField) ? '公共字段' : '世界专属字段'}`);
     lines.push(`词条类型: ${field?.targetType || lexicon?.meta?.targetType || '角色'}`);

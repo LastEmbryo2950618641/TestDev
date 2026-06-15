@@ -44,7 +44,7 @@ window.GameModules.playerIdentityActions = {
   identityTargetFields() {
     const p = this.identityTargetProfile();
     const worldTag = p.work || this.identityTargetState()?.worldTag || '原创世界';
-    const reasonFor = (label, key) => p.roleCardFieldReasons?.[label] || p.roleCardFieldReasons?.[key] || (p.roleCardChangeLog || []).slice().reverse().find((item) => item.field === label || item.field === key || item.name === label || item.name === key)?.reason || '';
+    const reasonFor = (label, key) => p.roleCardFieldReasons?.[label] || p.roleCardFieldReasons?.[key] || (p.roleCardChangeLog || []).slice().reverse().find((item) => item.field === label || item.field === key || item.name === label || item.name === key)?.reason || `${label}由当前身份卡资料、角色固化信息或玩家资料统一生成。`;
     const row = (key, label, value, desc) => ({ key: `id-${this.identityTargetId}-${key}`, label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: '角色', commonField: true });
     return [
       row('name', '姓名', p.name, '角色卡固化姓名。'),

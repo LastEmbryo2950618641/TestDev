@@ -52,7 +52,7 @@ window.GameModules.companyActions = {
     const salary = c.salary || {};
     const work = c.workMode || {};
     const pay = this.monthlyPayPreview();
-    const row = (key, label, value, desc) => ({ key: `company-${key}`, label, kind: '公司词条', value: value || '未设定', raw: value || '', desc, worldTag: '2026 现代都市现实世界', targetType: '非角色', commonField: true });
+    const row = (key, label, value, desc) => ({ key: `company-${key}`, label, kind: '公司词条', value: value || '未设定', raw: value || '', desc, reason: `${label}来自当前公司系统、招聘制度或薪资结算规则。`, worldTag: '2026 现代都市现实世界', targetType: '非角色', commonField: true });
     return [
       row('name', '公司名称', c.name, '固化公司名称，避免现实推演前后不一致。'),
       row('type', '公司类型', c.type, '公司、工作室、个体户、学校/机构等组织类型。'),

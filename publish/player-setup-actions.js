@@ -4,7 +4,7 @@ window.GameModules.playerSetupActions = {
   playerProfileLexiconFields() {
     const p = this.playerProfile || {};
     const worldTag = window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
-    const row = (name, value, desc) => ({ key: `player-${name}`, label: name, kind: '玩家设定', value: value || '未填写', raw: value || '', desc, worldTag, targetType: '非角色', commonField: name !== '所属世界' });
+    const row = (name, value, desc) => ({ key: `player-${name}`, label: name, kind: '玩家设定', value: value || '未填写', raw: value || '', desc, reason: `${name}来自玩家手机激活资料、已有账号同步或现实身份补全结果。`, worldTag, targetType: '非角色', commonField: name !== '所属世界' });
     return [
       row('所属世界', worldTag, '玩家当前所在的现实世界。'),
       row('姓名', p.name || this.playerName, '玩家登记的姓名或代号。'),
