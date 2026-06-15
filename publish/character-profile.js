@@ -9,7 +9,7 @@ window.GameModules.characterProfile = {
     const base = this.normalize(source.raw, store, source.preset);
     const signature = this.inputSignature(base, context, store, source.preset);
     const existing = window.GameModules.sqliteSave.getCharacterState(base.id);
-    if (existing && this.isRoleCard(existing.profile) && existing.profile.initialMetrics && existing.profile.roleCardInputSignature === signature) return existing.profile;
+    if (existing && this.isRoleCard(existing.profile) && this.hasRequiredInitialMetrics(existing.profile.initialMetrics) && this.hasRequiredRpgFieldReasons(existing.profile.rpgFieldReasons) && existing.profile.roleCardInputSignature === signature) return existing.profile;
     const lore = await window.GameModules.worldLore.ensure(base.work, context);
     const attrs = await window.GameModules.rpgState.ensureWorldAttributes(base.work);
     return this.generate(base, lore, attrs, context, store, signature, source.preset);
@@ -249,8 +249,17 @@ window.GameModules.characterProfile = {
     return Object.fromEntries(Object.entries(values).filter(([key]) => keys.has(key)));
   },
 
+  rpgFieldReasonKeys() {
+    return ['level', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'learning_ability', 'mental_stability', 'growth_potential', 'action_ability'];
+  },
+
+  hasRequiredRpgFieldReasons(value) {
+    if (!value || typeof value !== 'object') return false;
+    return this.rpgFieldReasonKeys().every((key) => String(value[key] || '').trim());
+  },
+
   rpgFieldReasons(value) {
-    const keys = ['level', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'learning_ability', 'mental_stability', 'growth_potential', 'action_ability'];
+    const keys = this.rpgFieldReasonKeys();
     if (!value || typeof value !== 'object') throw new Error('rpgFieldReasons 缺失');
     const out = Object.fromEntries(keys.map((key) => [key, String(value[key] || '').trim().slice(0, 120)]));
     const missing = keys.filter((key) => !out[key]);
@@ -260,9 +269,19 @@ window.GameModules.characterProfile = {
     return out;
   },
 
+  hasRequiredInitialMetrics(value) {
+    const hasAll = (items, keys) => Array.isArray(items) && keys.every((key) => {
+      const item = items.find((entry) => entry?.key === key);
+      return item && item.value !== undefined && String(item.reason || '').trim();
+    });
+    return hasAll(value?.emotions, window.GameModules.metrics.emotionKeys) && hasAll(value?.playerFeelings, window.GameModules.metrics.playerKeys);
+  },
+
   initialMetrics(value) {
     const normalize = (items, keys) => Array.isArray(items) ? items.filter((item) => keys.includes(item?.key)).map((item) => ({ key: item.key, value: window.GameModules.metrics.clamp(item.value), status: String(item.status || '').slice(0, 80), reason: String(item.reason || '').slice(0, 80) })) : [];
-    return { emotions: normalize(value?.emotions, window.GameModules.metrics.emotionKeys), playerFeelings: normalize(value?.playerFeelings, window.GameModules.metrics.playerKeys) };
+    const out = { emotions: normalize(value?.emotions, window.GameModules.metrics.emotionKeys), playerFeelings: normalize(value?.playerFeelings, window.GameModules.metrics.playerKeys) };
+    if (!this.hasRequiredInitialMetrics(out)) throw new Error('initialMetrics 缺少完整数值或原因');
+    return out;
   },
 
   formatRelationships(value) {
