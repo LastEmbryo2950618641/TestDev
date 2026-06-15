@@ -92,20 +92,35 @@ window.GameModules.characterProfile = {
   async prompt(base, lore, attrs, context, store, preset = null) {
     const sections = window.GameModules.promptSections;
     const player = sections.playerProfile(store);
-    const text = await window.GameModules.promptTemplates.render('character-profile-card', {
-      人物预设资料区: window.GameModules.characterProfileSource.presetText(preset),
-      人物基础区: sections.characterBase(base),
-      玩家基础资料区: player.playerBasic,
-      玩家现实身份区: player.playerIdentity,
-      玩家居住家庭区: player.playerHome,
-      玩家人际关系区: player.playerRelations,
-      玩家备注区: player.playerNotes,
-      关系事件区: sections.relationContext(context),
-      世界观资料区: sections.worldLore(lore),
-      世界字段: sections.worldFields(attrs),
-      RPG字段列表: this.rpgFieldReasonKeys(attrs).join('、'),
-      情绪字段: window.GameModules.metrics.emotionKeys.join('、'),
-      关系指标字段: window.GameModules.metrics.playerKeys.join('、'),
+    const data = {
+      presetText: window.GameModules.characterProfileSource.presetText(preset),
+      characterBase: sections.characterBase(base),
+      playerBasic: player.playerBasic,
+      playerIdentity: player.playerIdentity,
+      playerHome: player.playerHome,
+      playerRelations: player.playerRelations,
+      playerNotes: player.playerNotes,
+      relationContext: sections.relationContext(context),
+      worldLore: sections.worldLore(lore),
+      worldFields: sections.worldFields(attrs),
+      rpgKeys: this.rpgFieldReasonKeys(attrs).join('、'),
+      emotionKeys: window.GameModules.metrics.emotionKeys.join('、'),
+      playerKeys: window.GameModules.metrics.playerKeys.join('、'),
+    };
+    const text = window.GameModules.characterProfilePrompt?.build?.(data) || await window.GameModules.promptTemplates.render('character-profile-card', {
+      人物预设资料区: data.presetText,
+      人物基础区: data.characterBase,
+      玩家基础资料区: data.playerBasic,
+      玩家现实身份区: data.playerIdentity,
+      玩家居住家庭区: data.playerHome,
+      玩家人际关系区: data.playerRelations,
+      玩家备注区: data.playerNotes,
+      关系事件区: data.relationContext,
+      世界观资料区: data.worldLore,
+      世界字段: data.worldFields,
+      RPG字段列表: data.rpgKeys,
+      情绪字段: data.emotionKeys,
+      关系指标字段: data.playerKeys,
     });
     if (base.id !== 'player-self') return text;
     return `${text}\n\n## 玩家本人目标锁定（最高优先级）\n本次只生成玩家本人“${base.name}”的角色卡。\nJSON 根字段 name 必须写“${base.name}”，不得写妹妹、姐姐、父母、联系人或关系事件里的任何其他姓名。\n如果上下文提到刘思瑶、刘思琪或其他亲属，她们只能写进 relationships/detail 作为关系对象，不能成为本角色卡主语。\ngender、age、birthday 优先沿用人物基础区；不要根据亲属资料改写玩家本人身份。`;
