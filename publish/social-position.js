@@ -33,27 +33,35 @@ window.GameModules.socialPosition = {
     return job && !/居民/.test(job) ? job : '居民';
   },
 
-  item(community, role, source = 'AI演算') {
-    const f = String(community || '未设定社群').trim();
-    const r = String(role || '成员').trim();
-    return { name: `${f} / ${r}`, type: '社群角色', faction: f, community: f, role: r, position: r, level: -1, description: `社群：${f}；角色：${r}。该词条表示角色当前所属的居住社区、家庭、社交圈或临时群体，以及其在其中承担的社会角色。`, source, changeMode: source };
+  concreteReason(text, fallback) {
+    const value = String(text || '').trim();
+    if (value && !/^(AI演算|系统结算|系统词条调整|用户主动)$/.test(value)) return value.slice(0, 120);
+    return String(fallback || '该词条由当前角色资料中的明确归属关系生成。').slice(0, 120);
   },
 
-  forceItem(force, position, source = 'AI演算') {
+  item(community, role, reason = '') {
+    const f = String(community || '未设定社群').trim();
+    const r = String(role || '成员').trim();
+    const detail = this.concreteReason(reason, `${f}来自角色当前住址、家庭、社交圈或临时群体资料，${r}是其在该社群中的社会角色。`);
+    return { name: `${f} / ${r}`, type: '社群角色', faction: f, community: f, role: r, position: r, level: -1, description: `社群：${f}；角色：${r}。该词条表示角色当前所属的居住社区、家庭、社交圈或临时群体，以及其在其中承担的社会角色。`, source: 'ai', reason: detail, changeMode: detail };
+  },
+
+  forceItem(force, position, reason = '') {
     const f = String(force || '未设定势力').trim();
     const p = String(position || '成员').trim();
-    return { name: `${f} / ${p}`, type: '势力地位', force: f, faction: f, position: p, level: -1, description: `势力：${f}；地位：${p}。该词条表示角色在有层级制度的国家、公司、学校、部门、军队、宗门、机构或组织中的等级、职级、年级、职位或法定身份。`, source, changeMode: source };
+    const detail = this.concreteReason(reason, `${f}是角色资料中可确认的组织、机构或国家级归属，${p}是其在该势力中的当前地位。`);
+    return { name: `${f} / ${p}`, type: '势力地位', force: f, faction: f, position: p, level: -1, description: `势力：${f}；地位：${p}。该词条表示角色在有层级制度的国家、公司、学校、部门、军队、宗门、机构或组织中的等级、职级、年级、职位或法定身份。`, source: 'ai', reason: detail, changeMode: detail };
   },
 
   playerItems(profile = {}) {
     const city = profile.refinedCity || profile.city || profile.faction || '';
     const community = city || '登记住址';
-    return [this.item(community, '居民')];
+    return [this.item(community, '居民', `玩家资料登记的现实住址为${community}，因此玩家本人属于该居住社群并以居民身份显示。`)];
   },
 
   countryForceItems(factions = [], position = '公民') {
     const country = factions.find((x) => x?.type === '国家' || x?.level === '国家级');
-    return country?.name ? [this.forceItem(country.name, position)] : [];
+    return country?.name ? [this.forceItem(country.name, position, `现实势力库确认${country.name}为国家级势力，现代现实身份默认具有${position}地位。`)] : [];
   },
 
   playerForceItems(profile = {}, factions = []) {
@@ -61,7 +69,8 @@ window.GameModules.socialPosition = {
     const city = profile.refinedCity || profile.city || profile.faction || '';
     const workplace = profile.workplace || this.workplace(role, city);
     const position = profile.position || this.position(role);
-    const items = [...this.countryForceItems(factions), ...(workplace ? [this.forceItem(workplace, position || '成员')] : [])];
+    const reason = `玩家资料中的现实身份为${role || '现代都市居民'}，工作或学习归属确定为${workplace}，因此在该势力中的地位为${position || '成员'}。`;
+    const items = [...this.countryForceItems(factions), ...(workplace ? [this.forceItem(workplace, position || '成员', reason)] : [])];
     return items;
   },
 };
