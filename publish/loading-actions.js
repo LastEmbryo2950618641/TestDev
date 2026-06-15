@@ -84,20 +84,34 @@ window.GameModules.loadingActions = {
     if (!queued.has(this.character?.id)) queueCharacter(this.character, '当前角色');
     const contacts = (this.wechatUsers || []).filter((item) => item && !item.group);
     for (const contact of contacts) tasks.push(this.warmupTask(`微信联系人:${contact.name || contact.id}`, () => this.ensureWechatUserProfile?.(contact)));
-    await Promise.all(tasks);
+    await this.runWarmupQueue(tasks, 3);
     console.log('[启动预热] 全量异步生成完成', { tasks: tasks.length });
     if (tasks.length) await this.save?.();
   },
 
-  async warmupTask(name, fn) {
-    try {
-      console.log('[启动预热] 开始:', name);
-      const result = await fn();
-      console.log('[启动预热] 完成:', name);
-      return result;
-    } catch (err) {
-      console.warn('[启动预热] 失败:', name, err?.message || 'unknown', err?.stack || '');
-      return null;
-    }
+  async runWarmupQueue(tasks, limit = 3) {
+    let index = 0;
+    const workers = Array.from({ length: Math.min(limit, tasks.length) }, async () => {
+      while (index < tasks.length) {
+        const task = tasks[index];
+        index += 1;
+        await task();
+      }
+    });
+    await Promise.all(workers);
+  },
+
+  warmupTask(name, fn) {
+    return async () => {
+      try {
+        console.log('[启动预热] 开始:', name);
+        const result = await fn();
+        console.log('[启动预热] 完成:', name);
+        return result;
+      } catch (err) {
+        console.warn('[启动预热] 失败:', name, err?.message || 'unknown', err?.stack || '');
+        return null;
+      }
+    };
   },
 };

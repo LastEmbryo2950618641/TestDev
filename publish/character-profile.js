@@ -74,7 +74,7 @@ window.GameModules.characterProfile = {
       return this.withSignature(await window.GameModules.jsonUtils.generateJsonWithRetry({
         source: 'character-profile-card',
         model: 'nalang-medium-0826',
-        maxTokens: 3200,
+        maxTokens: 5000,
         timeoutMs: 90000,
         prompt,
         format: prompt,
@@ -151,8 +151,7 @@ window.GameModules.characterProfile = {
       roleCardSource: 'ai',
       roleCardUpdatedAt: new Date().toISOString(),
     };
-    if (!this.hasRequiredInventoryReasons(validated)) throw new Error('角色卡数组词条缺少首次原因');
-    return validated;
+    return this.ensureInventoryReasons(validated);
   },
 
   withSignature(profile, signature) {
@@ -313,7 +312,26 @@ window.GameModules.characterProfile = {
 
   hasRequiredInventoryReasons(profile) {
     const hasReason = (items) => Array.isArray(items) && items.length && items.every((item) => String(item?.reason || item?.changeMode || '').trim());
-    return hasReason(profile?.factions) && hasReason(profile?.forcePositions || profile?.force_positions) && hasReason(profile?.equipment) && hasReason(profile?.items) && hasReason(profile?.wearing) && hasReason(profile?.skills);
+    const optionalReason = (items) => !Array.isArray(items) || !items.length || items.every((item) => String(item?.reason || item?.changeMode || '').trim());
+    return hasReason(profile?.factions) && hasReason(profile?.forcePositions || profile?.force_positions) && optionalReason(profile?.equipment) && optionalReason(profile?.items) && optionalReason(profile?.wearing) && optionalReason(profile?.skills);
+  },
+
+  ensureInventoryReasons(profile) {
+    const fill = (items, kind) => (Array.isArray(items) ? items.map((item) => {
+      const reason = this.inventoryReason(item, kind, profile);
+      return { ...item, reason, changeMode: reason };
+    }) : []);
+    const out = {
+      ...profile,
+      factions: fill(profile.factions, '社群角色'),
+      forcePositions: fill(profile.forcePositions || profile.force_positions, '势力地位'),
+      equipment: fill(profile.equipment, '装备'),
+      items: fill(profile.items, '物品'),
+      wearing: fill(profile.wearing, '穿着'),
+      skills: fill(profile.skills, '技能'),
+    };
+    out.force_positions = out.forcePositions;
+    return out;
   },
 
   isReusableRoleCard(profile, signature = null) {
