@@ -5,6 +5,17 @@ window.GameModules.characterReasonFallback = {
     return [profile.name, profile.role, profile.job, profile.detail, profile.relationships, profile.personality, profile.work, profile.city, profile.workplace, profile.position].filter(Boolean).join('，');
   },
 
+  usable(text) {
+    const value = String(text || '').trim();
+    return value && !/^错误：/.test(value) && !window.GameModules.characterProfile?.abstractReason?.(value);
+  },
+
+  mergeReasons(fallback, current = {}) {
+    const out = { ...fallback };
+    Object.entries(current || {}).forEach(([key, value]) => { if (this.usable(value)) out[key] = String(value).trim(); });
+    return out;
+  },
+
   roleReasons(profile = {}) {
     const name = profile.name || '该人物';
     const world = profile.work || profile.worldTag || '当前世界';
@@ -32,6 +43,7 @@ window.GameModules.characterReasonFallback = {
     const has = (pattern) => pattern.test(text);
     const keys = window.GameModules.characterProfile.rpgFieldReasonKeys(attrs || profile.worldAttributes || null);
     const map = {
+      age: profile.birthday ? `${name}的年龄按已记录生日与当前时间计算，生日事实来自玩家资料或人物基础区。` : `${name}的年龄按人物身份、关系称谓和当前生活处境折算，缺少明确生日时不凭空改写生日。`,
       level: `${name}的等级按其身份经历、当前生活压力和可行动范围折算，反映初始综合成熟度。`,
       exp: `${name}刚以当前资料首次落库，经验从其已有经历折算为初始进度，等待后续行动继续累积。`,
       free_attribute_points: `${name}尚未发生由玩家分配的升级结算，因此自由属性点保持初始余额。`,
@@ -64,6 +76,8 @@ window.GameModules.characterReasonFallback = {
       factions: `${name}的社群角色来自住址、家庭、社交圈或当前处境。`,
       force_positions: `${name}的势力地位来自国家、学校、公司或组织层级归属。`,
       status_tags: `${name}的状态标签概括其身份、处境和所属世界，供剧情判定使用。`,
+      derived: `${name}的衍生战斗与判定数值由力量、敏捷、体质、感知和意志等已固化能力计算得到。`,
+      combat_simulation: `${name}的战斗模拟按当前能力、装备和状态生成，用于后续行动判定而不是独立编造。`,
       control_experience: `${name}尚未形成被玩家上线操控的经历，因此上线体验从初始状态开始记录。`,
     };
     return Object.fromEntries(keys.map((key) => [key, map[key] || `${name}的${key}按当前人物资料、生活经历和世界规则固化，后续由明确剧情事件更新。`]));
@@ -74,8 +88,8 @@ window.GameModules.characterReasonFallback = {
     const rpg = this.rpgReasons(profile, attrs);
     return {
       ...profile,
-      roleCardFieldReasons: { ...role, ...(profile.roleCardFieldReasons || {}) },
-      rpgFieldReasons: { ...rpg, ...(profile.rpgFieldReasons || {}) },
+      roleCardFieldReasons: this.mergeReasons(role, profile.roleCardFieldReasons),
+      rpgFieldReasons: this.mergeReasons(rpg, profile.rpgFieldReasons),
     };
   },
 };

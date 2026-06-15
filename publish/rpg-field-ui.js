@@ -99,14 +99,15 @@ window.GameModules.rpgFieldUi = {
   },
 
   fallbackBasis(field, obj = null, kind = '', name = '') {
+    const state = this.activeDetailState?.() || this.currentRpgState || this.playerIdentityState?.() || null;
+    const profile = state?.profile || {};
+    const generated = window.GameModules.characterReasonFallback?.rpgReasons?.(profile, profile.worldAttributes || { fields: state?.schema?.sections?.find((section) => section.title === '世界固有属性')?.fields || [] }) || {};
+    if (!obj && generated[field?.key]) return generated[field.key];
     const finalKind = kind || (obj ? this.lexiconKind(field, obj) : (field?.kind || this.lexiconKind(field)));
     const finalName = name || (obj ? this.rpgItemSummary(obj) : (field?.label || field?.key || '该词条'));
-    if (obj) return `${finalName}按${finalKind}子词条的名称、类型、等级、槽位或数量等已落库值展示。`;
-    if (field?.source) return `${finalName}由初始值${field.source.initial || 0}、等级成长${field.source.level || 0}、自由分配${field.source.allocated || 0}和非玩家成长${field.source.npc || 0}合计得到。`;
-    if (field?.raw?.current !== undefined && field.raw?.max !== undefined) return `${finalName}当前为${field.raw.current}/${field.raw.max}。`;
-    if (field?.key === 'exp' && field.raw?.current !== undefined) return `${finalName}当前为${field.raw.current}/${field.raw.next}。`;
-    if (Array.isArray(field?.raw)) return `${finalName}当前汇总${field.raw.length}个已落库子词条。`;
-    return `${finalName}当前值为“${field?.value || '未记录'}”。`;
+    if (obj) return `${profile.name || '该人物'}持有${finalName}，是其${finalKind}、当前处境或既有生活经历的一部分，后续会随明确剧情事件更新。`;
+    if (field?.source) return `${profile.name || '该人物'}的${finalName}由初始经历、等级成长、自由分配和非玩家成长共同形成。`;
+    return `${profile.name || '该人物'}的${finalName}按其当前身份、处境、过去经历和可支配资源固化。`;
   },
 
   explicitFieldChangeReason(field, lexicon = null) {
