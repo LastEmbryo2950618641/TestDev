@@ -20,7 +20,8 @@ window.GameModules.rpgFieldUi = {
     if (Array.isArray(provided) && provided.length) return provided;
     const p = state?.profile || {};
     const worldTag = p.work || state?.worldTag || '原创世界';
-    const row = (key, label, value, desc) => ({ key: `profile-${state?.id || 'target'}-${key}`, label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: key !== 'work' });
+    const reasonFor = (label) => p.roleCardFieldReasons?.[label] || (p.roleCardChangeLog || []).slice().reverse().find((item) => item.field === label || item.name === label)?.reason || '';
+    const row = (key, label, value, desc) => ({ key: `profile-${state?.id || 'target'}-${key}`, label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label), worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: key !== 'work' });
     return [
       row('name', '姓名', p.name || state?.name, '角色卡固化姓名。'), row('work', '所属世界', worldTag, '角色出身作品或世界。'),
       row('role', '身份', p.role || p.job, '角色当前身份。'),
@@ -127,13 +128,16 @@ window.GameModules.rpgFieldUi = {
     lines.push(`关联身内能力: ${linkedStats.join('、') || '无直接关联'}`);
     lines.push(`词条层级: ${lexicon?.hierarchy === 'tree' ? '树词条' : '叶子词条'}`);
     lines.push(`生成来源: 词条名${(lexicon?.nameAiGenerated ?? lexicon?.aiGenerated) ? 'AI生成' : '系统/用户给定'}，值${lexicon?.valueAiGenerated ? 'AI生成' : '系统/用户给定'}，变化方式${lexicon?.changeMode || '系统结算'}`);
+    if (lexicon?.meta?.modifyReason || obj?.reason || obj?.changeMode) lines.push(`修改原因: ${lexicon?.meta?.modifyReason || obj.reason || obj.changeMode}`);
     if (obj?.type === '职业' && ((info.learnedAbilities || []).length || (info.worldAbilities || []).length)) lines.push(`职业关联: ${(info.learnedAbilities || []).concat(info.worldAbilities || []).join('、')}`);
     return lines.join('\n');
   },
 
   rpgFieldDetail(field) {
     const lexicon = this.lexiconFor(field);
+    const reason = field?.reason || lexicon?.meta?.modifyReason || lexicon?.reason || '';
     const lines = [`说明: ${lexicon?.description || lexicon?.summary || field?.desc || this.fallbackDesc(field)}`];
+    if (reason) lines.push(`修改原因: ${reason}`);
     lines.push(`所属世界: ${field?.worldTag || lexicon?.worldTag || '公共'}`);
     lines.push(`字段范围: ${(field?.commonField ?? lexicon?.meta?.commonField) ? '公共字段' : '世界专属字段'}`);
     lines.push(`词条类型: ${field?.targetType || lexicon?.meta?.targetType || '角色'}`);

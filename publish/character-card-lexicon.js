@@ -44,10 +44,17 @@ window.GameModules.characterCardLexicon = {
       records.push(this.changeRecord(update, applied));
     }
     if (!records.length) return [];
+    if (state?.profile) {
+      const reasons = { ...(state.profile.roleCardFieldReasons || {}) };
+      records.forEach((item) => { reasons[item.field] = item.reason; });
+      state.profile.roleCardFieldReasons = reasons;
+    }
     if (changed && state?.profile) {
       state.profile.roleCardUpdatedAt = new Date().toISOString();
       state.profile.roleCardChangeLog = [...(state.profile.roleCardChangeLog || []), ...records.filter((item) => item.applied)].slice(-30);
       window.GameModules.rpgInitializer?.touch?.(state.values, window.Alpine?.store?.('game'));
+      await window.GameModules.sqliteSave.saveCharacterState(state);
+    } else if (records.length && state?.profile) {
       await window.GameModules.sqliteSave.saveCharacterState(state);
     }
     return records;
@@ -70,7 +77,7 @@ window.GameModules.characterCardLexicon = {
     if (!name) return false;
     const skills = Array.isArray(profile.skills) ? [...profile.skills] : [];
     const index = skills.findIndex((item) => item?.name === name);
-    const next = { name, desc };
+    const next = { name, desc, reason: update.reason, changeMode: update.reason };
     if (index >= 0) skills[index] = next;
     else skills.push(next);
     profile.skills = skills.slice(0, 8);

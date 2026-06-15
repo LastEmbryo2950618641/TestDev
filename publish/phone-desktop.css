@@ -564,14 +564,21 @@
   box-shadow: 0 0 0 2px rgba(116, 246, 255, .14);
 }
 
-.rpg-item-card.open {
+.rpg-item-card.open,
+.rpg-tree-title.open {
   width: 100%;
   border-radius: 12px;
 }
 
-.rpg-item-card .rpg-field-detail {
+.rpg-item-card .rpg-field-detail,
+.rpg-tree-title .rpg-field-detail {
   justify-self: stretch;
+  max-width: 100%;
+  overflow: visible;
   text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .rpg-item-card strong {
@@ -595,7 +602,11 @@
 
 .rpg-item-card.open strong,
 .rpg-tree-title.open strong {
+  overflow: visible;
+  text-overflow: clip;
   white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .lexicon-tag.open {
