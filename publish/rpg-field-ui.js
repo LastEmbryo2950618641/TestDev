@@ -20,8 +20,8 @@ window.GameModules.rpgFieldUi = {
     if (Array.isArray(provided) && provided.length) return provided;
     const p = state?.profile || {};
     const worldTag = p.work || state?.worldTag || '原创世界';
-    const reasonFor = (label) => p.roleCardFieldReasons?.[label] || (p.roleCardChangeLog || []).slice().reverse().find((item) => item.field === label || item.name === label)?.reason || '';
-    const row = (key, label, value, desc) => ({ key: `profile-${state?.id || 'target'}-${key}`, label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label), worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: key !== 'work' });
+    const reasonFor = (label, key) => p.roleCardFieldReasons?.[label] || p.roleCardFieldReasons?.[key] || (p.roleCardChangeLog || []).slice().reverse().find((item) => item.field === label || item.field === key || item.name === label || item.name === key)?.reason || '';
+    const row = (key, label, value, desc) => ({ key: `profile-${state?.id || 'target'}-${key}`, label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: key !== 'work' });
     return [
       row('name', '姓名', p.name || state?.name, '角色卡固化姓名。'), row('work', '所属世界', worldTag, '角色出身作品或世界。'),
       row('role', '身份', p.role || p.job, '角色当前身份。'),

@@ -55,9 +55,11 @@ window.GameModules.rpgState = {
       const oldNameOk = window.GameModules.characterProfile?.isConcreteName?.(oldProfile.name) !== false;
       const newNameOk = window.GameModules.characterProfile?.isConcreteName?.(character.name) !== false;
       const profileTool = window.GameModules.characterProfile;
+      const oldRoleReasonsOk = profileTool?.hasRequiredRoleCardFieldReasons?.(oldProfile.roleCardFieldReasons) !== false;
+      const oldItemReasonsOk = profileTool?.hasRequiredInventoryReasons?.(oldProfile) !== false;
       const oldReasonsOk = profileTool?.hasRequiredRpgFieldReasons?.(oldProfile.rpgFieldReasons) !== false;
       const oldMetricsOk = profileTool?.hasRequiredInitialMetrics?.(oldProfile.initialMetrics) !== false;
-      if (sameRoleCard && oldNameOk && newNameOk && oldReasonsOk && oldMetricsOk) return false;
+      if (sameRoleCard && oldNameOk && newNameOk && oldRoleReasonsOk && oldItemReasonsOk && oldReasonsOk && oldMetricsOk) return false;
       state.profile = { ...oldProfile, ...character, roleCard: true };
       state.note = state.profile.detail || state.profile.personality || state.note || '';
       const metricsChanged = sameRoleCard

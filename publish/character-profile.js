@@ -9,7 +9,7 @@ window.GameModules.characterProfile = {
     const base = this.normalize(source.raw, store, source.preset);
     const signature = this.inputSignature(base, context, store, source.preset);
     const existing = window.GameModules.sqliteSave.getCharacterState(base.id);
-    if (existing && this.isRoleCard(existing.profile) && this.hasRequiredInitialMetrics(existing.profile.initialMetrics) && this.hasRequiredRpgFieldReasons(existing.profile.rpgFieldReasons) && existing.profile.roleCardInputSignature === signature) return existing.profile;
+    if (existing && this.isRoleCard(existing.profile) && this.hasRequiredRoleCardFieldReasons(existing.profile.roleCardFieldReasons) && this.hasRequiredInventoryReasons(existing.profile) && this.hasRequiredInitialMetrics(existing.profile.initialMetrics) && this.hasRequiredRpgFieldReasons(existing.profile.rpgFieldReasons) && existing.profile.roleCardInputSignature === signature) return existing.profile;
     const lore = await window.GameModules.worldLore.ensure(base.work, context);
     const attrs = await window.GameModules.rpgState.ensureWorldAttributes(base.work);
     return this.generate(base, lore, attrs, context, store, signature, source.preset);
@@ -74,7 +74,7 @@ window.GameModules.characterProfile = {
       return this.withSignature(await window.GameModules.jsonUtils.generateJsonWithRetry({
         source: 'character-profile-card',
         model: 'nalang-medium-0826',
-        maxTokens: 1600,
+        maxTokens: 3200,
         timeoutMs: 90000,
         prompt,
         format: prompt,
@@ -82,9 +82,8 @@ window.GameModules.characterProfile = {
         validate: (raw) => this.validate(raw, base, lore, attrs, store),
       }), signature);
     } catch (err) {
-      console.warn('人物设定生成失败，使用兜底:', err.code, err.message, err.stack);
-      if (base.nameRule && !this.isConcreteName(base.name)) throw err;
-      return this.withSignature(this.fallback(base, lore, attrs), signature);
+      console.warn('人物设定生成失败:', err.code, err.message, err.stack);
+      throw err;
     }
   },
 
@@ -116,7 +115,7 @@ window.GameModules.characterProfile = {
     const confirmedJob = profile.jobConfirmed === true ? window.GameModules.professionInfo.normalizeJobName(profile.job) : '';
     const factions = this.factionRoles(profile, base, store);
     const forcePositions = this.forcePositions(profile, base, store);
-    return {
+    const validated = {
       ...base,
       name: this.validName(profile.name, base),
       gender: String(base.gender || profile.gender || '').slice(0, 8),
@@ -136,7 +135,10 @@ window.GameModules.characterProfile = {
       skills: skills.slice(0, 4).map((skill, index) => ({
         name: String(skill.name || `能力${index + 1}`).slice(0, 16),
         desc: String(skill.desc || '').slice(0, 60),
+        reason: String(skill.reason || '').slice(0, 120),
+        changeMode: String(skill.reason || '').slice(0, 120),
       })),
+      roleCardFieldReasons: this.roleCardFieldReasons(profile.roleCardFieldReasons),
       equipment: this.carryItems(profile.equipment || base.equipment, '装备'),
       items: this.carryItems(profile.items || base.items, '物品'),
       wearing: this.wearingItems(profile.wearing || base.wearing),
@@ -147,6 +149,8 @@ window.GameModules.characterProfile = {
       roleCardSource: 'ai',
       roleCardUpdatedAt: new Date().toISOString(),
     };
+    if (!this.hasRequiredInventoryReasons(validated)) throw new Error('角色卡数组词条缺少首次原因');
+    return validated;
   },
 
   withSignature(profile, signature) {
@@ -173,7 +177,7 @@ window.GameModules.characterProfile = {
       context: String(context || '').slice(0, 1200),
     };
     const raw = JSON.stringify(data);
-    return `v5:${raw.length}-${window.GameModules.rpgState.seed(raw)}`;
+    return `v6:${raw.length}-${window.GameModules.rpgState.seed(raw)}`;
   },
 
   fallback(base, lore, attrs) {
@@ -196,7 +200,8 @@ window.GameModules.characterProfile = {
         const [faction, role] = item.split('/').map((x) => x.trim());
         return social?.item?.(faction, role || '成员') || { name: item, faction, role: role || '成员' };
       }
-      return social?.item?.(item.faction || item.name, item.role || item.position || '成员') || item;
+      const reason = String(item.reason || item.changeMode || '').trim().slice(0, 120);
+      return { ...(social?.item?.(item.faction || item.name, item.role || item.position || '成员') || item), reason, changeMode: reason };
     }).filter((item) => item?.faction || item?.name);
     if (items.length) return items.slice(0, 4);
     const faction = profile.faction || base.faction || store?.playerProfile?.refinedCity || store?.playerProfile?.city || '临时关系社群';
@@ -212,7 +217,8 @@ window.GameModules.characterProfile = {
         const [force, position] = item.split('/').map((x) => x.trim());
         return social?.forceItem?.(force, position || '成员') || { name: item, force, position: position || '成员' };
       }
-      return social?.forceItem?.(item.force || item.faction || item.name, item.position || item.rank || '成员') || item;
+      const reason = String(item.reason || item.changeMode || '').trim().slice(0, 120);
+      return { ...(social?.forceItem?.(item.force || item.faction || item.name, item.position || item.rank || '成员') || item), reason, changeMode: reason };
     }).filter((item) => item?.force || item?.faction || item?.name);
     const country = social?.countryForceItems?.(store?.factionState?.factions || []) || [];
     const modern = /原创世界|现实|现代|2026/.test(`${profile.work || base.work || ''}${store?.realWorld2026?.label || ''}`);
@@ -229,24 +235,58 @@ window.GameModules.characterProfile = {
   carryItems(value, kind) {
     const p = window.GameModules.progression;
     const list = Array.isArray(value) ? value : [];
-    return list.map((item) => p.normalizeCarryItem(item, kind)).filter((item) => item.name && item.name !== '未命名物品').slice(0, 20);
+    return list.map((item) => {
+      const normalized = p.normalizeCarryItem(item, kind);
+      const reason = String(item?.reason || item?.changeMode || '').trim().slice(0, 120);
+      return { ...normalized, reason, changeMode: reason };
+    }).filter((item) => item.name && item.name !== '未命名物品').slice(0, 20);
   },
 
   wearingItems(value) {
     const list = Array.isArray(value) ? value : [];
-    return list.map((item) => ({
-      slot: String(item?.slot || '').slice(0, 12),
-      name: String(item?.name || '未穿戴').slice(0, 32),
-      type: '穿着',
-      description: String(item?.description || '').slice(0, 80),
-      level: -1,
-    })).filter((item) => item.slot && item.name !== '未穿戴').slice(0, 20);
+    return list.map((item) => {
+      const reason = String(item?.reason || item?.changeMode || '').trim().slice(0, 120);
+      return {
+        slot: String(item?.slot || '').slice(0, 12),
+        name: String(item?.name || '未穿戴').slice(0, 32),
+        type: '穿着',
+        description: String(item?.description || '').slice(0, 80),
+        reason,
+        changeMode: reason,
+        level: -1,
+      };
+    }).filter((item) => item.slot && item.name !== '未穿戴').slice(0, 20);
   },
 
   worldValues(values, attrs) {
     if (!values || typeof values !== 'object') return {};
     const keys = new Set((attrs.fields || []).map((field) => field.key));
     return Object.fromEntries(Object.entries(values).filter(([key]) => keys.has(key)));
+  },
+
+  roleCardFieldKeys() {
+    return ['姓名', '所属世界', '身份', '职业', '性别', '生日', '人际关系', '外貌', '性格', '人物说明', '社群角色', '势力地位'];
+  },
+
+  roleCardFieldReasons(value) {
+    const keys = this.roleCardFieldKeys();
+    if (!value || typeof value !== 'object') throw new Error('roleCardFieldReasons 缺失');
+    const out = Object.fromEntries(keys.map((key) => [key, String(value[key] || '').trim().slice(0, 140)]));
+    const missing = keys.filter((key) => !out[key]);
+    if (missing.length) throw new Error(`roleCardFieldReasons 缺少字段原因: ${missing.join(',')}`);
+    const vague = keys.filter((key) => /来源于角色资料|剧情证据|世界规则|根据上下文|初始化|系统生成|综合判断|默认/.test(out[key]));
+    if (vague.length) throw new Error(`roleCardFieldReasons 原因过于抽象: ${vague.join(',')}`);
+    return out;
+  },
+
+  hasRequiredRoleCardFieldReasons(value) {
+    if (!value || typeof value !== 'object') return false;
+    return this.roleCardFieldKeys().every((key) => String(value[key] || '').trim());
+  },
+
+  hasRequiredInventoryReasons(profile) {
+    const hasReason = (items) => Array.isArray(items) && items.length && items.every((item) => String(item?.reason || item?.changeMode || '').trim());
+    return hasReason(profile?.factions) && hasReason(profile?.forcePositions || profile?.force_positions) && hasReason(profile?.equipment) && hasReason(profile?.items) && hasReason(profile?.wearing) && hasReason(profile?.skills);
   },
 
   rpgFieldReasonKeys() {

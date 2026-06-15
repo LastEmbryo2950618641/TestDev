@@ -203,7 +203,7 @@ worldValues 只返回有明确依据的字段：{世界字段}。
 10. 如果没有恋爱或身体吸引依据，爱情和肉欲保持 0；如果角色不是成年人，爱情/肉欲/暧昧类指标必须保持 0，并用 reason 说明缺少恋爱或身体吸引证据、或年龄/关系边界不允许。
 11. 如果存在不安、丧亲、生活压力，担忧、悲伤或紧张可提高；若这些情绪为 0，reason 必须说明为什么当前没有对应压力或触发点。
 12. 每个返回项都要写 status 与 reason，status 写当前阶段表现，reason 写造成该数值的具体事实。
-13. 不要返回无依据的全量字段；但对亲属、同居者、恋爱/欲望/占有证据明确的人物，必须返回相关关系项，即使数值是 0 也要写清原因。
+13. initialMetrics 必须返回全部情绪字段和全部对玩家感觉字段；证据弱或没有触发时数值可以为 0，但 reason 必须说明为什么没有形成该情绪或感觉，不能省略字段。
 
 ## 初始装备 / 物品 / 穿着
 
@@ -216,6 +216,15 @@ worldValues 只返回有明确依据的字段：{世界字段}。
 7. 普通生活、上学、工作、外出、会客等常规场景必须补齐基础穿着槽位：内衣、上衣、内裤、下衣、袜子、鞋子；名称可按身份和世界观克制推断。
 8. wearing 省略某基础槽位不等于“未知”，系统会按常规衣物补齐；如果确实未穿，必须显式返回该 slot 的 name 为“未穿戴”并在 description 写明特殊原因。
 9. “未穿戴”表示该部位真实空置：内衣未穿戴就是无内衣，上衣/内衣/下衣/内裤均未穿戴就是赤裸；这种情况只能由明确特殊上下文触发，不能因信息不足生成。
+
+## 角色卡字段原因规则
+
+1. 必须返回 roleCardFieldReasons 对象，且必须完整包含这些固定中文 key：姓名、所属世界、身份、职业、性别、生日、人际关系、外貌、性格、人物说明、社群角色、势力地位；不得省略任何一个。
+2. 每个 key 的值都是该角色卡词条首次固化原因，必须说明该字段为什么这样写，依据来自人物基础区、玩家资料区、居住家庭区、关系事件区、世界观资料区或预设资料中的具体事实。
+3. 禁止写“来源于角色资料/剧情证据/世界规则/根据上下文/初始化/系统生成/综合判断/默认”等抽象套话。
+4. 例：“姓名按四川成都现代家庭命名习惯生成，并保留其作为刘悠同居双胞胎妹妹之一的独立身份”；“外貌来自备注中两名双胞胎外貌一致的设定，因此固化为与另一名妹妹相同但姓名独立的形象”。
+5. skills、equipment、items、wearing 数组中每一项也必须带 reason 字段，说明该技能、装备、物品或穿着为什么属于此角色；不要只写 description。
+6. factions 与 forcePositions 的每一项必须有 reason 或 changeMode，说明这个社群角色或势力地位为什么成立。
 
 ## RPG 字段原因规则
 
@@ -245,11 +254,12 @@ worldValues 只返回有明确依据的字段：{世界字段}。
 - items：初始物品数组，每项含 name、description、quantity，可装备物也要含 equipSlots。
 - wearing：当前穿着数组，每项含 slot、name、description。
 - worldValues：世界专属字段取值。
+- roleCardFieldReasons：角色卡字段原因对象，说明姓名、所属世界、身份、职业、性别、生日、人际关系、外貌、性格、人物说明、社群角色、势力地位等为什么这样固化。
 - rpgFieldReasons：RPG 基础字段原因对象，说明个人等级、身内能力、学习能力、精神稳定等为什么是当前水平。
 - initialMetrics：初始情绪与对玩家感觉。
 
 ## 返回 JSON 结构
 
 ```json
-{"name":"姓名","gender":"性别","relationships":"妹妹：姓名；父亲：姓名","role":"身份","detail":"个人背景，必须说明住址/学校/工作/特殊处境的推断依据","appearance":"外貌","personality":"性格","faction":"社群名称","factions":[{"faction":"锦苑小区3栋2单元601号","role":"居民"},{"faction":"刘悠家庭","role":"同居妹妹"}],"forcePositions":[{"force":"成都市第七中学","position":"高三学生"},{"force":"成都星河云栈科技有限公司","position":"软件工程师"}],"job":"职业，无法可靠判断则空字符串","jobConfirmed":false,"rank":"首要势力职位","skills":[{"name":"技能","desc":"说明"}],"equipment":[{"name":"手机","description":"日常通讯工具","equipSlots":["装备"]}],"items":[{"name":"钥匙","description":"住所门钥匙","quantity":1}],"wearing":[{"slot":"上衣","name":"日常上衣","description":"当前穿着"},{"slot":"鞋子","name":"运动鞋","description":"当前穿着"}],"worldValues":{"字段key":"该人物固化取值"},"rpgFieldReasons":{"level":"个人等级原因，要结合具体经历说明","strength":"力量原因","agility":"敏捷原因","constitution":"体质原因","intelligence":"智力原因","perception":"感知原因","willpower":"意志原因","charisma":"魅力原因","learning_ability":"学习能力原因","mental_stability":"精神稳定原因","growth_potential":"成长潜力原因","action_ability":"行动能力原因"},"initialMetrics":{"emotions":[{"key":"担忧","value":40,"status":"当前状态","reason":"原因"}],"playerFeelings":[{"key":"亲情","value":85,"status":"当前状态","reason":"原因"}]}}
+{"name":"姓名","gender":"性别","relationships":"妹妹：姓名；父亲：姓名","role":"身份","detail":"个人背景，必须说明住址/学校/工作/特殊处境的推断依据","appearance":"外貌","personality":"性格","faction":"社群名称","factions":[{"faction":"锦苑小区3栋2单元601号","role":"居民","reason":"她与玩家同住在该地址，因此属于该居住社群"},{"faction":"刘悠家庭","role":"同居妹妹","reason":"玩家人际关系与居住状态确认她是同居妹妹"}],"forcePositions":[{"force":"成都市第七中学","position":"高三学生","reason":"年龄与学生处境支持她处于高中学籍势力中"},{"force":"成都星河云栈科技有限公司","position":"软件工程师","reason":"角色职业履历确认其在该公司任软件工程师"}],"job":"职业，无法可靠判断则空字符串","jobConfirmed":false,"rank":"首要势力职位","skills":[{"name":"观察","desc":"能从家人情绪和日常细节判断气氛","reason":"长期同居生活让她熟悉家庭成员的表情和行为变化"}],"equipment":[{"name":"手机","description":"日常通讯工具","equipSlots":["装备"],"reason":"现代同居学生需要用手机与家人和学校保持联系"}],"items":[{"name":"钥匙","description":"住所门钥匙","quantity":1,"reason":"她长期居住在玩家家中，需要持有住所钥匙"}],"wearing":[{"slot":"上衣","name":"日常上衣","description":"当前穿着","reason":"普通居家或上学场景下的基础穿着"},{"slot":"鞋子","name":"运动鞋","description":"当前穿着","reason":"现代学生日常外出和上学常穿运动鞋"}],"worldValues":{"字段key":"该人物固化取值"},"roleCardFieldReasons":{"姓名":"姓名来源原因，要引用命名要求或文化习俗","所属世界":"所属世界来源原因","身份":"身份由人物基础区和关系事件区确认","职业":"职业确认或为空的原因，说明证据是否足以固化职业","性别":"性别来源原因","生日":"生日或年龄来源原因，若未知则说明没有明确生日证据","人际关系":"关系由玩家人际关系区和微信上下文确认","外貌":"外貌由备注、预设或世界观克制推断","性格":"性格由备注、处境和互动历史推断","人物说明":"人物说明整合住址、家庭、学校或工作处境","社群角色":"社群角色由住址、家庭或社交圈确认","势力地位":"势力地位由国家、学校、公司或组织身份确认"},"rpgFieldReasons":{"level":"个人等级原因，要结合具体经历说明","strength":"力量原因","agility":"敏捷原因","constitution":"体质原因","intelligence":"智力原因","perception":"感知原因","willpower":"意志原因","charisma":"魅力原因","learning_ability":"学习能力原因","mental_stability":"精神稳定原因","growth_potential":"成长潜力原因","action_ability":"行动能力原因"},"initialMetrics":{"emotions":[{"key":"担忧","value":40,"status":"当前状态","reason":"原因"}],"playerFeelings":[{"key":"亲情","value":85,"status":"当前状态","reason":"原因"}]}}
 ```
