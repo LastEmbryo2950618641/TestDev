@@ -266,20 +266,22 @@ window.GameModules.characterProfile = {
     return ['姓名', '所属世界', '身份', '职业', '性别', '生日', '人际关系', '外貌', '性格', '人物说明', '社群角色', '势力地位'];
   },
 
+  abstractReason(text) {
+    return !String(text || '').trim() || /来源于角色资料|剧情证据|世界规则|根据上下文|初始化|系统生成|综合判断|默认|身份信息|资料|固化|共同确定/.test(text);
+  },
+
   roleCardFieldReasons(value) {
     const keys = this.roleCardFieldKeys();
     if (!value || typeof value !== 'object') throw new Error('roleCardFieldReasons 缺失');
     const out = Object.fromEntries(keys.map((key) => [key, String(value[key] || '').trim().slice(0, 140)]));
-    const missing = keys.filter((key) => !out[key]);
-    if (missing.length) throw new Error(`roleCardFieldReasons 缺少字段原因: ${missing.join(',')}`);
-    const vague = keys.filter((key) => /来源于角色资料|剧情证据|世界规则|根据上下文|初始化|系统生成|综合判断|默认/.test(out[key]));
-    if (vague.length) throw new Error(`roleCardFieldReasons 原因过于抽象: ${vague.join(',')}`);
+    const vague = keys.filter((key) => this.abstractReason(out[key]));
+    if (vague.length) throw new Error(`roleCardFieldReasons 缺少具体经历原因: ${vague.join(',')}`);
     return out;
   },
 
   hasRequiredRoleCardFieldReasons(value) {
     if (!value || typeof value !== 'object') return false;
-    return this.roleCardFieldKeys().every((key) => String(value[key] || '').trim());
+    return this.roleCardFieldKeys().every((key) => !this.abstractReason(value[key]));
   },
 
   hasRequiredInventoryReasons(profile) {
@@ -299,20 +301,31 @@ window.GameModules.characterProfile = {
 
   rpgFieldReasonFallback(key, profile = {}) {
     const name = profile.name || '该人物';
-    const base = `${name}的${profile.role || profile.job || '身份'}、${profile.detail || profile.personality || '当前资料'}共同决定该词条的初始状态。`;
-    return key === 'world_tag' ? `${name}所属世界由角色卡作品字段固化。` : base;
+    const role = profile.role || profile.job || '当前身份';
+    const detail = profile.detail || profile.personality || profile.worldbuildingNote || '缺少详细经历';
+    const map = {
+      world_tag: `${name}被放入${profile.work || '当前世界'}行动，后续经历都以该世界规则和地点为边界。`,
+      level: `${name}目前仍处在${role}的起步阶段，过去经历主要是${detail}，尚未累积足以跨阶段成长的事件。`,
+      exp: `${name}近期只完成了与${role}相关的基础适应，经验来自日常行动和当前事件，还没有形成可升级的连续训练。`,
+      vitality: `${name}当前没有重伤证据，身体承受力按${detail}中的生活处境维持在可行动状态。`,
+      stamina_pool: `${name}的精力由${role}日常节奏决定；${detail}显示其能完成常规行动但没有长期高强度训练优势。`,
+      satiety: `${name}最近没有饥饿或进食异常事件，饱食状态沿用当前生活节奏中的普通饮食水平。`,
+      hydration: `${name}最近没有脱水、剧烈运动或缺水事件，水分状态保持日常活动下的稳定水平。`,
+      fatigue: `${name}近期处境是${detail}，没有连续熬夜或重体力消耗证据，因此疲劳只按当前压力轻度累积。`,
+    };
+    return map[key] || `${name}作为${role}，其${key}由过去经历“${detail}”、当前关系处境和最近行动压力共同推定。`;
   },
 
   hasRequiredRpgFieldReasons(value, attrs = null) {
     if (!value || typeof value !== 'object') return false;
-    return this.rpgFieldReasonKeys(attrs).every((key) => String(value[key] || '').trim());
+    return this.rpgFieldReasonKeys(attrs).every((key) => !this.abstractReason(value[key]));
   },
 
   rpgFieldReasons(value, attrs = null, profile = {}) {
     const keys = this.rpgFieldReasonKeys(attrs);
     const source = value && typeof value === 'object' ? value : {};
-    const out = Object.fromEntries(keys.map((key) => [key, String(source[key] || this.rpgFieldReasonFallback(key, profile)).trim().slice(0, 120)]));
-    const vague = keys.filter((key) => /来源于角色资料|剧情证据|世界规则|根据上下文|初始化|系统生成|综合判断|默认/.test(out[key]));
+    const out = Object.fromEntries(keys.map((key) => [key, String(this.abstractReason(source[key]) ? this.rpgFieldReasonFallback(key, profile) : source[key]).trim().slice(0, 120)]));
+    const vague = keys.filter((key) => this.abstractReason(out[key]));
     if (vague.length) throw new Error(`rpgFieldReasons 原因过于抽象: ${vague.join(',')}`);
     return out;
   },

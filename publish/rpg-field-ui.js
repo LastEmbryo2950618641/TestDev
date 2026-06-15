@@ -18,14 +18,15 @@ window.GameModules.rpgFieldUi = {
   roleCardReasonGetter(profile = {}, fallback = (label) => `${label}由当前角色卡资料固化。`) {
     const reasons = profile.roleCardFieldReasons || {}, log = {};
     (profile.roleCardChangeLog || []).forEach((item) => [item.field, item.name].filter(Boolean).forEach((key) => { log[key] = item.reason || log[key] || ''; }));
-    return (label, key) => reasons[label] || reasons[key] || log[label] || log[key] || fallback(label, key);
+    const usable = (text) => !window.GameModules.characterProfile?.abstractReason?.(text) && String(text || '').trim();
+    return (label, key) => usable(reasons[label]) || usable(reasons[key]) || usable(log[label]) || usable(log[key]) || fallback(label, key);
   },
 
   profileIdentityFields(state, provided = []) {
     if (Array.isArray(provided) && provided.length) return provided;
     const p = state?.profile || {};
     const worldTag = p.work || state?.worldTag || '原创世界';
-    const reasonFor = this.roleCardReasonGetter(p, (label) => `${label}由当前角色卡资料、身份信息和已固化状态共同确定。`);
+    const reasonFor = this.roleCardReasonGetter(p, (label) => `${label}来自${p.name || '该人物'}的经历“${p.detail || p.personality || '当前经历尚少'}”以及最近关系处境，因此在身份卡中保留该字段。`);
     const row = (key, label, value, desc) => ({ key: `profile-${state?.id || 'target'}-${key}`, label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: key !== 'work' });
     return [
       row('name', '姓名', p.name || state?.name, '角色卡固化姓名。'), row('work', '所属世界', worldTag, '角色出身作品或世界。'),
@@ -86,17 +87,19 @@ window.GameModules.rpgFieldUi = {
 
   usableChangeReason(reason, blocked = []) {
     const text = String(reason || '').trim();
-    if (!text || /^(AI演算|系统结算|系统词条调整|用户主动)$/.test(text)) return '';
-    if (/词条说明|当前作用|用于记录|暂无详细说明/.test(text)) return '';
+    if (window.GameModules.characterProfile?.abstractReason?.(text)) return '';
+    if (/^(AI演算|系统结算|系统词条调整|用户主动)$/.test(text) || /词条说明|当前作用|用于记录|暂无详细说明/.test(text)) return '';
     return blocked.some((item) => item && text === String(item).trim()) ? '' : text;
   },
 
   fallbackChangeReason(field, obj = null, kind = '', name = '') {
+    const state = this.activeDetailState(), p = state?.profile || {};
+    const detail = p.detail || p.personality || p.worldbuildingNote || '当前经历尚少';
     const finalKind = kind || (obj ? this.lexiconKind(field, obj) : (field?.kind || this.lexiconKind(field)));
     const finalName = name || (obj ? this.rpgItemSummary(obj) : (field?.label || field?.key || '该词条'));
-    if (obj) return `${finalName}作为${finalKind}子词条，由当前${field?.label || '父词条'}列表、角色状态和已固化资料共同确定。`;
-    if (this.isRpgListField(field)) return `${finalName}作为${finalKind}树词条，由当前子词条列表、角色状态和已固化资料共同确定。`;
-    return `${finalName}作为${finalKind}词条，由当前取值、角色状态和已固化资料共同确定。`;
+    if (obj) return `${finalName}成为${finalKind}子词条，是因为${p.name || '该人物'}过去经历“${detail}”与当前${field?.label || '父词条'}状态中需要它发挥作用。`;
+    if (this.isRpgListField(field)) return `${finalName}作为${finalKind}树词条，来自${p.name || '该人物'}的经历“${detail}”中已经出现的长期能力、关系或持有状态。`;
+    return `${finalName}作为${finalKind}词条，由${p.name || '该人物'}过去经历“${detail}”、当前身体状态和最近行动压力共同推定。`;
   },
 
   fieldChangeReason(field, lexicon = null) {

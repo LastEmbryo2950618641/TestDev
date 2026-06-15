@@ -13,9 +13,9 @@ window.GameModules.playerIdentityActions = {
     const deathCause = p.parentDeathCause || '父母去世原因未记录';
     const relations = p.relationships || '人际关系由玩家自行设定，当前未填写';
     const notes = [p.worldbuildingNote, p.notes].filter(Boolean).join('；') || '暂无补充设定';
-    const fieldReason = `来自玩家已有账号资料：${name}，${city}，${role}，${living}。`;
-    const rpgReason = `${name}作为${role}在${city}生活，初始数值由现实身份、年龄、居住状态与玩家资料本地固化。`;
+    const fieldReason = `${name}在${city}以“${role}”生活，居住状态是“${living}”，家庭状态为“${parents}”，这些经历决定该身份字段。`;
     const profileTool = window.GameModules.characterProfile;
+    const rpgReason = (key) => profileTool.rpgFieldReasonFallback(key, { name, role, detail: `居住在${city}，生活状态为${living}，家庭状态为${parents}，关系为${relations}，备注为${notes}`, work: world.label });
     return {
       id: 'player-self', name, age: p.age || '', birthday: p.birthday || '', gender: p.gender || '', work: world.label || '2026 现代都市现实世界', role, job: role,
       rank: position, faction: workplace, city, workplace, position, importance: 'main', isPlayer: true, roleCard: true,
@@ -23,7 +23,7 @@ window.GameModules.playerIdentityActions = {
       detail: `性别：${p.gender || '未知'}；年龄：${p.age || '未知'}；生日：${p.birthday || '未知'}；具体地址：${city}；势力地位：${workplace}/${position}；社群角色：${city}/居民；居住：${living}；父母：${parents}；去世原因：${deathCause}；关系：${relations}；备注：${notes}`,
       personality: notes,
       roleCardFieldReasons: Object.fromEntries(profileTool.roleCardFieldKeys().map((key) => [key, fieldReason])),
-      rpgFieldReasons: Object.fromEntries(profileTool.rpgFieldReasonKeys().map((key) => [key, rpgReason])),
+      rpgFieldReasons: Object.fromEntries(profileTool.rpgFieldReasonKeys().map((key) => [key, rpgReason(key)])),
       skills: [
         { name: '手机操作', desc: '能够使用智能手机完成通讯、检索、拍摄、设置、应用切换和信息处理等操作。', reason: '玩家通过新手机激活和现实应用入口获得该基础操作能力。' },
         { name: '现实观察', desc: '通过细节、环境变化和他人反应判断局势的能力。', reason: '玩家在现实身份与环境交互中需要观察地点、联系人和系统反馈。' },
@@ -44,7 +44,7 @@ window.GameModules.playerIdentityActions = {
   identityTargetFields() {
     const p = this.identityTargetProfile();
     const worldTag = p.work || this.identityTargetState()?.worldTag || '原创世界';
-    const reasonFor = this.roleCardReasonGetter(p, (label) => `${label}由当前身份卡资料、角色固化信息或玩家资料统一生成。`);
+    const reasonFor = this.roleCardReasonGetter(p, (label) => `${label}来自${p.name || '该人物'}的经历“${p.detail || p.personality || p.worldbuildingNote || '当前经历尚少'}”以及最近身份处境。`);
     const row = (key, label, value, desc) => ({ key: `id-${this.identityTargetId}-${key}`, label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: '角色', commonField: true });
     return [
       row('name', '姓名', p.name, '角色卡固化姓名。'),

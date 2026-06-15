@@ -46,9 +46,10 @@ window.GameModules.companyActions = {
     return months ? `${months}个月${days % 30}天` : `${days}天`;
   },
 
-  companyFieldReason(key, label) {
-    const map = { name: '公司名称由当前雇佣记录绑定的组织资料固化。', type: '公司类型来自组织默认配置，用于区分企业、机构或个体经营。', industry: '所属行业来自公司经营范围，限定任务与收益来源。', scale: '组织规模来自公司系统配置，影响制度严格度与任务容量。', location: '办公地点来自现实公司登记地址或工作地点。', workMode: '招聘制度来自玩家当前选择或默认雇佣制度。', schedule: '上班制度由公司工作模式固化为双休制与工作日规则。', workTime: '上班时间来自公司工作模式，用于触发上班提示。', baseSalary: '底薪来自薪酬制度，是每月收入结算核心。', workDays: '本月完整上班天数由当月自然日扣除周六周日计算。', dailySalary: '日薪由底薪除以本月完整上班天数计算。', annualPerformance: '年底绩效由绩效月数、底薪和绩效提成共同计算。' };
-    return map[key] || `${label}来自当前公司系统。`;
+  companyFieldReason(key, label, value) {
+    const v = value || '未设定';
+    const map = { name: `当前雇佣记录指向“${v}”，玩家上班、薪资和组织互动都围绕这家公司展开。`, type: `组织类型为“${v}”，决定玩家面对的是企业、机构还是个体经营场景。`, industry: `所属行业为“${v}”，玩家近期工作任务和职业压力会从这个行业产生。`, scale: `组织规模为“${v}”，影响玩家日常接触的人数、流程复杂度和晋升压力。`, location: `办公地点为“${v}”，玩家通勤、迟到风险和现实地图移动都围绕这里计算。`, workMode: `招聘制度为“${v}”，说明玩家当前工作关系和收入稳定性的来源。`, schedule: `上班制度为“${v}”，玩家最近作息、休息日和疲劳累积都按这个节奏推进。`, workTime: `上班时间为“${v}”，会触发迟到、旷班和下班后的现实行动窗口。`, baseSalary: `底薪为“${v}”，这是玩家当月生活压力、消费能力和收入预期的核心依据。`, workDays: `本月完整上班天数为“${v}”，由当前月份周末休息日扣除后用于结算日薪。`, dailySalary: `日薪为“${v}”，直接说明玩家请假、迟到或缺勤时承受的收入影响。`, annualPerformance: `年底绩效为“${v}”，反映玩家长期工作表现和年底收入期待。` };
+    return map[key] || `${label}当前为“${v}”，会影响玩家最近现实行动和工作动机。`;
   },
 
   companyFields() {
@@ -57,7 +58,7 @@ window.GameModules.companyActions = {
     const salary = c.salary || {};
     const work = c.workMode || {};
     const pay = this.monthlyPayPreview();
-    const row = (key, label, value, desc) => ({ key: `company-${key}`, label, kind: '公司词条', value: value || '未设定', raw: value || '', desc, reason: this.companyFieldReason(key, label), worldTag: '2026 现代都市现实世界', targetType: '非角色', commonField: true });
+    const row = (key, label, value, desc) => ({ key: `company-${key}`, label, kind: '公司词条', value: value || '未设定', raw: value || '', desc, reason: this.companyFieldReason(key, label, value), worldTag: '2026 现代都市现实世界', targetType: '非角色', commonField: true });
     return [
       row('name', '公司名称', c.name, '固化公司名称，避免现实推演前后不一致。'),
       row('type', '公司类型', c.type, '公司、工作室、个体户、学校/机构等组织类型。'),
