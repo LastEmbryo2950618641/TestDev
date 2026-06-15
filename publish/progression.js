@@ -118,7 +118,7 @@ window.GameModules.progression = {
 
   skills(character, seed) {
     const list = (character.skills || [{ name: '观察', desc: '通过细节、环境变化和他人反应判断局势的能力。' }]).filter((skill) => !this.isStageIdentity(skill.name)).slice(0, 5);
-    return list.map((skill, index) => this.learned(skill.name || `技能${index + 1}`, '技能', 1 + ((seed + index) % 3), this.linkedStats(skill.name), skill.desc || this.learnedDefinition(skill.name, '技能')));
+    return list.map((skill, index) => this.learned(skill.name || `技能${index + 1}`, '技能', 1 + ((seed + index) % 3), this.linkedStats(skill.name), skill.desc || this.learnedDefinition(skill.name, '技能'), skill.reason || skill.changeMode));
   },
 
   professions(character, seed) {
@@ -144,12 +144,12 @@ window.GameModules.progression = {
     values.professions = clean(values.professions);
     return changed;
   },
-
-  learned(name, type, level, linkedStats, source) {
+  learned(name, type, level, linkedStats, source, reason = '') {
     const lv = this.clamp(level, 1, 7);
     const cleanName = String(name).slice(0, 16);
     const definition = this.learnedDefinition(cleanName, type, source);
-    return { name: cleanName, type, level: lv, exp: { current: 0, next: this.learnedNext[lv] }, linkedStats, source: definition, description: definition, levelDescription: this.levelDescription(type, lv), effect: this.levelEffect(cleanName, type, lv) };
+    const text = String(reason || '').trim().slice(0, 120);
+    return { name: cleanName, type, level: lv, exp: { current: 0, next: this.learnedNext[lv] }, linkedStats, source: definition, description: definition, levelDescription: this.levelDescription(type, lv), effect: this.levelEffect(cleanName, type, lv), ...(text ? { reason: text, changeMode: text } : {}) };
   },
   linkedStats(name) {
     if (/剑|战|拳|武|射|枪/.test(name)) return ['strength', 'agility', 'perception']; if (/魔|术|医|学|分析/.test(name)) return ['intelligence', 'perception', 'willpower'];

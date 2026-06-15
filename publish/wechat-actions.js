@@ -56,9 +56,11 @@ window.GameModules.wechatActions = {
 
   async ensureWechatUserProfileRun(contact) {
     const existing = this.rpgStates?.[contact.id] || window.GameModules.sqliteSave.getCharacterState(contact.id);
+    const profileTool = window.GameModules.characterProfile;
     const existingName = existing?.profile?.name || '';
-    const profileNameMissing = !window.GameModules.characterProfile.isConcreteName(existingName);
-    if (existing?.profile && !profileNameMissing && !contact.needsNameAi && !this.isWechatPlaceholderName(contact.name)) return existing;
+    const profileNameMissing = !profileTool.isConcreteName(existingName);
+    const reasonsReady = existing?.profile && profileTool.hasRequiredRoleCardFieldReasons(existing.profile.roleCardFieldReasons) && profileTool.hasRequiredInventoryReasons(existing.profile) && profileTool.hasRequiredRpgFieldReasons(existing.profile.rpgFieldReasons);
+    if (existing?.profile && !profileNameMissing && reasonsReady && !contact.needsNameAi && !this.isWechatPlaceholderName(contact.name)) return existing;
     const hint = this.wechatRelationProfileHint(contact);
     const sections = window.GameModules.promptSections;
     const player = sections.playerProfile(this);
