@@ -15,17 +15,18 @@ window.GameModules.playerIdentityActions = {
     const notes = [p.worldbuildingNote, p.notes].filter(Boolean).join('；') || '暂无补充设定';
     const fieldReason = `来自玩家已有账号资料：${name}，${city}，${role}，${living}。`;
     const rpgReason = `${name}作为${role}在${city}生活，初始数值由现实身份、年龄、居住状态与玩家资料本地固化。`;
+    const profileTool = window.GameModules.characterProfile;
     return {
       id: 'player-self', name, age: p.age || '', birthday: p.birthday || '', gender: p.gender || '', work: world.label || '2026 现代都市现实世界', role, job: role,
       rank: position, faction: workplace, city, workplace, position, importance: 'main', isPlayer: true, roleCard: true,
       equipment: p.equipment || [], items: p.items || [], wearing: p.wearing || [],
       detail: `性别：${p.gender || '未知'}；年龄：${p.age || '未知'}；生日：${p.birthday || '未知'}；具体地址：${city}；势力地位：${workplace}/${position}；社群角色：${city}/居民；居住：${living}；父母：${parents}；去世原因：${deathCause}；关系：${relations}；备注：${notes}`,
       personality: notes,
-      roleCardFieldReasons: Object.fromEntries(['姓名', '所属世界', '身份', '职业', '性别', '生日', '人际关系', '外貌', '性格', '人物说明', '社群角色', '势力地位'].map((key) => [key, fieldReason])),
-      rpgFieldReasons: Object.fromEntries(['level', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'learning_ability', 'mental_stability', 'growth_potential', 'action_ability'].map((key) => [key, rpgReason])),
+      roleCardFieldReasons: Object.fromEntries(profileTool.roleCardFieldKeys().map((key) => [key, fieldReason])),
+      rpgFieldReasons: Object.fromEntries(profileTool.rpgFieldReasonKeys().map((key) => [key, rpgReason])),
       skills: [
-        { name: '手机操作', desc: '能够使用智能手机完成通讯、检索、拍摄、设置、应用切换和信息处理等操作。', reason: '玩家通过新手机激活和现实应用入口获得该基础操作能力。', changeMode: '玩家通过新手机激活和现实应用入口获得该基础操作能力。' },
-        { name: '现实观察', desc: '通过细节、环境变化和他人反应判断局势的能力。', reason: '玩家在现实身份与环境交互中需要观察地点、联系人和系统反馈。', changeMode: '玩家在现实身份与环境交互中需要观察地点、联系人和系统反馈。' },
+        { name: '手机操作', desc: '能够使用智能手机完成通讯、检索、拍摄、设置、应用切换和信息处理等操作。', reason: '玩家通过新手机激活和现实应用入口获得该基础操作能力。' },
+        { name: '现实观察', desc: '通过细节、环境变化和他人反应判断局势的能力。', reason: '玩家在现实身份与环境交互中需要观察地点、联系人和系统反馈。' },
       ],
     };
   },
@@ -40,7 +41,6 @@ window.GameModules.playerIdentityActions = {
     if (id === 'player-self') return this.playerCharacter();
     return this.identityTargetState()?.profile || (id === this.character.id ? this.character : { name: '未知角色', work: '未知世界', role: '身份未知', detail: '暂无角色卡。', personality: '' });
   },
-
   identityTargetFields() {
     const p = this.identityTargetProfile();
     const worldTag = p.work || this.identityTargetState()?.worldTag || '原创世界';
@@ -89,17 +89,18 @@ window.GameModules.playerIdentityActions = {
     if (!query) return;
     this.realWorldMemoryArchiveResults = await window.GameModules.characterMemory.queryArchive('player-self', query);
   },
-
   async ensurePlayerRpgState(refresh = false) {
     if (!window.GameModules.sqliteSave.db) return this.playerIdentityState();
     const existing = this.playerIdentityState();
-    const character = this.playerCharacter();
     if (!refresh && existing) {
-      existing.profile = { ...(existing.profile || {}), ...character };
-      window.GameModules.progression.ensureStateMechanics(existing, existing.profile);
-      await window.GameModules.sqliteSave.saveCharacterState(existing);
+      const character = this.playerCharacter();
+      existing.profile = existing.profile || {};
+      const profileChanged = !existing.profile.roleCard || JSON.stringify(existing.profile.roleCardFieldReasons || {}) !== JSON.stringify(character.roleCardFieldReasons) || JSON.stringify(existing.profile.rpgFieldReasons || {}) !== JSON.stringify(character.rpgFieldReasons);
+      Object.assign(existing.profile, { roleCard: true, roleCardFieldReasons: character.roleCardFieldReasons, rpgFieldReasons: character.rpgFieldReasons });
+      if (window.GameModules.progression.ensureStateMechanics(existing, existing.profile) || profileChanged) await window.GameModules.sqliteSave.saveCharacterState(existing);
       return existing;
     }
+    const character = this.playerCharacter();
     this.initFactionSystem?.();
     const state = await window.GameModules.rpgState.ensureCharacter(character, this);
     state.profile = character;
