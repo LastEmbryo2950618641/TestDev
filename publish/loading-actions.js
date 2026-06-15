@@ -58,7 +58,15 @@ window.GameModules.loadingActions = {
     await this.runStage('rpg', '正在恢复已保存的角色状态缓存。', async () => {
       this.ensureCatalogSelection();
       this.loadSavedRpgStates();
-      if (this.phoneSetupDone) await this.ensurePlayerRpgState?.();
+      if (this.phoneSetupDone) {
+        try {
+          await this.ensurePlayerRpgState?.();
+        } catch (err) {
+          console.warn('[启动流程] 玩家资料原因迁移失败:', err.message, err.stack);
+          this.setupError = `玩家本人资料需要重新生成：${err.message || 'AI暂时不可用'}`;
+          this.loadingDetail = this.setupError;
+        }
+      }
     });
     this.loading = false;
   },

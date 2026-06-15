@@ -94,9 +94,13 @@ window.GameModules.playerIdentityActions = {
     if (!window.GameModules.sqliteSave.db) return this.playerIdentityState();
     const existing = this.playerIdentityState();
     if (!refresh && existing) {
-      window.GameModules.characterProfile.requireRpgFieldReasons(existing.profile, existing.profile?.worldAttributes, existing.profile?.name || '玩家本人');
-      if (window.GameModules.progression.ensureStateMechanics(existing, existing.profile)) await window.GameModules.sqliteSave.saveCharacterState(existing);
-      return existing;
+      try {
+        window.GameModules.characterProfile.requireRpgFieldReasons(existing.profile, existing.profile?.worldAttributes, existing.profile?.name || '玩家本人');
+        if (window.GameModules.progression.ensureStateMechanics(existing, existing.profile)) await window.GameModules.sqliteSave.saveCharacterState(existing);
+        return existing;
+      } catch (err) {
+        console.warn('[玩家身份] 已保存个人资料缺少AI变化原因，尝试重新生成:', err.message, err.stack);
+      }
     }
     const character = await window.GameModules.characterProfile.ensure(this.playerCharacterBase(), this, this.playerSetupSummary?.() || '玩家本人资料');
     character.id = 'player-self';
