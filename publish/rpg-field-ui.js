@@ -103,7 +103,7 @@ window.GameModules.rpgFieldUi = {
   itemChangeReason(field, obj = {}, lexicon = null) {
     const explicit = this.usableChangeReason(lexicon?.meta?.modifyReason || obj.reason || obj.changeMode, [lexicon?.description, lexicon?.summary, obj.description, obj.desc, obj.source]);
     if (explicit) return explicit;
-    return '';
+    return window.GameModules.progression?.itemReason?.(obj, this.lexiconKind(field, obj)) || '';
   },
 
   rpgItemSummary(item) {

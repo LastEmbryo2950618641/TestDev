@@ -41,15 +41,22 @@ window.GameModules = window.GameModules || {};
       return [...new Set(slots)];
     },
 
+    itemReason(item = {}, kind = '物品') {
+      const name = item.name || item.label || '未命名物品';
+      return String(item.reason || item.changeMode || `${name}由当前角色资料、持有状态或穿戴槽位固化为${kind}词条。`).trim().slice(0, 120);
+    },
+
     normalizeCarryItem(item, kind = '物品') {
       const obj = typeof item === 'string' ? { name: item } : { ...(item || {}) };
       const name = String(obj.name || obj.label || '未命名物品').slice(0, 32);
-      return { ...obj, name, type: obj.type || kind, kind: obj.kind || kind, quantity: Math.max(1, Number(obj.quantity) || 1), equipSlots: this.inferEquipSlots(obj, kind), level: Number(obj.level) > 0 ? obj.level : -1 };
+      const reason = this.itemReason({ ...obj, name }, kind);
+      return { ...obj, name, type: obj.type || kind, kind: obj.kind || kind, quantity: Math.max(1, Number(obj.quantity) || 1), equipSlots: this.inferEquipSlots(obj, kind), reason, changeMode: reason, level: Number(obj.level) > 0 ? obj.level : -1 };
     },
 
     defaultWearForSlot(slot) {
       const names = { 内衣: '日常内衣', 上衣: '日常上衣', 内裤: '日常内裤', 下衣: '日常下衣', 袜子: '日常袜子', 鞋子: '日常鞋子' };
-      return names[slot] ? { slot, name: names[slot], type: '穿着', description: '上下文未写明异常，按常规场景补齐的基础穿着。', level: -1 } : null;
+      const name = names[slot];
+      return name ? { slot, name, type: '穿着', description: '上下文未写明异常，按常规场景补齐的基础穿着。', reason: `${slot}是常规场景基础穿着槽位，当前上下文没有脱下或缺失证据。`, changeMode: `${slot}是常规场景基础穿着槽位，当前上下文没有脱下或缺失证据。`, level: -1 } : null;
     },
 
     isPlaceholderEmptyWear(item) {
@@ -60,10 +67,14 @@ window.GameModules = window.GameModules || {};
       const old = Array.isArray(existing) ? existing : [];
       return this.wearableSlots(old).map((slot) => {
         const hit = old.find((item) => item?.slot === slot);
-        if (hit && !this.isPlaceholderEmptyWear(hit)) return { ...hit, slot, type: hit.type || '穿着', level: -1 };
+        if (hit && !this.isPlaceholderEmptyWear(hit)) {
+          const reason = this.itemReason(hit, '穿着');
+          return { ...hit, slot, type: hit.type || '穿着', reason, changeMode: reason, level: -1 };
+        }
         const basic = this.defaultWearForSlot(slot);
         if (basic) return basic;
-        return { slot, name: '未穿戴', type: '穿着', description: '该槽位当前未穿戴，表示对应部位空置。', level: -1 };
+        const reason = `${slot}槽位当前没有已穿戴物，表示该可穿戴位置空置。`;
+        return { slot, name: '未穿戴', type: '穿着', description: '该槽位当前未穿戴，表示对应部位空置。', reason, changeMode: reason, level: -1 };
       });
     },
 

@@ -60,7 +60,7 @@ window.GameModules.inventoryActions = {
     const empty = (item) => !item?.name || this.isEmptyWear(item);
     let target = !alwaysNew && dynamic ? values.wearing.find((item) => p.slotBase(item.slot) === base && empty(item))?.slot : '';
     target = target || (dynamic || alwaysNew ? p.nextSlot(values.wearing, base) : raw);
-    if (!values.wearing.some((item) => item.slot === target)) values.wearing.push({ slot: target, name: '未穿戴', type: '穿着', description: '玩家或AI新增的可穿戴槽位。', level: -1 });
+    if (!values.wearing.some((item) => item.slot === target)) values.wearing.push({ slot: target, name: '未穿戴', type: '穿着', description: '玩家或AI新增的可穿戴槽位。', reason: `${target}槽位由装备/饰品操作新增，当前尚未穿戴物品。`, changeMode: `${target}槽位由装备/饰品操作新增，当前尚未穿戴物品。`, level: -1 });
     return target;
   },
 
@@ -87,7 +87,7 @@ window.GameModules.inventoryActions = {
     if (!state?.values || !slot) return false;
     const item = state.values.wearing?.find((entry) => entry.slot === slot);
     if (!item) return false;
-    Object.assign(item, { name: '未穿戴', type: '穿着', description: '该槽位暂无已记录穿着。', level: -1 });
+    Object.assign(item, { name: '未穿戴', type: '穿着', description: '该槽位暂无已记录穿着。', reason: `${slot}槽位的原穿戴物被卸下，因此当前为空置状态。`, changeMode: `${slot}槽位的原穿戴物被卸下，因此当前为空置状态。`, level: -1 });
     await this.persistInventoryState(state);
     return true;
   },
