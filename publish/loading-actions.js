@@ -60,5 +60,44 @@ window.GameModules.loadingActions = {
       this.loadSavedRpgStates();
     });
     this.loading = false;
+    this.startStartupWarmup?.();
+  },
+
+  startStartupWarmup() {
+    if (this.startupWarmupPromise || !window.GameModules.sqliteSave.db) return this.startupWarmupPromise;
+    this.startupWarmupDone = false;
+    this.startupWarmupPromise = this.runStartupWarmup().finally(() => { this.startupWarmupDone = true; });
+    return this.startupWarmupPromise;
+  },
+
+  async runStartupWarmup() {
+    console.log('[启动预热] 开始全量异步生成');
+    const tasks = [];
+    const queued = new Set();
+    const queueCharacter = (character, label) => {
+      if (!character?.id || queued.has(character.id)) return;
+      queued.add(character.id);
+      tasks.push(this.warmupTask(label || `角色:${character.name || character.id}`, () => this.ensureRpgForCharacter?.(character, this.entryCurrentAction || this.sceneTitle || '', { loadMetrics: character.id === this.character?.id })));
+    };
+    if (this.phoneSetupDone) tasks.push(this.warmupTask('玩家身份', () => this.ensurePlayerRpgState?.()));
+    for (const character of this.workCharacters || []) queueCharacter(character);
+    if (!queued.has(this.character?.id)) queueCharacter(this.character, '当前角色');
+    const contacts = (this.wechatUsers || []).filter((item) => item && !item.group);
+    for (const contact of contacts) tasks.push(this.warmupTask(`微信联系人:${contact.name || contact.id}`, () => this.ensureWechatUserProfile?.(contact)));
+    await Promise.all(tasks);
+    console.log('[启动预热] 全量异步生成完成', { tasks: tasks.length });
+    if (tasks.length) await this.save?.();
+  },
+
+  async warmupTask(name, fn) {
+    try {
+      console.log('[启动预热] 开始:', name);
+      const result = await fn();
+      console.log('[启动预热] 完成:', name);
+      return result;
+    } catch (err) {
+      console.warn('[启动预热] 失败:', name, err?.message || 'unknown', err?.stack || '');
+      return null;
+    }
   },
 };

@@ -27,7 +27,7 @@ function registerGameStore() {
     loadingDetail: '首次进入或存档较大时会更慢，这是正常现象。',
     loadingStages: [], entryStages: [],
     busy: false, started: false, desktopUnlocked: false, desktopPage: 0, desktopSwipeStart: null, entrySetupOpen: false, identityAppOpen: false, wechatAppOpen: false, saveAppOpen: false, identityTargetId: 'player-self', wechatSelectedContact: 'player-self', wechatTab: 'chats', wechatView: 'home', wechatInput: '', wechatSending: false, wechatError: '', wechatReplyRequestId: 0, wechatMessagesByContact: {}, wechatUsers: [], wechatAddName: '', wechatAddRelation: '',
-    initPromise: null, phoneSetupDone: false, phoneActivationChoice: '', profileSetupBusy: false, setupError: '', phoneFixedTime: 0, phoneClockTimer: null, existingProfileExpanded: false,
+    initPromise: null, startupWarmupPromise: null, startupWarmupDone: false, phoneSetupDone: false, phoneActivationChoice: '', profileSetupBusy: false, setupError: '', phoneFixedTime: 0, phoneClockTimer: null, existingProfileExpanded: false,
     knownProfessionState: { open: false, query: '', message: '', selectedName: '', detailOpen: false },
     playerProfile: { name: '', gender: '', birthday: '', age: '', city: '', refinedCity: '', dailyRole: '', refinedRole: '', livingStatus: '', refinedLivingStatus: '', relationships: '', parents: '', parentStatus: '', parentDeathCause: '', worldbuildingNote: '', notes: '', knownProfessions: [], wechatId: '', profileEnrichedAt: '', initializedAt: '' }, playerName: '',
     selectedSlot: 'slot-1', saveSlots: window.GameModules.storage.slots,
