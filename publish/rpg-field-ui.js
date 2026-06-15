@@ -20,7 +20,7 @@ window.GameModules.rpgFieldUi = {
     (profile.roleCardChangeLog || []).forEach((item) => [item.field, item.name].filter(Boolean).forEach((key) => { log[key] = item.reason || log[key] || ''; }));
     const wrongSubject = (text, label = '') => {
       const value = String(text || '').trim(), name = String(profile?.name || '').trim();
-      if (!name || label === '人际关系') return false;
+      if (!name || label === '人际关系' || /(妹妹|姐姐|哥哥|弟弟|父亲|母亲|女儿|儿子)/.test(String(profile?.role || ''))) return false;
       if (value.includes(name)) return false;
       return /(作为|是|属于|承担|体现了).{0,18}(妹妹|姐姐|哥哥|弟弟|父亲|母亲|女儿|儿子)/.test(value) || /(妹妹|姐姐|哥哥|弟弟|父亲|母亲|女儿|儿子).{0,12}(身份|性格|外貌|生日|职业|资料)/.test(value);
     };

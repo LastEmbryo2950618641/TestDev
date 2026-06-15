@@ -112,7 +112,10 @@ window.GameModules.characterProfile = {
   },
 
   validate(profile, base, lore, attrs, store = null) {
-    profile = { ...base, ...(profile || {}) };
+    const rawProfile = profile || {};
+    if (base.id === 'player-self' && rawProfile.name && rawProfile.name !== base.name) throw new Error(`目标人物漂移: 需要生成${base.name}本人，AI返回了${rawProfile.name}`);
+    if (base.id !== 'player-self' && this.isConcreteName(base.name) && rawProfile.name && rawProfile.name !== base.name) throw new Error(`目标人物漂移: 需要生成${base.name}，AI返回了${rawProfile.name}`);
+    profile = { ...base, ...rawProfile };
     const skills = Array.isArray(profile.skills) ? profile.skills : [];
     const confirmedJob = profile.jobConfirmed === true ? window.GameModules.professionInfo.normalizeJobName(profile.job) : '';
     const factions = this.factionRoles(profile, base, store);
@@ -122,7 +125,7 @@ window.GameModules.characterProfile = {
       name: base.id === 'player-self' ? base.name : this.validName(profile.name, base),
       gender: String(base.gender || profile.gender || '').slice(0, 8),
       age: base.age || profile.age || '',
-      relationships: this.formatRelationships(profile.relationships || base.relationships || ''),
+      relationships: this.formatRelationships(profile.relationships || base.relationships || '', base),
       role: String(profile.role || base.role).slice(0, 18),
       detail: String(profile.detail || base.detail).slice(0, 160),
       appearance: String(profile.appearance || base.appearance || '外貌尚未固化。').slice(0, 140),
@@ -299,7 +302,8 @@ window.GameModules.characterProfile = {
 
   wrongSubjectReason(text, profile = {}, key = '') {
     const value = String(text || '').trim(), name = String(profile?.name || '').trim();
-    if (!name || key === '人际关系') return false;
+    const kinship = /(妹妹|姐姐|哥哥|弟弟|父亲|母亲|女儿|儿子)/;
+    if (!name || key === '人际关系' || kinship.test(String(profile?.role || ''))) return false;
     if (value.includes(name)) return false;
     return /(作为|是|属于|承担|体现了).{0,18}(妹妹|姐姐|哥哥|弟弟|父亲|母亲|女儿|儿子)/.test(value) || /(妹妹|姐姐|哥哥|弟弟|父亲|母亲|女儿|儿子).{0,12}(身份|性格|外貌|生日|职业|资料)/.test(value);
   },
@@ -418,12 +422,14 @@ window.GameModules.characterProfile = {
     return { value, status, reason };
   },
 
-  formatRelationships(value) {
+  formatRelationships(value, base = null) {
+    const self = String(base?.name || '').trim();
     const parts = String(value || '').split(/[；;\n]+/).map((part) => part.trim()).filter(Boolean);
     return parts.map((part) => {
       const pair = part.split(/[：:]/);
       const rel = String(pair[0] || '').replace(/[，。,.].*$/, '').trim();
       const name = String(pair.slice(1).join('：') || '').replace(/[，。；;、,.].*$/, '').trim();
+      if (self && name === self) throw new Error(`关系方向错误: ${rel}：${name} 把当前角色本人写成了关系对象`);
       const invalid = /同居|喜欢|倾向|关系|需要|生成|资料|补全|未知|待/.test(name) || name.length > 12;
       return rel && name && !invalid ? `${rel}：${name}` : '';
     }).filter(Boolean).join('；');

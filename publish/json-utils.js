@@ -118,7 +118,7 @@ window.GameModules.jsonUtils = {
   },
 
   async repairPrompt(format, badOutput, err) {
-    return window.GameModules.promptTemplates.render('json-repair', { 错误: err?.message || 'unknown', 原要求: String(format || '').slice(0, 1800), 错误输出: String(badOutput || '').slice(0, 1200) });
+    return window.GameModules.promptTemplates.render('json-repair', { 错误: err?.message || 'unknown', 原要求: String(format || '').slice(0, 3200), 错误输出: String(badOutput || '').slice(0, 1200) });
   },
 
   repairJson(json) {
