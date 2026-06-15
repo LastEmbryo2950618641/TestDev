@@ -13,7 +13,11 @@ window.GameModules.styleActions = {
   ],
 
   async loadWritingStyles() {
-    this.defaultWritingStyles = this.parseWritingStylesTemplate(await window.GameModules.promptTemplates.load('writing-styles'));
+    try {
+      this.defaultWritingStyles = this.parseWritingStylesTemplate(await window.GameModules.promptTemplates.load('writing-styles'));
+    } catch (err) {
+      console.warn('小说文风模板读取失败，使用内置默认文风:', err.message, err.stack);
+    }
     const saved = window.GameModules.sqliteSave.getMetaJson?.('writing_styles');
     this.customWritingStyles = Array.isArray(saved?.custom) ? saved.custom : [];
     this.activeStyleIds = Array.isArray(saved?.active) ? saved.active : ['literary'];
