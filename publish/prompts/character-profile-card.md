@@ -166,7 +166,7 @@ worldValues 只返回有明确依据的字段：{世界字段}。
 
 ## 初始情绪与对玩家感觉
 
-必须返回 initialMetrics，用于该非玩家角色第一次生成时的情绪和“其余”关系数值。数值必须与变量区证据一致，不得使用默认值敷衍。
+必须返回 initialMetrics，用于该非玩家角色第一次生成时的情绪和“其余”关系数值。数值必须与变量区证据一致，不得使用默认值敷衍；这是强校验字段，缺少任意情绪 key、任意对玩家感觉 key、任意 value 或任意 reason 都会导致 JSON 被判定失败。
 
 ### 情绪维度
 
@@ -274,8 +274,17 @@ worldValues 只返回有明确依据的字段：{世界字段}。
 | wearing[] | object | slot, name, description, reason | 槽位、穿着名称、说明、为什么当前穿戴。 |
 | roleCardFieldReasons | object | 姓名, 所属世界, 身份, 职业, 性别, 生日, 人际关系, 外貌, 性格, 人物说明, 社群角色, 势力地位 | 每个 key 都写具体固化原因，不得省略。 |
 | rpgFieldReasons | object | {RPG字段列表} | 每个 RPG 字段都写具体经历、状态或证据原因。 |
-| initialMetrics.emotions[] | object | key, value, status, reason | `key` 必须来自情绪字段；`value` 为 0 到 100 数字。 |
-| initialMetrics.playerFeelings[] | object | key, value, status, reason | `key` 必须来自对玩家感觉字段；`value` 为 0 到 100 数字。 |
+| initialMetrics.emotions[] | object | key, value, status, reason | 必须为 `{情绪字段}` 中每一个字段各返回一项；`value` 为 0 到 100 数字。 |
+| initialMetrics.playerFeelings[] | object | key, value, status, reason | 必须为 `{关系指标字段}` 中每一个字段各返回一项；`value` 为 0 到 100 数字。 |
+
+### initialMetrics 完整性要求
+
+1. `initialMetrics.emotions` 不能是空数组，必须完整覆盖 `{情绪字段}` 中列出的每个 key。
+2. `initialMetrics.playerFeelings` 不能是空数组，必须完整覆盖 `{关系指标字段}` 中列出的每个 key。
+3. 每一项都必须包含 `key`、`value`、`status`、`reason` 四个字段。
+4. `value` 必须是 0 到 100 的数字；证据弱或没有触发时可以为 0。
+5. `status` 必须写当前阶段表现；`reason` 必须说明为什么是该数值，即使 value 为 0 也不能省略。
+6. 不允许只返回示例里的少数项，不允许返回空数组，不允许用“原因/当前状态”等占位词。
 
 ### 最小结构示意
 
@@ -301,6 +310,17 @@ worldValues 只返回有明确依据的字段：{世界字段}。
   "worldValues": {},
   "roleCardFieldReasons": {},
   "rpgFieldReasons": {},
-  "initialMetrics": { "emotions": [], "playerFeelings": [] }
+  "initialMetrics": {
+    "emotions": [
+      { "key": "情绪字段1", "value": 0, "status": "该情绪当前没有被明显触发", "reason": "具体说明为什么该角色当前没有形成这种情绪或为什么数值较低" },
+      { "key": "情绪字段2", "value": 40, "status": "该情绪已有明显表现", "reason": "具体说明哪段经历、关系事实或当前事件造成该情绪" }
+    ],
+    "playerFeelings": [
+      { "key": "对玩家感觉字段1", "value": 0, "status": "该感觉当前没有形成", "reason": "具体说明缺少哪类互动、关系证据或年龄/关系边界不允许" },
+      { "key": "对玩家感觉字段2", "value": 70, "status": "该感觉较强", "reason": "具体说明哪段共同经历、亲属关系、照顾事实或互动历史造成该感觉" }
+    ]
+  }
 }
 ```
+
+注意：上方 `情绪字段1/2` 和 `对玩家感觉字段1/2` 只是结构占位；实际返回时必须替换为 `{情绪字段}` 与 `{关系指标字段}` 里的全部真实 key。
