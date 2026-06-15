@@ -126,7 +126,7 @@ window.GameModules.ai = {
         key,
         delta: window.GameModules.metrics.clampDelta(item.delta),
         status: String(item.status || '').slice(0, 80),
-        reason: String(item.reason || '').slice(0, 80),
+        reason: String(item.reason || '').slice(0, 160),
       };
     }).filter(Boolean);
   },
@@ -140,8 +140,8 @@ window.GameModules.ai = {
       return {
         key: item.key,
         value: metricValue,
-        status: String(item.status || this.fallbackMetricStatus(actor, item.key, stage, type)).slice(0, 80),
-        reason: String(item.reason || this.fallbackMetricReason(actor, item.key, type)).slice(0, 80),
+        status: String(item.status || this.fallbackMetricStatus(actor, item.key, stage, type)).slice(0, 120),
+        reason: String(item.reason || this.fallbackMetricReason(actor, item.key, type)).slice(0, 160),
       };
     });
   },

@@ -458,8 +458,8 @@ window.GameModules.characterProfile = {
         return {
           key,
           value: metricValue,
-          status: String(item.status || fallback.status || window.GameModules.metrics.stageStatus(key, stage)).slice(0, 80),
-          reason: String(item.reason || fallback.reason).slice(0, 80),
+          status: String(item.status || fallback.status || window.GameModules.metrics.valueExplanation(key, metricValue)).slice(0, 120),
+          reason: String(item.reason || fallback.reason).slice(0, 160),
         };
       });
     };

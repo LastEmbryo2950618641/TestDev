@@ -45,6 +45,13 @@ window.GameModules.metrics = {
     const text = key === '爱情' ? love[stage] : (key === '了解' ? know[stage] : intensity[stage]);
     return text || `${key}处于${stage}阶段。`;
   },
+  valueExplanation(key, value) {
+    const n = this.clamp(value);
+    if (key === '爱情' && n >= 95) return '爱情接近满值：已达到生死相许、愿意长期相守的程度。';
+    if (key === '了解' && n >= 95) return '了解接近满值：几乎洞悉你的身份、习惯、意图与隐秘动机。';
+    const stage = this.stageFor(key, n);
+    return `数值${n}/100，处于“${stage}”程度：${this.stageStatus(key, stage)}`;
+  },
   ensure(store) {
     store.emotions = this.fill(store.emotions, this.emotionKeys, this.defaults.emotions);
     store.playerFeelings = this.fill(store.playerFeelings, this.playerKeys, this.defaults.playerFeelings);
@@ -86,8 +93,8 @@ window.GameModules.metrics = {
     notes[`${group}:${item.key}`] = {
       stage,
       status: String(item.status || this.stageStatus(item.key, stage)).slice(0, 80),
-      reason: String(item.reason || fallbackReason).slice(0, 80),
-      description: String(this.descriptions[item.key] || item.key).slice(0, 80),
+      reason: String(item.reason || fallbackReason).slice(0, 160),
+      description: String(this.descriptions[item.key] || item.key).slice(0, 120),
     };
   },
 };

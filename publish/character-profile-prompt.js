@@ -35,7 +35,7 @@ window.GameModules.characterProfilePrompt = {
       '8. worldValues 只填“世界字段”中有证据的 key，没有则 {}。',
       `9. roleCardFieldReasons 必须是对象，完整包含：${roleKeys}。每个值写当前人物本人的具体固化原因，不要写抽象套话。`,
       `10. rpgFieldReasons 必须是对象，完整包含这些 key：${data.rpgKeys}。每个值写当前人物本人的具体经历、训练、身体状态或处境原因。`,
-      `11. initialMetrics.emotions 必须覆盖全部情绪 key：${data.emotionKeys}；initialMetrics.playerFeelings 必须覆盖全部对玩家感觉 key：${data.playerKeys}。每项含 key、value、status、reason，value 为 0-100 数字。`,
+      `11. initialMetrics.emotions 必须覆盖全部情绪 key：${data.emotionKeys}；initialMetrics.playerFeelings 必须覆盖全部对玩家感觉 key：${data.playerKeys}。每项含 key、value、status、reason，value 为 0-100 数字；status 写数值程度解释，如爱情100=生死相许；reason 写结合角色动机、处境与过去经历的变化原因，如亲情很高=与哥哥刘悠相濡以沫。`,
       '12. 成年角色若资料明确有恋爱、身体吸引、占有欲等证据，对应数值可高于 0；无证据或未成年时保持 0 并说明原因。',
       '',
       '## JSON 根字段',

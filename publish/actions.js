@@ -74,23 +74,22 @@ window.GameModules.actions = {
     const next = Math.max(1, count);
     if (this.metricSummaryLimit !== next) this.metricSummaryLimit = next;
   },
-
-  metricNote(type, key) {
-    if (!this.metricsReady) return '阶段: 未知\n状态: 等待推演\n原因: 数值正在刷新，尚未完成初始推演。\n说明: ' + (window.GameModules.metrics.descriptions[key] || key);
-    const value = type === 'emotion' ? this.emotions[key] : this.playerFeelings[key];
-    const raw = this.metricNotes?.[`${type}:${key}`];
-    const stage = raw?.stage || window.GameModules.metrics.stageFor(key, value);
-    const actor = window.GameModules.ai?.actorPronoun?.(this) || '她/他';
-    const fallbackStatus = window.GameModules.ai?.fallbackMetricStatus?.(actor, key, stage, type) || `${actor}的${key}处于“${stage}”状态。`;
-    const fallbackReason = type === 'emotion'
-      ? `${actor}受到当前场景、你的行动、自身处境和关系证据影响，因此${key}情绪发生变化。`
-      : `${actor}根据你的表现、两人的关系证据、当下处境和自身动机，重新调整了对你的${key}。`;
-    const oldStageText = window.GameModules.metrics.stageStatus(key, stage);
-    const status = raw?.status && raw.status !== oldStageText ? raw.status : fallbackStatus;
-    const oldReason = /本回合没有直接触发变化|保持原值|保持原址/.test(String(raw?.reason || ''));
-    const reason = raw?.reason && !oldReason ? raw.reason : fallbackReason;
-    const description = raw?.description || window.GameModules.metrics.descriptions[key] || key;
-    return `阶段: ${stage}\n状态: ${status}\n原因: ${reason}\n说明: ${description}`;
+  metricNote(type, key, state = null) {
+    const target = this.metricTargetForNote(type, key, state);
+    if (!target.ready) return `定义: ${target.description}\n解释: 等待推演，数值尚未完成初始化。\n变化原因: 数值正在刷新，尚未完成初始推演。`;
+    const stage = target.raw?.stage || window.GameModules.metrics.stageFor(key, target.value);
+    const actor = state?.profile?.name || this.character?.name || window.GameModules.ai?.actorPronoun?.(this) || '角色';
+    const fallbackReason = type === 'emotion' ? `${actor}受到当前场景、你的行动、自身处境、角色动机与过去经历影响，因此${key}情绪呈现为“${stage}”。` : `${actor}结合与你的关系、当前处境、个人动机与过去经历，形成了对玩家的${key}程度。`;
+    const rawStatus = target.raw?.status;
+    const status = rawStatus && rawStatus !== window.GameModules.metrics.stageStatus(key, stage) ? rawStatus : window.GameModules.metrics.valueExplanation(key, target.value);
+    const rawReason = String(target.raw?.reason || '');
+    const reason = rawReason && !/本回合没有直接触发变化|保持原值|保持原址/.test(rawReason) ? rawReason : fallbackReason;
+    return `定义: ${target.description}\n解释: ${status}\n变化原因: ${reason}`;
+  },
+  metricTargetForNote(type, key, state = null) {
+    const metrics = state ? this.ensureStateMetrics(state) : { emotions: this.emotions, playerFeelings: this.playerFeelings, notes: this.metricNotes };
+    const values = type === 'emotion' ? metrics.emotions : metrics.playerFeelings;
+    return { value: values?.[key], raw: metrics.notes?.[`${type}:${key}`], ready: state ? true : this.metricsReady, description: window.GameModules.metrics.descriptions[key] || key };
   },
 
   toggleMetric(type, key) {
