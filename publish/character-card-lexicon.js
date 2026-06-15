@@ -15,8 +15,15 @@ window.GameModules.characterCardLexicon = {
     return Object.entries(this.fieldMap).find(([, key]) => key === field)?.[0] || field;
   },
 
+  normalizeKind(raw) {
+    const text = String(raw || '').trim();
+    if (text.includes('角色技能')) return '角色技能';
+    if (text.includes('角色卡')) return '角色卡';
+    return text;
+  },
+
   normalizeUpdate(raw = {}) {
-    const kind = String(raw.kind || '').trim();
+    const kind = this.normalizeKind(raw.kind);
     const field = this.normalizeField(raw.field || raw.name);
     const reason = String(raw.reason || raw.modifyReason || '').trim().slice(0, 160);
     if (!reason || !['角色卡', '角色技能'].includes(kind)) return null;
@@ -26,19 +33,24 @@ window.GameModules.characterCardLexicon = {
   },
 
   async applyToState(state, updates = []) {
-    if (!state?.profile || !Array.isArray(updates)) return [];
-    const changed = [];
+    if (!Array.isArray(updates)) return [];
+    const records = [];
+    let changed = false;
     for (const raw of updates) {
       const update = this.normalizeUpdate(raw);
       if (!update) continue;
-      if (this.applyOne(state.profile, update)) changed.push(this.changeRecord(update));
+      const applied = state?.profile ? this.applyOne(state.profile, update) : false;
+      if (applied) changed = true;
+      records.push(this.changeRecord(update, applied));
     }
-    if (!changed.length) return [];
-    state.profile.roleCardUpdatedAt = new Date().toISOString();
-    state.profile.roleCardChangeLog = [...(state.profile.roleCardChangeLog || []), ...changed].slice(-30);
-    window.GameModules.rpgInitializer?.touch?.(state.values, window.Alpine?.store?.('game'));
-    await window.GameModules.sqliteSave.saveCharacterState(state);
-    return changed;
+    if (!records.length) return [];
+    if (changed && state?.profile) {
+      state.profile.roleCardUpdatedAt = new Date().toISOString();
+      state.profile.roleCardChangeLog = [...(state.profile.roleCardChangeLog || []), ...records.filter((item) => item.applied)].slice(-30);
+      window.GameModules.rpgInitializer?.touch?.(state.values, window.Alpine?.store?.('game'));
+      await window.GameModules.sqliteSave.saveCharacterState(state);
+    }
+    return records;
   },
 
   applyOne(profile, update) {
@@ -65,7 +77,7 @@ window.GameModules.characterCardLexicon = {
     return true;
   },
 
-  changeRecord(update) {
-    return { at: new Date().toISOString(), skillId: update.kind === '角色技能' ? this.addSkillId : this.modifySkillId, field: this.displayField(update.field), name: update.name || update.field, value: update.value, reason: update.reason };
+  changeRecord(update, applied = true) {
+    return { at: new Date().toISOString(), skillId: update.kind === '角色技能' ? this.addSkillId : this.modifySkillId, field: this.displayField(update.field), name: update.name || update.field, value: update.value, reason: update.reason, applied };
   },
 };
