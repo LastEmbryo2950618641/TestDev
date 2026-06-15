@@ -34,7 +34,7 @@ window.GameModules.rpgProfileMetrics = {
     list.forEach((item) => {
       if (!keys.includes(item?.key)) return;
       const value = window.GameModules.metrics.clamp(item.value);
-      window.GameModules.metrics.writeMetric(target, notes, type, item, value, '根据角色初始资料与玩家关系生成。');
+      window.GameModules.metrics.writeMetric(target, notes, type, item, value, '根据角色性格、经历、关系事件与玩家互动倾向形成。');
     });
   },
   rebaseGroup(target, list, oldList, keys, notes, type, defaults) {
@@ -46,7 +46,7 @@ window.GameModules.rpgProfileMetrics = {
       const current = window.GameModules.metrics.clamp(target[item.key]);
       const base = oldMap.has(item.key) ? oldMap.get(item.key) : window.GameModules.metrics.clamp(defaults?.[item.key]);
       if (current !== base) return;
-      window.GameModules.metrics.writeMetric(target, notes, type, item, value, '根据更新后的角色初始资料与玩家关系生成。');
+      window.GameModules.metrics.writeMetric(target, notes, type, item, value, '根据角色资料变化、关系事件与玩家互动倾向重新形成。');
     });
   },
 };
