@@ -62,7 +62,7 @@ window.GameModules = window.GameModules || {};
         this.phoneFixedTime = new Date(this.playerProfile.initializedAt).getTime();
         await this.syncPlayerProfileLexicon?.();
         this.playerName = name; this.phoneActivationChoice = ''; this.phoneSetupDone = true; this.desktopUnlocked = false;
-        await this.ensurePlayerRpgState?.(true); await this.save?.();
+        await this.save?.();
       } finally { this.profileSetupBusy = false; }
     },
     async syncPlayerProfileLexicon() {
