@@ -295,17 +295,17 @@
         <strong x-text="`${$store.game.character.name}｜人物设定`"></strong>
         <button class="small-btn" @click="$store.game.characterDetailOpen = false">关闭</button>
       </header>
-      <p x-text="$store.game.characterProfiles[$store.game.character.id]?.summary || '正在读取人物设定。'"></p>
+      <p x-text="$store.game.homeCharacterProfile?.summary || '正在读取人物设定。'"></p>
       <section class="profile-basic-panel">
         <h3>基础档案</h3>
         <div class="profile-basic-grid">
-          <template x-for="row in ($store.game.characterProfiles[$store.game.character.id]?.basics || [])" :key="row.label">
+          <template x-for="row in ($store.game.homeCharacterProfile?.basics || [])" :key="row.label">
             <article><span x-text="row.label"></span><b x-text="row.value"></b></article>
           </template>
         </div>
       </section>
       <section class="profile-section-list scroll-area">
-        <template x-for="section in ($store.game.characterProfiles[$store.game.character.id]?.sections || [])" :key="section.title">
+        <template x-for="section in ($store.game.homeCharacterProfile?.sections || [])" :key="section.title">
           <article>
             <h3 x-text="section.title"></h3>
             <template x-if="section.items.length">
@@ -1107,9 +1107,9 @@
         <div class="profile-preview-main">
           <strong x-text="$store.game.character.name"></strong>
           <small x-text="`${$store.game.character.work || '原创'}｜${$store.game.character.role}`"></small>
-          <p x-text="$store.game.characterBriefBusy ? '正在读取本地人物设定…' : ($store.game.characterProfiles[$store.game.character.id]?.summary || '点击查看完整人物设定')"></p>
+          <p x-text="$store.game.characterBriefBusy ? '正在读取本地人物设定…' : ($store.game.homeCharacterProfile?.summary || '点击查看完整人物设定')"></p>
           <div class="profile-chip-grid">
-            <template x-for="row in ($store.game.characterProfiles[$store.game.character.id]?.basics || []).slice(0, 6)" :key="row.label">
+            <template x-for="row in ($store.game.homeCharacterProfile?.basics || []).slice(0, 6)" :key="row.label">
               <span><b x-text="row.label"></b><em x-text="row.value"></em></span>
             </template>
           </div>

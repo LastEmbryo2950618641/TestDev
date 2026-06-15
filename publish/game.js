@@ -44,6 +44,7 @@ function registerGameStore() {
     workMenuOpen: false,
     characterMenuOpen: false,
     characterProfiles: {},
+    homeCharacterProfiles: {},
     characterDetailOpen: false,
     characterBriefBusy: false,
     entryCalendar: null, characterAge: '',
@@ -94,6 +95,8 @@ function registerGameStore() {
     get character() { return window.GameModules.catalog.find(this.selectedCharacterId) || this.characters.find((c) => c.id === this.selectedCharacterId) || this.characters[0]; },
 
     get workCharacters() { return window.GameModules.catalog.characters(this.selectedWork); },
+
+    get homeCharacterProfile() { return this.homeCharacterProfiles[this.character.id] || null; },
 
     get characterRpgState() {
       return this.rpgStates[this.character.id] || null;

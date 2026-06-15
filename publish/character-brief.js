@@ -7,17 +7,20 @@ window.GameModules.characterBrief = {
   async ensure(store) {
     const character = store.character;
     const useCache = window.GameModules.cache.enabled('characterProfiles');
-    const current = character?.id ? store.characterProfiles[character.id] : null;
+    const current = character?.id ? store.homeCharacterProfiles?.[character.id] : null;
     if (!character?.id || (useCache && current && this.hasBirthDate(current))) return;
     store.characterBriefBusy = true;
     try {
       console.log('[人物资料] 开始读取:', character.work, character.name, character.id);
       const profile = await this.loadProfile(character);
       console.log('[人物资料] 读取完成:', character.name, profile.path || '无路径', 'summaryLength=', String(profile.summary || '').length);
+      store.homeCharacterProfiles = { ...store.homeCharacterProfiles, [character.id]: profile };
       store.characterProfiles = { ...store.characterProfiles, [character.id]: profile };
     } catch (err) {
       console.warn('人物设定读取失败:', err.message, err.stack);
-      store.characterProfiles = { ...store.characterProfiles, [character.id]: this.fallbackProfile(character) };
+      const fallback = this.fallbackProfile(character);
+      store.homeCharacterProfiles = { ...store.homeCharacterProfiles, [character.id]: fallback };
+      store.characterProfiles = { ...store.characterProfiles, [character.id]: fallback };
     } finally {
       store.characterBriefBusy = false;
     }
