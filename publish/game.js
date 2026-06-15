@@ -11,7 +11,8 @@ const dzmmReady = new Promise((resolve) => {
   setTimeout(resolve, 1200);
 });
 
-document.addEventListener('alpine:init', () => {
+function registerGameStore() {
+  if (!window.Alpine || window.Alpine.store('game')) return;
   const cfg = window.GameModules.config;
   const gm = window.GameModules;
   const modules = [
@@ -191,5 +192,9 @@ document.addEventListener('alpine:init', () => {
     professionRequirementText(job) { return gm.knownProfessionActions?.professionRequirementText?.call(this, job) || ''; },
   });
 
-  queueMicrotask(() => Alpine.store('game').init());
-});
+  const startInit = () => Alpine.store('game')?.init?.();
+  if (window.queueMicrotask) queueMicrotask(startInit);
+  else setTimeout(startInit, 0);
+}
+
+document.addEventListener('alpine:init', registerGameStore); window.addEventListener('load', registerGameStore); setTimeout(registerGameStore, 0);
