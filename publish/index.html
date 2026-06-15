@@ -67,6 +67,7 @@
   <script src="character-profile-source.js"></script>
   <script src="character-reason-fallback.js"></script>
   <script src="character-profile.js"></script>
+  <script src="character-card-confirm.js"></script>
   <script src="character-memory.js"></script>
   <script src="character-memory-flow.js"></script>
   <script src="entry-time-flow.js"></script>
@@ -331,6 +332,29 @@
         <button :class="{ active: $store.game.promptDialogTab === 'user' }" @click="$store.game.promptDialogTab = 'user'">用户提示词</button>
       </div>
       <pre class="prompt-content" x-text="$store.game.promptDialogText()"></pre>
+    </div>
+  </section>
+
+  <section x-show="$store.game.characterCardConfirm.open" class="save-modal-backdrop" x-cloak>
+    <div class="save-modal character-card-confirm-modal">
+      <header><strong>确认生成完整角色卡</strong><button class="small-btn" @click="window.GameModules.characterCardConfirm.cancel($store.game)">取消</button></header>
+      <p x-text="$store.game.characterCardConfirm.message"></p>
+      <div class="confirm-toolbar">
+        <button class="small-btn" @click="window.GameModules.characterCardConfirm.toggleAll($store.game, true)">全选</button>
+        <button class="small-btn" @click="window.GameModules.characterCardConfirm.toggleAll($store.game, false)">全不选</button>
+      </div>
+      <section class="confirm-character-list scroll-area">
+        <template x-for="item in $store.game.characterCardConfirm.pending" :key="item.id">
+          <label class="confirm-character-item">
+            <input type="checkbox" x-model="$store.game.characterCardConfirm.selected[item.id]">
+            <span><b x-text="item.name"></b><em x-text="`${item.work || '未知作品'}｜${item.role || '出场人物'}`"></em></span>
+          </label>
+        </template>
+      </section>
+      <footer class="confirm-actions">
+        <button class="small-btn" @click="window.GameModules.characterCardConfirm.cancel($store.game)">跳过生成</button>
+        <button class="primary-btn" @click="window.GameModules.characterCardConfirm.confirm($store.game)">确认生成勾选角色</button>
+      </footer>
     </div>
   </section>
 

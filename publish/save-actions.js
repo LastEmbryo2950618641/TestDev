@@ -108,11 +108,16 @@ window.GameModules.saveActions = {
   },
 
   async ensureRpgFromResults(result) {
-    await this.ensureRpgForCurrentCharacter();
     const entries = [this.character, ...(result.appearedCharacters || [])];
     const context = `${this.sceneTitle} ${this.quest} ${result.narration || ''}`;
-    for (const entry of entries) {
-      await this.ensureRpgForCharacter(entry, context, { loadMetrics: entry.id === this.character.id });
+    const allowed = await window.GameModules.characterCardConfirm.request(this, entries);
+    this.characterCardGenerationAllowed = allowed;
+    try {
+      for (const entry of entries) {
+        await this.ensureRpgForCharacter(entry, context, { loadMetrics: entry.id === this.character.id });
+      }
+    } finally {
+      this.characterCardGenerationAllowed = null;
     }
   },
 

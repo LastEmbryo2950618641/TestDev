@@ -10,6 +10,8 @@ window.GameModules.characterProfile = {
     const signature = this.inputSignature(base, context, store, source.preset);
     const existing = window.GameModules.cache?.enabled?.('generatedProfiles') ? window.GameModules.sqliteSave.getCharacterState(base.id) : null;
     if (existing && this.isReusableRoleCard(existing.profile, signature)) return existing.profile;
+    const allowed = store?.characterCardGenerationAllowed || await window.GameModules.characterCardConfirm?.request?.(store, [base]);
+    if (allowed && !allowed.has(base.id)) return existing?.profile || this.withSignature(this.localRoleCard(base, source.preset), signature);
     const lore = await window.GameModules.worldLore.ensure(base.work, context);
     const attrs = await window.GameModules.rpgState.ensureWorldAttributes(base.work);
     return this.generate(base, lore, attrs, context, store, signature, source.preset);
@@ -191,6 +193,25 @@ window.GameModules.characterProfile = {
       skills: base.skills?.length ? base.skills : [{ name: '观察', desc: '从细节中判断局势。' }],
       worldValues: {},
     }, base, lore, attrs, window.Alpine?.store?.('game'));
+  },
+
+  localRoleCard(base, preset = null) {
+    const reason = '玩家跳过AI生成，暂用本地人物设定和目录资料占位。';
+    const profile = {
+      ...base,
+      detail: base.detail || preset?.summary || '本地资料暂未提供详细说明。',
+      appearance: base.appearance || '本地资料暂未提供外貌。',
+      personality: base.personality || '本地资料暂未提供性格。',
+      factions: base.factions || [{ faction: base.work || '当前世界', role: base.role || '成员', reason }],
+      forcePositions: base.forcePositions || base.force_positions || [{ force: base.work || '当前世界', position: base.role || '成员', reason }],
+      roleCardFieldReasons: Object.fromEntries(this.roleCardFieldKeys().map((key) => [key, reason])),
+      rpgFieldReasons: {},
+      initialMetrics: { emotions: [], playerFeelings: [] },
+      roleCard: true,
+      roleCardSource: 'local-skip',
+      roleCardUpdatedAt: new Date().toISOString(),
+    };
+    return this.ensureInventoryReasons(profile);
   },
 
   factionRoles(profile, base, store = null) {

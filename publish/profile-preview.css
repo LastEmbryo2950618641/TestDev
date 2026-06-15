@@ -160,6 +160,65 @@
   white-space: nowrap;
 }
 
+.character-card-confirm-modal {
+  width: min(620px, 100%);
+  max-height: min(680px, 90dvh);
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+}
+
+.confirm-toolbar,
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.confirm-actions {
+  justify-content: flex-end;
+}
+
+.confirm-character-list {
+  display: grid;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.confirm-character-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(113, 243, 255, .16);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .055);
+}
+
+.confirm-character-item input {
+  width: 18px;
+  height: 18px;
+}
+
+.confirm-character-item span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.confirm-character-item b,
+.confirm-character-item em {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.confirm-character-item em {
+  color: #aeb9d6;
+  font-style: normal;
+  font-size: 12px;
+}
+
 @media (max-width: 560px) {
   .entry-character-summary {
     grid-template-columns: auto minmax(0, 1fr);
