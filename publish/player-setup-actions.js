@@ -92,8 +92,8 @@ window.GameModules.playerSetupActions = {
       try {
         enriched = await this.enrichPlayerProfile(base);
       } catch (err) {
-        console.error('[玩家身份] AI补全失败:', err.code, err.message, err.stack);
-        throw err;
+        console.warn('[玩家身份] AI补全失败，改用本地资料继续激活:', err.code, err.message, err.stack);
+        enriched = this.localPlayerProfileFallback(base);
       }
       this.playerProfile = this.normalizeEnrichedPlayerProfile(base, enriched);
       this.phoneFixedTime = new Date(this.playerProfile.initializedAt || Date.now()).getTime();
@@ -139,6 +139,24 @@ window.GameModules.playerSetupActions = {
       window.GameModules.jsonUtils.generateJsonWithRetry({ source: 'player-profile-enrichment', model: this.modelId, maxTokens: 1200, prompt, format: prompt, max: 2 }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('身份补全超时')), 30000)),
     ]);
+  },
+
+  localPlayerProfileFallback(base) {
+    return {
+      refinedCity: base.city,
+      refinedRole: base.dailyRole,
+      workplace: base.workplace,
+      position: base.position,
+      refinedLivingStatus: base.livingStatus,
+      relationships: base.relationships,
+      parentStatus: base.parents,
+      parentDeathCause: '',
+      worldbuildingNote: base.notes || 'AI补全超时，暂按玩家填写资料继续。',
+      knownProfessions: [],
+      equipment: [],
+      items: [],
+      wearing: [],
+    };
   },
 
   recoverEnrichedPlayerProfile(raw, base) {
