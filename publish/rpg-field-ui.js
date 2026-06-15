@@ -96,23 +96,27 @@ window.GameModules.rpgFieldUi = {
   fallbackChangeReason(field, obj = null, kind = '', name = '') {
     const finalKind = kind || (obj ? this.lexiconKind(field, obj) : (field?.kind || this.lexiconKind(field)));
     const finalName = name || (obj ? this.rpgItemSummary(obj) : (field?.label || field?.key || '该词条'));
-    if (obj) return `${finalName}当前作为${finalKind}子词条显示；需要后续明确剧情、现实行动或玩家编辑来写入更具体的变化原因。`;
-    if (this.isRpgListField(field)) return `${finalName}是${finalKind}树词条，用于汇总其子词条；具体变化原因以展开后的子词条为准。`;
-    return `${finalName}当前没有可引用的具体变化记录；后续发生明确行动、成长结算或玩家编辑时会更新原因。`;
+    if (obj) return `${finalName}当前作为${finalKind}子词条显示，依据其名称、类型、等级、槽位或数量等已落库值生成。`;
+    if (field?.source) return `${finalName}由初始值${field.source.initial || 0}、等级成长${field.source.level || 0}、自由分配${field.source.allocated || 0}和非玩家成长${field.source.npc || 0}合计得到。`;
+    if (field?.raw?.current !== undefined && field.raw?.max !== undefined) return `${finalName}当前为${field.raw.current}/${field.raw.max}，依据该状态池的当前值与上限展示。`;
+    if (field?.key === 'exp' && field.raw?.current !== undefined) return `${finalName}当前为${field.raw.current}/${field.raw.next}，依据个人等级对应的经验曲线展示。`;
+    if (Array.isArray(field?.raw)) return `${finalName}当前汇总${field.raw.length}个已落库子词条，展开后查看各子词条依据。`;
+    return `${finalName}当前值为“${field?.value || '未记录'}”，依据已落库状态展示。`;
   },
 
-  fieldChangeReason(field, lexicon = null) {
+  explicitFieldChangeReason(field, lexicon = null) {
     const state = this.activeDetailState(), values = state?.values || {}, profile = state?.profile || {};
     const explicit = this.usableChangeReason(field?.reason || lexicon?.meta?.modifyReason, [lexicon?.description, lexicon?.summary, field?.desc]);
     if (explicit) return explicit;
     const aiReason = this.usableChangeReason(profile.rpgFieldReasons?.[field?.key] || profile.rpgFieldReasons?.[field?.label], [lexicon?.description, lexicon?.summary, field?.desc]);
     if (aiReason) return String(aiReason).slice(0, 120);
-    if (field?.key === 'level' && values.level_growth?.history?.length) {
-      const latest = values.level_growth.history.at(-1);
-      return latest.reason || '';
-    }
+    if (field?.key === 'level' && values.level_growth?.history?.length) return values.level_growth.history.at(-1)?.reason || '';
     if (field?.key === 'level_growth' && values.level_growth?.history?.length) return values.level_growth.history.at(-1)?.reason || '';
     return '';
+  },
+
+  fieldChangeReason(field, lexicon = null) {
+    return this.explicitFieldChangeReason(field, lexicon) || this.fallbackChangeReason(field);
   },
 
   itemChangeReason(field, obj = {}, lexicon = null, kind = '', name = '') {
@@ -182,7 +186,8 @@ window.GameModules.rpgFieldUi = {
   rpgFieldDetail(field) {
     const lexicon = this.lexiconFor(field);
     const lines = [`说明: ${lexicon?.description || lexicon?.summary || field?.desc || this.fallbackDesc(field)}`];
-    lines.push(`变化原因: ${this.fieldChangeReason(field, lexicon)}`);
+    const explicitReason = this.explicitFieldChangeReason(field, lexicon);
+    lines.push(`${explicitReason ? '变化原因' : '生成依据'}: ${explicitReason || this.fallbackChangeReason(field)}`);
     lines.push(`所属世界: ${field?.worldTag || lexicon?.worldTag || '公共'}`);
     lines.push(`字段范围: ${(field?.commonField ?? lexicon?.meta?.commonField) ? '公共字段' : '世界专属字段'}`);
     lines.push(`词条类型: ${field?.targetType || lexicon?.meta?.targetType || '角色'}`);
