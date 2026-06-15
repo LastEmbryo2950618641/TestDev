@@ -73,7 +73,7 @@
 
 1. timeRange 是世界范围时间[时间1 - 时间2]。
 2. events 是异世界事件数组，每个含 eventId、name、time、summary、detail、storyIndexes、factionIds、status。
-3. storyIndexes 是原著剧情索引数组，对应 md 文档“剧情索引”。
+3. storyIndexes 是剧情索引摘要数组，只能写 1 到 5 个短字符串，例如“主线开端”“家庭线索”，绝对不要输出连续数字列表。
 4. factionMap 是势力对象键值对，key=势力ID。
 5. factionMap value 必须含 势力ID、名称、类型、属性、关系网、当前目标、近期决策、状态。
 6. 属性是 key:value；关系网 value 为 -100 到 100；状态只能是 正常/危机/扩张/衰退。
@@ -81,9 +81,9 @@
 ## 输出规则
 
 1. 只返回一行紧凑 JSON，不要 Markdown，不要换行，不要解释。
-2. 严格控制长度：background 不超过80字；factions 2到4个，每个 desc 不超过30字；specialJobs 1到4个，每个 desc 不超过30字；jobRanks 3到6项；coreRules 3到6项，每项不超过24字。
-3. 必须生成 worldline 并写入。
-4. 不要生成世界专属属性字段，它会从能力维度文档固化。
+2. 严格控制长度：background 不超过60字；factions 2到3个，每个 desc 不超过20字；specialJobs 1到3个，每个 desc 不超过20字；jobRanks 3到5项；coreRules 3到5项，每项不超过18字。
+3. 必须生成 worldline 并写入，但 events 最多 1 个，storyIndexes 最多 5 个短字符串，factionMap 最多 3 个势力。
+4. 不要输出连续数字数组、长编号列表或长篇剧情索引；不要生成世界专属属性字段，它会从能力维度文档固化。
 
 ## 返回 JSON 格式
 
@@ -107,8 +107,8 @@
 | factions[] | object | name, desc | `desc` 不超过 30 字。 |
 | specialJobs[] | object | name, desc | `desc` 不超过 30 字。 |
 | calendar | object | label, months, days, hours, units | `months` 与 `hours` 为字符串数组；`days` 为数字；`units` 含 year/month/day/hour。 |
-| worldline | object | timeRange, events, storyIndexes, factionMap | `timeRange` 格式为 `[时间1 - 时间2]`。 |
-| worldline.events[] | object | eventId, name, time, summary, detail, storyIndexes, factionIds, status | 异世界事件；`storyIndexes` 对应资料文档剧情索引。 |
+| worldline | object | timeRange, events, storyIndexes, factionMap | `timeRange` 格式为 `[时间1 - 时间2]`，`storyIndexes` 最多 5 个短字符串。 |
+| worldline.events[] | object | eventId, name, time, summary, detail, storyIndexes, factionIds, status | 最多 1 个事件；`storyIndexes` 最多 5 个短字符串。 |
 | worldline.factionMap.* | object | 势力ID, 名称, 类型, 属性, 关系网, 当前目标, 近期决策, 状态 | `关系网` 的数值为 -100 到 100；`状态` 只能是 正常/危机/扩张/衰退。 |
 
 ### 最小结构示意

@@ -36,28 +36,49 @@ window.GameModules.worldLore = {
     try {
       if (!window.dzmm?.completions) return this.fallback(worldTag);
       const prompt = await this.prompt(worldTag, context);
-      console.log('[世界观] AI请求:', { worldTag, promptLength: prompt.length, model: 'nalang-medium-0826', maxTokens: 2000 });
-      return await window.GameModules.jsonUtils.generateJsonWithRetry({
-        source: 'world-lore',
-        model: 'nalang-medium-0826',
-        maxTokens: 2000,
-        prompt,
-        format: prompt,
-        parse: (text) => this.parse(text),
-        validate: (raw) => this.validate(raw, worldTag),
-      });
+      console.log('[世界观] AI请求:', { worldTag, promptLength: prompt.length, model: 'nalang-medium-0826', maxTokens: 900 });
+      const text = await window.GameModules.jsonUtils.requestCompletion({ source: 'world-lore', model: 'nalang-medium-0826', maxTokens: 900, prompt, timeoutMs: 60000 });
+      return this.validate(this.parseOrRecover(text, worldTag), worldTag);
     } catch (err) {
       console.warn('世界观设定生成失败，使用兜底:', err.message);
       return this.fallback(worldTag);
     }
   },
 
-  prompt(worldTag, context) {
-    return window.GameModules.promptTemplates.render('world-lore', { 世界: worldTag, 剧情上下文: String(context || '暂无').slice(0, 240) });
+  async prompt(worldTag, context) {
+    const text = await window.GameModules.promptTemplates.render('world-lore', { 世界: worldTag, 剧情上下文: String(context || '暂无').slice(0, 240) });
+    return `${text}\n\n## 本次强制短输出\n只返回完整合法 JSON。worldline.events 最多 1 个，storyIndexes 最多 5 个短字符串，禁止输出连续数字列表。整体控制在 1200 字符内。`;
   },
 
   parse(text) {
     return window.GameModules.jsonUtils.parseLoose(String(text || '').replace(/[\u0000-\u001F]/g, ''));
+  },
+
+  parseOrRecover(text, worldTag) {
+    try { return this.parse(text); } catch (err) {
+      console.warn('[世界观] JSON解析失败，改用文本恢复兜底:', err.message);
+      return this.recover(text, worldTag);
+    }
+  },
+
+  recover(text, worldTag) {
+    const utils = window.GameModules.jsonUtils;
+    const source = String(text || '').replace(/```(?:json)?|```/g, '');
+    const pick = (key, fallback) => utils.pickStringField?.(source, key) || fallback;
+    const names = (key, fallback) => {
+      const list = utils.pickObjectArrayNames?.(source, key) || [];
+      return (list.length ? list : fallback).slice(0, 4).map((name) => ({ name, desc: `${name}影响${worldTag}的局势。` }));
+    };
+    return {
+      worldTag,
+      background: pick('background', `${worldTag}的日常秩序下隐藏着会改变角色处境的冲突。`),
+      factions: names('factions', ['本地社会', '关键关系网']),
+      specialJobs: names('specialJobs', ['普通职业']),
+      jobRanks: utils.pickStringArray?.(source, 'jobRanks').slice(0, 6),
+      coreRules: utils.pickStringArray?.(source, 'coreRules').slice(0, 6),
+      calendar: this.fallback(worldTag).calendar,
+      worldline: this.fallback(worldTag).worldline,
+    };
   },
 
   validate(lore, worldTag) {
