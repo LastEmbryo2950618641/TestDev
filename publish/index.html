@@ -511,7 +511,7 @@
                 <div class="novel-story dev-section" data-section-title="现实AI生成内容" x-show="entry.type !== 'user'" :class="{ streaming: entry.streaming }">
                   <div class="novel-thinking dev-section" data-section-title="现实AI思考" x-show="entry.thinking"><p><b>【现实推演】</b><span x-text="entry.thinking"></span></p></div>
                   <small class="real-world-entry-location" x-show="entry.locationName" x-text="`地点｜${entry.locationName}`"></small>
-                  <div class="novel-tool-row"><button class="card-change-toggle" x-show="entry.characterCardChanges?.length" @click="$store.game.toggleCardChanges(entry)" x-text="entry.cardChangesOpen ? '角色卡变更▾' : '角色卡变更▸'"></button><button class="prompt-toggle" x-show="entry.promptPack" @click="$store.game.openRealWorldPrompt(entry.id)" title="查看生成提示词">≡</button></div>
+                  <div class="novel-tool-row"><button class="card-change-toggle" :class="{ open: entry.cardChangesOpen }" x-show="entry.characterCardChanges?.length" @click="$store.game.toggleCardChanges(entry)" x-text="entry.cardChangesOpen ? '角色卡变更▾' : '角色卡变更▸'"></button><button class="prompt-toggle" x-show="entry.promptPack" @click="$store.game.openRealWorldPrompt(entry.id)" title="查看生成提示词">≡</button></div>
                   <p class="novel-body-text" x-text="entry.narration || entry.text"></p>
                   <div class="card-change-panel" x-show="entry.cardChangesOpen"><template x-for="change in entry.characterCardChanges" :key="`${change.at}-${change.field}-${change.name}`"><p><b x-text="change.field"></b><span x-text="`${change.name || ''}：${typeof change.value === 'object' ? JSON.stringify(change.value) : change.value}｜理由：${change.reason}`"></span></p></template></div>
                 </div>
@@ -995,7 +995,7 @@
         <section class="wechat-chat-page" x-show="$store.game.wechatView === 'chat'">
           <div class="wechat-messages">
             <template x-for="(msg, index) in $store.game.wechatMessages()" :key="index">
-              <div class="wechat-msg" :class="msg.side"><button class="wechat-avatar" type="button" @click="$store.game.openWechatIdentity()" x-text="msg.mark"></button><div><p x-text="msg.text"></p><button class="card-change-toggle" x-show="msg.characterCardChanges?.length" @click="$store.game.toggleCardChanges(msg)" x-text="msg.cardChangesOpen ? '角色卡变更▾' : '角色卡变更▸'"></button><div class="card-change-panel" x-show="msg.cardChangesOpen"><template x-for="change in msg.characterCardChanges" :key="`${change.at}-${change.field}-${change.name}`"><p><b x-text="change.field"></b><span x-text="`${change.name || ''}：${typeof change.value === 'object' ? JSON.stringify(change.value) : change.value}｜理由：${change.reason}`"></span></p></template></div></div></div>
+              <div class="wechat-msg" :class="msg.side"><button class="wechat-avatar" type="button" @click="$store.game.openWechatIdentity()" x-text="msg.mark"></button><div><p x-text="msg.text"></p><button class="card-change-toggle" :class="{ open: msg.cardChangesOpen }" x-show="msg.characterCardChanges?.length" @click="$store.game.toggleCardChanges(msg)" x-text="msg.cardChangesOpen ? '角色卡变更▾' : '角色卡变更▸'"></button><div class="card-change-panel" x-show="msg.cardChangesOpen"><template x-for="change in msg.characterCardChanges" :key="`${change.at}-${change.field}-${change.name}`"><p><b x-text="change.field"></b><span x-text="`${change.name || ''}：${typeof change.value === 'object' ? JSON.stringify(change.value) : change.value}｜理由：${change.reason}`"></span></p></template></div></div></div>
             </template>
           </div>
           <p class="wechat-replying" x-show="$store.game.wechatSending">对方正在输入…</p>
@@ -1320,7 +1320,7 @@
                   <div class="novel-thinking dev-section" data-section-title="AI思考内容" x-show="entry.thinking && (entry.streaming || entry.thinkingOpen)"><p><b>【AI思考】</b><span x-text="entry.thinking"></span></p></div>
                   <div class="novel-tool-row">
                     <button class="thinking-toggle" x-show="entry.thinking && !entry.streaming" @click="$store.game.toggleNovelThinking(entry.id)" x-text="entry.thinkingOpen ? '▾' : '▸'"></button>
-                    <button class="card-change-toggle" x-show="entry.characterCardChanges?.length" @click="$store.game.toggleCardChanges(entry)" x-text="entry.cardChangesOpen ? '角色卡变更▾' : '角色卡变更▸'"></button>
+                    <button class="card-change-toggle" :class="{ open: entry.cardChangesOpen }" x-show="entry.characterCardChanges?.length" @click="$store.game.toggleCardChanges(entry)" x-text="entry.cardChangesOpen ? '角色卡变更▾' : '角色卡变更▸'"></button>
                     <button class="prompt-toggle" x-show="entry.promptPack" @click="$store.game.openNovelPrompt(entry.id)" title="查看生成提示词">≡</button>
                   </div>
                   <p class="novel-body-text" x-text="entry.storyText"></p>
