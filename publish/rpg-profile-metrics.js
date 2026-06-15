@@ -3,7 +3,9 @@ window.GameModules = window.GameModules || {};
 window.GameModules.rpgProfileMetrics = {
   apply(state, profile) {
     const source = profile?.initialMetrics;
-    if (!state || state.id === 'player-self' || !source || state.metrics?.profileInitialApplied) return false;
+    const signature = profile?.roleCardInputSignature || profile?.roleCardUpdatedAt || '';
+    if (!state || state.id === 'player-self' || !source) return false;
+    if (state.metrics?.profileInitialApplied && state.metrics.profileInitialSignature === signature) return false;
     const before = JSON.stringify(state.metrics || {});
     state.metrics = state.metrics || {};
     state.metrics.emotions = state.metrics.emotions || {};

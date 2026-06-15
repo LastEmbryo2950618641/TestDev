@@ -136,6 +136,7 @@ window.GameModules.characterProfile = {
       '必须返回根字段 roleCardFieldReasons，不是 roleCardField、中文字段平铺或社群映射。',
       'roleCardFieldReasons 必须完整包含：姓名、所属世界、身份、职业、性别、生日、人际关系、外貌、性格、人物说明、社群角色、势力地位。每个值写一句具体事实原因。',
       `必须返回根字段 rpgFieldReasons，并完整包含：${this.rpgFieldReasonKeys(attrs).join('、')}。`,
+      'initialMetrics 每个情绪/感觉都必须由AI生成 value、具体数值解释 status、具体形成/变化原因 reason；不要默认值、阶段定义或背景信息模板。',
       'relationships 必须是字符串，格式“关系：姓名”；不要对象。',
     ].join('\n');
   },
@@ -239,7 +240,7 @@ window.GameModules.characterProfile = {
       context: String(context || '').slice(0, 1200),
     };
     const raw = JSON.stringify(data);
-    return `v6:${raw.length}-${window.GameModules.rpgState.seed(raw)}`;
+    return `v7:${raw.length}-${window.GameModules.rpgState.seed(raw)}`;
   },
 
   fallback(base, lore, attrs) {
@@ -442,9 +443,13 @@ window.GameModules.characterProfile = {
   hasRequiredInitialMetrics(value) {
     const hasAll = (items, keys) => Array.isArray(items) && keys.every((key) => {
       const item = items.find((entry) => entry?.key === key);
-      return item && item.value !== undefined && String(item.reason || '').trim();
+      return item && item.value !== undefined && this.validMetricText(item.status, key) && this.validMetricText(item.reason, key);
     });
     return hasAll(value?.emotions, window.GameModules.metrics.emotionKeys) && hasAll(value?.playerFeelings, window.GameModules.metrics.playerKeys);
+  },
+
+  validMetricText(text, key) {
+    return window.GameModules.metrics.isSpecificMetricText(text, key) && !window.GameModules.metrics.metricReasonLooksGeneric(text);
   },
 
   initialMetrics(value, profile = {}) {
@@ -452,14 +457,15 @@ window.GameModules.characterProfile = {
       const list = Array.isArray(items) ? items : [];
       return keys.map((key) => {
         const item = list.find((entry) => entry?.key === key) || {};
-        const fallback = this.defaultMetric(key, type, profile);
-        const metricValue = item.value !== undefined ? window.GameModules.metrics.clamp(item.value) : fallback.value;
-        const stage = window.GameModules.metrics.stageFor(key, metricValue);
+        if (item.value === undefined) throw new Error(`${profile.name || '角色'} 缺少AI生成的${key}数值`);
+        if (!this.validMetricText(item.status, key)) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的具体数值解释`);
+        if (!this.validMetricText(item.reason, key)) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的具体变化原因`);
+        const metricValue = window.GameModules.metrics.clamp(item.value);
         return {
           key,
           value: metricValue,
-          status: String(item.status || fallback.status || window.GameModules.metrics.valueExplanation(key, metricValue)).slice(0, 120),
-          reason: String(item.reason || fallback.reason).slice(0, 160),
+          status: String(item.status).slice(0, 160),
+          reason: String(item.reason).slice(0, 180),
         };
       });
     };

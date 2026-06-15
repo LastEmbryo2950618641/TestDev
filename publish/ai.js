@@ -122,11 +122,13 @@ window.GameModules.ai = {
     return keys.map((key) => {
       const item = main.find((x) => x?.key === key);
       if (!item) return null;
+      const delta = window.GameModules.metrics.clampDelta(item.delta);
+      const value = window.GameModules.metrics.clamp((window.Alpine?.store?.('game')?.[keys === window.GameModules.metrics.emotionKeys ? 'emotions' : 'playerFeelings']?.[key] || 0) + delta);
       return {
         key,
-        delta: window.GameModules.metrics.clampDelta(item.delta),
-        status: String(item.status || '').slice(0, 80),
-        reason: String(item.reason || '').slice(0, 160),
+        delta,
+        status: String(window.GameModules.metrics.valueExplanation(key, value, item.status)).slice(0, 180),
+        reason: String(window.GameModules.metrics.metricReasonLooksGeneric(item.reason) ? `缺少AI生成的${key}变化原因。` : item.reason).slice(0, 180),
       };
     }).filter(Boolean);
   },

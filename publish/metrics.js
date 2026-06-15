@@ -45,12 +45,19 @@ window.GameModules.metrics = {
     const text = key === '爱情' ? love[stage] : (key === '了解' ? know[stage] : intensity[stage]);
     return text || `${key}处于${stage}阶段。`;
   },
-  valueExplanation(key, value) {
-    const n = this.clamp(value);
-    if (key === '爱情' && n >= 95) return '爱情接近满值：已达到生死相许、愿意长期相守的程度。';
-    if (key === '了解' && n >= 95) return '了解接近满值：几乎洞悉你的身份、习惯、意图与隐秘动机。';
-    const stage = this.stageFor(key, n);
-    return `数值${n}/100，处于“${stage}”程度：${this.stageStatus(key, stage)}`;
+  valueExplanation(key, value, custom = '') {
+    const text = String(custom || '').trim();
+    if (this.isSpecificMetricText(text, key)) return text;
+    return `缺少AI生成的${key}${this.clamp(value)}数值解释。`;
+  },
+  isSpecificMetricText(text, key = '') {
+    const value = String(text || '').trim();
+    if (!value || value === this.stageStatus(key, this.stageFor(key, 0))) return false;
+    if (/这项|当前处境|如何看待|数值\d+\/100|处于“/.test(value)) return false;
+    return /因为|由于|源于|来自|经历|过去|害怕|依赖|相依|相濡|哥哥|姐姐|妹妹|父亲|母亲|玩家|刘悠|鬼怪|创伤|动机|处境|关系/.test(value) || value.length >= 18;
+  },
+  metricReasonLooksGeneric(text) {
+    return !this.isSpecificMetricText(text) || /背景信息|当前人物资料|初始接触|本回合没有直接触发|保持原值|保持原址|足以明显改变|处境和关系证据|关系证据来自|根据角色性格|你刚介入|当前场景、你的行动|个人动机与过去经历/.test(String(text || ''));
   },
   ensure(store) {
     store.emotions = this.fill(store.emotions, this.emotionKeys, this.defaults.emotions);
@@ -92,8 +99,8 @@ window.GameModules.metrics = {
     target[item.key] = value;
     notes[`${group}:${item.key}`] = {
       stage,
-      status: String(item.status || this.stageStatus(item.key, stage)).slice(0, 80),
-      reason: String(item.reason || fallbackReason).slice(0, 160),
+      status: String(this.valueExplanation(item.key, value, item.status)).slice(0, 180),
+      reason: String(this.metricReasonLooksGeneric(item.reason) ? `缺少AI生成的${item.key}变化原因。` : item.reason).slice(0, 180),
       description: String(this.descriptions[item.key] || item.key).slice(0, 120),
     };
   },

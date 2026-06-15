@@ -51,7 +51,7 @@
 8. `worldValues` 只填“世界字段”中有证据的 key，没有则 `{}`。
 9. `roleCardFieldReasons` 必须完整包含：姓名、所属世界、身份、职业、性别、生日、人际关系、外貌、性格、人物说明、社群角色、势力地位。每个值写当前人物本人的具体固化原因，不要写抽象套话。
 10. `rpgFieldReasons` 必须完整包含这些 key：{RPG字段列表}。每个值写当前人物本人的具体经历、训练、身体状态或处境原因。
-11. `initialMetrics.emotions` 必须覆盖全部情绪 key：{情绪字段}；`initialMetrics.playerFeelings` 必须覆盖全部对玩家感觉 key：{关系指标字段}。每项含 `key, value, status, reason`，`value` 为 0-100 数字。
+11. `initialMetrics.emotions` 必须覆盖全部情绪 key：{情绪字段}；`initialMetrics.playerFeelings` 必须覆盖全部对玩家感觉 key：{关系指标字段}。每项含 `key, value, status, reason`，`value` 为 0-100 数字。`value` 必须由 AI 按当前人物性格、处境、经历、关系证据判断，不得照抄默认值。`status` 必须解释“该 key 为什么是该数值”，要点名具体证据，如“恐惧80：童年怕鬼且当前环境像闹鬼”；`reason` 必须解释“为什么形成/变化成这样”，结合角色动机、处境与过去经历，如“亲情100：与哥哥刘悠相依为命”。`status/reason` 不得写通用阶段定义、背景信息或模板句。
 12. 成年角色若资料明确有恋爱、身体吸引、占有欲等证据，对应数值可高于 0；无证据或未成年时保持 0 并说明原因。
 
 ## JSON 根字段

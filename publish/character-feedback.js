@@ -46,7 +46,6 @@ window.GameModules.characterFeedback = {
   parse(text, fallback, store) {
     try {
       const data = window.GameModules.jsonUtils.parseLoose(text);
-      const completeMetrics = this.hasCompleteInitialMetrics(data.metricUpdates);
       if (!data.mind && !data.intent) throw new Error('角色反馈缺少 mind/intent');
       const feeling = String(data.controlFeeling || fallback.controlFeeling || '疑惑').slice(0, 40);
       const result = {
@@ -57,11 +56,11 @@ window.GameModules.characterFeedback = {
         controlFeeling: feeling,
         adaptation: this.clamp(data.adaptation, fallback.adaptation),
         experienceSummary: String(data.experienceSummary || fallback.experienceSummary).slice(0, 80),
-        metricUpdates: completeMetrics ? window.GameModules.ai.normalizeInitialMetricUpdates(data.metricUpdates, null, store) : fallback.metricUpdates,
+        metricUpdates: fallback.metricUpdates,
         choices: this.normalizeChoices(data.choices, fallback.choices),
         source: 'ai',
       };
-      console.log('[角色反馈] AI解析成功:', { mindLength: result.mind.length, intentLength: result.intent.length, metrics: completeMetrics ? 'ai' : 'fallback' });
+      console.log('[角色反馈] AI解析成功:', { mindLength: result.mind.length, intentLength: result.intent.length, metrics: 'profile' });
       return result;
     } catch (err) {
       console.warn('角色反馈解析失败:', err.message);

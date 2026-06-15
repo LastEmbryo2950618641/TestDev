@@ -77,13 +77,10 @@ window.GameModules.actions = {
   metricNote(type, key, state = null) {
     const target = this.metricTargetForNote(type, key, state);
     if (!target.ready) return `定义: ${target.description}\n解释: 等待推演，数值尚未完成初始化。\n变化原因: 数值正在刷新，尚未完成初始推演。`;
-    const stage = target.raw?.stage || window.GameModules.metrics.stageFor(key, target.value);
-    const actor = state?.profile?.name || this.character?.name || window.GameModules.ai?.actorPronoun?.(this) || '角色';
-    const fallbackReason = type === 'emotion' ? `${actor}受到当前场景、你的行动、自身处境、角色动机与过去经历影响，因此${key}情绪呈现为“${stage}”。` : `${actor}结合与你的关系、当前处境、个人动机与过去经历，形成了对玩家的${key}程度。`;
-    const rawStatus = target.raw?.status;
-    const status = rawStatus && rawStatus !== window.GameModules.metrics.stageStatus(key, stage) ? rawStatus : window.GameModules.metrics.valueExplanation(key, target.value);
+    const rawStatus = String(target.raw?.status || '');
+    const status = window.GameModules.metrics.isSpecificMetricText(rawStatus, key) ? rawStatus : '缺少AI生成的具体数值解释，请重新生成角色卡或推进剧情。';
     const rawReason = String(target.raw?.reason || '');
-    const reason = rawReason && !/本回合没有直接触发变化|保持原值|保持原址/.test(rawReason) ? rawReason : fallbackReason;
+    const reason = !window.GameModules.metrics.metricReasonLooksGeneric(rawReason) ? rawReason : '缺少AI生成的具体变化原因，请重新生成角色卡或推进剧情。';
     return `定义: ${target.description}\n解释: ${status}\n变化原因: ${reason}`;
   },
   metricTargetForNote(type, key, state = null) {
