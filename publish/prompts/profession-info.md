@@ -62,6 +62,48 @@
 3. 只返回 JSON，不要 Markdown。
 4. 不要返回不符合世界观的世界专属能力。
 
-## 返回格式
+## 返回 JSON 格式
 
-{"name":"职业名","confirmed":true,"summary":"30字内简单介绍","description":"120字内详细介绍","levelDescription":"lv.1说明","effect":"lv.1实际作用","intrinsicStats":["intelligence"],"learnedAbilities":["技能名"],"knowledgeAreas":["知识名"],"worldAbilities":[],"requirements":{"intrinsicStats":["intelligence"],"worldAbilities":[],"learnedAbilities":["技能名"],"knowledgeAreas":["知识名"],"reason":"这些构成为什么能支撑该职业lv.1"}}
+只返回一个 JSON 对象。字段规范如下：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| name | string | 是 | 职业名，简短明确。 |
+| confirmed | boolean | 是 | 是否能确认该职业成立。 |
+| summary | string | 是 | 30 字内简单介绍。 |
+| description | string | 是 | 120 字内详细介绍。 |
+| levelDescription | string | 是 | lv.1 代表的职责、熟练度或资格。 |
+| effect | string | 是 | lv.1 在剧情判定、资源、社会承认或行动中的实际作用。 |
+| intrinsicStats | array<string> | 是 | 该职业依赖或强化的身内能力 key，只能从七项固定英文 key 中选择。 |
+| learnedAbilities | array<string> | 是 | 通过职业训练学会的技能名。 |
+| knowledgeAreas | array<string> | 是 | 职业必须具备的知识储备名。 |
+| worldAbilities | array<string> | 是 | 与世界专属能力相关的字段 key 或能力名；无候选或不相关时返回空数组。 |
+| requirements | object | 是 | 职业 lv.1 考核要求。 |
+
+### requirements 对象规范
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| intrinsicStats | array<string> | 是 | lv.1 需要的身内能力 key。 |
+| worldAbilities | array<string> | 是 | lv.1 需要的世界专属能力；无则空数组。 |
+| learnedAbilities | array<string> | 是 | lv.1 需要的技能。 |
+| knowledgeAreas | array<string> | 是 | lv.1 需要的知识储备。 |
+| reason | string | 是 | 说明这些构成为什么足以支撑该职业 lv.1。 |
+
+### 最小结构示意
+
+```json
+{
+  "name": "职业名",
+  "confirmed": true,
+  "summary": "30字内简单介绍",
+  "description": "120字内详细介绍",
+  "levelDescription": "lv.1说明",
+  "effect": "lv.1实际作用",
+  "intrinsicStats": ["intelligence"],
+  "learnedAbilities": ["技能名"],
+  "knowledgeAreas": ["知识名"],
+  "worldAbilities": [],
+  "requirements": { "intrinsicStats": ["intelligence"], "worldAbilities": [], "learnedAbilities": ["技能名"], "knowledgeAreas": ["知识名"], "reason": "支撑该职业lv.1的原因" }
+}
+```

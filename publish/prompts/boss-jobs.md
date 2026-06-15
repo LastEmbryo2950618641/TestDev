@@ -21,31 +21,31 @@
 - 想薪酬更真实：调整 payType 和薪资字段规则。
 - 想限制岗位地区：强化地址筛选。
 
-## 字段
+## 返回 JSON 格式
 
-id,title,company,industry,scale,address,payType,base,performanceMonths,creatorPay,level,royalty,buyout,hourly,skills,desc,matchProfessions,matchSkills,matchKnowledge
+只返回 JSON 数组，数组长度为 {数量}。每个岗位对象字段规范如下：
 
-## 字段拆分说明
-
-- id：唯一岗位 ID。
-- title：具体职位名。
-- company：公司名。
-- industry：行业。
-- scale：公司规模。
-- address：工作地址。
-- payType：员工/创作者/定时工。
-- base：员工底薪。
-- performanceMonths：绩效月数。
-- creatorPay：创作者薪酬描述。
-- level：岗位等级。
-- royalty：提成。
-- buyout：买断费用。
-- hourly：小时工资。
-- skills：岗位需要技能。
-- desc：一句话职责。
-- matchProfessions：匹配玩家职业。
-- matchSkills：匹配玩家技能。
-- matchKnowledge：匹配玩家知识。
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| id | string | 是 | 唯一岗位 ID。 |
+| title | string | 是 | 具体职位名。 |
+| company | string | 是 | 公司名。 |
+| industry | string | 是 | 行业。 |
+| scale | string | 是 | 公司规模。 |
+| address | string | 是 | 工作地址。 |
+| payType | string | 是 | 只能是“员工”“创作者”“定时工”。 |
+| base | number | 是 | 员工底薪；非员工类型可为 0。 |
+| performanceMonths | number | 是 | 绩效月数；非员工类型可为 0。 |
+| creatorPay | string | 是 | 创作者薪酬描述；非创作者可为空字符串。 |
+| level | string | 是 | 岗位等级。 |
+| royalty | number | 是 | 提成；无提成可为 0。 |
+| buyout | number | 是 | 买断费用；无买断可为 0。 |
+| hourly | number | 是 | 小时工资；非定时工可为 0。 |
+| skills | array<string> | 是 | 3 到 5 项真实岗位技能。 |
+| desc | string | 是 | 一句话职责。 |
+| matchProfessions | array<string> | 是 | 匹配玩家职业，只能引用玩家已有能力。 |
+| matchSkills | array<string> | 是 | 匹配玩家技能，只能引用玩家已有能力。 |
+| matchKnowledge | array<string> | 是 | 匹配玩家知识，只能引用玩家已有能力。 |
 
 ## 生成规则
 

@@ -85,6 +85,43 @@
 3. 必须生成 worldline 并写入。
 4. 不要生成世界专属属性字段，它会从能力维度文档固化。
 
-## 返回格式
+## 返回 JSON 格式
 
-{"worldTag":"{世界}","background":"背景介绍","factions":[{"name":"势力名","desc":"说明"}],"specialJobs":[{"name":"特殊职业","desc":"说明"}],"jobRanks":["等级体系"],"coreRules":["世界规则"],"calendar":{"label":"纪年名","months":["月份"],"days":30,"hours":["时段名"],"units":{"year":"年","month":"月","day":"日","hour":"时"}},"worldline":{"timeRange":"[时间1 - 时间2]","events":[{"eventId":"event_1","name":"事件名","time":"时间","summary":"摘要","detail":"详细信息","storyIndexes":["剧情索引1"],"factionIds":["faction_1"],"status":"进行中"}],"storyIndexes":["剧情索引1"],"factionMap":{"faction_1":{"势力ID":"faction_1","名称":"势力名","类型":"组织","属性":{"资源":"中等"},"关系网":{},"当前目标":"主要意图","近期决策":[],"状态":"正常"}}}}
+只返回一个 JSON 对象。字段规范如下：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| worldTag | string | 是 | 世界标签，必须等于或贴近《{世界}》。 |
+| background | string | 是 | 80 字内世界背景。 |
+| factions | array<object> | 是 | 2 到 4 个核心组织、阵营、国家或机构。 |
+| specialJobs | array<object> | 是 | 1 到 4 个特殊职业或能力体系。 |
+| jobRanks | array<string> | 是 | 3 到 6 项等级、阶位、职位或成长层次。 |
+| coreRules | array<string> | 是 | 3 到 6 项世界运行规则，每项 24 字内。 |
+| calendar | object | 是 | 世界日历定义。 |
+| worldline | object | 是 | 世界线、事件索引与势力图。 |
+
+### 嵌套对象规范
+
+| 路径 | 类型 | 必填字段 | 说明 |
+| --- | --- | --- | --- |
+| factions[] | object | name, desc | `desc` 不超过 30 字。 |
+| specialJobs[] | object | name, desc | `desc` 不超过 30 字。 |
+| calendar | object | label, months, days, hours, units | `months` 与 `hours` 为字符串数组；`days` 为数字；`units` 含 year/month/day/hour。 |
+| worldline | object | timeRange, events, storyIndexes, factionMap | `timeRange` 格式为 `[时间1 - 时间2]`。 |
+| worldline.events[] | object | eventId, name, time, summary, detail, storyIndexes, factionIds, status | 异世界事件；`storyIndexes` 对应资料文档剧情索引。 |
+| worldline.factionMap.* | object | 势力ID, 名称, 类型, 属性, 关系网, 当前目标, 近期决策, 状态 | `关系网` 的数值为 -100 到 100；`状态` 只能是 正常/危机/扩张/衰退。 |
+
+### 最小结构示意
+
+```json
+{
+  "worldTag": "{世界}",
+  "background": "背景介绍",
+  "factions": [{ "name": "势力名", "desc": "说明" }],
+  "specialJobs": [{ "name": "特殊职业", "desc": "说明" }],
+  "jobRanks": ["等级体系"],
+  "coreRules": ["世界规则"],
+  "calendar": { "label": "纪年名", "months": ["月份"], "days": 30, "hours": ["时段名"], "units": { "year": "年", "month": "月", "day": "日", "hour": "时" } },
+  "worldline": { "timeRange": "[时间1 - 时间2]", "events": [], "storyIndexes": [], "factionMap": {} }
+}
+```

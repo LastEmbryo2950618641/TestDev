@@ -44,6 +44,34 @@
 7. 不要返回 metricUpdates；角色卡创建阶段已经根据人物资料和备注生成 initialMetrics。
 8. 如果人物资料里出现爱情、肉欲、依赖、亲情、占有欲等关系倾向，只能用于 mind、intent、controlFeeling 和 choices 的心理依据，不得在这里重置数值。
 
-## 格式示例
+## 输出 JSON 格式
+
+只返回一个 JSON 对象。字段规范如下：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| mind | string | 是 | 角色自己的第一人称内心独白，40 到 70 字。 |
+| intent | string | 是 | 角色本人下一步想做什么，30 到 50 字。 |
+| controlFeeling | string | 是 | 角色对被上线操控的短语感受。 |
+| adaptation | number | 是 | 角色对上线操控的适应度变化或当前适应度。 |
+| experienceSummary | string | 是 | 40 字内上线体验摘要。 |
+| choices | array<string> | 是 | 玩家可执行行动，四项，每项 12 字内；不能包含“放开控制”。 |
+
+不得返回 `metricUpdates`，不得创建或覆盖情绪与关系数值。
+
+### 最小结构示意
+
+```json
+{
+  "mind": "角色第一人称内心，40到70字",
+  "intent": "角色本人下一步想做什么，30到50字",
+  "controlFeeling": "疑惑/恐惧/愤怒等短语",
+  "adaptation": 0,
+  "experienceSummary": "40字内",
+  "choices": ["行动一", "行动二", "行动三", "行动四"]
+}
+```
+
+### 本次可用示例
 
 {输出示例}

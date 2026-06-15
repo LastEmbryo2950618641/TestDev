@@ -126,8 +126,42 @@
 5. knownProfessions、equipment、items、wearing 必须是字符串，不要写数组、对象、方括号或大括号；多个项目用中文顿号分隔。
 6. 如果无法确认已知职业，knownProfessions 返回空字符串 ""，不要省略字段。
 
-## 返回字段
+## 返回 JSON 格式
+
+只返回一个 JSON 对象。字段规范如下：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| refinedCity | string | 是 | 补全后的省市区县镇街道社区小区楼栋门牌，必须具体可落库。 |
+| refinedRole | string | 是 | 更具体的现实身份。 |
+| workplace | string | 是 | 根据身份生成的公司、学校、组织、部门或机构；不填居住社区。 |
+| position | string | 是 | 在 workplace 中的岗位、年级、职位、职级或身份层级。 |
+| refinedLivingStatus | string | 是 | 更具体的居住状态，体现同住对象、独居、宿舍、合租或家庭处境。 |
+| relationships | string | 是 | 整理后的人际关系，格式为“关系：姓名”，多项用中文分号。 |
+| parentStatus | string | 是 | 父母状态。 |
+| parentDeathCause | string | 是 | 父母去世原因；父母未故或无依据时返回空字符串。 |
+| worldbuildingNote | string | 是 | 60 字内现实背景补充。 |
+| knownProfessions | string | 是 | 玩家已知职业，多个用中文顿号；没有则返回空字符串。 |
+| equipment | string | 是 | 初始重要工具或可装备物名称，多个用中文顿号。 |
+| items | string | 是 | 初始普通持有物或消耗品名称，多个用中文顿号。 |
+| wearing | string | 是 | 当前实际穿戴名称，多个用中文顿号；常规场景必须含基础穿着。 |
+
+### 最小结构示意
 
 ```json
-{"refinedCity":"省市区县镇街道小区楼栋门牌","refinedRole":"更具体身份","workplace":"根据职业生成的公司/学校/组织","position":"根据职业生成的职位/身份层级","refinedLivingStatus":"更具体居住状态","relationships":"妹妹：姓名；父亲：姓名","parentStatus":"父母状态","parentDeathCause":"父母去世原因或空","worldbuildingNote":"60字内现实背景补充","knownProfessions":"后端工程师、软件工程师","equipment":"手机、双肩包、手表","items":"钥匙、钱包、身份证件","wearing":"日常上衣、长裤、运动鞋"}
+{
+  "refinedCity": "省市区县镇街道小区楼栋门牌",
+  "refinedRole": "更具体身份",
+  "workplace": "公司/学校/组织",
+  "position": "职位/身份层级",
+  "refinedLivingStatus": "更具体居住状态",
+  "relationships": "妹妹：姓名；父亲：姓名",
+  "parentStatus": "父母状态",
+  "parentDeathCause": "父母去世原因或空字符串",
+  "worldbuildingNote": "60字内现实背景补充",
+  "knownProfessions": "后端工程师、软件工程师",
+  "equipment": "手机、双肩包、手表",
+  "items": "钥匙、钱包、身份证件",
+  "wearing": "日常内衣、T恤、内裤、长裤、短袜、运动鞋"
+}
 ```

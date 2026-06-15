@@ -173,14 +173,54 @@
 4. online 时 choices 是玩家接下来操控身体的行动或脑内想法；offline 时 choices 是玩家给角色的建议、提醒或态度。
 5. 不要返回“放开控制”，该选项由界面固定提供。
 
-## 输出格式
+## 输出 JSON 格式
 
-1. 必须只返回合法 JSON，不要 Markdown，不要代码块。
-2. 所有 key 必须使用英文双引号；字符串值也必须使用英文双引号。
-3. 每个属性之间必须用英文逗号分隔，严禁漏逗号；最后一个属性后不要加逗号。
-4. 除 narration、mind、choices 这类本回合必须展示的内容外，任何字段若没有新信息、没有变化或不需要更改，都可以省略。
-5. 不要为了凑格式返回空字符串、0 或重复旧值。
-6. 数值字段一旦返回就必须填真实数字，不要填中文占位词。
+必须只返回一个合法 JSON 对象，不要 Markdown，不要代码块。根字段规范如下：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| narration | string | 是 | 小说正文，作者口吻续写本回合结果。 |
+| mind | string | 是 | 被操控者第一人称内心独白。 |
+| mood | string | 是 | 当前情绪短语。 |
+| trust | number | 否 | 兼容旧字段；无明确变化可省略。 |
+| resistance | number | 否 | 兼容旧字段；无明确变化可省略。 |
+| quest | string | 是 | 当前目标或下一步剧情牵引。 |
+| status | string | 是 | 当前状态摘要。 |
+| elapsedSeconds | number | 是 | 本回合经过的游戏内秒数。 |
+| choices | array<string> | 是 | 四个可点击的下一步玩家行动或想法。 |
+| metricUpdates | object | 否 | 本回合变化或需要解释的情绪/对玩家感觉。 |
+| lexiconUpdates | array<object> | 否 | 本回合确认变化的词条、角色卡、技能、装备、物品、穿着等。 |
+| thinking | string | 否 | 仅在思考展示规则允许时返回。 |
+
+### 嵌套对象规范
+
+| 路径 | 类型 | 必填字段 | 说明 |
+| --- | --- | --- | --- |
+| metricUpdates.emotions[] | object | key, delta, status, reason | `key` 只能来自情绪字段；`delta` 为 -30 到 30 整数。 |
+| metricUpdates.playerFeelings[] | object | key, delta, status, reason | `key` 只能来自对玩家感觉字段；`delta` 为 -30 到 30 整数。 |
+| lexiconUpdates[] | object | worldTag, kind, name, value, reason | `field`、`summary`、`description` 按词条类型可选；`reason` 必须写本回合事实证据、触发事件、角色动机、状态来源或关系变化依据。 |
+
+### JSON 硬性规则
+
+1. 所有 key 和字符串值必须使用英文双引号。
+2. 每个属性之间必须用英文逗号分隔，最后一个属性后不要加逗号。
+3. 除 narration、mind、mood、quest、status、elapsedSeconds、choices 外，任何字段若没有新信息、没有变化或不需要更改，都可以省略。
+4. 不要为了凑格式返回空字符串、0 或重复旧值。
+5. 数值字段一旦返回就必须填真实数字，不要填中文占位词。
+
+### 最小结构示意
+
+```json
+{
+  "narration": "小说正文",
+  "mind": "第一人称内心独白",
+  "mood": "当前情绪",
+  "quest": "当前目标",
+  "status": "当前状态摘要",
+  "elapsedSeconds": 60,
+  "choices": ["行动一", "行动二", "行动三", "行动四"]
+}
+```
 
 ## 词条修改 Skill
 

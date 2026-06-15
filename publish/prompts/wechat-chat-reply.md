@@ -61,8 +61,35 @@
 9. reply 建议 1 到 3 句，最长 120 字；不要输出多条数组消息。
 10. elapsedSeconds 表示从玩家发出到联系人回复经过的现实秒数，普通聊天 20-180 秒，深夜/忙碌/犹豫可更久，但不超过 1800 秒。
 
-## 输出格式
+## 输出 JSON 格式
 
-必须只返回一行合法 JSON，不要 Markdown，不要代码块，不要解释。
+必须只返回一行合法 JSON，不要 Markdown，不要代码块，不要解释。字段规范如下：
 
-{"reply":"联系人微信回复","mood":"联系人此刻回复语气","elapsedSeconds":60,"lexiconUpdates":[{"worldTag":"2026 现代都市现实世界","kind":"角色卡","field":"姓名","name":"姓名","value":"正式姓名","reason":"微信上下文确认该角色卡修改的证据、触发消息或关系事实"}]}
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| reply | string | 是 | 联系人微信回复，1 到 3 句，最长 120 字。 |
+| mood | string | 是 | 联系人此刻回复语气。 |
+| elapsedSeconds | number | 是 | 从玩家发出到联系人回复经过的现实秒数。 |
+| lexiconUpdates | array<object> | 否 | 聊天确认了角色卡或技能事实时返回；没有变化可省略或返回空数组。 |
+
+### lexiconUpdates[] 对象规范
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| worldTag | string | 是 | 通常为“2026 现代都市现实世界”。 |
+| kind | string | 是 | 角色卡字段用“角色卡”；技能用“角色技能”。 |
+| field | string | 条件必填 | kind 为“角色卡”时写角色卡字段名。 |
+| name | string | 是 | 角色卡字段名，或技能集合名 `skills`。 |
+| value | string/object | 是 | 新值；技能为 `{ "name": "技能名", "desc": "技能说明" }`。 |
+| reason | string | 是 | 微信上下文确认修改的证据、触发消息、关系事实或联系人动机。 |
+
+### 最小结构示意
+
+```json
+{
+  "reply": "联系人微信回复",
+  "mood": "联系人此刻回复语气",
+  "elapsedSeconds": 60,
+  "lexiconUpdates": []
+}
+```

@@ -234,32 +234,73 @@ worldValues 只返回有明确依据的字段：{世界字段}。
 4. 原因必须具体到经历。例如“她长期照顾病重父母又兼顾学业，意志高于普通同龄人”；“她没有接受过运动或战斗训练，力量只保持普通日常水平”；“父母已故后长期与哥哥相依为命，精神稳定受家庭压力影响”。
 5. 不要用固定模板；每个字段必须分别写不同角度的原因。即使某字段很低、为空或接近普通，也要说明具体原因，例如缺少训练、长期普通生活、身体病弱、社会经历少、学习经历多但运动经历少等。
 
-## 返回字段拆分
+## 返回 JSON 格式
 
-- name：正式姓名。
-- gender：性别。
-- relationships：与玩家或其它核心人物的固化关系。
-- role：身份/社会角色/关系定位。
-- detail：个人背景，说明生活处境、经历、与上下文的联系，不写外貌和性格长段。
-- appearance：外貌词条，描述可见外观、气质、穿着、体态或辨识特征；没有证据时根据世界观克制生成。
-- personality：性格词条，描述稳定性格、处事方式、关系边界和心理倾向；必须与上下文证据一致。
-- faction：兼容字段，取 factions[0].faction；界面统一展示 factions 为“社群角色”，不要把它当作独立展示词条。
-- factions：社群角色数组，每项含 faction 与 role，表示“社群 / 角色”；必须尽可能补全居住社区、家庭、社交圈、临时群体等必要信息。
-- forcePositions：势力地位数组，每项含 force 与 position，表示“势力 / 地位”；填写有等级制度、组织层级、职级、年级、职位划分的公司、学校、部门或组织。
-- job：确认职业；无可靠依据则空字符串。
-- jobConfirmed：职业是否确认。
-- rank：兼容字段，来自 forcePositions[0].position；界面统一展示 forcePositions 为“势力地位”，不要把它当作独立展示词条。
-- skills：可确认技能数组，每项含 name、desc、reason。
-- equipment：初始装备数组，每项含 name、description、equipSlots、reason。
-- items：初始物品数组，每项含 name、description、quantity、reason，可装备物也要含 equipSlots。
-- wearing：当前穿着数组，每项含 slot、name、description、reason。
-- worldValues：世界专属字段取值。
-- roleCardFieldReasons：角色卡字段原因对象，说明姓名、所属世界、身份、职业、性别、生日、人际关系、外貌、性格、人物说明、社群角色、势力地位等为什么这样固化。
-- rpgFieldReasons：RPG 基础字段原因对象，说明个人等级、身内能力、学习能力、精神稳定等为什么是当前水平。
-- initialMetrics：初始情绪与对玩家感觉。
+只返回一个 JSON 对象。根字段规范如下：
 
-## 返回 JSON 结构
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| name | string | 是 | 正式姓名。 |
+| gender | string | 是 | 性别。 |
+| relationships | string | 是 | 与玩家或核心人物的固化关系，格式为“关系：姓名”，多项用中文分号。 |
+| role | string | 是 | 身份、社会角色或关系定位。 |
+| detail | string | 是 | 个人背景；说明住址、学校、工作、特殊处境和上下文联系，不写外貌与性格长段。 |
+| appearance | string | 是 | 外貌词条；描述可见外观、气质、穿着、体态或辨识特征。 |
+| personality | string | 是 | 性格词条；描述稳定性格、处事方式、关系边界和心理倾向。 |
+| faction | string | 是 | 兼容字段，取 `factions[0].faction`。 |
+| factions | array<object> | 是 | 社群角色列表，1 到 4 项。 |
+| forcePositions | array<object> | 是 | 势力地位列表，1 到 4 项。 |
+| job | string | 是 | 确认职业；无可靠依据返回空字符串。 |
+| jobConfirmed | boolean | 是 | 职业是否确认。 |
+| rank | string | 是 | 兼容字段，取 `forcePositions[0].position`。 |
+| skills | array<object> | 是 | 可确认技能列表。 |
+| equipment | array<object> | 是 | 初始装备列表。 |
+| items | array<object> | 是 | 初始物品列表。 |
+| wearing | array<object> | 是 | 当前穿着列表。 |
+| worldValues | object | 是 | 世界专属字段取值；只放有明确依据的字段。 |
+| roleCardFieldReasons | object | 是 | 角色卡字段固化原因，必须包含固定中文 key。 |
+| rpgFieldReasons | object | 是 | RPG 字段生成原因，必须包含 `{RPG字段列表}` 的全部英文 key。 |
+| initialMetrics | object | 是 | 初始情绪与对玩家感觉。 |
+
+### 嵌套对象规范
+
+| 路径 | 类型 | 必填字段 | 说明 |
+| --- | --- | --- | --- |
+| factions[] | object | faction, role, reason | `faction` 写社群名；`role` 写其中承担的角色；`reason` 写成立证据。 |
+| forcePositions[] | object | force, position, reason | `force` 写组织/势力；`position` 写职位、年级、职级或法定身份；`reason` 写成立证据。 |
+| skills[] | object | name, desc, reason | 技能名、技能说明、为什么属于此角色。 |
+| equipment[] | object | name, description, equipSlots, reason | 装备名、说明、可装备部位数组、持有原因。 |
+| items[] | object | name, description, quantity, reason | 物品名、说明、数量、持有原因；可装备物也要含 `equipSlots`。 |
+| wearing[] | object | slot, name, description, reason | 槽位、穿着名称、说明、为什么当前穿戴。 |
+| roleCardFieldReasons | object | 姓名, 所属世界, 身份, 职业, 性别, 生日, 人际关系, 外貌, 性格, 人物说明, 社群角色, 势力地位 | 每个 key 都写具体固化原因，不得省略。 |
+| rpgFieldReasons | object | {RPG字段列表} | 每个 RPG 字段都写具体经历、状态或证据原因。 |
+| initialMetrics.emotions[] | object | key, value, status, reason | `key` 必须来自情绪字段；`value` 为 0 到 100 数字。 |
+| initialMetrics.playerFeelings[] | object | key, value, status, reason | `key` 必须来自对玩家感觉字段；`value` 为 0 到 100 数字。 |
+
+### 最小结构示意
 
 ```json
-{"name":"姓名","gender":"性别","relationships":"妹妹：姓名；父亲：姓名","role":"身份","detail":"个人背景，必须说明住址/学校/工作/特殊处境的推断依据","appearance":"外貌","personality":"性格","faction":"社群名称","factions":[{"faction":"锦苑小区3栋2单元601号","role":"居民","reason":"她与玩家同住在该地址，因此属于该居住社群"},{"faction":"刘悠家庭","role":"同居妹妹","reason":"玩家人际关系与居住状态确认她是同居妹妹"}],"forcePositions":[{"force":"成都市第七中学","position":"高三学生","reason":"年龄与学生处境支持她处于高中学籍势力中"},{"force":"成都星河云栈科技有限公司","position":"软件工程师","reason":"角色职业履历确认其在该公司任软件工程师"}],"job":"职业，无法可靠判断则空字符串","jobConfirmed":false,"rank":"首要势力职位","skills":[{"name":"观察","desc":"能从家人情绪和日常细节判断气氛","reason":"长期同居生活让她熟悉家庭成员的表情和行为变化"}],"equipment":[{"name":"手机","description":"日常通讯工具","equipSlots":["装备"],"reason":"现代同居学生需要用手机与家人和学校保持联系"}],"items":[{"name":"钥匙","description":"住所门钥匙","quantity":1,"reason":"她长期居住在玩家家中，需要持有住所钥匙"}],"wearing":[{"slot":"上衣","name":"日常上衣","description":"当前穿着","reason":"普通居家或上学场景下的基础穿着"},{"slot":"鞋子","name":"运动鞋","description":"当前穿着","reason":"现代学生日常外出和上学常穿运动鞋"}],"worldValues":{"字段key":"该人物固化取值"},"roleCardFieldReasons":{"姓名":"姓名来源原因，要引用命名要求或文化习俗","所属世界":"所属世界来源原因","身份":"身份由人物基础区和关系事件区确认","职业":"职业确认或为空的原因，说明证据是否足以固化职业","性别":"性别来源原因","生日":"生日或年龄来源原因，若未知则说明没有明确生日证据","人际关系":"关系由玩家人际关系区和微信上下文确认","外貌":"外貌由备注、预设或世界观克制推断","性格":"性格由备注、处境和互动历史推断","人物说明":"人物说明整合住址、家庭、学校或工作处境","社群角色":"社群角色由住址、家庭或社交圈确认","势力地位":"势力地位由国家、学校、公司或组织身份确认"},"rpgFieldReasons":{"level":"个人等级原因，要结合具体经历说明","strength":"力量原因","agility":"敏捷原因","constitution":"体质原因","intelligence":"智力原因","perception":"感知原因","willpower":"意志原因","charisma":"魅力原因","learning_ability":"学习能力原因","mental_stability":"精神稳定原因","growth_potential":"成长潜力原因","action_ability":"行动能力原因"},"initialMetrics":{"emotions":[{"key":"担忧","value":40,"status":"当前状态","reason":"原因"}],"playerFeelings":[{"key":"亲情","value":85,"status":"当前状态","reason":"原因"}]}}
+{
+  "name": "姓名",
+  "gender": "性别",
+  "relationships": "关系：姓名",
+  "role": "身份",
+  "detail": "个人背景",
+  "appearance": "外貌",
+  "personality": "性格",
+  "faction": "首要社群",
+  "factions": [],
+  "forcePositions": [],
+  "job": "",
+  "jobConfirmed": false,
+  "rank": "首要势力地位",
+  "skills": [],
+  "equipment": [],
+  "items": [],
+  "wearing": [],
+  "worldValues": {},
+  "roleCardFieldReasons": {},
+  "rpgFieldReasons": {},
+  "initialMetrics": { "emotions": [], "playerFeelings": [] }
+}
 ```

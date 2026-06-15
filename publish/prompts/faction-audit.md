@@ -21,36 +21,53 @@
 - 想强调国家/公司层级：调整 parentId / parentName 规则。
 - 想看原因：强化 fieldReasons 覆盖范围。
 
-## 返回格式
+## 返回 JSON 格式
 
-{"factions":[...]}
+只返回一个 JSON 对象。根字段规范如下：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| factions | array<object> | 是 | 初始化或审计后的势力列表。 |
+
+### factions[] 对象规范
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| id | string | 是 | 稳定唯一 ID。 |
+| name | string | 是 | 势力名称。 |
+| type | string | 是 | 国家、公司、学校、社区、组织、家庭、部门等。 |
+| parentId | string | 是 | 上级势力 ID；无上级时为空字符串。 |
+| parentName | string | 是 | 上级势力名称；无上级时为“无势力归属”。 |
+| level | string | 是 | 国家级、省市级、公司级、部门级、家庭级等。 |
+| location | string | 是 | 主要所在地。 |
+| domain | string | 是 | 影响领域。 |
+| scale | string | 是 | 规模。 |
+| stance | string | 是 | 对玩家或当前局势的态度。 |
+| influence | string | 是 | 影响力描述。 |
+| description | string | 是 | 势力概要。 |
+| structure | array<object> | 是 | 可画树状组织架构图的数组。 |
+| rules | array<string> | 是 | 内部规则。 |
+| resources | array<string> | 是 | 资源。 |
+| relations | array<object> | 是 | 与其它势力的关系。 |
+| fieldReasons | object | 是 | 除 id 外每个字段的审计理由。 |
+
+### 嵌套对象规范
+
+| 路径 | 类型 | 必填字段 | 说明 |
+| --- | --- | --- | --- |
+| structure[] | object | name, roles | `name` 写层级/部门/节点名；`roles` 写该节点职责或职位列表。 |
+| relations[] | object | target, relation, detail | 关系目标、关系类型、关系说明。 |
+| fieldReasons | object | name, type, parentId, parentName, level, location, domain, scale, stance, influence, description, structure, rules, resources, relations | 每个字段都写一句审计理由。 |
+
+### 最小结构示意
+
+```json
+{ "factions": [] }
+```
 
 ## 势力定义
 
 任何具有组织形式的实体都算势力；每个势力必须有 parentId 和 parentName，无上级时 parentId 为空且 parentName 为“无势力归属”；所有公司必须归属于国家级势力。
-
-## 固定字段
-
-id,name,type,parentId,parentName,level,location,domain,scale,stance,influence,description,structure,rules,resources,relations,fieldReasons
-
-## 字段拆分说明
-
-- id：稳定唯一 ID。
-- name：势力名称。
-- type：国家、公司、学校、社区、组织、家庭、部门等。
-- parentId / parentName：上级势力。
-- level：国家级、省市级、公司级、部门级、家庭级等。
-- location：主要所在地。
-- domain：影响领域。
-- scale：规模。
-- stance：对玩家或当前局势的态度。
-- influence：影响力描述。
-- description：势力概要。
-- structure：必须是可画树状组织架构图的数组，数组项为 {name,roles}；name 写层级/部门/节点名，roles 写该节点职责或职位列表。
-- rules：内部规则。
-- resources：资源。
-- relations：数组项为 {target,relation,detail}。
-- fieldReasons：必须覆盖除 id 外每个字段，每个字段都写一句审计理由。
 
 ## 规则
 

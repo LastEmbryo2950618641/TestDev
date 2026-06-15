@@ -96,24 +96,50 @@
 14. 现实世界中任何玩家资料、公司、职业、状态、阵营、装备、物品、穿着等词条变化，都必须通过 lexiconUpdates 批量提交；每条必须写 reason，按通用规则说明现实证据、触发行动、状态来源或动机，没有明确事实变化就不要返回。装备表示重要工具/可调用装备，物品表示普通持有物或消耗品，穿着表示已穿戴槽位；装备/物品若可装备必须在 value.equipSlots 写可装备部位。穿着 slot 可写内衣/上衣/内裤/下衣/袜子/鞋子/外套/手套/头部/颈部/腰部/包具/饰品/装备，饰品和装备可不写数字，系统会自动分配饰品1、装备1等编号槽位。“未穿戴”表示该部位真实空置：内衣未穿戴就是无内衣，上衣/内衣/下衣/内裤均未穿戴就是赤裸；只有现实行动明确发生脱下、换装、洗浴、睡眠等特殊情况时才可返回基础槽位未穿戴，不能因信息不足或未观察到而返回。
 15. 如果现实推演确认玩家本人身份证角色卡需要更新（姓名、身份、外貌、性格、人物说明、人际关系、职业等），lexiconUpdates 使用 kind:"角色卡"，field/name 写字段名，value 写新值，reason 写修改理由。若需要新增或修正玩家稳定技能，使用 kind:"角色技能"，name:"skills"，value:{"name":"技能名","desc":"技能说明"}，reason 写证据。
 
-## 输出字段拆分
+## 输出 JSON 格式
 
-- narration：现实行动结果正文。
-- sceneTitle：现实场景标题。
-- locationName：当前现实地点名，必须返回，可复用旧地点，但不得抽象。
-- parentLocationName：当前地点的上级地点名，用于电子地图树归类。
-- locationDescription：当前地点本次新认识事实，会追加到说明数组，不会覆盖旧说明。
-- mapNodes：新增或补充的地点树词条数组，每项含 name、parentName、descriptionFacts。
-- newLocations：新增地点数组；无父地点 parentName 为空，有父地点则写 parentName。
-- locationDescriptionUpdates：地点说明事实变更数组，每项含 locationName、action(add/update/delete)、text 或 oldText/newText；只返回明确变化。
-- mapLinks：兼容旧地点连接数组，发生移动或新增地点时可返回。
-- quest：现实目标。
-- status：现实状态摘要。
-- elapsedSeconds：现实行动消耗秒数。
-- choices：四个现实下一步行动。
-- lexiconUpdates：现实词条变化。
-- companyUpdates：如有公司系统变化，可按运行时代码支持字段返回。
+只返回一个 JSON 对象。根字段规范如下：
 
-## 输出格式
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| narration | string | 是 | 现实行动结果正文。 |
+| sceneTitle | string | 是 | 现实场景标题。 |
+| locationName | string | 是 | 当前现实地点名；优先复用旧地点，不得抽象。 |
+| parentLocationName | string | 否 | 当前地点的上级地点名，用于电子地图树归类。 |
+| locationDescription | string | 否 | 当前地点本次新认识事实，会追加到说明数组，不覆盖旧说明。 |
+| mapNodes | array<object> | 否 | 新增或补充的地点树词条。 |
+| newLocations | array<object> | 否 | 新增地点数组；无父地点时 parentName 为空。 |
+| locationDescriptionUpdates | array<object> | 否 | 地点说明事实变更，只返回明确变化。 |
+| mapLinks | array<object> | 否 | 兼容旧地点连接数组，发生移动或新增地点时可返回。 |
+| quest | string | 是 | 现实目标。 |
+| status | string | 是 | 现实状态摘要。 |
+| elapsedSeconds | number | 是 | 本次现实行动消耗秒数。 |
+| choices | array<string> | 是 | 四个现实下一步行动。 |
+| lexiconUpdates | array<object> | 否 | 玩家资料、公司、职业、状态、装备、物品、穿着等词条变化。 |
+| companyUpdates | object | 否 | 如有公司系统变化，按运行时代码支持字段返回。 |
+
+### 嵌套对象规范
+
+| 路径 | 类型 | 必填字段 | 说明 |
+| --- | --- | --- | --- |
+| mapNodes[] / newLocations[] | object | name, parentName, descriptionFacts | `descriptionFacts` 为玩家视角已知事实数组。 |
+| locationDescriptionUpdates[] | object | locationName, action | `action` 为 add/update/delete；add 写 text，update 写 oldText/newText，delete 写 text 或 oldText。 |
+| lexiconUpdates[] | object | worldTag, kind, name, value, reason | `field`、`summary`、`description` 按词条类型可选；`reason` 必须写现实证据、触发行动、状态来源或动机。 |
+
+### 最小结构示意
+
+```json
+{
+  "narration": "现实行动结果正文",
+  "sceneTitle": "现实场景标题",
+  "locationName": "具体地点名",
+  "quest": "现实目标",
+  "status": "现实状态摘要",
+  "elapsedSeconds": 300,
+  "choices": ["行动一", "行动二", "行动三", "行动四"]
+}
+```
+
+### 本次可用示例
 
 {输出示例}
