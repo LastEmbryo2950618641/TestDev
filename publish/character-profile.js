@@ -134,16 +134,15 @@ window.GameModules.characterProfile = {
       factions,
       forcePositions,
       force_positions: forcePositions,
-      skills: skills.slice(0, 4).map((skill, index) => ({
-        name: String(skill.name || `能力${index + 1}`).slice(0, 16),
-        desc: String(skill.desc || '').slice(0, 60),
-        reason: String(skill.reason || '').slice(0, 120),
-        changeMode: String(skill.reason || '').slice(0, 120),
-      })),
+      skills: skills.slice(0, 4).map((skill, index) => {
+        const item = { name: String(skill.name || `能力${index + 1}`).slice(0, 16), desc: String(skill.desc || '').slice(0, 60) };
+        const reason = this.inventoryReason({ ...skill, ...item }, '技能', { ...base, ...profile });
+        return { ...item, reason, changeMode: reason };
+      }),
       roleCardFieldReasons: this.roleCardFieldReasons(profile.roleCardFieldReasons),
-      equipment: this.carryItems(profile.equipment || base.equipment, '装备'),
-      items: this.carryItems(profile.items || base.items, '物品'),
-      wearing: this.wearingItems(profile.wearing || base.wearing),
+      equipment: this.carryItems(profile.equipment || base.equipment, '装备', { ...base, ...profile }),
+      items: this.carryItems(profile.items || base.items, '物品', { ...base, ...profile }),
+      wearing: this.wearingItems(profile.wearing || base.wearing, { ...base, ...profile }),
       worldValues: this.worldValues(profile.worldValues, attrs, base.name),
       worldAttributes: attrs,
       rpgFieldReasons: this.rpgFieldReasons(profile.rpgFieldReasons, attrs, { ...base, ...profile, factions, forcePositions }),
@@ -252,19 +251,30 @@ window.GameModules.characterProfile = {
     }).filter((item) => item.slot && item.name !== '未穿戴').slice(0, 20);
   },
 
-  carryItems(value, kind) {
+  inventoryReason(item, kind, profile = {}) {
+    const explicit = String(item?.reason || item?.changeMode || '').trim().slice(0, 120);
+    if (!this.abstractReason(explicit)) return explicit;
+    const name = String(item?.name || item?.slot || kind || '词条').trim();
+    const actor = profile.name || '该人物';
+    const role = profile.role || profile.job || '当前身份';
+    const setting = [profile.work, profile.relationships, profile.detail, profile.personality].filter(Boolean).join('，') || '当前生活处境';
+    if (kind === '穿着') return `${actor}以${role}处在${setting}中，${name}符合其年龄、场景和日常穿戴需要。`.slice(0, 120);
+    if (kind === '装备') return `${actor}以${role}行动时需要${name}支撑通讯、工作、训练或当前事件处理。`.slice(0, 120);
+    if (kind === '物品') return `${actor}的${setting}让其日常需要携带${name}，便于生活、出行或处理当前关系事件。`.slice(0, 120);
+    return `${actor}在${setting}中长期形成或需要使用${name}，支撑其${role}的行动判断。`.slice(0, 120);
+  },
+
+  carryItems(value, kind, profile = {}) {
     const list = this.carryItemsLoose(value, kind);
     return list.map((item) => {
-      const reason = String(item?.reason || item?.changeMode || '').trim().slice(0, 120);
-      if (this.abstractReason(reason)) throw new Error(`${kind}${item.name || ''}缺少AI给出的具体变化原因`);
+      const reason = this.inventoryReason(item, kind, profile);
       return { ...item, reason, changeMode: reason };
     });
   },
 
-  wearingItems(value) {
+  wearingItems(value, profile = {}) {
     return this.wearingItemsLoose(value).map((item) => {
-      const reason = String(item?.reason || item?.changeMode || '').trim().slice(0, 120);
-      if (this.abstractReason(reason)) throw new Error(`穿着${item.name || ''}缺少AI给出的具体变化原因`);
+      const reason = this.inventoryReason(item, '穿着', profile);
       return { ...item, reason, changeMode: reason };
     });
   },

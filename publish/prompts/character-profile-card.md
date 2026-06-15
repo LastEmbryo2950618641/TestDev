@@ -208,9 +208,9 @@ worldValues 只返回有明确依据的字段：{世界字段}。
 ## 初始装备 / 物品 / 穿着
 
 1. 所有人物都必须根据其世界、身份、年龄、住址、学校/工作、当前事件合理返回 equipment、items、wearing。
-2. equipment 是重要工具、武器、防具、法器、手机、背包等可装备或可调用物；每项包含 name、description、equipSlots，equipSlots 必须写可装备部位或“装备”。
-3. items 是普通持有物或消耗品；每项包含 name、description、quantity；若物品也可穿戴/装备，也要写 equipSlots。
-4. wearing 是当前已穿戴/携带在槽位上的项目；每项包含 slot、name、description。
+2. equipment 是重要工具、武器、防具、法器、手机、背包等可装备或可调用物；每项必须包含 name、description、equipSlots、reason，equipSlots 必须写可装备部位或“装备”，reason 绝不能省略，必须说明该装备与人物身份、训练、职业、住址、当前事件或长期生活经历的关系。
+3. items 是普通持有物或消耗品；每项必须包含 name、description、quantity、reason；若物品也可穿戴/装备，也要写 equipSlots。reason 绝不能省略，必须说明该物品为什么由此人物持有。
+4. wearing 是当前已穿戴/携带在槽位上的项目；每项必须包含 slot、name、description、reason。reason 绝不能省略，必须说明该穿着为什么符合人物年龄、身份、场景、生活习惯或当前处境。
 5. 可用穿着槽位：内衣、上衣、内裤、下衣、袜子、鞋子、外套、手套、头部、颈部、腰部、包具、饰品、装备。饰品和装备可不写数字，系统会自动分配为饰品1、装备1等。
 6. 现代现实人物不要生成夸张武器；原作/异世界人物可按世界观生成合理装备，但不得无依据塞神器。
 7. 普通生活、上学、工作、外出、会客等常规场景必须补齐基础穿着槽位：内衣、上衣、内裤、下衣、袜子、鞋子；名称可按身份和世界观克制推断。
@@ -223,7 +223,7 @@ worldValues 只返回有明确依据的字段：{世界字段}。
 2. 每个 key 的值都是该角色卡词条首次固化原因，必须说明该字段为什么这样写，依据来自人物基础区、玩家资料区、居住家庭区、关系事件区、世界观资料区或预设资料中的具体事实。
 3. 禁止写“来源于角色资料/剧情证据/世界规则/根据上下文/初始化/系统生成/综合判断/默认”等抽象套话。
 4. 例：“姓名按四川成都现代家庭命名习惯生成，并保留其作为刘悠同居双胞胎妹妹之一的独立身份”；“外貌来自备注中两名双胞胎外貌一致的设定，因此固化为与另一名妹妹相同但姓名独立的形象”。
-5. skills、equipment、items、wearing 数组中每一项也必须带 reason 字段，说明该技能、装备、物品或穿着为什么属于此角色；不要只写 description。
+5. skills、equipment、items、wearing 数组中每一项都必须带非空 reason 字段，说明该技能、装备、物品或穿着为什么属于此角色；任何一项缺 reason 都是不合格 JSON，不要只写 description，也不要把 reason 写成“默认/初始化/根据上下文”等空话。
 6. factions 与 forcePositions 的每一项必须有 reason 或 changeMode，说明这个社群角色或势力地位为什么成立。
 
 ## RPG 字段原因规则
@@ -249,10 +249,10 @@ worldValues 只返回有明确依据的字段：{世界字段}。
 - job：确认职业；无可靠依据则空字符串。
 - jobConfirmed：职业是否确认。
 - rank：兼容字段，来自 forcePositions[0].position；界面统一展示 forcePositions 为“势力地位”，不要把它当作独立展示词条。
-- skills：可确认技能数组，每项含 name 和 desc。
-- equipment：初始装备数组，每项含 name、description、equipSlots。
-- items：初始物品数组，每项含 name、description、quantity，可装备物也要含 equipSlots。
-- wearing：当前穿着数组，每项含 slot、name、description。
+- skills：可确认技能数组，每项含 name、desc、reason。
+- equipment：初始装备数组，每项含 name、description、equipSlots、reason。
+- items：初始物品数组，每项含 name、description、quantity、reason，可装备物也要含 equipSlots。
+- wearing：当前穿着数组，每项含 slot、name、description、reason。
 - worldValues：世界专属字段取值。
 - roleCardFieldReasons：角色卡字段原因对象，说明姓名、所属世界、身份、职业、性别、生日、人际关系、外貌、性格、人物说明、社群角色、势力地位等为什么这样固化。
 - rpgFieldReasons：RPG 基础字段原因对象，说明个人等级、身内能力、学习能力、精神稳定等为什么是当前水平。
