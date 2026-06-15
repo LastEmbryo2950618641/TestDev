@@ -77,30 +77,39 @@ window.GameModules.worldLore = {
     const firstFaction = (raw?.factionMap && Object.keys(raw.factionMap)[0]) || 'faction_1';
     const factions = this.factionMap(raw?.factionMap, lore.factions, worldTag);
     const storyIndexes = this.stringList(raw?.storyIndexes, 8);
-    const events = this.array(raw?.events).slice(0, 8).map((item, i) => ({
-      eventId: String(item.eventId || item.事件ID || `event_${i + 1}`).slice(0, 32),
-      name: String(item.name || item.名称 || `事件${i + 1}`).slice(0, 28),
-      time: String(item.time || item.时间 || raw?.timeRange || '时间未知').slice(0, 48),
-      summary: String(item.summary || item.摘要 || '').slice(0, 90),
-      detail: String(item.detail || item.详细信息 || item.summary || '').slice(0, 420),
-      storyIndexes: this.stringList(item.storyIndexes || item.剧情索引 || storyIndexes, 6),
-      factionIds: this.stringList(item.factionIds || item.关联势力 || [firstFaction], 6),
-      status: ['未触发', '进行中', '已结束', '改变原著'].includes(item.status || item.状态) ? (item.status || item.状态) : '进行中',
-    }));
+    const events = this.array(raw?.events).slice(0, 8).map((item, i) => {
+      const obj = this.object(item);
+      return {
+        eventId: String(obj.eventId || obj.事件ID || `event_${i + 1}`).slice(0, 32),
+        name: String(obj.name || obj.名称 || `事件${i + 1}`).slice(0, 28),
+        time: String(obj.time || obj.时间 || raw?.timeRange || '时间未知').slice(0, 48),
+        summary: String(obj.summary || obj.摘要 || item || '').slice(0, 90),
+        detail: String(obj.detail || obj.详细信息 || obj.summary || item || '').slice(0, 420),
+        storyIndexes: this.stringList(obj.storyIndexes || obj.剧情索引 || storyIndexes, 6),
+        factionIds: this.stringList(obj.factionIds || obj.关联势力 || [firstFaction], 6),
+        status: ['未触发', '进行中', '已结束', '改变原著'].includes(obj.status || obj.状态) ? (obj.status || obj.状态) : '进行中',
+      };
+    });
     return { timeRange: String(raw?.timeRange || raw?.时间 || '[时间未知 - 时间未知]').slice(0, 80), events, storyIndexes, factions };
   },
 
   factionMap(raw, list, worldTag) {
     if (raw && typeof raw === 'object' && !Array.isArray(raw)) return Object.fromEntries(Object.entries(raw).slice(0, 8).map(([id, item]) => [id, this.faction(id, item)]));
-    return Object.fromEntries((list?.length ? list : [{ name: `${worldTag}主要势力`, desc: '影响当前世界线。' }]).slice(0, 4).map((item, i) => {
+    return Object.fromEntries(this.array(list?.length ? list : [{ name: `${worldTag}主要势力`, desc: '影响当前世界线。' }]).slice(0, 4).map((item, i) => {
       const id = `faction_${i + 1}`;
-      return [id, this.faction(id, { 名称: item.name, 类型: '组织', 属性: { 说明: item.desc || '暂无' }, 关系网: {}, 当前目标: item.desc || '维持影响力', 近期决策: [], 状态: '正常' })];
+      const obj = this.object(item);
+      return [id, this.faction(id, { 名称: obj.name || item, 类型: '组织', 属性: { 说明: obj.desc || String(item || '暂无') }, 关系网: {}, 当前目标: obj.desc || '维持影响力', 近期决策: [], 状态: '正常' })];
     }));
   },
 
   faction(id, item) {
-    const state = ['正常', '危机', '扩张', '衰退'].includes(item?.状态 || item?.status) ? (item.状态 || item.status) : '正常';
-    return { 势力ID: String(item?.势力ID || item?.id || id), 名称: String(item?.名称 || item?.name || id).slice(0, 28), 类型: String(item?.类型 || item?.type || '组织').slice(0, 12), 属性: item?.属性 || item?.attrs || {}, 关系网: item?.关系网 || item?.relations || {}, 当前目标: String(item?.当前目标 || item?.goal || '').slice(0, 90), 近期决策: this.stringList(item?.近期决策 || item?.decisions, 6), 状态: state };
+    const obj = this.object(item);
+    const state = ['正常', '危机', '扩张', '衰退'].includes(obj.状态 || obj.status) ? (obj.状态 || obj.status) : '正常';
+    return { 势力ID: String(obj.势力ID || obj.id || id), 名称: String(obj.名称 || obj.name || item || id).slice(0, 28), 类型: String(obj.类型 || obj.type || '组织').slice(0, 12), 属性: this.object(obj.属性 || obj.attrs), 关系网: this.object(obj.关系网 || obj.relations), 当前目标: String(obj.当前目标 || obj.goal || '').slice(0, 90), 近期决策: this.stringList(obj.近期决策 || obj.decisions, 6), 状态: state };
+  },
+
+  object(value) {
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
   },
 
   array(value) {
@@ -113,20 +122,24 @@ window.GameModules.worldLore = {
   },
 
   list(items, prefix) {
-    return this.array(items).slice(0, 8).map((item, index) => ({
-      name: String(item.name || `${prefix}${index + 1}`).slice(0, 18),
-      desc: String(item.desc || '').slice(0, 90),
-    }));
+    return this.array(items).slice(0, 8).map((item, index) => {
+      const obj = this.object(item);
+      return {
+        name: String(obj.name || obj.名称 || item || `${prefix}${index + 1}`).slice(0, 18),
+        desc: String(obj.desc || obj.description || obj.说明 || '').slice(0, 90),
+      };
+    });
   },
 
   calendar(raw, worldTag) {
+    const obj = this.object(raw);
     const fallback = window.GameModules.entryTime?.calendarFor(worldTag, { worldTag }) || { label: '公元纪年', months: ['1月'], days: 31, hours: ['上午'], units: { year: '年', month: '月', day: '日', hour: '时' } };
     return {
-      label: String(raw?.label || fallback.label).slice(0, 14),
-      months: (this.array(raw?.months).length ? this.array(raw.months) : fallback.months).slice(0, 12).map((x) => String(x).slice(0, 10)),
-      days: Math.max(7, Math.min(60, Number(raw?.days) || fallback.days || 30)),
-      hours: (this.array(raw?.hours).length ? this.array(raw.hours) : fallback.hours).slice(0, 8).map((x) => String(x).slice(0, 10)),
-      units: raw?.units || fallback.units,
+      label: String(obj.label || fallback.label).slice(0, 14),
+      months: this.stringList(this.array(obj.months).length ? obj.months : fallback.months, 12).map((x) => x.slice(0, 10)),
+      days: Math.max(7, Math.min(60, Number(obj.days) || fallback.days || 30)),
+      hours: this.stringList(this.array(obj.hours).length ? obj.hours : fallback.hours, 8).map((x) => x.slice(0, 10)),
+      units: this.object(obj.units).year ? obj.units : fallback.units,
     };
   },
 
