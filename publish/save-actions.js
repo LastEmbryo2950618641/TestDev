@@ -25,8 +25,6 @@ window.GameModules.saveActions = {
     await this.loadWritingStyles();
     this.ensureCatalogSelection();
     this.loadSavedRpgStates();
-    if (this.phoneSetupDone) try { await this.ensurePlayerRpgState?.(); } catch (err) { console.warn('[存档] 玩家资料原因迁移失败:', err.message, err.stack); this.setupError = `玩家本人资料需要重新生成：${err.message || 'AI暂时不可用'}`; }
-    this.prepareRpgForSelectedCharacter();
   },
 
   async loadSlot(slot) {
@@ -51,7 +49,6 @@ window.GameModules.saveActions = {
       const save = await window.GameModules.storage.get();
       if (save) window.GameModules.storage.restore(this, save);
       await this.loadWritingStyles(); this.loadSavedRpgStates();
-      if (this.phoneSetupDone) try { await this.ensurePlayerRpgState?.(); } catch (err) { console.warn('[存档] 玩家资料原因迁移失败:', err.message, err.stack); this.setupError = `玩家本人资料需要重新生成：${err.message || 'AI暂时不可用'}`; } this.prepareRpgForSelectedCharacter();
     }
     await this.refreshSaveMetas();
     this.saveMessage = slot === source ? `已覆盖保存 ${slot}` : `已完整复制当前数据并覆盖 ${slot}`;
@@ -66,7 +63,6 @@ window.GameModules.saveActions = {
     this.log = [];
     this.rpgStates = {};
     this.rpgPanelCharacterId = this.selectedCharacterId;
-    if (this.phoneSetupDone) await this.ensurePlayerRpgState?.(true);
   },
 
   loadSavedRpgStates() {

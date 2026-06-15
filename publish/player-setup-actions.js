@@ -87,22 +87,13 @@ window.GameModules.playerSetupActions = {
     try {
       this.setupError = '';
       const base = this.normalizePlayerSetupBase(name, birthday);
-      if (options.skipAi) throw new Error('玩家个人资料必须由AI补全并给出原因，不能跳过AI。');
-      let enriched = null;
-      try {
-        enriched = await this.enrichPlayerProfile(base);
-      } catch (err) {
-        console.warn('[玩家身份] AI补全失败，改用本地资料继续激活:', err.code, err.message, err.stack);
-        enriched = this.localPlayerProfileFallback(base);
-      }
-      this.playerProfile = this.normalizeEnrichedPlayerProfile(base, enriched);
+      this.playerProfile = this.normalizeEnrichedPlayerProfile(base, this.localPlayerProfileFallback(base));
       this.phoneFixedTime = new Date(this.playerProfile.initializedAt || Date.now()).getTime();
       await this.syncPlayerProfileLexicon();
       this.playerName = name;
       this.phoneActivationChoice = '';
       this.phoneSetupDone = true;
       this.desktopUnlocked = false;
-      await this.ensurePlayerRpgState?.(true);
       await this.syncKnownProfessionsFromProfile?.(this.playerProfile.knownProfessions);
       await this.save();
     } catch (err) {

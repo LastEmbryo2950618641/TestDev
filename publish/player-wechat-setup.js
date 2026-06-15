@@ -16,7 +16,7 @@ window.GameModules = window.GameModules || {};
   actions.completePlayerSetup = async function completePlayerSetupWithWechat(options = {}) {
     const result = await originalComplete.call(this, options);
     if (!this.phoneSetupDone) return result;
-    await this.syncRelationshipWechatUsers?.();
+    await this.syncRelationshipWechatUsers?.({ generateProfile: false });
     await this.save?.();
     return result;
   };
