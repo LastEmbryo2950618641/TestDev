@@ -13,14 +13,19 @@ window.GameModules.rpgFieldUi = {
     const unit = { knowledge: '知识', skills: '技能', professions: '职业' }[field.key] || '项';
     return `${field.label}：${field.raw.length}${unit}`;
   },
-  canExpandRpgField(field) { return Boolean(field && this.rpgFieldDetail(field)); },
+  canExpandRpgField(field) { return Boolean(field); },
   isLexiconField(field) { return Boolean(field); },
+  roleCardReasonGetter(profile = {}, fallback = (label) => `${label}由当前角色卡资料固化。`) {
+    const reasons = profile.roleCardFieldReasons || {}, log = {};
+    (profile.roleCardChangeLog || []).forEach((item) => [item.field, item.name].filter(Boolean).forEach((key) => { log[key] = item.reason || log[key] || ''; }));
+    return (label, key) => reasons[label] || reasons[key] || log[label] || log[key] || fallback(label, key);
+  },
 
   profileIdentityFields(state, provided = []) {
     if (Array.isArray(provided) && provided.length) return provided;
     const p = state?.profile || {};
     const worldTag = p.work || state?.worldTag || '原创世界';
-    const reasonFor = (label, key) => p.roleCardFieldReasons?.[label] || p.roleCardFieldReasons?.[key] || (p.roleCardChangeLog || []).slice().reverse().find((item) => item.field === label || item.field === key || item.name === label || item.name === key)?.reason || `${label}由当前角色卡资料、身份信息和已固化状态共同确定。`;
+    const reasonFor = this.roleCardReasonGetter(p, (label) => `${label}由当前角色卡资料、身份信息和已固化状态共同确定。`);
     const row = (key, label, value, desc) => ({ key: `profile-${state?.id || 'target'}-${key}`, label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: key !== 'work' });
     return [
       row('name', '姓名', p.name || state?.name, '角色卡固化姓名。'), row('work', '所属世界', worldTag, '角色出身作品或世界。'),
@@ -86,12 +91,12 @@ window.GameModules.rpgFieldUi = {
     return blocked.some((item) => item && text === String(item).trim()) ? '' : text;
   },
 
-  fallbackChangeReason(field, obj = null) {
-    const kind = obj ? this.lexiconKind(field, obj) : (field?.kind || this.lexiconKind(field));
-    const name = obj ? this.rpgItemSummary(obj) : (field?.label || field?.key || '该词条');
-    if (obj) return `${name}作为${kind}子词条，由当前${field?.label || '父词条'}列表、角色状态和已固化资料共同确定。`;
-    if (this.isRpgListField(field)) return `${name}作为${kind}树词条，由当前子词条列表、角色状态和已固化资料共同确定。`;
-    return `${name}作为${kind}词条，由当前取值、角色状态和已固化资料共同确定。`;
+  fallbackChangeReason(field, obj = null, kind = '', name = '') {
+    const finalKind = kind || (obj ? this.lexiconKind(field, obj) : (field?.kind || this.lexiconKind(field)));
+    const finalName = name || (obj ? this.rpgItemSummary(obj) : (field?.label || field?.key || '该词条'));
+    if (obj) return `${finalName}作为${finalKind}子词条，由当前${field?.label || '父词条'}列表、角色状态和已固化资料共同确定。`;
+    if (this.isRpgListField(field)) return `${finalName}作为${finalKind}树词条，由当前子词条列表、角色状态和已固化资料共同确定。`;
+    return `${finalName}作为${finalKind}词条，由当前取值、角色状态和已固化资料共同确定。`;
   },
 
   fieldChangeReason(field, lexicon = null) {
@@ -108,10 +113,10 @@ window.GameModules.rpgFieldUi = {
     return window.GameModules.characterProfile?.rpgFieldReasonFallback?.(field?.key, profile) || this.fallbackChangeReason(field);
   },
 
-  itemChangeReason(field, obj = {}, lexicon = null) {
+  itemChangeReason(field, obj = {}, lexicon = null, kind = '', name = '') {
     const explicit = this.usableChangeReason(lexicon?.meta?.modifyReason || obj.reason || obj.changeMode, [lexicon?.description, lexicon?.summary, obj.description, obj.desc, obj.source]);
     if (explicit) return explicit;
-    return window.GameModules.progression?.itemReason?.(obj, this.lexiconKind(field, obj)) || this.fallbackChangeReason(field, obj);
+    return window.GameModules.progression?.itemReason?.(obj, kind || this.lexiconKind(field, obj)) || this.fallbackChangeReason(field, obj, kind, name);
   },
 
   rpgItemSummary(item) {
@@ -151,8 +156,8 @@ window.GameModules.rpgFieldUi = {
     const exp = obj?.exp || {};
     const statName = { strength: '力量', agility: '敏捷', constitution: '体质', intelligence: '智力', perception: '感知', willpower: '意志', charisma: '魅力' };
     const linkedStats = (info.intrinsicStats || obj?.linkedStats || []).map((x) => statName[x] || x);
-    const kind = obj?.type || field?.label || '能力';
-    const name = obj?.name || field?.label || '未知';
+    const kind = obj?.type || this.lexiconKind(field, obj);
+    const name = this.rpgItemSummary(obj) || field?.label || '未知';
     const hasLevel = Number(obj?.level) > 0;
     const lines = [`名称: ${name}`, `定义: ${this.learnedDefinition(kind, name, obj, lexicon, info)}`, `类型: ${kind}`, `所属世界: ${field?.worldTag || lexicon?.worldTag || '公共'}`, `词条类型: ${field?.targetType || lexicon?.meta?.targetType || '角色'}`];
     if ((kind === '社群角色' || kind === '阵营') && (obj?.community || obj?.faction || info.community || info.faction)) lines.push(`社群: ${obj.community || obj.faction || info.community || info.faction}`, `角色: ${obj.role || info.role || obj.position || info.position || '成员'}`);
@@ -167,7 +172,7 @@ window.GameModules.rpgFieldUi = {
     lines.push(`关联身内能力: ${linkedStats.join('、') || '无直接关联'}`);
     lines.push(`词条层级: ${lexicon?.hierarchy === 'tree' ? '树词条' : '叶子词条'}`);
     lines.push(`生成来源: 词条名${(lexicon?.nameAiGenerated ?? lexicon?.aiGenerated) ? 'AI生成' : '系统/用户给定'}，值${lexicon?.valueAiGenerated ? 'AI生成' : '系统/用户给定'}，变化方式${lexicon?.changeMode || '系统结算'}`);
-    lines.push(`变化原因: ${this.itemChangeReason(field, obj, lexicon)}`);
+    lines.push(`变化原因: ${this.itemChangeReason(field, obj, lexicon, kind, name)}`);
     if (obj?.type === '职业' && ((info.learnedAbilities || []).length || (info.worldAbilities || []).length)) lines.push(`职业关联: ${(info.learnedAbilities || []).concat(info.worldAbilities || []).join('、')}`);
     return lines.join('\n');
   },

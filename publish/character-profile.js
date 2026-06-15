@@ -202,8 +202,9 @@ window.GameModules.characterProfile = {
         const [faction, role] = item.split('/').map((x) => x.trim());
         return social?.item?.(faction, role || '成员') || { name: item, faction, role: role || '成员' };
       }
-      const reason = String(item.reason || item.changeMode || '').trim().slice(0, 120);
-      return { ...(social?.item?.(item.faction || item.name, item.role || item.position || '成员') || item), reason, changeMode: reason };
+      const baseItem = social?.item?.(item.faction || item.name, item.role || item.position || '成员') || item;
+      const reason = String(item.reason || item.changeMode || baseItem.reason || baseItem.changeMode || '').trim().slice(0, 120);
+      return { ...baseItem, reason, changeMode: reason };
     }).filter((item) => item?.faction || item?.name);
     if (items.length) return items.slice(0, 4);
     const faction = profile.faction || base.faction || store?.playerProfile?.refinedCity || store?.playerProfile?.city || '临时关系社群';
@@ -219,8 +220,9 @@ window.GameModules.characterProfile = {
         const [force, position] = item.split('/').map((x) => x.trim());
         return social?.forceItem?.(force, position || '成员') || { name: item, force, position: position || '成员' };
       }
-      const reason = String(item.reason || item.changeMode || '').trim().slice(0, 120);
-      return { ...(social?.forceItem?.(item.force || item.faction || item.name, item.position || item.rank || '成员') || item), reason, changeMode: reason };
+      const baseItem = social?.forceItem?.(item.force || item.faction || item.name, item.position || item.rank || '成员') || item;
+      const reason = String(item.reason || item.changeMode || baseItem.reason || baseItem.changeMode || '').trim().slice(0, 120);
+      return { ...baseItem, reason, changeMode: reason };
     }).filter((item) => item?.force || item?.faction || item?.name);
     const country = social?.countryForceItems?.(store?.factionState?.factions || []) || [];
     const modern = /原创世界|现实|现代|2026/.test(`${profile.work || base.work || ''}${store?.realWorld2026?.label || ''}`);
@@ -239,7 +241,7 @@ window.GameModules.characterProfile = {
     const list = Array.isArray(value) ? value : [];
     return list.map((item) => {
       const normalized = p.normalizeCarryItem(item, kind);
-      const reason = String(item?.reason || item?.changeMode || '').trim().slice(0, 120);
+      const reason = String(item?.reason || item?.changeMode || normalized.reason || normalized.changeMode || '').trim().slice(0, 120);
       return { ...normalized, reason, changeMode: reason };
     }).filter((item) => item.name && item.name !== '未命名物品').slice(0, 20);
   },
@@ -247,16 +249,10 @@ window.GameModules.characterProfile = {
   wearingItems(value) {
     const list = Array.isArray(value) ? value : [];
     return list.map((item) => {
-      const reason = String(item?.reason || item?.changeMode || '').trim().slice(0, 120);
-      return {
-        slot: String(item?.slot || '').slice(0, 12),
-        name: String(item?.name || '未穿戴').slice(0, 32),
-        type: '穿着',
-        description: String(item?.description || '').slice(0, 80),
-        reason,
-        changeMode: reason,
-        level: -1,
-      };
+      const name = String(item?.name || '未穿戴').slice(0, 32);
+      const slot = String(item?.slot || '').slice(0, 12);
+      const reason = String(item?.reason || item?.changeMode || `${slot || '穿着'}槽位的${name}来自角色卡穿戴资料。`).trim().slice(0, 120);
+      return { slot, name, type: '穿着', description: String(item?.description || '').slice(0, 80), reason, changeMode: reason, level: -1 };
     }).filter((item) => item.slot && item.name !== '未穿戴').slice(0, 20);
   },
 
