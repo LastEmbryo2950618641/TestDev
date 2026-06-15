@@ -25,6 +25,11 @@ window.GameModules.playerIdentityActions = {
       ],
     };
   },
+  playerDisplayCharacter() {
+    const saved = this.playerIdentityState?.()?.profile;
+    if (saved?.roleCard) return saved;
+    return { ...this.playerCharacterBase(), name: this.playerName || this.playerProfile?.name || '手机主人', pendingAiProfile: true };
+  },
   playerCharacter() {
     const saved = this.playerIdentityState?.()?.profile;
     if (!saved?.roleCard) throw new Error('玩家本人个人资料尚未由AI生成，不能读取本地兜底模板。');
@@ -39,8 +44,8 @@ window.GameModules.playerIdentityActions = {
   },
   identityTargetProfile() {
     const id = this.identityTargetId || 'player-self';
-    if (id === 'player-self') return this.playerCharacter();
-    return this.identityTargetState()?.profile || (id === this.character.id ? this.character : { name: '未知角色', work: '未知世界', role: '身份未知', detail: '暂无角色卡。', personality: '' });
+    if (id === 'player-self') return this.playerDisplayCharacter();
+    return this.identityTargetState()?.profile || (id === this.character.id ? this.character : { name: '未知角色', work: '未知世界', role: '身份未知', detail: '暂无角色卡。', personality: '', pendingAiProfile: true });
   },
   identityTargetFields() {
     const p = this.identityTargetProfile();
@@ -193,8 +198,8 @@ window.GameModules.playerIdentityActions = {
 
   wechatMessages() {
     const target = this.wechatSelected();
-    if (target?.group) return [{ side: 'other', name: '系统', mark: '系', text: '新手机已激活，微信数据同步完成。' }, { side: 'self', name: this.playerCharacter().name, mark: '我', text: '收到。' }];
-    return [{ side: 'other', name: target?.name, mark: target?.mark, text: target?.latest || '资料已同步。' }, { side: 'self', name: this.playerCharacter().name, mark: '我', text: '我看到了。' }];
+    if (target?.group) return [{ side: 'other', name: '系统', mark: '系', text: '新手机已激活，微信数据同步完成。' }, { side: 'self', name: this.playerDisplayCharacter().name, mark: '我', text: '收到。' }];
+    return [{ side: 'other', name: target?.name, mark: target?.mark, text: target?.latest || '资料已同步。' }, { side: 'self', name: this.playerDisplayCharacter().name, mark: '我', text: '我看到了。' }];
   },
 
   async openWechatIdentity() {

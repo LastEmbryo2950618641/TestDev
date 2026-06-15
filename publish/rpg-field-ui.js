@@ -19,12 +19,11 @@ window.GameModules.rpgFieldUi = {
     const reasons = profile.roleCardFieldReasons || {}, log = {};
     (profile.roleCardChangeLog || []).forEach((item) => [item.field, item.name].filter(Boolean).forEach((key) => { log[key] = item.reason || log[key] || ''; }));
     const usable = (text) => !window.GameModules.characterProfile?.abstractReason?.(text) && String(text || '').trim();
-    return (label, key) => {
-      const reason = usable(reasons[label]) || usable(reasons[key]) || usable(log[label]) || usable(log[key]);
-      if (!reason) throw new Error(`${profile?.name || '个人资料'}的${label}缺少AI给出的具体变化原因`);
-      return reason;
-    };
+    return (label, key) => usable(reasons[label]) || usable(reasons[key]) || usable(log[label]) || usable(log[key]) || this.missingReasonText(`${profile?.name || '个人资料'}的${label}`);
   },
+
+  missingReasonText(name = '词条') { return `错误：${name}缺少AI给出的具体变化原因，请重新生成个人资料或重新触发AI更新。`; },
+  rpgListItems(field) { return Array.isArray(field?.raw) ? field.raw : []; },
 
   profileIdentityFields(state, provided = []) {
     if (Array.isArray(provided) && provided.length) return provided;
@@ -121,15 +120,12 @@ window.GameModules.rpgFieldUi = {
   },
 
   fieldChangeReason(field, lexicon = null) {
-    const reason = this.explicitFieldChangeReason(field, lexicon);
-    if (!reason) throw new Error(`${field?.label || field?.key || 'RPG字段'}缺少AI给出的具体变化原因`);
-    return reason;
+    return this.explicitFieldChangeReason(field, lexicon) || this.missingReasonText(field?.label || field?.key || 'RPG字段');
   },
 
   itemChangeReason(field, obj = {}, lexicon = null) {
     const explicit = this.usableChangeReason(lexicon?.meta?.modifyReason || obj.reason || obj.changeMode, [lexicon?.description, lexicon?.summary, obj.description, obj.desc, obj.source]);
-    if (!explicit) throw new Error(`${obj?.name || field?.label || '词条'}缺少AI给出的具体变化原因`);
-    return explicit;
+    return explicit || this.missingReasonText(obj?.name || field?.label || '词条');
   },
 
   rpgItemSummary(item) {

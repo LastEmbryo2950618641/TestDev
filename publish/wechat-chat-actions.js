@@ -28,7 +28,7 @@ window.GameModules.wechatChatActions = {
     if (!text || this.wechatSending || !target) return;
     this.wechatError = '';
     this.wechatInput = '';
-    this.appendWechatMessage(target.id, { side: 'self', name: this.playerCharacter().name, mark: '我', text });
+    this.appendWechatMessage(target.id, { side: 'self', name: this.playerDisplayCharacter?.().name || this.playerName || '我', mark: '我', text });
     await this.save?.();
     if (target.group) return;
     await this.replyWechatContact(target, text);
