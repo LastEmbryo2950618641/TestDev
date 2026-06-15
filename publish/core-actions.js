@@ -9,16 +9,16 @@ window.GameModules.coreActions = {
     this.selectedCharacterId = window.GameModules.catalog.firstCharacter(name) || this.selectedCharacterId;
     this.resetEntryTime();
     this.resetMetricsForCharacter();
+    // 首页只读取本地人物设定/目录资料，不预热 RPG schema，避免选择作品时触发 AI 请求。
     window.GameModules.characterBrief.ensure(this);
-    this.prepareRpgSchemaForSelectedWork();
   },
 
   selectCharacter(id) {
     this.selectedCharacterId = id;
     this.resetEntryTime();
     this.resetMetricsForCharacter();
+    // 首页只读取本地人物设定/目录资料，不生成完整角色卡，避免选择角色时消耗 token。
     window.GameModules.characterBrief.ensure(this);
-    this.prepareRpgSchemaForSelectedWork();
   },
 
   resetMetricsForCharacter() {
