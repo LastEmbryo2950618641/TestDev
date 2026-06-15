@@ -8,7 +8,7 @@ window.GameModules.worldLore = {
 
   async ensure(worldTag, context = '') {
     const save = window.GameModules.sqliteSave;
-    const existing = save.getWorldLore(worldTag);
+    const existing = window.GameModules.cache?.enabled?.('generatedLore') ? save.getWorldLore(worldTag) : null;
     if (existing) {
       if (!existing.worldline && !save.getWorldline?.(worldTag)) {
         console.log('[世界观] 旧设定缺少世界线，正在补齐:', worldTag);

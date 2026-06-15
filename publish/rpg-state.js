@@ -4,7 +4,7 @@ window.GameModules.rpgState = {
   async ensureWorldAttributes(worldTag) {
     const save = window.GameModules.sqliteSave;
     const attrs = window.GameModules.worldAttributes.defaults(worldTag);
-    const existing = save.getWorldAttributes(worldTag);
+    const existing = window.GameModules.cache?.enabled?.('generatedSchema') ? save.getWorldAttributes(worldTag) : null;
     if (existing && window.GameModules.rpgSchema.sameFields(existing.fields, attrs.fields)) return existing;
     await save.saveWorldAttributes(worldTag, attrs);
     return attrs;
@@ -13,7 +13,7 @@ window.GameModules.rpgState = {
   async ensureSchema(worldTag) {
     const save = window.GameModules.sqliteSave;
     const attrs = await this.ensureWorldAttributes(worldTag);
-    const existing = save.getSchema(worldTag);
+    const existing = window.GameModules.cache?.enabled?.('generatedSchema') ? save.getSchema(worldTag) : null;
     const schema = window.GameModules.rpgSchema.base(worldTag, attrs);
     const schemaFields = schema.sections.flatMap((section) => section.fields);
     if (existing && window.GameModules.rpgSchema.matchesAttrs(existing, { fields: schemaFields })) return existing;
@@ -25,7 +25,7 @@ window.GameModules.rpgState = {
   async ensureCharacter(character, store = null) {
     const save = window.GameModules.sqliteSave;
     const id = character.id || character.name;
-    const existing = save.getCharacterState(id);
+    const existing = window.GameModules.cache?.enabled?.('generatedProfiles') ? save.getCharacterState(id) : null;
     if (existing) {
       console.log('[RPG状态] 使用已保存角色状态:', id, existing.worldTag);
       const schema = await this.ensureSchema(existing.worldTag || character.work || '原创世界');
@@ -37,7 +37,7 @@ window.GameModules.rpgState = {
       if (profileChanged || upgraded || updated || professionChanged) await save.saveCharacterState(existing);
       return existing;
     }
-    const worldTag = save.getCharacterWorld(id) || character.work || '原创世界';
+    const worldTag = (window.GameModules.cache?.enabled?.('generatedProfiles') ? save.getCharacterWorld(id) : null) || character.work || '原创世界';
     console.log('[RPG状态] 创建角色状态:', id, character.name, worldTag);
     const schema = await this.ensureSchema(worldTag);
     const created = this.createCharacterState(character, schema, store);

@@ -55,7 +55,8 @@ window.GameModules.wechatActions = {
   },
 
   async ensureWechatUserProfileRun(contact) {
-    const existing = this.rpgStates?.[contact.id] || window.GameModules.sqliteSave.getCharacterState(contact.id);
+    const cached = window.GameModules.cache?.enabled?.('generatedProfiles') ? window.GameModules.sqliteSave.getCharacterState(contact.id) : null;
+    const existing = this.rpgStates?.[contact.id] || cached;
     const profileTool = window.GameModules.characterProfile;
     const existingName = existing?.profile?.name || '';
     const needsName = contact.needsNameAi || this.isWechatPlaceholderName(contact.name) || !profileTool.isConcreteName(existingName);
