@@ -156,10 +156,18 @@ window.GameModules.characterProfile = {
       const chunk = start >= 0 ? raw.slice(start, end >= 0 ? end : undefined) : '';
       const value = chunk.match(/"value"\s*:\s*(-?\d+)/)?.[1];
       const status = chunk.match(/"status"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/)?.[1];
-      const reason = chunk.match(/"reason"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/)?.[1];
+      const reason = this.pickMetricReason(raw, chunk, key, start);
       if (value !== undefined || status || reason) items.push({ key, value: Number(value || 0), status: status || '', reason: reason || '' });
     });
     return { [group]: items };
+  },
+
+  pickMetricReason(raw, chunk, key, start) {
+    const normal = chunk.match(/"reason"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/)?.[1];
+    if (normal) return normal;
+    const tail = String(raw || '').slice(Math.max(0, start));
+    const loose = tail.match(new RegExp(`"reason"\\s*:\\s*"(${key}[^"\\\\]*(?:\\\\.[^"\\\\]*)*)"`));
+    return loose?.[1] || '';
   },
 
   async generateInitialMetrics(profile, base, lore, attrs, context, store) {
@@ -179,8 +187,17 @@ window.GameModules.characterProfile = {
     const chunks = this.metricGroupKeyChunks(group, keys);
     const items = [];
     for (let i = 0; i < chunks.length; i += 1) {
-      const part = await this.generateMetricGroup(profile, base, evidence, group, chunks[i], i + 1, chunks.length);
-      items.push(...part);
+      const chunk = chunks[i];
+      try {
+        const part = await this.generateMetricGroup(profile, base, evidence, group, chunk, i + 1, chunks.length);
+        items.push(...part);
+      } catch (err) {
+        console.warn('[角色数值] 分块生成失败，改为单项补齐:', group, chunk.join('、'), err.message, err.stack);
+        for (let j = 0; j < chunk.length; j += 1) {
+          const part = await this.generateMetricGroup(profile, base, evidence, group, [chunk[j]], `${i + 1}.${j + 1}`, chunks.length);
+          items.push(...part);
+        }
+      }
     }
     return this.validateMetricGroup(items, keys, { ...base, ...profile });
   },
