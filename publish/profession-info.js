@@ -14,7 +14,7 @@ window.GameModules.professionInfo = {
     const jobName = this.normalizeJobName(name);
     if (!jobName) return null;
     const save = window.GameModules.sqliteSave;
-    const existing = window.GameModules.cache?.enabled?.('generatedProfessions') ? save.getProfessionInfo?.(worldTag, jobName) : null;
+    const existing = save.getProfessionInfo?.(worldTag, jobName);
     if (existing) {
       const normalized = this.validate({ ...existing, confirmed: true }, worldTag, existing.name || jobName, context);
       if (normalized) {

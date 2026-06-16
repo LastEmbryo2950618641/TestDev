@@ -4,7 +4,7 @@ window.GameModules.rpgState = {
   async ensureWorldAttributes(worldTag) {
     const save = window.GameModules.sqliteSave;
     const attrs = window.GameModules.worldAttributes.defaults(worldTag);
-    const existing = window.GameModules.cache?.enabled?.('generatedSchema') ? save.getWorldAttributes(worldTag) : null;
+    const existing = save.getWorldAttributes(worldTag);
     if (existing && window.GameModules.rpgSchema.sameFields(existing.fields, attrs.fields)) return existing;
     await save.saveWorldAttributes(worldTag, attrs);
     return attrs;
@@ -13,7 +13,7 @@ window.GameModules.rpgState = {
   async ensureSchema(worldTag) {
     const save = window.GameModules.sqliteSave;
     const attrs = await this.ensureWorldAttributes(worldTag);
-    const existing = window.GameModules.cache?.enabled?.('generatedSchema') ? save.getSchema(worldTag) : null;
+    const existing = save.getSchema(worldTag);
     const schema = window.GameModules.rpgSchema.base(worldTag, attrs);
     const schemaFields = schema.sections.flatMap((section) => section.fields);
     if (existing && window.GameModules.rpgSchema.matchesAttrs(existing, { fields: schemaFields })) return existing;
