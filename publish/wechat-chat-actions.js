@@ -53,13 +53,9 @@ window.GameModules.wechatChatActions = {
   async recordWechatWorldline(contact, playerText, replyText = '', result = {}) {
     const display = this.displayWechatContact?.(contact) || contact || {};
     const time = this.wechatMemoryTime?.() || { label: `${this.phoneDateText?.() || ''} ${this.phoneTimeText?.() || ''}`.trim() };
-    const label = time.label || '时间未知';
+    const label = this.wechatDialogueTimeLabel?.(time.label) || time.label || '时间未知';
     const playerName = this.playerDisplayCharacter?.().name || this.playerName || '玩家';
-    const detail = [
-      '以下来自微信对话。',
-      `${playerName}（${label}）：${playerText}`,
-      replyText ? `${display.name || '微信联系人'}（${label}）：${replyText}` : '',
-    ].filter(Boolean).join('\n');
+    const detail = this.formatWechatDialogueLog?.(playerName, display.name || '微信联系人', label, playerText, replyText) || '';
     const seed = window.GameModules.rpgState.seed(`${time.label}-${contact?.id}-${playerText}-${replyText}`);
     const event = { eventId: `wx_${seed}`, name: `微信对话：${display.name || '联系人'}`, time: label, detail, status: '已记录' };
     this.realWorldlineState = this.realWorldlineState || { events: [], plots: [], pendingPlot: null };
@@ -75,6 +71,19 @@ window.GameModules.wechatChatActions = {
   wechatMemoryTime() {
     const d = this.phoneDate?.() || new Date();
     return { label: `${this.phoneDateText?.() || ''} ${this.phoneTimeText?.() || ''}`.trim(), value: this.wechatTimeValue(d) };
+  },
+
+  wechatDialogueTimeLabel(label = '') {
+    return String(label || '时间未知').replace(/日周/g, '日 周');
+  },
+
+  formatWechatDialogueLog(playerName, contactName, label, playerText, replyText = '') {
+    const time = this.wechatDialogueTimeLabel(label);
+    return [
+      '以下来自微信对话。',
+      `${playerName}（${time}）：“${playerText}”`,
+      replyText ? `${contactName}（${time}）：“${replyText}”` : '',
+    ].filter(Boolean).join('');
   },
 
   wechatTimeValue(d) {
