@@ -22,8 +22,8 @@ window.GameModules = window.GameModules || {};
     return simpleFields.map(([key, label, type]) => ({ key, label, type }));
   };
 
-  actions.roleCardJsonFields = function roleCardJsonFields() {
-    return jsonFields.map(([key, label]) => ({ key, label }));
+  actions.roleCardStructuredFields = function roleCardStructuredFields(card) {
+    return jsonFields.map(([key, label]) => ({ key, label, items: this.flattenRoleCardLeaves(card?.[key], []) }));
   };
 
   actions.roleCardFieldValue = function roleCardFieldValue(card, key) {
@@ -38,20 +38,31 @@ window.GameModules = window.GameModules || {};
     this.syncEditedPlayerCard(card);
   };
 
-  actions.roleCardJsonText = function roleCardJsonText(card, key) {
-    try { return JSON.stringify(card?.[key] ?? null, null, 2); } catch (_) { return 'null'; }
+  actions.flattenRoleCardLeaves = function flattenRoleCardLeaves(value, path) {
+    if (Array.isArray(value)) return value.flatMap((item, index) => this.flattenRoleCardLeaves(item, [...path, index]));
+    if (value && typeof value === 'object') return Object.keys(value).flatMap((key) => this.flattenRoleCardLeaves(value[key], [...path, key]));
+    return [{ path, label: this.roleCardPathLabel(path), valueType: typeof value, inputType: typeof value === 'number' ? 'number' : 'text', value: value ?? '' }];
   };
 
-  actions.setRoleCardJsonField = function setRoleCardJsonField(card, key, raw) {
-    if (!card) return;
-    try {
-      card[key] = JSON.parse(raw || 'null');
-      this.setupError = '';
-      this.syncEditedPlayerCard(card);
-    } catch (err) {
-      this.setupError = `${key} 不是合法 JSON：${err.message}`;
-      console.warn('[预定义角色卡] JSON字段编辑失败:', key, err.message, err.stack);
-    }
+  actions.roleCardPathLabel = function roleCardPathLabel(path) {
+    if (!path.length) return '值';
+    return path.map((part) => (typeof part === 'number' ? `第${part + 1}项` : part)).join(' / ');
+  };
+
+  actions.roleCardLeafValue = function roleCardLeafValue(card, key, path) {
+    let target = card?.[key];
+    for (const part of path) target = target?.[part];
+    return target ?? '';
+  };
+
+  actions.setRoleCardLeafValue = function setRoleCardLeafValue(card, key, path, value, valueType) {
+    if (!card || !path.length) return;
+    let target = card[key];
+    for (let i = 0; i < path.length - 1; i += 1) target = target?.[path[i]];
+    if (!target) return;
+    const leaf = path[path.length - 1];
+    target[leaf] = valueType === 'number' ? Number(value || 0) : value;
+    this.syncEditedPlayerCard(card);
   };
 
   actions.roleCardMetricGroups = function roleCardMetricGroups(card) {

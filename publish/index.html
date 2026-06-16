@@ -1098,8 +1098,8 @@
           <template x-for="group in $store.game.roleCardMetricGroups($store.game.selectedPlayerRoleCard())" :key="group.key">
             <section class="role-card-metric-group"><strong x-text="group.title"></strong><template x-for="item in group.items" :key="item.key"><div class="role-card-metric-row"><label><span x-text="item.key"></span><input class="text-input" type="number" min="0" max="100" x-model.number="item.value"></label><label><span>状态</span><input class="text-input" x-model="item.status"></label><label><span>原因</span><textarea class="text-input" x-model="item.reason"></textarea></label></div></template></section>
           </template>
-          <template x-for="field in $store.game.roleCardJsonFields()" :key="field.key">
-            <label class="role-card-json-field"><span x-text="field.label"></span><textarea class="text-input" spellcheck="false" :value="$store.game.roleCardJsonText($store.game.selectedPlayerRoleCard(), field.key)" @change="$store.game.setRoleCardJsonField($store.game.selectedPlayerRoleCard(), field.key, $event.target.value)"></textarea></label>
+          <template x-for="field in $store.game.roleCardStructuredFields($store.game.selectedPlayerRoleCard())" :key="field.key">
+            <section class="role-card-structured-field"><strong x-text="field.label"></strong><template x-for="item in field.items" :key="item.label"><label><span x-text="item.label"></span><input class="text-input" :type="item.inputType" :value="$store.game.roleCardLeafValue($store.game.selectedPlayerRoleCard(), field.key, item.path)" @input="$store.game.setRoleCardLeafValue($store.game.selectedPlayerRoleCard(), field.key, item.path, $event.target.value, item.valueType)"></label></template></section>
           </template>
         </div>
       </article>
@@ -1128,8 +1128,8 @@
               <template x-for="group in $store.game.roleCardMetricGroups(card)" :key="group.key">
                 <section class="role-card-metric-group"><strong x-text="group.title"></strong><template x-for="item in group.items" :key="item.key"><div class="role-card-metric-row"><label><span x-text="item.key"></span><input class="text-input" type="number" min="0" max="100" x-model.number="item.value"></label><label><span>状态</span><input class="text-input" x-model="item.status"></label><label><span>原因</span><textarea class="text-input" x-model="item.reason"></textarea></label></div></template></section>
               </template>
-              <template x-for="field in $store.game.roleCardJsonFields()" :key="field.key">
-                <label class="role-card-json-field"><span x-text="field.label"></span><textarea class="text-input" spellcheck="false" :value="$store.game.roleCardJsonText(card, field.key)" @change="$store.game.setRoleCardJsonField(card, field.key, $event.target.value)"></textarea></label>
+              <template x-for="field in $store.game.roleCardStructuredFields(card)" :key="field.key">
+                <section class="role-card-structured-field"><strong x-text="field.label"></strong><template x-for="item in field.items" :key="item.label"><label><span x-text="item.label"></span><input class="text-input" :type="item.inputType" :value="$store.game.roleCardLeafValue(card, field.key, item.path)" @input="$store.game.setRoleCardLeafValue(card, field.key, item.path, $event.target.value, item.valueType)"></label></template></section>
               </template>
             </div>
           </div>

@@ -534,7 +534,7 @@
 }
 
 .role-card-metric-group,
-.role-card-json-field {
+.role-card-structured-field {
   display: grid;
   gap: 8px;
   padding-top: 8px;
@@ -545,9 +545,14 @@
   grid-template-columns: 90px minmax(120px, 1fr) minmax(180px, 1.5fr);
 }
 
-.role-card-json-field textarea {
-  min-height: 120px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+.role-card-structured-field {
+  max-height: 260px;
+  overflow: auto;
+}
+
+.role-card-structured-field label {
+  padding-left: 8px;
+  border-left: 2px solid rgba(113, 243, 255, .18);
 }
 
 .relation-add-grid {
