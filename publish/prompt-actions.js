@@ -32,6 +32,7 @@ window.GameModules.promptActions = {
     this.initPromptApp();
     if (this.promptState.selectedId === id) { this.promptState.selectedId = ''; this.promptState.selectedText = ''; return; }
     this.promptState.selectedId = id; this.promptState.loading = true; this.promptState.error = '';
+    this.promptState.selectedText = window.GameModules.promptTemplates.snapshot(id);
     try { this.promptState.selectedText = await window.GameModules.promptTemplates.load(id); }
     catch (err) { console.error('提示词模板读取失败:', err.message, err.stack); this.promptState.error = err.message || '读取失败'; this.promptState.selectedText = ''; }
     finally { this.promptState.loading = false; }

@@ -913,7 +913,7 @@
   <section class="prompt-app-modal-backdrop" x-show="$store.game.promptState?.selectedId" @click.self="$store.game.closePromptDetail()" x-cloak>
     <article class="prompt-app-modal dev-section" data-section-title="提示词内容弹窗">
       <header><div><p class="eyebrow">PROMPT MD</p><h3 x-text="$store.game.currentPromptItem()?.title || '提示词模板'"></h3></div><button class="small-btn" type="button" @click="$store.game.closePromptDetail()">关闭</button></header>
-      <pre class="prompt-markdown" x-text="$store.game.promptState.loading ? '读取中…' : ($store.game.promptState.selectedText || $store.game.promptState.error || '暂无内容')"></pre>
+      <pre class="prompt-markdown" x-text="$store.game.promptState.selectedText || ($store.game.promptState.loading ? '读取中…' : ($store.game.promptState.error || '暂无内容'))"></pre>
     </article>
   </section>
 

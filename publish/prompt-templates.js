@@ -44,6 +44,10 @@ window.GameModules.promptTemplates = {
   defaultState() { return { open: false, query: '', category: '', selectedId: '', selectedText: '', loading: false, error: '' }; },
   list() { return this.items; },
   find(id) { return this.items.find((item) => item.id === id) || this.items[0]; },
+  snapshot(id) {
+    const item = this.find(id);
+    return item ? (this.inline?.[item.id] || this.cache?.[item.id] || '') : '';
+  },
   async load(id) {
     const item = this.find(id);
     if (!item) return '';
