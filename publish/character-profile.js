@@ -143,6 +143,7 @@ window.GameModules.characterProfile = {
     return window.GameModules.jsonUtils.generateJsonWithRetry({
       source: `character-profile-${group}`,
       model: 'nalang-turbo-0826',
+      maxTokens: group === 'playerFeelings' ? 3000 : 2400,
       timeoutMs: 45000,
       prompt,
       format: prompt,
@@ -192,8 +193,13 @@ window.GameModules.characterProfile = {
     return [
       `目标人物只能是：${base.name}。`,
       `根字段必须是 ${group}。`,
-      `${group} 必须完整包含：${keys.join('、')}。`,
+      `${group} 必须按顺序完整包含：${keys.join('、')}，每个 key 精确一次，不能截断。`,
+      '每一项都必须有 key、value、status、reason 四个字段。',
+      'status 和 reason 都必须是完整中文句子，必须点名当前 key 或同义词，不能留空。',
+      'reason 必须包含具体因果词或证据词：因为、由于、源于、来自、经历、过去、处境、关系、玩家、父母、兄弟姐妹。',
+      '不要写“坚强的性格支撑”“性格使然”“综合判断”“个人动机与过去经历”等抽象空话。',
       '不要返回英文 key、initial_metrics、affection、dependency、trust_level 等替代结构。',
+      '只返回一行紧凑 JSON，不要 Markdown。',
     ].join('\n');
   },
 
