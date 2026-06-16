@@ -23,6 +23,13 @@ window.GameModules.promptTemplates = {
     { id: 'writing-styles', title: '小说文风预设', category: '剧情推演', file: 'prompts/writing-styles.md', summary: '主剧情推演可选文风预设文本。' },
   ],
   cache: {},
+  baseUrl: (() => {
+    try {
+      return new URL('.', document.currentScript?.src || document.baseURI).toString();
+    } catch (_) {
+      return '';
+    }
+  })(),
   defaultState() { return { open: false, query: '', category: '', selectedId: '', selectedText: '', loading: false, error: '' }; },
   list() { return this.items; },
   find(id) { return this.items.find((item) => item.id === id) || this.items[0]; },
@@ -56,7 +63,9 @@ window.GameModules.promptTemplates = {
   },
   fileCandidates(file) {
     const raw = String(file || '').replace(/^\.\//, '');
-    return [...new Set([raw, `./${raw}`])];
+    const urls = [raw, `./${raw}`];
+    if (this.baseUrl) urls.unshift(new URL(raw, this.baseUrl).toString());
+    return [...new Set(urls)];
   },
   looksLikeWrongAsset(text, item) {
     const raw = String(text || '').trimStart();
