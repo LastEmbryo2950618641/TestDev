@@ -31,8 +31,8 @@ function registerGameStore() {
     knownProfessionState: { open: false, query: '', message: '', selectedName: '', detailOpen: false },
     playerProfile: { name: '', gender: '', birthday: '', age: '', city: '', refinedCity: '', dailyRole: '', refinedRole: '', livingStatus: '', refinedLivingStatus: '', relationships: '', parents: '', parentStatus: '', parentDeathCause: '', worldbuildingNote: '', notes: '', knownProfessions: [], wechatId: '', profileEnrichedAt: '', initializedAt: '' }, playerName: '',
     selectedSlot: 'slot-1', saveSlots: window.GameModules.storage.slots,
-    savePanelOpen: false, functionPanelOpen: false,
-    libraryTab: 'worlds', expandedWorldlineTag: '',
+    savePanelOpen: false, functionPanelOpen: false, worldlineAppOpen: false,
+    libraryTab: 'worlds', worldlineAppTab: 'control', expandedWorldlineTag: '',
     activeStyleIds: ['literary'], customWritingStyles: [], customStyleName: '', customStylePrompt: '',
     saveMessage: '',
     saveMetas: {},
@@ -98,22 +98,13 @@ function registerGameStore() {
 
     get homeCharacterProfile() { return this.homeCharacterProfiles[this.character.id] || null; },
 
-    get characterRpgState() {
-      return this.rpgStates[this.character.id] || null;
-    },
-
-    get currentRpgState() {
-      return this.characterRpgState;
-    },
-
+    get characterRpgState() { return this.rpgStates[this.character.id] || null; },
+    get currentRpgState() { return this.characterRpgState; },
     get currentMemory() {
       const id = this.currentRpgState?.id;
       return id ? window.GameModules.characterMemory.ensure(id) : window.GameModules.characterMemory.normalize(null, 'none');
     },
-
-    get savedWorldLores() {
-      return window.GameModules.sqliteSave.db ? window.GameModules.sqliteSave.listWorldLores() : [];
-    },
+    get savedWorldLores() { return window.GameModules.sqliteSave.db ? window.GameModules.sqliteSave.listWorldLores() : []; },
 
     async init() {
       if (this.initPromise) return this.initPromise;

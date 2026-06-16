@@ -17,6 +17,7 @@ window.GameModules.appSwitchActions = {
     this.identityAppOpen = false;
     this.wechatAppOpen = false;
     this.saveAppOpen = false;
+    this.worldlineAppOpen = false;
     this.savePanelOpen = false;
     if (this.companyState) this.companyState.open = false;
     if (this.bossState) this.bossState.open = false;

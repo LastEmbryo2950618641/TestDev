@@ -115,3 +115,52 @@
 .faction-details summary {
   cursor: pointer;
 }
+
+.worldline-icon .app-glyph {
+  background: radial-gradient(circle at 28% 22%, rgba(255, 255, 255, .42), transparent 24%), linear-gradient(135deg, #6a7dff, #8b5cff 58%, #74f6ff);
+}
+
+.worldline-app-screen {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(42px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  background: radial-gradient(circle at 30% 12%, rgba(116, 246, 255, .2), transparent 30%), linear-gradient(145deg, #0d142b, #070914 60%, #151b34);
+}
+
+.worldline-app-card {
+  width: min(720px, 100%);
+  height: min(820px, calc(100dvh - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 22px;
+  background: rgba(10, 15, 32, .92);
+  box-shadow: 0 22px 55px rgba(0, 0, 0, .38);
+}
+
+.worldline-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.worldline-tabs button {
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 999px;
+  padding: 9px 12px;
+  color: #cfd8f4;
+  background: rgba(255, 255, 255, .06);
+}
+
+.worldline-tabs button.active {
+  color: #07101d;
+  background: linear-gradient(135deg, #74f6ff, #ffdf8a);
+}
+
+.worldline-app-body {
+  display: grid;
+  gap: 10px;
+}

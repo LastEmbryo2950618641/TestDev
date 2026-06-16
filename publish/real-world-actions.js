@@ -113,7 +113,7 @@ window.GameModules.realWorldActions = {
     const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
     if (!map.current) return;
     this.realWorldLog = [{
-      id: this.nextId++, type: 'system', locationName: map.current,
+      id: this.nextId++, type: 'system', locationName: map.current, time: { label: `${this.phoneDateText()} ${this.phoneTimeText()}` },
       narration: `你把手机屏幕压暗，现实世界的声音重新浮上来。${map.current}仍保持着原本的秩序，但那台新手机带来的异常感并没有消失。`,
       thinking: '现实世界推演已接入玩家本人资料，只追踪手机外的现实行动。',
     }];
@@ -151,7 +151,8 @@ window.GameModules.realWorldActions = {
     this.realWorldQuest = result.quest || this.realWorldQuest;
     this.realWorldStatus = result.status || this.realWorldStatus;
     this.realWorldChoices = result.choices || this.realWorldChoices;
-    this.realWorldLog = this.realWorldLog.map((entry) => (entry.id === id ? { ...entry, ...result, type: 'ai', streaming: false } : entry)).slice(-30);
+    const time = { label: `${this.phoneDateText()} ${this.phoneTimeText()}` };
+    this.realWorldLog = this.realWorldLog.map((entry) => (entry.id === id ? { ...entry, ...result, type: 'ai', streaming: false, time } : entry)).slice(-30);
   },
 
   async recordPlayerRealWorldMemory(action, result) {

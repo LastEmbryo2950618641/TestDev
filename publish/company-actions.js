@@ -167,6 +167,7 @@ window.GameModules.companyActions = {
     this.identityAppOpen = false;
     this.wechatAppOpen = false;
     this.saveAppOpen = false;
+    this.worldlineAppOpen = false;
     if (this.bossState) this.bossState.open = false;
     if (this.calendarState) this.calendarState.open = false;
     if (this.factionState) this.factionState.open = false;

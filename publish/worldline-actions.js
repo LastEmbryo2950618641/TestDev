@@ -4,6 +4,17 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.worldlineActions = {
+  openWorldlineApp() {
+    this.closeDesktopApps?.();
+    this.worldlineAppOpen = true;
+    this.desktopUnlocked = true;
+  },
+
+  closeWorldlineApp() {
+    this.worldlineAppOpen = false;
+    this.closeAppToDesktop?.();
+  },
+
   toggleWorldline(lore) {
     if (!this.loreWorldline(lore)) return;
     const tag = lore?.worldTag || '';
@@ -13,6 +24,36 @@ window.GameModules.worldlineActions = {
 
   isWorldlineOpen(lore) {
     return Boolean(lore?.worldTag && this.expandedWorldlineTag === lore.worldTag);
+  },
+
+  controlWorldLores() {
+    const realTag = this.realWorldTag();
+    return (this.savedWorldLores || []).filter((lore) => lore.worldTag !== realTag);
+  },
+
+  realWorldTag() {
+    return window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
+  },
+
+  realWorldLore() {
+    const tag = this.realWorldTag();
+    const saved = (this.savedWorldLores || []).find((lore) => lore.worldTag === tag) || {};
+    return { worldTag: tag, background: saved.background || this.playerProfile?.worldbuildingNote || '玩家所在的现代都市现实世界。', factions: saved.factions || [], specialJobs: saved.specialJobs || [], jobRanks: saved.jobRanks || [], specialFields: saved.specialFields || [], worldline: this.realWorldline() };
+  },
+
+  realWorldline() {
+    const events = (this.realWorldLog || [])
+      .filter((entry) => entry.type === 'ai' || entry.type === 'system')
+      .map((entry, index) => ({
+        eventId: `real_${entry.id || index}`,
+        name: entry.sceneTitle || entry.locationName || this.realWorldSceneTitle || '现实事件',
+        time: entry.time?.label || entry.createdAt || `${this.phoneDateText?.() || ''} ${this.phoneTimeText?.() || ''}`.trim(),
+        summary: String(entry.narration || entry.text || '现实世界记录').slice(0, 90),
+        detail: String(entry.narration || entry.thinking || entry.text || '').slice(0, 420),
+        status: entry.streaming ? '记录中' : '已记录',
+        kind: 'event',
+      }));
+    return { timeRange: `${this.phoneDateText?.() || '现实时间'} - 现在`, events, storyIndexes: ['现实世界独立记录，不并入被操控世界线'], factions: {} };
   },
 
   loreWorldline(lore) {

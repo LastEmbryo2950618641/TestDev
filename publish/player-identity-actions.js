@@ -36,12 +36,8 @@ window.GameModules.playerIdentityActions = {
     window.GameModules.characterProfile.requireRpgFieldReasons(saved, saved.worldAttributes, saved.name || '玩家本人');
     return saved;
   },
-  playerIdentityState() {
-    return this.rpgStates['player-self'] || null;
-  },
-  identityTargetState() {
-    return this.rpgStates[this.identityTargetId || 'player-self'] || null;
-  },
+  playerIdentityState() { return this.rpgStates['player-self'] || null; },
+  identityTargetState() { return this.rpgStates[this.identityTargetId || 'player-self'] || null; },
   identityTargetProfile() {
     const id = this.identityTargetId || 'player-self';
     if (id === 'player-self') return this.playerDisplayCharacter();
@@ -68,9 +64,7 @@ window.GameModules.playerIdentityActions = {
     const names = (list) => (list || []).map((item) => item?.slot ? `${item.slot}:${item.name || '未穿戴'}` : (item?.name || item)).slice(0, 16).join('、') || '无';
     return `性别${this.playerProfile.gender || '未知'}｜年龄${v.age ?? this.playerProfile.age ?? '未知'}｜等级${v.level}｜经验${v.exp?.current || 0}/${v.exp?.next || 'max'}｜力量${v.strength}｜敏捷${v.agility}｜体质${v.constitution}｜智力${v.intelligence}｜感知${v.perception}｜意志${v.willpower}｜魅力${v.charisma}｜装备${names(v.equipment)}｜物品${names(v.items)}｜穿着${names(v.wearing)}`;
   },
-  playerMemory() {
-    return window.GameModules.characterMemory.ensure('player-self');
-  },
+  playerMemory() { return window.GameModules.characterMemory.ensure('player-self'); },
   playerMemoryItems(kind) {
     const memory = this.playerMemory();
     if (kind === 'shortTerm') return [...(memory.shortTerm.recent || []), ...(memory.shortTerm.summarized || [])];
@@ -146,7 +140,7 @@ window.GameModules.playerIdentityActions = {
   },
 
   async openIdentityApp(targetId = 'player-self') {
-    this.wechatAppOpen = false; this.saveAppOpen = false;
+    this.wechatAppOpen = false; this.saveAppOpen = false; this.worldlineAppOpen = false;
     if (this.companyState) this.companyState.open = false;
     if (this.bossState) this.bossState.open = false;
     if (this.calendarState) this.calendarState.open = false;
@@ -159,7 +153,7 @@ window.GameModules.playerIdentityActions = {
   },
 
   openWechatApp() {
-    this.identityAppOpen = false; this.saveAppOpen = false;
+    this.identityAppOpen = false; this.saveAppOpen = false; this.worldlineAppOpen = false;
     if (this.companyState) this.companyState.open = false;
     if (this.bossState) this.bossState.open = false;
     if (this.calendarState) this.calendarState.open = false;
@@ -189,22 +183,10 @@ window.GameModules.playerIdentityActions = {
     const group = this.defaultWechatGroup?.() || { id: 'group-main', name: '操控者交流群', mark: '群', subtitle: '聊天群', latest: '系统：新手机已激活。', unread: 8, group: true };
     return [group, ...(this.wechatUsers || []).map((item) => this.displayWechatContact?.(item) || item)];
   },
-
   wechatThreads() { return this.wechatContacts(); },
-
-  wechatSelected() {
-    return this.wechatThreads().find((item) => item.id === this.wechatSelectedContact) || this.wechatThreads()[0];
-  },
-
-  selectWechatContact(id) {
-    this.wechatSelectedContact = id || this.wechatThreads()[0]?.id || 'player-self';
-    this.wechatView = 'chat';
-  },
-
-  setWechatTab(tab) {
-    this.wechatTab = tab;
-    this.wechatView = 'home';
-  },
+  wechatSelected() { return this.wechatThreads().find((item) => item.id === this.wechatSelectedContact) || this.wechatThreads()[0]; },
+  selectWechatContact(id) { this.wechatSelectedContact = id || this.wechatThreads()[0]?.id || 'player-self'; this.wechatView = 'chat'; },
+  setWechatTab(tab) { this.wechatTab = tab; this.wechatView = 'home'; },
 
   wechatMessages() {
     const target = this.wechatSelected();
@@ -212,8 +194,5 @@ window.GameModules.playerIdentityActions = {
     return [{ side: 'other', name: target?.name, mark: target?.mark, text: target?.latest || '资料已同步。' }, { side: 'self', name: this.playerDisplayCharacter().name, mark: '我', text: '我看到了。' }];
   },
 
-  async openWechatIdentity() {
-    const id = this.wechatSelectedContact || 'player-self';
-    await this.openIdentityApp(id === 'group-main' ? 'player-self' : id);
-  },
+  async openWechatIdentity() { const id = this.wechatSelectedContact || 'player-self'; await this.openIdentityApp(id === 'group-main' ? 'player-self' : id); },
 };

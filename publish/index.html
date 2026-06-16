@@ -196,7 +196,7 @@
         <button class="small-btn" @click="$store.game.functionPanelOpen = false">关闭</button>
       </header>
       <div class="function-actions">
-        <button :class="{ active: $store.game.libraryTab === 'worlds' }" @click="$store.game.libraryTab = 'worlds'">图书馆</button>
+        <button :class="{ active: $store.game.libraryTab === 'worlds' }" @click="$store.game.libraryTab = 'worlds'">世界线</button>
         <button :class="{ active: $store.game.libraryTab === 'styles' }" @click="$store.game.libraryTab = 'styles'">小说文风</button>
         <button :class="{ active: $store.game.libraryTab === 'inventory' }" @click="$store.game.libraryTab = 'inventory'">背包</button>
         <button :class="{ active: $store.game.libraryTab === 'wearing' }" @click="$store.game.libraryTab = 'wearing'">穿着</button>
@@ -249,8 +249,8 @@
         </div>
       </section>
       <section class="library-panel" x-show="$store.game.libraryTab === 'worlds'">
-        <h3>已知世界观设定</h3>
-        <template x-for="lore in $store.game.savedWorldLores" :key="lore.worldTag">
+        <h3>被操控世界线</h3>
+        <template x-for="lore in $store.game.controlWorldLores()" :key="lore.worldTag">
           <article class="world-lore-card" :class="{ open: $store.game.isWorldlineOpen(lore) }" @click="$store.game.toggleWorldline(lore)">
             <div class="world-lore-title"><strong x-text="lore.worldTag"></strong><span x-show="$store.game.loreWorldline(lore)" x-text="$store.game.isWorldlineOpen(lore) ? '▾' : '▸'"></span></div>
             <p x-text="lore.background"></p>
@@ -285,8 +285,51 @@
             </div>
           </article>
         </template>
-        <p class="empty-lore" x-show="!$store.game.savedWorldLores.length">暂无已保存世界观。开始游戏或进入新作品后会自动生成。</p>
+        <p class="empty-lore" x-show="!$store.game.controlWorldLores().length">暂无已保存被操控世界线。开始连接角色后会自动生成。</p>
       </section>
+    </div>
+  </section>
+
+  <section x-show="!$store.game.loading && $store.game.worldlineAppOpen" class="worldline-app-screen app-window section-hints" x-cloak>
+    <div class="worldline-app-card dev-section" data-section-title="世界线APP主面板">
+      <header class="identity-header">
+        <div><p class="eyebrow">WORLDLINE</p><h2>世界线</h2><small>被操控世界线与现实世界独立记录</small></div>
+        <button class="small-btn" type="button" @click="$store.game.closeWorldlineApp()">回到桌面</button>
+      </header>
+      <nav class="worldline-tabs">
+        <button type="button" :class="{ active: $store.game.worldlineAppTab === 'control' }" @click="$store.game.worldlineAppTab = 'control'">被操控世界</button>
+        <button type="button" :class="{ active: $store.game.worldlineAppTab === 'real' }" @click="$store.game.worldlineAppTab = 'real'">现实世界</button>
+      </nav>
+      <main class="worldline-app-body scroll-area">
+        <section class="library-panel" x-show="$store.game.worldlineAppTab === 'control'">
+          <template x-for="lore in $store.game.controlWorldLores()" :key="`app-${lore.worldTag}`">
+            <article class="world-lore-card" :class="{ open: $store.game.isWorldlineOpen(lore) }" @click="$store.game.toggleWorldline(lore)">
+              <div class="world-lore-title"><strong x-text="lore.worldTag"></strong><span x-show="$store.game.loreWorldline(lore)" x-text="$store.game.isWorldlineOpen(lore) ? '▾' : '▸'"></span></div>
+              <p x-text="lore.background"></p>
+              <div class="lore-chip-row"><template x-for="faction in lore.factions" :key="faction.name"><span x-text="faction.name"></span></template></div>
+              <small x-text="`特殊职业：${$store.game.loreNames(lore.specialJobs, 'name')}`"></small>
+              <small x-text="`职业等级：${lore.jobRanks.join(' / ') || '无'}`"></small>
+              <div class="worldline-box" x-show="$store.game.isWorldlineOpen(lore) && $store.game.loreWorldline(lore)" @click.stop>
+                <div class="worldline-head"><b>世界线</b><small x-text="$store.game.loreWorldline(lore)?.timeRange || '时间未知'"></small></div>
+                <div class="timeline-list"><template x-for="item in $store.game.timelineItems(lore)" :key="`app-${item.kind}-${item.eventId || item.order}`"><article class="timeline-item" :class="item.kind"><span class="timeline-dot"></span><div><small x-text="item.time || '时间未知'"></small><h4 x-text="item.name"></h4><p x-text="item.summary || item.detail"></p><em x-text="$store.game.timelineMeta(item)"></em></div></article></template></div>
+                <details class="faction-details"><summary>查看势力详情</summary><template x-for="faction in $store.game.worldlineFactions(lore)" :key="faction.id"><p><b x-text="`${faction.名称}｜${faction.类型}｜${faction.状态}`"></b><span x-text="` 目标:${faction.当前目标 || '无'}；属性:${$store.game.factionAttrs(faction)}；关系:${$store.game.factionRelations(faction)}`"></span></p></template></details>
+              </div>
+            </article>
+          </template>
+          <p class="empty-lore" x-show="!$store.game.controlWorldLores().length">暂无被操控世界线。</p>
+        </section>
+        <section class="library-panel" x-show="$store.game.worldlineAppTab === 'real'">
+          <article class="world-lore-card open">
+            <div class="world-lore-title"><strong x-text="$store.game.realWorldLore().worldTag"></strong><span>▾</span></div>
+            <p x-text="$store.game.realWorldLore().background"></p>
+            <div class="worldline-box">
+              <div class="worldline-head"><b>现实世界线</b><small x-text="$store.game.realWorldline().timeRange"></small></div>
+              <div class="timeline-list"><template x-for="item in $store.game.timelineItems($store.game.realWorldLore())" :key="`real-${item.eventId || item.order}`"><article class="timeline-item event"><span class="timeline-dot"></span><div><small x-text="item.time || '现实时间'"></small><h4 x-text="item.name"></h4><p x-text="item.summary || item.detail"></p><em x-text="item.status || '现实记录'"></em></div></article></template></div>
+              <p class="empty-lore" x-show="!$store.game.realWorldline().events.length">暂无现实世界记录。收起手机并进行现实行动后会写入这里。</p>
+            </div>
+          </article>
+        </section>
+      </main>
     </div>
   </section>
 
@@ -589,6 +632,7 @@
             <button class="desktop-app-icon token-icon" type="button" @click="$store.game.openTokenStatsApp()" aria-label="打开Token统计"><span class="app-glyph">T</span><b>Token统计</b></button>
             <button class="desktop-app-icon profession-icon" type="button" @click="$store.game.openKnownProfessionApp()" aria-label="打开已知职业"><span class="app-glyph">职</span><b>已知职业</b></button>
             <button class="desktop-app-icon save-icon" type="button" @click="$store.game.openSaveApp()" aria-label="打开存档"><span class="app-glyph">存</span><b>存档</b></button>
+            <button class="desktop-app-icon worldline-icon" type="button" @click="$store.game.openWorldlineApp()" aria-label="打开世界线"><span class="app-glyph">线</span><b>世界线</b></button>
           </div>
         </div>
       </div>
@@ -602,7 +646,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.identityAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.saveAppOpen" class="identity-app-screen app-window section-hints" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.identityAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen" class="identity-app-screen app-window section-hints" x-cloak>
     <div class="identity-card dev-section" data-section-title="身份证主面板">
       <header class="identity-header dev-section" data-section-title="身份证标题区">
         <div><p class="eyebrow">ID CARD</p><h2>身份证</h2><small x-text="$store.game.identityTargetProfile().work || '现实世界'"></small></div>
@@ -967,7 +1011,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.wechatAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.saveAppOpen" class="wechat-app-screen app-window section-hints" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.wechatAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen" class="wechat-app-screen app-window section-hints" x-cloak>
     <div class="wechat-phone dev-section" data-section-title="微信模拟界面">
       <header class="wechat-top" x-show="$store.game.wechatView === 'home'">
         <button type="button" @click="$store.game.closeWechatApp()">返回桌面</button><strong></strong><button type="button">⋯</button>
@@ -1057,7 +1101,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.saveAppOpen && !$store.game.entrySetupOpen" class="start-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen && !$store.game.entrySetupOpen" class="start-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <div class="start-card dev-section" data-section-title="首页选择面板">
       <button class="back-desktop-btn" type="button" @click="$store.game.closeAppToDesktop()">返回桌面</button>
       <p class="eyebrow">AI RPG 视觉小说</p>
@@ -1129,7 +1173,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.saveAppOpen && $store.game.entrySetupOpen" class="start-screen entry-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen && $store.game.entrySetupOpen" class="start-screen entry-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <div class="start-card entry-card dev-section" data-section-title="进入时机配置区">
       <button class="back-desktop-btn" type="button" @click="$store.game.closeAppToDesktop()" :disabled="$store.game.busy">返回桌面</button>
       <button class="back-home-btn" type="button" @click="$store.game.backToHome()" :disabled="$store.game.busy">← 返回首页</button>
@@ -1174,7 +1218,7 @@
     </div>
   </section>
 
-  <main x-show="$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.saveAppOpen" class="game-shell app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <main x-show="$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen" class="game-shell app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <header class="top-bar dev-section" data-section-title="顶部状态栏">
       <div class="mode-status">
         <span class="mode-dot" :class="$store.game.online ? 'online' : 'offline'"></span>

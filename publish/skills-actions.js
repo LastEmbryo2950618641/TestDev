@@ -11,6 +11,7 @@ window.GameModules.skillsActions = {
     this.identityAppOpen = false;
     this.wechatAppOpen = false;
     this.saveAppOpen = false;
+    this.worldlineAppOpen = false;
     if (this.companyState) this.companyState.open = false;
     if (this.bossState) this.bossState.open = false;
     if (this.calendarState) this.calendarState.open = false;
