@@ -4,6 +4,7 @@ window.GameModules.skillsActions = {
   initSkillsApp() {
     const base = window.GameModules.skillsApp.defaultState();
     this.skillsState = { ...base, ...(this.skillsState || {}) };
+    window.GameModules.skillsApp.loadDefinitions().catch((err) => console.warn('[Skills] 初始化动态文档失败:', err.message, err.stack));
   },
 
   openSkillsApp() {

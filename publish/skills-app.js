@@ -5,6 +5,11 @@ window.GameModules.skillsApp = {
     return { open: false, query: '', category: '', selectedSkillId: '', detailOpen: false };
   },
 
+  async loadDefinitions() {
+    await window.GameModules.skillLoader?.load?.();
+    return this.definitions();
+  },
+
   definitions() {
     return window.GameModules.skillsDefinitions || [];
   },

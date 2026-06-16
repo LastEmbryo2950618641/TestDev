@@ -8,6 +8,7 @@ window.GameModules.createSystemPrompt = async function createSystemPrompt(state,
   const experience = state.characterRpgState?.values?.control_experience || { onlineCount: 0, feeling: '未知', adaptation: 0, summary: '尚未经历上线操控。' };
   const actor = /男性|男人|少年|青年|父亲|哥哥|弟弟|叔叔|丈夫|王子|皇帝/.test(`${character.name} ${character.role} ${character.detail}`) ? '他' : '她';
   window.GameModules.metrics.ensure(state);
+  const stateSkill = await window.GameModules.skillLoader?.instruction?.('emotion.feeling.wearing.assess') || '';
   const realWorld = window.GameModules.realWorld2026 || {};
   const outputJson = JSON.stringify({
     sceneTitle: '当前场景标题', elapsedSeconds: 60,
@@ -25,7 +26,7 @@ window.GameModules.createSystemPrompt = async function createSystemPrompt(state,
     角色姓名: character.name, 作品: character.work || '原创世界', 角色身份: character.role, 角色资料: character.detail || character.personality || '暂无补充资料', 角色技能: character.skills.map((s) => `${s.name}:${s.desc}`).join('；') || '无', 角色代词: actor,
     小说文风: state.writingStylePrompt?.() || '正文采用小说文风，重视画面、动作和心理反应，避免复述玩家指令。', 思考展示规则: state.thinkingMode ? 'thinking 是展示给玩家看的 AI 思考摘要，只概括依据哪些状态推进剧情，不输出隐藏推理链，不替代正文。' : '当前思考模式关闭，不要返回 thinking 字段。',
     上线状态: state.online ? 'online' : 'offline', 控制模式: state.controlMode, 当前场景: state.sceneTitle, 游戏时间: state.entryTimeLabel?.() || '时间未知', 回合: state.turn, 当前情绪: state.mood, 信任: state.trust, 反抗: state.resistance, 目标: state.quest, 基础状态: JSON.stringify(state.rpgVitals(state.characterRpgState)), 固定数值: `当前情绪=${JSON.stringify(state.emotions)}；对玩家感觉=${JSON.stringify(state.playerFeelings)}`,
-    上线次数: experience.onlineCount, 上线感觉: experience.feeling, 适应度: experience.adaptation, 上线摘要: experience.summary, 感觉参考: '极度惊恐/非常害怕/恐惧/疑惑/警惕/愤怒/屈辱/麻木/担忧/习惯/冷静分析', 玩家输入: action || '无，继续推进', 人物记忆: state.memoryContext || '暂无人物记忆。', 参考资料: state.ragContext || '暂无资料。',
-    情绪字段: window.GameModules.metrics.emotionKeys.join('、'), 关系指标字段: window.GameModules.metrics.playerKeys.join('、'), 阶段表: window.GameModules.metrics.stageGuide(), 属性定义: Object.entries(window.GameModules.metrics.descriptions).map(([k, v]) => `- ${k}：${v}`).join('\n'), 输出示例: outputJson,
+    上线次数: experience.onlineCount, 上线感觉: experience.feeling, 适应度: experience.adaptation, 上线摘要: experience.summary, 感觉参考: '极度惊恐/非常害怕/恐惧/疑惑/警惕/愤怒/屈辱/麻木/担忧/习惯/冷静分析', 目标状态快照: window.GameModules.promptSections.stateSnapshot(state, state.currentRpgState), 玩家输入: action || '无，继续推进', 人物记忆: state.memoryContext || '暂无人物记忆。', 参考资料: state.ragContext || '暂无资料。',
+    情绪字段: window.GameModules.metrics.emotionKeys.join('、'), 关系指标字段: window.GameModules.metrics.playerKeys.join('、'), 阶段表: window.GameModules.metrics.stageGuide(), 属性定义: Object.entries(window.GameModules.metrics.descriptions).map(([k, v]) => `- ${k}：${v}`).join('\n'), 状态判定Skill: stateSkill, 输出示例: outputJson,
   });
 };

@@ -65,6 +65,17 @@ window.GameModules.resultActions = {
     this.syncMetricDerived();
   },
 
+  async applyMetricUpdatesToState(state, updates) {
+    const count = (updates?.emotions?.length || 0) + (updates?.playerFeelings?.length || 0);
+    if (!state?.id || !count) return;
+    const metrics = this.ensureStateMetrics(state);
+    window.GameModules.metrics.applyGroup(metrics.emotions, updates.emotions, metrics.notes, 'emotion');
+    window.GameModules.metrics.applyGroup(metrics.playerFeelings, updates.playerFeelings, metrics.notes, 'player');
+    this.rpgStates = { ...this.rpgStates, [state.id]: state };
+    if (state.id === this.character?.id) this.loadMetricsFromCharacterState(state);
+    await window.GameModules.sqliteSave.saveCharacterState(state);
+  },
+
   loadMetricsFromCharacterState(state = this.characterRpgState) {
     const metrics = this.ensureStateMetrics(state);
     this.emotions = { ...metrics.emotions };

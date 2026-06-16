@@ -85,6 +85,8 @@ window.GameModules.wechatChatActions = {
       const result = await this.generateWechatReply(contact, playerText);
       if (reqId !== this.wechatReplyRequestId) return;
       result.characterCardChanges = await window.GameModules.characterCardLexicon?.applyToState?.(this.rpgStates?.[contact.id], result.lexiconUpdates || []) || [];
+      await this.applyMetricUpdatesToState?.(this.rpgStates?.[contact.id], result.metricUpdates);
+      await this.applyInventoryUpdatesToState?.(this.rpgStates?.[contact.id], result.lexiconUpdates || []);
       this.advancePhoneTime?.(result.elapsedSeconds || 60);
       this.appendWechatMessage(contact.id, { side: 'other', name: contact.name, mark: contact.mark, text: result.reply, characterCardChanges: result.characterCardChanges, cardChangesOpen: false });
       await window.GameModules.characterMemory?.recordWechatExchange?.(this, contact, playerText, result.reply, result);
@@ -120,6 +122,7 @@ window.GameModules.wechatChatActions = {
   async wechatReplyPrompt(contact, playerText) {
     const sections = window.GameModules.promptSections;
     const player = sections.playerProfile(this);
+    const stateSkill = await window.GameModules.skillLoader?.instruction?.('emotion.feeling.wearing.assess') || '';
     return window.GameModules.promptTemplates.render('wechat-chat-reply', {
       玩家基础资料区: player.playerBasic,
       玩家现实身份区: player.playerIdentity,
@@ -131,8 +134,10 @@ window.GameModules.wechatChatActions = {
       现实场景: this.realWorldSceneTitle || '现实世界',
       现实地点: this.realWorldLocationName || '未确认',
       现实状态: this.realWorldStatus || '现实稳定',
+      目标状态快照: sections.stateSnapshot(this, this.rpgStates?.[contact.id]),
       微信历史: this.wechatHistoryText(contact.id),
       玩家消息: playerText,
+      状态判定Skill: stateSkill,
     });
   },
 
@@ -156,7 +161,7 @@ window.GameModules.wechatChatActions = {
   validateWechatReply(raw, contact) {
     const reply = String(raw?.reply || '').trim().slice(0, 120) || this.fallbackWechatReply(contact, '');
     const impression = Math.max(0, Math.min(100, Math.round(Number(raw?.impression) || 20)));
-    return { reply, mood: String(raw?.mood || '平常').slice(0, 20), elapsedSeconds: Math.max(20, Math.min(1800, Number(raw?.elapsedSeconds) || 60)), impression, lexiconUpdates: window.GameModules.ai.normalizeLexiconUpdates?.(raw?.lexiconUpdates, { character: { work: '2026 现代都市现实世界' } }) || [] };
+    return { reply, mood: String(raw?.mood || '平常').slice(0, 20), elapsedSeconds: Math.max(20, Math.min(1800, Number(raw?.elapsedSeconds) || 60)), impression, metricUpdates: window.GameModules.ai.normalizeMetricUpdates?.(raw?.metricUpdates) || {}, lexiconUpdates: window.GameModules.ai.normalizeLexiconUpdates?.(raw?.lexiconUpdates, { character: { work: '2026 现代都市现实世界' } }) || [] };
   },
 
   fallbackWechatReply(contact, text) {

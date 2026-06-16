@@ -70,6 +70,10 @@
 {地点说明}
 - 目标：{当前目标}
 
+## 目标状态快照
+
+{目标状态快照}
+
 ## 最近记录
 
 {最近记录}
@@ -77,6 +81,10 @@
 ## 本次行动
 
 {本次行动}
+
+## 动态 Skills
+
+{状态判定Skill}
 
 ## 强制规则
 
@@ -116,6 +124,7 @@
 | status | string | 是 | 现实状态摘要。 |
 | elapsedSeconds | number | 是 | 本次现实行动消耗秒数。 |
 | choices | array<string> | 是 | 四个现实下一步行动。 |
+| metricUpdates | object | 否 | 本回合玩家本人情绪/对玩家自身感觉变化，由动态 Skill 判定。 |
 | lexiconUpdates | array<object> | 否 | 玩家资料、公司、职业、状态、装备、物品、穿着等词条变化。 |
 | companyUpdates | object | 否 | 如有公司系统变化，按运行时代码支持字段返回。 |
 

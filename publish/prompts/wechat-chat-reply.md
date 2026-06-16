@@ -40,6 +40,10 @@
 - 当前现实地点：{现实地点}
 - 当前现实状态：{现实状态}
 
+## 联系人目标状态快照
+
+{目标状态快照}
+
 ## 微信历史
 
 {微信历史}
@@ -47,6 +51,10 @@
 ## 玩家新消息
 
 {玩家消息}
+
+## 动态 Skills
+
+{状态判定Skill}
 
 ## 回复规则
 
@@ -72,14 +80,15 @@
 | mood | string | 是 | 联系人此刻回复语气。 |
 | elapsedSeconds | number | 是 | 从玩家发出到联系人回复经过的现实秒数。 |
 | impression | number | 是 | 本次微信对话对双方记忆的印象强度，0-100。 |
-| lexiconUpdates | array<object> | 否 | 聊天确认了角色卡或技能事实时返回；没有变化可省略或返回空数组。 |
+| metricUpdates | object | 否 | 本次微信对话导致的联系人情绪/对玩家感觉变化，由动态 Skill 判定。 |
+| lexiconUpdates | array<object> | 否 | 聊天确认了角色卡、技能或穿着事实时返回；没有变化可省略或返回空数组。 |
 
 ### lexiconUpdates[] 对象规范
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
 | worldTag | string | 是 | 通常为“2026 现代都市现实世界”。 |
-| kind | string | 是 | 角色卡字段用“角色卡”；技能用“角色技能”。 |
+| kind | string | 是 | 角色卡字段用“角色卡”；技能用“角色技能”；穿着变化用“穿着”。 |
 | field | string | 条件必填 | kind 为“角色卡”时写角色卡字段名。 |
 | name | string | 是 | 角色卡字段名，或技能集合名 `skills`。 |
 | value | string/object | 是 | 新值；技能为 `{ "name": "技能名", "desc": "技能说明" }`。 |

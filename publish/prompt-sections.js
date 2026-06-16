@@ -59,6 +59,16 @@ window.GameModules.promptSections = {
     return list.map((x) => `${x.name}(${x.type}/${x.level})`).join('、') || '未初始化';
   },
 
+  stateSnapshot(store, state = null) {
+    const metrics = state ? store?.ensureStateMetrics?.(state) : { emotions: store?.emotions, playerFeelings: store?.playerFeelings };
+    const wearing = store?.wearingItems?.(state || store?.inventoryTargetState?.()) || [];
+    return this.lines([
+      ['已有情绪', JSON.stringify(metrics?.emotions || {})],
+      ['已有对玩家感觉', JSON.stringify(metrics?.playerFeelings || {})],
+      ['已有穿着', wearing.map((item) => `${item.slot}:${item.name || '未穿戴'}`).join('、') || '无'],
+    ]);
+  },
+
   wechatContact(contact, hint) {
     return this.lines([
       ['微信关系', contact?.relation || '联系人'], ['联系人当前名称', contact?.name], ['是否需要 AI 命名', contact?.needsNameAi ? '是' : '否'],

@@ -143,6 +143,7 @@ window.GameModules.realWorldActions = {
 
   async applyRealWorldResult(id, result) {
     const state = this.playerIdentityState?.();
+    await this.applyMetricUpdatesToState?.(state, result.metricUpdates);
     result.characterCardChanges = await window.GameModules.characterCardLexicon?.applyToState?.(state, result.lexiconUpdates || []) || [];
     await window.GameModules.rpgLexicon.applyLexiconSkill?.((result.lexiconUpdates || []).filter((item) => item?.kind !== '角色卡' && item?.kind !== '角色技能'));
     await this.applyInventoryUpdatesToState(state, result.lexiconUpdates || []);
