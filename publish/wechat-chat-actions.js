@@ -53,9 +53,15 @@ window.GameModules.wechatChatActions = {
   async recordWechatWorldline(contact, playerText, replyText = '', result = {}) {
     const display = this.displayWechatContact?.(contact) || contact || {};
     const time = this.wechatMemoryTime?.() || { label: `${this.phoneDateText?.() || ''} ${this.phoneTimeText?.() || ''}`.trim() };
-    const detail = ['来源：微信对话', `微信时间：${time.label || '时间未知'}`, `联系人：${display.name || '微信联系人'}`, `玩家发送：${playerText}`, replyText ? `联系人回复：${replyText}` : '', result.mood ? `联系人语气：${result.mood}` : ''].filter(Boolean).join('\n');
+    const label = time.label || '时间未知';
+    const playerName = this.playerDisplayCharacter?.().name || this.playerName || '玩家';
+    const detail = [
+      '以下来自微信对话。',
+      `${playerName}（${label}）：${playerText}`,
+      replyText ? `${display.name || '微信联系人'}（${label}）：${replyText}` : '',
+    ].filter(Boolean).join('\n');
     const seed = window.GameModules.rpgState.seed(`${time.label}-${contact?.id}-${playerText}-${replyText}`);
-    const event = { eventId: `wx_${seed}`, name: `微信对话：${display.name || '联系人'}`, time: time.label || '微信时间', detail, status: '已记录' };
+    const event = { eventId: `wx_${seed}`, name: `微信对话：${display.name || '联系人'}`, time: label, detail, status: '已记录' };
     this.realWorldlineState = this.realWorldlineState || { events: [], plots: [], pendingPlot: null };
     this.realWorldlineState.events = [...(this.realWorldlineState.events || []).filter((item) => item.eventId !== event.eventId), event].slice(-40);
     await this.appendWorldlineEvent?.(this.realWorldlineState, event, '现实情节');
