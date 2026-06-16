@@ -178,7 +178,7 @@ window.GameModules.characterProfile = {
   },
 
   metricGroupKeyChunks(group, keys) {
-    const size = group === 'playerFeelings' ? 4 : 6;
+    const size = 2;
     if (keys.length <= size) return [keys];
     const chunks = [];
     for (let i = 0; i < keys.length; i += size) chunks.push(keys.slice(i, i + size));
@@ -210,7 +210,7 @@ window.GameModules.characterProfile = {
     return window.GameModules.jsonUtils.generateJsonWithRetry({
       source,
       model: 'nalang-turbo-0826',
-      maxTokens: group === 'playerFeelings' ? 2200 : 1800,
+      maxTokens: 1200,
       timeoutMs: 60000,
       prompt,
       format: prompt,
@@ -270,8 +270,9 @@ window.GameModules.characterProfile = {
       `${group} 必须按顺序完整包含：${keys.join('、')}，每个 key 精确一次，不能截断。`,
       '每一项都必须有 key、value、status、reason 四个字段；reason 是强制字段，即使上一轮只有 status，也必须为同一个 key 补出 reason。',
       '每个对象必须以 reason 作为最后一个字段，写完 reason 才能关闭对象。',
-      'status 和 reason 都必须是完整中文句子，必须使用“当前key因为……”或“当前key源于……”句式，不能留空。',
-      'status 和 reason 都必须包含当前 key 字面文本，并包含具体因果词或证据词：因为、由于、源于、来自、经历、过去、处境、关系、玩家、父母、兄弟姐妹。',
+      '本批 key 很少，必须完整输出每个 key；不要省略任何一个对象。',
+      'status 和 reason 都必须是短中文句子，必须以当前key开头，使用“当前key因为……”或“当前key源于……”句式，不能留空。',
+      'status 和 reason 都必须包含当前 key 字面文本，并包含具体因果词或证据词：因为、源于、来自、经历、过去、处境、关系、玩家、父母、兄弟姐妹。',
       '不要写“坚强的性格支撑”“性格使然”“综合判断”“个人动机与过去经历”等抽象空话。',
       '不要返回英文 key、initial_metrics、affection、dependency、trust_level 等替代结构。',
       '只返回一行紧凑 JSON，不要 Markdown。',
