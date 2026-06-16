@@ -111,6 +111,7 @@ window.GameModules.rpgFieldUi = {
     if (!obj && generated[field?.key]) return generated[field.key];
     const finalKind = kind || (obj ? this.lexiconKind(field, obj) : (field?.kind || this.lexiconKind(field)));
     const finalName = name || (obj ? this.rpgItemSummary(obj) : (field?.label || field?.key || '该词条'));
+    if (obj && finalKind === '穿着') return `${profile.name || '该人物'}当前穿着为${finalName}，后续只有明确换装、脱下、破损或洗浴等事件才会更新。`;
     if (obj) return `${profile.name || '该人物'}持有${finalName}，是其${finalKind}、当前处境或既有生活经历的一部分，后续会随明确剧情事件更新。`;
     if (field?.source) return `${profile.name || '该人物'}的${finalName}由初始经历、等级成长、自由分配和非玩家成长共同形成。`;
     return `${profile.name || '该人物'}的${finalName}按其当前身份、处境、过去经历和可支配资源固化。`;
@@ -131,11 +132,25 @@ window.GameModules.rpgFieldUi = {
     return this.explicitFieldChangeReason(field, lexicon) || this.missingReasonText(field?.label || field?.key || '词条');
   },
 
+  cleanDetailText(text = '') {
+    return String(text || '').replace(/([：:])(?=(妹妹|姐姐|哥哥|弟弟|父亲|母亲|兄长|朋友|同学|同事)[：:])/g, '；');
+  },
+
+  pollutedDetailText(text = '') {
+    const value = String(text || '').trim();
+    return value.length > 90 || /变化方式|生成来源|词条名AI生成|值AI生成/.test(value) || /[：:](妹妹|姐姐|哥哥|弟弟|父亲|母亲|兄长)[：:]/.test(value);
+  },
+
+  itemChangeMode(obj = {}, lexicon = null) {
+    const raw = String(lexicon?.changeMode || obj.changeMode || '').trim();
+    return raw && !this.pollutedDetailText(raw) && raw.length < 24 ? raw : '状态规范化';
+  },
+
   itemChangeReason(field, obj = {}, lexicon = null) {
     const raw = lexicon?.meta?.modifyReason || obj.reason || '';
-    const cleaned = String(raw).replace(/([：:])(?=(妹妹|姐姐|哥哥|弟弟|父亲|母亲|兄长|朋友|同学|同事)[：:])/g, '；');
-    const explicit = this.usableChangeReason(cleaned, [lexicon?.description, lexicon?.summary, obj.description, obj.desc, obj.source, obj.changeMode]);
-    return explicit || this.missingReasonText(this.rpgItemSummary(obj) || field?.label || '词条');
+    const cleaned = this.cleanDetailText(raw);
+    const explicit = !this.pollutedDetailText(cleaned) ? this.usableChangeReason(cleaned, [lexicon?.description, lexicon?.summary, obj.description, obj.desc, obj.source, obj.changeMode]) : '';
+    return explicit || window.GameModules.progression?.itemReason?.(obj, this.lexiconKind(field, obj)) || this.missingReasonText(this.rpgItemSummary(obj) || field?.label || '词条');
   },
 
   rpgItemSummary(item) {
@@ -190,7 +205,7 @@ window.GameModules.rpgFieldUi = {
     }
     lines.push(`关联身内能力: ${linkedStats.join('、') || '无直接关联'}`);
     lines.push(`词条层级: ${lexicon?.hierarchy === 'tree' ? '树词条' : '叶子词条'}`);
-    lines.push(`生成来源: 词条名${(lexicon?.nameAiGenerated ?? lexicon?.aiGenerated) ? 'AI生成' : '系统/用户给定'}，值${lexicon?.valueAiGenerated ? 'AI生成' : '系统/用户给定'}，变化方式${lexicon?.changeMode || '系统结算'}`);
+    lines.push(`生成来源: 词条名${(lexicon?.nameAiGenerated ?? lexicon?.aiGenerated) ? 'AI生成' : '系统/用户给定'}，值${lexicon?.valueAiGenerated ? 'AI生成' : '系统/用户给定'}，变化方式${this.itemChangeMode(obj, lexicon)}`);
     lines.push(`变化原因: ${this.itemChangeReason(field, obj, lexicon)}`);
     lines.push(`当前依据: ${this.fallbackBasis(field, obj, kind, name)}`);
     if (obj?.type === '职业' && ((info.learnedAbilities || []).length || (info.worldAbilities || []).length)) lines.push(`职业关联: ${(info.learnedAbilities || []).concat(info.worldAbilities || []).join('、')}`);

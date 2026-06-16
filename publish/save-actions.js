@@ -70,7 +70,12 @@ window.GameModules.saveActions = {
 
   loadSavedRpgStates() {
     const states = window.GameModules.sqliteSave.listCharacterStates();
-    this.rpgStates = Object.fromEntries(states.map((state) => [state.id, state]));
+    const cleaned = states.map((state) => {
+      const changed = window.GameModules.progression.ensureInventoryFields?.(state?.values);
+      if (changed) window.GameModules.sqliteSave.saveCharacterState(state).catch((err) => console.warn('[存档清洗] 角色穿着说明保存失败:', err.message, err.stack));
+      return state;
+    });
+    this.rpgStates = Object.fromEntries(cleaned.map((state) => [state.id, state]));
   },
 
   prepareRpgSchemaForSelectedWork() {

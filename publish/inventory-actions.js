@@ -18,7 +18,9 @@ window.GameModules.inventoryActions = {
   },
 
   wearingItems(state = this.inventoryTargetState()) {
-    return this.inventoryValues(state).wearing || [];
+    const values = this.inventoryValues(state);
+    window.GameModules.progression.ensureInventoryFields?.(values);
+    return values.wearing || [];
   },
 
   inventoryName(item) {

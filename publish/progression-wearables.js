@@ -41,10 +41,21 @@ window.GameModules = window.GameModules || {};
       return [...new Set(slots)];
     },
 
+    pollutedReason(text = '') {
+      const value = String(text || '').trim();
+      return value.length > 90 || /变化方式|生成来源|词条名AI生成|值AI生成/.test(value) || /[：:](妹妹|姐姐|哥哥|弟弟|父亲|母亲|兄长)[：:]/.test(value);
+    },
+
+    cleanRelationText(text = '') {
+      return String(text || '').replace(/([：:])(?=(妹妹|姐姐|哥哥|弟弟|父亲|母亲|兄长|朋友|同学|同事)[：:])/g, '；');
+    },
+
     itemReason(item = {}, kind = '物品') {
-      const raw = String(item.reason || item.changeMode || '').trim();
-      const vague = window.GameModules.characterProfile?.abstractReason?.(raw) || /当前角色资料|持有状态|穿戴槽位|固化/.test(raw);
-      if (raw && !vague) return raw.slice(0, 120);
+      const raw = this.cleanRelationText(String(item.reason || '').trim());
+      const fallbackRaw = this.cleanRelationText(String(item.changeMode || '').trim());
+      const candidate = raw && !this.pollutedReason(raw) ? raw : fallbackRaw;
+      const vague = window.GameModules.characterProfile?.abstractReason?.(candidate) || /当前角色资料|持有状态|穿戴槽位|固化/.test(candidate) || this.pollutedReason(candidate);
+      if (candidate && !vague) return candidate.slice(0, 120);
       const name = item.name || item.label || '未命名物品';
       const slot = item.slot ? String(item.slot) : '';
       const slots = (Array.isArray(item.equipSlots) ? item.equipSlots : String(item.equipSlots || '').split(/[、,，/|；;\s]+/)).filter(Boolean).join('、');
@@ -58,7 +69,8 @@ window.GameModules = window.GameModules || {};
       const obj = typeof item === 'string' ? { name: item } : { ...(item || {}) };
       const name = String(obj.name || obj.label || '未命名物品').slice(0, 32);
       const reason = this.itemReason({ ...obj, name }, kind);
-      return { ...obj, name, type: obj.type || kind, kind: obj.kind || kind, quantity: Math.max(1, Number(obj.quantity) || 1), equipSlots: this.inferEquipSlots(obj, kind), reason, changeMode: reason, level: Number(obj.level) > 0 ? obj.level : -1 };
+      const mode = obj.changeMode && !this.pollutedReason(obj.changeMode) && String(obj.changeMode).length < 24 ? obj.changeMode : '状态规范化';
+      return { ...obj, name, type: obj.type || kind, kind: obj.kind || kind, quantity: Math.max(1, Number(obj.quantity) || 1), equipSlots: this.inferEquipSlots(obj, kind), reason, changeMode: mode, level: Number(obj.level) > 0 ? obj.level : -1 };
     },
 
     defaultWearForSlot(slot) {
@@ -77,7 +89,8 @@ window.GameModules = window.GameModules || {};
         const hit = old.find((item) => item?.slot === slot);
         if (hit && !this.isPlaceholderEmptyWear(hit)) {
           const reason = this.itemReason(hit, '穿着');
-          return { ...hit, slot, type: hit.type || '穿着', reason, changeMode: reason, level: -1 };
+          const mode = hit.changeMode && !this.pollutedReason(hit.changeMode) && String(hit.changeMode).length < 24 ? hit.changeMode : '状态规范化';
+          return { ...hit, slot, type: hit.type || '穿着', reason, changeMode: mode, level: -1 };
         }
         const basic = this.defaultWearForSlot(slot);
         if (basic) return basic;
