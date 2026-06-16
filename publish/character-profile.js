@@ -108,7 +108,7 @@ window.GameModules.characterProfile = {
       emotionKeys: window.GameModules.metrics.emotionKeys.join('、'),
       playerKeys: window.GameModules.metrics.playerKeys.join('、'),
     };
-    const text = window.GameModules.characterProfilePrompt?.build?.(data) || await window.GameModules.promptTemplates.render('character-profile-card', {
+    const text = await window.GameModules.promptTemplates.render('character-profile-card', {
       人物预设资料区: data.presetText,
       人物基础区: data.characterBase,
       玩家基础资料区: data.playerBasic,
@@ -139,7 +139,7 @@ window.GameModules.characterProfile = {
   },
 
   async generateMetricGroup(profile, base, brief, group, keys) {
-    const prompt = this.metricGroupPrompt(profile, base, brief, group, keys);
+    const prompt = await this.metricGroupPrompt(profile, base, brief, group, keys);
     return window.GameModules.jsonUtils.generateJsonWithRetry({
       source: `character-profile-${group}`,
       model: 'nalang-turbo-0826',
@@ -164,22 +164,15 @@ window.GameModules.characterProfile = {
     ].join('\n');
   },
 
-  metricGroupPrompt(profile, base, brief, group, keys) {
-    const label = group === 'emotions' ? '情绪' : '对玩家感觉';
-    return [
-      '只返回一个合法 JSON 对象，不要 Markdown，不要解释，不要代码块。',
-      `为人物“${profile.name || base.name}”生成初始${label}数值。`,
-      `根字段必须是 ${group}，值是数组。`,
-      `数组必须按顺序完整返回这些 key：${keys.join('、')}。`,
-      '每一项都必须只有 key、value、status、reason 四个字段；value 是 0-100 数字。',
-      'status 写一句“该key为什么是该数值”的具体解释；reason 写一句形成原因。两者都必须点名具体证据，不能写默认、初始化、根据上下文。',
-      '证据弱或没有触发时 value 可以为 0，但 status/reason 也必须说明缺少哪类证据。',
-      '',
-      '人物证据：',
-      brief,
-      '',
-      `返回格式：{"${group}":[{"key":"${keys[0]}","value":0,"status":"具体解释","reason":"具体原因"}]}`,
-    ].join('\n');
+  async metricGroupPrompt(profile, base, brief, group, keys) {
+    return window.GameModules.promptTemplates.render('character-profile-metric-group', {
+      人物姓名: profile.name || base.name,
+      数值组名称: group === 'emotions' ? '情绪' : '对玩家感觉',
+      根字段: group,
+      字段列表: keys.join('、'),
+      人物证据: brief,
+      首个字段: keys[0],
+    });
   },
 
   metricGroupRepairHint(base, group, keys) {

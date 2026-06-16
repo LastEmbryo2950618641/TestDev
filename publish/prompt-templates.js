@@ -7,7 +7,8 @@ window.GameModules.promptTemplates = {
     { id: 'real-world-map-location-add', title: '电子地图新增地点', category: '现实推演', file: 'prompts/real-world-map-location-add.md', summary: '把玩家新认识的地点加入电子地图树。' },
     { id: 'real-world-map-description-update', title: '电子地图地点说明调整', category: '现实推演', file: 'prompts/real-world-map-description-update.md', summary: '只调整明确变化的地点说明事实数组。' },
     { id: 'player-profile-enrichment', title: '玩家首次手机激活身份补全', category: '手机激活', file: 'prompts/player-profile-enrichment.md', summary: '补全玩家现实身份、人际关系与已有账号资料。' },
-    { id: 'character-profile-card', title: '出场人物固化设定', category: '角色生成', file: 'prompts/character-profile-card.md', summary: '生成角色卡、关系与初始情绪其余数值。' },
+    { id: 'character-profile-card', title: '出场人物固化设定', category: '角色生成', file: 'prompts/character-profile-card.md', summary: '生成角色卡主体、关系、词条原因和 RPG 原因。' },
+    { id: 'character-profile-metric-group', title: '角色卡初始数值组生成', category: '角色生成', file: 'prompts/character-profile-metric-group.md', summary: '拆分生成初始情绪或对玩家感觉数值数组。' },
     { id: 'wechat-relation-profile', title: '微信关系联系人资料生成上下文', category: '微信', file: 'prompts/wechat-relation-profile.md', summary: '从玩家关系与联系人上下文生成微信联系人资料。' },
     { id: 'wechat-chat-reply', title: '微信联系人对话回复', category: '微信', file: 'prompts/wechat-chat-reply.md', summary: '根据联系人角色卡、玩家资料和微信历史模拟联系人口吻回复。' },
     { id: 'entry-action', title: '进入时机行动生成', category: '进入时机', file: 'prompts/entry-action.md', summary: '根据世界观和剧情索引生成角色当前正在做什么。' },
@@ -30,10 +31,6 @@ window.GameModules.promptTemplates = {
     if (!item) return '';
     const useCache = window.GameModules.cache?.enabled?.('promptTemplates');
     if (useCache && this.cache[item.id]) return this.cache[item.id];
-    if (this.inline?.[item.id]) {
-      if (useCache) this.cache[item.id] = this.inline[item.id];
-      return this.inline[item.id];
-    }
     const urls = this.fileCandidates(item.file);
     let lastError = null;
     for (const url of urls) {
@@ -47,6 +44,10 @@ window.GameModules.promptTemplates = {
         lastError = err;
         console.warn('提示词模板候选读取失败:', url, err.message);
       }
+    }
+    if (this.inline?.[item.id]) {
+      if (useCache) this.cache[item.id] = this.inline[item.id];
+      return this.inline[item.id];
     }
     const detail = `${item.file}（已尝试：${urls.join('、')}）`;
     console.error('提示词模板读取失败:', detail, lastError?.message, lastError?.stack);
