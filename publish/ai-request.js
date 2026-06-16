@@ -26,6 +26,13 @@ window.GameModules.aiRequest = {
     return (messages || []).map((msg) => String(msg?.content || '').length);
   },
 
+  clampMaxTokens(value) {
+    if (value === undefined || value === null) return undefined;
+    const tokens = Math.floor(Number(value));
+    if (!Number.isFinite(tokens)) return undefined;
+    return Math.max(200, Math.min(3000, tokens));
+  },
+
   countSource(source) {
     this.sourceCounts[source] = (this.sourceCounts[source] || 0) + 1;
     return this.sourceCounts[source];
@@ -69,8 +76,7 @@ window.GameModules.aiRequest = {
     const source = options.source || 'unknown';
     const messages = options.messages || [{ role: 'user', content: options.prompt || '' }];
     const model = options.model || 'nalang-turbo-0826';
-    const hasMaxTokens = options.maxTokens !== undefined && options.maxTokens !== null;
-    const maxTokens = hasMaxTokens ? options.maxTokens : undefined;
+    const maxTokens = this.clampMaxTokens(options.maxTokens);
     const enqueueAt = Date.now();
     const sourceCount = this.countSource(source);
     this.logicalCount += 1;
