@@ -39,6 +39,7 @@
   <script src="sqlite-memory.js"></script>
   <script src="json-utils.js"></script>
   <script src="ai-request.js"></script>
+  <script src="worldline-plots.js"></script>
   <script src="progression.js"></script>
   <script src="progression-wearables.js"></script>
   <script src="rpg-schema.js"></script>
@@ -270,12 +271,18 @@
                     <div>
                       <small x-text="item.time || '时间未知'"></small>
                       <h4 x-text="item.name"></h4>
-                      <p x-text="item.summary || item.detail"></p>
+                      <p x-text="item.kind === 'event' ? item.detail : item.summary"></p>
                       <em x-text="$store.game.timelineMeta(item)"></em>
                     </div>
                   </article>
                 </template>
               </div>
+              <details class="faction-details">
+                <summary>查看情节归纳</summary>
+                <template x-for="plot in $store.game.worldlinePlots(lore)" :key="plot.情节编号">
+                  <p><b x-text="`${plot.情节编号}｜${plot.情节标题}`"></b><span x-text="` ${plot.情节时间段 || '时间未知'}；${plot.情节总结}`"></span></p>
+                </template>
+              </details>
               <details class="faction-details">
                 <summary>查看势力详情</summary>
                 <template x-for="faction in $store.game.worldlineFactions(lore)" :key="faction.id">
@@ -311,7 +318,8 @@
               <small x-text="`职业等级：${lore.jobRanks.join(' / ') || '无'}`"></small>
               <div class="worldline-box" x-show="$store.game.isWorldlineOpen(lore) && $store.game.loreWorldline(lore)" @click.stop>
                 <div class="worldline-head"><b>世界线</b><small x-text="$store.game.loreWorldline(lore)?.timeRange || '时间未知'"></small></div>
-                <div class="timeline-list"><template x-for="item in $store.game.timelineItems(lore)" :key="`app-${item.kind}-${item.eventId || item.order}`"><article class="timeline-item" :class="item.kind"><span class="timeline-dot"></span><div><small x-text="item.time || '时间未知'"></small><h4 x-text="item.name"></h4><p x-text="item.summary || item.detail"></p><em x-text="$store.game.timelineMeta(item)"></em></div></article></template></div>
+                <div class="timeline-list"><template x-for="item in $store.game.timelineItems(lore)" :key="`app-${item.kind}-${item.eventId || item.order}`"><article class="timeline-item" :class="item.kind"><span class="timeline-dot"></span><div><small x-text="item.time || '时间未知'"></small><h4 x-text="item.name"></h4><p x-text="item.kind === 'event' ? item.detail : item.summary"></p><em x-text="$store.game.timelineMeta(item)"></em></div></article></template></div>
+                <details class="faction-details"><summary>查看情节归纳</summary><template x-for="plot in $store.game.worldlinePlots(lore)" :key="`app-plot-${plot.情节编号}`"><p><b x-text="`${plot.情节编号}｜${plot.情节标题}`"></b><span x-text="` ${plot.情节时间段 || '时间未知'}；${plot.情节总结}`"></span></p></template></details>
                 <details class="faction-details"><summary>查看势力详情</summary><template x-for="faction in $store.game.worldlineFactions(lore)" :key="faction.id"><p><b x-text="`${faction.名称}｜${faction.类型}｜${faction.状态}`"></b><span x-text="` 目标:${faction.当前目标 || '无'}；属性:${$store.game.factionAttrs(faction)}；关系:${$store.game.factionRelations(faction)}`"></span></p></template></details>
               </div>
             </article>
@@ -324,7 +332,8 @@
             <p x-text="$store.game.realWorldLore().background"></p>
             <div class="worldline-box">
               <div class="worldline-head"><b>现实世界线</b><small x-text="$store.game.realWorldline().timeRange"></small></div>
-              <div class="timeline-list"><template x-for="item in $store.game.timelineItems($store.game.realWorldLore())" :key="`real-${item.eventId || item.order}`"><article class="timeline-item event"><span class="timeline-dot"></span><div><small x-text="item.time || '现实时间'"></small><h4 x-text="item.name"></h4><p x-text="item.summary || item.detail"></p><em x-text="item.status || '现实记录'"></em></div></article></template></div>
+              <div class="timeline-list"><template x-for="item in $store.game.timelineItems($store.game.realWorldLore())" :key="`real-${item.eventId || item.order}`"><article class="timeline-item event"><span class="timeline-dot"></span><div><small x-text="item.time || '现实时间'"></small><h4 x-text="item.name"></h4><p x-text="item.kind === 'event' ? item.detail : item.summary"></p><em x-text="`${item.status || '现实记录'}｜情节:${item.plotId || item.summary}`"></em></div></article></template></div>
+              <details class="faction-details"><summary>查看现实情节归纳</summary><template x-for="plot in $store.game.worldlinePlots($store.game.realWorldLore())" :key="`real-plot-${plot.情节编号}`"><p><b x-text="`${plot.情节编号}｜${plot.情节标题}`"></b><span x-text="` ${plot.情节时间段 || '时间未知'}；${plot.情节总结}`"></span></p></template></details>
               <p class="empty-lore" x-show="!$store.game.realWorldline().events.length">暂无现实世界记录。收起手机并进行现实行动后会写入这里。</p>
             </div>
           </article>

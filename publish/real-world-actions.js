@@ -112,11 +112,13 @@ window.GameModules.realWorldActions = {
   seedRealWorldLog() {
     const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
     if (!map.current) return;
-    this.realWorldLog = [{
+    const entry = {
       id: this.nextId++, type: 'system', locationName: map.current, time: { label: `${this.phoneDateText()} ${this.phoneTimeText()}` },
       narration: `你把手机屏幕压暗，现实世界的声音重新浮上来。${map.current}仍保持着原本的秩序，但那台新手机带来的异常感并没有消失。`,
       thinking: '现实世界推演已接入玩家本人资料，只追踪手机外的现实行动。',
-    }];
+    };
+    this.assignRealWorldlineEntry(entry);
+    this.realWorldLog = [entry];
   },
 
   async submitRealWorldAction(action = '') {
@@ -152,7 +154,17 @@ window.GameModules.realWorldActions = {
     this.realWorldStatus = result.status || this.realWorldStatus;
     this.realWorldChoices = result.choices || this.realWorldChoices;
     const time = { label: `${this.phoneDateText()} ${this.phoneTimeText()}` };
-    this.realWorldLog = this.realWorldLog.map((entry) => (entry.id === id ? { ...entry, ...result, type: 'ai', streaming: false, time } : entry)).slice(-30);
+    const next = { ...this.realWorldLog.find((entry) => entry.id === id), ...result, type: 'ai', streaming: false, time };
+    await this.assignRealWorldlineEntry(next);
+    this.realWorldLog = this.realWorldLog.map((entry) => (entry.id === id ? next : entry)).slice(-30);
+  },
+
+  async assignRealWorldlineEntry(entry) {
+    this.realWorldlineState = this.realWorldlineState || { plots: [], pendingPlot: null };
+    const event = { eventId: `real_${entry.id}`, name: entry.sceneTitle || entry.locationName || this.realWorldSceneTitle || '现实事件', time: entry.time?.label || '', detail: String(entry.narration || entry.thinking || entry.text || ''), status: entry.streaming ? '记录中' : '已记录' };
+    const assigned = window.GameModules.worldlinePlots.assign(this, this.realWorldlineState, event, '现实情节');
+    entry.plotId = event.plotId;
+    await assigned;
   },
 
   async recordPlayerRealWorldMemory(action, result) {

@@ -62,6 +62,7 @@ window.GameModules.storage = {
       realWorldStatus: store.realWorldStatus,
       realWorldChoices: store.realWorldChoices,
       realWorldLog: (store.realWorldLog || []).slice(-30),
+      realWorldlineState: store.realWorldlineState || { plots: [], pendingPlot: null },
       companyState: store.companyState ? { ...store.companyState, open: false } : store.companyState,
       bossState: store.bossState ? { ...store.bossState, open: false, companyDetailOpen: false, generating: false } : store.bossState,
       calendarState: store.calendarState ? { ...store.calendarState, open: false } : store.calendarState,
@@ -86,6 +87,7 @@ window.GameModules.storage = {
     store.realWorldStatus = save.realWorldStatus || store.realWorldStatus;
     store.realWorldChoices = save.realWorldChoices || store.realWorldChoices;
     store.realWorldLog = save.realWorldLog || store.realWorldLog;
+    store.realWorldlineState = save.realWorldlineState || store.realWorldlineState || { plots: [], pendingPlot: null };
     store.companyState = save.companyState ? { ...save.companyState, open: false } : store.companyState;
     store.bossState = save.bossState ? { ...save.bossState, open: false, companyDetailOpen: false, generating: false } : store.bossState;
     store.calendarState = save.calendarState ? { ...save.calendarState, open: false } : store.calendarState;

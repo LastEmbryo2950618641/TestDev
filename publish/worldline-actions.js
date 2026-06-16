@@ -42,18 +42,20 @@ window.GameModules.worldlineActions = {
   },
 
   realWorldline() {
+    const state = this.realWorldlineState || { plots: [], pendingPlot: null };
     const events = (this.realWorldLog || [])
       .filter((entry) => entry.type === 'ai' || entry.type === 'system')
       .map((entry, index) => ({
         eventId: `real_${entry.id || index}`,
         name: entry.sceneTitle || entry.locationName || this.realWorldSceneTitle || '现实事件',
         time: entry.time?.label || entry.createdAt || `${this.phoneDateText?.() || ''} ${this.phoneTimeText?.() || ''}`.trim(),
-        summary: String(entry.narration || entry.text || '现实世界记录').slice(0, 90),
-        detail: String(entry.narration || entry.thinking || entry.text || '').slice(0, 420),
+        summary: entry.plotId || '未分配情节',
+        plotId: entry.plotId || '',
+        detail: String(entry.narration || entry.thinking || entry.text || ''),
         status: entry.streaming ? '记录中' : '已记录',
         kind: 'event',
       }));
-    return { timeRange: `${this.phoneDateText?.() || '现实时间'} - 现在`, events, storyIndexes: ['现实世界独立记录，不并入被操控世界线'], factions: {} };
+    return { timeRange: `${this.phoneDateText?.() || '现实时间'} - 现在`, events, plots: state.plots || [], pendingPlot: state.pendingPlot || null, storyIndexes: ['现实世界独立记录，不并入被操控世界线'], factions: {} };
   },
 
   loreWorldline(lore) {
@@ -69,9 +71,14 @@ window.GameModules.worldlineActions = {
     return [...events, ...indexes].sort((a, b) => String(a.time || '').localeCompare(String(b.time || '')) || a.order - b.order);
   },
 
+  worldlinePlots(lore) {
+    return window.GameModules.worldlinePlots.items(this.loreWorldline(lore) || {});
+  },
+
   timelineMeta(item) {
     const parts = [];
     if (item.status) parts.push(item.status);
+    if (item.kind === 'event' && (item.plotId || item.summary)) parts.push(`情节:${item.plotId || item.summary}`);
     if (item.storyIndexes?.length) parts.push(`剧情:${item.storyIndexes.join('、')}`);
     if (item.factionIds?.length) parts.push(`势力:${item.factionIds.join('、')}`);
     return parts.join('｜') || (item.kind === 'story' ? '原著剧情索引' : '世界线事件');
@@ -82,7 +89,9 @@ window.GameModules.worldlineActions = {
     const lore = await window.GameModules.worldLore.ensure(worldTag, context || this.entryCurrentAction || this.sceneTitle);
     const line = this.loreWorldline(lore) || window.GameModules.worldLore.worldline(null, lore, worldTag);
     if (!line.events?.length) {
-      line.events = [{ eventId: 'connection_start', name: '玩家上线连接', time: this.entryTimeLabel?.() || this.sceneTitle || '当前时间', summary: String(context || this.entryCurrentAction || '玩家接入当前世界线。').slice(0, 90), detail: String(context || this.entryCurrentAction || '玩家首次连接角色，世界线开始记录偏移。').slice(0, 420), storyIndexes: line.storyIndexes || ['默认剧情起点'], factionIds: Object.keys(line.factions || {}).slice(0, 2), status: '进行中' }];
+      const event = { eventId: 'connection_start', name: '玩家上线连接', time: this.entryTimeLabel?.() || this.sceneTitle || '当前时间', detail: String(context || this.entryCurrentAction || '玩家首次连接角色，世界线开始记录偏移。'), storyIndexes: line.storyIndexes || ['默认剧情起点'], factionIds: Object.keys(line.factions || {}).slice(0, 2), status: '进行中' };
+      line.events = [event];
+      await window.GameModules.worldlinePlots.assign(this, line, event);
       lore.worldline = line;
       await window.GameModules.sqliteSave.saveWorldLore(worldTag, lore);
     }
@@ -97,7 +106,9 @@ window.GameModules.worldlineActions = {
     if (!line) return;
     const eventId = `turn_${this.turn}`;
     if (!(line.events || []).some((event) => event.eventId === eventId)) {
-      line.events = [...(line.events || []), { eventId, name: result.sceneTitle || this.sceneTitle, time: this.entryTimeLabel?.() || this.sceneTitle, summary: String(result.narration || this.lastAction || '').slice(0, 90), detail: String(result.narration || '').slice(0, 420), storyIndexes: line.storyIndexes || [], factionIds: Object.keys(line.factions || {}).slice(0, 2), status: '进行中' }].slice(-12);
+      const event = { eventId, name: result.sceneTitle || this.sceneTitle, time: this.entryTimeLabel?.() || this.sceneTitle, detail: String(result.narration || ''), storyIndexes: line.storyIndexes || [], factionIds: Object.keys(line.factions || {}).slice(0, 2), status: '进行中' };
+      line.events = [...(line.events || []), event].slice(-12);
+      await window.GameModules.worldlinePlots.assign(this, line, event);
       lore.worldline = line;
       await window.GameModules.sqliteSave.saveWorldLore(worldTag, lore);
     }
