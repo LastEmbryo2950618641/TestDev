@@ -178,7 +178,17 @@ window.GameModules.characterProfile = {
   },
 
   metricGroupKeyChunks(group, keys) {
-    return keys.map((key) => [key]);
+    const maxOutputChars = 2600;
+    const rootOverhead = group.length + 16;
+    const estimatedItemChars = Math.max(...keys.map((key) => this.estimateMetricItemChars(key)));
+    const size = Math.max(1, Math.floor((maxOutputChars - rootOverhead) / estimatedItemChars));
+    const chunks = [];
+    for (let i = 0; i < keys.length; i += size) chunks.push(keys.slice(i, i + size));
+    return chunks;
+  },
+
+  estimateMetricItemChars(key) {
+    return key.length * 3 + 150;
   },
 
   async generateMetricGroupChunks(profile, base, evidence, group, keys) {
@@ -190,11 +200,12 @@ window.GameModules.characterProfile = {
         const part = await this.generateMetricGroup(profile, base, evidence, group, chunk, i + 1, chunks.length);
         items.push(...part);
       } catch (err) {
-        console.warn('[角色数值] 分块生成失败，改为单项补齐:', group, chunk.join('、'), err.message, err.stack);
-        for (let j = 0; j < chunk.length; j += 1) {
-          const part = await this.generateMetricGroup(profile, base, evidence, group, [chunk[j]], `${i + 1}.${j + 1}`, chunks.length);
-          items.push(...part);
-        }
+        console.warn('[角色数值] 分块生成失败，稍后补缺失项:', group, chunk.join('、'), err.message, err.stack);
+      }
+      const missing = chunk.filter((key) => !items.some((item) => item?.key === key));
+      for (let j = 0; j < missing.length; j += 1) {
+        const part = await this.generateMetricGroup(profile, base, evidence, group, [missing[j]], `${i + 1}.${j + 1}`, chunks.length);
+        items.push(...part);
       }
     }
     return this.validateMetricGroup(items, keys, { ...base, ...profile });
@@ -206,7 +217,7 @@ window.GameModules.characterProfile = {
     return window.GameModules.jsonUtils.generateJsonWithRetry({
       source,
       model: 'nalang-turbo-0826',
-      maxTokens: 700,
+      maxTokens: Math.min(3000, 500 + keys.length * 180),
       timeoutMs: 60000,
       prompt,
       format: prompt,
