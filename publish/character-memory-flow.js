@@ -41,7 +41,7 @@ Object.assign(window.GameModules.characterMemory, {
       result.mood ? `联系人语气：${result.mood}` : '',
     ].filter(Boolean).join('\n');
     const memory = this.ensure(state.id);
-    const item = this.memoryItem(store, { text, source: 'wechat', place: '微信', time: phoneTime, impression: this.wechatImpression(playerText, replyText, result) });
+    const item = this.memoryItem(store, { text, source: 'wechat', place: '微信', time: phoneTime, impression: this.resultImpression(result) });
     memory.shortTerm.recent.push(item);
     this.promote(memory, item);
     await this.compact(state.id, memory);
@@ -55,7 +55,7 @@ Object.assign(window.GameModules.characterMemory, {
       `联系人回复：${replyText}`,
     ].join('\n');
     const playerMemory = this.ensure('player-self');
-    const playerItem = this.memoryItem(store, { text: playerMemoryText, source: 'wechat', place: '微信', time: phoneTime, impression: this.wechatImpression(playerText, replyText, result) });
+    const playerItem = this.memoryItem(store, { text: playerMemoryText, source: 'wechat', place: '微信', time: phoneTime, impression: this.resultImpression(result) });
     playerMemory.shortTerm.recent.push(playerItem);
     this.promote(playerMemory, playerItem);
     await this.compact('player-self', playerMemory);
@@ -123,13 +123,8 @@ Object.assign(window.GameModules.characterMemory, {
     return Math.min(20, Math.round(total / 8));
   },
 
-  wechatImpression(playerText, replyText, result = {}) {
-    const all = `${playerText || ''} ${replyText || ''} ${result.mood || ''}`;
-    let score = 35;
-    if (/秘密|真心|承诺|喜欢|爱|想你|依赖|家人|哥哥|妹妹/.test(all)) score += 18;
-    if (/害怕|担心|哭|难过|生气|吃醋|占有|保护/.test(all)) score += 14;
-    if (/约见|见面|回家|等你|别走|陪我/.test(all)) score += 10;
-    return Math.max(0, Math.min(100, score));
+  resultImpression(result = {}) {
+    return Math.max(0, Math.min(100, Math.round(Number(result.impression) || 20)));
   },
 
   promote(memory, item) {
