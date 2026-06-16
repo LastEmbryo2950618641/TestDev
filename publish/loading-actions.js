@@ -79,12 +79,12 @@ window.GameModules.loadingActions = {
     }
     const contacts = (this.wechatUsers || []).filter((item) => item && !item.group);
     for (const contact of contacts) tasks.push(this.warmupTask(`微信联系人:${contact.name || contact.id}`, () => this.ensureWechatUserProfile?.(contact)));
-    await this.runWarmupQueue(tasks, 3);
+    await this.runWarmupQueue(tasks, 4);
     console.log('[启动预热] 全量异步生成完成', { tasks: tasks.length });
     if (tasks.length) await this.save?.();
   },
 
-  async runWarmupQueue(tasks, limit = 3) {
+  async runWarmupQueue(tasks, limit = 4) {
     let index = 0;
     const workers = Array.from({ length: Math.min(limit, tasks.length) }, async () => {
       while (index < tasks.length) {
