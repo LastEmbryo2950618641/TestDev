@@ -88,6 +88,7 @@ window.GameModules.storage = {
     store.realWorldChoices = save.realWorldChoices || store.realWorldChoices;
     store.realWorldLog = save.realWorldLog || store.realWorldLog;
     store.realWorldlineState = save.realWorldlineState || store.realWorldlineState || { events: [], plots: [], pendingPlot: null };
+    window.GameModules.wechatCleanup?.run?.(store);
     store.companyState = save.companyState ? { ...save.companyState, open: false } : store.companyState;
     store.bossState = save.bossState ? { ...save.bossState, open: false, companyDetailOpen: false, generating: false } : store.bossState;
     store.calendarState = save.calendarState ? { ...save.calendarState, open: false } : store.calendarState;
