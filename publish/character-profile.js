@@ -222,7 +222,7 @@ window.GameModules.characterProfile = {
   },
 
   metricGroupSkeleton(group, keys) {
-    return JSON.stringify({ [group]: keys.map((key) => ({ key, value: 0, status: `${key}因为具体经历或关系证据形成当前数值`, reason: `${key}源于具体处境和关系证据的持续影响` })) });
+    return JSON.stringify({ [group]: keys.map((key) => ({ key, value: 0, status: `${key}因为人物经历与关系事件形成当前数值`, reason: `${key}源于人物过去经历和当前关系事件的影响` })) });
   },
 
   metricGroupRepairHint(base, group, keys) {
@@ -232,7 +232,8 @@ window.GameModules.characterProfile = {
       `必须重写完整 ${group} 数组，不是只输出报错的单个 key。`,
       `直接按这个完整 JSON 骨架改写 value/status/reason，不能删除任何对象，不能改变 key 和结构：${this.metricGroupSkeleton(group, keys)}`,
       `${group} 必须按顺序完整包含：${keys.join('、')}，每个 key 精确一次，不能截断。`,
-      '每一项都必须有 key、value、status、reason 四个字段；即使上一轮只有 status，也必须为同一个 key 补出 reason。',
+      '每一项都必须有 key、value、status、reason 四个字段；reason 是强制字段，即使上一轮只有 status，也必须为同一个 key 补出 reason。',
+      '每个对象必须以 reason 作为最后一个字段，写完 reason 才能关闭对象。',
       'status 和 reason 都必须是完整中文句子，必须使用“当前key因为……”或“当前key源于……”句式，不能留空。',
       'status 和 reason 都必须包含当前 key 字面文本，并包含具体因果词或证据词：因为、由于、源于、来自、经历、过去、处境、关系、玩家、父母、兄弟姐妹。',
       '不要写“坚强的性格支撑”“性格使然”“综合判断”“个人动机与过去经历”等抽象空话。',
