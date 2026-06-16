@@ -75,6 +75,7 @@ window.GameModules.characterProfile = {
       const profile = await window.GameModules.jsonUtils.generateJsonWithRetry({
         source: 'character-profile-card',
         model: 'nalang-turbo-0826',
+        maxTokens: 3000,
         timeoutMs: 60000,
         prompt,
         format: prompt,
@@ -146,9 +147,12 @@ window.GameModules.characterProfile = {
     const raw = String(text || '').replace(/```(?:json)?|```/g, '');
     const items = [];
     keys.forEach((key, index) => {
-      const start = raw.indexOf(`"key":"${key}"`);
+      const keyPattern = new RegExp(`"key"\\s*:\\s*"${key}"`);
+      const found = raw.match(keyPattern);
+      const start = found?.index ?? -1;
       const endKey = keys[index + 1];
-      const end = endKey ? raw.indexOf(`"key":"${endKey}"`, start + 1) : -1;
+      const endMatch = endKey && start >= 0 ? raw.slice(start + 1).match(new RegExp(`"key"\\s*:\\s*"${endKey}"`)) : null;
+      const end = endMatch ? start + 1 + endMatch.index : -1;
       const chunk = start >= 0 ? raw.slice(start, end >= 0 ? end : undefined) : '';
       const value = chunk.match(/"value"\s*:\s*(-?\d+)/)?.[1];
       const status = chunk.match(/"status"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/)?.[1];
@@ -218,7 +222,7 @@ window.GameModules.characterProfile = {
   },
 
   metricGroupSkeleton(group, keys) {
-    return JSON.stringify({ [group]: keys.map((key) => ({ key, value: 0, status: `${key}来自具体证据形成的当前状态`, reason: `${key}源于具体处境和关系证据的影响` })) });
+    return JSON.stringify({ [group]: keys.map((key) => ({ key, value: 0, status: `${key}因为具体经历或关系证据形成当前数值`, reason: `${key}源于具体处境和关系证据的持续影响` })) });
   },
 
   metricGroupRepairHint(base, group, keys) {
@@ -228,8 +232,8 @@ window.GameModules.characterProfile = {
       `直接按这个完整 JSON 骨架改写 value/status/reason，不能改变 key 和结构：${this.metricGroupSkeleton(group, keys)}`,
       `${group} 必须按顺序完整包含：${keys.join('、')}，每个 key 精确一次，不能截断。`,
       '每一项都必须有 key、value、status、reason 四个字段。',
-      'status 和 reason 都必须是完整中文句子，必须点名当前 key 或同义词，不能留空。',
-      'reason 必须包含具体因果词或证据词：因为、由于、源于、来自、经历、过去、处境、关系、玩家、父母、兄弟姐妹。',
+      'status 和 reason 都必须是完整中文句子，必须使用“当前key因为……”或“当前key源于……”句式，不能留空。',
+      'status 和 reason 都必须包含当前 key 字面文本，并包含具体因果词或证据词：因为、由于、源于、来自、经历、过去、处境、关系、玩家、父母、兄弟姐妹。',
       '不要写“坚强的性格支撑”“性格使然”“综合判断”“个人动机与过去经历”等抽象空话。',
       '不要返回英文 key、initial_metrics、affection、dependency、trust_level 等替代结构。',
       '只返回一行紧凑 JSON，不要 Markdown。',
