@@ -131,6 +131,33 @@ window.GameModules.characterProfile = {
     return window.GameModules.jsonUtils.parseLoose(text);
   },
 
+  parseMetricGroup(text, group, keys) {
+    const recovered = this.recoverMetricGroup(text, group, keys);
+    if (recovered[group]?.length === keys.length) return recovered;
+    try {
+      return this.parse(text);
+    } catch (err) {
+      if (recovered[group]?.length) return recovered;
+      throw err;
+    }
+  },
+
+  recoverMetricGroup(text, group, keys) {
+    const raw = String(text || '').replace(/```(?:json)?|```/g, '');
+    const items = [];
+    keys.forEach((key, index) => {
+      const start = raw.indexOf(`"key":"${key}"`);
+      const endKey = keys[index + 1];
+      const end = endKey ? raw.indexOf(`"key":"${endKey}"`, start + 1) : -1;
+      const chunk = start >= 0 ? raw.slice(start, end >= 0 ? end : undefined) : '';
+      const value = chunk.match(/"value"\s*:\s*(-?\d+)/)?.[1];
+      const status = chunk.match(/"status"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/)?.[1];
+      const reason = chunk.match(/"reason"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/)?.[1];
+      if (value !== undefined || status || reason) items.push({ key, value: Number(value || 0), status: status || '', reason: reason || '' });
+    });
+    return { [group]: items };
+  },
+
   async generateInitialMetrics(profile, base, lore, attrs, context, store) {
     const evidence = this.initialMetricsEvidence(profile, base, lore, attrs, context, store);
     const emotions = await this.generateMetricGroup(profile, base, evidence, 'emotions', window.GameModules.metrics.emotionKeys);
@@ -148,7 +175,7 @@ window.GameModules.characterProfile = {
       prompt,
       format: prompt,
       repairHint: this.metricGroupRepairHint(base, group, keys),
-      parse: (text) => this.parse(text),
+      parse: (text) => this.parseMetricGroup(text, group, keys),
       validate: (raw) => this.validateMetricGroup(raw?.[group] || raw?.items || raw, keys, { ...base, ...profile }),
     });
   },
@@ -185,14 +212,20 @@ window.GameModules.characterProfile = {
       世界观资料: evidence.worldLore,
       世界字段: evidence.worldFields,
       剧情关系事件: evidence.relationContext,
+      完整JSON骨架: this.metricGroupSkeleton(group, keys),
       首个字段: keys[0],
     });
+  },
+
+  metricGroupSkeleton(group, keys) {
+    return JSON.stringify({ [group]: keys.map((key) => ({ key, value: 0, status: `${key}来自具体证据形成的当前状态`, reason: `${key}源于具体处境和关系证据的影响` })) });
   },
 
   metricGroupRepairHint(base, group, keys) {
     return [
       `目标人物只能是：${base.name}。`,
       `根字段必须是 ${group}。`,
+      `直接按这个完整 JSON 骨架改写 value/status/reason，不能改变 key 和结构：${this.metricGroupSkeleton(group, keys)}`,
       `${group} 必须按顺序完整包含：${keys.join('、')}，每个 key 精确一次，不能截断。`,
       '每一项都必须有 key、value、status、reason 四个字段。',
       'status 和 reason 都必须是完整中文句子，必须点名当前 key 或同义词，不能留空。',
