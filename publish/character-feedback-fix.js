@@ -17,7 +17,7 @@ Object.assign(window.GameModules.characterFeedback, {
       let resolveDone;
       const donePromise = new Promise((resolve) => { resolveDone = resolve; });
       const request = window.GameModules.aiRequest.complete({
-        source: 'character-feedback', model: 'nalang-turbo-0826', maxTokens: 900, prompt, timeoutMs: 18000, requireDone: true,
+        source: 'character-feedback', model: 'nalang-turbo-0826', maxTokens: 900, prompt, timeoutMs: 60000, requireDone: true,
         onChunk: (chunk, done, info) => {
           buffer = info.buffer;
           if (done) {
@@ -27,7 +27,7 @@ Object.assign(window.GameModules.characterFeedback, {
           }
         },
       });
-      await Promise.race([Promise.all([request, donePromise]), new Promise((_, reject) => setTimeout(() => reject(new Error('角色反馈生成超时')), 18000))]);
+      await Promise.race([Promise.all([request, donePromise]), new Promise((_, reject) => setTimeout(() => reject(new Error('角色反馈生成超时')), 60000))]);
       if (!doneSeen) throw new Error('角色反馈流式未完成');
       console.log('[角色反馈] AI返回完成:', { length: buffer.length, preview: buffer.slice(0, 120) });
       return this.parse(buffer, fallback, store);

@@ -21,13 +21,13 @@ window.GameModules.characterFeedback = {
       const prompt = await this.prompt(store);
       console.log('[角色反馈] completions 调用:', { promptLength: prompt.length });
       const request = window.GameModules.aiRequest.complete({
-        source: 'character-feedback-base', model: 'nalang-turbo-0826', maxTokens: 600, prompt, timeoutMs: 12000,
+        source: 'character-feedback-base', model: 'nalang-turbo-0826', maxTokens: 600, prompt, timeoutMs: 60000,
         onChunk: (chunk, done, info) => {
           buffer = info.buffer;
           if (done) console.log('[角色反馈] 流式 done:', { length: buffer.length });
         },
       });
-      await Promise.race([request, new Promise((_, reject) => setTimeout(() => reject(new Error('角色反馈生成超时')), 12000))]);
+      await Promise.race([request, new Promise((_, reject) => setTimeout(() => reject(new Error('角色反馈生成超时')), 60000))]);
       console.log('[角色反馈] AI返回完成:', { length: buffer.length, preview: buffer.slice(0, 120) });
       return this.parse(buffer, fallback, store);
     } catch (err) {

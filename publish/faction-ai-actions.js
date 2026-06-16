@@ -9,7 +9,7 @@ window.GameModules.factionAiActions = {
     const requestId = (this.factionState.requestId || 0) + 1;
     Object.assign(this.factionState, { generating: true, error: '', requestId });
     try {
-      const text = await Promise.race([this.requestFactionText(requestId), new Promise((resolve) => setTimeout(() => resolve(''), 35000))]);
+      const text = await Promise.race([this.requestFactionText(requestId), new Promise((resolve) => setTimeout(() => resolve(''), 60000))]);
       if (requestId !== this.factionState.requestId) return;
       const factions = this.parseFactions(text);
       if (factions.length) this.applyGeneratedFactions(factions);
@@ -27,7 +27,7 @@ window.GameModules.factionAiActions = {
     let buffer = '';
     const prompt = await this.factionPrompt();
     await window.GameModules.aiRequest.complete({
-      source: 'faction-audit', model: this.modelId || 'nalang-turbo-0826', maxTokens: 3000, prompt, timeoutMs: 35000,
+      source: 'faction-audit', model: this.modelId || 'nalang-turbo-0826', maxTokens: 3000, prompt, timeoutMs: 60000,
       onChunk: (content, done, info) => {
         if (requestId !== this.factionState.requestId) return;
         buffer = info.buffer;

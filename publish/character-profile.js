@@ -192,7 +192,7 @@ window.GameModules.characterProfile = {
       source,
       model: 'nalang-turbo-0826',
       maxTokens: group === 'playerFeelings' ? 2200 : 1800,
-      timeoutMs: 45000,
+      timeoutMs: 60000,
       prompt,
       format: prompt,
       repairHint: this.metricGroupRepairHint(base, group, keys),

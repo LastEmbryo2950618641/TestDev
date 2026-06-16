@@ -14,7 +14,7 @@ window.GameModules.realWorldAi = {
       const donePromise = new Promise((resolve) => { resolveDone = resolve; });
       await Promise.race([
         window.GameModules.aiRequest.complete({
-          source: 'real-world-engine', model: store.modelId, maxTokens: 2200, prompt, timeoutMs: 35000, requireDone: true,
+          source: 'real-world-engine', model: store.modelId, maxTokens: 2200, prompt, timeoutMs: 60000, requireDone: true,
           onChunk: (chunk, done, info) => {
             if (requestId !== this.latestRequestId) return;
             buffer = info.buffer;
@@ -22,7 +22,7 @@ window.GameModules.realWorldAi = {
           },
         }),
         donePromise,
-        new Promise((_, reject) => setTimeout(() => reject(new Error('现实世界推演超时')), 35000)),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('现实世界推演超时')), 60000)),
       ]);
       return this.parse(buffer, store, action);
     } catch (err) {

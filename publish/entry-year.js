@@ -93,6 +93,7 @@ window.GameModules.entryYear = {
         source: 'entry-year-audit',
         model: store.modelId,
         maxTokens: 360,
+        timeoutMs: 60000,
         prompt,
         format: prompt,
         validate: (raw) => this.auditValue(raw, fallback),

@@ -7,7 +7,7 @@ window.GameModules.bossAiActions = {
     Object.assign(this.bossState, { generating: true, generationError: '', requestId: (this.bossState.requestId || 0) + 1 });
     const requestId = this.bossState.requestId;
     try {
-      const text = await Promise.race([this.requestBossJobsText(), new Promise((resolve) => setTimeout(() => resolve(''), 35000))]);
+      const text = await Promise.race([this.requestBossJobsText(), new Promise((resolve) => setTimeout(() => resolve(''), 60000))]);
       if (requestId !== this.bossState.requestId) return;
       const jobs = this.parseBossJobs(text).slice(0, this.bossState.pageSize);
       if (!jobs.length) jobs.push(...this.fallbackBossJobsFromAI(text || 'AI响应超时，已本地补齐岗位'));
@@ -21,10 +21,33 @@ window.GameModules.bossAiActions = {
   },
 
   async requestBossJobsText() {
+    const count = Number(this.bossState.pageSize) || 10;
+    const chunks = this.bossJobChunks(count);
+    const jobs = [];
+    for (let i = 0; i < chunks.length; i += 1) {
+      const text = await this.requestBossJobsChunk(chunks[i], i + 1, chunks.length);
+      jobs.push(...this.parseBossJobs(text));
+    }
+    return JSON.stringify(jobs);
+  },
+
+  bossJobChunks(count) {
+    if (count <= 5) return [count];
+    const chunks = [];
+    let left = count;
+    while (left > 0) {
+      const size = Math.min(5, left);
+      chunks.push(size);
+      left -= size;
+    }
+    return chunks;
+  },
+
+  async requestBossJobsChunk(count, chunkIndex, chunkTotal) {
     let buffer = '';
-    const prompt = await this.bossJobsPrompt();
+    const prompt = await this.bossJobsPrompt(count, chunkIndex, chunkTotal);
     await window.GameModules.aiRequest.complete({
-      source: 'boss-jobs', model: this.modelId || 'nalang-turbo-0826', maxTokens: 2600, prompt, timeoutMs: 35000,
+      source: chunkTotal > 1 ? `boss-jobs-${chunkIndex}` : 'boss-jobs', model: this.modelId || 'nalang-turbo-0826', maxTokens: Math.min(3000, Math.max(1200, count * 520)), prompt, timeoutMs: 60000,
       onChunk: (content, done, info) => {
         if (this.bossState.requestId) buffer = info.buffer;
         if (done) this.bossState.generationDoneAt = this.phoneDateText?.() || '';
@@ -33,10 +56,11 @@ window.GameModules.bossAiActions = {
     return buffer;
   },
 
-  bossJobsPrompt() {
-    const f = this.bossState.filters, count = Number(this.bossState.pageSize) || 10, area = [f.province, f.city, f.county, f.town].filter(Boolean).join(' ') || '不限，优先玩家所在地';
+  bossJobsPrompt(count = Number(this.bossState.pageSize) || 10, chunkIndex = 1, chunkTotal = 1) {
+    const f = this.bossState.filters, area = [f.province, f.city, f.county, f.town].filter(Boolean).join(' ') || '不限，优先玩家所在地';
     const player = this.bossState.usePlayerFit ? this.bossPlayerFitPrompt() : '关闭玩家适配：像真实招聘软件一样随机混合热门、冷门、白领、蓝领、创作者、兼职岗位。';
-    return window.GameModules.promptTemplates.render('boss-jobs', { 数量: count, 玩家能力: this.bossPlayerAbilitiesPrompt(), 领域: f.industry || '不限', 规模: f.scale || '不限', 地址: area, 类型: f.payType || '不限', 底薪: `${f.baseMin || '不限'}-${f.baseMax || '不限'}`, 绩效: f.performanceMonths || '不限', 创作者薪酬: f.creatorPay || '不限', 等级: f.creatorLevel || '不限', 玩家适配: player, 玩家输入: String(this.bossState.customPrompt || '').trim() || '无', 随机种子: this.bossState.randomSeed || Date.now() });
+    const chunkNote = chunkTotal > 1 ? `这是第${chunkIndex}/${chunkTotal}批岗位，必须生成与其它批次不同的公司和职位。` : '无';
+    return window.GameModules.promptTemplates.render('boss-jobs', { 数量: count, 玩家能力: this.bossPlayerAbilitiesPrompt(), 领域: f.industry || '不限', 规模: f.scale || '不限', 地址: area, 类型: f.payType || '不限', 底薪: `${f.baseMin || '不限'}-${f.baseMax || '不限'}`, 绩效: f.performanceMonths || '不限', 创作者薪酬: f.creatorPay || '不限', 等级: f.creatorLevel || '不限', 玩家适配: player, 玩家输入: `${String(this.bossState.customPrompt || '').trim() || '无'}；${chunkNote}`, 随机种子: `${this.bossState.randomSeed || Date.now()}-${chunkIndex}` });
   },
 
   bossPlayerFitPrompt() {

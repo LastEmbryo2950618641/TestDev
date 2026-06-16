@@ -100,7 +100,7 @@ window.GameModules.entryActions = {
     let buffer = '';
     const prompt = await this.entryPrompt(reason, storyContext);
     await window.GameModules.aiRequest.complete({
-      source: 'entry-action', model: this.modelId, maxTokens: 220, prompt, timeoutMs: 18000,
+      source: 'entry-action', model: this.modelId, maxTokens: 220, prompt, timeoutMs: 60000,
       onChunk: (chunk, done, info) => {
         buffer = info.buffer;
         const latest = this.cleanEntryAction(buffer);
