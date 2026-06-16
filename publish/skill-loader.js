@@ -6,17 +6,28 @@ window.GameModules.skillLoader = {
 
   async load() {
     if (this.loaded) return window.GameModules.skillsDefinitions || [];
-    let docs = [];
-    try {
-      docs = await this.loadFromFetch();
-    } catch (err) {
-      docs = this.loadFromInline();
-      if (!docs.length) console.warn('[Skills] 动态加载失败:', err.message, err.stack);
-      else console.info('[Skills] 动态加载失败，已使用内联文档兜底:', err.message);
-    }
+    const docs = this.shouldUseInlineFirst() ? this.loadFromInline() : await this.loadDocs();
     this.registerDocs(docs);
     this.loaded = true;
     return window.GameModules.skillsDefinitions || [];
+  },
+
+  async loadDocs() {
+    try {
+      return await this.loadFromFetch();
+    } catch (err) {
+      const docs = this.loadFromInline();
+      if (!docs.length) console.warn('[Skills] 动态加载失败:', err.message, err.stack);
+      return docs;
+    }
+  },
+
+  shouldUseInlineFirst() {
+    try {
+      return String(location.origin) === 'null' || String(location.href).startsWith('blob:');
+    } catch (_) {
+      return true;
+    }
   },
 
   async loadFromFetch() {
