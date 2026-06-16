@@ -114,7 +114,7 @@ window.GameModules.realWorldActions = {
     if (!map.current) return;
     const entry = {
       id: this.nextId++, type: 'system', locationName: map.current, time: { label: `${this.phoneDateText()} ${this.phoneTimeText()}` },
-      narration: `你把手机屏幕压暗，现实世界的声音重新浮上来。${map.current}仍保持着原本的秩序，但那台新手机带来的异常感并没有消失。`,
+      narration: '你把手机屏幕压暗，现实世界的声音重新浮上来。熟悉的空间仍保持着原本的秩序，但那台新手机带来的异常感并没有消失。',
       thinking: '现实世界推演已接入玩家本人资料，只追踪手机外的现实行动。',
     };
     this.assignRealWorldlineEntry(entry);
