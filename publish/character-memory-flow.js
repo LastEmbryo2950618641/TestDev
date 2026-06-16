@@ -26,10 +26,14 @@ Object.assign(window.GameModules.characterMemory, {
 
   async recordWechatExchange(store, contact, playerText, replyText, result = {}) {
     if (!contact?.id || contact.group) return;
-    const saved = window.GameModules.sqliteSave.getCharacterState(contact.id);
-    const state = store.rpgStates?.[contact.id] || saved;
-    if (!state) return;
-    if (!store.rpgStates?.[contact.id]) store.rpgStates = { ...(store.rpgStates || {}), [contact.id]: state };
+    const characterId = store.wechatCharacterId?.(contact) || contact.characterId || contact.id;
+    const saved = window.GameModules.sqliteSave.getCharacterState(characterId);
+    const state = store.rpgStates?.[characterId] || saved;
+    if (!state) {
+      console.warn('[微信记忆] 未找到联系人对应角色状态:', contact.id, contact.name, characterId);
+      return;
+    }
+    if (!store.rpgStates?.[state.id]) store.rpgStates = { ...(store.rpgStates || {}), [state.id]: state };
     const display = store.displayWechatContact?.(contact) || contact;
     const phoneTime = store.wechatMemoryTime?.() || this.gameTime({ entryTimeLabel: () => `${store.phoneDateText?.() || ''} ${store.phoneTimeText?.() || ''}`.trim() });
     const text = [
