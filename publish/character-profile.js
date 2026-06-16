@@ -218,7 +218,7 @@ window.GameModules.characterProfile = {
       timeoutMs: 60000,
       prompt,
       format: prompt,
-      repairHint: this.metricGroupRepairHint(base, group, keys),
+      repairHint: this.metricGroupRepairHint(base, group, keys, evidence),
       parse: (text) => this.parseMetricGroup(text, group, keys),
       validate: (raw) => this.validateMetricGroup(raw?.[group] || raw?.items || raw, keys, { ...base, ...profile }),
     });
@@ -265,12 +265,21 @@ window.GameModules.characterProfile = {
     return JSON.stringify({ [group]: keys.map((key) => ({ key, value: 0, status: `${key}因为人物经历与关系事件形成当前数值`, reason: `${key}源于人物过去经历和当前关系事件的影响` })) });
   },
 
-  metricGroupRepairHint(base, group, keys) {
+  metricGroupRepairHint(base, group, keys, evidence = {}) {
+    const relationEvidence = group === 'playerFeelings' ? [
+      '修复 playerFeelings 时必须重新读取下列证据，不得只照抄骨架里的 0：',
+      `人物角色卡：${evidence.roleCard || ''}`,
+      `玩家资料：${evidence.playerProfile || ''}`,
+      `剧情关系事件：${evidence.relationContext || ''}`,
+      '若证据中存在亲属、恋人、暧昧、依赖、占有、肉欲、畏惧、尊敬、支配等明确关系，相关 key 必须给出匹配数值，不能补成 0。',
+      '只有证据明确缺乏对应关系或冲动时，亲情、爱情、肉欲、依赖、占有欲等才允许为 0。',
+    ].join('\n') : '';
     return [
       `目标人物只能是：${base.name}。`,
       `根字段必须是 ${group}。`,
       `必须重写完整 ${group} 数组，不是只输出报错的单个 key。`,
-      `直接按这个完整 JSON 骨架改写 value/status/reason，不能删除任何对象，不能改变 key 和结构：${this.metricGroupSkeleton(group, keys)}`,
+      relationEvidence,
+      `直接按这个完整 JSON 骨架保留 key 和结构，再根据证据改写 value/status/reason；骨架里的 value:0 只是占位，不能当默认值：${this.metricGroupSkeleton(group, keys)}`,
       `${group} 必须按顺序完整包含：${keys.join('、')}，每个 key 精确一次，不能截断。`,
       '每一项都必须有 key、value、status、reason 四个字段；reason 是强制字段，即使上一轮只有 status，也必须为同一个 key 补出 reason。',
       '每个对象必须以 reason 作为最后一个字段，写完 reason 才能关闭对象。',
@@ -280,7 +289,7 @@ window.GameModules.characterProfile = {
       '不要写“坚强的性格支撑”“性格使然”“综合判断”“个人动机与过去经历”等抽象空话。',
       '不要返回英文 key、initial_metrics、affection、dependency、trust_level 等替代结构。',
       '只返回一行紧凑 JSON，不要 Markdown。',
-    ].join('\n');
+    ].filter(Boolean).join('\n');
   },
 
   validateMetricGroup(value, keys, profile = {}) {
