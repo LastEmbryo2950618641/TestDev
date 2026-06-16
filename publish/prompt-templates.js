@@ -23,9 +23,15 @@ window.GameModules.promptTemplates = {
     { id: 'writing-styles', title: '小说文风预设', category: '剧情推演', file: 'prompts/writing-styles.md', summary: '主剧情推演可选文风预设文本。' },
   ],
   cache: {},
+  scriptUrl: (() => {
+    try { return document.currentScript?.src || ''; }
+    catch (_) { return ''; }
+  })(),
   baseUrl: (() => {
     try {
-      return new URL('.', document.currentScript?.src || document.baseURI).toString();
+      const scriptSrc = document.currentScript?.src || '';
+      if (scriptSrc) return new URL('.', scriptSrc).toString();
+      return new URL('.', document.baseURI).toString();
     } catch (_) {
       return '';
     }
@@ -53,7 +59,7 @@ window.GameModules.promptTemplates = {
       }
     }
     if (this.inline?.[item.id]) {
-      console.info('提示词模板使用内联快照:', item.id, lastError?.message || '文件不可用');
+      console.info('提示词模板使用内联快照:', item.id, lastError?.message || '文件不可用', '已尝试:', urls.join('、'));
       if (useCache) this.cache[item.id] = this.inline[item.id];
       return this.inline[item.id];
     }
@@ -63,8 +69,16 @@ window.GameModules.promptTemplates = {
   },
   fileCandidates(file) {
     const raw = String(file || '').replace(/^\.\//, '');
-    const urls = [raw, `./${raw}`];
-    if (this.baseUrl) urls.unshift(new URL(raw, this.baseUrl).toString());
+    const bases = [];
+    try { if (document.querySelector('base[href]')?.href) bases.push(document.querySelector('base[href]').href); } catch (_) {}
+    try { if (document.baseURI) bases.push(document.baseURI); } catch (_) {}
+    if (this.baseUrl) bases.push(this.baseUrl);
+    if (this.scriptUrl) bases.push(this.scriptUrl);
+    const urls = bases.flatMap((base) => {
+      try { return [new URL(raw, base).toString()]; }
+      catch (_) { return []; }
+    });
+    urls.push(raw, `./${raw}`);
     return [...new Set(urls)];
   },
   looksLikeWrongAsset(text, item) {

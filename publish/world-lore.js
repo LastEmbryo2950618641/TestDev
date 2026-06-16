@@ -46,8 +46,7 @@ window.GameModules.worldLore = {
   },
 
   async prompt(worldTag, context) {
-    const text = await window.GameModules.promptTemplates.render('world-lore', { 世界: worldTag, 剧情上下文: String(context || '暂无').slice(0, 240) });
-    return `${text}\n\n## 本次强制短输出\n只返回完整合法 JSON。worldline.events 最多 1 个，storyIndexes 最多 5 个短字符串，禁止输出连续数字列表。整体控制在 1200 字符内。`;
+    return window.GameModules.promptTemplates.render('world-lore', { 世界: worldTag, 剧情上下文: String(context || '暂无').slice(0, 240) });
   },
 
   parse(text) {

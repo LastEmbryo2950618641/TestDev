@@ -20,6 +20,7 @@
 10. `worldline.events` 最多 1 个事件；事件只写短字段，不要长篇剧情。
 11. `worldline.storyIndexes` 最多 3 个短字符串，禁止连续数字列表。
 12. `worldline.factionMap` 最多 2 个势力，key 使用 `faction_1`、`faction_2`。
+13. 只返回完整合法 JSON，整体控制在 1200 字符内。
 
 ## 最小 JSON 形状
 

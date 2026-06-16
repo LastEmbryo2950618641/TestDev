@@ -89,7 +89,7 @@ window.GameModules.jsonUtils = {
     let lastText = '';
     let lastError = null;
     for (let i = 0; i < max; i += 1) {
-      lastText = await this.requestCompletion({ model: options.model, prompt, maxTokens: options.maxTokens, source: options.source || 'json-utils', timeoutMs: options.timeoutMs || 90000 });
+      lastText = await this.requestCompletion({ model: options.model, prompt, maxTokens: options.maxTokens, source: options.source || 'json-utils', timeoutMs: options.timeoutMs || 90000, maxAttempts: options.maxAttempts });
       try {
         const parsed = options.parse ? options.parse(lastText) : this.parseLoose(lastText);
         return options.validate ? options.validate(parsed) : parsed;

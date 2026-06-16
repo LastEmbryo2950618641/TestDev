@@ -134,18 +134,12 @@ window.GameModules.playerSetupActions = {
 
   async enrichPlayerProfile(base) {
     if (!window.dzmm?.completions) throw new Error('dzmm.completions unavailable');
-    const prompt = [
-      '补全2026现代都市互动小说的玩家现实身份。只返回一行合法JSON，不要Markdown、解释或换行。',
-      `锁定字段：name、gender、birthday不得修改；年龄=${base.age}；性别=${base.gender || '未填写'}。`,
-      '输入是手机激活资料或已有账号同步资料，必须综合全部字段，不只看单项。',
-      `补充关系规则：${base.relationshipRule || '无额外规则。'}`,
-      `输入JSON：${JSON.stringify(base)}`,
-      '规则：refinedCity补成可落库的省市区县街道社区小区楼栋门牌；refinedRole按年龄、地址、职业/学历细化；workplace写公司/学校/组织，position写岗位/年级/职位，不用居住社区充当组织。',
-      'refinedLivingStatus体现同住、独居、宿舍或合租；parents为空才默认父母已故并给现实克制死因，已填写则不得改写。',
-      'relationships整理成“关系：姓名”，多项用中文分号；只有称谓无姓名时生成正式姓名；多个同类亲属必须保留独立条目，不得合并或漏人。',
-      'worldbuildingNote限60字；knownProfessions/equipment/items/wearing都返回字符串，多个用中文顿号；常规穿着含内衣、上衣、内裤、下衣、袜子、鞋子。',
-      '必须返回字段：refinedCity, refinedRole, workplace, position, refinedLivingStatus, relationships, parentStatus, parentDeathCause, worldbuildingNote, knownProfessions, equipment, items, wearing。',
-    ].join('\n');
+    const prompt = await window.GameModules.promptTemplates.render('player-profile-enrichment', {
+      年龄: base.age,
+      性别: base.gender || '未填写',
+      relationshipRule: base.relationshipRule || '无额外规则。',
+      输入: JSON.stringify(base),
+    });
     return await Promise.race([
       window.GameModules.jsonUtils.generateJsonWithRetry({ source: 'player-profile-enrichment', model: this.modelId, maxTokens: 900, timeoutMs: 60000, prompt, format: prompt, max: 2 }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('身份补全超时')), 60000)),
