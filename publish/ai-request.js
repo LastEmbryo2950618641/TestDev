@@ -42,12 +42,14 @@ window.GameModules.aiRequest = {
   isRetryable(err) {
     const message = String(err?.message || '').toLowerCase();
     return Boolean(err?.retryable || ['RATE_LIMITED', 'TIMEOUT', 'NETWORK_ERROR', 'INTERNAL_ERROR', 'SERVICE_UNAVAILABLE', 'DRAW_TIMEOUT', 'AI_TIMEOUT'].includes(err?.code)
-      || message.includes('failed to fetch') || message.includes('network') || message.includes('fetch failed'));
+      || /http\s*(502|503|504)/i.test(message) || message.includes('failed to fetch') || message.includes('network') || message.includes('fetch failed'));
   },
 
   retryDelay(err, attempt) {
+    const message = String(err?.message || '').toLowerCase();
     if (err?.code === 'RATE_LIMITED') return Math.min(12000, 4000 + attempt * 4000);
-    if (String(err?.message || '').toLowerCase().includes('failed to fetch')) return Math.min(8000, 2500 * (attempt + 1));
+    if (/http\s*(502|503|504)/i.test(message)) return Math.min(10000, 2000 * (2 ** attempt));
+    if (message.includes('failed to fetch')) return Math.min(8000, 2500 * (attempt + 1));
     return Math.min(6000, 1200 * (2 ** attempt));
   },
 
@@ -115,7 +117,7 @@ window.GameModules.aiRequest = {
 
   async runWithRetries(options) {
     let lastErr = null;
-    const maxAttempts = options.maxAttempts || 2;
+    const maxAttempts = options.maxAttempts || 3;
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       await this.enterStartGate(options, attempt);
       try {

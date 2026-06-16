@@ -42,10 +42,10 @@ window.GameModules.promptTemplates = {
         return text;
       } catch (err) {
         lastError = err;
-        console.warn('提示词模板候选读取失败:', url, err.message);
       }
     }
     if (this.inline?.[item.id]) {
+      console.info('提示词模板使用内联快照:', item.id, lastError?.message || '文件不可用');
       if (useCache) this.cache[item.id] = this.inline[item.id];
       return this.inline[item.id];
     }
