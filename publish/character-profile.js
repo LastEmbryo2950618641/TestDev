@@ -123,9 +123,9 @@ window.GameModules.characterProfile = {
       RPG字段列表: data.rpgKeys,
       情绪字段: data.emotionKeys,
       关系指标字段: data.playerKeys,
+      玩家本人目标锁定: base.id === 'player-self' ? `本次只生成玩家本人“${base.name}”的角色卡。JSON 根字段 name 必须写“${base.name}”，不得写妹妹、姐姐、父母、联系人或关系事件里的任何其他姓名。如果上下文提到亲属，她们只能写进 relationships/detail 作为关系对象，不能成为本角色卡主语。gender、age、birthday 优先沿用人物基础区；不要根据亲属资料改写玩家本人身份。` : '无。',
     });
-    if (base.id !== 'player-self') return text;
-    return `${text}\n\n## 玩家本人目标锁定（最高优先级）\n本次只生成玩家本人“${base.name}”的角色卡。\nJSON 根字段 name 必须写“${base.name}”，不得写妹妹、姐姐、父母、联系人或关系事件里的任何其他姓名。\n如果上下文提到刘思瑶、刘思琪或其他亲属，她们只能写进 relationships/detail 作为关系对象，不能成为本角色卡主语。\ngender、age、birthday 优先沿用人物基础区；不要根据亲属资料改写玩家本人身份。`;
+    return text;
   },
 
   parse(text) {
@@ -178,9 +178,11 @@ window.GameModules.characterProfile = {
   },
 
   metricGroupKeyChunks(group, keys) {
-    if (group === 'playerFeelings' && keys.length > 9) return [keys.slice(0, 9), keys.slice(9)];
-    if (group === 'emotions' && keys.length > 6) return [keys.slice(0, 6), keys.slice(6)];
-    return [keys];
+    const size = group === 'playerFeelings' ? 4 : 6;
+    if (keys.length <= size) return [keys];
+    const chunks = [];
+    for (let i = 0; i < keys.length; i += size) chunks.push(keys.slice(i, i + size));
+    return chunks;
   },
 
   async generateMetricGroupChunks(profile, base, evidence, group, keys) {
