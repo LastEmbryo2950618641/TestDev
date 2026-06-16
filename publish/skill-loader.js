@@ -6,17 +6,37 @@ window.GameModules.skillLoader = {
 
   async load() {
     if (this.loaded) return window.GameModules.skillsDefinitions || [];
-    this.loaded = true;
+    let docs = [];
     try {
-      const files = await this.fetchManifest();
-      const docs = await Promise.all(files.map((file) => this.fetchSkill(file)));
-      const skills = docs.filter(Boolean).map((doc) => this.toDefinition(doc));
-      window.GameModules.skillsDefinitions = (window.GameModules.skillsDefinitions || []).concat(skills);
-      window.GameModules.skillDocs = Object.fromEntries(docs.filter(Boolean).map((doc) => [doc.meta.id, doc]));
+      docs = await this.loadFromFetch();
     } catch (err) {
-      console.warn('[Skills] 动态加载失败:', err.message, err.stack);
+      docs = this.loadFromInline();
+      if (!docs.length) console.warn('[Skills] 动态加载失败:', err.message, err.stack);
+      else console.info('[Skills] 动态加载失败，已使用内联文档兜底:', err.message);
     }
+    this.registerDocs(docs);
+    this.loaded = true;
     return window.GameModules.skillsDefinitions || [];
+  },
+
+  async loadFromFetch() {
+    const files = await this.fetchManifest();
+    return Promise.all(files.map((file) => this.fetchSkill(file)));
+  },
+
+  loadFromInline() {
+    const inline = window.GameModules.skillDocsInline;
+    const files = Array.isArray(inline?.manifest) ? inline.manifest : Object.keys(inline?.files || {});
+    return files.map((file) => inline?.files?.[file] ? this.parse(inline.files[file], file) : null).filter(Boolean);
+  },
+
+  registerDocs(docs = []) {
+    const valid = docs.filter(Boolean);
+    const oldDocs = window.GameModules.skillDocs || {};
+    window.GameModules.skillDocs = { ...oldDocs, ...Object.fromEntries(valid.map((doc) => [doc.meta.id, doc])) };
+    const existing = new Set((window.GameModules.skillsDefinitions || []).map((skill) => skill.id));
+    const additions = valid.filter((doc) => !existing.has(doc.meta.id)).map((doc) => this.toDefinition(doc));
+    window.GameModules.skillsDefinitions = (window.GameModules.skillsDefinitions || []).concat(additions);
   },
 
   async fetchManifest() {
