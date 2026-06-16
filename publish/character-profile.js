@@ -178,11 +178,7 @@ window.GameModules.characterProfile = {
   },
 
   metricGroupKeyChunks(group, keys) {
-    const size = 2;
-    if (keys.length <= size) return [keys];
-    const chunks = [];
-    for (let i = 0; i < keys.length; i += size) chunks.push(keys.slice(i, i + size));
-    return chunks;
+    return keys.map((key) => [key]);
   },
 
   async generateMetricGroupChunks(profile, base, evidence, group, keys) {
@@ -210,7 +206,7 @@ window.GameModules.characterProfile = {
     return window.GameModules.jsonUtils.generateJsonWithRetry({
       source,
       model: 'nalang-turbo-0826',
-      maxTokens: 1200,
+      maxTokens: 700,
       timeoutMs: 60000,
       prompt,
       format: prompt,
