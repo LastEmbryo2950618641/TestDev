@@ -264,6 +264,11 @@
   max-width: 70%;
 }
 
+.wechat-msg time {
+  color: #9a9a9a;
+  font-size: 11px;
+}
+
 .wechat-msg p {
   margin: 0;
   padding: 10px 12px;

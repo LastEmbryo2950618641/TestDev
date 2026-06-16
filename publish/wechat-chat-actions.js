@@ -36,9 +36,29 @@ window.GameModules.wechatChatActions = {
 
   appendWechatMessage(id, msg) {
     const key = id || 'group-main';
-    const list = [...(this.wechatMessagesByContact?.[key] || []), { ...msg, at: this.phoneDateText?.() ? `${this.phoneDateText()} ${this.phoneTimeText?.() || ''}` : new Date().toISOString() }].slice(-40);
+    const time = msg.time || this.wechatMessageTime();
+    const list = [...(this.wechatMessagesByContact?.[key] || []), { ...msg, at: time.label, atDisplay: time.display, time: time.value }].slice(-40);
     this.wechatMessagesByContact = { ...(this.wechatMessagesByContact || {}), [key]: list };
     if (msg.text) this.updateWechatLatest(key, msg.text, msg.side === 'other');
+  },
+
+  wechatMessageTime() {
+    const d = this.phoneDate?.() || new Date();
+    return { label: `${this.phoneDateText?.() || ''} ${this.phoneTimeText?.() || ''}`.trim(), display: this.wechatTimeDisplay(d), value: this.wechatTimeValue(d) };
+  },
+
+  wechatMemoryTime() {
+    const d = this.phoneDate?.() || new Date();
+    return { label: `${this.phoneDateText?.() || ''} ${this.phoneTimeText?.() || ''}`.trim(), value: this.wechatTimeValue(d) };
+  },
+
+  wechatTimeValue(d) {
+    return { year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate(), hour: d.getHours(), minute: d.getMinutes(), second: d.getSeconds() };
+  },
+
+  wechatTimeDisplay(d) {
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getMonth() + 1}月${d.getDate()}日 ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   },
 
   updateWechatLatest(id, latest, incoming = false) {
@@ -53,15 +73,16 @@ window.GameModules.wechatChatActions = {
       const result = await this.generateWechatReply(contact, playerText);
       if (reqId !== this.wechatReplyRequestId) return;
       result.characterCardChanges = await window.GameModules.characterCardLexicon?.applyToState?.(this.rpgStates?.[contact.id], result.lexiconUpdates || []) || [];
+      this.advancePhoneTime?.(result.elapsedSeconds || 60);
       this.appendWechatMessage(contact.id, { side: 'other', name: contact.name, mark: contact.mark, text: result.reply, characterCardChanges: result.characterCardChanges, cardChangesOpen: false });
       await window.GameModules.characterMemory?.recordWechatExchange?.(this, contact, playerText, result.reply, result);
-      this.advancePhoneTime?.(result.elapsedSeconds || 60);
       await this.save?.();
     } catch (err) {
       if (reqId !== this.wechatReplyRequestId) return;
       console.error('[微信] 联系人回复生成失败:', err.code, err.message, err.stack);
       this.wechatError = err.message || '联系人暂时没有回复';
       const fallback = '我这边刚刚有点卡，等下再说。';
+      this.advancePhoneTime?.(60);
       this.appendWechatMessage(contact.id, { side: 'other', name: contact.name, mark: contact.mark, text: fallback });
       await window.GameModules.characterMemory?.recordWechatExchange?.(this, contact, playerText, fallback, { mood: '通讯异常' });
       await this.save?.();

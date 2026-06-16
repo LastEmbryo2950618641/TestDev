@@ -29,15 +29,17 @@ Object.assign(window.GameModules.characterMemory, {
     const state = store.rpgStates?.[contact.id];
     if (!state) return;
     const display = store.displayWechatContact?.(contact) || contact;
+    const phoneTime = store.wechatMemoryTime?.() || this.gameTime({ entryTimeLabel: () => `${store.phoneDateText?.() || ''} ${store.phoneTimeText?.() || ''}`.trim() });
     const text = [
       '来源：微信发起的对话',
+      `微信时间：${phoneTime.label}`,
       `联系人：${state.name || display.name}`,
       `玩家发送：${playerText}`,
       `联系人回复：${replyText}`,
       result.mood ? `联系人语气：${result.mood}` : '',
     ].filter(Boolean).join('\n');
     const memory = this.ensure(state.id);
-    const item = this.memoryItem(store, { text, source: 'wechat', place: '微信', impression: this.wechatImpression(playerText, replyText, result) });
+    const item = this.memoryItem(store, { text, source: 'wechat', place: '微信', time: phoneTime, impression: this.wechatImpression(playerText, replyText, result) });
     memory.shortTerm.recent.push(item);
     this.promote(memory, item);
     await this.compact(state.id, memory);
@@ -52,7 +54,7 @@ Object.assign(window.GameModules.characterMemory, {
     const text = this.refine(data.text || '');
     const item = {
       id: `mem_${Date.now()}_${window.GameModules.rpgState.seed(text)}`,
-      time: this.gameTime(store),
+      time: data.time || this.gameTime(store),
       place: data.place || store.sceneTitle || '地点未知',
       text,
       summary: this.summary(text, this.limits.summaryTargetChars),
