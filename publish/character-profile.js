@@ -178,17 +178,7 @@ window.GameModules.characterProfile = {
   },
 
   metricGroupKeyChunks(group, keys) {
-    const maxOutputChars = 2600;
-    const rootOverhead = group.length + 16;
-    const estimatedItemChars = Math.max(...keys.map((key) => this.estimateMetricItemChars(key)));
-    const size = Math.max(1, Math.floor((maxOutputChars - rootOverhead) / estimatedItemChars));
-    const chunks = [];
-    for (let i = 0; i < keys.length; i += size) chunks.push(keys.slice(i, i + size));
-    return chunks;
-  },
-
-  estimateMetricItemChars(key) {
-    return key.length * 3 + 150;
+    return keys.map((key) => [key]);
   },
 
   async generateMetricGroupChunks(profile, base, evidence, group, keys) {
