@@ -303,7 +303,6 @@
         <div><p class="eyebrow">WORLDLINE</p><h2>世界线APP主面板</h2><small>被操控世界线与现实世界独立记录</small></div>
         <button class="small-btn" type="button" @click="$store.game.closeWorldlineApp()">回到桌面</button>
       </header>
-      <p class="worldline-debug-label" x-text="`当前调试区域：${$store.game.worldlineDebugSection || '世界线APP主面板'}`"></p>
       <nav class="worldline-tabs dev-section" :class="{ 'worldline-debug-selected': $store.game.isWorldlineDebugSection('世界线APP切换栏') }" data-section-title="世界线APP切换栏" @click.stop="$store.game.selectWorldlineDebugSection('世界线APP切换栏')">
         <button type="button" :class="{ active: $store.game.worldlineAppTab === 'control' }" @click="$store.game.worldlineAppTab = 'control'; $store.game.selectWorldlineDebugSection('被操控世界分页')">被操控世界</button>
         <button type="button" :class="{ active: $store.game.worldlineAppTab === 'real' }" @click="$store.game.worldlineAppTab = 'real'; $store.game.selectWorldlineDebugSection('现实世界分页')">现实世界</button>

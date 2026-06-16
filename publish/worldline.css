@@ -160,16 +160,6 @@
   background: linear-gradient(135deg, #74f6ff, #ffdf8a);
 }
 
-.worldline-debug-label {
-  margin: -4px 0 0;
-  padding: 7px 10px;
-  border: 1px dashed rgba(116, 246, 255, .45);
-  border-radius: 12px;
-  color: #74f6ff;
-  background: rgba(116, 246, 255, .08);
-  font-size: 12px;
-}
-
 .worldline-debug-selected {
   outline: 2px solid rgba(116, 246, 255, .9);
   outline-offset: 2px;
