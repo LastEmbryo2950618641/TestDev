@@ -127,6 +127,8 @@ window.GameModules.jsonUtils = {
       .replace(/[“”]/g, '"')
       .replace(/[‘’]/g, "'")
       .replace(/([}\]"0-9]|true|false|null)\s*，\s*(")/g, '$1,$2')
+      .replace(/([}\]])\s*，\s*([\[{])/g, '$1,$2')
+      .replace(/([}\]])\s*，\s*(")/g, '$1,$2')
       .replace(/([{,]\s*)([A-Za-z_$][\w$]*)(\s*:)/g, '$1"$2"$3')
       .replace(/([{,]\s*)([\u4e00-\u9fa5][\u4e00-\u9fa5\w-]*)(\s*:)/g, '$1"$2"$3')
       .replace(/:\s*'([^'\\]*(?:\\.[^'\\]*)*)'/g, (_, value) => `:"${value.replace(/"/g, '\\"')}"`)
