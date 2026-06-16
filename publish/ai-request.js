@@ -67,12 +67,13 @@ window.GameModules.aiRequest = {
     const source = options.source || 'unknown';
     const messages = options.messages || [{ role: 'user', content: options.prompt || '' }];
     const model = options.model || 'nalang-turbo-0826';
-    const maxTokens = options.maxTokens || 1000;
+    const hasMaxTokens = options.maxTokens !== undefined && options.maxTokens !== null;
+    const maxTokens = hasMaxTokens ? options.maxTokens : undefined;
     const enqueueAt = Date.now();
     const sourceCount = this.countSource(source);
     this.logicalCount += 1;
     this.queued += 1;
-    this.log('入队', { id, source, sourceCount, logicalNo: this.logicalCount, model, maxTokens, queued: this.queued, active: this.active, maxConcurrent: this.maxConcurrent, messageLengths: this.lengths(messages) });
+    this.log('入队', { id, source, sourceCount, logicalNo: this.logicalCount, model, maxTokens: maxTokens || 'sdk-default', queued: this.queued, active: this.active, maxConcurrent: this.maxConcurrent, messageLengths: this.lengths(messages) });
     return new Promise((resolve, reject) => {
       this.pending.push({ options: { ...options, id, source, model, maxTokens, messages, enqueueAt }, resolve, reject });
       this.pump();
@@ -141,8 +142,10 @@ window.GameModules.aiRequest = {
     let callbackChain = Promise.resolve();
     const startAt = Date.now();
     this.actualCount += 1;
-    this.log('开始', { id: options.id, source: options.source, actualNo: this.actualCount, attempt: attempt + 1, queueWaitMs: startAt - options.enqueueAt, model: options.model, maxTokens: options.maxTokens, messageLengths: this.lengths(options.messages) });
-    const request = window.dzmm.completions({ model: options.model, maxTokens: options.maxTokens, messages: options.messages }, (chunk, done) => {
+    this.log('开始', { id: options.id, source: options.source, actualNo: this.actualCount, attempt: attempt + 1, queueWaitMs: startAt - options.enqueueAt, model: options.model, maxTokens: options.maxTokens || 'sdk-default', messageLengths: this.lengths(options.messages) });
+    const payload = { model: options.model, messages: options.messages };
+    if (options.maxTokens !== undefined && options.maxTokens !== null) payload.maxTokens = options.maxTokens;
+    const request = window.dzmm.completions(payload, (chunk, done) => {
       const text = String(chunk || '');
       if (text) {
         chunkCount += 1;

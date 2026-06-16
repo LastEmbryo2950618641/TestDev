@@ -75,7 +75,6 @@ window.GameModules.characterProfile = {
       return this.withSignature(await window.GameModules.jsonUtils.generateJsonWithRetry({
         source: 'character-profile-card',
         model: 'nalang-turbo-0826',
-        maxTokens: 1800,
         timeoutMs: 60000,
         prompt,
         format: prompt,
