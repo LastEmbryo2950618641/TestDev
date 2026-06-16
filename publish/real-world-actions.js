@@ -160,8 +160,9 @@ window.GameModules.realWorldActions = {
   },
 
   async assignRealWorldlineEntry(entry) {
-    this.realWorldlineState = this.realWorldlineState || { plots: [], pendingPlot: null };
+    this.realWorldlineState = this.realWorldlineState || { events: [], plots: [], pendingPlot: null };
     const event = { eventId: `real_${entry.id}`, name: entry.sceneTitle || entry.locationName || this.realWorldSceneTitle || '现实事件', time: entry.time?.label || '', detail: String(entry.narration || entry.thinking || entry.text || ''), status: entry.streaming ? '记录中' : '已记录' };
+    this.realWorldlineState.events = [...(this.realWorldlineState.events || []).filter((item) => item.eventId !== event.eventId), event].slice(-40);
     const assigned = window.GameModules.worldlinePlots.assign(this, this.realWorldlineState, event, '现实情节');
     entry.plotId = event.plotId;
     await assigned;
