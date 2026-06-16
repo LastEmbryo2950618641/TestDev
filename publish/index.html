@@ -1114,7 +1114,7 @@
           <label class="dev-section" data-section-title="父母信息输入"><span>父母信息</span><input class="text-input" x-model="$store.game.playerProfile.parents" placeholder="不填则默认父母已故，并生成死因"></label>
         </div>
       </div>
-      <article class="role-card-picker dev-section" data-section-title="人际关系角色卡区">
+      <article class="role-card-picker dev-section" data-section-title="人际关系角色卡区" x-show="$store.game.phoneActivationChoice === 'existing'" x-cloak>
         <strong>人际关系角色卡</strong>
         <template x-for="card in $store.game.selectedRelationRoleCards()" :key="card.name">
           <div class="relation-card-row">
