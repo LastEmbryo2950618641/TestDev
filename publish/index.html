@@ -25,6 +25,7 @@
   <script src="predefined-role-cards/liu-siyao.js"></script>
   <script src="predefined-role-cards/liu-siqi.js"></script>
   <script src="predefined-role-cards.js"></script>
+  <script src="role-card-editor.js"></script>
   <script src="app-background.js"></script>
   <script src="assets/data/real-world-2026.js"></script>
   <script src="prompt.js"></script>
@@ -1090,7 +1091,17 @@
         <label><span>选择角色卡</span><select class="text-input" x-model="$store.game.roleCardSetup.selectedPlayerName" @change="$store.game.selectPlayerRoleCard($event.target.value)"><template x-for="card in $store.game.roleCardSetup.cards" :key="card.name"><option :value="card.name" x-text="`${card.name}｜${card.role || '角色卡'}`"></option></template></select></label>
         <pre class="activation-profile-summary" x-text="$store.game.roleCardIdentitySummary($store.game.selectedPlayerRoleCard())"></pre>
         <button class="small-btn" type="button" @click="$store.game.roleCardSetup.detailOpen = !$store.game.roleCardSetup.detailOpen" x-text="$store.game.roleCardSetup.detailOpen ? '收起数值与详情' : '展开数值与详情'"></button>
-        <pre class="activation-profile-summary" x-show="$store.game.roleCardSetup.detailOpen" x-text="$store.game.roleCardDetailSummary($store.game.selectedPlayerRoleCard())"></pre>
+        <div class="role-card-editor" x-show="$store.game.roleCardSetup.detailOpen" x-cloak>
+          <template x-for="field in $store.game.roleCardSimpleFields()" :key="field.key">
+            <label><span x-text="field.label"></span><input x-show="field.type !== 'textarea' && field.type !== 'checkbox'" class="text-input" :type="field.type" :value="$store.game.roleCardFieldValue($store.game.selectedPlayerRoleCard(), field.key)" @input="$store.game.setRoleCardField($store.game.selectedPlayerRoleCard(), field.key, $event.target.value)"><textarea x-show="field.type === 'textarea'" class="text-input" :value="$store.game.roleCardFieldValue($store.game.selectedPlayerRoleCard(), field.key)" @input="$store.game.setRoleCardField($store.game.selectedPlayerRoleCard(), field.key, $event.target.value)"></textarea><input x-show="field.type === 'checkbox'" type="checkbox" :checked="$store.game.roleCardFieldValue($store.game.selectedPlayerRoleCard(), field.key)" @change="$store.game.setRoleCardField($store.game.selectedPlayerRoleCard(), field.key, $event.target.checked)"></label>
+          </template>
+          <template x-for="group in $store.game.roleCardMetricGroups($store.game.selectedPlayerRoleCard())" :key="group.key">
+            <section class="role-card-metric-group"><strong x-text="group.title"></strong><template x-for="item in group.items" :key="item.key"><div class="role-card-metric-row"><label><span x-text="item.key"></span><input class="text-input" type="number" min="0" max="100" x-model.number="item.value"></label><label><span>状态</span><input class="text-input" x-model="item.status"></label><label><span>原因</span><textarea class="text-input" x-model="item.reason"></textarea></label></div></template></section>
+          </template>
+          <template x-for="field in $store.game.roleCardJsonFields()" :key="field.key">
+            <label class="role-card-json-field"><span x-text="field.label"></span><textarea class="text-input" spellcheck="false" :value="$store.game.roleCardJsonText($store.game.selectedPlayerRoleCard(), field.key)" @change="$store.game.setRoleCardJsonField($store.game.selectedPlayerRoleCard(), field.key, $event.target.value)"></textarea></label>
+          </template>
+        </div>
       </article>
       <div x-show="$store.game.phoneActivationChoice === 'new' || $store.game.existingProfileExpanded" x-cloak>
         <div class="phone-setup-grid dev-section" data-section-title="基础身份设定区">
@@ -1110,7 +1121,17 @@
             <div><b x-text="card.name"></b><small x-text="`${$store.game.roleCardSetup.relationRoles[card.name] || card.role || '关系'}｜${card.gender || '未记录'}｜${card.age || '未知'}岁`"></small></div>
             <button class="small-btn" type="button" @click="$store.game.roleCardSetup.relationDetailOpen = $store.game.roleCardSetup.relationDetailOpen === card.name ? '' : card.name" x-text="$store.game.roleCardSetup.relationDetailOpen === card.name ? '收起' : '详情'"></button>
             <button class="small-btn" type="button" @click="$store.game.removeSetupRelationshipCard(card.name)">移除</button>
-            <pre class="activation-profile-summary" x-show="$store.game.roleCardSetup.relationDetailOpen === card.name" x-text="$store.game.roleCardDetailSummary(card)"></pre>
+            <div class="role-card-editor" x-show="$store.game.roleCardSetup.relationDetailOpen === card.name" x-cloak>
+              <template x-for="field in $store.game.roleCardSimpleFields()" :key="field.key">
+                <label><span x-text="field.label"></span><input x-show="field.type !== 'textarea' && field.type !== 'checkbox'" class="text-input" :type="field.type" :value="$store.game.roleCardFieldValue(card, field.key)" @input="$store.game.setRoleCardField(card, field.key, $event.target.value)"><textarea x-show="field.type === 'textarea'" class="text-input" :value="$store.game.roleCardFieldValue(card, field.key)" @input="$store.game.setRoleCardField(card, field.key, $event.target.value)"></textarea><input x-show="field.type === 'checkbox'" type="checkbox" :checked="$store.game.roleCardFieldValue(card, field.key)" @change="$store.game.setRoleCardField(card, field.key, $event.target.checked)"></label>
+              </template>
+              <template x-for="group in $store.game.roleCardMetricGroups(card)" :key="group.key">
+                <section class="role-card-metric-group"><strong x-text="group.title"></strong><template x-for="item in group.items" :key="item.key"><div class="role-card-metric-row"><label><span x-text="item.key"></span><input class="text-input" type="number" min="0" max="100" x-model.number="item.value"></label><label><span>状态</span><input class="text-input" x-model="item.status"></label><label><span>原因</span><textarea class="text-input" x-model="item.reason"></textarea></label></div></template></section>
+              </template>
+              <template x-for="field in $store.game.roleCardJsonFields()" :key="field.key">
+                <label class="role-card-json-field"><span x-text="field.label"></span><textarea class="text-input" spellcheck="false" :value="$store.game.roleCardJsonText(card, field.key)" @change="$store.game.setRoleCardJsonField(card, field.key, $event.target.value)"></textarea></label>
+              </template>
+            </div>
           </div>
         </template>
         <div class="relation-add-grid">

@@ -7,7 +7,8 @@ window.GameModules.predefinedRoleCards = {
   async loadAll() {
     if (this.cache) return this.cache;
     const source = window.GameModules.predefinedRoleCardData || {};
-    const cards = this.keys.map((key) => source[key]).filter((card) => card?.name);
+    const clone = (card) => window.GameModules.predefinedRoleCardActions?.cloneRoleCardForEditing?.(card) || JSON.parse(JSON.stringify(card));
+    const cards = this.keys.map((key) => source[key]).filter((card) => card?.name).map(clone);
     if (cards.length !== this.keys.length) {
       console.warn('[预定义角色卡] 本地脚本数据缺失:', this.keys.filter((key) => !source[key]).join('、'));
     }
@@ -47,17 +48,22 @@ window.GameModules.predefinedRoleCards = {
 
   async createState(card, store, idOverride = '') {
     if (!card || !window.GameModules.sqliteSave.db) return null;
-    const profile = { ...card, id: idOverride || card.id || card.name, roleCard: true, roleCardSource: card.roleCardSource || 'predefined' };
+    const profile = { ...card, id: idOverride || card.id || card.name, roleCard: true, roleCardSource: card.roleCardSource || 'predefined-edited', roleCardUpdatedAt: new Date().toISOString() };
     const schema = await window.GameModules.rpgState.ensureSchema(profile.work || '现实世界');
-    const state = window.GameModules.rpgState.createCharacterState(profile, schema, store);
+    const existing = window.GameModules.sqliteSave.getCharacterState(profile.id);
+    const state = existing || window.GameModules.rpgState.createCharacterState(profile, schema, store);
     state.id = profile.id;
     state.name = profile.name;
+    state.worldTag = schema.worldTag;
+    state.schema = schema;
     state.profile = profile;
     state.note = profile.detail || state.note || '';
+    window.GameModules.rpgState.upgradeCharacterState(state, schema);
     if (profile.isPlayer) {
       state.values.status_tags = ['玩家本人', '手机主人', profile.work, profile.role];
       state.profile.isPlayer = true;
     }
+    window.GameModules.rpgProfileMetrics?.rebase?.(state, profile, existing?.profile || {});
     await window.GameModules.rpgLexicon.syncState(state);
     await window.GameModules.sqliteSave.saveCharacterState(state);
     store.rpgStates = { ...(store.rpgStates || {}), [state.id]: state };
@@ -73,6 +79,19 @@ window.GameModules.predefinedRoleCards = {
   },
 
   async preloadRelationshipStates(store) {
+    return this.saveSelectedRelationshipStates(store);
+  },
+
+  async saveSelectedRoleCardStates(store) {
+    if (!store?.roleCardSetup?.usePredefinedPlayerCard) return [];
+    const loaded = [];
+    const player = await this.ensurePlayerState(store);
+    if (player) loaded.push(player);
+    loaded.push(...await this.saveSelectedRelationshipStates(store));
+    return loaded;
+  },
+
+  async saveSelectedRelationshipStates(store) {
     const cards = await this.loadAll();
     const names = store.roleCardSetup?.selectedRelationNames || ['刘思瑶', '刘思琪'];
     const loaded = [];

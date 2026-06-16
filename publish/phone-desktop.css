@@ -503,8 +503,51 @@
   font-size: 12px;
 }
 
-.relation-card-row .activation-profile-summary {
+.relation-card-row .activation-profile-summary,
+.relation-card-row .role-card-editor {
   grid-column: 1 / -1;
+}
+
+.role-card-editor {
+  display: grid;
+  max-height: 360px;
+  gap: 10px;
+  margin: 10px 0;
+  padding: 10px;
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 12px;
+  background: rgba(3, 6, 17, .26);
+}
+
+.role-card-editor label,
+.role-card-metric-row {
+  display: grid;
+  gap: 6px;
+}
+
+.role-card-editor label span,
+.role-card-metric-group strong {
+  color: #d8e0ff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.role-card-metric-group,
+.role-card-json-field {
+  display: grid;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, .1);
+}
+
+.role-card-metric-row {
+  grid-template-columns: 90px minmax(120px, 1fr) minmax(180px, 1.5fr);
+}
+
+.role-card-json-field textarea {
+  min-height: 120px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 .relation-add-grid {
@@ -528,7 +571,8 @@
 
 @media (max-width: 640px) {
   .phone-setup-grid,
-  .relation-add-grid {
+  .relation-add-grid,
+  .role-card-metric-row {
     grid-template-columns: 1fr;
   }
 }

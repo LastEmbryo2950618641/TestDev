@@ -107,7 +107,8 @@ window.GameModules.playerSetupActions = {
       this.phoneActivationChoice = '';
       this.phoneSetupDone = true;
       this.desktopUnlocked = false;
-      await this.ensurePlayerRpgState?.(true);
+      if (this.roleCardSetup?.usePredefinedPlayerCard) await window.GameModules.predefinedRoleCards?.saveSelectedRoleCardStates?.(this);
+      else await this.ensurePlayerRpgState?.(true);
       await this.syncKnownProfessionsFromProfile?.(this.playerProfile.knownProfessions);
       await this.save();
     } catch (err) {

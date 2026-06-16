@@ -16,7 +16,7 @@ window.GameModules = window.GameModules || {};
   actions.completePlayerSetup = async function completePlayerSetupWithWechat(options = {}) {
     const result = await originalComplete.call(this, options);
     if (!this.phoneSetupDone) return result;
-    await window.GameModules.predefinedRoleCards?.preloadRelationshipStates?.(this);
+    if (!this.roleCardSetup?.usePredefinedPlayerCard) await window.GameModules.predefinedRoleCards?.preloadRelationshipStates?.(this);
     await this.syncRelationshipWechatUsers?.();
     await this.save?.();
     return result;
