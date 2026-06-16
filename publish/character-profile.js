@@ -72,7 +72,7 @@ window.GameModules.characterProfile = {
     try {
       if (!window.dzmm?.completions) throw new Error('无法生成个人资料：AI接口不可用，不能使用本地兜底原因。');
       const prompt = await this.prompt(base, lore, attrs, context, store, preset);
-      return this.withSignature(await window.GameModules.jsonUtils.generateJsonWithRetry({
+      const profile = await window.GameModules.jsonUtils.generateJsonWithRetry({
         source: 'character-profile-card',
         model: 'nalang-turbo-0826',
         timeoutMs: 60000,
@@ -80,8 +80,10 @@ window.GameModules.characterProfile = {
         format: prompt,
         repairHint: this.repairHint(base, attrs),
         parse: (text) => this.parse(text),
-        validate: (raw) => this.validate(raw, base, lore, attrs, store),
-      }), signature);
+        validate: (raw) => this.validate(raw, base, lore, attrs, store, { skipInitialMetrics: true }),
+      });
+      const initialMetrics = await this.generateInitialMetrics(profile, base, context, store);
+      return this.withSignature({ ...profile, initialMetrics }, signature);
     } catch (err) {
       console.warn('人物设定生成失败:', err.code, err.message, err.stack);
       throw err;
@@ -129,18 +131,89 @@ window.GameModules.characterProfile = {
     return window.GameModules.jsonUtils.parseLoose(text);
   },
 
+  async generateInitialMetrics(profile, base, context, store) {
+    const common = this.initialMetricsBrief(profile, base, context);
+    const emotions = await this.generateMetricGroup(profile, base, common, 'emotions', window.GameModules.metrics.emotionKeys);
+    const playerFeelings = await this.generateMetricGroup(profile, base, common, 'playerFeelings', window.GameModules.metrics.playerKeys);
+    return this.initialMetrics({ emotions, playerFeelings }, { ...base, ...profile });
+  },
+
+  async generateMetricGroup(profile, base, brief, group, keys) {
+    const prompt = this.metricGroupPrompt(profile, base, brief, group, keys);
+    return window.GameModules.jsonUtils.generateJsonWithRetry({
+      source: `character-profile-${group}`,
+      model: 'nalang-turbo-0826',
+      timeoutMs: 45000,
+      prompt,
+      format: prompt,
+      repairHint: this.metricGroupRepairHint(base, group, keys),
+      parse: (text) => this.parse(text),
+      validate: (raw) => this.validateMetricGroup(raw?.[group] || raw?.items || raw, keys, { ...base, ...profile }),
+    });
+  },
+
+  initialMetricsBrief(profile, base, context) {
+    const name = profile.name || base.name;
+    return [
+      `姓名：${name}`,
+      `身份：${profile.role || base.role || ''}`,
+      `关系：${profile.relationships || base.relationships || ''}`,
+      `背景：${profile.detail || base.detail || ''}`,
+      `性格：${profile.personality || base.personality || ''}`,
+      `事件：${String(context || '').slice(0, 500)}`,
+    ].join('\n');
+  },
+
+  metricGroupPrompt(profile, base, brief, group, keys) {
+    const label = group === 'emotions' ? '情绪' : '对玩家感觉';
+    return [
+      '只返回一个合法 JSON 对象，不要 Markdown，不要解释，不要代码块。',
+      `为人物“${profile.name || base.name}”生成初始${label}数值。`,
+      `根字段必须是 ${group}，值是数组。`,
+      `数组必须按顺序完整返回这些 key：${keys.join('、')}。`,
+      '每一项都必须只有 key、value、status、reason 四个字段；value 是 0-100 数字。',
+      'status 写一句“该key为什么是该数值”的具体解释；reason 写一句形成原因。两者都必须点名具体证据，不能写默认、初始化、根据上下文。',
+      '证据弱或没有触发时 value 可以为 0，但 status/reason 也必须说明缺少哪类证据。',
+      '',
+      '人物证据：',
+      brief,
+      '',
+      `返回格式：{"${group}":[{"key":"${keys[0]}","value":0,"status":"具体解释","reason":"具体原因"}]}`,
+    ].join('\n');
+  },
+
+  metricGroupRepairHint(base, group, keys) {
+    return [
+      `目标人物只能是：${base.name}。`,
+      `根字段必须是 ${group}。`,
+      `${group} 必须完整包含：${keys.join('、')}。`,
+      '不要返回英文 key、initial_metrics、affection、dependency、trust_level 等替代结构。',
+    ].join('\n');
+  },
+
+  validateMetricGroup(value, keys, profile = {}) {
+    if (!Array.isArray(value)) throw new Error(`${profile.name || '角色'} 的数值组不是数组`);
+    return keys.map((key) => {
+      const item = value.find((entry) => entry?.key === key) || {};
+      if (item.value === undefined) throw new Error(`${profile.name || '角色'} 缺少AI生成的${key}数值`);
+      if (!this.validMetricText(item.status, key)) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的具体数值解释`);
+      if (!this.validMetricText(item.reason, key)) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的具体变化原因`);
+      return { key, value: window.GameModules.metrics.clamp(item.value), status: String(item.status).slice(0, 160), reason: String(item.reason).slice(0, 180) };
+    });
+  },
+
   repairHint(base, attrs = null) {
     return [
       `目标人物只能是：${base.name}。不要改成亲属、联系人或关系对象。`,
       '必须返回根字段 roleCardFieldReasons，不是 roleCardField、中文字段平铺或社群映射。',
       'roleCardFieldReasons 必须完整包含：姓名、所属世界、身份、职业、性别、生日、人际关系、外貌、性格、人物说明、社群角色、势力地位。每个值写一句具体事实原因。',
       `必须返回根字段 rpgFieldReasons，并完整包含：${this.rpgFieldReasonKeys(attrs).join('、')}。`,
-      'initialMetrics 每个情绪/感觉都必须由AI生成 value、具体数值解释 status、具体形成/变化原因 reason；不要默认值、阶段定义或背景信息模板。',
+      '本轮不要返回 initialMetrics、initial_metrics 或任何情绪/感觉数组。',
       'relationships 必须是字符串，格式“关系：姓名”；不要对象。',
     ].join('\n');
   },
 
-  validate(profile, base, lore, attrs, store = null) {
+  validate(profile, base, lore, attrs, store = null, options = {}) {
     let rawProfile = profile || {};
     const expectedName = String(base.name || '').trim();
     if (base.id === 'player-self') {
@@ -184,7 +257,7 @@ window.GameModules.characterProfile = {
       worldValues: this.worldValues(profile.worldValues, attrs, base.name),
       worldAttributes: attrs,
       rpgFieldReasons: this.rpgFieldReasons(profile.rpgFieldReasons, attrs, { ...base, ...profile, factions, forcePositions }),
-      initialMetrics: this.initialMetrics(profile.initialMetrics, { ...base, ...profile }),
+      initialMetrics: options.skipInitialMetrics ? null : this.initialMetrics(profile.initialMetrics, { ...base, ...profile }),
       roleCard: true,
       roleCardSource: 'ai',
       roleCardUpdatedAt: new Date().toISOString(),
