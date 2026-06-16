@@ -26,6 +26,10 @@ window.GameModules = window.GameModules || {};
     return jsonFields.map(([key, label]) => ({ key, label, items: this.flattenRoleCardLeaves(card?.[key], []) }));
   };
 
+  actions.roleCardHasItems = function roleCardHasItems(field) {
+    return Array.isArray(field?.items) && field.items.length > 0;
+  };
+
   actions.roleCardFieldValue = function roleCardFieldValue(card, key) {
     return card?.[key] ?? (key === 'roleCard' || key === 'isPlayer' ? false : '');
   };
@@ -41,7 +45,17 @@ window.GameModules = window.GameModules || {};
   actions.flattenRoleCardLeaves = function flattenRoleCardLeaves(value, path) {
     if (Array.isArray(value)) return value.flatMap((item, index) => this.flattenRoleCardLeaves(item, [...path, index]));
     if (value && typeof value === 'object') return Object.keys(value).flatMap((key) => this.flattenRoleCardLeaves(value[key], [...path, key]));
-    return [{ path, label: this.roleCardPathLabel(path), valueType: typeof value, inputType: typeof value === 'number' ? 'number' : 'text', value: value ?? '' }];
+    return [{ path, label: this.roleCardPathLabel(path), valueType: typeof value, inputType: this.roleCardInputType(value), multiline: this.roleCardNeedsMultiline(value), value: value ?? '' }];
+  };
+
+  actions.roleCardInputType = function roleCardInputType(value) {
+    if (typeof value === 'number') return 'number';
+    if (typeof value === 'boolean') return 'checkbox';
+    return 'text';
+  };
+
+  actions.roleCardNeedsMultiline = function roleCardNeedsMultiline(value) {
+    return typeof value === 'string' && value.length > 48;
   };
 
   actions.roleCardPathLabel = function roleCardPathLabel(path) {
@@ -61,11 +75,14 @@ window.GameModules = window.GameModules || {};
     for (let i = 0; i < path.length - 1; i += 1) target = target?.[path[i]];
     if (!target) return;
     const leaf = path[path.length - 1];
-    target[leaf] = valueType === 'number' ? Number(value || 0) : value;
+    if (valueType === 'number') target[leaf] = Number(value || 0);
+    else if (valueType === 'boolean') target[leaf] = Boolean(value);
+    else target[leaf] = value;
     this.syncEditedPlayerCard(card);
   };
 
   actions.roleCardMetricGroups = function roleCardMetricGroups(card) {
+    if (!card || card.isPlayer) return [];
     this.ensureEditableRoleCardMetrics(card);
     return [
       { key: 'emotions', title: '情绪数值', items: card?.initialMetrics?.emotions || [] },
@@ -74,7 +91,7 @@ window.GameModules = window.GameModules || {};
   };
 
   actions.ensureEditableRoleCardMetrics = function ensureEditableRoleCardMetrics(card) {
-    if (!card) return;
+    if (!card || card.isPlayer) return;
     const metrics = window.GameModules.metrics;
     card.initialMetrics = card.initialMetrics || {};
     card.initialMetrics.emotions = this.normalizeMetricList(card.initialMetrics.emotions, metrics.emotionKeys, metrics.defaults.emotions);

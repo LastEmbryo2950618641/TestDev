@@ -527,10 +527,16 @@
 }
 
 .role-card-editor label span,
-.role-card-metric-group strong {
+.role-card-metric-group strong,
+.role-card-structured-field strong {
   color: #d8e0ff;
   font-size: 12px;
   font-weight: 800;
+}
+
+.role-card-structured-field small {
+  color: #8d9abb;
+  font-size: 12px;
 }
 
 .role-card-metric-group,
@@ -551,8 +557,12 @@
 }
 
 .role-card-structured-field label {
-  padding-left: 8px;
+  padding: 6px 0 6px 8px;
   border-left: 2px solid rgba(113, 243, 255, .18);
+}
+
+.role-card-structured-field textarea {
+  min-height: 72px;
 }
 
 .relation-add-grid {
