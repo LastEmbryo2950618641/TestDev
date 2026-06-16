@@ -38,10 +38,6 @@ window.GameModules.promptTemplates = {
     if (!item) return '';
     const useCache = window.GameModules.cache?.enabled?.('promptTemplates');
     if (useCache && this.cache[item.id]) return this.cache[item.id];
-    if (this.shouldUseInlineFirst(item)) {
-      if (useCache) this.cache[item.id] = this.inline[item.id];
-      return this.inline[item.id];
-    }
     const urls = this.fileCandidates(item.file);
     let lastError = null;
     for (const url of urls) {
@@ -64,9 +60,6 @@ window.GameModules.promptTemplates = {
     const detail = `${item.file}（已尝试：${urls.join('、')}）`;
     console.error('提示词模板读取失败:', detail, lastError?.message, lastError?.stack);
     throw new Error(`模板读取失败：${detail}`);
-  },
-  shouldUseInlineFirst(item) {
-    return location.origin === 'null' && Boolean(this.inline?.[item.id]);
   },
   fileCandidates(file) {
     const raw = String(file || '').replace(/^\.\//, '');
