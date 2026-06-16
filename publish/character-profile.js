@@ -476,16 +476,20 @@ window.GameModules.characterProfile = {
     }).filter((item) => item.slot && item.name !== '未穿戴').slice(0, 20);
   },
 
+  compactProfileContext(profile = {}) {
+    return [profile.work, this.formatRelationships(profile.relationships || ''), profile.role || profile.job, profile.personality].filter(Boolean).join('，').slice(0, 80);
+  },
+
   inventoryReason(item, kind, profile = {}) {
-    const explicit = String(item?.reason || item?.changeMode || '').trim().slice(0, 120);
+    const explicit = String(item?.reason || '').trim().slice(0, 120);
     if (!this.abstractReason(explicit)) return explicit;
     const name = String(item?.name || item?.slot || kind || '词条').trim();
     const actor = profile.name || '该人物';
     const role = profile.role || profile.job || '当前身份';
-    const setting = [profile.work, profile.relationships, profile.detail, profile.personality].filter(Boolean).join('，') || '当前生活处境';
-    if (kind === '穿着') return `${actor}以${role}处在${setting}中，${name}符合其年龄、场景和日常穿戴需要。`.slice(0, 120);
+    const setting = this.compactProfileContext(profile) || '当前生活处境';
+    if (kind === '穿着') return `${actor}当前处于${setting}，${name}符合其年龄、场景和日常穿戴需要。`.slice(0, 120);
     if (kind === '装备') return `${actor}以${role}行动时需要${name}支撑通讯、工作、训练或当前事件处理。`.slice(0, 120);
-    if (kind === '物品') return `${actor}的${setting}让其日常需要携带${name}，便于生活、出行或处理当前关系事件。`.slice(0, 120);
+    if (kind === '物品') return `${actor}在${setting}中日常需要携带${name}，便于生活、出行或处理当前事件。`.slice(0, 120);
     return `${actor}在${setting}中长期形成或需要使用${name}，支撑其${role}的行动判断。`.slice(0, 120);
   },
 
@@ -493,14 +497,14 @@ window.GameModules.characterProfile = {
     const list = this.carryItemsLoose(value, kind);
     return list.map((item) => {
       const reason = this.inventoryReason(item, kind, profile);
-      return { ...item, reason, changeMode: reason };
+      return { ...item, reason, changeMode: '角色卡初始固化' };
     });
   },
 
   wearingItems(value, profile = {}) {
     return this.wearingItemsLoose(value).map((item) => {
       const reason = this.inventoryReason(item, '穿着', profile);
-      return { ...item, reason, changeMode: reason };
+      return { ...item, reason, changeMode: '角色卡初始固化' };
     });
   },
 
@@ -557,7 +561,7 @@ window.GameModules.characterProfile = {
   ensureInventoryReasons(profile) {
     const fill = (items, kind) => (Array.isArray(items) ? items.map((item) => {
       const reason = this.inventoryReason(item, kind, profile);
-      return { ...item, reason, changeMode: reason };
+      return { ...item, reason, changeMode: item.changeMode && !this.abstractReason(item.changeMode) && item.changeMode.length < 24 ? item.changeMode : '角色卡初始固化' };
     }) : []);
     const out = {
       ...profile,
@@ -655,11 +659,13 @@ window.GameModules.characterProfile = {
 
   formatRelationships(value, base = null) {
     const self = String(base?.name || '').trim();
-    const parts = String(value || '').split(/[；;\n]+/).map((part) => part.trim()).filter(Boolean);
+    const knownRel = '妹妹|姐姐|哥哥|弟弟|父亲|母亲|爸爸|妈妈|兄长|兄弟|姐妹|女儿|儿子|朋友|同学|同事|邻居|恋人|妻子|丈夫';
+    const normalized = String(value || '').replace(new RegExp(`([：:])(?=(${knownRel})[：:])`, 'g'), '；');
+    const parts = normalized.split(/[；;\n]+/).map((part) => part.trim()).filter(Boolean);
     return parts.map((part) => {
       const pair = part.split(/[：:]/);
       const rel = String(pair[0] || '').replace(/[，。,.].*$/, '').trim();
-      const name = String(pair.slice(1).join('：') || '').replace(/[，。；;、,.].*$/, '').trim();
+      const name = String(pair[1] || '').replace(/[，。；;、,.].*$/, '').trim();
       if (self && name === self) throw new Error(`关系方向错误: ${rel}：${name} 把当前角色本人写成了关系对象`);
       const invalid = /同居|喜欢|倾向|关系|需要|生成|资料|补全|未知|待/.test(name) || name.length > 12;
       return rel && name && !invalid ? `${rel}：${name}` : '';

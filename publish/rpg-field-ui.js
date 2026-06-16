@@ -132,7 +132,9 @@ window.GameModules.rpgFieldUi = {
   },
 
   itemChangeReason(field, obj = {}, lexicon = null) {
-    const explicit = this.usableChangeReason(lexicon?.meta?.modifyReason || obj.reason || obj.changeMode, [lexicon?.description, lexicon?.summary, obj.description, obj.desc, obj.source]);
+    const raw = lexicon?.meta?.modifyReason || obj.reason || '';
+    const cleaned = String(raw).replace(/([：:])(?=(妹妹|姐姐|哥哥|弟弟|父亲|母亲|兄长|朋友|同学|同事)[：:])/g, '；');
+    const explicit = this.usableChangeReason(cleaned, [lexicon?.description, lexicon?.summary, obj.description, obj.desc, obj.source, obj.changeMode]);
     return explicit || this.missingReasonText(this.rpgItemSummary(obj) || field?.label || '词条');
   },
 

@@ -25,7 +25,7 @@ window.GameModules.characterProfilePrompt = {
       `世界字段：${data.worldFields}`,
       '',
       '## 生成规则',
-      '1. name 是当前人物正式姓名；relationships 是“关系：姓名”，多项用中文分号，关系对象不得写成当前人物本人。',
+      '1. name 是当前人物正式姓名；relationships 是“关系：姓名”，多项用中文分号，关系对象不得写成当前人物本人。严禁把多段关系写成链式冒号，例如不要写“妹妹：刘悠:姐姐：刘思瑶”，必须写成“妹妹：刘悠；姐姐：刘思瑶”。',
       '2. role 写身份/社会角色/关系定位；job 只写已确认的内化职业，学生、亲属、联系人、主角、路人不是职业；不确定时 job="" 且 jobConfirmed=false。',
       '3. detail 写背景、住址、学校/工作、处境和出现原因；appearance 只写外貌；personality 只写性格与关系边界。三者不要混写；每个字段控制在一句话内。',
       '4. factions 是社群角色，元素含 faction、role、reason；用于家庭、住址、社区、社交圈等无等级归属。',
