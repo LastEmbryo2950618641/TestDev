@@ -45,6 +45,10 @@ window.GameModules.playerSetupActions = {
     try {
       this.setupError = '';
       this.playerProfile = { ...this.playerProfile, ...await this.defaultExistingAccountProfile() };
+      await this.initPredefinedRoleCards?.();
+      this.roleCardSetup.usePredefinedPlayerCard = true;
+      this.applySelectedPlayerRoleCard?.();
+      this.applySelectedRelationshipRoleCards?.();
       this.existingProfileExpanded = false;
       this.phoneActivationChoice = 'existing';
     } catch (err) {
@@ -56,6 +60,7 @@ window.GameModules.playerSetupActions = {
   },
 
   chooseNewAccountSetup() {
+    if (this.roleCardSetup) this.roleCardSetup.usePredefinedPlayerCard = false;
     this.existingProfileExpanded = true;
     this.phoneActivationChoice = 'new';
   },

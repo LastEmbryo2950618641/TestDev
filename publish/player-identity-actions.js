@@ -112,6 +112,10 @@ window.GameModules.playerIdentityActions = {
       return existing;
     }
     let character;
+    if (this.roleCardSetup?.usePredefinedPlayerCard && window.GameModules.predefinedRoleCards) {
+      const predefined = await window.GameModules.predefinedRoleCards.ensurePlayerState(this);
+      if (predefined) return predefined;
+    }
     try {
       character = await window.GameModules.characterProfile.ensure(this.playerCharacterBase(), this, this.playerSetupSummary?.() || '玩家本人资料');
     } catch (err) {

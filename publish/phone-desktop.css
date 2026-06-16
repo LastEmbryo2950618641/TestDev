@@ -308,6 +308,7 @@
 .phone-setup-hero,
 .phone-setup-actions,
 .activation-choice-grid,
+.role-card-picker,
 .identity-header,
 .identity-profile,
 .identity-rpg-section {
@@ -352,7 +353,8 @@
 
 .phone-setup-card label,
 .phone-setup-wide,
-.activation-choice {
+.activation-choice,
+.relation-card-row {
   display: grid;
   gap: 6px;
   padding: 10px;
@@ -484,6 +486,33 @@
   line-height: 1.55;
 }
 
+.role-card-picker {
+  display: grid;
+  gap: 10px;
+}
+
+.relation-card-row {
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+}
+
+.relation-card-row small {
+  display: block;
+  margin-top: 4px;
+  color: #aeb9d6;
+  font-size: 12px;
+}
+
+.relation-card-row .activation-profile-summary {
+  grid-column: 1 / -1;
+}
+
+.relation-add-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
 .activation-profile-summary {
   max-height: 220px;
   margin: 10px 0;
@@ -498,7 +527,8 @@
 }
 
 @media (max-width: 640px) {
-  .phone-setup-grid {
+  .phone-setup-grid,
+  .relation-add-grid {
     grid-template-columns: 1fr;
   }
 }
