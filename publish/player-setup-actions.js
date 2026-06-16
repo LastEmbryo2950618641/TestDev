@@ -61,6 +61,19 @@ window.GameModules.playerSetupActions = {
 
   chooseNewAccountSetup() {
     if (this.roleCardSetup) this.roleCardSetup.usePredefinedPlayerCard = false;
+    const example = window.GameModules.defaultExistingProfile || {};
+    this.playerProfile = {
+      ...this.playerProfile,
+      name: this.playerProfile.name || example.name || '',
+      gender: this.playerProfile.gender || example.gender || '',
+      birthday: this.playerProfile.birthday || example.birthday || '',
+      city: this.playerProfile.city || example.city || '',
+      dailyRole: this.playerProfile.dailyRole || example.dailyRole || '',
+      livingStatus: this.playerProfile.livingStatus || example.livingStatus || '',
+      parents: this.playerProfile.parents || example.parents || '',
+      relationships: this.playerProfile.relationships || example.relationships || '',
+      notes: this.playerProfile.notes || example.notes || '',
+    };
     this.existingProfileExpanded = true;
     this.phoneActivationChoice = 'new';
   },

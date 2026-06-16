@@ -1105,13 +1105,13 @@
       </article>
       <div x-show="$store.game.phoneActivationChoice === 'new' || $store.game.existingProfileExpanded" x-cloak>
         <div class="phone-setup-grid dev-section" data-section-title="基础身份设定区">
-          <label class="dev-section" data-section-title="姓名代号输入"><span>姓名 / 代号</span><input class="text-input" x-model="$store.game.playerProfile.name" placeholder="例如：林澈 / Echo"></label>
-          <label class="dev-section" data-section-title="性别输入"><span>性别</span><select class="text-input" x-model="$store.game.playerProfile.gender"><option value="">请选择</option><option>男</option><option>女</option><option>其他</option></select></label>
-          <label class="dev-section" data-section-title="生日输入"><span>生日（必填）</span><input class="text-input" type="date" x-model="$store.game.playerProfile.birthday"></label>
-          <label class="dev-section" data-section-title="具体地址输入"><span>具体地址</span><input class="text-input" x-model="$store.game.playerProfile.city" placeholder="例如：四川省成都市武侯区玉林街道锦苑小区3栋601号"></label>
-          <label class="dev-section" data-section-title="现实身份输入"><span>现实身份</span><input class="text-input" x-model="$store.game.playerProfile.dailyRole" placeholder="高中生、上班族、自由职业等"></label>
-          <label class="dev-section" data-section-title="居住状态输入"><span>居住状态</span><input class="text-input" x-model="$store.game.playerProfile.livingStatus" placeholder="独居、合租、宿舍、与家人同住等"></label>
-          <label class="dev-section" data-section-title="父母信息输入"><span>父母信息</span><input class="text-input" x-model="$store.game.playerProfile.parents" placeholder="不填则默认父母已故，并生成死因"></label>
+          <label class="dev-section" data-section-title="姓名代号输入"><span>姓名 / 代号</span><input class="text-input" x-model="$store.game.playerProfile.name" placeholder="例如：刘悠"><small>参考默认账号：刘悠</small></label>
+          <label class="dev-section" data-section-title="性别输入"><span>性别</span><select class="text-input" x-model="$store.game.playerProfile.gender"><option value="">请选择</option><option>男</option><option>女</option><option>其他</option></select><small>参考默认账号：男</small></label>
+          <label class="dev-section" data-section-title="生日输入"><span>生日（必填）</span><input class="text-input" type="date" x-model="$store.game.playerProfile.birthday"><small>参考默认账号：1998-11-19</small></label>
+          <label class="dev-section" data-section-title="具体地址输入"><span>具体地址</span><input class="text-input" x-model="$store.game.playerProfile.city" placeholder="例如：四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号"><small>参考默认账号：四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号</small></label>
+          <label class="dev-section" data-section-title="现实身份输入"><span>现实身份</span><input class="text-input" x-model="$store.game.playerProfile.dailyRole" placeholder="例如：程序工程师，计算机科学与技术硕士"><small>参考默认账号：程序工程师，计算机科学与技术硕士</small></label>
+          <label class="dev-section" data-section-title="居住状态输入"><span>居住状态</span><input class="text-input" x-model="$store.game.playerProfile.livingStatus" placeholder="例如：与18岁成年双胞胎妹妹刘思瑶、刘思琪同居"><small>参考默认账号：与18岁成年双胞胎妹妹刘思瑶、刘思琪同居</small></label>
+          <label class="dev-section" data-section-title="父母信息输入"><span>父母信息</span><input class="text-input" x-model="$store.game.playerProfile.parents" placeholder="例如：父母已故"><small>参考默认账号：父母已故</small></label>
         </div>
       </div>
       <article class="role-card-picker dev-section" data-section-title="人际关系角色卡区" x-show="$store.game.phoneActivationChoice === 'existing'" x-cloak>
@@ -1143,8 +1143,8 @@
           <button class="small-btn" type="button" @click="$store.game.existingProfileExpanded = true">新增 / 编辑角色卡</button>
         </div>
       </article>
-      <label class="phone-setup-wide dev-section" data-section-title="人际关系设定区"><span>与你相关的人际关系</span><textarea x-model="$store.game.playerProfile.relationships" placeholder="可手写补充，也可用上方角色卡添加。"></textarea></label>
-      <label class="phone-setup-wide dev-section" data-section-title="备注设定区"><span>备注设定</span><textarea x-model="$store.game.playerProfile.notes" placeholder="生活压力、近期目标、隐私、性格、刚买手机的原因等。可留空。"></textarea></label>
+      <label class="phone-setup-wide dev-section" data-section-title="人际关系设定区"><span>与你相关的人际关系</span><textarea x-model="$store.game.playerProfile.relationships" placeholder="例如：双胞胎妹妹之一：刘思瑶；双胞胎妹妹之二：刘思琪"></textarea><small>参考默认账号：双胞胎妹妹之一：刘思瑶；双胞胎妹妹之二：刘思琪</small></label>
+      <label class="phone-setup-wide dev-section" data-section-title="备注设定区"><span>备注设定</span><textarea x-model="$store.game.playerProfile.notes" placeholder="例如：家庭处境、性格、亲密关系边界、近期目标等。可留空。"></textarea><small>参考默认账号：刘悠是程序工程师，与成年双胞胎妹妹同居，承担家庭支柱职责。</small></label>
       <article class="real-world-note dev-section" data-section-title="AI身份补全提示区"><strong>激活补全</strong><p>完成激活时会根据生日计算年龄，并让 AI 把地址补全到省市区县、镇街道、小区、楼栋门牌级别，同时补全身份、居住信息与世界观备注；父母未填写时默认已故并生成合理死因。</p><small x-show="$store.game.profileSetupBusy">正在补全身份资料，约 10-30 秒，请勿重复点击。</small><small x-show="$store.game.setupError" x-text="$store.game.setupError"></small></article>
       <article class="real-world-note dev-section" data-section-title="现实世界背景区">
         <strong x-text="window.GameModules.realWorld2026.label"></strong>
