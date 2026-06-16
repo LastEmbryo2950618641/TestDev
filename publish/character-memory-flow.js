@@ -24,6 +24,25 @@ Object.assign(window.GameModules.characterMemory, {
     }
   },
 
+  async recordWechatExchange(store, contact, playerText, replyText, result = {}) {
+    if (!contact?.id || contact.group) return;
+    const state = store.rpgStates?.[contact.id];
+    if (!state) return;
+    const display = store.displayWechatContact?.(contact) || contact;
+    const text = [
+      '来源：微信发起的对话',
+      `联系人：${state.name || display.name}`,
+      `玩家发送：${playerText}`,
+      `联系人回复：${replyText}`,
+      result.mood ? `联系人语气：${result.mood}` : '',
+    ].filter(Boolean).join('\n');
+    const memory = this.ensure(state.id);
+    const item = this.memoryItem(store, { text, source: 'wechat', place: '微信', impression: this.wechatImpression(playerText, replyText, result) });
+    memory.shortTerm.recent.push(item);
+    this.promote(memory, item);
+    await this.compact(state.id, memory);
+  },
+
   relatedStates(store, result) {
     const names = new Set([store.character.name, ...(result.appearedCharacters || []).map((x) => x.name || x)]);
     return Object.values(store.rpgStates).filter((state) => names.has(state.name));
@@ -34,7 +53,7 @@ Object.assign(window.GameModules.characterMemory, {
     const item = {
       id: `mem_${Date.now()}_${window.GameModules.rpgState.seed(text)}`,
       time: this.gameTime(store),
-      place: store.sceneTitle || '地点未知',
+      place: data.place || store.sceneTitle || '地点未知',
       text,
       summary: this.summary(text, this.limits.summaryTargetChars),
       impression: Math.max(0, Math.min(100, Math.round(data.impression || 20))),
@@ -84,6 +103,15 @@ Object.assign(window.GameModules.characterMemory, {
     const list = [...(updates?.emotions || []), ...(updates?.playerFeelings || [])];
     const total = list.reduce((sum, item) => sum + Math.abs(Number(item.delta) || 0), 0);
     return Math.min(20, Math.round(total / 8));
+  },
+
+  wechatImpression(playerText, replyText, result = {}) {
+    const all = `${playerText || ''} ${replyText || ''} ${result.mood || ''}`;
+    let score = 35;
+    if (/秘密|真心|承诺|喜欢|爱|想你|依赖|家人|哥哥|妹妹/.test(all)) score += 18;
+    if (/害怕|担心|哭|难过|生气|吃醋|占有|保护/.test(all)) score += 14;
+    if (/约见|见面|回家|等你|别走|陪我/.test(all)) score += 10;
+    return Math.max(0, Math.min(100, score));
   },
 
   promote(memory, item) {

@@ -54,13 +54,16 @@ window.GameModules.wechatChatActions = {
       if (reqId !== this.wechatReplyRequestId) return;
       result.characterCardChanges = await window.GameModules.characterCardLexicon?.applyToState?.(this.rpgStates?.[contact.id], result.lexiconUpdates || []) || [];
       this.appendWechatMessage(contact.id, { side: 'other', name: contact.name, mark: contact.mark, text: result.reply, characterCardChanges: result.characterCardChanges, cardChangesOpen: false });
+      await window.GameModules.characterMemory?.recordWechatExchange?.(this, contact, playerText, result.reply, result);
       this.advancePhoneTime?.(result.elapsedSeconds || 60);
       await this.save?.();
     } catch (err) {
       if (reqId !== this.wechatReplyRequestId) return;
       console.error('[微信] 联系人回复生成失败:', err.code, err.message, err.stack);
       this.wechatError = err.message || '联系人暂时没有回复';
-      this.appendWechatMessage(contact.id, { side: 'other', name: contact.name, mark: contact.mark, text: '我这边刚刚有点卡，等下再说。' });
+      const fallback = '我这边刚刚有点卡，等下再说。';
+      this.appendWechatMessage(contact.id, { side: 'other', name: contact.name, mark: contact.mark, text: fallback });
+      await window.GameModules.characterMemory?.recordWechatExchange?.(this, contact, playerText, fallback, { mood: '通讯异常' });
       await this.save?.();
     } finally {
       if (reqId === this.wechatReplyRequestId) this.wechatSending = false;
