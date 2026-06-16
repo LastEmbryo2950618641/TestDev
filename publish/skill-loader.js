@@ -45,14 +45,21 @@ window.GameModules.skillLoader = {
     return { file, meta, body: match[2].trim() };
   },
 
+  section(body, title) {
+    const match = String(body || '').match(new RegExp(`## ${title}\\n\\n([\\s\\S]*?)(?=\\n## |$)`));
+    return match ? match[1].trim() : '';
+  },
+
   async instruction(id) {
     await this.load();
     const doc = window.GameModules.skillDocs?.[id];
     if (!doc) return '';
+    const stability = this.section(doc.body, '感觉稳定性规则');
     return [
       `Skill：${doc.meta.name}`,
       `方法：${doc.meta.method || id}`,
       `激活：${doc.meta.trigger || doc.meta.description || ''}`,
+      stability ? `关键规则：\n${stability}` : '',
       `返回：${doc.meta.returns || ''}`,
     ].filter(Boolean).join('\n');
   },
