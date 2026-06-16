@@ -1,7 +1,7 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.rpgFieldUi = {
-  rpgFieldKey(field) { return `${field?.key || ''}:${field?.label || ''}`; },
+  rpgFieldKey(field) { return `${field?.stateId || 'state'}:${field?.key || ''}:${field?.label || ''}`; },
   rpgItemKey(field, index) { return `${this.rpgFieldKey(field)}:item:${index}`; },
   toggleRpgField(field) { const key = this.rpgFieldKey(field); if (key) this.expandedRpgFieldKey = this.expandedRpgFieldKey === key ? '' : key; },
   toggleRpgItem(field, index) { const key = this.rpgItemKey(field, index); if (key) this.expandedRpgFieldKey = this.expandedRpgFieldKey === key ? '' : key; },
@@ -36,7 +36,7 @@ window.GameModules.rpgFieldUi = {
     const p = state?.profile || {};
     const worldTag = p.work || state?.worldTag || '原创世界';
     const reasonFor = this.roleCardReasonGetter(p);
-    const row = (key, label, value, desc) => ({ key: `profile-${state?.id || 'target'}-${key}`, label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: key !== 'work' });
+    const row = (key, label, value, desc) => ({ key: `profile-${state?.id || 'target'}-${key}`, stateId: state?.id || '', label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: key !== 'work' });
     return [
       row('name', '姓名', p.name || state?.name, '角色卡固化姓名。'), row('work', '所属世界', worldTag, '角色出身作品或世界。'),
       row('role', '身份', p.role || p.job, '角色当前身份。'),
@@ -90,7 +90,9 @@ window.GameModules.rpgFieldUi = {
     return found || `${field?.label || '该词条'}用于记录可被剧情判定和成长系统引用的具体状态。`;
   },
 
-  activeDetailState() {
+  activeDetailState(field = null) {
+    const id = field?.stateId || field?.ownerStateId || '';
+    if (id && this.rpgStates?.[id]) return this.rpgStates[id];
     return this.identityTargetState?.() || this.currentRpgState || this.playerIdentityState?.() || null;
   },
 
@@ -105,7 +107,7 @@ window.GameModules.rpgFieldUi = {
   },
 
   fallbackBasis(field, obj = null, kind = '', name = '') {
-    const state = this.activeDetailState?.() || this.currentRpgState || this.playerIdentityState?.() || null;
+    const state = this.activeDetailState?.(field) || this.currentRpgState || this.playerIdentityState?.() || null;
     const profile = state?.profile || {};
     const generated = window.GameModules.characterReasonFallback?.rpgReasons?.(profile, profile.worldAttributes || { fields: state?.schema?.sections?.find((section) => section.title === '世界固有属性')?.fields || [] }) || {};
     if (!obj && generated[field?.key]) return generated[field.key];
@@ -118,7 +120,7 @@ window.GameModules.rpgFieldUi = {
   },
 
   explicitFieldChangeReason(field, lexicon = null) {
-    const state = this.activeDetailState(), values = state?.values || {}, profile = state?.profile || {};
+    const state = this.activeDetailState(field), values = state?.values || {}, profile = state?.profile || {};
     const explicit = this.usableChangeReason(field?.reason || lexicon?.meta?.modifyReason, [lexicon?.description, lexicon?.summary, field?.desc]);
     if (explicit) return explicit;
     const aiReason = this.usableChangeReason(profile.rpgFieldReasons?.[field?.key] || profile.rpgFieldReasons?.[field?.label], [lexicon?.description, lexicon?.summary, field?.desc]);

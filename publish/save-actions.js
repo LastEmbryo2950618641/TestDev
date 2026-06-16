@@ -168,7 +168,7 @@ window.GameModules.saveActions = {
           const targetType = state.profile?.isPlayer ? '非角色' : '角色';
           const commonField = section.title !== '世界固有属性' && field.key !== 'world_tag';
           const reason = state.profile?.rpgFieldReasons?.[field.key] || '';
-          return { key: field.key, label: field.label, kind, value: this.rpgFieldValue(display), raw, source, desc: field.desc || '', reason, worldTag: state.worldTag, targetType, commonField };
+          return { key: field.key, stateId: state.id, label: field.label, kind, value: this.rpgFieldValue(display), raw, source, desc: field.desc || '', reason, worldTag: state.worldTag, targetType, commonField };
         }),
     })).filter((section) => section.fields.length);
   },
