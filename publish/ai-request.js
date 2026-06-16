@@ -5,7 +5,7 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.aiRequest = {
   pending: [],
-  maxConcurrent: 2,
+  maxConcurrent: 1,
   startGate: Promise.resolve(),
   seq: 0,
   queued: 0,
@@ -17,7 +17,7 @@ window.GameModules.aiRequest = {
   retryCount: 0,
   sourceCounts: {},
   lastStartedAt: 0,
-  minGapMs: 900,
+  minGapMs: 1600,
   cooldownUntil: 0,
 
   wait(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); },
@@ -54,10 +54,17 @@ window.GameModules.aiRequest = {
 
   retryDelay(err, attempt) {
     const message = String(err?.message || '').toLowerCase();
-    if (err?.code === 'RATE_LIMITED') return Math.min(12000, 4000 + attempt * 4000);
-    if (/http\s*(502|503|504)/i.test(message)) return Math.min(10000, 2000 * (2 ** attempt));
-    if (message.includes('failed to fetch')) return Math.min(8000, 2500 * (attempt + 1));
-    return Math.min(6000, 1200 * (2 ** attempt));
+    if (err?.code === 'RATE_LIMITED') return Math.min(16000, 5000 + attempt * 5000);
+    if (/http\s*(502|503|504)/i.test(message)) return Math.min(18000, 4500 * (2 ** attempt));
+    if (message.includes('failed to fetch')) return Math.min(12000, 3500 * (attempt + 1));
+    return Math.min(9000, 1800 * (2 ** attempt));
+  },
+
+  applyCooldown(err, delay) {
+    const message = String(err?.message || '').toLowerCase();
+    if (err?.code === 'RATE_LIMITED' || /http\s*(502|503|504)/i.test(message) || message.includes('failed to fetch')) {
+      this.cooldownUntil = Math.max(this.cooldownUntil, Date.now() + delay);
+    }
   },
 
   timeout(promise, ms, source) {
@@ -134,7 +141,7 @@ window.GameModules.aiRequest = {
         this.log('失败', { id: options.id, source: options.source, attempt: attempt + 1, code: err.code, message: err.message, retryable: this.isRetryable(err) });
         if (!this.isRetryable(err) || attempt === maxAttempts - 1) throw err;
         const delay = this.retryDelay(err, attempt);
-        if (err.code === 'RATE_LIMITED' || String(err?.message || '').toLowerCase().includes('failed to fetch')) this.cooldownUntil = Date.now() + delay;
+        this.applyCooldown(err, delay);
         this.retryCount += 1;
         this.log('重试等待', { id: options.id, source: options.source, nextAttempt: attempt + 2, delay });
         await this.wait(delay);

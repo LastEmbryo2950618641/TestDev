@@ -113,8 +113,8 @@ window.GameModules.jsonUtils = {
     throw error;
   },
 
-  async requestCompletion({ model, prompt, maxTokens, source = 'json-utils', timeoutMs = 90000 }) {
-    return window.GameModules.aiRequest.complete({ source, model, maxTokens, prompt, timeoutMs });
+  async requestCompletion({ model, prompt, maxTokens, source = 'json-utils', timeoutMs = 90000, maxAttempts }) {
+    return window.GameModules.aiRequest.complete({ source, model, maxTokens, prompt, timeoutMs, maxAttempts });
   },
 
   async repairPrompt(format, badOutput, err, hint = '') {

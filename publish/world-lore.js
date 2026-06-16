@@ -37,7 +37,7 @@ window.GameModules.worldLore = {
       if (!window.dzmm?.completions) return this.fallback(worldTag);
       const prompt = await this.prompt(worldTag, context);
       console.log('[世界观] AI请求:', { worldTag, promptLength: prompt.length, model: 'nalang-turbo-0826', maxTokens: 700 });
-      const text = await window.GameModules.jsonUtils.requestCompletion({ source: 'world-lore', model: 'nalang-turbo-0826', maxTokens: 700, prompt, timeoutMs: 30000 });
+      const text = await window.GameModules.jsonUtils.requestCompletion({ source: 'world-lore', model: 'nalang-turbo-0826', maxTokens: 700, prompt, timeoutMs: 30000, maxAttempts: 1 });
       return this.validate(this.parseOrRecover(text, worldTag), worldTag);
     } catch (err) {
       console.warn('世界观设定生成失败，使用兜底:', err.message);
