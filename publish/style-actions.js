@@ -28,15 +28,14 @@ window.GameModules.styleActions = {
 
   parseWritingStylesTemplate(markdown) {
     const idMap = { 文学细腻: 'literary', 黑暗压抑: 'dark', 轻小说节奏: 'light-novel', 史诗庄重: 'epic', 悬疑紧张: 'suspense' };
-    const matches = [...String(markdown || '').matchAll(/##\s+([^\n]+)\n+([\s\S]*?)(?=\n##\s+|$)/g)];
-    const styles = matches.map((match) => {
-      const name = match[1].trim();
-      if (!idMap[name]) return null;
-      const prompt = match[2].trim().replace(/\n+/g, ' ');
-      return { id: idMap[name], name, prompt };
+    const source = String(markdown || '').replace(/\r\n/g, '\n');
+    const styles = Object.keys(idMap).map((name) => {
+      const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const match = source.match(new RegExp(`(?:^|\\n)##\\s+${escaped}\\s*\\n+([\\s\\S]*?)(?=\\n##\\s+|$)`));
+      const prompt = match?.[1]?.trim().replace(/\n+/g, ' ');
+      return prompt ? { id: idMap[name], name, prompt } : null;
     }).filter(Boolean);
-    if (!styles.length) throw new Error('小说文风模板解析失败');
-    return styles;
+    return styles.length ? styles : this.defaultWritingStyles;
   },
 
   allWritingStyles() {
