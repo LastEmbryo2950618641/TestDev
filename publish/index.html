@@ -1135,11 +1135,11 @@
           </div>
         </template>
         <div class="relation-add-grid">
-          <label><span>性别</span><select class="text-input" x-model="$store.game.roleCardSetup.gender"><option>女</option><option>男</option><option>其他</option></select></label>
+          <label><span>性别</span><select class="text-input" x-model="$store.game.roleCardSetup.gender" @change="$store.game.syncRelationCardGenderFilter()"><option value="">全部</option><option>女</option><option>男</option><option>其他</option></select></label>
           <label><span>关系</span><select class="text-input" x-model="$store.game.roleCardSetup.relationType"><option>母亲</option><option>父亲</option><option>妹妹</option><option>侄女</option><option>青梅竹马</option><option>自定义</option></select></label>
           <label x-show="$store.game.roleCardSetup.relationType === '自定义'"><span>自定义关系</span><input class="text-input" x-model="$store.game.roleCardSetup.customRelation" placeholder="例如：邻居 / 同事"></label>
-          <label><span>已有角色卡</span><select class="text-input" x-model="$store.game.roleCardSetup.selectedRelationCardName"><template x-for="card in $store.game.roleCardSetup.cards.filter(x => !x.isPlayer)" :key="card.name"><option :value="card.name" x-text="card.name"></option></template></select></label>
-          <button class="small-btn" type="button" @click="$store.game.addSetupRelationshipCard()">＋ 添加角色卡</button>
+          <label><span>已有角色卡</span><select class="text-input" x-model="$store.game.roleCardSetup.selectedRelationCardName"><template x-for="card in $store.game.filteredRelationRoleCards()" :key="card.name"><option :value="card.name" x-text="`${card.name}｜${card.gender || '未记录'}｜${card.role || '角色卡'}`"></option></template></select></label>
+          <button class="small-btn" type="button" @click="$store.game.addSetupRelationshipCard()" :disabled="!$store.game.filteredRelationRoleCards().length || !$store.game.roleCardSetup.selectedRelationCardName">＋ 添加角色卡</button>
           <button class="small-btn" type="button" @click="$store.game.existingProfileExpanded = true">新增 / 编辑角色卡</button>
         </div>
       </article>

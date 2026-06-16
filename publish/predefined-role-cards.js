@@ -119,6 +119,7 @@ window.GameModules.predefinedRoleCardActions = {
       const card = window.GameModules.predefinedRoleCards.byName(cards, name);
       if (card && !this.roleCardSetup.relationRoles[name]) this.roleCardSetup.relationRoles[name] = card.role || '关系';
     });
+    this.syncRelationCardGenderFilter();
     if (!this.phoneSetupDone && this.roleCardSetup.usePredefinedPlayerCard) {
       this.applySelectedPlayerRoleCard();
       this.applySelectedRelationshipRoleCards();
@@ -127,6 +128,14 @@ window.GameModules.predefinedRoleCardActions = {
 
   selectedPlayerRoleCard() { return window.GameModules.predefinedRoleCards.byName(this.roleCardSetup.cards, this.roleCardSetup.selectedPlayerName); },
   selectedRelationRoleCards() { return (this.roleCardSetup.selectedRelationNames || []).map((name) => window.GameModules.predefinedRoleCards.byName(this.roleCardSetup.cards, name)).filter(Boolean); },
+  filteredRelationRoleCards() {
+    const gender = this.roleCardSetup.gender || '';
+    return (this.roleCardSetup.cards || []).filter((card) => !card.isPlayer && (!gender || card.gender === gender));
+  },
+  syncRelationCardGenderFilter() {
+    const list = this.filteredRelationRoleCards();
+    if (!list.some((card) => card.name === this.roleCardSetup.selectedRelationCardName)) this.roleCardSetup.selectedRelationCardName = list[0]?.name || '';
+  },
   roleCardIdentitySummary(card) { return window.GameModules.predefinedRoleCards.identitySummary(card); },
   roleCardDetailSummary(card) { return window.GameModules.predefinedRoleCards.detailSummary(card); },
 
