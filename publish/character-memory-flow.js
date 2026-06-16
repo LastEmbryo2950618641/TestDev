@@ -51,6 +51,7 @@ Object.assign(window.GameModules.characterMemory, {
     playerMemory.shortTerm.recent.push(playerItem);
     this.promote(playerMemory, playerItem);
     await this.compact('player-self', playerMemory);
+    console.log('[微信记忆] 已写入:', { characterId: state.id, contact: contactName, player: 'player-self' });
   },
 
   relatedStates(store, result) {

@@ -1,7 +1,7 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.wechatCleanup = {
-  version: 'clear-old-wechat-records-v1',
+  version: 'clear-old-wechat-records-v2',
 
   run(store) {
     const save = window.GameModules.sqliteSave;
@@ -56,14 +56,14 @@ window.GameModules.wechatCleanup = {
     const shortTerm = { ...(memory.shortTerm || {}) };
     sections.forEach((key) => {
       const list = shortTerm[key] || [];
-      const next = list.filter((item) => item.source !== 'wechat' && !this.isOldWechatText(item.text) && !this.isOldWechatText(item.summary));
+      const next = list.filter((item) => !this.isOldWechatText(item.text) && !this.isOldWechatText(item.summary));
       if (next.length !== list.length) changed = true;
       shortTerm[key] = next;
     });
     const longTerm = { ...(memory.longTerm || {}) };
     ['vivid', 'permanent'].forEach((key) => {
       const list = longTerm[key] || [];
-      const next = list.filter((item) => item.source !== 'wechat' && !this.isOldWechatText(item.text) && !this.isOldWechatText(item.summary));
+      const next = list.filter((item) => !this.isOldWechatText(item.text) && !this.isOldWechatText(item.summary));
       if (next.length !== list.length) changed = true;
       longTerm[key] = next;
     });
