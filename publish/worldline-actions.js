@@ -15,6 +15,14 @@ window.GameModules.worldlineActions = {
     this.closeAppToDesktop?.();
   },
 
+  selectWorldlineDebugSection(name) {
+    this.worldlineDebugSection = name || '世界线APP主面板';
+  },
+
+  isWorldlineDebugSection(name) {
+    return this.worldlineDebugSection === name;
+  },
+
   toggleWorldline(lore) {
     if (!this.loreWorldline(lore)) return;
     const tag = lore?.worldTag || '';

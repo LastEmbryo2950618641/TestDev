@@ -298,19 +298,20 @@
   </section>
 
   <section x-show="!$store.game.loading && $store.game.worldlineAppOpen" class="worldline-app-screen app-window section-hints" x-cloak>
-    <div class="worldline-app-card dev-section" data-section-title="世界线APP主面板">
-      <header class="identity-header">
-        <div><p class="eyebrow">WORLDLINE</p><h2>世界线</h2><small>被操控世界线与现实世界独立记录</small></div>
+    <div class="worldline-app-card dev-section" :class="{ 'worldline-debug-selected': $store.game.isWorldlineDebugSection('世界线APP主面板') }" data-section-title="世界线APP主面板" @click="$store.game.selectWorldlineDebugSection('世界线APP主面板')">
+      <header class="identity-header dev-section" :class="{ 'worldline-debug-selected': $store.game.isWorldlineDebugSection('世界线APP顶部栏') }" data-section-title="世界线APP顶部栏" @click.stop="$store.game.selectWorldlineDebugSection('世界线APP顶部栏')">
+        <div><p class="eyebrow">WORLDLINE</p><h2>世界线APP主面板</h2><small>被操控世界线与现实世界独立记录</small></div>
         <button class="small-btn" type="button" @click="$store.game.closeWorldlineApp()">回到桌面</button>
       </header>
-      <nav class="worldline-tabs">
-        <button type="button" :class="{ active: $store.game.worldlineAppTab === 'control' }" @click="$store.game.worldlineAppTab = 'control'">被操控世界</button>
-        <button type="button" :class="{ active: $store.game.worldlineAppTab === 'real' }" @click="$store.game.worldlineAppTab = 'real'">现实世界</button>
+      <p class="worldline-debug-label" x-text="`当前调试区域：${$store.game.worldlineDebugSection || '世界线APP主面板'}`"></p>
+      <nav class="worldline-tabs dev-section" :class="{ 'worldline-debug-selected': $store.game.isWorldlineDebugSection('世界线APP切换栏') }" data-section-title="世界线APP切换栏" @click.stop="$store.game.selectWorldlineDebugSection('世界线APP切换栏')">
+        <button type="button" :class="{ active: $store.game.worldlineAppTab === 'control' }" @click="$store.game.worldlineAppTab = 'control'; $store.game.selectWorldlineDebugSection('被操控世界分页')">被操控世界</button>
+        <button type="button" :class="{ active: $store.game.worldlineAppTab === 'real' }" @click="$store.game.worldlineAppTab = 'real'; $store.game.selectWorldlineDebugSection('现实世界分页')">现实世界</button>
       </nav>
-      <main class="worldline-app-body scroll-area">
-        <section class="library-panel" x-show="$store.game.worldlineAppTab === 'control'">
+      <main class="worldline-app-body scroll-area dev-section" :class="{ 'worldline-debug-selected': $store.game.isWorldlineDebugSection('世界线APP内容区') }" data-section-title="世界线APP内容区" @click.stop="$store.game.selectWorldlineDebugSection('世界线APP内容区')">
+        <section class="library-panel dev-section" :class="{ 'worldline-debug-selected': $store.game.isWorldlineDebugSection('被操控世界分页') }" data-section-title="被操控世界分页" x-show="$store.game.worldlineAppTab === 'control'" @click.stop="$store.game.selectWorldlineDebugSection('被操控世界分页')">
           <template x-for="lore in $store.game.controlWorldLores()" :key="`app-${lore.worldTag}`">
-            <article class="world-lore-card" :class="{ open: $store.game.isWorldlineOpen(lore) }" @click="$store.game.toggleWorldline(lore)">
+            <article class="world-lore-card dev-section" :class="{ open: $store.game.isWorldlineOpen(lore), 'worldline-debug-selected': $store.game.isWorldlineDebugSection(`世界线卡片：${lore.worldTag}`) }" :data-section-title="`世界线卡片：${lore.worldTag}`" @click="$store.game.selectWorldlineDebugSection(`世界线卡片：${lore.worldTag}`); $store.game.toggleWorldline(lore)">
               <div class="world-lore-title"><strong x-text="lore.worldTag"></strong><span x-show="$store.game.loreWorldline(lore)" x-text="$store.game.isWorldlineOpen(lore) ? '▾' : '▸'"></span></div>
               <p x-text="lore.background"></p>
               <div class="lore-chip-row"><template x-for="faction in lore.factions" :key="faction.name"><span x-text="faction.name"></span></template></div>
@@ -326,8 +327,8 @@
           </template>
           <p class="empty-lore" x-show="!$store.game.controlWorldLores().length">暂无被操控世界线。</p>
         </section>
-        <section class="library-panel" x-show="$store.game.worldlineAppTab === 'real'">
-          <article class="world-lore-card open">
+        <section class="library-panel dev-section" :class="{ 'worldline-debug-selected': $store.game.isWorldlineDebugSection('现实世界分页') }" data-section-title="现实世界分页" x-show="$store.game.worldlineAppTab === 'real'" @click.stop="$store.game.selectWorldlineDebugSection('现实世界分页')">
+          <article class="world-lore-card open dev-section" :class="{ 'worldline-debug-selected': $store.game.isWorldlineDebugSection('现实世界线卡片') }" data-section-title="现实世界线卡片" @click.stop="$store.game.selectWorldlineDebugSection('现实世界线卡片')">
             <div class="world-lore-title"><strong x-text="$store.game.realWorldLore().worldTag"></strong><span>▾</span></div>
             <p x-text="$store.game.realWorldLore().background"></p>
             <div class="worldline-box">
