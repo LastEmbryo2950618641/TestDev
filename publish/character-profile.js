@@ -82,7 +82,7 @@ window.GameModules.characterProfile = {
         parse: (text) => this.parse(text),
         validate: (raw) => this.validate(raw, base, lore, attrs, store, { skipInitialMetrics: true }),
       });
-      const initialMetrics = await this.generateInitialMetrics(profile, base, context, store);
+      const initialMetrics = await this.generateInitialMetrics(profile, base, lore, attrs, context, store);
       return this.withSignature({ ...profile, initialMetrics }, signature);
     } catch (err) {
       console.warn('人物设定生成失败:', err.code, err.message, err.stack);
@@ -131,15 +131,15 @@ window.GameModules.characterProfile = {
     return window.GameModules.jsonUtils.parseLoose(text);
   },
 
-  async generateInitialMetrics(profile, base, context, store) {
-    const common = this.initialMetricsBrief(profile, base, context);
-    const emotions = await this.generateMetricGroup(profile, base, common, 'emotions', window.GameModules.metrics.emotionKeys);
-    const playerFeelings = await this.generateMetricGroup(profile, base, common, 'playerFeelings', window.GameModules.metrics.playerKeys);
+  async generateInitialMetrics(profile, base, lore, attrs, context, store) {
+    const evidence = this.initialMetricsEvidence(profile, base, lore, attrs, context, store);
+    const emotions = await this.generateMetricGroup(profile, base, evidence, 'emotions', window.GameModules.metrics.emotionKeys);
+    const playerFeelings = await this.generateMetricGroup(profile, base, evidence, 'playerFeelings', window.GameModules.metrics.playerKeys);
     return this.initialMetrics({ emotions, playerFeelings }, { ...base, ...profile });
   },
 
-  async generateMetricGroup(profile, base, brief, group, keys) {
-    const prompt = await this.metricGroupPrompt(profile, base, brief, group, keys);
+  async generateMetricGroup(profile, base, evidence, group, keys) {
+    const prompt = await this.metricGroupPrompt(profile, base, evidence, group, keys);
     return window.GameModules.jsonUtils.generateJsonWithRetry({
       source: `character-profile-${group}`,
       model: 'nalang-turbo-0826',
@@ -152,25 +152,38 @@ window.GameModules.characterProfile = {
     });
   },
 
-  initialMetricsBrief(profile, base, context) {
-    const name = profile.name || base.name;
-    return [
-      `姓名：${name}`,
-      `身份：${profile.role || base.role || ''}`,
-      `关系：${profile.relationships || base.relationships || ''}`,
-      `背景：${profile.detail || base.detail || ''}`,
-      `性格：${profile.personality || base.personality || ''}`,
-      `事件：${String(context || '').slice(0, 500)}`,
-    ].join('\n');
+  initialMetricsEvidence(profile, base, lore, attrs, context, store) {
+    const sections = window.GameModules.promptSections;
+    const player = sections.playerProfile(store);
+    return {
+      roleCard: [
+        `姓名：${profile.name || base.name}`,
+        `身份：${profile.role || base.role || ''}`,
+        `关系：${profile.relationships || base.relationships || ''}`,
+        `背景：${profile.detail || base.detail || ''}`,
+        `外貌：${profile.appearance || base.appearance || ''}`,
+        `性格：${profile.personality || base.personality || ''}`,
+        `社群：${(profile.factions || []).map((x) => `${x.faction}/${x.role || x.position || ''}`).join('、') || profile.faction || ''}`,
+        `势力：${(profile.forcePositions || []).map((x) => `${x.force}/${x.position}`).join('、') || profile.rank || ''}`,
+      ].join('\n').slice(0, 900),
+      playerProfile: [player.playerBasic, player.playerIdentity, player.playerHome, player.playerRelations, player.playerNotes].join('\n').slice(0, 900),
+      worldLore: sections.worldLore(lore).slice(0, 700),
+      worldFields: sections.worldFields(attrs).slice(0, 400),
+      relationContext: sections.relationContext(context).slice(0, 900),
+    };
   },
 
-  async metricGroupPrompt(profile, base, brief, group, keys) {
+  async metricGroupPrompt(profile, base, evidence, group, keys) {
     return window.GameModules.promptTemplates.render('character-profile-metric-group', {
       人物姓名: profile.name || base.name,
       数值组名称: group === 'emotions' ? '情绪' : '对玩家感觉',
       根字段: group,
       字段列表: keys.join('、'),
-      人物证据: brief,
+      人物角色卡: evidence.roleCard,
+      玩家资料: evidence.playerProfile,
+      世界观资料: evidence.worldLore,
+      世界字段: evidence.worldFields,
+      剧情关系事件: evidence.relationContext,
       首个字段: keys[0],
     });
   },
