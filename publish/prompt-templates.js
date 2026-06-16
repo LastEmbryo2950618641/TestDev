@@ -38,6 +38,7 @@ window.GameModules.promptTemplates = {
         const res = await fetch(url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const text = await res.text();
+        if (this.looksLikeWrongAsset(text, item)) throw new Error(`模板内容异常：${url}`);
         if (useCache) this.cache[item.id] = text;
         return text;
       } catch (err) {
@@ -55,7 +56,12 @@ window.GameModules.promptTemplates = {
   },
   fileCandidates(file) {
     const raw = String(file || '').replace(/^\.\//, '');
-    return [...new Set([raw, `./${raw}`, `/${raw}`])];
+    return [...new Set([raw, `./${raw}`])];
+  },
+  looksLikeWrongAsset(text, item) {
+    const raw = String(text || '').trimStart();
+    if (/^<!doctype html/i.test(raw) || /^<html[\s>]/i.test(raw)) return true;
+    return item?.id && !raw.includes(item.title) && raw.length > 50000;
   },
   async render(id, vars = {}) {
     const source = await this.load(id);
