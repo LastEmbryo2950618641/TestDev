@@ -164,17 +164,34 @@ window.GameModules.characterProfile = {
 
   async generateInitialMetrics(profile, base, lore, attrs, context, store) {
     const evidence = this.initialMetricsEvidence(profile, base, lore, attrs, context, store);
-    const emotions = await this.generateMetricGroup(profile, base, evidence, 'emotions', window.GameModules.metrics.emotionKeys);
-    const playerFeelings = await this.generateMetricGroup(profile, base, evidence, 'playerFeelings', window.GameModules.metrics.playerKeys);
+    const emotions = await this.generateMetricGroupChunks(profile, base, evidence, 'emotions', window.GameModules.metrics.emotionKeys);
+    const playerFeelings = await this.generateMetricGroupChunks(profile, base, evidence, 'playerFeelings', window.GameModules.metrics.playerKeys);
     return this.initialMetrics({ emotions, playerFeelings }, { ...base, ...profile });
   },
 
-  async generateMetricGroup(profile, base, evidence, group, keys) {
+  metricGroupKeyChunks(group, keys) {
+    if (group === 'playerFeelings' && keys.length > 9) return [keys.slice(0, 9), keys.slice(9)];
+    if (group === 'emotions' && keys.length > 6) return [keys.slice(0, 6), keys.slice(6)];
+    return [keys];
+  },
+
+  async generateMetricGroupChunks(profile, base, evidence, group, keys) {
+    const chunks = this.metricGroupKeyChunks(group, keys);
+    const items = [];
+    for (let i = 0; i < chunks.length; i += 1) {
+      const part = await this.generateMetricGroup(profile, base, evidence, group, chunks[i], i + 1, chunks.length);
+      items.push(...part);
+    }
+    return this.validateMetricGroup(items, keys, { ...base, ...profile });
+  },
+
+  async generateMetricGroup(profile, base, evidence, group, keys, chunkIndex = 1, chunkTotal = 1) {
     const prompt = await this.metricGroupPrompt(profile, base, evidence, group, keys);
+    const source = chunkTotal > 1 ? `character-profile-${group}-${chunkIndex}` : `character-profile-${group}`;
     return window.GameModules.jsonUtils.generateJsonWithRetry({
-      source: `character-profile-${group}`,
+      source,
       model: 'nalang-turbo-0826',
-      maxTokens: group === 'playerFeelings' ? 3000 : 2400,
+      maxTokens: group === 'playerFeelings' ? 2200 : 1800,
       timeoutMs: 45000,
       prompt,
       format: prompt,
