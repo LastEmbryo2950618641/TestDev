@@ -23,6 +23,7 @@ window.GameModules.promptTemplates = {
     { id: 'writing-styles', title: '小说文风预设', category: '剧情推演', file: 'prompts/writing-styles.md', summary: '主剧情推演可选文风预设文本。' },
   ],
   cache: {},
+  warnedFallbacks: {},
   scriptUrl: (() => {
     try { return document.currentScript?.src || ''; }
     catch (_) { return ''; }
@@ -36,6 +37,10 @@ window.GameModules.promptTemplates = {
       return '';
     }
   })(),
+  isBlobPreview() {
+    try { return String(location.origin) === 'null' || String(location.href).startsWith('blob:'); }
+    catch (_) { return false; }
+  },
   defaultState() { return { open: false, query: '', category: '', selectedId: '', selectedText: '', loading: false, error: '' }; },
   list() { return this.items; },
   find(id) { return this.items.find((item) => item.id === id) || this.items[0]; },
@@ -45,6 +50,10 @@ window.GameModules.promptTemplates = {
     const useCache = window.GameModules.cache?.enabled?.('promptTemplates');
     if (useCache && this.cache[item.id]) return this.cache[item.id];
     const urls = this.fileCandidates(item.file);
+    if (this.isBlobPreview() && this.inline?.[item.id]) {
+      if (useCache) this.cache[item.id] = this.inline[item.id];
+      return this.inline[item.id];
+    }
     let lastError = null;
     for (const url of urls) {
       try {
@@ -59,7 +68,10 @@ window.GameModules.promptTemplates = {
       }
     }
     if (this.inline?.[item.id]) {
-      console.info('提示词模板使用内联快照:', item.id, lastError?.message || '文件不可用', '已尝试:', urls.join('、'));
+      if (!this.warnedFallbacks[item.id]) {
+        this.warnedFallbacks[item.id] = true;
+        console.info('提示词模板使用内联快照:', item.id, lastError?.message || '文件不可用', '已尝试:', urls.join('、'));
+      }
       if (useCache) this.cache[item.id] = this.inline[item.id];
       return this.inline[item.id];
     }
