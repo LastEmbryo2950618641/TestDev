@@ -7,7 +7,6 @@ window.GameModules = window.GameModules || {};
   const simpleFields = [
     ['id', 'ID', 'text'], ['name', '姓名', 'text'], ['gender', '性别', 'text'], ['age', '年龄', 'number'], ['birthday', '生日', 'date'],
     ['work', '所属世界', 'text'], ['role', '身份', 'text'], ['job', '职业', 'text'], ['rank', '等级/地位', 'text'],
-    ['faction', '社群/势力', 'text'], ['factionRole', '社群角色', 'text'], ['workplace', '工作/活动地点', 'text'], ['position', '职位/地位', 'text'],
     ['relationships', '人际关系', 'textarea'], ['detail', '人物说明', 'textarea'], ['appearance', '外貌', 'textarea'], ['personality', '性格', 'textarea'],
     ['roleCard', '角色卡标记', 'checkbox'], ['roleCardSource', '角色卡来源', 'text'], ['roleCardUpdatedAt', '更新时间', 'text'], ['isPlayer', '玩家本人', 'checkbox'],
   ];
@@ -16,6 +15,11 @@ window.GameModules = window.GameModules || {};
     ['equipment', '装备'], ['items', '物品'], ['wearing', '穿着'], ['roleCardFieldReasons', '角色卡字段原因'],
     ['rpgFieldReasons', 'RPG字段原因'], ['worldAttributes', '世界属性'],
   ];
+  const pathLabels = {
+    name: '名称', faction: '社群/势力', role: '角色', force: '势力', position: '地位/职位', reason: '原因', changeMode: '变化方式',
+    desc: '说明', type: '类型', kind: '种类', quantity: '数量', equipSlots: '装备栏位', level: '等级', slot: '部位', description: '描述',
+    key: '字段键', label: '字段名', source: '来源', fields: '字段列表', worldTag: '所属世界', value: '值', status: '状态',
+  };
   const clone = (value) => JSON.parse(JSON.stringify(value ?? null));
 
   actions.roleCardSimpleFields = function roleCardSimpleFields() {
@@ -23,7 +27,21 @@ window.GameModules = window.GameModules || {};
   };
 
   actions.roleCardStructuredFields = function roleCardStructuredFields(card) {
+    this.normalizePlayerSocialFields(card);
     return jsonFields.map(([key, label]) => ({ key, label, items: this.flattenRoleCardLeaves(card?.[key], []) }));
+  };
+
+  actions.normalizePlayerSocialFields = function normalizePlayerSocialFields(card) {
+    if (!card?.isPlayer) return;
+    if (!Array.isArray(card.factions) || !card.factions.length) {
+      const faction = card.faction || card.workplace || '未记录社群';
+      card.factions = [{ name: `${faction} / ${card.factionRole || card.role || '成员'}`, faction, role: card.factionRole || card.role || '成员', reason: card.roleCardFieldReasons?.社群角色 || '由玩家角色卡资料确定。', changeMode: '角色卡编辑' }];
+    }
+    if (!Array.isArray(card.forcePositions) || !card.forcePositions.length) {
+      const force = card.workplace || card.faction || '未记录势力';
+      card.forcePositions = [{ name: `${force} / ${card.position || card.rank || '成员'}`, force, position: card.position || card.rank || '成员', reason: card.roleCardFieldReasons?.势力地位 || '由玩家角色卡资料确定。', changeMode: '角色卡编辑' }];
+    }
+    if (!Array.isArray(card.force_positions) || !card.force_positions.length) card.force_positions = clone(card.forcePositions);
   };
 
   actions.roleCardHasItems = function roleCardHasItems(field) {
@@ -60,7 +78,7 @@ window.GameModules = window.GameModules || {};
 
   actions.roleCardPathLabel = function roleCardPathLabel(path) {
     if (!path.length) return '值';
-    return path.map((part) => (typeof part === 'number' ? `第${part + 1}项` : part)).join(' / ');
+    return path.map((part) => (typeof part === 'number' ? `第${part + 1}项` : (pathLabels[part] || part))).join(' / ');
   };
 
   actions.roleCardLeafValue = function roleCardLeafValue(card, key, path) {
@@ -124,6 +142,7 @@ window.GameModules = window.GameModules || {};
 
   actions.cloneRoleCardForEditing = function cloneRoleCardForEditing(card) {
     const copied = clone(card);
+    this.normalizePlayerSocialFields(copied);
     this.ensureEditableRoleCardMetrics(copied);
     return copied;
   };
