@@ -43,8 +43,7 @@ window.GameModules.worldlinePlots = {
         model: store.modelId,
         maxTokens: 500,
         messages: [
-          { role: 'system', content: '你是世界线记录员。只输出JSON，不要解释。情节标题不超过10个汉字，情节总结不超过60个汉字，重要片段必须来自记录原文。' },
-          { role: 'user', content: this.prompt(plot, events) },
+          { role: 'user', content: `你是世界线记录员。只输出JSON，不要解释。情节标题不超过10个汉字，情节总结不超过60个汉字，重要片段必须来自记录原文。\n\n${this.prompt(plot, events)}` },
         ],
       });
       summary = this.normalize(window.GameModules.jsonUtils.parseLoose(raw), fallback);
