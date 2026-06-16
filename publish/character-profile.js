@@ -178,17 +178,14 @@ window.GameModules.characterProfile = {
   },
 
   metricGroupKeyChunks(group, keys) {
-    const targetOutputChars = 760;
-    const maxKeysPerRequest = 4;
-    const estimatedItemChars = Math.max(...keys.map((key) => this.estimateMetricItemChars(key)));
-    const size = Math.max(1, Math.min(maxKeysPerRequest, Math.floor(targetOutputChars / estimatedItemChars)));
+    const maxKeysPerRequest = 8;
     const chunks = [];
-    for (let i = 0; i < keys.length; i += size) chunks.push(keys.slice(i, i + size));
+    for (let i = 0; i < keys.length; i += maxKeysPerRequest) chunks.push(keys.slice(i, i + maxKeysPerRequest));
     return chunks;
   },
 
   estimateMetricItemChars(key) {
-    return 120 + key.length * 3;
+    return 170 + key.length * 3;
   },
 
   async generateMetricGroupChunks(profile, base, evidence, group, keys) {
@@ -217,7 +214,7 @@ window.GameModules.characterProfile = {
     return window.GameModules.jsonUtils.generateJsonWithRetry({
       source,
       model: 'nalang-turbo-0826',
-      maxTokens: Math.min(1400, 360 + keys.length * 150),
+      maxTokens: Math.min(2000, 420 + keys.length * 180),
       timeoutMs: 60000,
       prompt,
       format: prompt,
