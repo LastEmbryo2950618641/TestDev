@@ -23,9 +23,15 @@ window.GameModules.tokenStats = {
     const price = this.modelPrices?.[model] || 1;
     return Math.max(1, Math.ceil(((Number(tokens) || 0) / 1000) * price));
   },
+  templateIdForSource(promptId) {
+    const id = String(promptId || '');
+    if (/^character-profile-(emotions|playerFeelings)(?:-|$)/.test(id)) return 'character-profile-metric-group';
+    return id;
+  },
   record(promptId, text, meta = {}) {
     if (!promptId) return text;
-    const item = window.GameModules.promptTemplates?.find?.(promptId);
+    const templateId = meta.templateId || this.templateIdForSource(promptId);
+    const item = window.GameModules.promptTemplates?.items?.find((tpl) => tpl.id === templateId);
     const createdAt = Date.now();
     const fullText = String(text || '');
     const inputTokens = window.GameModules.characterMemory?.estimateTokens?.(fullText) || Math.ceil(fullText.length / 2);
