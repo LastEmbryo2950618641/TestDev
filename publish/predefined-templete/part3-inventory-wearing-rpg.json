@@ -2,22 +2,10 @@
   "name": "刘思琪",
   "equipment": [
     {
-      "name": "智能手机",
-      "description": "常用智能手机，用于学习和社交",
-      "equipSlots": ["手持"],
-      "reason": "现代高中生日常必需品。"
-    },
-    {
       "name": "双肩书包",
       "description": "浅蓝色学生书包，内装课本和文具",
       "equipSlots": ["背部"],
       "reason": "学生日常上学使用。"
-    },
-    {
-      "name": "猫尾巴",
-      "description": "黑色猫尾",
-      "equipSlots": ["腰臀"],
-      "reason": "喜欢cosplay。"
     },
     {
       "name": "单手剑",
@@ -64,7 +52,11 @@
     "bottom": { "bodyPart": "腿部", "name": "校服长裤", "description": "深圳外国语学校深蓝色校服长裤", "reason": "上学日统一着装。" },
     "socks": { "bodyPart": "脚踝", "name": "白色短袜", "description": "白色棉质短袜", "reason": "搭配校服穿着。" },
     "shoes": { "bodyPart": "脚部", "name": "白色运动鞋", "description": "白色帆布运动鞋", "reason": "学生日常通勤穿着。" },
-    "wrist": { "bodyPart": "手腕", "name": "华为电子手表", "description": "华为最新电子手表", "reason": "喜欢高科技。" }
+    "wrist": { "bodyPart": "手腕", "name": "华为电子手表", "description": "华为最新电子手表", "reason": "喜欢高科技。" },
+    "slot": [
+      { "slot": "手持", "bodyPart": "手部", "name": "智能手机", "description": "常用智能手机，用于学习和社交", "reason": "现代高中生日常必需品。" },
+      { "slot": "尾饰", "bodyPart": "腰椎", "name": "猫尾", "description": "黑色猫尾", "reason": "喜欢cosplay。" }
+    ]
   },
   "rpgField": {
     "level": { "value": 3, "reason": "十六岁高中女生，生活经验有限，未受专业训练。" },
