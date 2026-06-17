@@ -9,9 +9,9 @@ Output Format：仅输出 application/json，外层用 ```json 代码块包裹�
 Rules：
 
 1. Schema 锁定：必须严格匹配下方 Schema 的 properties 定义，禁止新增未定义的 Key，禁止遗漏任何 required 字段。
-2. 类型铁律：字符串用双引号，数字/布尔值不加引号，数组/对象正确嵌套。`jobConfirmed` 是 boolean，`items[].quantity` 是 integer。
+2. 类型铁律：字符串用双引号，数字/布尔值不加引号，数组/对象正确嵌套。`jobConfirmed` 是 boolean；`level`、`skills[].level`、`knowledge[].level`、`professions[].level`、`items[].quantity`、`intrinsicBase.*.value` 是 integer。
 3. 空值处理：字符串字段无内容时返回空字符串 ""；对象字段无内容时返回空对象 {}。不要省略任何 required 字段。
-4. 计算校验：若涉及年龄推算、数量合计等逻辑，请先推理验算，确保数据自洽后再填入。
+4. 计算校验：若涉及年龄推算、等级判定、属性估算等逻辑，请先推理验算，确保数据自洽后再填入。
 5. 语法红线：严禁出现尾随逗号（如 `{"a":"1",}` 绝对禁止）。输出前默念"检查最后一个元素后是否有逗号"。
 6. 数组尾随逗号：在生成数组时，遍历完最后一个元素后，立即停止添加逗号。记住：JSON 不允许尾随逗号。
 7. 引号规则：字符串里不要直接写未转义的英文双引号；需要引用时改用中文引号或省略引号。
@@ -67,13 +67,18 @@ Rules：
 3. `detail` 写背景、住址、学校/工作、处境和出现原因；`appearance` 只写外貌；`personality` 只写性格与关系边界。三者不要混写；每个字段控制在一句话内。
 4. `factions` 是社群角色，元素含 `faction, role, reason`；用于家庭、住址、社区、社交圈等无等级归属。
 5. `forcePositions` 是势力地位，元素含 `force, position, reason`；用于国家、学校、公司、部门、组织等有层级归属。现代中国现实人物通常包含"中华人民共和国 / 公民"。
-6. `skills/equipment/items/wearing` 都是数组，每项必须有 `reason`。`equipment` 含 `name, description, equipSlots, reason`；`items` 含 `name, description, quantity, reason`；`wearing` 含 `slot, name, description, reason`。
+6. `skills`/`knowledge`/`professions`/`equipment`/`items`/`wearing` 都是数组。技能/知识/职业每项必须有 `level`（1-7）和 `levelEffects`（各等级效果）和 `reason`（等级原因）。装备含 `name, description, equipSlots, reason`；物品含 `name, description, quantity, reason`；穿着含 `slot, name, description, reason`。
 7. 常规生活、上学、工作场景的 `wearing` 应包含基础槽位：内衣、上衣、内裤、下衣、袜子、鞋子；只有明确特殊事件才可返回"未穿戴"。
 8. `worldValues` 只填"世界字段"中有证据的 key，没有则 `{}`。
-9. `roleCardFieldReasons` 必须完整包含：姓名、所属世界、身份、职业、性别、生日、人际关系、外貌、性格、人物说明、社群角色、势力地位。每个值建议写当前人物本人相关的固化原因，尽量避免抽象套话。
-10. `rpgFieldReasons` 必须完整包含这些 key：{RPG字段列表}。每个值建议结合当前人物本人的经历、训练、身体状态或处境原因。
-11. 本轮不要返回 `initialMetrics`、`initial_metrics` 或任何情绪/感觉数组；初始数值会由下一步专用小请求生成。
-12. 成年角色若资料明确有恋爱、身体吸引、占有欲等证据，只写进 `detail/personality/roleCardFieldReasons` 的事实依据；不要在本轮展开数值数组。
+9. `level` 是人物综合成长等级（1-100）。判断依据：年龄、经历、训练强度、社会地位、特殊能力。普通成年市民 3-6；受过专业训练者 7-15；领域精英 16-30；世界观顶尖或超凡者 30+。必须根据人物实际背景判断，不要机械套用年龄段。
+10. `knowledge` 是已掌握的知识领域列表，每项含 `name, desc, level, levelEffects, reason`。必须根据人物学历、职业、生活经历生成；普通成年人至少有"现代常识"lv2-3；专业人员应有对应领域知识；知识领域不超过 5 个。
+11. `professions` 是已内化职业能力列表，每项含 `name, level, levelEffects, reason`。只有 `jobConfirmed=true` 或有明确职业证据时才生成职业项；每项职业等级必须反映实际经验年限和熟练度。职业项不超过 3 个。
+12. `skills` 每项含 `name, desc, level, levelEffects, reason`。level 必须反映人物在该技能上的真实熟练度：入门1、初学2、熟练3、专业4、专家5、大师6、传说7。`levelEffects` 用中文分号分隔各等级效果，格式如"lv1入门能X；lv2初学能Y；lv3熟能Z"，只需写到当前等级。
+13. `intrinsicBase` 是个人等级为 1 时的身内能力基础值（1-20）和原因。普通人 6-10；受过训练者 11-15；超凡者 16-20；体弱/幼小者 3-5。七项固定 key：strength(力量)、agility(敏捷)、constitution(体质)、intelligence(智力)、perception(感知)、willpower(意志)、charisma(魅力)。
+14. `roleCardFieldReasons` 必须完整包含：姓名、所属世界、身份、职业、性别、生日、人际关系、外貌、性格、人物说明、社群角色、势力地位。每个值建议写当前人物本人相关的固化原因，尽量避免抽象套话。
+15. `rpgFieldReasons` 必须完整包含这些 key：{RPG字段列表}。每个值建议结合当前人物本人的经历、训练、身体状态或处境原因。
+16. 本轮不要返回 `initialMetrics`、`initial_metrics` 或任何情绪/感觉数组；初始数值会由下一步专用小请求生成。
+17. 成年角色若资料明确有恋爱、身体吸引、占有欲等证据，只写进 `detail/personality/roleCardFieldReasons` 的事实依据；不要在本轮展开数值数组。
 
 ## 输出 JSON Schema
 
@@ -82,7 +87,7 @@ Rules：
 ```json
 {
   "type": "object",
-  "required": ["name", "gender", "relationships", "role", "detail", "appearance", "personality", "faction", "factions", "forcePositions", "job", "jobConfirmed", "rank", "skills", "equipment", "items", "wearing", "worldValues", "roleCardFieldReasons", "rpgFieldReasons"],
+  "required": ["name", "gender", "relationships", "role", "detail", "appearance", "personality", "faction", "factions", "forcePositions", "job", "jobConfirmed", "rank", "level", "knowledge", "skills", "professions", "equipment", "items", "wearing", "worldValues", "intrinsicBase", "roleCardFieldReasons", "rpgFieldReasons"],
   "additionalProperties": false,
   "properties": {
     "name": {
@@ -157,17 +162,56 @@ Rules：
       "type": "string",
       "description": "首要势力地位。通常取 forcePositions[0].position，没有可写身份定位。"
     },
-    "skills": {
+    "level": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "description": "个人等级，角色综合成长阶段。普通成年市民3-6；受过专业训练者7-15；领域精英16-30；世界观顶尖或超凡者30+。根据年龄、经历、训练、社会地位综合判断。"
+    },
+    "knowledge": {
       "type": "array",
-      "description": "个人能力/技能列表。",
+      "description": "已掌握的知识领域列表。根据人物学历、职业、生活经历生成；普通成年人至少有现代常识lv2-3。不超过5项。",
       "items": {
         "type": "object",
-        "required": ["name", "desc", "reason"],
+        "required": ["name", "desc", "level", "levelEffects", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "description": "知识领域名称。" },
+          "desc": { "type": "string", "description": "知识领域说明。" },
+          "level": { "type": "integer", "minimum": 1, "maximum": 7, "description": "知识等级：1入门 2初学 3熟练 4专业 5专家 6大师 7传说。" },
+          "levelEffects": { "type": "string", "description": "各等级效果，用中文分号分隔，只写至当前等级。格式如'lv1入门能X；lv2初学能Y；lv3熟能Z'。" },
+          "reason": { "type": "string", "description": "达到该知识等级的原因句。" }
+        }
+      }
+    },
+    "skills": {
+      "type": "array",
+      "description": "个人能力/技能列表。每项含等级和各等级效果。",
+      "items": {
+        "type": "object",
+        "required": ["name", "desc", "level", "levelEffects", "reason"],
         "additionalProperties": false,
         "properties": {
           "name": { "type": "string", "description": "能力名称。" },
           "desc": { "type": "string", "description": "能力说明。" },
-          "reason": { "type": "string", "description": "获得或形成该能力的原因句，不能是数字。" }
+          "level": { "type": "integer", "minimum": 1, "maximum": 7, "description": "技能等级：1入门 2初学 3熟练 4专业 5专家 6大师 7传说。" },
+          "levelEffects": { "type": "string", "description": "各等级效果，用中文分号分隔，只写至当前等级。格式如'lv1入门能X；lv2初学能Y；lv3熟能Z'。" },
+          "reason": { "type": "string", "description": "达到该技能等级的原因句，不能是数字。" }
+        }
+      }
+    },
+    "professions": {
+      "type": "array",
+      "description": "已内化职业能力列表。只有jobConfirmed=true或有明确职业证据时才生成职业项。不超过3项。",
+      "items": {
+        "type": "object",
+        "required": ["name", "level", "levelEffects", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "description": "职业名称。" },
+          "level": { "type": "integer", "minimum": 1, "maximum": 7, "description": "职业等级：1入门 2初学 3熟练 4专业 5专家 6大师 7传说。" },
+          "levelEffects": { "type": "string", "description": "各等级效果，用中文分号分隔，只写至当前等级。格式如'lv1入门能X；lv2初学能Y；lv3熟能Z'。" },
+          "reason": { "type": "string", "description": "达到该职业等级的原因句。" }
         }
       }
     },
@@ -223,6 +267,21 @@ Rules：
     "worldValues": {
       "type": "object",
       "description": "世界专属字段初始值。只填输入区'世界字段'中存在且证据明确的 key；没有则返回空对象 {}。"
+    },
+    "intrinsicBase": {
+      "type": "object",
+      "description": "个人等级为1时的身内能力基础值和原因。普通人6-10；受过训练者11-15；超凡者16-20；体弱/幼小者3-5。",
+      "required": ["strength", "agility", "constitution", "intelligence", "perception", "willpower", "charisma"],
+      "additionalProperties": false,
+      "properties": {
+        "strength": { "type": "object", "required": ["value", "reason"], "additionalProperties": false, "properties": { "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "力量基础值。" }, "reason": { "type": "string", "description": "力量基础值的原因句。" } } },
+        "agility": { "type": "object", "required": ["value", "reason"], "additionalProperties": false, "properties": { "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "敏捷基础值。" }, "reason": { "type": "string", "description": "敏捷基础值的原因句。" } } },
+        "constitution": { "type": "object", "required": ["value", "reason"], "additionalProperties": false, "properties": { "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "体质基础值。" }, "reason": { "type": "string", "description": "体质基础值的原因句。" } } },
+        "intelligence": { "type": "object", "required": ["value", "reason"], "additionalProperties": false, "properties": { "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "智力基础值。" }, "reason": { "type": "string", "description": "智力基础值的原因句。" } } },
+        "perception": { "type": "object", "required": ["value", "reason"], "additionalProperties": false, "properties": { "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "感知基础值。" }, "reason": { "type": "string", "description": "感知基础值的原因句。" } } },
+        "willpower": { "type": "object", "required": ["value", "reason"], "additionalProperties": false, "properties": { "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "意志基础值。" }, "reason": { "type": "string", "description": "意志基础值的原因句。" } } },
+        "charisma": { "type": "object", "required": ["value", "reason"], "additionalProperties": false, "properties": { "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "魅力基础值。" }, "reason": { "type": "string", "description": "魅力基础值的原因句。" } } }
+      }
     },
     "roleCardFieldReasons": {
       "type": "object",
@@ -281,18 +340,47 @@ Rules：
   "job": "",
   "jobConfirmed": false,
   "rank": "公民",
+  "level": 3,
+  "knowledge": [
+    {
+      "name": "现代常识",
+      "desc": "对现代都市社会的日常生活、基本规则和文化习俗的认知。",
+      "level": 2,
+      "levelEffects": "lv1入门：了解基本社会规则和日常用语；lv2初学：能独立处理日常事务和简单社交场合",
+      "reason": "在深圳长大的高中生，日常接触现代都市生活。"
+    },
+    {
+      "name": "高中课程",
+      "desc": "对高中阶段各学科基础知识的掌握。",
+      "level": 2,
+      "levelEffects": "lv1入门：能跟上课堂基础内容；lv2初学：能完成课后作业和基础考试",
+      "reason": "就读外国语学校高二，完成高一课程并进入二年级学习。"
+    },
+    {
+      "name": "英语",
+      "desc": "对英语语言的理解和运用能力。",
+      "level": 3,
+      "levelEffects": "lv1入门：能做简单日常对话；lv2初学：能读懂基础文章；lv3熟练：能阅读中等难度英文材料并完成写作",
+      "reason": "外国语学校长期英语强化训练，达到熟练水平。"
+    }
+  ],
   "skills": [
     {
       "name": "英语阅读",
-      "desc": "具备较好的英语阅读理解能力",
+      "desc": "具备较好的英语阅读理解能力。",
+      "level": 3,
+      "levelEffects": "lv1入门：能读懂简单短文；lv2初学：能理解教材课文；lv3熟练：能独立阅读中等难度英文材料",
       "reason": "就读外国语学校，长期接受英语强化训练。"
     },
     {
       "name": "观察力",
-      "desc": "善于观察周围人的情绪和细节变化",
+      "desc": "善于观察周围人的情绪和细节变化。",
+      "level": 2,
+      "levelEffects": "lv1入门：能注意到明显的环境变化；lv2初学：能察觉他人情绪波动和细微动作",
       "reason": "性格内向安静，习惯默默观察而非主动表达。"
     }
   ],
+  "professions": [],
   "equipment": [
     {
       "name": "智能手机",
@@ -366,6 +454,15 @@ Rules：
     }
   ],
   "worldValues": {},
+  "intrinsicBase": {
+    "strength": { "value": 5, "reason": "十六岁女生，肌肉力量低于成年平均水平。" },
+    "agility": { "value": 8, "reason": "年轻身体灵活，日常体育课维持基本敏捷。" },
+    "constitution": { "value": 7, "reason": "年轻健康但体能训练有限，体质处于正常偏弱水平。" },
+    "intelligence": { "value": 9, "reason": "就读外国语学校，学业表现中上，理解和推理能力良好。" },
+    "perception": { "value": 10, "reason": "性格内向但观察力强，对周围人事细节敏感。" },
+    "willpower": { "value": 6, "reason": "心思细腻但容易被动，面对压力时意志力中等偏弱。" },
+    "charisma": { "value": 7, "reason": "面容清秀但性格内向，魅力受社交主动性限制。" }
+  },
   "roleCardFieldReasons": {
     "姓名": "人物基础区明确写明姓名为刘思琪。",
     "所属世界": "世界观设定为2026现代都市现实世界。",
@@ -381,12 +478,28 @@ Rules：
     "势力地位": "作为中国公民和深圳外国语学校高二学生的身份地位。"
   },
   "rpgFieldReasons": {
-    "体力": "年轻健康的十六岁高中女生，体力处于正常水平。",
-    "智力": "就读外国语学校，学业能力中上。",
-    "魅力": "面容清秀但性格内向，魅力受社交主动性限制。",
-    "意志": "心思细腻但容易被动，意志力中等偏弱。",
-    "敏捷": "年轻女生身体灵活，敏捷正常。",
-    "感知": "观察力强，对周围人事细节敏感。"
+    "world_tag": "刘思琪所属世界来自默认账号激活的现实世界。",
+    "age": "刘思琪年龄按2026年推算约为16-17岁。",
+    "level": "刘思琪个人等级来自十六岁高中女生的现实生活经验和有限训练。",
+    "exp": "刘思琪经验来自学业、家庭生活和与姐姐的日常互动。",
+    "free_attribute_points": "刘思琪尚未经历系统升级分配，自由属性点保持初始状态。",
+    "level_growth": "刘思琪升级成长记录在激活时尚未发生，后续由行动推进。",
+    "vitality": "刘思琪生命力由年轻女性基础体质和正常生活状态决定。",
+    "stamina_pool": "刘思琪精力池由学业压力和年轻体力共同决定。",
+    "satiety": "刘思琪饱食度来自与家人同住的稳定日常饮食。",
+    "hydration": "刘思琪水分状态来自现代都市居家生活保障。",
+    "fatigue": "刘思琪疲劳度来自学业压力和青春期作息。",
+    "learning_ability": "刘思琪学习能力来自外国语学校训练和高中阶段学习经验。",
+    "mental_stability": "刘思琪精神稳定来自家庭支持，但内向性格使压力积累。",
+    "growth_potential": "刘思琪成长潜力来自年轻年龄和尚未定型的发展方向。",
+    "action_ability": "刘思琪行动能力由年轻女性体能和校园生活经验决定。",
+    "strength": "刘思琪力量来自十六岁女生基础身体能力和日常生活。",
+    "agility": "刘思琪敏捷来自年轻身体灵活性和日常活动。",
+    "constitution": "刘思琪体质来自年轻健康但缺乏系统训练的状态。",
+    "intelligence": "刘思琪智力来自外国语学校学业训练和良好理解力。",
+    "perception": "刘思琪感知来自内向性格下的强观察力和对细节敏感。",
+    "willpower": "刘思琪意志来自心思细腻但容易被动退让的性格。",
+    "charisma": "刘思琪魅力来自清秀外貌但社交主动性不足。"
   }
 }
 ```
