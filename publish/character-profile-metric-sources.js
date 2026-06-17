@@ -90,6 +90,15 @@ window.GameModules = window.GameModules || {};
       const signatureOk = !signature || profile?.roleCardInputSignature === signature;
       return signatureOk && this.isRoleCard(profile) && this.hasRequiredRoleCardFieldReasons(profile.roleCardFieldReasons, profile) && this.hasRequiredInventoryReasons(profile) && this.hasValidInitialMetricTexts(profile.initialMetrics) && this.hasRequiredRpgFieldReasons(profile.rpgFieldReasons, profile?.worldAttributes);
     },
+
+    async ensureInitialMetricSources(profile, base, context = '', store = null) {
+      if (!this.initialMetricRepairable(profile, profile?.roleCardInputSignature || null)) return profile;
+      if (this.hasRequiredInitialMetrics(profile.initialMetrics)) return profile;
+      const worldTag = base.work || profile.work || '现实世界';
+      const lore = await window.GameModules.worldLore.ensure(worldTag, context);
+      const attrs = await window.GameModules.rpgState.ensureWorldAttributes(worldTag);
+      return { ...profile, initialMetrics: await this.repairInitialMetricSources(profile, base, lore, attrs, context, store) };
+    },
   });
 
   profileTool.ensure = async function ensureWithMetricSourceRepair(raw, store, context = '') {
@@ -97,11 +106,9 @@ window.GameModules = window.GameModules || {};
     const base = this.normalize(source.raw, store, source.preset);
     const signature = this.inputSignature(base, context, store, source.preset);
     const existing = window.GameModules.sqliteSave.getCharacterState(base.id);
-    if (existing && this.isReusableRoleCard(existing.profile, signature)) return existing.profile;
+    if (existing && this.isReusableRoleCard(existing.profile, signature) && this.hasRequiredInitialMetrics(existing.profile?.initialMetrics)) return existing.profile;
     if (existing && this.initialMetricRepairable(existing.profile, signature)) {
-      const lore = await window.GameModules.worldLore.ensure(base.work, context);
-      const attrs = await window.GameModules.rpgState.ensureWorldAttributes(base.work);
-      existing.profile.initialMetrics = await this.repairInitialMetricSources(existing.profile, base, lore, attrs, context, store);
+      existing.profile = await this.ensureInitialMetricSources(existing.profile, base, context, store);
       existing.profile = this.withSignature(existing.profile, signature);
       await window.GameModules.sqliteSave.saveCharacterState(existing);
       return existing.profile;

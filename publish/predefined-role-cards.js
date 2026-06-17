@@ -50,7 +50,8 @@ window.GameModules.predefinedRoleCards = {
 
   async createState(card, store, idOverride = '') {
     if (!card || !window.GameModules.sqliteSave.db) return null;
-    const profile = { ...card, id: idOverride || card.id || card.name, roleCard: true, roleCardSource: card.roleCardSource || 'predefined-edited', roleCardUpdatedAt: new Date().toISOString() };
+    let profile = { ...card, id: idOverride || card.id || card.name, roleCard: true, roleCardSource: card.roleCardSource || 'predefined-edited', roleCardUpdatedAt: new Date().toISOString() };
+    profile = await window.GameModules.characterProfile?.ensureInitialMetricSources?.(profile, profile, profile.detail || profile.personality || '', store) || profile;
     const schema = await window.GameModules.rpgState.ensureSchema(profile.work || '现实世界');
     const existing = window.GameModules.sqliteSave.getCharacterState(profile.id);
     const state = existing || window.GameModules.rpgState.createCharacterState(profile, schema, store);
