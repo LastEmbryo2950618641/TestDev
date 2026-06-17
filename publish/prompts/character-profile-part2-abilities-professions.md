@@ -75,6 +75,128 @@ Rules：
 
 只有 `jobConfirmed=true` 或有明确职业证据时才生成职业项；不确定时返回空数组。职业项不超过 3 个。
 
+## 输出 JSON Schema
+
+请严格按照以下 JSON Schema 生成数据。生成前，请先脑中核对 required 列表，确保输出的顶层Key一个不漏。
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["name", "skills", "knowledge", "professions"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "当前人物正式姓名。必须与Part1已生成的基础信息中的姓名一致。"
+    },
+    "skills": {
+      "type": "array",
+      "description": "技能数组。根据人物性格、经历、学历、职业生成，不超过4项。",
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["name", "desc", "level", "levelEffects", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "description": "能力名。" },
+          "desc": { "type": "string", "minLength": 1, "description": "能力说明。" },
+          "level": { "type": "integer", "minimum": 1, "maximum": 7, "description": "能力等级1-7。等级映射：1入门 2初学 3熟练 4专业 5专家 6大师 7传说。" },
+          "levelEffects": {
+            "type": "object",
+            "description": "各等级效果。只需写到当前等级，不超过lv7。key格式为'lv1'到'lv7'。",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["程度介绍", "说明"],
+              "additionalProperties": false,
+              "properties": {
+                "程度介绍": { "type": "string", "minLength": 1, "description": "该等级的程度名称，如'入门''初学''熟练'。" },
+                "说明": { "type": "string", "minLength": 1, "description": "该等级能达到的具体能力描述。" }
+              }
+            }
+          },
+          "reason": { "type": "string", "minLength": 1, "description": "达到该等级的原因。" }
+        }
+      }
+    },
+    "knowledge": {
+      "type": "array",
+      "description": "知识领域数组。根据人物学历、职业、生活经历生成，不超过5项。普通成年人至少有'现代常识'lv2-3。",
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["name", "desc", "level", "levelEffects", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "description": "知识领域名。" },
+          "desc": { "type": "string", "minLength": 1, "description": "知识说明。" },
+          "level": { "type": "integer", "minimum": 1, "maximum": 7, "description": "知识等级1-7。等级映射同skills。" },
+          "levelEffects": {
+            "type": "object",
+            "description": "各等级效果，同skills.levelEffects格式。",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["程度介绍", "说明"],
+              "additionalProperties": false,
+              "properties": {
+                "程度介绍": { "type": "string", "minLength": 1, "description": "该等级的程度名称。" },
+                "说明": { "type": "string", "minLength": 1, "description": "该等级能达到的具体知识描述。" }
+              }
+            }
+          },
+          "reason": { "type": "string", "minLength": 1, "description": "达到该等级的原因。" }
+        }
+      }
+    },
+    "professions": {
+      "type": "array",
+      "description": "职业数组。只有jobConfirmed=true或有明确职业证据时才生成，不确定时返回空数组。不超过3项。",
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["name", "desc", "level", "levelEffects", "所需skills", "所需knowledge", "所需intrinsicBase", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "description": "职业名。" },
+          "desc": { "type": "string", "minLength": 1, "description": "职业说明。" },
+          "level": { "type": "integer", "minimum": 1, "maximum": 7, "description": "职业等级1-7。等级映射同skills。" },
+          "levelEffects": {
+            "type": "object",
+            "description": "各等级效果，同skills.levelEffects格式。",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["程度介绍", "说明"],
+              "additionalProperties": false,
+              "properties": {
+                "程度介绍": { "type": "string", "minLength": 1, "description": "该等级的程度名称。" },
+                "说明": { "type": "string", "minLength": 1, "description": "该等级能达到的具体职业能力描述。" }
+              }
+            }
+          },
+          "所需skills": {
+            "type": "array",
+            "description": "该职业所需的技能名称列表，引用本人物已有的skill名称。",
+            "items": { "type": "string" }
+          },
+          "所需knowledge": {
+            "type": "array",
+            "description": "该职业所需的知识领域名称列表，引用本人物已有的knowledge名称。",
+            "items": { "type": "string" }
+          },
+          "所需intrinsicBase": {
+            "type": "array",
+            "description": "该职业所需的先天属性key列表。使用英文key：strength/agility/constitution/intelligence/perception/willpower/charisma。",
+            "items": { "type": "string", "enum": ["strength", "agility", "constitution", "intelligence", "perception", "willpower", "charisma"] }
+          },
+          "reason": { "type": "string", "minLength": 1, "description": "选择该职业的原因。" }
+        }
+      }
+    }
+  }
+}
+```
+
 ## 生成规则
 
 1. `skills` 根据人物性格、经历、学历、职业生成；每项 level 必须反映真实熟练度。不超过 4 项。

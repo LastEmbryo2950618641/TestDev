@@ -75,6 +75,189 @@ Rules：
 - `intrinsicBase`：七项固定 key（strength/agility/constitution/intelligence/perception/willpower/charisma），每项 `{ "value": integer(1-20), "reason": string }`。普通人6-10；受过训练者11-15；超凡者16-20；体弱/幼小者3-5。
 - `derived`：`攻击力` 和 `防御力`，每项 `{ "value": integer, "reason": string }`。普通人5-15；受过训练者16-30；装备精良30+。必须根据实际属性和装备推算。
 
+## 输出 JSON Schema
+
+请严格按照以下 JSON Schema 生成数据。生成前，请先脑中核对 required 列表，确保输出的顶层Key一个不漏。
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["name", "equipment", "items", "wearing", "rpgField"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "当前人物正式姓名。必须与Part1已生成的基础信息中的姓名一致。"
+    },
+    "equipment": {
+      "type": "array",
+      "description": "装备数组。每项必须有reason，写持有该物品的具体原因。",
+      "items": {
+        "type": "object",
+        "required": ["name", "description", "equipSlots", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "description": "装备名称。" },
+          "description": { "type": "string", "minLength": 1, "description": "装备说明。" },
+          "equipSlots": {
+            "type": "array",
+            "description": "可装备的槽位列表。",
+            "items": { "type": "string" }
+          },
+          "reason": { "type": "string", "minLength": 1, "description": "持有该装备的原因。" }
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "description": "物品数组。每项必须有reason，写持有该物品的具体原因。",
+      "items": {
+        "type": "object",
+        "required": ["name", "description", "quantity", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "description": "物品名称。" },
+          "description": { "type": "string", "minLength": 1, "description": "物品说明。" },
+          "quantity": { "type": "integer", "minimum": 1, "description": "物品数量，最小1。" },
+          "reason": { "type": "string", "minLength": 1, "description": "持有该物品的原因。" }
+        }
+      }
+    },
+    "wearing": {
+      "type": "array",
+      "description": "穿着数组。常规生活场景必须包含基础槽位：内衣、上衣、内裤、下衣、袜子、鞋子。每项必须有reason。",
+      "items": {
+        "type": "object",
+        "required": ["slot", "bodyPart", "name", "description", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "slot": { "type": "string", "minLength": 1, "description": "穿着槽位，如内衣、上衣、内裤、下衣、袜子、鞋子。" },
+          "bodyPart": { "type": "string", "minLength": 1, "description": "身体部位，如胸部、躯干、腰臀、腿部、脚踝、脚部、手腕、头部、手部等。" },
+          "name": { "type": "string", "minLength": 1, "description": "穿着名称。" },
+          "description": { "type": "string", "minLength": 1, "description": "穿着说明。" },
+          "reason": { "type": "string", "minLength": 1, "description": "穿戴原因。" }
+        }
+      }
+    },
+    "rpgField": {
+      "type": "object",
+      "required": ["level", "intrinsicBase", "derived"],
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "type": "object",
+          "required": ["value", "reason"],
+          "additionalProperties": false,
+          "properties": {
+            "value": { "type": "integer", "minimum": 1, "maximum": 100, "description": "综合成长等级。普通市民3-6；受过训练者7-15；精英16-30；超凡者30+。" },
+            "reason": { "type": "string", "minLength": 1, "description": "该等级的判定原因。" }
+          }
+        },
+        "intrinsicBase": {
+          "type": "object",
+          "required": ["strength", "agility", "constitution", "intelligence", "perception", "willpower", "charisma"],
+          "additionalProperties": false,
+          "description": "七项先天属性。普通人6-10；受过训练者11-15；超凡者16-20；体弱/幼小者3-5。",
+          "properties": {
+            "strength": {
+              "type": "object",
+              "required": ["value", "reason"],
+              "additionalProperties": false,
+              "properties": {
+                "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "力量值1-20。" },
+                "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
+              }
+            },
+            "agility": {
+              "type": "object",
+              "required": ["value", "reason"],
+              "additionalProperties": false,
+              "properties": {
+                "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "敏捷值1-20。" },
+                "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
+              }
+            },
+            "constitution": {
+              "type": "object",
+              "required": ["value", "reason"],
+              "additionalProperties": false,
+              "properties": {
+                "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "体质值1-20。" },
+                "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
+              }
+            },
+            "intelligence": {
+              "type": "object",
+              "required": ["value", "reason"],
+              "additionalProperties": false,
+              "properties": {
+                "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "智力值1-20。" },
+                "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
+              }
+            },
+            "perception": {
+              "type": "object",
+              "required": ["value", "reason"],
+              "additionalProperties": false,
+              "properties": {
+                "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "感知值1-20。" },
+                "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
+              }
+            },
+            "willpower": {
+              "type": "object",
+              "required": ["value", "reason"],
+              "additionalProperties": false,
+              "properties": {
+                "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "意志值1-20。" },
+                "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
+              }
+            },
+            "charisma": {
+              "type": "object",
+              "required": ["value", "reason"],
+              "additionalProperties": false,
+              "properties": {
+                "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "魅力值1-20。" },
+                "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
+              }
+            }
+          }
+        },
+        "derived": {
+          "type": "object",
+          "required": ["攻击力", "防御力"],
+          "additionalProperties": false,
+          "description": "衍生属性。必须根据实际属性和装备推算。普通人5-15；受过训练者16-30；装备精良30+。",
+          "properties": {
+            "攻击力": {
+              "type": "object",
+              "required": ["value", "reason"],
+              "additionalProperties": false,
+              "properties": {
+                "value": { "type": "integer", "description": "攻击力数值。" },
+                "reason": { "type": "string", "minLength": 1, "description": "攻击力推算原因，必须说明计算依据。" }
+              }
+            },
+            "防御力": {
+              "type": "object",
+              "required": ["value", "reason"],
+              "additionalProperties": false,
+              "properties": {
+                "value": { "type": "integer", "description": "防御力数值。" },
+                "reason": { "type": "string", "minLength": 1, "description": "防御力推算原因，必须说明计算依据。" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
 ## 生成规则
 
 1. `equipment`/`items`/`wearing` 每项必须有 `reason`，写持有或穿戴该物品的具体原因。

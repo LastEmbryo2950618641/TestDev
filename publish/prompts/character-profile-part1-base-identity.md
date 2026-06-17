@@ -101,6 +101,194 @@ Rules：
 7. status 和 reason 内不要使用英文逗号 `,`；需要停顿时用中文逗号 `，`。
 8. 禁止写"默认、初始化、根据上下文、系统生成、综合判断"等空话。
 
+## 输出 JSON Schema
+
+请严格按照以下 JSON Schema 生成数据。生成前，请先脑中核对 required 列表，确保输出的顶层Key一个不漏。
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["name", "worldTag", "age", "gender", "learningAbility", "mentalStability", "growthPotential", "actionAbility", "relationships", "role", "detail", "appearance", "personality", "factions", "forcePositions", "job", "jobConfirmed", "rank", "control_experience", "feeling"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "当前人物正式姓名。当人物基础区给出正式姓名时必须逐字复制，不得同音改字、近形改字。"
+    },
+    "worldTag": {
+      "type": "object",
+      "required": ["value", "reason"],
+      "additionalProperties": false,
+      "properties": {
+        "value": { "type": "string", "minLength": 1, "description": "所属世界标签值。" },
+        "reason": { "type": "string", "minLength": 1, "description": "该世界标签的判定原因。" }
+      }
+    },
+    "age": {
+      "type": "object",
+      "required": ["value", "reason"],
+      "additionalProperties": false,
+      "properties": {
+        "value": { "type": "integer", "minimum": 0, "description": "年龄数值。" },
+        "reason": { "type": "string", "minLength": 1, "description": "年龄推算依据。" }
+      }
+    },
+    "gender": {
+      "type": "string",
+      "description": "性别。不确定时返回空字符串。"
+    },
+    "learningAbility": {
+      "type": "object",
+      "required": ["value", "reason"],
+      "additionalProperties": false,
+      "properties": {
+        "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "学习能力1-20，普通人6-10。" },
+        "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
+      }
+    },
+    "mentalStability": {
+      "type": "object",
+      "required": ["value", "reason"],
+      "additionalProperties": false,
+      "properties": {
+        "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "精神稳定度1-20。" },
+        "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
+      }
+    },
+    "growthPotential": {
+      "type": "object",
+      "required": ["value", "reason"],
+      "additionalProperties": false,
+      "properties": {
+        "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "成长潜力1-20。" },
+        "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
+      }
+    },
+    "actionAbility": {
+      "type": "object",
+      "required": ["value", "reason"],
+      "additionalProperties": false,
+      "properties": {
+        "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "行动能力1-20。" },
+        "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
+      }
+    },
+    "relationships": {
+      "type": "string",
+      "description": "与他人关系。格式为'关系：姓名'，多项用中文分号分隔。关系对象不得写成当前人物本人。"
+    },
+    "role": {
+      "type": "string",
+      "minLength": 1,
+      "description": "身份、社会角色或关系定位。简短定位，不要写长背景。"
+    },
+    "detail": {
+      "type": "string",
+      "minLength": 1,
+      "description": "背景、住址、处境。一句话，不混入外貌和性格。"
+    },
+    "appearance": {
+      "type": "string",
+      "minLength": 1,
+      "description": "外貌。一句话，只写可见形象。"
+    },
+    "personality": {
+      "type": "string",
+      "minLength": 1,
+      "description": "性格与关系边界。一句话，不写外貌。"
+    },
+    "factions": {
+      "type": "array",
+      "description": "社群角色列表。用于家庭、社区、社交圈等无等级归属。",
+      "items": {
+        "type": "object",
+        "required": ["faction", "role", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "faction": { "type": "string", "minLength": 1, "description": "社群名称。" },
+          "role": { "type": "string", "minLength": 1, "description": "在该社群中的角色。" },
+          "reason": { "type": "string", "minLength": 1, "description": "归属该社群的原因。" }
+        }
+      }
+    },
+    "forcePositions": {
+      "type": "array",
+      "description": "势力地位列表。用于国家、学校等有层级归属。现代中国现实人物通常含'中华人民共和国 / 公民'。",
+      "items": {
+        "type": "object",
+        "required": ["force", "position", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "force": { "type": "string", "minLength": 1, "description": "势力名称。" },
+          "position": { "type": "string", "minLength": 1, "description": "在该势力中的地位。" },
+          "reason": { "type": "string", "minLength": 1, "description": "获得该地位的原因。" }
+        }
+      }
+    },
+    "job": {
+      "type": "string",
+      "description": "已内化职业。不确定时返回空字符串。"
+    },
+    "jobConfirmed": {
+      "type": "boolean",
+      "description": "job是否有确认证据。job为空时必须false。"
+    },
+    "rank": {
+      "type": "string",
+      "description": "首要势力地位。通常取forcePositions[0].position。"
+    },
+    "control_experience": {
+      "type": "object",
+      "required": ["上线次数", "习惯程度"],
+      "additionalProperties": false,
+      "properties": {
+        "上线次数": { "type": "integer", "minimum": 0, "description": "被操控的上线次数，初始为0。" },
+        "习惯程度": { "type": "string", "minLength": 1, "description": "对操控的熟悉程度，初始为'初次操控尚不熟悉'。" }
+      }
+    },
+    "feeling": {
+      "type": "object",
+      "required": ["emotions", "playerFeelings"],
+      "additionalProperties": false,
+      "properties": {
+        "emotions": {
+          "type": "array",
+          "description": "情绪数组。必须包含全部12个情绪key，每个key精确一次。",
+          "items": {
+            "type": "object",
+            "required": ["key", "value", "status", "reason"],
+            "additionalProperties": false,
+            "properties": {
+              "key": { "type": "string", "minLength": 1, "description": "情绪key名。" },
+              "value": { "type": "integer", "minimum": 0, "maximum": 100, "description": "情绪数值0-100。" },
+              "status": { "type": "string", "minLength": 1, "description": "20-50个汉字，必须以当前key开头，使用'key因为……'或'key源于……'句式。" },
+              "reason": { "type": "string", "minLength": 1, "description": "20-50个汉字，必须以当前key开头，写形成该数值的具体原因。" }
+            }
+          }
+        },
+        "playerFeelings": {
+          "type": "array",
+          "description": "对玩家感觉数组。必须包含全部17个关系指标key，每个key精确一次。",
+          "items": {
+            "type": "object",
+            "required": ["key", "value", "status", "reason"],
+            "additionalProperties": false,
+            "properties": {
+              "key": { "type": "string", "minLength": 1, "description": "关系指标key名。" },
+              "value": { "type": "integer", "minimum": 0, "maximum": 100, "description": "关系指标数值0-100。" },
+              "status": { "type": "string", "minLength": 1, "description": "20-50个汉字，必须以当前key开头，使用'key因为……'或'key源于……'句式。" },
+              "reason": { "type": "string", "minLength": 1, "description": "20-50个汉字，必须以当前key开头，写形成该数值的具体原因。" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
 ## 生成规则
 
 1. `name` 必须逐字复制人物基础区的正式姓名。`relationships` 严禁链式冒号，必须写"关系：姓名"用中文分号分隔。
