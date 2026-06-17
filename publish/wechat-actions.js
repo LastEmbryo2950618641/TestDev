@@ -45,8 +45,20 @@ window.GameModules.wechatActions = {
   displayWechatContact(contact) {
     if (!contact || contact.group) return contact;
     const characterId = this.wechatCharacterId(contact);
-    const name = this.concreteWechatProfileName(this.rpgStates?.[characterId]?.profile, contact);
-    return name ? { ...contact, characterId, name, mark: name.slice(0, 1), needsNameAi: false } : { ...contact, characterId };
+    const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
+    const name = this.concreteWechatProfileName(state?.profile, contact);
+    const id = state?.id || characterId || contact.id;
+    return name ? { ...contact, id, characterId: id, name, mark: name.slice(0, 1), needsNameAi: false } : { ...contact, id, characterId: id };
+  },
+
+  syncWechatContactId(oldId, characterId) {
+    if (!oldId || !characterId || oldId === characterId) return false;
+    const oldMessages = this.wechatMessagesByContact?.[oldId] || [];
+    const newMessages = this.wechatMessagesByContact?.[characterId] || [];
+    this.wechatMessagesByContact = { ...(this.wechatMessagesByContact || {}), [characterId]: newMessages.length ? newMessages : oldMessages };
+    this.wechatUsers = (this.wechatUsers || []).map((item) => item.id === oldId ? { ...item, id: characterId, characterId } : item);
+    if (this.wechatSelectedContact === oldId) this.wechatSelectedContact = characterId;
+    return true;
   },
 
   syncWechatContactProfileName(id, profile) {
@@ -62,11 +74,12 @@ window.GameModules.wechatActions = {
     const messages = { ...(this.wechatMessagesByContact || {}) };
     this.wechatUsers = (this.wechatUsers || []).map((item) => {
       const characterId = this.wechatCharacterId(item);
-      const profile = this.rpgStates?.[characterId]?.profile || window.GameModules.sqliteSave?.getCharacterState?.(characterId)?.profile;
-      const name = this.concreteWechatProfileName(profile, item);
-      let next = characterId && item.id !== characterId ? { ...item, id: characterId, characterId } : (characterId && item.characterId !== characterId ? { ...item, characterId } : item);
+      const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
+      const canonicalId = state?.id || characterId;
+      const name = this.concreteWechatProfileName(state?.profile, item);
+      let next = canonicalId && item.id !== canonicalId ? { ...item, id: canonicalId, characterId: canonicalId } : (canonicalId && item.characterId !== canonicalId ? { ...item, characterId: canonicalId } : item);
       if (name && next.name !== name) next = { ...next, name, mark: name.slice(0, 1), subtitle: next.relation || next.subtitle, needsNameAi: false };
-      if (characterId && item.id !== characterId) messages[characterId] = messages[characterId] || messages[item.id] || [];
+      if (canonicalId && item.id !== canonicalId) messages[canonicalId] = messages[canonicalId] || messages[item.id] || [];
       if (next !== item) changed = true;
       return next;
     });
@@ -89,6 +102,7 @@ window.GameModules.wechatActions = {
     if (existing?.profile && profileTool.isReusableRoleCard(existing.profile)) {
       const state = existing;
       this.rpgStates = { ...(this.rpgStates || {}), [state.id]: state };
+      if (state.id && contact.id !== state.id) this.syncWechatContactId(contact.id, state.id);
       return state;
     }
     const existingName = existing?.profile?.name || '';
@@ -119,8 +133,9 @@ window.GameModules.wechatActions = {
     }
     const state = await window.GameModules.rpgState.ensureCharacter(profile, this);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
-    const renamed = this.syncWechatContactProfileName(contact.id, state.profile || profile);
-    if (renamed) await this.save?.();
+    const idChanged = this.syncWechatContactId(contact.id, state.id);
+    const renamed = this.syncWechatContactProfileName(state.id, state.profile || profile);
+    if (idChanged || renamed) await this.save?.();
     return state;
   },
 

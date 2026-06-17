@@ -3,13 +3,10 @@ window.GameModules = window.GameModules || {};
 window.GameModules.wechatChatActions = {
   selectWechatContact(id) {
     this.wechatSelectedContact = id || this.wechatThreads()[0]?.id || 'player-self';
-    const current = (this.wechatUsers || []).find((item) => item.id === this.wechatSelectedContact);
+    const current = (this.wechatUsers || []).find((item) => item.id === this.wechatSelectedContact || item.characterId === this.wechatSelectedContact);
     const mappedId = this.wechatCharacterId?.(current) || current?.id;
-    if (current && mappedId && mappedId !== current.id) {
-      this.wechatMessagesByContact = { ...(this.wechatMessagesByContact || {}), [mappedId]: this.wechatMessagesByContact?.[mappedId] || this.wechatMessagesByContact?.[current.id] || [] };
-      this.wechatUsers = (this.wechatUsers || []).map((item) => item.id === current.id ? { ...item, id: mappedId, characterId: mappedId } : item);
-      this.wechatSelectedContact = mappedId;
-    }
+    if (current && mappedId && mappedId !== current.id) this.syncWechatContactId?.(current.id, mappedId);
+    if (mappedId) this.wechatSelectedContact = mappedId;
     const selected = (this.wechatUsers || []).find((item) => item.id === this.wechatSelectedContact);
     const profile = this.rpgStates?.[this.wechatSelectedContact]?.profile;
     if (selected && !window.GameModules.characterProfile.isConcreteName(profile?.name)) {
@@ -21,9 +18,15 @@ window.GameModules.wechatChatActions = {
     if (renamed) this.save?.();
   },
 
+  wechatMessageKey(contact) {
+    if (!contact || contact.group) return contact?.id || 'group-main';
+    return this.wechatCharacterId?.(contact) || contact.characterId || contact.id;
+  },
+
   wechatMessages() {
     const target = this.wechatSelected();
-    const stored = this.wechatMessagesByContact?.[target?.id] || [];
+    const key = this.wechatMessageKey(target);
+    const stored = this.wechatMessagesByContact?.[key] || [];
     if (stored.length) return stored;
     if (target?.group) return [{ side: 'other', name: '系统', mark: '系', text: '新手机已激活，微信数据同步完成。' }];
     return [{ side: 'other', name: target?.name, mark: target?.mark, text: target?.latest || '资料已同步。' }];
@@ -35,7 +38,7 @@ window.GameModules.wechatChatActions = {
     if (!text || this.wechatSending || !target) return;
     this.wechatError = '';
     this.wechatInput = '';
-    this.appendWechatMessage(target.id, { side: 'self', name: this.playerDisplayCharacter?.().name || this.playerName || '我', mark: '我', text });
+    this.appendWechatMessage(this.wechatMessageKey(target), { side: 'self', name: this.playerDisplayCharacter?.().name || this.playerName || '我', mark: '我', text });
     if (target.group) await this.recordWechatWorldline(target, text, '');
     await this.save?.();
     if (target.group) return;
@@ -106,14 +109,16 @@ window.GameModules.wechatChatActions = {
     try {
       const result = await this.generateWechatReply(contact, playerText);
       if (reqId !== this.wechatReplyRequestId) return;
-      const characterId = this.wechatCharacterId?.(contact) || contact.characterId || contact.id;
-      const state = this.rpgStates?.[characterId];
+      let characterId = this.wechatCharacterId?.(contact) || contact.characterId || contact.id;
+      let state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId) || await this.ensureWechatUserProfile?.(contact);
+      characterId = state?.id || characterId;
+      if (state?.id) this.syncWechatContactId?.(contact.id, state.id);
       result.characterCardChanges = await window.GameModules.characterCardLexicon?.applyToState?.(state, result.lexiconUpdates || []) || [];
       await this.applyMetricUpdatesToState?.(state, result.metricUpdates);
       await this.applyInventoryUpdatesToState?.(state, result.lexiconUpdates || []);
       this.advancePhoneTime?.(result.elapsedSeconds || 60);
-      this.appendWechatMessage(contact.id, { side: 'other', name: contact.name, mark: contact.mark, text: result.reply, characterId, metricUpdates: result.metricUpdates, lexiconUpdates: result.lexiconUpdates, characterCardChanges: result.characterCardChanges, cardChangesOpen: false, changeReasonsOpen: false });
-      await window.GameModules.characterMemory?.recordWechatExchange?.(this, contact, playerText, result.reply, result);
+      this.appendWechatMessage(characterId, { side: 'other', name: state?.profile?.name || contact.name, mark: (state?.profile?.name || contact.name || '').slice(0, 1), text: result.reply, characterId, metricUpdates: result.metricUpdates, lexiconUpdates: result.lexiconUpdates, characterCardChanges: result.characterCardChanges, cardChangesOpen: false, changeReasonsOpen: false });
+      await window.GameModules.characterMemory?.recordWechatExchange?.(this, { ...contact, id: characterId, characterId }, playerText, result.reply, result);
       await this.recordWechatWorldline(contact, playerText, result.reply, result);
       await this.save?.();
     } catch (err) {
@@ -121,10 +126,13 @@ window.GameModules.wechatChatActions = {
       console.error('[微信] 联系人回复生成失败:', err.code, err.message, err.stack);
       this.wechatError = err.message || '联系人暂时没有回复';
       const fallback = '我这边刚刚有点卡，等下再说。';
+      let characterId = this.wechatCharacterId?.(contact) || contact.characterId || contact.id;
+      const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
+      characterId = state?.id || characterId;
       this.advancePhoneTime?.(60);
-      this.appendWechatMessage(contact.id, { side: 'other', name: contact.name, mark: contact.mark, text: fallback });
-      await window.GameModules.characterMemory?.recordWechatExchange?.(this, contact, playerText, fallback, { mood: '通讯异常' });
-      await this.recordWechatWorldline(contact, playerText, fallback, { mood: '通讯异常' });
+      this.appendWechatMessage(characterId, { side: 'other', name: state?.profile?.name || contact.name, mark: (state?.profile?.name || contact.name || contact.mark || '').slice(0, 1), text: fallback, characterId });
+      await window.GameModules.characterMemory?.recordWechatExchange?.(this, { ...contact, id: characterId, characterId }, playerText, fallback, { mood: '通讯异常' });
+      await this.recordWechatWorldline({ ...contact, id: characterId, characterId }, playerText, fallback, { mood: '通讯异常' });
       await this.save?.();
     } finally {
       if (reqId === this.wechatReplyRequestId) this.wechatSending = false;
@@ -147,6 +155,8 @@ window.GameModules.wechatChatActions = {
     const sections = window.GameModules.promptSections;
     const player = sections.playerProfile(this);
     const stateSkill = await window.GameModules.skillLoader?.instruction?.('emotion.feeling.wearing.assess') || '';
+    const characterId = this.wechatMessageKey(contact);
+    const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
     return window.GameModules.promptTemplates.render('wechat-chat-reply', {
       玩家基础资料区: player.playerBasic,
       玩家现实身份区: player.playerIdentity,
@@ -158,8 +168,8 @@ window.GameModules.wechatChatActions = {
       现实场景: this.realWorldSceneTitle || '现实世界',
       现实地点: this.realWorldLocationName || '未确认',
       现实状态: this.realWorldStatus || '现实稳定',
-      目标状态快照: sections.stateSnapshot(this, this.rpgStates?.[this.wechatCharacterId?.(contact) || contact.characterId || contact.id]),
-      微信历史: this.wechatHistoryText(contact.id),
+      目标状态快照: sections.stateSnapshot(this, state),
+      微信历史: this.wechatHistoryText(characterId),
       玩家消息: playerText,
       状态判定Skill: stateSkill,
     });
@@ -168,7 +178,7 @@ window.GameModules.wechatChatActions = {
   wechatContactProfileText(contact) {
     const display = this.displayWechatContact?.(contact) || contact;
     const characterId = this.wechatCharacterId?.(contact) || contact.characterId || contact.id;
-    const state = this.rpgStates?.[characterId];
+    const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
     const profile = state?.profile || {};
     const rows = [
       ['姓名', profile.name || display.name], ['微信关系', display.relation || display.subtitle], ['角色定位', profile.role || display.context],
@@ -187,7 +197,7 @@ window.GameModules.wechatChatActions = {
     const reply = String(raw?.reply || '').trim().slice(0, 120) || this.fallbackWechatReply(contact, '');
     const impression = Math.max(0, Math.min(100, Math.round(Number(raw?.impression) || 20)));
     const characterId = this.wechatCharacterId?.(contact) || contact.characterId || contact.id;
-    const state = this.rpgStates?.[characterId];
+    const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
     return { reply, mood: String(raw?.mood || '平常').slice(0, 20), elapsedSeconds: Math.max(20, Math.min(1800, Number(raw?.elapsedSeconds) || 60)), impression, metricUpdates: window.GameModules.ai.normalizeMetricUpdates?.(raw?.metricUpdates, state) || {}, lexiconUpdates: window.GameModules.ai.normalizeLexiconUpdates?.(raw?.lexiconUpdates, { character: { work: '2026 现代都市现实世界' } }) || [] };
   },
 

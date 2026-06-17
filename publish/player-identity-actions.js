@@ -243,5 +243,9 @@ window.GameModules.playerIdentityActions = {
     return [{ side: 'other', name: target?.name, mark: target?.mark, text: target?.latest || '资料已同步。' }, { side: 'self', name: this.playerDisplayCharacter().name, mark: '我', text: '我看到了。' }];
   },
 
-  async openWechatIdentity() { const id = this.wechatSelectedContact || 'player-self'; await this.openIdentityApp(id === 'group-main' ? 'player-self' : id); },
+  async openWechatIdentity() {
+    const contact = this.wechatSelected?.();
+    const id = contact?.group ? 'player-self' : (this.wechatCharacterId?.(contact) || this.wechatSelectedContact || 'player-self');
+    await this.openIdentityApp(id);
+  },
 };
