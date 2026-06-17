@@ -45,10 +45,12 @@ window.GameModules.metrics = {
     const text = key === '爱情' ? love[stage] : (key === '了解' ? know[stage] : intensity[stage]);
     return text || `${key}处于${stage}阶段。`;
   },
-  valueExplanation(key, value, custom = '') {
+  valueExplanation(key, value, custom = '', reason = '') {
     const text = String(custom || '').trim();
     if (this.isSpecificMetricText(text, key)) return text;
-    return `缺少AI生成的${key}${this.clamp(value)}数值解释。`;
+    const cause = String(reason || '').replace(/[。.!！]+$/g, '').trim();
+    if (cause && !/缺少AI生成/.test(cause)) return `${key}${this.clamp(value)}：${this.stageStatus(key, this.stageFor(key, value))}，因为${cause}。`;
+    return `${key}${this.clamp(value)}：${this.stageStatus(key, this.stageFor(key, value))}`;
   },
   isSpecificMetricText(text, key = '') {
     const value = String(text || '').trim();
@@ -98,11 +100,12 @@ window.GameModules.metrics = {
     const stage = this.stageFor(item.key, value);
     target[item.key] = value;
     const fallbackUsed = this.metricReasonLooksGeneric(item.reason);
+    const reason = String(fallbackUsed ? fallbackReason : item.reason).slice(0, 180);
     const metricSources = item.metricSources || { 数值: '系统', 解释: item.status ? 'ai' : '系统', 原因: fallbackUsed ? '系统' : 'ai' };
     notes[`${group}:${item.key}`] = {
       stage,
-      status: String(this.valueExplanation(item.key, value, item.status)).slice(0, 180),
-      reason: String(fallbackUsed ? `缺少AI生成的${item.key}变化原因。` : item.reason).slice(0, 180),
+      status: String(this.valueExplanation(item.key, value, item.status, reason)).slice(0, 180),
+      reason,
       description: String(this.descriptions[item.key] || item.key).slice(0, 120),
       metricSources,
     };

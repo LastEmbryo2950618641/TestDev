@@ -107,9 +107,12 @@ window.GameModules.ai = {
   },
 
 
-  normalizeMetricUpdates(value) {
+  normalizeMetricUpdates(value, state = null) {
     const source = value || {};
-    return { emotions: this.normalizeMetricGroup(source.emotions, window.GameModules.metrics.emotionKeys), playerFeelings: this.normalizeMetricGroup(source.playerFeelings, window.GameModules.metrics.playerKeys) };
+    return {
+      emotions: this.normalizeMetricGroup(source.emotions, window.GameModules.metrics.emotionKeys, state?.metrics?.emotions || null),
+      playerFeelings: this.normalizeMetricGroup(source.playerFeelings, window.GameModules.metrics.playerKeys, state?.metrics?.playerFeelings || null),
+    };
   },
 
   normalizeInitialMetricUpdates(value, fallback, store) {
@@ -117,19 +120,18 @@ window.GameModules.ai = {
     return { emotions: this.normalizeInitialGroup(source.emotions, null, window.GameModules.metrics.emotionKeys, store, 'emotion'), playerFeelings: this.normalizeInitialGroup(source.playerFeelings, null, window.GameModules.metrics.playerKeys, store, 'player') };
   },
 
-  normalizeMetricGroup(value, keys) {
+  normalizeMetricGroup(value, keys, currentValues = null) {
     const main = Array.isArray(value) ? value : [];
     return keys.map((key) => {
       const item = main.find((x) => x?.key === key);
       if (!item) return null;
       const delta = window.GameModules.metrics.clampDelta(item.delta);
-      const value = window.GameModules.metrics.clamp((window.Alpine?.store?.('game')?.[keys === window.GameModules.metrics.emotionKeys ? 'emotions' : 'playerFeelings']?.[key] || 0) + delta);
-      return {
-        key,
-        delta,
-        status: String(window.GameModules.metrics.valueExplanation(key, value, item.status)).slice(0, 180),
-        reason: String(window.GameModules.metrics.metricReasonLooksGeneric(item.reason) ? `缺少AI生成的${key}变化原因。` : item.reason).slice(0, 180),
-      };
+      const fallbackValues = window.Alpine?.store?.('game')?.[keys === window.GameModules.metrics.emotionKeys ? 'emotions' : 'playerFeelings'];
+      const current = window.GameModules.metrics.clamp((currentValues || fallbackValues)?.[key] || 0);
+      const nextValue = window.GameModules.metrics.clamp(current + delta);
+      const reason = String(window.GameModules.metrics.metricReasonLooksGeneric(item.reason) ? '' : item.reason).slice(0, 180);
+      const status = window.GameModules.metrics.valueExplanation(key, nextValue, item.status, reason);
+      return { key, delta, status: String(status).slice(0, 180), reason };
     }).filter(Boolean);
   },
 
