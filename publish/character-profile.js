@@ -132,14 +132,35 @@ window.GameModules.characterProfile = {
   },
 
   parseMetricGroup(text, group, keys) {
+    const lined = this.parseMetricGroupLines(text, group, keys);
+    if (lined[group]?.length === keys.length) return lined;
     const recovered = this.recoverMetricGroup(text, group, keys);
     if (recovered[group]?.length === keys.length) return recovered;
     try {
       return this.parse(text);
     } catch (err) {
+      if (lined[group]?.length) return lined;
       if (recovered[group]?.length) return recovered;
       throw err;
     }
+  },
+
+  parseMetricGroupLines(text, group, keys) {
+    const raw = String(text || '').replace(/```(?:txt|json)?|```/g, '').trim();
+    const rows = raw.split(/\n+/).map((row) => row.trim()).filter(Boolean);
+    const items = [];
+    keys.forEach((key) => {
+      const line = rows.find((row) => row.startsWith(`${key},`));
+      if (!line) return;
+      const parts = line.split(',').map((part) => part.trim());
+      if (parts.length < 4 || parts[0] !== key) return;
+      const value = Number(parts[1]);
+      if (!Number.isFinite(value)) return;
+      const status = parts[2] || '';
+      const reason = parts.slice(3).join('，') || '';
+      items.push({ key, value, status, reason, metricSources: this.metricSourceMap?.('ai') });
+    });
+    return { [group]: items };
   },
 
   recoverMetricGroup(text, group, keys) {
@@ -276,12 +297,17 @@ window.GameModules.characterProfile = {
       世界观资料: evidence.worldLore,
       世界字段: evidence.worldFields,
       剧情关系事件: evidence.relationContext,
-      完整JSON骨架: this.metricGroupSkeleton(group, keys),
+      完整JSON骨架: this.metricGroupJsonSkeleton(group, keys),
+      完整行格式骨架: this.metricGroupSkeleton(group, keys),
       首个字段: keys[0],
     });
   },
 
   metricGroupSkeleton(group, keys) {
+    return keys.map((key) => `${key},0,${key}因为人物经历与关系事件形成当前数值,${key}源于人物过去经历和当前关系事件的影响`).join('\n');
+  },
+
+  metricGroupJsonSkeleton(group, keys) {
     return JSON.stringify({ [group]: keys.map((key) => ({ key, value: 0, status: `${key}因为人物经历与关系事件形成当前数值`, reason: `${key}源于人物过去经历和当前关系事件的影响` })) });
   },
 
@@ -296,19 +322,18 @@ window.GameModules.characterProfile = {
     ].join('\n') : '';
     return [
       `目标人物只能是：${base.name}。`,
-      `根字段必须是 ${group}。`,
-      `必须重写完整 ${group} 数组，不是只输出报错的单个 key。`,
+      `目标数值组是 ${group}，但不要输出根字段名。`,
+      `必须重写完整 ${group} 行列表，不是只输出报错的单个 key。`,
       relationEvidence,
-      `直接按这个完整 JSON 骨架保留 key 和结构，再根据证据改写 value/status/reason；骨架里的 value:0 只是占位，不能当默认值：${this.metricGroupSkeleton(group, keys)}`,
+      `直接按这个完整行格式骨架保留 key 和行数，再根据证据改写 value/status/reason；骨架里的 value 0 只是占位，不能当默认值：\n${this.metricGroupSkeleton(group, keys)}`,
       `${group} 必须按顺序完整包含：${keys.join('、')}，每个 key 精确一次，不能截断。`,
-      '每一项都必须有 key、value、status、reason 四个字段；reason 是强制字段，即使上一轮只有 status，也必须为同一个 key 补出 reason。',
-      '每个对象必须以 reason 作为最后一个字段，写完 reason 才能关闭对象。',
-      '本批 key 很少，必须完整输出每个 key；不要省略任何一个对象。',
+      '每一行都必须是 key,value,status,reason 四段；reason 是强制段，即使上一轮只有 status，也必须为同一个 key 补出 reason。',
+      '本批 key 很少，必须完整输出每个 key；不要省略任何一行。',
       'status 必须是20-50个汉字的短句，必须以当前key开头，使用“当前key因为……”或“当前key源于……”句式。',
       'reason 必须是20-50个汉字的短句，必须以当前key开头，写形成该数值的具体原因，结合角色动机、处境与过去经历。',
-      'reason 不能和 status 完全重复，不能只写抽象性格词；禁止写“默认、初始化、根据上下文、系统生成、综合判断、阶段定义、背景信息、个人动机与过去经历、等待后续AI补齐”等空话。',
+      'status 和 reason 内不要使用英文逗号；reason 不能和 status 完全重复，不能只写抽象性格词；禁止写“默认、初始化、根据上下文、系统生成、综合判断、阶段定义、背景信息、个人动机与过去经历、等待后续AI补齐”等空话。',
       '不要返回英文 key、initial_metrics、affection、dependency、trust_level 等替代结构。',
-      '只返回一行紧凑 JSON，不要 Markdown。',
+      '只返回纯文本行，不要 JSON，不要 Markdown。',
     ].filter(Boolean).join('\n');
   },
 
