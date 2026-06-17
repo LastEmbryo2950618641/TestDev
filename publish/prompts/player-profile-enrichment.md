@@ -126,42 +126,69 @@
 5. knownProfessions、equipment、items、wearing 必须是字符串，不要写数组、对象、方括号或大括号；多个项目用中文顿号分隔。
 6. 如果无法确认已知职业，knownProfessions 返回空字符串 ""，不要省略字段。
 
-## 返回 JSON 格式
+## 输出 JSON Schema
 
-只返回一个 JSON 对象。字段规范如下：
-
-| 字段 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| refinedCity | string | 是 | 补全后的省市区县镇街道社区小区楼栋门牌，必须具体可落库。 |
-| refinedRole | string | 是 | 更具体的现实身份。 |
-| workplace | string | 是 | 根据身份生成的公司、学校、组织、部门或机构；不填居住社区。 |
-| position | string | 是 | 在 workplace 中的岗位、年级、职位、职级或身份层级。 |
-| refinedLivingStatus | string | 是 | 更具体的居住状态，体现同住对象、独居、宿舍、合租或家庭处境。 |
-| relationships | string | 是 | 整理后的人际关系，格式为“关系：姓名”，多项用中文分号。 |
-| parentStatus | string | 是 | 父母状态。 |
-| parentDeathCause | string | 是 | 父母去世原因；父母未故或无依据时返回空字符串。 |
-| worldbuildingNote | string | 是 | 60 字内现实背景补充。 |
-| knownProfessions | string | 是 | 玩家已知职业，多个用中文顿号；没有则返回空字符串。 |
-| equipment | string | 是 | 初始重要工具或可装备物名称，多个用中文顿号。 |
-| items | string | 是 | 初始普通持有物或消耗品名称，多个用中文顿号。 |
-| wearing | string | 是 | 当前实际穿戴名称，多个用中文顿号；常规场景必须含基础穿着。 |
-
-### 最小结构示意
+返回的 JSON 必须符合以下完整 Schema 描述。Schema 中每个字段的 `description` 即该字段的含义与约束，与上方字段处理规则一致：
 
 ```json
 {
-  "refinedCity": "省市区县镇街道小区楼栋门牌",
-  "refinedRole": "更具体身份",
-  "workplace": "公司/学校/组织",
-  "position": "职位/身份层级",
-  "refinedLivingStatus": "更具体居住状态",
-  "relationships": "妹妹：姓名；父亲：姓名",
-  "parentStatus": "父母状态",
-  "parentDeathCause": "父母去世原因或空字符串",
-  "worldbuildingNote": "60字内现实背景补充",
-  "knownProfessions": "后端工程师、软件工程师",
-  "equipment": "手机、双肩包、手表",
-  "items": "钥匙、钱包、身份证件",
-  "wearing": "日常内衣、T恤、内裤、长裤、短袜、运动鞋"
+  “$schema”: “http://json-schema.org/draft-07/schema#”,
+  “type”: “object”,
+  “required”: [“refinedCity”, “refinedRole”, “workplace”, “position”, “refinedLivingStatus”, “relationships”, “parentStatus”, “parentDeathCause”, “worldbuildingNote”, “knownProfessions”, “equipment”, “items”, “wearing”],
+  “additionalProperties”: false,
+  “properties”: {
+    “refinedCity”: {
+      “type”: “string”,
+      “description”: “补全后的省-市/州-区县-镇/街道-社区/小区-楼栋-门牌。必须具体可落库，不可含'某处/一处/普通/未知/等/附近/片区'等模糊词。”
+    },
+    “refinedRole”: {
+      “type”: “string”,
+      “description”: “更具体的现实身份。根据年龄、性别、dailyRole、city、notes 补全；高中生细化到学校与年级，上班族细化到职业方向。”
+    },
+    “workplace”: {
+      “type”: “string”,
+      “description”: “根据身份生成的有组织层级的公司、学校、组织、部门或机构；不填居住社区。”
+    },
+    “position”: {
+      “type”: “string”,
+      “description”: “在 workplace 中的岗位、年级、职位、职级或组织层级，如'软件工程师''高三学生''科室经理'。”
+    },
+    “refinedLivingStatus”: {
+      “type”: “string”,
+      “description”: “更具体的居住状态。结合 livingStatus、parents、relationships、notes 补全；体现同住对象、独居、宿舍、合租或家庭处境。”
+    },
+    “relationships”: {
+      “type”: “string”,
+      “description”: “整理后的人际关系。格式为'关系：姓名'，多项用中文分号分隔。必须从全量上下文整理，不只看原始 relationships 字段。若输入只有关系角色而无姓名，必须由 AI 生成正式姓名。”
+    },
+    “parentStatus”: {
+      “type”: “string”,
+      “description”: “父母状态。若 parents 为空必须设为'父母已故'；若 parents 已填写不得强行改成已故。”
+    },
+    “parentDeathCause”: {
+      “type”: “string”,
+      “description”: “父母去世原因。父母已故时必须生成现实、克制、合理的原因；父母未故或无依据时返回空字符串。不要夸张，不要写超自然原因。”
+    },
+    “worldbuildingNote”: {
+      “type”: “string”,
+      “description”: “60字内现实背景补充，综合年龄、地址、身份、工作/学校、居住状态，供现实推演、微信联系人和势力系统复用。”
+    },
+    “knownProfessions”: {
+      “type”: “string”,
+      “description”: “玩家已知职业，多个用中文顿号分隔，没有则返回空字符串。只能返回 2026 现代现实职业，每个职业必须可由玩家资料解释，0到5个宁缺毋滥。不要返回数组或对象。”
+    },
+    “equipment”: {
+      “type”: “string”,
+      “description”: “初始重要工具或可装备物名称，多个用中文顿号分隔。不要生成夸张武器；现代现实默认手机、双肩包、手表等。不要返回数组或对象。”
+    },
+    “items”: {
+      “type”: “string”,
+      “description”: “初始普通持有物或消耗品名称，多个用中文顿号分隔。现代现实默认钥匙、钱包、身份证件等。不要返回数组或对象。”
+    },
+    “wearing”: {
+      “type”: “string”,
+      “description”: “当前实际穿戴名称，多个用中文顿号分隔。常规生活、上学、工作、外出、会客等场景必须包含基础穿着：内衣、上衣、内裤、下衣、袜子、鞋子。不要返回数组或对象。”
+    }
+  }
 }
 ```
