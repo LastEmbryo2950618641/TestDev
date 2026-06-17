@@ -9,7 +9,7 @@ Output Format：仅输出 application/json，外层用 ```json 代码块包裹�
 Rules：
 
 1. Schema 锁定：必须严格匹配下方 Schema 的 properties 定义，禁止新增未定义的 Key，禁止遗漏任何 required 字段。
-2. 类型铁律：字符串用双引号，数字/布尔值不加引号，数组/对象正确嵌套。`jobConfirmed` 是 boolean；`rpgField.level.value`、`worldTag.value` 是 string；`age.value`、`learningAbility.value`、`mentalStability.value`、`growthPotential.value`、`actionAbility.value`、`skills[].level`、`knowledge[].level`、`professions[].level`、`rpgField.intrinsicBase.*.value`、`items[].quantity` 是 integer。
+2. 类型铁律：字符串用双引号，数字/布尔值不加引号，数组/对象正确嵌套。`jobConfirmed` 是 boolean；`rpgField.level.value`、`worldTag.value` 是 string；`age.value`、`learningAbility.value`、`mentalStability.value`、`growthPotential.value`、`actionAbility.value`、`skills[].level`、`knowledge[].level`、`professions[].level`、`rpgField.intrinsicBase.*.value`、`rpgField.derived.攻击力.value`、`rpgField.derived.防御力.value`、`control_experience.上线次数`、`items[].quantity` 是 integer。
 3. 空值处理：字符串字段无内容时返回空字符串 ""；对象字段无内容时返回空对象 {}。不要省略任何 required 字段。
 4. 计算校验：若涉及年龄推算、等级判定、属性估算等逻辑，请先推理验算，确保数据自洽后再填入。
 5. 语法红线：严禁出现尾随逗号（如 `{"a":"1",}` 绝对禁止）。输出前默念"检查最后一个元素后是否有逗号"。
@@ -72,16 +72,18 @@ Rules：
 8. `forcePositions` 是势力地位，元素含 `force, position, reason`；用于国家、学校、公司、部门、组织等有层级归属。现代中国现实人物通常包含"中华人民共和国 / 公民"。
 9. `skills`/`knowledge`/`professions`/`equipment`/`items`/`wearing` 都是数组，每项必须有 `reason`。`skills` 含 `name, desc, level, levelEffects, reason`；`knowledge` 含 `name, desc, level, levelEffects, reason`；`professions` 含 `name, level, levelEffects, reason`；`equipment` 含 `name, description, equipSlots, reason`；`items` 含 `name, description, quantity, reason`；`wearing` 含 `slot, name, description, reason`。
 10. 常规生活、上学、工作场景的 `wearing` 应包含基础槽位：内衣、上衣、内裤、下衣、袜子、鞋子；只有明确特殊事件才可返回"未穿戴"。
-11. `worldValues` 只填"世界字段"中有证据的 key，没有则 `{}`。
-12. `rpgField.level` 是人物综合成长等级（1-100），含 `value` 和 `reason`。判断依据：年龄、经历、训练强度、社会地位、特殊能力。普通成年市民 3-6；受过专业训练者 7-15；领域精英 16-30；世界观顶尖或超凡者 30+。必须根据人物实际背景判断，不要机械套用年龄段。
-13. `knowledge` 是已掌握的知识领域列表，每项含 `name, desc, level, levelEffects, reason`。必须根据人物学历、职业、生活经历生成；普通成年人至少有"现代常识"lv2-3；专业人员应有对应领域知识；知识领域不超过 5 个。
-14. `professions` 是已内化职业能力列表，每项含 `name, level, levelEffects, reason`。只有 `jobConfirmed=true` 或有明确职业证据时才生成职业项；每项职业等级必须反映实际经验年限和熟练度。职业项不超过 3 个。
-15. `skills` 每项含 `name, desc, level, levelEffects, reason`。level 必须反映人物在该技能上的真实熟练度：入门1、初学2、熟练3、专业4、专家5、大师6、传说7。`levelEffects` 用中文分号分隔各等级效果，格式如"lv1入门能X；lv2初学能Y；lv3熟能Z"，只需写到当前等级。
-16. `rpgField.intrinsicBase` 是个人等级为 1 时的身内能力基础值（1-20）和原因。普通人 6-10；受过训练者 11-15；超凡者 16-20；体弱/幼小者 3-5。七项固定 key：strength(力量)、agility(敏捷)、constitution(体质)、intelligence(智力)、perception(感知)、willpower(意志)、charisma(魅力)。
-17. `roleCardFieldReasons` 必须完整包含：姓名、所属世界、身份、职业、性别、生日、人际关系、外貌、性格、人物说明、社群角色、势力地位。每个值建议写当前人物本人相关的固化原因，尽量避免抽象套话。
-18. `rpgFieldReasons` 必须完整包含这些 key：{RPG字段列表}。每个值建议结合当前人物本人的经历、训练、身体状态或处境原因。
-16. 本轮不要返回 `initialMetrics`、`initial_metrics` 或任何情绪/感觉数组；初始数值会由下一步专用小请求生成。
-17. 成年角色若资料明确有恋爱、身体吸引、占有欲等证据，只写进 `detail/personality/roleCardFieldReasons` 的事实依据；不要在本轮展开数值数组。
+11. `control_experience` 是玩家对该人物的操控经验。首次生成时 `上线次数` 为 0，`习惯程度` 写"初次操控尚不熟悉"。
+12. `rpgField.derived` 是由基础属性和装备综合计算的派生属性。`攻击力` 综合力量、战斗技能、武器装备等计算；`防御力` 综合体质、防护装备、防御技能等计算。普通人攻击力/防御力 5-15；受过训练者 16-30；装备精良或超凡者 30+。必须根据人物实际属性和装备推算，给出计算原因。
+13. `worldValues` 只填"世界字段"中有证据的 key，没有则 `{}`。
+14. `rpgField.level` 是人物综合成长等级（1-100），含 `value` 和 `reason`。判断依据：年龄、经历、训练强度、社会地位、特殊能力。普通成年市民 3-6；受过专业训练者 7-15；领域精英 16-30；世界观顶尖或超凡者 30+。必须根据人物实际背景判断，不要机械套用年龄段。
+15. `knowledge` 是已掌握的知识领域列表，每项含 `name, desc, level, levelEffects, reason`。必须根据人物学历、职业、生活经历生成；普通成年人至少有"现代常识"lv2-3；专业人员应有对应领域知识；知识领域不超过 5 个。
+16. `professions` 是已内化职业能力列表，每项含 `name, level, levelEffects, reason`。只有 `jobConfirmed=true` 或有明确职业证据时才生成职业项；每项职业等级必须反映实际经验年限和熟练度。职业项不超过 3 个。
+17. `skills` 每项含 `name, desc, level, levelEffects, reason`。level 必须反映人物在该技能上的真实熟练度：入门1、初学2、熟练3、专业4、专家5、大师6、传说7。`levelEffects` 用中文分号分隔各等级效果，格式如"lv1入门能X；lv2初学能Y；lv3熟能Z"，只需写到当前等级。
+18. `rpgField.intrinsicBase` 是个人等级为 1 时的身内能力基础值（1-20）和原因。普通人 6-10；受过训练者 11-15；超凡者 16-20；体弱/幼小者 3-5。七项固定 key：strength(力量)、agility(敏捷)、constitution(体质)、intelligence(智力)、perception(感知)、willpower(意志)、charisma(魅力)。
+19. `roleCardFieldReasons` 必须完整包含：姓名、所属世界、身份、职业、性别、生日、人际关系、外貌、性格、人物说明、社群角色、势力地位。每个值建议写当前人物本人相关的固化原因，尽量避免抽象套话。
+20. `rpgFieldReasons` 必须完整包含这些 key：{RPG字段列表}。每个值建议结合当前人物本人的经历、训练、身体状态或处境原因。
+21. 本轮不要返回 `initialMetrics`、`initial_metrics` 或任何情绪/感觉数组；初始数值会由下一步专用小请求生成。
+22. 成年角色若资料明确有恋爱、身体吸引、占有欲等证据，只写进 `detail/personality/roleCardFieldReasons` 的事实依据；不要在本轮展开数值数组。
 
 ## 输出 JSON Schema
 
@@ -90,7 +92,7 @@ Rules：
 ```json
 {
   "type": "object",
-  "required": ["name", "worldTag", "age", "gender", "learningAbility", "mentalStability", "growthPotential", "actionAbility", "relationships", "role", "detail", "appearance", "personality", "faction", "factions", "forcePositions", "job", "jobConfirmed", "rank", "skills", "knowledge", "professions", "equipment", "items", "wearing", "worldValues", "rpgField", "roleCardFieldReasons", "rpgFieldReasons"],
+  "required": ["name", "worldTag", "age", "gender", "learningAbility", "mentalStability", "growthPotential", "actionAbility", "relationships", "role", "detail", "appearance", "personality", "faction", "factions", "forcePositions", "job", "jobConfirmed", "rank", "skills", "knowledge", "professions", "equipment", "items", "wearing", "control_experience", "worldValues", "rpgField", "roleCardFieldReasons", "rpgFieldReasons"],
   "additionalProperties": false,
   "properties": {
     "name": {
@@ -321,6 +323,16 @@ Rules：
         }
       }
     },
+    "control_experience": {
+      "type": "object",
+      "description": "玩家对该人物的操控经验。反映玩家对该角色的熟悉程度。",
+      "required": ["上线次数", "习惯程度"],
+      "additionalProperties": false,
+      "properties": {
+        "上线次数": { "type": "integer", "minimum": 0, "description": "玩家操控该人物的累计上线次数。" },
+        "习惯程度": { "type": "string", "description": "玩家对该人物操控的熟悉程度描述，如'初次操控尚不熟悉'、'多次操控已有默契'。" }
+      }
+    },
     "worldValues": {
       "type": "object",
       "description": "世界专属字段初始值。只填输入区'世界字段'中存在且证据明确的 key；没有则返回空对象 {}。"
@@ -328,7 +340,7 @@ Rules：
     "rpgField": {
       "type": "object",
       "description": "RPG 数值区。包含个人等级和身内能力基础值。",
-      "required": ["level", "intrinsicBase"],
+      "required": ["level", "intrinsicBase", "derived"],
       "additionalProperties": false,
       "properties": {
         "level": {
@@ -354,6 +366,16 @@ Rules：
             "perception": { "type": "object", "required": ["value", "reason"], "additionalProperties": false, "properties": { "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "感知基础值。" }, "reason": { "type": "string", "description": "感知基础值的原因句。" } } },
             "willpower": { "type": "object", "required": ["value", "reason"], "additionalProperties": false, "properties": { "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "意志基础值。" }, "reason": { "type": "string", "description": "意志基础值的原因句。" } } },
             "charisma": { "type": "object", "required": ["value", "reason"], "additionalProperties": false, "properties": { "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "魅力基础值。" }, "reason": { "type": "string", "description": "魅力基础值的原因句。" } } }
+          }
+        },
+        "derived": {
+          "type": "object",
+          "description": "派生属性。由基础属性和装备综合计算的攻防数值。",
+          "required": ["攻击力", "防御力"],
+          "additionalProperties": false,
+          "properties": {
+            "攻击力": { "type": "object", "required": ["value", "reason"], "additionalProperties": false, "properties": { "value": { "type": "integer", "minimum": 0, "description": "攻击力数值。综合力量、技能、装备等计算。" }, "reason": { "type": "string", "description": "攻击力数值的计算原因句。" } } },
+            "防御力": { "type": "object", "required": ["value", "reason"], "additionalProperties": false, "properties": { "value": { "type": "integer", "minimum": 0, "description": "防御力数值。综合体质、装备、技能等计算。" }, "reason": { "type": "string", "description": "防御力数值的计算原因句。" } } }
           }
         }
       }
@@ -533,7 +555,10 @@ Rules：
       "reason": "学生日常通勤穿着。"
     }
   ],
-  "worldValues": {},
+  "control_experience": {
+    "上线次数": 0,
+    "习惯程度": "初次操控尚不熟悉"
+  },
   "rpgField": {
     "level": { "value": 3, "reason": "十六岁高中女生，生活经验有限，未受专业训练。" },
     "intrinsicBase": {
@@ -544,40 +569,11 @@ Rules：
       "perception": { "value": 10, "reason": "性格内向但观察力强，对周围人事细节敏感。" },
       "willpower": { "value": 6, "reason": "心思细腻但容易被动，面对压力时意志力中等偏弱。" },
       "charisma": { "value": 7, "reason": "面容清秀但性格内向，魅力受社交主动性限制。" }
+    },
+    "derived": {
+      "攻击力": { "value": 5, "reason": "力量基础5，无战斗技能和武器，攻击力极低。" },
+      "防御力": { "value": 7, "reason": "体质基础7，无防护装备，仅靠年轻身体的基础抵抗力。" }
     }
-  },
-  "roleCardFieldReasons": {
-    "姓名": "人物基础区明确写明姓名为刘思琪。",
-    "所属世界": "世界观设定为2026现代都市现实世界。",
-    "身份": "人物基础区标注为妹妹，实际身份为高中二年级学生。",
-    "职业": "无已确认的长期职业，目前为学生身份。",
-    "性别": "人物基础区和资料确认为女性。",
-    "生日": "输入资料未提供具体生日，无法确认。",
-    "人际关系": "与姐姐刘思瑶和母亲张惠兰同住，家庭关系明确。",
-    "外貌": "基于人物基础区描述和年龄推断为清秀稚气的少女形象。",
-    "性格": "基于人物基础区描述为安静内向、心思细腻。",
-    "人物说明": "因姐姐关系进入玩家社交圈，在深圳外国语学校就读的高中女生。",
-    "社群角色": "属于刘家小女儿和学校学生两个社群身份。",
-    "势力地位": "作为中国公民和深圳外国语学校高二学生的身份地位。"
-  },
-  "rpgFieldReasons": {
-    "vitality": "刘思琪生命力由年轻女性基础体质和正常生活状态决定。",
-    "stamina_pool": "刘思琪精力池由学业压力和年轻体力共同决定。",
-    "satiety": "刘思琪饱食度来自与家人同住的稳定日常饮食。",
-    "hydration": "刘思琪水分状态来自现代都市居家生活保障。",
-    "fatigue": "刘思琪疲劳度来自学业压力和青春期作息。",
-    "knowledge": "刘思琪知识储备来自现代学生教育和家庭生活常识。",
-    "skills": "刘思琪技能由活跃气氛、撒娇试探和学生日常能力构成。",
-    "professions": "刘思琪职业等级来自大学一年级学生身份和基础学习经验。",
-    "factions": "刘思琪社群角色来自刘悠家庭中的妹妹位置。",
-    "force_positions": "刘思琪势力地位来自现实社会成年学生身份。",
-    "equipment": "刘思琪装备来自现代学生常用的智能手机。",
-    "items": "刘思琪物品来自学生证等现实身份凭证。",
-    "wearing": "刘思琪的穿着来自她长期维持精致学生形象的习惯，也反映她想用活泼明亮的外观得到哥哥回应。",
-    "status_tags": "刘思琪状态标签由成年妹妹、双胞胎、同居家庭和学生身份组成。",
-    "control_experience": "刘思琪尚未经历玩家上线操控，体验记录保持初始。",
-    "derived": "刘思琪攻防衍生由基础身体属性、学生身份和普通现实规则推导。",
-    "combat_simulation": "刘思琪战斗模拟基于普通现实成年学生的初始能力估算。"
   }
 }
 ```
