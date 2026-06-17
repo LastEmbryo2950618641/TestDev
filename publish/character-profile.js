@@ -153,10 +153,14 @@ window.GameModules.characterProfile = {
       const endMatch = endKey && start >= 0 ? raw.slice(start + 1).match(new RegExp(`"key"\\s*:\\s*"${endKey}"`)) : null;
       const end = endMatch ? start + 1 + endMatch.index : -1;
       const chunk = start >= 0 ? raw.slice(start, end >= 0 ? end : undefined) : '';
-      const value = chunk.match(/"value"\s*:\s*(-?\d+)/)?.[1];
+      const value = chunk.match(/"value"\s*:\s*(-?\d+)/)?.[1] ?? chunk.match(/,\s*(-?\d+)\s*(?:[}\]])/)?.[1];
       const status = chunk.match(/"status"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/)?.[1];
       const reason = this.pickMetricReason(raw, chunk, key, start);
-      if (value !== undefined || status || reason) items.push({ key, value: Number(value || 0), status: status || '', reason: reason || '' });
+      if (value !== undefined || status || reason) {
+        const complete = value !== undefined && status && reason;
+        const fallback = `${key}暂按当前资料保守记录，等待后续AI补齐。`;
+        items.push({ key, value: Number(value || 0), status: status || fallback, reason: reason || fallback, metricSources: this.metricSourceMap?.(complete ? 'ai' : '系统') });
+      }
     });
     return { [group]: items };
   },

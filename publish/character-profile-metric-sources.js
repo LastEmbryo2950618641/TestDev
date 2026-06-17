@@ -74,7 +74,8 @@ window.GameModules = window.GameModules || {};
       if (issues?.missingReason?.length) throw new Error(`${profile.name || '角色'} 的${issues.missingReason.join('、')}缺少AI生成的变化原因`);
       return keys.map((key) => {
         const item = value.find((entry) => entry?.key === key);
-        return this.withMetricSources({ key, value: window.GameModules.metrics.clamp(item.value), status: String(item.status).slice(0, 160), reason: String(item.reason).slice(0, 180) }, 'ai');
+        const sources = item.metricSources ? this.metricSources(item, 'ai') : this.metricSourceMap('ai');
+        return { key, value: window.GameModules.metrics.clamp(item.value), status: String(item.status).slice(0, 160), reason: String(item.reason).slice(0, 180), metricSources: sources };
       });
     },
 
