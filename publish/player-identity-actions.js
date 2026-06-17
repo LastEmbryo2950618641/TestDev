@@ -155,7 +155,7 @@ window.GameModules.playerIdentityActions = {
         status: String(window.GameModules.metrics.valueExplanation(item.key, value, item.status)).slice(0, 180),
         reason: String(item.reason || '').slice(0, 180),
         description: String(window.GameModules.metrics.descriptions[item.key] || item.key).slice(0, 120),
-        metricSources: item.metricSources || { 数值: 'system', 解释: 'system', 原因: 'system' },
+        metricSources: window.GameModules.characterProfile?.metricSources?.(item, '系统') || { 数值: '系统', 解释: '系统', 原因: '系统' },
       };
     });
     sync(profile.initialMetrics.emotions, state.metrics.emotions, window.GameModules.metrics.emotionKeys, 'emotion');

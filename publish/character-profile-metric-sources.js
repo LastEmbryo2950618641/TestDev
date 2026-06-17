@@ -7,17 +7,23 @@ window.GameModules = window.GameModules || {};
   const keysFor = (group) => group === 'emotions' ? window.GameModules.metrics.emotionKeys : window.GameModules.metrics.playerKeys;
 
   Object.assign(profileTool, {
-    metricSourceMap(source = 'system') {
-      return { 数值: source, 解释: source, 原因: source };
+    metricSourceValue(source = '系统') {
+      return source === 'ai' ? 'ai' : '系统';
     },
 
-    metricSources(item, fallback = 'system') {
+    metricSourceMap(source = '系统') {
+      const value = this.metricSourceValue(source);
+      return { 数值: value, 解释: value, 原因: value };
+    },
+
+    metricSources(item, fallback = '系统') {
       const raw = item?.metricSources || item?.sourceMap || {};
-      return { ...this.metricSourceMap(fallback), ...raw };
+      const merged = { ...this.metricSourceMap(fallback), ...raw };
+      return { 数值: this.metricSourceValue(merged.数值), 解释: this.metricSourceValue(merged.解释), 原因: this.metricSourceValue(merged.原因) };
     },
 
     metricSourcesAreAi(item) {
-      const sources = this.metricSources(item, 'system');
+      const sources = this.metricSources(item, '系统');
       return sources.数值 === 'ai' && sources.解释 === 'ai' && sources.原因 === 'ai';
     },
 
@@ -49,8 +55,8 @@ window.GameModules = window.GameModules || {};
           if (item.value === undefined) throw new Error(`${profile.name || '角色'} 缺少AI生成的${key}数值`);
           if (!this.validMetricText(item.status, key)) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的具体数值解释`);
           if (!this.validMetricText(item.reason, key)) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的具体变化原因`);
-          const source = this.metricSourcesAreAi(item) ? 'ai' : (item.metricSources ? 'system' : label);
-          return { key, value: window.GameModules.metrics.clamp(item.value), status: String(item.status).slice(0, 160), reason: String(item.reason).slice(0, 180), metricSources: this.metricSourceMap(source) };
+          const sources = this.metricSources(item, label);
+          return { key, value: window.GameModules.metrics.clamp(item.value), status: String(item.status).slice(0, 160), reason: String(item.reason).slice(0, 180), metricSources: sources };
         });
       };
       return { emotions: normalize(value?.emotions, keysFor('emotions'), 'system'), playerFeelings: normalize(value?.playerFeelings, keysFor('playerFeelings'), 'system') };
@@ -72,6 +78,24 @@ window.GameModules = window.GameModules || {};
       return keysFor(group).filter((key) => !this.metricSourcesAreAi(list.find((item) => item?.key === key)));
     },
 
+    mergeMetricAiFields(current, generated) {
+      const sources = this.metricSources(current, '系统');
+      const output = { ...current, metricSources: { ...sources } };
+      if (sources.数值 !== 'ai') {
+        output.value = generated.value;
+        output.metricSources.数值 = 'ai';
+      }
+      if (sources.解释 !== 'ai') {
+        output.status = generated.status;
+        output.metricSources.解释 = 'ai';
+      }
+      if (sources.原因 !== 'ai') {
+        output.reason = generated.reason;
+        output.metricSources.原因 = 'ai';
+      }
+      return output;
+    },
+
     async repairInitialMetricSources(profile, base, lore, attrs, context, store) {
       const current = this.initialMetrics(profile.initialMetrics, { ...base, ...profile });
       const evidence = this.initialMetricsEvidence(profile, base, lore, attrs, context, store);
@@ -80,7 +104,10 @@ window.GameModules = window.GameModules || {};
         if (!missing.length) continue;
         const generated = await this.generateMetricGroupChunks(profile, base, evidence, group, missing);
         const byKey = new Map(current[group].map((item) => [item.key, item]));
-        generated.forEach((item) => byKey.set(item.key, item));
+        generated.forEach((item) => {
+          const currentItem = byKey.get(item.key);
+          byKey.set(item.key, currentItem ? this.mergeMetricAiFields(currentItem, item) : item);
+        });
         current[group] = keysFor(group).map((key) => byKey.get(key));
       }
       return this.initialMetrics(current, { ...base, ...profile });

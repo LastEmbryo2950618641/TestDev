@@ -98,7 +98,7 @@ window.GameModules.metrics = {
     const stage = this.stageFor(item.key, value);
     target[item.key] = value;
     const fallbackUsed = this.metricReasonLooksGeneric(item.reason);
-    const metricSources = item.metricSources || { 数值: 'system', 解释: item.status ? 'ai' : 'system', 原因: fallbackUsed ? 'system' : 'ai' };
+    const metricSources = item.metricSources || { 数值: '系统', 解释: item.status ? 'ai' : '系统', 原因: fallbackUsed ? '系统' : 'ai' };
     notes[`${group}:${item.key}`] = {
       stage,
       status: String(this.valueExplanation(item.key, value, item.status)).slice(0, 180),

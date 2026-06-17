@@ -121,7 +121,7 @@ window.GameModules = window.GameModules || {};
     return keys.map((key) => {
       const item = byKey.get(key) || {};
       const sourceTool = window.GameModules.characterProfile;
-      const metricSources = sourceTool?.metricSources?.(item, item.metricSources ? 'system' : 'system') || { 数值: 'system', 解释: 'system', 原因: 'system' };
+      const metricSources = sourceTool?.metricSources?.(item, '系统') || { 数值: '系统', 解释: '系统', 原因: '系统' };
       return { key, value: window.GameModules.metrics.clamp(item.value ?? defaults[key] ?? 0), status: item.status || '', reason: item.reason || '', metricSources };
     });
   };
