@@ -143,6 +143,26 @@ window.GameModules.playerIdentityActions = {
     return state;
   },
 
+  syncIdentityMetricNotes(state, profile) {
+    if (!state?.metrics || !profile?.initialMetrics) return false;
+    const before = JSON.stringify(state.metrics.notes || {});
+    state.metrics.notes = state.metrics.notes || {};
+    const sync = (items, values, keys, group) => (Array.isArray(items) ? items : []).forEach((item) => {
+      if (!keys.includes(item?.key)) return;
+      const value = window.GameModules.metrics.clamp(values?.[item.key] ?? item.value);
+      state.metrics.notes[`${group}:${item.key}`] = {
+        stage: window.GameModules.metrics.stageFor(item.key, value),
+        status: String(window.GameModules.metrics.valueExplanation(item.key, value, item.status)).slice(0, 180),
+        reason: String(item.reason || '').slice(0, 180),
+        description: String(window.GameModules.metrics.descriptions[item.key] || item.key).slice(0, 120),
+        metricSources: item.metricSources || { 数值: 'system', 解释: 'system', 原因: 'system' },
+      };
+    });
+    sync(profile.initialMetrics.emotions, state.metrics.emotions, window.GameModules.metrics.emotionKeys, 'emotion');
+    sync(profile.initialMetrics.playerFeelings, state.metrics.playerFeelings, window.GameModules.metrics.playerKeys, 'player');
+    return before !== JSON.stringify(state.metrics.notes || {});
+  },
+
   async ensureIdentityMetricSources(targetId = 'player-self') {
     if (!window.GameModules.sqliteSave?.db) return;
     const id = targetId || 'player-self';
@@ -154,8 +174,11 @@ window.GameModules.playerIdentityActions = {
     const context = [state.profile.detail, state.profile.personality, state.note].filter(Boolean).join('；');
     try {
       state.profile = await tool.ensureInitialMetricSources(state.profile, state.profile, context, this);
-      if (before === JSON.stringify(state.profile.initialMetrics || {})) return;
-      window.GameModules.rpgProfileMetrics?.rebase?.(state, state.profile, previousProfile);
+      const profileChanged = before !== JSON.stringify(state.profile.initialMetrics || {});
+      if (profileChanged) window.GameModules.rpgProfileMetrics?.rebase?.(state, state.profile, previousProfile);
+      const notesChanged = this.syncIdentityMetricNotes(state, state.profile);
+      if (!profileChanged && !notesChanged) return;
+      state.id = state.id || id;
       await window.GameModules.sqliteSave.saveCharacterState(state);
       this.rpgStates = { ...(this.rpgStates || {}), [state.id]: state };
       if (id === this.character?.id) this.character = state.profile;
