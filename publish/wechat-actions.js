@@ -1,10 +1,7 @@
-window.GameModules = window.GameModules || {};
-
-window.GameModules.wechatActions = {
+window.GameModules = window.GameModules || {}; window.GameModules.wechatActions = {
   defaultWechatGroup() {
     return { id: 'group-main', name: '操控者交流群', mark: '群', subtitle: '聊天群', latest: '系统：新手机已激活。', unread: 8, group: true };
   },
-
   normalizeWechatContact(raw = {}) {
     const name = String(raw.name || '').trim().slice(0, 24);
     if (!name) return null;
@@ -14,20 +11,17 @@ window.GameModules.wechatActions = {
     const characterId = String(raw.characterId || raw.profileId || raw.stateId || '').trim();
     return { id, characterId, name, relation, subtitle: relation, mark: String(raw.mark || name.slice(0, 1)).slice(0, 2), latest: String(raw.latest || `${relation}资料已同步。`).slice(0, 80), unread: Number(raw.unread) || 0, group: false, source: raw.source || 'manual', context: raw.context || '', needsNameAi };
   },
-
   isWechatPlaceholderName(name = '') {
     const text = String(name || '').trim();
     return !text || /待命名|待AI补全|等待AI补全|等待ai补全|姓名待AI补全/i.test(text)
       || /^(妹妹|姐姐|哥哥|弟弟|父亲|母亲|爸爸|妈妈|女友|男友|妻子|丈夫|联系人)$/.test(text)
       || /^(双胞胎|三胞胎|多胞胎)?(妹妹|姐姐|哥哥|弟弟|兄弟|姐妹|联系人)(之一|之二|之三|其一|其二|其三)$/.test(text);
   },
-
   concreteWechatProfileName(profile, contact = {}) {
     const name = String(profile?.name || '').trim();
     if (!name || this.isWechatPlaceholderName(name) || name === contact.relation) return '';
     return name.slice(0, 24);
   },
-
   wechatCharacterId(contact) {
     if (!contact || contact.group) return '';
     const hasState = (id) => id && (this.rpgStates?.[id] || window.GameModules.sqliteSave?.getCharacterState?.(id));
@@ -41,7 +35,6 @@ window.GameModules.wechatActions = {
     if (hasState(card?.id)) return card.id;
     return contact.characterId || contact.id || '';
   },
-
   displayWechatContact(contact) {
     if (!contact || contact.group) return contact;
     const characterId = this.wechatCharacterId(contact);
@@ -50,17 +43,16 @@ window.GameModules.wechatActions = {
     const id = state?.id || characterId || contact.id;
     return name ? { ...contact, id, characterId: id, name, mark: name.slice(0, 1), needsNameAi: false } : { ...contact, id, characterId: id };
   },
-
   syncWechatContactId(oldId, characterId) {
     if (!oldId || !characterId || oldId === characterId) return false;
-    const oldMessages = this.wechatMessagesByContact?.[oldId] || [];
-    const newMessages = this.wechatMessagesByContact?.[characterId] || [];
-    this.wechatMessagesByContact = { ...(this.wechatMessagesByContact || {}), [characterId]: newMessages.length ? newMessages : oldMessages };
+    const messages = { ...(this.wechatMessagesByContact || {}) };
+    window.GameModules.wechatCleanup?.moveMessages?.(messages, oldId, characterId);
+    window.GameModules.wechatCleanup?.moveMemory?.(oldId, characterId);
+    this.wechatMessagesByContact = messages;
     this.wechatUsers = (this.wechatUsers || []).map((item) => item.id === oldId ? { ...item, id: characterId, characterId } : item);
     if (this.wechatSelectedContact === oldId) this.wechatSelectedContact = characterId;
     return true;
   },
-
   syncWechatContactProfileName(id, profile) {
     const old = (this.wechatUsers || []).find((item) => item.id === id);
     const name = this.concreteWechatProfileName(profile, old);
@@ -68,7 +60,6 @@ window.GameModules.wechatActions = {
     this.renameWechatContact(id, name);
     return true;
   },
-
   syncWechatContactsFromRpgStates() {
     let changed = false;
     const messages = { ...(this.wechatMessagesByContact || {}) };
@@ -79,21 +70,19 @@ window.GameModules.wechatActions = {
       const name = this.concreteWechatProfileName(state?.profile, item);
       let next = canonicalId && item.id !== canonicalId ? { ...item, id: canonicalId, characterId: canonicalId } : (canonicalId && item.characterId !== canonicalId ? { ...item, characterId: canonicalId } : item);
       if (name && next.name !== name) next = { ...next, name, mark: name.slice(0, 1), subtitle: next.relation || next.subtitle, needsNameAi: false };
-      if (canonicalId && item.id !== canonicalId) messages[canonicalId] = messages[canonicalId] || messages[item.id] || [];
+      if (canonicalId && item.id !== canonicalId) { window.GameModules.wechatCleanup?.moveMessages?.(messages, item.id, canonicalId); window.GameModules.wechatCleanup?.moveMemory?.(item.id, canonicalId); }
       if (next !== item) changed = true;
       return next;
     });
     this.wechatMessagesByContact = messages;
     return changed;
   },
-
   async ensureWechatUserProfile(contact) {
     if (!contact || contact.group) return null;
     this.wechatProfileInflight = this.wechatProfileInflight || {};
     if (this.wechatProfileInflight[contact.id]) return this.wechatProfileInflight[contact.id];
     return this.wechatProfileInflight[contact.id] = this.ensureWechatUserProfileRun(contact).finally(() => { delete this.wechatProfileInflight[contact.id]; });
   },
-
   async ensureWechatUserProfileRun(contact) {
     const characterId = this.wechatCharacterId(contact);
     const cached = window.GameModules.sqliteSave.getCharacterState(characterId || contact.id);
@@ -138,17 +127,14 @@ window.GameModules.wechatActions = {
     if (idChanged || renamed) await this.save?.();
     return state;
   },
-
   wechatRelationProfileHint(contact) {
     const relation = String(contact?.relation || contact?.name || '联系人');
     const nameRule = `必须由AI根据世界观、地区文化、家庭制度、玩家姓名、玩家性别与“${relation}”这段社会关系推理正式姓名和性别；不要硬套同姓规则，母亲/配偶/继亲/养亲等可能不同姓；不要直接用关系称谓当姓名。`;
     return { nameRule, placeholderName: `${relation}待命名`, detail: `玩家的${relation}，需要按世界观、文化习俗和社会关系补全姓名、性别与资料。` };
   },
-
   renameWechatContact(id, name) {
     this.wechatUsers = (this.wechatUsers || []).map((item) => item.id === id ? { ...item, name, mark: String(name).slice(0, 1), subtitle: item.relation || item.subtitle, needsNameAi: false } : item);
   },
-
   async addWechatUser(user = {}, options = {}) {
     const contact = this.normalizeWechatContact(user);
     if (!contact) return null;
@@ -168,7 +154,6 @@ window.GameModules.wechatActions = {
     if (options.save !== false) await this.save?.();
     return normalized;
   },
-
   async addWechatUsers(users = [], options = {}) {
     if (!Array.isArray(users)) return [];
     const added = [];
@@ -178,7 +163,6 @@ window.GameModules.wechatActions = {
     }
     return added;
   },
-
   async submitWechatAddUser() {
     const contact = await this.addWechatUser({ name: this.wechatAddName, relation: this.wechatAddRelation || '微信联系人', source: 'manual' }, { generateProfile: true });
     if (!contact) return null;
@@ -187,7 +171,6 @@ window.GameModules.wechatActions = {
     this.wechatTab = 'contacts';
     return contact;
   },
-
   inferWechatUsersFromRelationships(text = '') {
     const source = String(text || '').trim();
     if (!source) return [];
@@ -209,7 +192,6 @@ window.GameModules.wechatActions = {
       return { id: characterId || `rel-${index}-${name}`, characterId, name, relation: relation || '关系联系人', latest: `${relation || name}资料已从玩家人际关系同步。`, source: 'relationships', context: rest || part, needsNameAi };
     }).filter((user) => user && user.name && user.name !== selfName).slice(0, 20);
   },
-
   async syncRelationshipWechatUsers(options = {}) {
     const users = this.inferWechatUsersFromRelationships(this.playerProfile?.relationships || '');
     return this.addWechatUsers(users, options);

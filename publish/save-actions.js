@@ -1,22 +1,18 @@
 window.GameModules = window.GameModules || {};
-
 window.GameModules.saveActions = {
   async refreshSaveMetas() {
     const entries = await Promise.all(this.saveSlots.map(async (slot) => [slot, await window.GameModules.sqliteSave.inspectSlot(slot)]));
     this.saveMetas = Object.fromEntries(entries);
   },
-
   saveMeta(slot) {
     return this.saveMetas[slot] || { slot, exists: false, savedAt: '' };
   },
-
   formatSaveTime(value) {
     if (!value) return '无存档';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return '时间未知';
     return date.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
   },
-
   async openSlot(slot) {
     this.selectedSlot = slot;
     await window.GameModules.storage.open(slot);
@@ -27,7 +23,6 @@ window.GameModules.saveActions = {
     this.loadSavedRpgStates();
     if (this.phoneSetupDone) try { await this.ensurePlayerRpgState?.(); } catch (err) { console.warn('[存档] 玩家资料原因迁移失败:', err.message, err.stack); this.setupError = `玩家本人资料需要重新生成：${err.message || 'AI暂时不可用'}`; }
   },
-
   async loadSlot(slot) {
     if (this.busy || !this.saveMeta(slot).exists) return;
     await this.openSlot(slot);
@@ -36,7 +31,6 @@ window.GameModules.saveActions = {
     this.savePanelOpen = false;
     this.saveAppOpen = false;
   },
-
   async overwriteSlot(slot) {
     if (this.busy) return;
     const source = this.selectedSlot;
@@ -55,7 +49,6 @@ window.GameModules.saveActions = {
     await this.refreshSaveMetas();
     this.saveMessage = slot === source ? `已覆盖保存 ${slot}` : `已完整复制当前数据并覆盖 ${slot}`;
   },
-
   async newSlot(slot) {
     await window.GameModules.storage.remove(slot);
     this.selectedSlot = slot;
@@ -67,17 +60,17 @@ window.GameModules.saveActions = {
     this.rpgPanelCharacterId = this.selectedCharacterId;
     if (this.phoneSetupDone) await this.ensurePlayerRpgState?.(true);
   },
-
   loadSavedRpgStates() {
     const states = window.GameModules.sqliteSave.listCharacterStates();
+    const migrated = window.GameModules.wechatCleanup?.migrateIds?.(this);
     const cleaned = states.map((state) => {
       const changed = window.GameModules.progression.ensureInventoryFields?.(state?.values);
       if (changed) window.GameModules.sqliteSave.saveCharacterState(state).catch((err) => console.warn('[存档清洗] 角色穿着说明保存失败:', err.message, err.stack));
       return state;
     });
     this.rpgStates = Object.fromEntries(cleaned.map((state) => [state.id, state]));
+    if (migrated) window.GameModules.storage.put(window.GameModules.storage.snapshot(this)).catch((err) => console.warn('[微信迁移] 保存角色ID迁移失败:', err.message, err.stack));
   },
-
   prepareRpgSchemaForSelectedWork() {
     if (!window.GameModules.sqliteSave.db || !this.character?.work) return null;
     const worldTag = this.character.work || '原创世界';
@@ -86,11 +79,9 @@ window.GameModules.saveActions = {
       return null;
     });
   },
-
   prepareRpgForSelectedCharacter() {
     return this.prepareRpgSchemaForSelectedWork();
   },
-
   async ensureRpgForCharacter(character, context = '', options = {}) {
     if (!window.GameModules.sqliteSave.db || !character) return null;
     const worldTag = character.work || '原创世界';
@@ -102,7 +93,6 @@ window.GameModules.saveActions = {
     this.rpgPanelCharacterId = this.rpgPanelCharacterId || state.id;
     return state;
   },
-
   async ensureRpgForCurrentCharacter(options = {}) {
     if (!options.refresh && this.rpgStates[this.character.id]) {
       this.loadMetricsFromCharacterState(this.rpgStates[this.character.id]);
@@ -110,7 +100,6 @@ window.GameModules.saveActions = {
     }
     return this.ensureRpgForCharacter(this.character, this.entryCurrentAction || this.sceneTitle || '');
   },
-
   async ensureRpgFromResults(result) {
     await this.ensureRpgForCurrentCharacter();
     const entries = [this.character, ...(result.appearedCharacters || [])];
@@ -119,7 +108,6 @@ window.GameModules.saveActions = {
       await this.ensureRpgForCharacter(entry, context, { loadMetrics: entry.id === this.character.id });
     }
   },
-
   findKnownCharacter(name) {
     if (!name) return null;
     for (const work of this.works) {
@@ -128,7 +116,6 @@ window.GameModules.saveActions = {
     }
     return null;
   },
-
   rpgVitals(state) {
     const values = state?.values || {};
     const percent = (pool) => pool?.max ? Math.round((pool.current / pool.max) * 100) : 100;
@@ -137,7 +124,6 @@ window.GameModules.saveActions = {
       { key: 'stamina', label: '精力', value: values.stamina ?? percent(values.stamina_pool), text: this.rpgFieldValue(values.stamina_pool) },
     ];
   },
-
   rpgFieldValue(value) {
     if (Array.isArray(value)) return value.map((item) => this.rpgFieldValue(item));
     if (!value || typeof value !== 'object') return value;
@@ -153,7 +139,6 @@ window.GameModules.saveActions = {
     if (value.level) return `${value.name} lv${value.level}（${value.type || '能力'}）`;
     return JSON.stringify(value);
   },
-
   rpgEntries(state) {
     if (!state?.schema) return [];
     window.GameModules.progression.ensureStateMechanics(state, state.profile || {});
@@ -172,21 +157,18 @@ window.GameModules.saveActions = {
         }),
     })).filter((section) => section.fields.length);
   },
-
   memoryItems(kind) {
     const memory = this.currentMemory;
     if (kind === 'shortTerm') return [...(memory.shortTerm.recent || []), ...(memory.shortTerm.summarized || [])];
     if (kind === 'longTerm') return [...(memory.longTerm.vivid || []), ...(memory.longTerm.permanent || [])];
     return [];
   },
-
   memoryStatus(kind) {
     const memory = this.currentMemory;
     const m = window.GameModules.characterMemory;
     if (kind === 'shortTerm') return [m.statLine('刚发生记忆', m.stats(memory.shortTerm.recent, m.limits.recent)), m.statLine('近发生记忆', m.stats(memory.shortTerm.summarized, m.limits.summarized)), m.statLine('遗忘区', m.stats(memory.shortTerm.forgotten, m.limits.forgotten))].join('｜');
     return [m.statLine('难以忘记', m.stats(memory.longTerm.vivid, m.limits.vivid)), m.statLine('不可忘记', m.stats(memory.longTerm.permanent, m.limits.permanent))].join('｜');
   },
-
   async addManualMemory() {
     const text = this.memoryInput.trim();
     const state = this.currentRpgState;
@@ -194,7 +176,6 @@ window.GameModules.saveActions = {
     await window.GameModules.characterMemory.addManual(state.id, text, this);
     this.memoryInput = '';
   },
-
   async searchMemoryArchive() {
     const state = this.characterRpgState;
     const query = this.memoryArchiveQuery.trim();
