@@ -14,12 +14,6 @@
       "reason": "学生日常上学使用。"
     },
     {
-      "name": "华为电子手表",
-      "description": "华为最新电子手表",
-      "equipSlots": ["手腕"],
-      "reason": "喜欢高科技。"
-    },
-    {
       "name": "猫尾巴",
       "description": "黑色猫尾",
       "equipSlots": ["腰臀"],
@@ -59,12 +53,18 @@
     }
   ],
   "wearing": {
+    "head": { "bodyPart": "头部", "name": "发卡", "description": "浅蓝色简约发卡", "reason": "固定刘海用。" },
+    "neck": { "bodyPart": "颈部", "name": "", "description": "", "reason": "上学日不佩戴颈饰。" },
     "innerwearTop": { "bodyPart": "胸部", "name": "学生内衣", "description": "白色棉质学生内衣", "reason": "日常上学穿着。" },
     "top": { "bodyPart": "躯干", "name": "校服上衣", "description": "深圳外国语学校白色短袖校服", "reason": "上学日统一着装。" },
+    "outerwear": { "bodyPart": "躯干(外)", "name": "校服外套", "description": "深圳外国语学校深蓝色校服外套", "reason": "教室空调冷时穿着。" },
+    "gloves": { "bodyPart": "手部", "name": "", "description": "", "reason": "六月深圳天气炎热，不需戴手套。" },
+    "waist": { "bodyPart": "腰部", "name": "", "description": "", "reason": "校服长裤自带松紧腰，不需腰带。" },
     "innerwearBottom": { "bodyPart": "腰臀", "name": "学生内裤", "description": "浅色棉质内裤", "reason": "日常上学穿着。" },
     "bottom": { "bodyPart": "腿部", "name": "校服长裤", "description": "深圳外国语学校深蓝色校服长裤", "reason": "上学日统一着装。" },
     "socks": { "bodyPart": "脚踝", "name": "白色短袜", "description": "白色棉质短袜", "reason": "搭配校服穿着。" },
-    "shoes": { "bodyPart": "脚部", "name": "白色运动鞋", "description": "白色帆布运动鞋", "reason": "学生日常通勤穿着。" }
+    "shoes": { "bodyPart": "脚部", "name": "白色运动鞋", "description": "白色帆布运动鞋", "reason": "学生日常通勤穿着。" },
+    "wrist": { "bodyPart": "手腕", "name": "华为电子手表", "description": "华为最新电子手表", "reason": "喜欢高科技。" }
   },
   "rpgField": {
     "level": { "value": 3, "reason": "十六岁高中女生，生活经验有限，未受专业训练。" },

@@ -62,11 +62,11 @@ Rules：
 
 ### wearing
 
-固定六个槽位的对象，key 为英文：`innerwearTop`(内衣)、`top`(上衣)、`innerwearBottom`(内裤)、`bottom`(下衣)、`socks`(袜子)、`shoes`(鞋子)。六个槽位必须全部填写。
+固定十二个槽位的对象，key 为英文，按身体从上到下排列：`head`(头饰)、`neck`(颈饰)、`innerwearTop`(内衣)、`top`(上衣)、`outerwear`(外套)、`gloves`(手套)、`waist`(腰饰)、`innerwearBottom`(内裤)、`bottom`(下衣)、`socks`(袜子)、`shoes`(鞋子)、`wrist`(腕饰)。十二个槽位必须全部填写。
 
 每项含：`bodyPart`(string,身体部位)、`name`(string,穿着名)、`description`(string,说明)、`reason`(string,穿戴原因)。`slot` 字段已移除，由 key 标识槽位。
 
-各槽位的 bodyPart 固定映射：innerwearTop→胸部、top→躯干、innerwearBottom→腰臀、bottom→腿部、socks→脚踝、shoes→脚部。
+各槽位的 bodyPart 固定映射：head→头部、neck→颈部、innerwearTop→胸部、top→躯干、outerwear→躯干(外)、gloves→手部、waist→腰部、innerwearBottom→腰臀、bottom→腿部、socks→脚踝、shoes→脚部、wrist→手腕。
 常规生活场景必须全部填写穿着；特殊场景未穿戴时 `name`/`description` 填空字符串，`reason` 写明未穿戴原因。
 
 ### rpgField
@@ -129,10 +129,34 @@ Rules：
     },
     "wearing": {
       "type": "object",
-      "description": "穿着对象。六个固定槽位必须全部填写，常规生活场景不可留空；特殊场景未穿戴时name/description填空字符串、reason写明未穿戴原因。",
-      "required": ["innerwearTop", "top", "innerwearBottom", "bottom", "socks", "shoes"],
+      "description": "穿着对象。十二个固定槽位必须全部填写，常规生活场景不可留空；特殊场景未穿戴时name/description填空字符串、reason写明未穿戴原因。",
+      "required": ["head", "neck", "innerwearTop", "top", "outerwear", "gloves", "waist", "innerwearBottom", "bottom", "socks", "shoes", "wrist"],
       "additionalProperties": false,
       "properties": {
+        "head": {
+          "type": "object",
+          "required": ["bodyPart", "name", "description", "reason"],
+          "additionalProperties": false,
+          "description": "头饰槽位。bodyPart固定为'头部'。",
+          "properties": {
+            "bodyPart": { "type": "string", "minLength": 1, "description": "身体部位，固定为'头部'。" },
+            "name": { "type": "string", "description": "穿着名称。未穿戴时填空字符串。" },
+            "description": { "type": "string", "description": "穿着说明。未穿戴时填空字符串。" },
+            "reason": { "type": "string", "minLength": 1, "description": "穿戴原因，或未穿戴的原因。" }
+          }
+        },
+        "neck": {
+          "type": "object",
+          "required": ["bodyPart", "name", "description", "reason"],
+          "additionalProperties": false,
+          "description": "颈饰槽位。bodyPart固定为'颈部'。",
+          "properties": {
+            "bodyPart": { "type": "string", "minLength": 1, "description": "身体部位，固定为'颈部'。" },
+            "name": { "type": "string", "description": "穿着名称。未穿戴时填空字符串。" },
+            "description": { "type": "string", "description": "穿着说明。未穿戴时填空字符串。" },
+            "reason": { "type": "string", "minLength": 1, "description": "穿戴原因，或未穿戴的原因。" }
+          }
+        },
         "innerwearTop": {
           "type": "object",
           "required": ["bodyPart", "name", "description", "reason"],
@@ -152,6 +176,42 @@ Rules：
           "description": "上衣槽位。bodyPart固定为'躯干'。",
           "properties": {
             "bodyPart": { "type": "string", "minLength": 1, "description": "身体部位，固定为'躯干'。" },
+            "name": { "type": "string", "description": "穿着名称。未穿戴时填空字符串。" },
+            "description": { "type": "string", "description": "穿着说明。未穿戴时填空字符串。" },
+            "reason": { "type": "string", "minLength": 1, "description": "穿戴原因，或未穿戴的原因。" }
+          }
+        },
+        "outerwear": {
+          "type": "object",
+          "required": ["bodyPart", "name", "description", "reason"],
+          "additionalProperties": false,
+          "description": "外套槽位。bodyPart固定为'躯干(外)'。",
+          "properties": {
+            "bodyPart": { "type": "string", "minLength": 1, "description": "身体部位，固定为'躯干(外)'。" },
+            "name": { "type": "string", "description": "穿着名称。未穿戴时填空字符串。" },
+            "description": { "type": "string", "description": "穿着说明。未穿戴时填空字符串。" },
+            "reason": { "type": "string", "minLength": 1, "description": "穿戴原因，或未穿戴的原因。" }
+          }
+        },
+        "gloves": {
+          "type": "object",
+          "required": ["bodyPart", "name", "description", "reason"],
+          "additionalProperties": false,
+          "description": "手套槽位。bodyPart固定为'手部'。",
+          "properties": {
+            "bodyPart": { "type": "string", "minLength": 1, "description": "身体部位，固定为'手部'。" },
+            "name": { "type": "string", "description": "穿着名称。未穿戴时填空字符串。" },
+            "description": { "type": "string", "description": "穿着说明。未穿戴时填空字符串。" },
+            "reason": { "type": "string", "minLength": 1, "description": "穿戴原因，或未穿戴的原因。" }
+          }
+        },
+        "waist": {
+          "type": "object",
+          "required": ["bodyPart", "name", "description", "reason"],
+          "additionalProperties": false,
+          "description": "腰饰槽位。bodyPart固定为'腰部'。",
+          "properties": {
+            "bodyPart": { "type": "string", "minLength": 1, "description": "身体部位，固定为'腰部'。" },
             "name": { "type": "string", "description": "穿着名称。未穿戴时填空字符串。" },
             "description": { "type": "string", "description": "穿着说明。未穿戴时填空字符串。" },
             "reason": { "type": "string", "minLength": 1, "description": "穿戴原因，或未穿戴的原因。" }
@@ -200,6 +260,18 @@ Rules：
           "description": "鞋子槽位。bodyPart固定为'脚部'。",
           "properties": {
             "bodyPart": { "type": "string", "minLength": 1, "description": "身体部位，固定为'脚部'。" },
+            "name": { "type": "string", "description": "穿着名称。未穿戴时填空字符串。" },
+            "description": { "type": "string", "description": "穿着说明。未穿戴时填空字符串。" },
+            "reason": { "type": "string", "minLength": 1, "description": "穿戴原因，或未穿戴的原因。" }
+          }
+        },
+        "wrist": {
+          "type": "object",
+          "required": ["bodyPart", "name", "description", "reason"],
+          "additionalProperties": false,
+          "description": "腕饰槽位。bodyPart固定为'手腕'。",
+          "properties": {
+            "bodyPart": { "type": "string", "minLength": 1, "description": "身体部位，固定为'手腕'。" },
             "name": { "type": "string", "description": "穿着名称。未穿戴时填空字符串。" },
             "description": { "type": "string", "description": "穿着说明。未穿戴时填空字符串。" },
             "reason": { "type": "string", "minLength": 1, "description": "穿戴原因，或未穿戴的原因。" }
@@ -327,7 +399,7 @@ Rules：
 ## 生成规则
 
 1. `equipment`/`items` 每项必须有 `reason`，写持有该物品的具体原因。`wearing` 每个槽位必须有 `reason`，写穿戴原因或未穿戴原因。
-2. `wearing` 六个固定槽位（innerwearTop/top/innerwearBottom/bottom/socks/shoes）必须全部填写。常规生活场景不可留空；特殊场景未穿戴时 `name`/`description` 填空字符串，`reason` 写明未穿戴原因。
+2. `wearing` 十二个固定槽位（head/neck/innerwearTop/top/outerwear/gloves/waist/innerwearBottom/bottom/socks/shoes/wrist）必须全部填写。常规生活场景不可留空；特殊场景未穿戴时 `name`/`description` 填空字符串，`reason` 写明未穿戴原因。
 3. `rpgField.derived` 必须根据实际属性和装备推算，给出计算原因。
 4. 根字段 `name` 必须与 Part1 已生成的基础信息中的姓名一致。
 5. 不要输出 `rpgFieldReasons` 或任何 Part3 JSON 模板中不存在的字段。
@@ -354,12 +426,18 @@ Rules：
     }
   ],
   "wearing": {
+    "head": { "bodyPart": "头部", "name": "发卡", "description": "浅蓝色简约发卡", "reason": "固定刘海用。" },
+    "neck": { "bodyPart": "颈部", "name": "", "description": "", "reason": "上学日不佩戴颈饰。" },
     "innerwearTop": { "bodyPart": "胸部", "name": "学生内衣", "description": "白色棉质学生内衣", "reason": "日常上学穿着。" },
     "top": { "bodyPart": "躯干", "name": "校服上衣", "description": "深圳外国语学校白色短袖校服", "reason": "上学日统一着装。" },
+    "outerwear": { "bodyPart": "躯干(外)", "name": "校服外套", "description": "深圳外国语学校深蓝色校服外套", "reason": "教室空调冷时穿着。" },
+    "gloves": { "bodyPart": "手部", "name": "", "description": "", "reason": "六月深圳天气炎热，不需戴手套。" },
+    "waist": { "bodyPart": "腰部", "name": "", "description": "", "reason": "校服长裤自带松紧腰，不需腰带。" },
     "innerwearBottom": { "bodyPart": "腰臀", "name": "学生内裤", "description": "浅色棉质内裤", "reason": "日常上学穿着。" },
     "bottom": { "bodyPart": "腿部", "name": "校服长裤", "description": "深圳外国语学校深蓝色校服长裤", "reason": "上学日统一着装。" },
     "socks": { "bodyPart": "脚踝", "name": "白色短袜", "description": "白色棉质短袜", "reason": "搭配校服穿着。" },
-    "shoes": { "bodyPart": "脚部", "name": "白色运动鞋", "description": "白色帆布运动鞋", "reason": "学生日常通勤穿着。" }
+    "shoes": { "bodyPart": "脚部", "name": "白色运动鞋", "description": "白色帆布运动鞋", "reason": "学生日常通勤穿着。" },
+    "wrist": { "bodyPart": "手腕", "name": "皮筋手环", "description": "编织皮筋手环", "reason": "同学送的友谊手环，日常佩戴。" }
   },
   "rpgField": {
     "level": { "value": 3, "reason": "十六岁高中女生，生活经验有限，未受专业训练。" },
