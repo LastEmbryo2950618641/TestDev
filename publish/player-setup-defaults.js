@@ -1,12 +1,27 @@
 window.GameModules = window.GameModules || {};
 window.GameModules.playerSetupActions = window.GameModules.playerSetupActions || {};
 Object.assign(window.GameModules.playerSetupActions, {
+  defaultProfileScriptUrl: (() => {
+    try { return document.currentScript?.src || ''; }
+    catch (_) { return ''; }
+  })(),
+  defaultProfileBaseUrl: (() => {
+    try {
+      const scriptSrc = document.currentScript?.src || '';
+      if (scriptSrc) return new URL('.', scriptSrc).toString();
+      return new URL('.', document.baseURI).toString();
+    } catch (_) { return ''; }
+  })(),
+
   defaultProfileFileCandidates(file = 'config/default-existing-profile.json') {
     const raw = String(file || '').replace(/^\.\//, '');
     const bases = [];
     try { if (document.querySelector('base[href]')?.href) bases.push(document.querySelector('base[href]').href); } catch (_) {}
     try { if (document.baseURI) bases.push(document.baseURI); } catch (_) {}
+    try { if (this.defaultProfileBaseUrl) bases.push(this.defaultProfileBaseUrl); } catch (_) {}
+    try { if (this.defaultProfileScriptUrl) bases.push(this.defaultProfileScriptUrl); } catch (_) {}
     try { if (window.GameModules.promptTemplates?.baseUrl) bases.push(window.GameModules.promptTemplates.baseUrl); } catch (_) {}
+    try { if (window.GameModules.promptTemplates?.scriptUrl) bases.push(window.GameModules.promptTemplates.scriptUrl); } catch (_) {}
     const urls = bases.flatMap((base) => {
       try { return [new URL(raw, base).toString()]; }
       catch (_) { return []; }
@@ -17,33 +32,49 @@ Object.assign(window.GameModules.playerSetupActions, {
 
   async readDefaultProfileFile() {
     let lastError = null;
-    for (const url of this.defaultProfileFileCandidates()) {
+    const urls = this.defaultProfileFileCandidates();
+    for (const url of urls) {
       try {
         const res = await fetch(url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return await res.json();
+        const data = await res.json();
+        console.log('[玩家身份] 已读取默认资料文件:', url);
+        return data;
       } catch (err) {
         lastError = err;
       }
     }
-    throw lastError || new Error('默认资料文件不可用');
+    const detail = urls.join('、');
+    throw new Error(`${lastError?.message || '默认资料文件不可用'}；已尝试：${detail}`);
   },
 
   async defaultExistingAccountProfile() {
-    let data = null;
+    let data = null, source = 'file';
     const inline = window.GameModules.defaultExistingProfile;
-    const inBlobPreview = window.GameModules.promptTemplates?.isBlobPreview?.();
-    if (inBlobPreview && inline) data = inline;
-    if (!data) {
-      try {
-        data = await this.readDefaultProfileFile();
-      } catch (err) {
-        console.info('[玩家身份] 默认资料文件不可用，使用内联快照:', err.message);
-        data = inline;
-      }
+    try {
+      data = await this.readDefaultProfileFile();
+    } catch (err) {
+      source = 'inline';
+      console.info('[玩家身份] 默认资料文件不可用，使用内联快照:', err.message);
+      data = inline;
     }
     if (!data?.name || !data?.birthday) throw new Error('默认资料缺少 name 或 birthday');
+    console.log('[玩家身份] 默认资料来源:', source, data.name, data.birthday);
     return { ...data, age: this.playerAgeFromBirthday(data.birthday), initializedAt: new Date().toISOString() };
+  },
+
+  async debugDefaultProfileSource() {
+    const urls = this.defaultProfileFileCandidates();
+    const report = { urls, source: 'none', name: '', birthday: '', error: '' };
+    try {
+      const data = await this.readDefaultProfileFile();
+      report.source = 'file'; report.name = data?.name || ''; report.birthday = data?.birthday || '';
+    } catch (err) {
+      const inline = window.GameModules.defaultExistingProfile || {};
+      report.source = 'inline'; report.name = inline.name || ''; report.birthday = inline.birthday || ''; report.error = err.message || '';
+    }
+    console.log('[玩家身份] 默认资料读取自检:', report);
+    return report;
   },
 
   async chooseExistingAccountSetup() {
