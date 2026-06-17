@@ -53,79 +53,13 @@ Rules：
 
 世界字段：{世界字段}
 
-## 字段定义
-
-| 字段 | 类型 | 必填 | 含义 | 写法要求 |
-| --- | --- | --- | --- | --- |
-| `name` | string | 是 | 当前人物正式姓名 | 当人物基础区给出正式姓名时必须逐字复制 |
-| `worldTag` | object | 是 | 所属世界标签 | 含 `value`(string) 和 `reason`(string) |
-| `age` | object | 是 | 年龄 | 含 `value`(integer) 和 `reason`(string) |
-| `gender` | string | 是 | 性别 | 不确定可留空字符串 |
-| `learningAbility` | object | 是 | 学习能力 | 含 `value`(1-20 integer) 和 `reason`(string)；普通人6-10 |
-| `mentalStability` | object | 是 | 精神稳定度 | 含 `value`(1-20 integer) 和 `reason`(string) |
-| `growthPotential` | object | 是 | 成长潜力 | 含 `value`(1-20 integer) 和 `reason`(string) |
-| `actionAbility` | object | 是 | 行动能力 | 含 `value`(1-20 integer) 和 `reason`(string) |
-| `relationships` | string | 是 | 与他人关系 | "关系：姓名"，多项用中文分号；关系对象不得写成当前人物本人 |
-| `role` | string | 是 | 身份、社会角色或关系定位 | 简短定位，不要写长背景 |
-| `detail` | string | 是 | 背景、住址、处境 | 一句话，不混入外貌和性格 |
-| `appearance` | string | 是 | 外貌 | 一句话，只写可见形象 |
-| `personality` | string | 是 | 性格与关系边界 | 一句话，不写外貌 |
-| `factions` | array | 是 | 社群角色列表 | 每项 `{ faction, role, reason }`；用于家庭、社区、社交圈等 |
-| `forcePositions` | array | 是 | 势力地位列表 | 每项 `{ force, position, reason }`；现代中国现实人物通常含"中华人民共和国 / 公民" |
-| `job` | string | 是 | 已内化职业 | 不确定时留空字符串 |
-| `jobConfirmed` | boolean | 是 | job是否有确认证据 | job为空时必须false |
-| `rank` | string | 是 | 首要势力地位 | 通常取forcePositions[0].position |
-| `control_experience` | object | 是 | 操控经验 | 含 `上线次数`(integer,0) 和 `习惯程度`("初次操控尚不熟悉") |
-| `feeling` | object | 是 | 情感系统 | 含 `emotions`(object,12个固定字段) 和 `playerFeelings`(object,17个固定字段) |
-
-## feeling 字段定义
-
-`feeling.emotions` 是固定 12 个字段的对象，每个字段格式：`{ "name": 中文名, "value": 0-100整数, "status": "name因为……", "reason": "name源于……" }`
-
-| 英文 key | 中文名 name |
-| --- | --- |
-| `cold` | 冷静 |
-| `fear` | 恐惧 |
-| `worry` | 担忧 |
-| `joy` | 高兴 |
-| `tension` | 紧张 |
-| `anger` | 愤怒 |
-| `shame` | 羞耻 |
-| `sadness` | 悲伤 |
-| `curiosity` | 好奇 |
-| `numbness` | 麻木 |
-| `jealousy` | 嫉妒 |
-| `despair` | 绝望 |
-
-`feeling.playerFeelings` 是固定 17 个字段的对象，每个字段格式：`{ "name": 中文名, "value": 0-100整数, "status": "name因为……", "reason": "name源于……" }`
-
-| 英文 key | 中文名 name |
-| --- | --- |
-| `understanding` | 了解 |
-| `trust` | 信任 |
-| `resistance` | 反抗 |
-| `affection` | 好感 |
-| `friendship` | 友情 |
-| `familyLove` | 亲情 |
-| `romanticLove` | 爱情 |
-| `lust` | 肉欲 |
-| `awe` | 畏惧 |
-| `respect` | 尊敬 |
-| `admiration` | 崇拜 |
-| `dislike` | 讨厌 |
-| `dependence` | 依赖 |
-| `vigilance` | 警惕 |
-| `dominance` | 支配欲 |
-| `possessiveness` | 占有欲 |
-| `submission` | 服从 |
-
 ### feeling 生成规则
 
 1. `value` 是 0-100 整数，表示从"完全没有该情绪/感觉"到"该情绪/感觉达到极致"的递进程度。0 = 毫无此情绪或感觉；50 = 中等程度；100 = 该情绪或感觉达到极限。由 AI 按当前人物性格、处境、经历、关系证据、玩家资料、世界观和剧情事件判断；不得全部照抄 0。
 2. 生成 playerFeelings 时必须优先读取玩家资料和剧情/关系事件；若证据中存在亲属、恋人、暧昧、依赖、占有、肉欲、畏惧、尊敬、支配等明确关系，相关 key 必须给出匹配数值。
 3. 只有证据明确缺乏对应关系、冲动或情感时，亲情、爱情、肉欲、依赖、占有欲等才允许为 0。
 4. `status` 必须是 20-50 个汉字的短句，描述角色当前对该情绪或感觉的程度状态。必须结合角色本身性格、当前处境与过去经历来写，不得使用固定句式模板，不得只写抽象性格词。
-5. `reason` 必须是 20-50 个汉字的短句，写形成该数值的具体原因。对于非零值，说明为什么该情绪/感觉会达到当前程度；对于零值，说明为什么角色完全没有此情绪或感觉。必须结合角色动机、处境与过去经历，不得使用固定句式模板。
+5. `reason` 必须是 20-50 个汉字的短句，写形成该数值的具体原因。对于非零值，说明为什么该情绪/感觉会达到当前程度；对于零值，说明为什么角色完全没有此情绪或感觉。必须结合角色动机、处境、性格与过去经历，不得使用固定句式模板。
 6. `reason` 不能和 `status` 完全重复。
 7. status 和 reason 内不要使用英文逗号 `,`；需要停顿时用中文逗号 `，`。
 8. 禁止写"默认、初始化、根据上下文、系统生成、综合判断"等空话。
@@ -152,7 +86,7 @@ Rules：
       "additionalProperties": false,
       "properties": {
         "value": { "type": "string", "minLength": 1, "description": "所属世界标签值。" },
-        "reason": { "type": "string", "minLength": 1, "description": "该世界标签的判定原因。" }
+        "reason": { "type": "string", "minLength": 1, "description": "该世界标签的判定原因，结合角色动机、处境、性格与过去经历，不得使用固定句式模板。" }
       }
     },
     "age": {
@@ -161,7 +95,7 @@ Rules：
       "additionalProperties": false,
       "properties": {
         "value": { "type": "integer", "minimum": 0, "description": "年龄数值。" },
-        "reason": { "type": "string", "minLength": 1, "description": "年龄推算依据。" }
+        "reason": { "type": "string", "minLength": 1, "description": "年龄推算依据，结合角色处境与经历，不得使用固定句式模板。" }
       }
     },
     "gender": {
@@ -174,7 +108,7 @@ Rules：
       "additionalProperties": false,
       "properties": {
         "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "学习能力1-20，普通人6-10。" },
-        "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
+        "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因，结合角色动机、处境、性格与过去经历，不得使用固定句式模板。" }
       }
     },
     "mentalStability": {
@@ -183,7 +117,7 @@ Rules：
       "additionalProperties": false,
       "properties": {
         "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "精神稳定度1-20。" },
-        "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
+        "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因，结合角色动机、处境、性格与过去经历，不得使用固定句式模板。" }
       }
     },
     "growthPotential": {
@@ -192,7 +126,7 @@ Rules：
       "additionalProperties": false,
       "properties": {
         "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "成长潜力1-20。" },
-        "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
+        "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因，结合角色动机、处境、性格与过去经历，不得使用固定句式模板。" }
       }
     },
     "actionAbility": {
@@ -201,7 +135,7 @@ Rules：
       "additionalProperties": false,
       "properties": {
         "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "行动能力1-20。" },
-        "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
+        "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因，结合角色动机、处境、性格与过去经历，不得使用固定句式模板。" }
       }
     },
     "relationships": {
@@ -221,7 +155,8 @@ Rules：
     "appearance": {
       "type": "string",
       "minLength": 1,
-      "description": "外貌。一句话，只写可见形象。"
+      "maxLength": 50,
+      "description": "外貌。50字以内，感官细节优先：调动视觉/触觉/听觉等多维感知而非直白叙述；善用隐喻类比通过环境光线动态间接烘托；聚焦某一局部逐步展开而非全景扫描。"
     },
     "personality": {
       "type": "string",
@@ -230,7 +165,7 @@ Rules：
     },
     "factions": {
       "type": "array",
-      "description": "社群角色列表。用于家庭、社区、社交圈等无等级归属。",
+      "description": "社群角色列表。必须结合角色动机、处境、性格与过去经历尽可能列全。用于家庭、社区、社交圈、兴趣小组等无等级归属。",
       "items": {
         "type": "object",
         "required": ["faction", "role", "reason"],
@@ -238,13 +173,13 @@ Rules：
         "properties": {
           "faction": { "type": "string", "minLength": 1, "description": "社群名称。" },
           "role": { "type": "string", "minLength": 1, "description": "在该社群中的角色。" },
-          "reason": { "type": "string", "minLength": 1, "description": "归属该社群的原因。" }
+          "reason": { "type": "string", "minLength": 1, "description": "归属该社群的原因，结合角色动机、处境、性格与过去经历，不得使用固定句式模板。" }
         }
       }
     },
     "forcePositions": {
       "type": "array",
-      "description": "势力地位列表。用于国家、学校等有层级归属。现代中国现实人物通常含'中华人民共和国 / 公民'。",
+      "description": "势力地位列表。必须结合角色动机、处境、性格与过去经历尽可能列全。用于国家、学校、职场等有层级归属。现代中国现实人物通常含'中华人民共和国 / 公民'。",
       "items": {
         "type": "object",
         "required": ["force", "position", "reason"],
@@ -252,7 +187,7 @@ Rules：
         "properties": {
           "force": { "type": "string", "minLength": 1, "description": "势力名称。" },
           "position": { "type": "string", "minLength": 1, "description": "在该势力中的地位。" },
-          "reason": { "type": "string", "minLength": 1, "description": "获得该地位的原因。" }
+          "reason": { "type": "string", "minLength": 1, "description": "获得该地位的原因，结合角色动机、处境、性格与过去经历，不得使用固定句式模板。" }
         }
       }
     },
@@ -337,9 +272,11 @@ Rules：
 
 1. `name` 必须逐字复制人物基础区的正式姓名。`relationships` 严禁链式冒号，必须写"关系：姓名"用中文分号分隔。
 2. `role` 写身份；`job` 只写已确认职业；学生、亲属不是职业；不确定时 `job=""` 且 `jobConfirmed=false`。
-3. `detail`/`appearance`/`personality` 各一句话，不混写。
-4. `factions` 用于家庭、社区等无等级归属；`forcePositions` 用于国家、学校等有层级归属。
-5. 本轮不要返回 `roleCardFieldReasons`/`worldValues`/`skills`/`knowledge`/`professions`/`equipment`/`items`/`wearing`/`rpgField`/`rpgFieldReasons`/`initialMetrics`，这些不属于 Part1 JSON 模板或由后续 Part 生成。
+3. `detail`/`personality` 各一句话，不混写。
+4. `appearance` 必须以感官细节优先，50字以内：调动视觉、触觉、听觉等多维度感知而非单一维度的直白叙述；善用隐喻和类比，通过环境、光线、动态等间接元素烘托；控制节奏与聚焦，聚焦某一局部（如指尖、颈侧、发梢）逐步展开，而非全景扫描式罗列。示例："黑直长发垂落肩侧，校服领口露出细白颈线，低垂的睫毛在颧骨上投下一小片阴影。"
+5. `factions`/`forcePositions` 必须结合角色动机、处境、性格与过去经历尽可能列全。除了国家和学校，还应包含社区、社交圈、兴趣小组、职场团体等所有可从输入推断的归属；不可只写最明显的 1-2 项就停。
+6. 所有含 `reason` 的字段（`worldTag.reason`/`age.reason`/`learningAbility.reason`/`mentalStability.reason`/`growthPotential.reason`/`actionAbility.reason`/`factions[].reason`/`forcePositions[].reason`）必须结合角色动机、处境、性格与过去经历来写，不得使用固定句式模板，不得写空话。
+7. 本轮不要返回 `roleCardFieldReasons`/`worldValues`/`skills`/`knowledge`/`professions`/`equipment`/`items`/`wearing`/`rpgField`/`rpgFieldReasons`/`initialMetrics`，这些不属于 Part1 JSON 模板或由后续 Part 生成。
 
 ## 完整 JSON 示例
 
@@ -356,7 +293,7 @@ Rules：
   "relationships": "姐姐：刘思瑶；母亲：张惠兰",
   "role": "高中二年级学生、妹妹",
   "detail": "住在深圳市南山区粤海街道，就读于深圳外国语学校高二，与母亲和姐姐同住。",
-  "appearance": "身高约一米六，黑色长直发，常穿校服或浅色休闲装，面容清秀偏稚气。",
+  "appearance": "黑直长发垂落肩侧，校服领口露出细白颈线，低垂的睫毛在颧骨上投下一小片阴影。",
   "personality": "安静内向但心思细腻，对亲近的人温柔体贴，对陌生人保持距离。",
   "factions": [
     { "faction": "刘家", "role": "小女儿", "reason": "张惠兰与刘建国的次女，自幼在刘家长大。" },
