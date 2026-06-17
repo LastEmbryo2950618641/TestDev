@@ -54,7 +54,7 @@ window.GameModules.characterProfile = {
       detail: String(data.detail || data.desc || preset?.summary || '刚被剧情卷入的人物。').slice(0, 120),
       appearance: String(data.appearance || '外貌尚未固化。').slice(0, 120),
       personality: String(data.personality || '谨慎观察局势。').slice(0, 80),
-      age: data.age || (String(`${data.role || ''} ${data.relationships || ''} ${data.detail || data.desc || preset?.summary || ''}`).match(/(\d{1,3})\s*岁/)?.[1] || ''),
+      age: (data.age && typeof data.age === 'object' && data.age.value !== undefined ? data.age.value : data.age) || (String(`${data.role || ''} ${data.relationships || ''} ${data.detail || data.desc || preset?.summary || ''}`).match(/(\d{1,3})\s*岁/)?.[1] || ''),
       birthday: String(data.birthday || '').slice(0, 20),
       aliases: Array.isArray(data.aliases) ? data.aliases.slice(0, 4).map(String) : [],
       skills: Array.isArray(data.skills) ? data.skills.slice(0, 4) : [],
@@ -71,19 +71,65 @@ window.GameModules.characterProfile = {
   async generate(base, lore, attrs, context, store, signature = '', preset = null) {
     try {
       if (!window.dzmm?.completions) throw new Error('无法生成个人资料：AI接口不可用，不能使用本地兜底原因。');
-      const prompt = await this.prompt(base, lore, attrs, context, store, preset);
-      const profile = await window.GameModules.jsonUtils.generateJsonWithRetry({
-        source: 'character-profile-card',
+      const sections = window.GameModules.promptSections;
+      const player = sections.playerProfile(store);
+      const commonVars = {
+        人物预设资料区: window.GameModules.characterProfileSource.presetText(preset),
+        人物基础区: sections.characterBase(base),
+        玩家基础资料区: player.playerBasic,
+        玩家现实身份区: player.playerIdentity,
+        玩家居住家庭区: player.playerHome,
+        玩家人际关系区: player.playerRelations,
+        玩家备注区: player.playerNotes,
+        关系事件区: sections.relationContext(context),
+        世界观资料区: sections.worldLore(lore),
+        世界字段: sections.worldFields(attrs),
+        玩家本人目标锁定: base.id === 'player-self' ? `本次只生成玩家本人"${base.name}"的角色卡。JSON 根字段 name 必须写"${base.name}"，不得写妹妹、姐姐、父母、联系人或关系事件里的任何其他姓名。` : '无。',
+      };
+      const rpgKeys = this.rpgFieldReasonKeys(attrs);
+      const metricKeys = window.GameModules.metrics;
+      const part1Vars = { ...commonVars, 情绪字段: metricKeys.emotionKeys.join('、'), 关系指标字段: metricKeys.playerKeys.join('、') };
+      const part1Prompt = await window.GameModules.promptTemplates.render('character-profile-part1-base-identity', part1Vars);
+      const part1 = await window.GameModules.jsonUtils.generateJsonWithRetry({
+        source: 'character-profile-part1',
         model: 'nalang-turbo-0826',
         timeoutMs: 60000,
-        prompt,
-        format: prompt,
-        repairHint: this.repairHint(base, attrs),
+        prompt: part1Prompt,
+        format: part1Prompt,
+        repairHint: this.partRepairHint(1, base, attrs),
         parse: (text) => this.parse(text),
-        validate: (raw) => this.validate(raw, base, lore, attrs, store, { skipInitialMetrics: true }),
+        validate: (raw) => this.validatePart(1, raw, base, lore, attrs, store),
       });
-      const initialMetrics = await this.generateInitialMetrics(profile, base, lore, attrs, context, store);
-      return this.withSignature({ ...profile, initialMetrics }, signature);
+      const p1Summary = this.part1Summary(part1);
+      const part2Vars = { ...commonVars, part1Summary: p1Summary };
+      const part2Prompt = await window.GameModules.promptTemplates.render('character-profile-part2-abilities-professions', part2Vars);
+      const part2 = await window.GameModules.jsonUtils.generateJsonWithRetry({
+        source: 'character-profile-part2',
+        model: 'nalang-turbo-0826',
+        timeoutMs: 60000,
+        prompt: part2Prompt,
+        format: part2Prompt,
+        repairHint: this.partRepairHint(2, base, attrs),
+        parse: (text) => this.parse(text),
+        validate: (raw) => this.validatePart(2, raw, base, lore, attrs, store),
+      });
+      const part3Vars = { ...commonVars, part1Summary: p1Summary, RPG字段列表: rpgKeys.join('、'), RPG字段列表JSON: rpgKeys.map((key) => `"${key}"`).join(', ') };
+      const part3Prompt = await window.GameModules.promptTemplates.render('character-profile-part3-inventory-wearing-rpg', part3Vars);
+      const part3 = await window.GameModules.jsonUtils.generateJsonWithRetry({
+        source: 'character-profile-part3',
+        model: 'nalang-turbo-0826',
+        timeoutMs: 60000,
+        prompt: part3Prompt,
+        format: part3Prompt,
+        repairHint: this.partRepairHint(3, base, attrs),
+        parse: (text) => this.parse(text),
+        validate: (raw) => this.validatePart(3, raw, base, lore, attrs, store),
+      });
+      const feeling = part1.feeling || null;
+      const merged = { ...part1, ...part2, ...part3 };
+      if (feeling) { merged.initialMetrics = feeling; delete merged.feeling; }
+      const profile = this.validate(merged, base, lore, attrs, store, { skipInitialMetrics: false });
+      return this.withSignature(profile, signature);
     } catch (err) {
       console.warn('人物设定生成失败:', err.code, err.message, err.stack);
       throw err;
@@ -375,6 +421,86 @@ window.GameModules.characterProfile = {
     });
   },
 
+  part1Summary(part1) {
+    return [
+      `姓名：${part1.name || ''}`,
+      `所属世界：${part1.worldTag?.value || ''}`,
+      `性别：${part1.gender || ''}`,
+      `年龄：${part1.age?.value || part1.age || ''}`,
+      `身份：${part1.role || ''}`,
+      `关系：${part1.relationships || ''}`,
+      `背景：${part1.detail || ''}`,
+      `外貌：${part1.appearance || ''}`,
+      `性格：${part1.personality || ''}`,
+      `学习能力：${part1.learningAbility?.value || ''}`,
+      `精神稳定度：${part1.mentalStability?.value || ''}`,
+      `成长潜力：${part1.growthPotential?.value || ''}`,
+      `行动能力：${part1.actionAbility?.value || ''}`,
+      `社群：${(part1.factions || []).map((x) => `${x.faction}/${x.role}`).join('、')}`,
+      `势力：${(part1.forcePositions || []).map((x) => `${x.force}/${x.position}`).join('、')}`,
+      `职业：${part1.job || '无'}`,
+    ].join('\n');
+  },
+
+  partRepairHint(partIndex, base, attrs = null) {
+    const nameHint = `目标人物只能是：${base.name}。name 必须逐字等于"${base.name}"，不要同音改字。`;
+    if (partIndex === 1) {
+      return [
+        nameHint,
+        '必须返回根字段 worldTag（含 value 和 reason）、age（含 value 和 reason）。',
+        '必须返回根字段 learningAbility、mentalStability、growthPotential、actionAbility（各含 value 和 reason）。',
+        '必须返回根字段 factions 和 forcePositions（数组，每项含 reason）。',
+        '必须返回根字段 feeling，含 emotions（12项）和 playerFeelings（17项）数组。',
+        '必须返回根字段 roleCardFieldReasons，必须包含：姓名、所属世界、身份、职业、性别、生日、人际关系、外貌、性格、人物说明、社群角色、势力地位。',
+        'feeling 中每项必须包含 key、value（0-100整数）、status、reason 四个字段。',
+        'feeling 的 value 不得全部为 0，必须根据人物性格、处境和关系证据给出合理数值。',
+        '本轮不要返回 skills/knowledge/professions/equipment/items/wearing/rpgField/rpgFieldReasons。',
+      ].join('\n');
+    }
+    if (partIndex === 2) {
+      return [
+        nameHint,
+        '必须返回根字段 skills（数组，至少1项）和 knowledge（数组，至少1项）。',
+        '每项必须包含 name、desc、level、levelEffects、reason。',
+        'levelEffects 必须是对象格式，包含 lv1 到当前等级，每级含 程度介绍 和 说明。',
+        '如需返回 professions，每项必须包含 name、desc、level、levelEffects、所需skills、所需knowledge、所需intrinsicBase、reason。',
+      ].join('\n');
+    }
+    return [
+      nameHint,
+      '必须返回根字段 rpgField，含 level、intrinsicBase（7项）、derived（攻击力/防御力）。',
+      `必须返回根字段 rpgFieldReasons，必须包含：${this.rpgFieldReasonKeys(attrs).join('、')}。`,
+      '必须返回根字段 wearing（数组，含基础槽位：内衣、上衣、内裤、下衣、袜子、鞋子）。',
+      'wearing 每项必须包含 slot、bodyPart、name、description、reason。',
+      'equipment 每项必须包含 name、description、equipSlots、reason。',
+      'items 每项必须包含 name、description、quantity、reason。',
+    ].join('\n');
+  },
+
+  validatePart(partIndex, raw, base, lore, attrs, store) {
+    if (!raw || typeof raw !== 'object') throw new Error('AI 输出不是合法对象');
+    if (partIndex === 1) {
+      if (!this.isConcreteName(raw.name) && base.id !== 'player-self') throw new Error(`Part1 缺少有效姓名: ${raw.name}`);
+      if (!raw.worldTag || !raw.worldTag.value) throw new Error('Part1 缺少 worldTag');
+      if (!raw.age || raw.age.value === undefined) throw new Error('Part1 缺少 age');
+      if (!Array.isArray(raw.factions) || !raw.factions.length) throw new Error('Part1 缺少 factions');
+      if (!Array.isArray(raw.forcePositions) || !raw.forcePositions.length) throw new Error('Part1 缺少 forcePositions');
+      if (!raw.roleCardFieldReasons || typeof raw.roleCardFieldReasons !== 'object') throw new Error('Part1 缺少 roleCardFieldReasons');
+      const feeling = raw.feeling;
+      if (!feeling || !Array.isArray(feeling.emotions) || !Array.isArray(feeling.playerFeelings)) throw new Error('Part1 缺少 feeling.emotions 或 feeling.playerFeelings');
+      return raw;
+    }
+    if (partIndex === 2) {
+      if (!Array.isArray(raw.skills) || !raw.skills.length) throw new Error('Part2 缺少 skills');
+      if (!Array.isArray(raw.knowledge) || !raw.knowledge.length) throw new Error('Part2 缺少 knowledge');
+      return raw;
+    }
+    if (!raw.rpgField?.intrinsicBase || !raw.rpgField?.derived) throw new Error('Part3 缺少 rpgField 完整结构');
+    if (!Array.isArray(raw.wearing) || !raw.wearing.length) throw new Error('Part3 缺少 wearing');
+    if (!raw.rpgFieldReasons || typeof raw.rpgFieldReasons !== 'object') throw new Error('Part3 缺少 rpgFieldReasons');
+    return raw;
+  },
+
   repairHint(base, attrs = null) {
     return [
       `目标人物只能是：${base.name}。name 必须逐字等于“${base.name}”，不要同音改字，不要改成亲属、联系人或关系对象。`,
@@ -398,6 +524,8 @@ window.GameModules.characterProfile = {
     const fallbackApplied = window.GameModules.characterReasonFallback?.apply?.(profile, attrs) || profile;
     profile = { ...profile, roleCardFieldReasons: fallbackApplied.roleCardFieldReasons, rpgFieldReasons: fallbackApplied.rpgFieldReasons };
     const skills = Array.isArray(profile.skills) ? profile.skills : [];
+    const knowledge = Array.isArray(profile.knowledge) ? profile.knowledge : [];
+    const professions = Array.isArray(profile.professions) ? profile.professions : [];
     const confirmedJob = profile.jobConfirmed === true ? window.GameModules.professionInfo.normalizeJobName(profile.job) : '';
     const factions = this.factionRoles(profile, base, store);
     const forcePositions = this.forcePositions(profile, base, store);
@@ -405,7 +533,13 @@ window.GameModules.characterProfile = {
       ...base,
       name: base.id === 'player-self' ? base.name : this.validName(profile.name, base),
       gender: String(base.gender || profile.gender || '').slice(0, 8),
-      age: base.age || profile.age || '',
+      age: (profile.age && typeof profile.age === 'object' && profile.age.value !== undefined) ? profile.age.value : (base.age || profile.age || ''),
+      worldTag: profile.worldTag || null,
+      learningAbility: profile.learningAbility || null,
+      mentalStability: profile.mentalStability || null,
+      growthPotential: profile.growthPotential || null,
+      actionAbility: profile.actionAbility || null,
+      control_experience: profile.control_experience || { 上线次数: 0, 习惯程度: '初次操控尚不熟悉' },
       relationships: this.formatRelationships(profile.relationships || base.relationships || '', base),
       role: String(profile.role || base.role).slice(0, 18),
       detail: String(profile.detail || base.detail).slice(0, 160),
@@ -419,10 +553,34 @@ window.GameModules.characterProfile = {
       forcePositions,
       force_positions: forcePositions,
       skills: skills.slice(0, 4).map((skill, index) => {
-        const item = { name: String(skill.name || `能力${index + 1}`).slice(0, 16), desc: String(skill.desc || '').slice(0, 60) };
-        const reason = this.inventoryReason({ ...skill, ...item }, '技能', { ...base, ...profile });
-        return { ...item, reason, changeMode: reason };
+        const name = String(skill.name || `能力${index + 1}`).slice(0, 16);
+        const desc = String(skill.desc || '').slice(0, 60);
+        const reason = this.inventoryReason({ ...skill, name, desc }, '技能', { ...base, ...profile });
+        const item = { name, desc, reason, changeMode: reason };
+        if (skill.level !== undefined) item.level = skill.level;
+        if (skill.levelEffects) item.levelEffects = skill.levelEffects;
+        return item;
       }),
+      knowledge: knowledge.slice(0, 5).map((k, index) => {
+        const name = String(k.name || `知识${index + 1}`).slice(0, 16);
+        const desc = String(k.desc || '').slice(0, 60);
+        const reason = this.inventoryReason({ ...k, name, desc }, '知识', { ...base, ...profile });
+        const item = { name, desc, reason, changeMode: reason };
+        if (k.level !== undefined) item.level = k.level;
+        if (k.levelEffects) item.levelEffects = k.levelEffects;
+        return item;
+      }),
+      professions: professions.slice(0, 3).map((p) => ({
+        name: String(p.name || '').slice(0, 24),
+        desc: String(p.desc || '').slice(0, 80),
+        level: p.level || 1,
+        levelEffects: p.levelEffects || {},
+        '所需skills': Array.isArray(p['所需skills']) ? p['所需skills'] : [],
+        '所需knowledge': Array.isArray(p['所需knowledge']) ? p['所需knowledge'] : [],
+        '所需intrinsicBase': Array.isArray(p['所需intrinsicBase']) ? p['所需intrinsicBase'] : [],
+        reason: String(p.reason || '').slice(0, 120),
+      })),
+      rpgField: profile.rpgField || null,
       roleCardFieldReasons: this.roleCardFieldReasons(profile.roleCardFieldReasons, { ...base, ...profile }),
       equipment: this.carryItems(profile.equipment || base.equipment, '装备', { ...base, ...profile }),
       items: this.carryItems(profile.items || base.items, '物品', { ...base, ...profile }),
@@ -553,7 +711,8 @@ window.GameModules.characterProfile = {
     return list.map((item) => {
       const name = String(item?.name || '未穿戴').slice(0, 32);
       const slot = String(item?.slot || '').slice(0, 12);
-      return { slot, name, type: '穿着', description: String(item?.description || '').slice(0, 80), reason: String(item?.reason || item?.changeMode || '').trim().slice(0, 120), changeMode: String(item?.reason || item?.changeMode || '').trim().slice(0, 120), level: -1 };
+      const bodyPart = String(item?.bodyPart || item?.部位 || '').slice(0, 12);
+      return { slot, bodyPart, name, type: '穿着', description: String(item?.description || '').slice(0, 80), reason: String(item?.reason || item?.changeMode || '').trim().slice(0, 120), changeMode: String(item?.reason || item?.changeMode || '').trim().slice(0, 120), level: -1 };
     }).filter((item) => item.slot && item.name !== '未穿戴').slice(0, 20);
   },
 
