@@ -102,15 +102,21 @@ window.GameModules = window.GameModules || {};
       for (const group of ['emotions', 'playerFeelings']) {
         const missing = this.initialMetricNonAiKeys(current, group);
         if (!missing.length) continue;
-        const generated = await this.generateMetricGroupChunks(profile, base, evidence, group, missing);
         const byKey = new Map(current[group].map((item) => [item.key, item]));
-        generated.forEach((item) => {
-          const currentItem = byKey.get(item.key);
-          byKey.set(item.key, currentItem ? this.mergeMetricAiFields(currentItem, item) : item);
-        });
+        for (const key of missing) {
+          try {
+            const generated = await this.generateMetricGroupChunks(profile, base, evidence, group, [key]);
+            const item = generated.find((entry) => entry?.key === key);
+            if (!item) continue;
+            const currentItem = byKey.get(key);
+            byKey.set(key, currentItem ? this.mergeMetricAiFields(currentItem, item) : item);
+          } catch (err) {
+            console.warn('[角色数值来源] 单项AI补齐失败，保留系统来源:', profile.name || base.name, group, key, err.message, err.stack);
+          }
+        }
         current[group] = keysFor(group).map((key) => byKey.get(key));
       }
-      return this.initialMetrics(current, { ...base, ...profile });
+      return current;
     },
 
     initialMetricRepairable(profile, signature) {
