@@ -5,7 +5,7 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.aiRequest = {
   pending: [],
-  maxConcurrent: 5,
+  maxConcurrent: 2,
   startGate: Promise.resolve(),
   seq: 0,
   queued: 0,
