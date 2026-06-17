@@ -76,12 +76,14 @@ window.GameModules.actions = {
   },
   metricNote(type, key, state = null) {
     const target = this.metricTargetForNote(type, key, state);
-    if (!target.ready) return `定义: ${target.description}\n解释: 等待推演，数值尚未完成初始化。\n变化原因: 数值正在刷新，尚未完成初始推演。`;
+    if (!target.ready) return `定义: ${target.description}\n字段值来源: 数值=系统 / 解释=系统 / 原因=系统\n解释: 等待推演，数值尚未完成初始化。\n变化原因: 数值正在刷新，尚未完成初始推演。`;
     const rawStatus = String(target.raw?.status || '').trim();
     const status = rawStatus || '缺少AI生成的数值解释，请重新生成角色卡或推进剧情。';
     const rawReason = String(target.raw?.reason || '').trim();
     const reason = rawReason || '缺少AI生成的变化原因，请重新生成角色卡或推进剧情。';
-    return `定义: ${target.description}\n解释: ${status}\n变化原因: ${reason}`;
+    const sources = target.raw?.metricSources || {};
+    const sourceText = `数值=${sources.数值 || '系统'} / 解释=${sources.解释 || (rawStatus ? 'ai' : '系统')} / 原因=${sources.原因 || (rawReason ? 'ai' : '系统')}`;
+    return `定义: ${target.description}\n字段值来源: ${sourceText}\n解释: ${status}\n变化原因: ${reason}`;
   },
   metricTargetForNote(type, key, state = null) {
     const metrics = state ? this.ensureStateMetrics(state) : { emotions: this.emotions, playerFeelings: this.playerFeelings, notes: this.metricNotes };
