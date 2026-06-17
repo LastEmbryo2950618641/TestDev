@@ -152,21 +152,21 @@
   "wearing": [
     {
       "slot": "内衣",
-      "bodyPart": "chest",
+      "bodyPart": "胸部",
       "name": "学生内衣",
       "description": "白色棉质学生内衣",
       "reason": "日常上学穿着。"
     },
     {
       "slot": "上衣",
-      "bodyPart": "torso",
+      "bodyPart": "躯干",
       "name": "校服上衣",
       "description": "深圳外国语学校白色短袖校服",
       "reason": "上学日统一着装。"
     },
     {
       "slot": "内裤",
-      "bodyPart": "hip",
+      "bodyPart": "腰臀",
       "name": "学生内裤",
       "description": "浅色棉质内裤",
       "reason": "日常上学穿着。"
