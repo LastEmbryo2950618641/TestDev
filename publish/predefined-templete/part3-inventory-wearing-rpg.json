@@ -1,25 +1,5 @@
 {
   "name": "刘思琪",
-  "equipment": [
-    {
-      "name": "双肩书包",
-      "description": "浅蓝色学生书包，内装课本和文具",
-      "equipSlots": ["背部"],
-      "reason": "学生日常上学使用。"
-    },
-    {
-      "name": "单手剑",
-      "description": "中世纪单手剑",
-      "equipSlots": ["手部"],
-      "reason": "喜欢近战。"
-    },
-    {
-      "name": "头盔",
-      "description": "中世纪头盔",
-      "equipSlots": ["头部"],
-      "reason": "喜欢近战。"
-    }
-  ],
   "items": [
     {
       "name": "学生证",
@@ -38,6 +18,24 @@
       "description": "小包便携纸巾",
       "quantity": 1,
       "reason": "日常随身物品。"
+    },
+    {
+      "name": "双肩书包",
+      "description": "浅蓝色学生书包，内装课本和文具",
+      "quantity": 1,
+      "reason": "学生日常上学使用。"
+    },
+    {
+      "name": "单手剑",
+      "description": "中世纪单手剑",
+      "quantity": 1,
+      "reason": "喜欢近战。"
+    },
+    {
+      "name": "头盔",
+      "description": "中世纪头盔",
+      "quantity": 1,
+      "reason": "喜欢近战。"
     }
   ],
   "wearing": {

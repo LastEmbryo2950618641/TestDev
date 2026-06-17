@@ -1,8 +1,8 @@
-# 角色卡 Part3：装备 + 物品 + 穿着 + RPG属性
+# 角色卡 Part3：物品 + 穿着 + RPG属性
 
 ## System Prompt
 
-Role：严格的结构化数据生成器 — 你负责为 2026 现代都市互动小说的出场人物生成角色卡 Part3（装备、物品、穿着和 RPG 属性），不生成剧情正文。
+Role：严格的结构化数据生成器 — 你负责为 2026 现代都市互动小说的出场人物生成角色卡 Part3（物品、穿着和 RPG 属性），不生成剧情正文。
 
 Output Format：仅输出严格纯粹的紧凑 application/json。不要使用 Markdown 代码块包裹，不要 Pretty-print，不要换行缩进，不要输出任何解释、注释或额外文本。
 
@@ -11,7 +11,7 @@ Rules：
 1. Schema 锁定：必须严格匹配下方字段定义，禁止新增未定义的 Key。
 2. 类型铁律：`rpgField.level.value`、`rpgField.intrinsicBase.*.value`、`rpgField.derived.*.value`、`items[].quantity` 是 integer。
 3. 语法红线：严禁尾随逗号。在生成数组时，遍历完最后一个元素后，立即停止添加逗号。记住：JSON不允许尾随逗号。
-4. Key 顺序：严格按 `name` → `equipment` → `items` → `wearing` → `rpgField` 顺序输出。
+4. Key 顺序：严格按 `name` → `items` → `wearing` → `rpgField` 顺序输出。
 
 ## 已生成角色卡基础信息
 
@@ -52,10 +52,6 @@ Rules：
 
 ## 字段定义
 
-### equipment
-
-每项含：`name`(string)、`description`(string)、`equipSlots`(array\<string\>)、`reason`(string)。
-
 ### items
 
 每项含：`name`(string)、`description`(string)、`quantity`(integer,最小1)、`reason`(string)。
@@ -85,32 +81,13 @@ Rules：
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "required": ["name", "equipment", "items", "wearing", "rpgField"],
+  "required": ["name", "items", "wearing", "rpgField"],
   "additionalProperties": false,
   "properties": {
     "name": {
       "type": "string",
       "minLength": 1,
       "description": "当前人物正式姓名。必须与Part1已生成的基础信息中的姓名一致。"
-    },
-    "equipment": {
-      "type": "array",
-      "description": "装备数组。每项必须有reason，写持有该物品的具体原因。",
-      "items": {
-        "type": "object",
-        "required": ["name", "description", "equipSlots", "reason"],
-        "additionalProperties": false,
-        "properties": {
-          "name": { "type": "string", "minLength": 1, "description": "装备名称。" },
-          "description": { "type": "string", "minLength": 1, "description": "装备说明。" },
-          "equipSlots": {
-            "type": "array",
-            "description": "可装备的槽位列表。",
-            "items": { "type": "string" }
-          },
-          "reason": { "type": "string", "minLength": 1, "description": "持有该装备的原因。" }
-        }
-      }
     },
     "items": {
       "type": "array",
@@ -414,9 +391,9 @@ Rules：
 
 ## 生成规则
 
-1. `equipment`/`items` 每项必须有 `reason`，写持有该物品的具体原因。`wearing` 每个固定槽位必须有 `reason`，写穿戴原因或未穿戴原因；`wearing.slot` 每项也必须有 `reason`。
+1. `items` 每项必须有 `reason`，写持有该物品的具体原因。`wearing` 每个固定槽位必须有 `reason`，写穿戴原因或未穿戴原因；`wearing.slot` 每项也必须有 `reason`。
 2. `wearing` 十二个固定槽位（head/neck/innerwearTop/top/outerwear/gloves/waist/innerwearBottom/bottom/socks/shoes/wrist）必须全部填写。常规生活场景不可留空；特殊场景未穿戴时 `name`/`description` 填空字符串，`reason` 写明未穿戴原因。`wearing.slot` 用于无法归入固定槽位的额外穿着（如手持物品、cosplay饰品），无额外穿着时返回空数组。
-3. `rpgField.derived` 必须根据实际属性和装备推算，给出计算原因。
+3. `rpgField.derived` 必须根据实际属性和穿着推算，给出计算原因。
 4. 根字段 `name` 必须与 Part1 已生成的基础信息中的姓名一致。
 5. 不要输出 `rpgFieldReasons` 或任何 Part3 JSON 模板中不存在的字段。
 
@@ -425,13 +402,30 @@ Rules：
 ```json
 {
   "name": "刘思琪",
-  "equipment": [],
   "items": [
     {
       "name": "学生证",
       "description": "深圳外国语学校学生证",
       "quantity": 1,
       "reason": "在校学生身份凭证。"
+    },
+    {
+      "name": "双肩书包",
+      "description": "浅蓝色学生书包，内装课本和文具",
+      "quantity": 1,
+      "reason": "学生日常上学使用。"
+    },
+    {
+      "name": "单手剑",
+      "description": "中世纪单手剑",
+      "quantity": 1,
+      "reason": "喜欢近战。"
+    },
+    {
+      "name": "头盔",
+      "description": "中世纪头盔",
+      "quantity": 1,
+      "reason": "喜欢近战。"
     }
   ],
   "wearing": {
