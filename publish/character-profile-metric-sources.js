@@ -34,7 +34,7 @@ window.GameModules = window.GameModules || {};
     hasValidInitialMetricTexts(value) {
       const valid = (items, keys) => Array.isArray(items) && keys.every((key) => {
         const item = items.find((entry) => entry?.key === key);
-        return item && item.value !== undefined && this.validMetricText(item.status, key) && this.validMetricText(item.reason, key);
+        return item && item.value !== undefined && String(item.status || '').trim() && String(item.reason || '').trim();
       });
       return valid(value?.emotions, keysFor('emotions')) && valid(value?.playerFeelings, keysFor('playerFeelings'));
     },
@@ -42,7 +42,7 @@ window.GameModules = window.GameModules || {};
     hasRequiredInitialMetrics(value) {
       const valid = (items, keys) => Array.isArray(items) && keys.every((key) => {
         const item = items.find((entry) => entry?.key === key);
-        return item && item.value !== undefined && this.validMetricText(item.status, key) && this.validMetricText(item.reason, key) && this.metricSourcesAreAi(item);
+        return item && item.value !== undefined && String(item.status || '').trim() && String(item.reason || '').trim() && this.metricSourcesAreAi(item);
       });
       return valid(value?.emotions, keysFor('emotions')) && valid(value?.playerFeelings, keysFor('playerFeelings'));
     },
@@ -53,8 +53,8 @@ window.GameModules = window.GameModules || {};
         return keys.map((key) => {
           const item = list.find((entry) => entry?.key === key) || {};
           if (item.value === undefined) throw new Error(`${profile.name || '角色'} 缺少AI生成的${key}数值`);
-          if (!this.validMetricText(item.status, key)) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的具体数值解释`);
-          if (!this.validMetricText(item.reason, key)) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的具体变化原因`);
+          if (!String(item.status || '').trim()) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的数值解释`);
+          if (!String(item.reason || '').trim()) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的变化原因`);
           const sources = this.metricSources(item, label);
           return { key, value: window.GameModules.metrics.clamp(item.value), status: String(item.status).slice(0, 160), reason: String(item.reason).slice(0, 180), metricSources: sources };
         });
@@ -67,8 +67,8 @@ window.GameModules = window.GameModules || {};
       return keys.map((key) => {
         const item = value.find((entry) => entry?.key === key) || {};
         if (item.value === undefined) throw new Error(`${profile.name || '角色'} 缺少AI生成的${key}数值`);
-        if (!this.validMetricText(item.status, key)) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的具体数值解释`);
-        if (!this.validMetricText(item.reason, key)) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的具体变化原因`);
+        if (!String(item.status || '').trim()) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的数值解释`);
+        if (!String(item.reason || '').trim()) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的变化原因`);
         return this.withMetricSources({ key, value: window.GameModules.metrics.clamp(item.value), status: String(item.status).slice(0, 160), reason: String(item.reason).slice(0, 180) }, 'ai');
       });
     },

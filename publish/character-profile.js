@@ -282,9 +282,9 @@ window.GameModules.characterProfile = {
       '每一项都必须有 key、value、status、reason 四个字段；reason 是强制字段，即使上一轮只有 status，也必须为同一个 key 补出 reason。',
       '每个对象必须以 reason 作为最后一个字段，写完 reason 才能关闭对象。',
       '本批 key 很少，必须完整输出每个 key；不要省略任何一个对象。',
-      'status 和 reason 都必须是短中文句子，必须以当前key开头，使用“当前key因为……”或“当前key源于……”句式，不能留空。',
-      'status 和 reason 都必须包含当前 key 字面文本，并包含具体因果词或证据词：因为、源于、来自、经历、过去、处境、关系、玩家、父母、兄弟姐妹。',
-      '不要写“坚强的性格支撑”“性格使然”“综合判断”“个人动机与过去经历”等抽象空话。',
+      'status 和 reason 都应是短中文句子，建议以当前key开头，说明状态和原因，不能留空。',
+      'status 和 reason 尽量包含当前 key 字面文本，并优先结合人物经历、处境、关系、玩家或家庭证据。',
+      '尽量少写“坚强的性格支撑”“性格使然”“综合判断”等抽象空话。',
       '不要返回英文 key、initial_metrics、affection、dependency、trust_level 等替代结构。',
       '只返回一行紧凑 JSON，不要 Markdown。',
     ].filter(Boolean).join('\n');
@@ -295,8 +295,8 @@ window.GameModules.characterProfile = {
     return keys.map((key) => {
       const item = value.find((entry) => entry?.key === key) || {};
       if (item.value === undefined) throw new Error(`${profile.name || '角色'} 缺少AI生成的${key}数值`);
-      if (!this.validMetricText(item.status, key)) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的具体数值解释`);
-      if (!this.validMetricText(item.reason, key)) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的具体变化原因`);
+      if (!String(item.status || '').trim()) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的数值解释`);
+      if (!String(item.reason || '').trim()) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的变化原因`);
       return { key, value: window.GameModules.metrics.clamp(item.value), status: String(item.status).slice(0, 160), reason: String(item.reason).slice(0, 180) };
     });
   },
