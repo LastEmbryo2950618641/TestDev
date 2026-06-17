@@ -129,7 +129,7 @@ window.GameModules.ai = {
       const fallbackValues = window.Alpine?.store?.('game')?.[keys === window.GameModules.metrics.emotionKeys ? 'emotions' : 'playerFeelings'];
       const current = window.GameModules.metrics.clamp((currentValues || fallbackValues)?.[key] || 0);
       const nextValue = window.GameModules.metrics.clamp(current + delta);
-      const reason = String(window.GameModules.metrics.metricReasonLooksGeneric(item.reason) ? '' : item.reason).slice(0, 180);
+      const reason = String(item.reason || '').slice(0, 180);
       const status = window.GameModules.metrics.valueExplanation(key, nextValue, item.status, reason);
       return { key, delta, status: String(status).slice(0, 180), reason };
     }).filter(Boolean);

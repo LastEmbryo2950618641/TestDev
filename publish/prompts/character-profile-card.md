@@ -55,8 +55,8 @@
 6. `skills/equipment/items/wearing` 都是数组，每项必须有 `reason`。`equipment` 含 `name, description, equipSlots, reason`；`items` 含 `name, description, quantity, reason`；`wearing` 含 `slot, name, description, reason`。
 7. 常规生活、上学、工作场景的 `wearing` 应包含基础槽位：内衣、上衣、内裤、下衣、袜子、鞋子；只有明确特殊事件才可返回“未穿戴”。
 8. `worldValues` 只填“世界字段”中有证据的 key，没有则 `{}`。
-9. `roleCardFieldReasons` 必须完整包含：姓名、所属世界、身份、职业、性别、生日、人际关系、外貌、性格、人物说明、社群角色、势力地位。每个值写当前人物本人的具体固化原因，不要写抽象套话。
-10. `rpgFieldReasons` 必须完整包含这些 key：{RPG字段列表}。每个值写当前人物本人的具体经历、训练、身体状态或处境原因。
+9. `roleCardFieldReasons` 必须完整包含：姓名、所属世界、身份、职业、性别、生日、人际关系、外貌、性格、人物说明、社群角色、势力地位。每个值建议写当前人物本人相关的固化原因，尽量避免抽象套话。
+10. `rpgFieldReasons` 必须完整包含这些 key：{RPG字段列表}。每个值建议结合当前人物本人的经历、训练、身体状态或处境原因。
 11. 本轮不要返回 `initialMetrics`、`initial_metrics` 或任何情绪/感觉数组；初始数值会由下一步专用小请求生成。
 12. 成年角色若资料明确有恋爱、身体吸引、占有欲等证据，只写进 `detail/personality/roleCardFieldReasons` 的事实依据；不要在本轮展开数值数组。
 

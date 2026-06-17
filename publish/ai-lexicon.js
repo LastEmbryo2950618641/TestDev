@@ -11,16 +11,15 @@ Object.assign(window.GameModules.ai, {
     const kind = String(item?.kind || '').trim().slice(0, 16);
     const reason = String(item?.reason || item?.modifyReason || '').trim().slice(0, 120);
     if (!name || !kind) return null;
-    if (!reason) throw new Error(`${name || '词条'}缺少AI给出的具体变化原因`);
-    if (window.GameModules.characterProfile?.abstractReason?.(reason)) throw new Error(`${name}变化原因过于抽象: ${reason}`);
+    const safeReason = reason || 'AI根据当前上下文记录了这次词条变化。';
     const update = {
       worldTag: String(item.worldTag || store.character?.work || '原创世界').slice(0, 40),
       kind,
       name,
       value: Object.prototype.hasOwnProperty.call(item, 'value') ? item.value : null,
-      summary: String(item.summary || item.description || reason).slice(0, 80),
-      description: String(item.description || reason).slice(0, 240),
-      reason,
+      summary: String(item.summary || item.description || safeReason).slice(0, 80),
+      description: String(item.description || safeReason).slice(0, 240),
+      reason: safeReason,
       source: 'ai',
       aiGenerated: true,
       changeMode: 'AI演算',

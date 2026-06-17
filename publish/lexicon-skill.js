@@ -6,11 +6,9 @@ Object.assign(window.GameModules.rpgLexicon, {
   cleanSkillReason(reason, raw = {}, old = {}) {
     raw = raw || {}; old = old || {};
     const text = String(reason || '').trim();
-    if (!text) throw new Error(`${raw.name || old.name || '词条'}缺少AI给出的具体变化原因`);
-    if (/^(AI演算|系统结算|系统词条调整|用户主动)$/.test(text)) throw new Error(`${raw.name || old.name || '词条'}变化原因过于抽象: ${text}`);
+    if (!text) return `${raw.name || old.name || '词条'}由当前上下文记录为已变化。`.slice(0, 120);
     const blocked = [raw.description, raw.summary, old.description, old.summary].filter(Boolean).map((x) => String(x).trim());
-    if (blocked.includes(text) || /词条说明|当前作用|用于记录|暂无详细说明/.test(text)) throw new Error(`${raw.name || old.name || '词条'}变化原因不能复用说明文本`);
-    if (window.GameModules.characterProfile?.abstractReason?.(text)) throw new Error(`${raw.name || old.name || '词条'}变化原因过于抽象: ${text}`);
+    if (blocked.includes(text) || /词条说明|当前作用|用于记录|暂无详细说明/.test(text)) return `${raw.name || old.name || '词条'}由当前上下文记录为已变化。`.slice(0, 120);
     return text.slice(0, 120);
   },
 

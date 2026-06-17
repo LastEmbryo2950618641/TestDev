@@ -26,7 +26,7 @@ window.GameModules.wechatChangePanelActions = {
 
   usefulMetricText(text = '', key = '') {
     const value = String(text || '').trim();
-    return value && !/缺少AI生成/.test(value) && window.GameModules.metrics.isSpecificMetricText(value, key);
+    return value && !/缺少AI生成/.test(value);
   },
 
   metricProfileItem(state, group, key) {

@@ -265,12 +265,12 @@ window.GameModules.characterProfile = {
 
   metricGroupRepairHint(base, group, keys, evidence = {}) {
     const relationEvidence = group === 'playerFeelings' ? [
-      '修复 playerFeelings 时必须重新读取下列证据，不得只照抄骨架里的 0：',
+      '修复 playerFeelings 时请重新参考下列证据，避免只照抄骨架里的 0：',
       `人物角色卡：${evidence.roleCard || ''}`,
       `玩家资料：${evidence.playerProfile || ''}`,
       `剧情关系事件：${evidence.relationContext || ''}`,
-      '若证据中存在亲属、恋人、暧昧、依赖、占有、肉欲、畏惧、尊敬、支配等明确关系，相关 key 必须给出匹配数值，不能补成 0。',
-      '只有证据明确缺乏对应关系或冲动时，亲情、爱情、肉欲、依赖、占有欲等才允许为 0。',
+      '若证据中存在亲属、恋人、暧昧、依赖、占有、肉欲、畏惧、尊敬、支配等明确关系，相关 key 建议给出匹配数值，避免无依据地补成 0。',
+      '证据明确缺乏对应关系或冲动时，亲情、爱情、肉欲、依赖、占有欲等可以为 0。',
     ].join('\n') : '';
     return [
       `目标人物只能是：${base.name}。`,
@@ -305,7 +305,7 @@ window.GameModules.characterProfile = {
     return [
       `目标人物只能是：${base.name}。name 必须逐字等于“${base.name}”，不要同音改字，不要改成亲属、联系人或关系对象。`,
       '必须返回根字段 roleCardFieldReasons，不是 roleCardField、中文字段平铺或社群映射。',
-      'roleCardFieldReasons 必须完整包含：姓名、所属世界、身份、职业、性别、生日、人际关系、外貌、性格、人物说明、社群角色、势力地位。每个值写一句具体事实原因。',
+      'roleCardFieldReasons 必须完整包含：姓名、所属世界、身份、职业、性别、生日、人际关系、外貌、性格、人物说明、社群角色、势力地位。每个值建议写一句人物相关原因。',
       `必须返回根字段 rpgFieldReasons，并完整包含：${this.rpgFieldReasonKeys(attrs).join('、')}。`,
       '本轮不要返回 initialMetrics、initial_metrics 或任何情绪/感觉数组。',
       'relationships 必须是字符串，格式“关系：姓名”；不要对象。',
@@ -545,18 +545,16 @@ window.GameModules.characterProfile = {
     const keys = this.roleCardFieldKeys();
     const fallback = window.GameModules.characterReasonFallback?.roleReasons?.(profile) || {};
     const source = value && typeof value === 'object' ? value : {};
-    const out = Object.fromEntries(keys.map((key) => {
+    return Object.fromEntries(keys.map((key) => {
       const current = String(source[key] || '').trim().slice(0, 140);
-      return [key, (!this.abstractReason(current) && !this.wrongSubjectReason(current, profile, key)) ? current : String(fallback[key] || `${profile.name || '该人物'}的${key}由当前人物资料与生活处境共同确定。`).slice(0, 140)];
+      const safeCurrent = current && !this.wrongSubjectReason(current, profile, key) ? current : '';
+      return [key, safeCurrent || String(fallback[key] || `${profile.name || '该人物'}的${key}由当前人物资料与生活处境共同确定。`).slice(0, 140)];
     }));
-    const vague = keys.filter((key) => this.abstractReason(out[key]) || this.wrongSubjectReason(out[key], profile, key));
-    if (vague.length) throw new Error(`roleCardFieldReasons 缺少具体经历原因: ${vague.join(',')}`);
-    return out;
   },
 
   hasRequiredRoleCardFieldReasons(value, profile = {}) {
     if (!value || typeof value !== 'object') return false;
-    return this.roleCardFieldKeys().every((key) => !this.abstractReason(value[key]) && !this.wrongSubjectReason(value[key], profile, key));
+    return this.roleCardFieldKeys().every((key) => String(value[key] || '').trim() && !this.wrongSubjectReason(value[key], profile, key));
   },
 
   hasRequiredInventoryReasons(profile) {
@@ -596,7 +594,7 @@ window.GameModules.characterProfile = {
 
   hasRequiredRpgFieldReasons(value, attrs = null) {
     if (!value || typeof value !== 'object') return false;
-    return this.rpgFieldReasonKeys(attrs).every((key) => !this.abstractReason(value[key]));
+    return this.rpgFieldReasonKeys(attrs).every((key) => String(value[key] || '').trim());
   },
 
   cleanRpgFieldReasons(value, attrs = null) {
@@ -606,8 +604,8 @@ window.GameModules.characterProfile = {
   requireRpgFieldReasons(profile, attrs = null, label = '个人资料') {
     const keys = this.rpgFieldReasonKeys(attrs || profile?.worldAttributes || null);
     const reasons = profile?.rpgFieldReasons || {};
-    const missing = keys.filter((key) => this.abstractReason(reasons[key]));
-    if (missing.length) throw new Error(`${label} 缺少AI给出的具体RPG变化原因: ${missing.join('、')}`);
+    const missing = keys.filter((key) => !String(reasons[key] || '').trim());
+    if (missing.length) throw new Error(`${label} 缺少AI给出的RPG变化原因: ${missing.join('、')}`);
     return Object.fromEntries(keys.map((key) => [key, String(reasons[key]).trim().slice(0, 120)]));
   },
 
@@ -618,13 +616,13 @@ window.GameModules.characterProfile = {
   hasRequiredInitialMetrics(value) {
     const hasAll = (items, keys) => Array.isArray(items) && keys.every((key) => {
       const item = items.find((entry) => entry?.key === key);
-      return item && item.value !== undefined && this.validMetricText(item.status, key) && this.validMetricText(item.reason, key);
+      return item && item.value !== undefined && String(item.status || '').trim() && String(item.reason || '').trim();
     });
     return hasAll(value?.emotions, window.GameModules.metrics.emotionKeys) && hasAll(value?.playerFeelings, window.GameModules.metrics.playerKeys);
   },
 
   validMetricText(text, key) {
-    return window.GameModules.metrics.isSpecificMetricText(text, key) && !window.GameModules.metrics.metricReasonLooksGeneric(text);
+    return Boolean(String(text || '').trim());
   },
 
   initialMetrics(value, profile = {}) {
@@ -633,8 +631,8 @@ window.GameModules.characterProfile = {
       return keys.map((key) => {
         const item = list.find((entry) => entry?.key === key) || {};
         if (item.value === undefined) throw new Error(`${profile.name || '角色'} 缺少AI生成的${key}数值`);
-        if (!this.validMetricText(item.status, key)) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的具体数值解释`);
-        if (!this.validMetricText(item.reason, key)) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的具体变化原因`);
+        if (!String(item.status || '').trim()) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的数值解释`);
+        if (!String(item.reason || '').trim()) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的变化原因`);
         const metricValue = window.GameModules.metrics.clamp(item.value);
         return {
           key,

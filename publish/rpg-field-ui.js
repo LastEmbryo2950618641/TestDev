@@ -24,11 +24,11 @@ window.GameModules.rpgFieldUi = {
       if (value.includes(name)) return false;
       return /(作为|是|属于|承担|体现了).{0,18}(妹妹|姐姐|哥哥|弟弟|父亲|母亲|女儿|儿子)/.test(value) || /(妹妹|姐姐|哥哥|弟弟|父亲|母亲|女儿|儿子).{0,12}(身份|性格|外貌|生日|职业|资料)/.test(value);
     };
-    const usable = (text, label) => !/^错误：.*缺少AI给出的具体变化原因/.test(String(text || '').trim()) && !wrongSubject(text, label) && !window.GameModules.characterProfile?.abstractReason?.(text) && String(text || '').trim();
+    const usable = (text, label) => !/^错误：.*缺少AI给出的变化原因/.test(String(text || '').trim()) && !wrongSubject(text, label) && String(text || '').trim();
     return (label, key) => usable(reasons[label], label) || usable(reasons[key], label) || usable(log[label], label) || usable(log[key], label) || this.missingReasonText(`${profile?.name || '个人资料'}-${label}`);
   },
 
-  missingReasonText(name = '词条') { return `错误：${name}缺少AI给出的具体变化原因，请重新生成个人资料或重新触发AI更新。`; },
+  missingReasonText(name = '词条') { return `错误：${name}缺少AI给出的变化原因，请重新生成个人资料或重新触发AI更新。`; },
   rpgListItems(field) { return Array.isArray(field?.raw) ? field.raw : []; },
 
   profileIdentityFields(state, provided = []) {
@@ -98,8 +98,7 @@ window.GameModules.rpgFieldUi = {
 
   usableChangeReason(reason, blocked = []) {
     const text = String(reason || '').trim();
-    if (/^错误：.*缺少AI给出的具体变化原因/.test(text)) return '';
-    if (window.GameModules.characterProfile?.abstractReason?.(text)) return '';
+    if (/^错误：.*缺少AI给出的变化原因/.test(text)) return '';
     if (/性别：|年龄：|生日：|具体地址：|势力地位：|社群角色：|居住：|父母：|关系：|备注：|关系为.*备注为|居住在.*生活状态.*家庭状态/.test(text)) return '';
     if (/^(AI演算|系统结算|系统词条调整|用户主动)$/.test(text) || /词条说明|当前作用|用于记录|暂无详细说明/.test(text)) return '';
     if (/依据.*(当前值|上限|已落库|经验曲线)|当前为.*依据|被记录为当前|后续(获得|使用|消耗|转让|遗失|损坏|穿戴|由明确行动|状态变化)时会更新|当前属于.*词条/.test(text)) return '';

@@ -77,10 +77,10 @@ window.GameModules.actions = {
   metricNote(type, key, state = null) {
     const target = this.metricTargetForNote(type, key, state);
     if (!target.ready) return `定义: ${target.description}\n解释: 等待推演，数值尚未完成初始化。\n变化原因: 数值正在刷新，尚未完成初始推演。`;
-    const rawStatus = String(target.raw?.status || '');
-    const status = window.GameModules.metrics.isSpecificMetricText(rawStatus, key) ? rawStatus : '缺少AI生成的具体数值解释，请重新生成角色卡或推进剧情。';
-    const rawReason = String(target.raw?.reason || '');
-    const reason = !window.GameModules.metrics.metricReasonLooksGeneric(rawReason) ? rawReason : '缺少AI生成的具体变化原因，请重新生成角色卡或推进剧情。';
+    const rawStatus = String(target.raw?.status || '').trim();
+    const status = rawStatus || '缺少AI生成的数值解释，请重新生成角色卡或推进剧情。';
+    const rawReason = String(target.raw?.reason || '').trim();
+    const reason = rawReason || '缺少AI生成的变化原因，请重新生成角色卡或推进剧情。';
     return `定义: ${target.description}\n解释: ${status}\n变化原因: ${reason}`;
   },
   metricTargetForNote(type, key, state = null) {

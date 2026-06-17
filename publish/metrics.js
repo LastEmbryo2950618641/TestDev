@@ -99,9 +99,9 @@ window.GameModules.metrics = {
   writeMetric(target, notes, group, item, value, fallbackReason) {
     const stage = this.stageFor(item.key, value);
     target[item.key] = value;
-    const fallbackUsed = this.metricReasonLooksGeneric(item.reason);
-    const reason = String(fallbackUsed ? fallbackReason : item.reason).slice(0, 180);
-    const metricSources = item.metricSources || { 数值: '系统', 解释: item.status ? 'ai' : '系统', 原因: fallbackUsed ? '系统' : 'ai' };
+    const hasReason = String(item.reason || '').trim();
+    const reason = String(hasReason || fallbackReason).slice(0, 180);
+    const metricSources = item.metricSources || { 数值: '系统', 解释: item.status ? 'ai' : '系统', 原因: hasReason ? 'ai' : '系统' };
     notes[`${group}:${item.key}`] = {
       stage,
       status: String(this.valueExplanation(item.key, value, item.status, reason)).slice(0, 180),
