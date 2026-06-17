@@ -158,18 +158,20 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
     return cards.filter((card) => card?.name && card?.id && (!selected.length || selected.includes(card.name)));
   },
   relationshipContactsFromPart(part, relation, rest, index, selfName) {
-    const text = rest || part;
-    const explicitId = rest.match(/(?:角色ID|角色id|characterId|id)\s*[：:=]\s*([A-Za-z0-9_-]{2,40})/)?.[1] || '';
+    const text = String(rest || part || '').trim();
+    const rel = String(relation || '').trim().slice(0, 18) || '关系联系人';
+    const explicitId = text.match(/(?:角色ID|角色id|characterId|id)\s*[：:=]\s*([A-Za-z0-9_-]{2,40})/)?.[1] || '';
     const known = this.roleCardSetup?.usePredefinedPlayerCard ? this.predefinedRelationshipCards().filter((card) => text.includes(card.name)) : [];
     if (known.length) return known.map((card) => ({ id: card.id, characterId: card.id, name: card.name, relation: relation || card.role || '关系联系人', latest: `${relation || card.role || card.name}资料已从玩家人际关系同步。`, source: 'relationships', context: text, needsNameAi: false }));
-    const keyRelation = relation || (text.match(/(青梅竹马|校花|妹妹|姐姐|哥哥|弟弟|父母|父亲|母亲|爸爸|妈妈|女友|男友|妻子|丈夫|同桌|同学|老师|邻居|同事)/)?.[1] || '');
-    const names = (rest.match(/[\u4e00-\u9fa5A-Za-z_·]{2,12}/g) || []).map((x) => x.replace(/[，。；;、,.].*$/, '').trim()).filter((x) => x && x !== selfName && !/(已故|同住|关系|父母|妹妹|姐姐|哥哥|弟弟|青梅竹马|校花|同桌|同学|老师|邻居|同事)/.test(x));
-    const placeholders = keyRelation === '父母' ? ['父亲', '母亲'] : [keyRelation || `联系人${index + 1}`];
-    const list = names.length ? names : placeholders;
+    const clean = text.replace(/(?:角色ID|角色id|characterId|id)\s*[：:=]\s*[A-Za-z0-9_-]{2,40}/g, '').trim();
+    const named = [...clean.matchAll(/(?:姓名|名字|名叫|叫作|叫做|叫|名为)\s*([\u4e00-\u9fa5A-Za-z0-9_·]{2,24})/g)].map((match) => match[1]);
+    const parts = named.length ? named : clean.split(/[、，,\/|和与及]+/);
+    const names = parts.map((x) => String(x || '').replace(/[（(].*?[）)]/g, '').replace(/[，。；;、,.].*$/, '').trim().slice(0, 24)).filter((x) => x && x !== selfName && x !== rel && !this.isWechatPlaceholderName(x));
+    const list = names.length ? names : [rel || `联系人${index + 1}`];
     return list.filter(Boolean).map((name, subIndex) => {
-      const rel = names.length ? (keyRelation || relation || '关系联系人') : name;
+      const needsNameAi = !names.length;
       const id = explicitId && list.length === 1 ? explicitId : `rel-ai-${window.GameModules.rpgState.seed(`${rel}-${name}-${index}-${subIndex}`)}`;
-      return { id, characterId: id, name: name.slice(0, 24), relation: rel, latest: `${rel || name}资料已从玩家人际关系同步。`, source: explicitId ? 'relationships' : 'relationships-ai', context: text, needsNameAi: !names.length };
+      return { id, characterId: id, name: name.slice(0, 24), relation: rel, latest: `${rel || name}资料已从玩家人际关系同步。`, source: explicitId ? 'relationships' : 'relationships-ai', context: text, needsNameAi };
     });
   },
   inferWechatUsersFromRelationships(text = '') {
