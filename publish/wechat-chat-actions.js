@@ -107,8 +107,8 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatChatActi
       this.advancePhoneTime?.(result.elapsedSeconds || 60);
       this.appendWechatMessage(characterId, { side: 'other', name: state?.profile?.name || contact.name, mark: (state?.profile?.name || contact.name || '').slice(0, 1), text: result.reply, characterId, metricUpdates: result.metricUpdates, lexiconUpdates: result.lexiconUpdates, characterCardChanges: result.characterCardChanges, cardChangesOpen: false, changeReasonsOpen: false });
       await window.GameModules.characterMemory?.recordWechatExchange?.(this, { ...contact, id: characterId, characterId }, playerText, result.reply, result);
+      await this.recordWechatWorldline({ ...contact, id: characterId, characterId }, playerText, result.reply, result);
       this.debugWechatMemory?.({ ...contact, id: characterId, characterId });
-      await this.recordWechatWorldline(contact, playerText, result.reply, result);
       await this.save?.();
     } catch (err) {
       if (reqId !== this.wechatReplyRequestId) return;

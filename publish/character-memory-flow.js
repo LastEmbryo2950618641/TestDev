@@ -26,14 +26,18 @@ Object.assign(window.GameModules.characterMemory, {
 
   async recordWechatExchange(store, contact, playerText, replyText, result = {}) {
     if (!contact?.id || contact.group) return;
-    const characterId = store.wechatCharacterId?.(contact) || contact.characterId || contact.id;
-    const saved = window.GameModules.sqliteSave.getCharacterState(characterId);
-    const state = store.rpgStates?.[characterId] || saved;
+    let characterId = store.wechatCharacterId?.(contact) || contact.characterId || contact.id;
+    let state = store.rpgStates?.[characterId] || window.GameModules.sqliteSave.getCharacterState(characterId);
+    if (!state && store.ensureWechatUserProfile) {
+      try { state = await store.ensureWechatUserProfile({ ...contact, id: characterId, characterId }); }
+      catch (err) { console.warn('[微信记忆] 补齐联系人角色状态失败:', contact.id, contact.name, characterId, err.message, err.stack); }
+    }
     if (!state) {
-      console.warn('[微信记忆] 未找到联系人对应角色状态:', contact.id, contact.name, characterId);
+      console.warn('[微信记忆] 未找到联系人对应角色状态，已跳过写入:', contact.id, contact.name, characterId);
       return;
     }
-    if (!store.rpgStates?.[state.id]) store.rpgStates = { ...(store.rpgStates || {}), [state.id]: state };
+    characterId = state.id || characterId;
+    if (!store.rpgStates?.[characterId]) store.rpgStates = { ...(store.rpgStates || {}), [characterId]: state };
     const display = store.displayWechatContact?.(contact) || contact;
     const phoneTime = store.wechatMemoryTime?.() || this.gameTime({ entryTimeLabel: () => `${store.phoneDateText?.() || ''} ${store.phoneTimeText?.() || ''}`.trim() });
     const label = store.wechatDialogueTimeLabel?.(phoneTime.label) || phoneTime.label || '时间未知';
