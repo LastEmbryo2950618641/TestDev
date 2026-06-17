@@ -17,7 +17,7 @@ Object.assign(window.GameModules.characterFeedback, {
       let resolveDone;
       const donePromise = new Promise((resolve) => { resolveDone = resolve; });
       const request = window.GameModules.aiRequest.complete({
-        source: 'character-feedback', model: 'nalang-turbo-0826', maxTokens: 900, prompt, timeoutMs: 60000, requireDone: true,
+        source: 'character-feedback', model: 'nalang-turbo-0826', prompt, timeoutMs: 60000, requireDone: true,
         onChunk: (chunk, done, info) => {
           buffer = info.buffer;
           if (done) {

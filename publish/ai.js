@@ -31,7 +31,7 @@ window.GameModules.ai = {
       let resultPromise = Promise.resolve();
       const donePromise = new Promise((resolve) => { resolveDone = resolve; });
       await Promise.race([Promise.all([window.GameModules.aiRequest.complete({
-        source: 'story-engine', model: store.modelId, messages, maxTokens: 3000, timeoutMs: 60000, requireDone: true,
+        source: 'story-engine', model: store.modelId, messages, timeoutMs: 60000, requireDone: true,
         onChunk: async (chunk, done, info) => {
           if (requestId !== this.latestRequestId) return;
           chunkCount = info.chunkCount;

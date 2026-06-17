@@ -43,7 +43,6 @@ window.GameModules.professionInfo = {
       return await window.GameModules.jsonUtils.generateJsonWithRetry({
         source: 'profession-info',
         model: 'nalang-turbo-0826',
-        maxTokens: 700,
         timeoutMs: 60000,
         prompt,
         format: prompt,

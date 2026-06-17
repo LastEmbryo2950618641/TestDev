@@ -41,7 +41,6 @@ window.GameModules.worldlinePlots = {
       summary = await window.GameModules.jsonUtils.generateJsonWithRetry({
         source: 'worldline-plot',
         model: store.modelId,
-        maxTokens: 600,
         timeoutMs: 60000,
         prompt: this.prompt(plot, events),
         format: this.prompt(plot, events),

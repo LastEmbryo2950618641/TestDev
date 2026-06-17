@@ -111,7 +111,7 @@ window.GameModules.playerSetupActions = {
       输入: JSON.stringify(base),
     });
     return await Promise.race([
-      window.GameModules.jsonUtils.generateJsonWithRetry({ source: 'player-profile-enrichment', model: this.modelId, maxTokens: 900, timeoutMs: 60000, prompt, format: prompt, max: 2 }),
+      window.GameModules.jsonUtils.generateJsonWithRetry({ source: 'player-profile-enrichment', model: this.modelId, timeoutMs: 60000, prompt, format: prompt, max: 2 }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('身份补全超时')), 60000)),
     ]);
   },

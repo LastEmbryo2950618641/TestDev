@@ -75,7 +75,6 @@ window.GameModules.characterProfile = {
       const profile = await window.GameModules.jsonUtils.generateJsonWithRetry({
         source: 'character-profile-card',
         model: 'nalang-turbo-0826',
-        maxTokens: 3000,
         timeoutMs: 60000,
         prompt,
         format: prompt,
@@ -214,7 +213,6 @@ window.GameModules.characterProfile = {
     return window.GameModules.jsonUtils.generateJsonWithRetry({
       source,
       model: 'nalang-turbo-0826',
-      maxTokens: Math.min(2000, 420 + keys.length * 180),
       timeoutMs: 60000,
       prompt,
       format: prompt,

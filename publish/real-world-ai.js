@@ -14,7 +14,7 @@ window.GameModules.realWorldAi = {
       const donePromise = new Promise((resolve) => { resolveDone = resolve; });
       await Promise.race([
         window.GameModules.aiRequest.complete({
-          source: 'real-world-engine', model: store.modelId, maxTokens: 2200, prompt, timeoutMs: 60000, requireDone: true,
+          source: 'real-world-engine', model: store.modelId, prompt, timeoutMs: 60000, requireDone: true,
           onChunk: (chunk, done, info) => {
             if (requestId !== this.latestRequestId) return;
             buffer = info.buffer;

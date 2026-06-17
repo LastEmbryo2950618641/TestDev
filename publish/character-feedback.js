@@ -21,7 +21,7 @@ window.GameModules.characterFeedback = {
       const prompt = await this.prompt(store);
       console.log('[角色反馈] completions 调用:', { promptLength: prompt.length });
       const request = window.GameModules.aiRequest.complete({
-        source: 'character-feedback-base', model: 'nalang-turbo-0826', maxTokens: 600, prompt, timeoutMs: 60000,
+        source: 'character-feedback-base', model: 'nalang-turbo-0826', prompt, timeoutMs: 60000,
         onChunk: (chunk, done, info) => {
           buffer = info.buffer;
           if (done) console.log('[角色反馈] 流式 done:', { length: buffer.length });
