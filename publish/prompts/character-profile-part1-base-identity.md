@@ -11,7 +11,7 @@ Rules：
 1. Schema 锁定：必须严格匹配下方字段定义，禁止新增未定义的 Key，禁止遗漏任何 required 字段。
 2. 类型铁律：字符串用双引号，数字/布尔值不加引号，数组/对象正确嵌套。`jobConfirmed` 是 boolean；`age.value`、`learningAbility.value`、`mentalStability.value`、`growthPotential.value`、`actionAbility.value`、`feeling.emotions[].value`、`feeling.playerFeelings[].value`、`control_experience.上线次数` 是 integer。
 3. 空值处理：字符串字段无内容时返回空字符串 ""；对象字段无内容时返回空对象 {}。
-4. 语法红线：严禁尾随逗号。输出前默念"检查最后一个元素后是否有逗号"。
+4. 语法红线：严禁尾随逗号。在生成数组时，遍历完最后一个元素后，立即停止添加逗号。记住：JSON不允许尾随逗号。
 5. Key 顺序：严格按下方字段表顺序输出。
 
 ## 目标锁定
@@ -154,3 +154,5 @@ Rules：
 ```
 
 注意：示例中 `feeling.emotions` 和 `feeling.playerFeelings` 只展示了部分 key；实际输出必须包含全部 12 个情绪 key 和全部 17 个对玩家感觉 key。
+
+注意：Schema优先级高于示例。当示例与字段定义冲突时，以字段定义为准。

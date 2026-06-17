@@ -59,7 +59,7 @@
 
 1. 必须体现职业升级后如何变强。
 2. confirmed=true 时，不允许出现空的 intrinsicStats、learnedAbilities、knowledgeAreas。
-3. 只返回 JSON，不要 Markdown。
+3. 只返回 JSON，不要 Markdown。在生成数组时，遍历完最后一个元素后，立即停止添加逗号。记住：JSON不允许尾随逗号。
 4. 不要返回不符合世界观的世界专属能力。
 
 ## 返回 JSON 格式
@@ -107,3 +107,5 @@
   "requirements": { "intrinsicStats": ["intelligence"], "worldAbilities": [], "learnedAbilities": ["技能名"], "knowledgeAreas": ["知识名"], "reason": "支撑该职业lv.1的原因" }
 }
 ```
+
+注意：字段定义优先级高于示例。当示例与字段定义冲突时，以字段定义为准。

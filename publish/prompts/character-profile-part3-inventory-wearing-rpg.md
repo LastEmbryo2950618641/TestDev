@@ -10,7 +10,7 @@ Rules：
 
 1. Schema 锁定：必须严格匹配下方字段定义，禁止新增未定义的 Key。
 2. 类型铁律：`rpgField.level.value`、`rpgField.intrinsicBase.*.value`、`rpgField.derived.*.value`、`items[].quantity` 是 integer。
-3. 语法红线：严禁尾随逗号。
+3. 语法红线：严禁尾随逗号。在生成数组时，遍历完最后一个元素后，立即停止添加逗号。记住：JSON不允许尾随逗号。
 4. Key 顺序：严格按 `name` → `equipment` → `items` → `wearing` → `rpgField` 顺序输出。
 
 ## 已生成角色卡基础信息
@@ -166,3 +166,5 @@ Rules：
   }
 }
 ```
+
+注意：Schema优先级高于示例。当示例与字段定义冲突时，以字段定义为准。
