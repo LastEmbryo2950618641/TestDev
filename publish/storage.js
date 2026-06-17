@@ -28,6 +28,12 @@ window.GameModules.storage = {
       phoneSetupDone: store.phoneSetupDone,
       playerProfile: store.playerProfile,
       playerName: store.playerName,
+      roleCardSetup: {
+        usePredefinedPlayerCard: Boolean(store.roleCardSetup?.usePredefinedPlayerCard),
+        selectedPlayerName: store.roleCardSetup?.selectedPlayerName || '',
+        selectedRelationNames: store.roleCardSetup?.selectedRelationNames || [],
+        relationRoles: store.roleCardSetup?.relationRoles || {},
+      },
       wechatUsers: store.wechatUsers || [],
       wechatMessagesByContact: store.wechatMessagesByContact || {},
       phoneFixedTime: store.phoneFixedTime,
@@ -77,6 +83,15 @@ window.GameModules.storage = {
     store.phoneFixedTime = Number(save.phoneFixedTime) || new Date(save.playerProfile?.initializedAt || Date.now()).getTime();
     store.playerProfile = { ...store.playerProfile, ...(save.playerProfile || {}) };
     store.playerName = save.playerName || store.playerProfile?.name || store.playerName;
+    if (save.roleCardSetup && store.roleCardSetup) {
+      store.roleCardSetup = {
+        ...store.roleCardSetup,
+        usePredefinedPlayerCard: Boolean(save.roleCardSetup.usePredefinedPlayerCard),
+        selectedPlayerName: save.roleCardSetup.selectedPlayerName || store.roleCardSetup.selectedPlayerName,
+        selectedRelationNames: Array.isArray(save.roleCardSetup.selectedRelationNames) ? save.roleCardSetup.selectedRelationNames : store.roleCardSetup.selectedRelationNames,
+        relationRoles: save.roleCardSetup.relationRoles && typeof save.roleCardSetup.relationRoles === 'object' ? save.roleCardSetup.relationRoles : store.roleCardSetup.relationRoles,
+      };
+    }
     store.wechatUsers = Array.isArray(save.wechatUsers) ? save.wechatUsers : (store.wechatUsers || []);
     store.wechatMessagesByContact = save.wechatMessagesByContact && typeof save.wechatMessagesByContact === 'object' ? save.wechatMessagesByContact : (store.wechatMessagesByContact || {});
     store.realWorldSceneTitle = save.realWorldSceneTitle || store.realWorldSceneTitle;

@@ -1,6 +1,7 @@
 window.GameModules = window.GameModules || {};
 window.GameModules.wechatAppActions = {
   openWechatApp() {
+    this.syncRelationshipWechatUsers?.({ generateProfile: false, save: false });
     this.identityAppOpen = false; this.saveAppOpen = false; this.worldlineAppOpen = false;
     if (this.companyState) this.companyState.open = false;
     if (this.bossState) this.bossState.open = false;
