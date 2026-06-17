@@ -99,12 +99,24 @@ window.GameModules.metrics = {
   writeMetric(target, notes, group, item, value, fallbackReason) {
     const stage = this.stageFor(item.key, value);
     target[item.key] = value;
-    const hasReason = String(item.reason || '').trim();
-    const reason = String(hasReason || fallbackReason).slice(0, 180);
-    const metricSources = item.metricSources || { 数值: '系统', 解释: item.status ? 'ai' : '系统', 原因: hasReason ? 'ai' : '系统' };
+    const rawStatus = String(item.status || '').trim();
+    const rawReason = String(item.reason || '').trim();
+    const reason = String(rawReason || fallbackReason).slice(0, 180);
+    const status = String(this.valueExplanation(item.key, value, rawStatus, reason)).slice(0, 180);
+    const explicitSources = item.metricSources || null;
+    const statusFromAi = rawStatus && status === rawStatus;
+    const metricSources = explicitSources ? {
+      数值: explicitSources.数值 === 'ai' ? 'ai' : '系统',
+      解释: explicitSources.解释 === 'ai' && statusFromAi ? 'ai' : '系统',
+      原因: explicitSources.原因 === 'ai' && rawReason ? 'ai' : '系统',
+    } : {
+      数值: '系统',
+      解释: '系统',
+      原因: '系统',
+    };
     notes[`${group}:${item.key}`] = {
       stage,
-      status: String(this.valueExplanation(item.key, value, item.status, reason)).slice(0, 180),
+      status,
       reason,
       description: String(this.descriptions[item.key] || item.key).slice(0, 120),
       metricSources,

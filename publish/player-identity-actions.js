@@ -150,12 +150,16 @@ window.GameModules.playerIdentityActions = {
     const sync = (items, values, keys, group) => (Array.isArray(items) ? items : []).forEach((item) => {
       if (!keys.includes(item?.key)) return;
       const value = window.GameModules.metrics.clamp(values?.[item.key] ?? item.value);
+      const rawStatus = String(item.status || '').trim();
+      const rawReason = String(item.reason || '').trim();
+      const status = String(window.GameModules.metrics.valueExplanation(item.key, value, rawStatus, rawReason)).slice(0, 180);
+      const sources = window.GameModules.characterProfile?.metricSources?.(item, '系统') || { 数值: '系统', 解释: '系统', 原因: '系统' };
       state.metrics.notes[`${group}:${item.key}`] = {
         stage: window.GameModules.metrics.stageFor(item.key, value),
-        status: String(window.GameModules.metrics.valueExplanation(item.key, value, item.status)).slice(0, 180),
-        reason: String(item.reason || '').slice(0, 180),
+        status,
+        reason: rawReason.slice(0, 180),
         description: String(window.GameModules.metrics.descriptions[item.key] || item.key).slice(0, 120),
-        metricSources: window.GameModules.characterProfile?.metricSources?.(item, '系统') || { 数值: '系统', 解释: '系统', 原因: '系统' },
+        metricSources: { 数值: sources.数值, 解释: sources.解释 === 'ai' && status === rawStatus ? 'ai' : '系统', 原因: sources.原因 === 'ai' && rawReason ? 'ai' : '系统' },
       };
     });
     sync(profile.initialMetrics.emotions, state.metrics.emotions, window.GameModules.metrics.emotionKeys, 'emotion');

@@ -82,7 +82,7 @@ window.GameModules.actions = {
     const rawReason = String(target.raw?.reason || '').trim();
     const reason = rawReason || '缺少AI生成的变化原因，请重新生成角色卡或推进剧情。';
     const sources = target.raw?.metricSources || {};
-    const sourceText = `数值=${sources.数值 || '系统'} / 解释=${sources.解释 || (rawStatus ? 'ai' : '系统')} / 原因=${sources.原因 || (rawReason ? 'ai' : '系统')}`;
+    const sourceText = `数值=${sources.数值 || '系统'} / 解释=${sources.解释 || '系统'} / 原因=${sources.原因 || '系统'}`;
     return `定义: ${target.description}\n字段值来源: ${sourceText}\n解释: ${status}\n变化原因: ${reason}`;
   },
   metricTargetForNote(type, key, state = null) {
