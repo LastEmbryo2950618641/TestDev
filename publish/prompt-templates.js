@@ -104,8 +104,6 @@ window.GameModules.promptTemplates = {
   },
   async render(id, vars = {}) {
     const source = await this.load(id);
-    const text = source.replace(/\{([^{}]+)\}/g, (match, key) => Object.prototype.hasOwnProperty.call(vars, key) ? String(vars[key]) : match);
-    window.GameModules.tokenStats?.record?.(id, text);
-    return text;
+    return source.replace(/\{([^{}]+)\}/g, (match, key) => Object.prototype.hasOwnProperty.call(vars, key) ? String(vars[key]) : match);
   },
 };

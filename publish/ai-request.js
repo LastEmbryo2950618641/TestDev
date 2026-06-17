@@ -85,6 +85,7 @@ window.GameModules.aiRequest = {
     const model = options.model || 'nalang-turbo-0826';
     const maxTokens = this.clampMaxTokens(options.maxTokens);
     const enqueueAt = Date.now();
+    window.GameModules.tokenStats?.record?.(source, messages.map((msg) => String(msg?.content || '')).join('\n'), { model, maxTokens });
     const sourceCount = this.countSource(source);
     this.logicalCount += 1;
     this.queued += 1;

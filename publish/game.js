@@ -145,6 +145,7 @@ function registerGameStore() {
 
       try {
         const result = await window.dzmm?.models?.list?.();
+        window.GameModules.tokenStats?.syncModelPrices?.(result);
         this.modelId = result?.defaultModel || result?.models?.[0]?.internalName || this.modelId;
       } catch (err) {
         console.warn('读取模型列表失败:', err.code, err.message);

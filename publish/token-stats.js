@@ -4,20 +4,44 @@ window.GameModules.tokenStats = {
   records: [],
   seq: 0,
   maxRecords: 120,
+  modelPrices: {},
   defaultState() { return { open: false, query: '', category: '', selectedId: '' }; },
-  estimateCredits(tokens) { return Math.max(1, Math.ceil((Number(tokens) || 0) / 1000)); },
-  record(promptId, text) {
+  priceValue(price) {
+    const match = String(price ?? '').match(/[\d.]+/);
+    const value = match ? Number(match[0]) : Number(price);
+    return Number.isFinite(value) && value > 0 ? value : 1;
+  },
+  syncModelPrices(result) {
+    const prices = {};
+    (result?.models || []).forEach((model) => { if (model?.internalName) prices[model.internalName] = this.priceValue(model.price); });
+    (result?.categories || []).forEach((category) => (category.modelGroups || []).forEach((group) => (group.contexts || []).forEach((ctx) => {
+      if (ctx?.internalName && group?.price !== undefined) prices[ctx.internalName] = this.priceValue(group.price);
+    })));
+    this.modelPrices = { ...this.modelPrices, ...prices };
+  },
+  estimateCredits(tokens, model = '') {
+    const price = this.modelPrices?.[model] || 1;
+    return Math.max(1, Math.ceil(((Number(tokens) || 0) / 1000) * price));
+  },
+  record(promptId, text, meta = {}) {
     if (!promptId) return text;
     const item = window.GameModules.promptTemplates?.find?.(promptId);
     const createdAt = Date.now();
     const fullText = String(text || '');
-    const tokens = window.GameModules.characterMemory?.estimateTokens?.(fullText) || Math.ceil(fullText.length / 2);
+    const inputTokens = window.GameModules.characterMemory?.estimateTokens?.(fullText) || Math.ceil(fullText.length / 2);
+    const outputTokens = Math.max(0, Number(meta.maxTokens) || 0);
+    const tokens = inputTokens + outputTokens;
+    const model = meta.model || '';
     const record = {
       id: `${createdAt}-${++this.seq}-${promptId}`,
       promptId,
       text: fullText,
+      inputTokens,
+      outputTokens,
       tokens,
-      credits: this.estimateCredits(tokens),
+      model,
+      price: this.modelPrices?.[model] || 1,
+      credits: this.estimateCredits(tokens, model),
       title: item?.title || promptId,
       category: item?.category || '未分类',
       summary: item?.summary || '',
@@ -66,5 +90,5 @@ window.GameModules.tokenStatsActions = {
   closeTokenPromptDetail() { if (this.tokenStatsState) this.tokenStatsState.selectedId = ''; },
   currentTokenPromptRecord() { return window.GameModules.tokenStats.item(this.tokenStatsState?.selectedId); },
   tokenPromptText(id) { return window.GameModules.tokenStats.item(id)?.text || '暂无请求记录。先触发对应 AI 生成流程后，这里会显示变量已替换的完整提示词。'; },
-  tokenPromptCostText(id) { const stat = window.GameModules.tokenStats.item(id); return stat ? `${stat.tokens} token｜约 ${stat.credits} 积分` : '未生成'; },
+  tokenPromptCostText(id) { const stat = window.GameModules.tokenStats.item(id); return stat ? `输入${stat.inputTokens || stat.tokens} + 预留输出${stat.outputTokens || 0} token｜模型${stat.model || '未知'}×${stat.price || 1}｜约 ${stat.credits} 积分` : '未生成'; },
 };
