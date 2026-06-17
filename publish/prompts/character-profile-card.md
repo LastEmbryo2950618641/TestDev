@@ -70,7 +70,7 @@ Rules：
 6. `learningAbility`/`mentalStability`/`growthPotential`/`actionAbility` 都是含 `value` 和 `reason` 的对象。普通人 6-10；受过训练者 11-15；超凡者 16-20；体弱/幼小者 3-5。`learningAbility` 是学习和吸收新知识的能力；`mentalStability` 是精神/心理稳定程度；`growthPotential` 是未来成长空间；`actionAbility` 是实际行动和执行能力。
 7. `factions` 是社群角色，元素含 `faction, role, reason`；用于家庭、住址、社区、社交圈等无等级归属。
 8. `forcePositions` 是势力地位，元素含 `force, position, reason`；用于国家、学校、公司、部门、组织等有层级归属。现代中国现实人物通常包含"中华人民共和国 / 公民"。
-9. `skills`/`knowledge`/`professions`/`equipment`/`items`/`wearing` 都是数组，每项必须有 `reason`。`skills` 含 `name, desc, level, levelEffects, reason`；`knowledge` 含 `name, desc, level, levelEffects, reason`；`professions` 含 `name, level, levelEffects, reason`；`equipment` 含 `name, description, equipSlots, reason`；`items` 含 `name, description, quantity, reason`；`wearing` 含 `slot, name, description, reason`。
+9. `skills`/`knowledge`/`professions`/`equipment`/`items`/`wearing` 都是数组，每项必须有 `reason`。`skills` 含 `name, desc, level, levelEffects, reason`；`knowledge` 含 `name, desc, level, levelEffects, reason`；`professions` 含 `name, level, levelEffects, reason`；`equipment` 含 `name, description, equipSlots, reason`；`items` 含 `name, description, quantity, reason`；`wearing` 含 `slot, 部位, name, description, reason`。`部位` 是该穿着覆盖的身体部位，如内衣对应"胸部"、上衣对应"躯干"、内裤对应"腰臀"、下衣对应"腿部"、袜子对应"脚踝"、鞋子对应"脚部"。
 10. 常规生活、上学、工作场景的 `wearing` 应包含基础槽位：内衣、上衣、内裤、下衣、袜子、鞋子；只有明确特殊事件才可返回"未穿戴"。
 11. `control_experience` 是玩家对该人物的操控经验。首次生成时 `上线次数` 为 0，`习惯程度` 写"初次操控尚不熟悉"。
 12. `rpgField.derived` 是由基础属性和装备综合计算的派生属性。`攻击力` 综合力量、战斗技能、武器装备等计算；`防御力` 综合体质、防护装备、防御技能等计算。普通人攻击力/防御力 5-15；受过训练者 16-30；装备精良或超凡者 30+。必须根据人物实际属性和装备推算，给出计算原因。
@@ -313,10 +313,11 @@ Rules：
       "description": "当前穿着列表。常规生活场景应包含基础槽位：内衣、上衣、内裤、下衣、袜子、鞋子。",
       "items": {
         "type": "object",
-        "required": ["slot", "name", "description", "reason"],
+        "required": ["slot", "bodyPart", "name", "description", "reason"],
         "additionalProperties": false,
         "properties": {
           "slot": { "type": "string", "description": "穿着槽位，如内衣、上衣、内裤、下衣、袜子、鞋子。" },
+          "bodyPart": { "type": "string", "description": "穿着覆盖的身体部位，如胸部、躯干、腰臀、腿部、脚踝、脚部、手腕、头部、手部等。" },
           "name": { "type": "string", "description": "穿着名称。" },
           "description": { "type": "string", "description": "穿着说明。" },
           "reason": { "type": "string", "description": "穿戴该物品的原因句。" }
