@@ -109,6 +109,7 @@
   <script src="player-setup-guard.js"></script>
   <script src="wechat-actions.js"></script>
   <script src="wechat-chat-actions.js"></script>
+  <script src="wechat-change-panel-actions.js"></script>
   <script src="player-wechat-setup.js"></script>
   <script src="player-identity-actions.js"></script>
   <script src="identity-memory-actions.js"></script>
@@ -1060,7 +1061,21 @@
         <section class="wechat-chat-page" x-show="$store.game.wechatView === 'chat'">
           <div class="wechat-messages">
             <template x-for="(msg, index) in $store.game.wechatMessages()" :key="index">
-              <div class="wechat-msg" :class="msg.side"><button class="wechat-avatar" type="button" @click="$store.game.openWechatIdentity()" x-text="msg.mark"></button><div><time x-text="msg.atDisplay || msg.at || ''"></time><p x-text="msg.text"></p><button class="card-change-toggle" :class="{ open: msg.cardChangesOpen }" x-show="msg.characterCardChanges?.length" @click="$store.game.toggleCardChanges(msg)" x-text="msg.cardChangesOpen ? '角色卡变更▾' : '角色卡变更▸'"></button><div class="card-change-panel" x-show="msg.cardChangesOpen"><template x-for="change in msg.characterCardChanges" :key="`${change.at}-${change.field}-${change.name}`"><p><b x-text="change.field"></b><span x-text="`${change.name || ''}：${typeof change.value === 'object' ? JSON.stringify(change.value) : change.value}｜理由：${change.reason}`"></span></p></template></div></div></div>
+              <div class="wechat-msg" :class="msg.side">
+                <button class="wechat-avatar" type="button" @click="$store.game.openWechatIdentity()" x-text="msg.mark"></button>
+                <div>
+                  <time x-text="msg.atDisplay || msg.at || ''"></time>
+                  <p x-text="msg.text"></p>
+                  <button class="card-change-toggle" :class="{ open: msg.changeReasonsOpen }" x-show="$store.game.wechatHasChangeReasons(msg)" @click="$store.game.toggleWechatChangePanel(msg)" x-text="msg.changeReasonsOpen ? '变化原因▾' : '变化原因▸'"></button>
+                  <div class="wechat-change-panel" x-show="msg.changeReasonsOpen">
+                    <template x-for="group in $store.game.wechatChangeGroups(msg)" :key="group.title">
+                      <section><b x-text="group.title"></b><template x-for="item in group.items" :key="`${group.title}-${item.name}-${item.reason}`"><p><span x-text="item.name"></span><em x-show="item.summary" x-text="item.summary"></em><small x-text="item.reason"></small></p></template></section>
+                    </template>
+                  </div>
+                  <button class="card-change-toggle" :class="{ open: msg.cardChangesOpen }" x-show="msg.characterCardChanges?.length" @click="$store.game.toggleCardChanges(msg)" x-text="msg.cardChangesOpen ? '角色卡变更▾' : '角色卡变更▸'"></button>
+                  <div class="card-change-panel" x-show="msg.cardChangesOpen"><template x-for="change in msg.characterCardChanges" :key="`${change.at}-${change.field}-${change.name}`"><p><b x-text="change.field"></b><span x-text="`${change.name || ''}：${typeof change.value === 'object' ? JSON.stringify(change.value) : change.value}｜理由：${change.reason}`"></span></p></template></div>
+                </div>
+              </div>
             </template>
           </div>
           <p class="wechat-replying" x-show="$store.game.wechatSending">对方正在输入…</p>
