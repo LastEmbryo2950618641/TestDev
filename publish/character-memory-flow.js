@@ -26,36 +26,28 @@ Object.assign(window.GameModules.characterMemory, {
 
   async recordWechatExchange(store, contact, playerText, replyText, result = {}) {
     if (!contact?.id || contact.group) return;
-    let characterId = store.wechatCharacterId?.(contact) || contact.characterId || contact.id;
-    let state = store.rpgStates?.[characterId] || window.GameModules.sqliteSave.getCharacterState(characterId);
-    if (!state && store.ensureWechatUserProfile) {
-      try { state = await store.ensureWechatUserProfile({ ...contact, id: characterId, characterId }); }
-      catch (err) { console.warn('[微信记忆] 补齐联系人角色状态失败:', contact.id, contact.name, characterId, err.message, err.stack); }
-    }
-    if (!state) {
-      console.warn('[微信记忆] 未找到联系人对应角色状态，已跳过写入:', contact.id, contact.name, characterId);
-      return;
-    }
-    characterId = state.id || characterId;
-    if (!store.rpgStates?.[characterId]) store.rpgStates = { ...(store.rpgStates || {}), [characterId]: state };
+    const characterId = String(contact.id || '').trim();
+    if (!characterId) throw new Error('微信记忆写入失败：联系人缺少角色ID');
+    const state = store.rpgStates?.[characterId] || window.GameModules.sqliteSave.getCharacterState(characterId) || null;
+    if (state && !store.rpgStates?.[characterId]) store.rpgStates = { ...(store.rpgStates || {}), [characterId]: state };
     const display = store.displayWechatContact?.(contact) || contact;
     const phoneTime = store.wechatMemoryTime?.() || this.gameTime({ entryTimeLabel: () => `${store.phoneDateText?.() || ''} ${store.phoneTimeText?.() || ''}`.trim() });
     const label = store.wechatDialogueTimeLabel?.(phoneTime.label) || phoneTime.label || '时间未知';
     const playerName = store.playerDisplayCharacter?.().name || store.playerName || '玩家';
-    const contactName = state.name || display.name || '微信联系人';
+    const contactName = state?.name || state?.profile?.name || display.name || '微信联系人';
     const text = store.formatWechatDialogueLog?.(playerName, contactName, label, playerText, replyText) || `以下来自微信对话。${playerName}（${label}）：“${playerText}”${contactName}（${label}）：“${replyText}”`;
-    const memory = this.ensure(state.id);
+    const memory = this.ensure(characterId);
     const item = this.memoryItem(store, { text, source: 'wechat', place: '微信', time: phoneTime, impression: this.resultImpression(result) });
     memory.shortTerm.recent.push(item);
     this.promote(memory, item);
-    await this.compact(state.id, memory);
+    await this.compact(characterId, memory);
     const playerMemoryText = text;
     const playerMemory = this.ensure('player-self');
     const playerItem = this.memoryItem(store, { text: playerMemoryText, source: 'wechat', place: '微信', time: phoneTime, impression: this.resultImpression(result) });
     playerMemory.shortTerm.recent.push(playerItem);
     this.promote(playerMemory, playerItem);
     await this.compact('player-self', playerMemory);
-    console.log('[微信记忆] 已写入:', { characterId: state.id, contact: contactName, player: 'player-self' });
+    console.log('[微信记忆] 已写入:', { characterId, contact: contactName, player: 'player-self', stateFound: Boolean(state) });
   },
 
   relatedStates(store, result) {

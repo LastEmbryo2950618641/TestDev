@@ -62,14 +62,12 @@ window.GameModules.saveActions = {
   },
   loadSavedRpgStates() {
     const states = window.GameModules.sqliteSave.listCharacterStates();
-    const migrated = window.GameModules.wechatCleanup?.migrateIds?.(this);
     const cleaned = states.map((state) => {
       const changed = window.GameModules.progression.ensureInventoryFields?.(state?.values);
       if (changed) window.GameModules.sqliteSave.saveCharacterState(state).catch((err) => console.warn('[存档清洗] 角色穿着说明保存失败:', err.message, err.stack));
       return state;
     });
     this.rpgStates = Object.fromEntries(cleaned.map((state) => [state.id, state]));
-    if (migrated) window.GameModules.storage.put(window.GameModules.storage.snapshot(this)).catch((err) => console.warn('[微信迁移] 保存角色ID迁移失败:', err.message, err.stack));
   },
   prepareRpgSchemaForSelectedWork() {
     if (!window.GameModules.sqliteSave.db || !this.character?.work) return null;

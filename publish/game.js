@@ -17,7 +17,7 @@ function registerGameStore() {
   const gm = window.GameModules;
   const modules = [
     gm.actions, gm.rpgFieldUi, gm.resultActions, gm.loadingActions, gm.saveActions, gm.styleActions,
-    gm.worldlineActions, gm.predefinedRoleCardActions, gm.playerSetupActions, gm.playerIdentityActions, gm.identityMemoryActions, gm.wechatActions, gm.wechatChatActions, gm.wechatWorldlineActions, gm.wechatMemoryDebugActions, gm.wechatChangePanelActions, gm.entryActions,
+    gm.worldlineActions, gm.predefinedRoleCardActions, gm.playerSetupActions, gm.playerIdentityActions, gm.identityMemoryActions, gm.identityAppActions, gm.wechatActions, gm.wechatChatActions, gm.wechatWorldlineActions, gm.wechatMemoryDebugActions, gm.wechatAppActions, gm.wechatChangePanelActions, gm.entryActions,
     gm.coreActions, gm.appSwitchActions, gm.inventoryActions, gm.realWorldActions, gm.companyActions, gm.companyAttendanceActions,
     gm.bossActions, gm.bossAiActions, gm.calendarActions, gm.factionActions, gm.factionAiActions, gm.skillsActions, gm.knownProfessionActions, gm.promptActions, gm.tokenStatsActions,
   ].map((module) => module || {});

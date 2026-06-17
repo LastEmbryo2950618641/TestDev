@@ -20,7 +20,7 @@ window.GameModules.wechatChangePanelActions = {
   },
 
   wechatMetricState(msg = {}) {
-    const id = msg.characterId || this.wechatSelectedContact;
+    const id = msg.characterId || '';
     return this.rpgStates?.[id] || null;
   },
 
