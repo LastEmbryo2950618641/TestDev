@@ -33,21 +33,35 @@ window.GameModules.rpgInitializer = {
 
   apply(values, character, store, seed, attrs) {
     const ctx = this.infer(character, store, seed);
-    values.level = ctx.level;
-    values.strength = this.clamp(values.strength + ctx.fighter - ctx.weak, 1, 100);
-    values.agility = this.clamp(values.agility + Math.floor(ctx.fighter / 2) - Math.floor(ctx.weak / 2), 1, 100);
-    values.constitution = this.clamp(values.constitution + ctx.fighter - ctx.trauma - ctx.weak, 1, 100);
-    values.intelligence = this.clamp(values.intelligence + ctx.mage + ctx.scholar, 1, 100);
-    values.perception = this.clamp(values.perception + ctx.danger + Math.floor(ctx.scholar / 2), 1, 100);
-    values.willpower = this.clamp(values.willpower + ctx.leader + ctx.trauma - Math.floor(ctx.weak / 2), 1, 100);
-    values.charisma = this.clamp(values.charisma + ctx.leader - Math.floor(ctx.trauma / 2), 1, 100);
-    values.learning_ability = this.clamp(values.learning_ability + ctx.scholar + ctx.mage, 0, 100);
-    values.growth_potential = this.clamp(values.growth_potential + (ctx.weak ? 8 : 0) - Math.floor(values.level / 8), 0, 100);
+    if (character.rpgField) {
+      this.applyRoleCardRpg(values, character);
+    } else {
+      values.level = ctx.level;
+      values.strength = this.clamp(values.strength + ctx.fighter - ctx.weak, 1, 100);
+      values.agility = this.clamp(values.agility + Math.floor(ctx.fighter / 2) - Math.floor(ctx.weak / 2), 1, 100);
+      values.constitution = this.clamp(values.constitution + ctx.fighter - ctx.trauma - ctx.weak, 1, 100);
+      values.intelligence = this.clamp(values.intelligence + ctx.mage + ctx.scholar, 1, 100);
+      values.perception = this.clamp(values.perception + ctx.danger + Math.floor(ctx.scholar / 2), 1, 100);
+      values.willpower = this.clamp(values.willpower + ctx.leader + ctx.trauma - Math.floor(ctx.weak / 2), 1, 100);
+      values.charisma = this.clamp(values.charisma + ctx.leader - Math.floor(ctx.trauma / 2), 1, 100);
+      values.learning_ability = this.clamp(values.learning_ability + ctx.scholar + ctx.mage, 0, 100);
+      values.growth_potential = this.clamp(values.growth_potential + (ctx.weak ? 8 : 0) - Math.floor(values.level / 8), 0, 100);
+    }
     values.exp = window.GameModules.progression.normalizeCharacterExp(values.exp, values.level);
     this.applyPools(values, ctx);
+    if (character.rpgField && character.mentalStability?.value !== undefined) values.mental_stability = window.GameModules.progression.pool(character.mentalStability.value, Math.max(character.mentalStability.value, 100));
     this.applyWorld(values, attrs, ctx, seed);
     values.initial_context = this.summary(character, store, ctx);
     return values;
+  },
+
+  applyRoleCardRpg(values, character) {
+    const rpg = character.rpgField || {};
+    const keys = ['strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma'];
+    values.level = this.clamp(rpg.level?.value ?? values.level, 1, 100);
+    keys.forEach((key) => { values[key] = this.clamp(rpg.intrinsicBase?.[key]?.value ?? values[key], 1, 100); });
+    if (character.learningAbility?.value !== undefined) values.learning_ability = this.clamp(character.learningAbility.value, 0, 100);
+    if (character.growthPotential?.value !== undefined) values.growth_potential = this.clamp(character.growthPotential.value, 0, 100);
   },
 
   applyPools(values, ctx) {

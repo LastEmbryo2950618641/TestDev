@@ -77,8 +77,6 @@ Rules：
 | `rank` | string | 是 | 首要势力地位 | 通常取forcePositions[0].position |
 | `control_experience` | object | 是 | 操控经验 | 含 `上线次数`(integer,0) 和 `习惯程度`("初次操控尚不熟悉") |
 | `feeling` | object | 是 | 情感系统 | 含 `emotions` 和 `playerFeelings` 两个数组 |
-| `roleCardFieldReasons` | object | 是 | 角色卡字段原因 | 必须包含：姓名、所属世界、身份、职业、性别、生日、人际关系、外貌、性格、人物说明、社群角色、势力地位 |
-| `worldValues` | object | 是 | 世界专属字段 | 只填世界字段中有证据的key；没有则 {} |
 
 ## feeling 数组定义
 
@@ -109,8 +107,7 @@ Rules：
 2. `role` 写身份；`job` 只写已确认职业；学生、亲属不是职业；不确定时 `job=""` 且 `jobConfirmed=false`。
 3. `detail`/`appearance`/`personality` 各一句话，不混写。
 4. `factions` 用于家庭、社区等无等级归属；`forcePositions` 用于国家、学校等有层级归属。
-5. `roleCardFieldReasons` 每个值写当前人物本人相关原因，禁止返回数字或抽象套话。
-6. 本轮不要返回 `skills`/`knowledge`/`professions`/`equipment`/`items`/`wearing`/`rpgField`/`rpgFieldReasons`/`initialMetrics`，这些由后续 Part 生成。
+5. 本轮不要返回 `roleCardFieldReasons`/`worldValues`/`skills`/`knowledge`/`professions`/`equipment`/`items`/`wearing`/`rpgField`/`rpgFieldReasons`/`initialMetrics`，这些不属于 Part1 JSON 模板或由后续 Part 生成。
 
 ## 完整 JSON 示例
 
@@ -152,22 +149,7 @@ Rules：
       { "key": "亲情", "value": 70, "status": "亲情因为是家人关系存在血缘纽带", "reason": "亲情源于家庭成员间的长期相处和互相照顾的经历" },
       { "key": "依赖", "value": 65, "status": "依赖因为日常生活中需要玩家帮助和照顾", "reason": "依赖源于年轻且内向，遇到困难时习惯向家人寻求支持" }
     ]
-  },
-  "roleCardFieldReasons": {
-    "姓名": "人物基础区明确写明为刘思琪。",
-    "所属世界": "默认账号激活的现实世界居民。",
-    "身份": "就读于深圳外国语学校高中部二年级。",
-    "职业": "尚为学生，无内化职业。",
-    "性别": "女性。",
-    "生日": "资料未提供具体生日。",
-    "人际关系": "与刘思瑶为姐妹，与张惠兰为母女。",
-    "外貌": "身高约一米六，黑色长直发，面容清秀。",
-    "性格": "安静内向但心思细腻，观察力强。",
-    "人物说明": "住在深圳，与母亲和姐姐同住，因姐姐进入玩家社交圈。",
-    "社群角色": "刘家小女儿，深圳外国语学校学生。",
-    "势力地位": "中华人民共和国公民，深圳外国语学校高二学生。"
-  },
-  "worldValues": {}
+  }
 }
 ```
 

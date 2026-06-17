@@ -67,9 +67,11 @@ window.GameModules.progression = {
 
   createValues(character, seed, existing) {
     const minor = character.importance === 'minor' || character.isMinor;
-    const level = this.clamp(existing.level || (minor ? 1 + seed % 4 : 3 + seed % 8), 1, 100);
-    const intrinsic = this.intrinsic(character, seed, level);
-    const learning = this.clamp(35 + intrinsic.intelligence * 4 + seed % 18, 0, 100);
+    const rpg = character.rpgField || {};
+    const level = this.clamp(existing.level || rpg.level?.value || (minor ? 1 + seed % 4 : 3 + seed % 8), 1, 100);
+    const inferred = this.intrinsic(character, seed, level);
+    const intrinsic = Object.fromEntries(Object.entries(inferred).map(([key, value]) => [key, this.clamp(rpg.intrinsicBase?.[key]?.value ?? value, 1, 100)]));
+    const learning = this.clamp(character.learningAbility?.value ?? (35 + intrinsic.intelligence * 4 + seed % 18), 0, 100);
     const vitalityMax = level * 10 + intrinsic.constitution * 8;
     const staminaMax = level * 8 + intrinsic.constitution * 5 + this.trainingBonus(character);
     return {
@@ -84,13 +86,13 @@ window.GameModules.progression = {
       hydration: existing.hydration || this.pool(72 + seed % 18, 100),
       fatigue: existing.fatigue || this.pool(seed % 25, 100),
       learning_ability: learning,
-      mental_stability: existing.mental_stability?.max ? existing.mental_stability : this.pool(40 + intrinsic.willpower * 4 + intrinsic.perception * 2, 70 + intrinsic.willpower * 4),
-      growth_potential: existing.growth_potential ?? this.clamp(82 - level * 4 + seed % 25, 0, 100),
-      action_ability: existing.action_ability?.max ? existing.action_ability : this.pool(35 + intrinsic.agility * 5 + intrinsic.constitution * 2, 35 + intrinsic.agility * 5 + intrinsic.constitution * 2),
+      mental_stability: existing.mental_stability?.max ? existing.mental_stability : this.pool(character.mentalStability?.value ?? (40 + intrinsic.willpower * 4 + intrinsic.perception * 2), Math.max(1, 70 + intrinsic.willpower * 4)),
+      growth_potential: existing.growth_potential ?? this.clamp(character.growthPotential?.value ?? (82 - level * 4 + seed % 25), 0, 100),
+      action_ability: existing.action_ability?.max ? existing.action_ability : this.pool(character.actionAbility?.value ?? (35 + intrinsic.agility * 5 + intrinsic.constitution * 2), Math.max(1, 35 + intrinsic.agility * 5 + intrinsic.constitution * 2)),
       ...intrinsic,
       knowledge: existing.knowledge?.length ? existing.knowledge : this.knowledge(character, seed),
       skills: existing.skills?.[0]?.level ? existing.skills : this.skills(character, seed),
-      professions: existing.professions?.length ? existing.professions : this.professions(character, seed),
+      professions: existing.professions?.length ? existing.professions : (character.professions?.length ? character.professions : this.professions(character, seed)),
       factions: existing.factions?.length ? existing.factions : this.factions(character),
       force_positions: existing.force_positions?.length ? existing.force_positions : this.forcePositions(character),
       derived: {},

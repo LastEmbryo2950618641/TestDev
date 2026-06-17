@@ -11,7 +11,7 @@ Rules：
 1. Schema 锁定：必须严格匹配下方字段定义，禁止新增未定义的 Key。
 2. 类型铁律：`skills[].level`、`knowledge[].level`、`professions[].level` 是 integer(1-7)；`levelEffects` 中每个等级的 `程度介绍` 和 `说明` 是 string。
 3. 语法红线：严禁尾随逗号。输出前默念"检查最后一个元素后是否有逗号"。
-4. Key 顺序：严格按 `skills` → `knowledge` → `professions` 顺序输出。
+4. Key 顺序：严格按 `name` → `skills` → `knowledge` → `professions` 顺序输出。
 
 ## 已生成角色卡基础信息
 
@@ -81,12 +81,13 @@ Rules：
 2. `knowledge` 根据人物学历、职业、生活经历生成；普通成年人至少有"现代常识"lv2-3。不超过 5 项。
 3. `professions` 只有明确职业证据时才生成。`所需skills`/`所需knowledge` 引用本人物已有的 skill/knowledge 名称；`所需intrinsicBase` 使用英文 key（strength/agility/constitution/intelligence/perception/willpower/charisma）。
 4. 每项的 `levelEffects` 必须写到当前等级，每级含 `程度介绍` 和 `说明`。
-5. `name` 必须与 Part1 已生成的基础信息中的姓名一致。
+5. 根字段 `name` 必须与 Part1 已生成的基础信息中的姓名一致。
 
 ## 完整 JSON 示例
 
 ```json
 {
+  "name": "刘思琪",
   "skills": [
     {
       "name": "英语阅读",

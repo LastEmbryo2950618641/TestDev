@@ -71,8 +71,10 @@ window.GameModules.characterProfile = {
   async generate(base, lore, attrs, context, store, signature = '', preset = null) {
     try {
       if (!window.dzmm?.completions) throw new Error('无法生成个人资料：AI接口不可用，不能使用本地兜底原因。');
+      this.partTemplateCache = null;
       const sections = window.GameModules.promptSections;
       const player = sections.playerProfile(store);
+      const templates = await this.loadPartTemplates();
       const commonVars = {
         人物预设资料区: window.GameModules.characterProfileSource.presetText(preset),
         人物基础区: sections.characterBase(base),
@@ -86,54 +88,280 @@ window.GameModules.characterProfile = {
         世界字段: sections.worldFields(attrs),
         玩家本人目标锁定: base.id === 'player-self' ? `本次只生成玩家本人"${base.name}"的角色卡。JSON 根字段 name 必须写"${base.name}"，不得写妹妹、姐姐、父母、联系人或关系事件里的任何其他姓名。` : '无。',
       };
-      const rpgKeys = this.rpgFieldReasonKeys(attrs);
       const metricKeys = window.GameModules.metrics;
-      const part1Vars = { ...commonVars, 情绪字段: metricKeys.emotionKeys.join('、'), 关系指标字段: metricKeys.playerKeys.join('、') };
-      const part1Prompt = await window.GameModules.promptTemplates.render('character-profile-part1-base-identity', part1Vars);
-      const part1 = await window.GameModules.jsonUtils.generateJsonWithRetry({
-        source: 'character-profile-part1',
-        model: 'nalang-turbo-0826',
-        timeoutMs: 60000,
-        prompt: part1Prompt,
-        format: part1Prompt,
-        repairHint: this.partRepairHint(1, base, attrs),
-        parse: (text) => this.parse(text),
-        validate: (raw) => this.validatePart(1, raw, base, lore, attrs, store),
-      });
+      const part1 = await this.generatePart(1, 'character-profile-part1-base-identity', { ...commonVars, 情绪字段: metricKeys.emotionKeys.join('、'), 关系指标字段: metricKeys.playerKeys.join('、') }, templates[1], base, lore, attrs, store);
       const p1Summary = this.part1Summary(part1);
-      const part2Vars = { ...commonVars, part1Summary: p1Summary };
-      const part2Prompt = await window.GameModules.promptTemplates.render('character-profile-part2-abilities-professions', part2Vars);
-      const part2 = await window.GameModules.jsonUtils.generateJsonWithRetry({
-        source: 'character-profile-part2',
-        model: 'nalang-turbo-0826',
-        timeoutMs: 60000,
-        prompt: part2Prompt,
-        format: part2Prompt,
-        repairHint: this.partRepairHint(2, base, attrs),
-        parse: (text) => this.parse(text),
-        validate: (raw) => this.validatePart(2, raw, base, lore, attrs, store),
-      });
-      const part3Vars = { ...commonVars, part1Summary: p1Summary, RPG字段列表: rpgKeys.join('、'), RPG字段列表JSON: rpgKeys.map((key) => `"${key}"`).join(', ') };
-      const part3Prompt = await window.GameModules.promptTemplates.render('character-profile-part3-inventory-wearing-rpg', part3Vars);
-      const part3 = await window.GameModules.jsonUtils.generateJsonWithRetry({
-        source: 'character-profile-part3',
-        model: 'nalang-turbo-0826',
-        timeoutMs: 60000,
-        prompt: part3Prompt,
-        format: part3Prompt,
-        repairHint: this.partRepairHint(3, base, attrs),
-        parse: (text) => this.parse(text),
-        validate: (raw) => this.validatePart(3, raw, base, lore, attrs, store),
-      });
-      const feeling = part1.feeling || null;
-      const merged = { ...part1, ...part2, ...part3 };
-      if (feeling) { merged.initialMetrics = feeling; delete merged.feeling; }
+      const part2 = await this.generatePart(2, 'character-profile-part2-abilities-professions', { ...commonVars, part1Summary: p1Summary }, templates[2], base, lore, attrs, store);
+      const rpgKeys = this.rpgFieldReasonKeys(attrs);
+      const part3 = await this.generatePart(3, 'character-profile-part3-inventory-wearing-rpg', { ...commonVars, part1Summary: p1Summary, RPG字段列表: rpgKeys.join('、'), RPG字段列表JSON: rpgKeys.map((key) => `"${key}"`).join(', ') }, templates[3], base, lore, attrs, store);
+      const merged = this.mergeGeneratedParts(part1, part2, part3, attrs);
       const profile = this.validate(merged, base, lore, attrs, store, { skipInitialMetrics: false });
       return this.withSignature(profile, signature);
     } catch (err) {
       console.warn('人物设定生成失败:', err.code, err.message, err.stack);
       throw err;
     }
+  },
+
+  async loadPartTemplates() {
+    if (this.partTemplateCache) return this.partTemplateCache;
+    const files = {
+      1: 'predefined-templete/part1-base-identity.json',
+      2: 'predefined-templete/part2-abilities-professions.json',
+      3: 'predefined-templete/part3-inventory-wearing-rpg.json',
+    };
+    const loaded = {};
+    for (const [index, file] of Object.entries(files)) {
+      const text = await this.fetchTextAsset(file);
+      loaded[index] = JSON.parse(text);
+    }
+    this.partTemplateCache = loaded;
+    return loaded;
+  },
+
+  async fetchTextAsset(file) {
+    const candidates = window.GameModules.promptTemplates?.fileCandidates?.(file) || [file, `./${file}`];
+    let lastError = null;
+    for (const url of candidates) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.text();
+      } catch (err) { lastError = err; }
+    }
+    throw new Error(`模板JSON读取失败：${file}，${lastError?.message || 'unknown'}`);
+  },
+
+  async generatePart(partIndex, promptId, vars, template, base, lore, attrs, store) {
+    const prompt = await window.GameModules.promptTemplates.render(promptId, vars);
+    const format = this.partPromptWithTemplate(prompt, template, partIndex);
+    const raw = await window.GameModules.jsonUtils.generateJsonWithRetry({
+      source: `character-profile-part${partIndex}`,
+      model: 'nalang-turbo-0826',
+      timeoutMs: 60000,
+      prompt: format,
+      format,
+      repairHint: this.partRepairHint(partIndex, base, attrs, template),
+      parse: (text) => this.parse(text),
+      max: 2,
+    });
+    let normalized = this.sanitizePart(partIndex, raw, template);
+    normalized = await this.completeMissingPart(partIndex, normalized, template, format, base, lore, attrs, store);
+    return this.validatePart(partIndex, normalized, base, lore, attrs, store, template);
+  },
+
+  partPromptWithTemplate(prompt, template, partIndex) {
+    return [
+      prompt,
+      '',
+      '## 预定义 JSON 模板（最高优先级）',
+      '本次输出必须严格以此 JSON 文件的字段为准：字段名、嵌套结构和数组元素字段不得新增、不得改名。',
+      '若上方 MD 提示词与此 JSON 冲突，一律以此 JSON 为准；此 JSON 中不存在的字段不要输出。',
+      `Part${partIndex} 模板：`,
+      '```json',
+      JSON.stringify(template, null, 2),
+      '```',
+    ].join('\n');
+  },
+
+  sanitizePart(partIndex, raw, template) {
+    const clean = this.sanitizeByTemplate(raw, template);
+    if (partIndex === 1 && clean.feeling) {
+      clean.feeling = this.sanitizeFeeling(clean.feeling);
+    }
+    return clean;
+  },
+
+  sanitizeFeeling(value) {
+    if (!value || typeof value !== 'object') return value;
+    const pick = (list, keys) => keys.map((key) => {
+      const item = (Array.isArray(list) ? list : []).find((entry) => entry?.key === key) || {};
+      return { key, value: item.value, status: item.status, reason: item.reason };
+    });
+    return {
+      emotions: pick(value.emotions, window.GameModules.metrics.emotionKeys),
+      playerFeelings: pick(value.playerFeelings, window.GameModules.metrics.playerKeys),
+    };
+  },
+
+  sanitizeByTemplate(value, template) {
+    if (Array.isArray(template)) {
+      if (!Array.isArray(value)) return value;
+      const itemTemplate = template[0];
+      return itemTemplate && typeof itemTemplate === 'object'
+        ? value.map((item) => this.sanitizeByTemplate(item, itemTemplate)).filter((item) => item && typeof item === 'object')
+        : value;
+    }
+    if (template && typeof template === 'object') {
+      const source = value && typeof value === 'object' ? value : {};
+      return Object.fromEntries(Object.keys(template).filter((key) => Object.prototype.hasOwnProperty.call(source, key)).map((key) => [key, this.sanitizeByTemplate(source[key], template[key])]));
+    }
+    return value;
+  },
+
+  missingPartFields(partIndex, data, template, base, attrs = null) {
+    const missing = [];
+    const source = data && typeof data === 'object' ? data : {};
+    Object.keys(template || {}).forEach((key) => { if (!this.partFieldComplete(partIndex, key, source[key], template[key], base, attrs)) missing.push(key); });
+    return missing;
+  },
+
+  partFieldComplete(partIndex, key, value, template, base, attrs = null) {
+    if (value === undefined || value === null) return false;
+    if (key === 'name') {
+      const current = String(value || '').trim(), expected = String(base?.name || '').trim();
+      if (base?.id === 'player-self') return current === expected;
+      if (this.isConcreteName(expected)) return current === expected;
+      return this.isConcreteName(current);
+    }
+    if (partIndex === 1 && ['worldTag', 'age', 'learningAbility', 'mentalStability', 'growthPotential', 'actionAbility'].includes(key)) return this.valueReasonComplete(value);
+    if (partIndex === 1 && ['gender', 'job'].includes(key)) return typeof value === 'string';
+    if (partIndex === 1 && ['relationships', 'role', 'detail', 'appearance', 'personality', 'rank'].includes(key)) return typeof value === 'string' && String(value).trim();
+    if (partIndex === 1 && key === 'jobConfirmed') return typeof value === 'boolean';
+    if (partIndex === 1 && key === 'control_experience') return value && typeof value === 'object' && Number.isInteger(Number(value.上线次数)) && typeof value.习惯程度 === 'string';
+    if (partIndex === 1 && key === 'factions') return this.arrayItemsComplete(value, ['faction', 'role', 'reason'], false);
+    if (partIndex === 1 && key === 'forcePositions') return this.arrayItemsComplete(value, ['force', 'position', 'reason'], false);
+    if (partIndex === 1 && key === 'feeling') return this.feelingComplete(value);
+    if (partIndex === 2 && ['skills', 'knowledge'].includes(key)) return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', 'reason'], false, (item) => this.learnedItemComplete(item));
+    if (partIndex === 2 && key === 'professions') return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', '所需skills', '所需knowledge', '所需intrinsicBase', 'reason'], true, (item) => this.learnedItemComplete(item) && ['所需skills', '所需knowledge', '所需intrinsicBase'].every((field) => Array.isArray(item[field])));
+    if (partIndex === 3 && key === 'equipment') return this.arrayItemsComplete(value, ['name', 'description', 'equipSlots', 'reason'], true, (item) => Array.isArray(item.equipSlots));
+    if (partIndex === 3 && key === 'items') return this.arrayItemsComplete(value, ['name', 'description', 'quantity', 'reason'], true, (item) => Number.isInteger(Number(item.quantity)) && Number(item.quantity) >= 1);
+    if (partIndex === 3 && key === 'wearing') return this.arrayItemsComplete(value, ['slot', 'bodyPart', 'name', 'description', 'reason'], false);
+    if (partIndex === 3 && key === 'rpgField') return this.rpgFieldComplete(value);
+    if (Array.isArray(template)) return Array.isArray(value);
+    if (template && typeof template === 'object') return value && typeof value === 'object';
+    return typeof value === typeof template || value !== undefined;
+  },
+
+  valueReasonComplete(value) {
+    return value && typeof value === 'object' && value.value !== undefined && String(value.reason || '').trim();
+  },
+
+  arrayItemsComplete(value, fields, allowEmpty = false, itemCheck = null) {
+    if (!Array.isArray(value)) return false;
+    if (!allowEmpty && !value.length) return false;
+    return value.every((item) => item && typeof item === 'object' && fields.every((field) => item[field] !== undefined && (Array.isArray(item[field]) || String(item[field]).trim() !== '')) && (!itemCheck || itemCheck(item)));
+  },
+
+  learnedItemComplete(item) {
+    return Number.isInteger(Number(item.level)) && Number(item.level) >= 1 && Number(item.level) <= 7 && item.levelEffects && typeof item.levelEffects === 'object';
+  },
+
+  feelingComplete(value) {
+    const templateKeys = { emotions: window.GameModules.metrics.emotionKeys, playerFeelings: window.GameModules.metrics.playerKeys };
+    return value && typeof value === 'object' && Object.entries(templateKeys).every(([group, keys]) => {
+      const list = value[group];
+      return Array.isArray(list) && keys.every((key) => {
+        const item = list.find((entry) => entry?.key === key);
+        return item && item.value !== undefined && String(item.status || '').trim() && String(item.reason || '').trim();
+      });
+    });
+  },
+
+  rpgFieldComplete(value) {
+    const keys = ['strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma'];
+    return value && typeof value === 'object'
+      && this.valueReasonComplete(value.level)
+      && keys.every((key) => this.valueReasonComplete(value.intrinsicBase?.[key]))
+      && ['攻击力', '防御力'].every((key) => this.valueReasonComplete(value.derived?.[key]));
+  },
+
+  async completeMissingPart(partIndex, data, template, format, base, lore, attrs, store) {
+    let current = data;
+    for (let i = 0; i < 2; i += 1) {
+      const missing = this.missingPartFields(partIndex, current, template, base, attrs);
+      if (!missing.length) return current;
+      const patch = await this.generateMissingPartFields(partIndex, current, template, missing, format, base);
+      current = this.sanitizePart(partIndex, { ...current, ...patch }, template);
+    }
+    const stillMissing = this.missingPartFields(partIndex, current, template, base, attrs);
+    if (stillMissing.length) throw new Error(`Part${partIndex} 缺少字段：${stillMissing.join('、')}`);
+    return current;
+  },
+
+  async generateMissingPartFields(partIndex, current, template, missing, format, base) {
+    const partialTemplate = Object.fromEntries(missing.map((key) => [key, template[key]]));
+    const prompt = [
+      `你正在修复角色卡 Part${partIndex}。目标人物只能是：${base.name}。`,
+      `只生成缺失字段：${missing.join('、')}。其余字段已经合格，禁止重复输出、禁止改动。`,
+      '输出必须是一个 JSON 对象，根字段只能包含上述缺失字段，并严格遵守下面模板。',
+      '缺失字段模板：',
+      JSON.stringify(partialTemplate, null, 2),
+      '已合格字段（只作上下文，不要重写）：',
+      JSON.stringify(current, null, 2),
+      '原始要求：',
+      String(format || '').slice(0, 2600),
+    ].join('\n');
+    return window.GameModules.jsonUtils.generateJsonWithRetry({
+      source: `character-profile-part${partIndex}-missing`,
+      model: 'nalang-turbo-0826',
+      timeoutMs: 60000,
+      prompt,
+      format: prompt,
+      repairHint: `只能返回缺失字段：${missing.join('、')}。不能新增其它字段。`,
+      parse: (text) => this.parse(text),
+      validate: (raw) => {
+        const clean = this.sanitizeByTemplate(raw, partialTemplate);
+        const extra = Object.keys(raw || {}).filter((key) => !missing.includes(key));
+        if (extra.length) throw new Error(`缺失字段修复输出了多余字段：${extra.join('、')}`);
+        const absent = this.missingPartFields(partIndex, { ...current, ...clean }, template, base).filter((key) => missing.includes(key));
+        if (absent.length) throw new Error(`缺失字段仍未补齐：${absent.join('、')}`);
+        return clean;
+      },
+      max: 2,
+    });
+  },
+
+  mergeGeneratedParts(part1, part2, part3, attrs) {
+    const merged = { ...part1, ...part2, ...part3, initialMetrics: part1.feeling || null };
+    delete merged.feeling;
+    merged.roleCardFieldReasons = this.roleReasonsFromParts(merged);
+    merged.rpgFieldReasons = this.rpgReasonsFromPart3(merged, attrs);
+    return merged;
+  },
+
+  roleReasonsFromParts(profile = {}) {
+    const factionText = (profile.factions || []).map((x) => `${x.faction}/${x.role}：${x.reason || ''}`).join('；');
+    const forceText = (profile.forcePositions || []).map((x) => `${x.force}/${x.position}：${x.reason || ''}`).join('；');
+    return {
+      姓名: `${profile.name || '该人物'}的姓名来自 Part1 固化身份字段。`,
+      所属世界: profile.worldTag?.reason || `${profile.name || '该人物'}的所属世界来自 Part1 worldTag。`,
+      身份: `${profile.role || '身份'}来自 Part1 role 与人物背景。`,
+      职业: profile.job ? `${profile.job}由 Part1 jobConfirmed 确认。` : 'Part1 未确认内化职业，职业保持为空。',
+      性别: profile.gender ? `${profile.name || '该人物'}的性别由 Part1 gender 固化为${profile.gender}。` : 'Part1 未给出可确认性别。',
+      生日: profile.birthday ? `${profile.name || '该人物'}生日来自人物基础资料。` : (profile.age?.reason || 'Part1 只固化年龄，未提供生日。'),
+      人际关系: profile.relationships || `${profile.name || '该人物'}暂无可固化人际关系。`,
+      外貌: profile.appearance || '外貌来自 Part1 appearance。',
+      性格: profile.personality || '性格来自 Part1 personality。',
+      人物说明: profile.detail || '人物说明来自 Part1 detail。',
+      社群角色: factionText || '社群角色来自 Part1 factions。',
+      势力地位: forceText || '势力地位来自 Part1 forcePositions。',
+    };
+  },
+
+  rpgReasonsFromPart3(profile = {}, attrs = null) {
+    const fallback = window.GameModules.characterReasonFallback?.rpgReasons?.(profile, attrs) || {};
+    const rpg = profile.rpgField || {};
+    const base = rpg.intrinsicBase || {};
+    const derived = rpg.derived || {};
+    const direct = {
+      level: rpg.level?.reason,
+      strength: base.strength?.reason,
+      agility: base.agility?.reason,
+      constitution: base.constitution?.reason,
+      intelligence: base.intelligence?.reason,
+      perception: base.perception?.reason,
+      willpower: base.willpower?.reason,
+      charisma: base.charisma?.reason,
+      derived: [derived.攻击力?.reason, derived.防御力?.reason].filter(Boolean).join('；'),
+      learning_ability: profile.learningAbility?.reason,
+      mental_stability: profile.mentalStability?.reason,
+      growth_potential: profile.growthPotential?.reason,
+      action_ability: profile.actionAbility?.reason,
+      world_tag: profile.worldTag?.reason,
+      control_experience: profile.control_experience?.习惯程度,
+    };
+    return Object.fromEntries(this.rpgFieldReasonKeys(attrs).map((key) => [key, String(direct[key] || fallback[key] || `${profile.name || '该人物'}的${key}来自 Part1/Part3 固化资料。`).slice(0, 120)]));
   },
 
   async prompt(base, lore, attrs, context, store, preset = null) {
@@ -451,7 +679,6 @@ window.GameModules.characterProfile = {
         '必须返回根字段 learningAbility、mentalStability、growthPotential、actionAbility（各含 value 和 reason）。',
         '必须返回根字段 factions 和 forcePositions（数组，每项含 reason）。',
         '必须返回根字段 feeling，含 emotions（12项）和 playerFeelings（17项）数组。',
-        '必须返回根字段 roleCardFieldReasons，必须包含：姓名、所属世界、身份、职业、性别、生日、人际关系、外貌、性格、人物说明、社群角色、势力地位。',
         'feeling 中每项必须包含 key、value（0-100整数）、status、reason 四个字段。',
         'feeling 的 value 不得全部为 0，必须根据人物性格、处境和关系证据给出合理数值。',
         '本轮不要返回 skills/knowledge/professions/equipment/items/wearing/rpgField/rpgFieldReasons。',
@@ -469,7 +696,6 @@ window.GameModules.characterProfile = {
     return [
       nameHint,
       '必须返回根字段 rpgField，含 level、intrinsicBase（7项）、derived（攻击力/防御力）。',
-      `必须返回根字段 rpgFieldReasons，必须包含：${this.rpgFieldReasonKeys(attrs).join('、')}。`,
       '必须返回根字段 wearing（数组，含基础槽位：内衣、上衣、内裤、下衣、袜子、鞋子）。',
       'wearing 每项必须包含 slot、bodyPart、name、description、reason。',
       'equipment 每项必须包含 name、description、equipSlots、reason。',
@@ -477,17 +703,18 @@ window.GameModules.characterProfile = {
     ].join('\n');
   },
 
-  validatePart(partIndex, raw, base, lore, attrs, store) {
+  validatePart(partIndex, raw, base, lore, attrs, store, template = null) {
     if (!raw || typeof raw !== 'object') throw new Error('AI 输出不是合法对象');
+    if (template) {
+      const extra = Object.keys(raw).filter((key) => !Object.prototype.hasOwnProperty.call(template, key));
+      if (extra.length) throw new Error(`Part${partIndex} 返回了模板外字段：${extra.join('、')}`);
+      const missing = this.missingPartFields(partIndex, raw, template, base, attrs);
+      if (missing.length) throw new Error(`Part${partIndex} 缺少字段：${missing.join('、')}`);
+    }
     if (partIndex === 1) {
+      if (base.id === 'player-self' && raw.name !== base.name) throw new Error(`Part1 玩家本人姓名漂移: ${raw.name}`);
       if (!this.isConcreteName(raw.name) && base.id !== 'player-self') throw new Error(`Part1 缺少有效姓名: ${raw.name}`);
-      if (!raw.worldTag || !raw.worldTag.value) throw new Error('Part1 缺少 worldTag');
-      if (!raw.age || raw.age.value === undefined) throw new Error('Part1 缺少 age');
-      if (!Array.isArray(raw.factions) || !raw.factions.length) throw new Error('Part1 缺少 factions');
-      if (!Array.isArray(raw.forcePositions) || !raw.forcePositions.length) throw new Error('Part1 缺少 forcePositions');
-      if (!raw.roleCardFieldReasons || typeof raw.roleCardFieldReasons !== 'object') throw new Error('Part1 缺少 roleCardFieldReasons');
-      const feeling = raw.feeling;
-      if (!feeling || !Array.isArray(feeling.emotions) || !Array.isArray(feeling.playerFeelings)) throw new Error('Part1 缺少 feeling.emotions 或 feeling.playerFeelings');
+      if (!this.feelingComplete(raw.feeling)) throw new Error('Part1 feeling 字段不完整');
       return raw;
     }
     if (partIndex === 2) {
@@ -495,9 +722,8 @@ window.GameModules.characterProfile = {
       if (!Array.isArray(raw.knowledge) || !raw.knowledge.length) throw new Error('Part2 缺少 knowledge');
       return raw;
     }
-    if (!raw.rpgField?.intrinsicBase || !raw.rpgField?.derived) throw new Error('Part3 缺少 rpgField 完整结构');
+    if (!this.rpgFieldComplete(raw.rpgField)) throw new Error('Part3 缺少 rpgField 完整结构');
     if (!Array.isArray(raw.wearing) || !raw.wearing.length) throw new Error('Part3 缺少 wearing');
-    if (!raw.rpgFieldReasons || typeof raw.rpgFieldReasons !== 'object') throw new Error('Part3 缺少 rpgFieldReasons');
     return raw;
   },
 

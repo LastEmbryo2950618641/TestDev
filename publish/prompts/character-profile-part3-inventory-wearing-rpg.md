@@ -11,7 +11,7 @@ Rules：
 1. Schema 锁定：必须严格匹配下方字段定义，禁止新增未定义的 Key。
 2. 类型铁律：`rpgField.level.value`、`rpgField.intrinsicBase.*.value`、`rpgField.derived.*.value`、`items[].quantity` 是 integer。
 3. 语法红线：严禁尾随逗号。
-4. Key 顺序：严格按 `equipment` → `items` → `wearing` → `rpgField` → `rpgFieldReasons` 顺序输出。
+4. Key 顺序：严格按 `name` → `equipment` → `items` → `wearing` → `rpgField` 顺序输出。
 
 ## 已生成角色卡基础信息
 
@@ -75,22 +75,19 @@ Rules：
 - `intrinsicBase`：七项固定 key（strength/agility/constitution/intelligence/perception/willpower/charisma），每项 `{ "value": integer(1-20), "reason": string }`。普通人6-10；受过训练者11-15；超凡者16-20；体弱/幼小者3-5。
 - `derived`：`攻击力` 和 `防御力`，每项 `{ "value": integer, "reason": string }`。普通人5-15；受过训练者16-30；装备精良30+。必须根据实际属性和装备推算。
 
-### rpgFieldReasons
-
-必须完整包含以下 key：{RPG字段列表}。每个值必须是中文原因句，禁止返回数字、百分比、布尔值、数组或对象。
-
 ## 生成规则
 
 1. `equipment`/`items`/`wearing` 每项必须有 `reason`，写持有或穿戴该物品的具体原因。
 2. 常规生活、上学、工作场景的 `wearing` 必须包含基础槽位（内衣、上衣、内裤、下衣、袜子、鞋子）。
 3. `rpgField.derived` 必须根据实际属性和装备推算，给出计算原因。
-4. `rpgFieldReasons` 每个值写当前人物本人的经历、训练、身体状态或处境原因。
-5. `name` 必须与 Part1 已生成的基础信息中的姓名一致。
+4. 根字段 `name` 必须与 Part1 已生成的基础信息中的姓名一致。
+5. 不要输出 `rpgFieldReasons` 或任何 Part3 JSON 模板中不存在的字段。
 
 ## 完整 JSON 示例
 
 ```json
 {
+  "name": "刘思琪",
   "equipment": [
     {
       "name": "智能手机",
@@ -166,13 +163,6 @@ Rules：
       "攻击力": { "value": 5, "reason": "力量基础5，无战斗技能和武器，攻击力极低。" },
       "防御力": { "value": 7, "reason": "体质基础7，无防护装备，仅靠年轻身体的基础抵抗力。" }
     }
-  },
-  "rpgFieldReasons": {
-    "个人等级": "十六岁高中女生生活经验有限，未受专业训练。",
-    "力量": "十六岁女生肌肉力量低于成年平均水平。",
-    "敏捷": "年轻身体灵活日常体育课维持基本敏捷。"
   }
 }
 ```
-
-注意：示例中 `rpgFieldReasons` 只展示了部分 key；实际输出必须包含全部 {RPG字段列表} 中的 key。
