@@ -42,7 +42,9 @@ window.GameModules.wechatChatActions = {
     const recent = memory?.shortTerm?.recent || [];
     const summarized = memory?.shortTerm?.summarized || [];
     const latest = [...recent, ...summarized].slice(-3).map((item) => item.summary || item.text);
-    const report = { contact: contact.name, characterId, stateFound: Boolean(state), messageCount: messages.length, lastMessages: messages.slice(-4).map((msg) => `${msg.side}:${msg.text}`), memoryExists: Boolean(memory), recentCount: recent.length, summarizedCount: summarized.length, latestMemory: latest };
+    const wxEvents = (this.realWorldlineState?.events || []).filter((event) => String(event.eventId || '').startsWith('wx_') || String(event.detail || '').includes('以下来自微信对话'));
+    const latestWorldline = wxEvents.slice(-3).map((event) => `${event.time || ''}｜${event.detail || event.name || ''}`);
+    const report = { contact: contact.name, characterId, stateFound: Boolean(state), messageCount: messages.length, lastMessages: messages.slice(-4).map((msg) => `${msg.side}:${msg.text}`), worldlineWechatCount: wxEvents.length, latestWorldline, memoryExists: Boolean(memory), recentCount: recent.length, summarizedCount: summarized.length, latestMemory: latest };
     console.log('[微信记忆检查]', report);
     return report;
   },
