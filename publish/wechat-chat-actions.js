@@ -112,7 +112,7 @@ window.GameModules.wechatChatActions = {
       await this.applyMetricUpdatesToState?.(state, result.metricUpdates);
       await this.applyInventoryUpdatesToState?.(state, result.lexiconUpdates || []);
       this.advancePhoneTime?.(result.elapsedSeconds || 60);
-      this.appendWechatMessage(contact.id, { side: 'other', name: contact.name, mark: contact.mark, text: result.reply, metricUpdates: result.metricUpdates, lexiconUpdates: result.lexiconUpdates, characterCardChanges: result.characterCardChanges, cardChangesOpen: false, changeReasonsOpen: false });
+      this.appendWechatMessage(contact.id, { side: 'other', name: contact.name, mark: contact.mark, text: result.reply, characterId, metricUpdates: result.metricUpdates, lexiconUpdates: result.lexiconUpdates, characterCardChanges: result.characterCardChanges, cardChangesOpen: false, changeReasonsOpen: false });
       await window.GameModules.characterMemory?.recordWechatExchange?.(this, contact, playerText, result.reply, result);
       await this.recordWechatWorldline(contact, playerText, result.reply, result);
       await this.save?.();
