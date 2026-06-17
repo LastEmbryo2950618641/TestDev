@@ -1,6 +1,6 @@
 ---
 name: md-inline-generate
-description: 当项目需要加载 MD 文档、用户更新 MD 后要求重新生成同名 JS、或要求把 MD 作为编辑源接入静态游戏时使用。必须优先调用项目脚本按路径生成同名 JS，禁止读取 MD 正文。
+description: 当用户说更新了 publish/config 或其他目录下的 MD，需要用脚本同步/重新生成对应同名 JS、更新 MD 快照/缓存，或要求不要读取 MD 内容时使用。必须优先调用项目脚本按路径生成同名 JS，禁止读取 MD 正文。
 ---
 
 # MD 同名内联 JS 生成
