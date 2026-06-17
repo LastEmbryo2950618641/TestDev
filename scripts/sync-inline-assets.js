@@ -62,19 +62,26 @@ function syncPromptTemplates() {
   ].join('\n'));
 }
 
-function syncDefaultProfile() {
-  const candidates = [
-    path.join(publish, 'config', 'default-existing-profile.json'),
-    path.join(publish, 'default-existing-profile.json'),
-  ];
-  const source = candidates.find((file) => fs.existsSync(file));
-  if (!source) return;
-  const data = readJson(source);
-  writeText(path.join(publish, 'default-existing-profile-inline.js'), [
+function toCamelName(file) {
+  const base = path.basename(file, path.extname(file));
+  return base.replace(/[^a-zA-Z0-9]+(.)/g, (_, ch) => ch.toUpperCase()).replace(/^[^a-zA-Z_$]+/, '') || 'inlineMd';
+}
+
+function syncMdInline(file) {
+  if (!fs.existsSync(file)) return;
+  const name = toCamelName(file);
+  const jsPath = path.join(path.dirname(file), `${path.basename(file, '.md')}.js`);
+  writeText(jsPath, [
     'window.GameModules = window.GameModules || {};',
-    '',
-    `window.GameModules.defaultExistingProfile = ${js(data)};`,
+    'window.GameModules.inlineMd = window.GameModules.inlineMd || {};',
+    `window.GameModules.inlineMd.${name} = ${JSON.stringify(readText(file))};`,
+    'window.GameModules.inlineMdSources = window.GameModules.inlineMdSources || {};',
+    `window.GameModules.inlineMdSources.${name} = ${JSON.stringify(path.basename(file))};`,
   ].join('\n'));
+}
+
+function syncDefaultProfile() {
+  syncMdInline(path.join(publish, 'config', 'default-existing-profile.md'));
 }
 
 function syncLoreCache() {

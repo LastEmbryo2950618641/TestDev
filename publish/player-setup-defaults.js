@@ -2,11 +2,11 @@ window.GameModules = window.GameModules || {};
 window.GameModules.playerSetupActions = window.GameModules.playerSetupActions || {};
 Object.assign(window.GameModules.playerSetupActions, {
   defaultProfileData() {
-    const text = window.GameModules.defaultExistingProfileMd || '';
-    if (!text.trim()) throw new Error('默认资料快照未加载：需要 config/default-existing-profile-cache.js');
+    const text = window.GameModules.inlineMd?.defaultExistingProfile || '';
+    if (!text.trim()) throw new Error('默认资料快照未加载：需要 config/default-existing-profile.js');
     const data = this.parseDefaultProfileMd(text);
     if (!data?.name || !data?.birthday) throw new Error('默认资料快照缺少 姓名 或 生日');
-    return { ...data, source: 'config/default-existing-profile-cache.js' };
+    return { ...data, source: 'config/default-existing-profile.js' };
   },
 
   parseDefaultProfileMd(text = '') {
