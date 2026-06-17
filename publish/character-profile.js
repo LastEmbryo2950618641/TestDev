@@ -202,10 +202,7 @@ window.GameModules.characterProfile = {
   },
 
   metricGroupKeyChunks(group, keys) {
-    const maxKeysPerRequest = 10;
-    const chunks = [];
-    for (let i = 0; i < keys.length; i += maxKeysPerRequest) chunks.push(keys.slice(i, i + maxKeysPerRequest));
-    return chunks;
+    return [keys];
   },
 
   estimateMetricItemChars(key) {
