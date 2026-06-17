@@ -30,7 +30,7 @@ window.GameModules = window.GameModules || {};
     },
     defaultProfileData() {
       const data = window.GameModules.defaultExistingProfile;
-      if (!data?.name || !data?.birthday) throw new Error('默认资料文件 default-existing-profile-inline.js 缺少 name 或 birthday');
+      if (!data?.name || !data?.birthday) throw new Error('默认资料文件 config/default-existing-profile-inline.js 缺少 name 或 birthday');
       return data;
     },
     async defaultExistingAccountProfile() {

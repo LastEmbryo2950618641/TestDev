@@ -38,7 +38,7 @@ Object.assign(window.GameModules.playerSetupActions, {
   },
 
   async defaultProfileData() {
-    let source = 'default-existing-profile-inline.js';
+    let source = 'config/default-existing-profile-inline.js';
     let text = '';
     try {
       const loaded = await this.readDefaultProfileMd();
