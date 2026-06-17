@@ -294,65 +294,72 @@ Rules：
           "properties": {
             "strength": {
               "type": "object",
-              "required": ["value", "reason"],
+              "required": ["value", "description", "reason"],
               "additionalProperties": false,
               "properties": {
-                "value": { "type": "integer", "minimum": 1, "maximum": 100, "description": "力量值1-100。普通人6-10；受过训练者11-15；超凡者16-20；体弱/幼小者3-5；高阶超凡者30+。" },
-                "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
+                "value": { "type": "integer", "minimum": 0, "maximum": 100, "description": "力量值0-100。0-9普通人；10-15单手破坏钢铁；16-19压制武装；20-24压缩空气；25+破坏规模递增。" },
+                "description": { "type": "string", "minLength": 1, "description": "该数值对应的具体力量表现描述，参照身内能力表现力标尺。" },
+                "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因，结合角色动机、处境、性格与过去经历，不得使用固定句式模板。" }
               }
             },
             "agility": {
               "type": "object",
-              "required": ["value", "reason"],
+              "required": ["value", "description", "reason"],
               "additionalProperties": false,
               "properties": {
-                "value": { "type": "integer", "minimum": 1, "maximum": 100, "description": "敏捷值1-100。普通人6-10；受过训练者11-15；超凡者16-20；体弱/幼小者3-5；高阶超凡者30+。" },
-                "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
+                "value": { "type": "integer", "minimum": 0, "maximum": 100, "description": "敏捷值0-100。0-9普通人；10-15闪避子弹轨迹；16-19残影级速度；20-24突破音障；25+速度规模递增。" },
+                "description": { "type": "string", "minLength": 1, "description": "该数值对应的具体敏捷表现描述，参照身内能力表现力标尺。" },
+                "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因，结合角色动机、处境、性格与过去经历，不得使用固定句式模板。" }
               }
             },
             "constitution": {
               "type": "object",
-              "required": ["value", "reason"],
+              "required": ["value", "description", "reason"],
               "additionalProperties": false,
               "properties": {
-                "value": { "type": "integer", "minimum": 1, "maximum": 100, "description": "体质值1-100。普通人6-10；受过训练者11-15；超凡者16-20；体弱/幼小者3-5；高阶超凡者30+。" },
-                "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
+                "value": { "type": "integer", "minimum": 0, "maximum": 100, "description": "体质值0-100。0-9普通人；10-15肉体硬抗钢铁打击；16-19免疫常规武器；20-24抵御爆炸；25+耐久规模递增。" },
+                "description": { "type": "string", "minLength": 1, "description": "该数值对应的具体体质表现描述，参照身内能力表现力标尺。" },
+                "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因，结合角色动机、处境、性格与过去经历，不得使用固定句式模板。" }
               }
             },
             "intelligence": {
               "type": "object",
-              "required": ["value", "reason"],
+              "required": ["value", "description", "reason"],
               "additionalProperties": false,
               "properties": {
-                "value": { "type": "integer", "minimum": 1, "maximum": 100, "description": "智力值1-100。普通人6-10；受过训练者11-15；超凡者16-20；体弱/幼小者3-5；高阶超凡者30+。" },
-                "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
+                "value": { "type": "integer", "minimum": 0, "maximum": 100, "description": "智力值0-100。0-9普通人；10-15超凡计算与推演；16-19预判复杂系统走向；20-24处理城市级信息量；25+理解规模递增。" },
+                "description": { "type": "string", "minLength": 1, "description": "该数值对应的具体智力表现描述，参照身内能力表现力标尺。" },
+                "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因，结合角色动机、处境、性格与过去经历，不得使用固定句式模板。" }
               }
             },
             "perception": {
               "type": "object",
-              "required": ["value", "reason"],
+              "required": ["value", "description", "reason"],
               "additionalProperties": false,
               "properties": {
-                "value": { "type": "integer", "minimum": 1, "maximum": 100, "description": "感知值1-100。普通人6-10；受过训练者11-15；超凡者16-20；体弱/幼小者3-5；高阶超凡者30+。" },
-                "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
+                "value": { "type": "integer", "minimum": 0, "maximum": 100, "description": "感知值0-100。0-9普通人；10-15感知超常规信号；16-19预知危险与微观洞察；20-24感知覆盖街区；25+感知范围递增。" },
+                "description": { "type": "string", "minLength": 1, "description": "该数值对应的具体感知表现描述，参照身内能力表现力标尺。" },
+                "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因，结合角色动机、处境、性格与过去经历，不得使用固定句式模板。" }
               }
             },
             "willpower": {
               "type": "object",
-              "required": ["value", "reason"],
+              "required": ["value", "description", "reason"],
               "additionalProperties": false,
               "properties": {
-                "value": { "type": "integer", "minimum": 1, "maximum": 100, "description": "意志值1-100。普通人6-10；受过训练者11-15；超凡者16-20；体弱/幼小者3-5；高阶超凡者30+。" },
-                "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
+                "value": { "type": "integer", "minimum": 0, "maximum": 100, "description": "意志值0-100。0-9普通人；10-15抵抗精神操控；16-19精神不可侵犯；20-24精神辐射影响他人；25+精神规模递增。" },
+                "description": { "type": "string", "minLength": 1, "description": "该数值对应的具体意志表现描述，参照身内能力表现力标尺。" },
+                "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因，结合角色动机、处境、性格与过去经历，不得使用固定句式模板。" }
               }
             },
             "charisma": {
               "type": "object",
-              "required": ["value", "reason"],
+              "required": ["value", "description", "reason"],
               "additionalProperties": false,
               "properties": {
-                "value": { "type": "integer", "minimum": 1, "maximum": 100, "description": "魅力值1-100。普通人6-10；受过训练者11-15；超凡者16-20；体弱/幼小者3-5；高阶超凡者30+。" },
-                "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
+                "value": { "type": "integer", "minimum": 0, "maximum": 100, "description": "魅力值0-100。0-9普通人；10-15自然吸引他人服从；16-19影响群体意志；20-24辐射级人格魅力；25+影响规模递增。魅力尤其体现为对异性的吸引力，数值越高对异性的吸引力越强。" },
+                "description": { "type": "string", "minLength": 1, "description": "该数值对应的具体魅力表现描述，着重描述对异性的吸引力表现，参照身内能力表现力标尺。" },
+                "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因，结合角色动机、处境、性格与过去经历，不得使用固定句式模板。" }
               }
             }
           }
@@ -391,11 +398,46 @@ Rules：
 
 ## 生成规则
 
-1. `items` 每项必须有 `reason`，写持有该物品的具体原因。`wearing` 每个固定槽位必须有 `reason`，写穿戴原因或未穿戴原因；`wearing.slot` 每项也必须有 `reason`。
-2. `wearing` 十二个固定槽位（head/neck/innerwearTop/top/outerwear/gloves/waist/innerwearBottom/bottom/socks/shoes/wrist）必须全部填写。常规生活场景不可留空；特殊场景未穿戴时 `name`/`description` 填空字符串，`reason` 写明未穿戴原因。`wearing.slot` 用于无法归入固定槽位的额外穿着（如手持物品、cosplay饰品），无额外穿着时返回空数组。
-3. `rpgField.derived` 必须根据实际属性和穿着推算，给出计算原因。
-4. 根字段 `name` 必须与 Part1 已生成的基础信息中的姓名一致。
-5. 不要输出 `rpgFieldReasons` 或任何 Part3 JSON 模板中不存在的字段。
+1. `items`/`wearing` 必须结合角色动机、处境、性格与过去经历尽可能列全。不可只写最明显的 1-2 项就停，应从输入推断所有合理项。
+2. `items`/`wearing` 每项的 `description` 必须详细具体，写明品牌、型号、材质、款式等可辨识信息（如"华为Mate40智能手机"而非"手机"，"优衣库浅蓝色牛仔外套"而非"外套"）。每项的 `reason` 必须结合角色动机、处境、性格与过去经历写明为何穿戴/持有该物品，不得使用固定句式模板。
+3. `rpgField` 中所有含 `reason` 的字段（`level.reason`/`intrinsicBase.*.reason`/`derived.*.reason`）必须结合角色动机、处境、性格与过去经历来写，不得使用固定句式模板，不得写空话。
+4. `wearing` 十二个固定槽位（head/neck/innerwearTop/top/outerwear/gloves/waist/innerwearBottom/bottom/socks/shoes/wrist）必须全部填写。常规生活场景不可留空；特殊场景未穿戴时 `name`/`description` 填空字符串，`reason` 写明未穿戴原因。`wearing.slot` 用于无法归入固定槽位的额外穿着（如手持物品、cosplay饰品），无额外穿着时返回空数组。
+5. `rpgField.intrinsicBase` 七项身内能力使用 0-100 数值，不同数值段对应不同表现力等级（见下方身内能力表现力标尺）。`description` 字段必须根据每项身内能力的具体含义描述该数值段的对应表现。
+6. `rpgField.derived` 必须根据实际属性和穿着推算，给出计算原因。
+7. 根字段 `name` 必须与 Part1 已生成的基础信息中的姓名一致。
+8. 不要输出 `rpgFieldReasons` 或任何 Part3 JSON 模板中不存在的字段。
+
+### 身内能力表现力标尺
+
+身内能力用 0-100 表示，数值具有可感表现力。不同数值段对应不同等级的强度：
+
+| 数值段 | 战力/规模表现 |
+| --- | --- |
+| 0-9 | 普通人范围：从虚弱、普通到训练有素的人类上限。 |
+| 10-15 | 初入超凡：单手破坏钢铁且无副作用，或轻松破坏水泥墙壁且无副作用。 |
+| 16-19 | 稳定超凡：能以身体能力压制现代武装个体，小范围破坏建筑结构。 |
+| 20-24 | 街区级：单纯力量可压缩空气，破坏十几米长街道。 |
+| 25-29 | 千人小镇级：单纯力量足以破坏约千人规模小镇。 |
+| 30-34 | 万人小镇级：单纯力量足以破坏万人左右小镇。 |
+| 35-39 | 十万人城镇级：可破坏十万人规模城镇。 |
+| 40-44 | 百万人城市级：可破坏百万人规模城市。 |
+| 45-49 | 千万人大都市级：可破坏千万人规模大都市。 |
+| 50-59 | 国家级：可破坏法国、日本这类面积的国家。 |
+| 60-69 | 大陆级到行星表层级。 |
+| 70-79 | 行星级到恒星级。 |
+| 80-89 | 星系级到宇宙级。 |
+| 90-99 | 单体宇宙级到复数宇宙级。 |
+| 100 | 多元宇宙级别。 |
+
+各身内能力在同一数值段有不同的具体表现：
+
+- **力量**：0-9 从虚弱到训练有素的人类力量上限；10-15 单手破坏钢铁；16-19 压制现代武装；20-24 压缩空气；25+ 破坏规模递增。
+- **敏捷**：0-9 从笨拙到运动员反应上限；10-15 闪避子弹轨迹；16-19 残影级速度；20-24 突破音障；25+ 速度规模递增。
+- **体质**：0-9 从病弱到强健人类上限；10-15 肉体硬抗钢铁打击；16-19 免疫常规武器；20-24 抵御爆炸；25+ 耐久规模递增。
+- **智力**：0-9 从理解困难到优秀专业者；10-15 超凡计算与推演；16-19 预判复杂系统走向；20-24 处理城市级信息量；25+ 理解规模递增。
+- **感知**：0-9 从迟钝到敏锐人类上限；10-15 感知超常规信号；16-19 预知危险与微观洞察；20-24 感知覆盖街区；25+ 感知范围递增。
+- **意志**：0-9 从易动摇到坚韧人类上限；10-15 抵抗精神操控；16-19 精神不可侵犯；20-24 精神辐射影响他人；25+ 精神规模递增。
+- **魅力**：0-9 从存在感弱到有气质人类上限；10-15 自然吸引他人服从，对异性有明显吸引力；16-19 影响群体意志，对异性有强烈吸引力；20-24 辐射级人格魅力，对异性有难以抗拒的吸引力；25+ 影响规模递增，对异性的吸引力达超凡层级。魅力尤其体现为对异性的吸引力，数值越高对异性的吸引力越强。
 
 ## 完整 JSON 示例
 
