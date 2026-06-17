@@ -214,6 +214,7 @@ window.GameModules.playerIdentityActions = {
     if (this.syncWechatContactsFromRpgStates?.()) this.save?.();
     this.wechatTab = this.wechatTab || 'chats';
     this.wechatView = this.wechatView || 'home';
+    setTimeout(() => this.debugWechatMemory?.(), 0);
   },
 
   closeIdentityApp() { this.closeAppToDesktop(); },

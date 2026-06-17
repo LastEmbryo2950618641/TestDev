@@ -15,6 +15,7 @@ window.GameModules.wechatChatActions = {
     const renamed = this.syncWechatContactsFromRpgStates?.();
     this.wechatUsers = (this.wechatUsers || []).map((item) => item.id === this.wechatSelectedContact ? { ...item, unread: 0 } : item);
     this.wechatView = 'chat';
+    this.debugWechatMemory?.();
     if (renamed) this.save?.();
   },
 
@@ -30,6 +31,20 @@ window.GameModules.wechatChatActions = {
     if (stored.length) return stored;
     if (target?.group) return [{ side: 'other', name: '系统', mark: '系', text: '新手机已激活，微信数据同步完成。' }];
     return [{ side: 'other', name: target?.name, mark: target?.mark, text: target?.latest || '资料已同步。' }];
+  },
+
+  debugWechatMemory(contact = this.wechatSelected?.()) {
+    if (!contact || contact.group) return null;
+    const characterId = this.wechatMessageKey(contact);
+    const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
+    const messages = this.wechatMessagesByContact?.[characterId] || [];
+    const memory = characterId ? window.GameModules.characterMemory?.ensure?.(characterId) : null;
+    const recent = memory?.shortTerm?.recent || [];
+    const summarized = memory?.shortTerm?.summarized || [];
+    const latest = [...recent, ...summarized].slice(-3).map((item) => item.summary || item.text);
+    const report = { contact: contact.name, characterId, stateFound: Boolean(state), messageCount: messages.length, lastMessages: messages.slice(-4).map((msg) => `${msg.side}:${msg.text}`), memoryExists: Boolean(memory), recentCount: recent.length, summarizedCount: summarized.length, latestMemory: latest };
+    console.log('[微信记忆检查]', report);
+    return report;
   },
 
   async sendWechatMessage() {
@@ -119,6 +134,7 @@ window.GameModules.wechatChatActions = {
       this.advancePhoneTime?.(result.elapsedSeconds || 60);
       this.appendWechatMessage(characterId, { side: 'other', name: state?.profile?.name || contact.name, mark: (state?.profile?.name || contact.name || '').slice(0, 1), text: result.reply, characterId, metricUpdates: result.metricUpdates, lexiconUpdates: result.lexiconUpdates, characterCardChanges: result.characterCardChanges, cardChangesOpen: false, changeReasonsOpen: false });
       await window.GameModules.characterMemory?.recordWechatExchange?.(this, { ...contact, id: characterId, characterId }, playerText, result.reply, result);
+      this.debugWechatMemory?.({ ...contact, id: characterId, characterId });
       await this.recordWechatWorldline(contact, playerText, result.reply, result);
       await this.save?.();
     } catch (err) {
