@@ -666,7 +666,12 @@ window.GameModules.characterProfile = {
 
   hasRequiredRpgFieldReasons(value, attrs = null) {
     if (!value || typeof value !== 'object') return false;
-    return this.rpgFieldReasonKeys(attrs).every((key) => String(value[key] || '').trim());
+    return this.rpgFieldReasonKeys(attrs).every((key) => this.validRpgReasonText(value[key]));
+  },
+
+  validRpgReasonText(text) {
+    const value = String(text || '').trim();
+    return Boolean(value) && !/^[-+]?\d+(?:\.\d+)?$/.test(value) && value.length >= 8;
   },
 
   cleanRpgFieldReasons(value, attrs = null) {
@@ -674,11 +679,17 @@ window.GameModules.characterProfile = {
   },
 
   requireRpgFieldReasons(profile, attrs = null, label = '个人资料') {
-    const keys = this.rpgFieldReasonKeys(attrs || profile?.worldAttributes || null);
+    const finalAttrs = attrs || profile?.worldAttributes || null;
+    const keys = this.rpgFieldReasonKeys(finalAttrs);
     const reasons = profile?.rpgFieldReasons || {};
-    const missing = keys.filter((key) => !String(reasons[key] || '').trim());
+    const fallback = window.GameModules.characterReasonFallback?.rpgReasons?.(profile, finalAttrs) || {};
+    const missing = keys.filter((key) => !String(reasons[key] || fallback[key] || '').trim());
     if (missing.length) throw new Error(`${label} 缺少AI给出的RPG变化原因: ${missing.join('、')}`);
-    return Object.fromEntries(keys.map((key) => [key, String(reasons[key]).trim().slice(0, 120)]));
+    return Object.fromEntries(keys.map((key) => {
+      const current = String(reasons[key] || '').trim();
+      const safe = this.validRpgReasonText(current) ? current : String(fallback[key] || '').trim();
+      return [key, safe.slice(0, 120)];
+    }));
   },
 
   rpgFieldReasons(value, attrs = null, profile = {}) {
