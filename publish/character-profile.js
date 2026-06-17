@@ -202,14 +202,21 @@ window.GameModules.characterProfile = {
       } catch (err) {
         console.warn('[角色数值] 分块生成失败:', { profile: profile.name || base.name, group, keys: chunk, error: err.message });
       }
-      const missing = chunk.filter((key) => !items.some((item) => item?.key === key));
-      if (missing.length) {
-        this.warnMetricGroupIssues('角色数值缺字段，批量补齐一次', items, chunk, { ...base, ...profile, group, chunkIndex: i + 1 });
+      const needsRepair = chunk.filter((key) => {
+        const item = items.find((entry) => entry?.key === key);
+        return !item || !this.metricSourcesAreAi?.(item);
+      });
+      if (needsRepair.length) {
+        this.warnMetricGroupIssues('角色数值缺字段或系统来源，批量补齐一次', items, chunk, { ...base, ...profile, group, chunkIndex: i + 1 });
         try {
-          const part = await this.generateMetricGroup(profile, base, evidence, group, missing, `${i + 1}-repair`, chunks.length);
+          const part = await this.generateMetricGroup(profile, base, evidence, group, needsRepair, `${i + 1}-repair`, chunks.length);
+          needsRepair.forEach((key) => {
+            const index = items.findIndex((item) => item?.key === key);
+            if (index >= 0) items.splice(index, 1);
+          });
           items.push(...part);
         } catch (err) {
-          console.warn('[角色数值] 批量补齐失败，保留后续校验告警:', { profile: profile.name || base.name, group, missing, error: err.message, stack: err.stack });
+          console.warn('[角色数值] 批量补齐失败，保留系统来源兜底:', { profile: profile.name || base.name, group, missing: needsRepair, error: err.message, stack: err.stack });
         }
       }
     }
@@ -291,9 +298,9 @@ window.GameModules.characterProfile = {
       '每一项都必须有 key、value、status、reason 四个字段；reason 是强制字段，即使上一轮只有 status，也必须为同一个 key 补出 reason。',
       '每个对象必须以 reason 作为最后一个字段，写完 reason 才能关闭对象。',
       '本批 key 很少，必须完整输出每个 key；不要省略任何一个对象。',
-      'status 和 reason 都应是短中文句子，建议以当前key开头，说明状态和原因，不能留空。',
-      'status 和 reason 尽量包含当前 key 字面文本，并优先结合人物经历、处境、关系、玩家或家庭证据。',
-      '尽量少写“坚强的性格支撑”“性格使然”“综合判断”等抽象空话。',
+      'status 是当前数值状态解释：必须以当前 key 开头，说明这个 key 为什么呈现当前数值或阶段，不要写成代码兜底、系统说明或字段定义。',
+      'reason 是形成该数值的具体原因：必须以当前 key 开头，结合人物经历、处境、玩家关系或剧情证据说明因果，不能和 status 完全重复。',
+      '尽量少写“坚强的性格支撑”“性格使然”“综合判断”“系统生成”“等待后续AI补齐”等抽象空话。',
       '不要返回英文 key、initial_metrics、affection、dependency、trust_level 等替代结构。',
       '只返回一行紧凑 JSON，不要 Markdown。',
     ].filter(Boolean).join('\n');
