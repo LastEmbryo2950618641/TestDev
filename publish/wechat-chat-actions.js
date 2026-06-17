@@ -1,6 +1,4 @@
-window.GameModules = window.GameModules || {};
-
-window.GameModules.wechatChatActions = {
+window.GameModules = window.GameModules || {}; window.GameModules.wechatChatActions = {
   selectWechatContact(id) {
     this.wechatSelectedContact = id || this.wechatThreads()[0]?.id || 'player-self';
     const current = (this.wechatUsers || []).find((item) => item.id === this.wechatSelectedContact || item.characterId === this.wechatSelectedContact);
@@ -33,21 +31,6 @@ window.GameModules.wechatChatActions = {
     return [{ side: 'other', name: target?.name, mark: target?.mark, text: target?.latest || '资料已同步。' }];
   },
 
-  debugWechatMemory(contact = this.wechatSelected?.()) {
-    if (!contact || contact.group) return null;
-    const characterId = this.wechatMessageKey(contact);
-    const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
-    const messages = this.wechatMessagesByContact?.[characterId] || [];
-    const memory = characterId ? window.GameModules.characterMemory?.ensure?.(characterId) : null;
-    const recent = memory?.shortTerm?.recent || [];
-    const summarized = memory?.shortTerm?.summarized || [];
-    const latest = [...recent, ...summarized].slice(-3).map((item) => item.summary || item.text);
-    const wxEvents = (this.realWorldlineState?.events || []).filter((event) => String(event.eventId || '').startsWith('wx_') || String(event.detail || '').includes('以下来自微信对话'));
-    const latestWorldline = wxEvents.slice(-3).map((event) => `${event.time || ''}｜${event.detail || event.name || ''}`);
-    const report = { contact: contact.name, characterId, stateFound: Boolean(state), messageCount: messages.length, lastMessages: messages.slice(-4).map((msg) => `${msg.side}:${msg.text}`), worldlineWechatCount: wxEvents.length, latestWorldline, memoryExists: Boolean(memory), recentCount: recent.length, summarizedCount: summarized.length, latestMemory: latest };
-    console.log('[微信记忆检查]', report);
-    return report;
-  },
 
   async sendWechatMessage() {
     const text = String(this.wechatInput || '').trim();
@@ -70,18 +53,6 @@ window.GameModules.wechatChatActions = {
     if (msg.text) this.updateWechatLatest(key, msg.text, msg.side === 'other');
   },
 
-  async recordWechatWorldline(contact, playerText, replyText = '', result = {}) {
-    const display = this.displayWechatContact?.(contact) || contact || {};
-    const time = this.wechatMemoryTime?.() || { label: `${this.phoneDateText?.() || ''} ${this.phoneTimeText?.() || ''}`.trim() };
-    const label = this.wechatDialogueTimeLabel?.(time.label) || time.label || '时间未知';
-    const playerName = this.playerDisplayCharacter?.().name || this.playerName || '玩家';
-    const detail = this.formatWechatDialogueLog?.(playerName, display.name || '微信联系人', label, playerText, replyText) || '';
-    const seed = window.GameModules.rpgState.seed(`${time.label}-${contact?.id}-${playerText}-${replyText}`);
-    const event = { eventId: `wx_${seed}`, name: `微信对话：${display.name || '联系人'}`, time: label, detail, status: '已记录' };
-    this.realWorldlineState = this.realWorldlineState || { events: [], plots: [], pendingPlot: null };
-    this.realWorldlineState.events = [...(this.realWorldlineState.events || []).filter((item) => item.eventId !== event.eventId), event].slice(-40);
-    await this.appendWorldlineEvent?.(this.realWorldlineState, event, '现实情节');
-  },
 
   wechatMessageTime() {
     const d = this.phoneDate?.() || new Date();
