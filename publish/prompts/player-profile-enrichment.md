@@ -132,7 +132,6 @@
 
 ```json
 {
-  “$schema”: “http://json-schema.org/draft-07/schema#”,
   “type”: “object”,
   “required”: [“refinedCity”, “refinedRole”, “workplace”, “position”, “refinedLivingStatus”, “relationships”, “parentStatus”, “parentDeathCause”, “worldbuildingNote”, “knownProfessions”, “equipment”, “items”, “wearing”],
   “additionalProperties”: false,

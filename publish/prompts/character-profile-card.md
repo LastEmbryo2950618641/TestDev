@@ -66,7 +66,6 @@
 
 ```json
 {
-  “$schema”: “http://json-schema.org/draft-07/schema#”,
   “type”: “object”,
   “required”: [“name”, “gender”, “relationships”, “role”, “detail”, “appearance”, “personality”, “faction”, “factions”, “forcePositions”, “job”, “jobConfirmed”, “rank”, “skills”, “equipment”, “items”, “wearing”, “worldValues”, “roleCardFieldReasons”, “rpgFieldReasons”],
   “additionalProperties”: false,
