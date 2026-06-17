@@ -160,7 +160,7 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
   relationshipContactsFromPart(part, relation, rest, index, selfName) {
     const text = rest || part;
     const explicitId = rest.match(/(?:角色ID|角色id|characterId|id)\s*[：:=]\s*([A-Za-z0-9_-]{2,40})/)?.[1] || '';
-    const known = this.predefinedRelationshipCards().filter((card) => text.includes(card.name));
+    const known = this.roleCardSetup?.usePredefinedPlayerCard ? this.predefinedRelationshipCards().filter((card) => text.includes(card.name)) : [];
     if (known.length) return known.map((card) => ({ id: card.id, characterId: card.id, name: card.name, relation: relation || card.role || '关系联系人', latest: `${relation || card.role || card.name}资料已从玩家人际关系同步。`, source: 'relationships', context: text, needsNameAi: false }));
     const named = rest.match(/(?:姓名|名字|名叫|叫作|叫做|叫|名为)\s*([\u4e00-\u9fa5A-Za-z0-9_·]{2,12})/) || rest.match(/^([\u4e00-\u9fa5A-Za-z0-9_·]{2,12})(?:[，。；;、,.\s]|$)/);
     const needsNameAi = !named;
