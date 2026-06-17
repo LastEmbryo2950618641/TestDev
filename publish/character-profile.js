@@ -105,6 +105,7 @@ window.GameModules.characterProfile = {
       worldLore: sections.worldLore(lore),
       worldFields: sections.worldFields(attrs),
       rpgKeys: this.rpgFieldReasonKeys(attrs).join('、'),
+      rpgKeysJson: this.rpgFieldReasonKeys(attrs).map((key) => `"${key}"`).join(', '),
       emotionKeys: window.GameModules.metrics.emotionKeys.join('、'),
       playerKeys: window.GameModules.metrics.playerKeys.join('、'),
     };
@@ -120,6 +121,7 @@ window.GameModules.characterProfile = {
       世界观资料区: data.worldLore,
       世界字段: data.worldFields,
       RPG字段列表: data.rpgKeys,
+      RPG字段列表JSON: data.rpgKeysJson,
       情绪字段: data.emotionKeys,
       关系指标字段: data.playerKeys,
       玩家本人目标锁定: base.id === 'player-self' ? `本次只生成玩家本人“${base.name}”的角色卡。JSON 根字段 name 必须写“${base.name}”，不得写妹妹、姐姐、父母、联系人或关系事件里的任何其他姓名。如果上下文提到亲属，她们只能写进 relationships/detail 作为关系对象，不能成为本角色卡主语。gender、age、birthday 优先沿用人物基础区；不要根据亲属资料改写玩家本人身份。` : '无。',
