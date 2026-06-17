@@ -38,30 +38,41 @@ window.GameModules.worldlinePlots = {
     const fallback = this.fallback(plot, events);
     let summary = fallback;
     try {
-      const raw = await window.GameModules.aiRequest.complete({
+      summary = await window.GameModules.jsonUtils.generateJsonWithRetry({
         source: 'worldline-plot',
         model: store.modelId,
-        maxTokens: 500,
-        messages: [
-          { role: 'user', content: `你是世界线记录员。只输出JSON，不要解释。情节标题不超过10个汉字，情节总结不超过60个汉字，重要片段必须来自记录原文。\n\n${this.prompt(plot, events)}` },
-        ],
+        maxTokens: 600,
+        timeoutMs: 60000,
+        prompt: this.prompt(plot, events),
+        format: this.prompt(plot, events),
+        max: 2,
+        parse: (text) => window.GameModules.jsonUtils.parseLoose(text),
+        validate: (raw) => this.normalize(raw, fallback),
+        repairHint: '必须输出单个合法 JSON 对象；重要记录编号必须是字符串，不要数组；不要 Markdown 代码块。',
       });
-      summary = this.normalize(window.GameModules.jsonUtils.parseLoose(raw), fallback);
     } catch (err) {
-      console.warn('世界线情节归纳失败:', err.code, err.message);
+      console.warn('世界线情节归纳失败，已使用本地兜底:', err.code, err.message);
     }
     line.plots = [...(line.plots || []).filter((item) => item.情节编号 !== plot.情节编号), summary];
   },
 
   prompt(plot, events) {
     const body = events.map((event) => `记录编号:${event.eventId}\n时间:${event.time || ''}\n标题:${event.name || ''}\n状态:${event.status || ''}\n详细:${event.detail || ''}`).join('\n---\n');
-    return `请把以下记录归纳为一个情节对象。必须保留这些字段：情节标题、情节编号、情节时间段、情节总结、重要记录编号、重要片段。情节编号固定为${plot.情节编号}。\n${body}`;
+    return [
+      '你是世界线记录员。只输出一个合法 JSON 对象，不要 Markdown、代码块或解释。',
+      '必须复制下方 JSON 骨架的字段，情节标题不超过10个汉字，情节总结不超过60个汉字，重要片段必须来自记录原文。',
+      '重要记录编号必须是一个字符串，用顿号连接记录编号；不要输出数组。',
+      JSON.stringify({ 情节标题: '十字以内', 情节编号: plot.情节编号, 情节时间段: '开始时间 - 结束时间', 情节总结: '六十字以内总结', 重要记录编号: 'record_id', 重要片段: '来自原文的关键片段' }),
+      `情节编号固定为${plot.情节编号}。`,
+      body,
+    ].join('\n');
   },
 
   normalize(raw, fallback) {
     const title = String(raw?.情节标题 || fallback.情节标题).slice(0, 10);
     const brief = String(raw?.情节总结 || fallback.情节总结).slice(0, 60);
-    return { ...fallback, 情节标题: title, 情节总结: brief, 重要记录编号: String(raw?.重要记录编号 || fallback.重要记录编号), 重要片段: String(raw?.重要片段 || fallback.重要片段).slice(0, 120) };
+    const ids = Array.isArray(raw?.重要记录编号) ? raw.重要记录编号.join('、') : raw?.重要记录编号;
+    return { ...fallback, 情节标题: title, 情节总结: brief, 重要记录编号: String(ids || fallback.重要记录编号), 重要片段: String(raw?.重要片段 || fallback.重要片段).slice(0, 120) };
   },
 
   fallback(plot, events) {
