@@ -143,6 +143,27 @@ window.GameModules.playerIdentityActions = {
     return state;
   },
 
+  async ensureIdentityMetricSources(targetId = 'player-self') {
+    if (!window.GameModules.sqliteSave?.db) return;
+    const id = targetId || 'player-self';
+    const state = this.rpgStates?.[id] || window.GameModules.sqliteSave.getCharacterState(id);
+    const tool = window.GameModules.characterProfile;
+    if (!state?.profile || !tool?.ensureInitialMetricSources) return;
+    const before = JSON.stringify(state.profile.initialMetrics || {});
+    const previousProfile = state.profile;
+    const context = [state.profile.detail, state.profile.personality, state.note].filter(Boolean).join('；');
+    try {
+      state.profile = await tool.ensureInitialMetricSources(state.profile, state.profile, context, this);
+      if (before === JSON.stringify(state.profile.initialMetrics || {})) return;
+      window.GameModules.rpgProfileMetrics?.rebase?.(state, state.profile, previousProfile);
+      await window.GameModules.sqliteSave.saveCharacterState(state);
+      this.rpgStates = { ...(this.rpgStates || {}), [state.id]: state };
+      if (id === this.character?.id) this.character = state.profile;
+    } catch (err) {
+      console.warn('[身份证] 角色数值来源检查失败:', err.code, err.message, err.stack);
+    }
+  },
+
   async openIdentityApp(targetId = 'player-self') {
     this.wechatAppOpen = false; this.saveAppOpen = false; this.worldlineAppOpen = false;
     if (this.companyState) this.companyState.open = false;
@@ -154,6 +175,7 @@ window.GameModules.playerIdentityActions = {
     if (this.promptState) this.promptState.open = false; if (this.tokenStatsState) this.tokenStatsState.open = false;
     this.identityTargetId = targetId || 'player-self'; this.identityAppOpen = true;
     this.desktopUnlocked = true;
+    this.ensureIdentityMetricSources(this.identityTargetId);
   },
 
   openWechatApp() {
