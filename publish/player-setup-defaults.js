@@ -38,18 +38,10 @@ Object.assign(window.GameModules.playerSetupActions, {
   },
 
   async defaultProfileData() {
-    let source = 'config/default-existing-profile-inline.js';
-    let text = '';
-    try {
-      const loaded = await this.readDefaultProfileMd();
-      text = loaded.text;
-      source = loaded.source;
-    } catch (err) {
-      console.warn('[玩家身份] 默认资料 MD 读取失败，使用 JS 兜底:', err.message, err.stack);
-    }
-    const data = text ? this.parseDefaultProfileMd(text) : window.GameModules.defaultExistingProfile;
-    if (!data?.name || !data?.birthday) throw new Error('默认资料缺少 name 或 birthday');
-    return { ...data, source };
+    const loaded = await this.readDefaultProfileMd();
+    const data = this.parseDefaultProfileMd(loaded.text);
+    if (!data?.name || !data?.birthday) throw new Error('默认资料 MD 缺少 姓名 或 生日');
+    return { ...data, source: loaded.source };
   },
 
   parseDefaultProfileMd(text = '') {
