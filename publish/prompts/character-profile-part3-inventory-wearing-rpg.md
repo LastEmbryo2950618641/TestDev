@@ -70,7 +70,7 @@ Rules：
 含三个子字段：
 
 - `level`：`{ "value": integer(1-100), "reason": string }` — 综合成长等级。普通市民3-6；受过训练者7-15；精英16-30；超凡者30+。
-- `intrinsicBase`：七项固定 key（strength/agility/constitution/intelligence/perception/willpower/charisma），每项 `{ "value": integer(1-20), "reason": string }`。普通人6-10；受过训练者11-15；超凡者16-20；体弱/幼小者3-5。
+- `intrinsicBase`：七项固定 key（strength/agility/constitution/intelligence/perception/willpower/charisma），每项 `{ "value": integer(1-100), "reason": string }`。普通人6-10；受过训练者11-15；超凡者16-20；体弱/幼小者3-5；高阶超凡者30+。
 - `derived`：`攻击力` 和 `防御力`，每项 `{ "value": integer, "reason": string }`。普通人5-15；受过训练者16-30；装备精良30+。必须根据实际属性和装备推算。
 
 ## 输出 JSON Schema
@@ -290,14 +290,14 @@ Rules：
           "type": "object",
           "required": ["strength", "agility", "constitution", "intelligence", "perception", "willpower", "charisma"],
           "additionalProperties": false,
-          "description": "七项先天属性。普通人6-10；受过训练者11-15；超凡者16-20；体弱/幼小者3-5。",
+          "description": "七项先天属性。普通人6-10；受过训练者11-15；超凡者16-20；体弱/幼小者3-5；高阶超凡者30+。",
           "properties": {
             "strength": {
               "type": "object",
               "required": ["value", "reason"],
               "additionalProperties": false,
               "properties": {
-                "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "力量值1-20。" },
+                "value": { "type": "integer", "minimum": 1, "maximum": 100, "description": "力量值1-100。普通人6-10；受过训练者11-15；超凡者16-20；体弱/幼小者3-5；高阶超凡者30+。" },
                 "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
               }
             },
@@ -306,7 +306,7 @@ Rules：
               "required": ["value", "reason"],
               "additionalProperties": false,
               "properties": {
-                "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "敏捷值1-20。" },
+                "value": { "type": "integer", "minimum": 1, "maximum": 100, "description": "敏捷值1-100。普通人6-10；受过训练者11-15；超凡者16-20；体弱/幼小者3-5；高阶超凡者30+。" },
                 "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
               }
             },
@@ -315,7 +315,7 @@ Rules：
               "required": ["value", "reason"],
               "additionalProperties": false,
               "properties": {
-                "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "体质值1-20。" },
+                "value": { "type": "integer", "minimum": 1, "maximum": 100, "description": "体质值1-100。普通人6-10；受过训练者11-15；超凡者16-20；体弱/幼小者3-5；高阶超凡者30+。" },
                 "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
               }
             },
@@ -324,7 +324,7 @@ Rules：
               "required": ["value", "reason"],
               "additionalProperties": false,
               "properties": {
-                "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "智力值1-20。" },
+                "value": { "type": "integer", "minimum": 1, "maximum": 100, "description": "智力值1-100。普通人6-10；受过训练者11-15；超凡者16-20；体弱/幼小者3-5；高阶超凡者30+。" },
                 "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
               }
             },
@@ -333,7 +333,7 @@ Rules：
               "required": ["value", "reason"],
               "additionalProperties": false,
               "properties": {
-                "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "感知值1-20。" },
+                "value": { "type": "integer", "minimum": 1, "maximum": 100, "description": "感知值1-100。普通人6-10；受过训练者11-15；超凡者16-20；体弱/幼小者3-5；高阶超凡者30+。" },
                 "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
               }
             },
@@ -342,7 +342,7 @@ Rules：
               "required": ["value", "reason"],
               "additionalProperties": false,
               "properties": {
-                "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "意志值1-20。" },
+                "value": { "type": "integer", "minimum": 1, "maximum": 100, "description": "意志值1-100。普通人6-10；受过训练者11-15；超凡者16-20；体弱/幼小者3-5；高阶超凡者30+。" },
                 "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
               }
             },
@@ -351,7 +351,7 @@ Rules：
               "required": ["value", "reason"],
               "additionalProperties": false,
               "properties": {
-                "value": { "type": "integer", "minimum": 1, "maximum": 20, "description": "魅力值1-20。" },
+                "value": { "type": "integer", "minimum": 1, "maximum": 100, "description": "魅力值1-100。普通人6-10；受过训练者11-15；超凡者16-20；体弱/幼小者3-5；高阶超凡者30+。" },
                 "reason": { "type": "string", "minLength": 1, "description": "该数值的判定原因。" }
               }
             }
