@@ -12,6 +12,30 @@
       "description": "浅蓝色学生书包，内装课本和文具",
       "equipSlots": ["背部"],
       "reason": "学生日常上学使用。"
+    },
+    {
+      "name": "华为电子手表",
+      "description": "华为最新电子手表",
+      "equipSlots": ["手腕"],
+      "reason": "喜欢高科技。"
+    },
+    {
+      "name": "猫尾巴",
+      "description": "黑色猫尾",
+      "equipSlots": ["腰臀"],
+      "reason": "喜欢cosplay。"
+    },
+    {
+      "name": "单手剑",
+      "description": "中世纪单手剑",
+      "equipSlots": ["手部"],
+      "reason": "喜欢近战。"
+    },
+    {
+      "name": "头盔",
+      "description": "中世纪头盔",
+      "equipSlots": ["头部"],
+      "reason": "喜欢近战。"
     }
   ],
   "items": [
@@ -34,78 +58,14 @@
       "reason": "日常随身物品。"
     }
   ],
-  "wearing": [
-    {
-      "slot": "内衣",
-      "bodyPart": "胸部",
-      "name": "学生内衣",
-      "description": "白色棉质学生内衣",
-      "reason": "日常上学穿着。"
-    },
-    {
-      "slot": "上衣",
-      "bodyPart": "躯干",
-      "name": "校服上衣",
-      "description": "深圳外国语学校白色短袖校服",
-      "reason": "上学日统一着装。"
-    },
-    {
-      "slot": "内裤",
-      "bodyPart": "腰臀",
-      "name": "学生内裤",
-      "description": "浅色棉质内裤",
-      "reason": "日常上学穿着。"
-    },
-    {
-      "slot": "下衣",
-      "bodyPart": "腿部",
-      "name": "校服长裤",
-      "description": "深圳外国语学校深蓝色校服长裤",
-      "reason": "上学日统一着装。"
-    },
-    {
-      "slot": "袜子",
-      "bodyPart": "脚踝",
-      "name": "白色短袜",
-      "description": "白色棉质短袜",
-      "reason": "搭配校服穿着。"
-    },
-    {
-      "slot": "鞋子",
-      "bodyPart": "脚部",
-      "name": "白色运动鞋",
-      "description": "白色帆布运动鞋",
-      "reason": "学生日常通勤穿着。"
-    },
-    {
-      "slot": "饰品1",
-      "bodyPart": "手腕",
-      "name": "手表",
-      "description": "华为最新电子手表",
-      "reason": "喜欢高科技。"
-    },
-    {
-      "slot": "饰品2",
-      "bodyPart": "腰臀",
-      "name": "猫尾巴",
-      "description": "黑色猫尾",
-      "reason": "喜欢cosplay。"
-    },
-    {
-      "slot": "装备1",
-      "bodyPart": "手部",
-      "name": "单手剑",
-      "description": "中世纪单手剑",
-      "reason": "喜欢近战。"
-    },
-    {
-      "slot": "装备2",
-      "bodyPart": "头部",
-      "name": "头盔",
-      "description": "中世纪头盔",
-      "reason": "喜欢近战。"
-    }
-  ],
+  "wearing": {
+    "innerwearTop": { "bodyPart": "胸部", "name": "学生内衣", "description": "白色棉质学生内衣", "reason": "日常上学穿着。" },
+    "top": { "bodyPart": "躯干", "name": "校服上衣", "description": "深圳外国语学校白色短袖校服", "reason": "上学日统一着装。" },
+    "innerwearBottom": { "bodyPart": "腰臀", "name": "学生内裤", "description": "浅色棉质内裤", "reason": "日常上学穿着。" },
+    "bottom": { "bodyPart": "腿部", "name": "校服长裤", "description": "深圳外国语学校深蓝色校服长裤", "reason": "上学日统一着装。" },
+    "socks": { "bodyPart": "脚踝", "name": "白色短袜", "description": "白色棉质短袜", "reason": "搭配校服穿着。" },
+    "shoes": { "bodyPart": "脚部", "name": "白色运动鞋", "description": "白色帆布运动鞋", "reason": "学生日常通勤穿着。" }
+  },
   "rpgField": {
     "level": { "value": 3, "reason": "十六岁高中女生，生活经验有限，未受专业训练。" },
     "intrinsicBase": {
