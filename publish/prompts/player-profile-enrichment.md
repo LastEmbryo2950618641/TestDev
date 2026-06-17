@@ -133,20 +133,23 @@ Rules：
 
 ## 输出 JSON Schema
 
-返回的 JSON 必须符合以下完整 Schema 描述。Schema 中每个字段的 `description` 即该字段的含义与约束，与上方字段处理规则一致：
+请严格按照以下 JSON Schema 生成数据。生成前，请先脑中核对 required 列表，确保输出的顶层Key一个不漏。
 
 ```json
 {
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "required": ["refinedCity", "refinedRole", "workplace", "position", "refinedLivingStatus", "relationships", "parentStatus", "parentDeathCause", "worldbuildingNote", "knownProfessions", "equipment", "items", "wearing"],
   "additionalProperties": false,
   "properties": {
     "refinedCity": {
       "type": "string",
+      "minLength": 1,
       "description": "补全后的省-市/州-区县-镇/街道-社区/小区-楼栋-门牌。必须具体可落库，不可含'某处/一处/普通/未知/等/附近/片区'等模糊词。"
     },
     "refinedRole": {
       "type": "string",
+      "minLength": 1,
       "description": "更具体的现实身份。根据年龄、性别、dailyRole、city、notes 补全；高中生细化到学校与年级，上班族细化到职业方向。"
     },
     "workplace": {
@@ -167,6 +170,7 @@ Rules：
     },
     "parentStatus": {
       "type": "string",
+      "enum": ["父母已故", "父母健在", "单亲", ""],
       "description": "父母状态。若 parents 为空必须设为'父母已故'；若 parents 已填写不得强行改成已故。"
     },
     "parentDeathCause": {

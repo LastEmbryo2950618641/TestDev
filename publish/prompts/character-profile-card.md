@@ -87,16 +87,18 @@ Rules：
 
 ## 输出 JSON Schema
 
-返回的 JSON 必须符合以下完整 Schema 描述。Schema 中每个字段的 `description` 即该字段的含义与约束，与上方生成规则一致：
+请严格按照以下 JSON Schema 生成数据。生成前，请先脑中核对 required 列表，确保输出的顶层Key一个不漏。
 
 ```json
 {
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "required": ["name", "worldTag", "age", "gender", "learningAbility", "mentalStability", "growthPotential", "actionAbility", "relationships", "role", "detail", "appearance", "personality", "faction", "factions", "forcePositions", "job", "jobConfirmed", "rank", "skills", "knowledge", "professions", "equipment", "items", "wearing", "control_experience", "worldValues", "rpgField", "roleCardFieldReasons", "rpgFieldReasons"],
   "additionalProperties": false,
   "properties": {
     "name": {
       "type": "string",
+      "minLength": 1,
       "description": "当前人物正式姓名。当人物基础区给出正式姓名时必须逐字复制，不得同音改字、近形改字、改成玩家、亲属、联系人或关系事件里的其他人。"
     },
     "worldTag": {
@@ -121,6 +123,7 @@ Rules：
     },
     "gender": {
       "type": "string",
+      "enum": ["男", "女", ""],
       "description": "当前人物性别。使用人物基础区或证据区可确认的性别，不确定可留空字符串。"
     },
     "learningAbility": {
@@ -221,6 +224,7 @@ Rules：
     },
     "jobConfirmed": {
       "type": "boolean",
+      "enum": [true, false],
       "description": "job 是否有确认证据。job 为空字符串时必须为 false。"
     },
     "rank": {
@@ -238,7 +242,7 @@ Rules：
           "name": { "type": "string", "description": "能力名称。" },
           "desc": { "type": "string", "description": "能力说明。" },
           "level": { "type": "integer", "minimum": 1, "maximum": 7, "description": "技能等级：1入门 2初学 3熟练 4专业 5专家 6大师 7传说。" },
-          "levelEffects": { "type": "string", "description": "各等级效果，用中文分号分隔，只写至当前等级。格式如'lv1入门能X；lv2初学能Y；lv3熟能Z'。" },
+          "levelEffects": { "type": "string", "pattern": "^lv1", "description": "各等级效果，用中文分号分隔，只写至当前等级。格式如'lv1入门能X；lv2初学能Y；lv3熟能Z'。" },
           "reason": { "type": "string", "description": "达到该技能等级的原因句，不能是数字。" }
         }
       }
@@ -254,7 +258,7 @@ Rules：
           "name": { "type": "string", "description": "知识领域名称。" },
           "desc": { "type": "string", "description": "知识领域说明。" },
           "level": { "type": "integer", "minimum": 1, "maximum": 7, "description": "知识等级：1入门 2初学 3熟练 4专业 5专家 6大师 7传说。" },
-          "levelEffects": { "type": "string", "description": "各等级效果，用中文分号分隔，只写至当前等级。格式如'lv1入门能X；lv2初学能Y；lv3熟能Z'。" },
+          "levelEffects": { "type": "string", "pattern": "^lv1", "description": "各等级效果，用中文分号分隔，只写至当前等级。格式如'lv1入门能X；lv2初学能Y；lv3熟能Z'。" },
           "reason": { "type": "string", "description": "达到该知识等级的原因句。" }
         }
       }
@@ -269,7 +273,7 @@ Rules：
         "properties": {
           "name": { "type": "string", "description": "职业名称。" },
           "level": { "type": "integer", "minimum": 1, "maximum": 7, "description": "职业等级：1入门 2初学 3熟练 4专业 5专家 6大师 7传说。" },
-          "levelEffects": { "type": "string", "description": "各等级效果，用中文分号分隔，只写至当前等级。格式如'lv1入门能X；lv2初学能Y；lv3熟能Z'。" },
+          "levelEffects": { "type": "string", "pattern": "^lv1", "description": "各等级效果，用中文分号分隔，只写至当前等级。格式如'lv1入门能X；lv2初学能Y；lv3熟能Z'。" },
           "reason": { "type": "string", "description": "达到该职业等级的原因句。" }
         }
       }
@@ -316,8 +320,8 @@ Rules：
         "required": ["slot", "bodyPart", "name", "description", "reason"],
         "additionalProperties": false,
         "properties": {
-          "slot": { "type": "string", "description": "穿着槽位，如内衣、上衣、内裤、下衣、袜子、鞋子。" },
-          "bodyPart": { "type": "string", "description": "穿着覆盖的身体部位，如胸部、躯干、腰臀、腿部、脚踝、脚部、手腕、头部、手部等。" },
+          "slot": { "type": "string", "enum": ["内衣", "上衣", "内裤", "下衣", "袜子", "鞋子", "外套", "手套", "头部", "颈部", "腰部", "包具", "饰品", "装备", "未穿戴"], "description": "穿着槽位，如内衣、上衣、内裤、下衣、袜子、鞋子。" },
+          "bodyPart": { "type": "string", "enum": ["胸部", "躯干", "腰臀", "腿部", "脚踝", "脚部", "手腕", "头部", "手部"], "description": "穿着覆盖的身体部位，如胸部、躯干、腰臀、腿部、脚踝、脚部、手腕、头部、手部等。" },
           "name": { "type": "string", "description": "穿着名称。" },
           "description": { "type": "string", "description": "穿着说明。" },
           "reason": { "type": "string", "description": "穿戴该物品的原因句。" }
