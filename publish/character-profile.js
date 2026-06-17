@@ -178,7 +178,7 @@ window.GameModules.characterProfile = {
   },
 
   metricGroupKeyChunks(group, keys) {
-    const maxKeysPerRequest = 8;
+    const maxKeysPerRequest = 6;
     const chunks = [];
     for (let i = 0; i < keys.length; i += maxKeysPerRequest) chunks.push(keys.slice(i, i + maxKeysPerRequest));
     return chunks;
@@ -305,7 +305,7 @@ window.GameModules.characterProfile = {
 
   repairHint(base, attrs = null) {
     return [
-      `目标人物只能是：${base.name}。不要改成亲属、联系人或关系对象。`,
+      `目标人物只能是：${base.name}。name 必须逐字等于“${base.name}”，不要同音改字，不要改成亲属、联系人或关系对象。`,
       '必须返回根字段 roleCardFieldReasons，不是 roleCardField、中文字段平铺或社群映射。',
       'roleCardFieldReasons 必须完整包含：姓名、所属世界、身份、职业、性别、生日、人际关系、外貌、性格、人物说明、社群角色、势力地位。每个值写一句具体事实原因。',
       `必须返回根字段 rpgFieldReasons，并完整包含：${this.rpgFieldReasonKeys(attrs).join('、')}。`,
