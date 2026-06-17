@@ -167,8 +167,8 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
     let name = String(named?.[1] || relation || `联系人${index + 1}`).replace(/[，。；;、,.].*$/, '').trim().slice(0, 24);
     if (selfName && name.includes(selfName)) name = relation || `联系人${index + 1}`;
     if (!relation && !name) return [];
-    if (!explicitId) return [];
-    return [{ id: explicitId, characterId: explicitId, name, relation: relation || '关系联系人', latest: `${relation || name}资料已从玩家人际关系同步。`, source: 'relationships', context: text, needsNameAi }];
+    const id = explicitId || `rel-ai-${window.GameModules.rpgState.seed(`${relation}-${name}-${index}`)}`;
+    return [{ id, characterId: id, name, relation: relation || '关系联系人', latest: `${relation || name}资料已从玩家人际关系同步。`, source: explicitId ? 'relationships' : 'relationships-ai', context: text, needsNameAi }];
   },
   inferWechatUsersFromRelationships(text = '') {
     const source = String(text || '').trim();
