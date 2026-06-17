@@ -120,7 +120,9 @@ window.GameModules = window.GameModules || {};
     const byKey = new Map((Array.isArray(list) ? list : []).map((item) => [item?.key, item]));
     return keys.map((key) => {
       const item = byKey.get(key) || {};
-      return { key, value: window.GameModules.metrics.clamp(item.value ?? defaults[key] ?? 0), status: item.status || '', reason: item.reason || '' };
+      const sourceTool = window.GameModules.characterProfile;
+      const metricSources = sourceTool?.metricSources?.(item, item.metricSources ? 'system' : 'system') || { 数值: 'system', 解释: 'system', 原因: 'system' };
+      return { key, value: window.GameModules.metrics.clamp(item.value ?? defaults[key] ?? 0), status: item.status || '', reason: item.reason || '', metricSources };
     });
   };
 

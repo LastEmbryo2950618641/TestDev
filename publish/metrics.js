@@ -97,11 +97,14 @@ window.GameModules.metrics = {
   writeMetric(target, notes, group, item, value, fallbackReason) {
     const stage = this.stageFor(item.key, value);
     target[item.key] = value;
+    const fallbackUsed = this.metricReasonLooksGeneric(item.reason);
+    const metricSources = item.metricSources || { 数值: 'system', 解释: item.status ? 'ai' : 'system', 原因: fallbackUsed ? 'system' : 'ai' };
     notes[`${group}:${item.key}`] = {
       stage,
       status: String(this.valueExplanation(item.key, value, item.status)).slice(0, 180),
-      reason: String(this.metricReasonLooksGeneric(item.reason) ? `缺少AI生成的${item.key}变化原因。` : item.reason).slice(0, 180),
+      reason: String(fallbackUsed ? `缺少AI生成的${item.key}变化原因。` : item.reason).slice(0, 180),
       description: String(this.descriptions[item.key] || item.key).slice(0, 120),
+      metricSources,
     };
   },
 };
