@@ -3,15 +3,17 @@ window.GameModules.playerSetupActions = window.GameModules.playerSetupActions ||
 Object.assign(window.GameModules.playerSetupActions, {
   defaultProfileMdCandidates(file = 'config/default-existing-profile.md') {
     const raw = String(file || '').replace(/^\.\//, '');
+    const urls = [];
+    try { if (window.GameModules.defaultExistingProfileSource?.mdUrl) urls.push(window.GameModules.defaultExistingProfileSource.mdUrl); } catch (_) {}
     const bases = [];
     try { if (document.querySelector('base[href]')?.href) bases.push(document.querySelector('base[href]').href); } catch (_) {}
     try { if (document.baseURI) bases.push(document.baseURI); } catch (_) {}
     try { if (window.GameModules.promptTemplates?.baseUrl) bases.push(window.GameModules.promptTemplates.baseUrl); } catch (_) {}
     try { if (window.GameModules.promptTemplates?.scriptUrl) bases.push(window.GameModules.promptTemplates.scriptUrl); } catch (_) {}
-    const urls = bases.flatMap((base) => {
+    urls.push(...bases.flatMap((base) => {
       try { return [new URL(raw, base).toString()]; }
       catch (_) { return []; }
-    });
+    }));
     urls.push(raw, `./${raw}`);
     return [...new Set(urls)];
   },
@@ -34,7 +36,8 @@ Object.assign(window.GameModules.playerSetupActions, {
     } catch (err) {
       lastError = err;
     }
-    throw lastError || new Error('默认资料 MD 不可用');
+    const detail = this.defaultProfileMdCandidates().join('、');
+    throw new Error(`${lastError?.message || '默认资料 MD 不可用'}；已尝试：${detail}`);
   },
 
   async defaultProfileData() {
