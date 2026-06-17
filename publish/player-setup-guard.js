@@ -28,9 +28,13 @@ window.GameModules = window.GameModules || {};
     playerSetupSummary() {
       return this.playerProfileLexiconFields().map((x) => `${x.label}：${x.value}`).join('\n');
     },
-    async defaultExistingAccountProfile() {
+    defaultProfileData() {
       const data = window.GameModules.defaultExistingProfile;
-      if (!data?.name || !data?.birthday) throw new Error('默认资料缺少 name 或 birthday');
+      if (!data?.name || !data?.birthday) throw new Error('默认资料文件 default-existing-profile-inline.js 缺少 name 或 birthday');
+      return data;
+    },
+    async defaultExistingAccountProfile() {
+      const data = this.defaultProfileData();
       return { ...data, age: this.playerAgeFromBirthday(data.birthday), initializedAt: new Date().toISOString() };
     },
     async chooseExistingAccountSetup() { if (this.profileSetupBusy) return; this.profileSetupBusy = true; try { this.setupError = ''; this.playerProfile = { ...this.playerProfile, ...await this.defaultExistingAccountProfile() }; this.existingProfileExpanded = false; this.phoneActivationChoice = 'existing'; } catch (err) { console.error('[玩家身份] 已有账号默认资料读取失败:', err.message, err.stack); this.setupError = err.message || '已有账号默认资料读取失败'; } finally { this.profileSetupBusy = false; } },
