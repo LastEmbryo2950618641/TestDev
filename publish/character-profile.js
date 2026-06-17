@@ -177,7 +177,7 @@ window.GameModules.characterProfile = {
   },
 
   metricGroupKeyChunks(group, keys) {
-    const maxKeysPerRequest = 6;
+    const maxKeysPerRequest = 10;
     const chunks = [];
     for (let i = 0; i < keys.length; i += maxKeysPerRequest) chunks.push(keys.slice(i, i + maxKeysPerRequest));
     return chunks;
@@ -196,15 +196,20 @@ window.GameModules.characterProfile = {
         const part = await this.generateMetricGroup(profile, base, evidence, group, chunk, i + 1, chunks.length);
         items.push(...part);
       } catch (err) {
-        console.warn('[角色数值] 分块生成失败，稍后补缺失项:', group, chunk.join('、'), err.message, err.stack);
+        console.warn('[角色数值] 分块生成失败:', { profile: profile.name || base.name, group, keys: chunk, error: err.message });
       }
       const missing = chunk.filter((key) => !items.some((item) => item?.key === key));
-      for (let j = 0; j < missing.length; j += 1) {
-        const part = await this.generateMetricGroup(profile, base, evidence, group, [missing[j]], `${i + 1}.${j + 1}`, chunks.length);
-        items.push(...part);
+      if (missing.length) {
+        this.warnMetricGroupIssues('角色数值缺字段，批量补齐一次', items, chunk, { ...base, ...profile, group, chunkIndex: i + 1 });
+        try {
+          const part = await this.generateMetricGroup(profile, base, evidence, group, missing, `${i + 1}-repair`, chunks.length);
+          items.push(...part);
+        } catch (err) {
+          console.warn('[角色数值] 批量补齐失败，保留后续校验告警:', { profile: profile.name || base.name, group, missing, error: err.message, stack: err.stack });
+        }
       }
     }
-    return this.validateMetricGroup(items, keys, { ...base, ...profile });
+    return this.validateMetricGroup(items, keys, { ...base, ...profile, group });
   },
 
   async generateMetricGroup(profile, base, evidence, group, keys, chunkIndex = 1, chunkTotal = 1) {
@@ -218,7 +223,7 @@ window.GameModules.characterProfile = {
       format: prompt,
       repairHint: this.metricGroupRepairHint(base, group, keys, evidence),
       parse: (text) => this.parseMetricGroup(text, group, keys),
-      validate: (raw) => this.validateMetricGroup(raw?.[group] || raw?.items || raw, keys, { ...base, ...profile }),
+      validate: (raw) => this.validateMetricGroup(raw?.[group] || raw?.items || raw, keys, { ...base, ...profile, group }),
     });
   },
 
@@ -290,13 +295,41 @@ window.GameModules.characterProfile = {
     ].filter(Boolean).join('\n');
   },
 
+  warnMetricGroupIssues(label, value, keys, profile = {}) {
+    const list = Array.isArray(value) ? value : [];
+    const returnedKeys = list.map((entry) => entry?.key).filter(Boolean);
+    const missing = keys.filter((key) => !list.some((entry) => entry?.key === key));
+    const missingValue = keys.filter((key) => {
+      const item = list.find((entry) => entry?.key === key);
+      return item && item.value === undefined;
+    });
+    const missingStatus = keys.filter((key) => {
+      const item = list.find((entry) => entry?.key === key);
+      return item && !String(item.status || '').trim();
+    });
+    const missingReason = keys.filter((key) => {
+      const item = list.find((entry) => entry?.key === key);
+      return item && !String(item.reason || '').trim();
+    });
+    const extra = returnedKeys.filter((key) => !keys.includes(key));
+    if (missing.length || missingValue.length || missingStatus.length || missingReason.length || extra.length) {
+      console.warn(`[${label}]`, { profile: profile.name || '角色', group: profile.group || 'unknown', expectedKeys: keys, returnedKeys, missing, missingValue, missingStatus, missingReason, extra, chunkIndex: profile.chunkIndex || null });
+    }
+    return { missing, missingValue, missingStatus, missingReason, extra };
+  },
+
   validateMetricGroup(value, keys, profile = {}) {
-    if (!Array.isArray(value)) throw new Error(`${profile.name || '角色'} 的数值组不是数组`);
+    if (!Array.isArray(value)) {
+      console.warn('[角色数值校验] 数值组不是数组:', { profile: profile.name || '角色', group: profile.group || 'unknown', value });
+      throw new Error(`${profile.name || '角色'} 的数值组不是数组`);
+    }
+    const issues = this.warnMetricGroupIssues('角色数值校验缺字段', value, keys, profile);
+    if (issues.missing.length) throw new Error(`${profile.name || '角色'} 缺少AI生成的${issues.missing.join('、')}数值项`);
+    if (issues.missingValue.length) throw new Error(`${profile.name || '角色'} 缺少AI生成的${issues.missingValue.join('、')}数值`);
+    if (issues.missingStatus.length) throw new Error(`${profile.name || '角色'} 的${issues.missingStatus.join('、')}缺少AI生成的数值解释`);
+    if (issues.missingReason.length) throw new Error(`${profile.name || '角色'} 的${issues.missingReason.join('、')}缺少AI生成的变化原因`);
     return keys.map((key) => {
-      const item = value.find((entry) => entry?.key === key) || {};
-      if (item.value === undefined) throw new Error(`${profile.name || '角色'} 缺少AI生成的${key}数值`);
-      if (!String(item.status || '').trim()) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的数值解释`);
-      if (!String(item.reason || '').trim()) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的变化原因`);
+      const item = value.find((entry) => entry?.key === key);
       return { key, value: window.GameModules.metrics.clamp(item.value), status: String(item.status).slice(0, 160), reason: String(item.reason).slice(0, 180) };
     });
   },
