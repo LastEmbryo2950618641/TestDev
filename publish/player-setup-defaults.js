@@ -1,50 +1,12 @@
 window.GameModules = window.GameModules || {};
 window.GameModules.playerSetupActions = window.GameModules.playerSetupActions || {};
 Object.assign(window.GameModules.playerSetupActions, {
-  defaultProfileMdCandidates(file = 'config/default-existing-profile.md') {
-    const raw = String(file || '').replace(/^\.\//, '');
-    const urls = [];
-    try { if (window.GameModules.defaultExistingProfileSource?.mdUrl) urls.push(window.GameModules.defaultExistingProfileSource.mdUrl); } catch (_) {}
-    const bases = [];
-    try { if (document.querySelector('base[href]')?.href) bases.push(document.querySelector('base[href]').href); } catch (_) {}
-    try { if (document.baseURI) bases.push(document.baseURI); } catch (_) {}
-    try { if (window.GameModules.promptTemplates?.baseUrl) bases.push(window.GameModules.promptTemplates.baseUrl); } catch (_) {}
-    try { if (window.GameModules.promptTemplates?.scriptUrl) bases.push(window.GameModules.promptTemplates.scriptUrl); } catch (_) {}
-    urls.push(...bases.flatMap((base) => {
-      try { return [new URL(raw, base).toString()]; }
-      catch (_) { return []; }
-    }));
-    urls.push(raw, `./${raw}`);
-    return [...new Set(urls)];
-  },
-
-  async readDefaultProfileMd() {
-    let lastError = null;
-    for (const url of this.defaultProfileMdCandidates()) {
-      try {
-        const res = await fetch(encodeURI(url));
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const text = await res.text();
-        if (text.trim()) return { text, source: url };
-      } catch (err) {
-        lastError = err;
-      }
-    }
-    try {
-      const text = await window.GameModules.rag.fetchText('config/default-existing-profile.md');
-      if (text.trim()) return { text, source: 'config/default-existing-profile.md' };
-    } catch (err) {
-      lastError = err;
-    }
-    const detail = this.defaultProfileMdCandidates().join('、');
-    throw new Error(`${lastError?.message || '默认资料 MD 不可用'}；已尝试：${detail}`);
-  },
-
-  async defaultProfileData() {
-    const loaded = await this.readDefaultProfileMd();
-    const data = this.parseDefaultProfileMd(loaded.text);
-    if (!data?.name || !data?.birthday) throw new Error('默认资料 MD 缺少 姓名 或 生日');
-    return { ...data, source: loaded.source };
+  defaultProfileData() {
+    const text = window.GameModules.defaultExistingProfileMd || '';
+    if (!text.trim()) throw new Error('默认资料快照未加载：需要 config/default-existing-profile-cache.js');
+    const data = this.parseDefaultProfileMd(text);
+    if (!data?.name || !data?.birthday) throw new Error('默认资料快照缺少 姓名 或 生日');
+    return { ...data, source: 'config/default-existing-profile-cache.js' };
   },
 
   parseDefaultProfileMd(text = '') {
