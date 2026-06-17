@@ -50,28 +50,57 @@ Rules：
 
 世界字段：{世界字段}
 
-## 字段定义
+## 生成规则
+
+### name
+
+- 定义：`string`，当前人物正式姓名。
+- 规则：必须与 Part1 已生成的基础信息中的姓名一致。
 
 ### items
 
-每项含：`name`(string)、`description`(string)、`quantity`(integer,最小1)、`reason`(string)。
+- 定义：物品数组，每项含 `name`(string)、`description`(string)、`quantity`(integer,最小1)、`reason`(string)。
+- 规则：
+  - 必须结合角色动机、处境、性格与过去经历尽可能列全，不可只写最明显的 1-2 项就停，应从输入推断所有合理项。
+  - 每项的 `description` 必须详细具体，写明品牌、型号、材质、款式等可辨识信息（如"华为Mate40智能手机"而非"手机"，"优衣库浅蓝色牛仔外套"而非"外套"）。
+  - 每项的 `reason` 必须结合角色动机、处境、性格与过去经历写明为何持有该物品，不得使用固定句式模板。
 
 ### wearing
 
-固定十二个槽位加一个自定义数组的对象。固定槽位 key 为英文，按身体从上到下排列：`head`(头饰)、`neck`(颈饰)、`innerwearTop`(内衣)、`top`(上衣)、`outerwear`(外套)、`gloves`(手套)、`waist`(腰饰)、`innerwearBottom`(内裤)、`bottom`(下衣)、`socks`(袜子)、`shoes`(鞋子)、`wrist`(腕饰)。十二个固定槽位必须全部填写。`slot`(自定义槽位数组) 用于无法归入固定槽位的额外穿着，如手持物品、cosplay饰品等，可为空数组。
-
-每项含：`bodyPart`(string,身体部位)、`name`(string,穿着名)、`description`(string,说明)、`reason`(string,穿戴原因)。固定槽位由 key 标识槽位名；自定义槽位项额外含 `slot`(string,槽位名)。
-
-各固定槽位的 bodyPart 固定映射：head→头部、neck→颈部、innerwearTop→胸部、top→躯干、outerwear→躯干(外)、gloves→手部、waist→腰部、innerwearBottom→腰臀、bottom→腿部、socks→脚踝、shoes→脚部、wrist→手腕。
-常规生活场景固定槽位必须全部填写穿着；特殊场景未穿戴时 `name`/`description` 填空字符串，`reason` 写明未穿戴原因。
+- 定义：固定十二个槽位加一个自定义数组的对象。固定槽位 key 为英文，按身体从上到下排列：`head`(头饰)、`neck`(颈饰)、`innerwearTop`(内衣)、`top`(上衣)、`outerwear`(外套)、`gloves`(手套)、`waist`(腰饰)、`innerwearBottom`(内裤)、`bottom`(下衣)、`socks`(袜子)、`shoes`(鞋子)、`wrist`(腕饰)。每项含 `bodyPart`(string,身体部位)、`name`(string,穿着名)、`description`(string,说明)、`reason`(string,穿戴原因)。固定槽位由 key 标识槽位名；自定义槽位项额外含 `slot`(string,槽位名)。`slot`(自定义槽位数组) 用于无法归入固定槽位的额外穿着，如手持物品、cosplay饰品等，可为空数组。
+- 固定槽位 bodyPart 映射：head→头部、neck→颈部、innerwearTop→胸部、top→躯干、outerwear→躯干(外)、gloves→手部、waist→腰部、innerwearBottom→腰臀、bottom→腿部、socks→脚踝、shoes→脚部、wrist→手腕。
+- 规则：
+  - 十二个固定槽位必须全部填写，常规生活场景不可留空；特殊场景未穿戴时 `name`/`description` 填空字符串，`reason` 写明未穿戴原因。`slot` 用于无法归入固定槽位的额外穿着，无额外穿着时返回空数组。
+  - 必须结合角色动机、处境、性格与过去经历尽可能列全。
+  - 每项的 `description` 必须详细具体，写明品牌、型号、材质、款式等可辨识信息（如"华为Mate40智能手机"而非"手机"，"优衣库浅蓝色牛仔外套"而非"外套"）。
+  - 每项的 `reason` 必须结合角色动机、处境、性格与过去经历写明为何穿戴该物品，不得使用固定句式模板。
 
 ### rpgField
 
-含三个子字段：
+- 定义：含三个子字段 `level`、`intrinsicBase`、`derived`。
+- 规则：
+  - 所有含 `reason` 的字段（`level.reason`/`intrinsicBase.*.reason`/`derived.*.reason`）必须结合角色动机、处境、性格与过去经历来写，不得使用固定句式模板，不得写空话。
+  - 不要输出 `rpgFieldReasons` 或任何 Part3 JSON 模板中不存在的字段。
 
-- `level`：`{ "value": integer(1-100), "reason": string }` — 综合成长等级。普通市民3-6；受过训练者7-15；精英16-30；超凡者30+。
-- `intrinsicBase`：七项固定 key（strength/agility/constitution/intelligence/perception/willpower/charisma），每项 `{ "value": integer(1-100), "reason": string }`。普通人6-10；受过训练者11-15；超凡者16-20；体弱/幼小者3-5；高阶超凡者30+。
-- `derived`：`攻击力` 和 `防御力`，每项 `{ "value": integer, "reason": string }`。普通人5-15；受过训练者16-30；装备精良30+。必须根据实际属性和装备推算。
+#### level
+
+- 定义：`{ "value": integer(1-100), "reason": string }` — 综合成长等级。
+- 数值参考：普通市民3-6；受过训练者7-15；精英16-30；超凡者30+。
+- 规则：`reason` 必须结合角色动机、处境、性格与过去经历写明为何是该等级，不得使用固定句式模板。
+
+#### intrinsicBase
+
+- 定义：七项固定 key（strength/agility/constitution/intelligence/perception/willpower/charisma），每项含 `{ "value": integer(0-100), "description": string, "reason": string }`。`description` 必须根据每项身内能力的具体含义描述该数值段的对应表现（见下方身内能力表现力标尺）。
+- 数值参考：体弱/幼小者3-5；普通人6-10；受过训练者11-15；超凡者16-20；高阶超凡者30+。
+- 规则：
+  - `reason` 必须结合角色动机、处境、性格与过去经历写明为何该属性是这个等级、为何 `value` 是这个数值，不得使用固定句式模板。
+  - `description` 必须根据每项身内能力的具体含义和数值段，描写不同的可感表现（参照身内能力表现力标尺）。0是非常软弱到100是极致的强大。
+
+#### derived
+
+- 定义：`攻击力` 和 `防御力`，每项 `{ "value": integer, "reason": string }`。
+- 数值参考：普通人5-15；受过训练者16-30；装备精良30+。
+- 规则：必须根据实际属性和穿着推算，`reason` 给出计算原因，结合角色动机、处境、性格与过去经历。
 
 ## 输出 JSON Schema
 
@@ -395,17 +424,6 @@ Rules：
   }
 }
 ```
-
-## 生成规则
-
-1. `items`/`wearing` 必须结合角色动机、处境、性格与过去经历尽可能列全。不可只写最明显的 1-2 项就停，应从输入推断所有合理项。
-2. `items`/`wearing` 每项的 `description` 必须详细具体，写明品牌、型号、材质、款式等可辨识信息（如"华为Mate40智能手机"而非"手机"，"优衣库浅蓝色牛仔外套"而非"外套"）。每项的 `reason` 必须结合角色动机、处境、性格与过去经历写明为何穿戴/持有该物品，不得使用固定句式模板。
-3. `rpgField` 中所有含 `reason` 的字段（`level.reason`/`intrinsicBase.*.reason`/`derived.*.reason`）必须结合角色动机、处境、性格与过去经历来写，不得使用固定句式模板，不得写空话。
-4. `wearing` 十二个固定槽位（head/neck/innerwearTop/top/outerwear/gloves/waist/innerwearBottom/bottom/socks/shoes/wrist）必须全部填写。常规生活场景不可留空；特殊场景未穿戴时 `name`/`description` 填空字符串，`reason` 写明未穿戴原因。`wearing.slot` 用于无法归入固定槽位的额外穿着（如手持物品、cosplay饰品），无额外穿着时返回空数组。
-5. `rpgField.intrinsicBase` 七项身内能力使用 0-100 数值，不同数值段对应不同表现力等级（见下方身内能力表现力标尺）。`description` 字段必须根据每项身内能力的具体含义描述该数值段的对应表现。
-6. `rpgField.derived` 必须根据实际属性和穿着推算，给出计算原因。
-7. 根字段 `name` 必须与 Part1 已生成的基础信息中的姓名一致。
-8. 不要输出 `rpgFieldReasons` 或任何 Part3 JSON 模板中不存在的字段。
 
 ### 身内能力表现力标尺
 
