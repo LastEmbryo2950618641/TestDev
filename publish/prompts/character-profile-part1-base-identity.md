@@ -276,7 +276,6 @@ Rules：
 4. `appearance` 必须以感官细节优先，50字以内：调动视觉、触觉、听觉等多维度感知而非单一维度的直白叙述；善用隐喻和类比，通过环境、光线、动态等间接元素烘托；控制节奏与聚焦，聚焦某一局部（如指尖、颈侧、发梢）逐步展开，而非全景扫描式罗列。示例："黑直长发垂落肩侧，校服领口露出细白颈线，低垂的睫毛在颧骨上投下一小片阴影。"
 5. `factions`/`forcePositions` 必须结合角色动机、处境、性格与过去经历尽可能列全。除了国家和学校，还应包含社区、社交圈、兴趣小组、职场团体等所有可从输入推断的归属；不可只写最明显的 1-2 项就停。
 6. 所有含 `reason` 的字段（`worldTag.reason`/`age.reason`/`learningAbility.reason`/`mentalStability.reason`/`growthPotential.reason`/`actionAbility.reason`/`factions[].reason`/`forcePositions[].reason`）必须结合角色动机、处境、性格与过去经历来写，不得使用固定句式模板，不得写空话。
-7. 本轮不要返回 `roleCardFieldReasons`/`worldValues`/`skills`/`knowledge`/`professions`/`equipment`/`items`/`wearing`/`rpgField`/`rpgFieldReasons`/`initialMetrics`，这些不属于 Part1 JSON 模板或由后续 Part 生成。
 
 ## 完整 JSON 示例
 

@@ -93,7 +93,7 @@ Rules：
     },
     "skills": {
       "type": "array",
-      "description": "技能数组。根据人物性格、经历、学历、职业生成，不超过4项。",
+      "description": "技能数组。必须结合角色动机、处境、性格与过去经历尽可能列全。不超过4项。",
       "maxItems": 4,
       "items": {
         "type": "object",
@@ -118,13 +118,13 @@ Rules：
               "lv7": { "type": "object", "required": ["程度介绍", "说明"], "additionalProperties": false, "properties": { "程度介绍": { "type": "string", "minLength": 1, "description": "传说。" }, "说明": { "type": "string", "minLength": 1, "description": "lv7能达到的具体能力描述。" } } }
             }
           },
-          "reason": { "type": "string", "minLength": 1, "description": "达到该等级的原因。" }
+          "reason": { "type": "string", "minLength": 1, "description": "达到该等级的原因，结合角色动机、处境、性格与过去经历，不得使用固定句式模板。" }
         }
       }
     },
     "knowledge": {
       "type": "array",
-      "description": "知识领域数组。根据人物学历、职业、生活经历生成，不超过5项。普通成年人至少有'现代常识'lv2-3。",
+      "description": "知识领域数组。必须结合角色动机、处境、性格与过去经历尽可能列全。不超过5项。普通成年人至少有'现代常识'lv2-3。",
       "maxItems": 5,
       "items": {
         "type": "object",
@@ -149,13 +149,13 @@ Rules：
               "lv7": { "type": "object", "required": ["程度介绍", "说明"], "additionalProperties": false, "properties": { "程度介绍": { "type": "string", "minLength": 1 }, "说明": { "type": "string", "minLength": 1 } } }
             }
           },
-          "reason": { "type": "string", "minLength": 1, "description": "达到该等级的原因。" }
+          "reason": { "type": "string", "minLength": 1, "description": "达到该等级的原因，结合角色动机、处境、性格与过去经历，不得使用固定句式模板。" }
         }
       }
     },
     "professions": {
       "type": "array",
-      "description": "职业数组。只有jobConfirmed=true或有明确职业证据时才生成，不确定时返回空数组。不超过5项。",
+      "description": "职业数组。必须结合角色动机、处境、性格与过去经历尽可能列全。只有jobConfirmed=true或有明确职业证据时才生成，不确定时返回空数组。不超过5项。",
       "maxItems": 5,
       "items": {
         "type": "object",
@@ -195,7 +195,7 @@ Rules：
             "description": "该职业所需的先天属性key列表。使用英文key：strength/agility/constitution/intelligence/perception/willpower/charisma。",
             "items": { "type": "string", "enum": ["strength", "agility", "constitution", "intelligence", "perception", "willpower", "charisma"] }
           },
-          "reason": { "type": "string", "minLength": 1, "description": "选择该职业的原因。" }
+          "reason": { "type": "string", "minLength": 1, "description": "选择该职业的原因，结合角色动机、处境、性格与过去经历，不得使用固定句式模板。" }
         }
       }
     }
@@ -205,11 +205,13 @@ Rules：
 
 ## 生成规则
 
-1. `skills` 根据人物性格、经历、学历、职业生成；每项 level 必须反映真实熟练度。不超过 4 项。
-2. `knowledge` 根据人物学历、职业、生活经历生成；普通成年人至少有"现代常识"lv2-3。不超过 5 项。
-3. `professions` 只有明确职业证据时才生成，不超过 5 项。`所需skills`/`所需knowledge` 引用本人物已有的 skill/knowledge 名称；`所需intrinsicBase` 使用英文 key（strength/agility/constitution/intelligence/perception/willpower/charisma）。
-4. 每项的 `levelEffects` 必须写满 lv1 到 lv7 全部七个等级，每级含 `程度介绍` 和 `说明`。
-5. 根字段 `name` 必须与 Part1 已生成的基础信息中的姓名一致。
+1. `skills`/`knowledge`/`professions` 必须结合角色动机、处境、性格与过去经历尽可能列全。不可只写最明显的 1-2 项就停，应从输入推断所有合理项。
+2. `skills` 每项 level 必须反映真实熟练度。不超过 4 项。
+3. `knowledge` 普通成年人至少有"现代常识"lv2-3。不超过 5 项。
+4. `professions` 只有明确职业证据时才生成，不超过 5 项。`所需skills`/`所需knowledge` 引用本人物已有的 skill/knowledge 名称；`所需intrinsicBase` 使用英文 key（strength/agility/constitution/intelligence/perception/willpower/charisma）。
+5. 每项的 `levelEffects` 必须写满 lv1 到 lv7 全部七个等级，每级含 `程度介绍` 和 `说明`。
+6. 根字段 `name` 必须与 Part1 已生成的基础信息中的姓名一致。
+7. 所有含 `reason` 的字段（`skills[].reason`/`knowledge[].reason`/`professions[].reason`）必须结合角色动机、处境、性格与过去经历来写，不得使用固定句式模板，不得写空话。
 
 ## 完整 JSON 示例
 
