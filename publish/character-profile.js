@@ -165,7 +165,11 @@ window.GameModules.characterProfile = {
   },
 
   sanitizePart(partIndex, raw, template) {
-    const clean = this.sanitizeByTemplate(raw, template);
+    let preprocessed = raw;
+    if (partIndex === 3 && raw && typeof raw === 'object' && Array.isArray(raw.wearing)) {
+      preprocessed = { ...raw, wearing: this.normalizeWearing(raw.wearing) };
+    }
+    const clean = this.sanitizeByTemplate(preprocessed, template);
     if (partIndex === 1 && clean.feeling) {
       clean.feeling = this.sanitizeFeeling(clean.feeling);
     }
@@ -174,10 +178,21 @@ window.GameModules.characterProfile = {
 
   sanitizeFeeling(value) {
     if (!value || typeof value !== 'object') return value;
-    const pick = (list, keys) => keys.map((key) => {
-      const item = (Array.isArray(list) ? list : []).find((entry) => entry?.key === key) || {};
-      return { key, value: item.value, status: item.status, reason: item.reason };
-    });
+    const pick = (list, keys) => {
+      if (Array.isArray(list)) {
+        return keys.map((key) => {
+          const item = list.find((entry) => entry?.key === key) || {};
+          return { key, value: item.value, status: item.status, reason: item.reason };
+        });
+      }
+      if (list && typeof list === 'object') {
+        return keys.map((key) => {
+          const item = list[key] || {};
+          return { key, value: item.value, status: item.status, reason: item.reason };
+        });
+      }
+      return keys.map((key) => ({ key, value: 0, status: '', reason: '' }));
+    };
     return {
       emotions: pick(value.emotions, window.GameModules.metrics.emotionKeys),
       playerFeelings: pick(value.playerFeelings, window.GameModules.metrics.playerKeys),
@@ -224,9 +239,8 @@ window.GameModules.characterProfile = {
     if (partIndex === 1 && key === 'feeling') return this.feelingComplete(value);
     if (partIndex === 2 && ['skills', 'knowledge'].includes(key)) return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', 'reason'], false, (item) => this.learnedItemComplete(item));
     if (partIndex === 2 && key === 'professions') return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', '所需skills', '所需knowledge', '所需intrinsicBase', 'reason'], true, (item) => this.learnedItemComplete(item) && ['所需skills', '所需knowledge', '所需intrinsicBase'].every((field) => Array.isArray(item[field])));
-    if (partIndex === 3 && key === 'equipment') return this.arrayItemsComplete(value, ['name', 'description', 'equipSlots', 'reason'], true, (item) => Array.isArray(item.equipSlots));
     if (partIndex === 3 && key === 'items') return this.arrayItemsComplete(value, ['name', 'description', 'quantity', 'reason'], true, (item) => Number.isInteger(Number(item.quantity)) && Number(item.quantity) >= 1);
-    if (partIndex === 3 && key === 'wearing') return this.arrayItemsComplete(value, ['slot', 'bodyPart', 'name', 'description', 'reason'], false);
+    if (partIndex === 3 && key === 'wearing') return this.wearingObjectComplete(value);
     if (partIndex === 3 && key === 'rpgField') return this.rpgFieldComplete(value);
     if (Array.isArray(template)) return Array.isArray(value);
     if (template && typeof template === 'object') return value && typeof value === 'object';
@@ -235,6 +249,61 @@ window.GameModules.characterProfile = {
 
   valueReasonComplete(value) {
     return value && typeof value === 'object' && value.value !== undefined && String(value.reason || '').trim();
+  },
+
+  intrinsicBaseItemComplete(value) {
+    return value && typeof value === 'object' && value.value !== undefined && String(value.description || '').trim() && String(value.reason || '').trim();
+  },
+
+  WEARING_FIXED_SLOTS: ['head', 'neck', 'innerwearTop', 'top', 'outerwear', 'gloves', 'waist', 'innerwearBottom', 'bottom', 'socks', 'shoes', 'wrist'],
+
+  wearingObjectComplete(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    const slots = this.WEARING_FIXED_SLOTS;
+    const allSlotsPresent = slots.every((key) => {
+      const entry = value[key];
+      return entry && typeof entry === 'object' && String(entry.bodyPart || '').trim() && String(entry.reason || '').trim();
+    });
+    if (!allSlotsPresent) return false;
+    const slotArr = value.slot;
+    if (!Array.isArray(slotArr)) return false;
+    return slotArr.every((item) => item && typeof item === 'object' && String(item.slot || '').trim() && String(item.bodyPart || '').trim() && String(item.name || '').trim() && String(item.description || '').trim() && String(item.reason || '').trim());
+  },
+
+  normalizeWearing(value) {
+    if (!value) return {};
+    if (typeof value === 'object' && !Array.isArray(value)) return value;
+    if (!Array.isArray(value)) return {};
+    const fixedSet = new Set(this.WEARING_FIXED_SLOTS);
+    const result = {};
+    const slotItems = [];
+    for (const item of value) {
+      if (!item || typeof item !== 'object') continue;
+      const slotKey = String(item.slot || '');
+      if (fixedSet.has(slotKey)) {
+        result[slotKey] = { bodyPart: String(item.bodyPart || '').trim(), name: String(item.name || '').trim(), description: String(item.description || '').trim(), reason: String(item.reason || '').trim() };
+      } else {
+        slotItems.push({ slot: slotKey, bodyPart: String(item.bodyPart || '').trim(), name: String(item.name || '').trim(), description: String(item.description || '').trim(), reason: String(item.reason || '').trim() });
+      }
+    }
+    result.slot = slotItems;
+    return result;
+  },
+
+  wearingAsArray(value) {
+    if (Array.isArray(value)) return value;
+    if (!value || typeof value !== 'object') return [];
+    const items = [];
+    for (const key of this.WEARING_FIXED_SLOTS) {
+      const entry = value[key];
+      if (entry && typeof entry === 'object' && String(entry.name || '').trim()) {
+        items.push({ slot: key, bodyPart: entry.bodyPart || '', name: entry.name || '', description: entry.description || '', reason: entry.reason || '' });
+      }
+    }
+    if (Array.isArray(value.slot)) {
+      items.push(...value.slot);
+    }
+    return items;
   },
 
   arrayItemsComplete(value, fields, allowEmpty = false, itemCheck = null) {
@@ -251,10 +320,19 @@ window.GameModules.characterProfile = {
     const templateKeys = { emotions: window.GameModules.metrics.emotionKeys, playerFeelings: window.GameModules.metrics.playerKeys };
     return value && typeof value === 'object' && Object.entries(templateKeys).every(([group, keys]) => {
       const list = value[group];
-      return Array.isArray(list) && keys.every((key) => {
-        const item = list.find((entry) => entry?.key === key);
-        return item && item.value !== undefined && String(item.status || '').trim() && String(item.reason || '').trim();
-      });
+      if (Array.isArray(list)) {
+        return keys.every((key) => {
+          const item = list.find((entry) => entry?.key === key);
+          return item && item.value !== undefined && String(item.status || '').trim() && String(item.reason || '').trim();
+        });
+      }
+      if (list && typeof list === 'object') {
+        return keys.every((key) => {
+          const item = list[key];
+          return item && item.value !== undefined && String(item.status || '').trim() && String(item.reason || '').trim();
+        });
+      }
+      return false;
     });
   },
 
@@ -262,7 +340,7 @@ window.GameModules.characterProfile = {
     const keys = ['strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma'];
     return value && typeof value === 'object'
       && this.valueReasonComplete(value.level)
-      && keys.every((key) => this.valueReasonComplete(value.intrinsicBase?.[key]))
+      && keys.every((key) => this.intrinsicBaseItemComplete(value.intrinsicBase?.[key]))
       && ['攻击力', '防御力'].every((key) => this.valueReasonComplete(value.derived?.[key]));
   },
 
@@ -695,10 +773,10 @@ window.GameModules.characterProfile = {
     }
     return [
       nameHint,
-      '必须返回根字段 rpgField，含 level、intrinsicBase（7项）、derived（攻击力/防御力）。',
-      '必须返回根字段 wearing（数组，含基础槽位：内衣、上衣、内裤、下衣、袜子、鞋子）。',
-      'wearing 每项必须包含 slot、bodyPart、name、description、reason。',
-      'equipment 每项必须包含 name、description、equipSlots、reason。',
+      '必须返回根字段 rpgField，含 level、intrinsicBase（7项，每项含 value/description/reason）、derived（攻击力/防御力）。',
+      'intrinsicBase 每项的 description 必须根据该属性含义和数值段描写对应表现。',
+      '必须返回根字段 wearing（对象，含 head/neck/innerwearTop/top/outerwear/gloves/waist/innerwearBottom/bottom/socks/shoes/wrist 共12个固定槽位和 slot 数组）。',
+      'wearing 每项必须包含 bodyPart、name、description、reason；未穿戴时 name/description 填空字符串、reason 写明原因。',
       'items 每项必须包含 name、description、quantity、reason。',
     ].join('\n');
   },
@@ -723,7 +801,7 @@ window.GameModules.characterProfile = {
       return raw;
     }
     if (!this.rpgFieldComplete(raw.rpgField)) throw new Error('Part3 缺少 rpgField 完整结构');
-    if (!Array.isArray(raw.wearing) || !raw.wearing.length) throw new Error('Part3 缺少 wearing');
+    if (!this.wearingObjectComplete(raw.wearing)) throw new Error('Part3 缺少 wearing 完整结构');
     return raw;
   },
 
@@ -933,7 +1011,7 @@ window.GameModules.characterProfile = {
   },
 
   wearingItemsLoose(value) {
-    const list = Array.isArray(value) ? value : [];
+    const list = this.wearingAsArray(value);
     return list.map((item) => {
       const name = String(item?.name || '未穿戴').slice(0, 32);
       const slot = String(item?.slot || '').slice(0, 12);
