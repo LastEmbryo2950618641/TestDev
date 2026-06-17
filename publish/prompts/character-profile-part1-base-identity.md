@@ -256,12 +256,14 @@ Rules：
         "emotions": {
           "type": "array",
           "description": "情绪数组。必须包含全部12个情绪key，每个key精确一次。",
+          "minItems": 12,
+          "maxItems": 12,
           "items": {
             "type": "object",
             "required": ["key", "value", "status", "reason"],
             "additionalProperties": false,
             "properties": {
-              "key": { "type": "string", "minLength": 1, "description": "情绪key名。" },
+              "key": { "type": "string", "enum": ["冷静", "恐惧", "担忧", "高兴", "紧张", "愤怒", "羞耻", "悲伤", "好奇", "麻木", "嫉妒", "绝望"], "description": "情绪key名。必须从enum中选取，每个key精确出现一次。" },
               "value": { "type": "integer", "minimum": 0, "maximum": 100, "description": "情绪数值0-100。" },
               "status": { "type": "string", "minLength": 1, "description": "20-50个汉字，必须以当前key开头，使用'key因为……'或'key源于……'句式。" },
               "reason": { "type": "string", "minLength": 1, "description": "20-50个汉字，必须以当前key开头，写形成该数值的具体原因。" }
@@ -271,12 +273,14 @@ Rules：
         "playerFeelings": {
           "type": "array",
           "description": "对玩家感觉数组。必须包含全部17个关系指标key，每个key精确一次。",
+          "minItems": 17,
+          "maxItems": 17,
           "items": {
             "type": "object",
             "required": ["key", "value", "status", "reason"],
             "additionalProperties": false,
             "properties": {
-              "key": { "type": "string", "minLength": 1, "description": "关系指标key名。" },
+              "key": { "type": "string", "enum": ["了解", "信任", "反抗", "好感", "友情", "亲情", "爱情", "肉欲", "畏惧", "尊敬", "崇拜", "讨厌", "依赖", "警惕", "支配欲", "占有欲", "服从"], "description": "关系指标key名。必须从enum中选取，每个key精确出现一次。" },
               "value": { "type": "integer", "minimum": 0, "maximum": 100, "description": "关系指标数值0-100。" },
               "status": { "type": "string", "minLength": 1, "description": "20-50个汉字，必须以当前key开头，使用'key因为……'或'key源于……'句式。" },
               "reason": { "type": "string", "minLength": 1, "description": "20-50个汉字，必须以当前key开头，写形成该数值的具体原因。" }
