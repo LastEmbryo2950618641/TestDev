@@ -152,26 +152,42 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
     this.wechatTab = 'contacts';
     return contact;
   },
+  predefinedRelationshipCards() {
+    const selected = this.roleCardSetup?.selectedRelationNames || [];
+    const cards = this.roleCardSetup?.cards || window.GameModules.predefinedRoleCards?.cache || [];
+    return cards.filter((card) => card?.name && card?.id && (!selected.length || selected.includes(card.name)));
+  },
+  relationshipContactsFromPart(part, relation, rest, index, selfName) {
+    const text = rest || part;
+    const explicitId = rest.match(/(?:角色ID|角色id|characterId|id)\s*[：:=]\s*([A-Za-z0-9_-]{2,40})/)?.[1] || '';
+    const known = this.predefinedRelationshipCards().filter((card) => text.includes(card.name));
+    if (known.length) return known.map((card) => ({ id: card.id, characterId: card.id, name: card.name, relation: relation || card.role || '关系联系人', latest: `${relation || card.role || card.name}资料已从玩家人际关系同步。`, source: 'relationships', context: text, needsNameAi: false }));
+    const named = rest.match(/(?:姓名|名字|名叫|叫作|叫做|叫|名为)\s*([\u4e00-\u9fa5A-Za-z0-9_·]{2,12})/) || rest.match(/^([\u4e00-\u9fa5A-Za-z0-9_·]{2,12})(?:[，。；;、,.\s]|$)/);
+    const needsNameAi = !named;
+    let name = String(named?.[1] || relation || `联系人${index + 1}`).replace(/[，。；;、,.].*$/, '').trim().slice(0, 24);
+    if (selfName && name.includes(selfName)) name = relation || `联系人${index + 1}`;
+    if (!relation && !name) return [];
+    if (!explicitId) return [];
+    return [{ id: explicitId, characterId: explicitId, name, relation: relation || '关系联系人', latest: `${relation || name}资料已从玩家人际关系同步。`, source: 'relationships', context: text, needsNameAi }];
+  },
   inferWechatUsersFromRelationships(text = '') {
     const source = String(text || '').trim();
     if (!source) return [];
     const selfName = String(this.playerProfile?.name || this.playerName || '').trim();
-    return source.split(/[；;\n]+/).map((part, index) => {
+    return source.split(/[；;\n]+/).flatMap((part, index) => {
       const pair = part.split(/[：:]/);
       const relation = (pair[0] || '').trim().slice(0, 18);
       const rest = pair.slice(1).join('：').trim();
-      const named = rest.match(/(?:姓名|名字|名叫|叫作|叫做|叫|名为)\s*([\u4e00-\u9fa5A-Za-z0-9_·]{2,12})/) || rest.match(/^([\u4e00-\u9fa5A-Za-z0-9_·]{2,12})(?:[，。；;、,.\s]|$)/);
-      const needsNameAi = !named;
-      let name = String(named?.[1] || relation || `联系人${index + 1}`).replace(/[，。；;、,.].*$/, '').trim().slice(0, 24);
-      if (selfName && name.includes(selfName)) name = relation || `联系人${index + 1}`;
-      if (!relation && !name) return null;
-      const explicitId = rest.match(/(?:角色ID|角色id|characterId|id)\s*[：:=]\s*([A-Za-z0-9_-]{2,40})/)?.[1] || '';
-      if (!explicitId) return null;
-      return { id: explicitId, characterId: explicitId, name, relation: relation || '关系联系人', latest: `${relation || name}资料已从玩家人际关系同步。`, source: 'relationships', context: rest || part, needsNameAi };
+      return this.relationshipContactsFromPart(part, relation, rest, index, selfName);
     }).filter((user) => user && user.name && user.name !== selfName).slice(0, 20);
+  },
+  selectedPredefinedWechatUsers() {
+    return this.predefinedRelationshipCards().map((card) => ({ id: card.id, characterId: card.id, name: card.name, relation: this.roleCardSetup?.relationRoles?.[card.name] || card.role || '关系联系人', latest: `${card.role || card.name}资料已从预定义角色卡同步。`, source: 'predefined-role-card', context: card.detail || card.relationships || '', needsNameAi: false }));
   },
   async syncRelationshipWechatUsers(options = {}) {
     const users = this.inferWechatUsersFromRelationships(this.playerProfile?.relationships || '');
-    return this.addWechatUsers(users, options);
+    const predefined = this.roleCardSetup?.usePredefinedPlayerCard ? this.selectedPredefinedWechatUsers() : [];
+    const merged = [...users, ...predefined].filter((user, index, list) => list.findIndex((item) => item.id === user.id) === index);
+    return this.addWechatUsers(merged, options);
   },
 };
