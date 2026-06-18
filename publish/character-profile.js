@@ -363,20 +363,47 @@ window.GameModules.characterProfile = {
 
   async repairCsvPartRows(partIndex, raw, format, base, lore, attrs, store, vars = {}) {
     if (![2, 3, 4].includes(partIndex)) return raw;
-    let currentRows = this.rowsFromCsvPart(partIndex, raw);
+    let currentRows = this.normalizeCsvPartRows(partIndex, this.rowsFromCsvPart(partIndex, raw));
     for (let i = 0; i < 2; i += 1) {
+      currentRows = this.applyLocalCsvFixes(partIndex, currentRows);
       const issues = this.csvPartIssues(partIndex, currentRows);
       if (!issues.length) return this.buildPartFromCsvRows(partIndex, currentRows, base.name);
-      const fixedRows = await this.generateCsvFixRows(partIndex, issues, currentRows, format, base, lore, attrs, store, vars);
-      currentRows = this.mergeCsvFixRows(partIndex, currentRows, fixedRows, issues);
+      const aiIssues = issues.filter((issue) => !/超过10行$/.test(issue.reason || ''));
+      if (!aiIssues.length) continue;
+      const fixedRows = await this.generateCsvFixRows(partIndex, aiIssues, currentRows, format, base, lore, attrs, store, vars);
+      currentRows = this.normalizeCsvPartRows(partIndex, this.mergeCsvFixRows(partIndex, currentRows, fixedRows, issues));
     }
-    return this.buildPartFromCsvRows(partIndex, currentRows, base.name);
+    return this.buildPartFromCsvRows(partIndex, this.applyLocalCsvFixes(partIndex, currentRows), base.name);
   },
 
   rowsFromCsvPart(partIndex, raw) {
     if (Array.isArray(raw?._csvRows)) return raw._csvRows;
     const headers = { 2: 'name,value,status,reason', 3: 'type,name,level,', 4: 'type,slot,bodypart,' };
     return this.csvDataRows(raw?.rawText || raw?.text || '', headers[partIndex] || '');
+  },
+
+  normalizeCsvPartRows(partIndex, rows) {
+    if (partIndex !== 3) return rows;
+    return rows.map((row) => this.normalizePart3Row(row)).filter(Boolean);
+  },
+
+  normalizePart3Row(row) {
+    const parts = this.csvParts(row);
+    if (parts.length <= 7) return row;
+    const [type, itemName, level, reason, requiredIntrinsicBase, requiredKnowledge, ...requiredSkills] = parts;
+    if (!['skills', 'knowledge', 'professions'].includes(type)) return row;
+    return [type, itemName, level, reason, requiredIntrinsicBase, requiredKnowledge, requiredSkills.join('|')].join(',');
+  },
+
+  applyLocalCsvFixes(partIndex, rows) {
+    if (partIndex !== 3) return rows;
+    const counts = { skills: 0, knowledge: 0, professions: 0 };
+    return rows.filter((row) => {
+      const parts = this.csvParts(row);
+      if (this.part3RowIssue(parts)) return true;
+      counts[parts[0]] += 1;
+      return counts[parts[0]] <= 10;
+    });
   },
 
   buildPartFromCsvRows(partIndex, rows, name) {
@@ -450,7 +477,7 @@ window.GameModules.characterProfile = {
       format: prompt,
       repairHint: '只返回要求补齐的 CSV 行，不要表头、JSON、Markdown 或解释。每行列数必须完整。',
       requiredRawFields: this.partRequiredRawFields(partIndex),
-      parse: (text) => ({ _csvRows: this.csvDataRows(text, this.csvFixHeaderPrefix(partIndex)) }),
+      parse: (text) => ({ _csvRows: this.normalizeCsvPartRows(partIndex, this.csvDataRows(text, this.csvFixHeaderPrefix(partIndex))) }),
       validate: (parsed) => {
         const rows = parsed._csvRows || [];
         if (!rows.length) throw new Error('CSV修复没有返回有效行');
