@@ -265,9 +265,7 @@ window.GameModules.characterProfile = {
     if (partIndex === 1 && key === 'forcePositions') return this.arrayItemsComplete(value, ['force', 'position', 'reason'], false);
     if (partIndex === 1 && key === 'initialMetrics') return this.initialMetricsComplete(value);
     if (partIndex === 2 && key === 'feeling') return this.feelingComplete(value);
-    if (partIndex === 3 && key === 'skills') return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', 'requiredKnowledge', 'requiredIntrinsicBase', 'reason'], false, (item) => this.learnedItemComplete(item) && ['requiredKnowledge', 'requiredIntrinsicBase'].every((field) => Array.isArray(item[field])));
-    if (partIndex === 3 && key === 'knowledge') return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', 'reason'], false, (item) => this.learnedItemComplete(item));
-    if (partIndex === 3 && key === 'professions') return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', 'requiredSkills', 'requiredKnowledge', 'requiredIntrinsicBase', 'reason'], true, (item) => this.learnedItemComplete(item) && ['requiredSkills', 'requiredKnowledge', 'requiredIntrinsicBase'].every((field) => Array.isArray(item[field])));
+    if (partIndex === 3 && ['skills', 'knowledge', 'professions'].includes(key)) return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', 'reason'], key === 'professions', (item) => this.learnedItemComplete(item));
     if (partIndex === 4 && key === 'items') return this.arrayItemsComplete(value, ['name', 'description', 'quantity', 'reason'], true, (item) => Number.isInteger(Number(item.quantity)) && Number(item.quantity) >= 1);
     if (partIndex === 4 && key === 'wearing') return this.wearingObjectComplete(value);
     if (partIndex === 5 && key === 'rpgField') return this.rpgFieldComplete(value);
@@ -485,7 +483,7 @@ window.GameModules.characterProfile = {
 
   csvFixSkeleton(partIndex, issues) {
     if (partIndex === 2) return issues.map((x) => `${x.key},50,${x.key}因为当前证据形成状态,${x.key}源于人物经历和关系证据`).join('\n');
-    if (partIndex === 3) return issues.map((x) => (x.key === 'knowledge' ? 'knowledge,现代常识,2,日常生活和教育经历形成基础常识,--,--,--' : 'skills,观察力,2,长期生活经历形成基础观察能力,perception|willpower,现代常识,--')).join('\n');
+    if (partIndex === 3) return issues.map((x) => (x.key === 'knowledge' ? 'knowledge,现代常识,2,日常生活和教育经历形成基础常识,生活经验,家庭经历|教育背景,--' : 'skills,观察力,2,长期生活经历形成基础观察能力,perception|谨慎性格,现代常识|过往经历,日常观察习惯')).join('\n');
     const bodyParts = { head: '头部', neck: '颈部', innerwearTop: '胸部', top: '躯干', outerwear: '躯干外', gloves: '手部', waist: '腰部', innerwearBottom: '腰臀', bottom: '腿部', socks: '脚踝', shoes: '脚部', wrist: '手腕' };
     return issues.map((x) => this.fixedWearingSlots().includes(x.key) ? `wearing,${x.key},${bodyParts[x.key]},--,--,--,当前场景未穿戴该槽位物品` : 'item,--,--,随身物品,符合身份的随身物,1,当前行动需要携带').join('\n');
   },
@@ -649,15 +647,9 @@ window.GameModules.characterProfile = {
         levelEffects: this.csvLevelEffects(itemName),
         reason: this.csvCell(reason),
       };
-      if (type === 'skills') {
-        item.requiredIntrinsicBase = this.csvList(requiredIntrinsicBase);
-        item.requiredKnowledge = this.csvList(requiredKnowledge);
-      }
-      if (type === 'professions') {
-        item.requiredIntrinsicBase = this.csvList(requiredIntrinsicBase);
-        item.requiredKnowledge = this.csvList(requiredKnowledge);
-        item.requiredSkills = this.csvList(requiredSkills);
-      }
+      item.requiredIntrinsicBase = this.csvList(requiredIntrinsicBase);
+      item.requiredKnowledge = this.csvList(requiredKnowledge);
+      item.requiredSkills = this.csvList(requiredSkills);
       result[type].push(item);
       result._csvRows.push(row);
     });
@@ -668,14 +660,11 @@ window.GameModules.characterProfile = {
 
   part3RowIssue(parts) {
     if (parts.length !== 7) return '列数不是7';
-    const [type, itemName, level, reason, requiredIntrinsicBase, requiredKnowledge, requiredSkills] = parts;
+    const [type, itemName, level, reason] = parts;
     if (!['skills', 'knowledge', 'professions'].includes(type)) return 'type无效';
     if (!itemName || itemName === '--') return 'name缺失';
     if (!Number.isInteger(Number(level)) || Number(level) < 1 || Number(level) > 7) return 'level无效';
     if (!this.csvCell(reason)) return 'reason缺失';
-    if (type === 'skills' && (!this.csvCell(requiredIntrinsicBase) || !this.csvCell(requiredKnowledge) || this.csvCell(requiredSkills))) return 'skills依赖列错误';
-    if (type === 'knowledge' && [requiredIntrinsicBase, requiredKnowledge, requiredSkills].some((x) => this.csvCell(x))) return 'knowledge依赖列错误';
-    if (type === 'professions' && (!this.csvCell(requiredIntrinsicBase) || !this.csvCell(requiredKnowledge) || !this.csvCell(requiredSkills))) return 'professions依赖列缺失';
     return '';
   },
 
