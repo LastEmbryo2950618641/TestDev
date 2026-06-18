@@ -13,6 +13,24 @@ window.GameModules.roleCardLoadingActions = {
     this.roleCardLoadingState = { open: true, expanded: true, cards: normalized };
   },
 
+  addRoleCardLoadingCard(card = {}) {
+    const id = card.id || `role-card-${Date.now()}`;
+    const cards = this.roleCardLoadingState.cards || [];
+    if (cards.some((item) => item.id === id)) return;
+    this.roleCardLoadingState = {
+      open: true,
+      expanded: true,
+      cards: [...cards, {
+        id,
+        name: card.name || '发现新角色',
+        type: card.type || '角色卡',
+        status: 'waiting',
+        expanded: true,
+        steps: card.steps || this.roleCardLoadingDefaultSteps(card.type),
+      }],
+    };
+  },
+
   closeRoleCardLoading() {
     this.roleCardLoadingState.open = false;
   },

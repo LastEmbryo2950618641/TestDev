@@ -77,6 +77,7 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
       this.syncWechatContactId(characterId);
       return existing;
     }
+    this.addRoleCardLoadingCard?.({ id: characterId, name: contact.name || '微信联系人', type: '角色卡' });
     const existingName = existing?.profile?.name || '';
     const needsName = contact.needsNameAi || this.isWechatPlaceholderName(contact.name) || !profileTool.isConcreteName(existingName);
     const hint = this.wechatRelationProfileHint(contact);
@@ -103,8 +104,10 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
       this.wechatError = '联系人姓名仍未补全，请稍后重试。';
       return existing || null;
     }
+    this.updateRoleCardLoadingStep?.(characterId, 'state', 'running');
     const state = await window.GameModules.rpgState.ensureCharacter({ ...profile, id: characterId }, this);
     this.rpgStates = { ...this.rpgStates, [characterId]: state };
+    this.finishRoleCardLoading?.(characterId, state.profile || profile);
     const idChanged = this.syncWechatContactId(characterId);
     const renamed = this.syncWechatContactProfileName(characterId, state.profile || profile);
     if (idChanged || renamed) await this.save?.();
