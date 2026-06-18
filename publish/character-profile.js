@@ -924,6 +924,19 @@ window.GameModules.characterProfile = {
     return list.map((item) => p.normalizeCarryItem(item, kind)).filter((item) => item.name && item.name !== '未命名物品').slice(0, 20);
   },
 
+  wearingAsArray(value) {
+    if (Array.isArray(value)) return value;
+    if (!value || typeof value !== 'object') {
+      const text = String(value || '').trim();
+      return text ? [{ slot: '穿着', name: text }] : [];
+    }
+    return Object.entries(value).map(([slot, item]) => {
+      if (item && typeof item === 'object') return { ...item, slot: item.slot || slot, name: item.name || item.名称 || slot };
+      const name = String(item || '').trim();
+      return name ? { slot, name } : null;
+    }).filter(Boolean);
+  },
+
   wearingItemsLoose(value) {
     const list = this.wearingAsArray(value);
     return list.map((item) => {
