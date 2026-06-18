@@ -157,7 +157,9 @@ window.GameModules.rpgFieldUi = {
   rpgItemSummary(item) {
     if (typeof item === 'string') return item;
     const name = item?.name || (item?.force ? `${item.force} / ${item.position || '成员'}` : (item?.faction ? `${item.faction} / ${item.role || item.position || '成员'}` : '未命名'));
-    return Number(item?.level) > 0 ? `${name} lv.${item.level}` : name;
+    const levelName = Number(item?.level) > 0 ? `${name} lv.${item.level}` : name;
+    if ((item?.type === '穿着' || item?.slot || item?.clothing_position || item?.bodyPart) && (item?.clothing_position || item?.bodyPart)) return `穿戴位：${item.clothing_position || item.bodyPart}｜${levelName}`;
+    return levelName;
   },
 
   learnedDefinition(kind, name, obj = {}, lexicon = null, info = {}) {
@@ -195,6 +197,8 @@ window.GameModules.rpgFieldUi = {
     const name = this.rpgItemSummary(obj) || field?.label || '未知';
     const hasLevel = Number(obj?.level) > 0;
     const lines = [`名称: ${name}`, `定义: ${this.learnedDefinition(kind, name, obj, lexicon, info)}`, `类型: ${kind}`, `所属世界: ${field?.worldTag || lexicon?.worldTag || '公共'}`, `词条类型: ${field?.targetType || lexicon?.meta?.targetType || '角色'}`];
+    if (kind === '穿着' && (obj?.clothing_position || obj?.bodyPart || obj?.slotLabel)) lines.push(`穿戴位: ${obj.clothing_position || obj.bodyPart || obj.slotLabel}`);
+    if (kind === '穿着' && obj?.slot) lines.push(`槽位: ${obj.slot}`);
     if ((kind === '社群角色' || kind === '阵营') && (obj?.community || obj?.faction || info.community || info.faction)) lines.push(`社群: ${obj.community || obj.faction || info.community || info.faction}`, `角色: ${obj.role || info.role || obj.position || info.position || '成员'}`);
     if (kind === '势力地位' && (obj?.force || obj?.faction || info.force || info.faction)) lines.push(`势力: ${obj.force || obj.faction || info.force || info.faction}`, `地位: ${obj.position || info.position || '成员'}`);
     if (hasLevel) {
