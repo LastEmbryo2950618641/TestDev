@@ -656,9 +656,37 @@ window.GameModules.characterProfile = {
       result[type].push(item);
       result._csvRows.push(row);
     });
+    this.promotePart3Dependencies(result);
     if (strict && !result.skills.length) throw new Error('Part3 CSV 缺少 skills 行');
     if (strict && !result.knowledge.length) throw new Error('Part3 CSV 缺少 knowledge 行');
     return result;
+  },
+
+  promotePart3Dependencies(result) {
+    const baseKeys = new Set(['strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma']);
+    const names = {
+      skills: new Set(result.skills.map((item) => item.name)),
+      knowledge: new Set(result.knowledge.map((item) => item.name)),
+    };
+    const add = (type, itemName) => {
+      const name = this.csvCell(itemName);
+      if (!name || baseKeys.has(name) || names[type].has(name)) return;
+      result[type].push({
+        name,
+        desc: `${name}的基础掌握与实际应用。`,
+        level: 1,
+        levelEffects: this.csvLevelEffects(name),
+        reason: '由能力依赖自动提升为角色基础能力。',
+        requiredIntrinsicBase: [],
+        requiredKnowledge: [],
+        requiredSkills: [],
+      });
+      names[type].add(name);
+    };
+    [...result.skills, ...result.knowledge, ...result.professions].forEach((item) => {
+      (item.requiredKnowledge || []).forEach((name) => add('knowledge', name));
+      (item.requiredSkills || []).forEach((name) => add('skills', name));
+    });
   },
 
   part3RowIssue(parts) {
