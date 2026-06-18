@@ -24,7 +24,7 @@ window.GameModules.ai = {
     const systemPrompt = await window.GameModules.createSystemPrompt(store, action);
     const messages = [{ role: 'user', content: systemPrompt }];
     if (logId && store.attachNovelPrompt) store.attachNovelPrompt(logId, { systemPrompt, userPrompt: action || '无，继续推进', model: store.modelId, promptTokens: window.GameModules.characterMemory?.estimateTokens?.(systemPrompt) || Math.ceil(systemPrompt.length / 2) });
-    console.log('[AI推演] 请求开始:', { requestId, action, model: store.modelId, promptLength: messages[0].content.length, ragLength: String(store.ragContext || '').length, memoryLength: String(store.memoryContext || '').length });
+    console.debug('[AI推演] 请求开始:', { requestId, action, model: store.modelId, promptLength: messages[0].content.length, ragLength: String(store.ragContext || '').length, memoryLength: String(store.memoryContext || '').length });
 
     try {
       let chunkCount = 0, lastPaint = 0, resolveDone;
@@ -43,14 +43,14 @@ window.GameModules.ai = {
           }
           if (logId && store.updateNovelStream) store.updateNovelStream(logId, buffer);
           applied = true;
-          console.log('[AI推演] 返回完成:', { requestId, chunkCount, length: buffer.length, preview: buffer.slice(0, 180) });
+          console.debug('[AI推演] 返回完成:', { requestId, chunkCount, length: buffer.length, preview: buffer.slice(0, 180) });
           resultPromise = store.applyResult(this.parse(buffer, store, action), logId);
           await resultPromise;
           resolveDone();
         },
       }), donePromise, resultPromise]), new Promise((_, reject) => setTimeout(() => reject(new Error('AI推演超时')), 60000))]);
       if (!applied && requestId === this.latestRequestId) {
-        console.warn('[AI推演] 已结束但未收到 done，使用当前内容结算:', { requestId, length: buffer.length });
+        console.debug('[AI推演] 已结束但未收到 done，使用当前内容结算:', { requestId, length: buffer.length });
         applied = true;
         await store.applyResult(buffer ? this.parse(buffer, store, action) : { ...window.GameModules.createFallbackResult(store, action), source: 'fallback' }, logId);
       }
@@ -66,15 +66,15 @@ window.GameModules.ai = {
   parse(content, store, action) {
     try {
       const data = window.GameModules.jsonUtils.parseLoose(content);
-      console.log('[AI推演] JSON解析成功:', Object.keys(data));
+      console.debug('[AI推演] JSON解析成功:', Object.keys(data));
       return { ...this.normalize(data, store, action), source: 'ai' };
     } catch (err) {
       const recovered = window.GameModules.jsonUtils.recoverAiResult(content);
       if (recovered) {
-        console.warn('[AI推演] JSON不完整，已恢复可用字段:', { fields: Object.keys(recovered), error: err.message });
+        console.debug('[AI推演] JSON不完整，已恢复可用字段:', { fields: Object.keys(recovered), error: err.message });
         return { ...this.normalize(recovered, store, action), source: 'ai' };
       }
-      console.warn('AI 返回解析失败，使用兜底:', err.message);
+      console.debug('AI 返回解析失败，使用兜底:', err.message);
       return { ...window.GameModules.createFallbackResult(store, action), source: 'fallback' };
     }
   },

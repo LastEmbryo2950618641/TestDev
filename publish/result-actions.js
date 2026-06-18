@@ -36,10 +36,10 @@ window.GameModules.resultActions = {
       this.mindText = mind || this.mindText;
       this.characterIntent = intent || this.characterIntent;
       this.feedbackSource = 'ai';
-      console.log('[角色反馈] 剧情AI回填:', { mindLength: mind.length, intentLength: intent.length });
+      console.debug('[角色反馈] 剧情AI回填:', { mindLength: mind.length, intentLength: intent.length });
       return;
     }
-    console.log('[角色反馈] 保留现有反馈:', { source: result.source, hasMind: Boolean(mind), currentSource: this.feedbackSource });
+    console.debug('[角色反馈] 保留现有反馈:', { source: result.source, hasMind: Boolean(mind), currentSource: this.feedbackSource });
   },
 
   applyMetricUpdates(updates) {

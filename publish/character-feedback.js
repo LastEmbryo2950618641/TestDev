@@ -14,21 +14,21 @@ window.GameModules.characterFeedback = {
   async initial(store) {
     this.ensureExperience(store);
     const fallback = this.fallback(store);
-    console.log('[角色反馈] 初始请求准备:', { character: store.character?.name, model: 'nalang-turbo-0826', controlMode: store.controlMode, hasCompletions: Boolean(window.dzmm?.completions) });
+    console.debug('[角色反馈] 初始请求准备:', { character: store.character?.name, model: 'nalang-turbo-0826', controlMode: store.controlMode, hasCompletions: Boolean(window.dzmm?.completions) });
     if (!window.dzmm?.completions) return fallback;
     let buffer = '';
     try {
       const prompt = await this.prompt(store);
-      console.log('[角色反馈] completions 调用:', { promptLength: prompt.length });
+      console.debug('[角色反馈] completions 调用:', { promptLength: prompt.length });
       const request = window.GameModules.aiRequest.complete({
         source: 'character-feedback-base', model: 'nalang-turbo-0826', prompt, timeoutMs: 60000,
         onChunk: (chunk, done, info) => {
           buffer = info.buffer;
-          if (done) console.log('[角色反馈] 流式 done:', { length: buffer.length });
+          if (done) console.debug('[角色反馈] 流式 done:', { length: buffer.length });
         },
       });
       await Promise.race([request, new Promise((_, reject) => setTimeout(() => reject(new Error('角色反馈生成超时')), 60000))]);
-      console.log('[角色反馈] AI返回完成:', { length: buffer.length, preview: buffer.slice(0, 120) });
+      console.debug('[角色反馈] AI返回完成:', { length: buffer.length, preview: buffer.slice(0, 120) });
       return this.parse(buffer, fallback, store);
     } catch (err) {
       console.warn('角色反馈生成失败:', err.code, err.message, err.stack);
@@ -60,7 +60,7 @@ window.GameModules.characterFeedback = {
         choices: this.normalizeChoices(data.choices, fallback.choices),
         source: 'ai',
       };
-      console.log('[角色反馈] AI解析成功:', { mindLength: result.mind.length, intentLength: result.intent.length, metrics: 'profile' });
+      console.debug('[角色反馈] AI解析成功:', { mindLength: result.mind.length, intentLength: result.intent.length, metrics: 'profile' });
       return result;
     } catch (err) {
       console.warn('角色反馈解析失败:', err.message);

@@ -11,19 +11,19 @@ window.GameModules.worldLore = {
     const existing = save.getWorldLore(worldTag);
     if (existing) {
       if (!existing.worldline && !save.getWorldline?.(worldTag)) {
-        console.log('[世界观] 旧设定缺少世界线，正在补齐:', worldTag);
+        console.debug('[世界观] 旧设定缺少世界线，正在补齐:', worldTag);
         const upgraded = this.validate(existing, worldTag);
         await save.saveWorldLore(worldTag, upgraded);
         return upgraded;
       }
       if (!existing.worldline) existing.worldline = save.getWorldline?.(worldTag);
-      console.log('[世界观] 使用已保存设定:', worldTag);
+      console.debug('[世界观] 使用已保存设定:', worldTag);
       return existing;
     }
     const key = String(worldTag || '未知世界');
     if (this.inflight[key]) return this.inflight[key];
     this.inflight[key] = (async () => {
-      console.log('[世界观] 开始生成设定:', worldTag, 'contextLength=', String(context || '').length);
+      console.debug('[世界观] 开始生成设定:', worldTag, 'contextLength=', String(context || '').length);
       const lore = await this.generate(worldTag, context);
       await save.saveWorldLore(worldTag, lore);
       return lore;
@@ -36,7 +36,7 @@ window.GameModules.worldLore = {
     try {
       if (!window.dzmm?.completions) return this.fallback(worldTag);
       const prompt = await this.prompt(worldTag, context);
-      console.log('[世界观] AI请求:', { worldTag, promptLength: prompt.length, model: 'nalang-turbo-0826'});
+      console.debug('[世界观] AI请求:', { worldTag, promptLength: prompt.length, model: 'nalang-turbo-0826'});
       const text = await window.GameModules.jsonUtils.requestCompletion({ source: 'world-lore', model: 'nalang-turbo-0826', prompt, timeoutMs: 60000, maxAttempts: 2 });
       return this.validate(this.parseOrRecover(text, worldTag), worldTag);
     } catch (err) {

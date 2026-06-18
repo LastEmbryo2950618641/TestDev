@@ -74,7 +74,20 @@ window.GameModules.aiRequest = {
   },
 
   log(event, data = {}) {
-    console.log(`[AI请求] ${event}:`, { ...data, stats: this.stats() });
+    if (!window.GameModules.config?.aiRequest?.logLifecycle) return;
+    console.debug(`[AI请求] ${event}:`, { ...data, stats: this.stats() });
+  },
+
+  logRawResponse(options, buffer, meta = {}) {
+    if (window.GameModules.config?.aiRequest?.logRawResponse === false) return;
+    console.log('[AI返回]', {
+      id: options.id,
+      source: options.source,
+      model: options.model,
+      length: String(buffer || '').length,
+      ...meta,
+      value: buffer,
+    });
   },
 
   isRetryable(err) {
@@ -211,8 +224,9 @@ window.GameModules.aiRequest = {
     this.completedCount += 1;
     const risk = this.outputLengthRisk(buffer, options);
     this.log('完成', { id: options.id, source: options.source, chunkCount, length: risk.length, outputThreshold: risk.threshold, overThreshold: risk.overThreshold, tailLooksTruncated: risk.tailLooksTruncated, possibleTruncated: risk.overThreshold || risk.tailLooksTruncated, doneSeen, durationMs: Date.now() - startAt });
+    this.logRawResponse(options, buffer, { chunkCount, doneSeen, durationMs: Date.now() - startAt });
     if (risk.overThreshold || risk.tailLooksTruncated) {
-      console.warn('[AI请求] 返回长度可能被截断:', { id: options.id, source: options.source, length: risk.length, threshold: risk.threshold, overThreshold: risk.overThreshold, tailLooksTruncated: risk.tailLooksTruncated, doneSeen, tailPreview: buffer.slice(-180) });
+      console.debug('[AI请求] 返回长度可能被截断:', { id: options.id, source: options.source, length: risk.length, threshold: risk.threshold, overThreshold: risk.overThreshold, tailLooksTruncated: risk.tailLooksTruncated, doneSeen, tailPreview: buffer.slice(-180) });
     }
     return buffer;
   },

@@ -17,7 +17,7 @@ window.GameModules.config = {
   },
   rag: { maxIndexFiles: 3, maxCandidateFiles: 8, defaultResultLimit: 3, logFiles: true },
   defaultModelId: 'nalang-medium-0826',
-  aiRequest: { maxConcurrent: 4 },
+  aiRequest: { maxConcurrent: 4, logLifecycle: false, logRawResponse: true },
   stats: [
     { key: 'will', label: '意志' },
     { key: 'sense', label: '感知' },

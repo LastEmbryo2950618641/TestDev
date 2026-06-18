@@ -71,7 +71,7 @@ window.GameModules.coreActions = {
       this.mindText = feedback.mind;
       this.feedbackSource = feedback.source || 'fallback';
       this.characterIntent = feedback.intent;
-      console.log('[角色反馈] 切换在线生成结果:', { source: this.feedbackSource, mindLength: String(this.mindText || '').length, intentLength: String(this.characterIntent || '').length });
+      console.debug('[角色反馈] 切换在线生成结果:', { source: this.feedbackSource, mindLength: String(this.mindText || '').length, intentLength: String(this.characterIntent || '').length });
       this.choices = feedback.choices || this.choices;
       await window.GameModules.characterFeedback.applyExperience(this, feedback);
     }

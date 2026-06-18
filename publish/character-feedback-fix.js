@@ -7,13 +7,13 @@ Object.assign(window.GameModules.characterFeedback, {
   async initial(store) {
     this.ensureExperience(store);
     const fallback = this.fallback(store);
-    console.log('[角色反馈] 初始请求准备:', { character: store.character?.name, model: 'nalang-turbo-0826', controlMode: store.controlMode, hasCompletions: Boolean(window.dzmm?.completions) });
+    console.debug('[角色反馈] 初始请求准备:', { character: store.character?.name, model: 'nalang-turbo-0826', controlMode: store.controlMode, hasCompletions: Boolean(window.dzmm?.completions) });
     if (!window.dzmm?.completions) return fallback;
     let buffer = '';
     let doneSeen = false;
     try {
       const prompt = await this.prompt(store);
-      console.log('[角色反馈] completions 调用:', { promptLength: prompt.length });
+      console.debug('[角色反馈] completions 调用:', { promptLength: prompt.length });
       let resolveDone;
       const donePromise = new Promise((resolve) => { resolveDone = resolve; });
       const request = window.GameModules.aiRequest.complete({
@@ -22,14 +22,14 @@ Object.assign(window.GameModules.characterFeedback, {
           buffer = info.buffer;
           if (done) {
             doneSeen = true;
-            console.log('[角色反馈] 流式 done:', { length: buffer.length });
+            console.debug('[角色反馈] 流式 done:', { length: buffer.length });
             resolveDone();
           }
         },
       });
       await Promise.race([Promise.all([request, donePromise]), new Promise((_, reject) => setTimeout(() => reject(new Error('角色反馈生成超时')), 60000))]);
       if (!doneSeen) throw new Error('角色反馈流式未完成');
-      console.log('[角色反馈] AI返回完成:', { length: buffer.length, preview: buffer.slice(0, 120) });
+      console.debug('[角色反馈] AI返回完成:', { length: buffer.length, preview: buffer.slice(0, 120) });
       return this.parse(buffer, fallback, store);
     } catch (err) {
       console.warn('角色反馈生成失败，使用兜底:', err.code, err.message, err.stack);
@@ -63,7 +63,7 @@ Object.assign(window.GameModules.characterFeedback, {
       if (err.message === 'JSON incomplete') {
         const recovered = this.recoverFeedbackFields(text);
         if (recovered.mind || recovered.intent) return this.normalizeFeedbackData(recovered, fallback, store, 'partial');
-        console.warn('[角色反馈] JSON未完整，使用兜底:', { length: String(text || '').length });
+        console.debug('[角色反馈] JSON未完整，使用兜底:', { length: String(text || '').length });
         return fallback;
       }
       console.warn('角色反馈解析失败:', err.message);
@@ -84,7 +84,7 @@ Object.assign(window.GameModules.characterFeedback, {
       choices: this.normalizeChoices(data.choices, fallback.choices),
       source,
     };
-    console.log('[角色反馈] AI解析成功:', { source, mindLength: result.mind.length, intentLength: result.intent.length });
+    console.debug('[角色反馈] AI解析成功:', { source, mindLength: result.mind.length, intentLength: result.intent.length });
     return result;
   },
 

@@ -110,7 +110,7 @@ window.GameModules.jsonUtils = {
         lastError = err;
         const risk = this.aiOutputRisk(lastText, options);
         const rawFieldHits = this.rawFieldHits(lastText, options.requiredRawFields || []);
-        console.warn('[JSON重试] AI返回格式校验失败，准备生成修复提示:', {
+        console.debug('[JSON重试] AI返回格式校验失败，准备生成修复提示:', {
           source: options.source || 'json-utils',
           attempt: i + 1,
           max,
