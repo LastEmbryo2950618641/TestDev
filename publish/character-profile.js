@@ -490,8 +490,9 @@ window.GameModules.characterProfile = {
   async generateCsvFixRows(partIndex, issues, currentRows, format, base, lore, attrs, store, vars) {
     const promptIds = { 2: 'character-profile-part2-feeling-fix', 3: 'character-profile-part3-abilities-professions-fix' };
     const promptId = promptIds[partIndex] || null;
+    const skeleton = this.csvFixSkeleton(partIndex, issues);
     const prompt = promptId
-      ? await window.GameModules.promptTemplates.render(promptId, { ...vars, 需要AI返回的行: this.csvFixSkeleton(partIndex, issues), 当前已合格行: this.validCsvRowsForPrompt(partIndex, currentRows).join('\n') || '无', 错误行说明: issues.map((x) => `${x.key}：${x.reason}${x.badRow ? `｜${x.badRow}` : ''}`).join('\n') })
+      ? await window.GameModules.promptTemplates.render(promptId, { ...vars, 需要AI返回的行: skeleton, 当前已合格行: this.validCsvRowsForPrompt(partIndex, currentRows).join('\n') || '无', 错误行说明: issues.map((x) => `${x.key}：${x.reason}${x.badRow ? `｜${x.badRow}` : ''}`).join('\n'), 严格修复要求: this.csvFixStrictRequirement(partIndex, issues, skeleton) })
       : this.inlineCsvFixPrompt(partIndex, issues, currentRows, format, base);
     return window.GameModules.jsonUtils.generateJsonWithRetry({
       source: `character-profile-part${partIndex}-csv-fix`,
@@ -499,20 +500,56 @@ window.GameModules.characterProfile = {
       timeoutMs: 60000,
       prompt,
       format: prompt,
-      repairHint: '只返回要求补齐的 CSV 行，不要表头、JSON、Markdown 或解释。每行列数必须完整。',
+      repairHint: this.csvFixStrictRequirement(partIndex, issues, skeleton),
       requiredRawFields: this.partRequiredRawFields(partIndex),
       parse: (text) => ({ _csvRows: this.normalizeCsvPartRows(partIndex, this.csvDataRows(text, this.csvFixHeaderPrefix(partIndex))) }),
       validate: (parsed) => {
         const rows = parsed._csvRows || [];
         if (!rows.length) throw new Error('CSV修复没有返回有效行');
+        const returnedIssue = this.csvFixReturnedIssue(partIndex, issues, rows, skeleton);
+        if (returnedIssue) throw new Error(returnedIssue);
         const remaining = this.csvPartIssues(partIndex, this.mergeCsvFixRows(partIndex, currentRows, rows, issues));
         const wanted = new Set(issues.map((x) => x.key));
         const stillWanted = remaining.filter((x) => wanted.has(x.key) || /^row\d+$/.test(x.key));
         if (stillWanted.length) throw new Error(`CSV修复仍不完整：${stillWanted.map((x) => x.key).join('、')}`);
         return rows;
       },
-      max: 2,
+      max: partIndex === 3 && issues.some((x) => x.key === 'skills' || x.key === 'knowledge') ? 4 : 2,
     });
+  },
+
+  csvFixStrictRequirement(partIndex, issues, skeleton) {
+    if (partIndex !== 3) return '只返回要求补齐的 CSV 行，不要表头、JSON、Markdown 或解释。每行列数必须完整。';
+    const requiredTypes = issues.map((x) => x.key).filter((key) => key === 'skills' || key === 'knowledge');
+    const lines = ['只返回要求补齐的 CSV 行，不要表头、JSON、Markdown 或解释。每行必须恰好 7 列。'];
+    if (requiredTypes.length) {
+      lines.push(`本次缺失的基础类型必须由 AI 补齐：${requiredTypes.join('、')}。`);
+      lines.push(`返回行的 type 必须包含且只能针对这些缺失类型：${requiredTypes.join('、')}；禁止用其它 type 替代。`);
+      lines.push('不要返回当前已合格行，不要返回未要求的 skills/knowledge/professions 行。');
+    }
+    lines.push('必须严格照“需要AI返回的行”的 type 生成：');
+    lines.push(skeleton);
+    return lines.join('\n');
+  },
+
+  csvFixReturnedIssue(partIndex, issues, rows, skeleton = '') {
+    if (partIndex !== 3) return '';
+    const requiredTypes = issues.map((x) => x.key).filter((key) => key === 'skills' || key === 'knowledge');
+    if (!requiredTypes.length) return '';
+    const returnedTypes = rows.map((row) => this.csvParts(row)[0]).filter(Boolean);
+    const missing = requiredTypes.filter((type) => !returnedTypes.includes(type));
+    if (missing.length) return [
+      `CSV修复必须返回 ${missing.join('、')} 行，不能用 ${returnedTypes.join('、') || '空输出'} 替代。`,
+      '请只按下面“需要AI返回的行”的 type 重写，不要返回其它 type：',
+      skeleton,
+    ].join('\n');
+    const extra = returnedTypes.filter((type) => !requiredTypes.includes(type));
+    if (extra.length) return [
+      `CSV修复返回了未要求的 Part3 类型：${extra.join('、')}；本次只能返回 ${requiredTypes.join('、')}。`,
+      '请删除未要求行，只返回缺失基础类型对应行：',
+      skeleton,
+    ].join('\n');
+    return '';
   },
 
   csvFixHeaderPrefix(partIndex) {
