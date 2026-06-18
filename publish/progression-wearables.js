@@ -75,7 +75,7 @@ window.GameModules = window.GameModules || {};
 
     bodyPartForSlot(slot) {
       const base = this.slotBase(slot);
-      return ({ 内衣: '胸部', 上衣: '躯干', 内裤: '腰臀', 下衣: '腿部', 袜子: '脚踝', 鞋子: '脚部', 外套: '躯干外', 手套: '手部', 头部: '头部', 颈部: '颈部', 腰部: '腰部', 包具: '肩部', 饰品: '装饰部位', 装备: '装备位' })[base] || base || '';
+      return ({ 内衣: '内衣', 上衣: '上衣', 内裤: '内衣', 下衣: '下装', 袜子: '袜子', 鞋子: '鞋子', 外套: '外套', 手套: '手套', 头部: '头部', 颈部: '颈部', 腰部: '腰部', 包具: '肩部', 饰品: '装饰部位', 装备: '装备位' })[base] || base || '';
     },
 
     defaultWearForSlot(slot) {

@@ -616,7 +616,7 @@ window.GameModules.characterProfile = {
         '只返回要求补齐的 Part4 CSV 行，不要表头、JSON、Markdown 或解释。',
         '每行必须恰好 7 列：type,slot,bodyPart,name,description,quantity,reason。',
         'wearing 行的 slot 只能是固定值：head、neck、innerwearTop、top、outerwear、gloves、waist、innerwearBottom、bottom、socks、shoes、wrist。',
-        '缺 socks 就必须返回 wearing,socks,脚踝,...；鞋子必须用 shoes，禁止写 feet、foot、ankle、legs 或其它替代槽位。',
+        '缺 socks 就必须返回 wearing,socks,袜子,...；鞋子必须用 shoes，禁止写 feet、foot、ankle、legs 或其它替代槽位。',
         'wearing 行 quantity 固定写 --；未穿戴是合法状态，name 和 description 必须同时写 --，reason 必须写清具体不穿原因。',
         '禁止返回 --.--、-.--、---、... 等非法占位；未穿戴只能用精确的 --。',
         '禁止返回“当前场景未穿戴该槽位物品/未穿戴该槽位物品/无/暂无/不适用/上下文未说明/信息不足/日常需要/符合身份”等泛化原因。',
@@ -624,8 +624,8 @@ window.GameModules.characterProfile = {
         '如果角色卡基础信息或输入的喜好写明 JK、制服、百褶裙、过膝袜、连裤袜、丝袜、黑丝、白丝等，必须落实到 top/bottom/socks，不能改成泛化日常衣物。',
         'bottom 只能写一件主要下装，不能同时写百褶裙和牛仔裤；过膝袜、连裤袜、丝袜必须写在 socks。',
         '槽位语义必须匹配：outerwear只能写外套，waist只能写腰带腰封，bottom只能写裤裙，socks只能写袜类，shoes只能写鞋类，neck不能写耳环耳钉。',
-        'bodyPart 必须按固定映射逐字填写：head=头部，neck=颈部，innerwearTop=胸部，top=躯干，outerwear=躯干外，gloves=手部，waist=腰部，innerwearBottom=腰臀，bottom=腿部，socks=脚踝，shoes=脚部，wrist=手腕。',
-        '不穿袜子、内衣、上衣、外套等都可以成立，但必须保留对应固定槽位行；例如袜子不穿仍输出 wearing,socks,脚踝,--,--,--,具体不穿原因。',
+        'bodyPart 必须按固定映射逐字填写：head=头部，neck=颈部，innerwearTop=内衣，top=上衣，outerwear=外套，gloves=手套，waist=腰部，innerwearBottom=内衣，bottom=下装，socks=袜子，shoes=鞋子，wrist=手腕。',
+        '不穿袜子、内衣、上衣、外套等都可以成立，但必须保留对应固定槽位行；例如袜子不穿仍输出 wearing,socks,袜子,--,--,--,具体不穿原因。',
         '裸体、裸睡、洗澡、换衣、刚醒等场景可以让多个穿着槽位未穿戴，但不得省略槽位，也不得把未穿戴槽位改成其它 slot。',
         '必须批量返回本次所有有问题的行，并严格照下面列表的 type 和 slot 生成：',
         skeleton,
@@ -1078,7 +1078,7 @@ window.GameModules.characterProfile = {
   },
 
   wearingBodyParts() {
-    return { head: '头部', neck: '颈部', innerwearTop: '胸部', top: '躯干', outerwear: '躯干外', gloves: '手部', waist: '腰部', innerwearBottom: '腰臀', bottom: '腿部', socks: '脚踝', shoes: '脚部', wrist: '手腕' };
+    return { head: '头部', neck: '颈部', innerwearTop: '内衣', top: '上衣', outerwear: '外套', gloves: '手套', waist: '腰部', innerwearBottom: '内衣', bottom: '下装', socks: '袜子', shoes: '鞋子', wrist: '手腕' };
   },
 
   wearingSlotSemanticIssue(slot, text) {
