@@ -32,7 +32,6 @@ window.GameModules = window.GameModules || {};
       return Array.from({ length: max }, (_, i) => `${base}${i + 1}`);
     },
     nextSlot(existing = [], base = '装备') { return `${base}${this.dynamicSlots(existing, base).length + 1}`; },
-
     inferEquipSlots(item = {}, kind = '') {
       const explicit = item.equipSlots || item.equippableSlots || item.wearableSlots || item.equipSlot || item.slot;
       const list = Array.isArray(explicit) ? explicit : String(explicit || '').split(/[、,，/|；;\s]+/);
@@ -51,14 +50,11 @@ window.GameModules = window.GameModules || {};
       if ((kind === '装备' || item.type === '装备' || item.kind === '装备') && !slots.length) slots.push('装备');
       return [...new Set(slots)];
     },
-
     pollutedReason(text = '') {
       const value = String(text || '').trim();
       return value.length > 90 || /变化方式|生成来源|词条名AI生成|值AI生成/.test(value) || /[：:](妹妹|姐姐|哥哥|弟弟|父亲|母亲|兄长)[：:]/.test(value);
     },
-
     cleanRelationText(text = '') { return String(text || '').replace(/([：:])(?=(妹妹|姐姐|哥哥|弟弟|父亲|母亲|兄长|朋友|同学|同事)[：:])/g, '；'); },
-
     itemReason(item = {}, kind = '物品') {
       if ((kind === '穿着' || item.type === '穿着') && item?.name === '未穿戴') return String(item.reason || item.changeMode || `${item.clothing_position || item.slot || '该'}槽位当前未穿戴。`).slice(0, 120);
       const raw = this.cleanRelationText(String(item.reason || '').trim());
