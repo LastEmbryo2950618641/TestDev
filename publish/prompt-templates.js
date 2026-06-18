@@ -10,6 +10,7 @@ window.GameModules.promptTemplates = {
     { id: 'character-profile-card', title: '出场人物固化设定', category: '角色生成', file: 'prompts/character-profile-card.md', summary: '生成角色卡主体、关系、词条原因和 RPG 原因。' },
     { id: 'character-profile-part1-base-identity', title: '角色卡 Part1 基础身份', category: '角色生成', file: 'prompts/character-profile-part1-base-identity.md', summary: '按预定义 JSON 生成基础身份与社会关系。' },
     { id: 'character-profile-part2-feeling', title: '角色卡 Part2 情感数值', category: '角色生成', file: 'prompts/character-profile-part2-feeling.md', summary: '按预定义 CSV 生成情绪和对玩家感觉数值。' },
+    { id: 'character-profile-part2-feeling-fix', title: '角色卡 Part2 情感数值行修复', category: '角色生成', file: 'prompts/character-profile-part2-feeling-fix.md', summary: '只补齐 Part2 缺失或不完整的固定情感 CSV 行。' },
     { id: 'character-profile-part3-abilities-professions', title: '角色卡 Part3 能力职业', category: '角色生成', file: 'prompts/character-profile-part3-abilities-professions.md', summary: '按预定义 CSV 生成技能、知识与职业。' },
     { id: 'character-profile-part4-inventory-wearing-rpg', title: '角色卡 Part4 物品穿着', category: '角色生成', file: 'prompts/character-profile-part4-inventory-wearing-rpg.md', summary: '按预定义 CSV 生成物品与穿着。' },
     { id: 'character-profile-part5-rpg-field', title: '角色卡 Part5 RPG属性', category: '角色生成', file: 'prompts/character-profile-part5-rpg-field.md', summary: '按预定义 JSON 生成 RPG 属性。' },

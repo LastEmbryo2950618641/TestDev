@@ -147,7 +147,8 @@ window.GameModules.characterProfile = {
       parse: (text) => this.parsePartOutput(partIndex, text, base),
       max: 2,
     });
-    let normalized = this.sanitizePart(partIndex, raw, template);
+    const repairedRaw = await this.repairCsvPartRows(partIndex, raw, format, base, lore, attrs, store, vars);
+    let normalized = this.sanitizePart(partIndex, repairedRaw, template);
     normalized = await this.completeMissingPart(partIndex, normalized, template, format, base, lore, attrs, store);
     return this.validatePart(partIndex, normalized, base, lore, attrs, store, template);
   },
@@ -183,6 +184,7 @@ window.GameModules.characterProfile = {
 
   sanitizePart(partIndex, raw, template) {
     const clean = partIndex === 3 ? raw : this.sanitizeByTemplate(raw, template);
+    if (clean && typeof clean === 'object') delete clean._csvRows;
     if (partIndex === 2 && clean.feeling) {
       clean.feeling = this.normalizeFeelingObject(clean.feeling);
     }
@@ -361,6 +363,157 @@ window.GameModules.characterProfile = {
     return current;
   },
 
+  async repairCsvPartRows(partIndex, raw, format, base, lore, attrs, store, vars = {}) {
+    if (![2, 3, 4].includes(partIndex)) return raw;
+    let currentRows = this.rowsFromCsvPart(partIndex, raw);
+    for (let i = 0; i < 2; i += 1) {
+      const issues = this.csvPartIssues(partIndex, currentRows);
+      if (!issues.length) return this.buildPartFromCsvRows(partIndex, currentRows, base.name);
+      const fixedRows = await this.generateCsvFixRows(partIndex, issues, currentRows, format, base, lore, attrs, store, vars);
+      currentRows = this.mergeCsvFixRows(partIndex, currentRows, fixedRows, issues);
+    }
+    return this.buildPartFromCsvRows(partIndex, currentRows, base.name);
+  },
+
+  rowsFromCsvPart(partIndex, raw) {
+    if (Array.isArray(raw?._csvRows)) return raw._csvRows;
+    const headers = { 2: 'name,value,status,reason', 3: 'type,name,level,', 4: 'type,slot,bodypart,' };
+    return this.csvDataRows(raw?.rawText || raw?.text || '', headers[partIndex] || '');
+  },
+
+  buildPartFromCsvRows(partIndex, rows, name) {
+    if (partIndex === 2) return this.buildFeelingFromRows(rows, name, true);
+    if (partIndex === 3) return this.buildAbilitiesFromRows(rows, name, true);
+    return this.buildInventoryFromRows(rows, name);
+  },
+
+  csvPartIssues(partIndex, rows) {
+    if (partIndex === 2) return this.part2CsvIssues(rows);
+    if (partIndex === 3) return this.part3CsvIssues(rows);
+    return this.part4CsvIssues(rows);
+  },
+
+  part2CsvIssues(rows) {
+    const keys = [...window.GameModules.metrics.emotionKeys, ...window.GameModules.metrics.playerKeys];
+    return keys.map((key) => {
+      const line = rows.find((row) => row.startsWith(`${key},`) || row.startsWith(`name,${key},`));
+      if (!line) return { key, reason: '缺失该行' };
+      let parts = this.csvParts(line);
+      if (parts[0] === 'name' && parts[1] === key) parts = parts.slice(1);
+      const reason = this.part2RowIssue(parts, key);
+      return reason ? { key, reason, badRow: line } : null;
+    }).filter(Boolean);
+  },
+
+  part3CsvIssues(rows) {
+    const issues = [];
+    let validSkills = 0;
+    let validKnowledge = 0;
+    rows.forEach((row, index) => {
+      const parts = this.csvParts(row);
+      const reason = this.part3RowIssue(parts);
+      if (reason) issues.push({ key: `row${index + 1}`, reason, badRow: row });
+      else if (parts[0] === 'skills') validSkills += 1;
+      else if (parts[0] === 'knowledge') validKnowledge += 1;
+    });
+    if (!validSkills) issues.push({ key: 'skills', reason: '缺失至少1行skills' });
+    if (!validKnowledge) issues.push({ key: 'knowledge', reason: '缺失至少1行knowledge' });
+    return issues;
+  },
+
+  part4CsvIssues(rows) {
+    const issues = [];
+    const present = new Set();
+    rows.forEach((row, index) => {
+      const parts = this.csvParts(row);
+      const reason = this.part4RowIssue(parts);
+      if (reason) issues.push({ key: `row${index + 1}`, reason, badRow: row });
+      if (!reason && parts[0] === 'wearing') present.add(parts[1]);
+    });
+    this.fixedWearingSlots().forEach((slot) => {
+      if (!present.has(slot)) issues.push({ key: slot, reason: '缺失固定wearing槽位' });
+    });
+    return issues;
+  },
+
+  async generateCsvFixRows(partIndex, issues, currentRows, format, base, lore, attrs, store, vars) {
+    const promptId = partIndex === 2 ? 'character-profile-part2-feeling-fix' : null;
+    const prompt = promptId
+      ? await window.GameModules.promptTemplates.render(promptId, { ...vars, 需要AI返回的行: this.csvFixSkeleton(partIndex, issues), 当前已合格行: this.validCsvRowsForPrompt(partIndex, currentRows).join('\n') || '无', 错误行说明: issues.map((x) => `${x.key}：${x.reason}${x.badRow ? `｜${x.badRow}` : ''}`).join('\n') })
+      : this.inlineCsvFixPrompt(partIndex, issues, currentRows, format, base);
+    return window.GameModules.jsonUtils.generateJsonWithRetry({
+      source: `character-profile-part${partIndex}-csv-fix`,
+      model: 'nalang-turbo-0826',
+      timeoutMs: 60000,
+      prompt,
+      format: prompt,
+      repairHint: '只返回要求补齐的 CSV 行，不要表头、JSON、Markdown 或解释。每行列数必须完整。',
+      requiredRawFields: this.partRequiredRawFields(partIndex),
+      parse: (text) => ({ _csvRows: this.csvDataRows(text, this.csvFixHeaderPrefix(partIndex)) }),
+      validate: (parsed) => {
+        const rows = parsed._csvRows || [];
+        if (!rows.length) throw new Error('CSV修复没有返回有效行');
+        const remaining = this.csvPartIssues(partIndex, this.mergeCsvFixRows(partIndex, currentRows, rows, issues));
+        const wanted = new Set(issues.map((x) => x.key));
+        const stillWanted = remaining.filter((x) => wanted.has(x.key) || /^row\d+$/.test(x.key));
+        if (stillWanted.length) throw new Error(`CSV修复仍不完整：${stillWanted.map((x) => x.key).join('、')}`);
+        return rows;
+      },
+      max: 2,
+    });
+  },
+
+  csvFixHeaderPrefix(partIndex) {
+    return partIndex === 2 ? 'name,value,status,reason' : (partIndex === 3 ? 'type,name,level,' : 'type,slot,bodypart,');
+  },
+
+  inlineCsvFixPrompt(partIndex, issues, currentRows, format, base) {
+    return [
+      `你正在修复角色卡 Part${partIndex} CSV。目标人物只能是：${base.name}。`,
+      '只返回下面要求补齐或重写的 CSV 行，不要表头，不要解释。',
+      '每行必须列数完整，单元格内禁止英文逗号。',
+      '需要AI返回的行：',
+      this.csvFixSkeleton(partIndex, issues),
+      '错误行说明：',
+      issues.map((x) => `${x.key}：${x.reason}${x.badRow ? `｜${x.badRow}` : ''}`).join('\n'),
+      '当前已合格行：',
+      this.validCsvRowsForPrompt(partIndex, currentRows).join('\n') || '无',
+      '原始要求：',
+      String(format || '').slice(0, 2200),
+    ].join('\n');
+  },
+
+  csvFixSkeleton(partIndex, issues) {
+    if (partIndex === 2) return issues.map((x) => `${x.key},50,${x.key}因为当前证据形成状态,${x.key}源于人物经历和关系证据`).join('\n');
+    if (partIndex === 3) return issues.map((x) => (x.key === 'knowledge' ? 'knowledge,现代常识,2,日常生活和教育经历形成基础常识,--,--,--' : 'skills,观察力,2,长期生活经历形成基础观察能力,perception|willpower,现代常识,--')).join('\n');
+    const bodyParts = { head: '头部', neck: '颈部', innerwearTop: '胸部', top: '躯干', outerwear: '躯干外', gloves: '手部', waist: '腰部', innerwearBottom: '腰臀', bottom: '腿部', socks: '脚踝', shoes: '脚部', wrist: '手腕' };
+    return issues.map((x) => this.fixedWearingSlots().includes(x.key) ? `wearing,${x.key},${bodyParts[x.key]},--,--,--,当前场景未穿戴该槽位物品` : 'item,--,--,随身物品,符合身份的随身物,1,当前行动需要携带').join('\n');
+  },
+
+  validCsvRowsForPrompt(partIndex, rows) {
+    return rows.filter((row) => {
+      const parts = this.csvParts(row);
+      if (partIndex === 2) return parts[0] !== 'name' && !this.part2RowIssue(parts);
+      if (partIndex === 3) return !this.part3RowIssue(parts);
+      return !this.part4RowIssue(parts);
+    });
+  },
+
+  mergeCsvFixRows(partIndex, rows, fixedRows, issues) {
+    const output = rows.filter((row, index) => !issues.some((issue) => issue.key === `row${index + 1}`));
+    fixedRows.forEach((row) => {
+      const parts = this.csvParts(row);
+      const key = partIndex === 2 ? (parts[0] === 'name' ? parts[1] : parts[0]) : (partIndex === 4 && parts[0] === 'wearing' ? parts[1] : '');
+      const existingIndex = key ? output.findIndex((old) => {
+        const oldParts = this.csvParts(old);
+        return partIndex === 2 ? (oldParts[0] === key || (oldParts[0] === 'name' && oldParts[1] === key)) : (oldParts[0] === 'wearing' && oldParts[1] === key);
+      }) : -1;
+      if (existingIndex >= 0) output[existingIndex] = row;
+      else output.push(row);
+    });
+    return output;
+  },
+
   async generatePartFeeling(profile, base, lore, attrs, context, store, group = 'all') {
     const evidence = this.initialMetricsEvidence(profile, base, lore, attrs, context, store);
     const toObject = (items, names) => Object.fromEntries(Object.entries(names).map(([key, name]) => {
@@ -471,22 +624,24 @@ window.GameModules.characterProfile = {
   },
 
   parsePartOutput(partIndex, text, base = {}) {
-    if (partIndex === 2) return this.parseCsvFeelingPart(text, base.name);
-    if (partIndex === 3) return this.parseCsvAbilitiesPart(text, base.name);
-    if (partIndex === 4) return this.parseCsvInventoryPart(text, base.name);
+    if (partIndex === 2) return this.buildFeelingFromRows(this.csvDataRows(text, 'name,value,status,reason'), base.name, false);
+    if (partIndex === 3) return this.buildAbilitiesFromRows(this.csvDataRows(text, 'type,name,level,'), base.name, false);
+    if (partIndex === 4) return this.buildInventoryFromRows(this.csvDataRows(text, 'type,slot,bodypart,'), base.name);
     return this.parse(text);
   },
 
   parseCsvAbilitiesPart(text, name = '') {
-    const raw = String(text || '').replace(/```(?:csv|txt|json)?|```/g, '').trim();
-    const rows = raw.split(/\n+/).map((row) => row.trim()).filter(Boolean);
-    const dataRows = rows.filter((row) => !row.toLowerCase().startsWith('type,name,level,'));
-    const result = { name, skills: [], knowledge: [], professions: [] };
-    dataRows.forEach((row) => {
-      const parts = row.split(',').map((part) => part.trim());
-      if (parts.length < 7) return;
+    const rows = this.csvDataRows(text, 'type,name,level,');
+    return this.buildAbilitiesFromRows(rows, name, true);
+  },
+
+  buildAbilitiesFromRows(rows, name = '', strict = false) {
+    const result = { name, skills: [], knowledge: [], professions: [], _csvRows: [] };
+    rows.forEach((row) => {
+      const parts = this.csvParts(row);
+      const issue = this.part3RowIssue(parts);
+      if (issue) return;
       const [type, itemName, level, reason, requiredIntrinsicBase, requiredKnowledge, requiredSkills] = parts;
-      if (!['skills', 'knowledge', 'professions'].includes(type) || !itemName || itemName === '--') return;
       const item = {
         name: itemName,
         desc: `${itemName}的实际表现与可用范围。`,
@@ -504,38 +659,91 @@ window.GameModules.characterProfile = {
         item.requiredSkills = this.csvList(requiredSkills);
       }
       result[type].push(item);
+      result._csvRows.push(row);
     });
-    if (!result.skills.length) throw new Error('Part3 CSV 缺少 skills 行');
-    if (!result.knowledge.length) throw new Error('Part3 CSV 缺少 knowledge 行');
+    if (strict && !result.skills.length) throw new Error('Part3 CSV 缺少 skills 行');
+    if (strict && !result.knowledge.length) throw new Error('Part3 CSV 缺少 knowledge 行');
     return result;
   },
 
+  part3RowIssue(parts) {
+    if (parts.length !== 7) return '列数不是7';
+    const [type, itemName, level, reason, requiredIntrinsicBase, requiredKnowledge, requiredSkills] = parts;
+    if (!['skills', 'knowledge', 'professions'].includes(type)) return 'type无效';
+    if (!itemName || itemName === '--') return 'name缺失';
+    if (!Number.isInteger(Number(level)) || Number(level) < 1 || Number(level) > 7) return 'level无效';
+    if (!this.csvCell(reason)) return 'reason缺失';
+    if (type === 'skills' && (!this.csvCell(requiredIntrinsicBase) || !this.csvCell(requiredKnowledge) || this.csvCell(requiredSkills))) return 'skills依赖列错误';
+    if (type === 'knowledge' && [requiredIntrinsicBase, requiredKnowledge, requiredSkills].some((x) => this.csvCell(x))) return 'knowledge依赖列错误';
+    if (type === 'professions' && (!this.csvCell(requiredIntrinsicBase) || !this.csvCell(requiredKnowledge) || !this.csvCell(requiredSkills))) return 'professions依赖列缺失';
+    return '';
+  },
+
   parseCsvInventoryPart(text, name = '') {
-    const raw = String(text || '').replace(/```(?:csv|txt|json)?|```/g, '').trim();
-    const rows = raw.split(/\n+/).map((row) => row.trim()).filter(Boolean);
-    const dataRows = rows.filter((row) => !row.toLowerCase().startsWith('type,slot,bodypart,'));
+    const rows = this.csvDataRows(text, 'type,slot,bodypart,');
+    return this.buildInventoryFromRows(rows, name);
+  },
+
+  buildInventoryFromRows(rows, name = '') {
     const wearing = this.emptyWearingObject();
-    const result = { name, items: [], wearing };
-    dataRows.forEach((row) => {
-      const parts = row.split(',').map((part) => part.trim());
-      if (parts.length < 7) return;
+    const result = { name, items: [], wearing, _csvRows: [] };
+    rows.forEach((row) => {
+      const parts = this.csvParts(row);
+      const issue = this.part4RowIssue(parts);
+      if (issue) return;
       const [type, slot, bodyPart, itemName, description, quantity, reason] = parts;
-      if (type === 'item' && itemName && itemName !== '--') {
+      if (type === 'item') {
         result.items.push({ name: itemName, description: this.csvCell(description), quantity: Math.max(1, Number(quantity) || 1), reason: this.csvCell(reason) });
       }
-      if (type === 'wearing' && wearing[slot]) {
+      if (type === 'wearing') {
         wearing[slot] = { bodyPart: this.csvCell(bodyPart) || wearing[slot].bodyPart, name: this.csvCell(itemName), description: this.csvCell(description), reason: this.csvCell(reason) };
       }
-      if (type === 'slot' && itemName && itemName !== '--') {
+      if (type === 'slot') {
         wearing.slot.push({ slot: this.csvCell(slot), bodyPart: this.csvCell(bodyPart), name: itemName, description: this.csvCell(description), reason: this.csvCell(reason) });
       }
+      result._csvRows.push(row);
     });
     return result;
+  },
+
+  part4RowIssue(parts) {
+    if (parts.length !== 7) return '列数不是7';
+    const [type, slot, bodyPart, itemName, description, quantity, reason] = parts;
+    if (!['item', 'wearing', 'slot'].includes(type)) return 'type无效';
+    if (type === 'item') {
+      if (slot !== '--' || bodyPart !== '--') return 'item槽位列必须为--';
+      if (!itemName || itemName === '--') return 'item名称缺失';
+      if (!this.csvCell(description)) return 'item描述缺失';
+      if (!Number.isInteger(Number(quantity)) || Number(quantity) < 1) return 'quantity无效';
+    }
+    if (type === 'wearing') {
+      if (!this.fixedWearingSlots().includes(slot)) return 'wearing槽位无效';
+      if (!this.csvCell(bodyPart)) return 'bodyPart缺失';
+      if (!this.csvCell(reason)) return 'reason缺失';
+      if (this.csvCell(itemName) && !this.csvCell(description)) return '穿戴物描述缺失';
+    }
+    if (type === 'slot') {
+      if (!this.csvCell(slot) || !this.csvCell(bodyPart) || !itemName || itemName === '--' || !this.csvCell(description)) return 'slot字段缺失';
+    }
+    return '';
   },
 
   emptyWearingObject() {
     const bodyParts = { head: '头部', neck: '颈部', innerwearTop: '胸部', top: '躯干', outerwear: '躯干外', gloves: '手部', waist: '腰部', innerwearBottom: '腰臀', bottom: '腿部', socks: '脚踝', shoes: '脚部', wrist: '手腕' };
     return { ...Object.fromEntries(Object.entries(bodyParts).map(([key, bodyPart]) => [key, { bodyPart, name: '', description: '', reason: '当前场景未穿戴该槽位物品。' }])), slot: [] };
+  },
+
+  fixedWearingSlots() {
+    return ['head', 'neck', 'innerwearTop', 'top', 'outerwear', 'gloves', 'waist', 'innerwearBottom', 'bottom', 'socks', 'shoes', 'wrist'];
+  },
+
+  csvDataRows(text, headerPrefix) {
+    const raw = String(text || '').replace(/```(?:csv|txt|json)?|```/g, '').trim();
+    return raw.split(/\n+/).map((row) => row.trim()).filter(Boolean).filter((row) => !row.toLowerCase().startsWith(headerPrefix));
+  },
+
+  csvParts(row) {
+    return String(row || '').split(',').map((part) => part.trim());
   },
 
   csvCell(value) {
@@ -553,14 +761,19 @@ window.GameModules.characterProfile = {
   },
 
   parseCsvFeelingPart(text, name = '') {
-    const emotions = this.parseMetricGroupLines(text, 'emotions', window.GameModules.metrics.emotionKeys).emotions || [];
-    const playerFeelings = this.parseMetricGroupLines(text, 'playerFeelings', window.GameModules.metrics.playerKeys).playerFeelings || [];
-    if (emotions.length !== window.GameModules.metrics.emotionKeys.length) throw new Error('emotions CSV 行数不完整');
-    if (playerFeelings.length !== window.GameModules.metrics.playerKeys.length) throw new Error('playerFeelings CSV 行数不完整');
+    const rows = this.csvDataRows(text, 'name,value,status,reason');
+    return this.buildFeelingFromRows(rows, name, true);
+  },
+
+  buildFeelingFromRows(rows, name = '', strict = false) {
+    const emotions = this.parseMetricGroupLines(rows, 'emotions', window.GameModules.metrics.emotionKeys).emotions || [];
+    const playerFeelings = this.parseMetricGroupLines(rows, 'playerFeelings', window.GameModules.metrics.playerKeys).playerFeelings || [];
+    if (strict && emotions.length !== window.GameModules.metrics.emotionKeys.length) throw new Error('emotions CSV 行数不完整');
+    if (strict && playerFeelings.length !== window.GameModules.metrics.playerKeys.length) throw new Error('playerFeelings CSV 行数不完整');
     const emotionMap = { 冷静: 'cold', 恐惧: 'fear', 担忧: 'worry', 高兴: 'joy', 紧张: 'tension', 愤怒: 'anger', 羞耻: 'shame', 悲伤: 'sadness', 好奇: 'curiosity', 麻木: 'numbness', 嫉妒: 'jealousy', 绝望: 'despair' };
     const playerMap = { 了解: 'understanding', 信任: 'trust', 反抗: 'resistance', 好感: 'affection', 友情: 'friendship', 亲情: 'familyLove', 爱情: 'romanticLove', 肉欲: 'lust', 畏惧: 'awe', 尊敬: 'respect', 崇拜: 'admiration', 讨厌: 'dislike', 依赖: 'dependence', 警惕: 'vigilance', 支配欲: 'dominance', 占有欲: 'possessiveness', 服从: 'submission' };
     const toObject = (items, map) => Object.fromEntries(items.map((item) => [map[item.key] || item.key, { name: item.key, value: item.value, status: item.status, reason: item.reason }]));
-    return { name, feeling: { emotions: toObject(emotions, emotionMap), playerFeelings: toObject(playerFeelings, playerMap) } };
+    return { name, feeling: { emotions: toObject(emotions, emotionMap), playerFeelings: toObject(playerFeelings, playerMap) }, _csvRows: rows };
   },
 
   parseMetricGroup(text, group, keys) {
@@ -578,21 +791,33 @@ window.GameModules.characterProfile = {
   },
 
   parseMetricGroupLines(text, group, keys) {
-    const raw = String(text || '').replace(/```(?:txt|json)?|```/g, '').trim();
-    const rows = raw.split(/\n+/).map((row) => row.trim()).filter(Boolean);
+    const rows = Array.isArray(text) ? text : this.csvDataRows(text, 'name,value,status,reason');
     const items = [];
     keys.forEach((key) => {
-      const line = rows.find((row) => row.startsWith(`${key},`));
+      const line = rows.find((row) => row.startsWith(`${key},`) || row.startsWith(`name,${key},`));
       if (!line) return;
-      const parts = line.split(',').map((part) => part.trim());
-      if (parts.length < 4 || parts[0] !== key) return;
+      let parts = this.csvParts(line);
+      if (parts[0] === 'name' && parts[1] === key) parts = parts.slice(1);
+      if (this.part2RowIssue(parts, key)) return;
       const value = Number(parts[1]);
-      if (!Number.isFinite(value)) return;
       const status = parts[2] || '';
-      const reason = parts.slice(3).join('，') || '';
+      const reason = parts[3] || '';
       items.push({ key, value, status, reason, metricSources: this.metricSourceMap?.('ai') });
     });
     return { [group]: items };
+  },
+
+  part2RowIssue(parts, expectedKey = '') {
+    if (parts[0] === 'name' && expectedKey && parts[1] === expectedKey) parts = parts.slice(1);
+    if (parts.length !== 4) return '列数不是4';
+    const [key, value, status, reason] = parts;
+    const allKeys = [...window.GameModules.metrics.emotionKeys, ...window.GameModules.metrics.playerKeys];
+    if (expectedKey && key !== expectedKey) return '情感名错位';
+    if (!allKeys.includes(key)) return '情感名不在固定列表';
+    if (!Number.isInteger(Number(value)) || Number(value) < 0 || Number(value) > 100) return 'value无效';
+    if (!String(status || '').trim()) return 'status缺失';
+    if (!String(reason || '').trim()) return 'reason缺失';
+    return '';
   },
 
   recoverMetricGroup(text, group, keys) {
