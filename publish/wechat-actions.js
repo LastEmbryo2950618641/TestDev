@@ -83,14 +83,15 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
     const hint = this.wechatRelationProfileHint(contact);
     const sections = window.GameModules.promptSections;
     const player = sections.playerProfile(this);
-    const raw = { id: characterId, name: needsName ? hint.placeholderName : contact.name, role: contact.relation || '微信联系人', detail: contact.context || contact.latest || hint.detail, work: '现实世界', isMinor: false, importance: 'support', nameRule: hint.nameRule };
+    const relationContext = this.wechatRelationFullContext(contact, hint);
+    const raw = { id: characterId, name: needsName ? hint.placeholderName : contact.name, role: contact.relation || '微信联系人', detail: relationContext, work: '现实世界', isMinor: false, importance: 'support', nameRule: hint.nameRule };
     const context = await window.GameModules.promptTemplates.render('wechat-relation-profile', {
       玩家基础资料区: player.playerBasic,
       玩家现实身份区: player.playerIdentity,
       玩家居住家庭区: player.playerHome,
       玩家人际关系区: player.playerRelations,
       玩家备注区: player.playerNotes,
-      微信联系人资料区: sections.wechatContact(contact, hint),
+      微信联系人资料区: sections.wechatContact({ ...contact, context: relationContext }, hint),
     });
     let profile;
     try {
@@ -117,6 +118,17 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
     const relation = String(contact?.relation || contact?.name || '联系人');
     const nameRule = `必须由AI根据世界观、地区文化、家庭制度、玩家姓名、玩家性别与“${relation}”这段社会关系推理正式姓名和性别；不要硬套同姓规则，母亲/配偶/继亲/养亲等可能不同姓；不要直接用关系称谓当姓名。`;
     return { nameRule, placeholderName: `${relation}待命名`, detail: `玩家的${relation}，需要按世界观、文化习俗和社会关系补全姓名、性别与资料。` };
+  },
+  wechatRelationFullContext(contact, hint) {
+    const p = this.playerProfile || {};
+    return [
+      `当前联系人：${contact?.name || ''}`,
+      `当前关系：${contact?.relation || ''}`,
+      `关系条目：${contact?.context || contact?.latest || hint.detail}`,
+      `玩家完整人际关系：${p.relationships || '未填写'}`,
+      `玩家居住状态：${p.refinedLivingStatus || p.livingStatus || '未填写'}`,
+      `玩家补充设定/备注：${p.notes || '无'}`,
+    ].join('\n');
   },
   renameWechatContact(id, name) {
     this.wechatUsers = (this.wechatUsers || []).map((item) => item.id === id ? { ...item, name, mark: String(name).slice(0, 1), subtitle: item.relation || item.subtitle, needsNameAi: false } : item);
@@ -164,7 +176,12 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
     if (known.length) return known.map((card) => ({ id: card.id, characterId: card.id, name: card.name, relation: relation || card.role || '关系联系人', latest: `${relation || card.role || card.name}资料已从玩家人际关系同步。`, source: 'relationships', context: text, needsNameAi: false }));
     const clean = text.replace(/(?:角色ID|角色id|characterId|id)\s*[：:=]\s*[A-Za-z0-9_-]{2,40}/g, '').trim();
     const named = [...clean.matchAll(/(?:姓名|名字|名叫|叫作|叫做|叫|名为)\s*([\u4e00-\u9fa5A-Za-z0-9_·]{2,24})/g)].map((match) => match[1]);
-    const parts = named.length ? named : clean.split(/[、，,\/|和与及]+/);
+    const splitParts = clean.split(/[、，,\/|和与及]+/).map((item) => item.trim()).filter(Boolean);
+    const explicitNames = splitParts
+      .map((item) => item.replace(/^.*?(?:妹妹|姐姐|哥哥|弟弟|兄弟|姐妹|联系人)?(?:之一|之二|之三|其一|其二|其三)?[：:]?\s*/, '').trim())
+      .filter((name) => /^[\u4e00-\u9fa5]{2,4}(?:[·•][\u4e00-\u9fa5]{1,4})?$/.test(name))
+      .filter((name) => name !== selfName && !this.isWechatPlaceholderName(name));
+    const parts = named.length ? named : (explicitNames.length ? explicitNames : splitParts);
     const names = parts.map((x) => String(x || '').replace(/[（(].*?[）)]/g, '').replace(/[，。；;、,.].*$/, '').trim().slice(0, 24)).filter((x) => x && x !== selfName && x !== rel && !this.isWechatPlaceholderName(x));
     const list = names.length ? names : [rel || `联系人${index + 1}`];
     return list.filter(Boolean).map((name, subIndex) => {
