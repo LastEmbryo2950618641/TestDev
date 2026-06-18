@@ -584,6 +584,11 @@ window.GameModules.characterProfile = {
       validate: (parsed) => {
         const rows = this.csvFixRowsToApply(partIndex, issues, parsed._csvRows || []);
         if (!rows.length) throw new Error('CSV修复没有返回有效行');
+        if (partIndex === 4) {
+          const bad = rows.find((row) => this.part4RowIssue(this.csvParts(row)));
+          if (bad) throw new Error(`CSV修复行格式不合格：${bad}`);
+          return rows;
+        }
         const returnedIssue = this.csvFixReturnedIssue(partIndex, issues, rows, skeleton);
         if (returnedIssue) throw new Error(returnedIssue);
         const remaining = this.csvPartIssues(partIndex, this.mergeCsvFixRows(partIndex, currentRows, rows, issues));
@@ -652,6 +657,7 @@ window.GameModules.characterProfile = {
     return rows.filter((row) => {
       const parts = this.csvParts(row);
       if (parts[0] !== 'wearing' || !requiredKeys.includes(parts[1]) || used.has(parts[1])) return false;
+      if (this.part4RowIssue(parts)) return false;
       used.add(parts[1]);
       return true;
     });
