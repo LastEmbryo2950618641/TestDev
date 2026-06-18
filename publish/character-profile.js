@@ -152,7 +152,7 @@ window.GameModules.characterProfile = {
     const byPart = {
       1: ['name', 'worldTag', 'age', 'gender', 'factions', 'forcePositions'],
       2: ['name', 'value', 'status', 'reason', '冷静', '绝望', '了解', '服从'],
-      3: ['name', 'skills', 'knowledge', 'professions'],
+      3: ['type', 'name', 'level', 'lv1', 'lv7', 'requiredIntrinsicBase', 'requiredKnowledge', 'requiredSkills'],
       4: ['name', 'items', 'wearing', 'rpgField', 'head', 'top', 'bottom', 'shoes', 'slot'],
     };
     if (!fields) return byPart[partIndex] || [];
@@ -164,7 +164,7 @@ window.GameModules.characterProfile = {
   },
 
   partPromptWithTemplate(prompt, template, partIndex) {
-    if (partIndex === 2) return prompt;
+    if ([2, 3].includes(partIndex)) return prompt;
     return [
       prompt,
       '',
@@ -177,7 +177,7 @@ window.GameModules.characterProfile = {
   },
 
   sanitizePart(partIndex, raw, template) {
-    const clean = this.sanitizeByTemplate(raw, template);
+    const clean = partIndex === 3 ? raw : this.sanitizeByTemplate(raw, template);
     if (partIndex === 2 && clean.feeling) {
       clean.feeling = this.normalizeFeelingObject(clean.feeling);
     }
@@ -467,7 +467,50 @@ window.GameModules.characterProfile = {
 
   parsePartOutput(partIndex, text, base = {}) {
     if (partIndex === 2) return this.parseCsvFeelingPart(text, base.name);
+    if (partIndex === 3) return this.parseCsvAbilitiesPart(text, base.name);
     return this.parse(text);
+  },
+
+  parseCsvAbilitiesPart(text, name = '') {
+    const raw = String(text || '').replace(/```(?:csv|txt|json)?|```/g, '').trim();
+    const rows = raw.split(/\n+/).map((row) => row.trim()).filter(Boolean);
+    const dataRows = rows.filter((row) => !row.toLowerCase().startsWith('type,name,level,'));
+    const result = { name, skills: [], knowledge: [], professions: [] };
+    dataRows.forEach((row) => {
+      const parts = row.split(',').map((part) => part.trim());
+      if (parts.length < 14) return;
+      const [type, itemName, level, lv1, lv2, lv3, lv4, lv5, lv6, lv7, reason, requiredIntrinsicBase, requiredKnowledge, requiredSkills] = parts;
+      if (!['skills', 'knowledge', 'professions'].includes(type) || !itemName) return;
+      const item = {
+        name: itemName,
+        desc: `${itemName}的实际表现与可用范围。`,
+        level: Number(level),
+        levelEffects: this.csvLevelEffects([lv1, lv2, lv3, lv4, lv5, lv6, lv7]),
+        reason,
+      };
+      if (type === 'skills') {
+        item.requiredIntrinsicBase = this.csvList(requiredIntrinsicBase);
+        item.requiredKnowledge = this.csvList(requiredKnowledge);
+      }
+      if (type === 'professions') {
+        item.requiredIntrinsicBase = this.csvList(requiredIntrinsicBase);
+        item.requiredKnowledge = this.csvList(requiredKnowledge);
+        item.requiredSkills = this.csvList(requiredSkills);
+      }
+      result[type].push(item);
+    });
+    if (!result.skills.length) throw new Error('Part3 CSV 缺少 skills 行');
+    if (!result.knowledge.length) throw new Error('Part3 CSV 缺少 knowledge 行');
+    return result;
+  },
+
+  csvList(value) {
+    return String(value || '').split('|').map((item) => item.trim()).filter(Boolean);
+  },
+
+  csvLevelEffects(values) {
+    const labels = ['入门', '初学', '熟练', '专业', '专家', '大师', '传说'];
+    return Object.fromEntries(values.map((text, index) => [`lv${index + 1}`, { 程度介绍: labels[index], 说明: String(text || '').trim() }]));
   },
 
   parseCsvFeelingPart(text, name = '') {
@@ -768,11 +811,11 @@ window.GameModules.characterProfile = {
     if (partIndex === 3) {
       return [
         nameHint,
-        '必须返回根字段 skills（数组，至少1项）和 knowledge（数组，至少1项）。',
-        'skills 每项必须包含 name、desc、level、levelEffects、requiredKnowledge、requiredIntrinsicBase、reason。',
-        'knowledge 每项必须包含 name、desc、level、levelEffects、reason。',
-        'levelEffects 必须是对象格式，包含 lv1 到 lv7，每级含 程度介绍 和 说明。',
-        '如需返回 professions，每项必须包含 name、desc、level、levelEffects、requiredSkills、requiredKnowledge、requiredIntrinsicBase、reason。',
+        '必须只返回 CSV，不要返回 JSON。',
+        '第一行必须是 type,name,level,lv1,lv2,lv3,lv4,lv5,lv6,lv7,reason,requiredIntrinsicBase,requiredKnowledge,requiredSkills。',
+        'type 只能是 skills、knowledge、professions；skills 和 knowledge 至少各 1 行。',
+        '每行必须恰好 14 列，单元格内不要使用英文逗号。',
+        '依赖多项用竖线 | 分隔；requiredIntrinsicBase 只能用 strength/agility/constitution/intelligence/perception/willpower/charisma。',
       ].join('\n');
     }
     return [
