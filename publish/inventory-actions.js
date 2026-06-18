@@ -42,8 +42,9 @@ window.GameModules.inventoryActions = {
   },
 
   wearingDetail(item) {
-    if (this.isEmptyWear(item)) return '该槽位当前未穿戴，表示对应部位空置；基础衣物缺失只应出现在特殊情况。';
-    return [item.type || '穿着', item.description, item.source].filter(Boolean).join('｜');
+    const part = item?.bodyPart ? `穿着部位：${item.bodyPart}` : '';
+    if (this.isEmptyWear(item)) return [part, item?.reason || '该槽位当前未穿戴，表示对应部位空置。'].filter(Boolean).join('｜');
+    return [item.type || '穿着', part, item.description, item.reason, item.source].filter(Boolean).join('｜');
   },
 
   async addWearSlot(base = '装备', state = this.inventoryTargetState()) {

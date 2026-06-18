@@ -15,14 +15,17 @@ Rules：
 5. 文本尽量短：`description` 8-28 个汉字，`reason` 10-36 个汉字。
 6. `description` 必须写物品或穿着的可见材质、颜色、状态、款式、磨损、贴身程度或功能特征；禁止只写“日常穿着”“常用物品”“符合身份”。
 7. `reason` 必须写为什么此刻会携带或穿戴它，要结合职业身份、当前地点、天气时间、关系事件、行动目的、经济状况、审美习惯或遮掩需求现编，不能套用示例。
-8. `item` 行表示随身物品：`slot` 和 `bodyPart` 填 `--`，`quantity` 必须是 1 以上整数；物品最多 4 行。
-9. 禁止堆砌同类电子设备；除非输入明确说明，否则手机、电脑、耳机等同类设备各最多 1 件。
-10. `wearing` 行表示固定穿着槽位，必须按顺序输出 12 行：head、neck、innerwearTop、top、outerwear、gloves、waist、innerwearBottom、bottom、socks、shoes、wrist。
-11. 固定槽位 bodyPart 映射：head=头部，neck=颈部，innerwearTop=胸部，top=躯干，outerwear=躯干外，gloves=手部，waist=腰部，innerwearBottom=腰臀，bottom=腿部，socks=脚踝，shoes=脚部，wrist=手腕。
-12. 固定槽位未穿戴时，`name` 和 `description` 填 `--`，`reason` 写明未穿戴原因，原因也要结合季节、场合、习惯、职业或角色状态。
-13. 不穿是合法状态，但不能省略槽位：袜子不穿可以正常写 `wearing,socks,脚踝,--,--,--,具体不穿原因`；内衣不穿表示真空；上衣、外套、裤裙、鞋袜等都没穿表示裸体。裸睡、洗澡、换衣、刚醒、独自在卧室等场景都可以让多个槽位未穿戴，但必须保留 12 个固定 wearing 行。
-14. `slot` 行表示额外穿着或手持装饰，只在确有必要时输出，不超过 2 行；没有额外穿着就不输出 `slot` 行。
-15. 本轮不要输出 `rpgField`、`rpgFieldReasons` 或任何 RPG 属性。
+8. 玩家备注、人物基础区或关系事件中出现明确穿着偏好时，必须优先落实到固定穿着槽位，不得用泛化日常衣物覆盖。例如写了“JK/制服”就优先让 top 或 bottom 体现制服上衣、百褶裙等；写了“过膝袜/连裤袜/丝袜”就必须让 socks 体现对应袜类；写了“白色/黑丝/黑色”等颜色偏好就要体现在 name 或 description 中。
+9. 同一身体层级不得互相冲突：bottom 只能是一件主要下装，不能同时出现百褶裙和牛仔裤；如果穿裙子，下装写裙子，连裤袜/过膝袜归入 socks，不能把袜裤写成 bottom。
+10. 禁止生成“日常上衣”“日常下衣”“日常袜子”“上下文未写明异常”等兜底词；没有明确穿戴时就写未穿戴 `--`，有明确偏好时必须具体生成。
+11. `item` 行表示随身物品：`slot` 和 `bodyPart` 填 `--`，`quantity` 必须是 1 以上整数；物品最多 4 行。
+12. 禁止堆砌同类电子设备；除非输入明确说明，否则手机、电脑、耳机等同类设备各最多 1 件。
+13. `wearing` 行表示固定穿着槽位，必须按顺序输出 12 行：head、neck、innerwearTop、top、outerwear、gloves、waist、innerwearBottom、bottom、socks、shoes、wrist。
+14. 固定槽位 bodyPart 映射：head=头部，neck=颈部，innerwearTop=胸部，top=躯干，outerwear=躯干外，gloves=手部，waist=腰部，innerwearBottom=腰臀，bottom=腿部，socks=脚踝，shoes=脚部，wrist=手腕。
+15. 固定槽位未穿戴时，`name` 和 `description` 填 `--`，`reason` 写明未穿戴原因，原因也要结合季节、场合、习惯、职业或角色状态。
+16. 不穿是合法状态，但不能省略槽位：袜子不穿可以正常写 `wearing,socks,脚踝,--,--,--,具体不穿原因`；内衣不穿表示真空；上衣、外套、裤裙、鞋袜等都没穿表示裸体。裸睡、洗澡、换衣、刚醒、独自在卧室等场景都可以让多个槽位未穿戴，但必须保留 12 个固定 wearing 行。
+17. `slot` 行表示额外穿着或手持装饰，只在确有必要时输出，不超过 2 行；没有额外穿着就不输出 `slot` 行。
+18. 本轮不要输出 `rpgField`、`rpgFieldReasons` 或任何 RPG 属性。
 
 ## 已生成角色卡基础信息
 

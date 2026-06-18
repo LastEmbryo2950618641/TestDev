@@ -587,6 +587,8 @@ window.GameModules.characterProfile = {
         'wearing 行的 slot 只能是固定值：head、neck、innerwearTop、top、outerwear、gloves、waist、innerwearBottom、bottom、socks、shoes、wrist。',
         '缺 socks 就必须返回 wearing,socks,脚踝,...；鞋子必须用 shoes，禁止写 feet、foot、ankle、legs 或其它替代槽位。',
         'wearing 行 quantity 固定写 --；未穿戴是合法状态，name 和 description 写 --，reason 写清不穿原因。',
+        '禁止返回“日常上衣/日常下衣/日常袜子/上下文未写明异常/常规场景基础穿着槽位”等兜底文案。',
+        'bottom 只能写一件主要下装，不能同时写百褶裙和牛仔裤；过膝袜、连裤袜、丝袜必须写在 socks。',
         '不穿袜子、内衣、上衣、外套等都可以成立，但必须保留对应固定槽位行；例如袜子不穿仍输出 wearing,socks,脚踝,--,--,--,具体不穿原因。',
         '裸体、裸睡、洗澡、换衣、刚醒等场景可以让多个穿着槽位未穿戴，但不得省略槽位，也不得把未穿戴槽位改成其它 slot。',
         '必须批量返回本次所有有问题的行，并严格照下面列表的 type 和 slot 生成：',
@@ -943,6 +945,9 @@ window.GameModules.characterProfile = {
       if (!this.fixedWearingSlots().includes(slot)) return 'wearing槽位无效';
       if (!this.csvCell(bodyPart)) return 'bodyPart缺失';
       if (!this.csvCell(reason)) return 'reason缺失';
+      const text = `${itemName}${description}${reason}`;
+      if (/日常(上衣|下衣|袜子|鞋子|内衣|内裤)|上下文未写明异常|常规场景基础穿着槽位/.test(text)) return '禁止兜底穿着文案';
+      if (slot === 'bottom' && /裙/.test(text) && /裤|牛仔裤|长裤|短裤|运动裤/.test(text)) return 'bottom不能同时写裙装和裤装';
       if (this.csvCell(itemName) && !this.csvCell(description)) return '穿戴物描述缺失';
     }
     if (type === 'slot') {
@@ -1627,7 +1632,7 @@ window.GameModules.characterProfile = {
       const slot = String(item?.slot || '').slice(0, 12);
       const bodyPart = String(item?.bodyPart || item?.部位 || '').slice(0, 12);
       return { slot, bodyPart, name, type: '穿着', description: String(item?.description || '').slice(0, 80), reason: String(item?.reason || item?.changeMode || '').trim().slice(0, 120), changeMode: String(item?.reason || item?.changeMode || '').trim().slice(0, 120), level: -1 };
-    }).filter((item) => item.slot && item.name !== '未穿戴').slice(0, 20);
+    }).filter((item) => item.slot).slice(0, 20);
   },
 
   compactProfileContext(profile = {}) {

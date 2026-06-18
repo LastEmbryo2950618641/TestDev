@@ -73,14 +73,21 @@ window.GameModules = window.GameModules || {};
       return { ...obj, name, type: obj.type || kind, kind: obj.kind || kind, quantity: Math.max(1, Number(obj.quantity) || 1), equipSlots: this.inferEquipSlots(obj, kind), reason, changeMode: mode, level: Number(obj.level) > 0 ? obj.level : -1 };
     },
 
+    bodyPartForSlot(slot) {
+      const base = this.slotBase(slot);
+      return ({ 内衣: '胸部', 上衣: '躯干', 内裤: '腰臀', 下衣: '腿部', 袜子: '脚踝', 鞋子: '脚部', 外套: '躯干外', 手套: '手部', 头部: '头部', 颈部: '颈部', 腰部: '腰部', 包具: '肩部', 饰品: '装饰部位', 装备: '装备位' })[base] || base || '';
+    },
+
     defaultWearForSlot(slot) {
-      const names = { 内衣: '日常内衣', 上衣: '日常上衣', 内裤: '日常内裤', 下衣: '日常下衣', 袜子: '日常袜子', 鞋子: '日常鞋子' };
-      const name = names[slot];
-      return name ? { slot, name, type: '穿着', description: '上下文未写明异常，按常规场景补齐的基础穿着。', reason: `${slot}是常规场景基础穿着槽位，当前上下文没有脱下或缺失证据。`, changeMode: `${slot}是常规场景基础穿着槽位，当前上下文没有脱下或缺失证据。`, level: -1 } : null;
+      return null;
     },
 
     isPlaceholderEmptyWear(item) {
-      return !item?.name || item.name === '未记录' || (item.name === '未穿戴' && /暂无已记录|未被上下文记录/.test(item.description || ''));
+      return !item?.name
+        || item.name === '未记录'
+        || /^日常(内衣|上衣|内裤|下衣|袜子|鞋子)$/.test(item.name)
+        || /上下文未写明异常|常规场景基础穿着槽位/.test(`${item.description || ''}${item.reason || ''}${item.changeMode || ''}`)
+        || (item.name === '未穿戴' && /暂无已记录|未被上下文记录/.test(item.description || ''));
     },
 
     defaultWearing(existing = []) {
@@ -95,7 +102,7 @@ window.GameModules = window.GameModules || {};
         const basic = this.defaultWearForSlot(slot);
         if (basic) return basic;
         const reason = `${slot}槽位当前没有已穿戴物，表示该可穿戴位置空置。`;
-        return { slot, name: '未穿戴', type: '穿着', description: '该槽位当前未穿戴，表示对应部位空置。', reason, changeMode: reason, level: -1 };
+        return { slot, bodyPart: this.bodyPartForSlot(slot), name: '未穿戴', type: '穿着', description: '该槽位当前未穿戴，表示对应部位空置。', reason, changeMode: reason, level: -1 };
       });
     },
 
