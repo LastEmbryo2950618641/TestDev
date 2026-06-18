@@ -16,7 +16,7 @@ Rules：
 6. `requiredIntrinsicBase`、`requiredKnowledge`、`requiredSkills` 对 `skills`、`knowledge`、`professions` 都不做类型限制，可填写英文 key、中文名词或能力名称。
 7. 依赖列若有适用内容，必须结合角色动机、处境、性格与过去经历尽可能列全；多个依赖项用竖线 `|` 分隔，不要用英文逗号。
 8. 不存在或不适用的字段值统一填写 `--`，不要留空。
-9. `skills` 至少 1 行，不超过 4 行；`knowledge` 至少 1 行，不超过 5 行；`professions` 只有明确职业证据时才生成，不确定时不输出 profession 行，不超过 5 行。
+9. `skills` 至少 1 行，不超过 10 行；`knowledge` 至少 1 行，不超过 10 行；`professions` 只有明确职业证据时才生成，不确定时不输出 profession 行，不超过 10 行。
 
 ## 已生成角色卡基础信息
 

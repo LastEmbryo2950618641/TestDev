@@ -405,17 +405,19 @@ window.GameModules.characterProfile = {
 
   part3CsvIssues(rows) {
     const issues = [];
-    let validSkills = 0;
-    let validKnowledge = 0;
+    const counts = { skills: 0, knowledge: 0, professions: 0 };
     rows.forEach((row, index) => {
       const parts = this.csvParts(row);
       const reason = this.part3RowIssue(parts);
-      if (reason) issues.push({ key: `row${index + 1}`, reason, badRow: row });
-      else if (parts[0] === 'skills') validSkills += 1;
-      else if (parts[0] === 'knowledge') validKnowledge += 1;
+      if (reason) {
+        issues.push({ key: `row${index + 1}`, reason, badRow: row });
+        return;
+      }
+      counts[parts[0]] += 1;
+      if (counts[parts[0]] > 10) issues.push({ key: `row${index + 1}`, reason: `${parts[0]}超过10行`, badRow: row });
     });
-    if (!validSkills) issues.push({ key: 'skills', reason: '缺失至少1行skills' });
-    if (!validKnowledge) issues.push({ key: 'knowledge', reason: '缺失至少1行knowledge' });
+    if (!counts.skills) issues.push({ key: 'skills', reason: '缺失至少1行skills' });
+    if (!counts.knowledge) issues.push({ key: 'knowledge', reason: '缺失至少1行knowledge' });
     return issues;
   },
 
@@ -435,7 +437,8 @@ window.GameModules.characterProfile = {
   },
 
   async generateCsvFixRows(partIndex, issues, currentRows, format, base, lore, attrs, store, vars) {
-    const promptId = partIndex === 2 ? 'character-profile-part2-feeling-fix' : null;
+    const promptIds = { 2: 'character-profile-part2-feeling-fix', 3: 'character-profile-part3-abilities-professions-fix' };
+    const promptId = promptIds[partIndex] || null;
     const prompt = promptId
       ? await window.GameModules.promptTemplates.render(promptId, { ...vars, 需要AI返回的行: this.csvFixSkeleton(partIndex, issues), 当前已合格行: this.validCsvRowsForPrompt(partIndex, currentRows).join('\n') || '无', 错误行说明: issues.map((x) => `${x.key}：${x.reason}${x.badRow ? `｜${x.badRow}` : ''}`).join('\n') })
       : this.inlineCsvFixPrompt(partIndex, issues, currentRows, format, base);

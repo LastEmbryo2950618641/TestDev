@@ -12,6 +12,7 @@ window.GameModules.promptTemplates = {
     { id: 'character-profile-part2-feeling', title: '角色卡 Part2 情感数值', category: '角色生成', file: 'prompts/character-profile-part2-feeling.md', summary: '按预定义 CSV 生成情绪和对玩家感觉数值。' },
     { id: 'character-profile-part2-feeling-fix', title: '角色卡 Part2 情感数值行修复', category: '角色生成', file: 'prompts/character-profile-part2-feeling-fix.md', summary: '只补齐 Part2 缺失或不完整的固定情感 CSV 行。' },
     { id: 'character-profile-part3-abilities-professions', title: '角色卡 Part3 能力职业', category: '角色生成', file: 'prompts/character-profile-part3-abilities-professions.md', summary: '按预定义 CSV 生成技能、知识与职业。' },
+    { id: 'character-profile-part3-abilities-professions-fix', title: '角色卡 Part3 能力职业行修复', category: '角色生成', file: 'prompts/character-profile-part3-abilities-professions-fix.md', summary: '只补齐 Part3 缺失或不完整的技能、知识、职业 CSV 行。' },
     { id: 'character-profile-part4-inventory-wearing-rpg', title: '角色卡 Part4 物品穿着', category: '角色生成', file: 'prompts/character-profile-part4-inventory-wearing-rpg.md', summary: '按预定义 CSV 生成物品与穿着。' },
     { id: 'character-profile-part5-rpg-field', title: '角色卡 Part5 RPG属性', category: '角色生成', file: 'prompts/character-profile-part5-rpg-field.md', summary: '按预定义 JSON 生成 RPG 属性。' },
     { id: 'character-profile-metric-group', title: '角色卡初始数值组生成', category: '角色生成', file: 'prompts/character-profile-metric-group.md', summary: '拆分生成初始情绪或对玩家感觉数值数组。' },
