@@ -507,6 +507,7 @@ window.GameModules.characterProfile = {
   },
 
   applyLocalCsvFixes(partIndex, rows) {
+    if (partIndex === 2) return this.normalizePart2RowsLocally(rows);
     if (partIndex !== 3) return rows;
     const totals = { skills: 0, knowledge: 0, professions: 0 };
     rows.forEach((row) => {
@@ -520,6 +521,23 @@ window.GameModules.characterProfile = {
       if (totals[type] <= 10) return true;
       return !this.part3RowIssue(parts);
     });
+  },
+
+  normalizePart2RowsLocally(rows) {
+    const keys = [...window.GameModules.metrics.emotionKeys, ...window.GameModules.metrics.playerKeys];
+    const seen = new Set();
+    const cleaned = [];
+    rows.map((row) => this.normalizePart2Row(row)).forEach((row) => {
+      let parts = this.csvParts(row);
+      if (parts[0] === 'name' && keys.includes(parts[1])) parts = parts.slice(1);
+      const key = parts[0];
+      if (!keys.includes(key) || seen.has(key)) return;
+      if (parts.length > 4) parts = [parts[0], parts[1], parts[2], parts.slice(3).join('，')];
+      if (this.part2RowIssue(parts, key)) return;
+      seen.add(key);
+      cleaned.push(parts.join(','));
+    });
+    return cleaned;
   },
 
   buildPartFromCsvRows(partIndex, rows, name) {
@@ -634,6 +652,7 @@ window.GameModules.characterProfile = {
       return [
         '只返回要求补齐的 Part2 CSV 行，不要表头、JSON、Markdown 或解释。',
         '每行必须恰好 4 列：情感名,value,status,reason。',
+        '如果“需要AI返回的行”为空，必须返回空文本，不能发明 row1、row2 或其它行。',
         '第一列必须逐字照抄“需要AI返回的行”的情感名，禁止写 name，禁止改名，禁止新增未要求的行。',
         '必须批量返回本次所有有问题的行，返回行数必须等于需要AI返回的行数。',
         '禁止返回当前已合格行；禁止重复同一个情感名；禁止输出“好的、已理解”等确认语。',
@@ -778,7 +797,10 @@ window.GameModules.characterProfile = {
   },
 
   csvFixSkeleton(partIndex, issues) {
-    if (partIndex === 2) return issues.map((x) => `${x.key},50,${x.key}因为当前证据形成状态,${x.key}源于人物经历和关系证据`).join('\n');
+    if (partIndex === 2) {
+      const keys = [...window.GameModules.metrics.emotionKeys, ...window.GameModules.metrics.playerKeys];
+      return issues.filter((x) => keys.includes(x.key)).map((x) => `${x.key},50,${x.key}因为当前证据形成状态,${x.key}源于人物经历和关系证据`).join('\n');
+    }
     if (partIndex === 3) return issues.map((x) => (x.key === 'knowledge' ? 'knowledge,现代常识,2,日常生活和教育经历形成基础常识,生活经验,家庭经历|教育背景,--' : 'skills,观察力,2,长期生活经历形成基础观察能力,perception|谨慎性格,现代常识|过往经历,日常观察习惯')).join('\n');
     const positions = this.wearingClothingPositions();
     const missingReasonHints = {
@@ -1156,7 +1178,7 @@ window.GameModules.characterProfile = {
   },
 
   csvParts(row) {
-    return String(row || '').split(',').map((part) => part.trim());
+    return String(row || '').split(',').map((part) => part.trim().replace(/^["“”']|["“”']$/g, ''));
   },
 
   csvCell(value) {
@@ -1488,6 +1510,7 @@ window.GameModules.characterProfile = {
         '必须返回根字段 worldTag（含 value 和 reason）、age（含 value 和 reason）。',
         '必须返回根字段 learningAbility、mentalStability、growthPotential、actionAbility（各含 value 和 reason）。',
         '必须返回根字段 factions 和 forcePositions（数组，每项含 reason）。',
+        'relationships 只能写“当前人物与别人”的关系，冒号右侧不能是当前人物本人；当前人物自己的长兄、妹妹、学生等身份写入 role/detail。',
         '本轮不要返回 feeling/skills/knowledge/professions/items/wearing/rpgField/rpgFieldReasons。',
       ].join('\n');
     }
@@ -2051,14 +2074,20 @@ window.GameModules.characterProfile = {
     const knownRel = '妹妹|姐姐|哥哥|弟弟|父亲|母亲|爸爸|妈妈|兄长|兄弟|姐妹|女儿|儿子|朋友|同学|同事|邻居|恋人|妻子|丈夫';
     const normalized = String(value || '').replace(new RegExp(`([：:])(?=(${knownRel})[：:])`, 'g'), '；');
     const parts = normalized.split(/[；;\n]+/).map((part) => part.trim()).filter(Boolean);
-    return parts.map((part) => {
+    const dropped = [];
+    const formatted = parts.map((part) => {
       const pair = part.split(/[：:]/);
       const rel = String(pair[0] || '').replace(/[，。,.].*$/, '').trim();
       const name = String(pair[1] || '').replace(/[，。；;、,.].*$/, '').trim();
-      if (self && name === self) throw new Error(`关系方向错误: ${rel}：${name} 把当前角色本人写成了关系对象`);
+      if (self && name === self) {
+        dropped.push(`${rel}：${name}`);
+        return '';
+      }
       const invalid = /同居|喜欢|倾向|关系|需要|生成|资料|补全|未知|待/.test(name) || name.length > 12;
       return rel && name && !invalid ? `${rel}：${name}` : '';
     }).filter(Boolean).join('；');
+    if (dropped.length) console.warn('[角色卡] 已移除指向当前角色本人的关系项:', { name: self, dropped });
+    return formatted;
   },
 
   validName(name, base) {
