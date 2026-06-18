@@ -161,6 +161,9 @@ window.GameModules.characterProfile = {
 
   sanitizePart(partIndex, raw, template) {
     const clean = this.sanitizeByTemplate(raw, template);
+    if (partIndex === 1 && clean.feeling) {
+      clean.feeling = this.normalizeFeelingObject(clean.feeling);
+    }
     if (partIndex === 1 && clean.initialMetrics) {
       clean.initialMetrics = this.sanitizeInitialMetrics(clean.initialMetrics);
     }
@@ -173,6 +176,18 @@ window.GameModules.characterProfile = {
       emotions: this.metricGroupAsArray(value.emotions, window.GameModules.metrics.emotionKeys),
       playerFeelings: this.metricGroupAsArray(value.playerFeelings, window.GameModules.metrics.playerKeys),
     };
+  },
+
+  normalizeFeelingObject(value) {
+    if (!value || typeof value !== 'object') return value;
+    const metric = window.GameModules.metrics;
+    const toObject = (items, keys) => Object.fromEntries(this.metricGroupAsArray(items, keys).map((item) => [item.key, {
+      name: item.name || item.key,
+      value: item.value,
+      status: item.status,
+      reason: item.reason,
+    }]));
+    return { emotions: toObject(value.emotions, metric.emotionKeys), playerFeelings: toObject(value.playerFeelings, metric.playerKeys) };
   },
 
   metricGroupAsArray(value, keys) {
@@ -280,13 +295,13 @@ window.GameModules.characterProfile = {
       const list = value[group];
       if (Array.isArray(list)) {
         return keys.every((key) => {
-          const item = list.find((entry) => entry?.key === key);
+          const item = list.find((entry) => entry?.key === key || entry?.name === key);
           return item && item.value !== undefined && String(item.status || '').trim() && String(item.reason || '').trim();
         });
       }
       if (list && typeof list === 'object') {
         return keys.every((key) => {
-          const item = list[key];
+          const item = list[key] || Object.values(list).find((entry) => entry?.name === key);
           return item && item.value !== undefined && String(item.status || '').trim() && String(item.reason || '').trim();
         });
       }
@@ -1164,7 +1179,7 @@ window.GameModules.characterProfile = {
 
   initialMetrics(value, profile = {}) {
     const normalize = (items, keys, type) => {
-      const list = Array.isArray(items) ? items : [];
+      const list = this.metricGroupAsArray(items, keys);
       return keys.map((key) => {
         const item = list.find((entry) => entry?.key === key) || {};
         if (item.value === undefined) throw new Error(`${profile.name || '角色'} 缺少AI生成的${key}数值`);
