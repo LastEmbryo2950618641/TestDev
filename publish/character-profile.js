@@ -143,7 +143,7 @@ window.GameModules.characterProfile = {
       format,
       repairHint: this.partRepairHint(partIndex, base, attrs, template),
       requiredRawFields: this.partRequiredRawFields(partIndex),
-      parse: (text) => this.parse(text),
+      parse: (text) => this.parsePartOutput(partIndex, text, base),
       max: 2,
     });
     let normalized = this.sanitizePart(partIndex, raw, template);
@@ -168,6 +168,7 @@ window.GameModules.characterProfile = {
   },
 
   partPromptWithTemplate(prompt, template, partIndex) {
+    if (partIndex === 2 || partIndex === 3) return prompt;
     return [
       prompt,
       '',
@@ -175,9 +176,7 @@ window.GameModules.characterProfile = {
       '下方模板由 MD 文档结构生成，本次输出必须严格遵守这些字段名、嵌套结构和数组元素字段。',
       '模板中不存在的字段不要输出；不要把旧版 force_positions、数组式 feeling 或数组式 wearing 写回角色卡。',
       `Part${partIndex} 模板：`,
-      '```json',
       JSON.stringify(template, null, 2),
-      '```',
     ].join('\n');
   },
 
@@ -472,6 +471,22 @@ window.GameModules.characterProfile = {
     return window.GameModules.jsonUtils.parseLoose(text);
   },
 
+  parsePartOutput(partIndex, text, base = {}) {
+    if (partIndex === 2) return this.parseCsvFeelingPart(text, 'emotions', window.GameModules.metrics.emotionKeys, base.name);
+    if (partIndex === 3) return this.parseCsvFeelingPart(text, 'playerFeelings', window.GameModules.metrics.playerKeys, base.name);
+    return this.parse(text);
+  },
+
+  parseCsvFeelingPart(text, group, keys, name = '') {
+    const parsed = this.parseMetricGroupLines(text, group, keys);
+    if (parsed[group]?.length !== keys.length) throw new Error(`${group} CSV 行数不完整`);
+    const keyMap = group === 'emotions'
+      ? { 冷静: 'cold', 恐惧: 'fear', 担忧: 'worry', 高兴: 'joy', 紧张: 'tension', 愤怒: 'anger', 羞耻: 'shame', 悲伤: 'sadness', 好奇: 'curiosity', 麻木: 'numbness', 嫉妒: 'jealousy', 绝望: 'despair' }
+      : { 了解: 'understanding', 信任: 'trust', 反抗: 'resistance', 好感: 'affection', 友情: 'friendship', 亲情: 'familyLove', 爱情: 'romanticLove', 肉欲: 'lust', 畏惧: 'awe', 尊敬: 'respect', 崇拜: 'admiration', 讨厌: 'dislike', 依赖: 'dependence', 警惕: 'vigilance', 支配欲: 'dominance', 占有欲: 'possessiveness', 服从: 'submission' };
+    const feelingGroup = Object.fromEntries(parsed[group].map((item) => [keyMap[item.key] || item.key, { name: item.key, value: item.value, status: item.status, reason: item.reason }]));
+    return { name, feeling: { [group]: feelingGroup } };
+  },
+
   parseMetricGroup(text, group, keys) {
     const lined = this.parseMetricGroupLines(text, group, keys);
     if (lined[group]?.length === keys.length) return lined;
@@ -750,17 +765,19 @@ window.GameModules.characterProfile = {
     if (partIndex === 2) {
       return [
         nameHint,
-        '必须返回根字段 feeling，且只包含 emotions（12项对象），不要返回 playerFeelings。',
-        'emotions 中每个字段必须包含 name、value（0-100整数）、status、reason 四个子字段。',
-        'emotions 的 value 不得全部为 0，必须根据人物性格、处境和关系证据给出合理数值。',
+        '必须只返回 CSV，不要返回 JSON。',
+        '第一行必须是 name,value,status,reason。',
+        '必须按固定顺序返回 12 行情绪：冷静、恐惧、担忧、高兴、紧张、愤怒、羞耻、悲伤、好奇、麻木、嫉妒、绝望。',
+        '每行四列：中文名称,0-100整数,状态短句,原因短句。',
       ].join('\n');
     }
     if (partIndex === 3) {
       return [
         nameHint,
-        '必须返回根字段 feeling，且只包含 playerFeelings（17项对象），不要返回 emotions。',
-        'playerFeelings 中每个字段必须包含 name、value（0-100整数）、status、reason 四个子字段。',
-        'playerFeelings 的 value 必须根据玩家资料、人物关系和剧情事件给出合理数值。',
+        '必须只返回 CSV，不要返回 JSON。',
+        '第一行必须是 name,value,status,reason。',
+        '必须按固定顺序返回 17 行对玩家感觉：了解、信任、反抗、好感、友情、亲情、爱情、肉欲、畏惧、尊敬、崇拜、讨厌、依赖、警惕、支配欲、占有欲、服从。',
+        '每行四列：中文名称,0-100整数,状态短句,原因短句。',
       ].join('\n');
     }
     if (partIndex === 4) {
