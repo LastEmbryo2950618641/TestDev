@@ -98,11 +98,12 @@ window.GameModules = window.GameModules || {};
     },
 
     isPlaceholderEmptyWear(item) {
-      return !item?.name
+      const text = `${item?.description || ''}${item?.reason || ''}${item?.changeMode || ''}`;
+      return item?.source !== 'AI生成' && (!item?.name
         || item.name === '未记录'
         || /^日常(内衣|上衣|内裤|下衣|袜子|鞋子)$/.test(item.name)
-        || /上下文未写明异常|常规场景基础穿着槽位|缺少AI生成|缺少有效AI/.test(`${item.description || ''}${item.reason || ''}${item.changeMode || ''}`)
-        || (item.name === '未穿戴' && /暂无已记录|未被上下文记录/.test(item.description || ''));
+        || /上下文未写明异常|常规场景基础穿着槽位|缺少AI生成|缺少有效AI/.test(text)
+        || (item.name === '未穿戴' && /暂无已记录|未被上下文记录|当前未穿戴|当前没有明确记录|保持空置状态|此刻没有额外穿戴物|该槽位当前未穿戴/.test(text)));
     },
 
     defaultWearing(existing = [], ownerId = '') {
@@ -131,12 +132,13 @@ window.GameModules = window.GameModules || {};
         const reason = item?.reason || item?.changeMode || '';
         const name = item?.name || '未穿戴';
         const id = item?.id || (ownerId ? this.itemId(ownerId, '穿着', slot, name) : '');
-        return { ...(item || {}), id, ownerId, characterId: ownerId, slot, clothing_position: item?.clothing_position || this.clothingPositionForSlot(slot), slotLabel: item?.slotLabel || this.clothingPositionForSlot(slot), type: '穿着', reason, changeMode: reason || item?.changeMode || '', level: -1 };
+        return { ...(item || {}), id, ownerId, characterId: ownerId, slot, clothing_position: item?.clothing_position || this.clothingPositionForSlot(slot), slotLabel: item?.slotLabel || this.clothingPositionForSlot(slot), type: '穿着', reason, changeMode: reason || item?.changeMode || '', source: item?.source || (profile.roleCardSource === 'ai' ? 'AI生成' : item?.source), level: -1 };
       }).filter((item) => item.slot && item.reason).slice(0, 40);
     },
 
     generatedFallbackWear(item = {}) {
-      return !item?.slot || /缺少AI生成|缺少有效AI|没有已穿戴物，表示该可穿戴位置空置|该槽位当前未穿戴，表示对应部位空置|暂无已记录|未被上下文记录|状态规范化|常规场景基础穿着槽位/.test(`${item.description || ''}${item.reason || ''}${item.changeMode || ''}`);
+      if (item?.source === 'AI生成') return false;
+      return !item?.slot || /缺少AI生成|缺少有效AI|没有已穿戴物，表示该可穿戴位置空置|该槽位当前未穿戴，表示对应部位空置|暂无已记录|未被上下文记录|状态规范化|常规场景基础穿着槽位|当前没有明确记录|保持空置状态|此刻没有额外穿戴物/.test(`${item.description || ''}${item.reason || ''}${item.changeMode || ''}`);
     },
 
     shouldReplaceWearing(current = [], incoming = []) {
