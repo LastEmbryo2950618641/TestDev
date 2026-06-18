@@ -8,7 +8,7 @@ window.GameModules = window.GameModules || {};
 
   Object.assign(profileTool, {
     metricSourceValue(source = '系统') {
-      return source === 'ai' ? 'ai' : '系统';
+      return String(source).toLowerCase() === 'ai' ? 'AI' : '系统';
     },
 
     metricSourceMap(source = '系统') {
@@ -24,7 +24,7 @@ window.GameModules = window.GameModules || {};
 
     metricSourcesAreAi(item) {
       const sources = this.metricSources(item, '系统');
-      return sources.数值 === 'ai' && sources.解释 === 'ai' && sources.原因 === 'ai';
+      return sources.数值 === 'AI' && sources.解释 === 'AI' && sources.原因 === 'AI';
     },
 
     withMetricSources(item, source = 'ai') {
@@ -90,17 +90,17 @@ window.GameModules = window.GameModules || {};
     mergeMetricAiFields(current, generated) {
       const sources = this.metricSources(current, '系统');
       const output = { ...current, metricSources: { ...sources } };
-      if (sources.数值 !== 'ai') {
+      if (sources.数值 !== 'AI') {
         output.value = generated.value;
-        output.metricSources.数值 = 'ai';
+        output.metricSources.数值 = 'AI';
       }
-      if (sources.解释 !== 'ai') {
+      if (sources.解释 !== 'AI') {
         output.status = generated.status;
-        output.metricSources.解释 = 'ai';
+        output.metricSources.解释 = 'AI';
       }
-      if (sources.原因 !== 'ai') {
+      if (sources.原因 !== 'AI') {
         output.reason = generated.reason;
-        output.metricSources.原因 = 'ai';
+        output.metricSources.原因 = 'AI';
       }
       return output;
     },

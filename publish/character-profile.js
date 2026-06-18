@@ -302,6 +302,7 @@ window.GameModules.characterProfile = {
       value: item.value,
       status: item.status,
       reason: item.reason,
+      metricSources: item.metricSources || item.sourceMap,
     }]));
     return { emotions: toObject(value.emotions, metric.emotionKeys), playerFeelings: toObject(value.playerFeelings, metric.playerKeys) };
   },
@@ -309,12 +310,12 @@ window.GameModules.characterProfile = {
   metricGroupAsArray(value, keys) {
     if (Array.isArray(value)) return keys.map((key) => {
       const item = value.find((entry) => entry?.key === key || entry?.name === key) || {};
-      return { key, value: item.value, status: item.status, reason: item.reason };
+      return { key, value: item.value, status: item.status, reason: item.reason, metricSources: item.metricSources || item.sourceMap };
     });
     const source = value && typeof value === 'object' ? value : {};
     return keys.map((key) => {
       const item = source[key] || Object.values(source).find((entry) => entry?.name === key) || {};
-      return { key, value: item.value, status: item.status, reason: item.reason };
+      return { key, value: item.value, status: item.status, reason: item.reason, metricSources: item.metricSources || item.sourceMap };
     });
   },
 
@@ -1208,7 +1209,7 @@ window.GameModules.characterProfile = {
     if (strict && playerFeelings.length !== window.GameModules.metrics.playerKeys.length) throw new Error('playerFeelings CSV 行数不完整');
     const emotionMap = { 冷静: 'cold', 恐惧: 'fear', 担忧: 'worry', 高兴: 'joy', 紧张: 'tension', 愤怒: 'anger', 羞耻: 'shame', 悲伤: 'sadness', 好奇: 'curiosity', 麻木: 'numbness', 嫉妒: 'jealousy', 绝望: 'despair' };
     const playerMap = { 了解: 'understanding', 信任: 'trust', 反抗: 'resistance', 好感: 'affection', 友情: 'friendship', 亲情: 'familyLove', 爱情: 'romanticLove', 肉欲: 'lust', 畏惧: 'awe', 尊敬: 'respect', 崇拜: 'admiration', 讨厌: 'dislike', 依赖: 'dependence', 警惕: 'vigilance', 支配欲: 'dominance', 占有欲: 'possessiveness', 服从: 'submission' };
-    const toObject = (items, map) => Object.fromEntries(items.map((item) => [map[item.key] || item.key, { name: item.key, value: item.value, status: item.status, reason: item.reason }]));
+    const toObject = (items, map) => Object.fromEntries(items.map((item) => [map[item.key] || item.key, { name: item.key, value: item.value, status: item.status, reason: item.reason, metricSources: item.metricSources || this.metricSourceMap?.('ai') }]));
     return { name, feeling: { emotions: toObject(emotions, emotionMap), playerFeelings: toObject(playerFeelings, playerMap) }, _csvRows: rows };
   },
 

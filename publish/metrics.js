@@ -105,10 +105,11 @@ window.GameModules.metrics = {
     const status = String(this.valueExplanation(item.key, value, rawStatus, reason)).slice(0, 180);
     const explicitSources = item.metricSources || null;
     const statusFromAi = rawStatus && status === rawStatus;
+    const isAi = (source) => String(source || '').toLowerCase() === 'ai';
     const metricSources = explicitSources ? {
-      数值: explicitSources.数值 === 'ai' ? 'ai' : '系统',
-      解释: explicitSources.解释 === 'ai' && statusFromAi ? 'ai' : '系统',
-      原因: explicitSources.原因 === 'ai' && rawReason ? 'ai' : '系统',
+      数值: isAi(explicitSources.数值) ? 'AI' : '系统',
+      解释: isAi(explicitSources.解释) && statusFromAi ? 'AI' : '系统',
+      原因: isAi(explicitSources.原因) && rawReason ? 'AI' : '系统',
     } : {
       数值: '系统',
       解释: '系统',
