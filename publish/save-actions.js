@@ -85,10 +85,12 @@ window.GameModules.saveActions = {
     const worldTag = character.work || '原创世界';
     console.log('[RPG状态] 准备角色状态:', worldTag, character.name);
     const profile = await window.GameModules.characterProfile.ensure(character, this, context || this.entryCurrentAction || this.sceneTitle || '');
+    this.updateRoleCardLoadingStep?.(profile.id || character.id, 'state', 'running');
     const state = await window.GameModules.rpgState.ensureCharacter(profile, this);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
     if (options.loadMetrics !== false && state.id === this.character.id) this.loadMetricsFromCharacterState(state);
     this.rpgPanelCharacterId = this.rpgPanelCharacterId || state.id;
+    this.finishRoleCardLoading?.(state.id, state.profile || profile);
     return state;
   },
   async ensureRpgForCurrentCharacter(options = {}) {
@@ -99,12 +101,15 @@ window.GameModules.saveActions = {
     return this.ensureRpgForCharacter(this.character, this.entryCurrentAction || this.sceneTitle || '');
   },
   async ensureRpgFromResults(result) {
-    await this.ensureRpgForCurrentCharacter();
     const entries = [this.character, ...(result.appearedCharacters || [])];
+    const unique = [...new Map(entries.filter(Boolean).map((entry) => [entry.id || entry.name, entry])).values()];
+    this.startRoleCardLoadingBatch?.(unique.map((entry) => {
+      const current = entry.id === this.character.id;
+      const player = current && (entry.id === 'player-self' || entry.isPlayer || this.playerIdentityState?.()?.id === entry.id);
+      return { id: entry.id || entry.name, name: entry.name || '发现新角色', type: player ? '玩家卡' : '角色卡' };
+    }));
     const context = `${this.sceneTitle} ${this.quest} ${result.narration || ''}`;
-    for (const entry of entries) {
-      await this.ensureRpgForCharacter(entry, context, { loadMetrics: entry.id === this.character.id });
-    }
+    await Promise.all(unique.map((entry) => this.ensureRpgForCharacter(entry, context, { loadMetrics: entry.id === this.character.id })));
   },
   findKnownCharacter(name) {
     if (!name) return null;

@@ -214,6 +214,59 @@ button:not(:disabled):active {
   line-height: 1.45;
 }
 
+.role-card-loading-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: max(14px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  background: rgba(0, 0, 0, .48);
+  backdrop-filter: blur(10px);
+}
+
+.role-card-loading-modal {
+  width: min(560px, 100%);
+  max-height: min(680px, 88dvh);
+  display: grid;
+  gap: 10px;
+  overflow: hidden;
+  padding: 14px;
+  border: 1px solid rgba(116, 246, 255, .28);
+  border-radius: 20px;
+  background: rgba(10, 15, 31, .96);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .42);
+}
+
+.role-card-loading-head,
+.role-card-card-head {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .06);
+  color: #eef4ff;
+  font-weight: 900;
+  text-align: left;
+}
+
+.role-card-loading-head b,
+.role-card-card-head b,
+.role-card-step-list b { color: #74f6ff; font-size: 12px; }
+.role-card-loading-list { min-height: 0; display: grid; gap: 8px; overflow-y: auto; overscroll-behavior: contain; }
+.role-card-loading-card { display: grid; gap: 6px; }
+.role-card-loading-card.done .role-card-card-head b,
+.role-card-step-list li.done b { color: #52ff96; }
+.role-card-loading-card.error .role-card-card-head b,
+.role-card-step-list li.error b { color: #ff7d7d; }
+.role-card-step-list { margin: 0; padding: 0 0 0 24px; display: grid; gap: 5px; color: #cdd7ef; }
+.role-card-step-list li { padding: 7px 9px; border: 1px solid rgba(255, 255, 255, .1); border-radius: 10px; background: rgba(255, 255, 255, .045); }
+.role-card-step-list li::marker { color: #74f6ff; font-weight: 900; }
+.role-card-step-list li span { margin-right: 8px; }
+
 .spinner {
   width: 42px;
   height: 42px;

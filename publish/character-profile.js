@@ -9,10 +9,17 @@ window.GameModules.characterProfile = {
     const base = this.normalize(source.raw, store, source.preset);
     const signature = this.inputSignature(base, context, store, source.preset);
     const existing = window.GameModules.sqliteSave.getCharacterState(base.id);
-    if (existing && this.isReusableRoleCard(existing.profile, signature)) return existing.profile;
+    if (existing && this.isReusableRoleCard(existing.profile, signature)) {
+      store?.finishRoleCardLoading?.(base.id, existing.profile);
+      return existing.profile;
+    }
     const lore = await window.GameModules.worldLore.ensure(base.work, context);
     const attrs = await window.GameModules.rpgState.ensureWorldAttributes(base.work);
     return this.generate(base, lore, attrs, context, store, signature, source.preset);
+  },
+
+  onProgress(store, id, stepKey, status, text = '') {
+    store?.updateRoleCardLoadingStep?.(id, stepKey, status, text);
   },
 
   withKnown(raw, store) {
@@ -88,16 +95,25 @@ window.GameModules.characterProfile = {
         世界字段: sections.worldFields(attrs),
         玩家本人目标锁定: base.id === 'player-self' ? `本次只生成玩家本人"${base.name}"的角色卡。JSON 根字段 name 必须写"${base.name}"，不得写妹妹、姐姐、父母、联系人或关系事件里的任何其他姓名。` : '无。',
       };
+      const loadingId = base.id;
+      this.onProgress(store, loadingId, 'profile', 'running');
       const metricKeys = window.GameModules.metrics;
       const part1 = await this.generatePart(1, 'character-profile-part1-base-identity', { ...commonVars, 情绪字段: metricKeys.emotionKeys.join('、'), 关系指标字段: metricKeys.playerKeys.join('、') }, templates[1], base, lore, attrs, store);
+      this.onProgress(store, loadingId, 'profile', 'done');
+      store?.updateRoleCardLoading?.(loadingId, { name: part1.name || base.name, status: 'running' });
       const p1Summary = this.part1Summary(part1);
+      this.onProgress(store, loadingId, 'abilities', 'running');
       const part2 = await this.generatePart(2, 'character-profile-part2-abilities-professions', { ...commonVars, part1Summary: p1Summary }, templates[2], base, lore, attrs, store);
+      this.onProgress(store, loadingId, 'abilities', 'done');
       const rpgKeys = this.rpgFieldReasonKeys(attrs);
+      this.onProgress(store, loadingId, 'inventory', 'running');
       const part3 = await this.generatePart(3, 'character-profile-part3-inventory-wearing-rpg', { ...commonVars, part1Summary: p1Summary, RPG字段列表: rpgKeys.join('、'), RPG字段列表JSON: rpgKeys.map((key) => `"${key}"`).join(', ') }, templates[3], base, lore, attrs, store);
+      this.onProgress(store, loadingId, 'inventory', 'done');
       const merged = this.mergeGeneratedParts(part1, part2, part3, attrs);
       const profile = this.validate(merged, base, lore, attrs, store, { skipInitialMetrics: false });
       return this.withSignature(profile, signature);
     } catch (err) {
+      store?.failRoleCardLoading?.(base.id, err.message || '生成失败');
       console.warn('人物设定生成失败:', err.code, err.message, err.stack);
       throw err;
     }

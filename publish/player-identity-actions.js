@@ -117,7 +117,9 @@ window.GameModules.playerIdentityActions = {
       if (predefined) return predefined;
     }
     try {
-      character = await window.GameModules.characterProfile.ensure(this.playerCharacterBase(), this, this.playerSetupSummary?.() || '玩家本人资料');
+      const base = this.playerCharacterBase();
+      this.startRoleCardLoadingBatch?.([{ id: 'player-self', name: base.name || this.playerName || '玩家', type: '玩家卡' }]);
+      character = await window.GameModules.characterProfile.ensure(base, this, this.playerSetupSummary?.() || '玩家本人资料');
     } catch (err) {
       console.warn('[玩家身份] 个人资料生成失败，拒绝使用本地原因兜底:', err.code, err.message, err.stack);
       this.setupError = `玩家本人资料生成失败：${err.message || 'AI暂时不可用'}`;
@@ -127,18 +129,20 @@ window.GameModules.playerIdentityActions = {
     character.name = this.playerProfile?.name || this.playerName || character.name;
     character.isPlayer = true;
     this.initFactionSystem?.();
+    this.updateRoleCardLoadingStep?.('player-self', 'state', 'running');
     const state = await window.GameModules.rpgState.ensureCharacter(character, this);
     state.profile = character;
     state.note = character.detail;
     state.values.age = Number.isFinite(Number(character.age)) ? Number(character.age) : state.values.age;
     state.values.status_tags = ['玩家本人', '手机主人', character.work, character.role];
     if (!state.values.items?.length) state.values.items = character.items || [];
-    if (!state.values.wearing?.some((item) => item?.name && item.name !== '未穿戴')) state.values.wearing = character.wearing || state.values.wearing;
+    if (!state.values.wearing?.some((item) => item?.name && item.name !== '未穿戴')) state.values.wearing = character.wearingItems || state.values.wearing;
     state.values.factions = window.GameModules.socialPosition.playerItems({ ...this.playerProfile, workplace: character.workplace, position: character.position });
     state.values.force_positions = window.GameModules.socialPosition.playerForceItems({ ...this.playerProfile, workplace: character.workplace, position: character.position }, this.factionState?.factions || []);
     window.GameModules.progression.ensureStateMechanics(state, character);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
     await window.GameModules.sqliteSave.saveCharacterState(state);
+    this.finishRoleCardLoading?.('player-self', state.profile || character);
     return state;
   },
 
