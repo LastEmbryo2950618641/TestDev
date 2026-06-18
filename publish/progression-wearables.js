@@ -99,6 +99,8 @@ window.GameModules = window.GameModules || {};
 
     isPlaceholderEmptyWear(item) {
       const text = `${item?.description || ''}${item?.reason || ''}${item?.changeMode || ''}`;
+      const concreteReason = item?.reason && !/暂无已记录|未被上下文记录|当前没有明确记录|保持空置状态|此刻没有额外穿戴物|该槽位当前未穿戴|缺少AI生成|缺少有效AI/.test(String(item.reason));
+      if (concreteReason) return false;
       return item?.source !== 'AI生成' && (!item?.name
         || item.name === '未记录'
         || /^日常(内衣|上衣|内裤|下衣|袜子|鞋子)$/.test(item.name)
@@ -119,8 +121,9 @@ window.GameModules = window.GameModules || {};
         const basic = this.defaultWearForSlot(slot);
         if (basic) return basic;
         const position = this.clothingPositionForSlot(slot);
-        const reason = this.generatedFallbackWear(hit) ? this.emptyWearReason(slot) : (hit?.reason || this.emptyWearReason(slot));
-        return { id: ownerId ? this.itemId(ownerId, '穿着', slot, '未穿戴') : '', ownerId, characterId: ownerId, slot, clothing_position: position, slotLabel: position, name: '未穿戴', type: '穿着', description: `${position || '该部位'}当前未穿戴。`, reason, changeMode: reason, level: -1 };
+        const explicitReason = hit?.reason && !this.generatedFallbackWear({ ...hit, reason: '' }) ? hit.reason : '';
+        const reason = explicitReason || (this.generatedFallbackWear(hit) ? this.emptyWearReason(slot) : (hit?.reason || this.emptyWearReason(slot)));
+        return { id: ownerId ? this.itemId(ownerId, '穿着', slot, '未穿戴') : '', ownerId, characterId: ownerId, slot, clothing_position: position, slotLabel: position, name: '未穿戴', type: '穿着', description: `${position || '该部位'}当前未穿戴。`, reason, changeMode: reason, source: hit?.source, level: -1 };
       });
     },
 
