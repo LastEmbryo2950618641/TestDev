@@ -26,6 +26,27 @@ window.GameModules.aiRequest = {
     return (messages || []).map((msg) => String(msg?.content || '').length);
   },
 
+  outputLengthThreshold(options = {}) {
+    return Number(options.outputLengthThreshold || 2400);
+  },
+
+  outputTailLooksTruncated(text) {
+    const raw = String(text || '').trim().replace(/```$/g, '').trim();
+    if (!raw) return false;
+    const tail = raw.slice(-80);
+    const openBraces = (raw.match(/\{/g) || []).length;
+    const closeBraces = (raw.match(/\}/g) || []).length;
+    const openBrackets = (raw.match(/\[/g) || []).length;
+    const closeBrackets = (raw.match(/\]/g) || []).length;
+    return openBraces > closeBraces || openBrackets > closeBrackets || /[:,{[]\s*$/.test(tail) || /"[^"\\]*(?:\\.[^"\\]*)*$/.test(tail);
+  },
+
+  outputLengthRisk(buffer, options = {}) {
+    const length = String(buffer || '').length;
+    const threshold = this.outputLengthThreshold(options);
+    return { length, threshold, overThreshold: length >= threshold, tailLooksTruncated: this.outputTailLooksTruncated(buffer) };
+  },
+
   clampMaxTokens(value) {
     if (value === undefined || value === null) return undefined;
     const tokens = Math.floor(Number(value));
@@ -178,7 +199,11 @@ window.GameModules.aiRequest = {
     await this.timeout(Promise.resolve(request).then(() => callbackChain), options.timeoutMs, options.source);
     if (options.requireDone && !doneSeen) throw new Error(`${options.source}流式未完成`);
     this.completedCount += 1;
-    this.log('完成', { id: options.id, source: options.source, chunkCount, length: buffer.length, doneSeen, durationMs: Date.now() - startAt });
+    const risk = this.outputLengthRisk(buffer, options);
+    this.log('完成', { id: options.id, source: options.source, chunkCount, length: risk.length, outputThreshold: risk.threshold, overThreshold: risk.overThreshold, tailLooksTruncated: risk.tailLooksTruncated, possibleTruncated: risk.overThreshold || risk.tailLooksTruncated, doneSeen, durationMs: Date.now() - startAt });
+    if (risk.overThreshold || risk.tailLooksTruncated) {
+      console.warn('[AI请求] 返回长度可能被截断:', { id: options.id, source: options.source, length: risk.length, threshold: risk.threshold, overThreshold: risk.overThreshold, tailLooksTruncated: risk.tailLooksTruncated, doneSeen, tailPreview: buffer.slice(-180) });
+    }
     return buffer;
   },
 };

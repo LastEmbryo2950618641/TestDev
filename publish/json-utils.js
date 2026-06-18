@@ -83,6 +83,14 @@ window.GameModules.jsonUtils = {
     return out;
   },
 
+  aiOutputRisk(text, options = {}) {
+    const tool = window.GameModules.aiRequest;
+    if (tool?.outputLengthRisk) return tool.outputLengthRisk(text, options);
+    const length = String(text || '').length;
+    const threshold = Number(options.outputLengthThreshold || 2400);
+    return { length, threshold, overThreshold: length >= threshold, tailLooksTruncated: false };
+  },
+
   async generateJsonWithRetry(options) {
     const max = options.max ?? 2;
     let prompt = options.prompt;
@@ -95,12 +103,18 @@ window.GameModules.jsonUtils = {
         return options.validate ? options.validate(parsed) : parsed;
       } catch (err) {
         lastError = err;
+        const risk = this.aiOutputRisk(lastText, options);
         console.warn('[JSON重试] AI返回格式校验失败，准备生成修复提示:', {
           source: options.source || 'json-utils',
           attempt: i + 1,
           max,
           error: err?.message || 'unknown',
           stack: err?.stack || '',
+          outputLength: risk.length,
+          outputThreshold: risk.threshold,
+          possibleTruncated: risk.overThreshold || risk.tailLooksTruncated,
+          overThreshold: risk.overThreshold,
+          tailLooksTruncated: risk.tailLooksTruncated,
           rawPreview: String(lastText || '').slice(0, 1200),
         });
         if (i === max - 1) break;
