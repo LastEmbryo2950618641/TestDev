@@ -519,21 +519,28 @@ window.GameModules.characterProfile = {
     }
     if (parts.length !== 7) return row;
     let [type, slot, clothingPosition, itemName, description, quantity, reason] = parts;
-    if (type !== 'wearing') return parts.join(',');
+    if (type !== 'wearing') return this.csvJoin(parts);
     const positions = this.wearingClothingPositions();
     if (this.fixedWearingSlots().includes(slot)) clothingPosition = positions[slot];
-    if (quantity && quantity !== '--') quantity = '--';
-    const emptyLike = (value) => /^(--|无|暂无|没有|未穿戴|不适用)$/.test(String(value || '').trim());
-    if (emptyLike(itemName) && emptyLike(description)) {
+    if (quantity !== '--') quantity = '--';
+    if (this.part4EmptyLikeCell(itemName) && this.part4EmptyLikeCell(description)) {
       itemName = '--';
       description = '--';
     }
-    return [type, slot, clothingPosition, itemName, description, quantity, reason].join(',');
+    return this.csvJoin([type, slot, clothingPosition, itemName, description, quantity, reason]);
+  },
+
+  part4EmptyLikeCell(value) {
+    return /^(--|无|暂无|没有|未穿戴|不适用)$/.test(String(value || '').trim());
+  },
+
+  part4HasConcreteWear(parts) {
+    return this.csvCell(parts?.[3]) && this.csvCell(parts?.[4]) && !this.part4EmptyLikeCell(parts[3]) && !this.part4EmptyLikeCell(parts[4]);
   },
 
   applyLocalCsvFixes(partIndex, rows) {
     if (partIndex === 2) return this.normalizePart2RowsLocally(rows);
-    if (partIndex === 4) return rows.map((row) => this.normalizePart4Row(row)).filter(Boolean);
+    if (partIndex === 4) return this.normalizeCsvPartRows(partIndex, rows);
     if (partIndex !== 3) return rows;
     const totals = { skills: 0, knowledge: 0, professions: 0 };
     rows.forEach((row) => {
@@ -643,7 +650,7 @@ window.GameModules.characterProfile = {
     const skeleton = this.csvFixSkeleton(partIndex, issues);
     const prompt = promptId
       ? await window.GameModules.promptTemplates.render(promptId, { ...vars, 需要AI返回的行: skeleton, 当前已合格行: this.validCsvRowsForPrompt(partIndex, currentRows).join('\n') || '无', 错误行说明: issues.map((x) => `${x.key}：${x.reason}${x.badRow ? `｜${x.badRow}` : ''}`).join('\n'), 严格修复要求: this.csvFixStrictRequirement(partIndex, issues, skeleton) })
-      : this.inlineCsvFixPrompt(partIndex, issues, currentRows, format, base);
+      : this.inlineCsvFixPrompt(partIndex, issues, currentRows, format, base, skeleton);
     return window.GameModules.jsonUtils.generateJsonWithRetry({
       source: `character-profile-part${partIndex}-csv-fix`,
       model: 'nalang-turbo-0826',
@@ -727,7 +734,7 @@ window.GameModules.characterProfile = {
     const requiredKeys = issues.map((x) => x.key).filter((key) => this.fixedWearingSlots().includes(key));
     if (!requiredKeys.length) return rows;
     const used = new Set();
-    return rows.filter((row) => {
+    return rows.map((row) => this.normalizePart4Row(row)).filter((row) => {
       const parts = this.csvParts(row);
       if (parts[0] !== 'wearing' || !requiredKeys.includes(parts[1]) || used.has(parts[1])) return false;
       if (this.part4RowIssue(parts)) return false;
@@ -765,7 +772,8 @@ window.GameModules.characterProfile = {
     if (partIndex === 4) {
       const requiredKeys = issues.map((x) => x.key).filter((key) => this.fixedWearingSlots().includes(key));
       if (!requiredKeys.length) return '';
-      const returnedKeys = rows.map((row) => this.csvParts(row)).filter((parts) => parts[0] === 'wearing').map((parts) => parts[1]);
+      const normalizedRows = rows.map((row) => this.normalizePart4Row(row));
+      const returnedKeys = normalizedRows.map((row) => this.csvParts(row)).filter((parts) => parts[0] === 'wearing').map((parts) => parts[1]);
       const missing = requiredKeys.filter((key) => !returnedKeys.includes(key));
       const extra = returnedKeys.filter((key) => !requiredKeys.includes(key));
       const duplicate = returnedKeys.filter((key, index) => returnedKeys.indexOf(key) !== index);
@@ -777,7 +785,7 @@ window.GameModules.characterProfile = {
         '请按下面“需要AI返回的行”重写，不要返回表头、解释或当前已合格行：',
         skeleton,
       ].filter(Boolean).join('\n');
-      const bad = rows.find((row) => this.part4RowIssue(this.csvParts(row)));
+      const bad = normalizedRows.find((row) => this.part4RowIssue(this.csvParts(row)));
       if (bad) return `CSV修复行格式不合格：${bad}`;
       return '';
     }
@@ -804,15 +812,15 @@ window.GameModules.characterProfile = {
     return partIndex === 2 ? 'name,value,status,reason' : (partIndex === 3 ? 'type,name,level,' : 'type,slot,');
   },
 
-  inlineCsvFixPrompt(partIndex, issues, currentRows, format, base) {
+  inlineCsvFixPrompt(partIndex, issues, currentRows, format, base, skeleton = this.csvFixSkeleton(partIndex, issues)) {
     return [
       `你正在修复角色卡 Part${partIndex} CSV。目标人物只能是：${base.name}。`,
       '只返回下面要求补齐或重写的 CSV 行，不要表头，不要解释。',
       '每行必须列数完整，单元格内禁止英文逗号。',
       '严格修复要求：',
-      this.csvFixStrictRequirement(partIndex, issues, this.csvFixSkeleton(partIndex, issues)),
+      this.csvFixStrictRequirement(partIndex, issues, skeleton),
       '需要AI返回的行：',
-      this.csvFixSkeleton(partIndex, issues),
+      skeleton,
       '错误行说明：',
       issues.map((x) => `${x.key}：${x.reason}${x.badRow ? `｜${x.badRow}` : ''}`).join('\n'),
       '当前已合格行：',
@@ -849,11 +857,10 @@ window.GameModules.characterProfile = {
       const normalized = this.normalizePart4Row(x.badRow || '');
       if (!this.part4RowIssue(this.csvParts(normalized))) return normalized;
       const [, , , itemName, description, , reason] = parts;
-      const hasWear = itemName && itemName !== '--' && !/^(无|暂无|没有|未穿戴|不适用)$/.test(itemName) && description && description !== '--';
       const safeReason = this.csvCell(reason) && !this.genericPart4Reason(reason) ? reason : missingReasonHints[x.key];
-      return hasWear
-        ? `wearing,${x.key},${positions[x.key]},${itemName},${String(description).replace(/,/g, '，')},--,${String(safeReason).replace(/,/g, '，')}`
-        : `wearing,${x.key},${positions[x.key]},--,--,--,${String(safeReason).replace(/,/g, '，')}`;
+      return this.part4HasConcreteWear(parts)
+        ? this.csvJoin(['wearing', x.key, positions[x.key], itemName, description, '--', safeReason])
+        : this.csvJoin(['wearing', x.key, positions[x.key], '--', '--', '--', safeReason]);
     }).join('\n');
   },
 
@@ -1217,27 +1224,48 @@ window.GameModules.characterProfile = {
   },
 
   csvParts(row) {
+    const text = String(row || '');
     const parts = [];
     let current = '';
     let quote = '';
-    String(row || '').split('').forEach((ch) => {
-      if ((ch === '"' || ch === "'" || ch === '“' || ch === '”') && (!quote || quote === ch || (quote === '“' && ch === '”'))) {
-        quote = quote ? '' : ch;
-        return;
+    for (let i = 0; i < text.length; i += 1) {
+      const ch = text[i];
+      const atCellStart = !current.trim();
+      if ((ch === '"' || ch === '“') && (!quote || atCellStart)) {
+        quote = quote ? '' : (ch === '“' ? '”' : ch);
+        continue;
+      }
+      if (quote && ch === quote) {
+        if (quote === '"' && text[i + 1] === '"') {
+          current += '"';
+          i += 1;
+        } else {
+          quote = '';
+        }
+        continue;
       }
       if (ch === ',' && !quote) {
         parts.push(current.trim());
         current = '';
-        return;
+        continue;
       }
       current += ch;
-    });
+    }
     parts.push(current.trim());
-    return parts.map((part) => part.trim().replace(/^["“”']|["“”']$/g, ''));
+    return parts.map((part) => this.csvStripOuterQuotes(part));
+  },
+
+  csvStripOuterQuotes(value) {
+    const text = String(value || '').trim();
+    return text.replace(/^["“”]|["“”]$/g, '');
+  },
+
+  csvJoin(parts) {
+    return parts.map((part) => String(part ?? '').replace(/,/g, '，')).join(',');
   },
 
   csvCell(value) {
-    const text = String(value || '').trim().replace(/^["“”']|["“”']$/g, '');
+    const text = this.csvStripOuterQuotes(value);
     return text === '--' ? '' : text;
   },
 
