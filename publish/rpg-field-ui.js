@@ -144,7 +144,14 @@ window.GameModules.rpgFieldUi = {
 
   itemChangeMode(obj = {}, lexicon = null) {
     const raw = String(lexicon?.changeMode || obj.changeMode || '').trim();
+    if (obj?.type === '穿着' && obj?.source === 'AI生成') return 'AI生成';
     return raw && !this.pollutedDetailText(raw) && raw.length < 24 ? raw : '状态规范化';
+  },
+
+  itemBasis(field, obj = {}, kind = '', name = '') {
+    const reason = this.itemChangeReason(field, obj, this.lexiconFor(field, obj));
+    if ((kind || obj?.type) === '穿着' && reason && !/^错误：/.test(reason)) return reason;
+    return this.fallbackBasis(field, obj, kind, name);
   },
 
   itemChangeReason(field, obj = {}, lexicon = null) {
@@ -218,7 +225,7 @@ window.GameModules.rpgFieldUi = {
     lines.push(`词条层级: ${lexicon?.hierarchy === 'tree' ? '树词条' : '叶子词条'}`);
     lines.push(`生成来源: 词条名${(lexicon?.nameAiGenerated ?? lexicon?.aiGenerated) ? 'AI生成' : '系统/用户给定'}，值${lexicon?.valueAiGenerated ? 'AI生成' : '系统/用户给定'}，变化方式${this.itemChangeMode(obj, lexicon)}`);
     lines.push(`变化原因: ${this.itemChangeReason(field, obj, lexicon)}`);
-    lines.push(`当前依据: ${this.fallbackBasis(field, obj, kind, name)}`);
+    lines.push(`当前依据: ${this.itemBasis(field, obj, kind, name)}`);
     if (obj?.type === '职业' && ((info.learnedAbilities || []).length || (info.worldAbilities || []).length)) lines.push(`职业关联: ${(info.learnedAbilities || []).concat(info.worldAbilities || []).join('、')}`);
     return lines.join('\n');
   },

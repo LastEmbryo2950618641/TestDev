@@ -111,7 +111,7 @@ window.GameModules = window.GameModules || {};
         const hit = old.find((item) => item?.slot === slot);
         if (hit && !this.isPlaceholderEmptyWear(hit)) {
           const reason = this.itemReason(hit, '穿着');
-          const mode = hit.changeMode && !this.pollutedReason(hit.changeMode) && String(hit.changeMode).length < 24 ? hit.changeMode : '状态规范化';
+          const mode = hit.source === 'AI生成' ? reason : (hit.changeMode && !this.pollutedReason(hit.changeMode) && String(hit.changeMode).length < 24 ? hit.changeMode : reason);
           const finalOwnerId = hit.ownerId || hit.characterId || ownerId;
           return { ...hit, id: hit.id || (finalOwnerId ? this.itemId(finalOwnerId, '穿着', slot, hit.name || '未穿戴') : ''), ownerId: finalOwnerId, characterId: finalOwnerId, slot, clothing_position: hit.clothing_position || this.clothingPositionForSlot(slot), slotLabel: hit.slotLabel || this.clothingPositionForSlot(slot), type: hit.type || '穿着', reason, changeMode: mode, level: -1 };
         }

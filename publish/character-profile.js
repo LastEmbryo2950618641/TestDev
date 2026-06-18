@@ -270,7 +270,7 @@ window.GameModules.characterProfile = {
 
   sanitizePart(partIndex, raw, template) {
     const clean = partIndex === 3 ? raw : this.sanitizeByTemplate(raw, template);
-    if (clean && typeof clean === 'object') delete clean._csvRows;
+    if (clean && typeof clean === 'object' && partIndex !== 4) delete clean._csvRows;
     if (partIndex === 2 && clean.feeling) {
       clean.feeling = this.normalizeFeelingObject(clean.feeling);
     }
@@ -1668,6 +1668,7 @@ window.GameModules.characterProfile = {
       items: this.carryItems(profile.items || base.items, '物品', { ...base, ...profile }),
       wearing: this.wearingObject(profile.wearing || base.wearing, { ...base, ...profile }),
       wearingItems: this.wearingItems(profile.wearing || base.wearing, { ...base, ...profile }),
+      wearingRawRows: Array.isArray(profile._csvRows) ? profile._csvRows.filter((row) => String(row || '').startsWith('wearing,')) : [],
       worldValues: this.worldValues(profile.worldValues, attrs, base.name),
       worldAttributes: attrs,
       rpgFieldReasons: this.rpgFieldReasons(profile.rpgFieldReasons, attrs, { ...base, ...profile, factions, forcePositions }),
@@ -1890,7 +1891,7 @@ window.GameModules.characterProfile = {
   wearingItems(value, profile = {}) {
     return this.wearingItemsLoose(value).map((item) => {
       const reason = this.inventoryReason(item, '穿着', profile);
-      return { ...item, reason, changeMode: '角色卡初始固化' };
+      return { ...item, reason, changeMode: reason, source: 'AI生成' };
     });
   },
 
@@ -1973,7 +1974,7 @@ window.GameModules.characterProfile = {
       force_positions: forcePositions,
       items: fill(profile.items, '物品'),
       wearing,
-      wearingItems: fill(profile.wearingItems || this.wearingAsArray(wearing), '穿着'),
+      wearingItems: fill(profile.wearingItems || this.wearingAsArray(wearing), '穿着').map((item) => ({ ...item, changeMode: item.reason || item.changeMode, source: item.source || 'AI生成' })),
       skills: fill(profile.skills, '技能'),
     };
     return out;
