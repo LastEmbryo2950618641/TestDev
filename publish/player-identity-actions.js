@@ -129,7 +129,7 @@ window.GameModules.playerIdentityActions = {
     character.name = this.playerProfile?.name || this.playerName || character.name;
     character.isPlayer = true;
     this.initFactionSystem?.();
-    this.updateRoleCardLoadingStep?.('player-self', 'state', 'running');
+    this.updateRoleCardLoadingStep?.('player-self', 'state', 'running', '', { done: 0, total: 1 });
     const state = await window.GameModules.rpgState.ensureCharacter(character, this);
     state.profile = character;
     state.note = character.detail;

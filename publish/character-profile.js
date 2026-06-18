@@ -19,8 +19,40 @@ window.GameModules.characterProfile = {
     return this.generate(base, lore, attrs, context, store, signature, source.preset);
   },
 
-  onProgress(store, id, stepKey, status, text = '') {
-    store?.updateRoleCardLoadingStep?.(id, stepKey, status, text);
+  onProgress(store, id, stepKey, status, text = '', progress = null) {
+    store?.updateRoleCardLoadingStep?.(id, stepKey, status, text, progress);
+  },
+
+  partProgressTotal(partIndex, template, attrs = null, part = null) {
+    if (partIndex === 2) return window.GameModules.metrics.emotionKeys.length + window.GameModules.metrics.playerKeys.length;
+    if (partIndex === 3 && part) return this.partProgressDone(3, part) || 3;
+    if (partIndex === 4 && part) return this.partProgressDone(4, part) || 13;
+    if (partIndex === 5) {
+      const intrinsicCount = Object.keys(attrs?.intrinsicBase || {}).length;
+      return intrinsicCount ? 1 + intrinsicCount : 8;
+    }
+    return Object.keys(template || {}).length || 1;
+  },
+
+  partProgressDone(partIndex, part = {}) {
+    if (partIndex === 2) {
+      const emotions = this.metricProgressDone(part.feeling?.emotions, window.GameModules.metrics.emotionKeys);
+      const playerFeelings = this.metricProgressDone(part.feeling?.playerFeelings, window.GameModules.metrics.playerKeys);
+      return emotions + playerFeelings;
+    }
+    if (partIndex === 3) return ['skills', 'knowledge', 'professions'].reduce((sum, key) => sum + ((part[key] || []).length), 0);
+    if (partIndex === 4) return (part.items || []).length + this.fixedWearingSlots().filter((slot) => this.wearingSlotProgressDone(part.wearing?.[slot])).length + (part.wearing?.slot || []).length;
+    if (partIndex === 5) return (this.valueReasonComplete(part.rpgField?.level) ? 1 : 0) + Object.values(part.rpgField?.intrinsicBase || {}).filter((item) => this.intrinsicBaseItemComplete(item)).length;
+    const template = this.partTemplateCache?.[partIndex] || {};
+    return Object.keys(template).filter((key) => this.partFieldComplete(partIndex, key, part[key], template[key], part)).length;
+  },
+
+  metricProgressDone(value, keys) {
+    return this.metricGroupAsArray(value, keys).filter((item) => item.value !== undefined && String(item.status || '').trim() && String(item.reason || '').trim()).length;
+  },
+
+  wearingSlotProgressDone(item) {
+    return item && typeof item === 'object' && String(item.bodyPart || '').trim() && String(item.reason || '').trim() && Object.prototype.hasOwnProperty.call(item, 'description');
   },
 
   findSavedRoleCard(base, signature) {
@@ -117,25 +149,34 @@ window.GameModules.characterProfile = {
         玩家本人目标锁定: base.id === 'player-self' ? `本次只生成玩家本人"${base.name}"的角色卡。JSON 根字段 name 必须写"${base.name}"，不得写妹妹、姐姐、父母、联系人或关系事件里的任何其他姓名。` : '无。',
       };
       const loadingId = base.id;
-      this.onProgress(store, loadingId, 'profile', 'running');
+      const part1Total = this.partProgressTotal(1, templates[1], attrs);
+      this.onProgress(store, loadingId, 'profile', 'running', '', { done: 0, total: part1Total });
       const part1 = await this.generatePart(1, 'character-profile-part1-base-identity', commonVars, templates[1], base, lore, attrs, store);
-      this.onProgress(store, loadingId, 'profile', 'done');
+      this.onProgress(store, loadingId, 'profile', 'done', '', { done: this.partProgressDone(1, part1), total: part1Total });
       store?.updateRoleCardLoading?.(loadingId, { name: part1.name || base.name, status: 'running' });
       const p1Summary = this.part1Summary(part1);
       const namedBase = { ...base, name: part1.name || base.name };
-      this.onProgress(store, loadingId, 'feeling', 'running');
+      const part2Total = this.partProgressTotal(2, templates[2], attrs);
+      this.onProgress(store, loadingId, 'feeling', 'running', '', { done: 0, total: part2Total });
       const part2 = await this.generatePart(2, 'character-profile-part2-feeling', { ...commonVars, part1Summary: p1Summary }, templates[2], namedBase, lore, attrs, store);
-      this.onProgress(store, loadingId, 'feeling', 'done');
-      this.onProgress(store, loadingId, 'abilities', 'running');
+      this.onProgress(store, loadingId, 'feeling', 'done', '', { done: this.partProgressDone(2, part2), total: part2Total });
+      const part3StartTotal = this.partProgressTotal(3, templates[3], attrs);
+      this.onProgress(store, loadingId, 'abilities', 'running', '', { done: 0, total: part3StartTotal });
       const part3 = await this.generatePart(3, 'character-profile-part3-abilities-professions', { ...commonVars, part1Summary: p1Summary }, templates[3], namedBase, lore, attrs, store);
-      this.onProgress(store, loadingId, 'abilities', 'done');
+      const part3Total = this.partProgressTotal(3, templates[3], attrs, part3);
+      this.onProgress(store, loadingId, 'abilities', 'done', '', { done: this.partProgressDone(3, part3), total: part3Total });
       const rpgKeys = this.rpgFieldReasonKeys(attrs);
-      this.onProgress(store, loadingId, 'inventory', 'running');
+      const part4StartTotal = this.partProgressTotal(4, templates[4], attrs);
+      this.onProgress(store, loadingId, 'inventory', 'running', '', { done: 0, total: part4StartTotal });
       const part4 = await this.generatePart(4, 'character-profile-part4-inventory-wearing-rpg', { ...commonVars, part1Summary: p1Summary }, templates[4], namedBase, lore, attrs, store);
+      const part4Total = this.partProgressTotal(4, templates[4], attrs, part4);
+      this.onProgress(store, loadingId, 'inventory', 'done', '', { done: this.partProgressDone(4, part4), total: part4Total });
       const p3Summary = this.part3Summary(part3);
       const p4Summary = this.part4Summary(part4);
+      const part5Total = this.partProgressTotal(5, templates[5], attrs);
+      this.onProgress(store, loadingId, 'rpgField', 'running', '', { done: 0, total: part5Total });
       const part5 = await this.generatePart(5, 'character-profile-part5-rpg-field', { ...commonVars, part1Summary: p1Summary, part3Summary: p3Summary, part4Summary: p4Summary, 世界字段: sections.worldFields(attrs), RPG字段列表: rpgKeys.join('、'), RPG字段列表JSON: rpgKeys.map((key) => `"${key}"`).join(', ') }, templates[5], namedBase, lore, attrs, store);
-      this.onProgress(store, loadingId, 'inventory', 'done');
+      this.onProgress(store, loadingId, 'rpgField', 'done', '', { done: this.partProgressDone(5, part5), total: part5Total });
       const merged = this.mergeGeneratedParts(part1, part2, part3, { ...part4, ...part5 }, attrs);
       const profile = this.validate(merged, base, lore, attrs, store, { skipInitialMetrics: false });
       return this.withSignature(profile, signature);

@@ -104,7 +104,7 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
       this.wechatError = '联系人姓名仍未补全，请稍后重试。';
       return existing || null;
     }
-    this.updateRoleCardLoadingStep?.(characterId, 'state', 'running');
+    this.updateRoleCardLoadingStep?.(characterId, 'state', 'running', '', { done: 0, total: 1 });
     const state = await window.GameModules.rpgState.ensureCharacter({ ...profile, id: characterId }, this);
     this.rpgStates = { ...this.rpgStates, [characterId]: state };
     this.finishRoleCardLoading?.(characterId, state.profile || profile);

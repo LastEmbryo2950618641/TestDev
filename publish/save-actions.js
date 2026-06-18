@@ -85,7 +85,7 @@ window.GameModules.saveActions = {
     const worldTag = character.work || '原创世界';
     console.log('[RPG状态] 准备角色状态:', worldTag, character.name);
     const profile = await window.GameModules.characterProfile.ensure(character, this, context || this.entryCurrentAction || this.sceneTitle || '');
-    this.updateRoleCardLoadingStep?.(profile.id || character.id, 'state', 'running');
+    this.updateRoleCardLoadingStep?.(profile.id || character.id, 'state', 'running', '', { done: 0, total: 1 });
     const state = await window.GameModules.rpgState.ensureCharacter(profile, this);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
     if (options.loadMetrics !== false && state.id === this.character.id) this.loadMetricsFromCharacterState(state);
