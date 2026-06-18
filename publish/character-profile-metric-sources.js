@@ -81,7 +81,10 @@ window.GameModules = window.GameModules || {};
 
     initialMetricNonAiKeys(metrics, group) {
       const list = Array.isArray(metrics?.[group]) ? metrics[group] : [];
-      return keysFor(group).filter((key) => !this.metricSourcesAreAi(list.find((item) => item?.key === key)));
+      return keysFor(group).filter((key) => {
+        const item = list.find((entry) => entry?.key === key);
+        return !item || item.value === undefined || !String(item.status || '').trim() || !String(item.reason || '').trim() || !this.metricSourcesAreAi(item);
+      });
     },
 
     mergeMetricAiFields(current, generated) {
@@ -115,8 +118,12 @@ window.GameModules = window.GameModules || {};
           const chunk = chunks[i];
           try {
             const generated = await this.generateMetricGroup(profile, base, evidence, group, chunk, `source-repair-${i + 1}`, chunks.length);
-            const issues = this.warnMetricGroupIssues ? this.warnMetricGroupIssues('角色数值来源补齐返回检查', generated, chunk, { ...base, ...profile, group, chunkIndex: i + 1 }) : { missing: [] };
-            generated.forEach((item) => {
+            let repaired = generated;
+            const issues = this.warnMetricGroupIssues ? this.warnMetricGroupIssues('角色数值来源补齐返回检查', repaired, chunk, { ...base, ...profile, group, chunkIndex: i + 1 }) : { missing: [] };
+            if (issues.missing?.length || issues.missingValue?.length || issues.missingStatus?.length || issues.missingReason?.length) {
+              repaired = chunk.map((key) => repaired.find((item) => item?.key === key) || { ...byKey.get(key), key, metricSources: this.metricSourceMap('系统') });
+            }
+            repaired.forEach((item) => {
               if (!chunk.includes(item?.key)) return;
               const currentItem = byKey.get(item.key);
               byKey.set(item.key, currentItem ? this.mergeMetricAiFields(currentItem, item) : item);

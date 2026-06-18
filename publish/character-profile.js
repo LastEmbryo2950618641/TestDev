@@ -1043,7 +1043,10 @@ window.GameModules.characterProfile = {
 
   csvDataRows(text, headerPrefix) {
     const raw = String(text || '').replace(/```(?:csv|txt|json)?|```/g, '').trim();
-    return raw.split(/\n+/).map((row) => row.trim()).filter(Boolean).filter((row) => !row.toLowerCase().startsWith(headerPrefix));
+    return raw.split(/\n+/)
+      .map((row) => row.trim().replace(/^[\-*]\s*/, '').replace(/^\d+[.)、]\s*/, ''))
+      .filter(Boolean)
+      .filter((row) => !row.toLowerCase().startsWith(headerPrefix));
   },
 
   csvParts(row) {
@@ -1095,17 +1098,19 @@ window.GameModules.characterProfile = {
   },
 
   parseMetricGroupLines(text, group, keys) {
-    const rows = Array.isArray(text) ? text : this.csvDataRows(text, 'name,value,status,reason');
+    const rawRows = Array.isArray(text) ? text : this.csvDataRows(text, 'name,value,status,reason');
+    const rows = rawRows.map((row) => this.normalizePart2Row(row));
     const items = [];
     keys.forEach((key) => {
       const line = rows.find((row) => row.startsWith(`${key},`) || row.startsWith(`name,${key},`));
       if (!line) return;
       let parts = this.csvParts(line);
       if (parts[0] === 'name' && parts[1] === key) parts = parts.slice(1);
+      if (parts.length === 3) parts = [parts[0], parts[1], parts[2], parts[2]];
       if (this.part2RowIssue(parts, key)) return;
       const value = Number(parts[1]);
       const status = parts[2] || '';
-      const reason = parts[3] || '';
+      const reason = parts[3] || status;
       items.push({ key, value, status, reason, metricSources: this.metricSourceMap?.('ai') });
     });
     return { [group]: items };
