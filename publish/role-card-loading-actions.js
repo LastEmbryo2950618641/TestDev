@@ -74,6 +74,14 @@ window.GameModules.roleCardLoadingActions = {
       status: 'done',
       steps: (this.roleCardLoadingCard(targetId)?.steps || []).map((step) => ({ ...step, status: step.status === 'error' ? 'error' : 'done' })),
     });
+    this.closeRoleCardLoadingIfComplete();
+  },
+
+  closeRoleCardLoadingIfComplete() {
+    const cards = this.roleCardLoadingState.cards || [];
+    if (cards.length && cards.every((card) => card.status === 'done')) {
+      this.roleCardLoadingState.open = false;
+    }
   },
 
   failRoleCardLoading(id, message = '生成失败') {
