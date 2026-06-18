@@ -582,7 +582,7 @@ window.GameModules.characterProfile = {
       requiredRawFields: this.partRequiredRawFields(partIndex),
       parse: (text) => ({ _csvRows: this.normalizeCsvPartRows(partIndex, this.csvDataRows(text, this.csvFixHeaderPrefix(partIndex))) }),
       validate: (parsed) => {
-        const rows = parsed._csvRows || [];
+        const rows = this.csvFixRowsToApply(partIndex, issues, parsed._csvRows || []);
         if (!rows.length) throw new Error('CSV修复没有返回有效行');
         const returnedIssue = this.csvFixReturnedIssue(partIndex, issues, rows, skeleton);
         if (returnedIssue) throw new Error(returnedIssue);
@@ -642,6 +642,19 @@ window.GameModules.characterProfile = {
     lines.push('必须严格照“需要AI返回的行”的 type 生成：');
     lines.push(skeleton);
     return lines.join('\n');
+  },
+
+  csvFixRowsToApply(partIndex, issues, rows) {
+    if (partIndex !== 4) return rows;
+    const requiredKeys = issues.map((x) => x.key).filter((key) => this.fixedWearingSlots().includes(key));
+    if (!requiredKeys.length) return rows;
+    const used = new Set();
+    return rows.filter((row) => {
+      const parts = this.csvParts(row);
+      if (parts[0] !== 'wearing' || !requiredKeys.includes(parts[1]) || used.has(parts[1])) return false;
+      used.add(parts[1]);
+      return true;
+    });
   },
 
   csvFixReturnedIssue(partIndex, issues, rows, skeleton = '') {
