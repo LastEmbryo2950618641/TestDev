@@ -41,6 +41,12 @@ window.GameModules.characterProfileTemplateClass = {
       jobConfirmed: false,
       rank: '普通成员',
       control_experience: { 上线次数: 0, 习惯程度: '初次操控尚不熟悉' },
+    };
+  },
+
+  part2() {
+    return {
+      name: '角色姓名',
       feeling: {
         emotions: this.metricObject({ cold: '冷静', fear: '恐惧', worry: '担忧', joy: '高兴', tension: '紧张', anger: '愤怒', shame: '羞耻', sadness: '悲伤', curiosity: '好奇', numbness: '麻木', jealousy: '嫉妒', despair: '绝望' }),
         playerFeelings: this.metricObject({ understanding: '了解', trust: '信任', resistance: '反抗', affection: '好感', friendship: '友情', familyLove: '亲情', romanticLove: '爱情', lust: '肉欲', awe: '畏惧', respect: '尊敬', admiration: '崇拜', dislike: '讨厌', dependence: '依赖', vigilance: '警惕', dominance: '支配欲', possessiveness: '占有欲', submission: '服从' }),
@@ -56,7 +62,7 @@ window.GameModules.characterProfileTemplateClass = {
     return { ...this.learnedItem(name), 所需skills: ['基础能力'], 所需knowledge: ['基础知识'], 所需intrinsicBase: ['intelligence'], reason: `${name}由人物技能、知识和基础属性共同支持。` };
   },
 
-  part2() {
+  part3() {
     return { name: '角色姓名', skills: [this.learnedItem('基础能力')], knowledge: [this.learnedItem('基础知识')], professions: [this.professionItem('潜在职业')] };
   },
 
@@ -91,9 +97,9 @@ window.GameModules.characterProfileTemplateClass = {
     };
   },
 
-  part3() {
+  part4() {
     return { name: '角色姓名', items: [{ name: '随身物品', description: '当前人物合理随身携带的物品。', quantity: 1, reason: '该物品由身份、场景和行动需要决定。' }], wearing: this.wearingObject(), rpgField: this.rpgField() };
   },
 
-  parts() { return { 1: this.clone(this.part1()), 2: this.clone(this.part2()), 3: this.clone(this.part3()) }; },
+  parts() { return { 1: this.clone(this.part1()), 2: this.clone(this.part2()), 3: this.clone(this.part3()), 4: this.clone(this.part4()) }; },
 };

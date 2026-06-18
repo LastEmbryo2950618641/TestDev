@@ -71,8 +71,9 @@ window.GameModules.roleCardLoadingActions = {
     const first = type === '玩家卡' ? '生成玩家身份 Part1' : '生成角色身份 Part1';
     return [
       { key: 'profile', text: first, status: 'waiting' },
-      { key: 'abilities', text: '生成能力职业 Part2', status: 'waiting' },
-      { key: 'inventory', text: '生成物品穿着 RPG Part3', status: 'waiting' },
+      { key: 'feeling', text: '生成情感数值 Part2', status: 'waiting' },
+      { key: 'abilities', text: '生成能力职业 Part3', status: 'waiting' },
+      { key: 'inventory', text: '生成物品穿着 RPG Part4', status: 'waiting' },
       { key: 'state', text: '固化 RPG 状态', status: 'waiting' },
     ];
   },
