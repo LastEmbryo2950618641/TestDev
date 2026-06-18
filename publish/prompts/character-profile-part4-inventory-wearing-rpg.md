@@ -12,14 +12,16 @@ Rules：
 2. `type` 只能是 `item`、`wearing`、`slot`。
 3. 每行必须恰好 7 列，使用英文逗号分隔；单元格内部禁止使用英文逗号，需要停顿时用中文逗号。
 4. 不存在或不适用的字段值统一填写 `--`，不要留空。
-5. 文本尽量短：`description` 8-24 个汉字，`reason` 8-30 个汉字。
-6. `item` 行表示随身物品：`slot` 和 `bodyPart` 填 `--`，`quantity` 必须是 1 以上整数；物品最多 4 行。
-7. 禁止堆砌同类电子设备；除非输入明确说明，否则手机、电脑、耳机等同类设备各最多 1 件。
-8. `wearing` 行表示固定穿着槽位，必须按顺序输出 12 行：head、neck、innerwearTop、top、outerwear、gloves、waist、innerwearBottom、bottom、socks、shoes、wrist。
-9. 固定槽位 bodyPart 映射：head=头部，neck=颈部，innerwearTop=胸部，top=躯干，outerwear=躯干外，gloves=手部，waist=腰部，innerwearBottom=腰臀，bottom=腿部，socks=脚踝，shoes=脚部，wrist=手腕。
-10. 固定槽位未穿戴时，`name` 和 `description` 填 `--`，`reason` 写明未穿戴原因。
-11. `slot` 行表示额外穿着或手持装饰，只在确有必要时输出，不超过 2 行；没有额外穿着就不输出 `slot` 行。
-12. 本轮不要输出 `rpgField`、`rpgFieldReasons` 或任何 RPG 属性。
+5. 文本尽量短：`description` 8-28 个汉字，`reason` 10-36 个汉字。
+6. `description` 必须写物品或穿着的可见材质、颜色、状态、款式、磨损、贴身程度或功能特征；禁止只写“日常穿着”“常用物品”“符合身份”。
+7. `reason` 必须写为什么此刻会携带或穿戴它，要结合职业身份、当前地点、天气时间、关系事件、行动目的、经济状况、审美习惯或遮掩需求现编，不能套用示例。
+8. `item` 行表示随身物品：`slot` 和 `bodyPart` 填 `--`，`quantity` 必须是 1 以上整数；物品最多 4 行。
+9. 禁止堆砌同类电子设备；除非输入明确说明，否则手机、电脑、耳机等同类设备各最多 1 件。
+10. `wearing` 行表示固定穿着槽位，必须按顺序输出 12 行：head、neck、innerwearTop、top、outerwear、gloves、waist、innerwearBottom、bottom、socks、shoes、wrist。
+11. 固定槽位 bodyPart 映射：head=头部，neck=颈部，innerwearTop=胸部，top=躯干，outerwear=躯干外，gloves=手部，waist=腰部，innerwearBottom=腰臀，bottom=腿部，socks=脚踝，shoes=脚部，wrist=手腕。
+12. 固定槽位未穿戴时，`name` 和 `description` 填 `--`，`reason` 写明未穿戴原因，原因也要结合季节、场合、习惯、职业或角色状态。
+13. `slot` 行表示额外穿着或手持装饰，只在确有必要时输出，不超过 2 行；没有额外穿着就不输出 `slot` 行。
+14. 本轮不要输出 `rpgField`、`rpgFieldReasons` 或任何 RPG 属性。
 
 ## 已生成角色卡基础信息
 
@@ -58,23 +60,29 @@ Rules：
 
 ## 输出 CSV 模板
 
-请严格按以下表头输出，从第二行开始填写数据：
+请严格按以下表头输出，从第二行开始填写数据；不要照抄下方写法校准里的物品名或原因：
 
 type,slot,bodyPart,name,description,quantity,reason
-item,--,--,学生证,学校身份凭证,1,上学和出入校园需要
-item,--,--,双肩书包,浅蓝色学生书包,1,携带课本文具和手机
-wearing,head,头部,发卡,浅蓝色简约发卡,--,固定刘海方便上课
-wearing,neck,颈部,--,--,--,上学日不佩戴颈饰
-wearing,innerwearTop,胸部,学生内衣,白色棉质内衣,--,日常上学穿着
-wearing,top,躯干,校服上衣,白色短袖校服,--,上学日统一着装
-wearing,outerwear,躯干外,校服外套,深蓝色校服外套,--,教室空调冷时穿
-wearing,gloves,手部,--,--,--,六月天气炎热不戴手套
-wearing,waist,腰部,--,--,--,校服裤无需腰饰
-wearing,innerwearBottom,腰臀,学生内裤,浅色棉质内裤,--,日常上学穿着
-wearing,bottom,腿部,校服长裤,深蓝色校服长裤,--,上学日统一着装
-wearing,socks,脚踝,白色短袜,白色棉质短袜,--,搭配运动鞋穿着
-wearing,shoes,脚部,白色运动鞋,白色帆布运动鞋,--,学生日常通勤
-wearing,wrist,手腕,皮筋手环,编织皮筋手环,--,同学赠送日常佩戴
-slot,手持,手部,智能手机,常用智能手机,--,学习和社交需要
 
-注意：示例只展示格式。实际输出必须根据输入人物重写所有行。
+## 写法校准
+
+下面只说明如何按角色现编 `description/reason`，不是固定示例。
+
+错误写法：
+- `wearing,top,躯干,校服上衣,白色短袖校服,--,上学日统一着装`
+- `item,--,--,智能手机,常用智能手机,1,学习和社交需要`
+
+错误原因：描述太泛，原因只套身份，缺少当前时间地点、人物习惯和事件证据。
+
+正确写法方向：
+- `description` 写看得见摸得着的细节：材质、颜色、剪裁、磨损、贴身程度、是否沾灰、是否昂贵、是否临时借来。
+- `reason` 写此刻为什么在身上：刚从哪里来、准备做什么、天气如何、职业要求、怕被认出、为了见玩家、为了防身或遮掩伤口。
+- 未穿戴槽位也要有理由：例如炎热、职业禁忌、行动不便、来得匆忙、审美简洁、担心暴露身份。
+
+按人物现编示例：
+- 上班族可写：`wearing,outerwear,躯干外,西装外套,深灰薄羊毛外套,--,刚从客户会议赶来仍没来得及换下`
+- 夜间行动者可写：`wearing,shoes,脚部,黑色短靴,鞋尖沾着细碎泥点,--,夜里穿巷行动需要安静耐磨`
+- 临时逃离者可写：`item,--,--,半旧钥匙串,金属边缘磨得发亮,1,匆忙离家时只抓走最熟悉的东西`
+- 未穿戴可写：`wearing,gloves,手部,--,--,--,需要直接触摸门锁不愿被手套拖慢动作`
+
+规则：可以参考上面的“细节密度”和“原因逻辑”，但实际输出必须按当前人物资料重新编写。
