@@ -159,13 +159,13 @@ window.GameModules.characterProfile = {
       2: ['name', 'value', 'status', 'reason', '冷静', '绝望', '了解', '服从'],
       3: ['type', 'name', 'level', 'reason', 'requiredIntrinsicBase', 'requiredKnowledge', 'requiredSkills'],
       4: ['type', 'slot', 'bodyPart', 'name', 'description', 'quantity', 'reason', 'wearing', 'item'],
-      5: ['name', 'rpgField', 'level', 'intrinsicBase', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'derived'],
+      5: ['name', 'rpgField', 'level', 'intrinsicBase', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'derived', '攻击力', '防御力'],
     };
     if (!fields) return byPart[partIndex] || [];
     const nested = [];
     if (fields.includes('feeling')) nested.push('feeling', 'emotions', 'playerFeelings', 'cold', 'curiosity', 'understanding', 'submission');
     if (fields.includes('wearing')) nested.push('wearing', 'head', 'top', 'bottom', 'shoes', 'slot');
-    if (fields.includes('rpgField')) nested.push('rpgField', 'intrinsicBase', 'derived');
+    if (fields.includes('rpgField')) nested.push('rpgField', 'level', 'intrinsicBase', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'derived', '攻击力', '防御力');
     return [...new Set([...fields, ...nested])];
   },
 
@@ -353,8 +353,8 @@ window.GameModules.characterProfile = {
         missing = this.missingPartFields(partIndex, current, template, base, attrs);
         if (!missing.length) return current;
       }
-      const patch = await this.generateMissingPartFields(partIndex, current, template, missing, format, base);
-      current = this.sanitizePart(partIndex, { ...current, ...patch }, template);
+      const patch = await this.generateMissingPartFields(partIndex, current, template, missing, format, base, attrs);
+      current = this.sanitizePart(partIndex, this.mergeMissingPatch(partIndex, current, patch), template);
     }
     const stillMissing = this.missingPartFields(partIndex, current, template, base, attrs);
     if (stillMissing.length) throw new Error(`Part${partIndex} 缺少字段：${stillMissing.join('、')}`);
@@ -564,12 +564,46 @@ window.GameModules.characterProfile = {
     return feeling;
   },
 
-  async generateMissingPartFields(partIndex, current, template, missing, format, base) {
+  async generateMissingPartFields(partIndex, current, template, missing, format, base, attrs = null) {
     const partialTemplate = Object.fromEntries(missing.map((key) => [key, template[key]]));
-    const prompt = [
+    const prompt = this.missingPartPrompt(partIndex, current, partialTemplate, missing, format, base);
+    return window.GameModules.jsonUtils.generateJsonWithRetry({
+      source: `character-profile-part${partIndex}-missing`,
+      model: 'nalang-turbo-0826',
+      timeoutMs: 60000,
+      prompt,
+      format: prompt,
+      repairHint: this.missingPartRepairHint(partIndex, missing),
+      requiredRawFields: this.partRequiredRawFields(partIndex, missing),
+      parse: (text) => this.parse(text),
+      validate: (raw) => {
+        const clean = this.sanitizeByTemplate(raw, partialTemplate);
+        const extra = Object.keys(raw || {}).filter((key) => !missing.includes(key));
+        if (extra.length) throw new Error(`缺失字段修复输出了多余字段：${extra.join('、')}`);
+        const absent = this.missingPartFields(partIndex, this.mergeMissingPatch(partIndex, current, clean), template, base, attrs).filter((key) => missing.includes(key));
+        if (absent.length) throw new Error(`缺失字段仍未补齐：${absent.join('、')}`);
+        return clean;
+      },
+      max: 2,
+    });
+  },
+
+  missingPartPrompt(partIndex, current, partialTemplate, missing, format, base) {
+    const lines = [
       `你正在修复角色卡 Part${partIndex}。目标人物只能是：${base.name}。`,
       `只生成缺失字段：${missing.join('、')}。其余字段已经合格，禁止重复输出、禁止改动。`,
       '输出必须是一个 JSON 对象，根字段只能包含上述缺失字段，并严格遵守下面模板。',
+    ];
+    if (partIndex === 5 && missing.includes('rpgField')) {
+      lines.push(
+        'rpgField 是原子字段：只要 rpgField 缺失或不完整，就必须返回完整 rpgField，不能只返回 level 或 intrinsicBase。',
+        'rpgField 必须同时包含 level、intrinsicBase、derived。',
+        'intrinsicBase 必须完整包含 strength、agility、constitution、intelligence、perception、willpower、charisma，每项含 integer value、description、reason。',
+        'derived 必须完整包含 攻击力、防御力，每项含 integer value、reason。',
+      );
+    }
+    return [
+      ...lines,
       '缺失字段模板：',
       JSON.stringify(partialTemplate, null, 2),
       '已合格字段（只作上下文，不要重写）：',
@@ -577,25 +611,32 @@ window.GameModules.characterProfile = {
       '原始要求：',
       String(format || '').slice(0, 2600),
     ].join('\n');
-    return window.GameModules.jsonUtils.generateJsonWithRetry({
-      source: `character-profile-part${partIndex}-missing`,
-      model: 'nalang-turbo-0826',
-      timeoutMs: 60000,
-      prompt,
-      format: prompt,
-      repairHint: `只能返回缺失字段：${missing.join('、')}。不能新增其它字段。`,
-      requiredRawFields: this.partRequiredRawFields(partIndex, missing),
-      parse: (text) => this.parse(text),
-      validate: (raw) => {
-        const clean = this.sanitizeByTemplate(raw, partialTemplate);
-        const extra = Object.keys(raw || {}).filter((key) => !missing.includes(key));
-        if (extra.length) throw new Error(`缺失字段修复输出了多余字段：${extra.join('、')}`);
-        const absent = this.missingPartFields(partIndex, { ...current, ...clean }, template, base).filter((key) => missing.includes(key));
-        if (absent.length) throw new Error(`缺失字段仍未补齐：${absent.join('、')}`);
-        return clean;
-      },
-      max: 2,
-    });
+  },
+
+  missingPartRepairHint(partIndex, missing) {
+    if (partIndex === 5 && missing.includes('rpgField')) {
+      return '只能返回 rpgField。rpgField 必须是完整对象，包含 level、intrinsicBase 七项、derived 的 攻击力 和 防御力。不能只返回局部子字段。';
+    }
+    return `只能返回缺失字段：${missing.join('、')}。不能新增其它字段。`;
+  },
+
+  mergeMissingPatch(partIndex, current, patch) {
+    if (partIndex !== 5) return { ...current, ...patch };
+    const merged = { ...current, ...patch };
+    if (current?.rpgField || patch?.rpgField) {
+      merged.rpgField = this.mergeRpgField(current?.rpgField, patch?.rpgField);
+    }
+    return merged;
+  },
+
+  mergeRpgField(current = {}, patch = {}) {
+    return {
+      ...(current || {}),
+      ...(patch || {}),
+      level: patch?.level || current?.level,
+      intrinsicBase: { ...(current?.intrinsicBase || {}), ...(patch?.intrinsicBase || {}) },
+      derived: { ...(current?.derived || {}), ...(patch?.derived || {}) },
+    };
   },
 
   mergeGeneratedParts(part1, part2, part3, part4, attrs) {
