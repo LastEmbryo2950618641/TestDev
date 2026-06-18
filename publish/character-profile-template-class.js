@@ -94,7 +94,6 @@ window.GameModules.characterProfileTemplateClass = {
     return {
       level: this.valueReason(3, '等级由年龄、训练程度、经验和世界观强度综合判断。'),
       intrinsicBase: Object.fromEntries(intrinsic.map((key) => [key, { value: 8, description: `${key}处于普通人到熟练者之间的表现。`, reason: `${key}由人物经历、身体状态和世界规则判断。` }])),
-      derived: { 攻击力: this.valueReason(8, '攻击力由力量、技能和随身物品综合推算。'), 防御力: this.valueReason(8, '防御力由体质、穿着和防护条件综合推算。') },
     };
   },
 

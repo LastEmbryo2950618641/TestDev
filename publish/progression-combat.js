@@ -2,10 +2,11 @@ window.GameModules = window.GameModules || {};
 
 Object.assign(window.GameModules.progression, {
   derived(values) {
-    const skillBonus = (values.skills || []).reduce((sum, skill) => sum + Math.max(0, Number(skill.level) || 0) * 2, 0);
-    const attackPower = Math.round(values.level * 4 + values.strength * 8 + skillBonus);
-    const defensePower = Math.round(values.level * 3 + values.constitution * 8 + Math.floor((values.willpower || 0) / 2));
-    return { attackPower, defensePower, damageRuleNote: '攻击力=等级+力量+技能；防御力=等级+体质+意志修正。' };
+    const level = Math.max(1, Number(values.level) || 1);
+    const intelligence = Math.max(1, Number(values.intelligence) || 1);
+    const attackPower = Math.round(level * 3 + intelligence * 2);
+    const defensePower = Math.round(level * 2 + intelligence * 2);
+    return { attackPower, defensePower, damageRuleNote: '攻击力=等级*3+智力*2；防御力=等级*2+智力*2。' };
   },
 
   defaultCombat(values) {

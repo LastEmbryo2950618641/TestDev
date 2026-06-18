@@ -159,13 +159,13 @@ window.GameModules.characterProfile = {
       2: ['name', 'value', 'status', 'reason', '冷静', '绝望', '了解', '服从'],
       3: ['type', 'name', 'level', 'reason', 'requiredIntrinsicBase', 'requiredKnowledge', 'requiredSkills'],
       4: ['type', 'slot', 'bodyPart', 'name', 'description', 'quantity', 'reason', 'wearing', 'item'],
-      5: ['name', 'rpgField', 'level', 'intrinsicBase', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'derived', '攻击力', '防御力'],
+      5: ['name', 'rpgField', 'level', 'intrinsicBase', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma'],
     };
     if (!fields) return byPart[partIndex] || [];
     const nested = [];
     if (fields.includes('feeling')) nested.push('feeling', 'emotions', 'playerFeelings', 'cold', 'curiosity', 'understanding', 'submission');
     if (fields.includes('wearing')) nested.push('wearing', 'head', 'top', 'bottom', 'shoes', 'slot');
-    if (fields.includes('rpgField')) nested.push('rpgField', 'level', 'intrinsicBase', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'derived', '攻击力', '防御力');
+    if (fields.includes('rpgField')) nested.push('rpgField', 'level', 'intrinsicBase', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma');
     return [...new Set([...fields, ...nested])];
   },
 
@@ -338,8 +338,7 @@ window.GameModules.characterProfile = {
     const keys = ['strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma'];
     return value && typeof value === 'object'
       && this.valueReasonComplete(value.level)
-      && keys.every((key) => this.intrinsicBaseItemComplete(value.intrinsicBase?.[key]))
-      && ['攻击力', '防御力'].every((key) => this.valueReasonComplete(value.derived?.[key]));
+      && keys.every((key) => this.intrinsicBaseItemComplete(value.intrinsicBase?.[key]));
   },
 
   async completeMissingPart(partIndex, data, template, format, base, lore, attrs, store) {
@@ -596,10 +595,9 @@ window.GameModules.characterProfile = {
     ];
     if (partIndex === 5 && missing.includes('rpgField')) {
       lines.push(
-        'rpgField 是原子字段：只要 rpgField 缺失或不完整，就必须返回完整 rpgField，不能只返回 level 或 intrinsicBase。',
-        'rpgField 必须同时包含 level、intrinsicBase、derived。',
+        'rpgField 是原子字段：只要 rpgField 缺失或不完整，就必须返回完整 rpgField。',
+        'rpgField 只需要包含 level 与 intrinsicBase；禁止返回 derived、攻击力、防御力。',
         'intrinsicBase 必须完整包含 strength、agility、constitution、intelligence、perception、willpower、charisma，每项含 integer value、description、reason。',
-        'derived 必须完整包含 攻击力、防御力，每项含 integer value、reason。',
       );
     }
     return [
@@ -615,7 +613,7 @@ window.GameModules.characterProfile = {
 
   missingPartRepairHint(partIndex, missing) {
     if (partIndex === 5 && missing.includes('rpgField')) {
-      return '只能返回 rpgField。rpgField 必须是完整对象，包含 level、intrinsicBase 七项、derived 的 攻击力 和 防御力。不能只返回局部子字段。';
+      return '只能返回 rpgField。rpgField 必须包含 level 与 intrinsicBase 七项。禁止返回 derived、攻击力、防御力，这些由代码根据 level 与 intelligence 计算。';
     }
     return `只能返回缺失字段：${missing.join('、')}。不能新增其它字段。`;
   },
@@ -635,7 +633,6 @@ window.GameModules.characterProfile = {
       ...(patch || {}),
       level: patch?.level || current?.level,
       intrinsicBase: { ...(current?.intrinsicBase || {}), ...(patch?.intrinsicBase || {}) },
-      derived: { ...(current?.derived || {}), ...(patch?.derived || {}) },
     };
   },
 
@@ -1196,7 +1193,8 @@ window.GameModules.characterProfile = {
     }
     return [
       nameHint,
-      '必须返回根字段 rpgField，含 level、intrinsicBase（7项，每项含 value/description/reason）、derived（攻击力/防御力）。',
+      '必须返回根字段 rpgField，含 level、intrinsicBase（7项，每项含 value/description/reason）。',
+      '不要返回 derived、攻击力或防御力；这些由代码根据 level 与 intelligence 自动计算。',
       '顶层只能包含 name 和 rpgField，不要返回 items、wearing 或 rpgFieldReasons。',
       'intrinsicBase 每项的 description 必须根据该属性含义和数值段描写对应表现。',
     ].join('\n');
