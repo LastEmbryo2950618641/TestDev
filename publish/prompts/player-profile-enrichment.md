@@ -95,13 +95,13 @@ Rules：
 
 ### 7. relationships
 
-1. relationships 是微信联系人生成的结构化来源，必须从全量上下文整理，不只看原始 relationships 字段。
-2. 必须同时检查 livingStatus、parents、relationships、notes、worldbuilding 相关描述；只要输入能确认某个现实人物或关系角色存在，即使只写在备注里，也要纳入 relationships。
-3. 不要照抄长描述，要按世界观、地区文化、家庭制度、玩家姓名、玩家性别与社会关系推理为"关系：姓名"的列表，多项用中文分号。
-4. 如果输入只有关系或角色身份而没有姓名，必须由 AI 生成正式姓名；不要返回关系称谓、未知、待补全或"需要AI生成"。
-5. 如果输入明确有多个同类关系个体，例如"双胞胎妹妹之一/之二""妹妹A/妹妹B""两名妹妹"，必须保留为相同数量的独立关系条目，并用可区分关系名返回，例如"双胞胎妹妹之一：姓名；双胞胎妹妹之二：姓名"；不得合并成一个人，不得漏掉其中任何一人。
-6. 如果输入说明多名同类人物除独立存在、姓名不同外外貌、性格、穿着偏好、备注一致，relationships 只负责列出独立人物，refinedLivingStatus/worldbuildingNote 要保留这些共同事实。
-7. 只保留玩家明写或能从全量上下文确认的人际关系，不要擅自新增输入中不存在的人。
+1. relationships 是微信联系人生成的结构化来源，优先读取输入中的 relationshipEntries 数组；每个元素包含 relation、name、detail。
+2. 输出 relationships 只写“关系名：姓名”，多项用中文分号；关系名必须来自 relation，姓名必须来自 name。不要把 relation 当姓名，不要把 detail 拼进 relationships。
+3. 每个 relationshipEntries 元素都代表一个独立人物；即使同类关系很多，也必须逐个保留，例如“双胞胎妹妹之一：刘思瑶；双胞胎妹妹之二：刘思琪”。不得合并、漏掉或改名。
+4. detail 是该人物的个体设定证据，必须进入 refinedLivingStatus/worldbuildingNote 的综合判断，也会供微信联系人角色卡使用；但 relationships 字段只负责列名。
+5. 如果某个条目只有 relation 没有 name，才允许根据世界观、地区文化、家庭制度和玩家资料生成正式姓名；不要返回关系称谓、未知、待补全或“需要AI生成”。
+6. 若旧输入只有 relationships 文本而没有 relationshipEntries，才按“关系：姓名”文本兼容解析。
+7. 只保留玩家明写或能从结构化条目确认的人际关系，不要擅自新增输入中不存在的人。
 
 ### 8. worldbuildingNote
 
@@ -163,7 +163,7 @@ Rules：
     },
     "relationships": {
       "type": "string",
-      "description": "整理后的人际关系。格式为'关系：姓名'，多项用中文分号分隔。必须从全量上下文整理，不只看原始 relationships 字段。若输入只有关系角色而无姓名，必须由 AI 生成正式姓名。"
+      "description": "整理后的人际关系。格式为'关系名：姓名'，多项用中文分号分隔。优先从 relationshipEntries 的 relation/name 逐项输出；detail 只作为设定证据，不拼入该字段。"
     },
     "parentStatus": {
       "type": "string",

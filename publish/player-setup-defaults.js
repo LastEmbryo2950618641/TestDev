@@ -15,6 +15,7 @@ Object.assign(window.GameModules.playerSetupActions, {
       const match = line.match(/^\s*([^：:]+)\s*[：:]\s*(.+?)\s*$/);
       if (match) map[match[1].trim()] = match[2].trim();
     });
+    const relationships = map['人际关系'] || '';
     return {
       name: map['姓名'] || '',
       gender: map['性别'] || '',
@@ -24,7 +25,8 @@ Object.assign(window.GameModules.playerSetupActions, {
       livingStatus: map['居住状态'] || '',
       parents: map['父母信息'] || '',
       parentDeathCause: map['父母去世原因'] || '',
-      relationships: map['人际关系'] || '',
+      relationships,
+      relationshipEntries: this.normalizeRelationshipEntries ? this.normalizeRelationshipEntries(null, relationships) : [],
       notes: map['备注'] || '',
     };
   },
@@ -48,6 +50,7 @@ Object.assign(window.GameModules.playerSetupActions, {
     try {
       this.setupError = '';
       this.playerProfile = { ...this.playerProfile, ...await this.defaultExistingAccountProfile() };
+      this.playerProfile.relationshipEntries = this.normalizeRelationshipEntries(this.playerProfile.relationshipEntries, this.playerProfile.relationships);
       await this.initPredefinedRoleCards?.();
       this.roleCardSetup.usePredefinedPlayerCard = true;
       this.applySelectedPlayerRoleCard?.();
@@ -82,6 +85,7 @@ Object.assign(window.GameModules.playerSetupActions, {
         relationships: this.playerProfile.relationships || example.relationships || '',
         notes: this.playerProfile.notes || example.notes || '',
       };
+      this.playerProfile.relationshipEntries = this.normalizeRelationshipEntries(this.playerProfile.relationshipEntries, this.playerProfile.relationships);
       this.existingProfileExpanded = true;
       this.phoneActivationChoice = 'new';
     } catch (err) {

@@ -23,13 +23,25 @@ window.GameModules.promptSections = {
       playerHome: this.lines([
         ['具体地址', p.refinedCity || p.city], ['居住状态', p.refinedLivingStatus || p.livingStatus], ['父母状态', p.parentStatus || p.parents], ['父母去世原因', p.parentDeathCause || '无'],
       ]),
-      playerRelations: this.lines([
-        ['人际关系', p.relationships],
-      ]),
+      playerRelations: this.playerRelationshipLines(store),
       playerNotes: this.lines([
         ['补充设定/备注', p.notes || '无'],
       ]),
     };
+  },
+
+  playerRelationshipLines(store) {
+    if (typeof store?.relationshipEntriesPrompt === 'function') return store.relationshipEntriesPrompt();
+    const p = store?.playerProfile || {};
+    if (Array.isArray(p.relationshipEntries) && p.relationshipEntries.length) {
+      return p.relationshipEntries.map((entry, index) => [
+        `关系${index + 1}`,
+        `关系名=${entry?.relation || '未填写'}`,
+        `姓名=${entry?.name || '未填写'}`,
+        `设定=${entry?.detail || '无'}`,
+      ].join('；')).join('\n');
+    }
+    return this.lines([['人际关系', p.relationships]]);
   },
 
   characterBase(base) {

@@ -1210,7 +1210,19 @@
           <button class="small-btn" type="button" @click="$store.game.existingProfileExpanded = true">新增 / 编辑角色卡</button>
         </div>
       </article>
-      <label class="phone-setup-wide dev-section" data-section-title="人际关系设定区"><span>与你相关的人际关系</span><textarea x-model="$store.game.playerProfile.relationships" placeholder="例如：双胞胎妹妹之一：刘思瑶；双胞胎妹妹之二：刘思琪"></textarea><small>参考默认账号：双胞胎妹妹之一：刘思瑶；双胞胎妹妹之二：刘思琪</small></label>
+      <article class="phone-setup-wide relationship-entry-panel dev-section" data-section-title="人际关系设定区">
+        <div class="relationship-entry-head"><strong>与你相关的人际关系</strong><button class="small-btn" type="button" @click="$store.game.addPlayerRelationshipEntry()">＋ 添加关系</button></div>
+        <p>每行单独填写关系名、姓名与该人物设定；系统会自动整理成“关系：姓名”给角色卡和微信联系人使用。</p>
+        <template x-for="(entry, index) in ($store.game.playerProfile.relationshipEntries || [])" :key="index">
+          <div class="relationship-entry-row">
+            <label><span>关系名</span><input class="text-input" x-model="entry.relation" @input="$store.game.syncRelationshipTextFromEntries()" placeholder="如：双胞胎妹妹之一"></label>
+            <label><span>姓名</span><input class="text-input" x-model="entry.name" @input="$store.game.syncRelationshipTextFromEntries()" placeholder="如：刘思瑶"></label>
+            <label class="relationship-entry-detail"><span>该人物设定</span><textarea class="text-input" x-model="entry.detail" placeholder="外貌、性格、同居情况、关系边界、特殊偏好等"></textarea></label>
+            <button class="small-btn" type="button" @click="$store.game.removePlayerRelationshipEntry(index)">删除</button>
+          </div>
+        </template>
+        <small>参考：双胞胎妹妹之一 / 刘思瑶；双胞胎妹妹之二 / 刘思琪。旧格式会自动兼容。</small>
+      </article>
       <label class="phone-setup-wide dev-section" data-section-title="备注设定区"><span>备注设定</span><textarea x-model="$store.game.playerProfile.notes" placeholder="例如：家庭处境、性格、亲密关系边界、近期目标等。可留空。"></textarea><small>参考默认账号：刘悠是程序工程师，与成年双胞胎妹妹同居，承担家庭支柱职责。</small></label>
       <article class="real-world-note dev-section" data-section-title="AI身份补全提示区"><strong>激活补全</strong><p>完成激活时会根据生日计算年龄，并让 AI 把地址补全到省市区县、镇街道、小区、楼栋门牌级别，同时补全身份、居住信息与世界观备注；父母未填写时默认已故并生成合理死因。</p><small x-show="$store.game.profileSetupBusy">正在补全身份资料，约 10-30 秒，请勿重复点击。</small><small x-show="$store.game.setupError" x-text="$store.game.setupError"></small></article>
       <article class="real-world-note dev-section" data-section-title="现实世界背景区">

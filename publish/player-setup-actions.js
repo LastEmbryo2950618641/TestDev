@@ -28,6 +28,50 @@ window.GameModules.playerSetupActions = {
     return this.playerProfileLexiconFields().map((x) => `${x.label}：${x.value}`).join('\n');
   },
 
+  normalizeRelationshipEntries(entries = null, text = '') {
+    const source = Array.isArray(entries) ? entries : [];
+    const parsed = source.length ? source : String(text || '').split(/[；;\n]+/).map((part) => {
+      const pair = String(part || '').split(/[：:]/);
+      return { relation: pair[0] || '', name: pair.slice(1).join('：') || '', detail: '' };
+    });
+    return parsed.map((entry) => ({
+      relation: String(entry?.relation || '').trim().slice(0, 18),
+      name: String(entry?.name || '').trim().slice(0, 24),
+      detail: String(entry?.detail || entry?.context || '').trim().slice(0, 160),
+    })).filter((entry) => entry.relation || entry.name || entry.detail);
+  },
+
+  relationshipEntriesText(entries = null) {
+    return this.normalizeRelationshipEntries(entries || this.playerProfile?.relationshipEntries, this.playerProfile?.relationships)
+      .filter((entry) => entry.relation && entry.name)
+      .map((entry) => `${entry.relation}：${entry.name}`)
+      .join('；');
+  },
+
+  relationshipEntriesPrompt(entries = null) {
+    const list = this.normalizeRelationshipEntries(entries || this.playerProfile?.relationshipEntries, this.playerProfile?.relationships);
+    if (!list.length) return '未填写';
+    return list.map((entry, index) => [
+      `关系${index + 1}`,
+      `关系名=${entry.relation || '未填写'}`,
+      `姓名=${entry.name || '未填写'}`,
+      `设定=${entry.detail || '无'}`,
+    ].join('；')).join('\n');
+  },
+
+  syncRelationshipTextFromEntries() {
+    this.playerProfile.relationshipEntries = this.normalizeRelationshipEntries(this.playerProfile.relationshipEntries, this.playerProfile.relationships);
+    this.playerProfile.relationships = this.relationshipEntriesText(this.playerProfile.relationshipEntries);
+  },
+
+  addPlayerRelationshipEntry() {
+    this.playerProfile.relationshipEntries = [...this.normalizeRelationshipEntries(this.playerProfile.relationshipEntries, this.playerProfile.relationships), { relation: '', name: '', detail: '' }];
+  },
+
+  removePlayerRelationshipEntry(index) {
+    this.playerProfile.relationshipEntries = this.normalizeRelationshipEntries(this.playerProfile.relationshipEntries, this.playerProfile.relationships).filter((_, i) => i !== index);
+    this.syncRelationshipTextFromEntries();
+  },
 
   backActivationChoice() {
     this.phoneActivationChoice = '';
@@ -55,6 +99,7 @@ window.GameModules.playerSetupActions = {
     this.profileSetupBusy = true;
     try {
       this.setupError = '';
+      this.syncRelationshipTextFromEntries();
       const base = this.normalizePlayerSetupBase(name, birthday);
       if (options.skipAi) throw new Error('玩家个人资料必须由AI补全并给出原因，不能跳过AI。');
       let enriched = null;
@@ -99,7 +144,8 @@ window.GameModules.playerSetupActions = {
       workplace: (p.workplace || '').trim(), position: (p.position || '').trim(),
       livingStatus: (p.livingStatus || '').trim(),
       parents: (p.parents || '').trim(),
-      relationships: (p.relationships || '').trim(),
+      relationshipEntries: this.normalizeRelationshipEntries(p.relationshipEntries, p.relationships),
+      relationships: this.relationshipEntriesText(p.relationshipEntries) || (p.relationships || '').trim(),
       notes: (p.notes || '').trim(),
       initializedAt: p.initializedAt || new Date().toISOString(),
     };
@@ -133,6 +179,7 @@ window.GameModules.playerSetupActions = {
       refinedCity: city,
       refinedRole: role, workplace, position,
       refinedLivingStatus: String(data?.refinedLivingStatus || base.livingStatus || `${city}，长期居住地址已登记`).slice(0, 100),
+      relationshipEntries: this.normalizeRelationshipEntries(base.relationshipEntries?.length ? base.relationshipEntries : null, data?.relationships || base.relationships),
       relationships: window.GameModules.characterProfile.formatRelationships(data?.relationships || base.relationships),
       parentStatus: noParents ? (status.includes('已故') ? status : '父母已故') : status,
       parentDeathCause: noParents ? cause : cause,

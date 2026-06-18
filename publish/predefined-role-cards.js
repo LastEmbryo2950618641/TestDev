@@ -153,8 +153,12 @@ window.GameModules.predefinedRoleCardActions = {
   },
 
   applySelectedRelationshipRoleCards() {
-    const text = window.GameModules.predefinedRoleCards.relationshipText(this.selectedRelationRoleCards?.() || [], this.roleCardSetup.relationRoles || {});
-    if (text) this.playerProfile.relationships = text;
+    const cards = this.selectedRelationRoleCards?.() || [];
+    const text = window.GameModules.predefinedRoleCards.relationshipText(cards, this.roleCardSetup.relationRoles || {});
+    if (text) {
+      this.playerProfile.relationships = text;
+      this.playerProfile.relationshipEntries = cards.map((card) => ({ relation: this.roleCardSetup.relationRoles?.[card.name] || card.role || '关系联系人', name: card.name, detail: card.detail || card.personality || '' }));
+    }
   },
 
   relationTypeLabel() {

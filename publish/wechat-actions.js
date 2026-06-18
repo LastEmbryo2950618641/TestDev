@@ -205,11 +205,31 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
       return this.relationshipContactsFromPart(part, relation, rest, index, selfName);
     }).filter((user) => user && user.name && user.name !== selfName).slice(0, 20);
   },
+  inferWechatUsersFromRelationshipEntries() {
+    const entries = this.normalizeRelationshipEntries ? this.normalizeRelationshipEntries(this.playerProfile?.relationshipEntries, this.playerProfile?.relationships) : [];
+    const selfName = String(this.playerProfile?.name || this.playerName || '').trim();
+    return entries.filter((entry) => entry.relation || entry.name).flatMap((entry, index) => {
+      const relation = String(entry.relation || '关系联系人').trim().slice(0, 18);
+      const name = String(entry.name || relation).trim().slice(0, 24);
+      if (!name || name === selfName) return [];
+      const needsNameAi = !entry.name || this.isWechatPlaceholderName(name);
+      const context = [`关系名：${relation}`, `姓名：${entry.name || '未填写'}`, `设定：${entry.detail || '无'}`].join('\n');
+      const id = `rel-ai-${window.GameModules.rpgState.seed(`${relation}-${name}-${index}`)}`;
+      return [{ id, characterId: id, name, relation, latest: `${relation}资料已从玩家人际关系同步。`, source: 'relationships-structured', context, needsNameAi }];
+    });
+  },
+
+  inferWechatUsersFromProfile() {
+    const structured = this.inferWechatUsersFromRelationshipEntries();
+    return structured.length ? structured : this.inferWechatUsersFromRelationships(this.playerProfile?.relationships || '');
+  },
+
   selectedPredefinedWechatUsers() {
     return this.predefinedRelationshipCards().map((card) => ({ id: card.id, characterId: card.id, name: card.name, relation: this.roleCardSetup?.relationRoles?.[card.name] || card.role || '关系联系人', latest: `${card.role || card.name}资料已从预定义角色卡同步。`, source: 'predefined-role-card', context: card.detail || card.relationships || '', needsNameAi: false }));
   },
   async syncRelationshipWechatUsers(options = {}) {
-    const users = this.inferWechatUsersFromRelationships(this.playerProfile?.relationships || '');
+    this.syncRelationshipTextFromEntries?.();
+    const users = this.inferWechatUsersFromProfile();
     const predefined = this.roleCardSetup?.usePredefinedPlayerCard ? this.selectedPredefinedWechatUsers() : [];
     const merged = [...users, ...predefined].filter((user, index, list) => list.findIndex((item) => item.id === user.id) === index);
     const replacements = new Map(users.filter((user) => user.context && !user.needsNameAi).map((user) => [String(user.relation || ''), user]));

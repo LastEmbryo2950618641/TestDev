@@ -64,7 +64,11 @@ window.GameModules = window.GameModules || {};
         await window.GameModules.rpgLexicon.saveMany(this.playerProfileLexiconFields().map((field) => ({ worldTag: worldLabel(), kind: '玩家设定', name: field.label, value: field.raw || field.value, summary: field.value, description: field.desc, nameAiGenerated: false, valueAiGenerated: false, changeMode: '用户主动', source: 'fallback', meta: { targetType: '非角色', commonField: true } })));
       } catch (err) { console.warn('[玩家身份] 兜底词条同步失败:', err.message, err.stack); }
     },
-    reopenPlayerSetup() { this.phoneSetupDone = false; this.phoneActivationChoice = ''; },
+    reopenPlayerSetup() {
+      this.playerProfile.relationshipEntries = this.normalizeRelationshipEntries?.(this.playerProfile.relationshipEntries, this.playerProfile.relationships) || this.playerProfile.relationshipEntries || [];
+      this.phoneSetupDone = false;
+      this.phoneActivationChoice = '';
+    },
   };
   Object.entries(fallbacks).forEach(([key, fn]) => { if (typeof actions[key] !== 'function') actions[key] = fn; });
 })();
