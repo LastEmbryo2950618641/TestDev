@@ -7,7 +7,7 @@ window.GameModules.inventoryActions = {
 
   inventoryValues(state = this.inventoryTargetState()) {
     const values = state?.values || {};
-    window.GameModules.progression.ensureInventoryFields?.(values);
+    window.GameModules.progression.ensureInventoryFields?.(values, state?.id || '');
     return values;
   },
 
@@ -19,7 +19,7 @@ window.GameModules.inventoryActions = {
 
   wearingItems(state = this.inventoryTargetState()) {
     const values = this.inventoryValues(state);
-    window.GameModules.progression.ensureInventoryFields?.(values);
+    window.GameModules.progression.ensureInventoryFields?.(values, state?.id || '');
     return values.wearing || [];
   },
 
@@ -42,7 +42,7 @@ window.GameModules.inventoryActions = {
   },
 
   wearingDetail(item) {
-    const position = item?.clothing_position || item?.bodyPart;
+    const position = item?.clothing_position;
     const label = item?.slotLabel || position || item?.slot;
     const slot = item?.slot ? `槽位：${item.slot}${label && label !== item.slot ? `（${label}）` : ''}` : '';
     const part = position ? `人体着装部位：${position}` : '';
@@ -52,21 +52,21 @@ window.GameModules.inventoryActions = {
 
   async addWearSlot(base = '装备', state = this.inventoryTargetState()) {
     if (!state?.values) return '';
-    const slot = this.ensureWearSlot(state.values, base, true);
+    const slot = this.ensureWearSlot(state.values, base, true, state.id || '');
     await this.persistInventoryState(state);
     return slot;
   },
 
-  ensureWearSlot(values, slot, alwaysNew = false) {
+  ensureWearSlot(values, slot, alwaysNew = false, ownerId = '') {
     const p = window.GameModules.progression;
-    p.ensureInventoryFields?.(values);
+    p.ensureInventoryFields?.(values, ownerId);
     const raw = String(slot || '装备').trim();
     const base = p.slotBase(raw);
     const dynamic = ['饰品', '装备'].includes(base) && !/\d+$/.test(raw);
     const empty = (item) => !item?.name || this.isEmptyWear(item);
     let target = !alwaysNew && dynamic ? values.wearing.find((item) => p.slotBase(item.slot) === base && empty(item))?.slot : '';
     target = target || (dynamic || alwaysNew ? p.nextSlot(values.wearing, base) : raw);
-    if (!values.wearing.some((item) => item.slot === target)) values.wearing.push({ slot: target, name: '未穿戴', type: '穿着', description: '玩家或AI新增的可穿戴槽位。', reason: `${target}槽位由装备/饰品操作新增，当前尚未穿戴物品。`, changeMode: `${target}槽位由装备/饰品操作新增，当前尚未穿戴物品。`, level: -1 });
+    if (!values.wearing.some((item) => item.slot === target)) values.wearing.push({ id: ownerId ? p.itemId?.(ownerId, '穿着', target, '未穿戴') : '', ownerId, characterId: ownerId, slot: target, name: '未穿戴', type: '穿着', description: '玩家或AI新增的可穿戴槽位。', reason: `${target}槽位由装备/饰品操作新增，当前尚未穿戴物品。`, changeMode: `${target}槽位由装备/饰品操作新增，当前尚未穿戴物品。`, level: -1 });
     return target;
   },
 
@@ -82,9 +82,9 @@ window.GameModules.inventoryActions = {
     const v = this.inventoryValues(state);
     const item = this.inventoryItems(state).find((entry) => this.inventoryName(entry) === itemName);
     if (!item) return false;
-    const target = this.ensureWearSlot(v, slot);
+    const target = this.ensureWearSlot(v, slot, false, state.id || '');
     if (!this.canEquipToSlot(item, target)) return false;
-    this.writeWearingItem(v, { ...item, slot: target });
+    this.writeWearingItem(v, { ...item, slot: target }, state.id || '');
     await this.persistInventoryState(state);
     return true;
   },
@@ -98,9 +98,10 @@ window.GameModules.inventoryActions = {
     return true;
   },
 
-  writeWearingItem(values, item) {
-    const target = this.ensureWearSlot(values, item.slot || item.equipSlots?.[0] || '装备');
-    const worn = { ...item, slot: target, type: '穿着', level: -1 };
+  writeWearingItem(values, item, ownerId = '') {
+    const target = this.ensureWearSlot(values, item.slot || item.equipSlots?.[0] || '装备', false, ownerId);
+    const finalOwnerId = item.ownerId || item.characterId || ownerId;
+    const worn = { ...item, id: item.id || (finalOwnerId ? window.GameModules.progression.itemId?.(finalOwnerId, '穿着', target, item.name || '未穿戴') : ''), ownerId: finalOwnerId, characterId: finalOwnerId, slot: target, type: '穿着', level: -1 };
     const index = values.wearing.findIndex((entry) => entry.slot === target);
     if (index >= 0) values.wearing[index] = { ...values.wearing[index], ...worn };
     else values.wearing.push(worn);
@@ -109,7 +110,7 @@ window.GameModules.inventoryActions = {
   async applyInventoryUpdatesToState(state, updates = []) {
     const values = state?.values;
     if (!values) return;
-    window.GameModules.progression.ensureInventoryFields?.(values);
+    window.GameModules.progression.ensureInventoryFields?.(values, state.id || '');
     let changed = false;
     const upsert = (list, item) => {
       const name = this.inventoryName(item);
@@ -121,16 +122,16 @@ window.GameModules.inventoryActions = {
     for (const raw of updates || []) {
       const kind = raw?.kind;
       const value = raw?.value && typeof raw.value === 'object' ? raw.value : {};
-      const item = window.GameModules.progression.normalizeCarryItem({ ...value, name: raw?.name || value.name, slot: raw?.slot || value.slot, description: raw?.description || raw?.summary || value.description, changeMode: raw?.reason || raw?.changeMode || 'AI演算' }, kind);
+      const item = window.GameModules.progression.normalizeCarryItem({ ...value, name: raw?.name || value.name, slot: raw?.slot || value.slot, description: raw?.description || raw?.summary || value.description, changeMode: raw?.reason || raw?.changeMode || 'AI演算' }, kind, state.id || '');
       if (kind === '物品' || kind === '装备') upsert(values.items, item);
-      if (kind === '穿着') { this.writeWearingItem(values, item); changed = true; }
+      if (kind === '穿着') { this.writeWearingItem(values, item, state.id || ''); changed = true; }
     }
     if (changed) await this.persistInventoryState(state);
   },
 
   async persistInventoryState(state) {
     if (!state?.id) return;
-    window.GameModules.progression.ensureInventoryFields?.(state.values);
+    window.GameModules.progression.ensureInventoryFields?.(state.values, state.id || '');
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
     await window.GameModules.sqliteSave.saveCharacterState(state);
   },

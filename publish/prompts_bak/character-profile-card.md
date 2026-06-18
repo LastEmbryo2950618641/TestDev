@@ -313,11 +313,11 @@ Rules：
       "description": "当前穿着列表。常规生活场景应包含基础槽位：内衣、上衣、内裤、下衣、袜子、鞋子。",
       "items": {
         "type": "object",
-        "required": ["slot", "bodyPart", "name", "description", "reason"],
+        "required": ["slot", "clothing_position", "name", "description", "reason"],
         "additionalProperties": false,
         "properties": {
           "slot": { "type": "string", "description": "穿着槽位，如内衣、上衣、内裤、下衣、袜子、鞋子。" },
-          "bodyPart": { "type": "string", "description": "穿着覆盖的身体部位，如胸部、躯干、腰臀、腿部、脚踝、脚部、手腕、头部、手部等。" },
+          "clothing_position": { "type": "string", "description": "穿着覆盖的身体部位，如胸部、躯干、腰臀、腿部、脚踝、脚部、手腕、头部、手部等。" },
           "name": { "type": "string", "description": "穿着名称。" },
           "description": { "type": "string", "description": "穿着说明。" },
           "reason": { "type": "string", "description": "穿戴该物品的原因句。" }

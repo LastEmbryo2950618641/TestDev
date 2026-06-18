@@ -78,7 +78,7 @@ window.GameModules.rpgFieldUi = {
   lexiconFor(field, item = null) {
     const worldTag = field?.worldTag || this.currentRpgState?.worldTag || this.character?.work || '原创世界';
     const kind = this.lexiconKind(field, item);
-    const name = this.rpgItemSummary(item) || field?.label;
+    const name = this.rpgItemName(item) || field?.label;
     return window.GameModules.rpgLexicon.get(worldTag, kind, name) || null;
   },
 
@@ -111,7 +111,7 @@ window.GameModules.rpgFieldUi = {
     const generated = window.GameModules.characterReasonFallback?.rpgReasons?.(profile, profile.worldAttributes || { fields: state?.schema?.sections?.find((section) => section.title === '世界固有属性')?.fields || [] }) || {};
     if (!obj && generated[field?.key]) return generated[field.key];
     const finalKind = kind || (obj ? this.lexiconKind(field, obj) : (field?.kind || this.lexiconKind(field)));
-    const finalName = name || (obj ? this.rpgItemSummary(obj) : (field?.label || field?.key || '该词条'));
+    const finalName = name || (obj ? this.rpgItemName(obj) : (field?.label || field?.key || '该词条'));
     if (obj && finalKind === '穿着') return `${profile.name || '该人物'}当前穿着为${finalName}，后续只有明确换装、脱下、破损或洗浴等事件才会更新。`;
     if (obj) return `${profile.name || '该人物'}持有${finalName}，是其${finalKind}、当前处境或既有生活经历的一部分，后续会随明确剧情事件更新。`;
     if (field?.source) return `${profile.name || '该人物'}的${finalName}由初始经历、等级成长、自由分配和非玩家成长共同形成。`;
@@ -151,14 +151,19 @@ window.GameModules.rpgFieldUi = {
     const raw = lexicon?.meta?.modifyReason || obj.reason || '';
     const cleaned = this.cleanDetailText(raw);
     const explicit = !this.pollutedDetailText(cleaned) ? this.usableChangeReason(cleaned, [lexicon?.description, lexicon?.summary, obj.description, obj.desc, obj.source, obj.changeMode]) : '';
-    return explicit || window.GameModules.progression?.itemReason?.(obj, this.lexiconKind(field, obj)) || this.missingReasonText(this.rpgItemSummary(obj) || field?.label || '词条');
+    return explicit || window.GameModules.progression?.itemReason?.(obj, this.lexiconKind(field, obj)) || this.missingReasonText(this.rpgItemName(obj) || field?.label || '词条');
+  },
+
+  rpgItemName(item) {
+    if (typeof item === 'string') return item;
+    return item?.name || (item?.force ? `${item.force} / ${item.position || '成员'}` : (item?.faction ? `${item.faction} / ${item.role || item.position || '成员'}` : '未命名'));
   },
 
   rpgItemSummary(item) {
-    if (typeof item === 'string') return item;
-    const name = item?.name || (item?.force ? `${item.force} / ${item.position || '成员'}` : (item?.faction ? `${item.faction} / ${item.role || item.position || '成员'}` : '未命名'));
+    const name = this.rpgItemName(item);
+    if (typeof item === 'string') return name;
     const levelName = Number(item?.level) > 0 ? `${name} lv.${item.level}` : name;
-    if ((item?.type === '穿着' || item?.slot || item?.clothing_position || item?.bodyPart) && (item?.clothing_position || item?.bodyPart)) return `穿戴位：${item.clothing_position || item.bodyPart}｜${levelName}`;
+    if (item?.type === '穿着' && item?.slot && item?.clothing_position) return `${item.clothing_position}｜${levelName}`;
     return levelName;
   },
 
@@ -194,11 +199,12 @@ window.GameModules.rpgFieldUi = {
     const statName = { strength: '力量', agility: '敏捷', constitution: '体质', intelligence: '智力', perception: '感知', willpower: '意志', charisma: '魅力' };
     const linkedStats = (info.intrinsicStats || obj?.linkedStats || []).map((x) => statName[x] || x);
     const kind = obj?.type || this.lexiconKind(field, obj);
-    const name = this.rpgItemSummary(obj) || field?.label || '未知';
+    const name = this.rpgItemName(obj) || field?.label || '未知';
     const hasLevel = Number(obj?.level) > 0;
     const lines = [`名称: ${name}`, `定义: ${this.learnedDefinition(kind, name, obj, lexicon, info)}`, `类型: ${kind}`, `所属世界: ${field?.worldTag || lexicon?.worldTag || '公共'}`, `词条类型: ${field?.targetType || lexicon?.meta?.targetType || '角色'}`];
-    if (kind === '穿着' && (obj?.clothing_position || obj?.bodyPart || obj?.slotLabel)) lines.push(`穿戴位: ${obj.clothing_position || obj.bodyPart || obj.slotLabel}`);
+    if (kind === '穿着' && (obj?.clothing_position || obj?.slotLabel)) lines.push(`穿戴位: ${obj.clothing_position || obj.slotLabel}`);
     if (kind === '穿着' && obj?.slot) lines.push(`槽位: ${obj.slot}`);
+    if ((kind === '物品' || kind === '穿着' || kind === '装备') && (obj?.id || obj?.ownerId || obj?.characterId)) lines.push(`唯一ID: ${obj.id || '未记录'}`, `所属角色ID: ${obj.ownerId || obj.characterId || '未记录'}`);
     if ((kind === '社群角色' || kind === '阵营') && (obj?.community || obj?.faction || info.community || info.faction)) lines.push(`社群: ${obj.community || obj.faction || info.community || info.faction}`, `角色: ${obj.role || info.role || obj.position || info.position || '成员'}`);
     if (kind === '势力地位' && (obj?.force || obj?.faction || info.force || info.faction)) lines.push(`势力: ${obj.force || obj.faction || info.force || info.faction}`, `地位: ${obj.position || info.position || '成员'}`);
     if (hasLevel) {

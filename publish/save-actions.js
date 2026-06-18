@@ -63,7 +63,7 @@ window.GameModules.saveActions = {
   loadSavedRpgStates() {
     const states = window.GameModules.sqliteSave.listCharacterStates();
     const cleaned = states.map((state) => {
-      const changed = window.GameModules.progression.ensureInventoryFields?.(state?.values);
+      const changed = window.GameModules.progression.ensureInventoryFields?.(state?.values, state?.id || '');
       if (changed) window.GameModules.sqliteSave.saveCharacterState(state).catch((err) => console.warn('[存档清洗] 角色穿着说明保存失败:', err.message, err.stack));
       return state;
     });

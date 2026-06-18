@@ -52,7 +52,7 @@ window.GameModules.characterProfile = {
   },
 
   wearingSlotProgressDone(item) {
-    return item && typeof item === 'object' && String(item.clothing_position || item.bodyPart || '').trim() && String(item.reason || '').trim() && Object.prototype.hasOwnProperty.call(item, 'description');
+    return item && typeof item === 'object' && String(item.clothing_position || '').trim() && String(item.reason || '').trim() && Object.prototype.hasOwnProperty.call(item, 'description');
   },
 
   findSavedRoleCard(base, signature) {
@@ -369,7 +369,7 @@ window.GameModules.characterProfile = {
 
   wearingObjectComplete(value) {
     const slots = ['head', 'neck', 'innerwearTop', 'top', 'outerwear', 'gloves', 'waist', 'innerwearBottom', 'bottom', 'socks', 'shoes', 'wrist'];
-    const completeItem = (item, allowEmptyName = true) => item && typeof item === 'object' && String(item.clothing_position || item.bodyPart || '').trim() && String(item.reason || '').trim() && (allowEmptyName || String(item.name || '').trim()) && Object.prototype.hasOwnProperty.call(item, 'description');
+    const completeItem = (item, allowEmptyName = true) => item && typeof item === 'object' && String(item.clothing_position || '').trim() && String(item.reason || '').trim() && (allowEmptyName || String(item.name || '').trim()) && Object.prototype.hasOwnProperty.call(item, 'description');
     return value && typeof value === 'object' && !Array.isArray(value)
       && slots.every((slot) => completeItem(value[slot], true))
       && Array.isArray(value.slot)
@@ -1782,7 +1782,7 @@ window.GameModules.characterProfile = {
   normalizeWearSlot(slot, item = {}, profile = {}) {
     const source = item && typeof item === 'object' ? item : { name: item };
     const names = this.wearingSlotNames();
-    const clothing_position = String(source.clothing_position || source.bodyPart || source.部位 || names[slot] || slot || '').slice(0, 16);
+    const clothing_position = String(source.clothing_position || source.部位 || names[slot] || slot || '').slice(0, 16);
     const name = String(source.name || source.名称 || '').slice(0, 32);
     const description = String(source.description || source.desc || '').slice(0, 100);
     const reason = String(source.reason || source.changeMode || (name ? this.inventoryReason({ ...source, name, slot }, '穿着', profile) : `${clothing_position || slot}当前没有穿戴物。`)).slice(0, 120);
@@ -1826,7 +1826,7 @@ window.GameModules.characterProfile = {
     return list.map((item) => {
       const name = String(item?.name || '未穿戴').slice(0, 32);
       const slot = String(item?.slot || '').slice(0, 12);
-      const clothing_position = String(item?.clothing_position || item?.bodyPart || item?.部位 || '').slice(0, 12);
+      const clothing_position = String(item?.clothing_position || item?.部位 || '').slice(0, 12);
       return { slot, clothing_position, name, type: '穿着', description: String(item?.description || '').slice(0, 80), reason: String(item?.reason || item?.changeMode || '').trim().slice(0, 120), changeMode: String(item?.reason || item?.changeMode || '').trim().slice(0, 120), level: -1 };
     }).filter((item) => item.slot).slice(0, 20);
   },
@@ -1927,7 +1927,7 @@ window.GameModules.characterProfile = {
       const obj = this.wearingObject(wearing, profile);
       const fixed = Object.fromEntries(this.wearingSlotKeys().map((slot) => {
         const item = obj[slot] || {};
-        const reason = item.name ? this.inventoryReason({ ...item, slot }, '穿着', profile) : (item.reason || `${item.clothing_position || item.bodyPart || slot}当前没有穿戴物。`);
+        const reason = item.name ? this.inventoryReason({ ...item, slot }, '穿着', profile) : (item.reason || `${item.clothing_position || slot}当前没有穿戴物。`);
         return [slot, { ...item, reason }];
       }));
       fixed.slot = (Array.isArray(obj.slot) ? obj.slot : []).map((item) => ({ ...item, reason: this.inventoryReason(item, '穿着', profile) }));

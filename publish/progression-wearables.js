@@ -20,7 +20,7 @@ window.GameModules = window.GameModules || {};
       const item = typeof itemOrSlot === 'object' && itemOrSlot ? itemOrSlot : { slot: itemOrSlot };
       const slot = String(item.slot || '').trim();
       if (this.bodyWearSlots().includes(slot)) return slot;
-      const text = `${slot}${item.clothing_position || item.bodyPart || ''}${item.name || ''}${item.description || ''}`;
+      const text = `${slot}${item.clothing_position || ''}${item.name || ''}${item.description || ''}`;
       const exact = { 头部: 'head', 颈部: 'neck', 上衣: 'top', 外套: 'outerwear', 手套: 'gloves', 腰部: 'waist', 下衣: 'bottom', 下装: 'bottom', 袜子: 'socks', 鞋子: 'shoes', 手腕: 'wrist' }[slot];
       if (exact) return exact;
       if (slot === '内裤') return 'innerwearBottom';
@@ -81,12 +81,19 @@ window.GameModules = window.GameModules || {};
       return `${name}当前属于${kind}词条，后续由明确行动或状态变化更新。`;
     },
 
-    normalizeCarryItem(item, kind = '物品') {
+    normalizeCarryItem(item, kind = '物品', ownerId = '') {
       const obj = typeof item === 'string' ? { name: item } : { ...(item || {}) };
       const name = String(obj.name || obj.label || '未命名物品').slice(0, 32);
+      const finalOwnerId = String(obj.ownerId || obj.characterId || ownerId || '').trim();
+      const id = String(obj.id || (finalOwnerId ? this.itemId(finalOwnerId, kind, obj.slot || '', name) : '')).slice(0, 80);
       const reason = this.itemReason({ ...obj, name }, kind);
       const mode = obj.changeMode && !this.pollutedReason(obj.changeMode) && String(obj.changeMode).length < 24 ? obj.changeMode : '状态规范化';
-      return { ...obj, name, type: obj.type || kind, kind: obj.kind || kind, quantity: Math.max(1, Number(obj.quantity) || 1), equipSlots: this.inferEquipSlots(obj, kind), reason, changeMode: mode, level: Number(obj.level) > 0 ? obj.level : -1 };
+      return { ...obj, id, ownerId: finalOwnerId, characterId: finalOwnerId, name, type: obj.type || kind, kind: obj.kind || kind, quantity: Math.max(1, Number(obj.quantity) || 1), equipSlots: this.inferEquipSlots(obj, kind), reason, changeMode: mode, level: Number(obj.level) > 0 ? obj.level : -1 };
+    },
+
+    itemId(ownerId = '', kind = '物品', slot = '', name = '') {
+      const raw = `${ownerId || 'unknown'}:${kind}:${slot}:${name}`;
+      return `item_${window.GameModules.rpgState?.seed?.(raw) || Math.abs([...raw].reduce((sum, ch) => sum + ch.charCodeAt(0), 0))}`;
     },
 
     clothingPositionForSlot(slot) {
@@ -106,29 +113,33 @@ window.GameModules = window.GameModules || {};
         || (item.name === '未穿戴' && /暂无已记录|未被上下文记录/.test(item.description || ''));
     },
 
-    defaultWearing(existing = []) {
+    defaultWearing(existing = [], ownerId = '') {
       const old = Array.isArray(existing) ? existing.map((item) => ({ ...(item || {}), slot: this.canonicalWearSlot(item) })) : [];
       return this.wearableSlots(old).map((slot) => {
         const hit = old.find((item) => item?.slot === slot);
         if (hit && !this.isPlaceholderEmptyWear(hit)) {
           const reason = this.itemReason(hit, '穿着');
           const mode = hit.changeMode && !this.pollutedReason(hit.changeMode) && String(hit.changeMode).length < 24 ? hit.changeMode : '状态规范化';
-          return { ...hit, slot, clothing_position: hit.clothing_position || this.clothingPositionForSlot(slot), slotLabel: hit.slotLabel || this.clothingPositionForSlot(slot), type: hit.type || '穿着', reason, changeMode: mode, level: -1 };
+          const finalOwnerId = hit.ownerId || hit.characterId || ownerId;
+          return { ...hit, id: hit.id || (finalOwnerId ? this.itemId(finalOwnerId, '穿着', slot, hit.name || '未穿戴') : ''), ownerId: finalOwnerId, characterId: finalOwnerId, slot, clothing_position: hit.clothing_position || this.clothingPositionForSlot(slot), slotLabel: hit.slotLabel || this.clothingPositionForSlot(slot), type: hit.type || '穿着', reason, changeMode: mode, level: -1 };
         }
         const basic = this.defaultWearForSlot(slot);
         if (basic) return basic;
         const position = this.clothingPositionForSlot(slot);
         const reason = hit?.reason || `${position || slot}槽位缺少AI生成的穿着或未穿戴原因，请重新生成个人资料。`;
-        return { slot, clothing_position: position, slotLabel: position, name: '未穿戴', type: '穿着', description: '该槽位缺少有效AI穿着记录。', reason, changeMode: reason, level: -1 };
+        return { id: ownerId ? this.itemId(ownerId, '穿着', slot, '未穿戴') : '', ownerId, characterId: ownerId, slot, clothing_position: position, slotLabel: position, name: '未穿戴', type: '穿着', description: '该槽位缺少有效AI穿着记录。', reason, changeMode: reason, level: -1 };
       });
     },
 
     profileWearingItems(profile = {}) {
       const raw = Array.isArray(profile.wearingItems) ? profile.wearingItems : (window.GameModules.characterProfile?.wearingItemsLoose?.(profile.wearing) || []);
+      const ownerId = String(profile.id || '').trim();
       return raw.map((item) => {
         const slot = this.canonicalWearSlot(item);
         const reason = item?.reason || item?.changeMode || '';
-        return { ...(item || {}), slot, clothing_position: item?.clothing_position || this.clothingPositionForSlot(slot), slotLabel: item?.slotLabel || this.clothingPositionForSlot(slot), type: '穿着', reason, changeMode: reason || item?.changeMode || '', level: -1 };
+        const name = item?.name || '未穿戴';
+        const id = item?.id || (ownerId ? this.itemId(ownerId, '穿着', slot, name) : '');
+        return { ...(item || {}), id, ownerId, characterId: ownerId, slot, clothing_position: item?.clothing_position || this.clothingPositionForSlot(slot), slotLabel: item?.slotLabel || this.clothingPositionForSlot(slot), type: '穿着', reason, changeMode: reason || item?.changeMode || '', level: -1 };
       }).filter((item) => item.slot && item.reason).slice(0, 40);
     },
 
@@ -155,16 +166,16 @@ window.GameModules = window.GameModules || {};
       if (Array.isArray(profile.items) && profile.items.length && (!Array.isArray(state.values.items) || !state.values.items.length)) state.values.items = profile.items;
       const wearing = this.profileWearingItems(profile);
       if (this.shouldReplaceWearing(state.values.wearing, wearing)) state.values.wearing = wearing;
-      this.ensureInventoryFields(state.values);
+      this.ensureInventoryFields(state.values, state.id || profile.id || '');
       changed = before !== JSON.stringify({ items: state.values.items, wearing: state.values.wearing });
       return changed;
     },
 
-    ensureInventoryFields(values) {
+    ensureInventoryFields(values, ownerId = '') {
       if (!values) return false;
       const before = JSON.stringify({ items: values.items, wearing: values.wearing });
-      values.items = (Array.isArray(values.items) ? values.items : []).map((item) => this.normalizeCarryItem(item, item.type || '物品'));
-      values.wearing = this.defaultWearing(values.wearing);
+      values.items = (Array.isArray(values.items) ? values.items : []).map((item) => this.normalizeCarryItem(item, item.type || '物品', ownerId));
+      values.wearing = this.defaultWearing(values.wearing, ownerId);
       return before !== JSON.stringify({ items: values.items, wearing: values.wearing });
     },
 
@@ -186,13 +197,13 @@ window.GameModules = window.GameModules || {};
       const values = baseCreateValues(character, seed, existing || {});
       values.items = values.items?.length ? values.items : (character.items || []);
       values.wearing = values.wearing?.length ? values.wearing : (character.wearingItems || character.wearing || []);
-      this.ensureInventoryFields(values);
+      this.ensureInventoryFields(values, character.id || '');
       return values;
     },
 
     ensureStateMechanics(state, character = state?.profile || {}) {
       const changed = baseEnsureStateMechanics(state, character);
-      return this.ensureInventoryFields(state?.values) || changed;
+      return this.ensureInventoryFields(state?.values, state?.id || character?.id || '') || changed;
     },
   });
 })();
