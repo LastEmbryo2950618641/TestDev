@@ -104,31 +104,10 @@ window.GameModules.characterProfile = {
 
   async loadPartTemplates() {
     if (this.partTemplateCache) return this.partTemplateCache;
-    const files = {
-      1: 'predefined-templete/part1-base-identity.json',
-      2: 'predefined-templete/part2-abilities-professions.json',
-      3: 'predefined-templete/part3-inventory-wearing-rpg.json',
-    };
-    const loaded = {};
-    for (const [index, file] of Object.entries(files)) {
-      const text = await this.fetchTextAsset(file);
-      loaded[index] = JSON.parse(text);
-    }
-    this.partTemplateCache = loaded;
-    return loaded;
-  },
-
-  async fetchTextAsset(file) {
-    const candidates = window.GameModules.promptTemplates?.fileCandidates?.(file) || [file, `./${file}`];
-    let lastError = null;
-    for (const url of candidates) {
-      try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return await res.text();
-      } catch (err) { lastError = err; }
-    }
-    throw new Error(`模板JSON读取失败：${file}，${lastError?.message || 'unknown'}`);
+    const templates = window.GameModules.characterProfileTemplateClass?.parts?.();
+    if (!templates?.[1] || !templates?.[2] || !templates?.[3]) throw new Error('角色卡模板类未加载，无法生成三段角色卡。');
+    this.partTemplateCache = templates;
+    return templates;
   },
 
   async generatePart(partIndex, promptId, vars, template, base, lore, attrs, store) {
@@ -153,9 +132,9 @@ window.GameModules.characterProfile = {
     return [
       prompt,
       '',
-      '## 预定义 JSON 模板（最高优先级）',
-      '本次输出必须严格以此 JSON 文件的字段为准：字段名、嵌套结构和数组元素字段不得新增、不得改名。',
-      '若上方 MD 提示词与此 JSON 冲突，一律以此 JSON 为准；此 JSON 中不存在的字段不要输出。',
+      '## 内置角色卡模板类（最高优先级）',
+      '本次输出必须严格以内置角色卡模板类的字段为准：字段名、嵌套结构和数组元素字段不得新增、不得改名。',
+      '若上方 MD 提示词与此模板冲突，一律以此模板为准；此模板中不存在的字段不要输出。'
       `Part${partIndex} 模板：`,
       '```json',
       JSON.stringify(template, null, 2),
