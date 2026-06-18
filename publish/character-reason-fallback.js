@@ -30,6 +30,7 @@ window.GameModules.characterReasonFallback = {
       生日: profile.birthday ? `${name}的生日已用于年龄和人生阶段计算，因此记录为${profile.birthday}。` : `${name}只暴露了身份阶段或关系称谓，还没有出现明确生日。`,
       人际关系: profile.relationships ? `${profile.relationships}会直接影响${name}对玩家的亲疏、信任和日常互动。` : `${name}暂时没有与玩家形成可确认的亲属、同事、同学或朋友关系。`,
       外貌: `${name}的可见形象按年龄、生活环境、职业或家庭处境克制描写，避免脱离当前经历。`,
+      喜好: profile.preferences ? `${name}的稳定喜好记录为${profile.preferences}，会影响穿着、随身物和审美选择。` : `${name}暂未暴露强烈喜好，只能按身份、性格和生活处境保守判断。`,
       性格: `${profile.personality || detail}体现了${name}面对压力、关系和日常选择时的稳定反应。`,
       人物说明: `${detail}说明了${name}此刻的生活位置、关系牵连和可行动边界。`,
       社群角色: `${name}需要通过居住地、家庭、朋友圈或临时处境确定自己属于哪个社群。`,

@@ -7,7 +7,7 @@ window.GameModules = window.GameModules || {};
   const simpleFields = [
     ['id', 'ID', 'text'], ['name', '姓名', 'text'], ['gender', '性别', 'text'], ['age', '年龄', 'number'], ['birthday', '生日', 'date'],
     ['work', '所属世界', 'text'], ['role', '身份', 'text'], ['job', '职业', 'text'], ['rank', '等级/地位', 'text'],
-    ['relationships', '人际关系', 'textarea'], ['detail', '人物说明', 'textarea'], ['appearance', '外貌', 'textarea'], ['personality', '性格', 'textarea'],
+    ['relationships', '人际关系', 'textarea'], ['detail', '人物说明', 'textarea'], ['appearance', '外貌', 'textarea'], ['preferences', '喜好', 'textarea'], ['personality', '性格', 'textarea'],
     ['roleCard', '角色卡标记', 'checkbox'], ['roleCardSource', '角色卡来源', 'text'], ['roleCardUpdatedAt', '更新时间', 'text'], ['isPlayer', '玩家本人', 'checkbox'],
   ];
   const jsonFields = [

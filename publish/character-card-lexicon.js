@@ -4,7 +4,7 @@ window.GameModules.characterCardLexicon = {
   modifySkillId: 'character.card.modify',
   addSkillId: 'character.card.add',
 
-  fieldMap: { 姓名: 'name', 性别: 'gender', 身份: 'role', 职业: 'job', 人物说明: 'detail', 背景: 'detail', 外貌: 'appearance', 性格: 'personality', 人际关系: 'relationships', 关系: 'relationships', 技能: 'skills' },
+  fieldMap: { 姓名: 'name', 性别: 'gender', 身份: 'role', 职业: 'job', 人物说明: 'detail', 背景: 'detail', 外貌: 'appearance', 喜好: 'preferences', 偏好: 'preferences', 穿着偏好: 'preferences', 性格: 'personality', 人际关系: 'relationships', 关系: 'relationships', 技能: 'skills' },
 
   normalizeField(raw) {
     const text = String(raw || '').trim();
@@ -63,7 +63,7 @@ window.GameModules.characterCardLexicon = {
   applyOne(profile, update) {
     if (update.kind === '角色技能' || update.field === 'skills') return this.applySkill(profile, update);
     const key = update.field;
-    if (!['name', 'gender', 'role', 'job', 'detail', 'appearance', 'personality', 'relationships'].includes(key)) return false;
+    if (!['name', 'gender', 'role', 'job', 'detail', 'appearance', 'preferences', 'personality', 'relationships'].includes(key)) return false;
     const next = String(update.value || '').trim().slice(0, key === 'detail' ? 180 : 120);
     if (!next || profile[key] === next) return false;
     profile[key] = next;

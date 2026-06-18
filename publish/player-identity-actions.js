@@ -53,6 +53,7 @@ window.GameModules.playerIdentityActions = {
       row('work', '所属世界', worldTag, '角色出身作品或世界。'),
       row('role', '身份', p.role, '角色卡固化身份。'),
       row('appearance', '外貌', p.appearance, '角色卡固化外貌。'),
+      row('preferences', '喜好', p.preferences, '角色稳定喜好和穿着偏好。'),
       row('personality', '性格', p.personality, '角色卡固化性格。'),
       row('job', '职业', p.job, '角色真实职业、训练身份或社会功能。'),
     ];

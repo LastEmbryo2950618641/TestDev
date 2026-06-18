@@ -114,6 +114,7 @@ window.GameModules.characterProfile = {
       nameRule: String(data.nameRule || '').slice(0, 80),
       detail: String(data.detail || data.desc || preset?.summary || '刚被剧情卷入的人物。').slice(0, 120),
       appearance: String(data.appearance || '外貌尚未固化。').slice(0, 120),
+      preferences: String(data.preferences || data.wearingPreference || '').slice(0, 120),
       personality: String(data.personality || '谨慎观察局势。').slice(0, 80),
       age: (data.age && typeof data.age === 'object' && data.age.value !== undefined ? data.age.value : data.age) || (String(`${data.role || ''} ${data.relationships || ''} ${data.detail || data.desc || preset?.summary || ''}`).match(/(\d{1,3})\s*岁/)?.[1] || ''),
       birthday: String(data.birthday || '').slice(0, 20),
@@ -320,7 +321,7 @@ window.GameModules.characterProfile = {
     }
     if (partIndex === 1 && ['worldTag', 'age', 'learningAbility', 'mentalStability', 'growthPotential', 'actionAbility'].includes(key)) return this.valueReasonComplete(value);
     if (partIndex === 1 && ['gender', 'job'].includes(key)) return typeof value === 'string';
-    if (partIndex === 1 && ['relationships', 'role', 'detail', 'appearance', 'personality', 'rank'].includes(key)) return typeof value === 'string' && String(value).trim();
+    if (partIndex === 1 && ['relationships', 'role', 'detail', 'appearance', 'preferences', 'personality', 'rank'].includes(key)) return typeof value === 'string' && String(value).trim();
     if (partIndex === 1 && key === 'jobConfirmed') return typeof value === 'boolean';
     if (partIndex === 1 && key === 'control_experience') return value && typeof value === 'object' && Number.isInteger(Number(value.上线次数)) && typeof value.习惯程度 === 'string';
     if (partIndex === 1 && key === 'factions') return this.arrayItemsComplete(value, ['faction', 'role', 'reason'], false);
@@ -620,6 +621,7 @@ window.GameModules.characterProfile = {
         '禁止返回 --.--、-.--、---、... 等非法占位；未穿戴只能用精确的 --。',
         '禁止返回“当前场景未穿戴该槽位物品/未穿戴该槽位物品/无/暂无/不适用/上下文未说明/信息不足/日常需要/符合身份”等泛化原因。',
         '禁止返回“日常上衣/日常下衣/日常袜子/上下文未写明异常/常规场景基础穿着槽位”等兜底文案。',
+        '如果角色卡基础信息或输入的喜好写明 JK、制服、百褶裙、过膝袜、连裤袜、丝袜、黑丝、白丝等，必须落实到 top/bottom/socks，不能改成泛化日常衣物。',
         'bottom 只能写一件主要下装，不能同时写百褶裙和牛仔裤；过膝袜、连裤袜、丝袜必须写在 socks。',
         '槽位语义必须匹配：outerwear只能写外套，waist只能写腰带腰封，bottom只能写裤裙，socks只能写袜类，shoes只能写鞋类，neck不能写耳环耳钉。',
         'bodyPart 必须按固定映射逐字填写：head=头部，neck=颈部，innerwearTop=胸部，top=躯干，outerwear=躯干外，gloves=手部，waist=腰部，innerwearBottom=腰臀，bottom=腿部，socks=脚踝，shoes=脚部，wrist=手腕。',
@@ -885,6 +887,7 @@ window.GameModules.characterProfile = {
       生日: profile.birthday ? `${profile.name || '该人物'}生日来自人物基础资料。` : (profile.age?.reason || 'Part1 只固化年龄，未提供生日。'),
       人际关系: profile.relationships || `${profile.name || '该人物'}暂无可固化人际关系。`,
       外貌: profile.appearance || '外貌来自 Part1 appearance。',
+      喜好: profile.preferences || '喜好来自 Part1 preferences。',
       性格: profile.personality || '性格来自 Part1 personality。',
       人物说明: profile.detail || '人物说明来自 Part1 detail。',
       社群角色: factionText || '社群角色来自 Part1 factions。',
@@ -1289,6 +1292,7 @@ window.GameModules.characterProfile = {
         `关系：${profile.relationships || base.relationships || ''}`,
         `背景：${profile.detail || base.detail || ''}`,
         `外貌：${profile.appearance || base.appearance || ''}`,
+        `喜好：${profile.preferences || base.preferences || ''}`,
         `性格：${profile.personality || base.personality || ''}`,
         `社群：${(profile.factions || []).map((x) => `${x.faction}/${x.role || x.position || ''}`).join('、') || profile.faction || ''}`,
         `势力：${((profile.forcePositions || profile.force_positions) || []).map((x) => `${x.force}/${x.position}`).join('、') || profile.rank || ''}`,
@@ -1406,6 +1410,7 @@ window.GameModules.characterProfile = {
       `关系：${part1.relationships || ''}`,
       `背景：${part1.detail || ''}`,
       `外貌：${part1.appearance || ''}`,
+      `喜好：${part1.preferences || ''}`,
       `性格：${part1.personality || ''}`,
       `学习能力：${part1.learningAbility?.value || ''}`,
       `精神稳定度：${part1.mentalStability?.value || ''}`,
@@ -1511,7 +1516,7 @@ window.GameModules.characterProfile = {
     return [
       `目标人物只能是：${base.name}。name 必须逐字等于“${base.name}”，不要同音改字，不要改成亲属、联系人或关系对象。`,
       '必须返回根字段 roleCardFieldReasons，不是 roleCardField、中文字段平铺或社群映射。',
-      'roleCardFieldReasons 必须完整包含：姓名、所属世界、身份、职业、性别、生日、人际关系、外貌、性格、人物说明、社群角色、势力地位。每个值建议写一句人物相关原因。',
+      'roleCardFieldReasons 必须完整包含：姓名、所属世界、身份、职业、性别、生日、人际关系、外貌、喜好、性格、人物说明、社群角色、势力地位。每个值建议写一句人物相关原因。',
       `必须返回根字段 rpgFieldReasons，并完整包含：${this.rpgFieldReasonKeys(attrs).join('、')}。`,
       '本轮不要返回 initialMetrics、initial_metrics 或任何情绪/感觉数组。',
       'relationships 必须是字符串，格式“关系：姓名”；不要对象。',
@@ -1550,6 +1555,7 @@ window.GameModules.characterProfile = {
       role: String(profile.role || base.role).slice(0, 18),
       detail: String(profile.detail || base.detail).slice(0, 160),
       appearance: String(profile.appearance || base.appearance || '外貌尚未固化。').slice(0, 140),
+      preferences: String(profile.preferences || base.preferences || '').slice(0, 140),
       personality: String(profile.personality || base.personality).slice(0, 100),
       faction: String(factions[0]?.faction || profile.faction || '无').slice(0, 30),
       factionRole: String(factions[0]?.role || factions[0]?.position || profile.factionRole || profile.role || '').slice(0, 24),
@@ -1635,7 +1641,7 @@ window.GameModules.characterProfile = {
       base: {
         id: base.id, name: base.name, work: base.work, role: base.role, gender: base.gender,
         relationships: base.relationships, nameRule: base.nameRule, detail: base.detail,
-        appearance: base.appearance, personality: base.personality, presetProfilePath: base.presetProfilePath,
+        appearance: base.appearance, preferences: base.preferences, personality: base.personality, presetProfilePath: base.presetProfilePath,
         factions: base.factions, forcePositions: base.forcePositions || base.force_positions,
       },
       preset: { path: preset?.path || '', summary: preset?.summary || '' },
@@ -1811,7 +1817,7 @@ window.GameModules.characterProfile = {
   },
 
   roleCardFieldKeys() {
-    return ['姓名', '所属世界', '身份', '职业', '性别', '生日', '人际关系', '外貌', '性格', '人物说明', '社群角色', '势力地位'];
+    return ['姓名', '所属世界', '身份', '职业', '性别', '生日', '人际关系', '外貌', '喜好', '性格', '人物说明', '社群角色', '势力地位'];
   },
 
   abstractReason(text) {
