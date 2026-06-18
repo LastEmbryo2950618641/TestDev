@@ -69,7 +69,7 @@ Rules：
 
 ### professions
 
-每项含：`name`(string,职业名)、`desc`(string,职业说明)、`level`(integer 1-7)、`levelEffects`(object,同skills格式)、`所需skills`(array<string>)、`所需knowledge`(array<string>)、`所需intrinsicBase`(array<string>)、`reason`(string,选择该职业的原因)。
+每项含：`name`(string,职业名)、`desc`(string,职业说明)、`level`(integer 1-7)、`levelEffects`(object,同skills格式)、`requiredSkills`(array<string>)、`所需knowledge`(array<string>)、`所需intrinsicBase`(array<string>)、`reason`(string,选择该职业的原因)。
 
 只有 `jobConfirmed=true` 或有明确职业证据时才生成职业项；不确定时返回空数组。职业项不超过 5 个。
 
@@ -166,7 +166,7 @@ Rules：
       "maxItems": 5,
       "items": {
         "type": "object",
-        "required": ["name", "desc", "level", "levelEffects", "所需skills", "所需knowledge", "所需intrinsicBase", "reason"],
+        "required": ["name", "desc", "level", "levelEffects", "requiredSkills", "所需knowledge", "所需intrinsicBase", "reason"],
         "additionalProperties": false,
         "properties": {
           "name": { "type": "string", "minLength": 1, "description": "职业名。" },
@@ -187,7 +187,7 @@ Rules：
               "lv7": { "type": "object", "required": ["程度介绍", "说明"], "additionalProperties": false, "properties": { "程度介绍": { "type": "string", "minLength": 1 }, "说明": { "type": "string", "minLength": 1 } } }
             }
           },
-          "所需skills": {
+          "requiredSkills": {
             "type": "array",
             "description": "该职业所需的技能名称列表，引用本人物已有的skill名称。",
             "items": { "type": "string" }
@@ -215,7 +215,7 @@ Rules：
 2. `skills` 每项 level 必须反映真实熟练度。不超过 4 项。
 3. `knowledge` 普通成年人至少有"现代常识"lv2-3。不超过 5 项。
 4. `skills` 每项必须包含 `所需knowledge` 和 `所需intrinsicBase`；`所需knowledge` 引用本人物已有的 knowledge 名称，`所需intrinsicBase` 使用英文 key（strength/agility/constitution/intelligence/perception/willpower/charisma）。
-5. `professions` 只有明确职业证据时才生成，不超过 5 项。`所需skills`/`所需knowledge` 引用本人物已有的 skill/knowledge 名称；`所需intrinsicBase` 使用英文 key（strength/agility/constitution/intelligence/perception/willpower/charisma）。
+5. `professions` 只有明确职业证据时才生成，不超过 5 项。`requiredSkills`/`所需knowledge` 引用本人物已有的 skill/knowledge 名称；`所需intrinsicBase` 使用英文 key（strength/agility/constitution/intelligence/perception/willpower/charisma）。
 6. 每项的 `levelEffects` 必须写满 lv1 到 lv7 全部七个等级，每级含 `程度介绍` 和 `说明`。
 7. 根字段 `name` 必须与 Part1 已生成的基础信息中的姓名一致。
 8. 所有含 `reason` 的字段（`skills[].reason`/`knowledge[].reason`/`professions[].reason`）必须结合角色动机、处境、性格与过去经历来写，不得使用固定句式模板，不得写空话。
@@ -321,7 +321,7 @@ Rules：
         "lv6": { "程度介绍": "大师", "说明": "能设计支撑亿级数据量的实时处理系统并培养团队" },
         "lv7": { "程度介绍": "传说", "说明": "对数据流动有直觉级理解，其架构设计成为行业标杆" }
       },
-      "所需skills": ["英语阅读", "观察力"],
+      "requiredSkills": ["英语阅读", "观察力"],
       "所需knowledge": ["英语", "现代常识"],
       "所需intrinsicBase": ["intelligence", "perception"],
       "reason": "深圳科技产业发达，大数据方向就业前景好，与英语和技术能力高度相关。"
@@ -339,7 +339,7 @@ Rules：
         "lv6": { "程度介绍": "大师", "说明": "译作被视为译界典范，能指导翻译团队和制定标准" },
         "lv7": { "程度介绍": "传说", "说明": "对两种语言的转换达到本能级，译文本身就是文学佳作" }
       },
-      "所需skills": ["英语阅读"],
+      "requiredSkills": ["英语阅读"],
       "所需knowledge": ["英语", "高中课程"],
       "所需intrinsicBase": ["intelligence", "charisma"],
       "reason": "外国语学校长期英语强化训练，翻译方向是最直接的职业延伸。"
@@ -357,7 +357,7 @@ Rules：
         "lv6": { "程度介绍": "大师", "说明": "在专业领域有原创贡献，能培养资深咨询师" },
         "lv7": { "程度介绍": "传说", "说明": "对人性理解近乎直觉，其方法论重塑行业认知" }
       },
-      "所需skills": ["观察力"],
+      "requiredSkills": ["观察力"],
       "所需knowledge": ["现代常识", "高中课程"],
       "所需intrinsicBase": ["perception", "willpower", "charisma"],
       "reason": "心思细腻善于观察他人情绪，性格内向但共情能力强，适合心理咨询方向。"
@@ -375,7 +375,7 @@ Rules：
         "lv6": { "程度介绍": "大师", "说明": "能在信息迷雾中精准定位真相，培养精英分析团队" },
         "lv7": { "程度介绍": "传说", "说明": "对信息关联有超直觉洞察，其判断近乎预言" }
       },
-      "所需skills": ["观察力", "英语阅读"],
+      "requiredSkills": ["观察力", "英语阅读"],
       "所需knowledge": ["英语", "现代常识"],
       "所需intrinsicBase": ["perception", "intelligence"],
       "reason": "观察力强且心思细腻，善于捕捉细节和他人情绪，具备情报分析的潜质。"
@@ -393,7 +393,7 @@ Rules：
         "lv6": { "程度介绍": "大师", "说明": "其设计作品定义行业审美标准，培养设计团队" },
         "lv7": { "程度介绍": "传说", "说明": "对美与交互有本能级直觉，其作品改变用户对产品的认知" }
       },
-      "所需skills": ["观察力"],
+      "requiredSkills": ["观察力"],
       "所需knowledge": ["现代常识"],
       "所需intrinsicBase": ["perception", "charisma"],
       "reason": "对细节敏感且有审美直觉，深圳设计行业活跃，可作为兴趣探索方向。"

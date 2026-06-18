@@ -260,7 +260,7 @@ window.GameModules.characterProfile = {
     if (partIndex === 2 && key === 'feeling') return this.feelingComplete(value);
     if (partIndex === 3 && key === 'skills') return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', '所需knowledge', '所需intrinsicBase', 'reason'], false, (item) => this.learnedItemComplete(item) && ['所需knowledge', '所需intrinsicBase'].every((field) => Array.isArray(item[field])));
     if (partIndex === 3 && key === 'knowledge') return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', 'reason'], false, (item) => this.learnedItemComplete(item));
-    if (partIndex === 3 && key === 'professions') return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', '所需skills', '所需knowledge', '所需intrinsicBase', 'reason'], true, (item) => this.learnedItemComplete(item) && ['所需skills', '所需knowledge', '所需intrinsicBase'].every((field) => Array.isArray(item[field])));
+    if (partIndex === 3 && key === 'professions') return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', 'requiredSkills', '所需knowledge', '所需intrinsicBase', 'reason'], true, (item) => this.learnedItemComplete(item) && ['requiredSkills', '所需knowledge', '所需intrinsicBase'].every((field) => Array.isArray(item[field])));
     if (partIndex === 4 && key === 'items') return this.arrayItemsComplete(value, ['name', 'description', 'quantity', 'reason'], true, (item) => Number.isInteger(Number(item.quantity)) && Number(item.quantity) >= 1);
     if (partIndex === 4 && key === 'wearing') return this.wearingObjectComplete(value);
     if (partIndex === 4 && key === 'rpgField') return this.rpgFieldComplete(value);
@@ -772,7 +772,7 @@ window.GameModules.characterProfile = {
         'skills 每项必须包含 name、desc、level、levelEffects、所需knowledge、所需intrinsicBase、reason。',
         'knowledge 每项必须包含 name、desc、level、levelEffects、reason。',
         'levelEffects 必须是对象格式，包含 lv1 到 lv7，每级含 程度介绍 和 说明。',
-        '如需返回 professions，每项必须包含 name、desc、level、levelEffects、所需skills、所需knowledge、所需intrinsicBase、reason。',
+        '如需返回 professions，每项必须包含 name、desc、level、levelEffects、requiredSkills、所需knowledge、所需intrinsicBase、reason。',
       ].join('\n');
     }
     return [
@@ -887,7 +887,7 @@ window.GameModules.characterProfile = {
         desc: String(p.desc || '').slice(0, 80),
         level: p.level || 1,
         levelEffects: p.levelEffects || {},
-        '所需skills': Array.isArray(p['所需skills']) ? p['所需skills'] : [],
+        'requiredSkills': Array.isArray(p['requiredSkills']) ? p['requiredSkills'] : [],
         '所需knowledge': Array.isArray(p['所需knowledge']) ? p['所需knowledge'] : [],
         '所需intrinsicBase': Array.isArray(p['所需intrinsicBase']) ? p['所需intrinsicBase'] : [],
         reason: String(p.reason || '').slice(0, 120),

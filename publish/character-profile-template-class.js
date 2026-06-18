@@ -60,7 +60,7 @@ window.GameModules.characterProfileTemplateClass = {
   },
 
   professionItem(name) {
-    return { ...this.learnedItem(name), 所需skills: ['基础能力'], 所需knowledge: ['基础知识'], 所需intrinsicBase: ['intelligence'], reason: `${name}由人物技能、知识和基础属性共同支持。` };
+    return { ...this.learnedItem(name), requiredSkills: ['基础能力'], 所需knowledge: ['基础知识'], 所需intrinsicBase: ['intelligence'], reason: `${name}由人物技能、知识和基础属性共同支持。` };
   },
 
   part3() {
