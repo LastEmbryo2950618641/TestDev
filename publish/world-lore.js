@@ -34,6 +34,7 @@ window.GameModules.worldLore = {
 
   async generate(worldTag, context) {
     try {
+      if (this.isRealWorld(worldTag)) return this.realWorld(worldTag);
       if (!window.dzmm?.completions) return this.fallback(worldTag);
       const prompt = await this.prompt(worldTag, context);
       console.debug('[世界观] AI请求:', { worldTag, promptLength: prompt.length, model: 'nalang-turbo-0826'});
@@ -171,6 +172,13 @@ window.GameModules.worldLore = {
       hours: this.stringList(this.array(obj.hours).length ? obj.hours : fallback.hours, 8).map((x) => x.slice(0, 10)),
       units: this.object(obj.units).year ? obj.units : fallback.units,
     };
+  },
+
+  isRealWorld(worldTag) { return /现实|现代都市|2026/.test(String(worldTag || '')); },
+
+  realWorld(worldTag) {
+    const event = { eventId: 'event_1', name: '现实日常展开', time: '当前时期', summary: '家庭与工作生活继续推进。', detail: '玩家在现实城市生活中处理工作、家庭和人际关系。', storyIndexes: ['现实日常'], factionIds: ['faction_1'], status: '进行中' };
+    return this.validate({ worldTag, background: '2026年现代都市日常生活。', factions: [{ name: '家庭关系网', desc: '亲属与同住关系' }, { name: '职场组织', desc: '工作与社会协作' }], specialJobs: [{ name: '程序工程师', desc: '软件研发职业' }, { name: '学生', desc: '现代教育身份' }], jobRanks: ['初级', '中级', '高级'], coreRules: ['现实法律约束', '家庭责任影响', '职场秩序运行'], calendar: { label: '公元纪年', months: ['1月', '6月', '12月'], days: 31, hours: ['上午', '下午', '夜晚'], units: { year: '年', month: '月', day: '日', hour: '时' } }, worldline: { timeRange: '[2026年当前 - 后续日常]', events: [event], storyIndexes: ['现实日常'], factionMap: { faction_1: { 势力ID: 'faction_1', 名称: '现实社会', 类型: '社会', 属性: { 影响: '高' }, 关系网: {}, 当前目标: '维持日常秩序', 近期决策: [], 状态: '正常' } } }, specialFields: window.GameModules.worldAttributes.defaults(worldTag).fields }, worldTag);
   },
 
   fallback(worldTag) {
