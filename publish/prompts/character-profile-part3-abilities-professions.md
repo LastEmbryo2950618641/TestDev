@@ -8,16 +8,16 @@ Output Format：仅输出严格 CSV 文本。不要输出 JSON，不要输出 Ma
 
 Rules：
 
-1. 第一行必须固定为表头：`type,name,level,lv1,lv2,lv3,lv4,lv5,lv6,lv7,reason,requiredIntrinsicBase,requiredKnowledge,requiredSkills`。
+1. 第一行必须固定为表头：`type,name,level,reason,requiredIntrinsicBase,requiredKnowledge,requiredSkills`。
 2. 后续每一行是一条能力记录，`type` 只能是 `skills`、`knowledge`、`professions`。
-3. 每行必须恰好 14 列，使用英文逗号分隔；单元格内部禁止使用英文逗号，需要停顿时用中文逗号。
-4. `level` 必须是 1-7 的整数。等级映射：lv1入门、lv2初学、lv3熟练、lv4专业、lv5专家、lv6大师、lv7传说。
-5. `lv1` 到 `lv7` 必须全部填写，分别描述该等级能达到的具体效果。
-6. `reason` 写达到当前等级或选择该职业的原因，必须结合角色动机、处境、性格与过去经历，不得写空话。
-7. 多个依赖项用竖线 `|` 分隔，不要用英文逗号。
+3. 每行必须恰好 7 列，使用英文逗号分隔；单元格内部禁止使用英文逗号，需要停顿时用中文逗号。
+4. `level` 必须是 1-7 的整数，表示该能力熟悉程度。lv1 刚入门，lv2 初学，lv3 熟练，lv4 专业，lv5 专家，lv6 大师，lv7 极致。
+5. `reason` 写达到当前 level 或选择该职业的原因，必须结合角色动机、处境、性格与过去经历，不得写空话。
+6. 多个依赖项用竖线 `|` 分隔，不要用英文逗号。
+7. 不存在或不适用的字段值统一填写 `--`，不要留空。
 8. `requiredIntrinsicBase` 只能使用英文 key：strength、agility、constitution、intelligence、perception、willpower、charisma。
-9. `skills` 行必须填写 `requiredIntrinsicBase` 和 `requiredKnowledge`，`requiredSkills` 留空。
-10. `knowledge` 行的三个 required 字段全部留空。
+9. `skills` 行必须填写 `requiredIntrinsicBase` 和 `requiredKnowledge`，`requiredSkills` 填 `--`。
+10. `knowledge` 行的三个 required 字段全部填 `--`。
 11. `professions` 行必须填写 `requiredSkills`、`requiredKnowledge`、`requiredIntrinsicBase`。
 12. `skills` 至少 1 行，不超过 4 行；`knowledge` 至少 1 行，不超过 5 行；`professions` 只有明确职业证据时才生成，不确定时不输出 profession 行，不超过 5 行。
 
@@ -71,11 +71,11 @@ Rules：
 
 请严格按以下表头输出，从第二行开始填写数据：
 
-type,name,level,lv1,lv2,lv3,lv4,lv5,lv6,lv7,reason,requiredIntrinsicBase,requiredKnowledge,requiredSkills
-skills,英语阅读,3,能读懂简单短文,能理解教材课文,能独立阅读中等难度英文材料,能流畅阅读专业文献并进行学术翻译,能欣赏文学作品语言风格并做深度文本分析,能驾驭多体裁英文写作并指导他人阅读方法,对英语语言有直觉级理解能感知文化隐喻,就读外国语学校长期接受英语强化训练,intelligence|willpower,英语|高中课程,
-skills,观察力,2,能注意到明显环境变化,能察觉他人情绪波动和细微动作,能从微表情推断他人真实意图,能在复杂社交场合捕捉多方动态,能识别群体隐藏关系和潜在冲突,观察几乎无死角能还原事件全貌,超越常人感知极限近乎读心,性格内向安静习惯默默观察,perception|willpower,现代常识,
-knowledge,现代常识,2,了解基本社会规则和日常用语,能独立处理日常事务和简单社交场合,熟悉本地文化习俗和职场礼仪规范,能应对跨文化社交和突发社会状况,深度理解社会运作机制和潜规则,能预判社会趋势和群体行为走向,对社会运行有近乎直觉的洞察,在深圳长大日常接触现代都市生活,,,
-knowledge,英语,3,能做简单日常对话,能读懂基础文章,能阅读中等难度英文材料并完成写作,能用英语进行专业领域讨论和学术演讲,能翻译专业文献并理解文化语境,能用英语创作文学作品并切换语体,掌握接近母语直觉能感知语言演化,外国语学校长期英语强化训练,,,
-professions,英语翻译,3,能完成简单短文逐句翻译,能翻译日常信件和一般性文章,能独立翻译专业领域文档并保证术语准确,能处理高难度文学翻译和同声传译任务,能完成文化适配和创意翻译,译作被视为译界典范并能指导团队,两种语言转换达到本能级,英语强化训练是最直接的职业延伸,intelligence|charisma,英语|高中课程,英语阅读
+type,name,level,reason,requiredIntrinsicBase,requiredKnowledge,requiredSkills
+skills,英语阅读,3,就读外国语学校长期接受英语强化训练,intelligence|willpower,英语|高中课程,--
+skills,观察力,2,性格内向安静习惯默默观察他人情绪,perception|willpower,现代常识,--
+knowledge,现代常识,2,在深圳长大日常接触现代都市生活,--,--,--
+knowledge,英语,3,外国语学校长期英语强化训练形成语言基础,--,--,--
+professions,英语翻译,3,英语强化训练是最直接的职业延伸,intelligence|charisma,英语|高中课程,英语阅读
 
 注意：示例只展示格式。实际输出必须根据输入人物重写所有行。

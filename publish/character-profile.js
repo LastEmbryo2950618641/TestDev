@@ -152,7 +152,7 @@ window.GameModules.characterProfile = {
     const byPart = {
       1: ['name', 'worldTag', 'age', 'gender', 'factions', 'forcePositions'],
       2: ['name', 'value', 'status', 'reason', '冷静', '绝望', '了解', '服从'],
-      3: ['type', 'name', 'level', 'lv1', 'lv7', 'requiredIntrinsicBase', 'requiredKnowledge', 'requiredSkills'],
+      3: ['type', 'name', 'level', 'reason', 'requiredIntrinsicBase', 'requiredKnowledge', 'requiredSkills'],
       4: ['name', 'items', 'wearing', 'rpgField', 'head', 'top', 'bottom', 'shoes', 'slot'],
     };
     if (!fields) return byPart[partIndex] || [];
@@ -478,15 +478,15 @@ window.GameModules.characterProfile = {
     const result = { name, skills: [], knowledge: [], professions: [] };
     dataRows.forEach((row) => {
       const parts = row.split(',').map((part) => part.trim());
-      if (parts.length < 14) return;
-      const [type, itemName, level, lv1, lv2, lv3, lv4, lv5, lv6, lv7, reason, requiredIntrinsicBase, requiredKnowledge, requiredSkills] = parts;
-      if (!['skills', 'knowledge', 'professions'].includes(type) || !itemName) return;
+      if (parts.length < 7) return;
+      const [type, itemName, level, reason, requiredIntrinsicBase, requiredKnowledge, requiredSkills] = parts;
+      if (!['skills', 'knowledge', 'professions'].includes(type) || !itemName || itemName === '--') return;
       const item = {
         name: itemName,
         desc: `${itemName}的实际表现与可用范围。`,
         level: Number(level),
-        levelEffects: this.csvLevelEffects([lv1, lv2, lv3, lv4, lv5, lv6, lv7]),
-        reason,
+        levelEffects: this.csvLevelEffects(itemName),
+        reason: this.csvCell(reason),
       };
       if (type === 'skills') {
         item.requiredIntrinsicBase = this.csvList(requiredIntrinsicBase);
@@ -504,13 +504,18 @@ window.GameModules.characterProfile = {
     return result;
   },
 
-  csvList(value) {
-    return String(value || '').split('|').map((item) => item.trim()).filter(Boolean);
+  csvCell(value) {
+    const text = String(value || '').trim();
+    return text === '--' ? '' : text;
   },
 
-  csvLevelEffects(values) {
-    const labels = ['入门', '初学', '熟练', '专业', '专家', '大师', '传说'];
-    return Object.fromEntries(values.map((text, index) => [`lv${index + 1}`, { 程度介绍: labels[index], 说明: String(text || '').trim() }]));
+  csvList(value) {
+    return this.csvCell(value).split('|').map((item) => item.trim()).filter(Boolean);
+  },
+
+  csvLevelEffects(name = '能力') {
+    const labels = ['刚入门', '初学', '熟练', '专业', '专家', '大师', '极致'];
+    return Object.fromEntries(labels.map((label, index) => [`lv${index + 1}`, { 程度介绍: label, 说明: `${name}${label}时的表现。` }]));
   },
 
   parseCsvFeelingPart(text, name = '') {
@@ -812,10 +817,10 @@ window.GameModules.characterProfile = {
       return [
         nameHint,
         '必须只返回 CSV，不要返回 JSON。',
-        '第一行必须是 type,name,level,lv1,lv2,lv3,lv4,lv5,lv6,lv7,reason,requiredIntrinsicBase,requiredKnowledge,requiredSkills。',
+        '第一行必须是 type,name,level,reason,requiredIntrinsicBase,requiredKnowledge,requiredSkills。',
         'type 只能是 skills、knowledge、professions；skills 和 knowledge 至少各 1 行。',
-        '每行必须恰好 14 列，单元格内不要使用英文逗号。',
-        '依赖多项用竖线 | 分隔；requiredIntrinsicBase 只能用 strength/agility/constitution/intelligence/perception/willpower/charisma。',
+        '每行必须恰好 7 列，单元格内不要使用英文逗号。',
+        '不存在或不适用的字段值填 --；依赖多项用竖线 | 分隔；requiredIntrinsicBase 只能用 strength/agility/constitution/intelligence/perception/willpower/charisma。',
       ].join('\n');
     }
     return [
