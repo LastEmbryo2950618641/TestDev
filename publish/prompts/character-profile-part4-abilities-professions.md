@@ -57,12 +57,10 @@ Rules：
 每项含：`name`(string,能力名)、`desc`(string,能力说明)、`level`(integer 1-7)、`levelEffects`(object,各等级效果)、`reason`(string,达到该等级的原因)。
 
 `levelEffects` 格式：
-```json
 {
   "lv1": { "程度介绍": "入门", "说明": "能做什么" },
   "lv2": { "程度介绍": "初学", "说明": "能做什么" }
 }
-```
 必须写满 lv1 到 lv7 全部七个等级。等级映射：1入门 2初学 3熟练 4专业 5专家 6大师 7传说。
 
 ### knowledge
@@ -79,7 +77,6 @@ Rules：
 
 请严格按照以下 JSON Schema 生成数据。生成前，请先脑中核对 required 列表，确保输出的顶层Key一个不漏。
 
-```json
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
@@ -201,7 +198,6 @@ Rules：
     }
   }
 }
-```
 
 ## 生成规则
 
@@ -215,7 +211,6 @@ Rules：
 
 ## 完整 JSON 示例
 
-```json
 {
   "name": "刘思琪",
   "skills": [
@@ -390,6 +385,5 @@ Rules：
     }
   ]
 }
-```
 
 注意：Schema优先级高于示例。当示例与字段定义冲突时，以字段定义为准。

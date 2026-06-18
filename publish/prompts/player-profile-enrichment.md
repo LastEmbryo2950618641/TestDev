@@ -51,9 +51,7 @@ Rules：
 
 补充关系整理规则：{relationshipRule}
 
-```json
 {输入}
-```
 
 ## 字段处理规则
 
@@ -135,7 +133,6 @@ Rules：
 
 请严格按照以下 JSON Schema 生成数据。生成前，请先脑中核对 required 列表，确保输出的顶层Key一个不漏。
 
-```json
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
@@ -199,13 +196,11 @@ Rules：
     }
   }
 }
-```
 
 ## 完整 JSON 示例
 
 以下示例覆盖全部 required 字段，供模仿换行、缩进和 Key 顺序：
 
-```json
 {
   "refinedCity": "广东省-深圳市-南山区-粤海街道-科技园社区-科兴科学园-B4栋-1802室",
   "refinedRole": "26岁女性互联网公司后端开发工程师",
@@ -221,6 +216,5 @@ Rules：
   "items": "家门钥匙、钱包、身份证件、工牌、银行卡、纸巾",
   "wearing": "日常内衣、白色衬衫、内裤、黑色长裤、短袜、通勤运动鞋"
 }
-```
 
 注意：Schema优先级高于示例。当示例与Schema定义冲突时，以Schema为准。

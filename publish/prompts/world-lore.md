@@ -26,8 +26,6 @@
 
 复制这个结构，只替换内容，保持字段完整：
 
-```json
 {"worldTag":"{世界}","background":"50字内背景","factions":[{"name":"势力","desc":"短说明"}],"specialJobs":[{"name":"职业","desc":"短说明"}],"jobRanks":["低阶","中阶","高阶"],"coreRules":["规则一","规则二","规则三"],"calendar":{"label":"公元纪年","months":["1月"],"days":30,"hours":["上午","下午","夜晚"],"units":{"year":"年","month":"月","day":"日","hour":"时"}},"worldline":{"timeRange":"[起点 - 后续]","events":[{"eventId":"event_1","name":"事件名","time":"当前时期","summary":"短摘要","detail":"短详情","storyIndexes":["主线开端"],"factionIds":["faction_1"],"status":"进行中"}],"storyIndexes":["主线开端"],"factionMap":{"faction_1":{"势力ID":"faction_1","名称":"势力","类型":"组织","属性":{"影响":"中"},"关系网":{},"当前目标":"短目标","近期决策":[],"状态":"正常"}}}}
-```
 
 注意：字段定义优先级高于示例。当示例与字段定义冲突时，以字段定义为准。

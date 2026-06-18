@@ -67,7 +67,6 @@ Rules：
 
 请严格按照以下 JSON Schema 生成数据。生成前，请先脑中核对 required 列表，确保输出的顶层Key一个不漏。
 
-```json
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
@@ -121,12 +120,9 @@ Rules：
     }
   }
 }
-```
 
 ## 完整 JSON 示例
 
-```json
 {"name":"刘思琪","feeling":{"playerFeelings":{"understanding":{"name":"了解","value":55,"status":"了解因为同住熟悉玩家习惯","reason":"了解源于长期观察玩家作息和行为"},"trust":{"name":"信任","value":40,"status":"信任因为家人关系仍有基础","reason":"信任源于家庭纽带但缺乏深度交流"},"resistance":{"name":"反抗","value":15,"status":"反抗因为性格顺从不愿冲突","reason":"反抗源于内向性格倾向回避对抗"},"affection":{"name":"好感","value":50,"status":"好感因为家人关系天然亲近","reason":"好感源于日常照顾和陪伴积累"},"friendship":{"name":"友情","value":30,"status":"友情因为相处更偏家庭关系","reason":"友情源于缺乏同龄朋友式自由交流"},"familyLove":{"name":"亲情","value":70,"status":"亲情因为家人纽带长期存在","reason":"亲情源于共同生活和互相照顾经历"},"romanticLove":{"name":"爱情","value":0,"status":"爱情因为家庭关系缺乏基础","reason":"爱情源于当前伦理边界下没有形成"},"lust":{"name":"肉欲","value":0,"status":"肉欲因为家庭伦理限制明显","reason":"肉欲源于关系定位中缺乏身体冲动"},"awe":{"name":"畏惧","value":10,"status":"畏惧因为控制体验带来不安","reason":"畏惧源于未知力量造成的本能敬畏"},"respect":{"name":"尊敬","value":45,"status":"尊敬因为玩家承担照顾角色","reason":"尊敬源于家庭长幼观念和日常依赖"},"admiration":{"name":"崇拜","value":5,"status":"崇拜因为尚无非凡成就认知","reason":"崇拜源于缺少足以仰望的明确证据"},"dislike":{"name":"讨厌","value":5,"status":"讨厌因为目前冲突理由很少","reason":"讨厌源于家庭关系基本保持和谐"},"dependence":{"name":"依赖","value":65,"status":"依赖因为生活中常需家人支持","reason":"依赖源于年轻内向和求助习惯"},"vigilance":{"name":"警惕","value":25,"status":"警惕因为操控感让她防备","reason":"警惕源于未知意图带来的心理防护"},"dominance":{"name":"支配欲","value":0,"status":"支配欲因为性格不主动掌控","reason":"支配欲源于顺从性格缺乏主导动机"},"possessiveness":{"name":"占有欲","value":15,"status":"占有欲因为珍惜少数亲密关系","reason":"占有欲源于对家人陪伴的轻微独占"},"submission":{"name":"服从","value":50,"status":"服从因为习惯听从家人安排","reason":"服从源于家庭环境和温顺性格"}}}}
-```
 
 注意：Schema优先级高于示例。当示例与字段定义冲突时，以字段定义为准。

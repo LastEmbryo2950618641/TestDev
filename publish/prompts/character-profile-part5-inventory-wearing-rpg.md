@@ -106,7 +106,6 @@ Rules：
 
 请严格按照以下 JSON Schema 生成数据。生成前，请先脑中核对 required 列表，确保输出的顶层Key一个不漏。
 
-```json
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
@@ -423,7 +422,6 @@ Rules：
     }
   }
 }
-```
 
 ### 身内能力表现力标尺
 
@@ -459,7 +457,6 @@ Rules：
 
 ## 完整 JSON 示例
 
-```json
 {
   "name": "刘思琪",
   "items": [
@@ -523,6 +520,5 @@ Rules：
     }
   }
 }
-```
 
 注意：Schema优先级高于示例。当示例与字段定义冲突时，以字段定义为准。

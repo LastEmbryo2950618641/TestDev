@@ -39,13 +39,11 @@
 
 ### 最小结构示意
 
-```json
 {
   "locationDescriptionUpdates": [
     { "locationName": "地点名", "action": "add", "text": "新增事实" },
     { "locationName": "地点名", "action": "update", "oldText": "旧事实", "newText": "新事实" }
   ]
 }
-```
 
 注意：字段定义优先级高于示例。当示例与字段定义冲突时，以字段定义为准。

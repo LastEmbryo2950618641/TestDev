@@ -57,7 +57,6 @@ Rules：
 
 请严格按照以下 JSON Schema 生成数据。生成前，请先脑中核对 required 列表，确保输出的顶层Key一个不漏。
 
-```json
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
@@ -85,7 +84,6 @@ Rules：
     "control_experience": { "type": "object", "required": ["上线次数", "习惯程度"], "additionalProperties": false, "properties": { "上线次数": { "type": "integer", "minimum": 0 }, "习惯程度": { "type": "string", "minLength": 1 } } }
   }
 }
-```
 
 ## 生成规则
 
@@ -98,8 +96,6 @@ Rules：
 
 ## 完整 JSON 示例
 
-```json
 {"name":"刘思琪","worldTag":{"value":"现实世界","reason":"刘思琪所属世界来自默认账号激活的现实世界。"},"age":{"value":16,"reason":"刘思琪年龄按2026年推算约为16-17岁。"},"gender":"女","learningAbility":{"value":8,"reason":"刘思琪学习能力来自外国语学校训练和高中阶段学习经验。"},"mentalStability":{"value":6,"reason":"刘思琪精神稳定来自家庭支持，但内向性格使压力积累。"},"growthPotential":{"value":9,"reason":"刘思琪成长潜力来自年轻年龄和尚未定型的发展方向。"},"actionAbility":{"value":5,"reason":"刘思琪行动能力由年轻女性体能和校园生活经验决定。"},"relationships":"姐姐：刘思瑶；母亲：张惠兰","role":"高中二年级学生、妹妹","detail":"住在深圳市南山区粤海街道，就读于深圳外国语学校高二，与母亲和姐姐同住。","appearance":"黑直长发垂落肩侧，校服领口露出细白颈线，低垂的睫毛在颧骨上投下一小片阴影。","personality":"安静内向但心思细腻，对亲近的人温柔体贴，对陌生人保持距离。","factions":[{"faction":"刘家","role":"小女儿","reason":"张惠兰与刘建国的次女，自幼在刘家长大。"},{"faction":"深圳外国语学校","role":"学生","reason":"就读于该校高中部二年级。"}],"forcePositions":[{"force":"中华人民共和国","position":"公民","reason":"出生在深圳，具有中国国籍。"},{"force":"深圳外国语学校-高中部","position":"高二学生","reason":"目前就读于该校高中部二年级。"}],"job":"","jobConfirmed":false,"rank":"公民","control_experience":{"上线次数":0,"习惯程度":"初次操控尚不熟悉"}}
-```
 
 注意：Schema优先级高于示例。当示例与字段定义冲突时，以Schema为准。

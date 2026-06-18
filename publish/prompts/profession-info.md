@@ -92,7 +92,6 @@
 
 ### 最小结构示意
 
-```json
 {
   "name": "职业名",
   "confirmed": true,
@@ -106,6 +105,5 @@
   "worldAbilities": [],
   "requirements": { "intrinsicStats": ["intelligence"], "worldAbilities": [], "learnedAbilities": ["技能名"], "knowledgeAreas": ["知识名"], "reason": "支撑该职业lv.1的原因" }
 }
-```
 
 注意：字段定义优先级高于示例。当示例与字段定义冲突时，以字段定义为准。
