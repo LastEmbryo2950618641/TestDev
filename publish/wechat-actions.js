@@ -79,12 +79,15 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
     }
     this.addRoleCardLoadingCard?.({ id: characterId, name: contact.name || '微信联系人', type: '角色卡' });
     const existingName = existing?.profile?.name || '';
-    const needsName = contact.needsNameAi || this.isWechatPlaceholderName(contact.name) || !profileTool.isConcreteName(existingName);
+    const contactNameConcrete = profileTool.isConcreteName(contact.name);
+    const existingNameConcrete = profileTool.isConcreteName(existingName);
+    const needsName = contact.needsNameAi || !contactNameConcrete;
     const hint = this.wechatRelationProfileHint(contact);
     const sections = window.GameModules.promptSections;
     const player = sections.playerProfile(this);
     const relationContext = this.wechatRelationFullContext(contact, hint);
-    const raw = { id: characterId, name: needsName ? hint.placeholderName : contact.name, role: contact.relation || '微信联系人', detail: relationContext, work: '现实世界', isMinor: false, importance: 'support', nameRule: hint.nameRule };
+    const targetName = contactNameConcrete ? contact.name : (existingNameConcrete ? existingName : hint.placeholderName);
+    const raw = { id: characterId, name: targetName, role: contact.relation || '微信联系人', detail: relationContext, work: '现实世界', isMinor: false, importance: 'support', nameRule: hint.nameRule };
     const context = await window.GameModules.promptTemplates.render('wechat-relation-profile', {
       玩家基础资料区: player.playerBasic,
       玩家现实身份区: player.playerIdentity,
@@ -236,7 +239,7 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
     this.wechatUsers = (this.wechatUsers || []).map((item) => {
       if (!this.isWechatPlaceholderName(item?.name)) return item;
       const replacement = replacements.get(String(item.relation || ''));
-      return replacement ? { ...item, ...replacement, id: item.id, characterId: item.characterId || item.id, needsNameAi: false } : item;
+      return replacement ? { ...item, ...replacement, id: replacement.id, characterId: replacement.characterId || replacement.id, needsNameAi: false } : item;
     });
     return this.addWechatUsers(merged, options);
   },
