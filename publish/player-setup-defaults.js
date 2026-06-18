@@ -11,11 +11,28 @@ Object.assign(window.GameModules.playerSetupActions, {
 
   parseDefaultProfileMd(text = '') {
     const map = {};
+    const relationshipEntries = [];
+    let currentRelationship = null;
     String(text).split('\n').forEach((line) => {
-      const match = line.match(/^\s*([^：:]+)\s*[：:]\s*(.+?)\s*$/);
-      if (match) map[match[1].trim()] = match[2].trim();
+      const relationItem = line.match(/^\s*-\s*关系名\s*[：:]\s*(.+?)\s*$/);
+      if (relationItem) {
+        currentRelationship = { relation: relationItem[1].trim(), name: '', detail: '' };
+        relationshipEntries.push(currentRelationship);
+        return;
+      }
+      const relationField = line.match(/^\s*(姓名|设定)\s*[：:]\s*(.+?)\s*$/);
+      if (currentRelationship && relationField) {
+        if (relationField[1] === '姓名') currentRelationship.name = relationField[2].trim();
+        if (relationField[1] === '设定') currentRelationship.detail = relationField[2].trim();
+        return;
+      }
+      const match = line.match(/^\s*([^：:]+)\s*[：:]\s*(.*?)\s*$/);
+      if (match) {
+        currentRelationship = null;
+        map[match[1].trim()] = match[2].trim();
+      }
     });
-    const relationships = map['人际关系'] || '';
+    const relationships = relationshipEntries.length ? relationshipEntries.map((entry) => `${entry.relation}：${entry.name}`).join('；') : (map['人际关系'] || '');
     return {
       name: map['姓名'] || '',
       gender: map['性别'] || '',
@@ -26,7 +43,7 @@ Object.assign(window.GameModules.playerSetupActions, {
       parents: map['父母信息'] || '',
       parentDeathCause: map['父母去世原因'] || '',
       relationships,
-      relationshipEntries: this.normalizeRelationshipEntries ? this.normalizeRelationshipEntries(null, relationships) : [],
+      relationshipEntries: this.normalizeRelationshipEntries ? this.normalizeRelationshipEntries(relationshipEntries, relationships) : relationshipEntries,
       notes: map['备注'] || '',
     };
   },
