@@ -32,9 +32,10 @@ window.GameModules.rpgState = {
       const profileChanged = this.ensureRoleCard(existing, character);
       const upgraded = this.upgradeCharacterState(existing, schema);
       const updated = this.updateExistingCharacter(existing, character, store);
+      const inventorySynced = window.GameModules.progression.syncInventoryFromProfile?.(existing, existing.profile || character);
       const professionChanged = await window.GameModules.rpgProfessionState?.ensureInfo?.call(window.GameModules.rpgProfessionState, existing, character, schema);
       await window.GameModules.rpgLexicon.syncState(existing);
-      if (profileChanged || upgraded || updated || professionChanged) await save.saveCharacterState(existing);
+      if (profileChanged || upgraded || updated || inventorySynced || professionChanged) await save.saveCharacterState(existing);
       return existing;
     }
     const worldTag = save.getCharacterWorld(id) || character.work || '原创世界';
@@ -186,6 +187,7 @@ window.GameModules.rpgState = {
       firstAppearedGameTime: values.updatedGameTime,
     };
     this.ensureControlExperience(state);
+    window.GameModules.progression.syncInventoryFromProfile?.(state, character);
     this.ensureCharacterMetrics(state);
     return state;
   },

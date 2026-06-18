@@ -62,17 +62,28 @@ window.GameModules.characterProfile = {
       save.getCharacterStateByName?.(base.name, base.work),
       save.getCharacterStateByName?.(base.name),
     ].filter(Boolean);
-    const exact = candidates.find((state) => this.isReusableRoleCard(state.profile, signature));
+    const exact = candidates.find((state) => this.roleCardMatchesTarget(state.profile, base) && this.isReusableRoleCard(state.profile, signature));
     if (exact) return exact;
     return candidates.find((state) => this.isReusableSavedRoleCard(state, base)) || null;
   },
 
   isReusableSavedRoleCard(state, base) {
     const profile = state?.profile;
-    if (!profile || profile.name !== base.name) return false;
+    if (!this.roleCardMatchesTarget(profile, base)) return false;
     const savedWorld = profile.work || state.worldTag;
     if (base.work && savedWorld && savedWorld !== base.work) return false;
     return this.isReusableRoleCard(profile, null);
+  },
+
+  roleCardMatchesTarget(profile, base = {}) {
+    if (!profile || profile.name !== base.name) return false;
+    const lockedAge = this.lockedAge({ age: '' }, base);
+    if (lockedAge !== undefined && lockedAge !== null && String(lockedAge).trim()) {
+      const profileAge = profile.age && typeof profile.age === 'object' && profile.age.value !== undefined ? profile.age.value : profile.age;
+      if (String(profileAge || '').trim() !== String(lockedAge).trim()) return false;
+    }
+    if (base.gender && profile.gender && String(profile.gender).trim() !== String(base.gender).trim()) return false;
+    return true;
   },
 
   withKnown(raw, store) {
@@ -147,7 +158,7 @@ window.GameModules.characterProfile = {
         关系事件区: sections.relationContext(context),
         世界观资料区: sections.worldLore(lore),
         世界字段: sections.worldFields(attrs),
-        玩家本人目标锁定: base.id === 'player-self' ? `本次只生成玩家本人"${base.name}"的角色卡。JSON 根字段 name 必须写"${base.name}"，不得写妹妹、姐姐、父母、联系人或关系事件里的任何其他姓名。` : '无。',
+        玩家本人目标锁定: this.targetLockText(base),
       };
       const loadingId = base.id;
       const part1Total = this.partProgressTotal(1, templates[1], attrs);
@@ -156,7 +167,7 @@ window.GameModules.characterProfile = {
       this.onProgress(store, loadingId, 'profile', 'done', '', { done: this.partProgressDone(1, part1), total: part1Total });
       store?.updateRoleCardLoading?.(loadingId, { name: part1.name || base.name, status: 'running' });
       const p1Summary = this.part1Summary(part1);
-      const namedBase = { ...base, name: part1.name || base.name };
+      const namedBase = { ...base, name: base.name || part1.name };
       const part2Total = this.partProgressTotal(2, templates[2], attrs);
       this.onProgress(store, loadingId, 'feeling', 'running', '', { done: 0, total: part2Total });
       const part2 = await this.generatePart(2, 'character-profile-part2-feeling', { ...commonVars, part1Summary: p1Summary }, templates[2], namedBase, lore, attrs, store);
@@ -186,6 +197,17 @@ window.GameModules.characterProfile = {
       console.warn('人物设定生成失败:', err.code, err.message, err.stack);
       throw err;
     }
+  },
+
+  targetLockText(base = {}) {
+    const locks = [];
+    const name = String(base.name || '').trim();
+    if (name) locks.push(`本次只生成候选人物本人“${name}”的角色卡；JSON 根字段 name 必须逐字写“${name}”，不得改字、换名、写成玩家、亲属、联系人或关系事件里的其他姓名。`);
+    if (base.age !== undefined && base.age !== null && String(base.age).trim()) locks.push(`人物基础区已指定年龄为“${base.age}”，age.value 必须等于该年龄数字，不得按玩家年龄、随机年龄或其他人物年龄改写。`);
+    if (base.gender) locks.push(`人物基础区已指定性别为“${base.gender}”，gender 必须保持一致。`);
+    if (base.birthday) locks.push(`人物基础区已指定生日为“${base.birthday}”，不得用其他人物生日覆盖。`);
+    if (base.id === 'player-self') locks.push('目标是玩家本人时，只能生成玩家本人，不得生成妹妹、姐姐、父母、联系人或关系事件里的任何其他人。');
+    return locks.length ? locks.join('\n') : '无。';
   },
 
   async loadPartTemplates() {
@@ -1545,12 +1567,11 @@ window.GameModules.characterProfile = {
   validate(profile, base, lore, attrs, store = null, options = {}) {
     let rawProfile = profile || {};
     const expectedName = String(base.name || '').trim();
-    if (base.id === 'player-self') {
-      rawProfile = this.lockPlayerSelfProfile(rawProfile, base);
-    } else if (this.isConcreteName(expectedName) && rawProfile.name && rawProfile.name !== expectedName) {
+    rawProfile = this.lockTargetProfile(rawProfile, base);
+    if (this.isConcreteName(expectedName) && rawProfile.name && rawProfile.name !== expectedName) {
       throw new Error(`目标人物漂移: 需要生成${expectedName}，AI返回了${rawProfile.name}`);
     }
-    profile = { ...base, ...rawProfile, name: base.id === 'player-self' ? expectedName : (rawProfile.name || base.name) };
+    profile = { ...base, ...rawProfile, name: expectedName || rawProfile.name || base.name };
     const fallbackApplied = window.GameModules.characterReasonFallback?.apply?.(profile, attrs) || profile;
     profile = { ...profile, roleCardFieldReasons: fallbackApplied.roleCardFieldReasons, rpgFieldReasons: fallbackApplied.rpgFieldReasons };
     const skills = Array.isArray(profile.skills) ? profile.skills : [];
@@ -1561,9 +1582,9 @@ window.GameModules.characterProfile = {
     const forcePositions = this.forcePositions(profile, base, store);
     const validated = {
       ...base,
-      name: base.id === 'player-self' ? base.name : this.validName(profile.name, base),
+      name: this.validName(profile.name, base),
       gender: String(base.gender || profile.gender || '').slice(0, 8),
-      age: (profile.age && typeof profile.age === 'object' && profile.age.value !== undefined) ? profile.age.value : (base.age || profile.age || ''),
+      age: this.lockedAge(profile, base),
       worldTag: profile.worldTag || null,
       learningAbility: profile.learningAbility || null,
       mentalStability: profile.mentalStability || null,
@@ -1628,7 +1649,14 @@ window.GameModules.characterProfile = {
   },
 
   lockPlayerSelfProfile(profile, base) {
-    const locked = { ...profile, id: 'player-self', name: base.name, isPlayer: true };
+    return this.lockTargetProfile(profile, { ...base, id: 'player-self', isPlayer: true });
+  },
+
+  lockTargetProfile(profile, base) {
+    const locked = { ...profile };
+    if (base.id) locked.id = base.id;
+    if (base.name) locked.name = base.name;
+    if (base.isPlayer || base.id === 'player-self') locked.isPlayer = true;
     ['gender', 'age', 'birthday'].forEach((key) => {
       if (base[key] !== undefined && base[key] !== null && String(base[key]).trim()) locked[key] = base[key];
     });
@@ -1636,14 +1664,20 @@ window.GameModules.characterProfile = {
       if (base[key] !== undefined && base[key] !== null && String(base[key]).trim()) locked[key] = base[key];
     });
     const wrongName = String(profile?.name || '').trim();
-    if (wrongName && wrongName !== base.name) {
-      console.warn('[角色卡] 玩家本人姓名被AI写成其他人物，已强制锁回:', { expected: base.name, actual: wrongName });
+    if (base.name && wrongName && wrongName !== base.name) {
+      console.warn('[角色卡] AI返回姓名与目标不一致，已强制锁回:', { expected: base.name, actual: wrongName });
       locked.detail = base.detail || locked.detail;
       locked.personality = base.personality || locked.personality;
       locked.appearance = base.appearance || locked.appearance;
       locked.relationships = base.relationships || locked.relationships;
     }
     return locked;
+  },
+
+  lockedAge(profile, base) {
+    const baseAge = base?.age && typeof base.age === 'object' && base.age.value !== undefined ? base.age.value : base?.age;
+    if (baseAge !== undefined && baseAge !== null && String(baseAge).trim()) return baseAge;
+    return (profile.age && typeof profile.age === 'object' && profile.age.value !== undefined) ? profile.age.value : (profile.age || '');
   },
 
   escapeRegExp(text) {
@@ -1658,7 +1692,7 @@ window.GameModules.characterProfile = {
     const p = store?.playerProfile || {};
     const data = {
       base: {
-        id: base.id, name: base.name, work: base.work, role: base.role, gender: base.gender,
+        id: base.id, name: base.name, work: base.work, role: base.role, gender: base.gender, age: base.age, birthday: base.birthday,
         relationships: base.relationships, nameRule: base.nameRule, detail: base.detail,
         appearance: base.appearance, preferences: base.preferences, personality: base.personality, presetProfilePath: base.presetProfilePath,
         factions: base.factions, forcePositions: base.forcePositions || base.force_positions,
@@ -1742,7 +1776,7 @@ window.GameModules.characterProfile = {
   },
 
   wearingSlotNames() {
-    return { head: '头部', neck: '颈部', innerwearTop: '内衣', top: '上衣', outerwear: '外套', gloves: '手套', waist: '腰部', innerwearBottom: '内裤', bottom: '下衣', socks: '袜子', shoes: '鞋子', wrist: '手腕' };
+    return this.wearingClothingPositions();
   },
 
   normalizeWearSlot(slot, item = {}, profile = {}) {
@@ -1781,7 +1815,7 @@ window.GameModules.characterProfile = {
     const fixed = this.wearingSlotKeys().map((slot) => {
       const item = value[slot];
       if (!item || typeof item !== 'object') return null;
-      return { ...item, slot: this.wearingSlotNames()[slot] || slot };
+      return { ...item, slot, slotLabel: this.wearingSlotNames()[slot] || slot };
     });
     const custom = Array.isArray(value.slot) ? value.slot : [];
     return [...fixed, ...custom].filter(Boolean);
