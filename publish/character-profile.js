@@ -1609,7 +1609,8 @@ window.GameModules.characterProfile = {
   validatePart(partIndex, raw, base, lore, attrs, store, template = null) {
     if (!raw || typeof raw !== 'object') throw new Error('AI 输出不是合法对象');
     if (template) {
-      const extra = Object.keys(raw).filter((key) => !Object.prototype.hasOwnProperty.call(template, key));
+      const internalKeys = new Set(partIndex === 4 ? ['_csvRows'] : []);
+      const extra = Object.keys(raw).filter((key) => !internalKeys.has(key) && !Object.prototype.hasOwnProperty.call(template, key));
       if (extra.length) throw new Error(`Part${partIndex} 返回了模板外字段：${extra.join('、')}`);
       const missing = this.missingPartFields(partIndex, raw, template, base, attrs);
       if (missing.length) throw new Error(`Part${partIndex} 缺少字段：${missing.join('、')}`);
