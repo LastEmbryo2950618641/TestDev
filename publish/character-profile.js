@@ -101,20 +101,17 @@ window.GameModules.characterProfile = {
       this.onProgress(store, loadingId, 'profile', 'done');
       store?.updateRoleCardLoading?.(loadingId, { name: part1.name || base.name, status: 'running' });
       const p1Summary = this.part1Summary(part1);
-      this.onProgress(store, loadingId, 'emotions', 'running');
+      this.onProgress(store, loadingId, 'feeling', 'running');
       const part2 = await this.generatePart(2, 'character-profile-part2-feeling', { ...commonVars, part1Summary: p1Summary }, templates[2], base, lore, attrs, store);
-      this.onProgress(store, loadingId, 'emotions', 'done');
-      this.onProgress(store, loadingId, 'playerFeelings', 'running');
-      const part3 = await this.generatePart(3, 'character-profile-part3-player-feelings', { ...commonVars, part1Summary: p1Summary }, templates[3], base, lore, attrs, store);
-      this.onProgress(store, loadingId, 'playerFeelings', 'done');
+      this.onProgress(store, loadingId, 'feeling', 'done');
       this.onProgress(store, loadingId, 'abilities', 'running');
-      const part4 = await this.generatePart(4, 'character-profile-part4-abilities-professions', { ...commonVars, part1Summary: p1Summary }, templates[4], base, lore, attrs, store);
+      const part3 = await this.generatePart(3, 'character-profile-part3-abilities-professions', { ...commonVars, part1Summary: p1Summary }, templates[3], base, lore, attrs, store);
       this.onProgress(store, loadingId, 'abilities', 'done');
       const rpgKeys = this.rpgFieldReasonKeys(attrs);
       this.onProgress(store, loadingId, 'inventory', 'running');
-      const part5 = await this.generatePart(5, 'character-profile-part5-inventory-wearing-rpg', { ...commonVars, part1Summary: p1Summary, RPG字段列表: rpgKeys.join('、'), RPG字段列表JSON: rpgKeys.map((key) => `"${key}"`).join(', ') }, templates[5], base, lore, attrs, store);
+      const part4 = await this.generatePart(4, 'character-profile-part4-inventory-wearing-rpg', { ...commonVars, part1Summary: p1Summary, RPG字段列表: rpgKeys.join('、'), RPG字段列表JSON: rpgKeys.map((key) => `"${key}"`).join(', ') }, templates[4], base, lore, attrs, store);
       this.onProgress(store, loadingId, 'inventory', 'done');
-      const merged = this.mergeGeneratedParts(part1, part2, part3, part4, part5, attrs);
+      const merged = this.mergeGeneratedParts(part1, part2, part3, part4, attrs);
       const profile = this.validate(merged, base, lore, attrs, store, { skipInitialMetrics: false });
       return this.withSignature(profile, signature);
     } catch (err) {
@@ -127,7 +124,7 @@ window.GameModules.characterProfile = {
   async loadPartTemplates() {
     if (this.partTemplateCache) return this.partTemplateCache;
     const templates = window.GameModules.characterProfileTemplateClass?.parts?.();
-    if (!templates?.[1] || !templates?.[2] || !templates?.[3] || !templates?.[4] || !templates?.[5]) throw new Error('角色卡模板类未加载，无法生成五段角色卡。');
+    if (!templates?.[1] || !templates?.[2] || !templates?.[3] || !templates?.[4]) throw new Error('角色卡模板类未加载，无法生成四段角色卡。');
     this.partTemplateCache = templates;
     return templates;
   },
@@ -154,10 +151,9 @@ window.GameModules.characterProfile = {
   partRequiredRawFields(partIndex, fields = null) {
     const byPart = {
       1: ['name', 'worldTag', 'age', 'gender', 'factions', 'forcePositions'],
-      2: ['name', 'feeling', 'emotions', 'cold', 'curiosity', 'despair'],
-      3: ['name', 'feeling', 'playerFeelings', 'understanding', 'respect', 'submission'],
-      4: ['name', 'skills', 'knowledge', 'professions'],
-      5: ['name', 'items', 'wearing', 'rpgField', 'head', 'top', 'bottom', 'shoes', 'slot'],
+      2: ['name', 'value', 'status', 'reason', '冷静', '绝望', '了解', '服从'],
+      3: ['name', 'skills', 'knowledge', 'professions'],
+      4: ['name', 'items', 'wearing', 'rpgField', 'head', 'top', 'bottom', 'shoes', 'slot'],
     };
     if (!fields) return byPart[partIndex] || [];
     const nested = [];
@@ -168,7 +164,7 @@ window.GameModules.characterProfile = {
   },
 
   partPromptWithTemplate(prompt, template, partIndex) {
-    if (partIndex === 2 || partIndex === 3) return prompt;
+    if (partIndex === 2) return prompt;
     return [
       prompt,
       '',
@@ -182,10 +178,8 @@ window.GameModules.characterProfile = {
 
   sanitizePart(partIndex, raw, template) {
     const clean = this.sanitizeByTemplate(raw, template);
-    if ((partIndex === 2 || partIndex === 3) && clean.feeling) {
+    if (partIndex === 2 && clean.feeling) {
       clean.feeling = this.normalizeFeelingObject(clean.feeling);
-      if (partIndex === 2) delete clean.feeling.playerFeelings;
-      if (partIndex === 3) delete clean.feeling.emotions;
     }
     if (partIndex === 1 && clean.initialMetrics) {
       clean.initialMetrics = this.sanitizeInitialMetrics(clean.initialMetrics);
@@ -263,13 +257,12 @@ window.GameModules.characterProfile = {
     if (partIndex === 1 && key === 'factions') return this.arrayItemsComplete(value, ['faction', 'role', 'reason'], false);
     if (partIndex === 1 && key === 'forcePositions') return this.arrayItemsComplete(value, ['force', 'position', 'reason'], false);
     if (partIndex === 1 && key === 'initialMetrics') return this.initialMetricsComplete(value);
-    if (partIndex === 2 && key === 'feeling') return this.feelingGroupComplete(value, 'emotions');
-    if (partIndex === 3 && key === 'feeling') return this.feelingGroupComplete(value, 'playerFeelings');
-    if (partIndex === 4 && ['skills', 'knowledge'].includes(key)) return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', 'reason'], false, (item) => this.learnedItemComplete(item));
-    if (partIndex === 4 && key === 'professions') return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', '所需skills', '所需knowledge', '所需intrinsicBase', 'reason'], true, (item) => this.learnedItemComplete(item) && ['所需skills', '所需knowledge', '所需intrinsicBase'].every((field) => Array.isArray(item[field])));
-    if (partIndex === 5 && key === 'items') return this.arrayItemsComplete(value, ['name', 'description', 'quantity', 'reason'], true, (item) => Number.isInteger(Number(item.quantity)) && Number(item.quantity) >= 1);
-    if (partIndex === 5 && key === 'wearing') return this.wearingObjectComplete(value);
-    if (partIndex === 5 && key === 'rpgField') return this.rpgFieldComplete(value);
+    if (partIndex === 2 && key === 'feeling') return this.feelingComplete(value);
+    if (partIndex === 3 && ['skills', 'knowledge'].includes(key)) return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', 'reason'], false, (item) => this.learnedItemComplete(item));
+    if (partIndex === 3 && key === 'professions') return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', '所需skills', '所需knowledge', '所需intrinsicBase', 'reason'], true, (item) => this.learnedItemComplete(item) && ['所需skills', '所需knowledge', '所需intrinsicBase'].every((field) => Array.isArray(item[field])));
+    if (partIndex === 4 && key === 'items') return this.arrayItemsComplete(value, ['name', 'description', 'quantity', 'reason'], true, (item) => Number.isInteger(Number(item.quantity)) && Number(item.quantity) >= 1);
+    if (partIndex === 4 && key === 'wearing') return this.wearingObjectComplete(value);
+    if (partIndex === 4 && key === 'rpgField') return this.rpgFieldComplete(value);
     if (Array.isArray(template)) return Array.isArray(value);
     if (template && typeof template === 'object') return value && typeof value === 'object';
     return typeof value === typeof template || value !== undefined;
@@ -348,8 +341,8 @@ window.GameModules.characterProfile = {
     for (let i = 0; i < 2; i += 1) {
       let missing = this.missingPartFields(partIndex, current, template, base, attrs);
       if (!missing.length) return current;
-      if ((partIndex === 2 || partIndex === 3) && missing.includes('feeling')) {
-        const feeling = await this.generatePartFeeling(current, base, lore, attrs, format, store, partIndex === 2 ? 'emotions' : 'playerFeelings');
+      if (partIndex === 2 && missing.includes('feeling')) {
+        const feeling = await this.generatePartFeeling(current, base, lore, attrs, format, store, 'all');
         current = this.sanitizePart(partIndex, { ...current, feeling }, template);
         missing = this.missingPartFields(partIndex, current, template, base, attrs);
         if (!missing.length) return current;
@@ -414,12 +407,12 @@ window.GameModules.characterProfile = {
     });
   },
 
-  mergeGeneratedParts(part1, part2, part3, part4, part5, attrs) {
-    const feeling = { emotions: part2.feeling?.emotions, playerFeelings: part3.feeling?.playerFeelings };
-    const merged = { ...part1, ...part4, ...part5, initialMetrics: this.sanitizeInitialMetrics(feeling) };
+  mergeGeneratedParts(part1, part2, part3, part4, attrs) {
+    const feeling = { emotions: part2.feeling?.emotions, playerFeelings: part2.feeling?.playerFeelings };
+    const merged = { ...part1, ...part3, ...part4, initialMetrics: this.sanitizeInitialMetrics(feeling) };
     merged.forcePositions = part1.forcePositions || part1.force_positions || [];
     merged.roleCardFieldReasons = this.roleReasonsFromParts(merged);
-    merged.rpgFieldReasons = this.rpgReasonsFromPart5(merged, attrs);
+    merged.rpgFieldReasons = this.rpgReasonsFromPart4(merged, attrs);
     return merged;
   },
 
@@ -442,7 +435,7 @@ window.GameModules.characterProfile = {
     };
   },
 
-  rpgReasonsFromPart5(profile = {}, attrs = null) {
+  rpgReasonsFromPart4(profile = {}, attrs = null) {
     const fallback = window.GameModules.characterReasonFallback?.rpgReasons?.(profile, attrs) || {};
     const rpg = profile.rpgField || {};
     const base = rpg.intrinsicBase || {};
@@ -464,7 +457,7 @@ window.GameModules.characterProfile = {
       world_tag: profile.worldTag?.reason,
       control_experience: profile.control_experience?.习惯程度,
     };
-    return Object.fromEntries(this.rpgFieldReasonKeys(attrs).map((key) => [key, String(direct[key] || fallback[key] || `${profile.name || '该人物'}的${key}来自 Part1/Part5 固化资料。`).slice(0, 120)]));
+    return Object.fromEntries(this.rpgFieldReasonKeys(attrs).map((key) => [key, String(direct[key] || fallback[key] || `${profile.name || '该人物'}的${key}来自 Part1/Part4 固化资料。`).slice(0, 120)]));
   },
 
   parse(text) {
@@ -472,19 +465,19 @@ window.GameModules.characterProfile = {
   },
 
   parsePartOutput(partIndex, text, base = {}) {
-    if (partIndex === 2) return this.parseCsvFeelingPart(text, 'emotions', window.GameModules.metrics.emotionKeys, base.name);
-    if (partIndex === 3) return this.parseCsvFeelingPart(text, 'playerFeelings', window.GameModules.metrics.playerKeys, base.name);
+    if (partIndex === 2) return this.parseCsvFeelingPart(text, base.name);
     return this.parse(text);
   },
 
-  parseCsvFeelingPart(text, group, keys, name = '') {
-    const parsed = this.parseMetricGroupLines(text, group, keys);
-    if (parsed[group]?.length !== keys.length) throw new Error(`${group} CSV 行数不完整`);
-    const keyMap = group === 'emotions'
-      ? { 冷静: 'cold', 恐惧: 'fear', 担忧: 'worry', 高兴: 'joy', 紧张: 'tension', 愤怒: 'anger', 羞耻: 'shame', 悲伤: 'sadness', 好奇: 'curiosity', 麻木: 'numbness', 嫉妒: 'jealousy', 绝望: 'despair' }
-      : { 了解: 'understanding', 信任: 'trust', 反抗: 'resistance', 好感: 'affection', 友情: 'friendship', 亲情: 'familyLove', 爱情: 'romanticLove', 肉欲: 'lust', 畏惧: 'awe', 尊敬: 'respect', 崇拜: 'admiration', 讨厌: 'dislike', 依赖: 'dependence', 警惕: 'vigilance', 支配欲: 'dominance', 占有欲: 'possessiveness', 服从: 'submission' };
-    const feelingGroup = Object.fromEntries(parsed[group].map((item) => [keyMap[item.key] || item.key, { name: item.key, value: item.value, status: item.status, reason: item.reason }]));
-    return { name, feeling: { [group]: feelingGroup } };
+  parseCsvFeelingPart(text, name = '') {
+    const emotions = this.parseMetricGroupLines(text, 'emotions', window.GameModules.metrics.emotionKeys).emotions || [];
+    const playerFeelings = this.parseMetricGroupLines(text, 'playerFeelings', window.GameModules.metrics.playerKeys).playerFeelings || [];
+    if (emotions.length !== window.GameModules.metrics.emotionKeys.length) throw new Error('emotions CSV 行数不完整');
+    if (playerFeelings.length !== window.GameModules.metrics.playerKeys.length) throw new Error('playerFeelings CSV 行数不完整');
+    const emotionMap = { 冷静: 'cold', 恐惧: 'fear', 担忧: 'worry', 高兴: 'joy', 紧张: 'tension', 愤怒: 'anger', 羞耻: 'shame', 悲伤: 'sadness', 好奇: 'curiosity', 麻木: 'numbness', 嫉妒: 'jealousy', 绝望: 'despair' };
+    const playerMap = { 了解: 'understanding', 信任: 'trust', 反抗: 'resistance', 好感: 'affection', 友情: 'friendship', 亲情: 'familyLove', 爱情: 'romanticLove', 肉欲: 'lust', 畏惧: 'awe', 尊敬: 'respect', 崇拜: 'admiration', 讨厌: 'dislike', 依赖: 'dependence', 警惕: 'vigilance', 支配欲: 'dominance', 占有欲: 'possessiveness', 服从: 'submission' };
+    const toObject = (items, map) => Object.fromEntries(items.map((item) => [map[item.key] || item.key, { name: item.key, value: item.value, status: item.status, reason: item.reason }]));
+    return { name, feeling: { emotions: toObject(emotions, emotionMap), playerFeelings: toObject(playerFeelings, playerMap) } };
   },
 
   parseMetricGroup(text, group, keys) {
@@ -767,20 +760,11 @@ window.GameModules.characterProfile = {
         nameHint,
         '必须只返回 CSV，不要返回 JSON。',
         '第一行必须是 name,value,status,reason。',
-        '必须按固定顺序返回 12 行情绪：冷静、恐惧、担忧、高兴、紧张、愤怒、羞耻、悲伤、好奇、麻木、嫉妒、绝望。',
+        '必须按固定顺序返回 29 行：先 12 行情绪，再 17 行对玩家感觉。',
         '每行四列：中文名称,0-100整数,状态短句,原因短句。',
       ].join('\n');
     }
     if (partIndex === 3) {
-      return [
-        nameHint,
-        '必须只返回 CSV，不要返回 JSON。',
-        '第一行必须是 name,value,status,reason。',
-        '必须按固定顺序返回 17 行对玩家感觉：了解、信任、反抗、好感、友情、亲情、爱情、肉欲、畏惧、尊敬、崇拜、讨厌、依赖、警惕、支配欲、占有欲、服从。',
-        '每行四列：中文名称,0-100整数,状态短句,原因短句。',
-      ].join('\n');
-    }
-    if (partIndex === 4) {
       return [
         nameHint,
         '必须返回根字段 skills（数组，至少1项）和 knowledge（数组，至少1项）。',
@@ -814,19 +798,16 @@ window.GameModules.characterProfile = {
     }
     if (partIndex === 2) {
       if (!this.feelingGroupComplete(raw.feeling, 'emotions')) throw new Error('Part2 emotions 字段不完整');
+      if (!this.feelingGroupComplete(raw.feeling, 'playerFeelings')) throw new Error('Part2 playerFeelings 字段不完整');
       return raw;
     }
     if (partIndex === 3) {
-      if (!this.feelingGroupComplete(raw.feeling, 'playerFeelings')) throw new Error('Part3 playerFeelings 字段不完整');
+      if (!Array.isArray(raw.skills) || !raw.skills.length) throw new Error('Part3 缺少 skills');
+      if (!Array.isArray(raw.knowledge) || !raw.knowledge.length) throw new Error('Part3 缺少 knowledge');
       return raw;
     }
-    if (partIndex === 4) {
-      if (!Array.isArray(raw.skills) || !raw.skills.length) throw new Error('Part4 缺少 skills');
-      if (!Array.isArray(raw.knowledge) || !raw.knowledge.length) throw new Error('Part4 缺少 knowledge');
-      return raw;
-    }
-    if (!this.rpgFieldComplete(raw.rpgField)) throw new Error('Part5 缺少 rpgField 完整结构');
-    if (!this.wearingObjectComplete(raw.wearing)) throw new Error('Part5 缺少 wearing 完整结构');
+    if (!this.rpgFieldComplete(raw.rpgField)) throw new Error('Part4 缺少 rpgField 完整结构');
+    if (!this.wearingObjectComplete(raw.wearing)) throw new Error('Part4 缺少 wearing 完整结构');
     return raw;
   },
 
