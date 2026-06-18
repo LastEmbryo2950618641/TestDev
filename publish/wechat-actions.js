@@ -140,12 +140,8 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
   },
   async addWechatUsers(users = [], options = {}) {
     if (!Array.isArray(users)) return [];
-    const added = [];
-    for (const user of users) {
-      const contact = await this.addWechatUser(user, options);
-      if (contact) added.push(contact);
-    }
-    return added;
+    const results = await Promise.all(users.map((user) => this.addWechatUser(user, options)));
+    return results.filter(Boolean);
   },
   async submitWechatAddUser() {
     const contact = await this.addWechatUser({ name: this.wechatAddName, relation: this.wechatAddRelation || '微信联系人', source: 'manual' }, { generateProfile: true });

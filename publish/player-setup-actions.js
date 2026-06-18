@@ -72,7 +72,10 @@ window.GameModules.playerSetupActions = {
       this.phoneSetupDone = true;
       this.desktopUnlocked = false;
       if (this.roleCardSetup?.usePredefinedPlayerCard) await window.GameModules.predefinedRoleCards?.saveSelectedRoleCardStates?.(this);
-      else await this.ensurePlayerRpgState?.(true);
+      else await Promise.all([
+        this.ensurePlayerRpgState?.(true),
+        this.syncRelationshipWechatUsers?.({ save: false }),
+      ]);
       await this.syncKnownProfessionsFromProfile?.(this.playerProfile.knownProfessions);
       await this.save();
     } catch (err) {

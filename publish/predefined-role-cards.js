@@ -89,24 +89,22 @@ window.GameModules.predefinedRoleCards = {
 
   async saveSelectedRoleCardStates(store) {
     if (!store?.roleCardSetup?.usePredefinedPlayerCard) return [];
-    const loaded = [];
-    const player = await this.ensurePlayerState(store);
-    if (player) loaded.push(player);
-    loaded.push(...await this.saveSelectedRelationshipStates(store));
-    return loaded;
+    const [player, relations] = await Promise.all([
+      this.ensurePlayerState(store),
+      this.saveSelectedRelationshipStates(store),
+    ]);
+    return [player, ...relations].filter(Boolean);
   },
 
   async saveSelectedRelationshipStates(store) {
     const cards = await this.loadAll();
     const names = store.roleCardSetup?.selectedRelationNames || ['刘思瑶', '刘思琪'];
-    const loaded = [];
-    for (const name of names) {
+    const tasks = names.map((name) => {
       const card = this.byName(cards, name);
-      if (!card) continue;
-      const state = await this.createState(card, store, card.id || name);
-      if (state) loaded.push(state);
-    }
-    return loaded;
+      return card ? this.createState(card, store, card.id || name) : null;
+    }).filter(Boolean);
+    const loaded = await Promise.all(tasks);
+    return loaded.filter(Boolean);
   },
 };
 
