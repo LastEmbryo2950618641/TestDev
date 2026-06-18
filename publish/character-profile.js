@@ -130,7 +130,7 @@ window.GameModules.characterProfile = {
       age: (data.age && typeof data.age === 'object' && data.age.value !== undefined ? data.age.value : data.age) || (String(`${data.role || ''} ${data.relationships || ''} ${data.detail || data.desc || preset?.summary || ''}`).match(/(\d{1,3})\s*岁/)?.[1] || ''),
       birthday: String(data.birthday || '').slice(0, 20),
       aliases: Array.isArray(data.aliases) ? data.aliases.slice(0, 4).map(String) : [],
-      skills: Array.isArray(data.skills) ? data.skills.slice(0, 4) : [],
+      skills: Array.isArray(data.skills) ? data.skills.slice(0, 10) : [],
       items: this.carryItemsLoose(data.items, '物品'),
       wearing: this.wearingItemsLoose(data.wearing),
       importance: data.importance || (data.isMinor ? 'minor' : 'support'),
@@ -540,19 +540,26 @@ window.GameModules.characterProfile = {
 
   applyLocalCsvFixes(partIndex, rows) {
     if (partIndex === 2) return this.normalizePart2RowsLocally(rows);
-    if (partIndex === 4) return this.normalizeCsvPartRows(partIndex, rows);
+    if (partIndex === 4) return this.normalizePart4RowsLocally(rows);
     if (partIndex !== 3) return rows;
-    const totals = { skills: 0, knowledge: 0, professions: 0 };
-    rows.forEach((row) => {
+    const kept = { skills: 0, knowledge: 0, professions: 0 };
+    return this.normalizeCsvPartRows(partIndex, rows).filter((row) => {
       const type = this.csvParts(row)[0];
-      if (Object.prototype.hasOwnProperty.call(totals, type)) totals[type] += 1;
+      if (!Object.prototype.hasOwnProperty.call(kept, type)) return true;
+      kept[type] += 1;
+      return kept[type] <= 10;
     });
-    return rows.filter((row) => {
-      const parts = this.csvParts(row);
-      const type = parts[0];
-      if (!Object.prototype.hasOwnProperty.call(totals, type)) return true;
-      if (totals[type] <= 10) return true;
-      return !this.part3RowIssue(parts);
+  },
+
+  normalizePart4RowsLocally(rows) {
+    const kept = { item: 0, slot: 0 };
+    return this.normalizeCsvPartRows(4, rows).filter((row) => {
+      const type = this.csvParts(row)[0];
+      if (type === 'item' || type === 'slot') {
+        kept[type] += 1;
+        return kept[type] <= (type === 'item' ? 4 : 2);
+      }
+      return true;
     });
   },
 
@@ -620,6 +627,7 @@ window.GameModules.characterProfile = {
         return;
       }
       counts[parts[0]] += 1;
+      if (counts[parts[0]] > 10) issues.push({ key: `row${index + 1}`, reason: `${parts[0]}超过10行`, badRow: row });
     });
     if (!counts.skills) issues.push({ key: 'skills', reason: '缺失至少1行skills' });
     if (!counts.knowledge) issues.push({ key: 'knowledge', reason: '缺失至少1行knowledge' });
@@ -630,10 +638,15 @@ window.GameModules.characterProfile = {
     const issues = [];
     const present = new Set();
     const validBySlot = {};
+    const counts = { item: 0, slot: 0 };
     rows.forEach((row, index) => {
       const normalized = this.normalizePart4Row(row);
       const parts = this.csvParts(normalized);
       const reason = this.part4RowIssue(parts);
+      if (parts[0] === 'item' || parts[0] === 'slot') {
+        counts[parts[0]] += 1;
+        if (counts[parts[0]] > (parts[0] === 'item' ? 4 : 2)) issues.push({ key: `row${index + 1}`, reason: `${parts[0]}超过MD规定上限`, badRow: normalized });
+      }
       if (reason) {
         const key = parts[0] === 'wearing' && this.fixedWearingSlots().includes(parts[1]) ? parts[1] : `row${index + 1}`;
         issues.push({ key, reason, badRow: normalized });
@@ -653,15 +666,26 @@ window.GameModules.characterProfile = {
   part4PreferenceIssues(profile = {}, validBySlot = {}) {
     const text = `${profile?.preferences || ''}${profile?.detail || ''}${profile?.appearance || ''}${profile?.role || ''}${profile?.job || ''}`;
     const issues = [];
+    const joined = (parts) => `${parts?.[3] || ''}${parts?.[4] || ''}`;
     if (/JK|jk|制服|百褶裙|过膝袜|连裤袜|丝袜|黑丝|白丝/.test(text)) {
       const bottom = validBySlot.bottom;
       const socks = validBySlot.socks;
       const top = validBySlot.top;
       if (bottom && !this.part4HasConcreteWear(bottom)) issues.push({ key: 'bottom', reason: '偏好写明JK制服或百褶裙但bottom未穿戴', badRow: this.csvJoin(bottom) });
-      if (bottom && /裤|牛仔裤|长裤|短裤|运动裤/.test(`${bottom[3]}${bottom[4]}`) && !/裙/.test(`${bottom[3]}${bottom[4]}`)) issues.push({ key: 'bottom', reason: '偏好写明百褶裙但bottom生成了裤装', badRow: this.csvJoin(bottom) });
+      if (bottom && /裤|牛仔裤|长裤|短裤|运动裤/.test(joined(bottom)) && !/裙/.test(joined(bottom))) issues.push({ key: 'bottom', reason: '偏好写明百褶裙但bottom生成了裤装', badRow: this.csvJoin(bottom) });
       if (socks && /过膝袜|连裤袜|丝袜|黑丝|白丝/.test(text) && !this.part4HasConcreteWear(socks)) issues.push({ key: 'socks', reason: '偏好写明袜类但socks未穿戴', badRow: this.csvJoin(socks) });
       if (top && /JK|jk|制服/.test(text) && !this.part4HasConcreteWear(top)) issues.push({ key: 'top', reason: '偏好写明制服但top未穿戴', badRow: this.csvJoin(top) });
     }
+    const colorRules = [['黑', /黑色|黑丝|黑色丝袜|黑色过膝袜/], ['白', /白色|白丝|白色丝袜|白色过膝袜/]];
+    colorRules.forEach(([color, re]) => {
+      if (!re.test(text)) return;
+      ['head', 'neck', 'top', 'outerwear', 'bottom', 'socks', 'shoes', 'wrist'].forEach((slot) => {
+        const parts = validBySlot[slot];
+        if (parts && this.part4HasConcreteWear(parts) && joined(parts) && !joined(parts).includes(color)) {
+          if ((slot === 'socks' && /丝|袜/.test(text)) || (slot !== 'socks' && !/丝|袜/.test(text))) issues.push({ key: slot, reason: `偏好写明${color}色但${slot}未体现颜色`, badRow: this.csvJoin(parts) });
+        }
+      });
+    });
     return issues;
   },
 
@@ -685,8 +709,12 @@ window.GameModules.characterProfile = {
         const rows = this.csvFixRowsToApply(partIndex, issues, parsed._csvRows || []);
         if (!rows.length) throw new Error('CSV修复没有返回有效行');
         if (partIndex === 4) {
-          const bad = rows.find((row) => this.part4RowIssue(this.csvParts(row)));
-          if (bad) throw new Error(`CSV修复行格式不合格：${bad}`);
+          const returnedIssue = this.csvFixReturnedIssue(partIndex, issues, rows, skeleton);
+          if (returnedIssue) throw new Error(returnedIssue);
+          const remaining = this.csvPartIssues(partIndex, this.mergeCsvFixRows(partIndex, currentRows, rows, issues), base);
+          const wanted = new Set(issues.map((x) => x.key));
+          const stillWanted = remaining.filter((x) => wanted.has(x.key) || /^row\d+$/.test(x.key));
+          if (stillWanted.length) throw new Error(`CSV修复仍不完整：${stillWanted.map((x) => x.key).join('、')}`);
           return rows;
         }
         const returnedIssue = this.csvFixReturnedIssue(partIndex, issues, rows, skeleton);
@@ -931,7 +959,7 @@ window.GameModules.characterProfile = {
   },
 
   async generateMissingPartFields(partIndex, current, template, missing, format, base, attrs = null) {
-    const partialTemplate = Object.fromEntries(missing.map((key) => [key, template[key]]));
+    const partialTemplate = this.missingPartTemplate(partIndex, current, template, missing);
     const prompt = this.missingPartPrompt(partIndex, current, partialTemplate, missing, format, base);
     return window.GameModules.jsonUtils.generateJsonWithRetry({
       source: `character-profile-part${partIndex}-missing`,
@@ -954,6 +982,21 @@ window.GameModules.characterProfile = {
     });
   },
 
+  missingPartTemplate(partIndex, current, template, missing) {
+    if (partIndex !== 5 || !missing.includes('rpgField')) return Object.fromEntries(missing.map((key) => [key, template[key]]));
+    const rpg = current?.rpgField || {};
+    const src = template.rpgField || {};
+    const intrinsicKeys = ['strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma'];
+    const rpgField = {};
+    if (!this.valueReasonComplete(rpg.level)) rpgField.level = src.level;
+    const intrinsicBase = {};
+    intrinsicKeys.forEach((key) => {
+      if (!this.intrinsicBaseItemComplete(rpg.intrinsicBase?.[key])) intrinsicBase[key] = src.intrinsicBase?.[key];
+    });
+    if (Object.keys(intrinsicBase).length) rpgField.intrinsicBase = intrinsicBase;
+    return { rpgField };
+  },
+
   missingPartPrompt(partIndex, current, partialTemplate, missing, format, base) {
     const lines = [
       `你正在修复角色卡 Part${partIndex}。目标人物只能是：${base.name}。`,
@@ -962,9 +1005,9 @@ window.GameModules.characterProfile = {
     ];
     if (partIndex === 5 && missing.includes('rpgField')) {
       lines.push(
-        'rpgField 是原子字段：只要 rpgField 缺失或不完整，就必须返回完整 rpgField。',
-        'rpgField 只需要包含 level 与 intrinsicBase；禁止返回 derived、攻击力、防御力。',
-        'intrinsicBase 必须完整包含 strength、agility、constitution、intelligence、perception、willpower、charisma，每项含 integer value、description、reason。',
+        '只补模板中列出的 rpgField 子字段；已合格的 level 或 intrinsicBase 子项禁止重复输出、禁止改动。',
+        'rpgField 只需要包含 level 与模板列出的 intrinsicBase 子项；禁止返回 derived、攻击力、防御力。',
+        '每个返回的 intrinsicBase 子项必须含 integer value、description、reason。',
       );
     }
     return [
@@ -980,7 +1023,7 @@ window.GameModules.characterProfile = {
 
   missingPartRepairHint(partIndex, missing) {
     if (partIndex === 5 && missing.includes('rpgField')) {
-      return '只能返回 rpgField。rpgField 必须包含 level 与 intrinsicBase 七项。禁止返回 derived、攻击力、防御力，这些由代码根据 level 与 intelligence 计算。';
+      return '只能返回 rpgField 中模板列出的缺失子字段。已合格的 level 或 intrinsicBase 子项禁止重复输出；禁止返回 derived、攻击力、防御力。';
     }
     return `只能返回缺失字段：${missing.join('、')}。不能新增其它字段。`;
   },
@@ -1187,11 +1230,10 @@ window.GameModules.characterProfile = {
       if (emptyName !== emptyDesc) return '未穿戴时name和description必须同时为--';
       if (!emptyName && (!this.csvCell(itemName) || !this.csvCell(description))) return '穿戴物名称或描述缺失';
       const text = `${itemName}${description}${reason}`;
+      const wearText = `${itemName}${description}`;
       if (/日常(上衣|下衣|袜子|鞋子|内衣|内裤)|上下文未写明异常|常规场景基础穿着槽位/.test(text)) return '禁止兜底穿着文案';
-      if (slot === 'bottom' && /裙/.test(text) && /裤|牛仔裤|长裤|短裤|运动裤/.test(text)) return 'bottom不能同时写裙装和裤装';
-      if (slot === 'head' && !emptyName && !/帽|发卡|发夹|发带|头饰|发饰|头巾|头绳|蝴蝶结|头箍|头冠|头盔/.test(text)) return 'head只能写帽子或发饰类穿戴物';
-      if (slot === 'neck' && !emptyName && !/项链|围巾|领带|项圈|颈环|围脖|吊坠|丝巾/.test(text)) return 'neck只能写项链围巾领带项圈等颈部穿戴物';
-      const slotIssue = this.wearingSlotSemanticIssue(slot, text);
+      if (!emptyName && slot === 'bottom' && /裙/.test(wearText) && /裤|牛仔裤|长裤|短裤|运动裤/.test(wearText)) return 'bottom不能同时写裙装和裤装';
+      const slotIssue = !emptyName ? this.wearingSlotSemanticIssue(slot, wearText) : '';
       if (slotIssue) return slotIssue;
     }
     if (type === 'slot') {
@@ -1225,7 +1267,8 @@ window.GameModules.characterProfile = {
     if (!this.csvCell(text)) return '';
     const has = (pattern) => pattern.test(text);
     if (/头发|发丝|发尾|长发|短发|黑发|白发|金发|皮肤|肤色|肌肤|身体|体态|身材|眼睛|瞳孔|脸|面容|嘴唇|手指|腿型/.test(text)) return '身体外貌特征不能作为穿着物';
-    if (slot === 'neck' && has(/耳环|耳钉|耳坠|耳饰/)) return '耳饰不能放在neck槽位';
+    if (slot === 'head' && has(/项链|围巾|领带|项圈|颈环|围脖|吊坠|丝巾|耳环|耳钉|耳坠|耳饰/)) return 'head不能写颈部或耳部饰物';
+    if (slot === 'neck' && has(/耳环|耳钉|耳坠|耳饰|帽|发卡|发夹|发带|头饰|发饰|头巾|头绳|蝴蝶结|头箍|头冠|头盔/)) return 'neck不能写头部或耳部饰物';
     if (slot === 'outerwear' && has(/百褶裙|短裙|长裙|裙子|牛仔裤|长裤|短裤|裤子|袜|连裤袜|过膝袜|丝袜/)) return 'outerwear只能写外套类穿着';
     if (slot === 'waist' && has(/百褶裙|短裙|长裙|裙子|牛仔裤|长裤|短裤|裤子|袜|连裤袜|过膝袜|丝袜|上衣|衬衫|外套/)) return 'waist只能写腰带腰封类穿着';
     if (slot === 'bottom' && has(/袜|连裤袜|过膝袜|丝袜|长筒袜|短袜|裤袜|鞋/)) return 'bottom不能写袜子或鞋类';
@@ -1743,25 +1786,31 @@ window.GameModules.characterProfile = {
       factions,
       forcePositions,
       force_positions: forcePositions,
-      skills: skills.slice(0, 4).map((skill, index) => {
+      skills: skills.slice(0, 10).map((skill, index) => {
         const name = String(skill.name || `能力${index + 1}`).slice(0, 16);
         const desc = String(skill.desc || '').slice(0, 60);
         const reason = this.inventoryReason({ ...skill, name, desc }, '技能', { ...base, ...profile });
         const item = { name, desc, reason, changeMode: reason };
         if (skill.level !== undefined) item.level = skill.level;
         if (skill.levelEffects) item.levelEffects = skill.levelEffects;
+        item.requiredSkills = Array.isArray(skill.requiredSkills) ? skill.requiredSkills : [];
+        item.requiredKnowledge = Array.isArray(skill.requiredKnowledge) ? skill.requiredKnowledge : [];
+        item.requiredIntrinsicBase = Array.isArray(skill.requiredIntrinsicBase) ? skill.requiredIntrinsicBase : [];
         return item;
       }),
-      knowledge: knowledge.slice(0, 5).map((k, index) => {
+      knowledge: knowledge.slice(0, 10).map((k, index) => {
         const name = String(k.name || `知识${index + 1}`).slice(0, 16);
         const desc = String(k.desc || '').slice(0, 60);
         const reason = this.inventoryReason({ ...k, name, desc }, '知识', { ...base, ...profile });
         const item = { name, desc, reason, changeMode: reason };
         if (k.level !== undefined) item.level = k.level;
         if (k.levelEffects) item.levelEffects = k.levelEffects;
+        item.requiredSkills = Array.isArray(k.requiredSkills) ? k.requiredSkills : [];
+        item.requiredKnowledge = Array.isArray(k.requiredKnowledge) ? k.requiredKnowledge : [];
+        item.requiredIntrinsicBase = Array.isArray(k.requiredIntrinsicBase) ? k.requiredIntrinsicBase : [];
         return item;
       }),
-      professions: professions.slice(0, 3).map((p) => ({
+      professions: professions.slice(0, 10).map((p) => ({
         name: String(p.name || '').slice(0, 24),
         desc: String(p.desc || '').slice(0, 80),
         level: p.level || 1,
@@ -1951,9 +2000,12 @@ window.GameModules.characterProfile = {
       out[slot] = this.normalizeWearSlot(slot, source[slot] || fromArray[slot] || template[slot], profile);
     });
     const custom = Array.isArray(source.slot) ? source.slot : [];
-    const arrayCustom = Array.isArray(value) ? value.filter((item) => item?.slot && !this.wearingSlotKeys().includes(item.slot)) : [];
+    const arrayCustom = Array.isArray(value) ? value.filter((item) => {
+      const slot = this.canonicalWearSlot(item);
+      return item?.slot && slot && !this.wearingSlotKeys().includes(slot);
+    }) : [];
     out.slot = [...custom, ...arrayCustom].map((item) => {
-      const slot = String(item?.slot || '自定义').slice(0, 16);
+      const slot = String(this.canonicalWearSlot(item) || item?.slot || '自定义').slice(0, 16);
       return { slot, ...this.normalizeWearSlot(slot, item, profile) };
     }).filter((item) => item.name).slice(0, 20);
     return out;

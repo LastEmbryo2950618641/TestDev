@@ -56,7 +56,8 @@ window.GameModules.rpgState = {
       const profileTool = window.GameModules.characterProfile;
       const oldNameOk = profileTool?.isConcreteName?.(oldProfile.name) !== false;
       const newNameOk = profileTool?.isConcreteName?.(character.name) !== false;
-      if (!character.forceRoleCardRegenerate && oldNameOk && newNameOk && profileTool?.isReusableRoleCard?.(oldProfile, character.roleCardInputSignature)) return false;
+      const freshAiProfile = character.roleCardSource === 'ai' && character.roleCardUpdatedAt && character.roleCardUpdatedAt !== oldProfile.roleCardUpdatedAt;
+      if (!freshAiProfile && !character.forceRoleCardRegenerate && oldNameOk && newNameOk && profileTool?.isReusableRoleCard?.(oldProfile, character.roleCardInputSignature)) return false;
       state.profile = { ...oldProfile, ...character, roleCard: true };
       state.note = state.profile.detail || state.profile.personality || state.note || '';
       const metricsChanged = sameRoleCard
@@ -126,7 +127,7 @@ window.GameModules.rpgState = {
     let changed = false;
     const profile = state.profile;
     const factions = Array.isArray(profile.factions) ? profile.factions : [];
-    const forces = Array.isArray(profile.force_positions) ? profile.force_positions : [];
+    const forces = Array.isArray(profile.force_positions) ? profile.force_positions : (Array.isArray(profile.forcePositions) ? profile.forcePositions : []);
     if ((!Array.isArray(state.values.factions) || !state.values.factions.length) && factions.length) {
       state.values.factions = factions;
       changed = true;

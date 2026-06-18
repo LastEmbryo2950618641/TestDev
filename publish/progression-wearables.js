@@ -132,11 +132,12 @@ window.GameModules = window.GameModules || {};
       const ownerId = String(profile.id || '').trim();
       return raw.map((item) => {
         const slot = this.canonicalWearSlot(item);
-        const reason = item?.reason || item?.changeMode || '';
         const name = item?.name || '未穿戴';
         const id = item?.id || (ownerId ? this.itemId(ownerId, '穿着', slot, name) : '');
-        return { ...(item || {}), id, ownerId, characterId: ownerId, slot, clothing_position: item?.clothing_position || this.clothingPositionForSlot(slot), slotLabel: item?.slotLabel || this.clothingPositionForSlot(slot), type: '穿着', reason, changeMode: reason || item?.changeMode || '', source: item?.source || (profile.roleCardSource === 'ai' ? 'AI生成' : item?.source), level: -1 };
-      }).filter((item) => item.slot && item.reason).slice(0, 40);
+        const base = { ...(item || {}), id, ownerId, characterId: ownerId, slot, name, clothing_position: item?.clothing_position || this.clothingPositionForSlot(slot), slotLabel: item?.slotLabel || this.clothingPositionForSlot(slot), type: '穿着', source: item?.source || (profile.roleCardSource === 'ai' ? 'AI生成' : item?.source), level: -1 };
+        const reason = item?.reason || item?.changeMode || this.itemReason(base, '穿着');
+        return { ...base, reason, changeMode: reason };
+      }).filter((item) => item.slot).slice(0, 40);
     },
 
     generatedFallbackWear(item = {}) {
