@@ -21,7 +21,8 @@ window.GameModules.characterProfile = {
 
   isRoleCard(profile) {
     const hasFactions = Array.isArray(profile?.factions) && profile.factions.length;
-    const hasForces = Array.isArray(profile?.force_positions) && profile.force_positions.length;
+    const forces = profile?.forcePositions || profile?.force_positions;
+    const hasForces = Array.isArray(forces) && forces.length;
     return Boolean(profile?.roleCard && this.isConcreteName(profile.name) && profile?.role && profile?.detail && profile?.personality && profile?.appearance && hasFactions && hasForces);
   },
 
@@ -132,9 +133,9 @@ window.GameModules.characterProfile = {
     return [
       prompt,
       '',
-      '## 内置角色卡模板类（最高优先级）',
-      '本次输出必须严格以内置角色卡模板类的字段为准：字段名、嵌套结构和数组元素字段不得新增、不得改名。',
-      '若上方 MD 提示词与此模板冲突，一律以此模板为准；此模板中不存在的字段不要输出。'
+      '## MD角色卡模板字段骨架',
+      '下方模板由 MD 文档结构生成，本次输出必须严格遵守这些字段名、嵌套结构和数组元素字段。',
+      '模板中不存在的字段不要输出；不要把旧版 force_positions、数组式 feeling 或数组式 wearing 写回角色卡。',
       `Part${partIndex} 模板：`,
       '```json',
       JSON.stringify(template, null, 2),
@@ -152,19 +153,22 @@ window.GameModules.characterProfile = {
 
   sanitizeInitialMetrics(value) {
     if (!value || typeof value !== 'object') return value;
-    const pick = (list, keys) => {
-      if (Array.isArray(list)) {
-        return keys.map((key) => {
-          const item = list.find((entry) => entry?.key === key) || {};
-          return { key, value: item.value, status: item.status, reason: item.reason };
-        });
-      }
-      return keys.map((key) => ({ key, value: 0, status: '', reason: '' }));
-    };
     return {
-      emotions: pick(value.emotions, window.GameModules.metrics.emotionKeys),
-      playerFeelings: pick(value.playerFeelings, window.GameModules.metrics.playerKeys),
+      emotions: this.metricGroupAsArray(value.emotions, window.GameModules.metrics.emotionKeys),
+      playerFeelings: this.metricGroupAsArray(value.playerFeelings, window.GameModules.metrics.playerKeys),
     };
+  },
+
+  metricGroupAsArray(value, keys) {
+    if (Array.isArray(value)) return keys.map((key) => {
+      const item = value.find((entry) => entry?.key === key || entry?.name === key) || {};
+      return { key, value: item.value, status: item.status, reason: item.reason };
+    });
+    const source = value && typeof value === 'object' ? value : {};
+    return keys.map((key) => {
+      const item = source[key] || Object.values(source).find((entry) => entry?.name === key) || {};
+      return { key, value: item.value, status: item.status, reason: item.reason };
+    });
   },
 
   sanitizeByTemplate(value, template) {
@@ -203,12 +207,13 @@ window.GameModules.characterProfile = {
     if (partIndex === 1 && key === 'jobConfirmed') return typeof value === 'boolean';
     if (partIndex === 1 && key === 'control_experience') return value && typeof value === 'object' && Number.isInteger(Number(value.上线次数)) && typeof value.习惯程度 === 'string';
     if (partIndex === 1 && key === 'factions') return this.arrayItemsComplete(value, ['faction', 'role', 'reason'], false);
-    if (partIndex === 1 && key === 'force_positions') return this.arrayItemsComplete(value, ['force', 'position', 'reason'], false);
+    if (partIndex === 1 && key === 'forcePositions') return this.arrayItemsComplete(value, ['force', 'position', 'reason'], false);
+    if (partIndex === 1 && key === 'feeling') return this.feelingComplete(value);
     if (partIndex === 1 && key === 'initialMetrics') return this.initialMetricsComplete(value);
     if (partIndex === 2 && ['skills', 'knowledge'].includes(key)) return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', 'reason'], false, (item) => this.learnedItemComplete(item));
     if (partIndex === 2 && key === 'professions') return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', '所需skills', '所需knowledge', '所需intrinsicBase', 'reason'], true, (item) => this.learnedItemComplete(item) && ['所需skills', '所需knowledge', '所需intrinsicBase'].every((field) => Array.isArray(item[field])));
     if (partIndex === 3 && key === 'items') return this.arrayItemsComplete(value, ['name', 'description', 'quantity', 'reason'], true, (item) => Number.isInteger(Number(item.quantity)) && Number(item.quantity) >= 1);
-    if (partIndex === 3 && key === 'wearing') return this.wearingArrayComplete(value);
+    if (partIndex === 3 && key === 'wearing') return this.wearingObjectComplete(value);
     if (partIndex === 3 && key === 'rpgField') return this.rpgFieldComplete(value);
     if (Array.isArray(template)) return Array.isArray(value);
     if (template && typeof template === 'object') return value && typeof value === 'object';
@@ -223,16 +228,19 @@ window.GameModules.characterProfile = {
     return value && typeof value === 'object' && value.value !== undefined && String(value.description || '').trim() && String(value.reason || '').trim();
   },
 
-  wearingArrayComplete(value) {
-    if (!Array.isArray(value) || !value.length) return false;
-    return value.every((item) => item && typeof item === 'object' && String(item.slot || '').trim() && String(item.name || '').trim() && String(item.description || '').trim() && String(item.reason || '').trim());
+  wearingObjectComplete(value) {
+    const slots = ['head', 'neck', 'innerwearTop', 'top', 'outerwear', 'gloves', 'waist', 'innerwearBottom', 'bottom', 'socks', 'shoes', 'wrist'];
+    const completeItem = (item, allowEmptyName = true) => item && typeof item === 'object' && String(item.bodyPart || '').trim() && String(item.reason || '').trim() && (allowEmptyName || String(item.name || '').trim()) && Object.prototype.hasOwnProperty.call(item, 'description');
+    return value && typeof value === 'object' && !Array.isArray(value)
+      && slots.every((slot) => completeItem(value[slot], true))
+      && Array.isArray(value.slot)
+      && value.slot.every((item) => item && typeof item === 'object' && String(item.slot || '').trim() && completeItem(item, false));
   },
 
   initialMetricsComplete(value) {
     const templateKeys = { emotions: window.GameModules.metrics.emotionKeys, playerFeelings: window.GameModules.metrics.playerKeys };
     return value && typeof value === 'object' && Object.entries(templateKeys).every(([group, keys]) => {
-      const list = value[group];
-      if (!Array.isArray(list)) return false;
+      const list = this.metricGroupAsArray(value[group], keys);
       return keys.every((key) => {
         const item = list.find((entry) => entry?.key === key);
         return item && item.value !== undefined && String(item.status || '').trim() && String(item.reason || '').trim();
@@ -325,8 +333,9 @@ window.GameModules.characterProfile = {
   },
 
   mergeGeneratedParts(part1, part2, part3, attrs) {
-    const merged = { ...part1, ...part2, ...part3, initialMetrics: part1.feeling || null };
+    const merged = { ...part1, ...part2, ...part3, initialMetrics: this.sanitizeInitialMetrics(part1.feeling || null) };
     delete merged.feeling;
+    merged.forcePositions = part1.forcePositions || part1.force_positions || [];
     merged.roleCardFieldReasons = this.roleReasonsFromParts(merged);
     merged.rpgFieldReasons = this.rpgReasonsFromPart3(merged, attrs);
     return merged;
@@ -334,7 +343,7 @@ window.GameModules.characterProfile = {
 
   roleReasonsFromParts(profile = {}) {
     const factionText = (profile.factions || []).map((x) => `${x.faction}/${x.role}：${x.reason || ''}`).join('；');
-    const forceText = (profile.force_positions || []).map((x) => `${x.force}/${x.position}：${x.reason || ''}`).join('；');
+    const forceText = ((profile.forcePositions || profile.force_positions) || []).map((x) => `${x.force}/${x.position}：${x.reason || ''}`).join('；');
     return {
       姓名: `${profile.name || '该人物'}的姓名来自 Part1 固化身份字段。`,
       所属世界: profile.worldTag?.reason || `${profile.name || '该人物'}的所属世界来自 Part1 worldTag。`,
@@ -347,7 +356,7 @@ window.GameModules.characterProfile = {
       性格: profile.personality || '性格来自 Part1 personality。',
       人物说明: profile.detail || '人物说明来自 Part1 detail。',
       社群角色: factionText || '社群角色来自 Part1 factions。',
-      势力地位: forceText || '势力地位来自 Part1 force_positions。',
+      势力地位: forceText || '势力地位来自 Part1 forcePositions。'
     };
   },
 
@@ -517,7 +526,7 @@ window.GameModules.characterProfile = {
         `外貌：${profile.appearance || base.appearance || ''}`,
         `性格：${profile.personality || base.personality || ''}`,
         `社群：${(profile.factions || []).map((x) => `${x.faction}/${x.role || x.position || ''}`).join('、') || profile.faction || ''}`,
-        `势力：${(profile.force_positions || []).map((x) => `${x.force}/${x.position}`).join('、') || profile.rank || ''}`,
+        `势力：${((profile.forcePositions || profile.force_positions) || []).map((x) => `${x.force}/${x.position}`).join('、') || profile.rank || ''}`,
       ].join('\n').slice(0, 900),
       playerProfile: [
         player.playerBasic,
@@ -638,7 +647,7 @@ window.GameModules.characterProfile = {
       `成长潜力：${part1.growthPotential?.value || ''}`,
       `行动能力：${part1.actionAbility?.value || ''}`,
       `社群：${(part1.factions || []).map((x) => `${x.faction}/${x.role}`).join('、')}`,
-      `势力：${(part1.force_positions || []).map((x) => `${x.force}/${x.position}`).join('、')}`,
+      `势力：${((part1.forcePositions || part1.force_positions) || []).map((x) => `${x.force}/${x.position}`).join('、')}`,
       `职业：${part1.job || '无'}`,
     ].join('\n');
   },
@@ -650,7 +659,7 @@ window.GameModules.characterProfile = {
         nameHint,
         '必须返回根字段 worldTag（含 value 和 reason）、age（含 value 和 reason）。',
         '必须返回根字段 learningAbility、mentalStability、growthPotential、actionAbility（各含 value 和 reason）。',
-        '必须返回根字段 factions 和 force_positions（数组，每项含 reason）。',
+        '必须返回根字段 factions 和 forcePositions（数组，每项含 reason）。',
         '必须返回根字段 feeling，含 emotions（12项对象）和 playerFeelings（17项对象）。',
         'feeling 中每个字段必须包含 name、value（0-100整数）、status、reason 四个子字段。',
         'feeling 的 value 不得全部为 0，必须根据人物性格、处境和关系证据给出合理数值。',
@@ -749,6 +758,7 @@ window.GameModules.characterProfile = {
       job: confirmedJob,
       rank: String(forcePositions[0]?.position || profile.rank || '').slice(0, 30),
       factions,
+      forcePositions,
       force_positions: forcePositions,
       skills: skills.slice(0, 4).map((skill, index) => {
         const name = String(skill.name || `能力${index + 1}`).slice(0, 16);
@@ -781,7 +791,8 @@ window.GameModules.characterProfile = {
       rpgField: profile.rpgField || null,
       roleCardFieldReasons: this.roleCardFieldReasons(profile.roleCardFieldReasons, { ...base, ...profile }),
       items: this.carryItems(profile.items || base.items, '物品', { ...base, ...profile }),
-      wearing: this.wearingItems(profile.wearing || base.wearing, { ...base, ...profile }),
+      wearing: this.wearingObject(profile.wearing || base.wearing, { ...base, ...profile }),
+      wearingItems: this.wearingItems(profile.wearing || base.wearing, { ...base, ...profile }),
       worldValues: this.worldValues(profile.worldValues, attrs, base.name),
       worldAttributes: attrs,
       rpgFieldReasons: this.rpgFieldReasons(profile.rpgFieldReasons, attrs, { ...base, ...profile, factions, forcePositions }),
@@ -827,7 +838,7 @@ window.GameModules.characterProfile = {
         id: base.id, name: base.name, work: base.work, role: base.role, gender: base.gender,
         relationships: base.relationships, nameRule: base.nameRule, detail: base.detail,
         appearance: base.appearance, personality: base.personality, presetProfilePath: base.presetProfilePath,
-        factions: base.factions, force_positions: base.force_positions,
+        factions: base.factions, forcePositions: base.forcePositions || base.force_positions,
       },
       preset: { path: preset?.path || '', summary: preset?.summary || '' },
       player: {
@@ -875,7 +886,7 @@ window.GameModules.characterProfile = {
 
   forcePositions(profile, base = {}, store = null) {
     const social = window.GameModules.socialPosition;
-    const list = Array.isArray(profile.force_positions) ? profile.force_positions : [];
+    const list = Array.isArray((profile.forcePositions || profile.force_positions)) ? (profile.forcePositions || profile.force_positions) : [];
     const items = list.map((item) => {
       if (typeof item === 'string') {
         const [force, position] = item.split('/').map((x) => x.trim());
@@ -903,17 +914,54 @@ window.GameModules.characterProfile = {
     return list.map((item) => p.normalizeCarryItem(item, kind)).filter((item) => item.name && item.name !== '未命名物品').slice(0, 20);
   },
 
+  wearingSlotKeys() {
+    return ['head', 'neck', 'innerwearTop', 'top', 'outerwear', 'gloves', 'waist', 'innerwearBottom', 'bottom', 'socks', 'shoes', 'wrist'];
+  },
+
+  wearingSlotNames() {
+    return { head: '头部', neck: '颈部', innerwearTop: '内衣', top: '上衣', outerwear: '外套', gloves: '手套', waist: '腰部', innerwearBottom: '内裤', bottom: '下衣', socks: '袜子', shoes: '鞋子', wrist: '手腕' };
+  },
+
+  normalizeWearSlot(slot, item = {}, profile = {}) {
+    const source = item && typeof item === 'object' ? item : { name: item };
+    const names = this.wearingSlotNames();
+    const bodyPart = String(source.bodyPart || source.部位 || names[slot] || slot || '').slice(0, 16);
+    const name = String(source.name || source.名称 || '').slice(0, 32);
+    const description = String(source.description || source.desc || '').slice(0, 100);
+    const reason = String(source.reason || source.changeMode || (name ? this.inventoryReason({ ...source, name, slot }, '穿着', profile) : `${bodyPart || slot}当前没有穿戴物。`)).slice(0, 120);
+    return { bodyPart, name, description, reason };
+  },
+
+  wearingObject(value, profile = {}) {
+    const template = window.GameModules.characterProfileTemplateClass?.wearingObject?.() || {};
+    const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    const fromArray = Array.isArray(value) ? Object.fromEntries(value.map((item) => [item?.slot, item]).filter(([slot]) => slot)) : {};
+    const out = {};
+    this.wearingSlotKeys().forEach((slot) => {
+      out[slot] = this.normalizeWearSlot(slot, source[slot] || fromArray[slot] || template[slot], profile);
+    });
+    const custom = Array.isArray(source.slot) ? source.slot : [];
+    const arrayCustom = Array.isArray(value) ? value.filter((item) => item?.slot && !this.wearingSlotKeys().includes(item.slot)) : [];
+    out.slot = [...custom, ...arrayCustom].map((item) => {
+      const slot = String(item?.slot || '自定义').slice(0, 16);
+      return { slot, ...this.normalizeWearSlot(slot, item, profile) };
+    }).filter((item) => item.name).slice(0, 20);
+    return out;
+  },
+
   wearingAsArray(value) {
     if (Array.isArray(value)) return value;
     if (!value || typeof value !== 'object') {
       const text = String(value || '').trim();
       return text ? [{ slot: '穿着', name: text }] : [];
     }
-    return Object.entries(value).map(([slot, item]) => {
-      if (item && typeof item === 'object') return { ...item, slot: item.slot || slot, name: item.name || item.名称 || slot };
-      const name = String(item || '').trim();
-      return name ? { slot, name } : null;
-    }).filter(Boolean);
+    const fixed = this.wearingSlotKeys().map((slot) => {
+      const item = value[slot];
+      if (!item || typeof item !== 'object') return null;
+      return { ...item, slot: this.wearingSlotNames()[slot] || slot };
+    });
+    const custom = Array.isArray(value.slot) ? value.slot : [];
+    return [...fixed, ...custom].filter(Boolean);
   },
 
   wearingItemsLoose(value) {
@@ -1003,7 +1051,14 @@ window.GameModules.characterProfile = {
   hasRequiredInventoryReasons(profile) {
     const hasReason = (items) => Array.isArray(items) && items.length && items.every((item) => String(item?.reason || item?.changeMode || '').trim());
     const optionalReason = (items) => !Array.isArray(items) || !items.length || items.every((item) => String(item?.reason || item?.changeMode || '').trim());
-    return hasReason(profile?.factions) && hasReason(profile?.force_positions) && optionalReason(profile?.items) && optionalReason(profile?.wearing) && optionalReason(profile?.skills);
+    const wearingReason = (wearing) => {
+      if (Array.isArray(wearing)) return optionalReason(wearing);
+      if (!wearing || typeof wearing !== 'object') return true;
+      const fixedOk = this.wearingSlotKeys().every((slot) => String(wearing[slot]?.reason || '').trim());
+      const customOk = !Array.isArray(wearing.slot) || wearing.slot.every((item) => String(item?.reason || '').trim());
+      return fixedOk && customOk;
+    };
+    return hasReason(profile?.factions) && hasReason(profile?.forcePositions || profile?.force_positions) && optionalReason(profile?.items) && wearingReason(profile?.wearing) && optionalReason(profile?.wearingItems) && optionalReason(profile?.skills);
   },
 
   ensureInventoryReasons(profile) {
@@ -1011,12 +1066,26 @@ window.GameModules.characterProfile = {
       const reason = this.inventoryReason(item, kind, profile);
       return { ...item, reason, changeMode: item.changeMode && !this.abstractReason(item.changeMode) && item.changeMode.length < 24 ? item.changeMode : '角色卡初始固化' };
     }) : []);
+    const fillWearingObject = (wearing) => {
+      const obj = this.wearingObject(wearing, profile);
+      const fixed = Object.fromEntries(this.wearingSlotKeys().map((slot) => {
+        const item = obj[slot] || {};
+        const reason = item.name ? this.inventoryReason({ ...item, slot }, '穿着', profile) : (item.reason || `${item.bodyPart || slot}当前没有穿戴物。`);
+        return [slot, { ...item, reason }];
+      }));
+      fixed.slot = (Array.isArray(obj.slot) ? obj.slot : []).map((item) => ({ ...item, reason: this.inventoryReason(item, '穿着', profile) }));
+      return fixed;
+    };
+    const forcePositions = fill((profile.forcePositions || profile.force_positions), '势力地位');
+    const wearing = fillWearingObject(profile.wearing);
     const out = {
       ...profile,
       factions: fill(profile.factions, '社群角色'),
-      force_positions: fill(profile.force_positions, '势力地位'),
+      forcePositions,
+      force_positions: forcePositions,
       items: fill(profile.items, '物品'),
-      wearing: fill(profile.wearing, '穿着'),
+      wearing,
+      wearingItems: fill(profile.wearingItems || this.wearingAsArray(wearing), '穿着'),
       skills: fill(profile.skills, '技能'),
     };
     return out;

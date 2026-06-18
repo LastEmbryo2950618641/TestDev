@@ -124,7 +124,7 @@ window.GameModules = window.GameModules || {};
     createValues(character, seed, existing) {
       const values = baseCreateValues(character, seed, existing || {});
       values.items = values.items?.length ? values.items : (character.items || []);
-      values.wearing = values.wearing?.length ? values.wearing : (character.wearing || []);
+      values.wearing = values.wearing?.length ? values.wearing : (character.wearingItems || character.wearing || []);
       this.ensureInventoryFields(values);
       return values;
     },

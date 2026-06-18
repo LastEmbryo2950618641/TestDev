@@ -1,13 +1,8 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.characterProfileTemplateClass = {
-  clone(value) {
-    return JSON.parse(JSON.stringify(value));
-  },
-
-  valueReason(value, reason) {
-    return { value, reason };
-  },
+  clone(value) { return JSON.parse(JSON.stringify(value)); },
+  valueReason(value, reason) { return { value, reason }; },
 
   levelEffects() {
     return {
@@ -21,11 +16,11 @@ window.GameModules.characterProfileTemplateClass = {
     };
   },
 
-  metricItems(keys) {
-    return keys.map((key) => ({ key, value: 0, status: `${key}因为当前人物处境形成初始状态`, reason: `${key}源于当前人物经历和关系证据` }));
+  metricObject(names) {
+    return Object.fromEntries(Object.entries(names).map(([key, name]) => [key, { name, value: 0, status: `${name}因为当前人物处境形成初始状态`, reason: `${name}源于当前人物经历和关系证据` }]));
   },
 
-  part1(metrics) {
+  part1() {
     return {
       name: '角色姓名',
       worldTag: this.valueReason('所属世界', '所属世界来自人物资料、关系事件和世界观证据。'),
@@ -40,13 +35,16 @@ window.GameModules.characterProfileTemplateClass = {
       detail: '人物背景、生活处境和进入剧情的原因。',
       appearance: '外貌、体态、穿衣风格和可识别特征。',
       personality: '性格倾向、行为习惯和面对压力时的表现。',
-      feeling: { emotions: this.metricItems(metrics.emotionKeys), playerFeelings: this.metricItems(metrics.playerKeys) },
       factions: [{ faction: '所属社群', role: '成员身份', reason: '该社群角色由人物生活处境和关系证据确定。' }],
-      force_positions: [{ force: '所属势力', position: '地位身份', reason: '该势力地位由人物身份、国籍或组织关系确定。' }],
+      forcePositions: [{ force: '所属势力', position: '地位身份', reason: '该势力地位由人物身份、国籍或组织关系确定。' }],
       job: '',
       jobConfirmed: false,
       rank: '普通成员',
       control_experience: { 上线次数: 0, 习惯程度: '初次操控尚不熟悉' },
+      feeling: {
+        emotions: this.metricObject({ cold: '冷静', fear: '恐惧', worry: '担忧', joy: '高兴', tension: '紧张', anger: '愤怒', shame: '羞耻', sadness: '悲伤', curiosity: '好奇', numbness: '麻木', jealousy: '嫉妒', despair: '绝望' }),
+        playerFeelings: this.metricObject({ understanding: '了解', trust: '信任', resistance: '反抗', affection: '好感', friendship: '友情', familyLove: '亲情', romanticLove: '爱情', lust: '肉欲', awe: '畏惧', respect: '尊敬', admiration: '崇拜', dislike: '讨厌', dependence: '依赖', vigilance: '警惕', dominance: '支配欲', possessiveness: '占有欲', submission: '服从' }),
+      },
     };
   },
 
@@ -59,20 +57,29 @@ window.GameModules.characterProfileTemplateClass = {
   },
 
   part2() {
-    return {
-      name: '角色姓名',
-      skills: [this.learnedItem('基础能力')],
-      knowledge: [this.learnedItem('基础知识')],
-      professions: [this.professionItem('潜在职业')],
-    };
+    return { name: '角色姓名', skills: [this.learnedItem('基础能力')], knowledge: [this.learnedItem('基础知识')], professions: [this.professionItem('潜在职业')] };
   },
 
-  wearingItems() {
-    return [
-      { slot: '上衣', name: '日常上衣', description: '符合当前人物身份和场景的上衣。', reason: '上衣由当前生活场景和人物习惯决定。' },
-      { slot: '下衣', name: '日常下装', description: '符合当前人物身份和场景的下装。', reason: '下衣由当前生活场景和行动需要决定。' },
-      { slot: '鞋子', name: '日常鞋履', description: '适合当前行动环境的鞋履。', reason: '鞋履由出行方式和行动场景决定。' },
-    ];
+  wearSlot(bodyPart, name = '', description = '', reason = '当前场景没有穿戴该槽位物品。') {
+    return { bodyPart, name, description, reason };
+  },
+
+  wearingObject() {
+    return {
+      head: this.wearSlot('头部'),
+      neck: this.wearSlot('颈部'),
+      innerwearTop: this.wearSlot('胸部', '日常内衣', '符合当前人物身份和场景的内衣。', '内衣由日常生活和身体遮蔽需要决定。'),
+      top: this.wearSlot('躯干', '日常上衣', '符合当前人物身份和场景的上衣。', '上衣由当前生活场景和人物习惯决定。'),
+      outerwear: this.wearSlot('躯干(外)'),
+      gloves: this.wearSlot('手部'),
+      waist: this.wearSlot('腰部'),
+      innerwearBottom: this.wearSlot('腰臀', '日常内裤', '符合当前人物身份和场景的内裤。', '内裤由日常生活和身体遮蔽需要决定。'),
+      bottom: this.wearSlot('腿部', '日常下装', '符合当前人物身份和场景的下装。', '下衣由当前生活场景和行动需要决定。'),
+      socks: this.wearSlot('脚踝', '日常袜子', '适合当前鞋履和场景的袜子。', '袜子由出行方式和穿鞋需要决定。'),
+      shoes: this.wearSlot('脚部', '日常鞋履', '适合当前行动环境的鞋履。', '鞋履由出行方式和行动场景决定。'),
+      wrist: this.wearSlot('手腕'),
+      slot: [],
+    };
   },
 
   rpgField() {
@@ -85,15 +92,8 @@ window.GameModules.characterProfileTemplateClass = {
   },
 
   part3() {
-    return {
-      name: '角色姓名',
-      items: [{ name: '随身物品', description: '当前人物合理随身携带的物品。', quantity: 1, reason: '该物品由身份、场景和行动需要决定。' }],
-      wearing: this.wearingItems(),
-      rpgField: this.rpgField(),
-    };
+    return { name: '角色姓名', items: [{ name: '随身物品', description: '当前人物合理随身携带的物品。', quantity: 1, reason: '该物品由身份、场景和行动需要决定。' }], wearing: this.wearingObject(), rpgField: this.rpgField() };
   },
 
-  parts(metrics = window.GameModules.metrics || { emotionKeys: [], playerKeys: [] }) {
-    return { 1: this.clone(this.part1(metrics)), 2: this.clone(this.part2()), 3: this.clone(this.part3()) };
-  },
+  parts() { return { 1: this.clone(this.part1()), 2: this.clone(this.part2()), 3: this.clone(this.part3()) }; },
 };
