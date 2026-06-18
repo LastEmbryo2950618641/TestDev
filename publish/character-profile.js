@@ -397,12 +397,17 @@ window.GameModules.characterProfile = {
 
   applyLocalCsvFixes(partIndex, rows) {
     if (partIndex !== 3) return rows;
-    const counts = { skills: 0, knowledge: 0, professions: 0 };
+    const totals = { skills: 0, knowledge: 0, professions: 0 };
+    rows.forEach((row) => {
+      const type = this.csvParts(row)[0];
+      if (Object.prototype.hasOwnProperty.call(totals, type)) totals[type] += 1;
+    });
     return rows.filter((row) => {
       const parts = this.csvParts(row);
-      if (this.part3RowIssue(parts)) return true;
-      counts[parts[0]] += 1;
-      return counts[parts[0]] <= 10;
+      const type = parts[0];
+      if (!Object.prototype.hasOwnProperty.call(totals, type)) return true;
+      if (totals[type] <= 10) return true;
+      return !this.part3RowIssue(parts);
     });
   },
 
@@ -441,7 +446,6 @@ window.GameModules.characterProfile = {
         return;
       }
       counts[parts[0]] += 1;
-      if (counts[parts[0]] > 10) issues.push({ key: `row${index + 1}`, reason: `${parts[0]}超过10行`, badRow: row });
     });
     if (!counts.skills) issues.push({ key: 'skills', reason: '缺失至少1行skills' });
     if (!counts.knowledge) issues.push({ key: 'knowledge', reason: '缺失至少1行knowledge' });
