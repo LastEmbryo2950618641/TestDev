@@ -1,6 +1,6 @@
 # 世界观固化设定
 
-为 AI RPG 视觉小说生成世界《{世界}》的极简固化世界观。只返回一行紧凑合法 JSON，不要 Markdown、解释或换行。在生成数组时，遍历完最后一个元素后，立即停止添加逗号。记住：JSON不允许尾随逗号。
+为 AI RPG 视觉小说生成世界《{世界}》的极简固化世界观。只返回一行紧凑合法 JSON，不要 Markdown、解释或换行。禁止输出代码块。所有 key 和字符串必须使用英文双引号。数组最后一个元素后必须立刻写 `]`，对象最后一个字段后必须立刻写 `}`，绝对不要尾随逗号。
 
 ## 当前剧情上下文
 
@@ -18,9 +18,9 @@
 8. `calendar` 必须包含 `label`、`months`、`days`、`hours`、`units`；月份和时段只给少量代表项即可。
 9. `worldline` 必须包含 `timeRange`、`events`、`storyIndexes`、`factionMap`。
 10. `worldline.events` 最多 1 个事件；事件只写短字段，不要长篇剧情。
-11. `worldline.storyIndexes` 最多 3 个短字符串，禁止连续数字列表。
-12. `worldline.factionMap` 最多 2 个势力，key 使用 `faction_1`、`faction_2`。
-13. 只返回完整合法 JSON，整体控制在 1200 字符内。
+11. `worldline.storyIndexes` 最多 2 个短字符串，禁止连续数字列表。
+12. `worldline.factionMap` 只返回 1 个势力，key 固定使用 `faction_1`，不要返回 `faction_2`。
+13. 只返回完整合法 JSON，整体控制在 900 字符内。
 
 ## 最小 JSON 形状
 

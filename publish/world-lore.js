@@ -37,8 +37,18 @@ window.GameModules.worldLore = {
       if (!window.dzmm?.completions) return this.fallback(worldTag);
       const prompt = await this.prompt(worldTag, context);
       console.debug('[世界观] AI请求:', { worldTag, promptLength: prompt.length, model: 'nalang-turbo-0826'});
-      const text = await window.GameModules.jsonUtils.requestCompletion({ source: 'world-lore', model: 'nalang-turbo-0826', prompt, timeoutMs: 60000, maxAttempts: 2 });
-      return this.validate(this.parseOrRecover(text, worldTag), worldTag);
+      return await window.GameModules.jsonUtils.generateJsonWithRetry({
+        source: 'world-lore',
+        model: 'nalang-turbo-0826',
+        prompt,
+        timeoutMs: 60000,
+        maxAttempts: 2,
+        maxTokens: 1600,
+        max: 2,
+        parse: (text) => this.parse(text),
+        validate: (data) => this.validate(data, worldTag),
+        repairHint: '只返回一行完整合法 JSON；不要 Markdown；不要尾随逗号；数组最后一项后必须直接闭合。',
+      });
     } catch (err) {
       console.warn('世界观设定生成失败，使用兜底:', err.message);
       return this.fallback(worldTag);
