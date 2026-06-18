@@ -31,14 +31,24 @@ window.GameModules.aiRequest = {
   },
 
   outputTailLooksTruncated(text) {
-    const raw = String(text || '').trim().replace(/```$/g, '').trim();
+    const raw = String(text || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```$/g, '').trim();
     if (!raw) return false;
+    let inString = false;
+    let escaped = false;
+    let openBraces = 0;
+    let openBrackets = 0;
+    for (const char of raw) {
+      if (escaped) { escaped = false; continue; }
+      if (char === '\\') { escaped = inString; continue; }
+      if (char === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (char === '{') openBraces += 1;
+      if (char === '}') openBraces -= 1;
+      if (char === '[') openBrackets += 1;
+      if (char === ']') openBrackets -= 1;
+    }
     const tail = raw.slice(-80);
-    const openBraces = (raw.match(/\{/g) || []).length;
-    const closeBraces = (raw.match(/\}/g) || []).length;
-    const openBrackets = (raw.match(/\[/g) || []).length;
-    const closeBrackets = (raw.match(/\]/g) || []).length;
-    return openBraces > closeBraces || openBrackets > closeBrackets || /[:,{[]\s*$/.test(tail) || /"[^"\\]*(?:\\.[^"\\]*)*$/.test(tail);
+    return inString || openBraces > 0 || openBrackets > 0 || /[:,{[]\s*$/.test(tail);
   },
 
   outputLengthRisk(buffer, options = {}) {
