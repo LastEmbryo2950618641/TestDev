@@ -154,10 +154,20 @@ window.GameModules.predefinedRoleCardActions = {
 
   applySelectedRelationshipRoleCards() {
     const cards = this.selectedRelationRoleCards?.() || [];
-    const text = window.GameModules.predefinedRoleCards.relationshipText(cards, this.roleCardSetup.relationRoles || {});
-    if (text) {
-      this.playerProfile.relationships = text;
-      this.playerProfile.relationshipEntries = cards.map((card) => ({ relation: this.roleCardSetup.relationRoles?.[card.name] || card.role || '关系联系人', name: card.name, detail: card.detail || card.personality || '' }));
+    const existing = this.normalizeRelationshipEntries?.(this.playerProfile?.relationshipEntries, this.playerProfile?.relationships) || [];
+    const existingByName = new Map(existing.filter((entry) => entry.name).map((entry) => [entry.name, entry]));
+    const cardEntries = cards.map((card) => {
+      const old = existingByName.get(card.name) || {};
+      return {
+        relation: old.relation || this.roleCardSetup.relationRoles?.[card.name] || card.role || '关系联系人',
+        name: card.name,
+        detail: old.detail || card.detail || card.personality || '',
+      };
+    });
+    const merged = [...cardEntries, ...existing.filter((entry) => !cardEntries.some((item) => item.name === entry.name))];
+    if (merged.length) {
+      this.playerProfile.relationshipEntries = merged;
+      this.playerProfile.relationships = this.relationshipEntriesText?.(merged) || window.GameModules.predefinedRoleCards.relationshipText(cards, this.roleCardSetup.relationRoles || {});
     }
   },
 

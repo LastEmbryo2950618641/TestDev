@@ -100,6 +100,7 @@ Object.assign(window.GameModules.playerSetupActions, {
         parents: this.playerProfile.parents || example.parents || '',
         parentDeathCause: this.playerProfile.parentDeathCause || example.parentDeathCause || '',
         relationships: this.playerProfile.relationships || example.relationships || '',
+        relationshipEntries: this.playerProfile.relationshipEntries?.length ? this.playerProfile.relationshipEntries : example.relationshipEntries || [],
         notes: this.playerProfile.notes || example.notes || '',
       };
       this.playerProfile.relationshipEntries = this.normalizeRelationshipEntries(this.playerProfile.relationshipEntries, this.playerProfile.relationships);
