@@ -167,7 +167,7 @@ window.GameModules.characterProfile = {
       this.onProgress(store, loadingId, 'profile', 'done', '', { done: this.partProgressDone(1, part1), total: part1Total });
       store?.updateRoleCardLoading?.(loadingId, { name: part1.name || base.name, status: 'running' });
       const p1Summary = this.part1Summary(part1);
-      const namedBase = { ...base, name: base.name || part1.name };
+      const namedBase = { ...base, name: this.isConcreteName(base.name) ? base.name : (part1.name || base.name) };
       const part2Total = this.partProgressTotal(2, templates[2], attrs);
       this.onProgress(store, loadingId, 'feeling', 'running', '', { done: 0, total: part2Total });
       const part2 = await this.generatePart(2, 'character-profile-part2-feeling', { ...commonVars, part1Summary: p1Summary }, templates[2], namedBase, lore, attrs, store);
@@ -233,7 +233,7 @@ window.GameModules.characterProfile = {
       max: 2,
     });
     const repairedRaw = await this.repairCsvPartRows(partIndex, raw, format, base, lore, attrs, store, vars);
-    let normalized = this.sanitizePart(partIndex, repairedRaw, template);
+    let normalized = this.lockPartTargetName(partIndex, this.sanitizePart(partIndex, repairedRaw, template), base);
     normalized = await this.completeMissingPart(partIndex, normalized, template, format, base, lore, attrs, store);
     return this.validatePart(partIndex, normalized, base, lore, attrs, store, template);
   },
@@ -277,6 +277,12 @@ window.GameModules.characterProfile = {
       clean.initialMetrics = this.sanitizeInitialMetrics(clean.initialMetrics);
     }
     return clean;
+  },
+
+  lockPartTargetName(partIndex, data, base = {}) {
+    const name = String(base?.name || '').trim();
+    if (![2, 3, 4, 5].includes(partIndex) || !name || !data || typeof data !== 'object') return data;
+    return { ...data, name };
   },
 
   sanitizeInitialMetrics(value) {
@@ -427,18 +433,18 @@ window.GameModules.characterProfile = {
   },
 
   async completeMissingPart(partIndex, data, template, format, base, lore, attrs, store) {
-    let current = data;
+    let current = this.lockPartTargetName(partIndex, data, base);
     for (let i = 0; i < 2; i += 1) {
       let missing = this.missingPartFields(partIndex, current, template, base, attrs);
       if (!missing.length) return current;
       if (partIndex === 2 && missing.includes('feeling')) {
         const feeling = await this.generatePartFeeling(current, base, lore, attrs, format, store, 'all');
-        current = this.sanitizePart(partIndex, { ...current, feeling }, template);
+        current = this.lockPartTargetName(partIndex, this.sanitizePart(partIndex, { ...current, feeling }, template), base);
         missing = this.missingPartFields(partIndex, current, template, base, attrs);
         if (!missing.length) return current;
       }
       const patch = await this.generateMissingPartFields(partIndex, current, template, missing, format, base, attrs);
-      current = this.sanitizePart(partIndex, this.mergeMissingPatch(partIndex, current, patch), template);
+      current = this.lockPartTargetName(partIndex, this.sanitizePart(partIndex, this.mergeMissingPatch(partIndex, current, patch), template), base);
     }
     const stillMissing = this.missingPartFields(partIndex, current, template, base, attrs);
     if (stillMissing.length) throw new Error(`Part${partIndex} 缺少字段：${stillMissing.join('、')}`);
