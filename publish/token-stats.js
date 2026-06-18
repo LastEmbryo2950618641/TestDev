@@ -5,7 +5,7 @@ window.GameModules.tokenStats = {
   seq: 0,
   maxRecords: 120,
   modelPrices: {},
-  defaultState() { return { open: false, query: '', category: '', selectedId: '' }; },
+  defaultState() { return { open: false, query: '', category: '', selectedId: '', selectedTab: 'prompt' }; },
   priceValue(price) {
     const match = String(price ?? '').match(/[\d.]+/);
     const value = match ? Number(match[0]) : Number(price);
@@ -26,7 +26,18 @@ window.GameModules.tokenStats = {
   templateIdForSource(promptId) {
     const id = String(promptId || '');
     if (/^character-profile-(emotions|playerFeelings)(?:-|$)/.test(id)) return 'character-profile-metric-group';
+    if (/^character-profile-part4-csv-fix$/.test(id)) return 'character-profile-part4-inventory-wearing-rpg';
     return id;
+  },
+  titleForSource(promptId, item) {
+    const id = String(promptId || '');
+    const names = {
+      'character-profile-part2-csv-fix': '角色卡 Part2 情感数值 CSV 修复',
+      'character-profile-part3-csv-fix': '角色卡 Part3 能力职业 CSV 修复',
+      'character-profile-part4-csv-fix': '角色卡 Part4 物品穿着 CSV 修复',
+      'character-profile-part5-csv-fix': '角色卡 Part5 RPG属性 CSV 修复',
+    };
+    return names[id] || item?.title || id;
   },
   record(promptId, text, meta = {}) {
     if (!promptId) return text;
@@ -48,16 +59,21 @@ window.GameModules.tokenStats = {
       model,
       price: this.modelPrices?.[model] || 1,
       credits: this.estimateCredits(tokens, model),
-      title: item?.title || promptId,
+      title: this.titleForSource(promptId, item),
       category: item?.category || '未分类',
       summary: item?.summary || '',
       file: item?.file || '',
+      responseText: String(meta.responseText || ''),
       createdAt,
       updatedAt: new Date(createdAt).toLocaleString('zh-CN'),
     };
     this.records.unshift(record);
     if (this.records.length > this.maxRecords) this.records.length = this.maxRecords;
-    return text;
+    return record.id;
+  },
+  recordResponse(recordId, responseText) {
+    const record = this.item(recordId);
+    if (record) record.responseText = String(responseText || '');
   },
   item(recordId) { return this.records.find((item) => item.id === recordId) || null; },
   categories() { return [...new Set(window.GameModules.promptTemplates.list().map((item) => item.category))]; },
@@ -92,9 +108,11 @@ window.GameModules.tokenStatsActions = {
     return window.GameModules.tokenStats.list({ query: this.tokenStatsState.query, category: this.tokenStatsState.category });
   },
   tokenPromptCategories() { return window.GameModules.tokenStats.categories(); },
-  openTokenPromptDetail(id) { this.initTokenStatsApp(); this.tokenStatsState.selectedId = id; },
+  openTokenPromptDetail(id) { this.initTokenStatsApp(); this.tokenStatsState.selectedId = id; this.tokenStatsState.selectedTab = 'prompt'; },
   closeTokenPromptDetail() { if (this.tokenStatsState) this.tokenStatsState.selectedId = ''; },
   currentTokenPromptRecord() { return window.GameModules.tokenStats.item(this.tokenStatsState?.selectedId); },
   tokenPromptText(id) { return window.GameModules.tokenStats.item(id)?.text || '暂无请求记录。先触发对应 AI 生成流程后，这里会显示变量已替换的完整提示词。'; },
+  tokenResponseText(id) { return window.GameModules.tokenStats.item(id)?.responseText || '暂无 AI 返回值。请求完成后这里会显示原始返回内容。'; },
+  tokenPromptDetailText() { const id = this.tokenStatsState?.selectedId; return this.tokenStatsState?.selectedTab === 'response' ? this.tokenResponseText(id) : this.tokenPromptText(id); },
   tokenPromptCostText(id) { const stat = window.GameModules.tokenStats.item(id); return stat ? `输入${stat.inputTokens || stat.tokens} + 预留输出${stat.outputTokens || 0} token｜模型${stat.model || '未知'}×${stat.price || 1}｜约 ${stat.credits} 积分` : '未生成'; },
 };

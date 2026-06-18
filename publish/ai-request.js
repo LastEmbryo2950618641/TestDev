@@ -129,13 +129,13 @@ window.GameModules.aiRequest = {
     const model = options.model || 'nalang-turbo-0826';
     const maxTokens = undefined;
     const enqueueAt = Date.now();
-    window.GameModules.tokenStats?.record?.(source, messages.map((msg) => String(msg?.content || '')).join('\n'), { model, maxTokens });
+    const tokenRecordId = window.GameModules.tokenStats?.record?.(source, messages.map((msg) => String(msg?.content || '')).join('\n'), { model, maxTokens });
     const sourceCount = this.countSource(source);
     this.logicalCount += 1;
     this.queued += 1;
     this.log('入队', { id, source, sourceCount, logicalNo: this.logicalCount, model, maxTokens: maxTokens || 'sdk-default', queued: this.queued, active: this.active, maxConcurrent: this.maxConcurrent, messageLengths: this.lengths(messages) });
     return new Promise((resolve, reject) => {
-      this.pending.push({ options: { ...options, id, source, model, maxTokens, messages, enqueueAt }, resolve, reject });
+      this.pending.push({ options: { ...options, id, source, model, maxTokens, messages, enqueueAt, tokenRecordId }, resolve, reject });
       this.pump();
     });
   },
@@ -225,6 +225,7 @@ window.GameModules.aiRequest = {
     const risk = this.outputLengthRisk(buffer, options);
     this.log('完成', { id: options.id, source: options.source, chunkCount, length: risk.length, outputThreshold: risk.threshold, overThreshold: risk.overThreshold, tailLooksTruncated: risk.tailLooksTruncated, possibleTruncated: risk.overThreshold || risk.tailLooksTruncated, doneSeen, durationMs: Date.now() - startAt });
     this.logRawResponse(options, buffer, { chunkCount, doneSeen, durationMs: Date.now() - startAt });
+    window.GameModules.tokenStats?.recordResponse?.(options.tokenRecordId, buffer);
     if (risk.overThreshold || risk.tailLooksTruncated) {
       console.debug('[AI请求] 返回长度可能被截断:', { id: options.id, source: options.source, length: risk.length, threshold: risk.threshold, overThreshold: risk.overThreshold, tailLooksTruncated: risk.tailLooksTruncated, doneSeen, tailPreview: buffer.slice(-180) });
     }

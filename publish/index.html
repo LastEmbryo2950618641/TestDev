@@ -1039,7 +1039,8 @@
   <section class="prompt-app-modal-backdrop" x-show="$store.game.tokenStatsState?.open && $store.game.tokenStatsState?.selectedId" @click.self="$store.game.closeTokenPromptDetail()" @keydown.escape.window="$store.game.closeTokenPromptDetail()" x-cloak>
     <article class="prompt-app-modal dev-section" data-section-title="完整提示词弹窗" role="dialog" aria-modal="true">
       <header><div><p class="eyebrow">FINAL PROMPT</p><h3 x-text="$store.game.currentTokenPromptRecord()?.title || '完整提示词'"></h3><small x-text="$store.game.currentTokenPromptRecord() ? `${$store.game.tokenPromptCostText($store.game.tokenStatsState?.selectedId)}｜${$store.game.currentTokenPromptRecord().updatedAt}` : '未生成'"></small></div><button class="small-btn" type="button" @click="$store.game.closeTokenPromptDetail()">关闭</button></header>
-      <pre class="prompt-markdown" x-text="$store.game.tokenPromptText($store.game.tokenStatsState?.selectedId)"></pre>
+      <div class="prompt-tabs"><button :class="{ active: $store.game.tokenStatsState?.selectedTab !== 'response' }" @click="$store.game.tokenStatsState.selectedTab = 'prompt'">完整提示词</button><button :class="{ active: $store.game.tokenStatsState?.selectedTab === 'response' }" @click="$store.game.tokenStatsState.selectedTab = 'response'">AI返回值</button></div>
+      <pre class="prompt-markdown" x-text="$store.game.tokenPromptDetailText()"></pre>
     </article>
   </section>
 
