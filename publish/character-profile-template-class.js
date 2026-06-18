@@ -99,8 +99,12 @@ window.GameModules.characterProfileTemplateClass = {
   },
 
   part4() {
-    return { name: '角色姓名', items: [{ name: '随身物品', description: '当前人物合理随身携带的物品。', quantity: 1, reason: '该物品由身份、场景和行动需要决定。' }], wearing: this.wearingObject(), rpgField: this.rpgField() };
+    return { name: '角色姓名', items: [{ name: '随身物品', description: '当前人物合理随身携带的物品。', quantity: 1, reason: '该物品由身份、场景和行动需要决定。' }], wearing: this.wearingObject() };
   },
 
-  parts() { return { 1: this.clone(this.part1()), 2: this.clone(this.part2()), 3: this.clone(this.part3()), 4: this.clone(this.part4()) }; },
+  part5() {
+    return { name: '角色姓名', rpgField: this.rpgField() };
+  },
+
+  parts() { return { 1: this.clone(this.part1()), 2: this.clone(this.part2()), 3: this.clone(this.part3()), 4: this.clone(this.part4()), 5: this.clone(this.part5()) }; },
 };

@@ -110,9 +110,12 @@ window.GameModules.characterProfile = {
       this.onProgress(store, loadingId, 'abilities', 'done');
       const rpgKeys = this.rpgFieldReasonKeys(attrs);
       this.onProgress(store, loadingId, 'inventory', 'running');
-      const part4 = await this.generatePart(4, 'character-profile-part4-inventory-wearing-rpg', { ...commonVars, part1Summary: p1Summary, RPG字段列表: rpgKeys.join('、'), RPG字段列表JSON: rpgKeys.map((key) => `"${key}"`).join(', ') }, templates[4], namedBase, lore, attrs, store);
+      const part4 = await this.generatePart(4, 'character-profile-part4-inventory-wearing-rpg', { ...commonVars, part1Summary: p1Summary }, templates[4], namedBase, lore, attrs, store);
+      const p3Summary = this.part3Summary(part3);
+      const p4Summary = this.part4Summary(part4);
+      const part5 = await this.generatePart(5, 'character-profile-part5-rpg-field', { ...commonVars, part1Summary: p1Summary, part3Summary: p3Summary, part4Summary: p4Summary, 世界字段: sections.worldFields(attrs), RPG字段列表: rpgKeys.join('、'), RPG字段列表JSON: rpgKeys.map((key) => `"${key}"`).join(', ') }, templates[5], namedBase, lore, attrs, store);
       this.onProgress(store, loadingId, 'inventory', 'done');
-      const merged = this.mergeGeneratedParts(part1, part2, part3, part4, attrs);
+      const merged = this.mergeGeneratedParts(part1, part2, part3, { ...part4, ...part5 }, attrs);
       const profile = this.validate(merged, base, lore, attrs, store, { skipInitialMetrics: false });
       return this.withSignature(profile, signature);
     } catch (err) {
@@ -125,7 +128,7 @@ window.GameModules.characterProfile = {
   async loadPartTemplates() {
     if (this.partTemplateCache) return this.partTemplateCache;
     const templates = window.GameModules.characterProfileTemplateClass?.parts?.();
-    if (!templates?.[1] || !templates?.[2] || !templates?.[3] || !templates?.[4]) throw new Error('角色卡模板类未加载，无法生成四段角色卡。');
+    if (!templates?.[1] || !templates?.[2] || !templates?.[3] || !templates?.[4] || !templates?.[5]) throw new Error('角色卡模板类未加载，无法生成五段角色卡。');
     this.partTemplateCache = templates;
     return templates;
   },
@@ -154,7 +157,8 @@ window.GameModules.characterProfile = {
       1: ['name', 'worldTag', 'age', 'gender', 'factions', 'forcePositions'],
       2: ['name', 'value', 'status', 'reason', '冷静', '绝望', '了解', '服从'],
       3: ['type', 'name', 'level', 'reason', 'requiredIntrinsicBase', 'requiredKnowledge', 'requiredSkills'],
-      4: ['name', 'items', 'wearing', 'rpgField', 'head', 'top', 'bottom', 'shoes', 'slot'],
+      4: ['type', 'slot', 'bodyPart', 'name', 'description', 'quantity', 'reason', 'wearing', 'item'],
+      5: ['name', 'rpgField', 'level', 'intrinsicBase', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'derived'],
     };
     if (!fields) return byPart[partIndex] || [];
     const nested = [];
@@ -165,7 +169,7 @@ window.GameModules.characterProfile = {
   },
 
   partPromptWithTemplate(prompt, template, partIndex) {
-    if ([2, 3].includes(partIndex)) return prompt;
+    if ([2, 3, 4].includes(partIndex)) return prompt;
     return [
       prompt,
       '',
@@ -264,7 +268,7 @@ window.GameModules.characterProfile = {
     if (partIndex === 3 && key === 'professions') return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', 'requiredSkills', 'requiredKnowledge', 'requiredIntrinsicBase', 'reason'], true, (item) => this.learnedItemComplete(item) && ['requiredSkills', 'requiredKnowledge', 'requiredIntrinsicBase'].every((field) => Array.isArray(item[field])));
     if (partIndex === 4 && key === 'items') return this.arrayItemsComplete(value, ['name', 'description', 'quantity', 'reason'], true, (item) => Number.isInteger(Number(item.quantity)) && Number(item.quantity) >= 1);
     if (partIndex === 4 && key === 'wearing') return this.wearingObjectComplete(value);
-    if (partIndex === 4 && key === 'rpgField') return this.rpgFieldComplete(value);
+    if (partIndex === 5 && key === 'rpgField') return this.rpgFieldComplete(value);
     if (Array.isArray(template)) return Array.isArray(value);
     if (template && typeof template === 'object') return value && typeof value === 'object';
     return typeof value === typeof template || value !== undefined;
@@ -459,7 +463,7 @@ window.GameModules.characterProfile = {
       world_tag: profile.worldTag?.reason,
       control_experience: profile.control_experience?.习惯程度,
     };
-    return Object.fromEntries(this.rpgFieldReasonKeys(attrs).map((key) => [key, String(direct[key] || fallback[key] || `${profile.name || '该人物'}的${key}来自 Part1/Part4 固化资料。`).slice(0, 120)]));
+    return Object.fromEntries(this.rpgFieldReasonKeys(attrs).map((key) => [key, String(direct[key] || fallback[key] || `${profile.name || '该人物'}的${key}来自 Part1/Part5 固化资料。`).slice(0, 120)]));
   },
 
   parse(text) {
@@ -469,6 +473,7 @@ window.GameModules.characterProfile = {
   parsePartOutput(partIndex, text, base = {}) {
     if (partIndex === 2) return this.parseCsvFeelingPart(text, base.name);
     if (partIndex === 3) return this.parseCsvAbilitiesPart(text, base.name);
+    if (partIndex === 4) return this.parseCsvInventoryPart(text, base.name);
     return this.parse(text);
   },
 
@@ -503,6 +508,34 @@ window.GameModules.characterProfile = {
     if (!result.skills.length) throw new Error('Part3 CSV 缺少 skills 行');
     if (!result.knowledge.length) throw new Error('Part3 CSV 缺少 knowledge 行');
     return result;
+  },
+
+  parseCsvInventoryPart(text, name = '') {
+    const raw = String(text || '').replace(/```(?:csv|txt|json)?|```/g, '').trim();
+    const rows = raw.split(/\n+/).map((row) => row.trim()).filter(Boolean);
+    const dataRows = rows.filter((row) => !row.toLowerCase().startsWith('type,slot,bodypart,'));
+    const wearing = this.emptyWearingObject();
+    const result = { name, items: [], wearing };
+    dataRows.forEach((row) => {
+      const parts = row.split(',').map((part) => part.trim());
+      if (parts.length < 7) return;
+      const [type, slot, bodyPart, itemName, description, quantity, reason] = parts;
+      if (type === 'item' && itemName && itemName !== '--') {
+        result.items.push({ name: itemName, description: this.csvCell(description), quantity: Math.max(1, Number(quantity) || 1), reason: this.csvCell(reason) });
+      }
+      if (type === 'wearing' && wearing[slot]) {
+        wearing[slot] = { bodyPart: this.csvCell(bodyPart) || wearing[slot].bodyPart, name: this.csvCell(itemName), description: this.csvCell(description), reason: this.csvCell(reason) };
+      }
+      if (type === 'slot' && itemName && itemName !== '--') {
+        wearing.slot.push({ slot: this.csvCell(slot), bodyPart: this.csvCell(bodyPart), name: itemName, description: this.csvCell(description), reason: this.csvCell(reason) });
+      }
+    });
+    return result;
+  },
+
+  emptyWearingObject() {
+    const bodyParts = { head: '头部', neck: '颈部', innerwearTop: '胸部', top: '躯干', outerwear: '躯干外', gloves: '手部', waist: '腰部', innerwearBottom: '腰臀', bottom: '腿部', socks: '脚踝', shoes: '脚部', wrist: '手腕' };
+    return { ...Object.fromEntries(Object.entries(bodyParts).map(([key, bodyPart]) => [key, { bodyPart, name: '', description: '', reason: '当前场景未穿戴该槽位物品。' }])), slot: [] };
   },
 
   csvCell(value) {
@@ -794,6 +827,17 @@ window.GameModules.characterProfile = {
     ].join('\n');
   },
 
+  part3Summary(part3 = {}) {
+    const names = (items) => (items || []).map((item) => `${item.name || ''}lv${item.level || ''}`).filter(Boolean).join('、') || '无';
+    return [`技能：${names(part3.skills)}`, `知识：${names(part3.knowledge)}`, `职业：${names(part3.professions)}`].join('\n');
+  },
+
+  part4Summary(part4 = {}) {
+    const items = (part4.items || []).map((item) => item.name).filter(Boolean).slice(0, 6).join('、') || '无';
+    const wearing = Object.entries(part4.wearing || {}).filter(([key, item]) => key !== 'slot' && item?.name).map(([key, item]) => `${key}:${item.name}`).join('、') || '无';
+    return [`物品：${items}`, `穿着：${wearing}`].join('\n');
+  },
+
   partRepairHint(partIndex, base, attrs = null) {
     const nameHint = `目标人物只能是：${base.name}。name 必须逐字等于"${base.name}"，不要同音改字。`;
     if (partIndex === 1) {
@@ -824,13 +868,20 @@ window.GameModules.characterProfile = {
         '不存在或不适用的字段值填 --；依赖多项用竖线 | 分隔；requiredIntrinsicBase 只能用 strength/agility/constitution/intelligence/perception/willpower/charisma。',
       ].join('\n');
     }
+    if (partIndex === 4) {
+      return [
+        nameHint,
+        '必须只返回 CSV，不要返回 JSON。',
+        '第一行必须是 type,slot,bodyPart,name,description,quantity,reason。',
+        'type 只能是 item、wearing、slot；wearing 必须包含 12 个固定槽位。',
+        '每行必须恰好 7 列；不存在或不适用字段填 --；单元格内不要使用英文逗号。',
+      ].join('\n');
+    }
     return [
       nameHint,
       '必须返回根字段 rpgField，含 level、intrinsicBase（7项，每项含 value/description/reason）、derived（攻击力/防御力）。',
+      '顶层只能包含 name 和 rpgField，不要返回 items、wearing 或 rpgFieldReasons。',
       'intrinsicBase 每项的 description 必须根据该属性含义和数值段描写对应表现。',
-      '必须返回根字段 wearing（对象，含 head/neck/innerwearTop/top/outerwear/gloves/waist/innerwearBottom/bottom/socks/shoes/wrist 共12个固定槽位和 slot 数组）。',
-      'wearing 每项必须包含 bodyPart、name、description、reason；未穿戴时 name/description 填空字符串、reason 写明原因。',
-      'items 每项必须包含 name、description、quantity、reason。',
     ].join('\n');
   },
 
@@ -857,8 +908,11 @@ window.GameModules.characterProfile = {
       if (!Array.isArray(raw.knowledge) || !raw.knowledge.length) throw new Error('Part3 缺少 knowledge');
       return raw;
     }
-    if (!this.rpgFieldComplete(raw.rpgField)) throw new Error('Part4 缺少 rpgField 完整结构');
-    if (!this.wearingObjectComplete(raw.wearing)) throw new Error('Part4 缺少 wearing 完整结构');
+    if (partIndex === 4) {
+      if (!this.wearingObjectComplete(raw.wearing)) throw new Error('Part4 缺少 wearing 完整结构');
+      return raw;
+    }
+    if (!this.rpgFieldComplete(raw.rpgField)) throw new Error('Part5 缺少 rpgField 完整结构');
     return raw;
   },
 
