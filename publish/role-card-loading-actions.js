@@ -5,6 +5,7 @@ window.GameModules.roleCardLoadingActions = {
     const now = Date.now();
     const normalized = cards.map((card, index) => this.normalizeRoleCardLoadingCard(card, index, now));
     this.roleCardLoadingState = { open: true, expanded: true, cards: normalized, startedAt: now };
+    this.roleCardLoadingRetryQueue = {};
     this.startLoadingTimer?.();
   },
 
@@ -18,7 +19,9 @@ window.GameModules.roleCardLoadingActions = {
       expanded: true,
       startedAt: 0,
       finishedAt: 0,
-      steps: steps.map((step) => ({ done: 0, total: step.total || 1, startedAt: 0, finishedAt: 0, ...step })),
+      source: card.source || null,
+      context: card.context || '',
+      steps: steps.map((step) => ({ done: 0, total: step.total || 1, startedAt: 0, finishedAt: 0, retrying: false, ...step })),
     };
   },
 
@@ -72,6 +75,7 @@ window.GameModules.roleCardLoadingActions = {
           done,
           startedAt: step.startedAt || (status === 'running' ? now : 0),
           finishedAt: ['done', 'error'].includes(status) ? now : step.finishedAt,
+          retrying: status === 'running' ? false : step.retrying,
         };
       });
       const cardStartedAt = card.startedAt || (status === 'running' ? now : 0);
@@ -110,6 +114,71 @@ window.GameModules.roleCardLoadingActions = {
     const failed = [...steps].reverse().find((step) => step.status === 'running') || steps.find((step) => step.status !== 'done') || steps[0];
     this.updateRoleCardLoading(targetId, { status: 'error', finishedAt: Date.now() });
     this.updateRoleCardLoadingStep(targetId, failed?.key || 'profile', 'error', message);
+  },
+
+  roleCardStepCanRetry(card = {}, step = {}) {
+    return ['profile', 'feeling', 'abilities', 'inventory', 'rpgField', 'state'].includes(step.key)
+      && card.status !== 'running'
+      && step.status !== 'running'
+      && !step.retrying;
+  },
+
+  async retryRoleCardLoadingStep(cardId, stepKey) {
+    const targetId = this.roleCardLoadingFindId(cardId);
+    const card = this.roleCardLoadingCard(targetId);
+    if (!card || this.roleCardLoadingRetryQueue?.[targetId]) return;
+    const step = (card.steps || []).find((item) => item.key === stepKey);
+    if (!this.roleCardStepCanRetry(card, step)) return;
+    const source = card.source || this.roleCardRetrySource(targetId);
+    if (!source) {
+      this.updateRoleCardLoadingStep(targetId, stepKey, 'error', '没有可重试的角色来源');
+      return;
+    }
+    this.roleCardLoadingRetryQueue = { ...(this.roleCardLoadingRetryQueue || {}), [targetId]: true };
+    this.markRoleCardStepRetrying(targetId, stepKey);
+    try {
+      const retrySource = { ...source, forceRoleCardRegenerate: true };
+      if (card.type === '玩家卡' || source.id === 'player-self') await this.ensurePlayerRpgState?.(true, true);
+      else await this.ensureRpgForCharacter?.(retrySource, card.context || this.entryCurrentAction || this.sceneTitle || '', { loadMetrics: source.id === this.character?.id });
+    } catch (err) {
+      console.warn('[角色卡] 手动重试失败:', err.message, err.stack);
+      this.updateRoleCardLoadingStep(targetId, stepKey, 'error', err.message || '重试失败');
+      this.updateRoleCardLoading(targetId, { status: 'error', finishedAt: Date.now() });
+    } finally {
+      const { [targetId]: _done, ...rest } = this.roleCardLoadingRetryQueue || {};
+      this.roleCardLoadingRetryQueue = rest;
+      this.clearRoleCardStepRetrying(targetId, stepKey);
+    }
+  },
+
+  markRoleCardStepRetrying(id, stepKey) {
+    const now = Date.now();
+    this.roleCardLoadingState.cards = (this.roleCardLoadingState.cards || []).map((card) => {
+      if (card.id !== id) return card;
+      return {
+        ...card,
+        status: 'running',
+        finishedAt: 0,
+        expanded: true,
+        startedAt: card.startedAt || now,
+        steps: (card.steps || []).map((step) => step.key === stepKey ? { ...step, status: 'running', done: 0, retrying: true, startedAt: now, finishedAt: 0 } : step),
+      };
+    });
+  },
+
+  clearRoleCardStepRetrying(id, stepKey) {
+    this.roleCardLoadingState.cards = (this.roleCardLoadingState.cards || []).map((card) => {
+      if (card.id !== id) return card;
+      return { ...card, steps: (card.steps || []).map((step) => step.key === stepKey ? { ...step, retrying: false } : step) };
+    });
+  },
+
+  roleCardRetrySource(id) {
+    if (id === 'player-self') return this.playerCharacterBase?.();
+    if (this.character?.id === id) return this.character;
+    return (this.characters || []).find((item) => item.id === id || item.name === id)
+      || (this.wechatUsers || []).find((item) => item.id === id || item.name === id)
+      || null;
   },
 
   roleCardLoadingCard(id) {

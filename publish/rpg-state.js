@@ -56,7 +56,7 @@ window.GameModules.rpgState = {
       const profileTool = window.GameModules.characterProfile;
       const oldNameOk = profileTool?.isConcreteName?.(oldProfile.name) !== false;
       const newNameOk = profileTool?.isConcreteName?.(character.name) !== false;
-      if (oldNameOk && newNameOk && profileTool?.isReusableRoleCard?.(oldProfile, character.roleCardInputSignature)) return false;
+      if (!character.forceRoleCardRegenerate && oldNameOk && newNameOk && profileTool?.isReusableRoleCard?.(oldProfile, character.roleCardInputSignature)) return false;
       state.profile = { ...oldProfile, ...character, roleCard: true };
       state.note = state.profile.detail || state.profile.personality || state.note || '';
       const metricsChanged = sameRoleCard

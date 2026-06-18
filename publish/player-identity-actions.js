@@ -90,7 +90,7 @@ window.GameModules.playerIdentityActions = {
     if (!query) return;
     this.realWorldMemoryArchiveResults = await window.GameModules.characterMemory.queryArchive('player-self', query);
   },
-  async ensurePlayerRpgState(refresh = false) {
+  async ensurePlayerRpgState(refresh = false, forceRoleCardRegenerate = false) {
     if (!window.GameModules.sqliteSave.db) return this.playerIdentityState();
     const existing = this.playerIdentityState();
     if (!refresh && existing) {
@@ -118,8 +118,8 @@ window.GameModules.playerIdentityActions = {
       if (predefined) return predefined;
     }
     try {
-      const base = this.playerCharacterBase();
-      this.startRoleCardLoadingBatch?.([{ id: 'player-self', name: base.name || this.playerName || '玩家', type: '玩家卡' }]);
+      const base = { ...this.playerCharacterBase(), forceRoleCardRegenerate };
+      this.startRoleCardLoadingBatch?.([{ id: 'player-self', name: base.name || this.playerName || '玩家', type: '玩家卡', source: base, context: this.playerSetupSummary?.() || '玩家本人资料' }]);
       character = await window.GameModules.characterProfile.ensure(base, this, this.playerSetupSummary?.() || '玩家本人资料');
     } catch (err) {
       console.warn('[玩家身份] 个人资料生成失败，拒绝使用本地原因兜底:', err.code, err.message, err.stack);

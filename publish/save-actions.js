@@ -103,12 +103,12 @@ window.GameModules.saveActions = {
   async ensureRpgFromResults(result) {
     const entries = [this.character, ...(result.appearedCharacters || [])];
     const unique = [...new Map(entries.filter(Boolean).map((entry) => [entry.id || entry.name, entry])).values()];
+    const context = `${this.sceneTitle} ${this.quest} ${result.narration || ''}`;
     this.startRoleCardLoadingBatch?.(unique.map((entry) => {
       const current = entry.id === this.character.id;
       const player = current && (entry.id === 'player-self' || entry.isPlayer || this.playerIdentityState?.()?.id === entry.id);
-      return { id: entry.id || entry.name, name: entry.name || '发现新角色', type: player ? '玩家卡' : '角色卡' };
+      return { id: entry.id || entry.name, name: entry.name || '发现新角色', type: player ? '玩家卡' : '角色卡', source: entry, context };
     }));
-    const context = `${this.sceneTitle} ${this.quest} ${result.narration || ''}`;
     await Promise.all(unique.map((entry) => this.ensureRpgForCharacter(entry, context, { loadMetrics: entry.id === this.character.id })));
   },
   findKnownCharacter(name) {

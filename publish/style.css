@@ -306,9 +306,11 @@ button:not(:disabled):active {
 .role-card-loading-card.error .role-card-card-head b,
 .role-card-step-list li.error b { color: #ff7d7d; }
 .role-card-step-list { margin: 0; padding: 0 0 0 24px; display: grid; gap: 5px; color: #cdd7ef; }
-.role-card-step-list li { padding: 7px 9px; border: 1px solid rgba(255, 255, 255, .1); border-radius: 10px; background: rgba(255, 255, 255, .045); }
+.role-card-step-list li { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 8px; padding: 7px 9px; border: 1px solid rgba(255, 255, 255, .1); border-radius: 10px; background: rgba(255, 255, 255, .045); }
 .role-card-step-list li::marker { color: #74f6ff; font-weight: 900; }
 .role-card-step-list li span { margin-right: 8px; }
+.role-card-step-retry { min-width: 48px; height: 28px; border: 1px solid rgba(116, 246, 255, .45); border-radius: 999px; background: rgba(116, 246, 255, .12); color: #dffcff; font-size: 12px; font-weight: 900; }
+.role-card-step-retry:active { transform: translateY(1px); }
 
 .spinner {
   width: 42px;

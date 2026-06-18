@@ -8,7 +8,7 @@ window.GameModules.characterProfile = {
     const source = await window.GameModules.characterProfileSource.resolve(raw, store);
     const base = this.normalize(source.raw, store, source.preset);
     const signature = this.inputSignature(base, context, store, source.preset);
-    const existing = this.findSavedRoleCard(base, signature);
+    const existing = base.forceRoleCardRegenerate ? null : this.findSavedRoleCard(base, signature);
     if (existing) {
       const profile = { ...existing.profile, id: base.id, work: existing.profile?.work || base.work };
       store?.finishRoleCardLoading?.(base.id, profile);
@@ -136,6 +136,7 @@ window.GameModules.characterProfile = {
       importance: data.importance || (data.isMinor ? 'minor' : 'support'),
       isMinor: Boolean(data.isMinor),
       roleCard: true,
+      forceRoleCardRegenerate: Boolean(data.forceRoleCardRegenerate),
       presetProfilePath: preset?.path || '',
     };
   },
