@@ -104,8 +104,12 @@ window.GameModules.roleCardLoadingActions = {
   },
 
   failRoleCardLoading(id, message = '生成失败') {
-    this.updateRoleCardLoading(id, { status: 'error', finishedAt: Date.now() });
-    this.updateRoleCardLoadingStep(id, 'profile', 'error', message);
+    const targetId = this.roleCardLoadingFindId(id);
+    const card = this.roleCardLoadingCard(targetId);
+    const steps = card?.steps || [];
+    const failed = [...steps].reverse().find((step) => step.status === 'running') || steps.find((step) => step.status !== 'done') || steps[0];
+    this.updateRoleCardLoading(targetId, { status: 'error', finishedAt: Date.now() });
+    this.updateRoleCardLoadingStep(targetId, failed?.key || 'profile', 'error', message);
   },
 
   roleCardLoadingCard(id) {
