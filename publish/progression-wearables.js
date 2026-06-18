@@ -19,11 +19,13 @@ window.GameModules = window.GameModules || {};
       const item = typeof itemOrSlot === 'object' && itemOrSlot ? itemOrSlot : { slot: itemOrSlot };
       const slot = String(item.slot || '').trim();
       if (this.bodyWearSlots().includes(slot)) return slot;
-      const text = `${slot}${item.clothing_position || ''}${item.name || ''}${item.description || ''}`;
+      const text = `${slot}${item.clothing_position || ''}${item.slotLabel || ''}${item.name || ''}${item.description || ''}`;
       const exact = { 头部: 'head', 颈部: 'neck', 上衣: 'top', 外套: 'outerwear', 手套: 'gloves', 腰部: 'waist', 下衣: 'bottom', 下装: 'bottom', 袜子: 'socks', 鞋子: 'shoes', 手腕: 'wrist' }[slot];
       if (exact) return exact;
       if (slot === '内裤') return 'innerwearBottom';
       if (slot === '内衣') return /内裤|底裤|三角裤|四角裤/.test(text) ? 'innerwearBottom' : 'innerwearTop';
+      if (/头部|帽|发卡|发夹|发带|头饰|发饰|头巾|头绳|蝴蝶结|头箍|头冠/.test(text)) return 'head';
+      if (/颈部|项链|围巾|领带|项圈|颈环|围脖|吊坠|丝巾/.test(text)) return 'neck';
       return slot;
     },
     dynamicSlots(existing = [], base, min = 0) {
@@ -154,6 +156,24 @@ window.GameModules = window.GameModules || {};
       return old.some((item) => fixed.includes(item.slot) && this.generatedFallbackWear(item));
     },
 
+    profileWearIsNewer(current = {}, incoming = {}) {
+      if (incoming.source === 'AI生成' && current.source !== 'AI生成') return true;
+      if (!current.name || current.name === '未穿戴' || current.name === '未记录') return Boolean(incoming.name && incoming.name !== '未穿戴');
+      if (this.generatedFallbackWear(current)) return true;
+      if (incoming.name && current.name !== incoming.name && (incoming.source === 'AI生成' || current.source !== '玩家操作')) return true;
+      return false;
+    },
+
+    mergeProfileWearing(current = [], incoming = []) {
+      const bySlot = new Map((Array.isArray(current) ? current : []).map((item) => [{ ...(item || {}), slot: this.canonicalWearSlot(item) }]).filter((item) => item[0].slot).map((item) => [item[0].slot, item[0]]));
+      incoming.forEach((raw) => {
+        const item = { ...(raw || {}), slot: this.canonicalWearSlot(raw) };
+        const old = bySlot.get(item.slot);
+        if (!old || this.profileWearIsNewer(old, item)) bySlot.set(item.slot, { ...old, ...item });
+      });
+      return [...bySlot.values()];
+    },
+
     syncInventoryFromProfile(state, profile = state?.profile || {}) {
       if (!state?.values || !profile) return false;
       let changed = false;
@@ -161,6 +181,7 @@ window.GameModules = window.GameModules || {};
       if (Array.isArray(profile.items) && profile.items.length && (!Array.isArray(state.values.items) || !state.values.items.length)) state.values.items = profile.items;
       const wearing = this.profileWearingItems(profile);
       if (this.shouldReplaceWearing(state.values.wearing, wearing)) state.values.wearing = wearing;
+      else state.values.wearing = this.mergeProfileWearing(state.values.wearing, wearing);
       this.ensureInventoryFields(state.values, state.id || profile.id || '');
       changed = before !== JSON.stringify({ items: state.values.items, wearing: state.values.wearing });
       return changed;
@@ -189,7 +210,8 @@ window.GameModules = window.GameModules || {};
     createValues(character, seed, existing) {
       const values = baseCreateValues(character, seed, existing || {});
       values.items = values.items?.length ? values.items : (character.items || []);
-      values.wearing = values.wearing?.length ? values.wearing : (character.wearingItems || character.wearing || []);
+      const profileWearing = this.profileWearingItems(character);
+      values.wearing = values.wearing?.length ? this.mergeProfileWearing(values.wearing, profileWearing) : profileWearing;
       this.ensureInventoryFields(values, character.id || '');
       return values;
     },

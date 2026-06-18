@@ -137,7 +137,7 @@ window.GameModules.playerIdentityActions = {
     state.values.age = Number.isFinite(Number(character.age)) ? Number(character.age) : state.values.age;
     state.values.status_tags = ['玩家本人', '手机主人', character.work, character.role];
     if (!state.values.items?.length) state.values.items = character.items || [];
-    if (!state.values.wearing?.some((item) => item?.name && item.name !== '未穿戴')) state.values.wearing = character.wearingItems || state.values.wearing;
+    window.GameModules.progression.syncInventoryFromProfile?.(state, character);
     state.values.factions = window.GameModules.socialPosition.playerItems({ ...this.playerProfile, workplace: character.workplace, position: character.position });
     state.values.force_positions = window.GameModules.socialPosition.playerForceItems({ ...this.playerProfile, workplace: character.workplace, position: character.position }, this.factionState?.factions || []);
     window.GameModules.progression.ensureStateMechanics(state, character);
