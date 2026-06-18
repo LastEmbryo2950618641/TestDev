@@ -8,10 +8,11 @@ window.GameModules.characterProfile = {
     const source = await window.GameModules.characterProfileSource.resolve(raw, store);
     const base = this.normalize(source.raw, store, source.preset);
     const signature = this.inputSignature(base, context, store, source.preset);
-    const existing = window.GameModules.sqliteSave.getCharacterState(base.id);
-    if (existing && this.isReusableRoleCard(existing.profile, signature)) {
-      store?.finishRoleCardLoading?.(base.id, existing.profile);
-      return existing.profile;
+    const existing = this.findSavedRoleCard(base, signature);
+    if (existing) {
+      const profile = { ...existing.profile, id: base.id, work: existing.profile?.work || base.work };
+      store?.finishRoleCardLoading?.(base.id, profile);
+      return profile;
     }
     const lore = await window.GameModules.worldLore.ensure(base.work, context);
     const attrs = await window.GameModules.rpgState.ensureWorldAttributes(base.work);
@@ -20,6 +21,26 @@ window.GameModules.characterProfile = {
 
   onProgress(store, id, stepKey, status, text = '') {
     store?.updateRoleCardLoadingStep?.(id, stepKey, status, text);
+  },
+
+  findSavedRoleCard(base, signature) {
+    const save = window.GameModules.sqliteSave;
+    const candidates = [
+      save.getCharacterState(base.id),
+      save.getCharacterStateByName?.(base.name, base.work),
+      save.getCharacterStateByName?.(base.name),
+    ].filter(Boolean);
+    const exact = candidates.find((state) => this.isReusableRoleCard(state.profile, signature));
+    if (exact) return exact;
+    return candidates.find((state) => this.isReusableSavedRoleCard(state, base)) || null;
+  },
+
+  isReusableSavedRoleCard(state, base) {
+    const profile = state?.profile;
+    if (!profile || profile.name !== base.name) return false;
+    const savedWorld = profile.work || state.worldTag;
+    if (base.work && savedWorld && savedWorld !== base.work) return false;
+    return this.isReusableRoleCard(profile, null);
   },
 
   withKnown(raw, store) {

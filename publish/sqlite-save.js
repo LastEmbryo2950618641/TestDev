@@ -114,12 +114,14 @@ window.GameModules.sqliteSave = {
   },
 
   readFallbackState(raw) {
-    if (!raw) return { version: 1, main: null, updatedAt: '' };
+    if (!raw) return { version: 1, main: null, updatedAt: '', characterStates: {}, characterWorlds: {} };
     try {
       const parsed = JSON.parse(raw);
-      return parsed && typeof parsed === 'object' ? { version: 1, main: parsed.main || null, updatedAt: parsed.updatedAt || '' } : { version: 1, main: null, updatedAt: '' };
+      return parsed && typeof parsed === 'object'
+        ? { version: 1, main: parsed.main || null, updatedAt: parsed.updatedAt || '', characterStates: parsed.characterStates || {}, characterWorlds: parsed.characterWorlds || {} }
+        : { version: 1, main: null, updatedAt: '', characterStates: {}, characterWorlds: {} };
     } catch (_) {
-      return { version: 1, main: null, updatedAt: '' };
+      return { version: 1, main: null, updatedAt: '', characterStates: {}, characterWorlds: {} };
     }
   },
 
@@ -199,10 +201,23 @@ window.GameModules.sqliteSave = {
   },
 
   getCharacterState(characterId) {
+    if (this.fallback) return this.fallbackState?.characterStates?.[characterId] || null;
     return this.db ? this.getJson('SELECT state_json FROM character_state WHERE character_id=?', [characterId]) : null;
   },
 
+  getCharacterStateByName(name, worldTag = '') {
+    if (!name) return null;
+    if (this.fallback) {
+      const states = Object.values(this.fallbackState?.characterStates || {}).filter((state) => state?.name === name && (!worldTag || state.worldTag === worldTag));
+      return states.sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')))[0] || null;
+    }
+    if (!this.db) return null;
+    if (worldTag) return this.getJson('SELECT state_json FROM character_state WHERE name=? AND world_tag=? ORDER BY updated_at DESC LIMIT 1', [name, worldTag]);
+    return this.getJson('SELECT state_json FROM character_state WHERE name=? ORDER BY updated_at DESC LIMIT 1', [name]);
+  },
+
   listCharacterStates() {
+    if (this.fallback) return Object.values(this.fallbackState?.characterStates || {});
     if (!this.db) return [];
     const rows = [];
     const stmt = this.db.prepare('SELECT state_json FROM character_state ORDER BY created_at');
@@ -212,8 +227,17 @@ window.GameModules.sqliteSave = {
 
 
   async saveCharacterState(character) {
-    if (!this.db || !character) return;
+    if (!character) return;
     const now = new Date().toISOString();
+    if (this.fallback) {
+      this.fallbackState = this.fallbackState || { version: 1, main: null, updatedAt: '' };
+      this.fallbackState.characterStates = { ...(this.fallbackState.characterStates || {}), [character.id]: { ...character, updatedAt: now } };
+      this.fallbackState.characterWorlds = { ...(this.fallbackState.characterWorlds || {}), [character.id]: character.worldTag };
+      this.fallbackState.updatedAt = now;
+      await this.persist();
+      return;
+    }
+    if (!this.db) return;
     await this.saveCharacterWorld(character.id, character.worldTag);
     this.db.run(
       'INSERT OR REPLACE INTO character_state(character_id,name,world_tag,state_json,created_at,updated_at) VALUES (?,?,?,?,COALESCE((SELECT created_at FROM character_state WHERE character_id=?),?),?)',

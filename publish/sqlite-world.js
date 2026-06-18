@@ -18,6 +18,7 @@ Object.assign(window.GameModules.sqliteSave, {
   },
 
   getCharacterWorld(characterId) {
+    if (this.fallback) return this.fallbackState?.characterWorlds?.[characterId] || null;
     if (!this.db) return null;
     const stmt = this.db.prepare('SELECT world_tag FROM character_world WHERE character_id=?');
     stmt.bind([characterId]);
@@ -27,6 +28,13 @@ Object.assign(window.GameModules.sqliteSave, {
   },
 
   async saveCharacterWorld(characterId, worldTag) {
+    if (this.fallback) {
+      this.fallbackState = this.fallbackState || { version: 1, main: null, updatedAt: '' };
+      this.fallbackState.characterWorlds = { ...(this.fallbackState.characterWorlds || {}), [characterId]: worldTag };
+      this.fallbackState.updatedAt = new Date().toISOString();
+      await this.persist();
+      return;
+    }
     if (!this.db) return;
     this.db.run('INSERT OR REPLACE INTO character_world(character_id,world_tag,updated_at) VALUES (?,?,?)', [characterId, worldTag, new Date().toISOString()]);
     await this.persist();
