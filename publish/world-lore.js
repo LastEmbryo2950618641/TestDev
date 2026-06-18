@@ -1,6 +1,3 @@
-/**
- * 世界观设定：每个存档首次进入某世界时固化，后续可随剧情补充。
- */
 window.GameModules = window.GameModules || {};
 
 window.GameModules.worldLore = {
