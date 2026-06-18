@@ -55,12 +55,16 @@ window.GameModules.characterProfileTemplateClass = {
     return { name, desc: `${name}的实际表现与可用范围。`, level: 2, levelEffects: this.levelEffects(), reason: `${name}来自人物经历、训练或生活环境。` };
   },
 
+  skillItem(name) {
+    return { ...this.learnedItem(name), 所需knowledge: ['基础知识'], 所需intrinsicBase: ['intelligence'] };
+  },
+
   professionItem(name) {
     return { ...this.learnedItem(name), 所需skills: ['基础能力'], 所需knowledge: ['基础知识'], 所需intrinsicBase: ['intelligence'], reason: `${name}由人物技能、知识和基础属性共同支持。` };
   },
 
   part3() {
-    return { name: '角色姓名', skills: [this.learnedItem('基础能力')], knowledge: [this.learnedItem('基础知识')], professions: [this.professionItem('潜在职业')] };
+    return { name: '角色姓名', skills: [this.skillItem('基础能力')], knowledge: [this.learnedItem('基础知识')], professions: [this.professionItem('潜在职业')] };
   },
 
   wearSlot(bodyPart, name = '', description = '', reason = '当前场景没有穿戴该槽位物品。') {

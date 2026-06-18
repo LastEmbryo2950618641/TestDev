@@ -258,7 +258,8 @@ window.GameModules.characterProfile = {
     if (partIndex === 1 && key === 'forcePositions') return this.arrayItemsComplete(value, ['force', 'position', 'reason'], false);
     if (partIndex === 1 && key === 'initialMetrics') return this.initialMetricsComplete(value);
     if (partIndex === 2 && key === 'feeling') return this.feelingComplete(value);
-    if (partIndex === 3 && ['skills', 'knowledge'].includes(key)) return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', 'reason'], false, (item) => this.learnedItemComplete(item));
+    if (partIndex === 3 && key === 'skills') return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', '所需knowledge', '所需intrinsicBase', 'reason'], false, (item) => this.learnedItemComplete(item) && ['所需knowledge', '所需intrinsicBase'].every((field) => Array.isArray(item[field])));
+    if (partIndex === 3 && key === 'knowledge') return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', 'reason'], false, (item) => this.learnedItemComplete(item));
     if (partIndex === 3 && key === 'professions') return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', '所需skills', '所需knowledge', '所需intrinsicBase', 'reason'], true, (item) => this.learnedItemComplete(item) && ['所需skills', '所需knowledge', '所需intrinsicBase'].every((field) => Array.isArray(item[field])));
     if (partIndex === 4 && key === 'items') return this.arrayItemsComplete(value, ['name', 'description', 'quantity', 'reason'], true, (item) => Number.isInteger(Number(item.quantity)) && Number(item.quantity) >= 1);
     if (partIndex === 4 && key === 'wearing') return this.wearingObjectComplete(value);
@@ -768,8 +769,9 @@ window.GameModules.characterProfile = {
       return [
         nameHint,
         '必须返回根字段 skills（数组，至少1项）和 knowledge（数组，至少1项）。',
-        '每项必须包含 name、desc、level、levelEffects、reason。',
-        'levelEffects 必须是对象格式，包含 lv1 到当前等级，每级含 程度介绍 和 说明。',
+        'skills 每项必须包含 name、desc、level、levelEffects、所需knowledge、所需intrinsicBase、reason。',
+        'knowledge 每项必须包含 name、desc、level、levelEffects、reason。',
+        'levelEffects 必须是对象格式，包含 lv1 到 lv7，每级含 程度介绍 和 说明。',
         '如需返回 professions，每项必须包含 name、desc、level、levelEffects、所需skills、所需knowledge、所需intrinsicBase、reason。',
       ].join('\n');
     }

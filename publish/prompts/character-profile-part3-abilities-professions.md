@@ -54,7 +54,7 @@ Rules：
 
 ### skills
 
-每项含：`name`(string,能力名)、`desc`(string,能力说明)、`level`(integer 1-7)、`levelEffects`(object,各等级效果)、`reason`(string,达到该等级的原因)。
+每项含：`name`(string,能力名)、`desc`(string,能力说明)、`level`(integer 1-7)、`levelEffects`(object,各等级效果)、`所需knowledge`(array<string>)、`所需intrinsicBase`(array<string>)、`reason`(string,达到该等级的原因)。
 
 `levelEffects` 格式：
 {
@@ -94,7 +94,7 @@ Rules：
       "maxItems": 4,
       "items": {
         "type": "object",
-        "required": ["name", "desc", "level", "levelEffects", "reason"],
+        "required": ["name", "desc", "level", "levelEffects", "所需knowledge", "所需intrinsicBase", "reason"],
         "additionalProperties": false,
         "properties": {
           "name": { "type": "string", "minLength": 1, "description": "能力名。" },
@@ -114,6 +114,16 @@ Rules：
               "lv6": { "type": "object", "required": ["程度介绍", "说明"], "additionalProperties": false, "properties": { "程度介绍": { "type": "string", "minLength": 1, "description": "大师。" }, "说明": { "type": "string", "minLength": 1, "description": "lv6能达到的具体能力描述。" } } },
               "lv7": { "type": "object", "required": ["程度介绍", "说明"], "additionalProperties": false, "properties": { "程度介绍": { "type": "string", "minLength": 1, "description": "传说。" }, "说明": { "type": "string", "minLength": 1, "description": "lv7能达到的具体能力描述。" } } }
             }
+          },
+          "所需knowledge": {
+            "type": "array",
+            "description": "该技能所需的知识领域名称列表，引用本人物已有的knowledge名称。",
+            "items": { "type": "string" }
+          },
+          "所需intrinsicBase": {
+            "type": "array",
+            "description": "该技能所需的先天属性key列表。使用英文key：strength/agility/constitution/intelligence/perception/willpower/charisma。",
+            "items": { "type": "string", "enum": ["strength", "agility", "constitution", "intelligence", "perception", "willpower", "charisma"] }
           },
           "reason": { "type": "string", "minLength": 1, "description": "达到该等级的原因，结合角色动机、处境、性格与过去经历，不得使用固定句式模板。" }
         }
@@ -204,10 +214,11 @@ Rules：
 1. `skills`/`knowledge`/`professions` 必须结合角色动机、处境、性格与过去经历尽可能列全。不可只写最明显的 1-2 项就停，应从输入推断所有合理项。
 2. `skills` 每项 level 必须反映真实熟练度。不超过 4 项。
 3. `knowledge` 普通成年人至少有"现代常识"lv2-3。不超过 5 项。
-4. `professions` 只有明确职业证据时才生成，不超过 5 项。`所需skills`/`所需knowledge` 引用本人物已有的 skill/knowledge 名称；`所需intrinsicBase` 使用英文 key（strength/agility/constitution/intelligence/perception/willpower/charisma）。
-5. 每项的 `levelEffects` 必须写满 lv1 到 lv7 全部七个等级，每级含 `程度介绍` 和 `说明`。
-6. 根字段 `name` 必须与 Part1 已生成的基础信息中的姓名一致。
-7. 所有含 `reason` 的字段（`skills[].reason`/`knowledge[].reason`/`professions[].reason`）必须结合角色动机、处境、性格与过去经历来写，不得使用固定句式模板，不得写空话。
+4. `skills` 每项必须包含 `所需knowledge` 和 `所需intrinsicBase`；`所需knowledge` 引用本人物已有的 knowledge 名称，`所需intrinsicBase` 使用英文 key（strength/agility/constitution/intelligence/perception/willpower/charisma）。
+5. `professions` 只有明确职业证据时才生成，不超过 5 项。`所需skills`/`所需knowledge` 引用本人物已有的 skill/knowledge 名称；`所需intrinsicBase` 使用英文 key（strength/agility/constitution/intelligence/perception/willpower/charisma）。
+6. 每项的 `levelEffects` 必须写满 lv1 到 lv7 全部七个等级，每级含 `程度介绍` 和 `说明`。
+7. 根字段 `name` 必须与 Part1 已生成的基础信息中的姓名一致。
+8. 所有含 `reason` 的字段（`skills[].reason`/`knowledge[].reason`/`professions[].reason`）必须结合角色动机、处境、性格与过去经历来写，不得使用固定句式模板，不得写空话。
 
 ## 完整 JSON 示例
 
@@ -227,6 +238,8 @@ Rules：
         "lv6": { "程度介绍": "大师", "说明": "能驾驭多体裁英文写作并指导他人阅读方法" },
         "lv7": { "程度介绍": "传说", "说明": "对英语语言有直觉级理解，能感知文字背后的文化层与隐喻" }
       },
+      "所需knowledge": ["英语", "高中课程"],
+      "所需intrinsicBase": ["intelligence", "willpower"],
       "reason": "就读外国语学校，长期接受英语强化训练。"
     },
     {
@@ -242,6 +255,8 @@ Rules：
         "lv6": { "程度介绍": "大师", "说明": "观察几乎无死角，能从极细微痕迹还原事件全貌" },
         "lv7": { "程度介绍": "传说", "说明": "超越常人感知极限，近乎读心般的洞察力" }
       },
+      "所需knowledge": ["现代常识"],
+      "所需intrinsicBase": ["perception", "willpower"],
       "reason": "性格内向安静，习惯默默观察而非主动表达。"
     }
   ],
