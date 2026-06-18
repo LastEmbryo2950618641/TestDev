@@ -384,12 +384,14 @@ window.GameModules.characterProfile = {
   async repairCsvPartRows(partIndex, raw, format, base, lore, attrs, store, vars = {}) {
     if (![2, 3, 4].includes(partIndex)) return raw;
     let currentRows = this.normalizeCsvPartRows(partIndex, this.rowsFromCsvPart(partIndex, raw));
-    for (let i = 0; i < 2; i += 1) {
+    let attempts = 0;
+    while (true) {
+      attempts += 1;
       currentRows = this.applyLocalCsvFixes(partIndex, currentRows);
       const issues = this.csvPartIssues(partIndex, currentRows);
       if (!issues.length) return this.buildPartFromCsvRows(partIndex, currentRows, base.name);
       const aiIssues = issues.filter((issue) => !/超过10行$/.test(issue.reason || ''));
-      if (!aiIssues.length) continue;
+      if (!aiIssues.length || (partIndex !== 2 && attempts >= 2)) break;
       const fixedRows = await this.generateCsvFixRows(partIndex, aiIssues, currentRows, format, base, lore, attrs, store, vars);
       currentRows = this.normalizeCsvPartRows(partIndex, this.mergeCsvFixRows(partIndex, currentRows, fixedRows, issues));
     }
@@ -514,11 +516,23 @@ window.GameModules.characterProfile = {
         if (stillWanted.length) throw new Error(`CSV修复仍不完整：${stillWanted.map((x) => x.key).join('、')}`);
         return rows;
       },
-      max: partIndex === 3 && issues.some((x) => x.key === 'skills' || x.key === 'knowledge') ? 4 : 2,
+      max: partIndex === 2 ? Number.MAX_SAFE_INTEGER : (partIndex === 3 && issues.some((x) => x.key === 'skills' || x.key === 'knowledge') ? 4 : 2),
     });
   },
 
   csvFixStrictRequirement(partIndex, issues, skeleton) {
+    if (partIndex === 2) {
+      return [
+        '只返回要求补齐的 Part2 CSV 行，不要表头、JSON、Markdown 或解释。',
+        '每行必须恰好 4 列：情感名,value,status,reason。',
+        '第一列必须逐字照抄“需要AI返回的行”的情感名，禁止写 name，禁止改名，禁止新增未要求的行。',
+        '必须批量返回本次所有有问题的行，返回行数必须等于需要AI返回的行数。',
+        '禁止使用固定列表之外的情感名，禁止用喜悦替代高兴，禁止用羞愧替代羞耻，禁止用顺从替代服从。',
+        'status 和 reason 内禁止英文逗号，只能用中文逗号。',
+        '必须严格照下面的情感名列表逐行生成：',
+        skeleton,
+      ].join('\n');
+    }
     if (partIndex !== 3) return '只返回要求补齐的 CSV 行，不要表头、JSON、Markdown 或解释。每行列数必须完整。';
     const requiredTypes = issues.map((x) => x.key).filter((key) => key === 'skills' || key === 'knowledge');
     const lines = ['只返回要求补齐的 CSV 行，不要表头、JSON、Markdown 或解释。每行必须恰好 7 列。'];
