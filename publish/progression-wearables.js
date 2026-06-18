@@ -12,8 +12,7 @@ window.GameModules = window.GameModules || {};
     equipSlotDefaults() { return Array.from({ length: 10 }, (_, i) => `装备${i + 1}`); },
     wearableSlots(existing = []) { return [...this.bodyWearSlots(), ...this.customWearSlots(existing), ...this.dynamicSlots(existing, '饰品'), ...this.dynamicSlots(existing, '装备', 10)]; },
     customWearSlots(existing = []) {
-      const reserved = new Set([...this.bodyWearSlots(), '饰品', '装备']);
-      return [...new Set((Array.isArray(existing) ? existing : []).map((item) => this.canonicalWearSlot(item?.slot ? item : { slot: item })).filter((slot) => slot && !reserved.has(this.slotBase(slot))))];
+      const reserved = new Set([...this.bodyWearSlots(), '饰品', '装备']); return [...new Set((Array.isArray(existing) ? existing : []).map((item) => this.canonicalWearSlot(item?.slot ? item : { slot: item })).filter((slot) => slot && !reserved.has(this.slotBase(slot))))];
     },
     slotBase(slot) { return String(slot || '').replace(/\d+$/, ''); },
     canonicalWearSlot(itemOrSlot) {
@@ -32,10 +31,7 @@ window.GameModules = window.GameModules || {};
       const max = Math.max(min, ...slots.map((slot) => Number(String(slot).match(/(\d+)$/)?.[1] || 0)));
       return Array.from({ length: max }, (_, i) => `${base}${i + 1}`);
     },
-    nextSlot(existing = [], base = '装备') {
-      const count = this.dynamicSlots(existing, base).length;
-      return `${base}${count + 1}`;
-    },
+    nextSlot(existing = [], base = '装备') { return `${base}${this.dynamicSlots(existing, base).length + 1}`; },
 
     inferEquipSlots(item = {}, kind = '') {
       const explicit = item.equipSlots || item.equippableSlots || item.wearableSlots || item.equipSlot || item.slot;
@@ -61,9 +57,7 @@ window.GameModules = window.GameModules || {};
       return value.length > 90 || /变化方式|生成来源|词条名AI生成|值AI生成/.test(value) || /[：:](妹妹|姐姐|哥哥|弟弟|父亲|母亲|兄长)[：:]/.test(value);
     },
 
-    cleanRelationText(text = '') {
-      return String(text || '').replace(/([：:])(?=(妹妹|姐姐|哥哥|弟弟|父亲|母亲|兄长|朋友|同学|同事)[：:])/g, '；');
-    },
+    cleanRelationText(text = '') { return String(text || '').replace(/([：:])(?=(妹妹|姐姐|哥哥|弟弟|父亲|母亲|兄长|朋友|同学|同事)[：:])/g, '；'); },
 
     itemReason(item = {}, kind = '物品') {
       if ((kind === '穿着' || item.type === '穿着') && item?.name === '未穿戴') return String(item.reason || item.changeMode || `${item.clothing_position || item.slot || '该'}槽位当前未穿戴。`).slice(0, 120);
@@ -92,8 +86,7 @@ window.GameModules = window.GameModules || {};
     },
 
     itemId(ownerId = '', kind = '物品', slot = '', name = '') {
-      const raw = `${ownerId || 'unknown'}:${kind}:${slot}:${name}`;
-      return `item_${window.GameModules.rpgState?.seed?.(raw) || Math.abs([...raw].reduce((sum, ch) => sum + ch.charCodeAt(0), 0))}`;
+      const raw = `${ownerId || 'unknown'}:${kind}:${slot}:${name}`; return `item_${window.GameModules.rpgState?.seed?.(raw) || Math.abs([...raw].reduce((sum, ch) => sum + ch.charCodeAt(0), 0))}`;
     },
 
     clothingPositionForSlot(slot) {
@@ -105,8 +98,7 @@ window.GameModules = window.GameModules || {};
 
     emptyWearReason(slot) {
       const position = this.clothingPositionForSlot(slot) || slot || '该部位';
-      if (/^(head|neck|outerwear|gloves|waist|wrist|饰品\d*|装备\d*)$/.test(String(slot || ''))) return `${position}此刻没有额外穿戴物。`;
-      return `${position}当前没有明确记录的穿戴物，保持空置状态。`;
+      return /^(head|neck|outerwear|gloves|waist|wrist|饰品\d*|装备\d*)$/.test(String(slot || '')) ? `${position}此刻没有额外穿戴物。` : `${position}当前没有明确记录的穿戴物，保持空置状态。`;
     },
 
     isPlaceholderEmptyWear(item) {
@@ -176,10 +168,8 @@ window.GameModules = window.GameModules || {};
     },
 
     ensureInventoryFields(values, ownerId = '') {
-      if (!values) return false;
-      const before = JSON.stringify({ items: values.items, wearing: values.wearing });
-      values.items = (Array.isArray(values.items) ? values.items : []).map((item) => this.normalizeCarryItem(item, item.type || '物品', ownerId));
-      values.wearing = this.defaultWearing(values.wearing, ownerId);
+      if (!values) return false; const before = JSON.stringify({ items: values.items, wearing: values.wearing });
+      values.items = (Array.isArray(values.items) ? values.items : []).map((item) => this.normalizeCarryItem(item, item.type || '物品', ownerId)); values.wearing = this.defaultWearing(values.wearing, ownerId);
       return before !== JSON.stringify({ items: values.items, wearing: values.wearing });
     },
 
