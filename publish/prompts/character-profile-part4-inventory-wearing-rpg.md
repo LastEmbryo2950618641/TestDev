@@ -20,8 +20,9 @@ Rules：
 10. `wearing` 行表示固定穿着槽位，必须按顺序输出 12 行：head、neck、innerwearTop、top、outerwear、gloves、waist、innerwearBottom、bottom、socks、shoes、wrist。
 11. 固定槽位 bodyPart 映射：head=头部，neck=颈部，innerwearTop=胸部，top=躯干，outerwear=躯干外，gloves=手部，waist=腰部，innerwearBottom=腰臀，bottom=腿部，socks=脚踝，shoes=脚部，wrist=手腕。
 12. 固定槽位未穿戴时，`name` 和 `description` 填 `--`，`reason` 写明未穿戴原因，原因也要结合季节、场合、习惯、职业或角色状态。
-13. `slot` 行表示额外穿着或手持装饰，只在确有必要时输出，不超过 2 行；没有额外穿着就不输出 `slot` 行。
-14. 本轮不要输出 `rpgField`、`rpgFieldReasons` 或任何 RPG 属性。
+13. 不穿是合法状态，但不能省略槽位：袜子不穿可以正常写 `wearing,socks,脚踝,--,--,--,具体不穿原因`；内衣不穿表示真空；上衣、外套、裤裙、鞋袜等都没穿表示裸体。裸睡、洗澡、换衣、刚醒、独自在卧室等场景都可以让多个槽位未穿戴，但必须保留 12 个固定 wearing 行。
+14. `slot` 行表示额外穿着或手持装饰，只在确有必要时输出，不超过 2 行；没有额外穿着就不输出 `slot` 行。
+15. 本轮不要输出 `rpgField`、`rpgFieldReasons` 或任何 RPG 属性。
 
 ## 已生成角色卡基础信息
 

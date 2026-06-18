@@ -391,9 +391,15 @@ window.GameModules.characterProfile = {
       const issues = this.csvPartIssues(partIndex, currentRows);
       if (!issues.length) return this.buildPartFromCsvRows(partIndex, currentRows, base.name);
       const aiIssues = issues.filter((issue) => !/超过10行$/.test(issue.reason || ''));
-      if (!aiIssues.length || (partIndex !== 2 && attempts >= 2)) break;
-      const fixedRows = await this.generateCsvFixRows(partIndex, aiIssues, currentRows, format, base, lore, attrs, store, vars);
-      currentRows = this.normalizeCsvPartRows(partIndex, this.mergeCsvFixRows(partIndex, currentRows, fixedRows, issues));
+      const unlimitedRepair = partIndex === 2 || partIndex === 4;
+      if (!aiIssues.length || (!unlimitedRepair && attempts >= 2)) break;
+      try {
+        const fixedRows = await this.generateCsvFixRows(partIndex, aiIssues, currentRows, format, base, lore, attrs, store, vars);
+        currentRows = this.normalizeCsvPartRows(partIndex, this.mergeCsvFixRows(partIndex, currentRows, fixedRows, issues));
+      } catch (err) {
+        if (!unlimitedRepair) throw err;
+        console.warn(`[角色卡Part${partIndex}] CSV修复未收敛，继续重试:`, err?.message || 'unknown');
+      }
     }
     return this.buildPartFromCsvRows(partIndex, this.applyLocalCsvFixes(partIndex, currentRows), base.name);
   },
@@ -516,7 +522,7 @@ window.GameModules.characterProfile = {
         if (stillWanted.length) throw new Error(`CSV修复仍不完整：${stillWanted.map((x) => x.key).join('、')}`);
         return rows;
       },
-      max: partIndex === 2 ? Number.MAX_SAFE_INTEGER : (partIndex === 3 && issues.some((x) => x.key === 'skills' || x.key === 'knowledge') ? 4 : 2),
+      max: (partIndex === 2 || partIndex === 4) ? 2 : (partIndex === 3 && issues.some((x) => x.key === 'skills' || x.key === 'knowledge') ? 4 : 2),
     });
   },
 
@@ -530,6 +536,19 @@ window.GameModules.characterProfile = {
         '禁止使用固定列表之外的情感名，禁止用喜悦替代高兴，禁止用羞愧替代羞耻，禁止用顺从替代服从。',
         'status 和 reason 内禁止英文逗号，只能用中文逗号。',
         '必须严格照下面的情感名列表逐行生成：',
+        skeleton,
+      ].join('\n');
+    }
+    if (partIndex === 4) {
+      return [
+        '只返回要求补齐的 Part4 CSV 行，不要表头、JSON、Markdown 或解释。',
+        '每行必须恰好 7 列：type,slot,bodyPart,name,description,quantity,reason。',
+        'wearing 行的 slot 只能是固定值：head、neck、innerwearTop、top、outerwear、gloves、waist、innerwearBottom、bottom、socks、shoes、wrist。',
+        '缺 socks 就必须返回 wearing,socks,脚踝,...；鞋子必须用 shoes，禁止写 feet、foot、ankle、legs 或其它替代槽位。',
+        'wearing 行 quantity 固定写 --；未穿戴是合法状态，name 和 description 写 --，reason 写清不穿原因。',
+        '不穿袜子、内衣、上衣、外套等都可以成立，但必须保留对应固定槽位行；例如袜子不穿仍输出 wearing,socks,脚踝,--,--,--,具体不穿原因。',
+        '裸体、裸睡、洗澡、换衣、刚醒等场景可以让多个穿着槽位未穿戴，但不得省略槽位，也不得把未穿戴槽位改成其它 slot。',
+        '必须批量返回本次所有有问题的行，并严格照下面列表的 type 和 slot 生成：',
         skeleton,
       ].join('\n');
     }
@@ -575,6 +594,8 @@ window.GameModules.characterProfile = {
       `你正在修复角色卡 Part${partIndex} CSV。目标人物只能是：${base.name}。`,
       '只返回下面要求补齐或重写的 CSV 行，不要表头，不要解释。',
       '每行必须列数完整，单元格内禁止英文逗号。',
+      '严格修复要求：',
+      this.csvFixStrictRequirement(partIndex, issues, this.csvFixSkeleton(partIndex, issues)),
       '需要AI返回的行：',
       this.csvFixSkeleton(partIndex, issues),
       '错误行说明：',
