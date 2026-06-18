@@ -68,8 +68,8 @@ window.GameModules.characterProfileTemplateClass = {
     return { name: '角色姓名', skills: [this.skillItem('基础能力')], knowledge: [this.learnedItem('基础知识')], professions: [this.professionItem('潜在职业')] };
   },
 
-  wearSlot(bodyPart, name = '', description = '', reason = '当前场景没有穿戴该槽位物品。') {
-    return { bodyPart, name, description, reason };
+  wearSlot(clothing_position, name = '', description = '', reason = '当前场景没有穿戴该槽位物品。') {
+    return { clothing_position, name, description, reason };
   },
 
   wearingObject() {

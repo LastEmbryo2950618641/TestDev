@@ -52,7 +52,7 @@ window.GameModules.characterProfile = {
   },
 
   wearingSlotProgressDone(item) {
-    return item && typeof item === 'object' && String(item.bodyPart || '').trim() && String(item.reason || '').trim() && Object.prototype.hasOwnProperty.call(item, 'description');
+    return item && typeof item === 'object' && String(item.clothing_position || item.bodyPart || '').trim() && String(item.reason || '').trim() && Object.prototype.hasOwnProperty.call(item, 'description');
   },
 
   findSavedRoleCard(base, signature) {
@@ -221,7 +221,7 @@ window.GameModules.characterProfile = {
       1: ['name', 'worldTag', 'age', 'gender', 'factions', 'forcePositions'],
       2: ['name', 'value', 'status', 'reason', '冷静', '绝望', '了解', '服从'],
       3: ['type', 'name', 'level', 'reason', 'requiredIntrinsicBase', 'requiredKnowledge', 'requiredSkills'],
-      4: ['type', 'slot', 'bodyPart', 'name', 'description', 'quantity', 'reason', 'wearing', 'item'],
+      4: ['type', 'slot', 'clothing_position', 'name', 'description', 'quantity', 'reason', 'wearing', 'item'],
       5: ['name', 'rpgField', 'level', 'intrinsicBase', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma'],
     };
     if (!fields) return byPart[partIndex] || [];
@@ -347,7 +347,7 @@ window.GameModules.characterProfile = {
 
   wearingObjectComplete(value) {
     const slots = ['head', 'neck', 'innerwearTop', 'top', 'outerwear', 'gloves', 'waist', 'innerwearBottom', 'bottom', 'socks', 'shoes', 'wrist'];
-    const completeItem = (item, allowEmptyName = true) => item && typeof item === 'object' && String(item.bodyPart || '').trim() && String(item.reason || '').trim() && (allowEmptyName || String(item.name || '').trim()) && Object.prototype.hasOwnProperty.call(item, 'description');
+    const completeItem = (item, allowEmptyName = true) => item && typeof item === 'object' && String(item.clothing_position || item.bodyPart || '').trim() && String(item.reason || '').trim() && (allowEmptyName || String(item.name || '').trim()) && Object.prototype.hasOwnProperty.call(item, 'description');
     return value && typeof value === 'object' && !Array.isArray(value)
       && slots.every((slot) => completeItem(value[slot], true))
       && Array.isArray(value.slot)
@@ -452,7 +452,7 @@ window.GameModules.characterProfile = {
 
   rowsFromCsvPart(partIndex, raw) {
     if (Array.isArray(raw?._csvRows)) return raw._csvRows;
-    const headers = { 2: 'name,value,status,reason', 3: 'type,name,level,', 4: 'type,slot,bodypart,' };
+    const headers = { 2: 'name,value,status,reason', 3: 'type,name,level,', 4: 'type,slot,' };
     return this.csvDataRows(raw?.rawText || raw?.text || '', headers[partIndex] || '');
   },
 
@@ -614,7 +614,7 @@ window.GameModules.characterProfile = {
     if (partIndex === 4) {
       return [
         '只返回要求补齐的 Part4 CSV 行，不要表头、JSON、Markdown 或解释。',
-        '每行必须恰好 7 列：type,slot,bodyPart,name,description,quantity,reason。',
+        '每行必须恰好 7 列：type,slot,clothing_position,name,description,quantity,reason。',
         'wearing 行的 slot 只能是固定值：head、neck、innerwearTop、top、outerwear、gloves、waist、innerwearBottom、bottom、socks、shoes、wrist。',
         '缺 socks 就必须返回 wearing,socks,袜子,...；鞋子必须用 shoes，禁止写 feet、foot、ankle、legs 或其它替代槽位。',
         'wearing 行 quantity 固定写 --；未穿戴是合法状态，name 和 description 必须同时写 --，reason 必须写清具体不穿原因。',
@@ -624,7 +624,7 @@ window.GameModules.characterProfile = {
         '如果角色卡基础信息或输入的喜好写明 JK、制服、百褶裙、过膝袜、连裤袜、丝袜、黑丝、白丝等，必须落实到 top/bottom/socks，不能改成泛化日常衣物。',
         'bottom 只能写一件主要下装，不能同时写百褶裙和牛仔裤；过膝袜、连裤袜、丝袜必须写在 socks。',
         '槽位语义必须匹配：outerwear只能写外套，waist只能写腰带腰封，bottom只能写裤裙，socks只能写袜类，shoes只能写鞋类，neck不能写耳环耳钉。',
-        'bodyPart 必须按固定映射逐字填写：head=头部，neck=颈部，innerwearTop=内衣，top=上衣，outerwear=外套，gloves=手套，waist=腰部，innerwearBottom=内衣，bottom=下装，socks=袜子，shoes=鞋子，wrist=手腕。',
+        'clothing_position 是人体着装部位，必须按固定映射逐字填写：head=头部，neck=颈部，innerwearTop=内衣，top=上衣，outerwear=外套，gloves=手套，waist=腰部，innerwearBottom=内衣，bottom=下装，socks=袜子，shoes=鞋子，wrist=手腕。',
         '不穿袜子、内衣、上衣、外套等都可以成立，但必须保留对应固定槽位行；例如袜子不穿仍输出 wearing,socks,袜子,--,--,--,具体不穿原因。',
         '裸体、裸睡、洗澡、换衣、刚醒等场景可以让多个穿着槽位未穿戴，但不得省略槽位，也不得把未穿戴槽位改成其它 slot。',
         '必须批量返回本次所有有问题的行，并严格照下面列表的 type 和 slot 生成：',
@@ -709,7 +709,7 @@ window.GameModules.characterProfile = {
   },
 
   csvFixHeaderPrefix(partIndex) {
-    return partIndex === 2 ? 'name,value,status,reason' : (partIndex === 3 ? 'type,name,level,' : 'type,slot,bodypart,');
+    return partIndex === 2 ? 'name,value,status,reason' : (partIndex === 3 ? 'type,name,level,' : 'type,slot,');
   },
 
   inlineCsvFixPrompt(partIndex, issues, currentRows, format, base) {
@@ -733,7 +733,7 @@ window.GameModules.characterProfile = {
   csvFixSkeleton(partIndex, issues) {
     if (partIndex === 2) return issues.map((x) => `${x.key},50,${x.key}因为当前证据形成状态,${x.key}源于人物经历和关系证据`).join('\n');
     if (partIndex === 3) return issues.map((x) => (x.key === 'knowledge' ? 'knowledge,现代常识,2,日常生活和教育经历形成基础常识,生活经验,家庭经历|教育背景,--' : 'skills,观察力,2,长期生活经历形成基础观察能力,perception|谨慎性格,现代常识|过往经历,日常观察习惯')).join('\n');
-    const bodyParts = this.wearingBodyParts();
+    const positions = this.wearingClothingPositions();
     const missingReasonHints = {
       head: '刚在室内休息没有戴帽或发饰',
       neck: '准备洗漱前已取下颈部饰物',
@@ -748,7 +748,7 @@ window.GameModules.characterProfile = {
       shoes: '身处室内卧室所以没有穿鞋',
       wrist: '洗漱前已取下腕表避免沾水',
     };
-    return issues.map((x) => this.fixedWearingSlots().includes(x.key) ? `wearing,${x.key},${bodyParts[x.key]},--,--,--,${missingReasonHints[x.key]}` : 'item,--,--,随身钥匙,金属边缘有磨痕,1,临时出门需要随手带走').join('\n');
+    return issues.map((x) => this.fixedWearingSlots().includes(x.key) ? `wearing,${x.key},${positions[x.key]},--,--,--,${missingReasonHints[x.key]}` : 'item,--,--,随身钥匙,金属边缘有磨痕,1,临时出门需要随手带走').join('\n');
   },
 
   validCsvRowsForPrompt(partIndex, rows) {
@@ -927,7 +927,7 @@ window.GameModules.characterProfile = {
   parsePartOutput(partIndex, text, base = {}) {
     if (partIndex === 2) return this.buildFeelingFromRows(this.csvDataRows(text, 'name,value,status,reason'), base.name, false);
     if (partIndex === 3) return this.buildAbilitiesFromRows(this.csvDataRows(text, 'type,name,level,'), base.name, false);
-    if (partIndex === 4) return this.buildInventoryFromRows(this.csvDataRows(text, 'type,slot,bodypart,'), base.name);
+    if (partIndex === 4) return this.buildInventoryFromRows(this.csvDataRows(text, 'type,slot,'), base.name);
     return this.parse(text);
   },
 
@@ -1000,7 +1000,7 @@ window.GameModules.characterProfile = {
   },
 
   parseCsvInventoryPart(text, name = '') {
-    const rows = this.csvDataRows(text, 'type,slot,bodypart,');
+    const rows = this.csvDataRows(text, 'type,slot,clothing_position,');
     return this.buildInventoryFromRows(rows, name);
   },
 
@@ -1011,15 +1011,15 @@ window.GameModules.characterProfile = {
       const parts = this.csvParts(row);
       const issue = this.part4RowIssue(parts);
       if (issue) return;
-      const [type, slot, bodyPart, itemName, description, quantity, reason] = parts;
+      const [type, slot, clothingPosition, itemName, description, quantity, reason] = parts;
       if (type === 'item') {
         result.items.push({ name: itemName, description: this.csvCell(description), quantity: Math.max(1, Number(quantity) || 1), reason: this.csvCell(reason) });
       }
       if (type === 'wearing') {
-        wearing[slot] = { bodyPart: this.csvCell(bodyPart) || wearing[slot].bodyPart, name: this.csvCell(itemName), description: this.csvCell(description), reason: this.csvCell(reason) };
+        wearing[slot] = { clothing_position: this.csvCell(clothingPosition) || wearing[slot].clothing_position, name: this.csvCell(itemName), description: this.csvCell(description), reason: this.csvCell(reason) };
       }
       if (type === 'slot') {
-        wearing.slot.push({ slot: this.csvCell(slot), bodyPart: this.csvCell(bodyPart), name: itemName, description: this.csvCell(description), reason: this.csvCell(reason) });
+        wearing.slot.push({ slot: this.csvCell(slot), clothing_position: this.csvCell(clothingPosition), name: itemName, description: this.csvCell(description), reason: this.csvCell(reason) });
       }
       result._csvRows.push(row);
     });
@@ -1028,11 +1028,11 @@ window.GameModules.characterProfile = {
 
   part4RowIssue(parts) {
     if (parts.length !== 7) return '列数不是7';
-    const [type, slot, bodyPart, itemName, description, quantity, reason] = parts;
+    const [type, slot, clothingPosition, itemName, description, quantity, reason] = parts;
     if (parts.some((cell) => this.invalidPlaceholderCell(cell))) return '非法占位符，未穿戴只能写--';
     if (!['item', 'wearing', 'slot'].includes(type)) return 'type无效';
     if (type === 'item') {
-      if (slot !== '--' || bodyPart !== '--') return 'item槽位列必须为--';
+      if (slot !== '--' || clothingPosition !== '--') return 'item槽位列和人体着装部位列必须为--';
       if (!itemName || itemName === '--') return 'item名称缺失';
       if (!this.csvCell(description)) return 'item描述缺失';
       if (!Number.isInteger(Number(quantity)) || Number(quantity) < 1) return 'quantity无效';
@@ -1041,8 +1041,8 @@ window.GameModules.characterProfile = {
     if (type === 'wearing') {
       if (!this.fixedWearingSlots().includes(slot)) return 'wearing槽位无效';
       if (quantity !== '--') return 'wearing数量必须为--';
-      const expectedBodyPart = this.wearingBodyParts()[slot];
-      if (bodyPart !== expectedBodyPart) return `bodyPart应为${expectedBodyPart}`;
+      const expectedPosition = this.wearingClothingPositions()[slot];
+      if (clothingPosition !== expectedPosition) return `clothing_position应为${expectedPosition}`;
       if (!this.csvCell(reason) || this.genericPart4Reason(reason)) return 'reason缺失或过泛';
       const emptyName = itemName === '--';
       const emptyDesc = description === '--';
@@ -1055,15 +1055,15 @@ window.GameModules.characterProfile = {
       if (slotIssue) return slotIssue;
     }
     if (type === 'slot') {
-      if (!this.csvCell(slot) || !this.csvCell(bodyPart) || !itemName || itemName === '--' || !this.csvCell(description)) return 'slot字段缺失';
+      if (!this.csvCell(slot) || !this.csvCell(clothingPosition) || !itemName || itemName === '--' || !this.csvCell(description)) return 'slot字段缺失';
       if (!this.csvCell(reason) || this.genericPart4Reason(reason)) return 'slot原因缺失或过泛';
     }
     return '';
   },
 
   emptyWearingObject() {
-    const bodyParts = this.wearingBodyParts();
-    return { ...Object.fromEntries(Object.entries(bodyParts).map(([key, bodyPart]) => [key, { bodyPart, name: '', description: '', reason: '等待AI生成具体穿着或未穿戴原因。' }])), slot: [] };
+    const positions = this.wearingClothingPositions();
+    return { ...Object.fromEntries(Object.entries(positions).map(([key, clothing_position]) => [key, { clothing_position, name: '', description: '', reason: '等待AI生成具体穿着或未穿戴原因。' }])), slot: [] };
   },
 
   invalidPlaceholderCell(value) {
@@ -1077,7 +1077,7 @@ window.GameModules.characterProfile = {
       || /当前场景未穿戴该槽位物品|未穿戴该槽位物品|上下文未写明|上下文未说明|信息不足|没有明确|常规场景|基础穿着槽位|符合身份|日常需要/.test(text);
   },
 
-  wearingBodyParts() {
+  wearingClothingPositions() {
     return { head: '头部', neck: '颈部', innerwearTop: '内衣', top: '上衣', outerwear: '外套', gloves: '手套', waist: '腰部', innerwearBottom: '内衣', bottom: '下装', socks: '袜子', shoes: '鞋子', wrist: '手腕' };
   },
 
@@ -1467,7 +1467,7 @@ window.GameModules.characterProfile = {
       return [
         nameHint,
         '必须只返回 CSV，不要返回 JSON。',
-        '第一行必须是 type,slot,bodyPart,name,description,quantity,reason。',
+        '第一行必须是 type,slot,clothing_position,name,description,quantity,reason。',
         'type 只能是 item、wearing、slot；wearing 必须包含 12 个固定槽位。',
         '每行必须恰好 7 列；不存在或不适用字段填 --；单元格内不要使用英文逗号。',
       ].join('\n');
@@ -1729,11 +1729,11 @@ window.GameModules.characterProfile = {
   normalizeWearSlot(slot, item = {}, profile = {}) {
     const source = item && typeof item === 'object' ? item : { name: item };
     const names = this.wearingSlotNames();
-    const bodyPart = String(source.bodyPart || source.部位 || names[slot] || slot || '').slice(0, 16);
+    const clothing_position = String(source.clothing_position || source.bodyPart || source.部位 || names[slot] || slot || '').slice(0, 16);
     const name = String(source.name || source.名称 || '').slice(0, 32);
     const description = String(source.description || source.desc || '').slice(0, 100);
-    const reason = String(source.reason || source.changeMode || (name ? this.inventoryReason({ ...source, name, slot }, '穿着', profile) : `${bodyPart || slot}当前没有穿戴物。`)).slice(0, 120);
-    return { bodyPart, name, description, reason };
+    const reason = String(source.reason || source.changeMode || (name ? this.inventoryReason({ ...source, name, slot }, '穿着', profile) : `${clothing_position || slot}当前没有穿戴物。`)).slice(0, 120);
+    return { clothing_position, name, description, reason };
   },
 
   wearingObject(value, profile = {}) {
@@ -1773,8 +1773,8 @@ window.GameModules.characterProfile = {
     return list.map((item) => {
       const name = String(item?.name || '未穿戴').slice(0, 32);
       const slot = String(item?.slot || '').slice(0, 12);
-      const bodyPart = String(item?.bodyPart || item?.部位 || '').slice(0, 12);
-      return { slot, bodyPart, name, type: '穿着', description: String(item?.description || '').slice(0, 80), reason: String(item?.reason || item?.changeMode || '').trim().slice(0, 120), changeMode: String(item?.reason || item?.changeMode || '').trim().slice(0, 120), level: -1 };
+      const clothing_position = String(item?.clothing_position || item?.bodyPart || item?.部位 || '').slice(0, 12);
+      return { slot, clothing_position, name, type: '穿着', description: String(item?.description || '').slice(0, 80), reason: String(item?.reason || item?.changeMode || '').trim().slice(0, 120), changeMode: String(item?.reason || item?.changeMode || '').trim().slice(0, 120), level: -1 };
     }).filter((item) => item.slot).slice(0, 20);
   },
 
@@ -1874,7 +1874,7 @@ window.GameModules.characterProfile = {
       const obj = this.wearingObject(wearing, profile);
       const fixed = Object.fromEntries(this.wearingSlotKeys().map((slot) => {
         const item = obj[slot] || {};
-        const reason = item.name ? this.inventoryReason({ ...item, slot }, '穿着', profile) : (item.reason || `${item.bodyPart || slot}当前没有穿戴物。`);
+        const reason = item.name ? this.inventoryReason({ ...item, slot }, '穿着', profile) : (item.reason || `${item.clothing_position || item.bodyPart || slot}当前没有穿戴物。`);
         return [slot, { ...item, reason }];
       }));
       fixed.slot = (Array.isArray(obj.slot) ? obj.slot : []).map((item) => ({ ...item, reason: this.inventoryReason(item, '穿着', profile) }));

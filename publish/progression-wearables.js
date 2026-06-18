@@ -73,7 +73,7 @@ window.GameModules = window.GameModules || {};
       return { ...obj, name, type: obj.type || kind, kind: obj.kind || kind, quantity: Math.max(1, Number(obj.quantity) || 1), equipSlots: this.inferEquipSlots(obj, kind), reason, changeMode: mode, level: Number(obj.level) > 0 ? obj.level : -1 };
     },
 
-    bodyPartForSlot(slot) {
+    clothingPositionForSlot(slot) {
       const base = this.slotBase(slot);
       return ({ 内衣: '内衣', 上衣: '上衣', 内裤: '内衣', 下衣: '下装', 袜子: '袜子', 鞋子: '鞋子', 外套: '外套', 手套: '手套', 头部: '头部', 颈部: '颈部', 腰部: '腰部', 包具: '肩部', 饰品: '装饰部位', 装备: '装备位' })[base] || base || '';
     },
@@ -102,7 +102,7 @@ window.GameModules = window.GameModules || {};
         const basic = this.defaultWearForSlot(slot);
         if (basic) return basic;
         const reason = `${slot}槽位当前没有已穿戴物，表示该可穿戴位置空置。`;
-        return { slot, bodyPart: this.bodyPartForSlot(slot), name: '未穿戴', type: '穿着', description: '该槽位当前未穿戴，表示对应部位空置。', reason, changeMode: reason, level: -1 };
+        return { slot, clothing_position: this.clothingPositionForSlot(slot), name: '未穿戴', type: '穿着', description: '该槽位当前未穿戴，表示对应部位空置。', reason, changeMode: reason, level: -1 };
       });
     },
 
@@ -121,7 +121,7 @@ window.GameModules = window.GameModules || {};
         const insertAfter = fields.findIndex((field) => field.key === 'force_positions') + 1;
         const additions = [
           this.field('items', '物品', 'list', 0, 100, '当前持有、可消耗、可转让或可用于现实行动的物品与装备。'),
-          this.field('wearing', '穿着', 'list', 0, 100, '当前穿戴在各身体部位、饰品位和装备位的衣物、装备、饰品与包具。'),
+          this.field('wearing', '穿着', 'list', 0, 100, '当前穿戴在各人体着装部位、饰品位和装备位的衣物、装备、饰品与包具。'),
         ].filter((field) => !fields.some((item) => item.key === field.key));
         fields.splice(insertAfter || fields.length, 0, ...additions);
         return { ...section, fields };

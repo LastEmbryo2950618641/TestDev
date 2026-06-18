@@ -8,7 +8,7 @@ Output Format：仅输出严格 CSV 文本。不要输出 JSON，不要输出 Ma
 
 Rules：
 
-1. 第一行必须固定为表头：`type,slot,bodyPart,name,description,quantity,reason`。
+1. 第一行必须固定为表头：`type,slot,clothing_position,name,description,quantity,reason`。
 2. `type` 只能是 `item`、`wearing`、`slot`。
 3. 每行必须恰好 7 列，使用英文逗号分隔；单元格内部禁止使用英文逗号，需要停顿时用中文逗号。
 4. 不存在或不适用的字段值统一填写精确的 `--`，不要留空；禁止输出 `--.--`、`-.--`、`---`、`...` 等伪占位。
@@ -19,10 +19,10 @@ Rules：
 9. 同一身体层级不得互相冲突：bottom 只能是一件主要下装，不能同时出现百褶裙和牛仔裤；如果穿裙子，下装写裙子，连裤袜/过膝袜归入 socks，不能把袜裤写成 bottom。
 10. 禁止生成“日常上衣”“日常下衣”“日常袜子”“上下文未写明异常”等兜底词；没有明确穿戴时就写未穿戴 `--`，有明确偏好时必须具体生成。若“喜好”写明 JK + 过膝袜/连裤袜，top、bottom、socks 不能全部未穿或泛化，除非当前输入明确处于洗澡、裸睡、换衣等会真实脱下的场景且 reason 说明。
 11. 槽位语义必须匹配：outerwear 只能写外套类；waist 只能写腰带、腰封等腰部固定物；bottom 只能写裤子或裙子；socks 只能写短袜、过膝袜、连裤袜、丝袜等袜类；shoes 只能写鞋靴；neck 不能写耳环、耳钉、耳坠。
-12. `item` 行表示随身物品：`slot` 和 `bodyPart` 填 `--`，`quantity` 必须是 1 以上整数；物品最多 4 行。
+12. `clothing_position` 中文含义是“人体着装部位”，不是泛化部位；`item` 行表示随身物品，`slot` 和 `clothing_position` 填 `--`，`quantity` 必须是 1 以上整数；物品最多 4 行。
 13. 禁止堆砌同类电子设备；除非输入明确说明，否则手机、电脑、耳机等同类设备各最多 1 件。
 14. `wearing` 行表示固定穿着槽位，必须按顺序输出 12 行：head、neck、innerwearTop、top、outerwear、gloves、waist、innerwearBottom、bottom、socks、shoes、wrist。
-15. 固定槽位 bodyPart 映射：head=头部，neck=颈部，innerwearTop=内衣，top=上衣，outerwear=外套，gloves=手套，waist=腰部，innerwearBottom=内衣，bottom=下装，socks=袜子，shoes=鞋子，wrist=手腕。
+15. 固定槽位 clothing_position（人体着装部位）映射：head=头部，neck=颈部，innerwearTop=内衣，top=上衣，outerwear=外套，gloves=手套，waist=腰部，innerwearBottom=内衣，bottom=下装，socks=袜子，shoes=鞋子，wrist=手腕。
 16. 固定槽位未穿戴时，`name` 和 `description` 填 `--`，`reason` 写明未穿戴原因，原因也要结合季节、场合、习惯、职业或角色状态。
 17. 不穿是合法状态，但不能省略槽位：袜子不穿可以正常写 `wearing,socks,袜子,--,--,--,具体不穿原因`；内衣不穿表示真空；上衣、外套、裤裙、鞋袜等都没穿表示裸体。裸睡、洗澡、换衣、刚醒、独自在卧室等场景都可以让多个槽位未穿戴，但必须保留 12 个固定 wearing 行。
 18. `slot` 行表示额外穿着或手持装饰，只在确有必要时输出，不超过 2 行；没有额外穿着就不输出 `slot` 行。
@@ -67,7 +67,7 @@ Rules：
 
 请严格按以下表头输出，从第二行开始填写数据；不要照抄下方写法校准里的物品名或原因：
 
-type,slot,bodyPart,name,description,quantity,reason
+type,slot,clothing_position,name,description,quantity,reason
 
 ## 写法校准
 
@@ -81,7 +81,7 @@ type,slot,bodyPart,name,description,quantity,reason
 
 完整逐项示例：
 
-type,slot,bodyPart,name,description,quantity,reason
+type,slot,clothing_position,name,description,quantity,reason
 item,--,--,半旧钥匙串,金属边缘磨得发亮,1,匆忙离家时只抓走最熟悉的东西
 item,--,--,折角便签本,封皮被雨水泡出浅痕,1,记录玩家说过的异常线索方便追查
 item,--,--,止痛药板,银色药板缺了两格,1,昨夜受伤后还要强撑着行动

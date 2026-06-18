@@ -42,7 +42,8 @@ window.GameModules.inventoryActions = {
   },
 
   wearingDetail(item) {
-    const part = item?.bodyPart ? `穿着部位：${item.bodyPart}` : '';
+    const position = item?.clothing_position || item?.bodyPart;
+    const part = position ? `人体着装部位：${position}` : '';
     if (this.isEmptyWear(item)) return [part, item?.reason || '该槽位当前未穿戴，表示对应部位空置。'].filter(Boolean).join('｜');
     return [item.type || '穿着', part, item.description, item.reason, item.source].filter(Boolean).join('｜');
   },
