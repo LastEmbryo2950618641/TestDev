@@ -101,15 +101,19 @@ window.GameModules = window.GameModules || {};
       return ({ head: '头部', neck: '颈部', innerwearTop: '内衣', top: '上衣', outerwear: '外套', gloves: '手套', waist: '腰部', innerwearBottom: '内衣', bottom: '下装', socks: '袜子', shoes: '鞋子', wrist: '手腕', 内衣: '内衣', 上衣: '上衣', 内裤: '内衣', 下衣: '下装', 袜子: '袜子', 鞋子: '鞋子', 外套: '外套', 手套: '手套', 头部: '头部', 颈部: '颈部', 腰部: '腰部', 包具: '肩部', 饰品: '装饰部位', 装备: '装备位' })[base] || base || '';
     },
 
-    defaultWearForSlot(slot) {
-      return null;
+    defaultWearForSlot(slot) { return null; },
+
+    emptyWearReason(slot) {
+      const position = this.clothingPositionForSlot(slot) || slot || '该部位';
+      if (/^(head|neck|outerwear|gloves|waist|wrist|饰品\d*|装备\d*)$/.test(String(slot || ''))) return `${position}此刻没有额外穿戴物。`;
+      return `${position}当前没有明确记录的穿戴物，保持空置状态。`;
     },
 
     isPlaceholderEmptyWear(item) {
       return !item?.name
         || item.name === '未记录'
         || /^日常(内衣|上衣|内裤|下衣|袜子|鞋子)$/.test(item.name)
-        || /上下文未写明异常|常规场景基础穿着槽位/.test(`${item.description || ''}${item.reason || ''}${item.changeMode || ''}`)
+        || /上下文未写明异常|常规场景基础穿着槽位|缺少AI生成|缺少有效AI/.test(`${item.description || ''}${item.reason || ''}${item.changeMode || ''}`)
         || (item.name === '未穿戴' && /暂无已记录|未被上下文记录/.test(item.description || ''));
     },
 
@@ -126,8 +130,8 @@ window.GameModules = window.GameModules || {};
         const basic = this.defaultWearForSlot(slot);
         if (basic) return basic;
         const position = this.clothingPositionForSlot(slot);
-        const reason = hit?.reason || `${position || slot}槽位缺少AI生成的穿着或未穿戴原因，请重新生成个人资料。`;
-        return { id: ownerId ? this.itemId(ownerId, '穿着', slot, '未穿戴') : '', ownerId, characterId: ownerId, slot, clothing_position: position, slotLabel: position, name: '未穿戴', type: '穿着', description: '该槽位缺少有效AI穿着记录。', reason, changeMode: reason, level: -1 };
+        const reason = this.generatedFallbackWear(hit) ? this.emptyWearReason(slot) : (hit?.reason || this.emptyWearReason(slot));
+        return { id: ownerId ? this.itemId(ownerId, '穿着', slot, '未穿戴') : '', ownerId, characterId: ownerId, slot, clothing_position: position, slotLabel: position, name: '未穿戴', type: '穿着', description: `${position || '该部位'}当前未穿戴。`, reason, changeMode: reason, level: -1 };
       });
     },
 
