@@ -137,12 +137,27 @@ window.GameModules.characterProfile = {
       prompt: format,
       format,
       repairHint: this.partRepairHint(partIndex, base, attrs, template),
+      requiredRawFields: this.partRequiredRawFields(partIndex),
       parse: (text) => this.parse(text),
       max: 2,
     });
     let normalized = this.sanitizePart(partIndex, raw, template);
     normalized = await this.completeMissingPart(partIndex, normalized, template, format, base, lore, attrs, store);
     return this.validatePart(partIndex, normalized, base, lore, attrs, store, template);
+  },
+
+  partRequiredRawFields(partIndex, fields = null) {
+    const byPart = {
+      1: ['name', 'worldTag', 'age', 'gender', 'factions', 'forcePositions', 'feeling', 'emotions', 'playerFeelings', 'cold', 'curiosity', 'understanding', 'submission'],
+      2: ['name', 'skills', 'knowledge', 'professions'],
+      3: ['name', 'items', 'wearing', 'rpgField', 'head', 'top', 'bottom', 'shoes', 'slot'],
+    };
+    if (!fields) return byPart[partIndex] || [];
+    const nested = [];
+    if (fields.includes('feeling')) nested.push('feeling', 'emotions', 'playerFeelings', 'cold', 'curiosity', 'understanding', 'submission');
+    if (fields.includes('wearing')) nested.push('wearing', 'head', 'top', 'bottom', 'shoes', 'slot');
+    if (fields.includes('rpgField')) nested.push('rpgField', 'intrinsicBase', 'derived');
+    return [...new Set([...fields, ...nested])];
   },
 
   partPromptWithTemplate(prompt, template, partIndex) {
@@ -350,6 +365,7 @@ window.GameModules.characterProfile = {
       prompt,
       format: prompt,
       repairHint: `只能返回缺失字段：${missing.join('、')}。不能新增其它字段。`,
+      requiredRawFields: this.partRequiredRawFields(partIndex, missing),
       parse: (text) => this.parse(text),
       validate: (raw) => {
         const clean = this.sanitizeByTemplate(raw, partialTemplate);
@@ -540,6 +556,7 @@ window.GameModules.characterProfile = {
       prompt,
       format: prompt,
       repairHint: this.metricGroupRepairHint(base, group, keys, evidence),
+      requiredRawFields: [group, 'key', 'value', 'status', 'reason', ...keys],
       parse: (text) => this.parseMetricGroup(text, group, keys),
       validate: (raw) => this.validateMetricGroup(raw?.[group] || raw?.items || raw, keys, { ...base, ...profile, group }),
     });
