@@ -23,7 +23,7 @@ window.GameModules.predefinedRoleCards = {
   identitySummary(card) {
     if (!card) return '未选择角色卡';
     const factions = (card.factions || []).map((x) => x.name || [x.faction, x.role].filter(Boolean).join(' / ')).filter(Boolean).join('；') || '未记录';
-    const forces = (card.forcePositions || card.force_positions || []).map((x) => x.name || [x.force, x.position].filter(Boolean).join(' / ')).filter(Boolean).join('；') || '未记录';
+    const forces = (card.force_positions || []).map((x) => x.name || [x.force, x.position].filter(Boolean).join(' / ')).filter(Boolean).join('；') || '未记录';
     return [`姓名：${card.name}`, `性别：${card.gender || '未记录'}`, `年龄：${card.age || '未记录'}`, `生日：${card.birthday || '未记录'}`, `身份：${card.role || '未记录'}`, `职业：${card.job || '未记录'}`, `社群角色：${factions}`, `势力地位：${forces}`, `关系：${card.relationships || '未记录'}`].join('\n');
   },
 
@@ -31,7 +31,7 @@ window.GameModules.predefinedRoleCards = {
     if (!card) return '';
     const emotions = (card.initialMetrics?.emotions || []).map((x) => `${x.key}${x.value}`).join('、') || '无';
     const feelings = (card.initialMetrics?.playerFeelings || []).map((x) => `${x.key}${x.value}`).join('、') || '无';
-    return [`人物说明：${card.detail || '无'}`, `外貌：${card.appearance || '无'}`, `性格：${card.personality || '无'}`, `技能：${(card.skills || []).map((x) => x.name).join('、') || '无'}`, `装备：${(card.equipment || []).map((x) => x.name).join('、') || '无'}`, `物品：${(card.items || []).map((x) => x.name).join('、') || '无'}`, `情绪数值：${emotions}`, `对玩家感情：${feelings}`].join('\n');
+    return [`人物说明：${card.detail || '无'}`, `外貌：${card.appearance || '无'}`, `性格：${card.personality || '无'}`, `技能：${(card.skills || []).map((x) => x.name).join('、') || '无'}`, `物品：${(card.items || []).map((x) => x.name).join('、') || '无'}`, `情绪数值：${emotions}`, `对玩家感情：${feelings}`].join('\n');
   },
 
   playerProfileFromCard(card, fallback = {}) {

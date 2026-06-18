@@ -7,7 +7,7 @@ window.GameModules.rpgFieldUi = {
   toggleRpgItem(field, index) { const key = this.rpgItemKey(field, index); if (key) this.expandedRpgFieldKey = this.expandedRpgFieldKey === key ? '' : key; },
   isRpgFieldOpen(field) { return this.expandedRpgFieldKey === this.rpgFieldKey(field); },
   isRpgItemOpen(field, index) { return this.expandedRpgFieldKey === this.rpgItemKey(field, index); },
-  isRpgListField(field) { return ['knowledge', 'skills', 'professions', 'factions', 'force_positions', 'equipment', 'items', 'wearing', 'status_tags'].includes(field?.key) && Array.isArray(field.raw); },
+  isRpgListField(field) { return ['knowledge', 'skills', 'professions', 'factions', 'force_positions', 'items', 'wearing', 'status_tags'].includes(field?.key) && Array.isArray(field.raw); },
   rpgFieldSummary(field) {
     if (!this.isRpgListField(field)) return `${field.label}：${Array.isArray(field.value) ? field.value.join('、') || '无' : field.value}`;
     const unit = { knowledge: '知识', skills: '技能', professions: '职业' }[field.key] || '项';
@@ -55,12 +55,12 @@ window.GameModules.rpgFieldUi = {
     const identity = this.profileIdentityFields(state, identityFields);
     const relations = identity.filter((field) => field.label === '人际关系' || /relationships|人际关系/.test(field.key));
     const identityRest = identity.filter((field) => !relations.includes(field));
-    const used = new Set(['world_tag', 'age', 'factions', 'force_positions', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'equipment', 'items', 'wearing', 'status_tags']);
+    const used = new Set(['world_tag', 'age', 'factions', 'force_positions', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'items', 'wearing', 'status_tags']);
     const personal = all.filter((field) => !used.has(field.key));
     const groups = [
       { title: '个人能力', fields: personal },
       { title: '身内能力', fields: take(['strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma']) },
-      { title: '装备与物品', fields: take(['equipment', 'items', 'wearing']) },
+      { title: '装备与物品', fields: take(['items', 'wearing']) },
       { title: '状态标签', fields: take(['status_tags']) },
       { title: '人际关系', fields: relations },
       { title: '身份信息', fields: [...identityRest, ...take(['world_tag', 'age', 'factions', 'force_positions'])] },
@@ -70,9 +70,9 @@ window.GameModules.rpgFieldUi = {
 
   lexiconKind(field, item = null) {
     if (item?.type) return item.type;
-    if (field?.key && !item) return { knowledge: '知识树', skills: '技能树', professions: '职业树', factions: '社群角色', force_positions: '势力地位', equipment: '装备', items: '物品', wearing: '穿着', status_tags: '状态' }[field.key] || field.kind || '属性';
+    if (field?.key && !item) return { knowledge: '知识树', skills: '技能树', professions: '职业树', factions: '社群角色', force_positions: '势力地位', items: '物品', wearing: '穿着', status_tags: '状态' }[field.key] || field.kind || '属性';
     if (field?.kind) return field.kind;
-    return { factions: '社群角色', force_positions: '势力地位', equipment: '装备', items: '物品', wearing: '穿着', status_tags: '状态' }[field?.key] || '属性';
+    return { factions: '社群角色', force_positions: '势力地位', items: '物品', wearing: '穿着', status_tags: '状态' }[field?.key] || '属性';
   },
 
   lexiconFor(field, item = null) {

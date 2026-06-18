@@ -15,7 +15,6 @@ Object.assign(window.GameModules.rpgLexicon, {
     this.collectLearned(entries, worldTag, '知识', values.knowledge, state?.profile?.rpgFieldReasons?.knowledge, state);
     this.collectLearned(entries, worldTag, '技能', values.skills, state?.profile?.rpgFieldReasons?.skills, state);
     this.collectLearned(entries, worldTag, '职业', values.professions, state?.profile?.rpgFieldReasons?.professions, state);
-    this.collectLearned(entries, worldTag, '装备', values.equipment, state?.profile?.rpgFieldReasons?.equipment, state);
     this.collectLearned(entries, worldTag, '物品', values.items, state?.profile?.rpgFieldReasons?.items, state);
     this.collectLearned(entries, worldTag, '穿着', values.wearing, state?.profile?.rpgFieldReasons?.wearing, state);
     for (const item of values.factions || []) {

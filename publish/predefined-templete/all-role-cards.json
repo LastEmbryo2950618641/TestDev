@@ -60,7 +60,7 @@
       "reason": "就读于该校高中部二年级。"
     }
   ],
-  "forcePositions": [
+  "force_positions": [
     {
       "force": "中华人民共和国",
       "position": "公民",
@@ -246,21 +246,23 @@
       "reason": "对细节敏感且有审美直觉，深圳设计行业活跃，可作为兴趣探索方向。"
     }
   ],
-  "equipment": [
+  "items": [
     {
       "name": "智能手机",
       "description": "常用智能手机，用于学习和社交",
+      "quantity": 1,
+      "type": "装备",
       "equipSlots": ["手持"],
       "reason": "现代高中生日常必需品。"
     },
     {
       "name": "双肩书包",
       "description": "浅蓝色学生书包，内装课本和文具",
+      "quantity": 1,
+      "type": "装备",
       "equipSlots": ["背部"],
       "reason": "学生日常上学使用。"
-    }
-  ],
-  "items": [
+    },
     {
       "name": "学生证",
       "description": "深圳外国语学校学生证",

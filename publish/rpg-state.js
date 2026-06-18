@@ -88,7 +88,7 @@ window.GameModules.rpgState = {
     schema.sections.forEach((section) => section.fields.forEach((field) => {
       if (state.values[field.key] === undefined) {
         if (field.key === 'free_attribute_points') state.values[field.key] = 0;
-        else if (field.key === 'level_growth') state.values[field.key] = { totalLevelUps: 0, autoPointsPerLevel: 2, freePointsPerLevel: 1, history: [] };
+        else if (field.key === 'level_growth') state.values[field.key] = { totalLevelUps: 0, autoPointsPerLevel: 1, freePointsPerLevel: 1, history: [] };
         else state.values[field.key] = ['health', 'stamina'].includes(field.key) ? 100 : this.valueFor(field, seed + field.key.length);
         changed = true;
       }
@@ -125,7 +125,7 @@ window.GameModules.rpgState = {
     let changed = false;
     const profile = state.profile;
     const factions = Array.isArray(profile.factions) ? profile.factions : [];
-    const forces = Array.isArray(profile.forcePositions) ? profile.forcePositions : (Array.isArray(profile.force_positions) ? profile.force_positions : []);
+    const forces = Array.isArray(profile.force_positions) ? profile.force_positions : [];
     if ((!Array.isArray(state.values.factions) || !state.values.factions.length) && factions.length) {
       state.values.factions = factions;
       changed = true;

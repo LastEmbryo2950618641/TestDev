@@ -70,7 +70,6 @@ window.GameModules.characterReasonFallback = {
       professions: `${name}的职业树只记录已有职业资格或长期训练经历，缺少证据时保持为空。`,
       skills: `${name}的技能来自人物资料、现实身份或当前生活经验，后续使用和训练会继续更新。`,
       knowledge: `${name}的知识储备来自教育、职业、生活经验和世界观背景，缺少证据的领域不强行添加。`,
-      equipment: `${name}的装备按身份、当前场景和可调用工具固化。`,
       items: `${name}的物品按日常携带和生活需要固化。`,
       wearing: `${name}的穿着按当前生活场景、身份和基础穿戴需求固化。`,
       factions: `${name}的社群角色来自住址、家庭、社交圈或当前处境。`,

@@ -19,9 +19,6 @@ window.GameModules.predefinedRoleCardData['liu-siqi'] = {
   "factions": [
     { "name": "刘悠家庭 / 妹妹", "faction": "刘悠家庭", "role": "妹妹", "reason": "刘思琪长期与刘悠和刘思瑶共同生活，家庭身份是她当前最核心的社群位置。", "changeMode": "角色卡初始固化" }
   ],
-  "forcePositions": [
-    { "name": "现实社会 / 成年学生", "force": "现实社会", "position": "成年学生", "reason": "刘思琪已满18岁并处于学生阶段，现实制度中的地位由年龄与学籍共同决定。", "changeMode": "角色卡初始固化" }
-  ],
   "force_positions": [
     { "name": "现实社会 / 成年学生", "force": "现实社会", "position": "成年学生", "reason": "刘思琪已满18岁并处于学生阶段，现实制度中的地位由年龄与学籍共同决定。", "changeMode": "角色卡初始固化" }
   ],
@@ -29,10 +26,8 @@ window.GameModules.predefinedRoleCardData['liu-siqi'] = {
     { "name": "活跃气氛", "desc": "能用玩笑和亲近举动缓和家庭气氛。", "reason": "刘思琪比刘思瑶更外向，常用活泼表现争取刘悠注意。", "changeMode": "角色卡初始固化" },
     { "name": "撒娇试探", "desc": "能通过撒娇、玩笑和距离感变化测试对方态度。", "reason": "刘思琪在同居生活中习惯用轻快方式试探哥哥边界。", "changeMode": "角色卡初始固化" }
   ],
-  "equipment": [
-    { "name": "智能手机", "type": "装备", "kind": "装备", "quantity": 1, "equipSlots": ["装备"], "reason": "刘思琪作为现代都市成年学生需要手机维持通讯、学习和家庭联系。", "changeMode": "角色卡初始固化", "level": -1 }
-  ],
   "items": [
+    { "name": "智能手机", "type": "装备", "kind": "装备", "quantity": 1, "equipSlots": ["装备"], "reason": "刘思琪作为现代都市成年学生需要手机维持通讯、学习和家庭联系。", "changeMode": "角色卡初始固化", "level": -1 },
     { "name": "学生证", "type": "物品", "kind": "物品", "quantity": 1, "reason": "学生证记录刘思琪的现实学生身份，日常出入校园和办理事务会用到。", "changeMode": "角色卡初始固化", "level": -1 }
   ],
   "wearing": [
@@ -82,8 +77,7 @@ window.GameModules.predefinedRoleCardData['liu-siqi'] = {
     "professions": "刘思琪职业等级来自大学一年级学生身份和基础学习经验。",
     "factions": "刘思琪社群角色来自刘悠家庭中的妹妹位置。",
     "force_positions": "刘思琪势力地位来自现实社会成年学生身份。",
-    "equipment": "刘思琪装备来自现代学生常用的智能手机。",
-    "items": "刘思琪物品来自学生证等现实身份凭证。",
+    "items": "刘思琪物品来自智能手机和学生证等现实身份凭证。",
     "wearing": "刘思琪的穿着来自她长期维持精致学生形象的习惯，也反映她想用活泼明亮的外观得到哥哥回应。",
     "status_tags": "刘思琪状态标签由成年妹妹、双胞胎、同居家庭和学生身份组成。",
     "control_experience": "刘思琪尚未经历玩家上线操控，体验记录保持初始。",

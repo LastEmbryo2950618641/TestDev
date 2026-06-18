@@ -14,7 +14,7 @@ window.GameModules.inventoryActions = {
   inventoryItems(state = this.inventoryTargetState()) {
     const v = this.inventoryValues(state);
     const tag = (kind, list) => (Array.isArray(list) ? list : []).map((item) => (typeof item === 'string' ? { name: item, kind } : { kind, ...item }));
-    return [...tag('装备', v.equipment), ...tag('物品', v.items)];
+    return [...tag('物品', v.items)];
   },
 
   wearingItems(state = this.inventoryTargetState()) {
@@ -118,8 +118,7 @@ window.GameModules.inventoryActions = {
       const kind = raw?.kind;
       const value = raw?.value && typeof raw.value === 'object' ? raw.value : {};
       const item = window.GameModules.progression.normalizeCarryItem({ ...value, name: raw?.name || value.name, slot: raw?.slot || value.slot, description: raw?.description || raw?.summary || value.description, changeMode: raw?.reason || raw?.changeMode || 'AI演算' }, kind);
-      if (kind === '装备') upsert(values.equipment, item);
-      if (kind === '物品') upsert(values.items, item);
+      if (kind === '物品' || kind === '装备') upsert(values.items, item);
       if (kind === '穿着') { this.writeWearingItem(values, item); changed = true; }
     }
     if (changed) await this.persistInventoryState(state);

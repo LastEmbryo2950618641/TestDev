@@ -15,7 +15,7 @@ Object.assign(window.GameModules.progression, {
 
   ensureProgressionNotes(values) {
     values.exp.curve = 'nextExp=round(100*level^1.65)';
-    for (const item of [...(values.factions || []), ...(values.force_positions || []), ...(values.equipment || []), ...(values.items || []), ...(values.wearing || []), ...(values.status_tags || [])]) {
+    for (const item of [...(values.factions || []), ...(values.force_positions || []), ...(values.items || []), ...(values.wearing || []), ...(values.status_tags || [])]) {
       if (item && typeof item === 'object' && Object.prototype.hasOwnProperty.call(item, 'level')) item.level = -1;
     }
     for (const item of [...(values.knowledge || []), ...(values.skills || []), ...(values.professions || [])]) {
@@ -101,7 +101,7 @@ Object.assign(window.GameModules.progression, {
     this.ensureIntrinsicSources(values);
     const applied = this.applyAutoIntrinsicGrowth(values, character, 2, 'level');
     values.free_attribute_points = Math.max(0, Number(values.free_attribute_points) || 0) + 1;
-    values.level_growth = values.level_growth || { totalLevelUps: 0, autoPointsPerLevel: 2, freePointsPerLevel: 1, history: [] };
+    values.level_growth = values.level_growth || { totalLevelUps: 0, autoPointsPerLevel: 1, freePointsPerLevel: 1, history: [] };
     values.level_growth.totalLevelUps += 1;
     values.level_growth.history = [{ from: before, to: values.level, auto: applied, free: 1, at: new Date().toISOString() }, ...(values.level_growth.history || [])].slice(0, 10);
     this.recalculatePools(values, true, character);

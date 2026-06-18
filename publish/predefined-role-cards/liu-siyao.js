@@ -19,9 +19,6 @@ window.GameModules.predefinedRoleCardData['liu-siyao'] = {
   "factions": [
     { "name": "刘悠家庭 / 妹妹", "faction": "刘悠家庭", "role": "妹妹", "reason": "刘思瑶长期与刘悠和刘思琪共同生活，家庭身份是她当前最稳定的社群位置。", "changeMode": "角色卡初始固化" }
   ],
-  "forcePositions": [
-    { "name": "现实社会 / 成年学生", "force": "现实社会", "position": "成年学生", "reason": "刘思瑶已满18岁并处于学生阶段，现实制度中的地位由年龄与学籍共同决定。", "changeMode": "角色卡初始固化" }
-  ],
   "force_positions": [
     { "name": "现实社会 / 成年学生", "force": "现实社会", "position": "成年学生", "reason": "刘思瑶已满18岁并处于学生阶段，现实制度中的地位由年龄与学籍共同决定。", "changeMode": "角色卡初始固化" }
   ],
@@ -29,10 +26,8 @@ window.GameModules.predefinedRoleCardData['liu-siyao'] = {
     { "name": "察言观色", "desc": "能从刘悠的语气和细节判断他的情绪。", "reason": "刘思瑶长期依赖哥哥生活，习惯观察刘悠反应来调整自己的言行。", "changeMode": "角色卡初始固化" },
     { "name": "家务协助", "desc": "能完成日常整理、简单料理和同居生活协助。", "reason": "刘思瑶与刘悠同住，需要在日常家庭分工中承担部分事务。", "changeMode": "角色卡初始固化" }
   ],
-  "equipment": [
-    { "name": "智能手机", "type": "装备", "kind": "装备", "quantity": 1, "equipSlots": ["装备"], "reason": "刘思瑶作为现代都市成年学生需要手机维持通讯、学习和家庭联系。", "changeMode": "角色卡初始固化", "level": -1 }
-  ],
   "items": [
+    { "name": "智能手机", "type": "装备", "kind": "装备", "quantity": 1, "equipSlots": ["装备"], "reason": "刘思瑶作为现代都市成年学生需要手机维持通讯、学习和家庭联系。", "changeMode": "角色卡初始固化", "level": -1 },
     { "name": "学生证", "type": "物品", "kind": "物品", "quantity": 1, "reason": "学生证记录刘思瑶的现实学生身份，日常出入校园和办理事务会用到。", "changeMode": "角色卡初始固化", "level": -1 }
   ],
   "wearing": [
@@ -82,8 +77,7 @@ window.GameModules.predefinedRoleCardData['liu-siyao'] = {
     "professions": "刘思瑶职业等级来自大学一年级学生身份和基础学习经验。",
     "factions": "刘思瑶社群角色来自刘悠家庭中的妹妹位置。",
     "force_positions": "刘思瑶势力地位来自现实社会成年学生身份。",
-    "equipment": "刘思瑶装备来自现代学生常用的智能手机。",
-    "items": "刘思瑶物品来自学生证等现实身份凭证。",
+    "items": "刘思瑶物品来自智能手机和学生证等现实身份凭证。",
     "wearing": "刘思瑶的穿着来自她长期维持精致学生形象的习惯，也反映她想被哥哥注意却保持克制的动机。",
     "status_tags": "刘思瑶状态标签由成年妹妹、双胞胎、同居家庭和学生身份组成。",
     "control_experience": "刘思瑶尚未经历玩家上线操控，体验记录保持初始。",

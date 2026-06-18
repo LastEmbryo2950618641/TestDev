@@ -18,51 +18,21 @@
       "description": "小包便携纸巾",
       "quantity": 1,
       "reason": "日常随身物品。"
-    },
-    {
-      "name": "双肩书包",
-      "description": "浅蓝色学生书包，内装课本和文具",
-      "quantity": 1,
-      "reason": "学生日常上学使用。"
-    },
-    {
-      "name": "单手剑",
-      "description": "中世纪单手剑",
-      "quantity": 1,
-      "reason": "喜欢近战。"
-    },
-    {
-      "name": "头盔",
-      "description": "中世纪头盔",
-      "quantity": 1,
-      "reason": "喜欢近战。"
     }
   ],
-  "wearing": {
-    "head": { "bodyPart": "头部", "name": "发卡", "description": "浅蓝色简约发卡", "reason": "固定刘海用。" },
-    "neck": { "bodyPart": "颈部", "name": "", "description": "", "reason": "上学日不佩戴颈饰。" },
-    "innerwearTop": { "bodyPart": "胸部", "name": "学生内衣", "description": "白色棉质学生内衣", "reason": "日常上学穿着。" },
-    "top": { "bodyPart": "躯干", "name": "校服上衣", "description": "深圳外国语学校白色短袖校服", "reason": "上学日统一着装。" },
-    "outerwear": { "bodyPart": "躯干(外)", "name": "校服外套", "description": "深圳外国语学校深蓝色校服外套", "reason": "教室空调冷时穿着。" },
-    "gloves": { "bodyPart": "手部", "name": "", "description": "", "reason": "六月深圳天气炎热，不需戴手套。" },
-    "waist": { "bodyPart": "腰部", "name": "", "description": "", "reason": "校服长裤自带松紧腰，不需腰带。" },
-    "innerwearBottom": { "bodyPart": "腰臀", "name": "学生内裤", "description": "浅色棉质内裤", "reason": "日常上学穿着。" },
-    "bottom": { "bodyPart": "腿部", "name": "校服长裤", "description": "深圳外国语学校深蓝色校服长裤", "reason": "上学日统一着装。" },
-    "socks": { "bodyPart": "脚踝", "name": "白色短袜", "description": "白色棉质短袜", "reason": "搭配校服穿着。" },
-    "shoes": { "bodyPart": "脚部", "name": "白色运动鞋", "description": "白色帆布运动鞋", "reason": "学生日常通勤穿着。" },
-    "wrist": { "bodyPart": "手腕", "name": "华为电子手表", "description": "华为最新电子手表", "reason": "喜欢高科技。" },
-    "slot": [
-      { "slot": "手持", "bodyPart": "手部", "name": "智能手机", "description": "常用智能手机，用于学习和社交", "reason": "现代高中生日常必需品。" },
-      { "slot": "尾饰", "bodyPart": "腰椎", "name": "猫尾", "description": "黑色猫尾", "reason": "喜欢cosplay。" }
-    ]
-  },
+  "wearing": [
+    { "slot": "上衣", "name": "校服上衣", "description": "深圳外国语学校白色短袖校服", "reason": "上学日统一着装。" },
+    { "slot": "下衣", "name": "校服长裤", "description": "深圳外国语学校深蓝色校服长裤", "reason": "上学日统一着装。" },
+    { "slot": "袜子", "name": "白色短袜", "description": "白色棉质短袜", "reason": "搭配校服穿着。" },
+    { "slot": "鞋子", "name": "白色运动鞋", "description": "白色帆布运动鞋", "reason": "学生日常通勤穿着。" }
+  ],
   "rpgField": {
     "level": { "value": 3, "reason": "十六岁高中女生，生活经验有限，未受专业训练。" },
     "intrinsicBase": {
       "strength": { "value": 5, "description": "力量处于普通高中女生水平，能搬运日常重物但无法完成超出常人的力量表现。", "reason": "十六岁女生，肌肉力量低于成年平均水平。" },
       "agility": { "value": 8, "description": "敏捷接近训练有素的人类上限，体育课各项动作完成度较高，反应速度在同龄人中偏快。", "reason": "年轻身体灵活，日常体育课维持基本敏捷。" },
       "constitution": { "value": 7, "description": "体质处于普通健康青少年水平，能应对日常体能活动，但缺乏系统性耐力训练。", "reason": "年轻健康但体能训练有限，体质处于正常偏弱水平。" },
-      "intelligence": { "description": "智力处于优秀专业者水平，能独立理解和推理较复杂问题，学业成绩中上。", "reason": "就读外国语学校，学业表现中上，理解和推理能力良好。", "value": 9 },
+      "intelligence": { "value": 9, "description": "智力处于优秀专业者水平，能独立理解和推理较复杂问题，学业成绩中上。", "reason": "就读外国语学校，学业表现中上，理解和推理能力良好。" },
       "perception": { "value": 10, "description": "感知达到敏锐人类上限，对周围人事细节敏感，能察觉他人情绪变化。", "reason": "性格内向但观察力强，对周围人事细节敏感。" },
       "willpower": { "value": 6, "description": "意志处于普通人中等水平，能坚持日常学习但面对较大压力时容易动摇。", "reason": "心思细腻但容易被动，面对压力时意志力中等偏弱。" },
       "charisma": { "value": 7, "description": "魅力处于普通偏上水平，面容清秀对异性有一定吸引力，但性格内向限制了社交主动性。", "reason": "面容清秀但性格内向，魅力受社交主动性限制。" }

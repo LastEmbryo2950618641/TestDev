@@ -22,7 +22,7 @@ window.GameModules.progression = {
       { title: '习得与职业', fields: [
         this.field('knowledge', '知识储备', 'list', 0, 100, '已掌握的知识领域及等级。'), this.field('skills', '技能等级', 'list', 0, 100, '经过学习或训练获得的技能等级。'),
         this.field('professions', '职业等级', 'list', 0, 100, '已内化的职业能力、经验与胜任资格。'), this.field('factions', '社群角色', 'list', 0, 100, '所属社群与在其中承担的社会角色。'),
-        this.field('force_positions', '势力地位', 'list', 0, 100, '在有层级制度势力中的等级、职级、年级或职位。'), this.field('equipment', '装备', 'list', 0, 100, '当前持有或可调用的重要装备。'), this.field('status_tags', '状态标签', 'list', 0, 100, '当前处境、身份标签或剧情状态。'),
+        this.field('force_positions', '势力地位', 'list', 0, 100, '在有层级制度势力中的等级、职级、年级或职位。'), this.field('status_tags', '状态标签', 'list', 0, 100, '当前处境、身份标签或剧情状态。'),
         this.field('control_experience', '上线体验', 'text', 0, 100, '角色对被玩家上线操控的经历记录。'), this.field('derived', '攻防衍生', 'text', 0, 100, '由基础能力推导出的攻防表现。'),
         this.field('combat_simulation', '战斗模拟', 'text', 0, 100, '基于当前状态估算的一次战斗表现。'),
       ] },
@@ -40,7 +40,7 @@ window.GameModules.progression = {
   normalizeCharacterExp(exp, level, fallbackCurrent = 0) { const next = this.nextCharacterExp(level); return { current: this.clamp(exp?.current ?? fallbackCurrent, 0, next), next, curve: 'nextExp=round(100*level^1.65)' }; },
   ensureProgressionNotes(values) {
     if (!values) return; if (values.exp) values.exp.curve = 'nextExp=round(100*level^1.65)';
-    for (const item of [...(values.factions || []), ...(values.force_positions || []), ...(values.equipment || []), ...(values.items || []), ...(values.wearing || []), ...(values.status_tags || [])]) if (item && typeof item === 'object' && Object.prototype.hasOwnProperty.call(item, 'level')) item.level = -1;
+    for (const item of [...(values.factions || []), ...(values.force_positions || []), ...(values.items || []), ...(values.wearing || []), ...(values.status_tags || [])]) if (item && typeof item === 'object' && Object.prototype.hasOwnProperty.call(item, 'level')) item.level = -1;
   },
 
   ensureStateMechanics(state, character = state?.profile || {}) {
@@ -52,7 +52,7 @@ window.GameModules.progression = {
     if (incomplete) { Object.assign(values, this.createValues(character, seed, values)); changed = true; }
     const normalizedExp = this.normalizeCharacterExp(values.exp, values.level, seed % 60);
     if (!values.exp?.next || values.exp.next !== normalizedExp.next || values.exp.curve !== normalizedExp.curve) { values.exp = normalizedExp; changed = true; }
-    if (!values.level_growth) { values.free_attribute_points = 0; values.level_growth = { totalLevelUps: 0, autoPointsPerLevel: 2, freePointsPerLevel: 1, history: [] }; changed = true; }
+    if (!values.level_growth) { values.free_attribute_points = 0; values.level_growth = { totalLevelUps: 0, autoPointsPerLevel: 1, freePointsPerLevel: 1, history: [] }; changed = true; }
     if (this.ensureIntrinsicSources(values)) changed = true;
     if (this.normalizeFreeAttributePoints(values)) changed = true;
     if (this.normalizeLearnedLists(values)) changed = true;
@@ -78,7 +78,7 @@ window.GameModules.progression = {
       level,
       exp: this.normalizeCharacterExp(existing.exp, level, seed % 60),
       free_attribute_points: 0,
-      level_growth: { totalLevelUps: 0, autoPointsPerLevel: 2, freePointsPerLevel: 1, history: [] },
+      level_growth: { totalLevelUps: 0, autoPointsPerLevel: 1, freePointsPerLevel: 1, history: [] },
       intrinsic_sources: this.createIntrinsicSources(intrinsic),
       vitality: existing.vitality?.max ? existing.vitality : this.pool(existing.health ?? vitalityMax, vitalityMax),
       stamina_pool: existing.stamina_pool?.max ? existing.stamina_pool : this.pool(existing.stamina ?? staminaMax, staminaMax),
@@ -134,7 +134,6 @@ window.GameModules.progression = {
     return character.faction ? [social?.item?.(character.faction, character.factionRole || character.role || '成员') || character.faction] : [character.role || '无'].filter((x) => x && x !== '无');
   },
   forcePositions(character) {
-    if (Array.isArray(character.forcePositions) && character.forcePositions.length) return character.forcePositions;
     if (Array.isArray(character.force_positions) && character.force_positions.length) return character.force_positions;
     return [];
   },

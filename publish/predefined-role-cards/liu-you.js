@@ -22,10 +22,6 @@ window.GameModules.predefinedRoleCardData['liu-you'] = {
     { "name": "成都现代都市职场 / 程序工程师", "faction": "成都现代都市职场", "role": "程序工程师", "reason": "刘悠在成都从事程序工程师工作，职场身份来自默认资料中的学历和现实职业。", "changeMode": "角色卡初始固化" },
     { "name": "刘悠家庭 / 家庭支柱", "faction": "刘悠家庭", "role": "家庭支柱", "reason": "父母已故后刘悠承担照顾两名成年妹妹和维持家庭生活的责任。", "changeMode": "角色卡初始固化" }
   ],
-  "forcePositions": [
-    { "name": "成都软件研发公司 / 程序工程师", "force": "成都软件研发公司", "position": "程序工程师", "reason": "刘悠的现实势力地位由其程序工程师工作与硕士学历共同确定。", "changeMode": "角色卡初始固化" },
-    { "name": "中华人民共和国 / 公民", "force": "中华人民共和国", "position": "公民", "reason": "刘悠是中华人民共和国境内现实生活的成年人，依法具有中华人民共和国公民身份。", "changeMode": "角色卡初始固化" }
-  ],
   "force_positions": [
     { "name": "成都软件研发公司 / 程序工程师", "force": "成都软件研发公司", "position": "程序工程师", "reason": "刘悠的现实势力地位由其程序工程师工作与硕士学历共同确定。", "changeMode": "角色卡初始固化" },
     { "name": "中华人民共和国 / 公民", "force": "中华人民共和国", "position": "公民", "reason": "刘悠是中华人民共和国境内现实生活的成年人，依法具有中华人民共和国公民身份。", "changeMode": "角色卡初始固化" }
@@ -34,11 +30,9 @@ window.GameModules.predefinedRoleCardData['liu-you'] = {
     { "name": "程序开发", "desc": "能设计、编写、调试和维护软件系统。", "reason": "刘悠是计算机科学与技术硕士出身的程序工程师，长期工作形成程序开发能力。", "changeMode": "角色卡初始固化" },
     { "name": "家庭管理", "desc": "能规划生活开支、家务安排和妹妹们的日常照顾。", "reason": "刘悠父母已故后承担家庭支柱职责，需要管理同居家庭的现实事务。", "changeMode": "角色卡初始固化" }
   ],
-  "equipment": [
-    { "name": "智能手机", "type": "装备", "kind": "装备", "quantity": 1, "equipSlots": ["装备"], "reason": "刘悠激活新手机并以手机作为现实行动与通讯入口。", "changeMode": "角色卡初始固化", "level": -1 },
-    { "name": "笔记本电脑", "type": "装备", "kind": "装备", "quantity": 1, "equipSlots": ["装备"], "reason": "刘悠作为程序工程师需要笔记本电脑处理开发、调试和资料查阅。", "changeMode": "角色卡初始固化", "level": -1 }
-  ],
   "items": [
+    { "name": "智能手机", "type": "装备", "kind": "装备", "quantity": 1, "equipSlots": ["装备"], "reason": "刘悠激活新手机并以手机作为现实行动与通讯入口。", "changeMode": "角色卡初始固化", "level": -1 },
+    { "name": "笔记本电脑", "type": "装备", "kind": "装备", "quantity": 1, "equipSlots": ["装备"], "reason": "刘悠作为程序工程师需要笔记本电脑处理开发、调试和资料查阅。", "changeMode": "角色卡初始固化", "level": -1 },
     { "name": "身份证", "type": "物品", "kind": "物品", "quantity": 1, "reason": "身份证记录刘悠在现实社会中的合法身份和年龄信息。", "changeMode": "角色卡初始固化", "level": -1 },
     { "name": "家门钥匙", "type": "物品", "kind": "物品", "quantity": 1, "reason": "家门钥匙来自刘悠与双胞胎妹妹同居的固定住所。", "changeMode": "角色卡初始固化", "level": -1 }
   ],
@@ -89,8 +83,7 @@ window.GameModules.predefinedRoleCardData['liu-you'] = {
     "professions": "刘悠职业等级来自程序工程师岗位和多年研发经验。",
     "factions": "刘悠社群角色来自成都现代都市职场和刘悠家庭。",
     "force_positions": "刘悠势力地位来自成都软件研发公司的程序工程师职位。",
-    "equipment": "刘悠装备来自智能手机和程序工程师常用笔记本电脑。",
-    "items": "刘悠物品来自身份证、家门钥匙等现实生活必备物。",
+    "items": "刘悠物品来自智能手机、笔记本电脑和身份证、家门钥匙等现实生活必备物。",
     "wearing": "刘悠穿着来自现代程序工程师通勤和居家场景。",
     "status_tags": "刘悠状态标签由手机主人、程序工程师、家庭支柱和哥哥身份组成。",
     "control_experience": "刘悠尚未经历上线操控，体验记录保持初始。",

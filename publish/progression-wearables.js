@@ -101,20 +101,19 @@ window.GameModules = window.GameModules || {};
 
     ensureInventoryFields(values) {
       if (!values) return false;
-      const before = JSON.stringify({ equipment: values.equipment, items: values.items, wearing: values.wearing });
-      values.equipment = (Array.isArray(values.equipment) ? values.equipment : []).map((item) => this.normalizeCarryItem(item, '装备'));
-      values.items = (Array.isArray(values.items) ? values.items : []).map((item) => this.normalizeCarryItem(item, '物品'));
+      const before = JSON.stringify({ items: values.items, wearing: values.wearing });
+      values.items = (Array.isArray(values.items) ? values.items : []).map((item) => this.normalizeCarryItem(item, item.type || '物品'));
       values.wearing = this.defaultWearing(values.wearing);
-      return before !== JSON.stringify({ equipment: values.equipment, items: values.items, wearing: values.wearing });
+      return before !== JSON.stringify({ items: values.items, wearing: values.wearing });
     },
 
     schemaSections(attrs) {
       return baseSchemaSections(attrs).map((section) => {
         if (section.title !== '习得与职业') return section;
         const fields = [...section.fields];
-        const insertAfter = fields.findIndex((field) => field.key === 'equipment') + 1;
+        const insertAfter = fields.findIndex((field) => field.key === 'force_positions') + 1;
         const additions = [
-          this.field('items', '物品', 'list', 0, 100, '当前持有、可消耗、可转让或可用于现实行动的普通物品。'),
+          this.field('items', '物品', 'list', 0, 100, '当前持有、可消耗、可转让或可用于现实行动的物品与装备。'),
           this.field('wearing', '穿着', 'list', 0, 100, '当前穿戴在各身体部位、饰品位和装备位的衣物、装备、饰品与包具。'),
         ].filter((field) => !fields.some((item) => item.key === field.key));
         fields.splice(insertAfter || fields.length, 0, ...additions);
@@ -124,7 +123,6 @@ window.GameModules = window.GameModules || {};
 
     createValues(character, seed, existing) {
       const values = baseCreateValues(character, seed, existing || {});
-      values.equipment = values.equipment?.length ? values.equipment : (character.equipment || []);
       values.items = values.items?.length ? values.items : (character.items || []);
       values.wearing = values.wearing?.length ? values.wearing : (character.wearing || []);
       this.ensureInventoryFields(values);

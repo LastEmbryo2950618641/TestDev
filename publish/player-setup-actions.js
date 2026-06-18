@@ -135,7 +135,6 @@ window.GameModules.playerSetupActions = {
       parentDeathCause: noParents ? cause : cause,
       worldbuildingNote: String(data?.worldbuildingNote || `${base.age}岁的${role}，就职/活动于${workplace}，地位为${position}。`).slice(0, 120),
       knownProfessions: this.normalizeKnownProfessionHints(data?.knownProfessions),
-      equipment: this.normalizeCarryHints(data?.equipment, '装备'),
       items: this.normalizeCarryHints(data?.items, '物品'),
       wearing: this.normalizeWearingHints(data?.wearing),
       profileEnrichedAt: new Date().toISOString(),

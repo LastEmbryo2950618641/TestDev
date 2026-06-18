@@ -161,7 +161,7 @@ window.GameModules.jsonUtils = {
   },
 
   pickStringField(text, key) {
-    const playerNext = 'refinedCity|refinedRole|workplace|position|refinedLivingStatus|relationships|parentStatus|parentDeathCause|worldbuildingNote|knownProfessions|equipment|items|wearing|profileEnrichedAt';
+    const playerNext = 'refinedCity|refinedRole|workplace|position|refinedLivingStatus|relationships|parentStatus|parentDeathCause|worldbuildingNote|knownProfessions|items|wearing|profileEnrichedAt';
     const next = `thinking|narration|speech|mind|mood|quest|characterIntent|controlFeeling|controlExperienceSummary|choices|metricUpdates|appearedCharacters|statChanges|combatEvent|elapsedSeconds|trust|resistance|controlAdaptation|${playerNext}`;
     const match = text.match(new RegExp(`"${key}"\\s*:\\s*"([\\s\\S]*?)(?:"\\s*,\\s*"(?:${next})"\\s*:|"\\s+"(?:${next})"\\s*:|"\\s*[,}])`));
     return match ? match[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').trim() : '';
