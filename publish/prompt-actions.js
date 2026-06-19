@@ -17,8 +17,8 @@ window.GameModules.promptActions = {
   closePromptApp() { if (this.promptState) this.promptState.open = false; this.closeAppToDesktop(); },
   promptDrawItems() {
     return [
-      { id: 'draw-wechat-album-natural', title: '微信相册图片生成｜自然状态', category: '图片生成', file: 'wechat-album-actions.js', summary: '按当前选中联系人生成自然状态全身正面照绘图提示词。', drawKind: 'natural' },
-      { id: 'draw-wechat-album-dressed', title: '微信相册图片生成｜盛装状态', category: '图片生成', file: 'wechat-album-actions.js', summary: '按当前选中联系人生成盛装状态全身正面照绘图提示词。', drawKind: 'dressed' },
+      { id: 'draw-wechat-album-natural', title: '微信相册图片生成｜自然状态', category: '图片生成', file: 'prompts/picture_generate/wechat-album-photo.md', summary: '按当前选中联系人替换 {角色身份信息} 与 {自然状态部位描述}。', drawKind: 'natural' },
+      { id: 'draw-wechat-album-dressed', title: '微信相册图片生成｜盛装状态', category: '图片生成', file: 'prompts/picture_generate/wechat-album-photo.md', summary: '按当前选中联系人替换 {角色身份信息} 与 {盛装部位描述}。', drawKind: 'dressed' },
     ];
   },
   promptRuntimeItems() {
@@ -58,6 +58,11 @@ window.GameModules.promptActions = {
     return this.promptAllItems().find((item) => item.id === id) || window.GameModules.promptTemplates.find(id);
   },
   closePromptDetail() { if (this.promptState) { this.promptState.selectedId = ''; this.promptState.selectedText = ''; this.promptState.error = ''; } },
+  promptDrawDetailText(contact, kind) {
+    const template = window.GameModules.pictureGeneratePrompts?.wechatAlbumPhoto || '';
+    const finalPrompt = this.wechatAlbumPhotoPrompt?.(contact, kind) || '微信相册图片生成提示词函数未加载。';
+    return [`【Markdown 模板】\n${template || '图片生成提示词模板未加载。'}`, `【当前联系人替换后】\n${finalPrompt}`].join('\n\n---\n\n');
+  },
   async togglePromptDetail(id) {
     this.initPromptApp();
     if (this.promptState.selectedId === id) { this.promptState.selectedId = ''; this.promptState.selectedText = ''; return; }
@@ -65,7 +70,7 @@ window.GameModules.promptActions = {
     const drawItem = this.promptDrawItems().find((item) => item.id === id);
     if (drawItem) {
       const contact = this.wechatProfileContact?.() || this.wechatSelected?.() || { id: 'player-self', name: this.playerName || '联系人', mark: '联' };
-      this.promptState.selectedText = this.wechatAlbumPhotoPrompt?.(contact, drawItem.drawKind) || '微信相册图片生成提示词函数未加载。';
+      this.promptState.selectedText = this.promptDrawDetailText(contact, drawItem.drawKind);
       this.promptState.loading = false;
       return;
     }

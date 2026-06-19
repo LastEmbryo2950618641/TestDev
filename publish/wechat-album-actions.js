@@ -99,23 +99,40 @@ window.GameModules.wechatAlbumActions = {
     this.save?.();
   },
 
-  wechatAlbumPhotoPrompt(contact, kind = 'natural') {
-    const state = this.rpgStates?.[contact.id] || window.GameModules.sqliteSave?.getCharacterState?.(contact.id) || {};
-    const profile = state.profile || {};
-    const body = kind === 'dressed' ? profile.dressedProfile : profile.bodyProfile;
-    const bodyText = Array.isArray(body) ? body.map((item) => `${item.part || item.name || '部位'}：${item.description || ''}`).join('\n') : '未记录';
+  wechatAlbumIdentityInfo(contact, state = {}, profile = {}) {
     return [
-      '请根据以下角色个人身份信息生成一张全身正面照。',
-      '画面要求：单人、全身、正面站姿、清晰面部、完整身体比例、干净背景、无文字、无水印、高质量二次元风格。',
-      `生成类型：${kind === 'dressed' ? '盛装状态' : '自然状态'}`,
-      `姓名：${profile.name || contact.name}`,
-      `身份：${profile.role || profile.job || contact.relation || '微信联系人'}`,
+      `姓名：${profile.name || contact.name || '未记录'}`,
+      `身份：${profile.role || contact.relation || '微信联系人'}`,
       `性别：${profile.gender || '未记录'}`,
       `年龄/生日：${profile.age || state.values?.age || '未记录'} / ${profile.birthday || '未记录'}`,
       `职业：${profile.job || '未记录'}`,
       `外貌：${profile.appearance || '未记录'}`,
       `性格：${profile.personality || '未记录'}`,
-      `${kind === 'dressed' ? '盛装信息' : '自然状态信息'}：\n${bodyText}`,
-    ].join('\n').slice(0, 2000);
+      `人物说明：${profile.detail || profile.description || '未记录'}`,
+      `人际关系：${profile.relationships || contact.relation || '未记录'}`,
+    ].join('\n');
+  },
+
+  wechatAlbumBodyText(body) {
+    return Array.isArray(body) && body.length ? body.map((item) => `${item.part || item.name || '部位'}：${item.description || item.detail || '未记录'}`).join('\n') : '未记录';
+  },
+
+  renderWechatAlbumPrompt(template, vars) {
+    return String(template || '').replace(/\{角色身份信息\}/g, vars.identityInfo)
+      .replace(/\{自然状态部位描述\}/g, vars.naturalText)
+      .replace(/\{盛装部位描述\}/g, vars.dressedText)
+      .replace(/\{生成状态\}/g, vars.stateName)
+      .replace(/\{状态部位描述\}/g, vars.bodyText);
+  },
+
+  wechatAlbumPhotoPrompt(contact, kind = 'natural') {
+    const state = this.rpgStates?.[contact.id] || window.GameModules.sqliteSave?.getCharacterState?.(contact.id) || {};
+    const profile = state.profile || {};
+    const identityInfo = this.wechatAlbumIdentityInfo(contact, state, profile);
+    const naturalText = this.wechatAlbumBodyText(profile.bodyProfile);
+    const dressedText = this.wechatAlbumBodyText(profile.dressedProfile);
+    const stateName = kind === 'dressed' ? '盛装状态' : '自然状态';
+    const template = window.GameModules.pictureGeneratePrompts?.wechatAlbumPhoto || '请根据以下角色个人身份信息与{生成状态}部位描述生成一张全身正面照。\n\n{角色身份信息}\n\n{状态部位描述}';
+    return this.renderWechatAlbumPrompt(template, { identityInfo, naturalText, dressedText, stateName, bodyText: kind === 'dressed' ? dressedText : naturalText }).slice(0, 2600);
   },
 };
