@@ -5,7 +5,7 @@ window.GameModules.tokenStats = {
   seq: 0,
   maxRecords: 120,
   modelPrices: {},
-  defaultState() { return { open: false, query: '', category: '', selectedId: '', selectedTab: 'prompt' }; },
+  defaultState() { return { open: false, query: '', category: '', categoryMenuOpen: false, selectedId: '', selectedTab: 'prompt' }; },
   priceValue(price) {
     const match = String(price ?? '').match(/[\d.]+/);
     const value = match ? Number(match[0]) : Number(price);
@@ -60,11 +60,13 @@ window.GameModules.tokenStats = {
       model,
       price: this.modelPrices?.[model] || 1,
       credits: this.estimateCredits(tokens, model),
-      title: this.titleForSource(promptId, item),
-      category: item?.category || '未分类',
-      summary: item?.summary || '',
-      file: item?.file || '',
+      title: meta.title || this.titleForSource(promptId, item),
+      category: meta.category || item?.category || '未分类',
+      summary: meta.summary || item?.summary || '',
+      file: meta.file || item?.file || '',
+      kind: meta.kind || 'completion',
       responseText: String(meta.responseText || ''),
+      responseImages: Array.isArray(meta.responseImages) ? meta.responseImages.filter(Boolean) : [],
       createdAt,
       updatedAt: new Date(createdAt).toLocaleString('zh-CN'),
     };
@@ -72,12 +74,18 @@ window.GameModules.tokenStats = {
     if (this.records.length > this.maxRecords) this.records.length = this.maxRecords;
     return record.id;
   },
-  recordResponse(recordId, responseText) {
+  recordResponse(recordId, responseText, responseImages = []) {
     const record = this.item(recordId);
-    if (record) record.responseText = String(responseText || '');
+    if (!record) return;
+    record.responseText = String(responseText || '');
+    if (Array.isArray(responseImages)) record.responseImages = responseImages.filter(Boolean);
   },
   item(recordId) { return this.records.find((item) => item.id === recordId) || null; },
-  categories() { return [...new Set(window.GameModules.promptTemplates.list().map((item) => item.category))]; },
+  categories() {
+    const templateCategories = window.GameModules.promptTemplates.list().map((item) => item.category);
+    const recordCategories = this.records.map((item) => item.category);
+    return [...new Set([...templateCategories, ...recordCategories].filter(Boolean))];
+  },
   list({ query = '', category = '' } = {}) {
     const q = String(query || '').trim().toLowerCase();
     return this.records.filter((item) => {
@@ -109,11 +117,18 @@ window.GameModules.tokenStatsActions = {
     return window.GameModules.tokenStats.list({ query: this.tokenStatsState.query, category: this.tokenStatsState.category });
   },
   tokenPromptCategories() { return window.GameModules.tokenStats.categories(); },
+  tokenCategoryLabel() { return this.tokenStatsState?.category || '全部分类'; },
+  selectTokenCategory(category = '') {
+    this.initTokenStatsApp();
+    this.tokenStatsState.category = category;
+    this.tokenStatsState.categoryMenuOpen = false;
+  },
   openTokenPromptDetail(id) { this.initTokenStatsApp(); this.tokenStatsState.selectedId = id; this.tokenStatsState.selectedTab = 'prompt'; },
   closeTokenPromptDetail() { if (this.tokenStatsState) this.tokenStatsState.selectedId = ''; },
   currentTokenPromptRecord() { return window.GameModules.tokenStats.item(this.tokenStatsState?.selectedId); },
   tokenPromptText(id) { return window.GameModules.tokenStats.item(id)?.text || '暂无请求记录。先触发对应 AI 生成流程后，这里会显示变量已替换的完整提示词。'; },
   tokenResponseText(id) { return window.GameModules.tokenStats.item(id)?.responseText || '暂无 AI 返回值。请求完成后这里会显示原始返回内容。'; },
+  tokenResponseImages(id) { return window.GameModules.tokenStats.item(id)?.responseImages || []; },
   tokenPromptDetailText() { const id = this.tokenStatsState?.selectedId; return this.tokenStatsState?.selectedTab === 'response' ? this.tokenResponseText(id) : this.tokenPromptText(id); },
   tokenPromptCostText(id) { const stat = window.GameModules.tokenStats.item(id); return stat ? `输入${stat.inputTokens || stat.tokens} + 预留输出${stat.outputTokens || 0} token｜模型${stat.model || '未知'}×${stat.price || 1}｜约 ${stat.credits} 积分` : '未生成'; },
 };

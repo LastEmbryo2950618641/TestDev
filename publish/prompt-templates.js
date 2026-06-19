@@ -50,7 +50,7 @@ window.GameModules.promptTemplates = {
     try { return String(location.origin) === 'null' || String(location.href).startsWith('blob:'); }
     catch (_) { return false; }
   },
-  defaultState() { return { open: false, query: '', category: '', selectedId: '', selectedText: '', loading: false, error: '' }; },
+  defaultState() { return { open: false, query: '', category: '', categoryMenuOpen: false, selectedId: '', selectedText: '', loading: false, error: '' }; },
   list() { return this.items; },
   find(id) { return this.items.find((item) => item.id === id) || this.items[0]; },
   snapshot(id) {

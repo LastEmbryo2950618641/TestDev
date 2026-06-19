@@ -25,6 +25,12 @@ window.GameModules.promptActions = {
     });
   },
   promptCategories() { return [...new Set(window.GameModules.promptTemplates.list().map((item) => item.category))]; },
+  promptCategoryLabel() { return this.promptState?.category || '全部分类'; },
+  selectPromptCategory(category = '') {
+    this.initPromptApp();
+    this.promptState.category = category;
+    this.promptState.categoryMenuOpen = false;
+  },
   isPromptOpen(id) { return this.promptState?.selectedId === id; },
   currentPromptItem() { return window.GameModules.promptTemplates.find(this.promptState?.selectedId); },
   closePromptDetail() { if (this.promptState) { this.promptState.selectedId = ''; this.promptState.selectedText = ''; this.promptState.error = ''; } },

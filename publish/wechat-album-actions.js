@@ -50,12 +50,21 @@ window.GameModules.wechatAlbumActions = {
     try {
       await this.ensureWechatUserProfile?.(contact);
       const prompt = this.wechatAlbumPhotoPrompt(contact, kind);
-      const result = await this.wechatDrawWithRetry(() => window.dzmm.draw.generate({
+      const drawOptions = {
         prompt,
         dimension: '2:3',
         model: 'anime',
         negativePrompt: 'lowres, bad anatomy, bad hands, text, error, missing fingers, worst quality, low quality, jpeg artifacts, watermark, blurry',
-      }));
+      };
+      const tokenRecordId = window.GameModules.tokenStats?.record?.(`draw-wechat-album-${kind}`, prompt, {
+        model: drawOptions.model,
+        title: `微信相册图片生成｜${contact.name || '联系人'}｜${kind === 'dressed' ? '盛装状态' : '自然状态'}`,
+        category: '图片生成',
+        summary: '微信联系人相册全身正面照绘图请求。',
+        kind: 'draw',
+      });
+      const result = await this.wechatDrawWithRetry(() => window.dzmm.draw.generate(drawOptions));
+      window.GameModules.tokenStats?.recordResponse?.(tokenRecordId, JSON.stringify(result || {}, null, 2), result?.images || []);
       if (reqId !== this.wechatAlbumRequestId) return;
       const url = result?.images?.[0] || '';
       if (!url) throw new Error('图片生成完成但没有返回图片');
