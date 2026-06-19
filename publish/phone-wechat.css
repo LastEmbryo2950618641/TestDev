@@ -582,6 +582,32 @@
   line-height: 1.5;
 }
 
+.wechat-image-offer {
+  width: 168px;
+  aspect-ratio: 4 / 3;
+  display: grid;
+  place-items: center;
+  border: 1px dashed #9fd8b6;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fff, #eef9f2);
+  color: #07a34f;
+  font-weight: 900;
+}
+
+.wechat-image-offer::before {
+  content: '↓';
+  display: block;
+  margin-bottom: 6px;
+  font-size: 24px;
+}
+
+.wechat-message-image {
+  width: min(220px, 100%);
+  border-radius: 10px;
+  display: block;
+  background: #fff;
+}
+
 .wechat-msg.self > div {
   justify-items: end;
 }

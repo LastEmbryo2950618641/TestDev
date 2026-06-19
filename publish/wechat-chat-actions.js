@@ -100,6 +100,7 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatChatActi
       await this.applyInventoryUpdatesToState?.(state, result.lexiconUpdates || []);
       this.advancePhoneTime?.(result.elapsedSeconds || 60);
       this.appendWechatMessage(characterId, { side: 'other', name: state?.profile?.name || contact.name, mark: (state?.profile?.name || contact.name || '').slice(0, 1), text: result.reply, characterId, metricUpdates: result.metricUpdates, lexiconUpdates: result.lexiconUpdates, characterCardChanges: result.characterCardChanges, cardChangesOpen: false, changeReasonsOpen: false });
+      if (result.imageIntent?.offer) this.appendWechatPendingImageMessage(characterId, state, contact, result.imageIntent);
       await window.GameModules.characterMemory?.recordWechatExchange?.(this, { ...contact, id: characterId, characterId }, playerText, result.reply, result);
       await this.recordWechatWorldline({ ...contact, id: characterId, characterId }, playerText, result.reply, result);
       this.debugWechatMemory?.({ ...contact, id: characterId, characterId });
@@ -137,6 +138,7 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatChatActi
     const sections = window.GameModules.promptSections;
     const player = sections.playerProfile(this);
     const stateSkill = await window.GameModules.skillLoader?.instruction?.('emotion.feeling.wearing.assess') || '';
+    const imageSkill = await window.GameModules.skillLoader?.instruction?.('image.edit.call') || '';
     const characterId = this.wechatMessageKey(contact);
     const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
     return window.GameModules.promptTemplates.render('wechat-chat-reply', {
@@ -154,6 +156,7 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatChatActi
       微信历史: this.wechatHistoryText(characterId),
       玩家消息: playerText,
       状态判定Skill: stateSkill,
+      图片编辑Skill: imageSkill,
     });
   },
 
@@ -180,7 +183,9 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatChatActi
     const impression = Math.max(0, Math.min(100, Math.round(Number(raw?.impression) || 20)));
     const characterId = this.wechatMessageKey(contact);
     const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
-    return { reply, mood: String(raw?.mood || '平常').slice(0, 20), elapsedSeconds: Math.max(20, Math.min(1800, Number(raw?.elapsedSeconds) || 60)), impression, metricUpdates: window.GameModules.ai.normalizeMetricUpdates?.(raw?.metricUpdates, state) || {}, lexiconUpdates: window.GameModules.ai.normalizeLexiconUpdates?.(raw?.lexiconUpdates, { character: { work: '2026 现代都市现实世界' } }) || [] };
+    const imageRaw = raw?.imageIntent || {};
+    const imageIntent = imageRaw.offer ? { offer: true, reason: String(imageRaw.reason || '联系人愿意发送一张图片').slice(0, 120), tagsHint: String(imageRaw.tagsHint || '').slice(0, 300) } : null;
+    return { reply, mood: String(raw?.mood || '平常').slice(0, 20), elapsedSeconds: Math.max(20, Math.min(1800, Number(raw?.elapsedSeconds) || 60)), impression, metricUpdates: window.GameModules.ai.normalizeMetricUpdates?.(raw?.metricUpdates, state) || {}, lexiconUpdates: window.GameModules.ai.normalizeLexiconUpdates?.(raw?.lexiconUpdates, { character: { work: '2026 现代都市现实世界' } }) || [], imageIntent };
   },
 
   fallbackWechatReply(contact, text) {

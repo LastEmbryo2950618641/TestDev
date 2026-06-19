@@ -36,8 +36,10 @@
   <script src="prompt-fallback.js"></script>
   <script src="prompt-templates.js"></script>
   <script src="prompt-templates-inline.js"></script>
+  <script src="prompts/wechat/wechat-image-prompt-collect.js"></script>
   <script src="prompts/picture_generate/wechat-album-photo.js"></script>
   <script src="prompts/picture_generate/draw-tag-prompt.js"></script>
+  <script src="prompts/picture_generate/common-image-edit-generate.js"></script>
   <script src="prompts/picture_generate/sensitive-replacements.js"></script>
   <script src="token-stats.js"></script>
   <script src="prompt-sections.js"></script>
@@ -118,6 +120,7 @@
   <script src="wechat-actions.js"></script>
   <script src="wechat-view-actions.js"></script>
   <script src="wechat-chat-actions.js"></script>
+  <script src="wechat-image-actions.js"></script>
   <script src="wechat-worldline-actions.js"></script>
   <script src="wechat-memory-debug-actions.js"></script>
   <script src="wechat-app-actions.js"></script>
@@ -1271,7 +1274,9 @@
                 <button class="wechat-avatar" type="button" @click="msg.side !== 'self' && $store.game.openWechatContactProfile(msg.characterId || $store.game.wechatSelectedContact)" :style="$store.game.wechatAvatarStyle($store.game.wechatMessageAvatarContact(msg))" x-text="$store.game.wechatAvatarText($store.game.wechatMessageAvatarContact(msg))"></button>
                 <div>
                   <time x-text="msg.atDisplay || msg.at || ''"></time>
-                  <p x-text="msg.text"></p>
+                  <p x-show="msg.text && !msg.imagePending" x-text="msg.text"></p>
+                  <button class="wechat-image-offer" type="button" x-show="msg.imagePending && msg.imageStatus !== 'done'" @click="$store.game.openWechatImageConfirm(msg)" :disabled="msg.imageStatus === 'generating'" x-text="msg.imageStatus === 'generating' ? '图片生成中…约 30 秒' : '接收图片'"></button>
+                  <img class="wechat-message-image" x-show="msg.imagePending && msg.imageStatus === 'done'" :src="msg.imageUrl || ''" alt="微信图片">
                   <button class="card-change-toggle" :class="{ open: msg.changeReasonsOpen }" x-show="$store.game.wechatHasChangeReasons(msg)" @click="$store.game.toggleWechatChangePanel(msg)" x-text="msg.changeReasonsOpen ? '变化原因▾' : '变化原因▸'"></button>
                   <div class="wechat-change-panel" x-show="msg.changeReasonsOpen">
                     <template x-for="group in $store.game.wechatChangeGroups(msg)" :key="group.title">
@@ -1283,6 +1288,13 @@
                 </div>
               </div>
             </template>
+          </div>
+          <div class="wechat-photo-dialog" x-show="$store.game.wechatImageConfirmOpen" @click.self="$store.game.closeWechatImageConfirm()" x-cloak>
+            <article>
+              <strong>是否确认接受（会生成图片）</strong>
+              <p class="wechat-album-count" x-text="$store.game.wechatImageGenerating ? '正在生成图片…约 30 秒' : '确认后将使用角色真实照片进行图片编辑生成。'"></p>
+              <div class="wechat-album-actions"><button type="button" @click="$store.game.closeWechatImageConfirm()" :disabled="$store.game.wechatImageGenerating">取消</button><button type="button" @click="$store.game.confirmWechatImageReceive()" :disabled="$store.game.wechatImageGenerating" x-text="$store.game.wechatImageGenerating ? '生成中…' : '确认接受'"></button></div>
+            </article>
           </div>
           <p class="wechat-replying" x-show="$store.game.wechatSending">对方正在输入…</p>
           <p class="wechat-error" x-show="$store.game.wechatError" x-text="$store.game.wechatError"></p>
