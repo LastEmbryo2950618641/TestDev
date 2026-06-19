@@ -101,7 +101,8 @@ window.GameModules.wechatAlbumActions = {
     const bodyText = selected?.bodyText || (kind === 'dressed' ? dressedText : naturalText);
     const template = window.GameModules.pictureGeneratePrompts?.wechatAlbumPhoto || '请根据以下角色个人身份信息与{生成状态}部位描述生成一张全身正面照。\n\n{角色身份信息}\n\n{状态部位描述}';
     const prompt = this.renderWechatAlbumPrompt(template, { identityInfo, naturalText, dressedText, stateName, bodyText });
-    return prompt.slice(0, 2000);
+    const naturalNote = kind === 'natural' ? '\n\n自然状态补充要求：成年角色，简洁贴身基础服，无外套，突出身体比例、体型与自然状态部位特征，避免盛装、礼服、制服与复杂装饰。' : '';
+    return `${prompt}${naturalNote}`.slice(0, 2000);
   },
 
   async generateWechatAlbumSelectedPhoto() { await this.generateWechatAlbumPhoto(this.wechatAlbumPromptDraft?.kind || 'natural', this.wechatAlbumPromptDraft); },
