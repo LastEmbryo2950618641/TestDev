@@ -1191,11 +1191,11 @@
           <button class="wechat-wallet" type="button" @click="$store.game.openWechatAlbum()"><span>相册</span><b>›</b></button>
         </section>
         <section class="wechat-album-page" x-show="$store.game.wechatView === 'profile' && $store.game.wechatAlbumMode === 'album'">
+          <div class="wechat-album-toolbar"><button class="wechat-refresh-btn" type="button" @click="$store.game.refreshWechatAlbum()" :disabled="$store.game.wechatAlbumGenerating">刷新</button><button class="wechat-add-photo-btn" type="button" @click="$store.game.wechatAlbumChoiceOpen()" :disabled="$store.game.wechatAlbumGenerating" x-text="$store.game.wechatAlbumGenerating ? '生成中…' : '新增图片'"></button></div>
           <div class="wechat-photo-slot wechat-photo-add" :class="{ loading: $store.game.wechatAlbumGenerating }">
             <span x-show="!$store.game.wechatAlbumGenerating">暂无照片</span>
             <span x-show="$store.game.wechatAlbumGenerating">生成中…约 30 秒</span>
           </div>
-          <div class="wechat-album-toolbar"><button class="wechat-refresh-btn" type="button" @click="$store.game.refreshWechatAlbum()" :disabled="$store.game.wechatAlbumGenerating">刷新</button><button class="wechat-add-photo-btn" type="button" @click="$store.game.wechatAlbumChoiceOpen()" :disabled="$store.game.wechatAlbumGenerating" x-text="$store.game.wechatAlbumGenerating ? '生成中…' : '新增图片'"></button></div>
           <div class="wechat-album-grid" x-show="$store.game.wechatAlbumPhotoList().length" x-cloak>
             <template x-for="(photo, index) in $store.game.wechatAlbumPhotoList()" :key="`${photo.createdAt || index}-${photo.url}`">
               <article class="wechat-album-card">

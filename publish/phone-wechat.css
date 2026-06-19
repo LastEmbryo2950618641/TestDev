@@ -286,6 +286,8 @@
 }
 
 .wechat-photo-add {
+  min-height: 120px;
+  aspect-ratio: auto;
   cursor: pointer;
 }
 
