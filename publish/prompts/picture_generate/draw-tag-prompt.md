@@ -25,6 +25,12 @@
 负面提示词必须包含：
 bad anatomy, extra fingers, extra arms, missing fingers, low quality, blurry, worst quality, watermark, text, logo, bad hands
 
-只返回以下两行，不要 Markdown，不要解释：
-正向提示词:xxxxxx,xxx,x,xx,x
-负面提示词:xxxx,xxx
+输出硬性要求：
+- 只返回两行，不要 Markdown，不要代码块，不要解释，不要项目符号。
+- 每一行只允许一个冒号，冒号后只写英文标签。
+- 标签之间只用英文逗号 `,` 分隔。
+- 不要输出中文标签，不要输出完整句子。
+
+只返回以下格式：
+正向提示词: tag1, tag2, tag3
+负面提示词: tag1, tag2, tag3

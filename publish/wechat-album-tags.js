@@ -28,13 +28,21 @@ window.GameModules.wechatAlbumTagActions = {
       .replace(/\{状态部位描述标签\}/g, vars.bodyTags || '');
   },
 
+  cleanWechatAlbumTags(text = '') {
+    return String(text || '').replace(/```[a-z]*|```/gi, '')
+      .replace(/^(正向提示词|负面提示词)\s*[:：]/gm, '')
+      .split(/[\n，、；;]+/).map((item) => item.trim().replace(/^[-*]\s*/, ''))
+      .filter(Boolean).join(', ');
+  },
+
   parseWechatAlbumDrawPrompt(text = '') {
-    const positive = String(text).match(/正向提示词\s*[:：]\s*([^\n]+)/)?.[1]?.trim() || '';
-    const negative = String(text).match(/负面提示词\s*[:：]\s*([^\n]+)/)?.[1]?.trim() || '';
-    return {
-      prompt: positive || 'solo, full body, standing, front view, clear face, clean background, anime style, high quality',
-      negativePrompt: negative || 'bad anatomy, extra fingers, extra arms, missing fingers, low quality, blurry, worst quality, watermark, text, logo, bad hands',
-    };
+    const raw = String(text || '').replace(/\r/g, '').replace(/```[a-z]*|```/gi, '').trim();
+    const positiveMatch = raw.match(/正向提示词\s*[:：]\s*([\s\S]*?)(?=\n\s*负面提示词\s*[:：]|$)/);
+    const negativeMatch = raw.match(/负面提示词\s*[:：]\s*([\s\S]*)$/);
+    const defaultNegative = 'bad anatomy, extra fingers, extra arms, missing fingers, low quality, blurry, worst quality, watermark, text, logo, bad hands';
+    const positive = this.cleanWechatAlbumTags(positiveMatch?.[1] || 'solo, full body, standing, front view, clear face, clean background, anime style, high quality');
+    const negative = this.cleanWechatAlbumTags(negativeMatch?.[1] || defaultNegative);
+    return { prompt: positive, negativePrompt: negative || defaultNegative };
   },
 
   async buildWechatAlbumDrawPrompt(contact, kind = 'natural', draft = null) {
@@ -45,12 +53,23 @@ window.GameModules.wechatAlbumTagActions = {
       console.error('[微信相册] 模型列表获取失败:', err.code, err.message, err.stack);
       return { defaultModel: 'nalang-turbo-0826', models: [] };
     });
+    const model = models.defaultModel || models.models?.[0]?.internalName || 'nalang-turbo-0826';
+    const titleState = this.wechatAlbumKindLabel(kind);
+    const tokenRecordId = window.GameModules.tokenStats?.record?.('draw-tag-prompt', requestPrompt, {
+      model,
+      maxTokens: 600,
+      title: `绘图提示词生成｜${contact.name || '联系人'}｜${titleState}`,
+      category: '图片生成',
+      summary: '根据微信相册素材生成正向/负面绘图提示词。',
+      kind: 'completion',
+    });
     let output = '';
     await window.dzmm.completions({
-      model: models.defaultModel || models.models?.[0]?.internalName || 'nalang-turbo-0826',
+      model,
       messages: [{ role: 'user', content: requestPrompt }],
       maxTokens: 600,
     }, (chunk) => { output += String(chunk || ''); });
+    window.GameModules.tokenStats?.recordResponse?.(tokenRecordId, output);
     const parsed = this.parseWechatAlbumDrawPrompt(output);
     return { prompt: parsed.prompt.slice(0, 2000), negativePrompt: parsed.negativePrompt.slice(0, 2000), source: requestPrompt, raw: output };
   },
