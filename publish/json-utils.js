@@ -142,12 +142,35 @@ window.GameModules.jsonUtils = {
     return window.GameModules.promptTemplates.render('json-repair', { 错误: err?.message || 'unknown', 原要求: String(format || '').slice(0, 3200), 修复补充要求: String(hint || '').slice(0, 1400), 错误输出: String(badOutput || '').slice(0, 1200) });
   },
 
+  normalizeJsonSyntax(text) {
+    const raw = String(text || '');
+    let out = '', quoteMode = '', escaped = false;
+    for (let i = 0; i < raw.length; i += 1) {
+      const ch = raw[i];
+      if (escaped) { out += ch; escaped = false; continue; }
+      if (quoteMode) {
+        if (ch === '\\') { out += ch; escaped = true; continue; }
+        if (quoteMode === 'ascii' && ch === '"') { quoteMode = ''; out += ch; continue; }
+        if (quoteMode === 'curly' && ch === '”') {
+          const next = raw.slice(i + 1).match(/\S/)?.[0] || '';
+          if (!next || /[,，}\]:：]/.test(next)) { quoteMode = ''; out += '"'; continue; }
+        }
+        out += ch;
+        continue;
+      }
+      if (ch === '"') { quoteMode = 'ascii'; out += ch; continue; }
+      if (ch === '“') { quoteMode = 'curly'; out += '"'; continue; }
+      if (ch === '：') { out += ':'; continue; }
+      if (ch === '，') { out += ','; continue; }
+      if (ch === '‘' || ch === '’') { out += "'"; continue; }
+      out += ch;
+    }
+    return out;
+  },
+
   repairJson(json) {
-    return this.trimDanglingProperty(String(json || ''))
-      .replace(/：/g, ':')
-      .replace(/[“”]/g, '"')
-      .replace(/[‘’]/g, "'")
-      .replace(/([}\]"0-9]|true|false|null)\s*，\s*(")/g, '$1,$2')
+    return this.normalizeJsonSyntax(this.trimDanglingProperty(String(json || '')))
+      .replace(/([}\]"0-9]|true|false|null)\s*,\s*(")/g, '$1,$2')
       .replace(/([}\]])\s*，\s*([\[{])/g, '$1,$2')
       .replace(/([}\]])\s*，\s*(")/g, '$1,$2')
       .replace(/([{,]\s*)([A-Za-z_$][\w$]*)(\s*:)/g, '$1"$2"$3')

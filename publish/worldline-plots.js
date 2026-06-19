@@ -71,19 +71,25 @@ window.GameModules.worldlinePlots = {
     const title = String(raw?.情节标题 || fallback.情节标题).slice(0, 10);
     const brief = String(raw?.情节总结 || fallback.情节总结).slice(0, 60);
     const ids = Array.isArray(raw?.重要记录编号) ? raw.重要记录编号.join('、') : raw?.重要记录编号;
-    return { ...fallback, 情节标题: title, 情节总结: brief, 重要记录编号: String(ids || fallback.重要记录编号), 重要片段: String(raw?.重要片段 || fallback.重要片段).slice(0, 120) };
+    return { ...fallback, 情节标题: title, 情节总结: brief, 重要记录编号: String(ids || fallback.重要记录编号), 重要片段: String(raw?.重要片段 || fallback.重要片段).slice(0, 240) };
+  },
+
+  compactText(text, limit) {
+    return String(text || '').replace(/\s+/g, ' ').trim().slice(0, limit);
   },
 
   fallback(plot, events) {
     const first = events[0] || {}, last = events[events.length - 1] || first;
-    const detail = String(last.detail || first.detail || '世界线记录');
+    const ids = events.map((event) => event.eventId).filter(Boolean).join('、');
+    const details = events.map((event) => this.compactText(event.detail || event.name || '世界线记录', 80)).filter(Boolean);
+    const important = details.slice(-3).join('\n');
     return {
       情节标题: String(last.name || first.name || '情节记录').slice(0, 10),
       情节编号: plot.情节编号,
       情节时间段: [first.time, last.time].filter(Boolean).join(' - ') || '时间未知',
-      情节总结: detail.slice(0, 60),
-      重要记录编号: String(last.eventId || first.eventId || ''),
-      重要片段: detail.slice(0, 120),
+      情节总结: this.compactText(details.join('；'), 60) || '世界线记录',
+      重要记录编号: ids || String(last.eventId || first.eventId || ''),
+      重要片段: important.slice(0, 240) || this.compactText(last.detail || first.detail || '世界线记录', 240),
     };
   },
 
