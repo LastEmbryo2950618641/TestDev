@@ -1151,19 +1151,40 @@
           <button class="wechat-wallet" type="button" @click="$store.game.openWechatAlbum()"><span>相册</span><b>›</b></button>
         </section>
         <section class="wechat-album-page" x-show="$store.game.wechatView === 'profile' && $store.game.wechatAlbumMode === 'album'">
-          <div class="wechat-photo-slot" :class="{ loading: $store.game.wechatAlbumGenerating, filled: $store.game.wechatAlbumPhoto() }">
-            <img x-show="$store.game.wechatAlbumPhoto()" :src="$store.game.wechatAlbumPhoto()?.url || ''" alt="联系人照片">
-            <span x-show="!$store.game.wechatAlbumPhoto() && !$store.game.wechatAlbumGenerating">暂无照片</span>
+          <div class="wechat-photo-slot wechat-photo-add" :class="{ loading: $store.game.wechatAlbumGenerating }">
+            <span x-show="!$store.game.wechatAlbumGenerating">暂无照片</span>
             <span x-show="$store.game.wechatAlbumGenerating">生成中…约 30 秒</span>
           </div>
           <button class="wechat-refresh-btn" type="button" @click="$store.game.wechatAlbumChoiceOpen()" :disabled="$store.game.wechatAlbumGenerating" x-text="$store.game.wechatAlbumGenerating ? '生成中…' : '刷新'"></button>
-          <button class="wechat-real-photo-btn" type="button" x-show="$store.game.wechatAlbumPhoto()" @click="$store.game.markWechatAlbumPhotoReal()" x-text="$store.game.wechatAlbumPhoto()?.real ? '已标记为真实照片' : '标记为真实照片'"></button>
+          <div class="wechat-album-grid" x-show="$store.game.wechatAlbumPhotoList().length" x-cloak>
+            <template x-for="(photo, index) in $store.game.wechatAlbumPhotoList()" :key="`${photo.createdAt || index}-${photo.url}`">
+              <article class="wechat-album-card">
+                <div class="wechat-photo-slot filled"><img :src="photo.url" alt="联系人照片"></div>
+                <button class="wechat-real-photo-btn" type="button" @click="$store.game.markWechatAlbumPhotoReal(index)" x-text="photo.real ? '已标记为真实照片' : '标记为真实照片'"></button>
+              </article>
+            </template>
+          </div>
           <div class="wechat-photo-dialog" x-show="$store.game.wechatAlbumPromptOpen" @click.self="$store.game.wechatAlbumChoiceClose()" x-cloak>
-            <article>
-              <strong>选择生成状态</strong>
-              <button type="button" @click="$store.game.generateWechatAlbumPhoto('natural')" :disabled="$store.game.wechatAlbumGenerating">自然状态</button>
-              <button type="button" @click="$store.game.generateWechatAlbumPhoto('dressed')" :disabled="$store.game.wechatAlbumGenerating">盛装状态</button>
-              <button type="button" @click="$store.game.wechatAlbumChoiceClose()" :disabled="$store.game.wechatAlbumGenerating">取消</button>
+            <article :class="{ editor: $store.game.wechatAlbumPromptStep === 'edit' }">
+              <template x-if="$store.game.wechatAlbumPromptStep === 'choice'">
+                <div class="wechat-album-choice">
+                  <strong>选择生成状态</strong>
+                  <button type="button" @click="$store.game.openWechatAlbumPromptEditor('natural')" :disabled="$store.game.wechatAlbumGenerating">自然状态</button>
+                  <button type="button" @click="$store.game.openWechatAlbumPromptEditor('dressed')" :disabled="$store.game.wechatAlbumGenerating">盛装状态</button>
+                  <button type="button" @click="$store.game.openWechatAlbumPromptEditor('custom')" :disabled="$store.game.wechatAlbumGenerating">自定义状态</button>
+                  <button type="button" @click="$store.game.wechatAlbumChoiceClose()" :disabled="$store.game.wechatAlbumGenerating">取消</button>
+                </div>
+              </template>
+              <template x-if="$store.game.wechatAlbumPromptStep === 'edit'">
+                <div class="wechat-album-editor">
+                  <strong x-text="`${$store.game.wechatAlbumKindLabel()}提示词素材`"></strong>
+                  <p class="wechat-album-count" x-text="`当前提示词约 ${$store.game.wechatAlbumSelectedCharCount()} 字`"></p>
+                  <section><b>身份信息</b><template x-for="item in $store.game.wechatAlbumPromptOptions().identity" :key="item.key"><label><input type="checkbox" :value="item.key" x-model="$store.game.wechatAlbumPromptDraft.identityKeys"><span x-text="item.text"></span></label></template></section>
+                  <section x-show="$store.game.wechatAlbumPromptDraft?.kind !== 'custom'"><b>部位描述</b><template x-for="item in $store.game.wechatAlbumPromptOptions().body" :key="item.key"><label><input type="checkbox" :value="item.key" x-model="$store.game.wechatAlbumPromptDraft.bodyKeys"><span x-text="item.text"></span></label></template></section>
+                  <section x-show="$store.game.wechatAlbumPromptDraft?.kind === 'custom'"><b>自定义状态部位描述</b><textarea x-model="$store.game.wechatAlbumPromptDraft.customText" placeholder="请输入本次图片生成要使用的状态与部位描述"></textarea></section>
+                  <div class="wechat-album-actions"><button type="button" @click="$store.game.wechatAlbumPromptStep = 'choice'" :disabled="$store.game.wechatAlbumGenerating">返回</button><button type="button" @click="$store.game.generateWechatAlbumSelectedPhoto()" :disabled="$store.game.wechatAlbumGenerating">生成图片</button></div>
+                </div>
+              </template>
             </article>
           </div>
         </section>
