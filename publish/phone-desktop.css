@@ -742,7 +742,8 @@
 }
 
 .rpg-item-card .rpg-field-detail,
-.rpg-tree-title .rpg-field-detail {
+.rpg-tree-title .rpg-field-detail,
+.rpg-item-card .body-part-description {
   justify-self: stretch;
   max-width: 100%;
   overflow: visible;
@@ -750,6 +751,19 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.rpg-item-card.body-part-card {
+  width: 100%;
+  justify-items: start;
+  border-radius: 12px;
+  padding: 8px 10px;
+}
+
+.rpg-item-card .body-part-description {
+  margin: 0;
+  color: #b9c4e2;
+  line-height: 1.55;
 }
 
 .rpg-item-card strong {

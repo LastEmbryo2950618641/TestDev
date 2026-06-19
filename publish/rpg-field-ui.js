@@ -30,6 +30,8 @@ window.GameModules.rpgFieldUi = {
 
   missingReasonText(name = '词条') { return `错误：${name}缺少AI给出的变化原因，请重新生成个人资料或重新触发AI更新。`; },
   rpgListItems(field) { return Array.isArray(field?.raw) ? field.raw : []; },
+  isBodyProfileField(field) { return field?.key === 'bodyProfile' || field?.key === 'dressedProfile'; },
+  rpgBodyPartDescription(item) { return String(item?.description || '未记录').trim(); },
 
   profileIdentityFields(state, provided = []) {
     if (Array.isArray(provided) && provided.length) return provided;
@@ -247,7 +249,7 @@ window.GameModules.rpgFieldUi = {
     const linkedStats = (info.intrinsicStats || obj?.linkedStats || []).map((x) => statName[x] || x);
     const kind = obj?.type || this.lexiconKind(field, obj);
     const name = this.rpgItemName(obj) || field?.label || '未知';
-    if (kind === '身体原貌' || kind === '盛装状态') return [`部位: ${name}`, `描写: ${obj.description || '未记录'}`, `序号: ${obj.index || '未记录'}`, `所属世界: ${field?.worldTag || '公共'}`, `词条类型: ${field?.targetType || '角色'}`, `当前依据: ${field?.reason || (kind === '盛装状态' ? '来自角色卡 Part6 盛装状态生成结果。' : '来自角色卡 Part5 身体原貌生成结果。')}`].join('\n');
+    if (kind === '身体原貌' || kind === '盛装状态') return [`部位: ${name}`, `序号: ${obj.index || '未记录'}`, `所属世界: ${field?.worldTag || '公共'}`, `词条类型: ${field?.targetType || '角色'}`, `当前依据: ${field?.reason || (kind === '盛装状态' ? '来自角色卡 Part6 盛装状态生成结果。' : '来自角色卡 Part5 身体原貌生成结果。')}`].join('\n');
     const hasLevel = Number(obj?.level) > 0;
     const lines = [`名称: ${name}`, `定义: ${this.learnedDefinition(kind, name, obj, lexicon, info)}`, `类型: ${kind}`, `所属世界: ${field?.worldTag || lexicon?.worldTag || '公共'}`, `词条类型: ${field?.targetType || lexicon?.meta?.targetType || '角色'}`];
     if (kind === '穿着' && (obj?.clothing_position || obj?.slotLabel)) lines.push(`穿戴位: ${obj.clothing_position || obj.slotLabel}`);
