@@ -6,6 +6,8 @@ window.GameModules.pictureGeneratePrompts.wechatAlbumPhoto = `# 微信相册图�
 
 请根据以下角色个人身份信息与 \`{生成状态}\` 的部位描述生成一张全身正面照。
 
+{自然状态补充要求}
+
 画面要求：
 - 单人
 - 全身
