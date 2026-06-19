@@ -23,6 +23,12 @@ window.GameModules.wechatAlbumActions = {
     return raw?.url ? [raw] : [];
   },
   wechatAlbumPhoto() { return this.wechatAlbumPhotoList()[0] || null; },
+  refreshWechatAlbum() {
+    const contact = this.wechatProfileContact();
+    if (!contact?.id) return;
+    const list = this.wechatAlbumPhotoList();
+    this.wechatAlbumPhotos = { ...(this.wechatAlbumPhotos || {}), [contact.id]: [...list] };
+  },
 
   wechatAlbumChoiceOpen() {
     this.wechatAlbumPromptStep = 'choice';
