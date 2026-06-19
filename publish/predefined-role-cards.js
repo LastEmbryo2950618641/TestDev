@@ -36,7 +36,7 @@ window.GameModules.predefinedRoleCards = {
 
   playerProfileFromCard(card, fallback = {}) {
     if (!card) return fallback;
-    const aiParts = window.Alpine?.store?.('game')?.normalizePlayerCardAiParts?.(fallback.playerCardAiParts) || { part2: true, part5: true, part6: true };
+    const aiParts = window.Alpine?.store?.('game')?.normalizePlayerCardAiParts?.(fallback.playerCardAiParts) || { part2: false, part5: false, part6: false };
     return {
       ...fallback,
       playerCardAiParts: aiParts,

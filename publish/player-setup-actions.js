@@ -50,7 +50,7 @@ window.GameModules.playerSetupActions = {
 
   normalizePlayerCardAiParts(value = null) {
     const source = value && typeof value === 'object' ? value : {};
-    return { part2: source.part2 !== false, part5: source.part5 !== false, part6: source.part6 !== false };
+    return { part2: source.part2 === true, part5: source.part5 === true, part6: source.part6 === true };
   },
 
   relationshipEntriesPrompt(entries = null) {
