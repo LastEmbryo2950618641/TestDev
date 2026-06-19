@@ -15,6 +15,12 @@ window.GameModules.promptActions = {
     this.promptState.open = true; this.desktopUnlocked = true;
   },
   closePromptApp() { if (this.promptState) this.promptState.open = false; this.closeAppToDesktop(); },
+  promptDrawItems() {
+    return [
+      { id: 'draw-wechat-album-natural', title: '微信相册图片生成｜自然状态', category: '图片生成', file: 'wechat-album-actions.js', summary: '按当前选中联系人生成自然状态全身正面照绘图提示词。', drawKind: 'natural' },
+      { id: 'draw-wechat-album-dressed', title: '微信相册图片生成｜盛装状态', category: '图片生成', file: 'wechat-album-actions.js', summary: '按当前选中联系人生成盛装状态全身正面照绘图提示词。', drawKind: 'dressed' },
+    ];
+  },
   promptRuntimeItems() {
     return (window.GameModules.tokenStats?.records || []).filter((record) => record.kind === 'draw').map((record) => ({
       id: `runtime-${record.id}`,
@@ -25,19 +31,20 @@ window.GameModules.promptActions = {
       runtimeRecordId: record.id,
     }));
   },
+  promptAllItems() {
+    return [...window.GameModules.promptTemplates.list(), ...this.promptDrawItems(), ...this.promptRuntimeItems()];
+  },
   promptList() {
     this.initPromptApp();
     const q = String(this.promptState.query || '').trim().toLowerCase();
-    return [...window.GameModules.promptTemplates.list(), ...this.promptRuntimeItems()].filter((item) => {
+    return this.promptAllItems().filter((item) => {
       const inCategory = !this.promptState.category || item.category === this.promptState.category;
       const haystack = [item.title, item.category, item.summary, item.file].join(' ').toLowerCase();
       return inCategory && (!q || haystack.includes(q));
     });
   },
   promptCategories() {
-    const templateCategories = window.GameModules.promptTemplates.list().map((item) => item.category);
-    const runtimeCategories = this.promptRuntimeItems().map((item) => item.category);
-    return [...new Set([...templateCategories, ...runtimeCategories].filter(Boolean))];
+    return [...new Set(this.promptAllItems().map((item) => item.category).filter(Boolean))];
   },
   promptCategoryLabel() { return this.promptState?.category || '全部分类'; },
   selectPromptCategory(category = '') {
@@ -48,13 +55,20 @@ window.GameModules.promptActions = {
   isPromptOpen(id) { return this.promptState?.selectedId === id; },
   currentPromptItem() {
     const id = this.promptState?.selectedId || '';
-    return this.promptRuntimeItems().find((item) => item.id === id) || window.GameModules.promptTemplates.find(id);
+    return this.promptAllItems().find((item) => item.id === id) || window.GameModules.promptTemplates.find(id);
   },
   closePromptDetail() { if (this.promptState) { this.promptState.selectedId = ''; this.promptState.selectedText = ''; this.promptState.error = ''; } },
   async togglePromptDetail(id) {
     this.initPromptApp();
     if (this.promptState.selectedId === id) { this.promptState.selectedId = ''; this.promptState.selectedText = ''; return; }
     this.promptState.selectedId = id; this.promptState.loading = true; this.promptState.error = '';
+    const drawItem = this.promptDrawItems().find((item) => item.id === id);
+    if (drawItem) {
+      const contact = this.wechatProfileContact?.() || this.wechatSelected?.() || { id: 'player-self', name: this.playerName || '联系人', mark: '联' };
+      this.promptState.selectedText = this.wechatAlbumPhotoPrompt?.(contact, drawItem.drawKind) || '微信相册图片生成提示词函数未加载。';
+      this.promptState.loading = false;
+      return;
+    }
     const runtimeItem = this.promptRuntimeItems().find((item) => item.id === id);
     if (runtimeItem) {
       this.promptState.selectedText = window.GameModules.tokenStats.item(runtimeItem.runtimeRecordId)?.text || '暂无运行时提示词。';
