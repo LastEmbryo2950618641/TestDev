@@ -1,6 +1,6 @@
 window.GameModules = window.GameModules || {};
 window.GameModules.wechatAlbumTagActions = {
-  wechatAlbumFixedNaturalTags() { return 'natural body, no artificial modification, original body shape, uncovered body silhouette'; },
+  wechatAlbumFixedNaturalTags() { return 'natural, original body, nude, no clothes'; },
 
   wechatAlbumStructuredTags(items = []) {
     return [...new Set((items || []).map((item) => String(item?.value || '').trim())
@@ -15,17 +15,17 @@ window.GameModules.wechatAlbumTagActions = {
     const bodyItems = selected?.bodyItems?.length ? selected.bodyItems : defaultBodyItems;
     const bodyText = selected?.bodyText || bodyItems.map((item) => item.text).join('\n');
     const extraText = selected?.extraText ? `，${selected.extraText}` : '';
+    const bodyBase = kind === 'custom' ? bodyText : this.wechatAlbumStructuredTags(bodyItems);
+    const naturalTags = kind === 'natural' ? `，${this.wechatAlbumFixedNaturalTags()}` : '';
     return {
       identityTags: this.wechatAlbumStructuredTags(identityItems),
-      bodyTags: `${kind === 'custom' ? bodyText : this.wechatAlbumStructuredTags(bodyItems)}${extraText}`,
-      naturalTags: kind === 'natural' ? this.wechatAlbumFixedNaturalTags() : '',
+      bodyTags: `${bodyBase}${extraText}${naturalTags}`,
     };
   },
 
   renderWechatAlbumPrompt(template, vars) {
     return String(template || '').replace(/\{角色身份信息标签\}/g, vars.identityTags || '')
-      .replace(/\{状态部位描述标签\}/g, vars.bodyTags || '')
-      .replace(/\{自然状态补充要求标签\}/g, vars.naturalTags || '');
+      .replace(/\{状态部位描述标签\}/g, vars.bodyTags || '');
   },
 
   parseWechatAlbumDrawPrompt(text = '') {

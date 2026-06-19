@@ -5,7 +5,6 @@ window.GameModules.pictureGeneratePrompts.drawTagPrompt = `你是二次元绘图
 输入信息：
 角色身份信息标签：{角色身份信息标签}
 状态部位描述标签：{状态部位描述标签}
-自然状态补充要求标签：{自然状态补充要求标签}
 
 生成规则：
 这类二次元模型通常不是“读作文”，而是更像“读标签”，模型会挑它认识的词画，忽略复杂句、因果关系、长段设定。
@@ -23,7 +22,7 @@ window.GameModules.pictureGeneratePrompts.drawTagPrompt = `你是二次元绘图
 固定画面要求必须进入正向提示词：
 1girl or 1boy, solo, full body, standing, front view, clear face, clean background, anime style, high quality
 
-自然状态补充要求标签固定为：natural body, no artificial modification, original body shape, uncovered body silhouette
+自然状态固定标签：natural, original body, nude, no clothes
 
 负面提示词必须包含：
 bad anatomy, extra fingers, extra arms, missing fingers, low quality, blurry, worst quality, watermark, text, logo, bad hands
