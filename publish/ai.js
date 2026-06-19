@@ -125,9 +125,10 @@ window.GameModules.ai = {
     return keys.map((key) => {
       const item = main.find((x) => x?.key === key);
       if (!item) return null;
-      const delta = window.GameModules.metrics.clampDelta(item.delta);
+      const rawDelta = window.GameModules.metrics.clampDelta(item.delta);
       const fallbackValues = window.Alpine?.store?.('game')?.[keys === window.GameModules.metrics.emotionKeys ? 'emotions' : 'playerFeelings'];
       const current = window.GameModules.metrics.clamp((currentValues || fallbackValues)?.[key] || 0);
+      const delta = window.GameModules.metrics.lockedPlayerDelta?.(key, rawDelta, current) ?? rawDelta;
       const nextValue = window.GameModules.metrics.clamp(current + delta);
       const reason = String(item.reason || '').slice(0, 180);
       const status = window.GameModules.metrics.valueExplanation(key, nextValue, item.status, reason);
