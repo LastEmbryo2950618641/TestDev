@@ -87,6 +87,26 @@ window.GameModules.wechatImageActions = {
     return list.find((item) => item?.url && item.real) || null;
   },
 
+  addWechatImageToAlbum(characterId = '', photo = {}) {
+    const id = characterId || this.wechatSelectedContact;
+    if (!id || !photo.url) return;
+    const raw = this.wechatAlbumPhotos?.[id];
+    const list = Array.isArray(raw) ? raw.filter((item) => item?.url) : (raw?.url ? [raw] : []);
+    if (list.some((item) => item.url === photo.url)) return;
+    this.wechatAlbumPhotos = { ...(this.wechatAlbumPhotos || {}), [id]: [{
+      url: photo.url,
+      kind: 'wechat-image',
+      taskId: photo.taskId || '',
+      real: false,
+      source: 'wechat-chat',
+      imageId: photo.imageId || '',
+      prompt: photo.prompt || '',
+      tags: photo.tags || '',
+      description: photo.description || '',
+      createdAt: new Date().toISOString(),
+    }, ...list] };
+  },
+
   wechatMemorySections(characterId = '') {
     const memory = window.GameModules.characterMemory?.ensure?.(characterId);
     if (!memory) return { shortText: '无', longText: '无' };
@@ -153,6 +173,7 @@ window.GameModules.wechatImageActions = {
       if (reqId !== this.wechatImageRequestId) return;
       const url = result?.images?.[0] || '';
       if (!url) throw new Error('图片编辑完成但没有返回图片');
+      this.addWechatImageToAlbum?.(msg.characterId, { url, taskId: result.taskId || '', imageId: msg.imageId || '', prompt: drawOptions.prompt, tags, description: msg.imageDescription || msg.imageIntent?.imageDescription || '' });
       const readRecord = this.wechatImageReadRecord(msg);
       await this.replaceWechatImageRecord?.(msg, readRecord);
       this.updateWechatImageMessage(msg, { imageStatus: 'done', imageUrl: url, taskId: result.taskId || '', text: '[图片]', imageRecord: readRecord, imageUnreadBy: [], imageReadBy: ['玩家'] });
