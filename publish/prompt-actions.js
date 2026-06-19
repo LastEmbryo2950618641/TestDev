@@ -59,9 +59,9 @@ window.GameModules.promptActions = {
   },
   closePromptDetail() { if (this.promptState) { this.promptState.selectedId = ''; this.promptState.selectedText = ''; this.promptState.error = ''; } },
   promptDrawDetailText(contact, kind) {
-    const template = window.GameModules.pictureGeneratePrompts?.wechatAlbumPhoto || '';
+    const template = window.GameModules.pictureGeneratePrompts?.drawTagPrompt || '';
     const finalPrompt = this.wechatAlbumPhotoPrompt?.(contact, kind) || '微信相册图片生成提示词函数未加载。';
-    return [`【Markdown 模板】\n${template || '图片生成提示词模板未加载。'}`, `【当前联系人替换后】\n${finalPrompt}`].join('\n\n---\n\n');
+    return [`【绘画标签生成模板】\n${template || '绘画标签生成模板未加载。'}`, `【当前联系人替换后】\n${finalPrompt}`].join('\n\n---\n\n');
   },
   async togglePromptDetail(id) {
     this.initPromptApp();
