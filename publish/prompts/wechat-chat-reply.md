@@ -77,6 +77,7 @@
 15. impression 是这次微信对话对双方记忆的印象强度，必须由联系人性格、两人关系、消息内容、情绪波动、秘密程度和关系推进幅度判断：日常寒暄 10-30，普通关心 31-50，明显情绪/关系推进 51-75，重大秘密、承诺、冲突、告白或强烈依赖 76-100。
 16. 如果联系人根据关系、语气、聊天上下文判断可以或应该发送自拍照/近照/照片，只返回 imageIntent 对象表达意图；不要在 reply 里说系统行为，不要生成图片提示词。
 17. imageIntent 只表示“愿意发送一张图片”的消息意图，真正的提示词收集和图片生成必须等玩家点击接受并确认后才发生。
+18. 返回 imageIntent 时，必须同时给出 imageDescription，用中文简短描述这张图片将呈现的内容、风格、穿戴、表情或场景，用于写入记忆与时间线。
 
 ## 输出 JSON 格式
 
@@ -98,6 +99,7 @@
 | --- | --- | --- | --- |
 | offer | boolean | 是 | 是否愿意发送图片。只有 true 才会出现待接收图片按钮。 |
 | reason | string | 是 | 为什么此刻适合发送图片，必须来自本次微信上下文。 |
+| imageDescription | string | 是 | 这张图片将呈现的内容与风格描述，写中文短句，用于记忆与时间线记录。 |
 | tagsHint | string | 否 | 这张图大致应该表达的英文标签方向，可为空。 |
 
 ### metricUpdates 对象规范
@@ -126,7 +128,7 @@
   "elapsedSeconds": 60,
   "impression": 35,
   "lexiconUpdates": [],
-  "imageIntent": { "offer": true, "reason": "联系人认为此刻适合发一张自拍回应玩家", "tagsHint": "selfie, soft smile" }
+  "imageIntent": { "offer": true, "reason": "联系人认为此刻适合发一张自拍回应玩家", "imageDescription": "一张柔和光线下的正面自拍，表情带着轻微笑意，整体像日常近照。", "tagsHint": "selfie, soft smile" }
 }
 
 注意：字段定义优先级高于示例。当示例与字段定义冲突时，以字段定义为准。
