@@ -87,9 +87,23 @@ window.GameModules.wechatAlbumActions = {
   wechatAlbumIdentityInfo(contact, state = {}, profile = {}) { return this.wechatAlbumIdentityItems(contact, state, profile).map((item) => item.text).join('\n'); },
   wechatAlbumBodyText(body) { return this.wechatAlbumBodyItems(body).map((item) => item.text).join('\n'); },
 
+  wechatAlbumTagsFromText(text = '') {
+    const raw = String(text || '').replace(/[\r\n]+/g, '，').replace(/必须是|以下要求|前文|本节|为准/g, '');
+    const pieces = raw.split(/[，,、；;。.!！?？|]+/).flatMap((part) => {
+      const value = part.includes('：') || part.includes(':') ? part.split(/[：:]/).slice(1).join('：') : part;
+      return value.split(/[（）()【】\[\]《》<>“”"'\s]+/);
+    });
+    const blocked = new Set(['未记录', '暂无', '无', '/', 'null', 'undefined', '角色身份信息', '状态部位描述', '自然状态补充要求']);
+    return [...new Set(pieces.map((item) => item.trim()).filter((item) => item && !blocked.has(item) && item.length <= 24))].join('，');
+  },
+
   renderWechatAlbumPrompt(template, vars) {
-    return String(template || '').replace(/\{角色身份信息\}/g, vars.identityInfo)
-      .replace(/\{自然状态补充要求\}/g, vars.naturalExtra || '')
+    const identityTags = this.wechatAlbumTagsFromText(vars.identityInfo);
+    const bodyTags = this.wechatAlbumTagsFromText(vars.bodyText);
+    const naturalTags = this.wechatAlbumTagsFromText(vars.naturalExtra || '');
+    return String(template || '').replace(/\{角色身份信息标签\}/g, identityTags)
+      .replace(/\{状态部位描述标签\}/g, bodyTags).replace(/\{自然状态补充要求标签\}/g, naturalTags)
+      .replace(/\{角色身份信息\}/g, vars.identityInfo).replace(/\{自然状态补充要求\}/g, vars.naturalExtra || '')
       .replace(/\{自然状态部位描述\}/g, vars.naturalText).replace(/\{盛装部位描述\}/g, vars.dressedText)
       .replace(/\{生成状态\}/g, vars.stateName).replace(/\{状态部位描述\}/g, vars.bodyText);
   },
@@ -102,10 +116,10 @@ window.GameModules.wechatAlbumActions = {
     const stateName = selected?.stateName || this.wechatAlbumKindLabel(kind);
     const bodyText = selected?.bodyText || (kind === 'dressed' ? dressedText : naturalText);
     const naturalExtra = kind === 'natural' ? '必须是毫无人工雕琢、未经衣物遮掩的原本躯体。' : '';
-    const template = window.GameModules.pictureGeneratePrompts?.wechatAlbumPhoto || '请根据以下角色个人身份信息与{生成状态}部位描述生成一张全身正面照。\n\n{自然状态补充要求}\n\n{角色身份信息}\n\n{状态部位描述}';
+    const template = window.GameModules.pictureGeneratePrompts?.wechatAlbumPhoto || '单人，全身，正面站姿，清晰面部，完整身体比例，干净背景，无文字，无水印，高质量二次元风格，{角色身份信息标签}，{状态部位描述标签}，{自然状态补充要求标签}';
     const basePrompt = this.renderWechatAlbumPrompt(template, { identityInfo, naturalText, dressedText, stateName, bodyText, naturalExtra });
-    const extraText = selected?.extraText ? `\n\n## 本次绘图最高优先级补充要求\n以下要求必须优先于前文身份信息和部位描述；若有冲突，以本节为准：\n${selected.extraText}` : '';
-    return `${basePrompt.slice(0, Math.max(0, 2000 - extraText.length))}${extraText}`.slice(0, 2000);
+    const extraTags = selected?.extraText ? this.wechatAlbumTagsFromText(selected.extraText) : '';
+    return [basePrompt, extraTags].filter(Boolean).join('，').slice(0, 2000);
   },
 
   async generateWechatAlbumSelectedPhoto() { await this.generateWechatAlbumPhoto(this.wechatAlbumPromptDraft?.kind || 'natural', this.wechatAlbumPromptDraft); },
