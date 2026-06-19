@@ -164,8 +164,8 @@ window.GameModules.wechatImageActions = {
   async confirmWechatImageReceive() {
     const msg = this.wechatImageConfirmMessage;
     if (!msg || this.wechatImageGenerating) return;
-    const photo = this.wechatRealPhotoForContact(msg.characterId);
-    if (!photo?.url) { this.wechatError = '请先在相册中标记一张角色真实照片'; this.wechatImageConfirmOpen = false; return; }
+    const photo = this.wechatImageBasePhoto?.(msg) || this.wechatRealPhotoForContact(msg.characterId);
+    if (!photo?.url) { this.wechatError = '请先在相册中标记一张角色真实照片或@一张可编辑图片'; this.wechatImageConfirmOpen = false; return; }
     const reqId = (this.wechatImageRequestId || 0) + 1;
     this.wechatImageRequestId = reqId;
     this.wechatImageGenerating = true;

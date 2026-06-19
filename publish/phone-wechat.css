@@ -572,8 +572,40 @@
 
 .wechat-chat-page {
   display: grid;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: 1fr auto auto auto;
   background: #ededed;
+}
+
+.wechat-mention-panel {
+  display: grid;
+  gap: 6px;
+  max-height: 150px;
+  padding: 8px 12px;
+  overflow-y: auto;
+  border-top: 1px solid #ddd;
+  background: #f8f8f8;
+}
+
+.wechat-mention-panel b {
+  color: #666;
+  font-size: 12px;
+}
+
+.wechat-mention-panel div {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+}
+
+.wechat-mention-panel button {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  color: #07a34f;
+  font-weight: 800;
 }
 
 .wechat-messages {

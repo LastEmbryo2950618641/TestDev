@@ -121,6 +121,7 @@
   <script src="wechat-view-actions.js"></script>
   <script src="wechat-chat-actions.js"></script>
   <script src="wechat-image-actions.js"></script>
+  <script src="wechat-mention-actions.js"></script>
   <script src="wechat-worldline-actions.js"></script>
   <script src="wechat-memory-debug-actions.js"></script>
   <script src="wechat-app-actions.js"></script>
@@ -1298,14 +1299,20 @@
           <div class="wechat-photo-dialog" x-show="$store.game.wechatImageConfirmOpen" @click.self="$store.game.closeWechatImageConfirm()" x-cloak>
             <article>
               <strong>是否确认接受（会生成图片）</strong>
-              <p class="wechat-album-count" x-text="$store.game.wechatImageGenerating ? '正在生成图片…约 30 秒' : '确认后将使用角色真实照片进行图片编辑生成。'"></p>
+              <p class="wechat-album-count" x-text="$store.game.wechatImageGenerating ? '正在生成图片…约 30 秒' : ($store.game.wechatImageConfirmMessage?.imageIntent?.baseImage ? '确认后将使用@图片作为基础图片编辑生成。' : '确认后将使用角色真实照片进行图片编辑生成。')"></p>
               <section class="wechat-image-confirm-prompt"><b>对应提示词</b><p x-text="$store.game.wechatImageConfirmPromptText()"></p></section>
               <div class="wechat-album-actions"><button type="button" @click="$store.game.closeWechatImageConfirm()" :disabled="$store.game.wechatImageGenerating">取消</button><button type="button" @click="$store.game.confirmWechatImageReceive()" :disabled="$store.game.wechatImageGenerating" x-text="$store.game.wechatImageGenerating ? '生成中…' : '确认接受'"></button></div>
             </article>
           </div>
           <p class="wechat-replying" x-show="$store.game.wechatSending">对方正在输入…</p>
           <p class="wechat-error" x-show="$store.game.wechatError" x-text="$store.game.wechatError"></p>
-          <div class="wechat-input"><button type="button">＋</button><input x-model="$store.game.wechatInput" placeholder="输入消息" @keydown.enter.prevent="$store.game.sendWechatMessage()"><button type="button" @click="$store.game.sendWechatMessage()" :disabled="$store.game.wechatSending || !$store.game.wechatInput.trim()">发送</button></div>
+          <div class="wechat-mention-panel" x-show="$store.game.wechatMentionPanelOpen" x-cloak>
+            <b>@联系人</b>
+            <div><template x-for="contact in $store.game.wechatContacts().filter(x => !x.group).slice(0, 8)" :key="contact.id"><button type="button" @click="$store.game.insertWechatMention('@' + contact.name)">@<span x-text="contact.name"></span></button></template></div>
+            <b>@图片</b>
+            <div><template x-for="image in $store.game.wechatImageMentionSources($store.game.wechatSelectedContact).slice(0, 8)" :key="image.id"><button type="button" @click="$store.game.insertWechatMention('@图片' + image.id)"><span x-text="image.id"></span></button></template></div>
+          </div>
+          <div class="wechat-input"><button type="button" @click="$store.game.wechatMentionPanelOpen = !$store.game.wechatMentionPanelOpen">@</button><input x-model="$store.game.wechatInput" placeholder="输入消息，可 @联系人 或 @图片ID" @keydown.enter.prevent="$store.game.sendWechatMessage()"><button type="button" @click="$store.game.sendWechatMessage()" :disabled="$store.game.wechatSending || !$store.game.wechatInput.trim()">发送</button></div>
         </section>
       </main>
       <nav class="wechat-tabs" x-show="$store.game.wechatView === 'home'"><button type="button" :class="{ active: $store.game.wechatTab === 'chats' }" @click.stop="$store.game.setWechatTab('chats')">聊天</button><button type="button" :class="{ active: $store.game.wechatTab === 'contacts' }" @click.stop="$store.game.setWechatTab('contacts')">通讯录</button><button type="button" :class="{ active: $store.game.wechatTab === 'me' }" @click.stop="$store.game.setWechatTab('me')">我</button></nav>

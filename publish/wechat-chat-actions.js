@@ -34,6 +34,7 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatChatActi
     if (!text || this.wechatSending || !target) return;
     this.wechatError = '';
     this.wechatInput = '';
+    this.wechatMentionPanelOpen = false;
     this.appendWechatMessage(this.wechatMessageKey(target), { side: 'self', name: this.playerDisplayCharacter?.().name || this.playerName || '我', mark: '我', text });
     if (target.group) await this.recordWechatWorldline(target, text, '');
     await this.save?.();
@@ -127,11 +128,12 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatChatActi
     try { await this.ensureWechatUserProfile?.(contact); }
     catch (err) { console.warn('[微信] 回复前资料补全失败，继续用现有资料:', err.code, err.message, err.stack); }
     const prompt = await this.wechatReplyPrompt(contact, playerText);
-    return window.GameModules.jsonUtils.generateJsonWithRetry({
+    const result = await window.GameModules.jsonUtils.generateJsonWithRetry({
       source: 'wechat-chat-reply', model: this.modelId || 'nalang-turbo-0826', timeoutMs: 60000, prompt, format: prompt, max: 2,
       parse: (text) => window.GameModules.jsonUtils.parseLoose(text),
       validate: (raw) => this.validateWechatReply(raw, contact),
     });
+    return this.attachWechatMentionedImageIntent?.(result, playerText, this.wechatMessageKey(contact)) || result;
   },
 
   async wechatReplyPrompt(contact, playerText) {
@@ -154,6 +156,7 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatChatActi
       现实状态: this.realWorldStatus || '现实稳定',
       目标状态快照: sections.stateSnapshot(this, state),
       微信历史: this.wechatHistoryText(characterId),
+      提及上下文: this.wechatMentionContextText?.(playerText, characterId) || '无',
       玩家消息: playerText,
       状态判定Skill: stateSkill,
       图片编辑Skill: imageSkill,
@@ -184,7 +187,7 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatChatActi
     const characterId = this.wechatMessageKey(contact);
     const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
     const imageRaw = raw?.imageIntent || {};
-    const imageIntent = imageRaw.offer ? { offer: true, reason: String(imageRaw.reason || '联系人愿意发送一张图片').slice(0, 120), imageDescription: String(imageRaw.imageDescription || imageRaw.contentDescription || '一张联系人发送的近照。').slice(0, 180), tagsHint: String(imageRaw.tagsHint || '').slice(0, 300) } : null;
+    const imageIntent = imageRaw.offer ? { offer: true, reason: String(imageRaw.reason || '联系人愿意发送一张图片').slice(0, 120), imageDescription: String(imageRaw.imageDescription || imageRaw.contentDescription || '一张联系人发送的近照。').slice(0, 180), tagsHint: String(imageRaw.tagsHint || '').slice(0, 300), usesMentionedImage: !!imageRaw.usesMentionedImage } : null;
     return { reply, mood: String(raw?.mood || '平常').slice(0, 20), elapsedSeconds: Math.max(20, Math.min(1800, Number(raw?.elapsedSeconds) || 60)), impression, metricUpdates: window.GameModules.ai.normalizeMetricUpdates?.(raw?.metricUpdates, state) || {}, lexiconUpdates: window.GameModules.ai.normalizeLexiconUpdates?.(raw?.lexiconUpdates, { character: { work: '2026 现代都市现实世界' } }) || [], imageIntent };
   },
 
