@@ -570,16 +570,20 @@
                 </div>
               </div>
               <div class="profile-content-fixed">
-                <div class="dynamic-rpg" x-show="$store.game.realWorldProfileViewMode === 'profile'">
+                <div class="dynamic-rpg identity-rpg" x-show="$store.game.realWorldProfileViewMode === 'profile'" x-data="{ activeRealWorldProfileTab: '' }">
+                  <nav class="identity-rpg-tabs" aria-label="现实身份与固化属性分页">
+                    <template x-for="section in $store.game.profileSections($store.game.playerIdentityState(), $store.game.playerProfileLexiconFields())" :key="`player-tab-${section.title}`">
+                      <button type="button" :class="{ active: (activeRealWorldProfileTab || $store.game.profileSections($store.game.playerIdentityState(), $store.game.playerProfileLexiconFields())[0]?.title) === section.title }" @click="activeRealWorldProfileTab = section.title"><span class="bookmark-symbol" x-text="section.title.slice(0, 1)"></span><span class="bookmark-title" x-text="section.title"></span></button>
+                    </template>
+                  </nav>
                   <template x-for="section in $store.game.profileSections($store.game.playerIdentityState(), $store.game.playerProfileLexiconFields())" :key="`player-${section.title}`">
-                    <section>
-                      <h3 x-text="section.title"></h3>
+                    <section class="identity-rpg-section" x-show="(activeRealWorldProfileTab || $store.game.profileSections($store.game.playerIdentityState(), $store.game.playerProfileLexiconFields())[0]?.title) === section.title">
                       <template x-for="field in section.fields" :key="`player-${section.title}:${field.key}`">
                         <div class="dynamic-row" role="button" tabindex="0" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.toggleRpgField(field)" @keydown.enter.prevent="$store.game.toggleRpgField(field)" @keydown.space.prevent="$store.game.toggleRpgField(field)">
                           <button class="rpg-item-card lexicon-tag" :class="{ open: $store.game.isRpgFieldOpen(field) }" type="button" @click.stop="$store.game.toggleRpgField(field)"><strong x-text="$store.game.rpgFieldSummary(field)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
                           <div class="rpg-item-list" x-show="$store.game.isRpgListField(field)" @click.stop>
                             <template x-for="(item, index) in $store.game.rpgListItems(field)" :key="`player-${field.key}:${item.name || item}:${index}`">
-                              <button class="rpg-item-card" :class="{ open: $store.game.isRpgItemOpen(field, index) }" type="button" @click="$store.game.toggleRpgItem(field, index)"><strong x-text="$store.game.rpgItemSummary(item)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgItemOpen(field, index)" x-text="$store.game.rpgItemDetail(field, item)"></p></button>
+                              <button class="rpg-item-card" :class="{ open: $store.game.isRpgItemOpen(field, index), 'body-part-card': $store.game.isBodyProfileField(field) }" type="button" @click="$store.game.toggleRpgItem(field, index)"><strong x-text="$store.game.rpgItemSummary(item)"></strong><p class="body-part-description" x-show="$store.game.isBodyProfileField(field)" x-text="$store.game.rpgBodyPartDescription(item)"></p><p class="rpg-field-detail" x-show="$store.game.isRpgItemOpen(field, index)" x-text="$store.game.rpgItemDetail(field, item)"></p></button>
                             </template>
                           </div>
                           <p class="rpg-field-detail" x-show="!$store.game.isRpgListField(field) && !$store.game.isLexiconField(field) && $store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p>
