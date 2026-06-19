@@ -282,16 +282,21 @@
   will-change: transform;
 }
 
-.phone-setup-screen,
-.identity-app-screen {
+.phone-setup-screen {
   display: grid;
   place-items: center;
   padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(42px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
   background: radial-gradient(circle at 30% 12%, rgba(113, 243, 255, .24), transparent 30%), linear-gradient(145deg, #10172d, #070914 60%, #17112c);
 }
 
-.phone-setup-card,
-.identity-card {
+.identity-app-screen {
+  display: block;
+  min-height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background: radial-gradient(circle at 30% 12%, rgba(113, 243, 255, .24), transparent 30%), linear-gradient(145deg, #10172d, #070914 60%, #17112c);
+}
+
+.phone-setup-card {
   width: min(720px, 100%);
   max-height: calc(100dvh - 36px);
   overflow-y: auto;
@@ -302,6 +307,18 @@
   border-radius: 26px;
   background: rgba(13, 18, 38, .86);
   box-shadow: 0 26px 80px rgba(0, 0, 0, .42);
+  backdrop-filter: blur(18px);
+}
+
+.identity-card {
+  width: 100%;
+  min-height: 100dvh;
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: clamp(14px, 2.5vw, 24px);
+  background: rgba(13, 18, 38, .86);
   backdrop-filter: blur(18px);
 }
 
