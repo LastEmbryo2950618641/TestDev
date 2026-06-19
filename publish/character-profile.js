@@ -519,10 +519,11 @@ window.GameModules.characterProfile = {
     }
     if (parts.length !== 7) return row;
     let [type, slot, clothingPosition, itemName, description, quantity, reason] = parts;
-    if (type !== 'wearing') return this.csvJoin(parts);
+    if (!['item', 'wearing', 'slot'].includes(type)) return this.csvJoin(parts);
+    quantity = '1';
+    if (type !== 'wearing') return this.csvJoin([type, slot, clothingPosition, itemName, description, quantity, reason]);
     const positions = this.wearingClothingPositions();
     if (this.fixedWearingSlots().includes(slot)) clothingPosition = positions[slot];
-    if (quantity !== '--') quantity = '--';
     if (this.part4EmptyLikeCell(itemName) && this.part4EmptyLikeCell(description)) {
       itemName = '--';
       description = '--';
@@ -552,15 +553,7 @@ window.GameModules.characterProfile = {
   },
 
   normalizePart4RowsLocally(rows) {
-    const kept = { item: 0, slot: 0 };
-    return this.normalizeCsvPartRows(4, rows).filter((row) => {
-      const type = this.csvParts(row)[0];
-      if (type === 'item' || type === 'slot') {
-        kept[type] += 1;
-        return kept[type] <= (type === 'item' ? 4 : 2);
-      }
-      return true;
-    });
+    return this.normalizeCsvPartRows(4, rows);
   },
 
   normalizePart2RowsLocally(rows) {
@@ -637,57 +630,22 @@ window.GameModules.characterProfile = {
   part4CsvIssues(rows, profile = null) {
     const issues = [];
     const present = new Set();
-    const validBySlot = {};
-    const counts = { item: 0, slot: 0 };
     rows.forEach((row, index) => {
       const normalized = this.normalizePart4Row(row);
       const parts = this.csvParts(normalized);
       const reason = this.part4RowIssue(parts);
-      if (parts[0] === 'item' || parts[0] === 'slot') {
-        counts[parts[0]] += 1;
-        if (counts[parts[0]] > (parts[0] === 'item' ? 4 : 2)) issues.push({ key: `row${index + 1}`, reason: `${parts[0]}超过MD规定上限`, badRow: normalized });
-      }
       if (reason) {
         const key = parts[0] === 'wearing' && this.fixedWearingSlots().includes(parts[1]) ? parts[1] : `row${index + 1}`;
         issues.push({ key, reason, badRow: normalized });
       }
-      if (!reason && parts[0] === 'wearing') {
-        present.add(parts[1]);
-        validBySlot[parts[1]] = parts;
-      }
+      if (!reason && parts[0] === 'wearing') present.add(parts[1]);
     });
     this.fixedWearingSlots().forEach((slot) => {
       if (!present.has(slot)) issues.push({ key: slot, reason: '缺失固定wearing槽位' });
     });
-    this.part4PreferenceIssues(profile, validBySlot).forEach((issue) => issues.push(issue));
     return issues;
   },
 
-  part4PreferenceIssues(profile = {}, validBySlot = {}) {
-    const text = `${profile?.preferences || ''}${profile?.detail || ''}${profile?.appearance || ''}${profile?.role || ''}${profile?.job || ''}`;
-    const issues = [];
-    const joined = (parts) => `${parts?.[3] || ''}${parts?.[4] || ''}`;
-    if (/JK|jk|制服|百褶裙|过膝袜|连裤袜|丝袜|黑丝|白丝/.test(text)) {
-      const bottom = validBySlot.bottom;
-      const socks = validBySlot.socks;
-      const top = validBySlot.top;
-      if (bottom && !this.part4HasConcreteWear(bottom)) issues.push({ key: 'bottom', reason: '偏好写明JK制服或百褶裙但bottom未穿戴', badRow: this.csvJoin(bottom) });
-      if (bottom && /裤|牛仔裤|长裤|短裤|运动裤/.test(joined(bottom)) && !/裙/.test(joined(bottom))) issues.push({ key: 'bottom', reason: '偏好写明百褶裙但bottom生成了裤装', badRow: this.csvJoin(bottom) });
-      if (socks && /过膝袜|连裤袜|丝袜|黑丝|白丝/.test(text) && !this.part4HasConcreteWear(socks)) issues.push({ key: 'socks', reason: '偏好写明袜类但socks未穿戴', badRow: this.csvJoin(socks) });
-      if (top && /JK|jk|制服/.test(text) && !this.part4HasConcreteWear(top)) issues.push({ key: 'top', reason: '偏好写明制服但top未穿戴', badRow: this.csvJoin(top) });
-    }
-    const colorRules = [['黑', /黑色|黑丝|黑色丝袜|黑色过膝袜/], ['白', /白色|白丝|白色丝袜|白色过膝袜/]];
-    colorRules.forEach(([color, re]) => {
-      if (!re.test(text)) return;
-      ['head', 'neck', 'top', 'outerwear', 'bottom', 'socks', 'shoes', 'wrist'].forEach((slot) => {
-        const parts = validBySlot[slot];
-        if (parts && this.part4HasConcreteWear(parts) && joined(parts) && !joined(parts).includes(color)) {
-          if ((slot === 'socks' && /丝|袜/.test(text)) || (slot !== 'socks' && !/丝|袜/.test(text))) issues.push({ key: slot, reason: `偏好写明${color}色但${slot}未体现颜色`, badRow: this.csvJoin(parts) });
-        }
-      });
-    });
-    return issues;
-  },
 
   async generateCsvFixRows(partIndex, issues, currentRows, format, base, lore, attrs, store, vars) {
     const promptIds = { 2: 'character-profile-part2-feeling-fix', 3: 'character-profile-part3-abilities-professions-fix' };
@@ -751,7 +709,8 @@ window.GameModules.characterProfile = {
         '每行必须恰好 7 列：type,slot,clothing_position,name,description,quantity,reason。',
         'wearing 行的 slot 只能是固定值：head、neck、innerwearTop、top、outerwear、gloves、waist、innerwearBottom、bottom、socks、shoes、wrist。',
         '缺 socks 就必须返回 wearing,socks,袜子,...；鞋子必须用 shoes，禁止写 feet、foot、ankle、legs 或其它替代槽位。',
-        'wearing 行 quantity 固定写 --；未穿戴是合法状态，name 和 description 必须同时写 --，reason 必须写清具体不穿原因。',
+        'quantity 可统一写 1；代码不会用 quantity 判断穿着有效性。',
+        '未穿戴是合法状态，name 和 description 必须同时写 --，reason 必须写清具体不穿原因。',
         '禁止返回 --.--、-.--、---、... 等非法占位；未穿戴只能用精确的 --。',
         '禁止返回“当前场景未穿戴该槽位物品/未穿戴该槽位物品/无/暂无/不适用/上下文未说明/信息不足/日常需要/符合身份”等泛化原因。',
         '禁止返回“日常上衣/日常下衣/日常袜子/上下文未写明异常/常规场景基础穿着槽位”等兜底文案。',
@@ -759,7 +718,7 @@ window.GameModules.characterProfile = {
         'bottom 只能写一件主要下装，不能同时写百褶裙和牛仔裤；过膝袜、连裤袜、丝袜必须写在 socks。',
         '槽位语义必须匹配：outerwear只能写外套，waist只能写腰带腰封，bottom只能写裤裙，socks只能写袜类，shoes只能写鞋类，neck不能写耳环耳钉。',
         'clothing_position 是人体着装部位，必须按固定映射逐字填写：head=头部，neck=颈部，innerwearTop=内衣，top=上衣，outerwear=外套，gloves=手套，waist=腰部，innerwearBottom=内衣，bottom=下装，socks=袜子，shoes=鞋子，wrist=手腕。',
-        '不穿袜子、内衣、上衣、外套等都可以成立，但必须保留对应固定槽位行；例如袜子不穿仍输出 wearing,socks,袜子,--,--,--,具体不穿原因。',
+        '不穿袜子、内衣、上衣、外套等都可以成立，但必须保留对应固定槽位行；例如袜子不穿仍输出 wearing,socks,袜子,--,--,1,具体不穿原因。',
         '裸体、裸睡、洗澡、换衣、刚醒等场景可以让多个穿着槽位未穿戴，但不得省略槽位，也不得把未穿戴槽位改成其它 slot。',
         '必须批量返回本次所有有问题的行，并严格照下面列表的 type 和 slot 生成：',
         skeleton,
@@ -781,12 +740,13 @@ window.GameModules.characterProfile = {
   csvFixRowsToApply(partIndex, issues, rows) {
     if (partIndex !== 4) return rows;
     const requiredKeys = issues.map((x) => x.key).filter((key) => this.fixedWearingSlots().includes(key));
-    if (!requiredKeys.length) return rows;
     const used = new Set();
     return rows.map((row) => this.normalizePart4Row(row)).filter((row) => {
       const parts = this.csvParts(row);
-      if (parts[0] !== 'wearing' || !requiredKeys.includes(parts[1]) || used.has(parts[1])) return false;
       if (this.part4RowIssue(parts)) return false;
+      if (parts[0] !== 'wearing') return true;
+      if (!requiredKeys.length) return true;
+      if (!requiredKeys.includes(parts[1]) || used.has(parts[1])) return false;
       used.add(parts[1]);
       return true;
     });
@@ -820,22 +780,20 @@ window.GameModules.characterProfile = {
     }
     if (partIndex === 4) {
       const requiredKeys = issues.map((x) => x.key).filter((key) => this.fixedWearingSlots().includes(key));
-      if (!requiredKeys.length) return '';
       const normalizedRows = rows.map((row) => this.normalizePart4Row(row));
-      const returnedKeys = normalizedRows.map((row) => this.csvParts(row)).filter((parts) => parts[0] === 'wearing').map((parts) => parts[1]);
-      const missing = requiredKeys.filter((key) => !returnedKeys.includes(key));
-      const extra = returnedKeys.filter((key) => !requiredKeys.includes(key));
-      const duplicate = returnedKeys.filter((key, index) => returnedKeys.indexOf(key) !== index);
-      if (missing.length || extra.length || duplicate.length || returnedKeys.length !== requiredKeys.length) return [
-        `CSV修复必须且只能返回这些 wearing 槽位：${requiredKeys.join('、')}。`,
-        missing.length ? `缺失：${missing.join('、')}` : '',
-        extra.length ? `多余或不支持：${extra.join('、')}` : '',
-        duplicate.length ? `重复：${[...new Set(duplicate)].join('、')}` : '',
-        '请按下面“需要AI返回的行”重写，不要返回表头、解释或当前已合格行：',
-        skeleton,
-      ].filter(Boolean).join('\n');
       const bad = normalizedRows.find((row) => this.part4RowIssue(this.csvParts(row)));
       if (bad) return `CSV修复行格式不合格：${bad}`;
+      if (!requiredKeys.length) return '';
+      const returnedKeys = normalizedRows.map((row) => this.csvParts(row)).filter((parts) => parts[0] === 'wearing').map((parts) => parts[1]);
+      const missing = requiredKeys.filter((key) => !returnedKeys.includes(key));
+      const duplicate = returnedKeys.filter((key, index) => returnedKeys.indexOf(key) !== index);
+      if (missing.length || duplicate.length) return [
+        `CSV修复必须返回这些 wearing 槽位：${requiredKeys.join('、')}。`,
+        missing.length ? `缺失：${missing.join('、')}` : '',
+        duplicate.length ? `重复：${[...new Set(duplicate)].join('、')}` : '',
+        '请按下面“需要AI返回的行”重写，不要返回表头或解释：',
+        skeleton,
+      ].filter(Boolean).join('\n');
       return '';
     }
     if (partIndex !== 3) return '';
@@ -904,15 +862,12 @@ window.GameModules.characterProfile = {
       if (!this.fixedWearingSlots().includes(x.key)) return 'item,--,--,随身钥匙,金属边缘有磨痕,1,临时出门需要随手带走';
       const parts = this.csvParts(x.badRow || '');
       const normalized = this.normalizePart4Row(x.badRow || '');
-      if (!/偏好写明/.test(String(x.reason || '')) && !this.part4RowIssue(this.csvParts(normalized))) return normalized;
+      if (!this.part4RowIssue(this.csvParts(normalized))) return normalized;
       const [, , , itemName, description, , reason] = parts;
-      const safeReason = this.csvCell(reason) && !this.genericPart4Reason(reason) ? reason : missingReasonHints[x.key];
-      if (x.key === 'top' && /偏好写明/.test(String(x.reason || ''))) return this.csvJoin(['wearing', 'top', positions.top, 'JK制服上衣', '整洁的学生风制服上衣', '--', '人物偏好明确写明JK制服风格']);
-      if (x.key === 'bottom' && /偏好写明/.test(String(x.reason || ''))) return this.csvJoin(['wearing', 'bottom', positions.bottom, '百褶裙', '搭配JK制服的百褶裙', '--', '人物偏好明确写明百褶裙穿搭']);
-      if (x.key === 'socks' && /偏好写明/.test(String(x.reason || ''))) return this.csvJoin(['wearing', 'socks', positions.socks, '黑色过膝袜', '贴合腿部的黑色过膝袜', '--', '人物偏好明确写明黑色袜类搭配']);
+      const safeReason = this.csvCell(reason) ? reason : missingReasonHints[x.key];
       return this.part4HasConcreteWear(parts)
-        ? this.csvJoin(['wearing', x.key, positions[x.key], itemName, description, '--', safeReason])
-        : this.csvJoin(['wearing', x.key, positions[x.key], '--', '--', '--', safeReason]);
+        ? this.csvJoin(['wearing', x.key, positions[x.key], itemName, description, '1', safeReason])
+        : this.csvJoin(['wearing', x.key, positions[x.key], '--', '--', '1', safeReason]);
     }).join('\n');
   },
 
@@ -1216,29 +1171,21 @@ window.GameModules.characterProfile = {
       if (slot !== '--' || clothingPosition !== '--') return 'item槽位列和人体着装部位列必须为--';
       if (!itemName || itemName === '--') return 'item名称缺失';
       if (!this.csvCell(description)) return 'item描述缺失';
-      if (!Number.isInteger(Number(quantity)) || Number(quantity) < 1) return 'quantity无效';
-      if (!this.csvCell(reason) || this.genericPart4Reason(reason)) return 'item原因缺失或过泛';
+      if (!this.csvCell(reason)) return 'item原因缺失';
     }
     if (type === 'wearing') {
       if (!this.fixedWearingSlots().includes(slot)) return 'wearing槽位无效';
-      if (quantity !== '--') return 'wearing数量必须为--';
       const expectedPosition = this.wearingClothingPositions()[slot];
       if (clothingPosition !== expectedPosition) return `clothing_position应为${expectedPosition}`;
-      if (!this.csvCell(reason) || this.genericPart4Reason(reason)) return 'reason缺失或过泛';
+      if (!this.csvCell(reason)) return 'reason缺失';
       const emptyName = itemName === '--';
       const emptyDesc = description === '--';
       if (emptyName !== emptyDesc) return '未穿戴时name和description必须同时为--';
       if (!emptyName && (!this.csvCell(itemName) || !this.csvCell(description))) return '穿戴物名称或描述缺失';
-      const text = `${itemName}${description}${reason}`;
-      const wearText = `${itemName}${description}`;
-      if (/日常(上衣|下衣|袜子|鞋子|内衣|内裤)|上下文未写明异常|常规场景基础穿着槽位/.test(text)) return '禁止兜底穿着文案';
-      if (!emptyName && slot === 'bottom' && /裙/.test(wearText) && /裤|牛仔裤|长裤|短裤|运动裤/.test(wearText)) return 'bottom不能同时写裙装和裤装';
-      const slotIssue = !emptyName ? this.wearingSlotSemanticIssue(slot, wearText) : '';
-      if (slotIssue) return slotIssue;
     }
     if (type === 'slot') {
       if (!this.csvCell(slot) || !this.csvCell(clothingPosition) || !itemName || itemName === '--' || !this.csvCell(description)) return 'slot字段缺失';
-      if (!this.csvCell(reason) || this.genericPart4Reason(reason)) return 'slot原因缺失或过泛';
+      if (!this.csvCell(reason)) return 'slot原因缺失';
     }
     return '';
   },
@@ -1253,31 +1200,8 @@ window.GameModules.characterProfile = {
     return Boolean(text) && text !== '--' && /^[-.。·_\s]+$/.test(text);
   },
 
-  genericPart4Reason(value) {
-    const text = String(value || '').trim();
-    return !text || /^(--|无|暂无|不适用|未记录)$/.test(text)
-      || /当前场景未穿戴该槽位物品|未穿戴该槽位物品|上下文未写明|上下文未说明|信息不足|没有明确|常规场景|基础穿着槽位|符合身份|日常需要/.test(text);
-  },
-
   wearingClothingPositions() {
     return { head: '头部', neck: '颈部', innerwearTop: '内衣', top: '上衣', outerwear: '外套', gloves: '手套', waist: '腰部', innerwearBottom: '内衣', bottom: '下装', socks: '袜子', shoes: '鞋子', wrist: '手腕' };
-  },
-
-  wearingSlotSemanticIssue(slot, text) {
-    if (!this.csvCell(text)) return '';
-    const has = (pattern) => pattern.test(text);
-    if (/头发|发丝|发尾|长发|短发|黑发|白发|金发|皮肤|肤色|肌肤|身体|体态|身材|眼睛|瞳孔|脸|面容|嘴唇|手指|腿型/.test(text)) return '身体外貌特征不能作为穿着物';
-    if (slot === 'head' && has(/项链|围巾|领带|项圈|颈环|围脖|吊坠|丝巾|耳环|耳钉|耳坠|耳饰/)) return 'head不能写颈部或耳部饰物';
-    if (slot === 'neck' && has(/耳环|耳钉|耳坠|耳饰|帽|发卡|发夹|发带|头饰|发饰|头巾|头绳|蝴蝶结|头箍|头冠|头盔/)) return 'neck不能写头部或耳部饰物';
-    if (slot === 'outerwear' && has(/百褶裙|短裙|长裙|裙子|牛仔裤|长裤|短裤|裤子|袜|连裤袜|过膝袜|丝袜/)) return 'outerwear只能写外套类穿着';
-    if (slot === 'waist' && has(/百褶裙|短裙|长裙|裙子|牛仔裤|长裤|短裤|裤子|袜|连裤袜|过膝袜|丝袜|上衣|衬衫|外套/)) return 'waist只能写腰带腰封类穿着';
-    if (slot === 'bottom' && has(/袜|连裤袜|过膝袜|丝袜|长筒袜|短袜|裤袜|鞋/)) return 'bottom不能写袜子或鞋类';
-    if (slot === 'socks' && has(/百褶裙|短裙|长裙|裙子|牛仔裤|长裤|短裤|鞋|靴|上衣|衬衫|外套/)) return 'socks只能写袜类或腿袜类穿着';
-    if (slot === 'shoes' && has(/袜|连裤袜|过膝袜|丝袜|百褶裙|短裙|长裙|裙子|牛仔裤|长裤|短裤/)) return 'shoes只能写鞋类穿着';
-    if (slot === 'top' && has(/百褶裙|短裙|长裙|裙子|牛仔裤|长裤|短裤|袜|鞋|靴/)) return 'top只能写上衣类穿着';
-    if (slot === 'innerwearTop' && has(/百褶裙|短裙|长裙|裙子|牛仔裤|长裤|短裤|袜|鞋|靴|外套/)) return 'innerwearTop只能写胸部内衣';
-    if (slot === 'innerwearBottom' && has(/百褶裙|短裙|长裙|裙子|牛仔裤|长裤|短裤|袜|鞋|靴|外套/)) return 'innerwearBottom只能写腰臀内衣';
-    return '';
   },
 
   fixedWearingSlots() {
