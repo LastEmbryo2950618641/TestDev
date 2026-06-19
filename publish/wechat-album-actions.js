@@ -88,6 +88,7 @@ window.GameModules.wechatAlbumActions = {
 
   renderWechatAlbumPrompt(template, vars) {
     return String(template || '').replace(/\{角色身份信息\}/g, vars.identityInfo)
+      .replace(/\{自然状态补充要求\}/g, vars.naturalExtra || '')
       .replace(/\{自然状态部位描述\}/g, vars.naturalText).replace(/\{盛装部位描述\}/g, vars.dressedText)
       .replace(/\{生成状态\}/g, vars.stateName).replace(/\{状态部位描述\}/g, vars.bodyText);
   },
@@ -99,8 +100,9 @@ window.GameModules.wechatAlbumActions = {
     const dressedText = kind === 'dressed' && selected ? selected.bodyText : this.wechatAlbumBodyText(profile.dressedProfile);
     const stateName = selected?.stateName || this.wechatAlbumKindLabel(kind);
     const bodyText = selected?.bodyText || (kind === 'dressed' ? dressedText : naturalText);
-    const template = window.GameModules.pictureGeneratePrompts?.wechatAlbumPhoto || '请根据以下角色个人身份信息与{生成状态}部位描述生成一张全身正面照。\n\n{角色身份信息}\n\n{状态部位描述}';
-    const prompt = this.renderWechatAlbumPrompt(template, { identityInfo, naturalText, dressedText, stateName, bodyText });
+    const naturalExtra = kind === 'natural' ? '自然状态必须体现毫无人工雕琢、未经衣物遮掩的原本躯体。' : '';
+    const template = window.GameModules.pictureGeneratePrompts?.wechatAlbumPhoto || '请根据以下角色个人身份信息与{生成状态}部位描述生成一张全身正面照。\n\n{自然状态补充要求}\n\n{角色身份信息}\n\n{状态部位描述}';
+    const prompt = this.renderWechatAlbumPrompt(template, { identityInfo, naturalText, dressedText, stateName, bodyText, naturalExtra });
     return prompt.slice(0, 2000);
   },
 
