@@ -767,7 +767,7 @@
       <section class="identity-rpg dev-section" data-section-title="身份属性与升级体系区" x-data="{ activeIdentityRpgTab: '' }" x-init="$watch(() => $store.game.identityTargetId, () => activeIdentityRpgTab = '')">
         <nav class="identity-rpg-tabs" aria-label="身份属性与升级体系分页">
           <template x-for="section in $store.game.profileSections($store.game.identityTargetState(), $store.game.identityTargetFields())" :key="`tab-${section.title}`">
-            <button type="button" :class="{ active: (activeIdentityRpgTab || $store.game.profileSections($store.game.identityTargetState(), $store.game.identityTargetFields())[0]?.title) === section.title }" @click="activeIdentityRpgTab = section.title" x-text="section.title"></button>
+            <button type="button" :class="{ active: (activeIdentityRpgTab || $store.game.profileSections($store.game.identityTargetState(), $store.game.identityTargetFields())[0]?.title) === section.title }" @click="activeIdentityRpgTab = section.title"><span class="bookmark-symbol" x-text="section.title.slice(0, 1)"></span><span class="bookmark-title" x-text="section.title"></span></button>
           </template>
         </nav>
         <template x-for="section in $store.game.profileSections($store.game.identityTargetState(), $store.game.identityTargetFields())" :key="section.title">
