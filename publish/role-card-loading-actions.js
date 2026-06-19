@@ -192,7 +192,8 @@ window.GameModules.roleCardLoadingActions = {
       { key: 'feeling', text: '生成情感数值 Part2', status: 'waiting', total: 29 },
       { key: 'abilities', text: '生成能力职业 Part3', status: 'waiting', total: 3 },
       { key: 'inventory', text: '生成物品穿着 Part4', status: 'waiting', total: 13 },
-      { key: 'rpgField', text: '生成 RPG 字段 Part5', status: 'waiting', total: 8 },
+      { key: 'bodyProfile', text: '生成身体原貌 Part5', status: 'waiting', total: 11 },
+      { key: 'rpgField', text: '生成 RPG 字段 Part6', status: 'waiting', total: 8 },
       { key: 'state', text: '固化 RPG 状态', status: 'waiting', total: 1 },
     ];
   },
