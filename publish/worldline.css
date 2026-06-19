@@ -200,13 +200,14 @@
 
 .real-plot-layout {
   display: grid;
-  grid-template-columns: minmax(160px, 28%) minmax(0, 1fr);
+  grid-template-columns: 1fr;
   gap: 10px;
   min-height: 0;
 }
 
 .real-plot-list,
-.real-plot-detail {
+.real-plot-detail,
+.real-recording-panel > .real-plot-summary {
   min-height: 0;
   padding: 10px;
   border: 1px solid rgba(255, 255, 255, .1);
@@ -216,16 +217,18 @@
 
 .real-plot-list {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   align-content: start;
   gap: 8px;
-  max-height: 58dvh;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  max-height: none;
+  overflow: visible;
 }
 
 .real-plot-list button {
   display: grid;
+  align-content: start;
   gap: 3px;
+  min-height: 58px;
   padding: 9px;
   border: 1px solid rgba(116, 246, 255, .16);
   border-radius: 13px;
