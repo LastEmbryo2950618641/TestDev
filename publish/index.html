@@ -116,6 +116,7 @@
   <script src="wechat-worldline-actions.js"></script>
   <script src="wechat-memory-debug-actions.js"></script>
   <script src="wechat-app-actions.js"></script>
+  <script src="wechat-album-actions.js"></script>
   <script src="wechat-change-panel-actions.js"></script>
   <script src="player-wechat-setup.js"></script>
   <script src="player-identity-actions.js"></script>
@@ -1116,7 +1117,10 @@
         <button type="button" @click="$store.game.closeWechatApp()">返回桌面</button><strong></strong><button type="button">⋯</button>
       </header>
       <header class="wechat-chat-top" x-show="$store.game.wechatView === 'chat'">
-        <button type="button" @click="$store.game.wechatView = 'home'">‹</button><strong x-text="$store.game.wechatSelected().name"></strong><span></span>
+        <button type="button" @click="$store.game.wechatView = 'home'">‹</button><strong x-text="$store.game.wechatSelected().name"></strong><button type="button" x-show="!$store.game.wechatSelected().group" @click="$store.game.openWechatContactProfile()">资料</button>
+      </header>
+      <header class="wechat-chat-top" x-show="$store.game.wechatView === 'profile'">
+        <button type="button" @click="$store.game.backWechatContactProfile()">‹</button><strong x-text="$store.game.wechatAlbumMode === 'album' ? '相册' : $store.game.wechatProfileContact().name"></strong><span></span>
       </header>
       <main class="wechat-body">
         <section class="wechat-list-page" x-show="$store.game.wechatView === 'home' && $store.game.wechatTab === 'chats'">
@@ -1132,18 +1136,40 @@
           </div>
           <p class="wechat-empty" x-show="!$store.game.wechatContacts().filter(x => !x.group).length">暂无联系人</p>
           <template x-for="contact in $store.game.wechatContacts().filter(x => !x.group)" :key="contact.id">
-            <button class="wechat-contact-row" type="button" @pointerdown.stop @click.stop="$store.game.selectWechatContact(contact.id)"><span class="wechat-avatar" x-text="contact.mark"></span><b x-text="contact.name"></b></button>
+            <button class="wechat-contact-row" type="button" @pointerdown.stop @click.stop="$store.game.openWechatContactProfile(contact.id)"><span class="wechat-avatar" x-text="contact.mark"></span><b x-text="contact.name"></b></button>
           </template>
         </section>
         <section class="wechat-me-page" x-show="$store.game.wechatView === 'home' && $store.game.wechatTab === 'me'">
           <div class="wechat-me-card"><span class="wechat-avatar large" x-text="$store.game.playerDisplayCharacter().name.slice(0, 1)"></span><div><h3 x-text="$store.game.playerDisplayCharacter().name"></h3><p x-text="`微信号：${$store.game.ensureWechatId()}`"></p></div></div>
           <button class="wechat-wallet" type="button"><span>钱包</span><b>¥ 0.00</b></button>
         </section>
+        <section class="wechat-profile-page" x-show="$store.game.wechatView === 'profile' && $store.game.wechatAlbumMode === 'profile'">
+          <div class="wechat-me-card"><span class="wechat-avatar large" x-text="$store.game.wechatProfileContact().mark || $store.game.wechatProfileContact().name.slice(0, 1)"></span><div><h3 x-text="$store.game.wechatProfileContact().name"></h3><p x-text="$store.game.wechatProfileContact().relation || $store.game.wechatProfileContact().subtitle || '微信联系人'"></p></div></div>
+          <button class="wechat-wallet" type="button" @click="$store.game.openWechatIdentity()"><span>身份证</span><b>›</b></button>
+          <button class="wechat-wallet" type="button" @click="$store.game.openWechatAlbum()"><span>相册</span><b>›</b></button>
+        </section>
+        <section class="wechat-album-page" x-show="$store.game.wechatView === 'profile' && $store.game.wechatAlbumMode === 'album'">
+          <div class="wechat-photo-slot" :class="{ loading: $store.game.wechatAlbumGenerating, filled: $store.game.wechatAlbumPhoto() }">
+            <img x-show="$store.game.wechatAlbumPhoto()" :src="$store.game.wechatAlbumPhoto()?.url || ''" alt="联系人照片">
+            <span x-show="!$store.game.wechatAlbumPhoto() && !$store.game.wechatAlbumGenerating">暂无照片</span>
+            <span x-show="$store.game.wechatAlbumGenerating">生成中…约 30 秒</span>
+          </div>
+          <button class="wechat-refresh-btn" type="button" @click="$store.game.wechatAlbumChoiceOpen()" :disabled="$store.game.wechatAlbumGenerating" x-text="$store.game.wechatAlbumGenerating ? '生成中…' : '刷新'"></button>
+          <button class="wechat-real-photo-btn" type="button" x-show="$store.game.wechatAlbumPhoto()" @click="$store.game.markWechatAlbumPhotoReal()" x-text="$store.game.wechatAlbumPhoto()?.real ? '已标记为真实照片' : '标记为真实照片'"></button>
+          <div class="wechat-photo-dialog" x-show="$store.game.wechatAlbumPromptOpen" @click.self="$store.game.wechatAlbumChoiceClose()" x-cloak>
+            <article>
+              <strong>选择生成状态</strong>
+              <button type="button" @click="$store.game.generateWechatAlbumPhoto('natural')" :disabled="$store.game.wechatAlbumGenerating">自然状态</button>
+              <button type="button" @click="$store.game.generateWechatAlbumPhoto('dressed')" :disabled="$store.game.wechatAlbumGenerating">盛装状态</button>
+              <button type="button" @click="$store.game.wechatAlbumChoiceClose()" :disabled="$store.game.wechatAlbumGenerating">取消</button>
+            </article>
+          </div>
+        </section>
         <section class="wechat-chat-page" x-show="$store.game.wechatView === 'chat'">
           <div class="wechat-messages">
             <template x-for="(msg, index) in $store.game.wechatMessages()" :key="index">
               <div class="wechat-msg" :class="msg.side">
-                <button class="wechat-avatar" type="button" @click="$store.game.openWechatIdentity()" x-text="msg.mark"></button>
+                <button class="wechat-avatar" type="button" @click="$store.game.openWechatContactProfile(msg.characterId || $store.game.wechatSelectedContact)" x-text="msg.mark"></button>
                 <div>
                   <time x-text="msg.atDisplay || msg.at || ''"></time>
                   <p x-text="msg.text"></p>

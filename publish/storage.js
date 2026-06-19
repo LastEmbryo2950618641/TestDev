@@ -36,6 +36,7 @@ window.GameModules.storage = {
       },
       wechatUsers: store.wechatUsers || [],
       wechatMessagesByContact: store.wechatMessagesByContact || {},
+      wechatAlbumPhotos: store.wechatAlbumPhotos || {},
       phoneFixedTime: store.phoneFixedTime,
       selectedSlot: store.selectedSlot,
       selectedWork: store.selectedWork,
@@ -94,6 +95,7 @@ window.GameModules.storage = {
     }
     store.wechatUsers = Array.isArray(save.wechatUsers) ? save.wechatUsers : (store.wechatUsers || []);
     store.wechatMessagesByContact = save.wechatMessagesByContact && typeof save.wechatMessagesByContact === 'object' ? save.wechatMessagesByContact : (store.wechatMessagesByContact || {});
+    store.wechatAlbumPhotos = save.wechatAlbumPhotos && typeof save.wechatAlbumPhotos === 'object' ? save.wechatAlbumPhotos : (store.wechatAlbumPhotos || {});
     store.realWorldSceneTitle = save.realWorldSceneTitle || store.realWorldSceneTitle;
     store.realWorldLocationName = save.realWorldLocationName || store.realWorldLocationName;
     store.realWorldMap = save.realWorldMap || store.realWorldMap;
