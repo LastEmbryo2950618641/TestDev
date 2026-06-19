@@ -56,13 +56,14 @@ window.GameModules.wechatAlbumActions = {
       ['job', '职业', profile.job || '未记录'], ['appearance', '外貌', profile.appearance || '未记录'],
       ['personality', '性格', profile.personality || '未记录'], ['detail', '人物说明', profile.detail || profile.description || '未记录'],
       ['relationships', '人际关系', profile.relationships || contact.relation || '未记录'],
-    ].map(([key, label, value]) => ({ key, label, text: `${label}：${value}` }));
+    ].map(([key, label, value]) => ({ key, label, value, text: `${label}：${value}` }));
   },
   wechatAlbumBodyItems(body = []) {
     return Array.isArray(body) && body.length ? body.map((item, index) => {
       const label = item.part || item.name || `部位${index + 1}`;
-      return { key: `body-${index}`, label, text: `${label}：${item.description || item.detail || '未记录'}` };
-    }) : [{ key: 'body-empty', label: '部位描述', text: '未记录' }];
+      const value = item.description || item.detail || '未记录';
+      return { key: `body-${index}`, label, value, text: `${label}：${value}` };
+    }) : [{ key: 'body-empty', label: '部位描述', value: '未记录', text: '未记录' }];
   },
   wechatAlbumPromptOptions(kind = this.wechatAlbumPromptDraft?.kind || 'natural') {
     const contact = this.wechatProfileContact();
@@ -78,28 +79,44 @@ window.GameModules.wechatAlbumActions = {
   wechatAlbumSelectedText() {
     const draft = this.wechatAlbumPromptDraft || { kind: 'natural', identityKeys: [], bodyKeys: [], customText: '', extraText: '' };
     const options = this.wechatAlbumPromptOptions(draft.kind);
-    const identityInfo = options.identity.filter((item) => draft.identityKeys.includes(item.key)).map((item) => item.text).join('\n') || '未记录';
-    const bodyText = draft.kind === 'custom' ? String(draft.customText || '').trim() : options.body.filter((item) => draft.bodyKeys.includes(item.key)).map((item) => item.text).join('\n');
-    return { identityInfo, bodyText: bodyText || '未记录', extraText: String(draft.extraText || '').trim(), stateName: this.wechatAlbumKindLabel(draft.kind), kind: draft.kind };
+    const identityItems = options.identity.filter((item) => draft.identityKeys.includes(item.key));
+    const bodyItems = draft.kind === 'custom' ? [] : options.body.filter((item) => draft.bodyKeys.includes(item.key));
+    const identityInfo = identityItems.map((item) => item.text).join('\n') || '未记录';
+    const bodyText = draft.kind === 'custom' ? String(draft.customText || '').trim() : bodyItems.map((item) => item.text).join('\n');
+    return { identityInfo, bodyText: bodyText || '未记录', extraText: String(draft.extraText || '').trim(), stateName: this.wechatAlbumKindLabel(draft.kind), kind: draft.kind, identityItems, bodyItems };
   },
   wechatAlbumPromptPreview() { return this.wechatAlbumPhotoPrompt(this.wechatProfileContact(), this.wechatAlbumPromptDraft?.kind || 'natural', this.wechatAlbumPromptDraft); },
   wechatAlbumSelectedCharCount() { return this.wechatAlbumPromptPreview().length; },
   wechatAlbumIdentityInfo(contact, state = {}, profile = {}) { return this.wechatAlbumIdentityItems(contact, state, profile).map((item) => item.text).join('\n'); },
   wechatAlbumBodyText(body) { return this.wechatAlbumBodyItems(body).map((item) => item.text).join('\n'); },
 
+  wechatAlbumTextSegments(text = '') {
+    const raw = String(text || '').normalize('NFKC');
+    if (Intl?.Segmenter) {
+      return Array.from(new Intl.Segmenter('zh-CN', { granularity: 'word' }).segment(raw))
+        .filter((item) => item.isWordLike).map((item) => item.segment);
+    }
+    return Array.from(raw.matchAll(/[\p{Script=Han}\p{Letter}\p{Number}]{2,}/gu), (item) => item[0]);
+  },
+
   wechatAlbumTagsFromText(text = '') {
-    const raw = String(text || '').replace(/[\r\n]+/g, '，').replace(/必须是|以下要求|前文|本节|为准/g, '');
-    const pieces = raw.split(/[，,、；;。.!！?？|]+/).flatMap((part) => {
-      const value = part.includes('：') || part.includes(':') ? part.split(/[：:]/).slice(1).join('：') : part;
-      return value.split(/[（）()【】\[\]《》<>“”"'\s]+/);
-    });
-    const blocked = new Set(['未记录', '暂无', '无', '/', 'null', 'undefined', '角色身份信息', '状态部位描述', '自然状态补充要求']);
-    return [...new Set(pieces.map((item) => item.trim()).filter((item) => item && !blocked.has(item) && item.length <= 24))].join('，');
+    const blocked = new Set(['未记录', '暂无', '没有', 'null', 'undefined', '必须', '以下', '要求', '前文', '本节']);
+    const tags = this.wechatAlbumTextSegments(text).map((item) => item.trim())
+      .filter((item) => item.length > 1 && item.length <= 24 && !blocked.has(item));
+    return [...new Set(tags)].join('，');
+  },
+
+  wechatAlbumTagsFromItems(items = [], fallback = '') {
+    const directTags = (items || []).flatMap((item) => {
+      const value = String(item?.value || '').trim();
+      return value && value !== '未记录' && value.length <= 24 ? [value] : this.wechatAlbumTextSegments(value);
+    }).filter((item) => item && item !== '未记录' && item.length <= 24);
+    return [...new Set([...directTags, ...this.wechatAlbumTagsFromText(fallback).split('，').filter(Boolean)])].join('，');
   },
 
   renderWechatAlbumPrompt(template, vars) {
-    const identityTags = this.wechatAlbumTagsFromText(vars.identityInfo);
-    const bodyTags = this.wechatAlbumTagsFromText(vars.bodyText);
+    const identityTags = this.wechatAlbumTagsFromItems(vars.identityItems, vars.identityInfo);
+    const bodyTags = this.wechatAlbumTagsFromItems(vars.bodyItems, vars.bodyText);
     const naturalTags = this.wechatAlbumTagsFromText(vars.naturalExtra || '');
     return String(template || '').replace(/\{角色身份信息标签\}/g, identityTags)
       .replace(/\{状态部位描述标签\}/g, bodyTags).replace(/\{自然状态补充要求标签\}/g, naturalTags)
@@ -110,14 +127,17 @@ window.GameModules.wechatAlbumActions = {
   wechatAlbumPhotoPrompt(contact, kind = 'natural', draft = null) {
     const { state, profile } = this.wechatAlbumStateData(contact);
     const selected = draft ? this.wechatAlbumSelectedText() : null;
-    const identityInfo = selected?.identityInfo || this.wechatAlbumIdentityInfo(contact, state, profile);
+    const identityItems = selected?.identityItems || this.wechatAlbumIdentityItems(contact, state, profile);
+    const defaultBodyItems = this.wechatAlbumBodyItems(kind === 'dressed' ? profile.dressedProfile : profile.bodyProfile);
+    const bodyItems = selected?.bodyItems?.length ? selected.bodyItems : defaultBodyItems;
+    const identityInfo = selected?.identityInfo || identityItems.map((item) => item.text).join('\n');
     const naturalText = kind === 'natural' && selected ? selected.bodyText : this.wechatAlbumBodyText(profile.bodyProfile);
     const dressedText = kind === 'dressed' && selected ? selected.bodyText : this.wechatAlbumBodyText(profile.dressedProfile);
     const stateName = selected?.stateName || this.wechatAlbumKindLabel(kind);
-    const bodyText = selected?.bodyText || (kind === 'dressed' ? dressedText : naturalText);
-    const naturalExtra = kind === 'natural' ? '必须是毫无人工雕琢、未经衣物遮掩的原本躯体。' : '';
+    const bodyText = selected?.bodyText || bodyItems.map((item) => item.text).join('\n');
+    const naturalExtra = kind === 'natural' ? '毫无人工雕琢，未经衣物遮掩，原本躯体' : '';
     const template = window.GameModules.pictureGeneratePrompts?.wechatAlbumPhoto || '单人，全身，正面站姿，清晰面部，完整身体比例，干净背景，无文字，无水印，高质量二次元风格，{角色身份信息标签}，{状态部位描述标签}，{自然状态补充要求标签}';
-    const basePrompt = this.renderWechatAlbumPrompt(template, { identityInfo, naturalText, dressedText, stateName, bodyText, naturalExtra });
+    const basePrompt = this.renderWechatAlbumPrompt(template, { identityInfo, identityItems, naturalText, dressedText, stateName, bodyText, bodyItems, naturalExtra });
     const extraTags = selected?.extraText ? this.wechatAlbumTagsFromText(selected.extraText) : '';
     return [basePrompt, extraTags].filter(Boolean).join('，').slice(0, 2000);
   },
