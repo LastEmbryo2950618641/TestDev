@@ -764,10 +764,14 @@
           <div class="memory-list"><template x-for="item in $store.game.identityMemoryArchiveResults" :key="item.id"><p><b x-text="`${item.meta?.time || '时间未知'}｜${item.meta?.place || '地点未知'}`"></b><span x-text="item.meta?.summary || item.text"></span></p></template><small x-show="!$store.game.identityMemoryArchiveResults.length">暂无搜索结果</small></div>
         </div>
       </section>
-      <section class="identity-rpg dev-section" data-section-title="身份属性与升级体系区">
+      <section class="identity-rpg dev-section" data-section-title="身份属性与升级体系区" x-data="{ activeIdentityRpgTab: '' }" x-init="$watch(() => $store.game.identityTargetId, () => activeIdentityRpgTab = '')">
+        <nav class="identity-rpg-tabs" aria-label="身份属性与升级体系分页">
+          <template x-for="section in $store.game.profileSections($store.game.identityTargetState(), $store.game.identityTargetFields())" :key="`tab-${section.title}`">
+            <button type="button" :class="{ active: (activeIdentityRpgTab || $store.game.profileSections($store.game.identityTargetState(), $store.game.identityTargetFields())[0]?.title) === section.title }" @click="activeIdentityRpgTab = section.title" x-text="section.title"></button>
+          </template>
+        </nav>
         <template x-for="section in $store.game.profileSections($store.game.identityTargetState(), $store.game.identityTargetFields())" :key="section.title">
-          <article class="identity-rpg-section dev-section" :data-section-title="`${section.title}区`">
-            <h3 x-text="section.title"></h3>
+          <article class="identity-rpg-section dev-section" x-show="(activeIdentityRpgTab || $store.game.profileSections($store.game.identityTargetState(), $store.game.identityTargetFields())[0]?.title) === section.title" :data-section-title="`${section.title}区`">
             <template x-for="field in section.fields" :key="field.key">
               <div class="dynamic-row" role="button" tabindex="0" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.toggleRpgField(field)" @keydown.enter.prevent="$store.game.toggleRpgField(field)" @keydown.space.prevent="$store.game.toggleRpgField(field)">
                 <button :class="[$store.game.isRpgListField(field) ? 'rpg-tree-title' : 'rpg-item-card lexicon-tag', { open: $store.game.isRpgFieldOpen(field) }]" type="button" @click.stop="$store.game.toggleRpgField(field)"><strong x-text="$store.game.rpgFieldSummary(field)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>

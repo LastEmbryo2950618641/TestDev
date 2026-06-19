@@ -342,6 +342,31 @@
   gap: 10px;
 }
 
+.identity-rpg-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  overscroll-behavior-inline: contain;
+}
+
+.identity-rpg-tabs button {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid rgba(146, 170, 255, .22);
+  border-radius: 999px;
+  color: #cbd6ff;
+  background: rgba(255, 255, 255, .05);
+}
+
+.identity-rpg-tabs button.active {
+  color: #071126;
+  border-color: rgba(127, 229, 255, .9);
+  background: linear-gradient(135deg, #7fe5ff, #c0f6ff);
+  box-shadow: 0 8px 24px rgba(127, 229, 255, .2);
+}
+
 .phone-setup-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
