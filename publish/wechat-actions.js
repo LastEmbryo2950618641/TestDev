@@ -30,7 +30,7 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
     const characterId = this.wechatCharacterId(contact);
     const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
     const name = this.concreteWechatProfileName(state?.profile, contact);
-    return name ? { ...contact, characterId, name, mark: name.slice(0, 1), needsNameAi: false } : { ...contact, characterId };
+    return name ? { ...contact, characterId, name, mark: name.slice(0, 1), avatar: contact.avatar, needsNameAi: false } : { ...contact, characterId, avatar: contact.avatar };
   },
   syncWechatContactId(id) {
     if (!id) return false;

@@ -154,11 +154,12 @@ window.GameModules.wechatAlbumActions = {
     return null;
   },
 
-  markWechatAlbumPhotoReal(index = 0) {
+  async markWechatAlbumPhotoReal(index = 0) {
     const contact = this.wechatProfileContact();
     const list = this.wechatAlbumPhotoList();
     if (!contact || !list[index]) return;
     this.wechatAlbumPhotos = { ...(this.wechatAlbumPhotos || {}), [contact.id]: list.map((photo, i) => i === index ? { ...photo, real: true } : photo) };
-    this.save?.();
+    await this.save?.();
+    await this.autoCaptureWechatAvatar?.(index);
   },
 };

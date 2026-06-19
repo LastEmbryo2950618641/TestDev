@@ -251,6 +251,7 @@
 }
 
 .wechat-photo-slot {
+  position: relative;
   width: min(100%, 320px);
   aspect-ratio: 2 / 3;
   justify-self: center;
@@ -268,6 +269,20 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.wechat-avatar-crop-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 34px;
+  min-height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .58);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
 }
 
 .wechat-photo-add {
@@ -339,6 +354,34 @@
   width: min(360px, 100%);
   height: min(640px, calc(100dvh - 52px));
   grid-template-rows: minmax(0, 1fr);
+}
+
+.wechat-photo-dialog article.avatar-crop {
+  width: min(340px, 100%);
+}
+
+.wechat-avatar-crop-frame {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  justify-self: center;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #111;
+}
+
+.wechat-avatar-crop-frame img {
+  position: absolute;
+  height: auto;
+  max-width: none;
+}
+
+.avatar-crop label {
+  display: grid;
+  gap: 4px;
+  color: #555;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .wechat-photo-dialog strong {

@@ -123,6 +123,7 @@
   <script src="wechat-app-actions.js"></script>
   <script src="wechat-album-tags.js"></script>
   <script src="wechat-album-prompt-list.js"></script>
+  <script src="wechat-avatar-crop-actions.js"></script>
   <script src="wechat-album-actions.js"></script>
   <script src="wechat-change-panel-actions.js"></script>
   <script src="player-wechat-setup.js"></script>
@@ -1166,7 +1167,7 @@
       <main class="wechat-body">
         <section class="wechat-list-page" x-show="$store.game.wechatView === 'home' && $store.game.wechatTab === 'chats'">
           <template x-for="thread in $store.game.wechatThreads()" :key="thread.id">
-            <button class="wechat-thread" type="button" @pointerdown.stop @click.stop="$store.game.selectWechatContact(thread.id)"><span class="wechat-avatar" x-text="thread.mark"></span><span><b x-text="thread.name"></b><small x-text="thread.latest"></small></span><em x-show="thread.unread" x-text="thread.unread"></em></button>
+            <button class="wechat-thread" type="button" @pointerdown.stop @click.stop="$store.game.selectWechatContact(thread.id)"><span class="wechat-avatar" :style="$store.game.wechatAvatarStyle(thread)" x-text="$store.game.wechatAvatarText(thread)"></span><span><b x-text="thread.name"></b><small x-text="thread.latest"></small></span><em x-show="thread.unread" x-text="thread.unread"></em></button>
           </template>
         </section>
         <section class="wechat-list-page" x-show="$store.game.wechatView === 'home' && $store.game.wechatTab === 'contacts'">
@@ -1177,7 +1178,7 @@
           </div>
           <p class="wechat-empty" x-show="!$store.game.wechatContacts().filter(x => !x.group).length">暂无联系人</p>
           <template x-for="contact in $store.game.wechatContacts().filter(x => !x.group)" :key="contact.id">
-            <button class="wechat-contact-row" type="button" @pointerdown.stop @click.stop="$store.game.openWechatContactProfile(contact.id)"><span class="wechat-avatar" x-text="contact.mark"></span><b x-text="contact.name"></b></button>
+            <button class="wechat-contact-row" type="button" @pointerdown.stop @click.stop="$store.game.openWechatContactProfile(contact.id)"><span class="wechat-avatar" :style="$store.game.wechatAvatarStyle(contact)" x-text="$store.game.wechatAvatarText(contact)"></span><b x-text="contact.name"></b></button>
           </template>
         </section>
         <section class="wechat-me-page" x-show="$store.game.wechatView === 'home' && $store.game.wechatTab === 'me'">
@@ -1185,7 +1186,7 @@
           <button class="wechat-wallet" type="button"><span>钱包</span><b>¥ 0.00</b></button>
         </section>
         <section class="wechat-profile-page" x-show="$store.game.wechatView === 'profile' && $store.game.wechatAlbumMode === 'profile'">
-          <div class="wechat-me-card"><span class="wechat-avatar large" x-text="$store.game.wechatProfileContact().mark || $store.game.wechatProfileContact().name.slice(0, 1)"></span><div><h3 x-text="$store.game.wechatProfileContact().name"></h3><p x-text="$store.game.wechatProfileContact().relation || $store.game.wechatProfileContact().subtitle || '微信联系人'"></p></div></div>
+          <div class="wechat-me-card"><span class="wechat-avatar large" :style="$store.game.wechatAvatarStyle($store.game.wechatProfileContact())" x-text="$store.game.wechatAvatarText($store.game.wechatProfileContact())"></span><div><h3 x-text="$store.game.wechatProfileContact().name"></h3><p x-text="$store.game.wechatProfileContact().relation || $store.game.wechatProfileContact().subtitle || '微信联系人'"></p></div></div>
           <button class="wechat-wallet" type="button" @click="$store.game.openWechatIdentity()"><span>身份证</span><b>›</b></button>
           <button class="wechat-wallet" type="button" @click="$store.game.openWechatAlbum()"><span>相册</span><b>›</b></button>
         </section>
@@ -1198,10 +1199,20 @@
           <div class="wechat-album-grid" x-show="$store.game.wechatAlbumPhotoList().length" x-cloak>
             <template x-for="(photo, index) in $store.game.wechatAlbumPhotoList()" :key="`${photo.createdAt || index}-${photo.url}`">
               <article class="wechat-album-card">
-                <div class="wechat-photo-slot filled"><img :src="photo.url" alt="联系人照片"></div>
+                <div class="wechat-photo-slot filled"><img :src="photo.url" alt="联系人照片"><button class="wechat-avatar-crop-btn" type="button" @click.stop="$store.game.openWechatAvatarCrop(index)" title="截取头像">⌗</button></div>
                 <button class="wechat-real-photo-btn" type="button" @click="$store.game.markWechatAlbumPhotoReal(index)" x-text="photo.real ? '已标记为真实照片' : '标记为真实照片'"></button>
               </article>
             </template>
+          </div>
+          <div class="wechat-photo-dialog" x-show="$store.game.wechatAvatarCropOpen" @click.self="$store.game.closeWechatAvatarCrop()" x-cloak>
+            <article class="avatar-crop">
+              <strong>截取微信头像</strong>
+              <div class="wechat-avatar-crop-frame"><img :src="$store.game.wechatAvatarCropState?.url || ''" :style="$store.game.wechatAvatarCropImageStyle()" alt="头像裁剪预览"></div>
+              <label>左右移动<input type="range" min="0" max="55" step="1" x-model.number="$store.game.wechatAvatarCropState.x"></label>
+              <label>上下移动<input type="range" min="0" max="55" step="1" x-model.number="$store.game.wechatAvatarCropState.y"></label>
+              <label>缩放<input type="range" min="1" max="3" step="0.05" x-model.number="$store.game.wechatAvatarCropState.scale"></label>
+              <div class="wechat-album-actions"><button type="button" @click="$store.game.closeWechatAvatarCrop()">取消</button><button type="button" @click="$store.game.saveWechatAvatarCrop()">保存头像</button></div>
+            </article>
           </div>
           <div class="wechat-photo-dialog" x-show="$store.game.wechatAlbumPromptOpen" @click.self="$store.game.wechatAlbumChoiceClose()" x-cloak>
             <article :class="{ editor: ['edit', 'prompt-list', 'prompt-detail'].includes($store.game.wechatAlbumPromptStep) }">
