@@ -118,13 +118,33 @@ window.GameModules.characterProfileTemplateClass = {
     ];
   },
 
+  dressedProfile() {
+    return [
+      { index: 1, part: '头发', description: '盛装造型后的发型、光泽和发饰效果。' },
+      { index: 2, part: '脸部', description: '完整妆容修饰后的眉眼鼻唇与肤色。' },
+      { index: 3, part: '耳朵', description: '佩戴耳饰后耳廓、耳垂与饰物反光。' },
+      { index: 4, part: '脖颈', description: '颈部饰品与锁骨颈线的盛装修饰。' },
+      { index: 5, part: '胸部', description: '胸衣、礼服或衬衣塑造后的胸部轮廓。' },
+      { index: 6, part: '双臂', description: '袖口、臂饰、手镯、戒指和指甲修饰。' },
+      { index: 7, part: '小腹', description: '束腰、腰带或紧身服饰塑形后的腰腹。' },
+      { index: 8, part: '臀部', description: '裙装或裤装包裹后的臀部线条。' },
+      { index: 9, part: '神秘花园', description: '下装精心遮掩与包裹后的含蓄状态。' },
+      { index: 10, part: '双大腿', description: '丝袜、裤袜、长靴或裙摆衬托的大腿状态。' },
+      { index: 11, part: '双小腿', description: '鞋袜与鞋履装饰修饰后的小腿线条。' },
+    ];
+  },
+
   part5() {
     return { name: '角色姓名', bodyProfile: this.bodyProfile() };
   },
 
   part6() {
+    return { name: '角色姓名', dressedProfile: this.dressedProfile() };
+  },
+
+  part7() {
     return { name: '角色姓名', rpgField: this.rpgField() };
   },
 
-  parts() { return { 1: this.clone(this.part1()), 2: this.clone(this.part2()), 3: this.clone(this.part3()), 4: this.clone(this.part4()), 5: this.clone(this.part5()), 6: this.clone(this.part6()) }; },
+  parts() { return { 1: this.clone(this.part1()), 2: this.clone(this.part2()), 3: this.clone(this.part3()), 4: this.clone(this.part4()), 5: this.clone(this.part5()), 6: this.clone(this.part6()), 7: this.clone(this.part7()) }; },
 };

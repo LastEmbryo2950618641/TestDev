@@ -27,8 +27,8 @@ window.GameModules.characterProfile = {
     if (partIndex === 2) return window.GameModules.metrics.emotionKeys.length + window.GameModules.metrics.playerKeys.length;
     if (partIndex === 3 && part) return this.partProgressDone(3, part) || 3;
     if (partIndex === 4 && part) return this.partProgressDone(4, part) || 13;
-    if (partIndex === 5) return this.bodyProfileParts().length;
-    if (partIndex === 6) {
+    if (partIndex === 5 || partIndex === 6) return this.bodyProfileParts().length;
+    if (partIndex === 7) {
       const intrinsicCount = Object.keys(attrs?.intrinsicBase || {}).length;
       return intrinsicCount ? 1 + intrinsicCount : 8;
     }
@@ -44,7 +44,8 @@ window.GameModules.characterProfile = {
     if (partIndex === 3) return ['skills', 'knowledge', 'professions'].reduce((sum, key) => sum + ((part[key] || []).length), 0);
     if (partIndex === 4) return (part.items || []).length + this.fixedWearingSlots().filter((slot) => this.wearingSlotProgressDone(part.wearing?.[slot])).length + (part.wearing?.slot || []).length;
     if (partIndex === 5) return this.bodyProfileCompleteItems(part.bodyProfile).length;
-    if (partIndex === 6) return (this.valueReasonComplete(part.rpgField?.level) ? 1 : 0) + Object.values(part.rpgField?.intrinsicBase || {}).filter((item) => this.intrinsicBaseItemComplete(item)).length;
+    if (partIndex === 6) return this.bodyProfileCompleteItems(part.dressedProfile).length;
+    if (partIndex === 7) return (this.valueReasonComplete(part.rpgField?.level) ? 1 : 0) + Object.values(part.rpgField?.intrinsicBase || {}).filter((item) => this.intrinsicBaseItemComplete(item)).length;
     const template = this.partTemplateCache?.[partIndex] || {};
     return Object.keys(template).filter((key) => this.partFieldComplete(partIndex, key, part[key], template[key], part)).length;
   },
@@ -192,11 +193,16 @@ window.GameModules.characterProfile = {
       this.onProgress(store, loadingId, 'bodyProfile', 'running', '', { done: 0, total: part5Total });
       const part5 = await this.generatePart(5, 'character-profile-part5-body-profile', { ...commonVars, part1Summary: p1Summary }, templates[5], namedBase, lore, attrs, store);
       this.onProgress(store, loadingId, 'bodyProfile', 'done', '', { done: this.partProgressDone(5, part5), total: part5Total });
+      const p5Summary = this.bodyProfileSummary(part5.bodyProfile);
       const part6Total = this.partProgressTotal(6, templates[6], attrs);
-      this.onProgress(store, loadingId, 'rpgField', 'running', '', { done: 0, total: part6Total });
-      const part6 = await this.generatePart(6, 'character-profile-part6-rpg-field', { ...commonVars, part1Summary: p1Summary, part3Summary: p3Summary, part4Summary: p4Summary, 世界字段: sections.worldFields(attrs), RPG字段列表: rpgKeys.join('、'), RPG字段列表JSON: rpgKeys.map((key) => `"${key}"`).join(', ') }, templates[6], namedBase, lore, attrs, store);
-      this.onProgress(store, loadingId, 'rpgField', 'done', '', { done: this.partProgressDone(6, part6), total: part6Total });
-      const merged = this.mergeGeneratedParts(part1, part2, part3, { ...part4, ...part5, ...part6 }, attrs);
+      this.onProgress(store, loadingId, 'dressedProfile', 'running', '', { done: 0, total: part6Total });
+      const part6 = await this.generatePart(6, 'character-profile-part6-dressed-profile', { ...commonVars, part1Summary: p1Summary, part4Summary: p4Summary, part5Summary: p5Summary }, templates[6], namedBase, lore, attrs, store);
+      this.onProgress(store, loadingId, 'dressedProfile', 'done', '', { done: this.partProgressDone(6, part6), total: part6Total });
+      const part7Total = this.partProgressTotal(7, templates[7], attrs);
+      this.onProgress(store, loadingId, 'rpgField', 'running', '', { done: 0, total: part7Total });
+      const part7 = await this.generatePart(7, 'character-profile-part7-rpg-field', { ...commonVars, part1Summary: p1Summary, part3Summary: p3Summary, part4Summary: p4Summary, 世界字段: sections.worldFields(attrs), RPG字段列表: rpgKeys.join('、'), RPG字段列表JSON: rpgKeys.map((key) => `"${key}"`).join(', ') }, templates[7], namedBase, lore, attrs, store);
+      this.onProgress(store, loadingId, 'rpgField', 'done', '', { done: this.partProgressDone(7, part7), total: part7Total });
+      const merged = this.mergeGeneratedParts(part1, part2, part3, { ...part4, ...part5, ...part6, ...part7 }, attrs);
       const profile = this.validate(merged, base, lore, attrs, store, { skipInitialMetrics: false });
       return this.withSignature(profile, signature);
     } catch (err) {
@@ -220,7 +226,7 @@ window.GameModules.characterProfile = {
   async loadPartTemplates() {
     if (this.partTemplateCache) return this.partTemplateCache;
     const templates = window.GameModules.characterProfileTemplateClass?.parts?.();
-    if (!templates?.[1] || !templates?.[2] || !templates?.[3] || !templates?.[4] || !templates?.[5] || !templates?.[6]) throw new Error('角色卡模板类未加载，无法生成六段角色卡。');
+    if (!templates?.[1] || !templates?.[2] || !templates?.[3] || !templates?.[4] || !templates?.[5] || !templates?.[6] || !templates?.[7]) throw new Error('角色卡模板类未加载，无法生成七段角色卡。');
     this.partTemplateCache = templates;
     return templates;
   },
@@ -252,19 +258,21 @@ window.GameModules.characterProfile = {
       3: ['type', 'name', 'level', 'reason', 'requiredIntrinsicBase', 'requiredKnowledge', 'requiredSkills'],
       4: ['type', 'slot', 'clothing_position', 'name', 'description', 'quantity', 'reason', 'wearing', 'item'],
       5: ['序号', '部位', '部位描写', '头发', '脸部', '胸部', '神秘花园', '双小腿'],
-      6: ['name', 'rpgField', 'level', 'intrinsicBase', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma'],
+      6: ['序号', '部位', '部位描写', '头发', '脸部', '胸部', '神秘花园', '双小腿'],
+      7: ['name', 'rpgField', 'level', 'intrinsicBase', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma'],
     };
     if (!fields) return byPart[partIndex] || [];
     const nested = [];
     if (fields.includes('feeling')) nested.push('feeling', 'emotions', 'playerFeelings', 'cold', 'curiosity', 'understanding', 'submission');
     if (fields.includes('wearing')) nested.push('wearing', 'head', 'top', 'bottom', 'shoes', 'slot');
     if (fields.includes('bodyProfile')) nested.push('bodyProfile', '头发', '脸部', '胸部', '神秘花园', '双小腿');
+    if (fields.includes('dressedProfile')) nested.push('dressedProfile', '头发', '脸部', '胸部', '神秘花园', '双小腿');
     if (fields.includes('rpgField')) nested.push('rpgField', 'level', 'intrinsicBase', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma');
     return [...new Set([...fields, ...nested])];
   },
 
   partPromptWithTemplate(prompt, template, partIndex) {
-    if ([2, 3, 4, 5].includes(partIndex)) return prompt;
+    if ([2, 3, 4, 5, 6].includes(partIndex)) return prompt;
     return [
       prompt,
       '',
@@ -279,8 +287,8 @@ window.GameModules.characterProfile = {
   sanitizePart(partIndex, raw, template) {
     const clean = partIndex === 3 ? raw : this.sanitizeByTemplate(raw, template);
     if (clean && typeof clean === 'object') {
-      if ((partIndex === 4 || partIndex === 5) && Array.isArray(raw?._csvRows)) clean._csvRows = raw._csvRows;
-      if (partIndex !== 4 && partIndex !== 5) delete clean._csvRows;
+      if ((partIndex === 4 || partIndex === 5 || partIndex === 6) && Array.isArray(raw?._csvRows)) clean._csvRows = raw._csvRows;
+      if (partIndex !== 4 && partIndex !== 5 && partIndex !== 6) delete clean._csvRows;
     }
     if (partIndex === 2 && clean.feeling) {
       clean.feeling = this.normalizeFeelingObject(clean.feeling);
@@ -293,7 +301,7 @@ window.GameModules.characterProfile = {
 
   lockPartTargetName(partIndex, data, base = {}) {
     const name = String(base?.name || '').trim();
-    if (![2, 3, 4, 5, 6].includes(partIndex) || !name || !data || typeof data !== 'object') return data;
+    if (![2, 3, 4, 5, 6, 7].includes(partIndex) || !name || !data || typeof data !== 'object') return data;
     return { ...data, name };
   },
 
@@ -373,7 +381,8 @@ window.GameModules.characterProfile = {
     if (partIndex === 4 && key === 'items') return this.arrayItemsComplete(value, ['name', 'description', 'quantity', 'reason'], true, (item) => Number.isInteger(Number(item.quantity)) && Number(item.quantity) >= 1);
     if (partIndex === 4 && key === 'wearing') return this.wearingObjectComplete(value);
     if (partIndex === 5 && key === 'bodyProfile') return this.bodyProfileComplete(value);
-    if (partIndex === 6 && key === 'rpgField') return this.rpgFieldComplete(value);
+    if (partIndex === 6 && key === 'dressedProfile') return this.bodyProfileComplete(value);
+    if (partIndex === 7 && key === 'rpgField') return this.rpgFieldComplete(value);
     if (Array.isArray(template)) return Array.isArray(value);
     if (template && typeof template === 'object') return value && typeof value === 'object';
     return typeof value === typeof template || value !== undefined;
@@ -466,7 +475,7 @@ window.GameModules.characterProfile = {
   },
 
   async repairCsvPartRows(partIndex, raw, format, base, lore, attrs, store, vars = {}) {
-    if (![2, 3, 4, 5].includes(partIndex)) return raw;
+    if (![2, 3, 4, 5, 6].includes(partIndex)) return raw;
     let currentRows = this.normalizeCsvPartRows(partIndex, this.rowsFromCsvPart(partIndex, raw));
     let attempts = 0;
     while (true) {
@@ -475,8 +484,8 @@ window.GameModules.characterProfile = {
       const issues = this.csvPartIssues(partIndex, currentRows, base);
       if (!issues.length) return this.buildPartFromCsvRows(partIndex, currentRows, base.name);
       const aiIssues = issues.filter((issue) => !/超过10行$/.test(issue.reason || ''));
-      const unlimitedRepair = partIndex === 2 || partIndex === 4 || partIndex === 5;
-      const repairLimit = partIndex === 4 || partIndex === 5 ? 8 : 2;
+      const unlimitedRepair = partIndex === 2 || partIndex === 4 || partIndex === 5 || partIndex === 6;
+      const repairLimit = partIndex === 4 || partIndex === 5 || partIndex === 6 ? 8 : 2;
       if (!aiIssues.length || (!unlimitedRepair && attempts >= 2) || (unlimitedRepair && attempts > repairLimit)) break;
       try {
         const fixedRows = await this.generateCsvFixRows(partIndex, aiIssues, currentRows, format, base, lore, attrs, store, vars);
@@ -488,13 +497,13 @@ window.GameModules.characterProfile = {
     }
     const finalRows = this.applyLocalCsvFixes(partIndex, currentRows);
     const finalIssues = this.csvPartIssues(partIndex, finalRows, base);
-    if ((partIndex === 4 || partIndex === 5) && finalIssues.length) throw new Error(`Part${partIndex} CSV修复未收敛：${finalIssues.map((x) => `${x.key}:${x.reason}`).join('、')}`);
+    if ((partIndex === 4 || partIndex === 5 || partIndex === 6) && finalIssues.length) throw new Error(`Part${partIndex} CSV修复未收敛：${finalIssues.map((x) => `${x.key}:${x.reason}`).join('、')}`);
     return this.buildPartFromCsvRows(partIndex, finalRows, base.name);
   },
 
   rowsFromCsvPart(partIndex, raw) {
     if (Array.isArray(raw?._csvRows)) return raw._csvRows;
-    const headers = { 2: 'name,value,status,reason', 3: 'type,name,level,', 4: 'type,slot,', 5: '序号,部位,部位描写' };
+    const headers = { 2: 'name,value,status,reason', 3: 'type,name,level,', 4: 'type,slot,', 5: '序号,部位,部位描写', 6: '序号,部位,部位描写' };
     return this.csvDataRows(raw?.rawText || raw?.text || '', headers[partIndex] || '');
   },
 
@@ -502,7 +511,7 @@ window.GameModules.characterProfile = {
     if (partIndex === 2) return rows.map((row) => this.normalizePart2Row(row)).filter(Boolean);
     if (partIndex === 3) return rows.map((row) => this.normalizePart3Row(row)).filter(Boolean);
     if (partIndex === 4) return rows.map((row) => this.normalizePart4Row(row)).filter(Boolean);
-    if (partIndex === 5) return rows.map((row) => this.normalizePart5Row(row)).filter(Boolean);
+    if (partIndex === 5 || partIndex === 6) return rows.map((row) => this.normalizePart5Row(row)).filter(Boolean);
     return rows;
   },
 
@@ -595,13 +604,14 @@ window.GameModules.characterProfile = {
     if (partIndex === 2) return this.buildFeelingFromRows(rows, name, true);
     if (partIndex === 3) return this.buildAbilitiesFromRows(rows, name, true);
     if (partIndex === 5) return this.buildBodyProfileFromRows(rows, name);
+    if (partIndex === 6) return this.buildDressedProfileFromRows(rows, name);
     return this.buildInventoryFromRows(rows, name);
   },
 
   csvPartIssues(partIndex, rows, profile = null) {
     if (partIndex === 2) return this.part2CsvIssues(rows);
     if (partIndex === 3) return this.part3CsvIssues(rows);
-    if (partIndex === 5) return this.part5CsvIssues(rows);
+    if (partIndex === 5 || partIndex === 6) return this.part5CsvIssues(rows);
     return this.part4CsvIssues(rows, profile);
   },
 
@@ -707,7 +717,7 @@ window.GameModules.characterProfile = {
       validate: (parsed) => {
         const rows = this.csvFixRowsToApply(partIndex, issues, parsed._csvRows || []);
         if (!rows.length) throw new Error('CSV修复没有返回有效行');
-        if (partIndex === 4 || partIndex === 5) {
+        if (partIndex === 4 || partIndex === 5 || partIndex === 6) {
           const returnedIssue = this.csvFixReturnedIssue(partIndex, issues, rows, skeleton);
           if (returnedIssue) throw new Error(returnedIssue);
           const remaining = this.csvPartIssues(partIndex, this.mergeCsvFixRows(partIndex, currentRows, rows, issues), base);
@@ -724,7 +734,7 @@ window.GameModules.characterProfile = {
         if (stillWanted.length) throw new Error(`CSV修复仍不完整：${stillWanted.map((x) => x.key).join('、')}`);
         return rows;
       },
-      max: (partIndex === 2 || partIndex === 4 || partIndex === 5) ? 2 : (partIndex === 3 && issues.some((x) => x.key === 'skills' || x.key === 'knowledge') ? 4 : 2),
+      max: (partIndex === 2 || partIndex === 4 || partIndex === 5 || partIndex === 6) ? 2 : (partIndex === 3 && issues.some((x) => x.key === 'skills' || x.key === 'knowledge') ? 4 : 2),
     });
   },
 
@@ -744,15 +754,20 @@ window.GameModules.characterProfile = {
         skeleton,
       ].join('\n');
     }
-    if (partIndex === 5) {
+    if (partIndex === 5 || partIndex === 6) {
+      const isDressed = partIndex === 6;
       return [
-        '只返回要求补齐的 Part5 CSV 行，不要表头、JSON、Markdown 或解释。',
+        `只返回要求补齐的 Part${partIndex} CSV 行，不要表头、JSON、Markdown 或解释。`,
         '每行必须恰好 3 列：序号,部位,部位描写。',
         `部位只能使用固定列表：${this.bodyProfileParts().join('、')}。`,
         '必须批量返回本次缺失或错误的身体部位；如果额外返回其它固定部位，代码会只提取有效部位合并。',
         '单元格内禁止英文逗号，需要停顿时用中文逗号。',
-        '部位描写必须继承角色身份、外貌、人物说明和备注；除非上下文明确说明外貌很丑，否则向很漂亮、很有吸引力的方向描写。',
-        '本部分只写毫无人工雕琢、未经衣物遮掩的原本躯体，不要写衣物、饰品、妆容、护肤或行为。',
+        isDressed
+          ? '部位描写必须继承角色身份、Part4当前穿着和Part5身体原貌；本部分只写盛装/打扮完全后的造型、妆容、饰品、衣物包裹塑形与视觉效果。'
+          : '部位描写必须继承角色身份、外貌、人物说明和备注；除非上下文明确说明外貌很丑，否则向很漂亮、很有吸引力的方向描写。',
+        isDressed
+          ? '如果当前穿着不足以构成盛装，必须基于人物身份、喜好、审美和身体原貌生成完整打扮方案；不要返回未打扮或空缺。'
+          : '本部分只写毫无人工雕琢、未经衣物遮掩的原本躯体，不要写衣物、饰品、妆容、护肤或行为。',
         '需要AI返回的行：',
         skeleton,
       ].join('\n');
@@ -792,7 +807,7 @@ window.GameModules.characterProfile = {
   },
 
   csvFixRowsToApply(partIndex, issues, rows) {
-    if (partIndex === 5) {
+    if (partIndex === 5 || partIndex === 6) {
       const used = new Set();
       return rows.map((row) => this.normalizePart5Row(row)).filter((row) => {
         const parts = this.csvParts(row);
@@ -842,7 +857,7 @@ window.GameModules.characterProfile = {
       if (bad) return `CSV修复行格式不合格：${bad}`;
       return '';
     }
-    if (partIndex === 5) {
+    if (partIndex === 5 || partIndex === 6) {
       const requiredKeys = issues.map((x) => x.key).filter((key) => this.bodyProfileParts().includes(key));
       const normalizedRows = rows.map((row) => this.normalizePart5Row(row));
       const bad = normalizedRows.find((row) => this.part5RowIssue(this.csvParts(row)));
@@ -898,7 +913,7 @@ window.GameModules.characterProfile = {
   csvFixHeaderPrefix(partIndex) {
     if (partIndex === 2) return 'name,value,status,reason';
     if (partIndex === 3) return 'type,name,level,';
-    if (partIndex === 5) return '序号,部位,部位描写';
+    if (partIndex === 5 || partIndex === 6) return '序号,部位,部位描写';
     return 'type,slot,';
   },
 
@@ -926,11 +941,13 @@ window.GameModules.characterProfile = {
       return issues.filter((x) => keys.includes(x.key)).map((x) => `${x.key},50,${x.key}因为当前证据形成状态,${x.key}源于人物经历和关系证据`).join('\n');
     }
     if (partIndex === 3) return issues.map((x) => (x.key === 'knowledge' ? 'knowledge,现代常识,2,日常生活和教育经历形成基础常识,生活经验,家庭经历|教育背景,--' : 'skills,观察力,2,长期生活经历形成基础观察能力,perception|谨慎性格,现代常识|过往经历,日常观察习惯')).join('\n');
-    if (partIndex === 5) {
+    if (partIndex === 5 || partIndex === 6) {
       return issues.map((x) => {
         const index = this.bodyProfileParts().indexOf(x.key) + 1;
-        if (index > 0) return `${index},${x.key},${this.bodyProfilePromptText(x.key)}`;
-        return `1,头发,${this.bodyProfilePromptText('头发')}`;
+        const part = index > 0 ? x.key : '头发';
+        const finalIndex = index > 0 ? index : 1;
+        const text = partIndex === 6 ? this.dressedProfilePromptText(part) : this.bodyProfilePromptText(part);
+        return `${finalIndex},${part},${text}`;
       }).join('\n');
     }
     const positions = this.wearingClothingPositions();
@@ -966,7 +983,7 @@ window.GameModules.characterProfile = {
       const parts = this.csvParts(row);
       if (partIndex === 2) return parts[0] !== 'name' && !this.part2RowIssue(parts);
       if (partIndex === 3) return !this.part3RowIssue(parts);
-      if (partIndex === 5) return !this.part5RowIssue(parts);
+      if (partIndex === 5 || partIndex === 6) return !this.part5RowIssue(parts);
       return !this.part4RowIssue(parts);
     });
   },
@@ -975,11 +992,11 @@ window.GameModules.characterProfile = {
     const output = rows.filter((row, index) => !issues.some((issue) => issue.key === `row${index + 1}`));
     fixedRows.forEach((row) => {
       const parts = this.csvParts(row);
-      const key = partIndex === 2 ? (parts[0] === 'name' ? parts[1] : parts[0]) : (partIndex === 4 && parts[0] === 'wearing' ? parts[1] : (partIndex === 5 ? parts[1] : ''));
+      const key = partIndex === 2 ? (parts[0] === 'name' ? parts[1] : parts[0]) : (partIndex === 4 && parts[0] === 'wearing' ? parts[1] : ((partIndex === 5 || partIndex === 6) ? parts[1] : ''));
       const existingIndex = key ? output.findIndex((old) => {
         const oldParts = this.csvParts(old);
         if (partIndex === 2) return oldParts[0] === key || (oldParts[0] === 'name' && oldParts[1] === key);
-        if (partIndex === 5) return oldParts[1] === key;
+        if (partIndex === 5 || partIndex === 6) return oldParts[1] === key;
         return oldParts[0] === 'wearing' && oldParts[1] === key;
       }) : -1;
       if (existingIndex >= 0) output[existingIndex] = row;
@@ -1031,7 +1048,7 @@ window.GameModules.characterProfile = {
   },
 
   missingPartTemplate(partIndex, current, template, missing) {
-    if (partIndex !== 6 || !missing.includes('rpgField')) return Object.fromEntries(missing.map((key) => [key, template[key]]));
+    if (partIndex !== 7 || !missing.includes('rpgField')) return Object.fromEntries(missing.map((key) => [key, template[key]]));
     const rpg = current?.rpgField || {};
     const src = template.rpgField || {};
     const intrinsicKeys = ['strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma'];
@@ -1051,7 +1068,7 @@ window.GameModules.characterProfile = {
       `只生成缺失字段：${missing.join('、')}。其余字段已经合格，禁止重复输出、禁止改动。`,
       '输出必须是一个 JSON 对象，根字段只能包含上述缺失字段，并严格遵守下面模板。',
     ];
-    if (partIndex === 6 && missing.includes('rpgField')) {
+    if (partIndex === 7 && missing.includes('rpgField')) {
       lines.push(
         '只补模板中列出的 rpgField 子字段；已合格的 level 或 intrinsicBase 子项禁止重复输出、禁止改动。',
         'rpgField 只需要包含 level 与模板列出的 intrinsicBase 子项；禁止返回 derived、攻击力、防御力。',
@@ -1070,14 +1087,14 @@ window.GameModules.characterProfile = {
   },
 
   missingPartRepairHint(partIndex, missing) {
-    if (partIndex === 6 && missing.includes('rpgField')) {
+    if (partIndex === 7 && missing.includes('rpgField')) {
       return '只能返回 rpgField 中模板列出的缺失子字段。已合格的 level 或 intrinsicBase 子项禁止重复输出；禁止返回 derived、攻击力、防御力。';
     }
     return `只能返回缺失字段：${missing.join('、')}。不能新增其它字段。`;
   },
 
   mergeMissingPatch(partIndex, current, patch) {
-    if (partIndex !== 6) return { ...current, ...patch };
+    if (partIndex !== 7) return { ...current, ...patch };
     const merged = { ...current, ...patch };
     if (current?.rpgField || patch?.rpgField) {
       merged.rpgField = this.mergeRpgField(current?.rpgField, patch?.rpgField);
@@ -1145,7 +1162,7 @@ window.GameModules.characterProfile = {
       world_tag: profile.worldTag?.reason,
       control_experience: profile.control_experience?.习惯程度,
     };
-    return Object.fromEntries(this.rpgFieldReasonKeys(attrs).map((key) => [key, String(direct[key] || fallback[key] || `${profile.name || '该人物'}的${key}来自 Part1/Part6 固化资料。`).slice(0, 120)]));
+    return Object.fromEntries(this.rpgFieldReasonKeys(attrs).map((key) => [key, String(direct[key] || fallback[key] || `${profile.name || '该人物'}的${key}来自 Part1/Part7 固化资料。`).slice(0, 120)]));
   },
 
   parse(text) {
@@ -1157,6 +1174,7 @@ window.GameModules.characterProfile = {
     if (partIndex === 3) return this.buildAbilitiesFromRows(this.csvDataRows(text, 'type,name,level,'), base.name, false);
     if (partIndex === 4) return this.buildInventoryFromRows(this.csvDataRows(text, 'type,slot,'), base.name);
     if (partIndex === 5) return this.buildBodyProfileFromRows(this.csvDataRows(text, '序号,部位,部位描写'), base.name);
+    if (partIndex === 6) return this.buildDressedProfileFromRows(this.csvDataRows(text, '序号,部位,部位描写'), base.name);
     return this.parse(text);
   },
 
@@ -1241,6 +1259,21 @@ window.GameModules.characterProfile = {
     return { name, bodyProfile: expected.map((part, i) => byPart.get(part) || { index: i + 1, part, description: '' }), _csvRows: rows };
   },
 
+  buildDressedProfileFromRows(rows, name = '') {
+    const body = this.buildBodyProfileFromRows(rows, name);
+    return { name, dressedProfile: body.bodyProfile, _csvRows: rows };
+  },
+
+  bodyProfileSummary(value) {
+    const list = Array.isArray(value) ? value : [];
+    return list.map((item, index) => {
+      const part = String(item?.part || item?.部位 || '').trim();
+      const description = String(item?.description || item?.部位描写 || '').trim();
+      if (!part || !description) return '';
+      return `${Number(item?.index || item?.序号) || index + 1}.${part}：${description}`;
+    }).filter(Boolean).join('\n') || '未生成身体原貌。';
+  },
+
   part5RowIssue(parts) {
     if (parts.length !== 3) return '列数不是3';
     const [index, part, description] = parts;
@@ -1269,6 +1302,22 @@ window.GameModules.characterProfile = {
       双大腿: '描写大腿从根部到膝盖的渐收线条、大腿内侧肌肤的细腻度、外侧的肌肉轮廓，以及站立时大腿之间的自然缝隙或贴合程度。',
       双小腿: '描写小腿肚的腓肠肌弧度、跟腱的修长拉伸感、脚踝两侧骨节的突出、脚背的拱形弧线。',
     }[part] || '描写未经人工修饰、未经衣物遮掩的天然身体状态。';
+  },
+
+  dressedProfilePromptText(part) {
+    return {
+      头发: '描写经过精心造型、使用护发与定型产品后的发型，包括发丝的光泽感（如精油或喷雾带来的镜面反光）、卷曲或盘起的弧度、发胶固定后的纹理走向，以及发饰（如簪子、发夹、发带）的点缀效果，光线照射下呈现的人工增亮光泽。',
+      脸部: '描写完整的妆容修饰，包括粉底均匀覆盖后的无瑕肤色、眉毛经描画后的精致弧度与填充、眼睑上眼影的晕染层次、眼线的勾勒、睫毛膏的纤长卷翘效果、腮红赋予的双颊血色，以及唇膏/唇釉涂抹后的饱满色泽与边界分明的唇形。',
+      耳朵: '描写佩戴耳饰后的耳朵状态，包括耳钉/耳环/耳坠的材质（金属、宝石、珍珠等）与造型、耳饰与耳廓的贴合或垂坠关系、耳垂因负重产生的轻微拉伸感，以及耳饰在光线下的闪烁反光，衬托得耳部肌肤愈发细腻。',
+      脖颈: '描写颈部佩戴饰品（项链/项圈/choker）后的状态，包括链条的粗细、吊坠垂落的位置与锁骨窝的关系、金属或珠宝贴肤的冰凉质感暗示、颈链对颈部线条的视觉分割与修饰，以及妆容中脖颈部涂抹粉底的均匀过渡。',
+      胸部: '（若为女性）描写穿着胸衣/礼服后的胸部形态，包括胸衣承托形成的饱满上提弧度、乳沟的明显聚拢效果、面料（蕾丝、缎面、薄纱）覆盖或半覆盖下的若隐若现；（若为男性）描写穿着衬衣或礼服后的胸廓形态，包括衬衣纽扣间的轻微张力、胸肌被衣料勾勒出的轮廓，以及领带/领结的垂落位置。',
+      双臂: '描写佩戴臂饰/手镯/戒指等饰物后的手臂状态，包括袖口（长袖、中袖、无袖）的款式与堆叠褶皱、手镯在腕间滑动时与骨骼的触碰关系、戒指在手指上的位置与宝石的光泽、指甲油的颜色与指甲的修长形状，以及整体在衣物面料衬托下露出的肤色对比。',
+      小腹: '描写穿着紧身服饰（如束腰、鱼骨、腰带、高腰裙/裤）后的小腹状态，包括衣物对腹部的轻微塑形压缩、面料贴腹产生的横向褶皱、腰带/腰封对腰部曲线的强化收紧、肚脐位置在薄透面料下的隐约可辨，以及整体呈现的人工塑形腰腹弧线。',
+      臀部: '描写穿着下装（裙装/裤装）后的臀部形态，包括面料包裹臀部的紧绷或垂坠程度、臀缝在衣裙表面的隐约印痕、裙摆/裤管从臀部最凸点到下摆的流畅垂坠或蓬松展开，以及腰带/腰封在腰部与臀部之间形成的视觉强调。',
+      神秘花园: '描写穿着下装（内裤、衬裙、紧身裙/裤）后阴部的遮掩状态，包括面料（蕾丝、丝绸、棉质）的覆盖质感、紧身面料贴合时勾勒出的轻微隆起轮廓、裤缝/裆线在人鱼线或腹股沟处的延伸走向，整体强调“被精心包裹与修饰”的含蓄美感。',
+      双大腿: '描写穿着丝袜/裤袜/长靴或裸露于裙摆之外的大腿状态，包括丝袜覆盖下的肤色均匀化与细微光泽、裙摆边缘在大腿处形成的横向切割线、长靴筒口对大腿肌肉的轻微挤压痕迹、以及行走时衣料随大腿动作产生的皱褶位移。',
+      双小腿: '描写穿着鞋袜后的小腿状态，包括高跟鞋/靴子对跟腱的拉伸修饰效果（使小腿线条更修长）、鞋面覆盖或露出脚背的弧线、袜子/丝袜在脚踝处的堆叠或绷紧、鞋跟在视觉上提升腿长的效果，以及鞋履本身的装饰细节（绑带、扣饰、镂空等）对小腿的衬托。',
+    }[part] || '描写盛装/打扮完全后的造型、修饰和衣物包裹效果。';
   },
 
   bodyProfileCompleteItems(value) {
@@ -1767,7 +1816,7 @@ window.GameModules.characterProfile = {
         '每行必须恰好 7 列；不存在或不适用字段填 --；单元格内不要使用英文逗号。',
       ].join('\n');
     }
-    if (partIndex === 5) {
+    if (partIndex === 5 || partIndex === 6) {
       return [
         nameHint,
         '必须只返回 CSV，不要返回 JSON。',
@@ -1788,7 +1837,7 @@ window.GameModules.characterProfile = {
   validatePart(partIndex, raw, base, lore, attrs, store, template = null) {
     if (!raw || typeof raw !== 'object') throw new Error('AI 输出不是合法对象');
     if (template) {
-      const internalKeys = new Set((partIndex === 4 || partIndex === 5) ? ['_csvRows'] : []);
+      const internalKeys = new Set((partIndex === 4 || partIndex === 5 || partIndex === 6) ? ['_csvRows'] : []);
       const extra = Object.keys(raw).filter((key) => !internalKeys.has(key) && !Object.prototype.hasOwnProperty.call(template, key));
       if (extra.length) throw new Error(`Part${partIndex} 返回了模板外字段：${extra.join('、')}`);
       const missing = this.missingPartFields(partIndex, raw, template, base, attrs);
@@ -1817,7 +1866,11 @@ window.GameModules.characterProfile = {
       if (!this.bodyProfileComplete(raw.bodyProfile)) throw new Error('Part5 缺少 bodyProfile 完整结构');
       return raw;
     }
-    if (!this.rpgFieldComplete(raw.rpgField)) throw new Error('Part6 缺少 rpgField 完整结构');
+    if (partIndex === 6) {
+      if (!this.bodyProfileComplete(raw.dressedProfile)) throw new Error('Part6 缺少 dressedProfile 完整结构');
+      return raw;
+    }
+    if (!this.rpgFieldComplete(raw.rpgField)) throw new Error('Part7 缺少 rpgField 完整结构');
     return raw;
   },
 

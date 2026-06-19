@@ -36,6 +36,7 @@ window.GameModules.tokenStats = {
       'character-profile-part3-csv-fix': '角色卡 Part3 能力职业 CSV 修复',
       'character-profile-part4-csv-fix': '角色卡 Part4 物品穿着 CSV 修复',
       'character-profile-part5-csv-fix': '角色卡 Part5 身体原貌 CSV 修复',
+      'character-profile-part6-csv-fix': '角色卡 Part6 盛装状态 CSV 修复',
     };
     return names[id] || item?.title || id;
   },
