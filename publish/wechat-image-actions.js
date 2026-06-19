@@ -77,6 +77,10 @@ window.GameModules.wechatImageActions = {
 
   closeWechatImageConfirm() { if (!this.wechatImageGenerating) this.wechatImageConfirmOpen = false; },
 
+  wechatImageConfirmPromptText(msg = this.wechatImageConfirmMessage) {
+    return String(msg?.imageDescription || msg?.imageIntent?.imageDescription || msg?.imageIntent?.tagsHint || '一张联系人发送的近照。').trim();
+  },
+
   wechatRealPhotoForContact(characterId = this.wechatSelectedContact) {
     const raw = this.wechatAlbumPhotos?.[characterId];
     const list = Array.isArray(raw) ? raw : (raw?.url ? [raw] : []);

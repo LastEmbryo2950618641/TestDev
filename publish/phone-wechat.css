@@ -453,6 +453,30 @@
   text-align: center;
 }
 
+.wechat-image-confirm-prompt {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #f7f7f7;
+  color: #333;
+}
+
+.wechat-image-confirm-prompt b {
+  font-size: 12px;
+}
+
+.wechat-image-confirm-prompt p {
+  max-height: 96px;
+  margin: 0;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #555;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .wechat-album-title {
   display: flex;
   align-items: center;

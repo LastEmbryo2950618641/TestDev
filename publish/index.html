@@ -1293,6 +1293,7 @@
             <article>
               <strong>是否确认接受（会生成图片）</strong>
               <p class="wechat-album-count" x-text="$store.game.wechatImageGenerating ? '正在生成图片…约 30 秒' : '确认后将使用角色真实照片进行图片编辑生成。'"></p>
+              <section class="wechat-image-confirm-prompt"><b>对应提示词</b><p x-text="$store.game.wechatImageConfirmPromptText()"></p></section>
               <div class="wechat-album-actions"><button type="button" @click="$store.game.closeWechatImageConfirm()" :disabled="$store.game.wechatImageGenerating">取消</button><button type="button" @click="$store.game.confirmWechatImageReceive()" :disabled="$store.game.wechatImageGenerating" x-text="$store.game.wechatImageGenerating ? '生成中…' : '确认接受'"></button></div>
             </article>
           </div>
