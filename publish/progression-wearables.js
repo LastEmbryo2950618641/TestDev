@@ -10,9 +10,12 @@ window.GameModules = window.GameModules || {};
   Object.assign(progression, {
     bodyWearSlots() { return ['head', 'neck', 'innerwearTop', 'top', 'outerwear', 'gloves', 'waist', 'innerwearBottom', 'bottom', 'socks', 'shoes', 'wrist']; },
     equipSlotDefaults() { return Array.from({ length: 10 }, (_, i) => `装备${i + 1}`); },
-    wearableSlots(existing = []) { return [...this.bodyWearSlots(), ...this.customWearSlots(existing), ...this.dynamicSlots(existing, '饰品'), ...this.dynamicSlots(existing, '装备', 10)]; },
+    wearableSlots(existing = []) {
+      const active = (Array.isArray(existing) ? existing : []).filter((item) => !this.isPlaceholderEmptyWear(item));
+      return [...this.bodyWearSlots(), ...this.customWearSlots(active), ...this.dynamicSlots(active, '饰品'), ...this.dynamicSlots(active, '装备')];
+    },
     customWearSlots(existing = []) {
-      const reserved = new Set([...this.bodyWearSlots(), '饰品', '装备']); return [...new Set((Array.isArray(existing) ? existing : []).map((item) => this.canonicalWearSlot(item?.slot ? item : { slot: item })).filter((slot) => slot && !reserved.has(this.slotBase(slot))))];
+      const reserved = new Set([...this.bodyWearSlots(), '饰品', '装备']); return [...new Set((Array.isArray(existing) ? existing : []).filter((item) => !this.isPlaceholderEmptyWear(item)).map((item) => this.canonicalWearSlot(item?.slot ? item : { slot: item })).filter((slot) => slot && !reserved.has(this.slotBase(slot))))];
     },
     slotBase(slot) { return String(slot || '').replace(/\d+$/, ''); },
     canonicalWearSlot(itemOrSlot) {
@@ -105,7 +108,8 @@ window.GameModules = window.GameModules || {};
 
     isPlaceholderEmptyWear(item) {
       const text = `${item?.name || ''}${item?.description || ''}${item?.reason || ''}${item?.changeMode || ''}`;
-      return item?.source !== 'AI生成' && (!item?.name || item.name === '未记录' || item.name === '未穿戴' || /^日常(内衣|上衣|内裤|下衣|袜子|鞋子)$/.test(item.name) || this.fallbackWearPattern().test(text));
+      if (item?.source === 'AI生成' && item?.slot && String(item?.reason || item?.changeMode || '').trim()) return false;
+      return !item?.name || item.name === '未记录' || item.name === '未穿戴' || /^日常(内衣|上衣|内裤|下衣|袜子|鞋子)$/.test(item.name) || this.fallbackWearPattern().test(text);
     },
 
     defaultWearing(existing = [], ownerId = '') {
@@ -114,7 +118,7 @@ window.GameModules = window.GameModules || {};
       return this.wearableSlots(old).map((slot) => {
         const hit = bySlot.get(slot);
         if (hit && !this.isPlaceholderEmptyWear(hit)) {
-          const reason = this.itemReason(hit, '穿着');
+          const reason = hit.source === 'AI生成' ? String(hit.reason || hit.changeMode || this.emptyWearReason(slot)).slice(0, 120) : this.itemReason(hit, '穿着');
           const mode = hit.source === 'AI生成' ? reason : (hit.changeMode && !this.pollutedReason(hit.changeMode) && String(hit.changeMode).length < 24 ? hit.changeMode : reason);
           const finalOwnerId = hit.ownerId || hit.characterId || ownerId;
           return { ...hit, id: hit.id || (finalOwnerId ? this.itemId(finalOwnerId, '穿着', slot, hit.name || '未穿戴') : ''), ownerId: finalOwnerId, characterId: finalOwnerId, slot, clothing_position: hit.clothing_position || this.clothingPositionForSlot(slot), slotLabel: hit.slotLabel || this.clothingPositionForSlot(slot), type: hit.type || '穿着', reason, changeMode: mode, level: -1 };
@@ -122,8 +126,8 @@ window.GameModules = window.GameModules || {};
         const basic = this.defaultWearForSlot(slot);
         if (basic) return basic;
         const position = this.clothingPositionForSlot(slot);
-        const reason = this.concreteWearReason(hit) || this.emptyWearReason(slot);
-        return { id: ownerId ? this.itemId(ownerId, '穿着', slot, '未穿戴') : '', ownerId, characterId: ownerId, slot, clothing_position: position, slotLabel: position, name: '未穿戴', type: '穿着', description: `${position || '该部位'}当前未穿戴。`, reason, changeMode: reason, source: hit?.source, level: -1 };
+        const reason = hit?.source === 'AI生成' && String(hit.reason || hit.changeMode || '').trim() ? String(hit.reason || hit.changeMode).slice(0, 120) : (this.concreteWearReason(hit) || this.emptyWearReason(slot));
+        return { id: ownerId ? this.itemId(ownerId, '穿着', slot, '未穿戴') : '', ownerId, characterId: ownerId, slot, clothing_position: position, slotLabel: position, name: '未穿戴', type: '穿着', description: hit?.description || `${position || '该部位'}当前未穿戴。`, reason, changeMode: reason, source: hit?.source, level: -1 };
       });
     },
 
@@ -158,10 +162,11 @@ window.GameModules = window.GameModules || {};
     },
 
     profileWearIsNewer(current = {}, incoming = {}) {
-      if (incoming.source === 'AI生成' && current.source !== 'AI生成') return true;
-      if (!current.name || current.name === '未穿戴' || current.name === '未记录') return Boolean(incoming.name && incoming.name !== '未穿戴');
+      if (incoming.source === 'AI生成' && current.source !== '玩家操作') return true;
+      if (!current.name || current.name === '未穿戴' || current.name === '未记录') return Boolean(incoming.name && incoming.reason);
       if (this.generatedFallbackWear(current)) return true;
       if (incoming.name && current.name !== incoming.name && (incoming.source === 'AI生成' || current.source !== '玩家操作')) return true;
+      if (incoming.source === 'AI生成' && incoming.name === '未穿戴' && current.name === '未穿戴' && incoming.reason && current.reason !== incoming.reason) return true;
       return false;
     },
 
@@ -181,7 +186,8 @@ window.GameModules = window.GameModules || {};
       const before = JSON.stringify({ items: state.values.items, wearing: state.values.wearing });
       if (Array.isArray(profile.items) && profile.items.length && (!Array.isArray(state.values.items) || !state.values.items.length)) state.values.items = profile.items;
       const wearing = this.profileWearingItems(profile);
-      if (this.shouldReplaceWearing(state.values.wearing, wearing)) state.values.wearing = wearing;
+      const replaceAi = profile.roleCardSource === 'ai' && wearing.length && wearing.every((item) => this.bodyWearSlots().includes(item.slot) || item.name !== '未穿戴' || item.reason);
+      if (replaceAi || this.shouldReplaceWearing(state.values.wearing, wearing)) state.values.wearing = wearing;
       else state.values.wearing = this.mergeProfileWearing(state.values.wearing, wearing);
       this.ensureInventoryFields(state.values, state.id || profile.id || '');
       changed = before !== JSON.stringify({ items: state.values.items, wearing: state.values.wearing });

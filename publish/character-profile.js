@@ -2063,7 +2063,9 @@ window.GameModules.characterProfile = {
 
   wearingItems(value, profile = {}) {
     return this.wearingItemsLoose(value).map((item) => {
-      const reason = this.inventoryReason(item, '穿着', profile);
+      const reason = item.name === '未穿戴' && String(item.reason || '').trim()
+        ? String(item.reason).trim().slice(0, 120)
+        : this.inventoryReason(item, '穿着', profile);
       return { ...item, reason, changeMode: reason, source: 'AI生成' };
     });
   },
@@ -2132,7 +2134,9 @@ window.GameModules.characterProfile = {
       const obj = this.wearingObject(wearing, profile);
       const fixed = Object.fromEntries(this.wearingSlotKeys().map((slot) => {
         const item = obj[slot] || {};
-        const reason = item.name ? this.inventoryReason({ ...item, slot }, '穿着', profile) : (item.reason || `${item.clothing_position || slot}当前没有穿戴物。`);
+        const reason = item.name === '未穿戴' && String(item.reason || '').trim()
+          ? String(item.reason).trim().slice(0, 120)
+          : (item.name ? this.inventoryReason({ ...item, slot }, '穿着', profile) : (item.reason || `${item.clothing_position || slot}当前没有穿戴物。`));
         return [slot, { ...item, reason }];
       }));
       fixed.slot = (Array.isArray(obj.slot) ? obj.slot : []).map((item) => ({ ...item, reason: this.inventoryReason(item, '穿着', profile) }));
