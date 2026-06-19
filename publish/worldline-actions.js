@@ -93,6 +93,12 @@ window.GameModules.worldlineActions = {
     return (this.realWorldline().events || []).filter((event) => (event.plotId || event.summary) === id || recordIds.includes(event.eventId));
   },
 
+  realWorldRecordingEvents() {
+    const ids = this.realWorldline().pendingPlot?.recordIds || [];
+    if (!ids.length) return [];
+    return (this.realWorldline().events || []).filter((event) => ids.includes(event.eventId));
+  },
+
   timelineMeta(item) {
     const parts = [];
     if (item.status) parts.push(item.status);
