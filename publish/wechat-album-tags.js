@@ -47,6 +47,17 @@ window.GameModules.wechatAlbumTagActions = {
     return { prompt: positive, negativePrompt: negative };
   },
 
+  applyPictureGenerateSensitiveReplacements(text = '') {
+    const table = window.GameModules.pictureGenerateSensitiveReplacements || [];
+    return table.reduce((result, item) => {
+      const from = String(item?.from || '').trim();
+      const to = String(item?.to || '').trim();
+      if (!from || !to) return result;
+      const escaped = from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return result.replace(new RegExp(escaped, 'gi'), to);
+    }, String(text || ''));
+  },
+
   async buildWechatAlbumDrawPrompt(contact, kind = 'natural', draft = null) {
     const ctx = this.wechatAlbumTagContext(contact, kind, draft);
     const template = window.GameModules.pictureGeneratePrompts?.drawTagPrompt || '';
@@ -74,6 +85,8 @@ window.GameModules.wechatAlbumTagActions = {
     window.GameModules.tokenStats?.recordResponse?.(tokenRecordId, output);
     console.log('[微信相册] 绘图提示词 AI 原始返回:', output);
     const parsed = this.parseWechatAlbumDrawPrompt(output);
-    return { prompt: parsed.prompt.slice(0, 2000), negativePrompt: parsed.negativePrompt.slice(0, 2000), source: requestPrompt, raw: output };
+    const prompt = this.applyPictureGenerateSensitiveReplacements(parsed.prompt);
+    const negativePrompt = this.applyPictureGenerateSensitiveReplacements(parsed.negativePrompt);
+    return { prompt: prompt.slice(0, 2000), negativePrompt: negativePrompt.slice(0, 2000), source: requestPrompt, raw: output };
   },
 };
