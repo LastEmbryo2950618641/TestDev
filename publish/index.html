@@ -717,6 +717,7 @@
   <section x-show="!$store.game.loading && $store.game.identityAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen" class="identity-app-screen app-window section-hints" x-cloak>
     <div class="identity-card dev-section" data-section-title="身份证主面板">
       <header class="identity-header dev-section" data-section-title="身份证标题区">
+        <button class="small-btn identity-back-btn" type="button" x-show="$store.game.identityReturnTo === 'wechat'" @click="$store.game.backFromIdentityApp()">返回微信</button>
         <div><p class="eyebrow">ID CARD</p><h2>身份证</h2><small x-text="$store.game.identityTargetProfile().work || '现实世界'"></small></div>
         <button class="small-btn" type="button" @click="$store.game.closeIdentityApp()">回到桌面</button>
       </header>

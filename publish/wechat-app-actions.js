@@ -20,6 +20,6 @@ window.GameModules.wechatAppActions = {
   async openWechatIdentity() {
     const contact = this.wechatSelected?.();
     const id = contact?.group ? 'player-self' : (contact?.id || this.wechatSelectedContact || 'player-self');
-    await this.openIdentityApp(id);
+    await this.openIdentityApp(id, 'wechat');
   },
 };

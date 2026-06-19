@@ -341,6 +341,15 @@
   gap: 12px;
 }
 
+.identity-header > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.identity-back-btn {
+  flex: 0 0 auto;
+}
+
 .identity-profile p {
   white-space: pre-line;
   color: #aeb9d6;

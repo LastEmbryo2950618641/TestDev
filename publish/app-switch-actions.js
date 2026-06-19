@@ -15,6 +15,7 @@ window.GameModules.appSwitchActions = {
 
   closeDesktopApps() {
     this.identityAppOpen = false;
+    this.identityReturnTo = '';
     this.wechatAppOpen = false;
     this.saveAppOpen = false;
     this.worldlineAppOpen = false;
