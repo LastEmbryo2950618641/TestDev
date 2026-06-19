@@ -170,3 +170,79 @@
   display: grid;
   gap: 10px;
 }
+
+.real-plot-layout {
+  display: grid;
+  grid-template-columns: minmax(160px, 28%) minmax(0, 1fr);
+  gap: 10px;
+  min-height: 0;
+}
+
+.real-plot-list,
+.real-plot-detail {
+  min-height: 0;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .045);
+}
+
+.real-plot-list {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  max-height: 58dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.real-plot-list button {
+  display: grid;
+  gap: 3px;
+  padding: 9px;
+  border: 1px solid rgba(116, 246, 255, .16);
+  border-radius: 13px;
+  color: #eaf6ff;
+  text-align: left;
+  background: rgba(255, 255, 255, .055);
+}
+
+.real-plot-list button.active {
+  border-color: rgba(116, 246, 255, .76);
+  background: rgba(116, 246, 255, .14);
+}
+
+.real-plot-list small,
+.real-plot-summary small,
+.real-plot-summary em {
+  color: #aeb9d6;
+  font-style: normal;
+}
+
+.real-plot-detail,
+.real-plot-summary {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.real-plot-summary h3,
+.real-plot-summary p {
+  margin: 0;
+}
+
+.real-plot-events {
+  max-height: 50dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 720px) {
+  .real-plot-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .real-plot-list {
+    max-height: 28dvh;
+  }
+}

@@ -76,6 +76,23 @@ window.GameModules.worldlineActions = {
     return window.GameModules.worldlinePlots.items(this.loreWorldline(lore) || {});
   },
 
+  selectRealWorldPlot(plotId) {
+    this.selectedRealWorldPlotId = plotId || '';
+  },
+
+  realWorldSelectedPlot() {
+    const plots = this.worldlinePlots(this.realWorldLore());
+    return plots.find((plot) => plot.情节编号 === this.selectedRealWorldPlotId) || plots[0] || null;
+  },
+
+  realWorldPlotEvents(plot = null) {
+    const selected = plot || this.realWorldSelectedPlot();
+    const id = selected?.情节编号 || '';
+    if (!id) return [];
+    const recordIds = String(selected?.重要记录编号 || '').split(/[、,，\s]+/).filter(Boolean);
+    return (this.realWorldline().events || []).filter((event) => (event.plotId || event.summary) === id || recordIds.includes(event.eventId));
+  },
+
   timelineMeta(item) {
     const parts = [];
     if (item.status) parts.push(item.status);
