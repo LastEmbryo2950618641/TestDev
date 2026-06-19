@@ -302,3 +302,30 @@
 .save-modal header {
   padding-top: env(safe-area-inset-top);
 }
+
+:is(.identity-app-screen, .wechat-app-screen, .company-app-screen, .boss-app-screen, .calendar-app-screen, .faction-app-screen, .skills-app-screen, .save-app-screen, .worldline-app-screen) {
+  display: block;
+  min-height: 100dvh;
+  padding: 0;
+  place-items: initial;
+}
+
+:is(.identity-card, .wechat-phone, .company-card, .boss-card, .calendar-card, .faction-card, .skills-card, .save-app-card, .worldline-app-card) {
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  min-height: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+:is(.identity-card, .company-card, .boss-card, .calendar-card, .faction-card, .skills-card, .save-app-card, .worldline-app-card) {
+  padding: max(14px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+}
+
+.wechat-phone {
+  min-height: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  border-radius: 0;
+}
