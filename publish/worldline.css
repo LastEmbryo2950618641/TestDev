@@ -198,16 +198,9 @@
   gap: 10px;
 }
 
-.real-plot-layout {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-  min-height: 0;
-}
-
 .real-plot-list,
-.real-plot-detail,
-.real-recording-panel > .real-plot-summary {
+.real-recording-panel > .real-plot-summary,
+.real-summarized-panel > .real-plot-summary {
   min-height: 0;
   padding: 10px;
   border: 1px solid rgba(255, 255, 255, .1);
@@ -249,7 +242,6 @@
   font-style: normal;
 }
 
-.real-plot-detail,
 .real-plot-summary {
   display: grid;
   align-content: start;
@@ -268,10 +260,6 @@
 }
 
 @media (max-width: 720px) {
-  .real-plot-layout {
-    grid-template-columns: 1fr;
-  }
-
   .real-plot-list {
     max-height: 28dvh;
   }
