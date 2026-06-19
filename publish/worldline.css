@@ -168,7 +168,14 @@
 
 .worldline-app-body {
   display: grid;
+  align-content: start;
   gap: 10px;
+}
+
+.worldline-app-body > .library-panel,
+.worldline-app-body .world-lore-card,
+.worldline-box {
+  align-content: start;
 }
 
 .real-worldline-subtabs {
