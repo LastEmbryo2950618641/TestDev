@@ -15,16 +15,30 @@ window.GameModules.promptActions = {
     this.promptState.open = true; this.desktopUnlocked = true;
   },
   closePromptApp() { if (this.promptState) this.promptState.open = false; this.closeAppToDesktop(); },
+  promptRuntimeItems() {
+    return (window.GameModules.tokenStats?.records || []).filter((record) => record.kind === 'draw').map((record) => ({
+      id: `runtime-${record.id}`,
+      title: record.title || '运行时 AI 请求',
+      category: record.category || '图片生成',
+      file: record.file || '运行时请求',
+      summary: record.summary || '运行时生成的完整提示词。',
+      runtimeRecordId: record.id,
+    }));
+  },
   promptList() {
     this.initPromptApp();
     const q = String(this.promptState.query || '').trim().toLowerCase();
-    return window.GameModules.promptTemplates.list().filter((item) => {
+    return [...window.GameModules.promptTemplates.list(), ...this.promptRuntimeItems()].filter((item) => {
       const inCategory = !this.promptState.category || item.category === this.promptState.category;
       const haystack = [item.title, item.category, item.summary, item.file].join(' ').toLowerCase();
       return inCategory && (!q || haystack.includes(q));
     });
   },
-  promptCategories() { return [...new Set(window.GameModules.promptTemplates.list().map((item) => item.category))]; },
+  promptCategories() {
+    const templateCategories = window.GameModules.promptTemplates.list().map((item) => item.category);
+    const runtimeCategories = this.promptRuntimeItems().map((item) => item.category);
+    return [...new Set([...templateCategories, ...runtimeCategories].filter(Boolean))];
+  },
   promptCategoryLabel() { return this.promptState?.category || '全部分类'; },
   selectPromptCategory(category = '') {
     this.initPromptApp();
@@ -32,12 +46,21 @@ window.GameModules.promptActions = {
     this.promptState.categoryMenuOpen = false;
   },
   isPromptOpen(id) { return this.promptState?.selectedId === id; },
-  currentPromptItem() { return window.GameModules.promptTemplates.find(this.promptState?.selectedId); },
+  currentPromptItem() {
+    const id = this.promptState?.selectedId || '';
+    return this.promptRuntimeItems().find((item) => item.id === id) || window.GameModules.promptTemplates.find(id);
+  },
   closePromptDetail() { if (this.promptState) { this.promptState.selectedId = ''; this.promptState.selectedText = ''; this.promptState.error = ''; } },
   async togglePromptDetail(id) {
     this.initPromptApp();
     if (this.promptState.selectedId === id) { this.promptState.selectedId = ''; this.promptState.selectedText = ''; return; }
     this.promptState.selectedId = id; this.promptState.loading = true; this.promptState.error = '';
+    const runtimeItem = this.promptRuntimeItems().find((item) => item.id === id);
+    if (runtimeItem) {
+      this.promptState.selectedText = window.GameModules.tokenStats.item(runtimeItem.runtimeRecordId)?.text || '暂无运行时提示词。';
+      this.promptState.loading = false;
+      return;
+    }
     this.promptState.selectedText = window.GameModules.promptTemplates.snapshot(id);
     try { this.promptState.selectedText = await window.GameModules.promptTemplates.load(id); }
     catch (err) { console.error('提示词模板读取失败:', err.message, err.stack); this.promptState.error = err.message || '读取失败'; this.promptState.selectedText = ''; }
