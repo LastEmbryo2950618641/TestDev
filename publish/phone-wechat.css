@@ -337,6 +337,8 @@
 
 .wechat-photo-dialog article.editor {
   width: min(360px, 100%);
+  height: min(640px, calc(100dvh - 52px));
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .wechat-photo-dialog strong {
@@ -355,6 +357,7 @@
 
 .wechat-album-choice,
 .wechat-album-editor,
+.wechat-album-scroll,
 .wechat-album-editor section,
 .wechat-album-actions {
   display: grid;
@@ -363,8 +366,19 @@
 
 .wechat-album-editor {
   min-height: 0;
+  height: 100%;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.wechat-album-scroll {
+  min-height: 0;
+  display: grid;
+  gap: 10px;
   overflow-y: auto;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 2px;
 }
 
 .wechat-album-count {
