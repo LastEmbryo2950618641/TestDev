@@ -163,7 +163,7 @@ window.GameModules.playerIdentityActions = {
         status,
         reason: rawReason.slice(0, 180),
         description: String(window.GameModules.metrics.descriptions[item.key] || item.key).slice(0, 120),
-        metricSources: { 数值: sources.数值, 解释: sources.解释 === 'ai' && status === rawStatus ? 'ai' : '系统', 原因: sources.原因 === 'ai' && rawReason ? 'ai' : '系统' },
+        metricSources: { 数值: sources.数值, 解释: sources.解释 === 'AI' && status === rawStatus ? 'AI' : '系统', 原因: sources.原因 === 'AI' && rawReason ? 'AI' : '系统' },
       };
     });
     sync(profile.initialMetrics.emotions, state.metrics.emotions, window.GameModules.metrics.emotionKeys, 'emotion');

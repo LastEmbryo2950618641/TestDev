@@ -31,6 +31,20 @@ window.GameModules = window.GameModules || {};
       return { ...item, metricSources: this.metricSourceMap(source) };
     },
 
+    initialMetricDefaultSource(profile = {}) {
+      const source = String(profile?.roleCardSource || '').toLowerCase();
+      if (source === 'ai' || source === 'predefined') return 'ai';
+      if (profile?.roleCard && source !== 'predefined-edited') return 'ai';
+      return '系统';
+    },
+
+    initialMetricItemSources(item, fallback = '系统') {
+      const complete = item?.value !== undefined && String(item.status || '').trim() && String(item.reason || '').trim();
+      if (!complete) return this.metricSourceMap('系统');
+      if (this.metricSourceValue(fallback) === 'AI') return this.metricSourceMap('ai');
+      return item?.metricSources || item?.sourceMap ? this.metricSources(item, fallback) : this.metricSourceMap(fallback);
+    },
+
     hasValidInitialMetricTexts(value) {
       const valid = (items, keys) => Array.isArray(items) && keys.every((key) => {
         const item = items.find((entry) => entry?.key === key);
@@ -48,18 +62,19 @@ window.GameModules = window.GameModules || {};
     },
 
     initialMetrics(value, profile = {}) {
-      const normalize = (items, keys, label) => {
+      const defaultSource = this.initialMetricDefaultSource(profile);
+      const normalize = (items, keys) => {
         const list = Array.isArray(items) ? items : [];
         return keys.map((key) => {
           const item = list.find((entry) => entry?.key === key) || {};
           if (item.value === undefined) throw new Error(`${profile.name || '角色'} 缺少AI生成的${key}数值`);
           if (!String(item.status || '').trim()) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的数值解释`);
           if (!String(item.reason || '').trim()) throw new Error(`${profile.name || '角色'} 的${key}缺少AI生成的变化原因`);
-          const sources = this.metricSources(item, label);
+          const sources = this.initialMetricItemSources(item, defaultSource);
           return { key, value: window.GameModules.metrics.clamp(item.value), status: String(item.status).slice(0, 160), reason: String(item.reason).slice(0, 180), metricSources: sources };
         });
       };
-      return { emotions: normalize(value?.emotions, keysFor('emotions'), 'system'), playerFeelings: normalize(value?.playerFeelings, keysFor('playerFeelings'), 'system') };
+      return { emotions: normalize(value?.emotions, keysFor('emotions')), playerFeelings: normalize(value?.playerFeelings, keysFor('playerFeelings')) };
     },
 
     validateMetricGroup(value, keys, profile = {}) {
@@ -146,10 +161,14 @@ window.GameModules = window.GameModules || {};
     async ensureInitialMetricSources(profile, base, context = '', store = null) {
       if (!this.initialMetricRepairable(profile, profile?.roleCardInputSignature || null)) return profile;
       if (this.hasRequiredInitialMetrics(profile.initialMetrics)) return profile;
+      const normalized = this.initialMetrics(profile.initialMetrics, { ...base, ...profile });
+      if (this.hasRequiredInitialMetrics(normalized)) {
+        return { ...profile, initialMetrics: normalized, initialMetricSourceRepairSignature: profile.roleCardInputSignature || '', initialMetricSourceRepairRemaining: { emotions: [], playerFeelings: [] } };
+      }
       const worldTag = base.work || profile.work || '现实世界';
       const lore = await window.GameModules.worldLore.ensure(worldTag, context);
       const attrs = await window.GameModules.rpgState.ensureWorldAttributes(worldTag);
-      const initialMetrics = await this.repairInitialMetricSources(profile, base, lore, attrs, context, store);
+      const initialMetrics = await this.repairInitialMetricSources({ ...profile, initialMetrics: normalized }, base, lore, attrs, context, store);
       const remaining = Object.fromEntries(['emotions', 'playerFeelings'].map((group) => [group, this.initialMetricNonAiKeys(initialMetrics, group)]));
       if (remaining.emotions.length || remaining.playerFeelings.length) console.warn('[角色数值来源] 补齐后仍存在非AI或缺字段，停止重复补齐并保留问题信息:', { profile: profile.name || base.name, remaining });
       return { ...profile, initialMetrics, initialMetricSourceRepairSignature: profile.roleCardInputSignature || '', initialMetricSourceRepairRemaining: remaining };
