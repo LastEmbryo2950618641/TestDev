@@ -1229,7 +1229,7 @@
               </template>
               <template x-if="$store.game.wechatAlbumPromptStep === 'prompt-list'">
                 <div class="wechat-album-editor">
-                  <strong>选择绘图提示词</strong>
+                  <div class="wechat-album-title"><strong>选择绘图提示词</strong><button type="button" @click="$store.game.addWechatAlbumPrompt()" :disabled="$store.game.wechatAlbumGenerating">添加提示词</button></div>
                   <p class="wechat-album-count" x-text="`已保存 ${$store.game.wechatAlbumPromptList().length} 条提示词`"></p>
                   <div class="wechat-album-scroll">
                     <section x-show="!$store.game.wechatAlbumPromptList().length"><b>暂无提示词</b><p>请先返回素材页生成绘图提示词。</p></section>
@@ -1240,13 +1240,13 @@
               </template>
               <template x-if="$store.game.wechatAlbumPromptStep === 'prompt-detail'">
                 <div class="wechat-album-editor">
-                  <strong>编辑绘图提示词</strong>
-                  <p class="wechat-album-count" x-text="$store.game.wechatAlbumGenerating ? '正在生成图片…约 30 秒' : '确认后将使用下面文本生成图片'"></p>
+                  <strong x-text="$store.game.wechatAlbumSelectedPrompt() ? '编辑绘图提示词' : '添加绘图提示词'"></strong>
+                  <p class="wechat-album-count" x-text="$store.game.wechatAlbumGenerating ? '正在生成图片…约 30 秒' : ($store.game.wechatAlbumSelectedPrompt() ? '确认后将使用下面文本生成图片' : '填写后保存到提示词列表')"></p>
                   <div class="wechat-album-scroll">
                     <section><b>正向提示词</b><textarea x-model="$store.game.wechatAlbumPromptEditText"></textarea></section>
                     <section><b>负面提示词</b><textarea x-model="$store.game.wechatAlbumPromptEditNegative"></textarea></section>
                   </div>
-                  <div class="wechat-album-actions"><button type="button" @click="$store.game.wechatAlbumPromptStep = 'prompt-list'" :disabled="$store.game.wechatAlbumGenerating">返回列表</button><button type="button" @click="$store.game.generateWechatAlbumSelectedPhoto()" :disabled="$store.game.wechatAlbumGenerating">生成图片</button></div>
+                  <div class="wechat-album-actions"><button type="button" @click="$store.game.wechatAlbumPromptStep = 'prompt-list'" :disabled="$store.game.wechatAlbumGenerating">返回列表</button><button type="button" @click="$store.game.wechatAlbumSelectedPrompt() ? $store.game.generateWechatAlbumSelectedPhoto() : $store.game.saveWechatAlbumManualPrompt()" :disabled="$store.game.wechatAlbumGenerating" x-text="$store.game.wechatAlbumSelectedPrompt() ? '生成图片' : '保存提示词'"></button></div>
                 </div>
               </template>
             </article>

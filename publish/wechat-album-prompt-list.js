@@ -37,11 +37,35 @@ window.GameModules.wechatAlbumPromptListActions = {
 
   openWechatAlbumPromptList() { this.wechatAlbumPromptStep = 'prompt-list'; },
 
+  addWechatAlbumPrompt() {
+    this.wechatAlbumPromptSelectedId = '';
+    this.wechatAlbumPromptEditText = '';
+    this.wechatAlbumPromptEditNegative = 'bad anatomy, extra fingers, extra arms, missing fingers, low quality, blurry, worst quality, watermark, text, logo, bad hands';
+    this.wechatAlbumPromptStep = 'prompt-detail';
+  },
+
   selectWechatAlbumPrompt(id) {
     this.wechatAlbumPromptSelectedId = id;
     const item = this.wechatAlbumSelectedPrompt();
     this.wechatAlbumPromptEditText = item?.prompt || '';
     this.wechatAlbumPromptEditNegative = item?.negativePrompt || '';
     this.wechatAlbumPromptStep = 'prompt-detail';
+  },
+
+  async saveWechatAlbumManualPrompt() {
+    const prompt = String(this.wechatAlbumPromptEditText || '').trim();
+    if (!prompt) {
+      this.wechatError = '请先填写正向提示词';
+      return;
+    }
+    const contact = this.wechatProfileContact();
+    const kind = this.wechatAlbumPromptDraft?.kind || 'custom';
+    const negativePrompt = String(this.wechatAlbumPromptEditNegative || '').trim();
+    const item = { id: `prompt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, kind, prompt, negativePrompt, raw: '', manual: true, createdAt: new Date().toISOString() };
+    const list = this.wechatAlbumPromptList(contact);
+    this.wechatAlbumPrompts = { ...(this.wechatAlbumPrompts || {}), [contact.id]: [item, ...list].slice(0, 30) };
+    this.wechatAlbumPromptSelectedId = item.id;
+    this.wechatAlbumPromptStep = 'prompt-list';
+    await this.save?.();
   },
 };

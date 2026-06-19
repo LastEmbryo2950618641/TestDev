@@ -392,6 +392,23 @@
   text-align: center;
 }
 
+.wechat-album-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.wechat-album-title button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 9px;
+  background: #07c160;
+  color: #fff;
+  font-weight: 800;
+}
+
 .wechat-album-editor section {
   padding: 10px;
   border: 1px solid #edf0f2;
