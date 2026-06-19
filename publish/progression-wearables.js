@@ -108,7 +108,8 @@ window.GameModules = window.GameModules || {};
 
     isPlaceholderEmptyWear(item) {
       const text = `${item?.name || ''}${item?.description || ''}${item?.reason || ''}${item?.changeMode || ''}`;
-      if (item?.source === 'AI生成' && item?.slot && String(item?.reason || item?.changeMode || '').trim()) return false;
+      const reason = String(item?.reason || item?.changeMode || '').trim();
+      if (item?.source === 'AI生成' && item?.slot && reason && !this.fallbackWearPattern().test(reason)) return false;
       return !item?.name || item.name === '未记录' || item.name === '未穿戴' || /^日常(内衣|上衣|内裤|下衣|袜子|鞋子)$/.test(item.name) || this.fallbackWearPattern().test(text);
     },
 
@@ -126,27 +127,45 @@ window.GameModules = window.GameModules || {};
         const basic = this.defaultWearForSlot(slot);
         if (basic) return basic;
         const position = this.clothingPositionForSlot(slot);
-        const reason = hit?.source === 'AI生成' && String(hit.reason || hit.changeMode || '').trim() ? String(hit.reason || hit.changeMode).slice(0, 120) : (this.concreteWearReason(hit) || this.emptyWearReason(slot));
+        const aiReason = hit?.source === 'AI生成' ? this.concreteWearReason(hit) : '';
+        const reason = aiReason || this.concreteWearReason(hit) || this.emptyWearReason(slot);
         return { id: ownerId ? this.itemId(ownerId, '穿着', slot, '未穿戴') : '', ownerId, characterId: ownerId, slot, clothing_position: position, slotLabel: position, name: '未穿戴', type: '穿着', description: hit?.description || `${position || '该部位'}当前未穿戴。`, reason, changeMode: reason, source: hit?.source, level: -1 };
       });
     },
 
+    profileWearingFromRows(profile = {}) {
+      const rows = (Array.isArray(profile.wearingRawRows) ? profile.wearingRawRows : []).filter((row) => String(row || '').startsWith('wearing,'));
+      if (!rows.length || !window.GameModules.characterProfile?.buildInventoryFromRows) return [];
+      try {
+        const parsed = window.GameModules.characterProfile.buildInventoryFromRows(rows, profile.name || '');
+        return (window.GameModules.characterProfile.wearingItemsLoose?.(parsed.wearing) || []).map((item) => ({ ...item, source: 'AI生成' }));
+      } catch (err) {
+        console.warn('[穿着同步] 原始AI穿着行恢复失败:', err.message, err.stack);
+        return [];
+      }
+    },
+
     profileWearingItems(profile = {}) {
-      const raw = Array.isArray(profile.wearingItems) ? profile.wearingItems : (window.GameModules.characterProfile?.wearingItemsLoose?.(profile.wearing) || []);
+      const saved = Array.isArray(profile.wearingItems) ? profile.wearingItems : [];
+      const objectItems = window.GameModules.characterProfile?.wearingItemsLoose?.(profile.wearing) || [];
+      const rows = this.profileWearingFromRows(profile);
+      const merged = objectItems.length ? this.mergeProfileWearing(saved, objectItems) : saved;
+      const raw = rows.length ? this.mergeProfileWearing(merged, rows) : merged;
       const ownerId = String(profile.id || '').trim();
       return raw.map((item) => {
         const slot = this.canonicalWearSlot(item);
         const name = item?.name || '未穿戴';
         const id = item?.id || (ownerId ? this.itemId(ownerId, '穿着', slot, name) : '');
         const base = { ...(item || {}), id, ownerId, characterId: ownerId, slot, name, clothing_position: item?.clothing_position || this.clothingPositionForSlot(slot), slotLabel: item?.slotLabel || this.clothingPositionForSlot(slot), type: '穿着', source: item?.source || (profile.roleCardSource === 'ai' ? 'AI生成' : item?.source), level: -1 };
-        const reason = item?.reason || item?.changeMode || this.itemReason(base, '穿着');
+        const reason = this.concreteWearReason(item) || this.concreteWearReason(base) || item?.reason || item?.changeMode || this.itemReason(base, '穿着');
         return { ...base, reason, changeMode: reason };
       }).filter((item) => item.slot).slice(0, 40);
     },
 
     generatedFallbackWear(item = {}) {
-      if (item?.source === 'AI生成') return false;
-      return !item?.slot || this.fallbackWearPattern().test(`${item.description || ''}${item.reason || ''}${item.changeMode || ''}`);
+      const text = `${item.description || ''}${item.reason || ''}${item.changeMode || ''}`;
+      if (item?.source === 'AI生成') return this.fallbackWearPattern().test(text);
+      return !item?.slot || this.fallbackWearPattern().test(text);
     },
 
     shouldReplaceWearing(current = [], incoming = []) {
