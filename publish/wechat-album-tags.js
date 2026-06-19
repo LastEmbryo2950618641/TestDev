@@ -70,6 +70,7 @@ window.GameModules.wechatAlbumTagActions = {
       maxTokens: 600,
     }, (chunk) => { output += String(chunk || ''); });
     window.GameModules.tokenStats?.recordResponse?.(tokenRecordId, output);
+    console.log('[微信相册] 绘图提示词 AI 原始返回:', output);
     const parsed = this.parseWechatAlbumDrawPrompt(output);
     return { prompt: parsed.prompt.slice(0, 2000), negativePrompt: parsed.negativePrompt.slice(0, 2000), source: requestPrompt, raw: output };
   },
