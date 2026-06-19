@@ -444,6 +444,16 @@
   grid-template-columns: 1fr 1fr;
 }
 
+.wechat-album-actions.three {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.wechat-album-scroll section > button {
+  width: 100%;
+  text-align: left;
+  padding: 10px;
+}
+
 .wechat-album-choice button:first-of-type,
 .wechat-album-actions button:last-child {
   background: #07c160;

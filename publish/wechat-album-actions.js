@@ -96,8 +96,21 @@ window.GameModules.wechatAlbumActions = {
     return this.renderWechatAlbumPrompt(template, ctx).slice(0, 2000);
   },
 
-  async generateWechatAlbumSelectedPhoto() { await this.generateWechatAlbumPhoto(this.wechatAlbumPromptDraft?.kind || 'natural', this.wechatAlbumPromptDraft); },
-  async generateWechatAlbumPhoto(kind = 'natural', draft = null) {
+  async generateWechatAlbumSelectedPhoto() { await this.generateWechatAlbumPhotoFromSelectedPrompt(); },
+  async generateWechatAlbumPhotoFromSelectedPrompt() {
+    const selectedPrompt = this.wechatAlbumSelectedPrompt?.();
+    const kind = selectedPrompt?.kind || this.wechatAlbumPromptDraft?.kind || 'natural';
+    const prompt = this.wechatAlbumPromptEditText || selectedPrompt?.prompt || '';
+    const negativePrompt = this.wechatAlbumPromptEditNegative || selectedPrompt?.negativePrompt || '';
+    if (selectedPrompt) {
+      const contact = this.wechatProfileContact();
+      const list = this.wechatAlbumPromptList(contact).map((item) => item.id === selectedPrompt.id ? { ...item, prompt, negativePrompt } : item);
+      this.wechatAlbumPrompts = { ...(this.wechatAlbumPrompts || {}), [contact.id]: list };
+      await this.save?.();
+    }
+    await this.generateWechatAlbumPhoto(kind, { prompt, negativePrompt });
+  },
+  async generateWechatAlbumPhoto(kind = 'natural', promptData = null) {
     if (this.wechatAlbumGenerating) return;
     const contact = this.wechatProfileContact();
     if (!contact || contact.group) return;
@@ -107,12 +120,12 @@ window.GameModules.wechatAlbumActions = {
     this.wechatAlbumPromptOpen = false;
     try {
       await this.ensureWechatUserProfile?.(contact);
-      const builtPrompt = await this.buildWechatAlbumDrawPrompt(contact, kind, draft);
-      if (reqId !== this.wechatAlbumRequestId) return;
-      const drawOptions = { prompt: builtPrompt.prompt, dimension: '2:3', model: this.selectedDrawModelId?.() || 'anime', negativePrompt: builtPrompt.negativePrompt };
+      const prompt = String(promptData?.prompt || '').trim();
+      if (!prompt) throw new Error('请先选择或生成绘图提示词');
+      const negativePrompt = String(promptData?.negativePrompt || '').trim() || 'bad anatomy, extra fingers, extra arms, missing fingers, low quality, blurry, worst quality, watermark, text, logo, bad hands';
+      const drawOptions = { prompt: prompt.slice(0, 2000), dimension: '2:3', model: this.selectedDrawModelId?.() || 'anime', negativePrompt: negativePrompt.slice(0, 2000) };
       const titleState = this.wechatAlbumKindLabel(kind);
-      const tokenRecordId = window.GameModules.tokenStats?.record?.(`draw-wechat-album-${kind}`, builtPrompt.prompt, { model: drawOptions.model, title: `微信相册图片生成｜${contact.name || '联系人'}｜${titleState}`, category: '图片生成', summary: '微信联系人相册全身正面照绘图请求。', kind: 'draw' });
-      window.GameModules.tokenStats?.recordResponse?.(tokenRecordId, builtPrompt.raw || '', []);
+      const tokenRecordId = window.GameModules.tokenStats?.record?.(`draw-wechat-album-${kind}`, drawOptions.prompt, { model: drawOptions.model, title: `微信相册图片生成｜${contact.name || '联系人'}｜${titleState}`, category: '图片生成', summary: '微信联系人相册全身正面照绘图请求。', kind: 'draw' });
       const result = await this.wechatDrawWithRetry(() => window.dzmm.draw.generate(drawOptions));
       window.GameModules.tokenStats?.recordResponse?.(tokenRecordId, JSON.stringify(result || {}, null, 2), result?.images || []);
       if (reqId !== this.wechatAlbumRequestId) return;

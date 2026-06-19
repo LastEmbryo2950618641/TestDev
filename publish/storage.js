@@ -37,6 +37,7 @@ window.GameModules.storage = {
       wechatUsers: store.wechatUsers || [],
       wechatMessagesByContact: store.wechatMessagesByContact || {},
       wechatAlbumPhotos: store.wechatAlbumPhotos || {},
+      wechatAlbumPrompts: store.wechatAlbumPrompts || {},
       settingsState: store.settingsState ? { textModelId: store.modelId || store.settingsState.textModelId, drawModelId: store.settingsState.drawModelId || 'anime' } : undefined,
       phoneFixedTime: store.phoneFixedTime,
       selectedSlot: store.selectedSlot,
@@ -97,6 +98,7 @@ window.GameModules.storage = {
     store.wechatUsers = Array.isArray(save.wechatUsers) ? save.wechatUsers : (store.wechatUsers || []);
     store.wechatMessagesByContact = save.wechatMessagesByContact && typeof save.wechatMessagesByContact === 'object' ? save.wechatMessagesByContact : (store.wechatMessagesByContact || {});
     store.wechatAlbumPhotos = save.wechatAlbumPhotos && typeof save.wechatAlbumPhotos === 'object' ? save.wechatAlbumPhotos : (store.wechatAlbumPhotos || {});
+    store.wechatAlbumPrompts = save.wechatAlbumPrompts && typeof save.wechatAlbumPrompts === 'object' ? save.wechatAlbumPrompts : (store.wechatAlbumPrompts || {});
     if (save.settingsState && store.settingsState) {
       store.settingsState = { ...store.settingsState, ...save.settingsState, open: false, loading: false, error: '' };
       store.modelId = store.settingsState.textModelId || store.modelId;

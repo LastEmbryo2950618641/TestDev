@@ -121,6 +121,7 @@
   <script src="wechat-memory-debug-actions.js"></script>
   <script src="wechat-app-actions.js"></script>
   <script src="wechat-album-tags.js"></script>
+  <script src="wechat-album-prompt-list.js"></script>
   <script src="wechat-album-actions.js"></script>
   <script src="wechat-change-panel-actions.js"></script>
   <script src="player-wechat-setup.js"></script>
@@ -1202,7 +1203,7 @@
             </template>
           </div>
           <div class="wechat-photo-dialog" x-show="$store.game.wechatAlbumPromptOpen" @click.self="$store.game.wechatAlbumChoiceClose()" x-cloak>
-            <article :class="{ editor: $store.game.wechatAlbumPromptStep === 'edit' }">
+            <article :class="{ editor: ['edit', 'prompt-list', 'prompt-detail'].includes($store.game.wechatAlbumPromptStep) }">
               <template x-if="$store.game.wechatAlbumPromptStep === 'choice'">
                 <div class="wechat-album-choice">
                   <strong>选择生成状态</strong>
@@ -1215,15 +1216,37 @@
               <template x-if="$store.game.wechatAlbumPromptStep === 'edit'">
                 <div class="wechat-album-editor">
                   <strong x-text="`${$store.game.wechatAlbumKindLabel()}提示词素材`"></strong>
-                  <p class="wechat-album-count" x-text="`当前提示词约 ${$store.game.wechatAlbumSelectedCharCount()} 字`"></p>
+                  <p class="wechat-album-count" x-text="$store.game.wechatAlbumGenerating ? '正在生成绘图提示词…' : `当前素材约 ${$store.game.wechatAlbumSelectedCharCount()} 字`"></p>
                   <div class="wechat-album-scroll">
                     <section><b>身份信息</b><template x-for="item in $store.game.wechatAlbumPromptOptions().identity" :key="item.key"><label><input type="checkbox" :value="item.key" x-model="$store.game.wechatAlbumPromptDraft.identityKeys"><span x-text="item.text"></span></label></template></section>
                     <section x-show="$store.game.wechatAlbumPromptDraft?.kind !== 'custom'"><b>部位描述</b><template x-for="item in $store.game.wechatAlbumPromptOptions().body" :key="item.key"><label><input type="checkbox" :value="item.key" x-model="$store.game.wechatAlbumPromptDraft.bodyKeys"><span x-text="item.text"></span></label></template></section>
                     <section x-show="$store.game.wechatAlbumPromptDraft?.kind === 'custom'"><b>自定义状态部位描述</b><textarea x-model="$store.game.wechatAlbumPromptDraft.customText" placeholder="请输入本次图片生成要使用的状态与部位描述"></textarea></section>
                     <section><b>本次绘图补充要求</b><textarea x-model="$store.game.wechatAlbumPromptDraft.extraText" placeholder="例如：必须是黑发、蓝眼；若与前文冲突，以这里为准"></textarea></section>
-                    <section class="wechat-album-preview"><b>最终发送给 AI 的提示词</b><pre x-text="$store.game.wechatAlbumPromptPreview()"></pre></section>
+                    <section class="wechat-album-preview"><b>绘图提示词生成请求</b><pre x-text="$store.game.wechatAlbumPromptPreview()"></pre></section>
                   </div>
-                  <div class="wechat-album-actions"><button type="button" @click="$store.game.wechatAlbumPromptStep = 'choice'" :disabled="$store.game.wechatAlbumGenerating">返回</button><button type="button" @click="$store.game.generateWechatAlbumSelectedPhoto()" :disabled="$store.game.wechatAlbumGenerating">确认生成</button></div>
+                  <div class="wechat-album-actions three"><button type="button" @click="$store.game.wechatAlbumPromptStep = 'choice'" :disabled="$store.game.wechatAlbumGenerating">返回</button><button type="button" @click="$store.game.generateWechatAlbumPromptOnly()" :disabled="$store.game.wechatAlbumGenerating">生成绘图提示词</button><button type="button" @click="$store.game.openWechatAlbumPromptList()" :disabled="$store.game.wechatAlbumGenerating">选择提示词</button></div>
+                </div>
+              </template>
+              <template x-if="$store.game.wechatAlbumPromptStep === 'prompt-list'">
+                <div class="wechat-album-editor">
+                  <strong>选择绘图提示词</strong>
+                  <p class="wechat-album-count" x-text="`已保存 ${$store.game.wechatAlbumPromptList().length} 条提示词`"></p>
+                  <div class="wechat-album-scroll">
+                    <section x-show="!$store.game.wechatAlbumPromptList().length"><b>暂无提示词</b><p>请先返回素材页生成绘图提示词。</p></section>
+                    <section><template x-for="item in $store.game.wechatAlbumPromptList()" :key="item.id"><button type="button" @click="$store.game.selectWechatAlbumPrompt(item.id)"><span x-text="$store.game.wechatAlbumKindLabel(item.kind)"></span>｜<span x-text="item.prompt.slice(0, 42)"></span></button></template></section>
+                  </div>
+                  <div class="wechat-album-actions"><button type="button" @click="$store.game.wechatAlbumPromptStep = 'edit'" :disabled="$store.game.wechatAlbumGenerating">返回素材</button><button type="button" @click="$store.game.wechatAlbumChoiceClose()" :disabled="$store.game.wechatAlbumGenerating">关闭</button></div>
+                </div>
+              </template>
+              <template x-if="$store.game.wechatAlbumPromptStep === 'prompt-detail'">
+                <div class="wechat-album-editor">
+                  <strong>编辑绘图提示词</strong>
+                  <p class="wechat-album-count" x-text="$store.game.wechatAlbumGenerating ? '正在生成图片…约 30 秒' : '确认后将使用下面文本生成图片'"></p>
+                  <div class="wechat-album-scroll">
+                    <section><b>正向提示词</b><textarea x-model="$store.game.wechatAlbumPromptEditText"></textarea></section>
+                    <section><b>负面提示词</b><textarea x-model="$store.game.wechatAlbumPromptEditNegative"></textarea></section>
+                  </div>
+                  <div class="wechat-album-actions"><button type="button" @click="$store.game.wechatAlbumPromptStep = 'prompt-list'" :disabled="$store.game.wechatAlbumGenerating">返回列表</button><button type="button" @click="$store.game.generateWechatAlbumSelectedPhoto()" :disabled="$store.game.wechatAlbumGenerating">生成图片</button></div>
                 </div>
               </template>
             </article>
