@@ -132,7 +132,7 @@ window.GameModules.realWorldActions = {
     try {
       const prompt = await window.GameModules.createRealWorldPrompt(this, text);
       entry.promptPack = { systemPrompt: prompt, userPrompt: text, model: this.modelId, promptTokens: Math.ceil(prompt.length / 2) };
-      const result = await window.GameModules.realWorldAi.generate(this, prompt, text);
+      const result = await window.GameModules.realWorldAi.generate(this, prompt, text, entry.id);
       await this.applyRealWorldResult(entry.id, result);
       await this.recordPlayerRealWorldMemory(text, result);
       await this.save();

@@ -6,18 +6,24 @@ window.GameModules = window.GameModules || {};
 window.GameModules.realWorldAi = {
   latestRequestId: 0,
 
-  async generate(store, prompt, action) {
+  async generate(store, prompt, action, logId = null) {
     const requestId = ++this.latestRequestId;
     let buffer = '';
+    let lastPaint = 0;
     try {
       let resolveDone;
       const donePromise = new Promise((resolve) => { resolveDone = resolve; });
       await Promise.race([
         window.GameModules.aiRequest.complete({
           source: 'real-world-engine', model: store.modelId, prompt, timeoutMs: 60000, requireDone: true,
-          onChunk: (chunk, done, info) => {
+          onChunk: async (chunk, done, info) => {
             if (requestId !== this.latestRequestId) return;
             buffer = info.buffer;
+            const changed = logId && store.updateRealWorldStream?.(logId, buffer);
+            if (changed && performance.now() - lastPaint > 50) {
+              lastPaint = performance.now();
+              await new Promise((resolve) => (window.requestAnimationFrame || setTimeout)(resolve));
+            }
             if (done) resolveDone();
           },
         }),

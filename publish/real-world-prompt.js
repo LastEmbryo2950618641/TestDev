@@ -6,6 +6,8 @@ window.GameModules = window.GameModules || {};
 window.GameModules.createRealWorldPrompt = async function createRealWorldPrompt(state, action) {
   const realWorld = window.GameModules.realWorld2026 || {};
   const stateSkill = await window.GameModules.skillLoader?.instruction?.('emotion.feeling.wearing.assess') || '';
+  const memorySkill = await window.GameModules.skillLoader?.instruction?.('memory.query') || '';
+  const memoryArchive = await state.searchMemoryArchive?.('player-self', action) || '无';
   const map = window.GameModules.realWorldMap.ensure(state, state.playerProfile || {});
   const recent = (state.realWorldLog || []).slice(-6).map((entry) => (entry.type === 'user' ? `玩家行动：${entry.text}` : `地点：${entry.locationName || state.realWorldLocationName || map.current}\n推演结果：${entry.narration || entry.text || ''}`)).join('\n') || '暂无现实世界推演记录。';
   const facts = (map.nodes || []).map((node) => `${node.name}：${(node.descriptionFacts || []).map((fact, i) => window.GameModules.realWorldMapFacts.formatFact(fact, i)).join('')}`).join('\n') || '暂无地点说明。';
@@ -16,6 +18,6 @@ window.GameModules.createRealWorldPrompt = async function createRealWorldPrompt(
   });
   return window.GameModules.promptTemplates.render('real-world-engine', {
     现实世界: realWorld.label || '2026 现代都市现实世界', 现实背景: realWorld.summary || '玩家生活在现代都市，个人信息由玩家自行设定。', 关系边界: realWorld.relationHint || '玩家相关人际关系只以玩家填写为准，未填写不要擅自补完。', 手机时间: `${state.phoneDateText?.() || '未知'} ${state.phoneTimeText?.() || ''}`,
-    玩家资料: state.playerSetupSummary?.() || `姓名/代号：${state.playerName || '玩家'}`, 玩家属性: state.playerIdentitySummary?.() || '玩家本人属性尚未生成。', 公司系统: state.companyPromptContext?.() || '暂无公司系统词条。', 当前场景: state.realWorldSceneTitle || '现实世界', 当前地点: state.realWorldLocationName || map.current || '尚未生成，必须由本次推演根据玩家资料生成具体地点', 现实地图: map.lastText || window.GameModules.realWorldMap.render(map), 已知地点: (map.nodes || []).map((node) => `${node.parentId ? '子地点' : '根地点'}：${node.name}`).join('；') || '暂无，必须本次生成具体根地点', 地点说明: facts, 当前目标: state.realWorldQuest || '确认手机异常与现实处境', 目标状态快照: window.GameModules.promptSections.stateSnapshot(state, state.playerIdentityState?.()), 最近记录: recent, 本次行动: action || '继续观察现实世界', 状态判定Skill: stateSkill, 输出示例: outputJson,
+    玩家资料: state.playerSetupSummary?.() || `姓名/代号：${state.playerName || '玩家'}`, 玩家属性: state.playerIdentitySummary?.() || '玩家本人属性尚未生成。', 公司系统: state.companyPromptContext?.() || '暂无公司系统词条。', 当前场景: state.realWorldSceneTitle || '现实世界', 当前地点: state.realWorldLocationName || map.current || '尚未生成，必须由本次推演根据玩家资料生成具体地点', 现实地图: map.lastText || window.GameModules.realWorldMap.render(map), 已知地点: (map.nodes || []).map((node) => `${node.parentId ? '子地点' : '根地点'}：${node.name}`).join('；') || '暂无，必须本次生成具体根地点', 地点说明: facts, 当前目标: state.realWorldQuest || '确认手机异常与现实处境', 目标状态快照: window.GameModules.promptSections.stateSnapshot(state, state.playerIdentityState?.()), 最近记录: recent, 记忆查询结果: [state.memoryQueryContext?.('player-self', action) || '暂无人物记忆。', `## 记忆归档\n${memoryArchive}`].join('\n\n'), 本次行动: action || '继续观察现实世界', 状态判定Skill: stateSkill, 记忆查询Skill: memorySkill, 输出示例: outputJson,
   });
 };
