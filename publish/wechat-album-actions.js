@@ -81,7 +81,8 @@ window.GameModules.wechatAlbumActions = {
     const bodyText = draft.kind === 'custom' ? String(draft.customText || '').trim() : options.body.filter((item) => draft.bodyKeys.includes(item.key)).map((item) => item.text).join('\n');
     return { identityInfo, bodyText: bodyText || '未记录', stateName: this.wechatAlbumKindLabel(draft.kind), kind: draft.kind };
   },
-  wechatAlbumSelectedCharCount() { return this.wechatAlbumPhotoPrompt(this.wechatProfileContact(), this.wechatAlbumPromptDraft?.kind || 'natural', this.wechatAlbumPromptDraft).length; },
+  wechatAlbumPromptPreview() { return this.wechatAlbumPhotoPrompt(this.wechatProfileContact(), this.wechatAlbumPromptDraft?.kind || 'natural', this.wechatAlbumPromptDraft); },
+  wechatAlbumSelectedCharCount() { return this.wechatAlbumPromptPreview().length; },
   wechatAlbumIdentityInfo(contact, state = {}, profile = {}) { return this.wechatAlbumIdentityItems(contact, state, profile).map((item) => item.text).join('\n'); },
   wechatAlbumBodyText(body) { return this.wechatAlbumBodyItems(body).map((item) => item.text).join('\n'); },
 
@@ -99,7 +100,8 @@ window.GameModules.wechatAlbumActions = {
     const stateName = selected?.stateName || this.wechatAlbumKindLabel(kind);
     const bodyText = selected?.bodyText || (kind === 'dressed' ? dressedText : naturalText);
     const template = window.GameModules.pictureGeneratePrompts?.wechatAlbumPhoto || '请根据以下角色个人身份信息与{生成状态}部位描述生成一张全身正面照。\n\n{角色身份信息}\n\n{状态部位描述}';
-    return this.renderWechatAlbumPrompt(template, { identityInfo, naturalText, dressedText, stateName, bodyText }).slice(0, 2600);
+    const prompt = this.renderWechatAlbumPrompt(template, { identityInfo, naturalText, dressedText, stateName, bodyText });
+    return prompt.slice(0, 2000);
   },
 
   async generateWechatAlbumSelectedPhoto() { await this.generateWechatAlbumPhoto(this.wechatAlbumPromptDraft?.kind || 'natural', this.wechatAlbumPromptDraft); },

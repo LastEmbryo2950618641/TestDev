@@ -1183,6 +1183,7 @@
                     <section><b>身份信息</b><template x-for="item in $store.game.wechatAlbumPromptOptions().identity" :key="item.key"><label><input type="checkbox" :value="item.key" x-model="$store.game.wechatAlbumPromptDraft.identityKeys"><span x-text="item.text"></span></label></template></section>
                     <section x-show="$store.game.wechatAlbumPromptDraft?.kind !== 'custom'"><b>部位描述</b><template x-for="item in $store.game.wechatAlbumPromptOptions().body" :key="item.key"><label><input type="checkbox" :value="item.key" x-model="$store.game.wechatAlbumPromptDraft.bodyKeys"><span x-text="item.text"></span></label></template></section>
                     <section x-show="$store.game.wechatAlbumPromptDraft?.kind === 'custom'"><b>自定义状态部位描述</b><textarea x-model="$store.game.wechatAlbumPromptDraft.customText" placeholder="请输入本次图片生成要使用的状态与部位描述"></textarea></section>
+                    <section class="wechat-album-preview"><b>最终发送给 AI 的提示词</b><pre x-text="$store.game.wechatAlbumPromptPreview()"></pre></section>
                   </div>
                   <div class="wechat-album-actions"><button type="button" @click="$store.game.wechatAlbumPromptStep = 'choice'" :disabled="$store.game.wechatAlbumGenerating">返回</button><button type="button" @click="$store.game.generateWechatAlbumSelectedPhoto()" :disabled="$store.game.wechatAlbumGenerating">确认生成</button></div>
                 </div>

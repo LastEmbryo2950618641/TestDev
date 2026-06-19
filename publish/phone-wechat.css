@@ -426,6 +426,20 @@
   font: inherit;
 }
 
+.wechat-album-preview pre {
+  max-height: 150px;
+  margin: 0;
+  padding: 8px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border-radius: 8px;
+  background: #111827;
+  color: #e5e7eb;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .wechat-album-actions {
   grid-template-columns: 1fr 1fr;
 }
