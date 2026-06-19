@@ -29,20 +29,22 @@ window.GameModules.wechatAlbumTagActions = {
   },
 
   cleanWechatAlbumTags(text = '') {
-    return String(text || '').replace(/```[a-z]*|```/gi, '')
-      .replace(/^(正向提示词|负面提示词)\s*[:：]/gm, '')
-      .split(/[\n，、；;]+/).map((item) => item.trim().replace(/^[-*]\s*/, ''))
-      .filter(Boolean).join(', ');
+    return [...new Set(String(text || '').replace(/```[a-z]*|```/gi, '')
+      .replace(/^(正向提示词|负面提示词|positive|negative)\s*[:：]/gim, '')
+      .replace(/\b(positive|negative)\s*[:：]/gi, '\n')
+      .split(/[\n,，、；;]+/).map((item) => item.trim().replace(/^[-*]\s*/, ''))
+      .filter(Boolean))].join(', ');
   },
+
 
   parseWechatAlbumDrawPrompt(text = '') {
     const raw = String(text || '').replace(/\r/g, '').replace(/```[a-z]*|```/gi, '').trim();
-    const positiveMatch = raw.match(/正向提示词\s*[:：]\s*([\s\S]*?)(?=\n\s*负面提示词\s*[:：]|$)/);
-    const negativeMatch = raw.match(/负面提示词\s*[:：]\s*([\s\S]*)$/);
+    const positiveMatch = raw.match(/(?:正向提示词|positive)\s*[:：]\s*([\s\S]*?)(?=\n?\s*(?:负面提示词|negative)\s*[:：]|$)/i);
+    const negativeMatch = raw.match(/(?:负面提示词|negative)\s*[:：]\s*([\s\S]*)$/i);
     const defaultNegative = 'bad anatomy, extra fingers, extra arms, missing fingers, low quality, blurry, worst quality, watermark, text, logo, bad hands';
     const positive = this.cleanWechatAlbumTags(positiveMatch?.[1] || 'solo, full body, standing, front view, clear face, clean background, anime style, high quality');
-    const negative = this.cleanWechatAlbumTags(negativeMatch?.[1] || defaultNegative);
-    return { prompt: positive, negativePrompt: negative || defaultNegative };
+    const negative = this.cleanWechatAlbumTags(negativeMatch?.[1] || defaultNegative) || defaultNegative;
+    return { prompt: positive, negativePrompt: negative };
   },
 
   async buildWechatAlbumDrawPrompt(contact, kind = 'natural', draft = null) {
@@ -68,7 +70,7 @@ window.GameModules.wechatAlbumTagActions = {
       model,
       messages: [{ role: 'user', content: requestPrompt }],
       maxTokens: 600,
-    }, (chunk) => { output += String(chunk || ''); });
+    }, (chunk) => { const text = String(chunk || ''); output = window.GameModules.jsonUtils?.mergeStreamText?.(output, text) ?? (output + text); });
     window.GameModules.tokenStats?.recordResponse?.(tokenRecordId, output);
     console.log('[微信相册] 绘图提示词 AI 原始返回:', output);
     const parsed = this.parseWechatAlbumDrawPrompt(output);
