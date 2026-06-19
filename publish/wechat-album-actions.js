@@ -118,7 +118,7 @@ window.GameModules.wechatAlbumActions = {
     try {
       await this.ensureWechatUserProfile?.(contact);
       const prompt = this.wechatAlbumPhotoPrompt(contact, kind, draft);
-      const drawOptions = { prompt, dimension: '2:3', model: 'anime', negativePrompt: 'lowres, bad anatomy, bad hands, text, error, missing fingers, worst quality, low quality, jpeg artifacts, watermark, blurry' };
+      const drawOptions = { prompt, dimension: '2:3', model: this.selectedDrawModelId?.() || 'anime', negativePrompt: 'lowres, bad anatomy, bad hands, text, error, missing fingers, worst quality, low quality, jpeg artifacts, watermark, blurry' };
       const titleState = this.wechatAlbumKindLabel(kind);
       const tokenRecordId = window.GameModules.tokenStats?.record?.(`draw-wechat-album-${kind}`, prompt, { model: drawOptions.model, title: `微信相册图片生成｜${contact.name || '联系人'}｜${titleState}`, category: '图片生成', summary: '微信联系人相册全身正面照绘图请求。', kind: 'draw' });
       const result = await this.wechatDrawWithRetry(() => window.dzmm.draw.generate(drawOptions));

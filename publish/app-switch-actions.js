@@ -20,6 +20,7 @@ window.GameModules.appSwitchActions = {
     this.saveAppOpen = false;
     this.worldlineAppOpen = false;
     this.savePanelOpen = false;
+    if (this.settingsState) this.settingsState.open = false;
     if (this.companyState) this.companyState.open = false;
     if (this.bossState) this.bossState.open = false;
     if (this.calendarState) this.calendarState.open = false;

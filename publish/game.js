@@ -48,8 +48,8 @@ function registerGameStore() {
   const modules = [
     criticalActionFallback, gm.actions, gm.rpgFieldUi, gm.resultActions, gm.loadingActions, gm.roleCardLoadingActions, gm.saveActions, gm.styleActions,
     gm.worldlineActions, gm.predefinedRoleCardActions, gm.playerSetupActions, gm.playerIdentityActions, gm.identityMemoryActions, gm.identityAppActions, gm.wechatActions, gm.wechatViewActions, gm.wechatChatActions, gm.wechatWorldlineActions, gm.wechatMemoryDebugActions, gm.wechatAppActions, gm.wechatAlbumActions, gm.wechatChangePanelActions, gm.entryActions,
-    gm.coreActions, gm.appSwitchActions, gm.inventoryActions, gm.realWorldActions, gm.companyActions, gm.companyAttendanceActions,
-    gm.bossActions, gm.bossAiActions, gm.calendarActions, gm.factionActions, gm.factionAiActions, gm.skillsActions, gm.knownProfessionActions, gm.promptActions, gm.tokenStatsActions,
+    gm.catalogActions, gm.coreActions, gm.appSwitchActions, gm.inventoryActions, gm.realWorldActions, gm.companyActions, gm.companyAttendanceActions,
+    gm.bossActions, gm.bossAiActions, gm.calendarActions, gm.factionActions, gm.factionAiActions, gm.skillsActions, gm.knownProfessionActions, gm.promptActions, gm.settingsActions, gm.tokenStatsActions,
   ].map((module) => module || {});
 
   Alpine.store('game', {
@@ -61,6 +61,7 @@ function registerGameStore() {
     initPromise: null, startupWarmupPromise: null, startupWarmupDone: false, phoneSetupDone: false, phoneActivationChoice: '', profileSetupBusy: false, setupError: '', phoneFixedTime: 0, phoneClockTimer: null, existingProfileExpanded: false,
     roleCardSetup: { loaded: false, usePredefinedPlayerCard: false, cards: [], selectedPlayerName: '', selectedRelationNames: [], relationRoles: {}, selectedRelationCardName: '刘思瑶', gender: '女', relationType: '妹妹', customRelation: '', detailOpen: false, relationDetailOpen: '' },
     knownProfessionState: { open: false, query: '', message: '', selectedName: '', detailOpen: false },
+    settingsState: { open: false, loading: false, loaded: false, error: '', textModels: [], drawModels: [], textModelId: cfg.defaultModelId, drawModelId: 'anime' },
     playerProfile: { name: '', gender: '', birthday: '', age: '', city: '', refinedCity: '', dailyRole: '', refinedRole: '', livingStatus: '', refinedLivingStatus: '', relationships: '', relationshipEntries: [], parents: '', parentStatus: '', parentDeathCause: '', worldbuildingNote: '', notes: '', knownProfessions: [], wechatId: '', profileEnrichedAt: '', initializedAt: '', playerCardAiParts: { part2: false, part5: false, part6: false } }, playerName: '',
     selectedSlot: 'slot-1', saveSlots: window.GameModules.storage.slots,
     savePanelOpen: false, functionPanelOpen: false, worldlineAppOpen: false,
@@ -155,42 +156,6 @@ function registerGameStore() {
       return this.initPromise;
     },
 
-    async loadCatalog() {
-      try {
-        await window.GameModules.catalog.load();
-        this.works = window.GameModules.catalog.works();
-        this.selectedWork = this.selectedWork || window.GameModules.catalog.firstWork();
-        this.selectedCharacterId = window.GameModules.catalog.firstCharacter(this.selectedWork) || this.selectedCharacterId;
-        window.GameModules.characterBrief.ensure(this);
-      } catch (err) {
-        console.error('角色目录加载失败:', err.message, err.stack);
-      }
-    },
-
-    async loadModelAndUser() {
-      try {
-        const info = await window.dzmm?.user?.info?.(); if (info?.name && !this.playerName && !this.playerProfile.name) this.playerName = info.name;
-      } catch (err) {
-        console.warn('读取用户信息失败:', err.code, err.message);
-      }
-
-      try {
-        const result = await window.dzmm?.models?.list?.();
-        window.GameModules.tokenStats?.syncModelPrices?.(result);
-        this.modelId = result?.defaultModel || result?.models?.[0]?.internalName || this.modelId;
-      } catch (err) {
-        console.warn('读取模型列表失败:', err.code, err.message);
-      }
-    },
-
-    ensureCatalogSelection() {
-      if (!this.works.some((work) => work.name === this.selectedWork)) {
-        this.selectedWork = window.GameModules.catalog.firstWork();
-      }
-      if (!window.GameModules.catalog.find(this.selectedCharacterId)) {
-        this.selectedCharacterId = window.GameModules.catalog.firstCharacter(this.selectedWork) || this.selectedCharacterId;
-      }
-    },
 
     async submitAction(action) {
       if (this.busy) return;

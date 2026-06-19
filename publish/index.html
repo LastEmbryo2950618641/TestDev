@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="profile-preview.css">
   <link rel="stylesheet" href="prompt-dialog.css">
   <link rel="stylesheet" href="worldline.css">
+  <link rel="stylesheet" href="settings-app.css">
   <link rel="stylesheet" href="layout.css">
   <script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js"></script>
   <script src="config.js"></script>
@@ -92,6 +93,7 @@
   <script src="rag.js"></script>
   <script src="rag-cache.js"></script>
   <script src="catalog.js"></script>
+  <script src="catalog-actions.js"></script>
   <script src="ai.js"></script>
   <script src="ai-lexicon.js"></script>
   <script src="real-world-ai.js"></script>
@@ -146,6 +148,7 @@
   <script src="skills-actions.js"></script>
   <script src="known-profession-actions.js"></script>
   <script src="prompt-actions.js"></script>
+  <script src="settings-actions.js"></script>
   <script src="entry-actions.js"></script>
   <script src="control-actions.js"></script>
   <script src="core-actions.js"></script>
@@ -728,6 +731,7 @@
             <button class="desktop-app-icon profession-icon" type="button" @click="$store.game.openKnownProfessionApp()" aria-label="打开已知职业"><span class="app-glyph">职</span><b>已知职业</b></button>
             <button class="desktop-app-icon save-icon" type="button" @click="$store.game.openSaveApp()" aria-label="打开存档"><span class="app-glyph">存</span><b>存档</b></button>
             <button class="desktop-app-icon worldline-icon" type="button" @click="$store.game.openWorldlineApp()" aria-label="打开世界线"><span class="app-glyph">线</span><b>世界线</b></button>
+            <button class="desktop-app-icon settings-icon" type="button" @click="$store.game.openSettingsApp()" aria-label="打开设置"><span class="app-glyph">设</span><b>设置</b></button>
           </div>
         </div>
       </div>
@@ -741,7 +745,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.identityAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen" class="identity-app-screen app-window section-hints" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.identityAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.settingsState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen" class="identity-app-screen app-window section-hints" x-cloak>
     <div class="identity-card dev-section" data-section-title="身份证主面板">
       <header class="identity-header dev-section" data-section-title="身份证标题区">
         <button class="small-btn identity-back-btn" type="button" x-show="$store.game.identityReturnTo === 'wechat'" @click="$store.game.backFromIdentityApp()">返回微信</button>
@@ -1078,6 +1082,37 @@
     </article>
   </section>
 
+  <section x-show="!$store.game.loading && $store.game.settingsState?.open" class="settings-app-screen app-window section-hints" x-cloak>
+    <div class="settings-app-card dev-section" data-section-title="设置APP主面板">
+      <header>
+        <div><p class="eyebrow">SETTINGS</p><strong>设置</strong><small>选择游戏使用的文本模型与 AI 生成图模型。</small></div>
+        <button class="small-btn" type="button" @click="$store.game.closeSettingsApp()">回到桌面</button>
+      </header>
+      <p class="settings-status" x-show="$store.game.settingsState.loading">正在加载可用模型…</p>
+      <p class="settings-error" x-show="$store.game.settingsState.error" x-text="$store.game.settingsState.error"></p>
+      <button class="ghost-wide" type="button" @click="$store.game.loadSettingsModels(true)" :disabled="$store.game.settingsState.loading">刷新可用模型</button>
+      <section class="model-setting-group">
+        <h3>文本模型</h3>
+        <small>用于剧情推演、微信回复、角色资料补全等文字 AI 请求。</small>
+        <select :value="$store.game.modelId" @change="$store.game.selectTextModel($event.target.value)">
+          <template x-for="model in $store.game.settingsState.textModels" :key="model.internalName">
+            <option :value="model.internalName" x-text="`${model.displayName || model.internalName}｜${model.description || model.internalName}`"></option>
+          </template>
+        </select>
+      </section>
+      <section class="model-setting-group">
+        <h3>AI生成图模型</h3>
+        <small>用于微信相册等 draw.generate 图片生成请求。</small>
+        <select x-model="$store.game.settingsState.drawModelId" @change="$store.game.selectDrawModel($event.target.value)">
+          <template x-for="model in $store.game.settingsState.drawModels" :key="model.id">
+            <option :value="model.id" x-text="`${model.displayName || model.id}｜${model.description || model.id}`"></option>
+          </template>
+        </select>
+      </section>
+      <p class="settings-status">当前：文本 <b x-text="$store.game.modelId"></b>；绘图 <b x-text="$store.game.selectedDrawModelId()"></b></p>
+    </div>
+  </section>
+
   <section x-show="!$store.game.loading && $store.game.saveAppOpen" class="save-app-screen app-window section-hints" x-cloak>
     <div class="save-modal save-app-card dev-section" data-section-title="存档APP主面板">
       <header>
@@ -1113,7 +1148,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.wechatAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen" class="wechat-app-screen app-window section-hints" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.wechatAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.settingsState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen" class="wechat-app-screen app-window section-hints" x-cloak>
     <div class="wechat-phone dev-section" data-section-title="微信模拟界面">
       <header class="wechat-top" x-show="$store.game.wechatView === 'home'">
         <button type="button" @click="$store.game.closeWechatApp()">返回桌面</button><strong></strong><button type="button">⋯</button>
@@ -1319,7 +1354,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen && !$store.game.entrySetupOpen" class="start-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.settingsState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen && !$store.game.entrySetupOpen" class="start-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <div class="start-card dev-section" data-section-title="首页选择面板">
       <button class="back-desktop-btn" type="button" @click="$store.game.closeAppToDesktop()">返回桌面</button>
       <p class="eyebrow">AI RPG 视觉小说</p>
@@ -1391,7 +1426,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen && $store.game.entrySetupOpen" class="start-screen entry-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.settingsState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen && $store.game.entrySetupOpen" class="start-screen entry-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <div class="start-card entry-card dev-section" data-section-title="进入时机配置区">
       <button class="back-desktop-btn" type="button" @click="$store.game.closeAppToDesktop()" :disabled="$store.game.busy">返回桌面</button>
       <button class="back-home-btn" type="button" @click="$store.game.backToHome()" :disabled="$store.game.busy">← 返回首页</button>
@@ -1436,7 +1471,7 @@
     </div>
   </section>
 
-  <main x-show="$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen" class="game-shell app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <main x-show="$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.settingsState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen" class="game-shell app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <header class="top-bar dev-section" data-section-title="顶部状态栏">
       <div class="mode-status">
         <span class="mode-dot" :class="$store.game.online ? 'online' : 'offline'"></span>
