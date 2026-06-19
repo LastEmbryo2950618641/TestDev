@@ -1224,6 +1224,7 @@
         <small>参考：双胞胎妹妹之一 / 刘思瑶；双胞胎妹妹之二 / 刘思琪。旧格式会自动兼容。</small>
       </article>
       <label class="phone-setup-wide dev-section" data-section-title="备注设定区"><span>备注设定</span><textarea x-model="$store.game.playerProfile.notes" placeholder="例如：家庭处境、性格、亲密关系边界、近期目标等。可留空。"></textarea><small>参考默认账号：刘悠是程序工程师，与成年双胞胎妹妹同居，承担家庭支柱职责。</small></label>
+      <article class="real-world-note dev-section" data-section-title="玩家卡生成选项区"><strong>玩家卡生成选项</strong><p>以下选项只影响玩家卡本人；其他角色卡仍会完整使用 AI 生成。</p><label><input type="checkbox" x-model="$store.game.playerProfile.playerCardAiParts.part2"> Part2 情感数值使用 AI 生成</label><label><input type="checkbox" x-model="$store.game.playerProfile.playerCardAiParts.part5"> Part5 身体原貌使用 AI 生成</label><label><input type="checkbox" x-model="$store.game.playerProfile.playerCardAiParts.part6"> Part6 盛装状态使用 AI 生成</label><small>取消勾选后，对应部分会采用系统缺省值，并在玩家卡加载进度中直接标记完成。</small></article>
       <article class="real-world-note dev-section" data-section-title="AI身份补全提示区"><strong>激活补全</strong><p>完成激活时会根据生日计算年龄，并让 AI 把地址补全到省市区县、镇街道、小区、楼栋门牌级别，同时补全身份、居住信息与世界观备注；父母未填写时默认已故并生成合理死因。</p><small x-show="$store.game.profileSetupBusy">正在补全身份资料，约 10-30 秒，请勿重复点击。</small><small x-show="$store.game.setupError" x-text="$store.game.setupError"></small></article>
       <article class="real-world-note dev-section" data-section-title="现实世界背景区">
         <strong x-text="window.GameModules.realWorld2026.label"></strong>

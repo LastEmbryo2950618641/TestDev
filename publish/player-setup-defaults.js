@@ -66,7 +66,8 @@ Object.assign(window.GameModules.playerSetupActions, {
     this.profileSetupBusy = true;
     try {
       this.setupError = '';
-      this.playerProfile = { ...this.playerProfile, ...await this.defaultExistingAccountProfile() };
+      const aiParts = this.normalizePlayerCardAiParts?.(this.playerProfile.playerCardAiParts) || { part2: true, part5: true, part6: true };
+      this.playerProfile = { ...this.playerProfile, ...await this.defaultExistingAccountProfile(), playerCardAiParts: aiParts };
       this.playerProfile.relationshipEntries = this.normalizeRelationshipEntries(this.playerProfile.relationshipEntries, this.playerProfile.relationships);
       await this.initPredefinedRoleCards?.();
       this.roleCardSetup.usePredefinedPlayerCard = true;
@@ -89,8 +90,10 @@ Object.assign(window.GameModules.playerSetupActions, {
       this.setupError = '';
       if (this.roleCardSetup) this.roleCardSetup.usePredefinedPlayerCard = false;
       const example = await this.defaultExistingAccountProfile();
+      const aiParts = this.normalizePlayerCardAiParts?.(this.playerProfile.playerCardAiParts) || { part2: true, part5: true, part6: true };
       this.playerProfile = {
         ...this.playerProfile,
+        playerCardAiParts: aiParts,
         name: this.playerProfile.name || example.name || '',
         gender: this.playerProfile.gender || example.gender || '',
         birthday: this.playerProfile.birthday || example.birthday || '',

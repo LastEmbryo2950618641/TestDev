@@ -36,8 +36,10 @@ window.GameModules.predefinedRoleCards = {
 
   playerProfileFromCard(card, fallback = {}) {
     if (!card) return fallback;
+    const aiParts = window.Alpine?.store?.('game')?.normalizePlayerCardAiParts?.(fallback.playerCardAiParts) || { part2: true, part5: true, part6: true };
     return {
       ...fallback,
+      playerCardAiParts: aiParts,
       name: card.name || fallback.name || '', gender: card.gender || fallback.gender || '', birthday: card.birthday || fallback.birthday || '', age: card.age || fallback.age || '',
       city: fallback.city || '', dailyRole: card.role || fallback.dailyRole || '', workplace: card.workplace || fallback.workplace || '', position: card.position || fallback.position || '',
       livingStatus: fallback.livingStatus || '', parents: fallback.parents || '', relationships: card.relationships || fallback.relationships || '', notes: fallback.notes || card.detail || '', initializedAt: fallback.initializedAt || new Date().toISOString(),

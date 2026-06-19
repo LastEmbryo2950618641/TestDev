@@ -173,9 +173,7 @@ window.GameModules.characterProfile = {
       const p1Summary = this.part1Summary(part1);
       const namedBase = { ...base, name: this.isConcreteName(base.name) ? base.name : (part1.name || base.name) };
       const part2Total = this.partProgressTotal(2, templates[2], attrs);
-      this.onProgress(store, loadingId, 'feeling', 'running', '', { done: 0, total: part2Total });
-      const part2 = await this.generatePart(2, 'character-profile-part2-feeling', { ...commonVars, part1Summary: p1Summary }, templates[2], namedBase, lore, attrs, store);
-      this.onProgress(store, loadingId, 'feeling', 'done', '', { done: this.partProgressDone(2, part2), total: part2Total });
+      const part2 = await this.generateOrDefaultPart(2, 'character-profile-part2-feeling', 'feeling', { ...commonVars, part1Summary: p1Summary }, templates[2], namedBase, lore, attrs, store, part2Total);
       const part3StartTotal = this.partProgressTotal(3, templates[3], attrs);
       this.onProgress(store, loadingId, 'abilities', 'running', '', { done: 0, total: part3StartTotal });
       const part3 = await this.generatePart(3, 'character-profile-part3-abilities-professions', { ...commonVars, part1Summary: p1Summary }, templates[3], namedBase, lore, attrs, store);
@@ -190,14 +188,10 @@ window.GameModules.characterProfile = {
       const p3Summary = this.part3Summary(part3);
       const p4Summary = this.part4Summary(part4);
       const part5Total = this.partProgressTotal(5, templates[5], attrs);
-      this.onProgress(store, loadingId, 'bodyProfile', 'running', '', { done: 0, total: part5Total });
-      const part5 = await this.generatePart(5, 'character-profile-part5-body-profile', { ...commonVars, part1Summary: p1Summary }, templates[5], namedBase, lore, attrs, store);
-      this.onProgress(store, loadingId, 'bodyProfile', 'done', '', { done: this.partProgressDone(5, part5), total: part5Total });
+      const part5 = await this.generateOrDefaultPart(5, 'character-profile-part5-body-profile', 'bodyProfile', { ...commonVars, part1Summary: p1Summary }, templates[5], namedBase, lore, attrs, store, part5Total);
       const p5Summary = this.bodyProfileSummary(part5.bodyProfile);
       const part6Total = this.partProgressTotal(6, templates[6], attrs);
-      this.onProgress(store, loadingId, 'dressedProfile', 'running', '', { done: 0, total: part6Total });
-      const part6 = await this.generatePart(6, 'character-profile-part6-dressed-profile', { ...commonVars, part1Summary: p1Summary, part4Summary: p4Summary, part5Summary: p5Summary }, templates[6], namedBase, lore, attrs, store);
-      this.onProgress(store, loadingId, 'dressedProfile', 'done', '', { done: this.partProgressDone(6, part6), total: part6Total });
+      const part6 = await this.generateOrDefaultPart(6, 'character-profile-part6-dressed-profile', 'dressedProfile', { ...commonVars, part1Summary: p1Summary, part4Summary: p4Summary, part5Summary: p5Summary }, templates[6], namedBase, lore, attrs, store, part6Total);
       const part7Total = this.partProgressTotal(7, templates[7], attrs);
       this.onProgress(store, loadingId, 'rpgField', 'running', '', { done: 0, total: part7Total });
       const part7 = await this.generatePart(7, 'character-profile-part7-rpg-field', { ...commonVars, part1Summary: p1Summary, part3Summary: p3Summary, part4Summary: p4Summary, 世界字段: sections.worldFields(attrs), RPG字段列表: rpgKeys.join('、'), RPG字段列表JSON: rpgKeys.map((key) => `"${key}"`).join(', ') }, templates[7], namedBase, lore, attrs, store);
@@ -229,6 +223,58 @@ window.GameModules.characterProfile = {
     if (!templates?.[1] || !templates?.[2] || !templates?.[3] || !templates?.[4] || !templates?.[5] || !templates?.[6] || !templates?.[7]) throw new Error('角色卡模板类未加载，无法生成七段角色卡。');
     this.partTemplateCache = templates;
     return templates;
+  },
+
+  async generateOrDefaultPart(partIndex, promptId, stepKey, vars, template, base, lore, attrs, store, total) {
+    const loadingId = base.id;
+    if (this.playerPartUsesDefault(base, partIndex)) {
+      const part = this.defaultPlayerPart(partIndex, base, template);
+      this.onProgress(store, loadingId, stepKey, 'done', '采用系统缺省值', { done: total, total });
+      return part;
+    }
+    this.onProgress(store, loadingId, stepKey, 'running', '', { done: 0, total });
+    const part = await this.generatePart(partIndex, promptId, vars, template, base, lore, attrs, store);
+    this.onProgress(store, loadingId, stepKey, 'done', '', { done: this.partProgressDone(partIndex, part), total });
+    return part;
+  },
+
+  playerPartUsesDefault(base = {}, partIndex) {
+    if (base.id !== 'player-self' && !base.isPlayer) return false;
+    const key = `part${partIndex}`;
+    return [2, 5, 6].includes(partIndex) && base.playerCardAiParts?.[key] === false;
+  },
+
+  defaultPlayerPart(partIndex, base = {}, template = {}) {
+    const cloned = JSON.parse(JSON.stringify(template || {}));
+    const name = base.name || cloned.name || '玩家本人';
+    if (partIndex === 2) return this.defaultPlayerFeelingPart(name);
+    if (partIndex === 5) return { name, bodyProfile: this.defaultBodyProfile('自然状态') };
+    if (partIndex === 6) return { name, dressedProfile: this.defaultBodyProfile('盛装状态') };
+    return { ...cloned, name };
+  },
+
+  defaultPlayerFeelingPart(name = '玩家本人') {
+    const metric = window.GameModules.metrics;
+    const item = (key, type) => {
+      const defaults = type === 'emotion' ? metric.defaults.emotions : metric.defaults.playerFeelings;
+      const value = metric.clamp(defaults[key] ?? 0);
+      return { name: key, value, status: metric.valueExplanation(key, value), reason: `${name}采用系统缺省${key}数值。`, metricSources: this.metricSourceMap?.('系统') };
+    };
+    return {
+      name,
+      feeling: {
+        emotions: Object.fromEntries(metric.emotionKeys.map((key) => [key, item(key, 'emotion')])),
+        playerFeelings: Object.fromEntries(metric.playerKeys.map((key) => [key, item(key, 'playerFeelings')])),
+      },
+    };
+  },
+
+  defaultBodyProfile(label = '状态') {
+    return this.bodyProfileParts().map((part, index) => ({
+      index: index + 1,
+      part,
+      description: `采用系统缺省${label}：${part}暂无 AI 生成描写。`,
+    }));
   },
 
   async generatePart(partIndex, promptId, vars, template, base, lore, attrs, store) {
@@ -1963,6 +2009,8 @@ window.GameModules.characterProfile = {
       roleCardFieldReasons: this.roleCardFieldReasons(profile.roleCardFieldReasons, { ...base, ...profile }),
       items: this.carryItems(profile.items || base.items, '物品', { ...base, ...profile }),
       wearing: this.wearingObject(profile.wearing || base.wearing, { ...base, ...profile }),
+      bodyProfile: Array.isArray(profile.bodyProfile) ? profile.bodyProfile : [],
+      dressedProfile: Array.isArray(profile.dressedProfile) ? profile.dressedProfile : [],
       wearingItems: this.wearingItems(profile.wearing || base.wearing, { ...base, ...profile }),
       wearingRawRows: Array.isArray(profile._csvRows) ? profile._csvRows.filter((row) => String(row || '').startsWith('wearing,')) : [],
       worldValues: this.worldValues(profile.worldValues, attrs, base.name),
@@ -2032,6 +2080,7 @@ window.GameModules.characterProfile = {
         position: p.position, livingStatus: p.refinedLivingStatus || p.livingStatus,
         parents: p.parentStatus || p.parents, parentDeathCause: p.parentDeathCause,
         relationships: p.relationships, notes: p.notes, worldbuildingNote: p.worldbuildingNote,
+        playerCardAiParts: p.playerCardAiParts,
       },
       context: String(context || '').slice(0, 1200),
     };

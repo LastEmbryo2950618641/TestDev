@@ -48,6 +48,11 @@ window.GameModules.playerSetupActions = {
       .join('；');
   },
 
+  normalizePlayerCardAiParts(value = null) {
+    const source = value && typeof value === 'object' ? value : {};
+    return { part2: source.part2 !== false, part5: source.part5 !== false, part6: source.part6 !== false };
+  },
+
   relationshipEntriesPrompt(entries = null) {
     const list = this.normalizeRelationshipEntries(entries || this.playerProfile?.relationshipEntries, this.playerProfile?.relationships);
     if (!list.length) return '未填写';
@@ -147,6 +152,7 @@ window.GameModules.playerSetupActions = {
       relationshipEntries: this.normalizeRelationshipEntries(p.relationshipEntries, p.relationships),
       relationships: this.relationshipEntriesText(p.relationshipEntries) || (p.relationships || '').trim(),
       notes: (p.notes || '').trim(),
+      playerCardAiParts: this.normalizePlayerCardAiParts(p.playerCardAiParts),
       initializedAt: p.initializedAt || new Date().toISOString(),
     };
   },
