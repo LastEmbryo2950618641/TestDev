@@ -1202,7 +1202,7 @@
           <div class="wechat-album-grid" x-show="$store.game.wechatAlbumPhotoList().length" x-cloak>
             <template x-for="(photo, index) in $store.game.wechatAlbumPhotoList()" :key="`${photo.createdAt || index}-${photo.url}`">
               <article class="wechat-album-card">
-                <div class="wechat-photo-slot filled"><img :src="photo.url" alt="联系人照片"><button class="wechat-avatar-crop-btn" type="button" @click.stop="$store.game.openWechatAvatarCrop(index)" title="截取头像">⌗</button></div>
+                <div class="wechat-photo-slot filled"><img :src="photo.url" alt="联系人照片"><button class="wechat-avatar-crop-btn" type="button" @click.stop="$store.game.openWechatAvatarCrop(index)" title="截取头像">⌗</button><button class="wechat-image-zoom-btn" type="button" @click.stop="$store.game.openWechatImagePreview(photo.url, '相册照片')" title="放大全屏">⌕</button></div>
                 <button class="wechat-real-photo-btn" type="button" @click="$store.game.markWechatAlbumPhotoReal(index)" x-text="photo.real ? '已标记为真实照片' : '标记为真实照片'"></button>
               </article>
             </template>
@@ -1276,7 +1276,7 @@
                   <time x-text="msg.atDisplay || msg.at || ''"></time>
                   <p x-show="msg.text && !msg.imagePending" x-text="msg.text"></p>
                   <button class="wechat-image-offer" type="button" x-show="msg.imagePending && msg.imageStatus !== 'done'" @click="$store.game.openWechatImageConfirm(msg)" :disabled="msg.imageStatus === 'generating'" x-text="msg.imageStatus === 'generating' ? '图片生成中…约 30 秒' : '接收图片'"></button>
-                  <img class="wechat-message-image" x-show="msg.imagePending && msg.imageStatus === 'done'" :src="msg.imageUrl || ''" alt="微信图片">
+                  <div class="wechat-message-image-wrap" x-show="msg.imagePending && msg.imageStatus === 'done'"><img class="wechat-message-image" :src="msg.imageUrl || ''" alt="微信图片"><button class="wechat-image-zoom-btn" type="button" @click="$store.game.openWechatImagePreview(msg.imageUrl || '', '微信图片')" title="放大全屏">⌕</button></div>
                   <button class="card-change-toggle" :class="{ open: msg.changeReasonsOpen }" x-show="$store.game.wechatHasChangeReasons(msg)" @click="$store.game.toggleWechatChangePanel(msg)" x-text="msg.changeReasonsOpen ? '变化原因▾' : '变化原因▸'"></button>
                   <div class="wechat-change-panel" x-show="msg.changeReasonsOpen">
                     <template x-for="group in $store.game.wechatChangeGroups(msg)" :key="group.title">
@@ -1288,6 +1288,12 @@
                 </div>
               </div>
             </template>
+          </div>
+          <div class="wechat-photo-dialog wechat-image-preview-dialog" x-show="$store.game.wechatImagePreview.open" @click.self="$store.game.closeWechatImagePreview()" x-cloak>
+            <article>
+              <button class="wechat-image-preview-close" type="button" @click="$store.game.closeWechatImagePreview()">关闭</button>
+              <img :src="$store.game.wechatImagePreview.url || ''" :alt="$store.game.wechatImagePreview.title || '图片预览'">
+            </article>
           </div>
           <div class="wechat-photo-dialog" x-show="$store.game.wechatImageConfirmOpen" @click.self="$store.game.closeWechatImageConfirm()" x-cloak>
             <article>

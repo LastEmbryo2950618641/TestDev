@@ -271,10 +271,10 @@
   object-fit: cover;
 }
 
-.wechat-avatar-crop-btn {
+.wechat-avatar-crop-btn,
+.wechat-image-zoom-btn {
   position: absolute;
   top: 8px;
-  right: 8px;
   width: 34px;
   min-height: 34px;
   border: 0;
@@ -283,6 +283,14 @@
   color: #fff;
   font-size: 18px;
   font-weight: 900;
+}
+
+.wechat-avatar-crop-btn {
+  right: 8px;
+}
+
+.wechat-photo-slot .wechat-image-zoom-btn {
+  right: 50px;
 }
 
 .wechat-photo-add {
@@ -625,11 +633,49 @@
   font-size: 24px;
 }
 
-.wechat-message-image {
+.wechat-message-image-wrap {
+  position: relative;
   width: min(220px, 100%);
+}
+
+.wechat-message-image {
+  width: 100%;
   border-radius: 10px;
   display: block;
   background: #fff;
+}
+
+.wechat-message-image-wrap .wechat-image-zoom-btn {
+  right: 8px;
+}
+
+.wechat-image-preview-dialog {
+  z-index: 12;
+  background: rgba(0, 0, 0, .86);
+}
+
+.wechat-image-preview-dialog article {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  padding: 44px 10px 10px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.wechat-image-preview-dialog img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.wechat-image-preview-close {
+  position: absolute;
+  top: max(10px, env(safe-area-inset-top));
+  right: max(10px, env(safe-area-inset-right));
+  z-index: 1;
+  padding: 0 14px;
+  background: rgba(255, 255, 255, .9) !important;
 }
 
 .wechat-msg.self > div {
