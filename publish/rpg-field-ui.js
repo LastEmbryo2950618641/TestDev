@@ -7,10 +7,10 @@ window.GameModules.rpgFieldUi = {
   toggleRpgItem(field, index) { const key = this.rpgItemKey(field, index); if (key) this.expandedRpgFieldKey = this.expandedRpgFieldKey === key ? '' : key; },
   isRpgFieldOpen(field) { return this.expandedRpgFieldKey === this.rpgFieldKey(field); },
   isRpgItemOpen(field, index) { return this.expandedRpgFieldKey === this.rpgItemKey(field, index); },
-  isRpgListField(field) { return ['knowledge', 'skills', 'professions', 'factions', 'force_positions', 'items', 'wearing', 'status_tags'].includes(field?.key) && Array.isArray(field.raw); },
+  isRpgListField(field) { return ['knowledge', 'skills', 'professions', 'factions', 'force_positions', 'items', 'wearing', 'bodyProfile', 'status_tags'].includes(field?.key) && Array.isArray(field.raw); },
   rpgFieldSummary(field) {
     if (!this.isRpgListField(field)) return `${field.label}：${Array.isArray(field.value) ? field.value.join('、') || '无' : field.value}`;
-    const unit = { knowledge: '知识', skills: '技能', professions: '职业' }[field.key] || '项';
+    const unit = { knowledge: '知识', skills: '技能', professions: '职业', bodyProfile: '部位' }[field.key] || '项';
     return `${field.label}：${field.raw.length}${unit}`;
   },
   canExpandRpgField(field) { return Boolean(field); },
@@ -55,12 +55,14 @@ window.GameModules.rpgFieldUi = {
     const identity = this.profileIdentityFields(state, identityFields);
     const relations = identity.filter((field) => field.label === '人际关系' || /relationships|人际关系/.test(field.key));
     const identityRest = identity.filter((field) => !relations.includes(field));
-    const used = new Set(['world_tag', 'age', 'factions', 'force_positions', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'items', 'wearing', 'status_tags']);
+    const naturalState = this.profileNaturalStateField(state);
+    const used = new Set(['world_tag', 'age', 'factions', 'force_positions', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'items', 'wearing', 'bodyProfile', 'status_tags']);
     const personal = all.filter((field) => !used.has(field.key));
     const groups = [
       { title: '个人能力', fields: personal },
       { title: '身内能力', fields: take(['strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma']) },
       { title: '装备与物品', fields: take(['items', 'wearing']) },
+      { title: '当前自然状态', fields: naturalState ? [naturalState] : [] },
       { title: '状态标签', fields: take(['status_tags']) },
       { title: '人际关系', fields: relations },
       { title: '身份信息', fields: [...identityRest, ...take(['world_tag', 'age', 'factions', 'force_positions'])] },
@@ -68,11 +70,28 @@ window.GameModules.rpgFieldUi = {
     return groups.filter((group) => group.fields.length);
   },
 
+  profileNaturalStateField(state = {}) {
+    const p = state?.profile || {};
+    const list = Array.isArray(p.bodyProfile) ? p.bodyProfile : [];
+    const rows = list.map((item, index) => {
+      const part = String(item?.part || item?.部位 || '').trim();
+      const description = String(item?.description || item?.部位描写 || '').trim();
+      if (!part || !description) return null;
+      return { index: Number(item?.index || item?.序号) || index + 1, part, description, name: part, type: '身体原貌' };
+    }).filter(Boolean).sort((a, b) => a.index - b.index);
+    if (!rows.length) return null;
+    return {
+      key: 'bodyProfile', stateId: state?.id || '', label: '当前自然状态', kind: '身体原貌', value: rows.map((item) => `${item.part}：${item.description}`), raw: rows,
+      desc: '角色未经衣物遮掩、未作人工修饰时的原本身体状态。', reason: `${p.name || '该人物'}的自然状态来自角色卡 Part5 身体原貌生成结果。`,
+      worldTag: p.work || state?.worldTag || '原创世界', targetType: p.isPlayer ? '非角色' : '角色', commonField: true,
+    };
+  },
+
   lexiconKind(field, item = null) {
     if (item?.type) return item.type;
-    if (field?.key && !item) return { knowledge: '知识树', skills: '技能树', professions: '职业树', factions: '社群角色', force_positions: '势力地位', items: '物品', wearing: '穿着', status_tags: '状态' }[field.key] || field.kind || '属性';
+    if (field?.key && !item) return { knowledge: '知识树', skills: '技能树', professions: '职业树', factions: '社群角色', force_positions: '势力地位', items: '物品', wearing: '穿着', bodyProfile: '身体原貌', status_tags: '状态' }[field.key] || field.kind || '属性';
     if (field?.kind) return field.kind;
-    return { factions: '社群角色', force_positions: '势力地位', items: '物品', wearing: '穿着', status_tags: '状态' }[field?.key] || '属性';
+    return { factions: '社群角色', force_positions: '势力地位', items: '物品', wearing: '穿着', bodyProfile: '身体原貌', status_tags: '状态' }[field?.key] || '属性';
   },
 
   lexiconFor(field, item = null) {
@@ -163,12 +182,13 @@ window.GameModules.rpgFieldUi = {
 
   rpgItemName(item) {
     if (typeof item === 'string') return item;
-    return item?.name || (item?.force ? `${item.force} / ${item.position || '成员'}` : (item?.faction ? `${item.faction} / ${item.role || item.position || '成员'}` : '未命名'));
+    return item?.name || item?.part || (item?.force ? `${item.force} / ${item.position || '成员'}` : (item?.faction ? `${item.faction} / ${item.role || item.position || '成员'}` : '未命名'));
   },
 
   rpgItemSummary(item) {
     const name = this.rpgItemName(item);
     if (typeof item === 'string') return name;
+    if (item?.type === '身体原貌') return `${item.index || ''}.${item.part || name}`;
     const levelName = Number(item?.level) > 0 ? `${name} lv.${item.level}` : name;
     if (item?.type === '穿着' && item?.slot && item?.clothing_position) return `${item.clothing_position}｜${levelName}`;
     return levelName;
@@ -207,6 +227,7 @@ window.GameModules.rpgFieldUi = {
     const linkedStats = (info.intrinsicStats || obj?.linkedStats || []).map((x) => statName[x] || x);
     const kind = obj?.type || this.lexiconKind(field, obj);
     const name = this.rpgItemName(obj) || field?.label || '未知';
+    if (kind === '身体原貌') return [`部位: ${name}`, `描写: ${obj.description || '未记录'}`, `序号: ${obj.index || '未记录'}`, `所属世界: ${field?.worldTag || '公共'}`, `词条类型: ${field?.targetType || '角色'}`, `当前依据: ${field?.reason || '来自角色卡 Part5 身体原貌生成结果。'}`].join('\n');
     const hasLevel = Number(obj?.level) > 0;
     const lines = [`名称: ${name}`, `定义: ${this.learnedDefinition(kind, name, obj, lexicon, info)}`, `类型: ${kind}`, `所属世界: ${field?.worldTag || lexicon?.worldTag || '公共'}`, `词条类型: ${field?.targetType || lexicon?.meta?.targetType || '角色'}`];
     if (kind === '穿着' && (obj?.clothing_position || obj?.slotLabel)) lines.push(`穿戴位: ${obj.clothing_position || obj.slotLabel}`);
