@@ -1268,7 +1268,7 @@
           <div class="wechat-messages">
             <template x-for="(msg, index) in $store.game.wechatMessages()" :key="index">
               <div class="wechat-msg" :class="msg.side">
-                <button class="wechat-avatar" type="button" @click="$store.game.openWechatContactProfile(msg.characterId || $store.game.wechatSelectedContact)" x-text="msg.mark"></button>
+                <button class="wechat-avatar" type="button" @click="msg.side !== 'self' && $store.game.openWechatContactProfile(msg.characterId || $store.game.wechatSelectedContact)" :style="$store.game.wechatAvatarStyle($store.game.wechatMessageAvatarContact(msg))" x-text="$store.game.wechatAvatarText($store.game.wechatMessageAvatarContact(msg))"></button>
                 <div>
                   <time x-text="msg.atDisplay || msg.at || ''"></time>
                   <p x-text="msg.text"></p>

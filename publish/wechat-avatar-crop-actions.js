@@ -20,6 +20,12 @@ window.GameModules.wechatAvatarCropActions = {
 
   defaultWechatAvatarCrop(ratio = 1.5) { return { x: 0.24, y: 0.04, w: 0.52, ratio }; },
 
+  wechatMessageAvatarContact(msg = {}) {
+    if (msg.side === 'self') return { name: this.playerDisplayCharacter?.().name || this.playerName || '我', mark: '我' };
+    const id = msg.characterId || this.wechatSelectedContact;
+    return this.wechatContacts?.().find((item) => item.id === id) || this.wechatSelected?.() || { name: msg.name || '', mark: msg.mark || '微' };
+  },
+
   loadWechatAvatarImage(url) {
     return new Promise((resolve, reject) => {
       const img = new Image();
