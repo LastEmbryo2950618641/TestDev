@@ -76,12 +76,16 @@ window.GameModules.worldlineActions = {
     return window.GameModules.worldlinePlots.items(this.loreWorldline(lore) || {});
   },
 
+  realWorldSummarizedPlots() {
+    return this.realWorldline().plots || [];
+  },
+
   selectRealWorldPlot(plotId) {
     this.selectedRealWorldPlotId = plotId || '';
   },
 
   realWorldSelectedPlot() {
-    const plots = this.worldlinePlots(this.realWorldLore());
+    const plots = this.realWorldSummarizedPlots();
     return plots.find((plot) => plot.情节编号 === this.selectedRealWorldPlotId) || plots[0] || null;
   },
 
