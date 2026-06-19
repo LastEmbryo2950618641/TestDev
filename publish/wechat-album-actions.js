@@ -100,7 +100,7 @@ window.GameModules.wechatAlbumActions = {
     const dressedText = kind === 'dressed' && selected ? selected.bodyText : this.wechatAlbumBodyText(profile.dressedProfile);
     const stateName = selected?.stateName || this.wechatAlbumKindLabel(kind);
     const bodyText = selected?.bodyText || (kind === 'dressed' ? dressedText : naturalText);
-    const naturalExtra = kind === 'natural' ? '自然状态必须体现毫无人工雕琢、未经衣物遮掩的原本躯体。' : '';
+    const naturalExtra = kind === 'natural' ? '必须是毫无人工雕琢、未经衣物遮掩的原本躯体。' : '';
     const template = window.GameModules.pictureGeneratePrompts?.wechatAlbumPhoto || '请根据以下角色个人身份信息与{生成状态}部位描述生成一张全身正面照。\n\n{自然状态补充要求}\n\n{角色身份信息}\n\n{状态部位描述}';
     const prompt = this.renderWechatAlbumPrompt(template, { identityInfo, naturalText, dressedText, stateName, bodyText, naturalExtra });
     return prompt.slice(0, 2000);
