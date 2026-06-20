@@ -26,8 +26,9 @@ Rules：
 6. 工作/学校/组织补全：根据 refinedRole 生成 workplace 与 position。
 7. 居住状态补全：结合 livingStatus、parents、relationships、notes 生成 refinedLivingStatus。
 8. 父母状态补全：为空时默认父母已故，并生成 parentDeathCause。
-9. 人际关系整理：把玩家填写的关系整理为"关系：姓名"。
-10. 世界观备注：生成 worldbuildingNote，供现实推演和联系人生成使用。
+9. 财富信息：读取输入中的 wealthTier、wealthAmount、wealthSource，作为不可改写的现实资产背景；富裕/富豪必须理解为父母公司濒临破产出售后留下的全部父母遗产。
+10. 人际关系整理：把玩家填写的关系整理为"关系：姓名"。
+11. 世界观备注：生成 worldbuildingNote，供现实推演和联系人生成使用。
 11. 已知职业推断：根据玩家现实身份、学历、工作经历、家庭上下文和备注，判断玩家本人是否已经知道某些现实可确认职业。
 12. 初始持有物推断：根据现实身份、住址、工作/学校、备注，生成玩家合理持有的装备、物品，并把可穿戴项绑定到穿着槽位。
 
@@ -93,7 +94,13 @@ Rules：
 3. 若 parents 已填写，不得强行改成已故。
 4. parentDeathCause 不要夸张，不要写超自然原因。
 
-### 7. relationships
+### 7. 财富信息
+
+1. wealthTier、wealthAmount、wealthSource 已由代码按玩家选择确定，AI 不返回、不改写，但必须作为身份处境证据写入 refinedLivingStatus/worldbuildingNote 的综合判断。
+2. 财富档位固定为：流浪=0元、贫穷=10000元、中产=500000元、富裕=5000000元、富豪=100000000元。
+3. 流浪、贫穷、中产的财富来源通常是父母遗产与本人挣钱共同构成；富裕、富豪必须视为父母公司濒临破产时被出售后留下的全部父母遗产，不要改成投资暴富、彩票、黑产或本人创业所得。
+
+### 8. relationships
 
 1. relationships 是微信联系人生成的结构化来源，优先读取输入中的 relationshipEntries 数组；每个元素包含 relation、name、detail。
 2. 输出 relationships 只写“关系名：姓名”，多项用中文分号；关系名必须来自 relation，姓名必须来自 name。不要把 relation 当姓名，不要把 detail 拼进 relationships。

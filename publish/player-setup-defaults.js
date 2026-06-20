@@ -42,6 +42,9 @@ Object.assign(window.GameModules.playerSetupActions, {
       livingStatus: map['居住状态'] || '',
       parents: map['父母信息'] || '',
       parentDeathCause: map['父母去世原因'] || '',
+      wealthTier: map['财富等级'] || '流浪',
+      wealthAmount: map['当前财富'] || '',
+      wealthSource: map['财富来源'] || '',
       relationships,
       relationshipEntries: this.normalizeRelationshipEntries ? this.normalizeRelationshipEntries(relationshipEntries, relationships) : relationshipEntries,
       notes: map['备注'] || '',
@@ -51,7 +54,7 @@ Object.assign(window.GameModules.playerSetupActions, {
   async defaultExistingAccountProfile() {
     const data = await this.defaultProfileData();
     console.log('[玩家身份] 默认资料来源:', data.source, data.name, data.birthday);
-    return { ...data, age: this.playerAgeFromBirthday(data.birthday), initializedAt: new Date().toISOString() };
+    return { ...data, ...this.normalizePlayerWealth?.(data), age: this.playerAgeFromBirthday(data.birthday), initializedAt: new Date().toISOString() };
   },
 
   async debugDefaultProfileSource() {
@@ -100,6 +103,7 @@ Object.assign(window.GameModules.playerSetupActions, {
         city: this.playerProfile.city || example.city || '',
         dailyRole: this.playerProfile.dailyRole || example.dailyRole || '',
         livingStatus: this.playerProfile.livingStatus || example.livingStatus || '',
+        ...this.normalizePlayerWealth?.(this.playerProfile),
         parents: this.playerProfile.parents || example.parents || '',
         parentDeathCause: this.playerProfile.parentDeathCause || example.parentDeathCause || '',
         relationships: this.playerProfile.relationships || example.relationships || '',

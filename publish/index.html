@@ -124,6 +124,7 @@
   <script src="social-position.js"></script>
   <script src="player-profile-lexicon.js"></script>
   <script src="player-setup-actions.js"></script>
+  <script src="player-wealth-actions.js"></script>
   <script src="player-setup-extra-actions.js"></script>
   <script src="player-setup-defaults.js"></script>
   <script src="player-setup-guard.js"></script>
@@ -1405,6 +1406,7 @@
           <label class="dev-section" data-section-title="具体地址输入"><span>具体地址</span><input class="text-input" x-model="$store.game.playerProfile.city" placeholder="例如：四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号"><small>参考默认账号：四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号</small></label>
           <label class="dev-section" data-section-title="现实身份输入"><span>现实身份</span><input class="text-input" x-model="$store.game.playerProfile.dailyRole" placeholder="例如：程序工程师，计算机科学与技术硕士"><small>参考默认账号：程序工程师，计算机科学与技术硕士</small></label>
           <label class="dev-section" data-section-title="居住状态输入"><span>居住状态</span><input class="text-input" x-model="$store.game.playerProfile.livingStatus" placeholder="例如：与18岁成年双胞胎妹妹刘思瑶、刘思琪同居"><small>参考默认账号：与18岁成年双胞胎妹妹刘思瑶、刘思琪同居</small></label>
+          <label class="dev-section" data-section-title="财富等级输入"><span>财富等级</span><select class="text-input" x-model="$store.game.playerProfile.wealthTier" @change="$store.game.syncPlayerWealthDefaults()"><template x-for="option in $store.game.playerWealthOptions()" :key="option.tier"><option :value="option.tier" x-text="`${option.tier}（默认${option.amount.toLocaleString('zh-CN')}元）`"></option></template></select><small x-text="$store.game.playerWealthText()"></small></label>
           <label class="dev-section" data-section-title="父母信息输入"><span>父母信息</span><input class="text-input" x-model="$store.game.playerProfile.parents" placeholder="例如：父母已故"><small>参考默认账号：父母已故</small></label>
         </div>
       </div>
