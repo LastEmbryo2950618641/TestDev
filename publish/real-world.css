@@ -75,6 +75,18 @@
   opacity: .42;
 }
 
+.real-world-choice-dock {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 1px solid rgba(116, 246, 255, .12);
+}
+
+.real-world-choice-dock .story-choice-list {
+  width: min(68%, 430px);
+}
+
 .real-world-actions { position: relative; }
 
 .real-world-electronic-map {
