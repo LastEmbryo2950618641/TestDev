@@ -80,8 +80,9 @@ window.GameModules.realWorldAgentContext = {
       const text = await this.dispatch(store, action, skill, method, params);
       if (text) {
         const title = `${skill}.${method}`;
+        const material = window.GameModules.realWorldMaterials?.optionFor?.({ skill, method, params });
         window.GameModules.realWorldMaterials?.record?.(materialSession, { skill, method, params }, title, text);
-        out.push({ title, text, max: this.maxFor(skill) });
+        out.push({ title, text, max: material?.maxChars || this.maxFor(skill) });
       }
     }
     return out;

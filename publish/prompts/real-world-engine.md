@@ -53,29 +53,32 @@
 可请求的 skill/method：
 
 1. company.query
-- listPlayerCompanies：列出玩家相关公司名称。
-- getCompanySummary：按公司名读取公司摘要。
-- getWorkContext：读取上班、考勤、薪资、岗位、组织架构。
-- searchCompany：按关键词搜索公司资料。
+- listPlayerCompanies：列出玩家相关公司名称，小资料。
+- getCompanySummary：按公司名读取公司摘要，中等资料。
+- getWorkContext：读取上班、考勤、薪资、岗位、组织架构，中等资料。
+- searchCompanyOne：按关键词查询一条公司记录，小资料。
+- searchCompanyWindow：按关键词加载公司资料前后指定字符量，中等资料；公司资料过长时优先用这个。
 
 2. realworld.location.query
-- getCurrentLocationContext：读取当前地点、上级地点、子地点和说明。
-- getLocationDetail：按地点名读取地点详情。
-- searchLocation：按关键词搜索地点。
-- getNearbyLocations：读取当前地点附近或同父级地点。
-- listTopLocations：列出顶层地点名。
+- getCurrentLocationContext：读取当前地点、上级地点、子地点和说明，小资料。
+- getLocationDetail：按地点名读取地点详情，中等资料。
+- searchLocationOne：按关键词查询一条地点记录，小资料。
+- searchLocationWindow：按关键词加载地点说明前后指定字符量，中等资料；地点说明过长时优先用这个。
+- getNearbyLocations：读取当前地点附近或同父级地点，小资料。
+- listTopLocations：列出顶层地点名，小资料。
 
 3. realworld.history.query
-- getRecentRealWorldLog：读取最近现实记录。
-- searchRealWorldLog：按关键词搜索旧现实记录。
-- getWorldlinePending：读取正在记录、尚未归纳的现实时间线记录。
-- listWorldlinePlots：读取已归纳情节目录。
-- getWorldlinePlotRecords：按情节编号或名称动态载入该情节关联记录。
+- getRecentRealWorldLog：读取最近指定数量现实记录，中等资料；params 可带 count。
+- searchRealWorldLogOne：按关键词查询一条现实记录，小资料。
+- searchRealWorldLogWindow：按关键词加载现实记录前后指定字符量，中等资料；历史过长时优先用这个。
+- listWorldlinePlots：读取已归纳情节目录，中等资料。
+- getWorldlinePlotRecords：按情节编号或名称动态载入该情节关联记录，较大资料，只在目录明确相关时用。
 
 4. memory.query
-- searchCharacterMemory：按关键词搜索玩家本人记忆。
-- searchMemoryArchive：按关键词搜索玩家本人记忆归档。
-- getCharacterMemory：只有明确需要完整记忆时才使用。
+- searchCharacterMemoryOne：按关键词查询一条人物记忆，小资料。
+- searchCharacterMemoryWindow：按关键词加载人物记忆前后指定字符量，中等资料；记忆过长时优先用这个。
+- getRecentCharacterMemories：读取最近指定数量人物记忆，中等资料；params 可带 characterId 与 count。
+- searchMemoryArchive：按关键词搜索玩家本人记忆归档，较大资料，只在普通记忆不足时用。
 
 ### 2. 最终推演：final
 
@@ -92,6 +95,16 @@
   "elapsedSeconds": 300,
   "choices": ["行动一", "行动二", "行动三", "行动四"]
 }
+
+## 高优先级终止规则
+
+以下任意条件满足时，必须停止 request_context 并返回 final：
+
+1. 当前基础上下文、已动态载入资料、自动载入的人物记忆，已经足以在不明显幻觉、不编造关键旧事实的情况下回复本次行动。
+2. 对照“当前资料清单”后，判断剩余可获取资料也无法提供本次行动所需的关键信息：例如地点搜索未命中、公司搜索未命中、历史或记忆没有相关记录。若存在可由 skills 推理补齐的内容（如现实地图地点缺失），使用已补齐或可推理的信息收束，不要继续重复请求同类资料。
+3. 如果本次可用资料已经全部加载过，或相关 large 资料只能通过搜索/片段/最近数量读取且已搜索仍不完整，也必须基于已有资料做克制推理并回复用户。
+
+注意：request_context 只用于获取“能回答本次行动所必需的缺失资料”，不是用于补完整个现实世界。禁止因为想要更完整的世界资料、全部历史、全部人物记忆而继续请求。任何长度过长的资料不得一次性完整加载，只能使用关键词查询一条记录、关键词前后片段或最近指定数量。
 
 ## 请求资料规则
 
