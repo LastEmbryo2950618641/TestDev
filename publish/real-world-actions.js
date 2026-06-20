@@ -129,14 +129,21 @@ window.GameModules.realWorldActions = {
     if (!text || this.realWorldBusy) return;
     this.realWorldInput = '';
     this.realWorldBusy = true;
-    const userEntry = { id: this.nextId++, type: 'user', text, createdAt: new Date().toISOString() };
-    this.realWorldLog.push(userEntry);
-    await window.GameModules.sqliteSave.saveRealWorldLogEntry?.(userEntry);
-    const entry = { id: this.nextId++, type: 'ai', narration: '现实世界正在推演…', thinking: '', streaming: true, createdAt: new Date().toISOString() };
-    this.realWorldLog.push(entry);
+    const now = Date.now();
+    const userEntry = { id: this.nextId++, type: 'user', text, createdAt: new Date(now).toISOString() };
+    const entry = { id: this.nextId++, type: 'ai', narration: '现实世界正在推演…', thinking: '', streaming: true, createdAt: new Date(now + 1).toISOString() };
+    entry.promptPack = { systemPrompt: '现实世界 Loop Agent 将按步骤动态载入上下文。', userPrompt: text, model: this.modelId, promptTokens: 0 };
+    this.realWorldLog = this.normalizeRealWorldLog([...(this.realWorldLog || []), userEntry, entry]).slice(-Math.max(1, Number(this.realWorldLogPageSize) || 12));
+    this.realWorldLogTotal = Math.max(this.realWorldLogTotal || 0, window.GameModules.sqliteSave.countRealWorldLogEntries?.() || 0) + 2;
+    this.realWorldLogPage = this.realWorldLogMaxPage?.() || this.realWorldLogPage || 1;
+    this.scrollRealWorldLogBottom?.();
     try {
-      entry.promptPack = { systemPrompt: '现实世界 Loop Agent 将按步骤动态载入上下文。', userPrompt: text, model: this.modelId, promptTokens: 0 };
+      await window.GameModules.sqliteSave.saveRealWorldLogEntry?.(userEntry);
       await window.GameModules.sqliteSave.saveRealWorldLogEntry?.(entry);
+      const savedTotal = window.GameModules.sqliteSave.countRealWorldLogEntries?.() || this.realWorldLogTotal;
+      this.realWorldLogTotal = savedTotal;
+      this.realWorldLogPage = this.realWorldLogMaxPage?.() || this.realWorldLogPage || 1;
+      this.scrollRealWorldLogBottom?.();
       const result = await window.GameModules.realWorldAi.generate(this, '', text, entry.id);
       if (result.promptPack) entry.promptPack = result.promptPack;
       await this.applyRealWorldResult(entry.id, result);
@@ -166,6 +173,7 @@ window.GameModules.realWorldActions = {
     await window.GameModules.sqliteSave.saveRealWorldLogEntry?.(next);
     this.realWorldLog = this.realWorldLog.map((entry) => (entry.id === id ? next : entry));
     this.refreshRealWorldLogPage?.(999999);
+    this.scrollRealWorldLogBottom?.();
   },
 
   async assignRealWorldlineEntry(entry) {

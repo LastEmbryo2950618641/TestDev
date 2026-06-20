@@ -35,7 +35,12 @@ window.GameModules.realWorldThinkingActions = {
     const maxPage = Math.max(1, Math.ceil(total / this.realWorldLogPageSize));
     this.realWorldLogTotal = total;
     this.realWorldLogPage = Math.max(1, Math.min(maxPage, Number(page) || 1));
-    const rows = window.GameModules.sqliteSave.listRealWorldLogEntries?.(this.realWorldLogPage, this.realWorldLogPageSize) || [];
+    let rows = window.GameModules.sqliteSave.listRealWorldLogEntries?.(this.realWorldLogPage, this.realWorldLogPageSize) || [];
+    if (this.realWorldLogPage === maxPage && rows[0]?.type === 'ai' && total > rows.length) {
+      const prevRows = window.GameModules.sqliteSave.listRealWorldLogEntries?.(this.realWorldLogPage - 1, this.realWorldLogPageSize) || [];
+      const prev = prevRows[prevRows.length - 1];
+      if (prev?.type === 'user') rows = [prev, ...rows];
+    }
     this.realWorldLog = this.normalizeRealWorldLog(rows);
   },
 
@@ -49,6 +54,15 @@ window.GameModules.realWorldThinkingActions = {
 
   changeRealWorldLogPage(delta) {
     this.refreshRealWorldLogPage((this.realWorldLogPage || 1) + delta);
+  },
+
+  scrollRealWorldLogBottom() {
+    const run = () => {
+      const el = document.querySelector('.real-world-dialog .story-log');
+      if (el) el.scrollTop = el.scrollHeight;
+    };
+    requestAnimationFrame(run);
+    setTimeout(run, 60);
   },
 
   realWorldTraceLines(entry) {

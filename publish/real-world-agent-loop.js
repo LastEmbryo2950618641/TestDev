@@ -160,6 +160,7 @@ window.GameModules.realWorldAgentLoop = {
   markStep(store, logId, text) {
     if (!logId) return;
     store.realWorldLog = (store.realWorldLog || []).map((entry) => entry.id === logId ? { ...entry, narration: text, streaming: true } : entry);
+    store.scrollRealWorldLogBottom?.();
   },
 
   loadedContextText(data = {}, loaded = [], step = 1) {
