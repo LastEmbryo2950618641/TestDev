@@ -68,7 +68,7 @@ window.GameModules.realWorldAgentContext = {
     return texts.filter(Boolean).join('\n\n');
   },
 
-  async loadRequests(store, action, requests = [], loadedKeys = new Set()) {
+  async loadRequests(store, action, requests = [], loadedKeys = new Set(), materialSession = null) {
     const out = [];
     for (const req of requests.slice(0, 3)) {
       const skill = String(req?.skill || '').trim();
@@ -78,7 +78,11 @@ window.GameModules.realWorldAgentContext = {
       if (!skill || !method || loadedKeys.has(key)) continue;
       loadedKeys.add(key);
       const text = await this.dispatch(store, action, skill, method, params);
-      if (text) out.push({ title: `${skill}.${method}`, text, max: this.maxFor(skill) });
+      if (text) {
+        const title = `${skill}.${method}`;
+        window.GameModules.realWorldMaterials?.record?.(materialSession, { skill, method, params }, title, text);
+        out.push({ title, text, max: this.maxFor(skill) });
+      }
     }
     return out;
   },

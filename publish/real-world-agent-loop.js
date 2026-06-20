@@ -12,11 +12,12 @@ window.GameModules.realWorldAgentLoop = {
     const memoryIds = new Set();
     const skills = await ctx.skillText();
     const base = ctx.baseSnapshot(store, action);
+    const materialSession = window.GameModules.realWorldMaterials?.createSession?.(action) || null;
     let lastPrompt = '';
     let lastRaw = '';
 
     for (let step = 1; step <= this.maxSteps; step += 1) {
-      const prompt = await this.buildPrompt({ store, action, base, loaded, skills, step });
+      const prompt = await this.buildPrompt({ store, action, base, loaded, skills, step, materialSession });
       lastPrompt = prompt;
       this.markStep(store, logId, this.stepText(step));
       const raw = await this.completeStep(store, prompt, logId, true);
@@ -25,7 +26,7 @@ window.GameModules.realWorldAgentLoop = {
       const traceItem = this.traceItem(step, data, raw);
       trace.push(traceItem);
 
-      const results = await this.loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step);
+      const results = await this.loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step, materialSession);
       traceItem.loaded = results.map((item) => ({ title: item.title, text: ctx.limit(item.text, 800) }));
       if (results.length) {
         loaded.push(...results);
@@ -40,27 +41,33 @@ window.GameModules.realWorldAgentLoop = {
     return { result: window.GameModules.realWorldAi.fallback(store, action), prompt: lastPrompt, loaded, raw: lastRaw, trace };
   },
 
-  async loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step) {
+  async loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step, materialSession = null) {
     const out = [];
     if (data.type === 'request_context') {
-      const requested = await ctx.loadRequests(store, action, data.requests || [], loadedKeys);
+      const requested = await ctx.loadRequests(store, action, data.requests || [], loadedKeys, materialSession);
       out.push(...requested);
     }
     const locationItem = await ctx.actionLocationForStep?.(store, action, data.characters || data.relatedCharacters || [], data.reason || '', loadedKeys);
-    if (locationItem?.text) out.push(locationItem);
+    if (locationItem?.text) {
+      window.GameModules.realWorldMaterials?.record?.(materialSession, { skill: 'realworld.location.query', method: 'searchLocation', params: { keyword: 'autoCharacterRoute' } }, locationItem.title, locationItem.text);
+      out.push(locationItem);
+    }
     const memoryItem = ctx.characterMemoriesForStep?.(store, action, data.characters || data.relatedCharacters || [], [...loaded, ...out], memoryIds, step === 1);
     if (memoryItem?.text) {
       (memoryItem.ids || []).forEach((id) => memoryIds.add(id));
+      window.GameModules.realWorldMaterials?.record?.(materialSession, { skill: 'memory.query', method: 'searchCharacterMemory', params: { keyword: 'characterMemoriesForStep' } }, memoryItem.title, memoryItem.text);
       out.push(memoryItem);
     }
     return out;
   },
 
-  async buildPrompt({ store, action, base, loaded, skills, step }) {
+  async buildPrompt({ store, action, base, loaded, skills, step, materialSession = null }) {
     const outputJson = JSON.stringify(this.outputSchema(store));
+    const loadedText = window.GameModules.realWorldAgentContext.buildLoadedText(loaded);
+    const materialText = window.GameModules.realWorldMaterials?.summary?.(materialSession) || '';
     return window.GameModules.promptTemplates.render('real-world-engine', {
       基础上下文: base,
-      动态载入资料: window.GameModules.realWorldAgentContext.buildLoadedText(loaded),
+      动态载入资料: [loadedText, materialText].filter(Boolean).join('\n\n'),
       本次行动: action || '继续观察现实世界',
       当前步骤: `${step}/${this.maxSteps}`,
       最大步骤: this.maxSteps,
