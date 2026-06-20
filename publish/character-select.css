@@ -582,6 +582,7 @@
 
 .memory-editor,
 .memory-list,
+.memory-tab-panel,
 .identity-memory-panel {
   display: grid;
   gap: 6px;
