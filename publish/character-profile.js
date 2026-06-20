@@ -906,9 +906,10 @@ window.GameModules.characterProfile = {
     if (partIndex === 5 || partIndex === 6) {
       const requiredKeys = issues.map((x) => x.key).filter((key) => this.bodyProfileParts().includes(key));
       const normalizedRows = rows.map((row) => this.normalizePart5Row(row));
-      const bad = normalizedRows.find((row) => this.part5RowIssue(this.csvParts(row)));
-      if (bad) return `CSV修复行格式不合格：${bad}`;
       if (!requiredKeys.length) return '';
+      const relevantRows = normalizedRows.filter((row) => requiredKeys.includes(this.csvParts(row)[1]));
+      const bad = relevantRows.find((row) => this.part5RowIssue(this.csvParts(row)));
+      if (bad) return `CSV修复行格式不合格：${bad}`;
       const returnedKeys = [...new Set(normalizedRows.map((row) => this.csvParts(row)[1]).filter(Boolean))];
       const missing = requiredKeys.filter((key) => !returnedKeys.includes(key));
       if (missing.length) return [
@@ -988,10 +989,10 @@ window.GameModules.characterProfile = {
     }
     if (partIndex === 3) return issues.map((x) => (x.key === 'knowledge' ? 'knowledge,现代常识,2,日常生活和教育经历形成基础常识,生活经验,家庭经历|教育背景,--' : 'skills,观察力,2,长期生活经历形成基础观察能力,perception|谨慎性格,现代常识|过往经历,日常观察习惯')).join('\n');
     if (partIndex === 5 || partIndex === 6) {
-      return issues.map((x) => {
-        const index = this.bodyProfileParts().indexOf(x.key) + 1;
-        const part = index > 0 ? x.key : '头发';
-        const finalIndex = index > 0 ? index : 1;
+      const parts = this.bodyProfileParts();
+      const targets = [...new Set(issues.map((x) => x.key).filter((key) => parts.includes(key)))];
+      return targets.map((part) => {
+        const finalIndex = parts.indexOf(part) + 1;
         const text = partIndex === 6 ? this.dressedProfilePromptText(part) : this.bodyProfilePromptText(part);
         return `${finalIndex},${part},${text}`;
       }).join('\n');
