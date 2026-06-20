@@ -39,6 +39,7 @@ window.GameModules.realWorldActions = {
 
   openRealWorldPanel() {
     const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
+    this.collapseRealWorldThinking?.();
     this.realWorldOpen = true;
     this.checkWorkReminder?.();
     window.GameModules.sqliteSave.saveRealWorldLogEntries?.(this.realWorldLog).then(() => this.refreshRealWorldLogPage?.(999999)).catch((err) => console.warn('[现实日志] 分页刷新失败:', err.message, err.stack));
@@ -50,6 +51,7 @@ window.GameModules.realWorldActions = {
   },
 
   closeRealWorldPanel() {
+    this.collapseRealWorldThinking?.();
     this.realWorldOpen = false;
     this.realWorldFunctionOpen = false;
   },

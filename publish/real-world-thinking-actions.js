@@ -7,6 +7,10 @@ window.GameModules.realWorldThinkingActions = {
     this.realWorldLog = [...(this.realWorldLog || [])];
   },
 
+  collapseRealWorldThinking() {
+    this.realWorldLog = (this.realWorldLog || []).map((entry) => (entry?.thinkingOpen ? { ...entry, thinkingOpen: false } : entry));
+  },
+
   hasRealWorldThinking(entry) {
     return Boolean(entry?.thinking) || Boolean(entry?.streaming) || (Array.isArray(entry?.streamTrace) && entry.streamTrace.length > 0) || (Array.isArray(entry?.agentTrace) && entry.agentTrace.length > 0);
   },
