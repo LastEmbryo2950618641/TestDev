@@ -9,7 +9,7 @@ window.GameModules.realWorldStreamActions = {
     const streamTrace = this.realWorldStreamTrace(raw, pick);
     const patch = { streaming: true };
     let changed = !entry.streaming;
-    if (thinking && thinking !== entry.thinking) { patch.thinking = thinking; changed = true; }
+    if (thinking && thinking !== entry.thinking) { patch.thinking = thinking; patch.thinkingOpen = true; changed = true; }
     if (narration && narration !== entry.narration) { patch.narration = narration; changed = true; }
     if (streamTrace.length && JSON.stringify(streamTrace) !== JSON.stringify(entry.streamTrace || [])) { patch.streamTrace = streamTrace; changed = true; }
     if (!changed) return false;
