@@ -62,6 +62,9 @@
 3. realworld.history.query
 - getRecentRealWorldLog：读取最近现实记录。
 - searchRealWorldLog：按关键词搜索旧现实记录。
+- getWorldlinePending：读取正在记录、尚未归纳的现实时间线记录。
+- listWorldlinePlots：读取已归纳情节目录。
+- getWorldlinePlotRecords：按情节编号或名称动态载入该情节关联记录。
 
 4. memory.query
 - searchCharacterMemory：按关键词搜索玩家本人记忆。
@@ -87,10 +90,12 @@
 
 1. 行动涉及公司、上班、请假、迟到、岗位、面试、招聘、老板、同事、工资、项目、工位、打卡、考勤、开会、离职时，优先请求 company.query。
 2. 行动涉及去、到、回、离开、附近、楼下、门口、房间、小区、公司、学校、便利店、路线、导航、找、查看周围时，优先请求 realworld.location.query。
-3. 行动涉及之前、上次、刚才、昨天、那次、还记得、发生过、记录、时间线时，优先请求 realworld.history.query 或 memory.query。
-4. 行动涉及承诺、照片、物品、人际关系、旧地点、旧经历时，优先请求 memory.query。
-5. 如果基础上下文和已动态载入资料已经足够，不要为了形式请求资料，直接 final。
-6. 到最大步骤时必须 final，不要继续 request_context。
+3. 基础上下文必须包含现实世界线中的正在记录时间线和已归纳情节目录；你必须将它们作为现实连续性依据。
+4. 行动涉及之前、上次、刚才、昨天、那次、还记得、发生过、记录、时间线、已归纳情节、正在记录时，优先请求 realworld.history.query 或 memory.query。
+5. 如果需要使用某个已归纳情节的关联记录，不要凭目录补细节，必须请求 realworld.history.query.getWorldlinePlotRecords 动态载入。
+6. 行动涉及承诺、照片、物品、人际关系、旧地点、旧经历时，优先请求 memory.query。
+7. 如果基础上下文和已动态载入资料已经足够，不要为了形式请求资料，直接 final。
+8. 到最大步骤时必须 final，不要继续 request_context。
 
 ## 现实推演强制规则
 
