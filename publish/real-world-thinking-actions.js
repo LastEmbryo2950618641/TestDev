@@ -8,7 +8,7 @@ window.GameModules.realWorldThinkingActions = {
   },
 
   hasRealWorldThinking(entry) {
-    return Boolean(entry?.thinking) || (Array.isArray(entry?.agentTrace) && entry.agentTrace.length > 0);
+    return Boolean(entry?.thinking) || Boolean(entry?.streaming) || (Array.isArray(entry?.streamTrace) && entry.streamTrace.length > 0) || (Array.isArray(entry?.agentTrace) && entry.agentTrace.length > 0);
   },
 
   normalizeRealWorldLog(log = []) {
@@ -18,6 +18,7 @@ window.GameModules.realWorldThinkingActions = {
       thinkingOpen: Boolean(entry?.thinkingOpen),
       cardChangesOpen: Boolean(entry?.cardChangesOpen),
       characterCardChanges: Array.isArray(entry?.characterCardChanges) ? entry.characterCardChanges : [],
+      streamTrace: Array.isArray(entry?.streamTrace) ? entry.streamTrace : [],
       agentTrace: Array.isArray(entry?.agentTrace) ? entry.agentTrace : [],
       ...entry,
     }));
@@ -51,8 +52,10 @@ window.GameModules.realWorldThinkingActions = {
   },
 
   realWorldTraceLines(entry) {
+    const stream = Array.isArray(entry?.streamTrace) ? entry.streamTrace : [];
     const trace = Array.isArray(entry?.agentTrace) ? entry.agentTrace : [];
-    return trace.flatMap((item) => this.realWorldTraceItemLines(item));
+    const fallback = entry?.streaming && !stream.length ? ['步骤进行中｜正在推演', '正在接收现实 AI 的推演内容。'] : [];
+    return stream.concat(fallback, trace.flatMap((item) => this.realWorldTraceItemLines(item)));
   },
 
   realWorldTraceItemLines(item = {}) {
