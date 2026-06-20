@@ -21,7 +21,7 @@ window.GameModules.realWorldThinkingActions = {
       streamTrace: Array.isArray(entry?.streamTrace) ? entry.streamTrace : [],
       agentTrace: Array.isArray(entry?.agentTrace) ? entry.agentTrace : [],
       ...entry,
-    }));
+    })).sort((a, b) => String(a.createdAt || a.time?.iso || a.time?.label || a.id).localeCompare(String(b.createdAt || b.time?.iso || b.time?.label || b.id)));
   },
 
   refreshRealWorldLogPage(page = this.realWorldLogPage || 1) {
@@ -58,7 +58,7 @@ window.GameModules.realWorldThinkingActions = {
 
   scrollRealWorldLogBottom() {
     const run = () => {
-      const el = document.querySelector('.real-world-dialog .story-log');
+      const el = document.querySelector('[data-section-title="现实记录列表"]') || document.querySelector('.real-world-dialog .story-log');
       if (el) el.scrollTop = el.scrollHeight;
     };
     requestAnimationFrame(run);

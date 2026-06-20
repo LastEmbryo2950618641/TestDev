@@ -671,7 +671,7 @@
         <section class="panel story-panel dev-section" data-section-title="现实推演日志区">
           <div class="scene-title dev-section" data-section-title="现实场景标题栏"><span x-text="$store.game.realWorldSceneTitle"></span><b x-text="$store.game.realWorldLocationName || '现实地点'"></b></div>
           <div class="story-log scroll-area dev-section" data-section-title="现实记录列表">
-            <template x-for="entry in $store.game.realWorldLog" :key="entry.id">
+            <template x-for="entry in $store.game.realWorldLog" :key="`${entry.id}-${entry.type}-${entry.createdAt || entry.time?.label || ''}`">
               <article class="novel-entry" :class="entry.type === 'user' ? 'player' : 'advice'">
                 <div class="novel-player dev-section" data-section-title="现实行动输入" x-show="entry.type === 'user'"><p x-text="entry.text"></p></div>
                 <div class="novel-story dev-section" data-section-title="现实AI生成内容" x-show="entry.type !== 'user'" :class="{ streaming: entry.streaming }">
