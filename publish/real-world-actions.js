@@ -102,10 +102,12 @@ window.GameModules.realWorldActions = {
     if (!rawText || this.realWorldBusy) return;
     this.realWorldInput = '';
     this.realWorldBusy = true;
-    const now = Date.now();
-    const baseId = `real-${now}-${Math.random().toString(36).slice(2, 8)}`;
-    const userEntry = { id: `${baseId}-user`, type: 'user', text: rawText, matter: this.activeRealWorldMatter?.() || null, createdAt: new Date(now).toISOString() };
-    const entry = { id: `${baseId}-ai`, type: 'ai', narration: '现实世界正在推演…', thinking: '', streaming: true, createdAt: new Date(now + 1).toISOString() };
+    const start = this.phoneDate();
+    const startMs = start.getTime();
+    const baseId = `real-${startMs}-${Math.random().toString(36).slice(2, 8)}`;
+    const startTime = { label: `${this.phoneDateText()} ${this.phoneTimeText()}`, iso: start.toISOString() };
+    const userEntry = { id: `${baseId}-user`, type: 'user', text: rawText, matter: this.activeRealWorldMatter?.() || null, time: startTime, createdAt: start.toISOString() };
+    const entry = { id: `${baseId}-ai`, type: 'ai', narration: '现实世界正在推演…', thinking: '', streaming: true, time: startTime, createdAt: start.toISOString() };
     entry.promptPack = { systemPrompt: '现实世界 Loop Agent 将按步骤动态载入上下文。', userPrompt: text, model: this.modelId, promptTokens: 0 };
     this.realWorldLog = this.normalizeRealWorldLog([...(this.realWorldLog || []), userEntry, entry]).slice(-Math.max(1, Number(this.realWorldLogPageSize) || 12));
     this.realWorldLogTotal = Math.max(this.realWorldLogTotal || 0, window.GameModules.sqliteSave.countRealWorldLogEntries?.() || 0) + 2;
@@ -134,7 +136,10 @@ window.GameModules.realWorldActions = {
     result.characterCardChanges = await window.GameModules.characterCardLexicon?.applyToState?.(state, result.lexiconUpdates || []) || [];
     await window.GameModules.rpgLexicon.applyLexiconSkill?.((result.lexiconUpdates || []).filter((item) => item?.kind !== '角色卡' && item?.kind !== '角色技能'));
     await this.applyInventoryUpdatesToState(state, result.lexiconUpdates || []);
-    this.advancePhoneTime(result.elapsedSeconds || 300);
+    const elapsedSeconds = window.GameModules.ai.clampElapsed?.(result.elapsedSeconds, 300) || 300;
+    result.elapsedSeconds = elapsedSeconds;
+    const startedAt = this.phoneDate().toISOString();
+    this.advancePhoneTime(elapsedSeconds);
     this.refreshRealWorldMatterStatus?.();
     this.checkWorkReminder?.();
     window.GameModules.realWorldMap.update(this, result.locationName || this.realWorldLocationName, result);
@@ -143,7 +148,7 @@ window.GameModules.realWorldActions = {
     this.realWorldQuest = result.quest || this.realWorldQuest;
     this.realWorldStatus = result.status || this.realWorldStatus;
     this.realWorldChoices = result.choices || this.realWorldChoices;
-    const time = { label: `${this.phoneDateText()} ${this.phoneTimeText()}` };
+    const time = { label: `${this.phoneDateText()} ${this.phoneTimeText()}`, iso: this.phoneDate().toISOString(), startedAt, elapsedSeconds };
     const next = { ...this.realWorldLog.find((entry) => entry.id === id), ...result, type: 'ai', streaming: false, time, agentTrace: result.agentTrace || [] };
     await this.assignRealWorldlineEntry(next);
     await window.GameModules.sqliteSave.saveRealWorldLogEntry?.(next);

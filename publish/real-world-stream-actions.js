@@ -22,7 +22,7 @@ window.GameModules.realWorldStreamActions = {
   },
 
   pickRealWorldStreamField(raw = '', key = '') {
-    const next = 'type|thinking|reason|narration|sceneTitle|locationName|parentLocationName|locationDescription|status|quest|choices|characters|requests|mapNodes|newLocations|locationDescriptionUpdates|elapsedSeconds|metricUpdates|lexiconUpdates';
+    const next = 'type|thinking|reason|narration|sceneTitle|locationName|parentLocationName|locationDescription|status|quest|choices|characters|requests|mapNodes|newLocations|locationDescriptionUpdates|elapsedSeconds|metricUpdates|factionUpdates|lexiconUpdates';
     const text = String(raw || '');
     const loose = text.match(new RegExp(`"${key}"\\s*:\\s*"([\\s\\S]*?)(?:"\\s*,\\s*"(?:${next})"\\s*:|"\\s+"(?:${next})"\\s*:|"\\s*[,}])`));
     if (loose) return loose[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').trim();
