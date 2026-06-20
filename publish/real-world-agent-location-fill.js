@@ -118,7 +118,7 @@ window.GameModules = window.GameModules || {};
       const clue = this.locationFillClue(store, keyword, character, action);
       let payload = null;
       try {
-        const prompt = window.GameModules.promptTemplates.render('real-world-map-location-add', {
+        const prompt = await window.GameModules.promptTemplates.render('real-world-map-location-add', {
           手机时间: `${store.phoneDateText?.() || ''} ${store.phoneTimeText?.() || ''}`.trim(),
           当前地点: map.current || store.realWorldLocationName || '未知',
           现实地图: map.lastText || window.GameModules.realWorldMap.render(map),
