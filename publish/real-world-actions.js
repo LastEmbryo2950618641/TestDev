@@ -155,7 +155,7 @@ window.GameModules.realWorldActions = {
     this.realWorldStatus = result.status || this.realWorldStatus;
     this.realWorldChoices = result.choices || this.realWorldChoices;
     const time = { label: `${this.phoneDateText()} ${this.phoneTimeText()}` };
-    const next = { ...this.realWorldLog.find((entry) => entry.id === id), ...result, type: 'ai', streaming: false, time };
+    const next = { ...this.realWorldLog.find((entry) => entry.id === id), ...result, type: 'ai', streaming: false, time, agentTrace: result.agentTrace || [] };
     await this.assignRealWorldlineEntry(next);
     this.realWorldLog = this.realWorldLog.map((entry) => (entry.id === id ? next : entry)).slice(-30);
   },

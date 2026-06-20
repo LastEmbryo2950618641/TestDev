@@ -6,6 +6,7 @@ window.GameModules.realWorldAgentLoop = {
   async run(store, action, logId = null) {
     const ctx = window.GameModules.realWorldAgentContext;
     const loaded = [];
+    const trace = [];
     const loadedKeys = new Set();
     const skills = await ctx.skillText();
     const base = ctx.baseSnapshot(store, action);
@@ -16,17 +17,20 @@ window.GameModules.realWorldAgentLoop = {
       const raw = await this.completeStep(store, prompt, logId, step === this.maxSteps);
       lastRaw = raw;
       const data = this.parseStep(raw);
+      const traceItem = { step, type: data?.type || 'parse_failed', reason: data?.reason || '', requests: data?.requests || [], raw: ctx.limit(raw, 1200), loaded: [] };
+      trace.push(traceItem);
       if (data?.type === 'request_context' && step < this.maxSteps) {
         const results = await ctx.loadRequests(store, action, data.requests || [], loadedKeys);
+        traceItem.loaded = results.map((item) => ({ title: item.title, text: ctx.limit(item.text, 800) }));
         if (!results.length) continue;
         loaded.push(...results);
         this.markStep(store, logId, `已载入${results.map((item) => item.title).join('、')}，继续推演…`);
         continue;
       }
-      if (data?.type === 'final') return { result: data, prompt, loaded, raw };
-      if (step === this.maxSteps && data) return { result: { ...data, type: 'final' }, prompt, loaded, raw };
+      if (data?.type === 'final') return { result: data, prompt, loaded, raw, trace };
+      if (step === this.maxSteps && data) return { result: { ...data, type: 'final' }, prompt, loaded, raw, trace };
     }
-    return { result: window.GameModules.realWorldAi.fallback(store, action), prompt: lastRaw, loaded, raw: lastRaw };
+    return { result: window.GameModules.realWorldAi.fallback(store, action), prompt: lastRaw, loaded, raw: lastRaw, trace };
   },
 
   async buildPrompt({ store, action, base, loaded, skills, step }) {

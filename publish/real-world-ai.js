@@ -19,6 +19,7 @@ window.GameModules.realWorldAi = {
         promptTokens: Math.ceil(String(loop.prompt || prompt || '').length / 2),
         loadedContext: loop.loaded || [],
       };
+      result.agentTrace = loop.trace || [];
       return result;
     } catch (err) {
       console.error('现实世界推演失败:', err.code, err.message, err.stack);
