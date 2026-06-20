@@ -24,31 +24,52 @@ window.GameModules.factionOrgActions = {
 
   normalizeFactionRoles(roles = []) {
     return (Array.isArray(roles) ? roles : []).map((role) => {
-      if (typeof role === 'string') return { title: role, count: '未知', characters: ['未知'] };
+      if (typeof role === 'string') return this.decorateFactionRole({ title: role, count: '未知', characters: ['未知'] });
       const title = String(role?.title || role?.name || role?.position || '未命名职位').trim();
       const chars = Array.isArray(role?.characters) ? role.characters : (role?.character ? [role.character] : []);
       const characters = chars.map(String).filter(Boolean).length ? chars.map(String).filter(Boolean) : ['未知'];
       const count = role?.count ?? role?.quantity ?? role?.number ?? (characters.includes('未知') ? '未知' : characters.length);
-      return { title, count, characters };
+      return this.decorateFactionRole({ ...role, title, count, characters });
     });
   },
 
+  decorateFactionRole(role = {}) {
+    const characters = Array.isArray(role.characters) && role.characters.length ? role.characters : ['未知'];
+    return { ...role, characters, preview: this.factionRolePreviewText(characters), overflow: characters.length > 4 };
+  },
+
+  factionRolePreviewText(characters = []) {
+    return characters.slice(0, 4).join('、') + (characters.length > 4 ? '……' : '');
+  },
+
   factionRoleText(roles = []) {
-    return this.normalizeFactionRoles(roles).map((role) => `${role.title}｜数量:${role.count}｜角色:${this.factionRolePreview(role)}`).join('；') || '职位未记录';
+    return this.normalizeFactionRoles(roles).map((role) => `${role.title}｜数量:${role.count}｜角色:${role.preview}`).join('；') || '职位未记录';
+  },
+
+  refreshFactionOrgCache() {
+    if (!this.factionState) return;
+    const faction = this.selectedFaction();
+    this.factionState.orgCacheSelectedId = faction?.id || '';
+    this.factionState.structureCards = this.buildFactionStructureCards(faction);
+    this.factionState.orgNodes = this.buildFactionOrgNodes(faction, this.factionState.structureCards);
+  },
+
+  buildFactionStructureCards(faction = this.selectedFaction()) {
+    return (faction?.structure || []).map((node, index) => ({ key: `node-${index}-${node.name}`, name: node.name, level: node.level || this.factionNodeLevel(faction, node.name), roles: this.normalizeFactionRoles(node.roles) }));
   },
 
   factionStructureCards() {
     const faction = this.selectedFaction();
-    return (faction?.structure || []).map((node, index) => ({ key: `node-${index}-${node.name}`, name: node.name, level: node.level || this.factionNodeLevel(faction, node.name), roles: this.normalizeFactionRoles(node.roles) }));
+    if (this.factionState?.orgCacheSelectedId === faction?.id && this.factionState?.structureCards) return this.factionState.structureCards;
+    return this.buildFactionStructureCards(faction);
   },
 
   factionRolePreview(role = {}) {
-    const chars = this.normalizeFactionRoles([role])[0]?.characters || ['未知'];
-    return chars.slice(0, 4).join('、') + (chars.length > 4 ? '……' : '');
+    return role.preview || this.factionRolePreviewText(Array.isArray(role.characters) && role.characters.length ? role.characters : ['未知']);
   },
 
   factionRoleOverflow(role = {}) {
-    return (this.normalizeFactionRoles([role])[0]?.characters || []).length > 4;
+    return Boolean(role.overflow ?? ((Array.isArray(role.characters) ? role.characters : []).length > 4));
   },
 
   openFactionRoleDialog(role = {}) {
@@ -63,15 +84,20 @@ window.GameModules.factionOrgActions = {
     this.factionState.roleDialog = null;
   },
 
-  factionOrgNodes() {
-    const faction = this.selectedFaction();
-    const nodes = this.factionStructureCards().map((node) => ({
+  buildFactionOrgNodes(faction = this.selectedFaction(), cards = this.buildFactionStructureCards(faction)) {
+    const nodes = cards.map((node) => ({
       key: node.key,
       name: node.name,
       roles: node.level,
-      children: node.roles.map((role, roleIndex) => ({ key: `${node.key}-role-${roleIndex}`, name: role.title, roles: `数量:${role.count}｜角色:${this.factionRolePreview(role)}`, role })),
+      children: node.roles.map((role, roleIndex) => ({ key: `${node.key}-role-${roleIndex}`, name: role.title, roles: `数量:${role.count}｜角色:${role.preview}`, role })),
     }));
     const children = this.factionChildren(faction?.id).map((child) => ({ key: `c-${child.id}`, name: child.name, roles: child.level || `${child.type}级别`, children: [] }));
     return [...nodes, ...children];
+  },
+
+  factionOrgNodes() {
+    const faction = this.selectedFaction();
+    if (this.factionState?.orgCacheSelectedId === faction?.id && this.factionState?.orgNodes) return this.factionState.orgNodes;
+    return this.buildFactionOrgNodes(faction);
   },
 };

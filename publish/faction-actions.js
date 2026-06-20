@@ -142,7 +142,9 @@ window.GameModules.factionActions = {
   selectFaction(id) {
     if (!this.factionState) this.initFactionSystem();
     this.factionState.selectedId = id;
+    this.factionState.orgCacheSelectedId = '';
     this.factionState.detailOpen = true;
+    if (this.factionState.orgChartOpen) this.refreshFactionOrgCache?.();
   },
 
   closeFactionDetail() {
@@ -153,6 +155,7 @@ window.GameModules.factionActions = {
 
   openFactionOrgChart() {
     if (!this.factionState) this.initFactionSystem();
+    this.refreshFactionOrgCache?.();
     this.factionState.orgChartOpen = true;
   },
 
@@ -182,8 +185,7 @@ window.GameModules.factionActions = {
   },
 
   factionChildren(id) {
-    if (!id) return [];
-    this.initFactionSystem();
+    if (!id || !this.factionState?.factions) return [];
     return this.factionState.factions.filter((x) => x.parentId === id);
   },
 };
