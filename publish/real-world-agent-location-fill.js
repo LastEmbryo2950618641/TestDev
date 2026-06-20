@@ -11,21 +11,43 @@ window.GameModules = window.GameModules || {};
     async location(store, method, params = {}, action = '') {
       const map = window.GameModules.realWorldMap.ensure(store, store.playerProfile || {});
       const keyword = String(params.keyword || params.locationName || params.name || '').trim();
+      if (method === 'getCurrentLocationContext') {
+        const current = this.ensurePlayerCurrentLocation(store, action);
+        return this.locationDetail(map, current?.name || map.current || store.realWorldLocationName);
+      }
       if ((method === 'searchLocation' || method === 'getLocationDetail') && keyword) {
         const existing = this.findLocationHit(map, keyword);
         if (existing) return this.locationDetail(map, existing.name);
-        if (this.shouldFillCharacterLocation(store, keyword, action)) return await this.fillCharacterLocation(store, keyword, action);
+        if (this.shouldFillCharacterLocation(store, keyword, action)) return await this.fillCharacterLocation(store, this.locationTargetKeyword(store, `${keyword} ${action}`) || keyword, action);
       }
       return baseLocation ? baseLocation(store, method, params) : '';
+    },
+
+    async actionLocationForStep(store, action = '', characters = [], reason = '', loadedKeys = new Set()) {
+      const text = `${action} ${reason} ${characters.map((item) => `${item?.id || item} ${item?.name || ''}`).join(' ')}`;
+      const wantsPerson = /房间|卧室|找|去|前往|位置|所在|妹妹|姐姐|哥哥|弟弟|母亲|父亲/u.test(text);
+      if (!wantsPerson) return null;
+      const key = `realworld.location.auto:${this.locationPersonKey(store, text) || text.slice(0, 24)}`;
+      if (loadedKeys.has(key)) return null;
+      loadedKeys.add(key);
+      this.ensurePlayerCurrentLocation(store, action);
+      const target = this.locationTargetKeyword(store, text);
+      if (!target) return null;
+      const existing = this.findLocationHit(window.GameModules.realWorldMap.ensure(store, store.playerProfile || {}), target);
+      const detail = existing ? this.locationDetail(window.GameModules.realWorldMap.ensure(store, store.playerProfile || {}), existing.name) : await this.fillCharacterLocation(store, target, action);
+      return { title: 'realworld.location.query.autoCharacterRoute', text: detail, max: 1800 };
     },
 
     findLocationHit(map, keyword = '') {
       const key = String(keyword || '').trim();
       if (!key) return null;
       const tokens = this.locationKeywordTokens(key);
+      const needsRoom = /房间|卧室/u.test(key);
       return (map.nodes || []).find((node) => {
         const text = `${node.name} ${node.description || ''} ${JSON.stringify(node.descriptionFacts || [])}`;
-        return text.includes(key) || tokens.some((token) => text.includes(token));
+        if (text.includes(key)) return true;
+        if (needsRoom) return /房间|卧室/u.test(text) && tokens.some((token) => !/房间|卧室/u.test(token) && text.includes(token));
+        return tokens.some((token) => text.includes(token));
       });
     },
 
@@ -46,11 +68,48 @@ window.GameModules = window.GameModules || {};
 
     findCharacterForLocationKeyword(store, keyword = '') {
       const states = (window.GameModules.sqliteSave.listCharacterStates?.() || []).concat(Object.values(store.rpgStates || {}));
-      return states.find((state) => {
+      const hits = states.map((state) => {
         const profile = state?.profile || state || {};
         const text = [state?.id, state?.name, profile.name, profile.role, profile.relationships, profile.detail].filter(Boolean).join(' ');
-        return text && (keyword.includes(profile.name) || keyword.includes(state?.name) || (/妹妹/u.test(keyword) && /妹妹/u.test(text)));
-      }) || null;
+        let score = 0;
+        if (profile.name && keyword.includes(profile.name)) score += 50;
+        if (state?.name && keyword.includes(state.name)) score += 40;
+        if (state?.id && keyword.includes(state.id)) score += 20;
+        if (/妹妹/u.test(keyword) && /妹妹/u.test(text)) score += 25;
+        if (state?.id === 'player-self') score -= 45;
+        return { state, score, text };
+      }).filter((item) => item.text && item.score > 0).sort((a, b) => b.score - a.score);
+      return hits[0]?.state || null;
+    },
+
+    locationPersonKey(store, text = '') {
+      const hit = this.findCharacterForLocationKeyword(store, text);
+      return hit?.id || hit?.profile?.name || hit?.name || '';
+    },
+
+    locationTargetKeyword(store, text = '') {
+      const hit = this.findCharacterForLocationKeyword(store, text);
+      const profile = hit?.profile || hit || {};
+      if (profile.name) return `${profile.name}的房间`;
+      const match = String(text || '').match(/([\u4e00-\u9fa5]{2,4})(?:的)?(?:房间|卧室|位置|所在)/u);
+      return match?.[1] ? `${match[1]}的房间` : '';
+    },
+
+    ensurePlayerCurrentLocation(store, action = '') {
+      const map = window.GameModules.realWorldMap.ensure(store, store.playerProfile || {});
+      if (map.current && !window.GameModules.realWorldMap.isAbstractName(map.current)) return this.findLocationHit(map, map.current);
+      const fallback = this.playerHomeLocationName(store, action);
+      return fallback ? window.GameModules.realWorldMap.addLocation(store, {
+        name: fallback,
+        descriptionFacts: [`玩家当前位于${fallback}，这是本次现实推演的路线起点。`],
+      }, window.GameModules.realWorldMap.factTime(store)) : null;
+    },
+
+    playerHomeLocationName(store, action = '') {
+      const profile = store.playerProfile || {};
+      const text = [profile.refinedCity, profile.homeLocation, profile.locationName, profile.refinedLivingStatus, action].filter(Boolean).join(' ');
+      const match = text.match(/([\u4e00-\u9fa5A-Za-z0-9-]+小区[^，。；\s]{0,24}(?:号|室)?)/u);
+      return window.GameModules.realWorldMap.cleanName(match?.[1] || profile.refinedCity || profile.homeLocation || store.realWorldLocationName || '');
     },
 
     async fillCharacterLocation(store, keyword = '', action = '') {

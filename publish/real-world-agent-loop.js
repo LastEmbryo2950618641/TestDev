@@ -46,6 +46,8 @@ window.GameModules.realWorldAgentLoop = {
       const requested = await ctx.loadRequests(store, action, data.requests || [], loadedKeys);
       out.push(...requested);
     }
+    const locationItem = await ctx.actionLocationForStep?.(store, action, data.characters || data.relatedCharacters || [], data.reason || '', loadedKeys);
+    if (locationItem?.text) out.push(locationItem);
     const memoryItem = ctx.characterMemoriesForStep?.(store, action, data.characters || data.relatedCharacters || [], [...loaded, ...out], memoryIds, step === 1);
     if (memoryItem?.text) {
       (memoryItem.ids || []).forEach((id) => memoryIds.add(id));
