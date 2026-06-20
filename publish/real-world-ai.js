@@ -62,7 +62,7 @@ window.GameModules.realWorldAi = {
   normalizeThinking(value, store, action) {
     const text = String(value || '').trim();
     if (text) return text.slice(0, 180);
-    if (!store.thinkingMode) return '';
+    if (!store.realWorldThinkMode) return '';
     return `依据玩家行动「${String(action || '继续观察现实世界').slice(0, 40)}」、现实状态、已载入资料与相关人物记忆，优先按现实因果推进本次结果。`;
   },
 
@@ -82,7 +82,7 @@ window.GameModules.realWorldAi = {
       mapLinks: [],
       newLocations: [],
       locationDescriptionUpdates: [],
-      thinking: store.thinkingMode ? `依据玩家行动「${text}」与本人资料，现实推演先保持日常逻辑，并保留手机异常带来的不安。` : '',
+      thinking: store.realWorldThinkMode ? `依据玩家行动「${text}」与本人资料，现实推演先保持日常逻辑，并保留手机异常带来的不安。` : '',
       narration: `你暂时把《我要狠狠操控》的界面收起，现实里的光线、空气和细碎声响重新占据感官。你按照“${text}”开始行动，先确认周围没有立刻失控的变化，再把注意力落回自己的住处、身份与眼前必须处理的事务上。那台手机安静地躺在一旁，像是什么都没有发生，却又让现实边缘多出一层无法忽视的裂痕。`,
       status: '现实稳定，手机异常仍在',
       quest: '确认手机异常与现实处境',

@@ -65,13 +65,19 @@ window.GameModules.realWorldAgentLoop = {
       当前步骤: `${step}/${this.maxSteps}`,
       最大步骤: this.maxSteps,
       动态Skills: skills,
+      Think模式规则: this.thinkModeRule(store),
       输出示例: outputJson,
     });
   },
 
+  thinkModeRule(store) {
+    if (store.realWorldThinkMode) return '现实 Think 模式：开启。request_context 与 final 都必须返回 thinking 字段，thinking 放在 type 后、reason/narration 前，40到90个汉字，作为展示给玩家看的逐步推演摘要，不输出隐藏推理链。';
+    return '现实 Think 模式：关闭。request_context 不要返回 thinking；final 可返回简短 thinking，界面主要显示步骤、reason 和载入资料。';
+  },
+
   outputSchema(store) {
     const realWorld = window.GameModules.realWorld2026 || {};
-    return { type: 'final', sceneTitle: '现实场景标题', locationName: '具体地点名', parentLocationName: '上级地点名', locationDescription: '当前地点本次新认识的事实', mapNodes: [{ name: '子地点名', parentName: '上级地点名', descriptionFacts: ['玩家已知地点事实'] }], newLocations: [{ name: '新增地点名', parentName: '', descriptionFacts: ['玩家已知事实'] }], locationDescriptionUpdates: [{ locationName: '地点名', action: 'add', text: '新增或更新的玩家已知事实' }], elapsedSeconds: 60, thinking: '60到140字，概括现实推演依据，不写隐藏推理', narration: '以第二人称续写现实世界中的行动结果，180到360字，现实、克制、细节充分', status: '现实状态简述', quest: '新的现实目标', choices: ['处理现实事务', '联系某个人', '观察周围', '暂时休息'], metricUpdates: { emotions: [{ key: '情绪名', delta: 0, status: '变化后的状态含义', reason: '现实触发原因' }], playerFeelings: [{ key: '感觉名', delta: 0, status: '变化后的状态含义', reason: '现实触发原因' }] }, lexiconUpdates: [{ worldTag: realWorld.label || '2026 现代都市现实世界', kind: '玩家设定/装备/物品/穿着/角色卡/角色技能', field: '角色卡字段名', name: '词条名或skills', value: '新值或对象', summary: '摘要', description: '说明', reason: '现实证据、触发行动、状态来源或动机' }] };
+    return store.realWorldThinkMode ? { type: 'request_context', thinking: '40到90字，说明本步骤如何判断需要哪些现实资料，不写隐藏推理', reason: '为什么需要加载资料', characters: [{ id: 'player-self', name: '玩家本人' }], requests: [] } : { type: 'final', sceneTitle: '现实场景标题', locationName: '具体地点名', parentLocationName: '上级地点名', locationDescription: '当前地点本次新认识的事实', mapNodes: [{ name: '子地点名', parentName: '上级地点名', descriptionFacts: ['玩家已知地点事实'] }], newLocations: [{ name: '新增地点名', parentName: '', descriptionFacts: ['玩家已知事实'] }], locationDescriptionUpdates: [{ locationName: '地点名', action: 'add', text: '新增或更新的玩家已知事实' }], elapsedSeconds: 60, thinking: '60到140字，概括现实推演依据，不写隐藏推理', narration: '以第二人称续写现实世界中的行动结果，180到360字，现实、克制、细节充分', status: '现实状态简述', quest: '新的现实目标', choices: ['处理现实事务', '联系某个人', '观察周围', '暂时休息'], metricUpdates: { emotions: [{ key: '情绪名', delta: 0, status: '变化后的状态含义', reason: '现实触发原因' }], playerFeelings: [{ key: '感觉名', delta: 0, status: '变化后的状态含义', reason: '现实触发原因' }] }, lexiconUpdates: [{ worldTag: realWorld.label || '2026 现代都市现实世界', kind: '玩家设定/装备/物品/穿着/角色卡/角色技能', field: '角色卡字段名', name: '词条名或skills', value: '新值或对象', summary: '摘要', description: '说明', reason: '现实证据、触发行动、状态来源或动机' }] };
   },
 
   async completeStep(store, prompt, logId, streamToUi = false) {
@@ -120,7 +126,7 @@ window.GameModules.realWorldAgentLoop = {
 
   traceItem(step, data, raw) {
     const ctx = window.GameModules.realWorldAgentContext;
-    return { step, type: data?.type || 'parse_failed', reason: data?.reason || '', characters: data?.characters || [], requests: data?.requests || [], raw: ctx.limit(raw, 1200), loaded: [] };
+    return { step, type: data?.type || 'parse_failed', thinking: data?.thinking || '', reason: data?.reason || '', characters: data?.characters || [], requests: data?.requests || [], raw: ctx.limit(raw, 1200), loaded: [] };
   },
 
   stepText(step) {

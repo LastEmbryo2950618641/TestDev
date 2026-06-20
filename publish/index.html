@@ -711,6 +711,7 @@
         <div class="free-input dev-section" data-section-title="现实自由输入栏">
           <input x-model="$store.game.realWorldInput" placeholder="输入你在现实世界的下一步行动..." :disabled="$store.game.realWorldBusy" @keydown.enter="$store.game.submitRealWorldAction()">
           <button type="button" @click="$store.game.submitRealWorldAction()" :disabled="$store.game.realWorldBusy || !$store.game.realWorldInput.trim()">执行</button>
+          <label class="thinking-switch" :class="{ active: $store.game.realWorldThinkMode }" title="开启后每轮现实推演都会输出可见思考摘要，额度消耗略增"><input type="checkbox" x-model="$store.game.realWorldThinkMode">Think</label>
         </div>
       </footer>
     </div>

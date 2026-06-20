@@ -26,6 +26,10 @@
 
 {动态Skills}
 
+## 现实 Think 模式
+
+{Think模式规则}
+
 ## Loop Agent 输出模式
 
 你每一步只能选择以下两种输出之一。系统至少会请求两次：第一步必须先识别相关角色和资料需求，代码会按你给出的 characters 自动载入这些角色的短期与长期记忆；第二步之后才允许 final。
@@ -36,6 +40,7 @@
 
 {
   "type": "request_context",
+  "thinking": "仅在现实 Think 模式开启时返回，40到90个汉字，说明本步骤如何判断需要哪些资料",
   "reason": "为什么需要加载资料",
   "characters": [{ "id": "player-self", "name": "玩家本人" }],
   "requests": [
@@ -43,7 +48,7 @@
   ]
 }
 
-每轮最多请求 3 个资源。不要重复请求已经动态载入的资料。characters 必须列出本次行动相关人物；至少包含 player-self，可用角色 id 或姓名。
+每轮最多请求 3 个资源。不要重复请求已经动态载入的资料。characters 必须列出本次行动相关人物；至少包含 player-self，可用角色 id 或姓名。现实 Think 模式关闭时，request_context 不要返回 thinking 字段。
 
 可请求的 skill/method：
 

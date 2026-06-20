@@ -5,7 +5,7 @@ window.GameModules.realWorldStreamActions = {
     if (!entry) return false;
     const utils = window.GameModules.jsonUtils;
     const pick = (key) => (utils?.pickStringField?.(raw, key) || this.pickRealWorldStreamField(raw, key));
-    const thinking = this.thinkingMode ? (pick('thinking') || '') : '';
+    const thinking = this.realWorldThinkMode ? (pick('thinking') || '') : '';
     const narration = pick('narration') || '';
     const streamTrace = this.realWorldStreamTrace(raw, pick);
     const patch = { streaming: true };

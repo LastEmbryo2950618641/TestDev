@@ -60,6 +60,7 @@ window.GameModules.realWorldThinkingActions = {
 
   realWorldTraceItemLines(item = {}) {
     const head = [`步骤 ${item.step || '?'}｜${this.realWorldTraceType(item.type)}`];
+    if (item.thinking) head.push(`思考：${item.thinking}`);
     if (item.reason) head.push(`原因：${item.reason}`);
     const requests = (item.requests || []).map((req) => {
       const params = req.params ? JSON.stringify(req.params) : '{}';

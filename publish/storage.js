@@ -64,6 +64,7 @@ window.GameModules.storage = {
       characterIntent: store.characterIntent,
       choices: store.choices,
       log: store.log.slice(-30).map((entry) => ({ ...entry, thinking: store.normalizeNovelThinking ? store.normalizeNovelThinking(entry.thinking) : entry.thinking })),
+      realWorldThinkMode: Boolean(store.realWorldThinkMode),
       realWorldSceneTitle: store.realWorldSceneTitle,
       realWorldLocationName: store.realWorldLocationName,
       realWorldMap: store.realWorldMap,
@@ -103,6 +104,7 @@ window.GameModules.storage = {
       store.settingsState = { ...store.settingsState, ...save.settingsState, open: false, loading: false, error: '' };
       store.modelId = store.settingsState.textModelId || store.modelId;
     }
+    store.realWorldThinkMode = Boolean(save.realWorldThinkMode ?? store.realWorldThinkMode);
     store.realWorldSceneTitle = save.realWorldSceneTitle || store.realWorldSceneTitle;
     store.realWorldLocationName = save.realWorldLocationName || store.realWorldLocationName;
     store.realWorldMap = save.realWorldMap || store.realWorldMap;
