@@ -74,7 +74,7 @@ window.GameModules.realWorldAgentLoop = {
     const outputJson = JSON.stringify(this.outputSchema(store));
     const loadedText = window.GameModules.realWorldAgentContext.buildLoadedText(loaded);
     const materialText = window.GameModules.realWorldMaterials?.summary?.(materialSession) || '';
-    return window.GameModules.promptTemplates.render('real-world-engine', {
+    const vars = {
       基础上下文: base,
       动态载入资料: [loadedText, materialText].filter(Boolean).join('\n\n'),
       本次行动: action || '继续观察现实世界',
@@ -84,7 +84,11 @@ window.GameModules.realWorldAgentLoop = {
       Think模式规则: this.thinkModeRule(store),
       当前步骤输出要求: this.stepOutputRule(step, forceFinal),
       输出示例: outputJson,
-    });
+    };
+    const basePrompt = await window.GameModules.promptTemplates.render('real-world-engine', vars);
+    if (step !== 1 || forceFinal) return basePrompt;
+    const firstPrompt = await window.GameModules.promptTemplates.render('real-world-engine-first', vars);
+    return `${basePrompt}\n\n${firstPrompt}`;
   },
 
   thinkModeRule(store) {

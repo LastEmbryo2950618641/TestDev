@@ -4,6 +4,7 @@ window.GameModules.promptTemplates = {
   items: [
     { id: 'story-engine', title: '主剧情 RPG 推演引擎', category: '剧情推演', file: 'prompts/story-engine.md', summary: '操控/离线回合的核心小说续写、数值变化与词条更新。' },
     { id: 'real-world-engine', title: '现实世界推演引擎', category: '现实推演', file: 'prompts/real-world-engine.md', summary: '玩家收起手机后的现实行动、现实状态与词条更新。' },
+    { id: 'real-world-engine-first', title: '现实世界首轮资料识别', category: '现实推演', file: 'prompts/real-world-engine-first.md', summary: '现实 Loop Agent 第一步识别人物与必要资料。' },
     { id: 'real-world-map-location-add', title: '电子地图新增地点', category: '现实推演', file: 'prompts/real-world-map-location-add.md', summary: '把玩家新认识的地点加入电子地图树。' },
     { id: 'real-world-map-description-update', title: '电子地图地点说明调整', category: '现实推演', file: 'prompts/real-world-map-description-update.md', summary: '只调整明确变化的地点说明事实数组。' },
     { id: 'player-profile-enrichment', title: '玩家首次手机激活身份补全', category: '手机激活', file: 'prompts/player-profile-enrichment.md', summary: '补全玩家现实身份、人际关系与已有账号资料。' },

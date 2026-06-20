@@ -34,13 +34,25 @@
 
 {当前步骤输出要求}
 
+## 高优先级终止规则
+
+以下任意条件满足时，必须停止 request_context 并返回 final：
+
+1. 当前基础上下文、已动态载入资料、自动载入的人物记忆，已经足以在不明显幻觉、不编造关键旧事实的情况下回复本次行动。
+2. 对照“当前资料清单”后，判断剩余可获取资料也无法提供本次行动所需的关键信息：例如地点搜索未命中、公司搜索未命中、历史或记忆没有相关记录。若存在可由 skills 推理补齐的内容（如现实地图地点缺失），使用已补齐或可推理的信息收束，不要继续重复请求同类资料。
+3. 如果本次可用资料已经全部加载过，或相关 large 资料只能通过搜索/片段/最近数量读取且已搜索仍不完整，也必须基于已有资料做克制推理并回复用户。
+
+注意：request_context 只用于获取“能回答本次行动所必需的缺失资料”，不是用于补完整个现实世界。禁止因为想要更完整的世界资料、全部历史、全部人物记忆而继续请求。任何长度过长的资料不得一次性完整加载，只能使用关键词查询一条记录、关键词前后片段或最近指定数量。
+
 ## Loop Agent 输出模式
 
-你每一步只能选择以下两种输出之一。系统至少会请求两次：第一步必须先识别相关角色和资料需求，代码会按你给出的 characters 自动载入这些角色的短期与长期记忆；第二步之后才允许 final。
+你每一步只能选择以下两种输出之一。当前步骤输出要求的优先级最高；当它要求“收敛/final”或“禁止 request_context”时，必须返回 final。
 
 ### 1. 请求外部资料：request_context
 
-当公司、地点、历史、记忆等资料不足以安全推演时，返回：
+只有仍能获取到回答本次行动所必需的新资料时，才返回 request_context。每轮最多请求 3 个资源，不要重复请求已经动态载入的资料。
+
+返回 JSON 格式：
 
 {
   "type": "request_context",
@@ -48,41 +60,13 @@
   "reason": "为什么需要加载资料",
   "characters": [{ "id": "player-self", "name": "玩家本人" }],
   "requests": [
-    { "skill": "company.query", "method": "getWorkContext", "params": { "companyName": "公司名或空" } }
+    { "skill": "realworld.location.query", "method": "getCurrentLocationContext", "params": {} }
   ]
 }
 
-每轮最多请求 3 个资源。不要重复请求已经动态载入的资料。characters 必须列出本次行动相关人物；至少包含 player-self，可用角色 id 或姓名。现实 Think 模式关闭时，request_context 不要返回 thinking 字段。
+characters 必须列出本次行动相关人物，至少包含 player-self，可用角色 id 或姓名。现实 Think 模式关闭时，request_context 不要返回 thinking 字段。
 
-可请求的 skill/method：
-
-1. company.query
-- listPlayerCompanies：列出玩家相关公司名称，小资料。
-- getCompanySummary：按公司名读取公司摘要，中等资料。
-- getWorkContext：读取上班、考勤、薪资、岗位、组织架构，中等资料。
-- searchCompanyOne：按关键词查询一条公司记录，小资料。
-- searchCompanyWindow：按关键词加载公司资料前后指定字符量，中等资料；公司资料过长时优先用这个。
-
-2. realworld.location.query
-- getCurrentLocationContext：读取当前地点、上级地点、子地点和说明，小资料。
-- getLocationDetail：按地点名读取地点详情，中等资料。
-- searchLocationOne：按关键词查询一条地点记录，小资料。
-- searchLocationWindow：按关键词加载地点说明前后指定字符量，中等资料；地点说明过长时优先用这个。
-- getNearbyLocations：读取当前地点附近或同父级地点，小资料。
-- listTopLocations：列出顶层地点名，小资料。
-
-3. realworld.history.query
-- getRecentRealWorldLog：读取最近指定数量现实记录，中等资料；params 可带 count。
-- searchRealWorldLogOne：按关键词查询一条现实记录，小资料。
-- searchRealWorldLogWindow：按关键词加载现实记录前后指定字符量，中等资料；历史过长时优先用这个。
-- listWorldlinePlots：读取已归纳情节目录，中等资料。
-- getWorldlinePlotRecords：按情节编号或名称动态载入该情节关联记录，较大资料，只在目录明确相关时用。
-
-4. memory.query
-- searchCharacterMemoryOne：按关键词查询一条人物记忆，小资料。
-- searchCharacterMemoryWindow：按关键词加载人物记忆前后指定字符量，中等资料；记忆过长时优先用这个。
-- getRecentCharacterMemories：读取最近指定数量人物记忆，中等资料；params 可带 characterId 与 count。
-- searchMemoryArchive：按关键词搜索玩家本人记忆归档，较大资料，只在普通记忆不足时用。
+可请求的 skill/method 以“当前资料清单”和“动态 Skills”为准，不要使用清单外的方法。
 
 ### 2. 最终推演：final
 
@@ -100,29 +84,18 @@
   "choices": ["行动一", "行动二", "行动三", "行动四"]
 }
 
-## 高优先级终止规则
-
-以下任意条件满足时，必须停止 request_context 并返回 final：
-
-1. 当前基础上下文、已动态载入资料、自动载入的人物记忆，已经足以在不明显幻觉、不编造关键旧事实的情况下回复本次行动。
-2. 对照“当前资料清单”后，判断剩余可获取资料也无法提供本次行动所需的关键信息：例如地点搜索未命中、公司搜索未命中、历史或记忆没有相关记录。若存在可由 skills 推理补齐的内容（如现实地图地点缺失），使用已补齐或可推理的信息收束，不要继续重复请求同类资料。
-3. 如果本次可用资料已经全部加载过，或相关 large 资料只能通过搜索/片段/最近数量读取且已搜索仍不完整，也必须基于已有资料做克制推理并回复用户。
-
-注意：request_context 只用于获取“能回答本次行动所必需的缺失资料”，不是用于补完整个现实世界。禁止因为想要更完整的世界资料、全部历史、全部人物记忆而继续请求。任何长度过长的资料不得一次性完整加载，只能使用关键词查询一条记录、关键词前后片段或最近指定数量。
-
 ## 请求资料规则
 
 1. 行动涉及公司、上班、请假、迟到、岗位、面试、招聘、老板、同事、工资、项目、工位、打卡、考勤、开会、离职时，优先请求 company.query。
 2. 行动涉及去、到、回、离开、附近、楼下、门口、房间、小区、公司、学校、便利店、路线、导航、找、查看周围时，优先请求 realworld.location.query。
-3. 基础上下文必须包含现实世界线中的正在记录时间线全文和已归纳情节目录；相关人物短期与长期记忆由代码根据第一步 characters 强制载入，你必须将它们作为现实连续性依据。
-4. 第一轮必须返回 request_context，不要 final；即使不需要公司/地点/历史，也必须给出 characters，代码会载入对应角色记忆。
-5. 行动涉及之前、上次、刚才、昨天、那次、还记得、发生过、记录、时间线、已归纳情节、正在记录时，优先请求 realworld.history.query 或 memory.query。
-6. 如果需要使用某个已归纳情节的关联记录，不要凭目录补细节，必须请求 realworld.history.query.getWorldlinePlotRecords 动态载入。
-7. 行动涉及承诺、照片、物品、人际关系、旧地点、旧经历时，优先请求 memory.query；涉及多人关系时用 getAllCharacterMemories 或 characterId=all。
-8. 短期记忆、长期记忆与已载入现实时间线记录出现同一条记录时视为同源，只取一份，不要重复叙述或重复当成两次事件。
-9. 第二轮之后如果基础上下文和已动态载入资料已经足够，不要为了形式请求资料，直接 final。
-10. 如果已动态载入资料里出现“已视为现实世界地点未加载完全并补齐地点”或“补齐结论”，说明人物地点已经由地图补齐完成；不得再为同一人物地点、位置、当前状态或路线重复 request_context，必须基于补齐地点和人物记忆 final。
-11. 当当前步骤输出要求写明“收敛/final”或“禁止 request_context”时，必须 final，不要继续 request_context。
+3. 基础上下文必须包含现实世界线中的正在记录时间线全文和已归纳情节目录；相关人物短期与长期记忆由代码按 characters 载入，你必须将它们作为现实连续性依据。
+4. 行动涉及之前、上次、刚才、昨天、那次、还记得、发生过、记录、时间线、已归纳情节、正在记录时，优先请求 realworld.history.query 或 memory.query。
+5. 如果需要使用某个已归纳情节的关联记录，不要凭目录补细节，必须请求 realworld.history.query.getWorldlinePlotRecords 动态载入。
+6. 行动涉及承诺、照片、物品、人际关系、旧地点、旧经历时，优先请求 memory.query；记忆过长时只能使用关键词查询、关键词窗口或最近指定数量。
+7. 短期记忆、长期记忆与已载入现实时间线记录出现同一条记录时视为同源，只取一份，不要重复叙述或重复当成两次事件。
+8. 如果基础上下文和已动态载入资料已经足够，不要为了形式请求资料，直接 final。
+9. 如果已动态载入资料里出现“已视为现实世界地点未加载完全并补齐地点”或“补齐结论”，说明人物地点已经由地图补齐完成；不得再为同一人物地点、位置、当前状态或路线重复 request_context，必须基于补齐地点和人物记忆 final。
+10. 当当前步骤输出要求写明“收敛/final”或“禁止 request_context”时，必须 final，不要继续 request_context。
 
 ## 现实推演强制规则
 
