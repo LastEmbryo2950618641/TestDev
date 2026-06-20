@@ -3,9 +3,12 @@ window.GameModules.memoryQueryActions = {
   memoryQueryContext(characterId = '', keyword = '') {
     const id = characterId || 'player-self';
     const query = String(keyword || '').trim();
-    const all = this.getCharacterMemory?.(id) || '';
-    const hits = this.searchCharacterMemory?.(id, query) || '';
-    return [`## 全部短期与长期记忆\n${all}`, query ? `## 关键词记忆条\n${hits}` : ''].filter(Boolean).join('\n\n');
+    const memory = window.GameModules.characterMemory?.ensure?.(id);
+    if (!memory) return '暂无人物记忆。';
+    const m = window.GameModules.characterMemory;
+    const status = [m.statLine('刚发生记忆', m.stats(memory.shortTerm?.recent, m.limits.recent)), m.statLine('近发生记忆', m.stats(memory.shortTerm?.summarized, m.limits.summarized)), m.statLine('难以忘记', m.stats(memory.longTerm?.vivid, m.limits.vivid)), m.statLine('不可忘记', m.stats(memory.longTerm?.permanent, m.limits.permanent))].join('｜');
+    const hits = query ? this.searchCharacterMemory?.(id, query) || '' : '无关键词。';
+    return [`## 记忆状态\n${status}`, `## 关键词记忆条\n${hits}`].join('\n\n').slice(0, 2200);
   },
 
   getCharacterMemory(characterId = '') {
