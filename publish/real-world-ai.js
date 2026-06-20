@@ -8,29 +8,18 @@ window.GameModules.realWorldAi = {
 
   async generate(store, prompt, action, logId = null) {
     const requestId = ++this.latestRequestId;
-    let buffer = '';
-    let lastPaint = 0;
     try {
-      let resolveDone;
-      const donePromise = new Promise((resolve) => { resolveDone = resolve; });
-      await Promise.race([
-        window.GameModules.aiRequest.complete({
-          source: 'real-world-engine', model: store.modelId, prompt, timeoutMs: 90000, requireDone: true,
-          onChunk: async (chunk, done, info) => {
-            if (requestId !== this.latestRequestId) return;
-            buffer = info.buffer;
-            const changed = logId && store.updateRealWorldStream?.(logId, buffer);
-            if (changed && performance.now() - lastPaint > 50) {
-              lastPaint = performance.now();
-              await new Promise((resolve) => (window.requestAnimationFrame || setTimeout)(resolve));
-            }
-            if (done) resolveDone();
-          },
-        }),
-        donePromise,
-        new Promise((_, reject) => setTimeout(() => reject(new Error('现实世界推演超时')), 90000)),
-      ]);
-      return this.parse(buffer, store, action);
+      const loop = await window.GameModules.realWorldAgentLoop.run(store, action, logId);
+      if (requestId !== this.latestRequestId) return this.fallback(store, action);
+      const result = this.parse(loop.result, store, action);
+      result.promptPack = {
+        systemPrompt: loop.prompt || prompt || '',
+        userPrompt: action,
+        model: store.modelId,
+        promptTokens: Math.ceil(String(loop.prompt || prompt || '').length / 2),
+        loadedContext: loop.loaded || [],
+      };
+      return result;
     } catch (err) {
       console.error('现实世界推演失败:', err.code, err.message, err.stack);
       return this.fallback(store, action);
@@ -39,7 +28,7 @@ window.GameModules.realWorldAi = {
 
   parse(content, store, action) {
     try {
-      const data = window.GameModules.jsonUtils.parseLoose(content);
+      const data = content && typeof content === 'object' ? content : window.GameModules.jsonUtils.parseLoose(content);
       return {
         sceneTitle: String(data.sceneTitle || '现实世界').slice(0, 14),
         locationName: this.normalizeLocationName(data.locationName || store.realWorldLocationName),

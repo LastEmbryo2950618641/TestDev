@@ -130,9 +130,9 @@ window.GameModules.realWorldActions = {
     const entry = { id: this.nextId++, type: 'ai', narration: '现实世界正在推演…', thinking: '', streaming: true };
     this.realWorldLog.push(entry);
     try {
-      const prompt = await window.GameModules.createRealWorldPrompt(this, text);
-      entry.promptPack = { systemPrompt: prompt, userPrompt: text, model: this.modelId, promptTokens: Math.ceil(prompt.length / 2) };
-      const result = await window.GameModules.realWorldAi.generate(this, prompt, text, entry.id);
+      entry.promptPack = { systemPrompt: '现实世界 Loop Agent 将按步骤动态载入上下文。', userPrompt: text, model: this.modelId, promptTokens: 0 };
+      const result = await window.GameModules.realWorldAi.generate(this, '', text, entry.id);
+      if (result.promptPack) entry.promptPack = result.promptPack;
       await this.applyRealWorldResult(entry.id, result);
       await this.recordPlayerRealWorldMemory(text, result);
       await this.save();
