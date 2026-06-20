@@ -2,7 +2,7 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldAgentLoop = {
   minSteps: 2,
-  maxSteps: 4,
+  maxSteps: 8,
 
   async run(store, action, logId = null) {
     const ctx = window.GameModules.realWorldAgentContext;
@@ -35,10 +35,19 @@ window.GameModules.realWorldAgentLoop = {
 
       if (step < this.minSteps) continue;
       if (data.type === 'final') return { result: data, prompt, loaded, raw, trace };
-      if (data.type === 'request_context' && step < this.maxSteps) continue;
-      return { result: window.GameModules.realWorldAi.fallback(store, action), prompt, loaded, raw, trace };
+      if (data.type === 'request_context' && results.length && step < this.maxSteps) continue;
+      return await this.forceFinal({ store, action, base, loaded, skills, trace, materialSession, logId, prompt, raw });
     }
-    return { result: window.GameModules.realWorldAi.fallback(store, action), prompt: lastPrompt, loaded, raw: lastRaw, trace };
+    return await this.forceFinal({ store, action, base, loaded, skills, trace, materialSession, logId, prompt: lastPrompt, raw: lastRaw });
+  },
+
+  async forceFinal({ store, action, base, loaded, skills, trace, materialSession, logId, prompt, raw }) {
+    const finalPrompt = await this.buildPrompt({ store, action, base, loaded, skills, step: '收敛', materialSession, forceFinal: true });
+    this.markStep(store, logId, '现实资料已足够，正在整理最终结果…');
+    const finalRaw = await this.completeStep(store, finalPrompt, logId, true);
+    const finalData = this.parseStep(finalRaw);
+    if (finalData?.type === 'final') return { result: finalData, prompt: finalPrompt, loaded, raw: finalRaw, trace };
+    return { result: window.GameModules.realWorldAi.fallback(store, action), prompt: finalPrompt || prompt, loaded, raw: finalRaw || raw, trace };
   },
 
   async loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step, materialSession = null) {
@@ -61,7 +70,7 @@ window.GameModules.realWorldAgentLoop = {
     return out;
   },
 
-  async buildPrompt({ store, action, base, loaded, skills, step, materialSession = null }) {
+  async buildPrompt({ store, action, base, loaded, skills, step, materialSession = null, forceFinal = false }) {
     const outputJson = JSON.stringify(this.outputSchema(store));
     const loadedText = window.GameModules.realWorldAgentContext.buildLoadedText(loaded);
     const materialText = window.GameModules.realWorldMaterials?.summary?.(materialSession) || '';
@@ -69,10 +78,11 @@ window.GameModules.realWorldAgentLoop = {
       基础上下文: base,
       动态载入资料: [loadedText, materialText].filter(Boolean).join('\n\n'),
       本次行动: action || '继续观察现实世界',
-      当前步骤: `${step}/${this.maxSteps}`,
+      当前步骤: forceFinal ? '收敛/final' : `${step}/${this.maxSteps}`,
       最大步骤: this.maxSteps,
       动态Skills: skills,
       Think模式规则: this.thinkModeRule(store),
+      当前步骤输出要求: this.stepOutputRule(step, forceFinal),
       输出示例: outputJson,
     });
   },
@@ -80,6 +90,12 @@ window.GameModules.realWorldAgentLoop = {
   thinkModeRule(store) {
     if (store.realWorldThinkMode) return '现实 Think 模式：开启。request_context 与 final 都必须返回 thinking 字段，thinking 放在 type 后、reason/narration 前，40到90个汉字，作为展示给玩家看的逐步推演摘要，不输出隐藏推理链。';
     return '现实 Think 模式：关闭。request_context 不要返回 thinking；final 可返回简短 thinking，界面主要显示步骤、reason 和载入资料。';
+  },
+
+  stepOutputRule(step, forceFinal = false) {
+    if (forceFinal) return '当前为收敛步骤：禁止 request_context，必须把已有资料整理为 final。资料不完整时也要基于已有资料做克制推理，不要继续请求资料。';
+    if (step === 1) return '当前是第1步：必须返回 request_context，用于识别相关角色与必要资料。';
+    return '当前可直接 final；只有仍能获取到回答本次行动所必需的新资料时，才允许 request_context。若请求不到新资料或只是想补全世界，必须 final。';
   },
 
   outputSchema(store) {
