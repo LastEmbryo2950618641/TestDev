@@ -68,7 +68,7 @@ window.GameModules.realWorldThinkingActions = {
   realWorldTraceLines(entry) {
     const stream = Array.isArray(entry?.streamTrace) ? entry.streamTrace : [];
     const trace = Array.isArray(entry?.agentTrace) ? entry.agentTrace : [];
-    const fallback = entry?.streaming && !stream.length ? ['步骤进行中｜正在推演', '正在接收现实 AI 的推演内容。'] : [];
+    const fallback = entry?.streaming && !entry?.thinking && !stream.length ? ['步骤进行中｜正在推演', '正在接收现实 AI 的推演内容。'] : [];
     return stream.concat(fallback, trace.flatMap((item) => this.realWorldTraceItemLines(item)));
   },
 
