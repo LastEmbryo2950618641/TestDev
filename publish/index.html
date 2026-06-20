@@ -793,14 +793,16 @@
       <section class="identity-memory-panel dev-section" data-section-title="身份证记忆档案区">
         <label class="identity-memory-select"><span>记忆档案</span><select x-model="$store.game.identityMemoryViewMode"><option value="shortTerm">短期记忆</option><option value="longTerm">长期记忆</option><option value="archive">搜索归档</option></select></label>
         <div class="memory-list" x-show="$store.game.identityMemoryViewMode === 'shortTerm'">
-          <small x-text="$store.game.identityMemoryStatus('shortTerm')"></small>
+          <nav class="memory-sub-tabs"><button type="button" :class="{ active: $store.game.identityMemoryShortTab === 'recent' }" @click="$store.game.identityMemoryShortTab = 'recent'">刚发生记忆</button><button type="button" :class="{ active: $store.game.identityMemoryShortTab === 'summarized' }" @click="$store.game.identityMemoryShortTab = 'summarized'">近发生记忆</button><button type="button" :class="{ active: $store.game.identityMemoryShortTab === 'forgotten' }" @click="$store.game.identityMemoryShortTab = 'forgotten'">遗忘区</button></nav>
+          <small x-text="$store.game.identityMemorySubStatus('shortTerm')"></small>
           <template x-for="item in $store.game.identityMemoryItems('shortTerm')" :key="item.id"><p><b x-text="`${item.time?.label || '时间未知'}｜印象${item.impression}`"></b><span x-text="item.summary || item.text"></span></p></template>
-          <small x-show="!$store.game.identityMemoryItems('shortTerm').length">暂无短期记忆</small>
+          <small x-show="!$store.game.identityMemoryItems('shortTerm').length" x-text="`暂无${$store.game.identityMemoryShortLabel()}`"></small>
         </div>
         <div class="memory-list" x-show="$store.game.identityMemoryViewMode === 'longTerm'">
-          <small x-text="$store.game.identityMemoryStatus('longTerm')"></small>
+          <nav class="memory-sub-tabs"><button type="button" :class="{ active: $store.game.identityMemoryLongTab === 'vivid' }" @click="$store.game.identityMemoryLongTab = 'vivid'">难以忘记</button><button type="button" :class="{ active: $store.game.identityMemoryLongTab === 'permanent' }" @click="$store.game.identityMemoryLongTab = 'permanent'">不可忘记</button></nav>
+          <small x-text="$store.game.identityMemorySubStatus('longTerm')"></small>
           <template x-for="item in $store.game.identityMemoryItems('longTerm')" :key="item.id"><p><b x-text="`${item.time?.label || '时间未知'}｜印象${item.impression}`"></b><span x-text="item.summary || item.text"></span></p></template>
-          <small x-show="!$store.game.identityMemoryItems('longTerm').length">暂无长期记忆</small>
+          <small x-show="!$store.game.identityMemoryItems('longTerm').length" x-text="`暂无${$store.game.identityMemoryLongLabel()}`"></small>
         </div>
         <div class="memory-editor" x-show="$store.game.identityMemoryViewMode === 'archive'">
           <div class="memory-search-row"><input x-model="$store.game.identityMemoryArchiveQuery" placeholder="输入关键词，搜索当前身份证目标的记忆..." @keydown.enter="$store.game.searchIdentityMemoryArchive()"><button @click="$store.game.searchIdentityMemoryArchive()" :disabled="!$store.game.identityMemoryArchiveQuery.trim()">搜索</button></div>

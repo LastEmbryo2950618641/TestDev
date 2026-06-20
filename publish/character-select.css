@@ -651,6 +651,29 @@
   overscroll-behavior: contain;
 }
 
+.memory-sub-tabs {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+}
+
+.memory-sub-tabs button {
+  flex: 0 0 auto;
+  min-height: 28px;
+  padding: 0 9px;
+  border: 1px solid rgba(116, 246, 255, .18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .06);
+  color: #aeb9d6;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.memory-sub-tabs button.active {
+  background: rgba(116, 246, 255, .18);
+  color: #74f6ff;
+}
+
 .memory-list p {
   display: grid;
   gap: 3px;

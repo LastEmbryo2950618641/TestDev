@@ -11,9 +11,28 @@ window.GameModules.identityMemoryActions = {
 
   identityMemoryItems(kind) {
     const memory = this.identityMemory();
-    if (kind === 'shortTerm') return [...(memory.shortTerm.recent || []), ...(memory.shortTerm.summarized || [])];
-    if (kind === 'longTerm') return [...(memory.longTerm.vivid || []), ...(memory.longTerm.permanent || [])];
+    if (kind === 'shortTerm') return this.identityMemorySubItems(memory.shortTerm, this.identityMemoryShortTab);
+    if (kind === 'longTerm') return this.identityMemorySubItems(memory.longTerm, this.identityMemoryLongTab);
     return [];
+  },
+
+  identityMemorySubItems(scope = {}, tab = '') {
+    return scope?.[tab] || [];
+  },
+
+  identityMemorySubStatus(kind) {
+    const memory = this.identityMemory();
+    const m = window.GameModules.characterMemory;
+    if (kind === 'shortTerm') return m.statLine(this.identityMemoryShortLabel(), m.stats(this.identityMemoryItems('shortTerm'), m.limits[this.identityMemoryShortTab] || m.limits.forgotten));
+    return m.statLine(this.identityMemoryLongLabel(), m.stats(this.identityMemoryItems('longTerm'), m.limits[this.identityMemoryLongTab]));
+  },
+
+  identityMemoryShortLabel() {
+    return ({ recent: '刚发生记忆', summarized: '近发生记忆', forgotten: '遗忘区' })[this.identityMemoryShortTab] || '刚发生记忆';
+  },
+
+  identityMemoryLongLabel() {
+    return ({ vivid: '难以忘记', permanent: '不可忘记' })[this.identityMemoryLongTab] || '难以忘记';
   },
 
   identityMemoryStatus(kind) {
