@@ -5,7 +5,7 @@ window.GameModules = window.GameModules || {};
   if (!ctx || ctx.memoryInstalled) return;
 
   function clean(text) {
-    return String(text || '').replace(/\s+/g, '').slice(0, 180);
+    return String(text || '').replace(/\s+/g, '').slice(0, 220);
   }
 
   Object.assign(ctx, {
@@ -18,18 +18,43 @@ window.GameModules = window.GameModules || {};
       return [...ids];
     },
 
+    characterState(store, id) {
+      return store.rpgStates?.[id] || window.GameModules.sqliteSave.getCharacterState?.(id) || null;
+    },
+
     characterMemoryName(store, id) {
       if (id === 'player-self') return store.playerDisplayCharacter?.().name || store.playerName || '玩家本人';
-      const state = store.rpgStates?.[id] || window.GameModules.sqliteSave.getCharacterState?.(id) || {};
+      const state = this.characterState(store, id) || {};
       return state.name || state.profile?.name || id;
     },
 
-    timelineMemoryIndex(store) {
+    resolveMemoryIds(store, characters = []) {
+      const ids = new Set(['player-self']);
+      const allIds = this.allCharacterMemoryIds(store);
+      const states = (window.GameModules.sqliteSave.listCharacterStates?.() || []).concat(Object.values(store.rpgStates || {}));
+      characters.forEach((item) => {
+        const rawId = String(item?.id || item?.characterId || '').trim();
+        const rawName = String(item?.name || (typeof item === 'string' ? item : '')).trim();
+        if (rawId === 'all' || rawName === 'all') allIds.forEach((id) => ids.add(id));
+        if (rawId && allIds.includes(rawId)) ids.add(rawId);
+        const hit = states.find((state) => state?.id === rawId || state?.name === rawName || state?.profile?.name === rawName);
+        if (hit?.id) ids.add(String(hit.id));
+      });
+      return [...ids];
+    },
+
+    timelineMemoryIndex(store, loaded = []) {
       const line = store.realWorldline?.() || {};
-      const events = line.events || [];
+      const pendingIds = line.pendingPlot?.recordIds || [];
+      const pending = (line.events || []).filter((event) => pendingIds.includes(event.eventId) || pendingIds.includes(event.id));
+      const loadedHistory = loaded.filter((item) => String(item.title || '').includes('realworld.history.query'));
+      const texts = [
+        ...pending.map((event) => `${event.detail || ''}${event.summary || ''}`),
+        ...loadedHistory.map((item) => item.text || ''),
+      ];
       return {
-        ids: new Set(events.flatMap((event) => [event.eventId, event.id]).filter(Boolean)),
-        texts: events.map((event) => clean(`${event.detail || ''}${event.summary || ''}`)).filter((text) => text.length > 30),
+        ids: new Set(pending.flatMap((event) => [event.eventId, event.id]).filter(Boolean)),
+        texts: texts.map(clean).filter((text) => text.length > 30),
       };
     },
 
@@ -62,19 +87,29 @@ window.GameModules = window.GameModules || {};
       return { lines, skipped };
     },
 
-    peopleMemoryBrief(store, action = '', maxChars = 2800) {
-      const index = this.timelineMemoryIndex(store);
+    characterMemoriesForStep(store, action = '', characters = [], loaded = [], alreadyLoaded = new Set(), forcePlayer = false) {
+      const ids = this.resolveMemoryIds(store, characters).filter((id) => forcePlayer || !alreadyLoaded.has(id));
+      if (!ids.length) return null;
+      const index = this.timelineMemoryIndex(store, loaded);
       const sections = [];
       let skippedTotal = 0;
-      this.allCharacterMemoryIds(store).forEach((id) => {
+      const loadedIds = [];
+      ids.forEach((id) => {
         const memory = window.GameModules.characterMemory?.ensure?.(id);
         if (!memory) return;
-        const picked = this.collectMemoryLines(memory, index, id === 'player-self' ? 10 : 6);
+        const picked = this.collectMemoryLines(memory, index, id === 'player-self' ? 10 : 7);
         skippedTotal += picked.skipped;
+        loadedIds.push(id);
         if (picked.lines.length) sections.push(`### ${this.characterMemoryName(store, id)}（${id}）\n${picked.lines.join('\n')}`);
       });
-      const note = skippedTotal ? `\n（已去重 ${skippedTotal} 条：与现实时间线记录或短/长期记忆重复的同源记录只保留一份。）` : '';
-      return this.limit((sections.join('\n\n') || '暂无人物短期/长期记忆。') + note, maxChars);
+      const note = skippedTotal ? `\n（已去重 ${skippedTotal} 条：与已载入现实时间线记录或短/长期记忆重复的同源记录只保留一份。）` : '';
+      const text = this.limit((sections.join('\n\n') || '相关角色暂无可用短期/长期记忆。') + note, 3200);
+      return { title: 'memory.query.characterMemoriesForStep', text, max: 3200, ids: loadedIds };
+    },
+
+    peopleMemoryBrief(store, action = '', maxChars = 2800) {
+      const item = this.characterMemoriesForStep(store, action, [{ id: 'all' }], [], new Set(), true);
+      return this.limit(item?.text || '暂无人物短期/长期记忆。', maxChars);
     },
 
     searchAllPeopleMemory(store, keyword = '') {
@@ -85,11 +120,6 @@ window.GameModules = window.GameModules || {};
       }).filter(Boolean).join('\n\n') || '未命中任何人物记忆。', 2600);
     },
   });
-
-  const baseSnapshot = ctx.baseSnapshot.bind(ctx);
-  ctx.baseSnapshot = function wrappedBaseSnapshot(store, action = '') {
-    return [baseSnapshot(store, action), `相关人物短期/长期记忆：\n${this.peopleMemoryBrief(store, action)}`].join('\n');
-  };
 
   ctx.memory = async function memory(store, action, method, params = {}) {
     const keyword = String(params.keyword || action || '').trim();
