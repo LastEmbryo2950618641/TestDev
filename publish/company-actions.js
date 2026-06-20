@@ -164,6 +164,7 @@ window.GameModules.companyActions = {
 
   openCompanyApp() {
     this.initCompanySystem();
+    this.ensureAllCompanyFactions?.();
     this.identityAppOpen = false;
     this.wechatAppOpen = false;
     this.saveAppOpen = false;

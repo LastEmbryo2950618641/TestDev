@@ -33,7 +33,7 @@ window.GameModules.calendarActions = {
 
   addCalendarEvent(event) {
     this.initCalendar();
-    this.calendarState.events.unshift({ id: `cal-${Date.now()}`, createdAt: new Date().toISOString(), ...event });
+    this.calendarState.events.unshift({ ...event, id: event.id || `cal-${Date.now()}`, createdAt: event.createdAt || new Date().toISOString() });
     this.save?.();
   },
 

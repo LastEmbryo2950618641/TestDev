@@ -168,25 +168,6 @@ window.GameModules.bossActions = {
     return '投递简历后，系统会约定面试时间。';
   },
 
-  applyBossJob() {
-    const job = this.selectedBossCompanyJob();
-    if (!job) return;
-    const event = this.createBossAppointment(job);
-    this.addCalendarEvent?.(event);
-    this.bossState.applyMessage = `已录入日历：${event.title}`;
-    this.save?.();
-  },
-
-  createBossAppointment(job) {
-    const now = this.phoneDate?.() || new Date();
-    const hours = Math.max(Number(this.bossState.applyHours) || 1, 1);
-    const time = new Date(now.getTime() + (job.payType === '创作者' ? 48 : 24) * 60 * 60 * 1000);
-    const type = job.payType === '创作者' ? '投稿通知' : job.payType === '定时工' ? '到岗上班' : '面试';
-    const title = `${job.company}｜${job.title}｜${type}`;
-    const note = job.payType === '定时工' ? `预约${hours}小时，${this.bossJobPayText(job)}` : this.bossJobPayText(job);
-    return { title, type, time: time.toISOString(), company: job.company, jobTitle: job.title, note };
-  },
-
   bossJobPayText(job) {
     if (!job) return '未选择职位';
     if (job.payType === '员工') return `底薪${job.base}元｜年底${job.performanceMonths}个月底薪绩效`;

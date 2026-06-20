@@ -48,8 +48,8 @@ function registerGameStore() {
   const modules = [
     criticalActionFallback, gm.actions, gm.rpgFieldUi, gm.resultActions, gm.loadingActions, gm.roleCardLoadingActions, gm.saveActions, gm.styleActions,
     gm.worldlineActions, gm.predefinedRoleCardActions, gm.playerSetupActions, gm.playerIdentityActions, gm.identityMemoryActions, gm.identityAppActions, gm.memoryQueryActions, gm.wechatActions, gm.wechatViewActions, gm.wechatMemoryContextActions, gm.wechatChatActions, gm.wechatImageActions, gm.wechatMentionActions, gm.wechatWorldlineActions, gm.wechatMemoryDebugActions, gm.wechatAppActions, gm.wechatAlbumTagActions, gm.wechatAlbumPromptListActions, gm.wechatAvatarCropActions, gm.wechatAlbumActions, gm.wechatChangePanelActions, gm.entryActions,
-    gm.catalogActions, gm.coreActions, gm.appSwitchActions, gm.inventoryActions, gm.realWorldStreamActions, gm.realWorldThinkingActions, gm.realWorldActions, gm.realWorldFactionActions, gm.companyActions, gm.companyAttendanceActions,
-    gm.bossActions, gm.bossAiActions, gm.calendarActions, gm.factionActions, gm.factionOrgActions, gm.factionAiActions, gm.skillsActions, gm.knownProfessionActions, gm.promptActions, gm.settingsActions, gm.tokenStatsActions,
+    gm.catalogActions, gm.coreActions, gm.appSwitchActions, gm.inventoryActions, gm.realWorldStreamActions, gm.realWorldThinkingActions, gm.realWorldActions, gm.realWorldMapActions, gm.realWorldFactionActions, gm.realWorldMatterActions, gm.companyActions, gm.companyAttendanceActions, gm.companyFactionActions,
+    gm.bossActions, gm.bossAppointmentActions, gm.bossAiActions, gm.calendarActions, gm.factionActions, gm.factionOrgActions, gm.factionAiActions, gm.skillsActions, gm.knownProfessionActions, gm.promptActions, gm.settingsActions, gm.tokenStatsActions,
   ].map((module) => module || {});
 
   Alpine.store('game', {
@@ -105,7 +105,7 @@ function registerGameStore() {
     mindText: '', feedbackSource: 'pending',
     characterIntent: '',
     choices: cfg.openingChoices,
-    log: [], realWorldOpen: false, realWorldBusy: false, realWorldInput: '', realWorldThinkMode: false, realWorldFunctionOpen: false, realWorldFunctionView: 'menu', realWorldSceneTitle: '现实世界', realWorldLocationName: '', realWorldMap: window.GameModules.realWorldMap.defaultState({}), realWorldQuest: '确认手机异常与现实处境', realWorldStatus: '现实稳定', realWorldChoices: ['检查手机记录', '观察居住环境', '联系熟人确认', '暂时休息'], realWorldLog: [], realWorldLogPage: 1, realWorldLogPageSize: 12, realWorldLogTotal: 0, realWorldlineState: { events: [], plots: [], pendingPlot: null }, realWorldProfileOpen: false, companyState: window.GameModules.companySystem.defaultState({}), bossState: window.GameModules.bossRecruitment.defaultBossState({}), calendarState: window.GameModules.calendarSystem.defaultCalendarState(), factionState: window.GameModules.factionSystem.defaultState({}), skillsState: window.GameModules.skillsApp.defaultState(), promptState: window.GameModules.promptTemplates.defaultState(), tokenStatsState: window.GameModules.tokenStats.defaultState(),
+    log: [], realWorldOpen: false, realWorldBusy: false, realWorldInput: '', realWorldThinkMode: false, realWorldFunctionOpen: false, realWorldFunctionView: 'menu', realWorldMatterState: { open: false, activeId: '' }, realWorldSceneTitle: '现实世界', realWorldLocationName: '', realWorldMap: window.GameModules.realWorldMap.defaultState({}), realWorldQuest: '确认手机异常与现实处境', realWorldStatus: '现实稳定', realWorldChoices: ['检查手机记录', '观察居住环境', '联系熟人确认', '暂时休息'], realWorldLog: [], realWorldLogPage: 1, realWorldLogPageSize: 12, realWorldLogTotal: 0, realWorldlineState: { events: [], plots: [], pendingPlot: null }, realWorldProfileOpen: false, companyState: window.GameModules.companySystem.defaultState({}), bossState: window.GameModules.bossRecruitment.defaultBossState({}), calendarState: window.GameModules.calendarSystem.defaultCalendarState(), factionState: window.GameModules.factionSystem.defaultState({}), skillsState: window.GameModules.skillsApp.defaultState(), promptState: window.GameModules.promptTemplates.defaultState(), tokenStatsState: window.GameModules.tokenStats.defaultState(),
     nextId: 1,
     ragQuery: '',
     ragContext: '',
@@ -147,7 +147,7 @@ function registerGameStore() {
           window.GameModules.metrics.ensure(this);
           await this.initGame();
           this.startPhoneClock?.();
-          this.initCompanySystem?.(); this.initBossRecruitment?.(); this.initCalendar?.(); this.initFactionSystem?.(); this.initSkillsApp?.(); this.initKnownProfessionApp?.(); this.initPromptApp?.(); this.initTokenStatsApp?.();
+          this.initCompanySystem?.(); this.initBossRecruitment?.(); this.initCalendar?.(); this.initFactionSystem?.(); this.ensureAllCompanyFactions?.(); this.initSkillsApp?.(); this.initKnownProfessionApp?.(); this.initPromptApp?.(); this.initTokenStatsApp?.();
         } catch (err) {
           console.error('游戏初始化失败:', err.message, err.stack);
           this.loadingDetail = `初始化失败：${err.message || '未知错误'}`;

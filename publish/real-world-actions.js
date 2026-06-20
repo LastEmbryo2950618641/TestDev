@@ -83,36 +83,6 @@ window.GameModules.realWorldActions = {
     return { inventory: '查看玩家本人当前持有或可调用的装备与物品。', wearing: '查看内衣、上衣、下衣、鞋子、饰品和装备槽位等当前穿戴。', map: '查看当前现实地点树，展开子地点或查看地点说明。' }[this.realWorldFunctionView] || '选择现实世界中要执行的功能。';
   },
 
-  realWorldMapRows() {
-    return window.GameModules.realWorldMap.visibleNodes(window.GameModules.realWorldMap.ensure(this, this.playerProfile || {}));
-  },
-
-  toggleRealWorldMapNode(id) {
-    window.GameModules.realWorldMap.toggle(this, id);
-  },
-
-  showRealWorldMapInfo(id) {
-    window.GameModules.realWorldMap.showInfo(this, id);
-  },
-
-  closeRealWorldMapInfo() {
-    window.GameModules.realWorldMap.closeInfo(this);
-  },
-
-  realWorldMapInfoNode() {
-    return window.GameModules.realWorldMap.infoNode(this.realWorldMap);
-  },
-
-  realWorldMapInfoFacts() {
-    const node = this.realWorldMapInfoNode();
-    if (!node) return [];
-    return window.GameModules.realWorldMapFacts?.normalizeFacts?.(node, node.description, window.GameModules.realWorldMapFacts.nowLabel(this)) || [];
-  },
-
-  realWorldMapFactText(fact, index) {
-    return window.GameModules.realWorldMapFacts?.formatFact?.(fact, index) || '';
-  },
-
   seedRealWorldLog() {
     const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
     if (!map.current) return;
@@ -127,13 +97,14 @@ window.GameModules.realWorldActions = {
   },
 
   async submitRealWorldAction(action = '') {
-    const text = String(action || this.realWorldInput || '').trim();
-    if (!text || this.realWorldBusy) return;
+    const rawText = String(action || this.realWorldInput || '').trim();
+    const text = this.realWorldActionWithMatter?.(rawText) || rawText;
+    if (!rawText || this.realWorldBusy) return;
     this.realWorldInput = '';
     this.realWorldBusy = true;
     const now = Date.now();
     const baseId = `real-${now}-${Math.random().toString(36).slice(2, 8)}`;
-    const userEntry = { id: `${baseId}-user`, type: 'user', text, createdAt: new Date(now).toISOString() };
+    const userEntry = { id: `${baseId}-user`, type: 'user', text: rawText, matter: this.activeRealWorldMatter?.() || null, createdAt: new Date(now).toISOString() };
     const entry = { id: `${baseId}-ai`, type: 'ai', narration: '现实世界正在推演…', thinking: '', streaming: true, createdAt: new Date(now + 1).toISOString() };
     entry.promptPack = { systemPrompt: '现实世界 Loop Agent 将按步骤动态载入上下文。', userPrompt: text, model: this.modelId, promptTokens: 0 };
     this.realWorldLog = this.normalizeRealWorldLog([...(this.realWorldLog || []), userEntry, entry]).slice(-Math.max(1, Number(this.realWorldLogPageSize) || 12));
@@ -164,6 +135,7 @@ window.GameModules.realWorldActions = {
     await window.GameModules.rpgLexicon.applyLexiconSkill?.((result.lexiconUpdates || []).filter((item) => item?.kind !== '角色卡' && item?.kind !== '角色技能'));
     await this.applyInventoryUpdatesToState(state, result.lexiconUpdates || []);
     this.advancePhoneTime(result.elapsedSeconds || 300);
+    this.refreshRealWorldMatterStatus?.();
     this.checkWorkReminder?.();
     window.GameModules.realWorldMap.update(this, result.locationName || this.realWorldLocationName, result);
     await this.applyRealWorldFactionUpdates?.(result.factionUpdates || []);

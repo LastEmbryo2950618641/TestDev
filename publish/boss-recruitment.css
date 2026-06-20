@@ -250,3 +250,28 @@
   .boss-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .boss-body { grid-template-columns: 1fr; }
 }
+
+.boss-appointment-options {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.boss-appointment-options strong {
+  color: #dff7ff;
+  font-size: 13px;
+}
+
+.boss-appointment-options button {
+  min-height: 34px;
+  border: 1px solid rgba(166, 188, 255, .22);
+  border-radius: 12px;
+  color: #eef4ff;
+  background: rgba(166, 188, 255, .08);
+  font-weight: 900;
+}
+
+.boss-appointment-options button.active {
+  border-color: rgba(83, 255, 178, .8);
+  background: rgba(83, 255, 178, .18);
+}

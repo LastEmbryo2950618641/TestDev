@@ -7,6 +7,7 @@ window.GameModules.factionActions = {
     this.factionState.factions = this.factionState.factions?.length ? this.factionState.factions : base.factions;
     this.factionState.factions = this.factionState.factions.map((faction) => this.normalizeFactionStructure({ ...faction, fieldReasons: this.completeFactionReasons?.(faction, faction.fieldReasons) || faction.fieldReasons || {} }));
     this.syncCompanyFaction?.();
+    this.ensureAllCompanyFactions?.();
     this.syncRoleCardFactionPositions?.();
   },
 

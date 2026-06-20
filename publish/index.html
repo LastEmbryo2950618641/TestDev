@@ -149,12 +149,16 @@
   <script src="real-world-stream-actions.js"></script>
   <script src="real-world-thinking-actions.js"></script>
   <script src="real-world-actions.js"></script>
+  <script src="real-world-map-actions.js"></script>
   <script src="real-world-faction-actions.js"></script>
+  <script src="real-world-matter-actions.js"></script>
   <script src="company-system.js"></script>
   <script src="company-actions.js"></script>
   <script src="company-attendance-actions.js"></script>
+  <script src="company-faction-actions.js"></script>
   <script src="boss-recruitment.js"></script>
   <script src="boss-actions.js"></script>
+  <script src="boss-appointment-actions.js"></script>
   <script src="boss-ai-actions.js"></script>
   <script src="calendar-system.js"></script>
   <script src="calendar-actions.js"></script>
@@ -505,9 +509,21 @@
           <span class="real-world-clock" x-text="`${$store.game.phoneDateText()} ${$store.game.phoneTimeText()}`"></span>
         </div>
         <div class="top-actions real-world-actions">
+          <button type="button" @click="$store.game.openRealWorldMatterPanel()" x-text="$store.game.activeRealWorldMatter() ? '事项：' + $store.game.activeRealWorldMatter().type : '事项'"></button>
           <button type="button" @click="$store.game.openRealWorldFunctionPanel()">功能</button>
         </div>
       </header>
+
+      <section class="real-world-function-backdrop" x-show="$store.game.realWorldMatterState?.open" @click.self="$store.game.closeRealWorldMatterPanel()" @keydown.escape.window="$store.game.closeRealWorldMatterPanel()" x-cloak>
+        <article class="real-world-function-modal dev-section" data-section-title="现实事项弹窗" role="dialog" aria-modal="true" @click.stop>
+          <header class="identity-header"><div><p class="eyebrow">MATTER</p><h3>选择当前事项</h3><small>过期事项会自动从列表中消失；选中后每次现实推演都会注入该事项。</small></div><button class="small-btn" type="button" @click.stop="$store.game.closeRealWorldMatterPanel()">关闭</button></header>
+          <div class="real-world-inventory">
+            <button class="real-world-function-option" type="button" @click="$store.game.clearRealWorldMatter(); $store.game.closeRealWorldMatterPanel()"><strong>不绑定事项</strong><small>按普通现实行动推演。</small></button>
+            <template x-for="matter in $store.game.realWorldAvailableMatters()" :key="matter.id"><button class="real-world-function-option" type="button" :class="{ active: $store.game.realWorldMatterState?.activeId === matter.id }" @click="$store.game.selectRealWorldMatter(matter.id)"><strong x-text="matter.title"></strong><small x-text="$store.game.realWorldMatterText(matter)"></small></button></template>
+            <p class="real-world-empty" x-show="!$store.game.realWorldAvailableMatters().length">暂无未过期事项。</p>
+          </div>
+        </article>
+      </section>
 
       <section class="real-world-function-backdrop" x-show="$store.game.realWorldFunctionOpen" @click.self="$store.game.closeRealWorldFunctionPanel()" @keydown.escape.window="$store.game.closeRealWorldFunctionPanel()" x-cloak>
         <article class="real-world-function-modal dev-section" data-section-title="现实功能弹窗" role="dialog" aria-modal="true" @click.stop>
@@ -694,7 +710,7 @@
           </div>
           <div class="real-world-choice-dock">
             <div class="story-choice-list dev-section" data-section-title="现实行动选项" x-show="!$store.game.realWorldBusy && $store.game.realWorldChoices.length">
-              <template x-for="choice in $store.game.realWorldChoices" :key="choice"><button class="story-choice-btn" type="button" @click="$store.game.submitRealWorldAction(choice)" x-text="choice"></button></template>
+              <template x-for="choice in $store.game.realWorldChoicesWithMatters()" :key="choice"><button class="story-choice-btn" type="button" @click="$store.game.submitRealWorldAction(choice)" x-text="choice"></button></template>
             </div>
             <div x-show="$store.game.realWorldBusy" class="thinking-line">现实世界正在推演，约 20 秒...</div>
           </div>
@@ -958,6 +974,7 @@
           <header class="identity-header"><div><p class="eyebrow">COMPANY</p><h3 x-text="$store.game.selectedBossCompanyJob()?.company"></h3><small x-text="$store.game.bossApplyHint()"></small></div><button class="small-btn" type="button" @click="$store.game.closeBossCompanyDetail()">关闭</button></header>
           <div class="boss-company-fields"><template x-for="field in $store.game.bossCompanyFields()" :key="field.key"><section class="boss-company-field"><strong x-text="`${field.label}：${field.value}`"></strong><p x-text="field.desc"></p></section></template></div>
           <label class="boss-hours" x-show="$store.game.selectedBossCompanyJob()?.payType === '定时工'"><span>需要工作小时数</span><input type="number" min="1" x-model.number="$store.game.bossState.applyHours"></label>
+          <div class="boss-appointment-options"><strong>选择约定时间</strong><template x-for="(slot, index) in $store.game.bossAppointmentChoices()" :key="slot.start"><button type="button" :class="{ active: $store.game.bossState.selectedAppointmentIndex === index }" @click="$store.game.bossState.selectedAppointmentIndex = index" x-text="slot.label"></button></template></div>
           <button class="story-choice-btn" type="button" @click="$store.game.applyBossJob()" x-text="$store.game.bossApplyButtonText()"></button>
           <p class="boss-apply-message" x-show="$store.game.bossState.applyMessage" x-text="$store.game.bossState.applyMessage"></p>
         </article>

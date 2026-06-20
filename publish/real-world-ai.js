@@ -46,6 +46,7 @@ window.GameModules.realWorldAi = {
         choices: this.normalizeChoices(data.choices),
         elapsedSeconds: window.GameModules.ai.clampElapsed?.(data.elapsedSeconds, 300) || 300,
         metricUpdates: window.GameModules.ai.normalizeMetricUpdates?.(data.metricUpdates) || {},
+        factionUpdates: Array.isArray(data.factionUpdates) ? data.factionUpdates.slice(0, 8) : [],
         lexiconUpdates: window.GameModules.ai.normalizeLexiconUpdates?.(data.lexiconUpdates, store) || [],
       };
     } catch (err) {
