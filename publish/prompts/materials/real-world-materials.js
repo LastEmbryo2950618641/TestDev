@@ -22,6 +22,9 @@ window.GameModules.realWorldMaterials = {
     { id: 'memory-search-window', title: '按关键词加载人物记忆前后片段', size: 'medium', maxChars: 1600, skill: 'memory.query', method: 'searchCharacterMemoryWindow', paramsHint: { characterId: 'player-self或角色id', keyword: '记忆关键词', beforeChars: 400, afterChars: 900 }, when: '人物记忆较长，只加载关键词附近内容。' },
     { id: 'memory-recent', title: '获取最近指定数量人物记忆', size: 'medium', maxChars: 1600, skill: 'memory.query', method: 'getRecentCharacterMemories', paramsHint: { characterId: 'player-self或角色id', count: 5 }, when: '需要最近几条人物短期/长期记忆。' },
     { id: 'memory-archive-search', title: '玩家本人记忆归档搜索', size: 'large', maxChars: 1800, skill: 'memory.query', method: 'searchMemoryArchive', paramsHint: { keyword: '归档关键词' }, when: '短期/长期记忆不足，需要搜索更旧归档。' },
+    { id: 'term-search-one', title: '按关键词查询一条专用术语', size: 'small', maxChars: 900, skill: 'lexicon.query', method: 'searchTermOne', paramsHint: { keyword: '术语名或关键词' }, when: '行动或上下文出现 AI 不能确定含义的专用术语、缩写、APP名、功能名、黑话或自定义概念。' },
+    { id: 'term-search-window', title: '按关键词加载专用术语前后片段', size: 'medium', maxChars: 1400, skill: 'lexicon.query', method: 'searchTermWindow', paramsHint: { keyword: '术语关键词', beforeChars: 300, afterChars: 700 }, when: '术语说明较长，只需要加载关键词附近定义和相关设定。' },
+    { id: 'term-add', title: '新增专用术语', size: 'small', maxChars: 900, skill: 'lexicon.query', method: 'addSpecialTerm', paramsHint: { name: '术语名', summary: '一句话含义', description: '根据已有上下文推断出的设定', aliases: ['别名或缩写'] }, when: '查询数据库未命中，但根据已有资料能克制推断术语含义，需要把术语定义固化到词条表。' },
   ],
 
   list() { return this.items.slice(); },

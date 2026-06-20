@@ -68,6 +68,22 @@ Object.assign(window.GameModules.sqliteSave, {
     return this.cleanLexiconReason(this.getJson('SELECT entry_json FROM lexicon_entries WHERE world_tag=? AND kind=? AND name=?', [worldTag, kind, name]));
   },
 
+  listLexiconEntries(worldTag = '', kind = '') {
+    if (!this.db) return [];
+    const rows = [];
+    const where = [];
+    const params = [];
+    if (worldTag) { where.push('world_tag=?'); params.push(worldTag); }
+    if (kind) { where.push('kind=?'); params.push(kind); }
+    const stmt = this.db.prepare(`SELECT entry_json FROM lexicon_entries${where.length ? ` WHERE ${where.join(' AND ')}` : ''} ORDER BY updated_at DESC`);
+    stmt.bind(params);
+    while (stmt.step()) {
+      try { rows.push(this.cleanLexiconReason(JSON.parse(stmt.getAsObject().entry_json))); } catch (_) { /* ignore bad row */ }
+    }
+    stmt.free();
+    return rows.filter(Boolean);
+  },
+
   async saveLexiconEntry(entry) {
     if (!this.db || !entry) return;
     const now = new Date().toISOString();

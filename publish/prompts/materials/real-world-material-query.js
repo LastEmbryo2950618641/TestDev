@@ -96,6 +96,56 @@ window.GameModules = window.GameModules || {};
       return store.searchCharacterMemory?.('player-self', keyword) || store.memoryQueryContext?.('player-self', keyword) || '未命中相关记忆。';
     },
 
+    lexicon(store, method, params = {}) {
+      const keyword = String(params.keyword || params.name || '').trim();
+      if (method === 'addSpecialTerm') return this.addSpecialTerm(store, params);
+      const entries = this.specialTermEntries(store);
+      if (method === 'searchTermWindow') {
+        const hit = this.findSpecialTerm(entries, keyword);
+        return hit ? (this.sliceAround(this.specialTermRawText(hit), keyword, params.beforeChars, params.afterChars) || this.specialTermText(hit)) : '未命中专用术语。';
+      }
+      if (method === 'searchTermOne') {
+        const hit = this.findSpecialTerm(entries, keyword);
+        return hit ? this.limit(this.specialTermText(hit), 900) : '未命中专用术语。';
+      }
+      return entries.slice(0, 12).map((entry) => this.specialTermLine(entry)).join('\n') || '暂无专用术语。';
+    },
+
+    specialTermEntries(store) {
+      const worldTag = window.GameModules.realWorld2026?.label || store.character?.work || '2026 现代都市现实世界';
+      const rows = window.GameModules.sqliteSave.listLexiconEntries?.(worldTag, '专用术语') || [];
+      return rows.concat(window.GameModules.sqliteSave.listLexiconEntries?.('', '专用术语') || []).filter((entry, index, arr) => arr.findIndex((item) => `${item.worldTag}:${item.kind}:${item.name}` === `${entry.worldTag}:${entry.kind}:${entry.name}`) === index);
+    },
+
+    findSpecialTerm(entries = [], keyword = '') {
+      const key = String(keyword || '').trim();
+      if (!key) return entries[0] || null;
+      return entries.find((entry) => this.specialTermRawText(entry).includes(key) || String(entry.name || '').includes(key) || (entry.aliases || []).some((alias) => String(alias).includes(key))) || null;
+    },
+
+    specialTermRawText(entry = {}) {
+      return `${entry.name || ''}\n${(entry.aliases || []).join('、')}\n${entry.summary || ''}\n${entry.description || ''}\n${entry.promptInstruction || ''}\n${JSON.stringify(entry.value || {})}\n${JSON.stringify(entry.meta || {})}`;
+    },
+
+    specialTermLine(entry = {}) {
+      return `- ${entry.name || '未命名术语'}：${entry.summary || entry.description || '暂无定义'}`;
+    },
+
+    specialTermText(entry = {}) {
+      return [`术语：${entry.name || '未命名术语'}`, `别名：${(entry.aliases || []).join('、') || '无'}`, `摘要：${entry.summary || '暂无摘要'}`, `定义：${entry.description || '暂无定义'}`, `使用规则：${entry.promptInstruction || '按词条定义理解。'}`].join('\n');
+    },
+
+    async addSpecialTerm(store, params = {}) {
+      const name = String(params.name || params.keyword || '').trim().slice(0, 32);
+      if (!name) return '新增专用术语失败：缺少术语名。';
+      const worldTag = window.GameModules.realWorld2026?.label || store.character?.work || '2026 现代都市现实世界';
+      const summary = String(params.summary || params.description || '根据现实推演上下文补充的专用术语。').trim().slice(0, 80);
+      const description = String(params.description || params.summary || '该术语由 AI 根据当前已知现实资料克制推断，后续可由剧情事实修正。').trim().slice(0, 240);
+      const aliases = Array.isArray(params.aliases) ? params.aliases.slice(0, 6).map(String) : [];
+      await window.GameModules.rpgLexicon.saveMany?.([{ worldTag, kind: '专用术语', name, summary, description, aliases, value: { definition: description }, promptInstruction: `遇到“${name}”时按此专用术语定义理解：${description}`.slice(0, 260), reason: String(params.reason || 'AI查询术语库未命中后，根据已有上下文克制推断并新增术语。').slice(0, 120), source: 'ai', aiGenerated: true, meta: { scope: 'real-world', termType: 'special-term' } }]);
+      return `已新增专用术语：${name}\n摘要：${summary}\n定义：${description}`;
+    },
+
     memoryRawText(characterId = 'player-self') {
       const memory = window.GameModules.characterMemory?.ensure?.(characterId);
       return JSON.stringify(memory || {}, null, 2);
