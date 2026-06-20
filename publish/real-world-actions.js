@@ -166,6 +166,7 @@ window.GameModules.realWorldActions = {
     this.advancePhoneTime(result.elapsedSeconds || 300);
     this.checkWorkReminder?.();
     window.GameModules.realWorldMap.update(this, result.locationName || this.realWorldLocationName, result);
+    await this.applyRealWorldFactionUpdates?.(result.factionUpdates || []);
     this.realWorldSceneTitle = result.sceneTitle || this.realWorldSceneTitle;
     this.realWorldQuest = result.quest || this.realWorldQuest;
     this.realWorldStatus = result.status || this.realWorldStatus;

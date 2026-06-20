@@ -5,19 +5,99 @@ window.GameModules.factionActions = {
     const base = window.GameModules.factionSystem.defaultState(this.playerProfile || {});
     this.factionState = { ...base, ...(this.factionState || {}) };
     this.factionState.factions = this.factionState.factions?.length ? this.factionState.factions : base.factions;
-    this.factionState.factions = this.factionState.factions.map((faction) => ({ ...faction, fieldReasons: this.completeFactionReasons?.(faction, faction.fieldReasons) || faction.fieldReasons || {} }));
+    this.factionState.factions = this.factionState.factions.map((faction) => this.normalizeFactionStructure({ ...faction, fieldReasons: this.completeFactionReasons?.(faction, faction.fieldReasons) || faction.fieldReasons || {} }));
     this.syncCompanyFaction?.();
+    this.syncRoleCardFactionPositions?.();
   },
 
   syncCompanyFaction() {
     if (!this.factionState) return;
-    const c = this.companyState?.companies?.[0] || this.currentCompany?.();
+    const c = this.currentCompany?.() || this.companyState?.companies?.[0];
     if (!c) return;
     const item = this.factionState.factions.find((x) => x.id === 'company-main');
     if (!item) return;
     const updates = { name: c.name, type: c.type || item.type, location: c.location || item.location, domain: c.industry || item.domain, parentId: 'country-china', parentName: '中华人民共和国' };
+    const changed = Object.keys(updates).filter((key) => updates[key] !== item[key]);
     Object.assign(item, updates);
+    if (changed.length) item.changeLog = [{ field: changed.join('、'), reason: '根据当前公司系统上下文同步公司势力基础字段。', at: new Date().toISOString(), action: 'adjust' }, ...(item.changeLog || [])];
     item.fieldReasons = this.completeFactionReasons?.(item, item.fieldReasons, '根据当前公司系统上下文同步并固化。') || item.fieldReasons || {};
+  },
+
+  normalizeFactionStructure(faction = {}) {
+    faction.structure = (faction.structure || []).map((node) => ({ ...node, roles: this.normalizeFactionRoles(node.roles) }));
+    return faction;
+  },
+
+  normalizeFactionRoles(roles = []) {
+    return (Array.isArray(roles) ? roles : []).map((role) => {
+      if (typeof role === 'string') return { title: role, characters: ['未知'] };
+      const title = String(role?.title || role?.name || role?.position || '未命名职位').trim();
+      const chars = Array.isArray(role?.characters) ? role.characters : (role?.character ? [role.character] : []);
+      return { title, characters: chars.map(String).filter(Boolean).length ? chars.map(String).filter(Boolean) : ['未知'] };
+    });
+  },
+
+  syncRoleCardFactionPositions() {
+    if (!this.factionState) return;
+    this.collectRoleCardForcePositions().forEach((item) => this.ensureFactionPosition(item));
+  },
+
+  collectRoleCardForcePositions() {
+    const cards = [];
+    try { cards.push(this.playerCharacter?.()); } catch (_) { /* 玩家角色卡未生成时跳过 */ }
+    cards.push(this.selectedPlayerRoleCard?.(), ...(this.selectedRelationRoleCards?.() || []));
+    const rows = [];
+    const push = (entry, characterName = '未知') => {
+      const force = String(entry?.force || entry?.faction || entry?.name || '').split('/')[0].trim();
+      const position = String(entry?.position || entry?.role || entry?.rank || '').trim();
+      if (force && position) rows.push({ force, position, characterName, reason: entry.reason || '由玩家或角色卡势力地位确认。' });
+    };
+    cards.forEach((card) => (card.force_positions || card.forcePositions || []).forEach((entry) => push(entry, card.name || card.id || '未知')));
+    return rows;
+  },
+
+  factionIdByName(name = '') {
+    const slug = String(name || 'faction').replace(/\s+/g, '-').slice(0, 28);
+    return `force-${slug}`;
+  },
+
+  ensureFactionPosition(item = {}) {
+    const name = String(item.force || '').trim();
+    const position = String(item.position || '成员').trim();
+    if (!name) return null;
+    const now = new Date().toISOString();
+    let faction = this.factionState.factions.find((x) => x.name === name || x.id === this.factionIdByName(name));
+    if (!faction) {
+      faction = this.normalizeFactionStructure({ id: this.factionIdByName(name), name, type: name === '中华人民共和国' ? '国家' : '组织', parentId: name === '中华人民共和国' ? '' : 'country-china', parentName: name === '中华人民共和国' ? '无势力归属' : '中华人民共和国', level: name === '中华人民共和国' ? '国家级' : '组织级', location: this.playerProfile?.refinedCity || this.playerProfile?.city || '未知', domain: '现实社会关系', scale: '未知', stance: '与角色卡势力地位相关', influence: 30, description: `由角色卡势力地位确认的现实势力：${name}。`, structure: [], rules: [], resources: [], relations: [], fixed: true, updatedAt: now });
+      faction.fieldReasons = this.completeFactionReasons?.(faction, {}, '角色卡势力地位只可新增不可移除，系统据此初始化势力。') || {};
+      faction.changeLog = [{ field: 'all', reason: item.reason || '角色卡已有势力地位，追加进入势力系统。', at: now, action: 'add' }];
+      this.factionState.factions.push(faction);
+    }
+    this.addFactionRoleOccupant(faction, position, item.characterName || '未知', item.reason || '由角色卡势力地位确认。', now);
+    return faction;
+  },
+
+  addFactionRoleOccupant(faction, title, character, reason, at = new Date().toISOString()) {
+    faction.structure = faction.structure || [];
+    let node = faction.structure.find((x) => x.name === '角色卡势力地位');
+    if (!node) {
+      node = { name: '角色卡势力地位', roles: [] };
+      faction.structure.push(node);
+    }
+    node.roles = this.normalizeFactionRoles(node.roles);
+    let role = node.roles.find((x) => x.title === title);
+    let changed = false;
+    if (!role) {
+      role = { title, characters: [] };
+      node.roles.push(role);
+      changed = true;
+    }
+    const before = role.characters?.length || 0;
+    role.characters = Array.from(new Set([...(role.characters || []), character || '未知'].filter(Boolean)));
+    changed = changed || role.characters.length !== before;
+    if (!changed) return;
+    faction.updatedAt = at;
+    faction.changeLog = [{ field: 'structure', reason, at, action: 'add-position' }, ...(faction.changeLog || [])].slice(0, 50);
   },
 
   openFactionApp() {
@@ -71,7 +151,10 @@ window.GameModules.factionActions = {
 
   factionOrgNodes() {
     const faction = this.selectedFaction();
-    const nodes = (faction?.structure || []).map((node, index) => ({ key: `s-${index}-${node.name}`, name: node.name, roles: (node.roles || []).join('、') || '职责未记录' }));
+    const nodes = (faction?.structure || []).map((node, index) => {
+      const roles = this.normalizeFactionRoles(node.roles).map((role) => `${role.title}：${(role.characters || ['未知']).join('、')}`).join('；') || '职位未记录';
+      return { key: `s-${index}-${node.name}`, name: node.name, roles };
+    });
     const children = this.factionChildren(faction?.id).map((child) => ({ key: `c-${child.id}`, name: child.name, roles: `${child.type}｜${child.level}` }));
     return [...nodes, ...children];
   },

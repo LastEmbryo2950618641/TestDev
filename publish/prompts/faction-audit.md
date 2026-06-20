@@ -43,7 +43,7 @@
 | domain | string | 是 | 影响领域。 |
 | scale | string | 是 | 规模。 |
 | stance | string | 是 | 对玩家或当前局势的态度。 |
-| influence | string | 是 | 影响力描述。 |
+| influence | number | 是 | 0-100 的影响力数值。 |
 | description | string | 是 | 势力概要。 |
 | structure | array<object> | 是 | 可画树状组织架构图的数组。 |
 | rules | array<string> | 是 | 内部规则。 |
@@ -55,7 +55,7 @@
 
 | 路径 | 类型 | 必填字段 | 说明 |
 | --- | --- | --- | --- |
-| structure[] | object | name, roles | `name` 写层级/部门/节点名；`roles` 写该节点职责或职位列表。 |
+| structure[] | object | name, roles | `name` 写层级/部门/节点名；`roles` 必须是职位数组。每项格式为 `{ "title": "职位/地位/法定身份", "characters": ["角色名或未知"] }`。 |
 | relations[] | object | target, relation, detail | 关系目标、关系类型、关系说明。 |
 | fieldReasons | object | name, type, parentId, parentName, level, location, domain, scale, stance, influence, description, structure, rules, resources, relations | 每个字段都写一句审计理由。 |
 
@@ -75,7 +75,9 @@
 2. 数据库已有势力不能随意重写；发现不同处只能调整或增加，并且每个被调整/新增词条必须在 fieldReasons 里给合理理由。
 3. 全量检视每个势力，每个词条都必须有理由；无变化也说明为什么保持。
 4. 保留国家与当前公司，公司归属于国家。
-5. 每个势力都必须尽量补齐 structure；国家可写中央/地方/基层层级，公司可写管理/业务/支持部门，学校可写校级/年级/班级。
+5. 玩家/角色卡已有势力地位是事实锚点，只可新增进势力系统，不可移除、覆盖或反向否定；已有势力地位对应的势力和职位必须在 structure 中出现。
+6. 每个势力都必须尽量补齐 structure；组织架构必须精确到职位/地位/法定身份以及该职位上的角色，角色未知时 characters 写 ["未知"]。
+7. 最基层身份也要记录，例如中华人民共和国下必须有“公民”职位/法定身份；公司可写管理/业务/支持部门，学校可写校级/年级/班级。
 
 ## 玩家资料
 

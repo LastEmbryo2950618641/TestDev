@@ -63,7 +63,7 @@ window.GameModules.realWorldAgentContext = {
   },
 
   async skillText() {
-    const ids = ['emotion.feeling.wearing.assess', 'memory.query', 'company.query', 'realworld.location.query', 'realworld.history.query', 'lexicon.query'];
+    const ids = ['emotion.feeling.wearing.assess', 'memory.query', 'company.query', 'faction.query', 'realworld.location.query', 'realworld.history.query', 'lexicon.query'];
     const texts = await Promise.all(ids.map((id) => window.GameModules.skillLoader?.instruction?.(id) || ''));
     return texts.filter(Boolean).join('\n\n');
   },
@@ -93,12 +93,14 @@ window.GameModules.realWorldAgentContext = {
     if (skill === 'memory.query') return 1600;
     if (skill === 'realworld.history.query') return 1800;
     if (skill === 'company.query') return 1400;
+    if (skill === 'faction.query') return 1600;
     if (skill === 'lexicon.query') return 1200;
     return 1000;
   },
 
   async dispatch(store, action, skill, method, params) {
     if (skill === 'company.query') return this.company(store, method, params);
+    if (skill === 'faction.query') return this.faction(store, method, params);
     if (skill === 'realworld.location.query') return this.location(store, method, params, action);
     if (skill === 'realworld.history.query') return this.history(store, method, params);
     if (skill === 'memory.query') return await this.memory(store, action, method, params);

@@ -58,7 +58,7 @@ window.GameModules.factionAiActions = {
     if (!item?.name) return null;
     const id = String(item.id || `faction-${index}-${item.name}`).replace(/\s+/g, '-');
     const parentId = String(item.parentId || '').trim();
-    const faction = { id, name: String(item.name), type: String(item.type || '组织'), parentId, parentName: parentId ? String(item.parentName || '未知势力') : '无势力归属', level: String(item.level || '组织级'), location: String(item.location || '未知'), domain: String(item.domain || '综合'), scale: String(item.scale || '未知'), stance: String(item.stance || '中立'), influence: Number(item.influence) || 30, description: String(item.description || ''), structure: Array.isArray(item.structure) ? item.structure : [], rules: Array.isArray(item.rules) ? item.rules.map(String) : [], resources: Array.isArray(item.resources) ? item.resources.map(String) : [], relations: Array.isArray(item.relations) ? item.relations : [], fixed: true, updatedAt: this.phoneDate?.().toISOString?.() || new Date().toISOString() };
+    const faction = { id, name: String(item.name), type: String(item.type || '组织'), parentId, parentName: parentId ? String(item.parentName || '未知势力') : '无势力归属', level: String(item.level || '组织级'), location: String(item.location || '未知'), domain: String(item.domain || '综合'), scale: String(item.scale || '未知'), stance: String(item.stance || '中立'), influence: Number(item.influence) || 30, description: String(item.description || ''), structure: this.normalizeFactionStructure({ structure: Array.isArray(item.structure) ? item.structure : [] }).structure, rules: Array.isArray(item.rules) ? item.rules.map(String) : [], resources: Array.isArray(item.resources) ? item.resources.map(String) : [], relations: Array.isArray(item.relations) ? item.relations : [], fixed: true, updatedAt: this.phoneDate?.().toISOString?.() || new Date().toISOString() };
     faction.fieldReasons = this.completeFactionReasons(faction, item.fieldReasons || {}, 'AI全量检视后给出的字段理由。');
     return faction;
   },
@@ -98,8 +98,9 @@ window.GameModules.factionAiActions = {
       if (existing) map.set(item.id, this.mergeExistingFaction(existing, item));
       else map.set(item.id, { ...item, changeLog: [{ field: 'all', reason: '数据库无该势力，AI根据上下文与部分构成初始化并固化。', at: item.updatedAt, action: 'add' }] });
     });
-    this.factionState.factions = [...map.values()];
+    this.factionState.factions = [...map.values()].map((item) => this.normalizeFactionStructure(item));
     this.syncCompanyFaction();
+    this.syncRoleCardFactionPositions?.();
     if (!this.selectedFaction()) this.factionState.selectedId = this.factionState.factions[0]?.id || '';
   },
 };

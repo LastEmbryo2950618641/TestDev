@@ -94,9 +94,10 @@ characters 必须列出本次行动相关人物，至少包含 player-self，可
 6. 行动涉及承诺、照片、物品、人际关系、旧地点、旧经历时，优先请求 memory.query；记忆过长时只能使用关键词查询、关键词窗口或最近指定数量。
 7. 短期记忆、长期记忆与已载入现实时间线记录出现同一条记录时视为同源，只取一份，不要重复叙述或重复当成两次事件。
 8. 行动或上下文出现你不能准确判断含义的专用术语、缩写、APP名、功能名、黑话或自定义概念时，先请求 lexicon.query.searchTermOne 查询专用术语。若未命中且已有基础上下文、动态资料、现实记录足以克制推断含义，可以请求 lexicon.query.addSpecialTerm 新增 kind 为“专用术语”的词条；若无法推断，不要新增，保持不确定并用 choices 让玩家确认。新增后不要为同一术语重复查询或重复新增。
-9. 如果基础上下文和已动态载入资料已经足够，不要为了形式请求资料，直接 final。
-10. 如果已动态载入资料里出现“已视为现实世界地点未加载完全并补齐地点”或“补齐结论”，说明人物地点已经由地图补齐完成；不得再为同一人物地点、位置、当前状态或路线重复 request_context，必须基于补齐地点和人物记忆 final。
-11. 当当前步骤输出要求写明“收敛/final”或“禁止 request_context”时，必须 final，不要继续 request_context。
+9. 行动涉及国家、公司、学校、社区、家庭、组织、部门、下属单位、职位、角色势力地位或组织关系时，优先请求 faction.query。若现实推演确认出现新势力、已有势力的新下属单位、或某势力下新增职位/角色占位，可请求 faction.query.upsertFaction 或 faction.query.addFactionPosition；组织架构必须写到职位与该职位上的角色，角色未知写“未知”。
+10. 如果基础上下文和已动态载入资料已经足够，不要为了形式请求资料，直接 final。
+11. 如果已动态载入资料里出现“已视为现实世界地点未加载完全并补齐地点”或“补齐结论”，说明人物地点已经由地图补齐完成；不得再为同一人物地点、位置、当前状态或路线重复 request_context，必须基于补齐地点和人物记忆 final。
+12. 当当前步骤输出要求写明“收敛/final”或“禁止 request_context”时，必须 final，不要继续 request_context。
 
 ## 现实推演强制规则
 
@@ -140,6 +141,7 @@ characters 必须列出本次行动相关人物，至少包含 player-self，可
 | choices | array<string> | 是 | 四个现实下一步行动。 |
 | metricUpdates | object | 否 | 本回合玩家本人情绪/感觉变化。 |
 | lexiconUpdates | array<object> | 否 | 玩家资料、公司、职业、状态、装备、物品、穿着等词条变化。 |
+| factionUpdates | array<object> | 否 | 新增或调整势力、下属单位、职位角色；action 可为 upsertFaction 或 addFactionPosition。 |
 | companyUpdates | object | 否 | 如有公司系统变化，按运行时代码支持字段返回。 |
 
 ### 本次可用示例

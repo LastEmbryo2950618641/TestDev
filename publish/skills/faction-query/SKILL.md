@@ -1,0 +1,32 @@
+---
+id: faction.query
+category: 势力查询
+name: 势力系统查询与调整
+method: listFactions(), searchFactionOne(keyword), getFactionDetail(name), upsertFaction(payload), addFactionPosition(payload)
+params: keyword/name/factionName/parentName/position/characterName/reason 等
+returns: 势力列表、势力详情、新增或调整后的势力与职位角色
+trigger: 现实世界推演中，行动涉及国家、公司、学校、社区、家庭、组织、部门、下属单位、职位、角色势力地位或组织关系时查询或调整。
+---
+
+# 势力系统查询与调整 Skill
+
+## 激活描述
+
+现实推演遇到国家、公司、学校、社区、家庭、组织、部门、下属单位、职位或角色势力地位时，应先查询势力系统。若确认出现新势力、已有势力的新下属单位、或某势力下新增职位/角色占位，可通过本 Skill 写入。
+
+## 可用方法
+
+1. `listFactions()`：列出当前已知势力。
+2. `searchFactionOne(keyword)`：按关键词查询一条势力。
+3. `getFactionDetail(name)`：读取势力详情、归属、组织架构、职位角色、规则和资源。
+4. `upsertFaction(payload)`：新增或调整势力；payload 可含 name、type、parentName、level、location、domain、scale、stance、influence、description、structure、rules、resources、relations、reason。
+5. `addFactionPosition(payload)`：给势力新增职位与角色占位；payload 含 factionName、position、characterName、reason。角色未知时 characterName 写“未知”。
+
+## 使用规则
+
+1. 玩家/角色卡已有的势力地位只可新增进势力系统，不可移除。
+2. 组织架构必须精确到职位或地位，以及该职位上的角色；角色未知时写“未知”。
+3. 最基层身份也要记录，例如“中华人民共和国 / 公民”。
+4. 新增势力必须写 parentName 或能由系统默认归属到“中华人民共和国”。
+5. 调整已有势力只能新增或有理由地修改字段，不要删除旧结构。
+6. 不要为了补全世界而一次性新增大量无关势力；只写本次现实行动确认或强相关的势力。
