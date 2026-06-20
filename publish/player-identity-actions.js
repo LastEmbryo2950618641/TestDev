@@ -90,7 +90,7 @@ window.GameModules.playerIdentityActions = {
     if (!query) return;
     this.realWorldMemoryArchiveResults = await window.GameModules.characterMemory.queryArchive('player-self', query);
   },
-  async ensurePlayerRpgState(refresh = false, forceRoleCardRegenerate = false) {
+  async ensurePlayerRpgState(refresh = false, forceRoleCardRegenerate = false, retrySource = null) {
     if (!window.GameModules.sqliteSave.db) return this.playerIdentityState();
     const existing = this.playerIdentityState();
     if (!refresh && existing) {
@@ -118,7 +118,7 @@ window.GameModules.playerIdentityActions = {
       if (predefined) return predefined;
     }
     try {
-      const base = { ...this.playerCharacterBase(), forceRoleCardRegenerate };
+      const base = { ...this.playerCharacterBase(), ...(retrySource || {}), forceRoleCardRegenerate: forceRoleCardRegenerate || Boolean(retrySource?.forceRoleCardRegenerate) };
       this.startRoleCardLoadingBatch?.([{ id: 'player-self', name: base.name || this.playerName || '玩家', type: '玩家卡', source: base, context: this.playerSetupSummary?.() || '玩家本人资料' }]);
       character = await window.GameModules.characterProfile.ensure(base, this, this.playerSetupSummary?.() || '玩家本人资料');
     } catch (err) {

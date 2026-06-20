@@ -140,6 +140,8 @@ window.GameModules.characterProfile = {
       isMinor: Boolean(data.isMinor),
       roleCard: true,
       forceRoleCardRegenerate: Boolean(data.forceRoleCardRegenerate),
+      retryFromStep: String(data.retryFromStep || ''),
+      roleCardRetryParts: data.roleCardRetryParts && typeof data.roleCardRetryParts === 'object' ? data.roleCardRetryParts : {},
       presetProfilePath: preset?.path || '',
     };
   },
@@ -165,37 +167,68 @@ window.GameModules.characterProfile = {
         玩家本人目标锁定: this.targetLockText(base),
       };
       const loadingId = base.id;
+      const retryParts = base.roleCardRetryParts || {};
+      const shouldReuse = (stepKey) => this.shouldReuseRoleCardPart(base.retryFromStep, stepKey) && retryParts[stepKey];
+      const remember = (stepKey, part) => store?.rememberRoleCardLoadingPart?.(loadingId, stepKey, part);
       const part1Total = this.partProgressTotal(1, templates[1], attrs);
-      this.onProgress(store, loadingId, 'profile', 'running', '', { done: 0, total: part1Total });
-      const part1 = await this.generatePart(1, 'character-profile-part1-base-identity', commonVars, templates[1], base, lore, attrs, store);
-      this.onProgress(store, loadingId, 'profile', 'done', '', { done: this.partProgressDone(1, part1), total: part1Total });
+      let part1 = shouldReuse('profile') ? retryParts.profile : null;
+      if (!part1) {
+        this.onProgress(store, loadingId, 'profile', 'running', '', { done: 0, total: part1Total });
+        part1 = await this.generatePart(1, 'character-profile-part1-base-identity', commonVars, templates[1], base, lore, attrs, store);
+        this.onProgress(store, loadingId, 'profile', 'done', '', { done: this.partProgressDone(1, part1), total: part1Total });
+        remember('profile', part1);
+      }
       store?.updateRoleCardLoading?.(loadingId, { name: part1.name || base.name, status: 'running' });
       const p1Summary = this.part1Summary(part1);
       const namedBase = { ...base, name: this.isConcreteName(base.name) ? base.name : (part1.name || base.name) };
       const part2Total = this.partProgressTotal(2, templates[2], attrs);
-      const part2 = await this.generateOrDefaultPart(2, 'character-profile-part2-feeling', 'feeling', { ...commonVars, part1Summary: p1Summary }, templates[2], namedBase, lore, attrs, store, part2Total);
+      let part2 = shouldReuse('feeling') ? retryParts.feeling : null;
+      if (!part2) {
+        part2 = await this.generateOrDefaultPart(2, 'character-profile-part2-feeling', 'feeling', { ...commonVars, part1Summary: p1Summary }, templates[2], namedBase, lore, attrs, store, part2Total);
+        remember('feeling', part2);
+      }
       const part3StartTotal = this.partProgressTotal(3, templates[3], attrs);
-      this.onProgress(store, loadingId, 'abilities', 'running', '', { done: 0, total: part3StartTotal });
-      const part3 = await this.generatePart(3, 'character-profile-part3-abilities-professions', { ...commonVars, part1Summary: p1Summary }, templates[3], namedBase, lore, attrs, store);
-      const part3Total = this.partProgressTotal(3, templates[3], attrs, part3);
-      this.onProgress(store, loadingId, 'abilities', 'done', '', { done: this.partProgressDone(3, part3), total: part3Total });
+      let part3 = shouldReuse('abilities') ? retryParts.abilities : null;
+      if (!part3) {
+        this.onProgress(store, loadingId, 'abilities', 'running', '', { done: 0, total: part3StartTotal });
+        part3 = await this.generatePart(3, 'character-profile-part3-abilities-professions', { ...commonVars, part1Summary: p1Summary }, templates[3], namedBase, lore, attrs, store);
+        const part3Total = this.partProgressTotal(3, templates[3], attrs, part3);
+        this.onProgress(store, loadingId, 'abilities', 'done', '', { done: this.partProgressDone(3, part3), total: part3Total });
+        remember('abilities', part3);
+      }
       const rpgKeys = this.rpgFieldReasonKeys(attrs);
       const part4StartTotal = this.partProgressTotal(4, templates[4], attrs);
-      this.onProgress(store, loadingId, 'inventory', 'running', '', { done: 0, total: part4StartTotal });
-      const part4 = await this.generatePart(4, 'character-profile-part4-inventory-wearing-rpg', { ...commonVars, part1Summary: p1Summary }, templates[4], namedBase, lore, attrs, store);
-      const part4Total = this.partProgressTotal(4, templates[4], attrs, part4);
-      this.onProgress(store, loadingId, 'inventory', 'done', '', { done: this.partProgressDone(4, part4), total: part4Total });
+      let part4 = shouldReuse('inventory') ? retryParts.inventory : null;
+      if (!part4) {
+        this.onProgress(store, loadingId, 'inventory', 'running', '', { done: 0, total: part4StartTotal });
+        part4 = await this.generatePart(4, 'character-profile-part4-inventory-wearing-rpg', { ...commonVars, part1Summary: p1Summary }, templates[4], namedBase, lore, attrs, store);
+        const part4Total = this.partProgressTotal(4, templates[4], attrs, part4);
+        this.onProgress(store, loadingId, 'inventory', 'done', '', { done: this.partProgressDone(4, part4), total: part4Total });
+        remember('inventory', part4);
+      }
       const p3Summary = this.part3Summary(part3);
       const p4Summary = this.part4Summary(part4);
       const part5Total = this.partProgressTotal(5, templates[5], attrs);
-      const part5 = await this.generateOrDefaultPart(5, 'character-profile-part5-body-profile', 'bodyProfile', { ...commonVars, part1Summary: p1Summary }, templates[5], namedBase, lore, attrs, store, part5Total);
+      let part5 = shouldReuse('bodyProfile') ? retryParts.bodyProfile : null;
+      if (!part5) {
+        part5 = await this.generateOrDefaultPart(5, 'character-profile-part5-body-profile', 'bodyProfile', { ...commonVars, part1Summary: p1Summary }, templates[5], namedBase, lore, attrs, store, part5Total);
+        remember('bodyProfile', part5);
+      }
       const p5Summary = this.bodyProfileSummary(part5.bodyProfile);
       const part6Total = this.partProgressTotal(6, templates[6], attrs);
-      const part6 = await this.generateOrDefaultPart(6, 'character-profile-part6-dressed-profile', 'dressedProfile', { ...commonVars, part1Summary: p1Summary, part4Summary: p4Summary, part5Summary: p5Summary }, templates[6], namedBase, lore, attrs, store, part6Total);
+      let part6 = shouldReuse('dressedProfile') ? retryParts.dressedProfile : null;
+      if (!part6) {
+        part6 = await this.generateOrDefaultPart(6, 'character-profile-part6-dressed-profile', 'dressedProfile', { ...commonVars, part1Summary: p1Summary, part4Summary: p4Summary, part5Summary: p5Summary }, templates[6], namedBase, lore, attrs, store, part6Total);
+        remember('dressedProfile', part6);
+      }
       const part7Total = this.partProgressTotal(7, templates[7], attrs);
-      this.onProgress(store, loadingId, 'rpgField', 'running', '', { done: 0, total: part7Total });
-      const part7 = await this.generatePart(7, 'character-profile-part7-rpg-field', { ...commonVars, part1Summary: p1Summary, part3Summary: p3Summary, part4Summary: p4Summary, 世界字段: sections.worldFields(attrs), RPG字段列表: rpgKeys.join('、'), RPG字段列表JSON: rpgKeys.map((key) => `"${key}"`).join(', ') }, templates[7], namedBase, lore, attrs, store);
-      this.onProgress(store, loadingId, 'rpgField', 'done', '', { done: this.partProgressDone(7, part7), total: part7Total });
+      let part7 = shouldReuse('rpgField') ? retryParts.rpgField : null;
+      if (!part7) {
+        this.onProgress(store, loadingId, 'rpgField', 'running', '', { done: 0, total: part7Total });
+        part7 = await this.generatePart(7, 'character-profile-part7-rpg-field', { ...commonVars, part1Summary: p1Summary, part3Summary: p3Summary, part4Summary: p4Summary, 世界字段: sections.worldFields(attrs), RPG字段列表: rpgKeys.join('、'), RPG字段列表JSON: rpgKeys.map((key) => `"${key}"`).join(', ') }, templates[7], namedBase, lore, attrs, store);
+        this.onProgress(store, loadingId, 'rpgField', 'done', '', { done: this.partProgressDone(7, part7), total: part7Total });
+        remember('rpgField', part7);
+      }
       const merged = this.mergeGeneratedParts(part1, part2, part3, { ...part4, ...part5, ...part6, ...part7 }, attrs);
       const profile = this.validate(merged, base, lore, attrs, store, { skipInitialMetrics: false });
       return this.withSignature(profile, signature);
@@ -204,6 +237,14 @@ window.GameModules.characterProfile = {
       console.warn('人物设定生成失败:', err.code, err.message, err.stack);
       throw err;
     }
+  },
+
+  shouldReuseRoleCardPart(retryFromStep = '', stepKey = '') {
+    if (!retryFromStep) return false;
+    const order = ['profile', 'feeling', 'abilities', 'inventory', 'bodyProfile', 'dressedProfile', 'rpgField', 'state'];
+    const retryIndex = order.indexOf(retryFromStep);
+    const stepIndex = order.indexOf(stepKey);
+    return retryIndex > 0 && stepIndex >= 0 && stepIndex < retryIndex;
   },
 
   targetLockText(base = {}) {

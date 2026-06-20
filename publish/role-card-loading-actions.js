@@ -58,6 +58,13 @@ window.GameModules.roleCardLoadingActions = {
     this.roleCardLoadingState.cards = cards.map((card) => (card.id === targetId ? { ...card, ...patch } : card));
   },
 
+  rememberRoleCardLoadingPart(id, partKey, part) {
+    const targetId = this.roleCardLoadingFindId(id);
+    this.roleCardLoadingState.cards = (this.roleCardLoadingState.cards || []).map((card) => (
+      card.id === targetId ? { ...card, parts: { ...(card.parts || {}), [partKey]: part } } : card
+    ));
+  },
+
   updateRoleCardLoadingStep(id, stepKey, status, text = '', progress = null) {
     const targetId = this.roleCardLoadingFindId(id);
     const now = Date.now();
@@ -137,8 +144,8 @@ window.GameModules.roleCardLoadingActions = {
     this.roleCardLoadingRetryQueue = { ...(this.roleCardLoadingRetryQueue || {}), [targetId]: true };
     this.markRoleCardStepRetrying(targetId, stepKey);
     try {
-      const retrySource = { ...source, forceRoleCardRegenerate: true };
-      if (card.type === '玩家卡' || source.id === 'player-self') await this.ensurePlayerRpgState?.(true, true);
+      const retrySource = { ...source, forceRoleCardRegenerate: true, retryFromStep: stepKey, roleCardRetryParts: card.parts || {} };
+      if (card.type === '玩家卡' || source.id === 'player-self') await this.ensurePlayerRpgState?.(true, true, retrySource);
       else await this.ensureRpgForCharacter?.(retrySource, card.context || this.entryCurrentAction || this.sceneTitle || '', { loadMetrics: source.id === this.character?.id });
     } catch (err) {
       console.warn('[角色卡] 手动重试失败:', err.message, err.stack);
