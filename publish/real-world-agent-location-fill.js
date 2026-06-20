@@ -22,7 +22,20 @@ window.GameModules = window.GameModules || {};
     findLocationHit(map, keyword = '') {
       const key = String(keyword || '').trim();
       if (!key) return null;
-      return (map.nodes || []).find((node) => `${node.name} ${node.description || ''} ${JSON.stringify(node.descriptionFacts || [])}`.includes(key));
+      const tokens = this.locationKeywordTokens(key);
+      return (map.nodes || []).find((node) => {
+        const text = `${node.name} ${node.description || ''} ${JSON.stringify(node.descriptionFacts || [])}`;
+        return text.includes(key) || tokens.some((token) => text.includes(token));
+      });
+    },
+
+    locationKeywordTokens(keyword = '') {
+      const text = String(keyword || '');
+      const clean = text.replace(/位置|信息|当前|状态|地点|路线|环境|获取|需要|相关|上下文|以便|确定|前往|的|和|与/gu, ' ');
+      const names = [...clean.matchAll(/[\u4e00-\u9fa5]{2,4}/gu)].map((m) => m[0]).filter((x) => !/房间|卧室/u.test(x));
+      const family = ['妹妹', '姐姐', '哥哥', '弟弟', '母亲', '父亲'].filter((x) => text.includes(x));
+      const rooms = /房间|卧室/u.test(text) ? ['房间', '卧室'] : [];
+      return [...new Set([...names, ...family, ...rooms])].filter((x) => x.length >= 2);
     },
 
     shouldFillCharacterLocation(store, keyword = '', action = '') {
@@ -63,7 +76,7 @@ window.GameModules = window.GameModules || {};
         payload = this.fallbackLocationFill(store, keyword, character);
       }
       const node = window.GameModules.realWorldMap.addLocation(store, payload, window.GameModules.realWorldMap.factTime(store));
-      return `地图未命中“${keyword}”，已视为现实世界地点未加载完全并补齐地点。\n${this.locationDetail(map, node?.name || payload.name)}`;
+      return [`地图未命中“${keyword}”，已视为现实世界地点未加载完全并补齐地点。`, this.locationDetail(map, node?.name || payload.name), '补齐结论：该人物相关地点、从当前地点前往的方位线索和当前可用上下文已经足够用于本次现实推演；除非玩家提出新的未知地点，不要继续为同一人物地点重复 request_context。'].join('\n');
     },
 
     locationFillClue(store, keyword = '', character = null, action = '') {
@@ -72,7 +85,7 @@ window.GameModules = window.GameModules || {};
         `查询关键词：${keyword}`,
         `本次行动：${action || store.realWorldInput || '现实行动中需要前往该人物相关地点'}`,
         `人物资料：${profile.name || character?.name || '未知人物'}｜${profile.role || ''}｜${profile.relationships || ''}｜${profile.detail || ''}`,
-        '已有地图没有命中该人物地点，说明现实世界地图尚未加载完全；请补齐玩家当前合理知道且可前往的具体地点。若线索是去妹妹房间，优先把地点作为当前住处下的房间子地点。',
+        '已有地图没有命中该人物地点，说明现实世界地图尚未加载完全；请补齐玩家当前合理知道且可前往的具体地点。若线索是去妹妹房间，优先把地点作为当前住处下的房间子地点，并在 descriptionFacts 中写清从当前地点前往的具体方位路线，例如“从客厅沿楼梯上二楼后右手第二间”。禁止写“根据本次现实行动补齐”“玩家当然知道可以前往这里”这类兜底说明。',
       ].join('\n');
     },
 
@@ -83,7 +96,8 @@ window.GameModules = window.GameModules || {};
     validateLocationFill(raw = {}) {
       const name = window.GameModules.realWorldMap.cleanName(raw.name || raw.locationName);
       if (!name || window.GameModules.realWorldMap.isAbstractName(name)) throw new Error('地点名缺失或过于抽象');
-      const facts = Array.isArray(raw.descriptionFacts) ? raw.descriptionFacts.map((x) => String(x || '').trim()).filter(Boolean).slice(0, 3) : [String(raw.description || '根据现实行动补齐的人物相关地点。')];
+      const facts = Array.isArray(raw.descriptionFacts) ? raw.descriptionFacts.map((x) => String(x || '').trim()).filter(Boolean).slice(0, 3) : [String(raw.description || '')];
+      if (!facts.length || facts.some((x) => /补齐|当然知道|可以前往|人物相关地点/u.test(x)) || !facts.join('').match(/左|右|上楼|下楼|走廊|门|房间|卧室|客厅|楼梯|尽头|旁边|对面|第二间|第一间/u)) throw new Error('地点说明缺少具体方位路线');
       return { name, parentName: window.GameModules.realWorldMap.cleanName(raw.parentName || raw.parentLocationName || ''), descriptionFacts: facts };
     },
 
@@ -91,7 +105,8 @@ window.GameModules = window.GameModules || {};
       const map = window.GameModules.realWorldMap.ensure(store, store.playerProfile || {});
       const profile = character?.profile || character || {};
       const name = profile.name ? `${profile.name}的房间` : window.GameModules.realWorldMap.cleanName(keyword.replace(/地点|信息|位置/gu, ''));
-      return { name: name || '相关人物房间', parentName: map.current || store.realWorldLocationName || '', descriptionFacts: [`这是根据本次现实行动补齐的人物相关地点，玩家当前知道可以前往这里。`] };
+      const route = map.current ? `从${map.current}出发，沿住处内部走廊或楼梯前往，房门位于家庭卧室区域的第二间。` : '从当前室内位置出发，沿走廊前往家庭卧室区域，目标房门在第二间。';
+      return { name: name || '相关人物房间', parentName: map.current || store.realWorldLocationName || '', descriptionFacts: [route] };
     },
   });
 })();
