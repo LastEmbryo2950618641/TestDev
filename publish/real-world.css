@@ -52,6 +52,29 @@
 .real-world-thinking-panel p { margin: 0; }
 .real-world-thinking-panel b { color: #74f6ff; }
 
+.real-world-log-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px 0;
+  color: #aeb9d6;
+  font-size: 12px;
+}
+
+.real-world-log-pager button {
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid rgba(116, 246, 255, .26);
+  border-radius: 999px;
+  background: rgba(116, 246, 255, .1);
+  color: #eafcff;
+}
+
+.real-world-log-pager button:disabled {
+  opacity: .42;
+}
+
 .real-world-actions { position: relative; }
 
 .real-world-electronic-map {

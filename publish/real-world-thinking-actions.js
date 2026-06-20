@@ -23,6 +23,33 @@ window.GameModules.realWorldThinkingActions = {
     }));
   },
 
+  refreshRealWorldLogPage(page = this.realWorldLogPage || 1) {
+    const total = window.GameModules.sqliteSave.countRealWorldLogEntries?.() || 0;
+    if (!total) {
+      this.realWorldLog = this.normalizeRealWorldLog(this.realWorldLog || []);
+      this.realWorldLogTotal = this.realWorldLog.length;
+      this.realWorldLogPage = 1;
+      return;
+    }
+    const maxPage = Math.max(1, Math.ceil(total / this.realWorldLogPageSize));
+    this.realWorldLogTotal = total;
+    this.realWorldLogPage = Math.max(1, Math.min(maxPage, Number(page) || 1));
+    const rows = window.GameModules.sqliteSave.listRealWorldLogEntries?.(this.realWorldLogPage, this.realWorldLogPageSize) || [];
+    this.realWorldLog = this.normalizeRealWorldLog(rows);
+  },
+
+  realWorldLogMaxPage() {
+    return Math.max(1, Math.ceil((this.realWorldLogTotal || this.realWorldLog.length || 0) / this.realWorldLogPageSize));
+  },
+
+  realWorldLogPageLabel() {
+    return `第 ${this.realWorldLogPage || 1} / ${this.realWorldLogMaxPage()} 页，共 ${this.realWorldLogTotal || this.realWorldLog.length} 条`;
+  },
+
+  changeRealWorldLogPage(delta) {
+    this.refreshRealWorldLogPage((this.realWorldLogPage || 1) + delta);
+  },
+
   realWorldTraceLines(entry) {
     const trace = Array.isArray(entry?.agentTrace) ? entry.agentTrace : [];
     return trace.flatMap((item) => this.realWorldTraceItemLines(item));

@@ -41,6 +41,8 @@ window.GameModules.realWorldActions = {
     const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
     this.realWorldOpen = true;
     this.checkWorkReminder?.();
+    window.GameModules.sqliteSave.saveRealWorldLogEntries?.(this.realWorldLog).then(() => this.refreshRealWorldLogPage?.(999999)).catch((err) => console.warn('[现实日志] 分页刷新失败:', err.message, err.stack));
+    this.refreshRealWorldLogPage?.(999999);
     if (!this.realWorldLog.length) {
       if (map.current) this.seedRealWorldLog();
       else this.submitRealWorldAction('根据我的现实资料确认当前所在的具体地点，并建立电子地图根节点');
@@ -119,6 +121,7 @@ window.GameModules.realWorldActions = {
     };
     this.assignRealWorldlineEntry(entry);
     this.realWorldLog = [entry];
+    window.GameModules.sqliteSave.saveRealWorldLogEntry?.(entry).then(() => this.refreshRealWorldLogPage?.(999999)).catch((err) => console.warn('[现实日志] 初始记录保存失败:', err.message, err.stack));
   },
 
   async submitRealWorldAction(action = '') {
@@ -126,11 +129,14 @@ window.GameModules.realWorldActions = {
     if (!text || this.realWorldBusy) return;
     this.realWorldInput = '';
     this.realWorldBusy = true;
-    this.realWorldLog.push({ id: this.nextId++, type: 'user', text });
-    const entry = { id: this.nextId++, type: 'ai', narration: '现实世界正在推演…', thinking: '', streaming: true };
+    const userEntry = { id: this.nextId++, type: 'user', text, createdAt: new Date().toISOString() };
+    this.realWorldLog.push(userEntry);
+    await window.GameModules.sqliteSave.saveRealWorldLogEntry?.(userEntry);
+    const entry = { id: this.nextId++, type: 'ai', narration: '现实世界正在推演…', thinking: '', streaming: true, createdAt: new Date().toISOString() };
     this.realWorldLog.push(entry);
     try {
       entry.promptPack = { systemPrompt: '现实世界 Loop Agent 将按步骤动态载入上下文。', userPrompt: text, model: this.modelId, promptTokens: 0 };
+      await window.GameModules.sqliteSave.saveRealWorldLogEntry?.(entry);
       const result = await window.GameModules.realWorldAi.generate(this, '', text, entry.id);
       if (result.promptPack) entry.promptPack = result.promptPack;
       await this.applyRealWorldResult(entry.id, result);
@@ -157,7 +163,9 @@ window.GameModules.realWorldActions = {
     const time = { label: `${this.phoneDateText()} ${this.phoneTimeText()}` };
     const next = { ...this.realWorldLog.find((entry) => entry.id === id), ...result, type: 'ai', streaming: false, time, agentTrace: result.agentTrace || [] };
     await this.assignRealWorldlineEntry(next);
-    this.realWorldLog = this.realWorldLog.map((entry) => (entry.id === id ? next : entry)).slice(-30);
+    await window.GameModules.sqliteSave.saveRealWorldLogEntry?.(next);
+    this.realWorldLog = this.realWorldLog.map((entry) => (entry.id === id ? next : entry));
+    this.refreshRealWorldLogPage?.(999999);
   },
 
   async assignRealWorldlineEntry(entry) {

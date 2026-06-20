@@ -111,6 +111,7 @@ window.GameModules.storage = {
     store.realWorldStatus = save.realWorldStatus || store.realWorldStatus;
     store.realWorldChoices = save.realWorldChoices || store.realWorldChoices;
     store.realWorldLog = window.GameModules.realWorldThinkingActions?.normalizeRealWorldLog?.(save.realWorldLog || store.realWorldLog) || (save.realWorldLog || store.realWorldLog);
+    window.GameModules.sqliteSave.saveRealWorldLogEntries?.(store.realWorldLog).catch((err) => console.warn('[现实日志] 旧日志迁移失败:', err.message, err.stack));
     store.realWorldlineState = save.realWorldlineState || store.realWorldlineState || { events: [], plots: [], pendingPlot: null };
     window.GameModules.wechatCleanup?.run?.(store);
     store.companyState = save.companyState ? { ...save.companyState, open: false } : store.companyState;

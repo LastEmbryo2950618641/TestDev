@@ -50,6 +50,7 @@
   <script src="sqlite-world.js"></script>
   <script src="sqlite-worldline.js"></script>
   <script src="sqlite-memory.js"></script>
+  <script src="sqlite-real-world-log.js"></script>
   <script src="json-utils.js"></script>
   <script src="ai-request.js"></script>
   <script src="worldline-plots.js"></script>
@@ -676,6 +677,11 @@
                 </div>
               </article>
             </template>
+            <div class="real-world-log-pager" x-show="$store.game.realWorldLogTotal > $store.game.realWorldLogPageSize">
+              <button type="button" @click="$store.game.changeRealWorldLogPage(-1)" :disabled="$store.game.realWorldLogPage <= 1">上一页</button>
+              <span x-text="$store.game.realWorldLogPageLabel()"></span>
+              <button type="button" @click="$store.game.changeRealWorldLogPage(1)" :disabled="$store.game.realWorldLogPage >= $store.game.realWorldLogMaxPage()">下一页</button>
+            </div>
             <div class="story-choice-list dev-section" data-section-title="现实行动选项" x-show="!$store.game.realWorldBusy && $store.game.realWorldChoices.length">
               <template x-for="choice in $store.game.realWorldChoices" :key="choice"><button class="story-choice-btn" type="button" @click="$store.game.submitRealWorldAction(choice)" x-text="choice"></button></template>
             </div>
