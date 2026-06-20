@@ -46,13 +46,14 @@ window.GameModules.factionActions = {
     const cards = [];
     try { cards.push(this.playerCharacter?.()); } catch (_) { /* 玩家角色卡未生成时跳过 */ }
     cards.push(this.selectedPlayerRoleCard?.(), ...(this.selectedRelationRoleCards?.() || []));
+    const validCards = cards.filter(Boolean);
     const rows = [];
     const push = (entry, characterName = '未知') => {
       const force = String(entry?.force || entry?.faction || entry?.name || '').split('/')[0].trim();
       const position = String(entry?.position || entry?.role || entry?.rank || '').trim();
       if (force && position) rows.push({ force, position, characterName, reason: entry.reason || '由玩家或角色卡势力地位确认。' });
     };
-    cards.forEach((card) => (card.force_positions || card.forcePositions || []).forEach((entry) => push(entry, card.name || card.id || '未知')));
+    validCards.forEach((card) => (card.force_positions || card.forcePositions || []).forEach((entry) => push(entry, card.name || card.id || '未知')));
     return rows;
   },
 
@@ -165,6 +166,7 @@ window.GameModules.factionActions = {
   },
 
   factionChildren(id) {
+    if (!id) return [];
     this.initFactionSystem();
     return this.factionState.factions.filter((x) => x.parentId === id);
   },
