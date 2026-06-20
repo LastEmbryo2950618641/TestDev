@@ -14,12 +14,13 @@ window.GameModules.realWorldAgentLoop = {
     for (let step = 1; step <= this.maxSteps; step += 1) {
       const prompt = await this.buildPrompt({ store, action, base, loaded, skills, step });
       this.markStep(store, logId, `现实世界正在分析行动…（${step}/${this.maxSteps}）`);
-      const raw = await this.completeStep(store, prompt, logId, step === this.maxSteps);
+      const raw = await this.completeStep(store, prompt, logId, true);
       lastRaw = raw;
       const data = this.parseStep(raw);
       const traceItem = { step, type: data?.type || 'parse_failed', reason: data?.reason || '', requests: data?.requests || [], raw: ctx.limit(raw, 1200), loaded: [] };
       trace.push(traceItem);
       if (data?.type === 'request_context' && step < this.maxSteps) {
+        this.markStep(store, logId, this.requestContextText(data));
         const results = await ctx.loadRequests(store, action, data.requests || [], loadedKeys);
         traceItem.loaded = results.map((item) => ({ title: item.title, text: ctx.limit(item.text, 800) }));
         if (!results.length) continue;
@@ -110,5 +111,11 @@ window.GameModules.realWorldAgentLoop = {
   markStep(store, logId, text) {
     if (!logId) return;
     store.realWorldLog = (store.realWorldLog || []).map((entry) => entry.id === logId ? { ...entry, narration: text, streaming: true } : entry);
+  },
+
+  requestContextText(data = {}) {
+    const calls = (data.requests || []).map((req) => `${req.skill || 'unknown'}.${req.method || 'unknown'}`).join('、');
+    const reason = data.reason ? `：${data.reason}` : '';
+    return `现实世界正在动态载入资料${calls ? `（${calls}）` : ''}${reason}`;
   },
 };
