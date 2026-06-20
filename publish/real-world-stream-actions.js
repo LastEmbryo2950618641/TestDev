@@ -3,8 +3,7 @@ window.GameModules.realWorldStreamActions = {
   updateRealWorldStream(id, raw) {
     const entry = (this.realWorldLog || []).find((item) => item.id === id);
     if (!entry) return false;
-    const utils = window.GameModules.jsonUtils;
-    const pick = (key) => (utils?.pickStringField?.(raw, key) || this.pickRealWorldStreamField(raw, key));
+    const pick = (key) => this.pickRealWorldStreamField(raw, key);
     const thinking = this.realWorldThinkMode ? (pick('thinking') || '') : '';
     const narration = pick('narration') || '';
     const streamTrace = this.realWorldStreamTrace(raw, pick);
@@ -19,8 +18,12 @@ window.GameModules.realWorldStreamActions = {
   },
 
   pickRealWorldStreamField(raw = '', key = '') {
-    const match = String(raw || '').match(new RegExp(`"${key}"\\s*:\\s*"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)`));
-    return match ? match[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').trim() : '';
+    const next = 'type|thinking|reason|narration|sceneTitle|locationName|parentLocationName|locationDescription|status|quest|choices|characters|requests|mapNodes|newLocations|locationDescriptionUpdates|elapsedSeconds|metricUpdates|lexiconUpdates';
+    const text = String(raw || '');
+    const loose = text.match(new RegExp(`"${key}"\\s*:\\s*"([\\s\\S]*?)(?:"\\s*,\\s*"(?:${next})"\\s*:|"\\s+"(?:${next})"\\s*:|"\\s*[,}])`));
+    if (loose) return loose[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').trim();
+    const strict = text.match(new RegExp(`"${key}"\\s*:\\s*"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)`));
+    return strict ? strict[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').trim() : '';
   },
 
   realWorldStreamTrace(raw = '', pick = () => '') {
