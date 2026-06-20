@@ -110,7 +110,7 @@ window.GameModules.storage = {
     store.realWorldQuest = save.realWorldQuest || store.realWorldQuest;
     store.realWorldStatus = save.realWorldStatus || store.realWorldStatus;
     store.realWorldChoices = save.realWorldChoices || store.realWorldChoices;
-    store.realWorldLog = save.realWorldLog || store.realWorldLog;
+    store.realWorldLog = window.GameModules.realWorldThinkingActions?.normalizeRealWorldLog?.(save.realWorldLog || store.realWorldLog) || (save.realWorldLog || store.realWorldLog);
     store.realWorldlineState = save.realWorldlineState || store.realWorldlineState || { events: [], plots: [], pendingPlot: null };
     window.GameModules.wechatCleanup?.run?.(store);
     store.companyState = save.companyState ? { ...save.companyState, open: false } : store.companyState;

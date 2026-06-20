@@ -7,6 +7,22 @@ window.GameModules.realWorldThinkingActions = {
     this.realWorldLog = [...(this.realWorldLog || [])];
   },
 
+  hasRealWorldThinking(entry) {
+    return Boolean(entry?.thinking) || (Array.isArray(entry?.agentTrace) && entry.agentTrace.length > 0);
+  },
+
+  normalizeRealWorldLog(log = []) {
+    return (Array.isArray(log) ? log : []).map((entry, index) => ({
+      id: entry?.id || `real-log-${index}`,
+      type: entry?.type || 'ai',
+      thinkingOpen: Boolean(entry?.thinkingOpen),
+      cardChangesOpen: Boolean(entry?.cardChangesOpen),
+      characterCardChanges: Array.isArray(entry?.characterCardChanges) ? entry.characterCardChanges : [],
+      agentTrace: Array.isArray(entry?.agentTrace) ? entry.agentTrace : [],
+      ...entry,
+    }));
+  },
+
   realWorldTraceLines(entry) {
     const trace = Array.isArray(entry?.agentTrace) ? entry.agentTrace : [];
     return trace.flatMap((item) => this.realWorldTraceItemLines(item));
