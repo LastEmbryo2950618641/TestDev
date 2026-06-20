@@ -1277,9 +1277,9 @@
                 <button class="wechat-avatar" type="button" @click="msg.side !== 'self' && $store.game.openWechatContactProfile(msg.characterId || $store.game.wechatSelectedContact)" :style="$store.game.wechatAvatarStyle($store.game.wechatMessageAvatarContact(msg))" x-text="$store.game.wechatAvatarText($store.game.wechatMessageAvatarContact(msg))"></button>
                 <div>
                   <time x-text="msg.atDisplay || msg.at || ''"></time>
-                  <p x-show="msg.text && !msg.imagePending" x-text="msg.text"></p>
+                  <p class="wechat-mentionable" x-show="msg.text && !msg.imagePending" @click="$store.game.mentionWechatMessage(msg, index)" title="点击@这条消息" x-text="msg.text"></p>
                   <button class="wechat-image-offer" type="button" x-show="msg.imagePending && msg.imageStatus !== 'done'" @click="$store.game.openWechatImageConfirm(msg)" :disabled="msg.imageStatus === 'generating'" x-text="msg.imageStatus === 'generating' ? '图片生成中…约 30 秒' : '接收图片'"></button>
-                  <div class="wechat-message-image-wrap" x-show="msg.imagePending && msg.imageStatus === 'done'"><img class="wechat-message-image" :src="msg.imageUrl || ''" alt="微信图片"><button class="wechat-image-zoom-btn" type="button" @click="$store.game.openWechatImagePreview(msg.imageUrl || '', '微信图片')" title="放大全屏">⌕</button></div>
+                  <div class="wechat-message-image-wrap" x-show="msg.imagePending && msg.imageStatus === 'done'" @click="$store.game.mentionWechatImage(msg, index)" title="点击@这张图片"><img class="wechat-message-image" :src="msg.imageUrl || ''" alt="微信图片"><button class="wechat-image-zoom-btn" type="button" @click.stop="$store.game.openWechatImagePreview(msg.imageUrl || '', '微信图片')" title="放大全屏">⌕</button></div>
                   <button class="card-change-toggle" :class="{ open: msg.changeReasonsOpen }" x-show="$store.game.wechatHasChangeReasons(msg)" @click="$store.game.toggleWechatChangePanel(msg)" x-text="msg.changeReasonsOpen ? '变化原因▾' : '变化原因▸'"></button>
                   <div class="wechat-change-panel" x-show="msg.changeReasonsOpen">
                     <template x-for="group in $store.game.wechatChangeGroups(msg)" :key="group.title">

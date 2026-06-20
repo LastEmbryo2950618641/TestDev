@@ -646,6 +646,16 @@
   line-height: 1.5;
 }
 
+.wechat-mentionable,
+.wechat-message-image-wrap {
+  cursor: pointer;
+}
+
+.wechat-mentionable:active,
+.wechat-message-image-wrap:active {
+  outline: 2px solid rgba(7, 193, 96, .5);
+}
+
 .wechat-image-offer {
   width: 168px;
   aspect-ratio: 4 / 3;

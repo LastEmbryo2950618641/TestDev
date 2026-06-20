@@ -6,8 +6,26 @@ window.GameModules.wechatMentionActions = {
     this.wechatInput = `${value}${gap}${text} `;
   },
 
+  mentionWechatMessage(msg = {}, index = 0) {
+    this.insertWechatMention(`@消息${this.wechatMessageMentionId(msg, index)}`);
+  },
+
+  mentionWechatImage(msg = {}, index = 0) {
+    this.insertWechatMention(`@图片${this.wechatMessageImageMentionId(msg, index)}`);
+  },
+
   wechatImageMentionId(photo = {}, index = 0) {
     return String(photo.imageId || photo.taskId || `album-${index}`).trim();
+  },
+
+  wechatMessageMentionId(msg = {}, index = 0) {
+    const raw = `${msg.side || 'msg'}-${msg.at || ''}-${msg.text || msg.imageDescription || ''}-${index}`;
+    const seed = window.GameModules.rpgState?.seed?.(raw) || index;
+    return String(msg.messageId || `msg-${seed}`).trim();
+  },
+
+  wechatMessageImageMentionId(msg = {}, index = 0) {
+    return String(msg.imageId || msg.taskId || `chat-img-${this.wechatMessageMentionId(msg, index)}`).trim();
   },
 
   wechatMentionedContacts(text = '') {
@@ -24,6 +42,25 @@ window.GameModules.wechatMentionActions = {
     return ids.map((id) => sources.find((item) => [item.id, item.imageId, item.taskId].includes(id))).filter(Boolean).slice(0, 4);
   },
 
+  wechatMentionedMessages(text = '', currentId = '') {
+    const ids = [];
+    String(text || '').replace(/@消息([A-Za-z0-9_-]+)/g, (_, id) => { ids.push(String(id || '').trim()); return ''; });
+    if (!ids.length) return [];
+    const sources = this.wechatMessageMentionSources(currentId);
+    return ids.map((id) => sources.find((item) => item.id === id)).filter(Boolean).slice(0, 4);
+  },
+
+  wechatMessageMentionSources(currentId = '') {
+    const list = this.wechatMessagesByContact?.[currentId] || [];
+    return list.map((msg, index) => ({
+      id: this.wechatMessageMentionId(msg, index),
+      text: msg.imageRecord || msg.text || msg.imageDescription || '',
+      side: msg.side || '',
+      sender: msg.side === 'self' ? '玩家' : (msg.name || '联系人'),
+      time: msg.atDisplay || msg.at || '',
+    })).filter((item) => item.text).slice(-12);
+  },
+
   wechatImageMentionSources(currentId = '') {
     const out = [];
     const push = (item = {}) => {
@@ -32,8 +69,8 @@ window.GameModules.wechatMentionActions = {
       if (!id || out.some((old) => old.id === id || old.url === item.url)) return;
       out.push({ ...item, id });
     };
-    Object.entries(this.wechatMessagesByContact || {}).forEach(([contactId, list]) => (list || []).forEach((msg) => push({
-      id: msg.imageId || msg.taskId,
+    Object.entries(this.wechatMessagesByContact || {}).forEach(([contactId, list]) => (list || []).forEach((msg, index) => push({
+      id: this.wechatMessageImageMentionId(msg, index),
       imageId: msg.imageId || '',
       taskId: msg.taskId || '',
       url: msg.imageUrl || '',
@@ -53,11 +90,13 @@ window.GameModules.wechatMentionActions = {
 
   wechatMentionContextText(playerText = '', currentId = '') {
     const contacts = this.wechatMentionedContacts(playerText);
+    const messages = this.wechatMentionedMessages(playerText, currentId);
     const images = this.wechatMentionedImages(playerText, currentId);
-    if (!contacts.length && !images.length) return '无';
+    if (!contacts.length && !messages.length && !images.length) return '无';
     const contactText = contacts.map((item) => `### @${item.name}\n${this.wechatContactProfileText?.(item) || item.name}`).join('\n');
+    const messageText = messages.map((item) => `- 消息ID：${item.id}\n  发送人：${item.sender}\n  时间：${item.time || '未知'}\n  内容：${item.text}`).join('\n');
     const imageText = images.map((item) => `- 图片ID：${item.id}\n  来源：${item.source || '微信图片'}\n  描述：${item.description || '无描述'}`).join('\n');
-    return [contactText && `## @联系人\n${contactText}`, imageText && `## @图片\n${imageText}`].filter(Boolean).join('\n\n');
+    return [contactText && `## @联系人\n${contactText}`, messageText && `## @消息\n${messageText}`, imageText && `## @图片\n${imageText}`].filter(Boolean).join('\n\n');
   },
 
   attachWechatMentionedImageIntent(result = {}, playerText = '', currentId = '') {
