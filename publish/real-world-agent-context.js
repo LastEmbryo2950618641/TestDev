@@ -93,7 +93,7 @@ window.GameModules.realWorldAgentContext = {
 
   async dispatch(store, action, skill, method, params) {
     if (skill === 'company.query') return this.company(store, method, params);
-    if (skill === 'realworld.location.query') return this.location(store, method, params);
+    if (skill === 'realworld.location.query') return this.location(store, method, params, action);
     if (skill === 'realworld.history.query') return this.history(store, method, params);
     if (skill === 'memory.query') return await this.memory(store, action, method, params);
     return '';
