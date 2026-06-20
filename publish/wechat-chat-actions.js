@@ -44,8 +44,10 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatChatActi
   appendWechatMessage(id, msg) {
     const key = id || 'group-main';
     const time = msg.time || this.wechatMessageTime();
-    const list = [...(this.wechatMessagesByContact?.[key] || []), { ...msg, at: time.label, atDisplay: time.display, time: time.value }].slice(-40);
+    const saved = { ...msg, at: time.label, atDisplay: time.display, time: time.value };
+    const list = [...(this.wechatMessagesByContact?.[key] || []), saved].slice(-40);
     this.wechatMessagesByContact = { ...(this.wechatMessagesByContact || {}), [key]: list };
+    this.saveWechatHistoryRow?.(key, saved)?.catch?.((err) => console.warn('[微信] 固定历史写入失败:', err.message, err.stack));
     if (msg.text) this.updateWechatLatest(key, msg.text, msg.side === 'other');
   },
 
@@ -141,6 +143,8 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatChatActi
     const characterId = this.wechatMessageKey(contact);
     const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
     const archive = await this.searchMemoryArchive?.(characterId, playerText) || '无';
+    const memoryContext = this.wechatMemoryContext?.(characterId, playerText) || this.memoryQueryContext?.(characterId, playerText) || '暂无人物记忆。';
+    const historyContext = await this.wechatHistoryContextForReply?.(characterId, playerText, memoryContext) || this.wechatHistoryQueryHint?.(characterId) || '微信历史默认不载入；需要核对原文时再查询固定历史表。';
     return window.GameModules.promptTemplates.render('wechat-chat-reply', {
       玩家基础资料区: player.playerBasic,
       玩家现实身份区: player.playerIdentity,
@@ -153,9 +157,9 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatChatActi
       现实地点: this.realWorldLocationName || '未确认',
       现实状态: this.realWorldStatus || '现实稳定',
       目标状态快照: sections.stateSnapshot(this, state),
-      微信历史: this.wechatHistoryText(characterId),
+      微信历史: historyContext,
       提及上下文: this.wechatMentionContextText?.(playerText, characterId) || '无',
-      记忆查询结果: [this.memoryQueryContext?.(characterId, playerText) || '暂无人物记忆。', `## 记忆归档\n${archive}`].join('\n\n'),
+      记忆查询结果: [memoryContext, `## 记忆归档\n${archive}`].join('\n\n'),
       玩家消息: playerText,
       状态判定Skill: stateSkill,
       图片编辑Skill: imageSkill,
@@ -175,11 +179,6 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatChatActi
     return rows.map(([label, value]) => `- ${label}：${String(value || '未记录')}`).join('\n');
   },
 
-  wechatHistoryText(id) {
-    const list = (this.wechatMessagesByContact?.[id] || []).slice(-12);
-    if (!list.length) return '暂无历史消息。';
-    return list.map((msg) => msg.imageRecord || `${msg.side === 'self' ? '玩家' : '联系人'}：${msg.text}`).join('\n');
-  },
 
   validateWechatReply(raw, contact) {
     const reply = String(raw?.reply || '').trim().slice(0, 120) || this.fallbackWechatReply(contact, '');

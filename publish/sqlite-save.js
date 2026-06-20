@@ -67,6 +67,7 @@ window.GameModules.sqliteSave = {
       CREATE TABLE IF NOT EXISTS character_state(character_id TEXT PRIMARY KEY, name TEXT NOT NULL, world_tag TEXT NOT NULL, state_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS character_memory(character_id TEXT PRIMARY KEY, memory_json TEXT NOT NULL, updated_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS memory_archive(id TEXT PRIMARY KEY, character_id TEXT NOT NULL, text TEXT NOT NULL, vector_json TEXT NOT NULL, meta_json TEXT NOT NULL, created_at TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS wechat_history(id TEXT PRIMARY KEY, contact_id TEXT NOT NULL, message_json TEXT NOT NULL, created_at TEXT NOT NULL);
     `);
     this.db.run('INSERT OR REPLACE INTO metadata(key,value) VALUES (?,?)', ['version', '1']);
   },
