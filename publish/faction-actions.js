@@ -24,8 +24,16 @@ window.GameModules.factionActions = {
   },
 
   normalizeFactionStructure(faction = {}) {
-    faction.structure = (faction.structure || []).map((node) => ({ ...node, roles: this.normalizeFactionRoles(node.roles) }));
+    faction.structure = (faction.structure || []).map((node) => {
+      const name = node.name === '角色卡势力地位' ? this.factionPositionNodeName(faction, node.roles?.[0]?.title) : node.name;
+      return { ...node, name, roles: this.normalizeFactionRoles(node.roles) };
+    });
     return faction;
+  },
+
+  factionPositionNodeName(faction = {}, title = '') {
+    if (faction.name === '中华人民共和国' && String(title || '').includes('公民')) return '国家法定身份';
+    return '已确认职位';
   },
 
   normalizeFactionRoles(roles = []) {
@@ -80,11 +88,13 @@ window.GameModules.factionActions = {
 
   addFactionRoleOccupant(faction, title, character, reason, at = new Date().toISOString()) {
     faction.structure = faction.structure || [];
-    let node = faction.structure.find((x) => x.name === '角色卡势力地位');
+    const nodeName = this.factionPositionNodeName(faction, title);
+    let node = faction.structure.find((x) => x.name === nodeName || x.name === '角色卡势力地位');
     if (!node) {
-      node = { name: '角色卡势力地位', roles: [] };
+      node = { name: nodeName, roles: [] };
       faction.structure.push(node);
     }
+    node.name = nodeName;
     node.roles = this.normalizeFactionRoles(node.roles);
     let role = node.roles.find((x) => x.title === title);
     let changed = false;
