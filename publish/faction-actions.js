@@ -150,13 +150,19 @@ window.GameModules.factionActions = {
     if (this.factionState) this.factionState.orgChartOpen = false;
   },
 
+  factionRoleText(roles = []) {
+    return this.normalizeFactionRoles(roles).map((role) => `${role.title}：${(role.characters || ['未知']).join('、')}`).join('；') || '职位未记录';
+  },
+
   factionOrgNodes() {
     const faction = this.selectedFaction();
-    const nodes = (faction?.structure || []).map((node, index) => {
-      const roles = this.normalizeFactionRoles(node.roles).map((role) => `${role.title}：${(role.characters || ['未知']).join('、')}`).join('；') || '职位未记录';
-      return { key: `s-${index}-${node.name}`, name: node.name, roles };
-    });
-    const children = this.factionChildren(faction?.id).map((child) => ({ key: `c-${child.id}`, name: child.name, roles: `${child.type}｜${child.level}` }));
+    const nodes = (faction?.structure || []).map((node, index) => ({
+      key: `s-${index}-${node.name}`,
+      name: node.name,
+      roles: this.factionRoleText(node.roles),
+      children: this.normalizeFactionRoles(node.roles).map((role, roleIndex) => ({ key: `r-${index}-${roleIndex}-${role.title}`, name: role.title, roles: `角色：${(role.characters || ['未知']).join('、')}` })),
+    }));
+    const children = this.factionChildren(faction?.id).map((child) => ({ key: `c-${child.id}`, name: child.name, roles: `${child.type}｜${child.level}`, children: [] }));
     return [...nodes, ...children];
   },
 

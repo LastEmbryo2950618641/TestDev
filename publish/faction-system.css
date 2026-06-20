@@ -32,6 +32,7 @@
 .faction-tree > li::before { display: none; }
 .faction-tree-node { min-width: 220px; display: inline-grid; gap: 4px; padding: 10px 12px; border: 1px solid rgba(98,255,184,.22); border-radius: 14px; background: rgba(255,255,255,.07); color: #eef4ff; }
 .faction-tree-node.root { border-color: rgba(98,255,184,.62); background: rgba(98,255,184,.12); }
+.faction-tree-node.role { min-width: 190px; border-color: rgba(166,188,255,.22); background: rgba(166,188,255,.08); }
 .faction-tree-node small { color: #aeb9d6; }
 .faction-reasons { display: grid; gap: 8px; }
 .faction-reasons p { margin: 0; padding: 8px; border-radius: 10px; background: rgba(255,255,255,.045); }
