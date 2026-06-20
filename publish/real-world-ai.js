@@ -40,7 +40,7 @@ window.GameModules.realWorldAi = {
         newLocations: Array.isArray(data.newLocations) ? data.newLocations.slice(0, 8) : [],
         locationDescriptionUpdates: Array.isArray(data.locationDescriptionUpdates) ? data.locationDescriptionUpdates.slice(0, 12) : [],
         thinking: this.normalizeThinking(data.thinking, store, action),
-        narration: String(data.narration || this.fallback(store, action).narration),
+        narration: this.formatNarration(data.narration || this.fallback(store, action).narration),
         status: String(data.status || '现实推演继续中').slice(0, 40),
         quest: String(data.quest || '确认现实处境').slice(0, 24),
         choices: this.normalizeChoices(data.choices),
@@ -57,6 +57,25 @@ window.GameModules.realWorldAi = {
   normalizeLocationName(value) {
     const name = String(value || '').trim().slice(0, 28);
     return /^(玩家住处|住处|现实地点|当前位置|未知地点|现实起点)$/u.test(name) || /现实起点$/u.test(name) ? '' : name;
+  },
+
+  formatNarration(value, limit = 100) {
+    const text = String(value || '').replace(/\n+/g, '').trim();
+    if (!text) return '';
+    const sentences = text.match(/[^。！？!?；;]+[。！？!?；;]?/g) || [text];
+    const parts = [];
+    let current = '';
+    for (const sentence of sentences.map((item) => item.trim()).filter(Boolean)) {
+      if (!current) { current = sentence; continue; }
+      if ((current + sentence).length > limit) {
+        parts.push(current);
+        current = sentence;
+      } else {
+        current += sentence;
+      }
+    }
+    if (current) parts.push(current);
+    return parts.join('\n\n');
   },
 
   normalizeThinking(value, store, action) {

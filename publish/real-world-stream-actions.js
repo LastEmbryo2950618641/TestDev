@@ -5,7 +5,7 @@ window.GameModules.realWorldStreamActions = {
     if (!entry) return false;
     const pick = (key) => this.pickRealWorldStreamField(raw, key);
     const thinking = this.realWorldThinkMode ? (pick('thinking') || '') : '';
-    const narration = pick('narration') || '';
+    const narration = this.formatRealWorldStreamNarration(pick('narration') || '');
     const streamTrace = this.realWorldStreamTrace(raw, pick);
     const patch = { streaming: true };
     let changed = !entry.streaming;
@@ -15,6 +15,10 @@ window.GameModules.realWorldStreamActions = {
     if (!changed) return false;
     this.realWorldLog = this.realWorldLog.map((item) => (item.id === id ? { ...item, ...patch } : item));
     return true;
+  },
+
+  formatRealWorldStreamNarration(value = '') {
+    return window.GameModules.realWorldAi?.formatNarration?.(value, 100) || String(value || '').trim();
   },
 
   pickRealWorldStreamField(raw = '', key = '') {
