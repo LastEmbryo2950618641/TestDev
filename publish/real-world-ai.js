@@ -39,7 +39,7 @@ window.GameModules.realWorldAi = {
         mapLinks: Array.isArray(data.mapLinks) ? data.mapLinks.slice(0, 4) : [],
         newLocations: Array.isArray(data.newLocations) ? data.newLocations.slice(0, 8) : [],
         locationDescriptionUpdates: Array.isArray(data.locationDescriptionUpdates) ? data.locationDescriptionUpdates.slice(0, 12) : [],
-        thinking: String(data.thinking || '').slice(0, 180),
+        thinking: this.normalizeThinking(data.thinking, store, action),
         narration: String(data.narration || this.fallback(store, action).narration),
         status: String(data.status || '现实推演继续中').slice(0, 40),
         quest: String(data.quest || '确认现实处境').slice(0, 24),
@@ -57,6 +57,13 @@ window.GameModules.realWorldAi = {
   normalizeLocationName(value) {
     const name = String(value || '').trim().slice(0, 28);
     return /^(玩家住处|住处|现实地点|当前位置|未知地点|现实起点)$/u.test(name) || /现实起点$/u.test(name) ? '' : name;
+  },
+
+  normalizeThinking(value, store, action) {
+    const text = String(value || '').trim();
+    if (text) return text.slice(0, 180);
+    if (!store.thinkingMode) return '';
+    return `依据玩家行动「${String(action || '继续观察现实世界').slice(0, 40)}」、现实状态、已载入资料与相关人物记忆，优先按现实因果推进本次结果。`;
   },
 
   normalizeChoices(value) {
