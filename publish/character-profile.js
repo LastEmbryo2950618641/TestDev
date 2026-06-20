@@ -512,6 +512,11 @@ window.GameModules.characterProfile = {
         missing = this.missingPartFields(partIndex, current, template, base, attrs);
         if (!missing.length) return current;
       }
+      if ((partIndex === 5 && missing.includes('bodyProfile')) || (partIndex === 6 && missing.includes('dressedProfile'))) {
+        current = this.completeBodyProfileFallback(partIndex, current, base);
+        missing = this.missingPartFields(partIndex, current, template, base, attrs);
+        if (!missing.length) return current;
+      }
       const patch = await this.generateMissingPartFields(partIndex, current, template, missing, format, base, attrs);
       current = this.lockPartTargetName(partIndex, this.sanitizePart(partIndex, this.mergeMissingPatch(partIndex, current, patch), template), base);
     }
@@ -522,6 +527,7 @@ window.GameModules.characterProfile = {
 
   async repairCsvPartRows(partIndex, raw, format, base, lore, attrs, store, vars = {}) {
     if (![2, 3, 4, 5, 6].includes(partIndex)) return raw;
+    if (partIndex === 5 || partIndex === 6) raw = this.completeBodyProfileFallback(partIndex, raw, base);
     let currentRows = this.normalizeCsvPartRows(partIndex, this.rowsFromCsvPart(partIndex, raw));
     let attempts = 0;
     while (true) {
@@ -543,7 +549,10 @@ window.GameModules.characterProfile = {
     }
     const finalRows = this.applyLocalCsvFixes(partIndex, currentRows);
     const finalIssues = this.csvPartIssues(partIndex, finalRows, base);
-    if ((partIndex === 4 || partIndex === 5 || partIndex === 6) && finalIssues.length) throw new Error(`Part${partIndex} CSV修复未收敛：${finalIssues.map((x) => `${x.key}:${x.reason}`).join('、')}`);
+    if ((partIndex === 5 || partIndex === 6) && finalIssues.length) {
+      return this.completeBodyProfileFallback(partIndex, this.buildPartFromCsvRows(partIndex, finalRows, base.name), base);
+    }
+    if (partIndex === 4 && finalIssues.length) throw new Error(`Part${partIndex} CSV修复未收敛：${finalIssues.map((x) => `${x.key}:${x.reason}`).join('、')}`);
     return this.buildPartFromCsvRows(partIndex, finalRows, base.name);
   },
 
@@ -990,7 +999,9 @@ window.GameModules.characterProfile = {
     if (partIndex === 3) return issues.map((x) => (x.key === 'knowledge' ? 'knowledge,现代常识,2,日常生活和教育经历形成基础常识,生活经验,家庭经历|教育背景,--' : 'skills,观察力,2,长期生活经历形成基础观察能力,perception|谨慎性格,现代常识|过往经历,日常观察习惯')).join('\n');
     if (partIndex === 5 || partIndex === 6) {
       const parts = this.bodyProfileParts();
-      const targets = [...new Set(issues.map((x) => x.key).filter((key) => parts.includes(key)))];
+      const direct = issues.map((x) => x.key).filter((key) => parts.includes(key));
+      const fromBadRows = issues.map((x) => this.csvParts(this.normalizePart5Row(x.badRow || ''))[1]).filter((key) => parts.includes(key));
+      const targets = [...new Set([...direct, ...fromBadRows])];
       return targets.map((part) => {
         const finalIndex = parts.indexOf(part) + 1;
         const text = partIndex === 6 ? this.dressedProfilePromptText(part) : this.bodyProfilePromptText(part);
@@ -1377,6 +1388,25 @@ window.GameModules.characterProfile = {
 
   bodyProfileComplete(value) {
     return this.bodyProfileCompleteItems(value).length === this.bodyProfileParts().length;
+  },
+
+  completeBodyProfileFallback(partIndex, data, base = {}) {
+    const key = partIndex === 6 ? 'dressedProfile' : 'bodyProfile';
+    const list = Array.isArray(data?.[key]) ? data[key] : [];
+    const byPart = new Map();
+    list.forEach((item) => {
+      const part = String(item?.part || item?.部位 || '').trim();
+      const description = String(item?.description || item?.部位描写 || '').trim();
+      if (this.bodyProfileParts().includes(part) && description) byPart.set(part, { ...item, part, description });
+    });
+    const label = partIndex === 6 ? '盛装状态' : '自然状态';
+    const filled = this.bodyProfileParts().map((part, index) => {
+      const old = byPart.get(part);
+      if (old) return { index: index + 1, part, description: old.description };
+      const text = partIndex === 6 ? this.dressedProfilePromptText(part) : this.bodyProfilePromptText(part);
+      return { index: index + 1, part, description: `采用系统兜底${label}：${text}` };
+    });
+    return { ...(data || {}), name: base.name || data?.name || '', [key]: filled };
   },
 
   parseCsvInventoryPart(text, name = '') {
