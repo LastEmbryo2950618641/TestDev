@@ -49,7 +49,7 @@ function registerGameStore() {
     criticalActionFallback, gm.actions, gm.rpgFieldUi, gm.resultActions, gm.loadingActions, gm.roleCardLoadingActions, gm.saveActions, gm.styleActions,
     gm.worldlineActions, gm.predefinedRoleCardActions, gm.playerSetupActions, gm.playerIdentityActions, gm.identityMemoryActions, gm.identityAppActions, gm.memoryQueryActions, gm.wechatActions, gm.wechatViewActions, gm.wechatMemoryContextActions, gm.wechatChatActions, gm.wechatImageActions, gm.wechatMentionActions, gm.wechatWorldlineActions, gm.wechatMemoryDebugActions, gm.wechatAppActions, gm.wechatAlbumTagActions, gm.wechatAlbumPromptListActions, gm.wechatAvatarCropActions, gm.wechatAlbumActions, gm.wechatChangePanelActions, gm.entryActions,
     gm.catalogActions, gm.coreActions, gm.appSwitchActions, gm.inventoryActions, gm.realWorldStreamActions, gm.realWorldThinkingActions, gm.realWorldActions, gm.realWorldFactionActions, gm.companyActions, gm.companyAttendanceActions,
-    gm.bossActions, gm.bossAiActions, gm.calendarActions, gm.factionActions, gm.factionAiActions, gm.skillsActions, gm.knownProfessionActions, gm.promptActions, gm.settingsActions, gm.tokenStatsActions,
+    gm.bossActions, gm.bossAiActions, gm.calendarActions, gm.factionActions, gm.factionOrgActions, gm.factionAiActions, gm.skillsActions, gm.knownProfessionActions, gm.promptActions, gm.settingsActions, gm.tokenStatsActions,
   ].map((module) => module || {});
 
   Alpine.store('game', {

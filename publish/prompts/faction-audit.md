@@ -55,7 +55,7 @@
 
 | 路径 | 类型 | 必填字段 | 说明 |
 | --- | --- | --- | --- |
-| structure[] | object | name, roles | `name` 写层级/部门/节点名；`roles` 必须是职位数组。每项格式为 `{ "title": "职位/地位/法定身份", "characters": ["角色名或未知"] }`。 |
+| structure[] | object | name, level, roles | `name` 写组织名或下属单位名，例如“中华人民共和国政府”“全国人民代表大会”“最高人民法院”；`level` 写国家级别、中央级别、省级级别、市级级别、区县级别、公司级别、部门级别等；`roles` 必须是职位数组。每项格式为 `{ "title": "职位/地位/法定身份", "count": 1, "characters": ["角色名或未知"] }`。 |
 | relations[] | object | target, relation, detail | 关系目标、关系类型、关系说明。 |
 | fieldReasons | object | name, type, parentId, parentName, level, location, domain, scale, stance, influence, description, structure, rules, resources, relations | 每个字段都写一句审计理由。 |
 
@@ -76,8 +76,8 @@
 3. 全量检视每个势力，每个词条都必须有理由；无变化也说明为什么保持。
 4. 保留国家与当前公司，公司归属于国家。
 5. 玩家/角色卡已有势力地位是事实锚点，只可新增进势力系统，不可移除、覆盖或反向否定；已有势力地位对应的势力和职位必须在 structure 中出现。
-6. 每个势力都必须尽量补齐 structure；组织架构必须精确到职位/地位/法定身份以及该职位上的角色，角色未知时 characters 写 ["未知"]。
-7. 最基层身份也要记录，例如中华人民共和国下必须有“公民”职位/法定身份；公司可写管理/业务/支持部门，学校可写校级/年级/班级。
+6. 每个势力都必须尽量补齐 structure；组织架构必须按“组织名/下属单位名 → 级别 → 职位 → 数量 → 角色”表达。职位角色未知时 characters 写 ["未知"]；人数未知时 count 写 "未知"。
+7. 最基层身份也要记录，例如中华人民共和国政府下必须有“公民”职位/法定身份；公司可写总部、部门、小组，学校可写校级、年级、班级。多个同级下属单位可作为 structure 的多个节点并列返回，例如“全国人民代表大会”和“最高人民法院”都写中央级别。
 
 ## 玩家资料
 

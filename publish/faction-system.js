@@ -13,9 +13,10 @@ window.GameModules.factionSystem = {
       location: '东亚', domain: '国家治理', scale: '超大型', stance: '现实秩序维护', influence: 95,
       description: '玩家所在现代现实世界的国家级势力，提供法律、行政区划、公共服务和节假日规则。',
       structure: [
-        { name: '国家法定身份', roles: [{ title: '公民', characters: ['未知'] }] },
-        { name: '中央层级', roles: [{ title: '国家机构', characters: ['未知'] }, { title: '宏观政策', characters: ['未知'] }, { title: '公共秩序', characters: ['未知'] }] },
-        { name: '地方层级', roles: [{ title: '省市区县', characters: ['未知'] }, { title: '基层治理', characters: ['未知'] }, { title: profile.refinedCity || profile.city || '玩家所在地', characters: ['未知'] }] },
+        { name: '中华人民共和国政府', level: '国家级别', roles: [{ title: '国家主席', count: 1, characters: ['未知'] }, { title: '公民', count: '未知', characters: ['未知'] }] },
+        { name: '全国人民代表大会', level: '中央级别', roles: [{ title: '会议主席', count: 1, characters: ['未知'] }, { title: '代表', count: '未知', characters: ['未知'] }] },
+        { name: '最高人民法院', level: '中央级别', roles: [{ title: '院长', count: 1, characters: ['未知'] }, { title: '法官', count: '未知', characters: ['未知'] }] },
+        { name: profile.refinedCity || profile.city || '玩家所在地政府', level: '地方级别', roles: [{ title: '地方行政负责人', count: 1, characters: ['未知'] }, { title: '居民/公民', count: '未知', characters: ['未知'] }] },
       ],
       rules: ['所有公司、学校、工作室等现实组织默认归属于所在国家。', '国家级规则优先于普通组织规则。'],
       resources: ['法律体系', '行政资源', '公共基础设施'], relations: [], fieldReasons: this.defaultReasons('国家级上下文初始化字段，作为公司等现实组织归属基准。'), fixed: true, updatedAt: new Date().toISOString(),
