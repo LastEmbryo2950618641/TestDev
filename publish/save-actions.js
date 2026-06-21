@@ -128,9 +128,18 @@ window.GameModules.saveActions = {
   rpgVitals(state) {
     const values = state?.values || {};
     const percent = (pool) => pool?.max ? Math.round((pool.current / pool.max) * 100) : 100;
+    const vital = (key, label, poolKey = key) => {
+      const pool = values[poolKey];
+      const note = values.vital_update_notes?.[poolKey];
+      return { key, label, value: poolKey === 'stamina_pool' ? (values.stamina ?? percent(pool)) : percent(pool), text: note?.reason || this.rpgFieldValue(pool) };
+    };
     return [
       { key: 'health', label: '生命力', value: values.health ?? percent(values.vitality), text: this.rpgFieldValue(values.vitality) },
-      { key: 'stamina', label: '精力', value: values.stamina ?? percent(values.stamina_pool), text: this.rpgFieldValue(values.stamina_pool) },
+      vital('stamina', '精力', 'stamina_pool'),
+      vital('satiety', '饱食度'),
+      vital('hydration', '水分'),
+      vital('fatigue', '疲劳度'),
+      vital('mental_stability', '精神稳定'),
     ];
   },
   rpgFieldValue(value) {

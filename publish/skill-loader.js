@@ -85,12 +85,15 @@ window.GameModules.skillLoader = {
     await this.load();
     const doc = window.GameModules.skillDocs?.[id];
     if (!doc) return '';
-    const stability = this.section(doc.body, '感觉稳定性规则');
+    const sections = ['感觉稳定性规则', '输出字段', '数值规则', '推演要求'].map((title) => {
+      const body = this.section(doc.body, title);
+      return body ? `## ${title}\n${body}` : '';
+    }).filter(Boolean).join('\n');
     return [
       `Skill：${doc.meta.name}`,
       `方法：${doc.meta.method || id}`,
       `激活：${doc.meta.trigger || doc.meta.description || ''}`,
-      stability ? `关键规则：\n${stability}` : '',
+      sections ? `关键规则：\n${sections}` : '',
       `返回：${doc.meta.returns || ''}`,
     ].filter(Boolean).join('\n');
   },

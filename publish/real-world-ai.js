@@ -45,6 +45,7 @@ window.GameModules.realWorldAi = {
         quest: String(data.quest || '确认现实处境').slice(0, 24),
         choices: this.normalizeChoices(data.choices),
         elapsedSeconds: window.GameModules.ai.clampElapsed?.(data.elapsedSeconds, 300) || 300,
+        vitalUpdates: this.normalizeVitalUpdates(data.vitalUpdates, data.elapsedSeconds, action),
         metricUpdates: window.GameModules.ai.normalizeMetricUpdates?.(data.metricUpdates) || {},
         factionUpdates: Array.isArray(data.factionUpdates) ? data.factionUpdates.slice(0, 8) : [],
         lexiconUpdates: window.GameModules.ai.normalizeLexiconUpdates?.(data.lexiconUpdates, store) || [],
@@ -91,6 +92,37 @@ window.GameModules.realWorldAi = {
     return [...new Set(list.map((x) => String(x || '').trim().slice(0, 14)).filter(Boolean).concat(['观察手机异常', '处理现实事务', '联系熟人', '暂时休息']))].slice(0, 4);
   },
 
+  normalizeVitalUpdates(value, elapsedSeconds = 300, action = '') {
+    const keys = ['stamina_pool', 'satiety', 'hydration', 'fatigue', 'mental_stability'];
+    const labels = { stamina_pool: '精力', satiety: '饱食度', hydration: '水分', fatigue: '疲劳度', mental_stability: '精神稳定' };
+    const list = Array.isArray(value) ? value : [];
+    const byKey = new Map(list.map((item) => [String(item?.key || ''), item]));
+    return keys.map((key) => {
+      const item = byKey.get(key) || this.fallbackVitalUpdate(key, elapsedSeconds, action);
+      const delta = Math.max(-60, Math.min(60, Math.round(Number(item.delta) || 0)));
+      const reason = String(item.reason || `${labels[key]}本次基本不变。`).slice(0, 120);
+      return { key, delta, reason };
+    });
+  },
+
+  fallbackVitalUpdate(key, elapsedSeconds = 300, action = '') {
+    const hours = Math.max(0, Number(elapsedSeconds) || 0) / 3600;
+    const text = String(action || '现实行动');
+    if (/睡|休息|躺|补觉/.test(text)) {
+      const rest = Math.max(1, Math.round(hours * 18));
+      if (key === 'stamina_pool') return { key, delta: Math.min(45, rest), reason: '休息让体能逐步恢复。' };
+      if (key === 'fatigue') return { key, delta: -Math.min(45, rest), reason: '休息降低了累积疲劳。' };
+      if (key === 'mental_stability') return { key, delta: Math.min(12, Math.ceil(rest / 4)), reason: '休息让精神状态稍微稳定。' };
+    }
+    if (/吃|饭|餐|外卖|食物/.test(text) && key === 'satiety') return { key, delta: 20, reason: '进食直接提高了饱食度。' };
+    if (/喝|水|饮料|咖啡|奶茶/.test(text) && key === 'hydration') return { key, delta: 18, reason: '补充饮品提高了水分。' };
+    if (key === 'stamina_pool') return { key, delta: hours >= 0.5 ? -Math.min(12, Math.ceil(hours * 6)) : -1, reason: '现实行动和时间流逝消耗了精力。' };
+    if (key === 'satiety') return { key, delta: hours >= 0.5 ? -Math.min(10, Math.ceil(hours * 3)) : 0, reason: '时间较短，饱食度变化有限。' };
+    if (key === 'hydration') return { key, delta: hours >= 0.5 ? -Math.min(12, Math.ceil(hours * 4)) : 0, reason: '时间流逝带来少量水分消耗。' };
+    if (key === 'fatigue') return { key, delta: hours >= 0.5 ? Math.min(14, Math.ceil(hours * 5)) : 1, reason: '持续行动带来疲劳累积。' };
+    return { key, delta: /异常|害怕|恐惧|冲突|压力|慌/.test(text) ? -3 : 0, reason: '本次行动对精神稳定没有明显额外冲击。' };
+  },
+
   fallback(store, action) {
     const text = action || '继续观察现实世界';
     return {
@@ -108,6 +140,7 @@ window.GameModules.realWorldAi = {
       quest: '确认手机异常与现实处境',
       choices: ['检查手机记录', '观察居住环境', '联系熟人确认', '暂时休息'],
       elapsedSeconds: 300,
+      vitalUpdates: this.normalizeVitalUpdates([], 300, text),
     };
   },
 };

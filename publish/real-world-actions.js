@@ -138,6 +138,8 @@ window.GameModules.realWorldActions = {
     await this.applyInventoryUpdatesToState(state, result.lexiconUpdates || []);
     const elapsedSeconds = window.GameModules.ai.clampElapsed?.(result.elapsedSeconds, 300) || 300;
     result.elapsedSeconds = elapsedSeconds;
+    result.vitalUpdates = window.GameModules.realWorldAi.normalizeVitalUpdates(result.vitalUpdates, elapsedSeconds, result.narration || '');
+    await this.applyRealWorldVitalUpdates(state, result.vitalUpdates);
     const startedAt = this.phoneDate().toISOString();
     this.advancePhoneTime(elapsedSeconds);
     this.refreshRealWorldMatterStatus?.();
@@ -155,6 +157,31 @@ window.GameModules.realWorldActions = {
     this.realWorldLog = this.realWorldLog.map((entry) => (entry.id === id ? next : entry));
     this.refreshRealWorldLogPage?.(999999);
     this.scrollRealWorldLogBottom?.();
+  },
+
+  async applyRealWorldVitalUpdates(state, updates = []) {
+    if (!state?.values || !Array.isArray(updates)) return;
+    const values = state.values;
+    window.GameModules.progression.ensureStateMechanics(state, state.profile || {});
+    values.vital_update_notes = values.vital_update_notes || {};
+    const apply = (key, delta) => {
+      const pool = values[key];
+      if (!pool?.max) return null;
+      const before = window.GameModules.progression.percent(pool);
+      window.GameModules.progression.deltaPool(pool, delta);
+      return { before, after: window.GameModules.progression.percent(pool) };
+    };
+    for (const item of updates) {
+      const key = String(item?.key || '');
+      if (!['stamina_pool', 'satiety', 'hydration', 'fatigue', 'mental_stability'].includes(key)) continue;
+      const changed = apply(key, Number(item.delta) || 0);
+      if (!changed) continue;
+      values.vital_update_notes[key] = { ...changed, delta: Math.round(Number(item.delta) || 0), reason: String(item.reason || '').slice(0, 120), at: this.phoneDate().toISOString() };
+    }
+    values.health = window.GameModules.progression.percent(values.vitality);
+    values.stamina = window.GameModules.progression.percent(values.stamina_pool);
+    this.rpgStates = { ...this.rpgStates, [state.id]: state };
+    await window.GameModules.sqliteSave.saveCharacterState(state);
   },
 
   async assignRealWorldlineEntry(entry) {

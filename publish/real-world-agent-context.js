@@ -19,6 +19,7 @@ window.GameModules.realWorldAgentContext = {
       `时间规则：所有现实时间都以桌面时间为准；本次 final 必须返回 elapsedSeconds，代码会用它推进桌面时间。`,
       `玩家资料：${store.playerSetupSummary?.() || store.playerName || '玩家'}`,
       `玩家属性：${this.limit(store.playerIdentitySummary?.() || '玩家本人属性尚未生成。', 1000)}`,
+      `现实身体状态：${this.vitalsText(store, store.playerIdentityState?.())}`,
       `当前场景：${store.realWorldSceneTitle || '现实世界'}`,
       `当前地点：${store.realWorldLocationName || map.current || '尚未生成具体地点'}`,
       `当前目标：${store.realWorldQuest || '确认手机异常与现实处境'}`,
@@ -27,6 +28,18 @@ window.GameModules.realWorldAgentContext = {
       `最近记录摘要：\n${recent}`,
       `本次行动：${action || '继续观察现实世界'}`,
     ].join('\n');
+  },
+
+  vitalsText(store, state = null) {
+    const values = state?.values || {};
+    const percent = (pool) => pool?.max ? Math.round((pool.current / pool.max) * 100) : 100;
+    const row = (key, label) => {
+      const pool = values[key] || {};
+      const value = percent(pool);
+      const note = values.vital_update_notes?.[key]?.reason || '';
+      return `${label}${value}/100${note ? `（上次变化：${note}）` : ''}`;
+    };
+    return state?.values ? [row('stamina_pool', '精力'), row('satiety', '饱食度'), row('hydration', '水分'), row('fatigue', '疲劳度'), row('mental_stability', '精神稳定')].join('；') : '玩家本人状态尚未生成。';
   },
 
   companyNames(store) {
@@ -64,7 +77,7 @@ window.GameModules.realWorldAgentContext = {
   },
 
   async skillText() {
-    const ids = ['emotion.feeling.wearing.assess', 'memory.query', 'company.query', 'faction.query', 'realworld.location.query', 'realworld.history.query', 'lexicon.query'];
+    const ids = ['emotion.feeling.wearing.assess', 'memory.query', 'company.query', 'faction.query', 'realworld.location.query', 'realworld.history.query', 'lexicon.query', 'realworld.vitals.adjust'];
     const texts = await Promise.all(ids.map((id) => window.GameModules.skillLoader?.instruction?.(id) || ''));
     return texts.filter(Boolean).join('\n\n');
   },
