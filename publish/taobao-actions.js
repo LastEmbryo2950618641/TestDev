@@ -4,10 +4,44 @@ window.GameModules.taobaoActions = {
     return ['上衣', '下衣', '鞋子', '袜子', '包具', '数码', '日用品', '随机'].map((hint, index) => ({ id: `tb-${index + 1}`, hint, product: null }));
   },
 
+  taobaoWearFilters() {
+    const p = window.GameModules.progression;
+    const body = p?.bodyWearSlots?.() || [];
+    const labels = { head: '头部', neck: '颈部', innerwearTop: '内衣', top: '上衣', outerwear: '外套', gloves: '手套', waist: '腰部', innerwearBottom: '内裤', bottom: '下装', socks: '袜子', shoes: '鞋子', wrist: '手腕' };
+    const filters = body.map((slot) => ({ slot, label: labels[slot] || p?.clothingPositionForSlot?.(slot) || slot }));
+    return [{ slot: '', label: '全部' }, ...filters, { slot: '包具', label: '包具' }, { slot: '饰品', label: '饰品' }, { slot: '装备', label: '装备' }];
+  },
+
   initTaobaoApp() {
-    if (!this.taobaoState) this.taobaoState = { open: false, slots: [], selectedId: '', generatingId: '', requestId: 0, message: '', error: '', walletOpen: false };
+    if (!this.taobaoState) this.taobaoState = { open: false, slots: [], selectedId: '', filterSlot: '', generatingId: '', requestId: 0, message: '', error: '', walletOpen: false };
     if (!Array.isArray(this.taobaoState.slots) || !this.taobaoState.slots.length) this.taobaoState.slots = this.taobaoDefaultSlots();
+    if (typeof this.taobaoState.filterSlot !== 'string') this.taobaoState.filterSlot = '';
     if (typeof this.taobaoState.walletOpen !== 'boolean') this.taobaoState.walletOpen = false;
+  },
+
+  setTaobaoFilter(slot = '') {
+    this.initTaobaoApp();
+    this.taobaoState.filterSlot = slot;
+    this.taobaoState.message = slot ? `已筛选${this.taobaoFilterLabel(slot)}商品。` : '已显示全部商品位。';
+  },
+
+  taobaoFilterLabel(slot = this.taobaoState?.filterSlot) {
+    return this.taobaoWearFilters().find((item) => item.slot === slot)?.label || slot || '全部';
+  },
+
+  taobaoFilteredSlots() {
+    this.initTaobaoApp();
+    const filter = this.taobaoState.filterSlot;
+    if (!filter) return this.taobaoState.slots;
+    return this.taobaoState.slots.filter((slot) => !slot.product || this.taobaoProductMatchesFilter(slot.product, filter));
+  },
+
+  taobaoProductMatchesFilter(product = {}, filter = '') {
+    if (!filter) return true;
+    const p = window.GameModules.progression;
+    const targets = (Array.isArray(product.equipSlots) ? product.equipSlots : []).map((slot) => p?.canonicalWearSlot?.(slot) || slot);
+    const canonical = p?.canonicalWearSlot?.(filter) || filter;
+    return targets.includes(filter) || targets.includes(canonical) || targets.some((slot) => p?.slotBase?.(slot) === filter || p?.slotBase?.(slot) === canonical);
   },
 
   toggleTaobaoWallet() {
@@ -66,7 +100,9 @@ window.GameModules.taobaoActions = {
   taobaoPrompt(slot = {}) {
     const p = this.playerProfile || {};
     const slots = window.GameModules.progression.bodyWearSlots().join('、');
-    return `你是2026现代都市淘宝商品结构化生成器。仅输出紧凑JSON，不要Markdown。根据玩家身份生成一个真实可购买商品。玩家：姓名${p.name || '未知'}，年龄${p.age || ''}，地址${p.refinedCity || p.city || ''}，身份${p.refinedRole || p.dailyRole || ''}，财富${p.wealthTier || '流浪'}，现金${p.wealthAmount || 0}元。商品位提示：${slot.hint || '随机'}。若是衣服、裤子、袜子、鞋、包、饰品等可装备商品，kind必须为"装备"，equipSlots必须按已有穿戴部位分类，可用部位：${slots}，也可用中文部位：上衣、下衣、内衣、内裤、袜子、鞋子、外套、包具、头部、颈部、腰部、手套、饰品。非可装备商品kind为"物品"。字段：name、category、price、shop、description、kind、equipSlots、reason。price为整数且符合财富档位，不要超过玩家现金。`;
+    const filter = this.taobaoState?.filterSlot;
+    const filterText = filter ? `当前搜索筛选部位：${this.taobaoFilterLabel(filter)}（${filter}），必须优先生成可穿戴在该部位的装备商品。` : '';
+    return `你是2026现代都市淘宝商品结构化生成器。仅输出紧凑JSON，不要Markdown。根据玩家身份生成一个真实可购买商品。玩家：姓名${p.name || '未知'}，年龄${p.age || ''}，地址${p.refinedCity || p.city || ''}，身份${p.refinedRole || p.dailyRole || ''}，财富${p.wealthTier || '流浪'}，现金${p.wealthAmount || 0}元。商品位提示：${slot.hint || '随机'}。${filterText}若是衣服、裤子、袜子、鞋、包、饰品等可装备商品，kind必须为"装备"，equipSlots必须按已有穿戴部位分类，可用部位：${slots}，也可用中文部位：上衣、下衣、内衣、内裤、袜子、鞋子、外套、包具、头部、颈部、腰部、手套、手腕、饰品。非可装备商品kind为"物品"。字段：name、category、price、shop、description、kind、equipSlots、reason。price为整数且符合财富档位，不要超过玩家现金。`;
   },
 
   normalizeTaobaoProduct(data = {}, slot = {}) {
