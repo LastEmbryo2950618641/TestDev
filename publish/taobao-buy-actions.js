@@ -1,16 +1,29 @@
 window.GameModules = window.GameModules || {};
 window.GameModules.taobaoBuyActions = {
+  taobaoProductBusyKey(item = {}) {
+    return item?.id || item?.name || 'buying';
+  },
+
+  async buyTaobaoSlot(slotId) {
+    this.initTaobaoApp();
+    const slot = this.taobaoState.slots.find((item) => item.id === slotId);
+    await this.buyTaobaoProduct(slot?.product || null);
+  },
+
   async buyTaobaoProduct(product = null) {
     this.initTaobaoApp();
-    const item = product || this.selectedTaobaoSlot()?.product;
-    if (!item || this.taobaoState.generatingId || item.purchased || this.taobaoState.buyingId) return;
-    this.taobaoState.buyingId = item.id || item.name || 'buying';
+    const item = product?.product || product || this.selectedTaobaoSlot()?.product;
+    if (!item || item.purchased || this.taobaoState.buyingId) return;
+    const price = Math.max(1, Math.floor(Number(item.price) || 1));
+    item.price = price;
+    const buyKey = this.taobaoProductBusyKey(item);
+    this.taobaoState.buyingId = buyKey;
     this.taobaoState.error = '';
     this.taobaoState.message = `正在购买${item.name}…`;
     try {
       const money = Number(this.playerProfile?.wealthAmount || 0);
-      if (money < item.price) {
-        this.taobaoState.error = `余额不足：当前财富${money.toLocaleString('zh-CN')}元，商品需${item.price.toLocaleString('zh-CN')}元。`;
+      if (money < price) {
+        this.taobaoState.error = `余额不足：当前财富${money.toLocaleString('zh-CN')}元，商品需${price.toLocaleString('zh-CN')}元。`;
         this.taobaoState.message = '';
         return;
       }
@@ -22,9 +35,9 @@ window.GameModules.taobaoBuyActions = {
       }
       const updates = this.taobaoInventoryUpdates(item);
       await this.applyInventoryUpdatesToState(state, updates);
-      this.playerProfile.wealthAmount = money - item.price;
+      this.playerProfile.wealthAmount = money - price;
       item.purchased = true;
-      this.taobaoState.message = `已购买${item.name}，${updates.length}件商品加入背包并扣除${item.price.toLocaleString('zh-CN')}元。`;
+      this.taobaoState.message = `已购买${item.name}，${updates.length}件商品加入背包并扣除${price.toLocaleString('zh-CN')}元。`;
       this.taobaoState.error = '';
       this.taobaoState.buyingId = '';
       await this.save?.();

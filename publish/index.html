@@ -917,7 +917,7 @@
                 <em x-show="slot.product?.setItems?.length" x-text="slot.product?.setItems?.length ? `${slot.product.setItems.length}个槽位明细` : ''"></em>
               </button>
               <span x-text="slot.product ? `${Number(slot.product.price || 0).toLocaleString('zh-CN')}元` : '空商品位' "></span>
-              <button type="button" class="taobao-buy-inline" @click.stop="$store.game.buyTaobaoProduct(slot.product)" :disabled="!slot.product || slot.product.purchased" x-text="$store.game.taobaoState.buyingId === slot.product?.id ? '购买中…' : (slot.product?.purchased ? '已购买' : '直接购买')"></button>
+              <button type="button" class="taobao-buy-inline" @click.stop.prevent="$store.game.buyTaobaoSlot(slot.id)" :disabled="!slot.product || slot.product.purchased || Boolean($store.game.taobaoState.buyingId)" x-text="$store.game.taobaoState.buyingId === $store.game.taobaoProductBusyKey(slot.product) ? '购买中…' : (slot.product?.purchased ? '已购买' : '直接购买')"></button>
             </article>
           </template>
         </section>
