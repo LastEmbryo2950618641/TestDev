@@ -179,6 +179,8 @@
   <script src="skills-actions.js"></script>
   <script src="known-profession-actions.js"></script>
   <script src="taobao-actions.js"></script>
+  <script src="taobao-generate-actions.js"></script>
+  <script src="taobao-buy-actions.js"></script>
   <script src="prompt-actions.js"></script>
   <script src="settings-actions.js"></script>
   <script src="entry-actions.js"></script>
@@ -915,7 +917,7 @@
                 <em x-show="slot.product?.setItems?.length" x-text="slot.product?.setItems?.length ? `${slot.product.setItems.length}个槽位明细` : ''"></em>
               </button>
               <span x-text="slot.product ? `${Number(slot.product.price || 0).toLocaleString('zh-CN')}元` : '空商品位' "></span>
-              <button type="button" class="taobao-buy-inline" @click="$store.game.buyTaobaoProduct(slot.product)" :disabled="!slot.product || slot.product.purchased || $store.game.taobaoState.generatingId" x-text="slot.product?.purchased ? '已购买' : '直接购买'"></button>
+              <button type="button" class="taobao-buy-inline" @click.stop="$store.game.buyTaobaoProduct(slot.product)" :disabled="!slot.product || slot.product.purchased || $store.game.taobaoState.generatingId || $store.game.taobaoState.buyingId" x-text="$store.game.taobaoState.buyingId === slot.product?.id ? '购买中…' : (slot.product?.purchased ? '已购买' : '直接购买')"></button>
             </article>
           </template>
         </section>
@@ -936,7 +938,7 @@
               <p><b x-text="item.slotLabel || item.slot"></b><span x-text="item.name"></span><small x-text="item.description"></small></p>
             </template>
           </div>
-          <button class="story-choice-btn" type="button" @click="$store.game.buyTaobaoProduct($store.game.selectedTaobaoSlot()?.product)" :disabled="!$store.game.selectedTaobaoSlot()?.product || $store.game.selectedTaobaoSlot()?.product?.purchased || $store.game.taobaoState.generatingId" x-text="$store.game.selectedTaobaoSlot()?.product?.purchased ? '已购买' : '购买并加入背包'"></button>
+          <button class="story-choice-btn" type="button" @click="$store.game.buyTaobaoProduct($store.game.selectedTaobaoSlot()?.product)" :disabled="!$store.game.selectedTaobaoSlot()?.product || $store.game.selectedTaobaoSlot()?.product?.purchased || $store.game.taobaoState.generatingId || $store.game.taobaoState.buyingId" x-text="$store.game.taobaoState.buyingId === $store.game.selectedTaobaoSlot()?.product?.id ? '购买中…' : ($store.game.selectedTaobaoSlot()?.product?.purchased ? '已购买' : '购买并加入背包')"></button>
         </article>
       </main>
     </div>

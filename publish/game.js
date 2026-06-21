@@ -49,7 +49,7 @@ function registerGameStore() {
     criticalActionFallback, gm.actions, gm.rpgFieldUi, gm.resultActions, gm.loadingActions, gm.roleCardLoadingActions, gm.saveActions, gm.styleActions,
     gm.worldlineActions, gm.predefinedRoleCardActions, gm.playerSetupActions, gm.playerIdentityActions, gm.identityMemoryActions, gm.identityAppActions, gm.memoryQueryActions, gm.wechatActions, gm.wechatViewActions, gm.wechatMemoryContextActions, gm.wechatChatActions, gm.wechatImageActions, gm.wechatMentionActions, gm.wechatWorldlineActions, gm.wechatMemoryDebugActions, gm.wechatAppActions, gm.wechatAlbumTagActions, gm.wechatAlbumPromptListActions, gm.wechatAvatarCropActions, gm.wechatAlbumActions, gm.wechatChangePanelActions, gm.entryActions,
     gm.catalogActions, gm.coreActions, gm.appSwitchActions, gm.inventoryActions, gm.inventoryEquipActions, gm.realWorldStreamActions, gm.realWorldThinkingActions, gm.realWorldActions, gm.realWorldMapActions, gm.realWorldFactionActions, gm.realWorldMatterActions, gm.companyActions, gm.companyAttendanceActions, gm.companyFactionActions,
-    gm.bossActions, gm.bossAppointmentActions, gm.bossAiActions, gm.calendarActions, gm.factionActions, gm.factionOrgActions, gm.factionAiActions, gm.skillsActions, gm.knownProfessionActions, gm.taobaoActions, gm.promptActions, gm.settingsActions, gm.tokenStatsActions,
+    gm.bossActions, gm.bossAppointmentActions, gm.bossAiActions, gm.calendarActions, gm.factionActions, gm.factionOrgActions, gm.factionAiActions, gm.skillsActions, gm.knownProfessionActions, gm.taobaoActions, gm.taobaoGenerateActions, gm.taobaoBuyActions, gm.promptActions, gm.settingsActions, gm.tokenStatsActions,
   ].map((module) => module || {});
 
   Alpine.store('game', {
@@ -61,7 +61,7 @@ function registerGameStore() {
     initPromise: null, startupWarmupPromise: null, startupWarmupDone: false, phoneSetupDone: false, phoneActivationChoice: '', profileSetupBusy: false, setupError: '', phoneFixedTime: 0, phoneClockTimer: null, existingProfileExpanded: false,
     roleCardSetup: { loaded: false, usePredefinedPlayerCard: false, cards: [], selectedPlayerName: '', selectedRelationNames: [], relationRoles: {}, selectedRelationCardName: '刘思瑶', gender: '女', relationType: '妹妹', customRelation: '', detailOpen: false, relationDetailOpen: '' },
     knownProfessionState: { open: false, query: '', message: '', selectedName: '', detailOpen: false },
-    taobaoState: { open: false, slots: [], selectedId: '', generatingId: '', requestId: 0, message: '', error: '', walletOpen: false },
+    taobaoState: { open: false, slots: [], selectedId: '', generatingId: '', buyingId: '', requestId: 0, message: '', error: '', walletOpen: false },
     settingsState: { open: false, loading: false, loaded: false, error: '', textModels: [], drawModels: [], textModelId: cfg.defaultModelId, drawModelId: 'anime' },
     playerProfile: { name: '', gender: '', birthday: '', age: '', city: '', refinedCity: '', dailyRole: '', refinedRole: '', livingStatus: '', refinedLivingStatus: '', wealthTier: '中产', wealthAmount: 500000, wealthSource: '', wealthBreakdown: null, wealthFixedIncome: '', relationships: '', relationshipEntries: [], parents: '', parentStatus: '', parentDeathCause: '', worldbuildingNote: '', notes: '', knownProfessions: [], wechatId: '', profileEnrichedAt: '', initializedAt: '', playerCardAiParts: { part2: false, part5: false, part6: false } }, playerName: '',
     selectedSlot: 'slot-1', saveSlots: window.GameModules.storage.slots,
