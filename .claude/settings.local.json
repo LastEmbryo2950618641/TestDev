@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node:*)",
+      "Bash(LC_ALL=C grep -nP '[^\\\\x00-\\\\x7f]| ')"
+    ]
+  }
+}
