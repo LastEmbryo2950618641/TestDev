@@ -11,11 +11,13 @@ window.GameModules.taobaoBuyActions = {
       const money = Number(this.playerProfile?.wealthAmount || 0);
       if (money < item.price) {
         this.taobaoState.error = `余额不足：当前财富${money.toLocaleString('zh-CN')}元，商品需${item.price.toLocaleString('zh-CN')}元。`;
+        this.taobaoState.message = '';
         return;
       }
       const state = await this.ensurePlayerRpgState?.();
       if (!state) {
         this.taobaoState.error = '玩家背包尚未初始化，无法购买。';
+        this.taobaoState.message = '';
         return;
       }
       const updates = this.taobaoInventoryUpdates(item);
@@ -24,6 +26,7 @@ window.GameModules.taobaoBuyActions = {
       item.purchased = true;
       this.taobaoState.message = `已购买${item.name}，${updates.length}件商品加入背包并扣除${item.price.toLocaleString('zh-CN')}元。`;
       this.taobaoState.error = '';
+      this.taobaoState.buyingId = '';
       await this.save?.();
     } catch (err) {
       this.taobaoState.error = `购买失败：${err.message || '未知错误'}`;
