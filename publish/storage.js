@@ -77,7 +77,7 @@ window.GameModules.storage = {
       bossState: store.bossState ? { ...store.bossState, open: false, companyDetailOpen: false, generating: false } : store.bossState,
       calendarState: store.calendarState ? { ...store.calendarState, open: false } : store.calendarState,
       factionState: store.factionState ? { ...store.factionState, open: false, detailOpen: false, generating: false } : store.factionState,
-      taobaoState: store.taobaoState ? { ...store.taobaoState, open: false, generatingId: '' } : store.taobaoState,
+      taobaoState: store.taobaoState ? { ...store.taobaoState, open: false, generatingId: '', walletOpen: false } : store.taobaoState,
       rpgPanelCharacterId: store.rpgPanelCharacterId,
     };
   },

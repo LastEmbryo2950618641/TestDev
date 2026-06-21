@@ -876,10 +876,15 @@
   <section x-show="!$store.game.loading && $store.game.taobaoState?.open" class="taobao-app-screen app-window section-hints" x-cloak>
     <div class="taobao-card dev-section" data-section-title="淘宝主面板">
       <header class="identity-header taobao-header dev-section" data-section-title="淘宝标题区">
-        <div><p class="eyebrow">TAOBAO</p><h2>淘宝</h2><small x-text="`当前财富：${Number($store.game.playerProfile.wealthAmount || 0).toLocaleString('zh-CN')}元`"></small></div>
+        <div><p class="eyebrow">TAOBAO</p><h2>淘宝</h2><button class="taobao-wallet-btn" type="button" @click="$store.game.toggleTaobaoWallet()" x-text="`钱包：${Number($store.game.playerProfile.wealthAmount || 0).toLocaleString('zh-CN')}元`"></button></div>
         <button class="small-btn" type="button" @click="$store.game.closeTaobaoApp()">回到桌面</button>
       </header>
       <main class="taobao-body scroll-area">
+        <section class="taobao-wallet-panel dev-section" x-show="$store.game.taobaoState.walletOpen" data-section-title="淘宝钱包资金来源区">
+          <template x-for="row in $store.game.taobaoWalletRows()" :key="row.label">
+            <p><b x-text="row.label"></b><span x-text="row.value"></span></p>
+          </template>
+        </section>
         <section class="taobao-search dev-section" data-section-title="淘宝搜索区">
           <input readonly value="猜你喜欢：点击空商品位后由AI生成商品信息">
           <button type="button" @click="$store.game.generateTaobaoProduct($store.game.selectedTaobaoSlot().id)" :disabled="$store.game.taobaoState.generatingId" x-text="$store.game.taobaoState.generatingId ? '生成中…约30秒' : '重新生成当前商品'"></button>

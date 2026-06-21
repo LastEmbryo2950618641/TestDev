@@ -61,7 +61,7 @@ function registerGameStore() {
     initPromise: null, startupWarmupPromise: null, startupWarmupDone: false, phoneSetupDone: false, phoneActivationChoice: '', profileSetupBusy: false, setupError: '', phoneFixedTime: 0, phoneClockTimer: null, existingProfileExpanded: false,
     roleCardSetup: { loaded: false, usePredefinedPlayerCard: false, cards: [], selectedPlayerName: '', selectedRelationNames: [], relationRoles: {}, selectedRelationCardName: '刘思瑶', gender: '女', relationType: '妹妹', customRelation: '', detailOpen: false, relationDetailOpen: '' },
     knownProfessionState: { open: false, query: '', message: '', selectedName: '', detailOpen: false },
-    taobaoState: { open: false, slots: [], selectedId: '', generatingId: '', requestId: 0, message: '', error: '' },
+    taobaoState: { open: false, slots: [], selectedId: '', generatingId: '', requestId: 0, message: '', error: '', walletOpen: false },
     settingsState: { open: false, loading: false, loaded: false, error: '', textModels: [], drawModels: [], textModelId: cfg.defaultModelId, drawModelId: 'anime' },
     playerProfile: { name: '', gender: '', birthday: '', age: '', city: '', refinedCity: '', dailyRole: '', refinedRole: '', livingStatus: '', refinedLivingStatus: '', wealthTier: '流浪', wealthAmount: 0, wealthSource: '', wealthBreakdown: null, wealthFixedIncome: '', relationships: '', relationshipEntries: [], parents: '', parentStatus: '', parentDeathCause: '', worldbuildingNote: '', notes: '', knownProfessions: [], wechatId: '', profileEnrichedAt: '', initializedAt: '', playerCardAiParts: { part2: false, part5: false, part6: false } }, playerName: '',
     selectedSlot: 'slot-1', saveSlots: window.GameModules.storage.slots,

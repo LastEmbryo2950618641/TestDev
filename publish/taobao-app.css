@@ -27,6 +27,41 @@
   background: linear-gradient(135deg, #fff5e8, #ffd4a3);
 }
 
+.taobao-wallet-btn {
+  margin-top: 4px;
+  border: 1px solid rgba(255, 107, 0, .24);
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: #fff;
+  color: #ff4f00;
+  font-size: 12px;
+  font-weight: 1000;
+}
+
+.taobao-wallet-panel {
+  display: grid;
+  gap: 7px;
+  border: 1px solid rgba(255, 107, 0, .18);
+  border-radius: 18px;
+  padding: 12px;
+  background: #fffaf5;
+}
+
+.taobao-wallet-panel p {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0;
+  color: #4a1f0a;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.taobao-wallet-panel span {
+  text-align: right;
+  font-weight: 900;
+}
+
 .taobao-body {
   display: grid;
   gap: 12px;

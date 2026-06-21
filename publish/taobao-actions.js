@@ -5,8 +5,25 @@ window.GameModules.taobaoActions = {
   },
 
   initTaobaoApp() {
-    if (!this.taobaoState) this.taobaoState = { open: false, slots: [], selectedId: '', generatingId: '', requestId: 0, message: '', error: '' };
+    if (!this.taobaoState) this.taobaoState = { open: false, slots: [], selectedId: '', generatingId: '', requestId: 0, message: '', error: '', walletOpen: false };
     if (!Array.isArray(this.taobaoState.slots) || !this.taobaoState.slots.length) this.taobaoState.slots = this.taobaoDefaultSlots();
+    if (typeof this.taobaoState.walletOpen !== 'boolean') this.taobaoState.walletOpen = false;
+  },
+
+  toggleTaobaoWallet() {
+    this.initTaobaoApp();
+    this.taobaoState.walletOpen = !this.taobaoState.walletOpen;
+  },
+
+  taobaoWalletRows() {
+    const p = this.playerProfile || {};
+    const rows = [{ label: '当前余额', value: `${Number(p.wealthAmount || 0).toLocaleString('zh-CN')}元` }, { label: '财富等级', value: p.wealthTier || '流浪' }];
+    const source = String(p.wealthSource || '').trim();
+    const matches = [...source.matchAll(/([^，,；;]+?)\((-?\d+)\)/g)];
+    if (matches.length) matches.forEach((m) => rows.push({ label: m[1].trim(), value: `${Number(m[2] || 0).toLocaleString('zh-CN')}元` }));
+    else if (source) rows.push({ label: '财富来源', value: source });
+    if (p.wealthFixedIncome) rows.push({ label: '固定收入', value: p.wealthFixedIncome });
+    return rows;
   },
 
   openTaobaoApp() {
