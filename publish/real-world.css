@@ -233,6 +233,26 @@
 
 .real-world-function-option strong,
 .real-world-inventory-item strong { color: #fff; }
+
+.inventory-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.inventory-item-head strong {
+  min-width: 0;
+}
+
+.inventory-wear-btn {
+  flex: 0 0 auto;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
 .real-world-function-option small,
 .real-world-inventory-item small,
 .real-world-empty { color: #aeb9d6; line-height: 1.5; }

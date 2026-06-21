@@ -306,9 +306,8 @@
         <div class="real-world-inventory function-inventory-list">
           <template x-for="(item, index) in $store.game.inventoryItems($store.game.currentRpgState)" :key="`control-inventory-${$store.game.inventoryName(item)}:${index}`">
             <article class="real-world-inventory-item">
-              <strong x-text="$store.game.inventoryName(item)"></strong>
+              <div class="inventory-item-head"><strong x-text="$store.game.inventoryName(item)"></strong><button class="small-btn inventory-wear-btn" type="button" x-show="$store.game.canEquipInventoryItem(item)" @click="$store.game.equipInventoryItem(item, '', $store.game.currentRpgState)">穿着</button></div>
               <small x-text="$store.game.inventoryDetail(item)"></small>
-              <button class="small-btn" type="button" x-show="$store.game.canEquipInventoryItem(item)" @click="$store.game.equipInventoryItem(item, '', $store.game.currentRpgState)">穿着</button>
             </article>
           </template>
           <p class="real-world-empty" x-show="!$store.game.inventoryItems($store.game.currentRpgState).length">背包暂无物品。</p>
@@ -565,9 +564,8 @@
             <button class="small-btn" type="button" @click="$store.game.realWorldFunctionView = 'menu'">返回功能</button>
             <template x-for="(item, index) in $store.game.realWorldInventoryItems()" :key="`inventory-${$store.game.realWorldInventoryName(item)}:${index}`">
               <article class="real-world-inventory-item">
-                <strong x-text="$store.game.realWorldInventoryName(item)"></strong>
+                <div class="inventory-item-head"><strong x-text="$store.game.realWorldInventoryName(item)"></strong><button class="small-btn inventory-wear-btn" type="button" x-show="$store.game.canEquipInventoryItem(item)" @click="$store.game.equipInventoryItem(item, '', $store.game.playerIdentityState())">穿着</button></div>
                 <small x-text="$store.game.realWorldInventoryDetail(item)"></small>
-                <button class="small-btn" type="button" x-show="$store.game.canEquipInventoryItem(item)" @click="$store.game.equipInventoryItem(item, '', $store.game.playerIdentityState())">穿着</button>
               </article>
             </template>
             <p class="real-world-empty" x-show="!$store.game.realWorldInventoryItems().length">背包暂无物品。</p>
