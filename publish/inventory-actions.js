@@ -73,17 +73,24 @@ window.GameModules.inventoryActions = {
   canEquipToSlot(item, slot) {
     const slots = item?.equipSlots || [];
     if (!slots.length) return false;
-    const base = window.GameModules.progression.slotBase(slot);
-    return slots.includes(slot) || slots.includes(base);
+    const p = window.GameModules.progression;
+    const base = p.slotBase(slot);
+    const canonical = p.canonicalWearSlot?.(slot) || slot;
+    const targets = slots.map((entry) => p.canonicalWearSlot?.(entry) || entry);
+    return slots.includes(slot) || slots.includes(base) || targets.includes(canonical) || targets.includes(base);
   },
 
   async equipItemToSlot(itemName, slot, state = this.inventoryTargetState()) {
     if (!state?.values || !itemName || !slot) return false;
     const v = this.inventoryValues(state);
-    const item = this.inventoryItems(state).find((entry) => this.inventoryName(entry) === itemName);
+    const index = v.items.findIndex((entry) => this.inventoryName(entry) === itemName);
+    const item = index >= 0 ? v.items[index] : null;
     if (!item) return false;
     const target = this.ensureWearSlot(v, slot, false, state.id || '');
     if (!this.canEquipToSlot(item, target)) return false;
+    const current = v.wearing.find((entry) => entry.slot === target);
+    if (current && !this.isEmptyWear(current)) v.items.push({ ...current, type: '装备', kind: '装备' });
+    v.items.splice(index, 1);
     this.writeWearingItem(v, { ...item, slot: target }, state.id || '');
     await this.persistInventoryState(state);
     return true;

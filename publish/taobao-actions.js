@@ -206,14 +206,17 @@ window.GameModules.taobaoActions = {
 
   async buyTaobaoProduct(product = null) {
     const item = product || this.selectedTaobaoSlot()?.product;
-    if (!item || this.taobaoState.generatingId) return;
+    if (!item || this.taobaoState.generatingId || item.purchased) return;
     const money = Number(this.playerProfile?.wealthAmount || 0);
     if (money < item.price) { this.taobaoState.error = `余额不足：当前财富${money.toLocaleString('zh-CN')}元，商品需${item.price.toLocaleString('zh-CN')}元。`; return; }
     const state = await this.ensurePlayerRpgState?.();
     if (!state) { this.taobaoState.error = '玩家背包尚未初始化，无法购买。'; return; }
-    await this.applyInventoryUpdatesToState(state, [{ kind: item.kind || '物品', name: item.name, value: { name: item.name, description: `${item.description}（淘宝购入，店铺：${item.shop}，价格：${item.price}元）`, equipSlots: item.equipSlots, slot: item.equipSlots?.[0] || '', price: item.price }, reason: '淘宝购买' }]);
+    const setItems = this.taobaoSetItems(item);
+    const updates = setItems.length ? setItems.map((part) => ({ kind: '装备', name: part.name, value: { name: part.name, description: `${part.description || item.description}（${item.name}套装，淘宝购入，店铺：${item.shop}）`, equipSlots: [part.slot], slot: part.slot, price: Math.max(1, Math.floor(item.price / setItems.length)) }, reason: '淘宝套装购买' })) : [{ kind: item.kind || '物品', name: item.name, value: { name: item.name, description: `${item.description}（淘宝购入，店铺：${item.shop}，价格：${item.price}元）`, equipSlots: item.equipSlots, slot: item.equipSlots?.[0] || '', price: item.price }, reason: '淘宝购买' }];
+    await this.applyInventoryUpdatesToState(state, updates);
     this.playerProfile.wealthAmount = money - item.price;
-    this.taobaoState.message = `已购买${item.name}，加入背包并扣除${item.price.toLocaleString('zh-CN')}元。`;
+    item.purchased = true;
+    this.taobaoState.message = `已购买${item.name}，${updates.length}件商品加入背包并扣除${item.price.toLocaleString('zh-CN')}元。`;
     this.taobaoState.error = '';
     await this.save?.();
   },
