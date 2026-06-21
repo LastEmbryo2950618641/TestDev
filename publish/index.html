@@ -886,12 +886,12 @@
           </template>
         </section>
         <section class="taobao-search dev-section" data-section-title="淘宝搜索区">
-          <input x-model="$store.game.taobaoState.searchText" :placeholder="`${$store.game.taobaoFilterLabel()}｜输入关键词，例如 JK装`" @keydown.enter="$store.game.generateTaobaoProducts($store.game.selectedTaobaoSlot().id)">
+          <input x-model="$store.game.taobaoState.searchText" :placeholder="`${$store.game.taobaoFilterLabel()}｜输入关键词，例如 JK装`" @keydown.enter="$store.game.generateTaobaoProducts()">
           <div class="taobao-generate-tools">
             <select :value="$store.game.taobaoState.count" @change="$store.game.setTaobaoCount($event.target.value)" :disabled="Boolean($store.game.taobaoState.generatingId)" aria-label="生成数量">
               <option value="1">1个</option><option value="3">3个</option><option value="5">5个</option><option value="8">8个</option><option value="10">10个</option><option value="12">12个</option>
             </select>
-            <button type="button" @click="$store.game.generateTaobaoProducts($store.game.selectedTaobaoSlot().id)" :disabled="Boolean($store.game.taobaoState.generatingId)" x-text="$store.game.taobaoState.generatingId ? '生成中…约30秒' : `重新生成${$store.game.taobaoState.count || 5}个商品`"></button>
+            <button type="button" @click="$store.game.generateTaobaoProducts()" :disabled="Boolean($store.game.taobaoState.generatingId)" x-text="$store.game.taobaoState.generatingId ? '生成中…约30秒' : `生成${$store.game.taobaoState.count || 5}个商品`"></button>
           </div>
           <div class="taobao-filter-bar" role="list" aria-label="按穿着部位筛选">
             <template x-for="filter in $store.game.taobaoWearFilters()" :key="`taobao-filter-${filter.slot || 'all'}`">
@@ -901,7 +901,7 @@
         </section>
         <p class="taobao-message" x-show="$store.game.taobaoState.message" x-text="$store.game.taobaoState.message"></p>
         <p class="taobao-error" x-show="$store.game.taobaoState.error" x-text="$store.game.taobaoState.error"></p>
-        <section class="taobao-grid dev-section" data-section-title="淘宝商品位">
+        <section class="taobao-grid dev-section" data-section-title="淘宝商品结果" x-show="$store.game.taobaoFilteredSlots().length">
           <template x-for="slot in $store.game.taobaoFilteredSlots()" :key="slot.id">
             <button type="button" class="taobao-product" :class="{ active: $store.game.taobaoState.selectedId === slot.id, loading: $store.game.taobaoState.generatingId === slot.id }" @click="$store.game.selectTaobaoSlot(slot.id)">
               <b x-text="slot.product?.name || '待生成商品'"></b>
@@ -911,19 +911,20 @@
             </button>
           </template>
         </section>
-        <article class="taobao-detail dev-section" data-section-title="淘宝商品详情">
-          <h3 x-text="$store.game.selectedTaobaoSlot().product?.name || '请选择商品位'"></h3>
-          <p x-text="$store.game.taobaoProductDetail($store.game.selectedTaobaoSlot().product)"></p>
-          <div class="taobao-tags" x-show="$store.game.selectedTaobaoSlot().product?.equipSlots?.length">
-            <template x-for="slot in ($store.game.selectedTaobaoSlot().product?.equipSlots || [])" :key="slot"><span x-text="slot"></span></template>
+        <p class="taobao-empty" x-show="!$store.game.taobaoFilteredSlots().length">输入关键词、选择衣物部位后，点击生成查看淘宝商品。</p>
+        <article class="taobao-detail dev-section" data-section-title="淘宝商品详情" x-show="$store.game.selectedTaobaoSlot()?.product">
+          <h3 x-text="$store.game.selectedTaobaoSlot()?.product?.name || '请选择商品位'"></h3>
+          <p x-text="$store.game.taobaoProductDetail($store.game.selectedTaobaoSlot()?.product)"></p>
+          <div class="taobao-tags" x-show="$store.game.selectedTaobaoSlot()?.product?.equipSlots?.length">
+            <template x-for="slot in ($store.game.selectedTaobaoSlot()?.product?.equipSlots || [])" :key="slot"><span x-text="slot"></span></template>
           </div>
-          <div class="taobao-set-detail" x-show="$store.game.taobaoSetItems($store.game.selectedTaobaoSlot().product).length">
+          <div class="taobao-set-detail" x-show="$store.game.taobaoSetItems($store.game.selectedTaobaoSlot()?.product).length">
             <h4>整套穿着槽位</h4>
-            <template x-for="item in $store.game.taobaoSetItems($store.game.selectedTaobaoSlot().product)" :key="`${item.slot}-${item.name}`">
+            <template x-for="item in $store.game.taobaoSetItems($store.game.selectedTaobaoSlot()?.product)" :key="`${item.slot}-${item.name}`">
               <p><b x-text="item.slotLabel || item.slot"></b><span x-text="item.name"></span><small x-text="item.description"></small></p>
             </template>
           </div>
-          <button class="story-choice-btn" type="button" @click="$store.game.buyTaobaoProduct($store.game.selectedTaobaoSlot().product)" :disabled="!$store.game.selectedTaobaoSlot().product || $store.game.taobaoState.generatingId">购买并加入背包</button>
+          <button class="story-choice-btn" type="button" @click="$store.game.buyTaobaoProduct($store.game.selectedTaobaoSlot()?.product)" :disabled="!$store.game.selectedTaobaoSlot()?.product || $store.game.taobaoState.generatingId">购买并加入背包</button>
         </article>
       </main>
     </div>

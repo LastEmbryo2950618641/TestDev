@@ -1,7 +1,7 @@
 window.GameModules = window.GameModules || {};
 window.GameModules.taobaoActions = {
   taobaoDefaultSlots() {
-    return Array.from({ length: 8 }, (_, index) => ({ id: `tb-${index + 1}`, hint: '', product: null }));
+    return [];
   },
 
   taobaoWearFilters() {
@@ -14,7 +14,7 @@ window.GameModules.taobaoActions = {
 
   initTaobaoApp() {
     if (!this.taobaoState) this.taobaoState = { open: false, slots: [], selectedId: '', filterSlot: '', searchText: '', count: 5, generatingId: '', requestId: 0, message: '', error: '', walletOpen: false };
-    if (!Array.isArray(this.taobaoState.slots) || !this.taobaoState.slots.length) this.taobaoState.slots = this.taobaoDefaultSlots();
+    if (!Array.isArray(this.taobaoState.slots)) this.taobaoState.slots = this.taobaoDefaultSlots();
     if (typeof this.taobaoState.filterSlot !== 'string') this.taobaoState.filterSlot = '';
     if (typeof this.taobaoState.searchText !== 'string') this.taobaoState.searchText = '';
     if (!Number(this.taobaoState.count)) this.taobaoState.count = 5;
@@ -45,8 +45,9 @@ window.GameModules.taobaoActions = {
   taobaoFilteredSlots() {
     this.initTaobaoApp();
     const filter = this.taobaoState.filterSlot;
-    if (!filter || filter === '__set') return this.taobaoState.slots;
-    return this.taobaoState.slots.filter((slot) => !slot.product || this.taobaoProductMatchesFilter(slot.product, filter));
+    const slots = this.taobaoState.slots.filter((slot) => slot.product);
+    if (!filter || filter === '__set') return slots;
+    return slots.filter((slot) => !slot.product || this.taobaoProductMatchesFilter(slot.product, filter));
   },
 
   taobaoProductMatchesFilter(product = {}, filter = '') {
@@ -88,12 +89,12 @@ window.GameModules.taobaoActions = {
 
   selectedTaobaoSlot() {
     this.initTaobaoApp();
-    return this.taobaoState.slots.find((slot) => slot.id === this.taobaoState.selectedId) || this.taobaoState.slots[0];
+    return this.taobaoState.slots.find((slot) => slot.id === this.taobaoState.selectedId) || this.taobaoFilteredSlots()[0] || null;
   },
 
   taobaoSlotSummary(slot = {}) {
     const p = slot.product;
-    if (!p) return '空商品位｜点击生成后由AI按搜索词和衣物筛选生成商品';
+    if (!p) return '';
     const set = Array.isArray(p.setItems) && p.setItems.length ? `｜${p.setItems.length}件套` : '';
     return `${p.name}｜${Number(p.price || 0).toLocaleString('zh-CN')}元｜${p.category || '淘宝商品'}${set}`;
   },
@@ -144,13 +145,18 @@ window.GameModules.taobaoActions = {
 
   taobaoTargetSlots(slotId, count = 1) {
     this.initTaobaoApp();
-    let start = Math.max(0, this.taobaoState.slots.findIndex((item) => item.id === slotId));
-    if (start < 0) start = 0;
-    while (this.taobaoState.slots.length < start + count) {
-      const index = this.taobaoState.slots.length;
-      this.taobaoState.slots.push({ id: `tb-${index + 1}`, hint: this.taobaoBatchHint(index), product: null });
+    const start = slotId ? Math.max(0, this.taobaoState.slots.findIndex((item) => item.id === slotId)) : this.taobaoState.slots.length;
+    const targets = [];
+    for (let i = 0; i < count; i++) {
+      const index = start + i;
+      let slot = this.taobaoState.slots[index];
+      if (!slot) {
+        slot = { id: `tb-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 6)}`, hint: '', product: null };
+        this.taobaoState.slots.push(slot);
+      }
+      targets.push(slot);
     }
-    return this.taobaoState.slots.slice(start, start + count);
+    return targets;
   },
 
   async generateTaobaoProducts(slotId, countArg = 0) {

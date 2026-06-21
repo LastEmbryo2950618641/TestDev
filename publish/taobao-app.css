@@ -198,6 +198,17 @@
   gap: 6px;
 }
 
+.taobao-empty {
+  margin: 0;
+  border: 1px dashed rgba(255, 107, 0, .28);
+  border-radius: 18px;
+  padding: 18px;
+  text-align: center;
+  color: rgba(65, 30, 12, .66);
+  background: #fffaf5;
+  font-weight: 900;
+}
+
 .taobao-tags span,
 .taobao-message,
 .taobao-error {
