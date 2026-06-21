@@ -77,6 +77,7 @@ window.GameModules.storage = {
       bossState: store.bossState ? { ...store.bossState, open: false, companyDetailOpen: false, generating: false } : store.bossState,
       calendarState: store.calendarState ? { ...store.calendarState, open: false } : store.calendarState,
       factionState: store.factionState ? { ...store.factionState, open: false, detailOpen: false, generating: false } : store.factionState,
+      taobaoState: store.taobaoState ? { ...store.taobaoState, open: false, generatingId: '' } : store.taobaoState,
       rpgPanelCharacterId: store.rpgPanelCharacterId,
     };
   },
@@ -120,6 +121,8 @@ window.GameModules.storage = {
     store.bossState = save.bossState ? { ...save.bossState, open: false, companyDetailOpen: false, generating: false } : store.bossState;
     store.calendarState = save.calendarState ? { ...save.calendarState, open: false } : store.calendarState;
     store.factionState = save.factionState ? { ...save.factionState, open: false, detailOpen: false, generating: false } : store.factionState;
+    store.taobaoState = save.taobaoState ? { ...store.taobaoState, ...save.taobaoState, open: false, generatingId: '' } : store.taobaoState;
+    store.initTaobaoApp?.();
     if (!save.started) return false;
     store.selectedWork = save.selectedWork || store.selectedWork;
     store.selectedCharacterId = save.selectedCharacterId || store.selectedCharacterId;

@@ -1,0 +1,143 @@
+.taobao-icon .app-glyph {
+  background: radial-gradient(circle at 28% 22%, rgba(255,255,255,.45), transparent 24%), linear-gradient(135deg, #ff8a00, #ff3d00 58%, #ffd05a);
+}
+
+.taobao-app-screen {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(42px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  background: radial-gradient(circle at 24% 8%, rgba(255, 138, 0, .22), transparent 34%), linear-gradient(145deg, #2a1004, #10070b 62%, #2d1604);
+}
+
+.taobao-card {
+  width: min(760px, 100%);
+  max-height: calc(100dvh - 34px);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 30px;
+  overflow: hidden;
+  background: rgba(255, 248, 240, .96);
+  box-shadow: 0 24px 80px rgba(0,0,0,.38);
+}
+
+.taobao-header {
+  color: #401706;
+  background: linear-gradient(135deg, #fff5e8, #ffd4a3);
+}
+
+.taobao-body {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  color: #3b1d10;
+}
+
+.taobao-search {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.taobao-search input,
+.taobao-search button {
+  min-height: 42px;
+  border: 1px solid rgba(255, 107, 0, .24);
+  border-radius: 999px;
+  padding: 0 14px;
+  background: #fff;
+  color: #5a2610;
+  font-weight: 800;
+}
+
+.taobao-search button {
+  background: linear-gradient(135deg, #ff8a00, #ff3d00);
+  color: #fff;
+}
+
+.taobao-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.taobao-product {
+  min-height: 118px;
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  border: 1px solid rgba(255, 107, 0, .22);
+  border-radius: 18px;
+  padding: 12px;
+  text-align: left;
+  background: #fff;
+  color: #3b1d10;
+  box-shadow: 0 8px 20px rgba(255, 99, 0, .08);
+}
+
+.taobao-product.active {
+  border-color: #ff5a00;
+  box-shadow: 0 0 0 2px rgba(255, 90, 0, .14), 0 10px 24px rgba(255, 99, 0, .14);
+}
+
+.taobao-product.loading {
+  opacity: .72;
+}
+
+.taobao-product b {
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.taobao-product span {
+  color: #ff4f00;
+  font-size: 18px;
+  font-weight: 1000;
+}
+
+.taobao-product small,
+.taobao-detail p {
+  color: rgba(65, 30, 12, .72);
+  line-height: 1.5;
+}
+
+.taobao-detail {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(255, 107, 0, .18);
+  border-radius: 20px;
+  padding: 14px;
+  background: #fffaf5;
+}
+
+.taobao-detail h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.taobao-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.taobao-tags span,
+.taobao-message,
+.taobao-error {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.taobao-tags span,
+.taobao-message {
+  background: rgba(255, 138, 0, .12);
+  color: #9b3d00;
+}
+
+.taobao-error {
+  background: rgba(220, 38, 38, .12);
+  color: #991b1b;
+}
