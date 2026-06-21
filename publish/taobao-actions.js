@@ -128,10 +128,11 @@ window.GameModules.taobaoActions = {
     const slots = bodySlots.join('、');
     const filter = this.taobaoState?.filterSlot;
     const query = String(this.taobaoState?.searchText || '').trim();
-    const queryText = query ? `用户搜索词：${query}。必须把搜索词作为核心风格或品类要求。` : '';
-    const filterText = filter && filter !== '__set' ? `当前搜索筛选部位：${this.taobaoFilterLabel(filter)}（${filter}），必须优先生成可穿戴在该部位的装备商品。` : '';
+    const queryText = query ? `用户搜索词：${query}。这是硬性搜索条件，商品name、category、description必须明确体现“${query}”；若搜索词是JK、洛丽塔、汉服等风格，必须生成该风格商品，不允许生成无关日用品或普通服饰。` : '';
+    const filterText = filter && filter !== '__set' ? `当前搜索筛选部位：${this.taobaoFilterLabel(filter)}（${filter}），必须生成可穿戴在该部位的装备商品。` : '';
+    const styleSlotText = /jk/i.test(query) && ['bottom', '下衣', '下装'].includes(filter) ? '搜索为JK且筛选下装时，商品必须是JK裙、制服裙或百褶裙，不能生成上衣、鞋子或日用品。' : '';
     const setText = filter === '__set' ? `当前为“一套”模式，必须返回一整套穿搭商品，equipSlots覆盖这些槽位：${slots}。额外返回setItems数组，每项字段slot、slotLabel、name、description，逐个说明每个穿着槽位的服饰；没有对应服饰的槽位也要给出协调搭配。` : '';
-    return `你是2026现代都市淘宝商品结构化生成器。仅输出紧凑JSON，不要Markdown。根据玩家身份生成一个真实可购买商品。玩家：姓名${p.name || '未知'}，年龄${p.age || ''}，地址${p.refinedCity || p.city || ''}，身份${p.refinedRole || p.dailyRole || ''}，财富${p.wealthTier || '流浪'}，现金${p.wealthAmount || 0}元。${queryText}${filterText}${setText}若是衣服、裤子、袜子、鞋、包、饰品等可装备商品，kind必须为"装备"，equipSlots必须按已有穿戴部位分类，可用部位：${slots}，也可用中文部位：上衣、下衣、内衣、内裤、袜子、鞋子、外套、包具、头部、颈部、腰部、手套、手腕、饰品。非可装备商品kind为"物品"。字段：name、category、price、shop、description、kind、equipSlots、setItems、reason。price为整数且符合财富档位，不要超过玩家现金。`;
+    return `你是2026现代都市淘宝商品结构化生成器。仅输出紧凑JSON，不要Markdown。根据玩家身份生成一个真实可购买商品。玩家：姓名${p.name || '未知'}，年龄${p.age || ''}，地址${p.refinedCity || p.city || ''}，身份${p.refinedRole || p.dailyRole || ''}，财富${p.wealthTier || '流浪'}，现金${p.wealthAmount || 0}元。${queryText}${filterText}${styleSlotText}${setText}若是衣服、裤子、袜子、鞋、包、饰品等可装备商品，kind必须为"装备"，equipSlots必须按已有穿戴部位分类，可用部位：${slots}，也可用中文部位：上衣、下衣、内衣、内裤、袜子、鞋子、外套、包具、头部、颈部、腰部、手套、手腕、饰品。非可装备商品kind为"物品"。字段：name、category、price、shop、description、kind、equipSlots、setItems、reason。price为整数且符合财富档位，不要超过玩家现金。`;
   },
 
   normalizeTaobaoProduct(data = {}, slot = {}) {
@@ -140,7 +141,11 @@ window.GameModules.taobaoActions = {
     const inferred = window.GameModules.progression.inferEquipSlots(raw, data.kind || '');
     const setItems = Array.isArray(data.setItems) ? data.setItems.map((item) => ({ slot: String(item.slot || '').slice(0, 24), slotLabel: String(item.slotLabel || item.slot || '').slice(0, 24), name: String(item.name || '未命名服饰').slice(0, 32), description: String(item.description || '').slice(0, 120) })).filter((item) => item.slot || item.name) : [];
     const clothing = inferred.some((slotName) => !['装备'].includes(slotName)) || setItems.length;
-    return { id: `tbp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, name: raw.name, category: String(data.category || slot.hint || '淘宝商品').slice(0, 20), price, shop: String(data.shop || '淘宝精选店').slice(0, 30), description: raw.description || '由淘宝AI根据现实身份生成的商品。', kind: data.kind === '物品' && !clothing ? '物品' : '装备', equipSlots: setItems.length ? [...new Set([...inferred, ...setItems.map((item) => item.slot).filter(Boolean)])] : inferred, setItems, reason: String(data.reason || '淘宝购买').slice(0, 80), generatedAt: new Date().toISOString() };
+    const query = String(this.taobaoState?.searchText || '').trim();
+    const jkBottom = /jk/i.test(query) && ['bottom', '下衣', '下装'].includes(this.taobaoState?.filterSlot);
+    const name = jkBottom && !/jk|制服|裙|百褶/i.test(raw.name) ? `JK制服百褶裙-${raw.name}`.slice(0, 32) : raw.name;
+    const category = jkBottom ? 'JK下装' : String(data.category || slot.hint || '淘宝商品').slice(0, 20);
+    return { id: `tbp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, name, category, price, shop: String(data.shop || '淘宝精选店').slice(0, 30), description: raw.description || (jkBottom ? '符合搜索词的JK制服下装商品。' : '由淘宝AI根据现实身份生成的商品。'), kind: data.kind === '物品' && !clothing ? '物品' : '装备', equipSlots: setItems.length ? [...new Set([...inferred, ...setItems.map((item) => item.slot).filter(Boolean), ...(jkBottom ? ['bottom'] : [])])] : (jkBottom && !inferred.includes('bottom') ? [...inferred, 'bottom'] : inferred), setItems, reason: String(data.reason || '淘宝购买').slice(0, 80), generatedAt: new Date().toISOString() };
   },
 
   taobaoBatchHint(index = 0) {
@@ -168,6 +173,8 @@ window.GameModules.taobaoActions = {
     this.initTaobaoApp();
     if (this.taobaoState.generatingId && this.taobaoState.requestIdActive) return;
     this.taobaoState.generatingId = '';
+    this.taobaoState.selectedId = '';
+    if (!slotId) this.taobaoState.slots = [];
     const count = Number(countArg || this.taobaoState.count || 5);
     const targets = this.taobaoTargetSlots(slotId, count);
     const reqId = (this.taobaoState.requestId || 0) + 1;
