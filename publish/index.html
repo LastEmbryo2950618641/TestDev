@@ -912,6 +912,7 @@
           </template>
         </section>
         <p class="taobao-empty" x-show="!$store.game.taobaoFilteredSlots().length">输入关键词、选择衣物部位后，点击生成查看淘宝商品。</p>
+        <p class="taobao-empty" x-show="$store.game.taobaoFilteredSlots().length && !$store.game.selectedTaobaoSlot()?.product">点击上方商品结果查看详情。</p>
         <article class="taobao-detail dev-section" data-section-title="淘宝商品详情" x-show="$store.game.selectedTaobaoSlot()?.product">
           <h3 x-text="$store.game.selectedTaobaoSlot()?.product?.name || '请选择商品位'"></h3>
           <p x-text="$store.game.taobaoProductDetail($store.game.selectedTaobaoSlot()?.product)"></p>

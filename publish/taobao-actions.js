@@ -89,7 +89,7 @@ window.GameModules.taobaoActions = {
 
   selectedTaobaoSlot() {
     this.initTaobaoApp();
-    return this.taobaoState.slots.find((slot) => slot.id === this.taobaoState.selectedId) || this.taobaoFilteredSlots()[0] || null;
+    return this.taobaoState.slots.find((slot) => slot.id === this.taobaoState.selectedId) || null;
   },
 
   taobaoSlotSummary(slot = {}) {
@@ -177,8 +177,8 @@ window.GameModules.taobaoActions = {
         if (this.taobaoState.requestId !== reqId) return;
         slot.product = this.normalizeTaobaoProduct(data, slot);
       }
-      this.taobaoState.selectedId = targets[0]?.id || this.taobaoState.selectedId;
-      this.taobaoState.message = `已生成${targets.length}个商品，可点击查看详情。`;
+      this.taobaoState.selectedId = '';
+      this.taobaoState.message = `已生成${targets.length}个商品，点击商品结果查看详情。`;
       await this.save?.();
     } catch (err) {
       if (this.taobaoState.requestId === reqId) this.taobaoState.error = `生成失败：${err.message || '未知错误'}`;
