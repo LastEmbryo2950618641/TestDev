@@ -907,7 +907,7 @@
               <b x-text="slot.product?.name || '待生成商品'"></b>
               <span x-text="slot.product ? `${Number(slot.product.price || 0).toLocaleString('zh-CN')}元` : '空商品位' "></span>
               <small x-text="$store.game.taobaoState.generatingId === slot.id ? 'AI生成中…' : $store.game.taobaoSlotSummary(slot)"></small>
-              <em x-show="slot.product?.setItems?.length" x-text="`${slot.product.setItems.length}个槽位明细`"></em>
+              <em x-show="slot.product?.setItems?.length" x-text="slot.product?.setItems?.length ? `${slot.product.setItems.length}个槽位明细` : ''"></em>
             </button>
           </template>
         </section>
