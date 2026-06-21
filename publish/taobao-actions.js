@@ -9,13 +9,15 @@ window.GameModules.taobaoActions = {
     const body = p?.bodyWearSlots?.() || [];
     const labels = { head: '头部', neck: '颈部', innerwearTop: '内衣', top: '上衣', outerwear: '外套', gloves: '手套', waist: '腰部', innerwearBottom: '内裤', bottom: '下装', socks: '袜子', shoes: '鞋子', wrist: '手腕' };
     const filters = body.map((slot) => ({ slot, label: labels[slot] || p?.clothingPositionForSlot?.(slot) || slot }));
-    return [{ slot: '', label: '全部' }, ...filters, { slot: '包具', label: '包具' }, { slot: '饰品', label: '饰品' }, { slot: '装备', label: '装备' }];
+    return [{ slot: '', label: '全部' }, { slot: '__set', label: '一套' }, ...filters, { slot: '包具', label: '包具' }, { slot: '饰品', label: '饰品' }, { slot: '装备', label: '装备' }];
   },
 
   initTaobaoApp() {
-    if (!this.taobaoState) this.taobaoState = { open: false, slots: [], selectedId: '', filterSlot: '', generatingId: '', requestId: 0, message: '', error: '', walletOpen: false };
+    if (!this.taobaoState) this.taobaoState = { open: false, slots: [], selectedId: '', filterSlot: '', searchText: '', count: 5, generatingId: '', requestId: 0, message: '', error: '', walletOpen: false };
     if (!Array.isArray(this.taobaoState.slots) || !this.taobaoState.slots.length) this.taobaoState.slots = this.taobaoDefaultSlots();
     if (typeof this.taobaoState.filterSlot !== 'string') this.taobaoState.filterSlot = '';
+    if (typeof this.taobaoState.searchText !== 'string') this.taobaoState.searchText = '';
+    if (!Number(this.taobaoState.count)) this.taobaoState.count = 5;
     if (typeof this.taobaoState.walletOpen !== 'boolean') this.taobaoState.walletOpen = false;
   },
 
@@ -25,6 +27,16 @@ window.GameModules.taobaoActions = {
     this.taobaoState.message = slot ? `已筛选${this.taobaoFilterLabel(slot)}商品。` : '已显示全部商品位。';
   },
 
+  setTaobaoCount(value) {
+    this.initTaobaoApp();
+    this.taobaoState.count = Math.max(1, Math.min(12, Number(value) || 5));
+  },
+
+  taobaoSearchHint() {
+    const text = String(this.taobaoState?.searchText || '').trim();
+    return text ? `搜索：${text}` : '可输入关键词，例如 JK装';
+  },
+
   taobaoFilterLabel(slot = this.taobaoState?.filterSlot) {
     return this.taobaoWearFilters().find((item) => item.slot === slot)?.label || slot || '全部';
   },
@@ -32,7 +44,7 @@ window.GameModules.taobaoActions = {
   taobaoFilteredSlots() {
     this.initTaobaoApp();
     const filter = this.taobaoState.filterSlot;
-    if (!filter) return this.taobaoState.slots;
+    if (!filter || filter === '__set') return this.taobaoState.slots;
     return this.taobaoState.slots.filter((slot) => !slot.product || this.taobaoProductMatchesFilter(slot.product, filter));
   },
 
@@ -80,13 +92,18 @@ window.GameModules.taobaoActions = {
   taobaoSlotSummary(slot = {}) {
     const p = slot.product;
     if (!p) return `${slot.hint}商品位｜点击后由AI生成商品信息`;
-    return `${p.name}｜${Number(p.price || 0).toLocaleString('zh-CN')}元｜${p.category || slot.hint}`;
+    const set = Array.isArray(p.setItems) && p.setItems.length ? `｜${p.setItems.length}件套` : '';
+    return `${p.name}｜${Number(p.price || 0).toLocaleString('zh-CN')}元｜${p.category || slot.hint}${set}`;
   },
 
   taobaoProductDetail(product = null) {
     if (!product) return '暂无商品信息。点击空商品位后，淘宝会按玩家现实处境生成对应商品。';
     const slots = Array.isArray(product.equipSlots) && product.equipSlots.length ? `｜可穿戴部位：${product.equipSlots.join('、')}` : '';
     return `${product.shop || '淘宝店铺'}｜${product.description || '暂无详情'}${slots}`;
+  },
+
+  taobaoSetItems(product = null) {
+    return Array.isArray(product?.setItems) ? product.setItems : [];
   },
 
   async selectTaobaoSlot(slotId) {
@@ -99,31 +116,59 @@ window.GameModules.taobaoActions = {
 
   taobaoPrompt(slot = {}) {
     const p = this.playerProfile || {};
-    const slots = window.GameModules.progression.bodyWearSlots().join('、');
+    const bodySlots = window.GameModules.progression.bodyWearSlots();
+    const slots = bodySlots.join('、');
     const filter = this.taobaoState?.filterSlot;
-    const filterText = filter ? `当前搜索筛选部位：${this.taobaoFilterLabel(filter)}（${filter}），必须优先生成可穿戴在该部位的装备商品。` : '';
-    return `你是2026现代都市淘宝商品结构化生成器。仅输出紧凑JSON，不要Markdown。根据玩家身份生成一个真实可购买商品。玩家：姓名${p.name || '未知'}，年龄${p.age || ''}，地址${p.refinedCity || p.city || ''}，身份${p.refinedRole || p.dailyRole || ''}，财富${p.wealthTier || '流浪'}，现金${p.wealthAmount || 0}元。商品位提示：${slot.hint || '随机'}。${filterText}若是衣服、裤子、袜子、鞋、包、饰品等可装备商品，kind必须为"装备"，equipSlots必须按已有穿戴部位分类，可用部位：${slots}，也可用中文部位：上衣、下衣、内衣、内裤、袜子、鞋子、外套、包具、头部、颈部、腰部、手套、手腕、饰品。非可装备商品kind为"物品"。字段：name、category、price、shop、description、kind、equipSlots、reason。price为整数且符合财富档位，不要超过玩家现金。`;
+    const query = String(this.taobaoState?.searchText || '').trim();
+    const queryText = query ? `用户搜索词：${query}。必须把搜索词作为核心风格或品类要求。` : '';
+    const filterText = filter && filter !== '__set' ? `当前搜索筛选部位：${this.taobaoFilterLabel(filter)}（${filter}），必须优先生成可穿戴在该部位的装备商品。` : '';
+    const setText = filter === '__set' ? `当前为“一套”模式，必须返回一整套穿搭商品，equipSlots覆盖这些槽位：${slots}。额外返回setItems数组，每项字段slot、slotLabel、name、description，逐个说明每个穿着槽位的服饰；没有对应服饰的槽位也要给出协调搭配。` : '';
+    return `你是2026现代都市淘宝商品结构化生成器。仅输出紧凑JSON，不要Markdown。根据玩家身份生成一个真实可购买商品。玩家：姓名${p.name || '未知'}，年龄${p.age || ''}，地址${p.refinedCity || p.city || ''}，身份${p.refinedRole || p.dailyRole || ''}，财富${p.wealthTier || '流浪'}，现金${p.wealthAmount || 0}元。商品位提示：${slot.hint || '随机'}。${queryText}${filterText}${setText}若是衣服、裤子、袜子、鞋、包、饰品等可装备商品，kind必须为"装备"，equipSlots必须按已有穿戴部位分类，可用部位：${slots}，也可用中文部位：上衣、下衣、内衣、内裤、袜子、鞋子、外套、包具、头部、颈部、腰部、手套、手腕、饰品。非可装备商品kind为"物品"。字段：name、category、price、shop、description、kind、equipSlots、setItems、reason。price为整数且符合财富档位，不要超过玩家现金。`;
   },
 
   normalizeTaobaoProduct(data = {}, slot = {}) {
     const price = Math.max(1, Math.floor(Number(data.price) || (this.playerProfile?.wealthTier === '流浪' ? 9 : 99)));
     const raw = { name: String(data.name || `${slot.hint || '淘宝'}商品`).slice(0, 32), description: String(data.description || data.reason || '').slice(0, 180), equipSlots: Array.isArray(data.equipSlots) ? data.equipSlots : String(data.equipSlots || '').split(/[、,，/|；;\s]+/).filter(Boolean) };
     const inferred = window.GameModules.progression.inferEquipSlots(raw, data.kind || '');
-    const clothing = inferred.some((slotName) => !['装备'].includes(slotName));
-    return { id: `tbp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, name: raw.name, category: String(data.category || slot.hint || '淘宝商品').slice(0, 20), price, shop: String(data.shop || '淘宝精选店').slice(0, 30), description: raw.description || '由淘宝AI根据现实身份生成的商品。', kind: data.kind === '物品' && !clothing ? '物品' : '装备', equipSlots: inferred, reason: String(data.reason || '淘宝购买').slice(0, 80), generatedAt: new Date().toISOString() };
+    const setItems = Array.isArray(data.setItems) ? data.setItems.map((item) => ({ slot: String(item.slot || '').slice(0, 24), slotLabel: String(item.slotLabel || item.slot || '').slice(0, 24), name: String(item.name || '未命名服饰').slice(0, 32), description: String(item.description || '').slice(0, 120) })).filter((item) => item.slot || item.name) : [];
+    const clothing = inferred.some((slotName) => !['装备'].includes(slotName)) || setItems.length;
+    return { id: `tbp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, name: raw.name, category: String(data.category || slot.hint || '淘宝商品').slice(0, 20), price, shop: String(data.shop || '淘宝精选店').slice(0, 30), description: raw.description || '由淘宝AI根据现实身份生成的商品。', kind: data.kind === '物品' && !clothing ? '物品' : '装备', equipSlots: setItems.length ? [...new Set([...inferred, ...setItems.map((item) => item.slot).filter(Boolean)])] : inferred, setItems, reason: String(data.reason || '淘宝购买').slice(0, 80), generatedAt: new Date().toISOString() };
   },
 
-  async generateTaobaoProduct(slotId) {
-    const slot = this.taobaoState.slots.find((item) => item.id === slotId);
-    if (!slot || this.taobaoState.generatingId) return;
+  taobaoBatchHint(index = 0) {
+    const parts = [String(this.taobaoState?.searchText || '').trim(), this.taobaoState?.filterSlot ? this.taobaoFilterLabel() : ''];
+    return parts.filter(Boolean).join(' + ') || ['上衣', '下衣', '鞋子', '袜子', '包具', '数码', '日用品', '随机'][index % 8];
+  },
+
+  taobaoTargetSlots(slotId, count = 1) {
+    this.initTaobaoApp();
+    let start = Math.max(0, this.taobaoState.slots.findIndex((item) => item.id === slotId));
+    if (start < 0) start = 0;
+    while (this.taobaoState.slots.length < start + count) {
+      const index = this.taobaoState.slots.length;
+      this.taobaoState.slots.push({ id: `tb-${index + 1}`, hint: this.taobaoBatchHint(index), product: null });
+    }
+    return this.taobaoState.slots.slice(start, start + count);
+  },
+
+  async generateTaobaoProducts(slotId, countArg = 0) {
+    if (this.taobaoState.generatingId) return;
+    const count = Number(countArg || this.taobaoState.count || 5);
+    const targets = this.taobaoTargetSlots(slotId, count);
     const reqId = (this.taobaoState.requestId || 0) + 1;
-    Object.assign(this.taobaoState, { requestId: reqId, generatingId: slot.id, error: '', message: '淘宝AI正在生成商品信息，约30秒…' });
+    Object.assign(this.taobaoState, { requestId: reqId, error: '', message: `淘宝AI正在生成${targets.length}个商品，约30秒…` });
     try {
       if (!window.dzmm?.completions) throw new Error('AI接口不可用');
-      const data = await window.GameModules.jsonUtils.generateJsonWithRetry({ source: 'taobao-product', model: this.modelId, prompt: this.taobaoPrompt(slot), maxTokens: 900, timeoutMs: 60000, max: 2 });
-      if (this.taobaoState.requestId !== reqId) return;
-      slot.product = this.normalizeTaobaoProduct(data, slot);
-      this.taobaoState.message = '商品信息已生成，可购买加入背包。';
+      for (let i = 0; i < targets.length; i++) {
+        const slot = targets[i];
+        slot.hint = this.taobaoBatchHint(i);
+        this.taobaoState.generatingId = slot.id;
+        const data = await window.GameModules.jsonUtils.generateJsonWithRetry({ source: 'taobao-product', model: this.modelId, prompt: this.taobaoPrompt(slot), maxTokens: this.taobaoState.filterSlot === '__set' ? 1400 : 900, timeoutMs: 60000, max: 2 });
+        if (this.taobaoState.requestId !== reqId) return;
+        slot.product = this.normalizeTaobaoProduct(data, slot);
+      }
+      this.taobaoState.selectedId = targets[0]?.id || this.taobaoState.selectedId;
+      this.taobaoState.message = `已生成${targets.length}个商品，可点击查看详情。`;
       await this.save?.();
     } catch (err) {
       if (this.taobaoState.requestId === reqId) this.taobaoState.error = `生成失败：${err.message || '未知错误'}`;
@@ -131,6 +176,10 @@ window.GameModules.taobaoActions = {
     } finally {
       if (this.taobaoState.requestId === reqId) this.taobaoState.generatingId = '';
     }
+  },
+
+  async generateTaobaoProduct(slotId) {
+    await this.generateTaobaoProducts(slotId, 1);
   },
 
   async buyTaobaoProduct(product = null) {

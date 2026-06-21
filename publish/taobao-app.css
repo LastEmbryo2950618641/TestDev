@@ -76,7 +76,8 @@
 }
 
 .taobao-search input,
-.taobao-search > button,
+.taobao-generate-tools select,
+.taobao-generate-tools button,
 .taobao-filter-bar button {
   min-height: 42px;
   border: 1px solid rgba(255, 107, 0, .24);
@@ -87,7 +88,12 @@
   font-weight: 800;
 }
 
-.taobao-search > button,
+.taobao-generate-tools {
+  display: flex;
+  gap: 8px;
+}
+
+.taobao-generate-tools button,
 .taobao-filter-bar button.active {
   background: linear-gradient(135deg, #ff8a00, #ff3d00);
   color: #fff;
@@ -149,6 +155,17 @@
   font-weight: 1000;
 }
 
+.taobao-product em {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: rgba(255, 138, 0, .12);
+  color: #9b3d00;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 900;
+}
+
 .taobao-product small,
 .taobao-detail p {
   color: rgba(65, 30, 12, .72);
@@ -187,6 +204,31 @@
 .taobao-tags span,
 .taobao-message {
   background: rgba(255, 138, 0, .12);
+  color: #9b3d00;
+}
+
+.taobao-set-detail {
+  display: grid;
+  gap: 8px;
+  border-radius: 16px;
+  padding: 10px;
+  background: rgba(255, 138, 0, .08);
+}
+
+.taobao-set-detail h4,
+.taobao-set-detail p {
+  margin: 0;
+}
+
+.taobao-set-detail p {
+  display: grid;
+  grid-template-columns: 64px 110px 1fr;
+  gap: 8px;
+  align-items: start;
+  font-size: 12px;
+}
+
+.taobao-set-detail b {
   color: #9b3d00;
 }
 
