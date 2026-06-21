@@ -92,6 +92,11 @@ window.GameModules.taobaoActions = {
     return this.taobaoState.slots.find((slot) => slot.id === this.taobaoState.selectedId) || null;
   },
 
+  backToTaobaoResults() {
+    this.initTaobaoApp();
+    this.taobaoState.selectedId = '';
+  },
+
   taobaoSlotSummary(slot = {}) {
     const p = slot.product;
     if (!p) return '';

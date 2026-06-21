@@ -901,7 +901,7 @@
         </section>
         <p class="taobao-message" x-show="$store.game.taobaoState.message" x-text="$store.game.taobaoState.message"></p>
         <p class="taobao-error" x-show="$store.game.taobaoState.error" x-text="$store.game.taobaoState.error"></p>
-        <section class="taobao-grid dev-section" data-section-title="淘宝商品结果" x-show="$store.game.taobaoFilteredSlots().length">
+        <section class="taobao-grid dev-section" data-section-title="淘宝商品结果" x-show="$store.game.taobaoFilteredSlots().length && !$store.game.selectedTaobaoSlot()?.product">
           <template x-for="slot in $store.game.taobaoFilteredSlots()" :key="slot.id">
             <button type="button" class="taobao-product" :class="{ active: $store.game.taobaoState.selectedId === slot.id, loading: $store.game.taobaoState.generatingId === slot.id }" @click="$store.game.selectTaobaoSlot(slot.id)">
               <b x-text="slot.product?.name || '待生成商品'"></b>
@@ -912,9 +912,12 @@
           </template>
         </section>
         <p class="taobao-empty" x-show="!$store.game.taobaoFilteredSlots().length">输入关键词、选择衣物部位后，点击生成查看淘宝商品。</p>
-        <p class="taobao-empty" x-show="$store.game.taobaoFilteredSlots().length && !$store.game.selectedTaobaoSlot()?.product">点击上方商品结果查看详情。</p>
+        <p class="taobao-empty" x-show="$store.game.taobaoFilteredSlots().length && !$store.game.selectedTaobaoSlot()?.product">点击商品结果查看详情。</p>
         <article class="taobao-detail dev-section" data-section-title="淘宝商品详情" x-show="$store.game.selectedTaobaoSlot()?.product">
-          <h3 x-text="$store.game.selectedTaobaoSlot()?.product?.name || '请选择商品位'"></h3>
+          <div class="taobao-detail-head">
+            <button type="button" class="small-btn" @click="$store.game.backToTaobaoResults()">返回结果</button>
+            <h3 x-text="$store.game.selectedTaobaoSlot()?.product?.name || '请选择商品位'"></h3>
+          </div>
           <p x-text="$store.game.taobaoProductDetail($store.game.selectedTaobaoSlot()?.product)"></p>
           <div class="taobao-tags" x-show="$store.game.selectedTaobaoSlot()?.product?.equipSlots?.length">
             <template x-for="slot in ($store.game.selectedTaobaoSlot()?.product?.equipSlots || [])" :key="slot"><span x-text="slot"></span></template>
