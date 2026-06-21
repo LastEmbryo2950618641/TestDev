@@ -1,7 +1,7 @@
 window.GameModules = window.GameModules || {};
 window.GameModules.taobaoActions = {
   taobaoDefaultSlots() {
-    return ['上衣', '下衣', '鞋子', '袜子', '包具', '数码', '日用品', '随机'].map((hint, index) => ({ id: `tb-${index + 1}`, hint, product: null }));
+    return Array.from({ length: 8 }, (_, index) => ({ id: `tb-${index + 1}`, hint: '', product: null }));
   },
 
   taobaoWearFilters() {
@@ -93,9 +93,9 @@ window.GameModules.taobaoActions = {
 
   taobaoSlotSummary(slot = {}) {
     const p = slot.product;
-    if (!p) return `${slot.hint}商品位｜点击后由AI生成商品信息`;
+    if (!p) return '空商品位｜点击生成后由AI按搜索词和衣物筛选生成商品';
     const set = Array.isArray(p.setItems) && p.setItems.length ? `｜${p.setItems.length}件套` : '';
-    return `${p.name}｜${Number(p.price || 0).toLocaleString('zh-CN')}元｜${p.category || slot.hint}${set}`;
+    return `${p.name}｜${Number(p.price || 0).toLocaleString('zh-CN')}元｜${p.category || '淘宝商品'}${set}`;
   },
 
   taobaoProductDetail(product = null) {
@@ -125,12 +125,12 @@ window.GameModules.taobaoActions = {
     const queryText = query ? `用户搜索词：${query}。必须把搜索词作为核心风格或品类要求。` : '';
     const filterText = filter && filter !== '__set' ? `当前搜索筛选部位：${this.taobaoFilterLabel(filter)}（${filter}），必须优先生成可穿戴在该部位的装备商品。` : '';
     const setText = filter === '__set' ? `当前为“一套”模式，必须返回一整套穿搭商品，equipSlots覆盖这些槽位：${slots}。额外返回setItems数组，每项字段slot、slotLabel、name、description，逐个说明每个穿着槽位的服饰；没有对应服饰的槽位也要给出协调搭配。` : '';
-    return `你是2026现代都市淘宝商品结构化生成器。仅输出紧凑JSON，不要Markdown。根据玩家身份生成一个真实可购买商品。玩家：姓名${p.name || '未知'}，年龄${p.age || ''}，地址${p.refinedCity || p.city || ''}，身份${p.refinedRole || p.dailyRole || ''}，财富${p.wealthTier || '流浪'}，现金${p.wealthAmount || 0}元。商品位提示：${slot.hint || '随机'}。${queryText}${filterText}${setText}若是衣服、裤子、袜子、鞋、包、饰品等可装备商品，kind必须为"装备"，equipSlots必须按已有穿戴部位分类，可用部位：${slots}，也可用中文部位：上衣、下衣、内衣、内裤、袜子、鞋子、外套、包具、头部、颈部、腰部、手套、手腕、饰品。非可装备商品kind为"物品"。字段：name、category、price、shop、description、kind、equipSlots、setItems、reason。price为整数且符合财富档位，不要超过玩家现金。`;
+    return `你是2026现代都市淘宝商品结构化生成器。仅输出紧凑JSON，不要Markdown。根据玩家身份生成一个真实可购买商品。玩家：姓名${p.name || '未知'}，年龄${p.age || ''}，地址${p.refinedCity || p.city || ''}，身份${p.refinedRole || p.dailyRole || ''}，财富${p.wealthTier || '流浪'}，现金${p.wealthAmount || 0}元。${queryText}${filterText}${setText}若是衣服、裤子、袜子、鞋、包、饰品等可装备商品，kind必须为"装备"，equipSlots必须按已有穿戴部位分类，可用部位：${slots}，也可用中文部位：上衣、下衣、内衣、内裤、袜子、鞋子、外套、包具、头部、颈部、腰部、手套、手腕、饰品。非可装备商品kind为"物品"。字段：name、category、price、shop、description、kind、equipSlots、setItems、reason。price为整数且符合财富档位，不要超过玩家现金。`;
   },
 
   normalizeTaobaoProduct(data = {}, slot = {}) {
     const price = Math.max(1, Math.floor(Number(data.price) || (this.playerProfile?.wealthTier === '流浪' ? 9 : 99)));
-    const raw = { name: String(data.name || `${slot.hint || '淘宝'}商品`).slice(0, 32), description: String(data.description || data.reason || '').slice(0, 180), equipSlots: Array.isArray(data.equipSlots) ? data.equipSlots : String(data.equipSlots || '').split(/[、,，/|；;\s]+/).filter(Boolean) };
+    const raw = { name: String(data.name || '淘宝商品').slice(0, 32), description: String(data.description || data.reason || '').slice(0, 180), equipSlots: Array.isArray(data.equipSlots) ? data.equipSlots : String(data.equipSlots || '').split(/[、,，/|；;\s]+/).filter(Boolean) };
     const inferred = window.GameModules.progression.inferEquipSlots(raw, data.kind || '');
     const setItems = Array.isArray(data.setItems) ? data.setItems.map((item) => ({ slot: String(item.slot || '').slice(0, 24), slotLabel: String(item.slotLabel || item.slot || '').slice(0, 24), name: String(item.name || '未命名服饰').slice(0, 32), description: String(item.description || '').slice(0, 120) })).filter((item) => item.slot || item.name) : [];
     const clothing = inferred.some((slotName) => !['装备'].includes(slotName)) || setItems.length;
@@ -139,7 +139,7 @@ window.GameModules.taobaoActions = {
 
   taobaoBatchHint(index = 0) {
     const parts = [String(this.taobaoState?.searchText || '').trim(), this.taobaoState?.filterSlot ? this.taobaoFilterLabel() : ''];
-    return parts.filter(Boolean).join(' + ') || ['上衣', '下衣', '鞋子', '袜子', '包具', '数码', '日用品', '随机'][index % 8];
+    return parts.filter(Boolean).join(' + ') || '';
   },
 
   taobaoTargetSlots(slotId, count = 1) {
