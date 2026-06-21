@@ -108,6 +108,7 @@ window.GameModules.loadingActions = {
       await window.GameModules.storage.open(this.selectedSlot);
       const save = await window.GameModules.storage.get();
       window.GameModules.storage.restore(this, save);
+      await this.migrateCurrentSaveWealthToOneHundredMillion?.();
       await this.loadWritingStyles();
     });
     await this.runStage('rpg', '正在从当前存档数据库恢复已保存的角色状态。', async () => {

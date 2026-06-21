@@ -42,7 +42,7 @@ Object.assign(window.GameModules.playerSetupActions, {
       livingStatus: map['居住状态'] || '',
       parents: map['父母信息'] || '',
       parentDeathCause: map['父母去世原因'] || '',
-      wealthTier: map['财富等级'] || '流浪',
+      wealthTier: map['财富等级'] || '中产',
       wealthAmount: map['当前财富'] || '',
       wealthSource: map['财富来源'] || '',
       relationships,

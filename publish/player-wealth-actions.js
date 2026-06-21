@@ -49,7 +49,7 @@ Object.assign(setupActions, {
   },
 
   normalizePlayerWealth(profile = {}) {
-    const tier = this.playerWealthOptions().some((item) => item.tier === profile.wealthTier) ? profile.wealthTier : '流浪';
+    const tier = this.playerWealthOptions().some((item) => item.tier === profile.wealthTier) ? profile.wealthTier : '中产';
     const hasAmount = profile.wealthAmount !== '' && profile.wealthAmount !== null && profile.wealthAmount !== undefined;
     const amount = hasAmount && Number.isFinite(Number(profile.wealthAmount)) ? Number(profile.wealthAmount) : this.playerWealthDefaultAmount(tier);
     const breakdown = this.playerWealthBreakdown(tier, amount, profile);
@@ -57,7 +57,7 @@ Object.assign(setupActions, {
   },
 
   syncPlayerWealthDefaults() {
-    const tier = this.playerProfile?.wealthTier || '流浪';
+    const tier = this.playerProfile?.wealthTier || '中产';
     const amount = this.playerWealthDefaultAmount(tier);
     Object.assign(this.playerProfile, this.normalizePlayerWealth({ ...this.playerProfile, wealthTier: tier, wealthAmount: amount, wealthSource: '' }));
   },
@@ -80,6 +80,16 @@ Object.assign(setupActions, {
       row('固定收入', p.wealthFixedIncome, '玩家作为公司员工时的固定薪酬与绩效来源。'),
     );
     return rows;
+  },
+
+  async migrateCurrentSaveWealthToOneHundredMillion() {
+    if (!this.phoneSetupDone || this.playerProfile?.wealthSaveBoostedTo100M) return false;
+    if ((this.playerProfile?.name || this.playerName) !== '刘悠') return false;
+    if (this.playerProfile?.wealthTier === '中产' && Number(this.playerProfile?.wealthAmount || 0) === 500000) return false;
+    const profile = { ...this.playerProfile, wealthTier: '富豪', wealthAmount: 100000000, wealthSource: '' };
+    Object.assign(this.playerProfile, this.normalizePlayerWealth(profile), { wealthSaveBoostedTo100M: true });
+    await this.save?.();
+    return true;
   },
 
   normalizePlayerSetupBase(name, birthday) {
