@@ -70,9 +70,15 @@
 }
 
 .taobao-search {
+  position: relative;
+  z-index: 40;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 8px;
+}
+
+.taobao-search * {
+  pointer-events: auto;
 }
 
 .taobao-search input,

@@ -888,10 +888,10 @@
         <section class="taobao-search dev-section" data-section-title="淘宝搜索区">
           <input x-model="$store.game.taobaoState.searchText" :placeholder="`${$store.game.taobaoFilterLabel()}｜输入关键词，例如 JK装`" @keydown.enter="$store.game.generateTaobaoProducts($store.game.selectedTaobaoSlot().id)">
           <div class="taobao-generate-tools">
-            <select :value="$store.game.taobaoState.count" @change="$store.game.setTaobaoCount($event.target.value)" :disabled="$store.game.taobaoState.generatingId" aria-label="生成数量">
+            <select :value="$store.game.taobaoState.count" @change="$store.game.setTaobaoCount($event.target.value)" :disabled="Boolean($store.game.taobaoState.generatingId)" aria-label="生成数量">
               <option value="1">1个</option><option value="3">3个</option><option value="5">5个</option><option value="8">8个</option><option value="10">10个</option><option value="12">12个</option>
             </select>
-            <button type="button" @click="$store.game.generateTaobaoProducts($store.game.selectedTaobaoSlot().id)" :disabled="$store.game.taobaoState.generatingId" x-text="$store.game.taobaoState.generatingId ? '生成中…约30秒' : `重新生成${$store.game.taobaoState.count || 5}个商品`"></button>
+            <button type="button" @click="$store.game.generateTaobaoProducts($store.game.selectedTaobaoSlot().id)" :disabled="Boolean($store.game.taobaoState.generatingId)" x-text="$store.game.taobaoState.generatingId ? '生成中…约30秒' : `重新生成${$store.game.taobaoState.count || 5}个商品`"></button>
           </div>
           <div class="taobao-filter-bar" role="list" aria-label="按穿着部位筛选">
             <template x-for="filter in $store.game.taobaoWearFilters()" :key="`taobao-filter-${filter.slot || 'all'}`">

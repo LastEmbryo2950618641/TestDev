@@ -18,6 +18,7 @@ window.GameModules.taobaoActions = {
     if (typeof this.taobaoState.filterSlot !== 'string') this.taobaoState.filterSlot = '';
     if (typeof this.taobaoState.searchText !== 'string') this.taobaoState.searchText = '';
     if (!Number(this.taobaoState.count)) this.taobaoState.count = 5;
+    if (!this.taobaoState.requestIdActive) this.taobaoState.generatingId = '';
     if (typeof this.taobaoState.walletOpen !== 'boolean') this.taobaoState.walletOpen = false;
   },
 
@@ -75,6 +76,7 @@ window.GameModules.taobaoActions = {
   openTaobaoApp() {
     this.closeDesktopApps();
     this.initTaobaoApp();
+    this.taobaoState.generatingId = '';
     this.taobaoState.open = true;
     this.desktopUnlocked = true;
   },
@@ -152,11 +154,13 @@ window.GameModules.taobaoActions = {
   },
 
   async generateTaobaoProducts(slotId, countArg = 0) {
-    if (this.taobaoState.generatingId) return;
+    this.initTaobaoApp();
+    if (this.taobaoState.generatingId && this.taobaoState.requestIdActive) return;
+    this.taobaoState.generatingId = '';
     const count = Number(countArg || this.taobaoState.count || 5);
     const targets = this.taobaoTargetSlots(slotId, count);
     const reqId = (this.taobaoState.requestId || 0) + 1;
-    Object.assign(this.taobaoState, { requestId: reqId, error: '', message: `淘宝AI正在生成${targets.length}个商品，约30秒…` });
+    Object.assign(this.taobaoState, { requestId: reqId, requestIdActive: true, error: '', message: `淘宝AI正在生成${targets.length}个商品，约30秒…` });
     try {
       if (!window.dzmm?.completions) throw new Error('AI接口不可用');
       for (let i = 0; i < targets.length; i++) {
@@ -174,7 +178,7 @@ window.GameModules.taobaoActions = {
       if (this.taobaoState.requestId === reqId) this.taobaoState.error = `生成失败：${err.message || '未知错误'}`;
       console.error('[淘宝] 商品生成失败:', err.message, err.stack);
     } finally {
-      if (this.taobaoState.requestId === reqId) this.taobaoState.generatingId = '';
+      if (this.taobaoState.requestId === reqId) Object.assign(this.taobaoState, { generatingId: '', requestIdActive: false });
     }
   },
 
