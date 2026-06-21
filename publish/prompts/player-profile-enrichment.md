@@ -26,7 +26,7 @@ Rules：
 6. 工作/学校/组织补全：根据 refinedRole 生成 workplace 与 position。
 7. 居住状态补全：结合 livingStatus、parents、relationships、notes 生成 refinedLivingStatus。
 8. 父母状态补全：为空时默认父母已故，并生成 parentDeathCause。
-9. 财富信息：读取输入中的 wealthTier、wealthAmount、wealthSource，作为不可改写的现实资产背景；富裕/富豪必须理解为父母公司濒临破产出售后留下的全部父母遗产。
+9. 财富信息：读取输入中的 wealthTier、wealthAmount、wealthSource、wealthFixedIncome，作为不可改写的现实资产背景；wealthSource 必须保持量化构成，富裕/富豪的父母遗产部分来自父母公司濒临破产出售后的清算余款。
 10. 人际关系整理：把玩家填写的关系整理为"关系：姓名"。
 11. 世界观备注：生成 worldbuildingNote，供现实推演和联系人生成使用。
 11. 已知职业推断：根据玩家现实身份、学历、工作经历、家庭上下文和备注，判断玩家本人是否已经知道某些现实可确认职业。
@@ -96,9 +96,12 @@ Rules：
 
 ### 7. 财富信息
 
-1. wealthTier、wealthAmount、wealthSource 已由代码按玩家选择确定，AI 不返回、不改写，但必须作为身份处境证据写入 refinedLivingStatus/worldbuildingNote 的综合判断。
+1. wealthTier、wealthAmount、wealthSource、wealthFixedIncome 已由代码按玩家选择和公司状态确定，AI 不返回、不改写，但必须作为身份处境证据写入 refinedLivingStatus/worldbuildingNote 的综合判断。
 2. 财富档位固定为：流浪=0元、贫穷=10000元、中产=500000元、富裕=5000000元、富豪=100000000元。
-3. 流浪、贫穷、中产的财富来源通常是父母遗产与本人挣钱共同构成；富裕、富豪必须视为父母公司濒临破产时被出售后留下的全部父母遗产，不要改成投资暴富、彩票、黑产或本人创业所得。
+3. wealthSource 必须保持“父母遗产(x)，本人之前打工挣钱(x)，xxxx公司员工薪酬绩效(x)”的量化语义，不要改成笼统描述。
+4. 基础构成规则：流浪为父母遗产(0)、本人之前打工挣钱(0)、公司员工薪酬绩效(0)；贫穷可按父母遗产与本人打工拆分；中产通常为父母遗产(450000)、本人之前打工挣钱(50000)、公司员工薪酬绩效(0)；富裕为父母遗产(4950000)、本人之前打工挣钱(50000)、公司员工薪酬绩效(0)；富豪为父母遗产(99950000)、本人之前打工挣钱(50000)、公司员工薪酬绩效(0)。
+5. 富裕、富豪的父母遗产部分必须视为父母公司濒临破产时被出售后留下的清算余款，不要改成投资暴富、彩票、黑产或本人创业所得。
+6. 若玩家在公司担任员工，wealthFixedIncome 描述的是固定收入来源：月基础薪酬和年底绩效会在后续结算中增加财富；身份补全时应承认该收入来源存在，但不要把未结算收入直接加进当前财富。
 
 ### 8. relationships
 
