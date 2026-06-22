@@ -116,7 +116,7 @@ window.GameModules.realWorldAgentLoop = {
         source: streamToUi ? 'real-world-engine' : 'real-world-agent-context',
         model: store.modelId,
         prompt,
-        timeoutMs: 60000,
+        timeoutMs: 180000,
         requireDone: true,
         maxAttempts: 2,
         onChunk: async (chunk, done, info) => {
