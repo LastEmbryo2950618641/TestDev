@@ -19,7 +19,8 @@ window.GameModules.styleActions = {
     this.customWritingStyles = Array.isArray(saved?.custom) ? saved.custom : [];
     const availableIds = new Set(this.allWritingStyles().map((style) => style.id));
     const active = Array.isArray(saved?.active) ? saved.active.filter((id) => availableIds.has(id)) : [];
-    this.activeStyleIds = active.length ? active : [this.defaultWritingStyles[0]?.id || 'literary'];
+    const preferredDefault = availableIds.has('spring-heart') ? 'spring-heart' : (this.defaultWritingStyles[0]?.id || 'literary');
+    this.activeStyleIds = (!saved || (active.length === 1 && active[0] === 'literary')) ? [preferredDefault] : (active.length ? active : [preferredDefault]);
     this.customStyleName = '';
     this.customStylePrompt = '';
     await this.saveWritingStyles();

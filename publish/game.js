@@ -67,7 +67,7 @@ function registerGameStore() {
     selectedSlot: 'slot-1', saveSlots: window.GameModules.storage.slots,
     savePanelOpen: false, functionPanelOpen: false, worldlineAppOpen: false,
     libraryTab: 'worlds', worldlineAppTab: 'control', realWorldlineSubTab: 'recording', expandedWorldlineTag: '', worldlineDebugSection: '世界线APP主面板', selectedRealWorldPlotId: '',
-    activeStyleIds: ['literary'], customWritingStyles: [], customStyleName: '', customStylePrompt: '',
+    activeStyleIds: ['spring-heart'], customWritingStyles: [], customStyleName: '', customStylePrompt: '',
     saveMessage: '',
     saveMetas: {},
     modelId: cfg.defaultModelId,
