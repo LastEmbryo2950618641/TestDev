@@ -45,6 +45,12 @@
   <script src="prompt-fallback.js"></script>
   <script src="prompt-templates.js"></script>
   <script src="prompt-templates-inline.js"></script>
+  <script src="prompts/pen_style/registry.js"></script>
+  <script src="prompts/pen_style/literary.js"></script>
+  <script src="prompts/pen_style/dark.js"></script>
+  <script src="prompts/pen_style/light-novel.js"></script>
+  <script src="prompts/pen_style/epic.js"></script>
+  <script src="prompts/pen_style/suspense.js"></script>
   <script src="prompts/wechat/wechat-image-prompt-collect.js"></script>
   <script src="prompts/picture_generate/wechat-album-photo.js"></script>
   <script src="prompts/picture_generate/draw-tag-prompt.js"></script>
@@ -1237,7 +1243,16 @@
           </template>
         </select>
       </section>
-      <p class="settings-status">当前：文本 <b x-text="$store.game.modelId"></b>；绘图 <b x-text="$store.game.selectedDrawModelId()"></b></p>
+      <section class="model-setting-group">
+        <h3>小说笔风</h3>
+        <small>用于主剧情推演正文；笔风由 prompts/pen_style 下的 JS 注册。</small>
+        <select :value="$store.game.selectedWritingStyleId()" @change="$store.game.selectWritingStyle($event.target.value)">
+          <template x-for="style in $store.game.defaultWritingStyles" :key="style.id">
+            <option :value="style.id" x-text="style.name"></option>
+          </template>
+        </select>
+      </section>
+      <p class="settings-status">当前：文本 <b x-text="$store.game.modelId"></b>；绘图 <b x-text="$store.game.selectedDrawModelId()"></b>；笔风 <b x-text="$store.game.allWritingStyles().find((style) => style.id === $store.game.selectedWritingStyleId())?.name || '未选择'"></b></p>
     </div>
   </section>
 

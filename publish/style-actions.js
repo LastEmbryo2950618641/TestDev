@@ -13,29 +13,26 @@ window.GameModules.styleActions = {
   ],
 
   async loadWritingStyles() {
-    try {
-      this.defaultWritingStyles = this.parseWritingStylesTemplate(await window.GameModules.promptTemplates.load('writing-styles'));
-    } catch (err) {
-      console.warn('小说文风模板读取失败，使用内置默认文风:', err.message, err.stack);
-    }
+    const registered = window.GameModules.penStyleRegistry?.list?.() || [];
+    if (registered.length) this.defaultWritingStyles = registered;
     const saved = window.GameModules.sqliteSave.getMetaJson?.('writing_styles');
     this.customWritingStyles = Array.isArray(saved?.custom) ? saved.custom : [];
-    this.activeStyleIds = Array.isArray(saved?.active) ? saved.active : ['literary'];
+    const availableIds = new Set(this.allWritingStyles().map((style) => style.id));
+    const active = Array.isArray(saved?.active) ? saved.active.filter((id) => availableIds.has(id)) : [];
+    this.activeStyleIds = active.length ? active : [this.defaultWritingStyles[0]?.id || 'literary'];
     this.customStyleName = '';
     this.customStylePrompt = '';
     await this.saveWritingStyles();
   },
 
-  parseWritingStylesTemplate(markdown) {
-    const idMap = { 文学细腻: 'literary', 黑暗压抑: 'dark', 轻小说节奏: 'light-novel', 史诗庄重: 'epic', 悬疑紧张: 'suspense' };
-    const source = String(markdown || '').replace(/\r\n/g, '\n');
-    const styles = Object.keys(idMap).map((name) => {
-      const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const match = source.match(new RegExp(`(?:^|\\n)##\\s+${escaped}\\s*\\n+([\\s\\S]*?)(?=\\n##\\s+|$)`));
-      const prompt = match?.[1]?.trim().replace(/\n+/g, ' ');
-      return prompt ? { id: idMap[name], name, prompt } : null;
-    }).filter(Boolean);
-    return styles.length ? styles : this.defaultWritingStyles;
+  selectedWritingStyleId() {
+    return this.activeStyleIds[0] || this.defaultWritingStyles[0]?.id || 'literary';
+  },
+
+  async selectWritingStyle(id) {
+    if (!id) return;
+    this.activeStyleIds = [id];
+    await this.saveWritingStyles();
   },
 
   allWritingStyles() {
