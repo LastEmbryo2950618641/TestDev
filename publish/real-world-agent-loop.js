@@ -148,7 +148,8 @@ window.GameModules.realWorldAgentLoop = {
       return data;
     } catch (err) {
       console.warn('现实 Loop Agent 步骤解析失败:', err.message);
-      return null;
+      const recovered = window.GameModules.jsonUtils.recoverAiResult?.(raw);
+      return recovered?.narration ? { type: 'final', ...recovered } : null;
     }
   },
 
