@@ -90,6 +90,11 @@ window.GameModules.aiRequest = {
     });
   },
 
+  selectedTextModel(fallback = '') {
+    const store = window.Alpine?.store?.('game');
+    return fallback || store?.modelId || store?.settingsState?.textModelId || window.GameModules.config?.defaultModelId || 'nalang-medium-0826';
+  },
+
   isRetryable(err) {
     const message = String(err?.message || '').toLowerCase();
     return Boolean(err?.retryable || ['RATE_LIMITED', 'TIMEOUT', 'NETWORK_ERROR', 'INTERNAL_ERROR', 'SERVICE_UNAVAILABLE', 'DRAW_TIMEOUT', 'AI_TIMEOUT'].includes(err?.code)
@@ -126,10 +131,10 @@ window.GameModules.aiRequest = {
     const id = ++this.seq;
     const source = options.source || 'unknown';
     const messages = options.messages || [{ role: 'user', content: options.prompt || '' }];
-    const model = options.model || 'nalang-turbo-0826';
-    const maxTokens = undefined;
+    const model = this.selectedTextModel(options.model);
+    const maxTokens = this.clampMaxTokens(options.maxTokens);
     const enqueueAt = Date.now();
-    const tokenRecordId = window.GameModules.tokenStats?.record?.(source, messages.map((msg) => String(msg?.content || '')).join('\n'), { model, maxTokens });
+    const tokenRecordId = window.GameModules.tokenStats?.record?.(source, messages.map((msg) => String(msg?.content || '')).join('\n'), { ...(options.tokenMeta || {}), model, maxTokens });
     const sourceCount = this.countSource(source);
     this.logicalCount += 1;
     this.queued += 1;

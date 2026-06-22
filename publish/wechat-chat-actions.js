@@ -129,7 +129,7 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatChatActi
     catch (err) { console.warn('[微信] 回复前资料补全失败，继续用现有资料:', err.code, err.message, err.stack); }
     const prompt = await this.wechatReplyPrompt(contact, playerText);
     const result = await window.GameModules.jsonUtils.generateJsonWithRetry({
-      source: 'wechat-chat-reply', model: this.modelId || 'nalang-turbo-0826', timeoutMs: 60000, prompt, format: prompt, max: 2,
+      source: 'wechat-chat-reply', model: this.modelId || this.settingsState?.textModelId, timeoutMs: 60000, prompt, format: prompt, max: 2,
       parse: (text) => window.GameModules.jsonUtils.parseLoose(text),
       validate: (raw) => this.validateWechatReply(raw, contact),
     });

@@ -64,7 +64,7 @@ window.GameModules.wechatMemoryContextActions = {
     ].join('\n\n');
     try {
       const decision = await window.GameModules.jsonUtils.generateJsonWithRetry({
-        source: 'wechat-history-decision', model: this.modelId || 'nalang-turbo-0826', timeoutMs: 30000, prompt, format: prompt, max: 2,
+        source: 'wechat-history-decision', model: this.modelId || this.settingsState?.textModelId, timeoutMs: 30000, prompt, format: prompt, max: 2,
         parse: (text) => window.GameModules.jsonUtils.parseLoose(text),
         validate: (raw) => this.validateWechatHistoryDecision(raw),
       });

@@ -27,7 +27,7 @@ window.GameModules.factionAiActions = {
     let buffer = '';
     const prompt = await this.factionPrompt();
     await window.GameModules.aiRequest.complete({
-      source: 'faction-audit', model: this.modelId || 'nalang-turbo-0826', prompt, timeoutMs: 60000,
+      source: 'faction-audit', model: this.modelId || this.settingsState?.textModelId, prompt, timeoutMs: 60000,
       onChunk: (content, done, info) => {
         if (requestId !== this.factionState.requestId) return;
         buffer = info.buffer;

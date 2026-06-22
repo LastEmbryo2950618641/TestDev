@@ -62,27 +62,17 @@ window.GameModules.wechatAlbumTagActions = {
     const ctx = this.wechatAlbumTagContext(contact, kind, draft);
     const template = window.GameModules.pictureGeneratePrompts?.drawTagPrompt || '';
     const requestPrompt = this.renderWechatAlbumPrompt(template, ctx);
-    const models = await window.dzmm.models.list().catch((err) => {
-      console.error('[微信相册] 模型列表获取失败:', err.code, err.message, err.stack);
-      return { defaultModel: 'nalang-turbo-0826', models: [] };
-    });
-    const model = models.defaultModel || models.models?.[0]?.internalName || 'nalang-turbo-0826';
+    const model = this.modelId || this.settingsState?.textModelId;
     const titleState = this.wechatAlbumKindLabel(kind);
-    const tokenRecordId = window.GameModules.tokenStats?.record?.('draw-tag-prompt', requestPrompt, {
+    const output = await window.GameModules.aiRequest.complete({
+      source: 'draw-tag-prompt',
       model,
+      prompt: requestPrompt,
       maxTokens: 600,
-      title: `绘图提示词生成｜${contact.name || '联系人'}｜${titleState}`,
-      category: '图片生成',
-      summary: '根据微信相册素材生成正向/负面绘图提示词。',
-      kind: 'completion',
+      timeoutMs: 60000,
+      requireDone: true,
+      tokenMeta: { title: `绘图提示词生成｜${contact.name || '联系人'}｜${titleState}`, category: '图片生成', summary: '根据微信相册素材生成正向/负面绘图提示词。', kind: 'completion' },
     });
-    let output = '';
-    await window.dzmm.completions({
-      model,
-      messages: [{ role: 'user', content: requestPrompt }],
-      maxTokens: 600,
-    }, (chunk) => { const text = String(chunk || ''); output = window.GameModules.jsonUtils?.mergeStreamText?.(output, text) ?? (output + text); });
-    window.GameModules.tokenStats?.recordResponse?.(tokenRecordId, output);
     console.log('[微信相册] 绘图提示词 AI 原始返回:', output);
     const parsed = this.parseWechatAlbumDrawPrompt(output);
     const prompt = this.applyPictureGenerateSensitiveReplacements(parsed.prompt);

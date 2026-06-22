@@ -42,7 +42,7 @@ window.GameModules.professionInfo = {
       const prompt = await this.prompt(worldTag, name, context);
       return await window.GameModules.jsonUtils.generateJsonWithRetry({
         source: 'profession-info',
-        model: 'nalang-turbo-0826',
+        model: window.GameModules.aiRequest?.selectedTextModel?.(),
         timeoutMs: 60000,
         prompt,
         format: prompt,

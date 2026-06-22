@@ -14,14 +14,14 @@ window.GameModules.characterFeedback = {
   async initial(store) {
     this.ensureExperience(store);
     const fallback = this.fallback(store);
-    console.debug('[角色反馈] 初始请求准备:', { character: store.character?.name, model: 'nalang-turbo-0826', controlMode: store.controlMode, hasCompletions: Boolean(window.dzmm?.completions) });
+    console.debug('[角色反馈] 初始请求准备:', { character: store.character?.name, model: store.modelId || store.settingsState?.textModelId, controlMode: store.controlMode, hasCompletions: Boolean(window.dzmm?.completions) });
     if (!window.dzmm?.completions) return fallback;
     let buffer = '';
     try {
       const prompt = await this.prompt(store);
       console.debug('[角色反馈] completions 调用:', { promptLength: prompt.length });
       const request = window.GameModules.aiRequest.complete({
-        source: 'character-feedback-base', model: 'nalang-turbo-0826', prompt, timeoutMs: 60000,
+        source: 'character-feedback-base', model: store.modelId || store.settingsState?.textModelId, prompt, timeoutMs: 60000,
         onChunk: (chunk, done, info) => {
           buffer = info.buffer;
           if (done) console.debug('[角色反馈] 流式 done:', { length: buffer.length });

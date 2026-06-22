@@ -110,7 +110,7 @@ window.GameModules.characterMemory = {
     try {
       if (!window.dzmm?.completions) return rawQuery;
       const prompt = await window.GameModules.promptTemplates.render('memory-intent-query', { 玩家输入: rawQuery });
-      const buffer = await window.GameModules.aiRequest.complete({ source: 'memory-intent-query', model: 'nalang-turbo-0826', prompt, timeoutMs: 60000 });
+      const buffer = await window.GameModules.aiRequest.complete({ source: 'memory-intent-query', model: window.GameModules.aiRequest?.selectedTextModel?.(), prompt, timeoutMs: 60000 });
       return buffer.trim() || rawQuery;
     } catch (err) {
       console.warn('记忆检索意图解析失败:', err.code, err.message);

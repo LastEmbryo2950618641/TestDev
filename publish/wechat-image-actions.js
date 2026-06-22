@@ -144,12 +144,15 @@ window.GameModules.wechatImageActions = {
       微信历史: this.wechatHistoryText(characterId),
       自拍意图: [msg.imageIntent?.reason || '', msg.imageIntent?.imageDescription || '', msg.imageIntent?.tagsHint || ''].filter(Boolean).join('\n') || '发送一张当前自拍照',
     });
-    const models = await window.dzmm.models.list().catch((err) => { console.error('[微信图片] 模型列表获取失败:', err.code, err.message, err.stack); return { defaultModel: 'nalang-turbo-0826', models: [] }; });
-    const model = models.defaultModel || models.models?.[0]?.internalName || 'nalang-turbo-0826';
-    const tokenRecordId = window.GameModules.tokenStats?.record?.('wechat-image-prompt-collect', prompt, { model, maxTokens: 500, title: `微信图片提示词收集｜${contact.name || '联系人'}`, category: '图片生成', summary: '根据微信联系人记忆和穿戴生成图片编辑动态标签。', kind: 'completion' });
-    let output = '';
-    await window.dzmm.completions({ model, messages: [{ role: 'user', content: prompt }], maxTokens: 500 }, (chunk) => { const text = String(chunk || ''); output = window.GameModules.jsonUtils?.mergeStreamText?.(output, text) ?? (output + text); });
-    window.GameModules.tokenStats?.recordResponse?.(tokenRecordId, output);
+    const output = await window.GameModules.aiRequest.complete({
+      source: 'wechat-image-prompt-collect',
+      model: this.modelId || this.settingsState?.textModelId,
+      prompt,
+      maxTokens: 500,
+      timeoutMs: 60000,
+      requireDone: true,
+      tokenMeta: { title: `微信图片提示词收集｜${contact.name || '联系人'}`, category: '图片生成', summary: '根据微信联系人记忆和穿戴生成图片编辑动态标签。', kind: 'completion' },
+    });
     return this.applyPictureGenerateSensitiveReplacements?.(this.cleanWechatImageTags(output)).slice(0, 1000) || this.cleanWechatImageTags(output).slice(0, 1000);
   },
 

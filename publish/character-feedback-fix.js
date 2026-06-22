@@ -7,7 +7,7 @@ Object.assign(window.GameModules.characterFeedback, {
   async initial(store) {
     this.ensureExperience(store);
     const fallback = this.fallback(store);
-    console.debug('[角色反馈] 初始请求准备:', { character: store.character?.name, model: 'nalang-turbo-0826', controlMode: store.controlMode, hasCompletions: Boolean(window.dzmm?.completions) });
+    console.debug('[角色反馈] 初始请求准备:', { character: store.character?.name, model: store.modelId || store.settingsState?.textModelId, controlMode: store.controlMode, hasCompletions: Boolean(window.dzmm?.completions) });
     if (!window.dzmm?.completions) return fallback;
     let buffer = '';
     let doneSeen = false;
@@ -17,7 +17,7 @@ Object.assign(window.GameModules.characterFeedback, {
       let resolveDone;
       const donePromise = new Promise((resolve) => { resolveDone = resolve; });
       const request = window.GameModules.aiRequest.complete({
-        source: 'character-feedback', model: 'nalang-turbo-0826', prompt, timeoutMs: 60000, requireDone: true,
+        source: 'character-feedback', model: store.modelId || store.settingsState?.textModelId, prompt, timeoutMs: 60000, requireDone: true,
         onChunk: (chunk, done, info) => {
           buffer = info.buffer;
           if (done) {

@@ -47,7 +47,7 @@ window.GameModules.bossAiActions = {
     let buffer = '';
     const prompt = await this.bossJobsPrompt(count, chunkIndex, chunkTotal);
     await window.GameModules.aiRequest.complete({
-      source: chunkTotal > 1 ? `boss-jobs-${chunkIndex}` : 'boss-jobs', model: this.modelId || 'nalang-turbo-0826', prompt, timeoutMs: 60000,
+      source: chunkTotal > 1 ? `boss-jobs-${chunkIndex}` : 'boss-jobs', model: this.modelId || this.settingsState?.textModelId, prompt, timeoutMs: 60000,
       onChunk: (content, done, info) => {
         if (this.bossState.requestId) buffer = info.buffer;
         if (done) this.bossState.generationDoneAt = this.phoneDateText?.() || '';

@@ -34,10 +34,10 @@ window.GameModules.worldLore = {
       if (this.isRealWorld(worldTag)) return this.realWorld(worldTag);
       if (!window.dzmm?.completions) return this.fallback(worldTag);
       const prompt = await this.prompt(worldTag, context);
-      console.debug('[世界观] AI请求:', { worldTag, promptLength: prompt.length, model: 'nalang-turbo-0826'});
+      console.debug('[世界观] AI请求:', { worldTag, promptLength: prompt.length, model: window.GameModules.aiRequest?.selectedTextModel?.()});
       return await window.GameModules.jsonUtils.generateJsonWithRetry({
         source: 'world-lore',
-        model: 'nalang-turbo-0826',
+        model: window.GameModules.aiRequest?.selectedTextModel?.(),
         prompt,
         timeoutMs: 60000,
         maxAttempts: 2,

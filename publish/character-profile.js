@@ -323,7 +323,7 @@ window.GameModules.characterProfile = {
     const format = this.partPromptWithTemplate(prompt, template, partIndex);
     const raw = await window.GameModules.jsonUtils.generateJsonWithRetry({
       source: `character-profile-part${partIndex}`,
-      model: 'nalang-turbo-0826',
+      model: window.GameModules.aiRequest?.selectedTextModel?.(),
       timeoutMs: 60000,
       prompt: format,
       format,
@@ -803,7 +803,7 @@ window.GameModules.characterProfile = {
       : this.inlineCsvFixPrompt(partIndex, issues, currentRows, format, base, skeleton);
     return window.GameModules.jsonUtils.generateJsonWithRetry({
       source: `character-profile-part${partIndex}-csv-fix`,
-      model: 'nalang-turbo-0826',
+      model: window.GameModules.aiRequest?.selectedTextModel?.(),
       timeoutMs: 60000,
       prompt,
       format: prompt,
@@ -1127,7 +1127,7 @@ window.GameModules.characterProfile = {
     const prompt = this.missingPartPrompt(partIndex, current, partialTemplate, missing, format, base);
     return window.GameModules.jsonUtils.generateJsonWithRetry({
       source: `character-profile-part${partIndex}-missing`,
-      model: 'nalang-turbo-0826',
+      model: window.GameModules.aiRequest?.selectedTextModel?.(),
       timeoutMs: 60000,
       prompt,
       format: prompt,
@@ -1732,7 +1732,7 @@ window.GameModules.characterProfile = {
     const source = chunkTotal > 1 ? `character-profile-${group}-${chunkIndex}` : `character-profile-${group}`;
     return window.GameModules.jsonUtils.generateJsonWithRetry({
       source,
-      model: 'nalang-turbo-0826',
+      model: window.GameModules.aiRequest?.selectedTextModel?.(),
       timeoutMs: 60000,
       prompt,
       format: prompt,
