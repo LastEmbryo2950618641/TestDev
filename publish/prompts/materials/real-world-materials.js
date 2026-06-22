@@ -30,6 +30,13 @@ window.GameModules.realWorldMaterials = {
     { id: 'term-search-one', title: '按关键词查询一条专用术语', size: 'small', maxChars: 900, skill: 'lexicon.query', method: 'searchTermOne', paramsHint: { keyword: '术语名或关键词' }, when: '行动或上下文出现 AI 不能确定含义的专用术语、缩写、APP名、功能名、黑话或自定义概念。' },
     { id: 'term-search-window', title: '按关键词加载专用术语前后片段', size: 'medium', maxChars: 1400, skill: 'lexicon.query', method: 'searchTermWindow', paramsHint: { keyword: '术语关键词', beforeChars: 300, afterChars: 700 }, when: '术语说明较长，只需要加载关键词附近定义和相关设定。' },
     { id: 'term-add', title: '新增专用术语', size: 'small', maxChars: 900, skill: 'lexicon.query', method: 'addSpecialTerm', paramsHint: { name: '术语名', summary: '一句话含义', description: '根据已有上下文推断出的设定', aliases: ['别名或缩写'] }, when: '查询数据库未命中，但根据已有资料能克制推断术语含义，需要把术语定义固化到词条表。' },
+    { id: 'character-items', title: '查询玩家或角色物品', size: 'small', maxChars: 1200, skill: 'item.query', method: 'listCharacterItems', paramsHint: { target: 'player-self或角色id/姓名' }, when: '行动涉及查看、使用、赠送、丢弃、损坏、购买、交给某人或从某人获得物品前。' },
+    { id: 'known-item-search', title: '搜索世界已知物品', size: 'small', maxChars: 1000, skill: 'item.query', method: 'searchKnownItem', paramsHint: { keyword: '物品名或关键词' }, when: '每次需要生成物品细节前必须先搜索；命中则复用已知物品，不要重复生成。' },
+    { id: 'item-generate', title: '生成世界已知物品', size: 'small', maxChars: 1000, skill: 'item.query', method: 'generateItemSkill', paramsHint: { name: '物品名', kind: '物品或装备', detailed: true, description: '玩家检查或到手后的详细信息' }, when: '搜索世界已知物品未命中，且玩家明确检查、接触或实际到手，需要固化物品细节。' },
+    { id: 'item-add', title: '新增物品给玩家或角色', size: 'small', maxChars: 1000, skill: 'item.query', method: 'addItemToTarget', paramsHint: { target: 'player-self或角色id/姓名', item: { name: '物品名', kind: '物品或装备', description: '说明' } }, when: '现实推演确认玩家或角色直接获得物品，且不涉及付款。' },
+    { id: 'item-transfer', title: '玩家与角色间转移物品', size: 'small', maxChars: 1000, skill: 'item.query', method: 'transferItemSkill', paramsHint: { from: '来源角色', to: '目标角色', itemName: '物品名', quantity: 1, reason: '原因' }, when: '现实推演确认玩家赠送、交出、递给某人，或角色把物品给玩家。' },
+    { id: 'item-delete', title: '删除玩家或角色物品', size: 'small', maxChars: 1000, skill: 'item.query', method: 'deleteItemSkill', paramsHint: { target: 'player-self或角色id/姓名', itemName: '物品名', quantity: 1, reason: '损坏/丢弃/消耗原因' }, when: '物品被损坏、丢弃、消耗、遗失或不再持有。' },
+    { id: 'item-purchase', title: '购物物品给玩家或角色', size: 'small', maxChars: 1000, skill: 'item.query', method: 'purchaseItemSkill', paramsHint: { target: 'player-self或角色id/姓名', item: { name: '物品名', price: 100, kind: '物品或装备', description: '说明' } }, when: '现实推演确认购买物品；必须先检查玩家余额，余额足够才扣钱并新增物品。' },
   ],
 
   list() { return this.items.slice(); },

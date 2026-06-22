@@ -98,9 +98,10 @@ characters 必须列出本次行动相关人物，至少包含 player-self，可
 7. 短期记忆、长期记忆与已载入现实时间线记录出现同一条记录时视为同源，只取一份，不要重复叙述或重复当成两次事件。
 8. 行动或上下文出现你不能准确判断含义的专用术语、缩写、APP名、功能名、黑话或自定义概念时，先请求 lexicon.query.searchTermOne 查询专用术语。若未命中且已有基础上下文、动态资料、现实记录足以克制推断含义，可以请求 lexicon.query.addSpecialTerm 新增 kind 为“专用术语”的词条；若无法推断，不要新增，保持不确定并用 choices 让玩家确认。新增后不要为同一术语重复查询或重复新增。
 9. 行动涉及国家、公司、学校、社区、家庭、组织、部门、下属单位、职位、角色势力地位或组织关系时，优先请求 faction.query。若现实推演确认出现新势力、已有势力的新下属单位、或某势力下新增职位/角色占位，可请求 faction.query.upsertFaction 或 faction.query.addFactionPosition；组织架构必须写到职位与该职位上的角色，角色未知写“未知”。
-10. 如果基础上下文和已动态载入资料已经足够，不要为了形式请求资料，直接 final。
-11. 如果已动态载入资料里出现“已视为现实世界地点未加载完全并补齐地点”或“补齐结论”，说明人物地点已经由地图补齐完成；不得再为同一人物地点、位置、当前状态或路线重复 request_context，必须基于补齐地点和人物记忆 final。
-12. 当当前步骤输出要求写明“收敛/final”或“禁止 request_context”时，必须 final，不要继续 request_context。
+10. 行动涉及检查、使用、赠送、递给、拿走、收到、丢弃、损坏、消耗、遗失、购买、付款、购物、包裹、快递、钥匙、证件、衣物、工具、食品或随身物时，优先请求 item.query.listCharacterItems 查询玩家或相关角色当前持有物；每次需要生成新物品细节前，必须先请求 item.query.searchKnownItem 搜索世界已知物品，命中则复用。只有玩家明确检查、详细观察或实际到手时才生成详细物品；如果只是正文里路过的一个名词，不要固化细节。
+11. 如果基础上下文和已动态载入资料已经足够，不要为了形式请求资料，直接 final。
+12. 如果已动态载入资料里出现“已视为现实世界地点未加载完全并补齐地点”或“补齐结论”，说明人物地点已经由地图补齐完成；不得再为同一人物地点、位置、当前状态或路线重复 request_context，必须基于补齐地点和人物记忆 final。
+13. 当当前步骤输出要求写明“收敛/final”或“禁止 request_context”时，必须 final，不要继续 request_context。
 
 ## 现实推演强制规则
 
@@ -122,8 +123,10 @@ characters 必须列出本次行动相关人物，至少包含 player-self，可
 16. 现实世界中任何玩家资料、公司、职业、状态、阵营、装备、物品、穿着等词条变化，都必须通过 lexiconUpdates 批量提交；每条必须写 reason。
 17. 穿着变化必须有明确动作或事实证据；信息不足不能把基础槽位写成“未穿戴”。
 18. 如果现实推演确认玩家本人身份证角色卡需要更新，lexiconUpdates 使用 kind:"角色卡"；若需要新增或修正玩家稳定技能，使用 kind:"角色技能"。
-19. final 必须返回 thinking 字段，thinking 是展示给玩家看的现实 AI 思考摘要，只概括使用了哪些现实状态、记忆、时间线或动态资料来推演，不输出隐藏推理链。
-20. 必须只返回合法 JSON。所有 key 和字符串值使用英文双引号；最后一个字段后不要加逗号。
+19. 若当前场景确认发生物品赠送/交还/转交，final 返回 itemActions action:"transfer"；物品损坏、丢弃、消耗或遗失返回 action:"delete"；被别人赠送或捡到等无付款获得返回 action:"add"；购买返回 action:"purchase" 且 item.price 必须为正整数。购物必须先查询余额语境，余额不足时 narration 写购买失败，不返回 purchase。
+20. 新物品细节只能在玩家检查、详细观察或实际到手时固化。生成前必须通过 item.query.searchKnownItem 搜索世界已知物品；命中时复用，不要生成重名新物品。仅作为正文背景名词出现的物品不要写 itemActions。
+21. final 必须返回 thinking 字段，thinking 是展示给玩家看的现实 AI 思考摘要，只概括使用了哪些现实状态、记忆、时间线或动态资料来推演，不输出隐藏推理链。
+22. 必须只返回合法 JSON。所有 key 和字符串值使用英文双引号；最后一个字段后不要加逗号。
 
 ## final 输出 JSON 字段
 
@@ -148,6 +151,7 @@ characters 必须列出本次行动相关人物，至少包含 player-self，可
 | metricUpdates | object | 否 | 本回合玩家本人情绪/感觉变化。 |
 | lexiconUpdates | array<object> | 否 | 玩家资料、公司、职业、状态、装备、物品、穿着等词条变化。 |
 | factionUpdates | array<object> | 否 | 新增或调整势力、下属单位、职位角色；action 可为 upsertFaction 或 addFactionPosition。 |
+| itemActions | array<object> | 否 | 物品操作数组；action 可为 add/transfer/delete/purchase/generate。购买必须含 item.price；转移/删除必须含 itemName、target/from/to 和 reason。 |
 | companyUpdates | object | 否 | 如有公司系统变化，按运行时代码支持字段返回。 |
 
 ### 本次可用示例

@@ -136,6 +136,7 @@ window.GameModules.realWorldActions = {
     result.characterCardChanges = await window.GameModules.characterCardLexicon?.applyToState?.(state, result.lexiconUpdates || []) || [];
     await window.GameModules.rpgLexicon.applyLexiconSkill?.((result.lexiconUpdates || []).filter((item) => item?.kind !== '角色卡' && item?.kind !== '角色技能'));
     await this.applyInventoryUpdatesToState(state, result.lexiconUpdates || []);
+    result.itemActionResults = await this.applyRealWorldItemActions?.(result.itemActions || []) || [];
     const elapsedSeconds = window.GameModules.ai.clampElapsed?.(result.elapsedSeconds, 300) || 300;
     result.elapsedSeconds = elapsedSeconds;
     result.vitalUpdates = window.GameModules.realWorldAi.normalizeVitalUpdates(result.vitalUpdates, elapsedSeconds, result.narration || '');

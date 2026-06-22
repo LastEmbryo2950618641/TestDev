@@ -19,6 +19,7 @@ window.GameModules.realWorldAgentContext = {
       `时间规则：所有现实时间都以桌面时间为准；本次 final 必须返回 elapsedSeconds，代码会用它推进桌面时间。`,
       `玩家资料：${store.playerSetupSummary?.() || store.playerName || '玩家'}`,
       `玩家属性：${this.limit(store.playerIdentitySummary?.() || '玩家本人属性尚未生成。', 1000)}`,
+      `玩家财富：${store.playerWealthText?.(store.playerProfile || {}) || `${Number(store.playerProfile?.wealthAmount || 0).toLocaleString('zh-CN')}元`}`,
       `现实身体状态：${this.vitalsText(store, store.playerIdentityState?.())}`,
       `当前场景：${store.realWorldSceneTitle || '现实世界'}`,
       `当前地点：${store.realWorldLocationName || map.current || '尚未生成具体地点'}`,
@@ -77,7 +78,7 @@ window.GameModules.realWorldAgentContext = {
   },
 
   async skillText() {
-    const ids = ['emotion.feeling.wearing.assess', 'memory.query', 'company.query', 'faction.query', 'realworld.location.query', 'realworld.history.query', 'lexicon.query', 'realworld.vitals.adjust'];
+    const ids = ['emotion.feeling.wearing.assess', 'memory.query', 'company.query', 'faction.query', 'realworld.location.query', 'realworld.history.query', 'lexicon.query', 'item.query', 'realworld.vitals.adjust'];
     const texts = await Promise.all(ids.map((id) => window.GameModules.skillLoader?.instruction?.(id) || ''));
     return texts.filter(Boolean).join('\n\n');
   },
@@ -119,6 +120,7 @@ window.GameModules.realWorldAgentContext = {
     if (skill === 'realworld.history.query') return this.history(store, method, params);
     if (skill === 'memory.query') return await this.memory(store, action, method, params);
     if (skill === 'lexicon.query') return await this.lexicon(store, method, params);
+    if (skill === 'item.query') return await this.itemQuery(store, method, params);
     return '';
   },
 

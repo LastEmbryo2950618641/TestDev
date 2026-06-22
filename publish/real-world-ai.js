@@ -48,6 +48,7 @@ window.GameModules.realWorldAi = {
         vitalUpdates: this.normalizeVitalUpdates(data.vitalUpdates, data.elapsedSeconds, action),
         metricUpdates: window.GameModules.ai.normalizeMetricUpdates?.(data.metricUpdates) || {},
         factionUpdates: Array.isArray(data.factionUpdates) ? data.factionUpdates.slice(0, 8) : [],
+        itemActions: Array.isArray(data.itemActions) ? data.itemActions.slice(0, 8) : [],
         lexiconUpdates: window.GameModules.ai.normalizeLexiconUpdates?.(data.lexiconUpdates, store) || [],
       };
     } catch (err) {
@@ -141,6 +142,7 @@ window.GameModules.realWorldAi = {
       choices: ['检查手机记录', '观察居住环境', '联系熟人确认', '暂时休息'],
       elapsedSeconds: 300,
       vitalUpdates: this.normalizeVitalUpdates([], 300, text),
+      itemActions: [],
     };
   },
 };

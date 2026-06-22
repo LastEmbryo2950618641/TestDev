@@ -96,6 +96,21 @@ window.GameModules = window.GameModules || {};
       return store.searchCharacterMemory?.('player-self', keyword) || store.memoryQueryContext?.('player-self', keyword) || '未命中相关记忆。';
     },
 
+    async itemQuery(store, method, params = {}) {
+      const target = params.target || params.characterId || 'player-self';
+      if (method === 'listCharacterItems') return store.listCharacterItems?.(target) || '物品系统不可用。';
+      if (method === 'searchKnownItem') return store.searchKnownItem?.(params.keyword || params.name || '') || '物品系统不可用。';
+      if (method === 'generateItemSkill') {
+        const r = await store.generateItemSkill?.(params.item || params);
+        return r?.message ? `${r.message}\n${JSON.stringify(r.item || {}, null, 2)}` : '生成物品失败。';
+      }
+      if (method === 'addItemToTarget') return (await store.addItemToTarget?.(target, params.item || params))?.message || '新增物品失败。';
+      if (method === 'transferItemSkill') return (await store.transferItemSkill?.(params.from || 'player-self', params.to || params.target || '', params.itemName || params.name || params.item?.name, params.quantity, params.reason))?.message || '转移物品失败。';
+      if (method === 'deleteItemSkill') return (await store.deleteItemSkill?.(target, params.itemName || params.name || params.item?.name, params.quantity, params.reason))?.message || '删除物品失败。';
+      if (method === 'purchaseItemSkill') return (await store.purchaseItemSkill?.(target, params.item || params))?.message || '购买物品失败。';
+      return '未知物品查询方法。';
+    },
+
     lexicon(store, method, params = {}) {
       const keyword = String(params.keyword || params.name || '').trim();
       if (method === 'addSpecialTerm') return this.addSpecialTerm(store, params);
