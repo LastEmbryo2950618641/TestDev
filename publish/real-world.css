@@ -51,10 +51,6 @@
   transform: scale(.97);
 }
 
-.real-world-free-input {
-  flex-wrap: wrap;
-}
-
 .real-world-freedom-controls {
   flex: 1 0 100%;
   display: flex;
@@ -101,6 +97,15 @@
   background: rgba(10, 15, 30, .82);
   color: #ffdf8a;
   font-size: 12px;
+}
+
+.real-world-generation-range .real-world-freedom-controls {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+.real-world-generation-range .real-world-empty {
+  margin: 0;
 }
 
 .real-world-ai-entry.streaming {

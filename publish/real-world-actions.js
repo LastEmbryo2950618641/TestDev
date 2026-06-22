@@ -72,15 +72,15 @@ window.GameModules.realWorldActions = {
   },
 
   realWorldFunctionTitle() {
-    return { inventory: '背包', wearing: '穿着', map: '电子地图' }[this.realWorldFunctionView] || '现实功能';
+    return { inventory: '背包', wearing: '穿着', map: '电子地图', generation: 'AI生成范围' }[this.realWorldFunctionView] || '现实功能';
   },
 
   realWorldFunctionEyebrow() {
-    return { inventory: 'INVENTORY', wearing: 'WEARING', map: 'E-MAP' }[this.realWorldFunctionView] || 'REAL WORLD';
+    return { inventory: 'INVENTORY', wearing: 'WEARING', map: 'E-MAP', generation: 'AI RANGE' }[this.realWorldFunctionView] || 'REAL WORLD';
   },
 
   realWorldFunctionHint() {
-    return { inventory: '查看玩家本人当前持有或可调用的装备与物品。', wearing: '查看内衣、上衣、下衣、鞋子、饰品和装备槽位等当前穿戴。', map: '查看当前现实地点树，展开子地点或查看地点说明。' }[this.realWorldFunctionView] || '选择现实世界中要执行的功能。';
+    return { inventory: '查看玩家本人当前持有或可调用的装备与物品。', wearing: '查看内衣、上衣、下衣、鞋子、饰品和装备槽位等当前穿戴。', map: '查看当前现实地点树，展开子地点或查看地点说明。', generation: '设置现实推演的行动边界、自由发挥或字数要求。' }[this.realWorldFunctionView] || '选择现实世界中要执行的功能。';
   },
 
   seedRealWorldLog() {
