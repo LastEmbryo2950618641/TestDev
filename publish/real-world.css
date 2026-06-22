@@ -286,21 +286,23 @@
 }
 
 .real-world-layout.real-world-profile-rail {
-  grid-template-columns: 64px minmax(0, 1fr) var(--right-col);
+  grid-template-columns: 42px minmax(0, 1fr) var(--right-col);
 }
 
 .real-world-layout .character-panel.real-world-profile-collapsed {
   align-self: start;
   min-height: 0;
-  padding: 6px;
+  padding: 0;
   overflow: visible;
 }
 
 .real-world-layout .real-world-profile-collapsed .character-status-card {
   grid-template-columns: 1fr;
+  min-height: 0;
   justify-items: center;
-  gap: 4px;
-  padding: 5px 4px;
+  gap: 0;
+  padding: 6px 3px;
+  border-radius: 12px;
 }
 
 .real-world-layout .real-world-profile-collapsed .character-status-main {
@@ -313,10 +315,13 @@
 }
 
 .real-world-layout .real-world-profile-collapsed .name-role-block h2 {
-  max-width: 52px;
+  max-width: 34px;
   text-align: center;
+  white-space: normal;
+  line-height: 1.15;
 }
 
+.real-world-layout .real-world-profile-collapsed .avatar-orb,
 .real-world-layout .real-world-profile-collapsed .role,
 .real-world-layout .real-world-profile-collapsed .character-status-main > small,
 .real-world-layout .real-world-profile-collapsed .vital-bars {
