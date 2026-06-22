@@ -285,10 +285,42 @@
   min-height: 0;
 }
 
+.real-world-layout.real-world-profile-rail {
+  grid-template-columns: 64px minmax(0, 1fr) var(--right-col);
+}
+
 .real-world-layout .character-panel.real-world-profile-collapsed {
   align-self: start;
   min-height: 0;
+  padding: 6px;
   overflow: visible;
+}
+
+.real-world-layout .real-world-profile-collapsed .character-status-card {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  gap: 4px;
+  padding: 5px 4px;
+}
+
+.real-world-layout .real-world-profile-collapsed .character-status-main {
+  width: 100%;
+}
+
+.real-world-layout .real-world-profile-collapsed .name-role-block {
+  justify-content: center;
+  margin: 0;
+}
+
+.real-world-layout .real-world-profile-collapsed .name-role-block h2 {
+  max-width: 52px;
+  text-align: center;
+}
+
+.real-world-layout .real-world-profile-collapsed .role,
+.real-world-layout .real-world-profile-collapsed .character-status-main > small,
+.real-world-layout .real-world-profile-collapsed .vital-bars {
+  display: none;
 }
 
 @media (max-width: 760px) {
