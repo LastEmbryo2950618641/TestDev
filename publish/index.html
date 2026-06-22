@@ -432,11 +432,7 @@
             <p x-text="$store.game.realWorldLore().background"></p>
             <div class="worldline-box">
               <div class="worldline-head"><b>现实世界线</b><small x-text="$store.game.realWorldline().timeRange"></small></div>
-              <nav class="real-worldline-subtabs dev-section" data-section-title="现实世界线二级标签">
-                <button type="button" :class="{ active: $store.game.realWorldlineSubTab === 'recording' }" @click="$store.game.realWorldlineSubTab = 'recording'">正在记录</button>
-                <button type="button" :class="{ active: $store.game.realWorldlineSubTab === 'summarized' }" @click="$store.game.realWorldlineSubTab = 'summarized'">已归纳</button>
-              </nav>
-              <section class="real-recording-panel" x-show="$store.game.realWorldlineSubTab === 'recording'">
+              <section class="real-recording-panel">
                 <article class="real-plot-summary dev-section" data-section-title="正在记录情节">
                   <h3 x-text="$store.game.realWorldline().pendingPlot?.情节编号 || '暂无正在记录情节'"></h3>
                   <small x-text="$store.game.realWorldline().pendingPlot ? `${$store.game.realWorldline().pendingPlot.startedAt || '时间未知'} - ${$store.game.realWorldline().pendingPlot.endedAt || '现在'}` : '累计记录达到阈值后会自动归纳。'"></small>
@@ -444,18 +440,8 @@
                 </article>
                 <div class="timeline-list real-plot-events"><template x-for="item in $store.game.realWorldRecordingEvents()" :key="`real-recording-${item.eventId}`"><article class="timeline-item event"><span class="timeline-dot"></span><div><small x-text="item.time || '现实时间'"></small><h4 x-text="item.name"></h4><p x-text="item.detail"></p><em x-text="item.status || '现实记录'"></em></div></article></template><p class="empty-lore" x-show="!$store.game.realWorldRecordingEvents().length">暂无正在记录的现实事件。</p></div>
               </section>
-              <section class="real-summarized-panel" x-show="$store.game.realWorldlineSubTab === 'summarized'">
-                <div class="real-plot-list dev-section" data-section-title="已归纳情节列表" x-show="$store.game.realWorldSummarizedPlots().length">
-                  <template x-for="plot in $store.game.realWorldSummarizedPlots()" :key="`real-plot-option-${plot.情节编号}`">
-                    <button type="button" :class="{ active: ($store.game.realWorldSelectedPlot()?.情节编号 || '') === plot.情节编号 }" @click="$store.game.selectRealWorldPlot(plot.情节编号)"><b x-text="plot.情节编号"></b><span x-text="plot.情节标题"></span><small x-text="plot.情节时间段 || '时间未知'"></small></button>
-                  </template>
-                </div>
-                <article class="real-plot-summary dev-section" data-section-title="已归纳情节详情" x-show="$store.game.realWorldSelectedPlot()"><h3 x-text="`${$store.game.realWorldSelectedPlot()?.情节编号 || ''}｜${$store.game.realWorldSelectedPlot()?.情节标题 || ''}`"></h3><small x-text="$store.game.realWorldSelectedPlot()?.情节时间段 || '时间未知'"></small><p x-text="$store.game.realWorldSelectedPlot()?.情节总结 || ''"></p><em x-text="`重要记录：${$store.game.realWorldSelectedPlot()?.重要记录编号 || '未记录'}`"></em><p x-text="$store.game.realWorldSelectedPlot()?.重要片段 || ''"></p></article>
-                <div class="timeline-list real-plot-events" x-show="$store.game.realWorldSelectedPlot()"><template x-for="item in $store.game.realWorldPlotEvents($store.game.realWorldSelectedPlot())" :key="`real-plot-event-${item.eventId}`"><article class="timeline-item event"><span class="timeline-dot"></span><div><small x-text="item.time || '现实时间'"></small><h4 x-text="item.name"></h4><p x-text="item.detail"></p><em x-text="item.status || '现实记录'"></em></div></article></template><p class="empty-lore" x-show="!$store.game.realWorldPlotEvents($store.game.realWorldSelectedPlot()).length">该情节暂无对应记录。</p></div>
-                <p class="empty-lore" x-show="!$store.game.realWorldSummarizedPlots().length">暂无已归纳情节。正在记录累计到阈值后会出现在这里。</p>
-              </section>
-              <details class="faction-details" x-show="$store.game.realWorldlineSubTab === 'recording'"><summary>查看全部现实记录</summary><div class="timeline-list"><template x-for="item in $store.game.timelineItems($store.game.realWorldLore())" :key="`real-${item.eventId || item.order}`"><article class="timeline-item event"><span class="timeline-dot"></span><div><small x-text="item.time || '现实时间'"></small><h4 x-text="item.name"></h4><p x-text="item.kind === 'event' ? item.detail : item.summary"></p><em x-text="`${item.status || '现实记录'}｜情节:${item.plotId || item.summary}`"></em></div></article></template></div></details>
-              <p class="empty-lore" x-show="$store.game.realWorldlineSubTab === 'recording' && !$store.game.realWorldline().events.length">暂无现实世界记录。收起手机并进行现实行动后会写入这里。</p>
+              <details class="faction-details"><summary>查看全部现实记录</summary><div class="timeline-list"><template x-for="item in $store.game.timelineItems($store.game.realWorldLore())" :key="`real-${item.eventId || item.order}`"><article class="timeline-item event"><span class="timeline-dot"></span><div><small x-text="item.time || '现实时间'"></small><h4 x-text="item.name"></h4><p x-text="item.kind === 'event' ? item.detail : item.summary"></p><em x-text="`${item.status || '现实记录'}｜情节:${item.plotId || item.summary}`"></em></div></article></template></div></details>
+              <p class="empty-lore" x-show="!$store.game.realWorldline().events.length">暂无现实世界记录。收起手机并进行现实行动后会写入这里。</p>
             </div>
           </article>
         </section>
