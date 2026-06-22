@@ -23,23 +23,9 @@ window.GameModules.realWorldUtilityActions = {
   async copyRealWorldPlayerText(text = '') {
     const value = String(text || '').trim();
     if (!value) return;
-    try {
-      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(value);
-      else {
-        const el = document.createElement('textarea');
-        el.value = value;
-        el.style.position = 'fixed';
-        el.style.opacity = '0';
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand('copy');
-        el.remove();
-      }
-      window.dzmm?.toast?.success?.('已复制');
-    } catch (err) {
-      console.warn('复制现实行动失败:', err.message, err.stack);
-      window.dzmm?.toast?.error?.('复制失败');
-    }
+    const current = String(this.realWorldInput || '').trimEnd();
+    this.realWorldInput = current ? `${current} ${value}` : value;
+    window.dzmm?.toast?.success?.('已追加到输入框');
   },
 
   openRealWorldPrompt(id) {
