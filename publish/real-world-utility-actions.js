@@ -36,14 +36,14 @@ window.GameModules.realWorldUtilityActions = {
 
   realWorldFreedomRule() {
     const mode = this.realWorldFreedomMode || 'scope';
-    if (mode === 'free') return '推演自由度：AI自由发挥。final 可以在现实合理、资料一致、不违反玩家身份边界的前提下，根据当前时间、地点、人物状态和现实因果自由推进到一个自然稳定的小段落；允许补足玩家没有逐步输入但现实中会顺理成章发生的过渡动作、环境变化和他人反应，但不得编造重大旧事实或替玩家做长期不可逆决定。narration 建议 420 到 900 个汉字。';
+    if (mode === 'free') return '推演自由度：AI自由发挥。final 不受玩家本次行动边界约束，也不设置字数上限；AI 应根据当前已知场景、时间、地点、人物状态、现实因果、生命体征和已载入资料，尽可能输出其能够合理推演的最大内容量。允许连续推进环境变化、他人反应、事件连锁、阶段性结果和后续影响，直到当前场景在逻辑上达到可停顿的最大推演点；但不得无依据篡改已知设定、无中生有关键旧事实或违背现实因果。';
     if (mode === 'words') return `推演自由度：要求字数。final 的 narration 不得少于 ${Math.max(200, this.realWorldWordCountValue())} 个汉字；仍需遵守本次行动边界和现实因果，必须把行动过程、环境、身体状态影响、人物反应和直接结果写充分。`;
     return '推演自由度：行动范围内。保持当前默认边界：只推演玩家本次输入行动自然抵达的结果点，不替玩家继续追问、离开、处理后续长期事务或完成未输入的下一步行动；narration 需比简略总结更充分，建议 260 到 520 个汉字。';
   },
 
   realWorldNarrationHint() {
     if (this.realWorldFreedomMode === 'words') return `以第二人称续写现实世界中的行动结果，不少于 ${Math.max(200, this.realWorldWordCountValue())} 个汉字，现实、克制、细节充分，并体现精力、饱食、水分、疲劳或精神稳定对行动的影响`;
-    if (this.realWorldFreedomMode === 'free') return '以第二人称续写现实世界中的行动结果，420到900字，可根据现实因果自由推进到自然稳定的小段落，并体现生命体征影响';
+    if (this.realWorldFreedomMode === 'free') return '以第二人称续写现实世界中的行动结果，不设字数上限，按当前场景和已载入资料尽可能输出可合理推演的最大内容量，连续呈现环境变化、他人反应、事件连锁、阶段性结果和后续影响，并体现生命体征影响';
     return '以第二人称续写现实世界中的行动结果，260到520字，行动过程和直接结果都要写充分，并体现生命体征影响';
   },
 
