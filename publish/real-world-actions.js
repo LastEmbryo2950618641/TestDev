@@ -134,8 +134,16 @@ window.GameModules.realWorldActions = {
   async applyRealWorldResult(id, result) {
     const state = this.playerIdentityState?.();
     await this.applyMetricUpdatesToState?.(state, result.metricUpdates);
-    result.characterCardChanges = await window.GameModules.characterCardLexicon?.applyToState?.(state, result.lexiconUpdates || []) || [];
-    await window.GameModules.rpgLexicon.applyLexiconSkill?.((result.lexiconUpdates || []).filter((item) => item?.kind !== '角色卡' && item?.kind !== '角色技能'));
+    const cardChanges = await window.GameModules.characterCardLexicon?.applyToState?.(state, result.lexiconUpdates || []) || [];
+    const lexiconChanges = await window.GameModules.rpgLexicon.applyLexiconSkill?.((result.lexiconUpdates || []).filter((item) => item?.kind !== '角色卡' && item?.kind !== '角色技能')) || [];
+    result.characterCardChanges = cardChanges.concat(lexiconChanges.map((item) => ({
+      at: item.updatedAt || new Date().toISOString(),
+      field: item.kind || '词条',
+      name: item.name,
+      value: item.value ?? item.description ?? item.summary,
+      reason: item.meta?.modifyReason || item.changeMode || '现实推演结算。',
+      applied: true,
+    })));
     await this.applyInventoryUpdatesToState(state, result.lexiconUpdates || []);
     result.itemActionResults = await this.applyRealWorldItemActions?.(result.itemActions || []) || [];
     const elapsedSeconds = window.GameModules.ai.clampElapsed?.(result.elapsedSeconds, 300) || 300;
