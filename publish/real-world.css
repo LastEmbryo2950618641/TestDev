@@ -78,13 +78,35 @@
 .real-world-choice-dock {
   flex: 0 0 auto;
   display: flex;
-  justify-content: flex-end;
-  padding-top: 8px;
+  min-height: 38px;
+  padding-top: 5px;
   border-top: 1px solid rgba(116, 246, 255, .12);
 }
 
 .real-world-choice-dock .story-choice-list {
-  width: min(68%, 430px);
+  width: 100%;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.real-world-choice-dock .story-choice-btn {
+  flex: 0 0 auto;
+  width: auto;
+  max-width: 180px;
+  min-height: 30px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.real-world-choice-dock .story-choice-btn:hover,
+.real-world-choice-dock .story-choice-btn:focus-visible {
+  transform: translateY(-1px);
 }
 
 .real-world-actions { position: relative; }
