@@ -82,6 +82,7 @@ window.GameModules.realWorldAgentLoop = {
       当前步骤: forceFinal ? '收敛/final' : `${step}/${this.maxSteps}`,
       最大步骤: this.maxSteps,
       动态Skills: skills,
+      小说笔风: store.writingStylePrompt?.() || '正文采用小说文风，重视画面、动作、感官和心理反应，避免复述玩家指令。',
       Think模式规则: this.thinkModeRule(store),
       推演自由度规则: store.realWorldFreedomRule?.() || '推演自由度：行动范围内。只推演玩家本次输入行动自然抵达的直接结果。',
       当前步骤输出要求: this.stepOutputRule(step, forceFinal),
