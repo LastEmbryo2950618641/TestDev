@@ -20,11 +20,11 @@ window.GameModules.realWorldAgentLoop = {
       const prompt = await this.buildPrompt({ store, action, base, loaded, skills, step, materialSession });
       lastPrompt = prompt;
       this.markStep(store, logId, this.stepText(step));
-      const raw = await this.completeStep(store, prompt, logId, true);
-      lastRaw = raw;
-      const data = this.parseStep(raw);
+      const raw = await this.completeParsedStep(store, prompt, logId, true);
+      lastRaw = raw.raw;
+      const data = raw.data;
       if (!data) throw new Error('现实推演返回格式错误');
-      const traceItem = this.traceItem(step, data, raw);
+      const traceItem = this.traceItem(step, data, raw.raw);
       trace.push(traceItem);
 
       const results = await this.loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step, materialSession);
@@ -35,9 +35,9 @@ window.GameModules.realWorldAgentLoop = {
       }
 
       if (step < this.minSteps) continue;
-      if (data.type === 'final') return { result: data, prompt, loaded, raw, trace };
+      if (data.type === 'final') return { result: data, prompt, loaded, raw: raw.raw, trace };
       if (data.type === 'request_context' && results.length && step < this.maxSteps) continue;
-      return await this.forceFinal({ store, action, base, loaded, skills, trace, materialSession, logId, prompt, raw });
+      return await this.forceFinal({ store, action, base, loaded, skills, trace, materialSession, logId, prompt, raw: raw.raw });
     }
     return await this.forceFinal({ store, action, base, loaded, skills, trace, materialSession, logId, prompt: lastPrompt, raw: lastRaw });
   },
@@ -45,9 +45,9 @@ window.GameModules.realWorldAgentLoop = {
   async forceFinal({ store, action, base, loaded, skills, trace, materialSession, logId, prompt, raw }) {
     const finalPrompt = await this.buildPrompt({ store, action, base, loaded, skills, step: '收敛', materialSession, forceFinal: true });
     this.markStep(store, logId, '现实资料已足够，正在整理最终结果…');
-    const finalRaw = await this.completeStep(store, finalPrompt, logId, true);
-    const finalData = this.parseStep(finalRaw);
-    if (finalData?.type === 'final') return { result: finalData, prompt: finalPrompt, loaded, raw: finalRaw, trace };
+    const finalRaw = await this.completeParsedStep(store, finalPrompt, logId, true);
+    const finalData = finalRaw.data;
+    if (finalData?.type === 'final') return { result: finalData, prompt: finalPrompt, loaded, raw: finalRaw.raw, trace };
     throw new Error('现实推演最终结果格式错误');
   },
 
@@ -110,6 +110,19 @@ window.GameModules.realWorldAgentLoop = {
     return { type: 'final', sceneTitle: '现实场景标题', locationName: '具体地点名', parentLocationName: '上级地点名', locationDescription: '当前地点本次新认识的事实', mapNodes: [{ name: '子地点名', parentName: '上级地点名', descriptionFacts: ['玩家已知地点事实'] }], newLocations: [{ name: '新增地点名', parentName: '', descriptionFacts: ['玩家已知事实'] }], locationDescriptionUpdates: [{ locationName: '地点名', action: 'add', text: '新增或更新的玩家已知事实' }], elapsedSeconds: 60, thinking: store.realWorldThinkMode ? '60到140字，概括现实推演依据，不写隐藏推理' : '简短现实推演依据摘要', narration: store.realWorldNarrationHint?.() || '以第二人称续写现实世界中的行动结果，不少于300字且不设字数上限，现实、克制、细节充分，并体现精力、饱食、水分、疲劳或精神稳定对行动的影响', status: '现实状态简述', quest: '新的现实目标', choices: ['处理现实事务', '联系某个人', '观察周围', '暂时休息'], vitalUpdates: [{ key: 'stamina_pool', delta: -1, reason: '本次行动消耗少量精力。' }, { key: 'satiety', delta: 0, reason: '本次行动时间较短，饱食度基本不变。' }, { key: 'hydration', delta: 0, reason: '本次行动时间较短，水分基本不变。' }, { key: 'fatigue', delta: 1, reason: '持续行动带来轻微疲劳。' }, { key: 'mental_stability', delta: 0, reason: '本次行动没有直接冲击精神稳定。' }], metricUpdates: { target: 'player-self', emotions: [{ key: '情绪名', delta: 0, status: '变化后的状态含义', reason: '现实触发原因' }], playerFeelings: [{ key: '感觉名', delta: 0, status: '变化后的状态含义', reason: '现实触发原因' }] }, characterMetricUpdates: [{ target: '角色id或姓名', emotions: [{ key: '情绪名', delta: 0, status: '变化后的状态含义', reason: '现实触发原因' }], playerFeelings: [{ key: '感觉名', delta: 0, status: '变化后的状态含义', reason: '现实触发原因' }] }], factionUpdates: [{ action: 'addFactionPosition', factionName: '势力名', position: '职位或地位', characterName: '角色名或未知', reason: '现实确认依据' }], itemActions: [{ action: 'add/transfer/delete/purchase/generate', target: 'player-self或角色id/姓名', from: '来源角色', to: '目标角色', itemName: '已有物品名', quantity: 1, item: { name: '物品名', kind: '物品或装备', price: 0, description: '说明' }, reason: '现实确认依据' }], lexiconUpdates: [{ worldTag: realWorld.label || '2026 现代都市现实世界', kind: '玩家设定/装备/物品/穿着/角色卡/角色技能', field: '角色卡字段名', name: '词条名或skills', value: '新值或对象', summary: '摘要', description: '说明', reason: '现实证据、触发行动、状态来源或动机' }] };
   },
 
+  async completeParsedStep(store, prompt, logId, streamToUi = false) {
+    let lastRaw = '';
+    for (let i = 0; i < 2; i += 1) {
+      lastRaw = await this.completeStep(store, prompt, logId, streamToUi);
+      try { return { raw: lastRaw, data: this.parseStep(lastRaw) }; }
+      catch (err) {
+        if (!String(err.message || '').includes('截断') || i === 1) throw err;
+        console.warn('现实推演疑似截断，自动重试一次:', err.message);
+      }
+    }
+    return { raw: lastRaw, data: null };
+  },
+
   async completeStep(store, prompt, logId, streamToUi = false) {
     const requestId = window.GameModules.realWorldAi.latestRequestId;
     let buffer = '';
@@ -119,8 +132,10 @@ window.GameModules.realWorldAgentLoop = {
         source: streamToUi ? 'real-world-engine' : 'real-world-agent-context',
         model: store.modelId,
         prompt,
-        timeoutMs: 180000,
+        timeoutMs: 240000,
         requireDone: true,
+        maxTokens: streamToUi ? 10000 : 5000,
+        outputLengthThreshold: streamToUi ? 9000 : 4200,
         maxAttempts: 2,
         onChunk: async (chunk, done, info) => {
           if (requestId !== window.GameModules.realWorldAi.latestRequestId) return;
@@ -142,6 +157,7 @@ window.GameModules.realWorldAgentLoop = {
 
   parseStep(raw) {
     try {
+      if (window.GameModules.aiRequest?.outputTailLooksTruncated?.(raw)) throw new Error('现实推演返回疑似被截断');
       const data = window.GameModules.jsonUtils.parseLoose(raw);
       if (!data || typeof data !== 'object') return null;
       const type = String(data.type || '').trim();
@@ -151,6 +167,7 @@ window.GameModules.realWorldAgentLoop = {
       return data;
     } catch (err) {
       console.warn('现实 Loop Agent 步骤解析失败:', err.message);
+      if (String(err.message || '').includes('截断')) throw err;
       return null;
     }
   },
