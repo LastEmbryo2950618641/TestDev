@@ -111,24 +111,29 @@ window.GameModules.realWorldAgentLoop = {
     const requestId = window.GameModules.realWorldAi.latestRequestId;
     let buffer = '';
     let lastPaint = 0;
-    await window.GameModules.aiRequest.complete({
-      source: streamToUi ? 'real-world-engine' : 'real-world-agent-context',
-      model: store.modelId,
-      prompt,
-      timeoutMs: 60000,
-      requireDone: true,
-      maxAttempts: 2,
-      onChunk: async (chunk, done, info) => {
-        if (requestId !== window.GameModules.realWorldAi.latestRequestId) return;
-        buffer = info.buffer;
-        if (!streamToUi || !logId) return;
-        const changed = store.updateRealWorldStream?.(logId, buffer);
-        if (changed && performance.now() - lastPaint > 50) {
-          lastPaint = performance.now();
-          await new Promise((resolve) => (window.requestAnimationFrame || setTimeout)(resolve));
-        }
-      },
-    });
+    try {
+      await window.GameModules.aiRequest.complete({
+        source: streamToUi ? 'real-world-engine' : 'real-world-agent-context',
+        model: store.modelId,
+        prompt,
+        timeoutMs: 60000,
+        requireDone: true,
+        maxAttempts: 2,
+        onChunk: async (chunk, done, info) => {
+          if (requestId !== window.GameModules.realWorldAi.latestRequestId) return;
+          buffer = info.buffer;
+          if (!streamToUi || !logId) return;
+          const changed = store.updateRealWorldStream?.(logId, buffer);
+          if (changed && performance.now() - lastPaint > 50) {
+            lastPaint = performance.now();
+            await new Promise((resolve) => (window.requestAnimationFrame || setTimeout)(resolve));
+          }
+        },
+      });
+    } catch (err) {
+      if (!buffer.trim()) throw err;
+      console.warn('现实 Loop Agent 请求未完成，使用已接收内容:', err.code, err.message, err.stack);
+    }
     return buffer;
   },
 
