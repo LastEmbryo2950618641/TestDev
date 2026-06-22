@@ -35,6 +35,22 @@
   letter-spacing: .08em;
 }
 
+.real-world-ai-entry.streaming {
+  animation: none;
+}
+
+.real-world-stream-spinner {
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  color: #74f6ff;
+  font-size: 14px;
+  font-style: normal;
+  line-height: 1;
+  animation: spin 1s linear infinite;
+  pointer-events: none;
+}
+
 .real-world-thinking-panel {
   display: grid;
   gap: 6px;
