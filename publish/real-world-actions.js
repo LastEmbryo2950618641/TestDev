@@ -143,23 +143,24 @@ window.GameModules.realWorldActions = {
 
   async applyRealWorldResult(id, result) {
     const state = this.playerIdentityState?.();
+    const settlement = [];
+    settlement.push(...this.realWorldMetricSettlement(state, result.metricUpdates));
     await this.applyMetricUpdatesToState?.(state, result.metricUpdates);
     const cardChanges = await window.GameModules.characterCardLexicon?.applyToState?.(state, result.lexiconUpdates || []) || [];
     const lexiconChanges = await window.GameModules.rpgLexicon.applyLexiconSkill?.((result.lexiconUpdates || []).filter((item) => item?.kind !== '角色卡' && item?.kind !== '角色技能')) || [];
-    result.characterCardChanges = cardChanges.concat(lexiconChanges.map((item) => ({
-      at: item.updatedAt || new Date().toISOString(),
-      field: item.kind || '词条',
-      name: item.name,
-      value: item.value ?? item.description ?? item.summary,
-      reason: item.meta?.modifyReason || item.changeMode || '现实推演结算。',
-      applied: true,
-    })));
+    settlement.push(...this.realWorldCardChangeSettlement(cardChanges));
+    settlement.push(...this.realWorldLexiconSettlement(lexiconChanges));
+    settlement.push(...this.realWorldInventorySettlement(result.lexiconUpdates || []));
     await this.applyInventoryUpdatesToState(state, result.lexiconUpdates || []);
     result.itemActionResults = await this.applyRealWorldItemActions?.(result.itemActions || []) || [];
+    settlement.push(...this.realWorldItemActionSettlement(result.itemActionResults));
     const elapsedSeconds = window.GameModules.ai.clampElapsed?.(result.elapsedSeconds, 300) || 300;
     result.elapsedSeconds = elapsedSeconds;
     result.vitalUpdates = window.GameModules.realWorldAi.normalizeVitalUpdates(result.vitalUpdates, elapsedSeconds, result.narration || '');
+    settlement.push(...this.realWorldVitalSettlement(state, result.vitalUpdates));
     await this.applyRealWorldVitalUpdates(state, result.vitalUpdates);
+    settlement.push(...this.realWorldFactionSettlement(result.factionUpdates || []));
+    result.characterCardChanges = settlement;
     const startedAt = this.phoneDate().toISOString();
     this.advancePhoneTime(elapsedSeconds);
     this.refreshRealWorldMatterStatus?.();
@@ -177,79 +178,5 @@ window.GameModules.realWorldActions = {
     this.realWorldLog = this.realWorldLog.map((entry) => (entry.id === id ? next : entry));
     this.refreshRealWorldLogPage?.(999999);
     this.scrollRealWorldLogBottom?.();
-  },
-
-  async applyRealWorldVitalUpdates(state, updates = []) {
-    if (!state?.values || !Array.isArray(updates)) return;
-    const values = state.values;
-    window.GameModules.progression.ensureStateMechanics(state, state.profile || {});
-    values.vital_update_notes = values.vital_update_notes || {};
-    const apply = (key, delta) => {
-      const pool = values[key];
-      if (!pool?.max) return null;
-      const before = window.GameModules.progression.percent(pool);
-      window.GameModules.progression.deltaPool(pool, delta);
-      return { before, after: window.GameModules.progression.percent(pool) };
-    };
-    for (const item of updates) {
-      const key = String(item?.key || '');
-      if (!['stamina_pool', 'satiety', 'hydration', 'fatigue', 'mental_stability'].includes(key)) continue;
-      const changed = apply(key, Number(item.delta) || 0);
-      if (!changed) continue;
-      values.vital_update_notes[key] = { ...changed, delta: Math.round(Number(item.delta) || 0), reason: String(item.reason || '').slice(0, 120), at: this.phoneDate().toISOString() };
-    }
-    values.health = window.GameModules.progression.percent(values.vitality);
-    values.stamina = window.GameModules.progression.percent(values.stamina_pool);
-    this.rpgStates = { ...this.rpgStates, [state.id]: state };
-    await window.GameModules.sqliteSave.saveCharacterState(state);
-  },
-
-  async assignRealWorldlineEntry(entry) {
-    this.realWorldlineState = this.realWorldlineState || { events: [], plots: [], pendingPlot: null };
-    const event = { eventId: `real_${entry.id}`, name: entry.sceneTitle || entry.locationName || this.realWorldSceneTitle || '现实事件', time: entry.time?.label || '', detail: String(entry.narration || entry.thinking || entry.text || ''), status: entry.streaming ? '记录中' : '已记录' };
-    this.realWorldlineState.events = [...(this.realWorldlineState.events || []).filter((item) => item.eventId !== event.eventId), event].slice(-40);
-    const assigned = window.GameModules.worldlinePlots.assign(this, this.realWorldlineState, event, '现实情节');
-    entry.plotId = event.plotId;
-    await assigned;
-  },
-
-  async recordPlayerRealWorldMemory(action, result) {
-    const text = [`现实行动：${action}`, `发生：${result.narration || ''}`, result.thinking ? `推演：${result.thinking}` : '', `目标：${result.quest || this.realWorldQuest}`].filter(Boolean).join('\n');
-    const store = { ...this, sceneTitle: result.sceneTitle || this.realWorldSceneTitle, entryTime: null, entryTimeLabel: () => `${this.phoneDateText()} ${this.phoneTimeText()}` };
-    const memory = window.GameModules.characterMemory.ensure('player-self');
-    const item = window.GameModules.characterMemory.memoryItem(store, { text, source: 'real-world', impression: 55 });
-    memory.shortTerm.recent.push(item);
-    window.GameModules.characterMemory.promote(memory, item);
-    await window.GameModules.characterMemory.compact('player-self', memory);
-  },
-
-  async copyRealWorldPlayerText(text = '') {
-    const value = String(text || '').trim();
-    if (!value) return;
-    try {
-      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(value);
-      else {
-        const el = document.createElement('textarea');
-        el.value = value;
-        el.style.position = 'fixed';
-        el.style.opacity = '0';
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand('copy');
-        el.remove();
-      }
-      window.dzmm?.toast?.success?.('已复制');
-    } catch (err) {
-      console.warn('复制现实行动失败:', err.message, err.stack);
-      window.dzmm?.toast?.error?.('复制失败');
-    }
-  },
-
-  openRealWorldPrompt(id) {
-    const entry = this.realWorldLog.find((item) => item.id === id);
-    if (!entry?.promptPack) return;
-    this.promptDialogEntry = entry;
-    this.promptDialogTab = 'system';
-    this.promptDialogOpen = true;
   },
 };
