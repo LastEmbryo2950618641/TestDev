@@ -7,8 +7,11 @@ window.GameModules.realWorldSettlementActions = {
 
   realWorldSettlementTargetGroup(target = '', fallback = '') {
     const value = String(target || '').trim();
-    if (!value || value === 'player-self' || value === this.playerIdentityState?.()?.id || value === this.playerProfile?.name) return fallback || '玩家';
-    return `角色：${value}`;
+    const player = this.playerIdentityState?.();
+    if (!value || value === 'player-self' || value === player?.id || value === this.playerProfile?.name) return '玩家';
+    const state = this.itemSkillState?.(value);
+    if (state?.id && state.id !== player?.id && state.id !== 'player-self') return this.itemSkillStateLabel?.(state) || state.profile?.name || state.name || state.id;
+    return fallback && fallback !== '玩家' ? fallback.replace(/^角色[:：]/u, '') : value;
   },
 
   realWorldSettlementGroup(field = '', name = '') {

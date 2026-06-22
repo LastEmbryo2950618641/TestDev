@@ -68,8 +68,8 @@ window.GameModules.realWorldAi = {
     return (Array.isArray(value) ? value : []).map((item) => {
       const target = String(item?.target || item?.targetId || item?.characterId || item?.name || '').trim();
       const state = store?.itemSkillState?.(target);
-      if (!target || !state?.metrics) return null;
-      return { target: state.id, emotions: window.GameModules.ai.normalizeMetricGroup(item.emotions, window.GameModules.metrics.emotionKeys, state.metrics.emotions), playerFeelings: window.GameModules.ai.normalizeMetricGroup(item.playerFeelings, window.GameModules.metrics.playerKeys, state.metrics.playerFeelings) };
+      if (!target) return null;
+      return { target: state?.id || target, emotions: window.GameModules.ai.normalizeMetricGroup(item.emotions, window.GameModules.metrics.emotionKeys, state?.metrics?.emotions), playerFeelings: window.GameModules.ai.normalizeMetricGroup(item.playerFeelings, window.GameModules.metrics.playerKeys, state?.metrics?.playerFeelings) };
     }).filter(Boolean);
   },
 

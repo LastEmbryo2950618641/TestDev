@@ -24,8 +24,13 @@ Object.assign(window.GameModules.ai, {
       aiGenerated: true,
       changeMode: 'AI演算',
     };
+    const target = String(item?.target || item?.targetId || item?.characterId || item?.owner || '').trim();
     if (item?.field) update.field = String(item.field).trim().slice(0, 32);
-    if (item?.targetId) update.targetId = String(item.targetId).trim().slice(0, 64);
+    if (target) {
+      update.target = target.slice(0, 64);
+      update.targetId = target.slice(0, 64);
+    }
+    if (item?.characterId) update.characterId = String(item.characterId).trim().slice(0, 64);
     if (kind === '角色卡' || kind === '角色技能') update.changeMode = kind === '角色技能' ? '角色卡词条添加Skill' : '角色卡词条修改Skill';
     return update;
   },
