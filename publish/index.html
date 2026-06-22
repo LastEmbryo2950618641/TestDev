@@ -697,7 +697,16 @@
                   <div class="real-world-thinking-panel dev-section" data-section-title="现实AI思考" x-show="entry.thinkingOpen"><p x-show="entry.thinking"><b>【现实推演】</b><span x-text="entry.thinking"></span></p><template x-for="(line, index) in $store.game.realWorldTraceLines(entry)" :key="`${entry.id}-${index}`"><p><span x-text="line"></span></p></template></div>
                   <p class="novel-body-text" x-text="entry.narration || entry.text"></p>
                   <button class="card-change-toggle real-world-settlement-btn" :class="{ open: entry.cardChangesOpen }" x-show="entry.characterCardChanges?.length" @click="$store.game.toggleCardChanges(entry)" x-text="entry.cardChangesOpen ? '结算▾' : '结算▸'"></button>
-                  <div class="card-change-panel" x-show="entry.cardChangesOpen"><template x-for="change in entry.characterCardChanges" :key="`${change.at}-${change.field}-${change.name}`"><p><b x-text="change.field"></b><span x-text="`${change.name || ''}：${typeof change.value === 'object' ? JSON.stringify(change.value) : change.value}｜理由：${change.reason}`"></span></p></template></div>
+                  <div class="card-change-panel real-world-settlement-panel" x-show="entry.cardChangesOpen">
+                    <template x-for="group in $store.game.realWorldSettlementGroups(entry)" :key="`${entry.id}-${group.title}`">
+                      <details class="real-world-settlement-group" open>
+                        <summary><b x-text="group.title"></b><small x-text="`${group.items.length}项`"></small></summary>
+                        <template x-for="change in group.items" :key="`${change.at}-${change.field}-${change.name}`">
+                          <p><b x-text="change.field"></b><span x-text="`${change.name || ''}：${typeof change.value === 'object' ? JSON.stringify(change.value) : change.value}｜理由：${change.reason}`"></span></p>
+                        </template>
+                      </details>
+                    </template>
+                  </div>
                 </div>
               </article>
             </template>

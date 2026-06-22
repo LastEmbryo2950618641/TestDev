@@ -1,8 +1,33 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldSettlementActions = {
-  realWorldSettlementRecord(field, name, value, reason) {
-    return { at: new Date().toISOString(), field, name, value, reason: reason || '现实推演结算。', applied: true };
+  realWorldSettlementRecord(field, name, value, reason, group = '') {
+    return { at: new Date().toISOString(), group: group || this.realWorldSettlementGroup(field, name), field, name, value, reason: reason || '现实推演结算。', applied: true };
+  },
+
+  realWorldSettlementTargetGroup(target = '', fallback = '') {
+    const value = String(target || '').trim();
+    if (!value || value === 'player-self' || value === this.playerIdentityState?.()?.id || value === this.playerProfile?.name) return fallback || '玩家';
+    return `角色：${value}`;
+  },
+
+  realWorldSettlementGroup(field = '', name = '') {
+    const text = `${field} ${name}`;
+    if (/公司|岗位|职级|员工|老板/.test(text)) return '公司';
+    if (/势力/.test(text)) return '势力';
+    if (/生命体征|情绪|感觉|玩家|身份/.test(text)) return '玩家';
+    if (/物品|装备|穿着/.test(text)) return '物品';
+    return /角色|关系|技能/.test(text) ? '角色' : '其他';
+  },
+
+  realWorldSettlementGroups(entry = {}) {
+    const groups = new Map();
+    for (const item of entry.characterCardChanges || []) {
+      const title = item.group || this.realWorldSettlementGroup(item.field, item.name);
+      if (!groups.has(title)) groups.set(title, []);
+      groups.get(title).push(item);
+    }
+    return Array.from(groups, ([title, items]) => ({ title, items }));
   },
 
   realWorldMetricSettlement(state, updates = {}) {
@@ -11,7 +36,7 @@ window.GameModules.realWorldSettlementActions = {
     const add = (field, list, current = {}) => (Array.isArray(list) ? list : []).forEach((item) => {
       const before = Number(current[item.key] || 0);
       const after = Math.max(0, Math.min(100, before + (Number(item.delta) || 0)));
-      rows.push(this.realWorldSettlementRecord(field, item.key, `${before} → ${after}（${item.status || '状态更新'}）`, item.reason));
+      rows.push(this.realWorldSettlementRecord(field, item.key, `${before} → ${after}（${item.status || '状态更新'}）`, item.reason, '玩家'));
     });
     add('情绪', updates.emotions, metrics?.emotions);
     add('感觉', updates.playerFeelings, metrics?.playerFeelings);
@@ -25,28 +50,32 @@ window.GameModules.realWorldSettlementActions = {
       const pool = values[item.key];
       const before = pool?.max ? window.GameModules.progression.percent(pool) : null;
       const after = before === null ? '' : `：${before} → ${Math.max(0, Math.min(100, before + (Number(item.delta) || 0)))}%`;
-      return this.realWorldSettlementRecord('生命体征', labels[item.key] || item.key, `变化${Number(item.delta) || 0}${after}`, item.reason);
+      return this.realWorldSettlementRecord('生命体征', labels[item.key] || item.key, `变化${Number(item.delta) || 0}${after}`, item.reason, '玩家');
     });
   },
 
   realWorldCardChangeSettlement(changes = []) {
-    return (Array.isArray(changes) ? changes : []).map((item) => this.realWorldSettlementRecord(`身份/${item.field || '角色卡'}`, item.name || item.field, typeof item.value === 'object' ? JSON.stringify(item.value) : item.value, item.reason));
+    return (Array.isArray(changes) ? changes : []).map((item) => this.realWorldSettlementRecord(`身份/${item.field || '角色卡'}`, item.name || item.field, typeof item.value === 'object' ? JSON.stringify(item.value) : item.value, item.reason, this.realWorldSettlementTargetGroup(item.target || item.targetId || item.characterId, '玩家')));
   },
 
   realWorldLexiconSettlement(changes = []) {
-    return (Array.isArray(changes) ? changes : []).map((item) => this.realWorldSettlementRecord(item.kind || '词条', item.name, item.value ?? item.description ?? item.summary, item.meta?.modifyReason || item.changeMode));
+    return (Array.isArray(changes) ? changes : []).map((item) => this.realWorldSettlementRecord(item.kind || '词条', item.name, item.value ?? item.description ?? item.summary, item.meta?.modifyReason || item.changeMode, this.realWorldSettlementTargetGroup(item.target || item.targetId || item.characterId, this.realWorldSettlementGroup(item.kind, item.name))));
   },
 
   realWorldInventorySettlement(updates = []) {
-    return (Array.isArray(updates) ? updates : []).filter((item) => ['物品', '装备', '穿着'].includes(item?.kind)).map((item) => this.realWorldSettlementRecord(item.kind, item.name || item.value?.name, item.value?.description || item.description || item.summary || item.value, item.reason || item.changeMode));
+    return (Array.isArray(updates) ? updates : []).filter((item) => ['物品', '装备', '穿着'].includes(item?.kind)).map((item) => this.realWorldSettlementRecord(item.kind, item.name || item.value?.name, item.value?.description || item.description || item.summary || item.value, item.reason || item.changeMode, this.realWorldSettlementTargetGroup(item.target || item.owner || item.characterId, '物品')));
   },
 
   realWorldItemActionSettlement(results = []) {
-    return (Array.isArray(results) ? results : []).filter(Boolean).map((item) => this.realWorldSettlementRecord('物品动作', item.name || item.itemName || item.action || '物品变化', item.summary || item.description || item.result || item.status || '已处理', item.reason));
+    return (Array.isArray(results) ? results : []).filter(Boolean).map((item) => this.realWorldSettlementRecord('物品动作', item.name || item.itemName || item.action || '物品变化', item.summary || item.description || item.result || item.status || '已处理', item.reason, this.realWorldSettlementTargetGroup(item.target || item.owner || item.characterId, '物品')));
   },
 
   realWorldFactionSettlement(updates = []) {
-    return (Array.isArray(updates) ? updates : []).map((item) => this.realWorldSettlementRecord('势力', item.factionName || item.name || item.action, item.position || item.status || item.value || item.action, item.reason));
+    return (Array.isArray(updates) ? updates : []).map((item) => {
+      const name = item.factionName || item.name || item.action;
+      const group = /公司|岗位|职级|员工|老板/.test(`${name || ''} ${item.action || ''}`) ? '公司' : '势力';
+      return this.realWorldSettlementRecord(group, name, item.position || item.status || item.value || item.action, item.reason, group);
+    });
   },
 
   async applyRealWorldVitalUpdates(state, updates = []) {
