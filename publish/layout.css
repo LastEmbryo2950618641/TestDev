@@ -329,3 +329,25 @@
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   border-radius: 0;
 }
+
+.real-world-ai-entry.streaming {
+  animation: none;
+}
+
+.real-world-ai-entry.streaming::after {
+  content: '';
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(116, 246, 255, .25);
+  border-top-color: #74f6ff;
+  border-radius: 50%;
+  animation: realWorldSpin .8s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes realWorldSpin {
+  to { transform: rotate(360deg); }
+}
