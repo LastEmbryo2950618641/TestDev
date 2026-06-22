@@ -126,9 +126,19 @@ window.GameModules.realWorldActions = {
       await this.applyRealWorldResult(entry.id, result);
       await this.recordPlayerRealWorldMemory(text, result);
       await this.save();
+    } catch (err) {
+      console.error('现实推演请求失败:', err.code, err.message, err.stack);
+      await this.markRealWorldActionFailed(entry.id);
     } finally {
       this.realWorldBusy = false;
     }
+  },
+
+  async markRealWorldActionFailed(id) {
+    await window.GameModules.sqliteSave.deleteRealWorldLogEntry?.(id);
+    this.realWorldLogTotal = Math.max(0, (this.realWorldLogTotal || 1) - 1);
+    this.realWorldLog = (this.realWorldLog || []).map((entry) => (entry.id === id ? { ...entry, narration: 'AI请求失败，请重试', thinking: '', streaming: false, transientError: true, characterCardChanges: [], agentTrace: [] } : entry));
+    this.scrollRealWorldLogBottom?.();
   },
 
   async applyRealWorldResult(id, result) {

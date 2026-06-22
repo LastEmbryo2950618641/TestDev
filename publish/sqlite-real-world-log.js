@@ -77,6 +77,21 @@ window.GameModules = window.GameModules || {};
     await this.persist();
   };
 
+  save.deleteRealWorldLogEntry = async function deleteRealWorldLogEntry(id = '') {
+    const key = String(id || '');
+    if (!key) return;
+    if (this.fallback) {
+      const old = this.fallbackState?.realWorldLogEntries || {};
+      const { [key]: _removed, ...rest } = old;
+      this.fallbackState.realWorldLogEntries = rest;
+      await this.persist();
+      return;
+    }
+    if (!this.db) return;
+    this.db.run('DELETE FROM real_world_log WHERE id=?', [key]);
+    await this.persist();
+  };
+
   save.countRealWorldLogEntries = function countRealWorldLogEntries() {
     if (this.fallback) return Object.keys(this.fallbackState?.realWorldLogEntries || {}).length;
     if (!this.db) return 0;

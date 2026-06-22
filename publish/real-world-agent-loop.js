@@ -22,7 +22,8 @@ window.GameModules.realWorldAgentLoop = {
       this.markStep(store, logId, this.stepText(step));
       const raw = await this.completeStep(store, prompt, logId, true);
       lastRaw = raw;
-      const data = this.parseStep(raw) || this.defaultStep(step);
+      const data = this.parseStep(raw);
+      if (!data) throw new Error('现实推演返回格式错误');
       const traceItem = this.traceItem(step, data, raw);
       trace.push(traceItem);
 
@@ -47,7 +48,7 @@ window.GameModules.realWorldAgentLoop = {
     const finalRaw = await this.completeStep(store, finalPrompt, logId, true);
     const finalData = this.parseStep(finalRaw);
     if (finalData?.type === 'final') return { result: finalData, prompt: finalPrompt, loaded, raw: finalRaw, trace };
-    return { result: window.GameModules.realWorldAi.fallback(store, action), prompt: finalPrompt || prompt, loaded, raw: finalRaw || raw, trace };
+    throw new Error('现实推演最终结果格式错误');
   },
 
   async loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step, materialSession = null) {
@@ -148,8 +149,7 @@ window.GameModules.realWorldAgentLoop = {
       return data;
     } catch (err) {
       console.warn('现实 Loop Agent 步骤解析失败:', err.message);
-      const recovered = window.GameModules.jsonUtils.recoverAiResult?.(raw);
-      return recovered?.narration ? { type: 'final', ...recovered } : null;
+      return null;
     }
   },
 

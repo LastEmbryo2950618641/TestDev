@@ -10,7 +10,7 @@ window.GameModules.realWorldAi = {
     const requestId = ++this.latestRequestId;
     try {
       const loop = await window.GameModules.realWorldAgentLoop.run(store, action, logId);
-      if (requestId !== this.latestRequestId) return this.fallback(store, action);
+      if (requestId !== this.latestRequestId) throw new Error('现实推演请求已被新请求取代');
       const result = this.parse(loop.result, store, action);
       result.promptPack = {
         systemPrompt: loop.prompt || prompt || '',
@@ -23,13 +23,14 @@ window.GameModules.realWorldAi = {
       return result;
     } catch (err) {
       console.error('现实世界推演失败:', err.code, err.message, err.stack);
-      return this.fallback(store, action);
+      throw err;
     }
   },
 
   parse(content, store, action) {
     try {
       const data = content && typeof content === 'object' ? content : window.GameModules.jsonUtils.parseLoose(content);
+      if (!data.narration) throw new Error('现实推演缺少正文结果');
       return {
         sceneTitle: String(data.sceneTitle || '现实世界').slice(0, 14),
         locationName: this.normalizeLocationName(data.locationName || store.realWorldLocationName),
@@ -40,7 +41,7 @@ window.GameModules.realWorldAi = {
         newLocations: Array.isArray(data.newLocations) ? data.newLocations.slice(0, 8) : [],
         locationDescriptionUpdates: Array.isArray(data.locationDescriptionUpdates) ? data.locationDescriptionUpdates.slice(0, 12) : [],
         thinking: this.normalizeThinking(data.thinking, store, action),
-        narration: this.formatNarration(data.narration || this.fallback(store, action).narration),
+        narration: this.formatNarration(data.narration),
         status: String(data.status || '现实推演继续中').slice(0, 40),
         quest: String(data.quest || '确认现实处境').slice(0, 24),
         choices: this.normalizeChoices(data.choices),
@@ -52,8 +53,8 @@ window.GameModules.realWorldAi = {
         lexiconUpdates: window.GameModules.ai.normalizeLexiconUpdates?.(data.lexiconUpdates, store) || [],
       };
     } catch (err) {
-      console.warn('现实世界返回解析失败，使用兜底:', err.message);
-      return this.fallback(store, action);
+      console.warn('现实世界返回解析失败:', err.message);
+      throw err;
     }
   },
 

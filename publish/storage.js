@@ -71,7 +71,7 @@ window.GameModules.storage = {
       realWorldQuest: store.realWorldQuest,
       realWorldStatus: store.realWorldStatus,
       realWorldChoices: store.realWorldChoices,
-      realWorldLog: (store.realWorldLog || []).slice(-30),
+      realWorldLog: (store.realWorldLog || []).filter((entry) => !entry.transientError).slice(-30),
       realWorldlineState: store.realWorldlineState || { events: [], plots: [], pendingPlot: null },
       companyState: store.companyState ? { ...store.companyState, open: false } : store.companyState,
       bossState: store.bossState ? { ...store.bossState, open: false, companyDetailOpen: false, generating: false } : store.bossState,
