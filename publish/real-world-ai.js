@@ -11,7 +11,8 @@ window.GameModules.realWorldAi = {
     try {
       const loop = await window.GameModules.realWorldAgentLoop.run(store, action, logId);
       if (requestId !== this.latestRequestId) throw new Error('现实推演请求已被新请求取代');
-      const result = await window.GameModules.realWorldStylePolish?.polish?.(store, this.parse(loop.result, store, action), action) || this.parse(loop.result, store, action);
+      const parsed = this.parse(loop.result, store, action);
+      const result = await window.GameModules.realWorldStylePolish?.polish?.(store, parsed, action) || parsed;
       result.promptPack = {
         systemPrompt: loop.prompt || prompt || '',
         userPrompt: action,
@@ -47,7 +48,8 @@ window.GameModules.realWorldAi = {
         choices: this.normalizeChoices(data.choices),
         elapsedSeconds: window.GameModules.ai.clampElapsed?.(data.elapsedSeconds, 300) || 300,
         vitalUpdates: this.normalizeVitalUpdates(data.vitalUpdates, data.elapsedSeconds, action),
-        metricUpdates: window.GameModules.ai.normalizeMetricUpdates?.(data.metricUpdates) || {},
+        metricUpdates: window.GameModules.ai.normalizeMetricUpdates?.(data.metricUpdates, store.playerIdentityState?.()) || {},
+        characterMetricUpdates: this.normalizeCharacterMetricUpdates(data.characterMetricUpdates, store),
         factionUpdates: Array.isArray(data.factionUpdates) ? data.factionUpdates.slice(0, 8) : [],
         itemActions: Array.isArray(data.itemActions) ? data.itemActions.slice(0, 8) : [],
         lexiconUpdates: window.GameModules.ai.normalizeLexiconUpdates?.(data.lexiconUpdates, store) || [],
@@ -61,6 +63,15 @@ window.GameModules.realWorldAi = {
   normalizeLocationName(value) {
     const name = String(value || '').trim().slice(0, 28);
     return /^(玩家住处|住处|现实地点|当前位置|未知地点|现实起点)$/u.test(name) || /现实起点$/u.test(name) ? '' : name;
+  },
+
+  normalizeCharacterMetricUpdates(value, store) {
+    return (Array.isArray(value) ? value : []).map((item) => {
+      const target = String(item?.target || item?.targetId || item?.characterId || item?.name || '').trim();
+      const state = store?.itemSkillState?.(target);
+      if (!target || !state?.metrics) return null;
+      return { target: state.id, emotions: window.GameModules.ai.normalizeMetricGroup(item.emotions, window.GameModules.metrics.emotionKeys, state.metrics.emotions), playerFeelings: window.GameModules.ai.normalizeMetricGroup(item.playerFeelings, window.GameModules.metrics.playerKeys, state.metrics.playerFeelings) };
+    }).filter(Boolean);
   },
 
   formatNarration(value, limit = 100) {

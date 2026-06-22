@@ -14,10 +14,26 @@ window.GameModules.realWorldSettlementActions = {
   realWorldSettlementGroup(field = '', name = '') {
     const text = `${field} ${name}`;
     if (/公司|岗位|职级|员工|老板/.test(text)) return '公司';
-    if (/势力/.test(text)) return '势力';
-    if (/生命体征|情绪|感觉|玩家|身份/.test(text)) return '玩家';
+    if (/势力|社群|社区|家庭|组织|部门/.test(text)) return '势力';
+    if (/生命体征|情绪|感觉|玩家|身份|职业|状态|阵营/.test(text)) return '玩家';
     if (/物品|装备|穿着/.test(text)) return '物品';
     return /角色|关系|技能/.test(text) ? '角色' : '其他';
+  },
+
+  realWorldSettlementTabs(entry = {}) {
+    return this.realWorldSettlementGroups(entry).map((group) => ({ id: group.title, title: group.title, count: group.items.length }));
+  },
+
+  activeRealWorldSettlementTab(entry = {}) {
+    const tabs = this.realWorldSettlementTabs(entry);
+    if (!tabs.length) return '';
+    return tabs.some((tab) => tab.id === entry.settlementTab) ? entry.settlementTab : tabs[0].id;
+  },
+
+  selectRealWorldSettlementTab(entry, tab = '') {
+    if (!entry || !tab) return;
+    entry.settlementTab = tab;
+    this.realWorldLog = [...(this.realWorldLog || [])];
   },
 
   realWorldSettlementGroups(entry = {}) {
@@ -30,13 +46,18 @@ window.GameModules.realWorldSettlementActions = {
     return Array.from(groups, ([title, items]) => ({ title, items }));
   },
 
-  realWorldMetricSettlement(state, updates = {}) {
+  visibleRealWorldSettlementGroups(entry = {}) {
+    const active = this.activeRealWorldSettlementTab(entry);
+    return this.realWorldSettlementGroups(entry).filter((group) => group.title === active);
+  },
+
+  realWorldMetricSettlement(state, updates = {}, group = '玩家') {
     const metrics = state ? this.ensureStateMetrics(state) : null;
     const rows = [];
     const add = (field, list, current = {}) => (Array.isArray(list) ? list : []).forEach((item) => {
       const before = Number(current[item.key] || 0);
       const after = Math.max(0, Math.min(100, before + (Number(item.delta) || 0)));
-      rows.push(this.realWorldSettlementRecord(field, item.key, `${before} → ${after}（${item.status || '状态更新'}）`, item.reason, '玩家'));
+      rows.push(this.realWorldSettlementRecord(field, item.key, `${before} → ${after}（${item.status || '状态更新'}）`, item.reason, group));
     });
     add('情绪', updates.emotions, metrics?.emotions);
     add('感觉', updates.playerFeelings, metrics?.playerFeelings);

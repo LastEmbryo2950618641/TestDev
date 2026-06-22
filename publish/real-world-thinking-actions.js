@@ -21,6 +21,7 @@ window.GameModules.realWorldThinkingActions = {
       type: entry?.type || 'ai',
       thinkingOpen: Boolean(entry?.thinkingOpen),
       cardChangesOpen: Boolean(entry?.cardChangesOpen),
+      settlementTab: entry?.settlementTab || '',
       characterCardChanges: Array.isArray(entry?.characterCardChanges) ? entry.characterCardChanges : [],
       streamTrace: Array.isArray(entry?.streamTrace) ? entry.streamTrace : [],
       agentTrace: Array.isArray(entry?.agentTrace) ? entry.agentTrace : [],

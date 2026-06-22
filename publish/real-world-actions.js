@@ -145,14 +145,8 @@ window.GameModules.realWorldActions = {
   async applyRealWorldResult(id, result) {
     const state = this.playerIdentityState?.();
     const settlement = [];
-    settlement.push(...this.realWorldMetricSettlement(state, result.metricUpdates));
-    await this.applyMetricUpdatesToState?.(state, result.metricUpdates);
-    const cardChanges = await window.GameModules.characterCardLexicon?.applyToState?.(state, result.lexiconUpdates || []) || [];
-    const lexiconChanges = await window.GameModules.rpgLexicon.applyLexiconSkill?.((result.lexiconUpdates || []).filter((item) => item?.kind !== '角色卡' && item?.kind !== '角色技能')) || [];
-    settlement.push(...this.realWorldCardChangeSettlement(cardChanges));
-    settlement.push(...this.realWorldLexiconSettlement(lexiconChanges));
-    settlement.push(...this.realWorldInventorySettlement(result.lexiconUpdates || []));
-    await this.applyInventoryUpdatesToState(state, result.lexiconUpdates || []);
+    settlement.push(...await window.GameModules.realWorldTargetUpdates.applyMetrics(this, result));
+    settlement.push(...await window.GameModules.realWorldTargetUpdates.applyLexicon(this, result.lexiconUpdates || []));
     result.itemActionResults = await this.applyRealWorldItemActions?.(result.itemActions || []) || [];
     settlement.push(...this.realWorldItemActionSettlement(result.itemActionResults));
     const elapsedSeconds = window.GameModules.ai.clampElapsed?.(result.elapsedSeconds, 300) || 300;

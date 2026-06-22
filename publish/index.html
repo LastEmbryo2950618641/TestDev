@@ -160,6 +160,7 @@
   <script src="item-skill-actions.js"></script>
   <script src="real-world-stream-actions.js"></script>
   <script src="real-world-style-polish.js"></script>
+  <script src="real-world-target-updates.js"></script>
   <script src="real-world-thinking-actions.js"></script>
   <script src="real-world-settlement-actions.js"></script>
   <script src="real-world-utility-actions.js"></script>
@@ -707,13 +708,17 @@
                   <p class="novel-body-text" x-text="entry.narration || entry.text"></p>
                   <button class="card-change-toggle real-world-settlement-btn" :class="{ open: entry.cardChangesOpen }" x-show="entry.characterCardChanges?.length" @click="$store.game.toggleCardChanges(entry)" x-text="entry.cardChangesOpen ? '结算▾' : '结算▸'"></button>
                   <div class="card-change-panel real-world-settlement-panel" x-show="entry.cardChangesOpen">
-                    <template x-for="group in $store.game.realWorldSettlementGroups(entry)" :key="`${entry.id}-${group.title}`">
-                      <details class="real-world-settlement-group" open>
-                        <summary><b x-text="group.title"></b><small x-text="`${group.items.length}项`"></small></summary>
+                    <div class="real-world-settlement-tabs">
+                      <template x-for="tab in $store.game.realWorldSettlementTabs(entry)" :key="`${entry.id}-${tab.id}`">
+                        <button type="button" :class="{ active: $store.game.activeRealWorldSettlementTab(entry) === tab.id }" @click="$store.game.selectRealWorldSettlementTab(entry, tab.id)"><span x-text="tab.title"></span><small x-text="tab.count"></small></button>
+                      </template>
+                    </div>
+                    <template x-for="group in $store.game.visibleRealWorldSettlementGroups(entry)" :key="`${entry.id}-${group.title}`">
+                      <div class="real-world-settlement-group">
                         <template x-for="change in group.items" :key="`${change.at}-${change.field}-${change.name}`">
                           <p><b x-text="change.field"></b><span x-text="`${change.name || ''}：${typeof change.value === 'object' ? JSON.stringify(change.value) : change.value}｜理由：${change.reason}`"></span></p>
                         </template>
-                      </details>
+                      </div>
                     </template>
                   </div>
                 </div>
