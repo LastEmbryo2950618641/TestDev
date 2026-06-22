@@ -11,7 +11,7 @@ window.GameModules.realWorldAi = {
     try {
       const loop = await window.GameModules.realWorldAgentLoop.run(store, action, logId);
       if (requestId !== this.latestRequestId) throw new Error('现实推演请求已被新请求取代');
-      const result = this.parse(loop.result, store, action);
+      const result = await window.GameModules.realWorldStylePolish?.polish?.(store, this.parse(loop.result, store, action), action) || this.parse(loop.result, store, action);
       result.promptPack = {
         systemPrompt: loop.prompt || prompt || '',
         userPrompt: action,
