@@ -15,3 +15,4 @@
 - `prompts/pen_style/light-novel.md` / `light-novel.js`：轻小说节奏
 - `prompts/pen_style/epic.md` / `epic.js`：史诗庄重
 - `prompts/pen_style/suspense.md` / `suspense.js`：悬疑紧张
+- `prompts/pen_style/spring-heart.md` / `spring-heart.js`：春心萌动
