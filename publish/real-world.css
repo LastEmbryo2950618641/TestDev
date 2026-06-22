@@ -51,6 +51,58 @@
   transform: scale(.97);
 }
 
+.real-world-free-input {
+  flex-wrap: wrap;
+}
+
+.real-world-freedom-controls {
+  flex: 1 0 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.real-world-freedom-controls label {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0 9px;
+  border: 1px solid rgba(116, 246, 255, .18);
+  border-radius: 999px;
+  background: rgba(116, 246, 255, .07);
+  color: #aeb9d6;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.real-world-freedom-controls label.active {
+  border-color: rgba(116, 246, 255, .52);
+  background: rgba(116, 246, 255, .16);
+  color: #eafcff;
+}
+
+.real-world-freedom-controls input[type="radio"] {
+  width: 12px;
+  height: 12px;
+  accent-color: #74f6ff;
+}
+
+.real-world-word-count-input {
+  flex: 0 0 90px;
+  min-height: 28px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 223, 138, .28);
+  border-radius: 999px;
+  background: rgba(10, 15, 30, .82);
+  color: #ffdf8a;
+  font-size: 12px;
+}
+
 .real-world-ai-entry.streaming {
   animation: none;
 }

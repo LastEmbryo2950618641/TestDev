@@ -100,7 +100,7 @@ window.GameModules.realWorldActions = {
   async submitRealWorldAction(action = '') {
     const rawText = String(action || this.realWorldInput || '').trim();
     const text = this.realWorldActionWithMatter?.(rawText) || rawText;
-    if (!rawText || this.realWorldBusy) return;
+    if (!rawText || this.realWorldBusy || !this.validateRealWorldFreedom?.()) return;
     this.realWorldInput = '';
     this.realWorldBusy = true;
     const start = this.phoneDate();

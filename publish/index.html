@@ -751,9 +751,15 @@
       </section>
 
       <footer class="control-dock dev-section" data-section-title="现实底部操作栏">
-        <div class="free-input dev-section" data-section-title="现实自由输入栏">
+        <div class="free-input real-world-free-input dev-section" data-section-title="现实自由输入栏">
+          <div class="real-world-freedom-controls" aria-label="推演自由度">
+            <label :class="{ active: $store.game.realWorldFreedomMode === 'scope' }"><input type="radio" value="scope" x-model="$store.game.realWorldFreedomMode">行动范围内</label>
+            <label :class="{ active: $store.game.realWorldFreedomMode === 'free' }"><input type="radio" value="free" x-model="$store.game.realWorldFreedomMode">AI自由发挥</label>
+            <label :class="{ active: $store.game.realWorldFreedomMode === 'words' }"><input type="radio" value="words" x-model="$store.game.realWorldFreedomMode">要求字数</label>
+            <input class="real-world-word-count-input" type="number" min="200" step="50" inputmode="numeric" x-show="$store.game.realWorldFreedomMode === 'words'" x-model.number="$store.game.realWorldWordCount" :disabled="$store.game.realWorldBusy" placeholder="最少200">
+          </div>
           <input x-model="$store.game.realWorldInput" placeholder="输入你在现实世界的下一步行动..." :disabled="$store.game.realWorldBusy" @keydown.enter="$store.game.submitRealWorldAction()">
-          <button type="button" @click="$store.game.submitRealWorldAction()" :disabled="$store.game.realWorldBusy || !$store.game.realWorldInput.trim()">执行</button>
+          <button type="button" @click="$store.game.submitRealWorldAction()" :disabled="$store.game.realWorldBusy || !$store.game.realWorldInput.trim() || !$store.game.realWorldWordCountValid()">执行</button>
           <label class="thinking-switch" :class="{ active: $store.game.realWorldThinkMode }" title="开启后每轮现实推演都会输出可见思考摘要，额度消耗略增"><input type="checkbox" x-model="$store.game.realWorldThinkMode">Think</label>
         </div>
       </footer>
