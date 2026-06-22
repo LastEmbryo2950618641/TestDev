@@ -223,6 +223,28 @@ window.GameModules.realWorldActions = {
     await window.GameModules.characterMemory.compact('player-self', memory);
   },
 
+  async copyRealWorldPlayerText(text = '') {
+    const value = String(text || '').trim();
+    if (!value) return;
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(value);
+      else {
+        const el = document.createElement('textarea');
+        el.value = value;
+        el.style.position = 'fixed';
+        el.style.opacity = '0';
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        el.remove();
+      }
+      window.dzmm?.toast?.success?.('已复制');
+    } catch (err) {
+      console.warn('复制现实行动失败:', err.message, err.stack);
+      window.dzmm?.toast?.error?.('复制失败');
+    }
+  },
+
   openRealWorldPrompt(id) {
     const entry = this.realWorldLog.find((item) => item.id === id);
     if (!entry?.promptPack) return;

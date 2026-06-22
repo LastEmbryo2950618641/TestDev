@@ -35,6 +35,22 @@
   letter-spacing: .08em;
 }
 
+.real-world-copy-btn {
+  justify-self: end;
+  min-height: 24px;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border: 1px solid rgba(82, 255, 150, .22);
+  border-radius: 999px;
+  background: rgba(82, 255, 150, .08);
+  color: #baffd2;
+  font-size: 11px;
+}
+
+.real-world-copy-btn:active {
+  transform: scale(.97);
+}
+
 .real-world-ai-entry.streaming {
   animation: none;
 }

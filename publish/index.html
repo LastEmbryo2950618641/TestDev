@@ -687,7 +687,7 @@
           <div class="story-log scroll-area dev-section" data-section-title="现实记录列表">
             <template x-for="entry in $store.game.realWorldLog" :key="`${entry.id}-${entry.type}-${entry.createdAt || entry.time?.label || ''}`">
               <article class="novel-entry" :class="entry.type === 'user' ? 'player' : 'advice'">
-                <div class="novel-player dev-section" data-section-title="现实行动输入" x-show="entry.type === 'user'"><p x-text="entry.text"></p></div>
+                <div class="novel-player dev-section" data-section-title="现实行动输入" x-show="entry.type === 'user'"><p x-text="entry.text"></p><button class="real-world-copy-btn" type="button" @click="$store.game.copyRealWorldPlayerText(entry.text)">复制</button></div>
                 <div class="novel-story real-world-ai-entry dev-section" data-section-title="现实AI生成内容" x-show="entry.type !== 'user'" :class="{ streaming: entry.streaming }">
                   <i class="real-world-stream-spinner" x-show="entry.streaming" aria-hidden="true">◌</i>
                   <small class="real-world-entry-location" x-show="entry.locationName" x-text="`地点｜${entry.locationName}`"></small>
