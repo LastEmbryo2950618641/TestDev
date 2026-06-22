@@ -25,7 +25,18 @@ window.GameModules.realWorldThinkingActions = {
       streamTrace: Array.isArray(entry?.streamTrace) ? entry.streamTrace : [],
       agentTrace: Array.isArray(entry?.agentTrace) ? entry.agentTrace : [],
       ...entry,
-    })).sort((a, b) => String(a.createdAt || a.time?.iso || a.time?.label || a.id).localeCompare(String(b.createdAt || b.time?.iso || b.time?.label || b.id)));
+    })).sort((a, b) => this.realWorldLogSortKey(a).localeCompare(this.realWorldLogSortKey(b)));
+  },
+
+  realWorldLogSortKey(entry = {}) {
+    if (entry.createdAt || entry.time?.iso) return String(entry.createdAt || entry.time.iso);
+    const label = String(entry.time?.label || '');
+    const match = label.match(/(\d{4})年(\d{1,2})月(\d{1,2})日.*?(\d{1,2}):(\d{1,2}):(\d{1,2})/);
+    if (match) {
+      const [, year, month, day, hour, minute, second] = match;
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hour.padStart(2, '0')}:${minute.padStart(2, '0')}:${second.padStart(2, '0')}`;
+    }
+    return String(entry.id || '');
   },
 
   refreshRealWorldLogPage(page = this.realWorldLogPage || 1) {
@@ -43,7 +54,7 @@ window.GameModules.realWorldThinkingActions = {
     if (this.realWorldLogPage === maxPage && rows[0]?.type === 'ai' && total > rows.length) {
       const prevRows = window.GameModules.sqliteSave.listRealWorldLogEntries?.(this.realWorldLogPage - 1, this.realWorldLogPageSize) || [];
       const prev = prevRows[prevRows.length - 1];
-      if (prev?.type === 'user') rows = [prev, ...rows];
+      if (prev?.type === 'user' && rows[0]?.id?.startsWith(String(prev.id || '').replace(/-user$/, '-ai'))) rows = [prev, ...rows];
     }
     this.realWorldLog = this.normalizeRealWorldLog(rows);
   },
