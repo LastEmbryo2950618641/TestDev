@@ -21,7 +21,7 @@ window.GameModules.realWorldAgentLoop = {
       const prompt = await this.buildPrompt({ store, action, base, loaded, skills, step, materialSession });
       lastPrompt = prompt;
       this.markStep(store, logId, this.stepText(step));
-      const raw = await this.completeParsedStep(store, prompt, logId, true, step >= this.minSteps);
+      const raw = await this.completeParsedStep(store, prompt, logId, true, false);
       lastRaw = raw.raw;
       const data = raw.data;
       if (!data) throw new Error('现实推演返回格式错误');
@@ -35,21 +35,26 @@ window.GameModules.realWorldAgentLoop = {
         this.markStep(store, logId, this.loadedContextText(data, results, step));
       }
 
-      if (step < this.minSteps) continue;
-      if (data.type === 'final') return { result: data, prompt, loaded, raw: raw.raw, trace };
       if (data.type === 'request_context' && results.length && step < this.maxSteps) continue;
-      return await this.forceFinal({ store, action, base, loaded, skills, trace, materialSession, logId, prompt, raw: raw.raw });
+      if (step < this.minSteps && data.type !== 'context_done') continue;
+      break;
     }
-    return await this.forceFinal({ store, action, base, loaded, skills, trace, materialSession, logId, prompt: lastPrompt, raw: lastRaw });
+    return await this.generatePhasedFinal({ store, action, base, loaded, skills, trace, materialSession, logId, prompt: lastPrompt, raw: lastRaw });
   },
 
-  async forceFinal({ store, action, base, loaded, skills, trace, materialSession, logId, prompt, raw }) {
-    const finalPrompt = await this.buildPrompt({ store, action, base, loaded, skills, step: '收敛', materialSession, forceFinal: true });
-    this.markStep(store, logId, '现实资料已足够，正在整理最终结果…');
-    const finalRaw = await this.completeParsedStep(store, finalPrompt, logId, true, true);
-    const finalData = finalRaw.data;
-    if (finalData?.type === 'final') return { result: finalData, prompt: finalPrompt, loaded, raw: finalRaw.raw, trace };
-    throw new Error('现实推演最终结果格式错误');
+  async generatePhasedFinal({ store, action, base, loaded, skills, trace, materialSession, logId, prompt, raw }) {
+    const narrationPrompt = await this.buildNarrationPrompt({ store, action, base, loaded, skills, materialSession });
+    this.markStep(store, logId, '现实资料已足够，正在生成正文…');
+    const narrationRaw = await this.completeStep(store, narrationPrompt, logId, true);
+    const narration = this.cleanPhasedNarration(narrationRaw);
+    if (!narration) throw new Error('现实推演正文为空');
+
+    const jsonPrompt = await this.buildUpdateJsonPrompt({ store, action, base, loaded, skills, materialSession, narration });
+    this.markStep(store, logId, '现实正文已完成，正在生成状态更新…');
+    const jsonRaw = await this.completeUpdateJson(store, jsonPrompt, logId);
+    const updates = this.parseUpdateJson(jsonRaw) || {};
+    const result = this.mergeNarrationAndUpdates(store, narration, updates);
+    return { result, prompt: `${prompt || ''}\n\n---NARRATION---\n${narrationPrompt}\n\n---UPDATE_JSON---\n${jsonPrompt}`, loaded, raw: `${narrationRaw}\n\n${jsonRaw}`, trace };
   },
 
   async loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step, materialSession = null) {
@@ -93,10 +98,49 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   stepOutputRule(step, forceFinal = false) {
-    const finalRule = `返回 final 时必须先输出玩家可见正文，再另起一行输出 ${this.finalSeparator}，分隔符后必须输出完整 final 结算 JSON；严禁只输出分隔符。`;
-    if (forceFinal) return `当前为收敛步骤：禁止 request_context，必须把已有资料整理为 final。资料不完整时也要基于已有资料做克制推理，不要继续请求资料。${finalRule}`;
+    if (forceFinal) return '当前为收敛步骤：禁止继续请求资料，只返回 {"type":"context_done","reason":"资料已足够"}。';
     if (step === 1) return '当前是第1步：必须返回 request_context，用于识别相关角色与必要资料。';
-    return `当前可直接 final；只有仍能获取到回答本次行动所必需的新资料时，才允许 request_context。若请求不到新资料或只是想补全世界，必须 final。${finalRule}`;
+    return '当前只负责判断是否继续收集资料：仍缺关键资料就返回 request_context；资料足够或无法继续获取时返回 {"type":"context_done","reason":"资料已足够"}。不要输出正文，不要输出 final JSON。';
+  },
+
+  async buildNarrationPrompt({ store, action, base, loaded, skills, materialSession = null }) {
+    const loadedText = window.GameModules.realWorldAgentContext.buildLoadedText(loaded);
+    const materialText = window.GameModules.realWorldMaterials?.summary?.(materialSession) || '';
+    return [
+      '# 现实推演阶段2：只生成玩家可见正文',
+      '你只输出现实推演正文，不要 JSON，不要 Markdown，不要标题，不要分隔符。',
+      `本次行动：${action || '继续观察现实世界'}`,
+      `小说笔风：${store.writingStylePrompt?.() || '正文采用小说文风，重视画面、动作、感官和心理反应，避免复述玩家指令。'}`,
+      `推演自由度：${store.realWorldFreedomRule?.() || '只推演玩家本次输入行动自然抵达的直接结果。'}`,
+      `基础上下文：\n${base}`,
+      `已动态载入资料：\n${[loadedText, materialText].filter(Boolean).join('\n\n') || '无'}`,
+      '要求：使用第二人称“你”；写出行动过程、环境变化、人物反应和直接结果；不要替玩家完成后续行动；正文建议600-1200字。',
+    ].join('\n\n');
+  },
+
+  async buildUpdateJsonPrompt({ store, action, base, loaded, skills, materialSession = null, narration }) {
+    const loadedText = window.GameModules.realWorldAgentContext.buildLoadedText(loaded);
+    const materialText = window.GameModules.realWorldMaterials?.summary?.(materialSession) || '';
+    return [
+      '# 现实推演阶段3：只生成更新JSON',
+      '你只输出一个合法 JSON 对象，不要正文，不要 Markdown，不要代码块，不要解释。',
+      `本次行动：${action || '继续观察现实世界'}`,
+      `基础上下文：\n${base}`,
+      `已动态载入资料：\n${[loadedText, materialText].filter(Boolean).join('\n\n') || '无'}`,
+      `阶段2正文：\n${narration}`,
+      '输出最小补丁 JSON：必须包含 type、sceneTitle、locationName、elapsedSeconds、status、quest、choices、vitalUpdates。其他字段只有明确变化才输出，否则省略或用空数组。',
+      'vitalUpdates 必须覆盖 stamina_pool、satiety、hydration、fatigue、mental_stability。choices 必须4个。所有 reason/status 不超过24个汉字。characterMetricUpdates 最多3个角色，每个角色最多2条 emotions 和2条 playerFeelings。lexiconUpdates/itemActions/factionUpdates 只写稳定事实变化。',
+      `最小示例：${JSON.stringify(this.updateJsonSchema())}`,
+    ].join('\n\n');
+  },
+
+  updateJsonSchema() {
+    return {
+      type: 'final', sceneTitle: '标题', locationName: '具体地点', elapsedSeconds: 300, status: '状态', quest: '目标',
+      choices: ['行动一', '行动二', '行动三', '行动四'],
+      vitalUpdates: [{ key: 'stamina_pool', delta: -1, reason: '行动消耗。' }, { key: 'satiety', delta: 0, reason: '基本不变。' }, { key: 'hydration', delta: 0, reason: '基本不变。' }, { key: 'fatigue', delta: 1, reason: '稍感疲劳。' }, { key: 'mental_stability', delta: 0, reason: '基本稳定。' }],
+      characterMetricUpdates: [], lexiconUpdates: [], itemActions: [], factionUpdates: [], wechatActions: [],
+    };
   },
 
   outputSchema(store) {
@@ -200,6 +244,49 @@ window.GameModules.realWorldAgentLoop = {
     return prose.replace(/```[\s\S]*?```/g, '').trim().slice(0, 2400);
   },
 
+  async completeUpdateJson(store, prompt, logId) {
+    const raw = await this.completeStep(store, prompt, logId, false);
+    try { return window.GameModules.jsonUtils.parseLoose(raw); }
+    catch (err) {
+      console.warn('现实更新 JSON 解析失败，尝试修复:', err.message);
+      return this.repairTruncatedJsonObject(raw) || {};
+    }
+  },
+
+  parseUpdateJson(raw) {
+    try { return raw && typeof raw === 'object' ? raw : window.GameModules.jsonUtils.parseLoose(raw); }
+    catch (_) { return this.repairTruncatedJsonObject(raw) || {}; }
+  },
+
+  mergeNarrationAndUpdates(store, narration, updates = {}) {
+    return {
+      type: 'final',
+      sceneTitle: updates.sceneTitle || store.realWorldSceneTitle || '现实世界',
+      locationName: updates.locationName || store.realWorldLocationName || store.realWorldMap?.current || '',
+      parentLocationName: updates.parentLocationName || '',
+      locationDescription: updates.locationDescription || '',
+      mapNodes: Array.isArray(updates.mapNodes) ? updates.mapNodes : [],
+      newLocations: Array.isArray(updates.newLocations) ? updates.newLocations : [],
+      locationDescriptionUpdates: Array.isArray(updates.locationDescriptionUpdates) ? updates.locationDescriptionUpdates : [],
+      narration,
+      elapsedSeconds: Math.max(1, Number(updates.elapsedSeconds) || 300),
+      status: updates.status || store.realWorldStatus || '现实推演继续中',
+      quest: updates.quest || store.realWorldQuest || '确认现实处境',
+      choices: Array.isArray(updates.choices) && updates.choices.length ? updates.choices.slice(0, 4) : (store.realWorldChoices || ['观察手机异常', '处理现实事务', '联系熟人', '暂时休息']),
+      vitalUpdates: Array.isArray(updates.vitalUpdates) ? updates.vitalUpdates : [],
+      metricUpdates: updates.metricUpdates && typeof updates.metricUpdates === 'object' ? updates.metricUpdates : {},
+      characterMetricUpdates: Array.isArray(updates.characterMetricUpdates) ? updates.characterMetricUpdates : [],
+      wechatActions: Array.isArray(updates.wechatActions) ? updates.wechatActions : [],
+      factionUpdates: Array.isArray(updates.factionUpdates) ? updates.factionUpdates : [],
+      itemActions: Array.isArray(updates.itemActions) ? updates.itemActions : [],
+      lexiconUpdates: Array.isArray(updates.lexiconUpdates) ? updates.lexiconUpdates : [],
+    };
+  },
+
+  cleanPhasedNarration(raw) {
+    return String(raw || '').replace(/```[\s\S]*?```/g, '').replace(this.finalSeparator, '').trim().slice(0, 5000);
+  },
+
   async completeStep(store, prompt, logId, streamToUi = false) {
     const requestId = window.GameModules.realWorldAi.latestRequestId;
     let buffer = '';
@@ -242,7 +329,7 @@ window.GameModules.realWorldAgentLoop = {
       const data = window.GameModules.jsonUtils.parseLoose(jsonRaw);
       if (!data || typeof data !== 'object') return null;
       const type = String(data.type || '').trim();
-      if (type !== 'request_context' && type !== 'final') return null;
+      if (type !== 'request_context' && type !== 'context_done' && type !== 'final') return null;
       if (type === 'final' && sepAt >= 0) {
         data.narration = text.slice(0, sepAt).trim() || data.narration || '';
         if (!data.narration) throw new Error('现实推演 final 缺少正文');
