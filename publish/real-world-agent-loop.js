@@ -106,12 +106,14 @@ window.GameModules.realWorldAgentLoop = {
 
   async completeParsedStep(store, prompt, logId, streamToUi = false, allowProseFinal = false) {
     let lastRaw = '';
+    let bestRaw = '';
     let lastErr = null;
     for (let i = 0; i < 2; i += 1) {
       lastRaw = await this.completeStep(store, prompt, logId, streamToUi);
+      if (this.fallbackScore(lastRaw) >= this.fallbackScore(bestRaw)) bestRaw = lastRaw;
       try {
         const data = this.parseStep(lastRaw);
-        if (data || i === 1) return { raw: lastRaw, data: data || (allowProseFinal ? this.proseFinal(store, lastRaw) : null) };
+        if (data || i === 1) return { raw: lastRaw, data: data || (allowProseFinal ? this.proseFinal(store, bestRaw || lastRaw) : null) };
         console.warn('现实推演格式不完整，自动重试一次');
       } catch (err) {
         lastErr = err;
@@ -119,36 +121,75 @@ window.GameModules.realWorldAgentLoop = {
         console.warn('现实推演解析异常，自动重试一次:', err.message);
       }
     }
-    if (allowProseFinal) return { raw: lastRaw, data: this.proseFinal(store, lastRaw) };
+    if (allowProseFinal) return { raw: bestRaw || lastRaw, data: this.proseFinal(store, bestRaw || lastRaw) };
     if (lastErr) throw lastErr;
     return { raw: lastRaw, data: null };
+  },
+
+  fallbackScore(raw) {
+    const text = String(raw || '').trim();
+    if (!text) return 0;
+    const sepAt = text.indexOf(this.finalSeparator);
+    return text.length + (sepAt >= 0 ? 10000 : 0);
   },
 
   proseFinal(store, raw) {
     const narration = this.cleanProseNarration(raw);
     if (!narration) return null;
+    const repaired = this.repairedFinalJson(raw) || {};
     return {
       type: 'final',
-      sceneTitle: store.realWorldSceneTitle || '现实世界',
-      locationName: store.realWorldLocationName || store.realWorldMap?.current || '',
-      parentLocationName: '',
-      locationDescription: '',
-      mapNodes: [],
-      newLocations: [],
-      locationDescriptionUpdates: [],
+      sceneTitle: repaired.sceneTitle || store.realWorldSceneTitle || '现实世界',
+      locationName: repaired.locationName || store.realWorldLocationName || store.realWorldMap?.current || '',
+      parentLocationName: repaired.parentLocationName || '',
+      locationDescription: repaired.locationDescription || '',
+      mapNodes: Array.isArray(repaired.mapNodes) ? repaired.mapNodes : [],
+      newLocations: Array.isArray(repaired.newLocations) ? repaired.newLocations : [],
+      locationDescriptionUpdates: Array.isArray(repaired.locationDescriptionUpdates) ? repaired.locationDescriptionUpdates : [],
       narration,
-      elapsedSeconds: 300,
-      status: store.realWorldStatus || '现实推演继续中',
-      quest: store.realWorldQuest || '确认现实处境',
-      choices: store.realWorldChoices || ['观察手机异常', '处理现实事务', '联系熟人', '暂时休息'],
-      vitalUpdates: [],
-      metricUpdates: {},
-      characterMetricUpdates: [],
-      wechatActions: [],
-      factionUpdates: [],
-      itemActions: [],
-      lexiconUpdates: [],
+      elapsedSeconds: Math.max(1, Number(repaired.elapsedSeconds) || 300),
+      status: repaired.status || store.realWorldStatus || '现实推演继续中',
+      quest: repaired.quest || store.realWorldQuest || '确认现实处境',
+      choices: Array.isArray(repaired.choices) && repaired.choices.length ? repaired.choices.slice(0, 4) : (store.realWorldChoices || ['观察手机异常', '处理现实事务', '联系熟人', '暂时休息']),
+      vitalUpdates: Array.isArray(repaired.vitalUpdates) ? repaired.vitalUpdates : [],
+      metricUpdates: repaired.metricUpdates && typeof repaired.metricUpdates === 'object' ? repaired.metricUpdates : {},
+      characterMetricUpdates: Array.isArray(repaired.characterMetricUpdates) ? repaired.characterMetricUpdates : [],
+      wechatActions: Array.isArray(repaired.wechatActions) ? repaired.wechatActions : [],
+      factionUpdates: Array.isArray(repaired.factionUpdates) ? repaired.factionUpdates : [],
+      itemActions: Array.isArray(repaired.itemActions) ? repaired.itemActions : [],
+      lexiconUpdates: Array.isArray(repaired.lexiconUpdates) ? repaired.lexiconUpdates : [],
     };
+  },
+
+  repairedFinalJson(raw) {
+    const text = String(raw || '');
+    const sepAt = text.indexOf(this.finalSeparator);
+    if (sepAt < 0) return null;
+    const jsonRaw = text.slice(sepAt + this.finalSeparator.length).trim();
+    if (!jsonRaw) return null;
+    try { return window.GameModules.jsonUtils.parseLoose(jsonRaw); }
+    catch (_) { return this.repairTruncatedJsonObject(jsonRaw); }
+  },
+
+  repairTruncatedJsonObject(jsonRaw) {
+    const text = String(jsonRaw || '').trim();
+    const start = text.indexOf('{');
+    if (start < 0) return null;
+    let out = text.slice(start), inString = false, escaped = false, stack = [];
+    for (let i = 0; i < out.length; i += 1) {
+      const ch = out[i];
+      if (escaped) { escaped = false; continue; }
+      if (ch === '\\') { escaped = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === '{' || ch === '[') stack.push(ch);
+      if (ch === '}' || ch === ']') stack.pop();
+    }
+    if (inString) out += '"';
+    out = out.replace(/[\s,]*$/, '');
+    while (stack.length) out += stack.pop() === '[' ? ']' : '}';
+    try { return JSON.parse(out); }
+    catch (_) { return null; }
   },
 
   cleanProseNarration(raw) {
