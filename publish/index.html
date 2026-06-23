@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="phone-desktop.css">
   <link rel="stylesheet" href="taobao-app.css">
   <link rel="stylesheet" href="real-world.css">
+  <link rel="stylesheet" href="real-world-settlement.css">
+  <link rel="stylesheet" href="real-world-phone.css">
   <link rel="stylesheet" href="phone-wechat.css">
   <link rel="stylesheet" href="company-system.css">
   <link rel="stylesheet" href="boss-recruitment.css">
@@ -544,9 +546,10 @@
             <button class="small-btn" type="button" @click.stop="$store.game.closeRealWorldFunctionPanel()">关闭</button>
           </header>
           <div class="real-world-function-body" x-show="$store.game.realWorldFunctionView === 'menu'">
-            <button class="real-world-function-option" type="button" @click="$store.game.openPhoneFromRealWorld()">
+            <button class="real-world-function-option real-world-phone-option" type="button" @click="$store.game.openPhoneFromRealWorld()" aria-label="拿出手机">
+              <span class="real-world-phone-art" aria-hidden="true"><i></i></span>
               <strong>拿出手机</strong>
-              <small>回到手机桌面，继续使用各个 APP。</small>
+              <small>点击手机，回到手机桌面继续使用各个 APP。</small>
             </button>
             <button class="real-world-function-option" type="button" @click="$store.game.openRealWorldFunctionPanel('inventory')">
               <strong>背包</strong>
@@ -770,7 +773,7 @@
         <div class="free-input real-world-free-input dev-section" data-section-title="现实自由输入栏">
           <input x-model="$store.game.realWorldInput" placeholder="输入你在现实世界的下一步行动..." :disabled="$store.game.realWorldBusy" @keydown.enter="$store.game.submitRealWorldAction()">
           <button type="button" @click="$store.game.submitRealWorldAction()" :disabled="$store.game.realWorldBusy || !$store.game.realWorldInput.trim() || !$store.game.realWorldWordCountValid()">执行</button>
-          <label class="thinking-switch" :class="{ active: $store.game.realWorldThinkMode }" title="开启后每轮现实推演都会输出可见思考摘要，额度消耗略增"><input type="checkbox" x-model="$store.game.realWorldThinkMode">Think</label>
+          <button class="real-world-phone-action" type="button" @click="$store.game.openPhoneFromRealWorld()" title="拿出手机" aria-label="拿出手机"><span class="real-world-phone-art real-world-phone-mini" aria-hidden="true"><i></i></span></button>
         </div>
       </footer>
     </div>

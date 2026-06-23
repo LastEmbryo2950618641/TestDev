@@ -151,66 +151,6 @@
 .real-world-thinking-panel p { margin: 0; }
 .real-world-thinking-panel b { color: #74f6ff; }
 
-.real-world-settlement-panel {
-  display: grid;
-  gap: 8px;
-}
-
-.real-world-settlement-tabs {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  padding-bottom: 2px;
-}
-
-.real-world-settlement-tabs button {
-  min-height: 30px;
-  padding: 0 10px;
-  border: 1px solid rgba(116, 246, 255, .2);
-  border-radius: 999px;
-  background: rgba(116, 246, 255, .08);
-  color: #aeb9d6;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.real-world-settlement-tabs button.active {
-  border-color: rgba(116, 246, 255, .5);
-  background: rgba(116, 246, 255, .18);
-  color: #eafcff;
-}
-
-.real-world-settlement-tabs small {
-  margin-left: 4px;
-  color: #ffdf8a;
-}
-
-.real-world-settlement-group {
-  border: 1px solid rgba(116, 246, 255, .14);
-  border-radius: 10px;
-  padding: 6px 8px;
-  background: rgba(255, 255, 255, .035);
-}
-
-.real-world-settlement-group summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  cursor: pointer;
-  color: #74f6ff;
-  font-weight: 800;
-}
-
-.real-world-settlement-group summary small {
-  color: #aeb9d6;
-  font-size: 11px;
-}
-
-.real-world-settlement-group p {
-  margin: 6px 0 0;
-}
-
 .real-world-log-pager {
   display: flex;
   align-items: center;
