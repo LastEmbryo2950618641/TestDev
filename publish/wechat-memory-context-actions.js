@@ -11,10 +11,20 @@ window.GameModules.wechatMemoryContextActions = {
   async saveWechatHistoryRow(contactId, message) {
     const db = window.GameModules.sqliteSave;
     if (!contactId || !message || !this.ensureWechatHistoryTable()) return;
-    const createdAt = message.time || new Date().toISOString();
+    const createdAt = this.wechatHistoryCreatedAt(message);
     const id = `${contactId}_${createdAt}_${String(message.side || '').slice(0, 1)}_${window.GameModules.rpgState?.seed?.(message.text || message.imageRecord || createdAt) || Date.now()}`;
     db.db.run('INSERT OR REPLACE INTO wechat_history(id,contact_id,message_json,created_at) VALUES (?,?,?,?)', [id, contactId, JSON.stringify(message), createdAt]);
     await db.persist();
+  },
+
+  wechatHistoryCreatedAt(message = {}) {
+    if (typeof message.time === 'string' && message.time.trim()) return message.time;
+    const t = message.time || {};
+    if (Number(t.year) && Number(t.month) && Number(t.day)) {
+      const pad = (n) => String(Number(n) || 0).padStart(2, '0');
+      return `${Number(t.year)}-${pad(t.month)}-${pad(t.day)}T${pad(t.hour)}:${pad(t.minute)}:${pad(t.second)}`;
+    }
+    return String(message.atDisplay || message.at || new Date().toISOString());
   },
 
   listWechatHistoryRows(contactId, limit = 12) {

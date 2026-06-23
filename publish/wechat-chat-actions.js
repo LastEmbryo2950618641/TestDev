@@ -47,7 +47,7 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatChatActi
     const saved = { ...msg, at: time.label, atDisplay: time.display, time: time.value };
     const list = [...(this.wechatMessagesByContact?.[key] || []), saved].slice(-40);
     this.wechatMessagesByContact = { ...(this.wechatMessagesByContact || {}), [key]: list };
-    this.saveWechatHistoryRow?.(key, saved)?.catch?.((err) => console.warn('[微信] 固定历史写入失败:', err.message, err.stack));
+    this.saveWechatHistoryRow?.(key, saved)?.catch?.((err) => console.warn('[微信] 固定历史写入失败:', err?.code || '', err?.message || String(err), err?.stack || ''));
     if (msg.text) this.updateWechatLatest(key, msg.text, msg.side === 'other');
   },
 
