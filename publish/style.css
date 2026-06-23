@@ -270,8 +270,9 @@ button:not(:disabled):active {
 
 .role-card-loading-modal {
   width: min(560px, 100%);
-  max-height: min(680px, 88dvh);
+  max-height: calc(100dvh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
   gap: 10px;
   overflow: hidden;
   padding: 14px;
