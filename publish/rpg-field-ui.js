@@ -59,6 +59,7 @@ window.GameModules.rpgFieldUi = {
     const identityRest = identity.filter((field) => !relations.includes(field));
     const naturalState = this.profileNaturalStateField(state);
     const dressedState = this.profileDressedStateField(state);
+    const longing = this.profileLongingField(state);
     const used = new Set(['world_tag', 'age', 'factions', 'force_positions', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'items', 'wearing', 'bodyProfile', 'dressedProfile', 'status_tags']);
     const personal = all.filter((field) => !used.has(field.key));
     const groups = [
@@ -69,9 +70,25 @@ window.GameModules.rpgFieldUi = {
       { title: '盛装', fields: dressedState ? [dressedState] : [] },
       { title: '状态标签', fields: take(['status_tags']) },
       { title: '人际关系', fields: relations },
-      { title: '身份信息', fields: [...identityRest, ...take(['world_tag', 'age', 'factions', 'force_positions'])] },
+      { title: '身份信息', fields: [...identityRest, ...(longing ? [longing] : []), ...take(['world_tag', 'age', 'factions', 'force_positions'])] },
     ];
     return groups.filter((group) => group.fields.length);
+  },
+
+  profileLongingField(state = {}) {
+    if (!state?.id || state.id === 'player-self') return null;
+    const p = state.profile || {};
+    const raw = state.values?.longing_to_player || {};
+    const value = Math.max(0, Math.min(999, Number(raw.value) || 0));
+    const updatedAt = Number(raw.updatedAt) || 0;
+    const date = updatedAt ? new Date(updatedAt) : null;
+    const time = date && Number.isFinite(date.getTime()) ? date.toLocaleString('zh-CN') : '尚未结算';
+    return {
+      key: 'longing_to_player', stateId: state.id, label: '思念度', kind: '关系状态', value: `${value.toFixed(1)}/100`, raw: value,
+      desc: '角色对玩家的思念累积值；满100会在现实推演中触发一次思念事件。',
+      reason: `${p.name || state.name || '该角色'}的思念度由现实推演间隔时间、好感度与随机系数结算累积；最近结算：${time}。`,
+      worldTag: p.work || state.worldTag || '原创世界', targetType: '角色', commonField: true,
+    };
   },
 
   profileNaturalStateField(state = {}) {
