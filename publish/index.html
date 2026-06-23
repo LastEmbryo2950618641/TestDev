@@ -1104,33 +1104,17 @@
   <section x-show="!$store.game.loading && $store.game.factionState?.open" class="faction-app-screen app-window section-hints" x-cloak>
     <div class="faction-card dev-section" data-section-title="势力主面板">
       <header class="identity-header"><div><p class="eyebrow">FACTIONS</p><h2>势力</h2><small>国家、公司、工作室、学校等组织均为势力，必须有归属字段</small></div><button class="small-btn" type="button" @click="$store.game.closeFactionApp()">回到桌面</button></header>
-      <nav class="faction-tabs" aria-label="势力功能切换">
-        <button type="button" :class="{ active: ($store.game.factionState.archiveView || 'factions') === 'factions' }" @click="$store.game.setFactionArchiveView('factions')">势力列表</button>
-        <button type="button" :class="{ active: $store.game.factionState.archiveView === 'archiveList' || $store.game.factionState.archiveView === 'archiveDetail' }" @click="$store.game.setFactionArchiveView('archiveList')">资料库</button>
-      </nav>
-      <section class="faction-toolbar dev-section" data-section-title="势力初始化与审计区" x-show="($store.game.factionState.archiveView || 'factions') === 'factions'">
+      <section class="faction-toolbar dev-section" data-section-title="势力初始化与审计区">
         <input x-model="$store.game.factionState.customPrompt" placeholder="输入调整要求，例如：补全本地政府、行业协会、上级集团、竞争公司">
         <button type="button" @click="$store.game.generateFactionsByAI()" :disabled="$store.game.factionState.generating" x-text="$store.game.factionState.generating ? '全量检视中…约30秒' : '初始化/全量检视势力'"></button>
         <p class="faction-note">数据库无该势力时按上下文初始化并固化；已有势力只允许有理由地调整或增加词条。</p>
       </section>
       <main class="faction-body">
-        <section class="faction-list dev-section" data-section-title="势力列表区" x-show="($store.game.factionState.archiveView || 'factions') === 'factions'">
+        <section class="faction-list dev-section" data-section-title="势力列表区">
           <p class="faction-note" x-show="$store.game.factionState.error" x-text="$store.game.factionState.error"></p>
           <template x-for="faction in $store.game.factionState.factions" :key="faction.id">
-            <button class="faction-row" type="button" :class="{ active: $store.game.selectedFaction()?.id === faction.id }" @click.stop="$store.game.selectFaction(faction.id)" @keydown.enter.prevent="$store.game.selectFaction(faction.id)"><strong x-text="faction.name"></strong><small x-text="`${faction.type}｜${faction.level}｜归属：${$store.game.factionParentName(faction)}`"></small><em>点击查看详情</em></button>
+            <button class="faction-row" type="button" :class="{ active: $store.game.selectedFaction()?.id === faction.id }" @click.stop="$store.game.selectFaction(faction.id); $store.game.closeFactionArchiveDoc()" @keydown.enter.prevent="$store.game.selectFaction(faction.id); $store.game.closeFactionArchiveDoc()"><strong x-text="faction.name"></strong><small x-text="`${faction.type}｜${faction.level}｜归属：${$store.game.factionParentName(faction)}`"></small><em>点击查看详情</em></button>
           </template>
-        </section>
-        <section class="faction-list dev-section" data-section-title="势力资料库列表" x-show="$store.game.factionState.archiveView === 'archiveList'">
-          <p class="faction-note" x-show="!$store.game.factionArchiveDocs().length">暂无档案。现实推演或微信对话涉及具体势力后，会自动写入这里。</p>
-          <template x-for="doc in $store.game.factionArchiveDocs()" :key="doc.archiveKey">
-            <button class="faction-row" type="button" @click.stop="$store.game.openFactionArchiveDoc(doc.archiveKey)"><strong x-text="doc.title"></strong><small x-text="$store.game.factionArchiveDocMeta(doc)"></small><em>点击查看内容</em></button>
-          </template>
-        </section>
-        <section class="faction-list dev-section" data-section-title="势力资料库内容" x-show="$store.game.factionState.archiveView === 'archiveDetail'">
-          <button class="small-btn faction-back-btn" type="button" @click="$store.game.setFactionArchiveView('archiveList')">返回档案列表</button>
-          <article class="faction-panel" x-show="$store.game.selectedFactionArchiveDoc()"><h3 x-text="$store.game.selectedFactionArchiveDoc()?.title"></h3><p x-text="$store.game.factionArchiveDocMeta($store.game.selectedFactionArchiveDoc())"></p></article>
-          <div class="faction-reasons" x-show="$store.game.selectedFactionArchiveDoc()"><template x-for="item in ($store.game.selectedFactionArchiveDoc()?.paragraphs || [])" :key="`${item.at}-${item.text}`"><p><b x-text="$store.game.factionArchiveParagraphTime(item)"></b><span x-text="item.text"></span></p></template></div>
-          <p class="faction-note" x-show="!$store.game.selectedFactionArchiveDoc()">未找到该档案，可能已被覆盖或清理。</p>
         </section>
         <section class="faction-modal-backdrop" x-show="$store.game.factionState?.detailOpen" @click.self="$store.game.closeFactionDetail()" x-cloak>
           <div class="faction-detail dev-section" data-section-title="势力详情弹窗" x-show="$store.game.selectedFaction()" @click.stop>
@@ -1139,6 +1123,7 @@
           <div class="faction-meta"><article class="faction-panel"><strong>类型</strong><p x-text="$store.game.selectedFaction()?.type"></p></article><article class="faction-panel"><strong>归属</strong><p x-text="$store.game.factionParentName($store.game.selectedFaction())"></p></article><article class="faction-panel"><strong>领域</strong><p x-text="$store.game.selectedFaction()?.domain"></p></article><article class="faction-panel"><strong>影响力</strong><p x-text="$store.game.selectedFaction()?.influence"></p></article></div>
           <section class="faction-panel"><div class="faction-panel-head"><h3>组织架构</h3><button class="small-btn" type="button" @click.stop="$store.game.openFactionOrgChart()">查看组织架构图</button></div><p class="faction-note">点击查看树状图；结构内容由AI推演后固化。</p><div class="faction-structure"><template x-for="node in $store.game.factionStructureCards()" :key="node.key"><article><h4 x-text="node.name"></h4><small x-text="node.level"></small><template x-for="role in node.roles" :key="role.title"><p><b x-text="role.title"></b><span x-text="` 数量:${role.count}｜角色:${$store.game.factionRolePreview(role)}`"></span><button class="mini-link" type="button" x-show="$store.game.factionRoleOverflow(role)" @click.stop="$store.game.openFactionRoleDialog(role)">查看全部</button></p></template></article></template><p x-show="!($store.game.selectedFaction()?.structure || []).length">暂无架构，点击初始化/全量检视势力生成。</p></div></section>
           <section class="faction-panel"><h3>规则 / 资源 / 下级势力</h3><ul><li x-text="`规则：${($store.game.selectedFaction()?.rules || []).join('；') || '暂无'}`"></li><li x-text="`资源：${($store.game.selectedFaction()?.resources || []).join('、') || '暂无'}`"></li><li x-text="`下级势力：${$store.game.factionChildren($store.game.selectedFaction()?.id).map(x => x.name).join('、') || '无'}`"></li></ul></section>
+          <section class="faction-panel"><div class="faction-panel-head"><h3>资料库</h3><small x-text="`档案：${$store.game.factionArchiveDocs($store.game.selectedFaction()).length}`"></small></div><div class="faction-archive-detail" x-show="$store.game.selectedFactionArchiveDoc()"><button class="small-btn faction-back-btn" type="button" @click.stop="$store.game.closeFactionArchiveDoc()">返回档案列表</button><h4 x-text="$store.game.selectedFactionArchiveDoc()?.title"></h4><p class="faction-note" x-text="$store.game.factionArchiveDocMeta($store.game.selectedFactionArchiveDoc())"></p><div class="faction-reasons"><template x-for="item in ($store.game.selectedFactionArchiveDoc()?.paragraphs || [])" :key="`${item.at}-${item.text}`"><p><b x-text="$store.game.factionArchiveParagraphTime(item)"></b><span x-text="item.text"></span></p></template></div></div><div class="faction-archive-list" x-show="!$store.game.selectedFactionArchiveDoc()"><p class="faction-note" x-show="!$store.game.factionArchiveDocs($store.game.selectedFaction()).length">该势力暂无档案。现实推演或微信对话涉及该势力后，会自动写入这里。</p><template x-for="doc in $store.game.factionArchiveDocs($store.game.selectedFaction())" :key="doc.archiveKey"><button class="faction-row" type="button" @click.stop="$store.game.openFactionArchiveDoc(doc.archiveKey)"><strong x-text="doc.title"></strong><small x-text="$store.game.factionArchiveDocMeta(doc)"></small><em>点击查看内容</em></button></template></div></section>
           <section class="faction-panel"><h3>全量词条理由</h3><div class="faction-reasons"><template x-for="field in Object.keys($store.game.selectedFaction()?.fieldReasons || {})" :key="field"><p><b x-text="field"></b><span x-text="$store.game.selectedFaction()?.fieldReasons?.[field]"></span></p></template></div></section>
           <section class="faction-panel"><h3>调整/新增记录</h3><div class="faction-reasons"><template x-for="log in ($store.game.selectedFaction()?.changeLog || []).slice(0, 12)" :key="`${log.at}-${log.field}-${log.action}`"><p><b x-text="`${log.action}:${log.field}`"></b><span x-text="log.reason"></span></p></template><p x-show="!($store.game.selectedFaction()?.changeLog || []).length">暂无调整记录。</p></div></section>
           </div>

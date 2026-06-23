@@ -156,11 +156,11 @@ window.GameModules.factionActions = {
     this.factionState.detailOpen = true;
     if (this.factionState.orgChartOpen) this.refreshFactionOrgCache?.();
   },
-
   closeFactionDetail() {
     if (!this.factionState) return;
     this.factionState.detailOpen = false;
     this.factionState.orgChartOpen = false;
+    this.factionState.selectedArchiveDocId = '';
   },
 
   openFactionOrgChart() {
