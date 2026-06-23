@@ -103,6 +103,7 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatChatActi
       this.appendWechatMessage(characterId, { side: 'other', name: state?.profile?.name || contact.name, mark: (state?.profile?.name || contact.name || '').slice(0, 1), text: result.reply, characterId, metricUpdates: result.metricUpdates, lexiconUpdates: result.lexiconUpdates, characterCardChanges: result.characterCardChanges, cardChangesOpen: false, changeReasonsOpen: false });
       if (result.imageIntent?.offer) await this.appendWechatPendingImageMessage(characterId, state, contact, { ...result.imageIntent, impression: result.impression });
       await window.GameModules.characterMemory?.recordWechatExchange?.(this, { ...contact, id: characterId, characterId }, playerText, result.reply, result);
+      window.GameModules.factionArchive?.recordWechat?.(this, { ...contact, id: characterId, characterId }, playerText, result.reply, result);
       await this.recordWechatWorldline({ ...contact, id: characterId, characterId }, playerText, result.reply, result);
       this.debugWechatMemory?.({ ...contact, id: characterId, characterId });
       await this.save?.();
@@ -116,6 +117,7 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatChatActi
       this.advancePhoneTime?.(60);
       this.appendWechatMessage(characterId, { side: 'other', name: state?.profile?.name || contact.name, mark: (state?.profile?.name || contact.name || contact.mark || '').slice(0, 1), text: fallback, characterId });
       await window.GameModules.characterMemory?.recordWechatExchange?.(this, { ...contact, id: characterId, characterId }, playerText, fallback, { mood: '通讯异常' });
+      window.GameModules.factionArchive?.recordWechat?.(this, { ...contact, id: characterId, characterId }, playerText, fallback, { mood: '通讯异常' });
       await this.recordWechatWorldline({ ...contact, id: characterId, characterId }, playerText, fallback, { mood: '通讯异常' });
       await this.save?.();
     } finally {
@@ -151,7 +153,7 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatChatActi
       玩家居住家庭区: player.playerHome,
       玩家人际关系区: player.playerRelations,
       玩家备注区: player.playerNotes,
-      联系人资料区: this.wechatContactProfileText(contact),
+      联系人资料区: this.wechatContactProfileText(contact, playerText),
       手机时间: `${this.phoneDateText?.() || '未知'} ${this.phoneTimeText?.() || ''}`,
       现实场景: this.realWorldSceneTitle || '现实世界',
       现实地点: this.realWorldLocationName || '未确认',
@@ -167,7 +169,7 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatChatActi
     });
   },
 
-  wechatContactProfileText(contact) {
+  wechatContactProfileText(contact, playerText = '') {
     const display = this.displayWechatContact?.(contact) || contact;
     const characterId = this.wechatMessageKey(contact);
     const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
@@ -176,7 +178,8 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatChatActi
       ['姓名', profile.name || display.name], ['微信关系', display.relation || display.subtitle], ['角色定位', profile.role || display.context],
       ['背景', profile.detail || contact.latest], ['外貌', profile.appearance], ['性格', profile.personality], ['关系', profile.relationships],
     ];
-    return rows.map(([label, value]) => `- ${label}：${String(value || '未记录')}`).join('\n');
+    const archive = window.GameModules.factionArchive?.contextFor?.(this, `${profile.name || display.name || ''} ${playerText || ''} ${this.realWorldLocationName || ''}`, 1200) || '暂无势力资料库记录。';
+    return `${rows.map(([label, value]) => `- ${label}：${String(value || '未记录')}`).join('\n')}\n\n### 相关势力资料库\n${archive}`;
   },
 
 

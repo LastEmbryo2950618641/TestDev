@@ -125,6 +125,7 @@ window.GameModules.realWorldActions = {
       const result = await window.GameModules.realWorldAi.generate(this, '', text, entry.id);
       if (result.promptPack) entry.promptPack = result.promptPack;
       await this.applyRealWorldResult(entry.id, result);
+      window.GameModules.factionArchive?.recordRealWorld?.(this, text, result);
       await this.recordPlayerRealWorldMemory(text, result);
       await this.save();
     } catch (err) {

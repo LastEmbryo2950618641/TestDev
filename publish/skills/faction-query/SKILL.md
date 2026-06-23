@@ -19,8 +19,9 @@ trigger: 现实世界推演中，行动涉及国家、公司、学校、社区�
 1. `listFactions()`：列出当前已知势力。
 2. `searchFactionOne(keyword)`：按关键词查询一条势力。
 3. `getFactionDetail(name)`：读取势力详情、归属、组织架构、职位角色、规则和资源。
-4. `upsertFaction(payload)`：新增或调整势力；payload 可含 name、type、parentName、level、location、domain、scale、stance、influence、description、structure、rules、resources、relations、reason。
-5. `addFactionPosition(payload)`：给势力新增职位与角色占位；payload 含 factionName、position、characterName、reason。角色未知时 characterName 写“未知”。
+4. `searchFactionArchive(keyword)`：按关键词读取相关势力资料库最近档案片段。
+5. `upsertFaction(payload)`：新增或调整势力；payload 可含 name、type、parentName、level、location、domain、scale、stance、influence、description、structure、rules、resources、relations、reason。
+6. `addFactionPosition(payload)`：给势力新增职位与角色占位；payload 含 factionName、position、characterName、reason。角色未知时 characterName 写“未知”。
 
 ## 使用规则
 

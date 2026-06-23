@@ -12,6 +12,7 @@ window.GameModules = window.GameModules || {};
       if (method === 'listFactions') return this.factionList(store);
       if (method === 'searchFactionOne') return this.factionSearch(store, params);
       if (method === 'getFactionDetail') return this.factionDetail(store, params.name || params.id || params.keyword);
+      if (method === 'searchFactionArchive') return window.GameModules.factionArchive?.contextFor?.(store, params.keyword || params.name || '', 1800) || '暂无势力资料库记录。';
       if (method === 'upsertFaction') return this.upsertFaction(store, params);
       if (method === 'addFactionPosition') return this.addFactionPosition(store, params);
       return this.factionList(store);
@@ -91,7 +92,7 @@ window.GameModules = window.GameModules || {};
         ...node,
         roles: (Array.isArray(node.roles) ? node.roles : []).filter((role) => !this.isAbstractPosition(role?.title || role?.name || role?.position || role)),
       })).filter((node) => !this.isAbstractFactionName(node.name));
-      return { type: params.type || '组织', parentId: params.parentId || parent?.id || 'country-china', parentName: params.parentName || parent?.name || '中华人民共和国', level: params.level || '组织级', location: params.location || '未知', domain: params.domain || '现实组织关系', scale: params.scale || '未知', stance: params.stance || '中立', influence: Number(params.influence) || 30, description: params.description || params.summary || '现实推演确认的势力。', structure, rules: Array.isArray(params.rules) ? params.rules.map(String) : [], resources: Array.isArray(params.resources) ? params.resources.map(String) : [], relations: Array.isArray(params.relations) ? params.relations : [], updatedAt: now };
+      return { type: params.type || '组织', parentId: params.parentId || parent?.id || '', parentName: params.parentName || parent?.name || '无势力归属', level: params.level || '组织级', location: params.location || '未知', domain: params.domain || '现实组织关系', scale: params.scale || '未知', stance: params.stance || '中立', influence: Number(params.influence) || 30, description: params.description || params.summary || '现实推演确认的势力。', structure, rules: Array.isArray(params.rules) ? params.rules.map(String) : [], resources: Array.isArray(params.resources) ? params.resources.map(String) : [], relations: Array.isArray(params.relations) ? params.relations : [], updatedAt: now };
     },
 
     addFactionPosition(store, params = {}) {

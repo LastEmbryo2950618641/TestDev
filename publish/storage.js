@@ -120,7 +120,7 @@ window.GameModules.storage = {
     store.companyState = save.companyState ? { ...save.companyState, open: false } : store.companyState;
     store.bossState = save.bossState ? { ...save.bossState, open: false, companyDetailOpen: false, generating: false } : store.bossState;
     store.calendarState = save.calendarState ? { ...save.calendarState, open: false } : store.calendarState;
-    store.factionState = save.factionState ? { ...save.factionState, open: false, detailOpen: false, generating: false } : store.factionState;
+    store.factionState = save.factionState ? { ...save.factionState, open: false, detailOpen: false, generating: false, archives: save.factionState.archives || save.factionArchives || {} } : store.factionState;
     store.taobaoState = save.taobaoState ? { ...store.taobaoState, ...save.taobaoState, open: false, generatingId: '', buyingId: '' } : store.taobaoState;
     store.initTaobaoApp?.();
     if (!save.started) return false;
