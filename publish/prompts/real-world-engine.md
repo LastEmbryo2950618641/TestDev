@@ -125,21 +125,22 @@ characters 必须列出本次行动相关人物，至少包含 player-self，可
 6. choices 必须给出四个现实世界下一步行动，并参考玩家当前精力、饱食度、水分、疲劳度、精神稳定给出可持续行动。
 7. 每次 final 必须返回 vitalUpdates，覆盖 stamina_pool、satiety、hydration、fatigue、mental_stability 五项；delta 是基于原值的百分比变化整数，reason 必须写具体变化原因。
 8. narration 必须体现这些现实状态对玩家行动和感受的影响：饥饿、口渴、疲劳、精力不足或精神不稳会影响观察、反应、决策和行动效率。
-9. final 必须随现实事件更新身份信息：玩家本人变化写 metricUpdates / lexiconUpdates target:"player-self"；相关角色情绪/对玩家感觉写 characterMetricUpdates；相关角色的角色卡、技能、物品、穿着写 lexiconUpdates 或 itemActions 并带 target/targetId/characterId；组织、社群、公司、家庭、学校等势力变化写 factionUpdates。没有明确事实则不要编造。
-10. 每次 final 必须返回 locationName，优先复用已知地点，只有移动到新地点时才新增。
-11. 地点命名必须清晰具体，不许写“玩家住处”“住处”“现实地点”这类抽象名。
-12. 如果本回合位置属于某个上级地点，返回 parentLocationName；如果发现可展开子地点，返回 mapNodes 或 newLocations。
-13. 地点说明必须以玩家视角已知事实保存；locationDescription 只写当前地点本次新认识事实。
-14. 如果旧地点说明需要改变，只返回 locationDescriptionUpdates；未知或未提及的旧说明不能改写、覆盖或删除。
-15. narration 是面向玩家的第二人称现实描写，不是地图条目、档案描述或系统播报。
-16. 玩家行动边界：玩家输入是本回合的行动或想法，narration 必须先把玩家本次行动如何发生写出来，再写该行动带来的直接结果；不得跳过“打开门、敲门、靠近、询问、查看、等待”等行动过程直接写结果。正文只能推进到本次行动自然抵达的结果点：对方回应、门被打开、看到当前状态、得到第一轮答复或想法落定；不要自动写玩家离开、回房、继续追问、打开手机、查看报告、做长期计划或完成后续事务。需要继续推进时，用 choices 交给玩家选择。
-17. 现实世界中任何玩家或角色资料、公司、职业、状态、阵营、装备、物品、穿着等词条变化，都必须通过 lexiconUpdates 批量提交；每条必须写 target/targetId/characterId 与 reason，玩家本人 target 写 "player-self"。
-18. 穿着变化必须有明确动作或事实证据；信息不足不能把基础槽位写成“未穿戴”。
-19. 如果现实推演确认玩家本人或相关角色的身份证角色卡需要更新，lexiconUpdates 使用 kind:"角色卡"；若需要新增或修正稳定技能，使用 kind:"角色技能"。
-20. 若当前场景确认发生物品赠送/交还/转交，final 返回 itemActions action:"transfer"；物品损坏、丢弃、消耗或遗失返回 action:"delete"；被别人赠送或捡到等无付款获得返回 action:"add"；购买返回 action:"purchase" 且 item.price 必须为正整数。购物必须先查询余额语境，余额不足时 narration 写购买失败，不返回 purchase。
-21. 新物品细节只能在玩家检查、详细观察或实际到手时固化。生成前必须通过 item.query.searchKnownItem 搜索世界已知物品；命中时复用，不要生成重名新物品。仅作为正文背景名词出现的物品不要写 itemActions。
-22. final 必须返回 thinking 字段，thinking 是展示给玩家看的现实 AI 思考摘要，只概括使用了哪些现实状态、记忆、时间线或动态资料来推演，不输出隐藏推理链。
-23. 必须只返回合法 JSON。所有 key 和字符串值使用英文双引号；最后一个字段后不要加逗号。
+9. final 必须随现实事件更新身份信息：玩家本人变化写 metricUpdates / lexiconUpdates target:"player-self"；所有本回合关联且已载入/命中的角色卡，都必须像玩家本人一样进行结算判断；相关角色情绪/对玩家感觉写 characterMetricUpdates，且每个相关角色各写一项 target/targetId/characterId，不要只写玩家；相关角色的角色卡、技能、物品、穿着写 lexiconUpdates 或 itemActions 并带 target/targetId/characterId；组织、社群、公司、家庭、学校等势力变化写 factionUpdates。没有明确事实则不要编造。
+10. 角色结算重点：凡本回合出场、被提及、被联系、被玩家行动影响，或通过 request_context 载入了角色卡/记忆的角色，都要判断该角色的 emotions 与 playerFeelings 是否变化；确实变化用非零 delta，没有明显变化但需要说明当前态度时可用 delta:0 并写具体 reason。playerFeelings 必须描述该角色“对玩家本人”的感觉，不要写成泛泛关系或环境感受。
+11. 每次 final 必须返回 locationName，优先复用已知地点，只有移动到新地点时才新增。
+12. 地点命名必须清晰具体，不许写“玩家住处”“住处”“现实地点”这类抽象名。
+13. 如果本回合位置属于某个上级地点，返回 parentLocationName；如果发现可展开子地点，返回 mapNodes 或 newLocations。
+14. 地点说明必须以玩家视角已知事实保存；locationDescription 只写当前地点本次新认识事实。
+15. 如果旧地点说明需要改变，只返回 locationDescriptionUpdates；未知或未提及的旧说明不能改写、覆盖或删除。
+16. narration 是面向玩家的第二人称现实描写，不是地图条目、档案描述或系统播报。
+17. 玩家行动边界：玩家输入是本回合的行动或想法，narration 必须先把玩家本次行动如何发生写出来，再写该行动带来的直接结果；不得跳过“打开门、敲门、靠近、询问、查看、等待”等行动过程直接写结果。正文只能推进到本次行动自然抵达的结果点：对方回应、门被打开、看到当前状态、得到第一轮答复或想法落定；不要自动写玩家离开、回房、继续追问、打开手机、查看报告、做长期计划或完成后续事务。需要继续推进时，用 choices 交给玩家选择。
+18. 现实世界中任何玩家或角色资料、公司、职业、状态、阵营、装备、物品、穿着等词条变化，都必须通过 lexiconUpdates 批量提交；每条必须写 target/targetId/characterId 与 reason，玩家本人 target 写 "player-self"。
+19. 穿着变化必须有明确动作或事实证据；信息不足不能把基础槽位写成“未穿戴”。
+20. 如果现实推演确认玩家本人或相关角色的身份证角色卡需要更新，lexiconUpdates 使用 kind:"角色卡"；若需要新增或修正稳定技能，使用 kind:"角色技能"。
+21. 若当前场景确认发生物品赠送/交还/转交，final 返回 itemActions action:"transfer"；物品损坏、丢弃、消耗或遗失返回 action:"delete"；被别人赠送或捡到等无付款获得返回 action:"add"；购买返回 action:"purchase" 且 item.price 必须为正整数。购物必须先查询余额语境，余额不足时 narration 写购买失败，不返回 purchase。
+22. 新物品细节只能在玩家检查、详细观察或实际到手时固化。生成前必须通过 item.query.searchKnownItem 搜索世界已知物品；命中时复用，不要生成重名新物品。仅作为正文背景名词出现的物品不要写 itemActions。
+23. final 必须返回 thinking 字段，thinking 是展示给玩家看的现实 AI 思考摘要，只概括使用了哪些现实状态、记忆、时间线或动态资料来推演，不输出隐藏推理链。
+24. 必须只返回合法 JSON。所有 key 和字符串值使用英文双引号；最后一个字段后不要加逗号。
 
 ## final 输出 JSON 字段
 
