@@ -70,16 +70,11 @@ window.GameModules.realWorldLongingActions = {
   },
 
   prepareRealWorldLongingContext() {
-    const pending = this.realWorldLongingEvents || [];
+    const pending = (this.realWorldLongingEvents || []).filter((e) => e?.id);
+    if (!pending.length) return '';
     this.realWorldLongingPreparedIds = pending.map((e) => e.id);
-    const roster = this.realWorldLongingRoster().map(({ contact, state }) => {
-      const profile = state.profile || {};
-      const meter = this.longingStateFor(state);
-      const feeling = Number(state.metrics?.playerFeelings?.好感) || 0;
-      return `- ${profile.name || contact?.name || state.name}｜id:${state.id}｜关系:${contact?.relation || profile.role || '未知'}｜好感度:${feeling}｜思念度:${meter.value.toFixed(1)}｜性格:${profile.personality || '未记录'}｜微信:${contact?.id || '未确认'}`;
-    }).join('\n') || '暂无可追踪角色。';
-    const events = pending.map((e) => `- ${e.missed ? '过去错过' : '当前触发'}｜${e.timeIso}｜${e.name}(${e.characterId})｜${e.relation || '关系未知'}｜好感${e.feeling}｜性格:${e.personality || '未记录'}`).join('\n') || '暂无已触发事件。';
-    return [`## 角色思念系统`, `规则：好感度<20不增长；否则按 elapsedSeconds/172800、随机系数0.3-1.0、好感度累积思念度；满100触发一次，溢出保留余数。`, `本轮已触发的思念事件必须在 final.narration 中体现；过去错过事件可写成未读微信或未接触达，当前触发事件应让角色以符合性格的方式联系或靠近玩家。`, `若角色选择微信联系，final.wechatActions 使用 sendIncomingNow 或 sendIncomingPast 写入消息；过去错过事件使用 sendIncomingPast。`, `### 当前角色思念状态\n${roster}`, `### 待注入思念事件\n${events}`].join('\n');
+    const events = pending.map((e) => `- ${e.missed ? '过去错过' : '当前触发'}｜${e.timeIso}｜${e.name}(${e.characterId})｜联系人:${e.contactId || '未确认'}｜${e.relation || '关系未知'}｜好感${e.feeling}｜性格:${e.personality || '未记录'}`).join('\n');
+    return [`## 本轮触发的角色思念事件`, `以下事件必须在 final.narration 中明确体现。过去错过事件写成角色在对应过去时间想起玩家、试图联系或靠近但玩家未回应；当前触发事件让角色按性格以找玩家、发微信、打电话、上门、托人询问等合理方式行动。`, `若角色选择微信联系，先请求 wechat.query.listWechatSkills / listContacts / getThread 确认联系人和口吻；final.wechatActions 使用 sendIncomingPast 写过去错过消息，使用 sendIncomingNow 写当前消息。不要代替玩家回复。`, events].join('\n');
   },
 
   clearPreparedRealWorldLongingEvents() {

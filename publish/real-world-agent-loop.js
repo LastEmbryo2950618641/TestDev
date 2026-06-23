@@ -21,7 +21,7 @@ window.GameModules.realWorldAgentLoop = {
       const prompt = await this.buildPrompt({ store, action, base, loaded, skills, step, materialSession });
       lastPrompt = prompt;
       this.markStep(store, logId, this.stepText(step));
-      const raw = await this.completeParsedStep(store, prompt, logId, true);
+      const raw = await this.completeParsedStep(store, prompt, logId, true, step >= this.minSteps);
       lastRaw = raw.raw;
       const data = raw.data;
       if (!data) throw new Error('现实推演返回格式错误');
@@ -46,7 +46,7 @@ window.GameModules.realWorldAgentLoop = {
   async forceFinal({ store, action, base, loaded, skills, trace, materialSession, logId, prompt, raw }) {
     const finalPrompt = await this.buildPrompt({ store, action, base, loaded, skills, step: '收敛', materialSession, forceFinal: true });
     this.markStep(store, logId, '现实资料已足够，正在整理最终结果…');
-    const finalRaw = await this.completeParsedStep(store, finalPrompt, logId, true);
+    const finalRaw = await this.completeParsedStep(store, finalPrompt, logId, true, true);
     const finalData = finalRaw.data;
     if (finalData?.type === 'final') return { result: finalData, prompt: finalPrompt, loaded, raw: finalRaw.raw, trace };
     throw new Error('现实推演最终结果格式错误');
@@ -104,20 +104,59 @@ window.GameModules.realWorldAgentLoop = {
     return { type: 'final', sceneTitle: '现实场景标题', locationName: '具体地点名', parentLocationName: '上级地点名', locationDescription: '当前地点本次新认识的事实', mapNodes: [{ name: '子地点名', parentName: '上级地点名', descriptionFacts: ['玩家已知地点事实'] }], newLocations: [{ name: '新增地点名', parentName: '', descriptionFacts: ['玩家已知事实'] }], locationDescriptionUpdates: [{ locationName: '地点名', action: 'add', text: '新增或更新的玩家已知事实' }], elapsedSeconds: 60, status: '现实状态简述', quest: '新的现实目标', choices: ['处理现实事务', '联系某个人', '观察周围', '暂时休息'], vitalUpdates: [{ key: 'stamina_pool', delta: -1, reason: '本次行动消耗少量精力。' }, { key: 'satiety', delta: 0, reason: '本次行动时间较短，饱食度基本不变。' }, { key: 'hydration', delta: 0, reason: '本次行动时间较短，水分基本不变。' }, { key: 'fatigue', delta: 1, reason: '持续行动带来轻微疲劳。' }, { key: 'mental_stability', delta: 0, reason: '本次行动没有直接冲击精神稳定。' }], metricUpdates: { target: 'player-self', emotions: [{ key: '情绪名', delta: 0, status: '变化后的状态含义', reason: '现实触发原因' }], playerFeelings: [{ key: '感觉名', delta: 0, status: '变化后的状态含义', reason: '现实触发原因' }] }, characterMetricUpdates: [{ target: '相关角色id或姓名', emotions: [{ key: '情绪名', delta: 0, status: '变化后的状态含义', reason: '该角色受本回合事件影响的原因' }], playerFeelings: [{ key: '感觉名', delta: 0, status: '该角色对玩家的新态度', reason: '该角色对玩家感觉变化或维持的具体证据' }] }], wechatActions: [{ action: 'sendIncomingNow/sendIncomingPast', contactId: '联系人id或角色id', text: '角色发给玩家的微信消息', timeIso: '过去消息必填ISO时间', reason: '思念触发原因' }], factionUpdates: [{ action: 'addFactionPosition', factionName: '势力名', position: '职位或地位', characterName: '角色名或未知', reason: '现实确认依据' }], itemActions: [{ action: 'add/transfer/delete/purchase/generate', target: 'player-self或角色id/姓名', from: '来源角色', to: '目标角色', itemName: '已有物品名', quantity: 1, item: { name: '物品名', kind: '物品或装备', price: 0, description: '说明' }, reason: '现实确认依据' }], lexiconUpdates: [{ worldTag: realWorld.label || '2026 现代都市现实世界', kind: '玩家设定/装备/物品/穿着/角色卡/角色技能', field: '角色卡字段名', name: '词条名或skills', value: '新值或对象', summary: '摘要', description: '说明', reason: '现实证据、触发行动、状态来源或动机' }] };
   },
 
-  async completeParsedStep(store, prompt, logId, streamToUi = false) {
+  async completeParsedStep(store, prompt, logId, streamToUi = false, allowProseFinal = false) {
     let lastRaw = '';
+    let lastErr = null;
     for (let i = 0; i < 2; i += 1) {
       lastRaw = await this.completeStep(store, prompt, logId, streamToUi);
       try {
         const data = this.parseStep(lastRaw);
-        if (data || i === 1) return { raw: lastRaw, data };
+        if (data || i === 1) return { raw: lastRaw, data: data || (allowProseFinal ? this.proseFinal(store, lastRaw) : null) };
         console.warn('现实推演格式不完整，自动重试一次');
       } catch (err) {
-        if (!this.isRetryableParseError(err) || i === 1) throw err;
+        lastErr = err;
+        if (!this.isRetryableParseError(err) || i === 1) break;
         console.warn('现实推演解析异常，自动重试一次:', err.message);
       }
     }
+    if (allowProseFinal) return { raw: lastRaw, data: this.proseFinal(store, lastRaw) };
+    if (lastErr) throw lastErr;
     return { raw: lastRaw, data: null };
+  },
+
+  proseFinal(store, raw) {
+    const narration = this.cleanProseNarration(raw);
+    if (!narration) return null;
+    return {
+      type: 'final',
+      sceneTitle: store.realWorldSceneTitle || '现实世界',
+      locationName: store.realWorldLocationName || store.realWorldMap?.current || '',
+      parentLocationName: '',
+      locationDescription: '',
+      mapNodes: [],
+      newLocations: [],
+      locationDescriptionUpdates: [],
+      narration,
+      elapsedSeconds: 300,
+      status: store.realWorldStatus || '现实推演继续中',
+      quest: store.realWorldQuest || '确认现实处境',
+      choices: store.realWorldChoices || ['观察手机异常', '处理现实事务', '联系熟人', '暂时休息'],
+      vitalUpdates: [],
+      metricUpdates: {},
+      characterMetricUpdates: [],
+      wechatActions: [],
+      factionUpdates: [],
+      itemActions: [],
+      lexiconUpdates: [],
+    };
+  },
+
+  cleanProseNarration(raw) {
+    const text = String(raw || '').trim();
+    if (!text) return '';
+    const sepAt = text.indexOf(this.finalSeparator);
+    const prose = sepAt >= 0 ? text.slice(0, sepAt) : text;
+    return prose.replace(/```[\s\S]*?```/g, '').trim().slice(0, 2400);
   },
 
   async completeStep(store, prompt, logId, streamToUi = false) {

@@ -11,7 +11,7 @@ window.GameModules.realWorldAgentContext = {
     const companies = this.companyNames(store);
     const recent = this.recentLog(store, 3);
     const worldline = this.worldlineBrief(store);
-    const longing = store.prepareRealWorldLongingContext?.() || '角色思念系统未启用。';
+    const longing = store.prepareRealWorldLongingContext?.() || '';
     return [
       `世界：${realWorld.label || '2026 现代都市现实世界'}`,
       `背景：${realWorld.summary || '玩家生活在现代都市，个人信息由玩家自行设定。'}`,
@@ -24,11 +24,11 @@ window.GameModules.realWorldAgentContext = {
       `现实身体状态：${this.vitalsText(store, store.playerIdentityState?.())}`,
       `当前场景：${store.realWorldSceneTitle || '现实世界'}`,
       `当前地点：${store.realWorldLocationName || map.current || '尚未生成具体地点'}`,
-      `当前目标：${store.realWorldQuest || '确认手机异常与现实处境'}`,
+      `当前目标：${store.realWorldQuest || '确认现实处境'}`,
       `当前组织名称：${companies || '暂无公司名称'}`,
       `势力资料库：\n${window.GameModules.factionArchive?.contextFor?.(store, action, 1600) || '暂无势力资料库记录。'}`,
       `现实世界线：\n${worldline}`,
-      `角色思念上下文：\n${longing}`,
+      ...(longing ? [`角色思念上下文：\n${longing}`] : []),
       `最近记录摘要：\n${recent}`,
       `本次行动：${action || '继续观察现实世界'}`,
     ].join('\n');
