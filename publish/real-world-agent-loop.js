@@ -89,13 +89,11 @@ window.GameModules.realWorldAgentLoop = {
       输出示例: outputJson,
     };
     const basePrompt = await window.GameModules.promptTemplates.render('real-world-engine', vars);
-    if (step !== 1 || forceFinal) return basePrompt;
-    const firstPrompt = await window.GameModules.promptTemplates.render('real-world-engine-first', vars);
-    return `${basePrompt}\n\n${firstPrompt}`;
+    return step !== 1 || forceFinal ? basePrompt : `${basePrompt}\n\n${await window.GameModules.promptTemplates.render('real-world-engine-first', vars)}`;
   },
 
   stepOutputRule(step, forceFinal = false) {
-    const finalRule = `返回 final 时必须先输出玩家可见正文，然后另起一行输出 ${this.finalSeparator}，分隔符后只输出 final 结算 JSON。`;
+    const finalRule = `返回 final 时必须先输出玩家可见正文，再另起一行输出 ${this.finalSeparator}，分隔符后必须输出完整 final 结算 JSON；严禁只输出分隔符。`;
     if (forceFinal) return `当前为收敛步骤：禁止 request_context，必须把已有资料整理为 final。资料不完整时也要基于已有资料做克制推理，不要继续请求资料。${finalRule}`;
     if (step === 1) return '当前是第1步：必须返回 request_context，用于识别相关角色与必要资料。';
     return `当前可直接 final；只有仍能获取到回答本次行动所必需的新资料时，才允许 request_context。若请求不到新资料或只是想补全世界，必须 final。${finalRule}`;
@@ -110,10 +108,13 @@ window.GameModules.realWorldAgentLoop = {
     let lastRaw = '';
     for (let i = 0; i < 2; i += 1) {
       lastRaw = await this.completeStep(store, prompt, logId, streamToUi);
-      try { return { raw: lastRaw, data: this.parseStep(lastRaw) }; }
-      catch (err) {
-        if (!String(err.message || '').includes('截断') || i === 1) throw err;
-        console.warn('现实推演疑似截断，自动重试一次:', err.message);
+      try {
+        const data = this.parseStep(lastRaw);
+        if (data || i === 1) return { raw: lastRaw, data };
+        console.warn('现实推演格式不完整，自动重试一次');
+      } catch (err) {
+        if (!this.isRetryableParseError(err) || i === 1) throw err;
+        console.warn('现实推演解析异常，自动重试一次:', err.message);
       }
     }
     return { raw: lastRaw, data: null };
@@ -156,36 +157,36 @@ window.GameModules.realWorldAgentLoop = {
       const text = String(raw || '');
       const sepAt = text.indexOf(this.finalSeparator);
       const jsonRaw = sepAt >= 0 ? text.slice(sepAt + this.finalSeparator.length).trim() : text;
+      if (sepAt >= 0 && !jsonRaw) throw new Error('现实推演 final 分隔符后缺少 JSON');
       if (window.GameModules.aiRequest?.outputTailLooksTruncated?.(jsonRaw)) throw new Error('现实推演返回疑似被截断');
       const data = window.GameModules.jsonUtils.parseLoose(jsonRaw);
       if (!data || typeof data !== 'object') return null;
       const type = String(data.type || '').trim();
       if (type !== 'request_context' && type !== 'final') return null;
-      if (type === 'final' && sepAt >= 0) data.narration = text.slice(0, sepAt).trim() || data.narration || '';
+      if (type === 'final' && sepAt >= 0) {
+        data.narration = text.slice(0, sepAt).trim() || data.narration || '';
+        if (!data.narration) throw new Error('现实推演 final 缺少正文');
+      }
       data.requests = Array.isArray(data.requests) ? data.requests.slice(0, 3) : [];
       data.characters = Array.isArray(data.characters) ? data.characters.slice(0, 8) : [];
       return data;
     } catch (err) {
       console.warn('现实 Loop Agent 步骤解析失败:', err.message);
-      if (String(err.message || '').includes('截断')) throw err;
+      if (this.isRetryableParseError(err)) throw err;
       return null;
     }
   },
 
-  defaultStep(step) {
-    return { type: step === 1 ? 'request_context' : 'final', reason: '解析失败，使用默认上下文。', requests: [], characters: ['player-self'] };
+  isRetryableParseError(err) {
+    return ['截断', '分隔符后缺少 JSON', '缺少正文', 'JSON missing'].some((text) => String(err?.message || '').includes(text));
   },
-
   traceItem(step, data, raw) {
     const ctx = window.GameModules.realWorldAgentContext;
     return { step, type: data?.type || 'parse_failed', thinking: data?.thinking || '', reason: data?.reason || '', characters: data?.characters || [], requests: data?.requests || [], raw: ctx.limit(raw, 1200), loaded: [] };
   },
-
   stepText(step) {
-    if (step === 1) return `现实世界正在识别相关角色与资料需求…（${step}/${this.maxSteps}）`;
-    return `现实世界正在推演…（${step}/${this.maxSteps}）`;
+    return step === 1 ? `现实世界正在识别相关角色与资料需求…（${step}/${this.maxSteps}）` : `现实世界正在推演…（${step}/${this.maxSteps}）`;
   },
-
   markStep(store, logId, text) {
     if (!logId) return;
     store.realWorldLog = (store.realWorldLog || []).map((entry) => entry.id === logId ? { ...entry, narration: text, streaming: true } : entry);
@@ -194,7 +195,6 @@ window.GameModules.realWorldAgentLoop = {
   loadedContextText(data = {}, loaded = [], step = 1) {
     const chars = (data.characters || []).map((item) => item.name || item.id || item).filter(Boolean).join('、') || '玩家本人';
     const titles = loaded.map((item) => item.title).join('、') || '角色记忆';
-    const reason = data.reason ? `：${data.reason}` : '';
-    return `${step === 1 ? '已识别相关角色' : '已追加资料'}：${chars}；已载入${titles}${reason}`;
+    return `${step === 1 ? '已识别相关角色' : '已追加资料'}：${chars}；已载入${titles}${data.reason ? `：${data.reason}` : ''}`;
   },
 };

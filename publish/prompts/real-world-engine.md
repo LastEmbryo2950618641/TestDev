@@ -81,13 +81,13 @@ characters 必须列出本次行动相关人物，至少包含 player-self，可
 
 当资料足够、当前步骤输出要求要求收敛，或继续请求已经无法获得本次行动所必需的新资料时，必须按以下协议返回：
 
-第一段：直接输出玩家可见的现实正文，只写 narration 内容，不要包 JSON，不要标题，不要 Markdown，不要解释。
+第一段：直接输出玩家可见的现实正文，只写 narration 内容，不要包 JSON，不要标题，不要 Markdown，不要解释。正文不能为空，必须先写出玩家行动过程、环境变化、人物反应和直接结果；资料不足时也要基于已有资料克制生成。
 
-第二段：另起一行，逐字输出分隔符：
+第二段：正文结束后另起一行，逐字输出分隔符：
 
 <!--REAL_WORLD_JSON-->
 
-第三段：分隔符后只输出 final 结算 JSON。JSON 根字段必须带：
+第三段：分隔符后只输出完整 final 结算 JSON，不能为空，不能只输出分隔符。JSON 根字段必须带：
 
 {
   "type": "final",
@@ -100,7 +100,7 @@ characters 必须列出本次行动相关人物，至少包含 player-self，可
   "choices": ["行动一", "行动二", "行动三", "行动四"]
 }
 
-final JSON 中可以省略 narration；运行时会把分隔符前的正文作为最终 narration。正文中禁止出现 `<!--REAL_WORLD_JSON-->`。
+final JSON 中可以省略 narration；运行时会把分隔符前的正文作为最终 narration。正文中禁止出现 `<!--REAL_WORLD_JSON-->`。final 严禁只输出分隔符；必须同时有分隔符前正文和分隔符后完整 JSON。
 
 ## 请求资料规则
 
@@ -142,7 +142,7 @@ final JSON 中可以省略 narration；运行时会把分隔符前的正文作�
 20. 如果现实推演确认玩家本人或相关角色的身份证角色卡需要更新，lexiconUpdates 使用 kind:"角色卡"；若需要新增或修正稳定技能，使用 kind:"角色技能"。
 21. 若当前场景确认发生物品赠送/交还/转交，final 返回 itemActions action:"transfer"；物品损坏、丢弃、消耗或遗失返回 action:"delete"；被别人赠送或捡到等无付款获得返回 action:"add"；购买返回 action:"purchase" 且 item.price 必须为正整数。购物必须先查询余额语境，余额不足时 narration 写购买失败，不返回 purchase。
 22. 新物品细节只能在玩家检查、详细观察或实际到手时固化。生成前必须通过 item.query.searchKnownItem 搜索世界已知物品；命中时复用，不要生成重名新物品。仅作为正文背景名词出现的物品不要写 itemActions。
-23. request_context 必须只返回合法 JSON；final 的分隔符后必须只返回合法 JSON。所有 key 和字符串值使用英文双引号；最后一个字段后不要加逗号；不得返回字段表以外的 thinking、analysis、reasoning、chainOfThought、cot、debug、notes 或推演检查清单。
+23. request_context 必须只返回合法 JSON；final 必须返回“正文 + 分隔符 + JSON”三段，分隔符前正文和分隔符后 JSON 都不能为空。所有 key 和字符串值使用英文双引号；最后一个字段后不要加逗号；不得返回字段表以外的 thinking、analysis、reasoning、chainOfThought、cot、debug、notes 或推演检查清单。
 
 ## final 前推演检查
 
