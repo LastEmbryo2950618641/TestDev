@@ -74,14 +74,14 @@ window.GameModules.realWorldAi = {
   },
 
   formatNarration(value, limit = 100) {
-    const text = String(value || '').replace(/\n+/g, '').trim();
+    const text = String(value || '').replace(/\s*\n+\s*/g, '').trim();
     if (!text) return '';
-    const sentences = text.match(/[^。！？!?；;]+[。！？!?；;]?/g) || [text];
+    const sentences = this.splitNarrationSentences(text);
     const parts = [];
     let current = '';
-    for (const sentence of sentences.map((item) => item.trim()).filter(Boolean)) {
+    for (const sentence of sentences) {
       if (!current) { current = sentence; continue; }
-      if ((current + sentence).length > limit) {
+      if ((current + sentence).length > limit && !/^[”’"』」）】》〕〉〗,，]/u.test(sentence)) {
         parts.push(current);
         current = sentence;
       } else {
@@ -90,6 +90,32 @@ window.GameModules.realWorldAi = {
     }
     if (current) parts.push(current);
     return parts.join('\n\n');
+  },
+
+  splitNarrationSentences(text) {
+    const sentences = [];
+    const closingMarks = /[”’"』」）】》〕〉〗]/u;
+    let current = '';
+    for (let i = 0; i < text.length; i += 1) {
+      const char = text[i];
+      current += char;
+      if (!/[。！？!?；;]/u.test(char)) continue;
+
+      let next = i + 1;
+      while (closingMarks.test(text[next] || '')) {
+        current += text[next];
+        next += 1;
+      }
+      if (/\s/u.test(text[next] || '')) {
+        while (/\s/u.test(text[next] || '')) next += 1;
+      }
+      if (/[,，]/u.test(text[next] || '')) continue;
+      sentences.push(current.trim());
+      current = '';
+      i = next - 1;
+    }
+    if (current.trim()) sentences.push(current.trim());
+    return sentences.filter(Boolean);
   },
 
   normalizeThinking(value, store, action) {
