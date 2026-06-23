@@ -1,6 +1,7 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldAgentLoop = {
+  finalSeparator: '<!--REAL_WORLD_JSON-->',
   minSteps: 2,
   maxSteps: 8,
 
@@ -94,14 +95,15 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   stepOutputRule(step, forceFinal = false) {
-    if (forceFinal) return '当前为收敛步骤：禁止 request_context，必须把已有资料整理为 final。资料不完整时也要基于已有资料做克制推理，不要继续请求资料。';
+    const finalRule = `返回 final 时必须先输出玩家可见正文，然后另起一行输出 ${this.finalSeparator}，分隔符后只输出 final 结算 JSON。`;
+    if (forceFinal) return `当前为收敛步骤：禁止 request_context，必须把已有资料整理为 final。资料不完整时也要基于已有资料做克制推理，不要继续请求资料。${finalRule}`;
     if (step === 1) return '当前是第1步：必须返回 request_context，用于识别相关角色与必要资料。';
-    return '当前可直接 final；只有仍能获取到回答本次行动所必需的新资料时，才允许 request_context。若请求不到新资料或只是想补全世界，必须 final。';
+    return `当前可直接 final；只有仍能获取到回答本次行动所必需的新资料时，才允许 request_context。若请求不到新资料或只是想补全世界，必须 final。${finalRule}`;
   },
 
   outputSchema(store) {
     const realWorld = window.GameModules.realWorld2026 || {};
-    return { type: 'final', sceneTitle: '现实场景标题', locationName: '具体地点名', parentLocationName: '上级地点名', locationDescription: '当前地点本次新认识的事实', mapNodes: [{ name: '子地点名', parentName: '上级地点名', descriptionFacts: ['玩家已知地点事实'] }], newLocations: [{ name: '新增地点名', parentName: '', descriptionFacts: ['玩家已知事实'] }], locationDescriptionUpdates: [{ locationName: '地点名', action: 'add', text: '新增或更新的玩家已知事实' }], elapsedSeconds: 60, narration: store.realWorldNarrationHint?.() || '以第二人称续写现实世界中的行动结果，不少于300字且不设字数上限，现实、克制、细节充分，并体现精力、饱食、水分、疲劳或精神稳定对行动的影响', status: '现实状态简述', quest: '新的现实目标', choices: ['处理现实事务', '联系某个人', '观察周围', '暂时休息'], vitalUpdates: [{ key: 'stamina_pool', delta: -1, reason: '本次行动消耗少量精力。' }, { key: 'satiety', delta: 0, reason: '本次行动时间较短，饱食度基本不变。' }, { key: 'hydration', delta: 0, reason: '本次行动时间较短，水分基本不变。' }, { key: 'fatigue', delta: 1, reason: '持续行动带来轻微疲劳。' }, { key: 'mental_stability', delta: 0, reason: '本次行动没有直接冲击精神稳定。' }], metricUpdates: { target: 'player-self', emotions: [{ key: '情绪名', delta: 0, status: '变化后的状态含义', reason: '现实触发原因' }], playerFeelings: [{ key: '感觉名', delta: 0, status: '变化后的状态含义', reason: '现实触发原因' }] }, characterMetricUpdates: [{ target: '相关角色id或姓名', emotions: [{ key: '情绪名', delta: 0, status: '变化后的状态含义', reason: '该角色受本回合事件影响的原因' }], playerFeelings: [{ key: '感觉名', delta: 0, status: '该角色对玩家的新态度', reason: '该角色对玩家感觉变化或维持的具体证据' }] }], factionUpdates: [{ action: 'addFactionPosition', factionName: '势力名', position: '职位或地位', characterName: '角色名或未知', reason: '现实确认依据' }], itemActions: [{ action: 'add/transfer/delete/purchase/generate', target: 'player-self或角色id/姓名', from: '来源角色', to: '目标角色', itemName: '已有物品名', quantity: 1, item: { name: '物品名', kind: '物品或装备', price: 0, description: '说明' }, reason: '现实确认依据' }], lexiconUpdates: [{ worldTag: realWorld.label || '2026 现代都市现实世界', kind: '玩家设定/装备/物品/穿着/角色卡/角色技能', field: '角色卡字段名', name: '词条名或skills', value: '新值或对象', summary: '摘要', description: '说明', reason: '现实证据、触发行动、状态来源或动机' }] };
+    return { type: 'final', sceneTitle: '现实场景标题', locationName: '具体地点名', parentLocationName: '上级地点名', locationDescription: '当前地点本次新认识的事实', mapNodes: [{ name: '子地点名', parentName: '上级地点名', descriptionFacts: ['玩家已知地点事实'] }], newLocations: [{ name: '新增地点名', parentName: '', descriptionFacts: ['玩家已知事实'] }], locationDescriptionUpdates: [{ locationName: '地点名', action: 'add', text: '新增或更新的玩家已知事实' }], elapsedSeconds: 60, status: '现实状态简述', quest: '新的现实目标', choices: ['处理现实事务', '联系某个人', '观察周围', '暂时休息'], vitalUpdates: [{ key: 'stamina_pool', delta: -1, reason: '本次行动消耗少量精力。' }, { key: 'satiety', delta: 0, reason: '本次行动时间较短，饱食度基本不变。' }, { key: 'hydration', delta: 0, reason: '本次行动时间较短，水分基本不变。' }, { key: 'fatigue', delta: 1, reason: '持续行动带来轻微疲劳。' }, { key: 'mental_stability', delta: 0, reason: '本次行动没有直接冲击精神稳定。' }], metricUpdates: { target: 'player-self', emotions: [{ key: '情绪名', delta: 0, status: '变化后的状态含义', reason: '现实触发原因' }], playerFeelings: [{ key: '感觉名', delta: 0, status: '变化后的状态含义', reason: '现实触发原因' }] }, characterMetricUpdates: [{ target: '相关角色id或姓名', emotions: [{ key: '情绪名', delta: 0, status: '变化后的状态含义', reason: '该角色受本回合事件影响的原因' }], playerFeelings: [{ key: '感觉名', delta: 0, status: '该角色对玩家的新态度', reason: '该角色对玩家感觉变化或维持的具体证据' }] }], factionUpdates: [{ action: 'addFactionPosition', factionName: '势力名', position: '职位或地位', characterName: '角色名或未知', reason: '现实确认依据' }], itemActions: [{ action: 'add/transfer/delete/purchase/generate', target: 'player-self或角色id/姓名', from: '来源角色', to: '目标角色', itemName: '已有物品名', quantity: 1, item: { name: '物品名', kind: '物品或装备', price: 0, description: '说明' }, reason: '现实确认依据' }], lexiconUpdates: [{ worldTag: realWorld.label || '2026 现代都市现实世界', kind: '玩家设定/装备/物品/穿着/角色卡/角色技能', field: '角色卡字段名', name: '词条名或skills', value: '新值或对象', summary: '摘要', description: '说明', reason: '现实证据、触发行动、状态来源或动机' }] };
   },
 
   async completeParsedStep(store, prompt, logId, streamToUi = false) {
@@ -151,11 +153,15 @@ window.GameModules.realWorldAgentLoop = {
 
   parseStep(raw) {
     try {
-      if (window.GameModules.aiRequest?.outputTailLooksTruncated?.(raw)) throw new Error('现实推演返回疑似被截断');
-      const data = window.GameModules.jsonUtils.parseLoose(raw);
+      const text = String(raw || '');
+      const sepAt = text.indexOf(this.finalSeparator);
+      const jsonRaw = sepAt >= 0 ? text.slice(sepAt + this.finalSeparator.length).trim() : text;
+      if (window.GameModules.aiRequest?.outputTailLooksTruncated?.(jsonRaw)) throw new Error('现实推演返回疑似被截断');
+      const data = window.GameModules.jsonUtils.parseLoose(jsonRaw);
       if (!data || typeof data !== 'object') return null;
       const type = String(data.type || '').trim();
       if (type !== 'request_context' && type !== 'final') return null;
+      if (type === 'final' && sepAt >= 0) data.narration = text.slice(0, sepAt).trim() || data.narration || '';
       data.requests = Array.isArray(data.requests) ? data.requests.slice(0, 3) : [];
       data.characters = Array.isArray(data.characters) ? data.characters.slice(0, 8) : [];
       return data;
