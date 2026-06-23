@@ -11,6 +11,7 @@ window.GameModules.realWorldAgentContext = {
     const companies = this.companyNames(store);
     const recent = this.recentLog(store, 3);
     const worldline = this.worldlineBrief(store);
+    const longing = store.prepareRealWorldLongingContext?.() || '角色思念系统未启用。';
     return [
       `世界：${realWorld.label || '2026 现代都市现实世界'}`,
       `背景：${realWorld.summary || '玩家生活在现代都市，个人信息由玩家自行设定。'}`,
@@ -27,6 +28,7 @@ window.GameModules.realWorldAgentContext = {
       `当前组织名称：${companies || '暂无公司名称'}`,
       `势力资料库：\n${window.GameModules.factionArchive?.contextFor?.(store, action, 1600) || '暂无势力资料库记录。'}`,
       `现实世界线：\n${worldline}`,
+      `角色思念上下文：\n${longing}`,
       `最近记录摘要：\n${recent}`,
       `本次行动：${action || '继续观察现实世界'}`,
     ].join('\n');
@@ -79,7 +81,7 @@ window.GameModules.realWorldAgentContext = {
   },
 
   async skillText() {
-    const ids = ['emotion.feeling.wearing.assess', 'memory.query', 'company.query', 'faction.query', 'realworld.location.query', 'realworld.history.query', 'lexicon.query', 'item.query', 'realworld.vitals.adjust'];
+    const ids = ['emotion.feeling.wearing.assess', 'memory.query', 'company.query', 'faction.query', 'realworld.location.query', 'realworld.history.query', 'lexicon.query', 'item.query', 'wechat.query', 'wechat.message.incoming', 'realworld.vitals.adjust'];
     const texts = await Promise.all(ids.map((id) => window.GameModules.skillLoader?.instruction?.(id) || ''));
     return texts.filter(Boolean).join('\n\n');
   },
@@ -122,6 +124,7 @@ window.GameModules.realWorldAgentContext = {
     if (skill === 'memory.query') return await this.memory(store, action, method, params);
     if (skill === 'lexicon.query') return await this.lexicon(store, method, params);
     if (skill === 'item.query') return await this.itemQuery(store, method, params);
+    if (skill === 'wechat.query') return window.GameModules.realWorldAgentWechat?.wechat?.(store, method, params) || '';
     return '';
   },
 

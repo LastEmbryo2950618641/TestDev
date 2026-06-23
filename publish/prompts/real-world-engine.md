@@ -130,7 +130,9 @@ final JSON 中可以省略 narration；运行时会把分隔符前的正文作�
 8. narration 必须体现这些现实状态对玩家行动和感受的影响：饥饿、口渴、疲劳、精力不足或精神不稳会影响观察、反应、决策和行动效率。
 9. final 必须随现实事件更新身份信息：玩家本人变化写 metricUpdates / lexiconUpdates target:"player-self"；所有本回合关联且已载入/命中的角色卡，都必须像玩家本人一样进行结算判断；相关角色情绪/对玩家感觉写 characterMetricUpdates，且每个相关角色各写一项 target/targetId/characterId，不要只写玩家；相关角色的角色卡、技能、物品、穿着写 lexiconUpdates 或 itemActions 并带 target/targetId/characterId；组织、社群、公司、家庭、学校等势力变化写 factionUpdates。没有明确事实则不要编造。
 10. 角色结算重点：凡本回合出场、被提及、被联系、被玩家行动影响，或通过 request_context 载入了角色卡/记忆的角色，都要判断该角色的 emotions 与 playerFeelings 是否变化；确实变化用非零 delta，没有明显变化但需要说明当前态度时可用 delta:0 并写具体 reason。playerFeelings 必须描述该角色“对玩家本人”的感觉，不要写成泛泛关系或环境感受。
-11. 每次 final 必须返回 locationName，优先复用已知地点，只有移动到新地点时才新增。
+11. 如果“角色思念上下文”里存在“待注入思念事件”，final.narration 必须体现：过去错过事件要写成角色在对应过去时间想起玩家、试图联系或靠近但玩家未回应；当前触发事件要让角色按其性格以找主角、发微信、打电话、上门、托人询问等合理方式行动，并在文中明确可见。
+12. 思念事件可使用微信时，先按资料清单请求 wechat.query.listWechatSkills / listContacts / getThread；final.wechatActions 可写 sendIncomingNow 或 sendIncomingPast。过去错过事件优先 sendIncomingPast，当前触发事件可 sendIncomingNow。消息内容必须符合角色性格与最近关系，不要代替玩家回复。
+13. 每次 final 必须返回 locationName，优先复用已知地点，只有移动到新地点时才新增。
 12. 地点命名必须清晰具体，不许写“玩家住处”“住处”“现实地点”这类抽象名。
 13. 如果本回合位置属于某个上级地点，返回 parentLocationName；如果发现可展开子地点，返回 mapNodes 或 newLocations。
 14. 地点说明必须以玩家视角已知事实保存；locationDescription 只写当前地点本次新认识事实。

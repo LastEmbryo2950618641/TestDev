@@ -159,6 +159,10 @@ window.GameModules.realWorldActions = {
     result.characterCardChanges = settlement;
     const startedAt = this.phoneDate().toISOString();
     this.advancePhoneTime(elapsedSeconds);
+    await this.applyWechatActions?.(result.wechatActions || []);
+    const longingEvents = await this.settleRealWorldLongingMeters?.(elapsedSeconds, new Date(startedAt).getTime(), this.phoneDate().getTime()) || [];
+    if (longingEvents.length) settlement.push(`角色思念：${longingEvents.length}次思念事件等待下次现实推演体现。`);
+    this.clearPreparedRealWorldLongingEvents?.();
     this.refreshRealWorldMatterStatus?.();
     this.checkWorkReminder?.();
     window.GameModules.realWorldMap.update(this, result.locationName || this.realWorldLocationName, result);

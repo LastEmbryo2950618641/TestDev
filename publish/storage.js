@@ -72,6 +72,7 @@ window.GameModules.storage = {
       realWorldStatus: store.realWorldStatus,
       realWorldChoices: store.realWorldChoices,
       realWorldLog: (store.realWorldLog || []).filter((entry) => !entry.transientError).slice(-30),
+      realWorldLongingEvents: store.realWorldLongingEvents || [],
       realWorldlineState: store.realWorldlineState || { events: [], plots: [], pendingPlot: null },
       companyState: store.companyState ? { ...store.companyState, open: false } : store.companyState,
       bossState: store.bossState ? { ...store.bossState, open: false, companyDetailOpen: false, generating: false } : store.bossState,
@@ -114,6 +115,7 @@ window.GameModules.storage = {
     store.realWorldStatus = save.realWorldStatus || store.realWorldStatus;
     store.realWorldChoices = save.realWorldChoices || store.realWorldChoices;
     store.realWorldLog = window.GameModules.realWorldThinkingActions?.normalizeRealWorldLog?.(save.realWorldLog || store.realWorldLog) || (save.realWorldLog || store.realWorldLog);
+    store.realWorldLongingEvents = Array.isArray(save.realWorldLongingEvents) ? save.realWorldLongingEvents : (store.realWorldLongingEvents || []);
     window.GameModules.sqliteSave.saveRealWorldLogEntries?.(store.realWorldLog).catch((err) => console.warn('[现实日志] 旧日志迁移失败:', err.message, err.stack));
     store.realWorldlineState = save.realWorldlineState || store.realWorldlineState || { events: [], plots: [], pendingPlot: null };
     window.GameModules.wechatCleanup?.run?.(store);

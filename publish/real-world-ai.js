@@ -51,6 +51,7 @@ window.GameModules.realWorldAi = {
         characterMetricUpdates: this.normalizeCharacterMetricUpdates(data.characterMetricUpdates, store),
         factionUpdates: Array.isArray(data.factionUpdates) ? data.factionUpdates.slice(0, 8) : [],
         itemActions: Array.isArray(data.itemActions) ? data.itemActions.slice(0, 8) : [],
+        wechatActions: this.normalizeWechatActions(data.wechatActions),
         lexiconUpdates: window.GameModules.ai.normalizeLexiconUpdates?.(data.lexiconUpdates, store) || [],
       };
     } catch (err) {
@@ -121,6 +122,17 @@ window.GameModules.realWorldAi = {
   normalizeChoices(value) {
     const list = Array.isArray(value) ? value : [];
     return [...new Set(list.map((x) => String(x || '').trim().slice(0, 14)).filter(Boolean).concat(['观察手机异常', '处理现实事务', '联系熟人', '暂时休息']))].slice(0, 4);
+  },
+
+  normalizeWechatActions(value) {
+    return (Array.isArray(value) ? value : []).map((item) => {
+      const action = String(item?.action || item?.method || '').trim();
+      if (!['sendIncomingNow', 'sendIncomingPast'].includes(action)) return null;
+      const contactId = String(item.contactId || item.characterId || item.target || item.name || '').trim().slice(0, 40);
+      const text = String(item.text || item.message || '').trim().slice(0, 180);
+      if (!contactId || !text) return null;
+      return { action, contactId, text, timeIso: String(item.timeIso || item.time || '').trim(), reason: String(item.reason || '').slice(0, 120) };
+    }).filter(Boolean).slice(0, 6);
   },
 
   normalizeVitalUpdates(value, elapsedSeconds = 300, action = '') {
