@@ -23,7 +23,8 @@ window.GameModules.realWorldTargetUpdates = {
     const settlement = [];
     for (const group of this.metricUpdateGroups(result)) {
       const state = this.targetState(store, group.target);
-      const title = state?.id ? (store.realWorldSettlementTargetGroup?.(state.id, state.id === 'player-self' ? '玩家' : (store.itemSkillStateLabel?.(state) || state.id)) || '玩家') : (store.realWorldSettlementTargetGroup?.(group.target, group.target) || group.target || '角色');
+      const fallback = state?.id === 'player-self' ? '' : (store.itemSkillStateLabel?.(state) || state?.id || group.target);
+      const title = state?.id ? (store.realWorldSettlementTargetGroup?.(state.id, fallback) || fallback) : (store.realWorldSettlementTargetGroup?.(group.target, group.target) || group.target || '角色');
       settlement.push(...(store.realWorldMetricSettlement?.(state, group.updates, title) || []));
       if (state?.id) await store.applyMetricUpdatesToState?.(state, group.updates);
     }

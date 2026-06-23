@@ -5,12 +5,19 @@ window.GameModules.realWorldSettlementActions = {
     return { at: new Date().toISOString(), group: group || this.realWorldSettlementGroup(field, name), field, name, value, reason: reason || '现实推演结算。', applied: true };
   },
 
+  realWorldPlayerSettlementName() {
+    const display = this.playerDisplayCharacter?.();
+    const state = this.playerIdentityState?.();
+    return display?.name || state?.profile?.name || state?.name || this.playerProfile?.name || this.playerName || '手机主人';
+  },
+
   realWorldSettlementTargetGroup(target = '', fallback = '') {
     const value = String(target || '').trim();
     const player = this.playerIdentityState?.();
-    if (!value || value === 'player-self' || value === player?.id || value === this.playerProfile?.name) return '玩家';
+    const playerName = this.realWorldPlayerSettlementName();
+    if (!value || value === 'player-self' || value === 'player' || value === '玩家' || value === '玩家本人' || value === player?.id || value === this.playerProfile?.name || value === playerName) return playerName;
     const state = this.itemSkillState?.(value);
-    if (state?.id && state.id !== player?.id && state.id !== 'player-self') return this.itemSkillStateLabel?.(state) || state.profile?.name || state.name || state.id;
+    if (state?.id) return this.itemSkillStateLabel?.(state) || state.profile?.name || state.name || state.id;
     return fallback && fallback !== '玩家' ? fallback.replace(/^角色[:：]/u, '') : value;
   },
 
@@ -54,7 +61,8 @@ window.GameModules.realWorldSettlementActions = {
     return this.realWorldSettlementGroups(entry).filter((group) => group.title === active);
   },
 
-  realWorldMetricSettlement(state, updates = {}, group = '玩家') {
+  realWorldMetricSettlement(state, updates = {}, group = '') {
+    group = group || this.realWorldSettlementTargetGroup(state?.id || 'player-self', '');
     const metrics = state ? this.ensureStateMetrics(state) : null;
     const rows = [];
     const add = (field, list, current = {}) => (Array.isArray(list) ? list : []).forEach((item) => {
@@ -70,16 +78,17 @@ window.GameModules.realWorldSettlementActions = {
   realWorldVitalSettlement(state, updates = []) {
     const labels = { stamina_pool: '精力池', satiety: '饱食度', hydration: '水分', fatigue: '疲劳度', mental_stability: '精神稳定' };
     const values = state?.values || {};
+    const group = this.realWorldSettlementTargetGroup(state?.id || 'player-self', '');
     return (Array.isArray(updates) ? updates : []).map((item) => {
       const pool = values[item.key];
       const before = pool?.max ? window.GameModules.progression.percent(pool) : null;
       const after = before === null ? '' : `：${before} → ${Math.max(0, Math.min(100, before + (Number(item.delta) || 0)))}%`;
-      return this.realWorldSettlementRecord('生命体征', labels[item.key] || item.key, `变化${Number(item.delta) || 0}${after}`, item.reason, '玩家');
+      return this.realWorldSettlementRecord('生命体征', labels[item.key] || item.key, `变化${Number(item.delta) || 0}${after}`, item.reason, group);
     });
   },
 
   realWorldCardChangeSettlement(changes = []) {
-    return (Array.isArray(changes) ? changes : []).map((item) => this.realWorldSettlementRecord(`身份/${item.field || '角色卡'}`, item.name || item.field, typeof item.value === 'object' ? JSON.stringify(item.value) : item.value, item.reason, this.realWorldSettlementTargetGroup(item.target || item.targetId || item.characterId, '玩家')));
+    return (Array.isArray(changes) ? changes : []).map((item) => this.realWorldSettlementRecord(`身份/${item.field || '角色卡'}`, item.name || item.field, typeof item.value === 'object' ? JSON.stringify(item.value) : item.value, item.reason, this.realWorldSettlementTargetGroup(item.target || item.targetId || item.characterId, '')));
   },
 
   realWorldLexiconSettlement(changes = []) {
