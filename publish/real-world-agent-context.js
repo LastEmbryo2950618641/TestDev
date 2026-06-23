@@ -10,7 +10,6 @@ window.GameModules.realWorldAgentContext = {
     const map = window.GameModules.realWorldMap.ensure(store, store.playerProfile || {});
     const companies = this.companyNames(store);
     const recent = this.recentLog(store, 3);
-    const worldline = this.worldlineBrief(store);
     const longing = store.prepareRealWorldLongingContext?.() || '';
     return [
       `世界：${realWorld.label || '2026 现代都市现实世界'}`,
@@ -27,7 +26,6 @@ window.GameModules.realWorldAgentContext = {
       `当前目标：${store.realWorldQuest || '确认现实处境'}`,
       `当前组织名称：${companies || '暂无公司名称'}`,
       `势力资料库：\n${window.GameModules.factionArchive?.contextFor?.(store, action, 1600) || '暂无势力资料库记录。'}`,
-      `现实世界线：\n${worldline}`,
       ...(longing ? [`角色思念上下文：\n${longing}`] : []),
       `最近记录摘要：\n${recent}`,
       `本次行动：${action || '继续观察现实世界'}`,
@@ -57,22 +55,6 @@ window.GameModules.realWorldAgentContext = {
     return rows.map((entry) => entry.type === 'user'
       ? `玩家行动：${entry.text}`
       : `地点：${entry.locationName || store.realWorldLocationName || '未知'}｜结果：${this.limit(entry.narration || entry.text || '', 260)}`).join('\n') || '暂无现实世界推演记录。';
-  },
-
-  worldlineBrief(store) {
-    const line = store.realWorldline?.() || { events: [], plots: [], pendingPlot: null };
-    const pendingIds = line.pendingPlot?.recordIds || [];
-    const pendingEvents = this.eventsByIds?.(line, pendingIds) || (line.events || []).filter((event) => pendingIds.includes(event.eventId) || pendingIds.includes(event.id));
-    const pending = pendingEvents.length
-      ? pendingEvents.map((event) => this.eventLine?.(event) || `${event.eventId || event.id || '未知记录'}｜${event.time || ''}｜${event.name || '现实事件'}｜${this.limit(event.detail || event.summary || '', 360)}`).join('\n')
-      : '暂无待归纳记录。';
-    const plots = (line.plots || []).slice(-8).map((plot) => {
-      const id = plot.情节编号 || plot.id || '未编号';
-      const name = plot.情节名称 || plot.name || plot.摘要 || '未命名情节';
-      const records = plot.重要记录编号 || plot.recordIds || '';
-      return `- ${id}｜${name}｜关联记录：${records || '需动态查询'}`;
-    }).join('\n') || '已归纳情节：暂无。';
-    return `正在记录全文：\n${pending}\n已归纳情节目录：\n${plots}\n说明：正在记录的现实时间线已全文载入；已归纳情节只提供索引，需要细节时再动态请求 realworld.history.query。`;
   },
 
   buildLoadedText(items = []) {

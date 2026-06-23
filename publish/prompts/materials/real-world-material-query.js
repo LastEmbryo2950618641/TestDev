@@ -58,6 +58,9 @@ window.GameModules = window.GameModules || {};
     history(store, method, params = {}) {
       const keyword = String(params.keyword || '').trim();
       if (method === 'getWorldlinePending') return this.worldlinePending(store);
+      if (method === 'listWorldlineIndex') return this.worldlineIndex(store);
+      if (method === 'searchWorldlineByKeyword') return this.searchWorldline(store, keyword, 'keyword');
+      if (method === 'searchWorldlineByTime') return this.searchWorldline(store, String(params.time || params.keyword || '').trim(), 'time');
       if (method === 'listWorldlinePlots') return this.worldlinePlots(store);
       if (method === 'getWorldlinePlotRecords') return this.worldlinePlotRecords(store, params);
       const rows = this.allRealWorldRows(store);
@@ -81,6 +84,40 @@ window.GameModules = window.GameModules || {};
     historyRowsText(rows = [], max = 1800) {
       const text = rows.map((entry) => entry.type === 'user' ? `玩家：${entry.text}` : `现实：${entry.locationName || '未知地点'}｜${this.limit(entry.narration || entry.text || '', 360)}`).join('\n');
       return this.limit(text || '未命中现实记录。', max);
+    },
+
+    worldlineIndex(store) {
+      const line = store.realWorldline?.() || { events: [], plots: [], pendingPlot: null };
+      const pending = line.pendingPlot ? `记录中｜${line.pendingPlot.startedAt || ''}-${line.pendingPlot.endedAt || ''}｜记录数:${(line.pendingPlot.recordIds || []).length}` : '记录中｜暂无';
+      const recentEvents = (line.events || []).slice(-12).map((event) => `事件｜${event.eventId || event.id || '未知'}｜${event.time || ''}｜${event.name || '现实事件'}｜情节:${event.plotId || event.summary || '未归纳'}｜${this.limit(event.detail || '', 80)}`);
+      const plots = (line.plots || []).slice(-12).map((plot) => `情节｜${plot.情节编号 || plot.id || '未编号'}｜${plot.情节标题 || plot.情节名称 || plot.摘要 || '未命名'}｜${plot.情节时间段 || ''}｜记录:${plot.重要记录编号 || plot.recordIds || ''}`);
+      return [`世界线清单`, pending, ...plots, ...recentEvents].join('\n') || '暂无世界线资料。';
+    },
+
+    searchWorldline(store, query = '', mode = 'keyword') {
+      const key = String(query || '').trim();
+      if (!key) return this.worldlineIndex(store);
+      const line = store.realWorldline?.() || { events: [], plots: [] };
+      const events = (line.events || []).filter((event) => this.worldlineEventText(event).includes(key)).slice(-8);
+      const plots = (line.plots || []).filter((plot) => this.worldlinePlotText(plot).includes(key)).slice(-6);
+      const eventText = events.map((event) => this.eventLine?.(event) || this.worldlineEventText(event)).join('\n');
+      const plotText = plots.map((plot) => this.worldlinePlotDetail(line, plot)).join('\n\n');
+      const label = mode === 'time' ? '时间' : '关键词';
+      return this.limit([`${label}查询：${key}`, plotText ? `命中情节：\n${plotText}` : '', eventText ? `命中事件：\n${eventText}` : ''].filter(Boolean).join('\n\n') || '未命中世界线资料。', 1800);
+    },
+
+    worldlinePlotDetail(line = {}, plot = {}) {
+      const ids = String(plot.重要记录编号 || plot.recordIds || '').split(/[、,，\s]+/).filter(Boolean);
+      const events = this.eventsByIds?.(line, ids) || [];
+      return [`情节：${plot.情节编号 || plot.id || ''}｜${plot.情节标题 || plot.情节名称 || plot.摘要 || ''}`, `时间：${plot.情节时间段 || ''}`, `总结：${plot.情节总结 || plot.摘要 || plot.情节摘要 || ''}`, `关键片段：${plot.重要片段 || ''}`, `关联记录：\n${events.map((event) => this.eventLine?.(event) || this.worldlineEventText(event)).join('\n') || ids.join('、') || '无'}`].join('\n');
+    },
+
+    worldlineEventText(event = {}) {
+      return `${event.eventId || event.id || ''}\n${event.time || ''}\n${event.name || ''}\n${event.summary || ''}\n${event.plotId || ''}\n${event.detail || ''}\n${JSON.stringify(event)}`;
+    },
+
+    worldlinePlotText(plot = {}) {
+      return `${plot.情节编号 || plot.id || ''}\n${plot.情节标题 || ''}\n${plot.情节名称 || ''}\n${plot.情节时间段 || ''}\n${plot.情节总结 || ''}\n${plot.摘要 || ''}\n${plot.重要片段 || ''}\n${plot.重要记录编号 || plot.recordIds || ''}\n${JSON.stringify(plot)}`;
     },
 
     async memory(store, action, method, params = {}) {

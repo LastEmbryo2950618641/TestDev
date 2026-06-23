@@ -92,9 +92,9 @@ characters 必须列出本次行动相关人物，至少包含 player-self，可
 
 1. 行动涉及公司、上班、请假、迟到、岗位、面试、招聘、老板、同事、工资、项目、工位、打卡、考勤、开会、离职时，优先请求 company.query。
 2. 行动涉及去、到、回、离开、附近、楼下、门口、房间、小区、公司、学校、便利店、路线、导航、找、查看周围时，优先请求 realworld.location.query。
-3. 基础上下文必须包含现实世界线中的正在记录时间线全文和已归纳情节目录；相关人物短期与长期记忆由代码按 characters 载入，你必须将它们作为现实连续性依据。
-4. 行动涉及之前、上次、刚才、昨天、那次、还记得、发生过、记录、时间线、已归纳情节、正在记录时，优先请求 realworld.history.query 或 memory.query。
-5. 如果需要使用某个已归纳情节的关联记录，不要凭目录补细节，必须请求 realworld.history.query.getWorldlinePlotRecords 动态载入。
+3. 基础上下文只包含当前状态和最近摘要；相关人物短期与长期记忆由代码按 characters 载入，你必须将它们作为现实连续性依据。
+4. 行动涉及之前、上次、刚才、昨天、那次、还记得、发生过、记录、时间线、世界线、已归纳情节、正在记录时，优先请求 realworld.history.query 或 memory.query。
+5. 如果需要世界线或某个已归纳情节的具体资料，不要凭空补细节，先请求 realworld.history.query.listWorldlineIndex 查看世界线清单，再按 keyword/time/plotId 请求 searchWorldlineByKeyword、searchWorldlineByTime 或 getWorldlinePlotRecords 动态载入。
 6. 行动涉及承诺、照片、物品、人际关系、旧地点、旧经历时，优先请求 memory.query；记忆过长时只能使用关键词查询、关键词窗口或最近指定数量。
 7. 短期记忆、长期记忆与已载入现实时间线记录出现同一条记录时视为同源，只取一份，不要重复叙述或重复当成两次事件。
 8. 行动或上下文出现你不能准确判断含义的专用术语、缩写、APP名、功能名、黑话或自定义概念时，先请求 lexicon.query.searchTermOne 查询专用术语。若未命中且已有基础上下文、动态资料、现实记录足以克制推断含义，可以请求 lexicon.query.addSpecialTerm 新增 kind 为“专用术语”的词条；若无法推断，不要新增，保持不确定并用 choices 让玩家确认。新增后不要为同一术语重复查询或重复新增。

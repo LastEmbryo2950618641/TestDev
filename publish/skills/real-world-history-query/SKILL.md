@@ -2,10 +2,10 @@
 id: realworld.history.query
 category: 现实记录查询
 name: 现实世界记录查询
-method: getRecentRealWorldLog(limit), searchRealWorldLog(keyword), getWorldlinePending(), listWorldlinePlots(), getWorldlinePlotRecords(plotId)
-params: limit: 最近记录数量；keyword: 旧行动、地点、时间或事件关键词；plotId: 已归纳情节编号或名称
-returns: 最近现实推演记录、关键词命中的历史现实记录、正在记录时间线、已归纳情节目录或情节关联记录
-trigger: 现实世界推演中，行动涉及刚才、之前、上次、昨天、那次、记录、时间线、已经发生过的现实事件时查询。
+method: getRecentRealWorldLog(limit), searchRealWorldLog(keyword), listWorldlineIndex(), searchWorldlineByKeyword(keyword), searchWorldlineByTime(time), getWorldlinePlotRecords(plotId)
+params: limit: 最近记录数量；keyword: 旧行动、地点、人物、物品或事件关键词；time: 日期、时间段或时间关键词；plotId: 已归纳情节编号或名称
+returns: 最近现实推演记录、关键词命中的历史现实记录、世界线清单、按关键词或时间命中的世界线资料、情节关联记录
+trigger: 现实世界推演中，行动涉及刚才、之前、上次、昨天、那次、记录、时间线、世界线、已归纳情节或已经发生过的现实事件时查询。
 ---
 
 # 现实世界记录查询 Skill
@@ -18,13 +18,16 @@ trigger: 现实世界推演中，行动涉及刚才、之前、上次、昨天�
 
 1. `getRecentRealWorldLog(limit)`：读取最近若干条现实记录。
 2. `searchRealWorldLog(keyword)`：按关键词搜索旧现实记录。
-3. `getWorldlinePending()`：读取正在记录、尚未归纳的现实时间线记录。
-4. `listWorldlinePlots()`：读取已归纳情节目录。
-5. `getWorldlinePlotRecords(plotId)`：按情节编号或名称动态载入该情节关联记录。
+3. `listWorldlineIndex()`：读取世界线清单，只返回正在记录概况、最近事件索引和已归纳情节索引。
+4. `searchWorldlineByKeyword(keyword)`：按人物、地点、事件、物品或组织关键词动态载入具体世界线事件与情节资料。
+5. `searchWorldlineByTime(time)`：按日期、当天、昨天、时间段等线索动态载入具体世界线事件与情节资料。
+6. `listWorldlinePlots()`：只查看已归纳情节目录。
+7. `getWorldlinePlotRecords(plotId)`：按情节编号或名称动态载入该情节关联记录。
 
 ## 使用规则
 
 1. 没有命中旧记录时，不得把旧事件当成既定事实。
 2. 与角色记忆不同，现实记录只记录玩家本人收起手机后的现实行动。
 3. 如果旧现实记录与最新状态冲突，以最新状态和已载入资料为准。
-4. 已归纳情节目录只作为索引；需要使用情节细节时必须调用 `getWorldlinePlotRecords(plotId)`。
+4. 世界线清单和已归纳情节目录只作为索引；需要具体细节时，按已知线索调用 `searchWorldlineByKeyword(keyword)`、`searchWorldlineByTime(time)` 或 `getWorldlinePlotRecords(plotId)`。
+5. 不要为了完整背景一次性加载全部世界线；只查询本次行动必要的关键词、时间段或情节。
