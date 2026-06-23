@@ -6,6 +6,9 @@ window.GameModules.factionActions = {
     this.factionState = { ...base, ...(this.factionState || {}) };
     this.factionState.factions = this.factionState.factions?.length ? this.factionState.factions : base.factions;
     this.factionState.factions = this.factionState.factions.map((faction) => this.normalizeFactionStructure({ ...faction, fieldReasons: this.completeFactionReasons?.(faction, faction.fieldReasons) || faction.fieldReasons || {} }));
+    const top = base.factions[0];
+    if (top && !this.factionState.factions.some((faction) => faction.id === top.id || faction.name === top.name)) this.factionState.factions.unshift(top);
+    if (top) this.factionState.factions.sort((a, b) => (a.id === top.id ? -1 : b.id === top.id ? 1 : 0));
     this.syncCompanyFaction?.();
     this.ensureAllCompanyFactions?.();
     this.syncRoleCardFactionPositions?.();
@@ -17,7 +20,9 @@ window.GameModules.factionActions = {
     if (!c) return;
     const item = this.factionState.factions.find((x) => x.id === 'company-main');
     if (!item) return;
-    const updates = { name: c.name, type: c.type || item.type, location: c.location || item.location, domain: c.industry || item.domain, parentId: 'country-china', parentName: '中华人民共和国' };
+    const expectedTop = window.GameModules.factionSystem.countryFaction(this.playerProfile || {});
+    const top = this.factionState.factions.find((x) => x.id === expectedTop.id || x.name === expectedTop.name) || this.factionState.factions.find((x) => x.type === '国家' && !x.parentId) || expectedTop;
+    const updates = { name: c.name, type: c.type || item.type, location: c.location || item.location, domain: c.industry || item.domain, parentId: top.id, parentName: top.name };
     const changed = Object.keys(updates).filter((key) => updates[key] !== item[key]);
     Object.assign(item, updates);
     if (changed.length) item.changeLog = [{ field: changed.join('、'), reason: '根据当前公司系统上下文同步公司势力基础字段。', at: new Date().toISOString(), action: 'adjust' }, ...(item.changeLog || [])];
@@ -80,7 +85,9 @@ window.GameModules.factionActions = {
     const now = new Date().toISOString();
     let faction = this.factionState.factions.find((x) => x.name === name || x.id === this.factionIdByName(name));
     if (!faction) {
-      faction = this.normalizeFactionStructure({ id: this.factionIdByName(name), name, type: name === '中华人民共和国' ? '国家' : '组织', parentId: name === '中华人民共和国' ? '' : 'country-china', parentName: name === '中华人民共和国' ? '无势力归属' : '中华人民共和国', level: name === '中华人民共和国' ? '国家级' : '组织级', location: this.playerProfile?.refinedCity || this.playerProfile?.city || '未知', domain: '现实社会关系', scale: '未知', stance: '与角色卡势力地位相关', influence: 30, description: `由角色卡势力地位确认的现实势力：${name}。`, structure: [], rules: [], resources: [], relations: [], fixed: true, updatedAt: now });
+      const top = this.factionState.factions.find((x) => x.type === '国家' && !x.parentId) || window.GameModules.factionSystem.countryFaction(this.playerProfile || {});
+      const isTopCountry = name === top.name;
+      faction = this.normalizeFactionStructure({ id: isTopCountry ? top.id : this.factionIdByName(name), name, type: isTopCountry ? '国家' : '组织', parentId: isTopCountry ? '' : top.id, parentName: isTopCountry ? '无势力归属' : top.name, level: isTopCountry ? '国家级' : '组织级', location: this.playerProfile?.refinedCity || this.playerProfile?.city || '未知', domain: '现实组织关系', scale: '未知', stance: '与角色卡势力地位相关', influence: 30, description: `由角色卡势力地位确认的现实势力：${name}。`, structure: [], rules: [], resources: [], relations: [], fixed: true, updatedAt: now });
       faction.fieldReasons = this.completeFactionReasons?.(faction, {}, '角色卡势力地位只可新增不可移除，系统据此初始化势力。') || {};
       faction.changeLog = [{ field: 'all', reason: item.reason || '角色卡已有势力地位，追加进入势力系统。', at: now, action: 'add' }];
       this.factionState.factions.push(faction);

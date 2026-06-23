@@ -35,12 +35,14 @@ window.GameModules.companyFactionActions = {
     if (!this.factionState?.factions) return null;
     const id = company.id === 'main-company' ? 'company-main' : this.factionIdByName?.(company.name);
     const now = new Date().toISOString();
+    const expectedTop = window.GameModules.factionSystem.countryFaction(this.playerProfile || {});
+    const top = this.factionState.factions.find((item) => item.id === expectedTop.id || item.name === expectedTop.name) || this.factionState.factions.find((item) => item.type === '国家' && !item.parentId) || expectedTop;
     let faction = this.factionState.factions.find((item) => item.id === id || item.name === company.name);
     if (!faction) {
-      faction = this.normalizeFactionStructure?.({ id, name: company.name, type: company.type || '公司', parentId: 'country-china', parentName: '中华人民共和国', level: '公司级别', location: company.location || '未知', domain: company.industry || '现代职场', scale: company.scale || '未知', stance: '现实职场势力', influence: 35, description: `公司APP记录的现实公司：${company.name}。`, structure: [], rules: [], resources: [], relations: [], fixed: true, updatedAt: now }) || {};
+      faction = this.normalizeFactionStructure?.({ id, name: company.name, type: company.type || '公司', parentId: top.id, parentName: top.name, level: '公司级别', location: company.location || '未知', domain: company.industry || '现代职场', scale: company.scale || '未知', stance: '现实职场势力', influence: 35, description: `公司APP记录的现实公司：${company.name}。`, structure: [], rules: [], resources: [], relations: [], fixed: true, updatedAt: now }) || {};
       this.factionState.factions.push(faction);
     }
-    Object.assign(faction, { name: company.name, type: company.type || faction.type || '公司', location: company.location || faction.location, domain: company.industry || faction.domain, scale: company.scale || faction.scale, parentId: 'country-china', parentName: '中华人民共和国', updatedAt: now });
+    Object.assign(faction, { name: company.name, type: company.type || faction.type || '公司', location: company.location || faction.location, domain: company.industry || faction.domain, scale: company.scale || faction.scale, parentId: top.id, parentName: top.name, updatedAt: now });
     this.syncCompanyOrganizationToFaction(faction, company, reason, now);
     faction.fieldReasons = this.completeFactionReasons?.(faction, faction.fieldReasons, reason) || faction.fieldReasons || {};
     faction.changeLog = [{ field: 'company-sync', reason, at: now, action: 'sync' }, ...(faction.changeLog || [])].slice(0, 50);

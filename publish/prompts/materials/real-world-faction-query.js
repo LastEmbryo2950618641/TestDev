@@ -69,7 +69,7 @@ window.GameModules = window.GameModules || {};
       if (!name) return '新增或调整势力失败：缺少势力名。';
       if (this.isAbstractFactionName(name)) return `跳过抽象势力：${name}。势力必须是具体公司、学校、部门、机构或组织。`;
       const now = store.phoneDate?.().toISOString?.() || new Date().toISOString();
-      const parent = this.findFaction(store, params.parentName || params.parentId || '') || this.findFaction(store, '中华人民共和国');
+      const parent = this.findFaction(store, params.parentName || params.parentId || '') || this.factionRows(store).find((f) => f.type === '国家' && !f.parentId) || this.findFaction(store, '中华人民共和国');
       let faction = this.findFaction(store, name);
       const patch = this.factionPatch(params, parent, now);
       if (!faction) {
@@ -102,7 +102,8 @@ window.GameModules = window.GameModules || {};
       if (this.isAbstractFactionName(factionName) || this.isAbstractPosition(position)) return `跳过抽象势力职位：${factionName} / ${position}。势力职位必须来自具体组织层级。`;
       let faction = this.findFaction(store, factionName);
       if (!faction) {
-        this.upsertFaction(store, { name: factionName, parentName: params.parentName, reason: params.reason || '现实推演先新增势力再写入职位。' });
+        const top = this.factionRows(store).find((f) => f.type === '国家' && !f.parentId);
+        this.upsertFaction(store, { name: factionName, parentName: params.parentName || top?.name, reason: params.reason || '现实推演先新增势力再写入职位。' });
         faction = this.findFaction(store, factionName);
       }
       const character = String(params.characterName || params.character || '未知').trim() || '未知';
