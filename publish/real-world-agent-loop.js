@@ -30,6 +30,7 @@ window.GameModules.realWorldAgentLoop = {
 
       const results = await this.loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step, materialSession);
       traceItem.loaded = results.map((item) => ({ title: item.title, text: ctx.limit(item.text, 800) }));
+      this.updateAgentTrace(store, logId, trace);
       if (results.length) {
         loaded.push(...results);
         this.markStep(store, logId, this.loadedContextText(data, results, step));
@@ -48,9 +49,10 @@ window.GameModules.realWorldAgentLoop = {
     const narrationRaw = await this.completeStep(store, narrationPrompt, logId, true);
     const narration = this.cleanPhasedNarration(narrationRaw);
     if (!narration) throw new Error('现实推演正文为空');
+    this.showFinalNarration(store, logId, narration);
 
     const jsonPrompt = await this.buildUpdateJsonPrompt({ store, action, base, loaded, skills, materialSession, narration });
-    this.markStep(store, logId, '现实正文已完成，正在生成状态更新…');
+    this.markStep(store, logId, '现实正文已完成，正在生成状态更新…', { keepNarration: true });
     const jsonRaw = await this.completeUpdateJson(store, jsonPrompt, logId);
     const updates = this.parseUpdateJson(jsonRaw) || {};
     const result = this.mergeNarrationAndUpdates(store, narration, updates);
@@ -354,9 +356,23 @@ window.GameModules.realWorldAgentLoop = {
   stepText(step) {
     return step === 1 ? `现实世界正在识别相关角色与资料需求…（${step}/${this.maxSteps}）` : `现实世界正在推演…（${step}/${this.maxSteps}）`;
   },
-  markStep(store, logId, text) {
+  updateAgentTrace(store, logId, trace = []) {
     if (!logId) return;
-    store.realWorldLog = (store.realWorldLog || []).map((entry) => entry.id === logId ? { ...entry, narration: text, streaming: true } : entry);
+    store.realWorldLog = (store.realWorldLog || []).map((entry) => entry.id === logId ? { ...entry, agentTrace: trace.slice(), streaming: true } : entry);
+  },
+  showFinalNarration(store, logId, narration) {
+    if (!logId || !narration) return;
+    store.realWorldLog = (store.realWorldLog || []).map((entry) => entry.id === logId ? { ...entry, narration, streaming: true, streamTrace: [] } : entry);
+    store.scrollRealWorldLogBottom?.();
+  },
+  markStep(store, logId, text, options = {}) {
+    if (!logId) return;
+    store.realWorldLog = (store.realWorldLog || []).map((entry) => {
+      if (entry.id !== logId) return entry;
+      const patch = { streaming: true, statusText: text };
+      if (!options.keepNarration) patch.narration = text;
+      return { ...entry, ...patch };
+    });
     store.scrollRealWorldLogBottom?.();
   },
   loadedContextText(data = {}, loaded = [], step = 1) {

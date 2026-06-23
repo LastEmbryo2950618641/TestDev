@@ -82,28 +82,27 @@ window.GameModules.realWorldThinkingActions = {
   },
 
   realWorldTraceLines(entry) {
-    if (this.realWorldThinkMode) return [];
     const stream = Array.isArray(entry?.streamTrace) ? entry.streamTrace : [];
     const trace = Array.isArray(entry?.agentTrace) ? entry.agentTrace : [];
-    const fallback = entry?.streaming && !entry?.thinking && !stream.length ? ['步骤进行中｜正在推演', '正在接收现实 AI 的推演内容。'] : [];
-    return stream.concat(fallback, trace.flatMap((item) => this.realWorldTraceItemLines(item)));
+    const fallback = entry?.streaming && !entry?.thinking && !stream.length && !trace.length ? ['步骤进行中｜正在推演', '正在接收现实 AI 的推演内容。'] : [];
+    return stream.concat(fallback, trace.flatMap((item) => this.realWorldTraceItemLines(item))).map((line, index) => `${index + 1}. ${line}`);
   },
 
   realWorldTraceItemLines(item = {}) {
-    const head = [`步骤 ${item.step || '?'}｜${this.realWorldTraceType(item.type)}`];
-    if (item.thinking) head.push(`思考：${item.thinking}`);
-    if (item.reason) head.push(`原因：${item.reason}`);
+    const head = [`阶段 ${item.step || '?'}｜${this.realWorldTraceType(item.type)}`];
+    if (item.reason) head.push(`reason：${item.reason}`);
     const requests = (item.requests || []).map((req) => {
       const params = req.params ? JSON.stringify(req.params) : '{}';
       return `调用：${req.skill || 'unknown'}.${req.method || 'unknown'} ${params}`;
     });
-    const loaded = (item.loaded || []).map((ctx) => `载入：${ctx.title}\n${ctx.text || ''}`);
+    const loaded = (item.loaded || []).map((ctx) => `载入：${ctx.title}`);
     if (!requests.length && !loaded.length && item.raw) head.push(`返回：${item.raw}`);
     return head.concat(requests, loaded);
   },
 
   realWorldTraceType(type) {
     if (type === 'request_context') return '请求外部资料';
+    if (type === 'context_done') return '资料已足够';
     if (type === 'final') return '生成最终内容';
     if (type === 'parse_failed') return '解析失败';
     return type || '未知步骤';
