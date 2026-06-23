@@ -193,7 +193,6 @@ window.GameModules.factionActions = {
     if (!faction?.parentId) return '无势力归属';
     return this.factionState.factions.find((x) => x.id === faction.parentId)?.name || faction.parentName || '未知势力';
   },
-
   factionChildren(id) {
     if (!id || !this.factionState?.factions) return [];
     return this.factionState.factions.filter((x) => x.parentId === id);
