@@ -57,10 +57,12 @@ window.GameModules.factionActions = {
     cards.push(this.selectedPlayerRoleCard?.(), ...(this.selectedRelationRoleCards?.() || []));
     const validCards = cards.filter(Boolean);
     const rows = [];
+    const blockedForce = /^(现实社会|现代社会|现实世界|社会|国家|中华人民共和国)$/;
+    const blockedPosition = /^(公民|居民|成年人|成年学生|成员)$/;
     const push = (entry, characterName = '未知') => {
       const force = String(entry?.force || entry?.faction || entry?.name || '').split('/')[0].trim();
       const position = String(entry?.position || entry?.role || entry?.rank || '').trim();
-      if (force && position) rows.push({ force, position, characterName, reason: entry.reason || '由玩家或角色卡势力地位确认。' });
+      if (force && position && !blockedForce.test(force) && !blockedPosition.test(position)) rows.push({ force, position, characterName, reason: entry.reason || '由玩家或角色卡势力地位确认。' });
     };
     validCards.forEach((card) => (card.force_positions || card.forcePositions || []).forEach((entry) => push(entry, card.name || card.id || '未知')));
     return rows;

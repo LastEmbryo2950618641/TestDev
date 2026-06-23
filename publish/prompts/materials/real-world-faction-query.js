@@ -47,6 +47,14 @@ window.GameModules = window.GameModules || {};
       return `${f.id || ''}\n${f.name || ''}\n${JSON.stringify(f)}`;
     },
 
+    isAbstractFactionName(name = '') {
+      return /^(现实社会|现代社会|现实世界|社会|国家|公民|居民|成年人|成年学生|中华人民共和国)$/.test(String(name || '').trim());
+    },
+
+    isAbstractPosition(position = '') {
+      return /^(公民|居民|成年人|成年学生|成员)$/.test(String(position || '').trim());
+    },
+
     factionText(store, f = {}) {
       const structure = (f.structure || []).map((node) => {
         const roles = store.normalizeFactionRoles?.(node.roles)?.map((role) => `${role.title}：${(role.characters || ['未知']).join('、')}`).join('；') || '职位未记录';
@@ -59,6 +67,7 @@ window.GameModules = window.GameModules || {};
       store.initFactionSystem?.();
       const name = String(params.name || params.factionName || params.keyword || '').trim();
       if (!name) return '新增或调整势力失败：缺少势力名。';
+      if (this.isAbstractFactionName(name)) return `跳过抽象势力：${name}。势力必须是具体公司、学校、部门、机构或组织。`;
       const now = store.phoneDate?.().toISOString?.() || new Date().toISOString();
       const parent = this.findFaction(store, params.parentName || params.parentId || '') || this.findFaction(store, '中华人民共和国');
       let faction = this.findFaction(store, name);
@@ -78,7 +87,11 @@ window.GameModules = window.GameModules || {};
     },
 
     factionPatch(params = {}, parent = null, now = '') {
-      return { type: params.type || '组织', parentId: params.parentId || parent?.id || 'country-china', parentName: params.parentName || parent?.name || '中华人民共和国', level: params.level || '组织级', location: params.location || '未知', domain: params.domain || '现实社会关系', scale: params.scale || '未知', stance: params.stance || '中立', influence: Number(params.influence) || 30, description: params.description || params.summary || '现实推演确认的势力。', structure: Array.isArray(params.structure) ? params.structure : [], rules: Array.isArray(params.rules) ? params.rules.map(String) : [], resources: Array.isArray(params.resources) ? params.resources.map(String) : [], relations: Array.isArray(params.relations) ? params.relations : [], updatedAt: now };
+      const structure = (Array.isArray(params.structure) ? params.structure : []).map((node) => ({
+        ...node,
+        roles: (Array.isArray(node.roles) ? node.roles : []).filter((role) => !this.isAbstractPosition(role?.title || role?.name || role?.position || role)),
+      })).filter((node) => !this.isAbstractFactionName(node.name));
+      return { type: params.type || '组织', parentId: params.parentId || parent?.id || 'country-china', parentName: params.parentName || parent?.name || '中华人民共和国', level: params.level || '组织级', location: params.location || '未知', domain: params.domain || '现实组织关系', scale: params.scale || '未知', stance: params.stance || '中立', influence: Number(params.influence) || 30, description: params.description || params.summary || '现实推演确认的势力。', structure, rules: Array.isArray(params.rules) ? params.rules.map(String) : [], resources: Array.isArray(params.resources) ? params.resources.map(String) : [], relations: Array.isArray(params.relations) ? params.relations : [], updatedAt: now };
     },
 
     addFactionPosition(store, params = {}) {
@@ -86,6 +99,7 @@ window.GameModules = window.GameModules || {};
       const factionName = String(params.factionName || params.name || '').trim();
       const position = String(params.position || params.title || '').trim();
       if (!factionName || !position) return '新增势力职位失败：缺少势力名或职位。';
+      if (this.isAbstractFactionName(factionName) || this.isAbstractPosition(position)) return `跳过抽象势力职位：${factionName} / ${position}。势力职位必须来自具体组织层级。`;
       let faction = this.findFaction(store, factionName);
       if (!faction) {
         this.upsertFaction(store, { name: factionName, parentName: params.parentName, reason: params.reason || '现实推演先新增势力再写入职位。' });

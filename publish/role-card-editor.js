@@ -37,9 +37,9 @@ window.GameModules = window.GameModules || {};
       const faction = card.faction || card.workplace || '未记录社群';
       card.factions = [{ name: `${faction} / ${card.factionRole || card.role || '成员'}`, faction, role: card.factionRole || card.role || '成员', reason: card.roleCardFieldReasons?.社群角色 || '由玩家角色卡资料确定。', changeMode: '角色卡编辑' }];
     }
-    if (!Array.isArray(card.force_positions) || !card.force_positions.length) {
-      const force = card.workplace || card.faction || '未记录势力';
-      card.force_positions = [{ name: `${force} / ${card.position || card.rank || '成员'}`, force, position: card.position || card.rank || '成员', reason: card.roleCardFieldReasons?.势力地位 || '由玩家角色卡资料确定。', changeMode: '角色卡编辑' }];
+    if (!Array.isArray(card.force_positions)) card.force_positions = [];
+    if (!card.force_positions.length && card.workplace && card.position) {
+      card.force_positions = [{ name: `${card.workplace} / ${card.position}`, force: card.workplace, position: card.position, reason: card.roleCardFieldReasons?.势力地位 || '由玩家角色卡资料确定。', changeMode: '角色卡编辑' }];
     }
   };
 

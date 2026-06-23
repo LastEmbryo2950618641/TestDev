@@ -2190,27 +2190,32 @@ window.GameModules.characterProfile = {
     return [social?.item?.(faction, role) || { name: `${faction} / ${role}`, faction, role }].filter((item) => item?.faction || item?.name).slice(0, 4);
   },
 
-  forcePositions(profile, base = {}, store = null) {
+  forcePositions(profile, base = {}) {
     const social = window.GameModules.socialPosition;
     const list = Array.isArray((profile.forcePositions || profile.force_positions)) ? (profile.forcePositions || profile.force_positions) : [];
+    const blocked = /^(现实社会|现代社会|现实世界|社会|国家|中华人民共和国)$/;
+    const blockedPosition = /^(公民|居民|成年人|成年学生|成员)$/;
+    const toItem = (force, position, reason = '') => {
+      const f = String(force || '').trim();
+      const p = String(position || '').trim();
+      if (!f || !p || blocked.test(f) || blockedPosition.test(p)) return null;
+      const baseItem = social?.forceItem?.(f, p, reason) || { name: `${f} / ${p}`, force: f, position: p };
+      const detail = String(reason || baseItem.reason || baseItem.changeMode || '').trim().slice(0, 120);
+      return { ...baseItem, reason: detail, changeMode: detail };
+    };
     const items = list.map((item) => {
       if (typeof item === 'string') {
         const [force, position] = item.split('/').map((x) => x.trim());
-        return social?.forceItem?.(force, position || '成员') || { name: item, force, position: position || '成员' };
+        return toItem(force, position || '成员');
       }
-      const baseItem = social?.forceItem?.(item.force || item.faction || item.name, item.position || item.rank || '成员') || item;
-      const reason = String(item.reason || item.changeMode || baseItem.reason || baseItem.changeMode || '').trim().slice(0, 120);
-      return { ...baseItem, reason, changeMode: reason };
-    }).filter((item) => item?.force || item?.faction || item?.name);
-    const country = social?.countryForceItems?.(store?.factionState?.factions || []) || [];
-    const modern = /原创世界|现实|现代|2026/.test(`${profile.work || base.work || ''}${store?.realWorld2026?.label || ''}`);
-    if (modern && country.length && !items.some((item) => item.force === country[0].force || item.name === country[0].name)) items.unshift(country[0]);
+      return toItem(item.force || item.faction || item.name, item.position || item.rank || '成员', item.reason || item.changeMode || '');
+    }).filter(Boolean);
     if (!items.length) {
       const force = profile.force || base.force || profile.workplace || base.workplace || '';
-      const position = profile.position || base.position || profile.rank || base.rank || '';
-      if (force && position) items.push(social?.forceItem?.(force, position) || { name: `${force} / ${position}`, force, position });
+      const position = profile.position || base.position || '';
+      const item = toItem(force, position);
+      if (item) items.push(item);
     }
-    if (!items.length) items.push(social?.forceItem?.('现实社会', profile.rank || base.rank || profile.role || base.role || '成员') || { name: '现实社会 / 成员', force: '现实社会', position: '成员' });
     return items.slice(0, 4);
   },
 
