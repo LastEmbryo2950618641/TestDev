@@ -10,7 +10,6 @@
 
 {
   "type": "request_context",
-  "thinking": "仅在现实 Think 模式开启时返回，40到90个汉字，说明本步骤如何判断需要哪些资料",
   "reason": "为什么需要加载这些资料",
   "characters": [{ "id": "player-self", "name": "玩家本人" }],
   "requests": [
@@ -28,7 +27,7 @@
 6. 行动涉及承诺、照片、物品、人际关系、旧地点、旧经历时，可以请求 `memory.query`，但不要一次性加载过长资料。
 7. 行动涉及检查、使用、赠送、收到、丢弃、损坏、消耗、遗失或购买物品时，优先请求 `item.query.listCharacterItems`；需要新物品细节前必须先请求 `item.query.searchKnownItem`。
 8. large 资料禁止一次性完整加载，只能使用关键词查询一条记录、关键词前后片段或最近指定数量。
-9. 现实 Think 模式关闭时，`request_context` 不要返回 `thinking` 字段。
+9. `request_context` 不要返回 `thinking` 字段。
 
 ## 首轮目标
 
