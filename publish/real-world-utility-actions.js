@@ -42,8 +42,8 @@ window.GameModules.realWorldUtilityActions = {
   },
 
   realWorldNarrationHint() {
-    if (this.realWorldFreedomMode === 'words') return `以第二人称续写现实世界中的行动结果，不少于 ${Math.max(200, this.realWorldWordCountValue())} 个汉字，现实、克制、细节充分，并体现精力、饱食、水分、疲劳或精神稳定对行动的影响`;
-    if (this.realWorldFreedomMode === 'free') return '以第二人称续写现实世界中的行动结果，不少于300字且不设字数上限，按当前场景和已载入资料尽可能输出可合理推演的最大内容量，连续呈现环境变化、他人反应、事件连锁、阶段性结果和后续影响，并体现生命体征影响';
+    if (this.realWorldFreedomMode === 'words') return `以第二人称续写现实世界中的行动过程和直接结果，不少于 ${Math.max(200, this.realWorldWordCountValue())} 个汉字，现实、克制、细节充分，并体现具体动作、环境变化、他人反应和生命体征影响`;
+    if (this.realWorldFreedomMode === 'free') return '以第二人称续写现实世界中的行动过程、场景连锁和阶段性结果，不少于300字且不设字数上限，按当前场景和已载入资料尽可能输出可合理推演的最大内容量，连续呈现具体动作、环境变化、他人反应、事件连锁、后续影响和生命体征影响';
     return '以第二人称续写现实世界中的行动过程和直接结果，不少于300字且不设字数上限，在行动范围内充分描写动作过程、周围情况、别人反应、短期影响和生命体征影响';
   },
 
