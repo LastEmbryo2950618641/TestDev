@@ -42,7 +42,10 @@ window.GameModules.intimacyBodyState = {
     if (/皮肤/.test(text)) return 'skin';
     return 'other';
   },
-  defaultBodyStatus() { return Object.fromEntries(['overall', 'mouth', 'chest', 'genital', 'anus', 'hips'].map((key) => [key, { partKey: key, part: this.partLabels[key], status: '稳定', reason: '初始默认状态', updatedAt: '' }])); },
+  defaultBodyDescription(key) {
+    return { overall: '整体稳定，无明显异常', mouth: '口部清洁，状态稳定', chest: '胸部状态稳定，无明显不适', genital: '阴部状态稳定，无明显不适', anus: '肛部状态稳定，无明显不适', hips: '臀部状态稳定，无明显不适', limbs: '肢体活动正常，状态稳定', skin: '皮肤状态稳定，无明显异常', other: '其他部位暂无异常' }[key] || '状态稳定';
+  },
+  defaultBodyStatus() { return Object.fromEntries(Object.keys(this.partLabels).map((key) => [key, { partKey: key, part: this.partLabels[key], status: '稳定', description: this.defaultBodyDescription(key), reason: '初始默认状态', updatedAt: '' }])); },
   defaultSexParts() { return Object.fromEntries(Object.keys(this.sexPartLabels).map((key) => [key, 0])); },
   ensure(state) {
     if (!state?.values) return false;
@@ -53,7 +56,10 @@ window.GameModules.intimacyBodyState = {
     if (!values.intimacy.sexualExperienceParts || typeof values.intimacy.sexualExperienceParts !== 'object') { values.intimacy.sexualExperienceParts = this.defaultSexParts(); changed = true; }
     for (const key of Object.keys(this.sexPartLabels)) if (!Number.isFinite(Number(values.intimacy.sexualExperienceParts[key]))) { values.intimacy.sexualExperienceParts[key] = 0; changed = true; }
     if (!values.bodyStatus || typeof values.bodyStatus !== 'object' || Array.isArray(values.bodyStatus)) { values.bodyStatus = this.defaultBodyStatus(); changed = true; }
-    for (const [key, label] of Object.entries(this.partLabels)) if (!values.bodyStatus[key] && ['overall', 'mouth', 'chest', 'genital', 'anus', 'hips'].includes(key)) { values.bodyStatus[key] = { partKey: key, part: label, status: '稳定', reason: '初始默认状态', updatedAt: '' }; changed = true; }
+    for (const [key, label] of Object.entries(this.partLabels)) {
+      if (!values.bodyStatus[key]) { values.bodyStatus[key] = { partKey: key, part: label, status: '稳定', description: this.defaultBodyDescription(key), reason: '初始默认状态', updatedAt: '' }; changed = true; }
+      else if (!values.bodyStatus[key].description && !values.bodyStatus[key]['描述状态']) { values.bodyStatus[key].description = this.defaultBodyDescription(key); changed = true; }
+    }
     return changed;
   },
   adultConfirmed(state) { const age = Number(state?.values?.age ?? state?.profile?.age); return Number.isFinite(age) && age >= 18; },
