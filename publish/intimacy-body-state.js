@@ -4,7 +4,7 @@ window.GameModules.intimacyBodyState = {
   defaults: window.GameModules.initDefaults?.intimacyBody,
   partLabels: window.GameModules.initDefaults?.intimacyBody?.partLabels || {},
   sexPartLabels: window.GameModules.initDefaults?.intimacyBody?.sexPartLabels || {},
-  sexPartPrompts: window.GameModules.updateRules?.sexualExperience?.partPrompts || {},
+  sexPartPrompts() { return window.GameModules.updateRules?.sexualExperience?.partPrompts || {}; },
   fieldMeta: window.GameModules.initDefaults?.intimacyBody?.fieldMeta || {},
   valueDefaults: window.GameModules.initDefaults?.intimacyBody?.valueDefaults || {},
   sexPartDefaults: window.GameModules.initDefaults?.intimacyBody?.sexualExperiencePartDefaults || {},
@@ -148,7 +148,7 @@ window.GameModules.intimacyBodyState = {
       const total = Math.max(0, Math.round(Number(parts[key]) || 0));
       const initial = Math.max(0, Math.round(Number(initialParts[key]) || 0));
       const later = Math.max(0, total - initial);
-      return { partKey: key, name: label, count: total, initialCount: initial, laterCount: later, prompt: this.sexPartPrompts[key], type: '性经验分类' };
+      return { partKey: key, name: label, count: total, initialCount: initial, laterCount: later, prompt: this.sexPartPrompts()[key], type: '性经验分类' };
     });
   },
   fields(state = {}) {
