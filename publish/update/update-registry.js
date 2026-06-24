@@ -118,10 +118,15 @@ window.GameModules.updateRegistry = {
     const rawValue = change.value ?? change.toValue ?? change.mode ?? '';
     return {
       at: new Date().toISOString(), cardId: card.id, cardTitle: card.title, section: card.section,
-      field: update.field || update.updateType || '通用更新', name: update.name || change.name || change.mode || '',
+      field: update.field || update.updateType || '通用更新', name: update.name || this.leafName(update.field) || change.mode || '',
       value: rawValue && typeof rawValue === 'object' ? JSON.stringify(rawValue) : rawValue,
       reason: reasons.map((item) => item.evidence || item.trigger || item.reason).filter(Boolean).join('；') || update.reason || '现实推演结算。',
       applied: true,
     };
+  },
+
+  leafName(path = '') {
+    const parts = String(path || '').split('.').filter(Boolean);
+    return parts.at(-1) || '';
   },
 };

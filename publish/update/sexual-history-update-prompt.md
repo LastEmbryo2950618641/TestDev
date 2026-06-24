@@ -14,12 +14,13 @@ description: 根据成人虚构身份的稳定事实，更新性经历当前状�
 - 经历人列表字段：intimacy.sexualPartners，默认 []。
 - 经历人数只在稳定事实确认发生过“阴部插入”时计入；其他亲密经历、接吻、口部、胸部、肛部、皮肤接触等均不增加经历人数。
 - change.mode：set / append / delta。
-- change.value 可为对象：
-  - { "sexualStatus": "非处女", "partnerName": "姓名", "vaginalInsertionConfirmed": true }
-  - { "sexualPartners": ["姓名A", "姓名B"], "vaginalInsertionConfirmed": true }
-  - { "sexualPartnerCount": 1, "vaginalInsertionConfirmed": true }
-- `vaginalInsertionConfirmed` 必须为 true 才能增加经历人数或经历人列表。
-- 更新经历人列表时去重；经历人数应与已确认的经历人列表保持一致，除非只有人数无姓名。
+- 每条 genericUpdate 只更新一个 field，按 field + change.mode + change.value 走通用写入。
+- 示例：
+  - { "field": "intimacy.sexualStatus", "change": { "mode": "set", "value": "非处女" } }
+  - { "field": "intimacy.sexualPartners", "change": { "mode": "append", "value": "姓名" } }
+  - { "field": "intimacy.sexualPartnerCount", "change": { "mode": "set", "value": 1 } }
+- 必须在事实确认发生过“阴部插入”时，才返回 intimacy.sexualPartnerCount 或 intimacy.sexualPartners 更新。
+- 更新经历人列表时依赖通用 append 去重；经历人数另行返回 set 更新并与已确认经历人列表保持一致，除非只有人数无姓名。
 - reasons.trigger：写明导致状态变化的稳定事实来源，保持中性概述。
 - reasons.evidence：写阶段正文或已载入资料中的依据，禁止露骨描述。
 - 若原本无“性技”技能，则额外新增等级为 1 的“性技”技能，并新增“性知识”知识条目；若已存在则不重复新增。

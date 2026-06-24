@@ -11,11 +11,9 @@ window.GameModules.updateRegistry?.register?.({
     const title = store?.realWorldSettlementTargetGroup?.(id, subject.name || '') || subject.name || id;
     return { id: `role:${id}`, title, section: '角色卡' };
   },
-  examples: [{
-    updateType: 'sexual-history',
-    subject: { type: 'player', id: 'player-self' },
-    field: 'intimacy.sexualPartners',
-    change: { mode: 'append', value: { sexualStatus: '非处女', partnerName: '姓名', vaginalInsertionConfirmed: true } },
-    reasons: [{ trigger: '成人身份且稳定事实确认阴部插入经历', evidence: '只记录当前状态、经历人数与经历人列表', confidence: 'confirmed' }],
-  }],
+  examples: [
+    { updateType: 'sexual-history', subject: { type: 'player', id: 'player-self' }, field: 'intimacy.sexualStatus', change: { mode: 'set', value: '非处女' }, reasons: [{ trigger: '成人身份且稳定事实确认阴部插入经历', evidence: '只记录当前状态', confidence: 'confirmed' }] },
+    { updateType: 'sexual-history', subject: { type: 'player', id: 'player-self' }, field: 'intimacy.sexualPartners', change: { mode: 'append', value: '姓名' }, reasons: [{ trigger: '成人身份且稳定事实确认阴部插入经历', evidence: '记录已确认经历对象', confidence: 'confirmed' }] },
+    { updateType: 'sexual-history', subject: { type: 'player', id: 'player-self' }, field: 'intimacy.sexualPartnerCount', change: { mode: 'set', value: 1 }, reasons: [{ trigger: '成人身份且稳定事实确认阴部插入经历', evidence: '与已确认经历人列表保持一致', confidence: 'confirmed' }] },
+  ],
 });

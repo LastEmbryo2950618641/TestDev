@@ -75,11 +75,6 @@ const template = {
     bodyStatus: { label: '当前身体状态', kind: '当前身体状态', desc: '各身体部位的中性短状态。', reasonFallback: '由初始默认状态与现实推演中的明确状态变化共同维护。' },
   },
 
-  aliases: {
-    bodyParts: { overall: 'overall', 整体: 'overall', mouth: 'mouth', 口部: 'mouth', 嘴部: 'mouth', chest: 'chest', 胸部: 'chest', genital: 'genital', 阴部: 'genital', 私处: 'genital', anus: 'anus', 肛部: 'anus', hips: 'hips', 臀部: 'hips', limbs: 'limbs', 四肢: 'limbs', skin: 'skin', 皮肤: 'skin', other: 'other', 其他: 'other' },
-    sexParts: { ...Object.fromEntries(Object.keys(sexParts).map((key) => [key, key])), 阴部: 'genital', 胸部: 'chest', 嘴唇: 'lips', 唇部: 'lips', 口部: 'mouth', 口部行为: 'oralAction', 口交: 'oralSex', 口交中出: 'oralInternalFinish', 阴部进入: 'genitalEntry', 阴部插入: 'vaginalInsertion', 阴部中出: 'vaginalInternalFinish', 肛门: 'anus', 肛部: 'anus', 肛部进入: 'analEntry', 肛交: 'analSex', 肛交中出: 'analInternalFinish', 腿部: 'legs', 臀部: 'hips', 手部: 'hands', 皮肤: 'skin', 其他: 'other' },
-  },
-
   stateDefaults: [
     { key: 'intimacy', path: 'intimacy', factory: 'intimacy' },
     { key: 'bodyStatus', path: 'bodyStatus', factory: 'bodyStatus' },
@@ -92,12 +87,6 @@ const template = {
     { key: 'sexualExperienceCount', meta: 'sexualExperienceCount', path: 'intimacy.sexualExperienceCount', initialPath: 'sexualExperienceCount', display: 'count', unit: '次' },
     { key: 'sexualExperienceParts', meta: 'sexualExperienceParts', path: 'intimacy.sexualExperienceParts', initialPath: 'sexualExperienceParts', display: 'sexPartRows', labels: 'sexPartLabels' },
     { key: 'bodyStatus', meta: 'bodyStatus', path: 'bodyStatus', initialPath: 'bodyStatus', display: 'bodyStatusRows', labels: 'partLabels' },
-  ],
-
-  updateMappings: [
-    { updateType: 'body-status', root: 'bodyStatus', mode: 'entry', aliases: 'bodyParts', fieldRoots: ['bodyStatus', '当前身体状态'], defaults: 'bodyStatusDefaults', keyField: 'partKey', labelField: 'part', labels: 'partLabels', valueFields: { status: ['status', 'state', '状态'], description: ['description', 'desc', 'detail', '描述状态'] } },
-    { updateType: 'sexual-experience', root: 'intimacy.sexualExperienceParts', mode: 'counter', aliases: 'sexParts', fieldRoots: ['sexualExperienceParts', '性经验分类次数'], totalPath: 'intimacy.sexualExperienceCount', valueFields: { count: ['count', 'value', 'total', 'totalDelta'] } },
-    { updateType: 'sexual-history', root: 'intimacy', mode: 'object', valueFields: { sexualStatus: ['sexualStatus', 'status'], sexualPartnerCount: ['sexualPartnerCount', 'count'], sexualPartners: ['sexualPartners', 'partners', 'partnerName'] }, requireTrue: { sexualPartnerCount: 'vaginalInsertionConfirmed', sexualPartners: 'vaginalInsertionConfirmed' }, syncListCount: { list: 'intimacy.sexualPartners', count: 'intimacy.sexualPartnerCount' } },
   ],
 
   formatPartnerCount(value) { return `${value}${this.fieldMeta.sexualPartnerCount.unit}`; },

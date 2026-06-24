@@ -61,7 +61,6 @@ async apply(store, updates = []) {
   },
 clone(value) { return JSON.parse(JSON.stringify(value ?? null)); },
   template(key = '') { return window.GameModules.initTemplateSources?.[key] || window.GameModules.initDefaults?.[key] || null; },
-  templateEntries() { return Object.entries(window.GameModules.initTemplateSources || {}); },
   parts(path = '') { return String(path || '').split('.').filter(Boolean); },
   get(obj, path = '', fallback = undefined) { return this.parts(path).reduce((acc, key) => acc?.[key], obj) ?? fallback; },
   set(obj, path = '', value) { const keys = this.parts(path), last = keys.pop(), target = keys.reduce((acc, key) => (acc[key] = acc[key] || {}), obj); target[last] = value; },
@@ -118,67 +117,6 @@ fields(templateKey = '', state = {}) {
       const meta = template.fieldMeta?.[def.meta] || {}, shown = this.fieldRows(template, def, this.get(state.values, def.path), this.get(initial, def.initialPath));
       return { key: def.key, ...meta, ...base, ...shown, reason: this.get(state.values, `${def.path}.reason`) || this.get(state.values, 'intimacy.reason') || meta.reasonFallback || '' };
     });
-  },
-alias(template, mapName = '', raw = '') { const text = String(raw || '').trim(); return template.aliases?.[mapName]?.[text] || text; },
-  updateReason(update = {}) { return (Array.isArray(update.reasons) ? update.reasons : []).map((item) => item.evidence || item.trigger || item.reason).filter(Boolean).join('；') || update.reason || '现实推演确认状态变化。'; },
-  updateValue(update = {}) { return update.change?.value ?? update.value ?? {}; },
-  valueFrom(obj, keys = []) { return keys.map((key) => obj?.[key]).find((value) => value !== undefined && value !== null && value !== ''); },
-pathKey(template, mapping, update = {}, value = {}) {
-    const direct = value[mapping.keyField] || value.partKey || value.part || update.partKey || update.part;
-    if (direct) return this.alias(template, mapping.aliases, direct);
-    const parts = this.parts(update.field), at = parts.findIndex((part) => (mapping.fieldRoots || []).includes(part));
-    return at >= 0 ? this.alias(template, mapping.aliases, parts[at + 1]) : '';
-  },
-applyEntry(template, state, mapping, update) {
-    const raw = this.updateValue(update), value = raw && typeof raw === 'object' ? raw : {}, key = this.pathKey(template, mapping, update, value) || 'other';
-    const path = `${mapping.root}.${key}`, current = this.clone(this.get(state.values, path, template[mapping.defaults]?.[key] || {})), next = { ...current, [mapping.keyField]: key, [mapping.labelField]: template[mapping.labels]?.[key] || current[mapping.labelField] || key };
-    const leaf = this.parts(update.field).at(-1), text = raw && typeof raw === 'object' ? '' : String(raw || '').trim();
-    let changed = false;
-    Object.entries(mapping.valueFields || {}).forEach(([field, names]) => { const picked = this.valueFrom(value, names) ?? (names.includes(leaf) ? text : undefined); if (picked !== undefined && picked !== '' && next[field] !== picked) { next[field] = String(picked).slice(0, field === 'description' ? 80 : 24); changed = true; } });
-    if (!changed) return false;
-    next.reason = String(this.updateReason(update)).slice(0, 120); next.updatedAt = new Date().toISOString(); this.set(state.values, path, next); return true;
-  },
-applyCounter(template, state, mapping, update) {
-    const raw = this.updateValue(update), value = raw && typeof raw === 'object' ? raw : {}, mode = update.change?.mode || 'set';
-    const key = this.pathKey(template, mapping, update, value), count = this.valueFrom(value, mapping.valueFields?.count) ?? raw;
-    const updates = value.parts && typeof value.parts === 'object' ? Object.entries(value.parts) : [[key, count]];
-    let changed = false;
-    updates.forEach(([part, amount]) => { const name = this.alias(template, mapping.aliases, part), path = `${mapping.root}.${name}`, current = Number(this.get(state.values, path, 0)) || 0, next = Math.max(0, Math.round(Number(amount) || 0)), finalValue = mode === 'delta' ? current + next : next; if (name && finalValue !== current) { this.set(state.values, path, finalValue); changed = true; } });
-    if (mapping.totalPath && count !== undefined && !key && !value.parts) { const current = Number(this.get(state.values, mapping.totalPath, 0)) || 0, next = Math.max(0, Math.round(Number(count) || 0)), finalValue = mode === 'delta' ? current + next : next; if (finalValue !== current) { this.set(state.values, mapping.totalPath, finalValue); changed = true; } }
-    if (changed) { this.set(state.values, 'intimacy.updatedAt', new Date().toISOString()); this.set(state.values, 'intimacy.reason', String(this.updateReason(update)).slice(0, 120)); }
-    return changed;
-  },
-applyObject(template, state, mapping, update) {
-    const raw = this.updateValue(update), value = raw && typeof raw === 'object' ? raw : {};
-    let changed = false;
-    Object.entries(mapping.valueFields || {}).forEach(([field, names]) => {
-      const gate = mapping.requireTrue?.[field]; if (gate && value[gate] !== true) return;
-      const picked = this.valueFrom(value, names); if (picked === undefined) return;
-      const path = `${mapping.root}.${field}`, current = this.get(state.values, path, []);
-      const next = Array.isArray(current) ? [...new Set([...(current || []), ...(Array.isArray(picked) ? picked : [picked])].filter(Boolean))] : picked;
-      if (JSON.stringify(current) !== JSON.stringify(next)) { this.set(state.values, path, next); changed = true; }
-    });
-    if (mapping.syncListCount) {
-      const list = this.get(state.values, mapping.syncListCount.list, []), count = this.get(state.values, mapping.syncListCount.count, 0);
-      if (Array.isArray(list) && list.length && count !== list.length) { this.set(state.values, mapping.syncListCount.count, list.length); changed = true; }
-    }
-    if (changed) { this.set(state.values, `${mapping.root}.updatedAt`, new Date().toISOString()); this.set(state.values, `${mapping.root}.reason`, String(this.updateReason(update)).slice(0, 120)); }
-    return changed;
-  },
-applyMapping(templateKey, template, state, mapping, update) {
-    this.ensureTemplateState(templateKey, state);
-    if (mapping.mode === 'entry') return this.applyEntry(template, state, mapping, update);
-    if (mapping.mode === 'counter') return this.applyCounter(template, state, mapping, update);
-    if (mapping.mode === 'object') return this.applyObject(template, state, mapping, update);
-    return false;
-  },
-async applyGeneric(store, updates = []) {
-    const templates = this.templateEntries(), changed = new Set();
-    for (const update of Array.isArray(updates) ? updates : []) {
-      const state = this.targetState(store, update); if (!state?.values) continue;
-      for (const [templateKey, template] of templates) for (const mapping of template.updateMappings || []) if (mapping.updateType === update.updateType && this.applyMapping(templateKey, template, state, mapping, update)) changed.add(state.id);
-    }
-    for (const id of changed) { const state = store.rpgStates?.[id] || window.GameModules.sqliteSave.getCharacterState?.(id); if (state) { store.rpgStates = { ...(store.rpgStates || {}), [id]: state }; await window.GameModules.sqliteSave.saveCharacterState?.(state); } }
   },
 registerAll(prefix = '') { this.prompts = {}; Object.entries(window.GameModules.initPromptSources || {}).forEach(([key, source]) => { if (!prefix || String(key).startsWith(prefix)) this.register(key, source); }); },
   selectByNames(names = [], store = null) { const wanted = new Set((names || []).map((name) => String(name || '').trim()).filter(Boolean)); return this.pending('', store).filter((item) => wanted.has(item.id) || wanted.has(item.templateKey) || wanted.has(item.name)); },

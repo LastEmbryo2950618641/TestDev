@@ -156,7 +156,7 @@ window.GameModules.realWorldActions = {
     settlement.push(...this.realWorldVitalSettlement(state, result.vitalUpdates));
     await this.applyRealWorldVitalUpdates(state, result.vitalUpdates);
     settlement.push(...this.realWorldFactionSettlement(result.factionUpdates || []));
-    await window.GameModules.initPromptRegistry?.applyGeneric?.(this, result.genericUpdates || []);
+    await window.GameModules.updateRegistry?.applyGeneric?.(this, result.genericUpdates || []);
     const initApplied = await window.GameModules.initPromptRegistry?.apply?.(this, result.initUpdates || []) || [];
     if (initApplied.length) settlement.push(`初始化：已写入${initApplied.length}条初始化记录。`);
     result.characterCardChanges = settlement;
