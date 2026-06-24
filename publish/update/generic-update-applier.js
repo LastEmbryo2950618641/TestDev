@@ -30,12 +30,6 @@ Object.assign(window.GameModules.updateRegistry, {
 
   changeValue(update = {}) { return update.change?.value ?? update.value; },
 
-  reasonText(update = {}) {
-    return (Array.isArray(update.reasons) ? update.reasons : [])
-      .map((item) => (typeof item === 'string' ? item : (item?.evidence || item?.trigger || item?.reason)))
-      .filter(Boolean)
-      .join('；') || update.reason || '现实推演确认状态变化。';
-  },
 
   nextValue(current, update = {}) {
     const mode = update.change?.mode || 'set', raw = this.changeValue(update);
@@ -75,7 +69,7 @@ Object.assign(window.GameModules.updateRegistry, {
     const current = this.get(root, field), next = this.nextValue(current, update);
     if (next === undefined || JSON.stringify(current) === JSON.stringify(next)) return false;
     this.set(root, field, next);
-    const note = this.notePath(field), reason = this.reasonText(update);
+    const note = this.notePath(field), reason = this.reasonText(update, '现实推演确认状态变化。');
     if (note) this.set(root, note, this.noteValue(field, next, reason));
     return true;
   },

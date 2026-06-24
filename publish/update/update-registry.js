@@ -142,11 +142,12 @@ window.GameModules.updateRegistry = {
     return { id: `misc:${label}`, title: label, section: '其他' };
   },
 
-  reasonText(update = {}) {
-    return (Array.isArray(update.reasons) ? update.reasons : [])
-      .map((item) => (typeof item === 'string' ? item : (item?.evidence || item?.trigger || item?.reason)))
+  reasonText(update = {}, fallback = '现实推演结算。') {
+    const reasons = typeof update.reasons === 'string' ? [update.reasons] : (Array.isArray(update.reasons) ? update.reasons : []);
+    return reasons
+      .map((item) => String(typeof item === 'string' ? item : (item?.evidence || item?.trigger || item?.reason || '')).trim())
       .filter(Boolean)
-      .join('；') || update.reason || '现实推演结算。';
+      .join('；').slice(0, 240) || String(update.reason || fallback).slice(0, 240);
   },
 
   rowFromGeneric(update = {}, store = null) {

@@ -119,16 +119,40 @@ window.GameModules.itemSkillActions = {
     return { ...result, paid: price, balance: this.playerProfile.wealthAmount, message: `${result.message}，扣除${price.toLocaleString('zh-CN')}元。` };
   },
 
+  normalizeItemActionType(raw = {}) {
+    const action = String(raw?.actionType || raw?.action || raw?.type || '').trim();
+    const map = { remove: 'delete', removed: 'delete', use: 'delete', consume: 'delete', consumed: 'delete', create: 'generate' };
+    return map[action] || action;
+  },
+
+  itemActionName(raw = {}) {
+    return String(raw?.item?.name || raw?.itemName || raw?.name || (typeof raw?.item === 'string' ? raw.item : '')).trim();
+  },
+
+  itemActionTarget(raw = {}) {
+    return window.GameModules.realWorldTargetUpdates?.targetKey?.(raw) || 'player-self';
+  },
+
+  itemActionRecordedResult(raw = {}, action = '') {
+    const name = this.itemActionName(raw);
+    const result = String(raw?.result || raw?.summary || raw?.description || raw?.reason || '').trim();
+    if (!action && !name && !result) return null;
+    return { ok: false, applied: false, action, name: name || action || '物品变化', itemName: name, target: this.itemActionTarget(raw), result: result || '未执行，仅记录', reason: raw?.reason || action || '未知物品动作未执行。' };
+  },
+
   async applyRealWorldItemActions(actions = []) {
     const results = [];
-    for (const raw of Array.isArray(actions) ? actions : []) {
-      const action = String(raw?.action || raw?.type || '').trim();
-      if (action === 'add') results.push(await this.addItemToTarget(raw.target || 'player-self', raw.item || raw));
-      else if (action === 'transfer') results.push(await this.transferItemSkill(raw.from || 'player-self', raw.to || raw.target || '', raw.itemName || raw.name || raw.item?.name, raw.quantity, raw.reason));
-      else if (action === 'delete') results.push(await this.deleteItemSkill(raw.target || 'player-self', raw.itemName || raw.name || raw.item?.name, raw.quantity, raw.reason));
-      else if (action === 'purchase') results.push(await this.purchaseItemSkill(raw.target || 'player-self', raw.item || raw));
+    for (const raw of (Array.isArray(actions) ? actions : []).slice(0, 20)) {
+      const action = this.normalizeItemActionType(raw);
+      if (action === 'add') results.push({ ...await this.addItemToTarget(raw.target || 'player-self', raw.item || raw), target: this.itemActionTarget(raw) });
+      else if (action === 'transfer') results.push({ ...await this.transferItemSkill(raw.from || 'player-self', raw.to || raw.target || '', raw.itemName || raw.name || raw.item?.name, raw.quantity, raw.reason), target: raw.to || raw.target || '' });
+      else if (action === 'delete') results.push({ ...await this.deleteItemSkill(raw.target || 'player-self', this.itemActionName(raw), raw.quantity, raw.reason), target: this.itemActionTarget(raw) });
+      else if (action === 'purchase') results.push({ ...await this.purchaseItemSkill(raw.target || 'player-self', raw.item || raw), target: this.itemActionTarget(raw) });
       else if (action === 'generate') results.push(await this.generateItemSkill(raw.item || raw));
-      else results.push({ ok: true, action, name: raw?.item || raw?.itemName || raw?.name || action || '物品变化', itemName: raw?.item || raw?.itemName || raw?.name, target: raw?.target || raw?.owner || raw?.characterId || 'player-self', result: raw?.result || raw?.summary || raw?.description || '已记录', reason: raw?.reason || action || '现实推演确认物品状态变化。' });
+      else {
+        const recorded = this.itemActionRecordedResult(raw, action);
+        if (recorded) results.push(recorded);
+      }
     }
     return results;
   },

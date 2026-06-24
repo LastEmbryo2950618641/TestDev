@@ -169,7 +169,7 @@ window.GameModules.jsonUtils = {
   },
 
   repairJson(json) {
-    return this.normalizeJsonSyntax(this.trimDanglingProperty(String(json || '')))
+    let out = this.normalizeJsonSyntax(this.trimDanglingProperty(String(json || '')))
       .replace(/([}\]"0-9]|true|false|null)\s*,\s*(")/g, '$1,$2')
       .replace(/([}\]])\s*，\s*([\[{])/g, '$1,$2')
       .replace(/([}\]])\s*，\s*(")/g, '$1,$2')
@@ -188,6 +188,14 @@ window.GameModules.jsonUtils = {
       .replace(/:\s*null\s*\]/g, ':null}]')
       .replace(/,\s*"[^"\\]*(?:\\.[^"\\]*)*"\s*([}\]])/g, '$1')
       .replace(/,\s*([}\]])/g, '$1');
+    out = this.repairMisnestedMetricArrays(out);
+    return out;
+  },
+
+  repairMisnestedMetricArrays(text) {
+    return String(text || '')
+      .replace(/("emotions"\s*:\s*\[[\s\S]*?\})(\s*,\s*)"playerFeelings"\s*:/g, '$1],"playerFeelings":')
+      .replace(/("playerFeelings"\s*:\s*\[[\s\S]*?\})(\s*,\s*)"emotions"\s*:/g, '$1],"emotions":');
   },
 
   recoverAiResult(content) {

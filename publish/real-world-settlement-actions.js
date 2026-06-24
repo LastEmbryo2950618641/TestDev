@@ -11,12 +11,12 @@ window.GameModules.realWorldSettlementActions = {
     const text = String(group || '');
     const playerName = this.realWorldPlayerSettlementName?.() || '玩家';
     if (!text || text === playerName || text === '玩家' || text === '玩家本人') return { id: 'role:player-self', title: playerName, section: '角色卡' };
-    const state = this.itemSkillState?.(text);
-    if (state?.id) return { id: `role:${state.id}`, title: this.itemSkillStateLabel?.(state) || text, section: '角色卡' };
     if (/势力|公司/u.test(text)) return { id: `faction:${text}`, title: text, section: '势力卡' };
     if (/地图|地点/u.test(text)) return { id: 'map:real-world', title: '地图', section: '地图卡' };
     if (/物品|装备|穿着/u.test(text)) return { id: `role:player-self`, title: playerName, section: '角色卡' };
     if (/玩家|角色|生命体征|情绪|感觉|身份|职业|状态/u.test(text)) return { id: `role:${text}`, title: text, section: '角色卡' };
+    const state = this.itemSkillState?.(text);
+    if (state?.id) return { id: `role:${state.id}`, title: this.itemSkillStateLabel?.(state) || text, section: '角色卡' };
     return { id: `system:${text || 'other'}`, title: text || '其他', section: '系统卡' };
   },
 
@@ -120,7 +120,7 @@ window.GameModules.realWorldSettlementActions = {
   },
 
   realWorldItemActionSettlement(results = []) {
-    return (Array.isArray(results) ? results : []).filter(Boolean).map((item) => this.realWorldSettlementRecord('物品动作', item.name || item.itemName || item.action || '物品变化', item.summary || item.description || item.result || item.status || '已处理', item.reason, this.realWorldSettlementTargetGroup(item.target || item.owner || item.characterId, '物品')));
+    return (Array.isArray(results) ? results : []).filter(Boolean).map((item) => this.realWorldSettlementRecord('物品动作', item.name || item.itemName || item.item?.name || item.action || '物品变化', item.summary || item.description || item.result || item.status || item.message || (item.ok === false ? '未执行，仅记录' : '已处理'), item.reason || (item.ok === false ? '未知物品动作未执行。' : ''), this.realWorldSettlementTargetGroup(item.target || item.owner || item.characterId, '物品')));
   },
 
   realWorldFactionSettlement(updates = []) {

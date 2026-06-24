@@ -69,10 +69,13 @@ window.GameModules.realWorldAi = {
 
   normalizeCharacterMetricUpdates(value, store) {
     return (Array.isArray(value) ? value : []).map((item) => {
-      const target = String(item?.target || item?.targetId || item?.characterId || item?.name || '').trim();
+      const target = String(item?.target || item?.targetId || item?.characterId || item?.name || item?.subject?.id || item?.subject?.name || '').trim();
       const state = store?.itemSkillState?.(target);
       if (!target) return null;
-      return { target: state?.id || target, emotions: window.GameModules.ai.normalizeMetricGroup(item.emotions, window.GameModules.metrics.emotionKeys, state?.metrics?.emotions), playerFeelings: window.GameModules.ai.normalizeMetricGroup(item.playerFeelings, window.GameModules.metrics.playerKeys, state?.metrics?.playerFeelings) };
+      const legacyEmotions = (Array.isArray(item.emotions) ? item.emotions : []).filter((entry) => entry?.key || entry?.delta !== undefined || entry?.status || entry?.reason);
+      const legacyFeelings = (Array.isArray(item.playerFeelings) ? item.playerFeelings : []).filter((entry) => entry?.key || entry?.delta !== undefined || entry?.status || entry?.reason);
+      if (!legacyEmotions.length && !legacyFeelings.length) return null;
+      return { target: state?.id || target, emotions: window.GameModules.ai.normalizeMetricGroup(legacyEmotions, window.GameModules.metrics.emotionKeys, state?.metrics?.emotions), playerFeelings: window.GameModules.ai.normalizeMetricGroup(legacyFeelings, window.GameModules.metrics.playerKeys, state?.metrics?.playerFeelings) };
     }).filter(Boolean);
   },
 
