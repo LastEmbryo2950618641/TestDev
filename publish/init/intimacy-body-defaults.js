@@ -83,4 +83,17 @@ window.GameModules.initDefaults.intimacyBody = {
       reason: '默认未记录',
     };
   },
+
+  initialMeeting() {
+    const intimacy = this.intimacy();
+    const bodyStatus = this.bodyStatus();
+    return {
+      sexualStatus: intimacy.sexualStatus,
+      sexualPartnerCount: intimacy.sexualPartnerCount,
+      sexualPartners: this.displayTexts.noPartner,
+      sexualExperienceCount: intimacy.sexualExperienceCount,
+      sexualExperienceParts: this.sexualExperienceParts(),
+      bodyStatus,
+    };
+  },
 };
