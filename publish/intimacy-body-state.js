@@ -57,13 +57,16 @@ window.GameModules.intimacyBodyState = {
   },
   defaultBodyStatus() { return this.defaults?.bodyStatus?.() || {}; },
   defaultBodyStatusEntry(key) { return this.defaults?.bodyStatusEntry?.(key) || { partKey: key, part: this.partLabels[key] || '其他', status: '稳定', description: this.defaultBodyDescription(key), reason: '初始默认状态', updatedAt: '' }; },
-  defaultIntimacy() { return this.defaults?.intimacy?.() || { sexualExperienceCount: 0, sexualExperienceParts: this.defaultSexParts(), updatedAt: '', reason: '默认未记录' }; },
+  defaultIntimacy() { return this.defaults?.intimacy?.() || { sexualStatus: '处女', sexualPartnerCount: 0, sexualPartners: [], sexualExperienceCount: 0, sexualExperienceParts: this.defaultSexParts(), updatedAt: '', reason: '默认未记录' }; },
   defaultSexParts() { return this.defaults?.sexualExperienceParts?.() || {}; },
   ensure(state) {
     if (!state?.values) return false;
     let changed = false;
     const values = state.values;
     if (!values.intimacy || typeof values.intimacy !== 'object') { values.intimacy = this.defaultIntimacy(); changed = true; }
+    if (!values.intimacy.sexualStatus) { values.intimacy.sexualStatus = '处女'; changed = true; }
+    if (!Number.isFinite(Number(values.intimacy.sexualPartnerCount))) { values.intimacy.sexualPartnerCount = 0; changed = true; }
+    if (!Array.isArray(values.intimacy.sexualPartners)) { values.intimacy.sexualPartners = []; changed = true; }
     if (!Number.isFinite(Number(values.intimacy.sexualExperienceCount))) { values.intimacy.sexualExperienceCount = 0; changed = true; }
     if (!values.intimacy.sexualExperienceParts || typeof values.intimacy.sexualExperienceParts !== 'object') { values.intimacy.sexualExperienceParts = this.defaultSexParts(); changed = true; }
     for (const key of Object.keys(this.sexPartLabels)) if (!Number.isFinite(Number(values.intimacy.sexualExperienceParts[key]))) { values.intimacy.sexualExperienceParts[key] = 0; changed = true; }
@@ -113,6 +116,23 @@ window.GameModules.intimacyBodyState = {
     const next = Math.max(0, Math.round(Number(value) || 0));
     state.values.intimacy.sexualExperienceParts[key] = mode === 'delta' ? current + next : next;
   },
+  applySexualHistory(state, update = {}) {
+    if (!this.adultConfirmed(state)) return false;
+    this.ensure(state);
+    const before = JSON.stringify(state.values.intimacy), raw = update.change?.value ?? update.value ?? {}, obj = raw && typeof raw === 'object' ? raw : {};
+    const confirmed = obj.vaginalInsertionConfirmed === true || String(update.field || '').includes('vaginalInsertion');
+    if (obj.sexualStatus || update.field === 'intimacy.sexualStatus') state.values.intimacy.sexualStatus = String(obj.sexualStatus || raw || '处女').slice(0, 12);
+    if (confirmed) {
+      const names = [...(Array.isArray(obj.sexualPartners) ? obj.sexualPartners : []), obj.partnerName].map((x) => String(x || '').trim()).filter(Boolean);
+      state.values.intimacy.sexualPartners = [...new Set([...(state.values.intimacy.sexualPartners || []), ...names])];
+      const explicitCount = Number(obj.sexualPartnerCount ?? obj.count);
+      state.values.intimacy.sexualPartnerCount = state.values.intimacy.sexualPartners.length || Math.max(0, Math.round(explicitCount || 0));
+      if (state.values.intimacy.sexualPartnerCount > 0 && state.values.intimacy.sexualStatus === '处女') state.values.intimacy.sexualStatus = '非处女';
+    }
+    state.values.intimacy.updatedAt = new Date().toISOString();
+    state.values.intimacy.reason = String(this.reason(update)).slice(0, 120);
+    return before !== JSON.stringify(state.values.intimacy);
+  },
   applyBody(state, update = {}) {
     this.ensure(state);
     const value = update.change?.value ?? update.value ?? {}, key = this.partKey(value.partKey || value.part || update.field?.split('.')?.pop());
@@ -127,7 +147,7 @@ window.GameModules.intimacyBodyState = {
       const state = this.targetState(store, update);
       if (!state?.values) continue;
       const type = String(update.updateType || '');
-      const ok = type === 'sexual-experience' ? this.applySexual(state, update) : (type === 'body-status' ? this.applyBody(state, update) : false);
+      const ok = type === 'sexual-experience' ? this.applySexual(state, update) : (type === 'sexual-history' ? this.applySexualHistory(state, update) : (type === 'body-status' ? this.applyBody(state, update) : false));
       if (ok) changed.add(state.id);
     }
     for (const id of changed) { const state = store.rpgStates?.[id] || window.GameModules.sqliteSave.getCharacterState?.(id); if (!state) continue; store.rpgStates = { ...(store.rpgStates || {}), [id]: state }; await window.GameModules.sqliteSave.saveCharacterState(state); }
@@ -141,9 +161,14 @@ window.GameModules.intimacyBodyState = {
     this.ensure(state);
     const p = state.profile || {}, values = state.values || {}, worldTag = p.work || state.worldTag || '原创世界';
     const count = Math.max(0, Math.round(Number(values.intimacy?.sexualExperienceCount) || 0));
+    const partnerCount = Math.max(0, Math.round(Number(values.intimacy?.sexualPartnerCount) || 0));
+    const partners = Array.isArray(values.intimacy?.sexualPartners) ? values.intimacy.sexualPartners : [];
     const expRows = this.experienceRows(values.intimacy);
     const rows = Object.values(values.bodyStatus || {}).map((item) => ({ partKey: item.partKey, part: item.part || this.partLabels[item.partKey] || '其他', status: item.status || '稳定', description: item.description || item['描述状态'] || '', reason: item.reason || '当前记录。', updatedAt: item.updatedAt || '', name: item.part || this.partLabels[item.partKey] || '其他', type: '当前身体状态' }));
     return [
+      { key: 'sexualStatus', stateId: state.id || '', label: '当前状态', kind: '性经历', value: values.intimacy?.sexualStatus || '处女', raw: values.intimacy?.sexualStatus || '处女', desc: '成人虚构角色的性经历当前状态，只保存中性元数据。', reason: values.intimacy?.reason || '默认未记录。', worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: true },
+      { key: 'sexualPartnerCount', stateId: state.id || '', label: '经历人数', kind: '性经历', value: `${partnerCount}人`, raw: partnerCount, desc: '仅稳定确认阴部插入时计入人数。', reason: values.intimacy?.reason || '默认未记录。', worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: true },
+      { key: 'sexualPartners', stateId: state.id || '', label: '经历人列表', kind: '性经历', value: partners.length ? partners : ['无'], raw: partners, desc: '已确认计入经历人数的对象列表，自动去重。', reason: values.intimacy?.reason || '默认未记录。', worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: true },
       { key: 'sexualExperienceCount', stateId: state.id || '', label: '性经验总次数', kind: '角色卡', value: this.adultConfirmed(state) ? `${count}次` : '未确认成人，不自动更新', raw: count, desc: '成人虚构角色的抽象经历总次数；同一次经历可关联多个分类。', reason: values.intimacy?.reason || '默认未记录。', worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: true },
       { key: 'sexualExperienceParts', stateId: state.id || '', label: '性经验分类次数', kind: '性经验分类', value: expRows.map((item) => `${item.name}：${item.count}次`), raw: expRows, desc: '分部位的抽象次数统计与记录提示；只用于结算，不包含过程描写。', reason: values.intimacy?.reason || '默认未记录。', worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: true },
       { key: 'bodyStatus', stateId: state.id || '', label: '当前身体状态', kind: '当前身体状态', value: rows.map((item) => `${item.part}：${item.status}`), raw: rows, desc: '各身体部位的中性短状态，用于现实推演判定与护理记录。', reason: '由初始默认状态与现实推演中的明确状态变化共同维护。', worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: true },

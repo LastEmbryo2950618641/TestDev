@@ -69,6 +69,9 @@ window.GameModules.initDefaults.intimacyBody = {
 
   intimacy() {
     return {
+      sexualStatus: '处女',
+      sexualPartnerCount: 0,
+      sexualPartners: [],
       sexualExperienceCount: 0,
       sexualExperienceParts: this.sexualExperienceParts(),
       updatedAt: '',
