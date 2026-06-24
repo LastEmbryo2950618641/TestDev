@@ -9,9 +9,13 @@ window.GameModules.realWorldSettlementActions = {
 
   realWorldSettlementCardForGroup(group = '') {
     const text = String(group || '');
+    const playerName = this.realWorldPlayerSettlementName?.() || '玩家';
+    if (!text || text === playerName || text === '玩家' || text === '玩家本人') return { id: 'role:player-self', title: playerName, section: '角色卡' };
+    const state = this.itemSkillState?.(text);
+    if (state?.id) return { id: `role:${state.id}`, title: this.itemSkillStateLabel?.(state) || text, section: '角色卡' };
     if (/势力|公司/u.test(text)) return { id: `faction:${text}`, title: text, section: '势力卡' };
     if (/地图|地点/u.test(text)) return { id: 'map:real-world', title: '地图', section: '地图卡' };
-    if (/物品|装备|穿着/u.test(text)) return { id: `role:player-self`, title: this.realWorldPlayerSettlementName?.() || '玩家', section: '角色卡' };
+    if (/物品|装备|穿着/u.test(text)) return { id: `role:player-self`, title: playerName, section: '角色卡' };
     if (/玩家|角色|生命体征|情绪|感觉|身份|职业|状态/u.test(text)) return { id: `role:${text}`, title: text, section: '角色卡' };
     return { id: `system:${text || 'other'}`, title: text || '其他', section: '系统卡' };
   },
@@ -108,7 +112,7 @@ window.GameModules.realWorldSettlementActions = {
   },
 
   realWorldLexiconSettlement(changes = []) {
-    return (Array.isArray(changes) ? changes : []).map((item) => this.realWorldSettlementRecord(item.kind || '词条', item.name, item.value ?? item.description ?? item.summary, item.meta?.modifyReason || item.changeMode, this.realWorldSettlementTargetGroup(item.target || item.targetId || item.characterId, this.realWorldSettlementGroup(item.kind, item.name))));
+    return (Array.isArray(changes) ? changes : []).map((item) => this.realWorldSettlementRecord(item.kind || '词条', item.name || item.term || item.field, item.value ?? item.definition ?? item.description ?? item.summary, item.meta?.modifyReason || item.reason || item.changeMode, this.realWorldSettlementTargetGroup(item.target || item.targetId || item.characterId, this.realWorldSettlementGroup(item.kind, item.name || item.term))));
   },
 
   realWorldInventorySettlement(updates = []) {
@@ -121,9 +125,11 @@ window.GameModules.realWorldSettlementActions = {
 
   realWorldFactionSettlement(updates = []) {
     return (Array.isArray(updates) ? updates : []).map((item) => {
-      const name = item.factionName || item.name || item.action;
+      const name = item.factionName || item.name || item.action || item.location || '势力变化';
       const group = /公司|岗位|职级|员工|老板/.test(`${name || ''} ${item.action || ''}`) ? '公司' : '势力';
-      return this.realWorldSettlementRecord(group, name, item.position || item.status || item.value || item.action, item.reason, group);
+      const value = item.position || item.status || item.value || item.action || item.timeEvent || item.room || item.location || item.type || '已记录';
+      const reason = item.reason || item.timeEvent || item.description || item.summary || '现实推演确认势力或地点结构变化。';
+      return this.realWorldSettlementRecord(group, name, value, reason, group);
     });
   },
 

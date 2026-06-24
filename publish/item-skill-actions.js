@@ -128,6 +128,7 @@ window.GameModules.itemSkillActions = {
       else if (action === 'delete') results.push(await this.deleteItemSkill(raw.target || 'player-self', raw.itemName || raw.name || raw.item?.name, raw.quantity, raw.reason));
       else if (action === 'purchase') results.push(await this.purchaseItemSkill(raw.target || 'player-self', raw.item || raw));
       else if (action === 'generate') results.push(await this.generateItemSkill(raw.item || raw));
+      else results.push({ ok: true, action, name: raw?.item || raw?.itemName || raw?.name || action || '物品变化', itemName: raw?.item || raw?.itemName || raw?.name, target: raw?.target || raw?.owner || raw?.characterId || 'player-self', result: raw?.result || raw?.summary || raw?.description || '已记录', reason: raw?.reason || action || '现实推演确认物品状态变化。' });
     }
     return results;
   },

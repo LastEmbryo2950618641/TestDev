@@ -31,7 +31,10 @@ Object.assign(window.GameModules.updateRegistry, {
   changeValue(update = {}) { return update.change?.value ?? update.value; },
 
   reasonText(update = {}) {
-    return (Array.isArray(update.reasons) ? update.reasons : []).map((item) => item.evidence || item.trigger || item.reason).filter(Boolean).join('；') || update.reason || '现实推演确认状态变化。';
+    return (Array.isArray(update.reasons) ? update.reasons : [])
+      .map((item) => (typeof item === 'string' ? item : (item?.evidence || item?.trigger || item?.reason)))
+      .filter(Boolean)
+      .join('；') || update.reason || '现实推演确认状态变化。';
   },
 
   nextValue(current, update = {}) {
