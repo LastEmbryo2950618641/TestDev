@@ -1,43 +1,118 @@
 window.GameModules = window.GameModules || {};
+window.GameModules.initDefaults = window.GameModules.initDefaults || {};
 window.GameModules.initTemplateSources = window.GameModules.initTemplateSources || {};
 
-window.GameModules.initTemplateSources.intimacyBody = {
+const sexParts = {
+  genital: 0, chest: 0, lips: 0, mouth: 0, oralAction: 0, oralSex: 0, oralInternalFinish: 0,
+  genitalEntry: 0, vaginalInsertion: 0, vaginalInternalFinish: 0, anus: 0, analEntry: 0,
+  analSex: 0, analInternalFinish: 0, legs: 0, hips: 0, hands: 0, skin: 0, other: 0,
+};
+
+const bodyDescriptions = {
+  overall: '整体稳定，无明显异常',
+  mouth: '口部清洁，状态稳定',
+  chest: '胸部状态稳定，无明显不适',
+  genital: '阴部状态稳定，无明显不适',
+  anus: '肛部状态稳定，无明显不适',
+  hips: '臀部状态稳定，无明显不适',
+  limbs: '肢体活动正常，状态稳定',
+  skin: '皮肤状态稳定，无明显异常',
+  other: '其他部位暂无异常',
+};
+
+const template = {
   id: 'intimacy-body',
   title: '亲密与身体状态初始化模板',
 
-  bodyDescriptions: {
-    overall: '整体稳定，无明显异常',
-    mouth: '口部清洁，状态稳定',
-    chest: '胸部状态稳定，无明显不适',
-    genital: '阴部状态稳定，无明显不适',
-    anus: '肛部状态稳定，无明显不适',
-    hips: '臀部状态稳定，无明显不适',
-    limbs: '肢体活动正常，状态稳定',
-    skin: '皮肤状态稳定，无明显异常',
-    other: '其他部位暂无异常',
+  partLabels: { overall: '整体', mouth: '口部', chest: '胸部', genital: '阴部', anus: '肛部', hips: '臀部', limbs: '四肢', skin: '皮肤', other: '其他' },
+
+  sexPartLabels: {
+    genital: '阴部次数', chest: '胸部次数', lips: '嘴唇次数', mouth: '口部次数', oralAction: '口部行为次数',
+    oralSex: '口交次数', oralInternalFinish: '口交中出次数', genitalEntry: '阴部进入次数', vaginalInsertion: '阴部插入次数',
+    vaginalInternalFinish: '阴部中出次数', anus: '肛门次数', analEntry: '肛部进入次数', analSex: '肛交次数',
+    analInternalFinish: '肛交中出次数', legs: '腿部次数', hips: '臀部次数', hands: '手部次数', skin: '皮肤接触次数', other: '其他次数',
   },
 
-  defaults() {
-    return window.GameModules.initDefaults?.intimacyBody || {};
+  bodyDescriptions,
+
+  valueDefaults: {
+    sexualStatus: '处女', sexualStatusChanged: '非处女', sexualPartnerCount: 0, sexualPartners: [],
+    sexualExperienceCount: 0, sexualExperiencePartCount: 0, updatedAt: '', intimacyReason: '默认未记录',
+    bodyStatus: '稳定', bodyDescription: '状态稳定', bodyReason: '初始默认状态',
   },
 
-  clone(value) {
-    return JSON.parse(JSON.stringify(value ?? null));
+  displayTexts: {
+    adultUnconfirmed: '未确认成人，不自动更新', noPartner: '无', noRecord: '未记录', currentRecord: '当前记录。',
+    publicWorld: '公共', otherPart: '其他', statusChange: '状态变化',
   },
+
+  sexualExperiencePartDefaults: sexParts,
+
+  sexualHistoryDefaults: { sexualStatus: '处女', sexualPartnerCount: 0, sexualPartners: [] },
+
+  intimacyDefaults: {
+    sexualStatus: '处女', sexualPartnerCount: 0, sexualPartners: [], sexualExperienceCount: 0,
+    sexualExperienceParts: sexParts, updatedAt: '', reason: '默认未记录',
+  },
+
+  bodyStatusDefaults: {
+    overall: { partKey: 'overall', part: '整体', status: '稳定', description: bodyDescriptions.overall, reason: '初始默认状态', updatedAt: '' },
+    mouth: { partKey: 'mouth', part: '口部', status: '稳定', description: bodyDescriptions.mouth, reason: '初始默认状态', updatedAt: '' },
+    chest: { partKey: 'chest', part: '胸部', status: '稳定', description: bodyDescriptions.chest, reason: '初始默认状态', updatedAt: '' },
+    genital: { partKey: 'genital', part: '阴部', status: '稳定', description: bodyDescriptions.genital, reason: '初始默认状态', updatedAt: '' },
+    anus: { partKey: 'anus', part: '肛部', status: '稳定', description: bodyDescriptions.anus, reason: '初始默认状态', updatedAt: '' },
+    hips: { partKey: 'hips', part: '臀部', status: '稳定', description: bodyDescriptions.hips, reason: '初始默认状态', updatedAt: '' },
+    limbs: { partKey: 'limbs', part: '四肢', status: '稳定', description: bodyDescriptions.limbs, reason: '初始默认状态', updatedAt: '' },
+    skin: { partKey: 'skin', part: '皮肤', status: '稳定', description: bodyDescriptions.skin, reason: '初始默认状态', updatedAt: '' },
+    other: { partKey: 'other', part: '其他', status: '稳定', description: bodyDescriptions.other, reason: '初始默认状态', updatedAt: '' },
+  },
+
+  fieldMeta: {
+    sexualStatus: { label: '当前状态', kind: '性经历', desc: '成人虚构角色的性经历当前状态，只保存中性元数据。', reasonFallback: '默认未记录。' },
+    sexualPartnerCount: { label: '经历人数', kind: '性经历', unit: '人', desc: '仅稳定确认阴部插入时计入人数。', reasonFallback: '默认未记录。' },
+    sexualPartners: { label: '经历人列表', kind: '性经历', desc: '已确认计入经历人数的对象列表，自动去重。', reasonFallback: '默认未记录。' },
+    sexualExperienceCount: { label: '性经验总次数', kind: '角色卡', unit: '次', desc: '成人虚构角色的抽象经历总次数；同一次经历可关联多个分类。', reasonFallback: '默认未记录。', limit: '仅成人虚构角色可由现实推演更新；只保存抽象总次数。' },
+    sexualExperienceParts: { label: '性经验分类次数', kind: '性经验分类', desc: '分部位的抽象次数统计与记录提示；只用于结算，不包含过程描写。', reasonFallback: '默认未记录。', limit: '分类次数只作为合规抽象统计；同一次经历可关联多个分类，但总次数不要重复增加。' },
+    bodyStatus: { label: '当前身体状态', kind: '当前身体状态', desc: '各身体部位的中性短状态，用于现实推演判定与护理记录。', reasonFallback: '由初始默认状态与现实推演中的明确状态变化共同维护。', limit: '只保存中性短状态，不保存露骨过程描写。' },
+  },
+
+  formatPartnerCount(value) { return `${value}${this.fieldMeta.sexualPartnerCount.unit}`; },
+  formatExperienceCount(value) { return `${value}${this.fieldMeta.sexualExperienceCount.unit}`; },
+  formatExperienceSplit(item) { return `${item.name}：${item.initialCount}(初次见面) + ${item.laterCount} (后续次数)`; },
+  formatInitialExperience(item) { return `${item.name}：${item.count}${this.fieldMeta.sexualExperienceCount.unit}`; },
+  formatBodyStatus(item) { return `${item.part}：${item.status}`; },
+  formatInitialBody(item) { return `${item.part}：${item.status}｜${item.description}`; },
+  clone(value) { return JSON.parse(JSON.stringify(value ?? null)); },
+  bodyStatusEntry(key) { return this.clone(this.bodyStatusDefaults[key] || this.bodyStatusDefaults.other); },
+  bodyStatus() { return this.clone(this.bodyStatusDefaults); },
+  sexualExperienceParts() { return this.clone(this.sexualExperiencePartDefaults); },
+  intimacy() { return this.clone(this.intimacyDefaults); },
+  initialMeeting() {
+    const intimacy = this.intimacy();
+    return {
+      sexualStatus: intimacy.sexualStatus,
+      sexualPartnerCount: intimacy.sexualPartnerCount,
+      sexualPartners: this.displayTexts.noPartner,
+      sexualExperienceCount: intimacy.sexualExperienceCount,
+      sexualExperienceParts: this.sexualExperienceParts(),
+      bodyStatus: this.bodyStatus(),
+    };
+  },
+
+  defaults() { return this; },
 
   fields() {
-    const d = this.defaults();
     return {
-      partLabels: { defaultValue: this.clone(d.partLabels), meaning: '身体状态部位键与中文显示名。' },
-      sexPartLabels: { defaultValue: this.clone(d.sexPartLabels), meaning: '性经验分类键与中文显示名。' },
+      partLabels: { defaultValue: this.clone(this.partLabels), meaning: '身体状态部位键与中文显示名。' },
+      sexPartLabels: { defaultValue: this.clone(this.sexPartLabels), meaning: '性经验分类键与中文显示名。' },
       bodyDescriptions: { defaultValue: this.clone(this.bodyDescriptions), meaning: '每个身体部位的默认中性状态描述。' },
-      valueDefaults: { defaultValue: this.clone(d.valueDefaults), meaning: '亲密与身体状态通用缺省值。' },
-      displayTexts: { defaultValue: this.clone(d.displayTexts), meaning: 'UI 展示和无记录状态的缺省文案。' },
-      sexualExperiencePartDefaults: { defaultValue: this.clone(d.sexualExperiencePartDefaults), meaning: '每个性经验分类的默认次数。' },
-      sexualHistoryDefaults: { defaultValue: this.clone(d.sexualHistoryDefaults), meaning: '性经历当前状态、经历人数和经历人列表的默认值。' },
-      intimacyDefaults: { defaultValue: this.clone(d.intimacyDefaults), meaning: '完整亲密经历初始化对象。' },
-      bodyStatusDefaults: { defaultValue: this.clone(d.bodyStatusDefaults), meaning: '完整身体各部位状态初始化对象。' },
-      fieldMeta: { defaultValue: this.clone(d.fieldMeta), meaning: '每个 UI 字段的名称、类型、说明、限制和缺省原因。' },
+      valueDefaults: { defaultValue: this.clone(this.valueDefaults), meaning: '亲密与身体状态通用缺省值。' },
+      displayTexts: { defaultValue: this.clone(this.displayTexts), meaning: 'UI 展示和无记录状态的缺省文案。' },
+      sexualExperiencePartDefaults: { defaultValue: this.clone(this.sexualExperiencePartDefaults), meaning: '每个性经验分类的默认次数。' },
+      sexualHistoryDefaults: { defaultValue: this.clone(this.sexualHistoryDefaults), meaning: '性经历当前状态、经历人数和经历人列表的默认值。' },
+      intimacyDefaults: { defaultValue: this.clone(this.intimacyDefaults), meaning: '完整亲密经历初始化对象。' },
+      bodyStatusDefaults: { defaultValue: this.clone(this.bodyStatusDefaults), meaning: '完整身体各部位状态初始化对象。' },
+      fieldMeta: { defaultValue: this.clone(this.fieldMeta), meaning: '每个 UI 字段的名称、类型、说明、限制和缺省原因。' },
     };
   },
 
@@ -74,20 +149,7 @@ window.GameModules.initTemplateSources.intimacyBody = {
 
   jsonFormat() {
     const editable = this.editableFields();
-    return {
-      initUpdates: [
-        {
-          target: 'player-self 或角色id/姓名',
-          subject: { type: 'player 或 character', id: 'player-self 或角色id', name: '玩家或角色名' },
-          section: '亲密与身体状态初始化',
-          fields: {
-            intimacy: editable.intimacy.defaults,
-            bodyStatus: editable.bodyStatus.defaults,
-          },
-          reason: '正文中的初始化依据',
-        },
-      ],
-    };
+    return { initUpdates: [{ target: 'player-self 或角色id/姓名', subject: { type: 'player 或 character', id: 'player-self 或角色id', name: '玩家或角色名' }, section: '亲密与身体状态初始化', fields: { intimacy: editable.intimacy.defaults, bodyStatus: editable.bodyStatus.defaults }, reason: '正文中的初始化依据' }] };
   },
 
   promptText() {
@@ -100,3 +162,6 @@ window.GameModules.initTemplateSources.intimacyBody = {
     ].join('\n\n');
   },
 };
+
+window.GameModules.initTemplateSources.intimacyBody = template;
+window.GameModules.initDefaults.intimacyBody = template;
