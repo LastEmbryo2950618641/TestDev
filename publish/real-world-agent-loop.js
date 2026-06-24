@@ -51,12 +51,16 @@ window.GameModules.realWorldAgentLoop = {
     if (!narration) throw new Error('现实推演正文为空');
     this.showFinalNarration(store, logId, narration);
 
-    const jsonPrompt = await this.buildUpdateJsonPrompt({ store, action, base, loaded, skills, materialSession, narration });
-    this.markStep(store, logId, '现实正文已完成，正在生成状态更新…', { keepNarration: true });
+    const skillPrompt = await this.buildSkillSelectionPrompt({ store, action, base, loaded, materialSession, narration });
+    this.markStep(store, logId, '现实正文已完成，正在判断需要结算的 Skills…', { keepNarration: true });
+    const selectedSkills = await this.completeSkillSelection(store, skillPrompt, logId);
+
+    const jsonPrompt = await this.buildUpdateJsonPrompt({ store, action, base, loaded, skills, materialSession, narration, selectedSkills });
+    this.markStep(store, logId, '已选定结算 Skills，正在生成状态更新…', { keepNarration: true });
     const jsonRaw = await this.completeUpdateJson(store, jsonPrompt, logId);
     const updates = this.parseUpdateJson(jsonRaw) || {};
     const result = this.mergeNarrationAndUpdates(store, narration, updates);
-    return { result, prompt: `${prompt || ''}\n\n---NARRATION---\n${narrationPrompt}\n\n---UPDATE_JSON---\n${jsonPrompt}`, loaded, raw: `${narrationRaw}\n\n${jsonRaw}`, trace };
+    return { result, prompt: `${prompt || ''}\n\n---NARRATION---\n${narrationPrompt}\n\n---SKILL_SELECTION---\n${skillPrompt}\n\n---UPDATE_JSON---\n${jsonPrompt}`, loaded, raw: `${narrationRaw}\n\n${JSON.stringify(selectedSkills)}\n\n${jsonRaw}`, trace };
   },
 
   async loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step, materialSession = null) {
@@ -120,23 +124,58 @@ window.GameModules.realWorldAgentLoop = {
     ].join('\n\n');
   },
 
-  async buildUpdateJsonPrompt({ store, action, base, loaded, skills, materialSession = null, narration }) {
+  async buildSkillSelectionPrompt({ store, action, base, loaded, materialSession = null, narration }) {
     const loadedText = window.GameModules.realWorldAgentContext.buildLoadedText(loaded);
     const materialText = window.GameModules.realWorldMaterials?.summary?.(materialSession) || '';
-    const initSkillText = window.GameModules.initPromptRegistry?.skillText?.('', store) || '';
-    const initSchema = window.GameModules.initPromptRegistry?.schema?.('', store) || {};
+    const updateSkills = window.GameModules.updateRegistry?.skillSummaries?.() || '';
+    const initSkills = window.GameModules.initPromptRegistry?.skillSummaries?.(store) || '';
     return [
-      '# 现实推演阶段3：只生成更新JSON',
+      '# 现实推演阶段3A：选择需要结算的 Skills',
+      '你只输出合法 JSON，不要正文，不要 Markdown，不要代码块，不要解释。',
+      `本次行动：${action || '继续观察现实世界'}`,
+      `基础上下文：\n${base}`,
+      `已动态载入资料：\n${[loadedText, materialText].filter(Boolean).join('\n\n') || '无'}`,
+      `阶段2正文：\n${narration}`,
+      updateSkills ? `## 更新 Skills 元数据\n\n${updateSkills}` : '',
+      initSkills ? `## 初始化 Skills 元数据\n\n${initSkills}` : '',
+      '根据正文中已经确认的事实，选择后续生成更新 JSON 必须用到的 skills。只选需要更改数值、描述、状态或记录的 skills；无变化不要选择。',
+      '返回格式：{"updateSkills":["skill-name"],"initSkills":["skill-name"],"reason":"选择依据"}',
+    ].filter(Boolean).join('\n\n');
+  },
+
+  async completeSkillSelection(store, prompt, logId) {
+    const raw = await this.completeStep(store, prompt, logId, false);
+    try {
+      const data = window.GameModules.jsonUtils.parseLoose(raw) || {};
+      return { updateSkills: Array.isArray(data.updateSkills) ? data.updateSkills.slice(0, 12) : [], initSkills: Array.isArray(data.initSkills) ? data.initSkills.slice(0, 8) : [], reason: String(data.reason || '').slice(0, 160) };
+    } catch (err) {
+      console.warn('现实结算 Skills 选择解析失败:', err.message);
+      return { updateSkills: [], initSkills: [], reason: '选择解析失败，使用基础结算。' };
+    }
+  },
+
+  async buildUpdateJsonPrompt({ store, action, base, loaded, skills, materialSession = null, narration, selectedSkills = {} }) {
+    const loadedText = window.GameModules.realWorldAgentContext.buildLoadedText(loaded);
+    const materialText = window.GameModules.realWorldMaterials?.summary?.(materialSession) || '';
+    const updateSkillText = window.GameModules.updateRegistry?.skillText?.(selectedSkills.updateSkills || []) || '';
+    const updateSchema = window.GameModules.updateRegistry?.schemaFor?.(selectedSkills.updateSkills || []) || {};
+    const initSkillText = window.GameModules.initPromptRegistry?.skillText?.(selectedSkills.initSkills || [], store) || '';
+    const initSchema = window.GameModules.initPromptRegistry?.schema?.(selectedSkills.initSkills || [], store) || {};
+    return [
+      '# 现实推演阶段3B：只生成更新JSON',
       '你只输出一个合法 JSON 对象，不要正文，不要 Markdown，不要代码块，不要解释。',
       `本次行动：${action || '继续观察现实世界'}`,
       `基础上下文：\n${base}`,
       `已动态载入资料：\n${[loadedText, materialText].filter(Boolean).join('\n\n') || '无'}`,
       `阶段2正文：\n${narration}`,
+      `已选择更新 Skills：${JSON.stringify(selectedSkills.updateSkills || [])}`,
+      `已选择初始化 Skills：${JSON.stringify(selectedSkills.initSkills || [])}`,
       '输出最小补丁 JSON：必须包含 type、sceneTitle、locationName、elapsedSeconds、status、quest、choices、vitalUpdates。其他字段只有明确变化才输出，否则省略或用空数组。',
       'vitalUpdates 必须覆盖 stamina_pool、satiety、hydration、fatigue、mental_stability。choices 必须4个。所有 reason/status 不超过24个汉字。characterMetricUpdates 最多3个角色，每个角色最多2条 emotions 和2条 playerFeelings。lexiconUpdates/itemActions/factionUpdates 只写稳定事实变化。',
+      updateSkillText ? `## 更新 Skills\n\n${updateSkillText}` : '',
       initSkillText ? `## 初始化 Skills\n\n${initSkillText}` : '',
-      `最小示例：${JSON.stringify({ ...this.updateJsonSchema(), ...initSchema })}`,
-    ].join('\n\n');
+      `最小示例：${JSON.stringify({ ...this.updateJsonSchema(), ...updateSchema, ...initSchema })}`,
+    ].filter(Boolean).join('\n\n');
   },
 
   updateJsonSchema() {
@@ -207,6 +246,7 @@ window.GameModules.realWorldAgentLoop = {
       factionUpdates: Array.isArray(repaired.factionUpdates) ? repaired.factionUpdates : [],
       itemActions: Array.isArray(repaired.itemActions) ? repaired.itemActions : [],
       lexiconUpdates: Array.isArray(repaired.lexiconUpdates) ? repaired.lexiconUpdates : [],
+      genericUpdates: Array.isArray(repaired.genericUpdates) ? repaired.genericUpdates : [],
     };
   },
 
@@ -285,6 +325,7 @@ window.GameModules.realWorldAgentLoop = {
       factionUpdates: Array.isArray(updates.factionUpdates) ? updates.factionUpdates : [],
       itemActions: Array.isArray(updates.itemActions) ? updates.itemActions : [],
       lexiconUpdates: Array.isArray(updates.lexiconUpdates) ? updates.lexiconUpdates : [],
+      genericUpdates: Array.isArray(updates.genericUpdates) ? updates.genericUpdates : [],
       initUpdates: Array.isArray(updates.initUpdates) ? updates.initUpdates : [],
     };
   },

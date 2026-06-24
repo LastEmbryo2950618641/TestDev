@@ -106,16 +106,27 @@ window.GameModules.initPromptRegistry = {
     });
   },
 
-  skillText(prefix = '', store = null) {
-    return this.pending(prefix, store).map((item) => {
+  selectByNames(names = [], store = null) {
+    const wanted = new Set((names || []).map((name) => String(name || '').trim()).filter(Boolean));
+    return this.pending('', store).filter((item) => wanted.has(item.id) || wanted.has(item.templateKey) || wanted.has(item.name));
+  },
+
+  skillSummaries(store = null) {
+    return this.pending('', store).map((item) => `- ${item.name || item.id}：${item.description || item.template?.title || ''}`).join('\n');
+  },
+
+  skillText(ids = null, store = null) {
+    const selected = Array.isArray(ids) ? this.selectByNames(ids, store) : this.pending(String(ids || ''), store);
+    return selected.map((item) => {
       const templateText = item.template?.promptText?.() || '';
       return [`## ${item.name || item.id}`, item.body, templateText].filter(Boolean).join('\n\n');
     }).filter(Boolean).join('\n\n');
   },
 
-  schema(prefix = '', store = null) {
+  schema(ids = null, store = null) {
     const result = { initUpdates: [] };
-    this.pending(prefix, store).forEach((item) => {
+    const selected = Array.isArray(ids) ? this.selectByNames(ids, store) : this.pending(String(ids || ''), store);
+    selected.forEach((item) => {
       const schema = item.template?.jsonFormat?.();
       if (Array.isArray(schema?.initUpdates)) result.initUpdates.push(...schema.initUpdates);
     });
