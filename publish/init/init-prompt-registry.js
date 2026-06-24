@@ -2,6 +2,18 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.initPromptRegistry = {
   prompts: {},
+  executed: {},
+
+  loadExecuted(store = null) {
+    const saved = store?.playerIdentityState?.()?.values?.initPromptExecuted;
+    if (saved && typeof saved === 'object') this.executed = { ...this.executed, ...saved };
+  },
+
+  saveExecuted(store = null) {
+    const state = store?.playerIdentityState?.();
+    if (!state?.values) return;
+    state.values.initPromptExecuted = { ...(state.values.initPromptExecuted || {}), ...this.executed };
+  },
 
   parse(text = '') {
     const raw = String(text || '');
@@ -23,6 +35,68 @@ window.GameModules.initPromptRegistry = {
     this.prompts[id] = { id, templateKey, template, ...parsed };
   },
 
+  pending(prefix = '', store = null) {
+    if (!Object.keys(this.prompts).length) this.registerAll(prefix);
+    this.loadExecuted(store);
+    return Object.values(this.prompts).filter((item) => {
+      if (prefix && !String(item.id).startsWith(prefix)) return false;
+      return !this.executed[item.id];
+    });
+  },
+
+  markExecuted(ids = [], store = null) {
+    const list = Array.isArray(ids) ? ids : [ids];
+    const changed = [];
+    list.filter(Boolean).forEach((id) => {
+      if (!this.executed[id]) changed.push(id);
+      this.executed[id] = true;
+    });
+    this.saveExecuted(store);
+    return changed;
+  },
+
+  markByInitUpdates(updates = [], store = null) {
+    if (!Array.isArray(updates) || !updates.length) return [];
+    const pending = this.pending('', store);
+    const matched = pending.filter((item) => updates.some((update) => {
+      const promptId = update.initPromptId || update.promptId || update.registryId;
+      if (promptId && promptId === item.id) return true;
+      const templateKey = update.templateKey || update.template;
+      if (templateKey && templateKey === item.templateKey) return true;
+      const section = String(update.section || '');
+      const title = String(item.template?.title || item.name || item.id || '');
+      return section && title && (section.includes(title) || title.includes(section));
+    })).map((item) => item.id);
+    return this.markExecuted(matched, store);
+  },
+
+  targetState(store, update = {}) {
+    const subject = update.subject || {};
+    const id = subject.characterId || subject.playerId || subject.id || update.target || 'player-self';
+    return store?.itemSkillState?.(id) || (id === 'player-self' ? store?.playerIdentityState?.() : null);
+  },
+
+  async apply(store, updates = []) {
+    const applied = [];
+    for (const update of Array.isArray(updates) ? updates : []) {
+      const fields = update?.fields;
+      const state = this.targetState(store, update);
+      if (!state?.values || !fields || typeof fields !== 'object') continue;
+      Object.entries(fields).forEach(([key, value]) => {
+        if (value === undefined || value === null) return;
+        state.values[key] = this.clone(value);
+      });
+      applied.push(update);
+      await window.GameModules.sqliteSave.saveCharacterState?.(state);
+    }
+    this.markByInitUpdates(applied, store);
+    return applied;
+  },
+
+  clone(value) {
+    return JSON.parse(JSON.stringify(value));
+  },
+
   registerAll(prefix = '') {
     this.prompts = {};
     const sources = window.GameModules.initPromptSources || {};
@@ -32,18 +106,16 @@ window.GameModules.initPromptRegistry = {
     });
   },
 
-  skillText(prefix = '') {
-    if (!Object.keys(this.prompts).length) this.registerAll(prefix);
-    return Object.values(this.prompts).map((item) => {
+  skillText(prefix = '', store = null) {
+    return this.pending(prefix, store).map((item) => {
       const templateText = item.template?.promptText?.() || '';
       return [`## ${item.name || item.id}`, item.body, templateText].filter(Boolean).join('\n\n');
     }).filter(Boolean).join('\n\n');
   },
 
-  schema(prefix = '') {
-    if (!Object.keys(this.prompts).length) this.registerAll(prefix);
+  schema(prefix = '', store = null) {
     const result = { initUpdates: [] };
-    Object.values(this.prompts).forEach((item) => {
+    this.pending(prefix, store).forEach((item) => {
       const schema = item.template?.jsonFormat?.();
       if (Array.isArray(schema?.initUpdates)) result.initUpdates.push(...schema.initUpdates);
     });

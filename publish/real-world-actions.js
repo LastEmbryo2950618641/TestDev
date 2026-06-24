@@ -157,6 +157,8 @@ window.GameModules.realWorldActions = {
     await this.applyRealWorldVitalUpdates(state, result.vitalUpdates);
     settlement.push(...this.realWorldFactionSettlement(result.factionUpdates || []));
     await window.GameModules.intimacyBodyState?.applyGeneric?.(this, result.genericUpdates || []);
+    const initApplied = await window.GameModules.initPromptRegistry?.apply?.(this, result.initUpdates || []) || [];
+    if (initApplied.length) settlement.push(`初始化：已写入${initApplied.length}条初始化记录。`);
     result.characterCardChanges = settlement;
     const startedAt = this.phoneDate().toISOString();
     this.advancePhoneTime(elapsedSeconds);

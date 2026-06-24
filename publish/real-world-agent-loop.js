@@ -123,8 +123,8 @@ window.GameModules.realWorldAgentLoop = {
   async buildUpdateJsonPrompt({ store, action, base, loaded, skills, materialSession = null, narration }) {
     const loadedText = window.GameModules.realWorldAgentContext.buildLoadedText(loaded);
     const materialText = window.GameModules.realWorldMaterials?.summary?.(materialSession) || '';
-    const initSkillText = window.GameModules.initPromptRegistry?.skillText?.() || '';
-    const initSchema = window.GameModules.initPromptRegistry?.schema?.() || {};
+    const initSkillText = window.GameModules.initPromptRegistry?.skillText?.('', store) || '';
+    const initSchema = window.GameModules.initPromptRegistry?.schema?.('', store) || {};
     return [
       '# 现实推演阶段3：只生成更新JSON',
       '你只输出一个合法 JSON 对象，不要正文，不要 Markdown，不要代码块，不要解释。',
