@@ -5,6 +5,18 @@ window.GameModules.initTemplateSources.intimacyBody = {
   id: 'intimacy-body',
   title: '亲密与身体状态初始化模板',
 
+  bodyDescriptions: {
+    overall: '整体稳定，无明显异常',
+    mouth: '口部清洁，状态稳定',
+    chest: '胸部状态稳定，无明显不适',
+    genital: '阴部状态稳定，无明显不适',
+    anus: '肛部状态稳定，无明显不适',
+    hips: '臀部状态稳定，无明显不适',
+    limbs: '肢体活动正常，状态稳定',
+    skin: '皮肤状态稳定，无明显异常',
+    other: '其他部位暂无异常',
+  },
+
   defaults() {
     return window.GameModules.initDefaults?.intimacyBody || {};
   },
@@ -18,7 +30,7 @@ window.GameModules.initTemplateSources.intimacyBody = {
     return {
       partLabels: { defaultValue: this.clone(d.partLabels), meaning: '身体状态部位键与中文显示名。' },
       sexPartLabels: { defaultValue: this.clone(d.sexPartLabels), meaning: '性经验分类键与中文显示名。' },
-      bodyDescriptions: { defaultValue: this.clone(d.bodyDescriptions), meaning: '每个身体部位的默认中性状态描述。' },
+      bodyDescriptions: { defaultValue: this.clone(this.bodyDescriptions), meaning: '每个身体部位的默认中性状态描述。' },
       valueDefaults: { defaultValue: this.clone(d.valueDefaults), meaning: '亲密与身体状态通用缺省值。' },
       displayTexts: { defaultValue: this.clone(d.displayTexts), meaning: 'UI 展示和无记录状态的缺省文案。' },
       sexualExperiencePartDefaults: { defaultValue: this.clone(d.sexualExperiencePartDefaults), meaning: '每个性经验分类的默认次数。' },
