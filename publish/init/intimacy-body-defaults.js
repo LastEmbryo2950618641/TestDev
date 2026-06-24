@@ -48,6 +48,11 @@ window.GameModules.initDefaults.intimacyBody = {
     other: '其他部位暂无异常',
   },
 
+  displayTexts: {
+    adultUnconfirmed: '未确认成人，不自动更新',
+    noPartner: '无',
+  },
+
   bodyStatusEntry(key) {
     return {
       partKey: key,
