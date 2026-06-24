@@ -7,22 +7,23 @@ window.GameModules.genericUpdateTemplate = {
     const baseSchema = loop.updateJsonSchema;
     const baseProse = loop.proseFinal;
     const baseMerge = loop.mergeNarrationAndUpdates;
-    loop.buildUpdateSkillSelectPrompt = async function buildUpdateSkillSelectPrompt({ store, action, base, loaded, materialSession = null, narration, narrationPrompt = '' }) {
+    loop.buildUpdateSkillSelectPrompt = async function buildUpdateSkillSelectPrompt({ action, base, loaded, materialSession = null, narration }) {
       const loadedText = window.GameModules.realWorldAgentContext.buildLoadedText(loaded);
       const materialText = window.GameModules.realWorldMaterials?.summary?.(materialSession) || '';
       const summaries = window.GameModules.updateRegistry?.skillSummaries?.() || '';
       const initSummaries = window.GameModules.initPromptRegistry?.skillSummaries?.(this) || '';
       return [
-        '# 现实推演阶段3：选择更新与初始化 Skills',
-        '你只输出合法 JSON，不要 Markdown，不要解释。',
+        '# 现实推演阶段3：只选择更新与初始化 Skills',
+        '你不是正文作者，不要续写剧情，不要输出旁白，不要输出行动结果。',
+        '你只做分类选择，只输出一个 JSON 对象；第一个字符必须是 {，最后一个字符必须是 }。',
         `本次行动：${action || '继续观察现实世界'}`,
-        `基础上下文：\n${base}`,
-        `已动态载入资料：\n${[loadedText, materialText].filter(Boolean).join('\n\n') || '无'}`,
-        `阶段2提示词：\n${narrationPrompt || '未记录'}`,
-        `阶段2正文：\n${narration}`,
-        `可用更新 Skills：\n${summaries || '无'}`,
-        `可用初始化 Skills：\n${initSummaries || '无'}`,
-        '任务：结合阶段2提示词、阶段2正文和已载入资料，判断哪些更新或初始化 skill 可能需要处理。只选择有明确变化证据的 skill。',
+        `基础上下文摘要：\n${String(base || '').slice(0, 1200)}`,
+        `已动态载入资料摘要：\n${[loadedText, materialText].filter(Boolean).join('\n\n').slice(0, 1600) || '无'}`,
+        `已生成正文事实：\n${String(narration || '').slice(0, 2200)}`,
+        `可选更新 Skills：\n${summaries || '无'}`,
+        `可选初始化 Skills：\n${initSummaries || '无'}`,
+        '任务：仅根据“已生成正文事实”和资料摘要，选择需要进入下一阶段处理的 skill 名称。只选择有明确变化证据的 skill。',
+        '禁止输出正文、分析过程、Markdown、代码块、额外说明。',
         '输出格式：{"skillNames":["skill-name"],"initSkillNames":["skill-name"],"reason":"选择原因"}。如果没有需要的通用更新或初始化，数组返回空。',
       ].join('\n\n');
     };
