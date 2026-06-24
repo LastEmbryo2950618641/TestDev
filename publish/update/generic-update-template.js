@@ -7,12 +7,13 @@ window.GameModules.genericUpdateTemplate = {
     const baseSchema = loop.updateJsonSchema;
     const baseProse = loop.proseFinal;
     const baseMerge = loop.mergeNarrationAndUpdates;
-    loop.buildUpdateSkillSelectPrompt = async function buildUpdateSkillSelectPrompt({ action, base, loaded, materialSession = null, narration, narrationPrompt = '' }) {
+    loop.buildUpdateSkillSelectPrompt = async function buildUpdateSkillSelectPrompt({ store, action, base, loaded, materialSession = null, narration, narrationPrompt = '' }) {
       const loadedText = window.GameModules.realWorldAgentContext.buildLoadedText(loaded);
       const materialText = window.GameModules.realWorldMaterials?.summary?.(materialSession) || '';
       const summaries = window.GameModules.updateRegistry?.skillSummaries?.() || '';
+      const initSummaries = window.GameModules.initPromptRegistry?.skillSummaries?.(this) || '';
       return [
-        '# 现实推演阶段3：选择更新 Skills',
+        '# 现实推演阶段3：选择更新与初始化 Skills',
         '你只输出合法 JSON，不要 Markdown，不要解释。',
         `本次行动：${action || '继续观察现实世界'}`,
         `基础上下文：\n${base}`,
@@ -20,8 +21,9 @@ window.GameModules.genericUpdateTemplate = {
         `阶段2提示词：\n${narrationPrompt || '未记录'}`,
         `阶段2正文：\n${narration}`,
         `可用更新 Skills：\n${summaries || '无'}`,
-        '任务：结合阶段2提示词、阶段2正文和已载入资料，判断哪些更新 skill 可能需要处理。只选择有明确变化证据的 skill。',
-        '输出格式：{"skillNames":["skill-name"],"reason":"选择原因"}。如果没有需要的通用更新，skillNames 返回空数组。',
+        `可用初始化 Skills：\n${initSummaries || '无'}`,
+        '任务：结合阶段2提示词、阶段2正文和已载入资料，判断哪些更新或初始化 skill 可能需要处理。只选择有明确变化证据的 skill。',
+        '输出格式：{"skillNames":["skill-name"],"initSkillNames":["skill-name"],"reason":"选择原因"}。如果没有需要的通用更新或初始化，数组返回空。',
       ].join('\n\n');
     };
 
@@ -34,10 +36,11 @@ window.GameModules.genericUpdateTemplate = {
         const raw = await this.completeStep(store, prompt, logId, false);
         const data = window.GameModules.jsonUtils.parseLoose(raw);
         const names = Array.isArray(data?.skillNames) ? data.skillNames : [];
-        return registry.selectByNames(names).map((type) => type.id);
+        const initNames = Array.isArray(data?.initSkillNames) ? data.initSkillNames : [];
+        return { updateSkillIds: registry.selectByNames(names).map((type) => type.id), initSkillIds: initNames };
       } catch (err) {
         console.warn('现实更新 skill 选择失败，退回全部更新 skill:', err.message, err.stack);
-        return null;
+        return { updateSkillIds: null, initSkillIds: [] };
       }
     };
 
@@ -45,12 +48,14 @@ window.GameModules.genericUpdateTemplate = {
       const options = args[0] || {};
       const registry = window.GameModules.updateRegistry;
       const selected = Array.isArray(options.updateSkillIds) ? options.updateSkillIds : null;
+      const initSelected = Array.isArray(options.initSkillIds) ? options.initSkillIds : [];
       const prompt = await basePrompt.apply(this, args);
       const skillText = registry?.skillText?.(selected) || '';
+      const initText = window.GameModules.initPromptRegistry?.skillText?.(initSelected, options.store) || '';
       const baseExamples = baseSchema.apply(this, []);
-      const examples = JSON.stringify({ ...baseExamples, ...(registry?.schemaFor?.(selected) || { genericUpdates: [] }) });
-      const phaseTitle = selected?.length ? '# 现实推演阶段4：按已选 Skills 生成更新JSON' : '# 现实推演阶段4：生成更新JSON';
-      return [prompt.replace('# 现实推演阶段3：只生成更新JSON', phaseTitle).replace(/最小示例：\{[\s\S]*$/, `最小示例：${examples}`), skillText ? `## 已加载更新 Skills 全文\n\n${skillText}` : ''].filter(Boolean).join('\n\n');
+      const examples = JSON.stringify({ ...baseExamples, ...(registry?.schemaFor?.(selected) || { genericUpdates: [] }), ...(window.GameModules.initPromptRegistry?.schema?.(initSelected, options.store) || {}) });
+      const phaseTitle = selected?.length || initSelected.length ? '# 现实推演阶段4：按已选 Skills 生成更新JSON' : '# 现实推演阶段4：生成更新JSON';
+      return [prompt.replace('# 现实推演阶段3：只生成更新JSON', phaseTitle).replace(/最小示例：\{[\s\S]*$/, `最小示例：${examples}`), skillText ? `## 已加载更新 Skills 全文\n\n${skillText}` : '', initText ? `## 已加载初始化 Skills 全文\n\n${initText}` : ''].filter(Boolean).join('\n\n');
     };
 
     loop.generatePhasedFinal = async function patchedGeneratePhasedFinal(options) {
@@ -60,13 +65,15 @@ window.GameModules.genericUpdateTemplate = {
       const narration = this.cleanPhasedNarration(narrationRaw);
       if (!narration) throw new Error('现实推演正文为空');
       this.showFinalNarration(options.store, options.logId, narration);
-      const updateSkillIds = await this.selectUpdateSkills({ ...options, narration, narrationPrompt });
-      const jsonPrompt = await this.buildUpdateJsonPrompt({ ...options, narration, updateSkillIds });
-      this.markStep(options.store, options.logId, '现实更新技能已加载，正在生成状态更新…', { keepNarration: true });
+      const selectedSkills = await this.selectUpdateSkills({ ...options, narration, narrationPrompt });
+      const updateSkillIds = selectedSkills?.updateSkillIds ?? null;
+      const initSkillIds = selectedSkills?.initSkillIds || [];
+      const jsonPrompt = await this.buildUpdateJsonPrompt({ ...options, narration, updateSkillIds, initSkillIds });
+      this.markStep(options.store, options.logId, '现实更新与初始化技能已加载，正在生成状态更新…', { keepNarration: true });
       const jsonRaw = await this.completeUpdateJson(options.store, jsonPrompt, options.logId);
       const updates = this.parseUpdateJson(jsonRaw) || {};
       const result = this.mergeNarrationAndUpdates(options.store, narration, updates);
-      return { result, prompt: `${options.prompt || ''}\n\n---NARRATION---\n${narrationPrompt}\n\n---UPDATE_SKILLS---\n${Array.isArray(updateSkillIds) ? updateSkillIds.join(', ') : 'ALL_FALLBACK'}\n\n---UPDATE_JSON---\n${jsonPrompt}`, loaded: options.loaded, raw: `${narrationRaw}\n\n${jsonRaw}`, trace: options.trace };
+      return { result, prompt: `${options.prompt || ''}\n\n---NARRATION---\n${narrationPrompt}\n\n---UPDATE_SKILLS---\n${Array.isArray(updateSkillIds) ? updateSkillIds.join(', ') : 'ALL_FALLBACK'}\n\n---INIT_SKILLS---\n${initSkillIds.join(', ')}\n\n---UPDATE_JSON---\n${jsonPrompt}`, loaded: options.loaded, raw: `${narrationRaw}\n\n${jsonRaw}`, trace: options.trace };
     };
 
     loop.updateJsonSchema = function patchedUpdateJsonSchema(...args) {
