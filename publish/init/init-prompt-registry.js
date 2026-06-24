@@ -14,21 +14,39 @@ window.GameModules.initPromptRegistry = {
     return { name: meta.name || '', description: meta.description || '', body: match ? match[2].trim() : raw.trim(), raw };
   },
 
-  register(id, text) {
+  register(id, source = {}) {
+    const text = typeof source === 'string' ? source : source.prompt;
     if (!id || !text) return;
-    this.prompts[id] = { id, ...this.parse(text) };
+    const parsed = this.parse(text);
+    const templateKey = typeof source === 'object' ? source.templateKey : '';
+    const template = templateKey ? window.GameModules.initTemplateSources?.[templateKey] : null;
+    this.prompts[id] = { id, templateKey, template, ...parsed };
   },
 
-  registerAll() {
-    this.register('real-world-init', window.GameModules.initPrompts?.realWorldInit || '');
+  registerAll(prefix = '') {
+    this.prompts = {};
+    const sources = window.GameModules.initPromptSources || {};
+    Object.entries(sources).forEach(([key, source]) => {
+      if (prefix && !String(key).startsWith(prefix)) return;
+      this.register(key, source);
+    });
   },
 
-  skillText() {
-    if (!Object.keys(this.prompts).length) this.registerAll();
-    return Object.values(this.prompts).map((item) => `## ${item.name || item.id}\n\n${item.body}`).filter(Boolean).join('\n\n');
+  skillText(prefix = '') {
+    if (!Object.keys(this.prompts).length) this.registerAll(prefix);
+    return Object.values(this.prompts).map((item) => {
+      const templateText = item.template?.promptText?.() || '';
+      return [`## ${item.name || item.id}`, item.body, templateText].filter(Boolean).join('\n\n');
+    }).filter(Boolean).join('\n\n');
   },
 
-  schema() {
-    return { initUpdates: [] };
+  schema(prefix = '') {
+    if (!Object.keys(this.prompts).length) this.registerAll(prefix);
+    const result = { initUpdates: [] };
+    Object.values(this.prompts).forEach((item) => {
+      const schema = item.template?.jsonFormat?.();
+      if (Array.isArray(schema?.initUpdates)) result.initUpdates.push(...schema.initUpdates);
+    });
+    return result;
   },
 };

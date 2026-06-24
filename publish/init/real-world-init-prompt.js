@@ -1,7 +1,9 @@
 window.GameModules = window.GameModules || {};
-window.GameModules.initPrompts = window.GameModules.initPrompts || {};
+window.GameModules.initPromptSources = window.GameModules.initPromptSources || {};
 
-window.GameModules.initPrompts.realWorldInit = `---
+window.GameModules.initPromptSources.realWorld = {
+  id: 'real-world',
+  prompt: `---
 name: real-world-init
 description: 根据现实推演正文提取玩家或角色的初始化字段
 ---
@@ -49,4 +51,5 @@ description: 根据现实推演正文提取玩家或角色的初始化字段
   ]
 }
 \`\`\`
-`;
+`,
+};
