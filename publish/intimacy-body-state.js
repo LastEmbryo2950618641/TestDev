@@ -153,8 +153,13 @@ window.GameModules.intimacyBodyState = {
     for (const id of changed) { const state = store.rpgStates?.[id] || window.GameModules.sqliteSave.getCharacterState?.(id); if (!state) continue; store.rpgStates = { ...(store.rpgStates || {}), [id]: state }; await window.GameModules.sqliteSave.saveCharacterState(state); }
   },
   experienceRows(intimacy = {}) {
-    const parts = intimacy.sexualExperienceParts || {};
-    return Object.entries(this.sexPartLabels).map(([key, label]) => ({ partKey: key, name: label, count: Math.max(0, Math.round(Number(parts[key]) || 0)), prompt: this.sexPartPrompts[key], type: '性经验分类' }));
+    const parts = intimacy.sexualExperienceParts || {}, initialParts = intimacy.sexualExperienceInitialParts || {};
+    return Object.entries(this.sexPartLabels).map(([key, label]) => {
+      const total = Math.max(0, Math.round(Number(parts[key]) || 0));
+      const initial = Math.max(0, Math.round(Number(initialParts[key]) || 0));
+      const later = Math.max(0, total - initial);
+      return { partKey: key, name: label, count: total, initialCount: initial, laterCount: later, prompt: this.sexPartPrompts[key], type: '性经验分类' };
+    });
   },
   fields(state = {}) {
     state = state || {};
@@ -170,7 +175,7 @@ window.GameModules.intimacyBodyState = {
       { key: 'sexualPartnerCount', stateId: state.id || '', label: '经历人数', kind: '性经历', value: `${partnerCount}人`, raw: partnerCount, desc: '仅稳定确认阴部插入时计入人数。', reason: values.intimacy?.reason || '默认未记录。', worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: true },
       { key: 'sexualPartners', stateId: state.id || '', label: '经历人列表', kind: '性经历', value: partners.length ? partners : ['无'], raw: partners, desc: '已确认计入经历人数的对象列表，自动去重。', reason: values.intimacy?.reason || '默认未记录。', worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: true },
       { key: 'sexualExperienceCount', stateId: state.id || '', label: '性经验总次数', kind: '角色卡', value: this.adultConfirmed(state) ? `${count}次` : '未确认成人，不自动更新', raw: count, desc: '成人虚构角色的抽象经历总次数；同一次经历可关联多个分类。', reason: values.intimacy?.reason || '默认未记录。', worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: true },
-      { key: 'sexualExperienceParts', stateId: state.id || '', label: '性经验分类次数', kind: '性经验分类', value: expRows.map((item) => `${item.name}：${item.count}次`), raw: expRows, desc: '分部位的抽象次数统计与记录提示；只用于结算，不包含过程描写。', reason: values.intimacy?.reason || '默认未记录。', worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: true },
+      { key: 'sexualExperienceParts', stateId: state.id || '', label: '性经验分类次数', kind: '性经验分类', value: expRows.map((item) => `${item.name}：${item.initialCount}(初次见面) + ${item.laterCount} (后续次数)`), raw: expRows, desc: '分部位的抽象次数统计与记录提示；只用于结算，不包含过程描写。', reason: values.intimacy?.reason || '默认未记录。', worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: true },
       { key: 'bodyStatus', stateId: state.id || '', label: '当前身体状态', kind: '当前身体状态', value: rows.map((item) => `${item.part}：${item.status}`), raw: rows, desc: '各身体部位的中性短状态，用于现实推演判定与护理记录。', reason: '由初始默认状态与现实推演中的明确状态变化共同维护。', worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: true },
     ];
   },

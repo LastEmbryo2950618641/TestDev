@@ -231,7 +231,7 @@ window.GameModules.rpgFieldUi = {
     const name = this.rpgItemName(item);
     if (typeof item === 'string') return name;
     if (item?.type === '身体原貌' || item?.type === '盛装状态') return `${item.index || ''}.${item.part || name}`;
-    if (item?.type === '性经验分类') return `${item.name || name}：${item.count || 0}次`;
+    if (item?.type === '性经验分类') return `${item.name || name}：${item.initialCount || 0}(初次见面) + ${item.laterCount || 0} (后续次数)`;
     if (item?.type === '当前身体状态') {
       const desc = item.description || item['描述状态'] || '';
       return `${item.part || name}：${item.status || '稳定'}${desc ? `｜${desc}` : ''}`;
@@ -275,7 +275,7 @@ window.GameModules.rpgFieldUi = {
     const kind = obj?.type || this.lexiconKind(field, obj);
     const name = this.rpgItemName(obj) || field?.label || '未知';
     if (kind === '身体原貌' || kind === '盛装状态') return [`部位: ${name}`, `序号: ${obj.index || '未记录'}`, `所属世界: ${field?.worldTag || '公共'}`, `词条类型: ${field?.targetType || '角色'}`, `当前依据: ${field?.reason || (kind === '盛装状态' ? '来自角色卡 Part6 盛装状态生成结果。' : '来自角色卡 Part5 身体原貌生成结果。')}`].join('\n');
-    if (kind === '性经验分类') return [`分类: ${obj.name || name}`, `字段: intimacy.sexualExperienceParts.${obj.partKey || 'other'}`, `次数: ${obj.count || 0}`, `记录提示: ${obj.prompt || '只记录成人抽象次数，不记录过程。'}`, `所属世界: ${field?.worldTag || '公共'}`].join('\n');
+    if (kind === '性经验分类') return [`分类: ${obj.name || name}`, `字段: intimacy.sexualExperienceParts.${obj.partKey || 'other'}`, `次数: ${obj.initialCount || 0}(初次见面) + ${obj.laterCount || 0} (后续次数)`, `记录提示: ${obj.prompt || '只记录成人抽象次数，不记录过程。'}`, `所属世界: ${field?.worldTag || '公共'}`].join('\n');
     if (kind === '当前身体状态') return [`部位: ${obj.part || name}`, `状态: ${obj.status || '稳定'}`, `描述状态: ${obj.description || '未记录'}`, `变化原因: ${obj.reason || '当前记录。'}`, `更新时间: ${obj.updatedAt || '未记录'}`, `所属世界: ${field?.worldTag || '公共'}`].join('\n');
     const hasLevel = Number(obj?.level) > 0;
     const lines = [`名称: ${name}`, `定义: ${this.learnedDefinition(kind, name, obj, lexicon, info)}`, `类型: ${kind}`, `所属世界: ${field?.worldTag || lexicon?.worldTag || '公共'}`, `词条类型: ${field?.targetType || lexicon?.meta?.targetType || '角色'}`];
