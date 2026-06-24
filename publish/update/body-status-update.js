@@ -9,5 +9,5 @@ window.GameModules.updateRegistry?.register?.({
     const title = store?.realWorldSettlementTargetGroup?.(id, subject.name || '') || subject.name || id;
     return { id: `role:${id}`, title, section: '角色卡' };
   },
-  examples: [{ updateType: 'body-status', subject: { type: 'player', id: 'player-self' }, field: 'bodyStatus.mouth', change: { mode: 'set', value: { partKey: 'mouth', part: '口部', status: '稳定' } }, reasons: [{ trigger: '明确护理、受伤、疾病或恢复事实', evidence: '只记录中性短状态', confidence: 'confirmed' }] }],
+  examples: [{ updateType: 'body-status', subject: { type: 'player', id: 'player-self' }, field: 'bodyStatus.mouth', change: { mode: 'set', value: { partKey: 'mouth', part: '口部', status: '稳定', '描述状态': '口部清洁，状态稳定' } }, reasons: [{ trigger: '明确护理、受伤、疾病或恢复事实', evidence: '只记录中性短状态与描述状态', confidence: 'confirmed' }] }],
 });
