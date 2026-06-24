@@ -123,12 +123,27 @@ window.GameModules.intimacyBodyState = {
     state.values.intimacy.reason = String(this.reason(update)).slice(0, 120);
     return before !== JSON.stringify(state.values.intimacy);
   },
+  bodyPartFromUpdate(update = {}, value = {}) {
+    const field = String(update.field || '');
+    const direct = value.partKey || value.part || update.partKey || update.part;
+    if (direct) return this.partKey(direct);
+    const parts = field.split('.').map((item) => item.trim()).filter(Boolean);
+    const bodyAt = parts.findIndex((item) => item === 'bodyStatus' || item === '当前身体状态');
+    if (bodyAt >= 0 && parts[bodyAt + 1]) return this.partKey(parts[bodyAt + 1]);
+    return this.partKey(parts.find((item) => this.partLabels[this.partKey(item)]) || parts[0] || 'other');
+  },
   applyBody(state, update = {}) {
     this.ensure(state);
-    const value = update.change?.value ?? update.value ?? {}, key = this.partKey(value.partKey || value.part || update.field?.split('.')?.pop());
+    const raw = update.change?.value ?? update.value ?? {};
+    const value = raw && typeof raw === 'object' ? raw : {};
+    const key = this.bodyPartFromUpdate(update, value);
     const before = JSON.stringify(state.values.bodyStatus[key] || {});
-    const description = String(value['描述状态'] || value.description || value.desc || value.detail || '').trim().slice(0, 80);
-    state.values.bodyStatus[key] = { partKey: key, part: this.partLabels[key] || value.part || this.text('otherPart'), status: this.safeStatus(value), description, reason: String(this.reason(update)).slice(0, 120), updatedAt: new Date().toISOString() };
+    const leaf = String(update.field || '').split('.').pop();
+    const rawText = raw && typeof raw === 'object' ? '' : String(raw || '').trim();
+    const current = state.values.bodyStatus[key] || this.defaultBodyStatusEntry(key);
+    const description = String(value['描述状态'] || value.description || value.desc || value.detail || (/描述|description|desc|detail/.test(leaf) ? rawText : current.description || '')).trim().slice(0, 80);
+    const statusSource = value.status || value.state || (/status|状态/.test(leaf) ? rawText : value);
+    state.values.bodyStatus[key] = { partKey: key, part: this.partLabels[key] || value.part || current.part || this.text('otherPart'), status: this.safeStatus(statusSource), description, reason: String(this.reason(update)).slice(0, 120), updatedAt: new Date().toISOString() };
     return before !== JSON.stringify(state.values.bodyStatus[key]);
   },
   async applyGeneric(store, updates = []) {

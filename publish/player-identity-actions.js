@@ -47,7 +47,7 @@ window.GameModules.playerIdentityActions = {
     const p = this.identityTargetProfile();
     const worldTag = p.work || this.identityTargetState()?.worldTag || '原创世界';
     const reasonFor = this.roleCardReasonGetter(p);
-    const row = (key, label, value, desc) => ({ key: `id-${this.identityTargetId}-${key}`, label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: '角色', commonField: true });
+    const row = (key, label, value, desc) => ({ key: `id-${this.identityTargetId}-${key}`, stateId: this.identityTargetId || 'player-self', label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: '角色', commonField: true });
     return [
       row('name', '姓名', p.name, '角色卡固化姓名。'),
       row('work', '所属世界', worldTag, '角色出身作品或世界。'),
