@@ -4,7 +4,7 @@ window.GameModules.intimacyBodyState = {
   defaults: window.GameModules.initDefaults?.intimacyBody,
   partLabels: window.GameModules.initDefaults?.intimacyBody?.partLabels || {},
   sexPartLabels: window.GameModules.initDefaults?.intimacyBody?.sexPartLabels || {},
-  sexPartPrompts: window.GameModules.initDefaults?.intimacyBody?.sexPartPrompts || {},
+  sexPartPrompts: window.GameModules.updateRules?.sexualExperience?.partPrompts || {},
   fieldMeta: window.GameModules.initDefaults?.intimacyBody?.fieldMeta || {},
   valueDefaults: window.GameModules.initDefaults?.intimacyBody?.valueDefaults || {},
   sexPartDefaults: window.GameModules.initDefaults?.intimacyBody?.sexualExperiencePartDefaults || {},
