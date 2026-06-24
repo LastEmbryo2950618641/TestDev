@@ -8,6 +8,9 @@ window.GameModules.intimacyBodyState = {
   fieldMeta: window.GameModules.initDefaults?.intimacyBody?.fieldMeta || {},
   valueDefaults: window.GameModules.initDefaults?.intimacyBody?.valueDefaults || {},
   sexPartDefaults: window.GameModules.initDefaults?.intimacyBody?.sexualExperiencePartDefaults || {},
+  bodyStatusDefaults: window.GameModules.initDefaults?.intimacyBody?.bodyStatusDefaults || {},
+  intimacyDefaults: window.GameModules.initDefaults?.intimacyBody?.intimacyDefaults || {},
+  sexualHistoryDefaults: window.GameModules.initDefaults?.intimacyBody?.sexualHistoryDefaults || {},
   partKey(raw = '') {
     const text = String(raw || '').trim();
     const map = { overall: 'overall', mouth: 'mouth', chest: 'chest', genital: 'genital', anus: 'anus', hips: 'hips', limbs: 'limbs', skin: 'skin', other: 'other', 口部: 'mouth', 胸部: 'chest', 阴部: 'genital', 私处: 'genital', 肛部: 'anus', 臀部: 'hips', 四肢: 'limbs', 皮肤: 'skin', 整体: 'overall' };
@@ -36,7 +39,7 @@ window.GameModules.intimacyBodyState = {
     return 'other';
   },
   defaultBodyDescription(key) {
-    return this.defaults?.bodyDescriptions?.[key] || this.valueDefaults.bodyDescription || '';
+    return this.bodyStatusDefaults[key]?.description || this.valueDefaults.bodyDescription || '';
   },
   defaultBodyStatus() { return this.defaults?.bodyStatus?.() || {}; },
   defaultBodyStatusEntry(key) { return this.defaults?.bodyStatusEntry?.(key) || {}; },
@@ -51,10 +54,10 @@ window.GameModules.intimacyBodyState = {
     let changed = false;
     const values = state.values;
     if (!values.intimacy || typeof values.intimacy !== 'object') { values.intimacy = this.defaultIntimacy(); changed = true; }
-    if (!values.intimacy.sexualStatus) { values.intimacy.sexualStatus = this.valueDefaults.sexualStatus; changed = true; }
-    if (!Number.isFinite(Number(values.intimacy.sexualPartnerCount))) { values.intimacy.sexualPartnerCount = this.valueDefaults.sexualPartnerCount; changed = true; }
-    if (!Array.isArray(values.intimacy.sexualPartners)) { values.intimacy.sexualPartners = [...(this.valueDefaults.sexualPartners || [])]; changed = true; }
-    if (!Number.isFinite(Number(values.intimacy.sexualExperienceCount))) { values.intimacy.sexualExperienceCount = this.valueDefaults.sexualExperienceCount; changed = true; }
+    if (!values.intimacy.sexualStatus) { values.intimacy.sexualStatus = this.sexualHistoryDefaults.sexualStatus; changed = true; }
+    if (!Number.isFinite(Number(values.intimacy.sexualPartnerCount))) { values.intimacy.sexualPartnerCount = this.sexualHistoryDefaults.sexualPartnerCount; changed = true; }
+    if (!Array.isArray(values.intimacy.sexualPartners)) { values.intimacy.sexualPartners = [...(this.sexualHistoryDefaults.sexualPartners || [])]; changed = true; }
+    if (!Number.isFinite(Number(values.intimacy.sexualExperienceCount))) { values.intimacy.sexualExperienceCount = this.intimacyDefaults.sexualExperienceCount; changed = true; }
     if (!values.intimacy.sexualExperienceParts || typeof values.intimacy.sexualExperienceParts !== 'object') { values.intimacy.sexualExperienceParts = this.defaultSexParts(); changed = true; }
     for (const key of Object.keys(this.sexPartLabels)) if (!Number.isFinite(Number(values.intimacy.sexualExperienceParts[key]))) { values.intimacy.sexualExperienceParts[key] = this.sexPartDefaults[key]; changed = true; }
     if (!values.bodyStatus || typeof values.bodyStatus !== 'object' || Array.isArray(values.bodyStatus)) { values.bodyStatus = this.defaultBodyStatus(); changed = true; }

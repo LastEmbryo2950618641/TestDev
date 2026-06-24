@@ -94,6 +94,34 @@ window.GameModules.initDefaults.intimacyBody = {
     other: 0,
   },
 
+  sexualHistoryDefaults: {
+    sexualStatus: '处女',
+    sexualPartnerCount: 0,
+    sexualPartners: [],
+  },
+
+  intimacyDefaults: {
+    sexualStatus: '处女',
+    sexualPartnerCount: 0,
+    sexualPartners: [],
+    sexualExperienceCount: 0,
+    sexualExperienceParts: { genital: 0, chest: 0, lips: 0, mouth: 0, oralAction: 0, oralSex: 0, oralInternalFinish: 0, genitalEntry: 0, vaginalInsertion: 0, vaginalInternalFinish: 0, anus: 0, analEntry: 0, analSex: 0, analInternalFinish: 0, legs: 0, hips: 0, hands: 0, skin: 0, other: 0 },
+    updatedAt: '',
+    reason: '默认未记录',
+  },
+
+  bodyStatusDefaults: {
+    overall: { partKey: 'overall', part: '整体', status: '稳定', description: '整体稳定，无明显异常', reason: '初始默认状态', updatedAt: '' },
+    mouth: { partKey: 'mouth', part: '口部', status: '稳定', description: '口部清洁，状态稳定', reason: '初始默认状态', updatedAt: '' },
+    chest: { partKey: 'chest', part: '胸部', status: '稳定', description: '胸部状态稳定，无明显不适', reason: '初始默认状态', updatedAt: '' },
+    genital: { partKey: 'genital', part: '阴部', status: '稳定', description: '阴部状态稳定，无明显不适', reason: '初始默认状态', updatedAt: '' },
+    anus: { partKey: 'anus', part: '肛部', status: '稳定', description: '肛部状态稳定，无明显不适', reason: '初始默认状态', updatedAt: '' },
+    hips: { partKey: 'hips', part: '臀部', status: '稳定', description: '臀部状态稳定，无明显不适', reason: '初始默认状态', updatedAt: '' },
+    limbs: { partKey: 'limbs', part: '四肢', status: '稳定', description: '肢体活动正常，状态稳定', reason: '初始默认状态', updatedAt: '' },
+    skin: { partKey: 'skin', part: '皮肤', status: '稳定', description: '皮肤状态稳定，无明显异常', reason: '初始默认状态', updatedAt: '' },
+    other: { partKey: 'other', part: '其他', status: '稳定', description: '其他部位暂无异常', reason: '初始默认状态', updatedAt: '' },
+  },
+
   sexPartPrompts: {
     genital: '仅在成人身份且明确稳定事实确认该部位相关经历时计数；禁止过程描写。',
     chest: '仅记录成人抽象经历中胸部相关次数，不记录触碰细节或感官描写。',
@@ -132,35 +160,24 @@ window.GameModules.initDefaults.intimacyBody = {
   formatBodyStatus(item) { return `${item.part}：${item.status}`; },
   formatInitialBody(item) { return `${item.part}：${item.status}｜${item.description}`; },
 
+  clone(value) {
+    return JSON.parse(JSON.stringify(value));
+  },
+
   bodyStatusEntry(key) {
-    return {
-      partKey: key,
-      part: this.partLabels[key] || this.displayTexts.otherPart,
-      status: this.valueDefaults.bodyStatus,
-      description: this.bodyDescriptions[key] || this.valueDefaults.bodyDescription,
-      reason: this.valueDefaults.bodyReason,
-      updatedAt: this.valueDefaults.updatedAt,
-    };
+    return this.clone(this.bodyStatusDefaults[key] || this.bodyStatusDefaults.other);
   },
 
   bodyStatus() {
-    return Object.fromEntries(Object.keys(this.partLabels).map((key) => [key, this.bodyStatusEntry(key)]));
+    return this.clone(this.bodyStatusDefaults);
   },
 
   sexualExperienceParts() {
-    return { ...this.sexualExperiencePartDefaults };
+    return this.clone(this.sexualExperiencePartDefaults);
   },
 
   intimacy() {
-    return {
-      sexualStatus: this.valueDefaults.sexualStatus,
-      sexualPartnerCount: this.valueDefaults.sexualPartnerCount,
-      sexualPartners: [...this.valueDefaults.sexualPartners],
-      sexualExperienceCount: this.valueDefaults.sexualExperienceCount,
-      sexualExperienceParts: this.sexualExperienceParts(),
-      updatedAt: this.valueDefaults.updatedAt,
-      reason: this.valueDefaults.intimacyReason,
-    };
+    return this.clone(this.intimacyDefaults);
   },
 
   initialMeeting() {
