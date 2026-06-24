@@ -162,7 +162,7 @@ window.GameModules.saveActions = {
   rpgEntries(state) {
     if (!state?.schema) return [];
     window.GameModules.progression.ensureStateMechanics(state, state.profile || {});
-    window.GameModules.intimacyBodyState?.ensure?.(state);
+    window.GameModules.initPromptRegistry?.ensureTemplateState?.('intimacyBody', state);
     return state.schema.sections.map((section) => ({
       title: section.title,
       fields: section.fields

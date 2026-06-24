@@ -60,7 +60,7 @@ window.GameModules.rpgFieldUi = {
     const identityRest = identity.filter((field) => !relations.includes(field) && !privateLabels.has(field.label));
     const naturalState = this.profileNaturalStateField(state);
     const dressedState = this.profileDressedStateField(state);
-    const intimacyFields = window.GameModules.intimacyBodyState?.fields?.(state) || [];
+    const intimacyFields = window.GameModules.initPromptRegistry?.fields?.('intimacyBody', state) || [];
     const longing = this.profileLongingField(state);
     const used = new Set(['world_tag', 'age', 'factions', 'force_positions', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'items', 'wearing', 'bodyProfile', 'dressedProfile', 'bodyStatus', 'intimacy', 'status_tags']);
     const personal = all.filter((field) => !used.has(field.key));

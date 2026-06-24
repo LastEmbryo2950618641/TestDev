@@ -97,6 +97,40 @@ window.GameModules.initPromptRegistry = {
     return JSON.parse(JSON.stringify(value));
   },
 
+  template(key = '') {
+    return window.GameModules.initTemplateSources?.[key] || window.GameModules.initDefaults?.[key] || null;
+  },
+
+  defaultValue(templateKey = '', method = '') {
+    const template = this.template(templateKey);
+    return template?.[method] ? template[method]() : null;
+  },
+
+  ensureTemplateState(templateKey = '', state = {}) {
+    return Boolean(this.template(templateKey)?.ensure?.(state));
+  },
+
+  fields(templateKey = '', state = {}) {
+    return this.template(templateKey)?.uiFields?.(state) || this.template(templateKey)?.fields?.(state) || [];
+  },
+
+  async applyGeneric(store, updates = []) {
+    const changed = new Set();
+    for (const update of Array.isArray(updates) ? updates : []) {
+      const state = this.targetState(store, update);
+      if (!state?.values) continue;
+      const templates = Object.values(window.GameModules.initTemplateSources || {});
+      const matched = templates.find((template) => template?.applyUpdate?.(state, update));
+      if (matched) changed.add(state.id);
+    }
+    for (const id of changed) {
+      const state = store.rpgStates?.[id] || window.GameModules.sqliteSave.getCharacterState?.(id);
+      if (!state) continue;
+      store.rpgStates = { ...(store.rpgStates || {}), [id]: state };
+      await window.GameModules.sqliteSave.saveCharacterState?.(state);
+    }
+  },
+
   registerAll(prefix = '') {
     this.prompts = {};
     const sources = window.GameModules.initPromptSources || {};
