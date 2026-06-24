@@ -34,12 +34,13 @@ window.GameModules.genericUpdateTemplate = {
         const prompt = await this.buildUpdateSkillSelectPrompt({ store, action, base, loaded, materialSession, narration, narrationPrompt });
         this.markStep(store, logId, '现实正文已完成，正在选择更新技能…', { keepNarration: true });
         const raw = await this.completeStep(store, prompt, logId, false);
+        if (!String(raw || '').includes('{')) return { updateSkillIds: null, initSkillIds: [] };
         const data = window.GameModules.jsonUtils.parseLoose(raw);
         const names = Array.isArray(data?.skillNames) ? data.skillNames : [];
         const initNames = Array.isArray(data?.initSkillNames) ? data.initSkillNames : [];
         return { updateSkillIds: registry.selectByNames(names).map((type) => type.id), initSkillIds: initNames };
       } catch (err) {
-        console.warn('现实更新 skill 选择失败，退回全部更新 skill:', err.message, err.stack);
+        console.warn('现实更新 skill 选择失败，退回全部更新 skill:', err.message);
         return { updateSkillIds: null, initSkillIds: [] };
       }
     };

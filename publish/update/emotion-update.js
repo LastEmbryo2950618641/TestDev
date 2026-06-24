@@ -14,11 +14,14 @@ window.GameModules.updateRegistry?.register?.({
       .filter((item) => /(^|\.)emotions\./u.test(String(item.field || '')) || item.updateType === 'emotion');
     const legacy = (Array.isArray(raw.characterMetricUpdates) ? raw.characterMetricUpdates : []).flatMap((item) => {
       const subject = item.subject || { type: 'character', id: item.target || item.targetId || item.characterId || item.name };
-      return (Array.isArray(item.emotions) ? item.emotions : []).map((emotion) => ({
-        updateType: 'emotion', subject, field: `metrics.emotions.${emotion.key}`,
-        change: { mode: 'delta', value: Number(emotion.delta) || 0 },
-        reasons: [{ trigger: emotion.reason || emotion.status || '情绪变化', evidence: emotion.reason || '', confidence: 'confirmed' }],
-      }));
+      return (Array.isArray(item.emotions) ? item.emotions : []).map((emotion) => {
+        const key = emotion.key || emotion.field || emotion.name;
+        return {
+          updateType: 'emotion', subject, field: String(key || '').startsWith('metrics.') ? key : `metrics.emotions.${key}`,
+          change: emotion.change && typeof emotion.change === 'object' ? emotion.change : { mode: 'delta', value: Number(emotion.delta) || 0 },
+          reasons: Array.isArray(emotion.reasons) ? emotion.reasons : [{ trigger: emotion.reason || emotion.status || '情绪变化', evidence: emotion.reason || '', confidence: 'confirmed' }],
+        };
+      }).filter((update) => update.field !== 'metrics.emotions.');
     });
     return [...direct, ...legacy];
   },
