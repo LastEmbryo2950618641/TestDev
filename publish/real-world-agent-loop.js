@@ -116,7 +116,7 @@ window.GameModules.realWorldAgentLoop = {
       `推演自由度：${store.realWorldFreedomRule?.() || '只推演玩家本次输入行动自然抵达的直接结果。'}`,
       `基础上下文：\n${base}`,
       `已动态载入资料：\n${[loadedText, materialText].filter(Boolean).join('\n\n') || '无'}`,
-      '要求：使用第二人称“你”；写出行动过程、环境变化、人物反应和直接结果；不要替玩家完成后续行动；正文建议600-1200字。',
+      '要求：使用第二人称“你”；写出行动过程、环境变化、人物反应和直接结果；不要替玩家完成后续行动；正文建议1000-2600字。',
     ].join('\n\n');
   },
 
