@@ -1,3 +1,8 @@
+---
+name: faction-overview-update
+description: 根据现实推演正文提取新增势力或上层势力总览变化
+---
+
 # faction-overview-update
 
 确认新增势力、上层势力归属、势力APP/势力总览层级变化时，返回 updateType:"faction-overview"。

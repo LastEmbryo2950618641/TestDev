@@ -1,3 +1,8 @@
+---
+name: item-update
+description: 根据现实推演正文提取物品获得、转移、删除、购买或生成更新
+---
+
 # item-update
 
 确认物品、装备、穿着、库存归属或数量变化时，返回 updateType:"item"。

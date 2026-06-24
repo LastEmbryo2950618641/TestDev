@@ -1,3 +1,8 @@
+---
+name: map-update
+description: 根据现实推演正文提取地点、地图节点与地点事实变化
+---
+
 # map-update
 
 确认地点、地图节点、上级地点、地点说明、路线事实变化时，返回 updateType:"map"。

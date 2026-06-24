@@ -1,3 +1,8 @@
+---
+name: generic-update
+description: 定义现实推演通用更新输出协议、字段含义、主体与变更格式
+---
+
 ## 通用更新输出协议
 
 阶段3必须返回 genericUpdates 数组。genericUpdates 是旧字段之外的统一结算审计层，可与 vitalUpdates、metricUpdates、lexiconUpdates、factionUpdates、itemActions 同时存在。

@@ -1,3 +1,8 @@
+---
+name: emotion-update
+description: 根据现实推演正文提取玩家或角色的即时情绪变化更新
+---
+
 # emotion-update
 
 触发角色或玩家即时情绪变化时，返回 updateType:"emotion" 的 genericUpdates。

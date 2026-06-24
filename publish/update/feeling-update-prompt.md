@@ -1,3 +1,8 @@
+---
+name: feeling-update
+description: 根据现实推演正文提取角色或玩家对玩家本人的感觉变化更新
+---
+
 # feeling-update
 
 触发角色对玩家本人的感觉变化时，返回 updateType:"feeling" 的 genericUpdates。

@@ -1,3 +1,8 @@
+---
+name: system-update
+description: 根据现实推演正文提取系统、日历、世界线或通用状态变化
+---
+
 # system-update
 
 确认公司、日历、微信、世界线等系统级记录变化时，返回 updateType:"system"。

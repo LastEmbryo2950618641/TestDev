@@ -1,3 +1,8 @@
+---
+name: faction-structure-update
+description: 根据现实推演正文提取势力组织结构、职位、成员与层级变化
+---
+
 # faction-structure-update
 
 确认已有势力内部组织架构、部门、职位、成员、角色地位变化时，返回 updateType:"faction-structure"。

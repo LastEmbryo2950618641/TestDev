@@ -1,11 +1,25 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.updateRegistry = {
-  types: [], prompts: {},
+  types: [], prompts: {}, skills: {},
   operations: ['delta', 'set', 'append', 'remove', 'merge', 'upsert', 'create', 'delete', 'transfer', 'link', 'unlink'],
 
+  parseSkill(text = '') {
+    const raw = String(text || '');
+    const match = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+    const meta = {};
+    if (match) match[1].split(/\n+/).forEach((line) => {
+      const at = line.indexOf(':');
+      if (at > 0) meta[line.slice(0, at).trim()] = line.slice(at + 1).trim();
+    });
+    return { name: meta.name || '', description: meta.description || '', body: match ? match[2].trim() : raw.trim(), raw };
+  },
+
   registerPrompt(id, text) {
-    if (id && text) this.prompts[id] = String(text);
+    if (!id || !text) return;
+    const skill = this.parseSkill(text);
+    this.prompts[id] = skill.body || String(text);
+    this.skills[id] = { id, ...skill };
   },
 
   register(type) {
@@ -13,10 +27,41 @@ window.GameModules.updateRegistry = {
     this.types = this.types.filter((item) => item.id !== type.id).concat(type);
   },
 
+  skillSummaries() {
+    return this.types.map((type) => {
+      const skill = this.skills[type.promptId] || {};
+      const name = skill.name || type.id;
+      const description = skill.description || type.description || type.section || '';
+      return `- ${name}：${description}`;
+    }).join('\n');
+  },
+
   promptText() {
     const base = this.prompts['generic-update'] || '';
-    const typed = this.types.map((type) => [this.prompts[type.promptId] || '', type.extraPrompt || ''].filter(Boolean).join('\n')).filter(Boolean).join('\n\n');
-    return [base, typed].filter(Boolean).join('\n\n');
+    const summaries = this.skillSummaries();
+    return [base, summaries ? `## 可用更新 Skills 摘要\n\n${summaries}` : ''].filter(Boolean).join('\n\n');
+  },
+
+  skillText(ids = null) {
+    const list = Array.isArray(ids) ? ids : [];
+    const wanted = new Set(list.filter(Boolean));
+    const selected = Array.isArray(ids) ? this.types.filter((type) => wanted.has(type.id) || wanted.has(type.promptId) || wanted.has(this.skills[type.promptId]?.name)) : this.types;
+    return selected.map((type) => {
+      const skill = this.skills[type.promptId] || {};
+      const title = skill.name || type.id;
+      const body = skill.body || this.prompts[type.promptId] || type.extraPrompt || '';
+      return `## ${title}\n\n${body}`;
+    }).filter(Boolean).join('\n\n');
+  },
+
+  selectByNames(names = []) {
+    const wanted = new Set((names || []).map((name) => String(name || '').trim()).filter(Boolean));
+    return this.types.filter((type) => wanted.has(type.id) || wanted.has(type.promptId) || wanted.has(this.skills[type.promptId]?.name));
+  },
+
+  schemaFor(ids = null) {
+    const selected = Array.isArray(ids) ? this.selectByNames(ids) : this.types;
+    return { genericUpdates: selected.flatMap((type) => type.examples || []) };
   },
 
   schema() {

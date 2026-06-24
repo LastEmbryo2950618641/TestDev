@@ -1,3 +1,8 @@
+---
+name: body-status-update
+description: 根据现实推演正文提取玩家或角色各身体部位当前中性状态与描述状态更新
+---
+
 # body-status-update
 
 确认玩家或角色当前身体部位状态发生稳定变化时，返回 updateType:"body-status"。

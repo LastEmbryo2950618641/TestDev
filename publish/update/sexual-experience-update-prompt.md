@@ -1,3 +1,8 @@
+---
+name: sexual-experience-update
+description: 根据成人虚构身份的稳定事实提取抽象性经验总次数与分类次数更新
+---
+
 # sexual-experience-update
 
 确认成人玩家或成人角色的抽象经历次数发生稳定变化时，返回 updateType:"sexual-experience"。

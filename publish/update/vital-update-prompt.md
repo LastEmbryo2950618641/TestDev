@@ -1,3 +1,8 @@
+---
+name: vital-update
+description: 根据现实推演正文提取玩家生命力、饱食、水分、疲劳与精神稳定更新
+---
+
 # vital-update
 
 触发玩家或角色生命体征变化时，返回 updateType:"vital" 的 genericUpdates。
