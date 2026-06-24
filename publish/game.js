@@ -1,4 +1,8 @@
-if (window.parent !== window) window.parent.postMessage('iframe:content-ready', '*');
+try {
+  window.parent?.postMessage?.('iframe:content-ready', '*');
+} catch (err) {
+  console.warn('平台就绪通知失败:', err.message);
+}
 
 const dzmmReady = new Promise((resolve) => {
   if (window.dzmm) return resolve();

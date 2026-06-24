@@ -11,81 +11,57 @@ window.GameModules.initPromptRegistry = {
 
   saveExecuted(store = null) {
     const state = store?.playerIdentityState?.();
-    if (!state?.values) return;
-    state.values.initPromptExecuted = { ...(state.values.initPromptExecuted || {}), ...this.executed };
+    if (state?.values) state.values.initPromptExecuted = { ...(state.values.initPromptExecuted || {}), ...this.executed };
   },
 
   parse(text = '') {
-    const raw = String(text || '');
-    const match = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
-    const meta = {};
-    if (match) match[1].split(/\n+/).forEach((line) => {
-      const at = line.indexOf(':');
-      if (at > 0) meta[line.slice(0, at).trim()] = line.slice(at + 1).trim();
-    });
+    const raw = String(text || ''), match = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/), meta = {};
+    if (match) match[1].split(/\n+/).forEach((line) => { const at = line.indexOf(':'); if (at > 0) meta[line.slice(0, at).trim()] = line.slice(at + 1).trim(); });
     return { name: meta.name || '', description: meta.description || '', body: match ? match[2].trim() : raw.trim(), raw };
   },
 
   register(id, source = {}) {
     const text = typeof source === 'string' ? source : source.prompt;
     if (!id || !text) return;
-    const parsed = this.parse(text);
     const templateKey = typeof source === 'object' ? source.templateKey : '';
-    const template = templateKey ? window.GameModules.initTemplateSources?.[templateKey] : null;
-    this.prompts[id] = { id, templateKey, template, ...parsed };
+    this.prompts[id] = { id, templateKey, template: templateKey ? window.GameModules.initTemplateSources?.[templateKey] : null, ...this.parse(text) };
   },
 
   pending(prefix = '', store = null) {
     if (!Object.keys(this.prompts).length) this.registerAll(prefix);
     this.loadExecuted(store);
-    return Object.values(this.prompts).filter((item) => {
-      if (prefix && !String(item.id).startsWith(prefix)) return false;
-      return !this.executed[item.id];
-    });
+    return Object.values(this.prompts).filter((item) => (!prefix || String(item.id).startsWith(prefix)) && !this.executed[item.id]);
   },
 
   markExecuted(ids = [], store = null) {
-    const list = Array.isArray(ids) ? ids : [ids];
     const changed = [];
-    list.filter(Boolean).forEach((id) => {
-      if (!this.executed[id]) changed.push(id);
-      this.executed[id] = true;
-    });
+    (Array.isArray(ids) ? ids : [ids]).filter(Boolean).forEach((id) => { if (!this.executed[id]) changed.push(id); this.executed[id] = true; });
     this.saveExecuted(store);
     return changed;
   },
 
   markByInitUpdates(updates = [], store = null) {
     if (!Array.isArray(updates) || !updates.length) return [];
-    const pending = this.pending('', store);
-    const matched = pending.filter((item) => updates.some((update) => {
-      const promptId = update.initPromptId || update.promptId || update.registryId;
-      if (promptId && promptId === item.id) return true;
-      const templateKey = update.templateKey || update.template;
-      if (templateKey && templateKey === item.templateKey) return true;
-      const section = String(update.section || '');
-      const title = String(item.template?.title || item.name || item.id || '');
+    const matched = this.pending('', store).filter((item) => updates.some((update) => {
+      const promptId = update.initPromptId || update.promptId || update.registryId, templateKey = update.templateKey || update.template;
+      if ((promptId && promptId === item.id) || (templateKey && templateKey === item.templateKey)) return true;
+      const section = String(update.section || ''), title = String(item.template?.title || item.name || item.id || '');
       return section && title && (section.includes(title) || title.includes(section));
     })).map((item) => item.id);
     return this.markExecuted(matched, store);
   },
 
   targetState(store, update = {}) {
-    const subject = update.subject || {};
-    const id = subject.characterId || subject.playerId || subject.id || update.target || 'player-self';
+    const subject = update.subject || {}, id = subject.characterId || subject.playerId || subject.id || update.target || 'player-self';
     return store?.itemSkillState?.(id) || (id === 'player-self' ? store?.playerIdentityState?.() : null);
   },
 
   async apply(store, updates = []) {
     const applied = [];
     for (const update of Array.isArray(updates) ? updates : []) {
-      const fields = update?.fields;
-      const state = this.targetState(store, update);
+      const fields = update?.fields, state = this.targetState(store, update);
       if (!state?.values || !fields || typeof fields !== 'object') continue;
-      Object.entries(fields).forEach(([key, value]) => {
-        if (value === undefined || value === null) return;
-        state.values[key] = this.clone(value);
-      });
+      Object.entries(fields).forEach(([key, value]) => { if (value !== undefined && value !== null) state.values[key] = this.clone(value); });
       applied.push(update);
       await window.GameModules.sqliteSave.saveCharacterState?.(state);
     }
@@ -93,77 +69,140 @@ window.GameModules.initPromptRegistry = {
     return applied;
   },
 
-  clone(value) {
-    return JSON.parse(JSON.stringify(value));
+  clone(value) { return JSON.parse(JSON.stringify(value ?? null)); },
+  template(key = '') { return window.GameModules.initTemplateSources?.[key] || window.GameModules.initDefaults?.[key] || null; },
+  templateEntries() { return Object.entries(window.GameModules.initTemplateSources || {}); },
+  parts(path = '') { return String(path || '').split('.').filter(Boolean); },
+  get(obj, path = '', fallback = undefined) { return this.parts(path).reduce((acc, key) => acc?.[key], obj) ?? fallback; },
+  set(obj, path = '', value) { const keys = this.parts(path), last = keys.pop(), target = keys.reduce((acc, key) => (acc[key] = acc[key] || {}), obj); target[last] = value; },
+
+  mergeMissing(target, defaults) {
+    if (!target || typeof target !== 'object' || Array.isArray(target)) return this.clone(defaults);
+    let changed = false;
+    Object.entries(defaults || {}).forEach(([key, value]) => {
+      if (target[key] === undefined || target[key] === null) { target[key] = this.clone(value); changed = true; }
+      else if (value && typeof value === 'object' && !Array.isArray(value)) changed = this.mergeMissing(target[key], value) || changed;
+    });
+    return changed;
   },
 
-  template(key = '') {
-    return window.GameModules.initTemplateSources?.[key] || window.GameModules.initDefaults?.[key] || null;
-  },
-
-  defaultValue(templateKey = '', method = '') {
-    const template = this.template(templateKey);
-    return template?.[method] ? template[method]() : null;
+  defaultValue(templateKey = '', key = '') {
+    const template = this.template(templateKey), def = template?.stateDefaults?.find((item) => item.key === key || item.path === key);
+    if (!template || !def) return null;
+    return typeof template[def.factory] === 'function' ? template[def.factory]() : this.clone(this.get(template, def.factory));
   },
 
   ensureTemplateState(templateKey = '', state = {}) {
-    return Boolean(this.template(templateKey)?.ensure?.(state));
+    const template = this.template(templateKey);
+    if (!template || !state?.values) return false;
+    let changed = false;
+    (template.stateDefaults || []).forEach((def) => {
+      const value = this.defaultValue(templateKey, def.key), current = this.get(state.values, def.path);
+      if (current === undefined || current === null) { this.set(state.values, def.path, value); changed = true; }
+      else if (value && typeof value === 'object') changed = this.mergeMissing(current, value) || changed;
+    });
+    return changed;
+  },
+
+  fieldRows(template, def, raw, initial) {
+    const empty = template.valueDefaults?.empty || '--';
+    if (raw === undefined || raw === null) return { value: empty, raw: '', initialMeeting: initial ?? empty };
+    if (def.display === 'count') return { value: `${Number(raw) || 0}${def.unit || ''}`, raw: Number(raw) || 0, initialMeeting: `${Number(initial) || 0}${def.unit || ''}` };
+    if (def.display === 'list') return { value: Array.isArray(raw) && raw.length ? raw : [template.displayTexts?.[def.emptyText] || empty], raw: Array.isArray(raw) ? raw : [], initialMeeting: initial || empty };
+    if (def.display === 'sexPartRows') return this.sexPartRows(template, def, raw, initial);
+    if (def.display === 'bodyStatusRows') return this.bodyStatusRows(template, def, raw, initial);
+    return { value: raw || empty, raw, initialMeeting: initial ?? empty };
+  },
+
+  sexPartRows(template, def, raw = {}, initial = {}) {
+    const rows = Object.entries(template[def.labels] || {}).map(([key, name]) => {
+      const count = Number(raw?.[key]) || 0, initialCount = Number(initial?.[key]) || 0;
+      return { partKey: key, name, count, initialCount, laterCount: Math.max(0, count - initialCount), type: template.fieldMeta?.[def.meta]?.kind };
+    });
+    return { value: rows.map((item) => template.formatExperienceSplit?.(item) || `${item.name}：${item.count}`), raw: rows, initialMeeting: rows.map((item) => template.formatInitialExperience?.(item) || `${item.name}：${item.initialCount}`) };
+  },
+
+  bodyStatusRows(template, def, raw = {}, initial = {}) {
+    const rows = Object.values(raw || {}).map((item) => ({ ...item, name: item.part || item.partKey, type: template.fieldMeta?.[def.meta]?.kind }));
+    return { value: rows.map((item) => template.formatBodyStatus?.(item) || `${item.part || item.partKey}：${item.status || '--'}`), raw: rows, initialMeeting: Object.values(initial || {}).map((item) => template.formatInitialBody?.(item) || `${item.part}：${item.status}`) };
   },
 
   fields(templateKey = '', state = {}) {
-    return this.template(templateKey)?.uiFields?.(state) || this.template(templateKey)?.fields?.(state) || [];
+    const template = this.template(templateKey);
+    if (!template || !state?.values) return [];
+    const initial = template.initialMeeting?.() || {}, p = state.profile || {}, base = { stateId: state.id || '', worldTag: p.work || state.worldTag || '原创世界', targetType: p.isPlayer ? '非角色' : '角色', commonField: true };
+    return (template.uiFieldDefs || []).map((def) => {
+      const meta = template.fieldMeta?.[def.meta] || {}, shown = this.fieldRows(template, def, this.get(state.values, def.path), this.get(initial, def.initialPath));
+      return { key: def.key, ...meta, ...base, ...shown, reason: this.get(state.values, `${def.path}.reason`) || this.get(state.values, 'intimacy.reason') || meta.reasonFallback || '' };
+    });
+  },
+
+  alias(template, mapName = '', raw = '') { const text = String(raw || '').trim(); return template.aliases?.[mapName]?.[text] || text; },
+  updateReason(update = {}) { return (Array.isArray(update.reasons) ? update.reasons : []).map((item) => item.evidence || item.trigger || item.reason).filter(Boolean).join('；') || update.reason || '现实推演确认状态变化。'; },
+  updateValue(update = {}) { return update.change?.value ?? update.value ?? {}; },
+  valueFrom(obj, keys = []) { return keys.map((key) => obj?.[key]).find((value) => value !== undefined && value !== null && value !== ''); },
+
+  pathKey(template, mapping, update = {}, value = {}) {
+    const direct = value[mapping.keyField] || value.partKey || value.part || update.partKey || update.part;
+    if (direct) return this.alias(template, mapping.aliases, direct);
+    const parts = this.parts(update.field), at = parts.findIndex((part) => (mapping.fieldRoots || []).includes(part));
+    return at >= 0 ? this.alias(template, mapping.aliases, parts[at + 1]) : '';
+  },
+
+  applyEntry(template, state, mapping, update) {
+    const raw = this.updateValue(update), value = raw && typeof raw === 'object' ? raw : {}, key = this.pathKey(template, mapping, update, value) || 'other';
+    const path = `${mapping.root}.${key}`, current = this.clone(this.get(state.values, path, template[mapping.defaults]?.[key] || {})), next = { ...current, [mapping.keyField]: key, [mapping.labelField]: template[mapping.labels]?.[key] || current[mapping.labelField] || key };
+    const leaf = this.parts(update.field).at(-1), text = raw && typeof raw === 'object' ? '' : String(raw || '').trim();
+    let changed = false;
+    Object.entries(mapping.valueFields || {}).forEach(([field, names]) => { const picked = this.valueFrom(value, names) ?? (names.includes(leaf) ? text : undefined); if (picked !== undefined && picked !== '' && next[field] !== picked) { next[field] = String(picked).slice(0, field === 'description' ? 80 : 24); changed = true; } });
+    if (!changed) return false;
+    next.reason = String(this.updateReason(update)).slice(0, 120); next.updatedAt = new Date().toISOString(); this.set(state.values, path, next); return true;
+  },
+
+  applyCounter(template, state, mapping, update) {
+    const raw = this.updateValue(update), value = raw && typeof raw === 'object' ? raw : {}, mode = update.change?.mode || 'set';
+    const key = this.pathKey(template, mapping, update, value), count = this.valueFrom(value, mapping.valueFields?.count) ?? raw;
+    const updates = value.parts && typeof value.parts === 'object' ? Object.entries(value.parts) : [[key, count]];
+    let changed = false;
+    updates.forEach(([part, amount]) => { const name = this.alias(template, mapping.aliases, part), path = `${mapping.root}.${name}`, current = Number(this.get(state.values, path, 0)) || 0, next = Math.max(0, Math.round(Number(amount) || 0)), finalValue = mode === 'delta' ? current + next : next; if (name && finalValue !== current) { this.set(state.values, path, finalValue); changed = true; } });
+    if (mapping.totalPath && count !== undefined && !key && !value.parts) { const current = Number(this.get(state.values, mapping.totalPath, 0)) || 0, next = Math.max(0, Math.round(Number(count) || 0)), finalValue = mode === 'delta' ? current + next : next; if (finalValue !== current) { this.set(state.values, mapping.totalPath, finalValue); changed = true; } }
+    if (changed) { this.set(state.values, 'intimacy.updatedAt', new Date().toISOString()); this.set(state.values, 'intimacy.reason', String(this.updateReason(update)).slice(0, 120)); }
+    return changed;
+  },
+
+  applyObject(template, state, mapping, update) {
+    const raw = this.updateValue(update), value = raw && typeof raw === 'object' ? raw : {};
+    let changed = false;
+    Object.entries(mapping.valueFields || {}).forEach(([field, names]) => {
+      const picked = this.valueFrom(value, names); if (picked === undefined) return;
+      const path = `${mapping.root}.${field}`, current = this.get(state.values, path, []);
+      const next = Array.isArray(current) ? [...new Set([...(current || []), ...(Array.isArray(picked) ? picked : [picked])].filter(Boolean))] : picked;
+      if (JSON.stringify(current) !== JSON.stringify(next)) { this.set(state.values, path, next); changed = true; }
+    });
+    if (changed) { this.set(state.values, `${mapping.root}.updatedAt`, new Date().toISOString()); this.set(state.values, `${mapping.root}.reason`, String(this.updateReason(update)).slice(0, 120)); }
+    return changed;
+  },
+
+  applyMapping(templateKey, template, state, mapping, update) {
+    this.ensureTemplateState(templateKey, state);
+    if (mapping.mode === 'entry') return this.applyEntry(template, state, mapping, update);
+    if (mapping.mode === 'counter') return this.applyCounter(template, state, mapping, update);
+    if (mapping.mode === 'object') return this.applyObject(template, state, mapping, update);
+    return false;
   },
 
   async applyGeneric(store, updates = []) {
-    const changed = new Set();
+    const templates = this.templateEntries(), changed = new Set();
     for (const update of Array.isArray(updates) ? updates : []) {
-      const state = this.targetState(store, update);
-      if (!state?.values) continue;
-      const templates = Object.values(window.GameModules.initTemplateSources || {});
-      const matched = templates.find((template) => template?.applyUpdate?.(state, update));
-      if (matched) changed.add(state.id);
+      const state = this.targetState(store, update); if (!state?.values) continue;
+      for (const [templateKey, template] of templates) for (const mapping of template.updateMappings || []) if (mapping.updateType === update.updateType && this.applyMapping(templateKey, template, state, mapping, update)) changed.add(state.id);
     }
-    for (const id of changed) {
-      const state = store.rpgStates?.[id] || window.GameModules.sqliteSave.getCharacterState?.(id);
-      if (!state) continue;
-      store.rpgStates = { ...(store.rpgStates || {}), [id]: state };
-      await window.GameModules.sqliteSave.saveCharacterState?.(state);
-    }
+    for (const id of changed) { const state = store.rpgStates?.[id] || window.GameModules.sqliteSave.getCharacterState?.(id); if (state) { store.rpgStates = { ...(store.rpgStates || {}), [id]: state }; await window.GameModules.sqliteSave.saveCharacterState?.(state); } }
   },
 
-  registerAll(prefix = '') {
-    this.prompts = {};
-    const sources = window.GameModules.initPromptSources || {};
-    Object.entries(sources).forEach(([key, source]) => {
-      if (prefix && !String(key).startsWith(prefix)) return;
-      this.register(key, source);
-    });
-  },
-
-  selectByNames(names = [], store = null) {
-    const wanted = new Set((names || []).map((name) => String(name || '').trim()).filter(Boolean));
-    return this.pending('', store).filter((item) => wanted.has(item.id) || wanted.has(item.templateKey) || wanted.has(item.name));
-  },
-
-  skillSummaries(store = null) {
-    return this.pending('', store).map((item) => `- ${item.name || item.id}：${item.description || item.template?.title || ''}`).join('\n');
-  },
-
-  skillText(ids = null, store = null) {
-    const selected = Array.isArray(ids) ? this.selectByNames(ids, store) : this.pending(String(ids || ''), store);
-    return selected.map((item) => {
-      const templateText = item.template?.promptText?.() || '';
-      return [`## ${item.name || item.id}`, item.body, templateText].filter(Boolean).join('\n\n');
-    }).filter(Boolean).join('\n\n');
-  },
-
-  schema(ids = null, store = null) {
-    const result = { initUpdates: [] };
-    const selected = Array.isArray(ids) ? this.selectByNames(ids, store) : this.pending(String(ids || ''), store);
-    selected.forEach((item) => {
-      const schema = item.template?.jsonFormat?.();
-      if (Array.isArray(schema?.initUpdates)) result.initUpdates.push(...schema.initUpdates);
-    });
-    return result;
-  },
+  registerAll(prefix = '') { this.prompts = {}; Object.entries(window.GameModules.initPromptSources || {}).forEach(([key, source]) => { if (!prefix || String(key).startsWith(prefix)) this.register(key, source); }); },
+  selectByNames(names = [], store = null) { const wanted = new Set((names || []).map((name) => String(name || '').trim()).filter(Boolean)); return this.pending('', store).filter((item) => wanted.has(item.id) || wanted.has(item.templateKey) || wanted.has(item.name)); },
+  skillSummaries(store = null) { return this.pending('', store).map((item) => `- ${item.name || item.id}：${item.description || item.template?.title || ''}`).join('\n'); },
+  skillText(ids = null, store = null) { const selected = Array.isArray(ids) ? this.selectByNames(ids, store) : this.pending(String(ids || ''), store); return selected.map((item) => [`## ${item.name || item.id}`, item.body, item.template?.promptText?.() || ''].filter(Boolean).join('\n\n')).filter(Boolean).join('\n\n'); },
+  schema(ids = null, store = null) { const result = { initUpdates: [] }, selected = Array.isArray(ids) ? this.selectByNames(ids, store) : this.pending(String(ids || ''), store); selected.forEach((item) => { const schema = item.template?.jsonFormat?.(); if (Array.isArray(schema?.initUpdates)) result.initUpdates.push(...schema.initUpdates); }); return result; },
 };
