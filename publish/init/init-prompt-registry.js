@@ -152,11 +152,16 @@ applyObject(template, state, mapping, update) {
     const raw = this.updateValue(update), value = raw && typeof raw === 'object' ? raw : {};
     let changed = false;
     Object.entries(mapping.valueFields || {}).forEach(([field, names]) => {
+      const gate = mapping.requireTrue?.[field]; if (gate && value[gate] !== true) return;
       const picked = this.valueFrom(value, names); if (picked === undefined) return;
       const path = `${mapping.root}.${field}`, current = this.get(state.values, path, []);
       const next = Array.isArray(current) ? [...new Set([...(current || []), ...(Array.isArray(picked) ? picked : [picked])].filter(Boolean))] : picked;
       if (JSON.stringify(current) !== JSON.stringify(next)) { this.set(state.values, path, next); changed = true; }
     });
+    if (mapping.syncListCount) {
+      const list = this.get(state.values, mapping.syncListCount.list, []), count = this.get(state.values, mapping.syncListCount.count, 0);
+      if (Array.isArray(list) && list.length && count !== list.length) { this.set(state.values, mapping.syncListCount.count, list.length); changed = true; }
+    }
     if (changed) { this.set(state.values, `${mapping.root}.updatedAt`, new Date().toISOString()); this.set(state.values, `${mapping.root}.reason`, String(this.updateReason(update)).slice(0, 120)); }
     return changed;
   },

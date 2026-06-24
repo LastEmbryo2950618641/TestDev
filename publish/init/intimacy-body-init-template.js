@@ -97,7 +97,7 @@ const template = {
   updateMappings: [
     { updateType: 'body-status', root: 'bodyStatus', mode: 'entry', aliases: 'bodyParts', fieldRoots: ['bodyStatus', '当前身体状态'], defaults: 'bodyStatusDefaults', keyField: 'partKey', labelField: 'part', labels: 'partLabels', valueFields: { status: ['status', 'state', '状态'], description: ['description', 'desc', 'detail', '描述状态'] } },
     { updateType: 'sexual-experience', root: 'intimacy.sexualExperienceParts', mode: 'counter', aliases: 'sexParts', fieldRoots: ['sexualExperienceParts', '性经验分类次数'], totalPath: 'intimacy.sexualExperienceCount', valueFields: { count: ['count', 'value', 'total', 'totalDelta'] } },
-    { updateType: 'sexual-history', root: 'intimacy', mode: 'object', valueFields: { sexualStatus: ['sexualStatus', 'status'], sexualPartnerCount: ['sexualPartnerCount', 'count'], sexualPartners: ['sexualPartners', 'partners', 'partnerName'] } },
+    { updateType: 'sexual-history', root: 'intimacy', mode: 'object', valueFields: { sexualStatus: ['sexualStatus', 'status'], sexualPartnerCount: ['sexualPartnerCount', 'count'], sexualPartners: ['sexualPartners', 'partners', 'partnerName'] }, requireTrue: { sexualPartnerCount: 'vaginalInsertionConfirmed', sexualPartners: 'vaginalInsertionConfirmed' }, syncListCount: { list: 'intimacy.sexualPartners', count: 'intimacy.sexualPartnerCount' } },
   ],
 
   formatPartnerCount(value) { return `${value}${this.fieldMeta.sexualPartnerCount.unit}`; },
