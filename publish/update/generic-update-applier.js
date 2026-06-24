@@ -7,6 +7,15 @@ Object.assign(window.GameModules.updateRegistry, {
     return store?.itemSkillState?.(id) || (id === 'player-self' ? store?.playerIdentityState?.() : null);
   },
 
+  genericTarget(store, update = {}) {
+    const state = store?.playerIdentityState?.();
+    if (!state?.values) return null;
+    const card = this.cardForChange?.(update, store) || { id: `generic:${update.updateType || update.subject?.type || 'misc'}`, title: update.updateType || '通用更新', section: '通用' };
+    state.values.genericUpdateStates = state.values.genericUpdateStates || {};
+    state.values.genericUpdateStates[card.id] = state.values.genericUpdateStates[card.id] || { title: card.title, section: card.section };
+    return { state, root: state.values.genericUpdateStates[card.id] };
+  },
+
   get(obj, path = '', fallback = undefined) {
     return String(path || '').split('.').filter(Boolean).reduce((acc, key) => acc?.[key], obj) ?? fallback;
   },
@@ -27,10 +36,19 @@ Object.assign(window.GameModules.updateRegistry, {
 
   nextValue(current, update = {}) {
     const mode = update.change?.mode || 'set', raw = this.changeValue(update);
-    if (mode === 'delta') return Math.max(0, Math.min(100, Math.round((Number(current) || 0) + (Number(raw) || 0))));
+    if (mode === 'delta') {
+      if (raw && typeof raw === 'object' && raw.parts && typeof raw.parts === 'object') {
+        const next = { ...(current && typeof current === 'object' ? current : {}) };
+        Object.entries(raw.parts).forEach(([key, value]) => { next[key] = Math.max(0, Math.round((Number(next[key]) || 0) + (Number(value) || 0))); });
+        return next;
+      }
+      if (raw && typeof raw === 'object' && raw.totalDelta !== undefined) return Math.max(0, Math.round((Number(current) || 0) + (Number(raw.totalDelta) || 0)));
+      return Math.max(0, Math.min(100, Math.round((Number(current) || 0) + (Number(raw) || 0))));
+    }
     if (mode === 'append') return [...new Set([...(Array.isArray(current) ? current : []), ...(Array.isArray(raw) ? raw : [raw])].filter(Boolean))];
     if (mode === 'remove') return Array.isArray(current) ? current.filter((item) => item !== raw) : current;
-    if (mode === 'merge' && current && typeof current === 'object' && raw && typeof raw === 'object') return { ...current, ...raw };
+    if ((mode === 'merge' || mode === 'upsert') && current && typeof current === 'object' && raw && typeof raw === 'object') return { ...current, ...raw };
+    if (mode === 'upsert' && raw && typeof raw === 'object') return raw;
     return raw;
   },
 
@@ -46,9 +64,10 @@ Object.assign(window.GameModules.updateRegistry, {
   },
 
   applyOne(store, update = {}) {
-    const state = this.targetState(store, update), field = String(update.field || '').trim();
+    const direct = this.targetState(store, update), generic = direct ? null : this.genericTarget(store, update);
+    const state = direct || generic?.state, field = String(update.field || '').trim();
     if (!state || !field) return false;
-    const root = field.startsWith('metrics.') ? state : state.values;
+    const root = generic?.root || (field.startsWith('metrics.') ? state : state.values);
     if (!root) return false;
     const current = this.get(root, field), next = this.nextValue(current, update);
     if (next === undefined || JSON.stringify(current) === JSON.stringify(next)) return false;
