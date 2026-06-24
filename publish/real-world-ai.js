@@ -53,6 +53,7 @@ window.GameModules.realWorldAi = {
         itemActions: Array.isArray(data.itemActions) ? data.itemActions.slice(0, 8) : [],
         wechatActions: this.normalizeWechatActions(data.wechatActions),
         lexiconUpdates: window.GameModules.ai.normalizeLexiconUpdates?.(data.lexiconUpdates, store) || [],
+        initUpdates: Array.isArray(data.initUpdates) ? data.initUpdates.slice(0, 20) : [],
       };
     } catch (err) {
       console.warn('现实世界返回解析失败:', err.message);

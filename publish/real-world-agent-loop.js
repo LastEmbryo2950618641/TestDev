@@ -123,6 +123,8 @@ window.GameModules.realWorldAgentLoop = {
   async buildUpdateJsonPrompt({ store, action, base, loaded, skills, materialSession = null, narration }) {
     const loadedText = window.GameModules.realWorldAgentContext.buildLoadedText(loaded);
     const materialText = window.GameModules.realWorldMaterials?.summary?.(materialSession) || '';
+    const initSkillText = window.GameModules.initPromptRegistry?.skillText?.() || '';
+    const initSchema = window.GameModules.initPromptRegistry?.schema?.() || {};
     return [
       '# 现实推演阶段3：只生成更新JSON',
       '你只输出一个合法 JSON 对象，不要正文，不要 Markdown，不要代码块，不要解释。',
@@ -132,7 +134,8 @@ window.GameModules.realWorldAgentLoop = {
       `阶段2正文：\n${narration}`,
       '输出最小补丁 JSON：必须包含 type、sceneTitle、locationName、elapsedSeconds、status、quest、choices、vitalUpdates。其他字段只有明确变化才输出，否则省略或用空数组。',
       'vitalUpdates 必须覆盖 stamina_pool、satiety、hydration、fatigue、mental_stability。choices 必须4个。所有 reason/status 不超过24个汉字。characterMetricUpdates 最多3个角色，每个角色最多2条 emotions 和2条 playerFeelings。lexiconUpdates/itemActions/factionUpdates 只写稳定事实变化。',
-      `最小示例：${JSON.stringify(this.updateJsonSchema())}`,
+      initSkillText ? `## 初始化 Skills\n\n${initSkillText}` : '',
+      `最小示例：${JSON.stringify({ ...this.updateJsonSchema(), ...initSchema })}`,
     ].join('\n\n');
   },
 
@@ -282,6 +285,7 @@ window.GameModules.realWorldAgentLoop = {
       factionUpdates: Array.isArray(updates.factionUpdates) ? updates.factionUpdates : [],
       itemActions: Array.isArray(updates.itemActions) ? updates.itemActions : [],
       lexiconUpdates: Array.isArray(updates.lexiconUpdates) ? updates.lexiconUpdates : [],
+      initUpdates: Array.isArray(updates.initUpdates) ? updates.initUpdates : [],
     };
   },
 
