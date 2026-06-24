@@ -9,5 +9,5 @@ window.GameModules.updateRegistry?.register?.({
     const title = store?.realWorldSettlementTargetGroup?.(id, subject.name || '') || subject.name || id;
     return { id: `role:${id}`, title, section: '角色卡' };
   },
-  examples: [{ updateType: 'sexual-experience', subject: { type: 'player', id: 'player-self' }, field: 'intimacy.sexualExperienceParts.lips', change: { mode: 'delta', value: { totalDelta: 1, parts: { lips: 1 } } }, reasons: [{ trigger: '成人身份且稳定事实确认抽象经历次数变化', evidence: '只记录总数与分类次数，不记录过程', confidence: 'confirmed' }] }],
+  examples: [{ updateType: 'sexual-experience', subject: { type: 'player', id: 'player-self' }, field: 'intimacy.sexualExperienceParts.lips', change: { mode: 'delta', value: { totalDelta: 1, parts: { lips: 1, oralSex: 1, vaginalInsertion: 1, analInternalFinish: 1 } } }, reasons: [{ trigger: '成人身份且稳定事实确认抽象经历次数变化', evidence: '只记录总数与分类次数，不记录过程', confidence: 'confirmed' }] }],
 });

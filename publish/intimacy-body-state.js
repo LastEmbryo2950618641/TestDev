@@ -2,13 +2,22 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.intimacyBodyState = {
   partLabels: { overall: '整体', mouth: '口部', chest: '胸部', genital: '阴部', anus: '肛部', hips: '臀部', limbs: '四肢', skin: '皮肤', other: '其他' },
-  sexPartLabels: { genital: '阴部次数', chest: '胸部次数', lips: '嘴唇次数', mouth: '口部次数', anus: '肛门次数', legs: '腿部次数', hips: '臀部次数', hands: '手部次数', skin: '皮肤接触次数', other: '其他次数' },
+  sexPartLabels: { genital: '阴部次数', chest: '胸部次数', lips: '嘴唇次数', mouth: '口部次数', oralAction: '口部行为次数', oralSex: '口交次数', oralInternalFinish: '口交中出次数', genitalEntry: '阴部进入次数', vaginalInsertion: '阴部插入次数', vaginalInternalFinish: '阴部中出次数', anus: '肛门次数', analEntry: '肛部进入次数', analSex: '肛交次数', analInternalFinish: '肛交中出次数', legs: '腿部次数', hips: '臀部次数', hands: '手部次数', skin: '皮肤接触次数', other: '其他次数' },
   sexPartPrompts: {
     genital: '仅在成人身份且明确稳定事实确认该部位相关经历时计数；禁止过程描写。',
     chest: '仅记录成人抽象经历中胸部相关次数，不记录触碰细节或感官描写。',
     lips: '仅记录接吻或唇部相关抽象次数，不展开亲密过程。',
     mouth: '仅记录口部相关抽象次数；如会变成露骨过程，必须跳过。',
+    oralAction: '仅记录成人抽象口部行为次数，不描述动作、过程或感官细节。',
+    oralSex: '仅记录成人抽象口交次数，不描述动作、过程或感官细节。',
+    oralInternalFinish: '仅记录成人抽象口交中出次数，只作计数，不写过程、体液或感官描写。',
+    genitalEntry: '仅记录成人抽象阴部进入次数，不描述进入过程、姿势或感官细节。',
+    vaginalInsertion: '仅记录成人抽象阴部插入次数，不描述插入过程、姿势或感官细节。',
+    vaginalInternalFinish: '仅记录成人抽象阴部中出次数，只作计数，不写过程、体液或感官描写。',
     anus: '仅在成人身份且明确事实确认时记录肛门相关次数，不写具体行为。',
+    analEntry: '仅记录成人抽象肛部进入次数，不描述进入过程、姿势或感官细节。',
+    analSex: '仅记录成人抽象肛交次数，不描述动作、过程或感官细节。',
+    analInternalFinish: '仅记录成人抽象肛交中出次数，只作计数，不写过程、体液或感官描写。',
     legs: '记录腿部相关亲密接触的抽象次数，保持中性统计。',
     hips: '记录臀部相关抽象次数，避免任何露骨描述。',
     hands: '记录手部相关抽象次数，只作统计。',
@@ -29,7 +38,7 @@ window.GameModules.intimacyBodyState = {
   },
   sexPartKey(raw = '') {
     const text = String(raw || '').trim();
-    const map = { genital: 'genital', chest: 'chest', lips: 'lips', mouth: 'mouth', anus: 'anus', legs: 'legs', hips: 'hips', hands: 'hands', skin: 'skin', other: 'other', 阴部: 'genital', 胸部: 'chest', 嘴唇: 'lips', 唇部: 'lips', 口部: 'mouth', 肛门: 'anus', 肛部: 'anus', 腿部: 'legs', 臀部: 'hips', 手部: 'hands', 皮肤: 'skin' };
+    const map = { genital: 'genital', chest: 'chest', lips: 'lips', mouth: 'mouth', oralAction: 'oralAction', oralSex: 'oralSex', oralInternalFinish: 'oralInternalFinish', genitalEntry: 'genitalEntry', vaginalInsertion: 'vaginalInsertion', vaginalInternalFinish: 'vaginalInternalFinish', anus: 'anus', analEntry: 'analEntry', analSex: 'analSex', analInternalFinish: 'analInternalFinish', legs: 'legs', hips: 'hips', hands: 'hands', skin: 'skin', other: 'other', 阴部: 'genital', 胸部: 'chest', 嘴唇: 'lips', 唇部: 'lips', 口部: 'mouth', 口部行为: 'oralAction', 口交: 'oralSex', 口交中出: 'oralInternalFinish', 阴部进入: 'genitalEntry', 阴部插入: 'vaginalInsertion', 阴部中出: 'vaginalInternalFinish', 肛门: 'anus', 肛部: 'anus', 肛部进入: 'analEntry', 肛交: 'analSex', 肛交中出: 'analInternalFinish', 腿部: 'legs', 臀部: 'hips', 手部: 'hands', 皮肤: 'skin' };
     if (map[text]) return map[text];
     if (/嘴|唇|吻/.test(text)) return 'lips';
     if (/口/.test(text)) return 'mouth';
