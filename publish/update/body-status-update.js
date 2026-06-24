@@ -1,0 +1,13 @@
+window.GameModules = window.GameModules || {};
+
+window.GameModules.updateRegistry?.register?.({
+  id: 'body-status', promptId: 'body-status-update', section: '角色卡字段',
+  match: (change, text) => /body-status|bodyStatus|身体状态|部位状态|口部|胸部|阴部|肛部|臀部/u.test(text),
+  card(change, store) {
+    const subject = change.subject || {};
+    const id = subject.characterId || subject.playerId || subject.id || 'player-self';
+    const title = store?.realWorldSettlementTargetGroup?.(id, subject.name || '') || subject.name || id;
+    return { id: `role:${id}`, title, section: '角色卡' };
+  },
+  examples: [{ updateType: 'body-status', subject: { type: 'player', id: 'player-self' }, field: 'bodyStatus.mouth', change: { mode: 'set', value: { partKey: 'mouth', part: '口部', status: '稳定' } }, reasons: [{ trigger: '明确护理、受伤、疾病或恢复事实', evidence: '只记录中性短状态', confidence: 'confirmed' }] }],
+});

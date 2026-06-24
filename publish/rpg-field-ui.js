@@ -7,10 +7,10 @@ window.GameModules.rpgFieldUi = {
   toggleRpgItem(field, index) { const key = this.rpgItemKey(field, index); if (key) this.expandedRpgFieldKey = this.expandedRpgFieldKey === key ? '' : key; },
   isRpgFieldOpen(field) { return this.expandedRpgFieldKey === this.rpgFieldKey(field); },
   isRpgItemOpen(field, index) { return this.expandedRpgFieldKey === this.rpgItemKey(field, index); },
-  isRpgListField(field) { return ['knowledge', 'skills', 'professions', 'factions', 'force_positions', 'items', 'wearing', 'bodyProfile', 'dressedProfile', 'status_tags'].includes(field?.key) && Array.isArray(field.raw); },
+  isRpgListField(field) { return ['knowledge', 'skills', 'professions', 'factions', 'force_positions', 'items', 'wearing', 'bodyProfile', 'dressedProfile', 'bodyStatus', 'status_tags'].includes(field?.key) && Array.isArray(field.raw); },
   rpgFieldSummary(field) {
     if (!this.isRpgListField(field)) return `${field.label}：${Array.isArray(field.value) ? field.value.join('、') || '无' : field.value}`;
-    const unit = { knowledge: '知识', skills: '技能', professions: '职业', bodyProfile: '部位', dressedProfile: '部位' }[field.key] || '项';
+    const unit = { knowledge: '知识', skills: '技能', professions: '职业', bodyProfile: '部位', dressedProfile: '部位', bodyStatus: '部位' }[field.key] || '项';
     return `${field.label}：${field.raw.length}${unit}`;
   },
   canExpandRpgField(field) { return Boolean(field); },
@@ -59,8 +59,9 @@ window.GameModules.rpgFieldUi = {
     const identityRest = identity.filter((field) => !relations.includes(field));
     const naturalState = this.profileNaturalStateField(state);
     const dressedState = this.profileDressedStateField(state);
+    const intimacyFields = window.GameModules.intimacyBodyState?.fields?.(state) || [];
     const longing = this.profileLongingField(state);
-    const used = new Set(['world_tag', 'age', 'factions', 'force_positions', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'items', 'wearing', 'bodyProfile', 'dressedProfile', 'status_tags']);
+    const used = new Set(['world_tag', 'age', 'factions', 'force_positions', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'items', 'wearing', 'bodyProfile', 'dressedProfile', 'bodyStatus', 'intimacy', 'status_tags']);
     const personal = all.filter((field) => !used.has(field.key));
     const groups = [
       { title: '个人能力', fields: personal },
@@ -68,6 +69,7 @@ window.GameModules.rpgFieldUi = {
       { title: '装备与物品', fields: take(['items', 'wearing']) },
       { title: '当前自然状态', fields: naturalState ? [naturalState] : [] },
       { title: '盛装', fields: dressedState ? [dressedState] : [] },
+      { title: '亲密与身体状态', fields: intimacyFields },
       { title: '状态标签', fields: take(['status_tags']) },
       { title: '人际关系', fields: relations },
       { title: '身份信息', fields: [...identityRest, ...(longing ? [longing] : []), ...take(['world_tag', 'age', 'factions', 'force_positions'])] },
@@ -228,6 +230,7 @@ window.GameModules.rpgFieldUi = {
     const name = this.rpgItemName(item);
     if (typeof item === 'string') return name;
     if (item?.type === '身体原貌' || item?.type === '盛装状态') return `${item.index || ''}.${item.part || name}`;
+    if (item?.type === '当前身体状态') return `${item.part || name}：${item.status || '稳定'}`;
     const levelName = Number(item?.level) > 0 ? `${name} lv.${item.level}` : name;
     if (item?.type === '穿着' && item?.slot && item?.clothing_position) return `${item.clothing_position}｜${levelName}`;
     return levelName;
@@ -267,6 +270,7 @@ window.GameModules.rpgFieldUi = {
     const kind = obj?.type || this.lexiconKind(field, obj);
     const name = this.rpgItemName(obj) || field?.label || '未知';
     if (kind === '身体原貌' || kind === '盛装状态') return [`部位: ${name}`, `序号: ${obj.index || '未记录'}`, `所属世界: ${field?.worldTag || '公共'}`, `词条类型: ${field?.targetType || '角色'}`, `当前依据: ${field?.reason || (kind === '盛装状态' ? '来自角色卡 Part6 盛装状态生成结果。' : '来自角色卡 Part5 身体原貌生成结果。')}`].join('\n');
+    if (kind === '当前身体状态') return [`部位: ${obj.part || name}`, `状态: ${obj.status || '稳定'}`, `变化原因: ${obj.reason || '当前记录。'}`, `更新时间: ${obj.updatedAt || '未记录'}`, `所属世界: ${field?.worldTag || '公共'}`].join('\n');
     const hasLevel = Number(obj?.level) > 0;
     const lines = [`名称: ${name}`, `定义: ${this.learnedDefinition(kind, name, obj, lexicon, info)}`, `类型: ${kind}`, `所属世界: ${field?.worldTag || lexicon?.worldTag || '公共'}`, `词条类型: ${field?.targetType || lexicon?.meta?.targetType || '角色'}`];
     if (kind === '穿着' && (obj?.clothing_position || obj?.slotLabel)) lines.push(`穿戴位: ${obj.clothing_position || obj.slotLabel}`);
@@ -304,6 +308,8 @@ window.GameModules.rpgFieldUi = {
     lines.push(`变化方式: ${lexicon?.changeMode || '系统结算'}`);
     if (lexicon?.promptInstruction) lines.push(`提示词说明: ${lexicon.promptInstruction}`);
     if (field?.source) lines.push(`来源: 初始值(${field.source.initial || 0}) + 等级值(${field.source.level || 0}) + 分配值(${field.source.allocated || 0}) + 非玩家成长(${field.source.npc || 0}) = ${field.raw || 0}`);
+    if (field?.key === 'sexualExperienceCount') lines.push('限制: 仅成人虚构角色可由现实推演更新；只保存抽象次数。');
+    if (field?.key === 'bodyStatus') lines.push('限制: 只保存中性短状态，不保存露骨过程描写。');
     if (field?.key === 'free_attribute_points') lines.push('用途: 可分配到力量、敏捷、体质、智力、感知、意志、魅力；每次真实升级获得1点。');
     if (field?.key === 'level_growth' && field.raw?.history?.length) lines.push(`最近升级: ${field.raw.history.map((x) => `${x.from}->${x.to} 自动${Object.entries(x.auto || {}).map(([k, v]) => `${k}+${v}`).join('/')} 自由+${x.free}`).join('；')}`);
     return lines.join('\n');

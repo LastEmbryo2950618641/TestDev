@@ -109,6 +109,7 @@ window.GameModules.playerIdentityActions = {
         throw err;
       }
       if (window.GameModules.progression.ensureStateMechanics(existing, existing.profile)) changed = true;
+      if (window.GameModules.intimacyBodyState?.ensure?.(existing)) changed = true;
       if (changed) await window.GameModules.sqliteSave.saveCharacterState(existing);
       return existing;
     }
@@ -141,6 +142,7 @@ window.GameModules.playerIdentityActions = {
     state.values.factions = window.GameModules.socialPosition.playerItems({ ...this.playerProfile, workplace: character.workplace, position: character.position });
     state.values.force_positions = window.GameModules.socialPosition.playerForceItems({ ...this.playerProfile, workplace: character.workplace, position: character.position }, this.factionState?.factions || []);
     window.GameModules.progression.ensureStateMechanics(state, character);
+    window.GameModules.intimacyBodyState?.ensure?.(state);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
     await window.GameModules.sqliteSave.saveCharacterState(state);
     this.finishRoleCardLoading?.('player-self', state.profile || character);

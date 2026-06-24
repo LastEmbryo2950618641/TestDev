@@ -148,6 +148,8 @@ window.GameModules.saveActions = {
     if (Object.prototype.hasOwnProperty.call(value, 'next')) return `${value.current || 0}/${value.next || 'max'}`;
     if (Object.prototype.hasOwnProperty.call(value, 'current')) return `${value.current}/${value.max}`;
     if (value.type === '职业') return `${value.name} lv.${value.level || 1}`;
+    if (Object.prototype.hasOwnProperty.call(value, 'sexualExperienceCount')) return `性经验${value.sexualExperienceCount || 0}次`;
+    if (Object.values(value).some((item) => item?.partKey && item?.status)) return Object.values(value).map((item) => `${item.part || item.partKey}：${item.status || '稳定'}`).join('；');
     if (Object.prototype.hasOwnProperty.call(value, 'onlineCount')) {
       return `上线${value.onlineCount || 0}次｜${value.feeling || '未知'}｜适应${value.adaptation || 0}/100｜${value.summary || ''}`;
     }
@@ -160,6 +162,7 @@ window.GameModules.saveActions = {
   rpgEntries(state) {
     if (!state?.schema) return [];
     window.GameModules.progression.ensureStateMechanics(state, state.profile || {});
+    window.GameModules.intimacyBodyState?.ensure?.(state);
     return state.schema.sections.map((section) => ({
       title: section.title,
       fields: section.fields
@@ -167,7 +170,7 @@ window.GameModules.saveActions = {
           const raw = field.key === 'exp' ? window.GameModules.progression.normalizeCharacterExp(state.values.exp, state.values.level) : state.values[field.key];
           const display = window.GameModules.worldAttributes.displayValue(field, raw);
           const source = state.values.intrinsic_sources?.[field.key] || null;
-          const kind = { factions: '社群角色', force_positions: '势力地位', items: '物品', wearing: '穿着', status_tags: '状态' }[field.key] || '属性';
+          const kind = { factions: '社群角色', force_positions: '势力地位', items: '物品', wearing: '穿着', bodyStatus: '当前身体状态', intimacy: '亲密经历', status_tags: '状态' }[field.key] || '属性';
           const targetType = state.profile?.isPlayer ? '非角色' : '角色';
           const commonField = section.title !== '世界固有属性' && field.key !== 'world_tag';
           const reason = state.profile?.rpgFieldReasons?.[field.key] || '';

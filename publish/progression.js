@@ -23,6 +23,7 @@ window.GameModules.progression = {
         this.field('knowledge', '知识储备', 'list', 0, 100, '已掌握的知识领域及等级。'), this.field('skills', '技能等级', 'list', 0, 100, '经过学习或训练获得的技能等级。'),
         this.field('professions', '职业等级', 'list', 0, 100, '已内化的职业能力、经验与胜任资格。'), this.field('factions', '社群角色', 'list', 0, 100, '所属社群与在其中承担的社会角色。'),
         this.field('force_positions', '势力地位', 'list', 0, 100, '在有层级制度势力中的等级、职级、年级或职位。'), this.field('status_tags', '状态标签', 'list', 0, 100, '当前处境、身份标签或剧情状态。'),
+        this.field('intimacy', '亲密经历', 'text', 0, 100, '成人虚构角色的抽象经历次数记录。'), this.field('bodyStatus', '身体状态', 'list', 0, 100, '各身体部位的中性短状态。'),
         this.field('control_experience', '上线体验', 'text', 0, 100, '角色对被玩家上线操控的经历记录。'), this.field('derived', '攻防衍生', 'text', 0, 100, '由基础能力推导出的攻防表现。'),
         this.field('combat_simulation', '战斗模拟', 'text', 0, 100, '基于当前状态估算的一次战斗表现。'),
       ] },

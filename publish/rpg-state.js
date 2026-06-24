@@ -96,11 +96,12 @@ window.GameModules.rpgState = {
       }
     }));
     const worldChanged = this.normalizeWorldValues(state), jobChanged = window.GameModules.rpgProfessionState.normalizeProfessions(state), controlChanged = this.ensureControlExperience(state), metricsChanged = this.ensureCharacterMetrics(state);
+    const intimacyChanged = window.GameModules.intimacyBodyState?.ensure?.(state);
     const reasonChanged = this.ensureRpgFieldReasons(state);
     const socialChanged = this.syncSocialPositions(state);
     const inventoryChanged = window.GameModules.progression.ensureInventoryFields?.(state.values, state.id || '');
     const mechanicsChanged = window.GameModules.progression.ensureStateMechanics(state);
-    return worldChanged || jobChanged || controlChanged || metricsChanged || reasonChanged || socialChanged || inventoryChanged || mechanicsChanged || changed;
+    return worldChanged || jobChanged || controlChanged || intimacyChanged || metricsChanged || reasonChanged || socialChanged || inventoryChanged || mechanicsChanged || changed;
   },
   ensureRpgFieldReasons(state) {
     if (!state?.profile) throw new Error('个人资料缺失，无法校验RPG变化原因');
@@ -176,6 +177,8 @@ window.GameModules.rpgState = {
     window.GameModules.rpgAge.sync(values, character, store);
     values.status_tags = [character.role, character.importance === 'minor' ? '路人' : '可被操控', schema.worldTag];
     values.control_experience = { onlineCount: 0, feeling: '未知', adaptation: 0, summary: '尚未经历上线操控。', lastUpdated: '' };
+    values.intimacy = { sexualExperienceCount: 0, updatedAt: '', reason: '默认未记录' };
+    values.bodyStatus = window.GameModules.intimacyBodyState?.defaultBodyStatus?.() || {};
     const state = {
       id: character.id,
       name: character.name,

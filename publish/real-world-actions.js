@@ -156,6 +156,7 @@ window.GameModules.realWorldActions = {
     settlement.push(...this.realWorldVitalSettlement(state, result.vitalUpdates));
     await this.applyRealWorldVitalUpdates(state, result.vitalUpdates);
     settlement.push(...this.realWorldFactionSettlement(result.factionUpdates || []));
+    await window.GameModules.intimacyBodyState?.applyGeneric?.(this, result.genericUpdates || []);
     result.characterCardChanges = settlement;
     const startedAt = this.phoneDate().toISOString();
     this.advancePhoneTime(elapsedSeconds);

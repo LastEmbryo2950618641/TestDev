@@ -16,6 +16,8 @@ window.GameModules.playerSetupActions = {
       row('势力地位', [p.workplace, p.position].filter(Boolean).join(' / '), '玩家当前工作、学习或组织势力及其内部地位。'),
       row('社群角色', [p.refinedCity || p.city, '居民'].filter(Boolean).join(' / '), '玩家当前居住社群及其中承担的社会角色。'),
       row('居住状态', p.refinedLivingStatus || p.livingStatus, '玩家当前居住与生活状态。'),
+      row('性经验次数', this.playerIdentityState?.()?.values?.intimacy?.sexualExperienceCount ?? 0, '成人虚构身份的抽象经历次数，只记录数值。'),
+      row('当前身体状态', Object.values(this.playerIdentityState?.()?.values?.bodyStatus || {}).map((item) => `${item.part || item.partKey}：${item.status || '稳定'}`).join('；') || '未记录', '身体部位的中性短状态记录。'),
       row('父母状态', p.parentStatus || p.parents || '父母已故', '玩家父母当前状态。'),
       row('父母去世原因', p.parentDeathCause || '待生成', '父母已故时的入库死因。'),
       row('人际关系', p.relationships || '由玩家自行设定，暂无补充', '玩家明确填写的人际关系。'),
