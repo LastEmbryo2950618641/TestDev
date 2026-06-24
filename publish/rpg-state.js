@@ -47,7 +47,6 @@ window.GameModules.rpgState = {
     await save.saveCharacterState(created);
     return created;
   },
-
   ensureRoleCard(state, character) {
     if (!state || !character?.roleCard) return false;
     const oldProfile = state.profile || {};
@@ -76,7 +75,6 @@ window.GameModules.rpgState = {
     const updated = Boolean(window.GameModules.rpgInitializer?.updateExisting(state, profile, store, seed));
     return window.GameModules.rpgAge.sync(state.values, profile, store) || updated;
   },
-
   upgradeCharacterState(state, schema) {
     let changed = false;
     state.worldTag = schema.worldTag;
@@ -122,7 +120,6 @@ window.GameModules.rpgState = {
     window.GameModules.rpgProfileMetrics?.apply(state, state.profile);
     return before !== JSON.stringify(state.metrics);
   },
-
   syncSocialPositions(state) {
     if (!state?.values || !state?.profile) return false;
     let changed = false;
@@ -155,7 +152,6 @@ window.GameModules.rpgState = {
     }
     return changed;
   },
-
   createCharacterState(character, schema, store = null) {
     const seed = this.seed(character.name + character.role + schema.worldTag + (character.detail || '') + (store?.entryCurrentAction || ''));
     const values = { world_tag: schema.worldTag, health: 100, stamina: 100 };
@@ -177,7 +173,7 @@ window.GameModules.rpgState = {
     window.GameModules.rpgAge.sync(values, character, store);
     values.status_tags = [character.role, character.importance === 'minor' ? '路人' : '可被操控', schema.worldTag];
     values.control_experience = { onlineCount: 0, feeling: '未知', adaptation: 0, summary: '尚未经历上线操控。', lastUpdated: '' };
-    values.intimacy = { sexualExperienceCount: 0, updatedAt: '', reason: '默认未记录' };
+    values.intimacy = window.GameModules.intimacyBodyState?.defaultIntimacy?.() || {};
     values.bodyStatus = window.GameModules.intimacyBodyState?.defaultBodyStatus?.() || {};
     const state = {
       id: character.id,
@@ -194,10 +190,7 @@ window.GameModules.rpgState = {
     window.GameModules.progression.syncInventoryFromProfile?.(state, character);
     this.ensureCharacterMetrics(state);
     return state;
-  },
-
-
-  valueFor(field, seed) {
+  }, valueFor(field, seed) {
     if (field.type === 'number') return field.min + (seed % ((field.max - field.min) + 1));
     if (field.type === 'rank') return ['E', 'D', 'C', 'B', 'A', 'EX'][seed % 6];
     return field.type === 'list' ? [] : '';

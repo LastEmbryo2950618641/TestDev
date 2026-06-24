@@ -1,8 +1,9 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.intimacyBodyState = {
-  partLabels: { overall: '整体', mouth: '口部', chest: '胸部', genital: '阴部', anus: '肛部', hips: '臀部', limbs: '四肢', skin: '皮肤', other: '其他' },
-  sexPartLabels: { genital: '阴部次数', chest: '胸部次数', lips: '嘴唇次数', mouth: '口部次数', oralAction: '口部行为次数', oralSex: '口交次数', oralInternalFinish: '口交中出次数', genitalEntry: '阴部进入次数', vaginalInsertion: '阴部插入次数', vaginalInternalFinish: '阴部中出次数', anus: '肛门次数', analEntry: '肛部进入次数', analSex: '肛交次数', analInternalFinish: '肛交中出次数', legs: '腿部次数', hips: '臀部次数', hands: '手部次数', skin: '皮肤接触次数', other: '其他次数' },
+  defaults: window.GameModules.initDefaults?.intimacyBody,
+  partLabels: window.GameModules.initDefaults?.intimacyBody?.partLabels || {},
+  sexPartLabels: window.GameModules.initDefaults?.intimacyBody?.sexPartLabels || {},
   sexPartPrompts: {
     genital: '仅在成人身份且明确稳定事实确认该部位相关经历时计数；禁止过程描写。',
     chest: '仅记录成人抽象经历中胸部相关次数，不记录触碰细节或感官描写。',
@@ -52,21 +53,23 @@ window.GameModules.intimacyBodyState = {
     return 'other';
   },
   defaultBodyDescription(key) {
-    return { overall: '整体稳定，无明显异常', mouth: '口部清洁，状态稳定', chest: '胸部状态稳定，无明显不适', genital: '阴部状态稳定，无明显不适', anus: '肛部状态稳定，无明显不适', hips: '臀部状态稳定，无明显不适', limbs: '肢体活动正常，状态稳定', skin: '皮肤状态稳定，无明显异常', other: '其他部位暂无异常' }[key] || '状态稳定';
+    return this.defaults?.bodyDescriptions?.[key] || '状态稳定';
   },
-  defaultBodyStatus() { return Object.fromEntries(Object.keys(this.partLabels).map((key) => [key, { partKey: key, part: this.partLabels[key], status: '稳定', description: this.defaultBodyDescription(key), reason: '初始默认状态', updatedAt: '' }])); },
-  defaultSexParts() { return Object.fromEntries(Object.keys(this.sexPartLabels).map((key) => [key, 0])); },
+  defaultBodyStatus() { return this.defaults?.bodyStatus?.() || {}; },
+  defaultBodyStatusEntry(key) { return this.defaults?.bodyStatusEntry?.(key) || { partKey: key, part: this.partLabels[key] || '其他', status: '稳定', description: this.defaultBodyDescription(key), reason: '初始默认状态', updatedAt: '' }; },
+  defaultIntimacy() { return this.defaults?.intimacy?.() || { sexualExperienceCount: 0, sexualExperienceParts: this.defaultSexParts(), updatedAt: '', reason: '默认未记录' }; },
+  defaultSexParts() { return this.defaults?.sexualExperienceParts?.() || {}; },
   ensure(state) {
     if (!state?.values) return false;
     let changed = false;
     const values = state.values;
-    if (!values.intimacy || typeof values.intimacy !== 'object') { values.intimacy = { sexualExperienceCount: 0, sexualExperienceParts: this.defaultSexParts(), updatedAt: '', reason: '默认未记录' }; changed = true; }
+    if (!values.intimacy || typeof values.intimacy !== 'object') { values.intimacy = this.defaultIntimacy(); changed = true; }
     if (!Number.isFinite(Number(values.intimacy.sexualExperienceCount))) { values.intimacy.sexualExperienceCount = 0; changed = true; }
     if (!values.intimacy.sexualExperienceParts || typeof values.intimacy.sexualExperienceParts !== 'object') { values.intimacy.sexualExperienceParts = this.defaultSexParts(); changed = true; }
     for (const key of Object.keys(this.sexPartLabels)) if (!Number.isFinite(Number(values.intimacy.sexualExperienceParts[key]))) { values.intimacy.sexualExperienceParts[key] = 0; changed = true; }
     if (!values.bodyStatus || typeof values.bodyStatus !== 'object' || Array.isArray(values.bodyStatus)) { values.bodyStatus = this.defaultBodyStatus(); changed = true; }
     for (const [key, label] of Object.entries(this.partLabels)) {
-      if (!values.bodyStatus[key]) { values.bodyStatus[key] = { partKey: key, part: label, status: '稳定', description: this.defaultBodyDescription(key), reason: '初始默认状态', updatedAt: '' }; changed = true; }
+      if (!values.bodyStatus[key]) { values.bodyStatus[key] = this.defaultBodyStatusEntry(key); changed = true; }
       else if (!values.bodyStatus[key].description && !values.bodyStatus[key]['描述状态']) { values.bodyStatus[key].description = this.defaultBodyDescription(key); changed = true; }
     }
     return changed;
