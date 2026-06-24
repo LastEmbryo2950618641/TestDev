@@ -232,7 +232,10 @@ window.GameModules.rpgFieldUi = {
     if (typeof item === 'string') return name;
     if (item?.type === '身体原貌' || item?.type === '盛装状态') return `${item.index || ''}.${item.part || name}`;
     if (item?.type === '性经验分类') return `${item.name || name}：${item.count || 0}次`;
-    if (item?.type === '当前身体状态') return `${item.part || name}：${item.status || '稳定'}`;
+    if (item?.type === '当前身体状态') {
+      const desc = item.description || item['描述状态'] || '';
+      return `${item.part || name}：${item.status || '稳定'}${desc ? `｜${desc}` : ''}`;
+    }
     const levelName = Number(item?.level) > 0 ? `${name} lv.${item.level}` : name;
     if (item?.type === '穿着' && item?.slot && item?.clothing_position) return `${item.clothing_position}｜${levelName}`;
     return levelName;
