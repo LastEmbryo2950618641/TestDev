@@ -86,8 +86,8 @@ window.GameModules.genericUpdateTemplate = {
     };
     loop.mergeNarrationAndUpdates = function patchedMergeNarrationAndUpdates(...args) {
       const result = baseMerge.apply(this, args);
-      const updates = args[2] || {};
-      result.genericUpdates = Array.isArray(updates.genericUpdates) ? updates.genericUpdates : [];
+      const store = args[0] || null, updates = args[2] || {};
+      result.genericUpdates = window.GameModules.updateRegistry?.normalizeUpdates?.(updates, store) || (Array.isArray(updates.genericUpdates) ? updates.genericUpdates : []);
       return result;
     };
     loop.updateRegistryPatched = true;
@@ -98,8 +98,8 @@ window.GameModules.genericUpdateTemplate = {
     const baseParse = ai.parse;
     ai.parse = function patchedParse(...args) {
       const result = baseParse.apply(this, args);
-      const data = args[0] && typeof args[0] === 'object' ? args[0] : {};
-      result.genericUpdates = Array.isArray(data.genericUpdates) ? data.genericUpdates.slice(0, 80) : [];
+      const data = args[0] && typeof args[0] === 'object' ? args[0] : {}, store = args[1] || null;
+      result.genericUpdates = window.GameModules.updateRegistry?.normalizeUpdates?.(data, store) || result.genericUpdates || [];
       return result;
     };
     ai.updateRegistryPatched = true;

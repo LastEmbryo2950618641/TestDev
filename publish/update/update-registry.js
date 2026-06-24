@@ -92,6 +92,37 @@ window.GameModules.updateRegistry = {
     return { genericUpdates: this.types.flatMap((type) => type.examples || []) };
   },
 
+  genericLike(raw = {}, keys = []) {
+    return keys.flatMap((key) => (Array.isArray(raw?.[key]) ? raw[key] : []))
+      .filter((item) => item && typeof item === 'object' && item.field && item.change && typeof item.change === 'object');
+  },
+
+  normalizeUpdates(raw = {}, store = null) {
+    const base = Array.isArray(raw?.genericUpdates) ? raw.genericUpdates : [];
+    const extras = [];
+    this.types.forEach((type) => {
+      if (typeof type.normalize !== 'function') return;
+      try {
+        const items = type.normalize(raw, store) || [];
+        if (Array.isArray(items)) extras.push(...items);
+      } catch (err) {
+        console.warn(`[UpdateRegistry] ${type.id} normalize failed:`, err.message, err.stack);
+      }
+    });
+    return this.uniqueUpdates([...base, ...extras]).slice(0, 80);
+  },
+
+  uniqueUpdates(updates = []) {
+    const seen = new Set();
+    return (Array.isArray(updates) ? updates : []).filter((item) => {
+      if (!item || typeof item !== 'object') return false;
+      const key = JSON.stringify(item);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  },
+
   typeForChange(change = {}) {
     const text = `${change.updateType || ''} ${change.field || ''} ${change.section || ''} ${change.subject?.type || ''} ${change.group || ''}`;
     return this.types.find((type) => type.match?.(change, text)) || null;
