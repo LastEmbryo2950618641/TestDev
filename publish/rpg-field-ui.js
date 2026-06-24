@@ -275,8 +275,14 @@ window.GameModules.rpgFieldUi = {
     const kind = obj?.type || this.lexiconKind(field, obj);
     const name = this.rpgItemName(obj) || field?.label || '未知';
     if (kind === '身体原貌' || kind === '盛装状态') return [`部位: ${name}`, `序号: ${obj.index || '未记录'}`, `所属世界: ${field?.worldTag || '公共'}`, `词条类型: ${field?.targetType || '角色'}`, `当前依据: ${field?.reason || (kind === '盛装状态' ? '来自角色卡 Part6 盛装状态生成结果。' : '来自角色卡 Part5 身体原貌生成结果。')}`].join('\n');
-    if (kind === '性经验分类') return [`分类: ${obj.name || name}`, `字段: intimacy.sexualExperienceParts.${obj.partKey || 'other'}`, `次数: ${obj.initialCount || 0}(初次见面) + ${obj.laterCount || 0} (后续次数)`, `记录提示: ${obj.prompt || '只记录成人抽象次数，不记录过程。'}`, `所属世界: ${field?.worldTag || '公共'}`].join('\n');
-    if (kind === '当前身体状态') return [`部位: ${obj.part || name}`, `状态: ${obj.status || '稳定'}`, `初始见面: ${obj.initialMeeting || '未记录'}`, `描述状态: ${obj.description || '未记录'}`, `变化原因: ${obj.reason || '当前记录。'}`, `更新时间: ${obj.updatedAt || '未记录'}`, `所属世界: ${field?.worldTag || '公共'}`].join('\n');
+    if (kind === '性经验分类') {
+      const defaults = window.GameModules.initDefaults?.intimacyBody;
+      return [`分类: ${obj.name || name}`, `字段: intimacy.sexualExperienceParts.${obj.partKey || 'other'}`, `次数: ${defaults?.formatExperienceSplit?.(obj) || ''}`, `记录提示: ${obj.prompt || defaults?.sexPartPrompts?.other || ''}`, `所属世界: ${field?.worldTag || defaults?.displayTexts?.publicWorld || '公共'}`].join('\n');
+    }
+    if (kind === '当前身体状态') {
+      const defaults = window.GameModules.initDefaults?.intimacyBody, text = defaults?.displayTexts || {}, values = defaults?.valueDefaults || {};
+      return [`部位: ${obj.part || name}`, `状态: ${obj.status || values.bodyStatus || ''}`, `初始见面: ${obj.initialMeeting || text.noRecord || ''}`, `描述状态: ${obj.description || text.noRecord || ''}`, `变化原因: ${obj.reason || text.currentRecord || ''}`, `更新时间: ${obj.updatedAt || text.noRecord || ''}`, `所属世界: ${field?.worldTag || text.publicWorld || '公共'}`].join('\n');
+    }
     const hasLevel = Number(obj?.level) > 0;
     const lines = [`名称: ${name}`, `定义: ${this.learnedDefinition(kind, name, obj, lexicon, info)}`, `类型: ${kind}`, `所属世界: ${field?.worldTag || lexicon?.worldTag || '公共'}`, `词条类型: ${field?.targetType || lexicon?.meta?.targetType || '角色'}`];
     if (kind === '穿着' && (obj?.clothing_position || obj?.slotLabel)) lines.push(`穿戴位: ${obj.clothing_position || obj.slotLabel}`);
@@ -315,9 +321,7 @@ window.GameModules.rpgFieldUi = {
     lines.push(`变化方式: ${lexicon?.changeMode || '系统结算'}`);
     if (lexicon?.promptInstruction) lines.push(`提示词说明: ${lexicon.promptInstruction}`);
     if (field?.source) lines.push(`来源: 初始值(${field.source.initial || 0}) + 等级值(${field.source.level || 0}) + 分配值(${field.source.allocated || 0}) + 非玩家成长(${field.source.npc || 0}) = ${field.raw || 0}`);
-    if (field?.key === 'sexualExperienceCount') lines.push('限制: 仅成人虚构角色可由现实推演更新；只保存抽象总次数。');
-    if (field?.key === 'sexualExperienceParts') lines.push('限制: 分类次数只作为合规抽象统计；同一次经历可关联多个分类，但总次数不要重复增加。');
-    if (field?.key === 'bodyStatus') lines.push('限制: 只保存中性短状态，不保存露骨过程描写。');
+    if (field?.limit) lines.push(`限制: ${field.limit}`);
     if (field?.key === 'free_attribute_points') lines.push('用途: 可分配到力量、敏捷、体质、智力、感知、意志、魅力；每次真实升级获得1点。');
     if (field?.key === 'level_growth' && field.raw?.history?.length) lines.push(`最近升级: ${field.raw.history.map((x) => `${x.from}->${x.to} 自动${Object.entries(x.auto || {}).map(([k, v]) => `${k}+${v}`).join('/')} 自由+${x.free}`).join('；')}`);
     return lines.join('\n');
