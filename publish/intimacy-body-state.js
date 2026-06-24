@@ -7,6 +7,7 @@ window.GameModules.intimacyBodyState = {
   sexPartPrompts: window.GameModules.initDefaults?.intimacyBody?.sexPartPrompts || {},
   fieldMeta: window.GameModules.initDefaults?.intimacyBody?.fieldMeta || {},
   valueDefaults: window.GameModules.initDefaults?.intimacyBody?.valueDefaults || {},
+  sexPartDefaults: window.GameModules.initDefaults?.intimacyBody?.sexualExperiencePartDefaults || {},
   partKey(raw = '') {
     const text = String(raw || '').trim();
     const map = { overall: 'overall', mouth: 'mouth', chest: 'chest', genital: 'genital', anus: 'anus', hips: 'hips', limbs: 'limbs', skin: 'skin', other: 'other', 口部: 'mouth', 胸部: 'chest', 阴部: 'genital', 私处: 'genital', 肛部: 'anus', 臀部: 'hips', 四肢: 'limbs', 皮肤: 'skin', 整体: 'overall' };
@@ -55,7 +56,7 @@ window.GameModules.intimacyBodyState = {
     if (!Array.isArray(values.intimacy.sexualPartners)) { values.intimacy.sexualPartners = [...(this.valueDefaults.sexualPartners || [])]; changed = true; }
     if (!Number.isFinite(Number(values.intimacy.sexualExperienceCount))) { values.intimacy.sexualExperienceCount = this.valueDefaults.sexualExperienceCount; changed = true; }
     if (!values.intimacy.sexualExperienceParts || typeof values.intimacy.sexualExperienceParts !== 'object') { values.intimacy.sexualExperienceParts = this.defaultSexParts(); changed = true; }
-    for (const key of Object.keys(this.sexPartLabels)) if (!Number.isFinite(Number(values.intimacy.sexualExperienceParts[key]))) { values.intimacy.sexualExperienceParts[key] = this.valueDefaults.sexualExperiencePartCount; changed = true; }
+    for (const key of Object.keys(this.sexPartLabels)) if (!Number.isFinite(Number(values.intimacy.sexualExperienceParts[key]))) { values.intimacy.sexualExperienceParts[key] = this.sexPartDefaults[key]; changed = true; }
     if (!values.bodyStatus || typeof values.bodyStatus !== 'object' || Array.isArray(values.bodyStatus)) { values.bodyStatus = this.defaultBodyStatus(); changed = true; }
     for (const [key, label] of Object.entries(this.partLabels)) {
       if (!values.bodyStatus[key]) { values.bodyStatus[key] = this.defaultBodyStatusEntry(key); changed = true; }

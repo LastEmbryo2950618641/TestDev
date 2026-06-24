@@ -72,6 +72,28 @@ window.GameModules.initDefaults.intimacyBody = {
     statusChange: '状态变化',
   },
 
+  sexualExperiencePartDefaults: {
+    genital: 0,
+    chest: 0,
+    lips: 0,
+    mouth: 0,
+    oralAction: 0,
+    oralSex: 0,
+    oralInternalFinish: 0,
+    genitalEntry: 0,
+    vaginalInsertion: 0,
+    vaginalInternalFinish: 0,
+    anus: 0,
+    analEntry: 0,
+    analSex: 0,
+    analInternalFinish: 0,
+    legs: 0,
+    hips: 0,
+    hands: 0,
+    skin: 0,
+    other: 0,
+  },
+
   sexPartPrompts: {
     genital: '仅在成人身份且明确稳定事实确认该部位相关经历时计数；禁止过程描写。',
     chest: '仅记录成人抽象经历中胸部相关次数，不记录触碰细节或感官描写。',
@@ -126,7 +148,7 @@ window.GameModules.initDefaults.intimacyBody = {
   },
 
   sexualExperienceParts() {
-    return Object.fromEntries(Object.keys(this.sexPartLabels).map((key) => [key, this.valueDefaults.sexualExperiencePartCount]));
+    return { ...this.sexualExperiencePartDefaults };
   },
 
   intimacy() {
