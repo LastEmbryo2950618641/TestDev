@@ -52,12 +52,39 @@ async apply(store, updates = []) {
     for (const update of Array.isArray(updates) ? updates : []) {
       const fields = update?.fields, state = this.targetState(store, update);
       if (!state?.values || !fields || typeof fields !== 'object') continue;
-      Object.entries(fields).forEach(([key, value]) => { if (value !== undefined && value !== null) state.values[key] = this.clone(value); });
+      const templateKey = this.templateKeyForUpdate(update, store);
+      if (templateKey) this.ensureTemplateState(templateKey, state);
+      Object.entries(fields).forEach(([key, value]) => this.applyField(state.values, key, value));
       applied.push(update);
       await window.GameModules.sqliteSave.saveCharacterState?.(state);
     }
     this.markByInitUpdates(applied, store);
     return applied;
+  },
+  templateKeyForUpdate(update = {}, store = null) {
+    const direct = update.templateKey || update.template;
+    if (direct && this.template(direct)) return direct;
+    const promptId = update.initPromptId || update.promptId || update.registryId;
+    if (promptId && this.prompts[promptId]?.templateKey) return this.prompts[promptId].templateKey;
+    return this.pending('', store).find((item) => {
+      const title = String(item.template?.title || item.name || item.id || ''), section = String(update.section || '');
+      return section && title && (section.includes(title) || title.includes(section));
+    })?.templateKey || '';
+  },
+  applyField(values = {}, key = '', value) {
+    if (value === undefined || value === null) return;
+    const current = values[key];
+    if (current && typeof current === 'object' && !Array.isArray(current) && value && typeof value === 'object' && !Array.isArray(value)) values[key] = this.deepMerge(current, value);
+    else values[key] = this.clone(value);
+  },
+  deepMerge(base, patch) {
+    const next = this.clone(base);
+    Object.entries(patch || {}).forEach(([key, value]) => {
+      if (value === undefined || value === null) return;
+      if (next[key] && typeof next[key] === 'object' && !Array.isArray(next[key]) && value && typeof value === 'object' && !Array.isArray(value)) next[key] = this.deepMerge(next[key], value);
+      else next[key] = this.clone(value);
+    });
+    return next;
   },
 clone(value) { return JSON.parse(JSON.stringify(value ?? null)); },
   template(key = '') { return window.GameModules.initTemplateSources?.[key] || window.GameModules.initDefaults?.[key] || null; },
