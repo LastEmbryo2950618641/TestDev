@@ -1,8 +1,19 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldSettlementActions = {
-  realWorldSettlementRecord(field, name, value, reason, group = '') {
-    return { at: new Date().toISOString(), group: group || this.realWorldSettlementGroup(field, name), field, name, value, reason: reason || '现实推演结算。', applied: true };
+  realWorldSettlementRecord(field, name, value, reason, group = '', card = null) {
+    const fallback = group || this.realWorldSettlementGroup(field, name);
+    const inferred = card || this.realWorldSettlementCardForGroup?.(fallback);
+    return { at: new Date().toISOString(), group: fallback, cardId: inferred?.id || `legacy:${fallback}`, cardTitle: inferred?.title || fallback, section: inferred?.section || fallback, field, name, value, reason: reason || '现实推演结算。', applied: true };
+  },
+
+  realWorldSettlementCardForGroup(group = '') {
+    const text = String(group || '');
+    if (/势力|公司/u.test(text)) return { id: `faction:${text}`, title: text, section: '势力卡' };
+    if (/地图|地点/u.test(text)) return { id: 'map:real-world', title: '地图', section: '地图卡' };
+    if (/物品|装备|穿着/u.test(text)) return { id: `role:player-self`, title: this.realWorldPlayerSettlementName?.() || '玩家', section: '角色卡' };
+    if (/玩家|角色|生命体征|情绪|感觉|身份|职业|状态/u.test(text)) return { id: `role:${text}`, title: text, section: '角色卡' };
+    return { id: `system:${text || 'other'}`, title: text || '其他', section: '系统卡' };
   },
 
   realWorldPlayerSettlementName() {
@@ -31,7 +42,7 @@ window.GameModules.realWorldSettlementActions = {
   },
 
   realWorldSettlementTabs(entry = {}) {
-    return this.realWorldSettlementGroups(entry).map((group) => ({ id: group.title, title: group.title, count: group.items.length }));
+    return this.realWorldSettlementGroups(entry).map((group) => ({ id: group.id, title: group.title, section: group.section, count: group.items.length }));
   },
 
   activeRealWorldSettlementTab(entry = {}) {
@@ -47,18 +58,23 @@ window.GameModules.realWorldSettlementActions = {
   },
 
   realWorldSettlementGroups(entry = {}) {
+    const rows = [
+      ...(entry.characterCardChanges || []),
+      ...((entry.genericUpdates || []).map((item) => window.GameModules.updateRegistry?.rowFromGeneric?.(item, this)).filter(Boolean)),
+    ];
     const groups = new Map();
-    for (const item of entry.characterCardChanges || []) {
-      const title = item.group || this.realWorldSettlementGroup(item.field, item.name);
-      if (!groups.has(title)) groups.set(title, []);
-      groups.get(title).push(item);
+    for (const item of rows) {
+      const title = item.cardTitle || item.group || this.realWorldSettlementGroup(item.field, item.name);
+      const id = item.cardId || `legacy:${title}`;
+      if (!groups.has(id)) groups.set(id, { id, title, section: item.section || item.group || title, items: [] });
+      groups.get(id).items.push(item);
     }
-    return Array.from(groups, ([title, items]) => ({ title, items }));
+    return Array.from(groups.values());
   },
 
   visibleRealWorldSettlementGroups(entry = {}) {
     const active = this.activeRealWorldSettlementTab(entry);
-    return this.realWorldSettlementGroups(entry).filter((group) => group.title === active);
+    return this.realWorldSettlementGroups(entry).filter((group) => group.id === active);
   },
 
   realWorldMetricSettlement(state, updates = {}, group = '') {
