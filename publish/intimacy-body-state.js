@@ -99,7 +99,8 @@ window.GameModules.intimacyBodyState = {
     this.ensure(state);
     const value = update.change?.value ?? update.value ?? {}, key = this.partKey(value.partKey || value.part || update.field?.split('.')?.pop());
     const before = JSON.stringify(state.values.bodyStatus[key] || {});
-    state.values.bodyStatus[key] = { partKey: key, part: this.partLabels[key] || value.part || '其他', status: this.safeStatus(value), reason: String(this.reason(update)).slice(0, 120), updatedAt: new Date().toISOString() };
+    const description = String(value['描述状态'] || value.description || value.desc || value.detail || '').trim().slice(0, 80);
+    state.values.bodyStatus[key] = { partKey: key, part: this.partLabels[key] || value.part || '其他', status: this.safeStatus(value), description, reason: String(this.reason(update)).slice(0, 120), updatedAt: new Date().toISOString() };
     return before !== JSON.stringify(state.values.bodyStatus[key]);
   },
   async applyGeneric(store, updates = []) {
@@ -123,7 +124,7 @@ window.GameModules.intimacyBodyState = {
     const p = state.profile || {}, values = state.values || {}, worldTag = p.work || state.worldTag || '原创世界';
     const count = Math.max(0, Math.round(Number(values.intimacy?.sexualExperienceCount) || 0));
     const expRows = this.experienceRows(values.intimacy);
-    const rows = Object.values(values.bodyStatus || {}).map((item) => ({ partKey: item.partKey, part: item.part || this.partLabels[item.partKey] || '其他', status: item.status || '稳定', reason: item.reason || '当前记录。', updatedAt: item.updatedAt || '', name: item.part || this.partLabels[item.partKey] || '其他', type: '当前身体状态' }));
+    const rows = Object.values(values.bodyStatus || {}).map((item) => ({ partKey: item.partKey, part: item.part || this.partLabels[item.partKey] || '其他', status: item.status || '稳定', description: item.description || item['描述状态'] || '', reason: item.reason || '当前记录。', updatedAt: item.updatedAt || '', name: item.part || this.partLabels[item.partKey] || '其他', type: '当前身体状态' }));
     return [
       { key: 'sexualExperienceCount', stateId: state.id || '', label: '性经验总次数', kind: '角色卡', value: this.adultConfirmed(state) ? `${count}次` : '未确认成人，不自动更新', raw: count, desc: '成人虚构角色的抽象经历总次数；同一次经历可关联多个分类。', reason: values.intimacy?.reason || '默认未记录。', worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: true },
       { key: 'sexualExperienceParts', stateId: state.id || '', label: '性经验分类次数', kind: '性经验分类', value: expRows.map((item) => `${item.name}：${item.count}次`), raw: expRows, desc: '分部位的抽象次数统计与记录提示；只用于结算，不包含过程描写。', reason: values.intimacy?.reason || '默认未记录。', worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: true },

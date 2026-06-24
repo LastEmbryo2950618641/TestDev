@@ -273,7 +273,7 @@ window.GameModules.rpgFieldUi = {
     const name = this.rpgItemName(obj) || field?.label || '未知';
     if (kind === '身体原貌' || kind === '盛装状态') return [`部位: ${name}`, `序号: ${obj.index || '未记录'}`, `所属世界: ${field?.worldTag || '公共'}`, `词条类型: ${field?.targetType || '角色'}`, `当前依据: ${field?.reason || (kind === '盛装状态' ? '来自角色卡 Part6 盛装状态生成结果。' : '来自角色卡 Part5 身体原貌生成结果。')}`].join('\n');
     if (kind === '性经验分类') return [`分类: ${obj.name || name}`, `次数: ${obj.count || 0}`, `记录提示: ${obj.prompt || '只记录成人抽象次数，不记录过程。'}`, `所属世界: ${field?.worldTag || '公共'}`].join('\n');
-    if (kind === '当前身体状态') return [`部位: ${obj.part || name}`, `状态: ${obj.status || '稳定'}`, `变化原因: ${obj.reason || '当前记录。'}`, `更新时间: ${obj.updatedAt || '未记录'}`, `所属世界: ${field?.worldTag || '公共'}`].join('\n');
+    if (kind === '当前身体状态') return [`部位: ${obj.part || name}`, `状态: ${obj.status || '稳定'}`, `描述状态: ${obj.description || '未记录'}`, `变化原因: ${obj.reason || '当前记录。'}`, `更新时间: ${obj.updatedAt || '未记录'}`, `所属世界: ${field?.worldTag || '公共'}`].join('\n');
     const hasLevel = Number(obj?.level) > 0;
     const lines = [`名称: ${name}`, `定义: ${this.learnedDefinition(kind, name, obj, lexicon, info)}`, `类型: ${kind}`, `所属世界: ${field?.worldTag || lexicon?.worldTag || '公共'}`, `词条类型: ${field?.targetType || lexicon?.meta?.targetType || '角色'}`];
     if (kind === '穿着' && (obj?.clothing_position || obj?.slotLabel)) lines.push(`穿戴位: ${obj.clothing_position || obj.slotLabel}`);
