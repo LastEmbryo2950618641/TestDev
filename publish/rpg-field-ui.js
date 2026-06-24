@@ -56,7 +56,8 @@ window.GameModules.rpgFieldUi = {
     const take = (keys) => keys.map(byKey).filter(Boolean);
     const identity = this.profileIdentityFields(state, identityFields);
     const relations = identity.filter((field) => field.label === '人际关系' || /relationships|人际关系/.test(field.key));
-    const identityRest = identity.filter((field) => !relations.includes(field));
+    const privateLabels = new Set(['性经验次数', '当前身体状态']);
+    const identityRest = identity.filter((field) => !relations.includes(field) && !privateLabels.has(field.label));
     const naturalState = this.profileNaturalStateField(state);
     const dressedState = this.profileDressedStateField(state);
     const intimacyFields = window.GameModules.intimacyBodyState?.fields?.(state) || [];
