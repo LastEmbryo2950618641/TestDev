@@ -43,7 +43,7 @@ window.GameModules.realWorldAgentLoop = {
     return await this.generatePhasedFinal({ store, action, base, loaded, skills, trace, materialSession, logId, prompt: lastPrompt, raw: lastRaw });
   },
 
-  async generatePhasedFinal({ store, action, base, loaded, skills, trace, materialSession, logId, prompt, raw }) {
+  async generatePhasedFinal({ store, action, base, loaded, skills, trace, materialSession, logId }) {
     const narrationPrompt = await this.buildNarrationPrompt({ store, action, base, loaded, skills, materialSession });
     this.markStep(store, logId, '现实资料已足够，正在生成正文…');
     const narrationRaw = await this.completeStep(store, narrationPrompt, logId, true);
@@ -60,7 +60,7 @@ window.GameModules.realWorldAgentLoop = {
     const jsonRaw = await this.completeUpdateJson(store, jsonPrompt, logId);
     const updates = this.parseUpdateJson(jsonRaw) || {};
     const result = this.mergeNarrationAndUpdates(store, narration, updates);
-    return { result, prompt: `${prompt || ''}\n\n---NARRATION---\n${narrationPrompt}\n\n---SKILL_SELECTION---\n${skillPrompt}\n\n---UPDATE_JSON---\n${jsonPrompt}`, loaded, raw: `${narrationRaw}\n\n${JSON.stringify(selectedSkills)}\n\n${jsonRaw}`, trace };
+    return { result, prompt: `---NARRATION---\n${narrationPrompt}\n\n---SKILL_SELECTION---\n${skillPrompt}\n\n---UPDATE_JSON---\n${jsonPrompt}`, loaded, raw: `${narrationRaw}\n\n${JSON.stringify(selectedSkills)}\n\n${jsonRaw}`, trace };
   },
 
   async loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step, materialSession = null) {

@@ -75,7 +75,7 @@ window.GameModules.genericUpdateTemplate = {
       const jsonRaw = await this.completeUpdateJson(options.store, jsonPrompt, options.logId);
       const updates = this.parseUpdateJson(jsonRaw) || {};
       const result = this.mergeNarrationAndUpdates(options.store, narration, updates);
-      return { result, prompt: `${options.prompt || ''}\n\n---NARRATION---\n${narrationPrompt}\n\n---UPDATE_SKILLS---\n${Array.isArray(updateSkillIds) ? updateSkillIds.join(', ') : 'ALL_FALLBACK'}\n\n---INIT_SKILLS---\n${initSkillIds.join(', ')}\n\n---UPDATE_JSON---\n${jsonPrompt}`, loaded: options.loaded, raw: `${narrationRaw}\n\n${jsonRaw}`, trace: options.trace };
+      return { result, prompt: `---NARRATION---\n${narrationPrompt}\n\n---UPDATE_SKILLS---\n${Array.isArray(updateSkillIds) ? updateSkillIds.join(', ') : 'ALL_FALLBACK'}\n\n---INIT_SKILLS---\n${initSkillIds.join(', ')}\n\n---UPDATE_JSON---\n${jsonPrompt}`, loaded: options.loaded, raw: `${narrationRaw}\n\n${jsonRaw}`, trace: options.trace };
     };
 
     loop.updateJsonSchema = function patchedUpdateJsonSchema(...args) {
