@@ -298,6 +298,14 @@ window.GameModules.rpgFieldUi = {
     return levelName;
   },
 
+  sexPartPrompt(obj = {}, defaults = null) {
+    const template = defaults || window.GameModules.initDefaults?.intimacyBody || {};
+    const prompts = template.sexPartPrompts || {}, labels = template.sexPartLabels || {};
+    const byName = Object.entries(labels).find(([, label]) => label === obj.name)?.[0];
+    const key = obj.partKey || byName || 'other';
+    return obj.prompt || prompts[key] || prompts.other || '该分类暂无次数增加标准。';
+  },
+
   learnedDefinition(kind, name, obj = {}, lexicon = null, info = {}) {
     const explicit = [info.description, lexicon?.description, obj.description, obj.desc, obj.source].find((x) => x && !/暂无|资料|当前作用/.test(String(x)));
     if (explicit) return explicit;
@@ -334,7 +342,7 @@ window.GameModules.rpgFieldUi = {
     if (kind === '身体原貌' || kind === '盛装状态') return [`部位: ${name}`, `序号: ${obj.index || '未记录'}`, `所属世界: ${field?.worldTag || '公共'}`, `词条类型: ${field?.targetType || '角色'}`, `当前依据: ${field?.reason || (kind === '盛装状态' ? '来自角色卡 Part6 盛装状态生成结果。' : '来自角色卡 Part5 身体原貌生成结果。')}`].join('\n');
     if (kind === '性经验分类') {
       const defaults = window.GameModules.initDefaults?.intimacyBody;
-      return [`分类: ${obj.name || name}`, `字段: intimacy.sexualExperienceParts.${obj.partKey || 'other'}`, `次数: ${defaults?.formatExperienceSplit?.(obj) || ''}`, `初始化: ${obj.pendingAiInit ? '否，当前为模板占位，待AI初始化' : (field?.pendingAiInit ? '否，当前为模板占位，待AI初始化' : '按当前记录')}`, `次数增加标准: ${obj.prompt || defaults?.sexPartPrompts?.[obj.partKey] || defaults?.sexPartPrompts?.other || ''}`, `所属世界: ${field?.worldTag || defaults?.displayTexts?.publicWorld || '公共'}`].join('\n');
+      return [`分类: ${obj.name || name}`, `字段: intimacy.sexualExperienceParts.${obj.partKey || Object.entries(defaults?.sexPartLabels || {}).find(([, label]) => label === obj.name)?.[0] || 'other'}`, `次数: ${defaults?.formatExperienceSplit?.(obj) || ''}`, `初始化: ${obj.pendingAiInit ? '否，当前为模板占位，待AI初始化' : (field?.pendingAiInit ? '否，当前为模板占位，待AI初始化' : '按当前记录')}`, `次数增加标准: ${this.sexPartPrompt(obj, defaults)}`, `所属世界: ${field?.worldTag || defaults?.displayTexts?.publicWorld || '公共'}`].join('\n');
     }
     if (kind === '当前身体状态') {
       const uiRow = this.initUiRow(field, obj);
