@@ -82,15 +82,18 @@ window.GameModules.realWorldMaterials = {
     return this.items.filter((item) => !usedPairs.has(`${item.skill}.${item.method}`));
   },
 
-  summary(session) {
+  acquiredSummary(session) {
     const acquired = session?.acquired || [];
+    return acquired.length ? acquired.map((item, i) => `${i + 1}. ${item.title}｜${item.skill}.${item.method}｜${item.size}｜上限${item.maxChars}字`).join('\n') : '尚未通过 skills 动态获取额外资料。';
+  },
+
+  summary(session) {
     const remaining = this.remaining(session);
-    const got = acquired.length ? acquired.map((item, i) => `${i + 1}. ${item.title}｜${item.skill}.${item.method}｜${item.size}｜上限${item.maxChars}字`).join('\n') : '尚未通过 skills 动态获取额外资料。';
     const left = remaining.map((item) => `- ${item.title}：${item.skill}.${item.method}｜${item.size}｜上限${item.maxChars}字｜适用：${item.when}｜params：${JSON.stringify(item.paramsHint || {})}`).join('\n');
     return [
       '当前资料清单说明：request_context 只用于获取能回答本次行动所必需的资料，不用于补全全部世界。',
       '资料长度规则：small 可直接读取；medium 只在必要时读取；large 禁止一次性完整加载，必须优先用关键词查询一条记录、关键词前后片段或最近指定数量。',
-      `已获取资料：\n${got}`,
+      `已获取资料：\n${this.acquiredSummary(session)}`,
       `仍可获取资料：\n${left || '暂无剩余资料选项。'}`,
     ].join('\n\n');
   },

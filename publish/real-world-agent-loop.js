@@ -111,7 +111,7 @@ window.GameModules.realWorldAgentLoop = {
 
   async buildNarrationPrompt({ store, action, base, loaded, skills, materialSession = null }) {
     const loadedText = window.GameModules.realWorldAgentContext.buildLoadedText(loaded);
-    const materialText = window.GameModules.realWorldMaterials?.summary?.(materialSession) || '';
+    const materialText = window.GameModules.realWorldMaterials?.acquiredSummary?.(materialSession) || '';
     return [
       '# 现实推演阶段2：只生成玩家可见正文',
       '你只输出现实推演正文，不要 JSON，不要 Markdown，不要标题，不要分隔符。',
