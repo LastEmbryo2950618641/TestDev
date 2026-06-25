@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "name": "neon glass phone app icons",
+  "description": "Unified rounded-square mobile app icons for a dark modern supernatural control RPG phone desktop. Glossy glassmorphism, neon gradients, centered symbolic pictograms, no text.",
+  "palette": ["#0b1024", "#6b5cff", "#00dbff", "#ff4ea3", "#ffcb66", "#2bdc9f"],
+  "view": "front-facing mobile icon",
+  "outline": "clean high-contrast silhouette with soft rim light",
+  "lighting": "glossy neon glass highlights",
+  "avoid": ["text", "letters", "logo", "watermark", "copyrighted characters", "real brands"]
+}

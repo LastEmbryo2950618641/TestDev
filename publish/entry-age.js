@@ -53,19 +53,26 @@ Object.assign(window.GameModules.entryTime, {
 
   birthDateFromData(character) {
     const dates = window.GameData?.characterBirthDates || {};
-    return dates[character.id] || dates[`${character.work}::${character.name}`] || null;
+    const date = dates[character.id] || dates[`${character.work}::${character.name}`] || null;
+    return this.completeBirthDate(date);
   },
 
   birthDate(profile) {
     const rows = profile?.basics || [];
     const value = rows.find((x) => /出生|生日|生年月日/.test(x.label))?.value || '';
-    const source = value || profile?.raw || '';
-    const match = String(source).match(/(\d{3,4})\s*[年\/-]\s*(\d{1,2})\s*[月\/-]\s*(\d{1,2})/);
-    return match ? { year: +match[1], month: +match[2], day: +match[3] } : null;
+    const source = String(value || profile?.raw || '');
+    if (/不明|年份不明|公元前/.test(source)) return null;
+    const match = source.match(/(\d{3,4})\s*[年\/-]\s*(\d{1,2})\s*[月\/-]\s*(\d{1,2})/);
+    return this.completeBirthDate(match ? { year: +match[1], month: +match[2], day: +match[3] } : null);
+  },
+
+  completeBirthDate(date) {
+    if (!date || !date.year || !date.month || !date.day) return null;
+    return { year: +date.year, month: +date.month, day: +date.day };
   },
 
   ageAt(birth, at) {
-    if (!birth || !at) return null;
+    if (!birth || !at || !birth.year || !birth.month || !birth.day) return null;
     let age = at.year - birth.year;
     if (at.month < birth.month || (at.month === birth.month && at.day < birth.day)) age -= 1;
     return age >= 0 && age < 1000 ? age : null;
