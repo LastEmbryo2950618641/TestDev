@@ -1,6 +1,9 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.storyAgentContext = {
+  materialBudgetChars: 5500,
+  autoLimits: { readme: 700, people: 1300, timeline: 1000 },
+
   limit(text, max = 1200) { return String(text || '').trim().slice(0, max); },
 
   baseSnapshot(store, action = '') {
@@ -44,7 +47,7 @@ window.GameModules.storyAgentContext = {
     return [window.GameModules.workLoreMaterials?.skillText?.() || '', ...texts.filter(Boolean)].join('\n\n');
   },
 
-  async loadRequests(store, action, requests = [], loadedKeys = new Set(), materialSession = null, materials = window.GameModules.workLoreMaterials, memoryIds = new Set()) {
+  async loadRequests(store, action, requests = [], loadedKeys = new Set(), materialSession = null, materials = window.GameModules.workLoreMaterials, memoryIds = new Set(), loaded = [], current = []) {
     const out = [];
     for (const req of requests.slice(0, 3)) {
       const skill = String(req?.skill || '').trim();
@@ -56,13 +59,15 @@ window.GameModules.storyAgentContext = {
       const key = `${skill}:${method}:${JSON.stringify(params)}`;
       if (!skill || !method || loadedKeys.has(key)) continue;
       loadedKeys.add(key);
-      const text = await this.dispatch(store, action, skill, method, params);
+      const material = materials?.optionFor?.({ skill, method, params });
+      const max = material?.maxChars || this.maxFor(skill);
+      if (!this.hasBudget(loaded, current, out, max)) continue;
+      const text = await this.dispatch(store, action, skill, method, { ...params, maxChars: max });
       if (!text) continue;
       if (broadMemory) memoryIds.add(memoryTarget);
       const title = `${skill}.${method}`;
-      const material = materials?.optionFor?.({ skill, method, params });
       materials?.record?.(materialSession, { skill, method, params }, title, text);
-      out.push({ title, text, max: material?.maxChars || this.maxFor(skill) });
+      out.push({ title, text, max });
     }
     return out;
   },
@@ -70,6 +75,51 @@ window.GameModules.storyAgentContext = {
   isBroadMemoryRequest(method = '', params = {}) {
     const keyword = String(params.keyword || '').trim();
     return !keyword || ['getRecentCharacterMemories', 'getCharacterMemory', 'searchCharacterMemory'].includes(method);
+  },
+
+  async autoLoadForStep(store, action, loadedKeys, materialSession, materials, memoryIds, step, loaded = [], current = []) {
+    if (step !== 1) return [];
+    const out = [];
+    const add = async (method, params, title, max) => {
+      if (!this.hasBudget(loaded, current, out, max)) return;
+      const req = { skill: 'worklore.query', method, params };
+      const key = materials?.keyOf?.(req) || `${req.skill}:${req.method}:${JSON.stringify(req.params || {})}`;
+      if (loadedKeys.has(key) || this.hasSimilarWorkLore([...loaded, ...current, ...out], method, params)) return;
+      loadedKeys.add(key);
+      const text = await window.GameModules.workLoreQuery.dispatch(store, action, method, { ...params, auto: true, maxChars: max });
+      if (!text) return;
+      materials?.record?.(materialSession, req, title, text);
+      out.push({ title, text, max });
+    };
+    await add('getReadme', {}, '自动资料：作品 README 结构', this.autoLimits.readme);
+    const characterName = String(store.character?.name || '').trim();
+    if (characterName) await add('searchPeople', { keyword: characterName }, '自动资料：当前角色人物卡', this.autoLimits.people);
+    if (this.shouldAutoTimeline(store, action)) await add('searchTimeline', { keyword: this.timelineKeyword(store, action) }, '自动资料：当前阶段时间线', this.autoLimits.timeline);
+    return out;
+  },
+
+  hasBudget(loaded = [], current = [], pending = [], nextMax = 0) {
+    const used = [...loaded, ...current, ...pending].reduce((sum, item) => sum + String(item.text || '').length, 0);
+    return used + nextMax <= this.materialBudgetChars;
+  },
+
+  hasSimilarWorkLore(items = [], method = '', params = {}) {
+    const keyword = String(params.keyword || '').trim();
+    return items.some((item) => {
+      const title = String(item.title || '');
+      const text = String(item.text || '');
+      if (!title.includes(`worklore.query.${method}`) && !title.includes(method) && !text.includes(method)) return false;
+      return !keyword || text.includes(keyword);
+    });
+  },
+
+  shouldAutoTimeline(store, action = '') {
+    const text = `${store.entryTimeLabel?.() || ''} ${store.sceneTitle || ''} ${store.quest || ''} ${action || ''}`;
+    return !/未知/.test(text) && /(第\s*\d+|\d+年|\d+月|\d+日|夜|昼|晨|晚|阶段|章节|圣杯战争|开战|决战|当前时间|时间线)/.test(text);
+  },
+
+  timelineKeyword(store, action = '') {
+    return [store.entryTimeLabel?.(), store.sceneTitle, store.quest, store.character?.name, action].filter(Boolean).join(' ');
   },
 
   maxFor(skill) {

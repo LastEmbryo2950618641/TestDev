@@ -87,7 +87,9 @@ window.GameModules.realWorldAgentLoop = {
   async loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step, materialSession = null, materials = window.GameModules.realWorldMaterials) {
     const out = [];
     if (data.type === 'request_context') {
-      const requested = await ctx.loadRequests(store, action, data.requests || [], loadedKeys, materialSession, materials, memoryIds);
+      const autoLoaded = await ctx.autoLoadForStep?.(store, action, loadedKeys, materialSession, materials, memoryIds, step, loaded, out) || [];
+      out.push(...autoLoaded);
+      const requested = await ctx.loadRequests(store, action, data.requests || [], loadedKeys, materialSession, materials, memoryIds, loaded, out);
       out.push(...requested);
     }
     const locationItem = await ctx.actionLocationForStep?.(store, action, data.characters || data.relatedCharacters || [], data.reason || '', loadedKeys);
@@ -211,7 +213,7 @@ window.GameModules.realWorldAgentLoop = {
 
   async buildConfiguredUpdateJsonPrompt({ store, action, base, loaded, skills, materialSession = null, narration, selectedSkills = {}, config = this.realConfig() }) {
     const loadedText = config.ctx.buildLoadedText(loaded);
-    const materialText = config.materials?.summary?.(materialSession) || '';
+    const materialText = config.mode === 'story' ? (config.materials?.acquiredSummary?.(materialSession) || '') : (config.materials?.summary?.(materialSession) || '');
     const updateSkillText = window.GameModules.updateRegistry?.skillText?.(selectedSkills.updateSkills || []) || '';
     const updateSchema = window.GameModules.updateRegistry?.schemaFor?.(selectedSkills.updateSkills || []) || {};
     const initSkillText = window.GameModules.initPromptRegistry?.skillText?.(selectedSkills.initSkills || [], store) || '';
