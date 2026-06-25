@@ -144,6 +144,7 @@ window.GameModules.realWorldActions = {
   },
 
   async applyRealWorldResult(id, result) {
+    result = window.GameModules.updateRegistry?.expandGenericForLegacy?.(result) || result;
     const state = this.playerIdentityState?.();
     const settlement = [];
     settlement.push(...await window.GameModules.realWorldTargetUpdates.applyMetrics(this, result));
@@ -156,7 +157,9 @@ window.GameModules.realWorldActions = {
     settlement.push(...this.realWorldVitalSettlement(state, result.vitalUpdates));
     await this.applyRealWorldVitalUpdates(state, result.vitalUpdates);
     settlement.push(...this.realWorldFactionSettlement(result.factionUpdates || []));
-    await window.GameModules.updateRegistry?.applyGeneric?.(this, result.genericUpdates || []);
+    const legacyHandled = new Set(['vital', 'emotion', 'feeling', 'item', 'faction-structure', 'faction-overview']);
+    const remainingGeneric = (result.genericUpdates || []).filter((item) => !legacyHandled.has(item?.updateType));
+    await window.GameModules.updateRegistry?.applyGeneric?.(this, remainingGeneric);
     const initApplied = await window.GameModules.initPromptRegistry?.apply?.(this, result.initUpdates || []) || [];
     if (initApplied.length) settlement.push(`初始化：已写入${initApplied.length}条初始化记录。`);
     result.characterCardChanges = settlement;
