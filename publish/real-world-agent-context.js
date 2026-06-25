@@ -65,7 +65,8 @@ window.GameModules.realWorldAgentContext = {
   async skillText() {
     const ids = ['emotion.feeling.wearing.assess', 'memory.query', 'company.query', 'faction.query', 'realworld.location.query', 'realworld.history.query', 'lexicon.query', 'item.query', 'wechat.query', 'wechat.message.incoming', 'realworld.vitals.adjust'];
     const texts = await Promise.all(ids.map((id) => window.GameModules.skillLoader?.instruction?.(id) || ''));
-    return texts.filter(Boolean).join('\n\n');
+    const crossWorld = ['# 跨世界资料查询', '每个 request.params 可写 world/worldTag 指定资料所属世界；默认现实世界。需要作品/异世界资料时写作品名，并用 worklore.query 查询。', window.GameModules.workLoreMaterials?.skillText?.() || ''].filter(Boolean).join('\n');
+    return [crossWorld, ...texts.filter(Boolean)].join('\n\n');
   },
 
   async loadRequests(store, action, requests = [], loadedKeys = new Set(), materialSession = null, materials = window.GameModules.realWorldMaterials) {
@@ -94,6 +95,7 @@ window.GameModules.realWorldAgentContext = {
     if (skill === 'realworld.history.query') return 1800;
     if (skill === 'company.query') return 1400;
     if (skill === 'faction.query') return 1600;
+    if (skill === 'worklore.query') return 1800;
     if (skill === 'lexicon.query') return 1200;
     return 1000;
   },

@@ -13,14 +13,15 @@
   "reason": "为什么需要加载这些资料",
   "characters": [{ "id": "player-self", "name": "玩家本人" }],
   "requests": [
-    { "skill": "realworld.location.query", "method": "getCurrentLocationContext", "params": {} }
+    { "skill": "realworld.location.query", "method": "getCurrentLocationContext", "params": { "world": "现实世界名" } }
   ]
 }
 
 ## 首轮识别规则
 
 1. `characters` 必须列出本次行动直接相关人物，至少包含 `player-self`。可以使用角色 id、姓名或二者同时写。
-2. `requests` 最多 3 个，只请求能回答本次行动所必需的资料，不要为了补全整个现实世界而请求资料。
+2. 每个 request 必须先判断资料属于哪个世界，并在 params.world 或 params.worldTag 写世界名；现实资料写现实世界名，作品/异世界资料写作品名并用 `worklore.query` 查询。跨世界资料只作为来源明确的参考，现实正文仍只推进现实世界。
+3. `requests` 最多 3 个，只请求能回答本次行动所必需的资料，不要为了补全整个现实世界而请求资料。
 3. 行动涉及去、到、回、离开、附近、门口、房间、小区、公司、学校、便利店、路线、导航、找、查看周围时，优先请求 `realworld.location.query`。
 4. 行动涉及公司、上班、请假、迟到、岗位、面试、招聘、老板、同事、工资、项目、工位、打卡、考勤、开会、离职时，优先请求 `company.query`。
 5. 行动涉及之前、上次、刚才、昨天、那次、还记得、发生过、记录、时间线、已归纳情节时，优先请求 `realworld.history.query` 或 `memory.query`。

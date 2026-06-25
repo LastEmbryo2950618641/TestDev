@@ -13,14 +13,15 @@
   "reason": "为什么需要加载这些资料",
   "characters": [{ "id": "角色ID", "name": "角色名" }],
   "requests": [
-    { "skill": "worklore.query", "method": "getReadme", "params": {} }
+    { "skill": "worklore.query", "method": "getReadme", "params": { "world": "作品名或世界名" } }
   ]
 }
 
 ## 首轮识别规则
 
 1. 第一阶段背景必须是当前被操控角色所属作品的异世界/原作世界，由基础上下文里的作品名、角色、场景和作品资料动态构成；不要沿用玩家现实世界背景。
-2. `characters` 必须列出本次行动直接相关人物，至少包含当前被操控角色；被提及、被联系、被攻击、被影响的人物也要列入。
+2. 每个 request 必须先判断资料属于哪个世界，并在 params.world 或 params.worldTag 写世界名；当前作品资料写作品名，玩家现实资料写现实世界名。跨世界资料只作为来源明确的参考，不得混成同一世界事实。
+3. `characters` 必须列出本次行动直接相关人物，至少包含当前被操控角色；被提及、被联系、被攻击、被影响的人物也要列入。
 3. `requests` 最多 3 个，只请求能回答本次行动所必需的资料，不要为了补全整个作品而请求资料。
 4. 第一次进入某作品或不清楚设定库入口时，必须把作品 `README.md` 视为当前 `/publish/prompts/materials` 清单中的首要 skill，优先请求 `worklore.query.getReadme` 或 `worklore.query.getDefaultLoad`。
 5. 行动涉及人物身份、性格、阵营、阶段时，优先请求 `worklore.query.searchPeople`。

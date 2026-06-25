@@ -151,7 +151,7 @@ window.GameModules = window.GameModules || {};
     lexicon(store, method, params = {}) {
       const keyword = String(params.keyword || params.name || '').trim();
       if (method === 'addSpecialTerm') return this.addSpecialTerm(store, params);
-      const entries = this.specialTermEntries(store);
+      const entries = this.specialTermEntries(store, params);
       if (method === 'searchTermWindow') {
         const hit = this.findSpecialTerm(entries, keyword);
         return hit ? (this.sliceAround(this.specialTermRawText(hit), keyword, params.beforeChars, params.afterChars) || this.specialTermText(hit)) : '未命中专用术语。';
@@ -163,8 +163,12 @@ window.GameModules = window.GameModules || {};
       return entries.slice(0, 12).map((entry) => this.specialTermLine(entry)).join('\n') || '暂无专用术语。';
     },
 
-    specialTermEntries(store) {
-      const worldTag = window.GameModules.realWorld2026?.label || store.character?.work || '2026 现代都市现实世界';
+    resolveWorldTag(store, params = {}) {
+      return String(params.world || params.worldTag || window.GameModules.realWorld2026?.label || store.character?.work || '2026 现代都市现实世界').trim();
+    },
+
+    specialTermEntries(store, params = {}) {
+      const worldTag = this.resolveWorldTag(store, params);
       const rows = window.GameModules.sqliteSave.listLexiconEntries?.(worldTag, '专用术语') || [];
       return rows.concat(window.GameModules.sqliteSave.listLexiconEntries?.('', '专用术语') || []).filter((entry, index, arr) => arr.findIndex((item) => `${item.worldTag}:${item.kind}:${item.name}` === `${entry.worldTag}:${entry.kind}:${entry.name}`) === index);
     },
@@ -190,11 +194,11 @@ window.GameModules = window.GameModules || {};
     async addSpecialTerm(store, params = {}) {
       const name = String(params.name || params.keyword || '').trim().slice(0, 32);
       if (!name) return '新增专用术语失败：缺少术语名。';
-      const worldTag = window.GameModules.realWorld2026?.label || store.character?.work || '2026 现代都市现实世界';
-      const summary = String(params.summary || params.description || '根据现实推演上下文补充的专用术语。').trim().slice(0, 80);
+      const worldTag = this.resolveWorldTag(store, params);
+      const summary = String(params.summary || params.description || '根据当前世界推演上下文补充的专用术语。').trim().slice(0, 80);
       const description = String(params.description || params.summary || '该术语由 AI 根据当前已知现实资料克制推断，后续可由剧情事实修正。').trim().slice(0, 240);
       const aliases = Array.isArray(params.aliases) ? params.aliases.slice(0, 6).map(String) : [];
-      await window.GameModules.rpgLexicon.saveMany?.([{ worldTag, kind: '专用术语', name, summary, description, aliases, value: { definition: description }, promptInstruction: `遇到“${name}”时按此专用术语定义理解：${description}`.slice(0, 260), reason: String(params.reason || 'AI查询术语库未命中后，根据已有上下文克制推断并新增术语。').slice(0, 120), source: 'ai', aiGenerated: true, meta: { scope: 'real-world', termType: 'special-term' } }]);
+      await window.GameModules.rpgLexicon.saveMany?.([{ worldTag, kind: '专用术语', name, summary, description, aliases, value: { definition: description }, promptInstruction: `遇到“${name}”时按此专用术语定义理解：${description}`.slice(0, 260), reason: String(params.reason || 'AI查询术语库未命中后，根据已有上下文克制推断并新增术语。').slice(0, 120), source: 'ai', aiGenerated: true, meta: { scope: 'cross-world', termType: 'special-term' } }]);
       return `已新增专用术语：${name}\n摘要：${summary}\n定义：${description}`;
     },
 

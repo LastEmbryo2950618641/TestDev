@@ -12,14 +12,18 @@ window.GameModules.workLoreQuery = {
     searchTimeline: ['90_检索索引/时间线索引.md'],
   },
 
-  source(store) {
-    const hint = store?.character?.work || store?.selectedWork || '';
+  worldHint(store, params = {}) {
+    return String(params.world || params.worldTag || store?.character?.work || store?.selectedWork || '').trim();
+  },
+
+  source(store, params = {}) {
+    const hint = this.worldHint(store, params);
     const sources = window.GameData?.loreSources || [];
     return window.GameModules.rag.pickSource(sources, hint, hint) || sources[0] || null;
   },
 
   async dispatch(store, action, method, params = {}) {
-    const source = this.source(store);
+    const source = this.source(store, params);
     if (!source) return '未配置作品设定库。';
     if (method === 'getReadme') return params.auto ? await this.readmeStructure(source, params.maxChars || 700) : await this.file(source, 'README.md', params.maxChars || 1200);
     if (method === 'getDefaultLoad') return await this.defaultLoad(source);
@@ -28,7 +32,7 @@ window.GameModules.workLoreQuery = {
 
   keyword(store, action, method = '', params = {}) {
     const c = store?.character || {};
-    const base = [params.keyword, params.name, params.time, params.phase, store?.entryTimeLabel?.(), c.name, c.work || store?.selectedWork, action];
+    const base = [params.world, params.worldTag, params.keyword, params.name, params.time, params.phase, store?.entryTimeLabel?.(), c.name, c.work || store?.selectedWork, action];
     if (method === 'searchPeople') base.push(c.role, c.detail);
     if (method === 'searchRelationship') base.push(c.name, params.target, params.characterName);
     if (method === 'searchAbility') base.push(c.role, ...(Array.isArray(c.skills) ? c.skills.map((s) => `${s.name || ''} ${s.desc || s.description || ''}`) : []));

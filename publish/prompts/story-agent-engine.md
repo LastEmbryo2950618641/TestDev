@@ -63,7 +63,7 @@ request_context 只用于获取“能回答本次行动所必需的缺失资料�
   "reason": "为什么需要加载资料",
   "characters": [{ "id": "角色ID", "name": "角色名" }],
   "requests": [
-    { "skill": "worklore.query", "method": "searchPeople", "params": { "keyword": "角色名或事件" } }
+    { "skill": "worklore.query", "method": "searchPeople", "params": { "world": "作品名或世界名", "keyword": "角色名或事件" } }
   ]
 }
 
@@ -82,6 +82,7 @@ characters 必须列出本次行动相关人物，至少包含当前被操控角
 
 ## 请求资料规则
 
+0. 每次请求资料前先判断资料属于哪个世界，并在 params.world 或 params.worldTag 写明世界名；当前作品资料默认写作品名，玩家现实资料写现实世界名。跨世界资料只能作为来源明确的参考，不得把现实资料当原作事实，也不得把原作资料当现实既成事实。
 1. 行动涉及原作人物、身份、性格、当前阶段时，优先请求 worklore.query.searchPeople。
 2. 行动涉及原作剧情、事件、章节、圣杯战争阶段、战斗前后因果时，优先请求 worklore.query.searchPlot。
 3. 已知剧情时间、日期或阶段时，优先请求 worklore.query.searchTimeline，并在 keyword 中带上时间/阶段，避免后期情报提前。

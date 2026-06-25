@@ -42,9 +42,10 @@ window.GameModules.storyAgentContext = {
   },
 
   async skillText(store) {
-    const ids = ['emotion.feeling.wearing.assess', 'memory.query', 'lexicon.query', 'item.query'];
+    const ids = ['emotion.feeling.wearing.assess', 'memory.query', 'lexicon.query', 'item.query', 'company.query', 'faction.query', 'realworld.location.query', 'realworld.history.query'];
     const texts = await Promise.all(ids.map((id) => window.GameModules.skillLoader?.instruction?.(id) || ''));
-    return [window.GameModules.workLoreMaterials?.skillText?.() || '', ...texts.filter(Boolean)].join('\n\n');
+    const crossWorld = ['# 跨世界资料查询', '每个 request.params 可写 world/worldTag 指定资料所属世界；默认当前操控作品。需要玩家现实资料时写现实世界名，需要其它作品资料时写作品名。', '现实资料可用 company.query、faction.query、realworld.location.query、realworld.history.query；作品资料可用 worklore.query。'].join('\n');
+    return [crossWorld, window.GameModules.workLoreMaterials?.skillText?.() || '', ...texts.filter(Boolean)].join('\n\n');
   },
 
   async loadRequests(store, action, requests = [], loadedKeys = new Set(), materialSession = null, materials = window.GameModules.workLoreMaterials, memoryIds = new Set(), loaded = [], current = []) {
@@ -136,6 +137,10 @@ window.GameModules.storyAgentContext = {
     if (skill === 'memory.query') return await realCtx.memory(store, action, method, { characterId: params.characterId || store.character?.id, ...params });
     if (skill === 'lexicon.query') return await realCtx.lexicon(store, method, params);
     if (skill === 'item.query') return await realCtx.itemQuery(store, method, { target: params.target || store.character?.id, ...params });
+    if (skill === 'company.query') return realCtx.company(store, method, params);
+    if (skill === 'faction.query') return realCtx.faction(store, method, params);
+    if (skill === 'realworld.location.query') return realCtx.location(store, method, params, action);
+    if (skill === 'realworld.history.query') return realCtx.history(store, method, params);
     return '';
   },
 

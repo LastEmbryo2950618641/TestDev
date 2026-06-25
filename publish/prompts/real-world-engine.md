@@ -69,7 +69,7 @@
   "reason": "为什么需要加载资料",
   "characters": [{ "id": "player-self", "name": "玩家本人" }],
   "requests": [
-    { "skill": "realworld.location.query", "method": "getCurrentLocationContext", "params": {} }
+    { "skill": "realworld.location.query", "method": "getCurrentLocationContext", "params": { "world": "现实世界名" } }
   ]
 }
 
@@ -90,6 +90,7 @@ characters 必须列出本次行动相关人物，至少包含 player-self，可
 
 ## 请求资料规则
 
+0. 每次请求资料前先判断资料属于哪个世界，并在 params.world 或 params.worldTag 写明世界名；现实资料默认写现实世界名，作品/异世界资料写作品名并用 worklore.query 查询。跨世界资料只用于理解玩家提到的异世界信息，现实 narration 仍只推进现实世界。
 1. 行动涉及公司、上班、请假、迟到、岗位、面试、招聘、老板、同事、工资、项目、工位、打卡、考勤、开会、离职时，优先请求 company.query。
 2. 行动涉及去、到、回、离开、附近、楼下、门口、房间、小区、公司、学校、便利店、路线、导航、找、查看周围时，优先请求 realworld.location.query。
 3. 基础上下文只包含当前状态和最近摘要；相关人物短期与长期记忆由代码按 characters 载入，你必须将它们作为现实连续性依据。

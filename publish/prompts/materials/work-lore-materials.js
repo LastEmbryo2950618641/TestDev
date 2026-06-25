@@ -2,20 +2,20 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.workLoreMaterials = {
   items: [
-    { id: 'work-readme', title: '作品 README.md / 设定库入口', size: 'small', maxChars: 1200, skill: 'worklore.query', method: 'getReadme', paramsHint: {}, when: '第一阶段默认入口；确认该作品设定库结构、默认常驻加载与按需入口。' },
-    { id: 'work-defaults', title: '作品常驻设定摘要', size: 'medium', maxChars: 2200, skill: 'worklore.query', method: 'getDefaultLoad', paramsHint: {}, when: '需要作品世界观、基础规则、术语和数值规则。' },
-    { id: 'work-people', title: '人物索引/人物卡查询', size: 'large', maxChars: 1800, skill: 'worklore.query', method: 'searchPeople', paramsHint: { keyword: '人物名或称号' }, when: '行动涉及原作人物、身份、性格、当前阶段。' },
-    { id: 'work-plot', title: '剧情索引/剧情片段查询', size: 'large', maxChars: 2200, skill: 'worklore.query', method: 'searchPlot', paramsHint: { keyword: '事件/章节/时间点' }, when: '需要确认原作剧情阶段、事件前后因果。' },
-    { id: 'work-timeline', title: '时间线索引查询', size: 'large', maxChars: 1800, skill: 'worklore.query', method: 'searchTimeline', paramsHint: { keyword: '时间/日期/阶段' }, when: '行动需要按时间点限制资料，避免剧透或后期信息提前。' },
-    { id: 'work-ability', title: '能力技能资源查询', size: 'large', maxChars: 1800, skill: 'worklore.query', method: 'searchAbility', paramsHint: { keyword: '能力/宝具/技能/制度' }, when: '行动涉及战斗、能力、资源、规则判定。' },
-    { id: 'work-profession', title: '职业身份资料查询', size: 'large', maxChars: 1600, skill: 'worklore.query', method: 'searchProfession', paramsHint: { keyword: '职业/职阶/身份/职位' }, when: '行动涉及职业身份、职阶、职位、阶层、组织身份或身份制度。' },
-    { id: 'work-relation', title: '关系资料查询', size: 'large', maxChars: 1600, skill: 'worklore.query', method: 'searchRelationship', paramsHint: { keyword: '两人名或关系名' }, when: '需要确认原作稳定关系、阵营、敌友、亲属。' },
-    { id: 'work-location', title: '地点资料查询', size: 'large', maxChars: 1600, skill: 'worklore.query', method: 'searchLocation', paramsHint: { keyword: '地点名' }, when: '行动发生在原作地点或需要地点规则。' },
-    { id: 'work-item', title: '物品资料查询', size: 'large', maxChars: 1400, skill: 'worklore.query', method: 'searchItem', paramsHint: { keyword: '物品名' }, when: '行动涉及原作物品、装备、道具、圣遗物。' },
+    { id: 'work-readme', title: '作品 README.md / 设定库入口', size: 'small', maxChars: 1200, skill: 'worklore.query', method: 'getReadme', paramsHint: { world: '世界名/作品名' }, when: '第一阶段默认入口；确认该作品设定库结构、默认常驻加载与按需入口。' },
+    { id: 'work-defaults', title: '作品常驻设定摘要', size: 'medium', maxChars: 2200, skill: 'worklore.query', method: 'getDefaultLoad', paramsHint: { world: '世界名/作品名' }, when: '需要作品世界观、基础规则、术语和数值规则。' },
+    { id: 'work-people', title: '人物索引/人物卡查询', size: 'large', maxChars: 1800, skill: 'worklore.query', method: 'searchPeople', paramsHint: { world: '世界名/作品名', keyword: '人物名或称号' }, when: '行动涉及原作人物、身份、性格、当前阶段。' },
+    { id: 'work-plot', title: '剧情索引/剧情片段查询', size: 'large', maxChars: 2200, skill: 'worklore.query', method: 'searchPlot', paramsHint: { world: '世界名/作品名', keyword: '事件/章节/时间点' }, when: '需要确认原作剧情阶段、事件前后因果。' },
+    { id: 'work-timeline', title: '时间线索引查询', size: 'large', maxChars: 1800, skill: 'worklore.query', method: 'searchTimeline', paramsHint: { world: '世界名/作品名', keyword: '时间/日期/阶段' }, when: '行动需要按时间点限制资料，避免剧透或后期信息提前。' },
+    { id: 'work-ability', title: '能力技能资源查询', size: 'large', maxChars: 1800, skill: 'worklore.query', method: 'searchAbility', paramsHint: { world: '世界名/作品名', keyword: '能力/宝具/技能/制度' }, when: '行动涉及战斗、能力、资源、规则判定。' },
+    { id: 'work-profession', title: '职业身份资料查询', size: 'large', maxChars: 1600, skill: 'worklore.query', method: 'searchProfession', paramsHint: { world: '世界名/作品名', keyword: '职业/职阶/身份/职位' }, when: '行动涉及职业身份、职阶、职位、阶层、组织身份或身份制度。' },
+    { id: 'work-relation', title: '关系资料查询', size: 'large', maxChars: 1600, skill: 'worklore.query', method: 'searchRelationship', paramsHint: { world: '世界名/作品名', keyword: '两人名或关系名' }, when: '需要确认原作稳定关系、阵营、敌友、亲属。' },
+    { id: 'work-location', title: '地点资料查询', size: 'large', maxChars: 1600, skill: 'worklore.query', method: 'searchLocation', paramsHint: { world: '世界名/作品名', keyword: '地点名' }, when: '行动发生在原作地点或需要地点规则。' },
+    { id: 'work-item', title: '物品资料查询', size: 'large', maxChars: 1400, skill: 'worklore.query', method: 'searchItem', paramsHint: { world: '世界名/作品名', keyword: '物品名' }, when: '行动涉及原作物品、装备、道具、圣遗物。' },
   ],
 
   skillText() {
-    return ['# worklore.query', '按 `assets/{作品名}/AI设定库/README.md` 的设定库结构查询原作资料。', '资源规则：README 是第一入口；small 可直接读；medium 只在必要时读；large 禁止全文加载，必须用 keyword/time/角色名精确查询。', '常用方法：getReadme、getDefaultLoad、searchPeople、searchPlot、searchTimeline、searchAbility、searchRelationship、searchProfession、searchLocation、searchItem、searchByKeyword。', 'params 通常写 `{ "keyword": "关键词" }`；已知剧情时间或阶段时 keyword 必须带时间/阶段，以避免把后期情报提前给早期角色。'].join('\n');
+    return ['# worklore.query', '按 `assets/{作品名}/AI设定库/README.md` 的设定库结构查询原作资料。', '跨世界规则：params.world/worldTag 写目标作品名或世界名；未写时默认当前角色作品。现实推演需要查询异世界/作品资料时也可使用本 skill。', '资源规则：README 是第一入口；small 可直接读；medium 只在必要时读；large 禁止全文加载，必须用 keyword/time/角色名精确查询。', '常用方法：getReadme、getDefaultLoad、searchPeople、searchPlot、searchTimeline、searchAbility、searchRelationship、searchProfession、searchLocation、searchItem、searchByKeyword。', 'params 通常写 `{ "world": "作品名", "keyword": "关键词" }`；已知剧情时间或阶段时 keyword 必须带时间/阶段，以避免把后期情报提前给早期角色。'].join('\n');
   },
 
   list() { return this.items.slice(); },
