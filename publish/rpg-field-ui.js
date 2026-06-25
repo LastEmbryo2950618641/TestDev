@@ -49,20 +49,29 @@ window.GameModules.rpgFieldUi = {
     ];
   },
 
+  profileDisplayState(state, identityFields = []) {
+    if (state?.values) return state;
+    const fromFields = Object.fromEntries((identityFields || []).map((field) => [field.key, field.value]));
+    const id = identityFields?.[0]?.stateId || state?.id || 'profile-preview';
+    const profile = { ...(state?.profile || {}), id, name: fromFields.name || state?.name || '未命名', work: fromFields.work || state?.worldTag || '原创世界', role: fromFields.role || fromFields.job || '', job: fromFields.job || fromFields.role || '', isPlayer: id === 'player-self' };
+    return { ...(state || {}), id, name: profile.name, worldTag: profile.work, profile, values: {} };
+  },
+
   profileSections(state, identityFields = []) {
-    const entries = this.rpgEntries?.(state) || [];
+    const displayState = this.profileDisplayState(state, identityFields);
+    const entries = this.rpgEntries?.(displayState) || [];
     const all = entries.flatMap((section) => section.fields || []);
     const byKey = (key) => all.find((field) => field.key === key);
     const take = (keys) => keys.map(byKey).filter(Boolean);
-    const identity = this.profileIdentityFields(state, identityFields);
+    const identity = this.profileIdentityFields(displayState, identityFields);
     const relations = identity.filter((field) => field.label === '人际关系' || /relationships|人际关系/.test(field.key));
     const privateLabels = new Set(['性经验次数', '当前身体状态']);
     const identityRest = identity.filter((field) => !relations.includes(field) && !privateLabels.has(field.label));
-    const naturalState = this.profileNaturalStateField(state);
-    const dressedState = this.profileDressedStateField(state);
-    window.GameModules.initPromptRegistry?.ensureTemplateState?.('intimacyBody', state);
+    const naturalState = this.profileNaturalStateField(displayState);
+    const dressedState = this.profileDressedStateField(displayState);
+    window.GameModules.initPromptRegistry?.ensureTemplateState?.('intimacyBody', displayState);
     const intimacyUi = window.GameModules.initPromptRegistry?.uiFor?.('intimacyBody') || {};
-    const intimacyAllFields = window.GameModules.initPromptRegistry?.fields?.('intimacyBody', state) || [];
+    const intimacyAllFields = window.GameModules.initPromptRegistry?.fields?.('intimacyBody', displayState) || [];
     const intimacyFieldKeys = new Set(intimacyUi.fieldKeys || ['bodyStatus']);
     const intimacyFields = intimacyAllFields.filter((field) => intimacyFieldKeys.has(field.key));
     const longing = this.profileLongingField(state);
