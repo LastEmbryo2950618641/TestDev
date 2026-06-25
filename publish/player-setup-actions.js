@@ -37,9 +37,9 @@ window.GameModules.playerSetupActions = {
       return { relation: pair[0] || '', name: pair.slice(1).join('：') || '', detail: '' };
     });
     return parsed.map((entry) => ({
-      relation: String(entry?.relation || '').trim().slice(0, 18),
-      name: String(entry?.name || '').trim().slice(0, 24),
-      detail: String(entry?.detail || entry?.context || '').trim().slice(0, 160),
+      relation: String(entry?.relation || '').trim().slice(0, 60),
+      name: String(entry?.name || '').trim().slice(0, 60),
+      detail: String(entry?.detail || entry?.context || '').trim().slice(0, 1000),
     })).filter((entry) => entry.relation || entry.name || entry.detail);
   },
 
@@ -62,7 +62,7 @@ window.GameModules.playerSetupActions = {
       `关系${index + 1}`,
       `关系名=${entry.relation || '未填写'}`,
       `姓名=${entry.name || '未填写'}`,
-      `设定=${entry.detail || '无'}`,
+      `完整设定=${entry.detail || '无'}`,
     ].join('；')).join('\n');
   },
 
