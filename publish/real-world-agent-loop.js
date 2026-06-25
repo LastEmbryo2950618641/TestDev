@@ -255,29 +255,8 @@ window.GameModules.realWorldAgentLoop = {
     const sepAt = text.indexOf(this.finalSeparator);
     if (sepAt < 0) return null;
     const jsonRaw = text.slice(sepAt + this.finalSeparator.length).trim();
-    if (!jsonRaw) return null;
+    if (!jsonRaw || window.GameModules.aiRequest?.outputTailLooksTruncated?.(jsonRaw)) return null;
     try { return window.GameModules.jsonUtils.parseLoose(jsonRaw); }
-    catch (_) { return this.repairTruncatedJsonObject(jsonRaw); }
-  },
-
-  repairTruncatedJsonObject(jsonRaw) {
-    const text = String(jsonRaw || '').trim();
-    const start = text.indexOf('{');
-    if (start < 0) return null;
-    let out = text.slice(start), inString = false, escaped = false, stack = [];
-    for (let i = 0; i < out.length; i += 1) {
-      const ch = out[i];
-      if (escaped) { escaped = false; continue; }
-      if (ch === '\\') { escaped = true; continue; }
-      if (ch === '"') { inString = !inString; continue; }
-      if (inString) continue;
-      if (ch === '{' || ch === '[') stack.push(ch);
-      if (ch === '}' || ch === ']') stack.pop();
-    }
-    if (inString) out += '"';
-    out = out.replace(/[\s,]*$/, '');
-    while (stack.length) out += stack.pop() === '[' ? ']' : '}';
-    try { return JSON.parse(out); }
     catch (_) { return null; }
   },
 
@@ -290,23 +269,41 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   async completeUpdateJson(store, prompt, logId) {
-    const raw = await this.completeStep(store, prompt, logId, false);
-    try { return window.GameModules.jsonUtils.parseLoose(raw); }
-    catch (err) {
-      console.warn('现实更新 JSON 解析失败，尝试修复:', err.message);
-      try {
-        const extracted = window.GameModules.jsonUtils.extractJson(String(raw || '').replace(/```(?:json)?|```/g, '').trim());
-        return JSON.parse(window.GameModules.jsonUtils.repairJson(extracted));
-      } catch (repairErr) {
-        console.warn('现实更新 JSON 二次修复失败:', repairErr.message);
-        return this.repairTruncatedJsonObject(raw) || {};
+    let nextPrompt = prompt, lastErr = null;
+    for (let i = 0; i < 3; i += 1) {
+      const raw = await this.completeStep(store, nextPrompt, logId, false);
+      try { return this.parseCompleteUpdateJson(raw); }
+      catch (err) {
+        lastErr = err;
+        if (i === 2) break;
+        console.warn('现实更新 JSON 不完整，自动重试:', err.message);
+        nextPrompt = this.updateJsonRetryPrompt(prompt, raw, err);
       }
     }
+    throw lastErr || new Error('现实更新 JSON 生成失败');
+  },
+
+  parseCompleteUpdateJson(raw) {
+    const text = String(raw || '').replace(/```(?:json)?|```/g, '').trim();
+    if (window.GameModules.aiRequest?.outputTailLooksTruncated?.(text)) throw new Error('现实更新 JSON 疑似被截断');
+    const extracted = window.GameModules.jsonUtils.extractJson(text);
+    const data = JSON.parse(window.GameModules.jsonUtils.repairJson(extracted));
+    if (!data || typeof data !== 'object') throw new Error('现实更新 JSON 不是对象');
+    return data;
+  },
+
+  updateJsonRetryPrompt(prompt, raw, err) {
+    return [
+      prompt,
+      '# 上次输出无效，必须重新完整输出',
+      `错误：${err?.message || 'JSON不完整'}`,
+      `上次输出尾部：${String(raw || '').slice(-800)}`,
+      '请重新输出一个完整合法 JSON 对象。不要续写上次内容，不要 Markdown，不要省略结尾。',
+    ].join('\n\n');
   },
 
   parseUpdateJson(raw) {
-    try { return raw && typeof raw === 'object' ? raw : window.GameModules.jsonUtils.parseLoose(raw); }
-    catch (_) { return this.repairTruncatedJsonObject(raw) || {}; }
+    return raw && typeof raw === 'object' ? raw : this.parseCompleteUpdateJson(raw);
   },
 
   mergeNarrationAndUpdates(store, narration, updates = {}) {
