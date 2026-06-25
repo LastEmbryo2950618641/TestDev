@@ -120,7 +120,7 @@ window.GameModules.realWorldAgentLoop = {
       `推演自由度：${store.realWorldFreedomRule?.() || '只推演玩家本次输入行动自然抵达的直接结果。'}`,
       `基础上下文：\n${base}`,
       `已动态载入资料：\n${[loadedText, materialText].filter(Boolean).join('\n\n') || '无'}`,
-      '要求：使用第二人称“你”；写出行动过程、环境变化、人物反应和直接结果；无论推演自由度是行动范围内还是AI自由推演，正文必须至少1500个中文汉字，目标1500-2000字；少于1500字视为不合格；不要替玩家完成后续行动。',
+      '要求：使用第二人称“你”；写出行动过程、环境变化、人物反应和直接结果；无论推演自由度是行动范围内还是AI自由推演，正文必须至少2000个中文汉字，目标2000-3000字；少于2000字视为不合格；不要替玩家完成后续行动。',
     ].join('\n\n');
   },
 
@@ -346,15 +346,15 @@ window.GameModules.realWorldAgentLoop = {
 
   async ensurePhasedNarrationLength(store, action, prompt, narration, logId) {
     let text = this.cleanPhasedNarration(narration);
-    if (this.chineseCharCount(text) >= 1500) return text;
-    this.markStep(store, logId, '正文不足1500字，正在自动补足细节…', { keepNarration: true });
+    if (this.chineseCharCount(text) >= 2000) return text;
+    this.markStep(store, logId, '正文不足2000字，正在自动补足细节…', { keepNarration: true });
     const supplementPrompt = [
       '# 现实推演阶段2补写：只补足正文',
       '你只输出续写正文，不要 JSON，不要 Markdown，不要标题。',
       `本次行动：${action || '继续观察现实世界'}`,
       `原阶段2提示：\n${String(prompt || '').slice(0, 5000)}`,
       `已有正文（不要重写，不要摘要，只从末尾自然续写）：\n${text}`,
-      `当前已有中文汉字约${this.chineseCharCount(text)}个；请继续补写直接过程、环境细节、身体感受、人物反应和结果落点，使合并后至少1500个中文汉字、目标1500-2000字。`,
+      `当前已有中文汉字约${this.chineseCharCount(text)}个；请继续补写直接过程、环境细节、身体感受、人物反应和结果落点，使合并后至少2000个中文汉字、目标2000-3000字。`,
     ].join('\n\n');
     const extraRaw = await this.completeStep(store, supplementPrompt, logId, false);
     const extra = this.cleanPhasedNarration(extraRaw);
