@@ -344,30 +344,42 @@ window.GameModules.realWorldAgentLoop = {
     return (String(text || '').match(/[\u3400-\u9fff]/gu) || []).length;
   },
 
+  narrationTailLooksIncomplete(text = '') {
+    const raw = String(text || '').trim();
+    if (!raw) return true;
+    const tail = raw.slice(-80);
+    const quoteCount = (raw.match(/[“”"『』「」]/g) || []).length;
+    return /[，、：:；;（(《「『“—…-]$/u.test(tail) || quoteCount % 2 === 1 || !/[。！？!?」』”）)]$/u.test(tail);
+  },
+
   async ensurePhasedNarrationLength(store, action, prompt, narration, logId) {
     let text = this.cleanPhasedNarration(narration);
-    if (this.chineseCharCount(text) >= 2000) return text;
-    this.markStep(store, logId, '正文不足2000字，正在自动补足细节…', { keepNarration: true });
-    const supplementPrompt = [
-      '# 现实推演阶段2补写：只补足正文',
-      '你只输出续写正文，不要 JSON，不要 Markdown，不要标题。',
-      `本次行动：${action || '继续观察现实世界'}`,
-      `原阶段2提示：\n${String(prompt || '').slice(0, 5000)}`,
-      `已有正文（不要重写，不要摘要，只从末尾自然续写）：\n${text}`,
-      `当前已有中文汉字约${this.chineseCharCount(text)}个；请继续补写直接过程、环境细节、身体感受、人物反应和结果落点，使合并后至少2000个中文汉字、目标2000-3000字。`,
-    ].join('\n\n');
-    const extraRaw = await this.completeStep(store, supplementPrompt, logId, false);
-    const extra = this.cleanPhasedNarration(extraRaw);
-    text = this.cleanPhasedNarration(`${text}\n\n${extra}`);
+    for (let i = 0; i < 3 && (this.chineseCharCount(text) < 2000 || this.narrationTailLooksIncomplete(text)); i += 1) {
+      this.markStep(store, logId, `正文${this.chineseCharCount(text) < 2000 ? '不足2000字' : '尾部不完整'}，正在自动补足细节…`, { keepNarration: true });
+      const supplementPrompt = [
+        '# 现实推演阶段2补写：只补足正文',
+        '你只输出续写正文，不要 JSON，不要 Markdown，不要标题。',
+        `本次行动：${action || '继续观察现实世界'}`,
+        `原阶段2提示：\n${String(prompt || '').slice(0, 5000)}`,
+        `已有正文（不要重写，不要摘要，只从末尾自然续写）：\n${text}`,
+        `当前已有中文汉字约${this.chineseCharCount(text)}个；请从上一句末尾自然续写，补足直接过程、环境细节、人物反应和结果落点，使合并后至少2000个中文汉字，并以完整句子结束。`,
+      ].join('\n\n');
+      const extraRaw = await this.completeStep(store, supplementPrompt, logId, false);
+      const extra = this.cleanPhasedNarration(extraRaw);
+      if (!extra) break;
+      text = this.cleanPhasedNarration(`${text}\n\n${extra}`);
+    }
+    if (this.chineseCharCount(text) < 2000 || this.narrationTailLooksIncomplete(text)) throw new Error('现实推演正文疑似被截断');
     return text;
   },
 
   async completeStep(store, prompt, logId, streamToUi = false) {
     const requestId = window.GameModules.realWorldAi.latestRequestId;
     let buffer = '';
+    let doneSeen = false;
     let lastPaint = 0;
     try {
-      await window.GameModules.aiRequest.complete({
+      return await window.GameModules.aiRequest.complete({
         source: streamToUi ? 'real-world-engine' : 'real-world-agent-context',
         model: store.modelId,
         prompt,
@@ -375,10 +387,11 @@ window.GameModules.realWorldAgentLoop = {
         requireDone: true,
         maxTokens: 3000,
         outputLengthThreshold: 2600,
-        maxAttempts: 2,
+        maxAttempts: 3,
         onChunk: async (chunk, done, info) => {
           if (requestId !== window.GameModules.realWorldAi.latestRequestId) return;
           buffer = info.buffer;
+          doneSeen = info.doneSeen;
           if (!streamToUi || !logId) return;
           const changed = store.updateRealWorldStream?.(logId, buffer);
           if (changed && performance.now() - lastPaint > 50) {
@@ -388,10 +401,9 @@ window.GameModules.realWorldAgentLoop = {
         },
       });
     } catch (err) {
-      if (!buffer.trim()) throw err;
-      console.warn('现实 Loop Agent 请求未完成，使用已接收内容:', err.code, err.message, err.stack);
+      console.warn('现实 Loop Agent 请求未完成，拒绝使用未完成内容:', { code: err.code, message: err.message, doneSeen, length: buffer.length, stack: err.stack });
+      throw err;
     }
-    return buffer;
   },
 
   parseStep(raw) {
