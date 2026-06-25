@@ -78,6 +78,15 @@ Object.assign(window.GameModules.actions, {
     return changed;
   },
 
+  updateStoryAgentStream(id, raw) {
+    const entry = this.log.find((item) => item.id === id);
+    if (!entry) return false;
+    const text = String(raw || '').trim();
+    if (!text || text === entry.storyText) return false;
+    this.updateNovelEntry(id, { storyText: text, streaming: true });
+    return true;
+  },
+
   finalizeNovelEntry(id, result) {
     if (!id) return false;
     const entry = this.log.find((item) => item.id === id);

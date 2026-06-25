@@ -68,7 +68,7 @@ window.GameModules.realWorldAgentContext = {
     return texts.filter(Boolean).join('\n\n');
   },
 
-  async loadRequests(store, action, requests = [], loadedKeys = new Set(), materialSession = null) {
+  async loadRequests(store, action, requests = [], loadedKeys = new Set(), materialSession = null, materials = window.GameModules.realWorldMaterials) {
     const out = [];
     for (const req of requests.slice(0, 3)) {
       const skill = String(req?.skill || '').trim();
@@ -80,8 +80,8 @@ window.GameModules.realWorldAgentContext = {
       const text = await this.dispatch(store, action, skill, method, params);
       if (text) {
         const title = `${skill}.${method}`;
-        const material = window.GameModules.realWorldMaterials?.optionFor?.({ skill, method, params });
-        window.GameModules.realWorldMaterials?.record?.(materialSession, { skill, method, params }, title, text);
+        const material = materials?.optionFor?.({ skill, method, params });
+        materials?.record?.(materialSession, { skill, method, params }, title, text);
         out.push({ title, text, max: material?.maxChars || this.maxFor(skill) });
       }
     }
@@ -107,6 +107,7 @@ window.GameModules.realWorldAgentContext = {
     if (skill === 'lexicon.query') return await this.lexicon(store, method, params);
     if (skill === 'item.query') return await this.itemQuery(store, method, params);
     if (skill === 'wechat.query') return window.GameModules.realWorldAgentWechat?.wechat?.(store, method, params) || '';
+    if (skill === 'worklore.query') return await window.GameModules.workLoreQuery?.dispatch?.(store, action, method, params) || '';
     return '';
   },
 

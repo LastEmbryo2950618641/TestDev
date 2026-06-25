@@ -19,41 +19,14 @@ window.GameModules.ai = {
 
   async generate(store, action, logId = null) {
     const requestId = ++this.latestRequestId;
-    let buffer = '';
-    let applied = false;
-    const systemPrompt = await window.GameModules.createSystemPrompt(store, action);
-    const messages = [{ role: 'user', content: systemPrompt }];
-    if (logId && store.attachNovelPrompt) store.attachNovelPrompt(logId, { systemPrompt, userPrompt: action || '无，继续推进', model: store.modelId, promptTokens: window.GameModules.characterMemory?.estimateTokens?.(systemPrompt) || Math.ceil(systemPrompt.length / 2) });
-    console.debug('[AI推演] 请求开始:', { requestId, action, model: store.modelId, promptLength: messages[0].content.length, ragLength: String(store.ragContext || '').length, memoryLength: String(store.memoryContext || '').length });
-
+    console.debug('[AI推演] 分阶段请求开始:', { requestId, action, model: store.modelId, character: store.character?.name, work: store.character?.work });
     try {
-      let chunkCount = 0, lastPaint = 0, resolveDone;
-      let resultPromise = Promise.resolve();
-      const donePromise = new Promise((resolve) => { resolveDone = resolve; });
-      await Promise.race([Promise.all([window.GameModules.aiRequest.complete({
-        source: 'story-engine', model: store.modelId, messages, timeoutMs: 60000, requireDone: true,
-        onChunk: async (chunk, done, info) => {
-          if (requestId !== this.latestRequestId) return;
-          chunkCount = info.chunkCount;
-          buffer = info.buffer;
-          if (!done) {
-            const changed = logId && store.updateNovelStream ? store.updateNovelStream(logId, buffer) : false;
-            if (changed && performance.now() - lastPaint > 50) lastPaint = performance.now(), await new Promise((resolve) => (window.requestAnimationFrame || setTimeout)(resolve));
-            return;
-          }
-          if (logId && store.updateNovelStream) store.updateNovelStream(logId, buffer);
-          applied = true;
-          console.debug('[AI推演] 返回完成:', { requestId, chunkCount, length: buffer.length, preview: buffer.slice(0, 180) });
-          resultPromise = store.applyResult(this.parse(buffer, store, action), logId);
-          await resultPromise;
-          resolveDone();
-        },
-      }), donePromise, resultPromise]), new Promise((_, reject) => setTimeout(() => reject(new Error('AI推演超时')), 60000))]);
-      if (!applied && requestId === this.latestRequestId) {
-        console.debug('[AI推演] 已结束但未收到 done，使用当前内容结算:', { requestId, length: buffer.length });
-        applied = true;
-        await store.applyResult(buffer ? this.parse(buffer, store, action) : { ...window.GameModules.createFallbackResult(store, action), source: 'fallback' }, logId);
-      }
+      const loop = await window.GameModules.realWorldAgentLoop.runStory(store, action, logId);
+      if (requestId !== this.latestRequestId) throw new Error('剧情推演请求已被新请求取代');
+      const result = { ...loop.result, source: 'ai' };
+      if (logId && store.attachNovelPrompt) store.attachNovelPrompt(logId, { systemPrompt: loop.prompt || '', userPrompt: action || '无，继续推进', model: store.modelId, promptTokens: Math.ceil(String(loop.prompt || '').length / 2), loadedContext: loop.loaded || [] });
+      result.agentTrace = loop.trace || [];
+      await store.applyResult(result, logId);
     } catch (err) {
       console.error('AI 推演失败:', err.code, err.message, err.stack);
       if (requestId === this.latestRequestId) {

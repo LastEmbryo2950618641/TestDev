@@ -37,17 +37,9 @@ Object.assign(window.GameModules.entryActions, {
 
       this.runBestEffortControlTask('世界线生成', () => this.ensureWorldline(action));
       const feedbackTask = this.runLoggedControlTask('角色反馈', () => window.GameModules.characterFeedback.initial(this));
-      await this.runLoggedControlTask('资料检索', async () => {
-        await Promise.race([this.refreshRagContext(action), new Promise((_, reject) => setTimeout(() => reject(new Error('资料检索超时')), 8000))]);
-        return { results: this.ragResults?.length || 0, contextLength: String(this.ragContext || '').length };
-      }, () => {
-        this.ragContext = '';
-        this.ragResults = [];
-      });
-      await this.runLoggedControlTask('记忆上下文', async () => {
-        this.memoryContext = await window.GameModules.characterMemory.contextFor(this, action);
-        return { length: String(this.memoryContext || '').length };
-      }, () => { this.memoryContext = '暂无人物记忆。'; });
+      this.ragContext = '';
+      this.ragResults = [];
+      this.memoryContext = '由分阶段 Loop Agent 按需动态载入。';
 
       const feedback = await feedbackTask;
       debug.step('[控制上线] 应用角色反馈', { source: feedback.source, mindLength: String(feedback.mind || '').length, intentLength: String(feedback.intent || '').length });

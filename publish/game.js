@@ -171,10 +171,9 @@ function registerGameStore() {
 
       try {
         this.lastAction = action;
-        await this.refreshRagContext(action);
-        console.log('[回合流程] RAG上下文完成:', { length: String(this.ragContext || '').length, results: this.ragResults?.length || 0 });
-        this.memoryContext = await window.GameModules.characterMemory.contextFor(this, action);
-        console.log('[回合流程] 记忆上下文完成:', { length: String(this.memoryContext || '').length });
+        this.ragContext = '';
+        this.ragResults = [];
+        this.memoryContext = '由分阶段 Loop Agent 按需动态载入。';
         await window.GameModules.ai.generate(this, action, logId);
       } finally {
         this.busy = false;

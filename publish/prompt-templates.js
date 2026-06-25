@@ -2,7 +2,8 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.promptTemplates = {
   items: [
-    { id: 'story-engine', title: '主剧情 RPG 推演引擎', category: '剧情推演', file: 'prompts/story-engine.md', summary: '操控/离线回合的核心小说续写、数值变化与词条更新。' },
+    { id: 'story-agent-engine', title: '主剧情分阶段推演引擎', category: '剧情推演', file: 'prompts/story-agent-engine.md', summary: '操控/离线回合复用 Loop Agent 的资料请求、正文生成与状态结算。' },
+    { id: 'story-agent-engine-first', title: '主剧情首轮资料识别', category: '剧情推演', file: 'prompts/story-agent-engine-first.md', summary: '主剧情 Loop Agent 第一步识别人物与作品设定资料。' },
     { id: 'real-world-engine', title: '现实世界推演引擎', category: '现实推演', file: 'prompts/real-world-engine.md', summary: '玩家收起手机后的现实行动、现实状态与词条更新。' },
     { id: 'real-world-engine-first', title: '现实世界首轮资料识别', category: '现实推演', file: 'prompts/real-world-engine-first.md', summary: '现实 Loop Agent 第一步识别人物与必要资料。' },
     { id: 'real-world-map-location-add', title: '电子地图新增地点', category: '现实推演', file: 'prompts/real-world-map-location-add.md', summary: '把玩家新认识的地点加入电子地图树。' },

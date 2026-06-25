@@ -15,6 +15,8 @@ window.GameModules.resultActions = {
     this.choices = result.choices;
     this.applyMetricUpdates(result.metricUpdates);
     await this.applyLexiconUpdatesFromResult(result);
+    const genericApplied = await this.applyGenericUpdatesFromResult(result);
+    if (genericApplied.length) result.characterCardChanges = [...(result.characterCardChanges || []), ...genericApplied];
     await window.GameModules.entryTime.advance(this, result.elapsedSeconds || 60);
     this.advancePhoneTime?.(result.elapsedSeconds || 60);
     this.checkWorkReminder?.();
@@ -57,6 +59,18 @@ window.GameModules.resultActions = {
     for (const item of result.lexiconUpdates) {
       if (item?.kind === '职业' && item?.name) await this.knowProfession?.(item.name, item.worldTag || this.character?.work, { sourceReason: item.reason || '剧情推演中出现并确认该职业', characterName: this.character?.name, role: this.character?.role, detail: item.description || item.summary || this.character?.detail });
     }
+  },
+
+  async applyGenericUpdatesFromResult(result = {}) {
+    const updates = Array.isArray(result.genericUpdates) ? result.genericUpdates : [];
+    if (!updates.length) return [];
+    await window.GameModules.updateRegistry?.applyGeneric?.(this, updates);
+    return updates.map((item) => {
+      const subject = item.subject || {};
+      const field = item.field || item.updateType || '状态';
+      const value = item.change?.value ?? item.value ?? '';
+      return `角色卡：${subject.name || subject.id || this.character?.name || '目标'} ${field} 已更新${value && typeof value !== 'object' ? `：${value}` : ''}`;
+    });
   },
 
   applyInitialMetrics(updates) {
