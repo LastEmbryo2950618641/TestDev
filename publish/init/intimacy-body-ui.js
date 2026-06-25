@@ -4,6 +4,7 @@ window.GameModules.initPromptRegistry?.registerUi?.('intimacyBody', {
   sectionTitle: '身体状态',
   afterSection: '身份信息',
   bodyStatusUpdateType: 'body-status',
+  fieldKeys: ['bodyStatus'],
   row(field = {}, item = null) {
     if (item && item.type === '当前身体状态') {
       const updateUi = window.GameModules.updateRegistry?.uiForChange?.({ updateType: this.bodyStatusUpdateType });
