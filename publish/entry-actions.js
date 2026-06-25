@@ -38,6 +38,17 @@ window.GameModules.entryActions = {
     return current?.detail || '正在准备进入配置。';
   },
 
+  openEntryIdentityDetail() {
+    this.identityTargetId = this.character?.id || 'player-self';
+    this.entryIdentityOpen = true;
+    this.identityMetricsOpen = false;
+    this.ensureIdentityMetricSources?.(this.identityTargetId);
+  },
+
+  closeEntryIdentityDetail() {
+    this.entryIdentityOpen = false;
+  },
+
   async prepareEntrySetup() {
     if (this.busy) return;
     console.log('[进入流程] 打开进入配置:', this.selectedWork, this.character?.name, this.character?.id);

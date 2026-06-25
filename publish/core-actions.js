@@ -39,6 +39,7 @@ window.GameModules.coreActions = {
     this.entryTimeOptions = { years: [], months: [], days: [], hours: [], minutes: [], seconds: [], start: null };
     this.entryCurrentAction = '';
     this.entrySetupOpen = false;
+    this.entryIdentityOpen = false;
   },
 
   openCharacterDetail() {
