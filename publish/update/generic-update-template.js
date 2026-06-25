@@ -73,7 +73,7 @@ window.GameModules.genericUpdateTemplate = {
       const narrationPrompt = await this.buildNarrationPrompt(options);
       this.markStep(options.store, options.logId, '现实资料已足够，正在生成正文…');
       const narrationRaw = await this.completeStep(options.store, narrationPrompt, options.logId, true);
-      const narration = this.cleanPhasedNarration(narrationRaw);
+      const narration = await this.ensurePhasedNarrationLength(options.store, options.action, narrationPrompt, this.cleanPhasedNarration(narrationRaw), options.logId);
       if (!narration) throw new Error('现实推演正文为空');
       this.showFinalNarration(options.store, options.logId, narration);
       const selectedSkills = await this.selectUpdateSkills({ ...options, narration, narrationPrompt });
