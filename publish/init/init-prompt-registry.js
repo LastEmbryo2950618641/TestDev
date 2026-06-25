@@ -154,7 +154,7 @@ fieldRows(template, def, raw, initial) {
 sexPartRows(template, def, raw = {}, initial = {}) {
     const rows = Object.entries(template[def.labels] || {}).map(([key, name]) => {
       const count = Number(raw?.[key]) || 0, initialCount = Number(initial?.[key]) || 0;
-      return { partKey: key, name, count, initialCount, laterCount: Math.max(0, count - initialCount), type: template.fieldMeta?.[def.meta]?.kind };
+      return { partKey: key, name, count, initialCount, laterCount: Math.max(0, count - initialCount), prompt: template.sexPartPrompts?.[key] || template.sexPartPrompts?.other || '', type: template.fieldMeta?.[def.meta]?.kind };
     });
     return { value: rows.map((item) => template.formatExperienceSplit?.(item) || `${item.name}：${item.count}`), raw: rows, initialMeeting: rows.map((item) => template.formatInitialExperience?.(item) || `${item.name}：${item.initialCount}`) };
   },

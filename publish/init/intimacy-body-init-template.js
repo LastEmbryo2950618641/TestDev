@@ -34,6 +34,28 @@ const intimacyBodyTemplate = {
     analInternalFinish: '肛交中出次数', legs: '腿部次数', hips: '臀部次数', hands: '手部次数', skin: '皮肤接触次数', other: '其他次数',
   },
 
+  sexPartPrompts: {
+    genital: '仅当正文明确发生对阴部的性接触、刺激、暴露检查或与性行为直接相关的处置时增加；普通视线、普通洗浴、日常衣物摩擦不计。',
+    chest: '仅当正文明确发生对胸部的性接触、刺激、揉压、亲吻或与性行为直接相关的处置时增加；普通穿衣、碰撞或医疗外观检查不计。',
+    lips: '仅当正文明确发生带亲密或性意味的接吻、舔吻、吮吻等唇部接触时增加；普通说话、进食、无亲密意味的触碰不计。',
+    mouth: '仅当正文明确发生口腔被用于亲密、性接触、含入口腔或明显性意味的口部互动时增加；普通饮食、说话、刷牙不计。',
+    oralAction: '仅当正文明确发生由口部主动参与的性行为或性服务行为时增加；单纯接吻不计入此项，可计入嘴唇次数。',
+    oralSex: '仅当正文明确发生口部与对方性器官之间的性行为时增加；暗示、未完成尝试或普通亲吻不计。',
+    oralInternalFinish: '仅当正文明确发生口部性行为并伴随射入口腔、吞咽或口内结束事实时增加；外部结束或模糊暗示不计。',
+    genitalEntry: '仅当正文明确发生阴部被进入这一事实时增加；外部摩擦、触碰、未进入尝试不计。',
+    vaginalInsertion: '仅当正文明确发生阴道插入行为时增加；外部接触、器械检查或未进入不计。',
+    vaginalInternalFinish: '仅当正文明确发生阴道插入并伴随体内结束事实时增加；外部结束或模糊暗示不计。',
+    anus: '仅当正文明确发生肛部性接触、刺激、扩张、检查或与性行为直接相关的处置时增加；普通如厕、清洁不计。',
+    analEntry: '仅当正文明确发生肛部被进入这一事实时增加；外部接触或未进入尝试不计。',
+    analSex: '仅当正文明确发生肛交行为时增加；肛部外部刺激或准备动作不计入此项。',
+    analInternalFinish: '仅当正文明确发生肛交并伴随体内结束事实时增加；外部结束或模糊暗示不计。',
+    legs: '仅当正文明确发生腿部参与性接触、夹压、摩擦、束缚或带性意味的抚触时增加；普通行走、跌倒、换衣不计。',
+    hips: '仅当正文明确发生臀部参与性接触、拍打、揉捏、摩擦或带性意味的暴露时增加；普通坐下、碰撞不计。',
+    hands: '仅当正文明确发生手部主动或被动参与性接触、抚摸、刺激、抓握等行为时增加；普通握手、拿取物品不计。',
+    skin: '仅当正文明确发生大面积肌肤亲密接触、裸露贴合、性意味抚触或留下性痕迹时增加；普通擦肩、医疗清洁不计。',
+    other: '仅当正文存在明确性经历事实但不属于以上分类时增加；不得用来记录模糊暗示、心理想象或未发生行为。',
+  },
+
   bodyDescriptions: intimacyBodyDescriptions,  // 使用新描述
 
   valueDefaults: {
@@ -111,6 +133,7 @@ const intimacyBodyTemplate = {
     return {
       partLabels: { defaultValue: this.clone(this.partLabels), meaning: '身体状态部位键与中文显示名。' },
       sexPartLabels: { defaultValue: this.clone(this.sexPartLabels), meaning: '性经验分类键与中文显示名。' },
+      sexPartPrompts: { defaultValue: this.clone(this.sexPartPrompts), meaning: '每个性经验分类的次数增加标准。' },
       bodyDescriptions: { defaultValue: this.clone(this.bodyDescriptions), meaning: '每个身体部位的色情化处女状态描述。' },
       valueDefaults: { defaultValue: this.clone(this.valueDefaults), meaning: '亲密与身体状态通用缺省值。' },
       displayTexts: { defaultValue: this.clone(this.displayTexts), meaning: 'UI 展示和无记录状态的缺省文案。' },
@@ -130,7 +153,7 @@ const intimacyBodyTemplate = {
         sexualPartnerCount: { defaultValue: f.sexualHistoryDefaults.defaultValue?.sexualPartnerCount, meaning: '经历人数。' },
         sexualPartners: { defaultValue: f.sexualHistoryDefaults.defaultValue?.sexualPartners, meaning: '经历对象列表。' },
         sexualExperienceCount: { defaultValue: f.intimacyDefaults.defaultValue?.sexualExperienceCount, meaning: '抽象性经验总次数；初始0。' },
-        sexualExperienceParts: { defaultValue: f.sexualExperiencePartDefaults.defaultValue, meaning: '分部位抽象次数统计；每个分类默认0。' },
+        sexualExperienceParts: { defaultValue: f.sexualExperiencePartDefaults.defaultValue, meaning: '分部位抽象次数统计；每个分类默认0；只有符合 sexPartPrompts 对应次数增加标准时才能增加。' },
         updatedAt: { defaultValue: f.intimacyDefaults.defaultValue?.updatedAt, meaning: '初始化时间；无明确时间可留空。' },
         reason: { defaultValue: f.intimacyDefaults.defaultValue?.reason, meaning: '初始化依据；引用现实推演正文事实。' },
       } },
