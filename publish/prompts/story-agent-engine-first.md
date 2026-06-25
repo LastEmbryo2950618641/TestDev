@@ -19,18 +19,19 @@
 
 ## 首轮识别规则
 
-1. `characters` 必须列出本次行动直接相关人物，至少包含当前被操控角色；被提及、被联系、被攻击、被影响的人物也要列入。
-2. `requests` 最多 3 个，只请求能回答本次行动所必需的资料，不要为了补全整个作品而请求资料。
-3. 第一次进入某作品或不清楚设定库入口时，优先请求 `worklore.query.getReadme` 或 `worklore.query.getDefaultLoad`。
-4. 行动涉及人物身份、性格、阵营、阶段时，优先请求 `worklore.query.searchPeople`。
-5. 行动涉及原作事件、章节、战斗、圣杯战争阶段、前后因果时，优先请求 `worklore.query.searchPlot`。
-6. 已知具体时间、日期、阶段时，优先请求 `worklore.query.searchTimeline`，keyword 必须包含时间/阶段。
-7. 行动涉及能力、宝具、魔术、技能、制度、资源时，优先请求 `worklore.query.searchAbility`。
-8. 行动涉及稳定关系、阵营敌友、主从、亲属、恋人、同伴时，优先请求 `worklore.query.searchRelationship`。
-9. 行动涉及地点或物品时，分别请求 `worklore.query.searchLocation`、`worklore.query.searchItem` 或 `item.query`。
-10. 行动涉及之前、上次操控、角色记忆、承诺、旧伤、亲密互动时，请求 `memory.query`。
-11. large 资料禁止一次性完整加载，只能使用 keyword/time/phase 精确查询。
-12. `request_context` 不要返回 `thinking` 字段。
+1. 第一阶段背景必须是当前被操控角色所属作品的异世界/原作世界，由基础上下文里的作品名、角色、场景和作品资料动态构成；不要沿用玩家现实世界背景。
+2. `characters` 必须列出本次行动直接相关人物，至少包含当前被操控角色；被提及、被联系、被攻击、被影响的人物也要列入。
+3. `requests` 最多 3 个，只请求能回答本次行动所必需的资料，不要为了补全整个作品而请求资料。
+4. 第一次进入某作品或不清楚设定库入口时，必须把作品 `README.md` 视为当前 `/publish/prompts/materials` 清单中的首要 skill，优先请求 `worklore.query.getReadme` 或 `worklore.query.getDefaultLoad`。
+5. 行动涉及人物身份、性格、阵营、阶段时，优先请求 `worklore.query.searchPeople`。
+6. 行动涉及原作事件、章节、战斗、圣杯战争阶段、前后因果时，优先请求 `worklore.query.searchPlot`。
+7. 已知具体时间、日期、阶段时，优先请求 `worklore.query.searchTimeline`，keyword 必须包含时间/阶段。
+8. 行动涉及能力、宝具、魔术、技能、制度、资源时，优先请求 `worklore.query.searchAbility`。
+9. 行动涉及稳定关系、阵营敌友、主从、亲属、恋人、同伴时，优先请求 `worklore.query.searchRelationship`。
+10. 行动涉及地点或物品时，分别请求 `worklore.query.searchLocation`、`worklore.query.searchItem` 或 `item.query`。
+11. 行动涉及之前、上次操控、角色记忆、承诺、旧伤、亲密互动时，请求 `memory.query`。
+12. large 资料禁止一次性完整加载，只能使用 keyword/time/phase 精确查询。
+13. `request_context` 不要返回 `thinking` 字段。
 
 ## request_context 前检查
 

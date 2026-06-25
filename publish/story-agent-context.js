@@ -7,11 +7,13 @@ window.GameModules.storyAgentContext = {
     const c = store.character || {};
     const state = store.characterRpgState || {};
     const exp = state.values?.control_experience || {};
+    const work = c.work || store.selectedWork || '原创世界';
     return [
       `界面：《我狠狠操控》主剧情/被操控角色推演`,
+      `背景：正在操控作品《${work}》所在的异世界/原作世界，不是玩家现实世界；现实资料只作为操控者身份与动机背景。`,
       `玩家：${store.playerName || store.playerProfile?.name || '玩家'}`,
       `玩家现实资料：${store.playerSetupSummary?.() || '玩家资料未完成。'}`,
-      `被操控角色：${c.name || '未知角色'}｜作品：${c.work || store.selectedWork || '原创世界'}｜身份：${c.role || '未知'}`,
+      `被操控角色：${c.name || '未知角色'}｜作品：${work}｜身份：${c.role || '未知'}`,
       `角色设定：${this.limit(c.detail || c.personality || '暂无角色简介。', 1000)}`,
       `角色技能：${Array.isArray(c.skills) ? c.skills.map((s) => `${s.name || '技能'}:${s.desc || s.description || ''}`).join('；') : '无'}`,
       `当前模式：${store.online ? 'online' : 'offline'}｜控制方式：${store.controlMode || 'possess'}`,

@@ -2,7 +2,7 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.workLoreMaterials = {
   items: [
-    { id: 'work-readme', title: '作品设定库入口 README', size: 'small', maxChars: 1200, skill: 'worklore.query', method: 'getReadme', paramsHint: {}, when: '确认该作品设定库结构、默认常驻加载与按需入口。' },
+    { id: 'work-readme', title: '作品 README.md / 设定库入口', size: 'small', maxChars: 1200, skill: 'worklore.query', method: 'getReadme', paramsHint: {}, when: '第一阶段默认入口；确认该作品设定库结构、默认常驻加载与按需入口。' },
     { id: 'work-defaults', title: '作品常驻设定摘要', size: 'medium', maxChars: 2200, skill: 'worklore.query', method: 'getDefaultLoad', paramsHint: {}, when: '需要作品世界观、基础规则、术语和数值规则。' },
     { id: 'work-people', title: '人物索引/人物卡查询', size: 'large', maxChars: 1800, skill: 'worklore.query', method: 'searchPeople', paramsHint: { keyword: '人物名或称号' }, when: '行动涉及原作人物、身份、性格、当前阶段。' },
     { id: 'work-plot', title: '剧情索引/剧情片段查询', size: 'large', maxChars: 2200, skill: 'worklore.query', method: 'searchPlot', paramsHint: { keyword: '事件/章节/时间点' }, when: '需要确认原作剧情阶段、事件前后因果。' },
