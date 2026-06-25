@@ -120,7 +120,7 @@ window.GameModules.realWorldAgentLoop = {
       `推演自由度：${store.realWorldFreedomRule?.() || '只推演玩家本次输入行动自然抵达的直接结果。'}`,
       `基础上下文：\n${base}`,
       `已动态载入资料：\n${[loadedText, materialText].filter(Boolean).join('\n\n') || '无'}`,
-      '要求：使用第二人称“你”；写出行动过程、环境变化、人物反应和直接结果；不要替玩家完成后续行动；正文建议1000-2600字。',
+      '要求：使用第二人称“你”；写出行动过程、环境变化、人物反应和直接结果；无论推演自由度是行动范围内还是AI自由推演，正文都控制在1500-2000字；不要替玩家完成后续行动。',
     ].join('\n\n');
   },
 
@@ -286,7 +286,7 @@ window.GameModules.realWorldAgentLoop = {
     if (!text) return '';
     const sepAt = text.indexOf(this.finalSeparator);
     const prose = sepAt >= 0 ? text.slice(0, sepAt) : text;
-    return prose.replace(/```[\s\S]*?```/g, '').trim().slice(0, 2400);
+    return prose.replace(/```[\s\S]*?```/g, '').trim().slice(0, 3000);
   },
 
   async completeUpdateJson(store, prompt, logId) {
