@@ -62,7 +62,7 @@ async apply(store, updates = []) {
       if (!state?.values || !fields || typeof fields !== 'object') continue;
       const templateKey = this.templateKeyForUpdate(update, store);
       if (templateKey) this.ensureTemplateState(templateKey, state);
-      Object.entries(fields).forEach(([key, value]) => this.applyField(state.values, key, value));
+      Object.entries(fields).forEach(([key, value]) => this.applyField(state.values, key, this.markInitializedValue(templateKey, key, value)));
       applied.push(update);
       await window.GameModules.sqliteSave.saveCharacterState?.(state);
     }
@@ -84,6 +84,14 @@ async apply(store, updates = []) {
     const current = values[key];
     if (current && typeof current === 'object' && !Array.isArray(current) && value && typeof value === 'object' && !Array.isArray(value)) values[key] = this.deepMerge(current, value);
     else values[key] = this.clone(value);
+  },
+  markInitializedValue(templateKey = '', key = '', value) {
+    if (templateKey !== 'intimacyBody' || key !== 'bodyStatus' || !value || typeof value !== 'object' || Array.isArray(value)) return value;
+    const next = this.clone(value);
+    Object.keys(next).forEach((partKey) => {
+      if (next[partKey] && typeof next[partKey] === 'object' && !Array.isArray(next[partKey])) next[partKey] = { ...next[partKey], initializedByAi: true, source: 'AI初始化' };
+    });
+    return next;
   },
   deepMerge(base, patch) {
     const next = this.clone(base);
@@ -113,13 +121,21 @@ defaultValue(templateKey = '', key = '') {
     if (!template || !def) return null;
     return typeof template[def.factory] === 'function' ? template[def.factory]() : this.clone(this.get(template, def.factory));
   },
+  markPendingInit(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+    const next = this.clone(value);
+    Object.keys(next).forEach((partKey) => {
+      if (next[partKey] && typeof next[partKey] === 'object' && !Array.isArray(next[partKey])) next[partKey] = { ...next[partKey], pendingAiInit: true, initializedByAi: false, source: '模板占位' };
+    });
+    return next;
+  },
 ensureTemplateState(templateKey = '', state = {}) {
     const template = this.template(templateKey);
     if (!template || !state?.values) return false;
     let changed = false;
     (template.stateDefaults || []).forEach((def) => {
       const value = this.defaultValue(templateKey, def.key), current = this.get(state.values, def.path);
-      if (current === undefined || current === null) { this.set(state.values, def.path, value); changed = true; }
+      if (current === undefined || current === null) { this.set(state.values, def.path, templateKey === 'intimacyBody' && def.path === 'bodyStatus' ? this.markPendingInit(value) : value); changed = true; }
       else if (value && typeof value === 'object') changed = this.mergeMissing(current, value) || changed;
     });
     return changed;

@@ -69,9 +69,8 @@ window.GameModules.rpgFieldUi = {
     const identityRest = identity.filter((field) => !relations.includes(field) && !privateLabels.has(field.label));
     const naturalState = this.profileNaturalStateField(displayState);
     const dressedState = this.profileDressedStateField(displayState);
-    window.GameModules.initPromptRegistry?.ensureTemplateState?.('intimacyBody', displayState);
     const intimacyUi = window.GameModules.initPromptRegistry?.uiFor?.('intimacyBody') || {};
-    const intimacyAllFields = window.GameModules.initPromptRegistry?.fields?.('intimacyBody', displayState) || [];
+    const intimacyAllFields = this.bodyStatusInitialized(displayState) ? (window.GameModules.initPromptRegistry?.fields?.('intimacyBody', displayState) || []) : [];
     const intimacyFieldKeys = new Set(intimacyUi.fieldKeys || ['bodyStatus']);
     const intimacyFields = intimacyAllFields.filter((field) => intimacyFieldKeys.has(field.key));
     if (!intimacyFields.length) intimacyFields.push(this.defaultBodyStatusField(displayState));
@@ -102,14 +101,19 @@ window.GameModules.rpgFieldUi = {
     return next;
   },
 
+  bodyStatusInitialized(state = {}) {
+    const body = state.values?.bodyStatus;
+    return Boolean(body && typeof body === 'object' && Object.values(body).some((item) => item?.initializedByAi || item?.source === 'AI初始化'));
+  },
+
   defaultBodyStatusField(state = {}) {
     const template = window.GameModules.initDefaults?.intimacyBody || window.GameModules.initTemplateSources?.intimacyBody;
-    const bodyStatus = state.values?.bodyStatus || template?.bodyStatus?.() || template?.bodyStatusDefaults || {};
-    const rows = Object.values(bodyStatus || {}).map((item) => ({ ...item, name: item.part || item.partKey, type: template?.fieldMeta?.bodyStatus?.kind || '当前身体状态' }));
+    const bodyStatus = template?.bodyStatus?.() || template?.bodyStatusDefaults || {};
+    const rows = Object.values(bodyStatus || {}).map((item) => ({ ...item, name: item.part || item.partKey, type: template?.fieldMeta?.bodyStatus?.kind || '当前身体状态', pendingAiInit: true, status: '待AI初始化', reason: '尚未经过现实推演AI初始化；当前仅按模板占位显示。' }));
     return {
-      key: 'bodyStatus', templateKey: 'intimacyBody', stateId: state.id || '', label: template?.fieldMeta?.bodyStatus?.label || '当前身体状态', kind: '当前身体状态',
-      value: rows.map((item) => template?.formatBodyStatus?.(item) || `${item.part || item.partKey}：${item.status || '--'}`), raw: rows,
-      desc: template?.fieldMeta?.bodyStatus?.desc || '身体各部位的状态描述。', reason: template?.fieldMeta?.bodyStatus?.reasonFallback || '默认身体状态。',
+      key: 'bodyStatus', templateKey: 'intimacyBody', stateId: state.id || '', label: template?.fieldMeta?.bodyStatus?.label || '当前身体状态', kind: '当前身体状态', pendingAiInit: true,
+      value: rows.map((item) => `${item.part || item.partKey}：待AI初始化`), raw: rows,
+      desc: '身体状态尚未经过现实推演AI初始化；当前显示的是模板占位，不作为真实原始值。', reason: '待AI初始化。',
       worldTag: state.worldTag || state.profile?.work || '原创世界', targetType: state.profile?.isPlayer ? '非角色' : '角色', commonField: true,
     };
   },
@@ -326,7 +330,7 @@ window.GameModules.rpgFieldUi = {
     if (kind === '当前身体状态') {
       const uiRow = this.initUiRow(field, obj);
       const defaults = window.GameModules.initDefaults?.intimacyBody, text = defaults?.displayTexts || {}, values = defaults?.valueDefaults || {};
-      const lines = [`部位: ${uiRow?.name || obj.part || name}`, `状态: ${obj.status || values.bodyStatus || ''}`, `初始见面: ${obj.initialMeeting || text.noRecord || ''}`, `描述状态: ${obj.description || text.noRecord || ''}`];
+      const lines = [`部位: ${uiRow?.name || obj.part || name}`, `状态: ${obj.pendingAiInit ? '待AI初始化' : (obj.status || values.bodyStatus || '')}`, `初始化: ${obj.pendingAiInit ? '否，当前为模板占位' : (obj.initializedByAi ? '是，已由AI初始化' : '未标记')}`, `初始见面: ${obj.initialMeeting || text.noRecord || ''}`, `描述状态: ${obj.pendingAiInit ? '待现实推演AI初始化后写入真实原始值' : (obj.description || text.noRecord || '')}`];
       if (Array.isArray(uiRow?.detailLines)) lines.push(...uiRow.detailLines);
       lines.push(`变化原因: ${obj.reason || text.currentRecord || ''}`, `更新时间: ${obj.updatedAt || text.noRecord || ''}`, `所属世界: ${field?.worldTag || text.publicWorld || '公共'}`);
       return lines.join('\n');
