@@ -74,6 +74,7 @@ window.GameModules.rpgFieldUi = {
     const intimacyAllFields = window.GameModules.initPromptRegistry?.fields?.('intimacyBody', displayState) || [];
     const intimacyFieldKeys = new Set(intimacyUi.fieldKeys || ['bodyStatus']);
     const intimacyFields = intimacyAllFields.filter((field) => intimacyFieldKeys.has(field.key));
+    if (!intimacyFields.length) intimacyFields.push(this.defaultBodyStatusField(displayState));
     const longing = this.profileLongingField(state);
     const used = new Set(['world_tag', 'age', 'factions', 'force_positions', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'items', 'wearing', 'bodyProfile', 'dressedProfile', 'bodyStatus', 'intimacy', 'status_tags']);
     const personal = all.filter((field) => !used.has(field.key));
@@ -99,6 +100,18 @@ window.GameModules.rpgFieldUi = {
     const at = index < 0 ? next.length : (before ? index : index + 1);
     next.splice(at, 0, section);
     return next;
+  },
+
+  defaultBodyStatusField(state = {}) {
+    const template = window.GameModules.initDefaults?.intimacyBody || window.GameModules.initTemplateSources?.intimacyBody;
+    const bodyStatus = state.values?.bodyStatus || template?.bodyStatus?.() || template?.bodyStatusDefaults || {};
+    const rows = Object.values(bodyStatus || {}).map((item) => ({ ...item, name: item.part || item.partKey, type: template?.fieldMeta?.bodyStatus?.kind || '当前身体状态' }));
+    return {
+      key: 'bodyStatus', templateKey: 'intimacyBody', stateId: state.id || '', label: template?.fieldMeta?.bodyStatus?.label || '当前身体状态', kind: '当前身体状态',
+      value: rows.map((item) => template?.formatBodyStatus?.(item) || `${item.part || item.partKey}：${item.status || '--'}`), raw: rows,
+      desc: template?.fieldMeta?.bodyStatus?.desc || '身体各部位的状态描述。', reason: template?.fieldMeta?.bodyStatus?.reasonFallback || '默认身体状态。',
+      worldTag: state.worldTag || state.profile?.work || '原创世界', targetType: state.profile?.isPlayer ? '非角色' : '角色', commonField: true,
+    };
   },
 
   profileLongingField(state = {}) {
