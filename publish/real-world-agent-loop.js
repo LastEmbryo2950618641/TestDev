@@ -188,6 +188,8 @@ window.GameModules.realWorldAgentLoop = {
       updateSkills ? `## 更新 Skills 元数据\n\n${updateSkills}` : '',
       initSkills ? `## 初始化 Skills 元数据\n\n${initSkills}` : '',
       '根据正文中已经确认的事实，选择后续生成更新 JSON 必须用到的 skills。只选需要更改数值、描述、状态或记录的 skills；无变化不要选择。',
+      '选择顺序：先检查是否已有情绪、感觉、生命体征、物品、地图、势力、关系、角色卡等专用更新 skill；有专用 skill 时不要选 generic；只有稳定事实没有对应专用 skill，或属于新分类/状态标签/跨系统字段时才选择 generic。',
+      '若正文确认了类似但未列入清单的稳定事实，不要忽略；在没有更精确 skill 时选择 generic 兜底固化。',
       '返回格式：{"updateSkills":["skill-name"],"initSkills":["skill-name"],"reason":"选择依据"}',
     ].filter(Boolean).join('\n\n');
   },
@@ -218,8 +220,8 @@ window.GameModules.realWorldAgentLoop = {
     const updateSchema = window.GameModules.updateRegistry?.schemaFor?.(selectedSkills.updateSkills || []) || {};
     const initSkillText = window.GameModules.initPromptRegistry?.skillText?.(selectedSkills.initSkills || [], store) || '';
     const initSchema = window.GameModules.initPromptRegistry?.schema?.(selectedSkills.initSkills || [], store) || {};
-    const storyRule = '输出最小补丁 JSON：必须包含 type、sceneTitle、elapsedSeconds、mood、quest、choices。其他字段只有明确变化才输出，否则省略或用空数组。choices 必须4个。metricUpdates 只写当前被操控角色的情绪和对玩家感觉；genericUpdates 可写稳定角色卡关系、身份、状态变化。';
-    const realRule = '输出最小补丁 JSON：必须包含 type、sceneTitle、locationName、elapsedSeconds、status、quest、choices、vitalUpdates。其他字段只有明确变化才输出，否则省略或用空数组。';
+    const storyRule = '输出最小补丁 JSON：必须包含 type、sceneTitle、elapsedSeconds、mood、quest、choices。其他字段只有明确变化才输出，否则省略或用空数组。choices 必须4个。metricUpdates 只写当前被操控角色的情绪和对玩家感觉；genericUpdates 用于没有专用 skill 的稳定角色卡关系、身份、状态标签、新分类或跨系统字段。';
+    const realRule = '输出最小补丁 JSON：必须包含 type、sceneTitle、locationName、elapsedSeconds、status、quest、choices、vitalUpdates。其他字段只有明确变化才输出，否则省略或用空数组；没有专用 skill 的稳定事实写 genericUpdates。';
     return [
       `# ${config.label}阶段3B：只生成更新JSON`,
       '你只输出一个合法 JSON 对象，不要正文，不要 Markdown，不要代码块，不要解释。',
