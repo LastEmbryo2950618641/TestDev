@@ -87,7 +87,7 @@ window.GameModules.realWorldAgentLoop = {
   async loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step, materialSession = null, materials = window.GameModules.realWorldMaterials) {
     const out = [];
     if (data.type === 'request_context') {
-      const requested = await ctx.loadRequests(store, action, data.requests || [], loadedKeys, materialSession, materials);
+      const requested = await ctx.loadRequests(store, action, data.requests || [], loadedKeys, materialSession, materials, memoryIds);
       out.push(...requested);
     }
     const locationItem = await ctx.actionLocationForStep?.(store, action, data.characters || data.relatedCharacters || [], data.reason || '', loadedKeys);
@@ -173,7 +173,7 @@ window.GameModules.realWorldAgentLoop = {
 
   async buildConfiguredSkillSelectionPrompt({ store, action, base, loaded, materialSession = null, narration, config = this.realConfig() }) {
     const loadedText = config.ctx.buildLoadedText(loaded);
-    const materialText = config.materials?.summary?.(materialSession) || '';
+    const materialText = config.mode === 'story' ? (config.materials?.acquiredSummary?.(materialSession) || '') : (config.materials?.summary?.(materialSession) || '');
     const updateSkills = window.GameModules.updateRegistry?.skillSummaries?.() || '';
     const initSkills = window.GameModules.initPromptRegistry?.skillSummaries?.(store) || '';
     return [

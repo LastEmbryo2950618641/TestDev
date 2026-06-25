@@ -86,12 +86,13 @@ characters 必须列出本次行动相关人物，至少包含当前被操控角
 2. 行动涉及原作剧情、事件、章节、圣杯战争阶段、战斗前后因果时，优先请求 worklore.query.searchPlot。
 3. 已知剧情时间、日期或阶段时，优先请求 worklore.query.searchTimeline，并在 keyword 中带上时间/阶段，避免后期情报提前。
 4. 行动涉及能力、魔术、宝具、战斗规则、资源消耗、制度判定时，优先请求 worklore.query.searchAbility。
-5. 行动涉及亲属、阵营、敌友、师徒、主从、恋人、同伴等稳定关系时，优先请求 worklore.query.searchRelationship。
-6. 行动发生在原作地点、移动到地点或利用地形时，优先请求 worklore.query.searchLocation。
-7. 行动涉及道具、装备、圣遗物、武器、药物、车辆、通讯设备时，优先请求 worklore.query.searchItem 或 item.query。
-8. 行动涉及之前、本回合以前、上次操控、角色是否记得玩家、承诺、伤害、亲密互动时，优先请求 memory.query。
-9. 行动或上下文出现不能准确判断含义的专用术语、缩写、APP名、黑话或自定义概念时，先请求 lexicon.query.searchTermOne。
-10. 如果基础上下文和已动态载入资料已经足够，不要为了形式请求资料，直接返回 context_done。
+5. 行动涉及职业、职阶、身份制度、职位、阶层或组织身份时，优先请求 worklore.query.searchProfession。
+6. 行动涉及亲属、阵营、敌友、师徒、主从、恋人、同伴等稳定关系时，优先请求 worklore.query.searchRelationship。
+7. 行动发生在原作地点、移动到地点或利用地形时，优先请求 worklore.query.searchLocation。
+8. 行动涉及道具、装备、圣遗物、武器、药物、车辆、通讯设备时，优先请求 worklore.query.searchItem 或 item.query。
+9. 行动涉及之前、本回合以前、上次操控、角色是否记得玩家、承诺、伤害、亲密互动时，优先请求 memory.query。
+10. 行动或上下文出现不能准确判断含义的专用术语、缩写、APP名、黑话或自定义概念时，先请求 lexicon.query.searchTermOne。
+11. 如果基础上下文和已动态载入资料已经足够，不要为了形式请求资料，直接返回 context_done。
 
 ## 操控剧情强制规则
 

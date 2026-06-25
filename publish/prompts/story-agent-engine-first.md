@@ -27,11 +27,12 @@
 6. 行动涉及原作事件、章节、战斗、圣杯战争阶段、前后因果时，优先请求 `worklore.query.searchPlot`。
 7. 已知具体时间、日期、阶段时，优先请求 `worklore.query.searchTimeline`，keyword 必须包含时间/阶段。
 8. 行动涉及能力、宝具、魔术、技能、制度、资源时，优先请求 `worklore.query.searchAbility`。
-9. 行动涉及稳定关系、阵营敌友、主从、亲属、恋人、同伴时，优先请求 `worklore.query.searchRelationship`。
-10. 行动涉及地点或物品时，分别请求 `worklore.query.searchLocation`、`worklore.query.searchItem` 或 `item.query`。
-11. 行动涉及之前、上次操控、角色记忆、承诺、旧伤、亲密互动时，请求 `memory.query`。
-12. large 资料禁止一次性完整加载，只能使用 keyword/time/phase 精确查询。
-13. `request_context` 不要返回 `thinking` 字段。
+9. 行动涉及职业、职阶、身份制度、职位、阶层或组织身份时，优先请求 `worklore.query.searchProfession`。
+10. 行动涉及稳定关系、阵营敌友、主从、亲属、恋人、同伴时，优先请求 `worklore.query.searchRelationship`。
+11. 行动涉及地点或物品时，分别请求 `worklore.query.searchLocation`、`worklore.query.searchItem` 或 `item.query`。
+12. 行动涉及之前、上次操控、角色记忆、承诺、旧伤、亲密互动时，请求 `memory.query`。
+13. large 资料禁止一次性完整加载，只能使用 keyword/time/phase 精确查询。
+14. `request_context` 不要返回 `thinking` 字段。
 
 ## request_context 前检查
 

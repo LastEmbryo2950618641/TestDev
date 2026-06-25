@@ -8,6 +8,7 @@ window.GameModules.workLoreMaterials = {
     { id: 'work-plot', title: '剧情索引/剧情片段查询', size: 'large', maxChars: 2200, skill: 'worklore.query', method: 'searchPlot', paramsHint: { keyword: '事件/章节/时间点' }, when: '需要确认原作剧情阶段、事件前后因果。' },
     { id: 'work-timeline', title: '时间线索引查询', size: 'large', maxChars: 1800, skill: 'worklore.query', method: 'searchTimeline', paramsHint: { keyword: '时间/日期/阶段' }, when: '行动需要按时间点限制资料，避免剧透或后期信息提前。' },
     { id: 'work-ability', title: '能力技能资源查询', size: 'large', maxChars: 1800, skill: 'worklore.query', method: 'searchAbility', paramsHint: { keyword: '能力/宝具/技能/制度' }, when: '行动涉及战斗、能力、资源、规则判定。' },
+    { id: 'work-profession', title: '职业身份资料查询', size: 'large', maxChars: 1600, skill: 'worklore.query', method: 'searchProfession', paramsHint: { keyword: '职业/职阶/身份/职位' }, when: '行动涉及职业身份、职阶、职位、阶层、组织身份或身份制度。' },
     { id: 'work-relation', title: '关系资料查询', size: 'large', maxChars: 1600, skill: 'worklore.query', method: 'searchRelationship', paramsHint: { keyword: '两人名或关系名' }, when: '需要确认原作稳定关系、阵营、敌友、亲属。' },
     { id: 'work-location', title: '地点资料查询', size: 'large', maxChars: 1600, skill: 'worklore.query', method: 'searchLocation', paramsHint: { keyword: '地点名' }, when: '行动发生在原作地点或需要地点规则。' },
     { id: 'work-item', title: '物品资料查询', size: 'large', maxChars: 1400, skill: 'worklore.query', method: 'searchItem', paramsHint: { keyword: '物品名' }, when: '行动涉及原作物品、装备、道具、圣遗物。' },

@@ -44,23 +44,32 @@ window.GameModules.storyAgentContext = {
     return [window.GameModules.workLoreMaterials?.skillText?.() || '', ...texts.filter(Boolean)].join('\n\n');
   },
 
-  async loadRequests(store, action, requests = [], loadedKeys = new Set(), materialSession = null, materials = window.GameModules.workLoreMaterials) {
+  async loadRequests(store, action, requests = [], loadedKeys = new Set(), materialSession = null, materials = window.GameModules.workLoreMaterials, memoryIds = new Set()) {
     const out = [];
     for (const req of requests.slice(0, 3)) {
       const skill = String(req?.skill || '').trim();
       const method = String(req?.method || '').trim();
       const params = req?.params && typeof req.params === 'object' ? req.params : {};
+      const memoryTarget = skill === 'memory.query' ? String(params.characterId || params.id || store.character?.id || '').trim() : '';
+      const broadMemory = memoryTarget && this.isBroadMemoryRequest(method, params);
+      if (broadMemory && memoryIds.has(memoryTarget)) continue;
       const key = `${skill}:${method}:${JSON.stringify(params)}`;
       if (!skill || !method || loadedKeys.has(key)) continue;
       loadedKeys.add(key);
       const text = await this.dispatch(store, action, skill, method, params);
       if (!text) continue;
+      if (broadMemory) memoryIds.add(memoryTarget);
       const title = `${skill}.${method}`;
       const material = materials?.optionFor?.({ skill, method, params });
       materials?.record?.(materialSession, { skill, method, params }, title, text);
       out.push({ title, text, max: material?.maxChars || this.maxFor(skill) });
     }
     return out;
+  },
+
+  isBroadMemoryRequest(method = '', params = {}) {
+    const keyword = String(params.keyword || '').trim();
+    return !keyword || ['getRecentCharacterMemories', 'getCharacterMemory', 'searchCharacterMemory'].includes(method);
   },
 
   maxFor(skill) {
