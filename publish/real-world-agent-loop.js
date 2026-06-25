@@ -265,7 +265,7 @@ window.GameModules.realWorldAgentLoop = {
     if (!text) return '';
     const sepAt = text.indexOf(this.finalSeparator);
     const prose = sepAt >= 0 ? text.slice(0, sepAt) : text;
-    return prose.replace(/```[\s\S]*?```/g, '').trim().slice(0, 3000);
+    return prose.replace(/```[\s\S]*?```/g, '').trim();
   },
 
   async completeUpdateJson(store, prompt, logId) {
@@ -334,7 +334,7 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   cleanPhasedNarration(raw) {
-    return String(raw || '').replace(/```[\s\S]*?```/g, '').replace(this.finalSeparator, '').trim().slice(0, 5000);
+    return String(raw || '').replace(/```[\s\S]*?```/g, '').replace(this.finalSeparator, '').trim();
   },
 
   chineseCharCount(text = '') {
