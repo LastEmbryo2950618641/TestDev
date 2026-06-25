@@ -189,7 +189,12 @@ window.GameModules.jsonUtils = {
       .replace(/,\s*"[^"\\]*(?:\\.[^"\\]*)*"\s*([}\]])/g, '$1')
       .replace(/,\s*([}\]])/g, '$1');
     out = this.repairMisnestedMetricArrays(out);
+    out = this.repairBareReasonArrays(out);
     return out;
+  },
+
+  repairBareReasonArrays(text) {
+    return String(text || '').replace(/"reasons"\s*:\s*\[\s*"trigger"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*,\s*"evidence"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*,\s*"confidence"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*\]/g, (_, trigger, evidence, confidence) => `"reasons":[{"trigger":"${trigger}","evidence":"${evidence}","confidence":"${confidence}"}]`);
   },
 
   repairMisnestedMetricArrays(text) {

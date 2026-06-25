@@ -294,7 +294,13 @@ window.GameModules.realWorldAgentLoop = {
     try { return window.GameModules.jsonUtils.parseLoose(raw); }
     catch (err) {
       console.warn('现实更新 JSON 解析失败，尝试修复:', err.message);
-      return this.repairTruncatedJsonObject(raw) || {};
+      try {
+        const extracted = window.GameModules.jsonUtils.extractJson(String(raw || '').replace(/```(?:json)?|```/g, '').trim());
+        return JSON.parse(window.GameModules.jsonUtils.repairJson(extracted));
+      } catch (repairErr) {
+        console.warn('现实更新 JSON 二次修复失败:', repairErr.message);
+        return this.repairTruncatedJsonObject(raw) || {};
+      }
     }
   },
 
