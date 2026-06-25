@@ -62,18 +62,7 @@ window.GameModules.realWorldSettlementActions = {
   },
 
   realWorldSettlementGroups(entry = {}) {
-    const rows = [
-      ...(entry.characterCardChanges || []),
-      ...((entry.genericUpdates || []).map((item) => window.GameModules.updateRegistry?.rowFromGeneric?.(item, this)).filter(Boolean)),
-    ];
-    const groups = new Map();
-    for (const item of rows) {
-      const title = item.cardTitle || item.group || this.realWorldSettlementGroup(item.field, item.name);
-      const id = item.cardId || `legacy:${title}`;
-      if (!groups.has(id)) groups.set(id, { id, title, section: item.section || item.group || title, items: [] });
-      groups.get(id).items.push(item);
-    }
-    return Array.from(groups.values());
+    return window.GameModules.updateRegistry?.settlementGroups?.(entry, this) || [];
   },
 
   visibleRealWorldSettlementGroups(entry = {}) {
@@ -102,8 +91,12 @@ window.GameModules.realWorldSettlementActions = {
     return (Array.isArray(updates) ? updates : []).map((item) => {
       const pool = values[item.key];
       const before = pool?.max ? window.GameModules.progression.percent(pool) : null;
-      const after = before === null ? '' : `：${before} → ${Math.max(0, Math.min(100, before + (Number(item.delta) || 0)))}%`;
-      return this.realWorldSettlementRecord('生命体征', labels[item.key] || item.key, `变化${Number(item.delta) || 0}${after}`, item.reason, group);
+      const afterValue = before === null ? null : Math.max(0, Math.min(100, before + (Number(item.delta) || 0)));
+      const after = afterValue === null ? '' : `：${before} → ${afterValue}%`;
+      return {
+        ...this.realWorldSettlementRecord('生命体征', labels[item.key] || item.key, `变化${Number(item.delta) || 0}${after}`, item.reason, group),
+        detailLines: [before === null ? '' : `前后：${before}% → ${afterValue}%`].filter(Boolean),
+      };
     });
   },
 

@@ -155,6 +155,9 @@
   <script src="update/faction-overview-update.js"></script>
   <script src="update/map-update.js"></script>
   <script src="update/system-update.js"></script>
+  <script src="update/emotion-update-ui.js"></script>
+  <script src="update/feeling-update-ui.js"></script>
+  <script src="update/vital-update-ui.js"></script>
   <script src="update/generic-update-template.js"></script>
   <script src="actions.js"></script>
   <script src="novel-log.js"></script>
@@ -770,7 +773,11 @@
                     <template x-for="group in $store.game.visibleRealWorldSettlementGroups(entry)" :key="`${entry.id}-${group.title}`">
                       <div class="real-world-settlement-group">
                         <template x-for="change in group.items" :key="`${change.at}-${change.field}-${change.name}`">
-                          <p><b x-text="change.field"></b><span x-text="`${change.name || ''}：${typeof change.value === 'object' ? JSON.stringify(change.value) : change.value}｜理由：${change.reason}`"></span></p>
+                          <div class="real-world-settlement-row">
+                            <b x-text="change.field"></b>
+                            <span x-text="`${change.name || ''}：${typeof change.value === 'object' ? JSON.stringify(change.value) : change.value}｜理由：${change.reason}`"></span>
+                            <template x-for="line in (change.detailLines || [])" :key="line"><small x-text="line"></small></template>
+                          </div>
                         </template>
                       </div>
                     </template>

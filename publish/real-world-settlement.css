@@ -54,6 +54,17 @@
   font-size: 11px;
 }
 
-.real-world-settlement-group p {
+.real-world-settlement-group p,
+.real-world-settlement-row {
   margin: 6px 0 0;
+}
+
+.real-world-settlement-row {
+  display: grid;
+  gap: 2px;
+}
+
+.real-world-settlement-row small {
+  color: #aeb9d6;
+  font-size: 11px;
 }

@@ -25,7 +25,7 @@ window.GameModules.updateRules.sexualExperience = {
 };
 
 window.GameModules.updateRegistry = {
-  types: [], prompts: {}, skills: {},
+  types: [], prompts: {}, skills: {}, uis: {},
   operations: ['delta', 'set', 'append', 'remove', 'merge', 'upsert', 'create', 'delete', 'transfer', 'link', 'unlink'],
 
   parseSkill(text = '') {
@@ -49,6 +49,16 @@ window.GameModules.updateRegistry = {
   register(type) {
     if (!type?.id) return;
     this.types = this.types.filter((item) => item.id !== type.id).concat(type);
+  },
+
+  registerUi(id, ui) {
+    if (!id || !ui) return;
+    this.uis[id] = ui;
+  },
+
+  uiForChange(change = {}) {
+    const type = this.typeForChange(change);
+    return type?.ui || this.uis[type?.id] || null;
   },
 
   skillSummaries() {
@@ -153,14 +163,34 @@ window.GameModules.updateRegistry = {
   rowFromGeneric(update = {}, store = null) {
     const card = this.cardForChange(update, store);
     const change = update.change || {};
+    const ui = this.uiForChange(update);
     const rawValue = change.value ?? change.toValue ?? change.mode ?? '';
-    return {
+    const row = {
       at: new Date().toISOString(), cardId: card.id, cardTitle: card.title, section: card.section,
       field: update.field || update.updateType || '通用更新', name: update.name || this.leafName(update.field) || change.mode || '',
       value: rawValue && typeof rawValue === 'object' ? JSON.stringify(rawValue) : rawValue,
       reason: this.reasonText(update),
       applied: true,
     };
+    return typeof ui?.row === 'function' ? { ...row, ...ui.row(update, store, row) } : row;
+  },
+
+  settlementRows(entry = {}, store = null) {
+    return [
+      ...(entry.characterCardChanges || []),
+      ...((entry.genericUpdates || []).map((item) => this.rowFromGeneric(item, store)).filter(Boolean)),
+    ];
+  },
+
+  settlementGroups(entry = {}, store = null) {
+    const groups = new Map();
+    for (const item of this.settlementRows(entry, store)) {
+      const title = item.cardTitle || item.group || store?.realWorldSettlementGroup?.(item.field, item.name) || item.section || '其他';
+      const id = item.cardId || `legacy:${title}`;
+      if (!groups.has(id)) groups.set(id, { id, title, section: item.section || item.group || title, items: [] });
+      groups.get(id).items.push(item);
+    }
+    return Array.from(groups.values());
   },
 
   leafName(path = '') {
