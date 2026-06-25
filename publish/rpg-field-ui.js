@@ -70,10 +70,10 @@ window.GameModules.rpgFieldUi = {
     const naturalState = this.profileNaturalStateField(displayState);
     const dressedState = this.profileDressedStateField(displayState);
     const intimacyUi = window.GameModules.initPromptRegistry?.uiFor?.('intimacyBody') || {};
-    const intimacyAllFields = this.bodyStatusInitialized(displayState) ? (window.GameModules.initPromptRegistry?.fields?.('intimacyBody', displayState) || []) : [];
-    const intimacyFieldKeys = new Set(intimacyUi.fieldKeys || ['bodyStatus']);
+    const intimacyAllFields = this.intimacyBodyInitialized(displayState) ? (window.GameModules.initPromptRegistry?.fields?.('intimacyBody', displayState) || []) : [];
+    const intimacyFieldKeys = new Set(intimacyUi.fieldKeys || ['sexualStatus', 'sexualPartnerCount', 'sexualPartners', 'sexualExperienceCount', 'sexualExperienceParts', 'bodyStatus']);
     const intimacyFields = intimacyAllFields.filter((field) => intimacyFieldKeys.has(field.key));
-    if (!intimacyFields.length) intimacyFields.push(this.defaultBodyStatusField(displayState));
+    if (!intimacyFields.length) intimacyFields.push(...this.defaultIntimacyBodyFields(displayState));
     const longing = this.profileLongingField(state);
     const used = new Set(['world_tag', 'age', 'factions', 'force_positions', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'items', 'wearing', 'bodyProfile', 'dressedProfile', 'bodyStatus', 'intimacy', 'status_tags']);
     const personal = all.filter((field) => !used.has(field.key));
@@ -101,21 +101,30 @@ window.GameModules.rpgFieldUi = {
     return next;
   },
 
-  bodyStatusInitialized(state = {}) {
+  intimacyBodyInitialized(state = {}) {
     const body = state.values?.bodyStatus;
-    return Boolean(body && typeof body === 'object' && Object.values(body).some((item) => item?.initializedByAi || item?.source === 'AI初始化'));
+    const intimacy = state.values?.intimacy;
+    const bodyDone = body && typeof body === 'object' && Object.values(body).some((item) => item?.initializedByAi || item?.source === 'AI初始化');
+    const intimacyDone = Boolean(intimacy?.initializedByAi || intimacy?.source === 'AI初始化');
+    return Boolean(bodyDone || intimacyDone);
   },
 
-  defaultBodyStatusField(state = {}) {
+  defaultIntimacyBodyFields(state = {}) {
     const template = window.GameModules.initDefaults?.intimacyBody || window.GameModules.initTemplateSources?.intimacyBody;
+    const intimacy = template?.intimacy?.() || template?.intimacyDefaults || {};
     const bodyStatus = template?.bodyStatus?.() || template?.bodyStatusDefaults || {};
-    const rows = Object.values(bodyStatus || {}).map((item) => ({ ...item, name: item.part || item.partKey, type: template?.fieldMeta?.bodyStatus?.kind || '当前身体状态', pendingAiInit: true, reason: '尚未经过现实推演AI初始化；当前仅按模板占位显示。' }));
-    return {
-      key: 'bodyStatus', templateKey: 'intimacyBody', stateId: state.id || '', label: template?.fieldMeta?.bodyStatus?.label || '当前身体状态', kind: '当前身体状态', pendingAiInit: true,
-      value: rows.map((item) => template?.formatBodyStatus?.(item) || `${item.part || item.partKey}：${item.status || '--'}`), raw: rows,
-      desc: '身体状态尚未经过现实推演AI初始化；当前显示的是模板占位，不作为真实原始值。', reason: '待AI初始化。',
-      worldTag: state.worldTag || state.profile?.work || '原创世界', targetType: state.profile?.isPlayer ? '非角色' : '角色', commonField: true,
-    };
+    const sexRows = Object.entries(template?.sexPartLabels || {}).map(([partKey, name]) => ({ partKey, name, count: 0, initialCount: 0, laterCount: 0, type: template?.fieldMeta?.sexualExperienceParts?.kind || '性经验分类', pendingAiInit: true }));
+    const bodyRows = Object.values(bodyStatus || {}).map((item) => ({ ...item, name: item.part || item.partKey, type: template?.fieldMeta?.bodyStatus?.kind || '当前身体状态', pendingAiInit: true, reason: '尚未经过现实推演AI初始化；当前仅按模板占位显示。' }));
+    const base = { templateKey: 'intimacyBody', stateId: state.id || '', worldTag: state.worldTag || state.profile?.work || '原创世界', targetType: state.profile?.isPlayer ? '非角色' : '角色', commonField: true, pendingAiInit: true, reason: '待AI初始化。' };
+    const meta = template?.fieldMeta || {};
+    return [
+      { key: 'sexualStatus', ...base, ...(meta.sexualStatus || {}), value: `${intimacy.sexualStatus || '处女'}｜模板占位，待AI初始化`, raw: intimacy.sexualStatus || '处女' },
+      { key: 'sexualPartnerCount', ...base, ...(meta.sexualPartnerCount || {}), value: `${Number(intimacy.sexualPartnerCount) || 0}人｜模板占位，待AI初始化`, raw: Number(intimacy.sexualPartnerCount) || 0 },
+      { key: 'sexualPartners', ...base, ...(meta.sexualPartners || {}), value: [template?.displayTexts?.noPartner || '无', '模板占位，待AI初始化'], raw: [template?.displayTexts?.noPartner || '无'] },
+      { key: 'sexualExperienceCount', ...base, ...(meta.sexualExperienceCount || {}), value: `${Number(intimacy.sexualExperienceCount) || 0}次｜模板占位，待AI初始化`, raw: Number(intimacy.sexualExperienceCount) || 0 },
+      { key: 'sexualExperienceParts', ...base, ...(meta.sexualExperienceParts || {}), value: sexRows.map((item) => `${item.name}：0(初次见面) + 0 (后续次数)`), raw: sexRows },
+      { key: 'bodyStatus', ...base, ...(meta.bodyStatus || {}), value: bodyRows.map((item) => template?.formatBodyStatus?.(item) || `${item.part || item.partKey}：${item.status || '--'}`), raw: bodyRows, desc: '身体状态尚未经过现实推演AI初始化；当前显示的是模板占位，不作为真实原始值。' },
+    ];
   },
 
   profileLongingField(state = {}) {
@@ -361,6 +370,7 @@ window.GameModules.rpgFieldUi = {
   rpgFieldDetail(field) {
     const lexicon = this.lexiconFor(field);
     const lines = [`说明: ${lexicon?.description || lexicon?.summary || field?.desc || this.fallbackDesc(field)}`];
+    if (field?.pendingAiInit) lines.push('初始化: 否，当前为模板占位，待AI初始化');
     if (field && Object.prototype.hasOwnProperty.call(field, 'initialMeeting')) lines.push(`初始见面: ${Array.isArray(field.initialMeeting) ? field.initialMeeting.join('、') || '无' : field.initialMeeting}`);
     lines.push(`变化原因: ${this.fieldChangeReason(field, lexicon)}`);
     lines.push(`当前依据: ${this.fallbackBasis(field)}`);

@@ -86,8 +86,10 @@ async apply(store, updates = []) {
     else values[key] = this.clone(value);
   },
   markInitializedValue(templateKey = '', key = '', value) {
-    if (templateKey !== 'intimacyBody' || key !== 'bodyStatus' || !value || typeof value !== 'object' || Array.isArray(value)) return value;
+    if (templateKey !== 'intimacyBody' || !value || typeof value !== 'object' || Array.isArray(value)) return value;
     const next = this.clone(value);
+    if (key === 'intimacy') return { ...next, initializedByAi: true, source: 'AI初始化' };
+    if (key !== 'bodyStatus') return value;
     Object.keys(next).forEach((partKey) => {
       if (next[partKey] && typeof next[partKey] === 'object' && !Array.isArray(next[partKey])) next[partKey] = { ...next[partKey], initializedByAi: true, source: 'AI初始化' };
     });
@@ -123,7 +125,7 @@ defaultValue(templateKey = '', key = '') {
   },
   markPendingInit(value) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
-    const next = this.clone(value);
+    const next = { ...this.clone(value), pendingAiInit: true, initializedByAi: false, source: '模板占位' };
     Object.keys(next).forEach((partKey) => {
       if (next[partKey] && typeof next[partKey] === 'object' && !Array.isArray(next[partKey])) next[partKey] = { ...next[partKey], pendingAiInit: true, initializedByAi: false, source: '模板占位' };
     });
@@ -135,7 +137,7 @@ ensureTemplateState(templateKey = '', state = {}) {
     let changed = false;
     (template.stateDefaults || []).forEach((def) => {
       const value = this.defaultValue(templateKey, def.key), current = this.get(state.values, def.path);
-      if (current === undefined || current === null) { this.set(state.values, def.path, templateKey === 'intimacyBody' && def.path === 'bodyStatus' ? this.markPendingInit(value) : value); changed = true; }
+      if (current === undefined || current === null) { this.set(state.values, def.path, templateKey === 'intimacyBody' && (def.path === 'bodyStatus' || def.path === 'intimacy') ? this.markPendingInit(value) : value); changed = true; }
       else if (value && typeof value === 'object') changed = this.mergeMissing(current, value) || changed;
     });
     return changed;
