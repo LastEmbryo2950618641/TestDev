@@ -55,7 +55,8 @@ window.GameModules.entryActions = {
       this.entryCalendar = calendar;
       await this.runEntryStage('time', '正在定位默认进入时间并校正角色出生日期。', async () => this.prepareEntryTimeOptions(calendar));
       await this.runEntryStage('action', '正在推演角色当前行动。', async () => this.generateEntryAction('默认进入时机'));
-      await this.runEntryStage('rpg', '正在结合人物资料、当前状态与上下文固化 RPG 数值。', async () => {
+      this.startRoleCardLoadingBatch?.([{ id: this.character.id, name: this.character.name, type: '角色卡', source: this.character, context: this.entryCurrentAction || this.entryTimeLabel() }]);
+      await this.runEntryStage('rpg', '正在生成并固化被控制角色的角色卡与 RPG 数值。', async () => {
         await window.GameModules.entryTime.applyCharacterAge(this);
         await this.ensureRpgForCurrentCharacter({ refresh: true });
       });
