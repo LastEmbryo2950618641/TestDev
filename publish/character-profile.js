@@ -164,6 +164,7 @@ window.GameModules.characterProfile = {
         关系事件区: sections.relationContext(context),
         世界观资料区: sections.worldLore(lore),
         世界字段: sections.worldFields(attrs),
+        角色卡目标作品: this.roleCardPromptTarget(base, store),
         玩家本人目标锁定: this.targetLockText(base),
       };
       const loadingId = base.id;
@@ -245,6 +246,18 @@ window.GameModules.characterProfile = {
     const retryIndex = order.indexOf(retryFromStep);
     const stepIndex = order.indexOf(stepKey);
     return retryIndex > 0 && stepIndex >= 0 && stepIndex < retryIndex;
+  },
+
+  roleCardPromptTarget(base = {}, store = null) {
+    const work = String(base.work || store?.selectedWork || store?.character?.work || '').trim();
+    if (!work || this.isRealWorldRoleCardTarget(work, base)) return '2026 现代都市互动小说';
+    return work;
+  },
+
+  isRealWorldRoleCardTarget(work = '', base = {}) {
+    const realWorld = String(window.GameModules.realWorld2026?.label || '2026 现代都市现实世界').trim();
+    const raw = String(work || '').trim();
+    return base.id === 'player-self' || base.isPlayer || raw === realWorld || /^(原创世界|现实世界|2026\s*现代都市现实世界|2026\s*现代都市互动小说)$/.test(raw);
   },
 
   targetLockText(base = {}) {
