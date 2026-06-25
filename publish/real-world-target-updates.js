@@ -14,6 +14,7 @@ window.GameModules.realWorldTargetUpdates = {
     const groups = [];
     if ((direct.emotions?.length || 0) || (direct.playerFeelings?.length || 0)) groups.push({ target: direct.target || direct.targetId || 'player-self', updates: direct });
     for (const item of Array.isArray(result.characterMetricUpdates) ? result.characterMetricUpdates : []) {
+      if (item?.field && item?.change) continue;
       groups.push({ target: this.targetKey(item), updates: { emotions: item.emotions || [], playerFeelings: item.playerFeelings || [] } });
     }
     return groups;

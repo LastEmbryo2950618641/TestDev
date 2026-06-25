@@ -160,6 +160,21 @@ window.GameModules.updateRegistry = {
       .join('；').slice(0, 240) || String(update.reason || fallback).slice(0, 240);
   },
 
+  displayValue(value) {
+    return value && typeof value === 'object' ? JSON.stringify(value) : (value ?? '');
+  },
+
+  decorateRow(row = {}) {
+    const detailLines = Array.isArray(row.detailLines) ? row.detailLines.filter(Boolean) : [];
+    return {
+      ...row,
+      uiTitle: row.uiTitle || row.field || row.group || row.section || '结算',
+      uiName: row.uiName || row.name || '',
+      uiValue: row.uiValue || this.displayValue(row.value),
+      detailLines,
+    };
+  },
+
   rowFromGeneric(update = {}, store = null) {
     const card = this.cardForChange(update, store);
     const change = update.change || {};
@@ -168,16 +183,17 @@ window.GameModules.updateRegistry = {
     const row = {
       at: new Date().toISOString(), cardId: card.id, cardTitle: card.title, section: card.section,
       field: update.field || update.updateType || '通用更新', name: update.name || this.leafName(update.field) || change.mode || '',
-      value: rawValue && typeof rawValue === 'object' ? JSON.stringify(rawValue) : rawValue,
+      value: this.displayValue(rawValue),
       reason: this.reasonText(update),
       applied: true,
     };
-    return typeof ui?.row === 'function' ? { ...row, ...ui.row(update, store, row) } : row;
+    const patched = typeof ui?.row === 'function' ? { ...row, ...ui.row(update, store, row) } : row;
+    return this.decorateRow(patched);
   },
 
   settlementRows(entry = {}, store = null) {
     return [
-      ...(entry.characterCardChanges || []),
+      ...(entry.characterCardChanges || []).map((item) => this.decorateRow(item)),
       ...((entry.genericUpdates || []).map((item) => this.rowFromGeneric(item, store)).filter(Boolean)),
     ];
   },

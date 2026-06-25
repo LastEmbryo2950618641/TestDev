@@ -783,8 +783,8 @@
                       <div class="real-world-settlement-group">
                         <template x-for="change in group.items" :key="`${change.at}-${change.field}-${change.name}`">
                           <div class="real-world-settlement-row">
-                            <b x-text="change.field"></b>
-                            <span x-text="`${change.name || ''}：${typeof change.value === 'object' ? JSON.stringify(change.value) : change.value}｜理由：${change.reason}`"></span>
+                            <b x-text="change.uiTitle || change.field"></b>
+                            <span x-text="`${change.uiName || change.name || ''}：${change.uiValue ?? (typeof change.value === 'object' ? JSON.stringify(change.value) : change.value)}｜理由：${change.reason}`"></span>
                             <template x-for="line in (change.detailLines || [])" :key="line"><small x-text="line"></small></template>
                           </div>
                         </template>

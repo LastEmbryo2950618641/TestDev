@@ -61,7 +61,20 @@
 
 .real-world-settlement-row {
   display: grid;
-  gap: 2px;
+  gap: 3px;
+  padding: 6px 7px;
+  border: 1px solid rgba(255, 223, 138, .12);
+  border-radius: 8px;
+  background: rgba(8, 12, 22, .24);
+}
+
+.real-world-settlement-row b {
+  color: #ffdf8a;
+  font-size: 12px;
+}
+
+.real-world-settlement-row span {
+  color: #eafcff;
 }
 
 .real-world-settlement-row small {
