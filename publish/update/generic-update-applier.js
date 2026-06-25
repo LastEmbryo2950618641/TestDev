@@ -61,6 +61,7 @@ Object.assign(window.GameModules.updateRegistry, {
   },
 
   applyOne(store, update = {}) {
+    if (update.updateType === 'relationship') return this.applyRelationshipUpdate(store, update);
     const direct = this.targetState(store, update), generic = direct ? null : this.genericTarget(store, update);
     const state = direct || generic?.state, field = String(update.field || '').trim();
     if (!state || !field) return false;
@@ -72,6 +73,56 @@ Object.assign(window.GameModules.updateRegistry, {
     const note = this.notePath(field), reason = this.reasonText(update, '现实推演确认状态变化。');
     if (note) this.set(root, note, this.noteValue(field, next, reason));
     return true;
+  },
+
+  applyRelationshipUpdate(store, update = {}) {
+    const state = this.targetState(store, update);
+    if (!state?.profile) return false;
+    const field = String(update.field || '').trim();
+    if (field === 'profile.relationships') return this.applyRelationshipText(state, update);
+    return this.applyRelationshipEntry(state, update);
+  },
+
+  applyRelationshipText(state, update = {}) {
+    const next = String(this.changeValue(update) || '').trim().slice(0, 1200);
+    if (!next || state.profile.relationships === next) return false;
+    state.profile.relationships = next;
+    state.profile.roleCardUpdatedAt = new Date().toISOString();
+    return true;
+  },
+
+  applyRelationshipEntry(state, update = {}) {
+    const value = this.changeValue(update), mode = update.change?.mode || 'upsert';
+    const relation = String(value?.relation || this.leafName(update.field) || update.name || '关系').trim().slice(0, 60);
+    const name = String(value?.name || value || '').trim().slice(0, 60);
+    const detail = String(value?.detail || value?.summary || this.reasonText(update, '') || '').trim().slice(0, 500);
+    if (!relation || (!name && mode !== 'remove')) return false;
+    const oldText = String(state.profile.relationships || '').trim();
+    const entries = this.relationshipEntriesFromText(oldText);
+    const index = entries.findIndex((item) => item.relation === relation && (!name || item.name === name));
+    if (mode === 'remove') {
+      if (index < 0) return false;
+      entries.splice(index, 1);
+    } else {
+      const next = { relation, name, detail };
+      if (index >= 0) entries[index] = { ...entries[index], ...next, detail: detail || entries[index].detail };
+      else entries.push(next);
+    }
+    const nextText = entries.map((item) => `${item.relation}：${item.name}${item.detail ? `（${item.detail}）` : ''}`).join('；').slice(0, 1200);
+    if (!nextText || nextText === oldText) return false;
+    state.profile.relationships = nextText;
+    state.profile.roleCardUpdatedAt = new Date().toISOString();
+    return true;
+  },
+
+  relationshipEntriesFromText(text = '') {
+    return String(text || '').split(/[；;\n]+/).map((part) => {
+      const raw = String(part || '').trim();
+      if (!raw) return null;
+      const match = raw.match(/^([^：:]+)[：:](.*?)(?:[（(]([^（）()]*)[）)])?$/u);
+      if (!match) return { relation: '关系', name: raw, detail: '' };
+      return { relation: match[1].trim(), name: match[2].trim().replace(/[（(][^（）()]*[）)]$/u, ''), detail: String(match[3] || '').trim() };
+    }).filter(Boolean);
   },
 
   async applyGeneric(store, updates = []) {

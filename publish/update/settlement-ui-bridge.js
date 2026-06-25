@@ -8,6 +8,7 @@ window.GameModules = window.GameModules || {};
     const text = `${row.updateType || ''} ${row.field || ''} ${row.name || ''} ${row.group || ''} ${row.section || ''}`;
     if (/情绪/u.test(text)) return 'emotion';
     if (/感觉/u.test(text)) return 'feeling';
+    if (/人际关系|关系名|relationships?|亲属|恋人|朋友|同事|师生|同居/u.test(text)) return 'relationship';
     if (/生命体征|精力|饱食|水分|疲劳|精神稳定/u.test(text)) return 'vital';
     if (/物品|装备|穿着|购买|转交|丢弃|消耗/u.test(text)) return 'item';
     if (/地图|地点|路线/u.test(text)) return 'map';
