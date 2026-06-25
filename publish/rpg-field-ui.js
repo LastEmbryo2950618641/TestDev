@@ -60,6 +60,7 @@ window.GameModules.rpgFieldUi = {
     const identityRest = identity.filter((field) => !relations.includes(field) && !privateLabels.has(field.label));
     const naturalState = this.profileNaturalStateField(state);
     const dressedState = this.profileDressedStateField(state);
+    const intimacyUi = window.GameModules.initPromptRegistry?.uiFor?.('intimacyBody') || {};
     const intimacyFields = window.GameModules.initPromptRegistry?.fields?.('intimacyBody', state) || [];
     const longing = this.profileLongingField(state);
     const used = new Set(['world_tag', 'age', 'factions', 'force_positions', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'items', 'wearing', 'bodyProfile', 'dressedProfile', 'bodyStatus', 'intimacy', 'status_tags']);
@@ -70,12 +71,22 @@ window.GameModules.rpgFieldUi = {
       { title: '装备与物品', fields: take(['items', 'wearing']) },
       { title: '当前自然状态', fields: naturalState ? [naturalState] : [] },
       { title: '盛装', fields: dressedState ? [dressedState] : [] },
-      { title: '亲密与身体状态', fields: intimacyFields },
       { title: '状态标签', fields: take(['status_tags']) },
       { title: '人际关系', fields: relations },
       { title: '身份信息', fields: [...identityRest, ...(longing ? [longing] : []), ...take(['world_tag', 'age', 'factions', 'force_positions'])] },
     ];
-    return groups.filter((group) => group.fields.length);
+    return this.placeProfileSection(groups, { title: intimacyUi.sectionTitle || '身体状态', fields: intimacyFields }, intimacyUi).filter((group) => group.fields.length);
+  },
+
+  placeProfileSection(groups = [], section = {}, ui = {}) {
+    if (!section.fields?.length || ui.hidden) return groups;
+    const next = groups.slice();
+    const after = ui.afterSection || '身份信息';
+    const before = ui.beforeSection || '';
+    const index = before ? next.findIndex((group) => group.title === before) : next.findIndex((group) => group.title === after);
+    const at = index < 0 ? next.length : (before ? index : index + 1);
+    next.splice(at, 0, section);
+    return next;
   },
 
   profileLongingField(state = {}) {
@@ -227,7 +238,15 @@ window.GameModules.rpgFieldUi = {
     return item?.name || item?.part || (item?.force ? `${item.force} / ${item.position || '成员'}` : (item?.faction ? `${item.faction} / ${item.role || item.position || '成员'}` : '未命名'));
   },
 
-  rpgItemSummary(item) {
+  initUiRow(field, item = null) {
+    const ui = field?.templateKey ? window.GameModules.initPromptRegistry?.uiFor?.(field.templateKey) : null;
+    if (typeof ui?.row !== 'function') return null;
+    return ui.row(field, item);
+  },
+
+  rpgItemSummary(item, field = null) {
+    const row = field?.key === 'bodyStatus' ? this.initUiRow(field, item) : null;
+    if (row) return `${row.name || row.field || '身体状态'}：${row.value || '--'}`;
     const name = this.rpgItemName(item);
     if (typeof item === 'string') return name;
     if (item?.type === '身体原貌' || item?.type === '盛装状态') return `${item.index || ''}.${item.part || name}`;
@@ -280,8 +299,12 @@ window.GameModules.rpgFieldUi = {
       return [`分类: ${obj.name || name}`, `字段: intimacy.sexualExperienceParts.${obj.partKey || 'other'}`, `次数: ${defaults?.formatExperienceSplit?.(obj) || ''}`, `记录提示: ${obj.prompt || defaults?.sexPartPrompts?.other || ''}`, `所属世界: ${field?.worldTag || defaults?.displayTexts?.publicWorld || '公共'}`].join('\n');
     }
     if (kind === '当前身体状态') {
+      const uiRow = this.initUiRow(field, obj);
       const defaults = window.GameModules.initDefaults?.intimacyBody, text = defaults?.displayTexts || {}, values = defaults?.valueDefaults || {};
-      return [`部位: ${obj.part || name}`, `状态: ${obj.status || values.bodyStatus || ''}`, `初始见面: ${obj.initialMeeting || text.noRecord || ''}`, `描述状态: ${obj.description || text.noRecord || ''}`, `变化原因: ${obj.reason || text.currentRecord || ''}`, `更新时间: ${obj.updatedAt || text.noRecord || ''}`, `所属世界: ${field?.worldTag || text.publicWorld || '公共'}`].join('\n');
+      const lines = [`部位: ${uiRow?.name || obj.part || name}`, `状态: ${obj.status || values.bodyStatus || ''}`, `初始见面: ${obj.initialMeeting || text.noRecord || ''}`, `描述状态: ${obj.description || text.noRecord || ''}`];
+      if (Array.isArray(uiRow?.detailLines)) lines.push(...uiRow.detailLines);
+      lines.push(`变化原因: ${obj.reason || text.currentRecord || ''}`, `更新时间: ${obj.updatedAt || text.noRecord || ''}`, `所属世界: ${field?.worldTag || text.publicWorld || '公共'}`);
+      return lines.join('\n');
     }
     const hasLevel = Number(obj?.level) > 0;
     const lines = [`名称: ${name}`, `定义: ${this.learnedDefinition(kind, name, obj, lexicon, info)}`, `类型: ${kind}`, `所属世界: ${field?.worldTag || lexicon?.worldTag || '公共'}`, `词条类型: ${field?.targetType || lexicon?.meta?.targetType || '角色'}`];

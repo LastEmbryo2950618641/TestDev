@@ -3,6 +3,14 @@ window.GameModules = window.GameModules || {};
 window.GameModules.initPromptRegistry = {
   prompts: {},
   executed: {},
+  ui: {},
+registerUi(templateKey, ui = {}) {
+    if (!templateKey || !ui) return;
+    this.ui[templateKey] = { ...(this.ui[templateKey] || {}), ...ui };
+  },
+uiFor(templateKey = '') {
+    return this.ui[templateKey] || {};
+  },
 loadExecuted(store = null) {
     const saved = store?.playerIdentityState?.()?.values?.initPromptExecuted;
     if (saved && typeof saved === 'object') this.executed = { ...this.executed, ...saved };
@@ -142,7 +150,7 @@ fields(templateKey = '', state = {}) {
     const initial = template.initialMeeting?.() || {}, p = state.profile || {}, base = { stateId: state.id || '', worldTag: p.work || state.worldTag || '原创世界', targetType: p.isPlayer ? '非角色' : '角色', commonField: true };
     return (template.uiFieldDefs || []).map((def) => {
       const meta = template.fieldMeta?.[def.meta] || {}, shown = this.fieldRows(template, def, this.get(state.values, def.path), this.get(initial, def.initialPath));
-      return { key: def.key, ...meta, ...base, ...shown, reason: this.get(state.values, `${def.path}.reason`) || this.get(state.values, 'intimacy.reason') || meta.reasonFallback || '' };
+      return { key: def.key, templateKey, ...meta, ...base, ...shown, reason: this.get(state.values, `${def.path}.reason`) || this.get(state.values, 'intimacy.reason') || meta.reasonFallback || '' };
     });
   },
 registerAll(prefix = '') { this.prompts = {}; Object.entries(window.GameModules.initPromptSources || {}).forEach(([key, source]) => { if (!prefix || String(key).startsWith(prefix)) this.register(key, source); }); },
