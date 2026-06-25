@@ -140,8 +140,18 @@ window.GameModules.updateRegistry = {
 
   cardForChange(change = {}, store = null) {
     const type = this.typeForChange(change);
-    if (type?.card) return type.card(change, store);
-    return this.defaultCard(change, store);
+    const card = type?.card ? type.card(change, store) : this.defaultCard(change, store);
+    return this.normalizeCard(card, change, store);
+  },
+
+  normalizeCard(card = {}, change = {}, store = null) {
+    if (card.section !== '角色卡' && !String(card.id || '').startsWith('role:')) return card;
+    const subject = change.subject || {};
+    const rawId = subject.characterId || subject.playerId || subject.id || String(card.id || '').replace(/^role:/, '') || change.target || '';
+    const state = store?.itemSkillState?.(rawId) || (rawId === 'player-self' ? store?.playerIdentityState?.() : null);
+    if (!state?.id) return card;
+    const title = store?.itemSkillStateLabel?.(state) || subject.name || card.title || state.id;
+    return { ...card, id: `role:${state.id}`, title, section: '角色卡' };
   },
 
   defaultCard(change = {}, store = null) {

@@ -144,7 +144,7 @@ window.GameModules.realWorldActions = {
   },
 
   async applyRealWorldResult(id, result) {
-    result = window.GameModules.updateRegistry?.expandGenericForLegacy?.(result) || result;
+    result = window.GameModules.updateRegistry?.expandGenericForLegacy?.(result, this) || result;
     const state = this.playerIdentityState?.();
     const settlement = [];
     settlement.push(...await window.GameModules.realWorldTargetUpdates.applyMetrics(this, result));

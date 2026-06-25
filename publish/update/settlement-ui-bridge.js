@@ -67,9 +67,9 @@ window.GameModules = window.GameModules || {};
       ...rendered,
       at: source.at || rendered.at,
       group: source.group || rendered.group,
-      cardId: source.cardId || rendered.cardId,
-      cardTitle: source.cardTitle || rendered.cardTitle,
-      section: source.section || rendered.section,
+      cardId: rendered.cardId,
+      cardTitle: rendered.cardTitle,
+      section: rendered.section || source.section,
       applied: source.applied !== undefined ? source.applied : rendered.applied,
     });
   };
