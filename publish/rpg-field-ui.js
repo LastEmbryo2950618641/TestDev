@@ -298,17 +298,21 @@ window.GameModules.rpgFieldUi = {
     return levelName;
   },
 
+  sexPartTemplate(defaults = null) {
+    return defaults || window.GameModules.initDefaults?.intimacyBody || window.GameModules.initTemplateSources?.intimacyBody || {};
+  },
+
   sexPartKey(obj = {}, defaults = null) {
-    const template = defaults || window.GameModules.initDefaults?.intimacyBody || window.GameModules.initTemplateSources?.intimacyBody || {};
+    const template = this.sexPartTemplate(defaults);
     const prompts = template.sexPartPrompts || {}, labels = template.sexPartLabels || {};
-    const names = [obj.partKey, obj.name, obj.label, obj.value].map((x) => String(x || '').trim()).filter(Boolean);
+    const names = [obj.partKey, obj.key, obj.name, obj.label, obj.value, obj.raw].map((x) => String(x || '').trim()).filter(Boolean);
     const direct = names.find((name) => prompts[name]);
     const byLabel = Object.entries(labels).find(([key, label]) => names.some((name) => name === label || name.includes(label) || label.includes(name) || name.includes(key)))?.[0];
     return direct || byLabel || 'other';
   },
 
   sexPartPrompt(obj = {}, defaults = null) {
-    const template = defaults || window.GameModules.initDefaults?.intimacyBody || window.GameModules.initTemplateSources?.intimacyBody || {};
+    const template = this.sexPartTemplate(defaults);
     const key = this.sexPartKey(obj, template);
     return obj.prompt || template.sexPartPrompts?.[key] || template.sexPartPrompts?.other || '该分类暂无次数增加标准。';
   },
@@ -344,7 +348,7 @@ window.GameModules.rpgFieldUi = {
     const exp = obj?.exp || {};
     const statName = { strength: '力量', agility: '敏捷', constitution: '体质', intelligence: '智力', perception: '感知', willpower: '意志', charisma: '魅力' };
     const linkedStats = (info.intrinsicStats || obj?.linkedStats || []).map((x) => statName[x] || x);
-    const kind = obj?.type || this.lexiconKind(field, obj);
+    const kind = field?.key === 'sexualExperienceParts' ? '性经验分类' : (obj?.type || this.lexiconKind(field, obj));
     const name = this.rpgItemName(obj) || field?.label || '未知';
     if (kind === '身体原貌' || kind === '盛装状态') return [`部位: ${name}`, `序号: ${obj.index || '未记录'}`, `所属世界: ${field?.worldTag || '公共'}`, `词条类型: ${field?.targetType || '角色'}`, `当前依据: ${field?.reason || (kind === '盛装状态' ? '来自角色卡 Part6 盛装状态生成结果。' : '来自角色卡 Part5 身体原貌生成结果。')}`].join('\n');
     if (kind === '性经验分类') {
