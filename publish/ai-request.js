@@ -61,7 +61,7 @@ window.GameModules.aiRequest = {
     if (value === undefined || value === null) return undefined;
     const tokens = Math.floor(Number(value));
     if (!Number.isFinite(tokens)) return undefined;
-    return Math.max(200, Math.min(12000, tokens));
+    return Math.max(200, Math.min(3000, tokens));
   },
 
   countSource(source) {

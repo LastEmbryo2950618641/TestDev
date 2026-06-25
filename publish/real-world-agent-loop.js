@@ -373,8 +373,8 @@ window.GameModules.realWorldAgentLoop = {
         prompt,
         timeoutMs: 240000,
         requireDone: true,
-        maxTokens: streamToUi ? 10000 : 5000,
-        outputLengthThreshold: streamToUi ? 9000 : 4200,
+        maxTokens: 3000,
+        outputLengthThreshold: 2600,
         maxAttempts: 2,
         onChunk: async (chunk, done, info) => {
           if (requestId !== window.GameModules.realWorldAi.latestRequestId) return;
