@@ -351,3 +351,35 @@
 @keyframes realWorldSpin {
   to { transform: rotate(360deg); }
 }
+
+/* Generated phone desktop app icons */
+.desktop-app-icon .app-glyph {
+  width: 58px;
+  height: 58px;
+  display: block;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .34);
+  border-radius: 18px;
+  background-color: rgba(255, 255, 255, .18);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  box-shadow: 0 10px 22px rgba(8, 10, 24, .34), inset 0 1px 0 rgba(255, 255, 255, .2);
+  font-size: 0;
+  color: transparent;
+}
+.control-icon .app-glyph { background-image: url('./assets/generated/control-app-icon.ca4c2fd0.webp'); }
+.identity-icon .app-glyph { background-image: url('./assets/generated/identity-app-icon.e8664e9c.webp'); }
+.wechat-icon .app-glyph { background-image: url('./assets/generated/chat-app-icon.40ea8f75.webp'); }
+.company-icon .app-glyph { background-image: url('./assets/generated/company-app-icon.ce936b25.webp'); }
+.boss-icon .app-glyph { background-image: url('./assets/generated/job-app-icon.eb27aa84.webp'); }
+.calendar-icon .app-glyph { background-image: url('./assets/generated/calendar-app-icon.a193538a.webp'); }
+.faction-icon .app-glyph { background-image: url('./assets/generated/faction-app-icon.76d28cc5.webp'); }
+.skills-icon .app-glyph { background-image: url('./assets/generated/skills-app-icon.a8e1b7b2.webp'); }
+.prompt-icon .app-glyph { background-image: url('./assets/generated/prompt-app-icon.23087ae3.webp'); }
+.token-icon .app-glyph { background-image: url('./assets/generated/token-stats-app-icon.9d0d613b.webp'); }
+.profession-icon .app-glyph { background-image: url('./assets/generated/profession-app-icon.bcccfa43.webp'); }
+.taobao-icon .app-glyph { background-image: url('./assets/generated/shopping-app-icon.a69780e6.webp'); }
+.save-icon .app-glyph { background-image: url('./assets/generated/save-app-icon.3a079568.webp'); }
+.worldline-icon .app-glyph { background-image: url('./assets/generated/worldline-app-icon.fc1e460f.webp'); }
+.settings-icon .app-glyph { background-image: url('./assets/generated/settings-app-icon.10f83d80.webp'); }

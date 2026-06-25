@@ -3,110 +3,6 @@
   "createdAt": "2026-06-25T10:20:40Z",
   "assets": [
     {
-      "name": "control-app-icon",
-      "status": "success",
-      "path": "publish/assets/generated/control-app-icon.5588786f.webp",
-      "contentHash": "5588786f",
-      "revisedPrompt": "Front-facing rounded-square mobile app icon, glossy glassmorphism, dark modern supernatural RPG aesthetic, high contrast neon gradients, soft rim light, polished 3D pictogram, centered and readable at 54px. Subject: a glossy rounded-square mobile app icon showing a dark marionette control sigil: thin silver puppet strings converging into a cyan and magenta neural knot, ominous supernatural RPG mood, neon glassmorphism, centered pictogram, no letters. Clean, crisp edges, icon isolated. Background must be a single solid uniform #00B140 chroma key green filling all pixels not occupied by the icon, absolutely flat with no gradient, no shadow, no texture, no scenery, no ground, no decoration, no environmental elements outside the icon. No text, no logo, no watermark.",
-      "model": "gpt-image-2",
-      "size": "1254x1254",
-      "wantsTransparent": true,
-      "chromaKey": {
-        "color": "#00B140",
-        "alphaZeroPct": 48.7,
-        "edgeGreenBiasPct": 0,
-        "verdict": "PASS"
-      },
-      "outputFormat": "webp",
-      "compressionProfile": "lossy_q85_alpha",
-      "originalBytes": 1660163,
-      "finalBytes": 116506,
-      "usage": {
-        "inputTokens": 170,
-        "outputImageTokens": 2058
-      },
-      "traceId": "trace_mqtcq1nq_cj84tyxj",
-      "createdAt": "2026-06-25T10:21:41Z"
-    },
-    {
-      "name": "identity-app-icon",
-      "status": "success",
-      "path": "publish/assets/generated/identity-app-icon.00a24e8f.webp",
-      "contentHash": "00a24e8f",
-      "revisedPrompt": "Front-facing rounded-square mobile app icon, glossy glassmorphism, dark modern supernatural RPG phone desktop aesthetic, high-contrast neon gradients, soft rim light, polished 3D pictogram. Centered subject: a clean identity card silhouette with a small portrait circle and security chip lines, teal-blue neon glassmorphism, readable at 54px size, no letters, no numbers, no brand marks, no real company logos, no watermark. The icon itself should have a transparent cutout feel around a rounded-square silhouette, as if isolated after chroma key removal. Place the icon on a perfectly uniform solid chroma-key green background #00B140 filling 100% of all pixels not occupied by the icon. Absolutely no gradient, no shadow, no texture, no scenery, no ground, no decoration, no environmental elements outside the icon. Pure flat #00B140 background only.",
-      "model": "gpt-image-2",
-      "size": "1254x1254",
-      "wantsTransparent": true,
-      "chromaKey": {
-        "color": "#00B140",
-        "alphaZeroPct": 46.8,
-        "edgeGreenBiasPct": 0,
-        "verdict": "PASS"
-      },
-      "outputFormat": "webp",
-      "compressionProfile": "lossy_q85_alpha",
-      "originalBytes": 1471723,
-      "finalBytes": 66698,
-      "usage": {
-        "inputTokens": 185,
-        "outputImageTokens": 2058
-      },
-      "traceId": "trace_mqtcrd1f_tdyxr5sy",
-      "createdAt": "2026-06-25T10:22:42Z"
-    },
-    {
-      "name": "chat-app-icon",
-      "status": "success",
-      "path": "publish/assets/generated/chat-app-icon.70e41698.webp",
-      "contentHash": "70e41698",
-      "revisedPrompt": "Front-facing rounded-square mobile app icon, glossy glassmorphism, dark modern supernatural RPG phone desktop aesthetic, high contrast neon gradients, soft rim light, polished 3D pictogram, centered and readable at 54px size. Subject: a glossy rounded-square app icon showing two overlapping speech bubbles with subtle pulse dots, green-cyan neon glassmorphism, modern phone messenger feeling, no letters, no numbers, no brand marks, no logos. The icon should appear as a transparent cutout after chroma key removal, with crisp edges and a subtle 3D polished finish. Place strictly on a SOLID UNIFORM #00B140 chroma key flat color background filling 100% of pixels not occupied by the icon. No gradient in the background, no shadow outside the icon, no texture, no scenery, no ground, no decoration, no environmental elements outside the icon, pure flat color background exactly like a green screen for VFX compositing. No watermark.",
-      "model": "gpt-image-2",
-      "size": "1254x1254",
-      "wantsTransparent": true,
-      "chromaKey": {
-        "color": "#00B140",
-        "alphaZeroPct": 55.3,
-        "edgeGreenBiasPct": 0,
-        "verdict": "PASS"
-      },
-      "outputFormat": "webp",
-      "compressionProfile": "lossy_q85_alpha",
-      "originalBytes": 1371502,
-      "finalBytes": 175176,
-      "usage": {
-        "inputTokens": 202,
-        "outputImageTokens": 229
-      },
-      "traceId": "trace_mqtcsnrr_sck5s03o",
-      "createdAt": "2026-06-25T10:23:34Z"
-    },
-    {
-      "name": "company-app-icon",
-      "status": "success",
-      "path": "publish/assets/generated/company-app-icon.396e2dc9.webp",
-      "contentHash": "396e2dc9",
-      "revisedPrompt": "Front-facing rounded-square mobile app icon, glossy glassmorphism, dark modern supernatural RPG phone desktop aesthetic, high-contrast neon gradients, soft rim light, polished 3D pictogram. Subject: a centered glossy rounded-square icon depicting a modern office tower silhouette with lit windows and a small briefcase mark, cobalt and violet neon glassmorphism, clean readable shapes optimized for 54px size, no letters, no text, no numbers, no brand marks, no real company logos, no watermark. The icon should appear as a transparent cutout around the rounded-square icon after chroma key removal, with crisp edges and polished depth. Strictly place the icon on a SOLID UNIFORM #00B140 chroma key flat color background filling 100% of the remaining pixels. No gradient in the background, no shadow outside the icon, no texture, no scenery, no ground, no decoration, no environmental elements outside the icon.",
-      "model": "gpt-image-2",
-      "size": "1254x1254",
-      "wantsTransparent": true,
-      "chromaKey": {
-        "color": "#00B140",
-        "alphaZeroPct": 49.6,
-        "edgeGreenBiasPct": 0,
-        "verdict": "PASS"
-      },
-      "outputFormat": "webp",
-      "compressionProfile": "lossy_q85_alpha",
-      "originalBytes": 1441907,
-      "finalBytes": 75504,
-      "usage": {
-        "inputTokens": 195,
-        "outputImageTokens": 229
-      },
-      "traceId": "trace_mqtctriq_1bbbk96m",
-      "createdAt": "2026-06-25T10:24:04Z"
-    },
-    {
       "name": "recruitment-app-icon",
       "status": "success",
       "path": "publish/assets/generated/recruitment-app-icon.b82b4a8f.webp",
@@ -133,135 +29,395 @@
       "createdAt": "2026-06-25T10:25:07Z"
     },
     {
-      "name": "calendar-app-icon",
+      "name": "control-app-icon",
       "status": "success",
-      "path": "publish/assets/generated/calendar-app-icon.efe595cf.webp",
-      "contentHash": "efe595cf",
-      "revisedPrompt": "Front-facing rounded-square mobile app icon, glossy glassmorphism, dark modern supernatural RPG phone desktop aesthetic, high contrast neon gradients, soft rim light, polished 3D pictogram. The icon should show a centered calendar page with a glowing clock ring, coral and blue neon glassmorphism, readable at 54px size, no numbers, no letters, no text, no brand marks, no logos, no watermark. The icon itself should have a transparent cutout edge as if isolated after chroma key removal. Place the icon strictly on a SOLID UNIFORM #00B140 chroma key flat color background that fills every pixel outside the icon. No gradient in the background, no shadow outside the icon, no texture, no scenery, no ground, no decoration, no environmental elements outside the icon.",
+      "path": "publish/assets/generated/control-app-icon.ca4c2fd0.webp",
+      "contentHash": "ca4c2fd0",
+      "revisedPrompt": "Rounded square mobile game app icon for a supernatural mind-control RPG, glossy neon glassmorphism, deep violet and cyan gradient tile, centered abstract puppet strings and glowing command sigil pictogram, dramatic but elegant, high contrast, front-facing icon, no text. Strictly placed on a SOLID UNIFORM #FF00FF chroma key flat color background. The background is a single uniform shade of #FF00FF chroma key magenta that fills 100% of pixels not occupied by the icon. No gradient, no shadow, no texture, no scenery, no ground, no decoration, no environmental elements in the background. Pure flat color background, exactly like a green screen used for VFX compositing. No text, no letters, no numbers, no logo, no watermark. Do not use pure magenta inside the icon artwork.",
       "model": "gpt-image-2",
       "size": "1254x1254",
       "wantsTransparent": true,
       "chromaKey": {
-        "color": "#00B140",
-        "alphaZeroPct": 47.8,
+        "color": "#FF00FF",
+        "alphaZeroPct": 52.9,
         "edgeGreenBiasPct": 0,
         "verdict": "PASS"
       },
       "outputFormat": "webp",
       "compressionProfile": "lossy_q85_alpha",
-      "originalBytes": 1460980,
-      "finalBytes": 78452,
+      "originalBytes": 1540507,
+      "finalBytes": 89572,
       "usage": {
-        "inputTokens": 169,
+        "inputTokens": 176,
+        "outputImageTokens": 515
+      },
+      "traceId": "trace_mqtpd5sn_r24t1hc0",
+      "createdAt": "2026-06-25T16:15:17Z"
+    },
+    {
+      "name": "identity-app-icon",
+      "status": "success",
+      "path": "publish/assets/generated/identity-app-icon.e8664e9c.webp",
+      "contentHash": "e8664e9c",
+      "revisedPrompt": "Rounded square mobile app icon for an identity profile card, glossy neon glassmorphism, teal blue gradient tile, centered clean ID card silhouette with a small portrait circle and subtle verification shimmer, modern UI pictogram, minimal, crisp edges, no text. The icon itself should occupy a rounded-square shape with polished translucent highlights and a teal-to-blue gradient, with no pure magenta anywhere inside the icon artwork. Place the icon strictly on a SOLID UNIFORM #FF00FF chroma key flat color background filling all remaining pixels. Background must be completely flat #FF00FF with no gradient, no shadow, no texture, no scenery, no ground, no decoration, no environmental elements. No text, no letters, no numbers, no logo, no watermark.",
+      "model": "gpt-image-2",
+      "size": "1254x1254",
+      "wantsTransparent": true,
+      "chromaKey": {
+        "color": "#FF00FF",
+        "alphaZeroPct": 48.1,
+        "edgeGreenBiasPct": 0,
+        "verdict": "PASS"
+      },
+      "outputFormat": "webp",
+      "compressionProfile": "lossy_q85_alpha",
+      "originalBytes": 1409657,
+      "finalBytes": 48990,
+      "usage": {
+        "inputTokens": 159,
+        "outputImageTokens": 915
+      },
+      "traceId": "trace_mqtpe315_0rcyi7ny",
+      "createdAt": "2026-06-25T16:15:59Z"
+    },
+    {
+      "name": "chat-app-icon",
+      "status": "success",
+      "path": "publish/assets/generated/chat-app-icon.40ea8f75.webp",
+      "contentHash": "40ea8f75",
+      "revisedPrompt": "Rounded square mobile app icon for a private messaging app, glossy neon glassmorphism style. Centered icon: overlapping speech bubbles with subtle heartbeat glow, modern UI pictogram, clean high-contrast design. Color palette: emerald and cyan gradient tile with luminous glass highlights; do not use pure magenta anywhere inside the icon artwork. The icon should be isolated on a SOLID UNIFORM #FF00FF chroma key flat color background filling the entire canvas outside the icon. Background must be exactly one flat magenta shade, no gradient, no shadow, no texture, no scenery, no ground, no decoration, no environmental elements. No text, no letters, no numbers, no logo, no watermark.",
+      "model": "gpt-image-2",
+      "size": "1254x1254",
+      "wantsTransparent": true,
+      "chromaKey": {
+        "color": "#FF00FF",
+        "alphaZeroPct": 52.4,
+        "edgeGreenBiasPct": 0,
+        "verdict": "PASS"
+      },
+      "outputFormat": "webp",
+      "compressionProfile": "lossy_q85_alpha",
+      "originalBytes": 1339617,
+      "finalBytes": 53740,
+      "usage": {
+        "inputTokens": 148,
         "outputImageTokens": 2058
       },
-      "traceId": "trace_mqtcvrrh_25syu658",
-      "createdAt": "2026-06-25T10:26:03Z"
+      "traceId": "trace_mqtpeze6_0xfss79d",
+      "createdAt": "2026-06-25T16:16:57Z"
+    },
+    {
+      "name": "company-app-icon",
+      "status": "success",
+      "path": "publish/assets/generated/company-app-icon.ce936b25.webp",
+      "contentHash": "ce936b25",
+      "revisedPrompt": "Rounded square mobile app icon for a company office system, glossy neon glassmorphism, navy and gold gradient tile, centered skyscraper office building with small briefcase silhouette, modern UI pictogram, no text. The icon should be isolated on a SOLID UNIFORM #FF00FF chroma key flat color background, filling all non-icon pixels exactly with pure flat magenta (#FF00FF), with no gradient, no shadow, no texture, no scenery, no ground, no decoration, no environmental elements. Pure flat chroma key background for VFX compositing. Ensure no pure magenta is used inside the icon artwork itself. Clean, crisp, centered composition.",
+      "model": "gpt-image-2",
+      "size": "1254x1254",
+      "wantsTransparent": true,
+      "chromaKey": {
+        "color": "#FF00FF",
+        "alphaZeroPct": 61.5,
+        "edgeGreenBiasPct": 0,
+        "verdict": "PASS"
+      },
+      "outputFormat": "webp",
+      "compressionProfile": "lossy_q85_alpha",
+      "originalBytes": 1290717,
+      "finalBytes": 65084,
+      "usage": {
+        "inputTokens": 141,
+        "outputImageTokens": 2058
+      },
+      "traceId": "trace_mqtpg8mf_lnbv13px",
+      "createdAt": "2026-06-25T16:17:55Z"
+    },
+    {
+      "name": "job-app-icon",
+      "status": "success",
+      "path": "publish/assets/generated/job-app-icon.eb27aa84.webp",
+      "contentHash": "eb27aa84",
+      "revisedPrompt": "A rounded-square mobile app icon for job recruitment, glossy neon glassmorphism style. Centered pictogram combining a briefcase and handshake symbol, professional modern UI icon design, clean vector-like edges, elegant orange-to-purple gradient tile, subtle highlights and depth, no text. The icon must be placed strictly on a SOLID UNIFORM #FF00FF chroma key flat color background that fills the entire canvas outside the icon. Background must be a single flat magenta shade #FF00FF with absolutely no gradient, no shadow, no texture, no scenery, no ground, no decoration, no environmental elements. Pure flat chroma key background exactly. Do not use pure magenta inside the icon artwork; keep the icon in orange, purple, white, dark neutral, and glassy translucent accents only. No letters, no numbers, no logo, no watermark.",
+      "model": "gpt-image-2",
+      "size": "1254x1254",
+      "wantsTransparent": true,
+      "chromaKey": {
+        "color": "#FF00FF",
+        "alphaZeroPct": 51.1,
+        "edgeGreenBiasPct": 0,
+        "verdict": "PASS"
+      },
+      "outputFormat": "webp",
+      "compressionProfile": "lossy_q85_alpha",
+      "originalBytes": 1431249,
+      "finalBytes": 69264,
+      "usage": {
+        "inputTokens": 180,
+        "outputImageTokens": 2058
+      },
+      "traceId": "trace_mqtphh7w_o4sbnson",
+      "createdAt": "2026-06-25T16:18:58Z"
+    },
+    {
+      "name": "calendar-app-icon",
+      "status": "success",
+      "path": "publish/assets/generated/calendar-app-icon.a193538a.webp",
+      "contentHash": "a193538a",
+      "revisedPrompt": "Create a centered rounded-square mobile app icon for calendar and schedule, in glossy neon glassmorphism style. The icon itself should be a sunrise orange and blue gradient tile with a modern UI pictogram: a centered calendar page combined with a clock ring symbol, clean and minimal, no text, no letters, no numbers, no logo, no watermark. The icon should have a premium glassy glossy finish, subtle reflections, and crisp edges, but do NOT use pure magenta anywhere inside the icon artwork. Place the icon strictly on a SOLID UNIFORM #FF00FF chroma key flat color background that fills all pixels not occupied by the icon. The background must be exactly one flat magenta shade, with no gradient, no shadow, no texture, no scenery, no ground, no decoration, no environmental elements. Pure flat color background, VFX green-screen style composition.",
+      "model": "gpt-image-2",
+      "size": "1254x1254",
+      "wantsTransparent": true,
+      "chromaKey": {
+        "color": "#FF00FF",
+        "alphaZeroPct": 60.3,
+        "edgeGreenBiasPct": 0,
+        "verdict": "PASS"
+      },
+      "outputFormat": "webp",
+      "compressionProfile": "lossy_q85_alpha",
+      "originalBytes": 1249663,
+      "finalBytes": 52994,
+      "usage": {
+        "inputTokens": 183,
+        "outputImageTokens": 2058
+      },
+      "traceId": "trace_mqtpitxz_gx8b0sw1",
+      "createdAt": "2026-06-25T16:19:58Z"
     },
     {
       "name": "faction-app-icon",
       "status": "success",
-      "path": "publish/assets/generated/faction-app-icon.92f9d808.webp",
-      "contentHash": "92f9d808",
-      "revisedPrompt": "Front-facing rounded-square mobile app icon, glossy glassmorphism, dark modern supernatural RPG phone desktop aesthetic, high contrast neon gradients, soft rim light, polished 3D pictogram. Subject: a glossy rounded-square app icon showing three connected faction banners around a central node, with red, violet, and gold neon glassmorphism, centered pictogram, no letters. Keep the icon highly readable at 54px size. No brand marks, no real company logos, no text, no letters, no numbers, no watermark. Place the icon centered on a SOLID UNIFORM #00B140 chroma key flat color background filling 100% of pixels not occupied by the icon. The background must be a single uniform shade of #00B140 green screen, no gradient, no shadow, no texture, no scenery, no ground, no decoration, no environmental elements outside the icon. Pure flat color background, exactly like a green screen used for VFX compositing.",
+      "path": "publish/assets/generated/faction-app-icon.76d28cc5.webp",
+      "contentHash": "76d28cc5",
+      "revisedPrompt": "Create a centered mobile app icon design on a pure flat chroma key background. The background must be a single uniform solid #FF00FF magenta filling all pixels outside the icon, with no gradient, no shadow, no texture, no scenery, no ground, no decoration, and no other elements. The icon itself: a rounded square glossy neon glassmorphism tile with a crimson-to-indigo gradient, subtle glass highlights, modern premium finish. Inside the tile, place a centered strategy archive pictogram: a shield at the core with a network of connected nodes and thin linking lines around it, evoking factions and organizations. Clean vector-like geometry, balanced symmetry, crisp edges, polished app-icon composition. No text, no letters, no numbers, no watermark, no logo. Do not use pure magenta anywhere inside the icon artwork.",
       "model": "gpt-image-2",
       "size": "1254x1254",
       "wantsTransparent": true,
       "chromaKey": {
-        "color": "#00B140",
-        "alphaZeroPct": 65.3,
+        "color": "#FF00FF",
+        "alphaZeroPct": 55.7,
         "edgeGreenBiasPct": 0,
         "verdict": "PASS"
       },
       "outputFormat": "webp",
       "compressionProfile": "lossy_q85_alpha",
-      "originalBytes": 1440882,
-      "finalBytes": 78412,
+      "originalBytes": 1514274,
+      "finalBytes": 83808,
       "usage": {
-        "inputTokens": 202,
-        "outputImageTokens": 515
+        "inputTokens": 174,
+        "outputImageTokens": 2058
       },
-      "traceId": "trace_mqtcwykh_plrsarqt",
-      "createdAt": "2026-06-25T10:26:35Z"
+      "traceId": "trace_mqtpk40u_7sx8ayqa",
+      "createdAt": "2026-06-25T16:21:00Z"
     },
     {
       "name": "skills-app-icon",
       "status": "success",
-      "path": "publish/assets/generated/skills-app-icon.4a224a3b.webp",
-      "contentHash": "4a224a3b",
-      "revisedPrompt": "Front-facing rounded-square mobile app icon, glossy glassmorphism, dark modern supernatural RPG aesthetic, high contrast neon gradients, soft rim light, polished 3D pictogram. Subject: a centered skill tree constellation with branching nodes and a small spark, cyan and emerald neon glassmorphism, readable at 54px, no letters. The icon itself should be a rounded-square with a transparent cutout/isolated presentation against a uniform flat chroma key background. Strictly place the icon on a SOLID UNIFORM #00B140 background that fills 100% of pixels not occupied by the icon. No gradient in the background, no shadow outside the icon, no texture, no scenery, no ground, no decoration, no environmental elements outside the icon. Pure flat color background, exactly like a green screen for VFX compositing. No brand marks, no real company logos, no text, no letters, no numbers, no watermark.",
+      "path": "publish/assets/generated/skills-app-icon.a8e1b7b2.webp",
+      "contentHash": "a8e1b7b2",
+      "revisedPrompt": "Rounded square mobile app icon for skills and abilities, glossy neon glassmorphism, electric blue and violet gradient tile, centered radiant skill tree branching upward from a star core, modern RPG pictogram, no text. Strictly on a SOLID UNIFORM #FF00FF chroma key flat color background filling 100% of pixels not occupied by the icon. Background must be a single uniform shade of #FF00FF magenta with no gradient, no shadow, no texture, no scenery, no ground, no decoration, no environmental elements. Pure flat chroma key background like a VFX green screen. Icon artwork must not use pure magenta anywhere inside it. No letters, numbers, logo, watermark.",
       "model": "gpt-image-2",
       "size": "1254x1254",
       "wantsTransparent": true,
       "chromaKey": {
-        "color": "#00B140",
-        "alphaZeroPct": 65.8,
+        "color": "#FF00FF",
+        "alphaZeroPct": 51.5,
         "edgeGreenBiasPct": 0,
         "verdict": "PASS"
       },
       "outputFormat": "webp",
       "compressionProfile": "lossy_q85_alpha",
-      "originalBytes": 1413729,
-      "finalBytes": 111886,
+      "originalBytes": 1606282,
+      "finalBytes": 119142,
       "usage": {
-        "inputTokens": 196,
+        "inputTokens": 149,
         "outputImageTokens": 2058
       },
-      "traceId": "trace_mqtcxngs_wa1g6gm8",
-      "createdAt": "2026-06-25T10:27:34Z"
+      "traceId": "trace_mqtplg1p_b5w5nrxg",
+      "createdAt": "2026-06-25T16:21:57Z"
     },
     {
       "name": "prompt-app-icon",
       "status": "success",
-      "path": "publish/assets/generated/prompt-app-icon.2aca2052.webp",
-      "contentHash": "2aca2052",
-      "revisedPrompt": "Front-facing rounded-square mobile app icon, glossy glassmorphism, dark modern supernatural RPG aesthetic, high contrast neon gradients, soft rim light, polished 3D pictogram. Centered subject inside the icon: a glossy rounded-square app icon depicting a magic prompt scroll and a command cursor sparkle, violet and pink neon glassmorphism, highly readable at 54px size, no letters, no numbers, no brand marks. The icon should have a clean transparent cutout silhouette around the rounded-square shape as if prepared for chroma key removal. Place the icon strictly on a SOLID UNIFORM #00B140 chroma key flat color background filling the entire canvas outside the icon. No gradient, no shadow, no texture, no scenery, no ground, no decoration, no environmental elements outside the icon. Pure flat green screen background exactly #00B140. No text, no logo, no watermark.",
+      "path": "publish/assets/generated/prompt-app-icon.23087ae3.webp",
+      "contentHash": "23087ae3",
+      "revisedPrompt": "Create a clean mobile app icon on a strictly solid uniform #FF00FF chroma key background filling the entire canvas outside the icon, with no gradient, no texture, no scenery, no shadow in the background, and no extra elements. The icon itself should be a rounded square, centered, glossy neon glassmorphism style, with a purple-to-pink gradient tile and subtle luminous depth, but do NOT use pure magenta inside the icon artwork. In the center, place an abstract magic scroll combined with command spark brackets as modern UI pictogram shapes, no letters, no numbers, no text, no logo, no watermark. The icon should feel sleek, modern, app-store-ready, high contrast, polished, and easily readable at small sizes.",
       "model": "gpt-image-2",
       "size": "1254x1254",
       "wantsTransparent": true,
       "chromaKey": {
-        "color": "#00B140",
-        "alphaZeroPct": 54.8,
+        "color": "#FF00FF",
+        "alphaZeroPct": 46.2,
         "edgeGreenBiasPct": 0,
         "verdict": "PASS"
       },
       "outputFormat": "webp",
       "compressionProfile": "lossy_q85_alpha",
-      "originalBytes": 1491622,
-      "finalBytes": 78388,
+      "originalBytes": 1390040,
+      "finalBytes": 69690,
       "usage": {
-        "inputTokens": 188,
-        "outputImageTokens": 915
+        "inputTokens": 157,
+        "outputImageTokens": 2058
       },
-      "traceId": "trace_mqtcywzr_0205fv7y",
-      "createdAt": "2026-06-25T10:28:11Z"
+      "traceId": "trace_mqtpmniu_q650izrn",
+      "createdAt": "2026-06-25T16:23:06Z"
     },
     {
       "name": "token-stats-app-icon",
       "status": "success",
-      "path": "publish/assets/generated/token-stats-app-icon.0b4f6cd8.webp",
-      "contentHash": "0b4f6cd8",
-      "revisedPrompt": "Front-facing rounded-square mobile app icon, glossy glassmorphism, dark modern supernatural RPG phone desktop aesthetic, high contrast neon gradients, soft rim light, polished 3D pictogram. Centered icon only: a glossy rounded-square app tile containing stacked luminous tokens and an analytics gauge arc, amber and cyan neon glassmorphism, readable at 54px size, no letters or numbers. Strong transparent cutout around the rounded-square icon as if isolated after chroma key removal. Place the icon strictly on a SOLID UNIFORM #00B140 chroma key flat color background that fills 100% of pixels not occupied by the icon. No gradient, no shadow, no texture, no scenery, no ground, no decoration, no environmental elements outside the icon. Pure flat color background, exactly like a green screen used for VFX compositing. No brand marks, no real company logos, no text, no letters, no numbers, no watermark.",
+      "path": "publish/assets/generated/token-stats-app-icon.9d0d613b.webp",
+      "contentHash": "9d0d613b",
+      "revisedPrompt": "Rounded square mobile app icon for token usage statistics, glossy neon glassmorphism style. Dark blue and cyan gradient tile, centered pie chart with stacked coin tokens depicted as generic circles, analytics pictogram. No text, no letters, no numbers, no logo, no watermark. The icon itself should have a polished, modern, slightly translucent glass look with vibrant cyan highlights and deep navy shadows, but avoid pure magenta anywhere inside the icon artwork. Place the icon strictly on a SOLID UNIFORM #FF00FF chroma key flat background filling the entire canvas outside the icon. Background must be a single flat magenta color with no gradient, no shadow, no texture, no scenery, no decoration, no environmental elements. High contrast, centered composition, app icon presentation.",
       "model": "gpt-image-2",
       "size": "1254x1254",
       "wantsTransparent": true,
       "chromaKey": {
-        "color": "#00B140",
-        "alphaZeroPct": 51.4,
+        "color": "#FF00FF",
+        "alphaZeroPct": 44.1,
         "edgeGreenBiasPct": 0,
         "verdict": "PASS"
       },
       "outputFormat": "webp",
       "compressionProfile": "lossy_q85_alpha",
-      "originalBytes": 1624546,
-      "finalBytes": 113196,
+      "originalBytes": 1485120,
+      "finalBytes": 83500,
       "usage": {
-        "inputTokens": 198,
+        "inputTokens": 161,
         "outputImageTokens": 2058
       },
-      "traceId": "trace_mqtczpmw_a7yxal2m",
-      "createdAt": "2026-06-25T10:29:14Z"
+      "traceId": "trace_mqtpo4sm_u92q21y4",
+      "createdAt": "2026-06-25T16:24:05Z"
+    },
+    {
+      "name": "profession-app-icon",
+      "status": "success",
+      "path": "publish/assets/generated/profession-app-icon.bcccfa43.webp",
+      "contentHash": "bcccfa43",
+      "revisedPrompt": "Rounded square mobile app icon for a known professions database, glossy neon glassmorphism style. A slate blue and amber gradient tile with a centered open dossier/folder icon, small tool symbols and a medal badge, archive pictogram elements integrated cleanly, modern vector-like app icon design, polished highlights, subtle depth, crisp edges, no text. Place the icon strictly on a SOLID UNIFORM #FF00FF chroma key flat background filling all pixels outside the icon. Background must be exactly flat magenta #FF00FF with no gradient, no shadow, no texture, no scenery, no ground, no decoration, no environmental elements. Ensure no pure magenta appears inside the icon artwork.",
+      "model": "gpt-image-2",
+      "size": "1254x1254",
+      "wantsTransparent": true,
+      "chromaKey": {
+        "color": "#FF00FF",
+        "alphaZeroPct": 37.9,
+        "edgeGreenBiasPct": 0,
+        "verdict": "PASS"
+      },
+      "outputFormat": "webp",
+      "compressionProfile": "lossy_q85_alpha",
+      "originalBytes": 1648972,
+      "finalBytes": 102354,
+      "usage": {
+        "inputTokens": 146,
+        "outputImageTokens": 2058
+      },
+      "traceId": "trace_mqtppebu_f5memhys",
+      "createdAt": "2026-06-25T16:25:12Z"
+    },
+    {
+      "name": "shopping-app-icon",
+      "status": "success",
+      "path": "publish/assets/generated/shopping-app-icon.a69780e6.webp",
+      "contentHash": "a69780e6",
+      "revisedPrompt": "Rounded square mobile app icon for a shopping marketplace, glossy neon glassmorphism style. Coral red and gold gradient tile with a centered generic e-commerce pictogram: a shopping bag with a small sparkle tag and a parcel box, clean modern app-icon composition, no text. The icon should be isolated on a perfectly uniform solid #FF00FF chroma-key magenta background filling all non-icon pixels, flat color only, no gradient, no shadow, no texture, no scenery, no ground, no decoration, no environmental elements. Ensure no pure magenta appears inside the icon artwork.",
+      "model": "gpt-image-2",
+      "size": "1254x1254",
+      "wantsTransparent": true,
+      "chromaKey": {
+        "color": "#FF00FF",
+        "alphaZeroPct": 44.2,
+        "edgeGreenBiasPct": 0,
+        "verdict": "PASS"
+      },
+      "outputFormat": "webp",
+      "compressionProfile": "lossy_q85_alpha",
+      "originalBytes": 1431546,
+      "finalBytes": 74094,
+      "usage": {
+        "inputTokens": 123,
+        "outputImageTokens": 2058
+      },
+      "traceId": "trace_mqtpqu5l_vdpeod2q",
+      "createdAt": "2026-06-25T16:26:09Z"
+    },
+    {
+      "name": "save-app-icon",
+      "status": "success",
+      "path": "publish/assets/generated/save-app-icon.3a079568.webp",
+      "contentHash": "3a079568",
+      "revisedPrompt": "Create a centered mobile app icon on a SOLID UNIFORM #FF00FF chroma key flat background filling the entire canvas outside the icon. Icon: rounded square, glossy neon glassmorphism style, warm amber and violet gradient tile, with a centered crystal memory card and an upload arrow shape, designed as a game save pictogram. No text, no letters, no numbers, no logo, no watermark. Ensure the icon itself does NOT contain pure magenta. The background must be a single flat #FF00FF with no gradient, no shadow, no texture, no scenery, no ground, no environmental elements.",
+      "model": "gpt-image-2",
+      "size": "1254x1254",
+      "wantsTransparent": true,
+      "chromaKey": {
+        "color": "#FF00FF",
+        "alphaZeroPct": 56.4,
+        "edgeGreenBiasPct": 0,
+        "verdict": "PASS"
+      },
+      "outputFormat": "webp",
+      "compressionProfile": "lossy_q85_alpha",
+      "originalBytes": 1388149,
+      "finalBytes": 65156,
+      "usage": {
+        "inputTokens": 131,
+        "outputImageTokens": 915
+      },
+      "traceId": "trace_mqtps24t_p89ea9mg",
+      "createdAt": "2026-06-25T16:26:48Z"
+    },
+    {
+      "name": "worldline-app-icon",
+      "status": "success",
+      "path": "publish/assets/generated/worldline-app-icon.fc1e460f.webp",
+      "contentHash": "fc1e460f",
+      "revisedPrompt": "Rounded square mobile app icon for worldlines and timelines, glossy neon glassmorphism, starry blue and violet gradient tile, centered branching timeline paths with glowing orbs, sci-fi pictogram, no text. The icon itself is a rounded square with polished translucent glassy depth, luminous cyan-blue to violet gradient, subtle star speckles, elegant branching timeline/network paths radiating from a central node with glowing orbs at junctions, futuristic app-icon aesthetic. Strictly placed on a SOLID UNIFORM #FF00FF chroma key flat color background that fills the entire canvas outside the icon. The background must be a single flat magenta color, no gradient, no shadow, no texture, no scenery, no ground, no decoration, no environmental elements. Pure flat background exactly like a VFX green screen, with crisp icon edges. No text, no letters, no numbers, no logo, no watermark. Do not use pure magenta inside the icon artwork.",
+      "model": "gpt-image-2",
+      "size": "1254x1254",
+      "wantsTransparent": true,
+      "chromaKey": {
+        "color": "#FF00FF",
+        "alphaZeroPct": 55.6,
+        "edgeGreenBiasPct": 0,
+        "verdict": "PASS"
+      },
+      "outputFormat": "webp",
+      "compressionProfile": "lossy_q85_alpha",
+      "originalBytes": 1609092,
+      "finalBytes": 97576,
+      "usage": {
+        "inputTokens": 201,
+        "outputImageTokens": 2058
+      },
+      "traceId": "trace_mqtpsw8u_35b4916v",
+      "createdAt": "2026-06-25T16:27:49Z"
+    },
+    {
+      "name": "settings-app-icon",
+      "status": "success",
+      "path": "publish/assets/generated/settings-app-icon.10f83d80.webp",
+      "contentHash": "10f83d80",
+      "revisedPrompt": "Rounded square mobile app icon for settings, glossy neon glassmorphism, dark graphite and cyan gradient tile, centered gear with slider controls and small glow, modern UI pictogram, no text. Strictly placed on a SOLID UNIFORM #FF00FF chroma key flat color background. The background is a single uniform shade of #FF00FF chroma key magenta that fills 100% of pixels not occupied by the icon. No gradient, no shadow, no texture, no scenery, no ground, no decoration, no environmental elements in the background. Pure flat color background, exactly like a green screen used for VFX compositing. No text, no letters, no numbers, no logo, no watermark. Do not use pure magenta inside the icon artwork.",
+      "model": "gpt-image-2",
+      "size": "1254x1254",
+      "wantsTransparent": true,
+      "chromaKey": {
+        "color": "#FF00FF",
+        "alphaZeroPct": 52.7,
+        "edgeGreenBiasPct": 0,
+        "verdict": "PASS"
+      },
+      "outputFormat": "webp",
+      "compressionProfile": "lossy_q85_alpha",
+      "originalBytes": 1390003,
+      "finalBytes": 53710,
+      "usage": {
+        "inputTokens": 162,
+        "outputImageTokens": 2058
+      },
+      "traceId": "trace_mqtpu7nr_i8g6t7de",
+      "createdAt": "2026-06-25T16:28:45Z"
     }
   ],
-  "updatedAt": "2026-06-25T10:29:14Z"
+  "updatedAt": "2026-06-25T16:28:45Z"
 }
