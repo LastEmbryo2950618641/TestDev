@@ -65,13 +65,19 @@ Object.assign(window.GameModules.updateRegistry, {
     const direct = this.targetState(store, update), generic = direct ? null : this.genericTarget(store, update);
     const state = direct || generic?.state, field = String(update.field || '').trim();
     if (!state || !field) return false;
-    const root = generic?.root || (field.startsWith('metrics.') ? state : state.values);
+    const root = generic?.root || (field.startsWith('metrics.') ? state : (field.startsWith('profile.') ? state : state.values));
+    const path = field.startsWith('profile.') ? field.replace(/^profile\./, 'profile.') : field.replace(/^values\./, '');
     if (!root) return false;
-    const current = this.get(root, field), next = this.nextValue(current, update);
+    const current = this.get(root, path), next = this.nextValue(current, update);
     if (next === undefined || JSON.stringify(current) === JSON.stringify(next)) return false;
-    this.set(root, field, next);
-    const note = this.notePath(field), reason = this.reasonText(update, '现实推演确认状态变化。');
-    if (note) this.set(root, note, this.noteValue(field, next, reason));
+    this.set(root, path, next);
+    const note = this.notePath(path), reason = this.reasonText(update, '现实推演确认状态变化。');
+    if (note) this.set(root, note, this.noteValue(path, next, reason));
+    if (/^(values\.)?wearing$/u.test(field) && state.profile) {
+      state.profile.wearingItems = next;
+      state.profile.wearing = next;
+      state.profile.roleCardUpdatedAt = new Date().toISOString();
+    }
     return true;
   },
 

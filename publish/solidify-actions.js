@@ -7,8 +7,10 @@ window.GameModules.solidifyActions = {
       ...(Array.isArray(result.solidifiableCharacters) ? result.solidifiableCharacters : []),
     ];
     const cards = await window.GameModules.characterIntroCard.ensureMany(this, source, mode);
+    await this.syncSolidifyWearing?.(cards);
     return this.solidifyDisplayCards(cards);
   },
+
 
   solidifyKey(card = {}) { return card?.name ? `${card.worldTag || ''}::${card.name}` : ''; },
 
@@ -57,12 +59,46 @@ window.GameModules.solidifyActions = {
   },
 
   solidifyWearingText(source = {}) {
+    const list = this.solidifyWearingItems(source);
+    if (list.length) return list.map((item) => this.solidifyWearingItemText(item)).filter(Boolean).join('；') || '当前无明确穿着记录。';
+    const raw = this.solidifyRawWearing(source);
+    return String(raw || '当前无明确穿着记录。').slice(0, 260);
+  },
+
+  solidifyRawWearing(source = {}) {
     const values = source.values || {};
     const profile = source.profile || {};
-    const raw = values.wearing || source.wearingItems || source.wearing || profile.wearingItems || profile.wearing || source.clothing || source.outfit || source.dressedProfile || profile.dressedProfile || '';
+    return values.wearing || source.wearingItems || source.wearing || profile.wearingItems || profile.wearing || source.clothing || source.outfit || source.dressedProfile || profile.dressedProfile || '';
+  },
+
+  solidifyWearingItems(source = {}, state = null) {
+    const raw = this.solidifyRawWearing(source);
     const list = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? Object.values(raw).flat() : []);
-    if (list.length) return list.map((item) => this.solidifyWearingItemText(item)).filter(Boolean).join('；') || '当前无明确穿着记录。';
-    return String(raw || '当前无明确穿着记录。').slice(0, 260);
+    if (list.length) return list.map((item) => this.solidifyNormalizeWearingItem(item, state)).filter(Boolean);
+    const text = String(raw || '').trim();
+    if (!text || /^当前无明确|未记录|无$/u.test(text)) return [];
+    return [this.solidifyNormalizeWearingItem({ name: text, slot: this.solidifyInferWearSlot(text), description: text, reason: '现实推演正文确认的当前穿着。' }, state)].filter(Boolean);
+  },
+
+  solidifyNormalizeWearingItem(item, state = null) {
+    if (!item) return null;
+    const p = window.GameModules.progression;
+    const raw = typeof item === 'string' ? { name: item } : { ...item };
+    const name = String(raw.name || raw.label || raw.description || '').trim();
+    if (!name || name === '未穿戴' || name === '未记录') return null;
+    const slot = p.canonicalWearSlot?.({ ...raw, slot: raw.slot || this.solidifyInferWearSlot(name) }) || raw.slot || '装备';
+    return p.normalizeCarryItem?.({ ...raw, name, slot, description: raw.description || name, reason: raw.reason || '现实推演正文确认的当前穿着。', changeMode: '现实推演', source: 'AI生成' }, '穿着', state?.id || raw.ownerId || raw.characterId || '') || { ...raw, name, slot, type: '穿着' };
+  },
+
+  solidifyInferWearSlot(text = '') {
+    if (/睡裙|连衣裙|裙|衬衫|T恤|上衣|背心|吊带/u.test(text)) return 'top';
+    if (/裤|短裤|长裤|下装/u.test(text)) return 'bottom';
+    if (/内衣|胸衣|文胸/u.test(text)) return 'innerwearTop';
+    if (/内裤|底裤/u.test(text)) return 'innerwearBottom';
+    if (/袜/u.test(text)) return 'socks';
+    if (/鞋|靴/u.test(text)) return 'shoes';
+    if (/外套|大衣|风衣/u.test(text)) return 'outerwear';
+    return '装备';
   },
 
   solidifyWearingItemText(item) {
