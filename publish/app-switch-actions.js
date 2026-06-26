@@ -20,6 +20,7 @@ window.GameModules.appSwitchActions = {
     this.saveAppOpen = false;
     this.worldlineAppOpen = false;
     this.savePanelOpen = false;
+    this.controlSelectOpen = false;
     if (this.settingsState) this.settingsState.open = false;
     if (this.companyState) this.companyState.open = false;
     if (this.bossState) this.bossState.open = false;
@@ -40,6 +41,13 @@ window.GameModules.appSwitchActions = {
   openDesktopApp() {
     this.closeDesktopApps();
     this.desktopUnlocked = true;
+    this.controlSelectOpen = true;
+    this.entrySetupOpen = false;
+  },
+
+  closeControlApp() {
+    this.controlSelectOpen = false;
+    this.closeAppToDesktop();
   },
 
   openSaveApp() {

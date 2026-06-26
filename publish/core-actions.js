@@ -42,6 +42,32 @@ window.GameModules.coreActions = {
     this.entryIdentityOpen = false;
   },
 
+  controlRoleList() {
+    return Object.values(this.rpgStates || {})
+      .filter((state) => state?.id && state.id !== 'player-self')
+      .map((state) => ({ state, character: window.GameModules.catalog.find(state.id) || state.profile || { id: state.id, name: state.name || state.profile?.name || '未知角色', mark: state.profile?.mark || '控', role: state.profile?.role || '可上线角色', work: state.profile?.work || state.worldTag || '未知世界' } }))
+      .sort((a, b) => String(a.character.work || '').localeCompare(String(b.character.work || ''), 'zh-Hans') || String(a.character.name || '').localeCompare(String(b.character.name || ''), 'zh-Hans'));
+  },
+
+  async connectControlRole(id) {
+    if (!id || this.busy) return;
+    const found = window.GameModules.catalog.find(id);
+    if (found) {
+      this.selectedWork = found.work || this.selectedWork;
+      this.selectedCharacterId = found.id;
+    } else {
+      this.selectedCharacterId = id;
+    }
+    this.controlSelectOpen = false;
+    await this.start();
+  },
+
+  openControlCharacterAdd() {
+    this.controlSelectOpen = false;
+    this.entrySetupOpen = false;
+    window.GameModules.characterBrief.ensure(this);
+  },
+
   openCharacterDetail() {
     window.GameModules.characterBrief.ensure(this);
     this.characterDetailOpen = true;
@@ -50,6 +76,7 @@ window.GameModules.coreActions = {
   backToHome() {
     if (this.busy) return;
     this.entrySetupOpen = false;
+    this.controlSelectOpen = true;
     this.entryCurrentAction = '';
   },
 

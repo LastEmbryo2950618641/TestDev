@@ -740,6 +740,63 @@
   z-index: 1;
 }
 
+.control-home-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.control-role-list {
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+  max-height: min(44dvh, 420px);
+  margin: 12px 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.control-role-card {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px;
+  border: 1px solid rgba(113, 243, 255, .18);
+  border-radius: 14px;
+  color: inherit;
+  text-align: left;
+  background: rgba(255, 255, 255, .06);
+  cursor: pointer;
+}
+
+.control-role-card strong,
+.control-role-card small {
+  display: block;
+}
+
+.control-role-card small,
+.control-role-card p {
+  color: #aeb9d6;
+  line-height: 1.45;
+}
+
+.control-role-card p {
+  margin: 4px 0 0;
+  font-size: var(--ui-small-font);
+}
+
+.control-role-card > span {
+  min-width: 48px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  color: #07101a;
+  font-weight: 900;
+  text-align: center;
+  background: linear-gradient(135deg, #78f6ff, #ff78d2);
+}
+
 .character-detail-card {
   display: grid;
   grid-template-columns: 46px 1fr;
