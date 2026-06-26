@@ -1746,8 +1746,10 @@
 
   <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.settingsState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen && $store.game.entrySetupOpen" class="start-screen entry-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <div class="start-card entry-card dev-section" data-section-title="进入时机配置区">
-      <button class="back-desktop-btn" type="button" @click="$store.game.closeAppToDesktop()" :disabled="$store.game.busy">返回桌面</button>
-      <button class="back-home-btn" type="button" @click="$store.game.backToHome()" :disabled="$store.game.busy">← 返回首页</button>
+      <div class="entry-nav-row">
+        <button class="back-home-btn" type="button" @click="$store.game.backToHome()" :disabled="$store.game.busy">← 返回首页</button>
+        <button class="back-desktop-btn" type="button" @click="$store.game.closeAppToDesktop()" :disabled="$store.game.busy">返回桌面</button>
+      </div>
         <h3>选择进入时机</h3>
         <button class="entry-character-summary" type="button" @click="$store.game.openEntryIdentityDetail()" aria-label="查看当前角色身份证信息">
           <div class="portrait-mark" x-text="$store.game.character.mark"></div>

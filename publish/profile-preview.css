@@ -109,13 +109,22 @@
   max-height: min(840px, 94dvh);
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding-top: 58px;
+}
+
+.entry-nav-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.entry-nav-row .back-desktop-btn,
+.entry-nav-row .back-home-btn {
+  margin: 0;
 }
 
 .back-home-btn {
-  position: absolute;
-  top: 18px;
-  left: 18px;
   min-height: 38px;
   padding: 0 13px;
   border: 1px solid rgba(113, 243, 255, .25);
