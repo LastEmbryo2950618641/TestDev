@@ -30,8 +30,8 @@ window.GameModules.wechatAlbumTagActions = {
 
   cleanWechatAlbumTags(text = '') {
     return [...new Set(String(text || '').replace(/```[a-z]*|```/gi, '')
-      .replace(/^(正向提示词|负面提示词|positive|negative)\s*[:：]/gim, '')
-      .replace(/\b(positive|negative)\s*[:：]/gi, '\n')
+      .replace(/^(正向提示词|正向|绘图提示词|提示词|负面提示词|负向提示词|负向|positive\s*prompt|negative\s*prompt|positive|negative|prompt|tags)\s*[:：]/gim, '')
+      .replace(/\b(positive\s*prompt|negative\s*prompt|positive|negative|prompt|tags)\s*[:：]/gi, '\n')
       .split(/[\n,，、；;]+/).map((item) => item.trim().replace(/^[-*]\s*/, ''))
       .filter(Boolean))].join(', ');
   },
@@ -39,10 +39,15 @@ window.GameModules.wechatAlbumTagActions = {
 
   parseWechatAlbumDrawPrompt(text = '') {
     const raw = String(text || '').replace(/\r/g, '').replace(/```[a-z]*|```/gi, '').trim();
-    const positiveMatch = raw.match(/(?:正向提示词|positive)\s*[:：]\s*([\s\S]*?)(?=\n?\s*(?:负面提示词|negative)\s*[:：]|$)/i);
-    const negativeMatch = raw.match(/(?:负面提示词|negative)\s*[:：]\s*([\s\S]*)$/i);
+    const positiveLabel = '(?:正向提示词|正向|绘图提示词|提示词|positive\\s*prompt|positive|prompt|tags)';
+    const negativeLabel = '(?:负面提示词|负向提示词|负向|negative\\s*prompt|negative)';
+    const positiveMatch = raw.match(new RegExp(`${positiveLabel}\\s*[:：]\\s*([\\s\\S]*?)(?=\\n?\\s*${negativeLabel}\\s*[:：]|$)`, 'i'));
+    const negativeMatch = raw.match(new RegExp(`${negativeLabel}\\s*[:：]\\s*([\\s\\S]*)$`, 'i'));
+    const defaultPositive = 'solo, full body, standing, front view, clear face, clean background, anime style, high quality';
     const defaultNegative = 'bad anatomy, extra fingers, extra arms, missing fingers, low quality, blurry, worst quality, watermark, text, logo, bad hands';
-    const positive = this.cleanWechatAlbumTags(positiveMatch?.[1] || 'solo, full body, standing, front view, clear face, clean background, anime style, high quality');
+    const rawWithoutNegative = raw.replace(new RegExp(`${negativeLabel}\\s*[:：][\\s\\S]*$`, 'i'), '').trim();
+    const positiveSource = positiveMatch?.[1] || rawWithoutNegative || raw;
+    const positive = this.cleanWechatAlbumTags(positiveSource) || defaultPositive;
     const negative = this.cleanWechatAlbumTags(negativeMatch?.[1] || defaultNegative) || defaultNegative;
     return { prompt: positive, negativePrompt: negative };
   },

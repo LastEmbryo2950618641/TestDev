@@ -1502,7 +1502,7 @@
                   <p class="wechat-album-count" x-text="`已保存 ${$store.game.wechatAlbumPromptList().length} 条提示词`"></p>
                   <div class="wechat-album-scroll">
                     <section x-show="!$store.game.wechatAlbumPromptList().length"><b>暂无提示词</b><p>请先返回素材页生成绘图提示词。</p></section>
-                    <section><template x-for="item in $store.game.wechatAlbumPromptList()" :key="item.id"><button type="button" @click="$store.game.selectWechatAlbumPrompt(item.id)"><span x-text="$store.game.wechatAlbumKindLabel(item.kind)"></span>｜<span x-text="item.prompt.slice(0, 42)"></span></button></template></section>
+                    <section><template x-for="item in $store.game.wechatAlbumPromptList()" :key="item.id"><button type="button" @click="$store.game.selectWechatAlbumPrompt(item.id)"><span x-text="$store.game.wechatAlbumKindLabel(item.kind)"></span>｜<span x-text="$store.game.wechatAlbumPromptListPreview(item)"></span></button></template></section>
                   </div>
                   <div class="wechat-album-actions"><button type="button" @click="$store.game.wechatAlbumPromptStep = 'edit'" :disabled="$store.game.wechatAlbumGenerating">返回素材</button><button type="button" @click="$store.game.wechatAlbumChoiceClose()" :disabled="$store.game.wechatAlbumGenerating">关闭</button></div>
                 </div>

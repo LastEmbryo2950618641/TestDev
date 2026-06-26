@@ -8,6 +8,13 @@ window.GameModules.wechatAlbumPromptListActions = {
     return this.wechatAlbumPromptList().find((item) => item.id === this.wechatAlbumPromptSelectedId) || null;
   },
 
+  wechatAlbumPromptListPreview(item) {
+    const fixed = new Set(['1girl or 1boy', '1girl', '1boy', 'solo', 'full body', 'standing', 'front view', 'clear face', 'clean background', 'anime style', 'high quality', 'natural', 'original body', 'no clothes']);
+    const tags = String(item?.prompt || '').split(/[\n,，、；;]+/).map((tag) => tag.trim()).filter(Boolean);
+    const distinct = tags.filter((tag) => !fixed.has(tag.toLowerCase()));
+    return (distinct.length ? distinct : tags).slice(0, 8).join(', ').slice(0, 88) || '未命名提示词';
+  },
+
   async generateWechatAlbumPromptOnly() {
     if (this.wechatAlbumGenerating) return;
     const contact = this.wechatProfileContact();
