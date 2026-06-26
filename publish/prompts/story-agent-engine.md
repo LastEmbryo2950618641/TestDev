@@ -91,10 +91,11 @@ characters 必须列出本次行动相关人物，至少包含当前被操控角
 6. 行动涉及亲属、阵营、敌友、师徒、主从、恋人、同伴等稳定关系时，优先请求 worklore.query.searchRelationship。
 7. 行动发生在原作地点、移动到地点或利用地形时，优先请求 worklore.query.searchLocation。
 8. 行动涉及道具、装备、圣遗物、武器、药物、车辆、通讯设备时，优先请求 worklore.query.searchItem 或 item.query。
-9. 行动涉及之前、本回合以前、上次操控、角色是否记得玩家、承诺、伤害、亲密互动、旧地点、旧物品、照片/图片或“记不记得”时，必须先从用户问题中拆出多个关键词（人物名、事件词、地点、物品、时间），请求 past.event.query.searchPastEvent；由该 skill 统一按关键词匹配世界线、现实记录、人物记忆、记忆归档和微信历史，找不到时再做全文候选兜底。
-10. 如果 past.event.query 返回的命中资料指向具体原作剧情、时间线、地点或物品但仍缺原作设定，再按需请求 worklore.query.searchPlot、searchTimeline、searchLocation 或 searchItem；若只缺某个人的局部记忆，再补充请求 memory.query。
-11. 行动或上下文出现不能准确判断含义的专用术语、缩写、APP名、黑话或自定义概念时，先请求 lexicon.query.searchTermOne。
-12. 如果基础上下文和已动态载入资料已经足够，不要为了形式请求资料，直接返回 context_done。
+9. 行动涉及之前、本回合以前、上次操控、角色是否记得玩家、承诺、伤害、亲密互动、旧地点、旧物品、照片/图片、世界线、时间线或“记不记得”时，必须先从用户问题中拆出多个关键词（人物名、事件词、地点、物品、时间），请求 past.event.query.searchPastEvent；由该 skill 统一按关键词匹配世界线、现实记录、人物记忆、记忆归档和微信历史，找不到时再做全文候选兜底。
+10. 如果行动或命中资料涉及“昨天晚上”“三天前”“上周五”“14:00 到 16:00 之间”“午饭后那段”等时间线索，必须先依据基础上下文中的当前游戏内时间/现实桌面时间推断最小时间与最大时间，能落到公历时写成 `YYYY-MM-DD HH:mm`，并请求 `realworld.history.query.searchWorldlineByTime`，params 带 `world`、`startTime`、`endTime` 与原关键词 `keyword`；无法可靠推断具体时间段时，才退化为 `time` 或 `keyword` 的旧模式。
+11. 如果 past.event.query 返回的命中资料指向当前作品世界线、已归纳情节、具体原作剧情、时间线、地点或物品但仍缺细节，再按需请求 `realworld.history.query.listWorldlineIndex`、`searchWorldlineByKeyword`、`searchWorldlineByTime`、`getWorldlinePlotRecords`，或请求 worklore.query.searchPlot、searchTimeline、searchLocation、searchItem；若只缺某个人的局部记忆，再补充请求 memory.query。
+12. 行动或上下文出现不能准确判断含义的专用术语、缩写、APP名、黑话或自定义概念时，先请求 lexicon.query.searchTermOne。
+13. 如果基础上下文和已动态载入资料已经足够，不要为了形式请求资料，直接返回 context_done。
 
 ## 操控剧情强制规则
 

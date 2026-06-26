@@ -116,15 +116,35 @@ window.GameModules.worldlineActions = {
     const worldTag = this.character?.work || '原创世界';
     const lore = await window.GameModules.worldLore.ensure(worldTag, context || this.entryCurrentAction || this.sceneTitle);
     const line = this.loreWorldline(lore) || window.GameModules.worldLore.worldline(null, lore, worldTag);
-    if (!line.events?.length) {
-      const event = { eventId: 'connection_start', name: '玩家上线连接', time: this.entryTimeLabel?.() || this.sceneTitle || '当前时间', detail: String(context || this.entryCurrentAction || '玩家首次连接角色，世界线开始记录偏移。'), storyIndexes: line.storyIndexes || ['默认剧情起点'], factionIds: Object.keys(line.factions || {}).slice(0, 2), status: '进行中' };
-      line.events = [event];
-      await window.GameModules.worldlinePlots.assign(this, line, event);
-      lore.worldline = line;
-      await window.GameModules.sqliteSave.saveWorldLore(worldTag, lore);
+    const shouldRecordConnection = !line.events?.length || /按下连接按钮|玩家上线连接|附身到|进入异世界|操控连接/u.test(String(context || ''));
+    if (shouldRecordConnection) {
+      const event = this.connectionWorldlineEvent(line, context);
+      if (!(line.events || []).some((item) => item.eventId === event.eventId)) {
+        line.events = [...(line.events || []), event];
+        await window.GameModules.worldlinePlots.assign(this, line, event);
+        lore.worldline = line;
+        await window.GameModules.sqliteSave.saveWorldLore(worldTag, lore);
+      }
     }
     if (!this.expandedWorldlineTag) this.expandedWorldlineTag = worldTag;
     return lore;
+  },
+
+  connectionWorldlineEvent(line = {}, context = '') {
+    const eventId = `connection_${this.worldlineSafeId(this.character?.id || this.character?.name || 'character')}_${this.worldlineSafeId(this.entryTimeLabel?.() || this.sceneTitle || 'time')}_${this.turn || 1}`.slice(0, 120);
+    return {
+      eventId,
+      name: '玩家上线连接',
+      time: this.entryTimeLabel?.() || this.sceneTitle || '当前时间',
+      detail: [
+        `玩家：${this.playerName || this.playerProfile?.name || '玩家'}`,
+        `操控对象：${this.character?.name || '未知角色'}｜作品：${this.character?.work || '原创世界'}｜模式：${this.online ? 'online' : 'offline'}｜${this.controlMode || 'possess'}`,
+        `进入上下文：${String(context || this.entryCurrentAction || '玩家连接角色，世界线开始记录偏移。')}`,
+      ].join('\n'),
+      storyIndexes: line.storyIndexes || ['默认剧情起点'],
+      factionIds: Object.keys(line.factions || {}).slice(0, 2),
+      status: '进行中',
+    };
   },
 
   async updateWorldlineFromTurn(result = {}) {
@@ -132,14 +152,36 @@ window.GameModules.worldlineActions = {
     const lore = await this.ensureWorldline(`${this.entryTimeLabel?.() || this.sceneTitle} ${result.narration || ''}`);
     const line = this.loreWorldline(lore);
     if (!line) return;
-    const eventId = `turn_${this.turn}`;
+    const eventId = this.worldlineTurnEventId(result);
     if (!(line.events || []).some((event) => event.eventId === eventId)) {
-      const event = { eventId, name: result.sceneTitle || this.sceneTitle, time: this.entryTimeLabel?.() || this.sceneTitle, detail: String(result.narration || ''), storyIndexes: line.storyIndexes || [], factionIds: Object.keys(line.factions || {}).slice(0, 2), status: '进行中' };
-      line.events = [...(line.events || []), event].slice(-12);
+      const event = { eventId, name: result.sceneTitle || this.sceneTitle, time: this.entryTimeLabel?.() || this.sceneTitle, detail: this.worldlineTurnDetail(result), storyIndexes: line.storyIndexes || [], factionIds: Object.keys(line.factions || {}).slice(0, 2), status: '进行中' };
+      line.events = [...(line.events || []), event];
       await this.appendWorldlineEvent(line, event);
       lore.worldline = line;
       await window.GameModules.sqliteSave.saveWorldLore(worldTag, lore);
     }
+  },
+
+  worldlineTurnEventId(result = {}) {
+    const time = this.worldlineSafeId(this.entryTimeLabel?.() || this.sceneTitle || 'time').slice(0, 40) || 'time';
+    const name = this.worldlineSafeId(this.character?.id || this.character?.name || 'character').slice(0, 24) || 'character';
+    const title = this.worldlineSafeId(result.sceneTitle || this.sceneTitle || 'scene').slice(0, 24) || 'scene';
+    return `turn_${name}_${time}_${title}_${this.turn || 1}`.slice(0, 120);
+  },
+
+  worldlineSafeId(value = '') {
+    return String(value || '').replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_+|_+$/g, '');
+  },
+
+  worldlineTurnDetail(result = {}) {
+    return [
+      `玩家：${this.playerName || this.playerProfile?.name || '玩家'}`,
+      `操控对象：${this.character?.name || '未知角色'}｜作品：${this.character?.work || '原创世界'}｜模式：${this.online ? 'online' : 'offline'}｜${this.controlMode || 'possess'}`,
+      `玩家行动：${this.lastAction || this.entryCurrentAction || ''}`,
+      `正文：${String(result.narration || '')}`,
+      result.mind ? `被操控者心理：${result.mind}` : '',
+      result.quest ? `结果目标：${result.quest}` : '',
+    ].filter(Boolean).join('\n');
   },
 
   async appendWorldlineEvent(line, event, prefix = '情节') {

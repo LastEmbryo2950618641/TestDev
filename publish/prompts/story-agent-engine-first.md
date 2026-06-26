@@ -31,9 +31,10 @@
 9. 行动涉及职业、职阶、身份制度、职位、阶层或组织身份时，优先请求 `worklore.query.searchProfession`。
 10. 行动涉及稳定关系、阵营敌友、主从、亲属、恋人、同伴时，优先请求 `worklore.query.searchRelationship`。
 11. 行动涉及地点或物品时，分别请求 `worklore.query.searchLocation`、`worklore.query.searchItem` 或 `item.query`。
-12. 行动涉及之前、上次操控、角色记忆、承诺、旧伤、亲密互动、照片/图片、旧物品、旧地点或“记不记得”时，必须拆出多个关键词并优先请求 `past.event.query.searchPastEvent`。
-13. past.event.query 仍不足以定位时，才按需补充请求 `memory.query` 或作品设定查询；large 资料禁止一次性完整加载，只能使用 keyword/time/phase 精确查询。
-14. `request_context` 不要返回 `thinking` 字段。
+12. 行动涉及之前、上次操控、角色记忆、承诺、旧伤、亲密互动、照片/图片、旧物品、旧地点、世界线、时间线或“记不记得”时，必须拆出多个关键词并优先请求 `past.event.query.searchPastEvent`。
+13. 遇到“昨天晚上”“三天前”“上周五”“14:00 到 16:00 之间”“午饭后那段”等时间线索时，依据基础上下文中的当前游戏内时间/现实桌面时间推断最小/最大时间；能落到公历时写成 `YYYY-MM-DD HH:mm`，后续若请求 `realworld.history.query.searchWorldlineByTime`，必须带 `world`、`startTime/endTime` 和 `keyword`；无法可靠推断时才退化为 `time` 或 `keyword` 查询。
+14. past.event.query 仍不足以定位时，才按需补充请求 `realworld.history.query`、`memory.query` 或作品设定查询；large 资料禁止一次性完整加载，只能使用 keyword/time/phase 精确查询。
+15. `request_context` 不要返回 `thinking` 字段。
 
 ## request_context 前检查
 
