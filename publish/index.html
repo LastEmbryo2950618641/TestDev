@@ -1870,16 +1870,6 @@
           <div class="character-status-main">
             <div class="name-role-block">
               <h2 x-text="$store.game.character.name"></h2>
-              <p class="role" x-text="$store.game.character.role"></p>
-            </div>
-            <div class="vital-bars" x-show="$store.game.characterRpgState">
-              <template x-for="vital in $store.game.rpgVitals($store.game.characterRpgState)" :key="vital.key">
-                <div class="vital-row" :class="vital.key">
-                  <span x-text="vital.label"></span>
-                  <i><b :style="`width: ${Math.max(0, Math.min(100, vital.value))}%`"></b></i>
-                  <em x-text="vital.text || `${vital.value}%`"></em>
-                </div>
-              </template>
             </div>
           </div>
         </button>

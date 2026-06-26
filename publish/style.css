@@ -717,9 +717,9 @@ select.text-input option,
   min-height: 0;
   display: grid;
   grid-template-columns: 30px minmax(0, 1fr);
-  align-items: start;
-  gap: 5px;
-  padding: 4px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
   border: 1px solid rgba(113, 243, 255, .16);
   border-radius: 10px;
   background: rgba(255, 255, 255, .055);
@@ -737,10 +737,10 @@ select.text-input option,
 
 .name-role-block {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 4px;
   min-width: 0;
-  margin-bottom: 2px;
+  margin-bottom: 0;
 }
 
 .name-role-block h2 {
