@@ -72,14 +72,21 @@ window.GameModules.realWorldAgentLoop = {
     if (!narration) throw new Error(`${config.label}正文为空`);
     this.showConfiguredNarration(store, logId, narration, config);
 
-    const skillPrompt = await this.buildConfiguredSkillSelectionPrompt({ store, action, base, loaded, materialSession, narration, config });
-    this.markConfiguredStep(store, logId, `${config.label}正文已完成，正在判断需要结算的 Skills…`, config, { keepNarration: true });
-    const selectedSkills = await this.completeConfiguredSkillSelection(store, skillPrompt, logId, config);
+    let skillPrompt = '', jsonPrompt = '', selectedSkills = {}, jsonRaw = '', updates = {};
+    try {
+      skillPrompt = await this.buildConfiguredSkillSelectionPrompt({ store, action, base, loaded, materialSession, narration, config });
+      this.markConfiguredStep(store, logId, `${config.label}正文已完成，正在判断需要结算的 Skills…`, config, { keepNarration: true });
+      selectedSkills = await this.completeConfiguredSkillSelection(store, skillPrompt, logId, config);
 
-    const jsonPrompt = await this.buildConfiguredUpdateJsonPrompt({ store, action, base, loaded, skills, materialSession, narration, selectedSkills, config });
-    this.markConfiguredStep(store, logId, '已选定结算 Skills，正在生成状态更新…', config, { keepNarration: true });
-    const jsonRaw = await this.completeConfiguredUpdateJson(store, jsonPrompt, logId, config);
-    const updates = this.parseUpdateJson(jsonRaw) || {};
+      jsonPrompt = await this.buildConfiguredUpdateJsonPrompt({ store, action, base, loaded, skills, materialSession, narration, selectedSkills, config });
+      this.markConfiguredStep(store, logId, '已选定结算 Skills，正在生成状态更新…', config, { keepNarration: true });
+      jsonRaw = await this.completeConfiguredUpdateJson(store, jsonPrompt, logId, config);
+      updates = this.parseUpdateJson(jsonRaw) || {};
+    } catch (err) {
+      console.warn(`${config.label}状态更新生成失败，保留已生成正文并使用最小结算:`, err.message);
+      updates = this.fallbackUpdateJson(store, action, config);
+      jsonRaw = JSON.stringify(updates);
+    }
     const result = config.mode === 'story' ? this.mergeStoryNarrationAndUpdates(store, narration, updates) : this.mergeNarrationAndUpdates(store, narration, updates);
     return { result, prompt: `---NARRATION---\n${narrationPrompt}\n\n---SKILL_SELECTION---\n${skillPrompt}\n\n---UPDATE_JSON---\n${jsonPrompt}`, loaded, raw: `${narrationRaw}\n\n${JSON.stringify(selectedSkills)}\n\n${jsonRaw}`, trace };
   },
@@ -240,6 +247,37 @@ window.GameModules.realWorldAgentLoop = {
       initSkillText ? `## 初始化 Skills\n\n${initSkillText}` : '',
       `最小示例：${JSON.stringify({ ...(config.mode === 'story' ? this.storyUpdateJsonSchema() : this.updateJsonSchema()), ...updateSchema, ...initSchema })}`,
     ].filter(Boolean).join('\n\n');
+  },
+
+  fallbackUpdateJson(store, action = '', config = this.realConfig()) {
+    if (config.mode === 'story') {
+      return {
+        type: 'final',
+        sceneTitle: store.sceneTitle || '剧情继续',
+        elapsedSeconds: 60,
+        mood: store.mood || '冷静',
+        quest: store.quest || '继续观察',
+        choices: Array.isArray(store.choices) && store.choices.length ? store.choices.slice(0, 4) : ['观察四周', '尝试行动', '与人交谈', '隐藏异样'],
+        statChanges: { health: 0, stamina: 0, mental_stability: 0 },
+        metricUpdates: { emotions: [], playerFeelings: [] },
+      };
+    }
+    return {
+      type: 'final',
+      sceneTitle: store.realWorldSceneTitle || '现实世界',
+      locationName: store.realWorldLocationName || store.realWorldMap?.current || '',
+      elapsedSeconds: 300,
+      status: store.realWorldStatus || '现实推演继续中',
+      quest: store.realWorldQuest || '确认现实处境',
+      choices: Array.isArray(store.realWorldChoices) && store.realWorldChoices.length ? store.realWorldChoices.slice(0, 4) : ['观察手机异常', '处理现实事务', '联系熟人', '暂时休息'],
+      vitalUpdates: [
+        { key: 'stamina_pool', delta: 0, reason: '结算保留。' },
+        { key: 'satiety', delta: 0, reason: '结算保留。' },
+        { key: 'hydration', delta: 0, reason: '结算保留。' },
+        { key: 'fatigue', delta: 0, reason: '结算保留。' },
+        { key: 'mental_stability', delta: 0, reason: '结算保留。' },
+      ],
+    };
   },
 
   updateJsonSchema() {
@@ -578,18 +616,29 @@ window.GameModules.realWorldAgentLoop = {
   markConfiguredStep(store, logId, text, config = this.realConfig(), options = {}) {
     if (!logId) return;
     if (config.mode === 'story') {
+      const entry = (store.log || []).find((item) => item.id === logId);
       const patch = { streaming: true, statusText: text };
-      if (!options.keepNarration) patch.storyText = text;
+      if (!options.keepNarration && this.shouldUseStatusAsStoryText(entry)) patch.storyText = text;
       store.updateNovelEntry?.(logId, patch);
       return;
     }
     store.realWorldLog = (store.realWorldLog || []).map((entry) => {
       if (entry.id !== logId) return entry;
       const patch = { streaming: true, statusText: text };
-      if (!options.keepNarration) patch.narration = text;
+      if (!options.keepNarration && this.shouldUseStatusAsRealNarration(entry)) patch.narration = text;
       return { ...entry, ...patch };
     });
     store.scrollRealWorldLogBottom?.();
+  },
+
+  shouldUseStatusAsStoryText(entry = {}) {
+    const text = String(entry?.storyText || '').trim();
+    return !text || /^作者正在续写这一段剧情|操控剧情正在识别|操控剧情正在推演|已识别相关角色|已追加资料/u.test(text);
+  },
+
+  shouldUseStatusAsRealNarration(entry = {}) {
+    const text = String(entry?.narration || '').trim();
+    return !text || /^现实世界正在推演|现实正在识别|现实正在推演|已识别相关角色|已追加资料/u.test(text);
   },
   loadedContextText(data = {}, loaded = [], step = 1, config = this.realConfig()) {
     const fallback = config.mode === 'story' ? '被操控角色' : '玩家本人';
