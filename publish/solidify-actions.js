@@ -7,13 +7,7 @@ window.GameModules.solidifyActions = {
       ...(Array.isArray(result.solidifiableCharacters) ? result.solidifiableCharacters : []),
     ];
     const cards = await window.GameModules.characterIntroCard.ensureMany(this, source, mode);
-    const existing = this.solidifyState?.candidates || [];
-    const merged = [...existing];
-    for (const card of cards) {
-      if (!merged.some((item) => item.name === card.name && item.worldTag === card.worldTag)) merged.push(card);
-    }
-    const visible = this.solidifyDisplayCards(merged);
-    this.solidifyState = { ...(this.solidifyState || {}), candidates: merged, open: Boolean(this.solidifyState?.open), selectedKey: this.solidifyState?.selectedKey || this.solidifyKey(visible[0]) || '' };
+    return this.solidifyDisplayCards(cards);
   },
 
   solidifyKey(card = {}) { return card?.name ? `${card.worldTag || ''}::${card.name}` : ''; },
@@ -31,13 +25,15 @@ window.GameModules.solidifyActions = {
 
   solidifyCandidates() { return this.solidifyDisplayCards(); },
 
-  selectedSolidifyCard() {
-    const cards = this.solidifyCandidates();
-    const key = this.solidifyState?.selectedKey || this.solidifyKey(cards[0]);
+  selectedSolidifyCard(entry = null) {
+    const cards = this.solidifyEntryCards(entry);
+    const key = entry ? (entry.solidifySelectedKey || this.solidifyKey(cards[0])) : (this.solidifyState?.selectedKey || this.solidifyKey(cards[0]));
     return cards.find((card) => this.solidifyKey(card) === key) || cards[0] || null;
   },
 
-  solidifyPanelTitle() { return this.selectedSolidifyCard()?.displayType === 'role' ? '角色卡查看' : '介绍卡固化'; },
+  solidifyEntryCards(entry = null) { return entry ? this.solidifyDisplayCards(entry.solidifyCards || []) : this.solidifyDisplayCards(); },
+
+  solidifyPanelTitle(card = this.selectedSolidifyCard()) { return card?.displayType === 'role' ? '角色卡查看' : '介绍卡固化'; },
 
   solidifyTypeLabel(card = this.selectedSolidifyCard()) { return card?.displayType === 'role' ? '角色卡' : '介绍卡'; },
 
@@ -80,13 +76,36 @@ window.GameModules.solidifyActions = {
 
   selectSolidifyCard(card) { this.solidifyState.selectedKey = this.solidifyKey(card); },
 
+  selectEntrySolidifyCard(entry, card) {
+    if (!entry || !card) return;
+    entry.solidifySelectedKey = this.solidifyKey(card);
+    entry.solidifyOpen = true;
+    this.log = [...(this.log || [])];
+    this.realWorldLog = [...(this.realWorldLog || [])];
+  },
+
   closeSolidifyPanel() { this.solidifyState.open = false; },
 
-  async solidifySelectedIntroCard(card = this.selectedSolidifyCard()) {
+  closeEntrySolidifyPanel(entry) {
+    if (!entry) return;
+    entry.solidifyOpen = false;
+    this.log = [...(this.log || [])];
+    this.realWorldLog = [...(this.realWorldLog || [])];
+  },
+
+  async solidifySelectedIntroCard(card = this.selectedSolidifyCard(), entry = null) {
     if (!card || card.displayType === 'role' || this.busy) return;
     const source = { id: `npc-${window.GameModules.characterProfile.slug(card.worldTag)}-${window.GameModules.characterProfile.slug(card.name)}`, name: card.name, work: card.worldTag, role: card.role, detail: card.intro, importance: 'support', isMinor: false };
     this.startRoleCardLoadingBatch?.([{ id: source.id, name: card.name, type: '角色卡', source, context: card.intro }]);
     await this.ensureRpgForCharacter(source, card.intro, { loadMetrics: false, allowManualSolidify: true });
-    this.solidifyState = { ...(this.solidifyState || {}), selectedKey: this.solidifyKey(card), open: true };
+    if (entry) {
+      entry.solidifyCards = this.solidifyDisplayCards(entry.solidifyCards || []);
+      entry.solidifySelectedKey = this.solidifyKey(card);
+      entry.solidifyOpen = true;
+      this.log = [...(this.log || [])];
+      this.realWorldLog = [...(this.realWorldLog || [])];
+    } else {
+      this.solidifyState = { ...(this.solidifyState || {}), selectedKey: this.solidifyKey(card), open: true };
+    }
   },
 };

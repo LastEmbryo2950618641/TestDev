@@ -18,6 +18,9 @@ Object.assign(window.GameModules.actions, {
       promptPack: null,
       characterCardChanges: [],
       cardChangesOpen: false,
+      solidifyCards: [],
+      solidifyOpen: false,
+      solidifySelectedKey: '',
       thinkingOpen: false,
       streaming: true,
     };
@@ -99,6 +102,9 @@ Object.assign(window.GameModules.actions, {
       mind: result.mind || '',
       characterCardChanges: result.characterCardChanges || [],
       cardChangesOpen: false,
+      solidifyCards: result.solidifyCards || [],
+      solidifyOpen: Boolean(result.solidifyOpen),
+      solidifySelectedKey: result.solidifySelectedKey || this.solidifyKey?.((result.solidifyCards || [])[0]) || '',
       streaming: false,
     });
     return true;
