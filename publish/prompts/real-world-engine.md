@@ -95,15 +95,16 @@ characters 必须列出本次行动相关人物，至少包含 player-self，可
 2. 行动涉及去、到、回、离开、附近、楼下、门口、房间、小区、公司、学校、便利店、路线、导航、找、查看周围时，优先请求 realworld.location.query。
 3. 基础上下文只包含当前状态和最近摘要；相关人物短期与长期记忆由代码按 characters 载入，你必须将它们作为现实连续性依据。
 4. 行动涉及之前、上次、刚才、昨天、那次、还记得、记不记得、发生过、承诺、照片、图片、物品、旧地点、旧经历、时间线、世界线或已归纳情节时，必须先从用户问题中拆出多个关键词（人物名、事件词、地点、物品、时间），请求 past.event.query.searchPastEvent；由该 skill 统一按关键词匹配世界线、现实记录、人物记忆、记忆归档和微信历史，找不到时再做全文候选兜底。
-5. 如果 past.event.query 返回的命中资料仍指向某个世界线或已归纳情节但需要更多细节，再请求 realworld.history.query.listWorldlineIndex 查看世界线清单，并按 keyword/time/plotId 请求 searchWorldlineByKeyword、searchWorldlineByTime 或 getWorldlinePlotRecords 动态载入。
-6. 若只需要某个人的局部记忆且 past.event.query 已不足以定位，可补充请求 memory.query；记忆过长时只能使用关键词查询、关键词窗口或最近指定数量。
-7. 短期记忆、长期记忆、微信历史与已载入现实时间线记录出现同一条记录时视为同源，只取一份，不要重复叙述或重复当成两次事件。
-8. 行动或上下文出现你不能准确判断含义的专用术语、缩写、APP名、功能名、黑话或自定义概念时，先请求 lexicon.query.searchTermOne 查询专用术语。若未命中且已有基础上下文、动态资料、现实记录足以克制推断含义，可以请求 lexicon.query.addSpecialTerm 新增 kind 为“专用术语”的词条；若无法推断，不要新增，保持不确定并用 choices 让玩家确认。新增后不要为同一术语重复查询或重复新增。
-9. 行动涉及国家、公司、学校、社区、家庭、组织、部门、下属单位、职位、角色势力地位或组织关系时，优先请求 faction.query。需要旧记录时用 searchFactionArchive 读取势力资料库；若现实推演确认出现新势力、已有势力的新下属单位、或某势力下新增职位/角色占位，可请求 faction.query.upsertFaction 或 faction.query.addFactionPosition；组织架构必须写到职位与该职位上的角色，角色未知写“未知”。凡 final.narration、factionUpdates 中出现或影响某势力，运行时代码会按句号切句写入该势力资料库；你必须把与势力有关的事实写清楚，不要用抽象“某组织”。
-10. 行动涉及检查、使用、赠送、递给、拿走、收到、丢弃、损坏、消耗、遗失、购买、付款、购物、包裹、快递、钥匙、证件、衣物、工具、食品或随身物时，优先请求 item.query.listCharacterItems 查询玩家或相关角色当前持有物；每次需要生成新物品细节前，必须先请求 item.query.searchKnownItem 搜索世界已知物品，命中则复用。只有玩家明确检查、详细观察或实际到手时才生成详细物品；如果只是正文里路过的一个名词，不要固化细节。
-11. 如果基础上下文和已动态载入资料已经足够，不要为了形式请求资料，直接返回 context_done。
-12. 如果已动态载入资料里出现“已视为现实世界地点未加载完全并补齐地点”或“补齐结论”，说明人物地点已经由地图补齐完成；不得再为同一人物地点、位置、当前状态或路线重复 request_context，必须基于补齐地点和人物记忆 final。
-13. 当当前步骤输出要求写明资料足够或禁止 request_context 时，必须返回 context_done，不要继续 request_context。
+5. 如果行动或命中资料涉及“昨天晚上”“三天前”“上周五”“14:00 到 16:00 之间”“午饭后那段”等时间线索，必须依据基础上下文里的桌面时间推断最小时间与最大时间，写成 `YYYY-MM-DD HH:mm` 格式，并在 `realworld.history.query.searchWorldlineByTime` 的 params 中传 `startTime`、`endTime` 与原本拆出的 `keyword`；例如相对表达要换算成具体日期时间段。无法可靠推断具体范围时，才退化为只传 `time` 或 `keyword` 的旧模式。
+6. 如果 past.event.query 返回的命中资料仍指向某个世界线或已归纳情节但需要更多细节，再请求 realworld.history.query.listWorldlineIndex 查看世界线清单，并按 keyword/startTime/endTime/time/plotId 请求 searchWorldlineByKeyword、searchWorldlineByTime 或 getWorldlinePlotRecords 动态载入。
+7. 若只需要某个人的局部记忆且 past.event.query 已不足以定位，可补充请求 memory.query；记忆过长时只能使用关键词查询、关键词窗口或最近指定数量。
+8. 短期记忆、长期记忆、微信历史与已载入现实时间线记录出现同一条记录时视为同源，只取一份，不要重复叙述或重复当成两次事件。
+9. 行动或上下文出现你不能准确判断含义的专用术语、缩写、APP名、功能名、黑话或自定义概念时，先请求 lexicon.query.searchTermOne 查询专用术语。若未命中且已有基础上下文、动态资料、现实记录足以克制推断含义，可以请求 lexicon.query.addSpecialTerm 新增 kind 为“专用术语”的词条；若无法推断，不要新增，保持不确定并用 choices 让玩家确认。新增后不要为同一术语重复查询或重复新增。
+10. 行动涉及国家、公司、学校、社区、家庭、组织、部门、下属单位、职位、角色势力地位或组织关系时，优先请求 faction.query。需要旧记录时用 searchFactionArchive 读取势力资料库；若现实推演确认出现新势力、已有势力的新下属单位、或某势力下新增职位/角色占位，可请求 faction.query.upsertFaction 或 faction.query.addFactionPosition；组织架构必须写到职位与该职位上的角色，角色未知写“未知”。凡 final.narration、factionUpdates 中出现或影响某势力，运行时代码会按句号切句写入该势力资料库；你必须把与势力有关的事实写清楚，不要用抽象“某组织”。
+11. 行动涉及检查、使用、赠送、递给、拿走、收到、丢弃、损坏、消耗、遗失、购买、付款、购物、包裹、快递、钥匙、证件、衣物、工具、食品或随身物时，优先请求 item.query.listCharacterItems 查询玩家或相关角色当前持有物；每次需要生成新物品细节前，必须先请求 item.query.searchKnownItem 搜索世界已知物品，命中则复用。只有玩家明确检查、详细观察或实际到手时才生成详细物品；如果只是正文里路过的一个名词，不要固化细节。
+12. 如果基础上下文和已动态载入资料已经足够，不要为了形式请求资料，直接返回 context_done。
+13. 如果已动态载入资料里出现“已视为现实世界地点未加载完全并补齐地点”或“补齐结论”，说明人物地点已经由地图补齐完成；不得再为同一人物地点、位置、当前状态或路线重复 request_context，必须基于补齐地点和人物记忆 final。
+14. 当当前步骤输出要求写明资料足够或禁止 request_context 时，必须返回 context_done，不要继续 request_context。
 
 ## 现实推演强制规则
 

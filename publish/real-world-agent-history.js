@@ -6,7 +6,7 @@ Object.assign(window.GameModules.realWorldAgentContext, {
     if (method === 'getWorldlinePending') return this.worldlinePending(store);
     if (method === 'listWorldlineIndex') return this.worldlineIndex(store);
     if (method === 'searchWorldlineByKeyword') return this.searchWorldline(store, keyword, '关键词');
-    if (method === 'searchWorldlineByTime') return this.searchWorldline(store, String(params.time || params.keyword || '').trim(), '时间');
+    if (method === 'searchWorldlineByTime') return this.searchWorldlineByTime(store, params);
     if (method === 'listWorldlinePlots') return this.worldlinePlots(store);
     if (method === 'getWorldlinePlotRecords') return this.worldlinePlotRecords(store, params);
     const rows = this.allRealWorldRows(store);
@@ -48,6 +48,41 @@ Object.assign(window.GameModules.realWorldAgentContext, {
     const plotText = plots.map((plot) => this.worldlinePlotDetail(line, plot)).join('\n\n');
     const eventText = events.map((event) => this.eventLine(event)).join('\n');
     return this.limit([`${label}查询：${key}`, plotText ? `命中情节：\n${plotText}` : '', eventText ? `命中事件：\n${eventText}` : ''].filter(Boolean).join('\n\n') || '未命中世界线资料。', 1800);
+  },
+
+  searchWorldlineByTime(store, params = {}) {
+    const start = this.parseHistoryTime(params.startTime || params.start || params.minTime || params.from);
+    const end = this.parseHistoryTime(params.endTime || params.end || params.maxTime || params.to);
+    const keyword = String(params.keyword || '').trim();
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start > end) return this.searchWorldline(store, String(params.time || params.keyword || '').trim(), '时间');
+    const line = store.realWorldline?.() || {};
+    const keywordHit = (text) => !keyword || text.includes(keyword);
+    const inRange = (value) => {
+      const at = this.parseHistoryTime(value);
+      return Number.isFinite(at) && at >= start && at <= end;
+    };
+    const events = (line.events || []).filter((event) => inRange(event.time) && keywordHit(this.worldlineEventText(event))).slice(-8);
+    const plots = (line.plots || []).filter((plot) => this.plotOverlapsRange(plot, start, end) && keywordHit(this.worldlinePlotText(plot))).slice(-6);
+    const plotText = plots.map((plot) => this.worldlinePlotDetail(line, plot)).join('\n\n');
+    const eventText = events.map((event) => this.eventLine(event)).join('\n');
+    const title = `时间段查询：${params.startTime || params.start || ''} - ${params.endTime || params.end || ''}${keyword ? `｜关键词：${keyword}` : ''}`;
+    return this.limit([title, plotText ? `命中情节：\n${plotText}` : '', eventText ? `命中事件：\n${eventText}` : '未命中该时间段世界线资料。'].filter(Boolean).join('\n\n'), 1800);
+  },
+
+  parseHistoryTime(value = '') {
+    const text = String(value || '').trim();
+    const match = text.match(/(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})日?(?:[ T]+(\d{1,2})[:：](\d{1,2})(?::(\d{1,2}))?)?/u);
+    if (!match) return NaN;
+    const [, y, m, d, hh = '0', mm = '0', ss = '0'] = match;
+    return new Date(Number(y), Number(m) - 1, Number(d), Number(hh), Number(mm), Number(ss)).getTime();
+  },
+
+  plotOverlapsRange(plot = {}, start, end) {
+    const times = String(plot.情节时间段 || plot.timeRange || plot.time || '').match(/\d{4}[-/.年]\d{1,2}[-/.月]\d{1,2}日?(?:[ T]+\d{1,2}[:：]\d{1,2}(?::\d{1,2})?)?/gu) || [];
+    const parsed = times.map((item) => this.parseHistoryTime(item)).filter(Number.isFinite);
+    if (!parsed.length) return false;
+    const min = Math.min(...parsed), max = Math.max(...parsed);
+    return max >= start && min <= end;
   },
 
   worldlinePlots(store) {
