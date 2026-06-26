@@ -65,6 +65,7 @@ window.GameModules.sqliteSave = {
       CREATE TABLE IF NOT EXISTS lexicon_entries(world_tag TEXT NOT NULL, kind TEXT NOT NULL, name TEXT NOT NULL, entry_json TEXT NOT NULL, source TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY(world_tag,kind,name));
       CREATE TABLE IF NOT EXISTS character_world(character_id TEXT PRIMARY KEY, world_tag TEXT NOT NULL, updated_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS character_state(character_id TEXT PRIMARY KEY, name TEXT NOT NULL, world_tag TEXT NOT NULL, state_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS character_intro(world_tag TEXT NOT NULL, name TEXT NOT NULL, intro_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY(world_tag,name));
       CREATE TABLE IF NOT EXISTS character_memory(character_id TEXT PRIMARY KEY, memory_json TEXT NOT NULL, updated_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS memory_archive(id TEXT PRIMARY KEY, character_id TEXT NOT NULL, text TEXT NOT NULL, vector_json TEXT NOT NULL, meta_json TEXT NOT NULL, created_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS wechat_history(id TEXT PRIMARY KEY, contact_id TEXT NOT NULL, message_json TEXT NOT NULL, created_at TEXT NOT NULL);
@@ -115,14 +116,14 @@ window.GameModules.sqliteSave = {
   },
 
   readFallbackState(raw) {
-    if (!raw) return { version: 1, main: null, updatedAt: '', characterStates: {}, characterWorlds: {} };
+    if (!raw) return { version: 1, main: null, updatedAt: '', characterStates: {}, characterWorlds: {}, characterIntros: {} };
     try {
       const parsed = JSON.parse(raw);
       return parsed && typeof parsed === 'object'
-        ? { version: 1, main: parsed.main || null, updatedAt: parsed.updatedAt || '', characterStates: parsed.characterStates || {}, characterWorlds: parsed.characterWorlds || {} }
-        : { version: 1, main: null, updatedAt: '', characterStates: {}, characterWorlds: {} };
+        ? { version: 1, main: parsed.main || null, updatedAt: parsed.updatedAt || '', characterStates: parsed.characterStates || {}, characterWorlds: parsed.characterWorlds || {}, characterIntros: parsed.characterIntros || {} }
+        : { version: 1, main: null, updatedAt: '', characterStates: {}, characterWorlds: {}, characterIntros: {} };
     } catch (_) {
-      return { version: 1, main: null, updatedAt: '', characterStates: {}, characterWorlds: {} };
+      return { version: 1, main: null, updatedAt: '', characterStates: {}, characterWorlds: {}, characterIntros: {} };
     }
   },
 
@@ -132,7 +133,7 @@ window.GameModules.sqliteSave = {
     stmt.bind(params);
     const row = stmt.step() ? stmt.getAsObject() : null;
     stmt.free();
-    return row ? JSON.parse(row.value || row.lore_json || row.worldline_json || row.attrs_json || row.schema_json || row.info_json || row.entry_json || row.state_json || row.memory_json || row.meta_json || row.vector_json) : null;
+    return row ? JSON.parse(row.value || row.lore_json || row.worldline_json || row.attrs_json || row.schema_json || row.info_json || row.entry_json || row.state_json || row.intro_json || row.memory_json || row.meta_json || row.vector_json) : null;
   },
 
   async saveGameState(value) {
@@ -226,6 +227,51 @@ window.GameModules.sqliteSave = {
     stmt.free(); return rows;
   },
 
+
+
+  introKey(worldTag, name) {
+    return `${worldTag || '未知世界'}::${name || '未知角色'}`;
+  },
+
+  getCharacterIntro(name, worldTag = '') {
+    if (!name) return null;
+    if (this.fallback) {
+      const rows = Object.values(this.fallbackState?.characterIntros || {}).filter((card) => card?.name === name && (!worldTag || card.worldTag === worldTag));
+      return rows.sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')))[0] || null;
+    }
+    if (!this.db) return null;
+    if (worldTag) return this.getJson('SELECT intro_json FROM character_intro WHERE name=? AND world_tag=? ORDER BY updated_at DESC LIMIT 1', [name, worldTag]);
+    return this.getJson('SELECT intro_json FROM character_intro WHERE name=? ORDER BY updated_at DESC LIMIT 1', [name]);
+  },
+
+  listCharacterIntros() {
+    if (this.fallback) return Object.values(this.fallbackState?.characterIntros || {});
+    if (!this.db) return [];
+    const rows = [];
+    const stmt = this.db.prepare('SELECT intro_json FROM character_intro ORDER BY updated_at DESC');
+    while (stmt.step()) rows.push(JSON.parse(stmt.getAsObject().intro_json));
+    stmt.free(); return rows;
+  },
+
+  async saveCharacterIntro(card) {
+    if (!card?.name) return null;
+    const now = new Date().toISOString();
+    const intro = { ...card, worldTag: card.worldTag || card.work || '未知世界', updatedAt: now, createdAt: card.createdAt || now };
+    if (this.fallback) {
+      this.fallbackState = this.fallbackState || { version: 1, main: null, updatedAt: '', characterIntros: {} };
+      this.fallbackState.characterIntros = { ...(this.fallbackState.characterIntros || {}), [this.introKey(intro.worldTag, intro.name)]: intro };
+      this.fallbackState.updatedAt = now;
+      await this.persist();
+      return intro;
+    }
+    if (!this.db) return intro;
+    this.db.run(
+      'INSERT OR REPLACE INTO character_intro(world_tag,name,intro_json,created_at,updated_at) VALUES (?,?,?,COALESCE((SELECT created_at FROM character_intro WHERE world_tag=? AND name=?),?),?)',
+      [intro.worldTag, intro.name, JSON.stringify(intro), intro.worldTag, intro.name, now, now],
+    );
+    await this.persist();
+    return intro;
+  },
 
   async saveCharacterState(character) {
     if (!character) return;

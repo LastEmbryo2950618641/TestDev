@@ -149,6 +149,7 @@ window.GameModules.realWorldActions = {
     const settlement = [];
     settlement.push(...await window.GameModules.realWorldTargetUpdates.applyMetrics(this, result));
     settlement.push(...await window.GameModules.realWorldTargetUpdates.applyLexicon(this, result.lexiconUpdates || []));
+    await this.collectSolidifiableCharacters?.(result, 'real');
     result.itemActionResults = await this.applyRealWorldItemActions?.(result.itemActions || []) || [];
     settlement.push(...this.realWorldItemActionSettlement(result.itemActionResults));
     const elapsedSeconds = window.GameModules.ai.clampElapsed?.(result.elapsedSeconds, 300) || 300;

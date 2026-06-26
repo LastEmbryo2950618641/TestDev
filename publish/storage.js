@@ -80,6 +80,7 @@ window.GameModules.storage = {
       factionState: store.factionState ? { ...store.factionState, open: false, detailOpen: false, generating: false } : store.factionState,
       taobaoState: store.taobaoState ? { ...store.taobaoState, open: false, generatingId: '', buyingId: '', walletOpen: false } : store.taobaoState,
       rpgPanelCharacterId: store.rpgPanelCharacterId,
+      solidifyState: store.solidifyState ? { open: false, candidates: store.solidifyState.candidates || [], selectedKey: store.solidifyState.selectedKey || '' } : undefined,
     };
   },
 
@@ -124,6 +125,7 @@ window.GameModules.storage = {
     store.calendarState = save.calendarState ? { ...save.calendarState, open: false } : store.calendarState;
     store.factionState = save.factionState ? { ...save.factionState, open: false, detailOpen: false, generating: false, archives: save.factionState.archives || save.factionArchives || {} } : store.factionState;
     store.taobaoState = save.taobaoState ? { ...store.taobaoState, ...save.taobaoState, open: false, generatingId: '', buyingId: '' } : store.taobaoState;
+    store.solidifyState = save.solidifyState ? { ...store.solidifyState, ...save.solidifyState, open: false } : store.solidifyState;
     store.initTaobaoApp?.();
     if (!save.started) return false;
     store.selectedWork = save.selectedWork || store.selectedWork;

@@ -107,15 +107,10 @@ window.GameModules.saveActions = {
     return this.ensureRpgForCharacter(this.character, this.entryCurrentAction || this.sceneTitle || '');
   },
   async ensureRpgFromResults(result) {
-    const entries = [this.character, ...(result.appearedCharacters || [])];
-    const unique = [...new Map(entries.filter(Boolean).map((entry) => [entry.id || entry.name, entry])).values()];
+    const entries = [this.character];
     const context = `${this.sceneTitle} ${this.quest} ${result.narration || ''}`;
-    this.startRoleCardLoadingBatch?.(unique.map((entry) => {
-      const current = entry.id === this.character.id;
-      const player = current && (entry.id === 'player-self' || entry.isPlayer || this.playerIdentityState?.()?.id === entry.id);
-      return { id: entry.id || entry.name, name: entry.name || '发现新角色', type: player ? '玩家卡' : '角色卡', source: entry, context };
-    }));
-    await Promise.all(unique.map((entry) => this.ensureRpgForCharacter(entry, context, { loadMetrics: entry.id === this.character.id })));
+    await this.collectSolidifiableCharacters?.(result, 'story');
+    await Promise.all(entries.filter(Boolean).map((entry) => this.ensureRpgForCharacter(entry, context, { loadMetrics: entry.id === this.character.id })));
   },
   findKnownCharacter(name) {
     if (!name) return null;

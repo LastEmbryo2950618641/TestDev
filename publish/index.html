@@ -87,6 +87,7 @@
   <script src="rpg-lexicon-sync.js"></script>
   <script src="rpg-lexicon-update.js"></script>
   <script src="character-card-lexicon.js"></script>
+  <script src="character-intro-card.js"></script>
   <script src="rpg-field-ui.js"></script>
   <script src="progression-combat.js"></script>
   <script src="rpg-initializer.js"></script>
@@ -185,6 +186,7 @@
   <script src="control-monitor.js"></script>
   <script src="loading-actions.js"></script>
   <script src="role-card-loading-actions.js"></script>
+  <script src="solidify-actions.js"></script>
   <script src="save-actions.js"></script>
   <script src="result-actions.js"></script>
   <script src="style-actions.js"></script>
@@ -325,6 +327,30 @@
           </section>
         </template>
       </div>
+    </article>
+  </section>
+
+  <section x-show="$store.game.solidifyCandidates && $store.game.solidifyCandidates().length" class="solidify-dock" x-cloak>
+    <button type="button" class="solidify-tab" @click="$store.game.solidifyState.open = !$store.game.solidifyState.open" x-text="`可固化角色 ${$store.game.solidifyCandidates().length}`"></button>
+    <article class="solidify-panel" x-show="$store.game.solidifyState.open">
+      <header><strong>介绍卡固化</strong><button type="button" @click="$store.game.solidifyState.open = false">关闭</button></header>
+      <div class="solidify-list">
+        <template x-for="card in $store.game.solidifyCandidates()" :key="$store.game.solidifyKey(card)">
+          <button type="button" :class="{active: $store.game.solidifyKey(card) === $store.game.solidifyKey($store.game.selectedSolidifyCard())}" @click="$store.game.selectSolidifyCard(card)">
+            <b x-text="card.name"></b><span x-text="card.worldTag"></span>
+          </button>
+        </template>
+      </div>
+      <section class="solidify-card" x-show="$store.game.selectedSolidifyCard()">
+        <h3 x-text="$store.game.selectedSolidifyCard()?.name"></h3>
+        <p><b>世界：</b><span x-text="$store.game.selectedSolidifyCard()?.worldTag"></span></p>
+        <p><b>身份：</b><span x-text="$store.game.selectedSolidifyCard()?.role"></span></p>
+        <p x-text="$store.game.selectedSolidifyCard()?.intro"></p>
+        <div class="solidify-actions">
+          <button type="button" @click="$store.game.solidifySelectedIntroCard()">固化为角色卡</button>
+          <button type="button" class="ghost" @click="$store.game.dismissSolidifyCard()">取消</button>
+        </div>
+      </section>
     </article>
   </section>
 
