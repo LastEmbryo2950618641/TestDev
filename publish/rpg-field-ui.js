@@ -389,7 +389,8 @@ window.GameModules.rpgFieldUi = {
 
   rpgFieldDetail(field) {
     const lexicon = this.lexiconFor(field);
-    const lines = [`说明: ${lexicon?.description || lexicon?.summary || field?.desc || this.fallbackDesc(field)}`];
+    const rawValue = Array.isArray(field?.value) ? field.value.join('、') : (field?.value ?? field?.raw ?? '未记录');
+    const lines = [`完整内容: ${rawValue || '未记录'}`, `说明: ${lexicon?.description || lexicon?.summary || field?.desc || this.fallbackDesc(field)}`];
     if (field?.pendingAiInit) lines.push('初始化: 否，当前为模板占位，待AI初始化');
     if (field && Object.prototype.hasOwnProperty.call(field, 'initialMeeting')) lines.push(`初始见面: ${Array.isArray(field.initialMeeting) ? field.initialMeeting.join('、') || '无' : field.initialMeeting}`);
     lines.push(`变化原因: ${this.fieldChangeReason(field, lexicon)}`);

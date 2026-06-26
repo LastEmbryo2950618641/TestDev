@@ -769,7 +769,10 @@
 .rpg-item-card.open,
 .rpg-tree-title.open {
   width: 100%;
+  justify-items: start;
+  place-items: start stretch;
   border-radius: 12px;
+  text-align: left;
 }
 
 .rpg-item-card .rpg-field-detail,
