@@ -241,6 +241,7 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   updateJsonSchema() {
+    const realWorld = window.GameModules.realWorld2026 || {};
     return {
       type: 'final', sceneTitle: '标题', locationName: '具体地点', elapsedSeconds: 300, status: '状态', quest: '目标',
       choices: ['行动一', '行动二', '行动三', '行动四'],

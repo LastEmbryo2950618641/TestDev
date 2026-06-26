@@ -49,6 +49,8 @@ window.GameModules.realWorldAi = {
         vitalUpdates: this.normalizeVitalUpdates(data.vitalUpdates, data.elapsedSeconds, action),
         metricUpdates: window.GameModules.ai.normalizeMetricUpdates?.(data.metricUpdates, store.playerIdentityState?.()) || {},
         characterMetricUpdates: this.normalizeCharacterMetricUpdates(data.characterMetricUpdates, store),
+        appearedCharacters: Array.isArray(data.appearedCharacters) ? data.appearedCharacters.slice(0, 8).map((x) => window.GameModules.ai.normalizeCharacter(x, store)).filter(Boolean) : [],
+        solidifiableCharacters: Array.isArray(data.solidifiableCharacters) ? data.solidifiableCharacters.slice(0, 8).map((x) => window.GameModules.ai.normalizeCharacter(x, store)).filter(Boolean) : [],
         factionUpdates: Array.isArray(data.factionUpdates) ? data.factionUpdates.slice(0, 8) : [],
         itemActions: Array.isArray(data.itemActions) ? data.itemActions.slice(0, 8) : [],
         wechatActions: this.normalizeWechatActions(data.wechatActions),
