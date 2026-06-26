@@ -71,7 +71,7 @@ window.GameModules.realWorldAi = {
 
   normalizeCharacterMetricUpdates(value, store) {
     return (Array.isArray(value) ? value : []).map((item) => {
-      const target = String(item?.target || item?.targetId || item?.characterId || item?.name || item?.subject?.id || item?.subject?.name || '').trim();
+      const target = String(item?.target || item?.targetId || item?.characterId || item?.character || item?.name || item?.subject?.characterId || item?.subject?.id || item?.subject?.name || '').trim();
       const state = store?.itemSkillState?.(target);
       if (!target) return null;
       const legacyEmotions = (Array.isArray(item.emotions) ? item.emotions : []).filter((entry) => entry?.key || entry?.delta !== undefined || entry?.status || entry?.reason);

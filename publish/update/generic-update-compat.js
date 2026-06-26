@@ -39,7 +39,8 @@ Object.assign(window.GameModules.updateRegistry, {
     for (const item of Array.isArray(updates) ? updates : []) {
       if (item?.updateType !== wanted) continue;
       const subject = item.subject || {};
-      const target = this.canonicalSubjectId(store, subject.characterId || subject.playerId || subject.id || item.target || 'player-self');
+      const rawTarget = subject.type === 'player' ? (subject.playerId || subject.id || 'player-self') : (subject.characterId || subject.id || subject.name || item.target || item.character || item.name || 'player-self');
+      const target = this.canonicalSubjectId(store, rawTarget);
       const key = String(item.field || '').split('.').filter(Boolean).at(-1) || item.name;
       if (!key) continue;
       if (!grouped.has(target)) grouped.set(target, { target, subject: { ...subject, id: target }, emotions: [], playerFeelings: [] });

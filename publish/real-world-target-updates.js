@@ -2,7 +2,7 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldTargetUpdates = {
   targetKey(item = {}) {
-    return String(item.target || item.targetId || item.characterId || item.owner || item.to || 'player-self').trim() || 'player-self';
+    return String(item.target || item.targetId || item.characterId || item.character || item.name || item.subject?.characterId || item.subject?.id || item.subject?.name || item.owner || item.to || 'player-self').trim() || 'player-self';
   },
 
   targetState(store, target = 'player-self') {

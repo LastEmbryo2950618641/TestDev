@@ -76,9 +76,19 @@ window.GameModules = window.GameModules || {};
   };
 
   registry.settlementRows = function settlementRows(entry = {}, store = null) {
+    const appliedMetricKeys = new Set((entry.characterCardChanges || []).filter((item) => /^(情绪|感觉)$/u.test(item?.field || '')).map((item) => `${item.cardId || item.group || ''}:${item.field}:${item.name}`));
+    const genericRows = (entry.genericUpdates || [])
+      .filter((item) => {
+        if (!/^(emotion|feeling)$/u.test(item?.updateType || '')) return true;
+        const type = item.updateType === 'feeling' ? '感觉' : '情绪';
+        const card = this.cardForChange(item, store);
+        const name = this.leafName?.(item.field) || item.name || '';
+        return !appliedMetricKeys.has(`${card.id || card.title || ''}:${type}:${name}`);
+      })
+      .map((item) => this.rowFromGeneric(item, store));
     return [
       ...(entry.characterCardChanges || []).map((item) => this.rowFromSettlement(item, store)),
-      ...((entry.genericUpdates || []).map((item) => this.rowFromGeneric(item, store))),
+      ...genericRows,
     ].filter(Boolean);
   };
 
