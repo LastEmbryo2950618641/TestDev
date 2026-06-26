@@ -67,7 +67,7 @@ window.GameModules.realWorldAgentLoop = {
   async generateConfiguredFinal({ store, action, base, loaded, skills, trace, materialSession, logId, config = this.realConfig() }) {
     const narrationPrompt = await this.buildConfiguredNarrationPrompt({ store, action, base, loaded, skills, materialSession, config });
     this.markConfiguredStep(store, logId, `${config.label}资料已足够，正在生成正文…`, config);
-    const narrationRaw = await this.completeConfiguredStep(store, narrationPrompt, logId, true, config, { longOutput: true });
+    const narrationRaw = await this.completeConfiguredStep(store, narrationPrompt, logId, true, config);
     const narration = await this.ensureConfiguredNarrationLength(store, action, narrationPrompt, this.cleanPhasedNarration(narrationRaw), logId, config);
     if (!narration) throw new Error(`${config.label}正文为空`);
     this.showConfiguredNarration(store, logId, narration, config);
@@ -155,7 +155,7 @@ window.GameModules.realWorldAgentLoop = {
       `推演自由度：${this.storyFreedomRule(store)}`,
       `基础上下文：\n${base}`,
       `已动态载入资料：\n${[loadedText, materialText].filter(Boolean).join('\n\n') || '无'}`,
-      '要求：使用第二人称“你”称呼玩家；玩家不是角色本人，而是操控/影响被操控者行动的存在；写出动作过程、环境变化、其他人物反应、被操控者身体与心理张力、直接结果；正文至少2000个中文汉字，目标2000-3000字；不要替玩家完成后续行动。',
+      '要求：使用第二人称“你”称呼玩家；玩家不是角色本人，而是操控/影响被操控者行动的存在；写出动作过程、环境变化、其他人物反应、被操控者身体与心理张力、直接结果；正文目标1000-1400个中文汉字；不要替玩家完成后续行动。',
     ].join('\n\n');
     return [
       '# 现实推演阶段2：只生成玩家可见正文',
@@ -166,7 +166,7 @@ window.GameModules.realWorldAgentLoop = {
       ...(store.sharedControlState?.() ? ['共享感官规则：玩家与被链接角色处于同一现实世界时，不进入异世界附身流程；玩家本人仍在原地，同时共享被控角色的触觉、嗅觉、味觉、听觉、视觉、身体反应与局部行动控制。正文应以第二人称写出这种双重感官，不要让同一角色在两个地点同时出现。'] : []),
       `基础上下文：\n${base}`,
       `已动态载入资料：\n${[loadedText, materialText].filter(Boolean).join('\n\n') || '无'}`,
-      '要求：使用第二人称“你”；写出行动过程、环境变化、人物反应和直接结果；无论推演自由度是行动范围内还是AI自由推演，正文必须至少2000个中文汉字，目标2000-3000字；少于2000字视为不合格；不要替玩家完成后续行动。',
+      '要求：使用第二人称“你”；写出行动过程、环境变化、人物反应和直接结果；无论推演自由度是行动范围内还是AI自由推演，正文目标1000-1400个中文汉字；不要替玩家完成后续行动。',
     ].join('\n\n');
   },
 
@@ -469,7 +469,7 @@ window.GameModules.realWorldAgentLoop = {
     const text = this.cleanPhasedNarration(narration);
     const count = this.chineseCharCount(text);
     const tailIncomplete = this.narrationTailLooksIncomplete(text);
-    if (count < 2000 || tailIncomplete) {
+    if (count < 1000 || tailIncomplete) {
       console.warn(`${config.label}正文未通过长度/句尾自检，但不再自动补写或中断流程:`, { count, tailIncomplete, tail: text.slice(-80) });
     }
     return text;
@@ -479,7 +479,7 @@ window.GameModules.realWorldAgentLoop = {
     return await this.completeConfiguredStep(store, prompt, logId, streamToUi, this.realConfig());
   },
 
-  async completeConfiguredStep(store, prompt, logId, streamToUi = false, config = this.realConfig(), options = {}) {
+  async completeConfiguredStep(store, prompt, logId, streamToUi = false, config = this.realConfig()) {
     const requestId = config.mode === 'story' ? window.GameModules.ai.latestRequestId : window.GameModules.realWorldAi.latestRequestId;
     let buffer = '';
     let doneSeen = false;
@@ -506,7 +506,7 @@ window.GameModules.realWorldAgentLoop = {
           }
         },
       };
-      if (!options.longOutput) requestOptions.maxTokens = 3000;
+      requestOptions.maxTokens = 3000;
       return await window.GameModules.aiRequest.complete(requestOptions);
     } catch (err) {
       console.warn(`${config.label} Loop Agent 请求未完成，拒绝使用未完成内容:`, { code: err.code, message: err.message, doneSeen, length: buffer.length, stack: err.stack });
