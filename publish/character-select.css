@@ -768,7 +768,6 @@
   color: inherit;
   text-align: left;
   background: rgba(255, 255, 255, .06);
-  cursor: pointer;
 }
 
 .control-role-card strong,
@@ -787,7 +786,27 @@
   font-size: var(--ui-small-font);
 }
 
-.control-role-card > span {
+.control-role-info strong {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.linked-tag {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(120, 246, 255, .16);
+  color: #78f6ff;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.control-link-box {
+  position: relative;
+}
+
+.control-link-btn {
   min-width: 48px;
   padding: 7px 10px;
   border-radius: 999px;
@@ -795,6 +814,33 @@
   font-weight: 900;
   text-align: center;
   background: linear-gradient(135deg, #78f6ff, #ff78d2);
+}
+
+.control-link-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 5;
+  display: grid;
+  gap: 5px;
+  min-width: 82px;
+  padding: 6px;
+  border: 1px solid rgba(113, 243, 255, .22);
+  border-radius: 12px;
+  background: rgba(13, 18, 38, .96);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, .34);
+}
+
+.control-link-menu button {
+  min-height: 32px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .08);
+  color: #eef3ff;
+  font-weight: 900;
+}
+
+.control-link-menu button:disabled {
+  opacity: .42;
 }
 
 .character-detail-card {

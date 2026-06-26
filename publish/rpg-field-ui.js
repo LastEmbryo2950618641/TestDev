@@ -75,7 +75,7 @@ window.GameModules.rpgFieldUi = {
     const intimacyFields = intimacyAllFields.filter((field) => intimacyFieldKeys.has(field.key));
     if (!intimacyFields.length) intimacyFields.push(...this.defaultIntimacyBodyFields(displayState));
     const longing = this.profileLongingField(state);
-    const used = new Set(['world_tag', 'age', 'factions', 'force_positions', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'items', 'wearing', 'bodyProfile', 'dressedProfile', 'bodyStatus', 'intimacy', 'status_tags']);
+    const used = new Set(['world_tag', 'age', 'factions', 'force_positions', 'current_location', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'items', 'wearing', 'bodyProfile', 'dressedProfile', 'bodyStatus', 'intimacy', 'status_tags']);
     const personal = all.filter((field) => !used.has(field.key));
     const groups = [
       { title: '个人能力', fields: personal },
@@ -85,7 +85,7 @@ window.GameModules.rpgFieldUi = {
       { title: '盛装', fields: dressedState ? [dressedState] : [] },
       { title: '状态标签', fields: take(['status_tags']) },
       { title: '人际关系', fields: relations },
-      { title: '身份信息', fields: [...identityRest, ...(longing ? [longing] : []), ...take(['world_tag', 'age', 'factions', 'force_positions'])] },
+      { title: '身份信息', fields: [...identityRest, ...(longing ? [longing] : []), ...take(['world_tag', 'age', 'current_location', 'factions', 'force_positions'])] },
     ];
     return this.placeProfileSection(groups, { title: intimacyUi.sectionTitle || '身体状态', fields: intimacyFields }, intimacyUi).filter((group) => group.fields.length);
   },

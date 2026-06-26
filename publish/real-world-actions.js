@@ -54,6 +54,7 @@ window.GameModules.realWorldActions = {
     this.collapseRealWorldThinking?.();
     this.realWorldOpen = false;
     this.realWorldFunctionOpen = false;
+    this.sharedControlActive = false;
   },
 
   openRealWorldFunctionPanel(view = 'menu') {
@@ -173,6 +174,16 @@ window.GameModules.realWorldActions = {
     this.refreshRealWorldMatterStatus?.();
     this.checkWorkReminder?.();
     window.GameModules.realWorldMap.update(this, result.locationName || this.realWorldLocationName, result);
+    this.ensureControlRoleLocation?.(state, '现实推演后更新玩家当前位置。');
+    if (state?.values?.current_location) state.values.current_location.name = this.realWorldLocationName || result.locationName || state.values.current_location.name;
+    const shared = this.sharedControlState?.();
+    if (shared) {
+      this.ensureControlRoleLocation?.(shared, '共享感官现实推演后同步位置。');
+      shared.values.current_location = { ...(shared.values.current_location || {}), name: this.realWorldLocationName || result.locationName || '现实当前位置', worldTag: window.GameModules.realWorld2026?.label || '2026 现代都市现实世界', updatedAt: this.phoneDateText?.() || '', reason: '共享感官控制中与玩家同处现实推演位置。' };
+      await window.GameModules.sqliteSave.saveCharacterState?.(shared);
+    }
+    if (state) await window.GameModules.sqliteSave.saveCharacterState?.(state);
+    await this.refreshControlLinkStates?.();
     await this.applyRealWorldFactionUpdates?.(result.factionUpdates || []);
     this.realWorldSceneTitle = result.sceneTitle || this.realWorldSceneTitle;
     this.realWorldQuest = result.quest || this.realWorldQuest;

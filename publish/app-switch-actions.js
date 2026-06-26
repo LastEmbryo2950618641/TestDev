@@ -21,6 +21,7 @@ window.GameModules.appSwitchActions = {
     this.worldlineAppOpen = false;
     this.savePanelOpen = false;
     this.controlSelectOpen = false;
+    this.controlLinkMenuId = '';
     if (this.settingsState) this.settingsState.open = false;
     if (this.companyState) this.companyState.open = false;
     if (this.bossState) this.bossState.open = false;
@@ -43,6 +44,7 @@ window.GameModules.appSwitchActions = {
     this.desktopUnlocked = true;
     this.controlSelectOpen = true;
     this.entrySetupOpen = false;
+    this.refreshControlLinkStates?.().catch?.((err) => console.warn('刷新控制链接状态失败:', err.message, err.stack));
   },
 
   closeControlApp() {

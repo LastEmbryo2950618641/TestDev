@@ -93,13 +93,13 @@ window.GameModules.rpgState = {
         changed = true;
       }
     }));
-    const worldChanged = this.normalizeWorldValues(state), jobChanged = window.GameModules.rpgProfessionState.normalizeProfessions(state), controlChanged = this.ensureControlExperience(state), metricsChanged = this.ensureCharacterMetrics(state);
+    const worldChanged = this.normalizeWorldValues(state), jobChanged = window.GameModules.rpgProfessionState.normalizeProfessions(state), controlChanged = this.ensureControlExperience(state), locationChanged = this.ensureCurrentLocation(state), metricsChanged = this.ensureCharacterMetrics(state);
     const intimacyChanged = window.GameModules.initPromptRegistry?.ensureTemplateState?.('intimacyBody', state);
     const reasonChanged = this.ensureRpgFieldReasons(state);
     const socialChanged = this.syncSocialPositions(state);
     const inventoryChanged = window.GameModules.progression.ensureInventoryFields?.(state.values, state.id || '');
     const mechanicsChanged = window.GameModules.progression.ensureStateMechanics(state);
-    return worldChanged || jobChanged || controlChanged || intimacyChanged || metricsChanged || reasonChanged || socialChanged || inventoryChanged || mechanicsChanged || changed;
+    return worldChanged || jobChanged || controlChanged || locationChanged || intimacyChanged || metricsChanged || reasonChanged || socialChanged || inventoryChanged || mechanicsChanged || changed;
   },
   ensureRpgFieldReasons(state) {
     if (!state?.profile) throw new Error('个人资料缺失，无法校验RPG变化原因');
@@ -132,6 +132,22 @@ window.GameModules.rpgState = {
     }
     if ((!Array.isArray(state.values.force_positions) || !state.values.force_positions.length) && forces.length) {
       state.values.force_positions = forces;
+      changed = true;
+    }
+    return changed;
+  },
+
+  ensureCurrentLocation(state) {
+    let changed = false;
+    if (!state.values) state.values = {};
+    if (!state.values.current_location) {
+      state.values.current_location = { name: '当前位置未登记', worldTag: state.worldTag || state.profile?.work || '未知世界', updatedAt: '', reason: '旧角色卡补登记当前位置。' };
+      changed = true;
+    }
+    const sections = state.schema?.sections || [];
+    const identity = sections.find((section) => section.title === '身份信息' || section.fields.some((field) => field.key === 'world_tag')) || sections[0];
+    if (identity && !identity.fields.some((field) => field.key === 'current_location')) {
+      identity.fields.push({ key: 'current_location', label: '当前所在位置', type: 'text', desc: '用于避免同一人物同时出现在两个地点。' });
       changed = true;
     }
     return changed;
@@ -172,6 +188,7 @@ window.GameModules.rpgState = {
     Object.assign(values, character.worldValues || {});
     window.GameModules.rpgAge.sync(values, character, store);
     values.status_tags = [character.role, character.importance === 'minor' ? '路人' : '可被操控', schema.worldTag];
+    values.current_location = { name: store?.realWorldLocationName || store?.sceneTitle || '原世界当前位置未知', worldTag: schema.worldTag, updatedAt: store?.phoneDateText?.() || '', reason: '创建角色卡时登记初始位置。' };
     values.control_experience = { onlineCount: 0, feeling: '未知', adaptation: 0, summary: '尚未经历上线操控。', lastUpdated: '' };
     values.intimacy = window.GameModules.initPromptRegistry?.markPendingInit?.(window.GameModules.initPromptRegistry?.defaultValue?.('intimacyBody', 'intimacy') || {});
     values.bodyStatus = window.GameModules.initPromptRegistry?.markPendingInit?.(window.GameModules.initPromptRegistry?.defaultValue?.('intimacyBody', 'bodyStatus') || {});
@@ -187,6 +204,7 @@ window.GameModules.rpgState = {
       firstAppearedGameTime: values.updatedGameTime,
     };
     this.ensureControlExperience(state);
+    this.ensureCurrentLocation(state);
     window.GameModules.progression.syncInventoryFromProfile?.(state, character);
     this.ensureCharacterMetrics(state);
     return state;

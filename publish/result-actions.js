@@ -23,6 +23,7 @@ window.GameModules.resultActions = {
     await this.ensureRpgFromResults(result);
     await this.applyStatChanges(result.statChanges, result);
     await this.applyControlExperience(result);
+    await this.refreshControlLinkStates?.();
     await window.GameModules.characterMemory.recordTurn(this, result);
     if (this.updateWorldlineFromTurn) this.updateWorldlineFromTurn(result).catch((err) => console.warn('[世界线] 回合更新跳过:', err.code, err.message));
     if (!this.finalizeNovelEntry(logId, result)) {

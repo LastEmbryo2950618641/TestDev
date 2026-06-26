@@ -11,6 +11,9 @@ window.GameModules.realWorldAgentContext = {
     const companies = this.companyNames(store);
     const recent = this.recentLog(store, 3);
     const longing = store.prepareRealWorldLongingContext?.() || '';
+    const shared = store.sharedControlState?.();
+    const sharedProfile = shared?.profile || {};
+    const sharedLocation = shared ? store.controlLinkLocationText?.(shared) || '当前位置未登记' : '';
     return [
       `世界：${realWorld.label || '2026 现代都市现实世界'}`,
       `背景：${realWorld.summary || '玩家生活在现代都市，个人信息由玩家自行设定。'}`,
@@ -21,6 +24,7 @@ window.GameModules.realWorldAgentContext = {
       `玩家属性：${this.limit(store.playerIdentitySummary?.() || '玩家本人属性尚未生成。', 1000)}`,
       `玩家财富：${store.playerWealthText?.(store.playerProfile || {}) || `${Number(store.playerProfile?.wealthAmount || 0).toLocaleString('zh-CN')}元`}`,
       `现实身体状态：${this.vitalsText(store, store.playerIdentityState?.())}`,
+      ...(shared ? [`共享感官控制：当前上线对象为${sharedProfile.name || shared.name || '未知角色'}；身份：${sharedProfile.role || '未知'}；所在位置：${sharedLocation}；玩家仍保留本人现实视角，同时接收该角色的触觉、嗅觉、味觉、听觉、视觉与身体反馈。描写时必须体现双重感官共享，不写成玩家完全转生或离开自己身体。`] : []),
       `当前场景：${store.realWorldSceneTitle || '现实世界'}`,
       `当前地点：${store.realWorldLocationName || map.current || '尚未生成具体地点'}`,
       `当前目标：${store.realWorldQuest || '确认现实处境'}`,
