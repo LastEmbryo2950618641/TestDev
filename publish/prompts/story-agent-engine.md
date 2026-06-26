@@ -91,9 +91,10 @@ characters 必须列出本次行动相关人物，至少包含当前被操控角
 6. 行动涉及亲属、阵营、敌友、师徒、主从、恋人、同伴等稳定关系时，优先请求 worklore.query.searchRelationship。
 7. 行动发生在原作地点、移动到地点或利用地形时，优先请求 worklore.query.searchLocation。
 8. 行动涉及道具、装备、圣遗物、武器、药物、车辆、通讯设备时，优先请求 worklore.query.searchItem 或 item.query。
-9. 行动涉及之前、本回合以前、上次操控、角色是否记得玩家、承诺、伤害、亲密互动时，优先请求 memory.query。
-10. 行动或上下文出现不能准确判断含义的专用术语、缩写、APP名、黑话或自定义概念时，先请求 lexicon.query.searchTermOne。
-11. 如果基础上下文和已动态载入资料已经足够，不要为了形式请求资料，直接返回 context_done。
+9. 行动涉及之前、本回合以前、上次操控、角色是否记得玩家、承诺、伤害、亲密互动、旧地点、旧物品、照片/图片或“记不记得”时，必须先从用户问题中拆出多个关键词（人物名、事件词、地点、物品、时间），请求 past.event.query.searchPastEvent；由该 skill 统一按关键词匹配世界线、现实记录、人物记忆、记忆归档和微信历史，找不到时再做全文候选兜底。
+10. 如果 past.event.query 返回的命中资料指向具体原作剧情、时间线、地点或物品但仍缺原作设定，再按需请求 worklore.query.searchPlot、searchTimeline、searchLocation 或 searchItem；若只缺某个人的局部记忆，再补充请求 memory.query。
+11. 行动或上下文出现不能准确判断含义的专用术语、缩写、APP名、黑话或自定义概念时，先请求 lexicon.query.searchTermOne。
+12. 如果基础上下文和已动态载入资料已经足够，不要为了形式请求资料，直接返回 context_done。
 
 ## 操控剧情强制规则
 
@@ -107,7 +108,7 @@ characters 必须列出本次行动相关人物，至少包含当前被操控角
 8. 不要替玩家完成后续行动；结果落到对方回应、第一轮观察结果、动作完成或危险临近即可。
 9. choices 必须给四个下一步可点击行动或想法，不要返回“放开控制”。
 10. 发现、提及或联系具体人物时，先用 character.query.searchCharacterProfile 查询角色卡/介绍卡；没有命中才在 appearedCharacters / solidifiableCharacters 返回介绍卡信息（姓名+身份+文字介绍），不要在本回合自动生成完整角色卡。
-11. 需要角色过去经历时，也必须先查 character.query；若需要过往剧情细节，再通过 realworld.history.query 先读世界线归纳，再按关键词/时间/plotId 加载相关世界线记录。
+11. 需要角色过去经历时，也必须先查 character.query；若用户问“之前/上次/还记得/几天前/承诺/照片/物品/旧地点”等旧事件，优先依据 past.event.query.searchPastEvent 的准确度与命中资料回复。准确度高时按角色性格自然确认“你说的是那件事呀……”并引用命中事实；准确度中低时按性格表达“你说的是那件事？有些记不得了/你指哪件事”；无命中或无准确度时按性格承认忘记或表示“那种事情，没有必要记得”，绝不编造。
 12. 稳定关系、角色卡、技能、装备、物品、穿着、身份变化必须通过阶段3 JSON 的 lexiconUpdates、genericUpdates 或 itemActions 提交；没有事实依据则不要写。
 
 ## final 前推演检查

@@ -24,8 +24,8 @@
 3. `requests` 最多 3 个，只请求能回答本次行动所必需的资料，不要为了补全整个现实世界而请求资料。
 3. 行动涉及去、到、回、离开、附近、门口、房间、小区、公司、学校、便利店、路线、导航、找、查看周围时，优先请求 `realworld.location.query`。
 4. 行动涉及公司、上班、请假、迟到、岗位、面试、招聘、老板、同事、工资、项目、工位、打卡、考勤、开会、离职时，优先请求 `company.query`。
-5. 行动涉及之前、上次、刚才、昨天、那次、还记得、发生过、记录、时间线、已归纳情节时，优先请求 `realworld.history.query` 或 `memory.query`。
-6. 行动涉及承诺、照片、物品、人际关系、旧地点、旧经历时，可以请求 `memory.query`，但不要一次性加载过长资料。
+5. 行动涉及之前、上次、刚才、昨天、那次、还记得、记不记得、发生过、承诺、照片、图片、物品、旧地点、旧经历、时间线或已归纳情节时，必须拆出多个关键词并优先请求 `past.event.query.searchPastEvent`。
+6. past.event.query 仍不足以定位时，才按需补充请求 `realworld.history.query` 或 `memory.query`，但不要一次性加载过长资料。
 7. 行动涉及检查、使用、赠送、收到、丢弃、损坏、消耗、遗失或购买物品时，优先请求 `item.query.listCharacterItems`；需要新物品细节前必须先请求 `item.query.searchKnownItem`。
 8. large 资料禁止一次性完整加载，只能使用关键词查询一条记录、关键词前后片段或最近指定数量。
 9. `request_context` 不要返回 `thinking` 字段。

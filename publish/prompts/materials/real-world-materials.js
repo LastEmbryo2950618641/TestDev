@@ -4,6 +4,7 @@ window.GameModules.realWorldMaterials = {
   items: [
     { id: 'character-profile-search', title: '查询角色卡或介绍卡', size: 'small', maxChars: 1200, skill: 'character.query', method: 'searchCharacterProfile', paramsHint: { world: '世界名', name: '角色名' }, when: '正文涉及某个具体人物，需先确认是否已有完整角色卡或介绍卡。' },
     { id: 'character-known-list', title: '已知角色资料清单', size: 'small', maxChars: 1200, skill: 'character.query', method: 'listKnownCharacters', paramsHint: { world: '世界名' }, when: '需要先了解当前世界已有角色卡和介绍卡。' },
+    { id: 'past-event-search', title: '统一查询过去事件', size: 'large', maxChars: 5200, skill: 'past.event.query', method: 'searchPastEvent', paramsHint: { world: '世界名', question: '用户问题', keywords: ['角色名', '事件词', '地点或时间'], characterName: '角色名', timeHint: '几天前/昨天/某日期', contactId: '微信联系人id可选' }, when: '玩家询问几天前、之前、上次、记不记得、旧承诺、图片、地点、物品、微信原文或角色过去经历。' },
     { id: 'company-list', title: '玩家相关公司列表', size: 'small', maxChars: 800, skill: 'company.query', method: 'listPlayerCompanies', paramsHint: { world: '世界名',}, when: '确认玩家有哪些公司、组织或雇主资料。' },
     { id: 'company-summary', title: '公司摘要', size: 'medium', maxChars: 1400, skill: 'company.query', method: 'getCompanySummary', paramsHint: { world: '世界名', companyName: '公司名或空' }, when: '读取公司类型、行业、地点、规模、规则或组织概况。' },
     { id: 'work-context', title: '工作上下文', size: 'medium', maxChars: 1600, skill: 'company.query', method: 'getWorkContext', paramsHint: { world: '世界名', companyName: '公司名或空' }, when: '行动涉及上班、请假、迟到、工资、岗位、考勤、开会、项目。' },

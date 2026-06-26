@@ -42,7 +42,7 @@ window.GameModules.storyAgentContext = {
   },
 
   async skillText(store) {
-    const ids = ['emotion.feeling.wearing.assess', 'memory.query', 'character.query', 'lexicon.query', 'item.query', 'company.query', 'faction.query', 'realworld.location.query', 'realworld.history.query'];
+    const ids = ['emotion.feeling.wearing.assess', 'memory.query', 'character.query', 'past.event.query', 'lexicon.query', 'item.query', 'company.query', 'faction.query', 'realworld.location.query', 'realworld.history.query'];
     const texts = await Promise.all(ids.map((id) => window.GameModules.skillLoader?.instruction?.(id) || ''));
     const crossWorld = ['# 跨世界资料查询', '每个 request.params 可写 world/worldTag 指定资料所属世界；默认当前操控作品。需要玩家现实资料时写现实世界名，需要其它作品资料时写作品名。', '现实资料可用 company.query、faction.query、realworld.location.query、realworld.history.query；作品资料可用 worklore.query。'].join('\n');
     return [crossWorld, window.GameModules.workLoreMaterials?.skillText?.() || '', ...texts.filter(Boolean)].join('\n\n');
@@ -126,6 +126,7 @@ window.GameModules.storyAgentContext = {
   maxFor(skill) {
     if (skill === 'worklore.query') return 2200;
     if (skill === 'memory.query') return 1800;
+    if (skill === 'past.event.query') return 5200;
     if (skill === 'character.query') return 1200;
     if (skill === 'item.query') return 1400;
     if (skill === 'lexicon.query') return 1200;
@@ -137,6 +138,7 @@ window.GameModules.storyAgentContext = {
     if (skill === 'worklore.query') return await window.GameModules.workLoreQuery.dispatch(store, action, method, params);
     if (skill === 'memory.query') return await realCtx.memory(store, action, method, { characterId: params.characterId || store.character?.id, ...params });
     if (skill === 'character.query') return window.GameModules.characterQuery?.query?.(store, method, { worldTag: params.worldTag || params.world || params.work || store.character?.work, ...params }) || '';
+    if (skill === 'past.event.query') return window.GameModules.pastEventQuery?.query?.(store, method, { question: action, characterId: store.character?.id, characterName: store.character?.name, worldTag: store.character?.work, ...params }) || '';
     if (skill === 'lexicon.query') return await realCtx.lexicon(store, method, params);
     if (skill === 'item.query') return await realCtx.itemQuery(store, method, { target: params.target || store.character?.id, ...params });
     if (skill === 'company.query') return realCtx.company(store, method, params);

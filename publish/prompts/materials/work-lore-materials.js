@@ -4,6 +4,7 @@ window.GameModules.workLoreMaterials = {
   items: [
     { id: 'character-profile-search', title: '查询角色卡或介绍卡', size: 'small', maxChars: 1200, skill: 'character.query', method: 'searchCharacterProfile', paramsHint: { world: '世界名/作品名', name: '角色名' }, when: '正文涉及某个具体人物，需先确认是否已有完整角色卡或介绍卡。' },
     { id: 'character-known-list', title: '已知角色资料清单', size: 'small', maxChars: 1200, skill: 'character.query', method: 'listKnownCharacters', paramsHint: { world: '世界名/作品名' }, when: '需要先了解当前世界已有角色卡和介绍卡。' },
+    { id: 'past-event-search', title: '统一查询过去事件', size: 'large', maxChars: 5200, skill: 'past.event.query', method: 'searchPastEvent', paramsHint: { world: '世界名/作品名', question: '用户问题', keywords: ['角色名', '事件词', '地点或时间'], characterName: '角色名', timeHint: '几天前/昨天/某日期' }, when: '玩家询问几天前、之前、上次、记不记得、旧承诺、图片、地点、物品或角色过去经历。' },
     { id: 'work-readme', title: '作品 README.md / 设定库入口', size: 'small', maxChars: 1200, skill: 'worklore.query', method: 'getReadme', paramsHint: { world: '世界名/作品名' }, when: '第一阶段默认入口；确认该作品设定库结构、默认常驻加载与按需入口。' },
     { id: 'work-defaults', title: '作品常驻设定摘要', size: 'medium', maxChars: 2200, skill: 'worklore.query', method: 'getDefaultLoad', paramsHint: { world: '世界名/作品名' }, when: '需要作品世界观、基础规则、术语和数值规则。' },
     { id: 'work-people', title: '人物索引/人物卡查询', size: 'large', maxChars: 1800, skill: 'worklore.query', method: 'searchPeople', paramsHint: { world: '世界名/作品名', keyword: '人物名或称号' }, when: '行动涉及原作人物、身份、性格、当前阶段。' },

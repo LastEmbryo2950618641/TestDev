@@ -63,7 +63,7 @@ window.GameModules.realWorldAgentContext = {
   },
 
   async skillText() {
-    const ids = ['emotion.feeling.wearing.assess', 'memory.query', 'character.query', 'company.query', 'faction.query', 'realworld.location.query', 'realworld.history.query', 'lexicon.query', 'item.query', 'wechat.query', 'wechat.message.incoming', 'realworld.vitals.adjust'];
+    const ids = ['emotion.feeling.wearing.assess', 'memory.query', 'character.query', 'past.event.query', 'company.query', 'faction.query', 'realworld.location.query', 'realworld.history.query', 'lexicon.query', 'item.query', 'wechat.query', 'wechat.message.incoming', 'realworld.vitals.adjust'];
     const texts = await Promise.all(ids.map((id) => window.GameModules.skillLoader?.instruction?.(id) || ''));
     const crossWorld = ['# 跨世界资料查询', '每个 request.params 可写 world/worldTag 指定资料所属世界；默认现实世界。需要作品/异世界资料时写作品名，并用 worklore.query 查询。', window.GameModules.workLoreMaterials?.skillText?.() || ''].filter(Boolean).join('\n');
     return [crossWorld, ...texts.filter(Boolean)].join('\n\n');
@@ -90,6 +90,7 @@ window.GameModules.realWorldAgentContext = {
   },
 
   maxFor(skill) {
+    if (skill === 'past.event.query') return 5200;
     if (skill === 'character.query') return 1200;
     if (skill === 'realworld.location.query') return 1500;
     if (skill === 'memory.query') return 1600;
@@ -108,6 +109,7 @@ window.GameModules.realWorldAgentContext = {
     if (skill === 'realworld.history.query') return this.history(store, method, params);
     if (skill === 'memory.query') return await this.memory(store, action, method, params);
     if (skill === 'character.query') return window.GameModules.characterQuery?.query?.(store, method, params) || '';
+    if (skill === 'past.event.query') return window.GameModules.pastEventQuery?.query?.(store, method, { question: action, ...params }) || '';
     if (skill === 'lexicon.query') return await this.lexicon(store, method, params);
     if (skill === 'item.query') return await this.itemQuery(store, method, params);
     if (skill === 'wechat.query') return window.GameModules.realWorldAgentWechat?.wechat?.(store, method, params) || '';
