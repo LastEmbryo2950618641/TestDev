@@ -1673,8 +1673,8 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && $store.game.controlSelectOpen && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.settingsState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen && !$store.game.entrySetupOpen" class="start-screen app-window dev-section" data-section-title="我要狠狠操控入口界面" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
-    <div class="start-card control-home-card dev-section" data-section-title="控制角色上线面板">
+  <section x-show="!$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && $store.game.controlSelectOpen && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.settingsState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen && !$store.game.entrySetupOpen" class="control-home-screen app-window dev-section" data-section-title="我要狠狠操控入口界面" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+    <div class="control-home-card dev-section" data-section-title="控制角色上线面板">
       <button class="back-desktop-btn dev-section" data-section-title="返回桌面按钮" type="button" @click="$store.game.closeControlApp()">返回桌面</button>
       <div class="control-home-title dev-section" data-section-title="操控APP标题区">
         <p class="eyebrow">CONTROL TARGETS</p>
