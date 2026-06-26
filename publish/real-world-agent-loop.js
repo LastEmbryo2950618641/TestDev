@@ -67,7 +67,7 @@ window.GameModules.realWorldAgentLoop = {
   async generateConfiguredFinal({ store, action, base, loaded, skills, trace, materialSession, logId, config = this.realConfig() }) {
     const narrationPrompt = await this.buildConfiguredNarrationPrompt({ store, action, base, loaded, skills, materialSession, config });
     this.markConfiguredStep(store, logId, `${config.label}资料已足够，正在生成正文…`, config);
-    const narrationRaw = await this.completeConfiguredStep(store, narrationPrompt, logId, true, config);
+    const narrationRaw = await this.completeConfiguredStep(store, narrationPrompt, logId, true, config, { longOutput: true });
     const narration = await this.ensureConfiguredNarrationLength(store, action, narrationPrompt, this.cleanPhasedNarration(narrationRaw), logId, config);
     if (!narration) throw new Error(`${config.label}正文为空`);
     this.showConfiguredNarration(store, logId, narration, config);
@@ -466,23 +466,12 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   async ensureConfiguredNarrationLength(store, action, prompt, narration, logId, config = this.realConfig()) {
-    let text = this.cleanPhasedNarration(narration);
-    for (let i = 0; i < 3 && (this.chineseCharCount(text) < 2000 || this.narrationTailLooksIncomplete(text)); i += 1) {
-      this.markConfiguredStep(store, logId, `正文${this.chineseCharCount(text) < 2000 ? '不足2000字' : '尾部不完整'}，正在自动补足细节…`, config, { keepNarration: true });
-      const supplementPrompt = [
-        `# ${config.label}阶段2补写：只补足正文`,
-        '你只输出续写正文，不要 JSON，不要 Markdown，不要标题。',
-        `本次行动：${action || (config.mode === 'story' ? '继续推进操控剧情' : '继续观察现实世界')}`,
-        `原阶段2提示：\n${String(prompt || '').slice(0, 5000)}`,
-        `已有正文（不要重写，不要摘要，只从末尾自然续写）：\n${text}`,
-        `当前已有中文汉字约${this.chineseCharCount(text)}个；请从上一句末尾自然续写，补足直接过程、环境细节、人物反应和结果落点，使合并后至少2000个中文汉字，并以完整句子结束。`,
-      ].join('\n\n');
-      const extraRaw = await this.completeConfiguredStep(store, supplementPrompt, logId, false, config);
-      const extra = this.cleanPhasedNarration(extraRaw);
-      if (!extra) break;
-      text = this.cleanPhasedNarration(`${text}\n\n${extra}`);
+    const text = this.cleanPhasedNarration(narration);
+    const count = this.chineseCharCount(text);
+    const tailIncomplete = this.narrationTailLooksIncomplete(text);
+    if (count < 2000 || tailIncomplete) {
+      console.warn(`${config.label}正文未通过长度/句尾自检，但不再自动补写或中断流程:`, { count, tailIncomplete, tail: text.slice(-80) });
     }
-    if (this.chineseCharCount(text) < 2000 || this.narrationTailLooksIncomplete(text)) throw new Error(`${config.label}正文疑似被截断`);
     return text;
   },
 
@@ -490,19 +479,18 @@ window.GameModules.realWorldAgentLoop = {
     return await this.completeConfiguredStep(store, prompt, logId, streamToUi, this.realConfig());
   },
 
-  async completeConfiguredStep(store, prompt, logId, streamToUi = false, config = this.realConfig()) {
+  async completeConfiguredStep(store, prompt, logId, streamToUi = false, config = this.realConfig(), options = {}) {
     const requestId = config.mode === 'story' ? window.GameModules.ai.latestRequestId : window.GameModules.realWorldAi.latestRequestId;
     let buffer = '';
     let doneSeen = false;
     let lastPaint = 0;
     try {
-      return await window.GameModules.aiRequest.complete({
+      const requestOptions = {
         source: streamToUi ? (config.mode === 'story' ? 'story-agent-engine' : 'real-world-engine') : `${config.mode}-agent-context`,
         model: store.modelId,
         prompt,
         timeoutMs: 240000,
         requireDone: true,
-        maxTokens: 3000,
         outputLengthThreshold: 2600,
         maxAttempts: 3,
         onChunk: async (chunk, done, info) => {
@@ -517,7 +505,9 @@ window.GameModules.realWorldAgentLoop = {
             await new Promise((resolve) => (window.requestAnimationFrame || setTimeout)(resolve));
           }
         },
-      });
+      };
+      if (!options.longOutput) requestOptions.maxTokens = 3000;
+      return await window.GameModules.aiRequest.complete(requestOptions);
     } catch (err) {
       console.warn(`${config.label} Loop Agent 请求未完成，拒绝使用未完成内容:`, { code: err.code, message: err.message, doneSeen, length: buffer.length, stack: err.stack });
       throw err;
