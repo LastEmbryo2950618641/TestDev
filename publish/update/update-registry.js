@@ -167,7 +167,7 @@ window.GameModules.updateRegistry = {
     return reasons
       .map((item) => String(typeof item === 'string' ? item : (item?.evidence || item?.trigger || item?.reason || '')).trim())
       .filter(Boolean)
-      .join('；').slice(0, 240) || String(update.reason || fallback).slice(0, 240);
+      .join('；').slice(0, 240) || String(update.reason || update.evidence || update.trigger || update.description || update.summary || fallback).slice(0, 240);
   },
 
   displayValue(value) {

@@ -10,7 +10,9 @@ Object.assign(window.GameModules.updateRegistry, {
 
   reasonObject(update = {}) {
     const first = Array.isArray(update.reasons) ? update.reasons.find(Boolean) || {} : {};
-    return first && typeof first === 'object' ? first : { trigger: String(first || ''), evidence: String(first || '') };
+    const reason = first && typeof first === 'object' ? first : { trigger: String(first || ''), evidence: String(first || '') };
+    const fallback = update.reason || update.evidence || update.trigger || update.description || update.summary || '';
+    return { ...reason, trigger: reason.trigger || fallback, evidence: reason.evidence || fallback };
   },
 
   deltaValue(update = {}) {

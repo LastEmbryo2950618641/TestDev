@@ -104,7 +104,8 @@ window.GameModules.ai = {
       const current = window.GameModules.metrics.clamp((currentValues || fallbackValues)?.[key] || 0);
       const delta = window.GameModules.metrics.lockedPlayerDelta?.(key, rawDelta, current) ?? rawDelta;
       const nextValue = window.GameModules.metrics.clamp(current + delta);
-      const reason = String(item.reason || '').slice(0, 180);
+      const firstReason = Array.isArray(item.reasons) ? item.reasons.find(Boolean) || {} : {};
+      const reason = String(item.reason || item.evidence || item.trigger || firstReason.evidence || firstReason.trigger || item.explanation || item.cause || item.status || '').slice(0, 180);
       const status = window.GameModules.metrics.valueExplanation(key, nextValue, item.status, reason);
       return { key, delta, status: String(status).slice(0, 180), reason };
     }).filter(Boolean);
