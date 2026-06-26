@@ -16,6 +16,7 @@ window.GameModules.characterIntroCard = {
       worldTag,
       role: String(raw.role || raw.identity || '出场人物').trim().slice(0, 40),
       intro: String(raw.intro || raw.detail || raw.description || raw.summary || '本回合被提及或出现的人物，细节尚未固化。').trim().slice(0, 280),
+      wearing: raw.wearing || raw.clothing || raw.outfit || '',
       source,
       solidifyStatus: 'pending',
     };

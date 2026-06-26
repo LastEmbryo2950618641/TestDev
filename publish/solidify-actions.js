@@ -46,16 +46,36 @@ window.GameModules.solidifyActions = {
     if (card.displayType !== 'role') return [
       ['世界', card.worldTag || '未知世界'],
       ['身份', card.role || '出场人物'],
+      ['穿着', this.solidifyWearingText(card)],
       ['介绍', card.intro || '暂无介绍。'],
     ];
     const profile = card.profile || card.roleState?.profile || {};
     return [
       ['世界', card.roleState?.worldTag || card.worldTag || profile.work || '未知世界'],
       ['身份', profile.role || card.role || '角色卡'],
+      ['穿着', this.solidifyWearingText(card.roleState || profile)],
       ['外貌', profile.appearance || '未记录'],
       ['性格', profile.personality || '未记录'],
       ['详情', profile.detail || card.intro || '完整角色卡已固化。'],
     ];
+  },
+
+  solidifyWearingText(source = {}) {
+    const values = source.values || {};
+    const profile = source.profile || {};
+    const raw = values.wearing || source.wearingItems || source.wearing || profile.wearingItems || profile.wearing || source.clothing || source.outfit || source.dressedProfile || profile.dressedProfile || '';
+    const list = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? Object.values(raw).flat() : []);
+    if (list.length) return list.map((item) => this.solidifyWearingItemText(item)).filter(Boolean).join('；') || '当前无明确穿着记录。';
+    return String(raw || '当前无明确穿着记录。').slice(0, 260);
+  },
+
+  solidifyWearingItemText(item) {
+    if (!item) return '';
+    if (typeof item === 'string') return item;
+    const name = item.name || item.label || item.description || '';
+    if (!name || name === '未穿戴' || name === '未记录') return '';
+    const slot = item.slotLabel || item.clothing_position || item.slot || item.part || '';
+    return `${slot ? `${slot}：` : ''}${name}`;
   },
 
   selectSolidifyCard(card) { this.solidifyState.selectedKey = this.solidifyKey(card); },
