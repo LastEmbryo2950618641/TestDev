@@ -8,7 +8,8 @@ window.GameModules.createFallbackResult = function createFallbackResult(state, a
   const name = state.character.name;
   const actor = /男性|男人|少年|青年|父亲|哥哥|弟弟|叔叔|丈夫|王子|皇帝/.test(`${name} ${state.character.role} ${state.character.detail}`) ? '他' : '她';
   const text = action || (online ? '谨慎观察' : '让角色自由行动');
-  const place = state.entryCurrentAction || state.sceneTitle || '昏暗的现场';
+  const rawPlace = state.entryCurrentAction || state.sceneTitle || '昏暗的现场';
+  const place = /进入时机行动生成|任务定位|原因[:：]|时间[:：]|角色[:：]|世界观[:：]|剧情索引/.test(String(rawPlace || '')) ? `${name}当前所在的场景` : rawPlace;
   const onlineCount = state.characterRpgState?.values?.control_experience?.onlineCount || 0;
   const firstOnline = onlineCount <= 1;
   const resistance = Math.max(0, Math.min(100, state.resistance + (online ? 3 : -2)));

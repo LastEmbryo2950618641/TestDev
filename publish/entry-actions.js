@@ -136,8 +136,22 @@ window.GameModules.entryActions = {
   },
 
   cleanEntryAction(text) {
-    return String(text || '').replace(/[“”"']/g, '').replace(/\s+/g, '')
-      .replace(/^(.*?)(\1)+/, '$1').slice(0, 90);
+    let raw = String(text || '').replace(/```[a-z]*|```/gi, '').replace(/[“”"']/g, '').trim();
+    raw = raw.split(/\n+/).map((line) => line.trim()).filter(Boolean).find((line) => !/^#|^[-*]|^\d+[.、]/.test(line)) || raw;
+    raw = raw
+      .replace(/^#+\s*/, '')
+      .replace(/^进入时机行动生成\s*/i, '')
+      .replace(/^(任务定位|输出|回答|当前行动|行动)\s*[:：]?\s*/i, '')
+      .replace(/\s+/g, '');
+    raw = raw.replace(/^(.*?)(\1)+/, '$1').slice(0, 120);
+    if (this.isInvalidEntryAction(raw)) return '';
+    return raw;
+  },
+
+  isInvalidEntryAction(text = '') {
+    const value = String(text || '').trim();
+    if (!value || value.length < 6) return true;
+    return /进入时机行动生成|任务定位|模板构成|上下文|原因[:：]|时间[:：]|角色[:：]|世界观[:：]|剧情索引/.test(value);
   },
 
   entryPrompt(reason, storyContext) {
@@ -167,7 +181,9 @@ window.GameModules.entryActions = {
       this.sceneTitle = this.entryTimeLabel();
       this.online = true;
       this.loadMetricsFromCharacterState();
-      const action = `你在手机上的《我狠狠控制》APP里选中${this.character.name}，按下连接按钮。意识陷入黑暗后，你在${this.entryTimeLabel()}醒来，发现自己已经附身到${this.character.name}身上。当前场景：${this.entryCurrentAction || `${this.character.name}正在行动。`}`;
+      const currentAction = this.cleanEntryAction(this.entryCurrentAction) || `${this.character.name}正在按当前时间点的处境行动。`;
+      this.entryCurrentAction = currentAction;
+      const action = `你在手机上的《我狠狠控制》APP里选中${this.character.name}，按下连接按钮。意识陷入黑暗后，你在${this.entryTimeLabel()}醒来，发现自己已经附身到${this.character.name}身上。当前场景：${currentAction}`;
       const logId = this.addNovelEntry(action, { playerVisible: false });
       console.log('[控制上线] 已创建开场日志，开始生成:', { logId, character: this.character.name });
       const feedbackTask = window.GameModules.characterFeedback.initial(this);
