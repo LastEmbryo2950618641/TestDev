@@ -68,11 +68,11 @@ window.GameModules.promptTemplates = {
     if (!item) return '';
     const useCache = window.GameModules.cache?.enabled?.('promptTemplates');
     if (useCache && this.cache[item.id]) return this.cache[item.id];
-    const urls = this.fileCandidates(item.file);
-    if (this.isBlobPreview() && this.inline?.[item.id]) {
+    if (this.inline?.[item.id]) {
       if (useCache) this.cache[item.id] = this.inline[item.id];
       return this.inline[item.id];
     }
+    const urls = this.fileCandidates(item.file);
     let lastError = null;
     for (const url of urls) {
       try {

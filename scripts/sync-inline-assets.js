@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 
 const root = path.resolve(__dirname, '..');
 const publish = path.join(root, 'publish');
@@ -42,15 +43,33 @@ function syncSkills() {
   ].join('\n'));
 }
 
+function readExistingPromptTemplates(file) {
+  const context = { window: { GameModules: { promptTemplates: {} } } };
+  try {
+    vm.runInNewContext(readText(file), context, { filename: file });
+    return context.window.GameModules.promptTemplates.inline || {};
+  } catch (err) {
+    console.warn(`read existing inline prompts failed: ${err.message}`);
+    return {};
+  }
+}
+
 function syncPromptTemplates() {
   const registryPath = path.join(publish, 'prompt-templates.js');
-  const source = readText(registryPath);
-  const itemMatches = [...source.matchAll(/\{ id: '([^']+)'[\s\S]*?file: '([^']+)'/g)];
+  const context = { window: { GameModules: {} }, document: { currentScript: { src: '' }, baseURI: '' }, location: { origin: '', href: '' } };
+  context.window.GameModules.cache = { enabled: () => false };
+  vm.runInNewContext(readText(registryPath), context, { filename: registryPath });
+  const items = context.window.GameModules.promptTemplates?.items || [];
+  const inlinePath = path.join(publish, 'prompt-templates-inline.js');
+  const existing = fs.existsSync(inlinePath) ? readExistingPromptTemplates(inlinePath) : {};
   const templates = {};
-  for (const [, id, file] of itemMatches) {
-    templates[id] = readText(path.join(publish, file));
+  for (const item of items) {
+    const full = path.join(publish, item.file || '');
+    if (fs.existsSync(full)) templates[item.id] = readText(full);
+    else if (existing[item.id]) templates[item.id] = existing[item.id];
+    else console.warn(`missing prompt template: ${item.id} -> ${item.file}`);
   }
-  writeText(path.join(publish, 'prompt-templates-inline.js'), [
+  writeText(inlinePath, [
     'window.GameModules = window.GameModules || {};',
     '',
     '(function inlinePromptTemplates() {',
