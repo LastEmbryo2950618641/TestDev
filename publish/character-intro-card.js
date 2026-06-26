@@ -21,14 +21,17 @@ window.GameModules.characterIntroCard = {
     };
   },
 
-  roleCardExists(card = {}) {
+  roleCardState(card = {}) {
     const save = window.GameModules.sqliteSave;
-    return Boolean(save?.getCharacterStateByName?.(card.name, card.worldTag));
+    return save?.getCharacterStateByName?.(card.name, card.worldTag) || save?.getCharacterStateByName?.(card.name) || null;
   },
+
+  roleCardExists(card = {}) { return Boolean(this.roleCardState(card)); },
 
   async ensure(store, raw = {}, source = 'ai') {
     const card = this.normalize(raw, store, source);
-    if (!card || this.roleCardExists(card)) return null;
+    if (!card) return null;
+    if (this.roleCardExists(card)) return { ...card, displayType: 'role' };
     const save = window.GameModules.sqliteSave;
     const existing = save?.getCharacterIntro?.(card.name, card.worldTag);
     if (existing) return existing;

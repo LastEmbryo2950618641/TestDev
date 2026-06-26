@@ -313,15 +313,16 @@ button:not(:disabled):active {
 .role-card-step-retry { min-width: 48px; height: 28px; border: 1px solid rgba(116, 246, 255, .45); border-radius: 999px; background: rgba(116, 246, 255, .12); color: #dffcff; font-size: 12px; font-weight: 900; }
 .role-card-step-retry:active { transform: translateY(1px); }
 
-.solidify-dock { position: fixed; right: max(8px, env(safe-area-inset-right)); top: 28%; z-index: 110; display: grid; justify-items: end; gap: 8px; }
-.solidify-tab { writing-mode: vertical-rl; min-width: 42px; min-height: 128px; border: 1px solid rgba(255, 207, 90, .55); border-radius: 16px 0 0 16px; background: rgba(31, 24, 8, .92); color: #ffe7a5; font-weight: 900; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
-.solidify-panel { width: min(360px, calc(100vw - 58px)); max-height: min(560px, calc(100dvh - 28px)); overflow: hidden; display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 10px; padding: 12px; border: 1px solid rgba(255, 207, 90, .35); border-radius: 18px; background: rgba(12, 14, 25, .96); color: #eef4ff; box-shadow: 0 20px 70px rgba(0,0,0,.45); }
+.solidify-dock { position: fixed; right: max(8px, env(safe-area-inset-right)); top: 22%; z-index: 110; display: grid; grid-template-columns: auto auto; justify-items: end; align-items: start; gap: 8px; }
+.solidify-side-tabs { display: grid; justify-items: end; gap: 6px; max-height: min(480px, calc(100dvh - 32px)); overflow-y: auto; overscroll-behavior: contain; }
+.solidify-tab { writing-mode: vertical-rl; min-width: 42px; min-height: 96px; border: 1px solid rgba(255, 207, 90, .55); border-radius: 16px 0 0 16px; background: rgba(31, 24, 8, .92); color: #ffe7a5; font-weight: 900; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+.solidify-tab.role { border-color: rgba(116, 246, 255, .5); background: rgba(7, 25, 34, .92); color: #dffcff; }
+.solidify-tab.active { filter: brightness(1.16); }
+.solidify-tab b, .solidify-tab span { display: block; }
+.solidify-tab span { margin-top: 6px; font-size: 11px; opacity: .78; }
+.solidify-panel { width: min(360px, calc(100vw - 108px)); max-height: min(560px, calc(100dvh - 28px)); overflow: hidden; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; padding: 12px; border: 1px solid rgba(255, 207, 90, .35); border-radius: 18px; background: rgba(12, 14, 25, .96); color: #eef4ff; box-shadow: 0 20px 70px rgba(0,0,0,.45); }
 .solidify-panel header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .solidify-panel header button, .solidify-actions button { border: 1px solid rgba(116, 246, 255, .35); border-radius: 999px; background: rgba(116, 246, 255, .12); color: #dffcff; padding: 7px 12px; font-weight: 900; }
-.solidify-list { display: flex; gap: 6px; overflow-x: auto; overscroll-behavior: contain; }
-.solidify-list button { min-width: 116px; display: grid; gap: 3px; padding: 8px; border: 1px solid rgba(255,255,255,.12); border-radius: 12px; background: rgba(255,255,255,.06); color: #dfe8ff; text-align: left; }
-.solidify-list button.active { border-color: rgba(255, 207, 90, .62); background: rgba(255, 207, 90, .13); }
-.solidify-list span { font-size: 11px; color: #aab8d6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .solidify-card { min-height: 0; overflow-y: auto; display: grid; gap: 8px; padding: 10px; border-radius: 14px; background: rgba(255,255,255,.045); overscroll-behavior: contain; }
 .solidify-card h3, .solidify-card p { margin: 0; }
 .solidify-card p { line-height: 1.55; color: #d8e1f4; }
