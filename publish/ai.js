@@ -94,10 +94,17 @@ window.GameModules.ai = {
     return { emotions: this.normalizeInitialGroup(source.emotions, null, window.GameModules.metrics.emotionKeys, store, 'emotion'), playerFeelings: this.normalizeInitialGroup(source.playerFeelings, null, window.GameModules.metrics.playerKeys, store, 'player') };
   },
 
+  normalizeMetricKey(rawKey = '', keys = []) {
+    const key = String(rawKey || '').trim();
+    if (keys.includes(key)) return key;
+    const aliases = { 羞涩: '羞耻', 羞怯: '羞耻', 害羞: '羞耻', 依恋: '依赖' };
+    return keys.includes(aliases[key]) ? aliases[key] : key;
+  },
+
   normalizeMetricGroup(value, keys, currentValues = null) {
     const main = Array.isArray(value) ? value : [];
     return keys.map((key) => {
-      const item = main.find((x) => x?.key === key);
+      const item = main.find((x) => this.normalizeMetricKey(x?.key, keys) === key);
       if (!item) return null;
       const rawDelta = window.GameModules.metrics.clampDelta(item.delta);
       const fallbackValues = window.Alpine?.store?.('game')?.[keys === window.GameModules.metrics.emotionKeys ? 'emotions' : 'playerFeelings'];
@@ -168,7 +175,7 @@ window.GameModules.ai = {
     if (typeof value === 'string') return { name: value.slice(0, 16), work: store.character.work, isMinor: false, importance: 'support' };
     if (!value?.name) return null;
     const importance = ['minor', 'support', 'main'].includes(value.importance) ? value.importance : (value.isMinor ? 'minor' : 'support');
-    return { name: String(value.name).slice(0, 16), role: String(value.role || (value.isMinor ? '路人' : '出场人物')).slice(0, 18), detail: String(value.detail || value.desc || '').slice(0, 120), personality: String(value.personality || '').slice(0, 80), wearing: value.wearing || value.clothing || value.outfit || '', work: String(value.work || store.character.work || '原创世界').slice(0, 24), isMinor: Boolean(value.isMinor), importance };
+    return { name: String(value.name).slice(0, 16), role: String(value.role || (value.isMinor ? '路人' : '出场人物')).slice(0, 18), detail: String(value.detail || value.intro || value.desc || value.summary || '').slice(0, 120), personality: String(value.personality || '').slice(0, 80), wearing: value.wearing || value.clothing || value.outfit || '', work: String(value.work || store.character.work || '原创世界').slice(0, 24), isMinor: Boolean(value.isMinor), importance };
   },
 
   clampNumber(value, fallback) { return Math.max(0, Math.min(100, Number.isFinite(value) ? Math.round(value) : fallback)); },
