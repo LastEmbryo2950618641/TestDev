@@ -9,15 +9,15 @@ const sexParts = {
 };
 
 const bodyDescriptions = {
-  overall: '全身肌肤白皙柔嫩，未经人事，散发着处女的淡淡幽香。',
-  mouth: '双唇水润粉嫩，口腔洁净，未曾含过任何异物。',
-  chest: '胸部坚挺饱满，乳首小巧粉红，从未被揉捏或吸吮，保持处女般的紧致。',
-  genital: '阴阜饱满，大阴唇紧闭，小阴唇粉嫩，处女膜完整无缺，阴道口紧窄未见任何异物侵入痕迹，整体呈现诱人的粉红色。',
-  anus: '肛门括约肌紧密闭合，无任何使用或扩张痕迹，颜色浅淡。',
-  hips: '臀部圆翘紧实，未有拍打或异物插入痕迹。',
-  limbs: '四肢修长匀称，活动自如，皮肤光滑无瑕。',
-  skin: '全身皮肤光滑细腻，无任何淤青、吻痕或其他性接触痕迹。',
-  other: '其余部位均保持处女状态，未经任何开发。',
+  overall: '整体亲密与身体状态待AI根据角色设定、年龄、经历和当前剧情判断。',
+  mouth: '口部状态待AI判断。',
+  chest: '胸部状态待AI判断。',
+  genital: '阴部状态待AI判断。',
+  anus: '肛部状态待AI判断。',
+  hips: '臀部状态待AI判断。',
+  limbs: '四肢状态待AI判断。',
+  skin: '皮肤状态待AI判断。',
+  other: '其他身体状态待AI判断。',
 };
 
 const template = {
@@ -36,9 +36,9 @@ const template = {
   bodyDescriptions,
 
   valueDefaults: {
-    sexualStatus: '处女', sexualStatusChanged: '非处女', sexualPartnerCount: 0, sexualPartners: [],
+    sexualStatus: '待AI判断', sexualStatusChanged: '非处女', sexualPartnerCount: 0, sexualPartners: [],
     sexualExperienceCount: 0, sexualExperiencePartCount: 0, updatedAt: '', intimacyReason: '默认未记录',
-    bodyStatus: '处女', bodyDescription: '处女之身，一切纯洁无瑕', bodyReason: '初始处女状态',
+    bodyStatus: '待AI判断', bodyDescription: '身体状态待AI判断', bodyReason: '初始状态待AI判断',
   },
 
   displayTexts: {
@@ -48,23 +48,23 @@ const template = {
 
   sexualExperiencePartDefaults: sexParts,
 
-  sexualHistoryDefaults: { sexualStatus: '处女', sexualPartnerCount: 0, sexualPartners: [] },
+  sexualHistoryDefaults: { sexualStatus: '待AI判断', sexualPartnerCount: 0, sexualPartners: [] },
 
   intimacyDefaults: {
-    sexualStatus: '处女', sexualPartnerCount: 0, sexualPartners: [], sexualExperienceCount: 0,
+    sexualStatus: '待AI判断', sexualPartnerCount: 0, sexualPartners: [], sexualExperienceCount: 0,
     sexualExperienceParts: sexParts, updatedAt: '', reason: '默认未记录',
   },
 
   bodyStatusDefaults: {
-    overall: { partKey: 'overall', part: '整体', status: '处女', description: bodyDescriptions.overall, reason: '初始处女状态', updatedAt: '' },
-    mouth: { partKey: 'mouth', part: '口部', status: '洁净粉嫩', description: bodyDescriptions.mouth, reason: '初始处女状态', updatedAt: '' },
-    chest: { partKey: 'chest', part: '胸部', status: '处乳', description: bodyDescriptions.chest, reason: '初始处女状态', updatedAt: '' },
-    genital: { partKey: 'genital', part: '阴部', status: '处女膜完整', description: bodyDescriptions.genital, reason: '初始处女状态', updatedAt: '' },
-    anus: { partKey: 'anus', part: '肛部', status: '未开发', description: bodyDescriptions.anus, reason: '初始处女状态', updatedAt: '' },
-    hips: { partKey: 'hips', part: '臀部', status: '紧实', description: bodyDescriptions.hips, reason: '初始处女状态', updatedAt: '' },
-    limbs: { partKey: 'limbs', part: '四肢', status: '无瑕', description: bodyDescriptions.limbs, reason: '初始处女状态', updatedAt: '' },
-    skin: { partKey: 'skin', part: '皮肤', status: '无痕', description: bodyDescriptions.skin, reason: '初始处女状态', updatedAt: '' },
-    other: { partKey: 'other', part: '其他', status: '纯洁', description: bodyDescriptions.other, reason: '初始处女状态', updatedAt: '' },
+    overall: { partKey: 'overall', part: '整体', status: '待AI判断', description: bodyDescriptions.overall, reason: '初始状态待AI判断', updatedAt: '' },
+    mouth: { partKey: 'mouth', part: '口部', status: '待AI判断', description: bodyDescriptions.mouth, reason: '初始状态待AI判断', updatedAt: '' },
+    chest: { partKey: 'chest', part: '胸部', status: '待AI判断', description: bodyDescriptions.chest, reason: '初始状态待AI判断', updatedAt: '' },
+    genital: { partKey: 'genital', part: '阴部', status: '待AI判断', description: bodyDescriptions.genital, reason: '初始状态待AI判断', updatedAt: '' },
+    anus: { partKey: 'anus', part: '肛部', status: '待AI判断', description: bodyDescriptions.anus, reason: '初始状态待AI判断', updatedAt: '' },
+    hips: { partKey: 'hips', part: '臀部', status: '待AI判断', description: bodyDescriptions.hips, reason: '初始状态待AI判断', updatedAt: '' },
+    limbs: { partKey: 'limbs', part: '四肢', status: '待AI判断', description: bodyDescriptions.limbs, reason: '初始状态待AI判断', updatedAt: '' },
+    skin: { partKey: 'skin', part: '皮肤', status: '待AI判断', description: bodyDescriptions.skin, reason: '初始状态待AI判断', updatedAt: '' },
+    other: { partKey: 'other', part: '其他', status: '待AI判断', description: bodyDescriptions.other, reason: '初始状态待AI判断', updatedAt: '' },
   },
 
   fieldMeta: {
@@ -73,7 +73,7 @@ const template = {
     sexualPartners: { label: '经历人列表', kind: '性经历', desc: '已确认计入经历人数的对象列表，自动去重。', reasonFallback: '默认未记录。' },
     sexualExperienceCount: { label: '性经验总次数', kind: '角色卡', unit: '次', desc: '成人虚构角色的抽象经历总次数；同一次经历可关联多个分类。', reasonFallback: '默认未记录。', limit: '仅成人虚构角色可由现实推演更新；只保存抽象总次数。' },
     sexualExperienceParts: { label: '性经验分类次数', kind: '性经验分类', desc: '分部位的抽象次数统计与记录提示；只用于结算，不包含过程描写。', reasonFallback: '默认未记录。', limit: '分类次数只作为合规抽象统计；同一次经历可关联多个分类，但总次数不要重复增加。' },
-    bodyStatus: { label: '当前身体状态', kind: '当前身体状态', desc: '各身体部位的性状态短描述，如处女、已破处、已开发等，用于现实推演。', reasonFallback: '由初始处女状态与现实推演中的明确状态变化共同维护。', limit: '只保存短状态，不保存过程描写。' },
+    bodyStatus: { label: '当前身体状态', kind: '当前身体状态', desc: '各身体部位的状态短描述，如处女、非童真、已破身、已开发等，由AI判断后用于现实推演。', reasonFallback: '由AI初始化判断与现实推演中的明确状态变化共同维护。', limit: '只保存短状态，不保存过程描写。' },
   },
 
   formatPartnerCount(value) { return `${value}${this.fieldMeta.sexualPartnerCount.unit}`; },

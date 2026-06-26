@@ -45,9 +45,8 @@ window.GameModules.controlLinkActions = {
     const partnerText = JSON.stringify([intimacy.sexualPartners, intimacy.partners, intimacy.experiencePeople, intimacy.historyPeople]);
     const names = [this.playerProfile?.name, this.playerName, '玩家', 'player-self'].filter(Boolean);
     const hasPlayer = names.some((name) => partnerText.includes(String(name)));
-    const explicitExperienced = /非处女|非童贞|已破身|有经验|已有经历/.test(status);
-    const explicitNone = /^(处女|童贞|未经历|无经验)$/.test(status.trim());
-    return explicitExperienced || (!explicitNone && Boolean(status) && !/处女|童贞|未经历|无经验/.test(status)) || hasPlayer;
+    const explicitExperienced = /非处女|非童贞|非童真|已破身|破身|有经验|已有经历/.test(status);
+    return explicitExperienced || hasPlayer;
   },
 
   isControlRoleLinked(state = null) {
