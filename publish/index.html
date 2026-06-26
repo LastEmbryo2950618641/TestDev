@@ -1672,15 +1672,17 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && $store.game.controlSelectOpen && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.settingsState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen && !$store.game.entrySetupOpen" class="start-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && $store.game.controlSelectOpen && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.settingsState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen && !$store.game.entrySetupOpen" class="start-screen app-window dev-section" data-section-title="我要狠狠操控入口界面" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <div class="start-card control-home-card dev-section" data-section-title="控制角色上线面板">
-      <button class="back-desktop-btn" type="button" @click="$store.game.closeControlApp()">返回桌面</button>
-      <p class="eyebrow">CONTROL TARGETS</p>
-      <h1>我要狠狠操控</h1>
-      <p class="intro">选择当前已固化的可上线角色，或新增一个控制角色。</p>
+      <button class="back-desktop-btn dev-section" data-section-title="返回桌面按钮" type="button" @click="$store.game.closeControlApp()">返回桌面</button>
+      <div class="control-home-title dev-section" data-section-title="操控APP标题区">
+        <p class="eyebrow">CONTROL TARGETS</p>
+        <h1>我要狠狠操控</h1>
+        <p class="intro">选择当前已固化的可上线角色，或新增一个控制角色。</p>
+      </div>
       <div class="control-role-list dev-section" data-section-title="当前可上线角色列表">
         <template x-for="item in $store.game.controlRoleList()" :key="item.character.id || item.state.id">
-          <button class="control-role-card" type="button" @click="$store.game.connectControlRole(item.character.id || item.state.id)" :disabled="$store.game.busy">
+          <button class="control-role-card dev-section" data-section-title="可上线角色卡片" type="button" @click="$store.game.connectControlRole(item.character.id || item.state.id)" :disabled="$store.game.busy">
             <div class="portrait-mark" x-text="item.character.mark || item.character.name?.slice(0, 2) || '控'"></div>
             <div>
               <strong x-text="item.character.name || item.state.name || '未知角色'"></strong>
@@ -1690,9 +1692,9 @@
             <span>上线</span>
           </button>
         </template>
-        <p class="empty-lore" x-show="!$store.game.controlRoleList().length">暂无可上线角色。请先新增控制角色并完成进入配置。</p>
+        <p class="empty-lore dev-section" data-section-title="可上线角色空状态" x-show="!$store.game.controlRoleList().length">暂无可上线角色。请先新增控制角色并完成进入配置。</p>
       </div>
-      <button class="primary-btn" type="button" @click="$store.game.openControlCharacterAdd()">＋ 新增控制角色</button>
+      <button class="primary-btn dev-section" data-section-title="新增控制角色按钮" type="button" @click="$store.game.openControlCharacterAdd()">＋ 新增控制角色</button>
     </div>
   </section>
 
@@ -1871,7 +1873,7 @@
     </div>
   </section>
 
-  <main x-show="$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.settingsState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen" class="game-shell app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <main x-show="$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.controlSelectOpen && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.settingsState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen" class="game-shell app-window dev-section" data-section-title="异世界推演主界面" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <header class="top-bar dev-section" data-section-title="顶部状态栏">
       <div class="mode-status">
         <span class="mode-dot" :class="$store.game.online ? 'online' : 'offline'"></span>
