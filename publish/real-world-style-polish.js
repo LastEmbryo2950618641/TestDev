@@ -2,7 +2,7 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldStylePolish = {
   async polish(store, result = {}, action = '') {
-    const style = String(store.writingStylePrompt?.() || '').trim();
+    const style = String(store.selectedWritingStylePrompt?.() || store.writingStylePrompt?.() || '').trim();
     const narration = String(result.narration || '').trim();
     if (!style || !narration) return result;
     try {

@@ -64,7 +64,7 @@ window.GameModules.genericUpdateTemplate = {
       const strictPrompt = prompt
         .replace('# 现实推演阶段3：只生成更新JSON', phaseTitle)
         .replace('输出最小补丁 JSON：必须包含 type、sceneTitle、locationName、elapsedSeconds、status、quest、choices、vitalUpdates。其他字段只有明确变化才输出，否则省略或用空数组。', '输出最小补丁 JSON：必须包含 type、sceneTitle、locationName、elapsedSeconds、status、quest、choices、genericUpdates。除 initUpdates 外，禁止输出 vitalUpdates、metricUpdates、characterMetricUpdates、lexiconUpdates、itemActions、factionUpdates、wechatActions 等旧字段。')
-        .replace('vitalUpdates 必须覆盖 stamina_pool、satiety、hydration、fatigue、mental_stability。choices 必须4个。所有 reason/status 不超过24个汉字。characterMetricUpdates 最多3个角色，每个角色最多2条 emotions 和2条 playerFeelings。lexiconUpdates/itemActions/factionUpdates 只写稳定事实变化。', '生命体征、情绪、感觉、物品、势力、地图、系统等变化全部写入 genericUpdates；choices 必须4个；所有 reason/status 不超过24个汉字；每个主体同类变化最多4条；没有明确变化则 genericUpdates 返回空数组。')
+        .replace('生命体征、情绪、感觉、身体状态、物品、势力、地图、系统等变化全部写入 genericUpdates；choices 必须4个；所有 reason/status 不超过24个汉字；每个主体同类变化最多4条；没有明确变化则 genericUpdates 返回空数组。', '生命体征、情绪、感觉、身体状态、物品、势力、地图、系统等变化全部写入 genericUpdates；禁止输出 characterMetricUpdates；choices 必须4个；所有 reason/status 不超过24个汉字；每个主体同类变化最多4条；没有明确变化则 genericUpdates 返回空数组。')
         .replace(/最小示例：\{[\s\S]*$/, `reasons 必须写成对象数组："reasons":[{"trigger":"触发","evidence":"依据","confidence":"confirmed"}]；禁止写成 "reasons":["trigger":"...","evidence":"..."]。\n最小示例：${examples}`);
       return [strictPrompt, skillText ? `## 已加载更新 Skills 全文\n\n${skillText}` : '', initText ? `## 已加载初始化 Skills 全文\n\n${initText}` : ''].filter(Boolean).join('\n\n');
     };
@@ -99,6 +99,7 @@ window.GameModules.genericUpdateTemplate = {
       const result = baseMerge.apply(this, args);
       const store = args[0] || null, updates = args[2] || {};
       result.genericUpdates = window.GameModules.updateRegistry?.normalizeUpdates?.(updates, store) || (Array.isArray(updates.genericUpdates) ? updates.genericUpdates : []);
+      delete result.characterMetricUpdates;
       return result;
     };
     loop.updateRegistryPatched = true;

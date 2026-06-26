@@ -123,12 +123,13 @@ window.GameModules.realWorldAgentContext = {
       const key = `${skill}:${method}:${JSON.stringify(params)}`;
       if (!skill || !method || loadedKeys.has(key)) continue;
       loadedKeys.add(key);
-      const text = await this.dispatch(store, action, skill, method, params);
+      const material = materials?.optionFor?.({ skill, method, params });
+      const max = material?.maxChars || this.maxFor(skill);
+      const text = await this.dispatch(store, action, skill, method, { ...params, maxChars: max });
       if (text) {
         const title = `${skill}.${method}`;
-        const material = materials?.optionFor?.({ skill, method, params });
         materials?.record?.(materialSession, { skill, method, params }, title, text);
-        out.push({ title, text, max: material?.maxChars || this.maxFor(skill) });
+        out.push({ title, text, max });
       }
     }
     return out;
@@ -136,7 +137,7 @@ window.GameModules.realWorldAgentContext = {
 
   maxFor(skill) {
     if (skill === 'past.event.query') return 5200;
-    if (skill === 'character.query') return 1200;
+    if (skill === 'character.query') return 3200;
     if (skill === 'realworld.location.query') return 1500;
     if (skill === 'memory.query') return 1600;
     if (skill === 'realworld.history.query') return 1800;

@@ -77,6 +77,18 @@ window.GameModules = window.GameModules || {};
     await this.persist();
   };
 
+  save.getRealWorldLogEntry = function getRealWorldLogEntry(id = '') {
+    const key = String(id || '');
+    if (!key) return null;
+    if (this.fallback) return this.fallbackState?.realWorldLogEntries?.[key] || null;
+    if (!this.db) return null;
+    const stmt = this.db.prepare('SELECT entry_json FROM real_world_log WHERE id=? LIMIT 1');
+    stmt.bind([key]);
+    const entry = stmt.step() ? JSON.parse(stmt.getAsObject().entry_json) : null;
+    stmt.free();
+    return entry;
+  };
+
   save.deleteRealWorldLogEntry = async function deleteRealWorldLogEntry(id = '') {
     const key = String(id || '');
     if (!key) return;
@@ -99,20 +111,36 @@ window.GameModules = window.GameModules || {};
     return Number(row?.[0] || 0);
   };
 
+  save.realWorldLogSortKey = function realWorldLogSortKey(entry = {}) {
+    const timeKey = () => {
+      const parsed = Date.parse(entry.createdAt || entry.time?.iso || '');
+      if (Number.isFinite(parsed)) return String(parsed).padStart(16, '0');
+      const idNumber = Number(entry.id);
+      if (Number.isFinite(idNumber)) return String(idNumber).padStart(16, '0');
+      return `zzzz-${String(entry.time?.label || entry.id || '')}`;
+    };
+    if (entry.type === 'system' && entry.narration && !entry.text) return `0000-${timeKey()}-${String(entry.id || '')}`;
+    const id = String(entry.id || '');
+    const match = id.match(/^(real-(\d+)-[a-z0-9]+)-(user|ai)$/u);
+    if (match) return `1000-${String(match[2]).padStart(16, '0')}-${match[1]}-${match[3] === 'user' ? '0' : '1'}`;
+    return `1000-${timeKey()}-2-${String(entry.id || '')}`;
+  };
+
+  save.sortedRealWorldLogEntries = function sortedRealWorldLogEntries(entries = []) {
+    return (Array.isArray(entries) ? entries : []).slice().sort((a, b) => this.realWorldLogSortKey(a).localeCompare(this.realWorldLogSortKey(b)));
+  };
+
   save.listRealWorldLogEntries = function listRealWorldLogEntries(page = 1, pageSize = 12) {
     const size = Math.max(1, Math.min(30, Number(pageSize) || 12));
     const offset = Math.max(0, ((Number(page) || 1) - 1) * size);
     if (this.fallback) {
-      return Object.values(this.fallbackState?.realWorldLogEntries || {})
-        .sort((a, b) => String(a.createdAt || a.time?.label || a.id).localeCompare(String(b.createdAt || b.time?.label || b.id)))
-        .slice(offset, offset + size);
+      return this.sortedRealWorldLogEntries(Object.values(this.fallbackState?.realWorldLogEntries || {})).slice(offset, offset + size);
     }
     if (!this.db) return [];
     const rows = [];
-    const stmt = this.db.prepare('SELECT entry_json FROM real_world_log ORDER BY created_at ASC, id ASC LIMIT ? OFFSET ?');
-    stmt.bind([size, offset]);
+    const stmt = this.db.prepare('SELECT entry_json FROM real_world_log');
     while (stmt.step()) rows.push(JSON.parse(stmt.getAsObject().entry_json));
     stmt.free();
-    return rows;
+    return this.sortedRealWorldLogEntries(rows).slice(offset, offset + size);
   };
 })();

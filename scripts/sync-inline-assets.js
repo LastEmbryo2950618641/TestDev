@@ -103,6 +103,14 @@ function syncDefaultProfile() {
   syncMdInline(path.join(publish, 'config', 'default-existing-profile.md'));
 }
 
+function syncPenStyles() {
+  const dir = path.join(publish, 'prompts', 'pen_style');
+  if (!fs.existsSync(dir)) return;
+  for (const name of fs.readdirSync(dir).filter((x) => x.endsWith('.md')).sort()) {
+    syncMdInline(path.join(dir, name));
+  }
+}
+
 function syncLoreCache() {
   const dir = path.join(publish, 'lore-cache');
   if (!fs.existsSync(dir)) return;
@@ -119,5 +127,6 @@ function syncLoreCache() {
 syncSkills();
 syncPromptTemplates();
 syncDefaultProfile();
+syncPenStyles();
 syncLoreCache();
 console.log('inline assets synced');

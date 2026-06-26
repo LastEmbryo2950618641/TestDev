@@ -32,6 +32,24 @@ Object.assign(window.GameModules.updateRegistry, {
     return state?.id || id || 'player-self';
   },
 
+  metricGenericFromLegacy(result = {}) {
+    const out = [];
+    for (const group of Array.isArray(result.characterMetricUpdates) ? result.characterMetricUpdates : []) {
+      if (!group || typeof group !== 'object' || (group.field && group.change)) continue;
+      const rawTarget = group.target || group.targetId || group.characterId || group.character || group.name || group.subject?.characterId || group.subject?.id || group.subject?.name || 'player-self';
+      const subject = { ...(group.subject || {}), type: group.subject?.type || (rawTarget === 'player-self' ? 'player' : 'character'), id: rawTarget, name: group.subject?.name || group.name || group.character || '' };
+      (Array.isArray(group.emotions) ? group.emotions : []).forEach((item) => {
+        if (!item?.key) return;
+        out.push({ updateType: 'emotion', subject, field: `metrics.emotions.${item.key}`, change: { mode: 'delta', value: window.GameModules.metrics.metricDeltaValue?.(item) ?? item.delta ?? 0, status: item.status || '' }, reasons: [{ trigger: item.trigger || item.reason || '现实推演情绪变化', evidence: item.reason || item.evidence || item.status || '', confidence: 'confirmed' }] });
+      });
+      (Array.isArray(group.playerFeelings) ? group.playerFeelings : []).forEach((item) => {
+        if (!item?.key) return;
+        out.push({ updateType: 'feeling', subject, field: `metrics.playerFeelings.${item.key}`, change: { mode: 'delta', value: window.GameModules.metrics.metricDeltaValue?.(item) ?? item.delta ?? 0, status: item.status || '' }, reasons: [{ trigger: item.trigger || item.reason || '现实推演感觉变化', evidence: item.reason || item.evidence || item.status || '', confidence: 'confirmed' }] });
+      });
+    }
+    return out;
+  },
+
   genericToMetricUpdates(updates = [], type = 'emotion', store = null) {
     const grouped = new Map();
     const wanted = type === 'feeling' ? 'feeling' : 'emotion';
@@ -91,7 +109,7 @@ Object.assign(window.GameModules.updateRegistry, {
     return {
       ...result,
       vitalUpdates: [...(result.vitalUpdates || []), ...this.genericToVitalUpdates(updates)],
-      characterMetricUpdates: [...(result.characterMetricUpdates || []), ...Array.from(byTarget.values())],
+      characterMetricUpdates: Array.from(byTarget.values()),
       itemActions: [...(result.itemActions || []), ...this.genericToItemActions(updates)],
       factionUpdates: [...(result.factionUpdates || []), ...this.genericToFactionUpdates(updates)],
     };

@@ -116,6 +116,8 @@ window.GameModules.solidifyActions = {
     if (!entry || !card) return;
     entry.solidifySelectedKey = this.solidifyKey(card);
     entry.solidifyOpen = true;
+    entry.solidifyUserClosed = false;
+    if (entry.type === 'ai' || entry.type === 'system') window.GameModules.sqliteSave.saveRealWorldLogEntry?.(entry).catch((err) => console.warn('[现实日志] 角色卡面板状态保存失败:', err.message, err.stack));
     this.log = [...(this.log || [])];
     this.realWorldLog = [...(this.realWorldLog || [])];
   },
@@ -125,6 +127,8 @@ window.GameModules.solidifyActions = {
   closeEntrySolidifyPanel(entry) {
     if (!entry) return;
     entry.solidifyOpen = false;
+    entry.solidifyUserClosed = true;
+    if (entry.type === 'ai' || entry.type === 'system') window.GameModules.sqliteSave.saveRealWorldLogEntry?.(entry).catch((err) => console.warn('[现实日志] 角色卡面板状态保存失败:', err.message, err.stack));
     this.log = [...(this.log || [])];
     this.realWorldLog = [...(this.realWorldLog || [])];
   },
@@ -138,6 +142,8 @@ window.GameModules.solidifyActions = {
       entry.solidifyCards = this.solidifyDisplayCards(entry.solidifyCards || []);
       entry.solidifySelectedKey = this.solidifyKey(card);
       entry.solidifyOpen = true;
+      entry.solidifyUserClosed = false;
+      if (entry.type === 'ai' || entry.type === 'system') window.GameModules.sqliteSave.saveRealWorldLogEntry?.(entry).catch((err) => console.warn('[现实日志] 角色卡面板状态保存失败:', err.message, err.stack));
       this.log = [...(this.log || [])];
       this.realWorldLog = [...(this.realWorldLog || [])];
     } else {

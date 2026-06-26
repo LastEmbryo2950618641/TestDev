@@ -23,6 +23,10 @@ window.GameModules.metrics = {
   fresh() { return JSON.parse(JSON.stringify(this.defaults)); },
   clamp(v) { const n = Number(v); return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : 0; },
   clampDelta(v) { const n = Number(v); return Number.isFinite(n) ? Math.max(-30, Math.min(30, Math.round(n))) : 0; },
+  metricDeltaValue(item = {}) {
+    const raw = item.delta ?? item.change?.delta ?? item.change?.value ?? item.value ?? 0;
+    return Number(raw) || 0;
+  },
   lockedPlayerDelta(key, delta, current) {
     return this.lockedPlayerFloorKeys.includes(key) && this.clamp(current) >= 90 && delta < 0 ? 0 : delta;
   },
@@ -89,7 +93,8 @@ window.GameModules.metrics = {
     if (!Array.isArray(items)) return;
     items.forEach((item) => {
       if (!Object.prototype.hasOwnProperty.call(target, item?.key)) return;
-      const delta = group === 'player' ? this.lockedPlayerDelta(item.key, this.clampDelta(item.delta), target[item.key]) : this.clampDelta(item.delta);
+      const rawDelta = this.clampDelta(this.metricDeltaValue(item));
+      const delta = group === 'player' ? this.lockedPlayerDelta(item.key, rawDelta, target[item.key]) : rawDelta;
       const value = this.clamp(target[item.key] + delta);
       this.writeMetric(target, notes, group, { ...item, delta }, value, '本回合没有直接触发变化，保持原值。');
     });

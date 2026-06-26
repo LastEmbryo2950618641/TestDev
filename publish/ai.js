@@ -101,12 +101,16 @@ window.GameModules.ai = {
     return keys.includes(aliases[key]) ? aliases[key] : key;
   },
 
+  metricDeltaValue(item = {}) {
+    return window.GameModules.metrics.metricDeltaValue?.(item) ?? 0;
+  },
+
   normalizeMetricGroup(value, keys, currentValues = null) {
     const main = Array.isArray(value) ? value : [];
     return keys.map((key) => {
       const item = main.find((x) => this.normalizeMetricKey(x?.key, keys) === key);
       if (!item) return null;
-      const rawDelta = window.GameModules.metrics.clampDelta(item.delta);
+      const rawDelta = window.GameModules.metrics.clampDelta(this.metricDeltaValue(item));
       const fallbackValues = window.Alpine?.store?.('game')?.[keys === window.GameModules.metrics.emotionKeys ? 'emotions' : 'playerFeelings'];
       const current = window.GameModules.metrics.clamp((currentValues || fallbackValues)?.[key] || 0);
       const delta = window.GameModules.metrics.lockedPlayerDelta?.(key, rawDelta, current) ?? rawDelta;
@@ -171,11 +175,13 @@ window.GameModules.ai = {
     };
   },
 
-  normalizeCharacter(value, store) {
-    if (typeof value === 'string') return { name: value.slice(0, 16), work: store.character.work, isMinor: false, importance: 'support' };
+  normalizeCharacter(value, store, worldOverride = '') {
+    const fallbackWork = String(worldOverride || store?.currentWorldTag?.() || store?.character?.work || '原创世界');
+    const work = String(fallbackWork || '原创世界').slice(0, 40);
+    if (typeof value === 'string') return { name: value.slice(0, 16), work, worldTag: work, isMinor: false, importance: 'support' };
     if (!value?.name) return null;
     const importance = ['minor', 'support', 'main'].includes(value.importance) ? value.importance : (value.isMinor ? 'minor' : 'support');
-    return { name: String(value.name).slice(0, 16), role: String(value.role || (value.isMinor ? '路人' : '出场人物')).slice(0, 18), detail: String(value.detail || value.intro || value.desc || value.summary || '').slice(0, 120), personality: String(value.personality || '').slice(0, 80), wearing: value.wearing || value.clothing || value.outfit || '', work: String(value.work || store.character.work || '原创世界').slice(0, 24), isMinor: Boolean(value.isMinor), importance };
+    return { name: String(value.name).slice(0, 16), role: String(value.role || (value.isMinor ? '路人' : '出场人物')).slice(0, 18), detail: String(value.detail || value.intro || value.desc || value.summary || '').slice(0, 120), personality: String(value.personality || '').slice(0, 80), wearing: value.wearing || value.clothing || value.outfit || '', work, worldTag: work, isMinor: Boolean(value.isMinor), importance };
   },
 
   clampNumber(value, fallback) { return Math.max(0, Math.min(100, Number.isFinite(value) ? Math.round(value) : fallback)); },

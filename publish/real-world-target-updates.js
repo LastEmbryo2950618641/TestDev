@@ -20,14 +20,23 @@ window.GameModules.realWorldTargetUpdates = {
     return groups;
   },
 
+  normalizeMetricUpdatesForState(updates = {}, metrics = null) {
+    return {
+      emotions: window.GameModules.ai.normalizeMetricGroup?.(updates.emotions, window.GameModules.metrics.emotionKeys, metrics?.emotions) || [],
+      playerFeelings: window.GameModules.ai.normalizeMetricGroup?.(updates.playerFeelings, window.GameModules.metrics.playerKeys, metrics?.playerFeelings) || [],
+    };
+  },
+
   async applyMetrics(store, result = {}) {
     const settlement = [];
     for (const group of this.metricUpdateGroups(result)) {
       const state = this.targetState(store, group.target);
+      const metrics = state?.id ? store.ensureStateMetrics?.(state) : null;
+      const updates = this.normalizeMetricUpdatesForState(group.updates, metrics);
       const fallback = state?.id === 'player-self' ? '' : (store.itemSkillStateLabel?.(state) || state?.id || group.target);
       const title = state?.id ? (store.realWorldSettlementTargetGroup?.(state.id, fallback) || fallback) : (store.realWorldSettlementTargetGroup?.(group.target, group.target) || group.target || '角色');
-      settlement.push(...(store.realWorldMetricSettlement?.(state, group.updates, title) || []));
-      if (state?.id) await store.applyMetricUpdatesToState?.(state, group.updates);
+      settlement.push(...(store.realWorldMetricSettlement?.(state, updates, title) || []));
+      if (state?.id) await store.applyMetricUpdatesToState?.(state, updates);
     }
     return settlement;
   },

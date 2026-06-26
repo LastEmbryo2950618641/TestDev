@@ -108,7 +108,7 @@ window.GameModules.saveActions = {
     const entries = [this.character];
     const context = `${this.sceneTitle} ${this.quest} ${result.narration || ''}`;
     result.solidifyCards = await this.collectSolidifiableCharacters?.(result, 'story') || [];
-    result.solidifyOpen = false;
+    result.solidifyOpen = Boolean(result.solidifyCards.length);
     result.solidifySelectedKey = this.solidifyKey?.(result.solidifyCards[0]) || '';
     await Promise.all(entries.filter(Boolean).map((entry) => this.ensureRpgForCharacter(entry, context, { loadMetrics: entry.id === this.character.id })));
   },

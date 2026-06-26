@@ -5,6 +5,14 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldActions = {
   async submitRealWorldAction(action = '') {
+    if (!this.isRealCurrentWorld?.()) {
+      const text = String(action || this.realWorldInput || '').trim();
+      if (text) {
+        this.realWorldInput = '';
+        return this.submitAction?.(text);
+      }
+      return this.routeCurrentWorldAction?.();
+    }
     const rawText = String(action || this.realWorldInput || '').trim();
     const text = this.realWorldActionWithMatter?.(rawText) || rawText;
     if (!rawText || this.realWorldBusy || !this.validateRealWorldFreedom?.()) return;
@@ -16,7 +24,7 @@ window.GameModules.realWorldActions = {
     const startTime = { label: `${this.phoneDateText()} ${this.phoneTimeText()}`, iso: start.toISOString() };
     const responseCreatedAt = new Date(startMs + 1).toISOString();
     const userEntry = { id: `${baseId}-user`, type: 'user', text: rawText, matter: this.activeRealWorldMatter?.() || null, time: startTime, createdAt: start.toISOString() };
-    const entry = { id: `${baseId}-ai`, type: 'ai', narration: '现实世界正在推演…', thinking: '', streaming: true, time: startTime, createdAt: responseCreatedAt };
+    const entry = { id: `${baseId}-ai`, type: 'ai', narration: '现实世界正在推演…', thinking: '', streaming: true, playerText: rawText, actionText: text, time: startTime, createdAt: responseCreatedAt };
     entry.promptPack = { systemPrompt: '现实世界 Loop Agent 将按步骤动态载入上下文。', userPrompt: text, model: this.modelId, promptTokens: 0 };
     this.realWorldLog = this.normalizeRealWorldLog([...(this.realWorldLog || []), userEntry, entry]).slice(-Math.max(1, Number(this.realWorldLogPageSize) || 12));
     this.realWorldLogTotal = Math.max(this.realWorldLogTotal || 0, window.GameModules.sqliteSave.countRealWorldLogEntries?.() || 0) + 2;
@@ -31,7 +39,8 @@ window.GameModules.realWorldActions = {
       this.scrollRealWorldLogBottom?.();
       const result = await window.GameModules.realWorldAi.generate(this, '', text, entry.id);
       if (result.promptPack) entry.promptPack = result.promptPack;
-      await this.applyRealWorldResult(entry.id, result);
+      const currentUserEntry = window.GameModules.sqliteSave.getRealWorldLogEntry?.(userEntry.id) || userEntry;
+      await this.applyRealWorldResult(entry.id, { ...result, playerEntry: currentUserEntry });
       window.GameModules.factionArchive?.recordRealWorld?.(this, text, result);
       await this.recordPlayerRealWorldMemory(text, result);
       await this.save();
@@ -51,28 +60,30 @@ window.GameModules.realWorldActions = {
   },
 
   async applyRealWorldResult(id, result) {
-    result = window.GameModules.updateRegistry?.expandGenericForLegacy?.(result, this) || result;
+    result = { ...result, genericUpdates: window.GameModules.updateRegistry?.normalizeUpdates?.(result, this) || result.genericUpdates || [] };
+    const legacyResult = window.GameModules.updateRegistry?.expandGenericForLegacy?.(result, this) || result;
     const state = this.playerIdentityState?.();
     const settlement = [];
-    settlement.push(...await window.GameModules.realWorldTargetUpdates.applyMetrics(this, result));
-    settlement.push(...await window.GameModules.realWorldTargetUpdates.applyLexicon(this, result.lexiconUpdates || []));
+    settlement.push(...await window.GameModules.realWorldTargetUpdates.applyMetrics(this, legacyResult));
+    settlement.push(...await window.GameModules.realWorldTargetUpdates.applyLexicon(this, legacyResult.lexiconUpdates || []));
     result.solidifyCards = await this.collectSolidifiableCharacters?.(result, 'real') || [];
     await this.syncNarrationWearing?.(result);
-    result.solidifyOpen = false;
+    result.solidifyOpen = Boolean(result.solidifyCards.length);
     result.solidifySelectedKey = this.solidifyKey?.(result.solidifyCards[0]) || '';
-    result.itemActionResults = await this.applyRealWorldItemActions?.(result.itemActions || []) || [];
+    result.itemActionResults = await this.applyRealWorldItemActions?.(legacyResult.itemActions || []) || [];
     settlement.push(...this.realWorldItemActionSettlement(result.itemActionResults));
     const elapsedSeconds = window.GameModules.ai.clampElapsed?.(result.elapsedSeconds, 300) || 300;
     result.elapsedSeconds = elapsedSeconds;
-    result.vitalUpdates = window.GameModules.realWorldAi.normalizeVitalUpdates(result.vitalUpdates, elapsedSeconds, result.narration || '');
+    result.vitalUpdates = window.GameModules.realWorldAi.normalizeVitalUpdates(legacyResult.vitalUpdates, elapsedSeconds, result.narration || '');
     settlement.push(...this.realWorldVitalSettlement(state, result.vitalUpdates));
     await this.applyRealWorldVitalUpdates(state, result.vitalUpdates);
-    settlement.push(...this.realWorldFactionSettlement(result.factionUpdates || []));
+    settlement.push(...this.realWorldFactionSettlement(legacyResult.factionUpdates || []));
     const legacyHandled = new Set(['vital', 'emotion', 'feeling', 'item', 'faction-structure', 'faction-overview']);
     const remainingGeneric = (result.genericUpdates || []).filter((item) => !legacyHandled.has(item?.updateType));
     await window.GameModules.updateRegistry?.applyGeneric?.(this, remainingGeneric);
     const initApplied = await window.GameModules.initPromptRegistry?.apply?.(this, result.initUpdates || []) || [];
     if (initApplied.length) settlement.push(`初始化：已写入${initApplied.length}条初始化记录。`);
+    delete result.characterMetricUpdates;
     result.characterCardChanges = settlement;
     const startedAt = this.phoneDate().toISOString();
     this.advancePhoneTime(elapsedSeconds);
@@ -93,16 +104,18 @@ window.GameModules.realWorldActions = {
     }
     if (state) await window.GameModules.sqliteSave.saveCharacterState?.(state);
     await this.refreshControlLinkStates?.();
-    await this.applyRealWorldFactionUpdates?.(result.factionUpdates || []);
+    await this.applyRealWorldFactionUpdates?.(legacyResult.factionUpdates || []);
     this.realWorldSceneTitle = result.sceneTitle || this.realWorldSceneTitle;
     this.realWorldQuest = result.quest || this.realWorldQuest;
     this.realWorldStatus = result.status || this.realWorldStatus;
     this.realWorldChoices = result.choices || this.realWorldChoices;
     const time = { label: `${this.phoneDateText()} ${this.phoneTimeText()}`, iso: this.phoneDate().toISOString(), startedAt, elapsedSeconds };
-    const next = { ...this.realWorldLog.find((entry) => entry.id === id), ...result, type: 'ai', streaming: false, time, agentTrace: result.agentTrace || [] };
+    const { playerEntry, ...cleanResult } = result;
+    const next = { ...this.realWorldLog.find((entry) => entry.id === id), ...cleanResult, type: 'ai', streaming: false, time, agentTrace: result.agentTrace || [] };
     await this.assignRealWorldlineEntry(next);
+    if (playerEntry?.id) await window.GameModules.sqliteSave.saveRealWorldLogEntry?.(playerEntry);
     await window.GameModules.sqliteSave.saveRealWorldLogEntry?.(next);
-    this.realWorldLog = this.realWorldLog.map((entry) => (entry.id === id ? next : entry));
+    this.realWorldLog = this.normalizeRealWorldLog([...this.realWorldLog.filter((entry) => entry.id !== playerEntry?.id && entry.id !== id), ...(playerEntry?.id ? [playerEntry] : []), next]);
     this.refreshRealWorldLogPage?.(999999);
     this.scrollRealWorldLogBottom?.();
   },

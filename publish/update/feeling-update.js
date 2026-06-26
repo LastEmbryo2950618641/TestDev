@@ -11,7 +11,8 @@ window.GameModules.updateRegistry?.register?.({
   },
   normalize(raw = {}) {
     return window.GameModules.updateRegistry.genericLike(raw, ['characterMetricUpdates'])
-      .filter((item) => /(^|\.)playerFeelings\./u.test(String(item.field || '')) || item.updateType === 'feeling');
+      .filter((item) => /(^|\.)playerFeelings\./u.test(String(item.field || '')) || item.updateType === 'feeling')
+      .map((item) => ({ ...item, updateType: 'feeling' }));
   },
   examples: [{ updateType: 'feeling', subject: { type: 'character', id: '角色ID' }, field: 'metrics.playerFeelings.信任', change: { mode: 'delta', value: 2 }, reasons: [{ trigger: '玩家兑现承诺或提供帮助', evidence: '正文确认角色因此更信任玩家', confidence: 'confirmed' }] }],
 });

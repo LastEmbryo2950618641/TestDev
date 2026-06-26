@@ -2,15 +2,16 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.characterIntroCard = {
   worldOf(raw = {}, store = null) {
-    return String(raw.worldTag || raw.work || store?.character?.work || window.GameModules.realWorld2026?.label || '未知世界').slice(0, 40);
+    return String(store?.currentWorldTag?.() || raw.worldTag || raw.work || store?.character?.work || window.GameModules.realWorld2026?.label || '未知世界').slice(0, 40);
   },
 
   normalize(raw = {}, store = null, source = 'ai') {
     const name = String(raw.name || raw.characterName || '').trim().slice(0, 24);
     if (!name) return null;
-    const worldTag = source === 'real'
-      ? String(raw.worldTag || raw.work || window.GameModules.realWorld2026?.label || '2026 现代都市现实世界').slice(0, 40)
-      : this.worldOf(raw, store);
+    const worldTag = store?.currentWorldTag?.()
+      || (source === 'real'
+        ? String(window.GameModules.realWorld2026?.label || '2026 现代都市现实世界').slice(0, 40)
+        : this.worldOf(raw, store));
     return {
       name,
       worldTag,
@@ -24,7 +25,15 @@ window.GameModules.characterIntroCard = {
 
   roleCardState(card = {}) {
     const save = window.GameModules.sqliteSave;
-    return save?.getCharacterStateByName?.(card.name, card.worldTag) || save?.getCharacterStateByName?.(card.name) || null;
+    const worldTag = window.GameModules.characterQuery?.normalizeWorldTag?.(card.worldTag || card.work) || card.worldTag;
+    return save?.getCharacterStateByName?.(card.name, worldTag)
+      || (save?.listCharacterStates?.() || []).find((state) => {
+        const profile = state?.profile || {};
+        const sameName = state?.name === card.name || profile.name === card.name;
+        const sameWorld = window.GameModules.characterQuery?.worldMatches?.(worldTag, state?.worldTag || profile.work) ?? (!worldTag || state?.worldTag === worldTag || profile.work === worldTag);
+        return sameName && sameWorld;
+      })
+      || null;
   },
 
   roleCardExists(card = {}) { return Boolean(this.roleCardState(card)); },

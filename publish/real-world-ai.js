@@ -48,9 +48,8 @@ window.GameModules.realWorldAi = {
         elapsedSeconds: window.GameModules.ai.clampElapsed?.(data.elapsedSeconds, 300) || 300,
         vitalUpdates: this.normalizeVitalUpdates(data.vitalUpdates, data.elapsedSeconds, action),
         metricUpdates: window.GameModules.ai.normalizeMetricUpdates?.(data.metricUpdates, store.playerIdentityState?.()) || {},
-        characterMetricUpdates: this.normalizeCharacterMetricUpdates(data.characterMetricUpdates, store),
-        appearedCharacters: Array.isArray(data.appearedCharacters) ? data.appearedCharacters.slice(0, 8).map((x) => window.GameModules.ai.normalizeCharacter(x, store)).filter(Boolean) : [],
-        solidifiableCharacters: Array.isArray(data.solidifiableCharacters) ? data.solidifiableCharacters.slice(0, 8).map((x) => window.GameModules.ai.normalizeCharacter(x, store)).filter(Boolean) : [],
+        appearedCharacters: this.normalizeRealCharacters(data.appearedCharacters, store),
+        solidifiableCharacters: this.normalizeRealSolidifiableCharacters(data.solidifiableCharacters, data.appearedCharacters, store),
         factionUpdates: Array.isArray(data.factionUpdates) ? data.factionUpdates.slice(0, 8) : [],
         itemActions: Array.isArray(data.itemActions) ? data.itemActions.slice(0, 8) : [],
         wechatActions: this.normalizeWechatActions(data.wechatActions),
@@ -67,6 +66,22 @@ window.GameModules.realWorldAi = {
   normalizeLocationName(value) {
     const name = String(value || '').trim().slice(0, 28);
     return /^(玩家住处|住处|现实地点|当前位置|未知地点|现实起点)$/u.test(name) || /现实起点$/u.test(name) ? '' : name;
+  },
+
+  realCharacterWorld() {
+    return window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
+  },
+
+  normalizeRealCharacters(items = [], store) {
+    return (Array.isArray(items) ? items : []).slice(0, 8).map((item) => window.GameModules.ai.normalizeCharacter(item, store, this.realCharacterWorld())).filter(Boolean);
+  },
+
+  normalizeRealSolidifiableCharacters(items = [], appeared = [], store) {
+    const appearedByName = new Map(this.normalizeRealCharacters(appeared, store).map((item) => [item.name, item]));
+    return (Array.isArray(items) ? items : []).slice(0, 8).map((item) => {
+      if (typeof item === 'string') return appearedByName.get(item.slice(0, 16)) || window.GameModules.ai.normalizeCharacter(item, store, this.realCharacterWorld());
+      return window.GameModules.ai.normalizeCharacter(item, store, this.realCharacterWorld());
+    }).filter(Boolean);
   },
 
   normalizeCharacterMetricUpdates(value, store) {

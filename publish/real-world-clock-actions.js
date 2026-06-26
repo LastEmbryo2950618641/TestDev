@@ -30,6 +30,7 @@ window.GameModules.realWorldClockActions = {
   },
 
   openRealWorldPanel() {
+    if (!this.isRealCurrentWorld?.()) return this.routeCurrentWorldAction?.();
     const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
     this.collapseRealWorldThinking?.();
     this.realWorldOpen = true;

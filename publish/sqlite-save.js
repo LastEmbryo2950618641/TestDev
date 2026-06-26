@@ -207,14 +207,35 @@ window.GameModules.sqliteSave = {
     return this.db ? this.getJson('SELECT state_json FROM character_state WHERE character_id=?', [characterId]) : null;
   },
 
+  realWorldAliases() {
+    const label = window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
+    return [label, '2026 现代都市现实世界', '现代都市现实世界', '现实世界'];
+  },
+
+  normalizeQueryWorldTag(worldTag = '') {
+    const text = String(worldTag || '').trim();
+    return this.realWorldAliases().includes(text) ? (window.GameModules.realWorld2026?.label || '2026 现代都市现实世界') : text;
+  },
+
+  worldTagMatchesQuery(stateWorld = '', queryWorld = '') {
+    const state = this.normalizeQueryWorldTag(stateWorld);
+    const query = this.normalizeQueryWorldTag(queryWorld);
+    return !query || state === query;
+  },
+
   getCharacterStateByName(name, worldTag = '') {
     if (!name) return null;
+    const queryWorld = this.normalizeQueryWorldTag(worldTag);
     if (this.fallback) {
-      const states = Object.values(this.fallbackState?.characterStates || {}).filter((state) => state?.name === name && (!worldTag || state.worldTag === worldTag));
+      const states = Object.values(this.fallbackState?.characterStates || {}).filter((state) => state?.name === name && this.worldTagMatchesQuery(state.worldTag || state.profile?.work, queryWorld));
       return states.sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')))[0] || null;
     }
     if (!this.db) return null;
-    if (worldTag) return this.getJson('SELECT state_json FROM character_state WHERE name=? AND world_tag=? ORDER BY updated_at DESC LIMIT 1', [name, worldTag]);
+    if (queryWorld) {
+      const aliases = this.realWorldAliases().includes(queryWorld) ? this.realWorldAliases() : [queryWorld];
+      const placeholders = aliases.map(() => '?').join(',');
+      return this.getJson(`SELECT state_json FROM character_state WHERE name=? AND world_tag IN (${placeholders}) ORDER BY updated_at DESC LIMIT 1`, [name, ...aliases]);
+    }
     return this.getJson('SELECT state_json FROM character_state WHERE name=? ORDER BY updated_at DESC LIMIT 1', [name]);
   },
 
@@ -235,12 +256,17 @@ window.GameModules.sqliteSave = {
 
   getCharacterIntro(name, worldTag = '') {
     if (!name) return null;
+    const queryWorld = this.normalizeQueryWorldTag(worldTag);
     if (this.fallback) {
-      const rows = Object.values(this.fallbackState?.characterIntros || {}).filter((card) => card?.name === name && (!worldTag || card.worldTag === worldTag));
+      const rows = Object.values(this.fallbackState?.characterIntros || {}).filter((card) => card?.name === name && this.worldTagMatchesQuery(card.worldTag || card.work, queryWorld));
       return rows.sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')))[0] || null;
     }
     if (!this.db) return null;
-    if (worldTag) return this.getJson('SELECT intro_json FROM character_intro WHERE name=? AND world_tag=? ORDER BY updated_at DESC LIMIT 1', [name, worldTag]);
+    if (queryWorld) {
+      const aliases = this.realWorldAliases().includes(queryWorld) ? this.realWorldAliases() : [queryWorld];
+      const placeholders = aliases.map(() => '?').join(',');
+      return this.getJson(`SELECT intro_json FROM character_intro WHERE name=? AND world_tag IN (${placeholders}) ORDER BY updated_at DESC LIMIT 1`, [name, ...aliases]);
+    }
     return this.getJson('SELECT intro_json FROM character_intro WHERE name=? ORDER BY updated_at DESC LIMIT 1', [name]);
   },
 
@@ -256,7 +282,7 @@ window.GameModules.sqliteSave = {
   async saveCharacterIntro(card) {
     if (!card?.name) return null;
     const now = new Date().toISOString();
-    const intro = { ...card, worldTag: card.worldTag || card.work || '未知世界', updatedAt: now, createdAt: card.createdAt || now };
+    const intro = { ...card, worldTag: this.normalizeQueryWorldTag(card.worldTag || card.work || '未知世界'), updatedAt: now, createdAt: card.createdAt || now };
     if (this.fallback) {
       this.fallbackState = this.fallbackState || { version: 1, main: null, updatedAt: '', characterIntros: {} };
       this.fallbackState.characterIntros = { ...(this.fallbackState.characterIntros || {}), [this.introKey(intro.worldTag, intro.name)]: intro };
@@ -276,19 +302,25 @@ window.GameModules.sqliteSave = {
   async saveCharacterState(character) {
     if (!character) return;
     const now = new Date().toISOString();
+    const worldTag = this.normalizeQueryWorldTag(character.worldTag || character.profile?.work || '未知世界');
+    character.worldTag = worldTag;
+    if (character.values) character.values.world_tag = worldTag;
+    if (character.profile?.work) character.profile.work = worldTag;
+    const normalized = { ...character, worldTag, values: character.values ? { ...character.values, world_tag: worldTag } : character.values, updatedAt: now };
+    if (normalized.profile?.work) normalized.profile = { ...normalized.profile, work: worldTag };
     if (this.fallback) {
       this.fallbackState = this.fallbackState || { version: 1, main: null, updatedAt: '' };
-      this.fallbackState.characterStates = { ...(this.fallbackState.characterStates || {}), [character.id]: { ...character, updatedAt: now } };
-      this.fallbackState.characterWorlds = { ...(this.fallbackState.characterWorlds || {}), [character.id]: character.worldTag };
+      this.fallbackState.characterStates = { ...(this.fallbackState.characterStates || {}), [normalized.id]: normalized };
+      this.fallbackState.characterWorlds = { ...(this.fallbackState.characterWorlds || {}), [normalized.id]: worldTag };
       this.fallbackState.updatedAt = now;
       await this.persist();
       return;
     }
     if (!this.db) return;
-    await this.saveCharacterWorld(character.id, character.worldTag);
+    await this.saveCharacterWorld(normalized.id, worldTag);
     this.db.run(
       'INSERT OR REPLACE INTO character_state(character_id,name,world_tag,state_json,created_at,updated_at) VALUES (?,?,?,?,COALESCE((SELECT created_at FROM character_state WHERE character_id=?),?),?)',
-      [character.id, character.name, character.worldTag, JSON.stringify(character), character.id, now, now],
+      [normalized.id, normalized.name, worldTag, JSON.stringify(normalized), normalized.id, now, now],
     );
     await this.persist();
   },

@@ -11,7 +11,8 @@ window.GameModules.updateRegistry?.register?.({
   },
   normalize(raw = {}) {
     return window.GameModules.updateRegistry.genericLike(raw, ['characterMetricUpdates'])
-      .filter((item) => /(^|\.)emotions\./u.test(String(item.field || '')) || item.updateType === 'emotion');
+      .filter((item) => /(^|\.)emotions\./u.test(String(item.field || '')) || item.updateType === 'emotion')
+      .map((item) => ({ ...item, updateType: 'emotion' }));
   },
   examples: [{ updateType: 'emotion', subject: { type: 'player', id: 'player-self' }, field: 'metrics.emotions.紧张', change: { mode: 'delta', value: 3 }, reasons: [{ trigger: '受到现实压力刺激', evidence: '正文确认紧张反应', confidence: 'confirmed' }] }],
 });

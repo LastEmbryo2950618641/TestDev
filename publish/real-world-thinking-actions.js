@@ -15,32 +15,61 @@ window.GameModules.realWorldThinkingActions = {
     return Boolean(entry?.thinking) || Boolean(entry?.streaming) || (Array.isArray(entry?.streamTrace) && entry.streamTrace.length > 0) || (Array.isArray(entry?.agentTrace) && entry.agentTrace.length > 0);
   },
 
+  realWorldEntryPlayerText(entry = {}) {
+    if (entry?.type !== 'ai') return '';
+    const previousId = String(entry.id || '').replace(/-ai$/, '-user');
+    const hasUserEntry = (this.realWorldLog || []).some((item) => item.id === previousId && item.type === 'user');
+    return hasUserEntry ? '' : String(entry.playerText || entry.actionText || '').trim();
+  },
+
   normalizeRealWorldLog(log = []) {
-    return (Array.isArray(log) ? log : []).map((entry, index) => ({
-      id: entry?.id || `real-log-${index}`,
-      type: entry?.type || 'ai',
-      thinkingOpen: Boolean(entry?.thinkingOpen),
-      cardChangesOpen: Boolean(entry?.cardChangesOpen),
-      settlementTab: entry?.settlementTab || '',
-      characterCardChanges: Array.isArray(entry?.characterCardChanges) ? entry.characterCardChanges : [],
-      solidifyCards: Array.isArray(entry?.solidifyCards) ? entry.solidifyCards : [],
-      solidifyOpen: Boolean(entry?.solidifyOpen),
-      solidifySelectedKey: entry?.solidifySelectedKey || '',
-      streamTrace: Array.isArray(entry?.streamTrace) ? entry.streamTrace : [],
-      agentTrace: Array.isArray(entry?.agentTrace) ? entry.agentTrace : [],
-      ...entry,
-    })).sort((a, b) => this.realWorldLogSortKey(a).localeCompare(this.realWorldLogSortKey(b)));
+    return (Array.isArray(log) ? log : []).map((entry, index) => {
+      const solidifyCards = Array.isArray(entry?.solidifyCards) ? entry.solidifyCards : [];
+      return {
+        ...entry,
+        id: entry?.id || `real-log-${index}`,
+        type: entry?.type || 'ai',
+        thinkingOpen: Boolean(entry?.thinkingOpen),
+        cardChangesOpen: Boolean(entry?.cardChangesOpen),
+        settlementTab: entry?.settlementTab || '',
+        characterCardChanges: Array.isArray(entry?.characterCardChanges) ? entry.characterCardChanges : [],
+        solidifyCards,
+        solidifyUserClosed: Boolean(entry?.solidifyUserClosed),
+        solidifyOpen: solidifyCards.length > 0 && !entry?.solidifyUserClosed,
+        solidifySelectedKey: entry?.solidifySelectedKey || this.solidifyKey?.(solidifyCards[0]) || '',
+        streamTrace: Array.isArray(entry?.streamTrace) ? entry.streamTrace : [],
+        agentTrace: Array.isArray(entry?.agentTrace) ? entry.agentTrace : [],
+      };
+    }).sort((a, b) => this.realWorldLogSortKey(a).localeCompare(this.realWorldLogSortKey(b)));
+  },
+
+  realWorldLogPairSortKey(entry = {}) {
+    const id = String(entry.id || '');
+    const match = id.match(/^(real-(\d+)-[a-z0-9]+)-(user|ai)$/u);
+    if (!match) return '';
+    const [, base, ms, kind] = match;
+    return `${String(ms).padStart(16, '0')}-${base}-${kind === 'user' ? '0' : '1'}`;
   },
 
   realWorldLogSortKey(entry = {}) {
-    if (entry.createdAt || entry.time?.iso) return String(entry.createdAt || entry.time.iso);
-    const label = String(entry.time?.label || '');
-    const match = label.match(/(\d{4})年(\d{1,2})月(\d{1,2})日.*?(\d{1,2}):(\d{1,2}):(\d{1,2})/);
-    if (match) {
-      const [, year, month, day, hour, minute, second] = match;
-      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hour.padStart(2, '0')}:${minute.padStart(2, '0')}:${second.padStart(2, '0')}`;
-    }
-    return String(entry.id || '');
+    const timeKey = () => {
+      const parsed = Date.parse(entry.createdAt || entry.time?.iso || '');
+      if (Number.isFinite(parsed)) return String(parsed).padStart(16, '0');
+      const label = String(entry.time?.label || '');
+      const match = label.match(/(\d{4})年(\d{1,2})月(\d{1,2})日.*?(\d{1,2}):(\d{1,2}):(\d{1,2})/);
+      if (match) {
+        const [, year, month, day, hour, minute, second] = match;
+        const at = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second)).getTime();
+        if (Number.isFinite(at)) return String(at).padStart(16, '0');
+      }
+      const idNumber = Number(entry.id);
+      if (Number.isFinite(idNumber)) return String(idNumber).padStart(16, '0');
+      return `zzzz-${String(entry.id || '')}`;
+    };
+    if (entry.type === 'system' && entry.narration && !entry.text) return `0000-${timeKey()}-${String(entry.id || '')}`;
+    const pairKey = this.realWorldLogPairSortKey(entry);
+    if (pairKey) return `1000-${pairKey}`;
+    return `1000-${timeKey()}-2-${String(entry.id || '')}`;
   },
 
   refreshRealWorldLogPage(page = this.realWorldLogPage || 1) {
@@ -55,7 +84,7 @@ window.GameModules.realWorldThinkingActions = {
     this.realWorldLogTotal = total;
     this.realWorldLogPage = Math.max(1, Math.min(maxPage, Number(page) || 1));
     let rows = window.GameModules.sqliteSave.listRealWorldLogEntries?.(this.realWorldLogPage, this.realWorldLogPageSize) || [];
-    if (this.realWorldLogPage === maxPage && rows[0]?.type === 'ai' && total > rows.length) {
+    if (rows[0]?.type === 'ai' && this.realWorldLogPage > 1) {
       const prevRows = window.GameModules.sqliteSave.listRealWorldLogEntries?.(this.realWorldLogPage - 1, this.realWorldLogPageSize) || [];
       const prev = prevRows[prevRows.length - 1];
       if (prev?.type === 'user' && rows[0]?.id?.startsWith(String(prev.id || '').replace(/-user$/, '-ai'))) rows = [prev, ...rows];

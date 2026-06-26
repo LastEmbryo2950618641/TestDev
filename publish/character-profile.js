@@ -116,7 +116,7 @@ window.GameModules.characterProfile = {
   normalize(raw, store, preset = null) {
     const data = typeof raw === 'object' && raw ? raw : { name: String(raw || '无名路人') };
     const name = String(data.name || '无名路人').slice(0, 16);
-    const work = String(data.work || store.character.work || '原创世界').slice(0, 24);
+    const work = String(store?.currentWorldTag?.() || data.work || store?.character?.work || '原创世界').slice(0, 40);
     const id = data.id || `npc-${this.slug(work)}-${this.slug(name)}`;
     return {
       id,

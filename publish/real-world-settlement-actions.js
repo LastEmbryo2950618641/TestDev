@@ -76,7 +76,9 @@ window.GameModules.realWorldSettlementActions = {
     const rows = [];
     const add = (field, list, current = {}) => (Array.isArray(list) ? list : []).forEach((item) => {
       const before = Number(current[item.key] || 0);
-      const after = Math.max(0, Math.min(100, before + (Number(item.delta) || 0)));
+      const rawDelta = window.GameModules.metrics.metricDeltaValue?.(item) ?? item.delta;
+      const delta = field === '感觉' ? window.GameModules.metrics.lockedPlayerDelta(item.key, window.GameModules.metrics.clampDelta(rawDelta), before) : window.GameModules.metrics.clampDelta(rawDelta);
+      const after = Math.max(0, Math.min(100, before + delta));
       rows.push(this.realWorldSettlementRecord(field, item.key, `${before} → ${after}（${item.status || '状态更新'}）`, item.reason, group));
     });
     add('情绪', updates.emotions, metrics?.emotions);

@@ -87,7 +87,8 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
     const player = sections.playerProfile(this);
     const relationContext = this.wechatRelationFullContext(contact, hint);
     const targetName = contactNameConcrete ? contact.name : (existingNameConcrete ? existingName : hint.placeholderName);
-    const raw = { id: characterId, name: targetName, role: contact.relation || '微信联系人', detail: relationContext, work: '现实世界', isMinor: false, importance: 'support', nameRule: hint.nameRule };
+    const currentWorld = this.currentWorldTag?.() || window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
+    const raw = { id: characterId, name: targetName, role: contact.relation || '微信联系人', detail: relationContext, work: currentWorld, worldTag: currentWorld, isMinor: false, importance: 'support', nameRule: hint.nameRule };
     const context = await window.GameModules.promptTemplates.render('wechat-relation-profile', {
       玩家基础资料区: player.playerBasic,
       玩家现实身份区: player.playerIdentity,

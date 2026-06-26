@@ -109,6 +109,7 @@ window.GameModules.updateRegistry = {
 
   normalizeUpdates(raw = {}, store = null) {
     const base = Array.isArray(raw?.genericUpdates) ? raw.genericUpdates : [];
+    const legacyMetrics = this.metricGenericFromLegacy?.(raw, store) || [];
     const extras = [];
     this.types.forEach((type) => {
       if (typeof type.normalize !== 'function') return;
@@ -119,7 +120,7 @@ window.GameModules.updateRegistry = {
         console.warn(`[UpdateRegistry] ${type.id} normalize failed:`, err.message, err.stack);
       }
     });
-    return this.uniqueUpdates([...base, ...extras]).slice(0, 80);
+    return this.uniqueUpdates([...base, ...legacyMetrics, ...extras]).slice(0, 80);
   },
 
   uniqueUpdates(updates = []) {

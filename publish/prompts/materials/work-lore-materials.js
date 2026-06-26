@@ -2,7 +2,7 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.workLoreMaterials = {
   items: [
-    { id: 'character-profile-search', title: '查询角色卡或介绍卡', size: 'small', maxChars: 1200, skill: 'character.query', method: 'searchCharacterProfile', paramsHint: { world: '世界名/作品名', name: '角色名' }, when: '正文涉及某个具体人物，需先确认是否已有完整角色卡或介绍卡。' },
+    { id: 'character-profile-search', title: '查询角色完整身份资料', size: 'medium', maxChars: 3200, skill: 'character.query', method: 'searchCharacterProfile', paramsHint: { world: '世界名/作品名', name: '角色名' }, when: '正文涉及某个具体人物，需先确认完整角色卡、身份、关系、状态、穿着和物品。' },
     { id: 'character-known-list', title: '已知角色资料清单', size: 'small', maxChars: 1200, skill: 'character.query', method: 'listKnownCharacters', paramsHint: { world: '世界名/作品名' }, when: '需要先了解当前世界已有角色卡和介绍卡。' },
     { id: 'past-event-search', title: '统一查询过去事件', size: 'large', maxChars: 5200, skill: 'past.event.query', method: 'searchPastEvent', paramsHint: { world: '世界名/作品名', question: '用户问题', keywords: ['角色名', '事件词', '地点或时间'], characterName: '角色名', timeHint: '几天前/昨天/某日期' }, when: '玩家询问几天前、之前、上次、记不记得、旧承诺、图片、地点、物品、世界线、时间线或角色过去经历。' },
     { id: 'worldline-index', title: '当前作品世界线清单', size: 'small', maxChars: 1400, skill: 'realworld.history.query', method: 'listWorldlineIndex', paramsHint: { world: '世界名/作品名' }, when: '需要先了解当前作品世界线正在记录与已归纳情节索引。' },

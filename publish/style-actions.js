@@ -37,7 +37,20 @@ window.GameModules.styleActions = {
   },
 
   allWritingStyles() {
-    return [...this.defaultWritingStyles, ...this.customWritingStyles];
+    const registered = window.GameModules.penStyleRegistry?.list?.() || [];
+    const defaults = registered.length ? registered : this.defaultWritingStyles;
+    return [...defaults, ...this.customWritingStyles];
+  },
+
+  selectedWritingStyle() {
+    const id = this.selectedWritingStyleId();
+    return this.allWritingStyles().find((style) => style.id === id) || this.allWritingStyles()[0] || null;
+  },
+
+  selectedWritingStylePrompt() {
+    const selected = this.selectedWritingStyle();
+    const prompt = String(selected?.prompt || '').trim();
+    return selected && prompt ? `【${selected.name}】\n${prompt}` : '';
   },
 
   isStyleActive(id) {
@@ -79,6 +92,9 @@ window.GameModules.styleActions = {
 
   writingStylePrompt() {
     const active = this.allWritingStyles().filter((style) => this.activeStyleIds.includes(style.id));
-    return active.map((style) => `【${style.name}】${style.prompt}`).join('\n');
+    return active.map((style) => {
+      const prompt = String(style.prompt || '').trim();
+      return prompt ? `【${style.name}】\n${prompt}` : '';
+    }).filter(Boolean).join('\n\n');
   },
 };

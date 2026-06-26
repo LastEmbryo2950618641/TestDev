@@ -259,7 +259,7 @@ window.GameModules.storyAgentContext = {
     if (skill === 'worklore.query') return 2200;
     if (skill === 'memory.query') return 1800;
     if (skill === 'past.event.query') return 5200;
-    if (skill === 'character.query') return 1200;
+    if (skill === 'character.query') return 3200;
     if (skill === 'item.query') return 1400;
     if (skill === 'lexicon.query') return 1200;
     return 1000;

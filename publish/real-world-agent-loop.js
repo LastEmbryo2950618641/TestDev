@@ -38,7 +38,7 @@ window.GameModules.realWorldAgentLoop = {
       const prompt = await this.buildConfiguredPrompt({ store, action, base, loaded, skills, step, materialSession, config });
       lastPrompt = prompt;
       this.markConfiguredStep(store, logId, this.stepText(step, config), config);
-      const raw = await this.completeConfiguredParsedStep(store, prompt, logId, true, false, config);
+      const raw = await this.completeConfiguredParsedStep(store, prompt, logId, false, false, config, step > 1);
       lastRaw = raw.raw;
       const data = raw.data;
       if (!data) throw new Error(`${config.label || 'Loop'}返回格式错误`);
@@ -87,7 +87,7 @@ window.GameModules.realWorldAgentLoop = {
       updates = this.fallbackUpdateJson(store, action, config);
       jsonRaw = JSON.stringify(updates);
     }
-    const result = config.mode === 'story' ? this.mergeStoryNarrationAndUpdates(store, narration, updates) : this.mergeNarrationAndUpdates(store, narration, updates);
+    const result = config.mode === 'story' ? this.mergeStoryNarrationAndUpdates(store, narration, updates, config) : this.mergeNarrationAndUpdates(store, narration, updates, config);
     return { result, prompt: `---NARRATION---\n${narrationPrompt}\n\n---SKILL_SELECTION---\n${skillPrompt}\n\n---UPDATE_JSON---\n${jsonPrompt}`, loaded, raw: `${narrationRaw}\n\n${JSON.stringify(selectedSkills)}\n\n${jsonRaw}`, trace };
   },
 
@@ -128,7 +128,6 @@ window.GameModules.realWorldAgentLoop = {
       当前步骤: forceFinal ? '收敛/final' : `${step}/${this.maxSteps}`,
       最大步骤: this.maxSteps,
       动态Skills: skills,
-      小说笔风: store.writingStylePrompt?.() || '正文采用小说文风，重视画面、动作、感官和心理反应，避免复述玩家指令。',
       推演自由度规则: config.mode === 'story' ? this.storyFreedomRule(store) : (store.realWorldFreedomRule?.() || '推演自由度：行动范围内。只推演玩家本次输入行动自然抵达的直接结果。'),
       当前步骤输出要求: this.stepOutputRule(step, forceFinal),
       输出示例: outputJson,
@@ -142,9 +141,9 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   stepOutputRule(step, forceFinal = false) {
-    if (forceFinal) return '当前为收敛步骤：禁止继续请求资料，只返回 {"type":"context_done","reason":"资料已足够"}。';
-    if (step === 1) return '当前是第1步：必须返回 request_context，用于识别相关角色与必要资料。';
-    return '当前只负责判断是否继续收集资料：仍缺关键资料就返回 request_context；资料足够或无法继续获取时返回 {"type":"context_done","reason":"资料已足够"}。不要输出正文，不要输出 final JSON。';
+    if (forceFinal) return '当前为收敛步骤：禁止继续请求资料。第一个字符必须是 {，只返回 {"type":"context_done","reason":"资料已足够"}。禁止正文、旁白、Markdown、代码块和 final JSON。';
+    if (step === 1) return '当前是第1步：只允许返回一个合法 JSON 对象，type 必须是 request_context。第一个字符必须是 {，用于识别相关角色与必要资料。禁止正文、旁白、Markdown、代码块和 final JSON。';
+    return '当前只负责判断是否继续收集资料：只允许返回一个合法 JSON 对象，type 只能是 request_context 或 context_done；第一个字符必须是 {。仍缺关键资料就返回 request_context；资料足够或无法继续获取时返回 {"type":"context_done","reason":"资料已足够"}。禁止正文、旁白、Markdown、代码块和 final JSON。';
   },
 
   async buildNarrationPrompt(args) {
@@ -154,11 +153,12 @@ window.GameModules.realWorldAgentLoop = {
   async buildConfiguredNarrationPrompt({ store, action, base, loaded, skills, materialSession = null, config = this.realConfig() }) {
     const loadedText = config.ctx.buildLoadedText(loaded);
     const materialText = config.materials?.acquiredSummary?.(materialSession) || '';
+    const writingStyle = store.selectedWritingStylePrompt?.() || store.writingStylePrompt?.() || '正文采用小说文风，重视画面、动作、感官和心理反应，避免复述玩家指令。';
     if (config.mode === 'story') return [
       '# 操控剧情阶段2：只生成玩家可见正文',
       '你只输出操控剧情正文，不要 JSON，不要 Markdown，不要标题，不要分隔符。',
       `本次行动：${action || '继续推进操控剧情'}`,
-      `小说笔风：${store.writingStylePrompt?.() || '正文采用小说文风，重视画面、动作、感官和心理反应，避免复述玩家指令。'}`,
+      `小说笔风：${writingStyle}`,
       `推演自由度：${this.storyFreedomRule(store)}`,
       `基础上下文：\n${base}`,
       `已动态载入资料：\n${[loadedText, materialText].filter(Boolean).join('\n\n') || '无'}`,
@@ -168,7 +168,7 @@ window.GameModules.realWorldAgentLoop = {
       '# 现实推演阶段2：只生成玩家可见正文',
       '你只输出现实推演正文，不要 JSON，不要 Markdown，不要标题，不要分隔符。',
       `本次行动：${action || '继续观察现实世界'}`,
-      `小说笔风：${store.writingStylePrompt?.() || '正文采用小说文风，重视画面、动作、感官和心理反应，避免复述玩家指令。'}`,
+      `小说笔风：${writingStyle}`,
       `推演自由度：${store.realWorldFreedomRule?.() || '只推演玩家本次输入行动自然抵达的直接结果。'}`,
       ...(store.sharedControlState?.() ? ['同世界附身控制规则：玩家与被链接角色处于同一现实世界时，进入现实同世界附身控制；玩家意识附身接管被控角色身体，能直接控制其动作、视线、表情、触觉、嗅觉、味觉、听觉、身体反应与局部行动；玩家现实本体仍由同一个意识维持控制，属于一心多用。正文必须以第二人称“你”的附身镜头为主，着重描写被控角色身体内视角、动作执行、感官回流、心理/身体张力和外界反应；同时保留玩家本体仍可行动的事实。不要写成单纯远程共享感官、旁观监控或玩家完全离开自己身体；不要让同一角色在两个地点同时出现。'] : []),
       `基础上下文：\n${base}`,
@@ -229,7 +229,7 @@ window.GameModules.realWorldAgentLoop = {
     const initSkillText = window.GameModules.initPromptRegistry?.skillText?.(selectedSkills.initSkills || [], store) || '';
     const initSchema = window.GameModules.initPromptRegistry?.schema?.(selectedSkills.initSkills || [], store) || {};
     const storyRule = '输出最小补丁 JSON：必须包含 type、sceneTitle、elapsedSeconds、mood、quest、choices。其他字段只有明确变化才输出，否则省略或用空数组。choices 必须4个。metricUpdates 只写当前被操控角色的情绪和对玩家感觉；genericUpdates 用于没有专用 skill 的稳定角色卡关系、身份、状态标签、新分类或跨系统字段。';
-    const realRule = '输出最小补丁 JSON：必须包含 type、sceneTitle、locationName、elapsedSeconds、status、quest、choices、vitalUpdates。其他字段只有明确变化才输出，否则省略或用空数组；没有专用 skill 的稳定事实写 genericUpdates。';
+    const realRule = '输出最小补丁 JSON：必须包含 type、sceneTitle、locationName、elapsedSeconds、status、quest、choices、genericUpdates。状态变化统一写 genericUpdates；禁止输出 characterMetricUpdates。';
     return [
       `# ${config.label}阶段3B：只生成更新JSON`,
       '你只输出一个合法 JSON 对象，不要正文，不要 Markdown，不要代码块，不要解释。必须输出紧凑 JSON：不要换行、不要缩进、不要多余空格。',
@@ -241,8 +241,8 @@ window.GameModules.realWorldAgentLoop = {
       `已选择初始化 Skills：${JSON.stringify(selectedSkills.initSkills || [])}`,
       config.mode === 'story' ? storyRule : realRule,
       '字段名必须用最短标准名；reason/status/intro/definition/evidence 只写必要证据短句，避免长段复述正文。',
-      '若正文中出现或提及未确定已有角色卡的人物，返回 appearedCharacters；只写 name、role、intro/detail、work，不要生成完整角色卡字段。若你判断该人物值得用户手动固化为角色卡，也放入 solidifiableCharacters。',
-      config.mode === 'story' ? '所有 reason/status 不超过32个汉字。lexiconUpdates/itemActions/genericUpdates 只写正文确认的稳定事实变化。' : 'vitalUpdates 必须覆盖 stamina_pool、satiety、hydration、fatigue、mental_stability。choices 必须4个。所有 reason/status 不超过24个汉字。characterMetricUpdates 最多3个角色，每个角色最多2条 emotions 和2条 playerFeelings。lexiconUpdates/itemActions/factionUpdates 只写稳定事实变化。',
+      '若正文中出现或提及未确定已有角色卡的人物，返回 appearedCharacters；只写 name、role、intro/detail、work，不要生成完整角色卡字段。若你判断该人物值得用户手动固化为角色卡，也放入 solidifiableCharacters；solidifiableCharacters 优先写同样的对象，不要只写字符串。',
+      config.mode === 'story' ? '所有 reason/status 不超过32个汉字。lexiconUpdates/itemActions/genericUpdates 只写正文确认的稳定事实变化。' : '生命体征、情绪、感觉、身体状态、物品、势力、地图、系统等变化全部写入 genericUpdates；choices 必须4个；所有 reason/status 不超过24个汉字；每个主体同类变化最多4条；没有明确变化则 genericUpdates 返回空数组。',
       updateSkillText ? `## 更新 Skills\n\n${updateSkillText}` : '',
       initSkillText ? `## 初始化 Skills\n\n${initSkillText}` : '',
       `最小示例：${JSON.stringify({ ...(config.mode === 'story' ? this.storyUpdateJsonSchema() : this.updateJsonSchema()), ...updateSchema, ...initSchema })}`,
@@ -285,8 +285,8 @@ window.GameModules.realWorldAgentLoop = {
     return {
       type: 'final', sceneTitle: '标题', locationName: '具体地点', elapsedSeconds: 300, status: '状态', quest: '目标',
       choices: ['行动一', '行动二', '行动三', '行动四'],
-      vitalUpdates: [{ key: 'stamina_pool', delta: -1, reason: '行动消耗。' }, { key: 'satiety', delta: 0, reason: '基本不变。' }, { key: 'hydration', delta: 0, reason: '基本不变。' }, { key: 'fatigue', delta: 1, reason: '稍感疲劳。' }, { key: 'mental_stability', delta: 0, reason: '基本稳定。' }],
-      characterMetricUpdates: [], appearedCharacters: [{ name: '人物名', role: '身份', intro: '本回合可确认介绍', work: realWorld.label || '2026 现代都市现实世界' }], solidifiableCharacters: [], lexiconUpdates: [], itemActions: [], factionUpdates: [], wechatActions: [],
+      genericUpdates: [],
+      appearedCharacters: [{ name: '人物名', role: '身份', intro: '本回合可确认介绍', work: realWorld.label || '2026 现代都市现实世界' }], solidifiableCharacters: [], wechatActions: [],
     };
   },
 
@@ -296,7 +296,7 @@ window.GameModules.realWorldAgentLoop = {
 
   outputSchema(store) {
     const realWorld = window.GameModules.realWorld2026 || {};
-    return { type: 'final', sceneTitle: '现实场景标题', locationName: '具体地点名', parentLocationName: '上级地点名', locationDescription: '当前地点本次新认识的事实', mapNodes: [{ name: '子地点名', parentName: '上级地点名', descriptionFacts: ['玩家已知地点事实'] }], newLocations: [{ name: '新增地点名', parentName: '', descriptionFacts: ['玩家已知事实'] }], locationDescriptionUpdates: [{ locationName: '地点名', action: 'add', text: '新增或更新的玩家已知事实' }], elapsedSeconds: 60, status: '现实状态简述', quest: '新的现实目标', choices: ['处理现实事务', '联系某个人', '观察周围', '暂时休息'], vitalUpdates: [{ key: 'stamina_pool', delta: -1, reason: '本次行动消耗少量精力。' }, { key: 'satiety', delta: 0, reason: '本次行动时间较短，饱食度基本不变。' }, { key: 'hydration', delta: 0, reason: '本次行动时间较短，水分基本不变。' }, { key: 'fatigue', delta: 1, reason: '持续行动带来轻微疲劳。' }, { key: 'mental_stability', delta: 0, reason: '本次行动没有直接冲击精神稳定。' }], metricUpdates: { target: 'player-self', emotions: [{ key: '情绪名', delta: 0, status: '变化后的状态含义', reason: '现实触发原因' }], playerFeelings: [{ key: '感觉名', delta: 0, status: '变化后的状态含义', reason: '现实触发原因' }] }, characterMetricUpdates: [{ target: '相关角色id或姓名', emotions: [{ key: '情绪名', delta: 0, status: '变化后的状态含义', reason: '该角色受本回合事件影响的原因' }], playerFeelings: [{ key: '感觉名', delta: 0, status: '该角色对玩家的新态度', reason: '该角色对玩家感觉变化或维持的具体证据' }] }], appearedCharacters: [{ name: '出场人物', role: '身份', intro: '本回合可确认介绍', work: realWorld.label || '2026 现代都市现实世界' }], solidifiableCharacters: [], wechatActions: [{ action: 'sendIncomingNow/sendIncomingPast', contactId: '联系人id或角色id', text: '角色发给玩家的微信消息', timeIso: '过去消息必填ISO时间', reason: '思念触发原因' }], factionUpdates: [{ action: 'addFactionPosition', factionName: '势力名', position: '职位或地位', characterName: '角色名或未知', reason: '现实确认依据' }], itemActions: [{ action: 'add/transfer/delete/purchase/generate', target: 'player-self或角色id/姓名', from: '来源角色', to: '目标角色', itemName: '已有物品名', quantity: 1, item: { name: '物品名', kind: '物品或装备', price: 0, description: '说明' }, reason: '现实确认依据' }], lexiconUpdates: [{ worldTag: realWorld.label || '2026 现代都市现实世界', kind: '玩家设定/装备/物品/穿着/角色卡/角色技能', field: '角色卡字段名', name: '词条名或skills', value: '新值或对象', summary: '摘要', description: '说明', reason: '现实证据、触发行动、状态来源或动机' }] };
+    return { type: 'final', sceneTitle: '现实场景标题', locationName: '具体地点名', parentLocationName: '上级地点名', locationDescription: '当前地点本次新认识的事实', mapNodes: [{ name: '子地点名', parentName: '上级地点名', descriptionFacts: ['玩家已知地点事实'] }], newLocations: [{ name: '新增地点名', parentName: '', descriptionFacts: ['玩家已知事实'] }], locationDescriptionUpdates: [{ locationName: '地点名', action: 'add', text: '新增或更新的玩家已知事实' }], elapsedSeconds: 60, status: '现实状态简述', quest: '新的现实目标', choices: ['处理现实事务', '联系某个人', '观察周围', '暂时休息'], genericUpdates: [{ updateType: 'vital', subject: { type: 'player', id: 'player-self' }, field: 'vitals.stamina_pool', change: { mode: 'delta', value: -1 }, reasons: [{ trigger: '行动消耗', evidence: '本次行动消耗少量精力', confidence: 'confirmed' }] }, { updateType: 'emotion', subject: { type: 'player', id: 'player-self' }, field: 'metrics.emotions.紧张', change: { mode: 'delta', value: 1 }, reasons: [{ trigger: '现实刺激', evidence: '正文确认情绪变化', confidence: 'confirmed' }] }, { updateType: 'feeling', subject: { type: 'character', id: '相关角色id或姓名' }, field: 'metrics.playerFeelings.信任', change: { mode: 'delta', value: 1 }, reasons: [{ trigger: '互动结果', evidence: '正文确认角色对玩家感觉变化', confidence: 'confirmed' }] }], appearedCharacters: [{ name: '出场人物', role: '身份', intro: '本回合可确认介绍', work: realWorld.label || '2026 现代都市现实世界' }], solidifiableCharacters: [], wechatActions: [{ action: 'sendIncomingNow/sendIncomingPast', contactId: '联系人id或角色id', text: '角色发给玩家的微信消息', timeIso: '过去消息必填ISO时间', reason: '思念触发原因' }], factionUpdates: [{ action: 'addFactionPosition', factionName: '势力名', position: '职位或地位', characterName: '角色名或未知', reason: '现实确认依据' }], itemActions: [{ action: 'add/transfer/delete/purchase/generate', target: 'player-self或角色id/姓名', from: '来源角色', to: '目标角色', itemName: '已有物品名', quantity: 1, item: { name: '物品名', kind: '物品或装备', price: 0, description: '说明' }, reason: '现实确认依据' }], lexiconUpdates: [{ worldTag: realWorld.label || '2026 现代都市现实世界', kind: '玩家设定/装备/物品/穿着/角色卡/角色技能', field: '角色卡字段名', name: '词条名或skills', value: '新值或对象', summary: '摘要', description: '说明', reason: '现实证据、触发行动、状态来源或动机' }] };
   },
 
   storyOutputSchema(store) {
@@ -307,19 +307,27 @@ window.GameModules.realWorldAgentLoop = {
     return await this.completeConfiguredParsedStep(store, prompt, logId, streamToUi, allowProseFinal, this.realConfig());
   },
 
-  async completeConfiguredParsedStep(store, prompt, logId, streamToUi = false, allowProseFinal = false, config = this.realConfig()) {
+  async completeConfiguredParsedStep(store, prompt, logId, streamToUi = false, allowProseFinal = false, config = this.realConfig(), allowContextDoneOnProse = false) {
     let lastRaw = '';
     let bestRaw = '';
     let lastErr = null;
     for (let i = 0; i < 2; i += 1) {
       lastRaw = await this.completeConfiguredStep(store, prompt, logId, streamToUi, config);
       if (this.fallbackScore(lastRaw) >= this.fallbackScore(bestRaw)) bestRaw = lastRaw;
+      if (allowContextDoneOnProse && this.looksLikeProseInsteadOfStepJson(lastRaw)) {
+        console.warn(`${config.label}资料阶段误返回正文，视为资料已足够并进入正文阶段。`);
+        return { raw: lastRaw, data: this.contextDoneFromProse(lastRaw) };
+      }
       try {
         const data = this.parseStep(lastRaw, config);
         if (data || i === 1) return { raw: lastRaw, data: data || (allowProseFinal ? this.proseFinal(store, bestRaw || lastRaw) : null) };
         console.warn(`${config.label}格式不完整，自动重试一次`);
       } catch (err) {
         lastErr = err;
+        if (allowContextDoneOnProse && this.looksLikeProseInsteadOfStepJson(lastRaw)) {
+          console.warn(`${config.label}资料阶段解析到正文内容，视为资料已足够并进入正文阶段。`);
+          return { raw: lastRaw, data: this.contextDoneFromProse(lastRaw) };
+        }
         if (!this.isRetryableParseError(err) || i === 1) break;
         console.warn(`${config.label}解析异常，自动重试一次:`, err.message);
       }
@@ -327,6 +335,23 @@ window.GameModules.realWorldAgentLoop = {
     if (allowProseFinal) return { raw: bestRaw || lastRaw, data: this.proseFinal(store, bestRaw || lastRaw) };
     if (lastErr) throw lastErr;
     return { raw: lastRaw, data: null };
+  },
+
+  looksLikeProseInsteadOfStepJson(raw = '') {
+    const text = String(raw || '').trim();
+    if (!text || text.startsWith('{') || text.startsWith('```')) return false;
+    if (text.includes(this.finalSeparator)) return false;
+    if (/"type"\s*:\s*"(?:request_context|context_done|final)"/u.test(text)) return false;
+    return text.length >= 80 && /[。！？!?]/u.test(text);
+  },
+
+  contextDoneFromProse() {
+    return {
+      type: 'context_done',
+      reason: '模型在资料收集阶段误返回正文，停止请求资料并进入正文推演',
+      requests: [],
+      characters: [],
+    };
   },
 
   fallbackScore(raw) {
@@ -356,12 +381,11 @@ window.GameModules.realWorldAgentLoop = {
       choices: Array.isArray(repaired.choices) && repaired.choices.length ? repaired.choices.slice(0, 4) : (store.realWorldChoices || ['观察手机异常', '处理现实事务', '联系熟人', '暂时休息']),
       vitalUpdates: Array.isArray(repaired.vitalUpdates) ? repaired.vitalUpdates : [],
       metricUpdates: repaired.metricUpdates && typeof repaired.metricUpdates === 'object' ? repaired.metricUpdates : {},
-      characterMetricUpdates: Array.isArray(repaired.characterMetricUpdates) ? repaired.characterMetricUpdates : [],
       wechatActions: Array.isArray(repaired.wechatActions) ? repaired.wechatActions : [],
       factionUpdates: Array.isArray(repaired.factionUpdates) ? repaired.factionUpdates : [],
       itemActions: Array.isArray(repaired.itemActions) ? repaired.itemActions : [],
       lexiconUpdates: Array.isArray(repaired.lexiconUpdates) ? repaired.lexiconUpdates : [],
-      genericUpdates: Array.isArray(repaired.genericUpdates) ? repaired.genericUpdates : [],
+      genericUpdates: window.GameModules.updateRegistry?.normalizeUpdates?.(repaired, store) || (Array.isArray(repaired.genericUpdates) ? repaired.genericUpdates : []),
     };
   },
 
@@ -425,7 +449,25 @@ window.GameModules.realWorldAgentLoop = {
     return raw && typeof raw === 'object' ? raw : this.parseCompleteUpdateJson(raw);
   },
 
-  mergeNarrationAndUpdates(store, narration, updates = {}) {
+  configuredCharacterWorld(store, config = this.realConfig()) {
+    if (config.mode === 'real') return window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
+    return store.currentWorldTag?.() || store.character?.work || store.selectedWork || '原创世界';
+  },
+
+  normalizeConfiguredCharacters(items = [], store, config = this.realConfig()) {
+    const world = this.configuredCharacterWorld(store, config);
+    return (Array.isArray(items) ? items : []).slice(0, 8).map((item) => window.GameModules.ai.normalizeCharacter(item, store, world)).filter(Boolean);
+  },
+
+  normalizeConfiguredSolidifiableCharacters(items = [], appeared = [], store, config = this.realConfig()) {
+    const appearedByName = new Map(this.normalizeConfiguredCharacters(appeared, store, config).map((item) => [item.name, item]));
+    return (Array.isArray(items) ? items : []).slice(0, 8).map((item) => {
+      if (typeof item === 'string') return appearedByName.get(item.slice(0, 16)) || window.GameModules.ai.normalizeCharacter(item, store, this.configuredCharacterWorld(store, config));
+      return window.GameModules.ai.normalizeCharacter(item, store, this.configuredCharacterWorld(store, config));
+    }).filter(Boolean);
+  },
+
+  mergeNarrationAndUpdates(store, narration, updates = {}, config = this.realConfig()) {
     return {
       type: 'final',
       sceneTitle: updates.sceneTitle || store.realWorldSceneTitle || '现实世界',
@@ -442,9 +484,8 @@ window.GameModules.realWorldAgentLoop = {
       choices: Array.isArray(updates.choices) && updates.choices.length ? updates.choices.slice(0, 4) : (store.realWorldChoices || ['观察手机异常', '处理现实事务', '联系熟人', '暂时休息']),
       vitalUpdates: Array.isArray(updates.vitalUpdates) ? updates.vitalUpdates : [],
       metricUpdates: updates.metricUpdates && typeof updates.metricUpdates === 'object' ? updates.metricUpdates : {},
-      characterMetricUpdates: Array.isArray(updates.characterMetricUpdates) ? updates.characterMetricUpdates : [],
-      appearedCharacters: Array.isArray(updates.appearedCharacters) ? updates.appearedCharacters.slice(0, 8).map((x) => window.GameModules.ai.normalizeCharacter(x, store)).filter(Boolean) : [],
-      solidifiableCharacters: Array.isArray(updates.solidifiableCharacters) ? updates.solidifiableCharacters.slice(0, 8).map((x) => window.GameModules.ai.normalizeCharacter(x, store)).filter(Boolean) : [],
+      appearedCharacters: this.normalizeConfiguredCharacters(updates.appearedCharacters, store, config),
+      solidifiableCharacters: this.normalizeConfiguredSolidifiableCharacters(updates.solidifiableCharacters, updates.appearedCharacters, store, config),
       wechatActions: Array.isArray(updates.wechatActions) ? updates.wechatActions : [],
       factionUpdates: Array.isArray(updates.factionUpdates) ? updates.factionUpdates : [],
       itemActions: Array.isArray(updates.itemActions) ? updates.itemActions : [],
@@ -454,7 +495,7 @@ window.GameModules.realWorldAgentLoop = {
     };
   },
 
-  mergeStoryNarrationAndUpdates(store, narration, updates = {}) {
+  mergeStoryNarrationAndUpdates(store, narration, updates = {}, config = this.storyConfig()) {
     const fallback = window.GameModules.createFallbackResult?.(store, store.lastAction || '') || {};
     return {
       type: 'final',
@@ -474,8 +515,8 @@ window.GameModules.realWorldAgentLoop = {
       controlExperienceSummary: String(updates.controlExperienceSummary || fallback.controlExperienceSummary || '').slice(0, 80),
       metricUpdates: window.GameModules.ai.normalizeMetricUpdates?.(updates.metricUpdates) || {},
       choices: window.GameModules.ai.normalizeChoices?.(updates.choices, fallback.choices) || fallback.choices || [],
-      appearedCharacters: Array.isArray(updates.appearedCharacters) ? updates.appearedCharacters.slice(0, 8).map((x) => window.GameModules.ai.normalizeCharacter(x, store)).filter(Boolean) : [],
-      solidifiableCharacters: Array.isArray(updates.solidifiableCharacters) ? updates.solidifiableCharacters.slice(0, 8).map((x) => window.GameModules.ai.normalizeCharacter(x, store)).filter(Boolean) : [],
+      appearedCharacters: this.normalizeConfiguredCharacters(updates.appearedCharacters, store, config),
+      solidifiableCharacters: this.normalizeConfiguredSolidifiableCharacters(updates.solidifiableCharacters, updates.appearedCharacters, store, config),
       statChanges: { health: window.GameModules.ai.clampVitalDelta?.(updates.statChanges?.health) || 0, stamina: window.GameModules.ai.clampVitalDelta?.(updates.statChanges?.stamina) || 0, mental_stability: window.GameModules.ai.clampVitalDelta?.(updates.statChanges?.mental_stability) || 0 },
       combatEvent: window.GameModules.ai.normalizeCombatEvent?.(updates.combatEvent) || null,
       lexiconUpdates: window.GameModules.ai.normalizeLexiconUpdates?.(updates.lexiconUpdates, store) || [],
