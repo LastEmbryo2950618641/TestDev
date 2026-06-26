@@ -106,8 +106,8 @@ characters 必须列出本次行动相关人物，至少包含当前被操控角
 7. 正文必须先写玩家本次行动如何发生，再写环境变化、其他人物反应、被操控者心理和直接结果。
 8. 不要替玩家完成后续行动；结果落到对方回应、第一轮观察结果、动作完成或危险临近即可。
 9. choices 必须给四个下一步可点击行动或想法，不要返回“放开控制”。
-10. 发现新人物时只返回 appearedCharacters / solidifiableCharacters 介绍卡信息（姓名+身份+文字介绍），不要在本回合自动生成完整角色卡。
-11. 需要角色过去经历时，先查该角色卡；没有角色卡再查介绍卡；若都没有，则根据本回合上下文申请创建介绍卡。需要过往剧情细节时，必须通过 realworld.history.query 先读世界线归纳，再按关键词/时间/plotId 加载相关世界线记录。
+10. 发现、提及或联系具体人物时，先用 character.query.searchCharacterProfile 查询角色卡/介绍卡；没有命中才在 appearedCharacters / solidifiableCharacters 返回介绍卡信息（姓名+身份+文字介绍），不要在本回合自动生成完整角色卡。
+11. 需要角色过去经历时，也必须先查 character.query；若需要过往剧情细节，再通过 realworld.history.query 先读世界线归纳，再按关键词/时间/plotId 加载相关世界线记录。
 12. 稳定关系、角色卡、技能、装备、物品、穿着、身份变化必须通过阶段3 JSON 的 lexiconUpdates、genericUpdates 或 itemActions 提交；没有事实依据则不要写。
 
 ## final 前推演检查

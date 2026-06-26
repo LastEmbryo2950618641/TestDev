@@ -129,7 +129,7 @@ characters 必须列出本次行动相关人物，至少包含 player-self，可
 20. 如果现实推演确认玩家本人或相关角色的身份证角色卡需要更新，lexiconUpdates 使用 kind:"角色卡"；若需要新增或修正稳定技能，使用 kind:"角色技能"。
 21. 若当前场景确认发生物品赠送/交还/转交，final 返回 itemActions action:"transfer"；物品损坏、丢弃、消耗或遗失返回 action:"delete"；被别人赠送或捡到等无付款获得返回 action:"add"；购买返回 action:"purchase" 且 item.price 必须为正整数。购物必须先查询余额语境，余额不足时 narration 写购买失败，不返回 purchase。
 22. 新物品细节只能在玩家检查、详细观察或实际到手时固化。生成前必须通过 item.query.searchKnownItem 搜索世界已知物品；命中时复用，不要生成重名新物品。仅作为正文背景名词出现的物品不要写 itemActions。
-23. 发现新人物时只返回 appearedCharacters / solidifiableCharacters 介绍卡信息（姓名+身份+文字介绍），不要在本回合自动生成完整角色卡。需要角色过去经历时，先查角色卡；没有角色卡再查介绍卡；若都没有，则根据本回合上下文申请创建介绍卡。需要过往剧情细节时，必须通过 realworld.history.query 先读世界线归纳，再按关键词/时间/plotId 加载相关世界线记录。
+23. 发现、提及或联系具体人物时，先用 character.query.searchCharacterProfile 查询角色卡/介绍卡；没有命中才在 appearedCharacters / solidifiableCharacters 返回介绍卡信息（姓名+身份+文字介绍），不要在本回合自动生成完整角色卡。需要角色过去经历时，也必须先查 character.query；若需要过往剧情细节，再通过 realworld.history.query 先读世界线归纳，再按关键词/时间/plotId 加载相关世界线记录。
 24. 阶段1必须只返回合法 JSON，type 只能是 request_context 或 context_done。所有 key 和字符串值使用英文双引号；最后一个字段后不要加逗号；不得返回字段表以外的 thinking、analysis、reasoning、chainOfThought、cot、debug、notes 或推演检查清单。
 
 ## final 前推演检查

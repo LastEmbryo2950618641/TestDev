@@ -84,7 +84,7 @@ window.GameModules.skillLoader = {
   async instruction(id) {
     await this.load();
     const doc = window.GameModules.skillDocs?.[id];
-    if (!doc) return '';
+    if (!doc) return this.definitionInstruction(id);
     const sections = ['感觉稳定性规则', '输出字段', '数值规则', '推演要求'].map((title) => {
       const body = this.section(doc.body, title);
       return body ? `## ${title}\n${body}` : '';
@@ -95,6 +95,18 @@ window.GameModules.skillLoader = {
       `激活：${doc.meta.trigger || doc.meta.description || ''}`,
       sections ? `关键规则：\n${sections}` : '',
       `返回：${doc.meta.returns || ''}`,
+    ].filter(Boolean).join('\n');
+  },
+
+  definitionInstruction(id) {
+    const skill = (window.GameModules.skillsDefinitions || []).find((item) => item.id === id);
+    if (!skill) return '';
+    return [
+      `Skill：${skill.name || id}`,
+      `方法：${skill.method || id}`,
+      `激活：${skill.description || ''}`,
+      skill.detail ? `关键规则：\n${skill.detail}` : '',
+      `返回：${skill.returns || ''}`,
     ].filter(Boolean).join('\n');
   },
 
