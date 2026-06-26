@@ -225,7 +225,7 @@ window.GameModules.realWorldAgentLoop = {
     const realRule = '输出最小补丁 JSON：必须包含 type、sceneTitle、locationName、elapsedSeconds、status、quest、choices、vitalUpdates。其他字段只有明确变化才输出，否则省略或用空数组；没有专用 skill 的稳定事实写 genericUpdates。';
     return [
       `# ${config.label}阶段3B：只生成更新JSON`,
-      '你只输出一个合法 JSON 对象，不要正文，不要 Markdown，不要代码块，不要解释。',
+      '你只输出一个合法 JSON 对象，不要正文，不要 Markdown，不要代码块，不要解释。必须输出紧凑 JSON：不要换行、不要缩进、不要多余空格。',
       `本次行动：${action || (config.mode === 'story' ? '继续推进操控剧情' : '继续观察现实世界')}`,
       `基础上下文：\n${base}`,
       `已动态载入资料：\n${[loadedText, materialText].filter(Boolean).join('\n\n') || '无'}`,
@@ -233,6 +233,7 @@ window.GameModules.realWorldAgentLoop = {
       `已选择更新 Skills：${JSON.stringify(selectedSkills.updateSkills || [])}`,
       `已选择初始化 Skills：${JSON.stringify(selectedSkills.initSkills || [])}`,
       config.mode === 'story' ? storyRule : realRule,
+      '字段名必须用最短标准名；reason/status/intro/definition/evidence 只写必要证据短句，避免长段复述正文。',
       '若正文中出现或提及未确定已有角色卡的人物，返回 appearedCharacters；只写 name、role、intro/detail、work，不要生成完整角色卡字段。若你判断该人物值得用户手动固化为角色卡，也放入 solidifiableCharacters。',
       config.mode === 'story' ? '所有 reason/status 不超过32个汉字。lexiconUpdates/itemActions/genericUpdates 只写正文确认的稳定事实变化。' : 'vitalUpdates 必须覆盖 stamina_pool、satiety、hydration、fatigue、mental_stability。choices 必须4个。所有 reason/status 不超过24个汉字。characterMetricUpdates 最多3个角色，每个角色最多2条 emotions 和2条 playerFeelings。lexiconUpdates/itemActions/factionUpdates 只写稳定事实变化。',
       updateSkillText ? `## 更新 Skills\n\n${updateSkillText}` : '',
@@ -378,7 +379,7 @@ window.GameModules.realWorldAgentLoop = {
       '# 上次输出无效，必须重新完整输出',
       `错误：${err?.message || 'JSON不完整'}`,
       `上次输出尾部：${String(raw || '').slice(-800)}`,
-      '请重新输出一个完整合法 JSON 对象。不要续写上次内容，不要 Markdown，不要省略结尾。',
+      '请重新输出一个完整合法 JSON 对象。不要续写上次内容，不要 Markdown，不要省略结尾。必须输出紧凑 JSON：不要换行、不要缩进、不要多余空格。',
     ].join('\n\n');
   },
 
