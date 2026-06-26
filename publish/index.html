@@ -368,7 +368,7 @@
         <button class="load-btn" @click="$store.game.save()" :disabled="$store.game.busy">保存当前进度</button>
         <button class="overwrite-btn" @click="$store.game.resetGame()" :disabled="$store.game.busy">重新开始</button>
       </div>
-      <button x-show="$store.game.phoneSetupDone" class="ghost-wide real-world-settings-btn" type="button" @click="$store.game.savePanelOpen = false; $store.game.openRealWorldPanel()">收起手机</button>
+      <button x-show="$store.game.phoneSetupDone" class="ghost-wide real-world-settings-btn" type="button" @click="$store.game.savePanelOpen = false; $store.game.closeAppToDesktop()">回到现实</button>
       <label class="dev-toggle">
         <input type="checkbox" x-model="$store.game.sectionHintsEnabled">
         <span>显示开发栏目提示</span>
@@ -1386,7 +1386,7 @@
         <button class="load-btn" @click="$store.game.save()" :disabled="$store.game.busy">保存当前进度</button>
         <button class="overwrite-btn" @click="$store.game.resetGame()" :disabled="$store.game.busy">重新开始</button>
       </div>
-      <button x-show="$store.game.phoneSetupDone" class="ghost-wide real-world-settings-btn" type="button" @click="$store.game.saveAppOpen = false; $store.game.openRealWorldPanel()">收起手机</button>
+      <button x-show="$store.game.phoneSetupDone" class="ghost-wide real-world-settings-btn" type="button" @click="$store.game.saveAppOpen = false; $store.game.closeAppToDesktop()">回到现实</button>
       <label class="dev-toggle">
         <input type="checkbox" x-model="$store.game.sectionHintsEnabled">
         <span>显示开发栏目提示</span>
