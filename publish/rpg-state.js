@@ -137,11 +137,24 @@ window.GameModules.rpgState = {
     return changed;
   },
 
+  isInvalidLocationName(name = '') {
+    return !String(name || '').trim() || /^剧情起始时间｜/.test(String(name || '')) || /^公元纪年｜/.test(String(name || ''));
+  },
+
+  initialLocationName(character = {}, store = null) {
+    const explicit = character.currentLocation || character.locationName || character.location || character.place;
+    if (!this.isInvalidLocationName(explicit)) return String(explicit).trim();
+    const realWorld = window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
+    const world = character.work || store?.selectedWork || '';
+    if ((world === realWorld || /现实|现代都市|2026/.test(world)) && !this.isInvalidLocationName(store?.realWorldLocationName)) return store.realWorldLocationName;
+    return '当前位置未知';
+  },
+
   ensureCurrentLocation(state) {
     let changed = false;
     if (!state.values) state.values = {};
-    if (!state.values.current_location) {
-      state.values.current_location = { name: '当前位置未登记', worldTag: state.worldTag || state.profile?.work || '未知世界', updatedAt: '', reason: '旧角色卡补登记当前位置。' };
+    if (!state.values.current_location || this.isInvalidLocationName(state.values.current_location?.name || state.values.current_location)) {
+      state.values.current_location = { name: '当前位置未知', worldTag: state.worldTag || state.profile?.work || '未知世界', updatedAt: '', reason: '资料不足，等待后续剧情推演给出具体位置。' };
       changed = true;
     }
     const sections = state.schema?.sections || [];
@@ -188,7 +201,7 @@ window.GameModules.rpgState = {
     Object.assign(values, character.worldValues || {});
     window.GameModules.rpgAge.sync(values, character, store);
     values.status_tags = [character.role, character.importance === 'minor' ? '路人' : '可被操控', schema.worldTag];
-    values.current_location = { name: store?.realWorldLocationName || store?.sceneTitle || '原世界当前位置未知', worldTag: schema.worldTag, updatedAt: store?.phoneDateText?.() || '', reason: '创建角色卡时登记初始位置。' };
+    values.current_location = { name: this.initialLocationName(character, store), worldTag: schema.worldTag, updatedAt: store?.phoneDateText?.() || '', reason: '创建角色卡时根据明确上下文登记；资料不足则等待后续剧情推演填充。' };
     values.control_experience = { onlineCount: 0, feeling: '未知', adaptation: 0, summary: '尚未经历上线操控。', lastUpdated: '' };
     values.intimacy = window.GameModules.initPromptRegistry?.markPendingInit?.(window.GameModules.initPromptRegistry?.defaultValue?.('intimacyBody', 'intimacy') || {});
     values.bodyStatus = window.GameModules.initPromptRegistry?.markPendingInit?.(window.GameModules.initPromptRegistry?.defaultValue?.('intimacyBody', 'bodyStatus') || {});
