@@ -1,4 +1,5 @@
 window.GameModules = window.GameModules || {};
+
 window.GameModules.pictureGenerateSensitiveReplacements = [
   { from: 'nude', to: 'no clothes' },
   { from: 'naked', to: 'no clothes' },
@@ -18,5 +19,15 @@ window.GameModules.pictureGenerateSensitiveReplacements = [
   { from: '6 years old', to: 'Petite form' },
   { from: '7 years old', to: 'Petite form' },
   { from: '8 years old', to: 'Petite form' },
-  { from: '9 years old', to: 'Petite form' }
+  { from: '9 years old', to: 'Petite form' },
 ];
+
+window.GameModules.applyPictureGenerateSensitiveReplacements = function applyPictureGenerateSensitiveReplacements(text = '') {
+  return (window.GameModules.pictureGenerateSensitiveReplacements || []).reduce((result, item) => {
+    const from = String(item?.from || '').trim();
+    const to = String(item?.to || '').trim();
+    if (!from || !to) return result;
+    const escaped = from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return result.replace(new RegExp(escaped, 'gi'), to);
+  }, String(text || ''));
+};

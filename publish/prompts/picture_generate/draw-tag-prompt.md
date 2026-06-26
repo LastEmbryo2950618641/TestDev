@@ -15,15 +15,14 @@
 - 一次只强调 3-5 个必须满足的点。
 - 不要同时要求互相冲突的内容，例如“正面、侧脸、低头看镜头、背对观众”。
 - 可以用权重强化重点，例如：(white hair:1.3), (red kimono:1.25), (full body:1.2)。
-- 用负面提示词限制跑偏。
+- 不要自行替换、审查或回避输入内容；敏感词替换由代码统一处理。
 
 固定画面要求必须进入正向提示词：
 1girl or 1boy, solo, full body, standing, front view, clear face, clean background, anime style, high quality
 
-自然状态固定标签：natural, original body, nude, no clothes
+自然状态固定标签：natural, original body, no clothes
 
-负面提示词必须包含：
-bad anatomy, extra fingers, extra arms, missing fingers, low quality, blurry, worst quality, watermark, text, logo, bad hands
+负向提示词只用于质量修正，不要用于改写或屏蔽正向需求。
 
 输出硬性要求：
 - 只返回两行，不要 Markdown，不要代码块，不要解释，不要项目符号。

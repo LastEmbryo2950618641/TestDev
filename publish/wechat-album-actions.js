@@ -129,7 +129,9 @@ window.GameModules.wechatAlbumActions = {
       const prompt = String(promptData?.prompt || '').trim();
       if (!prompt) throw new Error('请先选择或生成绘图提示词');
       const negativePrompt = String(promptData?.negativePrompt || '').trim() || 'bad anatomy, extra fingers, extra arms, missing fingers, low quality, blurry, worst quality, watermark, text, logo, bad hands';
-      const drawOptions = { prompt: prompt.slice(0, 2000), dimension: '2:3', model: this.selectedDrawModelId?.() || 'anime', negativePrompt: negativePrompt.slice(0, 2000) };
+      const safePrompt = window.GameModules.applyPictureGenerateSensitiveReplacements?.(prompt) || prompt;
+      const safeNegativePrompt = window.GameModules.applyPictureGenerateSensitiveReplacements?.(negativePrompt) || negativePrompt;
+      const drawOptions = { prompt: safePrompt.slice(0, 2000), dimension: '2:3', model: this.selectedDrawModelId?.() || 'anime', negativePrompt: safeNegativePrompt.slice(0, 2000) };
       const titleState = this.wechatAlbumKindLabel(kind);
       const tokenRecordId = window.GameModules.tokenStats?.record?.(`draw-wechat-album-${kind}`, drawOptions.prompt, { model: drawOptions.model, title: `微信相册图片生成｜${contact.name || '联系人'}｜${titleState}`, category: '图片生成', summary: '微信联系人相册全身正面照绘图请求。', kind: 'draw' });
       const result = await this.wechatDrawWithRetry(() => window.dzmm.draw.generate(drawOptions));

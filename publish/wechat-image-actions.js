@@ -153,7 +153,7 @@ window.GameModules.wechatImageActions = {
       requireDone: true,
       tokenMeta: { title: `微信图片提示词收集｜${contact.name || '联系人'}`, category: '图片生成', summary: '根据微信联系人记忆和穿戴生成图片编辑动态标签。', kind: 'completion' },
     });
-    return this.applyPictureGenerateSensitiveReplacements?.(this.cleanWechatImageTags(output)).slice(0, 1000) || this.cleanWechatImageTags(output).slice(0, 1000);
+    return window.GameModules.applyPictureGenerateSensitiveReplacements?.(this.cleanWechatImageTags(output)).slice(0, 1000) || this.cleanWechatImageTags(output).slice(0, 1000);
   },
 
   updateWechatImageMessage(targetMsg = {}, patch = {}) {
