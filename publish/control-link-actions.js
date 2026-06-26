@@ -101,9 +101,13 @@ window.GameModules.controlLinkActions = {
     if (state && this.isSameWorldControlTarget(state)) {
       this.sharedControlTargetId = state.id;
       this.sharedControlActive = true;
+      state.values.control_link = { ...(state.values.control_link || {}), linked: true, lastAction: '上线附身控制', checkedAt: this.phoneDateText?.() || '' };
+      await window.GameModules.sqliteSave.saveCharacterState?.(state);
       this.realWorldOpen = true;
       this.desktopUnlocked = false;
       this.controlSelectOpen = false;
+      this.realWorldLog = [...(this.realWorldLog || []), { id: `possess-${Date.now()}`, type: 'system', text: `你已上线附身控制${state.name || state.profile?.name || '目标'}。你的意识同时操控自己现实身体与被控角色身体，后续现实推演会以你的附身镜头描写被控角色感官、动作与反应。`, time: this.phoneTimeText?.() || '' }];
+      await window.GameModules.sqliteSave.saveRealWorldLogEntries?.(this.realWorldLog);
       await this.save?.();
       return;
     }
@@ -111,6 +115,7 @@ window.GameModules.controlLinkActions = {
   },
 
   sharedControlState() { return this.sharedControlActive ? this.rpgStates?.[this.sharedControlTargetId] || null : null; },
+  sharedControlLabel() { return this.sharedControlState?.() ? '附身控制中' : ''; },
   realWorldDisplayState() { return this.sharedControlState?.() || this.playerIdentityState?.(); },
   realWorldDisplayCharacter() { return this.sharedControlState?.()?.profile || this.playerDisplayCharacter?.(); },
 };

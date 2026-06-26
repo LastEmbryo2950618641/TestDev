@@ -723,7 +723,7 @@
           <button class="character-status-card dev-section" :data-section-title="$store.game.sharedControlState() ? '被控制角色状态栏' : '玩家本人状态栏'" type="button" @click="$store.game.realWorldProfileOpen = !$store.game.realWorldProfileOpen">
             <div class="avatar-orb" x-text="$store.game.realWorldDisplayCharacter().name.slice(0, 1)"></div>
             <div class="character-status-main">
-              <div class="name-role-block"><h2 x-text="$store.game.realWorldDisplayCharacter().name"></h2><p class="role" x-text="$store.game.sharedControlState() ? '共享感官控制中' : ($store.game.playerProfile.refinedRole || $store.game.playerProfile.dailyRole || '现实世界居民')"></p></div>
+              <div class="name-role-block"><h2 x-text="$store.game.realWorldDisplayCharacter().name"></h2><p class="role" x-text="$store.game.sharedControlState() ? '附身控制中' : ($store.game.playerProfile.refinedRole || $store.game.playerProfile.dailyRole || '现实世界居民')"></p></div>
               <small x-text="$store.game.sharedControlState() ? $store.game.controlLinkLocationText($store.game.sharedControlState()) : ($store.game.playerProfile.refinedLivingStatus || $store.game.playerProfile.refinedCity || '现实位置未登记')"></small>
               <div class="vital-bars" x-show="$store.game.realWorldDisplayState()">
                 <template x-for="vital in $store.game.rpgVitals($store.game.realWorldDisplayState())" :key="`player-${vital.key}`">

@@ -14,6 +14,7 @@ window.GameModules.realWorldAgentContext = {
     const shared = store.sharedControlState?.();
     const sharedProfile = shared?.profile || {};
     const sharedLocation = shared ? store.controlLinkLocationText?.(shared) || '当前位置未登记' : '';
+    const sharedBody = shared ? this.characterBodyText(shared) : '';
     return [
       `世界：${realWorld.label || '2026 现代都市现实世界'}`,
       `背景：${realWorld.summary || '玩家生活在现代都市，个人信息由玩家自行设定。'}`,
@@ -24,7 +25,7 @@ window.GameModules.realWorldAgentContext = {
       `玩家属性：${this.limit(store.playerIdentitySummary?.() || '玩家本人属性尚未生成。', 1000)}`,
       `玩家财富：${store.playerWealthText?.(store.playerProfile || {}) || `${Number(store.playerProfile?.wealthAmount || 0).toLocaleString('zh-CN')}元`}`,
       `现实身体状态：${this.vitalsText(store, store.playerIdentityState?.())}`,
-      ...(shared ? [`共享感官控制：当前上线对象为${sharedProfile.name || shared.name || '未知角色'}；身份：${sharedProfile.role || '未知'}；所在位置：${sharedLocation}；玩家仍保留本人现实视角，同时接收该角色的触觉、嗅觉、味觉、听觉、视觉与身体反馈。描写时必须体现双重感官共享，不写成玩家完全转生或离开自己身体。`] : []),
+      ...(shared ? [`同世界附身控制：当前上线对象为${sharedProfile.name || shared.name || '未知角色'}；身份：${sharedProfile.role || '未知'}；所在位置：${sharedLocation}。玩家意识已附身接管该角色身体，可直接控制其动作、视线、表情、触觉、嗅觉、味觉、听觉、身体反馈与局部反应；同时玩家现实本体仍由同一个意识维持控制，属于一心多用。描写时以第二人称“你”的附身镜头为主，重点写被控角色身体内的视角、动作执行、感官回流和外界反应；不要写成单纯远程旁观，也不要让玩家本体消失或失控。`, `被控角色身体与状态：${sharedBody}`] : []),
       `当前场景：${store.realWorldSceneTitle || '现实世界'}`,
       `当前地点：${store.realWorldLocationName || map.current || '尚未生成具体地点'}`,
       `当前目标：${store.realWorldQuest || '确认现实处境'}`,
@@ -46,6 +47,16 @@ window.GameModules.realWorldAgentContext = {
       return `${label}${value}/100${note ? `（上次变化：${note}）` : ''}`;
     };
     return state?.values ? [row('stamina_pool', '精力'), row('satiety', '饱食度'), row('hydration', '水分'), row('fatigue', '疲劳度'), row('mental_stability', '精神稳定')].join('；') : '玩家本人状态尚未生成。';
+  },
+
+  characterBodyText(state = null) {
+    const v = state?.values || {}, p = state?.profile || {};
+    const names = (list) => (list || []).map((item) => item?.slot ? `${item.slot}:${item.name || '未穿戴'}` : (item?.name || item)).slice(0, 12).join('、') || '无';
+    const base = [`性别${p.gender || v.gender || '未知'}`, `年龄${v.age ?? p.age ?? '未知'}`, `身份${p.role || p.job || state?.name || '未知'}`];
+    if (v.level) base.push(`等级${v.level}`, `力量${v.strength}`, `敏捷${v.agility}`, `体质${v.constitution}`, `智力${v.intelligence}`, `感知${v.perception}`, `意志${v.willpower}`, `魅力${v.charisma}`);
+    base.push(`穿着${names(v.wearing)}`, `物品${names(v.items)}`);
+    if (v.intimacy?.bodyStatus) base.push(`身体状态${String(v.intimacy.bodyStatus).slice(0, 80)}`);
+    return this.limit(base.join('｜'), 900);
   },
 
   companyNames(store) {
