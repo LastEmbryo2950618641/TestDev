@@ -10,6 +10,7 @@ window.GameModules.realWorldAgentContext = {
     const map = window.GameModules.realWorldMap.ensure(store, store.playerProfile || {});
     const companies = this.companyNames(store);
     const recent = this.recentLog(store, 3);
+    const recentWorldline = this.recentWorldlineRecords(store, 5000, 6000);
     const longing = store.prepareRealWorldLongingContext?.() || '';
     const shared = store.sharedControlState?.();
     const sharedProfile = shared?.profile || {};
@@ -32,6 +33,7 @@ window.GameModules.realWorldAgentContext = {
       `当前组织名称：${companies || '暂无公司名称'}`,
       `势力资料库：\n${window.GameModules.factionArchive?.contextFor?.(store, action, 1600) || '暂无势力资料库记录。'}`,
       ...(longing ? [`角色思念上下文：\n${longing}`] : []),
+      `最近世界线记录：\n${recentWorldline}`,
       `最近记录摘要：\n${recent}`,
       `本次行动：${action || '继续观察现实世界'}`,
     ].join('\n');
@@ -70,6 +72,34 @@ window.GameModules.realWorldAgentContext = {
     return rows.map((entry) => entry.type === 'user'
       ? `玩家行动：${entry.text}`
       : `地点：${entry.locationName || store.realWorldLocationName || '未知'}｜结果：${this.limit(entry.narration || entry.text || '', 260)}`).join('\n') || '暂无现实世界推演记录。';
+  },
+
+  worldlineRecordText(event = {}) {
+    return [
+      `记录编号：${event.eventId || event.id || '未知记录'}`,
+      `时间：${event.time || '未知'}`,
+      `标题：${event.name || '现实事件'}`,
+      `情节：${event.plotId || event.summary || '未归纳'}`,
+      `状态：${event.status || '已记录'}`,
+      `详细：${String(event.detail || '').trim()}`,
+    ].filter(Boolean).join('\n');
+  },
+
+  recentWorldlineRecords(store, targetChars = 5000, maxChars = 6000) {
+    const line = store.realWorldline?.() || {};
+    const events = (line.events || []).filter((event) => String(event.detail || '').trim());
+    const picked = [];
+    let total = 0;
+    const separator = '\n\n---\n\n';
+    for (const event of events.slice().reverse()) {
+      const text = this.worldlineRecordText(event);
+      const nextTotal = total + text.length + (picked.length ? separator.length : 0);
+      if (nextTotal > maxChars) break;
+      picked.push(text);
+      total = nextTotal;
+      if (total >= targetChars) break;
+    }
+    return picked.length ? picked.reverse().join(separator) : '暂无符合长度上限的最近世界线记录。';
   },
 
   buildLoadedText(items = []) {
