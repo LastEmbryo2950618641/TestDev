@@ -118,7 +118,7 @@ window.GameModules.ai = {
       const firstReason = Array.isArray(item.reasons) ? item.reasons.find(Boolean) || {} : {};
       const reason = String(item.reason || item.evidence || item.trigger || firstReason.evidence || firstReason.trigger || item.explanation || item.cause || item.status || '').slice(0, 180);
       const status = window.GameModules.metrics.valueExplanation(key, nextValue, item.status, reason);
-      return { key, delta, status: String(status).slice(0, 180), reason };
+      return { key, delta, status: String(status).slice(0, 180), reason, metricSources: { 数值: 'AI', 解释: 'AI', 原因: 'AI' } };
     }).filter(Boolean);
   },
 

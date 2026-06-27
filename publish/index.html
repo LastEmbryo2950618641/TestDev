@@ -936,9 +936,9 @@
       <section class="identity-profile dev-section" data-section-title="身份资料区">
         <strong x-text="$store.game.identityTargetProfile().name"></strong>
       </section>
-      <section class="compact-metrics identity-metrics dev-section" x-show="$store.game.identityTargetId !== 'player-self' && $store.game.identityTargetState()" :class="{ collapsed: !$store.game.identityMetricsOpen }" data-section-title="情绪其余栏">
+      <section class="compact-metrics identity-metrics dev-section" x-show="$store.game.identityTargetId !== 'player-self' && $store.game.identityTargetState()" :class="{ collapsed: !$store.game.identityMetricsOpen }" data-section-title="情绪感觉栏">
         <button class="metrics-collapsed-line" @click="$store.game.identityMetricsOpen = !$store.game.identityMetricsOpen" type="button">
-          <span class="metric-line-title">情绪其余</span>
+          <span class="metric-line-title">情绪感觉</span>
           <span class="metric-inline-items" x-show="!$store.game.identityMetricsOpen">
             <template x-for="metric in $store.game.metricEntries($store.game.metricGroups($store.game.identityTargetState())[0]).slice(0, 3)" :key="`identity-${metric.key}`"><i x-text="`${metric.key}${metric.text}`"></i></template>
           </span>
@@ -1798,9 +1798,9 @@
             <section class="identity-profile dev-section" data-section-title="进入身份资料区">
               <strong x-text="$store.game.identityTargetProfile().name"></strong>
             </section>
-            <section class="compact-metrics identity-metrics dev-section" x-show="$store.game.identityTargetState()" :class="{ collapsed: !$store.game.identityMetricsOpen }" data-section-title="进入情绪其余栏">
+            <section class="compact-metrics identity-metrics dev-section" x-show="$store.game.identityTargetState()" :class="{ collapsed: !$store.game.identityMetricsOpen }" data-section-title="进入情绪感觉栏">
               <button class="metrics-collapsed-line" @click="$store.game.identityMetricsOpen = !$store.game.identityMetricsOpen" type="button">
-                <span class="metric-line-title">情绪其余</span>
+                <span class="metric-line-title">情绪感觉</span>
                 <span class="metric-inline-items" x-show="!$store.game.identityMetricsOpen">
                   <template x-for="metric in $store.game.metricEntries($store.game.metricGroups($store.game.identityTargetState())[0]).slice(0, 3)" :key="`entry-identity-${metric.key}`"><i x-text="`${metric.key}${metric.text}`"></i></template>
                 </span>
@@ -1907,9 +1907,9 @@
           </div>
         </button>
         <div class="profile-stack" :class="{ 'profile-stack-expanded': $store.game.profileOpen }">
-        <section class="compact-metrics dev-section" :class="{ collapsed: !$store.game.metricsOpen }" data-section-title="情绪其余栏" x-init="$nextTick(() => $store.game.installMetricSummaryObserver($el))">
+        <section class="compact-metrics dev-section" :class="{ collapsed: !$store.game.metricsOpen }" data-section-title="情绪感觉栏" x-init="$nextTick(() => $store.game.installMetricSummaryObserver($el))">
           <button class="metrics-collapsed-line" @click="$store.game.metricsOpen = !$store.game.metricsOpen" type="button">
-            <span class="metric-line-title">情绪其余</span>
+            <span class="metric-line-title">情绪感觉</span>
             <span class="metric-inline-items" x-show="!$store.game.metricsOpen">
               <template x-for="metric in $store.game.metricCollapsedItems()" :key="metric.key"><i x-text="`${metric.key}${metric.text}`"></i></template>
             </span>
