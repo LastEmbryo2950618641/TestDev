@@ -24,11 +24,13 @@ window.GameModules.catalogActions = {
     try {
       const result = await window.dzmm?.models?.list?.();
       window.GameModules.tokenStats?.syncModelPrices?.(result);
+      const models = Array.isArray(result?.models) ? result.models : [];
+      const selected = this.resolvePreferredTextModel?.(models, this.modelId || this.settingsState?.textModelId || result?.defaultModel) || this.modelId || result?.defaultModel || models[0]?.internalName;
       if (this.settingsState) {
-        this.settingsState.textModels = Array.isArray(result?.models) ? result.models : this.settingsState.textModels;
-        this.settingsState.textModelId = this.modelId || result?.defaultModel || result?.models?.[0]?.internalName || this.settingsState.textModelId;
+        this.settingsState.textModels = models.length ? models : this.settingsState.textModels;
+        this.settingsState.textModelId = selected || this.settingsState.textModelId;
       }
-      this.modelId = this.settingsState?.textModelId || result?.defaultModel || result?.models?.[0]?.internalName || this.modelId;
+      this.modelId = selected || this.modelId;
     } catch (err) {
       console.warn('读取模型列表失败:', err.code, err.message);
     }

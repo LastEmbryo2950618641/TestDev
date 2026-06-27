@@ -26,7 +26,7 @@ window.GameModules.settingsActions = {
       s.textModels = Array.isArray(textResult?.models) && textResult.models.length ? textResult.models : this.fallbackTextModels();
       s.drawModels = Array.isArray(drawResult?.models) && drawResult.models.length ? drawResult.models : this.fallbackDrawModels();
       window.GameModules.tokenStats?.syncModelPrices?.(textResult);
-      this.modelId = this.modelId || textResult?.defaultModel || s.textModels[0]?.internalName || 'nalang-medium-0826';
+      this.modelId = this.resolvePreferredTextModel(s.textModels, this.modelId || s.textModelId || textResult?.defaultModel);
       s.textModelId = this.modelId;
       s.drawModelId = s.drawModelId || drawResult?.defaultModel || s.drawModels[0]?.id || 'anime';
       s.loaded = true;
@@ -35,16 +35,24 @@ window.GameModules.settingsActions = {
       s.error = err?.message || '模型列表加载失败，请稍后重试。';
       if (!s.textModels.length) s.textModels = this.fallbackTextModels();
       if (!s.drawModels.length) s.drawModels = this.fallbackDrawModels();
-      s.textModelId = this.modelId || s.textModelId || 'nalang-medium-0826';
+      s.textModelId = this.resolvePreferredTextModel(s.textModels, this.modelId || s.textModelId);
       s.drawModelId = s.drawModelId || 'anime';
     } finally {
       s.loading = false;
     }
   },
 
+  resolvePreferredTextModel(models = [], current = '') {
+    const ids = (Array.isArray(models) ? models : []).map((model) => model?.internalName).filter(Boolean);
+    const currentId = String(current || '');
+    const config = window.GameModules.config || {};
+    if (currentId && !currentId.startsWith('nalang-medium-') && ids.includes(currentId)) return currentId;
+    return (config.preferredTextModelIds || []).find((id) => ids.includes(id)) || currentId || config.defaultModelId || 'nalang-turbo-0826';
+  },
+
   fallbackTextModels() {
     return [
-      { internalName: 'nalang-turbo-0826', displayName: '快速经济', description: '默认备用文本模型' },
+      { internalName: 'nalang-turbo-0826', displayName: '快速经济 0826', description: '默认备用文本模型' },
       { internalName: 'nalang-medium-0826', displayName: '均衡性能', description: '默认备用文本模型' },
     ];
   },

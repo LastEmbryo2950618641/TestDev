@@ -109,7 +109,7 @@ window.GameModules.aiRequest = {
 
   selectedTextModel(fallback = '') {
     const store = window.Alpine?.store?.('game');
-    return fallback || store?.modelId || store?.settingsState?.textModelId || window.GameModules.config?.defaultModelId || 'nalang-medium-0826';
+    return fallback || store?.modelId || store?.settingsState?.textModelId || window.GameModules.config?.defaultModelId || 'nalang-turbo-0826';
   },
 
   isRetryable(err) {

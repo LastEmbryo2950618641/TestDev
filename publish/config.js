@@ -16,7 +16,8 @@ window.GameModules.config = {
     prod: { cacheRoots: ['./', ''], sourceRoots: ['assets'] },
   },
   rag: { maxIndexFiles: 3, maxCandidateFiles: 8, defaultResultLimit: 3, logFiles: true },
-  defaultModelId: 'nalang-medium-0826',
+  defaultModelId: 'nalang-turbo-0826',
+  preferredTextModelIds: ['nalang-turbo-0101', 'nalang-turbo-0826'],
   aiRequest: { maxConcurrent: 4, logLifecycle: false, logRawResponse: true },
   stats: [
     { key: 'will', label: '意志' },
