@@ -30,6 +30,19 @@ Object.assign(window.GameModules.updateRegistry, {
 
   changeValue(update = {}) { return update.change?.value ?? update.value; },
 
+  normalizeBodyStatusValue(update = {}) {
+    const value = this.changeValue(update);
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+    const partKey = value.partKey || this.leafName(update.field) || 'other';
+    return {
+      ...value,
+      partKey,
+      part: value.part || partKey,
+      description: value.description || value['描述状态'] || value.desc || '',
+      reason: value.reason || this.reasonText(update, '现实推演确认身体状态变化。'),
+      updatedAt: value.updatedAt || new Date().toISOString(),
+    };
+  },
 
   nextValue(current, update = {}) {
     const mode = update.change?.mode || 'set', raw = this.changeValue(update);
@@ -62,6 +75,8 @@ Object.assign(window.GameModules.updateRegistry, {
 
   applyOne(store, update = {}) {
     if (update.updateType === 'relationship') return this.applyRelationshipUpdate(store, update);
+    if (update.updateType === 'body-status') return this.applyBodyStatusUpdate(store, update);
+    if (update.updateType === 'sexual-experience') return this.applySexualExperienceUpdate(store, update);
     const direct = this.targetState(store, update), generic = direct ? null : this.genericTarget(store, update);
     const state = direct || generic?.state, field = String(update.field || '').trim();
     if (!state || !field) return false;
@@ -78,6 +93,46 @@ Object.assign(window.GameModules.updateRegistry, {
       state.profile.wearing = next;
       state.profile.roleCardUpdatedAt = new Date().toISOString();
     }
+    return true;
+  },
+
+  applyBodyStatusUpdate(store, update = {}) {
+    const state = this.targetState(store, update);
+    if (!state?.values) return false;
+    window.GameModules.initPromptRegistry?.ensureTemplateState?.('intimacyBody', state);
+    const value = this.normalizeBodyStatusValue(update);
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    const partKey = value.partKey || this.leafName(update.field) || 'other';
+    const path = `bodyStatus.${partKey}`;
+    const current = this.get(state.values, path);
+    const next = { ...(current && typeof current === 'object' ? current : {}), ...value, initializedByAi: true, source: 'AI更新' };
+    if (JSON.stringify(current) === JSON.stringify(next)) return false;
+    this.set(state.values, path, next);
+    return true;
+  },
+
+  applySexualExperienceUpdate(store, update = {}) {
+    const state = this.targetState(store, update);
+    if (!state?.values) return false;
+    window.GameModules.initPromptRegistry?.ensureTemplateState?.('intimacyBody', state);
+    const raw = this.changeValue(update);
+    const current = state.values.intimacy || {};
+    const next = { ...current, sexualExperienceParts: { ...(current.sexualExperienceParts || {}) }, initializedByAi: true, source: 'AI更新' };
+    if (update.change?.mode === 'set') {
+      if (raw && typeof raw === 'object' && raw.parts) next.sexualExperienceParts = { ...next.sexualExperienceParts, ...raw.parts };
+      else if (raw && typeof raw === 'object' && raw.partKey) next.sexualExperienceParts[raw.partKey] = Math.max(0, Math.round(Number(raw.count) || 0));
+      else next.sexualExperienceCount = Math.max(0, Math.round(Number(raw) || 0));
+    } else {
+      const fieldPart = String(update.field || '').match(/sexualExperienceParts\.([^\.]+)/u)?.[1] || '';
+      const total = raw && typeof raw === 'object' ? (raw.totalDelta ?? raw.count ?? 0) : (fieldPart ? 0 : raw);
+      next.sexualExperienceCount = Math.max(0, Math.round((Number(next.sexualExperienceCount) || 0) + (Number(total) || 0)));
+      const parts = raw && typeof raw === 'object' ? (raw.parts || (raw.partKey ? { [raw.partKey]: raw.count ?? 1 } : {})) : (fieldPart ? { [fieldPart]: raw } : {});
+      Object.entries(parts).forEach(([key, value]) => { next.sexualExperienceParts[key] = Math.max(0, Math.round((Number(next.sexualExperienceParts[key]) || 0) + (Number(value) || 0))); });
+    }
+    next.reason = this.reasonText(update, '现实推演确认性经验次数变化。');
+    next.updatedAt = new Date().toISOString();
+    if (JSON.stringify(current) === JSON.stringify(next)) return false;
+    state.values.intimacy = next;
     return true;
   },
 
