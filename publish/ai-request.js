@@ -79,6 +79,22 @@ window.GameModules.aiRequest = {
     console.debug(`[AI请求] ${event}:`, { ...data, stats: this.stats() });
   },
 
+  logRawRequest(options, payload, meta = {}) {
+    if (window.GameModules.config?.aiRequest?.logRawRequest === false) return;
+    const prompt = options.prompt !== undefined ? String(options.prompt || '') : (options.messages || []).map((msg) => String(msg?.content || '')).join('\n');
+    console.log('[AI请求参数]', {
+      id: options.id,
+      source: options.source,
+      model: options.model,
+      maxTokens: options.maxTokens,
+      timeoutMs: options.timeoutMs,
+      prompt,
+      messages: options.messages,
+      payload,
+      ...meta,
+    });
+  },
+
   logRawResponse(options, buffer, meta = {}) {
     if (window.GameModules.config?.aiRequest?.logRawResponse === false) return;
     console.log('[AI返回]', {
@@ -211,6 +227,7 @@ window.GameModules.aiRequest = {
     this.log('开始', { id: options.id, source: options.source, actualNo: this.actualCount, attempt: attempt + 1, queueWaitMs: startAt - options.enqueueAt, model: options.model, maxTokens: options.maxTokens || 'sdk-default', messageLengths: this.lengths(options.messages) });
     const payload = { model: options.model, messages: options.messages };
     if (options.maxTokens !== undefined && options.maxTokens !== null) payload.maxTokens = options.maxTokens;
+    this.logRawRequest(options, payload, { attempt: attempt + 1, queueWaitMs: startAt - options.enqueueAt });
     const request = window.dzmm.completions(payload, (chunk, done) => {
       const text = String(chunk || '');
       if (text) {

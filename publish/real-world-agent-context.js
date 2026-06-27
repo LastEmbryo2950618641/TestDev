@@ -107,6 +107,62 @@ window.GameModules.realWorldAgentContext = {
     return items.map((item, index) => `### 资料${index + 1}｜${item.title}\n${this.limit(item.text, item.max || 1600)}`).join('\n\n');
   },
 
+  normalizeMaterialToken(value = '') {
+    return String(value || '').trim().replace(/\s+/g, '');
+  },
+
+  normalizeMaterialWorld(value = '') {
+    const token = this.normalizeMaterialToken(value || window.GameModules.realWorld2026?.label || '现实世界');
+    if (!token || token === '现实世界') return this.normalizeMaterialToken(window.GameModules.realWorld2026?.label || '现实世界');
+    return token;
+  },
+
+  materialRequestKey(skill = '', method = '', params = {}, materials = window.GameModules.realWorldMaterials) {
+    const cleanSkill = String(skill || '').trim();
+    const cleanMethod = String(method || '').trim();
+    const p = params && typeof params === 'object' ? params : {};
+    const world = this.normalizeMaterialWorld(p.world || p.worldTag);
+    if (cleanSkill === 'character.query') {
+      const name = this.normalizeMaterialToken(p.name || p.characterName || p.characterId || p.target || '');
+      if (name && (/searchCharacterProfile|CurrentCharacterStatus/u.test(cleanMethod))) return `${cleanSkill}:characterProfile:${world}:${name}`;
+    }
+    if (cleanSkill === 'realworld.location.query') {
+      const location = this.normalizeMaterialToken(p.locationName || p.name || p.keyword || '');
+      if (location && /getLocationDetail|searchLocation/u.test(cleanMethod)) return `${cleanSkill}:location:${world}:${location}`;
+      if (cleanMethod === 'getCurrentLocationContext') return `${cleanSkill}:currentLocation:${world || 'default'}`;
+    }
+    const req = { skill: cleanSkill, method: cleanMethod, params: p };
+    return materials?.keyOf?.(req) || `${cleanSkill}:${cleanMethod}:${JSON.stringify(p)}`;
+  },
+
+  async autoLoadForStep(store, action = '', loadedKeys = new Set(), materialSession = null, materials = window.GameModules.realWorldMaterials, memoryIds = new Set(), step = 1, loaded = [], current = []) {
+    if (step !== 1) return [];
+    const actionText = String(action || '');
+    const states = [...Object.values(store?.rpgStates || {}), ...(window.GameModules.sqliteSave.listCharacterStates?.() || [])];
+    const seen = new Set();
+    const hits = states.filter((state) => {
+      const name = String(state?.profile?.name || state?.name || '').trim();
+      const id = String(state?.id || '').trim();
+      const key = id || name;
+      if (!name || seen.has(key) || !actionText.includes(name)) return false;
+      seen.add(key);
+      return window.GameModules.characterQuery?.worldMatches?.(window.GameModules.realWorld2026?.label || '2026 现代都市现实世界', state.worldTag || state.profile?.work);
+    }).slice(0, 3);
+    const out = [];
+    for (const state of hits) {
+      const name = state.profile?.name || state.name;
+      const req = { skill: 'character.query', method: 'searchCharacterProfile', params: { name, world: window.GameModules.realWorld2026?.label || '2026 现代都市现实世界', auto: true } };
+      const key = this.materialRequestKey(req.skill, req.method, req.params, materials);
+      if (loadedKeys.has(key)) continue;
+      loadedKeys.add(key);
+      const text = window.GameModules.characterQuery?.stateText?.(state, req.params.world, 3200) || '';
+      if (!text) continue;
+      materials?.record?.(materialSession, req, `自动资料：${name}角色卡`, text);
+      out.push({ title: `自动资料：${name}角色卡`, text, max: 3200 });
+    }
+    return out;
+  },
+
   async skillText() {
     const ids = ['emotion.feeling.wearing.assess', 'memory.query', 'character.query', 'past.event.query', 'company.query', 'faction.query', 'realworld.location.query', 'realworld.history.query', 'lexicon.query', 'item.query', 'wechat.query', 'wechat.message.incoming', 'realworld.vitals.adjust'];
     const texts = await Promise.all(ids.map((id) => window.GameModules.skillLoader?.instruction?.(id) || ''));
@@ -120,7 +176,7 @@ window.GameModules.realWorldAgentContext = {
       const skill = String(req?.skill || '').trim();
       const method = String(req?.method || '').trim();
       const params = req?.params && typeof req.params === 'object' ? req.params : {};
-      const key = `${skill}:${method}:${JSON.stringify(params)}`;
+      const key = this.materialRequestKey(skill, method, params, materials);
       if (!skill || !method || loadedKeys.has(key)) continue;
       loadedKeys.add(key);
       const material = materials?.optionFor?.({ skill, method, params });

@@ -8,11 +8,32 @@ Object.assign(window.GameModules.updateRegistry, {
     return aliases[key] || key;
   },
 
+  cleanReasonText(value = '') {
+    return String(value || '').trim().replace(/^(?:证据|evidence)[:：]\s*/iu, '');
+  },
+
+  reasonTexts(update = {}) {
+    const list = Array.isArray(update.reasons) ? update.reasons : [];
+    const texts = list.flatMap((item) => {
+      if (!item) return [];
+      if (typeof item === 'object') return [item.trigger, item.evidence];
+      return [item];
+    });
+    texts.push(update.reason, update.trigger, update.evidence, update.description, update.summary);
+    return [...new Set(texts.map((item) => this.cleanReasonText(item)).filter(Boolean))];
+  },
+
   reasonObject(update = {}) {
-    const first = Array.isArray(update.reasons) ? update.reasons.find(Boolean) || {} : {};
-    const reason = first && typeof first === 'object' ? first : { trigger: String(first || ''), evidence: String(first || '') };
-    const fallback = update.reason || update.evidence || update.trigger || update.description || update.summary || '';
-    return { ...reason, trigger: reason.trigger || fallback, evidence: reason.evidence || fallback };
+    const texts = this.reasonTexts(update);
+    return { trigger: texts[0] || '', evidence: texts.slice(1).join('，') || texts[0] || '' };
+  },
+
+  reasonText(update = {}, fallback = '现实推演结算。') {
+    return this.reasonTexts(update).join('，').slice(0, 180) || fallback;
+  },
+
+  metricReasonText(update = {}, fallback = '现实推演结算。') {
+    return this.reasonText(update, fallback);
   },
 
   deltaValue(update = {}) {
@@ -25,8 +46,7 @@ Object.assign(window.GameModules.updateRegistry, {
       const subject = item.subject || {};
       const rawTarget = subject.type === 'player' ? (subject.playerId || subject.id || 'player-self') : (subject.characterId || subject.id || subject.name || item.target || 'player-self');
       const target = this.canonicalSubjectId(store, rawTarget);
-      const reason = this.reasonObject(item);
-      return { key: this.vitalKeyFromField(item.field), delta: this.deltaValue(item), reason: reason.evidence || reason.trigger || '现实推演结算。', target, subject: { ...subject, id: target } };
+      return { key: this.vitalKeyFromField(item.field), delta: this.deltaValue(item), reason: this.reasonText(item), target, subject: { ...subject, id: target } };
     }).filter((item) => ['stamina_pool', 'satiety', 'hydration', 'fatigue', 'mental_stability'].includes(item.key));
   },
 
@@ -65,8 +85,7 @@ Object.assign(window.GameModules.updateRegistry, {
       const key = String(item.field || '').split('.').filter(Boolean).at(-1) || item.name;
       if (!key) continue;
       if (!grouped.has(target)) grouped.set(target, { target, subject: { ...subject, id: target }, emotions: [], playerFeelings: [] });
-      const reason = this.reasonObject(item);
-      grouped.get(target)[bucket].push({ key, delta: this.deltaValue(item), status: item.change?.status || '', reason: reason.evidence || reason.trigger || '现实推演结算。' });
+      grouped.get(target)[bucket].push({ key, delta: this.deltaValue(item), status: item.change?.status || '', reason: this.metricReasonText(item) });
     }
     return Array.from(grouped.values());
   },
@@ -74,12 +93,11 @@ Object.assign(window.GameModules.updateRegistry, {
   genericToItemActions(updates = []) {
     return (Array.isArray(updates) ? updates : []).filter((item) => item?.updateType === 'item').map((item) => {
       const subject = item.subject || {}, change = item.change || {}, value = change.value;
-      const reason = this.reasonObject(item);
       const name = item.name || String(item.field || '').split('.').filter(Boolean).at(-1) || value?.name || '物品变化';
       return {
         action: change.mode || 'upsert', target: subject.characterId || subject.playerId || subject.id || 'player-self', from: change.fromValue, to: change.toValue,
         itemName: name, quantity: value?.quantity || 1, item: value && typeof value === 'object' ? value : { name, kind: /wearing|穿着/u.test(item.field || '') ? '穿着' : '物品', description: String(value ?? '') },
-        reason: reason.evidence || reason.trigger || '现实推演结算。',
+        reason: this.reasonText(item),
       };
     });
   },
@@ -87,12 +105,11 @@ Object.assign(window.GameModules.updateRegistry, {
   genericToFactionUpdates(updates = []) {
     return (Array.isArray(updates) ? updates : []).filter((item) => /^faction-/u.test(item?.updateType || '')).map((item) => {
       const subject = item.subject || {}, change = item.change || {}, value = change.value;
-      const reason = this.reasonObject(item);
       const name = subject.name || subject.factionId || subject.id || item.name || '势力变化';
       return {
         action: item.updateType === 'faction-structure' ? 'updateStructure' : (change.mode || 'upsert'), factionName: name,
         name, type: value?.type || subject.type || '势力', position: value?.title || value?.position || value?.name || '', value,
-        reason: reason.evidence || reason.trigger || '现实推演结算。',
+        reason: this.reasonText(item),
       };
     });
   },

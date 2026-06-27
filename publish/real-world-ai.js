@@ -9,7 +9,9 @@ window.GameModules.realWorldAi = {
   async generate(store, prompt, action, logId = null) {
     const requestId = ++this.latestRequestId;
     try {
-      const loop = await window.GameModules.realWorldAgentLoop.run(store, action, logId);
+      const agentLoop = await window.GameModules.realWorldAgentLoader?.ensure?.() || window.GameModules.realWorldAgentLoop;
+      if (!agentLoop?.run) throw new Error('现实推演 Loop Agent 未加载');
+      const loop = await agentLoop.run(store, action, logId);
       if (requestId !== this.latestRequestId) throw new Error('现实推演请求已被新请求取代');
       const result = this.parse(loop.result, store, action);
       result.promptPack = {

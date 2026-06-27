@@ -160,7 +160,11 @@ window.GameModules.playerIdentityActions = {
       const rawReason = String(item.reason || '').trim();
       const status = String(window.GameModules.metrics.valueExplanation(item.key, value, rawStatus, rawReason)).slice(0, 180);
       const sources = window.GameModules.characterProfile?.metricSources?.(item, '系统') || { 数值: '系统', 解释: '系统', 原因: '系统' };
-      state.metrics.notes[`${group}:${item.key}`] = {
+      const noteKey = `${group}:${item.key}`;
+      const previous = state.metrics.notes[noteKey] || {};
+      const previousSources = previous.metricSources || {};
+      if (previous.reason && previousSources.原因 === 'AI') return;
+      state.metrics.notes[noteKey] = {
         stage: window.GameModules.metrics.stageFor(item.key, value),
         status,
         reason: rawReason.slice(0, 180),

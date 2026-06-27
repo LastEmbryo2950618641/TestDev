@@ -67,9 +67,13 @@ window.GameModules.worldlineActions = {
 
   timelineItems(lore) {
     const worldline = this.loreWorldline(lore) || {};
-    const events = (worldline.events || []).map((event, index) => ({ ...event, kind: 'event', order: index }));
+    const events = this.worldlineEventsNewestFirst(worldline.events || []).map((event, index) => ({ ...event, kind: 'event', order: index }));
     const indexes = (worldline.storyIndexes || []).map((text, index) => ({ kind: 'story', order: events.length + index, time: '原著剧情', name: `剧情索引 ${index + 1}`, summary: text }));
-    return [...events, ...indexes].sort((a, b) => String(a.time || '').localeCompare(String(b.time || '')) || a.order - b.order);
+    return [...events, ...indexes];
+  },
+
+  worldlineEventsNewestFirst(events = []) {
+    return (Array.isArray(events) ? events : []).map((event, index) => ({ ...event, order: index })).sort((a, b) => String(b.time || '').localeCompare(String(a.time || '')) || b.order - a.order);
   },
 
   worldlinePlots(lore) {
@@ -94,13 +98,13 @@ window.GameModules.worldlineActions = {
     const id = selected?.情节编号 || '';
     if (!id) return [];
     const recordIds = String(selected?.重要记录编号 || '').split(/[、,，\s]+/).filter(Boolean);
-    return (this.realWorldline().events || []).filter((event) => (event.plotId || event.summary) === id || recordIds.includes(event.eventId));
+    return this.worldlineEventsNewestFirst(this.realWorldline().events || []).filter((event) => (event.plotId || event.summary) === id || recordIds.includes(event.eventId));
   },
 
   realWorldRecordingEvents() {
     const ids = this.realWorldline().pendingPlot?.recordIds || [];
     if (!ids.length) return [];
-    return (this.realWorldline().events || []).filter((event) => ids.includes(event.eventId));
+    return this.worldlineEventsNewestFirst(this.realWorldline().events || []).filter((event) => ids.includes(event.eventId));
   },
 
   timelineMeta(item) {

@@ -1,7 +1,7 @@
 window.GameModules = window.GameModules || {};
 window.GameModules.realWorldStreamActions = {
   updateRealWorldStream(id, raw) {
-    const entry = (this.realWorldLog || []).find((item) => item.id === id);
+    const entry = (this.realWorldLog || []).find((item) => item.id === id) || window.GameModules.sqliteSave.getRealWorldLogEntry?.(id);
     if (!entry) return false;
     const pick = (key) => this.pickRealWorldStreamField(raw, key);
     const thinking = this.realWorldThinkMode ? (pick('thinking') || '') : '';
@@ -13,8 +13,7 @@ window.GameModules.realWorldStreamActions = {
     if (narration && narration !== entry.narration) { patch.narration = narration; changed = true; }
     if (streamTrace.length && JSON.stringify(streamTrace) !== JSON.stringify(entry.streamTrace || [])) { patch.streamTrace = streamTrace; changed = true; }
     if (!changed) return false;
-    this.realWorldLog = this.realWorldLog.map((item) => (item.id === id ? { ...item, ...patch } : item));
-    return true;
+    return this.patchRealWorldLogEntry?.(id, patch) || false;
   },
 
   realWorldStreamNarration(raw = '', pick = () => '') {

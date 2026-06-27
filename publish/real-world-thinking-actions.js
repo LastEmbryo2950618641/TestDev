@@ -83,6 +83,25 @@ window.GameModules.realWorldThinkingActions = {
     return `1000-${timeKey()}-2-${String(entry.id || '')}`;
   },
 
+  patchRealWorldLogEntry(id, patch = {}) {
+    const key = String(id || '');
+    if (!key) return false;
+    let found = false;
+    const current = this.realWorldLog || [];
+    const patched = current.map((entry) => {
+      if (entry?.id !== key) return entry;
+      found = true;
+      return { ...entry, ...patch };
+    });
+    if (!found) {
+      const saved = window.GameModules.sqliteSave.getRealWorldLogEntry?.(key);
+      if (!saved) return false;
+      patched.push({ ...saved, ...patch });
+    }
+    this.realWorldLog = this.normalizeRealWorldLog(patched).slice(-Math.max(1, Number(this.realWorldLogPageSize) || 12));
+    return true;
+  },
+
   refreshRealWorldLogPage(page = this.realWorldLogPage || 1) {
     const total = window.GameModules.sqliteSave.countRealWorldLogEntries?.() || 0;
     if (!total) {

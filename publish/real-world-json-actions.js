@@ -51,8 +51,10 @@ window.GameModules.realWorldJsonActions = {
     catch (_) {}
     if (b.startsWith('{') && b.length > a.length * 0.7) return b;
     const fieldStart = /^"[\w\u4e00-\u9fa5-]+"\s*[:：]/u.test(b);
+    const valueStart = /^"/u.test(b);
+    const danglingKey = /"[\w\u4e00-\u9fa5-]+"\s*$/u.test(a) && !this.jsonStringOpen(a);
     const inString = this.jsonStringOpen(a);
-    const continuation = inString && fieldStart ? `",${b}` : ((/["}\]]$/u.test(a) && fieldStart) ? `,${b}` : b);
+    const continuation = danglingKey && valueStart ? `:${b}` : (inString && fieldStart ? `",${b}` : ((/["}\]]$/u.test(a) && fieldStart) ? `,${b}` : b));
     return window.GameModules.jsonUtils?.mergeStreamText?.(a, continuation) || (a + continuation);
   },
 
@@ -77,7 +79,7 @@ window.GameModules.realWorldJsonActions = {
       `错误：${err?.message || 'JSON不完整'}`,
       `原始要求：${String(prompt || '').slice(0, 2200)}`,
       `已输出完整前缀：${partial.slice(0, 9000)}`,
-      `已输出尾部：${partial.slice(-1200)}`,
+      '补全必须从上述完整前缀的最后一个字符之后开始。',
     ].join('\n\n');
   },
 };

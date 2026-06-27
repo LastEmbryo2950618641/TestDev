@@ -53,7 +53,7 @@ window.GameModules.realWorldAgentLoop = {
         this.markConfiguredStep(store, logId, this.loadedContextText(data, results, step, config), config);
       }
 
-      if (data.type === 'request_context' && results.length && step < this.maxSteps) continue;
+      if (data.type === 'request_context' && step < this.maxSteps) continue;
       if (step < this.minSteps && data.type !== 'context_done') continue;
       break;
     }
@@ -546,13 +546,53 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   async ensureConfiguredNarrationLength(store, action, prompt, narration, logId, config = this.realConfig()) {
-    const text = this.cleanPhasedNarration(narration);
+    let text = this.cleanPhasedNarration(narration);
     const count = this.chineseCharCount(text);
-    const tailIncomplete = this.narrationTailLooksIncomplete(text);
-    if (count < 1000 || tailIncomplete) {
-      console.warn(`${config.label}正文未通过长度/句尾自检，但不再自动补写或中断流程:`, { count, tailIncomplete, tail: text.slice(-80) });
+    let tailIncomplete = this.narrationTailLooksIncomplete(text);
+    if (!tailIncomplete) return text;
+
+    console.warn(`${config.label}正文句尾疑似截断，正在补全当前句:`, { count, tailIncomplete, tail: text.slice(-80) });
+    try {
+      const continuation = await this.completeConfiguredNarrationContinuation(store, action, prompt, text, logId, { count, tailIncomplete }, config);
+      if (continuation) {
+        text = this.mergeNarrationContinuation(text, continuation);
+        tailIncomplete = this.narrationTailLooksIncomplete(text);
+      }
+    } catch (err) {
+      console.warn(`${config.label}正文补全失败，保留原正文继续流程:`, { code: err.code, message: err.message });
     }
+    if (tailIncomplete) console.warn(`${config.label}正文补全后句尾仍疑似截断:`, { count: this.chineseCharCount(text), tailIncomplete, tail: text.slice(-80) });
     return text;
+  },
+
+  mergeNarrationContinuation(text = '', continuation = '') {
+    const base = String(text || '').trim();
+    const next = this.cleanPhasedNarration(continuation);
+    if (!next) return base;
+    return (window.GameModules.jsonUtils?.mergeStreamText?.(base, next) || `${base}${next}`).trim();
+  },
+
+  async completeConfiguredNarrationContinuation(store, action, prompt, narration, logId, reason = {}, config = this.realConfig()) {
+    const continuationPrompt = [
+      '# 现实推演正文补全任务',
+      '上一次正文没有形成完整结尾。你只输出从最后一个字符之后继续的正文，不要重复已经输出的内容，不要 JSON，不要 Markdown，不要标题。',
+      `本次行动：${action || '继续观察现实世界'}`,
+      `原始正文要求摘要：900-1200个中文汉字是软约束；使用第二人称“你”，只写本次行动的直接过程和结果。`,
+      `当前问题：中文汉字数=${reason.count || 0}，句尾未完成=${reason.tailIncomplete ? '是' : '否'}`,
+      `已输出正文：\n${String(narration || '').slice(-1600)}`,
+      '请从上述正文最后一个字符之后继续，只补完当前被截断的句子并给出自然收束；不要因为字数不足而扩写新段落。最终必须以完整句号、问号、感叹号或右引号结束。',
+    ].join('\n\n');
+    const output = await window.GameModules.aiRequest.complete({
+      source: `${config.mode}-agent-narration-continuation`,
+      model: store.modelId,
+      prompt: continuationPrompt,
+      timeoutMs: 120000,
+      requireDone: true,
+      maxAttempts: 2,
+      maxTokens: 900,
+      outputLengthThreshold: 1200,
+    });
+    return this.cleanPhasedNarration(output);
   },
 
   async completeStep(store, prompt, logId, streamToUi = false) {
@@ -637,7 +677,7 @@ window.GameModules.realWorldAgentLoop = {
       store.updateNovelEntry?.(logId, { agentTrace: trace.slice(), streaming: true });
       return;
     }
-    store.realWorldLog = (store.realWorldLog || []).map((entry) => entry.id === logId ? { ...entry, agentTrace: trace.slice(), streaming: true } : entry);
+    store.patchRealWorldLogEntry?.(logId, { agentTrace: trace.slice(), streaming: true });
   },
   showFinalNarration(store, logId, narration) {
     this.showConfiguredNarration(store, logId, narration, this.realConfig());
@@ -648,7 +688,7 @@ window.GameModules.realWorldAgentLoop = {
       store.updateNovelEntry?.(logId, { storyText: narration, streaming: true, streamTrace: [] });
       return;
     }
-    store.realWorldLog = (store.realWorldLog || []).map((entry) => entry.id === logId ? { ...entry, narration, streaming: true, streamTrace: [] } : entry);
+    store.patchRealWorldLogEntry?.(logId, { narration, streaming: true, streamTrace: [] });
     store.scrollRealWorldLogBottom?.();
   },
   markStep(store, logId, text, options = {}) {
@@ -663,12 +703,10 @@ window.GameModules.realWorldAgentLoop = {
       store.updateNovelEntry?.(logId, patch);
       return;
     }
-    store.realWorldLog = (store.realWorldLog || []).map((entry) => {
-      if (entry.id !== logId) return entry;
-      const patch = { streaming: true, statusText: text };
-      if (!options.keepNarration && this.shouldUseStatusAsRealNarration(entry)) patch.narration = text;
-      return { ...entry, ...patch };
-    });
+    const entry = (store.realWorldLog || []).find((item) => item.id === logId) || window.GameModules.sqliteSave.getRealWorldLogEntry?.(logId) || {};
+    const patch = { streaming: true, statusText: text };
+    if (!options.keepNarration && this.shouldUseStatusAsRealNarration(entry)) patch.narration = text;
+    store.patchRealWorldLogEntry?.(logId, patch);
     store.scrollRealWorldLogBottom?.();
   },
 
