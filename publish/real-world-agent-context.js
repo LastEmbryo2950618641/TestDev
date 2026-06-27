@@ -33,7 +33,7 @@ window.GameModules.realWorldAgentContext = {
       `当前组织名称：${companies || '暂无公司名称'}`,
       `势力资料库：\n${window.GameModules.factionArchive?.contextFor?.(store, action, 1600) || '暂无势力资料库记录。'}`,
       ...(longing ? [`角色思念上下文：\n${longing}`] : []),
-      `最近世界线记录：\n${recentWorldline}`,
+      `## 最近发送的世界线\n需严格跟着世界线续写，保证正文对最新世界线连续性。\n${recentWorldline}`,
       `最近记录摘要：\n${recent}`,
       `本次行动：${action || '继续观察现实世界'}`,
     ].join('\n');

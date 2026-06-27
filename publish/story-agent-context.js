@@ -27,7 +27,7 @@ window.GameModules.storyAgentContext = {
       `角色当前数值：\n${store.metricGroups?.(state).map((group) => `${group.title}：${Object.entries(group.values || {}).map(([k, v]) => `${k}${v}`).join('、')}`).join('\n') || '暂无数值。'}`,
       `上线体验：次数=${exp.onlineCount || 0}｜感觉=${exp.feeling || '未知'}｜适应=${exp.adaptation || 0}/100｜摘要=${exp.summary || '尚无经历'}`,
       `目标状态快照：\n${window.GameModules.promptSections?.stateSnapshot?.(store, state) || '暂无角色卡快照。'}`,
-      `最近世界线记录：\n${recentWorldline}`,
+      `## 最近发送的世界线\n需严格跟着世界线续写，保证正文对最新世界线连续性。\n${recentWorldline}`,
       `最近剧情：\n${this.recentLog(store, 4)}`,
       `本次行动：${action || '继续推进操控剧情'}`,
     ].join('\n');
