@@ -163,5 +163,5 @@ const template = {
   },
 };
 
-window.GameModules.initTemplateSources.intimacyBody = template;
-window.GameModules.initDefaults.intimacyBody = template;
+window.GameModules.initTemplateSources.intimacyBody = window.GameModules.initTemplateSources.intimacyBody || template;
+window.GameModules.initDefaults.intimacyBody = window.GameModules.initDefaults.intimacyBody || template;
