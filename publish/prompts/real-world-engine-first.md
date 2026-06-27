@@ -21,15 +21,16 @@
 
 1. `characters` 必须列出本次行动直接相关人物，至少包含 `player-self`。可以使用角色 id、姓名或二者同时写。
 2. 每个 request 必须先判断资料属于哪个世界，并在 params.world 或 params.worldTag 写世界名；现实资料写现实世界名，作品/异世界资料写作品名并用 `worklore.query` 查询。跨世界资料只作为来源明确的参考，现实正文仍只推进现实世界。
-3. `requests` 最多 3 个，只请求能回答本次行动所必需的资料，不要为了补全整个现实世界而请求资料。
-3. 行动涉及去、到、回、离开、附近、门口、房间、小区、公司、学校、便利店、路线、导航、找、查看周围时，优先请求 `realworld.location.query`。
-4. 行动涉及公司、上班、请假、迟到、岗位、面试、招聘、老板、同事、工资、项目、工位、打卡、考勤、开会、离职时，优先请求 `company.query`。
-5. 行动涉及之前、上次、刚才、昨天、那次、还记得、记不记得、发生过、承诺、照片、图片、物品、旧地点、旧经历、时间线或已归纳情节时，必须拆出多个关键词并优先请求 `past.event.query.searchPastEvent`。
-6. 遇到“昨天晚上”“三天前”“上周五”“14:00 到 16:00 之间”“午饭后那段”等时间线索时，依据基础上下文里的桌面时间推断最小/最大时间，写成 `YYYY-MM-DD HH:mm`，后续若请求 `realworld.history.query.searchWorldlineByTime`，必须把它们作为 `startTime/endTime`，并保留原关键词到 `keyword`；无法可靠推断时才退化为 `time` 或 `keyword` 查询。
-7. past.event.query 仍不足以定位时，才按需补充请求 `realworld.history.query` 或 `memory.query`，但不要一次性加载过长资料。
-8. 行动涉及检查、使用、赠送、收到、丢弃、损坏、消耗、遗失或购买物品时，优先请求 `item.query.listCharacterItems`；需要新物品细节前必须先请求 `item.query.searchKnownItem`。
-9. large 资料禁止一次性完整加载，只能使用关键词查询一条记录、关键词前后片段或最近指定数量。
-10. `request_context` 不要返回 `thinking` 字段。
+3. 资料真实性优先级：必须严格依据基础上下文、最近世界线、已载入资料和可查询资料识别缺口；缺少资料时只能做现实范围内的合理推断，不能把玩家单句自称、玩笑或夸张说法直接固化为事实。比如玩家说自己是“xxxxx银河帝国的皇帝”，除非现有背景资料明确证明该身份真实存在，否则只视为玩笑、自称或待验证说法，不得据此编造帝国、职位、势力或世界观。
+4. `requests` 最多 3 个，只请求能回答本次行动所必需的资料，不要为了补全整个现实世界而请求资料。
+5. 行动涉及去、到、回、离开、附近、门口、房间、小区、公司、学校、便利店、路线、导航、找、查看周围时，优先请求 `realworld.location.query`。
+6. 行动涉及公司、上班、请假、迟到、岗位、面试、招聘、老板、同事、工资、项目、工位、打卡、考勤、开会、离职时，优先请求 `company.query`。
+7. 行动涉及之前、上次、刚才、昨天、那次、还记得、记不记得、发生过、承诺、照片、图片、物品、旧地点、旧经历、时间线或已归纳情节时，必须拆出多个关键词并优先请求 `past.event.query.searchPastEvent`。
+8. 遇到“昨天晚上”“三天前”“上周五”“14:00 到 16:00 之间”“午饭后那段”等时间线索时，依据基础上下文里的桌面时间推断最小/最大时间，写成 `YYYY-MM-DD HH:mm`，后续若请求 `realworld.history.query.searchWorldlineByTime`，必须把它们作为 `startTime/endTime`，并保留原关键词到 `keyword`；无法可靠推断时才退化为 `time` 或 `keyword` 查询。
+9. past.event.query 仍不足以定位时，才按需补充请求 `realworld.history.query` 或 `memory.query`，但不要一次性加载过长资料。
+10. 行动涉及检查、使用、赠送、收到、丢弃、损坏、消耗、遗失或购买物品时，优先请求 `item.query.listCharacterItems`；需要新物品细节前必须先请求 `item.query.searchKnownItem`。
+11. large 资料禁止一次性完整加载，只能使用关键词查询一条记录、关键词前后片段或最近指定数量。
+12. `request_context` 不要返回 `thinking` 字段。
 
 ## request_context 前检查
 
@@ -37,10 +38,11 @@
 
 1. 相关人物：识别本次行动直接相关人物，至少包含 `player-self`；被提及、被联系、被影响的人物也要列入 characters。
 2. 资料缺口：判断是否缺地点、公司、历史、记忆、物品、势力或专用词条资料。
-3. 必要性：只请求回答本次行动所必需的资料，不要为了补完整个现实世界而请求。
-4. 数量限制：requests 最多 3 个；large 资料只用关键词、片段或最近数量。
-5. 收敛判断：如果基础上下文已足够，后续步骤应直接 context_done，不要为了形式继续请求。
-6. 输出限制：`request_context` 不得返回 thinking、analysis、reasoning、chainOfThought、cot、debug、notes 或检查清单。
+3. 可信度：区分已证实事实、合理推断、玩家自称/玩笑/夸张表达；无资料证明的玩家自称不得当作现实事实。
+4. 必要性：只请求回答本次行动所必需的资料，不要为了补完整个现实世界而请求。
+5. 数量限制：requests 最多 3 个；large 资料只用关键词、片段或最近数量。
+6. 收敛判断：如果基础上下文已足够，后续步骤应直接 context_done，不要为了形式继续请求。
+7. 输出限制：`request_context` 不得返回 thinking、analysis、reasoning、chainOfThought、cot、debug、notes 或检查清单。
 
 ## 首轮目标
 
