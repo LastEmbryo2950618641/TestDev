@@ -20,10 +20,13 @@ Object.assign(window.GameModules.updateRegistry, {
     return Number(value) || 0;
   },
 
-  genericToVitalUpdates(updates = []) {
+  genericToVitalUpdates(updates = [], store = null) {
     return (Array.isArray(updates) ? updates : []).filter((item) => item?.updateType === 'vital').map((item) => {
+      const subject = item.subject || {};
+      const rawTarget = subject.type === 'player' ? (subject.playerId || subject.id || 'player-self') : (subject.characterId || subject.id || subject.name || item.target || 'player-self');
+      const target = this.canonicalSubjectId(store, rawTarget);
       const reason = this.reasonObject(item);
-      return { key: this.vitalKeyFromField(item.field), delta: this.deltaValue(item), reason: reason.evidence || reason.trigger || '现实推演结算。' };
+      return { key: this.vitalKeyFromField(item.field), delta: this.deltaValue(item), reason: reason.evidence || reason.trigger || '现实推演结算。', target, subject: { ...subject, id: target } };
     }).filter((item) => ['stamina_pool', 'satiety', 'hydration', 'fatigue', 'mental_stability'].includes(item.key));
   },
 
@@ -108,7 +111,7 @@ Object.assign(window.GameModules.updateRegistry, {
     });
     return {
       ...result,
-      vitalUpdates: [...(result.vitalUpdates || []), ...this.genericToVitalUpdates(updates)],
+      vitalUpdates: [...(result.vitalUpdates || []), ...this.genericToVitalUpdates(updates, store)],
       characterMetricUpdates: Array.from(byTarget.values()),
       itemActions: [...(result.itemActions || []), ...this.genericToItemActions(updates)],
       factionUpdates: [...(result.factionUpdates || []), ...this.genericToFactionUpdates(updates)],

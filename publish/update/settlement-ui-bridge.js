@@ -76,14 +76,23 @@ window.GameModules = window.GameModules || {};
   };
 
   registry.settlementRows = function settlementRows(entry = {}, store = null) {
+    const vitalAliases = { 精力池: 'stamina_pool', 精力: 'stamina_pool', 饱食度: 'satiety', 水分: 'hydration', 疲劳度: 'fatigue', 精神稳定: 'mental_stability' };
     const appliedMetricKeys = new Set((entry.characterCardChanges || []).filter((item) => /^(情绪|感觉)$/u.test(item?.field || '')).map((item) => `${item.cardId || item.group || ''}:${item.field}:${item.name}`));
+    const appliedVitalKeys = new Set((entry.characterCardChanges || []).filter((item) => item?.field === '生命体征').map((item) => `${item.cardId || item.group || ''}:vital:${vitalAliases[item.name] || item.name}`));
     const genericRows = (entry.genericUpdates || [])
       .filter((item) => {
-        if (!/^(emotion|feeling)$/u.test(item?.updateType || '')) return true;
-        const type = item.updateType === 'feeling' ? '感觉' : '情绪';
-        const card = this.cardForChange(item, store);
-        const name = this.leafName?.(item.field) || item.name || '';
-        return !appliedMetricKeys.has(`${card.id || card.title || ''}:${type}:${name}`);
+        if (/^(emotion|feeling)$/u.test(item?.updateType || '')) {
+          const type = item.updateType === 'feeling' ? '感觉' : '情绪';
+          const card = this.cardForChange(item, store);
+          const name = this.leafName?.(item.field) || item.name || '';
+          return !appliedMetricKeys.has(`${card.id || card.title || ''}:${type}:${name}`);
+        }
+        if (item?.updateType === 'vital') {
+          const card = this.cardForChange(item, store);
+          const key = this.vitalKeyFromField?.(item.field) || this.leafName?.(item.field) || item.name || '';
+          return !appliedVitalKeys.has(`${card.id || card.title || ''}:vital:${key}`);
+        }
+        return true;
       })
       .map((item) => this.rowFromGeneric(item, store));
     return [

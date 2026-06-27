@@ -74,9 +74,19 @@ window.GameModules.realWorldActions = {
     settlement.push(...this.realWorldItemActionSettlement(result.itemActionResults));
     const elapsedSeconds = window.GameModules.ai.clampElapsed?.(result.elapsedSeconds, 300) || 300;
     result.elapsedSeconds = elapsedSeconds;
-    result.vitalUpdates = window.GameModules.realWorldAi.normalizeVitalUpdates(legacyResult.vitalUpdates, elapsedSeconds, result.narration || '');
+    const allVitalUpdates = Array.isArray(legacyResult.vitalUpdates) ? legacyResult.vitalUpdates : [];
+    const playerTarget = state?.id || 'player-self';
+    result.vitalUpdates = window.GameModules.realWorldVitals.normalize(allVitalUpdates, elapsedSeconds, result.narration || '', playerTarget, true);
     settlement.push(...this.realWorldVitalSettlement(state, result.vitalUpdates));
     await this.applyRealWorldVitalUpdates(state, result.vitalUpdates);
+    const vitalTargets = [...new Set(allVitalUpdates.map((item) => String(item?.target || item?.subject?.id || '').trim()).filter((target) => target && target !== playerTarget && target !== 'player-self'))];
+    for (const target of vitalTargets) {
+      const targetState = this.itemSkillState?.(target);
+      const targetUpdates = window.GameModules.realWorldVitals.normalize(allVitalUpdates, elapsedSeconds, result.narration || '', target, false);
+      if (!targetState || !targetUpdates.length) continue;
+      settlement.push(...this.realWorldVitalSettlement(targetState, targetUpdates));
+      await this.applyRealWorldVitalUpdates(targetState, targetUpdates);
+    }
     settlement.push(...this.realWorldFactionSettlement(legacyResult.factionUpdates || []));
     const legacyHandled = new Set(['vital', 'emotion', 'feeling', 'item', 'faction-structure', 'faction-overview']);
     const remainingGeneric = (result.genericUpdates || []).filter((item) => !legacyHandled.has(item?.updateType));
