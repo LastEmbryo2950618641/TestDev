@@ -50,7 +50,21 @@ window.GameModules.realWorldJsonActions = {
     try { this.parseCompleteUpdateJson(b); return b; }
     catch (_) {}
     if (b.startsWith('{') && b.length > a.length * 0.7) return b;
-    return window.GameModules.jsonUtils?.mergeStreamText?.(a, b) || (a + b);
+    const fieldStart = /^"[\w\u4e00-\u9fa5-]+"\s*[:：]/u.test(b);
+    const inString = this.jsonStringOpen(a);
+    const continuation = inString && fieldStart ? `",${b}` : ((/["}\]]$/u.test(a) && fieldStart) ? `,${b}` : b);
+    return window.GameModules.jsonUtils?.mergeStreamText?.(a, continuation) || (a + continuation);
+  },
+
+  jsonStringOpen(text = '') {
+    let open = false;
+    let escaped = false;
+    for (const char of String(text || '')) {
+      if (escaped) { escaped = false; continue; }
+      if (char === '\\') { escaped = true; continue; }
+      if (char === '"') open = !open;
+    }
+    return open;
   },
 
   updateJsonContinuationPrompt(prompt, raw, err) {

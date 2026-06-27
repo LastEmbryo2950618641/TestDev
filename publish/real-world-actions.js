@@ -126,7 +126,8 @@ window.GameModules.realWorldActions = {
     if (playerEntry?.id) await window.GameModules.sqliteSave.saveRealWorldLogEntry?.(playerEntry);
     await window.GameModules.sqliteSave.saveRealWorldLogEntry?.(next);
     this.realWorldLog = this.normalizeRealWorldLog([...this.realWorldLog.filter((entry) => entry.id !== playerEntry?.id && entry.id !== id), ...(playerEntry?.id ? [playerEntry] : []), next]);
-    this.refreshRealWorldLogPage?.(999999);
+    this.realWorldLogTotal = window.GameModules.sqliteSave.countRealWorldLogEntries?.() || this.realWorldLogTotal;
+    this.realWorldLogPage = this.realWorldLogMaxPage?.() || this.realWorldLogPage;
     this.scrollRealWorldLogBottom?.();
   },
 };

@@ -23,7 +23,18 @@ window.GameModules.realWorldThinkingActions = {
   },
 
   normalizeRealWorldLog(log = []) {
-    return (Array.isArray(log) ? log : []).map((entry, index) => {
+    const raw = Array.isArray(log) ? log : [];
+    const ids = new Set(raw.map((entry) => String(entry?.id || '')));
+    const expanded = raw.flatMap((entry) => {
+      const id = String(entry?.id || '');
+      const userId = id.replace(/-ai$/, '-user');
+      const playerText = String(entry?.playerText || entry?.actionText || '').trim();
+      if (entry?.type === 'ai' && /-ai$/u.test(id) && playerText && !ids.has(userId)) {
+        return [{ id: userId, type: 'user', text: playerText, time: entry.time, createdAt: entry.createdAt }, entry];
+      }
+      return [entry];
+    });
+    return expanded.map((entry, index) => {
       const solidifyCards = Array.isArray(entry?.solidifyCards) ? entry.solidifyCards : [];
       return {
         ...entry,

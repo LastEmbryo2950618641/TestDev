@@ -57,9 +57,10 @@ window.GameModules.aiRequest = {
     return { length, threshold, overThreshold: length >= threshold, tailLooksTruncated: this.outputTailLooksTruncated(buffer) };
   },
 
-  clampMaxTokens(value) {
-    if (value === undefined || value === null) return undefined;
-    const tokens = Math.floor(Number(value));
+  clampMaxTokens(value, fallback = undefined) {
+    const raw = value === undefined || value === null ? fallback : value;
+    if (raw === undefined || raw === null) return undefined;
+    const tokens = Math.floor(Number(raw));
     if (!Number.isFinite(tokens)) return undefined;
     return Math.max(200, Math.min(3000, tokens));
   },
@@ -132,7 +133,7 @@ window.GameModules.aiRequest = {
     const source = options.source || 'unknown';
     const messages = options.messages || [{ role: 'user', content: options.prompt || '' }];
     const model = this.selectedTextModel(options.model);
-    const maxTokens = this.clampMaxTokens(options.maxTokens);
+    const maxTokens = this.clampMaxTokens(options.maxTokens, 2600);
     const enqueueAt = Date.now();
     const tokenRecordId = window.GameModules.tokenStats?.record?.(source, messages.map((msg) => String(msg?.content || '')).join('\n'), { ...(options.tokenMeta || {}), model, maxTokens });
     const sourceCount = this.countSource(source);
