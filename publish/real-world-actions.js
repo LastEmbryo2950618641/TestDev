@@ -68,7 +68,7 @@ window.GameModules.realWorldActions = {
     settlement.push(...await window.GameModules.realWorldTargetUpdates.applyLexicon(this, legacyResult.lexiconUpdates || []));
     result.solidifyCards = await this.collectSolidifiableCharacters?.(result, 'real') || [];
     await this.syncNarrationWearing?.(result);
-    result.solidifyOpen = Boolean(result.solidifyCards.length);
+    result.solidifyOpen = false;
     result.solidifySelectedKey = this.solidifyKey?.(result.solidifyCards[0]) || '';
     result.itemActionResults = await this.applyRealWorldItemActions?.(legacyResult.itemActions || []) || [];
     settlement.push(...this.realWorldItemActionSettlement(result.itemActionResults));

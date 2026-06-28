@@ -90,7 +90,7 @@ window.GameModules = window.GameModules || {};
       const line = store.realWorldline?.() || { events: [], plots: [], pendingPlot: null };
       const pending = line.pendingPlot ? `记录中｜${line.pendingPlot.startedAt || ''}-${line.pendingPlot.endedAt || ''}｜记录数:${(line.pendingPlot.recordIds || []).length}` : '记录中｜暂无';
       const recentEvents = (line.events || []).slice(-12).map((event) => `事件｜${event.eventId || event.id || '未知'}｜${event.time || ''}｜${event.name || '现实事件'}｜情节:${event.plotId || event.summary || '未归纳'}｜${this.limit(event.detail || '', 80)}`);
-      const plots = (line.plots || []).slice(-12).map((plot) => `情节｜${plot.情节编号 || plot.id || '未编号'}｜${plot.情节标题 || plot.情节名称 || plot.摘要 || '未命名'}｜${plot.情节时间段 || ''}｜记录:${plot.重要记录编号 || plot.recordIds || ''}`);
+      const plots = (line.plots || []).slice(-12).map((plot) => `情节｜${plot.情节编号 || plot.id || '未编号'}｜${plot.情节标题 || plot.情节名称 || plot.摘要 || '未命名'}｜${plot.情节时间段 || ''}｜${this.limit(plot.短摘要 || plot.情节总结 || '', 120)}｜标签:${(plot.检索标签 || []).join('、')}｜记录:${plot.重要记录编号 || plot.recordIds || ''}`);
       return [`世界线清单`, pending, ...plots, ...recentEvents].join('\n') || '暂无世界线资料。';
     },
 
@@ -144,7 +144,7 @@ window.GameModules = window.GameModules || {};
     worldlinePlotDetail(line = {}, plot = {}) {
       const ids = String(plot.重要记录编号 || plot.recordIds || '').split(/[、,，\s]+/).filter(Boolean);
       const events = this.eventsByIds?.(line, ids) || [];
-      return [`情节：${plot.情节编号 || plot.id || ''}｜${plot.情节标题 || plot.情节名称 || plot.摘要 || ''}`, `时间：${plot.情节时间段 || ''}`, `总结：${plot.情节总结 || plot.摘要 || plot.情节摘要 || ''}`, `关键片段：${plot.重要片段 || ''}`, `关联记录：\n${events.map((event) => this.eventLine?.(event) || this.worldlineEventText(event)).join('\n') || ids.join('、') || '无'}`].join('\n');
+      return [`情节：${plot.情节编号 || plot.id || ''}｜${plot.情节标题 || plot.情节名称 || plot.摘要 || ''}`, `时间：${plot.情节时间段 || ''}`, `短摘要：${plot.短摘要 || plot.情节总结 || plot.摘要 || plot.情节摘要 || ''}`, `关键事实：${(plot.关键事实 || []).join('；') || '无'}`, `检索标签：${(plot.检索标签 || []).join('、') || '无'}`, `关键片段：${plot.重要片段 || ''}`, `关联记录：\n${events.map((event) => this.eventLine?.(event) || this.worldlineEventText(event)).join('\n') || ids.join('、') || '无'}`].join('\n');
     },
 
     worldlineEventText(event = {}) {
@@ -152,7 +152,7 @@ window.GameModules = window.GameModules || {};
     },
 
     worldlinePlotText(plot = {}) {
-      return `${plot.情节编号 || plot.id || ''}\n${plot.情节标题 || ''}\n${plot.情节名称 || ''}\n${plot.情节时间段 || ''}\n${plot.情节总结 || ''}\n${plot.摘要 || ''}\n${plot.重要片段 || ''}\n${plot.重要记录编号 || plot.recordIds || ''}\n${JSON.stringify(plot)}`;
+      return `${plot.情节编号 || plot.id || ''}\n${plot.情节标题 || ''}\n${plot.情节名称 || ''}\n${plot.情节时间段 || ''}\n${plot.短摘要 || ''}\n${plot.情节总结 || ''}\n${(plot.关键事实 || []).join('\n')}\n${(plot.检索标签 || []).join('\n')}\n${plot.摘要 || ''}\n${plot.重要片段 || ''}\n${plot.重要记录编号 || plot.recordIds || ''}\n${JSON.stringify(plot)}`;
     },
 
     async memory(store, action, method, params = {}) {

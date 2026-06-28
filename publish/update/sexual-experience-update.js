@@ -2,7 +2,7 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.updateRegistry?.register?.({
   id: 'sexual-experience', promptId: 'sexual-experience-update', section: '角色卡字段',
-  match: (change, text) => /sexual-experience|sexualExperienceCount|sexualExperienceParts|intimacy|性经验|经历次数/u.test(text),
+  match: (change, text) => /sexual-experience|sexualExperienceCount|sexualExperienceParts|性经验总次数|分类次数/u.test(text),
   card(change, store) {
     const subject = change.subject || {};
     const id = subject.characterId || subject.playerId || subject.id || 'player-self';

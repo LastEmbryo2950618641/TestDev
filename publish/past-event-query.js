@@ -8,7 +8,8 @@ window.GameModules.pastEventQuery = {
 
   search(store = null, params = {}) {
     const keys = this.keywords(params);
-    const scored = this.sources(store, params).map((row) => this.score(row, keys, params));
+    const refs = this.recentReferenceIndex(store);
+    const scored = this.sources(store, params).map((row) => this.withReference(this.score(row, keys, params), refs));
     const matched = scored.filter((row) => row.score > 0 || !keys.length);
     const rows = matched.length ? matched : scored;
     rows.sort((a, b) => b.score - a.score || String(b.time || '').localeCompare(String(a.time || '')));
@@ -19,8 +20,17 @@ window.GameModules.pastEventQuery = {
       `准确度：${confidence.label}｜${confidence.reason}`,
       `回复策略：${confidence.reply}`,
       matched.length ? '命中资料：' : (picked.length ? '命中资料：无；以下为全文候选，仅可用于判断不确定或反问，不可当作准确记忆。' : '命中资料：无'),
-      ...picked.map((row, index) => `## ${index + 1}. ${row.source}｜${row.title}\n时间：${row.time || '未知'}\n匹配：${row.score}｜关键词：${row.hitKeys.join('、') || '无'}\n${row.text}`),
+      ...picked.map((row, index) => this.formatPickedRow(row, index)),
     ].join('\n\n');
+  },
+
+  formatPickedRow(row, index) {
+    return `## ${index + 1}. ${row.source}｜${row.title}\n时间：${row.time || '未知'}\n匹配：${row.score}｜关键词：${row.hitKeys.join('、') || '无'}\n${this.rowOutputText(row)}`;
+  },
+
+  rowOutputText(row = {}) {
+    if (!row.reference) return row.text;
+    return [`文本内容参照${row.reference.id}(唯一id)`, `参照对象：${row.reference.label}`].join('\n');
   },
 
   keywords(params = {}) {
@@ -114,6 +124,58 @@ window.GameModules.pastEventQuery = {
   },
 
   row(source, title, time, text, raw) { return { source, title: String(title || '未命名'), time: String(time || ''), text: String(text || ''), raw }; },
+
+  stableId(raw = {}, fallback = '') {
+    return String(raw.eventId || raw.id || raw.linkedLongTermId || raw.memoryId || fallback || '').trim();
+  },
+
+  normalizeText(text = '') {
+    return String(text || '')
+      .replace(/[\s\p{P}\p{S}]+/gu, '')
+      .slice(0, 900);
+  },
+
+  textSimilarity(a = '', b = '') {
+    const left = this.normalizeText(a);
+    const right = this.normalizeText(b);
+    if (!left || !right) return 0;
+    if (left.includes(right.slice(0, Math.min(80, right.length))) || right.includes(left.slice(0, Math.min(80, left.length)))) return 1;
+    const grams = (text) => {
+      const out = new Set();
+      for (let i = 0; i < text.length - 1; i += 1) out.add(text.slice(i, i + 2));
+      return out;
+    };
+    const aSet = grams(left), bSet = grams(right);
+    if (!aSet.size || !bSet.size) return 0;
+    let hit = 0;
+    aSet.forEach((gram) => { if (bSet.has(gram)) hit += 1; });
+    return hit / Math.min(aSet.size, bSet.size);
+  },
+
+  recentReferenceIndex(store = null) {
+    const line = store?.realWorldline?.() || {};
+    const picked = [];
+    let total = 0;
+    for (const event of (line.events || []).slice().reverse()) {
+      const text = `${event.summary || ''}\n${event.detail || ''}\n${JSON.stringify(event)}`;
+      const nextTotal = total + text.length;
+      if (nextTotal > 6000) break;
+      picked.push(event);
+      total = nextTotal;
+      if (total >= 5000) break;
+    }
+    return picked.map((event) => {
+      const id = this.stableId(event);
+      const text = `${event.summary || ''}\n${event.detail || ''}\n${JSON.stringify(event)}`;
+      return id ? { id, label: `${event.name || '世界线记录'}｜${event.time || '未知时间'}`, text } : null;
+    }).filter(Boolean);
+  },
+
+  withReference(row = {}, refs = []) {
+    const id = this.stableId(row.raw);
+    const hit = refs.find((ref) => (id && ref.id === id) || this.textSimilarity(row.text, ref.text) >= 0.82);
+    return hit ? { ...row, reference: hit } : row;
+  },
 
   score(row, keys = [], params = {}) {
     const body = `${row.source}\n${row.title}\n${row.time}\n${row.text}`;

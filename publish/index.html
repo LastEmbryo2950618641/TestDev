@@ -754,26 +754,28 @@
                   </template>
                 </div>
                 <div class="memory-editor" x-show="$store.game.realWorldProfileViewMode === 'addMemory'">
-                  <textarea x-model="$store.game.realWorldMemoryInput" placeholder="输入要写入玩家本人的现实记忆..."></textarea>
+                  <textarea x-model="$store.game.realWorldMemoryInput" :placeholder="`输入要写入${$store.game.realWorldDisplayCharacter().name || '当前目标'}的现实记忆...`"></textarea>
                   <button @click="$store.game.addPlayerManualMemory()" :disabled="!$store.game.realWorldMemoryInput.trim()">写入记忆</button>
                 </div>
                 <div class="memory-list" x-show="$store.game.realWorldProfileViewMode === 'shortTerm'">
-                  <small x-text="$store.game.playerMemoryStatus('shortTerm')"></small>
-                  <template x-for="item in $store.game.playerMemoryItems('shortTerm')" :key="item.id"><p><b x-text="`${item.time?.label || '时间未知'}｜印象${item.impression}`"></b><span x-text="item.summary || item.text"></span></p></template>
-                  <small x-show="!$store.game.playerMemoryItems('shortTerm').length">暂无短期记忆</small>
+                  <nav class="memory-sub-tabs"><button type="button" :class="{ active: $store.game.realWorldMemoryShortTab === 'recent' }" @click="$store.game.realWorldMemoryShortTab = 'recent'">刚发生记忆</button><button type="button" :class="{ active: $store.game.realWorldMemoryShortTab === 'summarized' }" @click="$store.game.realWorldMemoryShortTab = 'summarized'">近发生记忆</button><button type="button" :class="{ active: $store.game.realWorldMemoryShortTab === 'forgotten' }" @click="$store.game.realWorldMemoryShortTab = 'forgotten'">遗忘区</button></nav>
+                  <small x-text="$store.game.realWorldMemoryStatus('shortTerm')"></small>
+                  <template x-for="item in $store.game.realWorldMemoryItems('shortTerm')" :key="item.id"><p><b x-text="`${item.time?.label || '时间未知'}｜印象${item.impression}`"></b><span x-text="item.summary || item.text"></span></p></template>
+                  <small x-show="!$store.game.realWorldMemoryItems('shortTerm').length" x-text="`暂无${$store.game.realWorldMemoryShortLabel()}`"></small>
                 </div>
                 <div class="memory-list" x-show="$store.game.realWorldProfileViewMode === 'longTerm'">
-                  <small x-text="$store.game.playerMemoryStatus('longTerm')"></small>
-                  <template x-for="item in $store.game.playerMemoryItems('longTerm')" :key="item.id"><p><b x-text="`${item.time?.label || '时间未知'}｜印象${item.impression}`"></b><span x-text="item.summary || item.text"></span></p></template>
-                  <small x-show="!$store.game.playerMemoryItems('longTerm').length">暂无长期记忆</small>
+                  <nav class="memory-sub-tabs"><button type="button" :class="{ active: $store.game.realWorldMemoryLongTab === 'vivid' }" @click="$store.game.realWorldMemoryLongTab = 'vivid'">难以忘记</button><button type="button" :class="{ active: $store.game.realWorldMemoryLongTab === 'permanent' }" @click="$store.game.realWorldMemoryLongTab = 'permanent'">不可忘记</button></nav>
+                  <small x-text="$store.game.realWorldMemoryStatus('longTerm')"></small>
+                  <template x-for="item in $store.game.realWorldMemoryItems('longTerm')" :key="item.id"><p><b x-text="`${item.time?.label || '时间未知'}｜印象${item.impression}`"></b><span x-text="item.summary || item.text"></span></p></template>
+                  <small x-show="!$store.game.realWorldMemoryItems('longTerm').length" x-text="`暂无${$store.game.realWorldMemoryLongLabel()}`"></small>
                 </div>
                 <div class="memory-editor" x-show="$store.game.realWorldProfileViewMode === 'archive'">
                   <div class="memory-search-row">
-                    <input x-model="$store.game.realWorldMemoryArchiveQuery" placeholder="输入意图，搜索玩家现实记忆归档..." @keydown.enter="$store.game.searchPlayerMemoryArchive()">
+                    <input x-model="$store.game.realWorldMemoryArchiveQuery" placeholder="输入意图，搜索当前现实目标记忆归档..." @keydown.enter="$store.game.searchPlayerMemoryArchive()">
                     <button @click="$store.game.searchPlayerMemoryArchive()" :disabled="!$store.game.realWorldMemoryArchiveQuery.trim()">搜索</button>
                   </div>
                   <div class="memory-list">
-                    <template x-for="item in $store.game.realWorldMemoryArchiveResults" :key="item.id"><p x-text="item.text"></p></template>
+                    <template x-for="item in $store.game.realWorldMemoryArchiveResults" :key="item.id"><p><b x-text="`${item.meta?.time || '时间未知'}｜${item.meta?.place || '地点未知'}`"></b><span x-text="item.meta?.summary || item.text"></span></p></template>
                     <small x-show="!$store.game.realWorldMemoryArchiveResults.length">暂无搜索结果</small>
                   </div>
                 </div>

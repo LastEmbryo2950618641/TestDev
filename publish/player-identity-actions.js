@@ -78,17 +78,40 @@ window.GameModules.playerIdentityActions = {
     if (kind === 'shortTerm') return [m.statLine('刚发生记忆', m.stats(memory.shortTerm.recent, m.limits.recent)), m.statLine('近发生记忆', m.stats(memory.shortTerm.summarized, m.limits.summarized)), m.statLine('遗忘区', m.stats(memory.shortTerm.forgotten, m.limits.forgotten))].join('｜');
     return [m.statLine('难以忘记', m.stats(memory.longTerm.vivid, m.limits.vivid)), m.statLine('不可忘记', m.stats(memory.longTerm.permanent, m.limits.permanent))].join('｜');
   },
+  realWorldMemoryTargetId() {
+    return this.sharedControlState?.()?.id || 'player-self';
+  },
+  realWorldMemory() {
+    return window.GameModules.characterMemory.ensure(this.realWorldMemoryTargetId());
+  },
+  realWorldMemoryShortLabel() {
+    return ({ recent: '刚发生记忆', summarized: '近发生记忆', forgotten: '遗忘区' })[this.realWorldMemoryShortTab] || '刚发生记忆';
+  },
+  realWorldMemoryLongLabel() {
+    return ({ vivid: '难以忘记', permanent: '不可忘记' })[this.realWorldMemoryLongTab] || '难以忘记';
+  },
+  realWorldMemoryItems(kind) {
+    const memory = this.realWorldMemory();
+    if (kind === 'shortTerm') return memory.shortTerm?.[this.realWorldMemoryShortTab || 'recent'] || [];
+    if (kind === 'longTerm') return memory.longTerm?.[this.realWorldMemoryLongTab || 'vivid'] || [];
+    return [];
+  },
+  realWorldMemoryStatus(kind) {
+    const m = window.GameModules.characterMemory;
+    if (kind === 'shortTerm') return m.statLine(this.realWorldMemoryShortLabel(), m.stats(this.realWorldMemoryItems('shortTerm'), m.limits[this.realWorldMemoryShortTab || 'recent'] || m.limits.recent));
+    return m.statLine(this.realWorldMemoryLongLabel(), m.stats(this.realWorldMemoryItems('longTerm'), m.limits[this.realWorldMemoryLongTab || 'vivid'] || m.limits.vivid));
+  },
   async addPlayerManualMemory() {
     const text = this.realWorldMemoryInput.trim();
     if (!text) return;
     const realStore = { ...this, sceneTitle: this.realWorldSceneTitle || '现实世界' };
-    await window.GameModules.characterMemory.addManual('player-self', text, realStore);
+    await window.GameModules.characterMemory.addManual(this.realWorldMemoryTargetId(), text, realStore);
     this.realWorldMemoryInput = '';
   },
   async searchPlayerMemoryArchive() {
     const query = this.realWorldMemoryArchiveQuery.trim();
     if (!query) return;
-    this.realWorldMemoryArchiveResults = await window.GameModules.characterMemory.queryArchive('player-self', query);
+    this.realWorldMemoryArchiveResults = await window.GameModules.characterMemory.queryArchive(this.realWorldMemoryTargetId(), query);
   },
   async ensurePlayerRpgState(refresh = false, forceRoleCardRegenerate = false, retrySource = null) {
     if (!window.GameModules.sqliteSave.db) return this.playerIdentityState();

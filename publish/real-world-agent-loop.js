@@ -120,7 +120,7 @@ window.GameModules.realWorldAgentLoop = {
   async buildConfiguredPrompt({ store, action, base, loaded, skills, step, materialSession = null, forceFinal = false, config = this.realConfig() }) {
     const outputJson = JSON.stringify(config.mode === 'story' ? this.storyOutputSchema(store) : this.outputSchema(store));
     const loadedText = config.ctx.buildLoadedText(loaded);
-    const materialText = config.materials?.summary?.(materialSession) || '';
+    const materialText = config.materials?.summary?.(materialSession, { step }) || '';
     const vars = {
       基础上下文: base,
       动态载入资料: [loadedText, materialText].filter(Boolean).join('\n\n'),
@@ -143,6 +143,7 @@ window.GameModules.realWorldAgentLoop = {
   stepOutputRule(step, forceFinal = false) {
     if (forceFinal) return '当前为收敛步骤：禁止继续请求资料。第一个字符必须是 {，只返回 {"type":"context_done","reason":"资料已足够"}。禁止正文、旁白、Markdown、代码块和 final JSON。';
     if (step === 1) return '当前是第1步：只允许返回一个合法 JSON 对象，type 必须是 request_context。第一个字符必须是 {，用于识别相关角色与必要资料。禁止正文、旁白、Markdown、代码块和 final JSON。';
+    if (step >= 3) return '当前是软收敛步骤：只允许返回一个合法 JSON 对象，type 只能是 request_context 或 context_done；第一个字符必须是 {。只有缺失资料会直接改变本次行动结果、人物反应、地点/物品/旧事实判定时，才允许 request_context；衣着细节、氛围、情绪微调、背景补全、重复确认、无效 skill 替代查询都必须 context_done。禁止正文、旁白、Markdown、代码块和 final JSON。';
     return '当前只负责判断是否继续收集资料：只允许返回一个合法 JSON 对象，type 只能是 request_context 或 context_done；第一个字符必须是 {。仍缺关键资料就返回 request_context；资料足够或无法继续获取时返回 {"type":"context_done","reason":"资料已足够"}。禁止正文、旁白、Markdown、代码块和 final JSON。';
   },
 
@@ -154,6 +155,7 @@ window.GameModules.realWorldAgentLoop = {
     const loadedText = config.ctx.buildLoadedText(loaded);
     const materialText = config.materials?.acquiredSummary?.(materialSession) || '';
     const writingStyle = store.selectedWritingStylePrompt?.() || store.writingStylePrompt?.() || '正文采用小说文风，重视画面、动作、感官和心理反应，避免复述玩家指令。';
+    const unverifiedClaimRule = '未证实自称降级规则（最高优先级）：玩家单句自称、玩笑、夸张或幻想表达在基础上下文、最近世界线和已载入资料没有明确证据时，不能承认为真实身份、真实职位、真实势力或真实世界观；正文只能把它写成“自称/玩笑/疑似角色扮演/待验证说法”，其他人物按性格表现怀疑、调侃、困惑、追问或无视，不得配合承认。';
     if (config.mode === 'story') return [
       '# 操控剧情阶段2：只生成玩家可见正文',
       '你只输出操控剧情正文，不要 JSON，不要 Markdown，不要标题，不要分隔符。',
@@ -162,6 +164,7 @@ window.GameModules.realWorldAgentLoop = {
       `推演自由度：${this.storyFreedomRule(store)}`,
       `基础上下文：\n${base}`,
       `已动态载入资料：\n${[loadedText, materialText].filter(Boolean).join('\n\n') || '无'}`,
+      unverifiedClaimRule,
       '最终正文要求（最高优先级）：严格承接基础上下文、最近世界线与已动态载入资料，不改写已发生事实，不新增无证据的身份、关系、地点或原作设定；资料缺口只能做克制的当场合理推演，并保持不确定性。使用第二人称“你”称呼玩家；玩家不是角色本人，而是操控/影响被操控者行动的存在；正文必须写出本次行动的动作过程、环境变化、其他人物反应、被操控者身体与心理张力、直接结果；正文目标1000-1300个中文汉字；不要替玩家完成后续行动，不要越过本次行动给出长期结局。',
     ].join('\n\n');
     return [
@@ -173,6 +176,7 @@ window.GameModules.realWorldAgentLoop = {
       ...(store.sharedControlState?.() ? ['同世界附身控制规则：玩家与被链接角色处于同一现实世界时，进入现实同世界附身控制；玩家意识附身接管被控角色身体，能直接控制其动作、视线、表情、触觉、嗅觉、味觉、听觉、身体反应与局部行动；玩家现实本体仍由同一个意识维持控制，属于一心多用。正文必须以第二人称“你”的附身镜头为主，着重描写被控角色身体内视角、动作执行、感官回流、心理/身体张力和外界反应；同时保留玩家本体仍可行动的事实。不要写成单纯远程共享感官、旁观监控或玩家完全离开自己身体；不要让同一角色在两个地点同时出现。'] : []),
       `基础上下文：\n${base}`,
       `已动态载入资料：\n${[loadedText, materialText].filter(Boolean).join('\n\n') || '无'}`,
+      unverifiedClaimRule,
       '最终正文要求（最高优先级）：严格承接基础上下文、最近世界线与已动态载入资料，不改写已发生事实，不新增无证据的身份、关系、地点或现实背景；资料缺口只能做克制的当场合理推演，并保持不确定性。使用第二人称“你”；正文必须写出本次行动的动作过程、环境变化、人物反应和直接结果；无论推演自由度是行动范围内还是AI自由推演，正文目标900-1200个中文汉字；不要替玩家完成后续行动，不要越过本次行动给出长期结局。',
     ].join('\n\n');
   },
@@ -217,6 +221,29 @@ window.GameModules.realWorldAgentLoop = {
     }
   },
 
+  compactUpdatePromptText(text = '', limit = 1600, keepTail = false) {
+    const raw = String(text || '').replace(/\s+/g, ' ').trim();
+    if (raw.length <= limit) return raw;
+    if (keepTail) return `…${raw.slice(-limit)}`;
+    const head = Math.ceil(limit * 0.65);
+    const tail = Math.max(0, limit - head - 1);
+    return `${raw.slice(0, head)}…${tail ? raw.slice(-tail) : ''}`;
+  },
+
+  compactUpdateSchema(schema = {}) {
+    const copy = JSON.parse(JSON.stringify(schema || {}));
+    ['genericUpdates', 'initUpdates', 'metricUpdates', 'lexiconUpdates', 'itemActions'].forEach((key) => {
+      if (Array.isArray(copy[key])) copy[key] = copy[key].slice(0, 4).map((item) => this.compactSchemaValue(item));
+    });
+    return copy;
+  },
+
+  compactSchemaValue(value) {
+    if (Array.isArray(value)) return value.slice(0, 4).map((item) => this.compactSchemaValue(item));
+    if (!value || typeof value !== 'object') return typeof value === 'string' ? value.slice(0, 80) : value;
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, this.compactSchemaValue(item)]));
+  },
+
   async buildUpdateJsonPrompt(args) {
     return await this.buildConfiguredUpdateJsonPrompt({ ...args, config: this.realConfig() });
   },
@@ -224,25 +251,25 @@ window.GameModules.realWorldAgentLoop = {
   async buildConfiguredUpdateJsonPrompt({ store, action, base, loaded, skills, materialSession = null, narration, selectedSkills = {}, config = this.realConfig() }) {
     const loadedText = config.ctx.buildLoadedText(loaded);
     const materialText = config.mode === 'story' ? (config.materials?.acquiredSummary?.(materialSession) || '') : (config.materials?.summary?.(materialSession) || '');
-    const updateSkillText = window.GameModules.updateRegistry?.skillText?.(selectedSkills.updateSkills || []) || '';
-    const updateSchema = window.GameModules.updateRegistry?.schemaFor?.(selectedSkills.updateSkills || []) || {};
-    const initSkillText = window.GameModules.initPromptRegistry?.skillText?.(selectedSkills.initSkills || [], store) || '';
-    const initSchema = window.GameModules.initPromptRegistry?.schema?.(selectedSkills.initSkills || [], store) || {};
+    const updateSkillText = this.compactUpdatePromptText(window.GameModules.updateRegistry?.skillText?.(selectedSkills.updateSkills || []) || '', 2200);
+    const updateSchema = this.compactUpdateSchema(window.GameModules.updateRegistry?.schemaFor?.(selectedSkills.updateSkills || []) || {});
+    const initSkillText = this.compactUpdatePromptText(window.GameModules.initPromptRegistry?.skillText?.(selectedSkills.initSkills || [], store) || '', 1600);
+    const initSchema = this.compactUpdateSchema(window.GameModules.initPromptRegistry?.schema?.(selectedSkills.initSkills || [], store) || {});
     const storyRule = '输出最小补丁 JSON：必须包含 type、sceneTitle、elapsedSeconds、mood、quest、choices。其他字段只有明确变化才输出，否则省略或用空数组。choices 必须4个。metricUpdates 只写当前被操控角色的情绪和对玩家感觉；genericUpdates 用于没有专用 skill 的稳定角色卡关系、身份、状态标签、新分类或跨系统字段。';
     const realRule = '输出最小补丁 JSON：必须包含 type、sceneTitle、locationName、elapsedSeconds、status、quest、choices、genericUpdates。状态变化统一写 genericUpdates；禁止输出 characterMetricUpdates。';
+    const unverifiedUpdateRule = '未证实自称固化禁令（最高优先级）：玩家单句自称、玩笑、夸张或幻想表达若没有基础上下文、最近世界线或已载入资料明确证明，只能视为未证实自称；禁止固化为身份、职位、势力、组织、地点、物品、角色卡、介绍卡、词条、genericUpdates、faction、lexicon 或长期世界观。';
     return [
       `# ${config.label}阶段3B：只生成更新JSON`,
-      '你只输出一个合法 JSON 对象，不要正文，不要 Markdown，不要代码块，不要解释。必须输出紧凑 JSON：不要换行、不要缩进、不要多余空格。',
-      `本次行动：${action || (config.mode === 'story' ? '继续推进操控剧情' : '继续观察现实世界')}`,
-      `基础上下文：\n${base}`,
-      `已动态载入资料：\n${[loadedText, materialText].filter(Boolean).join('\n\n') || '无'}`,
-      `阶段2正文：\n${narration}`,
+      '你只输出一个合法紧凑 JSON 对象；不要正文、Markdown、代码块、解释、缩进或多余空格。',
+      `本次行动：${this.compactUpdatePromptText(action || (config.mode === 'story' ? '继续推进操控剧情' : '继续观察现实世界'), 500)}`,
+      `基础上下文摘要：\n${this.compactUpdatePromptText(base, 1800)}`,
+      `已动态载入资料摘要：\n${this.compactUpdatePromptText([loadedText, materialText].filter(Boolean).join('\n\n') || '无', 1800)}`,
+      `阶段2正文：\n${this.compactUpdatePromptText(narration, 2800, true)}`,
       `已选择更新 Skills：${JSON.stringify(selectedSkills.updateSkills || [])}`,
       `已选择初始化 Skills：${JSON.stringify(selectedSkills.initSkills || [])}`,
       config.mode === 'story' ? storyRule : realRule,
-      '字段名必须用最短标准名；reason/status/intro/definition/evidence 只写必要证据短句，避免长段复述正文。',
-      '若正文中出现或提及未确定已有角色卡的人物，返回 appearedCharacters；只写 name、role、intro/detail、work，不要生成完整角色卡字段。若你判断该人物值得用户手动固化为角色卡，也放入 solidifiableCharacters；solidifiableCharacters 优先写同样的对象，不要只写字符串。',
-      config.mode === 'story' ? '所有 reason/status 不超过32个汉字。lexiconUpdates/itemActions/genericUpdates 只写正文确认的稳定事实变化。' : '生命体征、情绪、感觉、身体状态、物品、势力、地图、系统等变化全部写入 genericUpdates；choices 必须4个；所有 reason/status 不超过24个汉字；每个主体同类变化最多4条；没有明确变化则 genericUpdates 返回空数组。',
+      unverifiedUpdateRule,
+      '字段名必须用最短标准名；reason/status/intro/definition/evidence 只写必要证据短句，避免复述正文。每个主体同类变化最多4条；没有明确变化则 genericUpdates 返回空数组。',
       updateSkillText ? `## 更新 Skills\n\n${updateSkillText}` : '',
       initSkillText ? `## 初始化 Skills\n\n${initSkillText}` : '',
       `最小示例：${JSON.stringify({ ...(config.mode === 'story' ? this.storyUpdateJsonSchema() : this.updateJsonSchema()), ...updateSchema, ...initSchema })}`,

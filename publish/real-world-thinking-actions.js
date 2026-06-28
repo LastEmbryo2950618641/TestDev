@@ -46,7 +46,7 @@ window.GameModules.realWorldThinkingActions = {
         characterCardChanges: Array.isArray(entry?.characterCardChanges) ? entry.characterCardChanges : [],
         solidifyCards,
         solidifyUserClosed: Boolean(entry?.solidifyUserClosed),
-        solidifyOpen: solidifyCards.length > 0 && !entry?.solidifyUserClosed,
+        solidifyOpen: Boolean(entry?.solidifyOpen),
         solidifySelectedKey: entry?.solidifySelectedKey || this.solidifyKey?.(solidifyCards[0]) || '',
         streamTrace: Array.isArray(entry?.streamTrace) ? entry.streamTrace : [],
         agentTrace: Array.isArray(entry?.agentTrace) ? entry.agentTrace : [],

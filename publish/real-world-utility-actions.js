@@ -10,14 +10,52 @@ window.GameModules.realWorldUtilityActions = {
     await assigned;
   },
 
-  async recordPlayerRealWorldMemory(action, result) {
-    const text = [`现实行动：${action}`, `发生：${result.narration || ''}`, result.thinking ? `推演：${result.thinking}` : '', `目标：${result.quest || this.realWorldQuest}`].filter(Boolean).join('\n');
+  realWorldMemoryTargetState(value = '') {
+    const key = String(value || '').trim();
+    if (!key) return null;
+    return this.rpgStates?.[key]
+      || Object.values(this.rpgStates || {}).find((state) => state?.id === key || state?.name === key || state?.profile?.name === key)
+      || this.itemSkillState?.(key)
+      || null;
+  },
+
+  realWorldMemoryTargetIds(result = {}) {
+    const ids = new Set(['player-self']);
+    const add = (value) => {
+      const state = this.realWorldMemoryTargetState(value);
+      if (state?.id) ids.add(String(state.id));
+    };
+    const shared = this.sharedControlState?.();
+    if (shared?.id) ids.add(String(shared.id));
+    [result.appearedCharacters, result.solidifiableCharacters].forEach((list) => (Array.isArray(list) ? list : []).forEach((item) => add(item?.id || item?.characterId || item?.name || item)));
+    (Array.isArray(result.genericUpdates) ? result.genericUpdates : []).forEach((item) => add(item?.subject?.id || item?.subject?.name || item?.target || item?.characterId));
+    (Array.isArray(result.vitalUpdates) ? result.vitalUpdates : []).forEach((item) => add(item?.target || item?.subject?.id || item?.subject?.name));
+    (Array.isArray(result.itemActions) ? result.itemActions : []).forEach((item) => [item?.target, item?.owner, item?.characterId, item?.from, item?.to].forEach(add));
+    return [...ids];
+  },
+
+  realWorldMemoryTextFor(targetId, action, result = {}) {
+    const base = [`现实行动：${action}`, `发生：${result.narration || ''}`, result.thinking ? `推演：${result.thinking}` : '', `目标：${result.quest || this.realWorldQuest}`].filter(Boolean).join('\n');
+    if (targetId === 'player-self') return base;
+    const state = this.realWorldMemoryTargetState(targetId) || {};
+    const name = state.profile?.name || state.name || targetId;
+    return [`现实推演相关记忆：${name}参与或目睹了本次现实事件。`, base].join('\n');
+  },
+
+  async recordRealWorldMemory(action, result) {
     const store = { ...this, sceneTitle: result.sceneTitle || this.realWorldSceneTitle, entryTime: null, entryTimeLabel: () => `${this.phoneDateText()} ${this.phoneTimeText()}` };
-    const memory = window.GameModules.characterMemory.ensure('player-self');
-    const item = window.GameModules.characterMemory.memoryItem(store, { text, source: 'real-world', impression: 55 });
-    memory.shortTerm.recent.push(item);
-    window.GameModules.characterMemory.promote(memory, item);
-    await window.GameModules.characterMemory.compact('player-self', memory);
+    for (const targetId of this.realWorldMemoryTargetIds(result)) {
+      const text = this.realWorldMemoryTextFor(targetId, action, result);
+      const memory = window.GameModules.characterMemory.ensure(targetId);
+      const item = window.GameModules.characterMemory.memoryItem(store, { text, source: 'real-world', impression: targetId === 'player-self' ? 55 : 48 });
+      memory.shortTerm.recent.push(item);
+      window.GameModules.characterMemory.promote(memory, item);
+      await window.GameModules.characterMemory.compact(targetId, memory);
+    }
+  },
+
+  async recordPlayerRealWorldMemory(action, result) {
+    return await this.recordRealWorldMemory(action, result);
   },
 
   realWorldWordCountValue() {

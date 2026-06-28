@@ -124,7 +124,7 @@ function registerGameStore() {
     rpgPreparePromise: null,
     rpgPrepareCharacterId: '',
     profileViewMode: 'profile', profileMenuOpen: false, memoryInput: '', memoryArchiveQuery: '', memoryArchiveResults: [],
-    realWorldProfileViewMode: 'profile', realWorldProfileMenuOpen: false, realWorldMemoryInput: '', realWorldMemoryArchiveQuery: '', realWorldMemoryArchiveResults: [],
+    realWorldProfileViewMode: 'profile', realWorldProfileMenuOpen: false, realWorldMemoryInput: '', realWorldMemoryArchiveQuery: '', realWorldMemoryArchiveResults: [], realWorldMemoryShortTab: 'recent', realWorldMemoryLongTab: 'vivid',
     identityMemoryViewMode: 'shortTerm', identityMemoryShortTab: 'recent', identityMemoryLongTab: 'vivid', identityMemoryArchiveQuery: '', identityMemoryArchiveResults: [],
     profileOpen: false, metricsOpen: false, identityMetricsOpen: false, feedbackOpen: false,
     promptDialogOpen: false, promptDialogEntry: null, promptDialogTab: 'system',

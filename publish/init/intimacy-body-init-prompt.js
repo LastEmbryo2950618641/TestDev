@@ -1,6 +1,7 @@
 window.GameModules = window.GameModules || {};
 window.GameModules.initDefaults = window.GameModules.initDefaults || {};
 window.GameModules.initTemplateSources = window.GameModules.initTemplateSources || {};
+window.GameModules.initPromptSources = window.GameModules.initPromptSources || {};
 
 const sexParts = {
   genital: 0, chest: 0, lips: 0, mouth: 0, oralAction: 0, oralSex: 0, oralInternalFinish: 0,
@@ -165,3 +166,4 @@ const template = {
 
 window.GameModules.initTemplateSources.intimacyBody = window.GameModules.initTemplateSources.intimacyBody || template;
 window.GameModules.initDefaults.intimacyBody = window.GameModules.initDefaults.intimacyBody || template;
+window.GameModules.initPromptSources['intimacy-body'] = window.GameModules.initPromptSources['intimacy-body'] || { prompt: template.promptText(), templateKey: 'intimacyBody' };

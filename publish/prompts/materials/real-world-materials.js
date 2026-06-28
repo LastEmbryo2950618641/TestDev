@@ -90,14 +90,57 @@ window.GameModules.realWorldMaterials = {
     return acquired.length ? acquired.map((item, i) => `${i + 1}. ${item.title}｜${item.skill}.${item.method}｜${item.size}｜上限${item.maxChars}字`).join('\n') : '尚未通过 skills 动态获取额外资料。';
   },
 
-  summary(session) {
+  summary(session, options = {}) {
+    const step = Number(options.step || 1);
     const remaining = this.remaining(session);
-    const left = remaining.map((item) => `- ${item.title}：${item.skill}.${item.method}｜${item.size}｜上限${item.maxChars}字｜适用：${item.when}｜params：${JSON.stringify(item.paramsHint || {})}`).join('\n');
+    const highValueReadPairs = new Set([
+      'character.query.searchCharacterProfile',
+      'character.query.listKnownCharacters',
+      'past.event.query.searchPastEvent',
+      'company.query.listPlayerCompanies',
+      'company.query.getCompanySummary',
+      'company.query.getWorkContext',
+      'company.query.searchCompanyOne',
+      'company.query.searchCompanyWindow',
+      'faction.query.listFactions',
+      'faction.query.searchFactionOne',
+      'faction.query.getFactionDetail',
+      'faction.query.searchFactionArchive',
+      'realworld.location.query.getCurrentLocationContext',
+      'realworld.location.query.getLocationDetail',
+      'realworld.location.query.searchLocationOne',
+      'realworld.location.query.searchLocationWindow',
+      'realworld.location.query.getNearbyLocations',
+      'realworld.history.query.getRecentRealWorldLog',
+      'realworld.history.query.searchRealWorldLogOne',
+      'realworld.history.query.searchRealWorldLogWindow',
+      'realworld.history.query.listWorldlineIndex',
+      'realworld.history.query.searchWorldlineByKeyword',
+      'realworld.history.query.searchWorldlineByTime',
+      'realworld.history.query.listWorldlinePlots',
+      'realworld.history.query.getWorldlinePlotRecords',
+      'memory.query.searchCharacterMemoryOne',
+      'memory.query.searchCharacterMemoryWindow',
+      'memory.query.getRecentCharacterMemories',
+      'memory.query.searchMemoryArchive',
+      'lexicon.query.searchTermOne',
+      'lexicon.query.searchTermWindow',
+      'wechat.query.listWechatSkills',
+      'wechat.query.listContacts',
+      'wechat.query.getThread',
+      'item.query.listCharacterItems',
+      'item.query.searchKnownItem',
+    ]);
+    const candidates = step >= 3 ? remaining.filter((item) => highValueReadPairs.has(`${item.skill}.${item.method}`)) : remaining;
+    const left = candidates.map((item) => {
+      const base = `- ${item.title}：${item.skill}.${item.method}｜${item.size}｜上限${item.maxChars}字`;
+      return step >= 3 ? `${base}｜仅当缺口会直接改变本次行动结果` : `${base}｜适用：${item.when}｜params：${JSON.stringify(item.paramsHint || {})}`;
+    }).join('\n');
     return [
       '当前资料清单说明：request_context 只用于获取能回答本次行动所必需的资料，不用于补全全部世界。',
-      '资料长度规则：small 可直接读取；medium 只在必要时读取；large 禁止一次性完整加载，必须优先用关键词查询一条记录、关键词前后片段或最近指定数量。',
+      step >= 3 ? '软收敛说明：后续步骤只保留高价值候选；若缺口不会直接改变本次行动结果、人物反应或旧事实判定，必须 context_done。' : '资料长度规则：small 可直接读取；medium 只在必要时读取；large 禁止一次性完整加载，必须优先用关键词查询一条记录、关键词前后片段或最近指定数量。',
       `已获取资料：\n${this.acquiredSummary(session)}`,
-      `仍可获取资料：\n${left || '暂无剩余资料选项。'}`,
+      `仍可获取资料：\n${left || '暂无剩余高价值资料选项；请基于已有资料收敛。'}`,
     ].join('\n\n');
   },
 };
