@@ -3,8 +3,34 @@ window.GameModules.updateRegistry = window.GameModules.updateRegistry || {};
 Object.assign(window.GameModules.updateRegistry, {
   targetState(store, update = {}) {
     const subject = update.subject || {};
-    const id = subject.characterId || subject.playerId || subject.id || update.target || 'player-self';
+    const id = this.normalizeSubjectId(store, subject.characterId || subject.playerId || subject.id || update.target || 'player-self', subject);
     return store?.itemSkillState?.(id) || (id === 'player-self' ? store?.playerIdentityState?.() : null);
+  },
+
+  normalizeSubjectId(store, rawId = 'player-self', subject = {}) {
+    const id = String(rawId || '').trim() || 'player-self';
+    if (store?.itemSkillState?.(id) || id === 'player-self') return id;
+    const candidates = [subject.name, subject.characterName, this.stripInventedRolePrefix(id)].map((x) => String(x || '').trim()).filter(Boolean);
+    for (const candidate of [...new Set(candidates)]) {
+      const state = store?.itemSkillState?.(candidate) || window.GameModules.sqliteSave?.getCharacterStateByName?.(candidate);
+      if (state?.id) return state.id;
+      const bySuffix = this.findStateByNameSuffix(store, candidate);
+      if (bySuffix?.id) return bySuffix.id;
+    }
+    return id;
+  },
+
+  stripInventedRolePrefix(id = '') {
+    return String(id || '').replace(/^(?:role|char|character|角色|人物|r|c)[-_：:]?/iu, '').trim();
+  },
+
+  findStateByNameSuffix(store, name = '') {
+    const value = String(name || '').trim();
+    if (!value) return null;
+    return Object.values(store?.rpgStates || {}).find((state) => {
+      const label = String(state?.profile?.name || state?.name || '').trim();
+      return label && (label === value || label.endsWith(value));
+    }) || null;
   },
 
   genericTarget(store, update = {}) {

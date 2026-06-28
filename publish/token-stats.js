@@ -37,6 +37,13 @@ window.GameModules.tokenStats = {
       'character-profile-part4-csv-fix': '角色卡 Part4 物品穿着 CSV 修复',
       'character-profile-part5-csv-fix': '角色卡 Part5 身体原貌 CSV 修复',
       'character-profile-part6-csv-fix': '角色卡 Part6 盛装状态 CSV 修复',
+      'real-stage3-router': '现实阶段3A-更新分组判断',
+      'real-stage3-update-init': '现实阶段3B-初始化更新',
+      'real-stage3-update-metrics': '现实阶段3B-情绪与感觉更新',
+      'real-stage3-update-bodySex': '现实阶段3B-身体与性经历更新',
+      'real-stage3-update-survival': '现实阶段3B-生命体征与系统更新',
+      'real-stage3-update-worldSocial': '现实阶段3B-世界关系与势力更新',
+      'real-stage3-update-inventory': '现实阶段3B-物品更新',
     };
     return names[id] || item?.title || id;
   },

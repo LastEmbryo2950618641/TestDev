@@ -29,7 +29,37 @@ window.GameModules.realWorldTargetUpdates = {
 
   async applyMetrics(store, result = {}) {
     const settlement = [];
-    for (const group of this.metricUpdateGroups(result)) {
+    const groups = [];
+    const groupMap = new Map();
+    const addGroup = (group = {}) => {
+      const target = String(group.target || 'player-self');
+      const state = this.targetState(store, target);
+      const key = state?.id ? `state:${state.id}` : `target:${target}`;
+      const updates = group.updates || {};
+      if (!groupMap.has(key)) {
+        const next = { target, updates: { emotions: [], playerFeelings: [] } };
+        groupMap.set(key, next);
+        groups.push(next);
+      }
+      const current = groupMap.get(key).updates;
+      current.emotions.push(...(Array.isArray(updates.emotions) ? updates.emotions : []));
+      current.playerFeelings.push(...(Array.isArray(updates.playerFeelings) ? updates.playerFeelings : []));
+    };
+    this.metricUpdateGroups(result).forEach((group) => addGroup(group));
+    const targets = new Set(groups.map((group) => String(group.target || 'player-self')));
+    const targetStateIds = new Set(groups.map((group) => this.targetState(store, group.target)?.id).filter(Boolean));
+    const addDecayTarget = (target, state) => {
+      const metrics = state?.metrics;
+      const hasTemporary = Object.keys(metrics?.temporaryEmotions || {}).length || Object.keys(metrics?.temporaryPlayerFeelings || {}).length;
+      if (state?.id && hasTemporary && !targets.has(target) && !targetStateIds.has(state.id)) {
+        targets.add(target);
+        targetStateIds.add(state.id);
+        groups.push({ target, updates: { emotions: [], playerFeelings: [] } });
+      }
+    };
+    addDecayTarget('player-self', store.playerIdentityState?.());
+    Object.values(store.rpgStates || {}).forEach((state) => addDecayTarget(state?.id, state));
+    for (const group of groups) {
       const state = this.targetState(store, group.target);
       const metrics = state?.id ? store.ensureStateMetrics?.(state) : null;
       const updates = this.normalizeMetricUpdatesForState(group.updates, metrics);

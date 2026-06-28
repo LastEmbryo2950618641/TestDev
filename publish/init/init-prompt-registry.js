@@ -52,7 +52,9 @@ markByInitUpdates(updates = [], store = null) {
     return this.markExecuted(matched, store);
   },
 targetState(store, update = {}) {
-    const subject = update.subject || {}, id = subject.characterId || subject.playerId || subject.id || update.target || 'player-self';
+    const subject = update.subject || {};
+    const rawId = subject.characterId || subject.playerId || subject.id || update.target || 'player-self';
+    const id = window.GameModules.updateRegistry?.normalizeSubjectId?.(store, rawId, subject) || rawId;
     return store?.itemSkillState?.(id) || (id === 'player-self' ? store?.playerIdentityState?.() : null);
   },
 async apply(store, updates = []) {
@@ -172,8 +174,20 @@ fields(templateKey = '', state = {}) {
     });
   },
 registerAll(prefix = '') { this.prompts = {}; Object.entries(window.GameModules.initPromptSources || {}).forEach(([key, source]) => { if (!prefix || String(key).startsWith(prefix)) this.register(key, source); }); },
-  selectByNames(names = [], store = null) { const wanted = new Set((names || []).map((name) => String(name || '').trim()).filter(Boolean)); return this.pending('', store).filter((item) => wanted.has(item.id) || wanted.has(item.templateKey) || wanted.has(item.name)); },
-  skillSummaries(store = null) { return this.pending('', store).map((item) => `- ${item.name || item.id}：${item.description || item.template?.title || ''}`).join('\n'); },
+  selectByNames(names = [], store = null) { const wanted = this.normalizedSkillNameSet(names); return this.pending('', store).filter((item) => wanted.has(item.id) || wanted.has(item.templateKey) || wanted.has(item.name)); },
+  canonicalSkillIds(names = [], store = null) { const wanted = this.normalizedSkillNameSet(names); return this.pending('', store).filter((item) => wanted.has(item.id) || wanted.has(item.templateKey) || wanted.has(item.name)).map((item) => item.id); },
+  normalizedSkillNameSet(names = []) {
+    const out = new Set();
+    for (const raw of Array.isArray(names) ? names : []) {
+      const name = String(raw || '').trim();
+      if (!name) continue;
+      out.add(name);
+      const dotted = name.match(/^([a-z0-9-]+)\.[A-Za-z0-9_]+$/u)?.[1];
+      if (dotted) out.add(dotted);
+    }
+    return out;
+  },
+  skillSummaries(store = null) { return this.pending('', store).map((item) => `- ${item.id}：${item.description || item.template?.title || ''}`).join('\n'); },
   skillText(ids = null, store = null) { const selected = Array.isArray(ids) ? this.selectByNames(ids, store) : this.pending(String(ids || ''), store); return selected.map((item) => [`## ${item.name || item.id}`, item.body, item.template?.promptText?.() || ''].filter(Boolean).join('\n\n')).filter(Boolean).join('\n\n'); },
   schema(ids = null, store = null) { const result = { initUpdates: [] }, selected = Array.isArray(ids) ? this.selectByNames(ids, store) : this.pending(String(ids || ''), store); selected.forEach((item) => { const schema = item.template?.jsonFormat?.(); if (Array.isArray(schema?.initUpdates)) result.initUpdates.push(...schema.initUpdates); }); return result; },
 };

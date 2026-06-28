@@ -72,6 +72,8 @@ window.GameModules.metrics = {
   ensure(store) {
     store.emotions = this.fill(store.emotions, this.emotionKeys, this.defaults.emotions);
     store.playerFeelings = this.fill(store.playerFeelings, this.playerKeys, this.defaults.playerFeelings);
+    store.temporaryEmotions = store.temporaryEmotions && typeof store.temporaryEmotions === 'object' ? store.temporaryEmotions : {};
+    store.temporaryPlayerFeelings = store.temporaryPlayerFeelings && typeof store.temporaryPlayerFeelings === 'object' ? store.temporaryPlayerFeelings : {};
     store.metricNotes = store.metricNotes || {};
   },
   fill(current, keys, defaults) {
@@ -81,22 +83,29 @@ window.GameModules.metrics = {
   },
   apply(store, updates) {
     this.ensure(store);
-    this.applyGroup(store.emotions, updates?.emotions, store.metricNotes, 'emotion');
-    this.applyGroup(store.playerFeelings, updates?.playerFeelings, store.metricNotes, 'player');
+    Object.keys(store.temporaryEmotions).forEach((key) => { store.temporaryEmotions[key] = Math.max(0, this.clamp(store.temporaryEmotions[key]) - 1); });
+    Object.keys(store.temporaryPlayerFeelings).forEach((key) => { store.temporaryPlayerFeelings[key] = Math.max(0, this.clamp(store.temporaryPlayerFeelings[key]) - 1); });
+    this.applyGroup(store.emotions, updates?.emotions, store.metricNotes, 'emotion', store.temporaryEmotions);
+    this.applyGroup(store.playerFeelings, updates?.playerFeelings, store.metricNotes, 'player', store.temporaryPlayerFeelings);
   },
   applyInitial(store, updates) {
     this.ensure(store);
     this.setGroup(store.emotions, updates?.emotions, store.metricNotes, 'emotion');
     this.setGroup(store.playerFeelings, updates?.playerFeelings, store.metricNotes, 'player');
   },
-  applyGroup(target, items, notes, group) {
+  applyGroup(target, items, notes, group, temporaryTarget = null) {
     if (!Array.isArray(items)) return;
     items.forEach((item) => {
-      if (!Object.prototype.hasOwnProperty.call(target, item?.key)) return;
+      const key = String(item?.key || '').trim();
+      if (!key) return;
+      const isFixed = Object.prototype.hasOwnProperty.call(target, key);
+      const targetGroup = isFixed ? target : temporaryTarget;
+      if (!targetGroup) return;
+      const before = this.clamp(targetGroup[key] || 0);
       const rawDelta = this.clampDelta(this.metricDeltaValue(item));
-      const delta = group === 'player' ? this.lockedPlayerDelta(item.key, rawDelta, target[item.key]) : rawDelta;
-      const value = this.clamp(target[item.key] + delta);
-      this.writeMetric(target, notes, group, { ...item, delta }, value, '本回合没有直接触发变化，保持原值。');
+      const delta = group === 'player' && isFixed ? this.lockedPlayerDelta(item.key, rawDelta, before) : rawDelta;
+      const value = this.clamp(before + delta);
+      this.writeMetric(targetGroup, notes, group, { ...item, key, delta, temporary: !isFixed }, value, '本回合没有直接触发变化，保持原值。');
     });
   },
   setGroup(target, items, notes, group) {
@@ -107,12 +116,15 @@ window.GameModules.metrics = {
     });
   },
   writeMetric(target, notes, group, item, value, fallbackReason) {
-    const stage = this.stageFor(item.key, value);
+    const noteGroup = item.temporary ? `${group}:temporary` : group;
+    const stage = item.temporary ? '短期状态' : this.stageFor(item.key, value);
     target[item.key] = value;
     const rawStatus = String(item.status || '').trim();
     const rawReason = String(item.reason || '').trim();
     const reason = String(rawReason || fallbackReason).slice(0, 180);
-    const status = String(this.valueExplanation(item.key, value, rawStatus, reason)).slice(0, 180);
+    const status = item.temporary
+      ? String(rawStatus || `${item.key}${this.clamp(value)}：短期状态，因为${reason.replace(/[。.!！]+$/g, '')}。`).slice(0, 180)
+      : String(this.valueExplanation(item.key, value, rawStatus, reason)).slice(0, 180);
     const explicitSources = item.metricSources || null;
     const statusFromAi = rawStatus && status === rawStatus;
     const isAi = (source) => String(source || '').toLowerCase() === 'ai';
@@ -121,16 +133,12 @@ window.GameModules.metrics = {
       解释: isAi(explicitSources.解释) && statusFromAi ? 'AI' : '系统',
       原因: isAi(explicitSources.原因) && rawReason ? 'AI' : '系统',
     } : {
-      数值: '系统',
-      解释: '系统',
-      原因: '系统',
+      数值: 'AI',
+      解释: statusFromAi ? 'AI' : '系统',
+      原因: rawReason ? 'AI' : '系统',
     };
-    notes[`${group}:${item.key}`] = {
-      stage,
-      status,
-      reason,
-      description: String(this.descriptions[item.key] || item.key).slice(0, 120),
-      metricSources,
-    };
+    const note = { status, reason, metricSources };
+    notes[`${noteGroup}:${item.key}`] = note;
+    if (item.temporary) delete notes[`${group}:${item.key}`];
   },
 };

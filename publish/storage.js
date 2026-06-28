@@ -56,6 +56,8 @@ window.GameModules.storage = {
       resistance: store.resistance,
       emotions: store.emotions,
       playerFeelings: store.playerFeelings,
+      temporaryEmotions: store.temporaryEmotions,
+      temporaryPlayerFeelings: store.temporaryPlayerFeelings,
       metricsReady: store.metricsReady,
       metricNotes: store.metricNotes,
       quest: store.quest,
@@ -143,6 +145,8 @@ window.GameModules.storage = {
     store.resistance = save.resistance ?? store.resistance;
     store.emotions = save.emotions || store.emotions;
     store.playerFeelings = save.playerFeelings || store.playerFeelings;
+    store.temporaryEmotions = save.temporaryEmotions && typeof save.temporaryEmotions === 'object' ? save.temporaryEmotions : (store.temporaryEmotions || {});
+    store.temporaryPlayerFeelings = save.temporaryPlayerFeelings && typeof save.temporaryPlayerFeelings === 'object' ? save.temporaryPlayerFeelings : (store.temporaryPlayerFeelings || {});
     store.metricsReady = save.metricsReady ?? true;
     store.metricNotes = save.metricNotes || store.metricNotes;
     window.GameModules.metrics.ensure(store);

@@ -26,6 +26,9 @@ window.GameModules.updateRules.sexualExperience = {
 
 window.GameModules.updateRegistry = {
   types: [], prompts: {}, skills: {}, uis: {},
+  skillAliases: {
+    'emotional-feeling-wearing.updateEmotionFeelingWearing': ['emotion', 'feeling'],
+  },
   operations: ['delta', 'set', 'append', 'remove', 'merge', 'upsert', 'create', 'delete', 'transfer', 'link', 'unlink'],
 
   parseSkill(text = '') {
@@ -64,9 +67,8 @@ window.GameModules.updateRegistry = {
   skillSummaries() {
     return this.types.map((type) => {
       const skill = this.skills[type.promptId] || {};
-      const name = skill.name || type.id;
       const description = skill.description || type.description || type.section || '';
-      return `- ${name}：${description}`;
+      return `- ${type.id}：${description}`;
     }).join('\n');
   },
 
@@ -77,8 +79,7 @@ window.GameModules.updateRegistry = {
   },
 
   skillText(ids = null) {
-    const list = Array.isArray(ids) ? ids : [];
-    const wanted = new Set(list.filter(Boolean));
+    const wanted = this.normalizedSkillNameSet(ids);
     const selected = Array.isArray(ids) ? this.types.filter((type) => wanted.has(type.id) || wanted.has(type.promptId) || wanted.has(this.skills[type.promptId]?.name)) : this.types;
     return selected.map((type) => {
       const skill = this.skills[type.promptId] || {};
@@ -89,8 +90,28 @@ window.GameModules.updateRegistry = {
   },
 
   selectByNames(names = []) {
-    const wanted = new Set((names || []).map((name) => String(name || '').trim()).filter(Boolean));
+    const wanted = this.normalizedSkillNameSet(names);
     return this.types.filter((type) => wanted.has(type.id) || wanted.has(type.promptId) || wanted.has(this.skills[type.promptId]?.name));
+  },
+
+  canonicalSkillIds(names = []) {
+    const wanted = this.normalizedSkillNameSet(names);
+    return this.types
+      .filter((type) => wanted.has(type.id) || wanted.has(type.promptId) || wanted.has(this.skills[type.promptId]?.name))
+      .map((type) => type.id);
+  },
+
+  normalizedSkillNameSet(names = []) {
+    const out = new Set();
+    for (const raw of Array.isArray(names) ? names : []) {
+      const name = String(raw || '').trim();
+      if (!name) continue;
+      const aliases = this.skillAliases?.[name] || [];
+      [name, ...aliases].forEach((item) => out.add(item));
+      const dotted = name.match(/^([a-z0-9-]+)\.[A-Za-z0-9_]+$/u)?.[1];
+      if (dotted) out.add(dotted);
+    }
+    return out;
   },
 
   schemaFor(ids = null) {
@@ -108,7 +129,7 @@ window.GameModules.updateRegistry = {
   },
 
   normalizeUpdates(raw = {}, store = null) {
-    const base = Array.isArray(raw?.genericUpdates) ? raw.genericUpdates : [];
+    const base = Array.isArray(raw?.genericUpdates) ? raw.genericUpdates.map((item) => this.normalizeUpdateAlias(item)) : [];
     const legacyMetrics = this.metricGenericFromLegacy?.(raw, store) || [];
     const extras = [];
     this.types.forEach((type) => {
@@ -121,6 +142,15 @@ window.GameModules.updateRegistry = {
       }
     });
     return this.uniqueUpdates([...base, ...legacyMetrics, ...extras]).slice(0, 80);
+  },
+
+  normalizeUpdateAlias(update = {}) {
+    if (!update || typeof update !== 'object') return update;
+    const value = update.change?.value;
+    const hasSexualCountValue = value && typeof value === 'object' && !Array.isArray(value) && (value.totalDelta !== undefined || value.partKey || value.parts);
+    const looksLikeSexualExperience = hasSexualCountValue && (/^intimacy(?:\.|$)/u.test(String(update.field || '')) || update.updateType === 'intimacy-body');
+    if (!looksLikeSexualExperience || update.updateType === 'sexual-experience') return update;
+    return { ...update, updateType: 'sexual-experience', field: update.field === 'intimacy.bodyStatus' ? 'intimacy.sexualExperienceParts' : update.field };
   },
 
   uniqueUpdates(updates = []) {

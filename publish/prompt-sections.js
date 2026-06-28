@@ -71,6 +71,32 @@ window.GameModules.promptSections = {
     return list.map((x) => `${x.name}(${x.type}/${x.level})`).join('、') || '未初始化';
   },
 
+  knownSubjects(store) {
+    const subjects = [];
+    const add = (type, id, name, note = '') => {
+      const key = String(id || '').trim();
+      if (!key || subjects.some((item) => item.id === key && item.type === type)) return;
+      subjects.push({ type, id: key, name: String(name || key).trim(), note });
+    };
+    const player = store?.playerIdentityState?.();
+    add('player', 'player-self', store?.realWorldPlayerSettlementName?.() || player?.profile?.name || store?.playerName || '玩家本人', '玩家本人固定ID');
+    Object.values(store?.rpgStates || {}).forEach((state) => add('character', state?.id, state?.profile?.name || state?.name, state?.profile?.role || state?.role || ''));
+    return subjects.length ? subjects.slice(0, 30).map((item) => `- ${item.name}：type=${item.type}，id=${item.id}${item.note ? `，说明=${item.note}` : ''}`).join('\n') : '- 玩家本人：type=player，id=player-self，说明=玩家本人固定ID';
+  },
+
+  subjectIdRules(store) {
+    return [
+      '## 可用主体ID',
+      this.knownSubjects(store),
+      '',
+      '## subject.id 规则',
+      '- 玩家本人必须写 id:"player-self"。',
+      '- 更新已知角色时，必须使用“可用主体ID”中对应的 id，并可同时写 name。',
+      '- 如果目标不在列表中，subject.id 直接写稳定全名，禁止添加 r/role/char/character/角色/人物 等自造前缀。',
+      '- 禁止为了缩写或分类自行创造角色ID；不确定时宁可写完整姓名。',
+    ].join('\n');
+  },
+
   stateSnapshot(store, state = null) {
     const metrics = state ? store?.ensureStateMetrics?.(state) : { emotions: store?.emotions, playerFeelings: store?.playerFeelings };
     const wearing = store?.wearingItems?.(state || store?.inventoryTargetState?.()) || [];

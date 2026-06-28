@@ -6,6 +6,7 @@ window.GameModules = window.GameModules || {};
 
   registry.legacySettlementType = function legacySettlementType(row = {}) {
     const text = `${row.updateType || ''} ${row.field || ''} ${row.name || ''} ${row.group || ''} ${row.section || ''}`;
+    if (/临时情绪|临时感觉/u.test(text)) return 'system';
     if (/情绪/u.test(text)) return 'emotion';
     if (/感觉/u.test(text)) return 'feeling';
     if (/人际关系|关系名|relationships?|亲属|恋人|朋友|同事|师生|同居/u.test(text)) return 'relationship';
@@ -62,6 +63,7 @@ window.GameModules = window.GameModules || {};
 
   registry.rowFromSettlement = function rowFromSettlement(row = {}, store = null) {
     const source = row && typeof row === 'object' ? row : null;
+    const isTemporaryMetricRow = /^(临时情绪|临时感觉)$/u.test(source?.field || '');
     const rendered = this.rowFromGeneric(this.legacySettlementUpdate(row), store);
     if (!source || source.updateType) return rendered;
     return this.decorateRow({
@@ -71,20 +73,28 @@ window.GameModules = window.GameModules || {};
       cardId: rendered.cardId,
       cardTitle: rendered.cardTitle,
       section: rendered.section || source.section,
+      field: isTemporaryMetricRow ? source.field : rendered.field,
+      name: isTemporaryMetricRow ? (source.uiName || source.name || source.field || rendered.name) : rendered.name,
+      value: isTemporaryMetricRow ? (source.uiValue ?? source.value ?? rendered.value) : rendered.value,
+      uiTitle: isTemporaryMetricRow ? source.field : rendered.uiTitle,
+      uiName: isTemporaryMetricRow ? (source.uiName || source.name || source.field || rendered.uiName) : rendered.uiName,
+      uiValue: isTemporaryMetricRow ? (source.uiValue ?? source.value ?? rendered.uiValue) : rendered.uiValue,
       applied: source.applied !== undefined ? source.applied : rendered.applied,
     });
   };
 
   registry.settlementRows = function settlementRows(entry = {}, store = null) {
     const vitalAliases = { 精力池: 'stamina_pool', 精力: 'stamina_pool', 饱食度: 'satiety', 水分: 'hydration', 疲劳度: 'fatigue', 精神稳定: 'mental_stability' };
-    const appliedMetricKeys = new Set((entry.characterCardChanges || []).filter((item) => /^(情绪|感觉)$/u.test(item?.field || '')).map((item) => `${item.cardId || item.group || ''}:${item.field}:${item.name}`));
+    const appliedMetricKeys = new Set((entry.characterCardChanges || []).filter((item) => /^(情绪|感觉|临时情绪|临时感觉)$/u.test(item?.field || '')).map((item) => `${item.cardId || item.group || ''}:${item.field}:${item.name}`));
     const appliedVitalKeys = new Set((entry.characterCardChanges || []).filter((item) => item?.field === '生命体征').map((item) => `${item.cardId || item.group || ''}:vital:${vitalAliases[item.name] || item.name}`));
     const genericRows = (entry.genericUpdates || [])
       .filter((item) => {
         if (/^(emotion|feeling)$/u.test(item?.updateType || '')) {
-          const type = item.updateType === 'feeling' ? '感觉' : '情绪';
-          const card = this.cardForChange(item, store);
           const name = this.leafName?.(item.field) || item.name || '';
+          const fixedKeys = item.updateType === 'feeling' ? window.GameModules.metrics?.playerKeys : window.GameModules.metrics?.emotionKeys;
+          const isTemporary = /(^|\.)temporary(\.|$)/u.test(item?.field || '') || item?.temporary === true || (Array.isArray(fixedKeys) && name && !fixedKeys.includes(name));
+          const type = item.updateType === 'feeling' ? (isTemporary ? '临时感觉' : '感觉') : (isTemporary ? '临时情绪' : '情绪');
+          const card = this.cardForChange(item, store);
           return !appliedMetricKeys.has(`${card.id || card.title || ''}:${type}:${name}`);
         }
         if (item?.updateType === 'vital') {

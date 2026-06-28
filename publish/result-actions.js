@@ -75,17 +75,20 @@ window.GameModules.resultActions = {
   },
 
   applyInitialMetrics(updates) {
+    this.temporaryEmotions = {};
+    this.temporaryPlayerFeelings = {};
     window.GameModules.metrics.applyInitial(this, updates);
     this.metricsReady = true;
     this.syncMetricDerived();
   },
 
   async applyMetricUpdatesToState(state, updates) {
-    const count = (updates?.emotions?.length || 0) + (updates?.playerFeelings?.length || 0);
-    if (!state?.id || !count) return;
+    if (!state?.id) return;
     const metrics = this.ensureStateMetrics(state);
-    window.GameModules.metrics.applyGroup(metrics.emotions, updates.emotions, metrics.notes, 'emotion');
-    window.GameModules.metrics.applyGroup(metrics.playerFeelings, updates.playerFeelings, metrics.notes, 'player');
+    Object.keys(metrics.temporaryEmotions).forEach((key) => { metrics.temporaryEmotions[key] = Math.max(0, window.GameModules.metrics.clamp(metrics.temporaryEmotions[key]) - 1); });
+    Object.keys(metrics.temporaryPlayerFeelings).forEach((key) => { metrics.temporaryPlayerFeelings[key] = Math.max(0, window.GameModules.metrics.clamp(metrics.temporaryPlayerFeelings[key]) - 1); });
+    window.GameModules.metrics.applyGroup(metrics.emotions, updates?.emotions, metrics.notes, 'emotion', metrics.temporaryEmotions);
+    window.GameModules.metrics.applyGroup(metrics.playerFeelings, updates?.playerFeelings, metrics.notes, 'player', metrics.temporaryPlayerFeelings);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
     if (state.id === this.character?.id) this.loadMetricsFromCharacterState(state);
     await window.GameModules.sqliteSave.saveCharacterState(state);
@@ -95,6 +98,8 @@ window.GameModules.resultActions = {
     const metrics = this.ensureStateMetrics(state);
     this.emotions = { ...metrics.emotions };
     this.playerFeelings = { ...metrics.playerFeelings };
+    this.temporaryEmotions = { ...(metrics.temporaryEmotions || {}) };
+    this.temporaryPlayerFeelings = { ...(metrics.temporaryPlayerFeelings || {}) };
     this.metricNotes = { ...(metrics.notes || {}) };
     this.metricsReady = true;
     this.syncMetricDerived();

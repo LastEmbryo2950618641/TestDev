@@ -73,16 +73,21 @@ window.GameModules.realWorldSettlementActions = {
   realWorldMetricSettlement(state, updates = {}, group = '') {
     group = group || this.realWorldSettlementTargetGroup(state?.id || 'player-self', '');
     const metrics = state ? this.ensureStateMetrics(state) : null;
+    const card = state?.id ? { id: `role:${state.id}`, title: group, section: '角色卡' } : null;
     const rows = [];
     const add = (field, list, current = {}) => (Array.isArray(list) ? list : []).forEach((item) => {
-      const before = Number(current[item.key] || 0);
+      const before = Number(current?.[item.key] || 0);
+      const decayedBefore = item.temporary ? Math.max(0, window.GameModules.metrics.clamp(before) - 1) : before;
       const rawDelta = window.GameModules.metrics.metricDeltaValue?.(item) ?? item.delta;
-      const delta = field === '感觉' ? window.GameModules.metrics.lockedPlayerDelta(item.key, window.GameModules.metrics.clampDelta(rawDelta), before) : window.GameModules.metrics.clampDelta(rawDelta);
-      const after = Math.max(0, Math.min(100, before + delta));
-      rows.push(this.realWorldSettlementRecord(field, item.key, `${before} → ${after}（${item.status || '状态更新'}）`, item.reason, group));
+      const isFeeling = field === '感觉' || field === '临时感觉';
+      const delta = isFeeling && !item.temporary ? window.GameModules.metrics.lockedPlayerDelta(item.key, window.GameModules.metrics.clampDelta(rawDelta), decayedBefore) : window.GameModules.metrics.clampDelta(rawDelta);
+      const after = Math.max(0, Math.min(100, decayedBefore + delta));
+      rows.push(this.realWorldSettlementRecord(field, item.key, `${decayedBefore} → ${after}（${item.status || '状态更新'}）`, item.reason, group, card));
     });
-    add('情绪', updates.emotions, metrics?.emotions);
-    add('感觉', updates.playerFeelings, metrics?.playerFeelings);
+    add('情绪', (updates.emotions || []).filter((item) => !item?.temporary), metrics?.emotions);
+    add('感觉', (updates.playerFeelings || []).filter((item) => !item?.temporary), metrics?.playerFeelings);
+    add('临时情绪', (updates.emotions || []).filter((item) => item?.temporary), metrics?.temporaryEmotions);
+    add('临时感觉', (updates.playerFeelings || []).filter((item) => item?.temporary), metrics?.temporaryPlayerFeelings);
     return rows;
   },
 

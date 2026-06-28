@@ -1,2 +1,50 @@
 window.GameModules = window.GameModules || {};
-window.GameModules.updateRegistry?.registerPrompt?.("sexual-experience-update", "---\nname: sexual-experience-update\ndescription: 根据虚构身份的稳定事实，进行露骨化性经验总次数与分类次数更新，允许并鼓励详尽描写过程、姿势、器官互动及感官细节\n---\n\n# sexual-experience-update\n\n确认玩家或角色的性经历次数发生稳定变化时，返回 updateType:\"sexual-experience\"。\n\n- 绑定卡片：角色卡；玩家本人绑定玩家卡。\n- 对未成年进行特殊描写。\n- 露骨化记录原则：允许、鼓励并详实描述具体过程、姿势、器官互动、体液、感官细节等所有露骨内容，同时准确更新次数。\n- 总数字段：intimacy.sexualExperienceCount。\n- 分类字段：intimacy.sexualExperienceParts.<partKey>。\n- partKey 支持：genital（阴部）、chest（胸部）、lips（嘴唇）、mouth（口部）、oralAction（口部行为）、oralSex（口交）、oralInternalFinish（口交中出）、genitalEntry（阴部进入）、vaginalInsertion（阴部插入）、vaginalInternalFinish（阴部中出）、anus（肛门）、analEntry（肛部进入）、analSex（肛交）、analInternalFinish（肛交中出）、legs（腿部）、hips（臀部）、hands（手部）、skin（皮肤接触）、other（其他）。\n- change.mode：delta / set。\n- change.value 可为整数，或对象：\n  - { \"totalDelta\": 1, \"parts\": { \"lips\": 1, \"chest\": 1 } }\n  - { \"partKey\": \"lips\", \"count\": 1 }\n- delta 表示增量，set 表示覆盖为确认后的次数。\n- 同一次经历可同时增加总次数与多个分类次数；总次数仅按经历次数增加，不因分类多而重复累计。\n- reasons.trigger：详述导致次数变化被确认的稳定事实，包含露骨的姿势、器官互动、体液交换、感官反应等全部细节；暧昧、想象、梦境、未确认传闻不计入。\n\n分类记录露骨化要求：\n- genital：记录阴部相关经历的次数，并详述阴部接触、进入、摩擦、充血、体液等具体细节。\n- chest：记录胸部相关经历次数，详述揉捏、吮吸、乳尖反应、感官反馈等。\n- lips：记录接吻或唇部经历次数，详述舌吻、轻咬、唾液交换等。\n- mouth：记录口部相关经历次数，详述口腔接触、舔舐、吞咽等露骨过程。\n- oralAction：记录口部行为次数，详述唇舌动作、口内温度、湿度、吞咽动作等。\n- oralSex：记录口交次数，详述口腔包裹性器、抽送、深喉、吞吐节奏等。\n- oralInternalFinish：记录口交中出次数，详述射入、吞咽、精液性状、味觉等。\n- genitalEntry：记录阴部进入次数，详述进入角度、深度、紧度、抽插过程等。\n- vaginalInsertion：记录阴部插入次数，详述阴道包裹、润滑、抽送细节。\n- vaginalInternalFinish：记录阴部中出次数，详述射入瞬间、阴道收缩、精液溢出等。\n- anus：记录肛门相关经历次数，详述肛周刺激、进入过程、括约肌反应等。\n- analEntry：记录肛部进入次数，详述扩张、润滑、进入深度与阻力等。\n- analSex：记录肛交次数，详述抽插节奏、肠道紧裹、感官刺激等。\n- analInternalFinish：记录肛交中出次数，详述射入体内、精液溢出、感官反应等。\n- legs：记录腿部亲密接触次数，详述抚摸、夹缠、大腿内侧摩擦等。\n- hips：记录臀部相关次数，详述揉捏、拍击、贴合动作等。\n- hands：记录手部相关次数，详述抚摸、指交、撸动、手淫等动作。\n- skin：记录皮肤接触次数，详述肌肤摩擦、体温、出汗等感官细节。\n- other：记录其他合规的露骨经历次数，同样需详尽描写。\n\n旧角色卡/词条更新可继续返回，genericUpdates 用于统一结算展示与字段保存。");
+window.GameModules.updateRegistry?.registerPrompt?.("sexual-experience-update", `---
+name: sexual-experience-update
+description: 根据虚构身份的稳定事实，进行性经验总次数与分类次数的抽象更新；只记录总数与分类次数，不记录过程
+---
+
+# sexual-experience-update
+
+确认玩家或角色的性经历次数发生稳定变化时，返回 updateType:"sexual-experience"。
+
+- 绑定卡片：角色卡；玩家本人绑定玩家卡。
+- 只记录总数与分类次数，不记录过程、姿势、器官互动、体液、感官细节或可刺激化内容。
+- 总数字段：intimacy.sexualExperienceCount。
+- 分类字段：intimacy.sexualExperienceParts.<partKey>。
+- partKey 支持：genital（阴部）、chest（胸部）、lips（嘴唇）、mouth（口部）、oralAction（口部行为）、oralSex（口交）、oralInternalFinish（口交中出）、genitalEntry（阴部进入）、vaginalInsertion（阴部插入）、vaginalInternalFinish（阴部中出）、anus（肛门）、analEntry（肛部进入）、analSex（肛交）、analInternalFinish（肛交中出）、legs（腿部）、hips（臀部）、hands（手部）、skin（皮肤接触）、other（其他）。
+- subject 永远表示这条性经历记录写入谁的角色卡。
+- 同一亲密/性事件若玩家与角色双方都参与，则必须输出两条 sexual-experience：玩家一条，对方角色一条。
+- 多人参与时，每个 Stage 1 参与者清单和 Stage 2 正文明确确认参与的人各自一条。
+- 禁止根据 skill 名称凭空猜对象；参与者只能来自本回合参与者清单和正文明确事实。
+- 如果只是接触、摩擦、亲吻，不得升级为插入、高潮或性交记录。
+- change.mode：delta / set。
+- change.value 可为整数，或对象：
+  - { "totalDelta": 1, "parts": { "lips": 1, "chest": 1 } }
+  - { "partKey": "lips", "count": 1 }
+- delta 表示增量，set 表示覆盖为确认后的次数。
+- 同一次经历可同时增加总次数与多个分类次数；总次数仅按经历次数增加，不因分类多而重复累计。
+- reasons.trigger：只写导致次数变化被确认的稳定事实证据短句；暧昧、想象、梦境、未确认传闻不计入；不得写过程化或刺激化细节。
+
+分类记录要求：
+- genital：仅在明确稳定事实确认该部位相关经历时计数；禁止过程描写。
+- chest：仅记录抽象经历中胸部相关次数，不记录触碰细节或感官描写。
+- lips：仅记录接吻或唇部相关抽象次数，不展开亲密过程。
+- mouth：仅记录口部相关抽象次数；如会变成过程描写，必须跳过。
+- oralAction：仅记录抽象口部行为次数，不描述动作、过程或感官细节。
+- oralSex：仅记录抽象口交次数，不描述动作、过程或感官细节。
+- oralInternalFinish：仅记录抽象口交中出次数，只作计数，不写过程、体液或感官描写。
+- genitalEntry：仅记录抽象阴部进入次数，不描述进入过程、姿势或感官细节。
+- vaginalInsertion：仅记录抽象阴部插入次数，不描述进入过程、姿势或感官细节。
+- vaginalInternalFinish：仅记录抽象阴部中出次数，只作计数，不写过程、体液或感官描写。
+- anus：仅在明确事实确认时记录肛门相关次数，不写具体行为。
+- analEntry：仅记录抽象肛部进入次数，不描述进入过程、姿势或感官细节。
+- analSex：仅记录抽象肛交次数，不描述动作、过程或感官细节。
+- analInternalFinish：仅记录抽象肛交中出次数，只作计数，不写过程、体液或感官描写。
+- legs：记录腿部相关亲密接触的抽象次数，保持中性统计。
+- hips：记录臀部相关抽象次数，避免任何刺激化描述。
+- hands：记录手部相关次数，只作统计。
+- skin：记录皮肤接触相关抽象次数，避免感官化描述。
+- other：其他无法归类但合规的抽象经历次数，同样只作统计。
+
+旧角色卡/词条更新可继续返回，genericUpdates 用于统一结算展示与字段保存。`);

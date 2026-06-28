@@ -119,6 +119,12 @@ window.GameModules.realWorldThinkingActions = {
       const prev = prevRows[prevRows.length - 1];
       if (prev?.type === 'user' && rows[0]?.id?.startsWith(String(prev.id || '').replace(/-user$/, '-ai'))) rows = [prev, ...rows];
     }
+    const last = rows[rows.length - 1];
+    if (last?.type === 'user' && this.realWorldLogPage < maxPage) {
+      const nextRows = window.GameModules.sqliteSave.listRealWorldLogEntries?.(this.realWorldLogPage + 1, this.realWorldLogPageSize) || [];
+      const next = nextRows[0];
+      if (next?.type === 'ai' && next.id?.startsWith(String(last.id || '').replace(/-user$/, '-ai'))) rows = [...rows, next];
+    }
     this.realWorldLog = this.normalizeRealWorldLog(rows);
   },
 

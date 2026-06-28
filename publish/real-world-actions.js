@@ -4,16 +4,21 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldActions = {
+  realWorldActionText(value) {
+    if (value && typeof value === 'object') return String(window.GameModules.ai?.choiceText?.(value) || '').trim();
+    return String(value || '').trim();
+  },
+
   async submitRealWorldAction(action = '') {
     if (!this.isRealCurrentWorld?.()) {
-      const text = String(action || this.realWorldInput || '').trim();
+      const text = this.realWorldActionText(action) || this.realWorldActionText(this.realWorldInput);
       if (text) {
         this.realWorldInput = '';
         return this.submitAction?.(text);
       }
       return this.routeCurrentWorldAction?.();
     }
-    const rawText = String(action || this.realWorldInput || '').trim();
+    const rawText = this.realWorldActionText(action) || this.realWorldActionText(this.realWorldInput);
     const text = this.realWorldActionWithMatter?.(rawText) || rawText;
     if (!rawText || this.realWorldBusy || !this.validateRealWorldFreedom?.()) return;
     this.realWorldInput = '';
@@ -23,6 +28,8 @@ window.GameModules.realWorldActions = {
     const baseId = `real-${startMs}-${Math.random().toString(36).slice(2, 8)}`;
     const startTime = { label: `${this.phoneDateText()} ${this.phoneTimeText()}`, iso: start.toISOString() };
     const responseCreatedAt = new Date(startMs + 1).toISOString();
+    const savedTotalBeforeAppend = window.GameModules.sqliteSave.countRealWorldLogEntries?.() || this.realWorldLogTotal || 0;
+    if (savedTotalBeforeAppend > 0) this.refreshRealWorldLogPage?.(Math.max(1, Math.ceil(savedTotalBeforeAppend / (Number(this.realWorldLogPageSize) || 12))));
     const userEntry = { id: `${baseId}-user`, type: 'user', text: rawText, matter: this.activeRealWorldMatter?.() || null, time: startTime, createdAt: start.toISOString() };
     const entry = { id: `${baseId}-ai`, type: 'ai', narration: '现实世界正在推演…', thinking: '', streaming: true, playerText: rawText, actionText: text, time: startTime, createdAt: responseCreatedAt };
     entry.promptPack = { systemPrompt: '现实世界 Loop Agent 将按步骤动态载入上下文。', userPrompt: text, model: this.modelId, promptTokens: 0 };
@@ -121,7 +128,7 @@ window.GameModules.realWorldActions = {
     this.realWorldChoices = result.choices || this.realWorldChoices;
     const time = { label: `${this.phoneDateText()} ${this.phoneTimeText()}`, iso: this.phoneDate().toISOString(), startedAt, elapsedSeconds };
     const { playerEntry, ...cleanResult } = result;
-    const next = { ...this.realWorldLog.find((entry) => entry.id === id), ...cleanResult, type: 'ai', streaming: false, time, agentTrace: result.agentTrace || [] };
+    const next = { ...this.realWorldLog.find((entry) => entry.id === id), ...cleanResult, type: 'ai', streaming: false, statusText: '', streamTrace: [], time, agentTrace: result.agentTrace || [] };
     await this.assignRealWorldlineEntry(next);
     if (playerEntry?.id) await window.GameModules.sqliteSave.saveRealWorldLogEntry?.(playerEntry);
     await window.GameModules.sqliteSave.saveRealWorldLogEntry?.(next);

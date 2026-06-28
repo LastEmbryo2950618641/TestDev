@@ -163,10 +163,7 @@ window.GameModules.characterFeedback = {
   },
 
   normalizeChoices(value, fallback) {
-    const base = Array.isArray(fallback) ? fallback : [];
-    const list = Array.isArray(value) ? value : [];
-    const merged = list.concat(base).map((item) => String(item || '').trim().slice(0, 14)).filter(Boolean);
-    return [...new Set(merged)].slice(0, 4);
+    return window.GameModules.ai?.normalizeChoices?.(value, fallback) || [];
   },
 
   merge(buffer, chunk) {

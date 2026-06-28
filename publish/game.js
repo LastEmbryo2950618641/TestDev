@@ -23,10 +23,20 @@ function registerGameStore() {
     metricGroups(state = null) {
       if (!state || state.id === this.character?.id) {
         window.GameModules.metrics.ensure(this);
-        return [{ title: '情绪', type: 'emotion', values: this.emotions, ready: this.metricsReady }, { title: '感觉', type: 'player', values: this.playerFeelings, ready: this.metricsReady }];
+        return [
+          { title: '情绪', type: 'emotion', values: this.emotions, ready: this.metricsReady },
+          { title: '感觉', type: 'player', values: this.playerFeelings, ready: this.metricsReady },
+          { title: '临时情绪', type: 'emotion:temporary', values: this.temporaryEmotions || {}, ready: this.metricsReady },
+          { title: '临时感觉', type: 'player:temporary', values: this.temporaryPlayerFeelings || {}, ready: this.metricsReady },
+        ];
       }
       const metrics = this.ensureStateMetrics ? this.ensureStateMetrics(state) : (state.metrics || {});
-      return [{ title: '情绪', type: 'emotion', values: metrics.emotions || {}, ready: true }, { title: '感觉', type: 'player', values: metrics.playerFeelings || {}, ready: true }];
+      return [
+        { title: '情绪', type: 'emotion', values: metrics.emotions || {}, ready: true },
+        { title: '感觉', type: 'player', values: metrics.playerFeelings || {}, ready: true },
+        { title: '临时情绪', type: 'emotion:temporary', values: metrics.temporaryEmotions || {}, ready: true },
+        { title: '临时感觉', type: 'player:temporary', values: metrics.temporaryPlayerFeelings || {}, ready: true },
+      ];
     },
     metricEntries(group = {}) { return Object.entries(group.values || {}).map(([key, value]) => ({ key, value, text: this.metricValueText ? this.metricValueText(value, group.ready) : value })); },
     metricValueText(value, ready = this.metricsReady) { return ready && Number.isFinite(Number(value)) ? value : '--'; },
@@ -100,6 +110,8 @@ function registerGameStore() {
     resistance: 20,
     emotions: window.GameModules.metrics.fresh().emotions,
     playerFeelings: window.GameModules.metrics.fresh().playerFeelings,
+    temporaryEmotions: {},
+    temporaryPlayerFeelings: {},
     metricsReady: false,
     metricNotes: {},
     metricSummaryLimit: 3,

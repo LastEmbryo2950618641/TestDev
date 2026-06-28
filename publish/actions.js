@@ -17,10 +17,20 @@ window.GameModules.actions = {
   metricGroups(state = null) {
     if (!state || state.id === this.character?.id) {
       window.GameModules.metrics.ensure(this);
-      return [{ title: '情绪', type: 'emotion', values: this.emotions, ready: this.metricsReady }, { title: '感觉', type: 'player', values: this.playerFeelings, ready: this.metricsReady }];
+      return [
+        { title: '情绪', type: 'emotion', values: this.emotions, ready: this.metricsReady },
+        { title: '感觉', type: 'player', values: this.playerFeelings, ready: this.metricsReady },
+        { title: '临时情绪', type: 'emotion:temporary', values: this.temporaryEmotions || {}, ready: this.metricsReady },
+        { title: '临时感觉', type: 'player:temporary', values: this.temporaryPlayerFeelings || {}, ready: this.metricsReady },
+      ];
     }
     const metrics = this.ensureStateMetrics(state);
-    return [{ title: '情绪', type: 'emotion', values: metrics.emotions, ready: true }, { title: '感觉', type: 'player', values: metrics.playerFeelings, ready: true }];
+    return [
+      { title: '情绪', type: 'emotion', values: metrics.emotions, ready: true },
+      { title: '感觉', type: 'player', values: metrics.playerFeelings, ready: true },
+      { title: '临时情绪', type: 'emotion:temporary', values: metrics.temporaryEmotions || {}, ready: true },
+      { title: '临时感觉', type: 'player:temporary', values: metrics.temporaryPlayerFeelings || {}, ready: true },
+    ];
   },
 
   ensureStateMetrics(state) {
@@ -28,6 +38,8 @@ window.GameModules.actions = {
     state.metrics = state.metrics || {};
     state.metrics.emotions = window.GameModules.metrics.fill(state.metrics.emotions, window.GameModules.metrics.emotionKeys, fresh.emotions);
     state.metrics.playerFeelings = window.GameModules.metrics.fill(state.metrics.playerFeelings, window.GameModules.metrics.playerKeys, fresh.playerFeelings);
+    state.metrics.temporaryEmotions = state.metrics.temporaryEmotions && typeof state.metrics.temporaryEmotions === 'object' ? state.metrics.temporaryEmotions : {};
+    state.metrics.temporaryPlayerFeelings = state.metrics.temporaryPlayerFeelings && typeof state.metrics.temporaryPlayerFeelings === 'object' ? state.metrics.temporaryPlayerFeelings : {};
     state.metrics.notes = state.metrics.notes || {};
     return state.metrics;
   },
@@ -86,8 +98,16 @@ window.GameModules.actions = {
     return `定义: ${target.description}\n字段值来源: ${sourceText}\n解释: ${status}\n变化原因: ${reason}`;
   },
   metricTargetForNote(type, key, state = null) {
-    const metrics = state ? this.ensureStateMetrics(state) : { emotions: this.emotions, playerFeelings: this.playerFeelings, notes: this.metricNotes };
-    const values = type === 'emotion' ? metrics.emotions : metrics.playerFeelings;
+    const metrics = state ? this.ensureStateMetrics(state) : {
+      emotions: this.emotions,
+      playerFeelings: this.playerFeelings,
+      temporaryEmotions: this.temporaryEmotions || {},
+      temporaryPlayerFeelings: this.temporaryPlayerFeelings || {},
+      notes: this.metricNotes,
+    };
+    const values = type === 'emotion:temporary'
+      ? metrics.temporaryEmotions
+      : (type === 'player:temporary' ? metrics.temporaryPlayerFeelings : (type === 'emotion' ? metrics.emotions : metrics.playerFeelings));
     return { value: values?.[key], raw: metrics.notes?.[`${type}:${key}`], ready: state ? true : this.metricsReady, description: window.GameModules.metrics.descriptions[key] || key };
   },
 
@@ -172,6 +192,8 @@ window.GameModules.actions = {
       const metrics = window.GameModules.metrics.fresh();
       this.emotions = metrics.emotions;
       this.playerFeelings = metrics.playerFeelings;
+      this.temporaryEmotions = {};
+      this.temporaryPlayerFeelings = {};
       this.metricsReady = false;
       this.metricNotes = {};
       this.expandedMetricKey = '';

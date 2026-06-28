@@ -26,6 +26,7 @@ window.GameModules.realWorldAgentContext = {
       `玩家属性：${this.limit(store.playerIdentitySummary?.() || '玩家本人属性尚未生成。', 1000)}`,
       `玩家财富：${store.playerWealthText?.(store.playerProfile || {}) || `${Number(store.playerProfile?.wealthAmount || 0).toLocaleString('zh-CN')}元`}`,
       `现实身体状态：${this.vitalsText(store, store.playerIdentityState?.())}`,
+      `主体ID规则：\n${window.GameModules.promptSections?.subjectIdRules?.(store) || '玩家本人固定 id:player-self；未知角色直接写完整姓名，禁止自造前缀。'}`,
       ...(shared ? [`同世界附身控制：当前上线对象为${sharedProfile.name || shared.name || '未知角色'}；身份：${sharedProfile.role || '未知'}；所在位置：${sharedLocation}。玩家意识已附身接管该角色身体，可直接控制其动作、视线、表情、触觉、嗅觉、味觉、听觉、身体反馈与局部反应；同时玩家现实本体仍由同一个意识维持控制，属于一心多用。描写时以第二人称“你”的附身镜头为主，重点写被控角色身体内的视角、动作执行、感官回流和外界反应；不要写成单纯远程旁观，也不要让玩家本体消失或失控。`, `被控角色身体与状态：${sharedBody}`] : []),
       `当前场景：${store.realWorldSceneTitle || '现实世界'}`,
       `当前地点：${store.realWorldLocationName || map.current || '尚未生成具体地点'}`,

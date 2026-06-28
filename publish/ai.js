@@ -107,9 +107,11 @@ window.GameModules.ai = {
 
   normalizeMetricGroup(value, keys, currentValues = null) {
     const main = Array.isArray(value) ? value : [];
-    return keys.map((key) => {
+    const used = new Set();
+    const fixed = keys.map((key) => {
       const item = main.find((x) => this.normalizeMetricKey(x?.key, keys) === key);
       if (!item) return null;
+      used.add(item);
       const rawDelta = window.GameModules.metrics.clampDelta(this.metricDeltaValue(item));
       const fallbackValues = window.Alpine?.store?.('game')?.[keys === window.GameModules.metrics.emotionKeys ? 'emotions' : 'playerFeelings'];
       const current = window.GameModules.metrics.clamp((currentValues || fallbackValues)?.[key] || 0);
@@ -120,6 +122,16 @@ window.GameModules.ai = {
       const status = window.GameModules.metrics.valueExplanation(key, nextValue, item.status, reason);
       return { key, delta, status: String(status).slice(0, 180), reason, metricSources: { 数值: 'AI', 解释: 'AI', 原因: 'AI' } };
     }).filter(Boolean);
+    const temporary = main.filter((item) => item && !used.has(item)).map((item) => {
+      const key = String(item.key || '').trim();
+      if (!key || keys.includes(this.normalizeMetricKey(key, keys))) return null;
+      const rawDelta = window.GameModules.metrics.clampDelta(this.metricDeltaValue(item));
+      const firstReason = Array.isArray(item.reasons) ? item.reasons.find(Boolean) || {} : {};
+      const reason = String(item.reason || item.evidence || item.trigger || firstReason.evidence || firstReason.trigger || item.explanation || item.cause || item.status || '').slice(0, 180);
+      const status = String(item.status || (reason ? `${key}：短期状态，因为${reason}。` : `${key}：短期状态。`)).slice(0, 180);
+      return { key, delta: rawDelta, status, reason, temporary: true, metricSources: { 数值: 'AI', 解释: 'AI', 原因: 'AI' } };
+    }).filter(Boolean);
+    return [...fixed, ...temporary];
   },
 
   normalizeInitialGroup(value, fallback, keys, store, type) {
@@ -157,10 +169,16 @@ window.GameModules.ai = {
     return `你与${actor}的关系还没有出现足以明显改变${key}的具体事件。`;
   },
 
+  choiceText(item) {
+    if (typeof item === 'string' || typeof item === 'number') return String(item);
+    if (!item || typeof item !== 'object') return '';
+    return String(item.text || item.action || item.label || item.title || item.name || item.value || '').trim();
+  },
+
   normalizeChoices(value, fallback) {
     const base = Array.isArray(fallback) ? fallback : [];
     const list = Array.isArray(value) ? value : [];
-    const merged = list.concat(base).map((item) => String(item || '').trim().slice(0, 14)).filter(Boolean);
+    const merged = list.concat(base).map((item) => this.choiceText(item).slice(0, 14)).filter(Boolean);
     return [...new Set(merged)].slice(0, 4);
   },
 
