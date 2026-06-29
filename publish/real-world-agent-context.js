@@ -238,7 +238,7 @@ window.GameModules.realWorldAgentContext = {
       const text = window.GameModules.characterQuery?.stateText?.(state, req.params.world, 3200) || '';
       if (!text) continue;
       materials?.record?.(materialSession, req, `自动资料：${name}角色卡`, text);
-      out.push({ title: `自动资料：${name}角色卡`, text, max: 3200 });
+      out.push({ title: `自动资料：${name}角色卡`, text, max: 3200, participants: [{ type: 'character', id: state.id || name, name, role: 'loaded-role-card' }] });
     }
     return out;
   },

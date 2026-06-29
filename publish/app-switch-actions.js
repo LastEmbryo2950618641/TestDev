@@ -18,6 +18,7 @@ window.GameModules.appSwitchActions = {
     this.identityReturnTo = '';
     this.wechatAppOpen = false;
     this.saveAppOpen = false;
+    this.roleCardJsonAppOpen = false;
     this.worldlineAppOpen = false;
     this.savePanelOpen = false;
     this.controlSelectOpen = false;

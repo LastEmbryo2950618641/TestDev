@@ -56,7 +56,6 @@ window.GameModules.predefinedRoleCards = {
     const existing = window.GameModules.sqliteSave.getCharacterState(id);
     let profile = { ...card, id, roleCard: true, roleCardSource: card.roleCardSource || 'predefined-edited', roleCardUpdatedAt: card.roleCardUpdatedAt || existing?.profile?.roleCardUpdatedAt || new Date().toISOString() };
     if (window.GameModules.characterProfile?.hasRequiredInitialMetrics?.(existing?.profile?.initialMetrics)) profile.initialMetrics = existing.profile.initialMetrics;
-    profile = await window.GameModules.characterProfile?.ensureInitialMetricSources?.(profile, profile, profile.detail || profile.personality || '', store) || profile;
     const schema = await window.GameModules.rpgState.ensureSchema(profile.work || '现实世界');
     const state = existing || window.GameModules.rpgState.createCharacterState(profile, schema, store);
     state.id = profile.id;
@@ -78,7 +77,7 @@ window.GameModules.predefinedRoleCards = {
   },
 
   async ensurePlayerState(store) {
-    const cards = await this.loadAll();
+    const cards = store?.roleCardSetup?.cards?.length ? store.roleCardSetup.cards : await this.loadAll();
     const name = store.roleCardSetup?.selectedPlayerName || '刘悠';
     const card = this.byName(cards, name);
     if (!card) return null;
@@ -99,7 +98,7 @@ window.GameModules.predefinedRoleCards = {
   },
 
   async saveSelectedRelationshipStates(store) {
-    const cards = await this.loadAll();
+    const cards = store?.roleCardSetup?.cards?.length ? store.roleCardSetup.cards : await this.loadAll();
     const names = store.roleCardSetup?.selectedRelationNames?.length ? store.roleCardSetup.selectedRelationNames : ['刘思瑶', '刘思琪', '刘思怡'];
     const tasks = names.map((name) => {
       const card = this.byName(cards, name);

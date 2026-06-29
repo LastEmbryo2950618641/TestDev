@@ -74,13 +74,14 @@ window.GameModules.realWorldAgentLoop = {
 
     let skillPrompt = '', jsonPrompt = '', selectedSkills = {}, jsonRaw = '', updates = {};
     try {
-      skillPrompt = await this.buildConfiguredStage3BasePrompt({ store, action, base, loaded, materialSession, narration, trace, config });
+      const participants = this.stageParticipants(trace, loaded, store);
+      skillPrompt = await this.buildConfiguredStage3BasePrompt({ store, action, base, loaded, materialSession, narration, trace, participants, config });
       this.markConfiguredStep(store, logId, `${config.label}正文已完成，正在生成基础结算字段…`, config, { keepNarration: true });
       selectedSkills = await this.completeConfiguredStage3Base(store, skillPrompt, logId, config);
 
       jsonPrompt = JSON.stringify(selectedSkills);
       this.markConfiguredStep(store, logId, '基础字段已生成，正在执行全量状态更新…', config, { keepNarration: true });
-      updates = await this.completeGroupedStage3Updates({ store, action, base, loaded, skills, materialSession, narration, route: selectedSkills, logId, config, trace });
+      updates = await this.completeGroupedStage3Updates({ store, action, base, loaded, skills, materialSession, narration, route: selectedSkills, logId, config, trace, participants });
       jsonRaw = JSON.stringify(updates);
     } catch (err) {
       console.warn(`${config.label}状态更新生成失败，保留已生成正文并使用最小结算:`, err.message);
@@ -260,11 +261,11 @@ window.GameModules.realWorldAgentLoop = {
     ].filter(Boolean).join('\n\n');
   },
 
-  async buildConfiguredStage3BasePrompt({ store, action, base, loaded, materialSession = null, narration, trace = [], config = this.realConfig() }) {
+  async buildConfiguredStage3BasePrompt({ store, action, base, loaded, materialSession = null, narration, trace = [], participants = null, config = this.realConfig() }) {
     const actionText = this.actionText(action, config.mode === 'story' ? '继续推进操控剧情' : '继续观察现实世界');
     const loadedText = config.ctx.buildLoadedText(loaded);
     const materialText = config.mode === 'story' ? (config.materials?.acquiredSummary?.(materialSession) || '') : (config.materials?.summary?.(materialSession) || '');
-    const participants = this.stageParticipants(trace);
+    const stageParticipants = Array.isArray(participants) ? participants : this.stageParticipants(trace, loaded, store);
     const schema = { elapsedSeconds: 180, status: '当前状态', quest: '当前目标', choices: ['行动一', '行动二', '行动三', '行动四'], sceneTitle: '场景标题', locationName: '地点名' };
     return [
       `# ${config.label}阶段3A：基础结算字段`,
@@ -272,24 +273,70 @@ window.GameModules.realWorldAgentLoop = {
       `本次行动:${this.compactUpdatePromptText(actionText, 500)}`,
       `基础上下文:${this.compactUpdatePromptText(base, 1200)}`,
       `已动态载入资料:${this.compactUpdatePromptText([loadedText, materialText].filter(Boolean).join(' ') || '无', 1200)}`,
-      `本回合参与者:${JSON.stringify(participants)}`,
+      `本回合参与者:${JSON.stringify(stageParticipants)}`,
       `阶段2正文:${this.compactUpdatePromptText(narration, 1800, true)}`,
       `返回示例:${JSON.stringify(schema)}`,
     ].filter(Boolean).join('\n');
   },
 
-  stageParticipants(trace = []) {
+  stageParticipants(trace = [], loaded = [], store = null) {
     const seen = new Set();
     const out = [];
+    const add = (p = {}) => {
+      if (out.length >= 12) return;
+      const target = p?.id || p?.idOrName || p?.name;
+      if (!target) return;
+      const key = `${p.type || ''}:${target}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push(p);
+    };
     (Array.isArray(trace) ? trace : []).forEach((item) => {
-      (Array.isArray(item?.participants) ? item.participants : []).forEach((p) => {
-        const key = `${p.type || ''}:${p.id || p.idOrName || p.name || ''}`;
-        if (!key.trim() || seen.has(key)) return;
-        seen.add(key);
-        out.push(p);
-      });
+      (Array.isArray(item?.participants) ? item.participants : []).forEach(add);
+      this.characterParticipants(item?.characters, store).forEach(add);
     });
+    this.loadedRoleCardParticipants(loaded).forEach(add);
     return out.slice(0, 12);
+  },
+
+  characterParticipants(characters = [], store = null) {
+    return (Array.isArray(characters) ? characters : []).map((item) => this.characterParticipant(item, store)).filter(Boolean);
+  },
+
+  characterParticipant(item = {}, store = null) {
+    const raw = typeof item === 'string' ? { name: item } : item;
+    const id = String(raw?.id || raw?.idOrName || '').trim();
+    const name = String(raw?.name || raw?.id || raw?.idOrName || '').trim();
+    if (id === 'player-self') return { type: 'player', id: 'player-self', name: name || '玩家', role: 'actor' };
+    const state = this.findParticipantState(store, id, name);
+    if (!state) return null;
+    return { type: 'character', id: state.id || id || name, name: state.profile?.name || state.name || name || id, role: 'character-role-card' };
+  },
+
+  findParticipantState(store = null, id = '', name = '') {
+    if (!store) return null;
+    const candidates = [id, name].map((value) => String(value || '').trim()).filter(Boolean);
+    for (const key of candidates) {
+      const byId = store.itemSkillState?.(key) || store.rpgStates?.[key];
+      if (byId) return byId;
+      const byName = store.sqliteSave?.getCharacterStateByName?.(key) || store.getCharacterStateByName?.(key) || window.GameModules.sqliteSave?.getCharacterStateByName?.(key);
+      if (byName) return byName;
+    }
+    const states = Object.values(store.rpgStates || {});
+    return states.find((state) => candidates.includes(String(state?.profile?.name || state?.name || '').trim())) || null;
+  },
+
+  loadedRoleCardParticipants(loaded = []) {
+    return (Array.isArray(loaded) ? loaded : []).flatMap((item) => {
+      if (Array.isArray(item?.participants) && item.participants.length) return item.participants;
+      const text = [item?.title, item?.text, item?.content, item?.summary].map((part) => String(part || '').trim()).filter(Boolean).join('\n');
+      if (!/角色卡/u.test(text)) return [];
+      const id = text.match(/角色ID[:：]\s*([^\s｜|，,；;\n]+)/u)?.[1] || '';
+      const name = text.match(/姓名[:：]\s*([^\s｜|，,；;\n]+)/u)?.[1] || text.match(/自动资料[:：]\s*([^\s｜|，,；;\n]+?)角色卡/u)?.[1] || '';
+      const target = id || name;
+      if (!target) return [];
+      return [{ type: 'character', id: target, name, role: 'loaded-role-card' }];
+    });
   },
 
   normalizeStage3BaseFields(raw = {}, store = null, config = this.realConfig()) {
@@ -456,7 +503,7 @@ window.GameModules.realWorldAgentLoop = {
       .map(([key, group]) => [key, Array.isArray(group.skills) ? group.skills.slice() : []]));
   },
 
-  async completeGroupedStage3Updates({ store, action, base, loaded, skills = '', materialSession = null, narration, route = {}, logId = null, config = this.realConfig(), trace = [] }) {
+  async completeGroupedStage3Updates({ store, action, base, loaded, skills = '', materialSession = null, narration, route = {}, logId = null, config = this.realConfig(), trace = [], participants = null }) {
     const patches = [];
     const fixedRoute = this.stage3GroupRoute(route);
     const groups = fixedRoute.groups || {};
@@ -464,7 +511,7 @@ window.GameModules.realWorldAgentLoop = {
       const selected = Array.isArray(groups[key]) ? groups[key] : [...group.skills];
       try {
         this.markConfiguredStep(store, logId, `${group.title}…`, config, { keepNarration: true });
-        const prompt = await this.buildGroupedUpdateJsonPrompt({ store, action, base, loaded, skills, materialSession, narration, groupKey: key, selectedSkills: selected, config, trace });
+        const prompt = await this.buildGroupedUpdateJsonPrompt({ store, action, base, loaded, skills, materialSession, narration, groupKey: key, selectedSkills: selected, config, trace, participants });
         const patch = await this.completeConfiguredUpdateJson(store, prompt, logId, { ...config, sourceTitle: group.title });
         patches.push(this.filterGroupedUpdatePatch(patch, group));
       } catch (err) {
@@ -474,19 +521,19 @@ window.GameModules.realWorldAgentLoop = {
     return this.mergeGroupedUpdatePatches(patches, fixedRoute);
   },
 
-  buildUpdateContextPack({ store, action, base, loaded, materialSession = null, narration, trace = [], groupKey, config = this.realConfig() }) {
+  buildUpdateContextPack({ store, action, base, loaded, materialSession = null, narration, trace = [], participants = null, groupKey, config = this.realConfig() }) {
     const actionText = this.actionText(action, config.mode === 'story' ? '继续推进操控剧情' : '继续观察现实世界');
-    const participants = this.stageParticipants(trace);
-    const participantText = participants.length ? JSON.stringify(participants) : '[]';
+    const stageParticipants = Array.isArray(participants) ? participants : this.stageParticipants(trace, loaded, store);
+    const participantText = stageParticipants.length ? JSON.stringify(stageParticipants) : '[]';
     const common = [
       `本次行动:${this.compactUpdatePromptText(actionText, 500)}`,
       `阶段2正文:${this.compactUpdatePromptText(narration, 2400, true)}`,
       `当前地点:${this.compactUpdatePromptText(store?.realWorldLocationName || store?.realWorldMap?.current || '', 120)}`,
       `本回合参与者:${participantText}`,
     ];
-    if (groupKey === 'metrics') return [...common, this.metricsContextText(store, participants)].filter(Boolean).join('\n');
-    if (groupKey === 'bodySex') return [...common, this.bodySexContextText(store, participants)].filter(Boolean).join('\n');
-    if (groupKey === 'survival') return [...common, this.survivalContextText(store, participants)].filter(Boolean).join('\n');
+    if (groupKey === 'metrics') return [...common, this.metricsContextText(store, stageParticipants)].filter(Boolean).join('\n');
+    if (groupKey === 'bodySex') return [...common, this.bodySexContextText(store, stageParticipants)].filter(Boolean).join('\n');
+    if (groupKey === 'survival') return [...common, this.survivalContextText(store, stageParticipants)].filter(Boolean).join('\n');
     return [...common, this.worldSocialInventoryContextText({ store, base, loaded, materialSession, config })].filter(Boolean).join('\n');
   },
 
@@ -532,10 +579,10 @@ window.GameModules.realWorldAgentLoop = {
     return `基础上下文摘要:${this.compactUpdatePromptText(base, 1200)}\n已动态载入资料摘要:${this.compactUpdatePromptText([loadedText, materialText].filter(Boolean).join(' ') || '无', 1400)}`;
   },
 
-  async buildGroupedUpdateJsonPrompt({ store, action, base, loaded, skills = '', materialSession = null, narration, groupKey, selectedSkills = [], config = this.realConfig(), trace = [] }) {
+  async buildGroupedUpdateJsonPrompt({ store, action, base, loaded, skills = '', materialSession = null, narration, groupKey, selectedSkills = [], config = this.realConfig(), trace = [], participants = null }) {
     const group = this.stage3UpdateGroups()[groupKey] || {};
     const selected = Array.isArray(selectedSkills) ? selectedSkills : [];
-    const contextPack = this.buildUpdateContextPack({ store, action, base, loaded, materialSession, narration, trace, groupKey, config });
+    const contextPack = this.buildUpdateContextPack({ store, action, base, loaded, materialSession, narration, trace, participants, groupKey, config });
     const updateSkillText = group.init ? '' : this.compactUpdatePromptText(window.GameModules.updateRegistry?.skillText?.(selected) || '', 2200);
     const updateSchema = group.init ? {} : this.compactUpdateSchema(window.GameModules.updateRegistry?.schemaFor?.(selected) || {});
     const initSkillText = group.init ? this.compactUpdatePromptText(window.GameModules.initPromptRegistry?.skillText?.(selected, store) || '', 1600) : '';

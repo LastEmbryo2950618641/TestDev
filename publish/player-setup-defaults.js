@@ -135,7 +135,6 @@ Object.assign(window.GameModules.playerSetupActions, {
       await this.syncPlayerProfileLexicon?.();
       this.playerName = name; this.phoneActivationChoice = ''; this.phoneSetupDone = true; this.desktopUnlocked = false;
       await window.GameModules.predefinedRoleCards.saveSelectedRoleCardStates(this);
-      await this.ensurePlayerRpgState?.(true);
       await this.syncKnownProfessionsFromProfile?.(this.playerProfile.knownProfessions);
       await this.save?.();
     } catch (err) {

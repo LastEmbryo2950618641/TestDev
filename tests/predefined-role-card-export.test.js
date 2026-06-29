@@ -132,6 +132,23 @@ test('statesFromRaw reads fallback json characterStates', async () => {
   assert.strictEqual(states[0].profile.name, '刘悠');
 });
 
+test('charators raw exports Liu You as player and three adult triplet role cards', async () => {
+  const cli = require('../tools/export-predefined-role-cards');
+  const raw = fs.readFileSync(path.join(__dirname, '..', 'tools/charators.txt'), 'utf8');
+  const states = await cli.statesFromRaw(raw);
+  const bundle = exporter.buildExportBundle(states);
+  const cards = Object.fromEntries(bundle.map((item) => [item.name, item.card]));
+
+  assert.strictEqual(cards['刘悠'].id, 'player-self');
+  assert.strictEqual(cards['刘悠'].isPlayer, true);
+  ['刘思瑶', '刘思琪', '刘思怡'].forEach((name) => {
+    assert.strictEqual(cards[name].age, 18);
+    assert.strictEqual(cards[name].values.age, 18);
+    if (cards[name].birthday) assert.match(String(cards[name].birthday), /^2008-/);
+    assert.strictEqual(cards[name].values.intimacy?.sexualExperienceCount || 0, 0);
+  });
+});
+
 test('main exports bundle from publish slot raw source', async () => {
   const cli = require('../tools/export-predefined-role-cards');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'predefined-slot-main-'));
@@ -304,7 +321,7 @@ test('guard fallback completes non-predefined setup without original completePla
   assert.strictEqual(store.phoneActivationChoice, '');
 });
 
-test('existing account completion saves selected predefined role-card states before ensure and save', async () => {
+test('existing account completion directly saves selected predefined role-card states without AI ensure', async () => {
   const calls = [];
   const context = vm.createContext({
     console,
@@ -324,7 +341,7 @@ test('existing account completion saves selected predefined role-card states bef
     playerAgeFromBirthday: () => 27,
     syncPlayerProfileLexicon: async () => {},
     enrichPlayerProfile: async () => { calls.push('enrichPlayerProfile'); throw new Error('AI should not be requested'); },
-    ensurePlayerRpgState: async (refresh) => { calls.push(`ensurePlayerRpgState:${refresh}`); },
+    ensurePlayerRpgState: async (refresh) => { calls.push(`ensurePlayerRpgState:${refresh}`); throw new Error('ensurePlayerRpgState should not be requested'); },
     save: async () => { calls.push('save'); },
   };
   context.window.GameModules.predefinedRoleCards = {
@@ -334,9 +351,63 @@ test('existing account completion saves selected predefined role-card states bef
     },
   };
   await store.completePlayerSetup();
-  assert.deepStrictEqual(calls, ['saveSelectedRoleCardStates:this', 'ensurePlayerRpgState:true', 'save']);
+  assert.deepStrictEqual(calls, ['saveSelectedRoleCardStates:this', 'save']);
   assert.strictEqual(calls.includes('enrichPlayerProfile'), false);
   assert.strictEqual(store.phoneSetupDone, true);
+});
+
+test('predefined saver persists edited setup cards directly', async () => {
+  const saved = [];
+  const context = vm.createContext({
+    console,
+    window: {
+      GameModules: {
+        predefinedRoleCardData: {
+          'liu-you': { id: 'player-self', name: '刘悠', isPlayer: true, role: '原始玩家' },
+          'liu-siyao': { id: 'rel-1', name: '刘思瑶', role: '原始关系' },
+          'liu-siqi': { id: 'rel-2', name: '刘思琪', role: '原始关系' },
+          'liu-siyi': { id: 'rel-3', name: '刘思怡', role: '原始关系' },
+        },
+        sqliteSave: {
+          db: true,
+          getCharacterState: () => null,
+          saveCharacterState: async (state) => { saved.push(JSON.parse(JSON.stringify(state))); },
+        },
+        characterProfile: {
+          hasRequiredInitialMetrics: () => false,
+          ensureInitialMetricSources: async () => { throw new Error('AI metric repair should not be requested'); },
+        },
+        rpgState: {
+          ensureSchema: async (worldTag) => ({ worldTag, sections: [] }),
+          createCharacterState: (profile, schema) => ({ id: profile.id, name: profile.name, worldTag: schema.worldTag, values: {}, metrics: {}, profile }),
+          upgradeCharacterState: () => {},
+        },
+        rpgProfileMetrics: { rebase: () => {} },
+        rpgLexicon: { syncState: async () => {} },
+      },
+    },
+  });
+  context.window.window = context.window;
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'publish/predefined-role-cards.js'), 'utf8'), context, { filename: 'publish/predefined-role-cards.js' });
+  const store = {
+    roleCardSetup: {
+      usePredefinedPlayerCard: true,
+      selectedPlayerName: '刘悠',
+      selectedRelationNames: ['刘思瑶', '刘思琪', '刘思怡'],
+      cards: [
+        { id: 'player-self', name: '刘悠', isPlayer: true, role: '编辑后的玩家', work: '现实世界' },
+        { id: 'rel-1', name: '刘思瑶', role: '编辑后的关系1', work: '现实世界' },
+        { id: 'rel-2', name: '刘思琪', role: '编辑后的关系2', work: '现实世界' },
+        { id: 'rel-3', name: '刘思怡', role: '编辑后的关系3', work: '现实世界' },
+      ],
+    },
+    rpgStates: {},
+  };
+
+  await context.window.GameModules.predefinedRoleCards.saveSelectedRoleCardStates(store);
+
+  assert.deepStrictEqual(saved.map((state) => state.profile.role), ['编辑后的玩家', '编辑后的关系1', '编辑后的关系2', '编辑后的关系3']);
+  assert.deepStrictEqual(Object.keys(store.rpgStates).sort(), ['player-self', 'rel-1', 'rel-2', 'rel-3'].sort());
 });
 
 (async () => {

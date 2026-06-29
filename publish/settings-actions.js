@@ -23,7 +23,7 @@ window.GameModules.settingsActions = {
         window.dzmm?.models?.list?.(),
         window.dzmm?.draw?.generateModels?.(),
       ]);
-      s.textModels = Array.isArray(textResult?.models) && textResult.models.length ? textResult.models : this.fallbackTextModels();
+      s.textModels = this.enrichTextModelsWithThinking(textResult);
       s.drawModels = Array.isArray(drawResult?.models) && drawResult.models.length ? drawResult.models : this.fallbackDrawModels();
       window.GameModules.tokenStats?.syncModelPrices?.(textResult);
       this.modelId = this.resolvePreferredTextModel(s.textModels, this.modelId || s.textModelId || textResult?.defaultModel);
@@ -50,10 +50,24 @@ window.GameModules.settingsActions = {
     return (config.preferredTextModelIds || []).find((id) => ids.includes(id)) || currentId || config.defaultModelId || 'nalang-turbo-0826';
   },
 
+  enrichTextModelsWithThinking(result = {}) {
+    const models = Array.isArray(result?.models) && result.models.length ? result.models : this.fallbackTextModels();
+    const thinkingByModel = new Map();
+    (Array.isArray(result?.categories) ? result.categories : []).forEach((category) => {
+      (Array.isArray(category?.modelGroups) ? category.modelGroups : []).forEach((group) => {
+        const supported = group?.thinkingSupported === true;
+        (Array.isArray(group?.contexts) ? group.contexts : []).forEach((context) => {
+          if (context?.internalName) thinkingByModel.set(context.internalName, supported);
+        });
+      });
+    });
+    return models.map((model) => ({ ...model, thinkingSupported: thinkingByModel.get(model.internalName) === true }));
+  },
+
   fallbackTextModels() {
     return [
-      { internalName: 'nalang-turbo-0826', displayName: '快速经济 0826', description: '默认备用文本模型' },
-      { internalName: 'nalang-medium-0826', displayName: '均衡性能', description: '默认备用文本模型' },
+      { internalName: 'nalang-turbo-0826', displayName: '快速经济 0826', description: '默认备用文本模型', thinkingSupported: false },
+      { internalName: 'nalang-medium-0826', displayName: '均衡性能', description: '默认备用文本模型', thinkingSupported: false },
     ];
   },
 

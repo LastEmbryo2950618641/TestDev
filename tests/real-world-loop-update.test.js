@@ -68,6 +68,7 @@ function loadCore(context) {
   loadScript(context, 'publish/update/sexual-history-update.js');
   loadScript(context, 'publish/update/body-status-update.js');
   if (fs.existsSync(path.join(root, 'publish/update/wearing-state-update.js'))) loadScript(context, 'publish/update/wearing-state-update.js');
+  loadScript(context, 'publish/real-world-agent-context.js');
   loadScript(context, 'publish/real-world-agent-loop.js');
 }
 
@@ -203,6 +204,46 @@ test('parseStep normalizes participants into trace items', () => {
   assert.strictEqual(traced.participants[1].role, 'direct');
 });
 
+test('stageParticipants promotes character entries that match existing role cards', () => {
+  const context = createContext();
+  loadCore(context);
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  const store = makeStore();
+  const trace = [{
+    characters: [
+      { id: 'player-self', name: '玩家本人' },
+      { id: '刘思琪', name: '刘思琪' },
+      { id: '不存在的人', name: '不存在的人' },
+    ],
+    participants: [],
+  }];
+
+  const participants = loop.stageParticipants(trace, [], store);
+
+  assert.strictEqual(JSON.stringify(participants), JSON.stringify([
+    { type: 'player', id: 'player-self', name: '玩家本人', role: 'actor' },
+    { type: 'character', id: 'rushiqi', name: '刘思琪', role: 'character-role-card' },
+  ]));
+});
+
+test('stageParticipants promotes character entries found by sqliteSave name lookup', () => {
+  const context = createContext();
+  loadCore(context);
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  const store = { ...makeStore(), rpgStates: {}, itemSkillState: () => null };
+  store.sqliteSave = {
+    getCharacterStateByName(name) {
+      return name === '刘思琪' ? store.__npc : null;
+    },
+  };
+
+  const participants = loop.stageParticipants([{ characters: [{ id: '刘思琪', name: '刘思琪' }], participants: [] }], [], store);
+
+  assert.strictEqual(JSON.stringify(participants), JSON.stringify([
+    { type: 'character', id: 'rushiqi', name: '刘思琪', role: 'character-role-card' },
+  ]));
+});
+
 test('parseStep derives requests from needed and keeps missingContext boolean', () => {
   const context = createContext();
   loadCore(context);
@@ -238,6 +279,21 @@ test('loadStepContext derives requests from needed when requests is empty', asyn
 
   assert.strictEqual(JSON.stringify(seen), JSON.stringify(['character:刘思琪', 'location:测试地点']));
   assert.strictEqual(JSON.stringify(out.map((item) => item.title)), JSON.stringify(['character:刘思琪', 'location:测试地点']));
+});
+
+test('auto-loaded character cards carry structured participants for Stage 3', async () => {
+  const context = createContext();
+  loadCore(context);
+  context.window.GameModules.realWorld2026 = { label: '2026 现代都市现实世界' };
+  context.window.GameModules.characterQuery = {
+    worldMatches: () => true,
+    stateText: () => '资料类型：完整角色卡',
+  };
+  const store = makeStore();
+  const out = await context.window.GameModules.realWorldAgentContext.autoLoadForStep(store, '我前往妹妹刘思琪的房间', new Set(), null, null, new Set(), 1, [], []);
+
+  assert.strictEqual(out.length, 1);
+  assert.strictEqual(JSON.stringify(out[0].participants), JSON.stringify([{ type: 'character', id: 'rushiqi', name: '刘思琪', role: 'loaded-role-card' }]));
 });
 
 test('harness loads core modules', () => {
@@ -527,6 +583,76 @@ test('generateConfiguredFinal uses base fields and four grouped patches', async 
   assert.strictEqual(out.result.status, '测试状态');
   assert.strictEqual(out.result.genericUpdates.length, 1);
   assert.strictEqual(calls.length, 4);
+});
+
+test('generateConfiguredFinal reuses computed Stage 3 participants across groups', async () => {
+  const context = createContext();
+  loadCore(context);
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  const store = makeStore();
+  const config = loop.realConfig();
+  config.ctx = { buildLoadedText: () => '', limit: (text) => String(text || '') };
+  let participantCalls = 0;
+  const originalStageParticipants = loop.stageParticipants.bind(loop);
+  loop.stageParticipants = (...args) => {
+    participantCalls += 1;
+    return originalStageParticipants(...args);
+  };
+  loop.completeConfiguredStep = async (_store, _prompt, _logId, streamToUi, cfg) => {
+    if (streamToUi) return '正文。';
+    if (cfg?.sourceTitle?.includes('阶段3A')) return '{"elapsedSeconds":180,"status":"测试状态","quest":"测试目标","choices":["一","二","三","四"],"sceneTitle":"测试标题","locationName":"测试地点"}';
+    return '{"genericUpdates":[]}';
+  };
+  loop.completeConfiguredUpdateJson = async () => ({ genericUpdates: [] });
+
+  await loop.generateConfiguredFinal({
+    store,
+    action: '行动',
+    base: '基础',
+    loaded: [{ participants: [{ type: 'character', id: 'rushiqi', name: '刘思琪' }] }],
+    skills: '',
+    trace: [],
+    materialSession: null,
+    logId: null,
+    config,
+  });
+
+  assert.strictEqual(participantCalls, 1);
+});
+
+test('Stage 3 contexts include structured loaded role-card participants when trace participants are empty', () => {
+  const context = createContext();
+  loadCore(context);
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  const store = makeStore();
+  const loaded = [{
+    title: '结构化资料缓存',
+    text: '资料正文可能被压缩或引用替换，不保证保留角色ID和姓名标签。',
+    participants: [{ type: 'character', id: 'rushiqi', name: '刘思琪', role: 'loaded-role-card' }],
+  }];
+  store.rpgVitals = (state) => state.id === 'rushiqi'
+    ? [{ key: 'fatigue', label: '疲劳度', value: 20, text: '20/100' }]
+    : [{ key: 'stamina', label: '精力', value: 88, text: '84/96' }];
+
+  const contextFor = (groupKey) => loop.buildUpdateContextPack({
+    store,
+    action: '我前往妹妹刘思琪的房间，紧紧抱住妹妹。',
+    base: '基础',
+    loaded,
+    narration: '刘思琪身体放松回应怀抱。',
+    trace: [],
+    groupKey,
+    config: loop.realConfig(),
+  });
+  const survival = contextFor('survival');
+  const metrics = contextFor('metrics');
+  const bodySex = contextFor('bodySex');
+
+  assert.ok(survival.includes('player-self'));
+  assert.ok(survival.includes('rushiqi:刘思琪:vitals='));
+  assert.ok(survival.includes('"fatigue"'));
+  assert.ok(metrics.includes('rushiqi:刘思琪:emotions='));
+  assert.ok(bodySex.includes('rushiqi:刘思琪:bodyStatus='));
 });
 
 (async () => {
