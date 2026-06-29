@@ -28,6 +28,7 @@
   <script src="predefined-role-cards/liu-you.js"></script>
   <script src="predefined-role-cards/liu-siyao.js"></script>
   <script src="predefined-role-cards/liu-siqi.js"></script>
+  <script src="predefined-role-cards/liu-siyi.js"></script>
   <script src="predefined-role-cards.js"></script>
   <script src="role-card-editor.js"></script>
   <script src="app-background.js"></script>
@@ -1596,7 +1597,7 @@
       <section class="phone-setup-hero dev-section" data-section-title="激活说明区">
         <p class="eyebrow" x-text="$store.game.phoneActivationChoice === 'existing' ? 'EXISTING ACCOUNT' : 'NEW PHONE SETUP'"></p>
         <h2 x-text="$store.game.phoneActivationChoice === 'existing' ? '使用已有账号激活' : '激活你的新手机'"></h2>
-        <p class="intro" x-text="$store.game.phoneActivationChoice === 'existing' ? '默认读取三张预定义角色卡：刘悠、刘思瑶、刘思琪。默认只展示身份摘要，数值与详细资料可展开查看或继续编辑。' : '现实世界默认为 2026 年现代都市。你的个人信息和相关人际关系完全由你自己设定；未填写的关系，剧情不会擅自补完。'"></p>
+        <p class="intro" x-text="$store.game.phoneActivationChoice === 'existing' ? '默认读取四张预定义角色卡：刘悠、刘思瑶、刘思琪、刘思怡。确认后会直接创建玩家卡与三张关系角色卡，不再请求 AI 生成这些卡。' : '现实世界默认为 2026 年现代都市。你的个人信息和相关人际关系完全由你自己设定；未填写的关系，剧情不会擅自补完。'"></p>
       </section>
       <article class="role-card-picker dev-section" data-section-title="选择玩家角色卡" x-show="$store.game.phoneActivationChoice === 'existing'">
         <label><span>选择角色卡</span><select class="text-input" x-model="$store.game.roleCardSetup.selectedPlayerName" @change="$store.game.selectPlayerRoleCard($event.target.value)"><template x-for="card in $store.game.roleCardSetup.cards" :key="card.name"><option :value="card.name" x-text="`${card.name}｜${card.role || '角色卡'}`"></option></template></select></label>
@@ -1621,7 +1622,7 @@
           <label class="dev-section" data-section-title="生日输入"><span>生日（必填）</span><input class="text-input" type="date" x-model="$store.game.playerProfile.birthday"><small>参考默认账号：1998-11-19</small></label>
           <label class="dev-section" data-section-title="具体地址输入"><span>具体地址</span><input class="text-input" x-model="$store.game.playerProfile.city" placeholder="例如：四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号"><small>参考默认账号：四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号</small></label>
           <label class="dev-section" data-section-title="现实身份输入"><span>现实身份</span><input class="text-input" x-model="$store.game.playerProfile.dailyRole" placeholder="例如：程序工程师，计算机科学与技术硕士"><small>参考默认账号：程序工程师，计算机科学与技术硕士</small></label>
-          <label class="dev-section" data-section-title="居住状态输入"><span>居住状态</span><input class="text-input" x-model="$store.game.playerProfile.livingStatus" placeholder="例如：与18岁成年双胞胎妹妹刘思瑶、刘思琪同居"><small>参考默认账号：与18岁成年双胞胎妹妹刘思瑶、刘思琪同居</small></label>
+          <label class="dev-section" data-section-title="居住状态输入"><span>居住状态</span><input class="text-input" x-model="$store.game.playerProfile.livingStatus" placeholder="例如：与18岁成年三胞胎妹妹刘思瑶、刘思琪、刘思怡同居"><small>参考默认账号：与18岁成年三胞胎妹妹刘思瑶、刘思琪、刘思怡同居</small></label>
           <label class="dev-section" data-section-title="财富等级输入"><span>财富等级</span><select class="text-input" x-model="$store.game.playerProfile.wealthTier" @change="$store.game.syncPlayerWealthDefaults()"><template x-for="option in $store.game.playerWealthOptions()" :key="option.tier"><option :value="option.tier" x-text="`${option.tier}（默认${option.amount.toLocaleString('zh-CN')}元）`"></option></template></select><small x-text="$store.game.playerWealthText()"></small></label>
           <label class="dev-section" data-section-title="父母信息输入"><span>父母信息</span><input class="text-input" x-model="$store.game.playerProfile.parents" placeholder="例如：父母已故"><small>参考默认账号：父母已故</small></label>
         </div>
@@ -1660,16 +1661,16 @@
         <p>每行单独填写关系名、姓名与该人物设定；系统会自动整理成“关系：姓名”给角色卡和微信联系人使用。</p>
         <template x-for="(entry, index) in ($store.game.playerProfile.relationshipEntries || [])" :key="index">
           <div class="relationship-entry-row">
-            <label><span>关系名</span><input class="text-input" x-model="entry.relation" @input="$store.game.syncRelationshipTextFromEntries()" placeholder="如：双胞胎妹妹之一"></label>
+            <label><span>关系名</span><input class="text-input" x-model="entry.relation" @input="$store.game.syncRelationshipTextFromEntries()" placeholder="如：三胞胎妹妹之一"></label>
             <label><span>姓名</span><input class="text-input" x-model="entry.name" @input="$store.game.syncRelationshipTextFromEntries()" placeholder="如：刘思瑶"></label>
             <label class="relationship-entry-detail"><span>该人物设定</span><textarea class="text-input" x-model="entry.detail" placeholder="外貌、性格、同居情况、关系边界、特殊偏好等"></textarea></label>
             <button class="small-btn" type="button" @click="$store.game.removePlayerRelationshipEntry(index)">删除</button>
           </div>
         </template>
-        <small>参考：双胞胎妹妹之一 / 刘思瑶；双胞胎妹妹之二 / 刘思琪。旧格式会自动兼容。</small>
+        <small>参考：三胞胎妹妹之一 / 刘思瑶；三胞胎妹妹之二 / 刘思琪；三胞胎妹妹之三 / 刘思怡。</small>
       </article>
-      <label class="phone-setup-wide dev-section" data-section-title="备注设定区"><span>备注设定</span><textarea x-model="$store.game.playerProfile.notes" placeholder="例如：家庭处境、性格、亲密关系边界、近期目标等。可留空。"></textarea><small>参考默认账号：刘悠是程序工程师，与成年双胞胎妹妹同居，承担家庭支柱职责。</small></label>
-      <article class="real-world-note dev-section" data-section-title="玩家卡生成选项区"><strong>玩家卡生成选项</strong><p>以下选项只影响玩家卡本人；其他角色卡仍会完整使用 AI 生成。</p><label><input type="checkbox" x-model="$store.game.playerProfile.playerCardAiParts.part2"> Part2 情感数值使用 AI 生成</label><label><input type="checkbox" x-model="$store.game.playerProfile.playerCardAiParts.part5"> Part5 身体原貌使用 AI 生成</label><label><input type="checkbox" x-model="$store.game.playerProfile.playerCardAiParts.part6"> Part6 盛装状态使用 AI 生成</label><small>取消勾选后，对应部分会采用系统缺省值，并在玩家卡加载进度中直接标记完成。</small></article>
+      <label class="phone-setup-wide dev-section" data-section-title="备注设定区"><span>备注设定</span><textarea x-model="$store.game.playerProfile.notes" placeholder="例如：家庭处境、性格、亲密关系边界、近期目标等。可留空。"></textarea><small>参考默认账号：刘悠是程序工程师，与成年三胞胎妹妹同居，承担家庭支柱职责。</small></label>
+      <article class="real-world-note dev-section" data-section-title="玩家卡生成选项区"><strong>玩家卡生成选项</strong><p>以下选项只影响新账号玩家卡本人；使用已有账号时会直接使用预定义角色卡。</p><label><input type="checkbox" x-model="$store.game.playerProfile.playerCardAiParts.part2"> Part2 情感数值使用 AI 生成</label><label><input type="checkbox" x-model="$store.game.playerProfile.playerCardAiParts.part5"> Part5 身体原貌使用 AI 生成</label><label><input type="checkbox" x-model="$store.game.playerProfile.playerCardAiParts.part6"> Part6 盛装状态使用 AI 生成</label><small>取消勾选后，对应部分会采用系统缺省值，并在玩家卡加载进度中直接标记完成。</small></article>
       <article class="real-world-note dev-section" data-section-title="AI身份补全提示区"><strong>激活补全</strong><p>完成激活时会根据生日计算年龄，并让 AI 把地址补全到省市区县、镇街道、小区、楼栋门牌级别，同时补全身份、居住信息与世界观备注；父母未填写时默认已故并生成合理死因。</p><small x-show="$store.game.profileSetupBusy">正在补全身份资料，约 10-30 秒，请勿重复点击。</small><small x-show="$store.game.setupError" x-text="$store.game.setupError"></small></article>
       <article class="real-world-note dev-section" data-section-title="现实世界背景区">
         <strong x-text="window.GameModules.realWorld2026.label"></strong>

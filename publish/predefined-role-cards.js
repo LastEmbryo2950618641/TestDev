@@ -1,7 +1,7 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.predefinedRoleCards = {
-  keys: ['liu-you', 'liu-siyao', 'liu-siqi'],
+  keys: ['liu-you', 'liu-siyao', 'liu-siqi', 'liu-siyi'],
   cache: null,
 
   async loadAll() {
@@ -100,7 +100,7 @@ window.GameModules.predefinedRoleCards = {
 
   async saveSelectedRelationshipStates(store) {
     const cards = await this.loadAll();
-    const names = store.roleCardSetup?.selectedRelationNames || ['刘思瑶', '刘思琪'];
+    const names = store.roleCardSetup?.selectedRelationNames?.length ? store.roleCardSetup.selectedRelationNames : ['刘思瑶', '刘思琪', '刘思怡'];
     const tasks = names.map((name) => {
       const card = this.byName(cards, name);
       return card ? this.createState(card, store, card.id || name) : null;
@@ -115,7 +115,7 @@ window.GameModules.predefinedRoleCardActions = {
     const cards = await window.GameModules.predefinedRoleCards.loadAll();
     this.roleCardSetup.cards = cards;
     this.roleCardSetup.loaded = true;
-    if (!this.roleCardSetup.selectedPlayerName) this.roleCardSetup.selectedPlayerName = cards.find((x) => x.isPlayer)?.name || cards[0]?.name || '';
+    if (!this.roleCardSetup.selectedPlayerName) this.roleCardSetup.selectedPlayerName = cards.find((x) => x.isPlayer)?.name || '刘悠';
     if (!this.roleCardSetup.selectedRelationNames.length) this.roleCardSetup.selectedRelationNames = cards.filter((x) => !x.isPlayer).map((x) => x.name);
     this.roleCardSetup.relationRoles = this.roleCardSetup.relationRoles || {};
     this.roleCardSetup.selectedRelationNames.forEach((name) => {

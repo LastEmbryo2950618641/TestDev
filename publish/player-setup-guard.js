@@ -3,6 +3,36 @@ window.GameModules = window.GameModules || {};
 (function guardPlayerSetupActions() {
   const actions = window.GameModules.playerSetupActions = window.GameModules.playerSetupActions || {};
   const worldLabel = () => window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
+  const runPredefinedPlayerSetup = async function runPredefinedPlayerSetup(options = {}) {
+    return this.completePredefinedPlayerSetup(options);
+  };
+  const fallbackCompletePlayerSetup = async function completePlayerSetup(options = {}) {
+    if (this.profileSetupBusy) return;
+    const p = this.playerProfile || {}, name = (p.name || this.playerName || '').trim(), birthday = (p.birthday || '').trim();
+    if (!name || !birthday) return;
+    this.profileSetupBusy = true;
+    try {
+      const age = this.playerAgeFromBirthday(birthday);
+      this.playerProfile = { ...p, name, birthday, age, refinedCity: p.refinedCity || p.city, refinedRole: p.refinedRole || p.dailyRole || `${age || ''}岁现代都市居民`, refinedLivingStatus: p.refinedLivingStatus || p.livingStatus, parentStatus: p.parentStatus || p.parents || '父母已故', parentDeathCause: p.parentDeathCause || '', initializedAt: p.initializedAt || new Date().toISOString() };
+      this.phoneFixedTime = new Date(this.playerProfile.initializedAt).getTime();
+      await this.syncPlayerProfileLexicon?.();
+      this.playerName = name; this.phoneActivationChoice = ''; this.phoneSetupDone = true; this.desktopUnlocked = false;
+      await this.ensurePlayerRpgState?.(true); await this.save?.();
+    } finally { this.profileSetupBusy = false; }
+  };
+  const shouldUsePredefinedSetup = (store) => Boolean(
+    store?.roleCardSetup?.usePredefinedPlayerCard
+      && window.GameModules.predefinedRoleCards?.saveSelectedRoleCardStates
+      && typeof store.completePredefinedPlayerSetup === 'function'
+  );
+  const wrapCompletePlayerSetup = (fn) => {
+    const wrapped = async function completePlayerSetup(options = {}) {
+      if (shouldUsePredefinedSetup(this)) return runPredefinedPlayerSetup.call(this, options);
+      return fn.call(this, options);
+    };
+    wrapped.predefinedRoleCardGuard = true;
+    return wrapped;
+  };
   const fallbacks = {
     playerProfileLexiconFields() {
       const p = this.playerProfile || {}, worldTag = worldLabel();
@@ -44,20 +74,7 @@ window.GameModules = window.GameModules || {};
     async useExistingAccountSetup() {
       await this.completePlayerSetup?.();
     },
-    async completePlayerSetup() {
-      if (this.profileSetupBusy) return;
-      const p = this.playerProfile || {}, name = (p.name || this.playerName || '').trim(), birthday = (p.birthday || '').trim();
-      if (!name || !birthday) return;
-      this.profileSetupBusy = true;
-      try {
-        const age = this.playerAgeFromBirthday(birthday);
-        this.playerProfile = { ...p, name, birthday, age, refinedCity: p.refinedCity || p.city, refinedRole: p.refinedRole || p.dailyRole || `${age || ''}岁现代都市居民`, refinedLivingStatus: p.refinedLivingStatus || p.livingStatus, parentStatus: p.parentStatus || p.parents || '父母已故', parentDeathCause: p.parentDeathCause || '', initializedAt: p.initializedAt || new Date().toISOString() };
-        this.phoneFixedTime = new Date(this.playerProfile.initializedAt).getTime();
-        await this.syncPlayerProfileLexicon?.();
-        this.playerName = name; this.phoneActivationChoice = ''; this.phoneSetupDone = true; this.desktopUnlocked = false;
-        await this.ensurePlayerRpgState?.(true); await this.save?.();
-      } finally { this.profileSetupBusy = false; }
-    },
+    completePlayerSetup: fallbackCompletePlayerSetup,
     async syncPlayerProfileLexicon() {
       try {
         if (!window.GameModules.rpgLexicon?.saveMany) return;
@@ -70,5 +87,11 @@ window.GameModules = window.GameModules || {};
       this.phoneActivationChoice = '';
     },
   };
-  Object.entries(fallbacks).forEach(([key, fn]) => { if (typeof actions[key] !== 'function') actions[key] = fn; });
+  Object.entries(fallbacks).forEach(([key, fn]) => {
+    if (typeof actions[key] !== 'function') actions[key] = key === 'completePlayerSetup' ? wrapCompletePlayerSetup(fn) : fn;
+  });
+  if (actions.completePlayerSetup?.predefinedRoleCardGuard !== true) {
+    actions.completePlayerSetup = wrapCompletePlayerSetup(actions.completePlayerSetup || fallbackCompletePlayerSetup);
+    actions.completePlayerSetup.predefinedRoleCardGuard = true;
+  }
 })();

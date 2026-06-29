@@ -120,4 +120,30 @@ Object.assign(window.GameModules.playerSetupActions, {
       this.profileSetupBusy = false;
     }
   },
+
+  async completePredefinedPlayerSetup() {
+    if (this.profileSetupBusy) return;
+    const p = this.playerProfile || {}, name = (p.name || this.playerName || '').trim(), birthday = (p.birthday || '').trim();
+    if (!name || !birthday) return;
+    this.profileSetupBusy = true;
+    try {
+      this.setupError = '';
+      this.syncRelationshipTextFromEntries?.();
+      const age = this.playerAgeFromBirthday(birthday);
+      this.playerProfile = { ...p, name, birthday, age, refinedCity: p.refinedCity || p.city, refinedRole: p.refinedRole || p.dailyRole || `${age || ''}岁现代都市居民`, refinedLivingStatus: p.refinedLivingStatus || p.livingStatus, parentStatus: p.parentStatus || p.parents || '父母已故', parentDeathCause: p.parentDeathCause || '', initializedAt: p.initializedAt || new Date().toISOString() };
+      this.phoneFixedTime = new Date(this.playerProfile.initializedAt).getTime();
+      await this.syncPlayerProfileLexicon?.();
+      this.playerName = name; this.phoneActivationChoice = ''; this.phoneSetupDone = true; this.desktopUnlocked = false;
+      await window.GameModules.predefinedRoleCards.saveSelectedRoleCardStates(this);
+      await this.ensurePlayerRpgState?.(true);
+      await this.syncKnownProfessionsFromProfile?.(this.playerProfile.knownProfessions);
+      await this.save?.();
+    } catch (err) {
+      console.error('[玩家身份] 激活失败:', err.code, err.message, err.stack);
+      this.setupError = err.message || '激活失败';
+    } finally {
+      this.profileSetupBusy = false;
+    }
+  },
+
 });
