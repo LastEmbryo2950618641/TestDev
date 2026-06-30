@@ -1,0 +1,5 @@
+// GENERATED FROM publish/prompts/writing-styles.md; DO NOT EDIT.
+window.GameModules = window.GameModules || {};
+window.GameModules.promptTemplates = window.GameModules.promptTemplates || {};
+window.GameModules.promptTemplates.inline = window.GameModules.promptTemplates.inline || {};
+window.GameModules.promptTemplates.inline["writing-styles"] = "# 小说文风预设\n\n默认笔风已拆分到 `prompts/pen_style/`，每个笔风一份 Markdown 与同名同步 JS。\n\n## 注册方式\n\n1. `prompts/pen_style/register.js` 维护每个笔风的 `id / name / sourceKey / file` 元数据。\n2. 每个笔风 JS 由 `tools/md-to-inline-js.js` 从同名 Markdown 生成，只提供 `window.GameModules.inlineMd` 正文快照。\n3. `register.js` 读取 `inlineMd` 正文并统一注册到设置界面的“小说笔风”下拉框。\n\n## 当前默认笔风\n\n- `prompts/pen_style/literary.md` / `literary.js`：文学细腻\n- `prompts/pen_style/dark.md` / `dark.js`：黑暗压抑\n- `prompts/pen_style/light-novel.md` / `light-novel.js`：轻小说节奏\n- `prompts/pen_style/epic.md` / `epic.js`：史诗庄重\n- `prompts/pen_style/suspense.md` / `suspense.js`：悬疑紧张\n- `prompts/pen_style/spring-heart.md` / `spring-heart.js`：春心萌动\n";

@@ -336,14 +336,28 @@ test('promptTemplates reports colocated JS attempts when markdown fallback fails
   );
 });
 
+test('all promptTemplates markdown entries have colocated generated scripts for publish fallback', () => {
+  const context = createContext();
+  loadScript(context, 'publish/prompt-templates.js');
+  const missing = context.window.GameModules.promptTemplates.items
+    .map((item) => item.file)
+    .filter((file) => file.endsWith('.md'))
+    .map((file) => `publish/${file.replace(/\.md$/u, '.js')}`)
+    .filter((file) => !fs.existsSync(path.join(root, file)));
+  assert.strictEqual(missing.length, 0, missing.join('\n'));
+});
+
 test('colocated generated prompt scripts are tracked for publishing', () => {
+  const context = createContext();
+  loadScript(context, 'publish/prompt-templates.js');
+  const templateScripts = context.window.GameModules.promptTemplates.items
+    .map((item) => item.file)
+    .filter((file) => file.endsWith('.md'))
+    .map((file) => `publish/${file.replace(/\.md$/u, '.js')}`);
   const files = [
     'publish/inference-prompts-runtime.js',
-    'publish/prompts/推演引擎/stage1-guided-query.js',
-    'publish/prompts/推演引擎/stage2-scene-anchor.js',
-    'publish/prompts/推演引擎/stage3-narration.js',
-    'publish/prompts/推演引擎/stage4-settlement-window.js',
     'publish/prompts/推演引擎/init/intimacy-body-init-prompt.js',
+    ...templateScripts,
   ];
   const tracked = new Set(require('child_process').execFileSync('git', ['ls-files', ...files], { cwd: root, encoding: 'utf8' }).trim().split('\n').filter(Boolean));
   files.forEach((file) => assert.ok(tracked.has(file), `${file} is not tracked and will be missing from publish`));

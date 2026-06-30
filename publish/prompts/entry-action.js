@@ -1,0 +1,5 @@
+// GENERATED FROM publish/prompts/entry-action.md; DO NOT EDIT.
+window.GameModules = window.GameModules || {};
+window.GameModules.promptTemplates = window.GameModules.promptTemplates || {};
+window.GameModules.promptTemplates.inline = window.GameModules.promptTemplates.inline || {};
+window.GameModules.promptTemplates.inline["entry-action"] = "# 进入时机行动生成\n\n基于剧情索引、世界观和人物性格，推演角色在当前时间正在发生的事情。\n\n## 模板构成拆分\n\n1. 任务定位：生成“角色当前正在发生什么”的一句话，不生成完整剧情。\n2. 原因：说明为什么需要重新生成进入时机行动。\n3. 时间：当前选择的进入时间。\n4. 角色：角色姓名、身份、性格摘要。\n5. 世界观：当前作品/世界背景。\n6. 剧情索引：从本地资料读取的剧情索引上下文。\n7. 输出约束：一句中文、60字内、不要 JSON。\n\n## 可调项说明\n\n- 想更贴近原作：强化“必须优先依据剧情索引”。\n- 想允许原创：放宽“不要凭空捏造”。\n- 想输出更短：调整 60 字限制。\n- 想更强调角色性格：强化角色字段使用规则。\n\n## 规则\n\n1. 必须优先依据剧情索引范围，不要凭空捏造。\n2. 如果当前角色未出现在索引摘要中，则根据其身份推断她此刻与主线的合理关系，并明确保持克制。\n3. 只输出一句中文，60字内。\n4. 不要 JSON，不要重复词句，不要解释。\n5. 输出应描述“此刻正在发生的事”，不是角色长期背景。\n6. 行动要能作为玩家接入前的场景锚点。\n\n## 上下文\n\n- 原因：{原因}\n- 时间：{时间}\n- 角色：{角色}\n- 世界观：{世界观}\n- 剧情索引上下文：{剧情索引}\n\n## 最终输出\n\n只输出那一句“当前正在发生的事”。不要输出标题、章节名、字段名、原因、时间、角色、世界观或剧情索引。\n";

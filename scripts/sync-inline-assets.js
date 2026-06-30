@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 
 const root = path.resolve(__dirname, '..');
 const publish = path.join(root, 'publish');
@@ -86,6 +87,29 @@ function syncLoreCache() {
   ].join('\n'));
 }
 
+function syncPromptTemplateScripts() {
+  const context = { window: { GameModules: {} }, document: { currentScript: { src: '' }, baseURI: '' }, location: { origin: '', href: '' } };
+  context.window.window = context.window;
+  vm.createContext(context);
+  vm.runInContext(readText(path.join(publish, 'prompt-templates.js')), context, { filename: 'publish/prompt-templates.js' });
+  const templates = context.window.GameModules.promptTemplates?.items || [];
+  templates.forEach((item) => {
+    const rel = String(item.file || '');
+    if (!rel.endsWith('.md')) return;
+    const mdPath = path.join(publish, rel);
+    if (!fs.existsSync(mdPath)) return;
+    const jsPath = mdPath.replace(/\.md$/u, '.js');
+    const sourceRel = path.relative(root, mdPath).replace(/\\/g, '/');
+    writeText(jsPath, [
+      `// GENERATED FROM ${sourceRel}; DO NOT EDIT.`,
+      'window.GameModules = window.GameModules || {};',
+      'window.GameModules.promptTemplates = window.GameModules.promptTemplates || {};',
+      'window.GameModules.promptTemplates.inline = window.GameModules.promptTemplates.inline || {};',
+      `window.GameModules.promptTemplates.inline[${JSON.stringify(item.id)}] = ${JSON.stringify(readText(mdPath))};`,
+    ].join('\n'));
+  });
+}
+
 function syncInferencePromptRuntime() {
   const files = [
     'prompts/推演引擎/stage1-guided-query.js',
@@ -124,5 +148,6 @@ syncSkills();
 syncDefaultProfile();
 syncPenStyles();
 syncLoreCache();
+syncPromptTemplateScripts();
 syncInferencePromptRuntime();
 console.log('inline assets synced');
