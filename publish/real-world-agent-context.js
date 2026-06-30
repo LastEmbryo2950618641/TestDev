@@ -215,6 +215,92 @@ window.GameModules.realWorldAgentContext = {
     return materials?.keyOf?.(req) || `${cleanSkill}:${cleanMethod}:${JSON.stringify(p)}`;
   },
 
+  worldLabel() {
+    return window.GameModules.realWorld2026?.label || '2026现代都市现实世界';
+  },
+
+  splitChineseRequestLine(line = '') {
+    const body = String(line || '').replace(/^资料请求\d+\s*[：:]/u, '').trim();
+    return body.split(/[，,、；;]/u).map((part) => part.trim()).filter(Boolean);
+  },
+
+  guidedMaterialRequestCatalog(mode = 'real') {
+    const world = () => this.worldLabel();
+    return [
+      { mode: 'both', category: '角色查询', action: '搜索角色卡', skill: 'character.query', method: 'searchCharacterProfile', buildParams: (p) => ({ name: p[0] || '', world: p[1] || world() }) },
+      { mode: 'both', category: '角色查询', action: '已知角色列表', skill: 'character.query', method: 'listKnownCharacters', buildParams: (p) => ({ world: p[0] || world() }) },
+      { mode: 'real', category: '地点查询', action: '当前地点上下文', skill: 'realworld.location.query', method: 'getCurrentLocationContext', buildParams: (p) => ({ world: p[0] || world() }) },
+      { mode: 'real', category: '地点查询', action: '查询附近地点', skill: 'realworld.location.query', method: 'getNearbyLocations', buildParams: (p) => ({ locationName: p[0] || '', world: p[1] || world() }) },
+      { mode: 'real', category: '地点查询', action: '搜索地点', skill: 'realworld.location.query', method: 'searchLocationOne', buildParams: (p) => ({ keyword: p[0] || '', world: p[1] || world() }) },
+      { mode: 'both', category: '世界线查询', action: '按关键词搜索', skill: 'realworld.history.query', method: 'searchWorldlineByKeyword', buildParams: (p) => ({ keyword: p[0] || '', world: p[1] || world() }) },
+      { mode: 'both', category: '世界线查询', action: '按时间搜索', skill: 'realworld.history.query', method: 'searchWorldlineByTime', buildParams: (p) => ({ time: p[0] || '', keyword: p[1] || '', world: p[2] || world() }) },
+      { mode: 'both', category: '记忆查询', action: '搜索角色记忆窗口', skill: 'memory.query', method: 'searchCharacterMemoryWindow', buildParams: (p) => ({ characterId: p[0] || '', keyword: p[1] || '' }) },
+      { mode: 'real', category: '微信查询', action: '联系人列表', skill: 'wechat.query', method: 'listContacts', buildParams: (p) => ({ world: p[0] || world() }) },
+      { mode: 'real', category: '微信查询', action: '会话片段', skill: 'wechat.query', method: 'getThread', buildParams: (p) => ({ contactId: p[0] || '', count: Number(p[1]) || 5 }) },
+      { mode: 'real', category: '公司查询', action: '工作上下文', skill: 'company.query', method: 'getWorkContext', buildParams: (p) => ({ companyName: p[0] || '' }) },
+      { mode: 'real', category: '势力查询', action: '搜索势力', skill: 'faction.query', method: 'searchFactionOne', buildParams: (p) => ({ keyword: p[0] || '' }) },
+      { mode: 'both', category: '物品查询', action: '角色物品', skill: 'item.query', method: 'listCharacterItems', buildParams: (p) => ({ target: p[0] || '' }) },
+      { mode: 'both', category: '物品查询', action: '搜索已知物品', skill: 'item.query', method: 'searchKnownItem', buildParams: (p) => ({ keyword: p[0] || '' }) },
+    ];
+  },
+
+  parseChineseMaterialRequest(line = '', options = {}) {
+    const mode = options.mode || 'real';
+    const parts = this.splitChineseRequestLine(line);
+    if (parts.length < 2) return null;
+    const [category, action, ...params] = parts;
+    const entry = this.guidedMaterialRequestCatalog(mode).find((item) => (item.mode === 'both' || item.mode === mode) && item.category === category && item.action === action);
+    if (!entry) return null;
+    const built = entry.buildParams(params, options);
+    if (Object.values(built).some((value) => value === '')) return null;
+    return { skill: entry.skill, method: entry.method, params: built, sourceText: String(line || '').trim() };
+  },
+
+  participantProfileRequests(data = {}) {
+    const forbidden = new Set((data.forbiddenParticipants || []).map((item) => String(item?.name || item || '').trim()).filter(Boolean));
+    const seen = new Set();
+    const requests = [];
+    const add = (items = []) => {
+      for (const item of items || []) {
+        const name = String(item?.name || item || '').trim();
+        if (!name || forbidden.has(name) || seen.has(name) || requests.length >= 3) continue;
+        seen.add(name);
+        requests.push({ skill: 'character.query', method: 'searchCharacterProfile', params: { name, world: this.worldLabel() } });
+      }
+    };
+    add(data.forcedParticipants);
+    add(data.priorityCandidates);
+    add(data.dramaCandidates);
+    return requests;
+  },
+
+  sceneAnchorRequests(data = {}) {
+    const queries = data.sceneQueries || {};
+    const requests = [{ skill: 'realworld.location.query', method: 'getCurrentLocationContext', params: { world: this.worldLabel() } }];
+    (queries.location || []).forEach((keyword) => {
+      const text = String(keyword || '').trim();
+      if (text) requests.push({ skill: 'realworld.location.query', method: 'searchLocationOne', params: { keyword: text, world: this.worldLabel() } });
+    });
+    (queries.causality || []).forEach((keyword) => {
+      const text = String(keyword || '').trim();
+      if (text) requests.push({ skill: 'realworld.history.query', method: 'searchWorldlineByKeyword', params: { keyword: text, world: this.worldLabel() } });
+    });
+    (queries.conflict || []).forEach((keyword) => {
+      const text = String(keyword || '').trim();
+      if (text) requests.push({ skill: 'memory.query', method: 'searchCharacterMemoryWindow', params: { characterId: '', keyword: text } });
+    });
+    return requests.slice(0, 4);
+  },
+
+  randomActiveEventCandidates(store, action = '', options = {}) {
+    const blocked = new Set([...(options.blockedNames || []), ...String(action || '').match(/[\p{Script=Han}A-Za-z0-9_]{2,}/gu) || []]);
+    const states = [...Object.values(store?.rpgStates || {}), ...(window.GameModules.sqliteSave.listCharacterStates?.() || [])];
+    const seen = new Set();
+    return states.map((state) => ({ id: state.id || state.profile?.name || state.name, name: state.profile?.name || state.name }))
+      .filter((item) => item.name && !blocked.has(item.name) && !seen.has(item.name) && seen.add(item.name))
+      .slice(0, 3);
+  },
+
   async autoLoadForStep(store, action = '', loadedKeys = new Set(), materialSession = null, materials = window.GameModules.realWorldMaterials, memoryIds = new Set(), step = 1, loaded = [], current = []) {
     if (step !== 1) return [];
     const actionText = String(action || '');
@@ -250,9 +336,9 @@ window.GameModules.realWorldAgentContext = {
     return [crossWorld, ...texts.filter(Boolean)].join('\n\n');
   },
 
-  async loadRequests(store, action, requests = [], loadedKeys = new Set(), materialSession = null, materials = window.GameModules.realWorldMaterials, memoryIds = new Set(), loaded = [], current = []) {
+  async loadRequests(store, action, requests = [], loadedKeys = new Set(), materialSession = null, materials = window.GameModules.realWorldMaterials, memoryIds = new Set(), loaded = [], current = [], options = {}) {
     const out = [];
-    for (const req of requests.slice(0, 3)) {
+    for (const req of requests.slice(0, options.limit || 3)) {
       const skill = String(req?.skill || '').trim();
       const method = String(req?.method || '').trim();
       const params = req?.params && typeof req.params === 'object' ? req.params : {};

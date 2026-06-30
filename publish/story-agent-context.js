@@ -79,9 +79,98 @@ window.GameModules.storyAgentContext = {
     return [crossWorld, window.GameModules.workLoreMaterials?.skillText?.() || '', ...texts.filter(Boolean)].join('\n\n');
   },
 
-  async loadRequests(store, action, requests = [], loadedKeys = new Set(), materialSession = null, materials = window.GameModules.workLoreMaterials, memoryIds = new Set(), loaded = [], current = []) {
+  worldLabel(store = null) {
+    return store?.character?.work || store?.selectedWork || '原创世界';
+  },
+
+  splitChineseRequestLine(line = '') {
+    return window.GameModules.realWorldAgentContext.splitChineseRequestLine(line);
+  },
+
+  guidedMaterialRequestCatalog(mode = 'story') {
+    const base = window.GameModules.realWorldAgentContext.guidedMaterialRequestCatalog(mode).filter((item) => item.mode === 'both');
+    const work = (p, store) => p[1] || this.worldLabel(store);
+    return [
+      ...base,
+      { mode: 'story', category: '作品设定查询', action: '入口说明', skill: 'worklore.query', method: 'getReadme', buildParams: (p, options) => ({ world: p[0] || this.worldLabel(options.store) }) },
+      { mode: 'story', category: '作品设定查询', action: '常驻设定', skill: 'worklore.query', method: 'getDefaultLoad', buildParams: (p, options) => ({ world: p[0] || this.worldLabel(options.store) }) },
+      { mode: 'story', category: '作品设定查询', action: '搜索人物', skill: 'worklore.query', method: 'searchPeople', buildParams: (p, options) => ({ keyword: p[0] || '', world: work(p, options.store) }) },
+      { mode: 'story', category: '作品设定查询', action: '搜索剧情', skill: 'worklore.query', method: 'searchPlot', buildParams: (p, options) => ({ keyword: p[0] || '', world: work(p, options.store) }) },
+      { mode: 'story', category: '作品设定查询', action: '搜索时间线', skill: 'worklore.query', method: 'searchTimeline', buildParams: (p, options) => ({ keyword: p[0] || '', world: work(p, options.store) }) },
+      { mode: 'story', category: '作品设定查询', action: '搜索能力', skill: 'worklore.query', method: 'searchAbility', buildParams: (p, options) => ({ keyword: p[0] || '', world: work(p, options.store) }) },
+      { mode: 'story', category: '作品设定查询', action: '搜索关系', skill: 'worklore.query', method: 'searchRelationship', buildParams: (p, options) => ({ keyword: p[0] || '', world: work(p, options.store) }) },
+      { mode: 'story', category: '作品设定查询', action: '搜索地点', skill: 'worklore.query', method: 'searchLocation', buildParams: (p, options) => ({ keyword: p[0] || '', world: work(p, options.store) }) },
+      { mode: 'story', category: '作品设定查询', action: '搜索物品', skill: 'worklore.query', method: 'searchItem', buildParams: (p, options) => ({ keyword: p[0] || '', world: work(p, options.store) }) },
+    ];
+  },
+
+  parseChineseMaterialRequest(line = '', options = {}) {
+    const parts = this.splitChineseRequestLine(line);
+    if (parts.length < 2) return null;
+    const [category, action, ...params] = parts;
+    const entry = this.guidedMaterialRequestCatalog('story').find((item) => item.category === category && item.action === action);
+    if (!entry) return null;
+    const built = entry.buildParams(params, { ...options, store: options.store });
+    if (Object.values(built).some((value) => value === '')) return null;
+    return { skill: entry.skill, method: entry.method, params: built, sourceText: String(line || '').trim() };
+  },
+
+  participantProfileRequests(data = {}, options = {}) {
+    const store = options.store || {};
+    const world = this.worldLabel(store);
+    const forbidden = new Set((data.forbiddenParticipants || []).map((item) => String(item?.name || item || '').trim()).filter(Boolean));
+    const seen = new Set();
+    const requests = [];
+    const add = (items = []) => {
+      for (const item of items || []) {
+        const name = String(item?.name || item || '').trim();
+        if (!name || forbidden.has(name) || seen.has(name) || requests.length >= 3) continue;
+        seen.add(name);
+        requests.push({ skill: 'worklore.query', method: 'searchPeople', params: { keyword: name, name, world } });
+      }
+    };
+    add(data.forcedParticipants);
+    add(data.priorityCandidates);
+    add(data.dramaCandidates);
+    return requests;
+  },
+
+  sceneAnchorRequests(data = {}, store = {}) {
+    const queries = data.sceneQueries || {};
+    const world = this.worldLabel(store);
+    const requests = [];
+    (queries.location || []).forEach((keyword) => {
+      const text = String(keyword || '').trim();
+      if (text) requests.push({ skill: 'worklore.query', method: 'searchLocation', params: { keyword: text, world } });
+    });
+    (queries.causality || []).forEach((keyword) => {
+      const text = String(keyword || '').trim();
+      if (text) requests.push({ skill: 'worklore.query', method: 'searchTimeline', params: { keyword: text, world } });
+    });
+    (queries.conflict || []).forEach((keyword) => {
+      const text = String(keyword || '').trim();
+      if (text) requests.push({ skill: 'worklore.query', method: 'searchPlot', params: { keyword: text, world } });
+    });
+    return requests.slice(0, 4);
+  },
+
+  randomActiveEventCandidates(store, action = '', options = {}) {
+    const rng = typeof options.rng === 'function' ? options.rng : Math.random;
+    const blocked = new Set(String(action || '').match(/[\p{Script=Han}A-Za-z0-9_]{2,}/gu) || []);
+    ['forcedParticipants', 'priorityCandidates', 'dramaCandidates', 'forbiddenParticipants'].forEach((key) => {
+      (Array.isArray(options[key]) ? options[key] : []).forEach((item) => {
+        const name = String(item?.name || item?.characterName || item?.idOrName || item?.id || item || '').trim();
+        if (name) blocked.add(name);
+      });
+    });
+    const pool = (store.knownCharacters || []).map((item) => ({ id: item.id || item.name, name: item.name || item.id })).filter((item) => item.name && !blocked.has(item.name));
+    if (!pool.length) return [];
+    return [pool[Math.floor((1 - rng()) * pool.length) % pool.length]].filter(Boolean);
+  },
+
+  async loadRequests(store, action, requests = [], loadedKeys = new Set(), materialSession = null, materials = window.GameModules.workLoreMaterials, memoryIds = new Set(), loaded = [], current = [], options = {}) {
     const out = [];
-    for (const req of requests.slice(0, 3)) {
+    for (const req of requests.slice(0, options.limit || 3)) {
       const skill = String(req?.skill || '').trim();
       const method = String(req?.method || '').trim();
       const params = req?.params && typeof req.params === 'object' ? req.params : {};

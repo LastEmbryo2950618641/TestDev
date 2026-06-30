@@ -1,0 +1,28 @@
+---
+name: sexual-history-update
+description: 根据成人虚构身份的稳定事实，更新性经历当前状态、经历人数与经历人列表
+---
+
+# sexual-history-update
+
+确认玩家或角色的性经历身份状态发生稳定变化时，返回 updateType:"sexual-history"。
+
+- 绑定卡片：角色卡；玩家本人绑定玩家卡。
+- 只处理成人虚构身份的抽象元数据，不输出过程、姿势、器官互动或感官细节。
+- 当前状态字段：intimacy.sexualStatus，默认 "处女"。
+- 经历人数字段：intimacy.sexualPartnerCount，默认 0。
+- 经历人列表字段：intimacy.sexualPartners，默认 []。
+- 经历人数只在稳定事实确认发生过“阴部插入”时计入；其他亲密经历、接吻、口部、胸部、肛部、皮肤接触等均不增加经历人数。
+- change.mode：set / append / delta。
+- 每条 genericUpdate 只更新一个 field，按 field + change.mode + change.value 走通用写入。
+- 示例：
+  - { "field": "intimacy.sexualStatus", "change": { "mode": "set", "value": "非处女" } }
+  - { "field": "intimacy.sexualPartners", "change": { "mode": "append", "value": "姓名" } }
+  - { "field": "intimacy.sexualPartnerCount", "change": { "mode": "set", "value": 1 } }
+- 必须在事实确认发生过“阴部插入”时，才返回 intimacy.sexualPartnerCount 或 intimacy.sexualPartners 更新。
+- 更新经历人列表时依赖通用 append 去重；经历人数另行返回 set 更新并与已确认经历人列表保持一致，除非只有人数无姓名。
+- reasons.trigger：写明导致状态变化的稳定事实来源，保持中性概述。
+- reasons.evidence：写阶段正文或已载入资料中的依据，禁止露骨描述。
+- 若原本无“性技”技能，则额外新增等级为 1 的“性技”技能，并新增“性知识”知识条目；若已存在则不重复新增。
+
+旧角色卡/词条更新可继续返回，genericUpdates 用于统一结算展示与字段保存。

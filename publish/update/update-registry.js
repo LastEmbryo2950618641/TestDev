@@ -89,6 +89,10 @@ window.GameModules.updateRegistry = {
     }).filter(Boolean).join('\n\n');
   },
 
+  skillsText(ids = null) {
+    return this.skillText(ids);
+  },
+
   selectByNames(names = []) {
     const wanted = this.normalizedSkillNameSet(names);
     return this.types.filter((type) => wanted.has(type.id) || wanted.has(type.promptId) || wanted.has(this.skills[type.promptId]?.name));
