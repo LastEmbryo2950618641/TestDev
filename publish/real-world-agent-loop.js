@@ -14,11 +14,11 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   realConfig() {
-    return { mode: 'real', label: '现实', ctx: window.GameModules.realWorldAgentContext, materials: window.GameModules.realWorldMaterials, templateId: 'real-world-engine', firstTemplateId: 'real-world-engine-first' };
+    return { mode: 'real', label: '现实', ctx: window.GameModules.realWorldAgentContext, materials: window.GameModules.realWorldMaterials, templateId: 'inference-stage3-narration', firstTemplateId: 'inference-stage1-guided-query' };
   },
 
   storyConfig() {
-    return { mode: 'story', label: '操控剧情', ctx: window.GameModules.storyAgentContext, materials: window.GameModules.workLoreMaterials, templateId: 'story-agent-engine', firstTemplateId: 'story-agent-engine-first' };
+    return { mode: 'story', label: '操控剧情', ctx: window.GameModules.storyAgentContext, materials: window.GameModules.workLoreMaterials, templateId: 'inference-stage3-narration', firstTemplateId: 'inference-stage1-guided-query' };
   },
 
   async runConfigured(store, action, logId = null, config = this.realConfig()) {
@@ -33,16 +33,18 @@ window.GameModules.realWorldAgentLoop = {
     const materialSession = config.materials?.createSession?.(action) || null;
     let lastPrompt = '';
     let lastRaw = '';
+    let lastGuidance = null;
 
     const guidedMaxSteps = this.guidedMaxSteps(store, config);
     for (let step = 1; step <= guidedMaxSteps; step += 1) {
-      const prompt = await this.buildConfiguredPrompt({ store, action, base, loaded, skills, step, materialSession, config });
+      const prompt = await this.buildConfiguredPrompt({ store, action, base, loaded, skills, step, materialSession, config, guidance: lastGuidance });
       lastPrompt = prompt;
       this.markConfiguredStep(store, logId, this.stepText(step, config), config);
       const raw = await this.completeConfiguredParsedStep(store, prompt, logId, false, false, config, step > 1);
       lastRaw = raw.raw;
       const data = raw.data;
       if (!data) throw new Error(`${config.label || 'Loop'}返回格式错误`);
+      lastGuidance = data;
       const traceItem = this.traceItem(step, data, raw.raw, ctx);
       trace.push(traceItem);
 
@@ -77,25 +79,21 @@ window.GameModules.realWorldAgentLoop = {
     if (!narration) throw new Error(`${config.label}正文为空`);
     this.showConfiguredNarration(store, logId, narration, config);
 
-    let skillPrompt = '', jsonPrompt = '', selectedSkills = {}, jsonRaw = '', updates = {};
+    let settlementPrompt = 'Stage4 中文 K:V 滑动结算', settlementRaw = '', updates = {};
     try {
       const participants = this.stageParticipants(trace, loaded, store);
-      skillPrompt = await this.buildConfiguredStage3BasePrompt({ store, action, base, loaded, materialSession, narration, trace, participants, config });
-      this.markConfiguredStep(store, logId, `${config.label}正文已完成，正在生成基础结算字段…`, config, { keepNarration: true });
-      selectedSkills = await this.completeConfiguredStage3Base(store, skillPrompt, logId, config);
-
-      jsonPrompt = JSON.stringify(selectedSkills);
-      this.markConfiguredStep(store, logId, '基础字段已生成，正在执行中文 K:V 滑动结算…', config, { keepNarration: true });
-      updates = await this.completeConfiguredSettlementKvWindow({ store, action, base, loaded, materialSession, narration, trace, participants, logId, config });
-      jsonRaw = JSON.stringify(updates);
+      this.markConfiguredStep(store, logId, `${config.label}正文已完成，正在生成中文 K:V 滑动结算…`, config, { keepNarration: true });
+      updates = await this.completeConfiguredSettlementKvWindow({ store, action, base, loaded, skills, materialSession, narration, trace, participants, logId, config });
+      updates = { ...updates, type: updates.type || 'final' };
+      settlementRaw = JSON.stringify(updates);
     } catch (err) {
       console.warn(`${config.label}状态更新生成失败，保留已生成正文并使用最小结算:`, err.message);
       updates = this.fallbackUpdateJson(store, action, config);
-      jsonRaw = JSON.stringify(updates);
+      settlementRaw = JSON.stringify(updates);
     }
     const result = config.mode === 'story' ? this.mergeStoryNarrationAndUpdates(store, narration, updates, config) : this.mergeNarrationAndUpdates(store, narration, updates, config);
     const anchoredTrace = trace.map((item, index) => index === trace.length - 1 ? { ...item, anchorReport: sceneAnchor.data } : item);
-    return { result, prompt: `---SCENE_ANCHOR---\n${sceneAnchorPrompt}\n\n---NARRATION---\n${narrationPrompt}\n\n---STAGE3_BASE---\n${skillPrompt}\n\n---UPDATE_JSON---\n${jsonPrompt}`, loaded, raw: `${sceneAnchor.raw}\n\n${narrationRaw}\n\n${JSON.stringify(selectedSkills)}\n\n${jsonRaw}`, trace: anchoredTrace };
+    return { result, prompt: `---SCENE_ANCHOR---\n${sceneAnchorPrompt}\n\n---NARRATION---\n${narrationPrompt}\n\n---SETTLEMENT_KV---\n${settlementPrompt}`, loaded, raw: `${sceneAnchor.raw}\n\n${narrationRaw}\n\n${settlementRaw}`, trace: anchoredTrace };
   },
 
   async loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step, materialSession = null, materials = window.GameModules.realWorldMaterials) {
@@ -132,12 +130,15 @@ window.GameModules.realWorldAgentLoop = {
     return await this.buildConfiguredPrompt({ ...args, config: this.realConfig() });
   },
 
-  async buildConfiguredPrompt({ store, action, base, loaded, skills, step, materialSession = null, forceFinal = false, config = this.realConfig() }) {
+  async buildConfiguredPrompt({ store, action, base, loaded, skills, step, materialSession = null, forceFinal = false, config = this.realConfig(), guidance = null }) {
     const actionText = this.actionText(action, config.mode === 'story' ? '继续推进操控剧情' : '继续观察现实世界');
-    const outputJson = JSON.stringify(config.mode === 'story' ? this.storyOutputSchema(store) : this.outputSchema(store));
     const loadedText = config.ctx.buildLoadedText(loaded);
     const materialText = config.materials?.summary?.(materialSession, { step }) || '';
-    const randomActiveCandidates = step === 1 && !forceFinal ? (config.ctx.randomActiveEventCandidates?.(store, action, { mode: config.mode }) || []) : [];
+    const randomOptions = { mode: config.mode };
+    ['forcedParticipants', 'priorityCandidates', 'dramaCandidates', 'forbiddenParticipants'].forEach((key) => {
+      if (Array.isArray(guidance?.[key])) randomOptions[key] = guidance[key];
+    });
+    const randomActiveCandidates = !forceFinal ? (config.ctx.randomActiveEventCandidates?.(store, action, randomOptions) || []) : [];
     const randomActiveCandidateText = randomActiveCandidates.length
       ? randomActiveCandidates.map((item, index) => `${index + 1}. ${item.name || item.id}`).join('；')
       : '无';
@@ -150,14 +151,10 @@ window.GameModules.realWorldAgentLoop = {
       动态Skills: skills,
       推演自由度规则: config.mode === 'story' ? this.storyFreedomRule(store) : (store.realWorldFreedomRule?.() || '推演自由度：行动范围内。只推演玩家本次输入行动自然抵达的直接结果。'),
       当前步骤输出要求: this.stepOutputRule(step, forceFinal),
-      输出示例: outputJson,
       随机场外角色候选: randomActiveCandidateText,
     };
-    const basePrompt = await window.GameModules.promptTemplates.render(config.templateId, vars);
-    const stage1Prompt = !forceFinal
-      ? await window.GameModules.promptTemplates.render('inference-stage1-guided-query', vars)
-      : '';
-    return stage1Prompt ? `${basePrompt}\n\n${stage1Prompt}` : basePrompt;
+    if (!forceFinal) return window.GameModules.promptTemplates.render(config.firstTemplateId || 'inference-stage1-guided-query', vars);
+    return window.GameModules.promptTemplates.render(config.templateId, vars);
   },
 
   guidedMaxSteps(store = {}, config = this.realConfig()) {
@@ -222,9 +219,8 @@ window.GameModules.realWorldAgentLoop = {
     return this.compactAiReturn(text, { json: true });
   },
 
-  compactReturnRule(kind = 'JSON') {
-    if (kind === 'prose') return '返回必须紧凑：不要Markdown、不要标题、不要任务说明、不要换行符、不要制表符、不要不可见字符，只输出单行正文文本。';
-    return '返回必须紧凑：只输出合法JSON；不要Markdown、不要代码块、不要解释、不要缩进、不要换行符、不要制表符、不要不可见字符；字符串值内部也不得包含换行符、制表符或不可见字符。';
+  compactReturnRule() {
+    return '返回必须紧凑：不要Markdown、不要标题、不要任务说明、不要换行符、不要制表符、不要不可见字符，只输出单行正文文本。';
   },
 
   sceneLayerSummary(trace = []) {
@@ -294,56 +290,8 @@ window.GameModules.realWorldAgentLoop = {
       已动态载入资料: loadedText || '无',
       可用技能: skills || '无',
       资料摘要: materialText || '无',
-      正文规则: narrationRules,
       紧凑返回规则: this.compactReturnRule('prose'),
     });
-  },
-
-  async buildSkillSelectionPrompt(args) {
-    return await this.buildConfiguredSkillSelectionPrompt({ ...args, config: this.realConfig() });
-  },
-
-  async buildConfiguredSkillSelectionPrompt({ store, action, base, loaded, materialSession = null, narration, config = this.realConfig() }) {
-    const actionText = this.actionText(action, config.mode === 'story' ? '继续推进操控剧情' : '继续观察现实世界');
-    const loadedText = config.ctx.buildLoadedText(loaded);
-    const materialText = config.mode === 'story' ? (config.materials?.acquiredSummary?.(materialSession) || '') : (config.materials?.summary?.(materialSession) || '');
-    const updateSkills = window.GameModules.updateRegistry?.skillSummaries?.() || '';
-    const initSkills = window.GameModules.initPromptRegistry?.skillSummaries?.(store) || '';
-    return [
-      `# ${config.label}阶段3A：选择需要结算的 Skills`,
-      '你只输出合法 JSON，不要正文，不要 Markdown，不要代码块，不要解释。',
-      `本次行动：${actionText}`,
-      `基础上下文：\n${base}`,
-      `已动态载入资料：\n${[loadedText, materialText].filter(Boolean).join('\n\n') || '无'}`,
-      `阶段2正文：\n${narration}`,
-      updateSkills ? `## 更新 Skills 元数据\n\n${updateSkills}` : '',
-      initSkills ? `## 初始化 Skills 元数据\n\n${initSkills}` : '',
-      '根据正文中已经确认的事实，选择后续生成更新 JSON 必须用到的 skills。只选需要更改数值、描述、状态或记录的 skills；无变化不要选择。',
-      '选择顺序：先检查是否已有情绪、感觉、生命体征、物品、地图、势力、关系、角色卡等专用更新 skill；有专用 skill 时不要选 generic；只有稳定事实没有对应专用 skill，或属于新分类/状态标签/跨系统字段时才选择 generic。',
-      '若正文确认了类似但未列入清单的稳定事实，不要忽略；在没有更精确 skill 时选择 generic 兜底固化。',
-      '所有 skill 必须返回上方 Skills 元数据中横线前的规范 skill 名；禁止返回 method 名、点号工具名或函数名。',
-      'choices、elapsedSeconds、status、quest、sceneTitle、locationName 只允许在本步骤返回；后续各更新分组不得再返回这些基础显示/时间字段。elapsedSeconds 将用于推进桌面时间，choices 将用于展示备选行动。',
-      '返回格式：{"groups":{"metrics":["skill-id"],"bodySex":["skill-id"],"survival":[],"worldSocialInventory":[]},"elapsedSeconds":300,"status":"状态","quest":"目标","choices":["行动一","行动二","行动三","行动四"],"reason":"选择依据"}',
-    ].filter(Boolean).join('\n\n');
-  },
-
-  async buildConfiguredStage3BasePrompt({ store, action, base, loaded, materialSession = null, narration, trace = [], participants = null, config = this.realConfig() }) {
-    const actionText = this.actionText(action, config.mode === 'story' ? '继续推进操控剧情' : '继续观察现实世界');
-    const loadedText = config.ctx.buildLoadedText(loaded);
-    const materialText = config.mode === 'story' ? (config.materials?.acquiredSummary?.(materialSession) || '') : (config.materials?.summary?.(materialSession) || '');
-    const stageParticipants = Array.isArray(participants) ? participants : this.stageParticipants(trace, loaded, store);
-    const schema = { elapsedSeconds: 180, status: '当前状态', quest: '当前目标', choices: ['行动一', '行动二', '行动三', '行动四'], sceneTitle: '场景标题', locationName: '地点名' };
-    return [
-      `# ${config.label}阶段3A：基础结算字段`,
-      `${this.compactReturnRule('JSON')}只输出 ${JSON.stringify(schema)} 这一类字段；禁止输出技能路由、updateSkills、initSkills、genericUpdates、initUpdates、正文或解释。`,
-      `本次行动:${this.compactUpdatePromptText(actionText, 500)}`,
-      `基础上下文:${this.compactUpdatePromptText(base, 1200)}`,
-      `已动态载入资料:${this.compactUpdatePromptText([loadedText, materialText].filter(Boolean).join(' ') || '无', 1200)}`,
-      '结算边界：只允许结算本回合参与者列表中的对象；加载角色卡不等于参与或结算；候选但未入场、随机延迟事件角色、背景提及角色、禁止出场角色都不得结算。',
-      `本回合参与者:${JSON.stringify(stageParticipants)}`,
-      `阶段2正文:${this.compactUpdatePromptText(narration, 1800, true)}`,
-      `返回示例:${JSON.stringify(schema)}`,
-    ].filter(Boolean).join('\n');
   },
 
   settlementEligibleParticipant(p = {}) {
@@ -431,137 +379,6 @@ window.GameModules.realWorldAgentLoop = {
     });
   },
 
-  normalizeStage3BaseFields(raw = {}, store = null, config = this.realConfig()) {
-    const fallbackChoices = config.mode === 'story'
-      ? ['观察四周', '尝试行动', '与人交谈', '隐藏异样']
-      : (Array.isArray(store?.realWorldChoices) && store.realWorldChoices.length ? store.realWorldChoices.slice(0, 4) : ['观察手机异常', '处理现实事务', '联系熟人', '暂时休息']);
-    const choices = Array.isArray(raw?.choices) ? raw.choices.map((item) => String(item || '').trim()).filter(Boolean).slice(0, 4) : [];
-    while (choices.length < 4 && fallbackChoices[choices.length]) choices.push(fallbackChoices[choices.length]);
-    return {
-      elapsedSeconds: Number.isFinite(Number(raw?.elapsedSeconds)) && Number(raw.elapsedSeconds) > 0 ? Math.max(1, Math.round(Number(raw.elapsedSeconds))) : 300,
-      status: String(raw?.status || store?.realWorldStatus || '现实推演继续中').slice(0, 60),
-      quest: String(raw?.quest || store?.realWorldQuest || '确认现实处境').slice(0, 40),
-      choices: choices.slice(0, 4),
-      sceneTitle: String(raw?.sceneTitle || store?.realWorldSceneTitle || '现实世界').slice(0, 40),
-      locationName: String(raw?.locationName || store?.realWorldLocationName || store?.realWorldMap?.current || '').slice(0, 60),
-    };
-  },
-
-  async completeConfiguredStage3Base(store, prompt, logId, config = this.realConfig()) {
-    const raw = await this.completeConfiguredStep(store, prompt, logId, false, { ...config, sourceTitle: `${config.label}阶段3A-基础结算字段` });
-    try {
-      const data = window.GameModules.jsonUtils.parseLoose(this.compactJsonReturn(raw)) || {};
-      return this.normalizeStage3BaseFields(data, store, config);
-    } catch (err) {
-      console.warn(`${config.label}阶段3A基础字段解析失败:`, err.message);
-      return this.normalizeStage3BaseFields({}, store, config);
-    }
-  },
-
-  async completeSkillSelection(store, prompt, logId) {
-    return await this.completeConfiguredSkillSelection(store, prompt, logId, this.realConfig());
-  },
-
-  ensureRequiredUpdateSkills(selected = {}, narration = '') {
-    if (selected.groups && typeof selected.groups === 'object') {
-      const normalized = this.normalizeStage3Groups(selected, narration);
-      const bodySex = new Set(normalized.groups.bodySex || []);
-      const text = String(narration || '');
-      if (/亲密|性刺激|快感|阴部|胸部|口部|肛部|臀部|接吻|亲吻|抚摸|揉捏|插入|自慰|摩擦|高潮|性爱|发生关系/u.test(text)) {
-        bodySex.add('body-status');
-        bodySex.add('sexual-experience');
-      }
-      if (/阴部插入|阴道插入|发生关系|性爱|性交|破处|非处女/u.test(text)) bodySex.add('sexual-history');
-      normalized.groups.bodySex = Array.from(bodySex).filter((id) => this.stage3UpdateGroups().bodySex.skills.includes(id)).slice(0, 12);
-      return normalized;
-    }
-    const updateSkills = new Set(this.canonicalUpdateSkillIds(selected.updateSkills));
-    const text = String(narration || '');
-    if (/亲密|性刺激|快感|阴部|胸部|口部|肛部|臀部|接吻|亲吻|抚摸|揉捏|插入|自慰|摩擦|高潮|性爱|发生关系/u.test(text)) {
-      updateSkills.add('body-status');
-      updateSkills.add('sexual-experience');
-    }
-    if (/阴部插入|阴道插入|发生关系|性爱|性交|破处|非处女/u.test(text)) updateSkills.add('sexual-history');
-    return { ...selected, updateSkills: Array.from(updateSkills).slice(0, 12), initSkills: this.canonicalInitSkillIds(selected.initSkills).slice(0, 8) };
-  },
-
-  canonicalUpdateSkillIds(names = []) {
-    const canonical = window.GameModules.updateRegistry?.canonicalSkillIds?.(names);
-    if (Array.isArray(canonical)) return canonical;
-    return (Array.isArray(names) ? names : []).map((name) => String(name || '').trim()).filter(Boolean);
-  },
-
-  canonicalInitSkillIds(names = [], store = null) {
-    const canonical = window.GameModules.initPromptRegistry?.canonicalSkillIds?.(names, store);
-    if (Array.isArray(canonical)) return canonical;
-    return (Array.isArray(names) ? names : []).map((name) => String(name || '').trim()).filter(Boolean);
-  },
-
-  stage3UpdateGroups() {
-    return {
-      metrics: { title: '现实阶段3B-情绪与感觉更新', skills: ['emotion', 'feeling'] },
-      bodySex: { title: '现实阶段3B-身体、性经历与穿着更新', skills: ['body-status', 'sexual-experience', 'sexual-history', 'wearing-state'] },
-      survival: { title: '现实阶段3B-生命体征与系统更新', skills: ['vital', 'system'] },
-      worldSocialInventory: { title: '现实阶段3B-世界、关系与物品更新', skills: ['relationship', 'role-card', 'map', 'faction-overview', 'faction-structure', 'generic', 'item'] },
-    };
-  },
-
-  stage3GroupRoute(route = {}) {
-    const groups = {};
-    Object.entries(this.stage3UpdateGroups()).forEach(([key, group]) => {
-      groups[key] = [...group.skills];
-    });
-    return { ...route, groups };
-  },
-
-  normalizeStage3Groups(selected = {}, narration = '', store = null) {
-    const configs = this.stage3UpdateGroups();
-    const groups = Object.fromEntries(Object.keys(configs).map((key) => [key, []]));
-    const rawGroups = selected.groups && typeof selected.groups === 'object' ? selected.groups : this.groupsFromFlatSkills(selected, store);
-    Object.entries(configs).forEach(([key, group]) => {
-      const raw = Array.isArray(rawGroups[key]) ? rawGroups[key] : [];
-      const canonical = group.init ? this.canonicalInitSkillIds(raw, store) : this.canonicalUpdateSkillIds(raw);
-      const allowed = group.init ? canonical : canonical.filter((id) => group.skills.includes(id));
-      groups[key] = [...new Set(allowed)].slice(0, group.init ? 8 : 12);
-    });
-    return {
-      groups,
-      elapsedSeconds: Number.isFinite(Number(selected.elapsedSeconds)) && Number(selected.elapsedSeconds) > 0 ? Math.max(1, Number(selected.elapsedSeconds)) : undefined,
-      choices: Array.isArray(selected.choices) ? selected.choices.filter((item) => typeof item === 'string').map((item) => item.trim()).filter(Boolean).slice(0, 4) : undefined,
-      status: selected.status ? String(selected.status).slice(0, 60) : undefined,
-      quest: selected.quest ? String(selected.quest).slice(0, 40) : undefined,
-      sceneTitle: selected.sceneTitle ? String(selected.sceneTitle).slice(0, 40) : undefined,
-      locationName: selected.locationName ? String(selected.locationName).slice(0, 60) : undefined,
-      reason: String(selected.reason || '').slice(0, 160),
-    };
-  },
-
-  groupsFromFlatSkills(selected = {}, store = null) {
-    const configs = this.stage3UpdateGroups();
-    const groups = Object.fromEntries(Object.keys(configs).map((key) => [key, []]));
-    groups.init = this.canonicalInitSkillIds(selected.initSkills || [], store);
-    const updateSkills = this.canonicalUpdateSkillIds(selected.updateSkills || []);
-    updateSkills.forEach((id) => {
-      const entry = Object.entries(configs).find(([, group]) => !group.init && group.skills.includes(id));
-      if (entry) groups[entry[0]].push(id);
-    });
-    return groups;
-  },
-
-  async completeConfiguredSkillSelection(store, prompt, logId, config = this.realConfig()) {
-    const raw = await this.completeConfiguredStep(store, prompt, logId, false, config);
-    try {
-      const data = window.GameModules.jsonUtils.parseLoose(raw) || {};
-      if (data.groups && typeof data.groups === 'object') return this.normalizeStage3Groups(data, '', store);
-      const updateSkills = this.canonicalUpdateSkillIds(Array.isArray(data.updateSkills) ? data.updateSkills : []).slice(0, 12);
-      const initSkills = this.canonicalInitSkillIds(Array.isArray(data.initSkills) ? data.initSkills : [], store).slice(0, 8);
-      return { updateSkills, initSkills, reason: String(data.reason || '').slice(0, 160) };
-    } catch (err) {
-      console.warn(`${config.label}结算 Skills 选择解析失败:`, err.message);
-      return { updateSkills: [], initSkills: [], reason: '选择解析失败，使用基础结算。' };
-    }
-  },
-
   compactUpdatePromptText(text = '', limit = 1600, keepTail = false) {
     const raw = String(text || '').replace(/\s+/g, ' ').trim();
     if (raw.length <= limit) return raw;
@@ -569,24 +386,6 @@ window.GameModules.realWorldAgentLoop = {
     const head = Math.ceil(limit * 0.65);
     const tail = Math.max(0, limit - head - 1);
     return `${raw.slice(0, head)}…${tail ? raw.slice(-tail) : ''}`;
-  },
-
-  compactUpdateSchema(schema = {}) {
-    const copy = JSON.parse(JSON.stringify(schema || {}));
-    ['genericUpdates', 'initUpdates', 'metricUpdates', 'lexiconUpdates', 'itemActions'].forEach((key) => {
-      if (Array.isArray(copy[key])) copy[key] = copy[key].slice(0, 4).map((item) => this.compactSchemaValue(item));
-    });
-    return copy;
-  },
-
-  compactSchemaValue(value) {
-    if (Array.isArray(value)) return value.slice(0, 4).map((item) => this.compactSchemaValue(item));
-    if (!value || typeof value !== 'object') return typeof value === 'string' ? value.slice(0, 80) : value;
-    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, this.compactSchemaValue(item)]));
-  },
-
-  async buildUpdateJsonPrompt(args) {
-    return await this.buildConfiguredUpdateJsonPrompt({ ...args, config: this.realConfig() });
   },
 
   settlementTypeQueue(config = this.realConfig()) {
@@ -651,16 +450,25 @@ window.GameModules.realWorldAgentLoop = {
     const parts = String(line || '').replace(/^更新\d+\s*[：:]/u, '').split(/[，,]/u).map((x) => x.trim());
     const [label, key, rawValue, reason] = parts;
     const entry = this.settlementUpdateCatalog()[label || typeName];
-    if (!entry || !subject || !key || !rawValue || !reason) return null;
+    if (!subject || !key || !rawValue || !reason) return null;
+    if (!entry) return this.parseGenericSettlementLine(typeName, line, subject, { requireExplicitGeneric: true });
     const delta = Number(String(rawValue).replace(/[^-+\d.]/gu, ''));
     const field = entry.fieldMap?.[key] || `${entry.fieldPrefix}.${key}`;
     const change = Number.isFinite(delta) && /^[+-]?\d/u.test(String(rawValue)) ? { mode: 'delta', value: delta } : { mode: 'set', value: rawValue };
     return { updateType: entry.updateType, subject, field, change, reasons: [{ trigger: label || typeName, evidence: reason, confidence: 'confirmed' }] };
   },
 
+  parseGenericSettlementLine(typeName = '', line = '', subject = null, options = {}) {
+    const parts = String(line || '').replace(/^更新\d+\s*[：:]/u, '').split(/[，,]/u).map((x) => x.trim());
+    const [label, key, rawValue, reason] = parts;
+    if (!subject || !key || !rawValue || !reason) return null;
+    if (options.requireExplicitGeneric && !/^(?:未知稳定事实|稳定事实|通用固化|通用事实)$/u.test(label || '')) return null;
+    return { updateType: 'generic', subject, field: `status_tags.${key}`, change: { mode: 'append', value: { label: label || typeName, value: rawValue, reason } }, reasons: [{ trigger: label || typeName, evidence: reason, confidence: 'confirmed' }] };
+  },
+
   parseSpecialSettlementLine(typeName = '', line = '', subject = null) {
     const parts = String(line || '').replace(/^更新\d+\s*[：:]/u, '').split(/[，,]/u).map((x) => x.trim());
-    if (!subject || parts[0] !== typeName) return null;
+    if (!subject || parts[0] !== typeName) return this.parseGenericSettlementLine(typeName, line, subject, { requireExplicitGeneric: true });
     if (typeName === '性历史') {
       const [, transition, partner, evidence] = parts;
       if (!transition || !partner || !evidence) return null;
@@ -680,7 +488,7 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   parseSettlementKv(raw, { requestedTypes = [], participants = [], store = null, config = this.realConfig() } = {}) {
-    const lines = String(raw || '').split(/\r?\n/u).map((line) => line.trim()).filter(Boolean);
+    const lines = String(raw || '').replace(/；/gu, '\n').split(/\r?\n/u).map((line) => line.trim()).filter(Boolean);
     const contracts = this.settlementTypeContracts();
     const patchesByType = {};
     const completeTypes = [];
@@ -688,11 +496,13 @@ window.GameModules.realWorldAgentLoop = {
     const baseFields = {};
     let currentType = '';
     let currentSubject = null;
-    const ensurePatch = (type) => { patchesByType[type] = patchesByType[type] || { genericUpdates: [], baseFields: {}, __updateLines: 0, __parsedUpdates: 0 }; return patchesByType[type]; };
+    const ensurePatch = (type) => { patchesByType[type] = patchesByType[type] || { genericUpdates: [], baseFields: {}, __updateLines: 0, __parsedUpdates: 0, __lines: [] }; return patchesByType[type]; };
+    const settlementTypeFromHeading = (line) => Object.entries(contracts).find(([type, c]) => [c.title, type].some((label) => line === `${label}：` || line === `${label}:`));
     for (const line of lines) {
-      const typeHit = Object.entries(contracts).find(([, c]) => line === `${c.title}：` || line === `${c.title}:`);
-      if (typeHit) { currentType = typeHit[0]; currentSubject = null; ensurePatch(currentType); continue; }
+      const typeHit = settlementTypeFromHeading(line);
+      if (typeHit) { currentType = typeHit[0]; currentSubject = null; ensurePatch(currentType).__lines.push(line); continue; }
       if (!currentType) continue;
+      ensurePatch(currentType).__lines.push(line);
       if (currentType === '基础结算') {
         const base = this.splitKvLine(line);
         if (base && ['经过时间', '当前状态', '当前目标', '场景标题', '地点名称', '备选行动1', '备选行动2', '备选行动3', '备选行动4'].includes(base.key)) {
@@ -730,12 +540,6 @@ window.GameModules.realWorldAgentLoop = {
     });
     const genericUpdates = completeTypes.flatMap((type) => patchesByType[type]?.genericUpdates || []);
     return { patchesByType, completeTypes, incompleteTypes, genericUpdates, baseFields };
-  },
-
-  defaultStage3UpdateGroups() {
-    return Object.fromEntries(Object.entries(this.stage3UpdateGroups())
-      .filter(([, group]) => !group.init)
-      .map(([key, group]) => [key, Array.isArray(group.skills) ? group.skills.slice() : []]));
   },
 
   buildSettlementTypeWindowPrompt({ requestedTypes = [], completedTypes = [], incompleteTypes = [], partialByType = {}, store, action, base, loaded, materialSession = null, narration, trace = [], participants = [], config = this.realConfig() }) {
@@ -779,141 +583,14 @@ window.GameModules.realWorldAgentLoop = {
         patchesByType[type] = parsed.patchesByType[type];
         delete partialByType[type];
       });
-      parsed.incompleteTypes.forEach((type) => { partialByType[type] = raw; });
+      parsed.incompleteTypes.forEach((type) => {
+        const lines = parsed.patchesByType[type]?.__lines || [];
+        partialByType[type] = lines.length ? lines.join('\n') : '本轮未返回该类型，需补齐完整类型块。';
+      });
       requestedTypes = allTypes.filter((type) => !completedTypes.includes(type));
     }
     if (requestedTypes.length) throw new Error(`Stage4结算类型未完成：${requestedTypes.join('、')}`);
     return this.mergeGroupedUpdatePatches(Object.values(patchesByType), {});
-  },
-
-  async completeGroupedStage3Updates({ store, action, base, loaded, skills = '', materialSession = null, narration, route = {}, logId = null, config = this.realConfig(), trace = [], participants = null }) {
-    const patches = [];
-    const fixedRoute = this.stage3GroupRoute(route);
-    const groups = fixedRoute.groups || {};
-    for (const [key, group] of Object.entries(this.stage3UpdateGroups())) {
-      const selected = Array.isArray(groups[key]) ? groups[key] : [...group.skills];
-      try {
-        this.markConfiguredStep(store, logId, `${group.title}…`, config, { keepNarration: true });
-        const prompt = await this.buildGroupedUpdateJsonPrompt({ store, action, base, loaded, skills, materialSession, narration, groupKey: key, selectedSkills: selected, config, trace, participants });
-        const patch = await this.completeConfiguredUpdateJson(store, prompt, logId, { ...config, sourceTitle: group.title });
-        patches.push(this.filterGroupedUpdatePatch(patch, group));
-      } catch (err) {
-        console.warn(`${group.title}失败，已跳过该组:`, err.message);
-      }
-    }
-    return this.mergeGroupedUpdatePatches(patches, fixedRoute);
-  },
-
-  buildUpdateContextPack({ store, action, base, loaded, materialSession = null, narration, trace = [], participants = null, groupKey, config = this.realConfig() }) {
-    const actionText = this.actionText(action, config.mode === 'story' ? '继续推进操控剧情' : '继续观察现实世界');
-    const stageParticipants = Array.isArray(participants) ? participants : this.stageParticipants(trace, loaded, store);
-    const participantText = stageParticipants.length ? JSON.stringify(stageParticipants) : '[]';
-    const common = [
-      `本次行动:${this.compactUpdatePromptText(actionText, 500)}`,
-      `阶段2正文:${this.compactUpdatePromptText(narration, 2400, true)}`,
-      `当前地点:${this.compactUpdatePromptText(store?.realWorldLocationName || store?.realWorldMap?.current || '', 120)}`,
-      '结算边界:只允许结算本回合参与者列表中的对象；加载角色卡不等于参与或结算；候选但未入场、随机延迟事件角色、背景提及角色、禁止出场角色都不得结算。',
-      `本回合参与者:${participantText}`,
-    ];
-    if (groupKey === 'metrics') return [...common, this.metricsContextText(store, stageParticipants)].filter(Boolean).join('\n');
-    if (groupKey === 'bodySex') return [...common, this.bodySexContextText(store, stageParticipants)].filter(Boolean).join('\n');
-    if (groupKey === 'survival') return [...common, this.survivalContextText(store, stageParticipants)].filter(Boolean).join('\n');
-    return [...common, this.worldSocialInventoryContextText({ store, base, loaded, materialSession, config })].filter(Boolean).join('\n');
-  },
-
-  participantStates(store, participants = []) {
-    const ids = new Set(['player-self']);
-    (Array.isArray(participants) ? participants : []).forEach((p) => {
-      const id = p?.id || p?.idOrName || p?.name;
-      if (id) ids.add(String(id));
-    });
-    const states = [];
-    ids.forEach((id) => {
-      const state = id === 'player-self' ? store?.playerIdentityState?.() : (store?.itemSkillState?.(id) || window.GameModules.updateRegistry?.findStateByNameSuffix?.(store, id));
-      if (state && !states.some((item) => item.id === state.id)) states.push(state);
-    });
-    return states.slice(0, 8);
-  },
-
-  metricsContextText(store, participants = []) {
-    return this.participantStates(store, participants).map((state) => {
-      const metrics = store?.ensureStateMetrics?.(state) || {};
-      return `${state.id}:${state.profile?.name || state.name || state.id}:emotions=${JSON.stringify(metrics.emotions || {})};temporaryEmotions=${JSON.stringify(metrics.temporaryEmotions || {})};playerFeelings=${JSON.stringify(metrics.playerFeelings || {})};temporaryPlayerFeelings=${JSON.stringify(metrics.temporaryPlayerFeelings || {})}`;
-    }).join('\n');
-  },
-
-  bodySexContextText(store, participants = []) {
-    return this.participantStates(store, participants).map((state) => {
-      const values = state.values || {};
-      const wearing = store?.wearingItems?.(state) || values.wearing || [];
-      return `${state.id}:${state.profile?.name || state.name || state.id}:bodyStatus=${JSON.stringify(values.bodyStatus || {})};intimacy=${JSON.stringify(values.intimacy || {})};wearing=${JSON.stringify(wearing)}`;
-    }).join('\n');
-  },
-
-  survivalContextText(store, participants = []) {
-    return this.participantStates(store, participants).map((state) => {
-      const vitals = store?.rpgVitals?.(state) || [];
-      return `${state.id}:${state.profile?.name || state.name || state.id}:vitals=${JSON.stringify(vitals)};system=${JSON.stringify(state.values?.system || {})}`;
-    }).join('\n');
-  },
-
-  worldSocialInventoryContextText({ store, base, loaded, materialSession = null, config = this.realConfig() }) {
-    const loadedText = config.ctx?.buildLoadedText?.(loaded) || '';
-    const materialText = config.mode === 'story' ? (config.materials?.acquiredSummary?.(materialSession) || '') : (config.materials?.summary?.(materialSession) || '');
-    return `基础上下文摘要:${this.compactUpdatePromptText(base, 1200)}\n已动态载入资料摘要:${this.compactUpdatePromptText([loadedText, materialText].filter(Boolean).join(' ') || '无', 1400)}`;
-  },
-
-  async buildGroupedUpdateJsonPrompt({ store, action, base, loaded, skills = '', materialSession = null, narration, groupKey, selectedSkills = [], config = this.realConfig(), trace = [], participants = null }) {
-    const group = this.stage3UpdateGroups()[groupKey] || {};
-    const selected = Array.isArray(selectedSkills) ? selectedSkills : [];
-    const contextPack = this.buildUpdateContextPack({ store, action, base, loaded, materialSession, narration, trace, participants, groupKey, config });
-    const updateSkillText = group.init ? '' : this.compactUpdatePromptText(window.GameModules.updateRegistry?.skillText?.(selected) || '', 2200);
-    const updateSchema = group.init ? {} : this.compactUpdateSchema(window.GameModules.updateRegistry?.schemaFor?.(selected) || {});
-    const initSkillText = group.init ? this.compactUpdatePromptText(window.GameModules.initPromptRegistry?.skillText?.(selected, store) || '', 1600) : '';
-    const initSchema = group.init ? this.compactUpdateSchema(window.GameModules.initPromptRegistry?.schema?.(selected, store) || {}) : {};
-    return [
-      `# ${group.title || `${config.label}阶段3B-分组更新`}`,
-      `你只输出本分组最小补丁 JSON；基础显示字段、时间字段、备选行动字段只由阶段3A负责，本组不得输出；${this.compactReturnRule('JSON')}`,
-      `紧凑上下文:${contextPack}`,
-      `本组允许 Skills：${JSON.stringify(selected)}`,
-      groupKey === 'worldSocialInventory' ? 'worldSocialInventory 组禁止输出 metrics.*、intimacy.*、bodyStatus.*、values.wearing、wearing、profile.wearing、profile.wearingItems、亲密相关穿着状态；只允许关系、角色卡非亲密字段、地图、势力、泛用世界变化、物品。' : '',
-      groupKey === 'bodySex' ? 'bodySex 组必须完整检查 body-status、sexual-experience、sexual-history、亲密相关穿着/外观状态；同一亲密/性事件若玩家与角色双方都参与，必须双方各自一条 sexual-experience；只根据本回合参与者清单和阶段2正文确认事实判断主体；禁止把接触、摩擦、亲吻升级为插入、高潮或性交记录。' : '',
-      '本组必须完整检查本组允许 Skills/更新类型；必须完整检查本组允许的所有更新类型；凡阶段2正文已经确认的变化都必须返回：其中本组允许范围内的变化必须返回对应 genericUpdates，不得因示例为空而省略。输出格式为 {"genericUpdates":[...]}；只有本组无明确变化才返回 {"genericUpdates":[]}；只有完整检查后确认本组无明确变化才允许这样返回。字段名必须用最短标准名；reason/status/intro/definition/evidence 只写必要证据短句。整体 JSON 必须紧凑输出，不要空格、换行、制表符或不可见字符。',
-      updateSkillText ? `## 本组更新 Skills\n\n${updateSkillText}` : '',
-      initSkillText ? `## 本组初始化 Skills\n\n${initSkillText}` : '',
-      `最小示例：${JSON.stringify({ genericUpdates: [], ...updateSchema, ...initSchema })}`,
-    ].filter(Boolean).join('\n\n');
-  },
-
-  filterGroupedUpdatePatch(patch = {}, group = {}) {
-    const allowed = new Set(group.init ? [] : group.skills || []);
-    const genericUpdates = (Array.isArray(patch.genericUpdates) ? patch.genericUpdates : [])
-      .filter((item) => group.init || allowed.has(String(item?.updateType || '').trim()))
-      .filter((item) => this.groupAllowsUpdateField(item, group));
-    const filtered = { ...patch, genericUpdates };
-    if (!this.isWorldSocialInventoryGroup(group)) {
-      this.legacyWorldArrayKeys().forEach((key) => { delete filtered[key]; });
-    }
-    return filtered;
-  },
-
-  isWorldSocialInventoryGroup(group = {}) {
-    return String(group.title || '').includes('世界、关系与物品');
-  },
-
-  legacyWorldArrayKeys() {
-    return ['itemActions', 'lexiconUpdates', 'factionUpdates', 'wechatActions', 'mapNodes', 'newLocations', 'locationDescriptionUpdates'];
-  },
-
-  groupAllowsUpdateField(update = {}, group = {}) {
-    const field = String(update.field || '');
-    if (this.isWorldSocialInventoryGroup(group)) {
-      if (/^(?:values\.)?(?:emotionalState|feelingState)$/iu.test(field)) return false;
-      if (/^(?:values\.)?(?:metrics|intimacy|bodyStatus|wearing)(?:\.|$)/u.test(field)) return false;
-      if (/^profile\.wearing(?:Items)?$/iu.test(field)) return false;
-      if (String(update.updateType || '') === 'wearing-state') return false;
-    }
-    return true;
   },
 
   mergeGroupedUpdatePatches(patches = [], route = {}) {
@@ -935,44 +612,8 @@ window.GameModules.realWorldAgentLoop = {
       if (!patch || typeof patch !== 'object') return;
       applyBaseFields(patch.baseFields || {});
       if (Array.isArray(patch.genericUpdates)) merged.genericUpdates.push(...patch.genericUpdates);
-      this.legacyWorldArrayKeys().forEach((key) => {
-        if (Array.isArray(patch[key])) merged[key] = (merged[key] || []).concat(patch[key]);
-      });
-    });
-    ['sceneTitle', 'locationName', 'status', 'quest', 'elapsedSeconds', 'choices'].forEach((key) => {
-      if (route[key] !== undefined && route[key] !== null && route[key] !== '') merged[key] = route[key];
     });
     return merged;
-  },
-
-  async buildConfiguredUpdateJsonPrompt({ store, action, base, loaded, skills, materialSession = null, narration, selectedSkills = {}, config = this.realConfig() }) {
-    const actionText = this.actionText(action, config.mode === 'story' ? '继续推进操控剧情' : '继续观察现实世界');
-    const loadedText = config.ctx.buildLoadedText(loaded);
-    const materialText = config.mode === 'story' ? (config.materials?.acquiredSummary?.(materialSession) || '') : (config.materials?.summary?.(materialSession) || '');
-    const updateSkillText = this.compactUpdatePromptText(window.GameModules.updateRegistry?.skillText?.(selectedSkills.updateSkills || []) || '', 2200);
-    const updateSchema = this.compactUpdateSchema(window.GameModules.updateRegistry?.schemaFor?.(selectedSkills.updateSkills || []) || {});
-    const initSkillText = this.compactUpdatePromptText(window.GameModules.initPromptRegistry?.skillText?.(selectedSkills.initSkills || [], store) || '', 1600);
-    const initSchema = this.compactUpdateSchema(window.GameModules.initPromptRegistry?.schema?.(selectedSkills.initSkills || [], store) || {});
-    const storyRule = '输出最小补丁 JSON：必须包含 type、sceneTitle、elapsedSeconds、mood、quest、choices。其他字段只有明确变化才输出，否则省略或用空数组。choices 必须4个。metricUpdates 只写当前被操控角色的情绪和对玩家感觉；genericUpdates 用于没有专用 skill 的稳定角色卡关系、身份、状态标签、新分类或跨系统字段。';
-    const realRule = '输出最小补丁 JSON：必须包含 type、sceneTitle、locationName、elapsedSeconds、status、quest、choices、genericUpdates。状态变化统一写 genericUpdates；禁止输出 characterMetricUpdates。';
-    const unverifiedUpdateRule = '未证实自称固化禁令（最高优先级）：玩家单句自称、玩笑、夸张或幻想表达若没有基础上下文、最近世界线或已载入资料明确证明，只能视为未证实自称；禁止固化为身份、职位、势力、组织、地点、物品、角色卡、介绍卡、词条、genericUpdates、faction、lexicon 或长期世界观。';
-    return [
-      `# ${config.label}阶段3B：只生成更新JSON`,
-      '你只输出一个合法紧凑 JSON 对象；不要正文、Markdown、代码块、解释、缩进或多余空格。',
-      `本次行动：${this.compactUpdatePromptText(actionText, 500)}`,
-      `基础上下文摘要：\n${this.compactUpdatePromptText(base, 1800)}`,
-      `已动态载入资料摘要：\n${this.compactUpdatePromptText([loadedText, materialText].filter(Boolean).join('\n\n') || '无', 1800)}`,
-      `阶段2正文：\n${this.compactUpdatePromptText(narration, 2800, true)}`,
-      `已选择更新 Skills：${JSON.stringify(selectedSkills.updateSkills || [])}`,
-      `已选择初始化 Skills：${JSON.stringify(selectedSkills.initSkills || [])}`,
-      config.mode === 'story' ? storyRule : realRule,
-      'choices只允许字符串数组，例如["行动一","行动二","行动三","行动四"]；禁止输出对象，禁止priority、description、reason等选择说明字段；选择不是重点，只给可显示行动文本。',
-      unverifiedUpdateRule,
-      '字段名必须用最短标准名；reason/status/intro/definition/evidence 只写必要证据短句，避免复述正文。每个主体同类变化最多4条；没有明确变化则 genericUpdates 返回空数组。整体 JSON 必须紧凑输出，不要空格、换行、制表符或不可见字符。',
-      updateSkillText ? `## 更新 Skills\n\n${updateSkillText}` : '',
-      initSkillText ? `## 初始化 Skills\n\n${initSkillText}` : '',
-      `最小示例：${JSON.stringify({ ...(config.mode === 'story' ? this.storyUpdateJsonSchema() : this.updateJsonSchema()), ...updateSchema, ...initSchema })}`,
-    ].filter(Boolean).join('\n\n');
   },
 
   fallbackUpdateJson(store, action = '', config = this.realConfig()) {
@@ -1004,29 +645,6 @@ window.GameModules.realWorldAgentLoop = {
         { key: 'mental_stability', delta: 0, reason: '结算保留。' },
       ],
     };
-  },
-
-  updateJsonSchema() {
-    const realWorld = window.GameModules.realWorld2026 || {};
-    return {
-      type: 'final', sceneTitle: '标题', locationName: '具体地点', elapsedSeconds: 300, status: '状态', quest: '目标',
-      choices: ['行动一', '行动二', '行动三', '行动四'],
-      genericUpdates: [],
-      appearedCharacters: [{ name: '人物名', role: '身份', intro: '本回合可确认介绍', work: realWorld.label || '2026 现代都市现实世界' }], solidifiableCharacters: [], wechatActions: [],
-    };
-  },
-
-  storyUpdateJsonSchema() {
-    return { type: 'final', sceneTitle: '标题', elapsedSeconds: 120, mood: '紧张', quest: '下一步目标', choices: ['观察四周', '尝试行动', '与人交谈', '隐藏异样'], mind: '被操控者第一人称内心', characterIntent: '被操控者当前意图', controlFeeling: '疑惑', controlAdaptation: 5, controlExperienceSummary: '本次操控体验摘要', metricUpdates: { emotions: [{ key: '恐惧', delta: 3, status: '状态', reason: '证据' }], playerFeelings: [{ key: '警惕', delta: 2, status: '状态', reason: '证据' }] }, statChanges: { health: 0, stamina: -1, mental_stability: -1 }, appearedCharacters: [{ name: '出场人物', role: '身份', intro: '本回合可确认介绍', work: '作品名' }], solidifiableCharacters: [], lexiconUpdates: [], genericUpdates: [], itemActions: [] };
-  },
-
-  outputSchema(store) {
-    const realWorld = window.GameModules.realWorld2026 || {};
-    return { type: 'final', sceneTitle: '现实场景标题', locationName: '具体地点名', parentLocationName: '上级地点名', locationDescription: '当前地点本次新认识的事实', mapNodes: [{ name: '子地点名', parentName: '上级地点名', descriptionFacts: ['玩家已知地点事实'] }], newLocations: [{ name: '新增地点名', parentName: '', descriptionFacts: ['玩家已知事实'] }], locationDescriptionUpdates: [{ locationName: '地点名', action: 'add', text: '新增或更新的玩家已知事实' }], elapsedSeconds: 60, status: '现实状态简述', quest: '新的现实目标', choices: ['处理现实事务', '联系某个人', '观察周围', '暂时休息'], genericUpdates: [{ updateType: 'vital', subject: { type: 'player', id: 'player-self' }, field: 'vitals.stamina_pool', change: { mode: 'delta', value: -1 }, reasons: [{ trigger: '行动消耗', evidence: '本次行动消耗少量精力', confidence: 'confirmed' }] }, { updateType: 'emotion', subject: { type: 'player', id: 'player-self' }, field: 'metrics.emotions.紧张', change: { mode: 'delta', value: 1 }, reasons: [{ trigger: '现实刺激', evidence: '正文确认情绪变化', confidence: 'confirmed' }] }, { updateType: 'feeling', subject: { type: 'character', id: '相关角色id或姓名' }, field: 'metrics.playerFeelings.信任', change: { mode: 'delta', value: 1 }, reasons: [{ trigger: '互动结果', evidence: '正文确认角色对玩家感觉变化', confidence: 'confirmed' }] }], appearedCharacters: [{ name: '出场人物', role: '身份', intro: '本回合可确认介绍', work: realWorld.label || '2026 现代都市现实世界' }], solidifiableCharacters: [], wechatActions: [{ action: 'sendIncomingNow/sendIncomingPast', contactId: '联系人id或角色id', text: '角色发给玩家的微信消息', timeIso: '过去消息必填ISO时间', reason: '思念触发原因' }], factionUpdates: [{ action: 'addFactionPosition', factionName: '势力名', position: '职位或地位', characterName: '角色名或未知', reason: '现实确认依据' }], itemActions: [{ action: 'add/transfer/delete/purchase/generate', target: 'player-self或角色id/姓名', from: '来源角色', to: '目标角色', itemName: '已有物品名', quantity: 1, item: { name: '物品名', kind: '物品或装备', price: 0, description: '说明' }, reason: '现实确认依据' }], lexiconUpdates: [{ worldTag: realWorld.label || '2026 现代都市现实世界', kind: '玩家设定/装备/物品/穿着/角色卡/角色技能', field: '角色卡字段名', name: '词条名或skills', value: '新值或对象', summary: '摘要', description: '说明', reason: '现实证据、触发行动、状态来源或动机' }] };
-  },
-
-  storyOutputSchema(store) {
-    return { type: 'final', sceneTitle: '剧情场景标题', elapsedSeconds: 60, mood: '当前情绪', quest: '新的剧情目标', choices: ['可点击行动一', '可点击行动二', '可点击行动三', '可点击行动四'], mind: `${store.character?.name || '被操控者'}第一人称内心独白`, characterIntent: '被操控者当前意图', controlFeeling: '被上线感受', controlAdaptation: 0, controlExperienceSummary: '上线经历摘要', metricUpdates: { emotions: [{ key: '情绪名', delta: 0, status: '变化后的状态含义', reason: '剧情证据' }], playerFeelings: [{ key: '感觉名', delta: 0, status: '变化后的状态含义', reason: '剧情证据' }] }, statChanges: { health: 0, stamina: 0, mental_stability: 0 }, appearedCharacters: [{ name: '出场人物', role: '身份', intro: '本回合可确认介绍', work: store.character?.work || '作品名' }], solidifiableCharacters: [], lexiconUpdates: [], genericUpdates: [], itemActions: [] };
   },
 
   guidedStepFields() {
@@ -1363,7 +981,6 @@ window.GameModules.realWorldAgentLoop = {
       itemActions: Array.isArray(updates.itemActions) ? updates.itemActions : [],
       lexiconUpdates: Array.isArray(updates.lexiconUpdates) ? updates.lexiconUpdates : [],
       genericUpdates: Array.isArray(updates.genericUpdates) ? updates.genericUpdates : [],
-      initUpdates: Array.isArray(updates.initUpdates) ? updates.initUpdates : [],
     };
   },
 
@@ -1484,7 +1101,7 @@ window.GameModules.realWorldAgentLoop = {
     let lastPaint = 0;
     try {
       const requestOptions = {
-        source: config.sourceTitle || (streamToUi ? (config.mode === 'story' ? 'story-agent-engine' : 'real-world-engine') : `${config.mode}-agent-context`),
+        source: config.sourceTitle || (streamToUi ? `${config.mode}-agent-loop` : `${config.mode}-agent-context`),
         model: store.modelId,
         prompt,
         timeoutMs: 240000,

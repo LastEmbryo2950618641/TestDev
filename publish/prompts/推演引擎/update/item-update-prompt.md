@@ -5,12 +5,12 @@ description: 根据现实推演正文提取物品获得、转移、删除、购�
 
 # item-update
 
-确认物品、装备、穿着、库存归属或数量变化时，返回 updateType:"item"。
+确认物品、装备、库存归属或数量变化时，使用“物品”结算类型输出中文 K:V 更新。
 
 - 绑定卡片：物品所属角色卡；玩家物品绑定玩家卡。
-- field：inventory.<物品ID或名称>、wearing.<槽位>、equipment.<槽位>。
-- change.mode：create / delete / transfer / delta / set / upsert。
-- transfer 必须写 fromValue 与 toValue。
+- 字段：物品类型、物品名、归属/数量/状态事实。
+- 操作：获得、失去、转移、数量变化、状态变化、生成、删除。
+- 转移必须写清来源与目标。
 - 购买、赠送、交还、损坏、消耗、遗失都要写原因。
 
-旧 itemActions / lexiconUpdates 可继续返回。
+衣物或饰品的当前穿着位置、穿着状态、被拉紧/解开/偏移等变化走“穿着状态”，不要混入物品。

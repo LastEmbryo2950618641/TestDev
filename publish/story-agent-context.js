@@ -165,7 +165,9 @@ window.GameModules.storyAgentContext = {
     });
     const pool = (store.knownCharacters || []).map((item) => ({ id: item.id || item.name, name: item.name || item.id })).filter((item) => item.name && !blocked.has(item.name));
     if (!pool.length) return [];
-    return [pool[Math.floor((1 - rng()) * pool.length) % pool.length]].filter(Boolean);
+    const roll = rng();
+    const count = roll < 0.5 ? 0 : (roll < 0.8 ? 1 : (roll < 0.95 ? 2 : 3));
+    return pool.slice(0, count);
   },
 
   async loadRequests(store, action, requests = [], loadedKeys = new Set(), materialSession = null, materials = window.GameModules.workLoreMaterials, memoryIds = new Set(), loaded = [], current = [], options = {}) {

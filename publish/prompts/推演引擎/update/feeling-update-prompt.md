@@ -5,13 +5,13 @@ description: 根据现实推演正文提取角色或玩家对玩家本人的感�
 
 # feeling-update
 
-触发角色对玩家本人的感觉变化时，返回 updateType:"feeling" 的 genericUpdates。
+触发角色对玩家本人的感觉变化时，使用“感觉”结算类型输出中文 K:V 更新。
 
 - 绑定卡片：角色卡；玩家本人绑定玩家卡。
-- subject.type：character 或 player。
-- field：metrics.playerFeelings.<感觉名>。
-- change.mode：通常 delta。
-- reasons.trigger：写导致角色改变对玩家态度的行为或事实。
-- reasons.evidence：必须证明这是对玩家本人的感觉，不是泛泛环境感受。
+- 结算对象类型：角色或玩家。
+- 字段：对玩家的感觉名，例如信任、好感、反抗、畏惧等。
+- 变化：通常写正负数值。
+- 触发原因：写导致角色改变对玩家态度的行为或事实。
+- 证据：必须证明这是对玩家本人的感觉，不是泛泛环境感受。
 
 没有明确关系变化时不写。

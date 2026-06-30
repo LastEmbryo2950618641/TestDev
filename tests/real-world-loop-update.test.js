@@ -155,34 +155,228 @@ test('cleanPhasedNarration compacts prose to a single line', () => {
   assert.strictEqual(loop.cleanPhasedNarration('第一句。\n\t第二句。\u200B'), '第一句。第二句。');
 });
 
-test('inference engine prompts are centralized markdown sources', () => {
-  const base = path.join(root, 'publish/prompts/推演引擎');
-  ['stage1-guided-query.md', 'stage2-scene-anchor.md', 'stage3-narration.md', 'stage4-settlement-window.md'].forEach((name) => {
-    assert.ok(fs.existsSync(path.join(base, name)), `${name} missing`);
-  });
-  assert.ok(fs.existsSync(path.join(base, 'init/intimacy-body-init-prompt.md')), 'init prompt missing');
-  ['emotion', 'feeling', 'vital', 'body-status', 'wearing-state', 'sexual-experience', 'sexual-history', 'relationship', 'role-card', 'item', 'map', 'faction-overview', 'faction-structure', 'system', 'generic'].forEach((id) => {
-    assert.ok(fs.existsSync(path.join(base, `update/${id}-update-prompt.md`)), `${id} update prompt missing`);
+test('legacy createRealWorldPrompt supplies Stage 3 template variables', async () => {
+  const context = createContext();
+  loadCore(context);
+  loadScript(context, 'publish/real-world-map.js');
+  loadScript(context, 'publish/real-world-prompt.js');
+  const seen = {};
+  context.window.GameModules.promptSections = { stateSnapshot: () => '状态快照', subjectIdRules: () => '主体规则' };
+  context.window.GameModules.skillLoader = { instruction: async () => '' };
+  context.window.GameModules.realWorldMap = { ensure: () => ({ current: '家', nodes: [], lastText: '' }), render: () => '地图' };
+  context.window.GameModules.realWorldMapFacts = { formatFact: (fact) => String(fact) };
+  context.window.GameModules.promptTemplates = { render: async (id, vars) => { seen.id = id; seen.vars = vars; return JSON.stringify(vars); } };
+  const store = { ...makeStore(), playerProfile: {}, realWorldLog: [], realWorldSceneTitle: '客厅', realWorldLocationName: '家', realWorldQuest: '观察', playerName: '玩家' };
+
+  await context.window.GameModules.createRealWorldPrompt(store, '观察门口');
+
+  assert.strictEqual(seen.id, 'inference-stage3-narration');
+  ['模式标签', '本次行动', '基础上下文', '场景锚定报告', '已动态载入资料', '可用技能', '资料摘要', '紧凑返回规则'].forEach((key) => {
+    assert.ok(Object.prototype.hasOwnProperty.call(seen.vars, key), `${key} missing`);
   });
 });
 
-test('old inference prompt markdown sources are not duplicated outside unified directory', () => {
-  const oldSources = [
-    'publish/prompts/real-world-engine-first.md',
+test('inference engine prompt markdown sources have colocated generated scripts', () => {
+  const promptRoot = path.join(root, 'publish/prompts/推演引擎');
+  const collect = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) return collect(full);
+    return entry.name.endsWith('.md') ? [full] : [];
+  });
+  const mdFiles = collect(promptRoot);
+  assert.ok(mdFiles.length >= 20);
+  mdFiles.forEach((file) => {
+    const generated = file.replace(/\.md$/u, '.js');
+    assert.ok(fs.existsSync(generated), `${path.relative(root, generated)} should exist beside its md source`);
+  });
+});
+
+test('old inference prompt compatibility files are removed', () => {
+  const removed = [
+    'publish/prompt-templates-inline.js',
     'publish/prompts/real-world-engine.md',
-    'publish/prompts/story-agent-engine-first.md',
+    'publish/prompts/real-world-engine-first.md',
     'publish/prompts/story-agent-engine.md',
+    'publish/prompts/story-agent-engine-first.md',
     'publish/prompts/stage1-guided-query.md',
     'publish/prompts/stage2-scene-anchor.md',
     'publish/prompts/stage3-narration.md',
     'publish/init/intimacy-body-init-prompt.md',
-    ...['emotion', 'feeling', 'vital', 'body-status', 'wearing-state', 'sexual-experience', 'sexual-history', 'relationship', 'role-card', 'item', 'map', 'faction-overview', 'faction-structure', 'system', 'generic'].map((id) => `publish/update/${id}-update-prompt.md`),
+    'publish/init/intimacy-body-init-prompt.js',
   ];
-  oldSources.forEach((relative) => {
-    const full = path.join(root, relative);
-    if (!fs.existsSync(full)) return;
-    assert.ok(fs.readFileSync(full, 'utf8').startsWith('<!-- GENERATED FROM publish/prompts/推演引擎/'), `${relative} should be migrated or marked generated`);
+  fs.readdirSync(path.join(root, 'publish/update'))
+    .filter((name) => /-update-prompt\.(?:md|js)$/u.test(name))
+    .forEach((name) => removed.push(`publish/update/${name}`));
+  removed.forEach((file) => {
+    assert.ok(!fs.existsSync(path.join(root, file)), `${file} should be removed`);
   });
+});
+
+test('index and asset sync do not use old prompt inline or prompt script paths', () => {
+  const html = fs.readFileSync(path.join(root, 'publish/index.html'), 'utf8');
+  const syncAssets = fs.readFileSync(path.join(root, 'scripts/sync-inline-assets.js'), 'utf8');
+  assert.ok(!html.includes('prompt-templates-inline.js'));
+  assert.ok(!syncAssets.includes('prompt-templates-inline.js'));
+  assert.ok(!html.includes('src="update/body-status-update-prompt.js"'));
+  assert.ok(!html.includes('src="init/intimacy-body-init-prompt.js"'));
+  assert.ok(!html.includes('src="prompts/推演引擎/'));
+  assert.ok(html.includes('src="inference-prompts-runtime.js"'));
+});
+
+test('inference runtime bundle registers stage update and init prompts from ASCII path', () => {
+  const context = createContext();
+  loadScript(context, 'publish/update/update-registry.js');
+  loadScript(context, 'publish/init/intimacy-body-init-template.js');
+  loadScript(context, 'publish/inference-prompts-runtime.js');
+  assert.ok(context.window.GameModules.promptTemplates.inline['inference-stage1-guided-query'].includes('查询规划'));
+  assert.ok(context.window.GameModules.updateRegistry.prompts['body-status-update'].includes('# body-status-update'));
+  assert.strictEqual(context.window.GameModules.initPromptSources['intimacy-body'].templateKey, 'intimacyBody');
+});
+
+test('colocated generated update prompts register into updateRegistry', () => {
+  const context = createContext();
+  loadScript(context, 'publish/update/update-registry.js');
+  loadScript(context, 'publish/prompts/推演引擎/update/body-status-update-prompt.js');
+  const body = context.window.GameModules.updateRegistry.prompts['body-status-update'];
+  assert.ok(body.includes('# body-status-update'));
+});
+
+test('colocated generated stage prompts register into promptTemplates inline registry', () => {
+  const context = createContext();
+  loadScript(context, 'publish/prompt-templates.js');
+  loadScript(context, 'publish/prompts/推演引擎/stage1-guided-query.js');
+  const body = context.window.GameModules.promptTemplates.inline['inference-stage1-guided-query'];
+  assert.ok(body.includes('查询规划'));
+});
+
+test('Stage 1 query planning template includes action and context variables', () => {
+  const body = fs.readFileSync(path.join(root, 'publish/prompts/推演引擎/stage1-guided-query.md'), 'utf8');
+  ['{{本次行动}}', '{{基础上下文}}', '{{动态载入资料}}', '{{动态Skills}}', '{{当前步骤输出要求}}'].forEach((token) => {
+    assert.ok(body.includes(token), `${token} missing`);
+  });
+});
+
+test('inference main-chain prompts contain no AI-facing JSON output contract', () => {
+  const files = [
+    'publish/real-world-agent-loop.js',
+    'publish/prompts/推演引擎/stage1-guided-query.md',
+    'publish/prompts/推演引擎/stage2-scene-anchor.md',
+    'publish/prompts/推演引擎/stage3-narration.md',
+    'publish/prompts/推演引擎/stage4-settlement-window.md',
+    'publish/prompts/推演引擎/stage1-guided-query.js',
+    'publish/prompts/推演引擎/stage2-scene-anchor.js',
+    'publish/prompts/推演引擎/stage3-narration.js',
+    'publish/prompts/推演引擎/stage4-settlement-window.js',
+    'publish/inference-prompts-runtime.js',
+  ];
+  const forbidden = [
+    '只输出合法 JSON',
+    '只输出合法JSON',
+    '最小补丁 JSON',
+    '输出最小补丁 JSON',
+    '返回格式：{"groups"',
+    '阶段3A：基础结算字段',
+    '阶段3B-分组更新',
+    'genericUpdates 用于',
+    'initUpdates',
+  ];
+  files.forEach((file) => {
+    const text = fs.readFileSync(path.join(root, file), 'utf8');
+    forbidden.forEach((needle) => {
+      assert.ok(!text.includes(needle), `${file} should not include ${needle}`);
+    });
+  });
+});
+
+test('promptTemplates loads colocated JS before falling back to markdown fetch', async () => {
+  const context = createContext();
+  const loadedScripts = [];
+  context.document = {
+    currentScript: { src: 'https://example.test/game/prompt-templates.js' },
+    baseURI: 'https://example.test/game/index.html',
+    querySelector: () => null,
+    createElement: () => ({}),
+    head: {
+      appendChild(script) {
+        loadedScripts.push(script.src);
+        const relative = decodeURIComponent(script.src).replace('https://example.test/game/', 'publish/');
+        loadScript(context, relative);
+        script.onload?.();
+      },
+    },
+  };
+  context.location = { origin: 'https://example.test', href: 'https://example.test/game/index.html' };
+  context.URL = URL;
+  context.fetch = async () => ({ ok: false, status: 404, text: async () => '' });
+  loadScript(context, 'publish/prompt-templates.js');
+
+  const prompt = await context.window.GameModules.promptTemplates.render('inference-stage1-guided-query', { 本次行动: '观察门口' });
+
+  assert.ok(loadedScripts.some((src) => src.endsWith('/prompts/%E6%8E%A8%E6%BC%94%E5%BC%95%E6%93%8E/stage1-guided-query.js')));
+  assert.ok(prompt.includes('观察门口'));
+});
+
+test('promptTemplates reports colocated JS attempts when markdown fallback fails', async () => {
+  const context = createContext();
+  context.document = {
+    currentScript: { src: 'https://example.test/game/prompt-templates.js' },
+    baseURI: 'https://example.test/game/index.html',
+    querySelector: () => null,
+    createElement: () => ({}),
+    head: { appendChild(script) { script.onerror?.(); } },
+  };
+  context.location = { origin: 'https://example.test', href: 'https://example.test/game/index.html' };
+  context.URL = URL;
+  context.fetch = async () => ({ ok: false, status: 404, text: async () => '' });
+  loadScript(context, 'publish/prompt-templates.js');
+
+  await assert.rejects(
+    () => context.window.GameModules.promptTemplates.render('inference-stage1-guided-query', {}),
+    /stage1-guided-query\.js.*stage1-guided-query\.md/s,
+  );
+});
+
+test('colocated generated prompt scripts are tracked for publishing', () => {
+  const files = [
+    'publish/inference-prompts-runtime.js',
+    'publish/prompts/推演引擎/stage1-guided-query.js',
+    'publish/prompts/推演引擎/stage2-scene-anchor.js',
+    'publish/prompts/推演引擎/stage3-narration.js',
+    'publish/prompts/推演引擎/stage4-settlement-window.js',
+    'publish/prompts/推演引擎/init/intimacy-body-init-prompt.js',
+  ];
+  const tracked = new Set(require('child_process').execFileSync('git', ['ls-files', ...files], { cwd: root, encoding: 'utf8' }).trim().split('\n').filter(Boolean));
+  files.forEach((file) => assert.ok(tracked.has(file), `${file} is not tracked and will be missing from publish`));
+});
+
+test('configured loop template ids use canonical inference templates', () => {
+  const context = createContext();
+  loadCore(context);
+  loadScript(context, 'publish/prompt-templates.js');
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  const real = loop.realConfig();
+  const story = loop.storyConfig();
+
+  assert.strictEqual(real.templateId, 'inference-stage3-narration');
+  assert.strictEqual(real.firstTemplateId, 'inference-stage1-guided-query');
+  assert.strictEqual(story.templateId, 'inference-stage3-narration');
+  assert.strictEqual(story.firstTemplateId, 'inference-stage1-guided-query');
+  [real.templateId, real.firstTemplateId, story.templateId, story.firstTemplateId].forEach((id) => {
+    assert.strictEqual(context.window.GameModules.promptTemplates.find(id).id, id);
+  });
+});
+
+test('colocated generated init prompt keeps intimacyBody template binding', () => {
+  const context = createContext();
+  loadScript(context, 'publish/init/intimacy-body-init-template.js');
+  loadScript(context, 'publish/prompts/推演引擎/init/intimacy-body-init-prompt.js');
+  loadScript(context, 'publish/init/init-prompt-registry.js');
+  context.window.GameModules.initPromptRegistry.registerAll();
+  const item = context.window.GameModules.initPromptRegistry.prompts['intimacy-body'];
+
+  assert.strictEqual(item.templateKey, 'intimacyBody');
+  assert.ok(item.template);
+  assert.ok(JSON.stringify(context.window.GameModules.initPromptRegistry.schema(['intimacy-body'])).includes('initUpdates'));
 });
 
 test('Stage 1 prompt requires Chinese K:V guided query planning', async () => {
@@ -211,6 +405,30 @@ test('Stage 1 prompt requires Chinese K:V guided query planning', async () => {
   assert.ok(!prompt.includes('只允许返回一个合法 JSON 对象'));
 });
 
+test('Stage 1 real template render does not include Stage 3 narration instructions', async () => {
+  const context = createContext();
+  loadCore(context);
+  loadScript(context, 'publish/prompt-templates.js');
+  loadScript(context, 'publish/prompts/推演引擎/stage1-guided-query.js');
+  loadScript(context, 'publish/prompts/推演引擎/stage3-narration.js');
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  const config = loop.realConfig();
+  config.ctx = { buildLoadedText: () => '', limit: (text) => String(text || ''), randomActiveEventCandidates: () => [] };
+
+  const prompt = await loop.buildConfiguredPrompt({ store: makeStore(), action: '观察门口', base: '基础', loaded: [], skills: '', step: 1, config });
+
+  assert.ok(prompt.includes('只输出中文 K:V'));
+  assert.ok(prompt.includes('查询规划：'));
+  assert.ok(prompt.includes('即使资料状态为“资料已足够”，也必须逐行输出固定输出顺序中的每个字段'));
+  assert.ok(prompt.includes('没有内容的字段写“无”'));
+  assert.ok(!prompt.includes('你只输出现实正文'));
+  assert.ok(!prompt.includes('场景锚定报告：'));
+  assert.ok(!prompt.includes('输出示例：'));
+  assert.ok(!prompt.includes('sceneTitle'));
+  assert.ok(!prompt.includes('genericUpdates'));
+  assert.ok(!prompt.includes('updateType'));
+});
+
 test('Stage 1 follow-up prompt remains Chinese K:V and never asks for JSON', async () => {
   const context = createContext();
   loadCore(context);
@@ -233,6 +451,36 @@ test('Stage 1 follow-up prompt remains Chinese K:V and never asks for JSON', asy
   assert.ok(prompt.includes('资料状态'));
   assert.ok(!prompt.includes('只允许返回一个合法 JSON 对象'));
   assert.ok(!prompt.includes('第一个字符必须是 {'));
+});
+
+test('Stage 1 prompt passes known participant layers to random candidate provider', async () => {
+  const context = createContext();
+  loadCore(context);
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  const config = loop.realConfig();
+  let receivedOptions = null;
+  context.window.GameModules.promptTemplates.render = async () => '提示';
+  config.ctx = {
+    buildLoadedText: () => '',
+    limit: (text) => String(text || ''),
+    randomActiveEventCandidates: (_store, _action, options) => { receivedOptions = options; return []; },
+  };
+
+  await loop.buildConfiguredPrompt({
+    store: makeStore(),
+    action: '继续观察',
+    base: '基础',
+    loaded: [],
+    skills: '',
+    step: 2,
+    config,
+    guidance: { forcedParticipants: [{ name: '刘思琪' }], priorityCandidates: [{ name: '刘思怡' }], dramaCandidates: [{ name: '王主管' }], forbiddenParticipants: [{ name: '路人甲' }] },
+  });
+
+  assert.strictEqual(JSON.stringify(receivedOptions.forcedParticipants.map((item) => item.name)), JSON.stringify(['刘思琪']));
+  assert.strictEqual(JSON.stringify(receivedOptions.priorityCandidates.map((item) => item.name)), JSON.stringify(['刘思怡']));
+  assert.strictEqual(JSON.stringify(receivedOptions.dramaCandidates.map((item) => item.name)), JSON.stringify(['王主管']));
+  assert.strictEqual(JSON.stringify(receivedOptions.forbiddenParticipants.map((item) => item.name)), JSON.stringify(['路人甲']));
 });
 
 test('Stage 2 narration prompt forbids advancing beyond current action', async () => {
@@ -430,25 +678,31 @@ test('promptTemplates render expands double-brace markdown variables cleanly', a
   assert.ok(!out.includes('{{现有Update提示词摘要}}'));
 });
 
-test('promptTemplates inline bundle contains Stage K:V templates and no old guided JSON protocol', () => {
+test('colocated Stage K:V templates register inline and contain no old guided JSON protocol', () => {
   const context = createContext();
   loadScript(context, 'publish/prompt-templates.js');
-  loadScript(context, 'publish/prompt-templates-inline.js');
+  loadScript(context, 'publish/prompts/推演引擎/stage1-guided-query.js');
+  loadScript(context, 'publish/prompts/推演引擎/stage2-scene-anchor.js');
+  loadScript(context, 'publish/prompts/推演引擎/stage3-narration.js');
+  loadScript(context, 'publish/prompts/推演引擎/stage4-settlement-window.js');
   const inline = context.window.GameModules.promptTemplates.inline || {};
   ['inference-stage1-guided-query', 'inference-stage2-scene-anchor', 'inference-stage3-narration', 'inference-stage4-settlement-window'].forEach((id) => {
     assert.ok(String(inline[id] || '').length > 20, `${id} inline template missing`);
   });
   const guidedText = [
-    inline['real-world-engine'] || '',
-    inline['real-world-engine-first'] || '',
-    inline['story-agent-engine'] || '',
-    inline['story-agent-engine-first'] || '',
+    inline['inference-stage1-guided-query'] || '',
+    inline['inference-stage2-scene-anchor'] || '',
+    inline['inference-stage3-narration'] || '',
+    inline['inference-stage4-settlement-window'] || '',
   ].join('\n');
   assert.ok(!guidedText.includes('资料收集阶段只能返回一个合法 JSON 对象'));
   assert.ok(!guidedText.includes('只允许输出 `request_context`'));
   assert.ok(!guidedText.includes('第一个字符必须是 `{`'));
   assert.ok(String(inline['inference-stage1-guided-query']).includes('只输出中文 K:V'));
   assert.ok(String(inline['inference-stage4-settlement-window']).includes('现有 Update 提示词摘要'));
+  assert.ok(String(inline['inference-stage4-settlement-window']).includes('必须逐个输出“本次必须返回的类型”列出的每个类型'));
+  assert.ok(String(inline['inference-stage4-settlement-window']).includes('类型标题必须使用类型合约中的完整标题'));
+  assert.ok(String(inline['inference-stage4-settlement-window']).includes('不得使用短标题'));
 });
 
 test('Stage4 settlement window prompt includes update and init registry guidance', async () => {
@@ -497,6 +751,34 @@ test('Stage4 settlement window awaits rendered prompt on real call chain', async
 
   assert.strictEqual(receivedPrompt, '渲染完成提示');
   assert.strictEqual(out.elapsedSeconds, 90);
+});
+
+test('Stage4 sliding window retries only the incomplete type without raw pollution', async () => {
+  const context = createContext();
+  loadCore(context);
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  const store = makeStore();
+  const config = loop.realConfig();
+  const participants = [{ type: 'character', id: 'rushiqi', name: '刘思琪', role: 'forced' }];
+  loop.settlementTypeQueue = () => ['情绪', '感觉'];
+  context.window.GameModules.promptTemplates.render = async (_id, vars) => JSON.stringify(vars);
+  const rendered = [];
+  const outputs = [
+    '情绪：\n结算状态：需要更新\n结算对象：刘思琪｜角色｜允许结算\n更新1：情绪，紧张，+2，正文确认她紧张\n结算对象结束：刘思琪\n类型完成：是\n结算结束：是\n感觉：\n结算状态：需要更新\n结算对象：刘思琪｜角色｜允许结算\n更新1：感觉，警惕，+1',
+    '感觉：\n结算状态：需要更新\n结算对象：刘思琪｜角色｜允许结算\n更新1：感觉，信任，+2，正文确认她放松\n结算对象结束：刘思琪\n类型完成：是\n结算结束：是',
+  ];
+  loop.completeConfiguredStep = async (_store, prompt) => {
+    rendered.push(JSON.parse(prompt));
+    return outputs.shift();
+  };
+
+  const out = await loop.completeConfiguredSettlementKvWindow({ store, action: '行动', base: '基础', loaded: [], narration: '正文', trace: [], participants, config });
+
+  assert.strictEqual(JSON.stringify(rendered[1].本次必须返回的类型), JSON.stringify('感觉'));
+  assert.strictEqual(rendered[1].残缺类型, '感觉');
+  assert.ok(rendered[1].残缺原因或尾部.includes('感觉：'));
+  assert.ok(!rendered[1].残缺原因或尾部.includes('情绪：'));
+  assert.strictEqual(out.genericUpdates.length, 2);
 });
 
 test('stageParticipants promotes character entries that match existing role cards', () => {
@@ -638,6 +920,28 @@ test('real context builds Top3 participant profile requests and excludes forbidd
   assert.strictEqual(JSON.stringify(requests.map((item) => item.params.name)), JSON.stringify(['刘思琪', '刘思怡', '路人甲']));
 });
 
+test('real randomActiveEventCandidates excludes forced priority drama and forbidden names', () => {
+  const context = createContext();
+  loadCore(context);
+  const ctx = context.window.GameModules.realWorldAgentContext;
+  const store = makeStore();
+  store.rpgStates = {
+    a: { id: 'a', profile: { name: '刘思琪' } },
+    b: { id: 'b', profile: { name: '刘思怡' } },
+    c: { id: 'c', profile: { name: '王主管' } },
+    d: { id: 'd', profile: { name: '路人甲' } },
+  };
+
+  const random = ctx.randomActiveEventCandidates(store, '观察门口', {
+    forcedParticipants: [{ name: '刘思琪' }],
+    priorityCandidates: [{ name: '刘思怡' }],
+    dramaCandidates: [{ name: '王主管' }],
+    forbiddenParticipants: [{ name: '路人甲' }],
+  });
+
+  assert.strictEqual(JSON.stringify(random.map((item) => item.name)), JSON.stringify([]));
+});
+
 test('auto-loaded character cards carry structured participants for Stage 3', async () => {
   const context = createContext();
   loadCore(context);
@@ -660,115 +964,45 @@ test('harness loads core modules', () => {
   assert.ok(context.window.GameModules.updateRegistry);
 });
 
-test('Stage 3A base prompt does not ask for groups or skills', async () => {
+test('legacy Stage3 JSON settlement methods are removed from inference loop', () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
-  const config = loop.realConfig();
-  config.ctx = { buildLoadedText: () => '' };
-  const prompt = await loop.buildConfiguredStage3BasePrompt({ store: makeStore(), action: '观察', base: '基础', loaded: [], narration: '正文', trace: [], config });
-  assert.ok(prompt.includes('elapsedSeconds'));
-  assert.ok(prompt.includes('choices'));
-  assert.ok(!prompt.includes('groups'));
-  assert.ok(!prompt.includes('Skills 元数据'));
-});
-
-test('normalizeStage3BaseFields ignores groups and returns defaults', () => {
-  const context = createContext();
-  loadCore(context);
-  const store = makeStore();
-  const loop = context.window.GameModules.realWorldAgentLoop;
-  const out = loop.normalizeStage3BaseFields({ groups: { metrics: [] }, elapsedSeconds: 0, choices: ['A'] }, store, loop.realConfig());
-  assert.strictEqual(out.elapsedSeconds, 300);
-  assert.deepStrictEqual(out.choices, ['A', '交流', '行动', '等待']);
-  assert.ok(!Object.prototype.hasOwnProperty.call(out, 'groups'));
-});
-
-test('completeGroupedStage3Updates runs default non-init groups when route has only base fields', async () => {
-  const context = createContext();
-  loadCore(context);
-  const store = makeStore();
-  const loop = context.window.GameModules.realWorldAgentLoop;
-  const config = loop.realConfig();
-  config.ctx = { buildLoadedText: () => '' };
-  const calls = [];
-  loop.buildGroupedUpdateJsonPrompt = async ({ groupKey, selectedSkills }) => {
-    calls.push({ groupKey, selectedSkills });
-    return '{}';
-  };
-  loop.completeConfiguredUpdateJson = async () => ({ genericUpdates: [] });
-  loop.markConfiguredStep = () => {};
-
-  await loop.completeGroupedStage3Updates({
-    store,
-    action: '观察',
-    base: '基础',
-    loaded: [],
-    narration: '正文',
-    route: { elapsedSeconds: 300, choices: ['A', 'B', 'C', 'D'] },
-    config,
-  });
-
-  const expectedGroups = Object.entries(loop.stage3UpdateGroups()).filter(([, group]) => !group.init);
-  assert.strictEqual(calls.length, expectedGroups.length);
-  expectedGroups.forEach(([key, group], index) => {
-    assert.strictEqual(calls[index].groupKey, key);
-    assert.deepStrictEqual(calls[index].selectedSkills, group.skills);
+  [
+    'buildConfiguredStage3BasePrompt',
+    'completeConfiguredStage3Base',
+    'buildGroupedUpdateJsonPrompt',
+    'completeGroupedStage3Updates',
+    'buildConfiguredSkillSelectionPrompt',
+    'completeConfiguredSkillSelection',
+  ].forEach((name) => {
+    assert.strictEqual(loop[name], undefined, `${name} should be removed`);
   });
 });
 
-test('Stage 3B groups are capped at four update requests', () => {
-  const context = createContext();
-  loadCore(context);
-  const groups = context.window.GameModules.realWorldAgentLoop.stage3UpdateGroups();
-  assert.deepStrictEqual(Object.keys(groups), ['metrics', 'bodySex', 'survival', 'worldSocialInventory']);
-  assert.ok(groups.bodySex.skills.includes('wearing-state'));
-});
-
-test('sexual-experience prompt clarifies per-subject participant rules', () => {
+test('sexual-experience prompt clarifies per-target participant rules', () => {
   const context = createContext();
   loadScript(context, 'publish/update/update-registry.js');
-  loadScript(context, 'publish/update/sexual-experience-update-prompt.js');
+  loadScript(context, 'publish/prompts/推演引擎/update/sexual-experience-update-prompt.js');
   const body = context.window.GameModules.updateRegistry.prompts['sexual-experience-update'];
-  assert.ok(body.includes('subject 永远表示这条性经历记录写入谁的角色卡。'));
-  assert.ok(body.includes('同一亲密/性事件若玩家与角色双方都参与，则必须输出两条 sexual-experience：玩家一条，对方角色一条。'));
-  assert.ok(body.includes('多人参与时，每个 Stage 1 参与者清单和 Stage 2 正文明确确认参与的人各自一条。'));
+  assert.ok(body.includes('结算对象永远表示这条性经历记录写入谁的角色卡。'));
+  assert.ok(body.includes('同一亲密/性事件若玩家与角色双方都参与，则玩家一条，对方角色一条。'));
+  assert.ok(body.includes('多人参与时，每个 Stage1 参与者清单和 Stage2 正文明确确认参与的人各自一条。'));
   assert.ok(body.includes('禁止根据 skill 名称凭空猜对象；参与者只能来自本回合参与者清单和正文明确事实。'));
   assert.ok(body.includes('如果只是接触、摩擦、亲吻，不得升级为插入、高潮或性交记录。'));
+  assert.ok(!body.includes('subject 永远表示'));
+  assert.ok(!body.includes('sexual-experience：'));
 });
 
 test('sexual-experience prompt stays abstract and non-process', () => {
   const context = createContext();
   loadScript(context, 'publish/update/update-registry.js');
-  loadScript(context, 'publish/update/sexual-experience-update-prompt.js');
+  loadScript(context, 'publish/prompts/推演引擎/update/sexual-experience-update-prompt.js');
   const body = context.window.GameModules.updateRegistry.prompts['sexual-experience-update'];
   assert.ok(body.includes('只记录总数与分类次数，不记录过程'));
   assert.ok(!body.includes('露骨'));
   assert.ok(!body.includes('对未成年'));
   assert.ok(!body.includes('详述'));
-});
-
-test('bodySex prompt requires both participants to record sexual-experience', async () => {
-  const context = createContext();
-  loadCore(context);
-  const loop = context.window.GameModules.realWorldAgentLoop;
-  const store = makeStore();
-  const prompt = await loop.buildGroupedUpdateJsonPrompt({
-    store,
-    action: '亲密互动',
-    base: '基础',
-    loaded: [],
-    narration: '玩家与刘思琪发生正文确认的亲密事件。',
-    groupKey: 'bodySex',
-    selectedSkills: ['body-status', 'sexual-experience', 'sexual-history', 'wearing-state'],
-    config: loop.realConfig(),
-    trace: [{ participants: [{ type: 'player', id: 'player-self', name: '玩家', role: 'actor' }, { type: 'character', id: 'rushiqi', name: '刘思琪', role: 'direct-target' }] }],
-  });
-  assert.ok(prompt.includes('双方各自一条 sexual-experience'));
-  assert.ok(prompt.includes('本回合参与者'));
-  assert.ok(prompt.includes('亲密相关穿着'));
-  assert.ok(prompt.includes('只根据本回合参与者清单和阶段2正文确认事实判断主体'));
-  assert.ok(prompt.includes('禁止把接触、摩擦、亲吻升级为插入、高潮或性交记录'));
 });
 
 test('parseSettlementKv saves complete types and leaves incomplete types for retry', () => {
@@ -793,6 +1027,24 @@ test('parseSettlementKv saves complete types and leaves incomplete types for ret
   assert.strictEqual(parsed.patchesByType['情绪'].genericUpdates.length, 1);
 });
 
+test('parseSettlementKv accepts short settlement type headings from model output', () => {
+  const context = createContext();
+  loadCore(context);
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  const store = makeStore();
+  const participants = [{ type: 'character', id: 'rushiqi', name: '刘思琪', role: 'forced' }];
+  const parsed = loop.parseSettlementKv(`情绪：
+结算状态：需要更新
+结算对象：刘思琪｜角色｜允许结算
+更新1：情绪，紧张，+2，正文确认她因为门口动静紧张
+结算对象结束：刘思琪
+类型完成：是
+结算结束：是`, { requestedTypes: ['情绪'], participants, store, config: loop.realConfig() });
+
+  assert.strictEqual(JSON.stringify(parsed.completeTypes), JSON.stringify(['情绪']));
+  assert.strictEqual(parsed.patchesByType['情绪'].genericUpdates.length, 1);
+});
+
 test('parseSettlementKv leaves malformed update types incomplete even with completion markers', () => {
   const context = createContext();
   loadCore(context);
@@ -810,17 +1062,72 @@ test('parseSettlementKv leaves malformed update types incomplete even with compl
   assert.strictEqual(JSON.stringify(parsed.incompleteTypes), JSON.stringify(['情绪']));
 });
 
+test('parseSettlementKv keeps unknown standard labels incomplete instead of generic fallback', () => {
+  const context = createContext();
+  loadCore(context);
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  const store = makeStore();
+  const participants = [{ type: 'character', id: 'rushiqi', name: '刘思琪', role: 'forced' }];
+  const parsed = loop.parseSettlementKv(`情绪结算：
+结算状态：需要更新
+结算对象：刘思琪｜角色｜允许结算
+更新1：情绪变化，紧张，+1，正文确认她因为门口动作紧张
+结算对象结束：刘思琪
+类型完成：是
+结算结束：是`, { requestedTypes: ['情绪'], participants, store, config: loop.realConfig() });
+
+  assert.strictEqual(JSON.stringify(parsed.completeTypes), JSON.stringify([]));
+  assert.strictEqual(JSON.stringify(parsed.incompleteTypes), JSON.stringify(['情绪']));
+  assert.strictEqual(parsed.genericUpdates.length, 0);
+});
+
 test('mergeGroupedUpdatePatches maps Stage4 baseFields into final route fields', () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
-  const merged = loop.mergeGroupedUpdatePatches([{ baseFields: { '经过时间': '90', '当前状态': '门口僵持', '当前目标': '确认反应', '场景标题': '门口拉扯', '地点名称': '刘思琪房间门口', '备选行动1': '松手', '备选行动2': '询问', '备选行动3': '后退', '备选行动4': '观察' }, genericUpdates: [] }], { status: 'Stage3A覆盖状态' });
+  const merged = loop.mergeGroupedUpdatePatches([{ baseFields: { '经过时间': '90', '当前状态': '门口僵持', '当前目标': '确认反应', '场景标题': '门口拉扯', '地点名称': '刘思琪房间门口', '备选行动1': '松手', '备选行动2': '询问', '备选行动3': '后退', '备选行动4': '观察' }, genericUpdates: [] }], {});
   assert.strictEqual(merged.elapsedSeconds, 90);
-  assert.strictEqual(merged.status, 'Stage3A覆盖状态');
+  assert.strictEqual(merged.status, '门口僵持');
   assert.strictEqual(merged.quest, '确认反应');
   assert.strictEqual(merged.sceneTitle, '门口拉扯');
   assert.strictEqual(merged.locationName, '刘思琪房间门口');
   assert.strictEqual(JSON.stringify(merged.choices), JSON.stringify(['松手', '询问', '后退', '观察']));
+});
+
+test('parseSettlementKv preserves unknown stable facts as generic solidification', () => {
+  const context = createContext();
+  loadCore(context);
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  const store = makeStore();
+  const participants = [{ type: 'character', id: 'rushiqi', name: '刘思琪', role: 'forced' }];
+  const parsed = loop.parseSettlementKv(`角色卡结算：
+结算状态：需要更新
+结算对象：刘思琪｜角色｜允许结算
+更新1：未知稳定事实，门口距离，保持半步距离，正文确认她后退半步观察
+结算对象结束：刘思琪
+类型完成：是
+结算结束：是`, { requestedTypes: ['角色卡'], participants, store, config: loop.realConfig() });
+
+  assert.strictEqual(JSON.stringify(parsed.completeTypes), JSON.stringify(['角色卡']));
+  assert.ok(parsed.genericUpdates.some((item) => item.updateType === 'generic' && item.field === 'status_tags.门口距离'));
+});
+
+test('parseSettlementKv keeps malformed special update incomplete instead of generic fallback', () => {
+  const context = createContext();
+  loadCore(context);
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  const store = makeStore();
+  const participants = [{ type: 'character', id: 'rushiqi', name: '刘思琪', role: 'forced' }];
+  const parsed = loop.parseSettlementKv(`关系结算：
+结算状态：需要更新
+结算对象：刘思琪｜角色｜允许结算
+更新1：关系变化，刘悠，刘思琪，动作越界
+结算对象结束：刘思琪
+类型完成：是
+结算结束：是`, { requestedTypes: ['关系'], participants, store, config: loop.realConfig() });
+
+  assert.strictEqual(JSON.stringify(parsed.completeTypes), JSON.stringify([]));
+  assert.strictEqual(JSON.stringify(parsed.incompleteTypes), JSON.stringify(['关系']));
 });
 
 test('parseSettlementKv handles sexual history relationship and role-card special formats', () => {
@@ -854,92 +1161,6 @@ test('parseSettlementKv handles sexual history relationship and role-card specia
   assert.ok(parsed.genericUpdates.some((item) => item.updateType === 'sexual-history'));
   assert.ok(parsed.genericUpdates.some((item) => item.updateType === 'relationship'));
   assert.ok(parsed.genericUpdates.some((item) => item.updateType === 'role-card'));
-});
-
-test('buildGroupedUpdateJsonPrompt requires full checks and avoids empty-only wording', async () => {
-  const context = createContext();
-  loadCore(context);
-  const loop = context.window.GameModules.realWorldAgentLoop;
-  const prompt = await loop.buildGroupedUpdateJsonPrompt({
-    store: makeStore(),
-    action: '观察',
-    base: '基础',
-    loaded: [],
-    narration: '正文确认出现变化。',
-    groupKey: 'metrics',
-    selectedSkills: ['emotion', 'feeling'],
-    config: loop.realConfig(),
-    trace: [],
-  });
-  assert.ok(prompt.includes('必须完整检查本组允许的所有更新类型'));
-  assert.ok(prompt.includes('凡阶段2正文已经确认的变化都必须返回'));
-  assert.ok(prompt.includes('只有本组无明确变化才返回 {"genericUpdates":[]}'));
-  assert.ok(!prompt.includes('输出格式只允许：{"genericUpdates":[]}'));
-});
-
-test('completeGroupedStage3Updates calls all four groups even when route has no groups', async () => {
-  const context = createContext();
-  loadCore(context);
-  const loop = context.window.GameModules.realWorldAgentLoop;
-  const store = makeStore();
-  const called = [];
-  loop.completeConfiguredUpdateJson = async (_store, _prompt, _logId, cfg) => {
-    called.push(cfg.sourceTitle);
-    return { genericUpdates: [] };
-  };
-  await loop.completeGroupedStage3Updates({ store, action: '行动', base: '基础', loaded: [], narration: '正文', route: { elapsedSeconds: 60 }, logId: null, config: loop.realConfig(), trace: [] });
-  assert.strictEqual(called.length, 4);
-  assert.ok(called.some((x) => x.includes('情绪与感觉')));
-  assert.ok(called.some((x) => x.includes('身体、性经历与穿着')));
-  assert.ok(called.some((x) => x.includes('生命体征与系统')));
-  assert.ok(called.some((x) => x.includes('世界、关系与物品')));
-});
-
-test('worldSocialInventory rejects values scoped metrics intimacy bodyStatus and profile wearing while allowing world fields', () => {
-  const context = createContext();
-  loadCore(context);
-  const loop = context.window.GameModules.realWorldAgentLoop;
-  const group = loop.stage3UpdateGroups().worldSocialInventory;
-  const patch = loop.filterGroupedUpdatePatch({
-    genericUpdates: [
-      { updateType: 'generic', field: 'values.intimacy.sexualHistory.virginityStatus', value: 'known' },
-      { updateType: 'generic', field: 'values.bodyStatus.mouth', value: 'dry' },
-      { updateType: 'generic', field: 'values.metrics.emotions', value: { happy: 1 } },
-      { updateType: 'generic', field: 'values.wearing.0.state', value: '被推开' },
-      { updateType: 'generic', field: 'values.wearing.items', value: [{ name: '外套' }] },
-      { updateType: 'role-card', field: 'profile.wearing', value: ['外套'] },
-      { updateType: 'role-card', field: 'profile.wearingItems', value: [{ name: '外套' }] },
-      { updateType: 'role-card', field: 'profile.title', value: '侦探' },
-      { updateType: 'map', field: 'values.map.note', value: '小巷有新线索' },
-    ],
-  }, group);
-
-  assert.deepStrictEqual(patch.genericUpdates.map((item) => item.field), ['profile.title', 'values.map.note']);
-});
-
-test('grouped patch filtering keeps legacy world arrays only for worldSocialInventory', () => {
-  const context = createContext();
-  loadCore(context);
-  const loop = context.window.GameModules.realWorldAgentLoop;
-  const groups = loop.stage3UpdateGroups();
-  const legacyPatch = {
-    genericUpdates: [],
-    itemActions: [{ action: 'add', itemName: '钥匙' }],
-    lexiconUpdates: [{ name: '词条' }],
-    factionUpdates: [{ action: 'addFactionPosition' }],
-    wechatActions: [{ action: 'sendIncomingNow' }],
-    mapNodes: [{ name: '新节点' }],
-    newLocations: [{ name: '新地点' }],
-    locationDescriptionUpdates: [{ locationName: '新地点', text: '描述' }],
-  };
-
-  const metricsPatch = loop.filterGroupedUpdatePatch(legacyPatch, groups.metrics);
-  const worldPatch = loop.filterGroupedUpdatePatch(legacyPatch, groups.worldSocialInventory);
-  const merged = loop.mergeGroupedUpdatePatches([metricsPatch, worldPatch], {});
-
-  ['itemActions', 'lexiconUpdates', 'factionUpdates', 'wechatActions', 'mapNodes', 'newLocations', 'locationDescriptionUpdates'].forEach((key) => {
-    assert.strictEqual(merged[key].length, 1, `${key} should only come from worldSocialInventory`);
-  });
 });
 
 test('wearing-state update writes values and mirrors profile wearing', async () => {
@@ -999,6 +1220,39 @@ test('sexual-history records defloweredPartners on the other subject', async () 
   assert.strictEqual(store.__player.values.intimacy.sexualHistory.defloweredPartners[0].id, 'rushiqi');
 });
 
+test('generateConfiguredFinal derives display route only from Stage4 base settlement', async () => {
+  const context = createContext();
+  loadCore(context);
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  const store = makeStore();
+  const config = loop.realConfig();
+  config.ctx = { buildLoadedText: () => '', limit: (text) => String(text || '') };
+  loop.completeConfiguredStep = async (_store, _prompt, _logId, streamToUi, cfg) => {
+    assert.ok(!cfg?.sourceTitle?.includes('阶段3A'), 'Stage3A JSON route must not run');
+    if (cfg?.sourceTitle?.includes('场景锚定')) return '场景锚定报告：只结算正文确认对象。\n当前地点：测试地点\n当前时间：测试时间\n空间状态：测试空间\n当前动作：行动\n强制出场：刘思琪\n高优先候选：无\n戏剧候选：无\n禁止出场：无\n随机事件影响：无\n正文写作重点：只写当前动作。\n结算边界：只结算正文确认对象。';
+    if (streamToUi) return '正文确认刘思琪紧张。';
+    return '';
+  };
+  loop.completeConfiguredSettlementKvWindow = async () => ({
+    elapsedSeconds: 120,
+    status: 'Stage4状态',
+    quest: 'Stage4目标',
+    choices: ['一', '二', '三', '四'],
+    sceneTitle: 'Stage4标题',
+    locationName: 'Stage4地点',
+    genericUpdates: [],
+  });
+
+  const out = await loop.generateConfiguredFinal({ store, action: '行动', base: '基础', loaded: [], skills: '', trace: [{ participants: [{ type: 'character', id: 'rushiqi', name: '刘思琪', role: 'direct-target' }] }], materialSession: null, logId: null, config });
+
+  assert.strictEqual(out.result.elapsedSeconds, 120);
+  assert.strictEqual(out.result.status, 'Stage4状态');
+  assert.strictEqual(out.result.quest, 'Stage4目标');
+  assert.strictEqual(out.result.sceneTitle, 'Stage4标题');
+  assert.strictEqual(out.result.locationName, 'Stage4地点');
+  assert.deepStrictEqual(out.result.choices, ['一', '二', '三', '四']);
+});
+
 test('generateConfiguredFinal merges base fields with Stage4 sliding patch', async () => {
   const context = createContext();
   loadCore(context);
@@ -1013,7 +1267,7 @@ test('generateConfiguredFinal merges base fields with Stage4 sliding patch', asy
   loop.completeConfiguredStep = async (_store, _prompt, _logId, streamToUi, cfg) => {
     if (cfg?.sourceTitle?.includes('场景锚定')) return '场景锚定报告：只结算正文确认对象。\n当前地点：测试地点\n当前时间：测试时间\n空间状态：测试空间\n当前动作：行动\n强制出场：刘思琪\n高优先候选：无\n戏剧候选：无\n禁止出场：无\n随机事件影响：无\n正文写作重点：只写当前动作。\n结算边界：只结算正文确认对象。';
     if (streamToUi) return '你完成了本次行动范围内的直接动作，对方作出即时反应。';
-    if (cfg?.sourceTitle?.includes('阶段3A')) return '{"elapsedSeconds":180,"status":"测试状态","quest":"测试目标","choices":["一","二","三","四"],"sceneTitle":"测试标题","locationName":"测试地点"}';
+    assert.ok(!cfg?.sourceTitle?.includes('阶段3A'), 'Stage3A JSON base route must not be called');
     return '';
   };
   loop.completeConfiguredSettlementKvWindow = async () => {
@@ -1039,7 +1293,7 @@ test('generateConfiguredFinal uses Stage4 sliding settlement and skips legacy gr
   loop.completeConfiguredStep = async (_store, _prompt, _logId, streamToUi, cfg) => {
     if (cfg?.sourceTitle?.includes('场景锚定')) return '场景锚定报告：只结算正文确认对象。\n当前地点：测试地点\n当前时间：测试时间\n空间状态：测试空间\n当前动作：行动\n强制出场：刘思琪\n高优先候选：无\n戏剧候选：无\n禁止出场：无\n随机事件影响：无\n正文写作重点：只写当前动作。\n结算边界：只结算正文确认对象。';
     if (streamToUi) return '正文确认刘思琪紧张。';
-    if (cfg?.sourceTitle?.includes('阶段3A')) return '{"elapsedSeconds":180,"status":"测试状态","quest":"测试目标","choices":["一","二","三","四"],"sceneTitle":"测试标题","locationName":"测试地点"}';
+    assert.ok(!cfg?.sourceTitle?.includes('阶段3A'), 'Stage3A JSON base route must not be called');
     return '';
   };
   loop.completeConfiguredSettlementKvWindow = async () => {
@@ -1072,7 +1326,7 @@ test('generateConfiguredFinal reuses computed Stage 3 participants across groups
   loop.completeConfiguredStep = async (_store, _prompt, _logId, streamToUi, cfg) => {
     if (cfg?.sourceTitle?.includes('场景锚定')) return '场景锚定报告：只结算正文确认对象。\n当前地点：测试地点\n当前时间：测试时间\n空间状态：测试空间\n当前动作：行动\n强制出场：刘思琪\n高优先候选：无\n戏剧候选：无\n禁止出场：无\n随机事件影响：无\n正文写作重点：只写当前动作。\n结算边界：只结算正文确认对象。';
     if (streamToUi) return '正文。';
-    if (cfg?.sourceTitle?.includes('阶段3A')) return '{"elapsedSeconds":180,"status":"测试状态","quest":"测试目标","choices":["一","二","三","四"],"sceneTitle":"测试标题","locationName":"测试地点"}';
+    assert.ok(!cfg?.sourceTitle?.includes('阶段3A'), 'Stage3A JSON base route must not be called');
     return '{"genericUpdates":[]}';
   };
   loop.completeConfiguredUpdateJson = async () => ({ genericUpdates: [] });
@@ -1092,17 +1346,14 @@ test('generateConfiguredFinal reuses computed Stage 3 participants across groups
   assert.strictEqual(participantCalls, 1);
 });
 
-test('Stage 3 contexts do not settle loaded role cards when trace participants are empty', () => {
+test('Stage 4 settlement participants do not include loaded role cards when trace participants are empty', () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
   const store = makeStore();
   const loaded = [{ title: '结构化资料缓存', text: '资料正文可能被压缩或引用替换。', participants: [{ type: 'character', id: 'rushiqi', name: '刘思琪', role: 'loaded-role-card' }] }];
   const participants = loop.stageParticipants([], loaded, store);
-  const contextPack = loop.buildUpdateContextPack({ store, action: '普通行动', base: '基础', loaded, narration: '正文没有写刘思琪实际入场。', trace: [], groupKey: 'metrics', config: loop.realConfig() });
   assert.strictEqual(JSON.stringify(participants), JSON.stringify([]));
-  assert.ok(contextPack.includes('加载角色卡不等于参与或结算'));
-  assert.ok(!contextPack.includes('rushiqi:刘思琪:emotions='));
 });
 
 test('Stage 3 participants include forced participants but exclude candidates and forbidden roles', () => {

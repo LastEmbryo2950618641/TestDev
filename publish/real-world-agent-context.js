@@ -294,6 +294,12 @@ window.GameModules.realWorldAgentContext = {
 
   randomActiveEventCandidates(store, action = '', options = {}) {
     const blocked = new Set([...(options.blockedNames || []), ...String(action || '').match(/[\p{Script=Han}A-Za-z0-9_]{2,}/gu) || []]);
+    ['forcedParticipants', 'priorityCandidates', 'dramaCandidates', 'forbiddenParticipants'].forEach((key) => {
+      (Array.isArray(options[key]) ? options[key] : []).forEach((item) => {
+        const name = String(item?.name || item?.characterName || item?.idOrName || item?.id || item || '').trim();
+        if (name) blocked.add(name);
+      });
+    });
     const states = [...Object.values(store?.rpgStates || {}), ...(window.GameModules.sqliteSave.listCharacterStates?.() || [])];
     const seen = new Set();
     return states.map((state) => ({ id: state.id || state.profile?.name || state.name, name: state.profile?.name || state.name }))

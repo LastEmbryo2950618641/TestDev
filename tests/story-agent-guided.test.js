@@ -38,6 +38,18 @@ test('story randomActiveEventCandidates excludes forced priority drama and forbi
   assert.strictEqual(JSON.stringify(random.map((item) => item.name)), JSON.stringify(['慎二']));
 });
 
+test('story randomActiveEventCandidates can return up to three external candidates', () => {
+  const context = createContext();
+  loadScript(context, 'publish/real-world-agent-context.js');
+  loadScript(context, 'publish/story-agent-context.js');
+  const ctx = context.window.GameModules.storyAgentContext;
+  const store = { character: { work: 'Fate/stay night', name: '士郎' }, knownCharacters: [{ name: '阿尔托莉雅' }, { name: '凛' }, { name: '樱' }, { name: '伊莉雅' }, { name: '慎二' }] };
+
+  const random = ctx.randomActiveEventCandidates(store, '观察士郎', { rng: () => 0.95 });
+
+  assert.strictEqual(JSON.stringify(random.map((item) => item.name)), JSON.stringify(['阿尔托莉雅', '凛', '樱']));
+});
+
 test('story context maps worklore Chinese material requests', () => {
   const context = createContext();
   loadScript(context, 'publish/real-world-agent-context.js');

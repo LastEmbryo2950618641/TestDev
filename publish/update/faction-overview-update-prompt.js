@@ -1,2 +1,0 @@
-window.GameModules = window.GameModules || {};
-window.GameModules.updateRegistry?.registerPrompt?.("faction-overview-update", "---\nname: faction-overview-update\ndescription: 根据现实推演正文提取新增势力或上层势力总览变化\n---\n\n# faction-overview-update\n\n确认新增势力、上层势力归属、势力APP/势力总览层级变化时，返回 updateType:\"faction-overview\"。\n\n- 绑定卡片：势力总览卡或上层势力卡。\n- subject.type：faction_parent 或 faction_app。\n- field：children.factions、overview.factions、apps.<appId>.factions。\n- change.mode：append / upsert / link / unlink。\n- reasons.trigger：写确认新势力存在或归属变化的触发条件。\n\n势力内部职位变化使用 faction-structure，不要混用。");

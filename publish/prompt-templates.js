@@ -2,10 +2,6 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.promptTemplates = {
   items: [
-    { id: 'story-agent-engine', title: '主剧情分阶段推演引擎', category: '剧情推演', file: 'prompts/story-agent-engine.md', summary: '操控/离线回合复用 Loop Agent 的资料请求、正文生成与状态结算。' },
-    { id: 'story-agent-engine-first', title: '主剧情首轮资料识别', category: '剧情推演', file: 'prompts/story-agent-engine-first.md', summary: '主剧情 Loop Agent 第一步识别人物与作品设定资料。' },
-    { id: 'real-world-engine', title: '现实世界推演引擎', category: '现实推演', file: 'prompts/real-world-engine.md', summary: '玩家收起手机后的现实行动、现实状态与词条更新。' },
-    { id: 'real-world-engine-first', title: '现实世界首轮资料识别', category: '现实推演', file: 'prompts/real-world-engine-first.md', summary: '现实 Loop Agent 第一步识别人物与必要资料。' },
     { id: 'inference-stage1-guided-query', title: '推演引擎 Stage1 中文查询规划', category: '剧情推演', file: 'prompts/推演引擎/stage1-guided-query.md', summary: '推演引擎第一阶段中文 K:V 查询规划。' },
     { id: 'inference-stage2-scene-anchor', title: '推演引擎 Stage2 场景锚定', category: '剧情推演', file: 'prompts/推演引擎/stage2-scene-anchor.md', summary: '推演引擎第二阶段中文 K:V 场景锚定报告。' },
     { id: 'inference-stage3-narration', title: '推演引擎 Stage3 单段正文', category: '剧情推演', file: 'prompts/推演引擎/stage3-narration.md', summary: '推演引擎第三阶段服从场景锚定的单段正文。' },
@@ -76,6 +72,11 @@ window.GameModules.promptTemplates = {
       if (useCache) this.cache[item.id] = this.inline[item.id];
       return this.inline[item.id];
     }
+    const inlineAttempt = await this.loadInlineScript(item);
+    if (this.inline?.[item.id]) {
+      if (useCache) this.cache[item.id] = this.inline[item.id];
+      return this.inline[item.id];
+    }
     const urls = this.fileCandidates(item.file);
     let lastError = null;
     for (const url of urls) {
@@ -98,9 +99,39 @@ window.GameModules.promptTemplates = {
       if (useCache) this.cache[item.id] = this.inline[item.id];
       return this.inline[item.id];
     }
-    const detail = `${item.file}（已尝试：${urls.join('、')}）`;
-    console.error('提示词模板读取失败:', detail, lastError?.message, lastError?.stack);
-    throw new Error(`模板读取失败：${detail}`);
+    const tried = [...(inlineAttempt.urls || []), ...urls];
+    const detail = `${item.file}（已尝试：${tried.join('、')}）`;
+    const inlineError = inlineAttempt.lastError ? `；同名 JS 加载失败：${inlineAttempt.lastError.message || inlineAttempt.lastError}` : '';
+    console.error('提示词模板读取失败:', detail, `${lastError?.message || ''}${inlineError}`, lastError?.stack);
+    throw new Error(`模板读取失败：${detail}${inlineError}`);
+  },
+  async loadInlineScript(item) {
+    const scriptFile = String(item?.file || '').replace(/\.md$/u, '.js');
+    if (!scriptFile || scriptFile === item?.file) return { urls: [], lastError: null };
+    const urls = this.fileCandidates(scriptFile);
+    let lastError = null;
+    for (const url of urls) {
+      try {
+        await this.loadScript(url);
+        if (this.inline?.[item.id]) return { urls, lastError: null };
+      } catch (err) {
+        lastError = err;
+      }
+    }
+    return { urls, lastError };
+  },
+  loadScript(url) {
+    return new Promise((resolve, reject) => {
+      try {
+        const script = document.createElement('script');
+        script.src = url;
+        script.onload = () => resolve(true);
+        script.onerror = () => reject(new Error(`脚本读取失败：${url}`));
+        document.head.appendChild(script);
+      } catch (err) {
+        reject(err);
+      }
+    });
   },
   fileCandidates(file) {
     const raw = String(file || '').replace(/^\.\//, '');

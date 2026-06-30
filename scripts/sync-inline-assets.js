@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const vm = require('vm');
 
 const root = path.resolve(__dirname, '..');
 const publish = path.join(root, 'publish');
@@ -43,43 +42,6 @@ function syncSkills() {
   ].join('\n'));
 }
 
-function readExistingPromptTemplates(file) {
-  const context = { window: { GameModules: { promptTemplates: {} } } };
-  try {
-    vm.runInNewContext(readText(file), context, { filename: file });
-    return context.window.GameModules.promptTemplates.inline || {};
-  } catch (err) {
-    console.warn(`read existing inline prompts failed: ${err.message}`);
-    return {};
-  }
-}
-
-function syncPromptTemplates() {
-  const registryPath = path.join(publish, 'prompt-templates.js');
-  const context = { window: { GameModules: {} }, document: { currentScript: { src: '' }, baseURI: '' }, location: { origin: '', href: '' } };
-  context.window.GameModules.cache = { enabled: () => false };
-  vm.runInNewContext(readText(registryPath), context, { filename: registryPath });
-  const items = context.window.GameModules.promptTemplates?.items || [];
-  const inlinePath = path.join(publish, 'prompt-templates-inline.js');
-  const existing = fs.existsSync(inlinePath) ? readExistingPromptTemplates(inlinePath) : {};
-  const templates = {};
-  for (const item of items) {
-    const full = path.join(publish, item.file || '');
-    if (fs.existsSync(full)) templates[item.id] = readText(full);
-    else if (existing[item.id]) templates[item.id] = existing[item.id];
-    else console.warn(`missing prompt template: ${item.id} -> ${item.file}`);
-  }
-  writeText(inlinePath, [
-    'window.GameModules = window.GameModules || {};',
-    '',
-    '(function inlinePromptTemplates() {',
-    `  const templates = ${js(templates)};`,
-    '  const registry = window.GameModules.promptTemplates;',
-    '  if (!registry) return;',
-    '  registry.inline = { ...(registry.inline || {}), ...templates };',
-    '})();',
-  ].join('\n'));
-}
 
 function toCamelName(file) {
   const base = path.basename(file, path.extname(file));
@@ -124,9 +86,43 @@ function syncLoreCache() {
   ].join('\n'));
 }
 
+function syncInferencePromptRuntime() {
+  const files = [
+    'prompts/推演引擎/stage1-guided-query.js',
+    'prompts/推演引擎/stage2-scene-anchor.js',
+    'prompts/推演引擎/stage3-narration.js',
+    'prompts/推演引擎/stage4-settlement-window.js',
+    'prompts/推演引擎/init/intimacy-body-init-prompt.js',
+    'prompts/推演引擎/update/generic-update-prompt.js',
+    'prompts/推演引擎/update/emotion-update-prompt.js',
+    'prompts/推演引擎/update/feeling-update-prompt.js',
+    'prompts/推演引擎/update/vital-update-prompt.js',
+    'prompts/推演引擎/update/role-card-update-prompt.js',
+    'prompts/推演引擎/update/relationship-update-prompt.js',
+    'prompts/推演引擎/update/sexual-experience-update-prompt.js',
+    'prompts/推演引擎/update/sexual-history-update-prompt.js',
+    'prompts/推演引擎/update/body-status-update-prompt.js',
+    'prompts/推演引擎/update/wearing-state-update-prompt.js',
+    'prompts/推演引擎/update/item-update-prompt.js',
+    'prompts/推演引擎/update/faction-structure-update-prompt.js',
+    'prompts/推演引擎/update/faction-overview-update-prompt.js',
+    'prompts/推演引擎/update/map-update-prompt.js',
+    'prompts/推演引擎/update/system-update-prompt.js',
+  ];
+  const parts = files.map((rel) => {
+    const file = path.join(publish, rel);
+    if (!fs.existsSync(file)) throw new Error(`Missing inference prompt script: ${rel}`);
+    return `// ${rel}\n${readText(file)}`;
+  });
+  writeText(path.join(publish, 'inference-prompts-runtime.js'), [
+    '// GENERATED FROM publish/prompts/推演引擎/**/*.js; DO NOT EDIT.',
+    ...parts,
+  ].join('\n\n'));
+}
+
 syncSkills();
-syncPromptTemplates();
 syncDefaultProfile();
 syncPenStyles();
 syncLoreCache();
+syncInferencePromptRuntime();
 console.log('inline assets synced');

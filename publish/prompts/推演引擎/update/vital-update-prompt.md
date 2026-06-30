@@ -5,12 +5,11 @@ description: 根据现实推演正文提取玩家生命力、饱食、水分、�
 
 # vital-update
 
-触发玩家或角色生命体征变化时，返回 updateType:"vital" 的 genericUpdates。
+触发玩家或角色生命体征变化时，使用“生命体征”结算类型输出中文 K:V 更新。
 
 - 绑定卡片：角色卡；玩家本人绑定玩家卡。
-- field：vitals.stamina_pool / vitals.satiety / vitals.hydration / vitals.fatigue / vitals.mental_stability。
-- change.mode：delta。
-- change.value：百分比变化整数。
-- reasons.trigger：写行动消耗、休息、饮食、饮水、精神冲击等条件。
+- 字段：精力、饱食度、水分、疲劳、精神稳定。
+- 变化：百分比变化整数，使用正负数值。
+- 触发原因：写行动消耗、休息、饮食、饮水、精神冲击等条件。
 
-现实推演仍必须保留旧 vitalUpdates，genericUpdates 作为同源审计。
+现实推演必须保持生命体征变化与正文证据一致。

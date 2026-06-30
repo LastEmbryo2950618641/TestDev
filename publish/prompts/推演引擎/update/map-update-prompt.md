@@ -5,12 +5,12 @@ description: 根据现实推演正文提取地点、地图节点与地点事实�
 
 # map-update
 
-确认地点、地图节点、上级地点、地点说明、路线事实变化时，返回 updateType:"map"。
+确认地点、地图节点、上级地点、地点说明、路线事实变化时，使用“地图”结算类型输出中文 K:V 更新。
 
 - 绑定卡片：地图卡。
-- subject.type：location。
-- field：current、parent、descriptionFacts、mapNodes、routeLinks。
-- change.mode：set / append / update / upsert。
-- reasons.trigger：写玩家到达、观察、导航、确认路线等触发条件。
+- 结算对象类型：地点。
+- 字段：当前位置、上级地点、地点事实、地图节点、路线事实。
+- 操作：替换、追加或更新。
+- 触发原因：写玩家到达、观察、导航、确认路线等触发条件。
 
-旧 mapNodes/newLocations/locationDescriptionUpdates 仍可返回。
+若是正文确认的新地点或地点事实，必须写清地点全称和变化原因。
