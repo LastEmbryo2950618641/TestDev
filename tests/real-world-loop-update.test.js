@@ -1637,25 +1637,25 @@ test('parseSettlementKv parses character schedule updates', () => {
     config: loop.realConfig(),
   });
 
-  assert.strictEqual(JSON.stringify(parsed.completeTypes), JSON.stringify(['人事安排']));
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(parsed.completeTypes)), ['人事安排']);
   assert.strictEqual(parsed.incompleteTypes.length, 0);
   assert.strictEqual(parsed.genericUpdates.length, 3);
-  assert.strictEqual(JSON.stringify(parsed.genericUpdates.map((item) => item.updateType)), JSON.stringify(['character-schedule', 'character-schedule', 'character-schedule']));
-  assert.strictEqual(JSON.stringify(parsed.genericUpdates.map((item) => item.change.value)), JSON.stringify([
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(parsed.genericUpdates.map((item) => item.updateType))), ['character-schedule', 'character-schedule', 'character-schedule']);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(parsed.genericUpdates.map((item) => item.change.value))), [
     { currentLocation: '刘思琪房间', reason: '正文确认刘思琪仍在房间内互动' },
     { currentAction: '和玩家交谈', reason: '正文明确发生对话互动' },
     { availability: '在场', reason: '正文确认其可参与当前场景' },
-  ]));
+  ]);
 });
 
-test('parseSettlementKv rejects character schedule updates for non-participants', () => {
+test('parseSettlementKv rejects character schedule updates for non-participants even if text says communication or movement', () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
   const raw = `人事安排结算：
 结算状态：需要更新
 结算对象：刘思瑶｜角色｜允许结算
-更新1：人事安排，当前地点，客厅，未参与者不应被结算
+更新1：人事安排，当前地点，客厅，正文明确通信约定她移动到客厅，但她未进入 participants，仍不应被结算
 结算对象结束：刘思瑶
 类型完成：是
 结算结束：是`;
@@ -1667,9 +1667,9 @@ test('parseSettlementKv rejects character schedule updates for non-participants'
     config: loop.realConfig(),
   });
 
-  assert.strictEqual(JSON.stringify(parsed.completeTypes), JSON.stringify([]));
-  assert.strictEqual(JSON.stringify(parsed.incompleteTypes), JSON.stringify(['人事安排']));
-  assert.strictEqual(JSON.stringify(parsed.genericUpdates), JSON.stringify([]));
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(parsed.completeTypes)), []);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(parsed.incompleteTypes)), ['人事安排']);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(parsed.genericUpdates)), []);
 });
 
 test('parseSettlementKv leaves malformed update types incomplete even with completion markers', () => {
