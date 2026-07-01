@@ -104,6 +104,7 @@ Object.assign(window.GameModules.updateRegistry, {
     if (update.updateType === 'relationship') return this.applyRelationshipUpdate(store, update);
     if (update.updateType === 'body-status') return this.applyBodyStatusUpdate(store, update);
     if (update.updateType === 'sexual-experience') return this.applySexualExperienceUpdate(store, update);
+    if (update.updateType === 'wearing-state') return this.applyWearingStateUpdate(store, update);
     const direct = this.targetState(store, update), generic = direct ? null : this.genericTarget(store, update);
     const state = direct || generic?.state, field = String(update.field || '').trim();
     if (!state || !field) return false;
@@ -116,6 +117,31 @@ Object.assign(window.GameModules.updateRegistry, {
     const note = this.notePath(path), reason = this.reasonText(update, '现实推演确认状态变化。');
     if (note) this.set(root, note, this.noteValue(path, next, reason));
     if (/^(values\.)?wearing$/u.test(field) && state.profile) {
+      state.profile.wearingItems = next;
+      state.profile.wearing = next;
+      state.profile.roleCardUpdatedAt = new Date().toISOString();
+    }
+    return true;
+  },
+
+  applyWearingStateUpdate(store, update = {}) {
+    const state = this.targetState(store, update);
+    if (!state?.values) return false;
+    const raw = this.changeValue(update);
+    let next;
+    const current = Array.isArray(state.values.wearing) ? state.values.wearing : [];
+    if (Array.isArray(raw)) next = raw;
+    else if (raw && typeof raw === 'object') {
+      const slot = String(raw.slot || raw.part || raw.name || '饰品').trim();
+      const index = current.findIndex((item) => String(item?.slot || '').trim() === slot && (slot !== '饰品' || String(item?.name || '').trim() === String(raw.name || '').trim()));
+      next = current.slice();
+      const item = { ...(index >= 0 ? next[index] : {}), ...raw, slot };
+      if (index >= 0) next[index] = item;
+      else next.push(item);
+    } else return false;
+    if (JSON.stringify(current) === JSON.stringify(next)) return false;
+    state.values.wearing = next;
+    if (state.profile) {
       state.profile.wearingItems = next;
       state.profile.wearing = next;
       state.profile.roleCardUpdatedAt = new Date().toISOString();
@@ -155,12 +181,12 @@ Object.assign(window.GameModules.updateRegistry, {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return false;
     const current = store.characterSchedules?.[id] || {};
     const patch = { ...raw };
-    if (Object.prototype.hasOwnProperty.call(patch, 'availability')) patch.availability = this.normalizeScheduleAvailability(patch.availability);
     const next = {
       ...current,
-      characterId: current.characterId || id,
-      characterName: current.characterName || subject.name || subject.characterName || id,
       ...patch,
+      characterId: id,
+      characterName: current.characterName || subject.name || subject.characterName || id,
+      availability: this.normalizeScheduleAvailability(patch.availability ?? current.availability),
       confidence: '确认',
       source: '结算事件',
       stability: '事件锁定',

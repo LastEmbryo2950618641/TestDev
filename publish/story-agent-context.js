@@ -104,6 +104,95 @@ window.GameModules.storyAgentContext = {
     ];
   },
 
+  stage1MaterialCatalogText(mode = 'story') {
+    const lines = [];
+    const seen = new Map();
+    this.guidedMaterialRequestCatalog(mode).forEach((item) => {
+      if (!(item.mode === 'both' || item.mode === mode || mode === 'story')) return;
+      const list = seen.get(item.category) || [];
+      if (!list.includes(item.action)) list.push(item.action);
+      seen.set(item.category, list);
+    });
+    seen.forEach((actions, category) => lines.push(`${category}：${actions.join('、')}`));
+    return lines.join('\n') || '无可请求资料';
+  },
+
+  redactPromptPollution(text = '') {
+    return window.GameModules.realWorldAgentContext.redactPromptPollution(text);
+  },
+
+  loadedRoutingSummary(items = []) {
+    return window.GameModules.realWorldAgentContext.loadedRoutingSummary(items);
+  },
+
+  buildStage1RoutingContext({ store, action, loaded = [], config = null } = {}) {
+    const work = this.worldLabel(store);
+    const character = store?.character?.name || '未知角色';
+    const scene = store?.sceneTitle || '未知场景';
+    return [
+      `模式：${config?.label || '操控剧情'}`,
+      `本次行动：${action || '继续推进操控剧情'}`,
+      `当前位置：${scene}`,
+      `当前时间：${store?.entryTimeLabel?.() || '未知时间'}`,
+      `当前对象线索：${character}｜作品：${work}`,
+      `已加载资料摘要：\n${this.loadedRoutingSummary(loaded)}`,
+      `可请求资料目录：\n${this.stage1MaterialCatalogText('story')}`,
+    ].join('\n');
+  },
+
+  loadedAnchorSummary(items = []) {
+    return window.GameModules.realWorldAgentContext.loadedAnchorSummary(items);
+  },
+
+  sceneParticipantBoundary(trace = []) {
+    return window.GameModules.realWorldAgentContext.sceneParticipantBoundary(trace);
+  },
+
+  buildSceneAnchorContext({ store, action, loaded = [], trace = [], config = null } = {}) {
+    const work = this.worldLabel(store);
+    const character = store?.character?.name || '未知角色';
+    const scene = store?.sceneTitle || '未知场景';
+    return [
+      `模式：${config?.label || '操控剧情'}`,
+      `本次行动：${action || '继续推进操控剧情'}`,
+      `当前场景位置：${scene}`,
+      `当前时间提示：${store?.entryTimeLabel?.() || '未知时间'}`,
+      `空间边界线索：仅保留当前作品《${work}》中地点、相邻空间、移动路径、自然介入条件。`,
+      `参与者边界：\n${this.sceneParticipantBoundary(trace)}`,
+      `已加载锚定事实：\n${this.loadedAnchorSummary(loaded)}`,
+      `当前对象线索：${character}｜作品：${work}`,
+    ].join('\n');
+  },
+
+  redactNarrationPollution(text = '') {
+    return window.GameModules.realWorldAgentContext.redactNarrationPollution(text);
+  },
+
+  safeNarrationTitle(title = '', index = 0) {
+    return window.GameModules.realWorldAgentContext.safeNarrationTitle(title, index);
+  },
+
+  loadedNarrationSummary(items = []) {
+    return window.GameModules.realWorldAgentContext.loadedNarrationSummary(items);
+  },
+
+  buildNarrationContext({ store, action, config = null } = {}) {
+    const work = this.worldLabel(store);
+    const character = store?.character?.name || '未知角色';
+    const recent = this.redactNarrationPollution(this.recentLog(store, 4));
+    return [
+      `模式：${config?.label || '操控剧情'}`,
+      `本次行动：${action || '继续推进操控剧情'}`,
+      `作品：${work}`,
+      `被操控角色：${character}`,
+      `当前场景：${store?.sceneTitle || '未知场景'}`,
+      `当前时间提示：${store?.entryTimeLabel?.() || '未知时间'}`,
+      `当前目标：${store?.quest || '确认操控连接'}`,
+      `最近事实连续性：正文承接最近已发生事实，不改写已发送内容；只写本次行动直接结果。`,
+      `最近剧情摘要：\n${recent || '无'}`,
+    ].join('\n');
+  },
+
   parseChineseMaterialRequest(line = '', options = {}) {
     const parts = this.splitChineseRequestLine(line);
     if (parts.length < 2) return null;

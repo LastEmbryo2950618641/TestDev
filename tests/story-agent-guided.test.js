@@ -75,4 +75,95 @@ test('work lore materials mention Chinese requests and canon constraints', () =>
   assert.ok(text.includes('当前时间线'));
 });
 
+test('story Stage1 routing context exposes story catalog without skill manuals', async () => {
+  const context = createContext();
+  loadScript(context, 'publish/prompt-templates.js');
+  loadScript(context, 'publish/real-world-agent-context.js');
+  loadScript(context, 'publish/story-agent-context.js');
+  loadScript(context, 'publish/real-world-agent-loop.js');
+  loadScript(context, 'publish/prompts/推演引擎/stage1-guided-query.js');
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  const store = { character: { name: '齐格', work: 'Fate Apocrypha' }, selectedWork: 'Fate Apocrypha', sceneTitle: '米雷尼亚城塞' };
+  const config = loop.storyConfig();
+
+  const prompt = await loop.buildConfiguredPrompt({
+    store,
+    action: '观察附近是否有人能自然介入',
+    base: '需严格跟着世界线续写\nfinal 必须返回 elapsedSeconds\nSkill：worklore.query\n返回格式：JSON',
+    loaded: [{ title: 'worklore.query.searchPeople', text: '当前位置：米雷尼亚城塞庭院\n空间事实：庭院可通向大厅' }],
+    skills: 'Skill：worklore.query\n激活条件：任何作品设定问题',
+    step: 1,
+    config,
+  });
+
+  assert.ok(prompt.includes('作品设定查询：入口说明、常驻设定、搜索人物、搜索剧情、搜索时间线、搜索能力、搜索关系、搜索地点、搜索物品'));
+  ['Skill：', '激活条件', '返回格式', 'elapsedSeconds', '需严格跟着世界线续写', 'worklore.query.searchPeople'].forEach((bad) => {
+    assert.ok(!prompt.includes(bad), `${bad} leaked into story Stage1 prompt`);
+  });
+});
+
+test('story Stage2 anchor prompt omits story continuation and full role-card fields', async () => {
+  const context = createContext();
+  loadScript(context, 'publish/prompt-templates.js');
+  loadScript(context, 'publish/real-world-agent-context.js');
+  loadScript(context, 'publish/story-agent-context.js');
+  loadScript(context, 'publish/real-world-agent-loop.js');
+  loadScript(context, 'publish/prompts/推演引擎/stage2-scene-anchor.js');
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  const config = loop.storyConfig();
+  const store = { character: { name: '齐格', work: 'Fate Apocrypha' }, selectedWork: 'Fate Apocrypha', sceneTitle: '米雷尼亚城塞' };
+
+  const prompt = await loop.buildConfiguredSceneAnchorPrompt({
+    store,
+    action: '观察附近是否有人能自然介入',
+    base: '需严格跟着世界线续写，保证正文对最新世界线连续性。\n角色当前数值：力量1 敏捷1\nfinal 必须返回 elapsedSeconds',
+    loaded: [{ title: 'worklore.query.searchPeople', text: '全部技能：变身\n全部核心属性数值：力量5\n当前位置：米雷尼亚城塞庭院\n空间事实：庭院可通向大厅' }],
+    trace: [{ forcedParticipants: [{ name: '齐格' }], sceneQueries: { location: ['庭院'], causality: [], conflict: [] } }],
+    config,
+  });
+
+  assert.ok(prompt.includes('当前场景影响对象：'));
+  assert.ok(prompt.includes('齐格'));
+  ['需严格跟着世界线续写', '角色当前数值', '全部技能', '全部核心属性数值', 'elapsedSeconds', '结算边界：', 'worklore.query.searchPeople'].forEach((bad) => {
+    assert.ok(!prompt.includes(bad), `${bad} leaked into story Stage2 prompt`);
+  });
+});
+
+test('story Stage3 narration prompt omits final rules tool receipts and raw continuation wording', async () => {
+  const context = createContext();
+  loadScript(context, 'publish/prompt-templates.js');
+  loadScript(context, 'publish/real-world-agent-context.js');
+  loadScript(context, 'publish/story-agent-context.js');
+  loadScript(context, 'publish/real-world-agent-loop.js');
+  loadScript(context, 'publish/prompts/推演引擎/stage3-narration.js');
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  const config = loop.storyConfig();
+  const store = {
+    character: { name: '齐格', work: 'Fate Apocrypha' },
+    selectedWork: 'Fate Apocrypha',
+    sceneTitle: '米雷尼亚城塞庭院',
+    entryTimeLabel: () => '黄昏',
+    quest: '确认庭院情况',
+  };
+
+  const prompt = await loop.buildConfiguredNarrationPrompt({
+    store,
+    action: '观察附近是否有人能自然介入',
+    base: '需严格跟着世界线续写，保证正文对最新世界线连续性。\n角色当前数值：力量1 敏捷1\nfinal 必须返回 elapsedSeconds',
+    loaded: [{
+      title: 'worklore.query.searchPeople',
+      text: '文本内容参照material-story\n参照对象：齐格\n关键词查询：观察附近是否有人能自然介入\n当前位置：米雷尼亚城塞庭院\n空间事实：庭院可通向大厅，脚步声可能从走廊传来。',
+    }],
+    sceneAnchorReport: '场景锚定报告：庭院观察。\n当前地点：米雷尼亚城塞庭院\n当前场景影响对象：齐格、庭院。',
+    config,
+  });
+
+  ['需严格跟着世界线续写', '角色当前数值', 'elapsedSeconds', 'worklore.query.searchPeople', '文本内容参照material-story', '参照对象：', '关键词查询：观察附近是否有人能自然介入'].forEach((bad) => {
+    assert.ok(!prompt.includes(bad), `${bad} leaked into story Stage3 prompt`);
+  });
+  ['Fate Apocrypha', '齐格', '米雷尼亚城塞庭院', '空间事实：庭院可通向大厅', '场景锚定报告：庭院观察。', '正文承接最近已发生事实，不改写已发送内容；只写本次行动直接结果。'].forEach((good) => {
+    assert.ok(prompt.includes(good), `${good} missing from story Stage3 prompt`);
+  });
+});
+
 (async () => { for (const item of tests) { await item.fn(); console.log(`PASS ${item.name}`); } })().catch((err) => { console.error(err); process.exit(1); });

@@ -81,7 +81,7 @@ window.GameModules.realWorldAgentLoop = {
 
     let settlementPrompt = 'Stage4 中文 K:V 滑动结算', settlementRaw = '', updates = {};
     try {
-      const participants = this.stageParticipants(trace, loaded, store);
+      const participants = this.mergeNarrationParticipants(this.stageParticipants(trace, loaded, store), narration, store);
       this.markConfiguredStep(store, logId, `${config.label}正文已完成，正在生成中文 K:V 滑动结算…`, config, { keepNarration: true });
       updates = await this.completeConfiguredSettlementKvWindow({ store, action, base, loaded, skills, materialSession, narration, trace, participants, logId, config });
       updates = { ...updates, type: updates.type || 'final' };
@@ -285,9 +285,21 @@ window.GameModules.realWorldAgentLoop = {
     const missingHardAnchor = hardAnchors.some((key) => !String(parsed.values?.[key] || '').trim());
     if (parsed.successRate < 0.8 || missingHardAnchor) throw new Error('场景锚定报告解析错误请重试');
     const v = parsed.values;
+    this.assertSceneParticipantBoundary(v);
     const currentSceneImpactObjects = v['当前场景影响对象'] || '';
     const orderedText = this.sceneAnchorFields().map((key) => `${key}：${v[key] || ''}`).join('\n');
     return { text: orderedText, currentLocation: v['当前地点'] || '', currentTime: v['当前时间'] || '', writingFocus: v['正文写作重点'] || '', currentSceneImpactObjects, settlementBoundary: currentSceneImpactObjects, values: v, parseScore: { score: parsed.score, maxScore: parsed.maxScore, successRate: parsed.successRate }, parseDegraded: parsed.successRate < 1 };
+  },
+
+  sceneAnchorNameSet(value = '') {
+    return new Set(this.splitNameList(value).map((item) => String(this.parseParticipantToken(item)?.name || item || '').replace(/[（(].*$/u, '').trim()).filter(Boolean));
+  },
+
+  assertSceneParticipantBoundary(values = {}) {
+    const forbidden = this.sceneAnchorNameSet(values['禁止出场']);
+    if (!forbidden.size) return;
+    const conflicted = ['强制出场', '高优先候选', '戏剧候选'].flatMap((key) => [...this.sceneAnchorNameSet(values[key])].filter((name) => forbidden.has(name)));
+    if (conflicted.length) throw new Error(`同一角色不能同时出现在候选/强制出场和禁止出场：${[...new Set(conflicted)].join('、')}`);
   },
 
   async completeSceneAnchorReport(store, prompt, logId, config = this.realConfig()) {
@@ -336,6 +348,11 @@ window.GameModules.realWorldAgentLoop = {
     return /actor|direct|forced|participant|current-scene/u.test(role);
   },
 
+  currentPlayerParticipant(store = null) {
+    const name = String(store?.playerName || store?.playerProfile?.name || store?.realWorldPlayerSettlementName?.() || '玩家').trim() || '玩家';
+    return { type: 'player', id: 'player-self', name, role: 'actor', canSettle: true };
+  },
+
   stageParticipants(trace = [], loaded = [], store = null) {
     const seen = new Set();
     const blocked = new Set();
@@ -368,6 +385,24 @@ window.GameModules.realWorldAgentLoop = {
       (Array.isArray(item?.participants) ? item.participants : []).forEach(add);
       (Array.isArray(item?.forcedParticipants) ? item.forcedParticipants : []).forEach((p) => add({ ...p, role: p.role || 'forced', canSettle: p.canSettle === false ? false : true }));
       this.characterParticipants(item?.characters, store).forEach((p) => add({ ...p, canSettle: true }));
+    });
+    add(this.currentPlayerParticipant(store));
+    return out.slice(0, 12);
+  },
+
+  mergeNarrationParticipants(participants = [], narration = '', store = null) {
+    const out = Array.isArray(participants) ? participants.slice() : [];
+    const seen = new Set(out.map((p) => `${p?.type || ''}:${p?.id || p?.idOrName || p?.name || ''}`));
+    const text = String(narration || '');
+    Object.values(store?.rpgStates || {}).forEach((state) => {
+      const name = String(state?.profile?.name || state?.name || '').trim();
+      if (!name || !text.includes(name)) return;
+      const p = this.characterParticipant({ id: state.id, name }, store);
+      const key = `${p?.type || ''}:${p?.id || p?.idOrName || p?.name || ''}`;
+      if (p && !seen.has(key) && this.settlementEligibleParticipant({ ...p, canSettle: true })) {
+        seen.add(key);
+        out.push({ ...p, role: 'narration-mentioned', canSettle: true });
+      }
     });
     return out.slice(0, 12);
   },
@@ -500,6 +535,56 @@ window.GameModules.realWorldAgentLoop = {
     return { updateType: 'generic', subject, field: `status_tags.${key}`, change: { mode: 'append', value: { label: label || typeName, value: rawValue, reason } }, reasons: [{ trigger: label || typeName, evidence: reason, confidence: 'confirmed' }] };
   },
 
+  settlementAlias(value = '', aliases = {}) {
+    const clean = String(value || '').trim();
+    return aliases[clean] || clean;
+  },
+
+  wearingSlotAlias(part = '', itemName = '') {
+    const item = String(itemName || '').trim();
+    if (/腿圈|项圈|手环|脚环|戒指|耳环|饰品/u.test(item)) return '饰品';
+    return this.settlementAlias(part, { 胸部: 'bra', 胸口: 'bra', 乳房: 'bra', 上身: 'top', 外套: 'outerwear', 下身: 'bottom', 腿部: 'legwear', 大腿: 'legwear', 足部: 'shoes', 脚部: 'shoes', 内裤: 'panties' });
+  },
+
+  bodyPartAlias(part = '') {
+    return this.settlementAlias(part, { 整体: 'overall', 全身: 'overall', 口部: 'mouth', 嘴唇: 'mouth', 嘴部: 'mouth', 胸部: 'chest', 胸口: 'chest', 乳房: 'chest', 阴部: 'genital', 私处: 'genital', 肛部: 'anus', 臀部: 'hips', 屁股: 'hips', 四肢: 'limbs', 手臂: 'limbs', 腿部: 'limbs', 皮肤: 'skin' });
+  },
+
+  bodyPartName(part = '', key = '') {
+    const names = { overall: '整体', mouth: '口部', chest: '胸部', genital: '阴部', anus: '肛部', hips: '臀部', limbs: '四肢', skin: '皮肤' };
+    return names[key] || String(part || '').trim();
+  },
+
+  sexualPartAlias(part = '') {
+    return this.settlementAlias(part, { 总次数: 'total', 总数: 'total', 全部: 'total', 阴部: 'genital', 胸部: 'chest', 胸口: 'chest', 乳房: 'chest', 唇部: 'lips', 接吻: 'lips', 口部: 'mouth', 嘴部: 'mouth', 腿部: 'legs', 大腿: 'legs', 臀部: 'hips', 屁股: 'hips', 手部: 'hands', 手: 'hands', 皮肤: 'skin' });
+  },
+
+  parseWearingSettlementLine(line = '', subject = null) {
+    const parts = String(line || '').replace(/^更新(?:\d+|N)\s*[：:]/u, '').split(/[，,]/u).map((x) => x.trim());
+    const [label, part, itemName, state, reason] = parts;
+    if (label !== '穿着状态' || !subject || !part || !itemName || !state || !reason) return null;
+    return { updateType: 'wearing-state', subject, field: 'values.wearing', change: { mode: 'upsert', value: { slot: this.wearingSlotAlias(part, itemName), part, name: itemName, state, reason } }, reasons: [{ trigger: '穿着状态', evidence: reason, confidence: 'confirmed' }] };
+  },
+
+  parseBodyStatusSettlementLine(line = '', subject = null) {
+    const parts = String(line || '').replace(/^更新(?:\d+|N)\s*[：:]/u, '').split(/[，,]/u).map((x) => x.trim());
+    const [label, part, status, reason] = parts;
+    if (label !== '身体状态' || !subject || !part || !status || !reason) return null;
+    const partKey = this.bodyPartAlias(part);
+    return { updateType: 'body-status', subject, field: `bodyStatus.${partKey}`, change: { mode: 'merge', value: { partKey, part: this.bodyPartName(part, partKey), status, description: status, reason } }, reasons: [{ trigger: '身体状态', evidence: reason, confidence: 'confirmed' }] };
+  },
+
+  parseSexualExperienceSettlementLine(line = '', subject = null) {
+    const parts = String(line || '').replace(/^更新(?:\d+|N)\s*[：:]/u, '').split(/[，,]/u).map((x) => x.trim());
+    const [label, part, rawValue, reason] = parts;
+    if (label !== '性经历' || !subject || !part || !rawValue || !reason) return null;
+    const delta = Number(String(rawValue).replace(/[^-+\d.]/gu, ''));
+    if (!Number.isFinite(delta)) return null;
+    const key = this.sexualPartAlias(part);
+    const value = key === 'total' ? { totalDelta: delta, parts: {} } : { totalDelta: 0, parts: { [key]: delta } };
+    return { updateType: 'sexual-experience', subject, field: key === 'total' ? 'intimacy.sexualExperienceCount' : `intimacy.sexualExperienceParts.${key}`, change: { mode: 'delta', value }, reasons: [{ trigger: '性经历', evidence: reason, confidence: 'confirmed' }] };
+  },
+
   parseScheduleSettlementLine(line = '', subject = null) {
     // 合同边界：明确通信/移动/约定涉及的人必须先由上游加入 participants；非 participants 仍会被结算对象 gate 拒绝。
     const parts = String(line || '').replace(/^更新(?:\d+|N)\s*[：:]/u, '').split(/[，,]/u).map((x) => x.trim());
@@ -537,58 +622,100 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   parseSettlementKv(raw, { requestedTypes = [], participants = [], store = null, config = this.realConfig() } = {}) {
-    const lines = String(raw || '').replace(/；/gu, '\n').split(/\r?\n/u).map((line) => line.trim()).filter(Boolean);
     const contracts = this.settlementTypeContracts();
+    const headingPrefix = (line = '') => Object.entries(contracts).find(([type, c]) => [c.title, type].some((label) => line === `${label}：` || line === `${label}:` || line.startsWith(`${label}：`) || line.startsWith(`${label}:`)));
+    const lines = String(raw || '').replace(/；/gu, '\n').split(/\r?\n/u).map((line) => line.trim()).filter(Boolean).flatMap((line) => {
+      const hit = headingPrefix(line);
+      if (!hit) return [line];
+      const labels = [hit[1].title, hit[0]];
+      const label = labels.find((item) => line.startsWith(`${item}：`) || line.startsWith(`${item}:`));
+      const rest = line.slice(String(label || '').length + 1).trim();
+      return rest ? [`${hit[1].title}：`, rest] : [`${hit[1].title}：`];
+    });
     const patchesByType = {};
     const completeTypes = [];
     const incompleteTypes = [];
     const baseFields = {};
-    let currentType = '';
-    let currentSubject = null;
-    const ensurePatch = (type) => { patchesByType[type] = patchesByType[type] || { genericUpdates: [], baseFields: {}, __updateLines: 0, __parsedUpdates: 0, __lines: [] }; return patchesByType[type]; };
+    const blocksByType = {};
+    let currentBlock = null;
+    const baseKeys = ['经过时间', '当前状态', '当前目标', '场景标题', '地点名称', '备选行动1', '备选行动2', '备选行动3', '备选行动4'];
     const settlementTypeFromHeading = (line) => Object.entries(contracts).find(([type, c]) => [c.title, type].some((label) => line === `${label}：` || line === `${label}:`));
     for (const line of lines) {
       const typeHit = settlementTypeFromHeading(line);
-      if (typeHit) { currentType = typeHit[0]; currentSubject = null; ensurePatch(currentType).__lines.push(line); continue; }
-      if (!currentType) continue;
-      ensurePatch(currentType).__lines.push(line);
-      if (currentType === '基础结算') {
-        const base = this.splitKvLine(line);
-        if (base && ['经过时间', '当前状态', '当前目标', '场景标题', '地点名称', '备选行动1', '备选行动2', '备选行动3', '备选行动4'].includes(base.key)) {
-          baseFields[base.key] = base.value;
-          ensurePatch(currentType).baseFields[base.key] = base.value;
-          continue;
-        }
-      }
-      if (/^结算对象[：:]/u.test(line)) {
-        const [name, objectType, allowed] = line.replace(/^结算对象[：:]/u, '').split(/[｜|]/u).map((x) => x.trim());
-        const isSceneParticipant = this.participantAllowedForSettlement(name, participants);
-        const isScheduleSubject = currentType === '人事安排' && ['角色', '玩家'].includes(objectType);
-        const isNonCharacterSystem = currentType !== '人事安排' && ['地点', '势力', '世界', '系统'].includes(objectType);
-        currentSubject = allowed === '允许结算' && ((currentType === '人事安排' && isScheduleSubject && isSceneParticipant) || (currentType !== '人事安排' && (isSceneParticipant || isNonCharacterSystem))) ? (this.subjectForSettlement(name, participants) || { type: objectType || 'system', id: name, name }) : null;
+      if (typeHit) {
+        const type = typeHit[0];
+        currentBlock = { type, lines: [line] };
+        blocksByType[type] = blocksByType[type] || [];
+        blocksByType[type].push(currentBlock);
         continue;
       }
-      if (/^更新(?:\d+|N)[：:]/u.test(line)) {
-        const patch = ensurePatch(currentType);
-        patch.__updateLines += 1;
-        const update = currentType === '人事安排'
-          ? this.parseScheduleSettlementLine(line, currentSubject)
-          : (['性历史', '关系', '角色卡'].includes(currentType) ? this.parseSpecialSettlementLine(currentType, line, currentSubject) : this.parseStandardSettlementLine(currentType, line, currentSubject));
-        if (update) {
-          patch.__parsedUpdates += 1;
-          patch.genericUpdates.push(update);
-        }
-        continue;
-      }
-      if (/^类型完成[：:]是$/u.test(line)) { ensurePatch(currentType).__typeDone = true; continue; }
-      if (/^结算结束[：:]是$/u.test(line)) ensurePatch(currentType).__settlementDone = true;
+      if (currentBlock) currentBlock.lines.push(line);
     }
-    requestedTypes.forEach((type) => {
-      const patch = patchesByType[type];
+    const parseBlock = (type, blockLines = [], blockCount = 1) => {
+      const patch = { genericUpdates: [], baseFields: {}, __updateLines: 0, __parsedUpdates: 0, __lines: blockLines.slice(), __headingCount: blockCount };
+      let currentSubject = null;
+      blockLines.slice(1).forEach((line) => {
+        if (type === '基础结算') {
+          const base = this.splitKvLine(line);
+          if (base && baseKeys.includes(base.key)) {
+            patch.baseFields[base.key] = base.value;
+            return;
+          }
+        }
+        if (/^结算对象[：:]/u.test(line)) {
+          const [name, objectType, allowed] = line.replace(/^结算对象[：:]/u, '').split(/[｜|]/u).map((x) => x.trim());
+          const isSceneParticipant = this.participantAllowedForSettlement(name, participants);
+          const isScheduleSubject = type === '人事安排' && ['角色', '玩家'].includes(objectType);
+          const isNonCharacterSystem = type !== '人事安排' && ['地点', '势力', '世界', '系统'].includes(objectType);
+          currentSubject = allowed === '允许结算' && ((type === '人事安排' && isScheduleSubject && isSceneParticipant) || (type !== '人事安排' && (isSceneParticipant || isNonCharacterSystem))) ? (this.subjectForSettlement(name, participants) || { type: objectType || 'system', id: name, name }) : null;
+          return;
+        }
+        if (/^更新(?:\d+|N)[：:]/u.test(line)) {
+          patch.__updateLines += 1;
+          const specialParsers = {
+            '人事安排': () => this.parseScheduleSettlementLine(line, currentSubject),
+            '穿着状态': () => this.parseWearingSettlementLine(line, currentSubject),
+            '身体状态': () => this.parseBodyStatusSettlementLine(line, currentSubject),
+            '性经历': () => this.parseSexualExperienceSettlementLine(line, currentSubject),
+          };
+          const update = specialParsers[type]
+            ? specialParsers[type]()
+            : (['性历史', '关系', '角色卡'].includes(type) ? this.parseSpecialSettlementLine(type, line, currentSubject) : this.parseStandardSettlementLine(type, line, currentSubject));
+          if (update) {
+            patch.__parsedUpdates += 1;
+            patch.genericUpdates.push(update);
+          }
+          return;
+        }
+        if (/^类型完成[：:]是$/u.test(line)) { patch.__typeDone = true; return; }
+        if (/^结算结束[：:]是$/u.test(line)) patch.__settlementDone = true;
+      });
+      return patch;
+    };
+    const patchIsComplete = (type, patch) => {
       const hasParsedAllUpdates = !patch?.__updateLines || patch.__parsedUpdates === patch.__updateLines;
-      const hasRequiredBaseFields = type !== '基础结算' || ['经过时间', '当前状态', '当前目标', '场景标题', '地点名称', '备选行动1', '备选行动2', '备选行动3', '备选行动4'].every((key) => String(patch?.baseFields?.[key] || '').trim());
-      if (patch?.__typeDone && patch?.__settlementDone && hasParsedAllUpdates && hasRequiredBaseFields) completeTypes.push(type);
-      else incompleteTypes.push(type);
+      const hasRequiredBaseFields = type !== '基础结算' || baseKeys.every((key) => String(patch?.baseFields?.[key] || '').trim());
+      return Boolean(patch?.__typeDone && patch?.__settlementDone && hasParsedAllUpdates && hasRequiredBaseFields);
+    };
+    const patchScore = (type, patch) => {
+      const malformedUpdates = Math.max(0, (patch?.__updateLines || 0) - (patch?.__parsedUpdates || 0));
+      return (patchIsComplete(type, patch) ? 10000 : 0)
+        + (patch?.__typeDone ? 200 : 0)
+        + (patch?.__settlementDone ? 200 : 0)
+        + ((patch?.__parsedUpdates || 0) * 100)
+        + (Object.keys(patch?.baseFields || {}).length * 20)
+        + ((!patch?.__updateLines || patch.__parsedUpdates === patch.__updateLines) ? 50 : 0)
+        - (malformedUpdates * 200);
+    };
+    requestedTypes.forEach((type) => {
+      const blocks = blocksByType[type] || [];
+      const candidates = blocks.map((block) => parseBlock(type, block.lines, blocks.length));
+      const patch = candidates.sort((a, b) => patchScore(type, b) - patchScore(type, a))[0];
+      if (patch) patchesByType[type] = patch;
+      if (patchIsComplete(type, patch)) {
+        completeTypes.push(type);
+        if (type === '基础结算') Object.assign(baseFields, patch.baseFields);
+      } else incompleteTypes.push(type);
     });
     const genericUpdates = completeTypes.flatMap((type) => patchesByType[type]?.genericUpdates || []);
     return { patchesByType, completeTypes, incompleteTypes, genericUpdates, baseFields };
@@ -605,6 +732,20 @@ window.GameModules.realWorldAgentLoop = {
       rules[type] || '只有本轮稳定事实明确支持时才更新；弱氛围、猜测或未确认变化不更新。',
       `格式：${c.format}`,
     ].join('\n');
+  },
+
+  settlementMetricBaselineText(store = {}, participants = []) {
+    const rows = (Array.isArray(participants) ? participants : []).map((participant) => {
+      const state = participant?.type === 'player'
+        ? store?.playerIdentityState?.()
+        : (store?.itemSkillState?.(participant.id) || store?.itemSkillState?.(participant.idOrName) || store?.rpgStates?.[participant.id]);
+      const metrics = state?.metrics || (state ? store?.ensureStateMetrics?.(state) : null) || {};
+      const label = participant?.name || state?.profile?.name || participant?.id || '';
+      const format = (group = {}) => Object.entries(group || {}).filter(([, value]) => value !== undefined && value !== null && value !== '').map(([key, value]) => `${key}=${value}`).join('、') || '无';
+      if (!label) return '';
+      return `${label}：情绪：${format(metrics.emotions)}\n${label}：对玩家感觉：${format(metrics.playerFeelings)}`;
+    }).filter(Boolean).join('\n') || '无';
+    return [`当前情绪基线：`, rows, `对玩家感觉基线：`, rows, '边界：情绪是角色当前内在情绪；感觉只表示该角色对玩家的感觉，不是泛化身体感觉、氛围感觉或普通心情。'].join('\n');
   },
 
   buildSettlementTypeWindowPrompt({ requestedTypes = [], completedTypes = [], incompleteTypes = [], partialByType = {}, store, action, base, loaded, materialSession = null, narration, trace = [], participants = [], config = this.realConfig() }) {
@@ -634,7 +775,7 @@ window.GameModules.realWorldAgentLoop = {
       当前窗口结束类型: requestedTypes[requestedTypes.length - 1] || '无',
       未完成类型原因: incompleteReason,
       本回合参与者: JSON.stringify(participants),
-      本轮结算材料: [`行动：${this.actionText(action)}`, `正文：${this.compactUpdatePromptText(narration, 1800, true)}`, stableFactRules].join('\n'),
+      本轮结算材料: [`行动：${this.actionText(action)}`, `正文：${this.compactUpdatePromptText(narration, 1800, true)}`, this.settlementMetricBaselineText(store, participants), stableFactRules].join('\n'),
       类型短规则: requestedTypes.map((type) => this.settlementTypeShortRule(type)).join('\n\n'),
       类型合约: typeText,
     });
@@ -654,14 +795,9 @@ window.GameModules.realWorldAgentLoop = {
       const parsed = this.parseSettlementKv(raw, { requestedTypes, participants, store, config });
       const compactRawLength = String(raw || '').replace(/\s+/gu, '').length;
       const isFinalBatch = requestedTypes.length <= 1 || parsed.incompleteTypes.length === 0;
-      if (!isFinalBatch && compactRawLength < 1000) {
-        shortOutputRetries += 1;
-        const shortReason = `上轮返回过短：${compactRawLength}/1000；必须同一轮补齐所有未完成类型：${parsed.incompleteTypes.join('、') || requestedTypes.join('、')}`;
-        requestedTypes.forEach((type) => { partialByType[type] = shortReason; });
-        if (shortOutputRetries <= 1) continue;
-        throw new Error(`Stage4滑动结算返回过短：${compactRawLength}/1000，未完成类型：${parsed.incompleteTypes.join('、')}`);
-      }
-      shortOutputRetries = 0;
+      const isShortPartial = !isFinalBatch && compactRawLength < 1000;
+      if (isShortPartial) shortOutputRetries += 1;
+      else shortOutputRetries = 0;
       parsed.completeTypes.forEach((type) => {
         if (!completedTypes.includes(type)) completedTypes.push(type);
         patchesByType[type] = parsed.patchesByType[type];
@@ -671,6 +807,12 @@ window.GameModules.realWorldAgentLoop = {
         const lines = parsed.patchesByType[type]?.__lines || [];
         partialByType[type] = lines.length ? lines.join('\n') : '本轮未返回该类型，需补齐完整类型块。';
       });
+      if (isShortPartial) {
+        const remaining = parsed.incompleteTypes.filter((type) => !completedTypes.includes(type));
+        const shortReason = `上轮返回过短：${compactRawLength}/1000；必须同一轮补齐所有未完成类型：${remaining.join('、') || requestedTypes.join('、')}`;
+        remaining.forEach((type) => { partialByType[type] = shortReason; });
+        if (shortOutputRetries > 1 && !parsed.completeTypes.length) throw new Error(`Stage4滑动结算返回过短：${compactRawLength}/1000，未完成类型：${remaining.join('、')}`);
+      }
       requestedTypes = allTypes.filter((type) => !completedTypes.includes(type));
     }
     if (requestedTypes.length) throw new Error(`Stage4结算类型未完成：${requestedTypes.join('、')}`);
@@ -858,9 +1000,19 @@ window.GameModules.realWorldAgentLoop = {
     return { values, lines, missing: allowed.filter((key) => !keyHits.has(key)), score: scored.score, maxScore: scored.maxScore, successRate: scored.successRate, keyHits: [...keyHits], criticalHits: scored.criticalHits, parseDegraded: scored.successRate < 1, droppedMaterialRequests, materialRequestErrors, materialRequests };
   },
 
+  confirmedKvValuesText(parsed = {}) {
+    const values = parsed.values || {};
+    const keys = parsed.keyHits || Object.keys(values);
+    const lines = keys
+      .filter((key) => Object.prototype.hasOwnProperty.call(values, key))
+      .map((key) => `${key}：${String(values[key] ?? '').trim()}`)
+      .filter((line) => line.trim());
+    return lines.length ? lines.join('\n') : '无';
+  },
+
   mergeGuidedParseResults(primary = {}, secondary = {}) {
     const values = { ...(primary.values || {}) };
-    const mergeConflicts = [];
+    const mergeConflicts = [...(primary.mergeConflicts || [])];
     Object.entries(secondary.values || {}).forEach(([key, value]) => {
       if (!Object.prototype.hasOwnProperty.call(values, key) || !values[key]) values[key] = value;
       else if (value && values[key] !== value) mergeConflicts.push({ key, primary: values[key], secondary: value });
@@ -902,11 +1054,17 @@ window.GameModules.realWorldAgentLoop = {
       }
       try {
         const data = this.parseStep(lastRaw, config);
-        if (data || i === 1) return { raw: lastRaw, data: data || (allowProseFinal ? this.proseFinal(store, bestRaw || lastRaw) : null) };
+        if (data) {
+          if (!parseResults.length) return { raw: lastRaw, data };
+          const current = this.parseChineseKvBlock(lastRaw, this.guidedStepFields(), { parseMaterialRequests: true, config });
+          const mergedParsed = [...parseResults.map((item) => item.parsed), current].reduce((merged, item) => this.mergeGuidedParseResults(merged, item));
+          return { raw: [...parseResults.map((item) => item.raw), lastRaw].join('\n\n'), data: this.guidedStepDataFromParsed(mergedParsed, [...parseResults.map((item) => item.raw), lastRaw].join('\n\n')) };
+        }
+        if (i === 1) return { raw: lastRaw, data: allowProseFinal ? this.proseFinal(store, bestRaw || lastRaw) : null };
         console.warn(`${config.label}格式不完整，自动重试一次`);
       } catch (err) {
         lastErr = err;
-        if (err.parseResult) parseResults.push({ raw: lastRaw, parsed: err.parseResult });
+        if (err.parseResult && !this.isGuidedStepSemanticSelfCheckError(err)) parseResults.push({ raw: lastRaw, parsed: err.parseResult });
         if (allowContextDoneOnProse && this.looksLikeProseInsteadOfStepJson(lastRaw)) {
           console.warn(`${config.label}资料阶段解析到正文内容，视为资料已足够并进入正文阶段。`);
           return { raw: lastRaw, data: this.contextDoneFromProse(lastRaw) };
@@ -914,22 +1072,22 @@ window.GameModules.realWorldAgentLoop = {
         if (!this.isRetryableParseError(err) || i === 1) break;
         const droppedSummary = this.summarizeDroppedMaterialRequests(err.parseResult?.droppedMaterialRequests || []);
         const parseDetail = err.parseResult ? `score=${err.parseResult.score}/${err.parseResult.maxScore} successRate=${err.parseResult.successRate} missing=${err.parseResult.missing?.join('、') || '无'} droppedMaterialRequests=${droppedSummary}` : '';
-        console.warn(`${config.label}解析异常，自动重试一次:`, err.message, parseDetail);
+        const semanticSelfCheckFailed = this.isGuidedStepSemanticSelfCheckError(err);
+        console.warn(`${config.label}${semanticSelfCheckFailed ? '语义自检失败' : '解析异常'}，自动重试一次:`, err.message, parseDetail);
         prompt = [
           prompt,
-          `上次中文 K:V 解析失败：${err.message}`,
+          `上次中文 K:V ${semanticSelfCheckFailed ? '语义自检失败' : '解析失败'}：${err.message}`,
           `已成功字段：${err.parseResult?.keyHits?.join('、') || '无'}`,
+          `已确认字段值：\n${this.confirmedKvValuesText(err.parseResult)}`,
           `缺失字段：${err.parseResult?.missing?.join('、') || '未知'}`,
           `已丢弃资料请求：${droppedSummary}`,
-          '请重新输出完整中文 K:V；必须重新判断资料是否已足够；不得删除用户明确约束、禁止出场、已确认强制出场；不要重复输出已丢弃资料请求。',
+          '请重新输出完整中文 K:V；必须保留已确认字段值，只补齐或修正缺失/错误字段；不得删除用户明确约束、禁止出场、已确认强制出场；不要重复输出已丢弃资料请求。',
+          '【AI自检】若资料状态为“继续请求资料”，必须至少输出一条可执行资料请求1/2/3、结构化查询或明确参与者候选；若资料请求、地点查询、因果查询、冲突查询、参与者候选全为“无”，必须改为“资料状态：资料已足够”。不得输出“继续请求资料 + 资料请求：无 + 全部查询/候选为无”。',
         ].join('\n\n');
       }
     }
     if (parseResults.length >= 2) {
-      const ranked = parseResults.map((item) => item.parsed);
-      const best = this.bestGuidedParseResult(ranked);
-      const secondary = ranked.find((item) => item !== best) || ranked[0];
-      const merged = this.mergeGuidedParseResults(best, secondary);
+      const merged = parseResults.map((item) => item.parsed).reduce((out, item) => this.mergeGuidedParseResults(out, item));
       if (merged.successRate >= 0.8) return { raw: parseResults.map((item) => item.raw).join('\n\n'), data: this.guidedStepDataFromParsed(merged, parseResults.map((item) => item.raw).join('\n\n')) };
     }
     if (allowProseFinal) return { raw: bestRaw || lastRaw, data: this.proseFinal(store, bestRaw || lastRaw) };
@@ -1353,8 +1511,12 @@ window.GameModules.realWorldAgentLoop = {
     return this.parseGuidedStepKv(text, config);
   },
 
+  isGuidedStepSemanticSelfCheckError(err) {
+    return String(err?.message || '').includes('资料状态为继续请求资料时，必须输出可执行的资料请求1、结构化查询或明确参与者候选');
+  },
+
   isRetryableParseError(err) {
-    return ['截断', '分隔符后缺少 JSON', '缺少正文', 'JSON missing', '解析错误请重试'].some((text) => String(err?.message || '').includes(text));
+    return this.isGuidedStepSemanticSelfCheckError(err) || ['截断', '分隔符后缺少 JSON', '缺少正文', 'JSON missing', '解析错误请重试'].some((text) => String(err?.message || '').includes(text));
   },
   traceItem(step, data, raw, ctx = window.GameModules.realWorldAgentContext) {
     const limiter = typeof ctx?.limit === 'function' ? ctx.limit.bind(ctx) : (text, max = 1200) => String(text || '').slice(0, max);
