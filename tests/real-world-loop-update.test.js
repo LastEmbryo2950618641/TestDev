@@ -1605,6 +1605,73 @@ test('parseSettlementKv accepts short settlement type headings from model output
   assert.strictEqual(parsed.patchesByType['情绪'].genericUpdates.length, 1);
 });
 
+test('settlementTypeQueue includes character schedule after map settlement', () => {
+  const context = createContext();
+  loadCore(context);
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  const queue = loop.settlementTypeQueue(loop.realConfig());
+
+  assert.ok(queue.includes('人事安排'));
+  assert.ok(queue.indexOf('人事安排') > queue.indexOf('地图'));
+  assert.ok(queue.indexOf('人事安排') < queue.indexOf('势力总览'));
+});
+
+test('parseSettlementKv parses character schedule updates', () => {
+  const context = createContext();
+  loadCore(context);
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  const raw = `人事安排结算：
+结算状态：需要更新
+结算对象：刘思琪｜角色｜允许结算
+更新1：人事安排，当前地点，刘思琪房间，正文确认刘思琪仍在房间内互动
+更新2：人事安排，当前行动，和玩家交谈，正文明确发生对话互动
+更新3：人事安排，可用状态，在场，正文确认其可参与当前场景
+结算对象结束：刘思琪
+类型完成：是
+结算结束：是`;
+
+  const parsed = loop.parseSettlementKv(raw, {
+    requestedTypes: ['人事安排'],
+    participants: [{ type: 'character', id: 'rushiqi', name: '刘思琪', role: '参与者' }],
+    store: makeStore(),
+    config: loop.realConfig(),
+  });
+
+  assert.strictEqual(JSON.stringify(parsed.completeTypes), JSON.stringify(['人事安排']));
+  assert.strictEqual(parsed.incompleteTypes.length, 0);
+  assert.strictEqual(parsed.genericUpdates.length, 3);
+  assert.strictEqual(JSON.stringify(parsed.genericUpdates.map((item) => item.updateType)), JSON.stringify(['character-schedule', 'character-schedule', 'character-schedule']));
+  assert.strictEqual(JSON.stringify(parsed.genericUpdates.map((item) => item.change.value)), JSON.stringify([
+    { currentLocation: '刘思琪房间', reason: '正文确认刘思琪仍在房间内互动' },
+    { currentAction: '和玩家交谈', reason: '正文明确发生对话互动' },
+    { availability: '在场', reason: '正文确认其可参与当前场景' },
+  ]));
+});
+
+test('parseSettlementKv rejects character schedule updates for non-participants', () => {
+  const context = createContext();
+  loadCore(context);
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  const raw = `人事安排结算：
+结算状态：需要更新
+结算对象：刘思瑶｜角色｜允许结算
+更新1：人事安排，当前地点，客厅，未参与者不应被结算
+结算对象结束：刘思瑶
+类型完成：是
+结算结束：是`;
+
+  const parsed = loop.parseSettlementKv(raw, {
+    requestedTypes: ['人事安排'],
+    participants: [{ type: 'character', id: 'rushiqi', name: '刘思琪', role: '参与者' }],
+    store: makeStore(),
+    config: loop.realConfig(),
+  });
+
+  assert.strictEqual(JSON.stringify(parsed.completeTypes), JSON.stringify([]));
+  assert.strictEqual(JSON.stringify(parsed.incompleteTypes), JSON.stringify(['人事安排']));
+  assert.strictEqual(JSON.stringify(parsed.genericUpdates), JSON.stringify([]));
+});
+
 test('parseSettlementKv leaves malformed update types incomplete even with completion markers', () => {
   const context = createContext();
   loadCore(context);
