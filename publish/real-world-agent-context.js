@@ -248,7 +248,11 @@ window.GameModules.realWorldAgentContext = {
     const mode = options.mode || 'real';
     const parts = this.splitChineseRequestLine(line);
     if (parts.length < 2) return null;
-    const [category, action, ...params] = parts;
+    let [category, action, ...params] = parts;
+    if (category === '地点查询' && /^查询[^附近]/u.test(action)) {
+      params = [action.replace(/^查询/u, '').trim(), ...params];
+      action = '搜索地点';
+    }
     const entry = this.guidedMaterialRequestCatalog(mode).find((item) => (item.mode === 'both' || item.mode === mode) && item.category === category && item.action === action);
     if (!entry) return null;
     const built = entry.buildParams(params, options);

@@ -5,9 +5,6 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.createRealWorldPrompt = async function createRealWorldPrompt(state, action) {
   const realWorld = window.GameModules.realWorld2026 || {};
-  const stateSkill = await window.GameModules.skillLoader?.instruction?.('emotion.feeling.wearing.assess') || '';
-  const memorySkill = await window.GameModules.skillLoader?.instruction?.('memory.query') || '';
-  const vitalSkill = await window.GameModules.skillLoader?.instruction?.('realworld.vitals.adjust') || '';
   const memoryArchive = await state.searchMemoryArchive?.('player-self', action) || '无';
   const map = window.GameModules.realWorldMap.ensure(state, state.playerProfile || {});
   const recent = (state.realWorldLog || []).slice(-6).map((entry) => (entry.type === 'user' ? `玩家行动：${entry.text}` : `地点：${entry.locationName || state.realWorldLocationName || map.current}\n推演结果：${entry.narration || entry.text || ''}`)).join('\n') || '暂无现实世界推演记录。';
@@ -42,15 +39,12 @@ window.GameModules.createRealWorldPrompt = async function createRealWorldPrompt(
     state.memoryQueryContext?.('player-self', action) || '暂无人物记忆。',
     `## 记忆归档\n${memoryArchive}`,
   ].join('\n\n');
-  const skills = [stateSkill, vitalSkill, memorySkill].filter(Boolean).join('\n\n') || '无';
   return window.GameModules.promptTemplates.render('inference-stage3-narration', {
     模式标签: '现实',
     本次行动: actionText,
     基础上下文: baseContext,
     场景锚定报告: sceneAnchorReport,
     已动态载入资料: loadedMaterials,
-    可用技能: skills,
-    资料摘要: '旧入口未执行资料路由；仅使用玩家、地图与记忆上下文。',
     紧凑返回规则: `只输出正文，不输出 JSON。旧结构示例仅作兼容参考：${outputJson}`,
   });
 };
