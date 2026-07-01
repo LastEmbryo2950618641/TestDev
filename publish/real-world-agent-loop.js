@@ -504,7 +504,8 @@ window.GameModules.realWorldAgentLoop = {
     // 合同边界：明确通信/移动/约定涉及的人必须先由上游加入 participants；非 participants 仍会被结算对象 gate 拒绝。
     const parts = String(line || '').replace(/^更新(?:\d+|N)\s*[：:]/u, '').split(/[，,]/u).map((x) => x.trim());
     const [label, key, rawValue, reason] = parts;
-    if (label !== '人事安排' || !subject || !key || !rawValue || !reason) return null;
+    const subjectType = String(subject?.type || '').trim();
+    if (label !== '人事安排' || !subject || !['character', 'player'].includes(subjectType) || !key || !rawValue || !reason) return null;
     const value = {};
     if (key === '当前地点') value.currentLocation = rawValue;
     else if (key === '当前行动') value.currentAction = rawValue;

@@ -1672,6 +1672,30 @@ test('parseSettlementKv rejects character schedule updates for non-participants 
   assert.deepStrictEqual(JSON.parse(JSON.stringify(parsed.genericUpdates)), []);
 });
 
+test('parseSettlementKv rejects character schedule updates for non-character settlement objects', () => {
+  const context = createContext();
+  loadCore(context);
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  const raw = `人事安排结算：
+结算状态：需要更新
+结算对象：锦苑小区｜地点｜允许结算
+更新1：人事安排，当前地点，锦苑小区门口，正文提到地点变化但地点不是角色日程对象
+结算对象结束：锦苑小区
+类型完成：是
+结算结束：是`;
+
+  const parsed = loop.parseSettlementKv(raw, {
+    requestedTypes: ['人事安排'],
+    participants: [{ type: 'character', id: 'rushiqi', name: '刘思琪', role: '参与者' }],
+    store: makeStore(),
+    config: loop.realConfig(),
+  });
+
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(parsed.completeTypes)), []);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(parsed.incompleteTypes)), ['人事安排']);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(parsed.genericUpdates)), []);
+});
+
 test('parseSettlementKv leaves malformed update types incomplete even with completion markers', () => {
   const context = createContext();
   loadCore(context);
