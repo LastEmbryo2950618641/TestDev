@@ -582,12 +582,32 @@ test('scheduleParticipantHints classifies same nearby offstage and unknown sched
     siyi: { characterId: 'siyi', characterName: '刘思怡', currentLocation: '当前位置未知', currentAction: '未知', availability: '未知', reason: '资料不足' },
   };
 
-  const hints = ctx.scheduleParticipantHints(store, '前往刘思琪房间', store.realWorldLocationName);
+  const hints = JSON.parse(JSON.stringify(ctx.scheduleParticipantHints(store, '前往刘思琪房间', store.realWorldLocationName)));
 
   assert.deepStrictEqual(hints.sameLocation.map((item) => item.name), ['刘思琪']);
   assert.deepStrictEqual(hints.nearbyLocation.map((item) => item.name), ['刘思瑶']);
   assert.deepStrictEqual(hints.offstage.map((item) => item.name), ['王老师']);
   assert.deepStrictEqual(hints.unknown.map((item) => item.name), ['刘思怡']);
+});
+
+test('scheduleParticipantHints does not classify different keyed rooms as nearby', () => {
+  const context = createContext();
+  loadCore(context);
+  const ctx = context.window.GameModules.realWorldAgentContext;
+  const store = makeStore();
+  store.realWorldLocationName = '锦苑小区3栋2单元601号刘思琪房间门口';
+  store.rpgStates = {
+    neighbor: { id: 'neighbor', profile: { name: '邻居' }, name: '邻居' },
+    otherCommunity: { id: 'otherCommunity', profile: { name: '外小区住户' }, name: '外小区住户' },
+  };
+  store.characterSchedules = {
+    neighbor: { characterId: 'neighbor', characterName: '邻居', currentLocation: '锦苑小区3栋2单元602号客厅', currentAction: '看电视', availability: '在场' },
+    otherCommunity: { characterId: 'otherCommunity', characterName: '外小区住户', currentLocation: '湖畔小区7栋1单元601号客厅', currentAction: '休息', availability: '在场' },
+  };
+
+  const hints = JSON.parse(JSON.stringify(ctx.scheduleParticipantHints(store, '前往刘思琪房间', store.realWorldLocationName)));
+
+  assert.deepStrictEqual(hints.nearbyLocation.map((item) => item.name), []);
 });
 
 test('scheduleCandidateHintText limits available schedule candidates to three', () => {
@@ -605,7 +625,7 @@ test('scheduleCandidateHintText limits available schedule candidates to three', 
     availability: '在场',
   }]));
 
-  const text = ctx.scheduleCandidateHintText(store, '在客厅等待', store.realWorldLocationName);
+  const text = String(ctx.scheduleCandidateHintText(store, '在客厅等待', store.realWorldLocationName));
 
   assert.ok(text.includes('日程候选提示：'));
   assert.ok(text.includes('同住/相邻：甲'));

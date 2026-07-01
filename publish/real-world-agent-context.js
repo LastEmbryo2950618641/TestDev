@@ -338,8 +338,10 @@ window.GameModules.realWorldAgentContext = {
 
   householdLocationKey(location = '') {
     const text = this.cleanScheduleLocation(location);
-    const match = text.match(/(.{0,16}?(?:小区|公寓|宿舍|家|住宅|楼|栋|单元|号|室))/u);
-    return String(match?.[1] || '').trim();
+    const explicitRoom = text.match(/^(.{0,40}?[0-9一二三四五六七八九十百千万]+(?:号|室))/u);
+    if (explicitRoom) return explicitRoom[1].trim();
+    const explicitUnit = text.match(/^(.{0,40}?[0-9一二三四五六七八九十百千万]+(?:栋|楼)(?:[0-9一二三四五六七八九十百千万]+单元)?)/u);
+    return String(explicitUnit?.[1] || '').trim();
   },
 
   scheduleLocationsAdjacent(a = '', b = '') {
@@ -347,20 +349,16 @@ window.GameModules.realWorldAgentContext = {
     const right = this.cleanScheduleLocation(b);
     if (!left || !right || this.unknownScheduleLocation(left) || this.unknownScheduleLocation(right)) return false;
     if (left === right) return false;
-    if (left.includes(right) || right.includes(left)) return true;
     const leftKey = this.householdLocationKey(left);
     const rightKey = this.householdLocationKey(right);
-    if (leftKey && rightKey && (leftKey.includes(rightKey) || rightKey.includes(leftKey) || leftKey === rightKey)) return true;
-    const homeWords = /房间|卧室|客厅|厨房|走廊|卫生间|浴室|门口|家/u;
-    return homeWords.test(left) && homeWords.test(right) && Boolean(leftKey || rightKey);
+    if (!leftKey || !rightKey) return false;
+    return leftKey === rightKey || leftKey.includes(rightKey) || rightKey.includes(leftKey);
   },
 
   scheduleParticipantHints(store, action = '', currentLocation = '') {
     const schedules = store?.characterSchedules && typeof store.characterSchedules === 'object' ? store.characterSchedules : {};
     const location = this.cleanScheduleLocation(currentLocation || store?.realWorldLocationName || store?.realWorldMap?.current || '');
-    const hostArray = store?.constructor?.constructor?.('return Array')?.() || Array;
-    const makeList = () => new hostArray();
-    const out = { sameLocation: makeList(), nearbyLocation: makeList(), offstage: makeList(), unknown: makeList() };
+    const out = { sameLocation: [], nearbyLocation: [], offstage: [], unknown: [] };
     Object.entries(schedules).forEach(([id, entry]) => {
       if (!entry || typeof entry !== 'object') return;
       const name = this.scheduleNameForId(store, id, entry);
@@ -372,16 +370,11 @@ window.GameModules.realWorldAgentContext = {
       else if (current && location && current === location) out.sameLocation.push(item);
       else if (this.scheduleLocationsAdjacent(current, location)) out.nearbyLocation.push(item);
     });
-    const cloneList = (items, limit) => {
-      const list = makeList();
-      items.slice(0, limit).forEach((item) => list.push(item));
-      return list;
-    };
     return {
-      sameLocation: cloneList(out.sameLocation, 3),
-      nearbyLocation: cloneList(out.nearbyLocation, Math.max(0, 3 - out.sameLocation.length)),
-      offstage: cloneList(out.offstage, 5),
-      unknown: cloneList(out.unknown, 5),
+      sameLocation: out.sameLocation.slice(0, 3),
+      nearbyLocation: out.nearbyLocation.slice(0, Math.max(0, 3 - out.sameLocation.length)),
+      offstage: out.offstage.slice(0, 5),
+      unknown: out.unknown.slice(0, 5),
     };
   },
 
