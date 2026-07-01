@@ -142,19 +142,34 @@ window.GameModules.realWorldAgentLoop = {
     const randomActiveCandidateText = randomActiveCandidates.length
       ? randomActiveCandidates.map((item, index) => `${index + 1}. ${item.name || item.id}`).join('；')
       : '无';
-    const vars = {
-      基础上下文: base,
-      动态载入资料: [loadedText, materialText].filter(Boolean).join('\n\n'),
+    const commonVars = {
       本次行动: actionText,
       当前步骤: forceFinal ? '收敛/final' : `${step}/${this.guidedMaxSteps(store, config)}`,
       最大步骤: this.guidedMaxSteps(store, config),
-      动态Skills: skills,
       推演自由度规则: config.mode === 'story' ? this.storyFreedomRule(store) : (store.realWorldFreedomRule?.() || '推演自由度：行动范围内。只推演玩家本次输入行动自然抵达的直接结果。'),
       当前步骤输出要求: this.stepOutputRule(step, forceFinal),
       随机场外角色候选: randomActiveCandidateText,
     };
-    if (!forceFinal) return window.GameModules.promptTemplates.render(config.firstTemplateId || 'inference-stage1-guided-query', vars);
-    return window.GameModules.promptTemplates.render(config.templateId, vars);
+    if (!forceFinal) {
+      const stage1RoutingContext = config.ctx.buildStage1RoutingContext?.({ store, action: actionText, loaded, materialSession, config }) || [
+        `模式：${config.label}`,
+        `本次行动：${actionText}`,
+        '已加载资料摘要：无',
+        '可请求资料目录：无',
+      ].join('\n');
+      return window.GameModules.promptTemplates.render(config.firstTemplateId || 'inference-stage1-guided-query', {
+        ...commonVars,
+        路由上下文: stage1RoutingContext,
+        已加载资料摘要: config.ctx.loadedRoutingSummary?.(loaded) || '无',
+        可请求资料目录: config.ctx.stage1MaterialCatalogText?.(config.mode) || '无',
+      });
+    }
+    return window.GameModules.promptTemplates.render(config.templateId, {
+      ...commonVars,
+      基础上下文: base,
+      动态载入资料: [loadedText, materialText].filter(Boolean).join('\n\n'),
+      动态Skills: skills,
+    });
   },
 
   guidedMaxSteps(store = {}, config = this.realConfig()) {
@@ -251,14 +266,15 @@ window.GameModules.realWorldAgentLoop = {
 
   async buildConfiguredSceneAnchorPrompt({ store, action, base, loaded, trace = [], materialSession = null, config = this.realConfig() }) {
     const actionText = this.actionText(action, config.mode === 'story' ? '继续推进操控剧情' : '继续观察现实世界');
-    const loadedText = config.ctx.buildLoadedText(loaded);
-    const materialText = config.materials?.acquiredSummary?.(materialSession) || '';
+    const anchorContext = config.ctx.buildSceneAnchorContext?.({ store, action: actionText, loaded, trace, materialSession, config }) || [
+      `模式：${config.label}`,
+      `本次行动：${actionText}`,
+      `参与者边界：\n${this.sceneLayerSummary(trace)}`,
+    ].join('\n');
     return window.GameModules.promptTemplates.render('inference-stage2-scene-anchor', {
       模式标签: config.label,
       本次行动: actionText,
-      基础上下文: this.compactUpdatePromptText(base, 1600),
-      参与者分层与查询规划: this.sceneLayerSummary(trace),
-      已加载资料摘要: this.compactUpdatePromptText([loadedText, materialText].filter(Boolean).join('\n\n') || '无', 2200),
+      场景锚定上下文: anchorContext,
       紧凑返回规则: this.compactReturnRule('prose'),
     });
   },
@@ -269,8 +285,9 @@ window.GameModules.realWorldAgentLoop = {
     const missingHardAnchor = hardAnchors.some((key) => !String(parsed.values?.[key] || '').trim());
     if (parsed.successRate < 0.8 || missingHardAnchor) throw new Error('场景锚定报告解析错误请重试');
     const v = parsed.values;
+    const currentSceneImpactObjects = v['当前场景影响对象'] || '';
     const orderedText = this.sceneAnchorFields().map((key) => `${key}：${v[key] || ''}`).join('\n');
-    return { text: orderedText, currentLocation: v['当前地点'] || '', currentTime: v['当前时间'] || '', writingFocus: v['正文写作重点'] || '', settlementBoundary: v['结算边界'] || '', values: v, parseScore: { score: parsed.score, maxScore: parsed.maxScore, successRate: parsed.successRate }, parseDegraded: parsed.successRate < 1 };
+    return { text: orderedText, currentLocation: v['当前地点'] || '', currentTime: v['当前时间'] || '', writingFocus: v['正文写作重点'] || '', currentSceneImpactObjects, settlementBoundary: currentSceneImpactObjects, values: v, parseScore: { score: parsed.score, maxScore: parsed.maxScore, successRate: parsed.successRate }, parseDegraded: parsed.successRate < 1 };
   },
 
   async completeSceneAnchorReport(store, prompt, logId, config = this.realConfig()) {
@@ -293,7 +310,8 @@ window.GameModules.realWorldAgentLoop = {
 
   async buildConfiguredNarrationPrompt({ store, action, base, loaded, skills, materialSession = null, sceneAnchorReport = '', config = this.realConfig() }) {
     const actionText = this.actionText(action, config.mode === 'story' ? '继续推进操控剧情' : '继续观察现实世界');
-    const loadedText = config.ctx.buildLoadedText(loaded);
+    const narrationContext = config.ctx.buildNarrationContext?.({ store, action: actionText, config }) || this.compactUpdatePromptText(base, 1600);
+    const loadedText = config.ctx.loadedNarrationSummary?.(loaded) || config.ctx.buildLoadedText(loaded) || '无';
     const writingStyle = store.selectedWritingStylePrompt?.() || store.writingStylePrompt?.() || '正文采用小说文风，重视画面、动作、感官和心理反应，避免复述玩家指令。';
     const modeRule = config.mode === 'story'
       ? `推演自由度：${this.storyFreedomRule(store)}\n玩家不是角色本人，而是操控/影响被操控者行动的存在；正文必须写出本次行动的动作过程、环境变化、其他人物反应、被操控者身体与心理张力、直接结果。`
@@ -302,7 +320,7 @@ window.GameModules.realWorldAgentLoop = {
     return window.GameModules.promptTemplates.render('inference-stage3-narration', {
       模式标签: config.label,
       本次行动: actionText,
-      基础上下文: [this.continuityFallbackRule(), `小说笔风：${writingStyle}`, modeRule, narrationRules, this.compactUpdatePromptText(base, 1800)].join('\n'),
+      基础上下文: [this.continuityFallbackRule(), `小说笔风：${writingStyle}`, modeRule, narrationRules, narrationContext].join('\n'),
       场景锚定报告: sceneAnchorReport || '无',
       已动态载入资料: loadedText || '无',
       紧凑返回规则: this.compactReturnRule('prose'),
@@ -595,21 +613,27 @@ window.GameModules.realWorldAgentLoop = {
       const title = c?.title || `${type}结算`;
       return [`[${String(index + 1).padStart(2, '0')}/${String(totalTypes).padStart(2, '0')}] ${type}合约说明（实际输出标题必须严格写“${title}：”，不得带索引）`, `${title}：`, '结算状态：需要更新 / 无变化', '参与者为空时：直接写“结算状态：无变化”“类型完成：是”“结算结束：是”；禁止输出结算对象和更新行。', '若无变化：直接写“结算状态：无变化”，然后写“类型完成：是”“结算结束：是”，不要编造结算对象或更新行。', '若需要更新：结算对象：显示名全称｜角色/玩家/地点/势力/世界/系统｜允许结算', c?.format || '', '结算对象结束：显示名全称', '类型完成：是', '→ 继续输出下个类型，直到本次必须返回的类型全部完成', '结算结束：是'].join('\n');
     }).join('\n\n');
-    const catalog = this.settlementUpdateCatalog();
-    const updateIds = requestedTypes.map((type) => catalog[type]?.updateType).filter(Boolean);
-    const updatePromptText = window.GameModules.updateRegistry?.skillsText?.(updateIds) || window.GameModules.updateRegistry?.skillText?.(updateIds) || '';
-    const initSkillText = window.GameModules.initPromptRegistry?.skillText?.() || '';
-    const initSchema = window.GameModules.initPromptRegistry?.schema?.() || {};
+    const incompleteReason = incompleteTypes.map((type) => {
+      const title = contracts[type]?.title || `${type}结算`;
+      const shortReason = /^上轮返回过短/u.test(String(partialByType[type] || '')) ? `；${partialByType[type]}` : '';
+      return `${type}：需从“${title}：”开始整块重输${shortReason}`;
+    }).join('；') || '无';
+    const stableFactRules = [
+      '内部提取“本轮稳定事实”：只在内部完成，不输出事实列表。',
+      '明确事实：可直接结算。',
+      '强暗示事实：可保守结算，但必须有明确行为、对话或连续动作支撑。',
+      '弱氛围暗示：不得结算。',
+    ].join('\n');
     return window.GameModules.promptTemplates.render('inference-stage4-settlement-window', {
       本次必须返回的类型: requestedTypes.join('、'),
-      已完成类型摘要: completedTypes.join('、') || '无',
-      残缺类型: incompleteTypes.join('、') || '无',
-      残缺原因或尾部: Object.entries(partialByType).map(([k, v]) => `${k}:${String(v).slice(-160)}`).join('；') || '无',
-      现有Update提示词摘要: updatePromptText || '无',
-      现有Init提示词: initSkillText || '无',
-      现有Init字段Schema: JSON.stringify(initSchema),
+      已完成类型: completedTypes.join('、') || '无',
+      未完成类型: incompleteTypes.join('、') || '无',
+      当前窗口起始类型: requestedTypes[0] || '无',
+      当前窗口结束类型: requestedTypes[requestedTypes.length - 1] || '无',
+      未完成类型原因: incompleteReason,
       本回合参与者: JSON.stringify(participants),
-      正文: this.compactUpdatePromptText(narration, 1800, true),
+      本轮结算材料: [`行动：${this.actionText(action)}`, `正文：${this.compactUpdatePromptText(narration, 1800, true)}`, stableFactRules].join('\n'),
+      类型短规则: requestedTypes.map((type) => this.settlementTypeShortRule(type)).join('\n\n'),
       类型合约: typeText,
     });
   },
@@ -710,7 +734,7 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   sceneAnchorFields() {
-    return ['场景锚定报告', '当前地点', '当前时间', '空间状态', '当前动作', '强制出场', '高优先候选', '戏剧候选', '禁止出场', '随机事件影响', '正文写作重点', '结算边界'];
+    return ['场景锚定报告', '当前地点', '当前时间', '空间状态', '当前动作', '强制出场', '高优先候选', '戏剧候选', '禁止出场', '随机事件影响', '正文写作重点', '当前场景影响对象'];
   },
 
   settlementBaseFields() {
@@ -728,7 +752,8 @@ window.GameModules.realWorldAgentLoop = {
       '随机主动事件影响': '随机事件影响',
       '写作重点': '正文写作重点',
       '正文重点': '正文写作重点',
-      '结算限制': '结算边界',
+      '结算限制': '当前场景影响对象',
+      '结算边界': '当前场景影响对象',
       '资料是否足够': '资料状态',
     };
   },
@@ -748,7 +773,7 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   requiredKvFields(allowed = []) {
-    const sceneAnchorRequired = ['场景锚定报告', '当前地点', '当前时间', '空间状态', '当前动作', '强制出场', '禁止出场', '随机事件影响', '正文写作重点', '结算边界'];
+    const sceneAnchorRequired = ['场景锚定报告', '当前地点', '当前时间', '空间状态', '当前动作', '强制出场', '禁止出场', '随机事件影响', '正文写作重点', '当前场景影响对象'];
     if (sceneAnchorRequired.every((key) => allowed.includes(key))) return sceneAnchorRequired;
     const preferred = ['资料状态', '强制出场', '禁止出场', '随机事件闯入条件', '正文写作重点', '结算边界'];
     const required = preferred.filter((key) => allowed.includes(key));
@@ -1274,9 +1299,16 @@ window.GameModules.realWorldAgentLoop = {
     const blocked = this.participantNameSet(forcedParticipants, priorityCandidates, dramaCandidates, forbiddenParticipants);
     const status = String(v['资料状态'] || '').trim();
     const requestText = String(v['资料请求'] || '').trim();
+    const sceneQueries = { location: this.splitNameList(v['地点查询']), causality: this.splitNameList(v['因果查询']), conflict: this.splitNameList(v['冲突查询']) };
     const hasActionableRequests = Array.isArray(parsed.materialRequests) && parsed.materialRequests.length > 0;
     const hasRoleCardCandidates = forcedParticipants.length > 0 || priorityCandidates.length > 0 || dramaCandidates.length > 0;
-    const isContextDone = status === '资料已足够' || (!hasRoleCardCandidates && !hasActionableRequests && (!requestText || requestText === '无'));
+    const hasExecutableSceneQueries = Object.values(sceneQueries).some((items) => items.length > 0);
+    if (status === '继续请求资料' && !hasActionableRequests && !hasRoleCardCandidates && !hasExecutableSceneQueries) {
+      const err = new Error('资料状态为继续请求资料时，必须输出可执行的资料请求1、结构化查询或明确参与者候选');
+      err.parseResult = parsed;
+      throw err;
+    }
+    const isContextDone = status === '资料已足够' || (!hasRoleCardCandidates && !hasActionableRequests && !hasExecutableSceneQueries && (!requestText || requestText === '无'));
     return {
       type: isContextDone ? 'context_done' : 'request_context',
       guidanceText: String(raw || '').trim(),
@@ -1290,7 +1322,7 @@ window.GameModules.realWorldAgentLoop = {
       dramaCandidates,
       forbiddenParticipants,
       randomActiveEvents: this.normalizeRandomActiveEvents(v['随机事件候选'], blocked),
-      sceneQueries: { location: this.splitNameList(v['地点查询']), causality: this.splitNameList(v['因果查询']), conflict: this.splitNameList(v['冲突查询']) },
+      sceneQueries,
       randomIntrusionCondition: v['随机事件闯入条件'] || '无明确条件则禁止闯入',
       parseScore: { score: parsed.score, maxScore: parsed.maxScore, successRate: parsed.successRate },
       parseDegraded: parsed.successRate < 1,
