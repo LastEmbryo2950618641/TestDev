@@ -1832,6 +1832,52 @@ test('wearing-state update writes values and mirrors profile wearing', async () 
   assert.strictEqual(store.__npc.profile.wearing[0].state, '仍穿着但被推开，胸部外露');
 });
 
+test('character-schedule update merges into store schedules without touching role card values', async () => {
+  const context = createContext();
+  loadCore(context);
+  const store = makeStore();
+  store.phoneDateText = () => '2026-07-01';
+  store.phoneTimeText = () => '02:10';
+  store.characterSchedules = {
+    rushiqi: {
+      characterId: 'rushiqi',
+      characterName: '刘思琪',
+      currentLocation: '刘思琪房间',
+      currentAction: '写作业',
+      availability: '在场',
+      confidence: '默认',
+      source: '角色卡初始化',
+      stability: '默认稳定',
+      updatedAt: '2026-07-01 01:20',
+      reason: '初始化',
+    },
+    siyao: { characterId: 'siyao', characterName: '刘思瑶', currentLocation: '客厅', currentAction: '看书' },
+  };
+
+  await context.window.GameModules.updateRegistry.applyGeneric(store, [{
+    updateType: 'character-schedule',
+    subject: { type: 'character', id: 'rushiqi', name: '刘思琪' },
+    field: 'characterSchedules',
+    change: { mode: 'merge', value: { currentAction: '和玩家交谈', availability: '在场', reason: '正文确认交谈' } },
+    reasons: [{ trigger: '人事安排当前行动', evidence: '正文确认交谈', confidence: 'confirmed' }],
+  }]);
+
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(store.characterSchedules.rushiqi)), {
+    characterId: 'rushiqi',
+    characterName: '刘思琪',
+    currentLocation: '刘思琪房间',
+    currentAction: '和玩家交谈',
+    availability: '在场',
+    confidence: '确认',
+    source: '结算事件',
+    stability: '事件锁定',
+    updatedAt: '2026-07-01 02:10',
+    reason: '正文确认交谈',
+  });
+  assert.strictEqual(store.characterSchedules.siyao.currentAction, '看书');
+  assert.strictEqual(store.__npc.values.characterSchedules, undefined);
+});
+
 test('sexual-history supports unknown to virgin to non-virgin facts', async () => {
   const context = createContext();
   loadCore(context);

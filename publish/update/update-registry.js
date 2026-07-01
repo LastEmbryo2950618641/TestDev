@@ -192,6 +192,7 @@ window.GameModules.updateRegistry = {
   defaultCard(change = {}, store = null) {
     const subject = change.subject || {};
     const label = subject.name || subject.id || change.group || change.target || '';
+    if (change.updateType === 'character-schedule') return { id: `schedule:${subject.id || change.target || label || 'unknown'}`, title: label || '人事安排', section: '人事安排' };
     const playerName = store?.realWorldPlayerSettlementName?.() || '玩家';
     if (!label || label === 'player-self' || label === '玩家' || label === playerName) return { id: 'role:player-self', title: playerName, section: '角色卡' };
     return { id: `misc:${label}`, title: label, section: '其他' };

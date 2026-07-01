@@ -100,6 +100,7 @@ Object.assign(window.GameModules.updateRegistry, {
   },
 
   applyOne(store, update = {}) {
+    if (update.updateType === 'character-schedule') return this.applyCharacterScheduleUpdate(store, update);
     if (update.updateType === 'relationship') return this.applyRelationshipUpdate(store, update);
     if (update.updateType === 'body-status') return this.applyBodyStatusUpdate(store, update);
     if (update.updateType === 'sexual-experience') return this.applySexualExperienceUpdate(store, update);
@@ -134,6 +135,39 @@ Object.assign(window.GameModules.updateRegistry, {
     const next = { ...(current && typeof current === 'object' ? current : {}), ...value, initializedByAi: true, source: 'AI更新' };
     if (JSON.stringify(current) === JSON.stringify(next)) return false;
     this.set(state.values, path, next);
+    return true;
+  },
+
+  scheduleUpdatedAt(store = {}) {
+    return [store?.phoneDateText?.(), store?.phoneTimeText?.()].filter(Boolean).join(' ') || new Date().toISOString();
+  },
+
+  normalizeScheduleAvailability(value = '') {
+    const clean = String(value || '').trim();
+    return ['在场', '场外', '未知', '暂不可用'].includes(clean) ? clean : '未知';
+  },
+
+  applyCharacterScheduleUpdate(store, update = {}) {
+    const subject = update.subject || {};
+    const id = this.normalizeSubjectId(store, subject.characterId || subject.playerId || subject.id || update.target || 'player-self', subject);
+    if (!store || !id) return false;
+    const raw = this.changeValue(update);
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return false;
+    const current = store.characterSchedules?.[id] || {};
+    const patch = { ...raw };
+    if (Object.prototype.hasOwnProperty.call(patch, 'availability')) patch.availability = this.normalizeScheduleAvailability(patch.availability);
+    const next = {
+      ...current,
+      characterId: current.characterId || id,
+      characterName: current.characterName || subject.name || subject.characterName || id,
+      ...patch,
+      confidence: '确认',
+      source: '结算事件',
+      stability: '事件锁定',
+      updatedAt: this.scheduleUpdatedAt(store),
+    };
+    if (JSON.stringify(current) === JSON.stringify(next)) return false;
+    store.characterSchedules = { ...(store.characterSchedules || {}), [id]: next };
     return true;
   },
 
@@ -216,6 +250,7 @@ Object.assign(window.GameModules.updateRegistry, {
     const changed = new Set();
     for (const update of Array.isArray(updates) ? updates : []) {
       if (!this.applyOne(store, update)) continue;
+      if (update.updateType === 'character-schedule') continue;
       const state = this.targetState(store, update);
       if (state?.id) changed.add(state.id);
     }
