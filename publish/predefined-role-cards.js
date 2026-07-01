@@ -76,6 +76,57 @@ window.GameModules.predefinedRoleCards = {
     return state;
   },
 
+  scheduleLocationName(state = {}, store = {}) {
+    const raw = state?.values?.current_location;
+    const name = typeof raw === 'string' ? raw : raw?.name;
+    const clean = String(name || '').trim();
+    if (clean && !/^当前位置未知|未知地点|现实地点|当前位置$/u.test(clean)) return clean;
+    return String(store?.realWorldLocationName || store?.realWorldMap?.current || '当前位置未知').trim() || '当前位置未知';
+  },
+
+  scheduleAvailability(locationName = '') {
+    return /^当前位置未知|未知地点|现实地点|当前位置$/u.test(String(locationName || '').trim()) ? '未知' : '在场';
+  },
+
+  scheduleUpdatedAt(store = {}) {
+    return [store?.phoneDateText?.(), store?.phoneTimeText?.()].filter(Boolean).join(' ') || new Date().toISOString();
+  },
+
+  defaultScheduleAction(state = {}) {
+    return state?.id === 'player-self' ? '由玩家当前行动决定' : '按角色日常安排活动';
+  },
+
+  buildInitialScheduleEntry(state = {}, store = {}) {
+    const location = this.scheduleLocationName(state, store);
+    return {
+      characterId: state.id || state.name || '',
+      characterName: state.name || state.profile?.name || state.id || '',
+      currentLocation: location,
+      currentAction: this.defaultScheduleAction(state),
+      availability: this.scheduleAvailability(location),
+      confidence: this.scheduleAvailability(location) === '未知' ? '默认' : '确认',
+      source: '角色卡初始化',
+      stability: '默认稳定',
+      updatedAt: this.scheduleUpdatedAt(store),
+      reason: '进入游戏时根据角色卡当前所在位置建立默认日程；后续仅由结算或明确事件更新。',
+    };
+  },
+
+  ensureInitialScheduleForState(store, state) {
+    if (!store || !state?.id) return null;
+    store.characterSchedules = store.characterSchedules && typeof store.characterSchedules === 'object' ? store.characterSchedules : {};
+    const existing = store.characterSchedules[state.id];
+    if (existing && existing.source !== '角色卡初始化') return existing;
+    if (existing && existing.stability && existing.stability !== '默认稳定') return existing;
+    const entry = this.buildInitialScheduleEntry(state, store);
+    store.characterSchedules[state.id] = entry;
+    return entry;
+  },
+
+  ensureInitialSchedules(store, states = []) {
+    return (states || []).map((state) => this.ensureInitialScheduleForState(store, state)).filter(Boolean);
+  },
+
   async ensurePlayerState(store) {
     const cards = store?.roleCardSetup?.cards?.length ? store.roleCardSetup.cards : await this.loadAll();
     const name = store.roleCardSetup?.selectedPlayerName || '刘悠';
@@ -94,7 +145,9 @@ window.GameModules.predefinedRoleCards = {
       this.ensurePlayerState(store),
       this.saveSelectedRelationshipStates(store),
     ]);
-    return [player, ...relations].filter(Boolean);
+    const states = [player, ...relations].filter(Boolean);
+    this.ensureInitialSchedules(store, states);
+    return states;
   },
 
   async saveSelectedRelationshipStates(store) {

@@ -410,6 +410,158 @@ test('predefined saver persists edited setup cards directly', async () => {
   assert.deepStrictEqual(Object.keys(store.rpgStates).sort(), ['player-self', 'rel-1', 'rel-2', 'rel-3'].sort());
 });
 
+test('saveSelectedRoleCardStates initializes schedules from current_location', async () => {
+  const saved = [];
+  const context = vm.createContext({
+    console,
+    window: {
+      GameModules: {
+        predefinedRoleCardData: {
+          'liu-you': { id: 'player-self', name: '刘悠', isPlayer: true, role: '玩家', work: '现实世界' },
+          'liu-siyao': { id: 'rel-1', name: '刘思瑶', role: '三胞胎妹妹之一', work: '现实世界' },
+          'liu-siqi': { id: 'rel-2', name: '刘思琪', role: '三胞胎妹妹之二', work: '现实世界' },
+          'liu-siyi': { id: 'rel-3', name: '刘思怡', role: '三胞胎妹妹之三', work: '现实世界' },
+        },
+        sqliteSave: {
+          db: true,
+          getCharacterState: () => null,
+          saveCharacterState: async (state) => { saved.push(JSON.parse(JSON.stringify(state))); },
+        },
+        characterProfile: { hasRequiredInitialMetrics: () => false },
+        rpgState: {
+          ensureSchema: async (worldTag) => ({ worldTag, sections: [] }),
+          createCharacterState: (profile, schema) => ({
+            id: profile.id,
+            name: profile.name,
+            worldTag: schema.worldTag,
+            values: {
+              current_location: {
+                name: profile.name === '刘思琪' ? '刘思琪房间' : '锦苑小区3栋2单元601号',
+                worldTag: schema.worldTag,
+                updatedAt: '2026年7月1日 周三',
+                reason: '创建角色卡时根据明确上下文登记。',
+              },
+            },
+            metrics: {},
+            profile,
+          }),
+          upgradeCharacterState: () => {},
+        },
+        rpgProfileMetrics: { rebase: () => {} },
+        rpgLexicon: { syncState: async () => {} },
+      },
+    },
+  });
+  context.window.window = context.window;
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'publish/predefined-role-cards.js'), 'utf8'), context, { filename: 'publish/predefined-role-cards.js' });
+
+  const store = {
+    roleCardSetup: {
+      usePredefinedPlayerCard: true,
+      selectedPlayerName: '刘悠',
+      selectedRelationNames: ['刘思瑶', '刘思琪', '刘思怡'],
+      cards: [
+        { id: 'player-self', name: '刘悠', isPlayer: true, role: '玩家', work: '现实世界' },
+        { id: 'rel-1', name: '刘思瑶', role: '三胞胎妹妹之一', work: '现实世界' },
+        { id: 'rel-2', name: '刘思琪', role: '三胞胎妹妹之二', work: '现实世界' },
+        { id: 'rel-3', name: '刘思怡', role: '三胞胎妹妹之三', work: '现实世界' },
+      ],
+    },
+    rpgStates: {},
+    realWorldLocationName: '锦苑小区3栋2单元601号',
+    phoneDateText: () => '2026年7月1日 周三',
+    phoneTimeText: () => '09:45',
+  };
+
+  await context.window.GameModules.predefinedRoleCards.saveSelectedRoleCardStates(store);
+
+  assert.strictEqual(store.characterSchedules['player-self'].currentLocation, '锦苑小区3栋2单元601号');
+  assert.strictEqual(store.characterSchedules['rel-1'].currentLocation, '锦苑小区3栋2单元601号');
+  assert.strictEqual(store.characterSchedules['rel-2'].currentLocation, '刘思琪房间');
+  assert.strictEqual(store.characterSchedules['rel-3'].currentAction, '按角色日常安排活动');
+  assert.strictEqual(store.characterSchedules['rel-2'].source, '角色卡初始化');
+  assert.strictEqual(store.characterSchedules['rel-2'].stability, '默认稳定');
+  assert.strictEqual(store.characterSchedules['rel-2'].availability, '在场');
+  assert.strictEqual(store.characterSchedules['rel-2'].updatedAt, '2026年7月1日 周三 09:45');
+});
+
+test('initial schedules do not overwrite event-driven schedules', async () => {
+  const context = vm.createContext({
+    console,
+    window: {
+      GameModules: {
+        predefinedRoleCardData: {
+          'liu-you': { id: 'player-self', name: '刘悠', isPlayer: true, role: '玩家', work: '现实世界' },
+          'liu-siyao': { id: 'rel-1', name: '刘思瑶', role: '三胞胎妹妹之一', work: '现实世界' },
+          'liu-siqi': { id: 'rel-2', name: '刘思琪', role: '三胞胎妹妹之二', work: '现实世界' },
+          'liu-siyi': { id: 'rel-3', name: '刘思怡', role: '三胞胎妹妹之三', work: '现实世界' },
+        },
+        sqliteSave: {
+          db: true,
+          getCharacterState: () => null,
+          saveCharacterState: async () => {},
+        },
+        characterProfile: { hasRequiredInitialMetrics: () => false },
+        rpgState: {
+          ensureSchema: async (worldTag) => ({ worldTag, sections: [] }),
+          createCharacterState: (profile, schema) => ({
+            id: profile.id,
+            name: profile.name,
+            worldTag: schema.worldTag,
+            values: { current_location: { name: '锦苑小区3栋2单元601号', worldTag: schema.worldTag } },
+            metrics: {},
+            profile,
+          }),
+          upgradeCharacterState: () => {},
+        },
+        rpgProfileMetrics: { rebase: () => {} },
+        rpgLexicon: { syncState: async () => {} },
+      },
+    },
+  });
+  context.window.window = context.window;
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'publish/predefined-role-cards.js'), 'utf8'), context, { filename: 'publish/predefined-role-cards.js' });
+
+  const store = {
+    roleCardSetup: {
+      usePredefinedPlayerCard: true,
+      selectedPlayerName: '刘悠',
+      selectedRelationNames: ['刘思瑶', '刘思琪', '刘思怡'],
+      cards: [
+        { id: 'player-self', name: '刘悠', isPlayer: true, role: '玩家', work: '现实世界' },
+        { id: 'rel-1', name: '刘思瑶', role: '三胞胎妹妹之一', work: '现实世界' },
+        { id: 'rel-2', name: '刘思琪', role: '三胞胎妹妹之二', work: '现实世界' },
+        { id: 'rel-3', name: '刘思怡', role: '三胞胎妹妹之三', work: '现实世界' },
+      ],
+    },
+    rpgStates: {},
+    characterSchedules: {
+      'rel-2': {
+        characterId: 'rel-2',
+        characterName: '刘思琪',
+        currentLocation: '学校医务室',
+        currentAction: '处理大事件后的临时安排',
+        availability: '场外',
+        confidence: '确认',
+        source: '结算事件',
+        stability: '事件锁定',
+        updatedAt: '2026年7月1日 周三 08:30',
+        reason: '上一轮大事件移动。',
+      },
+    },
+    realWorldLocationName: '锦苑小区3栋2单元601号',
+    phoneDateText: () => '2026年7月1日 周三',
+    phoneTimeText: () => '09:45',
+  };
+
+  await context.window.GameModules.predefinedRoleCards.saveSelectedRoleCardStates(store);
+
+  assert.strictEqual(store.characterSchedules['rel-2'].currentLocation, '学校医务室');
+  assert.strictEqual(store.characterSchedules['rel-2'].source, '结算事件');
+  assert.strictEqual(store.characterSchedules['rel-1'].source, '角色卡初始化');
+  assert.strictEqual(store.characterSchedules['rel-3'].source, '角色卡初始化');
+});
+
 (async () => {
   for (const item of tests) {
     await item.fn();
