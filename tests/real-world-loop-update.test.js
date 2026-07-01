@@ -634,6 +634,42 @@ test('scheduleCandidateHintText limits available schedule candidates to three', 
   assert.ok(!text.includes('丁'));
 });
 
+test('Stage 1 routing context includes schedule candidate hints for nearby household roles', async () => {
+  const context = createContext();
+  loadCore(context);
+  const ctx = context.window.GameModules.realWorldAgentContext;
+  const store = makeStore();
+  store.realWorldLocationName = '锦苑小区3栋2单元601号刘思琪房间门口';
+  store.rpgStates = { siyao: { id: 'siyao', profile: { name: '刘思瑶' }, name: '刘思瑶' } };
+  store.characterSchedules = {
+    siyao: { characterId: 'siyao', characterName: '刘思瑶', currentLocation: '锦苑小区3栋2单元601号客厅', currentAction: '写作业', availability: '在场' },
+  };
+
+  const routing = ctx.buildStage1RoutingContext({ store, action: '前往刘思琪房间', loaded: [], config: { mode: 'real', label: '现实' } });
+
+  assert.ok(routing.includes('日程候选提示：'));
+  assert.ok(routing.includes('同住/相邻：刘思瑶'));
+  assert.ok(routing.includes('不得作为可出场候选') || routing.includes('明确场外'));
+});
+
+test('Stage 2 scene anchor context includes schedule boundary hints', async () => {
+  const context = createContext();
+  loadCore(context);
+  const ctx = context.window.GameModules.realWorldAgentContext;
+  const store = makeStore();
+  store.realWorldLocationName = '锦苑小区3栋2单元601号刘思琪房间门口';
+  store.rpgStates = { siyao: { id: 'siyao', profile: { name: '刘思瑶' }, name: '刘思瑶' } };
+  store.characterSchedules = {
+    siyao: { characterId: 'siyao', characterName: '刘思瑶', currentLocation: '锦苑小区3栋2单元601号客厅', currentAction: '写作业', availability: '在场' },
+  };
+
+  const anchor = ctx.buildSceneAnchorContext({ store, action: '前往刘思琪房间', loaded: [], trace: [], config: { mode: 'real', label: '现实' } });
+
+  assert.ok(anchor.includes('日程候选提示：'));
+  assert.ok(anchor.includes('同住/相邻：刘思瑶'));
+  assert.ok(anchor.includes('不是强制出场'));
+});
+
 test('Stage 2 narration prompt forbids advancing beyond current action', async () => {
   const context = createContext();
   loadCore(context);

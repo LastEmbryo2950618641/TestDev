@@ -407,6 +407,7 @@ window.GameModules.realWorldAgentContext = {
       `当前位置：${location}`,
       `当前时间：${time}`,
       `当前对象线索：${player}`,
+      this.scheduleCandidateHintText(store, action, location),
       `已加载资料摘要：\n${this.loadedRoutingSummary(loaded)}`,
       `可请求资料目录：\n${this.stage1MaterialCatalogText(config?.mode || 'real')}`,
     ].join('\n');
@@ -539,6 +540,7 @@ window.GameModules.realWorldAgentContext = {
       `当前场景位置：${location}`,
       `当前时间提示：${time}`,
       `空间边界线索：仅保留门口、房间、走廊、相邻空间、可听见/可看见/可进入条件。`,
+      this.scheduleCandidateHintText(store, action, location),
       `参与者边界：\n${this.sceneParticipantBoundary(trace)}`,
       `已加载锚定事实：\n${this.loadedAnchorSummary(loaded)}`,
     ].join('\n');
