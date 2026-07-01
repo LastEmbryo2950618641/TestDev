@@ -563,8 +563,9 @@ window.GameModules.realWorldAgentLoop = {
       if (/^结算对象[：:]/u.test(line)) {
         const [name, objectType, allowed] = line.replace(/^结算对象[：:]/u, '').split(/[｜|]/u).map((x) => x.trim());
         const isSceneParticipant = this.participantAllowedForSettlement(name, participants);
-        const isNonCharacterSystem = ['地点', '势力', '世界', '系统'].includes(objectType);
-        currentSubject = allowed === '允许结算' && (isSceneParticipant || isNonCharacterSystem) ? (this.subjectForSettlement(name, participants) || { type: objectType || 'system', id: name, name }) : null;
+        const isScheduleSubject = currentType === '人事安排' && ['角色', '玩家'].includes(objectType);
+        const isNonCharacterSystem = currentType !== '人事安排' && ['地点', '势力', '世界', '系统'].includes(objectType);
+        currentSubject = allowed === '允许结算' && ((currentType === '人事安排' && isScheduleSubject && isSceneParticipant) || (currentType !== '人事安排' && (isSceneParticipant || isNonCharacterSystem))) ? (this.subjectForSettlement(name, participants) || { type: objectType || 'system', id: name, name }) : null;
         continue;
       }
       if (/^更新(?:\d+|N)[：:]/u.test(line)) {
