@@ -124,6 +124,22 @@ Object.assign(window.GameModules.updateRegistry, {
     return true;
   },
 
+  normalizeWearingSlot(raw = {}) {
+    const part = String(raw.part || raw.slot || '').trim();
+    const slot = String(raw.slot || '').trim();
+    if (/^(?:全身|整体|整身|全体|全套|全身衣物|全身穿着|整体穿着)$/u.test(part)) return 'outerwear';
+    if (['bra', 'top', 'outerwear', 'bottom', 'legwear', 'shoes', 'panties', '饰品'].includes(slot)) return slot;
+    if (/胸部|胸口|乳房|胸罩|内衣上/u.test(part)) return 'bra';
+    if (/上身|上衣|衬衫|睡衣上/u.test(part)) return 'top';
+    if (/外套|罩衫|连衣裙|睡裙|裙装/u.test(part)) return 'outerwear';
+    if (/下身|裙子|裤子|短裤/u.test(part)) return 'bottom';
+    if (/腿部|大腿|丝袜|袜裤|裤袜/u.test(part)) return 'legwear';
+    if (/足部|脚部|鞋|袜/u.test(part)) return 'shoes';
+    if (/内裤|底裤/u.test(part)) return 'panties';
+    if (/饰品|首饰|配饰/u.test(part)) return '饰品';
+    return slot || '饰品';
+  },
+
   applyWearingStateUpdate(store, update = {}) {
     const state = this.targetState(store, update);
     if (!state?.values) return false;
@@ -132,9 +148,11 @@ Object.assign(window.GameModules.updateRegistry, {
     const current = Array.isArray(state.values.wearing) ? state.values.wearing : [];
     if (Array.isArray(raw)) next = raw;
     else if (raw && typeof raw === 'object') {
-      const slot = String(raw.slot || raw.part || raw.name || '饰品').trim();
-      const index = current.findIndex((item) => String(item?.slot || '').trim() === slot && (slot !== '饰品' || String(item?.name || '').trim() === String(raw.name || '').trim()));
-      next = current.slice();
+      const slot = this.normalizeWearingSlot(raw);
+      next = raw.fullBody
+        ? current.filter((item) => String(item?.slot || '').trim() === '饰品')
+        : current.slice();
+      const index = next.findIndex((item) => String(item?.slot || '').trim() === slot && (slot !== '饰品' || String(item?.name || '').trim() === String(raw.name || '').trim()));
       const item = { ...(index >= 0 ? next[index] : {}), ...raw, slot };
       if (index >= 0) next[index] = item;
       else next.push(item);
@@ -274,7 +292,12 @@ Object.assign(window.GameModules.updateRegistry, {
 
   async applyGeneric(store, updates = []) {
     const changed = new Set();
-    for (const update of Array.isArray(updates) ? updates : []) {
+    const ordered = (Array.isArray(updates) ? updates : []).slice().sort((a, b) => {
+      const aFull = a?.updateType === 'wearing-state' && this.changeValue(a)?.fullBody;
+      const bFull = b?.updateType === 'wearing-state' && this.changeValue(b)?.fullBody;
+      return aFull === bFull ? 0 : (aFull ? -1 : 1);
+    });
+    for (const update of ordered) {
       if (!this.applyOne(store, update)) continue;
       if (update.updateType === 'character-schedule') continue;
       const state = this.targetState(store, update);

@@ -737,10 +737,25 @@ window.GameModules.realWorldAgentLoop = {
 
   allowedSexualPartKeys() { return ['genital', 'chest', 'lips', 'mouth', 'oralAction', 'oralSex', 'oralInternalFinish', 'genitalEntry', 'vaginalInsertion', 'vaginalInternalFinish', 'anus', 'analEntry', 'analSex', 'analInternalFinish', 'legs', 'hips', 'hands', 'skin', 'other']; },
 
+  isFullBodyWearingPart(part = '') {
+    const clean = String(part || '').trim();
+    return /^(?:全身|整体|整身|全体|全套|全身衣物|全身穿着|整体穿着)$/u.test(clean);
+  },
+
   wearingSlotAlias(part = '', itemName = '') {
+    const clean = String(part || '').trim();
     const item = String(itemName || '').trim();
+    if (this.isFullBodyWearingPart(clean)) return 'outerwear';
     if (/腿圈|项圈|手环|脚环|戒指|耳环|饰品/u.test(item)) return '饰品';
-    return this.settlementAlias(part, { 胸部: 'bra', 胸口: 'bra', 乳房: 'bra', 上身: 'top', 外套: 'outerwear', 下身: 'bottom', 腿部: 'legwear', 大腿: 'legwear', 足部: 'shoes', 脚部: 'shoes', 内裤: 'panties', 饰品: '饰品' });
+    if (/胸部|胸口|乳房|胸罩|内衣上/u.test(clean)) return 'bra';
+    if (/上身|上衣|衬衫|睡衣上/u.test(clean)) return 'top';
+    if (/外套|罩衫|连衣裙|睡裙|裙装/u.test(clean)) return 'outerwear';
+    if (/下身|裙子|裤子|短裤/u.test(clean)) return 'bottom';
+    if (/腿部|大腿|丝袜|袜裤|裤袜/u.test(clean)) return 'legwear';
+    if (/足部|脚部|鞋|袜/u.test(clean)) return 'shoes';
+    if (/内裤|底裤/u.test(clean)) return 'panties';
+    if (/饰品|首饰|配饰/u.test(clean)) return '饰品';
+    return this.settlementAlias(clean, { 胸部: 'bra', 胸口: 'bra', 乳房: 'bra', 上身: 'top', 外套: 'outerwear', 下身: 'bottom', 腿部: 'legwear', 大腿: 'legwear', 足部: 'shoes', 脚部: 'shoes', 内裤: 'panties', 饰品: '饰品' });
   },
 
   bodyPartAlias(part = '') {
@@ -769,7 +784,7 @@ window.GameModules.realWorldAgentLoop = {
     if (label !== '穿着状态' || !subject || !part || !itemName || !state || !reason) return null;
     const slot = this.wearingSlotAlias(part, itemName);
     if (!this.allowedWearingSlots().includes(slot)) return null;
-    return { updateType: 'wearing-state', subject, field: 'values.wearing', change: { mode: 'upsert', value: { slot, part, name: itemName, state, reason } }, reasons: [{ trigger: '穿着状态', evidence: reason, confidence: 'confirmed' }] };
+    return { updateType: 'wearing-state', subject, field: 'values.wearing', change: { mode: 'upsert', value: { slot, part, name: itemName, state, reason, fullBody: this.isFullBodyWearingPart(part) } }, reasons: [{ trigger: '穿着状态', evidence: reason, confidence: 'confirmed' }] };
   },
 
   parseBodyStatusSettlementLine(line = '', subject = null, participants = []) {
@@ -968,7 +983,20 @@ window.GameModules.realWorldAgentLoop = {
     requestedTypes.forEach((type) => {
       const blocks = blocksByType[type] || [];
       const candidates = blocks.map((block) => parseBlock(type, block, blocks.length));
-      const patch = candidates.sort((a, b) => patchScore(type, b) - patchScore(type, a))[0];
+      let patch = null;
+      if (candidates.length > 1 && candidates.every((item) => patchIsComplete(type, item))) {
+        patch = candidates.reduce((merged, item) => ({
+          ...merged,
+          baseFields: { ...(merged.baseFields || {}), ...(item.baseFields || {}) },
+          genericUpdates: [...(merged.genericUpdates || []), ...(item.genericUpdates || [])],
+          __parsedUpdates: (merged.__parsedUpdates || 0) + (item.__parsedUpdates || 0),
+          __updateLines: (merged.__updateLines || 0) + (item.__updateLines || 0),
+          __lines: [...(merged.__lines || []), ...(item.__lines || [])],
+          __closedByBrace: true,
+        }), { genericUpdates: [], baseFields: {}, __updateLines: 0, __parsedUpdates: 0, __lines: [], __headingCount: candidates.length, __closedByBrace: true });
+      } else {
+        patch = candidates.sort((a, b) => patchScore(type, b) - patchScore(type, a))[0];
+      }
       if (patch) patchesByType[type] = patch;
       if (patchIsComplete(type, patch)) {
         completeTypes.push(type);
@@ -987,7 +1015,7 @@ window.GameModules.realWorldAgentLoop = {
       '感觉': '主体只能是出场 NPC，不能是玩家；字段只能使用“出场角色对玩家感觉基线”里已有指标名；可把信赖映射为信任、亲近映射为好感、害怕映射为畏惧、厌恶映射为反感。',
       '生命体征': '字段只能是：生命力、精力、饱食度、水分、疲劳、精神稳定；允许别名输入但最终字段写这 6 个中文名；禁止心率、体温、呼吸频率、血压、血氧、瞳孔、激素、行动能力、肌肉紧张度等新指标；变化必须是 +N/-N。',
       '身体状态': '部位只能是：整体/全身、口部/嘴部/嘴唇、胸部/胸口/乳房、阴部/私处、肛部、臀部/屁股、四肢/手臂/腿部、皮肤、其他；禁止坐姿、手指动作、肌肉紧张度等新部位字段。',
-      '穿着状态': '穿着部位只能是：胸部/胸口/乳房、上身、外套、下身、腿部/大腿、足部/脚部、内裤、饰品；禁止肩部、腰部、整体、衣领、吊带位置等非槽位字段；必须包含衣物名称和当前状态。',
+      '穿着状态': '穿着部位只能是：全身/整体、胸部/胸口/乳房、上身、外套、下身、腿部/大腿、足部/脚部、内裤、饰品；全身/整体会按外套处理并清空其他衣物槽；同轮若还有局部部位，先应用全身再覆盖局部部位；禁止肩部、腰部、衣领、吊带位置等非槽位字段；必须包含衣物名称和当前状态。',
       '性经历': '分类只能是：阴部、胸部/胸口/乳房、唇部/接吻、口部/嘴部、口部行为、口交、口交中出、阴部进入、阴道插入、阴道中出、肛部/肛门、肛部进入、肛交、肛交中出、腿部/大腿、臀部/屁股、手部/手、皮肤、其他；禁止写总次数/总数/全部。',
       '关系': '只记录稳定关系维度，如亲属、朋友、同事、师生、雇佣、敌对、同居、恋人；好感、信任、依赖、警惕等数值态度写“感觉”，不要写关系。',
       '角色卡': '只写稳定角色卡字段：当前状态、身份、职业、技能、知识、外貌、性格、喜好、人物说明、社群角色、势力地位、人际关系；临时情绪、生命体征、身体、穿着、关系、物品有专门类型时不得写角色卡。',
