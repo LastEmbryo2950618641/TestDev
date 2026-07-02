@@ -185,10 +185,10 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   stepOutputRule(step, forceFinal = false) {
-    if (forceFinal) return `当前为收敛步骤：禁止继续请求资料。只输出中文 K:V 查询规划字段；资料状态必须为“资料已足够”，资料请求写“无”，资料请求结束写“是”。不要输出 JSON、正文、旁白、Markdown、代码块和 final JSON。`;
+    if (forceFinal) return `当前为收敛步骤：禁止继续请求资料。只输出完整中文 K:V 查询规划字段；必须从“查询规划：”开始，资料状态必须为“资料已足够”，资料请求写“无”，资料请求结束写“是”，固定输出顺序中的字段不得省略。不要输出 JSON、正文、旁白、Markdown、代码块和 final JSON。`;
     if (step === 1) return `当前是第1步：你是上下文路由器，只判断为了准确生成本次行动范围内正文需要载入哪些已有资料。具体输出格式以 Stage1 中文 K:V 查询规划模板为准；不要写正文，不要结算状态，不要推演后续结果。`;
-    if (step >= 3) return `当前是软收敛步骤：继续使用 Stage1 中文 K:V 查询规划格式；只有缺失资料会直接改变本次行动结果、人物反应、地点/物品/旧事实判定时，资料状态才写“继续请求资料”；衣着细节、氛围、情绪微调、背景补全、重复确认、无效 skill 替代查询都必须写“资料已足够”。不要输出 JSON、正文、旁白、Markdown、代码块和 final JSON。`;
-    return `当前只负责判断是否继续收集资料：继续使用 Stage1 中文 K:V 查询规划格式。仍缺关键资料就写“资料状态：继续请求资料”并列出中文资料请求；资料足够或无法继续获取时写“资料状态：资料已足够”“资料请求：无”“资料请求结束：是”。不要输出 JSON、正文、旁白、Markdown、代码块和 final JSON。`;
+    if (step >= 3) return `当前是软收敛步骤：继续使用完整 Stage1 中文 K:V 查询规划格式，必须从“查询规划：”开始，并逐行输出固定输出顺序中的所有字段。只有缺失资料会直接改变本次行动结果、人物反应、地点/物品/旧事实判定时，资料状态才写“继续请求资料”；衣着细节、氛围、情绪微调、背景补全、重复确认、无效 skill 替代查询都必须写“资料已足够”“资料请求：无”“资料请求结束：是”。不要输出 JSON、正文、旁白、Markdown、代码块和 final JSON。`;
+    return `当前只负责判断是否继续收集资料：继续使用完整 Stage1 中文 K:V 查询规划格式，必须从“查询规划：”开始，并逐行输出固定输出顺序中的所有字段。仍缺关键资料就写“资料状态：继续请求资料”并列出中文资料请求；资料足够或无法继续获取时写“资料状态：资料已足够”“资料请求：无”“资料请求结束：是”。不要输出 JSON、正文、旁白、Markdown、代码块和 final JSON。`;
   },
 
   previousGuidanceSummary(guidance = null) {
@@ -1131,7 +1131,9 @@ window.GameModules.realWorldAgentLoop = {
     const values = { ...(primary.values || {}) };
     const mergeConflicts = [...(primary.mergeConflicts || [])];
     Object.entries(secondary.values || {}).forEach(([key, value]) => {
-      if (!Object.prototype.hasOwnProperty.call(values, key) || !values[key]) values[key] = value;
+      const primaryValue = String(values[key] || '').trim();
+      const secondaryValue = String(value || '').trim();
+      if (!Object.prototype.hasOwnProperty.call(values, key) || !primaryValue || (primaryValue === '无' && secondaryValue && secondaryValue !== '无')) values[key] = value;
       else if (value && values[key] !== value) mergeConflicts.push({ key, primary: values[key], secondary: value });
     });
     const requests = [...(primary.materialRequests || [])];
@@ -1203,9 +1205,17 @@ window.GameModules.realWorldAgentLoop = {
         ].join('\n\n');
       }
     }
-    if (parseResults.length >= 2) {
-      const merged = parseResults.map((item) => item.parsed).reduce((out, item) => this.mergeGuidedParseResults(out, item));
-      if (merged.successRate >= 0.8) return { raw: parseResults.map((item) => item.raw).join('\n\n'), data: this.guidedStepDataFromParsed(merged, parseResults.map((item) => item.raw).join('\n\n')) };
+    const mergeableParseResults = lastErr?.parseResult ? [...parseResults, { raw: lastRaw, parsed: lastErr.parseResult }] : parseResults;
+    if (mergeableParseResults.length >= 2) {
+      const merged = mergeableParseResults.map((item) => item.parsed).reduce((out, item) => this.mergeGuidedParseResults(out, item));
+      if (merged.successRate >= 0.8) {
+        const raw = mergeableParseResults.map((item) => item.raw).join('\n\n');
+        try {
+          return { raw, data: this.guidedStepDataFromParsed(merged, raw) };
+        } catch (_) {
+          // 合并后仍未通过语义自检，继续走原失败路径。
+        }
+      }
     }
     if (allowProseFinal) return { raw: bestRaw || lastRaw, data: this.proseFinal(store, bestRaw || lastRaw) };
     if (lastErr) throw lastErr;
@@ -1609,23 +1619,63 @@ window.GameModules.realWorldAgentLoop = {
     };
   },
 
-  parseGuidedStepKv(raw, config = this.realConfig()) {
-    const parsed = this.parseChineseKvBlock(raw, this.guidedStepFields(), { parseMaterialRequests: true, config });
+  normalizeGuidedStepText(raw = '') {
+    const text = String(raw || '').replace(this.invisibleCharsPattern(), '').replace(/```(?:text|markdown|json)?|```/giu, '').trim();
+    if (!text) return '';
+    const fields = this.guidedStepFields();
+    const allowed = fields.slice();
+    const values = {};
+    const lines = text.split(/\r?\n/u).map((line) => line.trim()).filter(Boolean);
+    lines.forEach((line) => {
+      const parsed = this.splitKvLine(line);
+      const key = parsed ? this.normalizeKvKey(parsed.key, allowed) : '';
+      if (key && !Object.prototype.hasOwnProperty.call(values, key)) values[key] = parsed.value;
+    });
+    const hasGuidedField = fields.some((key) => Object.prototype.hasOwnProperty.call(values, key)) || lines.some((line) => /^资料请求\d+[：:]/u.test(line));
+    if (!hasGuidedField) return text;
+    const out = lines.slice();
+    const addIfMissing = (key, value) => {
+      if (!Object.prototype.hasOwnProperty.call(values, key)) {
+        values[key] = value;
+        out.push(`${key}：${value}`);
+      }
+    };
+    const isNone = (value) => !String(value || '').trim() || String(value || '').trim() === '无';
+    const numberedRequests = lines.filter((line) => /^资料请求\d+[：:]/u.test(line));
+    const hasExplicitRequestField = Object.prototype.hasOwnProperty.call(values, '资料请求') || numberedRequests.length > 0;
+    const requestText = String(values['资料请求'] || '').trim();
+    const hasExecutableQuery = ['地点查询', '因果查询', '冲突查询'].some((key) => !isNone(values[key]));
+    if (!hasExplicitRequestField) return out.join('\n');
+    addIfMissing('查询规划', requestText === '无' && !hasExecutableQuery ? '资料已足够，进入正文推演' : '补齐资料路由字段');
+    if (!Object.prototype.hasOwnProperty.call(values, '资料状态')) {
+      const shouldContinue = numberedRequests.length > 0 || hasExecutableQuery || (requestText && requestText !== '无' && !/^无(?:\s*\/\s*0)?$/u.test(requestText));
+      addIfMissing('资料状态', shouldContinue ? '继续请求资料' : '资料已足够');
+    }
+    ['地点查询', '地点查询理由', '因果查询', '因果查询理由', '冲突查询', '冲突查询理由', '强制出场', '高优先候选', '戏剧候选', '禁止出场', '随机事件候选'].forEach((key) => addIfMissing(key, '无'));
+    addIfMissing('随机事件闯入条件', '无明确条件则禁止闯入');
+    if (!Object.prototype.hasOwnProperty.call(values, '资料请求')) addIfMissing('资料请求', `${numberedRequests.length}条`);
+    addIfMissing('资料请求结束', '是');
+    return out.join('\n');
+  },
+
+  parseGuidedStepKv(raw, config = this.realConfig(), options = {}) {
+    const normalized = options.normalized ? String(raw || '').trim() : this.normalizeGuidedStepText(raw);
+    const parsed = this.parseChineseKvBlock(normalized, this.guidedStepFields(), { parseMaterialRequests: true, config });
     if (parsed.materialRequestErrors?.length || parsed.successRate < 0.8) {
       const detail = parsed.materialRequestErrors?.[0] || '解析错误请重试';
       const err = new Error(detail);
       err.parseResult = parsed;
       throw err;
     }
-    return this.guidedStepDataFromParsed(parsed, raw);
+    return this.guidedStepDataFromParsed(parsed, normalized);
   },
 
   parseStep(raw, config = this.realConfig()) {
-    const text = String(raw || '').replace(this.invisibleCharsPattern(), '').replace(/```(?:text|markdown|json)?|```/giu, '').trim();
+    const text = this.normalizeGuidedStepText(raw);
     if (!/查询规划[：:]|资料状态[：:]/u.test(text)) {
       throw new Error(`${config.label}返回缺少中文 K:V 查询规划字段`);
     }
-    return this.parseGuidedStepKv(text, config);
+    return this.parseGuidedStepKv(text, config, { normalized: true });
   },
 
   isGuidedStepSemanticSelfCheckError(err) {

@@ -1008,6 +1008,30 @@ test('parseStep rejects contradictory Stage1 continue status without executable 
 资料请求结束：是`, loop.realConfig()), /继续请求资料.*资料请求1/u);
 });
 
+test('parseStep fills omitted soft-convergence fields when requests are none', () => {
+  const context = createContext();
+  loadCore(context);
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  const data = loop.parseStep(`地点查询：无
+地点查询理由：无需查询，目标地点已明确为刘思琪的房间
+因果查询：无
+因果查询理由：无因果链条需要推演
+冲突查询：无
+冲突查询理由：当前路线无潜在冲突
+强制出场：刘思琪（房间主人必然在房间内）
+高优先候选：无
+戏剧候选：无
+随机事件候选：无
+随机事件闯入条件：无明确条件则禁止闯入
+资料请求：无`, loop.realConfig());
+
+  assert.strictEqual(data.type, 'context_done');
+  assert.strictEqual(data.requests.length, 0);
+  assert.ok(data.parseScore.successRate >= 0.8);
+  assert.ok(data.guidanceText.includes('资料状态：资料已足够'));
+  assert.ok(data.guidanceText.includes('资料请求结束：是'));
+});
+
 test('parseStep accepts Stage1 continue status with executable numbered requests', () => {
   const context = createContext();
   loadCore(context);
