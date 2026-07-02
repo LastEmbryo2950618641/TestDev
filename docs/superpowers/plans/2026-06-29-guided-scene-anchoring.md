@@ -1700,7 +1700,7 @@ Insert after type contracts:
 
   subjectForSettlement(name = '', participants = []) {
     const found = participants.find((p) => [p.name, p.id, p.idOrName].map((x) => String(x || '').trim()).includes(String(name || '').trim()));
-    return found ? { type: found.type || 'character', id: found.id || found.idOrName || found.name, name: found.name || name } : null;
+    return found ? { type: found.type || 'character', id: found.id ||情绪 found.idOrName || found.name, name: found.name || name } : null;
   },
 
   parseStandardSettlementLine(typeName = '', line = '', subject = null) {
