@@ -144,11 +144,11 @@ window.GameModules.storyAgentContext = {
     return window.GameModules.realWorldAgentContext.loadedAnchorSummary(items);
   },
 
-  sceneParticipantBoundary(trace = []) {
-    return window.GameModules.realWorldAgentContext.sceneParticipantBoundary(trace);
+  sceneParticipantBoundary(trace = [], effectiveSceneLayers = null) {
+    return window.GameModules.realWorldAgentContext.sceneParticipantBoundary(trace, effectiveSceneLayers);
   },
 
-  buildSceneAnchorContext({ store, action, loaded = [], trace = [], config = null } = {}) {
+  buildSceneAnchorContext({ store, action, loaded = [], trace = [], effectiveSceneLayers = null, config = null } = {}) {
     const work = this.worldLabel(store);
     const character = store?.character?.name || '未知角色';
     const scene = store?.sceneTitle || '未知场景';
@@ -158,7 +158,7 @@ window.GameModules.storyAgentContext = {
       `当前场景位置：${scene}`,
       `当前时间提示：${store?.entryTimeLabel?.() || '未知时间'}`,
       `空间边界线索：仅保留当前作品《${work}》中地点、相邻空间、移动路径、自然介入条件。`,
-      `参与者边界：\n${this.sceneParticipantBoundary(trace)}`,
+      `参与者边界：\n${this.sceneParticipantBoundary(trace, effectiveSceneLayers)}`,
       `已加载锚定事实：\n${this.loadedAnchorSummary(loaded)}`,
       `当前对象线索：${character}｜作品：${work}`,
     ].join('\n');

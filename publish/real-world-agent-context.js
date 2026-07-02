@@ -314,12 +314,26 @@ window.GameModules.realWorldAgentContext = {
     return cleaned && !methodLike.test(cleaned) && !skillWords.test(cleaned) ? cleaned : `资料${index + 1}`;
   },
 
+  isRoleCardMaterial(item = {}) {
+    const title = String(item?.title || '');
+    const text = String(item?.text || '');
+    return /角色卡|character\.query|searchCharacterProfile/u.test(title) || /资料类型：完整角色卡/u.test(text);
+  },
+
+  loadedRoleCardRoutingSummary(item = {}) {
+    const text = this.redactPromptPollution(item?.text || '');
+    const keepKeys = /^(资料类型|姓名|角色ID|世界|身份|性别|年龄\/生日|职业|当前地点|人际关系|外貌|性格|喜好|人物说明|社群角色|势力地位|状态标签|核心属性|身体状态|情绪|对玩家感觉|穿着|物品|技能|知识|上线体验|其他身份状态)：/u;
+    const lines = text.split(/\r?\n/u).map((line) => line.trim()).filter((line) => keepKeys.test(line));
+    return this.limit(lines.join('\n') || text, 1400);
+  },
+
   loadedRoutingSummary(items = []) {
     if (!items.length) return '无';
     return items.map((item, index) => {
       const title = this.sanitizeLoadedTitle(item?.title || '', index);
       const text = this.redactPromptPollution(item?.text || '');
-      return `资料${index + 1}：${title}\n${this.limit(text, 260)}`;
+      const summary = this.isRoleCardMaterial(item) ? this.loadedRoleCardRoutingSummary(item) : this.limit(text, 260);
+      return `资料${index + 1}：${title}\n${summary}`;
     }).filter(Boolean).join('\n') || '无';
   },
 
@@ -503,34 +517,38 @@ window.GameModules.realWorldAgentContext = {
     ].join('\n');
   },
 
-  sceneParticipantBoundary(trace = []) {
-    const items = Array.isArray(trace) ? trace : [];
-    const mergeByName = (key) => {
-      const seen = new Set();
-      return items.flatMap((item) => Array.isArray(item?.[key]) ? item[key] : []).filter((item) => {
-        const name = String(item?.name || item?.idOrName || item?.id || item?.characterName || '').trim();
-        if (!name || seen.has(name)) return false;
-        seen.add(name);
-        return true;
-      });
-    };
-    const names = (group = [], label = '理由') => group.map((item) => {
+  sceneParticipantBoundary(trace = [], effectiveSceneLayers = null) {
+    const layers = effectiveSceneLayers || (Array.isArray(trace) ? {
+      forcedParticipants: trace.flatMap((item) => Array.isArray(item?.forcedParticipants) ? item.forcedParticipants : []),
+      priorityCandidates: trace.flatMap((item) => Array.isArray(item?.priorityCandidates) ? item.priorityCandidates : []),
+      dramaCandidates: trace.flatMap((item) => Array.isArray(item?.dramaCandidates) ? item.dramaCandidates : []),
+      forbiddenParticipants: trace.flatMap((item) => Array.isArray(item?.forbiddenParticipants) ? item.forbiddenParticipants : []),
+      randomActiveEvents: trace.flatMap((item) => Array.isArray(item?.randomActiveEvents) ? item.randomActiveEvents : []),
+      randomIntrusionCondition: [...trace].reverse().find((item) => item?.randomIntrusionCondition)?.randomIntrusionCondition || '无明确条件则禁止闯入',
+    } : trace || {});
+    const seenNames = new Set();
+    const clean = (group = []) => (Array.isArray(group) ? group : []).filter((item) => {
+      const name = String(item?.name || item?.idOrName || item?.id || item?.characterName || '').trim();
+      if (!name || seenNames.has(name)) return false;
+      seenNames.add(name);
+      return true;
+    });
+    const names = (group = [], label = '理由') => clean(group).map((item) => {
       const name = item.name || item.idOrName || item.id || item.characterName;
       return `${name}${item.reason ? `（${label}：${item.reason}）` : ''}`;
     }).join('、') || '无';
-    const random = items.flatMap((item) => item.randomActiveEvents || []).map((item) => `${item.characterName || item.name}：${item.eventType || item.actionMethod || '场外事件'}｜${item.motivation || ''}`).join('；') || '无';
-    const latestCondition = [...items].reverse().find((item) => item?.randomIntrusionCondition)?.randomIntrusionCondition || '无明确条件则禁止闯入';
+    const random = (Array.isArray(layers.randomActiveEvents) ? layers.randomActiveEvents : []).map((item) => `${item.characterName || item.name}：${item.eventType || item.actionMethod || '场外事件'}｜${item.motivation || ''}`).join('；') || '无';
     return [
-      `强制出场：${names(mergeByName('forcedParticipants'), '出场理由')}`,
-      `高优先候选：${names(mergeByName('priorityCandidates'), '候选理由')}`,
-      `戏剧候选：${names(mergeByName('dramaCandidates'), '候选理由')}`,
-      `禁止出场：${names(mergeByName('forbiddenParticipants'), '不在场理由')}`,
+      `强制出场：${names(layers.forcedParticipants, '出场理由')}`,
+      `高优先候选：${names(layers.priorityCandidates, '候选理由')}`,
+      `戏剧候选：${names(layers.dramaCandidates, '候选理由')}`,
+      `禁止出场：${names(layers.forbiddenParticipants, '不在场理由')}`,
       `随机主动事件：${random}`,
-      `随机事件闯入条件：${latestCondition}`,
+      `随机事件闯入条件：${layers.randomIntrusionCondition || '无明确条件则禁止闯入'}`,
     ].join('\n');
   },
 
-  buildSceneAnchorContext({ store, action, loaded = [], trace = [], config = null } = {}) {
+  buildSceneAnchorContext({ store, action, loaded = [], trace = [], effectiveSceneLayers = null, config = null } = {}) {
     const map = window.GameModules.realWorldMap?.ensure?.(store, store?.playerProfile || {}) || {};
     const location = store?.realWorldLocationName || map.current || store?.realWorldSceneTitle || '未知地点';
     const time = [store?.phoneDateText?.(), store?.phoneTimeText?.()].filter(Boolean).join(' ') || '未知时间';
@@ -541,7 +559,7 @@ window.GameModules.realWorldAgentContext = {
       `当前时间提示：${time}`,
       `空间边界线索：仅保留门口、房间、走廊、相邻空间、可听见/可看见/可进入条件。`,
       this.scheduleCandidateHintText(store, action, location),
-      `参与者边界：\n${this.sceneParticipantBoundary(trace)}`,
+      `参与者边界：\n${this.sceneParticipantBoundary(trace, effectiveSceneLayers)}`,
       `已加载锚定事实：\n${this.loadedAnchorSummary(loaded)}`,
     ].join('\n');
   },
