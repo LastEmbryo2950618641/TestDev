@@ -1404,7 +1404,7 @@ test('parseSettlementKv accepts settlement headings with inline status text', ()
   assert.strictEqual(parsed.baseFields['当前状态'], '测试状态');
 });
 
-test('Stage4 short retry keeps completed types out of the next prompt', async () => {
+test('Stage4 short partial output is discarded before retry', async () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
@@ -1415,8 +1415,8 @@ test('Stage4 short retry keeps completed types out of the next prompt', async ()
   context.window.GameModules.promptTemplates.render = async (_id, vars) => JSON.stringify(vars);
   const rendered = [];
   const outputs = [
-    '情绪结算：\n结算状态：无变化\n类型完成：是\n结算结束：是',
-    '感觉结算：\n结算状态：无变化\n类型完成：是\n结算结束：是',
+    '情绪结算{\n结算状态：无变化\n}',
+    '情绪结算{\n结算状态：无变化\n}\n感觉结算{\n结算状态：无变化\n}',
   ];
   loop.completeConfiguredStep = async (_store, prompt) => {
     rendered.push(JSON.parse(prompt));
@@ -1426,8 +1426,11 @@ test('Stage4 short retry keeps completed types out of the next prompt', async ()
   await loop.completeConfiguredSettlementKvWindow({ store, action: '行动', base: '基础', loaded: [], narration: '正文', trace: [], participants, config });
 
   assert.strictEqual(rendered.length, 2);
-  assert.strictEqual(rendered[1].本次必须返回的类型, '感觉');
-  assert.ok(!rendered[1].类型合约.includes('情绪结算{'), 'completed emotion contract should be absent');
+  assert.strictEqual(rendered[1].本次必须返回的类型, '情绪、感觉');
+  assert.strictEqual(rendered[1].已完成类型, '无');
+  assert.ok(rendered[1].类型合约.includes('情绪结算{'), 'discarded emotion contract should still be requested');
+  assert.ok(rendered[1].未完成类型原因.includes('整轮已丢弃'), 'retry should explain whole-attempt discard');
+  assert.strictEqual((rendered[1].未完成类型原因.match(/返回过短/gu) || []).length, 1);
 });
 
 test('scene anchor accepts parse-degraded report without a second AI request', async () => {
@@ -2938,7 +2941,7 @@ test('parseSettlementKv accepts 更新N placeholder update lines from model outp
   assert.strictEqual(parsed.genericUpdates.length, 1);
 });
 
-test('Stage4 settlement gate retries short non-final batch with only unfinished types', async () => {
+test('Stage4 settlement gate discards short non-final batch before retry', async () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
@@ -2952,18 +2955,18 @@ test('Stage4 settlement gate retries short non-final batch with only unfinished 
   loop.completeConfiguredStep = async (_store, prompt) => {
     rendered.push(JSON.parse(prompt));
     calls += 1;
-    if (calls === 1) return '情绪结算：\n结算状态：无变化\n类型完成：是\n结算结束：是';
-    return '感觉结算：\n结算状态：无变化\n类型完成：是\n结算结束：是';
+    if (calls === 1) return '情绪结算{\n结算状态：无变化\n}';
+    return '情绪结算{\n结算状态：无变化\n}\n感觉结算{\n结算状态：无变化\n}';
   };
 
   await loop.completeConfiguredSettlementKvWindow({ store, action: '行动', base: '基础', loaded: [], narration: '正文', trace: [], participants, config });
 
   assert.strictEqual(calls, 2);
-  assert.strictEqual(rendered[1].本次必须返回的类型, '感觉');
-  assert.strictEqual(rendered[1].未完成类型, '感觉');
-  assert.ok(rendered[1].未完成类型原因.includes('上轮返回过短'));
-  assert.ok(!rendered[1].类型合约.includes('情绪结算{'));
-  assert.ok(rendered[1].未完成类型原因.includes('需从“感觉结算{”开始整块重输'));
+  assert.strictEqual(rendered[1].本次必须返回的类型, '情绪、感觉');
+  assert.strictEqual(rendered[1].未完成类型, '情绪、感觉');
+  assert.ok(rendered[1].未完成类型原因.includes('整轮已丢弃'));
+  assert.ok(rendered[1].类型合约.includes('情绪结算{'));
+  assert.ok(rendered[1].类型合约.includes('感觉结算{'));
 });
 
 test('Stage4 rejects repeated short single-type replies to protect token quota', async () => {
@@ -2991,8 +2994,9 @@ test('Stage4 rejects repeated short single-type replies to protect token quota',
   );
 
   assert.strictEqual(rendered.length, 2);
-  assert.strictEqual(rendered[1].本次必须返回的类型, '情绪、感觉');
-  assert.ok(rendered[1].未完成类型原因.includes('疑似只输出了单个类型'));
+  assert.strictEqual(rendered[1].本次必须返回的类型, '基础结算、情绪、感觉');
+  assert.ok(rendered[1].未完成类型原因.includes('整轮已丢弃'));
+  assert.ok(rendered[1].类型合约.includes('基础结算{'));
 });
 
 (async () => {

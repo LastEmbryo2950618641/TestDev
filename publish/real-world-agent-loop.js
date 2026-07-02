@@ -869,11 +869,11 @@ window.GameModules.realWorldAgentLoop = {
       const title = c?.title || `${type}结算`;
       return [`[${String(index + 1).padStart(2, '0')}/${String(totalTypes).padStart(2, '0')}] ${type}合约说明（实际输出标题必须严格写“${title}{”，不得带索引）`, `${title}{`, '结算状态：需要更新 / 无变化', '参与者为空时：直接写“结算状态：无变化”“}”；禁止输出结算对象和更新行。', '若无变化：直接写“结算状态：无变化”“}”，不要编造结算对象或更新行。', '若需要更新：结算对象：显示名全称｜角色/玩家/地点/势力/世界/系统｜允许结算', c?.format || '', '结算对象结束：显示名全称', '}', '→ 继续输出下个类型，直到本次必须返回的类型全部完成'].join('\n');
     }).join('\n\n');
-    const incompleteReason = incompleteTypes.map((type) => {
+    const globalShortReason = String(partialByType.__shortOutputReason || '').trim();
+    const incompleteReason = [globalShortReason, incompleteTypes.map((type) => {
       const title = contracts[type]?.title || `${type}结算`;
-      const shortReason = /^上轮返回过短/u.test(String(partialByType[type] || '')) ? `；${partialByType[type]}` : '';
-      return `${type}：需从“${title}{”开始整块重输，并用“}”闭合${shortReason}`;
-    }).join('；') || '无';
+      return `${type}：需从“${title}{”开始整块重输，并用“}”闭合`;
+    }).join('；')].filter(Boolean).join('\n') || '无';
     const stableFactRules = [
       '内部提取“本轮稳定事实”：只在内部完成，不输出事实列表。',
       '明确事实：可直接结算。',
@@ -912,8 +912,15 @@ window.GameModules.realWorldAgentLoop = {
       const compactRawLength = String(raw || '').replace(/\s+/gu, '').length;
       const isFinalBatch = requestedTypes.length <= 1 || parsed.incompleteTypes.length === 0;
       const isShortPartial = !isFinalBatch && compactRawLength < 1000;
-      if (isShortPartial) shortOutputRetries += 1;
-      else shortOutputRetries = 0;
+      if (isShortPartial) {
+        shortOutputRetries += 1;
+        partialByType.__shortOutputReason = `上轮返回过短：${compactRawLength}/1000；本轮疑似只输出单个类型，整轮已丢弃，必须一次性按顺序重输全部未完成类型。`;
+        requestedTypes.forEach((type) => { partialByType[type] = '上轮短回复已丢弃，需完整重输。'; });
+        if (shortOutputRetries > 1) throw new Error(`Stage4滑动结算返回过短：${compactRawLength}/1000，未完成类型：${requestedTypes.join('、')}`);
+        continue;
+      }
+      shortOutputRetries = 0;
+      delete partialByType.__shortOutputReason;
       parsed.completeTypes.forEach((type) => {
         if (!completedTypes.includes(type)) completedTypes.push(type);
         patchesByType[type] = parsed.patchesByType[type];
@@ -923,12 +930,6 @@ window.GameModules.realWorldAgentLoop = {
         const lines = parsed.patchesByType[type]?.__lines || [];
         partialByType[type] = lines.length ? lines.join('\n') : '本轮未返回该类型，需补齐完整类型块。';
       });
-      if (isShortPartial) {
-        const remaining = parsed.incompleteTypes.filter((type) => !completedTypes.includes(type));
-        const shortReason = `上轮返回过短：${compactRawLength}/1000；疑似只输出了单个类型，必须在同一轮按顺序补齐所有未完成类型：${remaining.join('、') || requestedTypes.join('、')}`;
-        remaining.forEach((type) => { partialByType[type] = shortReason; });
-        if (shortOutputRetries > 1) throw new Error(`Stage4滑动结算返回过短：${compactRawLength}/1000，未完成类型：${remaining.join('、')}`);
-      }
       requestedTypes = allTypes.filter((type) => !completedTypes.includes(type));
     }
     if (requestedTypes.length) throw new Error(`Stage4结算类型未完成：${requestedTypes.join('、')}`);
