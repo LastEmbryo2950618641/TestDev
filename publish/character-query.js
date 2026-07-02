@@ -94,7 +94,7 @@ window.GameModules.characterQuery = {
     if (value.name && (value.level || value.type)) return `${value.name}${value.level ? ` lv.${value.level}` : ''}${value.type ? `（${value.type}）` : ''}`;
     if (Object.prototype.hasOwnProperty.call(value, 'current')) return `${value.current}/${value.max ?? 'max'}`;
     if (Object.prototype.hasOwnProperty.call(value, 'onlineCount')) return `上线${value.onlineCount || 0}次｜${value.feeling || '未知'}｜适应${value.adaptation || 0}/100｜${value.summary || ''}`;
-    if (Object.values(value).some((item) => item?.partKey && item?.status)) return Object.values(value).map((item) => `${item.part || item.name || item.partKey}：${item.status || item.summary || '稳定'}`).join('；');
+    if (Object.values(value).some((item) => item?.partKey && item?.status)) return Object.values(value).filter((item) => item?.partKey || item?.part || item?.name).map((item) => `${item.part || item.name || item.partKey}：${item.status || item.summary || '稳定'}`).join('；');
     return JSON.stringify(value);
   },
 
@@ -135,7 +135,7 @@ window.GameModules.characterQuery = {
 
   schemaSectionText(state = {}) {
     const values = state.values || {};
-    const covered = new Set(['world_tag', 'gender', 'age', 'current_location', 'factions', 'force_positions', 'status_tags', 'level', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'health', 'stamina', 'bodyStatus', 'intimacy', 'stamina_pool', 'satiety', 'hydration', 'fatigue', 'mental_stability', 'wearing', 'items', 'skills', 'knowledge', 'control_experience']);
+    const covered = new Set(['world_tag', 'gender', 'age', 'current_location', 'factions', 'force_positions', 'status_tags', 'level', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'health', 'stamina', 'bodyStatus', 'intimacy', 'vitality', 'stamina_pool', 'satiety', 'hydration', 'fatigue', 'mental_stability', 'wearing', 'items', 'skills', 'knowledge', 'control_experience']);
     return (state.schema?.sections || []).map((section) => {
       const rows = (section.fields || []).map((field) => {
         if (!field?.key || covered.has(field.key) || values[field.key] === undefined) return '';
