@@ -56,6 +56,41 @@ Object.assign(window.GameModules.updateRegistry, {
 
   changeValue(update = {}) { return update.change?.value ?? update.value; },
 
+  leafName(field = '') {
+    return String(field || '').split('.').filter(Boolean).at(-1) || '';
+  },
+
+  metricKeyFromUpdate(update = {}) {
+    return String(update.key || update.name || this.leafName(update.field)).trim();
+  },
+
+  isTemporaryMetricUpdate(update = {}) {
+    return update.temporary === true || /(^|\.)temporary(?:Emotions|PlayerFeelings|\.|$)/u.test(String(update.field || ''));
+  },
+
+  applyMetricUpdate(store, update = {}) {
+    const state = this.targetState(store, update);
+    if (!state?.id) return false;
+    const metrics = store.ensureStateMetrics?.(state) || state.metrics;
+    if (!metrics) return false;
+    const key = this.metricKeyFromUpdate(update);
+    if (!key) return false;
+    const group = update.updateType === 'feeling' ? 'player' : 'emotion';
+    const fixedTarget = group === 'player' ? metrics.playerFeelings : metrics.emotions;
+    const tempTarget = group === 'player' ? metrics.temporaryPlayerFeelings : metrics.temporaryEmotions;
+    const temporary = this.isTemporaryMetricUpdate(update) || !Object.prototype.hasOwnProperty.call(fixedTarget || {}, key);
+    const target = temporary ? tempTarget : fixedTarget;
+    if (!target) return false;
+    const before = window.GameModules.metrics.clamp(target[key] || 0);
+    const rawDelta = window.GameModules.metrics.clampDelta(this.deltaValue(update));
+    const delta = group === 'player' && !temporary ? window.GameModules.metrics.lockedPlayerDelta(key, rawDelta, before) : rawDelta;
+    const next = window.GameModules.metrics.clamp(before + delta);
+    const reason = this.metricReasonText(update);
+    const status = update.change?.status || (temporary ? `${key}：短期状态。` : '');
+    window.GameModules.metrics.writeMetric(target, metrics.notes || (metrics.notes = {}), group, { key, delta, status, reason, temporary, metricSources: { 数值: 'AI', 解释: status ? 'AI' : '系统', 原因: 'AI' } }, next, '现实推演结算。');
+    return next !== before || Boolean(reason);
+  },
+
   normalizeBodyStatusValue(update = {}) {
     const value = this.changeValue(update);
     if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
@@ -105,6 +140,7 @@ Object.assign(window.GameModules.updateRegistry, {
     if (update.updateType === 'body-status') return this.applyBodyStatusUpdate(store, update);
     if (update.updateType === 'sexual-experience') return this.applySexualExperienceUpdate(store, update);
     if (update.updateType === 'wearing-state') return this.applyWearingStateUpdate(store, update);
+    if (update.updateType === 'emotion' || update.updateType === 'feeling') return this.applyMetricUpdate(store, update);
     const direct = this.targetState(store, update), generic = direct ? null : this.genericTarget(store, update);
     const state = direct || generic?.state, field = String(update.field || '').trim();
     if (!state || !field) return false;

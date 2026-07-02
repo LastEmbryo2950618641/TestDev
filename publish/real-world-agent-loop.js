@@ -699,18 +699,24 @@ window.GameModules.realWorldAgentLoop = {
     if (!subject || !key || !rawValue || !reason) return null;
     if (!entry) return this.parseGenericSettlementLine(typeName, line, subject, { requireExplicitGeneric: true });
     let normalizedKey = type === '生命体征' ? this.vitalFieldAlias(key) : key;
+    const delta = Number(String(rawValue).replace(/[^-+\d.]/gu, ''));
+    const hasNumericDelta = Number.isFinite(delta) && /^[+-]?\d/u.test(String(rawValue));
+    let temporaryMetric = false;
     if (['情绪', '感觉'].includes(type)) {
-      const aliases = type === '情绪' ? { 愉悦: '高兴', 开心: '高兴', 惊慌: '恐惧', 不安: '紧张' } : { 信赖: '信任', 亲近: '好感', 害怕: '畏惧', 厌恶: '反感' };
       const allowedKeys = this.settlementMetricKeysForSubject(store, subject, type);
-      normalizedKey = allowedKeys.includes(normalizedKey) ? normalizedKey : aliases[normalizedKey];
-      if (!allowedKeys.includes(normalizedKey)) return null;
+      normalizedKey = this.metricAliasForSettlement(type, normalizedKey);
+      if (!allowedKeys.includes(normalizedKey)) {
+        if (!hasNumericDelta) return null;
+        temporaryMetric = true;
+      }
     }
     if (entry.fieldMap && !entry.fieldMap[normalizedKey]) return null;
     if (type === '生命体征' && !/^[-+]?\d/u.test(String(rawValue).trim())) return null;
-    const delta = Number(String(rawValue).replace(/[^-+\d.]/gu, ''));
-    const field = entry.fieldMap?.[normalizedKey] || `${entry.fieldPrefix}.${normalizedKey}`;
-    const change = Number.isFinite(delta) && /^[+-]?\d/u.test(String(rawValue)) ? { mode: 'delta', value: delta } : { mode: 'set', value: rawValue };
-    return { updateType: entry.updateType, subject, field, change, reasons: [{ trigger: type, evidence: reason, confidence: 'confirmed' }] };
+    const field = temporaryMetric
+      ? `metrics.${type === '感觉' ? 'temporaryPlayerFeelings' : 'temporaryEmotions'}.${normalizedKey}`
+      : (entry.fieldMap?.[normalizedKey] || `${entry.fieldPrefix}.${normalizedKey}`);
+    const change = hasNumericDelta ? { mode: 'delta', value: delta } : { mode: 'set', value: rawValue };
+    return { updateType: entry.updateType, subject, field, temporary: temporaryMetric, change, reasons: [{ trigger: temporaryMetric ? `临时${type}` : type, evidence: reason, confidence: 'confirmed' }] };
   },
 
   parseGenericSettlementLine(typeName = '', line = '', subject = null, options = {}) {
@@ -724,6 +730,44 @@ window.GameModules.realWorldAgentLoop = {
   settlementAlias(value = '', aliases = {}) {
     const clean = String(value || '').trim();
     return aliases[clean] || clean;
+  },
+
+  metricAliasForSettlement(type = '', key = '') {
+    const clean = String(key || '').trim();
+    const emotionAliases = {
+      平静: '冷静', 镇定: '冷静', 理智: '冷静', 安定: '冷静', 淡定: '冷静', 安心: '冷静',
+      害怕: '恐惧', 惊恐: '恐惧', 惊惧: '恐惧', 惧怕: '恐惧', 惊慌: '恐惧', 惶恐: '恐惧', 胆怯: '恐惧', 畏缩: '恐惧',
+      忧虑: '担忧', 忧心: '担忧', 不安: '担忧', 顾虑: '担忧', 焦虑: '担忧', 挂念: '担忧', 牵挂: '担忧',
+      开心: '高兴', 愉悦: '高兴', 快乐: '高兴', 欣喜: '高兴', 喜悦: '高兴', 满足: '高兴', 轻松: '高兴',
+      紧绷: '紧张', 慌张: '紧张', 局促: '紧张', 压迫感: '紧张', 忐忑: '紧张',
+      生气: '愤怒', 恼怒: '愤怒', 怒意: '愤怒', 怨怒: '愤怒', 气愤: '愤怒', 暴躁: '愤怒',
+      羞愧: '羞耻', 害羞: '羞耻', 难堪: '羞耻', 尴尬: '羞耻', 屈辱: '羞耻', 羞辱: '羞耻',
+      难过: '悲伤', 哀伤: '悲伤', 伤心: '悲伤', 失落: '悲伤', 痛苦: '悲伤', 悲痛: '悲伤',
+      兴趣: '好奇', 探究: '好奇', 疑惑: '好奇', 困惑: '好奇', 在意: '好奇',
+      空洞: '麻木', 呆滞: '麻木', 迟钝: '麻木', 冷漠: '麻木', 恍惚: '麻木',
+      吃醋: '嫉妒', 妒忌: '嫉妒', 醋意: '嫉妒', 酸涩: '嫉妒',
+      无望: '绝望', 崩溃: '绝望', 灰心: '绝望', 走投无路: '绝望',
+    };
+    const feelingAliases = {
+      知晓: '了解', 理解: '了解', 熟悉: '了解', 认识: '了解', 洞悉: '了解', 知情: '了解',
+      信赖: '信任', 相信: '信任', 放心: '信任', 可靠感: '信任',
+      抵抗: '反抗', 抗拒: '反抗', 逆反: '反抗', 拒绝: '反抗', 不服: '反抗',
+      亲近: '好感', 喜欢: '好感', 接纳: '好感', 善意: '好感', 顺眼: '好感',
+      友好: '友情', 友谊: '友情', 伙伴感: '友情', 同伴感: '友情',
+      家人感: '亲情', 亲近依附: '亲情', 亲缘: '亲情', 庇护感: '亲情',
+      恋慕: '爱情', 爱慕: '爱情', 心动: '爱情', 倾心: '爱情', 眷恋: '爱情', 深爱: '爱情',
+      欲望: '肉欲', 情欲: '肉欲', 渴望: '肉欲', 冲动: '肉欲', 身体吸引: '肉欲',
+      害怕: '畏惧', 惧怕: '畏惧', 恐惧: '畏惧', 惧意: '畏惧', 怕: '畏惧',
+      敬重: '尊敬', 敬意: '尊敬', 认可: '尊敬', 钦佩: '尊敬', 佩服: '尊敬',
+      仰慕: '崇拜', 崇敬: '崇拜', 神化: '崇拜', 狂热: '崇拜',
+      厌恶: '讨厌', 反感: '讨厌', 排斥: '讨厌', 嫌恶: '讨厌', 憎恶: '讨厌',
+      依恋: '依赖', 依附: '依赖', 需要: '依赖', 离不开: '依赖',
+      戒备: '警惕', 防备: '警惕', 怀疑: '警惕', 提防: '警惕', 疑心: '警惕',
+      控制欲: '支配欲', 掌控欲: '支配欲', 主导欲: '支配欲', 控制: '支配欲',
+      独占欲: '占有欲', 独占: '占有欲', 占有: '占有欲', 垄断欲: '占有欲',
+      顺从: '服从', 听话: '服从', 臣服: '服从', 屈从: '服从', 驯服: '服从',
+    };
+    return (type === '感觉' ? feelingAliases : emotionAliases)[clean] || clean;
   },
 
   vitalFieldAlias(field = '') {

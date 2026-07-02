@@ -85,7 +85,8 @@ Object.assign(window.GameModules.updateRegistry, {
       const key = String(item.field || '').split('.').filter(Boolean).at(-1) || item.name;
       if (!key) continue;
       if (!grouped.has(target)) grouped.set(target, { target, subject: { ...subject, id: target }, emotions: [], playerFeelings: [] });
-      grouped.get(target)[bucket].push({ key, delta: this.deltaValue(item), status: item.change?.status || '', reason: this.metricReasonText(item) });
+      const temporary = item.temporary === true || /(^|\.)temporary(?:Emotions|PlayerFeelings|\.|$)/u.test(String(item.field || ''));
+      grouped.get(target)[bucket].push({ key, delta: this.deltaValue(item), status: item.change?.status || '', reason: this.metricReasonText(item), temporary });
     }
     return Array.from(grouped.values());
   },
