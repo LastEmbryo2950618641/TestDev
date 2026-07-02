@@ -81,7 +81,8 @@ window.GameModules.aiRequest = {
 
   logRawRequest(options, payload, meta = {}) {
     if (window.GameModules.config?.aiRequest?.logRawRequest === false) return;
-    const prompt = options.prompt !== undefined ? String(options.prompt || '') : (options.messages || []).map((msg) => String(msg?.content || '')).join('\n');
+    const messages = Array.isArray(payload.messages) ? payload.messages : [];
+    const prompt = options.prompt !== undefined ? String(options.prompt || '') : messages.map((msg) => String(msg?.content || '')).join('\n');
     console.log('[AI请求参数]', {
       id: options.id,
       source: options.source,
@@ -89,7 +90,10 @@ window.GameModules.aiRequest = {
       maxTokens: options.maxTokens,
       timeoutMs: options.timeoutMs,
       prompt,
-      messageCount: Array.isArray(payload.messages) ? payload.messages.length : 0,
+      messageCount: messages.length,
+      roles: messages.map((msg) => msg?.role || 'unknown'),
+      messageLengths: messages.map((msg) => String(msg?.content || '').length),
+      messages: messages.map((msg, index) => ({ index, role: msg?.role || 'unknown', length: String(msg?.content || '').length, preview: String(msg?.content || '').slice(0, 160) })),
       ...meta,
     });
   },
