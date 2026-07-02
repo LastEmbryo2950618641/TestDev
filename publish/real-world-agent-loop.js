@@ -609,7 +609,7 @@ window.GameModules.realWorldAgentLoop = {
     return {
       '情绪': { updateType: 'emotion', fieldPrefix: 'metrics.emotions' },
       '感觉': { updateType: 'feeling', fieldPrefix: 'metrics.playerFeelings' },
-      '生命体征': { updateType: 'vital', fieldMap: { '精力': 'vitals.stamina_pool', '饱食度': 'vitals.satiety', '水分': 'vitals.hydration', '疲劳': 'vitals.fatigue', '精神稳定': 'vitals.mental_stability' } },
+      '生命体征': { updateType: 'vital', fieldMap: { '生命力': 'vitals.vitality', '精力': 'vitals.stamina_pool', '饱食度': 'vitals.satiety', '水分': 'vitals.hydration', '疲劳': 'vitals.fatigue', '精神稳定': 'vitals.mental_stability' } },
       '身体状态': { updateType: 'body-status', fieldPrefix: 'bodyStatus' },
       '穿着状态': { updateType: 'wearing-state', fieldPrefix: 'values.wearing' },
       '性经历': { updateType: 'sexual-experience', fieldPrefix: 'intimacy.sexualExperienceParts' },
@@ -656,17 +656,23 @@ window.GameModules.realWorldAgentLoop = {
       }
     }
     const [label, key, rawValue, reason] = parts;
-    const entry = catalog[label || typeName];
+    const type = label || typeName;
+    const entry = catalog[type];
     if (!subject || !key || !rawValue || !reason) return null;
     if (!entry) return this.parseGenericSettlementLine(typeName, line, subject, { requireExplicitGeneric: true });
-    if (['情绪', '感觉'].includes(label || typeName)) {
-      const allowedKeys = this.settlementMetricKeysForSubject(store, subject, label || typeName);
-      if (!allowedKeys.includes(key)) return null;
+    let normalizedKey = type === '生命体征' ? this.vitalFieldAlias(key) : key;
+    if (['情绪', '感觉'].includes(type)) {
+      const aliases = type === '情绪' ? { 愉悦: '高兴', 开心: '高兴', 惊慌: '恐惧', 不安: '紧张' } : { 信赖: '信任', 亲近: '好感', 害怕: '畏惧', 厌恶: '反感' };
+      const allowedKeys = this.settlementMetricKeysForSubject(store, subject, type);
+      normalizedKey = allowedKeys.includes(normalizedKey) ? normalizedKey : aliases[normalizedKey];
+      if (!allowedKeys.includes(normalizedKey)) return null;
     }
+    if (entry.fieldMap && !entry.fieldMap[normalizedKey]) return null;
+    if (type === '生命体征' && !/^[-+]?\d/u.test(String(rawValue).trim())) return null;
     const delta = Number(String(rawValue).replace(/[^-+\d.]/gu, ''));
-    const field = entry.fieldMap?.[key] || `${entry.fieldPrefix}.${key}`;
+    const field = entry.fieldMap?.[normalizedKey] || `${entry.fieldPrefix}.${normalizedKey}`;
     const change = Number.isFinite(delta) && /^[+-]?\d/u.test(String(rawValue)) ? { mode: 'delta', value: delta } : { mode: 'set', value: rawValue };
-    return { updateType: entry.updateType, subject, field, change, reasons: [{ trigger: label || typeName, evidence: reason, confidence: 'confirmed' }] };
+    return { updateType: entry.updateType, subject, field, change, reasons: [{ trigger: type, evidence: reason, confidence: 'confirmed' }] };
   },
 
   parseGenericSettlementLine(typeName = '', line = '', subject = null, options = {}) {
@@ -682,23 +688,33 @@ window.GameModules.realWorldAgentLoop = {
     return aliases[clean] || clean;
   },
 
+  vitalFieldAlias(field = '') {
+    return this.settlementAlias(field, { 生命力: '生命力', 生命值: '生命力', 健康: '生命力', health: '生命力', 精力: '精力', 精力池: '精力', 体力: '精力', stamina: '精力', 饱食度: '饱食度', 饱食: '饱食度', satiety: '饱食度', 水分: '水分', 口渴: '水分', 水合: '水分', hydration: '水分', 疲劳: '疲劳', 疲劳度: '疲劳', fatigue: '疲劳', 精神稳定: '精神稳定', 精神稳定度: '精神稳定', mental_stability: '精神稳定' });
+  },
+
+  allowedBodyPartKeys() { return ['overall', 'mouth', 'chest', 'genital', 'anus', 'hips', 'limbs', 'skin', 'other']; },
+
+  allowedWearingSlots() { return ['bra', 'top', 'outerwear', 'bottom', 'legwear', 'shoes', 'panties', '饰品']; },
+
+  allowedSexualPartKeys() { return ['genital', 'chest', 'lips', 'mouth', 'oralAction', 'oralSex', 'oralInternalFinish', 'genitalEntry', 'vaginalInsertion', 'vaginalInternalFinish', 'anus', 'analEntry', 'analSex', 'analInternalFinish', 'legs', 'hips', 'hands', 'skin', 'other']; },
+
   wearingSlotAlias(part = '', itemName = '') {
     const item = String(itemName || '').trim();
     if (/腿圈|项圈|手环|脚环|戒指|耳环|饰品/u.test(item)) return '饰品';
-    return this.settlementAlias(part, { 胸部: 'bra', 胸口: 'bra', 乳房: 'bra', 上身: 'top', 外套: 'outerwear', 下身: 'bottom', 腿部: 'legwear', 大腿: 'legwear', 足部: 'shoes', 脚部: 'shoes', 内裤: 'panties' });
+    return this.settlementAlias(part, { 胸部: 'bra', 胸口: 'bra', 乳房: 'bra', 上身: 'top', 外套: 'outerwear', 下身: 'bottom', 腿部: 'legwear', 大腿: 'legwear', 足部: 'shoes', 脚部: 'shoes', 内裤: 'panties', 饰品: '饰品' });
   },
 
   bodyPartAlias(part = '') {
-    return this.settlementAlias(part, { 整体: 'overall', 全身: 'overall', 口部: 'mouth', 嘴唇: 'mouth', 嘴部: 'mouth', 胸部: 'chest', 胸口: 'chest', 乳房: 'chest', 阴部: 'genital', 私处: 'genital', 肛部: 'anus', 臀部: 'hips', 屁股: 'hips', 四肢: 'limbs', 手臂: 'limbs', 腿部: 'limbs', 皮肤: 'skin' });
+    return this.settlementAlias(part, { 整体: 'overall', 全身: 'overall', 口部: 'mouth', 嘴唇: 'mouth', 嘴部: 'mouth', 胸部: 'chest', 胸口: 'chest', 乳房: 'chest', 阴部: 'genital', 私处: 'genital', 肛部: 'anus', 臀部: 'hips', 屁股: 'hips', 四肢: 'limbs', 手臂: 'limbs', 腿部: 'limbs', 皮肤: 'skin', 其他: 'other' });
   },
 
   bodyPartName(part = '', key = '') {
-    const names = { overall: '整体', mouth: '口部', chest: '胸部', genital: '阴部', anus: '肛部', hips: '臀部', limbs: '四肢', skin: '皮肤' };
+    const names = { overall: '整体', mouth: '口部', chest: '胸部', genital: '阴部', anus: '肛部', hips: '臀部', limbs: '四肢', skin: '皮肤', other: '其他' };
     return names[key] || String(part || '').trim();
   },
 
   sexualPartAlias(part = '') {
-    return this.settlementAlias(part, { 总次数: 'total', 总数: 'total', 全部: 'total', 阴部: 'genital', 胸部: 'chest', 胸口: 'chest', 乳房: 'chest', 唇部: 'lips', 接吻: 'lips', 口部: 'mouth', 嘴部: 'mouth', 腿部: 'legs', 大腿: 'legs', 臀部: 'hips', 屁股: 'hips', 手部: 'hands', 手: 'hands', 皮肤: 'skin' });
+    return this.settlementAlias(part, { 阴部: 'genital', 胸部: 'chest', 胸口: 'chest', 乳房: 'chest', 唇部: 'lips', 接吻: 'lips', 口部: 'mouth', 嘴部: 'mouth', 口部行为: 'oralAction', 口交: 'oralSex', 口交中出: 'oralInternalFinish', 阴部进入: 'genitalEntry', 阴道插入: 'vaginalInsertion', 阴道中出: 'vaginalInternalFinish', 肛部: 'anus', 肛门: 'anus', 肛部进入: 'analEntry', 肛交: 'analSex', 肛交中出: 'analInternalFinish', 腿部: 'legs', 大腿: 'legs', 臀部: 'hips', 屁股: 'hips', 手部: 'hands', 手: 'hands', 皮肤: 'skin', 其他: 'other' });
   },
 
   parseWearingSettlementLine(line = '', subject = null, participants = []) {
@@ -712,7 +728,9 @@ window.GameModules.realWorldAgentLoop = {
     }
     const [label, part, itemName, state, reason] = parts;
     if (label !== '穿着状态' || !subject || !part || !itemName || !state || !reason) return null;
-    return { updateType: 'wearing-state', subject, field: 'values.wearing', change: { mode: 'upsert', value: { slot: this.wearingSlotAlias(part, itemName), part, name: itemName, state, reason } }, reasons: [{ trigger: '穿着状态', evidence: reason, confidence: 'confirmed' }] };
+    const slot = this.wearingSlotAlias(part, itemName);
+    if (!this.allowedWearingSlots().includes(slot)) return null;
+    return { updateType: 'wearing-state', subject, field: 'values.wearing', change: { mode: 'upsert', value: { slot, part, name: itemName, state, reason } }, reasons: [{ trigger: '穿着状态', evidence: reason, confidence: 'confirmed' }] };
   },
 
   parseBodyStatusSettlementLine(line = '', subject = null, participants = []) {
@@ -727,6 +745,7 @@ window.GameModules.realWorldAgentLoop = {
     const [label, part, status, reason] = parts;
     if (label !== '身体状态' || !subject || !part || !status || !reason) return null;
     const partKey = this.bodyPartAlias(part);
+    if (!this.allowedBodyPartKeys().includes(partKey)) return null;
     return { updateType: 'body-status', subject, field: `bodyStatus.${partKey}`, change: { mode: 'merge', value: { partKey, part: this.bodyPartName(part, partKey), status, description: status, reason } }, reasons: [{ trigger: '身体状态', evidence: reason, confidence: 'confirmed' }] };
   },
 
@@ -742,10 +761,11 @@ window.GameModules.realWorldAgentLoop = {
     const [label, part, rawValue, reason] = parts;
     if (label !== '性经历' || !subject || !part || !rawValue || !reason) return null;
     const delta = Number(String(rawValue).replace(/[^-+\d.]/gu, ''));
-    if (!Number.isFinite(delta)) return null;
+    if (!Number.isFinite(delta) || !/^[-+]?\d/u.test(String(rawValue).trim())) return null;
     const key = this.sexualPartAlias(part);
-    const value = key === 'total' ? { totalDelta: delta, parts: {} } : { totalDelta: 0, parts: { [key]: delta } };
-    return { updateType: 'sexual-experience', subject, field: key === 'total' ? 'intimacy.sexualExperienceCount' : `intimacy.sexualExperienceParts.${key}`, change: { mode: 'delta', value }, reasons: [{ trigger: '性经历', evidence: reason, confidence: 'confirmed' }] };
+    if (!this.allowedSexualPartKeys().includes(key)) return null;
+    const value = { totalDelta: 0, parts: { [key]: delta } };
+    return { updateType: 'sexual-experience', subject, field: `intimacy.sexualExperienceParts.${key}`, change: { mode: 'delta', value }, reasons: [{ trigger: '性经历', evidence: reason, confidence: 'confirmed' }] };
   },
 
   parseScheduleSettlementLine(line = '', subject = null) {
@@ -781,11 +801,13 @@ window.GameModules.realWorldAgentLoop = {
     if (typeName === '关系') {
       const [, left, right, dimension, status, reason, result] = parts;
       if (!left || !right || !dimension || !status || !reason || !result) return null;
+      if (/^(?:好感|好感度|信任|依赖|警惕|畏惧|反感|愤怒|恐惧|紧张|安心|悲伤|开心|高兴)$/u.test(dimension) || /^[-+]?\d/u.test(status)) return null;
       return { updateType: 'relationship', subject, field: `relationships.${dimension}`, change: { mode: 'upsert', value: { left, right, dimension, status, reason, result } }, reasons: [{ trigger: '关系变化', evidence: reason, confidence: 'confirmed' }] };
     }
     if (typeName === '角色卡') {
       const [, field, op, value, reason, result] = parts;
-      if (!field || !op || !value || !['替换', '增加'].includes(op)) return null;
+      const allowed = ['当前状态', '身份', '职业', '技能', '知识', '外貌', '性格', '喜好', '人物说明', '社群角色', '势力地位', '人际关系'];
+      if (!field || !op || !value || !['替换', '增加'].includes(op) || !allowed.includes(field)) return null;
       return { updateType: 'role-card', subject, field: field === '当前状态' ? 'status_tags' : `profile.${field}`, change: { mode: op === '替换' ? 'set' : 'append', value: { value, reason, result } }, reasons: [{ trigger: `角色卡${op}`, evidence: reason || value, confidence: 'confirmed' }] };
     }
     return null;
@@ -922,7 +944,20 @@ window.GameModules.realWorldAgentLoop = {
     const contracts = this.settlementTypeContracts();
     const c = contracts[type] || { title: `${type}结算`, format: '更新N：类型，字段，变化，原因' };
     const rules = {
+      '情绪': '字段只能使用本轮“当前情绪基线”里已有指标名；可把愉悦/开心映射为高兴、惊慌映射为恐惧、不安映射为紧张；没有对应已有指标写无变化。',
+      '感觉': '主体只能是出场 NPC，不能是玩家；字段只能使用“出场角色对玩家感觉基线”里已有指标名；可把信赖映射为信任、亲近映射为好感、害怕映射为畏惧、厌恶映射为反感。',
+      '生命体征': '字段只能是：生命力、精力、饱食度、水分、疲劳、精神稳定；允许别名输入但最终字段写这 6 个中文名；禁止心率、体温、呼吸频率、血压、血氧、瞳孔、激素、行动能力、肌肉紧张度等新指标；变化必须是 +N/-N。',
+      '身体状态': '部位只能是：整体/全身、口部/嘴部/嘴唇、胸部/胸口/乳房、阴部/私处、肛部、臀部/屁股、四肢/手臂/腿部、皮肤、其他；禁止坐姿、手指动作、肌肉紧张度等新部位字段。',
+      '穿着状态': '穿着部位只能是：胸部/胸口/乳房、上身、外套、下身、腿部/大腿、足部/脚部、内裤、饰品；禁止肩部、腰部、整体、衣领、吊带位置等非槽位字段；必须包含衣物名称和当前状态。',
+      '性经历': '分类只能是：阴部、胸部/胸口/乳房、唇部/接吻、口部/嘴部、口部行为、口交、口交中出、阴部进入、阴道插入、阴道中出、肛部/肛门、肛部进入、肛交、肛交中出、腿部/大腿、臀部/屁股、手部/手、皮肤、其他；禁止写总次数/总数/全部。',
+      '关系': '只记录稳定关系维度，如亲属、朋友、同事、师生、雇佣、敌对、同居、恋人；好感、信任、依赖、警惕等数值态度写“感觉”，不要写关系。',
+      '角色卡': '只写稳定角色卡字段：当前状态、身份、职业、技能、知识、外貌、性格、喜好、人物说明、社群角色、势力地位、人际关系；临时情绪、生命体征、身体、穿着、关系、物品有专门类型时不得写角色卡。',
+      '地图': '字段只能是：当前位置、上级地点、地点事实、地图节点、路线事实；角色当前所在地优先写人事安排，不要把角色行动写成地图事实。',
       '人事安排': '只更新本回合 participants 中的参与者；明确通信/移动/约定涉及的人必须先由上游加入 participants 后才可结算；只记录当前地点、当前行动、可用状态；不得全角色批量刷新；弱推测不更新。',
+      '势力总览': '字段只能是：新增势力、上层势力归属、势力APP归属；组织内部部门、职位、成员地位写势力结构。',
+      '势力结构': '字段只能是：部门角色、职位、成员地位；势力是否存在或隶属关系写势力总览。',
+      '系统记录': '字段只能是：事件、记录、通信消息、剧情记录、状态；角色自身状态不要写系统记录。',
+      '通用固化': '只能写没有专门类型承载的长期稳定标签；情绪、感觉、生命体征、身体、穿着、性经历、性历史、关系、物品、地图、人事、势力、系统记录有专门类型时不得写通用固化。',
     };
     return [
       `${c.title}规则：`,
@@ -1006,7 +1041,7 @@ window.GameModules.realWorldAgentLoop = {
   buildSettlementTypeWindowPrompt({ requestedTypes = [], completedTypes = [], incompleteTypes = [], partialByType = {}, store, action, base, loaded, materialSession = null, narration, trace = [], participants = [], config = this.realConfig() }) {
     const contracts = this.settlementTypeContracts();
     const totalTypes = requestedTypes.length;
-    const minimumOutputLength = String(Math.max(1000, 250 + (requestedTypes.length * 80)));
+    const minimumOutputLength = String(Math.max(300, 120 + (requestedTypes.length * 40)));
     const typeText = requestedTypes.map((type, index) => {
       const c = contracts[type];
       const title = c?.title || `${type}结算`;
@@ -1048,7 +1083,7 @@ window.GameModules.realWorldAgentLoop = {
       必须输出块顺序: requiredBlockOrder || '无',
       必须输出块数量: String(requestedTypes.length),
       最低输出字数: minimumOutputLength,
-      输出长度规则: `本轮输出不得少于${minimumOutputLength}个中文字符；不得用解释、总结、重复文本凑字数，只能通过完整输出所有结算块满足长度。`,
+      输出长度规则: `优先遵守字段白名单和事实边界；不要为了凑字数创造更新。目标输出不少于${minimumOutputLength}个中文字符，但无稳定事实的类型必须写“无变化”。`,
       未完成类型原因: incompleteReason,
       本回合参与者: JSON.stringify(participants),
       本轮结算材料: [`行动：${this.actionText(action)}`, this.settlementParticipantContextText(store, participants), `正文：${this.compactUpdatePromptText(narration, 1800, true)}`, this.settlementMetricBaselineText(store, participants), stableFactRules].join('\n'),
@@ -1071,17 +1106,18 @@ window.GameModules.realWorldAgentLoop = {
       const parsed = this.parseSettlementKv(raw, { requestedTypes, participants, store, config });
       const compactRawLength = String(raw || '').replace(/\s+/gu, '').length;
       const isFinalBatch = requestedTypes.length <= 1 || parsed.incompleteTypes.length === 0;
-      const isShortPartial = !isFinalBatch && compactRawLength < 1000;
+      const shortOutputThreshold = 300;
+      const isShortPartial = !isFinalBatch && compactRawLength < shortOutputThreshold;
       const hasCompleteBlocksInShortOutput = isShortPartial && parsed.completeTypes.length > 0;
       if (isShortPartial && !hasCompleteBlocksInShortOutput) {
         shortOutputRetries += 1;
-        partialByType.__shortOutputReason = `上轮返回过短：${compactRawLength}/1000；整轮已丢弃，必须按本次必须返回的类型顺序完整重输全部类型。`;
-        if (shortOutputRetries > 1) throw new Error(`Stage4滑动结算返回过短且无完整类型：${compactRawLength}/1000，未完成类型：${requestedTypes.join('、')}`);
+        partialByType.__shortOutputReason = `上轮返回过短：${compactRawLength}/${shortOutputThreshold}；整轮已丢弃，必须按本次必须返回的类型顺序完整重输全部类型。`;
+        if (shortOutputRetries > 1) throw new Error(`Stage4滑动结算返回过短且无完整类型：${compactRawLength}/${shortOutputThreshold}，未完成类型：${requestedTypes.join('、')}`);
         continue;
       }
       shortOutputRetries = 0;
       const acceptedShortReason = hasCompleteBlocksInShortOutput
-        ? `上轮返回过短：${compactRawLength}/1000；长度不足，但已验收完整块：${parsed.completeTypes.join('、')}；剩余类型必须完整补齐。`
+        ? `上轮返回过短：${compactRawLength}/${shortOutputThreshold}；长度不足，但已验收完整块：${parsed.completeTypes.join('、')}；剩余类型必须完整补齐。`
         : '';
       delete partialByType.__shortOutputReason;
       parsed.completeTypes.forEach((type) => {
@@ -1145,6 +1181,7 @@ window.GameModules.realWorldAgentLoop = {
       quest: store.realWorldQuest || '确认现实处境',
       choices: Array.isArray(store.realWorldChoices) && store.realWorldChoices.length ? store.realWorldChoices.slice(0, 4) : ['观察手机异常', '处理现实事务', '联系熟人', '暂时休息'],
       vitalUpdates: [
+        { key: 'vitality', delta: 0, reason: '结算保留。' },
         { key: 'stamina_pool', delta: 0, reason: '结算保留。' },
         { key: 'satiety', delta: 0, reason: '结算保留。' },
         { key: 'hydration', delta: 0, reason: '结算保留。' },

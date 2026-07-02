@@ -49,7 +49,7 @@ window.GameModules.realWorldAgentContext = {
       const note = values.vital_update_notes?.[key]?.reason || '';
       return `${label}${value}/100${note ? `（上次变化：${note}）` : ''}`;
     };
-    return state?.values ? [row('stamina_pool', '精力'), row('satiety', '饱食度'), row('hydration', '水分'), row('fatigue', '疲劳度'), row('mental_stability', '精神稳定')].join('；') : '玩家本人状态尚未生成。';
+    return state?.values ? [row('vitality', '生命力'), row('stamina_pool', '精力'), row('satiety', '饱食度'), row('hydration', '水分'), row('fatigue', '疲劳'), row('mental_stability', '精神稳定')].join('；') : '玩家本人状态尚未生成。';
   },
 
   characterBodyText(state = null) {

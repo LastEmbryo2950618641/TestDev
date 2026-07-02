@@ -92,7 +92,7 @@ window.GameModules.realWorldSettlementActions = {
   },
 
   realWorldVitalSettlement(state, updates = []) {
-    const labels = { stamina_pool: '精力池', satiety: '饱食度', hydration: '水分', fatigue: '疲劳度', mental_stability: '精神稳定' };
+    const labels = { vitality: '生命力', stamina_pool: '精力', satiety: '饱食度', hydration: '水分', fatigue: '疲劳', mental_stability: '精神稳定' };
     const values = state?.values || {};
     const group = this.realWorldSettlementTargetGroup(state?.id || 'player-self', '');
     return (Array.isArray(updates) ? updates : []).map((item) => {
@@ -147,7 +147,7 @@ window.GameModules.realWorldSettlementActions = {
     };
     for (const item of updates) {
       const key = String(item?.key || '');
-      if (!['stamina_pool', 'satiety', 'hydration', 'fatigue', 'mental_stability'].includes(key)) continue;
+      if (!['vitality', 'stamina_pool', 'satiety', 'hydration', 'fatigue', 'mental_stability'].includes(key)) continue;
       const changed = apply(key, Number(item.delta) || 0);
       if (!changed) continue;
       values.vital_update_notes[key] = { ...changed, delta: Math.round(Number(item.delta) || 0), reason: String(item.reason || '').slice(0, 120), at: this.phoneDate().toISOString() };

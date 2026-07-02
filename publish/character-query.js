@@ -123,7 +123,7 @@ window.GameModules.characterQuery = {
     const rows = [];
     if (values.bodyStatus) rows.push(this.valueText(values.bodyStatus));
     if (values.intimacy?.bodyStatus) rows.push(this.valueText(values.intimacy.bodyStatus));
-    ['stamina_pool', 'satiety', 'hydration', 'fatigue', 'mental_stability'].forEach((key) => {
+    ['vitality', 'stamina_pool', 'satiety', 'hydration', 'fatigue', 'mental_stability'].forEach((key) => {
       if (values[key]) rows.push(`${key}:${this.valueText(values[key])}`);
     });
     return rows.filter(Boolean).join('；');

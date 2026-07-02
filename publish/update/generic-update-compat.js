@@ -4,7 +4,7 @@ window.GameModules.updateRegistry = window.GameModules.updateRegistry || {};
 Object.assign(window.GameModules.updateRegistry, {
   vitalKeyFromField(field = '') {
     const key = String(field || '').split('.').filter(Boolean).at(-1) || '';
-    const aliases = { stamina: 'stamina_pool', 饱食度: 'satiety', 水分: 'hydration', 疲劳度: 'fatigue', 精神稳定: 'mental_stability' };
+    const aliases = { vitality: 'vitality', 生命力: 'vitality', 生命值: 'vitality', 健康: 'vitality', health: 'vitality', stamina: 'stamina_pool', 精力: 'stamina_pool', 精力池: 'stamina_pool', 体力: 'stamina_pool', 饱食度: 'satiety', 饱食: 'satiety', satiety: 'satiety', 水分: 'hydration', 口渴: 'hydration', 水合: 'hydration', hydration: 'hydration', 疲劳: 'fatigue', 疲劳度: 'fatigue', fatigue: 'fatigue', 精神稳定: 'mental_stability', 精神稳定度: 'mental_stability', mental_stability: 'mental_stability' };
     return aliases[key] || key;
   },
 
@@ -47,7 +47,7 @@ Object.assign(window.GameModules.updateRegistry, {
       const rawTarget = subject.type === 'player' ? (subject.playerId || subject.id || 'player-self') : (subject.characterId || subject.id || subject.name || item.target || 'player-self');
       const target = this.canonicalSubjectId(store, rawTarget);
       return { key: this.vitalKeyFromField(item.field), delta: this.deltaValue(item), reason: this.reasonText(item), target, subject: { ...subject, id: target } };
-    }).filter((item) => ['stamina_pool', 'satiety', 'hydration', 'fatigue', 'mental_stability'].includes(item.key));
+    }).filter((item) => ['vitality', 'stamina_pool', 'satiety', 'hydration', 'fatigue', 'mental_stability'].includes(item.key));
   },
 
   canonicalSubjectId(store = null, id = 'player-self') {

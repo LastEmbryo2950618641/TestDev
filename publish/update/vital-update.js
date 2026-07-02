@@ -2,7 +2,7 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.updateRegistry?.register?.({
   id: 'vital', promptId: 'vital-update', section: '生命体征',
-  match: (change, text) => /vital|vitals|生命体征|stamina_pool|satiety|hydration|fatigue|mental_stability/u.test(text),
+  match: (change, text) => /vital|vitals|生命体征|生命力|vitality|stamina_pool|satiety|hydration|fatigue|mental_stability/u.test(text),
   card(change, store) {
     const subject = change.subject || {};
     const id = subject.id || 'player-self';

@@ -1,8 +1,8 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldVitals = {
-  keys: ['stamina_pool', 'satiety', 'hydration', 'fatigue', 'mental_stability'],
-  labels: { stamina_pool: '精力', satiety: '饱食度', hydration: '水分', fatigue: '疲劳度', mental_stability: '精神稳定' },
+  keys: ['vitality', 'stamina_pool', 'satiety', 'hydration', 'fatigue', 'mental_stability'],
+  labels: { vitality: '生命力', stamina_pool: '精力', satiety: '饱食度', hydration: '水分', fatigue: '疲劳', mental_stability: '精神稳定' },
 
   normalize(value, elapsedSeconds = 300, action = '', target = 'player-self', fillMissing = true) {
     const list = Array.isArray(value) ? value : [];
@@ -29,6 +29,7 @@ window.GameModules.realWorldVitals = {
     if (/睡|休息|躺|补觉/.test(text)) return this.restFallback(key, hours);
     if (/吃|饭|餐|外卖|食物/.test(text) && key === 'satiety') return { key, delta: 20, reason: '进食直接提高了饱食度。' };
     if (/喝|水|饮料|咖啡|奶茶/.test(text) && key === 'hydration') return { key, delta: 18, reason: '补充饮品提高了水分。' };
+    if (key === 'vitality') return { key, delta: /受伤|摔|撞|流血|疼痛|疾病|损害|恢复|治疗|包扎/.test(text) ? (/恢复|治疗|包扎/.test(text) ? 3 : -3) : 0, reason: '本次行动对生命力没有明确额外影响。' };
     if (key === 'stamina_pool') return { key, delta: hours >= 0.5 ? -Math.min(12, Math.ceil(hours * 6)) : -1, reason: '现实行动和时间流逝消耗了精力。' };
     if (key === 'satiety') return { key, delta: hours >= 0.5 ? -Math.min(10, Math.ceil(hours * 3)) : 0, reason: '时间较短，饱食度变化有限。' };
     if (key === 'hydration') return { key, delta: hours >= 0.5 ? -Math.min(12, Math.ceil(hours * 4)) : 0, reason: '时间流逝带来少量水分消耗。' };

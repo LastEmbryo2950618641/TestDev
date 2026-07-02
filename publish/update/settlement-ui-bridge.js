@@ -10,7 +10,7 @@ window.GameModules = window.GameModules || {};
     if (/情绪/u.test(text)) return 'emotion';
     if (/感觉/u.test(text)) return 'feeling';
     if (/人际关系|关系名|relationships?|亲属|恋人|朋友|同事|师生|同居/u.test(text)) return 'relationship';
-    if (/生命体征|精力|饱食|水分|疲劳|精神稳定/u.test(text)) return 'vital';
+    if (/生命体征|生命力|生命值|健康|精力|饱食|水分|疲劳|精神稳定/u.test(text)) return 'vital';
     if (/物品|装备|穿着|购买|转交|丢弃|消耗/u.test(text)) return 'item';
     if (/地图|地点|路线/u.test(text)) return 'map';
     if (/组织架构|职位|部门|岗位|成员/u.test(text)) return 'faction-structure';
@@ -84,7 +84,7 @@ window.GameModules = window.GameModules || {};
   };
 
   registry.settlementRows = function settlementRows(entry = {}, store = null) {
-    const vitalAliases = { 精力池: 'stamina_pool', 精力: 'stamina_pool', 饱食度: 'satiety', 水分: 'hydration', 疲劳度: 'fatigue', 精神稳定: 'mental_stability' };
+    const vitalAliases = { 生命力: 'vitality', 生命值: 'vitality', 健康: 'vitality', health: 'vitality', 精力池: 'stamina_pool', 精力: 'stamina_pool', 体力: 'stamina_pool', stamina: 'stamina_pool', 饱食度: 'satiety', 饱食: 'satiety', 水分: 'hydration', 水合: 'hydration', 疲劳度: 'fatigue', 疲劳: 'fatigue', 精神稳定: 'mental_stability', 精神稳定度: 'mental_stability' };
     const appliedMetricKeys = new Set((entry.characterCardChanges || []).filter((item) => /^(情绪|感觉|临时情绪|临时感觉)$/u.test(item?.field || '')).map((item) => `${item.cardId || item.group || ''}:${item.field}:${item.name}`));
     const appliedVitalKeys = new Set((entry.characterCardChanges || []).filter((item) => item?.field === '生命体征').map((item) => `${item.cardId || item.group || ''}:vital:${vitalAliases[item.name] || item.name}`));
     const genericRows = (entry.genericUpdates || [])
