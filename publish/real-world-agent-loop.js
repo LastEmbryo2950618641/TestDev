@@ -805,14 +805,16 @@ window.GameModules.realWorldAgentLoop = {
     const patchIsComplete = (type, patch) => {
       const hasParsedAllUpdates = !patch?.__updateLines || patch.__parsedUpdates === patch.__updateLines;
       const hasRequiredBaseFields = type !== '基础结算' || baseKeys.every((key) => String(patch?.baseFields?.[key] || '').trim());
-      const hasSafeBlockEnd = Boolean(patch?.__closedByBrace || patch?.__settlementDone || patch?.__closedByNextHeading);
-      return Boolean(patch?.__typeDone && hasSafeBlockEnd && hasParsedAllUpdates && hasRequiredBaseFields);
+      const hasBraceCompletion = Boolean(patch?.__closedByBrace);
+      const hasLegacyCompletion = Boolean(patch?.__typeDone && (patch?.__settlementDone || patch?.__closedByNextHeading));
+      return Boolean((hasBraceCompletion || hasLegacyCompletion) && hasParsedAllUpdates && hasRequiredBaseFields);
     };
     const patchScore = (type, patch) => {
       const malformedUpdates = Math.max(0, (patch?.__updateLines || 0) - (patch?.__parsedUpdates || 0));
       return (patchIsComplete(type, patch) ? 10000 : 0)
-        + (patch?.__typeDone ? 200 : 0)
-        + (patch?.__settlementDone ? 200 : 0)
+        + (patch?.__closedByBrace ? 300 : 0)
+        + (patch?.__typeDone ? 100 : 0)
+        + (patch?.__settlementDone ? 100 : 0)
         + ((patch?.__parsedUpdates || 0) * 100)
         + (Object.keys(patch?.baseFields || {}).length * 20)
         + ((!patch?.__updateLines || patch.__parsedUpdates === patch.__updateLines) ? 50 : 0)
@@ -865,7 +867,7 @@ window.GameModules.realWorldAgentLoop = {
     const typeText = requestedTypes.map((type, index) => {
       const c = contracts[type];
       const title = c?.title || `${type}结算`;
-      return [`[${String(index + 1).padStart(2, '0')}/${String(totalTypes).padStart(2, '0')}] ${type}合约说明（实际输出标题必须严格写“${title}{”，不得带索引）`, `${title}{`, '结算状态：需要更新 / 无变化', '参与者为空时：直接写“结算状态：无变化”“类型完成：是”“}”；禁止输出结算对象和更新行。', '若无变化：直接写“结算状态：无变化”，然后写“类型完成：是”“}”，不要编造结算对象或更新行。', '若需要更新：结算对象：显示名全称｜角色/玩家/地点/势力/世界/系统｜允许结算', c?.format || '', '结算对象结束：显示名全称', '类型完成：是', '}', '→ 继续输出下个类型，直到本次必须返回的类型全部完成'].join('\n');
+      return [`[${String(index + 1).padStart(2, '0')}/${String(totalTypes).padStart(2, '0')}] ${type}合约说明（实际输出标题必须严格写“${title}{”，不得带索引）`, `${title}{`, '结算状态：需要更新 / 无变化', '参与者为空时：直接写“结算状态：无变化”“}”；禁止输出结算对象和更新行。', '若无变化：直接写“结算状态：无变化”“}”，不要编造结算对象或更新行。', '若需要更新：结算对象：显示名全称｜角色/玩家/地点/势力/世界/系统｜允许结算', c?.format || '', '结算对象结束：显示名全称', '}', '→ 继续输出下个类型，直到本次必须返回的类型全部完成'].join('\n');
     }).join('\n\n');
     const incompleteReason = incompleteTypes.map((type) => {
       const title = contracts[type]?.title || `${type}结算`;

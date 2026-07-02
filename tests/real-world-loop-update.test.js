@@ -1247,6 +1247,8 @@ test('colocated Stage K:V templates register inline and contain no old guided JS
     '现有 Init 字段 Schema',
     '残缺原因或尾部',
     '不是最后一批时，本轮返回正文长度必须超过1000个中文字符',
+    '类型完成：是',
+    '结算结束：是',
   ].forEach((bad) => {
     assert.ok(!stage4.includes(bad), `Stage4 runtime template should not include ${bad}`);
   });
@@ -1325,6 +1327,8 @@ test('Stage4 settlement window prompt uses slim fact context without Update Init
     '现有 Init 提示词',
     '现有 Init 字段 Schema',
     '本轮返回正文长度必须超过1000',
+    '类型完成：是',
+    '结算结束：是',
   ].forEach((bad) => assert.ok(!prompt.includes(bad), `${bad} leaked into Stage4 prompt`));
   [
     '本轮结算材料',
@@ -1443,7 +1447,7 @@ test('scene anchor accepts parse-degraded report without a second AI request', a
   assert.ok(out.data.parseDegraded);
 });
 
-test('parseSettlementKv accepts brace-delimited settlement blocks', () => {
+test('parseSettlementKv accepts brace-delimited settlement blocks without type marker', () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
@@ -1458,7 +1462,6 @@ test('parseSettlementKv accepts brace-delimited settlement blocks', () => {
 备选行动2：二
 备选行动3：三
 备选行动4：四
-类型完成：是
 }`, { requestedTypes: ['基础结算'], participants: [], store: makeStore(), config: loop.realConfig() });
 
   assert.deepStrictEqual(JSON.parse(JSON.stringify(parsed.completeTypes)), ['基础结算']);
@@ -2974,8 +2977,8 @@ test('Stage4 rejects repeated short single-type replies to protect token quota',
   context.window.GameModules.promptTemplates.render = async (_id, vars) => JSON.stringify(vars);
   const rendered = [];
   const outputs = [
-    '基础结算{\n结算状态：需要更新\n经过时间：90\n当前状态：测试状态\n当前目标：测试目标\n场景标题：测试标题\n地点名称：测试地点\n备选行动1：一\n备选行动2：二\n备选行动3：三\n备选行动4：四\n类型完成：是\n}',
-    '情绪结算{\n结算状态：无变化\n类型完成：是\n}',
+    '基础结算{\n结算状态：需要更新\n经过时间：90\n当前状态：测试状态\n当前目标：测试目标\n场景标题：测试标题\n地点名称：测试地点\n备选行动1：一\n备选行动2：二\n备选行动3：三\n备选行动4：四\n}',
+    '情绪结算{\n结算状态：无变化\n}',
   ];
   loop.completeConfiguredStep = async (_store, prompt) => {
     rendered.push(JSON.parse(prompt));
