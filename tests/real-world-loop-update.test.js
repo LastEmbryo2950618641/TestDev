@@ -1262,6 +1262,10 @@ test('colocated Stage K:V templates register inline and contain no old guided JS
     '未完成类型必须从该类型标题开始完整重输',
     '同一类型标题在本轮输出中只能出现一次',
     '完成一个类型后必须继续下一个类型，不得回到已输出类型',
+    '不表示你可以逐个类型分多轮输出',
+    '只输出一个类型，系统会判定失败',
+    '必须输出块数量',
+    '必须输出块顺序',
     '内部自检，不得输出',
   ].forEach((good) => {
     assert.ok(stage4.includes(good), `Stage4 runtime template should include ${good}`);
@@ -1333,6 +1337,9 @@ test('Stage4 settlement window prompt uses slim fact context without Update Init
     '情绪结算规则',
     '物品结算规则',
     '需从“物品结算{”开始整块重输',
+    '必须输出块数量',
+    '必须输出块顺序',
+    '情绪结算{ → 物品结算{',
     '她侧身让路，手机屏幕亮起',
   ].forEach((good) => assert.ok(prompt.includes(good), `${good} missing from Stage4 prompt`));
 });
@@ -2956,7 +2963,7 @@ test('Stage4 settlement gate retries short non-final batch with only unfinished 
   assert.ok(rendered[1].未完成类型原因.includes('需从“感觉结算{”开始整块重输'));
 });
 
-test('Stage4 accepts one completed short type per sliding call', async () => {
+test('Stage4 rejects repeated short single-type replies to protect token quota', async () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
@@ -2969,21 +2976,20 @@ test('Stage4 accepts one completed short type per sliding call', async () => {
   const outputs = [
     '基础结算{\n结算状态：需要更新\n经过时间：90\n当前状态：测试状态\n当前目标：测试目标\n场景标题：测试标题\n地点名称：测试地点\n备选行动1：一\n备选行动2：二\n备选行动3：三\n备选行动4：四\n类型完成：是\n}',
     '情绪结算{\n结算状态：无变化\n类型完成：是\n}',
-    '感觉结算{\n结算状态：无变化\n类型完成：是\n}',
   ];
   loop.completeConfiguredStep = async (_store, prompt) => {
     rendered.push(JSON.parse(prompt));
     return outputs.shift();
   };
 
-  const out = await loop.completeConfiguredSettlementKvWindow({ store, action: '行动', base: '基础', loaded: [], narration: '正文', trace: [], participants, config });
+  await assert.rejects(
+    () => loop.completeConfiguredSettlementKvWindow({ store, action: '行动', base: '基础', loaded: [], narration: '正文', trace: [], participants, config }),
+    /Stage4滑动结算返回过短/u,
+  );
 
-  assert.strictEqual(rendered.length, 3);
+  assert.strictEqual(rendered.length, 2);
   assert.strictEqual(rendered[1].本次必须返回的类型, '情绪、感觉');
-  assert.strictEqual(rendered[2].本次必须返回的类型, '感觉');
-  assert.ok(!rendered[1].类型合约.includes('基础结算{'));
-  assert.ok(!rendered[2].类型合约.includes('情绪结算{'));
-  assert.strictEqual(out.status, '测试状态');
+  assert.ok(rendered[1].未完成类型原因.includes('疑似只输出了单个类型'));
 });
 
 (async () => {

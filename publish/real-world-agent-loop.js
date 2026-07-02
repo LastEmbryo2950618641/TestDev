@@ -878,12 +878,15 @@ window.GameModules.realWorldAgentLoop = {
       '强暗示事实：可保守结算，但必须有明确行为、对话或连续动作支撑。',
       '弱氛围暗示：不得结算。',
     ].join('\n');
+    const requiredBlockOrder = requestedTypes.map((type) => `${contracts[type]?.title || `${type}结算`}{`).join(' → ');
     return window.GameModules.promptTemplates.render('inference-stage4-settlement-window', {
       本次必须返回的类型: requestedTypes.join('、'),
       已完成类型: completedTypes.join('、') || '无',
       未完成类型: incompleteTypes.join('、') || '无',
       当前窗口起始类型: requestedTypes[0] || '无',
       当前窗口结束类型: requestedTypes[requestedTypes.length - 1] || '无',
+      必须输出块顺序: requiredBlockOrder || '无',
+      必须输出块数量: String(requestedTypes.length),
       未完成类型原因: incompleteReason,
       本回合参与者: JSON.stringify(participants),
       本轮结算材料: [`行动：${this.actionText(action)}`, `正文：${this.compactUpdatePromptText(narration, 1800, true)}`, this.settlementMetricBaselineText(store, participants), stableFactRules].join('\n'),
@@ -907,24 +910,22 @@ window.GameModules.realWorldAgentLoop = {
       const compactRawLength = String(raw || '').replace(/\s+/gu, '').length;
       const isFinalBatch = requestedTypes.length <= 1 || parsed.incompleteTypes.length === 0;
       const isShortPartial = !isFinalBatch && compactRawLength < 1000;
-      const newlyCompletedTypes = parsed.completeTypes.filter((type) => !completedTypes.includes(type));
+      if (isShortPartial) shortOutputRetries += 1;
+      else shortOutputRetries = 0;
       parsed.completeTypes.forEach((type) => {
         if (!completedTypes.includes(type)) completedTypes.push(type);
         patchesByType[type] = parsed.patchesByType[type];
         delete partialByType[type];
       });
-      if (isShortPartial && !newlyCompletedTypes.length) shortOutputRetries += 1;
-      else shortOutputRetries = 0;
       parsed.incompleteTypes.forEach((type) => {
         const lines = parsed.patchesByType[type]?.__lines || [];
         partialByType[type] = lines.length ? lines.join('\n') : '本轮未返回该类型，需补齐完整类型块。';
       });
       if (isShortPartial) {
         const remaining = parsed.incompleteTypes.filter((type) => !completedTypes.includes(type));
-        const progressHint = newlyCompletedTypes.length ? `已接受本轮完成类型：${newlyCompletedTypes.join('、')}；继续补齐剩余类型` : '必须同一轮补齐所有未完成类型';
-        const shortReason = `上轮返回过短：${compactRawLength}/1000；${progressHint}：${remaining.join('、') || requestedTypes.join('、')}`;
+        const shortReason = `上轮返回过短：${compactRawLength}/1000；疑似只输出了单个类型，必须在同一轮按顺序补齐所有未完成类型：${remaining.join('、') || requestedTypes.join('、')}`;
         remaining.forEach((type) => { partialByType[type] = shortReason; });
-        if (shortOutputRetries > 1 && !newlyCompletedTypes.length) throw new Error(`Stage4滑动结算返回过短：${compactRawLength}/1000，未完成类型：${remaining.join('、')}`);
+        if (shortOutputRetries > 1) throw new Error(`Stage4滑动结算返回过短：${compactRawLength}/1000，未完成类型：${remaining.join('、')}`);
       }
       requestedTypes = allTypes.filter((type) => !completedTypes.includes(type));
     }
