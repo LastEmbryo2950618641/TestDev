@@ -24,6 +24,7 @@ window.GameModules.appSwitchActions = {
     this.controlSelectOpen = false;
     this.controlLinkMenuId = '';
     if (this.settingsState) this.settingsState.open = false;
+    if (this.systemTestState) this.systemTestState.open = false;
     if (this.companyState) this.companyState.open = false;
     if (this.bossState) this.bossState.open = false;
     if (this.calendarState) this.calendarState.open = false;

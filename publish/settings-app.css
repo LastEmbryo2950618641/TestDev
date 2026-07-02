@@ -4,6 +4,10 @@
     linear-gradient(135deg, #7c8bff, #35d6ff 58%, #54f0b5);
 }
 
+.system-test-icon .app-glyph {
+  background: linear-gradient(135deg, #ffbd59, #ff5f8f 58%, #7657ff);
+}
+
 .settings-app-screen {
   min-height: 100dvh;
   display: grid;
@@ -85,4 +89,22 @@
 
 .model-setting-group option {
   color: #111827;
+}
+
+.model-setting-group textarea,
+.model-setting-group pre {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 14px;
+  color: #fff;
+  background: rgba(3, 8, 20, .78);
+  white-space: pre-wrap;
+}
+
+.model-setting-group textarea {
+  resize: vertical;
 }
