@@ -1366,7 +1366,12 @@
           </template>
         </select>
       </section>
-      <p class="settings-status">当前：文本 <b x-text="$store.game.modelId"></b>；绘图 <b x-text="$store.game.selectedDrawModelId()"></b>；笔风 <b x-text="$store.game.allWritingStyles().find((style) => style.id === $store.game.selectedWritingStyleId())?.name || '未选择'"></b></p>
+      <section class="model-setting-group">
+        <h3>Stage1 资料收集迭代最大次数</h3>
+        <small>用于现实与异世界推演的 Stage1 资料路由。默认 2，越高越容易多查资料但请求更慢。</small>
+        <input type="number" min="1" max="8" step="1" inputmode="numeric" :value="$store.game.stage1MaterialMaxIterations()" @change="$store.game.setStage1MaterialMaxIterations($event.target.value)">
+      </section>
+      <p class="settings-status">当前：文本 <b x-text="$store.game.modelId"></b>；绘图 <b x-text="$store.game.selectedDrawModelId()"></b>；笔风 <b x-text="$store.game.allWritingStyles().find((style) => style.id === $store.game.selectedWritingStyleId())?.name || '未选择'"></b>；Stage1资料迭代 <b x-text="$store.game.stage1MaterialMaxIterations()"></b></p>
     </div>
   </section>
 

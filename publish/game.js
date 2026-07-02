@@ -76,7 +76,7 @@ function registerGameStore() {
     roleCardSetup: { loaded: false, usePredefinedPlayerCard: false, cards: [], selectedPlayerName: '', selectedRelationNames: [], relationRoles: {}, selectedRelationCardName: '刘思瑶', gender: '女', relationType: '妹妹', customRelation: '', detailOpen: false, relationDetailOpen: '' },
     knownProfessionState: { open: false, query: '', message: '', selectedName: '', detailOpen: false },
     taobaoState: { open: false, slots: [], selectedId: '', generatingId: '', buyingId: '', requestId: 0, message: '', error: '', walletOpen: false },
-    settingsState: { open: false, loading: false, loaded: false, error: '', textModels: [], drawModels: [], textModelId: cfg.defaultModelId, drawModelId: 'anime' },
+    settingsState: { open: false, loading: false, loaded: false, error: '', textModels: [], drawModels: [], textModelId: cfg.defaultModelId, drawModelId: 'anime', stage1MaterialMaxIterations: 2 },
     systemTestState: { open: false, loading: false, systemText: '你是一个测试助手。无论用户输入什么，只回答：SYSTEM_OK。', userText: '请测试 system role 是否生效。', result: '', error: '' },
     playerProfile: { name: '', gender: '', birthday: '', age: '', city: '', refinedCity: '', dailyRole: '', refinedRole: '', livingStatus: '', refinedLivingStatus: '', wealthTier: '中产', wealthAmount: 500000, wealthSource: '', wealthBreakdown: null, wealthFixedIncome: '', relationships: '', relationshipEntries: [], parents: '', parentStatus: '', parentDeathCause: '', worldbuildingNote: '', notes: '', knownProfessions: [], wechatId: '', profileEnrichedAt: '', initializedAt: '', playerCardAiParts: { part2: false, part5: false, part6: false } }, playerName: '',
     selectedSlot: 'slot-1', saveSlots: window.GameModules.storage.slots,

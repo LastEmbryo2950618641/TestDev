@@ -176,9 +176,8 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   guidedMaxSteps(store = {}, config = this.realConfig()) {
-    if (config.mode !== 'story') return 2;
-    const text = [store.character?.work, store.selectedWork, store.quest, store.sceneTitle, store.log?.slice?.(-3)?.map?.((entry) => `${entry.playerText || ''}${entry.storyText || ''}`).join(' ')].filter(Boolean).join(' ');
-    return /(战争|阴谋|多线|群像|复杂|决战|圣杯|政治|势力|迷宫|案件|推理|时间线|世界线|剧情线)/u.test(text) ? 4 : 3;
+    const configured = Math.max(1, Math.min(8, Math.round(Number(store?.settingsState?.stage1MaterialMaxIterations) || 2)));
+    return configured;
   },
 
   storyFreedomRule(store) {
@@ -188,7 +187,7 @@ window.GameModules.realWorldAgentLoop = {
   stepOutputRule(step, forceFinal = false) {
     if (forceFinal) return `当前为收敛步骤：禁止继续请求资料。只输出完整中文 K:V 查询规划字段；必须从“查询规划：”开始，资料状态必须为“资料已足够”，资料请求写“无”，资料请求结束写“是”，固定输出顺序中的字段不得省略。不要输出 JSON、正文、旁白、Markdown、代码块和 final JSON。`;
     if (step === 1) return `当前是第1步：你是上下文路由器，只判断为了准确生成本次行动范围内正文需要载入哪些已有资料，并尽可能多而全地列出地点/因果/冲突查询理由。具体输出格式以 Stage1 中文 K:V 查询规划模板为准；不要写正文，不要结算状态，不要推演后续结果。`;
-    if (step >= 2) return `当前是第2步/最终资料路由步骤：继续使用完整 Stage1 中文 K:V 查询规划格式。最多2步后系统会带着已加载资料与查询理由进入场景锚定；若没有可执行资料请求，允许只保留查询理由并写“资料请求：无”。不要输出 JSON、正文、旁白、Markdown、代码块和 final JSON。`;
+    if (step >= 2) return `当前是第${step}步/后续资料路由步骤：继续使用完整 Stage1 中文 K:V 查询规划格式。达到设置的资料收集迭代最大次数后，系统会带着已加载资料与查询理由进入场景锚定；若没有可执行资料请求，允许只保留查询理由并写“资料请求：无”。不要输出 JSON、正文、旁白、Markdown、代码块和 final JSON。`;
     return `当前只负责判断是否继续收集资料：继续使用完整 Stage1 中文 K:V 查询规划格式，必须从“查询规划：”开始，并逐行输出固定输出顺序中的所有字段。仍缺关键资料就写“资料状态：继续请求资料”并列出中文资料请求；资料足够或无法继续获取时写“资料状态：资料已足够”“资料请求：无”“资料请求结束：是”。不要输出 JSON、正文、旁白、Markdown、代码块和 final JSON。`;
   },
 

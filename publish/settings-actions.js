@@ -99,7 +99,18 @@ window.GameModules.settingsActions = {
     await this.save?.();
   },
 
+  async setStage1MaterialMaxIterations(value) {
+    if (!this.settingsState) return;
+    const next = Math.max(1, Math.min(8, Math.round(Number(value) || 2)));
+    this.settingsState.stage1MaterialMaxIterations = next;
+    await this.save?.();
+  },
+
   selectedDrawModelId() {
     return this.settingsState?.drawModelId || 'anime';
+  },
+
+  stage1MaterialMaxIterations() {
+    return Math.max(1, Math.min(8, Math.round(Number(this.settingsState?.stage1MaterialMaxIterations) || 2)));
   },
 };

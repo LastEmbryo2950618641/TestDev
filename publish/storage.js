@@ -38,7 +38,7 @@ window.GameModules.storage = {
       wechatMessagesByContact: store.wechatMessagesByContact || {},
       wechatAlbumPhotos: store.wechatAlbumPhotos || {},
       wechatAlbumPrompts: store.wechatAlbumPrompts || {},
-      settingsState: store.settingsState ? { textModelId: store.modelId || store.settingsState.textModelId, drawModelId: store.settingsState.drawModelId || 'anime' } : undefined,
+      settingsState: store.settingsState ? { textModelId: store.modelId || store.settingsState.textModelId, drawModelId: store.settingsState.drawModelId || 'anime', stage1MaterialMaxIterations: Number(store.settingsState.stage1MaterialMaxIterations) || 2 } : undefined,
       phoneFixedTime: store.phoneFixedTime,
       selectedSlot: store.selectedSlot,
       selectedWork: store.selectedWork,
@@ -107,6 +107,7 @@ window.GameModules.storage = {
     store.wechatAlbumPrompts = save.wechatAlbumPrompts && typeof save.wechatAlbumPrompts === 'object' ? save.wechatAlbumPrompts : (store.wechatAlbumPrompts || {});
     if (save.settingsState && store.settingsState) {
       store.settingsState = { ...store.settingsState, ...save.settingsState, open: false, loading: false, error: '' };
+      store.settingsState.stage1MaterialMaxIterations = Math.max(1, Math.min(8, Math.round(Number(store.settingsState.stage1MaterialMaxIterations) || 2)));
       store.modelId = store.settingsState.textModelId || store.modelId;
     }
     store.realWorldThinkMode = Boolean(save.realWorldThinkMode ?? store.realWorldThinkMode);
