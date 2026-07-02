@@ -89,8 +89,7 @@ window.GameModules.aiRequest = {
       maxTokens: options.maxTokens,
       timeoutMs: options.timeoutMs,
       prompt,
-      messages: options.messages,
-      payload,
+      messageCount: Array.isArray(payload.messages) ? payload.messages.length : 0,
       ...meta,
     });
   },
