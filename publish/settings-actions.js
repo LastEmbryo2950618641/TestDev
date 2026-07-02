@@ -78,6 +78,14 @@ window.GameModules.settingsActions = {
     ];
   },
 
+  textModelOptionLabel(model = {}) {
+    const name = model.displayName || model.internalName || '未知模型';
+    const price = model.price || '未知';
+    const thinking = model.thinkingSupported === true ? 'true' : 'false';
+    const description = String(model.description || '').trim();
+    return `${name}｜系数 ${price}｜支持思考: ${thinking}${description ? `｜${description}` : ''}`;
+  },
+
   async selectTextModel(id) {
     if (!id) return;
     this.modelId = id;

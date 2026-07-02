@@ -1342,7 +1342,7 @@
         <small>用于剧情推演、微信回复、角色资料补全等文字 AI 请求。</small>
         <select :value="$store.game.modelId" @change="$store.game.selectTextModel($event.target.value)">
           <template x-for="model in $store.game.settingsState.textModels" :key="model.internalName">
-            <option :value="model.internalName" x-text="`${model.displayName || model.internalName}｜系数 ${model.price || '未知'}｜支持思考: ${model.thinkingSupported === true ? 'true' : 'false'}`"></option>
+            <option :value="model.internalName" x-text="$store.game.textModelOptionLabel(model)"></option>
           </template>
         </select>
       </section>
