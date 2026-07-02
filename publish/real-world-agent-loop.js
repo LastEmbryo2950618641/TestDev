@@ -74,8 +74,9 @@ window.GameModules.realWorldAgentLoop = {
     const sceneAnchor = await this.completeSceneAnchorReport(store, sceneAnchorPrompt, logId, config);
     const sceneAnchorReport = sceneAnchor.text;
     const narrationPrompt = await this.buildConfiguredNarrationPrompt({ store, action, base, loaded, skills, materialSession, sceneAnchorReport, config });
+    const narrationMessages = this.buildConfiguredNarrationMessages({ store, action, prompt: narrationPrompt, config });
     this.markConfiguredStep(store, logId, `${config.label}场景锚定完成，正在生成正文…`, config);
-    const narrationRaw = await this.completeConfiguredStep(store, narrationPrompt, logId, true, config);
+    const narrationRaw = await this.completeConfiguredStep(store, narrationMessages, logId, true, config);
     const narration = await this.ensureConfiguredNarrationLength(store, action, narrationPrompt, this.cleanPhasedNarration(narrationRaw), logId, config);
     if (!narration) throw new Error(`${config.label}正文为空`);
     this.showConfiguredNarration(store, logId, narration, config);
@@ -423,6 +424,28 @@ window.GameModules.realWorldAgentLoop = {
     }
     if (best) return best;
     throw lastErr || new Error('场景锚定报告解析错误请重试');
+  },
+
+  buildConfiguredNarrationMessages({ store, action, prompt = '', config = this.realConfig() }) {
+    const actionText = this.actionText(action, config.mode === 'story' ? '继续推进操控剧情' : '继续观察现实世界');
+    const recent = this.recentNarrationForMessages(store, config);
+    const messages = [{ role: 'user', content: String(prompt || '') }];
+    if (recent) messages.push({ role: 'assistant', content: recent });
+    messages.push({ role: 'user', content: `根据前面的规则与资料，推演“本次行动”，字数必须在900 - 1400字之间。\n本次行动：${actionText}` });
+    return messages;
+  },
+
+  recentNarrationForMessages(store = null, config = this.realConfig()) {
+    const limitText = (text = '', max = 900) => String(text || '').trim().slice(0, max);
+    const rows = config.mode === 'story'
+      ? (store?.log || []).filter((entry) => entry.kind === 'novel' && String(entry.storyText || '').trim()).slice(-3)
+      : (store?.realWorldLog || []).filter((entry) => entry.type === 'ai' && !entry.streaming && String(entry.narration || entry.text || '').trim()).slice(-3);
+    const text = rows.map((entry, index) => {
+      const body = config.mode === 'story' ? entry.storyText : (entry.narration || entry.text || '');
+      const action = entry.playerText || entry.actionText || '';
+      return [`最近已发生正文${index + 1}：`, action ? `对应行动：${action}` : '', limitText(body)].filter(Boolean).join('\n');
+    }).join('\n---\n');
+    return text || '暂无最近已发生正文；请以第一条 user 消息中的摘要和资料为准。';
   },
 
   async buildConfiguredNarrationPrompt({ store, action, base, loaded, skills, materialSession = null, sceneAnchorReport = '', config = this.realConfig() }) {
@@ -1726,6 +1749,7 @@ window.GameModules.realWorldAgentLoop = {
 
   async completeConfiguredStep(store, prompt, logId, streamToUi = false, config = this.realConfig()) {
     const requestId = config.mode === 'story' ? window.GameModules.ai.latestRequestId : window.GameModules.realWorldAi.latestRequestId;
+    const messages = Array.isArray(prompt) ? prompt : null;
     let buffer = '';
     let doneSeen = false;
     let lastPaint = 0;
@@ -1733,7 +1757,7 @@ window.GameModules.realWorldAgentLoop = {
       const requestOptions = {
         source: config.sourceTitle || (streamToUi ? `${config.mode}-agent-loop` : `${config.mode}-agent-context`),
         model: store.modelId,
-        prompt,
+        ...(messages ? { messages } : { prompt }),
         timeoutMs: 240000,
         requireDone: true,
         outputLengthThreshold: 2600,
