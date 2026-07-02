@@ -62,6 +62,7 @@
 - 主体可以是玩家，也可以是出场 NPC。
 - 只记录本轮明确造成的情绪变化。
 - 没有对应已有指标时写 `无变化`。
+- 但AI可能随便给不存在的值，因此需要建立一个映射字典，即愉悦 -> 高兴。
 
 ### 更新格式
 
@@ -94,6 +95,8 @@
 - 不得新造感觉字段。
 - 只记录角色对玩家的态度变化，不记录玩家自我感受。
 - 没有对应已有指标时写 `无变化`。
+- 但AI可能随便给不存在的值，因此需要建立一个映射字典，即信赖 ->信任。
+
 
 ### 更新格式
 
@@ -107,13 +110,14 @@
 
 ### 允许字段
 
-| 中文字段 | 写入路径 | 赋值格式 | 含义 |
-| --- | --- | --- | --- |
-| 精力 | `vitals.stamina_pool` | `+N` / `-N` | 可用体力、行动精力池。 |
-| 饱食度 | `vitals.satiety` | `+N` / `-N` | 饥饿/饱腹状态。 |
-| 水分 | `vitals.hydration` | `+N` / `-N` | 口渴、补水、脱水相关状态。 |
-| 疲劳 | `vitals.fatigue` | `+N` / `-N` | 疲惫累积程度。 |
-| 精神稳定 | `vitals.mental_stability` | `+N` / `-N` | 精神稳定度、清醒稳定程度。 |
+| 中文字段 | 中文别名 | 写入路径 | 赋值格式 | 含义 |
+| --- | --- | --- | --- | --- |
+| 生命力 | 生命值、健康、health | `vitals.vitality` | `+N` / `-N` | 当前承伤、生存与身体完整状态。 |
+| 精力 | 精力池、体力、stamina | `vitals.stamina_pool` | `+N` / `-N` | 可用体力、行动精力池。 |
+| 饱食度 | 饱食、satiety | `vitals.satiety` | `+N` / `-N` | 饥饿/饱腹状态。 |
+| 水分 | 口渴、水合、hydration | `vitals.hydration` | `+N` / `-N` | 口渴、补水、脱水相关状态。 |
+| 疲劳 | 疲劳度、fatigue | `vitals.fatigue` | `+N` / `-N` | 疲惫累积程度。 |
+| 精神稳定 | 精神稳定度、mental_stability | `vitals.mental_stability` | `+N` / `-N` | 精神稳定度、清醒稳定程度。 |
 
 ### 不允许字段
 
@@ -126,15 +130,21 @@
 - 血氧
 - 瞳孔
 - 激素
+- 学习能力
+- 成长潜力
+- 行动能力
 - 任何未列入上表的新指标
 
 ### 赋值规则
 
-- 生命体征只接受上表 5 个中文字段。
+- 生命体征只接受上表 6 个中文字段及其中文别名。
 - 变化值必须是数值增减，例如 `+5`、`-3`。
+- `生命力 +N` 表示伤势恢复或生存状态改善；`生命力 -N` 表示受伤、疾病、损害或身体完整状态下降。
 - `疲劳 +N` 表示更疲劳；`疲劳 -N` 表示疲劳降低。
 - `精力/饱食度/水分/精神稳定 +N` 表示对应状态提升；`-N` 表示降低。
-- 没有明确体力、饥渴、疲劳或精神稳定变化时写 `无变化`。
+- `health` 只能作为“生命力”的输入别名映射到 `vitals.vitality`；最终结算字段不写 `health`。
+- `精力池` 和 `疲劳度` 是旧 UI/旧结算链路里的显示名，必须分别归一化为 `精力` 和 `疲劳`。
+- 没有明确生命力、体力、饥渴、疲劳或精神稳定变化时写 `无变化`。
 
 ### 更新格式
 
@@ -158,6 +168,7 @@
 | 臀部 / 屁股 | `hips` | 臀部状态。 |
 | 四肢 / 手臂 / 腿部 | `limbs` | 四肢状态。 |
 | 皮肤 | `skin` | 皮肤表面状态。 |
+| 其他 | `other` | 无法归入以上部位但角色卡已有的其他身体状态。 |
 | 已有身体状态键 | 原键名 | 当前角色卡中已经存在的其他身体状态键。 |
 
 ### 赋值规则
@@ -232,22 +243,32 @@
 
 | 中文分类 | 标准键 | 写入字段 | 赋值格式 | 含义 |
 | --- | --- | --- | --- | --- |
-| 总次数 / 总数 / 全部 | `total` | `intimacy.sexualExperienceCount` | `+N` / `-N` | 性经历总次数变化。 |
 | 阴部 | `genital` | `intimacy.sexualExperienceParts.genital` | `+N` / `-N` | 阴部相关分类次数变化。 |
 | 胸部 / 胸口 / 乳房 | `chest` | `intimacy.sexualExperienceParts.chest` | `+N` / `-N` | 胸部相关分类次数变化。 |
 | 唇部 / 接吻 | `lips` | `intimacy.sexualExperienceParts.lips` | `+N` / `-N` | 唇部或接吻相关分类次数变化。 |
 | 口部 / 嘴部 | `mouth` | `intimacy.sexualExperienceParts.mouth` | `+N` / `-N` | 口部相关分类次数变化。 |
+| 口部行为 | `oralAction` | `intimacy.sexualExperienceParts.oralAction` | `+N` / `-N` | 口部主动参与的相关分类次数变化。 |
+| 口交 | `oralSex` | `intimacy.sexualExperienceParts.oralSex` | `+N` / `-N` | 口交分类次数变化。 |
+| 口交中出 | `oralInternalFinish` | `intimacy.sexualExperienceParts.oralInternalFinish` | `+N` / `-N` | 口交中出分类次数变化。 |
+| 阴部进入 | `genitalEntry` | `intimacy.sexualExperienceParts.genitalEntry` | `+N` / `-N` | 阴部被进入分类次数变化。 |
+| 阴道插入 | `vaginalInsertion` | `intimacy.sexualExperienceParts.vaginalInsertion` | `+N` / `-N` | 阴道插入分类次数变化。 |
+| 阴道中出 | `vaginalInternalFinish` | `intimacy.sexualExperienceParts.vaginalInternalFinish` | `+N` / `-N` | 阴道中出分类次数变化。 |
+| 肛部 / 肛门 | `anus` | `intimacy.sexualExperienceParts.anus` | `+N` / `-N` | 肛部相关分类次数变化。 |
+| 肛部进入 | `analEntry` | `intimacy.sexualExperienceParts.analEntry` | `+N` / `-N` | 肛部被进入分类次数变化。 |
+| 肛交 | `analSex` | `intimacy.sexualExperienceParts.analSex` | `+N` / `-N` | 肛交分类次数变化。 |
+| 肛交中出 | `analInternalFinish` | `intimacy.sexualExperienceParts.analInternalFinish` | `+N` / `-N` | 肛交中出分类次数变化。 |
 | 腿部 / 大腿 | `legs` | `intimacy.sexualExperienceParts.legs` | `+N` / `-N` | 腿部相关分类次数变化。 |
 | 臀部 / 屁股 | `hips` | `intimacy.sexualExperienceParts.hips` | `+N` / `-N` | 臀部相关分类次数变化。 |
 | 手部 / 手 | `hands` | `intimacy.sexualExperienceParts.hands` | `+N` / `-N` | 手部相关分类次数变化。 |
 | 皮肤 | `skin` | `intimacy.sexualExperienceParts.skin` | `+N` / `-N` | 皮肤接触相关分类次数变化。 |
+| 其他 | `other` | `intimacy.sexualExperienceParts.other` | `+N` / `-N` | 其他无法归类但已确认的分类次数变化。 |
 
 ### 赋值规则
 
 - 分类必须使用上表中文分类或其别名。
 - 变化值必须是数值增减。
-- 写“总次数”时只改变总次数。
-- 写具体分类时改变对应分类次数；当前实现不会自动同步总次数，若总次数也需要变化，应另写一条“总次数”更新。
+- “总次数/总数/全部”不纳入 AI 计算，AI 只写具体分类次数。
+- 写具体分类时只改变对应分类次数；总次数由后续汇总逻辑根据分类次数累加或展示层计算。
 - 变化原因必须说明为什么本轮能确认次数变化。
 - 没有明确次数变化时写 `无变化`。
 
@@ -594,6 +615,22 @@
 
 ---
 
+## 19. 字段同步检查清单
+
+后续把本文档落到代码时，至少需要同步以下位置，避免文档字段和运行链路不一致：
+
+| 字段组 | 必须同步的位置 | 说明 |
+| --- | --- | --- |
+| 生命体征 | `settlementUpdateCatalog()`、`realWorldVitals.keys/labels`、`realWorldVitalSettlement()`、`applyRealWorldVitalUpdates()`、`genericToVitalUpdates()`、`settlement-ui-bridge` | 必须补齐 `生命力/vitality`，并保留 `精力池 -> 精力`、`疲劳度 -> 疲劳` 等别名。 |
+| 情绪/感觉 | `settlementMetricKeysForSubject()` 前后的字段归一化逻辑 | 先做别名映射，再校验是否存在于当前基线。 |
+| 身体状态 | `bodyPartAlias()`、身体状态 prompt、parser 校验 | 必须包含 `other`，并限制为已有身体状态键或标准部位键。 |
+| 穿着状态 | `wearingSlotAlias()`、当前穿着基线生成、parser 校验 | 必须包含文档列出的槽位和饰品判断。 |
+| 性经历 | `sexualPartAlias()`、`intimacy-body-init-template`、sexual-experience prompt、parser 校验 | 必须补齐全部分类键；AI 不写总次数。 |
+| 性历史 | sexual-history prompt、parser、applier | K:V 主路径写状态转移；结构化字段只用于更新链路识别和落库。 |
+| 角色卡 | role-card prompt、parser 字段校验 | 职业、技能、知识允许写，但必须是明确稳定事实。 |
+
+---
+
 ## Stage3 角色卡资料拼接要求
 
 `loadedNarrationSummary()` 对角色卡资料不应按关键词过滤字段。角色卡资料进入正文生成时，应把本轮加载到的角色卡内容拼接成完整文本块，让 Stage3 能看到当前穿着、身份、地点、状态、技能、职业、知识等字段。
@@ -602,7 +639,7 @@
 
 1. 如果资料是角色卡，保留角色卡原有字段顺序。
 2. 不删除穿着、外貌、职业、技能、知识、物品、身体状态、生命体征、情绪、对玩家感觉等字段。
-3. 只做长度控制，不做字段级过滤。
+3. 只做长度控制(1000字 - 1500字)，不做字段级过滤。
 4. 多张角色卡按资料顺序拼接。
 5. 非角色卡资料仍可按当前摘要规则压缩。
 
