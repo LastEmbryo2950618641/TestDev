@@ -431,7 +431,7 @@ window.GameModules.realWorldAgentLoop = {
     const recent = this.recentNarrationForMessages(store, config);
     const messages = [{ role: 'user', content: String(prompt || '') }];
     if (recent) messages.push({ role: 'assistant', content: recent });
-    messages.push({ role: 'user', content: `根据前面的规则与资料，推演“本次行动”，字数必须在900 - 1400字之间。\n本次行动：${actionText}` });
+    messages.push({ role: 'user', content: `根据前面的规则与资料，推演“本次行动”，字数必须在1000 - 1400字之间。\n本次行动：${actionText}` });
     return messages;
   },
 
@@ -463,7 +463,7 @@ window.GameModules.realWorldAgentLoop = {
       '- 即使本次行动因边界、consent、年龄、关系或安全限制不能继续描写，也不得短输出。',
       '- 若不能描写玩家输入中的某些肢体或性化细节，必须改写为允许描写的现场反应：角色察觉、制止、后退、质问、沉默、情绪变化、房间环境声响变化、进入方式、触发反应、双方距离变化、语言/沉默、身体姿态，但必须根据已有资料符合逻辑。',
       '- 不要只写“她在房间里”或只写场景开头；必须把本次行动推演到一个明确的即时落点。',
-      '- 目标长度 900-1000 中文字符；低于 900 汉字视为不合格，不要提前停止。',
+      '- 目标长度 1000-1400 中文字符；低于 1000 汉字视为不合格，不要提前停止。',
       '- 强制输出结构只作为内部写作配比，最终正文仍必须是无标题、无编号、无换行的单段小说正文。',
       '- 环境五感渲染约100-150字：写出此刻场景中的气味、光线、触感。',
       '- 角色内心独白约200-250字：围绕上一轮事件或本次行动带来的心理挣扎、试探或算计展开，必须使用比喻句。',
@@ -1686,7 +1686,7 @@ window.GameModules.realWorldAgentLoop = {
 
   async ensureConfiguredNarrationLength(store, action, prompt, narration, logId, config = this.realConfig()) {
     let text = this.cleanPhasedNarration(narration);
-    const minChars = config.mode === 'story' ? 700 : 900;
+    const minChars = 1000;
     let count = this.chineseCharCount(text);
     let tailIncomplete = this.narrationTailLooksIncomplete(text);
     if (!tailIncomplete && count >= minChars) return text;
