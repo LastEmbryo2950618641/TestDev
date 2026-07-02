@@ -1643,21 +1643,26 @@ window.GameModules.realWorldAgentLoop = {
 
   async ensureConfiguredNarrationLength(store, action, prompt, narration, logId, config = this.realConfig()) {
     let text = this.cleanPhasedNarration(narration);
-    const count = this.chineseCharCount(text);
+    const minChars = config.mode === 'story' ? 700 : 900;
+    let count = this.chineseCharCount(text);
     let tailIncomplete = this.narrationTailLooksIncomplete(text);
-    if (!tailIncomplete) return text;
+    if (!tailIncomplete && count >= minChars) return text;
 
-    console.warn(`${config.label}正文句尾疑似截断，正在补全当前句:`, { count, tailIncomplete, tail: text.slice(-80) });
-    try {
-      const continuation = await this.completeConfiguredNarrationContinuation(store, action, prompt, text, logId, { count, tailIncomplete }, config);
-      if (continuation) {
+    for (let i = 0; i < 2 && (tailIncomplete || count < minChars); i += 1) {
+      const shortOutput = count < minChars;
+      console.warn(`${config.label}正文${shortOutput ? '过短' : '句尾疑似截断'}，正在补全:`, { count, minChars, tailIncomplete, tail: text.slice(-80) });
+      try {
+        const continuation = await this.completeConfiguredNarrationContinuation(store, action, prompt, text, logId, { count, minChars, tailIncomplete, shortOutput }, config);
+        if (!continuation) break;
         text = this.mergeNarrationContinuation(text, continuation);
+        count = this.chineseCharCount(text);
         tailIncomplete = this.narrationTailLooksIncomplete(text);
+      } catch (err) {
+        console.warn(`${config.label}正文补全失败，保留原正文继续流程:`, { code: err.code, message: err.message });
+        break;
       }
-    } catch (err) {
-      console.warn(`${config.label}正文补全失败，保留原正文继续流程:`, { code: err.code, message: err.message });
     }
-    if (tailIncomplete) console.warn(`${config.label}正文补全后句尾仍疑似截断:`, { count: this.chineseCharCount(text), tailIncomplete, tail: text.slice(-80) });
+    if (tailIncomplete || count < minChars) console.warn(`${config.label}正文补全后仍未达标:`, { count, minChars, tailIncomplete, tail: text.slice(-80) });
     return text;
   },
 
@@ -1672,11 +1677,13 @@ window.GameModules.realWorldAgentLoop = {
     const actionText = this.actionText(action, config.mode === 'story' ? '继续推进操控剧情' : '继续观察现实世界');
     const continuationPrompt = [
       '# 现实推演正文补全任务',
-      `任务:只输出补全文本本身；从<正文尾部>最后一个字符之后继续；只补完当前截断句并自然收束；禁止重复正文尾部；禁止输出任何任务说明、JSON、Markdown、标题；${this.compactReturnRule('prose')}结尾必须是。！？或右引号。`,
+      reason.shortOutput
+        ? `任务:只输出补全文本本身；从<正文尾部>最后一个字符之后继续，把本次行动范围内的环境、动作过程、可见反应、短期结果补写完整；禁止重复正文尾部；禁止输出任何任务说明、JSON、Markdown、标题；${this.compactReturnRule('prose')}结尾必须是。！？或右引号。`
+        : `任务:只输出补全文本本身；从<正文尾部>最后一个字符之后继续；只补完当前截断句并自然收束；禁止重复正文尾部；禁止输出任何任务说明、JSON、Markdown、标题；${this.compactReturnRule('prose')}结尾必须是。！？或右引号。`,
       `本次行动:${actionText}`,
       this.continuityFallbackRule(),
-      '边界:只补当前句或收束当前动作，不扩展新动作阶段，不为了字数追加新情节，不替玩家执行下一步。',
-      `问题:汉字数=${reason.count || 0};句尾未完成=${reason.tailIncomplete ? '是' : '否'}`,
+      reason.shortOutput ? '边界:补足已经开始的本次行动直接过程，不开启下一步新行动，不转移地点，不扩展到未输入的新阶段。' : '边界:只补当前句或收束当前动作，不扩展新动作阶段，不为了字数追加新情节，不替玩家执行下一步。',
+      `问题:汉字数=${reason.count || 0};最低目标=${reason.minChars || 0};正文过短=${reason.shortOutput ? '是' : '否'};句尾未完成=${reason.tailIncomplete ? '是' : '否'}`,
       `<正文尾部>${String(narration || '').slice(-1600)}</正文尾部>`,
       '现在仅输出正文后续suffix。',
     ].join('\n');
