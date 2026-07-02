@@ -82,7 +82,7 @@ window.GameModules.realWorldAgentLoop = {
 
     let settlementPrompt = 'Stage4 中文 K:V 滑动结算', settlementRaw = '', updates = {};
     try {
-      const participants = this.mergeNarrationParticipants(this.stageParticipants(effectiveSceneLayers, loaded, store), narration, store);
+      const participants = this.mergeNarrationParticipants(this.stageParticipants(effectiveSceneLayers, loaded, store), narration, store, sceneAnchor.data);
       this.markConfiguredStep(store, logId, `${config.label}正文已完成，正在生成中文 K:V 滑动结算…`, config, { keepNarration: true });
       updates = await this.completeConfiguredSettlementKvWindow({ store, action, base, loaded, skills, materialSession, narration, trace, participants, logId, config });
       updates = { ...updates, type: updates.type || 'final' };
@@ -496,21 +496,36 @@ window.GameModules.realWorldAgentLoop = {
     return out.slice(0, 12);
   },
 
-  mergeNarrationParticipants(participants = [], narration = '', store = null) {
+  mergeNarrationParticipants(participants = [], narration = '', store = null, sceneAnchor = null) {
     const out = Array.isArray(participants) ? participants.slice() : [];
     const seen = new Set(out.map((p) => `${p?.type || ''}:${p?.id || p?.idOrName || p?.name || ''}`));
     const text = String(narration || '');
-    Object.values(store?.rpgStates || {}).forEach((state) => {
-      const name = String(state?.profile?.name || state?.name || '').trim();
-      if (!name || !text.includes(name)) return;
-      const p = this.characterParticipant({ id: state.id, name }, store);
+    const addCharacter = (id = '', name = '', role = 'narration-mentioned') => {
+      const p = this.characterParticipant({ id, name }, store);
       const key = `${p?.type || ''}:${p?.id || p?.idOrName || p?.name || ''}`;
       if (p && !seen.has(key) && this.settlementEligibleParticipant({ ...p, canSettle: true })) {
         seen.add(key);
-        out.push({ ...p, role: 'narration-mentioned', canSettle: true });
+        out.push({ ...p, role, canSettle: true });
       }
+    };
+    this.sceneAnchorParticipants(sceneAnchor, store).forEach((item) => addCharacter(item.id || item.idOrName, item.name, 'current-scene'));
+    Object.values(store?.rpgStates || {}).forEach((state) => {
+      const name = String(state?.profile?.name || state?.name || '').trim();
+      if (!name || !text.includes(name)) return;
+      addCharacter(state.id, name, 'narration-mentioned');
     });
     return out.slice(0, 12);
+  },
+
+  sceneAnchorParticipants(sceneAnchor = null, store = null) {
+    const values = sceneAnchor?.values || sceneAnchor || {};
+    const playerName = String(store?.playerName || store?.playerProfile?.name || store?.realWorldPlayerSettlementName?.() || '').trim();
+    const fields = ['强制出场', '当前场景影响对象'];
+    return fields.flatMap((key) => this.splitNameList(values[key] || '').map((raw) => {
+      const parsed = this.parseParticipantToken(raw);
+      const name = String(parsed?.name || raw || '').replace(/[（(].*$/u, '').trim();
+      return name && !['无', '玩家', '系统', playerName].includes(name) ? { type: 'character', idOrName: name, name, role: 'current-scene', canSettle: true } : null;
+    }).filter(Boolean));
   },
 
   characterParticipants(characters = [], store = null) {
@@ -923,41 +938,68 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   settlementMetricKeysForSubject(store = {}, subject = {}, metricType = '') {
+    if (metricType === '感觉' && subject?.type === 'player') return [];
     const participant = { type: subject?.type, id: subject?.id, idOrName: subject?.id, name: subject?.name };
     const metrics = this.settlementParticipantMetrics(store, participant);
     const group = metricType === '感觉' ? metrics.playerFeelings : metrics.emotions;
     return Object.keys(group || {}).filter((key) => String(key || '').trim());
   },
 
+  settlementParticipantContextText(store = {}, participants = []) {
+    const playerName = String(store?.playerName || store?.playerProfile?.name || store?.realWorldPlayerSettlementName?.() || '玩家').trim() || '玩家';
+    const chars = (Array.isArray(participants) ? participants : []).filter((p) => p?.type === 'character');
+    const roleRows = chars.map((participant) => {
+      const state = store?.itemSkillState?.(participant.id) || store?.itemSkillState?.(participant.idOrName) || store?.rpgStates?.[participant.id];
+      const profile = state?.profile || {};
+      const facts = [profile.role || state?.role, profile.relationship || profile.identity, profile.age ? `${profile.age}岁` : ''].filter(Boolean).join('；') || '角色卡已加载';
+      return `${participant.name || participant.id}：${facts}`;
+    }).join('\n') || '无';
+    const bindings = [`你=${playerName}（玩家）`].concat(chars.map((p) => `${p.name || p.id}=出场角色，结算主体必须直接写姓名`)).join('\n');
+    return [
+      '玩家与出场人物标注：',
+      `玩家：${playerName}`,
+      `出场角色：${chars.map((p) => p.name || p.id).filter(Boolean).join('、') || '无'}`,
+      '指代绑定：',
+      bindings,
+      '出场人物角色卡摘要：',
+      roleRows,
+    ].join('\n');
+  },
+
   settlementMetricBaselineText(store = {}, participants = []) {
     const emotionKeys = new Set();
     const feelingKeys = new Set();
+    const format = (group = {}, keySet = null) => Object.entries(group || {}).filter(([, value]) => value !== undefined && value !== null && value !== '').map(([key, value]) => {
+      if (keySet) keySet.add(key);
+      return `${key}=${value}`;
+    }).join('、') || '无';
     const rows = (Array.isArray(participants) ? participants : []).map((participant) => {
       const metrics = this.settlementParticipantMetrics(store, participant);
       const state = participant?.type === 'player'
         ? store?.playerIdentityState?.()
         : (store?.itemSkillState?.(participant.id) || store?.itemSkillState?.(participant.idOrName) || store?.rpgStates?.[participant.id]);
       const label = participant?.name || state?.profile?.name || participant?.id || '';
-      const format = (group = {}, keySet = null) => Object.entries(group || {}).filter(([, value]) => value !== undefined && value !== null && value !== '').map(([key, value]) => {
-        if (keySet) keySet.add(key);
-        return `${key}=${value}`;
-      }).join('、') || '无';
       if (!label) return null;
-      return { label, emotions: format(metrics.emotions, emotionKeys), playerFeelings: format(metrics.playerFeelings, feelingKeys) };
+      return { type: participant?.type, label, emotions: format(metrics.emotions, emotionKeys), playerFeelings: format(metrics.playerFeelings, participant?.type === 'character' ? feelingKeys : null) };
     }).filter(Boolean);
-    const emotionRows = rows.map((row) => `${row.label}：情绪：${row.emotions}`).join('\n') || '无';
-    const feelingRows = rows.map((row) => `${row.label}：对玩家感觉：${row.playerFeelings}`).join('\n') || '无';
+    const characterRows = rows.filter((row) => row.type === 'character');
+    const playerRows = rows.filter((row) => row.type === 'player');
+    const emotionRows = characterRows.map((row) => `${row.label}：情绪：${row.emotions}`).join('\n') || '无';
+    const playerEmotionRows = playerRows.map((row) => `${row.label}：玩家自我情绪：${row.emotions}`).join('\n') || '无';
+    const feelingRows = characterRows.map((row) => `${row.label}：对玩家感觉：${row.playerFeelings}`).join('\n') || '无';
     const emotionWhitelist = [...emotionKeys].join('、') || '无';
     const feelingWhitelist = [...feelingKeys].join('、') || '无';
     return [
-      '当前情绪基线：',
+      '出场角色当前情绪基线：',
       emotionRows,
-      `情绪指标只能使用当前情绪基线中已经存在的指标名：${emotionWhitelist}`,
-      '对玩家感觉基线：',
+      '玩家自我状态基线：',
+      playerEmotionRows,
+      `情绪指标只能使用上述情绪基线中已经存在的指标名：${emotionWhitelist}`,
+      '出场角色对玩家感觉基线：',
       feelingRows,
-      `感觉指标只能使用对玩家感觉基线中已经存在的指标名：${feelingWhitelist}`,
+      `感觉指标只能使用出场角色对玩家感觉基线中已经存在的指标名：${feelingWhitelist}`,
       '若稳定事实不对应上述已有指标名，必须写“无变化”，不得新造情绪/感觉指标。',
-      '边界：情绪是角色当前内在情绪；感觉只表示该角色对玩家的感觉。',
+      '边界：情绪是对应主体当前内在情绪；感觉只表示出场角色对玩家的感觉，玩家本人不得作为“对玩家感觉”的结算主体。',
     ].join('\n');
   },
 
@@ -1009,7 +1051,7 @@ window.GameModules.realWorldAgentLoop = {
       输出长度规则: `本轮输出不得少于${minimumOutputLength}个中文字符；不得用解释、总结、重复文本凑字数，只能通过完整输出所有结算块满足长度。`,
       未完成类型原因: incompleteReason,
       本回合参与者: JSON.stringify(participants),
-      本轮结算材料: [`行动：${this.actionText(action)}`, `正文：${this.compactUpdatePromptText(narration, 1800, true)}`, this.settlementMetricBaselineText(store, participants), stableFactRules].join('\n'),
+      本轮结算材料: [`行动：${this.actionText(action)}`, this.settlementParticipantContextText(store, participants), `正文：${this.compactUpdatePromptText(narration, 1800, true)}`, this.settlementMetricBaselineText(store, participants), stableFactRules].join('\n'),
       类型短规则: requestedTypes.map((type) => this.settlementTypeShortRule(type)).join('\n\n'),
       类型合约: typeText,
     });
