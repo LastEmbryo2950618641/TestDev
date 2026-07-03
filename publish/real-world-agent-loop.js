@@ -682,6 +682,30 @@ window.GameModules.realWorldAgentLoop = {
     return config.mode === 'story' ? base.concat(['操控体验']) : base;
   },
 
+  settlementTypeWindows(allTypes = []) {
+    const typeSet = new Set(allTypes);
+    const groups = [
+      ['基础结算'],
+      ['情绪', '感觉', '生命体征', '身体状态', '穿着状态'],
+      ['性经历', '性历史', '关系', '角色卡'],
+      ['物品', '地图', '人事安排'],
+      ['势力总览', '势力结构', '系统记录', '通用固化', '操控体验'],
+    ];
+    const windows = groups.map((group) => group.filter((type) => typeSet.has(type))).filter((group) => group.length);
+    const grouped = new Set(windows.flat());
+    const extras = allTypes.filter((type) => !grouped.has(type));
+    if (extras.length) windows.push(extras);
+    return windows;
+  },
+
+  nextSettlementWindow(allTypes = [], completedTypes = [], currentIncompleteTypes = []) {
+    const completed = new Set(completedTypes);
+    const unfinished = allTypes.filter((type) => !completed.has(type));
+    const retry = (currentIncompleteTypes || []).filter((type) => unfinished.includes(type));
+    if (retry.length) return retry;
+    return this.settlementTypeWindows(allTypes).find((group) => group.some((type) => unfinished.includes(type)))?.filter((type) => unfinished.includes(type)) || [];
+  },
+
   settlementTypeContracts() {
     return {
       '基础结算': { title: '基础结算', format: '经过时间：秒数\n当前状态：状态文本\n当前目标：目标文本\n场景标题：标题\n地点名称：地点全称\n备选行动1：行动文本\n备选行动2：行动文本\n备选行动3：行动文本\n备选行动4：行动文本' },
@@ -761,24 +785,19 @@ window.GameModules.realWorldAgentLoop = {
     if (!subject || !key || !rawValue || !reason) return null;
     if (!entry) return this.parseGenericSettlementLine(typeName, line, subject, { requireExplicitGeneric: true });
     let normalizedKey = type === '生命体征' ? this.vitalFieldAlias(key) : key;
-    const delta = Number(String(rawValue).replace(/[^-+\d.]/gu, ''));
-    const hasNumericDelta = Number.isFinite(delta) && /^[+-]?\d/u.test(String(rawValue));
-    let temporaryMetric = false;
+    const rawValueText = String(rawValue).trim();
+    const delta = Number(rawValueText.replace(/[^-+\d.]/gu, ''));
+    const hasSignedDelta = Number.isFinite(delta) && /^[+-]\d/u.test(rawValueText) && delta !== 0;
     if (['情绪', '感觉'].includes(type)) {
       const allowedKeys = this.settlementMetricKeysForSubject(store, subject, type);
       normalizedKey = this.metricAliasForSettlement(type, normalizedKey);
-      if (!allowedKeys.includes(normalizedKey)) {
-        if (!hasNumericDelta) return null;
-        temporaryMetric = true;
-      }
+      if (!allowedKeys.includes(normalizedKey) || !hasSignedDelta) return null;
     }
     if (entry.fieldMap && !entry.fieldMap[normalizedKey]) return null;
-    if (type === '生命体征' && !/^[-+]?\d/u.test(String(rawValue).trim())) return null;
-    const field = temporaryMetric
-      ? `metrics.${type === '感觉' ? 'temporaryPlayerFeelings' : 'temporaryEmotions'}.${normalizedKey}`
-      : (entry.fieldMap?.[normalizedKey] || `${entry.fieldPrefix}.${normalizedKey}`);
-    const change = hasNumericDelta ? { mode: 'delta', value: delta } : { mode: 'set', value: rawValue };
-    return { updateType: entry.updateType, subject, field, temporary: temporaryMetric, change, reasons: [{ trigger: temporaryMetric ? `临时${type}` : type, evidence: reason, confidence: 'confirmed' }] };
+    if (type === '生命体征' && !hasSignedDelta) return null;
+    const field = entry.fieldMap?.[normalizedKey] || `${entry.fieldPrefix}.${normalizedKey}`;
+    const change = hasSignedDelta ? { mode: 'delta', value: delta } : { mode: 'set', value: rawValue };
+    return { updateType: entry.updateType, subject, field, change, reasons: [{ trigger: type, evidence: reason, confidence: 'confirmed' }] };
   },
 
   parseGenericSettlementLine(typeName = '', line = '', subject = null, options = {}) {
@@ -919,8 +938,9 @@ window.GameModules.realWorldAgentLoop = {
     }
     const [label, part, rawValue, reason] = parts;
     if (label !== '性经历' || !subject || !part || !rawValue || !reason) return null;
-    const delta = Number(String(rawValue).replace(/[^-+\d.]/gu, ''));
-    if (!Number.isFinite(delta) || !/^[-+]?\d/u.test(String(rawValue).trim())) return null;
+    const rawValueText = String(rawValue).trim();
+    const delta = Number(rawValueText.replace(/[^-+\d.]/gu, ''));
+    if (!Number.isFinite(delta) || !/^[+-]\d/u.test(rawValueText) || delta === 0) return null;
     const key = this.sexualPartAlias(part);
     if (!this.allowedSexualPartKeys().includes(key)) return null;
     const value = { totalDelta: 0, parts: { [key]: delta } };
@@ -1077,7 +1097,10 @@ window.GameModules.realWorldAgentLoop = {
         }
       } else if (Array.isArray(value)) {
         value.forEach((entry) => {
-          if (!entry || typeof entry !== 'object') return;
+          if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+            if (entry !== undefined && entry !== null) patch.__updateLines += 1;
+            return;
+          }
           patch.__updateLines += 1;
           const subject = this.settlementJsonSubject(type, entry, participants) || this.defaultSubjectForSettlement(participants);
           const line = this.settlementJsonUpdateLine(type, entry);
@@ -1247,12 +1270,12 @@ window.GameModules.realWorldAgentLoop = {
     const contracts = this.settlementTypeContracts();
     const c = contracts[type] || { title: `${type}结算`, format: '更新N：类型，字段，变化，原因' };
     const rules = {
-      '情绪': '字段只能使用本轮“当前情绪基线”里已有指标名；可把愉悦/开心映射为高兴、惊慌映射为恐惧、不安映射为紧张；没有对应已有指标写无变化。',
-      '感觉': '主体只能是出场 NPC，不能是玩家；字段只能使用“出场角色对玩家感觉基线”里已有指标名；可把信赖映射为信任、亲近映射为好感、害怕映射为畏惧、厌恶映射为反感。',
-      '生命体征': '字段只能是：生命力、精力、饱食度、水分、疲劳、精神稳定；允许别名输入但最终字段写这 6 个中文名；禁止心率、体温、呼吸频率、血压、血氧、瞳孔、激素、行动能力、肌肉紧张度等新指标；变化必须是 +N/-N。',
+      '情绪': '字段只能使用本轮“当前情绪基线”里已有指标名；value 必须是 +N/-N 且不能为 0；可把愉悦/开心映射为高兴、惊慌映射为恐惧、不安映射为紧张；没有对应已有指标或无稳定变化时输出空数组。',
+      '感觉': '主体只能是出场 NPC，不能是玩家；字段只能使用“出场角色对玩家感觉基线”里已有指标名；value 必须是 +N/-N 且不能为 0；可把信赖映射为信任、亲近映射为好感、害怕映射为畏惧、厌恶映射为反感。',
+      '生命体征': '字段只能是：生命力、精力、饱食度、水分、疲劳、精神稳定；允许别名输入但最终字段写这 6 个中文名；禁止心率、体温、呼吸频率、血压、血氧、瞳孔、激素、行动能力、肌肉紧张度等新指标；变化必须是 +N/-N 且不能为 0；健康正常或无稳定变化时输出空数组。',
       '身体状态': '部位只能是：整体/全身、口部/嘴部/嘴唇、胸部/胸口/乳房、阴部/私处、肛部、臀部/屁股、四肢/手臂/腿部、皮肤、其他；禁止坐姿、手指动作、肌肉紧张度等新部位字段。',
       '穿着状态': '穿着部位只能是：全身/整体、胸部/胸口/乳房、上身、外套、下身、腿部/大腿、足部/脚部、内裤、饰品；全身/整体会按外套处理并清空其他衣物槽；同轮若还有局部部位，先应用全身再覆盖局部部位；禁止肩部、腰部、衣领、吊带位置等非槽位字段；必须包含衣物名称和当前状态。',
-      '性经历': '分类只能是：阴部、胸部/胸口/乳房、唇部/接吻、口部/嘴部、口部行为、口交、口交中出、阴部进入、阴道插入、阴道中出、肛部/肛门、肛部进入、肛交、肛交中出、腿部/大腿、臀部/屁股、手部/手、皮肤、其他；禁止写总次数/总数/全部。',
+      '性经历': '分类只能是：阴部、胸部/胸口/乳房、唇部/接吻、口部/嘴部、口部行为、口交、口交中出、阴部进入、阴道插入、阴道中出、肛部/肛门、肛部进入、肛交、肛交中出、腿部/大腿、臀部/屁股、手部/手、皮肤、其他；delta 必须是 +N/-N 且不能为 0；禁止写总次数/总数/全部；无相关行为时输出空数组。',
       '关系': '只记录稳定关系维度，如亲属、朋友、同事、师生、雇佣、敌对、同居、恋人；好感、信任、依赖、警惕等数值态度写“感觉”，不要写关系。',
       '角色卡': '只写稳定角色卡字段：当前状态、身份、职业、技能、知识、外貌、性格、喜好、人物说明、社群角色、势力地位、人际关系；临时情绪、生命体征、身体、穿着、关系、物品有专门类型时不得写角色卡。',
       '地图': '字段只能是：当前位置、上级地点、地点事实、地图节点、路线事实；角色当前所在地优先写人事安排，不要把角色行动写成地图事实。',
@@ -1357,8 +1380,8 @@ window.GameModules.realWorldAgentLoop = {
     }).join('\n');
     const globalShortReason = String(partialByType.__shortOutputReason || '').trim();
     const incompleteReason = [globalShortReason, incompleteTypes.map((type) => {
-      const title = contracts[type]?.title || `${type}结算`;
-      return `${type}：上轮 JSON 缺失或字段未通过解析，本轮必须重新输出该 key 的完整 JSON 值`;
+      const detail = String(partialByType[type] || '').trim();
+      return `${type}：${detail || '上轮 JSON 缺失或字段未通过解析，本轮必须重新输出该 key 的完整 JSON 值'}`;
     }).join('；')].filter(Boolean).join('\n') || '无';
     const stableFactRules = [
       '内部提取“本轮稳定事实”：只在内部完成，不输出事实列表。',
@@ -1373,6 +1396,8 @@ window.GameModules.realWorldAgentLoop = {
       '上一条 assistant 消息是本轮正文材料；只能依据该正文和本条要求中的材料结算。',
       'JSON 顶层 key 只能是“本次必须返回的类型”列出的类型；已完成类型不得重复输出；未列入类型不得输出。',
       '无稳定变化的非基础类型必须输出空数组 []，不要写“无变化”。',
+      '情绪、感觉、生命体征、性经历的 value/delta 必须写 +N 或 -N；禁止写 0、+0、100、98/100、正常、无变化。',
+      '感觉主体只能是出场 NPC；玩家本人不得输出感觉更新。',
       '每条更新只能写一个字段，禁止把字段合并成“当前地点/当前行动/可用状态”或“事件/记录/状态”。',
     ].join('\n');
     const requestText = [
@@ -1396,6 +1421,8 @@ window.GameModules.realWorldAgentLoop = {
       '- 基础结算必须输出完整对象；非基础类型必须输出数组，有变化写对象数组，无变化写 []。',
       '- subject 必须直接写本回合参与者姓名、明确地点名、明确势力名或“系统”；不要写代词。',
       '- reason/evidence 必须写具体行为、对话或连续动作证据；弱氛围暗示不得结算。',
+      '- 情绪、感觉、生命体征、性经历的 value/delta 必须是带符号非零变化，例如 +2 或 -1；没有变化输出 []。',
+      '- 感觉数组中 subject 只能写出场 NPC，不能写玩家姓名。',
       '- 字符串中不要使用英文逗号或中文逗号分隔多字段；必要时用顿号或分号。',
       '- 不要为了凑长度创造更新；空数组是合法完整输出。',
       '合法形态示例：{"情绪":[],"身体状态":[{"subject":"角色名","part":"整体","status":"状态","reason":"证据"}],"系统记录":[]}',
@@ -1412,9 +1439,9 @@ window.GameModules.realWorldAgentLoop = {
     const completedTypes = [];
     const partialByType = {};
     const patchesByType = {};
-    let requestedTypes = allTypes.slice();
+    let requestedTypes = this.nextSettlementWindow(allTypes, completedTypes, []);
     let shortOutputRetries = 0;
-    const maxAttempts = Math.max(4, allTypes.length + 1);
+    const maxAttempts = Math.max(8, allTypes.length + 2);
     for (let attempt = 0; attempt < maxAttempts && requestedTypes.length; attempt += 1) {
       const messages = await this.buildSettlementTypeWindowMessages({ requestedTypes, completedTypes, incompleteTypes: requestedTypes.filter((type) => partialByType[type]), partialByType, store, action, base, loaded, materialSession, narration, trace, participants, config });
       const raw = await this.completeConfiguredStep(store, messages, logId, false, { ...config, sourceTitle: `${config.label}Stage4滑动结算` });
@@ -1444,12 +1471,18 @@ window.GameModules.realWorldAgentLoop = {
         delete partialByType[type];
       });
       parsed.incompleteTypes.forEach((type) => {
-        const lines = parsed.patchesByType[type]?.__lines || [];
-        partialByType[type] = lines.length ? lines.join('\n') : '本轮未返回该类型，需补齐完整类型块。';
+        const parsedLines = parsed.patchesByType[type]?.__lines || [];
+        const parsedCount = parsed.patchesByType[type]?.__parsedUpdates || 0;
+        const updateCount = parsed.patchesByType[type]?.__updateLines || 0;
+        const cause = updateCount && parsedCount !== updateCount
+          ? `字段未通过解析：${parsedCount}/${updateCount} 条有效；请检查 subject、field、value 与合约。`
+          : '上轮 JSON 缺失或字段未通过解析。';
+        partialByType[type] = parsedLines.length ? `${cause} 本轮必须重新输出该 key 的完整 JSON 值。` : `${cause} 本轮未返回该类型。`;
       });
       if (acceptedShortReason && parsed.incompleteTypes.length) partialByType.__shortOutputReason = acceptedShortReason;
-      requestedTypes = allTypes.filter((type) => !completedTypes.includes(type));
+      requestedTypes = this.nextSettlementWindow(allTypes, completedTypes, parsed.incompleteTypes);
     }
+    requestedTypes = this.nextSettlementWindow(allTypes, completedTypes, []);
     if (requestedTypes.length) throw new Error(`Stage4结算类型未完成：${requestedTypes.join('、')}`);
     return this.mergeGroupedUpdatePatches(Object.values(patchesByType), {});
   },
