@@ -1062,6 +1062,20 @@ window.GameModules.realWorldAgentLoop = {
     return `更新N：${type}，${field}，${value}，${reason}`;
   },
 
+  parseRelationshipJsonEntry(entry = {}, subject = null, participants = []) {
+    const t = (value) => this.settlementJsonText(value);
+    const player = (participants || []).find((p) => p?.type === 'player');
+    const left = t(entry.left ?? entry.左方 ?? entry.actor ?? entry.甲方 ?? player?.name ?? player?.id ?? '');
+    const right = t(entry.right ?? entry.右方 ?? entry.target ?? entry.对象 ?? entry.乙方 ?? subject?.name ?? subject?.id ?? '');
+    const dimension = t(entry.dimension ?? entry.维度 ?? entry.field ?? entry.字段 ?? '');
+    const status = t(entry.status ?? entry.状态 ?? entry.value ?? entry.关系状态 ?? '');
+    const reason = t(entry.reason ?? entry.原因 ?? entry.evidence ?? entry.证据 ?? '');
+    const result = t(entry.result ?? entry.结果 ?? status);
+    if (!subject || !left || !right || !dimension || !status || !reason || !result) return null;
+    if (/^(?:好感|好感度|信任|依赖|警惕|畏惧|反感|愤怒|恐惧|紧张|安心|悲伤|开心|高兴)$/u.test(dimension) || /^[-+]?\d/u.test(status)) return null;
+    return { updateType: 'relationship', subject, field: `relationships.${dimension}`, change: { mode: 'upsert', value: { left, right, dimension, status, reason, result } }, reasons: [{ trigger: '关系变化', evidence: reason, confidence: 'confirmed' }] };
+  },
+
   parseSettlementJson(raw, { requestedTypes = [], participants = [], store = null, config = this.realConfig() } = {}) {
     const data = this.parseCompactSettlementJson(raw);
     if (!data || Array.isArray(data) || typeof data !== 'object') return null;
@@ -1104,9 +1118,11 @@ window.GameModules.realWorldAgentLoop = {
           patch.__updateLines += 1;
           const subject = this.settlementJsonSubject(type, entry, participants) || this.defaultSubjectForSettlement(participants);
           const line = this.settlementJsonUpdateLine(type, entry);
-          const update = specialParsers[type]
-            ? specialParsers[type](line, subject)
-            : (['性历史', '关系', '角色卡'].includes(type) ? this.parseSpecialSettlementLine(type, line, subject, participants) : this.parseStandardSettlementLine(type, line, subject, participants, store));
+          const update = type === '关系'
+            ? this.parseRelationshipJsonEntry(entry, subject, participants)
+            : (specialParsers[type]
+              ? specialParsers[type](line, subject)
+              : (['性历史', '角色卡'].includes(type) ? this.parseSpecialSettlementLine(type, line, subject, participants) : this.parseStandardSettlementLine(type, line, subject, participants, store)));
           if (update) {
             patch.__parsedUpdates += 1;
             patch.genericUpdates.push(update);
@@ -1458,6 +1474,7 @@ window.GameModules.realWorldAgentLoop = {
         shortOutputRetries += 1;
         partialByType.__shortOutputReason = `上轮返回过短：${compactRawLength}/${shortOutputThreshold}；整轮已丢弃，必须按本次必须返回的类型顺序完整重输全部类型。`;
         if (shortOutputRetries > 1) throw new Error(`Stage4滑动结算返回过短且无完整类型：${compactRawLength}/${shortOutputThreshold}，未完成类型：${requestedTypes.join('、')}`);
+        requestedTypes.forEach((type) => { partialByType[type] = '上轮返回过短且无完整类型；本轮必须重新输出该 key 的完整 JSON 值。'; });
         continue;
       }
       shortOutputRetries = 0;
