@@ -1307,6 +1307,60 @@ window.GameModules.realWorldAgentLoop = {
     ].join('\n');
   },
 
+  settlementMetricExample(store = {}, participants = [], metricType = '') {
+    const rows = (Array.isArray(participants) ? participants : []).filter((p) => metricType !== '感觉' || p?.type === 'character');
+    for (const participant of rows) {
+      const keys = this.settlementMetricKeysForSubject(store, participant, metricType);
+      if (keys.length) return { subject: participant.name || participant.id, field: keys[0] };
+    }
+    return null;
+  },
+
+  settlementTypeJsonExample(type = '', participants = [], store = {}) {
+    const chars = (Array.isArray(participants) ? participants : []).filter((p) => p?.type === 'character');
+    const player = (Array.isArray(participants) ? participants : []).find((p) => p?.type === 'player');
+    const subject = chars[0]?.name || chars[0]?.id || player?.name || player?.id || '角色名';
+    const playerName = player?.name || player?.id || '玩家名';
+    const otherName = chars[1]?.name || chars[1]?.id || subject;
+    if (type === '基础结算') return '"基础结算":{"经过时间":60,"当前状态":"当前稳定状态","当前目标":"下一步目标","场景标题":"场景标题","地点名称":"地点名","备选行动":["行动一","行动二","行动三","行动四"]}';
+    if (type === '情绪') {
+      const ex = this.settlementMetricExample(store, participants, '情绪');
+      return ex ? `"情绪":[{"subject":"${ex.subject}","field":"${ex.field}","value":"+1","reason":"正文中的明确行为或对话证据"}]` : '"情绪":[]';
+    }
+    if (type === '感觉') {
+      const ex = this.settlementMetricExample(store, participants, '感觉');
+      return ex ? `"感觉":[{"subject":"${ex.subject}","field":"${ex.field}","value":"+1","reason":"该 NPC 对玩家态度变化的明确证据"}]` : '"感觉":[]';
+    }
+    if (type === '生命体征') return `"生命体征":[{"subject":"${subject}","field":"疲劳","value":"+1","reason":"正文明确出现持续消耗或疲惫证据"}]`;
+    if (type === '身体状态') return `"身体状态":[{"subject":"${subject}","part":"整体","status":"状态描述","reason":"正文明确身体状态证据"}]`;
+    if (type === '穿着状态') return `"穿着状态":[{"subject":"${subject}","part":"外套","item":"衣物名称","state":"当前状态","reason":"正文明确穿着变化证据"}]`;
+    if (type === '性经历') return `"性经历":[{"subject":"${subject}","part":"分类","delta":"+1","reason":"正文明确性相关行为证据"}]`;
+    if (type === '性历史') return `"性历史":[{"subject":"${subject}","transition":"状态转移","partner":"对象","evidence":"正文明确证据"}]`;
+    if (type === '关系') return `"关系":[{"subject":"${subject}","left":"${playerName}","right":"${subject}","dimension":"亲属关系","status":"稳定亲密","reason":"正文中能证明关系状态的具体证据","result":"维持稳定亲密关系"}]`;
+    if (type === '角色卡') return `"角色卡":[{"subject":"${subject}","field":"当前状态","op":"增加","value":"稳定状态标签","reason":"正文明确且可长期固化的证据","result":"加入状态标签"}]`;
+    if (type === '物品') return `"物品":[{"subject":"${subject}","field":"持有物","value":"物品状态","reason":"正文明确物品变化证据"}]`;
+    if (type === '地图') return '"地图":[{"subject":"地点名","field":"地点事实","value":"稳定地点事实","reason":"正文明确地点证据"}]';
+    if (type === '人事安排') return `"人事安排":[{"subject":"${subject}","field":"当前行动","value":"正在做的事","reason":"正文明确行动证据"}]`;
+    if (type === '势力总览') return '"势力总览":[{"subject":"势力名","field":"新增势力","value":"势力事实","reason":"正文明确势力证据"}]';
+    if (type === '势力结构') return `"势力结构":[{"subject":"势力名","field":"成员地位","value":"${subject}的稳定地位","reason":"正文明确组织证据"}]`;
+    if (type === '系统记录') return '"系统记录":[{"subject":"系统","field":"事件","value":"已确认事件","reason":"正文明确事件证据"}]';
+    if (type === '通用固化') return `"通用固化":[{"subject":"${subject}","field":"长期标签","value":"稳定标签","reason":"正文明确且无专门类型承载"}]`;
+    if (type === '操控体验') return '"操控体验":[{"subject":"系统","field":"体验","value":"稳定体验变化","reason":"正文明确体验证据"}]';
+    return `"${type}":[]`;
+  },
+
+  settlementTypeAntiExample(type = '') {
+    const map = {
+      '情绪': '反例：{"field":"惊慌","value":"+0"}（新造字段或 0 变化）；正确：用基线已有字段且 +N/-N，或 []。',
+      '感觉': '反例：{"subject":"玩家","field":"警戒"}（玩家不能是感觉主体，警戒不是基线字段）；正确：NPC subject + 基线已有字段，或 []。',
+      '生命体征': '反例：{"field":"心率","value":"98/100"}、{"field":"精神稳定","value":"+0"}；正确：六个允许字段 + 非零增减，或 []。',
+      '性经历': '反例：把共处、拥抱、照顾写成性经历；正确：没有明确性相关行为就 []。',
+      '关系': '反例：{"dimension":"好感","status":"+5"}、缺 right/result；正确：dimension 写亲属/朋友/恋人/敌对等稳定关系，status 写关系状态。',
+      '角色卡': '反例：{"op":"保持"}、把临时情绪/穿着写入角色卡；正确：op 只能 替换/增加，且必须是长期稳定字段。',
+    };
+    return map[type] || '';
+  },
+
   settlementParticipantMetrics(store = {}, participant = {}) {
     const state = participant?.type === 'player'
       ? store?.playerIdentityState?.()
@@ -1406,6 +1460,8 @@ window.GameModules.realWorldAgentLoop = {
       '弱氛围暗示：不得结算。',
     ].join('\n');
     const requiredKeyOrder = requestedTypes.join(' → ');
+    const jsonExamples = `{${requestedTypes.map((type) => this.settlementTypeJsonExample(type, participants, store)).join(',')}}`;
+    const antiExamples = requestedTypes.map((type) => this.settlementTypeAntiExample(type)).filter(Boolean).join('\n') || '无';
     const rulesText = [
       '你正在执行 Stage4 紧凑 JSON 滑动结算。',
       '只输出一个合法 JSON 对象；不要 Markdown；不要 ```json 代码块；不要换行；不要解释；不要内部分析。',
@@ -1413,7 +1469,9 @@ window.GameModules.realWorldAgentLoop = {
       'JSON 顶层 key 只能是“本次必须返回的类型”列出的类型；已完成类型不得重复输出；未列入类型不得输出。',
       '无稳定变化的非基础类型必须输出空数组 []，不要写“无变化”。',
       '情绪、感觉、生命体征、性经历的 value/delta 必须写 +N 或 -N；禁止写 0、+0、100、98/100、正常、无变化。',
+      '字段名必须使用合约中的中文 key；禁止输出英文顶层 key，例如 life_signs、relationship、role_card。',
       '感觉主体只能是出场 NPC；玩家本人不得输出感觉更新。',
+      '关系 dimension 必须是稳定关系类别，禁止写好感、信任、依赖、警惕、开心、恐惧等数值态度或情绪。',
       '每条更新只能写一个字段，禁止把字段合并成“当前地点/当前行动/可用状态”或“事件/记录/状态”。',
     ].join('\n');
     const requestText = [
@@ -1431,6 +1489,10 @@ window.GameModules.realWorldAgentLoop = {
       requestedTypes.map((type) => this.settlementTypeShortRule(type)).join('\n\n'),
       'JSON 合约：',
       jsonContracts,
+      '本次窗口合法 JSON 示例，只能参考结构；没有正文证据时对应数组必须改成 []：',
+      jsonExamples,
+      '本次窗口常见错误反例，必须避免：',
+      antiExamples,
       '输出硬规则：',
       '- 只输出一个紧凑 JSON 对象，首字符必须是 {，末字符必须是 }。',
       '- 顶层 key 必须且只能包含本次必须返回的类型；按必须输出 key 顺序排列。',
@@ -1439,6 +1501,8 @@ window.GameModules.realWorldAgentLoop = {
       '- reason/evidence 必须写具体行为、对话或连续动作证据；弱氛围暗示不得结算。',
       '- 情绪、感觉、生命体征、性经历的 value/delta 必须是带符号非零变化，例如 +2 或 -1；没有变化输出 []。',
       '- 感觉数组中 subject 只能写出场 NPC，不能写玩家姓名。',
+      '- 关系数组中 left/right/dimension/status/reason/result 都必须有；dimension 不能是好感/信任/依赖/警惕等感觉指标。',
+      '- 角色卡 op 只能写“替换”或“增加”；不能写保持、无变化、更新。',
       '- 字符串中不要使用英文逗号或中文逗号分隔多字段；必要时用顿号或分号。',
       '- 不要为了凑长度创造更新；空数组是合法完整输出。',
       '合法形态示例：{"情绪":[],"身体状态":[{"subject":"角色名","part":"整体","status":"状态","reason":"证据"}],"系统记录":[]}',
