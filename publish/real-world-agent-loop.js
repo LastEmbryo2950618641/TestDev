@@ -159,13 +159,75 @@ window.GameModules.realWorldAgentLoop = {
         '已加载资料摘要：无',
         '可请求资料目录：无',
       ].join('\n');
-      return window.GameModules.promptTemplates.render(config.firstTemplateId || 'inference-stage1-guided-query', {
-        ...commonVars,
-        路由上下文: stage1RoutingContext,
-        上一轮查询规划摘要: this.previousGuidanceSummary(guidance),
-        已加载资料摘要: config.ctx.loadedRoutingSummary?.(loaded) || '无',
-        可请求资料目录: config.ctx.stage1MaterialCatalogText?.(config.mode) || '无',
-      });
+      const previousGuidance = this.previousGuidanceSummary(guidance);
+      const loadedRoutingSummary = config.ctx.loadedRoutingSummary?.(loaded) || '无';
+      const materialCatalog = config.ctx.stage1MaterialCatalogText?.(config.mode) || '无';
+      const rulesText = [
+        '# Stage1 查询规划：紧凑 JSON 资料路由',
+        '任务：只输出一个合法 JSON 对象，不输出中文 K:V、Markdown、正文或解释。',
+        '你只负责判断本次行动生成正文前还需要哪些已有资料；不得写正文，不得锚定场景，不得结算状态，不得推进后续结果。',
+        '资料请求规则：',
+        '- 使用中文资料请求，不得输出英文 skill/method。',
+        '- 资料请求最多 Top3；超过 Top3 的候选必须丢弃，不得输出资料请求4或更多编号。',
+        '- 角色卡请求只代表可作为参考资料；不得因此把角色写入强制出场。',
+        '- 已加载资料摘要已经覆盖的人物、地点、路线不得重复请求。',
+        '- 不得请求衣着、鞋袜、随身物品等细节；这些细节不属于本阶段必要资料。',
+        '- 不得照抄示例中的占位词；角色全称、世界全称、地点全称、人物全称、作品全称都必须替换为本次行动中的真实名称。',
+        '- 资料请求示例：资料请求1：角色查询，搜索角色卡，刘思琪，2026现代都市现实世界',
+        '- 资料请求示例：资料请求1：地点查询，查询附近地点，锦苑小区3栋2单元',
+        '- 资料请求示例：资料请求1：作品设定查询，搜索人物，阿尔托莉雅·潘德拉贡，Fate/stay night',
+        '随机事件规则：',
+        '- 随机主动事件默认是场外背景，不自动入场。',
+        '- 随机场外角色候选不等于禁止出场；不得仅因角色出现在随机场外角色候选中，就写入禁止出场。',
+        '- 若随机角色已在强制出场、高优先候选、戏剧候选或禁止出场中，必须移除该随机事件。',
+        '- 无明确自然闯入条件时，随机事件闯入条件必须写“无明确条件则禁止闯入”。',
+        '出场边界规则：',
+        '- 本轮必须基于上一轮查询规划摘要继续收敛；若候选层发生变化，以本轮字段作为当前判断，不要无理由重置候选层。',
+        '- 玩家/当前被控主体由系统最终兜底为强制出场；强制出场允许多人，表示本次行动必然涉及、出现、回应或受影响的人物集合。',
+        '- 不强制出场不等于禁止出场；禁止出场只用于明确场外、明确不可到达或被用户/资料规则明确禁止进入当前场景的角色。',
+        '- 同地点/同住/相邻候选不得仅因未强制出场而写入禁止出场；可按相关性放入高优先候选或戏剧候选，或写“无”。',
+        '- 玩家行动明确目标不得写入禁止出场，除非已加载资料明确显示其场外、不可到达或被规则禁止进入当前场景。',
+      ].join('\n');
+      const contextText = [
+        `本次行动：${actionText}`,
+        `当前步骤：${commonVars.当前步骤} / ${commonVars.最大步骤}`,
+        '路由上下文：',
+        stage1RoutingContext,
+        '上一轮查询规划摘要：',
+        previousGuidance,
+        '已加载资料摘要：',
+        loadedRoutingSummary,
+        '可请求资料目录：',
+        materialCatalog,
+        '推演自由度规则：',
+        commonVars.推演自由度规则,
+        `随机场外角色候选：${randomActiveCandidateText}`,
+      ].join('\n');
+      const requestText = [
+        '当前步骤输出要求：',
+        commonVars.当前步骤输出要求,
+        '固定输出规则：',
+        '- 只输出一个紧凑 JSON 对象，首字符必须是 {，末字符必须是 }。',
+        '- 不要 Markdown，不要 ```json 代码块，不要换行解释。',
+        '- status 只能二选一：资料已足够 / 继续请求资料。',
+        '- sceneQueries.location / sceneQueries.causality / sceneQueries.conflict 必须是字符串数组；没有则 []。',
+        '- 若 status 为“继续请求资料”，优先输出 materialRequests，最多 3 条；没有可执行资料请求时 materialRequests 输出 []，但必须保留 sceneQueries 理由或明确参与者候选。',
+        '- 最多2步后进入场景锚定；第2步不得为了重复确认而继续扩展资料循环。',
+        '- participants.forced / priority / drama / forbidden 都必须是字符串数组；没有则 []。',
+        '- randomEvents 必须是字符串数组；randomIntrusionCondition 没有明确条件时写“无明确条件则禁止闯入”。',
+        '- 资料请求只能使用中文结构，不得输出英文 skill/method。',
+        'JSON schema：',
+        '{"plan":"查询规划摘要","status":"继续请求资料|资料已足够","sceneQueries":{"location":["地点查询理由"],"causality":["因果查询理由"],"conflict":["冲突查询理由"]},"participants":{"forced":["姓名"],"priority":["姓名"],"drama":["姓名"],"forbidden":["姓名"]},"randomEvents":["候选事件"],"randomIntrusionCondition":"无明确条件则禁止闯入","materialRequests":["角色查询，搜索角色卡，刘思琪，2026现代都市现实世界"]}',
+        '【AI自检】：',
+        '- 输出前必须自检 status 与 materialRequests、sceneQueries、participants 是否一致。',
+        '- 若 materialRequests、sceneQueries、participants.forced、participants.priority、participants.drama 全为空，status 必须为“资料已足够”。',
+        '- 不得输出旧 K:V 字段，例如“资料状态：”“资料请求1：”。',
+      ].join('\n');
+      return [
+        { role: 'user', content: rulesText },
+        { role: 'assistant', content: contextText },
+        { role: 'user', content: requestText },
+      ];
     }
     return window.GameModules.promptTemplates.render(config.templateId, {
       ...commonVars,
@@ -865,9 +927,16 @@ window.GameModules.realWorldAgentLoop = {
     return { updateType: 'sexual-experience', subject, field: `intimacy.sexualExperienceParts.${key}`, change: { mode: 'delta', value }, reasons: [{ trigger: '性经历', evidence: reason, confidence: 'confirmed' }] };
   },
 
-  parseScheduleSettlementLine(line = '', subject = null) {
+  parseScheduleSettlementLine(line = '', subject = null, participants = []) {
     // 合同边界：明确通信/移动/约定涉及的人必须先由上游加入 participants；非 participants 仍会被结算对象 gate 拒绝。
-    const parts = String(line || '').replace(/^更新(?:\d+|N)\s*[：:]/u, '').split(/[，,]/u).map((x) => x.trim());
+    let parts = String(line || '').replace(/^更新(?:\d+|N)\s*[：:]/u, '').split(/[，,]/u).map((x) => x.trim());
+    if (parts[0] !== '人事安排') {
+      const inlineSubject = this.subjectForSettlement(parts[0], participants);
+      if (inlineSubject) {
+        subject = inlineSubject;
+        parts = ['人事安排', ...parts.slice(1)];
+      }
+    }
     const [label, key, rawValue, reason] = parts;
     const subjectType = String(subject?.type || '').trim();
     if (label !== '人事安排' || !subject || !['character', 'player'].includes(subjectType) || !key || !rawValue || !reason) return null;
@@ -878,6 +947,27 @@ window.GameModules.realWorldAgentLoop = {
     else return null;
     value.reason = reason;
     return { updateType: 'character-schedule', subject, field: 'characterSchedules', change: { mode: 'merge', value }, reasons: [{ trigger: `人事安排${key}`, evidence: reason, confidence: 'confirmed' }] };
+  },
+
+  parseSystemSettlementLine(line = '', subject = null, participants = []) {
+    let parts = String(line || '').replace(/^更新(?:\d+|N)\s*[：:]/u, '').split(/[，,]/u).map((x) => x.trim());
+    if (parts[0] !== '系统记录') {
+      if (parts[0] === '系统') {
+        subject = { type: 'system', id: '系统', name: '系统' };
+        parts = ['系统记录', ...parts.slice(1)];
+      } else {
+        const inlineSubject = this.subjectForSettlement(parts[0], participants);
+        if (inlineSubject) {
+          subject = inlineSubject;
+          parts = ['系统记录', ...parts.slice(1)];
+        }
+      }
+    }
+    const [label, key, rawValue, reason] = parts;
+    if (label !== '系统记录' || !subject || !key || !rawValue || !reason) return null;
+    const allowed = ['事件', '记录', '通信消息', '剧情记录', '状态'];
+    if (!allowed.includes(key)) return null;
+    return { updateType: 'system', subject, field: `events.${key}`, change: { mode: 'append', value: { key, value: rawValue, reason } }, reasons: [{ trigger: `系统记录${key}`, evidence: reason, confidence: 'confirmed' }] };
   },
 
   parseSpecialSettlementLine(typeName = '', line = '', subject = null, participants = []) {
@@ -908,6 +998,108 @@ window.GameModules.realWorldAgentLoop = {
       return { updateType: 'role-card', subject, field: field === '当前状态' ? 'status_tags' : `profile.${field}`, change: { mode: op === '替换' ? 'set' : 'append', value: { value, reason, result } }, reasons: [{ trigger: `角色卡${op}`, evidence: reason || value, confidence: 'confirmed' }] };
     }
     return null;
+  },
+
+  parseCompactSettlementJson(raw = '') {
+    const text = String(raw || '').trim().replace(/^```(?:json)?\s*/iu, '').replace(/```$/u, '').trim();
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start < 0 || end <= start) return null;
+    try { return JSON.parse(text.slice(start, end + 1)); } catch { return null; }
+  },
+
+  settlementJsonSubject(type = '', entry = {}, participants = []) {
+    const rawName = entry?.subject ?? entry?.主体 ?? entry?.name ?? entry?.名称 ?? '';
+    const name = String(rawName || '').trim();
+    const participant = this.subjectForSettlement(name, participants);
+    if (participant) return participant;
+    const defaults = {
+      '地图': { type: '地点', id: name || '当前地点', name: name || '当前地点' },
+      '势力总览': { type: '势力', id: name || '势力', name: name || '势力' },
+      '势力结构': { type: '势力', id: name || '势力', name: name || '势力' },
+      '系统记录': { type: 'system', id: name || '系统', name: name || '系统' },
+      '通用固化': { type: 'system', id: name || '系统', name: name || '系统' },
+      '物品': { type: '物品', id: name || '物品', name: name || '物品' },
+    };
+    return defaults[type] || null;
+  },
+
+  settlementJsonText(value = '') {
+    return String(value ?? '').trim().replace(/[，,]/gu, '；');
+  },
+
+  settlementJsonUpdateLine(type = '', entry = {}) {
+    const t = (value) => this.settlementJsonText(value);
+    const field = t(entry.field ?? entry.字段 ?? entry.key ?? entry.类型 ?? entry.part ?? entry.部位 ?? '');
+    const value = t(entry.value ?? entry.变化 ?? entry.新值 ?? entry.delta ?? entry.数值 ?? entry.status ?? entry.state ?? entry.事实 ?? '');
+    const reason = t(entry.reason ?? entry.原因 ?? entry.evidence ?? entry.证据 ?? '');
+    if (type === '穿着状态') return `更新N：穿着状态，${t(entry.part ?? entry.部位)}，${t(entry.item ?? entry.itemName ?? entry.衣物 ?? entry.衣物名称)}，${t(entry.state ?? entry.status ?? entry.状态)}，${reason}`;
+    if (type === '身体状态') return `更新N：身体状态，${t(entry.part ?? entry.部位)}，${t(entry.status ?? entry.value ?? entry.状态)}，${reason}`;
+    if (type === '性经历') return `更新N：性经历，${t(entry.part ?? entry.部位)}，${t(entry.delta ?? entry.value ?? entry.变化)}，${reason}`;
+    if (type === '性历史') return `更新N：性历史，${t(entry.transition ?? entry.状态转移 ?? entry.field ?? entry.字段)}，${t(entry.partner ?? entry.对象 ?? entry.value)}，${t(entry.evidence ?? entry.reason ?? entry.证据)}`;
+    if (type === '关系') return `更新N：关系，${t(entry.left ?? entry.左方 ?? entry.subject ?? entry.主体)}，${t(entry.right ?? entry.右方 ?? entry.target ?? entry.对象)}，${t(entry.dimension ?? entry.维度 ?? entry.field)}，${t(entry.status ?? entry.状态 ?? entry.value)}，${reason}，${t(entry.result ?? entry.结果 ?? entry.value)}`;
+    if (type === '角色卡') return `更新N：角色卡，${field}，${t(entry.op ?? entry.操作 ?? '增加')}，${value}，${reason}，${t(entry.result ?? entry.结果 ?? value)}`;
+    return `更新N：${type}，${field}，${value}，${reason}`;
+  },
+
+  parseSettlementJson(raw, { requestedTypes = [], participants = [], store = null, config = this.realConfig() } = {}) {
+    const data = this.parseCompactSettlementJson(raw);
+    if (!data || Array.isArray(data) || typeof data !== 'object') return null;
+    const patchesByType = {};
+    const completeTypes = [];
+    const incompleteTypes = [];
+    const baseFields = {};
+    const baseKeys = ['经过时间', '当前状态', '当前目标', '场景标题', '地点名称', '备选行动1', '备选行动2', '备选行动3', '备选行动4'];
+    const specialParsers = {
+      '人事安排': (line, subject) => this.parseScheduleSettlementLine(line, subject, participants),
+      '系统记录': (line, subject) => this.parseSystemSettlementLine(line, subject, participants),
+      '穿着状态': (line, subject) => this.parseWearingSettlementLine(line, subject, participants),
+      '身体状态': (line, subject) => this.parseBodyStatusSettlementLine(line, subject, participants),
+      '性经历': (line, subject) => this.parseSexualExperienceSettlementLine(line, subject, participants),
+    };
+    requestedTypes.forEach((type) => {
+      const value = data[type];
+      const patch = { genericUpdates: [], baseFields: {}, __updateLines: 0, __parsedUpdates: 0, __lines: [JSON.stringify({ [type]: value })], __closedByBrace: value !== undefined };
+      if (value === undefined) {
+        incompleteTypes.push(type);
+        patchesByType[type] = patch;
+        return;
+      }
+      if (type === '基础结算') {
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+          ['经过时间', '当前状态', '当前目标', '场景标题', '地点名称'].forEach((key) => { if (value[key] !== undefined) patch.baseFields[key] = String(value[key]).trim(); });
+          const choices = Array.isArray(value['备选行动']) ? value['备选行动'] : [];
+          [1, 2, 3, 4].forEach((index) => {
+            const key = `备选行动${index}`;
+            const choice = value[key] ?? choices[index - 1];
+            if (choice !== undefined) patch.baseFields[key] = String(choice).trim();
+          });
+        }
+      } else if (Array.isArray(value)) {
+        value.forEach((entry) => {
+          if (!entry || typeof entry !== 'object') return;
+          patch.__updateLines += 1;
+          const subject = this.settlementJsonSubject(type, entry, participants) || this.defaultSubjectForSettlement(participants);
+          const line = this.settlementJsonUpdateLine(type, entry);
+          const update = specialParsers[type]
+            ? specialParsers[type](line, subject)
+            : (['性历史', '关系', '角色卡'].includes(type) ? this.parseSpecialSettlementLine(type, line, subject, participants) : this.parseStandardSettlementLine(type, line, subject, participants, store));
+          if (update) {
+            patch.__parsedUpdates += 1;
+            patch.genericUpdates.push(update);
+          }
+        });
+      }
+      const hasParsedAllUpdates = !patch.__updateLines || patch.__parsedUpdates === patch.__updateLines;
+      const hasRequiredBaseFields = type !== '基础结算' || baseKeys.every((key) => String(patch.baseFields[key] || '').trim());
+      patchesByType[type] = patch;
+      if (hasParsedAllUpdates && hasRequiredBaseFields && (type === '基础结算' || Array.isArray(value))) {
+        completeTypes.push(type);
+        if (type === '基础结算') Object.assign(baseFields, patch.baseFields);
+      } else incompleteTypes.push(type);
+    });
+    const genericUpdates = completeTypes.flatMap((type) => patchesByType[type]?.genericUpdates || []);
+    return { format: 'json', patchesByType, completeTypes, incompleteTypes, genericUpdates, baseFields };
   },
 
   parseSettlementKv(raw, { requestedTypes = [], participants = [], store = null, config = this.realConfig() } = {}) {
@@ -987,7 +1179,8 @@ window.GameModules.realWorldAgentLoop = {
         if (/^更新(?:\d+|N)[：:]/u.test(updateLine)) {
           patch.__updateLines += 1;
           const specialParsers = {
-            '人事安排': () => this.parseScheduleSettlementLine(updateLine, updateSubject),
+            '人事安排': () => this.parseScheduleSettlementLine(updateLine, updateSubject, participants),
+            '系统记录': () => this.parseSystemSettlementLine(updateLine, updateSubject, participants),
             '穿着状态': () => this.parseWearingSettlementLine(updateLine, updateSubject, participants),
             '身体状态': () => this.parseBodyStatusSettlementLine(updateLine, updateSubject, participants),
             '性经历': () => this.parseSexualExperienceSettlementLine(updateLine, updateSubject, participants),
@@ -1148,34 +1341,24 @@ window.GameModules.realWorldAgentLoop = {
     ].join('\n');
   },
 
-  buildSettlementTypeWindowPrompt({ requestedTypes = [], completedTypes = [], incompleteTypes = [], partialByType = {}, store, action, base, loaded, materialSession = null, narration, trace = [], participants = [], config = this.realConfig() }) {
+  async buildSettlementTypeWindowMessages({ requestedTypes = [], completedTypes = [], incompleteTypes = [], partialByType = {}, store, action, base, loaded, materialSession = null, narration, trace = [], participants = [], config = this.realConfig() }) {
     const contracts = this.settlementTypeContracts();
     const totalTypes = requestedTypes.length;
-    const minimumOutputLength = String(Math.max(300, 120 + (requestedTypes.length * 40)));
-    const typeText = requestedTypes.map((type, index) => {
+    const jsonContracts = requestedTypes.map((type) => {
       const c = contracts[type];
-      const title = c?.title || `${type}结算`;
-      if (type === '基础结算') {
-        const baseFormat = c?.format || '经过时间：秒数\n当前状态：状态文本\n当前目标：目标文本\n场景标题：标题\n地点名称：地点全称\n备选行动1：行动文本\n备选行动2：行动文本\n备选行动3：行动文本\n备选行动4：行动文本';
-        return [
-          `${title}{`,
-          baseFormat,
-          '}',
-          '严格块格式示例：',
-          `${title}{`,
-          baseFormat,
-          '}',
-          '基础结算禁止写“无变化”；基础结算即使没有稳定变化，也必须完整输出全部基础字段。',
-          `禁止写成“${title}：”或单独一行“${title}”`,
-        ].join('\n');
-      }
-      const updateRules = ['无变化：写“无变化”后闭合。', `更新格式：${c?.format || '更新N：结算主体，字段，变化，原因'}`];
-      return [`${title}{`, ...updateRules, '}', '严格块格式示例：', `${title}{`, '无变化', '}', `禁止写成“${title}：”或单独一行“${title}”`].join('\n');
-    }).join('\n\n');
+      if (type === '基础结算') return '基础结算：对象，必须含 keys：经过时间、当前状态、当前目标、场景标题、地点名称、备选行动；备选行动必须是 4 个字符串数组。';
+      if (type === '穿着状态') return '穿着状态：数组；每项 {"subject":"姓名","part":"部位","item":"衣物名称","state":"当前状态","reason":"证据"}；无变化 []。';
+      if (type === '身体状态') return '身体状态：数组；每项 {"subject":"姓名","part":"部位","status":"状态","reason":"证据"}；无变化 []。';
+      if (type === '性经历') return '性经历：数组；每项 {"subject":"姓名","part":"分类","delta":"+N/-N","reason":"证据"}；无变化 []。';
+      if (type === '性历史') return '性历史：数组；每项 {"subject":"姓名","transition":"状态转移","partner":"对象","evidence":"证据"}；无变化 []。';
+      if (type === '关系') return '关系：数组；每项 {"subject":"姓名","left":"关系左方","right":"关系右方","dimension":"稳定关系维度","status":"关系状态","reason":"证据","result":"结算结果"}；无变化 []。';
+      if (type === '角色卡') return '角色卡：数组；每项 {"subject":"姓名","field":"字段","op":"替换/增加","value":"内容","reason":"证据","result":"结果"}；无变化 []。';
+      return `${type}：数组；每项 {"subject":"结算主体","field":"字段","value":"变化或新值","reason":"证据"}；无变化 []。原合约：${c?.format || '更新N：结算主体，字段，变化，原因'}`;
+    }).join('\n');
     const globalShortReason = String(partialByType.__shortOutputReason || '').trim();
     const incompleteReason = [globalShortReason, incompleteTypes.map((type) => {
       const title = contracts[type]?.title || `${type}结算`;
-      return `${type}：需从“${title}{”开始整块重输，并用“}”闭合`;
+      return `${type}：上轮 JSON 缺失或字段未通过解析，本轮必须重新输出该 key 的完整 JSON 值`;
     }).join('；')].filter(Boolean).join('\n') || '无';
     const stableFactRules = [
       '内部提取“本轮稳定事实”：只在内部完成，不输出事实列表。',
@@ -1183,23 +1366,45 @@ window.GameModules.realWorldAgentLoop = {
       '强暗示事实：可保守结算，但必须有明确行为、对话或连续动作支撑。',
       '弱氛围暗示：不得结算。',
     ].join('\n');
-    const requiredBlockOrder = requestedTypes.map((type) => `${contracts[type]?.title || `${type}结算`}{`).join(' → ');
-    return window.GameModules.promptTemplates.render('inference-stage4-settlement-window', {
-      本次必须返回的类型: requestedTypes.join('、'),
-      已完成类型: completedTypes.join('、') || '无',
-      未完成类型: incompleteTypes.join('、') || '无',
-      当前窗口起始类型: requestedTypes[0] || '无',
-      当前窗口结束类型: requestedTypes[requestedTypes.length - 1] || '无',
-      必须输出块顺序: requiredBlockOrder || '无',
-      必须输出块数量: String(requestedTypes.length),
-      最低输出字数: minimumOutputLength,
-      输出长度规则: `优先遵守字段白名单和事实边界；不要为了凑字数创造更新。目标输出不少于${minimumOutputLength}个中文字符，但无稳定事实的类型必须写“无变化”。`,
-      未完成类型原因: incompleteReason,
-      本回合参与者: JSON.stringify(participants),
-      本轮结算材料: [`行动：${this.actionText(action)}`, this.settlementParticipantContextText(store, participants), `正文：${this.compactUpdatePromptText(narration, 1800, true)}`, this.settlementMetricBaselineText(store, participants), stableFactRules].join('\n'),
-      类型短规则: requestedTypes.map((type) => this.settlementTypeShortRule(type)).join('\n\n'),
-      类型合约: typeText,
-    });
+    const requiredKeyOrder = requestedTypes.join(' → ');
+    const rulesText = [
+      '你正在执行 Stage4 紧凑 JSON 滑动结算。',
+      '只输出一个合法 JSON 对象；不要 Markdown；不要 ```json 代码块；不要换行；不要解释；不要内部分析。',
+      '上一条 assistant 消息是本轮正文材料；只能依据该正文和本条要求中的材料结算。',
+      'JSON 顶层 key 只能是“本次必须返回的类型”列出的类型；已完成类型不得重复输出；未列入类型不得输出。',
+      '无稳定变化的非基础类型必须输出空数组 []，不要写“无变化”。',
+      '每条更新只能写一个字段，禁止把字段合并成“当前地点/当前行动/可用状态”或“事件/记录/状态”。',
+    ].join('\n');
+    const requestText = [
+      '任务：输出 Stage4 结算紧凑 JSON。',
+      `本次必须返回的类型：${requestedTypes.join('、')}`,
+      `已完成类型：${completedTypes.join('、') || '无'}`,
+      `未完成类型：${incompleteTypes.join('、') || '无'}`,
+      `必须输出 key 数量：${totalTypes}`,
+      `必须输出 key 顺序：${requiredKeyOrder || '无'}`,
+      `未完成类型原因：${incompleteReason}`,
+      `本回合参与者：${JSON.stringify(participants)}`,
+      '本轮结算材料：',
+      [`行动：${this.actionText(action)}`, this.settlementParticipantContextText(store, participants), this.settlementMetricBaselineText(store, participants), stableFactRules].join('\n'),
+      '类型短规则：',
+      requestedTypes.map((type) => this.settlementTypeShortRule(type)).join('\n\n'),
+      'JSON 合约：',
+      jsonContracts,
+      '输出硬规则：',
+      '- 只输出一个紧凑 JSON 对象，首字符必须是 {，末字符必须是 }。',
+      '- 顶层 key 必须且只能包含本次必须返回的类型；按必须输出 key 顺序排列。',
+      '- 基础结算必须输出完整对象；非基础类型必须输出数组，有变化写对象数组，无变化写 []。',
+      '- subject 必须直接写本回合参与者姓名、明确地点名、明确势力名或“系统”；不要写代词。',
+      '- reason/evidence 必须写具体行为、对话或连续动作证据；弱氛围暗示不得结算。',
+      '- 字符串中不要使用英文逗号或中文逗号分隔多字段；必要时用顿号或分号。',
+      '- 不要为了凑长度创造更新；空数组是合法完整输出。',
+      '合法形态示例：{"情绪":[],"身体状态":[{"subject":"角色名","part":"整体","status":"状态","reason":"证据"}],"系统记录":[]}',
+    ].join('\n');
+    return [
+      { role: 'user', content: rulesText },
+      { role: 'assistant', content: `本轮正文：\n${this.compactUpdatePromptText(narration, 1800, true)}` },
+      { role: 'user', content: requestText },
+    ];
   },
 
   async completeConfiguredSettlementKvWindow({ store, action, base, loaded, materialSession = null, narration, trace = [], participants = [], logId = null, config = this.realConfig() }) {
@@ -1211,13 +1416,16 @@ window.GameModules.realWorldAgentLoop = {
     let shortOutputRetries = 0;
     const maxAttempts = Math.max(4, allTypes.length + 1);
     for (let attempt = 0; attempt < maxAttempts && requestedTypes.length; attempt += 1) {
-      const prompt = await this.buildSettlementTypeWindowPrompt({ requestedTypes, completedTypes, incompleteTypes: requestedTypes.filter((type) => partialByType[type]), partialByType, store, action, base, loaded, materialSession, narration, trace, participants, config });
-      const raw = await this.completeConfiguredStep(store, prompt, logId, false, { ...config, sourceTitle: `${config.label}Stage4滑动结算` });
-      const parsed = this.parseSettlementKv(raw, { requestedTypes, participants, store, config });
+      const messages = await this.buildSettlementTypeWindowMessages({ requestedTypes, completedTypes, incompleteTypes: requestedTypes.filter((type) => partialByType[type]), partialByType, store, action, base, loaded, materialSession, narration, trace, participants, config });
+      const raw = await this.completeConfiguredStep(store, messages, logId, false, { ...config, sourceTitle: `${config.label}Stage4滑动结算` });
+      const jsonParsed = this.parseSettlementJson(raw, { requestedTypes, participants, store, config });
+      const parsed = jsonParsed && (jsonParsed.completeTypes.length || jsonParsed.incompleteTypes.length)
+        ? jsonParsed
+        : this.parseSettlementKv(raw, { requestedTypes, participants, store, config });
       const compactRawLength = String(raw || '').replace(/\s+/gu, '').length;
       const isFinalBatch = requestedTypes.length <= 1 || parsed.incompleteTypes.length === 0;
-      const shortOutputThreshold = 300;
-      const isShortPartial = !isFinalBatch && compactRawLength < shortOutputThreshold;
+      const shortOutputThreshold = parsed.format === 'json' ? 0 : 300;
+      const isShortPartial = shortOutputThreshold > 0 && !isFinalBatch && compactRawLength < shortOutputThreshold;
       const hasCompleteBlocksInShortOutput = isShortPartial && parsed.completeTypes.length > 0;
       if (isShortPartial && !hasCompleteBlocksInShortOutput) {
         shortOutputRetries += 1;
@@ -1507,8 +1715,7 @@ window.GameModules.realWorldAgentLoop = {
         const parseDetail = err.parseResult ? `score=${err.parseResult.score}/${err.parseResult.maxScore} successRate=${err.parseResult.successRate} missing=${err.parseResult.missing?.join('、') || '无'} droppedMaterialRequests=${droppedSummary}` : '';
         const semanticSelfCheckFailed = this.isGuidedStepSemanticSelfCheckError(err);
         console.warn(`${config.label}${semanticSelfCheckFailed ? '语义自检失败' : '解析异常'}，自动重试一次:`, err.message, parseDetail);
-        prompt = [
-          prompt,
+        const retryInstruction = [
           `上次中文 K:V ${semanticSelfCheckFailed ? '语义自检失败' : '解析失败'}：${err.message}`,
           `已成功字段：${err.parseResult?.keyHits?.join('、') || '无'}`,
           `已确认字段值：\n${this.confirmedKvValuesText(err.parseResult)}`,
@@ -1517,6 +1724,9 @@ window.GameModules.realWorldAgentLoop = {
           '请重新输出完整中文 K:V；必须保留已确认字段值，只补齐或修正缺失/错误字段；不得删除用户明确约束、禁止出场、已确认强制出场；不要重复输出已丢弃资料请求。',
           '【AI自检】若资料状态为“继续请求资料”，优先输出可执行资料请求1/2/3或明确参与者候选；若没有可执行资料请求，必须保留尽可能多而全的地点/因果/冲突查询理由，系统会带着这些理由进入场景锚定。不得输出单独的地点查询/因果查询/冲突查询字段。',
         ].join('\n\n');
+        prompt = Array.isArray(prompt)
+          ? [...prompt, { role: 'user', content: retryInstruction }]
+          : [prompt, retryInstruction].join('\n\n');
       }
     }
     const mergeableParseResults = lastErr?.parseResult && !lastErr?.skipMerge ? [...parseResults, { raw: lastRaw, parsed: lastErr.parseResult }] : parseResults;
@@ -1751,33 +1961,43 @@ window.GameModules.realWorldAgentLoop = {
     return /[，、：:；;（(《「『“—…-]$/u.test(tail) || quoteCount % 2 === 1 || !/[。！？!?」』”）)]$/u.test(tail);
   },
 
+  trimIncompleteNarrationTail(text = '') {
+    const raw = String(text || '').trim();
+    if (!raw || !this.narrationTailLooksIncomplete(raw)) return raw;
+    const quotePairs = { '“': '”', '「': '」', '『': '』', '"': '"' };
+    const stack = [];
+    for (let i = 0; i < raw.length; i += 1) {
+      const ch = raw[i];
+      if (ch === '”' && stack.at(-1)?.ch === '“') stack.pop();
+      else if (ch === '」' && stack.at(-1)?.ch === '「') stack.pop();
+      else if (ch === '』' && stack.at(-1)?.ch === '『') stack.pop();
+      else if (ch === '"' && stack.at(-1)?.ch === '"') stack.pop();
+      else if (quotePairs[ch]) stack.push({ ch, index: i });
+    }
+    const openQuoteIndex = stack.length ? stack[stack.length - 1].index : -1;
+    const sentenceEndPattern = /[。！？!?]/gu;
+    let lastEnd = -1;
+    let match;
+    while ((match = sentenceEndPattern.exec(raw))) {
+      if (openQuoteIndex >= 0 && match.index > openQuoteIndex) continue;
+      lastEnd = match.index + match[0].length;
+      while (/[”」』）)]/u.test(raw[lastEnd] || '')) lastEnd += 1;
+    }
+    const cutIndex = Math.max(lastEnd, openQuoteIndex > 0 ? openQuoteIndex : -1);
+    if (cutIndex <= 0) return raw;
+    const trimmed = raw.slice(0, cutIndex).trim();
+    return trimmed || raw;
+  },
+
   async ensurePhasedNarrationLength(store, action, prompt, narration, logId) {
     return await this.ensureConfiguredNarrationLength(store, action, prompt, narration, logId, this.realConfig());
   },
 
   async ensureConfiguredNarrationLength(store, action, prompt, narration, logId, config = this.realConfig()) {
-    let text = this.cleanPhasedNarration(narration);
-    const minChars = 1000;
-    let count = this.chineseCharCount(text);
-    let tailIncomplete = this.narrationTailLooksIncomplete(text);
-    if (!tailIncomplete && count >= minChars) return text;
-
-    for (let i = 0; i < 2 && (tailIncomplete || count < minChars); i += 1) {
-      const shortOutput = count < minChars;
-      console.warn(`${config.label}正文${shortOutput ? '过短' : '句尾疑似截断'}，正在补全:`, { count, minChars, tailIncomplete, tail: text.slice(-80) });
-      try {
-        const continuation = await this.completeConfiguredNarrationContinuation(store, action, prompt, text, logId, { count, minChars, tailIncomplete, shortOutput }, config);
-        if (!continuation) break;
-        text = this.mergeNarrationContinuation(text, continuation);
-        count = this.chineseCharCount(text);
-        tailIncomplete = this.narrationTailLooksIncomplete(text);
-      } catch (err) {
-        console.warn(`${config.label}正文补全失败，保留原正文继续流程:`, { code: err.code, message: err.message });
-        break;
-      }
-    }
-    if (tailIncomplete || count < minChars) console.warn(`${config.label}正文补全后仍未达标:`, { count, minChars, tailIncomplete, tail: text.slice(-80) });
-    return text;
+    const text = this.cleanPhasedNarration(narration);
+    const trimmed = this.trimIncompleteNarrationTail(text);
+    if (trimmed !== text) console.warn(`${config.label}正文疑似截断，已本地丢弃最后未完整句段。`, { beforeLength: text.length, afterLength: trimmed.length, tail: text.slice(-80) });
+    return trimmed;
   },
 
   mergeNarrationContinuation(text = '', continuation = '') {
@@ -1962,6 +2182,61 @@ window.GameModules.realWorldAgentLoop = {
     };
   },
 
+  parseGuidedStepJson(raw, config = this.realConfig()) {
+    const data = this.parseCompactSettlementJson(raw);
+    if (!data || Array.isArray(data) || typeof data !== 'object') return null;
+    const sceneQueries = data.sceneQueries && typeof data.sceneQueries === 'object' ? data.sceneQueries : {};
+    const participants = data.participants && typeof data.participants === 'object' ? data.participants : {};
+    const arrayText = (value, sep = '；') => (Array.isArray(value) ? value : this.splitQueryReasonList(value)).map((item) => String(item || '').trim()).filter(Boolean).join(sep) || '无';
+    const nameText = (value) => (Array.isArray(value) ? value : this.splitNameList(value)).map((item) => typeof item === 'string' ? item : (item?.name || item?.characterName || item?.idOrName || item?.id || '')).map((item) => String(item || '').trim()).filter(Boolean).join('、') || '无';
+    const requestRows = (Array.isArray(data.materialRequests) ? data.materialRequests : []).map((item, index) => {
+      const body = typeof item === 'string'
+        ? item
+        : [item?.type || item?.skill || item?.kind, item?.method, item?.name || item?.target || item?.keyword, item?.world || item?.scope].filter(Boolean).join('，');
+      return `资料请求${index + 1}：${String(body || '').trim()}`;
+    }).filter((line) => !/^资料请求\d+[：:]\s*$/u.test(line)).slice(0, 3);
+    const materialRequestErrors = [];
+    const droppedMaterialRequests = [];
+    const materialRequests = requestRows.map((line) => {
+      const placeholderReason = this.materialRequestPlaceholderReason(line);
+      const req = this.fallbackChineseMaterialRequest(line, { config });
+      if (!req) {
+        droppedMaterialRequests.push(line);
+        if (placeholderReason) materialRequestErrors.push(placeholderReason);
+      }
+      return req;
+    }).filter(Boolean);
+    const values = {
+      '查询规划': String(data.plan || data['查询规划'] || 'JSON资料路由').trim(),
+      '资料状态': String(data.status || data['资料状态'] || '').trim(),
+      '地点查询理由': arrayText(sceneQueries.location ?? data.locationReasons ?? data['地点查询理由']),
+      '因果查询理由': arrayText(sceneQueries.causality ?? data.causalityReasons ?? data['因果查询理由']),
+      '冲突查询理由': arrayText(sceneQueries.conflict ?? data.conflictReasons ?? data['冲突查询理由']),
+      '强制出场': nameText(participants.forced ?? data.forcedParticipants ?? data['强制出场']),
+      '高优先候选': nameText(participants.priority ?? data.priorityCandidates ?? data['高优先候选']),
+      '戏剧候选': nameText(participants.drama ?? data.dramaCandidates ?? data['戏剧候选']),
+      '禁止出场': nameText(participants.forbidden ?? data.forbiddenParticipants ?? data['禁止出场']),
+      '随机事件候选': arrayText(data.randomEvents ?? data.randomActiveEvents ?? data['随机事件候选']),
+      '随机事件闯入条件': String(data.randomIntrusionCondition || data['随机事件闯入条件'] || '无明确条件则禁止闯入').trim(),
+      '资料请求': requestRows.length ? `${requestRows.length}条` : '无',
+      '资料请求结束': '是',
+    };
+    if (!values['资料状态']) {
+      const hasQueryReason = ['地点查询理由', '因果查询理由', '冲突查询理由'].some((key) => this.isUsefulQueryReason(values[key]));
+      const hasParticipants = ['强制出场', '高优先候选', '戏剧候选'].some((key) => String(values[key] || '').trim() && values[key] !== '无');
+      values['资料状态'] = requestRows.length || hasQueryReason || hasParticipants ? '继续请求资料' : '资料已足够';
+    }
+    const keyHits = Object.keys(values).filter((key) => String(values[key] || '').trim());
+    const scored = this.scoreChineseKvParse(values, this.guidedStepFields(), requestRows, materialRequests);
+    const parsed = { values, lines: requestRows, missing: this.guidedStepFields().filter((key) => !keyHits.includes(key)), score: scored.score, maxScore: scored.maxScore, successRate: scored.successRate, keyHits, criticalHits: scored.criticalHits, parseDegraded: scored.successRate < 1, droppedMaterialRequests, materialRequestErrors, materialRequests };
+    if (materialRequestErrors.length) {
+      const err = new Error(materialRequestErrors[0]);
+      err.parseResult = parsed;
+      throw err;
+    }
+    return this.guidedStepDataFromParsed(parsed, JSON.stringify(data));
+  },
+
   normalizeGuidedStepText(raw = '') {
     const text = String(raw || '').replace(this.invisibleCharsPattern(), '').replace(/```(?:text|markdown|json)?|```/giu, '').trim();
     if (!text) return '';
@@ -2014,9 +2289,11 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   parseStep(raw, config = this.realConfig()) {
+    const jsonData = this.parseGuidedStepJson(raw, config);
+    if (jsonData) return jsonData;
     const text = this.normalizeGuidedStepText(raw);
     if (!/查询规划[：:]|资料状态[：:]/u.test(text)) {
-      throw new Error(`${config.label}返回缺少中文 K:V 查询规划字段`);
+      throw new Error(`${config.label}返回缺少 Stage1 JSON 或中文 K:V 查询规划字段`);
     }
     return this.parseGuidedStepKv(text, config, { normalized: true });
   },

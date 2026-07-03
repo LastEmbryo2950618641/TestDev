@@ -1383,16 +1383,41 @@
       </header>
       <section class="model-setting-group">
         <h3>System 内容</h3>
-        <textarea class="text-input" rows="4" x-model="$store.game.systemTestState.systemText"></textarea>
+        <textarea class="text-input" rows="4" x-model="$store.game.systemTestState.systemText" @focus="$event.target.select()"></textarea>
       </section>
       <section class="model-setting-group">
         <h3>User 内容</h3>
-        <textarea class="text-input" rows="4" x-model="$store.game.systemTestState.userText"></textarea>
+        <textarea class="text-input" rows="4" x-model="$store.game.systemTestState.userText" @focus="$event.target.select()"></textarea>
       </section>
       <button class="ghost-wide" type="button" @click="$store.game.runSystemRoleTest()" :disabled="$store.game.systemTestState.loading" x-text="$store.game.systemTestState.loading ? '测试中…' : '发送 system + user 测试'"></button>
       <section class="model-setting-group" x-show="$store.game.systemTestState.result || $store.game.systemTestState.error">
         <h3 x-text="$store.game.systemTestState.error ? '错误' : '返回结果'"></h3>
-        <pre class="settings-status" x-text="$store.game.systemTestState.error || $store.game.systemTestState.result"></pre>
+        <pre class="settings-status" x-text="$store.game.systemTestState.error || $store.game.systemTestState.result" @click="$store.game.selectTextBlock($event)"></pre>
+      </section>
+      <section class="model-setting-group">
+        <h3>深度思考测试</h3>
+        <p class="settings-status">使用设置中的文本模型：<b x-text="$store.game.modelId || $store.game.settingsState?.textModelId"></b>。只测试 <code>deepThinking: true</code>，并打印原始封装请求、原始回调参数和 Promise 返回。</p>
+        <textarea class="text-input" rows="4" x-model="$store.game.systemTestState.thinkingPrompt" @focus="$event.target.select()"></textarea>
+        <button class="ghost-wide" type="button" @click="$store.game.runThinkingParamTests()" :disabled="$store.game.systemTestState.thinkingLoading" x-text="$store.game.systemTestState.thinkingLoading ? '深度思考测试中…' : '测试 deepThinking 参数'"></button>
+        <template x-for="item in $store.game.systemTestState.thinkingResults" :key="item.paramKey">
+          <div class="settings-status">
+            <h4><span x-text="item.label"></span>｜<span x-text="item.status"></span></h4>
+            <p x-show="item.error" x-text="item.error"></p>
+            <p>原始请求 payload</p>
+            <pre @click="$store.game.selectTextBlock($event)" x-text="item.payload || '暂无请求内容'"></pre>
+            <p>原始回调参数 / Promise 返回</p>
+            <pre @click="$store.game.selectTextBlock($event)" x-text="item.raw || '暂无原始内容'"></pre>
+          </div>
+        </template>
+        <button class="ghost-wide" type="button" @click="$store.game.runPlatformChatDeepThinkingTest()" :disabled="$store.game.systemTestState.platformChatLoading" x-text="$store.game.systemTestState.platformChatLoading ? '平台 /api/chat 测试中…' : '直接请求平台 /api/chat' "></button>
+        <section class="settings-status" x-show="$store.game.systemTestState.platformChatRaw || $store.game.systemTestState.platformChatError">
+          <h4>平台 /api/chat 原始请求与响应</h4>
+          <p x-show="$store.game.systemTestState.platformChatError" x-text="$store.game.systemTestState.platformChatError"></p>
+          <p>原始请求 payload</p>
+          <pre @click="$store.game.selectTextBlock($event)" x-text="$store.game.systemTestState.platformChatPayload || '暂无请求内容'"></pre>
+          <p>原始响应</p>
+          <pre @click="$store.game.selectTextBlock($event)" x-text="$store.game.systemTestState.platformChatRaw || '暂无响应内容'"></pre>
+        </section>
       </section>
     </div>
   </section>

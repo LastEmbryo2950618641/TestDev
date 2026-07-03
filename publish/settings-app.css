@@ -103,6 +103,8 @@
   color: #fff;
   background: rgba(3, 8, 20, .78);
   white-space: pre-wrap;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .model-setting-group textarea {

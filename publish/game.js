@@ -77,7 +77,7 @@ function registerGameStore() {
     knownProfessionState: { open: false, query: '', message: '', selectedName: '', detailOpen: false },
     taobaoState: { open: false, slots: [], selectedId: '', generatingId: '', buyingId: '', requestId: 0, message: '', error: '', walletOpen: false },
     settingsState: { open: false, loading: false, loaded: false, error: '', textModels: [], drawModels: [], textModelId: cfg.defaultModelId, drawModelId: 'anime', stage1MaterialMaxIterations: 2 },
-    systemTestState: { open: false, loading: false, systemText: '你是一个测试助手。无论用户输入什么，只回答：SYSTEM_OK。', userText: '请测试 system role 是否生效。', result: '', error: '' },
+    systemTestState: { open: false, loading: false, thinkingLoading: false, platformChatLoading: false, systemText: '你是一个测试助手。无论用户输入什么，只回答：SYSTEM_OK。', userText: '请测试 system role 是否生效。', thinkingPrompt: '请用简洁中文回答：为什么晴天适合散步？列出三点理由即可。', result: '', error: '', thinkingError: '', thinkingResults: [], platformChatPayload: '', platformChatRaw: '', platformChatError: '' },
     playerProfile: { name: '', gender: '', birthday: '', age: '', city: '', refinedCity: '', dailyRole: '', refinedRole: '', livingStatus: '', refinedLivingStatus: '', wealthTier: '中产', wealthAmount: 500000, wealthSource: '', wealthBreakdown: null, wealthFixedIncome: '', relationships: '', relationshipEntries: [], parents: '', parentStatus: '', parentDeathCause: '', worldbuildingNote: '', notes: '', knownProfessions: [], wechatId: '', profileEnrichedAt: '', initializedAt: '', playerCardAiParts: { part2: false, part5: false, part6: false } }, playerName: '',
     selectedSlot: 'slot-1', saveSlots: window.GameModules.storage.slots,
     savePanelOpen: false, functionPanelOpen: false, worldlineAppOpen: false,
