@@ -18,6 +18,18 @@ window.GameModules.config = {
   rag: { maxIndexFiles: 3, maxCandidateFiles: 8, defaultResultLimit: 3, logFiles: true },
   defaultModelId: 'nalang-turbo-0826',
   preferredTextModelIds: ['nalang-turbo-0101', 'nalang-turbo-0826'],
+  textProviders: {
+    defaultProvider: 'dzmm',
+    dzmm: {
+      defaultModel: 'nalang-turbo-0826',
+      preferredModelIds: ['nalang-turbo-0101', 'nalang-turbo-0826'],
+    },
+    deepseek: {
+      baseUrl: 'https://api.deepseek.com',
+      defaultModel: 'deepseek-v4-flash',
+      preferredModelIds: ['deepseek-v4-flash', 'deepseek-v4-pro'],
+    },
+  },
   aiRequest: { maxConcurrent: 4, logLifecycle: false, logRawResponse: true },
   stats: [
     { key: 'will', label: '意志' },

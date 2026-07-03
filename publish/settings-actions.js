@@ -19,8 +19,10 @@ window.GameModules.settingsActions = {
     s.loading = true;
     s.error = '';
     try {
+      const providerId = s.textProvider || window.GameModules.aiProvider?.currentProviderId?.() || 'dzmm';
+      const provider = window.GameModules.aiProvider?.get?.(providerId);
       const [textResult, drawResult] = await Promise.all([
-        window.dzmm?.models?.list?.(),
+        provider?.listTextModels?.(),
         window.dzmm?.draw?.generateModels?.(),
       ]);
       s.textModels = this.enrichTextModelsWithThinking(textResult);
@@ -46,8 +48,15 @@ window.GameModules.settingsActions = {
     const ids = (Array.isArray(models) ? models : []).map((model) => model?.internalName).filter(Boolean);
     const currentId = String(current || '');
     const config = window.GameModules.config || {};
+    const providerId = this.settingsState?.textProvider || window.GameModules.aiProvider?.currentProviderId?.() || 'dzmm';
+    const providerPreferred = config.textProviders?.[providerId]?.preferredModelIds || [];
     if (currentId && !currentId.startsWith('nalang-medium-') && ids.includes(currentId)) return currentId;
-    return (config.preferredTextModelIds || []).find((id) => ids.includes(id)) || currentId || config.defaultModelId || 'nalang-turbo-0826';
+    return providerPreferred.find((id) => ids.includes(id))
+      || (config.preferredTextModelIds || []).find((id) => ids.includes(id))
+      || currentId
+      || window.GameModules.aiProvider?.providerDefaultModel?.(providerId)
+      || config.defaultModelId
+      || 'nalang-turbo-0826';
   },
 
   enrichTextModelsWithThinking(result = {}) {
@@ -65,6 +74,13 @@ window.GameModules.settingsActions = {
   },
 
   fallbackTextModels() {
+    const providerId = this.settingsState?.textProvider || window.GameModules.aiProvider?.currentProviderId?.() || 'dzmm';
+    if (providerId === 'deepseek') {
+      return [
+        { internalName: 'deepseek-v4-flash', displayName: 'DeepSeek V4 Flash', description: 'DeepSeek 默认备用文本模型', thinkingSupported: false },
+        { internalName: 'deepseek-v4-pro', displayName: 'DeepSeek V4 Pro', description: 'DeepSeek 高质量文本模型', thinkingSupported: true },
+      ];
+    }
     return [
       { internalName: 'nalang-turbo-0826', displayName: '快速经济 0826', description: '默认备用文本模型', thinkingSupported: false },
       { internalName: 'nalang-medium-0826', displayName: '均衡性能', description: '默认备用文本模型', thinkingSupported: false },
@@ -90,6 +106,30 @@ window.GameModules.settingsActions = {
     if (!id) return;
     this.modelId = id;
     if (this.settingsState) this.settingsState.textModelId = id;
+    if (this.settingsState?.textProvider === 'deepseek') this.settingsState.deepseekModel = id;
+    await this.save?.();
+  },
+
+  async selectTextProvider(id) {
+    if (!id || !this.settingsState) return;
+    this.settingsState.textProvider = id;
+    this.settingsState.loaded = false;
+    this.settingsState.textModels = [];
+    this.settingsState.error = '';
+    this.modelId = window.GameModules.aiProvider?.providerDefaultModel?.(id) || this.modelId;
+    await this.save?.();
+    await this.loadSettingsModels(true);
+  },
+
+  async setDeepseekApiKey(value) {
+    if (!this.settingsState) return;
+    this.settingsState.deepseekApiKey = String(value || '').trim();
+    await this.save?.();
+  },
+
+  async setDeepseekBaseUrl(value) {
+    if (!this.settingsState) return;
+    this.settingsState.deepseekBaseUrl = String(value || '').trim();
     await this.save?.();
   },
 

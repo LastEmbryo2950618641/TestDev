@@ -50,6 +50,9 @@
   <script src="prompts/materials/real-world-faction-query.js"></script>
   <script src="prompts/materials/work-lore-material-query.js"></script>
   <script src="story-agent-context.js"></script>
+  <script src="ai-provider.js"></script>
+  <script src="ai-provider-dzmm.js"></script>
+  <script src="ai-provider-deepseek.js"></script>
   <script src="ai-request.js"></script>
   <script src="real-world-agent-loop.js"></script>
   <script src="real-world-json-actions.js"></script>
@@ -1340,6 +1343,24 @@
       <p class="settings-error" x-show="$store.game.settingsState.error" x-text="$store.game.settingsState.error"></p>
       <button class="ghost-wide" type="button" @click="$store.game.loadSettingsModels(true)" :disabled="$store.game.settingsState.loading">刷新可用模型</button>
       <section class="model-setting-group">
+        <h3>文本 AI 提供方</h3>
+        <small>可在 dzmm 和 DeepSeek 之间切换文字请求来源。绘图仍暂时只看 dzmm。</small>
+        <select :value="$store.game.settingsState.textProvider" @change="$store.game.selectTextProvider($event.target.value)">
+          <option value="dzmm">dzmm</option>
+          <option value="deepseek">DeepSeek</option>
+        </select>
+      </section>
+      <section class="model-setting-group" x-show="$store.game.settingsState.textProvider === 'deepseek'">
+        <h3>DeepSeek Base URL</h3>
+        <small>默认官方地址即可。文本接口使用 OpenAI 兼容 Chat Completions。</small>
+        <input class="text-input" type="text" :value="$store.game.settingsState.deepseekBaseUrl" @change="$store.game.setDeepseekBaseUrl($event.target.value)">
+      </section>
+      <section class="model-setting-group" x-show="$store.game.settingsState.textProvider === 'deepseek'">
+        <h3>DeepSeek API Key</h3>
+        <small>仅保存在当前浏览器/存档环境，用于文本模型请求。</small>
+        <input class="text-input" type="password" :value="$store.game.settingsState.deepseekApiKey" @change="$store.game.setDeepseekApiKey($event.target.value)">
+      </section>
+      <section class="model-setting-group">
         <h3>文本模型</h3>
         <small>用于剧情推演、微信回复、角色资料补全等文字 AI 请求。</small>
         <select :value="$store.game.modelId" @change="$store.game.selectTextModel($event.target.value)">
@@ -1350,7 +1371,7 @@
       </section>
       <section class="model-setting-group">
         <h3>AI生成图模型</h3>
-        <small>用于微信相册等 draw.generate 图片生成请求。</small>
+        <small>用于微信相册等 draw.generate 图片生成请求。当前这部分仍主要依赖 dzmm。</small>
         <select x-model="$store.game.settingsState.drawModelId" @change="$store.game.selectDrawModel($event.target.value)">
           <template x-for="model in $store.game.settingsState.drawModels" :key="model.id">
             <option :value="model.id" x-text="`${model.displayName || model.id}｜${model.description || model.id}`"></option>
@@ -1371,7 +1392,7 @@
         <small>用于现实与异世界推演的 Stage1 资料路由。默认 2，越高越容易多查资料但请求更慢。</small>
         <input type="number" min="1" max="8" step="1" inputmode="numeric" :value="$store.game.stage1MaterialMaxIterations()" @change="$store.game.setStage1MaterialMaxIterations($event.target.value)">
       </section>
-      <p class="settings-status">当前：文本 <b x-text="$store.game.modelId"></b>；绘图 <b x-text="$store.game.selectedDrawModelId()"></b>；笔风 <b x-text="$store.game.allWritingStyles().find((style) => style.id === $store.game.selectedWritingStyleId())?.name || '未选择'"></b>；Stage1资料迭代 <b x-text="$store.game.stage1MaterialMaxIterations()"></b></p>
+      <p class="settings-status">当前：提供方 <b x-text="$store.game.settingsState.textProvider"></b>；文本 <b x-text="$store.game.modelId"></b>；绘图 <b x-text="$store.game.selectedDrawModelId()"></b>；笔风 <b x-text="$store.game.allWritingStyles().find((style) => style.id === $store.game.selectedWritingStyleId())?.name || '未选择'"></b>；Stage1资料迭代 <b x-text="$store.game.stage1MaterialMaxIterations()"></b></p>
     </div>
   </section>
 

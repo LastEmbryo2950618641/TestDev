@@ -15,14 +15,15 @@ window.GameModules.catalogActions = {
 
   async loadModelAndUser() {
     try {
-      const info = await window.dzmm?.user?.info?.();
+      const provider = window.GameModules.aiProvider?.currentProvider?.();
+      const info = await provider?.getUserInfo?.();
       if (info?.name && !this.playerName && !this.playerProfile.name) this.playerName = info.name;
     } catch (err) {
       console.warn('读取用户信息失败:', err.code, err.message);
     }
 
     try {
-      const result = await window.dzmm?.models?.list?.();
+      const result = await window.GameModules.aiProvider?.currentProvider?.()?.listTextModels?.();
       window.GameModules.tokenStats?.syncModelPrices?.(result);
       const models = this.enrichTextModelsWithThinking?.(result) || (Array.isArray(result?.models) ? result.models : []);
       const selected = this.resolvePreferredTextModel?.(models, this.modelId || this.settingsState?.textModelId || result?.defaultModel) || this.modelId || result?.defaultModel || models[0]?.internalName;

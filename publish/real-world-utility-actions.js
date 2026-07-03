@@ -68,7 +68,7 @@ window.GameModules.realWorldUtilityActions = {
 
   validateRealWorldFreedom() {
     if (this.realWorldWordCountValid()) return true;
-    window.dzmm?.toast?.error?.('要求字数最少 200');
+    window.dzmm?.toast?.error?.('要求字数最少 200') || console.warn('要求字数最少 200');
     return false;
   },
 
@@ -90,7 +90,7 @@ window.GameModules.realWorldUtilityActions = {
     if (!value) return;
     const current = String(this.realWorldInput || '').trimEnd();
     this.realWorldInput = current ? `${current} ${value}` : value;
-    window.dzmm?.toast?.success?.('已追加到输入框');
+    window.dzmm?.toast?.success?.('已追加到输入框') || console.info('已追加到输入框');
   },
 
   openRealWorldPrompt(id) {

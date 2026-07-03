@@ -113,8 +113,7 @@ window.GameModules.aiRequest = {
   },
 
   selectedTextModel(fallback = '') {
-    const store = window.Alpine?.store?.('game');
-    return fallback || store?.modelId || store?.settingsState?.textModelId || window.GameModules.config?.defaultModelId || 'nalang-turbo-0826';
+    return fallback || window.GameModules.aiProvider?.selectedTextModel?.() || window.GameModules.config?.defaultModelId || 'nalang-turbo-0826';
   },
 
   isRetryable(err) {
@@ -149,7 +148,11 @@ window.GameModules.aiRequest = {
   },
 
   async complete(options = {}) {
-    if (!window.dzmm?.completions) throw new Error('dzmm.completions unavailable');
+    const providerId = window.GameModules.aiProvider?.currentProviderId?.() || 'dzmm';
+    const provider = window.GameModules.aiProvider?.currentProvider?.();
+    if (typeof provider?.complete !== 'function') {
+      throw new Error(`text AI provider ${providerId} unavailable: complete`);
+    }
     const id = ++this.seq;
     const source = options.source || 'unknown';
     const messages = options.messages || [{ role: 'user', content: options.prompt || '' }];
@@ -233,19 +236,25 @@ window.GameModules.aiRequest = {
     const payload = { model: options.model, messages: options.messages };
     if (options.maxTokens !== undefined && options.maxTokens !== null) payload.maxTokens = options.maxTokens;
     this.logRawRequest(options, payload, { attempt: attempt + 1, queueWaitMs: startAt - options.enqueueAt });
-    const request = window.dzmm.completions(payload, (chunk, done) => {
-      const text = String(chunk || '');
-      if (text) {
-        chunkCount += 1;
-        buffer = window.GameModules.jsonUtils?.mergeStreamText?.(buffer, text) ?? (buffer + text);
-        if (options.logChunks && (chunkCount === 1 || chunkCount % 20 === 0)) this.log('流式片段', { id: options.id, source: options.source, chunkCount, length: buffer.length });
-      }
-      if (done) doneSeen = true;
-      const info = { id: options.id, source: options.source, buffer, chunkCount, done: Boolean(done), doneSeen };
-      callbackChain = callbackChain.then(async () => {
-        await options.onChunk?.(text, Boolean(done), info);
-        if (done) await options.onDone?.(info);
-      });
+    const provider = window.GameModules.aiProvider?.currentProvider?.();
+    const request = provider.complete({
+      ...options,
+      payload,
+      onChunk: async (chunk, done) => {
+        const text = String(chunk || '');
+        if (text) {
+          chunkCount += 1;
+          buffer = window.GameModules.jsonUtils?.mergeStreamText?.(buffer, text) ?? (buffer + text);
+          if (options.logChunks && (chunkCount === 1 || chunkCount % 20 === 0)) this.log('流式片段', { id: options.id, source: options.source, chunkCount, length: buffer.length });
+        }
+        if (done) doneSeen = true;
+        const info = { id: options.id, source: options.source, buffer, chunkCount, done: Boolean(done), doneSeen };
+        callbackChain = callbackChain.then(async () => {
+          await options.onChunk?.(text, Boolean(done), info);
+          if (done) await options.onDone?.(info);
+        });
+      },
+      onDone: async () => {},
     });
     await this.timeout(Promise.resolve(request).then(() => callbackChain), options.timeoutMs, options.source);
     if (options.requireDone && !doneSeen) throw new Error(`${options.source}流式未完成`);

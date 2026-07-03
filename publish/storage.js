@@ -38,7 +38,15 @@ window.GameModules.storage = {
       wechatMessagesByContact: store.wechatMessagesByContact || {},
       wechatAlbumPhotos: store.wechatAlbumPhotos || {},
       wechatAlbumPrompts: store.wechatAlbumPrompts || {},
-      settingsState: store.settingsState ? { textModelId: store.modelId || store.settingsState.textModelId, drawModelId: store.settingsState.drawModelId || 'anime', stage1MaterialMaxIterations: Number(store.settingsState.stage1MaterialMaxIterations) || 2 } : undefined,
+      settingsState: store.settingsState ? {
+        textProvider: store.settingsState.textProvider || 'dzmm',
+        textModelId: store.modelId || store.settingsState.textModelId,
+        deepseekApiKey: store.settingsState.deepseekApiKey || '',
+        deepseekBaseUrl: store.settingsState.deepseekBaseUrl || 'https://api.deepseek.com',
+        deepseekModel: store.settingsState.deepseekModel || '',
+        drawModelId: store.settingsState.drawModelId || 'anime',
+        stage1MaterialMaxIterations: Number(store.settingsState.stage1MaterialMaxIterations) || 2,
+      } : undefined,
       phoneFixedTime: store.phoneFixedTime,
       selectedSlot: store.selectedSlot,
       selectedWork: store.selectedWork,
@@ -108,6 +116,8 @@ window.GameModules.storage = {
     if (save.settingsState && store.settingsState) {
       store.settingsState = { ...store.settingsState, ...save.settingsState, open: false, loading: false, error: '' };
       store.settingsState.stage1MaterialMaxIterations = Math.max(1, Math.min(8, Math.round(Number(store.settingsState.stage1MaterialMaxIterations) || 2)));
+      store.settingsState.textProvider = store.settingsState.textProvider || 'dzmm';
+      store.settingsState.deepseekBaseUrl = store.settingsState.deepseekBaseUrl || 'https://api.deepseek.com';
       store.modelId = store.settingsState.textModelId || store.modelId;
     }
     store.realWorldThinkMode = Boolean(save.realWorldThinkMode ?? store.realWorldThinkMode);

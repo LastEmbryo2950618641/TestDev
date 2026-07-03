@@ -57,21 +57,18 @@ window.GameModules.systemTestActions = {
     state.loading = true;
     state.result = '';
     state.error = '';
-    let fullText = '';
     try {
-      await window.dzmm.completions({
+      const fullText = await window.GameModules.aiRequest.complete({
+        source: 'system-role-test',
         model: this.selectedSystemTestModel(),
         messages: [
           { role: 'system', content: state.systemText || '' },
           { role: 'user', content: state.userText || '' },
         ],
         maxTokens: 200,
-      }, (content, done) => {
-        fullText += content || '';
-        state.result = fullText;
-        if (done && !state.result.trim()) state.result = '请求成功，但返回为空。';
+        timeoutMs: 30000,
       });
-      if (!state.result.trim()) state.result = fullText || '请求成功，但返回为空。';
+      state.result = fullText || '请求成功，但返回为空。';
     } catch (err) {
       state.error = [err?.code, err?.message].filter(Boolean).join('｜') || '请求失败';
       console.error('[system role 测试] 失败:', err?.code, err?.message, err?.stack);
