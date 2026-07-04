@@ -1,6 +1,6 @@
 window.GameModules = window.GameModules || {};
 window.GameModules.realWorldStreamActions = {
-  updateRealWorldStream(id, raw) {
+  updateRealWorldStream(id, raw, options = {}) {
     const entry = (this.realWorldLog || []).find((item) => item.id === id) || window.GameModules.sqliteSave.getRealWorldLogEntry?.(id);
     if (!entry) return false;
     const pick = (key) => this.pickRealWorldStreamField(raw, key);
@@ -13,7 +13,7 @@ window.GameModules.realWorldStreamActions = {
     if (narration && narration !== entry.narration) { patch.narration = narration; changed = true; }
     if (streamTrace.length && JSON.stringify(streamTrace) !== JSON.stringify(entry.streamTrace || [])) { patch.streamTrace = streamTrace; changed = true; }
     if (!changed) return false;
-    return this.patchRealWorldLogEntry?.(id, patch) || false;
+    return this.patchRealWorldLogEntry?.(id, patch, { live: Boolean(options.live) }) || false;
   },
 
   realWorldStreamNarration(raw = '', pick = () => '') {
@@ -34,7 +34,7 @@ window.GameModules.realWorldStreamActions = {
   },
 
   pickRealWorldStreamField(raw = '', key = '') {
-    const next = 'type|thinking|reason|narration|sceneTitle|locationName|parentLocationName|locationDescription|status|quest|choices|characters|requests|mapNodes|newLocations|locationDescriptionUpdates|elapsedSeconds|metricUpdates|factionUpdates|lexiconUpdates';
+    const next = 'type|thinking|reason|narration|sceneTitle|locationName|parentLocationName|locationDescription|status|quest|choices|characters|requests|mapNodes|newLocations|locationDescriptionUpdates|elapsedSeconds|metricUpdates|genericUpdates|lexiconUpdates';
     const text = String(raw || '');
     const loose = text.match(new RegExp(`"${key}"\\s*:\\s*"([\\s\\S]*?)(?:"\\s*,\\s*"(?:${next})"\\s*:|"\\s+"(?:${next})"\\s*:|"\\s*[,}])`));
     if (loose) return loose[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').trim();

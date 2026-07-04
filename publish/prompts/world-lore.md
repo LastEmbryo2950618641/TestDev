@@ -1,15 +1,15 @@
 # 世界观固化设定
 
-为 AI RPG 视觉小说生成世界《{世界}》的极简固化世界观。只返回一行紧凑合法 JSON，不要 Markdown、解释或换行。禁止输出代码块。所有 key 和字符串必须使用英文双引号。数组最后一个元素后必须立刻写 `]`，对象最后一个字段后必须立刻写 `}`，绝对不要尾随逗号。
+为 AI RPG 视觉小说生成世界《{{世界}}》的极简固化世界观。只返回一行紧凑合法 JSON，不要 Markdown、解释或换行。禁止输出代码块。所有 key 和字符串必须使用英文双引号。数组最后一个元素后必须立刻写 `]`，对象最后一个字段后必须立刻写 `}`，绝对不要尾随逗号。
 
 ## 当前剧情上下文
 
-{剧情上下文}
+{{剧情上下文}}
 
 ## 输出要求
 
 1. 根对象必须包含：`worldTag`、`background`、`factions`、`specialJobs`、`jobRanks`、`coreRules`、`calendar`、`worldline`。
-2. `worldTag` 等于或贴近《{世界}》。
+2. `worldTag` 等于或贴近《{{世界}}》。
 3. `background` 不超过 50 字。
 4. `factions` 返回 1 到 2 个对象，每个只有 `name`、`desc`，`desc` 不超过 16 字。
 5. `specialJobs` 返回 1 到 2 个对象，每个只有 `name`、`desc`，`desc` 不超过 16 字。
@@ -26,6 +26,6 @@
 
 复制这个结构，只替换内容，保持字段完整：
 
-{"worldTag":"{世界}","background":"50字内背景","factions":[{"name":"势力","desc":"短说明"}],"specialJobs":[{"name":"职业","desc":"短说明"}],"jobRanks":["低阶","中阶","高阶"],"coreRules":["规则一","规则二","规则三"],"calendar":{"label":"公元纪年","months":["1月"],"days":30,"hours":["上午","下午","夜晚"],"units":{"year":"年","month":"月","day":"日","hour":"时"}},"worldline":{"timeRange":"[起点 - 后续]","events":[{"eventId":"event_1","name":"事件名","time":"当前时期","summary":"短摘要","detail":"短详情","storyIndexes":["主线开端"],"factionIds":["faction_1"],"status":"进行中"}],"storyIndexes":["主线开端"],"factionMap":{"faction_1":{"势力ID":"faction_1","名称":"势力","类型":"组织","属性":{"影响":"中"},"关系网":{},"当前目标":"短目标","近期决策":[],"状态":"正常"}}}}
+{"worldTag":"{{世界}}","background":"50字内背景","factions":[{"name":"势力","desc":"短说明"}],"specialJobs":[{"name":"职业","desc":"短说明"}],"jobRanks":["低阶","中阶","高阶"],"coreRules":["规则一","规则二","规则三"],"calendar":{"label":"公元纪年","months":["1月"],"days":30,"hours":["上午","下午","夜晚"],"units":{"year":"年","month":"月","day":"日","hour":"时"}},"worldline":{"timeRange":"[起点 - 后续]","events":[{"eventId":"event_1","name":"事件名","time":"当前时期","summary":"短摘要","detail":"短详情","storyIndexes":["主线开端"],"factionIds":["faction_1"],"status":"进行中"}],"storyIndexes":["主线开端"],"factionMap":{"faction_1":{"势力ID":"faction_1","名称":"势力","类型":"组织","属性":{"影响":"中"},"关系网":{},"当前目标":"短目标","近期决策":[],"状态":"正常"}}}}
 
 注意：字段定义优先级高于示例。当示例与字段定义冲突时，以字段定义为准。

@@ -96,13 +96,32 @@ window.GameModules.jsonUtils = {
     return Object.fromEntries((fields || []).map((field) => [field, raw.includes(`"${field}"`) || raw.includes(field)]));
   },
 
+  completionOptions(promptId = '', options = {}) {
+    const overrides = {};
+    if (Object.prototype.hasOwnProperty.call(options, 'jsonMode')) overrides.jsonMode = options.jsonMode;
+    if (Object.prototype.hasOwnProperty.call(options, 'outputLimitKind')) overrides.outputLimitKind = options.outputLimitKind;
+    if (Object.prototype.hasOwnProperty.call(options, 'responseFormat')) overrides.responseFormat = options.responseFormat;
+    if (promptId && window.GameModules.promptSkills?.completionOptions) {
+      return window.GameModules.promptSkills.completionOptions(promptId, overrides);
+    }
+    const jsonMode = options.jsonMode !== false;
+    return {
+      outputLimitKind: options.outputLimitKind || 'other',
+      jsonMode,
+      responseFormat: options.responseFormat || (jsonMode ? { type: 'json_object' } : undefined),
+    };
+  },
+
   async generateJsonWithRetry(options) {
     const max = options.max ?? 2;
     let prompt = options.prompt;
+    let promptId = options.promptId || '';
+    const initialPromptId = promptId;
     let lastText = '';
     let lastError = null;
     for (let i = 0; i < max; i += 1) {
-      lastText = await this.requestCompletion({ model: options.model, prompt, maxTokens: options.maxTokens, source: options.source || 'json-utils', timeoutMs: options.timeoutMs || 90000, maxAttempts: options.maxAttempts });
+      const completionOptions = this.completionOptions(promptId, options);
+      lastText = await this.requestCompletion({ model: options.model, prompt, maxTokens: options.maxTokens, source: options.source || 'json-utils', timeoutMs: options.timeoutMs || 90000, maxAttempts: options.maxAttempts, ...completionOptions });
       try {
         const parsed = options.parse ? options.parse(lastText) : this.parseLoose(lastText);
         return options.validate ? options.validate(parsed) : parsed;
@@ -125,7 +144,21 @@ window.GameModules.jsonUtils = {
           rawPreview: String(lastText || '').slice(0, 1200),
         });
         if (i === max - 1) break;
-        prompt = await this.repairPrompt(options.format || options.prompt, lastText, err, options.repairHint || '');
+        const initialBehavior = window.GameModules.promptSkills?.behavior?.(initialPromptId) || {};
+        if (initialBehavior.jsonMode === false) {
+          prompt = [
+            options.format || options.prompt,
+            '',
+            '## 修复要求',
+            `上次输出无效：${err?.message || 'unknown'}`,
+            String(options.repairHint || '').trim(),
+            '请严格按原 Output Format 重新输出，不要解释。',
+          ].filter(Boolean).join('\n');
+          promptId = initialPromptId;
+        } else {
+          prompt = await this.repairPrompt(options.format || options.prompt, lastText, err, options.repairHint || '');
+          promptId = options.repairPromptId || initialPromptId || 'json-repair';
+        }
       }
     }
     const error = new Error(`AI返回格式错误: ${lastError?.message || 'unknown'}`);
@@ -134,12 +167,12 @@ window.GameModules.jsonUtils = {
     throw error;
   },
 
-  async requestCompletion({ model, prompt, maxTokens, source = 'json-utils', timeoutMs = 90000, maxAttempts }) {
-    return window.GameModules.aiRequest.complete({ source, model, maxTokens, prompt, timeoutMs, maxAttempts });
+  async requestCompletion({ model, prompt, maxTokens, source = 'json-utils', timeoutMs = 90000, maxAttempts, jsonMode = true, outputLimitKind = 'other', responseFormat }) {
+    return window.GameModules.aiRequest.complete({ source, model, maxTokens, prompt, timeoutMs, maxAttempts, jsonMode, responseFormat: responseFormat || (jsonMode ? { type: 'json_object' } : undefined), outputLimitKind });
   },
 
   async repairPrompt(format, badOutput, err, hint = '') {
-    return window.GameModules.promptTemplates.render('json-repair', { 错误: err?.message || 'unknown', 原要求: String(format || '').slice(0, 3200), 修复补充要求: String(hint || '').slice(0, 1400), 错误输出: String(badOutput || '').slice(0, 1200) });
+    return window.GameModules.renderPrompt('json-repair', { 错误: err?.message || 'unknown', 原要求: String(format || '').slice(0, 3200), 修复补充要求: String(hint || '').slice(0, 1400), 错误输出: String(badOutput || '').slice(0, 1200) });
   },
 
   normalizeJsonSyntax(text) {

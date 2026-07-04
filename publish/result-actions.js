@@ -63,7 +63,8 @@ window.GameModules.resultActions = {
   },
 
   async applyGenericUpdatesFromResult(result = {}) {
-    const updates = Array.isArray(result.genericUpdates) ? result.genericUpdates : [];
+    let updates = Array.isArray(result.genericUpdates) ? result.genericUpdates : [];
+    updates = window.GameModules.orgTerritory?.filterUpdatesForStoryWorld?.(updates, this) || updates;
     if (!updates.length) return [];
     await window.GameModules.updateRegistry?.applyGeneric?.(this, updates);
     return updates.map((item) => {

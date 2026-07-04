@@ -67,7 +67,14 @@ window.GameModules.realWorldActions = {
   },
 
   async applyRealWorldResult(id, result) {
-    result = { ...result, genericUpdates: window.GameModules.updateRegistry?.normalizeUpdates?.(result, this) || result.genericUpdates || [] };
+    result = window.GameModules.updateRegistry?.migrateLegacyFactionUpdates?.(result) || result;
+    if (!result._genericUpdatesNormalized) {
+      result = {
+        ...result,
+        genericUpdates: window.GameModules.updateRegistry?.normalizeUpdates?.(result, this) || result.genericUpdates || [],
+        _genericUpdatesNormalized: true,
+      };
+    }
     const legacyResult = window.GameModules.updateRegistry?.expandGenericForLegacy?.(result, this) || result;
     const state = this.playerIdentityState?.();
     const settlement = [];
@@ -94,10 +101,19 @@ window.GameModules.realWorldActions = {
       settlement.push(...this.realWorldVitalSettlement(targetState, targetUpdates));
       await this.applyRealWorldVitalUpdates(targetState, targetUpdates);
     }
-    settlement.push(...this.realWorldFactionSettlement(legacyResult.factionUpdates || []));
-    const legacyHandled = new Set(['vital', 'emotion', 'feeling', 'item', 'faction-structure', 'faction-overview']);
+    settlement.push(...this.realWorldFactionSettlement(
+      window.GameModules.updateRegistry?.orgNamesFromGenericUpdates?.(result.genericUpdates, this)?.map((name) => ({ factionName: name, action: 'generic' })) || [],
+    ));
+    const orgTerritoryTypes = new Set(['territory-control', 'org-structure-node', 'org-capability-entry', 'org-capability', 'membership', 'org-status', 'faction-structure', 'faction-overview']);
+    const orgTerritoryUpdates = (result.genericUpdates || []).filter((item) => orgTerritoryTypes.has(item?.updateType));
+    const legacyHandled = new Set(['vital', 'emotion', 'feeling', 'item', 'faction-structure', 'faction-overview', 'territory-control', 'org-structure-node', 'org-capability-entry', 'org-capability', 'membership', 'org-status']);
+    if (orgTerritoryUpdates.length) {
+      const orgLines = window.GameModules.orgTerritoryActions?.applySettlementUpdates?.(this, orgTerritoryUpdates) || [];
+      orgLines.forEach((line) => { if (line) settlement.push(line); });
+    }
     const remainingGeneric = (result.genericUpdates || []).filter((item) => !legacyHandled.has(item?.updateType));
     await window.GameModules.updateRegistry?.applyGeneric?.(this, remainingGeneric);
+    settlement.push(...(await window.GameModules.realWorldProfileStage5?.applyPatches?.(this, result.profilePatches || []) || []));
     const initApplied = await window.GameModules.initPromptRegistry?.apply?.(this, result.initUpdates || []) || [];
     if (initApplied.length) settlement.push(`初始化：已写入${initApplied.length}条初始化记录。`);
     delete result.characterMetricUpdates;
@@ -111,6 +127,8 @@ window.GameModules.realWorldActions = {
     this.refreshRealWorldMatterStatus?.();
     this.checkWorkReminder?.();
     window.GameModules.realWorldMap.update(this, result.locationName || this.realWorldLocationName, result);
+    const fogResult = await window.GameModules.realWorldMapFog?.afterLocationUpdate?.(this, result) || {};
+    if (fogResult.unlocked?.length) settlement.push(`地图解锁：${fogResult.unlocked.join('、')}`);
     this.ensureControlRoleLocation?.(state, '现实推演后更新玩家当前位置。');
     if (state?.values?.current_location) state.values.current_location.name = this.realWorldLocationName || result.locationName || state.values.current_location.name;
     const shared = this.sharedControlState?.();
@@ -121,14 +139,16 @@ window.GameModules.realWorldActions = {
     }
     if (state) await window.GameModules.sqliteSave.saveCharacterState?.(state);
     await this.refreshControlLinkStates?.();
-    await this.applyRealWorldFactionUpdates?.(legacyResult.factionUpdates || []);
     this.realWorldSceneTitle = result.sceneTitle || this.realWorldSceneTitle;
     this.realWorldQuest = result.quest || this.realWorldQuest;
     this.realWorldStatus = result.status || this.realWorldStatus;
     this.realWorldChoices = result.choices || this.realWorldChoices;
     const time = { label: `${this.phoneDateText()} ${this.phoneTimeText()}`, iso: this.phoneDate().toISOString(), startedAt, elapsedSeconds };
     const { playerEntry, ...cleanResult } = result;
-    const next = { ...this.realWorldLog.find((entry) => entry.id === id), ...cleanResult, type: 'ai', streaming: false, statusText: '', streamTrace: [], time, agentTrace: result.agentTrace || [] };
+    const existingEntry = this.realWorldLog.find((entry) => entry.id === id) || {};
+    const nextThinkingSections = Array.isArray(cleanResult.thinkingSections) && cleanResult.thinkingSections.length ? cleanResult.thinkingSections : (existingEntry.thinkingSections || []);
+    const nextThinking = String(cleanResult.thinking || '').trim() || String(existingEntry.thinking || '').trim();
+    const next = { ...existingEntry, ...cleanResult, thinking: nextThinking, thinkingSections: nextThinkingSections, type: 'ai', streaming: false, statusText: '', streamTrace: [], time, agentTrace: result.agentTrace || [] };
     await this.assignRealWorldlineEntry(next);
     if (playerEntry?.id) await window.GameModules.sqliteSave.saveRealWorldLogEntry?.(playerEntry);
     await window.GameModules.sqliteSave.saveRealWorldLogEntry?.(next);

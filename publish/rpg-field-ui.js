@@ -59,11 +59,13 @@ window.GameModules.rpgFieldUi = {
 
   profileSections(state, identityFields = []) {
     const displayState = this.profileDisplayState(state, identityFields);
+    const aspirationFields = (identityFields || []).filter((field) => field.profileGroup === '人生取向');
+    const baseIdentityFields = (identityFields || []).filter((field) => field.profileGroup !== '人生取向');
     const entries = this.rpgEntries?.(displayState) || [];
     const all = entries.flatMap((section) => section.fields || []);
     const byKey = (key) => all.find((field) => field.key === key);
     const take = (keys) => keys.map(byKey).filter(Boolean);
-    const identity = this.profileIdentityFields(displayState, identityFields);
+    const identity = this.profileIdentityFields(displayState, baseIdentityFields);
     const relations = identity.filter((field) => field.label === '人际关系' || /relationships|人际关系/.test(field.key));
     const privateLabels = new Set(['性经验次数', '当前身体状态']);
     const identityRest = identity.filter((field) => !relations.includes(field) && !privateLabels.has(field.label));
@@ -87,7 +89,14 @@ window.GameModules.rpgFieldUi = {
       { title: '人际关系', fields: relations },
       { title: '身份信息', fields: [...identityRest, ...(longing ? [longing] : []), ...take(['world_tag', 'age', 'current_location', 'factions', 'force_positions'])] },
     ];
-    return this.placeProfileSection(groups, { title: intimacyUi.sectionTitle || '身体状态', fields: intimacyFields }, intimacyUi).filter((group) => group.fields.length);
+    if (aspirationFields.length || (displayState.profile?.isPlayer && this.hasPlayerAspiration?.())) {
+      groups.splice(groups.findIndex((group) => group.title === '身份信息') + 1, 0, {
+        title: '人生取向',
+        fields: aspirationFields,
+        view: 'aspiration',
+      });
+    }
+    return this.placeProfileSection(groups, { title: intimacyUi.sectionTitle || '身体状态', fields: intimacyFields }, intimacyUi).filter((group) => group.fields.length || group.view === 'aspiration');
   },
 
   placeProfileSection(groups = [], section = {}, ui = {}) {
@@ -389,8 +398,14 @@ window.GameModules.rpgFieldUi = {
 
   rpgFieldDetail(field) {
     const lexicon = this.lexiconFor(field);
-    const rawValue = Array.isArray(field?.value) ? field.value.join('、') : (field?.value ?? field?.raw ?? '未记录');
+    const rawValue = field?.key === 'current_location' && field?.raw && typeof field.raw === 'object'
+      ? (window.GameModules.characterQuery?.locationText?.(field.raw) || [field.raw.name, field.raw.worldTag, field.raw.reason].filter(Boolean).join('｜'))
+      : (Array.isArray(field?.value) ? field.value.join('、') : (field?.value ?? field?.raw ?? '未记录'));
     const lines = [`完整内容: ${rawValue || '未记录'}`, `说明: ${lexicon?.description || lexicon?.summary || field?.desc || this.fallbackDesc(field)}`];
+    if (field?.key === 'current_location' && field?.raw && typeof field.raw === 'object') {
+      if (field.raw.updatedAt) lines.push(`更新时间: ${field.raw.updatedAt}`);
+      if (field.raw.reason && !String(rawValue || '').includes(field.raw.reason)) lines.push(`登记依据: ${field.raw.reason}`);
+    }
     if (field?.pendingAiInit) lines.push('初始化: 否，当前为模板占位，待AI初始化');
     if (field && Object.prototype.hasOwnProperty.call(field, 'initialMeeting')) lines.push(`初始见面: ${Array.isArray(field.initialMeeting) ? field.initialMeeting.join('、') || '无' : field.initialMeeting}`);
     lines.push(`变化原因: ${this.fieldChangeReason(field, lexicon)}`);

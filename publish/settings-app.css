@@ -58,6 +58,18 @@
   background: rgba(255, 96, 96, .16);
 }
 
+.settings-success {
+  padding: 10px 12px;
+  border-radius: 14px;
+  color: #c8ffe8;
+  background: rgba(84, 240, 181, .14);
+}
+
+.settings-app-actions {
+  display: grid;
+  gap: 8px;
+}
+
 .model-setting-group {
   display: grid;
   gap: 8px;

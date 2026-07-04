@@ -5,8 +5,9 @@ window.GameModules.playerSetupActions = {
     const p = this.playerProfile || {};
     const worldTag = window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
     const row = (name, value, desc) => window.GameModules.playerProfileLexicon.row(name, value, desc, worldTag);
-    return [
+    const fields = [
       row('所属世界', worldTag, '玩家当前所在的现实世界。'),
+      row('操控应用', window.GameModules.gamePremise?.appName || '我要狠狠操控的', '旧手机损坏后，新手机同步完成时出现在桌面的神秘应用；可操控现实与异世界人物，条件满足后可连接并召唤。'),
       row('姓名', p.name || this.playerName, '玩家登记的姓名或代号。'),
       row('性别', p.gender, '玩家登记的性别。'),
       row('生日', p.birthday, '玩家登记生日，用于计算年龄与现实身份。'),
@@ -24,10 +25,18 @@ window.GameModules.playerSetupActions = {
       row('世界观补全', p.worldbuildingNote || '暂无', 'AI围绕玩家资料补全的现实背景。'),
       row('备注', p.notes || '无', '玩家补充设定。'),
     ];
+    return fields;
+  },
+
+  playerProfileFieldsForView() {
+    return [
+      ...this.playerProfileLexiconFields(),
+      ...(this.playerAspirationLexiconFields?.() || []),
+    ];
   },
 
   playerSetupSummary() {
-    return this.playerProfileLexiconFields().map((x) => `${x.label}：${x.value}`).join('\n');
+    return this.playerProfileFieldsForView().map((x) => `${x.label}：${x.value}`).join('\n');
   },
 
   normalizeRelationshipEntries(entries = null, text = '') {
@@ -50,11 +59,6 @@ window.GameModules.playerSetupActions = {
       .join('；');
   },
 
-  normalizePlayerCardAiParts(value = null) {
-    const source = value && typeof value === 'object' ? value : {};
-    return { part2: source.part2 === true, part5: source.part5 === true, part6: source.part6 === true };
-  },
-
   relationshipEntriesPrompt(entries = null) {
     const list = this.normalizeRelationshipEntries(entries || this.playerProfile?.relationshipEntries, this.playerProfile?.relationships);
     if (!list.length) return '未填写';
@@ -64,6 +68,51 @@ window.GameModules.playerSetupActions = {
       `姓名=${entry.name || '未填写'}`,
       `完整设定=${entry.detail || '无'}`,
     ].join('；')).join('\n');
+  },
+
+  isWechatPlaceholderName(name = '') {
+    const text = String(name || '').trim();
+    return !text || /待命名|待AI补全|等待AI补全|等待ai补全|姓名待AI补全/i.test(text)
+      || /^(妹妹|姐姐|哥哥|弟弟|父亲|母亲|爸爸|妈妈|女友|男友|妻子|丈夫|联系人)$/.test(text)
+      || /^(双胞胎|三胞胎|多胞胎)?(妹妹|姐姐|哥哥|弟弟|兄弟|姐妹|联系人)(之一|之二|之三|其一|其二|其三)$/.test(text);
+  },
+
+  inferRoleCardUsersFromRelationshipEntries() {
+    const entries = this.normalizeRelationshipEntries(this.playerProfile?.relationshipEntries, this.playerProfile?.relationships);
+    const selfName = String(this.playerProfile?.name || this.playerName || '').trim();
+    return entries.filter((entry) => entry.relation || entry.name).flatMap((entry, index) => {
+      const relation = String(entry.relation || '关系联系人').trim().slice(0, 18);
+      const name = String(entry.name || relation).trim().slice(0, 24);
+      if (!name || name === selfName) return [];
+      const needsNameAi = !entry.name || this.isWechatPlaceholderName(name);
+      const context = [`关系名：${relation}`, `姓名：${entry.name || '未填写'}`, `设定：${entry.detail || '无'}`].join('\n');
+      const id = `rel-ai-${window.GameModules.rpgState.seed(`${relation}-${name}-${index}`)}`;
+      return [{ id, characterId: id, name, relation, latest: `${relation}资料已从玩家人际关系同步。`, source: 'relationships-structured', context, needsNameAi }];
+    });
+  },
+
+  inferWechatUsersFromRelationships(text = '') {
+    const source = String(text || '').trim();
+    if (!source) return [];
+    const selfName = String(this.playerProfile?.name || this.playerName || '').trim();
+    return source.split(/[；;\n]+/).map((part) => part.trim()).filter(Boolean).flatMap((part, index) => {
+      const pair = part.split(/[：:]/);
+      const relation = (pair[0] || '').trim().slice(0, 18);
+      const rest = pair.slice(1).join('：').trim();
+      const name = String(rest || relation).replace(/[（(].*?[）)]/g, '').replace(/[，。；;、,.].*$/, '').trim().slice(0, 24);
+      if (!name || name === selfName || this.isWechatPlaceholderName(name)) return [];
+      const context = [`关系名：${relation}`, `姓名：${name}`, `设定：无`].join('\n');
+      const id = `rel-ai-${window.GameModules.rpgState.seed(`${relation}-${name}-${index}`)}`;
+      return [{ id, characterId: id, name, relation, latest: `${relation || name}资料已从玩家人际关系同步。`, source: 'relationships', context, needsNameAi: false }];
+    }).filter(Boolean).slice(0, 20);
+  },
+
+  inferActivationRoleCardUsers() {
+    const structured = this.inferRoleCardUsersFromRelationshipEntries();
+    if (structured.length) return structured;
+    const wechat = window.GameModules.wechatActions;
+    if (typeof wechat?.inferWechatUsersFromProfile === 'function') return wechat.inferWechatUsersFromProfile.call(this);
+    return this.inferWechatUsersFromRelationships(this.playerProfile?.relationships || '');
   },
 
   syncRelationshipTextFromEntries() {
@@ -104,32 +153,47 @@ window.GameModules.playerSetupActions = {
     const birthday = (this.playerProfile.birthday || '').trim();
     if (!name || !birthday) return;
     this.profileSetupBusy = true;
+    const usePredefined = Boolean(this.roleCardSetup?.usePredefinedPlayerCard);
     try {
       this.setupError = '';
+      try {
+        await this.ensureNewGameAssetsReady?.();
+        await window.GameModules.assetLoader?.ensureChunks?.(['wechat'], this);
+        window.GameModules.remergeGameStore?.();
+      } catch (err) {
+        console.warn('[玩家身份] 激活前资源预加载失败:', err?.message || err);
+      }
       this.syncRelationshipTextFromEntries();
       const base = this.normalizePlayerSetupBase(name, birthday);
       if (options.skipAi) throw new Error('玩家个人资料必须由AI补全并给出原因，不能跳过AI。');
+      this.startActivationRoleCardLoading?.(name, { includeRoleCards: !usePredefined });
       let enriched = null;
       try {
+        this.updateRoleCardLoadingStep?.('activation-identity', 'identity', 'running');
         enriched = await this.enrichPlayerProfile(base);
+        this.updateRoleCardLoadingStep?.('activation-identity', 'identity', 'done');
+        this.updateRoleCardLoading?.('activation-identity', { status: 'done', finishedAt: Date.now() });
       } catch (err) {
         console.warn('[玩家身份] AI补全失败，拒绝使用本地资料继续激活:', err.code, err.message, err.stack);
+        this.failRoleCardLoading?.('activation-identity', err.message || '身份补全失败');
+        if (err?.code === 'AUTH_REQUIRED') {
+          throw new Error('请先在激活首页填写 DeepSeek API Key');
+        }
         throw new Error(`AI身份补全失败，不能使用本地兜底资料：${err.message || '请稍后重试'}`);
       }
       this.playerProfile = this.normalizeEnrichedPlayerProfile(base, enriched);
       this.phoneFixedTime = new Date(this.playerProfile.initializedAt || Date.now()).getTime();
       await this.syncPlayerProfileLexicon();
       this.playerName = name;
-      this.phoneActivationChoice = '';
-      this.phoneSetupDone = true;
       this.desktopUnlocked = false;
-      if (this.roleCardSetup?.usePredefinedPlayerCard) await window.GameModules.predefinedRoleCards?.saveSelectedRoleCardStates?.(this);
-      else await Promise.all([
-        this.ensurePlayerRpgState?.(true),
-        this.syncRelationshipWechatUsers?.({ save: false }),
-      ]);
+      if (!usePredefined) this.appendActivationRelationshipRoleCards?.();
+      if (usePredefined) await window.GameModules.predefinedRoleCards?.saveSelectedRoleCardStates?.(this);
+      else await this.runActivationRoleCardsParallel?.();
+      this.phoneSetupDone = true;
+      this.phoneActivationChoice = '';
       await this.syncKnownProfessionsFromProfile?.(this.playerProfile.knownProfessions);
       await this.save();
+      this.finishActivationFlow?.();
     } catch (err) {
       console.error('[玩家身份] 激活失败:', err.code, err.message, err.stack);
       this.setupError = err.message || '激活失败';
@@ -154,21 +218,34 @@ window.GameModules.playerSetupActions = {
       relationshipEntries: this.normalizeRelationshipEntries(p.relationshipEntries, p.relationships),
       relationships: this.relationshipEntriesText(p.relationshipEntries) || (p.relationships || '').trim(),
       notes: (p.notes || '').trim(),
-      playerCardAiParts: this.normalizePlayerCardAiParts(p.playerCardAiParts),
       initializedAt: p.initializedAt || new Date().toISOString(),
     };
   },
 
+  async runActivationRoleCardsParallel() {
+    this.markActivationRoleCardsRunning?.();
+    await this.syncRelationshipWechatUsers?.({ save: false, generateProfile: false });
+    const contacts = (this.wechatUsers || []).filter((contact) => contact && !contact.group);
+    await Promise.all([
+      this.ensurePlayerRpgState?.(true),
+      ...contacts.map((contact) => this.ensureWechatUserProfile?.(contact)),
+    ]);
+  },
+
   async enrichPlayerProfile(base) {
-    if (!window.dzmm?.completions) throw new Error('dzmm.completions unavailable');
-    const prompt = await window.GameModules.promptTemplates.render('player-profile-enrichment', {
+    const providerId = window.GameModules.aiProvider?.currentProviderId?.() || 'deepseek';
+    const provider = window.GameModules.aiProvider?.currentProvider?.();
+    if (!provider || typeof provider.complete !== 'function') {
+      throw new Error(`文本 AI 提供方 ${providerId} 未就绪，请先在激活首页配置模型`);
+    }
+    const prompt = await window.GameModules.renderPrompt('player-profile-enrichment', {
       年龄: base.age,
       性别: base.gender || '未填写',
       relationshipRule: base.relationshipRule || '无额外规则。',
       输入: JSON.stringify(base),
     });
     return await Promise.race([
-      window.GameModules.jsonUtils.generateJsonWithRetry({ source: 'player-profile-enrichment', model: this.modelId, timeoutMs: 60000, prompt, format: prompt, max: 2 }),
+      window.GameModules.jsonUtils.generateJsonWithRetry({ source: 'player-profile-enrichment', promptId: 'player-profile-enrichment', model: this.modelId, timeoutMs: 60000, prompt, format: prompt, max: 2 }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('身份补全超时')), 60000)),
     ]);
   },

@@ -36,10 +36,8 @@ window.GameModules.predefinedRoleCards = {
 
   playerProfileFromCard(card, fallback = {}) {
     if (!card) return fallback;
-    const aiParts = window.Alpine?.store?.('game')?.normalizePlayerCardAiParts?.(fallback.playerCardAiParts) || { part2: false, part5: false, part6: false };
     return {
       ...fallback,
-      playerCardAiParts: aiParts,
       name: card.name || fallback.name || '', gender: card.gender || fallback.gender || '', birthday: card.birthday || fallback.birthday || '', age: card.age || fallback.age || '',
       city: fallback.city || '', dailyRole: card.role || fallback.dailyRole || '', workplace: card.workplace || fallback.workplace || '', position: card.position || fallback.position || '',
       livingStatus: fallback.livingStatus || '', parents: fallback.parents || '', relationships: card.relationships || fallback.relationships || '', notes: fallback.notes || card.detail || '', initializedAt: fallback.initializedAt || new Date().toISOString(),
@@ -70,6 +68,8 @@ window.GameModules.predefinedRoleCards = {
       state.profile.isPlayer = true;
     }
     window.GameModules.rpgProfileMetrics?.rebase?.(state, profile, existing?.profile || {});
+    store.initFactionSystem?.();
+    window.GameModules.orgTerritory?.ensurePresetFamilyMemberships?.(store);
     await window.GameModules.rpgLexicon.syncState(state);
     await window.GameModules.sqliteSave.saveCharacterState(state);
     store.rpgStates = { ...(store.rpgStates || {}), [state.id]: state };
@@ -120,6 +120,9 @@ window.GameModules.predefinedRoleCards = {
     if (existing && existing.stability && existing.stability !== '默认稳定') return existing;
     const entry = this.buildInitialScheduleEntry(state, store);
     store.characterSchedules[state.id] = entry;
+    if (entry.currentLocation) {
+      window.GameModules.orgTerritory?.bumpOrgExposureOnScheduleLocation?.(store, entry.currentLocation);
+    }
     return entry;
   },
 

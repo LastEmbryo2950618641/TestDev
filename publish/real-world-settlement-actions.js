@@ -4,7 +4,26 @@ window.GameModules.realWorldSettlementActions = {
   realWorldSettlementRecord(field, name, value, reason, group = '', card = null) {
     const fallback = group || this.realWorldSettlementGroup(field, name);
     const inferred = card || this.realWorldSettlementCardForGroup?.(fallback);
-    return { at: new Date().toISOString(), group: fallback, cardId: inferred?.id || `legacy:${fallback}`, cardTitle: inferred?.title || fallback, section: inferred?.section || fallback, field, name, value, reason: reason || '现实推演结算。', applied: true };
+    return { at: new Date().toISOString(), group: fallback, cardId: inferred?.id || `legacy:${fallback}`, cardTitle: inferred?.title || fallback, section: inferred?.section || fallback, field, name, value, reason: reason || '本轮正文确认的变化。', applied: true };
+  },
+
+  resolveCharacterSettlementCard(store = null, target = '', fallbackName = '') {
+    const state = store?.itemSkillState?.(target)
+      || window.GameModules.sqliteSave?.getCharacterStateByName?.(String(target || '').trim())
+      || null;
+    if (!state?.id) {
+      const name = String(fallbackName || target || '').trim();
+      if (!name) return null;
+      return { id: `role:${name}`, title: name, section: '角色卡' };
+    }
+    const title = store?.itemSkillStateLabel?.(state) || state.profile?.name || state.name || state.id;
+    return { id: `role:${state.id}`, title, section: '角色卡' };
+  },
+
+  realWorldSettlementRecordForCharacter(field, name, value, reason, store, target = '', fallbackName = '') {
+    const card = this.resolveCharacterSettlementCard(store, target, fallbackName);
+    const group = card?.title || fallbackName || target || '角色';
+    return this.realWorldSettlementRecord(field, name, value, reason, group, card);
   },
 
   realWorldSettlementCardForGroup(group = '') {
@@ -82,7 +101,7 @@ window.GameModules.realWorldSettlementActions = {
       const isFeeling = field === '感觉' || field === '临时感觉';
       const delta = isFeeling && !item.temporary ? window.GameModules.metrics.lockedPlayerDelta(item.key, window.GameModules.metrics.clampDelta(rawDelta), decayedBefore) : window.GameModules.metrics.clampDelta(rawDelta);
       const after = Math.max(0, Math.min(100, decayedBefore + delta));
-      rows.push(this.realWorldSettlementRecord(field, item.key, `${decayedBefore} → ${after}（${item.status || '状态更新'}）`, item.reason, group, card));
+      rows.push(this.realWorldSettlementRecord(field, item.key, `${decayedBefore} → ${after}（${window.GameModules.updateRegistry.normalizeSettlementText(window.GameModules.metrics.cleanMetricStatus(item.status || '状态更新'))}）`, window.GameModules.updateRegistry.normalizeSettlementText(window.GameModules.metrics.cleanMetricReason(item.reason, item.key)), group, card));
     });
     add('情绪', (updates.emotions || []).filter((item) => !item?.temporary), metrics?.emotions);
     add('感觉', (updates.playerFeelings || []).filter((item) => !item?.temporary), metrics?.playerFeelings);

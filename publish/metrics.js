@@ -53,12 +53,28 @@ window.GameModules.metrics = {
     const text = key === '爱情' ? love[stage] : (key === '了解' ? know[stage] : intensity[stage]);
     return text || `${key}处于${stage}阶段。`;
   },
-  valueExplanation(key, value, custom = '', reason = '') {
-    const text = String(custom || '').trim();
-    if (this.isSpecificMetricText(text, key)) return text;
-    const cause = String(reason || '').replace(/[。.!！]+$/g, '').trim();
-    if (cause && !/缺少AI生成/.test(cause)) return `${key}${this.clamp(value)}：${this.stageStatus(key, this.stageFor(key, value))}，因为${cause}。`;
-    return `${key}${this.clamp(value)}：${this.stageStatus(key, this.stageFor(key, value))}`;
+  cleanMetricReason(reason = '', key = '') {
+    let text = String(reason || '').replace(/[。.!！]+$/g, '').trim();
+    text = text.replace(/^(?:情绪|感觉)[，,：:\s]+/u, '');
+    if (key) text = text.replace(new RegExp(`^${key}[，,：:\\s]+`, 'u'), '');
+    return text.trim();
+  },
+
+  cleanMetricStatus(status = '') {
+    let out = String(status || '').trim();
+    if (/因为/u.test(out)) out = out.split(/[，,、]?因为/u)[0].trim();
+    return out
+      .replace(/[。.!！?？]+[，,、]+/g, '。')
+      .replace(/。[；;][^。]+$/u, '。')
+      .replace(/。[；;]+/g, '。')
+      .replace(/。{2,}/g, '。')
+      .replace(/[，,]+。/g, '。')
+      .trim();
+  },
+
+  valueExplanation(key, value) {
+    const stage = this.stageStatus(key, this.stageFor(key, value)).replace(/[。.!！?？]+$/g, '');
+    return `${key}${this.clamp(value)}：${stage}。`;
   },
   isSpecificMetricText(text, key = '') {
     const value = String(text || '').trim();
@@ -121,12 +137,12 @@ window.GameModules.metrics = {
     target[item.key] = value;
     const rawStatus = String(item.status || '').trim();
     const rawReason = String(item.reason || '').trim();
-    const reason = String(rawReason || fallbackReason).slice(0, 180);
+    const reason = this.cleanMetricReason(String(rawReason || fallbackReason).slice(0, 180), item.key);
     const status = item.temporary
-      ? String(rawStatus || `${item.key}${this.clamp(value)}：短期状态，因为${reason.replace(/[。.!！]+$/g, '')}。`).slice(0, 180)
-      : String(this.valueExplanation(item.key, value, rawStatus, reason)).slice(0, 180);
+      ? this.cleanMetricStatus(String(rawStatus || `${item.key}${this.clamp(value)}：短期状态。`)).slice(0, 180)
+      : String(this.valueExplanation(item.key, value)).slice(0, 180);
     const explicitSources = item.metricSources || null;
-    const statusFromAi = rawStatus && status === rawStatus;
+    const statusFromAi = item.temporary && rawStatus && status === this.cleanMetricStatus(rawStatus);
     const isAi = (source) => String(source || '').toLowerCase() === 'ai';
     const metricSources = explicitSources ? {
       数值: isAi(explicitSources.数值) ? 'AI' : '系统',

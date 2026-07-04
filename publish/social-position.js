@@ -46,11 +46,27 @@ window.GameModules.socialPosition = {
     return { name: `${f} / ${r}`, type: '社群角色', faction: f, community: f, role: r, position: r, level: -1, description: `社群：${f}；角色：${r}。该词条表示角色当前所属的居住社区、家庭、社交圈或临时群体，以及其在其中承担的社会角色。`, source: 'ai', reason: detail, changeMode: detail };
   },
 
-  forceItem(force, position, reason = '') {
+  forceItem(force, position, reason = '', factionsOrStore = null) {
     const f = String(force || '未设定势力').trim();
     const p = String(position || '成员').trim();
     const detail = this.concreteReason(reason, `${f}是角色资料中可确认的组织、机构或国家级归属，${p}是其在该势力中的当前地位。`);
-    return { name: `${f} / ${p}`, type: '势力地位', force: f, faction: f, position: p, level: -1, description: `势力：${f}；地位：${p}。该词条表示角色在有层级制度的国家、公司、学校、部门、军队、宗门、机构或组织中的等级、职级、年级、职位或法定身份。`, source: 'ai', reason: detail, changeMode: detail };
+    const store = factionsOrStore && factionsOrStore.factionState ? factionsOrStore : { factionState: { factions: Array.isArray(factionsOrStore) ? factionsOrStore : [] } };
+    const orgId = window.GameModules.orgTerritory?.resolveOrgIdByName?.(store, f) || '';
+    return {
+      name: `${f} / ${p}`,
+      type: '势力地位',
+      force: f,
+      faction: f,
+      position: p,
+      orgId,
+      department: '',
+      departmentFog: true,
+      level: -1,
+      description: `势力：${f}；地位：${p}。${orgId ? `组织ID：${orgId}。` : ''}该词条表示角色在有层级制度的国家、公司、学校、部门、军队、宗门、机构或组织中的等级、职级、年级、职位或法定身份。`,
+      source: 'ai',
+      reason: detail,
+      changeMode: detail,
+    };
   },
 
   playerItems(profile = {}) {
@@ -63,12 +79,18 @@ window.GameModules.socialPosition = {
     return [];
   },
 
-  playerForceItems(profile = {}) {
+  playerForceItems(profile = {}, factionsOrStore = null) {
     const role = profile.refinedRole || profile.dailyRole || profile.role || profile.job;
     const city = profile.refinedCity || profile.city || profile.faction || '';
     const workplace = profile.workplace || this.workplace(role, city);
     const position = profile.position || this.position(role);
     const reason = `玩家资料中的现实身份为${role || '现代都市居民'}，工作或学习归属确定为${workplace}，因此在该势力中的地位为${position || '成员'}。`;
-    return workplace ? [this.forceItem(workplace, position || '成员', reason)] : [];
+    return workplace ? [this.forceItem(workplace, position || '成员', reason, factionsOrStore)] : [];
+  },
+
+  membershipItems(profile = {}, factionsOrStore = null) {
+    const store = factionsOrStore && factionsOrStore.factionState ? factionsOrStore : { factionState: { factions: Array.isArray(factionsOrStore) ? factionsOrStore : [] } };
+    const ot = window.GameModules.orgTerritory;
+    return this.playerForceItems(profile, factionsOrStore).map((fp) => ot?.membershipFromForcePosition?.(fp, store) || fp);
   },
 };

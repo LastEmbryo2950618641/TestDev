@@ -4,8 +4,17 @@ window.GameModules.saveActions = {
     const entries = await Promise.all(this.saveSlots.map(async (slot) => [slot, await window.GameModules.sqliteSave.inspectSlot(slot)]));
     this.saveMetas = Object.fromEntries(entries);
   },
+
+  async refreshSaveMeta(slot) {
+    if (!slot) return;
+    this.saveMetas = { ...(this.saveMetas || {}), [slot]: await window.GameModules.sqliteSave.inspectSlot(slot) };
+  },
+
+  findEmptySaveSlot() {
+    return (this.saveSlots || []).find((slot) => !this.saveMeta(slot).exists) || null;
+  },
   saveMeta(slot) {
-    return this.saveMetas[slot] || { slot, exists: false, savedAt: '' };
+    return this.saveMetas[slot] || { slot, exists: false, savedAt: '', playerName: '', phoneSetupDone: false };
   },
   formatSaveTime(value) {
     if (!value) return '无存档';
@@ -50,13 +59,15 @@ window.GameModules.saveActions = {
   async newSlot(slot) {
     await window.GameModules.storage.remove(slot);
     this.selectedSlot = slot;
-    await window.GameModules.storage.open(slot); await this.loadWritingStyles();
+    await window.GameModules.storage.open(slot, { deferPersist: true });
+    await this.loadWritingStyles({ deferPersist: true });
     this.started = false;
     this.turn = 1;
     this.log = [];
     this.rpgStates = {};
     this.rpgPanelCharacterId = this.selectedCharacterId;
     if (this.phoneSetupDone) await this.ensurePlayerRpgState?.(true);
+    await window.GameModules.sqliteSave.persist();
   },
   loadSavedRpgStates() {
     const states = window.GameModules.sqliteSave.listCharacterStates();
@@ -66,6 +77,8 @@ window.GameModules.saveActions = {
       return state;
     });
     this.rpgStates = Object.fromEntries(cleaned.map((state) => [state.id, state]));
+    this.initFactionSystem?.();
+    window.GameModules.orgTerritory?.validateWorldConsistency?.(this);
   },
   prepareRpgSchemaForSelectedWork() {
     if (!window.GameModules.sqliteSave.db || !this.character?.work) return null;
@@ -141,7 +154,7 @@ window.GameModules.saveActions = {
     if (Array.isArray(value)) return value.map((item) => this.rpgFieldValue(item));
     if (!value || typeof value !== 'object') return value;
     if (Object.prototype.hasOwnProperty.call(value, 'next')) return `${value.current || 0}/${value.next || 'max'}`;
-    if (Object.prototype.hasOwnProperty.call(value, 'current')) return `${value.current}/${value.max}`;
+    if (Object.prototype.hasOwnProperty.call(value, 'current') && Object.prototype.hasOwnProperty.call(value, 'max')) return `${value.current}/${value.max}`;
     if (value.type === '职业') return `${value.name} lv.${value.level || 1}`;
     if (Object.prototype.hasOwnProperty.call(value, 'sexualExperienceCount')) return `性经验${value.sexualExperienceCount || 0}次`;
     if (Object.values(value).some((item) => item?.partKey && item?.status)) return Object.values(value).map((item) => `${item.part || item.partKey}：${item.status || '稳定'}`).join('；');
@@ -152,6 +165,11 @@ window.GameModules.saveActions = {
     if (value.attackPower || value.defensePower) return `攻${value.attackPower || 0}｜防${value.defensePower || 0}｜${value.damageRuleNote || ''}`;
     if (value.effectiveDamage !== undefined) return `${value.summary || '战斗模拟'}｜伤害${value.effectiveDamage}`;
     if (value.level) return `${value.name} lv${value.level}（${value.type || '能力'}）`;
+    if (Object.prototype.hasOwnProperty.call(value, 'name') && (Object.prototype.hasOwnProperty.call(value, 'worldTag') || Object.prototype.hasOwnProperty.call(value, 'updatedAt') || Object.prototype.hasOwnProperty.call(value, 'reason'))) {
+      return window.GameModules.characterQuery?.locationText?.(value)
+        || [value.name, value.worldTag, value.reason].filter(Boolean).join('｜')
+        || String(value.name || '未记录');
+    }
     return JSON.stringify(value);
   },
   rpgEntries(state) {
@@ -165,7 +183,7 @@ window.GameModules.saveActions = {
           const raw = field.key === 'exp' ? window.GameModules.progression.normalizeCharacterExp(state.values.exp, state.values.level) : state.values[field.key];
           const display = window.GameModules.worldAttributes.displayValue(field, raw);
           const source = state.values.intrinsic_sources?.[field.key] || null;
-          const kind = { factions: '社群角色', force_positions: '势力地位', items: '物品', wearing: '穿着', bodyStatus: '当前身体状态', intimacy: '亲密经历', status_tags: '状态' }[field.key] || '属性';
+          const kind = { factions: '社群角色', force_positions: '势力地位', items: '物品', wearing: '穿着', bodyStatus: '当前身体状态', intimacy: '亲密经历', status_tags: '状态', current_location: '位置' }[field.key] || '属性';
           const targetType = state.profile?.isPlayer ? '非角色' : '角色';
           const commonField = section.title !== '世界固有属性' && field.key !== 'world_tag';
           const reason = state.profile?.rpgFieldReasons?.[field.key] || '';

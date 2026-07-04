@@ -50,14 +50,47 @@ window.GameModules.realWorldClockActions = {
     this.sharedControlActive = false;
   },
 
-  openRealWorldFunctionPanel(view = 'menu') { this.realWorldFunctionView = view; this.realWorldFunctionOpen = true; },
-  closeRealWorldFunctionPanel() { this.realWorldFunctionOpen = false; this.realWorldFunctionView = 'menu'; },
+  openRealWorldFunctionPanel(view = 'menu') {
+    this.realWorldFunctionView = view;
+    this.realWorldFunctionOpen = true;
+    if (view === 'map') {
+      requestAnimationFrame(() => {
+        this.fitRealWorldMapView?.();
+        this.renderRealWorldMapGraph?.();
+      });
+    }
+    if (view === 'layouts') {
+      this.backRealWorldLayoutCatalogList?.();
+    }
+  },
+  closeRealWorldFunctionPanel() {
+    this.realWorldFunctionOpen = false;
+    this.realWorldFunctionView = 'menu';
+    this.backRealWorldLayoutCatalogList?.();
+  },
   openPhoneFromRealWorld() { this.realWorldFunctionOpen = false; this.closeRealWorldPanel(); },
 
-  realWorldFunctionTitle() { return { inventory: '背包', wearing: '穿着', map: '电子地图', generation: 'AI生成范围' }[this.realWorldFunctionView] || '现实功能'; },
-  realWorldFunctionEyebrow() { return { inventory: 'INVENTORY', wearing: 'WEARING', map: 'E-MAP', generation: 'AI RANGE' }[this.realWorldFunctionView] || 'REAL WORLD'; },
+  realWorldFunctionTitle() {
+    if (this.realWorldFunctionView === 'layouts' && this.realWorldLayoutCatalogTemplateId) {
+      return this.realWorldLayoutCatalogSelected()?.name || '户型预览';
+    }
+    return { inventory: '背包', wearing: '穿着', map: '电子地图', generation: 'AI生成范围', layouts: '户型介绍' }[this.realWorldFunctionView] || '现实功能';
+  },
+  realWorldFunctionEyebrow() {
+    if (this.realWorldFunctionView === 'layouts' && this.realWorldLayoutCatalogTemplateId) return 'LAYOUT PREVIEW';
+    return { inventory: 'INVENTORY', wearing: 'WEARING', map: 'E-MAP', generation: 'AI RANGE', layouts: 'LAYOUT GUIDE' }[this.realWorldFunctionView] || 'REAL WORLD';
+  },
   realWorldFunctionHint() {
-    return { inventory: '查看玩家本人当前持有或可调用的装备与物品。', wearing: '查看内衣、上衣、下衣、鞋子、饰品和装备槽位等当前穿戴。', map: '查看当前现实地点树，展开子地点或查看地点说明。', generation: '设置现实推演的行动边界、自由发挥或字数要求。' }[this.realWorldFunctionView] || '选择现实世界中要执行的功能。';
+    if (this.realWorldFunctionView === 'layouts' && this.realWorldLayoutCatalogTemplateId) {
+      return String(this.realWorldLayoutCatalogSelected()?.desc || '预置 Canvas 户型示意，AI 解锁地图时可选用。');
+    }
+    return {
+      inventory: '查看玩家本人当前持有或可调用的装备与物品。',
+      wearing: '查看内衣、上衣、下衣、鞋子、饰品和装备槽位等当前穿戴。',
+      map: '查看当前现实地点树，展开子地点或查看地点说明。',
+      generation: '设置现实推演的行动边界、自由发挥或字数要求。',
+      layouts: '浏览全部预置户型模板，点击查看 Canvas 布局示意。',
+    }[this.realWorldFunctionView] || '选择现实世界中要执行的功能。';
   },
 
   seedRealWorldLog() {

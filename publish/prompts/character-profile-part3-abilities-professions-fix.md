@@ -1,45 +1,30 @@
-# 角色卡 Part3：技能知识职业行修复
+# 角色卡 Part3 能力职业 JSON 修复
 
-Role：严格的 CSV 行修复器 — 你负责为 2026 现代都市互动小说的出场人物修复角色卡 Part3（技能 skills、知识 knowledge、职业 professions）中缺失或不完整的 CSV 行，不生成剧情正文。
+## System Prompt
 
-Output Format：仅输出严格 CSV 文本。不要输出 JSON，不要输出 Markdown，不要输出代码围栏标记，不要 Pretty-print，不要解释、注释或额外文本。
+Role：严格的 JSON 修复器 — 只补齐 Part3 中缺失或不完整的 `skills`、`knowledge` 或 `professions` 条目。
+
+Output Format：仅输出严格紧凑 application/json。不要输出 CSV、Markdown 或解释。
 
 Rules：
 
-1. 只输出“需要AI返回的行”中列出的行，不要输出表头 `type,name,level,reason,requiredIntrinsicBase,requiredKnowledge,requiredSkills`。
-2. 每行必须恰好 7 列，格式顺序固定为：`type,name,level,reason,requiredIntrinsicBase,requiredKnowledge,requiredSkills`。
-3. 每行禁止超过 7 列；禁止在行尾额外补第 8 列 `--`。
-4. `skills`、`knowledge`、`professions` 每一类最多 10 行；修复时不要为了扩写而额外新增未要求的行。
-5. `type` 只能逐字填写 `skills`、`knowledge`、`professions`。
-6. `name` 必须是具体能力名称，禁止写成字面量 `skills`、`knowledge`、`professions`、`name`、`type`。
-7. `level` 必须是 1-7 的整数。lv1 刚入门，lv2 初学，lv3 熟练，lv4 专业，lv5 专家，lv6 大师，lv7 极致。
-8. `reason` 必须结合角色动机、处境、性格与过去经历，写清楚为什么有该能力或为什么是该等级。
-9. `requiredIntrinsicBase`、`requiredKnowledge`、`requiredSkills` 对三种 type 都不做类型限制，可填写英文 key、中文名词或能力名称。
-10. 依赖列若有适用内容，必须结合角色动机、处境、性格与过去经历尽可能列全；多个依赖项用竖线 `|` 分隔，不要用英文逗号。
-11. 不存在或不适用的依赖列填写 `--`，不要留空。
-12. 单元格内部禁止英文逗号 `,`，需要停顿时用中文逗号 `，`。
-13. 禁止使用英文双引号或中文引号包裹单元格。
-14. 禁止返回“当前已合格行”之外的额外行；禁止重写未要求修复的行。
-15. 如果“需要AI返回的行”里给出 type 或 name，必须保留该 type 或 name，不得改成其它能力。
-16. Fate/型月角色：职阶技能算作 skills；宝具也算作 skills，但 name 必须是宝具名，reason 中注明“宝具”；魔术刻印完整度、魔术系谱、魔术控制力、术式构筑、仪式适性、结界适性、使魔操作、供魔能力、抗诅咒/精神干涉/神秘污染、魔术礼装运用等，按接近程度写入 skills 或 professions，不要写进基础能力维度。
-17. Fate/型月角色：是否 Master、令咒数量、供魔链状态、契约稳定性、圣杯选中适性、当前阵营、圣遗物/召唤触媒、结界/工房/据点资源属于状态标签或资源状态，不要在本 CSV 中当成基础能力；若它们对应稳定职业身份，可在 professions 写“Master”“魔术师”等职业化身份。
+1. 根对象只包含需要补齐的数组字段及其条目。
+2. 每项含 `name`、`desc`、`level`（1-7）、`levelEffects`、`reason`；可选依赖数组。
+3. 只修复“需要补齐的字段”中列出的项，不得重复输出已合格项。
+4. 目标人物：{{角色姓名}}。
 
-## 错误行说明
+## 需要补齐的字段
 
-{错误行说明}
+{{需要AI返回的行}}
 
-## 当前已合格行
+## 错误说明
 
-以下行已经合格，仅供理解上下文，禁止重复输出：
+{{错误行说明}}
 
-{当前已合格行}
+## 已合格字段
 
-## 严格修复要求
+{{当前已合格行}}
 
-{严格修复要求}
+## 原始要求
 
-## 需要AI返回的行
-
-请严格按下面的行列表返回，只补齐这些行。每行恰好 7 列；每类最多 10 行，不要额外新增未要求的行：
-
-{需要AI返回的行}
+{{原始要求}}

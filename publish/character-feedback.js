@@ -1,5 +1,5 @@
 /**
- * 角色心理反馈：由 AI 按当前角色设定生成内心独白和自身意图。
+ * 角色心理反馈：生成角色刚被操控或上线时的内心、意图与行动选项。
  */
 window.GameModules = window.GameModules || {};
 
@@ -8,64 +8,156 @@ window.GameModules.characterFeedback = {
 
   pronoun(store) {
     const text = `${store.character?.name || ''} ${store.character?.role || ''} ${store.character?.detail || ''}`;
-    return /男性|男人|少年|青年|父亲|哥哥|弟弟|叔叔|丈夫|王子|皇帝/.test(text) ? '他' : '她';
+    return /男性|男人|少年|青年|父亲|哥哥|弟弟|叔叔|丈夫|王子|皇帝/u.test(text) ? '他' : '她';
   },
 
   async initial(store) {
     this.ensureExperience(store);
     const fallback = this.fallback(store);
-    console.debug('[角色反馈] 初始请求准备:', { character: store.character?.name, model: store.modelId || store.settingsState?.textModelId, controlMode: store.controlMode, hasCompletions: Boolean(window.dzmm?.completions) });
+    console.debug('[角色反馈] 初始请求准备:', {
+      character: store.character?.name,
+      model: store.modelId || store.settingsState?.textModelId,
+      controlMode: store.controlMode,
+      hasCompletions: Boolean(window.dzmm?.completions),
+    });
     if (!window.dzmm?.completions) return fallback;
+
     let buffer = '';
+    let doneSeen = false;
     try {
       const prompt = await this.prompt(store);
-      console.debug('[角色反馈] completions 调用:', { promptLength: prompt.length });
+      let resolveDone;
+      const donePromise = new Promise((resolve) => { resolveDone = resolve; });
       const request = window.GameModules.aiRequest.complete({
-        source: 'character-feedback-base', model: store.modelId || store.settingsState?.textModelId, prompt, timeoutMs: 60000,
+        source: 'character-feedback',
+        model: store.modelId || store.settingsState?.textModelId,
+        prompt,
+        timeoutMs: 60000,
+        requireDone: true,
+        ...(window.GameModules.promptSkills?.completionOptions?.('character-feedback') || {
+          jsonMode: true,
+          responseFormat: { type: 'json_object' },
+          outputLimitKind: 'other',
+        }),
         onChunk: (chunk, done, info) => {
           buffer = info.buffer;
-          if (done) console.debug('[角色反馈] 流式 done:', { length: buffer.length });
+          if (done) {
+            doneSeen = true;
+            console.debug('[角色反馈] 流式 done:', { length: buffer.length });
+            resolveDone();
+          }
         },
       });
-      await Promise.race([request, new Promise((_, reject) => setTimeout(() => reject(new Error('角色反馈生成超时')), 60000))]);
-      console.debug('[角色反馈] AI返回完成:', { length: buffer.length, preview: buffer.slice(0, 120) });
+      await Promise.race([
+        Promise.all([request, donePromise]),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('角色反馈生成超时')), 60000)),
+      ]);
+      if (!doneSeen) throw new Error('角色反馈流式未完成');
       return this.parse(buffer, fallback, store);
     } catch (err) {
-      console.warn('角色反馈生成失败:', err.code, err.message, err.stack);
+      console.warn('角色反馈生成失败，使用兜底:', err.code, err.message, err.stack);
       return fallback;
     }
   },
 
   prompt(store) {
-    const profile = store.characterProfiles[store.character.id]?.summary || store.character.detail || store.character.personality || '';
+    const base = store.character || {};
+    const card = store.characterRpgState?.profile || store.characterProfiles?.[base.id] || {};
+    const skills = (card.skills || base.skills || [])
+      .map((item) => typeof item === 'string' ? item : `${item.name || ''}${item.desc ? `：${item.desc}` : ''}`)
+      .filter(Boolean)
+      .join('；');
+    const worldValues = card.worldValues
+      ? Object.entries(card.worldValues).map(([key, value]) => `${key}：${value}`).join('；')
+      : '';
+    const line = (label, value) => value ? `${label}：${value}` : '';
+    const profile = [
+      line('姓名', card.name || base.name),
+      line('性别', card.gender || base.gender),
+      line('年龄', store.characterAge),
+      line('作品/世界', base.work || card.work),
+      line('身份', card.role || base.role),
+      line('人际关系', card.relationships || base.relationships),
+      line('外貌', card.appearance || base.appearance),
+      line('性格', card.personality || base.personality),
+      line('人物说明', card.detail || base.detail),
+      line('势力', card.faction || base.faction),
+      line('职业', card.job || base.job),
+      line('等级', card.rank || base.rank),
+      line('技能', skills),
+      line('属性/世界词条', worldValues),
+      line('摘要', card.summary),
+    ].filter(Boolean).join('\n');
     const experience = this.experience(store);
-    const outputJson = JSON.stringify({ mind: '角色第一人称内心，40到70字', intent: `${store.character.name}自己下一步想做什么，30到50字`, mood: '冷静', resistance: 0, controlFeeling: '疑惑/恐惧/愤怒等短语', adaptation: 0, experienceSummary: '40字内', choices: ['4个行动选项，每个12字内'] });
-    return window.GameModules.promptTemplates.render('character-feedback', { 角色: `${store.character.name}｜${store.character.role}｜${store.character.work}`, 年龄: store.characterAge || '未知', 操控方式: store.controlMode, 当前场景: store.entryCurrentAction || '未知', 人物资料: String(profile).slice(0, 260), 上线次数: experience.onlineCount, 上线感觉: experience.feeling, 适应度: experience.adaptation, 上线摘要: experience.summary, 输出示例: outputJson });
+    const outputJson = JSON.stringify({
+      mind: '角色第一人称内心，30到80字',
+      intent: `${base.name || '角色'}自己下一步想做什么，30到80字`,
+      mood: '冷静',
+      resistance: 0,
+      controlFeeling: '疑惑/恐惧/愤怒等短语',
+      adaptation: 0,
+      experienceSummary: '40字内',
+      choices: ['4个行动选项，每个12字内'],
+    });
+    return window.GameModules.renderPrompt('character-feedback', {
+      角色: `${base.name || ''}｜${base.role || ''}｜${base.work || ''}`,
+      年龄: store.characterAge || '未知',
+      操控方式: store.controlMode,
+      当前场景: store.entryCurrentAction || '未知',
+      人物资料: profile.slice(0, 1600),
+      上线次数: experience.onlineCount,
+      上线感觉: experience.feeling,
+      适应度: experience.adaptation,
+      上线摘要: experience.summary,
+      输出示例: outputJson,
+    });
   },
 
   parse(text, fallback, store) {
     try {
       const data = window.GameModules.jsonUtils.parseLoose(text);
-      if (!data.mind && !data.intent) throw new Error('角色反馈缺少 mind/intent');
-      const feeling = String(data.controlFeeling || fallback.controlFeeling || '疑惑').slice(0, 40);
-      const result = {
-        mind: String(data.mind || fallback.mind).slice(0, 80),
-        intent: String(data.intent || fallback.intent).slice(0, 80),
-        mood: ['冷静', '紧张', '愤怒', '动摇', '信任', '恐惧', '好奇', '坚定'].includes(data.mood) ? data.mood : fallback.mood,
-        resistance: this.clamp(data.resistance, fallback.resistance),
-        controlFeeling: feeling,
-        adaptation: this.clamp(data.adaptation, fallback.adaptation),
-        experienceSummary: String(data.experienceSummary || fallback.experienceSummary).slice(0, 80),
-        metricUpdates: fallback.metricUpdates,
-        choices: this.normalizeChoices(data.choices, fallback.choices),
-        source: 'ai',
-      };
-      console.debug('[角色反馈] AI解析成功:', { mindLength: result.mind.length, intentLength: result.intent.length, metrics: 'profile' });
-      return result;
+      return this.normalizeFeedbackData(data, fallback, store, 'ai');
     } catch (err) {
+      if (err.message === 'JSON incomplete') {
+        const recovered = this.recoverFeedbackFields(text);
+        if (recovered.mind || recovered.intent) return this.normalizeFeedbackData(recovered, fallback, store, 'partial');
+        console.debug('[角色反馈] JSON 未完成，使用兜底:', { length: String(text || '').length });
+        return fallback;
+      }
       console.warn('角色反馈解析失败:', err.message);
       return fallback;
     }
+  },
+
+  normalizeFeedbackData(data, fallback, store, source) {
+    if (!data.mind && !data.intent) throw new Error('角色反馈缺少 mind/intent');
+    const moods = ['冷静', '紧张', '愤怒', '动摇', '信任', '恐惧', '好奇', '坚定'];
+    const result = {
+      mind: String(data.mind || fallback.mind).slice(0, 80),
+      intent: String(data.intent || fallback.intent).slice(0, 80),
+      mood: moods.includes(data.mood) ? data.mood : fallback.mood,
+      resistance: this.clamp(data.resistance, fallback.resistance),
+      controlFeeling: String(data.controlFeeling || fallback.controlFeeling || '疑惑').slice(0, 40),
+      adaptation: this.clamp(data.adaptation, fallback.adaptation),
+      experienceSummary: String(data.experienceSummary || fallback.experienceSummary).slice(0, 80),
+      choices: this.normalizeChoices(data.choices, fallback.choices),
+      source,
+    };
+    console.debug('[角色反馈] AI 解析成功:', { source, mindLength: result.mind.length, intentLength: result.intent.length });
+    return result;
+  },
+
+  recoverFeedbackFields(text) {
+    const pick = (key) => {
+      const match = String(text || '').match(new RegExp(`"${key}"\\s*:\\s*"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)`));
+      return match ? match[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').trim() : '';
+    };
+    return {
+      mind: pick('mind'),
+      intent: pick('intent'),
+      controlFeeling: pick('controlFeeling'),
+      experienceSummary: pick('experienceSummary'),
+    };
   },
 
   hasCompleteInitialMetrics(updates) {
@@ -91,8 +183,8 @@ window.GameModules.characterFeedback = {
 
   fallbackMetrics(store) {
     const text = `${store.character?.name || ''} ${store.character?.role || ''} ${store.character?.personality || ''} ${store.character?.detail || ''} ${store.entryCurrentAction || ''}`;
-    const vulnerable = /幼|小|弱|病|囚|虐|恐|孤|樱|间桐|虫|牺牲|受害/.test(text);
-    const proud = /王|骑士|强|冷静|自信|支配|高傲|魔术师/.test(text);
+    const vulnerable = /幼|小|弱|病|困|虚|受伤|受害/u.test(text);
+    const proud = /王|骑士|强|冷静|自信|支配|高傲|魔术师/u.test(text);
     const possess = store.controlMode === 'possess';
     const emotionBase = vulnerable
       ? { 冷静: 12, 恐惧: 72, 担忧: 68, 高兴: 0, 紧张: 76, 愤怒: 18, 羞耻: 34, 悲伤: 58, 好奇: 8, 麻木: 44, 嫉妒: 0, 绝望: 48 }
@@ -115,13 +207,19 @@ window.GameModules.characterFeedback = {
   },
 
   metricStatus(actor, key, stage) {
-    if (key === '爱情') return stage === '无感' ? `${actor}看着你时没有恋爱意义上的心动。` : `${actor}看到你时心里扑通扑通，似乎是${stage}了。`;
+    if (key === '爱情') return stage === '无感'
+      ? `${actor}看着你时没有恋爱意义上的心动。`
+      : `${actor}看到你时心里扑通扑通，似乎是${stage}了。`;
     if (key === '了解') return `${actor}对你的了解处于“${stage}”：${actor}只掌握你显露出的少量线索，还无法确认你的身份、来历和真正意图。`;
     return `${actor}对你或当前处境的${key}处于“${stage}”状态。`;
   },
 
   metricReason(actor, key, type, vulnerable, possess) {
-    if (type === 'emotion') return vulnerable ? `${actor}曾经受过伤害，身体又突然失控，所以${key}被明显牵动。` : `${actor}突然面对身体失控和陌生干预，所以${key}随之变化。`;
+    if (type === 'emotion') {
+      return vulnerable
+        ? `${actor}曾经受过伤害，身体又突然失控，所以${key}被明显牵动。`
+        : `${actor}突然面对身体失控和陌生干预，所以${key}随之变化。`;
+    }
     const base = {
       了解: `${actor}第一次接触你，只知道你能介入这具身体，却不知道你的身份、来历和真正意图。`,
       信任: `你第一次出现就${possess ? '控制了' : '影响了'}${actor}的身体，所以${actor}暂时无法信任你。`,
@@ -140,7 +238,13 @@ window.GameModules.characterFeedback = {
     const state = store.characterRpgState;
     if (!state?.values) return null;
     if (!state.values.control_experience) {
-      state.values.control_experience = { onlineCount: 0, feeling: '未知', adaptation: 0, summary: '尚未经历上线操控。', lastUpdated: '' };
+      state.values.control_experience = {
+        onlineCount: 0,
+        feeling: '未知',
+        adaptation: 0,
+        summary: '尚未经历上线操控。',
+        lastUpdated: '',
+      };
     }
     return state.values.control_experience;
   },
@@ -159,7 +263,7 @@ window.GameModules.characterFeedback = {
     exp.summary = feedback.experienceSummary || exp.summary || '';
     exp.lastUpdated = new Date().toISOString();
     store.rpgStates = { ...store.rpgStates, [state.id]: state };
-    await window.GameModules.sqliteSave.saveCharacterState(state);
+    await window.GameModules.sqliteSave?.saveCharacterState?.(state);
   },
 
   normalizeChoices(value, fallback) {

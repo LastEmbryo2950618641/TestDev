@@ -91,6 +91,7 @@ window.GameModules.entryYear = {
     try {
       return await window.GameModules.jsonUtils.generateJsonWithRetry({
         source: 'entry-year-audit',
+        promptId: 'entry-year-audit',
         model: store.modelId,
         timeoutMs: 60000,
         prompt,
@@ -106,7 +107,7 @@ window.GameModules.entryYear = {
   auditPrompt(store, mode, evidence, base) {
     const character = store?.character || {};
     const target = mode === 'storyYear' ? `作品《${character.work}》当前剧情基准年份` : `${character.name}在${base}年这一剧情基准年时的年龄；若证据给出出生年份/生日，可用${base}-出生年份简单算术推出`;
-    return window.GameModules.promptTemplates.render('entry-year-audit', { 目标: target, 证据: evidence });
+    return window.GameModules.renderPrompt('entry-year-audit', { 目标: target, 证据: evidence });
   },
 
   parseAudit(text, fallback) {

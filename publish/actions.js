@@ -88,13 +88,18 @@ window.GameModules.actions = {
   },
   metricNote(type, key, state = null) {
     const target = this.metricTargetForNote(type, key, state);
+    const metrics = window.GameModules.metrics;
     if (!target.ready) return `定义: ${target.description}\n字段值来源: 数值=系统 / 解释=系统 / 原因=系统\n解释: 等待推演，数值尚未完成初始化。\n变化原因: 数值正在刷新，尚未完成初始推演。`;
-    const rawStatus = String(target.raw?.status || '').trim();
-    const status = rawStatus || '缺少AI生成的数值解释，请重新生成角色卡或推进剧情。';
+    const isTemporary = String(type || '').includes('temporary');
+    const value = metrics.clamp(target.value ?? 0);
     const rawReason = String(target.raw?.reason || '').trim();
-    const reason = rawReason || '缺少AI生成的变化原因，请重新生成角色卡或推进剧情。';
+    const reason = metrics.cleanMetricReason(rawReason, key) || '缺少AI生成的变化原因，请重新生成角色卡或推进剧情。';
+    const rawStatus = String(target.raw?.status || '').trim();
+    const status = isTemporary
+      ? (metrics.cleanMetricStatus(rawStatus) || `${key}：短期状态。`)
+      : metrics.valueExplanation(key, value);
     const sources = target.raw?.metricSources || {};
-    const sourceText = `数值=${sources.数值 || '系统'} / 解释=${sources.解释 || '系统'} / 原因=${sources.原因 || '系统'}`;
+    const sourceText = `数值=${sources.数值 || '系统'} / 解释=${isTemporary ? (sources.解释 || '系统') : '系统'} / 原因=${sources.原因 || '系统'}`;
     return `定义: ${target.description}\n字段值来源: ${sourceText}\n解释: ${status}\n变化原因: ${reason}`;
   },
   metricTargetForNote(type, key, state = null) {

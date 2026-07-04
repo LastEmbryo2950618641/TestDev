@@ -39,11 +39,19 @@ window.GameModules.companyFactionActions = {
     const top = this.factionState.factions.find((item) => item.id === expectedTop.id || item.name === expectedTop.name) || this.factionState.factions.find((item) => item.type === '国家' && !item.parentId) || expectedTop;
     let faction = this.factionState.factions.find((item) => item.id === id || item.name === company.name);
     if (!faction) {
-      faction = this.normalizeFactionStructure?.({ id, name: company.name, type: company.type || '公司', parentId: top.id, parentName: top.name, level: '公司级别', location: company.location || '未知', domain: company.industry || '现代职场', scale: company.scale || '未知', stance: '现实职场势力', influence: 35, description: `公司APP记录的现实公司：${company.name}。`, structure: [], rules: [], resources: [], relations: [], fixed: true, updatedAt: now }) || {};
+      const forest = window.GameModules.factionOrgForest;
+      const corpRootId = forest?.domainRootId?.(top.id, 'corp') || top.id;
+      const corpRoot = this.factionState.factions.find((item) => item.id === corpRootId);
+      faction = this.normalizeFactionStructure?.({ id, name: company.name, type: company.type || '公司', orgDomain: 'corp', ownership: 'private', foundingType: 'independent', parentId: corpRootId, parentName: corpRoot?.name || forest?.DOMAIN_LABELS?.corp || '经济组织', level: '公司级别', location: company.location || '未知', domain: company.industry || '现代职场', scale: company.scale || '未知', stance: '现实职场势力', influence: 35, description: `公司APP记录的现实公司：${company.name}。`, structure: [], rules: [], resources: [], relations: [], fixed: true, updatedAt: now }) || {};
       this.factionState.factions.push(faction);
     }
-    Object.assign(faction, { name: company.name, type: company.type || faction.type || '公司', location: company.location || faction.location, domain: company.industry || faction.domain, scale: company.scale || faction.scale, parentId: top.id, parentName: top.name, updatedAt: now });
+    const forestSync = window.GameModules.factionOrgForest;
+    const corpRootIdSync = forestSync?.domainRootId?.(top.id, 'corp') || top.id;
+    const corpRootSync = this.factionState.factions.find((item) => item.id === corpRootIdSync);
+    Object.assign(faction, { name: company.name, type: company.type || faction.type || '公司', location: company.location || faction.location, domain: company.industry || faction.domain, scale: company.scale || faction.scale, orgDomain: faction.orgDomain || 'corp', ownership: faction.ownership || 'private', foundingType: faction.foundingType || 'independent', parentId: corpRootIdSync, parentName: corpRootSync?.name || forestSync?.DOMAIN_LABELS?.corp || '经济组织', updatedAt: now });
     this.syncCompanyOrganizationToFaction(faction, company, reason, now);
+    window.GameModules.orgTerritoryActions?.syncCompanyEconomicEntry?.(this, faction, company, reason);
+    Object.assign(faction, window.GameModules.orgTerritory?.normalizeFaction?.(faction, this) || faction);
     faction.fieldReasons = this.completeFactionReasons?.(faction, faction.fieldReasons, reason) || faction.fieldReasons || {};
     faction.changeLog = [{ field: 'company-sync', reason, at: now, action: 'sync' }, ...(faction.changeLog || [])].slice(0, 50);
     return faction;
@@ -81,9 +89,12 @@ window.GameModules.companyFactionActions = {
   addPlayerForcePosition(entry = {}) {
     const state = this.playerIdentityState?.();
     if (!state?.values || !entry.force || !entry.position) return;
-    const row = { name: `${entry.force} / ${entry.position}`, force: entry.force, position: entry.position, reason: entry.reason || '由现实职场事项确认。', changeMode: 'Boss招聘同步' };
+    const ot = window.GameModules.orgTerritory;
+    const orgId = entry.orgId || ot?.resolveOrgIdByName?.(this, entry.force) || '';
+    const row = { name: `${entry.force} / ${entry.position}`, force: entry.force, position: entry.position, orgId, reason: entry.reason || '由现实职场事项确认。', changeMode: 'Boss招聘同步' };
     const list = Array.isArray(state.values.force_positions) ? state.values.force_positions : [];
     if (!list.some((item) => item.force === row.force && item.position === row.position)) state.values.force_positions = [...list, row];
+    ot?.upsertCharacterMembership?.(state, { orgId, orgName: entry.force, title: entry.position, reason: row.reason, since: this.phoneDate?.()?.toISOString?.() || new Date().toISOString() }, this);
     if (state.profile) {
       const profileList = Array.isArray(state.profile.force_positions) ? state.profile.force_positions : [];
       if (!profileList.some((item) => item.force === row.force && item.position === row.position)) state.profile.force_positions = [...profileList, row];

@@ -132,6 +132,21 @@ window.GameModules.updateRegistry = {
       .filter((item) => item && typeof item === 'object' && item.field && item.change && typeof item.change === 'object');
   },
 
+  ensureNormalizedUpdates(raw = {}, store = null) {
+    if (raw?._genericUpdatesNormalized) return Array.isArray(raw.genericUpdates) ? raw.genericUpdates : [];
+    return this.normalizeUpdates(raw, store);
+  },
+
+  finalizeGenericUpdates(payload = {}, rawUpdates = {}, store = null) {
+    const migrated = this.migrateLegacyFactionUpdates?.(payload) || payload;
+    if (migrated._genericUpdatesNormalized) return migrated;
+    return {
+      ...migrated,
+      genericUpdates: this.normalizeUpdates({ ...rawUpdates, genericUpdates: migrated.genericUpdates ?? payload.genericUpdates }, store) || [],
+      _genericUpdatesNormalized: true,
+    };
+  },
+
   normalizeUpdates(raw = {}, store = null) {
     const base = Array.isArray(raw?.genericUpdates) ? raw.genericUpdates.map((item) => this.normalizeUpdateAlias(item)) : [];
     const legacyMetrics = this.metricGenericFromLegacy?.(raw, store) || [];
@@ -145,7 +160,10 @@ window.GameModules.updateRegistry = {
         console.warn(`[UpdateRegistry] ${type.id} normalize failed:`, err.message, err.stack);
       }
     });
-    return this.uniqueUpdates([...base, ...legacyMetrics, ...extras]).slice(0, 80);
+    return window.GameModules.orgTerritory?.dedupeOrgTerritoryUpdates?.(
+      this.uniqueUpdates([...base, ...legacyMetrics, ...extras]),
+      store,
+    ).slice(0, 80) || this.uniqueUpdates([...base, ...legacyMetrics, ...extras]).slice(0, 80);
   },
 
   normalizeUpdateAlias(update = {}) {
@@ -180,19 +198,54 @@ window.GameModules.updateRegistry = {
   },
 
   normalizeCard(card = {}, change = {}, store = null) {
-    if (card.section !== '角色卡' && !String(card.id || '').startsWith('role:')) return card;
     const subject = change.subject || {};
-    const rawId = subject.characterId || subject.playerId || subject.id || String(card.id || '').replace(/^role:/, '') || change.target || '';
-    const state = store?.itemSkillState?.(rawId) || (rawId === 'player-self' ? store?.playerIdentityState?.() : null);
+    const candidates = [
+      subject.characterId,
+      subject.playerId,
+      subject.id,
+      subject.name,
+      change.target,
+      card.title,
+      String(card.id || '').replace(/^role:/, ''),
+    ].map((item) => String(item || '').trim()).filter(Boolean);
+    let state = null;
+    for (const key of candidates) {
+      state = store?.itemSkillState?.(key) || window.GameModules.sqliteSave?.getCharacterStateByName?.(key) || null;
+      if (state?.id) break;
+    }
     if (!state?.id) return card;
     const title = store?.itemSkillStateLabel?.(state) || subject.name || card.title || state.id;
     return { ...card, id: `role:${state.id}`, title, section: '角色卡' };
   },
 
+  normalizeSettlementCardRow(row = {}, store = null) {
+    if (!row || typeof row !== 'object') return row;
+    const card = this.normalizeCard(
+      {
+        id: row.cardId,
+        title: row.cardTitle || row.group || row.name,
+        section: row.section || '角色卡',
+      },
+      {
+        subject: { id: row.subjectId, name: row.cardTitle || row.group || row.name },
+        target: row.subjectId || row.group || row.name,
+        field: row.field,
+      },
+      store,
+    );
+    return {
+      ...row,
+      cardId: card.id || row.cardId,
+      cardTitle: card.title || row.cardTitle || row.group,
+      section: card.section || row.section || '角色卡',
+      group: card.title || row.group,
+    };
+  },
+
   defaultCard(change = {}, store = null) {
     const subject = change.subject || {};
     const label = subject.name || subject.id || change.group || change.target || '';
-    if (change.updateType === 'character-schedule') return { id: `schedule:${subject.id || change.target || label || 'unknown'}`, title: label || '人事安排', section: '人事安排' };
+    if (change.updateType === 'character-schedule') return { id: 'schedule:real-world', title: '人事安排', section: '人事安排' };
     const playerName = store?.realWorldPlayerSettlementName?.() || '玩家';
     if (!label || label === 'player-self' || label === '玩家' || label === playerName) return { id: 'role:player-self', title: playerName, section: '角色卡' };
     return { id: `misc:${label}`, title: label, section: '其他' };
@@ -200,47 +253,82 @@ window.GameModules.updateRegistry = {
 
   reasonText(update = {}, fallback = '现实推演结算。') {
     const reasons = typeof update.reasons === 'string' ? [update.reasons] : (Array.isArray(update.reasons) ? update.reasons : []);
-    return reasons
+    return this.normalizeSettlementText(reasons
       .map((item) => String(typeof item === 'string' ? item : (item?.evidence || item?.trigger || item?.reason || '')).trim())
       .filter(Boolean)
-      .join('；').slice(0, 240) || String(update.reason || update.evidence || update.trigger || update.description || update.summary || fallback).slice(0, 240);
+      .join('；') || String(update.reason || update.evidence || update.trigger || update.description || update.summary || fallback)).slice(0, 240);
+  },
+
+  normalizeSettlementText(text = '') {
+    if (text === null || text === undefined) return '';
+    if (typeof text !== 'string') return text;
+    let out = String(text).replace(/\s+/g, ' ').trim();
+    if (!out) return '';
+    out = out
+      .replace(/,/g, '，')
+      .replace(/;/g, '；')
+      .replace(/!/g, '！')
+      .replace(/\?/g, '？')
+      .replace(/([\u4e00-\u9fff\d）」』])\s*\.\s*(?=[\u4e00-\u9fff「"'（]|$)/g, '$1。')
+      .replace(/([\u4e00-\u9fffA-Za-z\d）」』])\s*:\s*(?=[\u4e00-\u9fff「"'（])/g, '$1：');
+    out = out.replace(/([\u4e00-\u9fff])\s+(?=[\u4e00-\u9fff])/g, '$1');
+    out = out.replace(/[。.!！?？]+[，,、]+/g, '。');
+    out = out.replace(/([，。；：！？、])\s+/g, '$1');
+    out = out.replace(/\s+([，。；：！？、])/g, '$1');
+    return out.replace(/；{2,}/g, '；').trim();
   },
 
   displayValue(value) {
-    return value && typeof value === 'object' ? JSON.stringify(value) : (value ?? '');
+    if (value && typeof value === 'object') return JSON.stringify(value);
+    return this.normalizeSettlementText(String(value ?? ''));
   },
 
   decorateRow(row = {}) {
-    const detailLines = Array.isArray(row.detailLines) ? row.detailLines.filter(Boolean) : [];
+    const norm = (value) => (typeof value === 'string' ? this.normalizeSettlementText(value) : value);
+    const detailLines = Array.isArray(row.detailLines) ? row.detailLines.map((line) => norm(line)).filter(Boolean) : [];
     return {
       ...row,
-      uiTitle: row.uiTitle || row.field || row.group || row.section || '结算',
-      uiName: row.uiName || row.name || '',
-      uiValue: row.uiValue || this.displayValue(row.value),
+      uiTitle: norm(row.uiTitle || row.field || row.group || row.section || '结算'),
+      uiName: norm(row.uiName || row.name || ''),
+      uiValue: norm(row.uiValue || this.displayValue(row.value)),
+      value: norm(row.value),
+      reason: norm(row.reason),
+      settlementAt: norm(row.settlementAt || ''),
       detailLines,
     };
   },
 
-  rowFromGeneric(update = {}, store = null) {
+  rowFromGeneric(update = {}, store = null, entry = null) {
     const card = this.cardForChange(update, store);
     const change = update.change || {};
     const ui = this.uiForChange(update);
     const rawValue = change.value ?? change.toValue ?? change.mode ?? '';
+    const settlementAt = update.settlementAt || (change.value && typeof change.value === 'object' ? change.value.updatedAt : '') || entry?.time?.label || '';
     const row = {
-      at: new Date().toISOString(), cardId: card.id, cardTitle: card.title, section: card.section,
+      at: entry?.time?.iso || new Date().toISOString(),
+      settlementAt,
+      cardId: card.id, cardTitle: card.title, section: card.section,
       field: update.field || update.updateType || '通用更新', name: update.name || this.leafName(update.field) || change.mode || '',
       value: this.displayValue(rawValue),
       reason: this.reasonText(update),
       applied: true,
     };
-    const patched = typeof ui?.row === 'function' ? { ...row, ...ui.row(update, store, row) } : row;
+    const patched = typeof ui?.row === 'function' ? { ...row, ...ui.row(update, store, row, entry) } : row;
     return this.decorateRow(patched);
   },
 
   settlementRows(entry = {}, store = null) {
+    const keepSystemUpdate = (item) => {
+      if (item?.updateType !== 'system') return true;
+      const raw = item?.change?.value;
+      const payload = this.systemRecordPayload?.(raw) || {};
+      const key = payload.key || this.leafName?.(item.field) || '';
+      const value = payload.value || '';
+      return !this.isNarrativeSystemEvent?.(key, value);
+    };
     return [
-      ...(entry.characterCardChanges || []).map((item) => this.decorateRow(item)),
-      ...((entry.genericUpdates || []).map((item) => this.rowFromGeneric(item, store)).filter(Boolean)),
+      ...(entry.characterCardChanges || []).map((item) => this.decorateRow(this.normalizeSettlementCardRow(item, store))),
+      ...((entry.genericUpdates || []).filter(keepSystemUpdate).map((item) => this.decorateRow(this.normalizeSettlementCardRow(this.rowFromGeneric(item, store, entry), store))).filter(Boolean)),
     ];
   },
 

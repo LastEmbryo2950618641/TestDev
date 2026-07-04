@@ -5,7 +5,7 @@
 ## 注册方式
 
 1. `prompts/pen_style/register.js` 维护每个笔风的 `id / name / sourceKey / file` 元数据。
-2. 每个笔风 JS 由 `tools/md-to-inline-js.js` 从同名 Markdown 生成，只提供 `window.GameModules.inlineMd` 正文快照。
+2. 每个笔风 JS 由 `dev/tools/md-to-inline-js.js` 从同名 Markdown 生成，只提供 `window.GameModules.inlineMd` 正文快照。
 3. `register.js` 读取 `inlineMd` 正文并统一注册到设置界面的“小说笔风”下拉框。
 
 ## 当前默认笔风

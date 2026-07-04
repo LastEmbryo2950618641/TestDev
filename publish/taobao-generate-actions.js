@@ -1,6 +1,6 @@
 window.GameModules = window.GameModules || {};
 window.GameModules.taobaoGenerateActions = {
-  taobaoPrompt(slot = {}) {
+  async taobaoPrompt(slot = {}) {
     const p = this.playerProfile || {};
     const bodySlots = window.GameModules.progression.bodyWearSlots();
     const slots = bodySlots.join('、');
@@ -10,7 +10,19 @@ window.GameModules.taobaoGenerateActions = {
     const filterText = filter && filter !== '__set' ? `当前搜索筛选部位：${this.taobaoFilterLabel(filter)}（${filter}），必须生成可穿戴在该部位的装备商品。` : '';
     const styleSlotText = /jk/i.test(query) && ['bottom', '下衣', '下装'].includes(filter) ? '搜索为JK且筛选下装时，商品必须是JK裙、制服裙或百褶裙，不能生成上衣、鞋子或日用品。' : '';
     const setText = filter === '__set' ? `当前为“一套”模式，必须返回一整套穿搭商品，equipSlots覆盖这些槽位：${slots}。额外返回setItems数组，每项字段slot、slotLabel、name、description，逐个说明每个穿着槽位的服饰；没有对应服饰的槽位也要给出协调搭配。` : '';
-    return `你是2026现代都市淘宝商品结构化生成器。仅输出紧凑JSON，不要Markdown。根据玩家身份生成一个真实可购买商品。玩家：姓名${p.name || '未知'}，年龄${p.age || ''}，地址${p.refinedCity || p.city || ''}，身份${p.refinedRole || p.dailyRole || ''}，财富${p.wealthTier || '流浪'}，现金${p.wealthAmount || 0}元。${queryText}${filterText}${styleSlotText}${setText}若是衣服、裤子、袜子、鞋、包、饰品等可装备商品，kind必须为"装备"，equipSlots必须按已有穿戴部位分类，可用部位：${slots}，也可用中文部位：上衣、下衣、内衣、内裤、袜子、鞋子、外套、包具、头部、颈部、腰部、手套、手腕、饰品。非可装备商品kind为"物品"。字段：name、category、price、shop、description、kind、equipSlots、setItems、reason。除品牌名、系列名、型号外，name、category、shop、description、kind、equipSlots、setItems、reason都必须使用中文正文，不要输出英文描述或英文品类。price为整数且符合财富档位，不要超过玩家现金。`;
+    return window.GameModules.renderPrompt('taobao-product-generate', {
+      playerName: p.name || '未知',
+      playerAge: p.age || '',
+      playerCity: p.refinedCity || p.city || '',
+      playerRole: p.refinedRole || p.dailyRole || '',
+      wealthTier: p.wealthTier || '流浪',
+      wealthAmount: p.wealthAmount || 0,
+      queryText,
+      filterText,
+      styleSlotText,
+      setText,
+      slots,
+    });
   },
 
   normalizeTaobaoProduct(data = {}, slot = {}) {
@@ -63,7 +75,8 @@ window.GameModules.taobaoGenerateActions = {
         const slot = targets[i];
         slot.hint = this.taobaoBatchHint(i);
         this.taobaoState.generatingId = slot.id;
-        const data = await window.GameModules.jsonUtils.generateJsonWithRetry({ source: 'taobao-product', model: this.modelId, prompt: this.taobaoPrompt(slot), maxTokens: this.taobaoState.filterSlot === '__set' ? 1400 : 900, timeoutMs: 60000, max: 2 });
+        const prompt = await this.taobaoPrompt(slot);
+        const data = await window.GameModules.jsonUtils.generateJsonWithRetry({ source: 'taobao-product', promptId: 'taobao-product-generate', model: this.modelId, prompt, maxTokens: this.taobaoState.filterSlot === '__set' ? 1400 : 900, timeoutMs: 60000, max: 2 });
         if (this.taobaoState.requestId !== reqId) return;
         slot.product = this.normalizeTaobaoProduct(data, slot);
       }

@@ -36,6 +36,7 @@ window.GameModules.taobaoBuyActions = {
       const updates = this.taobaoInventoryUpdates(item);
       await this.applyInventoryUpdatesToState(state, updates);
       this.playerProfile.wealthAmount = money - price;
+      window.GameModules.orgTerritoryActions?.syncPlayerWealthAsset?.(this);
       item.purchased = true;
       this.taobaoState.message = `已购买${item.name}，${updates.length}件商品加入背包并扣除${price.toLocaleString('zh-CN')}元。`;
       this.taobaoState.error = '';

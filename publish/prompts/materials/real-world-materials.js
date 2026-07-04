@@ -12,10 +12,13 @@ window.GameModules.realWorldMaterials = {
     { id: 'company-search-window', title: '按关键词加载公司前后片段', size: 'medium', maxChars: 1600, skill: 'company.query', method: 'searchCompanyWindow', paramsHint: { world: '世界名', keyword: '关键词', beforeChars: 400, afterChars: 800 }, when: '公司资料较长，只加载关键词附近内容。' },
     { id: 'faction-list', title: '势力列表', size: 'small', maxChars: 900, skill: 'faction.query', method: 'listFactions', paramsHint: { world: '世界名',}, when: '确认玩家、角色卡或现实世界已有哪些国家、公司、组织、部门、家庭、学校等势力。' },
     { id: 'faction-search-one', title: '按关键词查询一条势力', size: 'small', maxChars: 1000, skill: 'faction.query', method: 'searchFactionOne', paramsHint: { world: '世界名', keyword: '势力、组织、部门或职位关键词' }, when: '行动涉及某个势力、下属单位、职位、角色地位或组织关系，需要先确认是否已存在。' },
-    { id: 'faction-detail', title: '势力详情', size: 'medium', maxChars: 1600, skill: 'faction.query', method: 'getFactionDetail', paramsHint: { world: '世界名', name: '势力名或ID' }, when: '需要读取势力归属、组织架构、职位角色、规则、资源和关系。' },
+    { id: 'faction-detail', title: '势力详情', size: 'medium', maxChars: 1600, skill: 'faction.query', method: 'getFactionDetail', stage1Policy: 'deep', paramsHint: { world: '世界名', name: '势力名或ID' }, when: '需要读取势力归属、组织架构、职位角色、规则、资源和关系。' },
     { id: 'faction-archive-search', title: '势力资料库搜索', size: 'medium', maxChars: 1800, skill: 'faction.query', method: 'searchFactionArchive', paramsHint: { world: '世界名', keyword: '势力、组织、部门或事件关键词' }, when: '需要读取某个国家、公司、学校、家庭、组织或部门的旧档案记录。' },
-    { id: 'faction-upsert', title: '新增或调整势力', size: 'medium', maxChars: 1600, skill: 'faction.query', method: 'upsertFaction', paramsHint: { world: '世界名', name: '势力名', type: '组织类型', parentName: '上级势力名', reason: '新增或调整依据' }, when: '现实推演确认出现新势力、下属单位或已有势力字段需要调整扩大。' },
-    { id: 'faction-position-add', title: '新增势力职位角色', size: 'small', maxChars: 1000, skill: 'faction.query', method: 'addFactionPosition', paramsHint: { world: '世界名', factionName: '势力名', position: '职位/地位', characterName: '角色名或未知', reason: '依据' }, when: '确认某势力下存在某个职位或某角色占据该职位；角色未知时写未知。' },
+    { id: 'faction-memberships', title: '人事归属清单', size: 'small', maxChars: 1000, skill: 'faction.query', method: 'listMemberships', paramsHint: { world: '世界名', name: '势力名或空' }, when: '行动涉及谁在哪家组织任职、membership 或 structure 占坑。' },
+    { id: 'territory-brief', title: '控势摘要', size: 'small', maxChars: 900, skill: 'faction.query', method: 'resolveTerritoryBrief', paramsHint: { world: '世界名', locationName: '地点名或空' }, when: '行动涉及夺控、法域、治安归属或某地点是否在争议区；优先读 brief。' },
+    { id: 'territory-control-detail', title: '地点控势与时间轴', size: 'medium', maxChars: 1400, skill: 'faction.query', method: 'getTerritoryControl', stage1Policy: 'deep', paramsHint: { world: '世界名', locationName: '地点名' }, when: '控势摘要不足且需某已揭示地点完整控势一行与变更时间轴。' },
+    { id: 'faction-upsert', title: '新增或调整势力', size: 'medium', maxChars: 1600, skill: 'faction.query', method: 'upsertFaction', stage1Policy: 'deny', paramsHint: { world: '世界名', name: '势力名', type: '组织类型', parentName: '上级势力名', reason: '新增或调整依据' }, when: '现实推演确认出现新势力、下属单位或已有势力字段需要调整扩大。' },
+    { id: 'faction-position-add', title: '新增势力职位角色', size: 'small', maxChars: 1000, skill: 'faction.query', method: 'addFactionPosition', stage1Policy: 'deny', paramsHint: { world: '世界名', factionName: '势力名', position: '职位/地位', characterName: '角色名或未知', reason: '依据' }, when: '确认某势力下存在某个职位或某角色占据该职位；角色未知时写未知。' },
     { id: 'current-location', title: '当前地点上下文', size: 'small', maxChars: 1200, skill: 'realworld.location.query', method: 'getCurrentLocationContext', paramsHint: { world: '世界名',}, when: '中文资料请求：地点查询，当前地点上下文，世界全称。场景锚定需要确认当前地点、空间边界、门口/相邻房间/可听见范围，以及谁具备自然入场条件；不得输出英文 skill/method。' },
     { id: 'location-detail', title: '地点详情', size: 'medium', maxChars: 1500, skill: 'realworld.location.query', method: 'getLocationDetail', paramsHint: { world: '世界名', locationName: '地点名' }, when: '已经知道地点名，需要读取地点说明、上级和子地点。' },
     { id: 'location-search-one', title: '按关键词查询一条地点记录', size: 'small', maxChars: 900, skill: 'realworld.location.query', method: 'searchLocationOne', paramsHint: { world: '世界名', keyword: '地点或人物房间关键词' }, when: '只需要确认一个地点命中项。' },
@@ -53,6 +56,39 @@ window.GameModules.realWorldMaterials = {
 
   list() { return this.items.slice(); },
 
+  STAGE1_DENY_PAIRS: new Set([
+    'faction.query.upsertFaction',
+    'faction.query.addFactionPosition',
+    'lexicon.query.addSpecialTerm',
+    'item.query.generateItemSkill',
+    'item.query.addItemToTarget',
+    'item.query.transferItemSkill',
+    'item.query.deleteItemSkill',
+    'item.query.purchaseItemSkill',
+    'wechat.message.incoming.sendIncomingNow',
+    'wechat.message.incoming.sendIncomingPast',
+  ]),
+
+  STAGE1_DEEP_READ_PAIRS: new Set([
+    'faction.query.getFactionDetail',
+    'faction.query.getTerritoryControl',
+  ]),
+
+  stage1PolicyFor(item = {}) {
+    if (item.stage1Policy === 'deny' || item.stage1Policy === 'deep' || item.stage1Policy === 'allow') return item.stage1Policy;
+    const pair = `${item.skill}.${item.method}`;
+    if (this.STAGE1_DENY_PAIRS.has(pair)) return 'deny';
+    if (this.STAGE1_DEEP_READ_PAIRS.has(pair)) return 'deep';
+    return 'allow';
+  },
+
+  isStage1Eligible(item = {}, step = 1) {
+    const policy = this.stage1PolicyFor(item);
+    if (policy === 'deny') return false;
+    if (policy === 'deep' && step < 3) return false;
+    return true;
+  },
+
   keyOf(req = {}) {
     const skill = String(req.skill || '').trim();
     const method = String(req.method || '').trim();
@@ -80,9 +116,45 @@ window.GameModules.realWorldMaterials = {
     return session;
   },
 
-  remaining(session) {
+  recordStage1Block(session, store, req = {}, policy = 'deny', step = 1) {
+    const skill = String(req.skill || '').trim();
+    const method = String(req.method || '').trim();
+    const entry = {
+      at: Date.now(),
+      pair: `${skill}.${method}`,
+      policy,
+      step: Number(step) || 1,
+      params: req.params && typeof req.params === 'object' ? req.params : {},
+    };
+    if (session) {
+      session.blockedRequests = Array.isArray(session.blockedRequests) ? session.blockedRequests : [];
+      session.blockedRequests.push(entry);
+    }
+    if (store && skill === 'faction.query') {
+      const ot = window.GameModules.orgTerritory;
+      store.orgTerritoryReconciliationLog = Array.isArray(store.orgTerritoryReconciliationLog) ? store.orgTerritoryReconciliationLog : [];
+      store.orgTerritoryReconciliationLog.push({
+        at: ot?.nowLabel?.(store) || new Date().toISOString(),
+        kind: 'stage1-material-blocked',
+        pair: entry.pair,
+        policy,
+        step: entry.step,
+      });
+      ot?.trimReconciliationLog?.(store);
+    }
+    console.warn('[Stage1] material request blocked:', entry.pair, policy, 'step=', entry.step);
+    return entry;
+  },
+
+  blockedSummary(session) {
+    const rows = session?.blockedRequests || [];
+    return rows.length ? rows.map((item, i) => `${i + 1}. ${item.pair}｜${item.policy}｜step${item.step}`).join('\n') : '';
+  },
+
+  remaining(session, options = {}) {
+    const step = Number(options?.step || 1);
     const usedPairs = new Set((session?.acquired || []).map((item) => `${item.skill}.${item.method}`));
-    return this.items.filter((item) => !usedPairs.has(`${item.skill}.${item.method}`));
+    return this.items.filter((item) => !usedPairs.has(`${item.skill}.${item.method}`) && this.isStage1Eligible(item, step));
   },
 
   acquiredSummary(session) {
@@ -92,7 +164,7 @@ window.GameModules.realWorldMaterials = {
 
   summary(session, options = {}) {
     const step = Number(options.step || 1);
-    const remaining = this.remaining(session);
+    const remaining = this.remaining(session, { step });
     const highValueReadPairs = new Set([
       'character.query.searchCharacterProfile',
       'character.query.listKnownCharacters',
@@ -104,8 +176,11 @@ window.GameModules.realWorldMaterials = {
       'company.query.searchCompanyWindow',
       'faction.query.listFactions',
       'faction.query.searchFactionOne',
-      'faction.query.getFactionDetail',
       'faction.query.searchFactionArchive',
+      'faction.query.listMemberships',
+      'faction.query.resolveTerritoryBrief',
+      'faction.query.getFactionDetail',
+      'faction.query.getTerritoryControl',
       'realworld.location.query.getCurrentLocationContext',
       'realworld.location.query.getLocationDetail',
       'realworld.location.query.searchLocationOne',
@@ -136,11 +211,14 @@ window.GameModules.realWorldMaterials = {
       const base = `- ${item.title}：${item.skill}.${item.method}｜${item.size}｜上限${item.maxChars}字`;
       return step >= 3 ? `${base}｜仅当缺口会直接改变本次行动结果` : `${base}｜适用：${item.when}｜params：${JSON.stringify(item.paramsHint || {})}`;
     }).join('\n');
+    const blocked = this.blockedSummary(session);
     return [
       '当前资料清单说明：request_context 只用于获取能回答本次行动所必需的资料，不用于补全全部世界。',
       step >= 3 ? '软收敛说明：后续步骤只保留高价值候选；若缺口不会直接改变本次行动结果、人物反应或旧事实判定，必须 context_done。' : '资料长度规则：small 可直接读取；medium 只在必要时读取；large 禁止一次性完整加载，必须优先用关键词查询一条记录、关键词前后片段或最近指定数量。',
+      '组织/控势资料规则：默认上下文已含 Org Index、Territory Hot；优先用「控势查询，控势摘要」或「势力查询，势力档案」；未揭示地点无控势资料；势力详情/地点控势详情仅 step≥3 且 brief 不足时。',
+      blocked ? `本轮被 Stage1 策略拦截的资料请求：\n${blocked}` : '',
       `已获取资料：\n${this.acquiredSummary(session)}`,
       `仍可获取资料：\n${left || '暂无剩余高价值资料选项；请基于已有资料收敛。'}`,
-    ].join('\n\n');
+    ].filter(Boolean).join('\n\n');
   },
 };

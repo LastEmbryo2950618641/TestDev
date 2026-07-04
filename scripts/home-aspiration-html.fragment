@@ -1,0 +1,144 @@
+  <!-- 首页菜单 -->
+  <section x-show="!$store.game.loading && $store.game.homeScreenView === 'menu'" class="home-menu-screen" x-cloak>
+    <div class="home-menu-card">
+      <p class="eyebrow">2026 MODERN CITY</p>
+      <h1>我狠狠操控</h1>
+      <p class="intro">选择开始新游戏或继续已有存档。新游戏将先激活手机，再完成价值观 / 爱好 / 人生取向设定。</p>
+      <div class="home-menu-actions">
+        <button class="primary-btn" type="button" @click="$store.game.startNewGame()" :disabled="$store.game.busy">开始游戏</button>
+        <button class="ghost-wide" type="button" @click="$store.game.continueGame()" :disabled="$store.game.busy || !$store.game.hasContinueSave()">继续游戏</button>
+        <button class="ghost-wide" type="button" @click="$store.game.openHomeSavePanel()" :disabled="$store.game.busy">存档位管理</button>
+      </div>
+      <p class="home-message" x-show="$store.game.homeMessage" x-text="$store.game.homeMessage"></p>
+      <article class="home-save-panel" x-show="$store.game.homeSavePanelOpen" x-cloak>
+        <strong>10 个存档位</strong>
+        <template x-for="slot in $store.game.saveSlots" :key="slot">
+          <div class="home-save-row">
+            <div>
+              <b x-text="slot"></b>
+              <small x-text="`${$store.game.saveSlotLabel(slot)} · ${$store.game.formatSaveTime($store.game.saveMeta(slot).savedAt)}`"></small>
+            </div>
+            <div>
+              <button class="small-btn" type="button" @click="$store.game.startNewGameOnSlot(slot)" :disabled="$store.game.busy">覆盖新建</button>
+              <button class="small-btn" type="button" @click="$store.game.loadSlotFromHome(slot)" :disabled="$store.game.busy || !$store.game.saveMeta(slot).exists">载入</button>
+              <button class="small-btn" type="button" @click="$store.game.deleteSaveSlot(slot)" :disabled="$store.game.busy || !$store.game.saveMeta(slot).exists">删除</button>
+            </div>
+          </div>
+        </template>
+        <button class="small-btn" type="button" @click="$store.game.closeHomeSavePanel()">关闭</button>
+      </article>
+    </div>
+  </section>
+
+  <div class="home-load-overlay" x-show="$store.game.homeLoadActive" x-cloak>
+    <div class="home-load-card">
+      <p x-text="$store.game.homeLoadProgressText ? $store.game.homeLoadProgressText() : '正在载入…'"></p>
+      <div class="loading-progress"><i :style="`width: ${$store.game.homeLoadProgressDisplayPercent ? $store.game.homeLoadProgressDisplayPercent() : 0}%`"></i></div>
+    </div>
+  </div>
+
+  <!-- 人生取向向导（手机框样式，7 步） -->
+  <section x-show="!$store.game.loading && $store.game.aspirationSetupOpen" class="phone-setup-screen aspiration-wizard-screen section-hints" x-cloak>
+    <div class="phone-setup-card activation-form aspiration-wizard-card dev-section" data-section-title="人生取向向导">
+      <div class="aspiration-step-head">
+        <div>
+          <p class="eyebrow">LIFE ORIENTATION</p>
+          <h2 x-text="$store.game.aspirationStepTitle ? $store.game.aspirationStepTitle() : '人生取向'"></h2>
+        </div>
+        <span class="aspiration-progress" x-text="$store.game.aspirationProgressLabel ? $store.game.aspirationProgressLabel() : `步骤 ${$store.game.aspirationStep || 1} / 7`"></span>
+      </div>
+
+      <div x-show="($store.game.aspirationStep || 1) === 1">
+        <p class="intro">选择最贴近你的价值立场。</p>
+        <div class="activation-choice-grid single aspiration-alignment-list">
+          <template x-for="item in ($store.game.aspirationAlignmentOptions ? $store.game.aspirationAlignmentOptions() : [])" :key="item.id">
+            <button type="button" class="activation-choice aspiration-alignment-choice" :class="{ selected: $store.game.aspirationDraft?.alignment === item.id }" @click="$store.game.selectAspirationAlignment(item.id)" :disabled="$store.game.aspirationBusy">
+              <strong x-text="item.label"></strong>
+              <small x-text="item.hint"></small>
+            </button>
+          </template>
+        </div>
+      </div>
+
+      <div x-show="($store.game.aspirationStep || 1) === 2">
+        <p class="intro">决策风格：绝对理性 ↔ 纯粹感性。</p>
+        <div class="aspiration-slider-block">
+          <label><span>理性 — 感性</span><span x-text="$store.game.aspirationRationalityLabel()"></span></label>
+          <input type="range" min="0" max="100" step="1" :value="$store.game.aspirationDraft?.rationality ?? 50" @input="$store.game.setAspirationRationality($event.target.value)" :disabled="$store.game.aspirationBusy">
+        </div>
+      </div>
+
+      <div x-show="($store.game.aspirationStep || 1) === 3">
+        <p class="intro">人生六维：每个维度 0 偏左、100 偏右。</p>
+        <template x-for="axis in ($store.game.aspirationAxes ? $store.game.aspirationAxes() : [])" :key="axis.key">
+          <div class="aspiration-slider-block">
+            <label><span x-text="axis.title"></span><span x-text="$store.game.aspirationAxisLabel(axis.key)"></span></label>
+            <input type="range" min="0" max="100" step="1" :value="$store.game.aspirationDraft?.axes?.[axis.key] ?? 50" @input="$store.game.setAspirationAxis(axis.key, $event.target.value)" :disabled="$store.game.aspirationBusy">
+            <small x-text="axis.detail"></small>
+          </div>
+        </template>
+      </div>
+
+      <div x-show="($store.game.aspirationStep || 1) === 4">
+        <p class="intro">底线锚点：左端几乎无排斥，右端难以接受。</p>
+        <template x-for="item in ($store.game.aspirationGuiltLines ? $store.game.aspirationGuiltLines() : [])" :key="item.id">
+          <div class="aspiration-slider-block">
+            <label><span x-text="item.title"></span><span x-text="$store.game.aspirationGuiltAxisLabel(item.id)"></span></label>
+            <input type="range" min="0" max="100" step="1" :value="$store.game.aspirationDraft?.guiltAxes?.[item.id] ?? 50" @input="$store.game.setAspirationGuiltAxis(item.id, $event.target.value)" :disabled="$store.game.aspirationBusy">
+            <small x-text="item.detail"></small>
+          </div>
+        </template>
+      </div>
+
+      <div x-show="($store.game.aspirationStep || 1) === 5">
+        <p class="psych-pref-intro" x-text="$store.game.aspirationPsychCategory()?.intro || ''"></p>
+        <p class="aspiration-busy-line" x-show="$store.game.aspirationPsychLoading">正在生成偏好标签候选…</p>
+        <template x-for="group in ($store.game.aspirationPsychCategoryGroups ? $store.game.aspirationPsychCategoryGroups() : [])" :key="group.id">
+          <section class="psych-pref-group">
+            <h3 x-text="group.label"></h3>
+            <template x-for="entry in ($store.game.aspirationPsychGroupEntries ? $store.game.aspirationPsychGroupEntries() : [])" :key="entry.key">
+              <div x-show="entry.group.id === group.id">
+                <p class="psych-lane-label" x-text="`${entry.lane.label} · ${entry.lane.hint || entry.tagGroup.hint || ''}`"></p>
+                <div class="psych-tag-grid">
+                  <template x-for="tag in $store.game.aspirationPsychOptions(entry.key)" :key="entry.key + '-' + tag">
+                    <button type="button" class="psych-tag-btn" :class="{ selected: $store.game.isAspirationPsychTagSelected(entry.selectKey, tag) }" :disabled="$store.game.aspirationBusy || $store.game.aspirationPsychLoading || !$store.game.canSelectAspirationPsychTag(entry.selectKey, tag)" @click="$store.game.toggleAspirationPsychTag(entry.selectKey, tag)" x-text="tag"></button>
+                  </template>
+                </div>
+                <div class="psych-custom-row">
+                  <input class="text-input" type="text" maxlength="12" placeholder="自定义标签" :value="$store.game.getAspirationPsychCustomDraft(entry.key)" @input="$store.game.setAspirationPsychCustomDraft(entry.key, $event.target.value)">
+                  <button class="small-btn" type="button" @click="$store.game.addAspirationPsychCustomTag(entry.key)" :disabled="$store.game.aspirationBusy || $store.game.aspirationPsychLoading">添加</button>
+                </div>
+              </div>
+            </template>
+          </section>
+        </template>
+        <button class="small-btn" type="button" @click="$store.game.regenerateAspirationPsychTags()" :disabled="$store.game.aspirationBusy || $store.game.aspirationPsychLoading">换一批标签</button>
+      </div>
+
+      <div x-show="($store.game.aspirationStep || 1) === 6">
+        <p class="intro">AI 将根据你的选择生成人生取向总结，可返回修改后重新生成。</p>
+        <div class="aspiration-summary-box" x-text="$store.game.aspirationSummaryDraft?.portrait || '（生成中…）'"></div>
+        <button class="small-btn" type="button" @click="$store.game.generateAspirationSummary()" :disabled="$store.game.aspirationBusy">重新生成总结</button>
+      </div>
+
+      <div x-show="($store.game.aspirationStep || 1) === 7">
+        <p class="intro">确认近 / 中 / 长期目标。确认后将固化本质偏好五层并进入手机桌面。</p>
+        <div class="aspiration-goals-box">
+          <p><b>近期：</b><span x-text="$store.game.aspirationGoalDraft?.short || '待生成'"></span></p>
+          <p><b>中期：</b><span x-text="$store.game.aspirationGoalDraft?.medium || '待生成'"></span></p>
+          <p><b>长期：</b><span x-text="$store.game.aspirationGoalDraft?.long || '待生成'"></span></p>
+          <p><b>一句话：</b><span x-text="$store.game.aspirationGoalDraft?.summary || '待生成'"></span></p>
+        </div>
+        <button class="small-btn" type="button" @click="$store.game.generateAspirationGoals()" :disabled="$store.game.aspirationBusy">重新生成目标</button>
+      </div>
+
+      <p class="aspiration-error" x-show="$store.game.aspirationError" x-text="$store.game.aspirationError"></p>
+      <p class="aspiration-busy-line" x-show="$store.game.aspirationBusy">AI 处理中，请稍候…</p>
+
+      <div class="aspiration-actions phone-setup-actions">
+        <button class="small-btn" type="button" @click="$store.game.aspirationPrevStep()" :disabled="$store.game.aspirationBusy || $store.game.aspirationPsychLoading">上一步</button>
+        <button class="primary-btn" type="button" x-show="($store.game.aspirationStep || 1) < 7" @click="$store.game.aspirationNextStep()" :disabled="!$store.game.aspirationCanNextStep()">下一步</button>
+        <button class="primary-btn" type="button" x-show="($store.game.aspirationStep || 1) === 7" @click="$store.game.confirmPlayerAspiration()" :disabled="$store.game.aspirationBusy">确认并开始</button>
+      </div>
+    </div>
+  </section>

@@ -13,32 +13,23 @@ window.GameModules.catalogActions = {
     }
   },
 
-  async loadModelAndUser() {
-    try {
-      const provider = window.GameModules.aiProvider?.currentProvider?.();
-      const info = await provider?.getUserInfo?.();
-      if (info?.name && !this.playerName && !this.playerProfile.name) this.playerName = info.name;
-    } catch (err) {
-      console.warn('读取用户信息失败:', err.code, err.message);
-    }
-
-    try {
-      const result = await window.GameModules.aiProvider?.currentProvider?.()?.listTextModels?.();
-      window.GameModules.tokenStats?.syncModelPrices?.(result);
-      const models = this.enrichTextModelsWithThinking?.(result) || (Array.isArray(result?.models) ? result.models : []);
-      const selected = this.resolvePreferredTextModel?.(models, this.modelId || this.settingsState?.textModelId || result?.defaultModel) || this.modelId || result?.defaultModel || models[0]?.internalName;
-      if (this.settingsState) {
-        this.settingsState.textModels = models.length ? models : this.settingsState.textModels;
-        this.settingsState.textModelId = selected || this.settingsState.textModelId;
-      }
-      this.modelId = selected || this.modelId;
-    } catch (err) {
-      console.warn('读取模型列表失败:', err.code, err.message);
-    }
+  async loadStartupPlayerConfig() {
+    await window.GameModules.localSettings?.prepareActivation?.(this);
   },
 
   ensureCatalogSelection() {
-    if (!this.works.some((work) => work.name === this.selectedWork)) this.selectedWork = window.GameModules.catalog.firstWork();
-    if (!window.GameModules.catalog.find(this.selectedCharacterId)) this.selectedCharacterId = window.GameModules.catalog.firstCharacter(this.selectedWork) || this.selectedCharacterId;
+    const catalog = window.GameModules.catalog;
+    if (!catalog) return;
+    try {
+      const works = catalog.works?.() || this.works || [];
+      if (!this.selectedWork) this.selectedWork = works[0]?.name || '';
+      if (!this.selectedCharacterId && this.selectedWork) {
+        this.selectedCharacterId = catalog.firstCharacter?.(this.selectedWork) || '';
+      }
+      const found = this.selectedCharacterId ? catalog.find?.(this.selectedCharacterId) : null;
+      if (found) this.character = found;
+    } catch (err) {
+      console.warn('[角色目录] 恢复目录选择失败:', err?.message || err);
+    }
   },
 };

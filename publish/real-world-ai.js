@@ -22,6 +22,7 @@ window.GameModules.realWorldAi = {
         loadedContext: loop.loaded || [],
       };
       result.agentTrace = loop.trace || [];
+      result.deepseekCache = loop.deepseekCache || null;
       return result;
     } catch (err) {
       console.error('现实世界推演失败:', err.code, err.message, err.stack);
@@ -32,7 +33,10 @@ window.GameModules.realWorldAi = {
 
   parse(content, store, action) {
     try {
-      const data = content && typeof content === 'object' ? content : window.GameModules.jsonUtils.parseLoose(content);
+      const raw = content && typeof content === 'object' ? content : window.GameModules.jsonUtils.parseLoose(content);
+      const genericUpdates = window.GameModules.updateRegistry?.ensureNormalizedUpdates?.(raw, store)
+        || (Array.isArray(raw.genericUpdates) ? raw.genericUpdates : []);
+      const data = window.GameModules.updateRegistry?.migrateLegacyFactionUpdates?.({ ...raw, genericUpdates }) || { ...raw, genericUpdates };
       if (!data.narration) throw new Error('现实推演缺少正文结果');
       return {
         sceneTitle: String(data.sceneTitle || '现实世界').slice(0, 14),
@@ -53,11 +57,11 @@ window.GameModules.realWorldAi = {
         metricUpdates: window.GameModules.ai.normalizeMetricUpdates?.(data.metricUpdates, store.playerIdentityState?.()) || {},
         appearedCharacters: this.normalizeRealCharacters(data.appearedCharacters, store),
         solidifiableCharacters: this.normalizeRealSolidifiableCharacters(data.solidifiableCharacters, data.appearedCharacters, store),
-        factionUpdates: Array.isArray(data.factionUpdates) ? data.factionUpdates.slice(0, 8) : [],
         itemActions: Array.isArray(data.itemActions) ? data.itemActions.slice(0, 8) : [],
         wechatActions: this.normalizeWechatActions(data.wechatActions),
         lexiconUpdates: window.GameModules.ai.normalizeLexiconUpdates?.(data.lexiconUpdates, store) || [],
-        genericUpdates: window.GameModules.updateRegistry?.normalizeUpdates?.(data, store) || (Array.isArray(data.genericUpdates) ? data.genericUpdates.slice(0, 80) : []),
+        genericUpdates: data.genericUpdates || [],
+        profilePatches: Array.isArray(data.profilePatches) ? data.profilePatches.slice(0, 4) : [],
         initUpdates: Array.isArray(data.initUpdates) ? data.initUpdates.slice(0, 20) : [],
       };
     } catch (err) {
@@ -103,19 +107,45 @@ window.GameModules.realWorldAi = {
     const text = String(value || '').replace(/\s*\n+\s*/g, '').trim();
     if (!text) return '';
     const sentences = this.splitNarrationSentences(text);
-    const parts = [];
+    const grouped = [];
     let current = '';
     for (const sentence of sentences) {
       if (!current) { current = sentence; continue; }
       if ((current + sentence).length > limit && !/^[”’"』」）】》〕〉〗,，]/u.test(sentence)) {
-        parts.push(current);
+        grouped.push(current);
         current = sentence;
       } else {
         current += sentence;
       }
     }
-    if (current) parts.push(current);
+    if (current) grouped.push(current);
+    const parts = [];
+    for (const chunk of grouped) parts.push(...this.wrapNarrationChunk(chunk, limit));
     return parts.join('\n\n');
+  },
+
+  wrapNarrationChunk(text = '', limit = 100) {
+    const chunk = String(text || '').trim();
+    if (!chunk) return [];
+    if (chunk.length <= limit) return [chunk];
+    const parts = [];
+    let rest = chunk;
+    const softBreak = /[。！？!?；;，、,.]/u;
+    const minBreak = Math.max(24, Math.floor(limit * 0.35));
+    while (rest.length > limit) {
+      let breakAt = limit;
+      const head = rest.slice(0, limit);
+      for (let i = head.length - 1; i >= minBreak; i -= 1) {
+        if (softBreak.test(head[i])) {
+          breakAt = i + 1;
+          break;
+        }
+      }
+      parts.push(rest.slice(0, breakAt).trim());
+      rest = rest.slice(breakAt).trim();
+    }
+    if (rest) parts.push(rest);
+    return parts.filter(Boolean);
   },
 
   splitNarrationSentences(text) {
@@ -172,7 +202,7 @@ window.GameModules.realWorldAi = {
       newLocations: [],
       locationDescriptionUpdates: [],
       thinking: '',
-      narration: `你暂时把《我要狠狠操控》的界面收起，现实里的光线、空气和细碎声响重新占据感官。你按照“${text}”开始行动，先确认周围没有立刻失控的变化，再把注意力落回自己的住处、身份与眼前必须处理的事务上。那台手机安静地躺在一旁，像是什么都没有发生，却又让现实边缘多出一层无法忽视的裂痕。`,
+      narration: `你暂时把「${window.GameModules.gamePremise?.appName || '我要狠狠操控的'}」的界面收起，现实里的光线、空气和细碎声响重新占据感官。你按照“${text}”开始行动，先确认周围没有立刻失控的变化，再把注意力落回自己的住处、身份与眼前必须处理的事务上。那台刚同步完的新手机安静地躺在一旁，像是什么都没有发生，却又让现实边缘多出一层无法忽视的裂痕。`,
       status: '现实稳定，手机异常仍在',
       quest: '确认手机异常与现实处境',
       choices: ['检查手机记录', '观察居住环境', '联系熟人确认', '暂时休息'],

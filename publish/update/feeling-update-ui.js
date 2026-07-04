@@ -7,15 +7,19 @@ window.GameModules.updateRegistry?.registerUi?.('feeling', {
     const sign = change.mode === 'delta' && value > 0 ? '+' : '';
     const reasons = Array.isArray(update.reasons) ? update.reasons : [];
     const first = reasons.find(Boolean) || {};
-    const evidence = first.evidence || update.reason || update.evidence || '';
+    const evidence = window.GameModules.updateRegistry.normalizeSettlementText(window.GameModules.metrics.cleanMetricReason(first.evidence || update.reason || update.evidence || '', row.name || window.GameModules.updateRegistry.leafName(update.field)));
     return {
       field: '感觉变化',
       name: row.name || window.GameModules.updateRegistry.leafName(update.field),
       value: change.mode === 'delta' ? `${sign}${value}` : (change.value ?? ''),
-      reason: evidence || row.reason,
+      reason: evidence || window.GameModules.updateRegistry.normalizeSettlementText(row.reason),
       trigger: first.trigger || '',
       confidence: first.confidence || '',
-      detailLines: [evidence ? `说明：${evidence}` : '', first.trigger ? `触发：${first.trigger}` : '', first.confidence ? `确认：${first.confidence}` : ''].filter(Boolean),
+      detailLines: [
+        evidence ? `说明：${evidence}` : '',
+        first.trigger ? `触发：${window.GameModules.updateRegistry.normalizeSettlementText(first.trigger)}` : '',
+        first.confidence ? `确认：${window.GameModules.updateRegistry.normalizeSettlementText(first.confidence)}` : '',
+      ].filter(Boolean),
     };
   },
 });

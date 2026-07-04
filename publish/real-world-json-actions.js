@@ -2,7 +2,7 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldJsonActions = {
   async completeConfiguredUpdateJson(store, prompt, logId, config = this.realConfig()) {
-    let combined = await this.completeConfiguredStep(store, prompt, logId, false, config);
+    let combined = await this.completeConfiguredStep(store, prompt, logId, false, { ...config, promptId: 'inference-stage4-settlement-window' });
     let lastErr = null;
     for (let i = 0; i < 6; i += 1) {
       try { return this.parseCompleteUpdateJson(combined); }
@@ -10,7 +10,7 @@ window.GameModules.realWorldJsonActions = {
         lastErr = err;
         if (!this.updateJsonNeedsCompletion(combined, err) || i === 5) break;
         console.warn(`${config.label}更新 JSON 被截断，补全重试 ${i + 1}/5:`, err.message);
-        const next = await this.completeConfiguredStep(store, this.updateJsonContinuationPrompt(prompt, combined, err), logId, false, config);
+        const next = await this.completeConfiguredStep(store, this.updateJsonContinuationPrompt(prompt, combined, err), logId, false, { ...config, promptId: 'inference-stage4-settlement-window' });
         combined = this.mergeUpdateJsonContinuation(combined, next);
       }
     }
@@ -22,7 +22,7 @@ window.GameModules.realWorldJsonActions = {
     let combined = '';
     let lastErr = err;
     for (let i = 0; i < 3; i += 1) {
-      const raw = await this.completeConfiguredStep(store, nextPrompt, logId, false, config);
+      const raw = await this.completeConfiguredStep(store, nextPrompt, logId, false, { ...config, promptId: 'inference-stage4-settlement-window' });
       combined = combined ? this.mergeUpdateJsonContinuation(combined, raw) : raw;
       try { return this.parseCompleteUpdateJson(combined); }
       catch (e) {

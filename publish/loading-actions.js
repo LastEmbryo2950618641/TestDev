@@ -11,7 +11,7 @@ window.GameModules.loadingActions = {
     this.loadingStages = [
       { key: 'sdk', name: '平台连接', status: 'waiting', startedAt: 0, finishedAt: 0 },
       { key: 'catalog', name: '角色目录', status: 'waiting', startedAt: 0, finishedAt: 0 },
-      { key: 'user', name: '玩家与模型', status: 'waiting', startedAt: 0, finishedAt: 0 },
+      { key: 'user', name: '玩家配置', status: 'waiting', startedAt: 0, finishedAt: 0 },
       { key: 'slots', name: '存档扫描', status: 'waiting', startedAt: 0, finishedAt: 0 },
       { key: 'db', name: '当前存档', status: 'waiting', startedAt: 0, finishedAt: 0 },
       { key: 'rpg', name: 'RPG 缓存', status: 'waiting', startedAt: 0, finishedAt: 0 },
@@ -21,8 +21,15 @@ window.GameModules.loadingActions = {
 
   startLoadingTimer() {
     if (this.loadingTimer) return;
-    this.loadingNow = Date.now();
-    this.loadingTimer = setInterval(() => { this.loadingNow = Date.now(); }, 1000);
+    const tick = () => {
+      this.loadingNow = Date.now();
+      this.loadingClockTick = (Number(this.loadingClockTick) || 0) + 1;
+      if (this.loading || this.roleCardLoadingState?.open) {
+        this.syncLoadingStepHeadline?.();
+      }
+    };
+    tick();
+    this.loadingTimer = setInterval(tick, 1000);
   },
 
   stopLoadingTimerIfIdle() {
@@ -38,9 +45,18 @@ window.GameModules.loadingActions = {
       if (x.key !== key) return x;
       return { ...x, status, startedAt: x.startedAt || (status === 'running' ? now : 0), finishedAt: ['done', 'error'].includes(status) ? now : x.finishedAt };
     });
-    const current = this.loadingStages.find((x) => x.key === key);
-    this.loadingStep = current ? `${current.name}：${this.stageText(status)}` : this.loadingStep;
     if (detail) this.loadingDetail = detail;
+    this.syncLoadingStepHeadline();
+  },
+
+  syncLoadingStepHeadline() {
+    const running = (this.loadingStages || []).find((stage) => stage.status === 'running');
+    if (running) {
+      this.loadingStep = `${running.name}：${this.stageText(running.status)}`;
+      return;
+    }
+    const latest = [...(this.loadingStages || [])].reverse().find((stage) => stage.status === 'done' || stage.status === 'error');
+    this.loadingStep = latest ? `${latest.name}：${this.stageText(latest.status)}` : this.loadingStep;
   },
 
   stageText(status) {
@@ -59,7 +75,15 @@ window.GameModules.loadingActions = {
 
   elapsedText(startedAt = 0, finishedAt = 0) {
     if (!startedAt) return '';
-    return this.formatDuration((finishedAt || this.loadingNow || Date.now()) - startedAt);
+    const end = finishedAt || this.loadingNow || Date.now();
+    const ms = Math.max(0, end - startedAt);
+    if (ms < 1000) return '<1s';
+    return this.formatDuration(ms);
+  },
+
+  stageElapsedLabel(startedAt = 0, finishedAt = 0) {
+    void this.loadingClockTick;
+    return this.elapsedText(startedAt, finishedAt);
   },
 
   loadingProgressPercent() {
@@ -70,6 +94,7 @@ window.GameModules.loadingActions = {
   },
 
   loadingProgressText() {
+    void this.loadingClockTick;
     const total = (this.loadingStages || []).length || 0;
     const done = (this.loadingStages || []).filter((x) => x.status === 'done').length;
     return `${done}/${total} 阶段 · ${this.elapsedText(this.loadingStartedAt)}`;
@@ -101,13 +126,14 @@ window.GameModules.loadingActions = {
     await this.runStage('sdk', '正在连接 Gamefy SDK。', () => dzmmReady);
     await Promise.all([
       this.runStage('catalog', '正在读取作品、角色和本地设定库入口。', () => this.loadCatalog()),
-      this.runStage('user', '正在读取玩家信息并选择 AI 模型。', () => this.loadModelAndUser()),
+      this.runStage('user', '正在准备本地玩家与模型默认值。', () => this.loadStartupPlayerConfig()),
       this.runStage('slots', '正在并行检查 10 个存档位。', () => this.refreshSaveMetas()),
     ]);
     await this.runStage('db', '正在打开当前 SQLite 存档。', async () => {
       await window.GameModules.storage.open(this.selectedSlot);
       const save = await window.GameModules.storage.get();
       window.GameModules.storage.restore(this, save);
+      await window.GameModules.localSettings?.prepareActivation?.(this);
       await this.migrateCurrentSaveWealthToOneHundredMillion?.();
       await this.loadWritingStyles();
     });
@@ -117,6 +143,7 @@ window.GameModules.loadingActions = {
       await this.initPredefinedRoleCards?.();
     });
     this.loading = false;
+    this.homeScreenView = 'menu';
     this.startStartupWarmup?.();
     this.stopLoadingTimerIfIdle();
   },

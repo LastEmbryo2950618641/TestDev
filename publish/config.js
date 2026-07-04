@@ -19,7 +19,7 @@ window.GameModules.config = {
   defaultModelId: 'nalang-turbo-0826',
   preferredTextModelIds: ['nalang-turbo-0101', 'nalang-turbo-0826'],
   textProviders: {
-    defaultProvider: 'dzmm',
+    defaultProvider: 'deepseek',
     dzmm: {
       defaultModel: 'nalang-turbo-0826',
       preferredModelIds: ['nalang-turbo-0101', 'nalang-turbo-0826'],
@@ -30,7 +30,8 @@ window.GameModules.config = {
       preferredModelIds: ['deepseek-v4-flash', 'deepseek-v4-pro'],
     },
   },
-  aiRequest: { maxConcurrent: 4, logLifecycle: false, logRawResponse: true },
+  aiRequest: { maxConcurrent: 4, logLifecycle: false, logRawResponse: true, activationBurst: { maxConcurrent: 8, minGapMs: 400 } },
+  characterProfile: { preferSingleShotPart2: true },
   stats: [
     { key: 'will', label: '意志' },
     { key: 'sense', label: '感知' },

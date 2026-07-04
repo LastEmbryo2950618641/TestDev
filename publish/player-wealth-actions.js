@@ -53,7 +53,9 @@ Object.assign(setupActions, {
     const hasAmount = profile.wealthAmount !== '' && profile.wealthAmount !== null && profile.wealthAmount !== undefined;
     const amount = hasAmount && Number.isFinite(Number(profile.wealthAmount)) ? Number(profile.wealthAmount) : this.playerWealthDefaultAmount(tier);
     const breakdown = this.playerWealthBreakdown(tier, amount, profile);
-    return { wealthTier: tier, wealthAmount: amount, wealthBreakdown: breakdown, wealthFixedIncome: breakdown.fixedIncome, wealthSource: this.playerWealthSource(tier, amount, profile.wealthSource, breakdown) };
+    const result = { wealthTier: tier, wealthAmount: amount, wealthBreakdown: breakdown, wealthFixedIncome: breakdown.fixedIncome, wealthSource: this.playerWealthSource(tier, amount, profile.wealthSource, breakdown) };
+    window.GameModules.orgTerritoryActions?.syncPlayerWealthAsset?.(this, result);
+    return result;
   },
 
   syncPlayerWealthDefaults() {

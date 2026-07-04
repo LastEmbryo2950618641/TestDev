@@ -84,7 +84,7 @@ Object.assign(window.GameModules.actions, {
   updateStoryAgentStream(id, raw) {
     const entry = this.log.find((item) => item.id === id);
     if (!entry) return false;
-    const text = String(raw || '').trim();
+    const text = window.GameModules.realWorldAi?.formatNarration?.(raw, 100) || String(raw || '').trim();
     if (!text || text === entry.storyText) return false;
     this.updateNovelEntry(id, { storyText: text, streaming: true });
     return true;

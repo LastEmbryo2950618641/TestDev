@@ -109,8 +109,8 @@ window.GameModules.characterMemory = {
   async intentQuery(rawQuery) {
     try {
       if (!window.dzmm?.completions) return rawQuery;
-      const prompt = await window.GameModules.promptTemplates.render('memory-intent-query', { 玩家输入: rawQuery });
-      const buffer = await window.GameModules.aiRequest.complete({ source: 'memory-intent-query', model: window.GameModules.aiRequest?.selectedTextModel?.(), prompt, timeoutMs: 60000 });
+      const prompt = await window.GameModules.renderPrompt('memory-intent-query', { 玩家输入: rawQuery });
+      const buffer = await window.GameModules.aiRequest.complete({ source: 'memory-intent-query', model: window.GameModules.aiRequest?.selectedTextModel?.(), prompt, timeoutMs: 60000, ...(window.GameModules.promptSkills?.completionOptions?.('memory-intent-query') || { jsonMode: false, outputLimitKind: 'other' }) });
       return buffer.trim() || rawQuery;
     } catch (err) {
       console.warn('记忆检索意图解析失败:', err.code, err.message);

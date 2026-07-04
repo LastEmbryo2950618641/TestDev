@@ -115,6 +115,7 @@ window.GameModules.itemSkillActions = {
     const result = await this.addItemToTarget(target, { ...payload, price, reason: payload.reason || '现实购物获得物品' });
     if (!result.ok) return result;
     this.playerProfile.wealthAmount = money - price;
+    window.GameModules.orgTerritoryActions?.syncPlayerWealthAsset?.(this);
     await this.save?.();
     return { ...result, paid: price, balance: this.playerProfile.wealthAmount, message: `${result.message}，扣除${price.toLocaleString('zh-CN')}元。` };
   },

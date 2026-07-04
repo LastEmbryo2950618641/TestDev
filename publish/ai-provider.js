@@ -16,7 +16,7 @@ window.GameModules.aiProvider = {
     const store = window.Alpine?.store?.('game');
     const fromStore = store?.settingsState?.textProvider;
     const fromConfig = window.GameModules.config?.textProviders?.defaultProvider;
-    return String(fromStore || fromConfig || 'dzmm').trim();
+    return String(fromStore || fromConfig || 'deepseek').trim();
   },
 
   currentProvider() {

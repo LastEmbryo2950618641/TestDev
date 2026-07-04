@@ -66,6 +66,7 @@ window.GameModules.wechatAlbumTagActions = {
       maxTokens: 600,
       timeoutMs: 60000,
       requireDone: true,
+      ...(window.GameModules.promptSkills?.completionOptions?.('draw-tag-prompt') || { jsonMode: false, outputLimitKind: 'other' }),
       tokenMeta: { title: `绘图提示词生成｜${contact.name || '联系人'}｜${titleState}`, category: '图片生成', summary: '根据微信相册素材生成正向/负面绘图提示词。', kind: 'completion' },
     });
     console.log('[微信相册] 绘图提示词 AI 原始返回:', output);

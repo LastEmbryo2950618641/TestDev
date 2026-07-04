@@ -2,11 +2,27 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.roleCardLoadingActions = {
   startRoleCardLoadingBatch(cards = []) {
+    window.GameModules.aiRequest?.beginActivationBurst?.();
     const now = Date.now();
     const normalized = cards.map((card, index) => this.normalizeRoleCardLoadingCard(card, index, now));
     this.roleCardLoadingState = { open: true, expanded: true, cards: normalized, startedAt: now };
     this.roleCardLoadingRetryQueue = {};
     this.startLoadingTimer?.();
+  },
+
+  ensureRoleCardLoadingCard(card = {}) {
+    const cards = this.roleCardLoadingState?.cards || [];
+    const normalized = this.normalizeRoleCardLoadingCard(card, cards.length);
+    if (cards.some((item) => item.id === normalized.id)) return normalized.id;
+    this.roleCardLoadingState = {
+      ...this.roleCardLoadingState,
+      open: true,
+      expanded: true,
+      cards: [...cards, normalized],
+      startedAt: this.roleCardLoadingState?.startedAt || Date.now(),
+    };
+    this.startLoadingTimer?.();
+    return normalized.id;
   },
 
   normalizeRoleCardLoadingCard(card = {}, index = 0, now = Date.now()) {
@@ -35,6 +51,7 @@ window.GameModules.roleCardLoadingActions = {
 
   closeRoleCardLoading() {
     this.roleCardLoadingState.open = false;
+    window.GameModules.aiRequest?.endActivationBurst?.();
   },
 
   toggleRoleCardLoadingPanel() {
@@ -111,7 +128,68 @@ window.GameModules.roleCardLoadingActions = {
     const cards = this.roleCardLoadingState.cards || [];
     if (cards.length && cards.every((card) => card.status === 'done')) {
       this.roleCardLoadingState.open = false;
+      window.GameModules.aiRequest?.endActivationBurst?.();
     }
+  },
+
+  markActivationRoleCardsRunning() {
+    const now = Date.now();
+    this.roleCardLoadingState.cards = (this.roleCardLoadingState.cards || []).map((card) => {
+      if (card.type === '身份补全' || card.status === 'done' || card.status === 'error') return card;
+      return { ...card, status: 'running', startedAt: card.startedAt || now, expanded: true };
+    });
+    this.roleCardLoadingState.open = true;
+    this.startLoadingTimer?.();
+  },
+
+  startActivationRoleCardLoading(name, options = {}) {
+    const includeRoleCards = options.includeRoleCards !== false;
+    const cards = [{
+      id: 'activation-identity',
+      name: name || '玩家',
+      type: '身份补全',
+      steps: [{ key: 'identity', text: 'AI 补全身份资料', status: 'waiting', total: 1 }],
+    }];
+    if (includeRoleCards) {
+      const users = this.inferActivationRoleCardUsers?.()
+        || this.inferWechatUsersFromProfile?.()
+        || window.GameModules.playerSetupActions?.inferActivationRoleCardUsers?.call(this)
+        || [];
+      cards.push({
+        id: 'player-self',
+        name: name || '玩家',
+        type: '玩家卡',
+        source: this.playerCharacterBase?.(),
+        context: this.playerSetupSummary?.() || '玩家本人资料',
+      });
+      users.forEach((user) => {
+        cards.push({
+          id: user.id || user.characterId,
+          name: user.name || user.relation || '关系角色',
+          type: '角色卡',
+          context: user.context || user.latest || '',
+        });
+      });
+    }
+    this.startRoleCardLoadingBatch?.(cards);
+  },
+
+  appendActivationRelationshipRoleCards() {
+    const users = this.inferActivationRoleCardUsers?.()
+      || this.inferWechatUsersFromProfile?.()
+      || window.GameModules.playerSetupActions?.inferActivationRoleCardUsers?.call(this)
+      || [];
+    const existing = new Set((this.roleCardLoadingState?.cards || []).map((card) => card.id));
+    users.forEach((user) => {
+      const id = user.id || user.characterId;
+      if (!id || existing.has(id)) return;
+      this.addRoleCardLoadingCard?.({
+        id,
+        name: user.name || user.relation || '关系角色',
+        type: '角色卡',
+        context: user.context || user.latest || '',
+      });
+    });
   },
 
   failRoleCardLoading(id, message = '生成失败') {
@@ -124,7 +202,7 @@ window.GameModules.roleCardLoadingActions = {
   },
 
   roleCardStepCanRetry(card = {}, step = {}) {
-    return ['profile', 'feeling', 'abilities', 'inventory', 'bodyProfile', 'dressedProfile', 'rpgField', 'state'].includes(step.key)
+    return ['profile', 'essentialPreferences', 'feeling', 'abilities', 'inventory', 'bodyProfile', 'dressedProfile', 'rpgField', 'state'].includes(step.key)
       && card.status !== 'running'
       && step.status !== 'running'
       && !step.retrying;
@@ -196,6 +274,7 @@ window.GameModules.roleCardLoadingActions = {
     const first = type === '玩家卡' ? '生成玩家身份 Part1' : '生成角色身份 Part1';
     return [
       { key: 'profile', text: first, status: 'waiting', total: 19 },
+      { key: 'essentialPreferences', text: '生成本质偏好五层', status: 'waiting', total: 5 },
       { key: 'feeling', text: '生成情感数值 Part2', status: 'waiting', total: 29 },
       { key: 'abilities', text: '生成能力职业 Part3', status: 'waiting', total: 3 },
       { key: 'inventory', text: '生成物品穿着 Part4', status: 'waiting', total: 13 },
@@ -208,10 +287,15 @@ window.GameModules.roleCardLoadingActions = {
 
   roleCardLoadingSummary() {
     const cards = this.roleCardLoadingState.cards || [];
+    const identity = cards.filter((card) => card.type === '身份补全');
     const player = cards.filter((card) => card.type === '玩家卡');
-    const role = cards.filter((card) => card.type !== '玩家卡');
+    const role = cards.filter((card) => card.type !== '玩家卡' && card.type !== '身份补全');
     const done = (items) => items.filter((card) => card.status === 'done').length;
-    return `正在加载(${done(player)}/${player.length} 玩家卡, ${done(role)}/${role.length} 角色卡) ${this.roleCardLoadingProgressText()}`;
+    const identityText = identity.length ? `${done(identity)}/${identity.length} 身份补全` : '';
+    const playerText = player.length ? `${done(player)}/${player.length} 玩家卡` : '';
+    const roleText = role.length ? `${done(role)}/${role.length} 角色卡` : '';
+    const parts = [identityText, playerText, roleText].filter(Boolean).join(', ');
+    return `正在加载(${parts}) ${this.roleCardLoadingProgressText()}`;
   },
 
   roleCardLoadingProgressText() {

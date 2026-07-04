@@ -44,7 +44,8 @@ window.GameModules.factionArchive = {
   },
 
   recordRealWorld(store, action = '', result = {}) {
-    const updateNames = (result.factionUpdates || []).map((item) => item.factionName || item.name || item.parentName).filter(Boolean);
+    const migrated = window.GameModules.updateRegistry?.migrateLegacyFactionUpdates?.(result) || result;
+    const updateNames = window.GameModules.updateRegistry?.orgNamesFromGenericUpdates?.(migrated.genericUpdates, store) || [];
     const text = [
       `现实行动：${action}`,
       result.locationName ? `地点：${result.locationName}` : '',

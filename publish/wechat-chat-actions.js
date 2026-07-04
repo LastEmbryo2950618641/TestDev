@@ -131,7 +131,7 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatChatActi
     catch (err) { console.warn('[微信] 回复前资料补全失败，继续用现有资料:', err.code, err.message, err.stack); }
     const prompt = await this.wechatReplyPrompt(contact, playerText);
     const result = await window.GameModules.jsonUtils.generateJsonWithRetry({
-      source: 'wechat-chat-reply', model: this.modelId || this.settingsState?.textModelId, timeoutMs: 60000, prompt, format: prompt, max: 2,
+      source: 'wechat-chat-reply', promptId: 'wechat-chat-reply', model: this.modelId || this.settingsState?.textModelId, timeoutMs: 60000, prompt, format: prompt, max: 2,
       parse: (text) => window.GameModules.jsonUtils.parseLoose(text),
       validate: (raw) => this.validateWechatReply(raw, contact),
     });
@@ -147,7 +147,7 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatChatActi
     const archive = await this.searchMemoryArchive?.(characterId, playerText) || '无';
     const memoryContext = this.wechatMemoryContext?.(characterId, playerText) || this.memoryQueryContext?.(characterId, playerText) || '暂无人物记忆。';
     const historyContext = await this.wechatHistoryContextForReply?.(characterId, playerText, memoryContext) || this.wechatHistoryQueryHint?.(characterId) || '微信历史默认不载入；需要核对原文时再查询固定历史表。';
-    return window.GameModules.promptTemplates.render('wechat-chat-reply', {
+    return window.GameModules.renderPrompt('wechat-chat-reply', {
       玩家基础资料区: player.playerBasic,
       玩家现实身份区: player.playerIdentity,
       玩家居住家庭区: player.playerHome,

@@ -67,6 +67,8 @@ window.GameModules.systemTestActions = {
         ],
         maxTokens: 200,
         timeoutMs: 30000,
+        jsonMode: false,
+        outputLimitKind: 'other',
       });
       state.result = fullText || '请求成功，但返回为空。';
     } catch (err) {

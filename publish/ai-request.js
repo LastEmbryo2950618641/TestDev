@@ -19,6 +19,30 @@ window.GameModules.aiRequest = {
   lastStartedAt: 0,
   minGapMs: 1600,
   cooldownUntil: 0,
+  activationBurstDepth: 0,
+  _savedThrottle: null,
+
+  beginActivationBurst() {
+    this.activationBurstDepth = (this.activationBurstDepth || 0) + 1;
+    if (this.activationBurstDepth > 1) return;
+    this._savedThrottle = { maxConcurrent: this.maxConcurrent, minGapMs: this.minGapMs };
+    const burst = window.GameModules.config?.aiRequest?.activationBurst || {};
+    this.maxConcurrent = Math.max(this.maxConcurrent, Number(burst.maxConcurrent) || 8);
+    this.minGapMs = Math.min(this.minGapMs, Number.isFinite(Number(burst.minGapMs)) ? Number(burst.minGapMs) : 400);
+    this.log('激活加速', { maxConcurrent: this.maxConcurrent, minGapMs: this.minGapMs });
+  },
+
+  endActivationBurst() {
+    if (!this.activationBurstDepth) return;
+    this.activationBurstDepth -= 1;
+    if (this.activationBurstDepth > 0) return;
+    if (this._savedThrottle) {
+      this.maxConcurrent = this._savedThrottle.maxConcurrent;
+      this.minGapMs = this._savedThrottle.minGapMs;
+      this._savedThrottle = null;
+      this.log('激活加速结束', { maxConcurrent: this.maxConcurrent, minGapMs: this.minGapMs });
+    }
+  },
 
   wait(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); },
 
@@ -28,6 +52,35 @@ window.GameModules.aiRequest = {
 
   outputLengthThreshold(options = {}) {
     return Number(options.outputLengthThreshold || 2400);
+  },
+
+  outputLimitSetting(options = {}) {
+    const store = window.Alpine?.store?.('game');
+    const settings = store?.settingsState || {};
+    const kind = String(options.outputLimitKind || 'other');
+    const prefixes = {
+      stage1: 'aiOutputLimitStage1',
+      stage2: 'aiOutputLimitStage2',
+      stage3: 'aiOutputLimitStage3',
+      stage4: 'aiOutputLimitStage4',
+      other: 'aiOutputLimitOther',
+    };
+    const prefix = prefixes[kind] || prefixes.other;
+    const defaultModes = { global: 'unlimited', stage1: 'global', stage2: 'global', stage3: 'limited', stage4: 'global', other: 'global' };
+    const stageMode = String(settings[`${prefix}Mode`] || defaultModes[kind] || 'global');
+    const mode = stageMode === 'global' ? String(settings.aiOutputLimitGlobalMode || defaultModes.global) : stageMode;
+    if (mode !== 'limited') return null;
+    const value = stageMode === 'global' ? (settings.aiOutputLimitGlobalMaxTokens ?? 3000) : (settings[`${prefix}MaxTokens`] ?? 3000);
+    const limit = Math.floor(Number(value) || 0);
+    return limit > 0 ? limit : null;
+  },
+
+  configuredMaxTokens(options = {}) {
+    const limit = this.outputLimitSetting(options);
+    if (!limit) return options.maxTokens;
+    if (options.maxTokens === undefined || options.maxTokens === null || options.maxTokens === '') return limit;
+    const requested = Math.floor(Number(options.maxTokens));
+    return Number.isFinite(requested) ? Math.min(requested, limit) : limit;
   },
 
   outputTailLooksTruncated(text) {
@@ -62,7 +115,7 @@ window.GameModules.aiRequest = {
     if (raw === undefined || raw === null) return undefined;
     const tokens = Math.floor(Number(raw));
     if (!Number.isFinite(tokens)) return undefined;
-    return Math.max(200, Math.min(3000, tokens));
+    return Math.max(16, Math.min(64000, tokens));
   },
 
   countSource(source) {
@@ -148,7 +201,7 @@ window.GameModules.aiRequest = {
   },
 
   async complete(options = {}) {
-    const providerId = window.GameModules.aiProvider?.currentProviderId?.() || 'dzmm';
+    const providerId = window.GameModules.aiProvider?.currentProviderId?.() || 'deepseek';
     const provider = window.GameModules.aiProvider?.currentProvider?.();
     if (typeof provider?.complete !== 'function') {
       throw new Error(`text AI provider ${providerId} unavailable: complete`);
@@ -157,7 +210,7 @@ window.GameModules.aiRequest = {
     const source = options.source || 'unknown';
     const messages = options.messages || [{ role: 'user', content: options.prompt || '' }];
     const model = this.selectedTextModel(options.model);
-    const maxTokens = this.clampMaxTokens(options.maxTokens, 2600);
+    const maxTokens = this.clampMaxTokens(this.configuredMaxTokens(options), undefined);
     const enqueueAt = Date.now();
     const tokenRecordId = window.GameModules.tokenStats?.record?.(source, messages.map((msg) => String(msg?.content || '')).join('\n'), { ...(options.tokenMeta || {}), model, maxTokens });
     const sourceCount = this.countSource(source);
@@ -229,6 +282,14 @@ window.GameModules.aiRequest = {
     let buffer = '';
     let chunkCount = 0;
     let doneSeen = false;
+    let responseMeta = {};
+    const mergeResponseMeta = (meta = {}) => {
+      if (!meta || typeof meta !== 'object') return;
+      if (meta.usage) responseMeta.usage = meta.usage;
+      if (meta.deepseekCache) responseMeta.deepseekCache = meta.deepseekCache;
+      if (meta.deepseekReasoning) responseMeta.deepseekReasoning = meta.deepseekReasoning;
+      if (meta.provider) responseMeta.provider = meta.provider;
+    };
     let callbackChain = Promise.resolve();
     const startAt = Date.now();
     this.actualCount += 1;
@@ -240,7 +301,8 @@ window.GameModules.aiRequest = {
     const request = provider.complete({
       ...options,
       payload,
-      onChunk: async (chunk, done) => {
+      onChunk: async (chunk, done, providerInfo = {}) => {
+        mergeResponseMeta(providerInfo);
         const text = String(chunk || '');
         if (text) {
           chunkCount += 1;
@@ -248,20 +310,20 @@ window.GameModules.aiRequest = {
           if (options.logChunks && (chunkCount === 1 || chunkCount % 20 === 0)) this.log('流式片段', { id: options.id, source: options.source, chunkCount, length: buffer.length });
         }
         if (done) doneSeen = true;
-        const info = { id: options.id, source: options.source, buffer, chunkCount, done: Boolean(done), doneSeen };
+        const info = { id: options.id, source: options.source, buffer, chunkCount, done: Boolean(done), doneSeen, ...responseMeta };
         callbackChain = callbackChain.then(async () => {
           await options.onChunk?.(text, Boolean(done), info);
           if (done) await options.onDone?.(info);
         });
       },
-      onDone: async () => {},
+      onDone: async (providerInfo = {}) => { mergeResponseMeta(providerInfo); },
     });
     await this.timeout(Promise.resolve(request).then(() => callbackChain), options.timeoutMs, options.source);
     if (options.requireDone && !doneSeen) throw new Error(`${options.source}流式未完成`);
     this.completedCount += 1;
     const risk = this.outputLengthRisk(buffer, options);
     this.log('完成', { id: options.id, source: options.source, chunkCount, length: risk.length, outputThreshold: risk.threshold, overThreshold: risk.overThreshold, tailLooksTruncated: risk.tailLooksTruncated, possibleTruncated: risk.overThreshold || risk.tailLooksTruncated, doneSeen, durationMs: Date.now() - startAt });
-    this.logRawResponse(options, buffer, { chunkCount, doneSeen, durationMs: Date.now() - startAt });
+    this.logRawResponse(options, buffer, { chunkCount, doneSeen, durationMs: Date.now() - startAt, ...responseMeta });
     window.GameModules.tokenStats?.recordResponse?.(options.tokenRecordId, buffer);
     if (risk.overThreshold || risk.tailLooksTruncated) {
       console.debug('[AI请求] 返回长度可能被截断:', { id: options.id, source: options.source, length: risk.length, threshold: risk.threshold, overThreshold: risk.overThreshold, tailLooksTruncated: risk.tailLooksTruncated, doneSeen, tailPreview: buffer.slice(-180) });

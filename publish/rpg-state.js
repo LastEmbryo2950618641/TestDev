@@ -134,6 +134,10 @@ window.GameModules.rpgState = {
       state.values.force_positions = forces;
       changed = true;
     }
+    if (state.values.force_positions?.length || state.values.memberships?.length) {
+      window.GameModules.orgTerritory?.syncCharacterOrgMemberships?.(state, null);
+      changed = true;
+    }
     return changed;
   },
 

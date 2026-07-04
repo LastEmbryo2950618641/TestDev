@@ -1,0 +1,272 @@
+/* 首页菜单 */
+.home-menu-screen {
+  position: relative;
+  z-index: 20;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: radial-gradient(circle at top, rgba(255, 214, 170, 0.18), transparent 55%),
+    linear-gradient(160deg, #0f1118 0%, #171b26 45%, #10131c 100%);
+}
+
+.home-menu-card {
+  width: min(920px, 100%);
+  background: rgba(18, 22, 32, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 28px 24px 24px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  color: #eef2ff;
+}
+
+.home-menu-card h1 {
+  margin: 0 0 8px;
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+}
+
+.home-menu-card .intro {
+  margin: 0 0 20px;
+  color: rgba(238, 242, 255, 0.72);
+  line-height: 1.6;
+}
+
+.home-menu-actions {
+  display: grid;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.home-menu-actions .primary-btn,
+.home-menu-actions .ghost-wide {
+  width: 100%;
+  justify-content: center;
+}
+
+.home-message {
+  margin-top: 12px;
+  color: #ffb4b4;
+  font-size: 0.92rem;
+}
+
+.home-load-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: rgba(8, 10, 16, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.home-load-card {
+  width: min(420px, 100%);
+  background: rgba(18, 22, 32, 0.96);
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.home-save-panel {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.home-save-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.home-save-row small {
+  display: block;
+  color: rgba(238, 242, 255, 0.55);
+}
+
+/* 人生取向向导 — 复用手机激活框（phone-setup-screen / activation-form） */
+.aspiration-wizard-screen {
+  position: relative;
+  z-index: 20;
+}
+
+.aspiration-wizard-card {
+  color: #eef2ff;
+}
+
+.aspiration-wizard-card .intro,
+.aspiration-wizard-card .psych-pref-intro {
+  margin: 0 0 14px;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.55;
+}
+
+.aspiration-step-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.aspiration-step-head .eyebrow {
+  margin: 0;
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+  color: rgba(127, 229, 255, 0.9);
+}
+
+.aspiration-step-head h2 {
+  margin: 4px 0 0;
+  font-size: 1.25rem;
+  color: #fff;
+}
+
+.aspiration-progress {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.72);
+  white-space: nowrap;
+  text-align: right;
+  line-height: 1.4;
+}
+
+.aspiration-alignment-list {
+  gap: 10px !important;
+  padding: 0 !important;
+}
+
+.aspiration-alignment-choice {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  min-height: auto;
+  place-items: start;
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.aspiration-alignment-choice strong {
+  font-size: 15px;
+}
+
+.aspiration-alignment-choice small {
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.45;
+}
+
+.aspiration-slider-block {
+  margin-bottom: 16px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.aspiration-slider-block label {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 0.92rem;
+}
+
+.aspiration-slider-block small {
+  display: block;
+  margin-top: 6px;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.45;
+}
+
+.aspiration-slider-block input[type="range"] {
+  width: 100%;
+}
+
+.psych-pref-group {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.psych-pref-group h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  color: #fff;
+}
+
+.psych-lane-label {
+  margin: 8px 0 6px;
+  font-size: 0.82rem;
+  color: rgba(127, 229, 255, 0.9);
+}
+
+.psych-tag-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.psych-tag-btn {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  padding: 6px 12px;
+  font-size: 0.86rem;
+}
+
+.psych-tag-btn.selected {
+  border-color: rgba(127, 229, 255, 0.9);
+  background: rgba(127, 229, 255, 0.18);
+}
+
+.psych-tag-btn:disabled {
+  opacity: 0.45;
+}
+
+.psych-custom-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.psych-custom-row .text-input {
+  flex: 1;
+}
+
+.aspiration-summary-box,
+.aspiration-goals-box {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 14px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.aspiration-goals-box p {
+  margin: 0 0 10px;
+}
+
+.aspiration-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.aspiration-error {
+  margin-top: 12px;
+  color: #ffb4b4;
+}
+
+.aspiration-busy-line {
+  margin-top: 10px;
+  color: rgba(255, 255, 255, 0.72);
+}

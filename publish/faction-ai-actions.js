@@ -28,6 +28,8 @@ window.GameModules.factionAiActions = {
     const prompt = await this.factionPrompt();
     await window.GameModules.aiRequest.complete({
       source: 'faction-audit', model: this.modelId || this.settingsState?.textModelId, prompt, timeoutMs: 60000,
+      ...(window.GameModules.promptSkills?.completionOptions?.('faction-audit') || { jsonMode: true, responseFormat: { type: 'json_object' }, outputLimitKind: 'other' }),
+      requireDone: true,
       onChunk: (content, done, info) => {
         if (requestId !== this.factionState.requestId) return;
         buffer = info.buffer;
@@ -38,7 +40,7 @@ window.GameModules.factionAiActions = {
 
   factionPrompt() {
     const p = this.playerProfile || {}, company = this.currentCompany?.() || {};
-    return window.GameModules.promptTemplates.render('faction-audit', { 玩家姓名: p.name || '玩家', 玩家地址: p.refinedCity || p.city || '未知', 玩家身份: p.refinedRole || p.dailyRole || '未知', 当前公司: company.name || p.workplace || '未知公司', 公司行业: company.industry || '未知', 公司地点: company.location || p.refinedCity || p.city || '未知', 已有势力: JSON.stringify(this.factionState.factions || []), 额外要求: this.factionState.customPrompt || '无' });
+    return window.GameModules.renderPrompt('faction-audit', { 玩家姓名: p.name || '玩家', 玩家地址: p.refinedCity || p.city || '未知', 玩家身份: p.refinedRole || p.dailyRole || '未知', 当前公司: company.name || p.workplace || '未知公司', 公司行业: company.industry || '未知', 公司地点: company.location || p.refinedCity || p.city || '未知', 已有势力: JSON.stringify(this.factionState.factions || []), 额外要求: this.factionState.customPrompt || '无' });
   },
 
   parseFactions(text) {
@@ -92,15 +94,18 @@ window.GameModules.factionAiActions = {
   },
 
   applyGeneratedFactions(items) {
+    const ot = window.GameModules.orgTerritory;
     const map = new Map(this.factionState.factions.map((x) => [x.id, { ...x, fieldReasons: this.completeFactionReasons(x, x.fieldReasons) }]));
     items.forEach((item) => {
       const existing = map.get(item.id);
-      if (existing) map.set(item.id, this.mergeExistingFaction(existing, item));
-      else map.set(item.id, { ...item, changeLog: [{ field: 'all', reason: '数据库无该势力，AI根据上下文与部分构成初始化并固化。', at: item.updatedAt, action: 'add' }] });
+      const sanitized = ot?.sanitizeAuditFaction?.({ ...(existing || {}), ...item }, this, existing) || item;
+      if (existing) map.set(item.id, this.mergeExistingFaction(existing, sanitized));
+      else map.set(item.id, { ...sanitized, changeLog: [{ field: 'all', reason: '数据库无该势力，AI根据上下文与部分构成初始化并固化。', at: sanitized.updatedAt, action: 'add' }] });
     });
     this.factionState.factions = [...map.values()].map((item) => this.normalizeFactionStructure(item));
     this.syncCompanyFaction();
     this.syncRoleCardFactionPositions?.();
+    window.GameModules.orgTerritory?.validateWorldConsistency?.(this);
     if (!this.selectedFaction()) this.factionState.selectedId = this.factionState.factions[0]?.id || '';
   },
 };

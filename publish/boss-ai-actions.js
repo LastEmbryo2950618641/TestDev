@@ -48,6 +48,8 @@ window.GameModules.bossAiActions = {
     const prompt = await this.bossJobsPrompt(count, chunkIndex, chunkTotal);
     await window.GameModules.aiRequest.complete({
       source: chunkTotal > 1 ? `boss-jobs-${chunkIndex}` : 'boss-jobs', model: this.modelId || this.settingsState?.textModelId, prompt, timeoutMs: 60000,
+      ...(window.GameModules.promptSkills?.completionOptions?.('boss-jobs') || { jsonMode: true, responseFormat: { type: 'json_object' }, outputLimitKind: 'other' }),
+      requireDone: true,
       onChunk: (content, done, info) => {
         if (this.bossState.requestId) buffer = info.buffer;
         if (done) this.bossState.generationDoneAt = this.phoneDateText?.() || '';
@@ -56,11 +58,12 @@ window.GameModules.bossAiActions = {
     return buffer;
   },
 
-  bossJobsPrompt(count = Number(this.bossState.pageSize) || 10, chunkIndex = 1, chunkTotal = 1) {
+  async bossJobsPrompt(count = Number(this.bossState.pageSize) || 10, chunkIndex = 1, chunkTotal = 1) {
     const f = this.bossState.filters, area = [f.province, f.city, f.county, f.town].filter(Boolean).join(' ') || '不限，优先玩家所在地';
     const player = this.bossState.usePlayerFit ? this.bossPlayerFitPrompt() : '关闭玩家适配：像真实招聘软件一样随机混合热门、冷门、白领、蓝领、创作者、兼职岗位。';
     const chunkNote = chunkTotal > 1 ? `这是第${chunkIndex}/${chunkTotal}批岗位，必须生成与其它批次不同的公司和职位。` : '无分批，本次一次性生成。';
-    return window.GameModules.promptTemplates.render('boss-jobs', { 数量: count, 玩家能力: this.bossPlayerAbilitiesPrompt(), 领域: f.industry || '不限', 规模: f.scale || '不限', 地址: area, 类型: f.payType || '不限', 底薪: `${f.baseMin || '不限'}-${f.baseMax || '不限'}`, 绩效: f.performanceMonths || '不限', 创作者薪酬: f.creatorPay || '不限', 等级: f.creatorLevel || '不限', 玩家适配: player, 分批信息: chunkNote, 玩家输入: String(this.bossState.customPrompt || '').trim() || '无', 随机种子: `${this.bossState.randomSeed || Date.now()}-${chunkIndex}` });
+    const body = await window.GameModules.renderPrompt('boss-jobs', { 数量: count, 玩家能力: this.bossPlayerAbilitiesPrompt(), 领域: f.industry || '不限', 规模: f.scale || '不限', 地址: area, 类型: f.payType || '不限', 底薪: `${f.baseMin || '不限'}-${f.baseMax || '不限'}`, 绩效: f.performanceMonths || '不限', 创作者薪酬: f.creatorPay || '不限', 等级: f.creatorLevel || '不限', 玩家适配: player, 分批信息: chunkNote, 玩家输入: String(this.bossState.customPrompt || '').trim() || '无', 随机种子: `${this.bossState.randomSeed || Date.now()}-${chunkIndex}` });
+    return `${body}\n\nDeepSeek JSON mode override: return one valid JSON object only, not a root array. The root object must be {"jobs":[...]}, and jobs must contain exactly ${count} job objects.`;
   },
 
   bossPlayerFitPrompt() {

@@ -259,12 +259,36 @@ window.GameModules.storyAgentContext = {
     return pool.slice(0, count);
   },
 
+  stage1BlockedMaterialText(skill = '', method = '', policy = 'deny', step = 1) {
+    const loader = window.GameModules.realWorldAgentContextParts?.materialLoader;
+    if (loader?.stage1BlockedMaterialText) {
+      const text = loader.stage1BlockedMaterialText(skill, method, policy, step);
+      if (policy === 'deep' && skill === 'worklore.query') {
+        return text.replace('控势摘要 resolveTerritoryBrief 或势力列表/档案搜索等浅读 skill', 'getReadme、searchPeople、searchTimeline 等浅读 skill');
+      }
+      return text;
+    }
+    return `资料请求未执行：${skill}.${method}`;
+  },
+
   async loadRequests(store, action, requests = [], loadedKeys = new Set(), materialSession = null, materials = window.GameModules.workLoreMaterials, memoryIds = new Set(), loaded = [], current = [], options = {}) {
+    const step = Number(options?.step || 1);
     const out = [];
     for (const req of requests.slice(0, options.limit || 3)) {
       const skill = String(req?.skill || '').trim();
       const method = String(req?.method || '').trim();
       const params = req?.params && typeof req.params === 'object' ? req.params : {};
+      if (!skill || !method) continue;
+      if (materials?.isStage1Eligible && !materials.isStage1Eligible({ skill, method }, step)) {
+        const policy = materials.stage1PolicyFor?.({ skill, method }) || 'deny';
+        materials.recordStage1Block?.(materialSession, store, { skill, method, params }, policy, step);
+        out.push({
+          title: `blocked:${skill}.${method}`,
+          text: this.stage1BlockedMaterialText(skill, method, policy, step),
+          max: 260,
+        });
+        continue;
+      }
       const memoryTarget = skill === 'memory.query' ? String(params.characterId || params.id || store.character?.id || '').trim() : '';
       const broadMemory = memoryTarget && this.isBroadMemoryRequest(method, params);
       if (broadMemory && memoryIds.has(memoryTarget)) continue;

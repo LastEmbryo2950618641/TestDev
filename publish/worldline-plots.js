@@ -38,14 +38,16 @@ window.GameModules.worldlinePlots = {
     const fallback = this.fallback(plot, events);
     let summary = fallback;
     try {
+      const prompt = await this.prompt(plot, events);
       summary = await window.GameModules.jsonUtils.generateJsonWithRetry({
         source: 'worldline-plot',
+        promptId: 'worldline-plot-summary',
         model: store.modelId,
         timeoutMs: 90000,
         maxTokens: 1800,
         outputLengthThreshold: 1600,
-        prompt: this.prompt(plot, events),
-        format: this.prompt(plot, events),
+        prompt,
+        format: prompt,
         max: 2,
         parse: (text) => window.GameModules.jsonUtils.parseLoose(text),
         validate: (raw) => this.normalize(raw, fallback),
@@ -57,7 +59,7 @@ window.GameModules.worldlinePlots = {
     line.plots = [...(line.plots || []).filter((item) => item.情节编号 !== plot.情节编号), summary];
   },
 
-  prompt(plot, events) {
+  async prompt(plot, events) {
     const body = events.map((event) => [
       `记录编号:${event.eventId}`,
       `时间:${event.time || ''}`,
@@ -65,15 +67,11 @@ window.GameModules.worldlinePlots = {
       `状态:${event.status || ''}`,
       `详细:${this.compactText(event.detail || '', 900)}`,
     ].join('\n')).join('\n---\n');
-    return [
-      '你是世界线索引员。只输出一个合法 JSON 对象，不要 Markdown、代码块或解释。',
-      '目标：为后续现实推演动态检索生成短结构索引，不写长篇总结，不改写事实。',
-      '情节标题不超过10个汉字；短摘要300-600字；关键事实最多12条，每条不超过80字；检索标签最多16个；重要片段必须来自记录原文。',
-      '重要记录编号必须是一个字符串，用顿号连接记录编号；不要输出数组。',
-      JSON.stringify({ 情节标题: '十字以内', 情节编号: plot.情节编号, 情节时间段: '开始时间 - 结束时间', 短摘要: '300-600字短摘要', 情节总结: '同短摘要，兼容旧字段', 关键事实: ['事实1'], 检索标签: ['人物/地点/关系/物品/状态关键词'], 重要记录编号: 'record_id', 重要片段: '来自原文的关键片段' }),
-      `情节编号固定为${plot.情节编号}。`,
-      body,
-    ].join('\n');
+    return window.GameModules.renderPrompt('worldline-plot-summary', {
+      schemaExample: JSON.stringify({ 情节标题: '十字以内', 情节编号: plot.情节编号, 情节时间段: '开始时间 - 结束时间', 短摘要: '300-600字短摘要', 情节总结: '同短摘要，兼容旧字段', 关键事实: ['事实1'], 检索标签: ['人物/地点/关系/物品/状态关键词'], 重要记录编号: 'record_id', 重要片段: '来自原文的关键片段' }),
+      plotId: plot.情节编号,
+      eventsText: body,
+    });
   },
 
   normalize(raw, fallback) {

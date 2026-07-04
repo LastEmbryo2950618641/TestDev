@@ -52,7 +52,7 @@ Object.assign(window.GameModules.playerSetupActions, {
     const reasonFor = (field) => manual.includes(field.label)
       ? `${field.label}来自玩家激活手机时主动填写的表单值。`
       : `${field.label}由AI结合玩家姓名、生日、城市、身份、居住状态和备注补全为当前值。`;
-    await window.GameModules.rpgLexicon.saveMany(this.playerProfileLexiconFields().map((field) => ({ worldTag, kind: '玩家设定', name: field.label, value: field.raw || field.value, summary: field.value, description: field.desc, reason: reasonFor(field), nameAiGenerated: false, valueAiGenerated: !manual.includes(field.label), changeMode: manual.includes(field.label) ? '用户主动填写' : 'AI补全玩家设定', source: 'ai', meta: { targetType: '非角色', commonField: true, playerName: p.name || this.playerName } })));
+    await window.GameModules.rpgLexicon.saveMany(this.playerProfileFieldsForView().map((field) => ({ worldTag, kind: '玩家设定', name: field.label, value: field.raw || field.value, summary: field.value, description: field.desc, reason: reasonFor(field), nameAiGenerated: false, valueAiGenerated: !manual.includes(field.label), changeMode: manual.includes(field.label) ? '用户主动填写' : 'AI补全玩家设定', source: 'ai', meta: { targetType: '非角色', commonField: true, playerName: p.name || this.playerName } })));
   },
   fallbackParentDeathCause(age) { return age && age < 18 ? '数年前因一场夜间交通事故相继离世，具体细节由后续剧情逐步揭开。' : '多年前因突发交通事故离世，留下的生活痕迹仍影响玩家的现实处境。'; },
   reopenPlayerSetup() { this.phoneSetupDone = false; this.phoneActivationChoice = ''; },

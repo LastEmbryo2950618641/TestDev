@@ -2,7 +2,7 @@
 id: faction.query
 category: 势力查询
 name: 势力系统查询与调整
-method: listFactions(), searchFactionOne(keyword), getFactionDetail(name), upsertFaction(payload), addFactionPosition(payload)
+method: listFactions(), searchFactionOne(keyword), getFactionDetail(name), upsertFaction(payload), addFactionPosition(payload), listMemberships(params), getTerritoryControl(params), resolveTerritoryBrief(params)
 params: keyword/name/factionName/parentName/position/characterName/reason 等
 returns: 势力列表、势力详情、新增或调整后的势力与职位角色
 trigger: 现实世界推演中，行动涉及国家、公司、学校、社区、家庭、组织、部门、下属单位、职位、角色势力地位或组织关系时查询或调整。
@@ -22,6 +22,9 @@ trigger: 现实世界推演中，行动涉及国家、公司、学校、社区�
 4. `searchFactionArchive(keyword)`：按关键词读取相关势力资料库最近档案片段。
 5. `upsertFaction(payload)`：新增或调整势力；payload 可含 name、type、parentName、level、location、domain、scale、stance、influence、description、structure、rules、resources、relations、reason。
 6. `addFactionPosition(payload)`：给势力新增职位与角色占位；payload 含 factionName、position、characterName、reason。角色未知时 characterName 写“未知”。
+7. `listMemberships(params)`：列出势力或全部角色的 orgId 人事归属（membership 与 structure 占坑合并视图）；params 可含 name/factionName。
+8. `getTerritoryControl(params)`：读取地点控势一行与时间轴；params 含 locationName。
+9. `resolveTerritoryBrief(params)`：读取地点控势摘要（无完整时间轴）；params 含 locationName，空则返回已揭示地点控势列表。
 
 ## 使用规则
 

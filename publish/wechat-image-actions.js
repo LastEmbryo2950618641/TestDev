@@ -135,7 +135,7 @@ window.GameModules.wechatImageActions = {
     const contact = this.wechatContacts?.().find((item) => item.id === characterId) || this.wechatSelected?.() || {};
     const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId) || await this.ensureWechatUserProfile?.(contact);
     const memory = this.wechatMemorySections(characterId);
-    const prompt = await window.GameModules.promptTemplates.render('wechat-image-prompt-collect', {
+    const prompt = await window.GameModules.renderPrompt('wechat-image-prompt-collect', {
       联系人资料区: this.wechatContactProfileText(contact),
       目标状态快照: window.GameModules.promptSections.stateSnapshot(this, state),
       短期记忆区: memory.shortText,
@@ -151,6 +151,7 @@ window.GameModules.wechatImageActions = {
       maxTokens: 500,
       timeoutMs: 60000,
       requireDone: true,
+      ...(window.GameModules.promptSkills?.completionOptions?.('wechat-image-prompt-collect') || { jsonMode: false, outputLimitKind: 'other' }),
       tokenMeta: { title: `微信图片提示词收集｜${contact.name || '联系人'}`, category: '图片生成', summary: '根据微信联系人记忆和穿戴生成图片编辑动态标签。', kind: 'completion' },
     });
     return window.GameModules.applyPictureGenerateSensitiveReplacements?.(this.cleanWechatImageTags(output)).slice(0, 1000) || this.cleanWechatImageTags(output).slice(0, 1000);
@@ -175,7 +176,7 @@ window.GameModules.wechatImageActions = {
     this.updateWechatImageMessage(msg, { imageStatus: 'generating' });
     try {
       const tags = await this.buildWechatImageTags(msg);
-      const prompt = await window.GameModules.promptTemplates.render('common-image-edit-generate', { 动态标签: tags });
+      const prompt = await window.GameModules.renderPrompt('common-image-edit-generate', { 动态标签: tags });
       const drawOptions = { prompt: prompt.slice(0, 2000), images: [photo.url], dimension: '2:3', model: 'lite' };
       const tokenRecordId = window.GameModules.tokenStats?.record?.('draw-edit-wechat-image', drawOptions.prompt, { model: drawOptions.model, title: '微信图片编辑生成', category: '图片生成', summary: '使用角色真实照片编辑生成微信图片。', kind: 'draw' });
       const result = await this.wechatDrawWithRetry(() => window.dzmm.draw.edit(drawOptions));

@@ -5,7 +5,17 @@ window.GameModules.factionActions = {
     const base = window.GameModules.factionSystem.defaultState(this.playerProfile || {});
     this.factionState = { ...base, ...(this.factionState || {}) };
     this.factionState.factions = this.factionState.factions?.length ? this.factionState.factions : base.factions;
-    this.factionState.factions = this.factionState.factions.map((faction) => this.normalizeFactionStructure({ ...faction, fieldReasons: this.completeFactionReasons?.(faction, faction.fieldReasons) || faction.fieldReasons || {} }));
+    this.factionState.factions = this.factionState.factions.map((faction) => {
+      const normalized = window.GameModules.orgTerritory?.normalizeFaction?.(
+        this.normalizeFactionStructure({ ...faction, fieldReasons: this.completeFactionReasons?.(faction, faction.fieldReasons) || faction.fieldReasons || {} }),
+        this,
+      ) || this.normalizeFactionStructure({ ...faction, fieldReasons: this.completeFactionReasons?.(faction, faction.fieldReasons) || faction.fieldReasons || {} });
+      return normalized;
+    });
+    window.GameModules.factionOrgForest?.migrateFactionForest?.(this);
+    this.syncAllCharacterMemberships?.();
+    window.GameModules.orgTerritory?.validateWorldConsistency?.(this);
+    window.GameModules.orgTerritoryActions?.syncPlayerWealthAsset?.(this);
     const top = base.factions[0];
     if (top && !this.factionState.factions.some((faction) => faction.id === top.id || faction.name === top.name)) this.factionState.factions.unshift(top);
     if (top) this.factionState.factions.sort((a, b) => (a.id === top.id ? -1 : b.id === top.id ? 1 : 0));
@@ -22,7 +32,20 @@ window.GameModules.factionActions = {
     if (!item) return;
     const expectedTop = window.GameModules.factionSystem.countryFaction(this.playerProfile || {});
     const top = this.factionState.factions.find((x) => x.id === expectedTop.id || x.name === expectedTop.name) || this.factionState.factions.find((x) => x.type === '国家' && !x.parentId) || expectedTop;
-    const updates = { name: c.name, type: c.type || item.type, location: c.location || item.location, domain: c.industry || item.domain, parentId: top.id, parentName: top.name };
+    const forest = window.GameModules.factionOrgForest;
+    const corpRootId = forest?.domainRootId?.(top.id, 'corp') || top.id;
+    const corpRoot = this.factionState.factions.find((x) => x.id === corpRootId);
+    const updates = {
+      name: c.name,
+      type: c.type || item.type,
+      location: c.location || item.location,
+      domain: c.industry || item.domain,
+      orgDomain: 'corp',
+      ownership: item.ownership || 'private',
+      foundingType: item.foundingType || 'independent',
+      parentId: corpRootId,
+      parentName: corpRoot?.name || forest?.DOMAIN_LABELS?.corp || '经济组织',
+    };
     const changed = Object.keys(updates).filter((key) => updates[key] !== item[key]);
     Object.assign(item, updates);
     if (changed.length) item.changeLog = [{ field: changed.join('、'), reason: '根据当前公司系统上下文同步公司势力基础字段。', at: new Date().toISOString(), action: 'adjust' }, ...(item.changeLog || [])];
@@ -30,9 +53,11 @@ window.GameModules.factionActions = {
   },
 
   normalizeFactionStructure(faction = {}) {
-    faction.structure = (faction.structure || []).map((node) => {
+    const ot = window.GameModules.orgTerritory;
+    faction.structure = (faction.structure || []).map((node, index) => {
       const name = node.name === '角色卡势力地位' ? this.factionPositionNodeName(faction, node.roles?.[0]?.title) : node.name;
-      return { ...node, name, roles: this.normalizeFactionRoles(node.roles) };
+      const base = { ...node, name, roles: node.roles };
+      return ot?.normalizeStructureNode?.(base, faction, index, this) || { ...base, roles: this.normalizeFactionRoles(node.roles) };
     });
     return faction;
   },
@@ -43,6 +68,8 @@ window.GameModules.factionActions = {
   },
 
   normalizeFactionRoles(roles = []) {
+    const ot = window.GameModules.orgTerritory;
+    if (ot?.normalizeRole) return (Array.isArray(roles) ? roles : []).map((role) => ot.normalizeRole(role, this));
     return (Array.isArray(roles) ? roles : []).map((role) => {
       if (typeof role === 'string') return { title: role, characters: ['未知'] };
       const title = String(role?.title || role?.name || role?.position || '未命名职位').trim();
@@ -119,6 +146,22 @@ window.GameModules.factionActions = {
     if (!changed) return;
     faction.updatedAt = at;
     faction.changeLog = [{ field: 'structure', reason, at, action: 'add-position' }, ...(faction.changeLog || [])].slice(0, 50);
+    if (character && character !== '未知') {
+      const charState = window.GameModules.orgTerritory?.findCharacterStateByName?.(this, character);
+      if (charState) {
+        window.GameModules.orgTerritory?.upsertCharacterMembership?.(charState, {
+          orgId: faction.id,
+          orgName: faction.name,
+          title,
+          department: nodeName,
+          departmentFog: false,
+          since: at,
+          reason,
+        }, this);
+        this.rpgStates = { ...(this.rpgStates || {}), [charState.id]: charState };
+        window.GameModules.sqliteSave?.saveCharacterState?.(charState);
+      }
+    }
   },
 
   openFactionApp() {
@@ -165,6 +208,8 @@ window.GameModules.factionActions = {
 
   openFactionOrgChart() {
     if (!this.factionState) this.initFactionSystem();
+    if (!this.factionState.orgChartMode) this.factionState.orgChartMode = 'forest';
+    if (!this.factionState.forestTab) this.factionState.forestTab = 'corp';
     this.refreshFactionOrgCache?.();
     this.factionState.orgChartOpen = true;
   },
@@ -190,11 +235,87 @@ window.GameModules.factionActions = {
   },
 
   factionParentName(faction) {
+    const forest = window.GameModules.factionOrgForest;
+    const affiliated = forest?.resolveAffiliatedFaction?.(faction, this.factionState?.factions || []);
+    if (forest) {
+      if (affiliated?.name) return affiliated.name;
+      if (!faction?.parentId) return '无势力归属';
+      if (faction?.foundingType === 'independent') return '独立组织';
+      return '无势力归属';
+    }
     if (!faction?.parentId) return '无势力归属';
     return this.factionState.factions.find((x) => x.id === faction.parentId)?.name || faction.parentName || '未知势力';
+  },
+
+  selectedFactionAffiliatedLabel() {
+    const faction = this.selectedFaction?.();
+    if (!faction) return '';
+    return window.GameModules.factionOrgForest?.affiliatedFactionLabel?.(faction, this.factionState?.factions || []) || '';
   },
   factionChildren(id) {
     if (!id || !this.factionState?.factions) return [];
     return this.factionState.factions.filter((x) => x.parentId === id);
+  },
+
+  orgTerritoryConsistencyNotice() {
+    const report = this.orgTerritoryConsistency;
+    if (!report || report.dismissed) return '';
+    const lines = [];
+    const failed = Object.entries(report.compliance?.checks || {}).filter(([, ok]) => ok === false).map(([key]) => key);
+    if (failed.length) lines.push(`原则合规未通过：${failed.join('、')}`);
+    lines.push(...(report.fixes || []), ...(report.warnings || []));
+    if (!lines.length) return '';
+    const preview = lines.slice(0, 4).join('；');
+    return lines.length > 4 ? `存档一致性：${preview}…（共 ${lines.length} 条）` : `存档一致性：${preview}`;
+  },
+
+  dismissOrgTerritoryConsistencyNotice() {
+    if (this.orgTerritoryConsistency) this.orgTerritoryConsistency.dismissed = true;
+  },
+
+  hasOrgTerritoryReconciliationLog() {
+    return (Array.isArray(this.orgTerritoryReconciliationLog) ? this.orgTerritoryReconciliationLog : []).length > 0;
+  },
+
+  orgTerritoryReconciliationEntries() {
+    return (Array.isArray(this.orgTerritoryReconciliationLog) ? this.orgTerritoryReconciliationLog : []).slice().reverse().slice(0, 15);
+  },
+
+  orgTerritoryReconciliationText(entry = {}) {
+    const kind = String(entry?.kind || '').trim();
+    const at = String(entry?.at || '').slice(0, 19).replace('T', ' ');
+    if (kind === 'territory-control-dedupe') {
+      return `${at} 控势去重 · ${entry.location || '—'} · 保留 ${entry.keptSummary || '—'}，丢弃 ${entry.droppedSummary || '—'}`;
+    }
+    if (kind === 'story-world-skip') {
+      return `${at} 异世界跳过 · ${entry.count || 0} 条（${entry.types || ''}）`;
+    }
+    if (kind === 'settlement-truncated') {
+      return `${at} 结算截断 · 保留 ${entry.kept || 0} 丢弃 ${entry.dropped || 0}`;
+    }
+    return `${at} ${kind || '记录'}`;
+  },
+
+  toggleFactionReconciliationLog() {
+    if (!this.factionState) return;
+    this.factionState.reconciliationOpen = !this.factionState.reconciliationOpen;
+  },
+
+  visibleFactions() {
+    if (this.factionState?.showAllStubs) return this.factionState?.factions || [];
+    return (this.factionState?.factions || []).filter((f) => (window.GameModules.orgTerritory?.factionExposureScore?.(f, this) || 0) > 0);
+  },
+
+  toggleFactionStubIndex() {
+    if (!this.factionState) return;
+    this.factionState.showAllStubs = !this.factionState.showAllStubs;
+  },
+
+  selectedFactionStubNotice() {
+    const faction = this.selectedFaction();
+    if (!faction) return '';
+    const resolution = String(faction.resolution || 'L1').toUpperCase();
+    if (resolution === 'L1' && !(faction.structure || []).length) return '尚未接触，无法审计结构；仅显示 stub。';
+    return '';
   },
 };

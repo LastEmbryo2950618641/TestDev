@@ -69,8 +69,7 @@ Object.assign(window.GameModules.playerSetupActions, {
     this.profileSetupBusy = true;
     try {
       this.setupError = '';
-      const aiParts = this.normalizePlayerCardAiParts?.(this.playerProfile.playerCardAiParts) || { part2: false, part5: false, part6: false };
-      this.playerProfile = { ...this.playerProfile, ...await this.defaultExistingAccountProfile(), playerCardAiParts: aiParts };
+      this.playerProfile = { ...this.playerProfile, ...await this.defaultExistingAccountProfile() };
       this.playerProfile.relationshipEntries = this.normalizeRelationshipEntries(this.playerProfile.relationshipEntries, this.playerProfile.relationships);
       await this.initPredefinedRoleCards?.();
       this.roleCardSetup.usePredefinedPlayerCard = true;
@@ -93,10 +92,8 @@ Object.assign(window.GameModules.playerSetupActions, {
       this.setupError = '';
       if (this.roleCardSetup) this.roleCardSetup.usePredefinedPlayerCard = false;
       const example = await this.defaultExistingAccountProfile();
-      const aiParts = this.normalizePlayerCardAiParts?.(this.playerProfile.playerCardAiParts) || { part2: false, part5: false, part6: false };
       this.playerProfile = {
         ...this.playerProfile,
-        playerCardAiParts: aiParts,
         name: this.playerProfile.name || example.name || '',
         gender: this.playerProfile.gender || example.gender || '',
         birthday: this.playerProfile.birthday || example.birthday || '',
@@ -137,6 +134,7 @@ Object.assign(window.GameModules.playerSetupActions, {
       await window.GameModules.predefinedRoleCards.saveSelectedRoleCardStates(this);
       await this.syncKnownProfessionsFromProfile?.(this.playerProfile.knownProfessions);
       await this.save?.();
+      this.finishActivationFlow?.();
     } catch (err) {
       console.error('[玩家身份] 激活失败:', err.code, err.message, err.stack);
       this.setupError = err.message || '激活失败';
@@ -144,5 +142,4 @@ Object.assign(window.GameModules.playerSetupActions, {
       this.profileSetupBusy = false;
     }
   },
-
 });

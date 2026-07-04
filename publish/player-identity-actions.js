@@ -16,7 +16,7 @@ window.GameModules.playerIdentityActions = {
     return {
       id: 'player-self', name, age: p.age || '', birthday: p.birthday || '', gender: p.gender || '', work: world.label || '2026 现代都市现实世界', role, job: role,
       rank: position, faction: workplace, city, workplace, position, importance: 'main', isPlayer: true,
-      items: p.items || [], wearing: p.wearing || [], playerCardAiParts: p.playerCardAiParts || { part2: false, part5: false, part6: false },
+      items: p.items || [], wearing: p.wearing || [],
       detail: `性别：${p.gender || '未知'}；年龄：${p.age || '未知'}；生日：${p.birthday || '未知'}；具体地址：${city}；势力地位：${workplace}/${position}；社群角色：${city}/居民；居住：${living}；父母：${parents}；去世原因：${deathCause}；关系：${relations}；备注：${notes}`,
       personality: notes,
       skills: [
@@ -48,7 +48,7 @@ window.GameModules.playerIdentityActions = {
     const worldTag = p.work || this.identityTargetState()?.worldTag || '原创世界';
     const reasonFor = this.roleCardReasonGetter(p);
     const row = (key, label, value, desc) => ({ key: `id-${this.identityTargetId}-${key}`, stateId: this.identityTargetId || 'player-self', label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: '角色', commonField: true });
-    return [
+    const fields = [
       row('name', '姓名', p.name, '角色卡固化姓名。'),
       row('work', '所属世界', worldTag, '角色出身作品或世界。'),
       row('role', '身份', p.role, '角色卡固化身份。'),
@@ -57,6 +57,10 @@ window.GameModules.playerIdentityActions = {
       row('personality', '性格', p.personality, '角色卡固化性格。'),
       row('job', '职业', p.job, '角色真实职业、训练身份或社会功能。'),
     ];
+    if ((this.identityTargetId || 'player-self') === 'player-self') {
+      fields.push(...(this.playerAspirationLexiconFields?.() || []));
+    }
+    return fields;
   },
 
   playerIdentitySummary() {
@@ -143,7 +147,18 @@ window.GameModules.playerIdentityActions = {
     }
     try {
       const base = { ...this.playerCharacterBase(), ...(retrySource || {}), forceRoleCardRegenerate: forceRoleCardRegenerate || Boolean(retrySource?.forceRoleCardRegenerate) };
-      this.startRoleCardLoadingBatch?.([{ id: 'player-self', name: base.name || this.playerName || '玩家', type: '玩家卡', source: base, context: this.playerSetupSummary?.() || '玩家本人资料' }]);
+      const playerCard = {
+        id: 'player-self',
+        name: base.name || this.playerName || '玩家',
+        type: '玩家卡',
+        source: base,
+        context: this.playerSetupSummary?.() || '玩家本人资料',
+      };
+      if ((this.roleCardLoadingState?.cards || []).some((card) => card.id === 'player-self')) {
+        this.updateRoleCardLoading?.('player-self', { source: base, context: playerCard.context, status: 'running', startedAt: Date.now() });
+      } else {
+        this.startRoleCardLoadingBatch?.([playerCard]);
+      }
       character = await window.GameModules.characterProfile.ensure(base, this, this.playerSetupSummary?.() || '玩家本人资料');
     } catch (err) {
       console.warn('[玩家身份] 个人资料生成失败，拒绝使用本地原因兜底:', err.code, err.message, err.stack);
@@ -163,7 +178,9 @@ window.GameModules.playerIdentityActions = {
     if (!state.values.items?.length) state.values.items = character.items || [];
     window.GameModules.progression.syncInventoryFromProfile?.(state, character);
     state.values.factions = window.GameModules.socialPosition.playerItems({ ...this.playerProfile, workplace: character.workplace, position: character.position });
-    state.values.force_positions = window.GameModules.socialPosition.playerForceItems({ ...this.playerProfile, workplace: character.workplace, position: character.position }, this.factionState?.factions || []);
+    state.values.force_positions = window.GameModules.socialPosition.playerForceItems({ ...this.playerProfile, workplace: character.workplace, position: character.position }, this);
+    state.values.memberships = window.GameModules.socialPosition.membershipItems({ ...this.playerProfile, workplace: character.workplace, position: character.position }, this);
+    window.GameModules.orgTerritory?.syncCharacterOrgMemberships?.(state, this);
     window.GameModules.progression.ensureStateMechanics(state, character);
     window.GameModules.initPromptRegistry?.ensureTemplateState?.('intimacyBody', state);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };

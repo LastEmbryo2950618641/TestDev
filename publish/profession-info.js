@@ -42,6 +42,7 @@ window.GameModules.professionInfo = {
       const prompt = await this.prompt(worldTag, name, context);
       return await window.GameModules.jsonUtils.generateJsonWithRetry({
         source: 'profession-info',
+        promptId: 'profession-info',
         model: window.GameModules.aiRequest?.selectedTextModel?.(),
         timeoutMs: 60000,
         prompt,
@@ -57,7 +58,7 @@ window.GameModules.professionInfo = {
   prompt(worldTag, name, context) {
     const fields = (context.worldFields || []).map((x) => `${x.key}:${x.label}`).join('、') || '无';
     const list = (items, pick) => (items || []).map((x) => pick ? pick(x) : (x.name || x.key || x.label || x)).filter(Boolean).join('、') || '无';
-    return window.GameModules.promptTemplates.render('profession-info', {
+    return window.GameModules.renderPrompt('profession-info', {
       世界: worldTag,
       职业: name,
       角色: context.characterName || '',

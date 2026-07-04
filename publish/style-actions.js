@@ -12,7 +12,7 @@ window.GameModules.styleActions = {
     { id: 'suspense', name: '悬疑紧张', prompt: '正文保持悬疑张力，逐步揭示信息，用细节暗示危险，不直接解释全部真相。' },
   ],
 
-  async loadWritingStyles() {
+  async loadWritingStyles(options = {}) {
     const registered = window.GameModules.penStyleRegistry?.list?.() || [];
     if (registered.length) this.defaultWritingStyles = registered;
     const saved = window.GameModules.sqliteSave.getMetaJson?.('writing_styles');
@@ -23,7 +23,7 @@ window.GameModules.styleActions = {
     this.activeStyleIds = (!saved || (active.length === 1 && active[0] === 'literary')) ? [preferredDefault] : (active.length ? active : [preferredDefault]);
     this.customStyleName = '';
     this.customStylePrompt = '';
-    await this.saveWritingStyles();
+    await this.saveWritingStyles(options);
   },
 
   selectedWritingStyleId() {
@@ -82,12 +82,12 @@ window.GameModules.styleActions = {
     await this.saveWritingStyles();
   },
 
-  async saveWritingStyles() {
+  async saveWritingStyles(options = {}) {
     await window.GameModules.sqliteSave.saveMetaJson?.('writing_styles', {
       active: this.activeStyleIds,
       defaults: this.defaultWritingStyles,
       custom: this.customWritingStyles,
-    });
+    }, options);
   },
 
   writingStylePrompt() {

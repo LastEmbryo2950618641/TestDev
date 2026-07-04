@@ -33,7 +33,8 @@ Object.assign(window.GameModules.updateRegistry, {
   },
 
   metricReasonText(update = {}, fallback = '现实推演结算。') {
-    return this.reasonText(update, fallback);
+    const key = String(update.field || '').split('.').filter(Boolean).at(-1) || update.name || '';
+    return window.GameModules.metrics?.cleanMetricReason?.(this.reasonText(update, fallback), key) || this.reasonText(update, fallback);
   },
 
   deltaValue(update = {}) {
@@ -63,11 +64,11 @@ Object.assign(window.GameModules.updateRegistry, {
       const subject = { ...(group.subject || {}), type: group.subject?.type || (rawTarget === 'player-self' ? 'player' : 'character'), id: rawTarget, name: group.subject?.name || group.name || group.character || '' };
       (Array.isArray(group.emotions) ? group.emotions : []).forEach((item) => {
         if (!item?.key) return;
-        out.push({ updateType: 'emotion', subject, field: `metrics.emotions.${item.key}`, change: { mode: 'delta', value: window.GameModules.metrics.metricDeltaValue?.(item) ?? item.delta ?? 0, status: item.status || '' }, reasons: [{ trigger: item.trigger || item.reason || '现实推演情绪变化', evidence: item.reason || item.evidence || item.status || '', confidence: 'confirmed' }] });
+        out.push({ updateType: 'emotion', subject, field: `metrics.emotions.${item.key}`, change: { mode: 'delta', value: window.GameModules.metrics.metricDeltaValue?.(item) ?? item.delta ?? 0, status: '' }, reasons: [{ trigger: item.trigger || item.reason || '现实推演情绪变化', evidence: item.reason || item.evidence || '', confidence: 'confirmed' }] });
       });
       (Array.isArray(group.playerFeelings) ? group.playerFeelings : []).forEach((item) => {
         if (!item?.key) return;
-        out.push({ updateType: 'feeling', subject, field: `metrics.playerFeelings.${item.key}`, change: { mode: 'delta', value: window.GameModules.metrics.metricDeltaValue?.(item) ?? item.delta ?? 0, status: item.status || '' }, reasons: [{ trigger: item.trigger || item.reason || '现实推演感觉变化', evidence: item.reason || item.evidence || item.status || '', confidence: 'confirmed' }] });
+        out.push({ updateType: 'feeling', subject, field: `metrics.playerFeelings.${item.key}`, change: { mode: 'delta', value: window.GameModules.metrics.metricDeltaValue?.(item) ?? item.delta ?? 0, status: '' }, reasons: [{ trigger: item.trigger || item.reason || '现实推演感觉变化', evidence: item.reason || item.evidence || '', confidence: 'confirmed' }] });
       });
     }
     return out;
@@ -86,7 +87,7 @@ Object.assign(window.GameModules.updateRegistry, {
       if (!key) continue;
       if (!grouped.has(target)) grouped.set(target, { target, subject: { ...subject, id: target }, emotions: [], playerFeelings: [] });
       const temporary = item.temporary === true || /(^|\.)temporary(?:Emotions|PlayerFeelings|\.|$)/u.test(String(item.field || ''));
-      grouped.get(target)[bucket].push({ key, delta: this.deltaValue(item), status: item.change?.status || '', reason: this.metricReasonText(item), temporary });
+      grouped.get(target)[bucket].push({ key, delta: this.deltaValue(item), status: '', reason: this.metricReasonText(item), temporary });
     }
     return Array.from(grouped.values());
   },
@@ -115,9 +116,88 @@ Object.assign(window.GameModules.updateRegistry, {
     });
   },
 
+  legacyFactionUpdateToGeneric(item = {}) {
+    const action = String(item?.action || item?.method || 'upsert').trim();
+    const name = String(item.factionName || item.name || '势力变化').trim();
+    const reason = this.reasonText(item, String(item.reason || 'legacy factionUpdates 迁移'));
+    const reasons = [{ trigger: reason, evidence: reason, confidence: 'confirmed' }];
+    if (action === 'updateStructure') {
+      return {
+        updateType: 'faction-structure',
+        subject: { type: 'faction', name, factionId: name },
+        field: 'structure',
+        change: { mode: 'upsert', value: item.value || item.structure || item },
+        reasons,
+      };
+    }
+    if (action === 'addFactionPosition') {
+      return {
+        updateType: 'membership',
+        subject: { type: 'character', characterName: item.characterName || item.character || '未知', name: item.characterName || item.character },
+        field: 'values.memberships',
+        change: {
+          mode: 'upsert',
+          value: {
+            orgName: name,
+            factionName: name,
+            title: item.position || item.title || '成员',
+            department: item.department || '',
+          },
+        },
+        reasons,
+      };
+    }
+    return {
+      updateType: 'faction-overview',
+      subject: { type: 'faction', name, factionId: name },
+      field: 'overview',
+      change: { mode: action === 'upsert' ? 'upsert' : 'set', value: item.value || item },
+      reasons,
+    };
+  },
+
+  migrateLegacyFactionUpdates(result = {}) {
+    const legacy = Array.isArray(result.factionUpdates) ? result.factionUpdates.filter(Boolean) : [];
+    if (!legacy.length) return result;
+    console.warn('[orgTerritory] factionUpdates 已废弃，已自动迁移为 genericUpdates：', legacy.length, '条');
+    const generic = Array.isArray(result.genericUpdates) ? result.genericUpdates.slice() : [];
+    const keys = new Set(generic.map((item) => `${item.updateType}:${JSON.stringify(item.subject || {})}:${item.field || ''}`));
+    legacy.forEach((item) => {
+      const converted = this.legacyFactionUpdateToGeneric(item);
+      const key = `${converted.updateType}:${JSON.stringify(converted.subject || {})}:${converted.field || ''}`;
+      if (keys.has(key)) return;
+      generic.push(converted);
+      keys.add(key);
+    });
+    return { ...result, genericUpdates: generic, factionUpdates: [] };
+  },
+
+  orgNamesFromGenericUpdates(updates = [], store = null) {
+    const names = [];
+    const ot = window.GameModules.orgTerritory;
+    (Array.isArray(updates) ? updates : []).forEach((item) => {
+      const type = String(item?.updateType || '');
+      const subject = item.subject || {};
+      const value = item.change?.value || {};
+      if (/^faction-|org-status|membership|territory-control/u.test(type)) {
+        [subject.name, subject.factionName, subject.factionId, subject.orgId, value.name, value.factionName].filter(Boolean).forEach((n) => names.push(String(n)));
+      }
+      if (type === 'territory-control') {
+        const eff = ot?.orgNameById?.(store, value.effectiveOrgId || value.effective);
+        const claim = ot?.orgNameById?.(store, value.claimOrgId || value.claim);
+        if (eff) names.push(eff);
+        if (claim && claim !== eff) names.push(claim);
+      }
+      if (type === 'membership') {
+        [value.orgName, value.factionName, ot?.orgNameById?.(store, value.orgId)].filter(Boolean).forEach((n) => names.push(String(n)));
+      }
+    });
+    return [...new Set(names.map((n) => n.trim()).filter(Boolean))];
+  },
+
   expandGenericForLegacy(result = {}, store = null) {
     const updates = Array.isArray(result.genericUpdates) ? result.genericUpdates : [];
-    if (!updates.length) return result;
+    if (!updates.length && !(result.factionUpdates || []).length) return result;
     const emotions = this.genericToMetricUpdates(updates, 'emotion', store);
     const feelings = this.genericToMetricUpdates(updates, 'feeling', store);
     const byTarget = new Map();
@@ -132,7 +212,7 @@ Object.assign(window.GameModules.updateRegistry, {
       vitalUpdates: [...(result.vitalUpdates || []), ...this.genericToVitalUpdates(updates, store)],
       characterMetricUpdates: Array.from(byTarget.values()),
       itemActions: [...(result.itemActions || []), ...this.genericToItemActions(updates)],
-      factionUpdates: [...(result.factionUpdates || []), ...this.genericToFactionUpdates(updates)],
+      factionUpdates: [],
     };
   },
 });

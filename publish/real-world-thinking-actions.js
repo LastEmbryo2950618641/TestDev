@@ -3,8 +3,89 @@ window.GameModules = window.GameModules || {};
 window.GameModules.realWorldThinkingActions = {
   toggleRealWorldThinking(entry) {
     if (!entry) return;
-    entry.thinkingOpen = !entry.thinkingOpen;
-    this.realWorldLog = [...(this.realWorldLog || [])];
+    const id = String(entry.id || '');
+    this.realWorldLog = (this.realWorldLog || []).map((item) => (
+      item?.id === id ? { ...item, thinkingOpen: !item.thinkingOpen } : item
+    ));
+  },
+
+  toggleRealWorldThinkingSection(entry, sectionId) {
+    this.toggleRealWorldThinkingStageGroup(entry, sectionId);
+  },
+
+  toggleRealWorldThinkingStageGroup(entry, groupId) {
+    if (!entry || !groupId) return;
+    const id = String(entry.id || '');
+    const key = String(groupId);
+    this.realWorldLog = (this.realWorldLog || []).map((item) => {
+      if (item?.id !== id) return item;
+      const groups = this.realWorldThinkingStageGroups(item);
+      const index = groups.findIndex((group) => group.id === key);
+      const stageOpen = { ...(item.thinkingStageOpen || {}) };
+      const currentlyOpen = this.realWorldThinkingStageOpen(item, key, index);
+      stageOpen[key] = !currentlyOpen;
+      return { ...item, thinkingStageOpen: stageOpen };
+    });
+  },
+
+  realWorldThinkingStageOpen(entry, groupId, index = 0) {
+    const key = String(groupId || '');
+    const stageOpen = entry?.thinkingStageOpen && typeof entry.thinkingStageOpen === 'object' ? entry.thinkingStageOpen : {};
+    if (Object.prototype.hasOwnProperty.call(stageOpen, key)) return stageOpen[key] !== false;
+    if (index < 0) return false;
+    const total = this.realWorldThinkingStageGroups(entry).length;
+    return total > 0 && index === total - 1;
+  },
+
+  realWorldThinkingStageGroupKey(meta = {}) {
+    return window.GameModules.realWorldAgentLoop?.reasoningStageGroupKey?.(meta) || String(meta.phase || 'unknown');
+  },
+
+  realWorldThinkingStageGroups(entry = {}) {
+    const loop = window.GameModules.realWorldAgentLoop;
+    const groupMap = new Map();
+    const ensureGroup = (meta = {}) => {
+      const key = this.realWorldThinkingStageGroupKey(meta);
+      const existing = groupMap.get(key) || {
+        id: key,
+        phase: meta.phase || 'unknown',
+        step: Number(meta.step) || 0,
+        label: meta.label || '未知阶段',
+        reasoningParts: [],
+        traceLines: [],
+      };
+      groupMap.set(key, existing);
+      return existing;
+    };
+
+    const assigned = loop?.assignReasoningSectionMetas?.(entry?.thinkingSections || [], entry) || [];
+    assigned.forEach(({ meta, section }) => {
+      const text = String(section?.text || '').trim();
+      if (!text) return;
+      ensureGroup(meta).reasoningParts.push(text);
+    });
+
+    const legacyText = String(entry?.thinking || '').trim();
+    if (!assigned.length && legacyText) {
+      ensureGroup({ phase: 'unknown', step: 0, label: '现实推演', id: 'legacy-thinking' }).reasoningParts.push(legacyText);
+    }
+
+    (Array.isArray(entry?.agentTrace) ? entry.agentTrace : []).forEach((item) => {
+      const step = Number(item?.step) || 1;
+      const group = ensureGroup({ phase: 'stage1', step, label: `Stage1 - ${step}`, id: `stage1-${step}` });
+      group.traceLines.push(...this.realWorldTraceItemLines(item));
+    });
+
+    const order = { stage1: 10, stage2: 20, stage3: 30, stage4: 40, stage5: 50, unknown: 90 };
+    return [...groupMap.values()]
+      .map((group) => ({
+        ...group,
+        reasoning: group.reasoningParts.join('\n\n').trim(),
+        traceText: group.traceLines.map((line, index) => `${index + 1}. ${line}`).join('\n'),
+        hasContent: Boolean(group.reasoningParts.length || group.traceLines.length),
+      }))
+      .filter((group) => group.hasContent)
+      .sort((a, b) => (order[a.phase] - order[b.phase]) || (a.step - b.step));
   },
 
   collapseRealWorldThinking() {
@@ -12,7 +93,33 @@ window.GameModules.realWorldThinkingActions = {
   },
 
   hasRealWorldThinking(entry) {
-    return Boolean(entry?.thinking) || Boolean(entry?.streaming) || (Array.isArray(entry?.streamTrace) && entry.streamTrace.length > 0) || (Array.isArray(entry?.agentTrace) && entry.agentTrace.length > 0);
+    return this.realWorldThinkingStageGroups(entry).length > 0 || Boolean(entry?.streaming);
+  },
+
+  realWorldThinkingLines(entry = {}) {
+    const groups = this.realWorldThinkingStageGroups(entry);
+    return groups.map((group, index) => ({
+      id: group.id,
+      label: group.label,
+      text: [group.reasoning, group.traceText].filter(Boolean).join('\n\n'),
+      open: this.realWorldThinkingStageOpen(entry, group.id, index),
+    }));
+  },
+
+  realWorldSystemTraceLines(entry = {}) {
+    return this.realWorldTraceLines(entry).map((text) => ({ label: '系统提示', text }));
+  },
+
+  realWorldEntryCacheText(entry = {}) {
+    const cache = entry?.deepseekCache || entry?.cacheStats || {};
+    const hit = Math.max(0, Math.round(Number(cache.promptCacheHitTokens ?? cache.hitTokens) || 0));
+    const miss = Math.max(0, Math.round(Number(cache.promptCacheMissTokens ?? cache.missTokens) || 0));
+    const requests = Math.max(0, Math.round(Number(cache.requestCount) || 0));
+    if (!hit && !miss && !requests) return '';
+    const total = hit + miss;
+    if (!total) return `缓存命中：${hit} tokens`;
+    const ratio = Math.round((hit / total) * 100);
+    return `缓存命中：${hit} / ${total} tokens（${ratio}%）`;
   },
 
   realWorldEntryPlayerText(entry = {}) {
@@ -41,8 +148,23 @@ window.GameModules.realWorldThinkingActions = {
         id: entry?.id || `real-log-${index}`,
         type: entry?.type || 'ai',
         thinkingOpen: Boolean(entry?.thinkingOpen),
+        thinkingStageOpen: entry?.thinkingStageOpen && typeof entry.thinkingStageOpen === 'object' ? { ...entry.thinkingStageOpen } : {},
         cardChangesOpen: Boolean(entry?.cardChangesOpen),
         settlementTab: entry?.settlementTab || '',
+        thinkingSections: Array.isArray(entry?.thinkingSections)
+          ? entry.thinkingSections.map((item) => {
+            const label = String(item?.label || '');
+            const parsed = window.GameModules.realWorldAgentLoop?.parseReasoningLabel?.(label);
+            return {
+              ...item,
+              id: String(item?.id || ''),
+              phase: String(item?.phase || parsed?.phase || ''),
+              step: Number.isFinite(Number(item?.step)) ? Number(item.step) : (parsed?.step || 0),
+              label: parsed?.label || label || '现实推演',
+              open: item?.open !== false,
+            };
+          })
+          : [],
         characterCardChanges: Array.isArray(entry?.characterCardChanges) ? entry.characterCardChanges : [],
         solidifyCards,
         solidifyUserClosed: Boolean(entry?.solidifyUserClosed),
@@ -83,11 +205,18 @@ window.GameModules.realWorldThinkingActions = {
     return `1000-${timeKey()}-2-${String(entry.id || '')}`;
   },
 
-  patchRealWorldLogEntry(id, patch = {}) {
+  patchRealWorldLogEntry(id, patch = {}, options = {}) {
     const key = String(id || '');
     if (!key) return false;
     let found = false;
     const current = this.realWorldLog || [];
+    if (options.live) {
+      const entry = current.find((item) => item?.id === key);
+      if (!entry) return false;
+      Object.assign(entry, patch);
+      this.realWorldLog = current.slice();
+      return true;
+    }
     const patched = current.map((entry) => {
       if (entry?.id !== key) return entry;
       found = true;

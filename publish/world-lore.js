@@ -37,6 +37,7 @@ window.GameModules.worldLore = {
       console.debug('[世界观] AI请求:', { worldTag, promptLength: prompt.length, model: window.GameModules.aiRequest?.selectedTextModel?.()});
       return await window.GameModules.jsonUtils.generateJsonWithRetry({
         source: 'world-lore',
+        promptId: 'world-lore',
         model: window.GameModules.aiRequest?.selectedTextModel?.(),
         prompt,
         timeoutMs: 60000,
@@ -54,7 +55,7 @@ window.GameModules.worldLore = {
   },
 
   async prompt(worldTag, context) {
-    return window.GameModules.promptTemplates.render('world-lore', { 世界: worldTag, 剧情上下文: String(context || '暂无').slice(0, 240) });
+    return window.GameModules.renderPrompt('world-lore', { 世界: worldTag, 剧情上下文: String(context || '暂无').slice(0, 240) });
   },
 
   parse(text) {

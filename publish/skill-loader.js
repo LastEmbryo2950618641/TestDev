@@ -48,6 +48,7 @@ window.GameModules.skillLoader = {
     const existing = new Set((window.GameModules.skillsDefinitions || []).map((skill) => skill.id));
     const additions = valid.filter((doc) => !existing.has(doc.meta.id)).map((doc) => this.toDefinition(doc));
     window.GameModules.skillsDefinitions = (window.GameModules.skillsDefinitions || []).concat(additions);
+    window.GameModules.promptSkills?.registerDefinitions?.();
   },
 
   async fetchManifest() {

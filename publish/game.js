@@ -19,6 +19,7 @@ function registerGameStore() {
   if (!window.Alpine || window.Alpine.store('game')) return;
   const cfg = window.GameModules.config;
   const gm = window.GameModules;
+  const stateOf = (obj, method, fallback = {}) => (obj?.[method] ? obj[method]({}) : fallback);
   const criticalActionFallback = {
     metricGroups(state = null) {
       if (!state || state.id === this.character?.id) {
@@ -61,13 +62,21 @@ function registerGameStore() {
   };
   const modules = [
     criticalActionFallback, gm.actions, gm.rpgFieldUi, gm.resultActions, gm.loadingActions, gm.roleCardLoadingActions, gm.solidifyActions, gm.wearingSyncActions, gm.saveActions, gm.styleActions,
-    gm.worldlineActions, gm.predefinedRoleCardActions, gm.playerSetupActions, gm.playerIdentityActions, gm.identityMemoryActions, gm.identityAppActions, gm.memoryQueryActions, gm.wechatActions, gm.wechatViewActions, gm.wechatMemoryContextActions, gm.wechatChatActions, gm.wechatIncomingActions, gm.wechatImageActions, gm.wechatMentionActions, gm.wechatWorldlineActions, gm.wechatMemoryDebugActions, gm.wechatAppActions, gm.wechatAlbumTagActions, gm.wechatAlbumPromptListActions, gm.wechatAvatarCropActions, gm.wechatAlbumActions, gm.wechatChangePanelActions, gm.entryActions, gm.realWorldClockActions,
+    gm.worldlineActions, gm.predefinedRoleCardActions, gm.homeActions, gm.playerSetupActions, gm.playerAspirationActions, gm.playerIdentityActions, gm.identityMemoryActions, gm.identityAppActions, gm.memoryQueryActions, gm.wechatActions, gm.wechatViewActions, gm.wechatMemoryContextActions, gm.wechatChatActions, gm.wechatIncomingActions, gm.wechatImageActions, gm.wechatMentionActions, gm.wechatWorldlineActions, gm.wechatMemoryDebugActions, gm.wechatAppActions, gm.wechatAlbumTagActions, gm.wechatAlbumPromptListActions, gm.wechatAvatarCropActions, gm.wechatAlbumActions, gm.wechatChangePanelActions, gm.entryActions, gm.realWorldClockActions,
     gm.catalogActions, gm.coreActions, gm.controlLinkActions, gm.appSwitchActions, gm.currentWorldActions, gm.inventoryActions, gm.inventoryEquipActions, gm.itemSkillActions, gm.realWorldStreamActions, gm.realWorldThinkingActions, gm.realWorldSettlementActions, gm.realWorldUtilityActions, gm.realWorldActions, gm.realWorldLongingActions, gm.realWorldMapActions, gm.realWorldFactionActions, gm.realWorldMatterActions, gm.companyActions, gm.companyAttendanceActions, gm.companyFactionActions,
     gm.bossActions, gm.bossAppointmentActions, gm.bossAiActions, gm.calendarActions, gm.factionActions, gm.factionArchiveActions, gm.factionOrgActions, gm.factionAiActions, gm.skillsActions, gm.knownProfessionActions, gm.taobaoActions, gm.taobaoGenerateActions, gm.taobaoBuyActions, gm.promptActions, gm.settingsActions, gm.systemTestActions, gm.tokenStatsActions, gm.roleCardJsonApp?.actions,
   ].map((module) => module || {});
 
   Alpine.store('game', {
     loading: true, loadingStep: '等待平台连接',
+    homeScreenView: 'menu', homeMessage: '', homeSavePanelOpen: false,
+    homeLoadActive: false, homeLoadPercent: 0, homeLoadLabel: '', homeLoadSlot: '',
+    phoneDesktopBooting: false,
+    playerAspiration: null,
+    aspirationSetupOpen: false, aspirationStep: 1, aspirationPsychStep: 1,
+    aspirationBusy: false, aspirationPsychLoading: false, aspirationError: '',
+    aspirationDraft: null, aspirationGoalDraft: { short: '', medium: '', long: '', summary: '' },
+    aspirationSummaryDraft: { portrait: '' }, aspirationPsychCustomDraft: {},
     loadingDetail: '首次进入或存档较大时会更慢，这是正常现象。',
     loadingStages: [], entryStages: [], loadingStartedAt: 0, loadingNow: Date.now(), loadingTimer: null,
     roleCardLoadingState: { open: false, expanded: true, cards: [], startedAt: 0 }, roleCardLoadingRetryQueue: {}, solidifyState: { open: false, candidates: [], selectedKey: '' },
@@ -90,6 +99,9 @@ function registerGameStore() {
       deepseekModel: cfg.textProviders?.deepseek?.defaultModel || 'deepseek-v4-flash',
       drawModelId: 'anime',
       stage1MaterialMaxIterations: 2,
+      modelTestLoading: false,
+      modelTestOk: null,
+      modelTestMessage: '',
     },
     systemTestState: { open: false, loading: false, thinkingLoading: false, platformChatLoading: false, systemText: '你是一个测试助手。无论用户输入什么，只回答：SYSTEM_OK。', userText: '请测试 system role 是否生效。', thinkingPrompt: '请用简洁中文回答：为什么晴天适合散步？列出三点理由即可。', result: '', error: '', thinkingError: '', thinkingResults: [], platformChatPayload: '', platformChatRaw: '', platformChatError: '' },
     playerProfile: { name: '', gender: '', birthday: '', age: '', city: '', refinedCity: '', dailyRole: '', refinedRole: '', livingStatus: '', refinedLivingStatus: '', wealthTier: '中产', wealthAmount: 500000, wealthSource: '', wealthBreakdown: null, wealthFixedIncome: '', relationships: '', relationshipEntries: [], parents: '', parentStatus: '', parentDeathCause: '', worldbuildingNote: '', notes: '', knownProfessions: [], wechatId: '', profileEnrichedAt: '', initializedAt: '', playerCardAiParts: { part2: false, part5: false, part6: false } }, playerName: '',
@@ -140,7 +152,7 @@ function registerGameStore() {
     mindText: '', feedbackSource: 'pending',
     characterIntent: '',
     choices: cfg.openingChoices,
-    log: [], realWorldOpen: false, realWorldBusy: false, realWorldInput: '', realWorldThinkMode: false, realWorldFreedomMode: 'scope', realWorldWordCount: 1000, realWorldFunctionOpen: false, realWorldFunctionView: 'menu', realWorldMatterState: { open: false, activeId: '' }, realWorldSceneTitle: '现实世界', realWorldLocationName: '', realWorldMap: window.GameModules.realWorldMap.defaultState({}), realWorldQuest: '确认手机异常与现实处境', realWorldStatus: '现实稳定', realWorldChoices: ['检查手机记录', '观察居住环境', '联系熟人确认', '暂时休息'], realWorldLog: [], realWorldLogPage: 1, realWorldLogPageSize: 12, realWorldLogTotal: 0, realWorldLongingEvents: [], realWorldLongingPreparedIds: [], realWorldlineState: { events: [], plots: [], pendingPlot: null }, realWorldProfileOpen: false, companyState: window.GameModules.companySystem.defaultState({}), bossState: window.GameModules.bossRecruitment.defaultBossState({}), calendarState: window.GameModules.calendarSystem.defaultCalendarState(), factionState: window.GameModules.factionSystem.defaultState({}), skillsState: window.GameModules.skillsApp.defaultState(), promptState: window.GameModules.promptTemplates.defaultState(), tokenStatsState: window.GameModules.tokenStats.defaultState(),
+    log: [], realWorldOpen: false, realWorldBusy: false, realWorldInput: '', realWorldThinkMode: false, realWorldFreedomMode: 'scope', realWorldWordCount: 1000, realWorldFunctionOpen: false, realWorldFunctionView: 'menu', realWorldMatterState: { open: false, activeId: '' }, realWorldSceneTitle: '现实世界', realWorldLocationName: '', realWorldMap: gm.realWorldMap?.defaultState?.({}) || {}, realWorldQuest: '确认手机异常与现实处境', realWorldStatus: '现实稳定', realWorldChoices: ['检查手机记录', '观察居住环境', '联系熟人确认', '暂时休息'], realWorldLog: [], realWorldLogPage: 1, realWorldLogPageSize: 12, realWorldLogTotal: 0, realWorldLongingEvents: [], realWorldLongingPreparedIds: [], realWorldlineState: { events: [], plots: [], pendingPlot: null }, realWorldProfileOpen: false, companyState: stateOf(gm.companySystem, 'defaultState'), bossState: gm.bossRecruitment?.defaultBossState?.({}) || {}, calendarState: gm.calendarSystem?.defaultCalendarState?.() || {}, factionState: stateOf(gm.factionSystem, 'defaultState'), skillsState: gm.skillsApp?.defaultState?.() || {}, promptState: gm.promptTemplates?.defaultState?.() || {}, tokenStatsState: gm.tokenStats?.defaultState?.() || {},
     nextId: 1,
     ragQuery: '',
     ragContext: '',
@@ -182,7 +194,7 @@ function registerGameStore() {
           window.GameModules.metrics.ensure(this);
           await this.initGame();
           this.startPhoneClock?.();
-          this.initCompanySystem?.(); this.initBossRecruitment?.(); this.initCalendar?.(); this.initFactionSystem?.(); this.ensureAllCompanyFactions?.(); this.initSkillsApp?.(); this.initKnownProfessionApp?.(); this.initTaobaoApp?.(); this.initPromptApp?.(); this.initTokenStatsApp?.();
+          this.runDeferredInits?.();
         } catch (err) {
           console.error('游戏初始化失败:', err.message, err.stack);
           this.loadingDetail = `初始化失败：${err.message || '未知错误'}`;

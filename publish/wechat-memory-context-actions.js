@@ -64,17 +64,14 @@ window.GameModules.wechatMemoryContextActions = {
   async wechatHistoryContextForReply(contactId, playerText = '', memoryContext = '') {
     const hint = this.wechatHistoryQueryHint(contactId);
     if (!window.dzmm?.completions) return hint;
-    const prompt = [
-      '你负责判断微信联系人回复是否需要读取固定微信历史表原文。只返回一行合法 JSON。',
-      '默认已经提供联系人短期记忆、长期记忆和本次相关记忆；只有玩家要求核对上一条原话、具体聊天措辞、图片消息、承诺原文、聊天顺序或记忆明显不足时，needHistory 才为 true。',
-      '返回格式：{"needHistory":false,"limit":8,"reason":"判断原因"}',
-      `联系人ID：${contactId}`,
-      `玩家新消息：${playerText}`,
-      `已提供记忆上下文：\n${String(memoryContext || '').slice(0, 2600)}`,
-    ].join('\n\n');
+    const prompt = await window.GameModules.renderPrompt('wechat-history-decision', {
+      contactId,
+      playerText,
+      memoryContext: String(memoryContext || '').slice(0, 2600),
+    });
     try {
       const decision = await window.GameModules.jsonUtils.generateJsonWithRetry({
-        source: 'wechat-history-decision', model: this.modelId || this.settingsState?.textModelId, timeoutMs: 30000, prompt, format: prompt, max: 2,
+        source: 'wechat-history-decision', promptId: 'wechat-history-decision', model: this.modelId || this.settingsState?.textModelId, timeoutMs: 30000, prompt, format: prompt, max: 2,
         parse: (text) => window.GameModules.jsonUtils.parseLoose(text),
         validate: (raw) => this.validateWechatHistoryDecision(raw),
       });

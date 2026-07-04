@@ -86,8 +86,8 @@ Object.assign(window.GameModules.updateRegistry, {
     const delta = group === 'player' && !temporary ? window.GameModules.metrics.lockedPlayerDelta(key, rawDelta, before) : rawDelta;
     const next = window.GameModules.metrics.clamp(before + delta);
     const reason = this.metricReasonText(update);
-    const status = update.change?.status || (temporary ? `${key}：短期状态。` : '');
-    window.GameModules.metrics.writeMetric(target, metrics.notes || (metrics.notes = {}), group, { key, delta, status, reason, temporary, metricSources: { 数值: 'AI', 解释: status ? 'AI' : '系统', 原因: 'AI' } }, next, '现实推演结算。');
+    const status = temporary ? `${key}：短期状态。` : '';
+    window.GameModules.metrics.writeMetric(target, metrics.notes || (metrics.notes = {}), group, { key, delta, status, reason, temporary, metricSources: { 数值: 'AI', 解释: temporary ? 'AI' : '系统', 原因: 'AI' } }, next, '现实推演结算。');
     return next !== before || Boolean(reason);
   },
 
@@ -136,6 +136,7 @@ Object.assign(window.GameModules.updateRegistry, {
 
   applyOne(store, update = {}) {
     if (update.updateType === 'character-schedule') return this.applyCharacterScheduleUpdate(store, update);
+    if (update.updateType === 'system') return this.applySystemUpdate(store, update);
     if (update.updateType === 'relationship') return this.applyRelationshipUpdate(store, update);
     if (update.updateType === 'body-status') return this.applyBodyStatusUpdate(store, update);
     if (update.updateType === 'sexual-experience') return this.applySexualExperienceUpdate(store, update);
@@ -227,6 +228,64 @@ Object.assign(window.GameModules.updateRegistry, {
     return ['在场', '场外', '未知', '暂不可用'].includes(clean) ? clean : '未知';
   },
 
+  systemRecordPayload(raw = {}) {
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      return {
+        key: String(raw.key || '').trim(),
+        value: String(raw.value ?? '').trim(),
+        reason: String(raw.reason || '').trim(),
+      };
+    }
+    return { key: '', value: String(raw || '').trim(), reason: '' };
+  },
+
+  isNarrativeSystemEvent(key = '', value = '') {
+    if (key !== '事件') return false;
+    const text = String(value || '').trim();
+    if (!text || text.length < 24) return false;
+    return /(?:进入|房间|抱住|揉|摸|亲|推|默许|颤抖|隔着|衣服|身体|反应|行动|地点|当前)/u.test(text);
+  },
+
+  legacySystemRecords(store = {}) {
+    const buckets = store?.playerIdentityState?.()?.values?.genericUpdateStates || {};
+    return Object.values(buckets).flatMap((bucket) => {
+      const events = bucket?.events;
+      if (!events || typeof events !== 'object') return [];
+      return Object.entries(events).flatMap(([key, list]) => (Array.isArray(list) ? list : [list]).filter(Boolean).map((item) => {
+        const payload = this.systemRecordPayload(item);
+        return {
+          key: payload.key || key,
+          value: payload.value || String(item?.value || item || ''),
+          reason: payload.reason || String(item?.reason || ''),
+          at: String(item?.updatedAt || item?.at || ''),
+          legacy: true,
+        };
+      }));
+    });
+  },
+
+  applySystemUpdate(store, update = {}) {
+    if (!store) return false;
+    const raw = this.changeValue(update);
+    const payload = this.systemRecordPayload(raw);
+    const fieldKey = payload.key || this.leafName(update.field) || '记录';
+    const text = payload.value || (typeof raw === 'string' ? raw : '');
+    if (!text) return false;
+    if (this.isNarrativeSystemEvent(fieldKey, text)) return false;
+    const updatedAt = this.scheduleUpdatedAt(store);
+    const reason = payload.reason || this.reasonText(update, '');
+    const entry = { key: fieldKey, value: text.slice(0, 500), reason: reason.slice(0, 240), at: updatedAt };
+    store.realWorldSystemRecords = Array.isArray(store.realWorldSystemRecords) ? store.realWorldSystemRecords : [];
+    const dup = store.realWorldSystemRecords.some((item) => item.key === entry.key && item.value === entry.value && item.at === entry.at);
+    if (dup) return false;
+    store.realWorldSystemRecords = [...store.realWorldSystemRecords, entry].slice(-60);
+    update.settlementAt = updatedAt;
+    if (update.change?.value && typeof update.change.value === 'object' && !Array.isArray(update.change.value)) {
+      update.change.value = { ...update.change.value, key: fieldKey, value: text, reason, updatedAt };
+    }
+    return true;
+  },
+
   applyCharacterScheduleUpdate(store, update = {}) {
     const subject = update.subject || {};
     const id = this.normalizeSubjectId(store, subject.characterId || subject.playerId || subject.id || update.target || 'player-self', subject);
@@ -235,6 +294,7 @@ Object.assign(window.GameModules.updateRegistry, {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return false;
     const current = store.characterSchedules?.[id] || {};
     const patch = { ...raw };
+    const updatedAt = this.scheduleUpdatedAt(store);
     const next = {
       ...current,
       ...patch,
@@ -244,10 +304,19 @@ Object.assign(window.GameModules.updateRegistry, {
       confidence: '确认',
       source: '结算事件',
       stability: '事件锁定',
-      updatedAt: this.scheduleUpdatedAt(store),
+      updatedAt,
     };
     if (JSON.stringify(current) === JSON.stringify(next)) return false;
+    const prevLoc = String(current.currentLocation || '').trim();
+    const nextLoc = String(next.currentLocation || '').trim();
     store.characterSchedules = { ...(store.characterSchedules || {}), [id]: next };
+    if (nextLoc && nextLoc !== prevLoc) {
+      window.GameModules.orgTerritory?.bumpOrgExposureOnScheduleLocation?.(store, nextLoc);
+    }
+    update.settlementAt = updatedAt;
+    if (update.change?.value && typeof update.change.value === 'object' && !Array.isArray(update.change.value)) {
+      update.change.value = { ...update.change.value, updatedAt };
+    }
     return true;
   },
 
@@ -336,6 +405,7 @@ Object.assign(window.GameModules.updateRegistry, {
     for (const update of ordered) {
       if (!this.applyOne(store, update)) continue;
       if (update.updateType === 'character-schedule') continue;
+      if (update.updateType === 'system') continue;
       const state = this.targetState(store, update);
       if (state?.id) changed.add(state.id);
     }

@@ -18,9 +18,11 @@ window.GameModules.createRealWorldPrompt = async function createRealWorldPrompt(
   const baseContext = [
     `现实世界：${realWorld.label || '2026 现代都市现实世界'}`,
     `现实背景：${realWorld.summary || '玩家生活在现代都市，个人信息由玩家自行设定。'}`,
+    window.GameModules.gamePremise?.aiPremiseLine || '',
     `关系边界：${realWorld.relationHint || '玩家相关人际关系只以玩家填写为准，未填写不要擅自补完。'}`,
     `手机时间：${state.phoneDateText?.() || '未知'} ${state.phoneTimeText?.() || ''}`,
     `玩家资料：${state.playerSetupSummary?.() || `姓名/代号：${state.playerName || '玩家'}`}`,
+    ...(state.playerAspirationSummary?.() ? [`人生取向：${state.playerAspirationSummary()}`] : []),
     `玩家属性：${state.playerIdentitySummary?.() || '玩家本人属性尚未生成。'}`,
     `公司系统：${state.companyPromptContext?.() || '暂无公司系统词条。'}`,
     `当前场景：${state.realWorldSceneTitle || '现实世界'}`,
@@ -39,7 +41,8 @@ window.GameModules.createRealWorldPrompt = async function createRealWorldPrompt(
     state.memoryQueryContext?.('player-self', action) || '暂无人物记忆。',
     `## 记忆归档\n${memoryArchive}`,
   ].join('\n\n');
-  return window.GameModules.promptTemplates.render('inference-stage3-narration', {
+  const renderPrompt = window.GameModules.renderPrompt || ((id, vars) => window.GameModules.promptTemplates?.render?.(id, vars));
+  return renderPrompt('inference-stage3-narration', {
     模式标签: '现实',
     本次行动: actionText,
     基础上下文: baseContext,

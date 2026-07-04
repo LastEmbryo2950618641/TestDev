@@ -23,7 +23,7 @@ window.GameModules.sqliteSave = {
     }
   },
 
-  async open(slot) {
+  async open(slot, options = {}) {
     this.activeSlot = slot || this.activeSlot;
     await this.init();
     const raw = await this.readRaw(this.activeSlot);
@@ -34,24 +34,38 @@ window.GameModules.sqliteSave = {
     }
     this.db = raw ? new this.SQL.Database(this.fromBase64(raw)) : new this.SQL.Database();
     this.migrate();
-    await this.persist();
+    if (!options.deferPersist) await this.persist();
   },
 
   async inspectSlot(slot) {
     await this.init();
     const raw = await this.readRaw(slot);
-    if (!raw) return { slot, exists: false, savedAt: '' };
+    if (!raw) return { slot, exists: false, savedAt: '', playerName: '', phoneSetupDone: false };
+    let savedAt = '';
+    let playerName = '';
+    let phoneSetupDone = false;
     if (this.fallback) {
       const state = this.readFallbackState(raw);
-      return { slot, exists: Boolean(state?.main), savedAt: state?.updatedAt || '' };
+      const main = state?.main || {};
+      savedAt = state?.updatedAt || '';
+      playerName = String(main.playerName || main.playerProfile?.name || '').trim();
+      phoneSetupDone = Boolean(main.phoneSetupDone);
+      return { slot, exists: Boolean(state?.main), savedAt, playerName, phoneSetupDone };
     }
     const db = new this.SQL.Database(this.fromBase64(raw));
-    let savedAt = '';
     try {
-      const row = db.exec('SELECT updated_at FROM game_state WHERE key="main" LIMIT 1')?.[0]?.values?.[0];
-      savedAt = row?.[0] || '';
+      const row = db.exec('SELECT value, updated_at FROM game_state WHERE key="main" LIMIT 1')?.[0]?.values?.[0];
+      if (row) {
+        savedAt = row[1] || '';
+        try {
+          const main = JSON.parse(String(row[0] || '{}'));
+          playerName = String(main.playerName || main.playerProfile?.name || '').trim();
+          phoneSetupDone = Boolean(main.phoneSetupDone);
+        } catch (_) { /* 忽略 */ }
+      }
     } catch (_) { /* 忽略 */ }
-    db.close(); return { slot, exists: true, savedAt };
+    db.close();
+    return { slot, exists: true, savedAt, playerName, phoneSetupDone };
   },
 
   migrate() {
@@ -138,11 +152,15 @@ window.GameModules.sqliteSave = {
 
   async saveGameState(value) {
     const now = new Date().toISOString();
+    if (!this.db && !this.fallback) {
+      await this.open(this.activeSlot);
+    }
     if (this.fallback) {
       this.fallbackState = { ...(this.fallbackState || {}), version: 1, main: value, updatedAt: now };
       await this.persist();
       return;
     }
+    if (!this.db) return;
     this.db.run('INSERT OR REPLACE INTO game_state(key,value,updated_at) VALUES (?,?,?)', ['main', JSON.stringify(value), now]);
     await this.persist();
   },
@@ -163,10 +181,10 @@ window.GameModules.sqliteSave = {
     try { return row ? JSON.parse(row.value) : null; } catch (_) { return null; }
   },
 
-  async saveMetaJson(key, value) {
+  async saveMetaJson(key, value, options = {}) {
     if (!this.db) return;
     this.db.run('INSERT OR REPLACE INTO metadata(key,value) VALUES (?,?)', [key, JSON.stringify(value)]);
-    await this.persist();
+    if (!options.deferPersist) await this.persist();
   },
 
   getWorldLore(worldTag) {

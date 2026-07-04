@@ -118,7 +118,7 @@ window.GameModules = window.GameModules || {};
       const clue = this.locationFillClue(store, keyword, character, action);
       let payload = null;
       try {
-        const prompt = await window.GameModules.promptTemplates.render('real-world-map-location-add', {
+        const prompt = await window.GameModules.renderPrompt('real-world-map-location-add', {
           手机时间: `${store.phoneDateText?.() || ''} ${store.phoneTimeText?.() || ''}`.trim(),
           当前地点: map.current || store.realWorldLocationName || '未知',
           现实地图: map.lastText || window.GameModules.realWorldMap.render(map),
@@ -126,7 +126,7 @@ window.GameModules = window.GameModules || {};
           新地点线索: clue,
         });
         payload = await window.GameModules.jsonUtils.generateJsonWithRetry({
-          source: 'real-world-location-fill', model: store.modelId, timeoutMs: 45000, prompt, format: prompt, max: 2,
+          source: 'real-world-location-fill', promptId: 'real-world-map-location-add', model: store.modelId, timeoutMs: 45000, prompt, format: prompt, max: 2,
           parse: (text) => window.GameModules.jsonUtils.parseLoose(text),
           validate: (raw) => this.validateLocationFill(raw),
         });

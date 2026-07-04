@@ -484,8 +484,80 @@
 
 .activation-home,
 .activation-confirm {
-  grid-template-rows: 1fr auto;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
   overflow: hidden;
+}
+
+.activation-model-panel {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 2px 8px;
+}
+
+.activation-model-header {
+  display: grid;
+  gap: 4px;
+}
+
+.activation-model-header .eyebrow {
+  margin: 0;
+  color: #7fe5ff;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.activation-model-header strong {
+  font-size: 18px;
+}
+
+.activation-model-header small,
+.activation-model-panel .model-setting-group small {
+  color: #aeb9d6;
+  line-height: 1.45;
+}
+
+.activation-model-panel .model-setting-group {
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 14px;
+  background: rgba(3, 6, 17, .34);
+}
+
+.activation-model-panel .model-setting-group h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+
+.activation-model-panel .model-setting-group select,
+.activation-model-panel .model-setting-group .text-input {
+  width: 100%;
+}
+
+.activation-model-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.activation-model-panel .settings-error,
+.activation-model-panel .settings-success {
+  margin: 0;
+}
+
+.activation-system-result {
+  margin: 0;
+  max-height: 120px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, .22);
 }
 
 .activation-form {

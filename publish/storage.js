@@ -6,8 +6,8 @@ window.GameModules = window.GameModules || {};
 window.GameModules.storage = {
   slots: Array.from({ length: 10 }, (_, index) => `slot-${index + 1}`),
 
-  async open(slot) {
-    await window.GameModules.sqliteSave.open(slot);
+  async open(slot, options = {}) {
+    await window.GameModules.sqliteSave.open(slot, options);
   },
 
   async put(value) {
@@ -27,6 +27,7 @@ window.GameModules.storage = {
       started: store.started,
       phoneSetupDone: store.phoneSetupDone,
       playerProfile: store.playerProfile,
+      playerAspiration: store.playerAspiration || null,
       playerName: store.playerName,
       roleCardSetup: {
         usePredefinedPlayerCard: Boolean(store.roleCardSetup?.usePredefinedPlayerCard),
@@ -39,13 +40,26 @@ window.GameModules.storage = {
       wechatAlbumPhotos: store.wechatAlbumPhotos || {},
       wechatAlbumPrompts: store.wechatAlbumPrompts || {},
       settingsState: store.settingsState ? {
-        textProvider: store.settingsState.textProvider || 'dzmm',
+        textProvider: store.settingsState.textProvider || 'deepseek',
         textModelId: store.modelId || store.settingsState.textModelId,
         deepseekApiKey: store.settingsState.deepseekApiKey || '',
         deepseekBaseUrl: store.settingsState.deepseekBaseUrl || 'https://api.deepseek.com',
         deepseekModel: store.settingsState.deepseekModel || '',
         drawModelId: store.settingsState.drawModelId || 'anime',
+        stage1MaterialIterationLimited: Boolean(store.settingsState.stage1MaterialIterationLimited),
         stage1MaterialMaxIterations: Number(store.settingsState.stage1MaterialMaxIterations) || 2,
+        aiOutputLimitGlobalMode: store.settingsState.aiOutputLimitGlobalMode,
+        aiOutputLimitGlobalMaxTokens: store.settingsState.aiOutputLimitGlobalMaxTokens,
+        aiOutputLimitStage1Mode: store.settingsState.aiOutputLimitStage1Mode,
+        aiOutputLimitStage1MaxTokens: store.settingsState.aiOutputLimitStage1MaxTokens,
+        aiOutputLimitStage2Mode: store.settingsState.aiOutputLimitStage2Mode,
+        aiOutputLimitStage2MaxTokens: store.settingsState.aiOutputLimitStage2MaxTokens,
+        aiOutputLimitStage3Mode: store.settingsState.aiOutputLimitStage3Mode,
+        aiOutputLimitStage3MaxTokens: store.settingsState.aiOutputLimitStage3MaxTokens,
+        aiOutputLimitStage4Mode: store.settingsState.aiOutputLimitStage4Mode,
+        aiOutputLimitStage4MaxTokens: store.settingsState.aiOutputLimitStage4MaxTokens,
+        aiOutputLimitOtherMode: store.settingsState.aiOutputLimitOtherMode,
+        aiOutputLimitOtherMaxTokens: store.settingsState.aiOutputLimitOtherMaxTokens,
       } : undefined,
       phoneFixedTime: store.phoneFixedTime,
       selectedSlot: store.selectedSlot,
@@ -84,6 +98,17 @@ window.GameModules.storage = {
       realWorldLog: (store.realWorldLog || []).filter((entry) => !entry.transientError).slice(-30),
       realWorldLongingEvents: store.realWorldLongingEvents || [],
       realWorldlineState: store.realWorldlineState || { events: [], plots: [], pendingPlot: null },
+      realWorldSystemRecords: (store.realWorldSystemRecords || []).slice(-60),
+      realWorldAgentKvByMode: store.realWorldAgentKvByMode || {},
+      characterSchedules: store.characterSchedules && typeof store.characterSchedules === 'object' ? store.characterSchedules : {},
+      orgTerritoryReconciliationLog: (store.orgTerritoryReconciliationLog || []).slice(-30),
+      orgTerritoryConsistency: store.orgTerritoryConsistency ? {
+        dismissed: Boolean(store.orgTerritoryConsistency.dismissed),
+        at: store.orgTerritoryConsistency.at || '',
+        signature: store.orgTerritoryConsistency.signature
+          || window.GameModules.orgTerritory?.consistencySignature?.(store.orgTerritoryConsistency)
+          || '',
+      } : undefined,
       companyState: store.companyState ? { ...store.companyState, open: false } : store.companyState,
       bossState: store.bossState ? { ...store.bossState, open: false, companyDetailOpen: false, generating: false } : store.bossState,
       calendarState: store.calendarState ? { ...store.calendarState, open: false } : store.calendarState,
@@ -99,6 +124,7 @@ window.GameModules.storage = {
     store.phoneSetupDone = save.phoneSetupDone ?? store.phoneSetupDone;
     store.phoneFixedTime = Number(save.phoneFixedTime) || new Date(save.playerProfile?.initializedAt || Date.now()).getTime();
     store.playerProfile = { ...store.playerProfile, ...(save.playerProfile || {}) };
+    store.playerAspiration = save.playerAspiration || null;
     store.playerName = save.playerName || store.playerProfile?.name || store.playerName;
     if (save.roleCardSetup && store.roleCardSetup) {
       store.roleCardSetup = {
@@ -114,12 +140,20 @@ window.GameModules.storage = {
     store.wechatAlbumPhotos = save.wechatAlbumPhotos && typeof save.wechatAlbumPhotos === 'object' ? save.wechatAlbumPhotos : (store.wechatAlbumPhotos || {});
     store.wechatAlbumPrompts = save.wechatAlbumPrompts && typeof save.wechatAlbumPrompts === 'object' ? save.wechatAlbumPrompts : (store.wechatAlbumPrompts || {});
     if (save.settingsState && store.settingsState) {
+      const keepKey = String(store.settingsState.deepseekApiKey || '').trim();
       store.settingsState = { ...store.settingsState, ...save.settingsState, open: false, loading: false, error: '' };
+      if (!String(store.settingsState.deepseekApiKey || '').trim() && keepKey) {
+        store.settingsState.deepseekApiKey = keepKey;
+      }
+      store.settingsState.stage1MaterialIterationLimited = Boolean(store.settingsState.stage1MaterialIterationLimited);
       store.settingsState.stage1MaterialMaxIterations = Math.max(1, Math.min(8, Math.round(Number(store.settingsState.stage1MaterialMaxIterations) || 2)));
-      store.settingsState.textProvider = store.settingsState.textProvider || 'dzmm';
+      store.settingsState.textProvider = store.settingsState.textProvider || 'deepseek';
       store.settingsState.deepseekBaseUrl = store.settingsState.deepseekBaseUrl || 'https://api.deepseek.com';
+      store.ensureAiOutputLimitSettings?.();
       store.modelId = store.settingsState.textModelId || store.modelId;
+      window.GameModules.localSettings?.ensureActivationTextModels?.(store);
     }
+    window.GameModules.runtimeConfig?.applyToStore?.(store);
     store.realWorldThinkMode = Boolean(save.realWorldThinkMode ?? store.realWorldThinkMode);
     store.realWorldSceneTitle = save.realWorldSceneTitle || store.realWorldSceneTitle;
     store.realWorldLocationName = save.realWorldLocationName || store.realWorldLocationName;
@@ -132,11 +166,31 @@ window.GameModules.storage = {
     store.realWorldLongingEvents = Array.isArray(save.realWorldLongingEvents) ? save.realWorldLongingEvents : (store.realWorldLongingEvents || []);
     window.GameModules.sqliteSave.saveRealWorldLogEntries?.(store.realWorldLog).catch((err) => console.warn('[现实日志] 旧日志迁移失败:', err.message, err.stack));
     store.realWorldlineState = save.realWorldlineState || store.realWorldlineState || { events: [], plots: [], pendingPlot: null };
+    store.realWorldSystemRecords = Array.isArray(save.realWorldSystemRecords) ? save.realWorldSystemRecords : (store.realWorldSystemRecords || []);
+    store.realWorldAgentKvByMode = save.realWorldAgentKvByMode && typeof save.realWorldAgentKvByMode === 'object'
+      ? save.realWorldAgentKvByMode
+      : (store.realWorldAgentKvByMode || {});
+    store.characterSchedules = save.characterSchedules && typeof save.characterSchedules === 'object'
+      ? save.characterSchedules
+      : (store.characterSchedules || {});
+    store.orgTerritoryReconciliationLog = Array.isArray(save.orgTerritoryReconciliationLog)
+      ? save.orgTerritoryReconciliationLog.slice(-30)
+      : (store.orgTerritoryReconciliationLog || []);
+    if (save.orgTerritoryConsistency) {
+      store.orgTerritoryConsistency = {
+        ...(store.orgTerritoryConsistency || {}),
+        dismissed: Boolean(save.orgTerritoryConsistency.dismissed),
+        at: save.orgTerritoryConsistency.at || '',
+        signature: String(save.orgTerritoryConsistency.signature || '').slice(0, 4000),
+      };
+    }
     window.GameModules.wechatCleanup?.run?.(store);
     store.companyState = save.companyState ? { ...save.companyState, open: false } : store.companyState;
     store.bossState = save.bossState ? { ...save.bossState, open: false, companyDetailOpen: false, generating: false } : store.bossState;
     store.calendarState = save.calendarState ? { ...save.calendarState, open: false } : store.calendarState;
     store.factionState = save.factionState ? { ...save.factionState, open: false, detailOpen: false, generating: false, archives: save.factionState.archives || save.factionArchives || {} } : store.factionState;
+    store.initFactionSystem?.();
+    window.GameModules.orgTerritory?.validateWorldConsistency?.(store);
     store.taobaoState = save.taobaoState ? { ...store.taobaoState, ...save.taobaoState, open: false, generatingId: '', buyingId: '' } : store.taobaoState;
     store.solidifyState = save.solidifyState ? { ...store.solidifyState, ...save.solidifyState, open: false } : store.solidifyState;
     store.initTaobaoApp?.();

@@ -23,6 +23,19 @@ window.GameModules.characterProfile = {
     store?.updateRoleCardLoadingStep?.(id, stepKey, status, text, progress);
   },
 
+  reportFeelingProgress(store, loadingId, feelingPartial = {}, total = null) {
+    if (!store || !loadingId) return;
+    const stepTotal = total ?? this.partProgressTotal(2);
+    this.onProgress(store, loadingId, 'feeling', 'running', '', {
+      done: this.partProgressDone(2, { feeling: feelingPartial }),
+      total: stepTotal,
+    });
+  },
+
+  part2FeelingContext(vars = {}) {
+    return [vars.part1Summary, vars.关系事件区, vars.玩家备注区].filter(Boolean).join('\n');
+  },
+
   partProgressTotal(partIndex, template, attrs = null, part = null) {
     if (partIndex === 2) return window.GameModules.metrics.emotionKeys.length + window.GameModules.metrics.playerKeys.length;
     if (partIndex === 3 && part) return this.partProgressDone(3, part) || 3;
@@ -148,7 +161,11 @@ window.GameModules.characterProfile = {
 
   async generate(base, lore, attrs, context, store, signature = '', preset = null) {
     try {
-      if (!window.dzmm?.completions) throw new Error('无法生成个人资料：AI接口不可用，不能使用本地兜底原因。');
+      const providerId = window.GameModules.aiProvider?.currentProviderId?.() || 'deepseek';
+      const provider = window.GameModules.aiProvider?.currentProvider?.();
+      if (!provider || typeof provider.complete !== 'function') {
+        throw new Error(`无法生成个人资料：文本 AI 提供方 ${providerId} 未就绪，请先在激活首页配置模型`);
+      }
       this.partTemplateCache = null;
       const sections = window.GameModules.promptSections;
       const player = sections.playerProfile(store);
@@ -182,10 +199,18 @@ window.GameModules.characterProfile = {
       store?.updateRoleCardLoading?.(loadingId, { name: part1.name || base.name, status: 'running' });
       const p1Summary = this.part1Summary(part1);
       const namedBase = { ...base, name: this.isConcreteName(base.name) ? base.name : (part1.name || base.name) };
+      let essentialPref = shouldReuse('essentialPreferences') ? retryParts.essentialPreferences : null;
+      if (!essentialPref) {
+        this.onProgress(store, loadingId, 'essentialPreferences', 'running', '', { done: 0, total: 5 });
+        essentialPref = await this.generateEssentialPreferenceLayers(namedBase, store, part1, p1Summary, commonVars);
+        this.onProgress(store, loadingId, 'essentialPreferences', 'done', '', { done: 5, total: 5 });
+        remember('essentialPreferences', essentialPref);
+      }
+      const essentialPrefSummary = window.GameModules.playerAspirationPreferenceLayers?.summaryText?.(essentialPref?.essentialPreferenceLayers) || '';
       const part2Total = this.partProgressTotal(2, templates[2], attrs);
       let part2 = shouldReuse('feeling') ? retryParts.feeling : null;
       if (!part2) {
-        part2 = await this.generateOrDefaultPart(2, 'character-profile-part2-feeling', 'feeling', { ...commonVars, part1Summary: p1Summary }, templates[2], namedBase, lore, attrs, store, part2Total);
+        part2 = await this.generateOrDefaultPart(2, 'character-profile-part2-feeling', 'feeling', { ...commonVars, part1Summary: p1Summary, 本质偏好五层: essentialPrefSummary }, templates[2], namedBase, lore, attrs, store, part2Total);
         remember('feeling', part2);
       }
       const part3StartTotal = this.partProgressTotal(3, templates[3], attrs);
@@ -230,7 +255,7 @@ window.GameModules.characterProfile = {
         this.onProgress(store, loadingId, 'rpgField', 'done', '', { done: this.partProgressDone(7, part7), total: part7Total });
         remember('rpgField', part7);
       }
-      const merged = this.mergeGeneratedParts(part1, part2, part3, { ...part4, ...part5, ...part6, ...part7 }, attrs);
+      const merged = this.mergeGeneratedParts(part1, part2, part3, { ...part4, ...part5, ...part6, ...part7, essentialPreferenceLayers: essentialPref?.essentialPreferenceLayers, essentialPreferenceLayersLocked: true }, attrs);
       const profile = this.validate(merged, base, lore, attrs, store, { skipInitialMetrics: false });
       return this.withSignature(profile, signature);
     } catch (err) {
@@ -242,10 +267,55 @@ window.GameModules.characterProfile = {
 
   shouldReuseRoleCardPart(retryFromStep = '', stepKey = '') {
     if (!retryFromStep) return false;
-    const order = ['profile', 'feeling', 'abilities', 'inventory', 'bodyProfile', 'dressedProfile', 'rpgField', 'state'];
+    const order = ['profile', 'essentialPreferences', 'feeling', 'abilities', 'inventory', 'bodyProfile', 'dressedProfile', 'rpgField', 'state'];
     const retryIndex = order.indexOf(retryFromStep);
     const stepIndex = order.indexOf(stepKey);
     return retryIndex > 0 && stepIndex >= 0 && stepIndex < retryIndex;
+  },
+
+  async generateEssentialPreferenceLayers(base, store, part1, p1Summary, commonVars = {}) {
+    const tool = window.GameModules.playerAspirationPreferenceLayers;
+    if ((base.id === 'player-self' || base.isPlayer) && store?.playerAspiration?.alignment) {
+      const layers = tool?.buildFromPlayerAspiration?.(store.playerAspiration);
+      if (layers) return { name: base.name || part1.name, essentialPreferenceLayers: layers };
+    }
+    try {
+      const prompt = await window.GameModules.renderPrompt('character-profile-essential-preference-layers', { ...commonVars, part1Summary: p1Summary });
+      const raw = await window.GameModules.jsonUtils.generateJsonWithRetry({
+        source: 'character-profile-essential-preference-layers',
+        promptId: 'character-profile-essential-preference-layers',
+        model: window.GameModules.aiRequest?.selectedTextModel?.(),
+        timeoutMs: 60000,
+        prompt,
+        format: prompt,
+        max: 2,
+      });
+      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      const layers = tool?.normalizeLayers?.(parsed?.essentialPreferenceLayers || parsed);
+      if (layers?.layer1) {
+        return { name: parsed?.name || base.name || part1.name, essentialPreferenceLayers: layers };
+      }
+    } catch (err) {
+      console.warn('[角色卡] 本质偏好五层 AI 生成失败，使用 Part1 推断兜底:', err?.message || err);
+    }
+    return { name: base.name || part1.name, essentialPreferenceLayers: this.fallbackEssentialPreferenceLayers(part1) };
+  },
+
+  fallbackEssentialPreferenceLayers(part1 = {}) {
+    const tool = window.GameModules.playerAspirationPreferenceLayers;
+    const personality = String(part1.personality || '').trim();
+    const alignment = /邪恶|自私|冷酷|算计|不择手段/.test(personality) ? '中立邪恶'
+      : /善良|温柔|体贴|正直|守序/.test(personality) ? '中立善良'
+      : '绝对中立';
+    const cfg = window.GameModules.playerAspirationConfig;
+    const alignLabel = cfg?.alignmentById?.(alignment)?.label || alignment;
+    return tool.normalizeLayers({
+      layer1: tool.formatLayer1(alignLabel),
+      layer2: tool.formatLayer2(50, '理性感性居中'),
+      layer3: tool.formatLayer3(cfg?.defaultAxes?.()),
+      layer4: tool.formatLayer4(cfg?.defaultGuiltAxes?.()),
+      layer5: `心理偏好: ${String(part1.preferences || personality || '未显化').slice(0, 80)}`,
+    });
   },
 
   roleCardPromptTarget(base = {}, store = null) {
@@ -280,62 +350,76 @@ window.GameModules.characterProfile = {
   },
 
   async generateOrDefaultPart(partIndex, promptId, stepKey, vars, template, base, lore, attrs, store, total) {
-    const loadingId = base.id;
-    if (this.playerPartUsesDefault(base, partIndex)) {
-      const part = this.defaultPlayerPart(partIndex, base, template);
-      this.onProgress(store, loadingId, stepKey, 'done', '采用系统缺省值', { done: total, total });
-      return part;
+    if (partIndex === 2) {
+      return this.generatePart2Progressive(promptId, stepKey, vars, template, base, lore, attrs, store, total);
     }
+    const loadingId = base.id;
     this.onProgress(store, loadingId, stepKey, 'running', '', { done: 0, total });
     const part = await this.generatePart(partIndex, promptId, vars, template, base, lore, attrs, store);
     this.onProgress(store, loadingId, stepKey, 'done', '', { done: this.partProgressDone(partIndex, part), total });
     return part;
   },
 
-  playerPartUsesDefault(base = {}, partIndex) {
-    if (base.id !== 'player-self' && !base.isPlayer) return false;
-    const key = `part${partIndex}`;
-    return [2, 5, 6].includes(partIndex) && base.playerCardAiParts?.[key] === false;
+  async generatePart2Progressive(promptId, stepKey, vars, template, base, lore, attrs, store, total) {
+    const loadingId = base.id;
+    const stepTotal = total ?? this.partProgressTotal(2, template);
+    this.onProgress(store, loadingId, stepKey, 'running', '', { done: 0, total: stepTotal });
+    const profile = { name: base.name };
+    const context = this.part2FeelingContext(vars);
+    let part = null;
+    const preferSingleShot = window.GameModules.config?.characterProfile?.preferSingleShotPart2 !== false;
+    if (preferSingleShot && store?.roleCardLoadingState?.open) {
+      try {
+        part = await this.generatePart2SingleShot(promptId, vars, template, base, store, stepTotal, loadingId);
+      } catch (err) {
+        console.warn('[角色卡Part2] 单次情感生成失败，改用分块并行:', err?.message || err);
+      }
+    }
+    if (!part || !this.feelingComplete(part.feeling)) {
+      try {
+        part = await this.generatePart2SingleShot(promptId, vars, template, base, store, stepTotal, loadingId);
+      } catch (retryErr) {
+        console.warn('[角色卡Part2] JSON 全量重试失败，改用 emotions/playerFeelings 并行 JSON 组:', retryErr?.message || retryErr);
+        const feeling = await this.generatePartFeeling(profile, base, lore, attrs, context, store, 'all', { loadingId, total: stepTotal });
+        part = this.lockPartTargetName(2, this.sanitizePart(2, { name: base.name, feeling }, template), base);
+        this.reportFeelingProgress(store, loadingId, part.feeling || feeling, stepTotal);
+      }
+    }
+    const format = this.partPromptWithTemplate(await window.GameModules.renderPrompt(promptId, vars), template, 2);
+    part = await this.completeMissingPart(2, part, template, format, base, lore, attrs, store);
+    part = this.validatePart(2, part, base, lore, attrs, store, template);
+    this.onProgress(store, loadingId, stepKey, 'done', '', { done: this.partProgressDone(2, part), total: stepTotal });
+    return part;
   },
 
-  defaultPlayerPart(partIndex, base = {}, template = {}) {
-    const cloned = JSON.parse(JSON.stringify(template || {}));
-    const name = base.name || cloned.name || '玩家本人';
-    if (partIndex === 2) return this.defaultPlayerFeelingPart(name);
-    if (partIndex === 5) return { name, bodyProfile: this.defaultBodyProfile('自然状态') };
-    if (partIndex === 6) return { name, dressedProfile: this.defaultBodyProfile('盛装状态') };
-    return { ...cloned, name };
-  },
-
-  defaultPlayerFeelingPart(name = '玩家本人') {
-    const metric = window.GameModules.metrics;
-    const item = (key, type) => {
-      const defaults = type === 'emotion' ? metric.defaults.emotions : metric.defaults.playerFeelings;
-      const value = metric.clamp(defaults[key] ?? 0);
-      return { name: key, value, status: metric.valueExplanation(key, value), reason: `${name}采用系统缺省${key}数值。`, metricSources: this.metricSourceMap?.('系统') };
-    };
-    return {
-      name,
-      feeling: {
-        emotions: Object.fromEntries(metric.emotionKeys.map((key) => [key, item(key, 'emotion')])),
-        playerFeelings: Object.fromEntries(metric.playerKeys.map((key) => [key, item(key, 'playerFeelings')])),
-      },
-    };
-  },
-
-  defaultBodyProfile(label = '状态') {
-    return this.bodyProfileParts().map((part, index) => ({
-      index: index + 1,
-      part,
-      description: `采用系统缺省${label}：${part}暂无 AI 生成描写。`,
-    }));
+  async generatePart2SingleShot(promptId, vars, template, base, store, stepTotal, loadingId) {
+    const prompt = await window.GameModules.renderPrompt(promptId, vars);
+    const format = this.partPromptWithTemplate(prompt, template, 2);
+    const raw = await window.GameModules.jsonUtils.generateJsonWithRetry({
+      source: 'character-profile-part2-feeling-single',
+      promptId,
+      model: window.GameModules.aiRequest?.selectedTextModel?.(),
+      timeoutMs: 90000,
+      prompt: format,
+      format,
+      repairHint: this.partRepairHint(2, base, null, template),
+      requiredRawFields: this.partRequiredRawFields(2),
+      parse: (text) => this.parsePartOutput(2, text, base),
+      max: 3,
+    });
+    const normalized = await this.normalizeJsonPart(2, raw, base);
+    const part = this.lockPartTargetName(2, this.sanitizePart(2, normalized, template), base);
+    if (!this.feelingComplete(part.feeling)) throw new Error('Part2 单次生成结果不完整');
+    this.reportFeelingProgress(store, loadingId, part.feeling, stepTotal);
+    return part;
   },
 
   async generatePart(partIndex, promptId, vars, template, base, lore, attrs, store) {
-    const prompt = await window.GameModules.promptTemplates.render(promptId, vars);
+    const prompt = await window.GameModules.renderPrompt(promptId, vars);
     const format = this.partPromptWithTemplate(prompt, template, partIndex);
     const raw = await window.GameModules.jsonUtils.generateJsonWithRetry({
       source: `character-profile-part${partIndex}`,
+      promptId,
       model: window.GameModules.aiRequest?.selectedTextModel?.(),
       timeoutMs: 60000,
       prompt: format,
@@ -343,10 +427,11 @@ window.GameModules.characterProfile = {
       repairHint: this.partRepairHint(partIndex, base, attrs, template),
       requiredRawFields: this.partRequiredRawFields(partIndex),
       parse: (text) => this.parsePartOutput(partIndex, text, base),
-      max: 2,
+      max: 3,
     });
-    const repairedRaw = await this.repairCsvPartRows(partIndex, raw, format, base, lore, attrs, store, vars);
+    const repairedRaw = await this.normalizeJsonPart(partIndex, raw, base);
     let normalized = this.lockPartTargetName(partIndex, this.sanitizePart(partIndex, repairedRaw, template), base);
+    if (partIndex === 2) this.reportFeelingProgress(store, base.id, normalized.feeling || {}, this.partProgressTotal(2, template));
     normalized = await this.completeMissingPart(partIndex, normalized, template, format, base, lore, attrs, store);
     return this.validatePart(partIndex, normalized, base, lore, attrs, store, template);
   },
@@ -354,11 +439,11 @@ window.GameModules.characterProfile = {
   partRequiredRawFields(partIndex, fields = null) {
     const byPart = {
       1: ['name', 'worldTag', 'age', 'gender', 'factions', 'forcePositions'],
-      2: ['name', 'value', 'status', 'reason', '冷静', '绝望', '了解', '服从'],
-      3: ['type', 'name', 'level', 'reason', 'requiredIntrinsicBase', 'requiredKnowledge', 'requiredSkills'],
-      4: ['type', 'slot', 'clothing_position', 'name', 'description', 'quantity', 'reason', 'wearing', 'item'],
-      5: ['序号', '部位', '部位描写', '头发', '脸部', '胸部', '神秘花园', '双小腿'],
-      6: ['序号', '部位', '部位描写', '头发', '脸部', '胸部', '神秘花园', '双小腿'],
+      2: ['name', 'feeling', 'emotions', 'playerFeelings'],
+      3: ['name', 'skills', 'knowledge', 'professions', 'level', 'reason'],
+      4: ['name', 'items', 'wearing', 'head', 'top', 'bottom', 'socks', 'shoes'],
+      5: ['name', 'bodyProfile', '头发', '脸部', '神秘花园', '双小腿'],
+      6: ['name', 'dressedProfile', '头发', '脸部', '神秘花园', '双小腿'],
       7: ['name', 'rpgField', 'level', 'intrinsicBase', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma'],
     };
     if (!fields) return byPart[partIndex] || [];
@@ -372,7 +457,6 @@ window.GameModules.characterProfile = {
   },
 
   partPromptWithTemplate(prompt, template, partIndex) {
-    if ([2, 3, 4, 5, 6].includes(partIndex)) return prompt;
     return [
       prompt,
       '',
@@ -384,8 +468,16 @@ window.GameModules.characterProfile = {
     ].join('\n');
   },
 
+  async normalizeJsonPart(partIndex, raw, base = {}) {
+    let data = raw && typeof raw === 'object' ? raw : this.parsePartOutput(partIndex, String(raw || ''), base);
+    if (partIndex === 3 && data) this.promotePart3Dependencies(data);
+    if (partIndex === 2 && data?.feeling) data = { ...data, feeling: this.normalizeFeelingObject(data.feeling) };
+    if (partIndex === 5 || partIndex === 6) data = this.completeBodyProfileFallback(partIndex, data, base);
+    return data;
+  },
+
   sanitizePart(partIndex, raw, template) {
-    const clean = partIndex === 3 ? raw : this.sanitizeByTemplate(raw, template);
+    const clean = this.sanitizeByTemplate(raw, template);
     if (clean && typeof clean === 'object') {
       if ((partIndex === 4 || partIndex === 5 || partIndex === 6) && Array.isArray(raw?._csvRows)) clean._csvRows = raw._csvRows;
       if (partIndex !== 4 && partIndex !== 5 && partIndex !== 6) delete clean._csvRows;
@@ -560,12 +652,6 @@ window.GameModules.characterProfile = {
     for (let i = 0; i < 2; i += 1) {
       let missing = this.missingPartFields(partIndex, current, template, base, attrs);
       if (!missing.length) return current;
-      if (partIndex === 2 && missing.includes('feeling')) {
-        const feeling = await this.generatePartFeeling(current, base, lore, attrs, format, store, 'all');
-        current = this.lockPartTargetName(partIndex, this.sanitizePart(partIndex, { ...current, feeling }, template), base);
-        missing = this.missingPartFields(partIndex, current, template, base, attrs);
-        if (!missing.length) return current;
-      }
       if ((partIndex === 5 && missing.includes('bodyProfile')) || (partIndex === 6 && missing.includes('dressedProfile'))) {
         current = this.completeBodyProfileFallback(partIndex, current, base);
         missing = this.missingPartFields(partIndex, current, template, base, attrs);
@@ -580,34 +666,7 @@ window.GameModules.characterProfile = {
   },
 
   async repairCsvPartRows(partIndex, raw, format, base, lore, attrs, store, vars = {}) {
-    if (![2, 3, 4, 5, 6].includes(partIndex)) return raw;
-    if (partIndex === 5 || partIndex === 6) raw = this.completeBodyProfileFallback(partIndex, raw, base);
-    let currentRows = this.normalizeCsvPartRows(partIndex, this.rowsFromCsvPart(partIndex, raw));
-    let attempts = 0;
-    while (true) {
-      attempts += 1;
-      currentRows = this.applyLocalCsvFixes(partIndex, currentRows);
-      const issues = this.csvPartIssues(partIndex, currentRows, base);
-      if (!issues.length) return this.buildPartFromCsvRows(partIndex, currentRows, base.name);
-      const aiIssues = issues.filter((issue) => !/超过10行$/.test(issue.reason || ''));
-      const unlimitedRepair = partIndex === 2 || partIndex === 4 || partIndex === 5 || partIndex === 6;
-      const repairLimit = partIndex === 4 || partIndex === 5 || partIndex === 6 ? 8 : 2;
-      if (!aiIssues.length || (!unlimitedRepair && attempts >= 2) || (unlimitedRepair && attempts > repairLimit)) break;
-      try {
-        const fixedRows = await this.generateCsvFixRows(partIndex, aiIssues, currentRows, format, base, lore, attrs, store, vars);
-        currentRows = this.normalizeCsvPartRows(partIndex, this.mergeCsvFixRows(partIndex, currentRows, fixedRows, issues));
-      } catch (err) {
-        if (!unlimitedRepair) throw err;
-        console.warn(`[角色卡Part${partIndex}] CSV修复未收敛，继续重试:`, err?.message || 'unknown');
-      }
-    }
-    const finalRows = this.applyLocalCsvFixes(partIndex, currentRows);
-    const finalIssues = this.csvPartIssues(partIndex, finalRows, base);
-    if ((partIndex === 5 || partIndex === 6) && finalIssues.length) {
-      return this.completeBodyProfileFallback(partIndex, this.buildPartFromCsvRows(partIndex, finalRows, base.name), base);
-    }
-    if (partIndex === 4 && finalIssues.length) throw new Error(`Part${partIndex} CSV修复未收敛：${finalIssues.map((x) => `${x.key}:${x.reason}`).join('、')}`);
-    return this.buildPartFromCsvRows(partIndex, finalRows, base.name);
+    return this.normalizeJsonPart(partIndex, raw && typeof raw === 'object' ? raw : {}, base);
   },
 
   rowsFromCsvPart(partIndex, raw) {
@@ -809,42 +868,34 @@ window.GameModules.characterProfile = {
 
   async generateCsvFixRows(partIndex, issues, currentRows, format, base, lore, attrs, store, vars) {
     const promptIds = { 2: 'character-profile-part2-feeling-fix', 3: 'character-profile-part3-abilities-professions-fix' };
-    const promptId = promptIds[partIndex] || null;
+    const promptId = promptIds[partIndex] || 'character-profile-csv-fix';
     const skeleton = this.csvFixSkeleton(partIndex, issues);
-    const prompt = promptId
-      ? await window.GameModules.promptTemplates.render(promptId, { ...vars, 需要AI返回的行: skeleton, 当前已合格行: this.validCsvRowsForPrompt(partIndex, currentRows).join('\n') || '无', 错误行说明: issues.map((x) => `${x.key}：${x.reason}${x.badRow ? `｜${x.badRow}` : ''}`).join('\n'), 严格修复要求: this.csvFixStrictRequirement(partIndex, issues, skeleton) })
-      : this.inlineCsvFixPrompt(partIndex, issues, currentRows, format, base, skeleton);
+    const prompt = await window.GameModules.renderPrompt(promptId, { ...vars, partIndex, 角色姓名: base.name, 需要AI返回的行: skeleton, 当前已合格行: this.validCsvRowsForPrompt(partIndex, currentRows).join('\n') || '无', 错误行说明: issues.map((x) => `${x.key}：${x.reason}${x.badRow ? `｜${x.badRow}` : ''}`).join('\n'), 严格修复要求: this.jsonFixStrictRequirement(partIndex, issues, skeleton), 原始要求: String(format || '').slice(0, 2200) });
     return window.GameModules.jsonUtils.generateJsonWithRetry({
-      source: `character-profile-part${partIndex}-csv-fix`,
+      source: `character-profile-part${partIndex}-json-fix`,
+      promptId,
       model: window.GameModules.aiRequest?.selectedTextModel?.(),
       timeoutMs: 60000,
       prompt,
       format: prompt,
-      repairHint: this.csvFixStrictRequirement(partIndex, issues, skeleton),
+      repairHint: this.jsonFixStrictRequirement(partIndex, issues, skeleton),
       requiredRawFields: this.partRequiredRawFields(partIndex),
-      parse: (text) => ({ _csvRows: this.normalizeCsvPartRows(partIndex, this.csvDataRows(text, this.csvFixHeaderPrefix(partIndex))) }),
+      parse: (text) => this.parse(text),
       validate: (parsed) => {
-        const rows = this.csvFixRowsToApply(partIndex, issues, parsed._csvRows || []);
-        if (!rows.length) throw new Error('CSV修复没有返回有效行');
-        if (partIndex === 4 || partIndex === 5 || partIndex === 6) {
-          const returnedIssue = this.csvFixReturnedIssue(partIndex, issues, rows, skeleton);
-          if (returnedIssue) throw new Error(returnedIssue);
-          const remaining = this.csvPartIssues(partIndex, this.mergeCsvFixRows(partIndex, currentRows, rows, issues), base);
-          const wanted = new Set(issues.map((x) => x.key));
-          const stillWanted = remaining.filter((x) => wanted.has(x.key) || /^row\d+$/.test(x.key));
-          if (stillWanted.length) throw new Error(`CSV修复仍不完整：${stillWanted.map((x) => x.key).join('、')}`);
-          return rows;
-        }
-        const returnedIssue = this.csvFixReturnedIssue(partIndex, issues, rows, skeleton);
-        if (returnedIssue) throw new Error(returnedIssue);
-        const remaining = this.csvPartIssues(partIndex, this.mergeCsvFixRows(partIndex, currentRows, rows, issues), base);
-        const wanted = new Set(issues.map((x) => x.key));
-        const stillWanted = remaining.filter((x) => wanted.has(x.key) || /^row\d+$/.test(x.key));
-        if (stillWanted.length) throw new Error(`CSV修复仍不完整：${stillWanted.map((x) => x.key).join('、')}`);
-        return rows;
+        if (!parsed || typeof parsed !== 'object') throw new Error('JSON修复没有返回有效对象');
+        return parsed;
       },
-      max: (partIndex === 2 || partIndex === 4 || partIndex === 5 || partIndex === 6) ? 2 : (partIndex === 3 && issues.some((x) => x.key === 'skills' || x.key === 'knowledge') ? 4 : 2),
+      max: 2,
     });
+  },
+
+  jsonFixStrictRequirement(partIndex, issues, skeleton) {
+    return [
+      `只返回 Part${partIndex} 需要补齐的 JSON 字段，不要 CSV、Markdown 或解释。`,
+      '根对象只包含本次需要修复的字段，不得重复输出已合格内容。',
+      issues.length ? `必须修复：${issues.map((x) => x.key).join('、')}` : '若无需修复则返回空对象 {}。',
+      skeleton ? `参考骨架：\n${skeleton}` : '',
+    ].filter(Boolean).join('\n');
   },
 
   csvFixStrictRequirement(partIndex, issues, skeleton) {
@@ -1027,24 +1078,6 @@ window.GameModules.characterProfile = {
     return 'type,slot,';
   },
 
-  inlineCsvFixPrompt(partIndex, issues, currentRows, format, base, skeleton = this.csvFixSkeleton(partIndex, issues)) {
-    return [
-      `你正在修复角色卡 Part${partIndex} CSV。目标人物只能是：${base.name}。`,
-      '只返回下面要求补齐或重写的 CSV 行，不要表头，不要解释。',
-      '每行必须列数完整，单元格内禁止英文逗号。',
-      '严格修复要求：',
-      this.csvFixStrictRequirement(partIndex, issues, skeleton),
-      '需要AI返回的行：',
-      skeleton,
-      '错误行说明：',
-      issues.map((x) => `${x.key}：${x.reason}${x.badRow ? `｜${x.badRow}` : ''}`).join('\n'),
-      '当前已合格行：',
-      this.validCsvRowsForPrompt(partIndex, currentRows).join('\n') || '无',
-      '原始要求：',
-      String(format || '').slice(0, 2200),
-    ].join('\n');
-  },
-
   csvFixSkeleton(partIndex, issues) {
     if (partIndex === 2) {
       const keys = [...window.GameModules.metrics.emotionKeys, ...window.GameModules.metrics.playerKeys];
@@ -1117,29 +1150,51 @@ window.GameModules.characterProfile = {
     return output;
   },
 
-  async generatePartFeeling(profile, base, lore, attrs, context, store, group = 'all') {
+  async generatePartFeeling(profile, base, lore, attrs, context, store, group = 'all', progressCtx = null) {
+    const loadingId = progressCtx?.loadingId || base.id;
+    const stepTotal = progressCtx?.total ?? this.partProgressTotal(2);
+    const shared = { emotions: {}, playerFeelings: {} };
+    const bump = (partialFeeling = {}) => {
+      if (partialFeeling.emotions) Object.assign(shared.emotions, partialFeeling.emotions);
+      if (partialFeeling.playerFeelings) Object.assign(shared.playerFeelings, partialFeeling.playerFeelings);
+      if (progressCtx || store) this.reportFeelingProgress(store, loadingId, { ...shared }, stepTotal);
+    };
+    bump({});
     const evidence = this.initialMetricsEvidence(profile, base, lore, attrs, context, store);
     const toObject = (items, names) => Object.fromEntries(Object.entries(names).map(([key, name]) => {
       const item = items.find((entry) => entry?.key === name || entry?.name === name) || {};
       return [key, { name, value: item.value, status: item.status, reason: item.reason }];
     }));
-    const feeling = {};
+    const emotionMap = { cold: '冷静', fear: '恐惧', worry: '担忧', joy: '高兴', tension: '紧张', anger: '愤怒', shame: '羞耻', sadness: '悲伤', curiosity: '好奇', numbness: '麻木', jealousy: '嫉妒', despair: '绝望' };
+    const playerMap = { understanding: '了解', trust: '信任', resistance: '反抗', affection: '好感', friendship: '友情', familyLove: '亲情', romanticLove: '爱情', lust: '肉欲', awe: '畏惧', respect: '尊敬', admiration: '崇拜', dislike: '讨厌', dependence: '依赖', vigilance: '警惕', dominance: '支配欲', possessiveness: '占有欲', submission: '服从' };
+    const tasks = [];
     if (group === 'all' || group === 'emotions') {
-      const emotions = await this.generateMetricGroupChunks(profile, base, evidence, 'emotions', window.GameModules.metrics.emotionKeys);
-      feeling.emotions = toObject(emotions, { cold: '冷静', fear: '恐惧', worry: '担忧', joy: '高兴', tension: '紧张', anger: '愤怒', shame: '羞耻', sadness: '悲伤', curiosity: '好奇', numbness: '麻木', jealousy: '嫉妒', despair: '绝望' });
+      tasks.push((async () => {
+        const emotions = await this.generateMetricGroupChunks(profile, base, evidence, 'emotions', window.GameModules.metrics.emotionKeys, bump, shared);
+        return toObject(emotions, emotionMap);
+      })());
     }
     if (group === 'all' || group === 'playerFeelings') {
-      const playerFeelings = await this.generateMetricGroupChunks(profile, base, evidence, 'playerFeelings', window.GameModules.metrics.playerKeys);
-      feeling.playerFeelings = toObject(playerFeelings, { understanding: '了解', trust: '信任', resistance: '反抗', affection: '好感', friendship: '友情', familyLove: '亲情', romanticLove: '爱情', lust: '肉欲', awe: '畏惧', respect: '尊敬', admiration: '崇拜', dislike: '讨厌', dependence: '依赖', vigilance: '警惕', dominance: '支配欲', possessiveness: '占有欲', submission: '服从' });
+      tasks.push((async () => {
+        const playerFeelings = await this.generateMetricGroupChunks(profile, base, evidence, 'playerFeelings', window.GameModules.metrics.playerKeys, bump, shared);
+        return toObject(playerFeelings, playerMap);
+      })());
     }
+    const results = await Promise.all(tasks);
+    const feeling = {};
+    if (group === 'all' || group === 'emotions') feeling.emotions = results.shift();
+    if (group === 'all' || group === 'playerFeelings') feeling.playerFeelings = results.shift();
+    bump(feeling);
     return feeling;
   },
 
   async generateMissingPartFields(partIndex, current, template, missing, format, base, attrs = null) {
     const partialTemplate = this.missingPartTemplate(partIndex, current, template, missing);
-    const prompt = this.missingPartPrompt(partIndex, current, partialTemplate, missing, format, base);
+    const promptId = 'character-profile-missing-fields';
+    const prompt = await this.missingPartPrompt(partIndex, current, partialTemplate, missing, format, base);
     return window.GameModules.jsonUtils.generateJsonWithRetry({
       source: `character-profile-part${partIndex}-missing`,
+      promptId,
       model: window.GameModules.aiRequest?.selectedTextModel?.(),
       timeoutMs: 60000,
       prompt,
@@ -1174,28 +1229,24 @@ window.GameModules.characterProfile = {
     return { rpgField };
   },
 
-  missingPartPrompt(partIndex, current, partialTemplate, missing, format, base) {
-    const lines = [
-      `你正在修复角色卡 Part${partIndex}。目标人物只能是：${base.name}。`,
-      `只生成缺失字段：${missing.join('、')}。其余字段已经合格，禁止重复输出、禁止改动。`,
-      '输出必须是一个 JSON 对象，根字段只能包含上述缺失字段，并严格遵守下面模板。',
-    ];
+  async missingPartPrompt(partIndex, current, partialTemplate, missing, format, base) {
+    const extraRules = [];
     if (partIndex === 7 && missing.includes('rpgField')) {
-      lines.push(
+      extraRules.push(
         '只补模板中列出的 rpgField 子字段；已合格的 level 或 intrinsicBase 子项禁止重复输出、禁止改动。',
         'rpgField 只需要包含 level 与模板列出的 intrinsicBase 子项；禁止返回 derived、攻击力、防御力。',
         '每个返回的 intrinsicBase 子项必须含 integer value、description、reason。',
       );
     }
-    return [
-      ...lines,
-      '缺失字段模板：',
-      JSON.stringify(partialTemplate, null, 2),
-      '已合格字段（只作上下文，不要重写）：',
-      JSON.stringify(current, null, 2),
-      '原始要求：',
-      String(format || '').slice(0, 2600),
-    ].join('\n');
+    return window.GameModules.renderPrompt('character-profile-missing-fields', {
+      partIndex,
+      角色姓名: base.name,
+      缺失字段: missing.join('、'),
+      额外规则: extraRules.join('\n') || '无额外规则。',
+      缺失字段模板: JSON.stringify(partialTemplate, null, 2),
+      已合格字段: JSON.stringify(current, null, 2),
+      原始要求: String(format || '').slice(0, 2600),
+    });
   },
 
   missingPartRepairHint(partIndex, missing) {
@@ -1227,6 +1278,10 @@ window.GameModules.characterProfile = {
     const feeling = { emotions: part2.feeling?.emotions, playerFeelings: part2.feeling?.playerFeelings };
     const merged = { ...part1, ...part3, ...part4, initialMetrics: this.sanitizeInitialMetrics(feeling) };
     merged.forcePositions = part1.forcePositions || part1.force_positions || [];
+    if (part4.essentialPreferenceLayers) {
+      merged.essentialPreferenceLayers = window.GameModules.playerAspirationPreferenceLayers?.normalizeLayers?.(part4.essentialPreferenceLayers) || part4.essentialPreferenceLayers;
+      merged.essentialPreferenceLayersLocked = part4.essentialPreferenceLayersLocked !== false;
+    }
     merged.roleCardFieldReasons = this.roleReasonsFromParts(merged);
     merged.rpgFieldReasons = this.rpgReasonsFromPart4(merged, attrs);
     return merged;
@@ -1248,7 +1303,8 @@ window.GameModules.characterProfile = {
       性格: profile.personality || '性格来自 Part1 personality。',
       人物说明: profile.detail || '人物说明来自 Part1 detail。',
       社群角色: factionText || '社群角色来自 Part1 factions。',
-      势力地位: forceText || '势力地位来自 Part1 forcePositions。'
+      势力地位: forceText || '势力地位来自 Part1 forcePositions。',
+      本质偏好: window.GameModules.playerAspirationPreferenceLayers?.summaryText?.(profile.essentialPreferenceLayers) || '本质偏好五层在角色卡生成时固化。',
     };
   },
 
@@ -1282,11 +1338,7 @@ window.GameModules.characterProfile = {
   },
 
   parsePartOutput(partIndex, text, base = {}) {
-    if (partIndex === 2) return this.buildFeelingFromRows(this.csvDataRows(text, 'name,value,status,reason'), base.name, false);
-    if (partIndex === 3) return this.buildAbilitiesFromRows(this.csvDataRows(text, 'type,name,level,'), base.name, false);
-    if (partIndex === 4) return this.buildInventoryFromRows(this.csvDataRows(text, 'type,slot,'), base.name);
-    if (partIndex === 5) return this.buildBodyProfileFromRows(this.csvDataRows(text, '序号,部位,部位描写'), base.name);
-    if (partIndex === 6) return this.buildDressedProfileFromRows(this.csvDataRows(text, '序号,部位,部位描写'), base.name);
+    if ([2, 3, 4, 5, 6, 7].includes(partIndex)) return this.parse(text);
     return this.parse(text);
   },
 
@@ -1617,17 +1669,21 @@ window.GameModules.characterProfile = {
   },
 
   parseMetricGroup(text, group, keys) {
-    const lined = this.parseMetricGroupLines(text, group, keys);
-    if (lined[group]?.length === keys.length) return lined;
+    let parsed = text && typeof text === 'object' ? text : null;
+    if (!parsed) {
+      try {
+        parsed = this.parse(String(text || ''));
+      } catch (err) {
+        const recovered = this.recoverMetricGroup(text, group, keys);
+        if (recovered[group]?.length) return recovered;
+        throw err;
+      }
+    }
+    const items = Array.isArray(parsed?.[group]) ? parsed[group] : (Array.isArray(parsed?.items) ? parsed.items : []);
+    if (items.length === keys.length) return { [group]: items };
     const recovered = this.recoverMetricGroup(text, group, keys);
     if (recovered[group]?.length === keys.length) return recovered;
-    try {
-      return this.parse(text);
-    } catch (err) {
-      if (lined[group]?.length) return lined;
-      if (recovered[group]?.length) return recovered;
-      throw err;
-    }
+    return { [group]: items };
   },
 
   parseMetricGroupLines(text, group, keys) {
@@ -1708,14 +1764,25 @@ window.GameModules.characterProfile = {
     return 170 + key.length * 3;
   },
 
-  async generateMetricGroupChunks(profile, base, evidence, group, keys) {
+  async generateMetricGroupChunks(profile, base, evidence, group, keys, bumpProgress = null, feelingSoFar = null) {
     const chunks = this.metricGroupKeyChunks(group, keys);
     const items = [];
+    const reportChunk = () => {
+      if (typeof bumpProgress !== 'function' || !feelingSoFar) return;
+      const partial = { ...feelingSoFar };
+      const objectKey = group === 'emotions' ? 'emotions' : 'playerFeelings';
+      partial[objectKey] = Object.fromEntries(keys.map((key) => {
+        const item = items.find((entry) => entry?.key === key) || {};
+        return [key, { name: key, value: item.value, status: item.status, reason: item.reason }];
+      }));
+      bumpProgress(partial);
+    };
     for (let i = 0; i < chunks.length; i += 1) {
       const chunk = chunks[i];
       try {
         const part = await this.generateMetricGroup(profile, base, evidence, group, chunk, i + 1, chunks.length);
         items.push(...part);
+        reportChunk();
       } catch (err) {
         console.warn('[角色数值] 分块生成失败:', { profile: profile.name || base.name, group, keys: chunk, error: err.message });
       }
@@ -1732,6 +1799,7 @@ window.GameModules.characterProfile = {
             if (index >= 0) items.splice(index, 1);
           });
           items.push(...part);
+          reportChunk();
         } catch (err) {
           console.warn('[角色数值] 批量补齐失败，保留系统来源兜底:', { profile: profile.name || base.name, group, missing: needsRepair, error: err.message, stack: err.stack });
         }
@@ -1745,6 +1813,7 @@ window.GameModules.characterProfile = {
     const source = chunkTotal > 1 ? `character-profile-${group}-${chunkIndex}` : `character-profile-${group}`;
     return window.GameModules.jsonUtils.generateJsonWithRetry({
       source,
+      promptId: 'character-profile-metric-group',
       model: window.GameModules.aiRequest?.selectedTextModel?.(),
       timeoutMs: 60000,
       prompt,
@@ -1785,7 +1854,7 @@ window.GameModules.characterProfile = {
   },
 
   async metricGroupPrompt(profile, base, evidence, group, keys) {
-    return window.GameModules.promptTemplates.render('character-profile-metric-group', {
+    return window.GameModules.renderPrompt('character-profile-metric-group', {
       人物姓名: profile.name || base.name,
       数值组名称: group === 'emotions' ? '情绪' : '对玩家感觉',
       根字段: group,
@@ -1874,8 +1943,8 @@ window.GameModules.characterProfile = {
     });
   },
 
-  part1Summary(part1) {
-    return [
+  part1Summary(part1, essentialLayers = null) {
+    const lines = [
       `姓名：${part1.name || ''}`,
       `所属世界：${part1.worldTag?.value || ''}`,
       `性别：${part1.gender || ''}`,
@@ -1893,7 +1962,11 @@ window.GameModules.characterProfile = {
       `社群：${(part1.factions || []).map((x) => `${x.faction}/${x.role}`).join('、')}`,
       `势力：${((part1.forcePositions || part1.force_positions) || []).map((x) => `${x.force}/${x.position}`).join('、')}`,
       `职业：${part1.job || '无'}`,
-    ].join('\n');
+    ];
+    const layers = essentialLayers || part1.essentialPreferenceLayers;
+    const prefText = window.GameModules.playerAspirationPreferenceLayers?.summaryText?.(layers);
+    if (prefText) lines.push(`本质偏好五层：\n${prefText}`);
+    return lines.join('\n');
   },
 
   part3Summary(part3 = {}) {
@@ -1922,38 +1995,31 @@ window.GameModules.characterProfile = {
     if (partIndex === 2) {
       return [
         nameHint,
-        '必须只返回 CSV，不要返回 JSON。',
-        '第一行必须是 name,value,status,reason。',
-        '必须按固定顺序返回 29 行：先 12 行情绪，再 17 行对玩家感觉。',
-        '每行四列：中文名称,0-100整数,状态短句,原因短句。',
+        '必须返回 JSON 对象，含根字段 name 与 feeling。',
+        'feeling 含 emotions 与 playerFeelings，各固定 key 齐全，每项含 name、value、status、reason。',
+        '禁止返回 CSV 或 Markdown。',
       ].join('\n');
     }
     if (partIndex === 3) {
       return [
         nameHint,
-        '必须只返回 CSV，不要返回 JSON。',
-        '第一行必须是 type,name,level,reason,requiredIntrinsicBase,requiredKnowledge,requiredSkills。',
-        'type 只能是 skills、knowledge、professions；skills 和 knowledge 至少各 1 行。',
-        '每行必须恰好 7 列，单元格内不要使用英文逗号。',
-        '不存在或不适用的字段值填 --；依赖多项用竖线 | 分隔；requiredIntrinsicBase 只能用 strength/agility/constitution/intelligence/perception/willpower/charisma。',
+        '必须返回 JSON：name、skills（≥1）、knowledge（≥1）、professions（可为空数组）。',
+        '每项含 name、desc、level、levelEffects、reason；禁止 CSV。',
       ].join('\n');
     }
     if (partIndex === 4) {
       return [
         nameHint,
-        '必须只返回 CSV，不要返回 JSON。',
-        '第一行必须是 type,slot,clothing_position,name,description,quantity,reason。',
-        'type 只能是 item、wearing、slot；wearing 必须包含 12 个固定槽位。',
-        '每行必须恰好 7 列；不存在或不适用字段填 --；单元格内不要使用英文逗号。',
+        '必须返回 JSON：name、items、wearing（12 固定槽位 + slot 数组）。',
+        '禁止 CSV；不要返回 rpgField。',
       ].join('\n');
     }
     if (partIndex === 5 || partIndex === 6) {
+      const field = partIndex === 5 ? 'bodyProfile' : 'dressedProfile';
       return [
         nameHint,
-        '必须只返回 CSV，不要返回 JSON。',
-        '第一行必须是 序号,部位,部位描写。',
-        `必须完整返回这些部位：${this.bodyProfileParts().join('、')}。`,
-        '每行必须恰好 3 列；单元格内不要使用英文逗号。',
+        `必须返回 JSON：name、${field}（11 项数组，含 index/part/description）。`,
+        `必须完整覆盖：${this.bodyProfileParts().join('、')}；禁止 CSV。`,
       ].join('\n');
     }
     return [
@@ -2165,7 +2231,6 @@ window.GameModules.characterProfile = {
         position: p.position, livingStatus: p.refinedLivingStatus || p.livingStatus,
         parents: p.parentStatus || p.parents, parentDeathCause: p.parentDeathCause,
         relationships: p.relationships, notes: p.notes, worldbuildingNote: p.worldbuildingNote,
-        playerCardAiParts: p.playerCardAiParts,
       },
       context: String(context || '').slice(0, 1200),
     };
@@ -2556,5 +2621,87 @@ window.GameModules.characterProfile = {
 
   slug(text) {
     return String(text).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `id-${window.GameModules.rpgState.seed(text)}`;
+  },
+
+  mergeDressedProfilePatch(current = [], patch = []) {
+    const byPart = new Map((Array.isArray(current) ? current : []).map((item) => [String(item?.part || '').trim(), { ...item }]));
+    (Array.isArray(patch) ? patch : []).forEach((item) => {
+      const part = String(item?.part || '').trim();
+      if (!part) return;
+      byPart.set(part, {
+        index: Number(item.index) || this.bodyProfileParts().indexOf(part) + 1,
+        part,
+        description: String(item.description || '').trim(),
+      });
+    });
+    return this.bodyProfileParts().map((part, index) => {
+      const item = byPart.get(part);
+      return item?.description ? item : { index: index + 1, part, description: String(item?.description || '') };
+    });
+  },
+
+  async patchDressedProfileParts(store, state, parts, contextVars = {}) {
+    const profile = state?.profile || {};
+    const base = { id: state?.id, name: profile.name || state?.name };
+    const allowedParts = this.bodyProfileParts();
+    const targetParts = (Array.isArray(parts) ? parts : []).filter((part) => allowedParts.includes(part)).slice(0, 3);
+    if (!targetParts.length || !String(base.name || '').trim()) return null;
+
+    const existing = Array.isArray(profile.dressedProfile) ? profile.dressedProfile : [];
+    const currentLines = targetParts.map((part) => {
+      const item = existing.find((entry) => entry?.part === part);
+      const idx = allowedParts.indexOf(part) + 1;
+      return `${idx}.${part}：${String(item?.description || '暂无').slice(0, 100)}`;
+    }).join('\n');
+
+    const vars = {
+      part1Summary: contextVars.part1Summary || this.part1Summary(profile),
+      part4Summary: contextVars.part4Summary || this.part4Summary(profile),
+      part5Summary: contextVars.part5Summary || this.bodyProfileSummary(profile.bodyProfile),
+      角色姓名: base.name,
+      更新部位: targetParts.join('、'),
+      当前部位描写: currentLines,
+      更新原因: String(contextVars.reason || '穿着或外观变化').slice(0, 200),
+      更新证据: String(contextVars.evidence || contextVars.narrationExcerpt || '').slice(0, 400),
+      穿着变化摘要: String(contextVars.wearingChangeSummary || '无').slice(0, 400),
+      本轮正文摘要: String(contextVars.narrationExcerpt || '').slice(0, 800),
+    };
+
+    const promptId = 'inference-stage5-dressed-profile-patch';
+    const prompt = await window.GameModules.renderPrompt(promptId, vars);
+    const partialTemplate = {
+      name: base.name,
+      dressedProfile: targetParts.map((part) => ({ index: allowedParts.indexOf(part) + 1, part, description: '' })),
+    };
+    const format = [prompt, '', '## 局部模板（只输出以下部位）', JSON.stringify(partialTemplate, null, 2)].join('\n');
+
+    const raw = await window.GameModules.jsonUtils.generateJsonWithRetry({
+      source: 'stage5-dressed-profile-patch',
+      promptId,
+      model: window.GameModules.aiRequest?.selectedTextModel?.(),
+      timeoutMs: 90000,
+      prompt: format,
+      format,
+      repairHint: `只能返回 name 与 dressedProfile；dressedProfile 必须且只能包含：${targetParts.join('、')}；每项 description 120-170 汉字。`,
+      requiredRawFields: ['name', 'dressedProfile', ...targetParts],
+      parse: (text) => this.parse(text),
+      validate: (data) => {
+        if (!data || String(data.name || '').trim() !== String(base.name || '').trim()) throw new Error('姓名不匹配');
+        const list = Array.isArray(data.dressedProfile) ? data.dressedProfile : [];
+        const returnedParts = list.map((item) => String(item?.part || '').trim()).filter(Boolean);
+        const missing = targetParts.filter((part) => !returnedParts.includes(part));
+        if (missing.length) throw new Error(`缺少部位：${missing.join('、')}`);
+        const extra = returnedParts.filter((part) => !targetParts.includes(part));
+        if (extra.length) throw new Error(`多余部位：${extra.join('、')}`);
+        list.forEach((item) => {
+          const desc = String(item?.description || '').trim();
+          if (desc.length < 40) throw new Error(`${item.part} 描写过短`);
+        });
+        return data;
+      },
+      max: 2,
+    });
+
+    return { name: base.name, dressedProfile: this.mergeDressedProfilePatch(existing, raw.dressedProfile) };
   },
 };

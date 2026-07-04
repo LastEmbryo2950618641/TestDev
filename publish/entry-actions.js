@@ -113,6 +113,7 @@ window.GameModules.entryActions = {
     const prompt = await this.entryPrompt(reason, storyContext);
     await window.GameModules.aiRequest.complete({
       source: 'entry-action', model: this.modelId, prompt, timeoutMs: 60000,
+      ...(window.GameModules.promptSkills?.completionOptions?.('entry-action') || { jsonMode: false, outputLimitKind: 'other' }),
       onChunk: (chunk, done, info) => {
         buffer = info.buffer;
         const latest = this.cleanEntryAction(buffer);
@@ -156,7 +157,7 @@ window.GameModules.entryActions = {
 
   entryPrompt(reason, storyContext) {
     const lore = window.GameModules.sqliteSave.getWorldLore(this.character.work || '原创世界');
-    return window.GameModules.promptTemplates.render('entry-action', { 原因: reason, 时间: this.entryTimeLabel(), 角色: `${this.character.name}｜${this.character.role}｜${this.character.personality || ''}`, 世界观: lore?.background || this.character.work, 剧情索引: storyContext });
+    return window.GameModules.renderPrompt('entry-action', { 原因: reason, 时间: this.entryTimeLabel(), 角色: `${this.character.name}｜${this.character.role}｜${this.character.personality || ''}`, 世界观: lore?.background || this.character.work, 剧情索引: storyContext });
   },
 
   async advanceEntryTime() {

@@ -15,6 +15,9 @@ window.GameModules = window.GameModules || {};
       if (method === 'searchFactionArchive') return window.GameModules.factionArchive?.contextFor?.(store, params.keyword || params.name || '', 1800) || '暂无势力资料库记录。';
       if (method === 'upsertFaction') return this.upsertFaction(store, params);
       if (method === 'addFactionPosition') return this.addFactionPosition(store, params);
+      if (method === 'listMemberships') return this.listMemberships(store, params);
+      if (method === 'getTerritoryControl') return this.getTerritoryControl(store, params);
+      if (method === 'resolveTerritoryBrief') return this.resolveTerritoryBrief(store, params);
       return this.factionList(store);
     },
 
@@ -110,6 +113,34 @@ window.GameModules = window.GameModules || {};
       const character = String(params.characterName || params.character || '未知').trim() || '未知';
       store.addFactionRoleOccupant?.(faction, position, character, params.reason || '现实推演确认势力职位与角色占位。');
       return `已新增势力职位：${factionName} / ${position} / ${character}`;
+    },
+
+    listMemberships(store, params = {}) {
+      store.initFactionSystem?.();
+      const faction = this.findFaction(store, params.name || params.factionName || params.id || '');
+      const rows = faction
+        ? window.GameModules.orgTerritory?.collectFactionMemberships?.(store, faction) || []
+        : Object.values(store.rpgStates || {}).flatMap((state) => (state.values?.memberships || []).map((m) => ({
+          characterName: state.profile?.name || state.name,
+          ...window.GameModules.orgTerritory?.normalizeMembership?.(m, store),
+        })));
+      if (!rows.length) return '暂无人事归属记录。';
+      return rows.slice(0, 20).map((r) => `- ${r.characterName}｜${r.orgName || r.orgId}｜${r.title}｜${r.department || '—'}｜${r.source || 'membership'}`).join('\n');
+    },
+
+    getTerritoryControl(store, params = {}) {
+      const map = window.GameModules.realWorldMap?.ensure?.(store, store.playerProfile || {}) || {};
+      const ot = window.GameModules.orgTerritory;
+      const name = String(params.locationName || params.name || map.current || '').trim();
+      const node = ot?.findMapNode?.(map, name);
+      if (!node) return `未找到地点：${name || '未知'}`;
+      const label = ot?.resolveControlLabel?.(map, node, store) || '控势未知';
+      const history = ot?.controlHistoryForNode?.(map, node, store) || [];
+      return [`地点：${node.name}`, `控势：${label}`, history.length ? `时间轴：\n${history.map((h) => `- ${h}`).join('\n')}` : '暂无控势变更记录。'].join('\n');
+    },
+
+    resolveTerritoryBrief(store, params = {}) {
+      return window.GameModules.orgTerritory?.resolveTerritoryBrief?.(store, params) || '暂无控势摘要。';
     },
   });
 })();

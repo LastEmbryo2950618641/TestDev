@@ -34,7 +34,7 @@ window.GameModules.genericUpdateTemplate = {
       try {
         const prompt = await this.buildUpdateSkillSelectPrompt({ store, action, base, loaded, materialSession, narration, narrationPrompt });
         this.markStep(store, logId, '现实正文已完成，正在选择更新技能…', { keepNarration: true });
-        const raw = await this.completeStep(store, prompt, logId, false);
+        const raw = await this.completeConfiguredStep(store, prompt, logId, false, { ...this.realConfig(), promptId: 'inference-stage4-settlement-window' });
         if (!String(raw || '').includes('{')) return { updateSkillIds: null, initSkillIds: [] };
         const data = window.GameModules.jsonUtils.parseLoose(raw);
         const names = Array.isArray(data?.skillNames) ? data.skillNames : [];
@@ -97,8 +97,6 @@ window.GameModules.genericUpdateTemplate = {
     };
     loop.mergeNarrationAndUpdates = function patchedMergeNarrationAndUpdates(...args) {
       const result = baseMerge.apply(this, args);
-      const store = args[0] || null, updates = args[2] || {};
-      result.genericUpdates = window.GameModules.updateRegistry?.normalizeUpdates?.(updates, store) || (Array.isArray(updates.genericUpdates) ? updates.genericUpdates : []);
       delete result.characterMetricUpdates;
       return result;
     };
@@ -109,10 +107,7 @@ window.GameModules.genericUpdateTemplate = {
     if (!ai || ai.updateRegistryPatched) return;
     const baseParse = ai.parse;
     ai.parse = function patchedParse(...args) {
-      const result = baseParse.apply(this, args);
-      const data = args[0] && typeof args[0] === 'object' ? args[0] : {}, store = args[1] || null;
-      result.genericUpdates = window.GameModules.updateRegistry?.normalizeUpdates?.(data, store) || result.genericUpdates || [];
-      return result;
+      return baseParse.apply(this, args);
     };
     ai.updateRegistryPatched = true;
   },

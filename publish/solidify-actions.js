@@ -2,20 +2,207 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.solidifyActions = {
   async collectSolidifiableCharacters(result = {}, mode = 'story') {
-    const source = [
-      ...(Array.isArray(result.appearedCharacters) ? result.appearedCharacters : []),
-      ...(Array.isArray(result.solidifiableCharacters) ? result.solidifiableCharacters : []),
-    ];
+    const source = this.solidifySourceItems(result);
     const cards = await window.GameModules.characterIntroCard.ensureMany(this, source, mode);
     await this.syncSolidifyWearing?.(cards);
     return this.solidifyDisplayCards(cards);
   },
 
+  solidifyParticipantName(item = '') {
+    if (typeof item === 'string') return item.replace(/[（(].*$/u, '').trim();
+    return String(item?.name || item?.characterName || item?.idOrName || '').trim();
+  },
+
+  solidifyLoadedMaterialItems(materials = []) {
+    return (Array.isArray(materials) ? materials : []).map((item) => this.parseLoadedMaterialCharacter(item)).filter(Boolean);
+  },
+
+  parseLoadedMaterialCharacter(item = {}) {
+    const text = [item?.title, item?.text, item?.content, item?.summary].map((part) => String(part || '').trim()).filter(Boolean).join('\n');
+    if (!text) return null;
+    const isRoleCard = /(?:^|\n)资料类型[:：]\s*(?:完整)?角色卡/u.test(text) || /(?:^|\n)角色ID[:：]/u.test(text);
+    const isIntroCard = /(?:^|\n)资料类型[:：]\s*介绍卡/u.test(text);
+    if (!isRoleCard && !isIntroCard) return null;
+    const name = text.match(/(?:^|\n)姓名[:：]\s*([^\s｜|，,；;\n]+)/u)?.[1]?.trim().slice(0, 24) || '';
+    if (!name || ['无', '玩家', '系统'].includes(name) || !this.solidifyLooksLikePersonName(name)) return null;
+    const role = text.match(/(?:^|\n)身份[:：]\s*([^\n]+)/u)?.[1]?.trim().slice(0, 40) || '出场人物';
+    const intro = text.match(/(?:^|\n)人物说明[:：]\s*([^\n]+)/u)?.[1]
+      || text.match(/(?:^|\n)介绍[:：]\s*([^\n]+)/u)?.[1]
+      || text.match(/(?:^|\n)性格[:：]\s*([^\n]+)/u)?.[1]
+      || '';
+    const worldTag = text.match(/(?:^|\n)世界[:：]\s*([^\n]+)/u)?.[1]?.trim().slice(0, 40)
+      || window.GameModules.realWorld2026?.label
+      || '';
+    return { name, worldTag, role, intro: String(intro || '本回合载入的资料人物。').slice(0, 280) };
+  },
+
+  solidifyParticipantsFromTrace(trace = []) {
+    const out = [];
+    const groups = ['forcedParticipants', 'priorityCandidates', 'dramaCandidates', 'characters'];
+    const anchorFields = ['强制出场'];
+    (Array.isArray(trace) ? trace : []).forEach((item) => {
+      groups.forEach((key) => {
+        (Array.isArray(item?.[key]) ? item[key] : []).forEach((participant) => {
+          const name = this.solidifyParticipantName(participant);
+          if (name) out.push({ name, role: '出场人物' });
+        });
+      });
+      const participantGroups = item?.participants;
+      if (participantGroups && typeof participantGroups === 'object') {
+        Object.values(participantGroups).flat().forEach((participant) => {
+          const name = this.solidifyParticipantName(participant);
+          if (name) out.push({ name, role: '出场人物' });
+        });
+      } else if (Array.isArray(participantGroups)) {
+        participantGroups.forEach((participant) => {
+          const name = this.solidifyParticipantName(participant);
+          if (name) out.push({ name, role: '出场人物' });
+        });
+      }
+      const anchorRoot = item?.anchorReport || {};
+      const anchor = anchorRoot.values || anchorRoot;
+      anchorFields.forEach((field) => {
+        String(anchor[field] || '').split(/[、,，；;\n]/u).forEach((raw) => {
+          const name = this.solidifyCleanPersonToken(raw);
+          if (name) out.push({ name, role: 'current-scene' });
+        });
+      });
+      this.solidifyPeopleFromAnchorReport(anchorRoot).forEach((row) => out.push(row));
+    });
+    return out;
+  },
+
+  solidifyCleanPersonToken(raw = '') {
+    const name = String(raw || '')
+      .replace(/^(?:人物|角色|人员)[:：]\s*/u, '')
+      .replace(/[（(].*$/u, '')
+      .trim();
+    if (!name || name === '无') return '';
+    if (/^(?:物品|地点|事实|系统)[:：]/u.test(String(raw || ''))) return '';
+    return this.solidifyLooksLikePersonName(name) ? name : '';
+  },
+
+  solidifyPeopleFromAnchorReport(anchorRoot = {}) {
+    const out = [];
+    const structured = anchorRoot.sceneImpactObjects;
+    if (structured && typeof structured === 'object') {
+      (Array.isArray(structured.people) ? structured.people : []).forEach((raw) => {
+        const name = this.solidifyCleanPersonToken(raw);
+        if (name) out.push({ name, role: 'current-scene' });
+      });
+      return out;
+    }
+    const anchor = anchorRoot.values || anchorRoot;
+    const text = String(anchor['当前场景影响对象'] || anchor.currentSceneImpactObjects || '').trim();
+    if (!text) return out;
+    const peopleMatch = text.match(/(?:人物|角色|人员)[:：]\s*([^；;|｜]+)/u);
+    if (peopleMatch) {
+      peopleMatch[1].split(/[、,，]/u).forEach((raw) => {
+        const name = this.solidifyCleanPersonToken(raw);
+        if (name) out.push({ name, role: 'current-scene' });
+      });
+      return out;
+    }
+    text.split(/[、,，；;\n]/u).forEach((raw) => {
+      const name = this.solidifyCleanPersonToken(raw);
+      if (name) out.push({ name, role: 'current-scene' });
+    });
+    return out;
+  },
+
+  solidifyMentionedRoleCards(narration = '') {
+    const text = String(narration || '');
+    if (!text) return [];
+    return Object.values(this.rpgStates || {}).flatMap((state) => {
+      const name = String(state?.profile?.name || state?.name || '').trim();
+      return name && text.includes(name) ? [{ name, role: state?.profile?.role || '角色', worldTag: state?.worldTag || state?.profile?.work || '' }] : [];
+    });
+  },
+
+  solidifySourceItems(result = {}) {
+    const seen = new Set();
+    const out = [];
+    const playerName = String(this.playerName || this.playerProfile?.name || '').trim();
+    const add = (item) => {
+      if (!item) return;
+      const raw = typeof item === 'string' ? { name: item } : item;
+      const name = String(raw?.name || raw?.characterName || '').trim().slice(0, 24);
+      if (!name || name === playerName || seen.has(name) || ['玩家', '系统', '无'].includes(name)) return;
+      if (!this.solidifyLooksLikePersonName(name)) return;
+      seen.add(name);
+      out.push(raw);
+    };
+    [...(result.appearedCharacters || []), ...(result.solidifiableCharacters || [])].forEach(add);
+    this.solidifyLoadedMaterialItems(result.promptPack?.loadedContext || []).forEach(add);
+    this.solidifyLoadedMaterialItems(result.loadedContext || []).forEach(add);
+    (Array.isArray(result.agentTrace) ? result.agentTrace : []).flatMap((item) => item?.loaded || []).forEach((item) => this.solidifyLoadedMaterialItems([item]).forEach(add));
+    this.solidifyParticipantsFromTrace(result.agentTrace || []).forEach(add);
+    this.solidifyMentionedRoleCards(result.narration || result.text || '').forEach(add);
+    return out.slice(0, 8);
+  },
+
+  solidifySourceItemsFromEntry(entry = {}) {
+    return this.solidifySourceItems({
+      appearedCharacters: entry.appearedCharacters,
+      solidifiableCharacters: entry.solidifiableCharacters,
+      promptPack: entry.promptPack,
+      agentTrace: entry.agentTrace,
+      narration: entry.narration || entry.text,
+    });
+  },
+
 
   solidifyKey(card = {}) { return card?.name ? `${card.worldTag || ''}::${card.name}` : ''; },
 
+  solidifyPersonName(card = {}) {
+    return String(card?.name || '').replace(/^人物[:：]\s*/u, '').trim();
+  },
+
+  solidifyPersonKey(card = {}) {
+    const name = this.solidifyPersonName(card);
+    const world = String(card?.worldTag || card?.roleState?.worldTag || '').trim();
+    return name ? `${world}::${name}` : '';
+  },
+
+  solidifyLooksLikePersonName(name = '') {
+    const clean = String(name || '').replace(/^人物[:：]\s*/u, '').trim();
+    if (!clean || clean.length < 2 || clean.length > 16) return false;
+    if (/^(?:执行|继续|当前|系统|玩家|无)$/u.test(clean)) return false;
+    if (/行动$|控制部$|控制体验$|结算$|目标$|状态$/u.test(clean)) return false;
+    if (/抱住|抚摸|揉捏|询问|后退|执行|控制/u.test(clean)) return false;
+    if (this.solidifyLooksLikeObjectOrSceneName(clean)) return false;
+    return /^[\u4e00-\u9fff·]{2,16}$/u.test(clean);
+  },
+
+  solidifyLooksLikeObjectOrSceneName(name = '') {
+    const clean = String(name || '').trim();
+    if (!clean) return true;
+    if (/^(?:以及|以及房间|以及.+|等物|等物品)$/u.test(clean)) return true;
+    if (/(?:之类|等物|等物品|等)$/u.test(clean)) return true;
+    return /^(?:被褥|枕头|床铺|床|被子|床单|被单|毯子|沙发|茶几|桌子|椅子|台灯|窗帘|门|墙|地板|房间|门铃|手机|电脑|电视|衣柜|抽屉|梳妆台|地毯|靠垫|抱枕|床单|席梦思|床垫|被芯|枕芯|床头|床尾|床架|床单|门把手|窗户|窗|镜|镜子|灯|音响|空调|风扇|暖气|暖气|垃圾桶|书包|背包|水杯|杯子|碗|盘|锅|刀|叉|勺|书|本|笔|纸|盒|袋|瓶|罐|箱|柜|架|栏|杆|绳|线|布|巾|袜|鞋|帽|镜|锁|钥|匙|卡|票|钱|币|物)$/u.test(clean)
+      || /(?:被褥|枕头|床铺|沙发|窗帘|台灯|衣柜|梳妆台|门铃|空调|靠垫|抱枕)$/u.test(clean);
+  },
+
+  solidifyShouldSkipCard(card = {}) {
+    const name = this.solidifyPersonName(card);
+    if (!name || !this.solidifyLooksLikePersonName(name)) return true;
+    const playerName = String(this.playerName || this.playerProfile?.name || '').trim();
+    if (playerName && name === playerName) return true;
+    if (card?.roleState?.id === 'player-self') return true;
+    return false;
+  },
+
   solidifyDisplayCards(list = this.solidifyState?.candidates || []) {
-    return (Array.isArray(list) ? list : []).map((card) => this.solidifyDisplayCard(card)).filter(Boolean);
+    const byKey = new Map();
+    (Array.isArray(list) ? list : []).forEach((raw) => {
+      const card = this.solidifyDisplayCard(raw);
+      if (!card || this.solidifyShouldSkipCard(card)) return;
+      const key = this.solidifyPersonKey(card);
+      if (!key) return;
+      const prev = byKey.get(key);
+      if (!prev || (card.displayType === 'role' && prev.displayType !== 'role')) byKey.set(key, card);
+    });
+    return [...byKey.values()];
   },
 
   solidifyDisplayCard(card = {}) {
@@ -33,7 +220,14 @@ window.GameModules.solidifyActions = {
     return cards.find((card) => this.solidifyKey(card) === key) || cards[0] || null;
   },
 
-  solidifyEntryCards(entry = null) { return entry ? this.solidifyDisplayCards(entry.solidifyCards || []) : this.solidifyDisplayCards(); },
+  solidifyEntryCards(entry = null) {
+    if (!entry) return this.solidifyDisplayCards();
+    const stored = Array.isArray(entry.solidifyCards) ? entry.solidifyCards : [];
+    if (stored.length) return this.solidifyDisplayCards(stored);
+    const intro = window.GameModules.characterIntroCard;
+    const derived = this.solidifySourceItemsFromEntry(entry).map((item) => intro.normalize(item, this, entry.type === 'ai' ? 'real' : 'story')).filter(Boolean);
+    return this.solidifyDisplayCards(derived);
+  },
 
   solidifyPanelTitle(card = this.selectedSolidifyCard()) { return card?.displayType === 'role' ? '角色卡查看' : '介绍卡固化'; },
 

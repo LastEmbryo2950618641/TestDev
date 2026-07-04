@@ -1,7 +1,7 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.appSwitchActions = {
-  setDesktopPage(page) { this.desktopPage = Math.max(0, Math.min(1, Number(page) || 0)); },
+  setDesktopPage(page) { this.desktopPage = Math.max(0, Math.min(2, Number(page) || 0)); },
   startDesktopSwipe(event) { this.desktopSwipeStart = { x: event.clientX, y: event.clientY }; },
   cancelDesktopSwipe() { this.desktopSwipeStart = null; },
   endDesktopSwipe(event) {
@@ -66,3 +66,36 @@ window.GameModules.appSwitchActions = {
     this.closeAppToDesktop();
   },
 };
+
+(function initDesktopPagerFallback() {
+  function getGameStore() {
+    try { return window.Alpine?.store?.('game') || null; } catch (_) { return null; }
+  }
+
+  function applyDesktopPage(page) {
+    const pages = document.querySelector('.desktop-pages');
+    const dots = Array.from(document.querySelectorAll('.desktop-page-dots button'));
+    if (!pages || !dots.length) return;
+    const maxPage = Math.max(0, dots.length - 1);
+    const nextPage = Math.max(0, Math.min(maxPage, Number(page) || 0));
+    const store = getGameStore();
+    if (store) store.desktopPage = nextPage;
+    pages.style.transform = `translateX(-${nextPage * 100}%)`;
+    dots.forEach((dot, index) => dot.classList.toggle('active', index === nextPage));
+  }
+
+  function bindDesktopPager() {
+    const dots = Array.from(document.querySelectorAll('.desktop-page-dots button'));
+    dots.forEach((dot, index) => {
+      if (dot.dataset.desktopPagerBound) return;
+      dot.dataset.desktopPagerBound = '1';
+      dot.addEventListener('click', () => applyDesktopPage(index));
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindDesktopPager, { once: true });
+  } else {
+    bindDesktopPager();
+  }
+})();
