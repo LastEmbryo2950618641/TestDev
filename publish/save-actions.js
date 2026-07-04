@@ -77,6 +77,16 @@ window.GameModules.saveActions = {
       return state;
     });
     this.rpgStates = Object.fromEntries(cleaned.map((state) => [state.id, state]));
+    cleaned.forEach((state) => {
+      if (!state?.profile?.initialMetrics) return;
+      const changed = window.GameModules.rpgProfileMetrics?.refreshGenericNotes?.(state, state.profile);
+      if (changed) window.GameModules.sqliteSave.saveCharacterState(state).catch((err) => console.warn('[存档] 刷新指标解释失败:', err.message, err.stack));
+    });
+    if (this.hasPlayerAspiration?.()) {
+      this.syncEssentialPreferenceLayersToPlayerState?.().catch((err) => {
+        console.warn('[存档] 同步玩家本质偏好失败:', err?.message || err);
+      });
+    }
     this.initFactionSystem?.();
     window.GameModules.orgTerritory?.validateWorldConsistency?.(this);
   },

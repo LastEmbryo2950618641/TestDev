@@ -57,10 +57,15 @@ window.GameModules.rpgFieldUi = {
     return { ...(state || {}), id, name: profile.name, worldTag: profile.work, profile, values: {} };
   },
 
+  shouldShowEssentialPreferenceSection(displayState = {}) {
+    return Boolean(this.essentialPreferenceViewForState?.(displayState));
+  },
+
   profileSections(state, identityFields = []) {
     const displayState = this.profileDisplayState(state, identityFields);
     const aspirationFields = (identityFields || []).filter((field) => field.profileGroup === '人生取向');
-    const baseIdentityFields = (identityFields || []).filter((field) => field.profileGroup !== '人生取向');
+    const essentialPreferenceFields = (identityFields || []).filter((field) => field.profileGroup === '本质偏好');
+    const baseIdentityFields = (identityFields || []).filter((field) => field.profileGroup !== '人生取向' && field.profileGroup !== '本质偏好');
     const entries = this.rpgEntries?.(displayState) || [];
     const all = entries.flatMap((section) => section.fields || []);
     const byKey = (key) => all.find((field) => field.key === key);
@@ -89,14 +94,23 @@ window.GameModules.rpgFieldUi = {
       { title: '人际关系', fields: relations },
       { title: '身份信息', fields: [...identityRest, ...(longing ? [longing] : []), ...take(['world_tag', 'age', 'current_location', 'factions', 'force_positions'])] },
     ];
-    if (aspirationFields.length || (displayState.profile?.isPlayer && this.hasPlayerAspiration?.())) {
+    if (aspirationFields.length) {
       groups.splice(groups.findIndex((group) => group.title === '身份信息') + 1, 0, {
-        title: '人生取向',
+        title: '人生目标',
         fields: aspirationFields,
-        view: 'aspiration',
+        view: 'goals',
       });
     }
-    return this.placeProfileSection(groups, { title: intimacyUi.sectionTitle || '身体状态', fields: intimacyFields }, intimacyUi).filter((group) => group.fields.length || group.view === 'aspiration');
+    if (this.shouldShowEssentialPreferenceSection(displayState)) {
+      const anchor = groups.findIndex((group) => group.title === '人生目标');
+      const at = anchor >= 0 ? anchor + 1 : groups.findIndex((group) => group.title === '身份信息') + 1;
+      groups.splice(at < 0 ? groups.length : at, 0, {
+        title: '本质偏好',
+        fields: essentialPreferenceFields,
+        view: 'essentialPreference',
+      });
+    }
+    return this.placeProfileSection(groups, { title: intimacyUi.sectionTitle || '身体状态', fields: intimacyFields }, intimacyUi).filter((group) => group.fields.length || group.view === 'goals' || group.view === 'essentialPreference');
   },
 
   placeProfileSection(groups = [], section = {}, ui = {}) {

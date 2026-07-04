@@ -43,11 +43,64 @@ window.GameModules.playerIdentityActions = {
     if (id === 'player-self') return this.playerDisplayCharacter();
     return this.identityTargetState()?.profile || (id === this.character.id ? this.character : { name: '未知角色', work: '未知世界', role: '身份未知', detail: '暂无角色卡。', personality: '', pendingAiProfile: true });
   },
+  essentialPreferenceLayersForState(state = null) {
+    const prefTool = window.GameModules.playerAspirationPreferenceLayers;
+    if (!prefTool) return null;
+    const resolved = state || this.identityTargetState();
+    const id = resolved?.id || this.identityTargetId || 'player-self';
+    if (id === 'player-self') {
+      const fromAspiration = this.playerAspiration?.essentialPreferenceLayers
+        || prefTool.buildFromPlayerAspiration?.(this.playerAspiration);
+      if (fromAspiration?.layer1) return prefTool.normalizeLayers(fromAspiration);
+      const profile = resolved?.profile;
+      if (profile) return prefTool.ensureOnProfile(profile);
+      return null;
+    }
+    const profile = resolved?.profile || (id === (this.identityTargetId || '') ? this.identityTargetProfile() : null);
+    if (!profile || typeof profile !== 'object') return null;
+    return prefTool.ensureOnProfile(profile);
+  },
+
+  essentialPreferenceViewFromPlayerAspiration(view = null) {
+    const data = view || this.playerAspirationView?.();
+    if (!data) return null;
+    return {
+      alignmentLabel: data.alignmentLabel,
+      rationality: data.rationality,
+      rationalityLabel: data.rationalityLabel,
+      axes: data.axes || [],
+      guiltLines: data.guiltLines || [],
+      psychGroups: (data.psychCategories || []).flatMap((category) => category.groups || []),
+      footnote: '来自人生取向向导的选择；本质偏好五层固化后推演不可修改。',
+    };
+  },
+
+  essentialPreferenceViewForState(state = null) {
+    const resolved = state || this.identityTargetState();
+    const id = resolved?.id || this.identityTargetId || 'player-self';
+    if (id === 'player-self' && this.hasPlayerAspiration?.()) {
+      return this.essentialPreferenceViewFromPlayerAspiration?.();
+    }
+    const prefTool = window.GameModules.playerAspirationPreferenceLayers;
+    const layers = this.essentialPreferenceLayersForState?.(resolved);
+    const view = prefTool?.viewFromLayers?.(layers);
+    if (view) view.footnote = '角色本质偏好五层在角色卡生成时固化，推演不可修改。';
+    return view || null;
+  },
+
+  identityEssentialPreferenceLayers() {
+    return this.essentialPreferenceLayersForState?.(this.identityTargetState());
+  },
+
+  identityEssentialPreferenceView() {
+    return this.essentialPreferenceViewForState?.(this.identityTargetState());
+  },
+
   identityTargetFields() {
     const p = this.identityTargetProfile();
     const worldTag = p.work || this.identityTargetState()?.worldTag || '原创世界';
     const reasonFor = this.roleCardReasonGetter(p);
-    const row = (key, label, value, desc) => ({ key: `id-${this.identityTargetId}-${key}`, stateId: this.identityTargetId || 'player-self', label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: '角色', commonField: true });
+    const row = (key, label, value, desc, extra = {}) => ({ key: `id-${this.identityTargetId}-${key}`, stateId: this.identityTargetId || 'player-self', label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: '角色', commonField: true, ...extra });
     const fields = [
       row('name', '姓名', p.name, '角色卡固化姓名。'),
       row('work', '所属世界', worldTag, '角色出身作品或世界。'),
@@ -57,8 +110,17 @@ window.GameModules.playerIdentityActions = {
       row('personality', '性格', p.personality, '角色卡固化性格。'),
       row('job', '职业', p.job, '角色真实职业、训练身份或社会功能。'),
     ];
+    const prefTool = window.GameModules.playerAspirationPreferenceLayers;
+    const layerSource = this.essentialPreferenceLayersForState?.(this.identityTargetState());
+    prefTool?.toLines?.(layerSource).forEach((line, index) => {
+      const label = line.split(':')[0]?.trim() || '本质偏好';
+      const desc = (this.identityTargetId || 'player-self') === 'player-self'
+        ? '玩家本质偏好层；仅玩家可在人生取向向导中修改，推演不可更改。'
+        : '角色本质偏好五层；角色卡固化后永久不可被推演修改。';
+      fields.push(row(`pref-${index}`, label, line, desc, { profileGroup: '本质偏好', immutable: true }));
+    });
     if ((this.identityTargetId || 'player-self') === 'player-self') {
-      fields.push(...(this.playerAspirationLexiconFields?.() || []));
+      fields.push(...(this.playerAspirationLexiconFields?.().filter((item) => !prefTool?.isImmutableFieldName?.(item.label)) || []));
     }
     return fields;
   },
@@ -137,6 +199,14 @@ window.GameModules.playerIdentityActions = {
       }
       if (window.GameModules.progression.ensureStateMechanics(existing, existing.profile)) changed = true;
       if (window.GameModules.initPromptRegistry?.ensureTemplateState?.('intimacyBody', existing)) changed = true;
+      if (this.hasPlayerAspiration?.()) {
+        const tool = window.GameModules.playerAspirationPreferenceLayers;
+        const layers = tool?.buildFromPlayerAspiration?.(this.playerAspiration);
+        if (layers?.layer1 && !existing.profile?.essentialPreferenceLayers?.layer1) {
+          tool.applyToProfile(existing.profile, layers, { locked: true });
+          changed = true;
+        }
+      }
       if (changed) await window.GameModules.sqliteSave.saveCharacterState(existing);
       return existing;
     }

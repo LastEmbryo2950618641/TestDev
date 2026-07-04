@@ -4,7 +4,14 @@ window.GameModules.characterCardLexicon = {
   modifySkillId: 'character.card.modify',
   addSkillId: 'character.card.add',
 
-  fieldMap: { 姓名: 'name', 性别: 'gender', 身份: 'role', 职业: 'job', 人物说明: 'detail', 背景: 'detail', 外貌: 'appearance', 喜好: 'preferences', 偏好: 'preferences', 穿着偏好: 'preferences', 性格: 'personality', 人际关系: 'relationships', 关系: 'relationships', 技能: 'skills' },
+  fieldMap: { 姓名: 'name', 性别: 'gender', 身份: 'role', 职业: 'job', 人物说明: 'detail', 背景: 'detail', 外貌: 'appearance', 喜好: 'preferences', 偏好: 'preferences', 穿着偏好: 'preferences', 性格: 'personality', 人际关系: 'relationships', 关系: 'relationships', 技能: 'skills', essentialPreferenceLayers: 'essentialPreferenceLayers', 本质偏好: 'essentialPreferenceLayers', 价值立场偏好: 'essentialPreferenceLayers', 决策风格偏好: 'essentialPreferenceLayers', 人生六维偏好: 'essentialPreferenceLayers', 底线锚点偏好: 'essentialPreferenceLayers', 心理偏好: 'essentialPreferenceLayers' },
+
+  isImmutableProfileUpdate(update = {}) {
+    const tool = window.GameModules.playerAspirationPreferenceLayers;
+    if (update.field === 'essentialPreferenceLayers') return true;
+    if (tool?.isImmutableFieldName?.(update.field) || tool?.isImmutableFieldName?.(update.name)) return true;
+    return false;
+  },
 
   normalizeField(raw) {
     const text = String(raw || '').trim();
@@ -61,6 +68,7 @@ window.GameModules.characterCardLexicon = {
   },
 
   applyOne(profile, update) {
+    if (this.isImmutableProfileUpdate(update)) return false;
     if (update.kind === '角色技能' || update.field === 'skills') return this.applySkill(profile, update);
     const key = update.field;
     if (!['name', 'gender', 'role', 'job', 'detail', 'appearance', 'preferences', 'personality', 'relationships'].includes(key)) return false;

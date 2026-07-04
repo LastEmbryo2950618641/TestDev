@@ -163,6 +163,7 @@ window.GameModules.characterQuery = {
       this.line('外貌', profile.appearance),
       this.line('性格', profile.personality),
       this.line('喜好', profile.preferences),
+      ...(window.GameModules.playerAspirationPreferenceLayers?.toLines?.(profile.essentialPreferenceLayers) || []),
       this.line('人物说明', profile.detail || state.note),
       this.line('社群角色', this.listText(profile.factions || values.factions, 8)),
       this.line('势力地位', this.listText(profile.force_positions || profile.forcePositions || values.force_positions, 8)),

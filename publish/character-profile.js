@@ -2168,10 +2168,15 @@ window.GameModules.characterProfile = {
       worldAttributes: attrs,
       rpgFieldReasons: this.rpgFieldReasons(profile.rpgFieldReasons, attrs, { ...base, ...profile, factions, forcePositions }),
       initialMetrics: options.skipInitialMetrics ? null : this.initialMetrics(profile.initialMetrics, { ...base, ...profile }),
+      essentialPreferenceLayers: profile.essentialPreferenceLayers
+        ? window.GameModules.playerAspirationPreferenceLayers?.normalizeLayers?.(profile.essentialPreferenceLayers)
+        : null,
+      essentialPreferenceLayersLocked: Boolean(profile.essentialPreferenceLayersLocked && profile.essentialPreferenceLayers),
       roleCard: true,
       roleCardSource: 'ai',
       roleCardUpdatedAt: new Date().toISOString(),
     };
+    window.GameModules.playerAspirationPreferenceLayers?.ensureOnProfile?.(validated);
     return this.ensureInventoryReasons(validated);
   },
 

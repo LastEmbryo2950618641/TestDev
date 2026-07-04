@@ -46,6 +46,7 @@ Object.assign(window.GameModules.rpgLexicon, {
     for (const raw of entries) {
       const entry = this.buildSkillEntry({ source: 'skill', ...raw });
       if (!entry || this.isSameLexiconEntry(this.get(entry.worldTag, entry.kind, entry.name), entry)) continue;
+      if (window.GameModules.playerAspirationPreferenceLayers?.isImmutableFieldName?.(entry.name)) continue;
       save.db.run(
         'INSERT OR REPLACE INTO lexicon_entries(world_tag,kind,name,entry_json,source,created_at,updated_at) VALUES (?,?,?,?,?,COALESCE((SELECT created_at FROM lexicon_entries WHERE world_tag=? AND kind=? AND name=?),?),?)',
         [entry.worldTag, entry.kind, entry.name, JSON.stringify(entry), entry.source, entry.worldTag, entry.kind, entry.name, now, now],
