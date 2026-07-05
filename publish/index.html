@@ -289,6 +289,45 @@
             </template>
           </select>
         </section>
+        <section class="model-setting-group">
+          <h3>绘图平台</h3>
+          <small>用于微信相册等 AI 图片生成请求。</small>
+          <select :value="$store.game.settingsState.drawProvider" @change="$store.game.selectDrawProvider($event.target.value)">
+            <option value="pixai">PixAI</option>
+            <option value="dzmm">dzmm</option>
+          </select>
+        </section>
+        <section class="model-setting-group" x-show="$store.game.settingsState.drawProvider === 'pixai'">
+          <h3>PixAI API Root</h3>
+          <input class="text-input" type="text" :value="$store.game.settingsState.pixaiBaseUrl" @change="$store.game.setPixaiBaseUrl($event.target.value)">
+        </section>
+        <section class="model-setting-group" x-show="$store.game.settingsState.drawProvider === 'pixai'">
+          <h3>PixAI API Key</h3>
+          <small>仅保存在当前浏览器/存档环境。</small>
+          <input class="text-input" type="password" x-model="$store.game.settingsState.pixaiApiKey" @change="$store.game.setPixaiApiKey($event.target.value)">
+        </section>
+        <section class="model-setting-group">
+          <h3>绘图模型</h3>
+          <select :value="$store.game.selectedDrawModelId()" @change="$store.game.selectDrawModel($event.target.value)">
+            <template x-for="model in $store.game.currentDrawModels()" :key="model.id">
+              <option :value="model.id" x-text="$store.game.drawModelOptionLabel(model)"></option>
+            </template>
+          </select>
+        </section>
+        <section class="model-setting-group" x-show="$store.game.settingsState.drawProvider === 'pixai'">
+          <h3>PixAI modelVersionId</h3>
+          <small>填写 PixAI 模型页面 URL 的最后一段。</small>
+          <input class="text-input" type="text" :value="$store.game.settingsState.pixaiModelVersionId" @change="$store.game.setPixaiModelVersionId($event.target.value)">
+        </section>
+        <section class="model-setting-group" x-show="$store.game.settingsState.drawProvider === 'pixai'">
+          <h3>PixAI 质量模式</h3>
+          <select :value="$store.game.settingsState.pixaiMode" @change="$store.game.setPixaiMode($event.target.value)">
+            <option value="lite">lite</option>
+            <option value="standard">standard</option>
+            <option value="pro">pro</option>
+            <option value="ultra">ultra</option>
+          </select>
+        </section>
         <div class="activation-model-actions">
           <button class="ghost-wide" type="button" @click="$store.game.fetchTextModelCatalog()" :disabled="$store.game.settingsState.loading">获取模型列表</button>
           <button class="ghost-wide" type="button" @click="$store.game.testTextModelConnection()" :disabled="$store.game.settingsState.modelTestLoading || $store.game.settingsState.loading" x-text="$store.game.settingsState.modelTestLoading ? '连接测试中…' : '测试模型连接'"></button>
@@ -301,7 +340,7 @@
           <p class="settings-status settings-error" x-show="$store.game.systemTestState.error" x-text="$store.game.systemTestState.error"></p>
           <pre class="settings-status activation-system-result" x-show="$store.game.systemTestState.result && !$store.game.systemTestState.error" x-text="$store.game.systemTestState.result"></pre>
         </section>
-        <p class="settings-status">当前：<b x-text="$store.game.settingsState.textProvider"></b> · <b x-text="$store.game.modelId"></b></p>
+        <p class="settings-status">当前：文本 <b x-text="$store.game.settingsState.textProvider"></b> · <b x-text="$store.game.modelId"></b>；绘图 <b x-text="$store.game.selectedDrawProviderId()"></b> · <b x-text="$store.game.selectedDrawModelId()"></b></p>
         <section class="model-setting-group">
           <h3>界面风格</h3>
           <small>深色 / 白色 / 粉色 / 薄荷，或自定义主题色。</small>
@@ -1232,39 +1271,51 @@
             </template>
             <template x-if="section.title === '当前自然状态' || section.title === '盛装'">
               <div class="body-profile-panel" x-data="{ body: null }" x-init="body = $store.game.bodyProfilePanel(section); const refreshBody = () => { body = $store.game.bodyProfilePanel(section); }; $watch(() => $store.game.identityTargetId, () => { refreshBody(); $store.game.clearAbilityDetail?.(); }); window.addEventListener('body-silhouette-manifest-ready', refreshBody); window.addEventListener('body-figure-meta-ready', refreshBody);">
-                <p class="ability-panel-hint" x-text="body?.figure ? '点击标注框或部位卡片查看完整描写 · 参考图按整体标签（如少女）匹配' : '点击轮廓或部位卡片查看完整描写 · 轮廓按性别与整体体型自动匹配'"></p>
+                <div class="body-figure-toolbar">
+                  <label class="body-figure-mask-toggle">
+                    <input type="checkbox" :checked="$store.game.bodyFigureMaskEnabled(section)" @change="$store.game.setBodyFigureMask(section, $event.target.checked).then(() => { body = $store.game.bodyProfilePanel(section); })">
+                    <span class="body-figure-toggle-track" aria-hidden="true"></span>
+                    <span>接触遮罩</span>
+                  </label>
+                  <button type="button" class="body-figure-image-btn" @click="$store.game.openBodyProfileImageGenerator(section)" :disabled="$store.game.wechatAlbumGenerating" x-text="$store.game.wechatAlbumGenerating ? '生成中…' : '生成形象图'"></button>
+                  <small x-text="$store.game.bodyFigureMaskEnabled(section) ? '遮罩切换：开启' : '遮罩切换：关闭'"></small>
+                </div>
+                <p class="ability-panel-hint" x-text="body?.figure ? '点击标注框或部位卡片查看完整描写 · 参考图按整体与部位标签匹配' : '点击轮廓或部位卡片查看完整描写 · 轮廓按性别与整体体型自动匹配'"></p>
                 <p class="body-profile-meta" x-show="body?.meta"><span class="learned-count-chip" x-text="body?.meta"></span></p>
                 <div class="body-profile-layout" :class="{ 'has-figure': body?.figure }">
                   <div class="body-figure-board" x-show="body?.figure">
                     <div class="body-figure-stage">
-                      <img class="body-figure-img" :src="body.figure.imageSrc" :alt="body.figure.label" loading="lazy">
-                      <template x-for="ann in body.figure.annotations || []" :key="`fig-line-${ann.part}`">
+                      <img class="body-figure-img" :src="body?.figure?.imageSrc || ''" :alt="body?.figure?.label || ''" loading="lazy">
+                      <template x-for="ann in body?.figure?.annotations || []" :key="`fig-line-${ann.part}`">
                         <svg class="body-figure-line-item" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                          <line class="body-figure-line-shadow" :x1="ann.line.x1" :y1="ann.line.y1" :x2="ann.line.x2" :y2="ann.line.y2"></line>
                           <line :x1="ann.line.x1" :y1="ann.line.y1" :x2="ann.line.x2" :y2="ann.line.y2"></line>
                         </svg>
                       </template>
-                      <template x-for="ann in body.figure.annotations || []" :key="`fig-ann-${ann.part}`">
-                        <span class="body-figure-anchor" :style="$store.game.bodyFigureAnchorStyle(ann)" aria-hidden="true"></span>
-                        <button type="button" class="body-figure-callout" :class="{ active: $store.game.isBodyFigurePartActive(body.rows, ann.part), 'side-right': ann.label.side === 'right', 'side-left': ann.label.side !== 'right' }" :style="$store.game.bodyFigureCalloutStyle(ann)" @click="$store.game.openBodyFigurePart(body.rows, ann.part)">
-                          <strong x-text="ann.title"></strong>
-                          <small x-show="ann.tags" x-text="ann.tags"></small>
-                          <p x-text="ann.preview"></p>
-                        </button>
+                      <template x-for="ann in body?.figure?.annotations || []" :key="`fig-ann-${ann.part}`">
+                        <div class="body-figure-annotation">
+                          <span class="body-figure-anchor" :style="$store.game.bodyFigureAnchorStyle(ann)" :title="`拖动调整 ${ann.title || ann.part} 点位`" @pointerdown.prevent.stop="$store.game.startBodyFigureAnchorDrag($event, body.figure, ann)"></span>
+                          <button type="button" class="body-figure-callout" :class="{ active: $store.game.isBodyFigurePartActive(body.rows, ann.part), 'side-right': ann.label.side === 'right', 'side-left': ann.label.side !== 'right' }" :style="$store.game.bodyFigureCalloutStyle(ann)" @click="$store.game.openBodyFigurePart(body.rows, ann.part)">
+                            <strong x-text="ann.title"></strong>
+                            <small x-show="ann.tags" x-text="ann.tags"></small>
+                            <p x-text="ann.preview"></p>
+                          </button>
+                        </div>
                       </template>
                     </div>
-                    <small class="body-figure-label" x-text="body.figure.label"></small>
+                    <small class="body-figure-label" x-text="body?.figure?.label || ''"></small>
                   </div>
                   <aside class="body-silhouette-aside" x-show="body?.silhouette">
                     <div class="body-silhouette-stage">
-                      <img class="body-silhouette-img" :src="body.silhouette.src" :alt="body.silhouette.label" loading="lazy">
+                      <img class="body-silhouette-img" :src="body?.silhouette?.src || ''" :alt="body?.silhouette?.label || ''" loading="lazy">
                       <div class="body-silhouette-hotspots" aria-hidden="true">
-                        <template x-for="spot in body.silhouette.hotspots || []" :key="`sil-${spot.part}`">
+                        <template x-for="spot in body?.silhouette?.hotspots || []" :key="`sil-${spot.part}`">
                           <button type="button" class="body-silhouette-hotspot" :class="{ active: $store.game.isBodySilhouettePartActive(body.rows, spot.part) }" :style="`left:${spot.x}%;top:${spot.y}%;width:${spot.w}%;height:${spot.h}%`" :title="spot.part" @click="$store.game.openBodySilhouettePart(body.rows, spot.part)"></button>
                         </template>
                       </div>
                     </div>
-                    <small class="body-silhouette-label" x-text="body.silhouette.label"></small>
-                    <small class="body-silhouette-source" x-show="body.silhouette.remote">远程资源</small>
+                    <small class="body-silhouette-label" x-text="body?.silhouette?.label || ''"></small>
+                    <small class="body-silhouette-source" x-show="body?.silhouette?.remote">远程资源</small>
                   </aside>
                   <div class="body-profile-grid">
                     <template x-for="row in body?.rows || []" :key="`body-${row.index}`">
@@ -1302,6 +1353,50 @@
       </section>
     </div>
   </section>
+
+  <div class="wechat-photo-dialog" x-show="$store.game.wechatAlbumPromptOpen && !$store.game.wechatAppOpen" @click.self="$store.game.wechatAlbumChoiceClose()" x-cloak>
+    <article :class="{ editor: ['edit', 'prompt-list', 'prompt-detail'].includes($store.game.wechatAlbumPromptStep) }">
+      <template x-if="$store.game.wechatAlbumPromptStep === 'edit'">
+        <div class="wechat-album-editor">
+          <strong x-text="`${$store.game.wechatAlbumKindLabel()}提示词素材`"></strong>
+          <p class="wechat-album-count" x-text="$store.game.wechatAlbumGenerating ? '正在生成绘图提示词…' : `当前素材约 ${$store.game.wechatAlbumSelectedCharCount()} 字`"></p>
+          <p class="wechat-error" x-show="$store.game.wechatAlbumPromptError" x-text="$store.game.wechatAlbumPromptError"></p>
+          <div class="wechat-album-scroll">
+            <section><b>身份信息</b><template x-for="item in $store.game.wechatAlbumPromptOptions().identity" :key="item.key"><label><input type="checkbox" :value="item.key" x-model="$store.game.wechatAlbumPromptDraft.identityKeys"><span x-text="item.text"></span></label></template></section>
+            <section x-show="$store.game.wechatAlbumPromptDraft?.kind !== 'custom'"><b>部位描述</b><template x-for="item in $store.game.wechatAlbumPromptOptions().body" :key="item.key"><label><input type="checkbox" :value="item.key" x-model="$store.game.wechatAlbumPromptDraft.bodyKeys"><span x-text="item.text"></span></label></template></section>
+            <section x-show="$store.game.wechatAlbumPromptDraft?.kind === 'custom'"><b>自定义状态部位描述</b><textarea x-model="$store.game.wechatAlbumPromptDraft.customText" placeholder="请输入本次图片生成要使用的状态与部位描述"></textarea></section>
+            <section><b>本次绘图补充要求</b><textarea x-model="$store.game.wechatAlbumPromptDraft.extraText" placeholder="例如：必须是黑发、蓝眼；若与前文冲突，以这里为准"></textarea></section>
+            <section class="wechat-album-preview"><b>绘图提示词生成请求</b><pre x-text="$store.game.wechatAlbumPromptPreview()"></pre></section>
+          </div>
+          <div class="wechat-album-actions three"><button type="button" @click="$store.game.wechatAlbumChoiceClose()" :disabled="$store.game.wechatAlbumGenerating">返回</button><button type="button" @click="$store.game.generateWechatAlbumPromptOnly()" :disabled="$store.game.wechatAlbumGenerating">生成绘图提示词</button><button type="button" @click="$store.game.openWechatAlbumPromptList()" :disabled="$store.game.wechatAlbumGenerating">选择提示词</button></div>
+        </div>
+      </template>
+      <template x-if="$store.game.wechatAlbumPromptStep === 'prompt-list'">
+        <div class="wechat-album-editor">
+          <div class="wechat-album-title"><strong>选择绘图提示词</strong><button type="button" @click="$store.game.addWechatAlbumPrompt()" :disabled="$store.game.wechatAlbumGenerating">添加提示词</button></div>
+          <p class="wechat-album-count" x-text="`已保存 ${$store.game.wechatAlbumPromptList().length} 条提示词`"></p>
+          <p class="wechat-error" x-show="$store.game.wechatAlbumPromptError" x-text="$store.game.wechatAlbumPromptError"></p>
+          <div class="wechat-album-scroll">
+            <section x-show="!$store.game.wechatAlbumPromptList().length"><b>暂无提示词</b><p>请先返回素材页生成绘图提示词。</p></section>
+            <section><template x-for="item in $store.game.wechatAlbumPromptList()" :key="item.id"><button type="button" @click="$store.game.selectWechatAlbumPrompt(item.id)"><span x-text="$store.game.wechatAlbumKindLabel(item.kind)"></span>｜<span x-text="$store.game.wechatAlbumPromptListPreview(item)"></span></button></template></section>
+          </div>
+          <div class="wechat-album-actions"><button type="button" @click="$store.game.wechatAlbumPromptStep = 'edit'" :disabled="$store.game.wechatAlbumGenerating">返回素材</button><button type="button" @click="$store.game.wechatAlbumChoiceClose()" :disabled="$store.game.wechatAlbumGenerating">关闭</button></div>
+        </div>
+      </template>
+      <template x-if="$store.game.wechatAlbumPromptStep === 'prompt-detail'">
+        <div class="wechat-album-editor">
+          <strong x-text="$store.game.wechatAlbumSelectedPrompt() ? '编辑绘图提示词' : '添加绘图提示词'"></strong>
+          <p class="wechat-album-count" x-text="$store.game.wechatAlbumGenerating ? '正在生成图片…约 30 秒' : ($store.game.wechatAlbumSelectedPrompt() ? '确认后将使用下面文本生成图片' : '填写后保存到提示词列表')"></p>
+          <p class="wechat-error" x-show="$store.game.wechatAlbumPromptError" x-text="$store.game.wechatAlbumPromptError"></p>
+          <div class="wechat-album-scroll">
+            <section><b>正向提示词</b><textarea x-model="$store.game.wechatAlbumPromptEditText"></textarea></section>
+            <section><b>负面提示词</b><textarea x-model="$store.game.wechatAlbumPromptEditNegative"></textarea></section>
+          </div>
+          <div class="wechat-album-actions"><button type="button" @click="$store.game.wechatAlbumPromptStep = 'prompt-list'" :disabled="$store.game.wechatAlbumGenerating">返回列表</button><button type="button" @click="$store.game.wechatAlbumSelectedPrompt() ? $store.game.generateWechatAlbumSelectedPhoto() : $store.game.saveWechatAlbumManualPrompt()" :disabled="$store.game.wechatAlbumGenerating" x-text="$store.game.wechatAlbumSelectedPrompt() ? '生成图片' : '保存提示词'"></button></div>
+        </div>
+      </template>
+    </article>
+  </div>
 
   <section x-show="!$store.game.loading && $store.game.taobaoState?.open" class="taobao-app-screen app-window section-hints" x-cloak>
     <div class="taobao-card dev-section" data-section-title="淘宝主面板">
@@ -1651,7 +1746,7 @@
       <p class="settings-status" x-show="$store.game.settingsState.modelTestMessage" :class="{ 'settings-error': $store.game.settingsState.modelTestOk === false, 'settings-success': $store.game.settingsState.modelTestOk === true }" x-text="$store.game.settingsState.modelTestMessage"></p>
       <section class="model-setting-group">
         <h3>文本 AI 提供方</h3>
-        <small>可在 dzmm 和 DeepSeek 之间切换文字请求来源。绘图仍暂时只看 dzmm。</small>
+        <small>可在 dzmm 和 DeepSeek 之间切换文字请求来源。</small>
         <select :value="$store.game.settingsState.textProvider" @change="$store.game.selectTextProvider($event.target.value)">
           <option value="dzmm">dzmm</option>
           <option value="deepseek">DeepSeek</option>
@@ -1677,12 +1772,45 @@
         </select>
       </section>
       <section class="model-setting-group">
+        <h3>绘图平台</h3>
+        <small>可在 dzmm 与 PixAI 之间切换图片生成请求来源。</small>
+        <select :value="$store.game.settingsState.drawProvider" @change="$store.game.selectDrawProvider($event.target.value)">
+          <option value="pixai">PixAI</option>
+          <option value="dzmm">dzmm</option>
+        </select>
+      </section>
+      <section class="model-setting-group" x-show="$store.game.settingsState.drawProvider === 'pixai'">
+        <h3>PixAI API Root</h3>
+        <small>默认官方地址即可；代码会分别调用 v2/image/create 与 v1/task。</small>
+        <input class="text-input" type="text" :value="$store.game.settingsState.pixaiBaseUrl" @change="$store.game.setPixaiBaseUrl($event.target.value)">
+      </section>
+      <section class="model-setting-group" x-show="$store.game.settingsState.drawProvider === 'pixai'">
+        <h3>PixAI API Key</h3>
+        <small>仅保存在当前浏览器/存档环境，用于 PixAI 图片生成请求。</small>
+        <input class="text-input" type="password" x-model="$store.game.settingsState.pixaiApiKey" @change="$store.game.setPixaiApiKey($event.target.value)">
+      </section>
+      <section class="model-setting-group">
         <h3>AI生成图模型</h3>
-        <small>用于微信相册等 draw.generate 图片生成请求。当前这部分仍主要依赖 dzmm。</small>
-        <select x-model="$store.game.settingsState.drawModelId" @change="$store.game.selectDrawModel($event.target.value)">
-          <template x-for="model in $store.game.settingsState.drawModels" :key="model.id">
-            <option :value="model.id" x-text="`${model.displayName || model.id}｜${model.description || model.id}`"></option>
+        <small>用于微信相册等图片生成请求。</small>
+        <select :value="$store.game.selectedDrawModelId()" @change="$store.game.selectDrawModel($event.target.value)">
+          <template x-for="model in $store.game.currentDrawModels()" :key="model.id">
+            <option :value="model.id" x-text="$store.game.drawModelOptionLabel(model)"></option>
           </template>
+        </select>
+      </section>
+      <section class="model-setting-group" x-show="$store.game.settingsState.drawProvider === 'pixai'">
+        <h3>PixAI modelVersionId</h3>
+        <small>打开 PixAI 模型页面并选择版本，复制 URL 最后一段填到这里。</small>
+        <input class="text-input" type="text" :value="$store.game.settingsState.pixaiModelVersionId" @change="$store.game.setPixaiModelVersionId($event.target.value)">
+      </section>
+      <section class="model-setting-group" x-show="$store.game.settingsState.drawProvider === 'pixai'">
+        <h3>PixAI 质量模式</h3>
+        <small>官方 v2 mode：lite / standard / pro / ultra。</small>
+        <select :value="$store.game.settingsState.pixaiMode" @change="$store.game.setPixaiMode($event.target.value)">
+          <option value="lite">lite</option>
+          <option value="standard">standard</option>
+          <option value="pro">pro</option>
+          <option value="ultra">ultra</option>
         </select>
       </section>
       <section class="model-setting-group">
@@ -1735,7 +1863,7 @@
           </div>
         </template>
       </section>
-      <p class="settings-status">当前：提供方 <b x-text="$store.game.settingsState.textProvider"></b>；文本 <b x-text="$store.game.modelId"></b>；绘图 <b x-text="$store.game.selectedDrawModelId()"></b>；笔风 <b x-text="$store.game.allWritingStyles().find((style) => style.id === $store.game.selectedWritingStyleId())?.name || '未选择'"></b>；Stage1资料迭代 <b x-text="$store.game.stage1MaterialIterationLimitText()"></b>；正文输出 <b x-text="$store.game.aiOutputLimitEffectiveText('stage3')"></b></p>
+      <p class="settings-status">当前：文本提供方 <b x-text="$store.game.settingsState.textProvider"></b>；文本 <b x-text="$store.game.modelId"></b>；绘图平台 <b x-text="$store.game.selectedDrawProviderId()"></b>；绘图 <b x-text="$store.game.selectedDrawModelId()"></b>；笔风 <b x-text="$store.game.allWritingStyles().find((style) => style.id === $store.game.selectedWritingStyleId())?.name || '未选择'"></b>；Stage1资料迭代 <b x-text="$store.game.stage1MaterialIterationLimitText()"></b>；正文输出 <b x-text="$store.game.aiOutputLimitEffectiveText('stage3')"></b></p>
     </div>
   </section>
 
@@ -1919,6 +2047,7 @@
                 <div class="wechat-album-editor">
                   <strong x-text="`${$store.game.wechatAlbumKindLabel()}提示词素材`"></strong>
                   <p class="wechat-album-count" x-text="$store.game.wechatAlbumGenerating ? '正在生成绘图提示词…' : `当前素材约 ${$store.game.wechatAlbumSelectedCharCount()} 字`"></p>
+                  <p class="wechat-error" x-show="$store.game.wechatAlbumPromptError" x-text="$store.game.wechatAlbumPromptError"></p>
                   <div class="wechat-album-scroll">
                     <section><b>身份信息</b><template x-for="item in $store.game.wechatAlbumPromptOptions().identity" :key="item.key"><label><input type="checkbox" :value="item.key" x-model="$store.game.wechatAlbumPromptDraft.identityKeys"><span x-text="item.text"></span></label></template></section>
                     <section x-show="$store.game.wechatAlbumPromptDraft?.kind !== 'custom'"><b>部位描述</b><template x-for="item in $store.game.wechatAlbumPromptOptions().body" :key="item.key"><label><input type="checkbox" :value="item.key" x-model="$store.game.wechatAlbumPromptDraft.bodyKeys"><span x-text="item.text"></span></label></template></section>
@@ -1933,6 +2062,7 @@
                 <div class="wechat-album-editor">
                   <div class="wechat-album-title"><strong>选择绘图提示词</strong><button type="button" @click="$store.game.addWechatAlbumPrompt()" :disabled="$store.game.wechatAlbumGenerating">添加提示词</button></div>
                   <p class="wechat-album-count" x-text="`已保存 ${$store.game.wechatAlbumPromptList().length} 条提示词`"></p>
+                  <p class="wechat-error" x-show="$store.game.wechatAlbumPromptError" x-text="$store.game.wechatAlbumPromptError"></p>
                   <div class="wechat-album-scroll">
                     <section x-show="!$store.game.wechatAlbumPromptList().length"><b>暂无提示词</b><p>请先返回素材页生成绘图提示词。</p></section>
                     <section><template x-for="item in $store.game.wechatAlbumPromptList()" :key="item.id"><button type="button" @click="$store.game.selectWechatAlbumPrompt(item.id)"><span x-text="$store.game.wechatAlbumKindLabel(item.kind)"></span>｜<span x-text="$store.game.wechatAlbumPromptListPreview(item)"></span></button></template></section>
@@ -1944,6 +2074,7 @@
                 <div class="wechat-album-editor">
                   <strong x-text="$store.game.wechatAlbumSelectedPrompt() ? '编辑绘图提示词' : '添加绘图提示词'"></strong>
                   <p class="wechat-album-count" x-text="$store.game.wechatAlbumGenerating ? '正在生成图片…约 30 秒' : ($store.game.wechatAlbumSelectedPrompt() ? '确认后将使用下面文本生成图片' : '填写后保存到提示词列表')"></p>
+                  <p class="wechat-error" x-show="$store.game.wechatAlbumPromptError" x-text="$store.game.wechatAlbumPromptError"></p>
                   <div class="wechat-album-scroll">
                     <section><b>正向提示词</b><textarea x-model="$store.game.wechatAlbumPromptEditText"></textarea></section>
                     <section><b>负面提示词</b><textarea x-model="$store.game.wechatAlbumPromptEditNegative"></textarea></section>
@@ -2329,39 +2460,51 @@
                   </template>
                   <template x-if="section.title === '当前自然状态' || section.title === '盛装'">
                     <div class="body-profile-panel" x-data="{ body: null }" x-init="body = $store.game.bodyProfilePanel(section); const refreshBody = () => { body = $store.game.bodyProfilePanel(section); }; $watch(() => $store.game.identityTargetId, () => { refreshBody(); $store.game.clearAbilityDetail?.(); }); window.addEventListener('body-silhouette-manifest-ready', refreshBody); window.addEventListener('body-figure-meta-ready', refreshBody);">
-                      <p class="ability-panel-hint" x-text="body?.figure ? '点击标注框或部位卡片查看完整描写 · 参考图按整体标签（如少女）匹配' : '点击轮廓或部位卡片查看完整描写 · 轮廓按性别与整体体型自动匹配'"></p>
+                      <div class="body-figure-toolbar">
+                        <label class="body-figure-mask-toggle">
+                          <input type="checkbox" :checked="$store.game.bodyFigureMaskEnabled(section)" @change="$store.game.setBodyFigureMask(section, $event.target.checked).then(() => { body = $store.game.bodyProfilePanel(section); })">
+                          <span class="body-figure-toggle-track" aria-hidden="true"></span>
+                          <span>接触遮罩</span>
+                        </label>
+                        <button type="button" class="body-figure-image-btn" @click="$store.game.openBodyProfileImageGenerator(section)" :disabled="$store.game.wechatAlbumGenerating" x-text="$store.game.wechatAlbumGenerating ? '生成中…' : '生成形象图'"></button>
+                        <small x-text="$store.game.bodyFigureMaskEnabled(section) ? '遮罩切换：开启' : '遮罩切换：关闭'"></small>
+                      </div>
+                      <p class="ability-panel-hint" x-text="body?.figure ? '点击标注框或部位卡片查看完整描写 · 参考图按整体与部位标签匹配' : '点击轮廓或部位卡片查看完整描写 · 轮廓按性别与整体体型自动匹配'"></p>
                       <p class="body-profile-meta" x-show="body?.meta"><span class="learned-count-chip" x-text="body?.meta"></span></p>
                       <div class="body-profile-layout" :class="{ 'has-figure': body?.figure }">
                         <div class="body-figure-board" x-show="body?.figure">
                           <div class="body-figure-stage">
-                            <img class="body-figure-img" :src="body.figure.imageSrc" :alt="body.figure.label" loading="lazy">
-                            <template x-for="ann in body.figure.annotations || []" :key="`entry-fig-line-${ann.part}`">
+                            <img class="body-figure-img" :src="body?.figure?.imageSrc || ''" :alt="body?.figure?.label || ''" loading="lazy">
+                            <template x-for="ann in body?.figure?.annotations || []" :key="`entry-fig-line-${ann.part}`">
                               <svg class="body-figure-line-item" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                                <line class="body-figure-line-shadow" :x1="ann.line.x1" :y1="ann.line.y1" :x2="ann.line.x2" :y2="ann.line.y2"></line>
                                 <line :x1="ann.line.x1" :y1="ann.line.y1" :x2="ann.line.x2" :y2="ann.line.y2"></line>
                               </svg>
                             </template>
-                            <template x-for="ann in body.figure.annotations || []" :key="`entry-fig-ann-${ann.part}`">
-                              <span class="body-figure-anchor" :style="$store.game.bodyFigureAnchorStyle(ann)" aria-hidden="true"></span>
-                              <button type="button" class="body-figure-callout" :class="{ active: $store.game.isBodyFigurePartActive(body.rows, ann.part), 'side-right': ann.label.side === 'right', 'side-left': ann.label.side !== 'right' }" :style="$store.game.bodyFigureCalloutStyle(ann)" @click="$store.game.openBodyFigurePart(body.rows, ann.part)">
-                                <strong x-text="ann.title"></strong>
-                                <small x-show="ann.tags" x-text="ann.tags"></small>
-                                <p x-text="ann.preview"></p>
-                              </button>
+                            <template x-for="ann in body?.figure?.annotations || []" :key="`entry-fig-ann-${ann.part}`">
+                              <div class="body-figure-annotation">
+                                <span class="body-figure-anchor" :style="$store.game.bodyFigureAnchorStyle(ann)" :title="`拖动调整 ${ann.title || ann.part} 点位`" @pointerdown.prevent.stop="$store.game.startBodyFigureAnchorDrag($event, body.figure, ann)"></span>
+                                <button type="button" class="body-figure-callout" :class="{ active: $store.game.isBodyFigurePartActive(body.rows, ann.part), 'side-right': ann.label.side === 'right', 'side-left': ann.label.side !== 'right' }" :style="$store.game.bodyFigureCalloutStyle(ann)" @click="$store.game.openBodyFigurePart(body.rows, ann.part)">
+                                  <strong x-text="ann.title"></strong>
+                                  <small x-show="ann.tags" x-text="ann.tags"></small>
+                                  <p x-text="ann.preview"></p>
+                                </button>
+                              </div>
                             </template>
                           </div>
-                          <small class="body-figure-label" x-text="body.figure.label"></small>
+                          <small class="body-figure-label" x-text="body?.figure?.label || ''"></small>
                         </div>
                         <aside class="body-silhouette-aside" x-show="body?.silhouette">
                           <div class="body-silhouette-stage">
-                            <img class="body-silhouette-img" :src="body.silhouette.src" :alt="body.silhouette.label" loading="lazy">
+                            <img class="body-silhouette-img" :src="body?.silhouette?.src || ''" :alt="body?.silhouette?.label || ''" loading="lazy">
                             <div class="body-silhouette-hotspots" aria-hidden="true">
-                              <template x-for="spot in body.silhouette.hotspots || []" :key="`entry-sil-${spot.part}`">
+                              <template x-for="spot in body?.silhouette?.hotspots || []" :key="`entry-sil-${spot.part}`">
                                 <button type="button" class="body-silhouette-hotspot" :class="{ active: $store.game.isBodySilhouettePartActive(body.rows, spot.part) }" :style="`left:${spot.x}%;top:${spot.y}%;width:${spot.w}%;height:${spot.h}%`" :title="spot.part" @click="$store.game.openBodySilhouettePart(body.rows, spot.part)"></button>
                               </template>
                             </div>
                           </div>
-                          <small class="body-silhouette-label" x-text="body.silhouette.label"></small>
-                          <small class="body-silhouette-source" x-show="body.silhouette.remote">远程资源</small>
+                          <small class="body-silhouette-label" x-text="body?.silhouette?.label || ''"></small>
+                          <small class="body-silhouette-source" x-show="body?.silhouette?.remote">远程资源</small>
                         </aside>
                         <div class="body-profile-grid">
                           <template x-for="row in body?.rows || []" :key="`entry-body-${row.index}`">

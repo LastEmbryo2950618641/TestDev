@@ -19,6 +19,7 @@ window.GameScriptManifest = {
       "ai-provider.js",
       "ai-provider-dzmm.js",
       "ai-provider-deepseek.js",
+      "draw-provider.js",
       "ai-request.js",
       "prompt-fallback.js",
       "prompt-templates.js",
@@ -278,7 +279,7 @@ window.GameScriptManifest = {
     ]
   },
   "generatedAt": "2026-07-05T05:55:00.000Z",
-  "total": 251
+  "total": 252
 };
 
 window.GameScriptManifest.classify = function classify(url) {

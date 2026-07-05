@@ -32,6 +32,7 @@
   "ai-provider.js",
   "ai-provider-dzmm.js",
   "ai-provider-deepseek.js",
+  "draw-provider.js",
   "ai-request.js",
   "real-world-agent-loop.js",
   "real-world-json-actions.js",

@@ -30,6 +30,34 @@ window.GameModules.config = {
       preferredModelIds: ['deepseek-v4-flash', 'deepseek-v4-pro'],
     },
   },
+  drawProviders: {
+    defaultProvider: 'pixai',
+    dzmm: {
+      defaultModel: 'anime',
+    },
+    pixai: {
+      baseUrl: 'https://api.pixai.art',
+      defaultModel: '1983308862240288769',
+      defaultMode: 'standard',
+      recommendedModels: [
+        {
+          id: '1983308862240288769',
+          displayName: 'Tsubaki.2',
+          description: 'Strong prompt understanding, seamless anatomy, precision, adaptable style, multi-character interaction',
+        },
+        {
+          id: '1861558740588989558',
+          displayName: 'Haruka v2',
+          description: 'Stable quality, refined details, and accurate hands',
+        },
+        {
+          id: '1954632828118619567',
+          displayName: 'Hoshino v2',
+          description: 'Popular Japanese style',
+        },
+      ],
+    },
+  },
   aiRequest: { maxConcurrent: 4, logLifecycle: false, logRawResponse: true, activationBurst: { maxConcurrent: 8, minGapMs: 400 } },
   characterProfile: { preferSingleShotPart2: true },
   stats: [

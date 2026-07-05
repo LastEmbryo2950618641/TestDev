@@ -22,7 +22,14 @@ window.GameModules.wechatAlbumActions = {
   },
 
   openWechatAlbum() { this.wechatAlbumMode = 'album'; },
-  wechatProfileContact() { return this.wechatSelected?.() || { id: 'player-self', name: '联系人', mark: '联' }; },
+  wechatContactFromState(id = '') {
+    const key = String(id || 'player-self').trim() || 'player-self';
+    const state = this.rpgStates?.[key] || window.GameModules.sqliteSave?.getCharacterState?.(key) || (key === 'player-self' ? this.playerIdentityState?.() : null) || {};
+    const profile = state.profile || {};
+    const name = profile.name || state.name || (key === 'player-self' ? (this.playerName || this.playerProfile?.name || '玩家') : key);
+    return { id: key, name, mark: String(name || key).slice(0, 1), relation: profile.role || state.role || '形象图目标', subtitle: profile.work || state.worldTag || '' };
+  },
+  wechatProfileContact() { return this.wechatSelected?.() || this.wechatContactFromState(this.wechatSelectedContact || 'player-self') || { id: 'player-self', name: '联系人', mark: '联' }; },
   wechatAlbumPhotoList() {
     const raw = this.wechatAlbumPhotos?.[this.wechatProfileContact()?.id || 'player-self'];
     if (Array.isArray(raw)) return raw.filter((item) => item?.url);
@@ -39,9 +46,138 @@ window.GameModules.wechatAlbumActions = {
   wechatAlbumChoiceOpen() {
     this.wechatAlbumPromptStep = 'choice';
     this.wechatAlbumPromptDraft = { kind: 'natural', identityKeys: [], bodyKeys: [], customText: '', extraText: '' };
+    this.wechatAlbumBodyFigureContext = null;
     this.wechatAlbumPromptOpen = true;
   },
   wechatAlbumChoiceClose() { if (!this.wechatAlbumGenerating) this.wechatAlbumPromptOpen = false; },
+
+  bodyProfileImageKind(section = {}) {
+    return String(section?.title || '').trim() === '盛装' ? 'dressed' : 'natural';
+  },
+
+  bodyFigureDefaultPartLayout(index = 0) {
+    const points = [
+      { x: 49, y: 9, side: 'left' },
+      { x: 49, y: 19, side: 'left' },
+      { x: 58, y: 16, side: 'right' },
+      { x: 52, y: 24, side: 'right' },
+      { x: 48, y: 32, side: 'left' },
+      { x: 72, y: 36, side: 'right' },
+      { x: 50, y: 44, side: 'left' },
+      { x: 58, y: 53, side: 'right' },
+      { x: 50, y: 58, side: 'right' },
+      { x: 49, y: 68, side: 'left' },
+      { x: 48, y: 84, side: 'left' },
+    ];
+    const item = points[index] || { x: 50, y: Math.min(88, 8 + (index * 8)), side: index % 2 ? 'right' : 'left' };
+    return {
+      anchor: { x: item.x, y: item.y },
+      label: { x: item.side === 'right' ? 90 : 10, y: Math.min(88, Math.max(7, item.y)), side: item.side },
+    };
+  },
+
+  bodyFigureNormalizedParts(list = []) {
+    const cfg = window.GameModules.appearanceProfileTags;
+    const names = cfg?.bodyParts?.() || [];
+    const source = Array.isArray(list) ? list : [];
+    const byName = new Map(source.map((item) => [String(item?.part || item?.name || '').trim(), item]));
+    const ordered = names.length ? names.map((name, index) => byName.get(name) || { index: index + 1, part: name, tags: [], description: '' }) : source;
+    return ordered.map((item, index) => {
+      const normalized = cfg?.normalizePartItem?.(item, index + 1, item?.part || item?.name || '') || item || {};
+      const layout = this.bodyFigureDefaultPartLayout(index);
+      return {
+        index: Number(normalized.index) || index + 1,
+        part: String(normalized.part || item?.part || item?.name || `部位${index + 1}`).trim(),
+        tags: Array.isArray(normalized.tags) ? normalized.tags : [],
+        description: String(normalized.description || item?.description || item?.detail || '').trim(),
+        anchor: layout.anchor,
+        label: layout.label,
+      };
+    });
+  },
+
+  buildGeneratedBodyFigureMeta(kind = 'natural', contact = this.wechatProfileContact(), drawResult = {}, drawOptions = {}) {
+    const { state, profile } = this.wechatAlbumStateData(contact);
+    const cfg = window.GameModules.appearanceProfileTags;
+    const source = this.profileAppearanceSource?.(state || {}) || profile || {};
+    const ownerId = String(contact?.id || state?.id || this.identityTargetId || 'player-self').trim() || 'player-self';
+    const naturalMeta = cfg?.normalizeNaturalMeta?.(source.bodyProfileMeta || profile.bodyProfileMeta || {}, profile) || (source.bodyProfileMeta || {});
+    const dressedMeta = cfg?.normalizeDressedMeta?.(source.dressedProfileMeta || profile.dressedProfileMeta || {}, profile) || (source.dressedProfileMeta || {});
+    const partsSource = kind === 'dressed'
+      ? (source.dressedProfile || profile.dressedProfile || [])
+      : (source.bodyProfile || profile.bodyProfile || []);
+    const parts = this.bodyFigureNormalizedParts(partsSource);
+    const stateLabel = this.wechatAlbumKindLabel(kind);
+    return {
+      characterId: ownerId,
+      ownerId,
+      personId: ownerId,
+      stateKind: kind === 'dressed' ? 'dressed' : 'natural',
+      stateLabel,
+      label: `${profile.name || contact?.name || ownerId} - ${stateLabel}生成形象图`,
+      generated: true,
+      real: true,
+      source: 'body-profile-generator',
+      prompt: drawOptions.prompt || '',
+      negativePrompt: drawOptions.negativePrompt || '',
+      taskId: drawResult.taskId || '',
+      provider: drawResult.provider || this.selectedDrawProviderId?.() || '',
+      overall: naturalMeta.overall || [],
+      figure: naturalMeta.figure || [],
+      height: naturalMeta.height || '',
+      weight: naturalMeta.weight || '',
+      skinTone: naturalMeta.skinTone || [],
+      aura: naturalMeta.aura || [],
+      styleBase: dressedMeta.styleBase || [],
+      makeupBase: dressedMeta.makeupBase || [],
+      colorScheme: dressedMeta.colorScheme || [],
+      hosiery: dressedMeta.hosiery || [],
+      hairstyle: dressedMeta.hairstyle || [],
+      accessoryDensity: dressedMeta.accessoryDensity || [],
+      tags: [
+        ownerId,
+        kind === 'dressed' ? 'dressed' : 'natural',
+        ...(naturalMeta.overall || []),
+        ...(naturalMeta.figure || []),
+        ...(naturalMeta.skinTone || []),
+        ...(naturalMeta.aura || []),
+        ...(dressedMeta.styleBase || []),
+        ...(dressedMeta.makeupBase || []),
+      ].filter(Boolean),
+      parts,
+    };
+  },
+
+  async saveGeneratedBodyFigureAsset(imageUrl = '', kind = 'natural', contact = this.wechatProfileContact(), drawResult = {}, drawOptions = {}) {
+    const meta = this.buildGeneratedBodyFigureMeta(kind, contact, drawResult, drawOptions);
+    const timestamp = Date.now();
+    try {
+      const res = await fetch('/__dev/body-figure-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl, ownerId: meta.ownerId, kind, timestamp, meta }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      window.GameModules.bodyFigure?.registerEntry?.(data.entry, data.meta || { ...meta, id: data.path, image: String(data.imagePath || '').split('/').pop() || 'figure.png' });
+      return data;
+    } catch (err) {
+      console.warn('[body-figure] 生成形象图本地保存失败:', err?.message || err);
+      this.wechatError = `图片已生成，但保存到 body-figures 失败：${err?.message || err}`;
+      return null;
+    }
+  },
+
+  async openBodyProfileImageGenerator(section = {}) {
+    const kind = this.bodyProfileImageKind(section);
+    const state = this.identityTargetState?.() || this.playerIdentityState?.() || null;
+    const contact = this.wechatContactFromState(state?.id || this.identityTargetId || 'player-self');
+    this.wechatSelectedContact = contact.id;
+    this.wechatAlbumBodyFigureContext = { characterId: contact.id, kind, sectionTitle: String(section?.title || ''), startedAt: Date.now() };
+    this.wechatAlbumPromptOpen = true;
+    this.wechatAlbumPromptError = '';
+    await this.openWechatAlbumPromptEditor(kind);
+  },
 
   async openWechatAlbumPromptEditor(kind = 'natural') {
     const contact = this.wechatProfileContact();
@@ -53,6 +189,7 @@ window.GameModules.wechatAlbumActions = {
       bodyKeys: options.body.map((item) => item.key),
       customText: '',
       extraText: '',
+      bodyFigureContext: this.wechatAlbumBodyFigureContext?.kind === kind ? { ...this.wechatAlbumBodyFigureContext } : null,
     };
     this.wechatAlbumPromptStep = 'edit';
   },
@@ -113,13 +250,17 @@ window.GameModules.wechatAlbumActions = {
     return { identityInfo, bodyText: bodyText || '未记录', extraText: String(draft.extraText || '').trim(), stateName: this.wechatAlbumKindLabel(draft.kind), kind: draft.kind, identityItems, bodyItems };
   },
   wechatAlbumPromptPreview() { return this.wechatAlbumPhotoPrompt(this.wechatProfileContact(), this.wechatAlbumPromptDraft?.kind || 'natural', this.wechatAlbumPromptDraft); },
-  wechatAlbumSelectedCharCount() { return this.wechatAlbumPromptPreview().length; },
+  wechatAlbumSelectedCharCount() {
+    const selected = this.wechatAlbumSelectedText?.();
+    const text = selected ? [selected.identityInfo, selected.bodyText, selected.extraText].filter(Boolean).join('\n') : this.wechatAlbumPromptPreview();
+    return String(text || '').trim().length;
+  },
   wechatAlbumIdentityInfo(contact, state = {}, profile = {}) { return this.wechatAlbumIdentityItems(contact, state, profile).map((item) => item.text).join('\n'); },
   wechatAlbumBodyText(body) { return this.wechatAlbumBodyItems(body).map((item) => item.text).join('\n'); },
 
   wechatAlbumPhotoPrompt(contact, kind = 'natural', draft = null) {
     const ctx = this.wechatAlbumTagContext(contact, kind, draft);
-    const template = window.GameModules.pictureGeneratePrompts?.drawTagPrompt || '';
+    const template = this.wechatAlbumDrawTagTemplate?.() || window.GameModules.pictureGeneratePrompts?.drawTagPrompt || '';
     return this.renderWechatAlbumPrompt(template, ctx).slice(0, 2000);
   },
 
@@ -141,6 +282,9 @@ window.GameModules.wechatAlbumActions = {
     if (this.wechatAlbumGenerating) return;
     const contact = this.wechatProfileContact();
     if (!contact || contact.group) return;
+    const bodyFigureContext = this.wechatAlbumBodyFigureContext?.characterId === contact.id
+      ? { ...this.wechatAlbumBodyFigureContext }
+      : null;
     const reqId = (this.wechatAlbumRequestId || 0) + 1;
     this.wechatAlbumRequestId = reqId;
     this.wechatAlbumGenerating = true;
@@ -150,18 +294,36 @@ window.GameModules.wechatAlbumActions = {
       const prompt = String(promptData?.prompt || '').trim();
       if (!prompt) throw new Error('请先选择或生成绘图提示词');
       const negativePrompt = String(promptData?.negativePrompt || '').trim() || 'bad anatomy, extra fingers, extra arms, missing fingers, low quality, blurry, worst quality, watermark, text, logo, bad hands';
-      const safePrompt = window.GameModules.applyPictureGenerateSensitiveReplacements?.(prompt) || prompt;
-      const safeNegativePrompt = window.GameModules.applyPictureGenerateSensitiveReplacements?.(negativePrompt) || negativePrompt;
+      const promptWithFixedTags = this.appendWechatAlbumFixedTags?.(prompt, kind) || prompt;
+      const safePrompt = this.pictureGenerateSafeReplacements?.(promptWithFixedTags) || promptWithFixedTags;
+      const safeNegativePrompt = this.pictureGenerateSafeReplacements?.(negativePrompt) || negativePrompt;
       const drawOptions = { prompt: safePrompt.slice(0, 2000), dimension: '2:3', model: this.selectedDrawModelId?.() || 'anime', negativePrompt: safeNegativePrompt.slice(0, 2000) };
       const titleState = this.wechatAlbumKindLabel(kind);
-      const tokenRecordId = window.GameModules.tokenStats?.record?.(`draw-wechat-album-${kind}`, drawOptions.prompt, { model: drawOptions.model, title: `微信相册图片生成｜${contact.name || '联系人'}｜${titleState}`, category: '图片生成', summary: '微信联系人相册全身正面照绘图请求。', kind: 'draw' });
-      const result = await this.wechatDrawWithRetry(() => window.dzmm.draw.generate(drawOptions));
+      const drawProvider = this.selectedDrawProviderId?.() || 'pixai';
+      const tokenRecordId = window.GameModules.tokenStats?.record?.(`draw-wechat-album-${kind}`, drawOptions.prompt, { model: `${drawProvider}:${drawOptions.model}`, title: `微信相册图片生成｜${contact.name || '联系人'}｜${titleState}`, category: '图片生成', summary: '微信联系人相册全身正面照绘图请求。', kind: 'draw' });
+      const result = await this.wechatDrawWithRetry(() => window.GameModules.drawProvider.generate(drawOptions));
       window.GameModules.tokenStats?.recordResponse?.(tokenRecordId, JSON.stringify(result || {}, null, 2), result?.images || []);
       if (reqId !== this.wechatAlbumRequestId) return;
       const url = result?.images?.[0] || '';
       if (!url) throw new Error('图片生成完成但没有返回图片');
+      const savedFigure = bodyFigureContext
+        ? await this.saveGeneratedBodyFigureAsset(url, kind, contact, result, drawOptions)
+        : null;
       const list = this.wechatAlbumPhotoList();
-      this.wechatAlbumPhotos = { ...(this.wechatAlbumPhotos || {}), [contact.id]: [{ url, kind, taskId: result.taskId || '', real: false, createdAt: new Date().toISOString() }, ...list] };
+      const photo = {
+        url: savedFigure?.imageSrc || url,
+        originalUrl: savedFigure?.imageSrc ? url : '',
+        kind,
+        taskId: result.taskId || '',
+        real: Boolean(bodyFigureContext),
+        createdAt: new Date().toISOString(),
+        characterId: contact.id,
+        bodyFigurePath: savedFigure?.path || '',
+        bodyFigureMetaPath: savedFigure?.metaPath || '',
+        bodyFigureImagePath: savedFigure?.imagePath || '',
+      };
+      this.wechatAlbumPhotos = { ...(this.wechatAlbumPhotos || {}), [contact.id]: [photo, ...list] };
+      if (bodyFigureContext) this.wechatAlbumBodyFigureContext = null;
       await this.save?.();
     } catch (err) {
       if (reqId !== this.wechatAlbumRequestId) return;
@@ -175,7 +337,7 @@ window.GameModules.wechatAlbumActions = {
   async wechatDrawWithRetry(fn, max = 3) {
     for (let i = 0; i < max; i += 1) {
       try { return await fn(); } catch (err) {
-        const retryable = window.dzmm?.errors?.isDzmmError?.(err) && err.retryable;
+        const retryable = (window.dzmm?.errors?.isDzmmError?.(err) && err.retryable) || err?.retryable === true;
         if (!retryable || i === max - 1) throw err;
         await new Promise((resolve) => setTimeout(resolve, 1000 * (2 ** i)));
       }

@@ -80,7 +80,7 @@ function registerGameStore() {
     loadingDetail: '首次进入或存档较大时会更慢，这是正常现象。',
     loadingStages: [], entryStages: [], loadingStartedAt: 0, loadingNow: Date.now(), loadingTimer: null,
     roleCardLoadingState: { open: false, expanded: true, cards: [], startedAt: 0 }, roleCardLoadingRetryQueue: {}, solidifyState: { open: false, candidates: [], selectedKey: '' },
-    busy: false, started: false, desktopUnlocked: false, desktopPage: 0, desktopSwipeStart: null, controlSelectOpen: false, controlLinkMenuId: '', sharedControlTargetId: '', sharedControlActive: false, entrySetupOpen: false, entryIdentityOpen: false, identityAppOpen: false, identityReturnTo: '', wechatAppOpen: false, saveAppOpen: false, roleCardJsonAppOpen: false, identityTargetId: 'player-self', wechatSelectedContact: 'player-self', wechatTab: 'chats', wechatView: 'home', wechatAlbumMode: 'profile', wechatAlbumPromptOpen: false, wechatAlbumPromptStep: 'choice', wechatAlbumPromptDraft: null, wechatAlbumGenerating: false, wechatAlbumRequestId: 0, wechatAlbumPhotos: {}, wechatInput: '', wechatSending: false, wechatError: '', wechatReplyRequestId: 0, wechatMessagesByContact: {}, wechatUsers: [], wechatAddName: '', wechatAddRelation: '',
+    busy: false, started: false, desktopUnlocked: false, desktopPage: 0, desktopSwipeStart: null, controlSelectOpen: false, controlLinkMenuId: '', sharedControlTargetId: '', sharedControlActive: false, entrySetupOpen: false, entryIdentityOpen: false, identityAppOpen: false, identityReturnTo: '', wechatAppOpen: false, saveAppOpen: false, roleCardJsonAppOpen: false, identityTargetId: 'player-self', wechatSelectedContact: 'player-self', wechatTab: 'chats', wechatView: 'home', wechatAlbumMode: 'profile', wechatAlbumPromptOpen: false, wechatAlbumPromptStep: 'choice', wechatAlbumPromptDraft: null, wechatAlbumPromptError: '', wechatAlbumBodyFigureContext: null, wechatAlbumGenerating: false, wechatAlbumRequestId: 0, wechatAlbumPhotos: {}, wechatInput: '', wechatSending: false, wechatError: '', wechatReplyRequestId: 0, wechatMessagesByContact: {}, wechatUsers: [], wechatAddName: '', wechatAddRelation: '',
     initPromise: null, startupWarmupPromise: null, startupWarmupDone: false, phoneSetupDone: false, phoneActivationChoice: '', profileSetupBusy: false, setupError: '', phoneFixedTime: 0, phoneClockStamp: 0, phoneClockLabelShort: '--:--', phoneClockLabelFull: '--:--:--', phoneClockTimer: null, existingProfileExpanded: false,
     roleCardSetup: { loaded: false, usePredefinedPlayerCard: false, cards: [], selectedPlayerName: '', selectedRelationNames: [], relationRoles: {}, selectedRelationCardName: '刘思瑶', gender: '女', relationType: '妹妹', customRelation: '', detailOpen: false, relationDetailOpen: '' },
     knownProfessionState: { open: false, query: '', message: '', selectedName: '', detailOpen: false },
@@ -91,6 +91,8 @@ function registerGameStore() {
       loaded: false,
       error: '',
       textProvider: cfg.textProviders?.defaultProvider || 'dzmm',
+      drawProvider: cfg.drawProviders?.defaultProvider || 'pixai',
+      drawProviderExplicit: false,
       textModels: [],
       drawModels: [],
       textModelId: cfg.defaultModelId,
@@ -98,6 +100,10 @@ function registerGameStore() {
       deepseekBaseUrl: cfg.textProviders?.deepseek?.baseUrl || 'https://api.deepseek.com',
       deepseekModel: cfg.textProviders?.deepseek?.defaultModel || 'deepseek-v4-flash',
       drawModelId: 'anime',
+      pixaiApiKey: '',
+      pixaiBaseUrl: cfg.drawProviders?.pixai?.baseUrl || 'https://api.pixai.art',
+      pixaiModelVersionId: cfg.drawProviders?.pixai?.defaultModel || '',
+      pixaiMode: cfg.drawProviders?.pixai?.defaultMode || 'standard',
       stage1MaterialIterationLimited: false,
       stage1MaterialMaxIterations: 2,
       modelTestLoading: false,
@@ -177,7 +183,10 @@ function registerGameStore() {
     wechatAlbumPrompts: {}, wechatAlbumPromptSelectedId: '', wechatAlbumPromptEditText: '', wechatAlbumPromptEditNegative: '', wechatAvatarCropOpen: false, wechatAvatarCropPhotoIndex: 0, wechatAvatarCropState: { url: '', x: 24, y: 4, scale: 1.92, ratio: 1.5 }, wechatImageConfirmOpen: false, wechatImageConfirmMessage: null, wechatImageGenerating: false, wechatImageRequestId: 0, wechatImagePreview: { open: false, url: '', title: '' }, wechatMentionPanelOpen: false,
     sectionHintsEnabled: cfg.sectionHintsEnabled,
 
-    get character() { return window.GameModules.catalog.find(this.selectedCharacterId) || this.characters.find((c) => c.id === this.selectedCharacterId) || this.characters[0]; },
+    get character() {
+      const list = Array.isArray(this.characters) ? this.characters : [];
+      return window.GameModules.catalog?.find?.(this.selectedCharacterId) || list.find((c) => c.id === this.selectedCharacterId) || list[0] || {};
+    },
 
     get workCharacters() { return window.GameModules.catalog.characters(this.selectedWork); },
 

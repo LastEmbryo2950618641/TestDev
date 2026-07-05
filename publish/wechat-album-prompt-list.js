@@ -9,7 +9,7 @@ window.GameModules.wechatAlbumPromptListActions = {
   },
 
   wechatAlbumPromptListPreview(item) {
-    const fixed = new Set(['1girl or 1boy', '1girl', '1boy', 'solo', 'full body', 'standing', 'front view', 'clear face', 'clean background', 'anime style', 'high quality', 'natural', 'original body', 'no clothes']);
+    const fixed = new Set(['1girl or 1boy', '1girl', '1boy', 'solo', 'full body', 'standing', 'front view', 'clear face', 'clean background', 'anime style', 'high quality', 'natural', 'original body', 'no clothes', '赤身', '全身', '无遮掩', '美乳', '双腿', '玉足', '站立']);
     const tags = String(item?.prompt || '').split(/[\n,，、；;]+/).map((tag) => tag.trim()).filter(Boolean);
     const distinct = tags.filter((tag) => !fixed.has(tag.toLowerCase()));
     return (distinct.length ? distinct : tags).slice(0, 8).join(', ').slice(0, 88) || '未命名提示词';
@@ -22,6 +22,7 @@ window.GameModules.wechatAlbumPromptListActions = {
     const reqId = (this.wechatAlbumRequestId || 0) + 1;
     this.wechatAlbumRequestId = reqId;
     this.wechatAlbumGenerating = true;
+    this.wechatAlbumPromptError = '';
     try {
       await this.ensureWechatUserProfile?.(contact);
       const built = await this.buildWechatAlbumDrawPrompt(contact, kind, this.wechatAlbumPromptDraft);
@@ -36,7 +37,8 @@ window.GameModules.wechatAlbumPromptListActions = {
       await this.save?.();
     } catch (err) {
       console.error('[微信相册] 绘图提示词生成失败:', err.code, err.message, err.stack);
-      this.wechatError = err?.message || '绘图提示词生成失败，请稍后重试。';
+      this.wechatAlbumPromptError = err?.message || '绘图提示词生成失败，请稍后重试。';
+      this.wechatError = this.wechatAlbumPromptError;
     } finally {
       if (reqId === this.wechatAlbumRequestId) this.wechatAlbumGenerating = false;
     }

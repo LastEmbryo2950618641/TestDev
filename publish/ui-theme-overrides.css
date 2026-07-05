@@ -704,6 +704,95 @@ html[data-ui-theme] .body-profile-layout.has-figure {
   gap: 14px;
 }
 
+html[data-ui-theme] .body-figure-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 0 0 8px;
+}
+
+html[data-ui-theme] .body-figure-toolbar small {
+  font-size: 10px;
+  color: var(--ui-text-muted);
+  white-space: nowrap;
+}
+
+html[data-ui-theme] .body-figure-mask-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 26px;
+  padding: 3px 8px;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ui-surface-soft) 82%, transparent);
+  color: var(--ui-text);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+}
+
+html[data-ui-theme] .body-figure-mask-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+html[data-ui-theme] .body-figure-toggle-track {
+  position: relative;
+  width: 30px;
+  height: 16px;
+  border-radius: 999px;
+  background: rgba(128, 148, 164, .34);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12);
+  flex: 0 0 auto;
+}
+
+html[data-ui-theme] .body-figure-toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--ui-text-muted);
+  transition: transform .16s ease, background .16s ease;
+}
+
+html[data-ui-theme] .body-figure-mask-toggle input:checked + .body-figure-toggle-track {
+  background: rgba(var(--ui-accent-rgb, 120, 180, 255), .34);
+}
+
+html[data-ui-theme] .body-figure-mask-toggle input:checked + .body-figure-toggle-track::after {
+  transform: translateX(14px);
+  background: var(--ui-accent);
+}
+
+html[data-ui-theme] .body-figure-image-btn {
+  min-height: 26px;
+  padding: 3px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(var(--ui-accent-rgb, 120, 180, 255), .5);
+  background: rgba(var(--ui-accent-rgb, 120, 180, 255), .14);
+  color: var(--ui-accent);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+html[data-ui-theme] .body-figure-image-btn:hover:not(:disabled) {
+  border-color: rgba(var(--ui-accent-rgb, 120, 180, 255), .82);
+  background: rgba(var(--ui-accent-rgb, 120, 180, 255), .22);
+}
+
+html[data-ui-theme] .body-figure-image-btn:disabled {
+  cursor: progress;
+  opacity: .65;
+}
+
 html[data-ui-theme] .body-figure-board {
   display: grid;
   gap: 8px;
@@ -742,30 +831,56 @@ html[data-ui-theme] .body-figure-line-item {
 
 html[data-ui-theme] .body-figure-lines line,
 html[data-ui-theme] .body-figure-line-item line {
-  stroke: rgba(var(--ui-accent-rgb, 120, 180, 255), .72);
-  stroke-width: 0.35;
+  stroke: rgba(5, 25, 34, .92);
+  stroke-width: 1.15;
   vector-effect: non-scaling-stroke;
+}
+
+html[data-ui-theme] .body-figure-lines .body-figure-line-shadow,
+html[data-ui-theme] .body-figure-line-item .body-figure-line-shadow {
+  stroke: rgba(255, 255, 255, .62);
+  stroke-width: 2.4;
+}
+
+html[data-ui-theme] .body-figure-annotation {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
 html[data-ui-theme] .body-figure-anchor {
   position: absolute;
-  width: 7px;
-  height: 7px;
+  z-index: 4;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
   border: 1.5px solid rgba(var(--ui-accent-rgb, 120, 180, 255), .92);
   background: rgba(var(--ui-accent-rgb, 120, 180, 255), .28);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--ui-surface) 70%, transparent);
-  pointer-events: none;
+  cursor: grab;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+html[data-ui-theme] .body-figure-anchor:hover,
+html[data-ui-theme] .body-figure-anchor.dragging {
+  background: rgba(var(--ui-accent-rgb, 120, 180, 255), .55);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-surface) 70%, transparent), 0 0 16px rgba(var(--ui-accent-rgb, 120, 180, 255), .55);
+}
+
+html[data-ui-theme] .body-figure-anchor.dragging {
+  cursor: grabbing;
 }
 
 html[data-ui-theme] .body-figure-callout {
   position: absolute;
   z-index: 2;
   display: grid;
-  gap: 2px;
-  width: min(34vw, 148px);
-  max-width: 148px;
-  padding: 6px 8px;
+  gap: 1px;
+  width: min(24vw, 126px);
+  max-width: 126px;
+  min-height: 40px;
+  padding: 5px 7px;
   border-radius: 8px;
   border: 1px solid rgba(var(--ui-accent-rgb, 120, 180, 255), .55);
   background: color-mix(in srgb, var(--ui-surface) 92%, transparent);
@@ -773,6 +888,7 @@ html[data-ui-theme] .body-figure-callout {
   text-align: left;
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(0, 0, 0, .18);
+  pointer-events: auto;
 }
 
 html[data-ui-theme] .body-figure-callout.side-right {
@@ -789,22 +905,21 @@ html[data-ui-theme] .body-figure-callout strong {
   font-size: 10px;
   font-weight: 600;
   line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 html[data-ui-theme] .body-figure-callout small {
   font-size: 9px;
   color: var(--ui-accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 html[data-ui-theme] .body-figure-callout p {
-  margin: 0;
-  font-size: 9px;
-  line-height: 1.35;
-  color: var(--ui-text-muted);
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  display: none;
 }
 
 html[data-ui-theme] .body-figure-label {
@@ -828,9 +943,10 @@ html[data-ui-theme] .body-figure-label {
   }
 
   html[data-ui-theme] .body-figure-callout {
-    width: min(42vw, 120px);
-    max-width: 120px;
-    padding: 5px 6px;
+    width: min(34vw, 112px);
+    max-width: 112px;
+    min-height: 36px;
+    padding: 4px 6px;
   }
 }
 
@@ -1269,11 +1385,52 @@ html[data-ui-theme] .wechat-app-screen .wechat-add-user button {
   color: #fff !important;
 }
 
+html[data-ui-theme] .wechat-photo-dialog article {
+  color: #111 !important;
+}
+
+html[data-ui-theme] .wechat-photo-dialog .wechat-album-actions button {
+  border: 1px solid rgba(120, 132, 160, .18) !important;
+  background: #f3f6fb !important;
+  color: #1f2937 !important;
+}
+
+html[data-ui-theme] .wechat-photo-dialog .wechat-album-actions button:not(:disabled):hover {
+  background: #e7edf7 !important;
+}
+
+html[data-ui-theme] .wechat-photo-dialog .wechat-album-actions button:disabled {
+  background: #eef1f6 !important;
+  color: #6b7280 !important;
+  opacity: .78;
+}
+
+html[data-ui-theme] .wechat-photo-dialog .wechat-album-choice button:first-of-type,
+html[data-ui-theme] .wechat-photo-dialog .wechat-album-actions button:last-child {
+  border-color: rgba(7, 193, 96, .28) !important;
+  background: #07c160 !important;
+  color: #fff !important;
+}
+
+html[data-ui-theme] .wechat-photo-dialog .wechat-album-choice button:first-of-type:disabled,
+html[data-ui-theme] .wechat-photo-dialog .wechat-album-actions button:last-child:disabled {
+  background: #8eddb8 !important;
+  color: rgba(255, 255, 255, .94) !important;
+}
+
 html[data-ui-theme] .wechat-app-screen .wechat-thread small {
   color: #888 !important;
 }
 
 html[data-ui-theme] .wechat-app-screen .wechat-me-card p {
+  color: #777 !important;
+}
+
+.wechat-app-screen .wechat-me-card h3 {
+  color: #111 !important;
+}
+
+.wechat-app-screen .wechat-me-card p {
   color: #777 !important;
 }
 

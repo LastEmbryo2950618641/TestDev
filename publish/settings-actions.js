@@ -99,16 +99,18 @@ window.GameModules.settingsActions = {
     s.error = '';
     try {
       const provider = window.GameModules.aiProvider?.get?.(providerId);
+      const drawProviderId = s.drawProvider || window.GameModules.drawProvider?.currentProviderId?.() || 'pixai';
+      const drawProvider = window.GameModules.drawProvider?.get?.(drawProviderId);
       const [textResult, drawResult] = await Promise.all([
         this.withTimeout(provider?.listTextModels?.(), 12000, '模型列表'),
-        this.withTimeout(window.dzmm?.draw?.generateModels?.(), 12000, '绘图模型').catch(() => null),
+        this.withTimeout(drawProvider?.listModels?.(), 12000, '绘图模型').catch(() => null),
       ]);
       s.textModels = this.enrichTextModelsWithThinking(textResult);
-      s.drawModels = Array.isArray(drawResult?.models) && drawResult.models.length ? drawResult.models : this.fallbackDrawModels();
+      s.drawModels = this.drawModelsForProvider(drawProviderId, drawResult);
       window.GameModules.tokenStats?.syncModelPrices?.(textResult);
       this.modelId = this.resolvePreferredTextModel(s.textModels, this.modelId || s.textModelId || textResult?.defaultModel);
       s.textModelId = this.modelId;
-      s.drawModelId = s.drawModelId || drawResult?.defaultModel || s.drawModels[0]?.id || 'anime';
+      this.ensureSelectedDrawModel(drawProviderId, drawResult?.defaultModel);
       s.loaded = true;
       s.modelTestOk = null;
       s.modelTestMessage = '';
@@ -117,9 +119,9 @@ window.GameModules.settingsActions = {
       const missingKey = err?.code === 'AUTH_REQUIRED' && providerId === 'deepseek';
       s.error = missingKey ? '请先填写 DeepSeek API Key，再获取模型列表。' : (err?.message || '模型列表加载失败，请稍后重试。');
       if (!s.textModels.length) s.textModels = this.fallbackTextModels();
-      if (!s.drawModels.length) s.drawModels = this.fallbackDrawModels();
+      if (!s.drawModels.length) s.drawModels = this.fallbackDrawModels(s.drawProvider);
       s.textModelId = this.resolvePreferredTextModel(s.textModels, this.modelId || s.textModelId);
-      s.drawModelId = s.drawModelId || 'anime';
+      this.ensureSelectedDrawModel(s.drawProvider);
       s.loaded = false;
     } finally {
       s.loading = false;
@@ -167,11 +169,57 @@ window.GameModules.settingsActions = {
     ];
   },
 
-  fallbackDrawModels() {
+  fallbackDrawModels(providerId = this.settingsState?.drawProvider || 'pixai') {
+    if (providerId === 'pixai') {
+      const recommended = this.pixaiRecommendedModels();
+      const current = String(this.settingsState?.pixaiModelVersionId || '').trim();
+      const hasCurrent = current && recommended.some((model) => model.id === current);
+      return [
+        ...recommended,
+        ...(current ? [{ id: current, displayName: `PixAI ${current}`, description: '当前填写的 modelVersionId' }] : []),
+        { id: 'custom', displayName: '自定义 PixAI modelVersionId', description: '填写模型页面 URL 的最后一段' },
+      ];
+    }
     return [
       { id: 'anime', displayName: 'anime', description: '二次元风格' },
       { id: 'vivid', displayName: 'vivid', description: '写实/鲜明风格' },
     ];
+  },
+
+  pixaiRecommendedModels() {
+    const cfg = window.GameModules.config?.drawProviders?.pixai || {};
+    return (Array.isArray(cfg.recommendedModels) ? cfg.recommendedModels : []).map((model) => ({
+      id: String(model.id || '').trim(),
+      displayName: model.displayName || model.name || String(model.id || '').trim(),
+      description: model.description || '',
+    })).filter((model) => model.id);
+  },
+
+  drawModelsForProvider(providerId = this.settingsState?.drawProvider || 'pixai', result = null) {
+    const sourceModels = Array.isArray(result?.models) && result.models.length ? result.models : this.fallbackDrawModels(providerId);
+    const models = [];
+    const seen = new Set();
+    sourceModels.forEach((model) => {
+      const id = String(model?.id || '').trim();
+      if (!id || seen.has(id)) return;
+      seen.add(id);
+      models.push(model);
+    });
+    if (providerId !== 'pixai') return models;
+    const current = String(this.settingsState?.pixaiModelVersionId || '').trim();
+    if (!current || models.some((model) => model?.id === current)) return models;
+    return [{ id: current, displayName: `PixAI ${current}`, description: '当前填写的 modelVersionId' }, ...models];
+  },
+
+  ensureSelectedDrawModel(providerId = this.settingsState?.drawProvider || 'pixai', defaultModel = '') {
+    if (!this.settingsState) return;
+    if (providerId === 'pixai') {
+      const fallbackModel = window.GameModules.config?.drawProviders?.pixai?.defaultModel || this.pixaiRecommendedModels()[0]?.id || '';
+      this.settingsState.pixaiModelVersionId = String(this.settingsState.pixaiModelVersionId || defaultModel || fallbackModel || '').trim();
+      this.settingsState.drawModels = this.drawModelsForProvider(providerId);
+      return;
+    }
+    this.settingsState.drawModelId = this.settingsState.drawModelId || defaultModel || this.settingsState.drawModels?.[0]?.id || 'anime';
   },
 
   applyStartupTextModels() {
@@ -179,11 +227,11 @@ window.GameModules.settingsActions = {
     if (!this.settingsState) return;
     this.settingsState.textModels = fallbacks;
     if (!Array.isArray(this.settingsState.drawModels) || !this.settingsState.drawModels.length) {
-      this.settingsState.drawModels = this.fallbackDrawModels();
+      this.settingsState.drawModels = this.fallbackDrawModels(this.settingsState.drawProvider);
     }
     this.modelId = this.resolvePreferredTextModel(fallbacks, this.modelId || this.settingsState.textModelId);
     this.settingsState.textModelId = this.modelId;
-    this.settingsState.drawModelId = this.settingsState.drawModelId || this.settingsState.drawModels[0]?.id || 'anime';
+    this.ensureSelectedDrawModel(this.settingsState.drawProvider);
     this.settingsState.loaded = false;
     this.settingsState.error = '';
   },
@@ -234,7 +282,48 @@ window.GameModules.settingsActions = {
 
   async selectDrawModel(id) {
     if (!id || !this.settingsState) return;
-    this.settingsState.drawModelId = id;
+    if (this.settingsState.drawProvider === 'pixai') {
+      if (id !== 'custom') this.settingsState.pixaiModelVersionId = id;
+      this.settingsState.drawModels = this.drawModelsForProvider('pixai');
+    } else {
+      this.settingsState.drawModelId = id;
+    }
+    await this.save?.();
+  },
+
+  async selectDrawProvider(id) {
+    if (!id || !this.settingsState) return;
+    this.settingsState.drawProvider = id;
+    this.settingsState.drawProviderExplicit = true;
+    this.settingsState.drawModels = this.fallbackDrawModels(id);
+    this.ensureSelectedDrawModel(id);
+    await this.save?.();
+  },
+
+  async setPixaiApiKey(value) {
+    if (!this.settingsState) return;
+    this.settingsState.pixaiApiKey = String(value || '').trim();
+    window.GameModules.localSettings?.persistFromStore?.(this);
+    await this.save?.();
+  },
+
+  async setPixaiBaseUrl(value) {
+    if (!this.settingsState) return;
+    this.settingsState.pixaiBaseUrl = String(value || '').trim() || 'https://api.pixai.art';
+    await this.save?.();
+  },
+
+  async setPixaiModelVersionId(value) {
+    if (!this.settingsState) return;
+    this.settingsState.pixaiModelVersionId = String(value || '').trim();
+    this.settingsState.drawModels = this.drawModelsForProvider('pixai');
+    await this.save?.();
+  },
+
+  async setPixaiMode(value) {
+    if (!this.settingsState) return;
+    const allowed = ['lite', 'standard', 'pro', 'ultra'];
+    this.settingsState.pixaiMode = allowed.includes(value) ? value : 'standard';
     await this.save?.();
   },
 
@@ -333,7 +422,21 @@ window.GameModules.settingsActions = {
   },
 
   selectedDrawModelId() {
+    if (this.settingsState?.drawProvider === 'pixai') return this.settingsState?.pixaiModelVersionId || window.GameModules.config?.drawProviders?.pixai?.defaultModel || '1983308862240288769';
     return this.settingsState?.drawModelId || 'anime';
+  },
+
+  selectedDrawProviderId() {
+    return this.settingsState?.drawProvider || 'pixai';
+  },
+
+  currentDrawModels() {
+    const providerId = this.settingsState?.drawProvider || 'pixai';
+    return this.drawModelsForProvider(providerId, { models: this.settingsState?.drawModels || [] });
+  },
+
+  drawModelOptionLabel(model = {}) {
+    return `${model.displayName || model.name || model.id}｜${model.description || model.id}`;
   },
 
   stage1MaterialMaxIterations() {

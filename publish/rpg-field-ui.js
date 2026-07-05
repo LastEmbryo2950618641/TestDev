@@ -1,6 +1,8 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.rpgFieldUi = {
+  bodyFigureMaskState: { natural: false, dressed: false },
+
   rpgFieldKey(field) { return `${field?.stateId || 'state'}:${field?.key || ''}:${field?.label || ''}`; },
   rpgItemKey(field, index) { return `${this.rpgFieldKey(field)}:item:${index}`; },
   toggleRpgField(field) { const key = this.rpgFieldKey(field); if (key) this.expandedRpgFieldKey = this.expandedRpgFieldKey === key ? '' : key; },
@@ -975,6 +977,36 @@ window.GameModules.rpgFieldUi = {
     }
   },
 
+  bodyFigureMaskKey(section = {}) {
+    const title = String(section?.title || '').trim();
+    return title === '盛装' ? 'dressed' : 'natural';
+  },
+
+  bodyFigureMaskEnabled(section = {}) {
+    const key = this.bodyFigureMaskKey(section);
+    return Boolean(this.bodyFigureMaskState?.[key]);
+  },
+
+  async setBodyFigureMask(section = {}, enabled = false) {
+    const key = this.bodyFigureMaskKey(section);
+    this.bodyFigureMaskState = { ...(this.bodyFigureMaskState || {}), [key]: Boolean(enabled) };
+    if (enabled) {
+      await window.GameModules.bodyFigure?.prefetchMask?.();
+    } else {
+      window.dispatchEvent(new CustomEvent('body-figure-meta-ready', { detail: { tag: 'body-figure-mask-off', key } }));
+    }
+    try {
+      await this.save?.();
+    } catch (err) {
+      console.warn('[body-figure] 遮罩状态保存失败:', err?.message || err);
+    }
+    return this.bodyFigureMaskEnabled(section);
+  },
+
+  toggleBodyFigureMask(section = {}) {
+    return this.setBodyFigureMask(section, !this.bodyFigureMaskEnabled(section));
+  },
+
   bodyProfilePresentation(field, sectionTitle = '', stateOverride = null) {
     const state = stateOverride || (field ? this.activeDetailState(field) : null) || this.identityTargetState?.() || this.currentRpgState || null;
     const source = this.profileAppearanceSource(state || {});
@@ -1009,7 +1041,15 @@ window.GameModules.rpgFieldUi = {
     });
     const silhouetteBase = window.GameModules.bodySilhouette?.resolvePresentation?.(profile, meta, sectionTitle)
       || this.fallbackBodySilhouette(profile, meta, sectionTitle);
-    const figureRaw = window.GameModules.bodyFigure?.resolveSync?.(meta, rows, sectionTitle) || null;
+    const figureMeta = { ...(meta || {}), characterId: state?.id || '', ownerId: state?.id || '', personId: state?.id || '', stateKind: isDressed ? 'dressed' : 'natural' };
+    const figureOptions = { mask: this.bodyFigureMaskEnabled?.({ title: sectionTitle }) };
+    const figureRaw = window.GameModules.bodyFigure?.resolveSync?.(figureMeta, rows, sectionTitle, figureOptions) || null;
+    if (figureRaw?.pending) {
+      window.GameModules.bodyFigure?.resolve?.(figureMeta, rows, sectionTitle, figureOptions)
+        ?.then?.((figure) => {
+          if (figure) window.dispatchEvent(new CustomEvent('body-figure-meta-ready', { detail: { tag: figure.tag, id: figure.id, sectionTitle } }));
+        });
+    }
     const figure = figureRaw && !figureRaw.pending ? figureRaw : null;
     const silhouette = figure ? null : silhouetteBase;
     return {
@@ -1063,6 +1103,10 @@ window.GameModules.rpgFieldUi = {
 
   bodyFigureAnchorStyle(ann = {}) {
     return window.GameModules.bodyFigure?.anchorStyle?.(ann) || '';
+  },
+
+  startBodyFigureAnchorDrag(event, figure = {}, ann = {}) {
+    return window.GameModules.bodyFigure?.startAnchorDrag?.(event, figure, ann);
   },
 
   openBodyFigurePart(rows = [], part = '') {

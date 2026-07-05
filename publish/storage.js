@@ -39,13 +39,25 @@ window.GameModules.storage = {
       wechatMessagesByContact: store.wechatMessagesByContact || {},
       wechatAlbumPhotos: store.wechatAlbumPhotos || {},
       wechatAlbumPrompts: store.wechatAlbumPrompts || {},
+      bodyFigureMaskState: store.bodyFigureMaskState && typeof store.bodyFigureMaskState === 'object'
+        ? {
+          natural: Boolean(store.bodyFigureMaskState.natural),
+          dressed: Boolean(store.bodyFigureMaskState.dressed),
+        }
+        : { natural: false, dressed: false },
       settingsState: store.settingsState ? {
         textProvider: store.settingsState.textProvider || 'deepseek',
         textModelId: store.modelId || store.settingsState.textModelId,
         deepseekApiKey: store.settingsState.deepseekApiKey || '',
         deepseekBaseUrl: store.settingsState.deepseekBaseUrl || 'https://api.deepseek.com',
         deepseekModel: store.settingsState.deepseekModel || '',
+        drawProvider: store.settingsState.drawProvider || 'pixai',
+        drawProviderExplicit: Boolean(store.settingsState.drawProviderExplicit),
         drawModelId: store.settingsState.drawModelId || 'anime',
+        pixaiApiKey: store.settingsState.pixaiApiKey || '',
+        pixaiBaseUrl: store.settingsState.pixaiBaseUrl || 'https://api.pixai.art',
+        pixaiModelVersionId: store.settingsState.pixaiModelVersionId || window.GameModules.config?.drawProviders?.pixai?.defaultModel || '1983308862240288769',
+        pixaiMode: store.settingsState.pixaiMode || 'standard',
         stage1MaterialIterationLimited: Boolean(store.settingsState.stage1MaterialIterationLimited),
         stage1MaterialMaxIterations: Number(store.settingsState.stage1MaterialMaxIterations) || 2,
         aiOutputLimitGlobalMode: store.settingsState.aiOutputLimitGlobalMode,
@@ -140,16 +152,31 @@ window.GameModules.storage = {
     store.wechatMessagesByContact = save.wechatMessagesByContact && typeof save.wechatMessagesByContact === 'object' ? save.wechatMessagesByContact : (store.wechatMessagesByContact || {});
     store.wechatAlbumPhotos = save.wechatAlbumPhotos && typeof save.wechatAlbumPhotos === 'object' ? save.wechatAlbumPhotos : (store.wechatAlbumPhotos || {});
     store.wechatAlbumPrompts = save.wechatAlbumPrompts && typeof save.wechatAlbumPrompts === 'object' ? save.wechatAlbumPrompts : (store.wechatAlbumPrompts || {});
+    store.bodyFigureMaskState = save.bodyFigureMaskState && typeof save.bodyFigureMaskState === 'object'
+      ? {
+        natural: Boolean(save.bodyFigureMaskState.natural),
+        dressed: Boolean(save.bodyFigureMaskState.dressed),
+      }
+      : { ...(store.bodyFigureMaskState || { natural: false, dressed: false }) };
     if (save.settingsState && store.settingsState) {
       const keepKey = String(store.settingsState.deepseekApiKey || '').trim();
+      const keepPixaiKey = String(store.settingsState.pixaiApiKey || '').trim();
       store.settingsState = { ...store.settingsState, ...save.settingsState, open: false, loading: false, error: '' };
       if (!String(store.settingsState.deepseekApiKey || '').trim() && keepKey) {
         store.settingsState.deepseekApiKey = keepKey;
+      }
+      if (!String(store.settingsState.pixaiApiKey || '').trim() && keepPixaiKey) {
+        store.settingsState.pixaiApiKey = keepPixaiKey;
       }
       store.settingsState.stage1MaterialIterationLimited = Boolean(store.settingsState.stage1MaterialIterationLimited);
       store.settingsState.stage1MaterialMaxIterations = Math.max(1, Math.min(8, Math.round(Number(store.settingsState.stage1MaterialMaxIterations) || 2)));
       store.settingsState.textProvider = store.settingsState.textProvider || 'deepseek';
       store.settingsState.deepseekBaseUrl = store.settingsState.deepseekBaseUrl || 'https://api.deepseek.com';
+      store.settingsState.drawProvider = store.settingsState.drawProvider || 'pixai';
+      store.settingsState.drawModelId = store.settingsState.drawModelId || 'anime';
+      store.settingsState.pixaiBaseUrl = store.settingsState.pixaiBaseUrl || 'https://api.pixai.art';
+      store.settingsState.pixaiModelVersionId = store.settingsState.pixaiModelVersionId || window.GameModules.config?.drawProviders?.pixai?.defaultModel || '1983308862240288769';
+      store.settingsState.pixaiMode = store.settingsState.pixaiMode || 'standard';
       store.ensureAiOutputLimitSettings?.();
       store.modelId = store.settingsState.textModelId || store.modelId;
       window.GameModules.localSettings?.ensureActivationTextModels?.(store);

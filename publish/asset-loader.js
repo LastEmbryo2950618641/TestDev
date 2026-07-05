@@ -2,7 +2,6 @@
  * 分块脚本加载与首页后台预加载进度。
  * boot 模式：按 GameScriptManifest 动态注入单文件脚本。
  * modular 模式：index.html 已引入全部脚本时为轻量进度模拟。
- * chunk 模式：动态注入 __chunk-*.js。
  */
 window.GameModules = window.GameModules || {};
 

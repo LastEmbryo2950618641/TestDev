@@ -1,0 +1,49 @@
+{
+  "figures": [
+    {
+      "id": "adult-petite-small-bust-no-pubic-hair",
+      "path": "adult-petite-small-bust-no-pubic-hair",
+      "default": true
+    },
+    {
+      "id": "adult-petite-medium-bust-sparse-pubic-hair",
+      "path": "adult-petite-medium-bust-sparse-pubic-hair",
+      "default": false
+    },
+    {
+      "id": "adult-petite-medium-bust-dense-pubic-hair",
+      "path": "adult-petite-medium-bust-dense-pubic-hair",
+      "default": false
+    },
+    {
+      "id": "adult-youthful-small-bust-no-pubic-hair",
+      "path": "adult-youthful-small-bust-no-pubic-hair",
+      "default": false
+    },
+    {
+      "id": "adult-youthful-medium-bust-sparse-pubic-hair",
+      "path": "adult-youthful-medium-bust-sparse-pubic-hair",
+      "default": false
+    },
+    {
+      "id": "adult-youthful-medium-bust-dense-pubic-hair",
+      "path": "adult-youthful-medium-bust-dense-pubic-hair",
+      "default": false
+    },
+    {
+      "id": "mature-small-bust-no-pubic-hair",
+      "path": "mature-small-bust-no-pubic-hair",
+      "default": false
+    },
+    {
+      "id": "mature-medium-bust-no-pubic-hair",
+      "path": "mature-medium-bust-no-pubic-hair",
+      "default": false
+    },
+    {
+      "id": "mature-large-bust-no-pubic-hair",
+      "path": "mature-large-bust-no-pubic-hair",
+      "default": false
+    }
+  ]
+}

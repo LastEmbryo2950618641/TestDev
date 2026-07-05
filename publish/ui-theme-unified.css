@@ -310,3 +310,78 @@ html[data-ui-theme="pink"] .phone-frame::before,
 html[data-ui-theme="custom"][data-ui-custom-base="light"] .phone-frame::before {
   background: color-mix(in srgb, var(--ui-bg-base) 78%, #111 22%) !important;
 }
+
+html[data-ui-theme] .wechat-app-screen .wechat-me-card h3 {
+  color: #111 !important;
+}
+
+html[data-ui-theme] .wechat-app-screen .wechat-me-card p {
+  color: #777 !important;
+}
+
+html[data-ui-theme] .wechat-photo-dialog article.editor {
+  width: min(520px, calc(100vw - 28px)) !important;
+  max-width: calc(100vw - 28px) !important;
+}
+
+html[data-ui-theme] .wechat-photo-dialog .wechat-album-editor,
+html[data-ui-theme] .wechat-photo-dialog .wechat-album-scroll,
+html[data-ui-theme] .wechat-photo-dialog .wechat-album-editor section {
+  min-width: 0;
+}
+
+html[data-ui-theme] .wechat-photo-dialog .wechat-album-editor section {
+  overflow: hidden;
+  background: #fafafa !important;
+  border-color: #edf0f2 !important;
+  color: #222 !important;
+}
+
+html[data-ui-theme] .wechat-photo-dialog .wechat-album-editor label,
+html[data-ui-theme] .wechat-photo-dialog .wechat-album-editor span,
+html[data-ui-theme] .wechat-photo-dialog .wechat-album-editor b {
+  color: #222 !important;
+}
+
+html[data-ui-theme] .wechat-photo-dialog .wechat-album-editor textarea {
+  width: 100%;
+  min-width: 0;
+  background: #fff !important;
+  border-color: #dfe5e8 !important;
+  color: #111 !important;
+}
+
+html[data-ui-theme] .wechat-photo-dialog .wechat-album-editor textarea::placeholder {
+  color: #8a94a6 !important;
+}
+
+html[data-ui-theme] .wechat-photo-dialog .wechat-album-preview pre {
+  min-height: 44px;
+  max-height: 132px;
+  background: #f6f8fb !important;
+  border: 1px solid #e5e9f0;
+  color: #1f2937 !important;
+}
+
+html[data-ui-theme] .wechat-photo-dialog .wechat-album-actions {
+  min-width: 0;
+}
+
+html[data-ui-theme] .wechat-photo-dialog .wechat-album-actions.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 8px;
+}
+
+html[data-ui-theme] .wechat-photo-dialog .wechat-album-actions button {
+  min-width: 0;
+  padding: 0 8px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+}
+
+@media (max-width: 420px) {
+  html[data-ui-theme] .wechat-photo-dialog .wechat-album-actions.three {
+    grid-template-columns: 1fr !important;
+  }
+}

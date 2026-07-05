@@ -154,7 +154,8 @@ window.GameModules.wechatImageActions = {
       ...(window.GameModules.promptSkills?.completionOptions?.('wechat-image-prompt-collect') || { jsonMode: false, outputLimitKind: 'other' }),
       tokenMeta: { title: `微信图片提示词收集｜${contact.name || '联系人'}`, category: '图片生成', summary: '根据微信联系人记忆和穿戴生成图片编辑动态标签。', kind: 'completion' },
     });
-    return window.GameModules.applyPictureGenerateSensitiveReplacements?.(this.cleanWechatImageTags(output)).slice(0, 1000) || this.cleanWechatImageTags(output).slice(0, 1000);
+    const cleaned = this.cleanWechatImageTags(output);
+    return (this.pictureGenerateSafeReplacements?.(cleaned) || cleaned).slice(0, 1000);
   },
 
   updateWechatImageMessage(targetMsg = {}, patch = {}) {
@@ -177,9 +178,10 @@ window.GameModules.wechatImageActions = {
     try {
       const tags = await this.buildWechatImageTags(msg);
       const prompt = await window.GameModules.renderPrompt('common-image-edit-generate', { 动态标签: tags });
-      const drawOptions = { prompt: prompt.slice(0, 2000), images: [photo.url], dimension: '2:3', model: 'lite' };
-      const tokenRecordId = window.GameModules.tokenStats?.record?.('draw-edit-wechat-image', drawOptions.prompt, { model: drawOptions.model, title: '微信图片编辑生成', category: '图片生成', summary: '使用角色真实照片编辑生成微信图片。', kind: 'draw' });
-      const result = await this.wechatDrawWithRetry(() => window.dzmm.draw.edit(drawOptions));
+      const drawOptions = { prompt: prompt.slice(0, 2000), images: [photo.url], dimension: '2:3', model: this.selectedDrawProviderId?.() === 'pixai' ? this.selectedDrawModelId?.() : 'lite' };
+      const drawProvider = this.selectedDrawProviderId?.() || 'dzmm';
+      const tokenRecordId = window.GameModules.tokenStats?.record?.('draw-edit-wechat-image', drawOptions.prompt, { model: `${drawProvider}:${drawOptions.model}`, title: '微信图片编辑生成', category: '图片生成', summary: '使用角色真实照片编辑生成微信图片。', kind: 'draw' });
+      const result = await this.wechatDrawWithRetry(() => window.GameModules.drawProvider.edit(drawOptions));
       window.GameModules.tokenStats?.recordResponse?.(tokenRecordId, JSON.stringify(result || {}, null, 2), result?.images || []);
       if (reqId !== this.wechatImageRequestId) return;
       const url = result?.images?.[0] || '';

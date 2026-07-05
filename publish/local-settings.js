@@ -31,14 +31,36 @@ window.GameModules.localSettings = {
     }
   },
 
+  async fetchPixaiKeyFromDevFile() {
+    for (const path of ['/pixai_key.txt', '/pixatart_key.txt']) {
+      try {
+        const res = await fetch(path, { cache: 'no-store' });
+        if (!res.ok) continue;
+        const key = String(await res.text()).trim();
+        if (key) return key;
+      } catch (_) {
+        /* try the next dev filename */
+      }
+    }
+    return '';
+  },
+
   ensureSettingsDefaults(store) {
     if (!store?.settingsState) return;
     const cfg = window.GameModules.config || {};
     const s = store.settingsState;
+    const defaultDrawProvider = cfg.drawProviders?.defaultProvider || 'pixai';
     s.textProvider = s.textProvider || cfg.textProviders?.defaultProvider || 'deepseek';
     s.deepseekBaseUrl = s.deepseekBaseUrl || cfg.textProviders?.deepseek?.baseUrl || 'https://api.deepseek.com';
     s.deepseekModel = s.deepseekModel || cfg.textProviders?.deepseek?.defaultModel || 'deepseek-v4-flash';
     s.textModelId = s.textModelId || store.modelId || cfg.defaultModelId || 'nalang-turbo-0826';
+    if (!s.drawProvider || (!s.drawProviderExplicit && s.drawProvider === 'dzmm' && defaultDrawProvider === 'pixai')) {
+      s.drawProvider = defaultDrawProvider;
+    }
+    s.drawModelId = s.drawModelId || cfg.drawProviders?.dzmm?.defaultModel || 'anime';
+    s.pixaiBaseUrl = s.pixaiBaseUrl || cfg.drawProviders?.pixai?.baseUrl || 'https://api.pixai.art';
+    s.pixaiModelVersionId = s.pixaiModelVersionId || cfg.drawProviders?.pixai?.defaultModel || '';
+    s.pixaiMode = s.pixaiMode || cfg.drawProviders?.pixai?.defaultMode || 'standard';
     store.ensureAiOutputLimitSettings?.();
   },
 
@@ -54,6 +76,21 @@ window.GameModules.localSettings = {
     if (fromFile) {
       store.settingsState.deepseekApiKey = fromFile;
       this.writeStored({ deepseekApiKey: fromFile });
+    }
+  },
+
+  async hydratePixaiKey(store) {
+    if (!store?.settingsState) return;
+    if (String(store.settingsState.pixaiApiKey || '').trim()) return;
+    const stored = String(this.readStored().pixaiApiKey || '').trim();
+    if (stored) {
+      store.settingsState.pixaiApiKey = stored;
+      return;
+    }
+    const fromFile = await this.fetchPixaiKeyFromDevFile();
+    if (fromFile) {
+      store.settingsState.pixaiApiKey = fromFile;
+      this.writeStored({ pixaiApiKey: fromFile });
     }
   },
 
@@ -125,12 +162,15 @@ window.GameModules.localSettings = {
   persistFromStore(store) {
     const key = String(store?.settingsState?.deepseekApiKey || '').trim();
     if (key) this.writeStored({ deepseekApiKey: key });
+    const pixaiKey = String(store?.settingsState?.pixaiApiKey || '').trim();
+    if (pixaiKey) this.writeStored({ pixaiApiKey: pixaiKey });
   },
 
   async prepareActivation(store) {
     if (!store) return;
     this.ensureSettingsDefaults(store);
     await this.hydrateDeepseekKey(store);
+    await this.hydratePixaiKey(store);
     this.ensureActivationTextModels(store);
     await this.prefetchProviderIdentity(store);
     await this.prefetchTextModels(store);

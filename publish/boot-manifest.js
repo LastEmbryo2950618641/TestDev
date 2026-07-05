@@ -1,16 +1,10 @@
 /**
- * 分块加载清单：chunk 名称 → 脚本 URL。
+ * 分块加载清单（逻辑分块名）。实际脚本由 boot/script-manifest.js 按桶动态加载。
  */
 window.GameModules = window.GameModules || {};
 
 window.GameModules.bootManifest = {
-  chunks: {
-    onboarding: '__chunk-onboarding.js',
-    gameplay: '__chunk-gameplay.js',
-    wechat: '__chunk-wechat.js',
-    apps: '__chunk-apps.js',
-    prompts: '__chunk-prompts.js',
-  },
+  chunks: {},
   labels: {
     onboarding: '角色卡与引导模块',
     gameplay: '现实推演与地图模块',
