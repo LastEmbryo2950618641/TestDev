@@ -39,6 +39,25 @@ window.GameModules.rpgProfileMetrics = {
       window.GameModules.metrics.writeMetric(target, notes, type, item, value, '根据角色性格、经历、关系事件与玩家互动倾向形成。');
     });
   },
+  refreshGenericNotes(state, profile) {
+    const metrics = window.GameModules.metrics;
+    const source = profile?.initialMetrics;
+    if (!state?.metrics?.notes || !source) return false;
+    const before = JSON.stringify(state.metrics.notes || {});
+    const refresh = (items, values, group) => (Array.isArray(items) ? items : []).forEach((item) => {
+      if (!item?.key) return;
+      const noteKey = `${group}:${item.key}`;
+      const note = state.metrics.notes[noteKey];
+      if (!note || !metrics.isGenericMetricStatus(note.status, item.key)) return;
+      const rawStatus = String(item.status || '').trim();
+      if (!rawStatus || metrics.isGenericMetricStatus(rawStatus, item.key)) return;
+      const value = metrics.clamp(values?.[item.key] ?? item.value);
+      metrics.writeMetric(values, state.metrics.notes, group, { ...item, value }, value, note.reason || '根据角色性格、经历、关系事件与玩家互动倾向形成。');
+    });
+    refresh(source.emotions, state.metrics.emotions, 'emotion');
+    refresh(source.playerFeelings, state.metrics.playerFeelings, 'player');
+    return before !== JSON.stringify(state.metrics.notes || {});
+  },
   rebaseGroup(target, list, oldList, keys, notes, type, defaults) {
     if (!Array.isArray(list)) return;
     const oldMap = new Map(Array.isArray(oldList) ? oldList.map((item) => [item?.key, window.GameModules.metrics.clamp(item?.value)]) : []);

@@ -86,8 +86,9 @@ Object.assign(window.GameModules.updateRegistry, {
     const delta = group === 'player' && !temporary ? window.GameModules.metrics.lockedPlayerDelta(key, rawDelta, before) : rawDelta;
     const next = window.GameModules.metrics.clamp(before + delta);
     const reason = this.metricReasonText(update);
-    const status = temporary ? `${key}：短期状态。` : '';
-    window.GameModules.metrics.writeMetric(target, metrics.notes || (metrics.notes = {}), group, { key, delta, status, reason, temporary, metricSources: { 数值: 'AI', 解释: temporary ? 'AI' : '系统', 原因: 'AI' } }, next, '现实推演结算。');
+    const rawStatus = String(update.change?.status ?? update.status ?? update.程度 ?? update.解释 ?? '').trim();
+    const status = temporary && !rawStatus ? `${key}：短期状态。` : rawStatus;
+    window.GameModules.metrics.writeMetric(target, metrics.notes || (metrics.notes = {}), group, { key, delta, status, reason, temporary }, next, '现实推演结算。');
     return next !== before || Boolean(reason);
   },
 

@@ -61,6 +61,26 @@ window.GameModules.rpgFieldUi = {
     return Boolean(this.essentialPreferenceViewForState?.(displayState));
   },
 
+  profileSectionTabMeta(section = {}) {
+    const title = String(section?.title || '').trim();
+    const byTitle = {
+      个人能力: { icon: '⚡', label: '能力', hint: '技能、知识与职业' },
+      身内能力: { icon: '💪', label: '属性', hint: '七维身内属性' },
+      '装备与物品': { icon: '🎒', label: '装备', hint: '物品与穿着' },
+      当前自然状态: { icon: '🌿', label: '自然', hint: '身体原貌' },
+      盛装: { icon: '👗', label: '盛装', hint: '打扮与造型' },
+      状态标签: { icon: '🏷️', label: '标签', hint: '当前状态标记' },
+      人际关系: { icon: '🤝', label: '关系', hint: '社交与亲属' },
+      身份信息: { icon: '🪪', label: '身份', hint: '基础档案' },
+      人生目标: { icon: '🧭', label: '目标', hint: '人生取向' },
+      本质偏好: { icon: '✨', label: '偏好', hint: '本质偏好五层' },
+      身体状态: { icon: '💓', label: '身体', hint: '亲密与体征' },
+    };
+    if (section.view === 'essentialPreference') return { icon: '✨', label: '偏好', hint: '本质偏好五层' };
+    if (section.view === 'goals') return { icon: '🧭', label: '目标', hint: '人生取向' };
+    return byTitle[title] || { icon: '📋', label: title.slice(0, 4) || '分区', hint: title || '状态分区' };
+  },
+
   profileSections(state, identityFields = []) {
     const displayState = this.profileDisplayState(state, identityFields);
     const aspirationFields = (identityFields || []).filter((field) => field.profileGroup === '人生取向');
@@ -168,35 +188,52 @@ window.GameModules.rpgFieldUi = {
 
   profileNaturalStateField(state = {}) {
     const p = state?.profile || {};
-    return this.profileBodyStateField(state, p.bodyProfile, {
+    const cfg = window.GameModules.appearanceProfileTags;
+    const metaText = cfg?.formatNaturalMeta?.(p.bodyProfileMeta || {}) || '';
+    const field = this.profileBodyStateField(state, p.bodyProfile, {
       key: 'bodyProfile', label: '当前自然状态', kind: '身体原貌', type: '身体原貌',
       desc: '角色未经衣物遮掩、未作人工修饰时的原本身体状态。',
       reason: `${p.name || '该人物'}的自然状态来自角色卡 Part5 身体原貌生成结果。`,
+      metaText,
     });
+    if (field && p.bodyProfileMeta) field.meta = p.bodyProfileMeta;
+    return field;
   },
 
   profileDressedStateField(state = {}) {
     const p = state?.profile || {};
-    return this.profileBodyStateField(state, p.dressedProfile, {
+    const cfg = window.GameModules.appearanceProfileTags;
+    const metaText = cfg?.formatDressedMeta?.(p.dressedProfileMeta || {}) || '';
+    const field = this.profileBodyStateField(state, p.dressedProfile, {
       key: 'dressedProfile', label: '盛装', kind: '盛装状态', type: '盛装状态',
       desc: '角色盛装或打扮完全后各身体部位的造型、修饰与衣物包裹状态。',
       reason: `${p.name || '该人物'}的盛装状态来自角色卡 Part6 盛装状态生成结果。`,
+      metaText,
     });
+    if (field && p.dressedProfileMeta) field.meta = p.dressedProfileMeta;
+    return field;
   },
 
   profileBodyStateField(state = {}, source = [], meta = {}) {
     const p = state?.profile || {};
+    const cfg = window.GameModules.appearanceProfileTags;
     const list = Array.isArray(source) ? source : [];
     const rows = list.map((item, index) => {
       const part = String(item?.part || item?.部位 || '').trim();
       const description = String(item?.description || item?.部位描写 || '').trim();
       if (!part || !description) return null;
-      return { index: Number(item?.index || item?.序号) || index + 1, part, description, name: part, type: meta.type };
+      const tags = cfg?.normalizeStringList?.(item.tags, 6) || [];
+      return { index: Number(item?.index || item?.序号) || index + 1, part, tags, description, name: part, type: meta.type };
     }).filter(Boolean).sort((a, b) => a.index - b.index);
-    if (!rows.length) return null;
+    if (!rows.length && !meta.metaText) return null;
+    const valueRows = rows.map((item) => {
+      const tagText = item.tags?.length ? `[${item.tags.join('、')}]` : '';
+      return `${item.part}${tagText}：${item.description}`;
+    });
+    if (meta.metaText) valueRows.unshift(`【全局】${meta.metaText}`);
     return {
-      key: meta.key, stateId: state?.id || '', label: meta.label, kind: meta.kind, value: rows.map((item) => `${item.part}：${item.description}`), raw: rows,
-      desc: meta.desc, reason: meta.reason,
+      key: meta.key, stateId: state?.id || '', label: meta.label, kind: meta.kind, value: valueRows, raw: rows,
+      desc: meta.desc, reason: meta.reason, metaText: meta.metaText || '',
       worldTag: p.work || state?.worldTag || '原创世界', targetType: p.isPlayer ? '非角色' : '角色', commonField: true,
     };
   },
@@ -310,7 +347,10 @@ window.GameModules.rpgFieldUi = {
     if (row) return `${row.name || row.field || '身体状态'}：${row.value || '--'}`;
     const name = this.rpgItemName(item);
     if (typeof item === 'string') return name;
-    if (item?.type === '身体原貌' || item?.type === '盛装状态') return `${item.index || ''}.${item.part || name}`;
+    if (item?.type === '身体原貌' || item?.type === '盛装状态') {
+      const tagText = Array.isArray(item.tags) && item.tags.length ? `[${item.tags.join('、')}]` : '';
+      return `${item.index || ''}.${item.part || name}${tagText}`;
+    }
     if (item?.type === '性经验分类') return `${item.name || name}：${item.initialCount || 0}(初次见面) + ${item.laterCount || 0} (后续次数)`;
     if (item?.type === '当前身体状态') {
       const desc = item.description || item['描述状态'] || '';
@@ -373,7 +413,10 @@ window.GameModules.rpgFieldUi = {
     const linkedStats = (info.intrinsicStats || obj?.linkedStats || []).map((x) => statName[x] || x);
     const kind = field?.key === 'sexualExperienceParts' ? '性经验分类' : (obj?.type || this.lexiconKind(field, obj));
     const name = this.rpgItemName(obj) || field?.label || '未知';
-    if (kind === '身体原貌' || kind === '盛装状态') return [`部位: ${name}`, `序号: ${obj.index || '未记录'}`, `所属世界: ${field?.worldTag || '公共'}`, `词条类型: ${field?.targetType || '角色'}`, `当前依据: ${field?.reason || (kind === '盛装状态' ? '来自角色卡 Part6 盛装状态生成结果。' : '来自角色卡 Part5 身体原貌生成结果。')}`].join('\n');
+    if (kind === '身体原貌' || kind === '盛装状态') {
+      const tagLine = Array.isArray(obj.tags) && obj.tags.length ? `标签: ${obj.tags.join('、')}` : '';
+      return [`部位: ${name}`, `序号: ${obj.index || '未记录'}`, tagLine, `所属世界: ${field?.worldTag || '公共'}`, `词条类型: ${field?.targetType || '角色'}`, `当前依据: ${field?.reason || (kind === '盛装状态' ? '来自角色卡 Part6 盛装状态生成结果。' : '来自角色卡 Part5 身体原貌生成结果。')}`].filter(Boolean).join('\n');
+    }
     if (kind === '性经验分类') {
       const defaults = window.GameModules.initDefaults?.intimacyBody;
       const partKey = this.sexPartKey(obj, defaults);

@@ -23,14 +23,62 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
   },
   wechatCharacterId(contact) {
     if (!contact || contact.group) return '';
-    return String(contact.id || '').trim();
+    return String(contact.characterId || contact.id || '').trim();
+  },
+  findWechatCharacterState(contact) {
+    if (!contact || contact.group) return null;
+    const save = window.GameModules.sqliteSave;
+    const query = window.GameModules.characterQuery;
+    const profileTool = window.GameModules.characterProfile;
+    const world = this.currentWorldTag?.() || window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
+    const characterId = this.wechatCharacterId(contact);
+    const seen = new Set();
+    const candidates = [];
+    const push = (state) => {
+      const id = String(state?.id || '').trim();
+      if (!state?.profile || !id || seen.has(id)) return;
+      seen.add(id);
+      candidates.push(state);
+    };
+    [characterId, contact.id, contact.characterId].filter(Boolean).forEach((id) => {
+      push(this.rpgStates?.[id]);
+      push(save.getCharacterState?.(id));
+    });
+    [contact.name, this.concreteWechatProfileName(this.rpgStates?.[characterId]?.profile, contact)].filter(Boolean).forEach((name) => {
+      push(query?.stateByName?.(this, name, world));
+      push(query?.stateByName?.(this, name));
+      push(save.getCharacterStateByName?.(name, world));
+      push(save.getCharacterStateByName?.(name));
+    });
+    (save.listCharacterStates?.() || []).forEach((state) => {
+      const profile = state?.profile || {};
+      const name = String(profile.name || state?.name || '').trim();
+      if (!name || name === String(this.playerProfile?.name || this.playerName || '').trim()) return;
+      if (name === contact.name) push(state);
+      else if (contact.relation && String(profile.role || '').trim() === String(contact.relation).trim() && profileTool.isConcreteName(name)) push(state);
+    });
+    const pick = (pred) => candidates.find((state) => pred(state.profile));
+    return pick((profile) => profileTool.isReusableRoleCard?.(profile))
+      || pick((profile) => profileTool.isRoleCard?.(profile))
+      || candidates[0]
+      || null;
+  },
+  bindWechatCharacterState(state, contact = null) {
+    if (!state?.profile) return state;
+    const resolvedId = state.id || this.wechatCharacterId(contact) || state.profile.id;
+    if (resolvedId) {
+      this.rpgStates = { ...(this.rpgStates || {}), [resolvedId]: state };
+      this.syncWechatContactId(resolvedId);
+      this.syncWechatContactProfileName(resolvedId, state.profile);
+    }
+    return state;
   },
   displayWechatContact(contact) {
     if (!contact || contact.group) return contact;
     const characterId = this.wechatCharacterId(contact);
-    const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
+    const state = this.findWechatCharacterState(contact) || this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
     const name = this.concreteWechatProfileName(state?.profile, contact);
-    return name ? { ...contact, characterId, name, mark: name.slice(0, 1), avatar: contact.avatar, needsNameAi: false } : { ...contact, characterId, avatar: contact.avatar };
+    return name ? { ...contact, characterId: state?.id || characterId, name, mark: name.slice(0, 1), avatar: contact.avatar, needsNameAi: false } : { ...contact, characterId: state?.id || characterId, avatar: contact.avatar };
   },
   syncWechatContactId(id) {
     if (!id) return false;
@@ -53,7 +101,7 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
     let changed = false;
     this.wechatUsers = (this.wechatUsers || []).map((item) => {
       const characterId = this.wechatCharacterId(item);
-      const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
+      const state = this.findWechatCharacterState?.(item) || this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
       const name = this.concreteWechatProfileName(state?.profile, item);
       let next = item.characterId === characterId ? item : { ...item, characterId };
       if (name && next.name !== name) next = { ...next, name, mark: name.slice(0, 1), subtitle: next.relation || next.subtitle, needsNameAi: false };
@@ -70,11 +118,18 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
   },
   async ensureWechatUserProfileRun(contact) {
     const characterId = this.wechatCharacterId(contact);
-    const existing = this.rpgStates?.[characterId] || window.GameModules.sqliteSave.getCharacterState(characterId);
     const profileTool = window.GameModules.characterProfile;
-    if (existing?.profile && profileTool.isReusableRoleCard(existing.profile)) {
-      this.rpgStates = { ...(this.rpgStates || {}), [characterId]: existing };
-      this.syncWechatContactId(characterId);
+    const currentWorld = this.currentWorldTag?.() || window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
+    const existing = this.findWechatCharacterState(contact);
+    if (existing?.profile && profileTool.isRoleCard?.(existing.profile)) {
+      this.bindWechatCharacterState(existing, contact);
+      profileTool.ensureInitialMetricSources?.(existing.profile, existing.profile, [existing.profile.detail, existing.note].filter(Boolean).join('；'), this)
+        .then((profile) => {
+          if (!profile || profile === existing.profile) return;
+          existing.profile = profile;
+          return window.GameModules.sqliteSave.saveCharacterState(existing);
+        })
+        .catch((err) => console.warn('[微信] 角色数值来源补全失败:', err.code, err.message, err.stack));
       return existing;
     }
     this.addRoleCardLoadingCard?.({ id: characterId, name: contact.name || '微信联系人', type: '角色卡' });
@@ -87,7 +142,6 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
     const player = sections.playerProfile(this);
     const relationContext = this.wechatRelationFullContext(contact, hint);
     const targetName = contactNameConcrete ? contact.name : (existingNameConcrete ? existingName : hint.placeholderName);
-    const currentWorld = this.currentWorldTag?.() || window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
     const raw = { id: characterId, name: targetName, role: contact.relation || '微信联系人', detail: relationContext, work: currentWorld, worldTag: currentWorld, isMinor: false, importance: 'support', nameRule: hint.nameRule };
     const context = await window.GameModules.renderPrompt('wechat-relation-profile', {
       玩家基础资料区: player.playerBasic,

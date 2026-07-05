@@ -139,6 +139,44 @@ window.GameModules.playerAspirationPreferenceLayers = {
     return this.layerMeta.some(({ label, prefix }) => text === label || text === prefix || text.includes('本质偏好'));
   },
 
+  psychGroupMeta() {
+    const cfg = window.GameModules.playerAspirationConfig;
+    const out = [];
+    (cfg?.psychPreferenceCategories || []).forEach((category) => {
+      cfg.psychCategoryGroups(category).forEach((group) => {
+        out.push({ categoryId: category.id, categoryLabel: category.label, groupId: group.id, groupLabel: group.label });
+      });
+    });
+    return out;
+  },
+
+  psychGroupCount() {
+    return this.psychGroupMeta().length;
+  },
+
+  layer5PsychGroups(layer5 = '') {
+    const normalized = this.normalizeLayers({ layer5 });
+    return this.viewFromLayers(normalized)?.psychGroups || [];
+  },
+
+  validateLayer5PsychComplete(layer5 = '', { minTagsPerGroup = 3 } = {}) {
+    const expected = this.psychGroupCount();
+    if (!expected) return false;
+    const groups = this.layer5PsychGroups(layer5);
+    return groups.length >= expected && groups.every((group) => (group.tags || []).length >= minTagsPerGroup);
+  },
+
+  validatePsychPreferencesComplete(psychPreferences = null, { minTagsPerGroup = 3 } = {}) {
+    const cfg = window.GameModules.playerAspirationConfig;
+    if (!psychPreferences?.selected || !cfg?.psychCategoryGroups) return false;
+    return (cfg.psychPreferenceCategories || []).every((category) =>
+      cfg.psychCategoryGroups(category).every((group) => {
+        const tags = psychPreferences.selected[group.id];
+        return Array.isArray(tags) && tags.length >= minTagsPerGroup;
+      }),
+    );
+  },
+
   applyToProfile(profile = {}, layers = null, { locked = true } = {}) {
     if (!profile || !layers) return profile;
     profile.essentialPreferenceLayers = this.normalizeLayers(layers);

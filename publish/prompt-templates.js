@@ -15,8 +15,9 @@ window.GameModules.promptTemplates = {
     { id: 'inference-stage2-scene-anchor', title: '推演引擎 Stage2 场景锚定', category: '剧情推演', file: 'prompts/推演引擎/stage2-scene-anchor.md', summary: '推演引擎第二阶段紧凑 JSON 场景锚定报告。' },
     { id: 'inference-stage3-narration', title: '推演引擎 Stage3 单段正文', category: '剧情推演', file: 'prompts/推演引擎/stage3-narration.md', summary: '推演引擎第三阶段服从场景锚定的单段正文。' },
     { id: 'inference-stage4-settlement-window', title: '推演引擎 Stage4 滑动结算窗口', category: '剧情推演', file: 'prompts/推演引擎/stage4-settlement-window.md', summary: '推演引擎第四阶段紧凑 JSON 滑动状态结算。' },
-    { id: 'inference-stage5-profile-gate', title: '推演引擎 Stage5 盛装更新判定', category: '剧情推演', file: 'prompts/推演引擎/stage5-profile-gate.md', summary: 'Stage5 判断 dressedProfile 是否需局部更新。' },
-    { id: 'inference-stage5-dressed-profile-patch', title: '推演引擎 Stage5 盛装局部更新', category: '剧情推演', file: 'prompts/推演引擎/stage5-dressed-profile-patch.md', summary: 'Stage5 局部重写 Part6 dressedProfile 指定部位。' },
+    { id: 'inference-stage5-profile-gate', title: '推演引擎 Stage5 外观更新判定', category: '剧情推演', file: 'prompts/推演引擎/stage5-profile-gate.md', summary: 'Stage5 判断自然/盛装外观是否需局部更新。' },
+    { id: 'inference-stage5-body-profile-patch', title: '推演引擎 Stage5 自然局部更新', category: '剧情推演', file: 'prompts/推演引擎/stage5-body-profile-patch.md', summary: 'Stage5 局部重写 Part5 bodyProfileMeta/bodyProfile。' },
+    { id: 'inference-stage5-dressed-profile-patch', title: '推演引擎 Stage5 盛装局部更新', category: '剧情推演', file: 'prompts/推演引擎/stage5-dressed-profile-patch.md', summary: 'Stage5 局部重写 Part6 dressedProfileMeta/dressedProfile。' },
     { id: 'inference-init-intimacy-body', title: '推演引擎 Init 亲密身体初始化', category: '结算初始化', file: 'prompts/推演引擎/init/intimacy-body-init-prompt.md', summary: 'Stage4 结算窗口使用的亲密与身体状态初始化说明。' },
     { id: 'inference-update-generic', title: '推演引擎 Update 通用固化', category: '结算更新', file: 'prompts/推演引擎/update/generic-update-prompt.md', summary: 'Stage4 通用固化更新 skill 说明。' },
     { id: 'inference-update-emotion', title: '推演引擎 Update 情绪', category: '结算更新', file: 'prompts/推演引擎/update/emotion-update-prompt.md', summary: 'Stage4 情绪变化更新 skill 说明。' },
@@ -213,6 +214,7 @@ window.GameModules.promptTemplates = {
 };
 
 window.GameModules.renderPrompt = async function renderPrompt(id, vars = {}, options = {}) {
-  const renderer = window.GameModules.promptSkills || window.GameModules.promptTemplates;
-  return renderer.render(id, vars, options);
+  const templates = window.GameModules.promptTemplates;
+  if (templates?.render) return templates.render(id, vars, options);
+  return window.GameModules.promptSkills.render(id, vars, options);
 };

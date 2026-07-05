@@ -87,6 +87,9 @@ window.GameModules.saveActions = {
         console.warn('[存档] 同步玩家本质偏好失败:', err?.message || err);
       });
     }
+    window.GameModules.predefinedRoleCards?.upgradeAllSavedAppearanceProfiles?.(this).catch((err) => {
+      console.warn('[存档] 补全预定义角色外貌 tags 失败:', err?.message || err);
+    });
     this.initFactionSystem?.();
     window.GameModules.orgTerritory?.validateWorldConsistency?.(this);
   },

@@ -175,6 +175,20 @@ window.GameModules.playerAspirationActions = {
     return window.GameModules.playerAspirationConfig.psychCategoryGroups(category);
   },
 
+  aspirationPlayerGender() {
+    const raw = this.playerProfile?.gender || this.playerAspiration?.gender || '';
+    return window.GameModules.playerAspirationConfig.normalizePlayerGender(raw);
+  },
+
+  resolvePsychTagGroup(tagGroup = null) {
+    if (!tagGroup) return null;
+    const cfg = window.GameModules.playerAspirationConfig;
+    return {
+      ...tagGroup,
+      fallbackTags: cfg.resolvePsychFallbackTags(tagGroup, this.aspirationPlayerGender()),
+    };
+  },
+
   aspirationPsychGroupKeys(category = this.aspirationPsychCategory()) {
     return window.GameModules.playerAspirationConfig.psychCategoryGroupKeys(category);
   },
@@ -223,7 +237,7 @@ window.GameModules.playerAspirationActions = {
       const entry = cfg.psychCategoryGroupKeys(category).find((item) => item.key === optionKey);
       tagGroup = entry?.tagGroup || null;
     }
-    const builtin = tagGroup ? cfg.getBuiltinPsychTags(tagGroup) : [];
+    const builtin = tagGroup ? cfg.getBuiltinPsychTags(this.resolvePsychTagGroup(tagGroup)) : [];
     const custom = this.aspirationPsychCustomTags(optionKey);
     const options = this.aspirationPsychOptions(optionKey);
     return [...new Set([...builtin, ...custom, ...options].map((item) => String(item || '').trim()).filter(Boolean))];
@@ -253,8 +267,45 @@ window.GameModules.playerAspirationActions = {
     return [...new Set(merged.map((item) => String(item || '').trim()).filter(Boolean))];
   },
 
+  aspirationPsychMinSelect() {
+    const cfg = window.GameModules.playerAspirationConfig;
+    return cfg?.psychMinSelectPerGroup ?? cfg?.psychMinSelectPerCategory ?? 3;
+  },
+
   aspirationPsychMaxSelect() {
-    return window.GameModules.playerAspirationConfig?.psychMaxSelectPerGroup || 3;
+    const cfg = window.GameModules.playerAspirationConfig;
+    return cfg?.psychMaxSelectPerGroup ?? cfg?.psychMaxSelectPerCategory ?? 3;
+  },
+
+  aspirationPsychIncompleteGroups(category = this.aspirationPsychCategory()) {
+    const cfg = window.GameModules.playerAspirationConfig;
+    const min = this.aspirationPsychMinSelect();
+    return cfg.psychCategoryGroups(category).filter((group) => this.aspirationPsychGroupSelectedCount(group.id) < min);
+  },
+
+  aspirationPsychCategoryMeetsMin(category = this.aspirationPsychCategory()) {
+    return this.aspirationPsychIncompleteGroups(category).length === 0;
+  },
+
+  aspirationPsychSelectionHint(category = this.aspirationPsychCategory()) {
+    const cfg = window.GameModules.playerAspirationConfig;
+    const min = this.aspirationPsychMinSelect();
+    const groups = cfg.psychCategoryGroups(category);
+    const done = groups.filter((group) => this.aspirationPsychGroupSelectedCount(group.id) >= min).length;
+    const label = category?.label || '本大类';
+    if (done >= groups.length) return `${label}：${groups.length} 个小类均已选满 ${min} 个`;
+    const pending = this.aspirationPsychIncompleteGroups(category).map((group) => {
+      const count = this.aspirationPsychGroupSelectedCount(group.id);
+      return `${group.label} ${count}/${min}`;
+    }).join('、');
+    return `${label}：已完成 ${done}/${groups.length} 个小类；未完成：${pending}`;
+  },
+
+  aspirationPsychGroupHint(selectKey) {
+    const min = this.aspirationPsychMinSelect();
+    const count = this.aspirationPsychGroupSelectedCount(selectKey);
+    if (count >= min) return `已选满 ${count}/${min}`;
+    return `已选 ${count}/${min}，还须 ${min - count} 个`;
   },
 
   aspirationPsychGroupSelectedCount(selectKey) {
@@ -281,8 +332,11 @@ window.GameModules.playerAspirationActions = {
       this.aspirationError = '';
       return;
     }
-    if (prev.length >= this.aspirationPsychMaxSelect()) {
-      this.aspirationError = `该偏好大类下正常与二次元合计最多选 ${this.aspirationPsychMaxSelect()} 个`;
+    if (this.aspirationPsychGroupSelectedCount(selectKey) >= this.aspirationPsychMaxSelect()) {
+      const cfg = window.GameModules.playerAspirationConfig;
+      const category = this.aspirationPsychCategory();
+      const group = cfg.psychCategoryGroups(category).find((item) => item.id === selectKey);
+      this.aspirationError = `「${group?.label || selectKey}」最多选 ${this.aspirationPsychMaxSelect()} 个（正常与二次元合计），请先取消已选再换`;
       return;
     }
     psych.selected[selectKey] = [...prev, tag];
@@ -332,15 +386,16 @@ window.GameModules.playerAspirationActions = {
     const { append = false, existingByKey = {}, excludeByKey = {}, lockedByKey = {} } = context;
     const out = {};
     entries.forEach(({ key, tagGroup }) => {
+      const resolved = this.resolvePsychTagGroup(tagGroup);
       const raw = groups?.[key];
       const list = Array.isArray(raw) ? raw.map((item) => String(item || '').trim()).filter(Boolean) : [];
       if (append) {
-        out[key] = cfg.appendPsychTagOptions(tagGroup, existingByKey[key] || [], list, excludeByKey[key] || []);
+        out[key] = cfg.appendPsychTagOptions(resolved, existingByKey[key] || [], list, excludeByKey[key] || []);
         return;
       }
       const locked = lockedByKey[key] || [];
       const exclude = excludeByKey[key] || [];
-      out[key] = cfg.buildPsychTagOptions(tagGroup, list, locked, exclude);
+      out[key] = cfg.buildPsychTagOptions(resolved, list, locked, exclude);
     });
     return out;
   },
@@ -356,22 +411,42 @@ window.GameModules.playerAspirationActions = {
     const category = cfg.psychCategoryById(categoryId);
     if (!category) return;
     const entries = cfg.psychCategoryGroupKeys(category);
-    const psych = this.aspirationDraft.psychPreferences || cfg.defaultPsychPreferences();
-    const initTargets = entries.filter(({ key }) => !(this.aspirationPsychOptions(key).length >= cfg.psychOptionCount));
+    let psych = cfg.migratePsychPreferences(this.aspirationDraft.psychPreferences || cfg.defaultPsychPreferences());
+    this.aspirationDraft = { ...this.aspirationDraft, psychPreferences: psych };
+    const playerGender = this.aspirationPlayerGender();
+    const genderChanged = psych._tagGender && psych._tagGender !== playerGender;
+    const needsGenderRefresh = (entry) => Boolean(entry.tagGroup?.fallbackTagsByGender) && genderChanged;
+    const initTargets = entries.filter(({ key, tagGroup }) => needsGenderRefresh({ tagGroup }) || !(this.aspirationPsychOptions(key).length >= cfg.psychOptionCount));
 
     if (!refresh) {
       if (!initTargets.length) return;
       const patch = Object.fromEntries(initTargets.map(({ key, tagGroup }) => {
-        const preserve = this.aspirationPsychPreserveTags(key);
-        const builtin = cfg.getBuiltinPsychTags(tagGroup);
-        return [key, cfg.buildPsychTagOptions(tagGroup, builtin, preserve, [])];
+        const resolved = this.resolvePsychTagGroup(tagGroup);
+        const preserve = needsGenderRefresh({ tagGroup }) ? this.aspirationPsychCustomTags(key) : this.aspirationPsychPreserveTags(key);
+        const builtin = cfg.getBuiltinPsychTags(resolved);
+        return [key, cfg.buildPsychTagOptions(resolved, builtin, preserve, [])];
       }));
-      this.applyPsychTagOptions(categoryId, patch);
+      const nextPsych = {
+        ...psych,
+        _tagGender: playerGender,
+        options: { ...(psych.options || {}), ...patch },
+        selected: { ...(psych.selected || {}) },
+      };
+      if (genderChanged) {
+        initTargets.forEach(({ tagGroup, key }) => {
+          if (!tagGroup?.fallbackTagsByGender) return;
+          const entry = entries.find((item) => item.key === key);
+          const selectKey = entry?.selectKey || String(key).split(':')[0];
+          delete nextPsych.selected[selectKey];
+          ['normal', 'acg'].forEach((laneId) => { delete nextPsych.selected[`${laneId}:${selectKey}`]; });
+        });
+      }
+      this.aspirationDraft = { ...this.aspirationDraft, psychPreferences: nextPsych };
       return;
     }
 
     const existingByKey = Object.fromEntries(entries.map(({ key }) => [key, psych.options?.[key] || []]));
-    const excludeByKey = Object.fromEntries(entries.map(({ key, tagGroup }) => [key, this.aspirationPsychKnownTags(key, tagGroup)]));
+    const excludeByKey = Object.fromEntries(entries.map(({ key, tagGroup }) => [key, this.aspirationPsychKnownTags(key, this.resolvePsychTagGroup(tagGroup))]));
 
     this.aspirationPsychLoading = true;
     this.aspirationError = '';
@@ -382,10 +457,14 @@ window.GameModules.playerAspirationActions = {
       const groupList = entries.map(({ key, lane, group, tagGroup }) => {
         const current = (existingByKey[key] || []).join('、') || '无';
         const known = (excludeByKey[key] || []).join('、') || '无';
-        return `${key}｜${group.label}｜${lane.label}｜${lane.hint || tagGroup.hint || ''}｜当前已有：${current}｜不可重复：${known}｜需追加：${appendCount}个`;
+        const direction = cfg.psychTagDirectionHint(group.id, categoryId, playerGender);
+        const directionText = direction ? `｜标签方向：${direction}` : '';
+        return `${key}｜${group.label}｜${lane.label}｜${lane.hint || tagGroup.hint || ''}${directionText}｜当前已有：${current}｜不可重复：${known}｜需追加：${appendCount}个`;
       }).join('\n');
       const prompt = await window.GameModules.renderPrompt('player-aspiration-psych-tags', {
         玩家资料: this.playerSetupSummary?.() || '',
+        玩家性别: cfg.playerGenderLabel(playerGender),
+        标签方向规则: cfg.psychGenderTagRules(playerGender),
         类别名称: category.label,
         类别说明: category.intro || '',
         分组列表: groupList,
@@ -411,15 +490,22 @@ window.GameModules.playerAspirationActions = {
       const patch = data
         ? this.normalizePsychTagGroups(data, entries, appendContext)
         : Object.fromEntries(entries.map(({ key, tagGroup }) => {
-          const extra = cfg.getBuiltinPsychTags(tagGroup).filter((item) => !(excludeByKey[key] || []).includes(item));
-          return [key, cfg.appendPsychTagOptions(tagGroup, existingByKey[key] || [], extra, excludeByKey[key] || [])];
+          const resolved = this.resolvePsychTagGroup(tagGroup);
+          const extra = cfg.getBuiltinPsychTags(resolved).filter((item) => !(excludeByKey[key] || []).includes(item));
+          return [key, cfg.appendPsychTagOptions(resolved, existingByKey[key] || [], extra, excludeByKey[key] || [])];
         }));
       this.applyPsychTagOptions(categoryId, patch);
+      const psychAfter = this.aspirationDraft.psychPreferences || cfg.defaultPsychPreferences();
+      this.aspirationDraft = {
+        ...this.aspirationDraft,
+        psychPreferences: { ...psychAfter, _tagGender: playerGender },
+      };
     } catch (err) {
       console.warn('[人生取向] 标签加载失败，使用本地候选:', err?.message || err);
       const patch = Object.fromEntries(entries.map(({ key, tagGroup }) => {
-        const extra = cfg.getBuiltinPsychTags(tagGroup).filter((item) => !(excludeByKey[key] || []).includes(item));
-        return [key, cfg.appendPsychTagOptions(tagGroup, existingByKey[key] || [], extra, excludeByKey[key] || [])];
+        const resolved = this.resolvePsychTagGroup(tagGroup);
+        const extra = cfg.getBuiltinPsychTags(resolved).filter((item) => !(excludeByKey[key] || []).includes(item));
+        return [key, cfg.appendPsychTagOptions(resolved, existingByKey[key] || [], extra, excludeByKey[key] || [])];
       }));
       this.applyPsychTagOptions(categoryId, patch);
     } finally {
@@ -452,11 +538,6 @@ window.GameModules.playerAspirationActions = {
       if (parts.length) lines.push(`${category.label}：${parts.join('；')}`);
     });
     return lines.join('\n');
-  },
-
-  aspirationPsychSelectionCount(category = this.aspirationPsychCategory()) {
-    const groups = window.GameModules.playerAspirationConfig.psychCategoryGroups(category);
-    return groups.reduce((sum, group) => sum + this.aspirationPsychSelected(group.id).length, 0);
   },
 
   aspirationSelectionSummary() {
@@ -587,7 +668,7 @@ window.GameModules.playerAspirationActions = {
     const step = this.aspirationStep || 1;
     const draft = this.aspirationDraft || {};
     if (step === 1) return Boolean(draft.alignment);
-    if (step === 5) return !this.aspirationBusy && !this.aspirationPsychLoading;
+    if (step === 5) return !this.aspirationBusy && !this.aspirationPsychLoading && this.aspirationPsychCategoryMeetsMin();
     if (step === 6) return Boolean(String(this.aspirationSummaryDraft?.portrait || '').trim()) && !this.aspirationBusy;
     return !this.aspirationBusy;
   },
@@ -630,6 +711,12 @@ window.GameModules.playerAspirationActions = {
     if (step === 5) {
       const psychStep = this.aspirationPsychStep || 1;
       const cfg = window.GameModules.playerAspirationConfig;
+      if (!this.aspirationPsychCategoryMeetsMin()) {
+        const category = this.aspirationPsychCategory();
+        const pending = this.aspirationPsychIncompleteGroups(category).map((group) => group.label).join('、');
+        this.aspirationError = `请先在「${category?.label || '本大类'}」的每个小类各选满 ${this.aspirationPsychMinSelect()} 个标签；未完成：${pending}`;
+        return;
+      }
       if (psychStep < cfg.psychPreferenceCategories.length) {
         this.aspirationPsychStep = psychStep + 1;
         await this.ensureAspirationPsychTags(this.aspirationPsychCategoryId());
@@ -671,10 +758,14 @@ window.GameModules.playerAspirationActions = {
     };
   },
 
-  async generateAspirationSummary() {
+  async generateAspirationSummary(options = {}) {
+    const regenerate = Boolean(options?.regenerate);
     if (this.aspirationBusy) return;
     this.aspirationBusy = true;
     this.aspirationError = '';
+    if (regenerate || String(this.aspirationSummaryDraft?.portrait || '').trim()) {
+      this.aspirationSummaryDraft = { portrait: '（正在重新生成…）' };
+    }
     try {
       const draft = this.aspirationDraft || {};
       const cfg = window.GameModules.playerAspirationConfig;
@@ -715,15 +806,23 @@ window.GameModules.playerAspirationActions = {
       } catch (err) {
         console.warn('[人生取向] AI 总结生成失败，使用本地兜底:', err?.message || err);
         data = this.fallbackAspirationSummary();
+        this.aspirationError = 'AI 暂时不可用，已改用本地兜底总结。';
       }
       this.aspirationSummaryDraft = this.normalizeAspirationSummary(data);
       this.aspirationStep = 6;
     } catch (err) {
       console.error('[人生取向] 生成总结失败:', err.message, err.stack);
       this.aspirationError = err.message || '生成总结失败';
+      if (!String(this.aspirationSummaryDraft?.portrait || '').trim() || this.aspirationSummaryDraft.portrait === '（正在重新生成…）') {
+        this.aspirationSummaryDraft = this.normalizeAspirationSummary(this.fallbackAspirationSummary());
+      }
     } finally {
       this.aspirationBusy = false;
     }
+  },
+
+  async regenerateAspirationSummary() {
+    await this.generateAspirationSummary({ regenerate: true });
   },
 
   fallbackAspirationGoals() {
@@ -750,15 +849,21 @@ window.GameModules.playerAspirationActions = {
     };
   },
 
-  async generateAspirationGoals() {
+  async generateAspirationGoals(options = {}) {
+    const regenerate = Boolean(options?.regenerate);
     if (this.aspirationBusy) return;
     this.aspirationBusy = true;
     this.aspirationError = '';
+    if (regenerate) {
+      this.aspirationGoalDraft = { short: '（正在重新生成…）', medium: '（正在重新生成…）', long: '（正在重新生成…）', summary: '（正在重新生成…）' };
+    }
     try {
       const draft = this.aspirationDraft || {};
       const cfg = window.GameModules.playerAspirationConfig;
       const primaryGuiltId = this.aspirationPrimaryGuiltLineId(draft.guiltAxes);
       const guilt = cfg.guiltLineById(primaryGuiltId);
+      await window.GameModules.assetLoader?.loadChunk?.('prompts');
+      window.GameModules.remergeGameStore?.();
       const prompt = await window.GameModules.renderPrompt('player-aspiration-goals', {
         玩家资料: this.playerSetupSummary?.() || '',
         人生总结: this.aspirationSummaryDraft?.portrait || '',
@@ -794,6 +899,7 @@ window.GameModules.playerAspirationActions = {
       } catch (err) {
         console.warn('[人生取向] AI 目标生成失败，使用本地兜底:', err.message, err.stack);
         data = this.fallbackAspirationGoals();
+        this.aspirationError = 'AI 暂时不可用，已改用本地兜底目标。';
       }
       const goals = this.normalizeAspirationGoals(data);
       this.aspirationGoalDraft = goals;
@@ -801,9 +907,16 @@ window.GameModules.playerAspirationActions = {
     } catch (err) {
       console.error('[人生取向] 生成目标失败:', err.message, err.stack);
       this.aspirationError = err.message || '生成目标失败';
+      if (!String(this.aspirationGoalDraft?.short || '').trim() || this.aspirationGoalDraft.short === '（正在重新生成…）') {
+        this.aspirationGoalDraft = this.normalizeAspirationGoals(this.fallbackAspirationGoals());
+      }
     } finally {
       this.aspirationBusy = false;
     }
+  },
+
+  async regenerateAspirationGoals() {
+    await this.generateAspirationGoals({ regenerate: true });
   },
 
   playerAspirationLexiconFields() {
@@ -901,9 +1014,25 @@ window.GameModules.playerAspirationActions = {
       this.aspirationStep = 1;
       return;
     }
+    const cfg = window.GameModules.playerAspirationConfig;
+    const psychMin = this.aspirationPsychMinSelect?.() ?? cfg.psychMinSelectPerGroup ?? 3;
+    const incompletePsych = (cfg.psychPreferenceCategories || []).find(
+      (category) => this.aspirationPsychIncompleteGroups(category).length > 0,
+    );
+    if (incompletePsych) {
+      const pending = this.aspirationPsychIncompleteGroups(incompletePsych).map((group) => group.label).join('、');
+      this.aspirationSetupOpen = true;
+      this.aspirationStep = 5;
+      this.aspirationPsychStep = Math.max(1, (cfg.psychPreferenceCategories || []).findIndex((item) => item.id === incompletePsych.id) + 1);
+      this.aspirationError = `请先在「${incompletePsych.label}」的每个小类各选满 ${psychMin} 个标签；未完成：${pending}`;
+      this.aspirationBusy = false;
+      return;
+    }
     this.aspirationBusy = true;
+    this.aspirationSetupOpen = false;
+    this.setHomeLoadProgress?.(2, '正在保存人生取向…');
+    await this.yieldHomeLoadUi?.();
     try {
-      const cfg = window.GameModules.playerAspirationConfig;
       const goals = this.normalizeAspirationGoals(this.aspirationGoalDraft || {});
       const primaryGuiltId = this.aspirationPrimaryGuiltLineId(draft.guiltAxes);
       const guilt = cfg.guiltLineById(primaryGuiltId);
@@ -933,6 +1062,8 @@ window.GameModules.playerAspirationActions = {
       await this.enterPlayingFromSetup?.();
     } catch (err) {
       console.error('[人生取向] 确认失败:', err.message, err.stack);
+      this.clearHomeLoadProgress?.();
+      this.aspirationSetupOpen = true;
       this.aspirationError = err.message || '保存人生取向失败';
     } finally {
       this.aspirationBusy = false;

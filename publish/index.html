@@ -34,7 +34,7 @@
   <div id="boot-fallback" class="loading-screen">
     <div class="loading-card"><div class="spinner"></div><p>正在启动游戏…</p><small>如果长时间停留，请打开 Console 查看错误。</small></div>
   </div>
-  <div x-show="$store.game.loading" class="loading-screen">
+  <div x-show="$store.game.loading && !$store.game.homeLoadActive" class="loading-screen">
     <div class="loading-card">
       <div class="spinner"></div>
       <p x-text="$store.game.loadingStep || '等待平台连接'"></p>
@@ -187,10 +187,11 @@
 
       <div x-show="($store.game.aspirationStep || 1) === 5">
         <p class="psych-pref-intro" x-text="$store.game.aspirationPsychCategory()?.intro || ''"></p>
+        <p class="psych-pref-count" x-text="$store.game.aspirationPsychSelectionHint ? $store.game.aspirationPsychSelectionHint() : ''"></p>
         <p class="aspiration-busy-line" x-show="$store.game.aspirationPsychLoading">正在生成偏好标签候选…</p>
         <template x-for="group in ($store.game.aspirationPsychCategoryGroups ? $store.game.aspirationPsychCategoryGroups() : [])" :key="group.id">
           <section class="psych-pref-group">
-            <h3 x-text="group.label"></h3>
+            <h3><span x-text="group.label"></span><small class="psych-group-count" x-text="$store.game.aspirationPsychGroupHint ? (' · ' + $store.game.aspirationPsychGroupHint(group.id)) : ''"></small></h3>
             <template x-for="entry in ($store.game.aspirationPsychGroupEntries ? $store.game.aspirationPsychGroupEntries() : [])" :key="entry.key">
               <div x-show="entry.group.id === group.id">
                 <p class="psych-lane-label" x-text="`${entry.lane.label} · ${entry.lane.hint || entry.tagGroup.hint || ''}`"></p>
@@ -212,8 +213,8 @@
 
       <div x-show="($store.game.aspirationStep || 1) === 6">
         <p class="intro">AI 将根据你的选择生成人生取向总结，可返回修改后重新生成。</p>
-        <div class="aspiration-summary-box" x-text="$store.game.aspirationSummaryDraft?.portrait || '（生成中…）'"></div>
-        <button class="small-btn" type="button" @click="$store.game.generateAspirationSummary()" :disabled="$store.game.aspirationBusy">重新生成总结</button>
+        <div class="aspiration-summary-box" :class="{ 'is-loading': $store.game.aspirationBusy }" x-text="$store.game.aspirationBusy ? '（正在重新生成…）' : ($store.game.aspirationSummaryDraft?.portrait || '（生成中…）')"></div>
+        <button class="small-btn" type="button" @click="$store.game.regenerateAspirationSummary()" :disabled="$store.game.aspirationBusy" x-text="$store.game.aspirationBusy ? '生成中…' : '重新生成总结'"></button>
       </div>
 
       <div x-show="($store.game.aspirationStep || 1) === 7">
@@ -224,7 +225,7 @@
           <p><b>长期：</b><span x-text="$store.game.aspirationGoalDraft?.long || '待生成'"></span></p>
           <p><b>一句话：</b><span x-text="$store.game.aspirationGoalDraft?.summary || '待生成'"></span></p>
         </div>
-        <button class="small-btn" type="button" @click="$store.game.generateAspirationGoals()" :disabled="$store.game.aspirationBusy">重新生成目标</button>
+        <button class="small-btn" type="button" @click="$store.game.regenerateAspirationGoals()" :disabled="$store.game.aspirationBusy" x-text="$store.game.aspirationBusy ? '生成中…' : '重新生成目标'"></button>
       </div>
 
       <p class="aspiration-error" x-show="$store.game.aspirationError" x-text="$store.game.aspirationError"></p>
@@ -372,7 +373,7 @@
         <small>参考：三胞胎妹妹之一 / 刘思瑶；三胞胎妹妹之二 / 刘思琪；三胞胎妹妹之三 / 刘思怡。</small>
       </article>
       <label class="phone-setup-wide dev-section" data-section-title="备注设定区"><span>备注设定</span><textarea x-model="$store.game.playerProfile.notes" placeholder="例如：家庭处境、性格、亲密关系边界、近期目标等。可留空。"></textarea><small>参考默认账号：刘悠是程序工程师，与成年三胞胎妹妹同居，承担家庭支柱职责。</small></label>
-      <article class="real-world-note dev-section" data-section-title="玩家卡生成选项区"><strong>玩家卡生成选项</strong><p>以下选项只影响新账号玩家卡本人；使用已有账号时会直接使用预定义角色卡。</p><label><input type="checkbox" x-model="$store.game.playerProfile.playerCardAiParts.part2"> Part2 情感数值使用 AI 生成</label><label><input type="checkbox" x-model="$store.game.playerProfile.playerCardAiParts.part5"> Part5 身体原貌使用 AI 生成</label><label><input type="checkbox" x-model="$store.game.playerProfile.playerCardAiParts.part6"> Part6 盛装状态使用 AI 生成</label><small>取消勾选后，对应部分会采用系统缺省值，并在玩家卡加载进度中直接标记完成。</small></article>
+      <article class="real-world-note dev-section" data-section-title="玩家卡生成选项区"><strong>玩家卡生成选项</strong><p>以下选项只影响新账号玩家卡本人；使用已有账号时会直接使用预定义角色卡。</p><label><input type="checkbox" x-model="$store.game.playerProfile.playerCardAiParts.part2"> Part2 情感数值使用 AI 生成</label><label><input type="checkbox" x-model="$store.game.playerProfile.playerCardAiParts.part5"> Part5 身体原貌使用 AI 生成</label><label><input type="checkbox" x-model="$store.game.playerProfile.playerCardAiParts.part6"> Part6 盛装状态使用 AI 生成</label><small>Part2/5/6 默认使用 AI 生成。玩家本人：情绪 + 感觉均为当前自我状态；出场角色：情绪 + 对玩家感觉（现有逻辑）。取消勾选后对应部分采用系统缺省值并直接标记完成。</small></article>
       <article class="real-world-note dev-section" data-section-title="AI身份补全提示区"><strong>激活补全</strong><p>完成激活时会根据生日计算年龄，并让 AI 把地址补全到省市区县、镇街道、小区、楼栋门牌级别，同时补全身份、居住信息与世界观备注；父母未填写时默认已故并生成合理死因。</p><small x-show="$store.game.profileSetupBusy">正在补全身份资料，约 10-30 秒，请勿重复点击。</small><small x-show="$store.game.setupError" x-text="$store.game.setupError"></small></article>
       <article class="real-world-note dev-section" data-section-title="现实世界背景区">
         <strong x-text="window.GameModules.realWorld2026.label"></strong>
@@ -919,7 +920,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.phoneSetupDone && !$store.game.desktopUnlocked" class="phone-desktop-screen" x-init="setInterval(() => $store.game.checkWorkReminder?.(), 60000)" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.phoneSetupDone && !$store.game.desktopUnlocked" class="phone-desktop-screen" x-init="if (!$store.game._phoneReminderTimer) { $store.game._phoneReminderTimer = setInterval(() => $store.game.checkWorkReminder?.(), 60000); }" x-effect="(!$store.game.loading && $store.game.phoneSetupDone && !$store.game.desktopUnlocked) && $store.game.ensureDesktopModulesReady?.()" x-cloak>
     <div class="phone-frame">
       <button class="phone-collapse-btn" type="button" @click="$store.game.routeCurrentWorldAction()" aria-label="收起手机">收起手机</button>
       <div class="phone-status-bar">
@@ -1034,13 +1035,24 @@
         </div>
       </section>
       <section class="identity-rpg dev-section" data-section-title="身份属性与升级体系区" x-data="{ activeIdentityRpgTab: '' }" x-init="$watch(() => $store.game.identityTargetId, () => activeIdentityRpgTab = '')">
-        <nav class="identity-rpg-tabs" aria-label="身份属性与升级体系分页">
+        <header class="identity-rpg-panel-head">
+          <div><span class="identity-rpg-panel-eyebrow">STATUS PANEL</span><strong class="identity-rpg-panel-title">角色状态面板</strong></div>
+          <small class="identity-rpg-panel-note">点击分区查看属性</small>
+        </header>
+        <nav class="identity-rpg-tabs rpg-status-nav" aria-label="身份属性与升级体系分页">
           <template x-for="section in $store.game.profileSections($store.game.identityTargetState(), $store.game.identityTargetFields())" :key="`tab-${section.title}`">
-            <button type="button" :class="{ active: (activeIdentityRpgTab || $store.game.profileSections($store.game.identityTargetState(), $store.game.identityTargetFields())[0]?.title) === section.title }" @click="activeIdentityRpgTab = section.title"><span class="bookmark-symbol" x-text="section.title.slice(0, 1)"></span><span class="bookmark-title" x-text="section.title"></span></button>
+            <button type="button" class="rpg-status-tab" :class="{ active: (activeIdentityRpgTab || $store.game.profileSections($store.game.identityTargetState(), $store.game.identityTargetFields())[0]?.title) === section.title }" :title="$store.game.profileSectionTabMeta(section).hint" @click="activeIdentityRpgTab = section.title">
+              <span class="rpg-status-tab-icon" aria-hidden="true" x-text="$store.game.profileSectionTabMeta(section).icon"></span>
+              <span class="rpg-status-tab-label" x-text="$store.game.profileSectionTabMeta(section).label"></span>
+            </button>
           </template>
         </nav>
         <template x-for="section in $store.game.profileSections($store.game.identityTargetState(), $store.game.identityTargetFields())" :key="section.title">
-          <article class="identity-rpg-section dev-section" x-show="(activeIdentityRpgTab || $store.game.profileSections($store.game.identityTargetState(), $store.game.identityTargetFields())[0]?.title) === section.title" :data-section-title="`${section.title}区`">
+          <article class="identity-rpg-section dev-section rpg-status-section" x-show="(activeIdentityRpgTab || $store.game.profileSections($store.game.identityTargetState(), $store.game.identityTargetFields())[0]?.title) === section.title" :data-section-title="`${section.title}区`">
+            <header class="rpg-status-section-head">
+              <span class="rpg-status-section-icon" aria-hidden="true" x-text="$store.game.profileSectionTabMeta(section).icon"></span>
+              <div><strong x-text="section.title"></strong><small x-text="$store.game.profileSectionTabMeta(section).hint"></small></div>
+            </header>
             <template x-for="field in section.fields" :key="field.key">
               <div class="dynamic-row" role="button" tabindex="0" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.toggleRpgField(field)" @keydown.enter.prevent="$store.game.toggleRpgField(field)" @keydown.space.prevent="$store.game.toggleRpgField(field)">
                 <button :class="[$store.game.isRpgListField(field) ? 'rpg-tree-title' : 'rpg-item-card lexicon-tag', { open: $store.game.isRpgFieldOpen(field) }]" type="button" @click.stop="$store.game.toggleRpgField(field)"><strong x-text="$store.game.rpgFieldSummary(field)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
@@ -1451,10 +1463,30 @@
       </section>
       <section class="model-setting-group">
         <h3>Stage1 资料收集迭代最大次数</h3>
-        <small>用于现实与异世界推演的 Stage1 资料路由。默认 2，越高越容易多查资料但请求更慢。</small>
-        <input type="number" min="1" max="8" step="1" inputmode="numeric" :value="$store.game.stage1MaterialMaxIterations()" @change="$store.game.setStage1MaterialMaxIterations($event.target.value)">
+        <small>用于现实与异世界推演的 Stage1 资料路由。默认不限制，只在需要控制请求时开启。</small>
+        <label class="dev-toggle">
+          <input type="checkbox" :checked="$store.game.settingsState.stage1MaterialIterationLimited" @change="$store.game.setStage1MaterialIterationLimited($event.target.checked)">
+          <span>限制迭代次数</span>
+        </label>
+        <input class="text-input" type="number" min="1" max="8" step="1" inputmode="numeric" :disabled="!$store.game.settingsState.stage1MaterialIterationLimited" :value="$store.game.stage1MaterialMaxIterations()" @change="$store.game.setStage1MaterialMaxIterations($event.target.value)">
       </section>
-      <p class="settings-status">当前：提供方 <b x-text="$store.game.settingsState.textProvider"></b>；文本 <b x-text="$store.game.modelId"></b>；绘图 <b x-text="$store.game.selectedDrawModelId()"></b>；笔风 <b x-text="$store.game.allWritingStyles().find((style) => style.id === $store.game.selectedWritingStyleId())?.name || '未选择'"></b>；Stage1资料迭代 <b x-text="$store.game.stage1MaterialMaxIterations()"></b></p>
+      <section class="model-setting-group">
+        <h3>AI 输出长度限制</h3>
+        <small>无限制时不发送 max_tokens；限制时会作为该次 AI 响应的最大输出预算。Stage3 正文默认限制 3000 tokens，其它默认跟随统一。</small>
+        <template x-for="item in $store.game.aiOutputLimitKinds()" :key="item.kind">
+          <div class="settings-status">
+            <h4><span x-text="item.title"></span>｜<b x-text="$store.game.aiOutputLimitEffectiveText(item.kind)"></b></h4>
+            <p x-text="item.desc"></p>
+            <select :value="$store.game.aiOutputLimitMode(item.kind)" @change="$store.game.setAiOutputLimitMode(item.kind, $event.target.value)">
+              <option x-show="item.kind !== 'global'" value="global">跟随统一</option>
+              <option value="unlimited">无限制</option>
+              <option value="limited">限制为指定 tokens</option>
+            </select>
+            <input class="text-input" type="number" min="16" max="64000" step="100" inputmode="numeric" :disabled="$store.game.aiOutputLimitMode(item.kind) !== 'limited'" :value="$store.game.aiOutputLimitMax(item.kind)" @change="$store.game.setAiOutputLimitMax(item.kind, $event.target.value)">
+          </div>
+        </template>
+      </section>
+      <p class="settings-status">当前：提供方 <b x-text="$store.game.settingsState.textProvider"></b>；文本 <b x-text="$store.game.modelId"></b>；绘图 <b x-text="$store.game.selectedDrawModelId()"></b>；笔风 <b x-text="$store.game.allWritingStyles().find((style) => style.id === $store.game.selectedWritingStyleId())?.name || '未选择'"></b>；Stage1资料迭代 <b x-text="$store.game.stage1MaterialIterationLimitText()"></b>；正文输出 <b x-text="$store.game.aiOutputLimitEffectiveText('stage3')"></b></p>
     </div>
   </section>
 
@@ -1875,13 +1907,24 @@
               </div>
             </section>
             <section class="identity-rpg dev-section" data-section-title="进入身份属性与升级体系区">
-              <nav class="identity-rpg-tabs" aria-label="进入身份属性与升级体系分页">
+              <header class="identity-rpg-panel-head">
+                <div><span class="identity-rpg-panel-eyebrow">STATUS PANEL</span><strong class="identity-rpg-panel-title">角色状态面板</strong></div>
+                <small class="identity-rpg-panel-note">点击分区查看属性</small>
+              </header>
+              <nav class="identity-rpg-tabs rpg-status-nav" aria-label="进入身份属性与升级体系分页">
                 <template x-for="section in $store.game.profileSections($store.game.identityTargetState(), $store.game.identityTargetFields())" :key="`entry-tab-${section.title}`">
-                  <button type="button" :class="{ active: (activeEntryIdentityTab || $store.game.profileSections($store.game.identityTargetState(), $store.game.identityTargetFields())[0]?.title) === section.title }" @click="activeEntryIdentityTab = section.title"><span class="bookmark-symbol" x-text="section.title.slice(0, 1)"></span><span class="bookmark-title" x-text="section.title"></span></button>
+                  <button type="button" class="rpg-status-tab" :class="{ active: (activeEntryIdentityTab || $store.game.profileSections($store.game.identityTargetState(), $store.game.identityTargetFields())[0]?.title) === section.title }" :title="$store.game.profileSectionTabMeta(section).hint" @click="activeEntryIdentityTab = section.title">
+                    <span class="rpg-status-tab-icon" aria-hidden="true" x-text="$store.game.profileSectionTabMeta(section).icon"></span>
+                    <span class="rpg-status-tab-label" x-text="$store.game.profileSectionTabMeta(section).label"></span>
+                  </button>
                 </template>
               </nav>
               <template x-for="section in $store.game.profileSections($store.game.identityTargetState(), $store.game.identityTargetFields())" :key="`entry-section-${section.title}`">
-                <article class="identity-rpg-section dev-section" x-show="(activeEntryIdentityTab || $store.game.profileSections($store.game.identityTargetState(), $store.game.identityTargetFields())[0]?.title) === section.title" :data-section-title="`${section.title}区`">
+                <article class="identity-rpg-section dev-section rpg-status-section" x-show="(activeEntryIdentityTab || $store.game.profileSections($store.game.identityTargetState(), $store.game.identityTargetFields())[0]?.title) === section.title" :data-section-title="`${section.title}区`">
+                  <header class="rpg-status-section-head">
+                    <span class="rpg-status-section-icon" aria-hidden="true" x-text="$store.game.profileSectionTabMeta(section).icon"></span>
+                    <div><strong x-text="section.title"></strong><small x-text="$store.game.profileSectionTabMeta(section).hint"></small></div>
+                  </header>
                   <template x-for="field in section.fields" :key="`entry-field-${field.key}`">
                     <div class="dynamic-row" role="button" tabindex="0" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.toggleRpgField(field)" @keydown.enter.prevent="$store.game.toggleRpgField(field)" @keydown.space.prevent="$store.game.toggleRpgField(field)">
                       <button :class="[$store.game.isRpgListField(field) ? 'rpg-tree-title' : 'rpg-item-card lexicon-tag', { open: $store.game.isRpgFieldOpen(field) }]" type="button" @click.stop="$store.game.toggleRpgField(field)"><strong x-text="$store.game.rpgFieldSummary(field)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>

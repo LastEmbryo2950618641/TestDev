@@ -6,7 +6,13 @@ window.GameModules.wechatAlbumActions = {
     this.wechatView = 'profile';
     this.wechatAlbumMode = 'profile';
     const contact = this.wechatSelected?.();
-    if (contact && !contact.group) this.ensureWechatUserProfile?.(contact).then(() => this.save?.()).catch((err) => console.warn('[微信] 联系人资料补全失败:', err.code, err.message, err.stack));
+    if (!contact || contact.group) return;
+    const existing = this.findWechatCharacterState?.(contact);
+    if (existing?.profile && window.GameModules.characterProfile.isRoleCard?.(existing.profile)) {
+      this.bindWechatCharacterState?.(existing, contact);
+      return;
+    }
+    this.ensureWechatUserProfile?.(contact).then(() => this.save?.()).catch((err) => console.warn('[微信] 联系人资料补全失败:', err.code, err.message, err.stack));
   },
 
   backWechatContactProfile() {
@@ -64,19 +70,34 @@ window.GameModules.wechatAlbumActions = {
       ['relationships', '人际关系', profile.relationships || contact.relation || '未记录'],
     ].map(([key, label, value]) => ({ key, label, value, text: `${label}：${value}` }));
   },
-  wechatAlbumBodyItems(body = []) {
-    return Array.isArray(body) && body.length ? body.map((item, index) => {
-      const label = item.part || item.name || `部位${index + 1}`;
-      const value = item.description || item.detail || '未记录';
-      return { key: `body-${index}`, label, value, text: `${label}：${value}` };
-    }) : [{ key: 'body-empty', label: '部位描述', value: '未记录', text: '未记录' }];
+  wechatAlbumBodyItems(body = [], profile = {}, kind = 'natural') {
+    const cfg = window.GameModules.appearanceProfileTags;
+    const items = [];
+    const metaText = kind === 'dressed'
+      ? cfg?.formatDressedMeta?.(profile.dressedProfileMeta || {})
+      : cfg?.formatNaturalMeta?.(profile.bodyProfileMeta || {});
+    if (metaText) items.push({ key: 'body-meta', label: '全局', value: metaText, text: `全局：${metaText}` });
+    if (Array.isArray(body) && body.length) {
+      body.forEach((item, index) => {
+        const label = item.part || item.name || `部位${index + 1}`;
+        const tags = cfg?.formatPartTags?.(item) || '';
+        const value = item.description || item.detail || '未记录';
+        items.push({
+          key: `body-${index}`,
+          label,
+          value,
+          text: tags ? `${label}[${tags}]：${value}` : `${label}：${value}`,
+        });
+      });
+    }
+    return items.length ? items : [{ key: 'body-empty', label: '部位描述', value: '未记录', text: '未记录' }];
   },
   wechatAlbumPromptOptions(kind = this.wechatAlbumPromptDraft?.kind || 'natural') {
     const contact = this.wechatProfileContact();
     const { state, profile } = this.wechatAlbumStateData(contact);
     return {
       identity: this.wechatAlbumIdentityItems(contact, state, profile),
-      body: kind === 'custom' ? [] : this.wechatAlbumBodyItems(kind === 'dressed' ? profile.dressedProfile : profile.bodyProfile),
+      body: kind === 'custom' ? [] : this.wechatAlbumBodyItems(kind === 'dressed' ? profile.dressedProfile : profile.bodyProfile, profile, kind),
     };
   },
   wechatAlbumKindLabel(kind = this.wechatAlbumPromptDraft?.kind || 'natural') {

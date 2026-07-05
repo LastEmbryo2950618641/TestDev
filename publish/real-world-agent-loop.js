@@ -1257,7 +1257,7 @@ window.GameModules.realWorldAgentLoop = {
         parts = [typeName, ...parts.slice(1)];
       }
     }
-    const [label, key, rawValue, reason] = parts;
+    const [label, key, rawValue, reason, statusPart] = parts;
     const type = label || typeName;
     const entry = catalog[type];
     if (!subject || !key || !rawValue || !reason) return null;
@@ -1275,8 +1275,27 @@ window.GameModules.realWorldAgentLoop = {
     if (type === '生命体征' && !hasSignedDelta) return null;
     const field = entry.fieldMap?.[normalizedKey] || `${entry.fieldPrefix}.${normalizedKey}`;
     const change = hasSignedDelta ? { mode: 'delta', value: delta } : { mode: 'set', value: rawValue };
+    const status = String(statusPart || '').trim();
+    if (status && ['情绪', '感觉'].includes(type)) change.status = status;
     return { updateType: entry.updateType, subject, field, change, reasons: [{ trigger: type, evidence: reason, confidence: 'confirmed' }] };
   },
+
+  parseMetricSettlementJsonEntry(typeName = '', entry = {}, subject = null, participants = [], store = null) {
+    if (!subject || !entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+    const catalog = this.settlementUpdateCatalog();
+    const entryCat = catalog[typeName];
+    if (!entryCat) return null;
+    const field = this.metricAliasForSettlement(typeName, String(entry.field ?? entry.字段 ?? entry.key ?? '').trim());
+    const rawValueText = String(entry.value ?? entry.变化 ?? entry.delta ?? entry.数值 ?? '').trim();
+    const delta = Number(rawValueText.replace(/[^-+\d.]/gu, ''));
+    const hasSignedDelta = Number.isFinite(delta) && /^[+-]\d/u.test(rawValueText) && delta !== 0;
+    const reason = this.settlementJsonText(entry.reason ?? entry.原因 ?? entry.evidence ?? entry.证据 ?? '');
+    const status = this.settlementJsonText(entry.status ?? entry.程度 ?? entry.解释 ?? entry.程度说明 ?? '');
+    const allowedKeys = this.settlementMetricKeysForSubject(store, subject, typeName);
+    if (!field || !hasSignedDelta || !reason || !allowedKeys.includes(field)) return null;
+    const change = { mode: 'delta', value: delta };
+    if (status) change.status = status;
+    return { updateType: entryCat.updateType, subject, field: `${entryCat.fieldPrefix}.${field}`, change, reasons: [{ trigger: typeName, evidence: reason, confidence: 'confirmed' }] };
 
   parseGenericSettlementLine(typeName = '', line = '', subject = null, options = {}) {
     const parts = String(line || '').replace(/^更新(?:\d+|N)\s*[：:]/u, '').split(/[，,]/u).map((x) => x.trim());
@@ -1292,41 +1311,7 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   metricAliasForSettlement(type = '', key = '') {
-    const clean = String(key || '').trim();
-    const emotionAliases = {
-      平静: '冷静', 镇定: '冷静', 理智: '冷静', 安定: '冷静', 淡定: '冷静', 安心: '冷静',
-      害怕: '恐惧', 惊恐: '恐惧', 惊惧: '恐惧', 惧怕: '恐惧', 惊慌: '恐惧', 惶恐: '恐惧', 胆怯: '恐惧', 畏缩: '恐惧',
-      忧虑: '担忧', 忧心: '担忧', 不安: '担忧', 顾虑: '担忧', 焦虑: '担忧', 挂念: '担忧', 牵挂: '担忧',
-      开心: '高兴', 愉悦: '高兴', 快乐: '高兴', 欣喜: '高兴', 喜悦: '高兴', 满足: '高兴', 轻松: '高兴',
-      紧绷: '紧张', 慌张: '紧张', 局促: '紧张', 压迫感: '紧张', 忐忑: '紧张',
-      生气: '愤怒', 恼怒: '愤怒', 怒意: '愤怒', 怨怒: '愤怒', 气愤: '愤怒', 暴躁: '愤怒',
-      羞愧: '羞耻', 害羞: '羞耻', 难堪: '羞耻', 尴尬: '羞耻', 屈辱: '羞耻', 羞辱: '羞耻',
-      难过: '悲伤', 哀伤: '悲伤', 伤心: '悲伤', 失落: '悲伤', 痛苦: '悲伤', 悲痛: '悲伤',
-      兴趣: '好奇', 探究: '好奇', 疑惑: '好奇', 困惑: '好奇', 在意: '好奇',
-      空洞: '麻木', 呆滞: '麻木', 迟钝: '麻木', 冷漠: '麻木', 恍惚: '麻木',
-      吃醋: '嫉妒', 妒忌: '嫉妒', 醋意: '嫉妒', 酸涩: '嫉妒',
-      无望: '绝望', 崩溃: '绝望', 灰心: '绝望', 走投无路: '绝望',
-    };
-    const feelingAliases = {
-      知晓: '了解', 理解: '了解', 熟悉: '了解', 认识: '了解', 洞悉: '了解', 知情: '了解',
-      信赖: '信任', 相信: '信任', 放心: '信任', 可靠感: '信任',
-      抵抗: '反抗', 抗拒: '反抗', 逆反: '反抗', 拒绝: '反抗', 不服: '反抗',
-      亲近: '好感', 喜欢: '好感', 接纳: '好感', 善意: '好感', 顺眼: '好感',
-      友好: '友情', 友谊: '友情', 伙伴感: '友情', 同伴感: '友情',
-      家人感: '亲情', 亲近依附: '亲情', 亲缘: '亲情', 庇护感: '亲情',
-      恋慕: '爱情', 爱慕: '爱情', 心动: '爱情', 倾心: '爱情', 眷恋: '爱情', 深爱: '爱情',
-      欲望: '肉欲', 情欲: '肉欲', 渴望: '肉欲', 冲动: '肉欲', 身体吸引: '肉欲',
-      害怕: '畏惧', 惧怕: '畏惧', 恐惧: '畏惧', 惧意: '畏惧', 怕: '畏惧',
-      敬重: '尊敬', 敬意: '尊敬', 认可: '尊敬', 钦佩: '尊敬', 佩服: '尊敬',
-      仰慕: '崇拜', 崇敬: '崇拜', 神化: '崇拜', 狂热: '崇拜',
-      厌恶: '讨厌', 反感: '讨厌', 排斥: '讨厌', 嫌恶: '讨厌', 憎恶: '讨厌',
-      依恋: '依赖', 依附: '依赖', 需要: '依赖', 离不开: '依赖',
-      戒备: '警惕', 防备: '警惕', 怀疑: '警惕', 提防: '警惕', 疑心: '警惕',
-      控制欲: '支配欲', 掌控欲: '支配欲', 主导欲: '支配欲', 控制: '支配欲',
-      独占欲: '占有欲', 独占: '占有欲', 占有: '占有欲', 垄断欲: '占有欲',
-      顺从: '服从', 听话: '服从', 臣服: '服从', 屈从: '服从', 驯服: '服从',
-    };
-    return (type === '感觉' ? feelingAliases : emotionAliases)[clean] || clean;
+    return window.GameModules.metrics.settlementAlias(type, key);
   },
 
   vitalFieldAlias(field = '') {
@@ -1608,7 +1593,9 @@ window.GameModules.realWorldAgentLoop = {
           const line = this.settlementJsonUpdateLine(type, entry);
           const update = type === '关系'
             ? this.parseRelationshipJsonEntry(entry, subject, participants)
-            : (specialParsers[type]
+            : (['情绪', '感觉'].includes(type)
+              ? this.parseMetricSettlementJsonEntry(type, entry, subject, participants, store)
+              : (specialParsers[type]
               ? specialParsers[type](line, subject)
               : (['性历史', '角色卡'].includes(type) ? this.parseSpecialSettlementLine(type, line, subject, participants) : this.parseStandardSettlementLine(type, line, subject, participants, store)));
           if (update) {
@@ -1774,8 +1761,8 @@ window.GameModules.realWorldAgentLoop = {
     const contracts = this.settlementTypeContracts();
     const c = contracts[type] || { title: `${type}结算`, format: '更新N：类型，字段，变化，原因' };
     const rules = {
-      '情绪': '字段只能使用本轮“当前情绪基线”里已有指标名；value 必须是 +N/-N 且不能为 0；可把愉悦/开心映射为高兴、惊慌映射为恐惧、不安映射为紧张；没有对应已有指标或无稳定变化时输出空数组。字段含义：field=情绪指标名，value=本回合变化量，reason=正文中的具体行为/对话证据；变化后的程度说明由系统自动生成，reason 只写证据本身。',
-      '感觉': '主体只能是出场 NPC，不能是玩家；字段只能使用“出场角色对玩家感觉基线”里已有指标名；value 必须是 +N/-N 且不能为 0；可把信赖映射为信任、亲近映射为好感、害怕映射为畏惧、厌恶映射为反感。字段含义：field=感觉指标名，value=本回合变化量，reason=正文中证明该 NPC 对玩家态度变化的具体证据；变化后的程度说明由系统自动生成，reason 只写证据本身。',
+      '情绪': '字段只能使用本轮“当前情绪基线”里已有指标名；value 必须是 +N/-N 且不能为 0；可把愉悦/开心映射为高兴、惊慌映射为恐惧、不安映射为紧张；没有对应已有指标或无稳定变化时输出空数组。字段含义：field=情绪指标名，value=本回合变化量，status=变化后该情绪在当前数值下的具体表现（禁止写“高兴40：”这类前缀），reason=正文中的具体行为/对话证据。',
+      '感觉': '主体只能是出场 NPC，不能是玩家；字段只能使用“出场角色对玩家感觉基线”里已有指标名；value 必须是 +N/-N 且不能为 0；可把信赖映射为信任、亲近映射为好感、害怕映射为畏惧、厌恶映射为反感。字段含义：field=感觉指标名，value=本回合变化量，status=变化后该感觉在当前数值下的具体表现（禁止写“信任40：”这类前缀），reason=正文中证明该 NPC 对玩家态度变化的具体证据。',
       '生命体征': '字段只能是：生命力、精力、饱食度、水分、疲劳、精神稳定；允许别名输入但最终字段写这 6 个中文名；禁止心率、体温、呼吸频率、血压、血氧、瞳孔、激素、行动能力、肌肉紧张度等新指标；变化必须是 +N/-N 且不能为 0；健康正常或无稳定变化时输出空数组。',
       '身体状态': '部位只能是：整体/全身、口部/嘴部/嘴唇、胸部/胸口/乳房、阴部/私处、肛部、臀部/屁股、四肢/手臂/腿部、皮肤、其他；整体/全身与局部部位互不冲突，同轮同人可写多条，正文中有就应全部写入；整体写全身综合状态，局部写对应部位细节；禁止把坐姿、可用状态、手指动作等写成新部位字段；全身发颤/肌肉反应等写整体或四肢，不要写进生命体征。',
       '穿着状态': '穿着部位只能是：全身/整体、胸部/胸口/乳房、上身、外套、下身、腿部/大腿、足部/脚部、内裤、饰品；全身/整体会按外套处理并清空其他衣物槽；同轮若还有局部部位，先应用全身再覆盖局部部位；禁止肩部、腰部、衣领、吊带位置等非槽位字段；必须包含衣物名称和当前状态。',
@@ -1817,11 +1804,11 @@ window.GameModules.realWorldAgentLoop = {
     if (type === '基础结算') return '"基础结算":{"经过时间":60,"当前状态":"当前稳定状态","当前目标":"下一步目标","场景标题":"场景标题","地点名称":"地点名","备选行动":["行动一","行动二","行动三","行动四"]}';
     if (type === '情绪') {
       const ex = this.settlementMetricExample(store, participants, '情绪');
-      return ex ? `"情绪":[{"subject":"${ex.subject}","field":"${ex.field}","value":"+1","reason":"正文中的明确行为或对话证据"}]` : '"情绪":[]';
+      return ex ? `"情绪":[{"subject":"${ex.subject}","field":"${ex.field}","value":"+1","status":"变化后该情绪的具体表现","reason":"正文中的明确行为或对话证据"}]` : '"情绪":[]';
     }
     if (type === '感觉') {
       const ex = this.settlementMetricExample(store, participants, '感觉');
-      return ex ? `"感觉":[{"subject":"${ex.subject}","field":"${ex.field}","value":"+1","reason":"该 NPC 对玩家态度变化的明确证据"}]` : '"感觉":[]';
+      return ex ? `"感觉":[{"subject":"${ex.subject}","field":"${ex.field}","value":"+1","status":"变化后该感觉的具体表现","reason":"该 NPC 对玩家态度变化的明确证据"}]` : '"感觉":[]';
     }
     if (type === '生命体征') return `"生命体征":[{"subject":"${subject}","field":"疲劳","value":"+1","reason":"正文明确出现持续消耗或疲惫证据"}]`;
     if (type === '身体状态') return `"身体状态":[{"subject":"${subject}","part":"整体","status":"全身综合状态","reason":"正文明确全身状态证据"},{"subject":"${subject}","part":"胸部","status":"局部部位状态","reason":"正文明确该部位证据"}]`;
@@ -1938,8 +1925,8 @@ window.GameModules.realWorldAgentLoop = {
       if (type === '身体状态') return '身体状态：数组；每项 {"subject":"姓名","part":"部位","status":"状态","reason":"证据"}；同轮可有多条，整体/全身与局部部位互不冲突；无变化 []。';
       if (type === '性经历') return '性经历：数组；每项 {"subject":"姓名","part":"分类","delta":"+N/-N","reason":"证据"}；无变化 []。';
       if (type === '性历史') return '性历史：数组；每项 {"subject":"姓名","transition":"状态转移","partner":"对象","evidence":"证据"}；无变化 []。';
-      if (type === '情绪') return '情绪：数组；每项 {"subject":"姓名","field":"情绪指标名","value":"+N/-N","reason":"正文中的具体行为或对话证据"}；无变化 []。程度说明由系统自动生成，不要输出 status 字段。';
-      if (type === '感觉') return '感觉：数组；每项 {"subject":"出场NPC姓名","field":"感觉指标名","value":"+N/-N","reason":"正文证据证明该NPC对玩家态度变化"}；无变化 []。程度说明由系统自动生成，不要输出 status 字段。';
+      if (type === '情绪') return '情绪：数组；每项 {"subject":"姓名","field":"情绪指标名","value":"+N/-N","status":"变化后该情绪的具体表现","reason":"正文中的具体行为或对话证据"}；无变化 []。status 写程度表现，不要写指标名+数值前缀；缺省时系统会按新数值补模板解释。';
+      if (type === '感觉') return '感觉：数组；每项 {"subject":"出场NPC姓名","field":"感觉指标名","value":"+N/-N","status":"变化后该感觉的具体表现","reason":"正文证据证明该NPC对玩家态度变化"}；无变化 []。status 写程度表现，不要写指标名+数值前缀；缺省时系统会按新数值补模板解释。';
       if (type === '关系') return '关系：数组；每项 {"subject":"姓名","left":"关系左方","right":"关系右方","dimension":"稳定关系维度","status":"关系状态","reason":"证据","result":"结算结果"}；无变化 []。';
       if (type === '角色卡') return '角色卡：数组；每项 {"subject":"姓名","field":"字段","op":"替换/增加","value":"内容","reason":"证据","result":"结果"}；无变化 []。';
       return `${type}：数组；每项 {"subject":"结算主体","field":"字段","value":"变化或新值","reason":"证据"}；无变化 []。原合约：${c?.format || '更新N：结算主体，字段，变化，原因'}`;
@@ -1997,6 +1984,7 @@ window.GameModules.realWorldAgentLoop = {
       '- subject 必须直接写本回合参与者姓名、明确地点名、明确势力名或“系统”；不要写代词。',
       '- reason/evidence 必须写具体行为、对话或连续动作证据；弱氛围暗示不得结算。',
       '- 情绪、感觉、生命体征、性经历的 value/delta 必须是带符号非零变化，例如 +2 或 -1；没有变化输出 []。',
+      '- 情绪/感觉每条必须含 field、value、reason；status 写变化后程度表现（禁止“指标名+数值：”前缀），缺省则系统按新数值生成模板解释。',
       '- 感觉数组中 subject 只能写出场 NPC，不能写玩家姓名。',
       '- 关系数组中 left/right/dimension/status/reason/result 都必须有；dimension 不能是好感/信任/依赖/警惕等感觉指标。',
       '- 角色卡 op 只能写“替换”或“增加”；不能写保持、无变化、更新。',

@@ -4,11 +4,183 @@ window.GameModules.predefinedRoleCards = {
   keys: ['liu-you', 'liu-siyao', 'liu-siqi', 'liu-siyi'],
   cache: null,
 
+  cardKeyFor(card = {}) {
+    if (!card) return '';
+    const byId = this.keys.find((key) => {
+      const src = window.GameModules.predefinedRoleCardData?.[key];
+      return src && (src.id === card.id || src.name === card.name);
+    });
+    return byId || '';
+  },
+
+  resolveEssentialPreferenceLayers(card = {}, key = '') {
+    const cardKey = key || this.cardKeyFor(card);
+    const fromCard = card?.essentialPreferenceLayers;
+    if (fromCard?.layer1) return fromCard;
+    const fromMap = cardKey ? window.GameModules.predefinedTripletEssentialLayers?.[cardKey] : null;
+    return fromMap?.layer1 ? fromMap : null;
+  },
+
+  tripletSisterKeys() {
+    return ['liu-siyao', 'liu-siqi', 'liu-siyi'];
+  },
+
+  isTripletSisterKey(key = '') {
+    return this.tripletSisterKeys().includes(key);
+  },
+
+  psychGroupCount() {
+    const cfg = window.GameModules.playerAspirationConfig;
+    return (cfg?.psychPreferenceCategories || []).reduce(
+      (sum, category) => sum + (cfg?.psychCategoryGroups?.(category)?.length || 0),
+      0,
+    );
+  },
+
+  tripletPsychPreferencesComplete(psychPreferences = null, min = 3) {
+    const cfg = window.GameModules.playerAspirationConfig;
+    if (!psychPreferences?.selected || !cfg?.psychCategoryGroups) return false;
+    return (cfg.psychPreferenceCategories || []).every((category) =>
+      cfg.psychCategoryGroups(category).every((group) => {
+        const tags = psychPreferences.selected[group.id];
+        return Array.isArray(tags) && tags.length >= min;
+      }),
+    );
+  },
+
+  psychTagsPerGroup(layer5 = '') {
+    const prefTool = window.GameModules.playerAspirationPreferenceLayers;
+    const view = prefTool?.viewFromLayers?.({ layer5 });
+    return (view?.psychGroups || []).map((group) => group.tags.length);
+  },
+
+  tripletPsychLayerComplete(layer5 = '', psychPreferences = null, min = 3) {
+    if (this.tripletPsychPreferencesComplete(psychPreferences, min)) return true;
+    const counts = this.psychTagsPerGroup(layer5);
+    const expected = this.psychGroupCount();
+    return expected > 0 && counts.length >= expected && counts.every((count) => count >= min);
+  },
+
+  finalizeTripletPreset(preset = {}) {
+    if (!preset?.layer1) return preset;
+    const tool = window.GameModules.playerAspirationPreferenceLayers;
+    const psych = preset.psychPreferences;
+    if (psych?.selected && tool?.formatLayer5) {
+      return {
+        layer1: preset.layer1,
+        layer2: preset.layer2,
+        layer3: preset.layer3,
+        layer4: preset.layer4,
+        layer5: tool.formatLayer5(psych),
+        psychPreferences: psych,
+      };
+    }
+    return preset;
+  },
+
+  applyEssentialPreferenceLayers(profile = {}, layers = null) {
+    const tool = window.GameModules.playerAspirationPreferenceLayers;
+    const resolved = this.finalizeTripletPreset(layers || this.resolveEssentialPreferenceLayers(profile));
+    if (!tool || !resolved?.layer1) return profile;
+    tool.applyToProfile(profile, resolved, { locked: true });
+    if (resolved.psychPreferences?.selected) profile.psychPreferences = resolved.psychPreferences;
+    return profile;
+  },
+
+  resolveAppearanceProfile(card = {}, key = '') {
+    const cardKey = key || this.cardKeyFor(card);
+    return cardKey ? window.GameModules.predefinedAppearanceProfiles?.[cardKey] : null;
+  },
+
+  appearanceProfileComplete(profile = {}) {
+    const cfg = window.GameModules.appearanceProfileTags;
+    if (!cfg) return Boolean(profile.bodyProfileMeta && profile.dressedProfileMeta);
+    if (!cfg.naturalMetaComplete(profile.bodyProfileMeta)) return false;
+    if (!cfg.dressedMetaComplete(profile.dressedProfileMeta)) return false;
+    return cfg.bodyParts().every((part) => {
+      const bp = (profile.bodyProfile || []).find((item) => item?.part === part);
+      const dp = (profile.dressedProfile || []).find((item) => item?.part === part);
+      return cfg.partItemComplete(bp, true) && cfg.partItemComplete(dp, true);
+    });
+  },
+
+  applyAppearanceProfile(profile = {}, preset = null) {
+    const cfg = window.GameModules.appearanceProfileTags;
+    if (!cfg) return profile;
+    const resolved = preset || this.resolveAppearanceProfile(profile);
+    const stub = {
+      appearance: profile.appearance,
+      preferences: profile.preferences,
+      detail: profile.detail,
+      personality: profile.personality,
+      essentialPreferenceLayers: profile.essentialPreferenceLayers,
+      psychPreferences: profile.psychPreferences,
+    };
+    profile.bodyProfileMeta = cfg.normalizeNaturalMeta(
+      { ...cfg.inferNaturalMetaFromProfile(stub), ...(resolved?.bodyProfileMeta || {}) },
+      stub,
+    );
+    profile.dressedProfileMeta = cfg.normalizeDressedMeta(
+      { ...cfg.inferDressedMetaFromPreferences(stub), ...(resolved?.dressedProfileMeta || {}) },
+      stub,
+    );
+    const mergePartList = (field, tagMap = {}) => {
+      const list = Array.isArray(profile[field]) ? profile[field] : [];
+      return cfg.bodyParts().map((part, index) => {
+        const existing = list.find((entry) => entry?.part === part) || {};
+        const presetTags = tagMap[part];
+        const tags = Array.isArray(presetTags) && presetTags.length >= 2
+          ? presetTags
+          : (Array.isArray(existing.tags) && existing.tags.length >= 2 ? existing.tags : (presetTags || existing.tags || []));
+        return cfg.normalizePartItem({
+          ...existing,
+          index: index + 1,
+          part,
+          tags,
+          description: String(existing.description || '').trim(),
+        }, index + 1, part);
+      });
+    };
+    profile.bodyProfile = mergePartList('bodyProfile', resolved?.bodyProfileTags);
+    profile.dressedProfile = mergePartList('dressedProfile', resolved?.dressedProfileTags);
+    return profile;
+  },
+
+  upgradeSavedProfileAppearance(profile = {}) {
+    const cardKey = this.cardKeyFor(profile);
+    const preset = this.resolveAppearanceProfile(profile, cardKey);
+    if (!preset || this.appearanceProfileComplete(profile)) return false;
+    this.applyAppearanceProfile(profile, preset);
+    return true;
+  },
+
+  async upgradeAllSavedAppearanceProfiles(store) {
+    const prc = this;
+    const states = Object.values(store?.rpgStates || {});
+    const tasks = states.map(async (state) => {
+      if (!state?.profile || !prc.upgradeSavedProfileAppearance(state.profile)) return false;
+      await window.GameModules.sqliteSave?.saveCharacterState?.(state);
+      return true;
+    });
+    const results = await Promise.all(tasks);
+    return results.filter(Boolean).length;
+  },
+
   async loadAll() {
     if (this.cache) return this.cache;
     const source = window.GameModules.predefinedRoleCardData || {};
     const clone = (card) => window.GameModules.predefinedRoleCardActions?.cloneRoleCardForEditing?.(card) || JSON.parse(JSON.stringify(card));
-    const cards = this.keys.map((key) => source[key]).filter((card) => card?.name).map(clone);
+    const cards = this.keys.map((key) => {
+      const card = source[key];
+      if (!card?.name) return null;
+      const cloned = clone(card);
+      const layers = this.isTripletSisterKey(key)
+        ? window.GameModules.predefinedTripletEssentialLayers?.[key]
+        : this.resolveEssentialPreferenceLayers(cloned, key);
+      this.applyEssentialPreferenceLayers(cloned, layers);
+      this.applyAppearanceProfile(cloned, window.GameModules.predefinedAppearanceProfiles?.[key]);
+      return cloned;
+    }).filter(Boolean);
     if (cards.length !== this.keys.length) {
       console.warn('[预定义角色卡] 本地脚本数据缺失:', this.keys.filter((key) => !source[key]).join('、'));
     }
@@ -54,6 +226,26 @@ window.GameModules.predefinedRoleCards = {
     const existing = window.GameModules.sqliteSave.getCharacterState(id);
     let profile = { ...card, id, roleCard: true, roleCardSource: card.roleCardSource || 'predefined-edited', roleCardUpdatedAt: card.roleCardUpdatedAt || existing?.profile?.roleCardUpdatedAt || new Date().toISOString() };
     if (window.GameModules.characterProfile?.hasRequiredInitialMetrics?.(existing?.profile?.initialMetrics)) profile.initialMetrics = existing.profile.initialMetrics;
+    const cardKey = this.cardKeyFor(card);
+    const presetLayers = this.isTripletSisterKey(cardKey)
+      ? window.GameModules.predefinedTripletEssentialLayers?.[cardKey]
+      : this.resolveEssentialPreferenceLayers(card, cardKey);
+    const finalizedPreset = this.finalizeTripletPreset(presetLayers);
+    const forceTripletLayers = this.isTripletSisterKey(cardKey) && finalizedPreset?.layer1;
+    const missingLayers = finalizedPreset?.layer1 && !profile.essentialPreferenceLayers?.layer1;
+    const incompletePsych = finalizedPreset?.layer1
+      && !this.tripletPsychLayerComplete(profile.essentialPreferenceLayers?.layer5, profile.psychPreferences || finalizedPreset?.psychPreferences);
+    if (forceTripletLayers || missingLayers || incompletePsych) {
+      this.applyEssentialPreferenceLayers(profile, presetLayers);
+    } else if (profile.essentialPreferenceLayers?.layer1) {
+      this.applyEssentialPreferenceLayers(profile, profile.essentialPreferenceLayers);
+    }
+    const appearancePreset = this.resolveAppearanceProfile(profile, cardKey);
+    const forceAppearance = Boolean(appearancePreset);
+    const incompleteAppearance = forceAppearance && !this.appearanceProfileComplete(profile);
+    if (forceAppearance || incompleteAppearance) {
+      this.applyAppearanceProfile(profile, appearancePreset);
+    }
     const schema = await window.GameModules.rpgState.ensureSchema(profile.work || '现实世界');
     const state = existing || window.GameModules.rpgState.createCharacterState(profile, schema, store);
     state.id = profile.id;

@@ -46,19 +46,18 @@ window.GameModules = window.GameModules || {};
     },
 
     hasValidInitialMetricTexts(value) {
-      const valid = (items, keys) => Array.isArray(items) && keys.every((key) => {
-        const item = items.find((entry) => entry?.key === key);
-        return item && item.value !== undefined && String(item.status || '').trim() && String(item.reason || '').trim();
-      });
-      return valid(value?.emotions, keysFor('emotions')) && valid(value?.playerFeelings, keysFor('playerFeelings'));
+      return profileTool.initialMetricsComplete?.(value, { reuse: true }) || false;
     },
 
-    hasRequiredInitialMetrics(value) {
+    hasRequiredInitialMetrics(value, opts = {}) {
+      if (opts.reuse) return profileTool.initialMetricsComplete?.(value, { reuse: true }) || false;
+      const keysEmotion = keysFor('emotions');
+      const keysFeeling = keysFor('playerFeelings');
       const valid = (items, keys) => Array.isArray(items) && keys.every((key) => {
-        const item = items.find((entry) => entry?.key === key);
+        const item = items.find((entry) => window.GameModules.metrics.normalizeKey(entry?.key || entry?.name, keys) === key);
         return item && item.value !== undefined && String(item.status || '').trim() && String(item.reason || '').trim() && this.metricSourcesAreAi(item);
       });
-      return valid(value?.emotions, keysFor('emotions')) && valid(value?.playerFeelings, keysFor('playerFeelings'));
+      return (profileTool.initialMetricsComplete?.(value, { reuse: false }) || false) && valid(value?.emotions, keysEmotion) && valid(value?.playerFeelings, keysFeeling);
     },
 
     initialMetrics(value, profile = {}) {
@@ -179,8 +178,13 @@ window.GameModules = window.GameModules || {};
     const source = await window.GameModules.characterProfileSource.resolve(raw, store);
     const base = this.normalize(source.raw, store, source.preset);
     const signature = this.inputSignature(base, context, store, source.preset);
+    const saved = base.forceRoleCardRegenerate ? null : this.findSavedRoleCard(base, signature);
+    if (saved?.profile) {
+      const profile = { ...saved.profile, id: base.id, work: saved.profile.work || base.work };
+      if (this.isReusableRoleCard(profile, signature) || this.isRoleCard(profile)) return profile;
+    }
     const existing = window.GameModules.sqliteSave.getCharacterState(base.id);
-    if (existing && this.isReusableRoleCard(existing.profile, signature) && this.hasRequiredInitialMetrics(existing.profile?.initialMetrics)) return existing.profile;
+    if (existing && this.isReusableRoleCard(existing.profile, signature)) return existing.profile;
     if (existing && this.initialMetricRepairable(existing.profile, signature) && existing.profile?.initialMetricSourceRepairSignature !== signature) {
       existing.profile = await this.ensureInitialMetricSources(existing.profile, base, context, store);
       existing.profile = this.withSignature(existing.profile, signature);

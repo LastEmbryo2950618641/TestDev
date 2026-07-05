@@ -64,11 +64,11 @@ Object.assign(window.GameModules.updateRegistry, {
       const subject = { ...(group.subject || {}), type: group.subject?.type || (rawTarget === 'player-self' ? 'player' : 'character'), id: rawTarget, name: group.subject?.name || group.name || group.character || '' };
       (Array.isArray(group.emotions) ? group.emotions : []).forEach((item) => {
         if (!item?.key) return;
-        out.push({ updateType: 'emotion', subject, field: `metrics.emotions.${item.key}`, change: { mode: 'delta', value: window.GameModules.metrics.metricDeltaValue?.(item) ?? item.delta ?? 0, status: '' }, reasons: [{ trigger: item.trigger || item.reason || '现实推演情绪变化', evidence: item.reason || item.evidence || '', confidence: 'confirmed' }] });
+        out.push({ updateType: 'emotion', subject, field: `metrics.emotions.${item.key}`, change: { mode: 'delta', value: window.GameModules.metrics.metricDeltaValue?.(item) ?? item.delta ?? 0, status: String(item.status || '').slice(0, 180) }, reasons: [{ trigger: item.trigger || item.reason || '现实推演情绪变化', evidence: item.reason || item.evidence || '', confidence: 'confirmed' }] });
       });
       (Array.isArray(group.playerFeelings) ? group.playerFeelings : []).forEach((item) => {
         if (!item?.key) return;
-        out.push({ updateType: 'feeling', subject, field: `metrics.playerFeelings.${item.key}`, change: { mode: 'delta', value: window.GameModules.metrics.metricDeltaValue?.(item) ?? item.delta ?? 0, status: '' }, reasons: [{ trigger: item.trigger || item.reason || '现实推演感觉变化', evidence: item.reason || item.evidence || '', confidence: 'confirmed' }] });
+        out.push({ updateType: 'feeling', subject, field: `metrics.playerFeelings.${item.key}`, change: { mode: 'delta', value: window.GameModules.metrics.metricDeltaValue?.(item) ?? item.delta ?? 0, status: String(item.status || '').slice(0, 180) }, reasons: [{ trigger: item.trigger || item.reason || '现实推演感觉变化', evidence: item.reason || item.evidence || '', confidence: 'confirmed' }] });
       });
     }
     return out;
@@ -87,7 +87,7 @@ Object.assign(window.GameModules.updateRegistry, {
       if (!key) continue;
       if (!grouped.has(target)) grouped.set(target, { target, subject: { ...subject, id: target }, emotions: [], playerFeelings: [] });
       const temporary = item.temporary === true || /(^|\.)temporary(?:Emotions|PlayerFeelings|\.|$)/u.test(String(item.field || ''));
-      grouped.get(target)[bucket].push({ key, delta: this.deltaValue(item), status: '', reason: this.metricReasonText(item), temporary });
+      grouped.get(target)[bucket].push({ key, delta: this.deltaValue(item), status: String(item.change?.status ?? item.status ?? item.程度 ?? item.解释 ?? '').slice(0, 180), reason: this.metricReasonText(item), temporary });
     }
     return Array.from(grouped.values());
   },

@@ -207,6 +207,7 @@ window.GameModules.playerIdentityActions = {
           changed = true;
         }
       }
+      if (window.GameModules.predefinedRoleCards?.upgradeSavedProfileAppearance?.(existing.profile)) changed = true;
       if (changed) await window.GameModules.sqliteSave.saveCharacterState(existing);
       return existing;
     }
@@ -268,18 +269,19 @@ window.GameModules.playerIdentityActions = {
       const value = window.GameModules.metrics.clamp(values?.[item.key] ?? item.value);
       const rawStatus = String(item.status || '').trim();
       const rawReason = String(item.reason || '').trim();
-      const status = String(window.GameModules.metrics.valueExplanation(item.key, value, rawStatus, rawReason)).slice(0, 180);
+      const status = String(window.GameModules.metrics.resolveMetricStatus(item.key, value, rawStatus)).slice(0, 180);
       const sources = window.GameModules.characterProfile?.metricSources?.(item, '系统') || { 数值: '系统', 解释: '系统', 原因: '系统' };
       const noteKey = `${group}:${item.key}`;
       const previous = state.metrics.notes[noteKey] || {};
       const previousSources = previous.metricSources || {};
       if (previous.reason && previousSources.原因 === 'AI') return;
+      const statusFromAi = Boolean(rawStatus) && !window.GameModules.metrics.isGenericMetricStatus(rawStatus, item.key);
       state.metrics.notes[noteKey] = {
         stage: window.GameModules.metrics.stageFor(item.key, value),
         status,
         reason: rawReason.slice(0, 180),
         description: String(window.GameModules.metrics.descriptions[item.key] || item.key).slice(0, 120),
-        metricSources: { 数值: sources.数值, 解释: sources.解释 === 'AI' && status === rawStatus ? 'AI' : '系统', 原因: sources.原因 === 'AI' && rawReason ? 'AI' : '系统' },
+        metricSources: { 数值: sources.数值, 解释: statusFromAi ? 'AI' : '系统', 原因: sources.原因 === 'AI' && rawReason ? 'AI' : '系统' },
       };
     });
     sync(profile.initialMetrics.emotions, state.metrics.emotions, window.GameModules.metrics.emotionKeys, 'emotion');

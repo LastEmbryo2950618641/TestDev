@@ -41,8 +41,12 @@ window.GameModules.currentWorldActions = {
     return next;
   },
 
-  routeCurrentWorldAction() {
-    if (this.isRealCurrentWorld()) return this.openRealWorldPanel?.();
+  async routeCurrentWorldAction() {
+    if (this.isRealCurrentWorld()) {
+      await this.ensureGameplayAssetsReady?.();
+      window.GameModules.remergeGameStore?.();
+      return this.openRealWorldPanel?.();
+    }
     this.realWorldOpen = false;
     this.desktopUnlocked = true;
     this.closeDesktopApps?.();

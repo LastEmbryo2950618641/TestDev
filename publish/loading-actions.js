@@ -145,7 +145,111 @@ window.GameModules.loadingActions = {
     this.loading = false;
     this.homeScreenView = 'menu';
     this.startStartupWarmup?.();
+    this.startBackgroundAssetLoad?.();
     this.stopLoadingTimerIfIdle();
+  },
+
+  startBackgroundAssetLoad() {
+    return window.GameModules.assetLoader?.prefetchAfterHome?.(this);
+  },
+
+  runDeferredInits() {
+    if (this._deferredInitsDone) return;
+    this._deferredInitsDone = true;
+    this.initCompanySystem?.();
+    this.initBossRecruitment?.();
+    this.initCalendar?.();
+    this.initFactionSystem?.();
+    this.ensureAllCompanyFactions?.();
+    this.initSkillsApp?.();
+    this.initKnownProfessionApp?.();
+    this.initTaobaoApp?.();
+    this.initPromptApp?.();
+    this.initTokenStatsApp?.();
+  },
+
+  ensureGameplayAssetsReady() {
+    return window.GameModules.assetLoader?.ensureGameplayReady?.(this);
+  },
+
+  ensureNewGameAssetsReady() {
+    return window.GameModules.assetLoader?.ensureNewGameReady?.(this);
+  },
+
+  yieldHomeLoadUi() {
+    return new Promise((resolve) => {
+      requestAnimationFrame(() => setTimeout(resolve, 0));
+    });
+  },
+
+  setHomeLoadProgress(percent, label, options = {}) {
+    if (options.silent || (this.loading && !options.force)) return;
+    this.homeLoadActive = true;
+    this.homeLoadPercent = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
+    if (label) this.homeLoadLabel = label;
+  },
+
+  clearHomeLoadProgress() {
+    this.homeLoadActive = false;
+    this.homeLoadPercent = 0;
+    this.homeLoadLabel = '';
+    this.homeLoadSlot = '';
+  },
+
+  homeLoadProgressText() {
+    return this.homeLoadLabel || '正在载入存档…';
+  },
+
+  homeLoadProgressDisplayPercent() {
+    if (!this.homeLoadActive) return 0;
+    const base = this.homeLoadPercent || 0;
+    const assetPct = this.backgroundLoadPercent || 0;
+    if (base <= 28 && assetPct > 0) {
+      return Math.min(100, Math.round(8 + (assetPct * 20) / 100));
+    }
+    return base;
+  },
+
+  ensureDesktopModulesReady(options = {}) {
+    if (this._desktopModulesReady) return Promise.resolve();
+    if (this._desktopModulesLoadingPromise) return this._desktopModulesLoadingPromise;
+    this._desktopModulesLoadingPromise = this.loadGameplayAssetsWithHomeProgress(0, 0, {
+      showOverlay: options.showOverlay === true,
+    }).then(() => {
+      window.GameModules.remergeGameStore?.();
+      this.runDeferredInits?.();
+      this._desktopModulesReady = true;
+    }).finally(() => {
+      this._desktopModulesLoadingPromise = null;
+    });
+    return this._desktopModulesLoadingPromise;
+  },
+
+  async loadGameplayAssetsWithHomeProgress(basePct = 8, spanPct = 22, options = {}) {
+    const showOverlay = options.showOverlay !== false;
+    const progress = (pct, label) => {
+      if (showOverlay) this.setHomeLoadProgress(pct, label);
+    };
+    const loader = window.GameModules.assetLoader;
+    if (!loader) return;
+    if (loader._prefetchPromise) {
+      progress(basePct + spanPct, '玩法模块已就绪');
+      await loader._prefetchPromise;
+      return;
+    }
+    const names = window.GameModules.bootManifest?.prefetchAfterHome || [];
+    if (!names.length) {
+      progress(basePct + spanPct, '玩法模块已就绪');
+      return;
+    }
+    await loader.loadChunks(names, {
+      onProgress: (p) => {
+        const sub = p.percent ?? 0;
+        const mapped = basePct + Math.round((spanPct * sub) / 100);
+        progress(mapped, p.label || '加载微信、公司等应用模块…');
+      },
+    });
+    this.runDeferredInits?.();
   },
 
   startStartupWarmup() {

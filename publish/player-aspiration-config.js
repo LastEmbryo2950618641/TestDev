@@ -166,8 +166,90 @@ window.GameModules.playerAspirationConfig = {
     return this.psychOptionKey(groupId, laneId);
   },
 
+  psychMinSelectPerGroup: 3,
   psychMaxSelectPerGroup: 3,
+  /** @deprecated 等同 psychMinSelectPerGroup（每小类，非大类合计） */
+  psychMinSelectPerCategory: 3,
+  /** @deprecated 等同 psychMaxSelectPerGroup（每小类，非大类合计） */
+  psychMaxSelectPerCategory: 3,
   psychOptionCount: 10,
+
+  normalizePlayerGender(gender = '') {
+    const raw = String(gender || '').trim();
+    if (/^女|^female|^f$/i.test(raw)) return 'female';
+    if (/^男|^male|^m$/i.test(raw)) return 'male';
+    return 'male';
+  },
+
+  /** 旧版无主体词标签 → 带名词的现行写法（外貌偏好·阴毛状态） */
+  psychTagAliases: {
+    白虎: '无阴毛',
+    稀疏: '阴毛稀疏',
+    浓郁: '阴毛浓密',
+    浓密: '阴毛浓密',
+  },
+
+  normalizePsychTag(tag = '') {
+    const raw = String(tag || '').trim();
+    return this.psychTagAliases[raw] || raw;
+  },
+
+  normalizePsychTagList(tags = []) {
+    const out = [];
+    (Array.isArray(tags) ? tags : []).forEach((item) => {
+      const tag = this.normalizePsychTag(item);
+      if (tag && !out.includes(tag)) out.push(tag);
+    });
+    return out;
+  },
+
+  resolvePsychFallbackTags(laneOrGroup = {}, gender = '') {
+    const key = this.normalizePlayerGender(gender);
+    const byGender = laneOrGroup?.fallbackTagsByGender;
+    if (byGender && Array.isArray(byGender[key]) && byGender[key].length) {
+      return this.normalizePsychTagList(byGender[key]);
+    }
+    return this.normalizePsychTagList(laneOrGroup?.fallbackTags);
+  },
+
+  playerGenderLabel(gender = '') {
+    return this.normalizePlayerGender(gender) === 'female' ? '女' : '男';
+  },
+
+  psychGenderTagRules(gender = '') {
+    const g = this.normalizePlayerGender(gender);
+    if (g === 'female') {
+      return [
+        '当前玩家为女性。',
+        '感情倾向各小类：围绕对男性异性的吸引与偏好；情感偏好优先兄控、哥控；外貌偏好用成熟男、健硕男、少年感等；穿着/化妆偏好写喜欢男性异性怎样穿、怎样打理仪容（无须化妆、阳光感、轻微胡茬等）。',
+        '审美倾向的穿着/打扮偏好：写玩家自己乐于呈现的衣装与妆造（如 JK、连衣裙、精致妆容），不得写成对异性的偏好。',
+        '禁止在感情倾向的外貌/穿着/化妆偏好中写萝莉、御姐、贫乳、巨乳、JK控等女性特征向标签。',
+      ].join('\n');
+    }
+    return [
+      '当前玩家为男性。',
+      '感情倾向各小类：围绕对女性异性的吸引与偏好；情感偏好优先姐控、妹控；外貌偏好用萝莉、御姐、少女、贫乳、巨乳、无阴毛、阴毛稀疏、阴毛浓密等（阴毛状态须带「阴毛」或「无阴毛」，禁止单独写白虎/稀疏/浓郁）；穿着/化妆偏好写喜欢女性异性怎样穿、怎样妆感（JK控、淡颜系、精致妆容等）。',
+      '审美倾向的穿着/打扮偏好：写玩家自己乐于呈现的衣装与仪容（如卫衣、西装、无须化妆），不得写成对异性的偏好。',
+      '禁止在感情倾向的外貌/穿着/化妆偏好中写成熟男、健硕男、无须浓妆、轻微胡茬等男性特征向标签。',
+    ].join('\n');
+  },
+
+  psychTagDirectionHint(groupId = '', categoryId = '', gender = '') {
+    const g = this.normalizePlayerGender(gender);
+    const emotionToward = g === 'female'
+      ? '对男性异性的偏好'
+      : '对女性异性的偏好';
+    const selfPresentation = g === 'female'
+      ? '玩家自己（女性向衣装/妆造）'
+      : '玩家自己（男性向衣装/仪容）';
+    if (categoryId === 'emotion') {
+      if (['emotion_pref', 'appearance', 'partner_clothing', 'partner_makeup'].includes(groupId)) return emotionToward;
+      if (groupId === 'personality') return '偏好的异性性格（两性共用词表）';
+      if (['kink_outfit', 'affection_action', 'kink_action'].includes(groupId)) return '亲密互动中的主动/被动（与性别方向一致）';
+    }
+    if (categoryId === 'aesthetic' && (groupId === 'clothing_pref' || groupId === 'dress')) return selfPresentation;
+    return '';
+  },
 
   psychCategoryById(id) {
     return this.psychPreferenceCategories.find((item) => item.id === id) || null;
@@ -187,7 +269,7 @@ window.GameModules.playerAspirationConfig = {
           selectKey: group.id,
           group,
           lane,
-          tagGroup: { id: group.id, label: group.label, hint: lane.hint, fallbackTags: lane.fallbackTags },
+          tagGroup: { id: group.id, label: group.label, hint: lane.hint, fallbackTags: lane.fallbackTags, fallbackTagsByGender: lane.fallbackTagsByGender },
         });
       });
     });
@@ -202,36 +284,70 @@ window.GameModules.playerAspirationConfig = {
     {
       id: 'emotion',
       label: '感情倾向',
-      intro: '你喜欢谁、被什么吸引。每个偏好大类下，正常与二次元合计最多选 3 个「最喜欢」；可自定义标签，换一批时在已有标签后追加不重复新标签。',
+      intro: '你喜欢谁、被什么吸引。下方每个小类须各选满 3 个标签（正常与二次元合计，恰好 3 个）；可自定义标签，换一批时在已有标签后追加不重复新标签。',
       groups: [
         {
           id: 'emotion_pref',
           label: '情感偏好',
-          lanes: [{ id: 'normal', label: '正常', hint: '如妹控、姐控、同龄偏好', fallbackTags: ['妹控', '姐控', '同龄偏好', '成熟偏好', '依赖型', '保护型', '慢热型', '直球型', '柏拉图', '激情型'] }],
+          lanes: [{
+            id: 'normal',
+            label: '正常',
+            hint: '对异性的情感取向；如兄控/姐控、主动追求或被动被追求',
+            fallbackTagsByGender: {
+              male: ['姐控', '妹控', '主动对异性', '被动被异性', '同龄偏好', '成熟偏好', '依赖型', '保护型', '慢热型', '直球型', '柏拉图', '激情型', '异性偏好'],
+              female: ['兄控', '哥控', '主动对异性', '被动被异性', '同龄偏好', '成熟偏好', '依赖型', '保护型', '慢热型', '直球型', '柏拉图', '激情型', '异性偏好'],
+            },
+          }],
         },
         {
           id: 'appearance',
           label: '外貌偏好',
-          lanes: [{ id: 'normal', label: '正常', hint: '体型、肤色、气质', fallbackTags: ['萝莉', '御姐', '少女', '贫乳', '中乳', '巨乳', '白虎', '稀疏', '浓郁', '白皮肤', '黑皮肤', '黄皮肤', '高挑', '娇小', '肌肉型'] }],
+          lanes: [{
+            id: 'normal',
+            label: '正常',
+            hint: '偏好的异性外貌；体型、肤色、气质；胸围用贫乳/中乳/巨乳；阴毛状态须带名词：无阴毛、阴毛稀疏、阴毛浓密',
+            fallbackTagsByGender: {
+              male: ['萝莉', '御姐', '少女', '少年感', '贫乳', '中乳', '巨乳', '无阴毛', '阴毛稀疏', '阴毛浓密', '白皮肤', '高挑', '娇小'],
+              female: ['少年感', '成熟男', '健硕男', '健硕感', '肌肉型', '白皮肤', '黑皮肤', '黄皮肤', '高挑', '阳光感'],
+            },
+          }],
         },
         {
           id: 'personality',
           label: '性格偏向',
-          lanes: [{ id: 'normal', label: '正常', hint: '相处气质', fallbackTags: ['傲娇', '温柔', '高冷', '三无', '呆萌', '元气', '腹黑', '天然', '病娇', '可靠'] }],
+          lanes: [{ id: 'normal', label: '正常', hint: '偏好的异性性格与相处气质（喜欢对方是什么样）；勿写角色自身性格', fallbackTags: ['傲娇', '温柔', '高冷', '三无', '呆萌', '元气', '腹黑', '天然', '病娇', '可靠', '主动型', '被动型', '包容型', '支配型'] }],
         },
         {
-          id: 'dress',
-          label: '打扮偏好',
-          lanes: [
-            { id: 'normal', label: '正常', hint: '日常穿搭元素', fallbackTags: ['双马尾', '单马尾', '超短裙', '百T恤', '连裤袜', '过肩发', '眼镜娘', '运动风', '通勤风', '休闲风'] },
-            { id: 'acg', label: '二次元', hint: 'ACG 穿搭元素', fallbackTags: ['JK服装', '过膝袜', '洛丽塔', '猫耳娘', '女仆装', '双马尾JK', '哥特萝莉', '兽耳', '和风浴衣', '校园泳装'] },
-          ],
+          id: 'partner_clothing',
+          label: '穿着偏好',
+          lanes: [{
+            id: 'normal',
+            label: '正常',
+            hint: '偏好的异性穿着；对方衣装、鞋袜与发型',
+            fallbackTagsByGender: {
+              male: ['休闲风', '运动风', '制服感', 'JK控', '过膝袜控', '黑长直控', '双马尾控', '短发控', '简洁穿搭', '邻家感', '连衣裙', '成熟穿搭'],
+              female: ['休闲风', '运动风', '卫衣T恤', '西装革履', '简洁穿搭', '成熟穿搭', '干练风', '运动穿搭', '邻家感', '制服感'],
+            },
+          }],
+        },
+        {
+          id: 'partner_makeup',
+          label: '化妆偏好',
+          lanes: [{
+            id: 'normal',
+            label: '正常',
+            hint: '偏好的异性妆容与仪容；喜欢对方什么妆感或无须化妆',
+            fallbackTagsByGender: {
+              male: ['素颜即可', '干净清爽', '淡颜系', '精致妆容', '唇彩点缀', '自然眉形', '薄唇自然', '护肤干净', '无须浓妆'],
+              female: ['无须化妆', '无须浓妆', '干净清爽', '阳光感', '整洁体面', '轻微胡茬', '护肤干净', '自然眉形', '运动清爽', '素颜即可'],
+            },
+          }],
         },
         {
           id: 'kink_outfit',
           label: '情趣服装',
           lanes: [
-            { id: 'normal', label: '正常', hint: '亲密场景穿着', fallbackTags: ['比基尼', '兔女郎', '睡衣', '浴衣', '居家服', '制服感', '蕾丝', '丝绸', '运动内衣', '简约裸感'] },
+            { id: 'normal', label: '正常', hint: '亲密场景穿着；含主动换穿、被动被安排', fallbackTags: ['比基尼', '兔女郎', '睡衣', '浴衣', '居家服', '制服感', '蕾丝', '丝绸', '运动内衣', '简约裸感', '主动换穿示好', '被动被安排'] },
             { id: 'acg', label: '二次元', hint: 'ACG 情趣穿着', fallbackTags: ['透明女仆装', '水着', '死库水', '兔女郎', '旗袍', '和服', 'JK泳装', 'Cosplay', '角色扮演服', '轻束缚风'] },
           ],
         },
@@ -239,16 +355,16 @@ window.GameModules.playerAspirationConfig = {
           id: 'affection_action',
           label: '亲昵动作',
           lanes: [
-            { id: 'normal', label: '正常', hint: '拥抱、亲吻、膝枕等非性行为亲昵', fallbackTags: ['耳鬓厮磨', '轻抚发丝', '拥抱依偎', '十指紧扣', '额头轻吻', '颈侧亲吻', '后背拥抱', '膝枕', '撒娇', '宠溺语气'] },
-            { id: 'acg', label: '二次元', hint: 'ACG 向非性亲昵', fallbackTags: ['膝枕', '摸头杀', '壁咚', '耳边低语', '公主抱', '牵手', '靠肩', '投喂', '背后环抱', '轻捏脸颊'] },
+            { id: 'normal', label: '正常', hint: '非性亲昵；含主动发起、被动被疼', fallbackTags: ['耳鬓厮磨', '轻抚发丝', '拥抱依偎', '十指紧扣', '额头轻吻', '颈侧亲吻', '后背拥抱', '膝枕', '撒娇', '宠溺语气', '主动亲吻', '主动撒娇', '被动被抱', '被动被亲'] },
+            { id: 'acg', label: '二次元', hint: 'ACG 向非性亲昵', fallbackTags: ['膝枕', '摸头杀', '壁咚', '耳边低语', '公主抱', '牵手', '靠肩', '投喂', '背后环抱', '轻捏脸颊', '被动被壁咚', '被动被摸头', '被动被背后环抱', '主动壁咚', '主动投喂'] },
           ],
         },
         {
           id: 'kink_action',
           label: '情趣动作',
           lanes: [
-            { id: 'normal', label: '正常', hint: '发生关系时的姿势与行为', fallbackTags: ['口角', '乳交', '正常位', '女上位', '跨坐', '站立进入', '后入', '侧入', '69式', '指交'] },
-            { id: 'acg', label: '二次元', hint: 'ACG 向性行为姿势与行为', fallbackTags: ['口角', '乳交', '正常位', '骑乘位', '跨坐', '站立进入', '后入', '侧入', '69式', '桌边位'] },
+            { id: 'normal', label: '正常', hint: '亲密行为；含主动进攻、被动配合', fallbackTags: ['口角', '乳交', '正常位', '女上位', '跨坐', '站立进入', '后入', '侧入', '69式', '指交', '主动女上位', '主动跨坐', '被动正常位', '被动后入'] },
+            { id: 'acg', label: '二次元', hint: 'ACG 向亲密行为', fallbackTags: ['口角', '乳交', '正常位', '骑乘位', '跨坐', '站立进入', '后入', '侧入', '69式', '桌边位', '主动骑乘', '被动正常位'] },
           ],
         },
       ],
@@ -256,7 +372,7 @@ window.GameModules.playerAspirationConfig = {
     {
       id: 'hobby',
       label: '爱好倾向',
-      intro: '空闲时间更愿意把精力投向哪里。同一大类下正常与二次元合计最多选 3 个。',
+      intro: '空闲时间更愿意把精力投向哪里。每个小类须各选满 3 个标签（正常与二次元合计）。',
       groups: [
         {
           id: 'outdoor',
@@ -279,7 +395,7 @@ window.GameModules.playerAspirationConfig = {
     {
       id: 'perception',
       label: '感知倾向',
-      intro: '你怎么感受世界——五感与氛围。同一大类下正常与二次元合计最多选 3 个。',
+      intro: '你怎么感受世界——五感与氛围。每个小类须各选满 3 个标签（正常与二次元合计）。',
       groups: [
         {
           id: 'hearing',
@@ -310,7 +426,7 @@ window.GameModules.playerAspirationConfig = {
     {
       id: 'aesthetic',
       label: '审美倾向',
-      intro: '你觉得什么美——整体美学滤镜。同一大类下正常与二次元合计最多选 3 个。',
+      intro: '你觉得什么美——整体美学滤镜，以及**自己喜欢且乐于呈现**的穿着（衣装发型）与打扮（化妆妆造）。每个小类须各选满 3 个标签（正常与二次元合计）。',
       groups: [
         {
           id: 'visual',
@@ -328,12 +444,44 @@ window.GameModules.playerAspirationConfig = {
             { id: 'acg', label: '二次元', hint: 'ACG 故事', fallbackTags: ['校园日常', '异世界', '恋爱喜剧', 'Post-apoc', '机战', '悬疑推理', '致郁美学', '百合/耽美', '冒险RPG', 'Meta叙事'] },
           ],
         },
+        {
+          id: 'clothing_pref',
+          label: '穿着偏好',
+          lanes: [
+            {
+              id: 'normal',
+              label: '正常',
+              hint: '衣服、服装、鞋袜与发型；自己喜爱并日常穿着/梳理的品类款式',
+              fallbackTagsByGender: {
+                male: ['卫衣T恤', '休闲风', '运动风', '通勤风', '西装革履', '百T恤', '运动穿搭', '干练风', '短发', '简洁穿搭'],
+                female: ['JK服装', '连衣裙', '百T恤', '卫衣', '超短裙', '连裤袜', '过膝袜', '休闲风', '黑长直', '双马尾', '单马尾', '过肩发', '波浪卷'],
+              },
+            },
+            { id: 'acg', label: '二次元', hint: 'ACG 向服装与发型', fallbackTags: ['洛丽塔', '女仆装', '哥特萝莉', '和风浴衣', '校园泳装', '双马尾JK', '制服日常', 'Cosplay服装', '兽耳头饰'] },
+          ],
+        },
+        {
+          id: 'dress',
+          label: '打扮偏好',
+          lanes: [
+            {
+              id: 'normal',
+              label: '正常',
+              hint: '化妆、妆造、美甲、发饰与面部修饰；自己乐于呈现的妆造方式',
+              fallbackTagsByGender: {
+                male: ['无须化妆', '护肤干净', '整洁体面', '阳光感', '干净清爽', '无须浓妆', '自然眉形', '简洁打理', '发型整齐', '运动清爽'],
+                female: ['精致妆容', '清新裸妆', '日常淡妆', '约会妆', '唇彩点缀', '眼妆强调', '底妆轻薄', '发饰搭配', '美甲', '氛围感妆容'],
+              },
+            },
+            { id: 'acg', label: '二次元', hint: 'ACG 向妆造修饰', fallbackTags: ['萌系妆容', '萝莉妆', '哥特妆', '二次元妆', '泪痣妆', 'Cosplay妆', '病娇妆', '元气妆', '淡颜妆', '舞台妆'] },
+          ],
+        },
       ],
     },
     {
       id: 'cognitive',
       label: '思维倾向',
-      intro: '你怎么想问题——信息口味与学习方式。同一大类下正常与二次元合计最多选 3 个。',
+      intro: '你怎么想问题——信息口味与学习方式。每个小类须各选满 3 个标签（正常与二次元合计）。',
       groups: [
         {
           id: 'knowledge',
@@ -356,7 +504,7 @@ window.GameModules.playerAspirationConfig = {
     {
       id: 'lifestyle',
       label: '生活倾向',
-      intro: '你怎么过日子——节奏、空间、社交、消费与亲密边界。同一大类下正常与二次元合计最多选 3 个。',
+      intro: '你怎么过日子——节奏、空间、社交、消费与亲密边界。每个小类须各选满 3 个标签（正常与二次元合计）。',
       groups: [
         {
           id: 'rhythm',
@@ -422,6 +570,18 @@ window.GameModules.playerAspirationConfig = {
     return { selected: {}, options: {}, custom: {} };
   },
 
+  migratePsychPreferences(psych = {}) {
+    const next = { ...psych };
+    ['selected', 'options', 'custom'].forEach((field) => {
+      const bucket = psych?.[field];
+      if (!bucket || typeof bucket !== 'object') return;
+      next[field] = Object.fromEntries(
+        Object.entries(bucket).map(([key, tags]) => [key, this.normalizePsychTagList(tags)]),
+      );
+    });
+    return next;
+  },
+
   /** 每组预置 10 个内置标签（来自 fallbackTags，去重后取前 10） */
   getBuiltinPsychTags(group, count = null) {
     const total = count ?? this.psychOptionCount ?? 10;
@@ -452,15 +612,13 @@ window.GameModules.playerAspirationConfig = {
 
   buildPsychTagOptions(group, newTags = [], lockedTags = [], excludeTags = []) {
     const total = this.psychOptionCount || 10;
-    const locked = [...new Set((lockedTags || []).map((item) => String(item || '').trim()).filter(Boolean))];
+    const locked = this.normalizePsychTagList(lockedTags);
     const exclude = new Set([
       ...locked,
-      ...(Array.isArray(excludeTags) ? excludeTags : []).map((item) => String(item || '').trim()).filter(Boolean),
+      ...this.normalizePsychTagList(excludeTags),
     ]);
     const need = Math.max(0, total - locked.length);
-    const fresh = (Array.isArray(newTags) ? newTags : [])
-      .map((item) => String(item || '').trim())
-      .filter(Boolean)
+    const fresh = this.normalizePsychTagList(newTags)
       .filter((item) => !exclude.has(item));
     const pool = this.getBuiltinPsychTags(group, Math.max(need, total)).filter((item) => !exclude.has(item));
     const rest = [];
@@ -474,14 +632,14 @@ window.GameModules.playerAspirationConfig = {
   /** 换一批：在已有标签末尾追加不重复的新标签 */
   appendPsychTagOptions(group, existingTags = [], newTags = [], excludeTags = [], appendCount = null) {
     const count = appendCount ?? this.psychOptionCount ?? 10;
-    const existing = [...new Set((existingTags || []).map((item) => String(item || '').trim()).filter(Boolean))];
+    const existing = this.normalizePsychTagList(existingTags);
     const exclude = new Set([
       ...existing,
-      ...(Array.isArray(excludeTags) ? excludeTags : []).map((item) => String(item || '').trim()).filter(Boolean),
+      ...this.normalizePsychTagList(excludeTags),
     ]);
     const appended = [];
     const pushUnique = (item) => {
-      const tag = String(item || '').trim();
+      const tag = this.normalizePsychTag(item);
       if (!tag || exclude.has(tag) || appended.includes(tag)) return;
       appended.push(tag);
       exclude.add(tag);

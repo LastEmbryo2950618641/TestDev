@@ -182,25 +182,29 @@ window.GameModules.characterFeedback = {
   },
 
   fallbackMetrics(store) {
+    const metrics = window.GameModules.metrics;
     const text = `${store.character?.name || ''} ${store.character?.role || ''} ${store.character?.personality || ''} ${store.character?.detail || ''} ${store.entryCurrentAction || ''}`;
     const vulnerable = /幼|小|弱|病|困|虚|受伤|受害/u.test(text);
     const proud = /王|骑士|强|冷静|自信|支配|高傲|魔术师/u.test(text);
     const possess = store.controlMode === 'possess';
-    const emotionBase = vulnerable
+    const emotionOverrides = vulnerable
       ? { 冷静: 12, 恐惧: 72, 担忧: 68, 高兴: 0, 紧张: 76, 愤怒: 18, 羞耻: 34, 悲伤: 58, 好奇: 8, 麻木: 44, 嫉妒: 0, 绝望: 48 }
       : { 冷静: proud ? 54 : 32, 恐惧: possess ? 34 : 16, 担忧: 28, 高兴: 2, 紧张: possess ? 46 : 24, 愤怒: proud ? 30 : 12, 羞耻: 10, 悲伤: 8, 好奇: 22, 麻木: 4, 嫉妒: 0, 绝望: 6 };
-    const feelingBase = vulnerable
-      ? { 了解: 1, 信任: 6, 反抗: 18, 好感: 2, 友情: 0, 亲情: 0, 爱情: 0, 肉欲: 0, 畏惧: 72, 尊敬: 0, 崇拜: 0, 讨厌: 22, 依赖: 16, 警惕: 82, 支配欲: 0, 占有欲: 0, 服从: 28 }
-      : { 了解: 1, 信任: 18, 反抗: proud ? 48 : 34, 好感: 4, 友情: 0, 亲情: 0, 爱情: 0, 肉欲: 0, 畏惧: possess ? 38 : 18, 尊敬: 0, 崇拜: 0, 讨厌: 16, 依赖: 0, 警惕: 60, 支配欲: proud ? 28 : 6, 占有欲: 0, 服从: possess ? 8 : 2 };
+    const feelingOverrides = vulnerable
+      ? { 了解: 1, 信任: 6, 反抗: 18, 好感: 2, 友情: 0, 亲情: 0, 爱情: 0, 肉欲: 0, 畏惧: 72, 尊敬: 0, 崇拜: 0, 讨厌: 22, 依赖: 16, 警惕: 82, 支配: 0, 占有: 0, 服从: 28 }
+      : { 了解: 1, 信任: 18, 反抗: proud ? 48 : 34, 好感: 4, 友情: 0, 亲情: 0, 爱情: 0, 肉欲: 0, 畏惧: possess ? 38 : 18, 尊敬: 0, 崇拜: 0, 讨厌: 16, 依赖: 0, 警惕: 60, 支配: proud ? 28 : 6, 占有: 0, 服从: possess ? 8 : 2 };
+    const emotionBase = { ...metrics.defaults.emotions, ...emotionOverrides };
+    const feelingBase = { ...metrics.defaults.playerFeelings, ...feelingOverrides };
     const actor = this.pronoun(store);
     return {
-      emotions: this.metricList(emotionBase, actor, 'emotion', vulnerable, possess),
-      playerFeelings: this.metricList(feelingBase, actor, 'player', vulnerable, possess),
+      emotions: this.metricList(metrics.emotionKeys, emotionBase, actor, 'emotion', vulnerable, possess),
+      playerFeelings: this.metricList(metrics.playerKeys, feelingBase, actor, 'player', vulnerable, possess),
     };
   },
 
-  metricList(values, actor, type, vulnerable, possess) {
-    return Object.entries(values).map(([key, value]) => {
+  metricList(keys, values, actor, type, vulnerable, possess) {
+    return keys.map((key) => {
+      const value = values[key] ?? 0;
       const stage = window.GameModules.metrics.stageFor(key, value);
       return { key, value, status: this.metricStatus(actor, key, stage), reason: this.metricReason(actor, key, type, vulnerable, possess) };
     });

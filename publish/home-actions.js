@@ -104,31 +104,47 @@ window.GameModules.homeActions = {
   async loadSlotFromHome(slot) {
     if (this.busy || !this.saveMeta(slot).exists) return;
     this.busy = true;
+    this.homeLoadSlot = slot;
+    this.setHomeLoadProgress(2, `准备载入 ${slot}…`);
     try {
+      await this.yieldHomeLoadUi?.();
+      await this.loadGameplayAssetsWithHomeProgress?.(8, 22);
+      await this.yieldHomeLoadUi?.();
+      this.setHomeLoadProgress(32, '合并应用能力…');
+      window.GameModules.remergeGameStore?.();
+      await this.yieldHomeLoadUi?.();
+      this.setHomeLoadProgress(38, '读取存档并初始化世界…');
       await this.openSlot(slot);
+      await this.yieldHomeLoadUi?.();
+      this.setHomeLoadProgress(52, '存档已读取');
       await this.refreshSaveMetas?.();
       if (!this.phoneSetupDone) {
+        this.setHomeLoadProgress(60, '加载新游戏资源…');
+        await this.ensureNewGameAssetsReady?.();
         this.homeMessage = `${slot} 尚未完成手机激活，请从新游戏继续设置。`;
         this.homeScreenView = 'new-game';
         return;
       }
+      this.setHomeLoadProgress(58, '恢复角色与玩法状态…');
       this.loadSavedRpgStates?.();
       this.ensureCatalogSelection?.();
+      await this.yieldHomeLoadUi?.();
+      this.setHomeLoadProgress(68, '加载角色卡…');
       await this.initPredefinedRoleCards?.();
+      await this.yieldHomeLoadUi?.();
       if (!this.hasPlayerAspiration?.()) {
+        this.setHomeLoadProgress(100, '载入完成');
         this.saveMessage = `已载入 ${slot}`;
         this.openPlayerAspirationWizard?.();
       } else {
-        this.homeScreenView = 'playing';
-        this.homeSavePanelOpen = false;
-        this.desktopUnlocked = false;
         this.saveMessage = `已载入 ${slot}`;
-        this.startStartupWarmup?.();
+        await this.enterPlayingFromSetup?.();
       }
     } catch (err) {
       console.error('[首页] 载入存档失败:', err.message, err.stack);
       this.homeMessage = err.message || '载入存档失败';
     } finally {
+      this.clearHomeLoadProgress?.();
       this.busy = false;
     }
   },
@@ -159,11 +175,40 @@ window.GameModules.homeActions = {
   },
 
   async enterPlayingFromSetup() {
-    this.aspirationSetupOpen = false;
-    this.homeScreenView = 'playing';
-    this.homeSavePanelOpen = false;
-    this.homeMessage = '';
-    this.desktopUnlocked = false;
-    this.startStartupWarmup?.();
+    if (this._enterPlayingPromise) return this._enterPlayingPromise;
+    this._enterPlayingPromise = (async () => {
+      this.phoneDesktopBooting = true;
+      this.aspirationSetupOpen = false;
+      if (!this.homeLoadActive) {
+        this.setHomeLoadProgress?.(5, '正在进入手机桌面…');
+      } else {
+        this.setHomeLoadProgress?.(12, '正在进入手机桌面…');
+      }
+      await this.yieldHomeLoadUi?.();
+      try {
+        await this.loadGameplayAssetsWithHomeProgress?.(12, 72);
+      } catch (err) {
+        console.warn('[首页] 玩法资源加载失败:', err?.message || err);
+      }
+      this._desktopModulesReady = true;
+      this.setHomeLoadProgress?.(88, '初始化应用模块…');
+      window.GameModules.remergeGameStore?.();
+      this.runDeferredInits?.();
+      await this.yieldHomeLoadUi?.();
+      this.homeScreenView = 'playing';
+      this.homeSavePanelOpen = false;
+      this.homeMessage = '';
+      this.desktopUnlocked = false;
+      this.setHomeLoadProgress?.(96, '即将完成…');
+      await this.yieldHomeLoadUi?.();
+      this.phoneDesktopBooting = false;
+      this.setHomeLoadProgress?.(100, '载入完成');
+      await this.yieldHomeLoadUi?.();
+      this.clearHomeLoadProgress?.();
+      this.startStartupWarmup?.();
+    })().finally(() => {
+      this._enterPlayingPromise = null;
+    });
+    return this._enterPlayingPromise;
   },
 };

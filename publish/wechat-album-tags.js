@@ -11,7 +11,11 @@ window.GameModules.wechatAlbumTagActions = {
     const { state, profile } = this.wechatAlbumStateData(contact);
     const selected = draft ? this.wechatAlbumSelectedText() : null;
     const identityItems = selected?.identityItems || this.wechatAlbumIdentityItems(contact, state, profile);
-    const defaultBodyItems = this.wechatAlbumBodyItems(kind === 'dressed' ? profile.dressedProfile : profile.bodyProfile);
+    const defaultBodyItems = this.wechatAlbumBodyItems(
+      kind === 'dressed' ? profile.dressedProfile : profile.bodyProfile,
+      profile,
+      kind,
+    );
     const bodyItems = selected?.bodyItems?.length ? selected.bodyItems : defaultBodyItems;
     const bodyText = selected?.bodyText || bodyItems.map((item) => item.text).join('\n');
     const extraText = selected?.extraText ? `，${selected.extraText}` : '';

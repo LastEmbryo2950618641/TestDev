@@ -97,9 +97,9 @@ window.GameModules.actions = {
     const rawStatus = String(target.raw?.status || '').trim();
     const status = isTemporary
       ? (metrics.cleanMetricStatus(rawStatus) || `${key}：短期状态。`)
-      : metrics.valueExplanation(key, value);
+      : metrics.resolveMetricStatus(key, value, rawStatus);
     const sources = target.raw?.metricSources || {};
-    const sourceText = `数值=${sources.数值 || '系统'} / 解释=${isTemporary ? (sources.解释 || '系统') : '系统'} / 原因=${sources.原因 || '系统'}`;
+    const sourceText = `数值=${sources.数值 || '系统'} / 解释=${sources.解释 || '系统'} / 原因=${sources.原因 || '系统'}`;
     return `定义: ${target.description}\n字段值来源: ${sourceText}\n解释: ${status}\n变化原因: ${reason}`;
   },
   metricTargetForNote(type, key, state = null) {

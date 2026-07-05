@@ -270,12 +270,17 @@ window.GameModules.roleCardLoadingActions = {
     return (this.roleCardLoadingState.cards || []).find((card) => card.id === id) || null;
   },
 
+  part2FeelingStepTotal() {
+    const metrics = window.GameModules?.metrics;
+    return (metrics?.emotionKeys?.length || 0) + (metrics?.playerKeys?.length || 0) || 47;
+  },
+
   roleCardLoadingDefaultSteps(type = '角色卡') {
     const first = type === '玩家卡' ? '生成玩家身份 Part1' : '生成角色身份 Part1';
     return [
       { key: 'profile', text: first, status: 'waiting', total: 19 },
       { key: 'essentialPreferences', text: '生成本质偏好五层', status: 'waiting', total: 5 },
-      { key: 'feeling', text: '生成情感数值 Part2', status: 'waiting', total: 29 },
+      { key: 'feeling', text: '生成情感数值 Part2', status: 'waiting', total: this.part2FeelingStepTotal() },
       { key: 'abilities', text: '生成能力职业 Part3', status: 'waiting', total: 3 },
       { key: 'inventory', text: '生成物品穿着 Part4', status: 'waiting', total: 13 },
       { key: 'bodyProfile', text: '生成身体原貌 Part5', status: 'waiting', total: 11 },

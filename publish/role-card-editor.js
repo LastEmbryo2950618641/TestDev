@@ -116,12 +116,18 @@ window.GameModules = window.GameModules || {};
   };
 
   actions.normalizeMetricList = function normalizeMetricList(list, keys, defaults) {
-    const byKey = new Map((Array.isArray(list) ? list : []).map((item) => [item?.key, item]));
+    const metrics = window.GameModules.metrics;
+    const byKey = new Map();
+    (Array.isArray(list) ? list : []).forEach((item) => {
+      const key = metrics.normalizeKey(item?.key, keys);
+      if (!keys.includes(key)) return;
+      if (!byKey.has(key)) byKey.set(key, { ...item, key });
+    });
     return keys.map((key) => {
       const item = byKey.get(key) || {};
       const sourceTool = window.GameModules.characterProfile;
       const metricSources = sourceTool?.metricSources?.(item, '系统') || { 数值: '系统', 解释: '系统', 原因: '系统' };
-      return { key, value: window.GameModules.metrics.clamp(item.value ?? defaults[key] ?? 0), status: item.status || '', reason: item.reason || '', metricSources };
+      return { key, value: metrics.clamp(item.value ?? defaults[key] ?? 0), status: item.status || '', reason: item.reason || '', metricSources };
     });
   };
 

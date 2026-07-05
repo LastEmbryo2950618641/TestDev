@@ -42,7 +42,7 @@
 5. experienceSummary 写 40 字内上线体验摘要。
 6. choices 是玩家可执行行动，不能包含“放开控制”。
 7. 不要返回 metricUpdates；角色卡创建阶段已经根据人物资料和备注生成 initialMetrics。
-8. 如果人物资料里出现爱情、肉欲、依赖、亲情、占有欲等关系倾向，只能用于 mind、intent、controlFeeling 和 choices 的心理依据，不得在这里重置数值。
+8. 如果人物资料里出现爱情、肉欲、依赖、亲情、占有等关系倾向，只能用于 mind、intent、controlFeeling 和 choices 的心理依据，不得在这里重置数值。
 
 ## 输出 JSON 格式
 

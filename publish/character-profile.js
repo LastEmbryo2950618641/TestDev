@@ -210,7 +210,7 @@ window.GameModules.characterProfile = {
       const part2Total = this.partProgressTotal(2, templates[2], attrs);
       let part2 = shouldReuse('feeling') ? retryParts.feeling : null;
       if (!part2) {
-        part2 = await this.generateOrDefaultPart(2, 'character-profile-part2-feeling', 'feeling', { ...commonVars, part1Summary: p1Summary, 本质偏好五层: essentialPrefSummary }, templates[2], namedBase, lore, attrs, store, part2Total);
+        part2 = await this.generateOrDefaultPart(2, 'character-profile-part2-feeling', 'feeling', { ...commonVars, part1Summary: p1Summary, 本质偏好五层: essentialPrefSummary, Part2情感语义: this.part2FeelingSemanticsText(namedBase) }, templates[2], namedBase, lore, attrs, store, part2Total);
         remember('feeling', part2);
       }
       const part3StartTotal = this.partProgressTotal(3, templates[3], attrs);
@@ -237,14 +237,14 @@ window.GameModules.characterProfile = {
       const part5Total = this.partProgressTotal(5, templates[5], attrs);
       let part5 = shouldReuse('bodyProfile') ? retryParts.bodyProfile : null;
       if (!part5) {
-        part5 = await this.generateOrDefaultPart(5, 'character-profile-part5-body-profile', 'bodyProfile', { ...commonVars, part1Summary: p1Summary }, templates[5], namedBase, lore, attrs, store, part5Total);
+        part5 = await this.generateOrDefaultPart(5, 'character-profile-part5-body-profile', 'bodyProfile', { ...commonVars, part1Summary: p1Summary, ...this.appearanceTagPromptVars('natural') }, templates[5], namedBase, lore, attrs, store, part5Total);
         remember('bodyProfile', part5);
       }
-      const p5Summary = this.bodyProfileSummary(part5.bodyProfile);
+      const p5Summary = this.bodyProfileSummary(part5.bodyProfile, part5.bodyProfileMeta);
       const part6Total = this.partProgressTotal(6, templates[6], attrs);
       let part6 = shouldReuse('dressedProfile') ? retryParts.dressedProfile : null;
       if (!part6) {
-        part6 = await this.generateOrDefaultPart(6, 'character-profile-part6-dressed-profile', 'dressedProfile', { ...commonVars, part1Summary: p1Summary, part4Summary: p4Summary, part5Summary: p5Summary }, templates[6], namedBase, lore, attrs, store, part6Total);
+        part6 = await this.generateOrDefaultPart(6, 'character-profile-part6-dressed-profile', 'dressedProfile', { ...commonVars, part1Summary: p1Summary, part4Summary: p4Summary, part5Summary: p5Summary, ...this.appearanceTagPromptVars('dressed') }, templates[6], namedBase, lore, attrs, store, part6Total);
         remember('dressedProfile', part6);
       }
       const part7Total = this.partProgressTotal(7, templates[7], attrs);
@@ -293,6 +293,11 @@ window.GameModules.characterProfile = {
       const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
       const layers = tool?.normalizeLayers?.(parsed?.essentialPreferenceLayers || parsed);
       if (layers?.layer1) {
+        if (!tool?.validateLayer5PsychComplete?.(layers.layer5)) {
+          console.warn('[角色卡] AI 生成 layer5 未满足 26 小类×3 标签，使用 Part1 推断兜底');
+          const fallback = this.fallbackEssentialPreferenceLayers(part1);
+          layers.layer5 = fallback.layer5;
+        }
         return { name: parsed?.name || base.name || part1.name, essentialPreferenceLayers: layers };
       }
     } catch (err) {
@@ -304,17 +309,73 @@ window.GameModules.characterProfile = {
   fallbackEssentialPreferenceLayers(part1 = {}) {
     const tool = window.GameModules.playerAspirationPreferenceLayers;
     const personality = String(part1.personality || '').trim();
+    const preferences = String(part1.preferences || '').trim();
+    const gender = String(part1.gender || '').trim();
     const alignment = /邪恶|自私|冷酷|算计|不择手段/.test(personality) ? '中立邪恶'
       : /善良|温柔|体贴|正直|守序/.test(personality) ? '中立善良'
       : '绝对中立';
     const cfg = window.GameModules.playerAspirationConfig;
     const alignLabel = cfg?.alignmentById?.(alignment)?.label || alignment;
+    const activeLean = /主动|直球|热情|积极|兄控|姐控/.test(personality);
+    const passiveLean = /高冷|三无|慢热|被动|傲娇/.test(personality);
+    const female = gender === '女';
+    const male = gender === '男';
+    const pick = (pool = [], count = 3) => [...new Set(pool.filter(Boolean))].slice(0, count);
+    const laneTags = (group) => {
+      const tags = [];
+      (group?.lanes || []).forEach((lane) => tags.push(...(lane.fallbackTags || [])));
+      return tags;
+    };
+    const emotionPrefTags = () => {
+      if (female) {
+        if (activeLean) return pick(['主动对异性', '兄控', '直球型', '保护型', '激情型']);
+        if (passiveLean) return pick(['被动被异性', '兄控', '慢热型', '依赖型']);
+        return pick(['异性偏好', '同龄偏好', '慢热型']);
+      }
+      if (male) {
+        if (activeLean) return pick(['主动对异性', '直球型', '保护型']);
+        if (passiveLean) return pick(['被动被异性', '慢热型', '依赖型']);
+        return pick(['异性偏好', '同龄偏好', '慢热型']);
+      }
+      return pick(['异性偏好', '同龄偏好', '慢热型']);
+    };
+    const appearanceTags = () => {
+      const appearanceGroup = cfg?.psychCategoryById?.('emotion')?.groups?.find((item) => item.id === 'appearance');
+      const pool = laneTags(appearanceGroup || {});
+      if (female) {
+        if (/萝莉|娇小|少女/.test(`${preferences}${personality}`)) return pick(['萝莉', '娇小', '白皮肤']);
+        return pick(['少年感', '成熟男', '高挑', ...pool]);
+      }
+      if (male) return pick(['少女', '御姐', '娇小', ...pool]);
+      return pick(pool);
+    };
+    const personalityGroup = cfg?.psychCategoryById?.('emotion')?.groups?.find((item) => item.id === 'personality');
+    const personalityTags = () => {
+      const pool = laneTags(personalityGroup || {});
+      const hits = pool.filter((tag) => personality.includes(tag));
+      if (hits.length >= 3) return pick(hits);
+      if (female && activeLean) return pick([...hits, '主动型', '温柔', '包容型']);
+      if (female && passiveLean) return pick([...hits, '被动型', '三无', '可靠']);
+      return pick([...hits, ...pool]);
+    };
+    const selected = {};
+    (cfg?.psychPreferenceCategories || []).forEach((category) => {
+      cfg.psychCategoryGroups(category).forEach((group) => {
+        if (group.id === 'emotion_pref') selected[group.id] = emotionPrefTags();
+        else if (group.id === 'appearance') selected[group.id] = appearanceTags();
+        else if (group.id === 'personality') selected[group.id] = personalityTags();
+        else if (group.id === 'partner_clothing') selected[group.id] = female ? pick(['休闲风', '简洁穿搭', '成熟穿搭', ...laneTags(group)]) : male ? pick(['JK服装', '连衣裙', '双马尾', ...laneTags(group)]) : pick(laneTags(group));
+        else if (group.id === 'partner_makeup') selected[group.id] = female ? pick(['干净清爽', '素颜即可', '阳光感', ...laneTags(group)]) : male ? pick(['淡颜系', '精致妆容', '清新裸妆', ...laneTags(group)]) : pick(laneTags(group));
+        else selected[group.id] = pick(laneTags(group));
+      });
+    });
+    const psychPreferences = { selected };
     return tool.normalizeLayers({
       layer1: tool.formatLayer1(alignLabel),
       layer2: tool.formatLayer2(50, '理性感性居中'),
       layer3: tool.formatLayer3(cfg?.defaultAxes?.()),
       layer4: tool.formatLayer4(cfg?.defaultGuiltAxes?.()),
-      layer5: `心理偏好: ${String(part1.preferences || personality || '未显化').slice(0, 80)}`,
+      layer5: tool.formatLayer5(psychPreferences),
     });
   },
 
@@ -349,7 +410,144 @@ window.GameModules.characterProfile = {
     return templates;
   },
 
+  playerCardAiPartEnabled(store, partIndex, base = {}) {
+    if (base.id !== 'player-self' && !base.isPlayer) return true;
+    const flags = store?.playerProfile?.playerCardAiParts;
+    const map = { 2: 'part2', 5: 'part5', 6: 'part6' };
+    const key = map[partIndex];
+    if (!key) return true;
+    if (!flags || typeof flags !== 'object') return true;
+    return flags[key] !== false;
+  },
+
+  isPlayerSelfTarget(base = {}) {
+    return base.id === 'player-self' || Boolean(base.isPlayer);
+  },
+
+  part2FeelingSemanticsText(base = {}) {
+    const statusRule = [
+      'status 写法（必须遵守）：',
+      '- 写该数值强度下当前的具体表现/状态，12-50 字；禁止写「指标名+数字」前缀（如「肉欲100：」「高兴40：」）。',
+      '- 禁止模板句「这种感受几乎压倒性支配心理与反应」「已经清楚存在，会影响当下反应」等空泛强度套话。',
+      '- 例（肉欲高）：靠近哥哥时身体发软、被触碰易兴奋；例（高兴中）：见到哥哥时心底欢喜但表面仍淡然。',
+      'reason 写形成该数值的具体证据，可与 status 分工，不要复读 status。',
+    ].join('\n');
+    if (!this.isPlayerSelfTarget(base)) {
+      return [
+        '本目标为出场人物（非玩家本人）。',
+        'feeling.emotions：角色面对当前处境的即时情绪。',
+        'feeling.playerFeelings：角色对玩家本人的关系感受（25 项固定 key）；status/reason 禁止写“玩家”，须用关系称呼或姓名。',
+        '亲属/同住不能自动压低亲情、爱情、好感、信任、依赖、占有；90-100 的亲情、爱情、肉欲、依赖、占有、服从、崇拜、好感、信任、想念应写成盲从式固化倾向。',
+        statusRule,
+      ].join('\n');
+    }
+    return [
+      '本目标是玩家本人，不是任何 NPC。',
+      'feeling.emotions：玩家本人当前即时情绪（22 项）；写本人此刻真实情绪，不是对他人的感受。',
+      'feeling.playerFeelings：玩家本人当前内在感觉/心理倾向（25 项固定 key）；不是对任何人的关系感受，不得写“对玩家”“对你”“对某人的好感/信任”等句式。',
+      'playerFeelings 各 key 按本人当下心理状态理解：了解=自我认知，信任=自信，警惕=风险戒备，好感=自我接纳，友情=社交连接需求，亲情=家庭归属感，爱情=亲密需求，想念=牵挂倾向，感恩=知恩图报倾向，愧疚=自责倾向，同情=共情倾向，怜惜=护短倾向，讨厌=自我厌恶，怨怼=积怨倾向，敌意=对抗倾向，反抗=内心不服，服从=顺从倾向，支配=掌控欲，占有=独占欲，畏惧=自我畏惧，尊敬=自尊，崇拜=自我理想化，依赖=对外依赖，期待=盼望倾向，肉欲=身体冲动。',
+      'status/reason 须用第一人称或本人姓名指代，结合本人性格、人生取向与当前处境。',
+      statusRule,
+    ].join('\n');
+  },
+
+  metricGroupSemanticsText(base = {}, group = '') {
+    const statusRule = 'status 写该数值强度下的具体表现（禁止「指标名+数字：」前缀与空泛强度模板句）；reason 写形成证据。';
+    if (!this.isPlayerSelfTarget(base)) {
+      return group === 'emotions'
+        ? `情绪组：角色面对当前处境的即时情绪。${statusRule}`
+        : `对玩家感觉组：角色对玩家本人的关系感受；禁止写“玩家”，须用关系称呼或姓名。${statusRule}`;
+    }
+    return group === 'emotions'
+      ? `情绪组：玩家本人当前即时情绪，不是对他人的感受。${statusRule}`
+      : `感觉组：玩家本人当前内在心理倾向（非对任何人的关系感受）；各 key 按本人当下心理状态理解，不得写对某人的好感/信任/爱情等。${statusRule}`;
+  },
+
+  metricGroupDisplayName(base = {}, group = '') {
+    if (this.isPlayerSelfTarget(base)) return group === 'emotions' ? '情绪' : '感觉';
+    return group === 'emotions' ? '情绪' : '对玩家感觉';
+  },
+
+  buildDefaultFeelingPart(base = {}, template = {}) {
+    const isPlayerSelf = this.isPlayerSelfTarget(base);
+    const profile = {
+      name: base.name,
+      role: base.role,
+      job: base.job,
+      detail: base.detail,
+      relationships: base.relationships,
+      personality: base.personality,
+    };
+    const emotions = window.GameModules.metrics.emotionKeys.map((key) => {
+      const metric = this.defaultMetric(key, 'emotion', profile, isPlayerSelf);
+      return { key, value: metric.value, status: metric.status, reason: metric.reason };
+    });
+    const playerFeelings = window.GameModules.metrics.playerKeys.map((key) => {
+      const metric = this.defaultMetric(key, 'player', profile, isPlayerSelf);
+      return { key, value: metric.value, status: metric.status, reason: metric.reason };
+    });
+    const feeling = this.normalizeFeelingObject({ emotions, playerFeelings });
+    const part = this.lockPartTargetName(2, { name: base.name, feeling }, base);
+    if (!this.feelingComplete(part.feeling)) throw new Error('Part2 系统缺省情感数值不完整');
+    return part;
+  },
+
+  buildDefaultAppearancePart(partIndex, base = {}, template = {}, store = null) {
+    const usePredefined = Boolean(store?.roleCardSetup?.usePredefinedPlayerCard);
+    const prc = window.GameModules.predefinedRoleCards;
+    const cardKey = usePredefined ? (prc?.cardKeyFor?.(base) || '') : '';
+    const sourceCard = usePredefined && cardKey ? window.GameModules.predefinedRoleCardData?.[cardKey] : null;
+    const stub = {
+      name: base.name,
+      appearance: base.appearance || sourceCard?.appearance || '',
+      preferences: base.preferences || sourceCard?.preferences || '',
+      detail: base.detail || sourceCard?.detail || '',
+      personality: base.personality || sourceCard?.personality || '',
+      essentialPreferenceLayers: base.essentialPreferenceLayers || sourceCard?.essentialPreferenceLayers,
+      psychPreferences: base.psychPreferences || sourceCard?.psychPreferences,
+      bodyProfile: sourceCard?.bodyProfile,
+      dressedProfile: sourceCard?.dressedProfile,
+      bodyProfileMeta: sourceCard?.bodyProfileMeta,
+      dressedProfileMeta: sourceCard?.dressedProfileMeta,
+    };
+    if (usePredefined && prc?.applyAppearanceProfile) {
+      prc.applyAppearanceProfile(stub, window.GameModules.predefinedAppearanceProfiles?.[cardKey]);
+      const field = partIndex === 6 ? 'dressedProfile' : 'bodyProfile';
+      const metaField = partIndex === 6 ? 'dressedProfileMeta' : 'bodyProfileMeta';
+      let partData = { name: base.name, [field]: stub[field], [metaField]: stub[metaField] };
+      if (!this.bodyProfileComplete(partData[field])) {
+        partData = this.completeBodyProfileFallback(partIndex, { ...partData, ...(template || {}) }, stub);
+      }
+      return this.lockPartTargetName(partIndex, partData, base);
+    }
+    const profileStub = {
+      appearance: base.appearance || '',
+      preferences: base.preferences || '',
+      detail: base.detail || '',
+      personality: base.personality || '',
+      essentialPreferenceLayers: base.essentialPreferenceLayers,
+      psychPreferences: base.psychPreferences,
+    };
+    const partData = this.completeBodyProfileFallback(partIndex, { name: base.name, ...(template || {}) }, profileStub);
+    return this.lockPartTargetName(partIndex, partData, base);
+  },
+
+  buildPlayerCardDefaultPart(partIndex, stepKey, template, base, lore, attrs, store, total) {
+    const loadingId = base.id;
+    const stepTotal = total ?? this.partProgressTotal(partIndex, template, attrs);
+    this.onProgress(store, loadingId, stepKey, 'running', '采用系统缺省值', { done: 0, total: stepTotal });
+    let part;
+    if (partIndex === 2) part = this.buildDefaultFeelingPart(base, template);
+    else if (partIndex === 5 || partIndex === 6) part = this.buildDefaultAppearancePart(partIndex, base, template, store);
+    else part = this.lockPartTargetName(partIndex, this.sanitizePart(partIndex, JSON.parse(JSON.stringify(template)), template), base);
+    this.onProgress(store, loadingId, stepKey, 'done', '系统缺省值已就绪', { done: this.partProgressDone(partIndex, part), total: stepTotal });
+    return part;
+  },
+
   async generateOrDefaultPart(partIndex, promptId, stepKey, vars, template, base, lore, attrs, store, total) {
+    if (!this.playerCardAiPartEnabled(store, partIndex, base)) {
+      return this.buildPlayerCardDefaultPart(partIndex, stepKey, template, base, lore, attrs, store, total);
+    }
     if (partIndex === 2) {
       return this.generatePart2Progressive(promptId, stepKey, vars, template, base, lore, attrs, store, total);
     }
@@ -468,11 +666,47 @@ window.GameModules.characterProfile = {
     ].join('\n');
   },
 
+  appearanceTagPromptVars(kind = 'natural') {
+    const tags = window.GameModules.appearanceProfileTags;
+    if (!tags) return {};
+    if (kind === 'dressed') {
+      return {
+        dressedPartTagGuide: tags.partTagGuide('dressed'),
+      };
+    }
+    return {
+      naturalPartTagGuide: tags.partTagGuide('natural'),
+    };
+  },
+
+  normalizeAppearanceProfilePart(partIndex, data = {}, base = {}) {
+    const tags = window.GameModules.appearanceProfileTags;
+    if (!tags || ![5, 6].includes(partIndex)) return data;
+    const profileStub = { appearance: base.appearance, preferences: base.preferences, detail: base.detail, personality: base.personality, essentialPreferenceLayers: data.essentialPreferenceLayers || base.essentialPreferenceLayers, psychPreferences: data.psychPreferences || base.psychPreferences };
+    const out = { ...(data || {}) };
+    if (partIndex === 5) {
+      out.bodyProfileMeta = tags.normalizeNaturalMeta(out.bodyProfileMeta, profileStub);
+      out.bodyProfile = this.bodyProfileParts().map((part, index) => {
+        const item = (Array.isArray(out.bodyProfile) ? out.bodyProfile : []).find((entry) => entry?.part === part) || {};
+        return tags.normalizePartItem(item, index + 1, part);
+      });
+    }
+    if (partIndex === 6) {
+      out.dressedProfileMeta = tags.normalizeDressedMeta(out.dressedProfileMeta, { ...profileStub, essentialPreferenceLayers: base.essentialPreferenceLayers, psychPreferences: base.psychPreferences });
+      out.dressedProfile = this.bodyProfileParts().map((part, index) => {
+        const item = (Array.isArray(out.dressedProfile) ? out.dressedProfile : []).find((entry) => entry?.part === part) || {};
+        return tags.normalizePartItem(item, index + 1, part);
+      });
+    }
+    return out;
+  },
+
   async normalizeJsonPart(partIndex, raw, base = {}) {
     let data = raw && typeof raw === 'object' ? raw : this.parsePartOutput(partIndex, String(raw || ''), base);
     if (partIndex === 3 && data) this.promotePart3Dependencies(data);
     if (partIndex === 2 && data?.feeling) data = { ...data, feeling: this.normalizeFeelingObject(data.feeling) };
     if (partIndex === 5 || partIndex === 6) data = this.completeBodyProfileFallback(partIndex, data, base);
+    if (partIndex === 5 || partIndex === 6) data = this.normalizeAppearanceProfilePart(partIndex, data, base);
     return data;
   },
 
@@ -519,14 +753,54 @@ window.GameModules.characterProfile = {
   },
 
   metricGroupAsArray(value, keys) {
-    if (Array.isArray(value)) return keys.map((key) => {
-      const item = value.find((entry) => entry?.key === key || entry?.name === key) || {};
-      return { key, value: item.value, status: item.status, reason: item.reason, metricSources: item.metricSources || item.sourceMap };
+    const metrics = window.GameModules.metrics;
+    const defaults = keys === metrics.emotionKeys ? metrics.defaults.emotions : metrics.defaults.playerFeelings;
+    const list = Array.isArray(value) ? value : [];
+    const byKey = new Map();
+    list.forEach((item) => {
+      const key = metrics.normalizeKey(item?.key || item?.name, keys);
+      if (!keys.includes(key)) return;
+      const prev = byKey.get(key);
+      byKey.set(key, prev ? {
+        ...prev,
+        ...item,
+        key,
+        value: item.value !== undefined ? item.value : prev.value,
+        status: String(item.status || prev.status || '').trim(),
+        reason: String(item.reason || prev.reason || '').trim(),
+        metricSources: item.metricSources || item.sourceMap || prev.metricSources || prev.sourceMap,
+      } : {
+        key,
+        value: item.value,
+        status: item.status,
+        reason: item.reason,
+        metricSources: item.metricSources || item.sourceMap,
+      });
     });
-    const source = value && typeof value === 'object' ? value : {};
+    if (!list.length && value && typeof value === 'object') {
+      const source = value;
+      keys.forEach((key) => {
+        const item = source[key] || Object.values(source).find((entry) => entry?.name === key || metrics.normalizeKey(entry?.name, keys) === key) || {};
+        if (item && (item.value !== undefined || item.status || item.reason)) {
+          byKey.set(key, {
+            key,
+            value: item.value,
+            status: item.status,
+            reason: item.reason,
+            metricSources: item.metricSources || item.sourceMap,
+          });
+        }
+      });
+    }
     return keys.map((key) => {
-      const item = source[key] || Object.values(source).find((entry) => entry?.name === key) || {};
-      return { key, value: item.value, status: item.status, reason: item.reason, metricSources: item.metricSources || item.sourceMap };
+      const item = byKey.get(key) || {};
+      return {
+        key,
+        value: item.value !== undefined ? item.value : (defaults[key] ?? 0),
+        status: item.status,
+        reason: item.reason,
+        metricSources: item.metricSources || item.sourceMap,
+      };
     });
   },
 
@@ -566,14 +840,16 @@ window.GameModules.characterProfile = {
     if (partIndex === 1 && key === 'jobConfirmed') return typeof value === 'boolean';
     if (partIndex === 1 && key === 'control_experience') return value && typeof value === 'object' && Number.isInteger(Number(value.上线次数)) && typeof value.习惯程度 === 'string';
     if (partIndex === 1 && key === 'factions') return this.arrayItemsComplete(value, ['faction', 'role', 'reason'], false);
-    if (partIndex === 1 && key === 'forcePositions') return this.arrayItemsComplete(value, ['force', 'position', 'reason'], false);
+    if (partIndex === 1 && key === 'forcePositions') return this.arrayItemsComplete(value, ['force', 'position', 'reason'], true);
     if (partIndex === 1 && key === 'initialMetrics') return this.initialMetricsComplete(value);
     if (partIndex === 2 && key === 'feeling') return this.feelingComplete(value);
     if (partIndex === 3 && ['skills', 'knowledge', 'professions'].includes(key)) return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', 'reason'], key === 'professions', (item) => this.learnedItemComplete(item));
     if (partIndex === 4 && key === 'items') return this.arrayItemsComplete(value, ['name', 'description', 'quantity', 'reason'], true, (item) => Number.isInteger(Number(item.quantity)) && Number(item.quantity) >= 1);
     if (partIndex === 4 && key === 'wearing') return this.wearingObjectComplete(value);
     if (partIndex === 5 && key === 'bodyProfile') return this.bodyProfileComplete(value);
+    if (partIndex === 5 && key === 'bodyProfileMeta') return window.GameModules.appearanceProfileTags?.naturalMetaComplete?.(value) || (value && typeof value === 'object' && String(value.height || '').trim() && String(value.weight || '').trim());
     if (partIndex === 6 && key === 'dressedProfile') return this.bodyProfileComplete(value);
+    if (partIndex === 6 && key === 'dressedProfileMeta') return window.GameModules.appearanceProfileTags?.dressedMetaComplete?.(value) || (value && typeof value === 'object');
     if (partIndex === 7 && key === 'rpgField') return this.rpgFieldComplete(value);
     if (Array.isArray(template)) return Array.isArray(value);
     if (template && typeof template === 'object') return value && typeof value === 'object';
@@ -647,8 +923,39 @@ window.GameModules.characterProfile = {
       && keys.every((key) => this.intrinsicBaseItemComplete(value.intrinsicBase?.[key]));
   },
 
+  backfillPart1SocialFields(part1 = {}, base = {}, store = null) {
+    const out = { ...(part1 || {}) };
+    const usePredefined = Boolean(store?.roleCardSetup?.usePredefinedPlayerCard);
+    const prc = window.GameModules.predefinedRoleCards;
+    const cardKey = usePredefined ? (prc?.cardKeyFor?.(base) || '') : '';
+    const preset = usePredefined && cardKey ? window.GameModules.predefinedRoleCardData?.[cardKey] : null;
+    if (!this.arrayItemsComplete(out.factions, ['faction', 'role', 'reason'], false)) {
+      if (preset?.factions?.length) out.factions = preset.factions;
+      else {
+        const factions = this.factionRoles(out, base).map((item) => ({
+          faction: item.faction || item.name || '',
+          role: item.role || item.position || '成员',
+          reason: String(item.reason || item.changeMode || `${item.faction || item.name}角色来自人物身份与关系证据。`).slice(0, 120),
+        })).filter((item) => item.faction && item.role);
+        if (factions.length) out.factions = factions;
+      }
+    }
+    const forcesIncomplete = !Array.isArray(out.forcePositions)
+      || !this.arrayItemsComplete(out.forcePositions, ['force', 'position', 'reason'], true)
+      || !out.forcePositions.length;
+    if (forcesIncomplete) {
+      if (preset?.forcePositions?.length) out.forcePositions = preset.forcePositions;
+      else {
+        const forces = this.forcePositions(out, base);
+        if (forces.length) out.forcePositions = forces;
+      }
+    }
+    return out;
+  },
+
   async completeMissingPart(partIndex, data, template, format, base, lore, attrs, store) {
     let current = this.lockPartTargetName(partIndex, data, base);
+    if (partIndex === 1) current = this.backfillPart1SocialFields(current, base, store);
     for (let i = 0; i < 2; i += 1) {
       let missing = this.missingPartFields(partIndex, current, template, base, attrs);
       if (!missing.length) return current;
@@ -1165,8 +1472,8 @@ window.GameModules.characterProfile = {
       const item = items.find((entry) => entry?.key === name || entry?.name === name) || {};
       return [key, { name, value: item.value, status: item.status, reason: item.reason }];
     }));
-    const emotionMap = { cold: '冷静', fear: '恐惧', worry: '担忧', joy: '高兴', tension: '紧张', anger: '愤怒', shame: '羞耻', sadness: '悲伤', curiosity: '好奇', numbness: '麻木', jealousy: '嫉妒', despair: '绝望' };
-    const playerMap = { understanding: '了解', trust: '信任', resistance: '反抗', affection: '好感', friendship: '友情', familyLove: '亲情', romanticLove: '爱情', lust: '肉欲', awe: '畏惧', respect: '尊敬', admiration: '崇拜', dislike: '讨厌', dependence: '依赖', vigilance: '警惕', dominance: '支配欲', possessiveness: '占有欲', submission: '服从' };
+    const emotionMap = window.GameModules.metrics.emotionEnglishKeys;
+    const playerMap = window.GameModules.metrics.playerEnglishKeys;
     const tasks = [];
     if (group === 'all' || group === 'emotions') {
       tasks.push((async () => {
@@ -1428,14 +1735,34 @@ window.GameModules.characterProfile = {
     return { name, dressedProfile: body.bodyProfile, _csvRows: rows };
   },
 
-  bodyProfileSummary(value) {
+  bodyProfileSummary(value, meta = null) {
+    const tags = window.GameModules.appearanceProfileTags;
+    const metaLine = meta ? tags?.formatNaturalMeta?.(meta) : '';
     const list = Array.isArray(value) ? value : [];
-    return list.map((item, index) => {
+    const partLines = list.map((item, index) => {
       const part = String(item?.part || item?.部位 || '').trim();
       const description = String(item?.description || item?.部位描写 || '').trim();
       if (!part || !description) return '';
-      return `${Number(item?.index || item?.序号) || index + 1}.${part}：${description}`;
-    }).filter(Boolean).join('\n') || '未生成身体原貌。';
+      const tagText = tags?.formatPartTags?.(item);
+      const prefix = `${Number(item?.index || item?.序号) || index + 1}.${part}`;
+      return tagText ? `${prefix}[${tagText}]：${description}` : `${prefix}：${description}`;
+    }).filter(Boolean).join('\n');
+    return [metaLine, partLines].filter(Boolean).join('\n') || '未生成身体原貌。';
+  },
+
+  dressedProfileSummary(value, meta = null) {
+    const tags = window.GameModules.appearanceProfileTags;
+    const metaLine = meta ? tags?.formatDressedMeta?.(meta) : '';
+    const list = Array.isArray(value) ? value : [];
+    const partLines = list.map((item, index) => {
+      const part = String(item?.part || item?.部位 || '').trim();
+      const description = String(item?.description || item?.部位描写 || '').trim();
+      if (!part || !description) return '';
+      const tagText = tags?.formatPartTags?.(item);
+      const prefix = `${Number(item?.index || item?.序号) || index + 1}.${part}`;
+      return tagText ? `${prefix}[${tagText}]：${description}` : `${prefix}：${description}`;
+    }).filter(Boolean).join('\n');
+    return [metaLine, partLines].filter(Boolean).join('\n') || '未生成盛装状态。';
   },
 
   part5RowIssue(parts) {
@@ -1498,6 +1825,8 @@ window.GameModules.characterProfile = {
 
   completeBodyProfileFallback(partIndex, data, base = {}) {
     const key = partIndex === 6 ? 'dressedProfile' : 'bodyProfile';
+    const metaKey = partIndex === 6 ? 'dressedProfileMeta' : 'bodyProfileMeta';
+    const tags = window.GameModules.appearanceProfileTags;
     const list = Array.isArray(data?.[key]) ? data[key] : [];
     const byPart = new Map();
     list.forEach((item) => {
@@ -1508,11 +1837,17 @@ window.GameModules.characterProfile = {
     const label = partIndex === 6 ? '盛装状态' : '自然状态';
     const filled = this.bodyProfileParts().map((part, index) => {
       const old = byPart.get(part);
-      if (old) return { index: index + 1, part, description: old.description };
+      if (old) return tags?.normalizePartItem?.(old, index + 1, part) || { index: index + 1, part, tags: [], description: old.description };
       const text = partIndex === 6 ? this.dressedProfilePromptText(part) : this.bodyProfilePromptText(part);
-      return { index: index + 1, part, description: `采用系统兜底${label}：${text}` };
+      return { index: index + 1, part, tags: [], description: `采用系统兜底${label}：${text}` };
     });
-    return { ...(data || {}), name: base.name || data?.name || '', [key]: filled };
+    const normalized = this.normalizeAppearanceProfilePart(partIndex, { ...(data || {}), name: base.name || data?.name || '', [key]: filled }, base);
+    if (!normalized[metaKey] && tags) {
+      normalized[metaKey] = partIndex === 6
+        ? tags.normalizeDressedMeta({}, { ...base, essentialPreferenceLayers: base.essentialPreferenceLayers, psychPreferences: base.psychPreferences })
+        : tags.normalizeNaturalMeta({}, base);
+    }
+    return normalized;
   },
 
   parseCsvInventoryPart(text, name = '') {
@@ -1662,8 +1997,8 @@ window.GameModules.characterProfile = {
     const playerFeelings = this.parseMetricGroupLines(rows, 'playerFeelings', window.GameModules.metrics.playerKeys).playerFeelings || [];
     if (strict && emotions.length !== window.GameModules.metrics.emotionKeys.length) throw new Error('emotions CSV 行数不完整');
     if (strict && playerFeelings.length !== window.GameModules.metrics.playerKeys.length) throw new Error('playerFeelings CSV 行数不完整');
-    const emotionMap = { 冷静: 'cold', 恐惧: 'fear', 担忧: 'worry', 高兴: 'joy', 紧张: 'tension', 愤怒: 'anger', 羞耻: 'shame', 悲伤: 'sadness', 好奇: 'curiosity', 麻木: 'numbness', 嫉妒: 'jealousy', 绝望: 'despair' };
-    const playerMap = { 了解: 'understanding', 信任: 'trust', 反抗: 'resistance', 好感: 'affection', 友情: 'friendship', 亲情: 'familyLove', 爱情: 'romanticLove', 肉欲: 'lust', 畏惧: 'awe', 尊敬: 'respect', 崇拜: 'admiration', 讨厌: 'dislike', 依赖: 'dependence', 警惕: 'vigilance', 支配欲: 'dominance', 占有欲: 'possessiveness', 服从: 'submission' };
+    const emotionMap = window.GameModules.metrics.chineseKeyMap('emotion');
+    const playerMap = window.GameModules.metrics.chineseKeyMap('player');
     const toObject = (items, map) => Object.fromEntries(items.map((item) => [map[item.key] || item.key, { name: item.key, value: item.value, status: item.status, reason: item.reason, metricSources: item.metricSources || this.metricSourceMap?.('ai') }]));
     return { name, feeling: { emotions: toObject(emotions, emotionMap), playerFeelings: toObject(playerFeelings, playerMap) }, _csvRows: rows };
   },
@@ -1856,43 +2191,66 @@ window.GameModules.characterProfile = {
   async metricGroupPrompt(profile, base, evidence, group, keys) {
     return window.GameModules.renderPrompt('character-profile-metric-group', {
       人物姓名: profile.name || base.name,
-      数值组名称: group === 'emotions' ? '情绪' : '对玩家感觉',
+      数值组名称: this.metricGroupDisplayName(base, group),
       根字段: group,
       字段列表: keys.join('、'),
+      数值组语义: this.metricGroupSemanticsText(base, group),
       人物角色卡: evidence.roleCard,
       玩家资料: evidence.playerProfile,
       世界观资料: evidence.worldLore,
       世界字段: evidence.worldFields,
       剧情关系事件: evidence.relationContext,
-      完整JSON骨架: this.metricGroupJsonSkeleton(group, keys),
-      完整行格式骨架: this.metricGroupSkeleton(group, keys),
+      完整JSON骨架: this.metricGroupJsonSkeleton(group, keys, base),
+      完整行格式骨架: this.metricGroupSkeleton(group, keys, base),
       首个字段: keys[0],
     });
   },
 
-  metricGroupSkeleton(group, keys) {
-    return keys.map((key) => `${key},0,${key}因为人物经历与关系事件形成当前数值,${key}源于人物过去经历和当前关系事件的影响`).join('\n');
+  metricGroupSkeleton(group, keys, base = {}) {
+    const towardPlayer = !this.isPlayerSelfTarget(base) && group === 'playerFeelings';
+    return keys.map((key) => {
+      const status = towardPlayer
+        ? `对${key}在当前关系下的具体强度表现`
+        : `当前${key}在该处境下的具体强度表现`;
+      const reason = towardPlayer
+        ? `${key}源于人物过去经历和与玩家的关系证据`
+        : `${key}源于人物过去经历和当前自我心理状态`;
+      return `${key},0,${status},${reason}`;
+    }).join('\n');
   },
 
-  metricGroupJsonSkeleton(group, keys) {
-    return JSON.stringify({ [group]: keys.map((key) => ({ key, value: 0, status: `${key}因为人物经历与关系事件形成当前数值`, reason: `${key}源于人物过去经历和当前关系事件的影响` })) });
+  metricGroupJsonSkeleton(group, keys, base = {}) {
+    const towardPlayer = !this.isPlayerSelfTarget(base) && group === 'playerFeelings';
+    return JSON.stringify({
+      [group]: keys.map((key) => ({
+        key,
+        value: 0,
+        status: towardPlayer ? `对${key}在当前关系下的具体强度表现` : `当前${key}在该处境下的具体强度表现`,
+        reason: towardPlayer ? `${key}源于人物过去经历和与玩家的关系证据` : `${key}源于人物过去经历和当前自我心理状态`,
+      })),
+    });
   },
 
   metricGroupRepairHint(base, group, keys, evidence = {}) {
-    const relationEvidence = group === 'playerFeelings' ? [
+    const relationEvidence = !this.isPlayerSelfTarget(base) && group === 'playerFeelings' ? [
       '修复 playerFeelings 时请重新参考下列证据，避免只照抄骨架里的 0：',
       `人物角色卡：${evidence.roleCard || ''}`,
       `玩家资料：${evidence.playerProfile || ''}`,
       `剧情关系事件：${evidence.relationContext || ''}`,
       '若证据中存在亲属、恋人、暧昧、依赖、占有、肉欲、畏惧、尊敬、支配等明确关系，相关 key 建议给出匹配数值，避免无依据地补成 0。',
-      '证据明确缺乏对应关系或冲动时，亲情、爱情、肉欲、依赖、占有欲等可以为 0。',
+      '证据明确缺乏对应关系或冲动时，亲情、爱情、肉欲、依赖、占有等可以为 0。',
+    ].join('\n') : '';
+    const selfEvidence = this.isPlayerSelfTarget(base) && group === 'playerFeelings' ? [
+      '修复 playerFeelings 时须写玩家本人当前内在心理倾向，不是对任何人的关系感受。',
+      '不得写“对玩家”“对你”“对某人的好感/信任”等句式；各 key 按本人当下心理状态理解。',
     ].join('\n') : '';
     return [
       `目标人物只能是：${base.name}。`,
       `目标数值组是 ${group}，但不要输出根字段名。`,
       `必须重写完整 ${group} 行列表，不是只输出报错的单个 key。`,
       relationEvidence,
-      `直接按这个完整行格式骨架保留 key 和行数，再根据证据改写 value/status/reason；骨架里的 value 0 只是占位，不能当默认值：\n${this.metricGroupSkeleton(group, keys)}`,
+      selfEvidence,
+      `直接按这个完整行格式骨架保留 key 和行数，再根据证据改写 value/status/reason；骨架里的 value 0 只是占位，不能当默认值：\n${this.metricGroupSkeleton(group, keys, base)}`,
       `${group} 必须按顺序完整包含：${keys.join('、')}，每个 key 精确一次，不能截断。`,
       '每一行都必须是 key,value,status,reason 四段；reason 是强制段，即使上一轮只有 status，也必须为同一个 key 补出 reason。',
       '本批 key 很少，必须完整输出每个 key；不要省略任何一行。',
@@ -1993,10 +2351,14 @@ window.GameModules.characterProfile = {
       ].join('\n');
     }
     if (partIndex === 2) {
+      const feelingHint = this.isPlayerSelfTarget(base)
+        ? 'feeling.emotions 写玩家本人当前即时情绪；feeling.playerFeelings 写玩家本人当前内在感觉（非对任何人的关系感受）。'
+        : 'feeling.emotions 写角色即时情绪；feeling.playerFeelings 写角色对玩家本人的关系感受。';
       return [
         nameHint,
         '必须返回 JSON 对象，含根字段 name 与 feeling。',
         'feeling 含 emotions 与 playerFeelings，各固定 key 齐全，每项含 name、value、status、reason。',
+        feelingHint,
         '禁止返回 CSV 或 Markdown。',
       ].join('\n');
     }
@@ -2016,10 +2378,11 @@ window.GameModules.characterProfile = {
     }
     if (partIndex === 5 || partIndex === 6) {
       const field = partIndex === 5 ? 'bodyProfile' : 'dressedProfile';
+      const metaField = partIndex === 5 ? 'bodyProfileMeta' : 'dressedProfileMeta';
       return [
         nameHint,
-        `必须返回 JSON：name、${field}（11 项数组，含 index/part/description）。`,
-        `必须完整覆盖：${this.bodyProfileParts().join('、')}；禁止 CSV。`,
+        `必须返回 JSON：name、${metaField}、${field}（11 项数组，含 index/part/tags/description）。`,
+        `必须完整覆盖：${this.bodyProfileParts().join('、')}；每部位 tags 2-4 个；禁止 CSV。`,
       ].join('\n');
     }
     return [
@@ -2061,10 +2424,16 @@ window.GameModules.characterProfile = {
     }
     if (partIndex === 5) {
       if (!this.bodyProfileComplete(raw.bodyProfile)) throw new Error('Part5 缺少 bodyProfile 完整结构');
+      if (raw.bodyProfileMeta && !window.GameModules.appearanceProfileTags?.naturalMetaComplete?.(raw.bodyProfileMeta)) {
+        throw new Error('Part5 bodyProfileMeta 不完整（需 overall、figure、height、weight）');
+      }
       return raw;
     }
     if (partIndex === 6) {
       if (!this.bodyProfileComplete(raw.dressedProfile)) throw new Error('Part6 缺少 dressedProfile 完整结构');
+      if (raw.dressedProfileMeta && !window.GameModules.appearanceProfileTags?.dressedMetaComplete?.(raw.dressedProfileMeta)) {
+        throw new Error('Part6 dressedProfileMeta 不完整（需 styleBase、makeupBase）');
+      }
       return raw;
     }
     if (!this.rpgFieldComplete(raw.rpgField)) throw new Error('Part7 缺少 rpgField 完整结构');
@@ -2161,7 +2530,9 @@ window.GameModules.characterProfile = {
       items: this.carryItems(profile.items || base.items, '物品', { ...base, ...profile }),
       wearing: this.wearingObject(profile.wearing || base.wearing, { ...base, ...profile }),
       bodyProfile: Array.isArray(profile.bodyProfile) ? profile.bodyProfile : [],
+      bodyProfileMeta: profile.bodyProfileMeta || null,
       dressedProfile: Array.isArray(profile.dressedProfile) ? profile.dressedProfile : [],
+      dressedProfileMeta: profile.dressedProfileMeta || null,
       wearingItems: this.wearingItems(profile.wearing || base.wearing, { ...base, ...profile }),
       wearingRawRows: Array.isArray(profile._csvRows) ? profile._csvRows.filter((row) => String(row || '').startsWith('wearing,')) : [],
       worldValues: this.worldValues(profile.worldValues, attrs, base.name),
@@ -2507,7 +2878,7 @@ window.GameModules.characterProfile = {
 
   isReusableRoleCard(profile, signature = null) {
     const signatureOk = signature === null || profile?.roleCardInputSignature === signature;
-    return signatureOk && this.isRoleCard(profile) && this.hasRequiredRoleCardFieldReasons(profile.roleCardFieldReasons, profile) && this.hasRequiredInventoryReasons(profile) && this.hasRequiredInitialMetrics(profile.initialMetrics) && this.hasRequiredRpgFieldReasons(profile.rpgFieldReasons, profile?.worldAttributes);
+    return signatureOk && this.isRoleCard(profile) && this.hasRequiredRoleCardFieldReasons(profile.roleCardFieldReasons, profile) && this.hasRequiredInventoryReasons(profile) && this.initialMetricsComplete(profile.initialMetrics, { reuse: true }) && this.hasRequiredRpgFieldReasons(profile.rpgFieldReasons, profile?.worldAttributes);
   },
 
   rpgFieldReasonKeys(attrs = null) {
@@ -2548,12 +2919,42 @@ window.GameModules.characterProfile = {
     return this.requireRpgFieldReasons({ ...profile, rpgFieldReasons: value, worldAttributes: attrs }, attrs, profile?.name || '角色卡');
   },
 
+  initialMetricsCompletion(value) {
+    const metrics = window.GameModules.metrics;
+    const tally = (items, keys) => {
+      const list = Array.isArray(items) ? items : [];
+      const byKey = new Map();
+      list.forEach((item) => {
+        const key = metrics.normalizeKey(item?.key || item?.name, keys);
+        if (!keys.includes(key)) return;
+        byKey.set(key, item);
+      });
+      let complete = 0;
+      keys.forEach((key) => {
+        const item = byKey.get(key);
+        if (item && item.value !== undefined && String(item.status || '').trim() && String(item.reason || '').trim()) complete += 1;
+      });
+      return { complete, saved: byKey.size, total: keys.length };
+    };
+    return {
+      emotions: tally(value?.emotions, metrics.emotionKeys),
+      playerFeelings: tally(value?.playerFeelings, metrics.playerKeys),
+    };
+  },
+
+  initialMetricsComplete(value, { reuse = false } = {}) {
+    const { emotions, playerFeelings } = this.initialMetricsCompletion(value);
+    const full = emotions.complete === emotions.total && playerFeelings.complete === playerFeelings.total;
+    if (full) return true;
+    if (!reuse) return false;
+    const legacyEmotions = 12;
+    const legacyFeelings = 17;
+    return emotions.complete >= legacyEmotions && playerFeelings.complete >= legacyFeelings
+      && emotions.saved >= legacyEmotions && playerFeelings.saved >= legacyFeelings;
+  },
+
   hasRequiredInitialMetrics(value) {
-    const hasAll = (items, keys) => Array.isArray(items) && keys.every((key) => {
-      const item = items.find((entry) => entry?.key === key);
-      return item && item.value !== undefined && String(item.status || '').trim() && String(item.reason || '').trim();
-    });
-    return hasAll(value?.emotions, window.GameModules.metrics.emotionKeys) && hasAll(value?.playerFeelings, window.GameModules.metrics.playerKeys);
+    return this.initialMetricsComplete(value, { reuse: false });
   },
 
   validMetricText(text, key) {
@@ -2580,7 +2981,7 @@ window.GameModules.characterProfile = {
     return { emotions: normalize(value?.emotions, window.GameModules.metrics.emotionKeys, 'emotion'), playerFeelings: normalize(value?.playerFeelings, window.GameModules.metrics.playerKeys, 'player') };
   },
 
-  defaultMetric(key, type, profile = {}) {
+  defaultMetric(key, type, profile = {}, isPlayerSelf = false) {
     const name = profile.name || '该人物';
     const role = profile.role || profile.job || '当前身份';
     const detail = profile.detail || profile.personality || '当前人物资料';
@@ -2588,12 +2989,19 @@ window.GameModules.characterProfile = {
     const value = window.GameModules.metrics.clamp(defaults[key] ?? 0);
     const stage = window.GameModules.metrics.stageFor(key, value);
     const status = window.GameModules.metrics.stageStatus(key, stage);
-    let reason = type === 'emotion'
-      ? `${name}以${role}处在${detail}中，因此${key}按当前经历折算为初始状态。`
-      : `${name}与玩家的关系证据来自${profile.relationships || detail}，因此对玩家的${key}按初始接触状态记录。`;
-    if (key === '亲情' && /哥哥|姐姐|弟弟|妹妹|父亲|母亲|家人|亲属/.test(`${profile.relationships || ''} ${detail}`)) reason = `${name}与玩家存在明确亲属或家庭关系，因此亲情从人物关系中形成。`;
-    if (key === '了解') reason = `${name}只掌握玩家当前表现出的身份、关系和行为线索，了解程度按初始接触记录。`;
-    if (key === '警惕') reason = `${name}尚未完全确认玩家意图，会依据当前处境保持必要观察和防备。`;
+    let reason;
+    if (type === 'emotion') {
+      reason = `${name}以${role}处在${detail}中，因此${key}按当前经历折算为初始状态。`;
+    } else if (isPlayerSelf) {
+      reason = `${name}以${role}处在${detail}中，因此本人当前的${key}按自我心理状态记录。`;
+    } else {
+      reason = `${name}与玩家的关系证据来自${profile.relationships || detail}，因此对玩家的${key}按初始接触状态记录。`;
+    }
+    if (!isPlayerSelf && key === '亲情' && /哥哥|姐姐|弟弟|妹妹|父亲|母亲|家人|亲属/.test(`${profile.relationships || ''} ${detail}`)) reason = `${name}与玩家存在明确亲属或家庭关系，因此亲情从人物关系中形成。`;
+    if (!isPlayerSelf && key === '了解') reason = `${name}只掌握玩家当前表现出的身份、关系和行为线索，了解程度按初始接触记录。`;
+    if (!isPlayerSelf && key === '警惕') reason = `${name}尚未完全确认玩家意图，会依据当前处境保持必要观察和防备。`;
+    if (isPlayerSelf && key === '了解') reason = `${name}对自身身份、经历与当下处境有基本自我认知，了解程度按当前自我觉察记录。`;
+    if (isPlayerSelf && key === '警惕') reason = `${name}会依据当前处境保持必要风险意识与自我防备。`;
     return { value, status, reason };
   },
 
@@ -2628,21 +3036,41 @@ window.GameModules.characterProfile = {
     return String(text).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `id-${window.GameModules.rpgState.seed(text)}`;
   },
 
-  mergeDressedProfilePatch(current = [], patch = []) {
+  mergeProfileParts(current = [], patch = []) {
+    const tags = window.GameModules.appearanceProfileTags;
     const byPart = new Map((Array.isArray(current) ? current : []).map((item) => [String(item?.part || '').trim(), { ...item }]));
     (Array.isArray(patch) ? patch : []).forEach((item) => {
       const part = String(item?.part || '').trim();
       if (!part) return;
-      byPart.set(part, {
+      byPart.set(part, tags?.normalizePartItem?.(item, this.bodyProfileParts().indexOf(part) + 1, part) || {
         index: Number(item.index) || this.bodyProfileParts().indexOf(part) + 1,
         part,
+        tags: Array.isArray(item.tags) ? item.tags : [],
         description: String(item.description || '').trim(),
       });
     });
     return this.bodyProfileParts().map((part, index) => {
       const item = byPart.get(part);
-      return item?.description ? item : { index: index + 1, part, description: String(item?.description || '') };
+      return item?.description ? item : { index: index + 1, part, tags: item?.tags || [], description: String(item?.description || '') };
     });
+  },
+
+  mergeBodyProfilePatch(current = [], patch = []) {
+    return this.mergeProfileParts(current, patch);
+  },
+
+  mergeDressedProfilePatch(current = [], patch = []) {
+    return this.mergeProfileParts(current, patch);
+  },
+
+  mergeBodyProfileMeta(current = {}, patch = {}, profile = {}) {
+    const tags = window.GameModules.appearanceProfileTags;
+    return tags?.normalizeNaturalMeta?.({ ...(current || {}), ...(patch || {}) }, profile) || { ...(current || {}), ...(patch || {}) };
+  },
+
+  mergeDressedProfileMeta(current = {}, patch = {}, profile = {}) {
+    const tags = window.GameModules.appearanceProfileTags;
+    return tags?.normalizeDressedMeta?.({ ...(current || {}), ...(patch || {}) }, profile) || { ...(current || {}), ...(patch || {}) };
   },
 
   async patchDressedProfileParts(store, state, parts, contextVars = {}) {

@@ -47,8 +47,8 @@ window.GameModules.characterProfileTemplateClass = {
 
   part2() {
     return { name: '角色姓名', feeling: {
-      emotions: this.metricObject({ cold: '冷静', fear: '恐惧', worry: '担忧', joy: '高兴', tension: '紧张', anger: '愤怒', shame: '羞耻', sadness: '悲伤', curiosity: '好奇', numbness: '麻木', jealousy: '嫉妒', despair: '绝望' }),
-      playerFeelings: this.metricObject({ understanding: '了解', trust: '信任', resistance: '反抗', affection: '好感', friendship: '友情', familyLove: '亲情', romanticLove: '爱情', lust: '肉欲', awe: '畏惧', respect: '尊敬', admiration: '崇拜', dislike: '讨厌', dependence: '依赖', vigilance: '警惕', dominance: '支配欲', possessiveness: '占有欲', submission: '服从' }),
+      emotions: this.metricObject(window.GameModules.metrics.emotionEnglishKeys),
+      playerFeelings: this.metricObject(window.GameModules.metrics.playerEnglishKeys),
     } };
   },
 
@@ -102,44 +102,54 @@ window.GameModules.characterProfileTemplateClass = {
     return { name: '角色姓名', items: [{ name: '随身物品', description: '当前人物合理随身携带的物品。', quantity: 1, reason: '该物品由身份、场景和行动需要决定。' }], wearing: this.wearingObject() };
   },
 
+  naturalMetaTemplate() {
+    return window.GameModules.appearanceProfileTags?.naturalMetaTemplate?.()
+      || { overall: ['少女'], figure: ['纤细'], height: '158cm', weight: '43kg', skinTone: ['白皙'], aura: ['可爱'] };
+  },
+
+  dressedMetaTemplate() {
+    return window.GameModules.appearanceProfileTags?.dressedMetaTemplate?.()
+      || { styleBase: ['休闲'], makeupBase: ['日常淡妆'], colorScheme: ['米白'], hosiery: ['裸腿'], hairstyle: ['散发'], accessoryDensity: ['极简'] };
+  },
+
   bodyProfile() {
     return [
-      { index: 1, part: '头发', description: '天然头发的色泽、蓬松度和垂落走向。' },
-      { index: 2, part: '脸部', description: '素净面容的眉眼鼻唇与天然气色。' },
-      { index: 3, part: '耳朵', description: '耳廓、耳垂与耳后肌肤的自然形态。' },
-      { index: 4, part: '脖颈', description: '颈部线条、锁骨与颈窝的自然轮廓。' },
-      { index: 5, part: '胸部', description: '胸部未经束缚的天然轮廓和细节。' },
-      { index: 6, part: '双臂', description: '手臂、手腕、手背和手指的自然线条。' },
-      { index: 7, part: '小腹', description: '腹部、肚脐和呼吸起伏的自然状态。' },
-      { index: 8, part: '臀部', description: '臀部饱满度和腰臀连接处的自然弧线。' },
-      { index: 9, part: '神秘花园', description: '含蓄身体美学下的天然私密轮廓。' },
-      { index: 10, part: '双大腿', description: '大腿线条、肌肤质感和站立时的自然贴合。' },
-      { index: 11, part: '双小腿', description: '小腿肚、跟腱、脚踝和脚背的自然弧线。' },
+      { index: 1, part: '头发', tags: ['乌黑', '及腰'], description: '天然头发的色泽、蓬松度和垂落走向。' },
+      { index: 2, part: '脸部', tags: ['鹅蛋脸', '可爱'], description: '素净面容的眉眼鼻唇与天然气色。' },
+      { index: 3, part: '耳朵', tags: ['小巧'], description: '耳廓、耳垂与耳后肌肤的自然形态。' },
+      { index: 4, part: '脖颈', tags: ['修长'], description: '颈部线条、锁骨与颈窝的自然轮廓。' },
+      { index: 5, part: '胸部', tags: ['贫乳'], description: '胸部未经束缚的天然轮廓和细节。' },
+      { index: 6, part: '双臂', tags: ['纤细', '双手纤细'], description: '手臂、手腕、手背和手指的自然线条。' },
+      { index: 7, part: '小腹', tags: ['平坦'], description: '腹部、肚脐和呼吸起伏的自然状态。' },
+      { index: 8, part: '臀部', tags: ['小巧圆润'], description: '臀部饱满度和腰臀连接处的自然弧线。' },
+      { index: 9, part: '神秘花园', tags: ['无阴毛'], description: '含蓄身体美学下的天然私密轮廓。' },
+      { index: 10, part: '双大腿', tags: ['纤细'], description: '大腿线条、肌肤质感和站立时的自然贴合。' },
+      { index: 11, part: '双小腿', tags: ['纤细', '修长'], description: '小腿肚、跟腱、脚踝和脚背的自然弧线。' },
     ];
   },
 
   dressedProfile() {
     return [
-      { index: 1, part: '头发', description: '盛装造型后的发型、光泽和发饰效果。' },
-      { index: 2, part: '脸部', description: '完整妆容修饰后的眉眼鼻唇与肤色。' },
-      { index: 3, part: '耳朵', description: '佩戴耳饰后耳廓、耳垂与饰物反光。' },
-      { index: 4, part: '脖颈', description: '颈部饰品与锁骨颈线的盛装修饰。' },
-      { index: 5, part: '胸部', description: '胸衣、礼服或衬衣塑造后的胸部轮廓。' },
-      { index: 6, part: '双臂', description: '袖口、臂饰、手镯、戒指和指甲修饰。' },
-      { index: 7, part: '小腹', description: '束腰、腰带或紧身服饰塑形后的腰腹。' },
-      { index: 8, part: '臀部', description: '裙装或裤装包裹后的臀部线条。' },
-      { index: 9, part: '神秘花园', description: '下装精心遮掩与包裹后的含蓄状态。' },
-      { index: 10, part: '双大腿', description: '丝袜、裤袜、长靴或裙摆衬托的大腿状态。' },
-      { index: 11, part: '双小腿', description: '鞋袜与鞋履装饰修饰后的小腿线条。' },
+      { index: 1, part: '头发', tags: ['公主切', '发饰'], description: '盛装造型后的发型、光泽和发饰效果。' },
+      { index: 2, part: '脸部', tags: ['精致妆容'], description: '完整妆容修饰后的眉眼鼻唇与肤色。' },
+      { index: 3, part: '耳朵', tags: ['珍珠耳钉'], description: '佩戴耳饰后耳廓、耳垂与饰物反光。' },
+      { index: 4, part: '脖颈', tags: ['细链项链'], description: '颈部饰品与锁骨颈线的盛装修饰。' },
+      { index: 5, part: '胸部', tags: ['蕾丝内搭'], description: '胸衣、礼服或衬衣塑造后的胸部轮廓。' },
+      { index: 6, part: '双臂', tags: ['银手链'], description: '袖口、臂饰、手镯、戒指和指甲修饰。' },
+      { index: 7, part: '小腹', tags: ['细腰带'], description: '束腰、腰带或紧身服饰塑形后的腰腹。' },
+      { index: 8, part: '臀部', tags: ['紧身下装'], description: '裙装或裤装包裹后的臀部线条。' },
+      { index: 9, part: '神秘花园', tags: ['棉质内搭'], description: '下装精心遮掩与包裹后的含蓄状态。' },
+      { index: 10, part: '双大腿', tags: ['过膝袜'], description: '丝袜、裤袜、长靴或裙摆衬托的大腿状态。' },
+      { index: 11, part: '双小腿', tags: ['运动鞋', '中筒袜'], description: '鞋袜与鞋履装饰修饰后的小腿线条。' },
     ];
   },
 
   part5() {
-    return { name: '角色姓名', bodyProfile: this.bodyProfile() };
+    return { name: '角色姓名', bodyProfileMeta: this.naturalMetaTemplate(), bodyProfile: this.bodyProfile() };
   },
 
   part6() {
-    return { name: '角色姓名', dressedProfile: this.dressedProfile() };
+    return { name: '角色姓名', dressedProfileMeta: this.dressedMetaTemplate(), dressedProfile: this.dressedProfile() };
   },
 
   part7() {
