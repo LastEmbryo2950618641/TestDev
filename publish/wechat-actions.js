@@ -57,21 +57,63 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
       if (name === contact.name) push(state);
       else if (contact.relation && String(profile.role || '').trim() === String(contact.relation).trim() && profileTool.isConcreteName(name)) push(state);
     });
-    const pick = (pred) => candidates.find((state) => pred(state.profile));
-    return pick((profile) => profileTool.isReusableRoleCard?.(profile))
-      || pick((profile) => profileTool.isRoleCard?.(profile))
-      || candidates[0]
-      || null;
+    const scoreState = (state) => {
+      const profile = state?.profile;
+      if (!profile) return -1;
+      if (profileTool.isReusableRoleCard?.(profile)) return 300;
+      if (profileTool.isRoleCard?.(profile)) return 200;
+      if (profile.roleCard && profileTool.isConcreteName?.(profile.name)) return 50;
+      return 0;
+    };
+    if (!candidates.length) return null;
+    return [...candidates].sort((a, b) => scoreState(b) - scoreState(a))[0];
   },
   bindWechatCharacterState(state, contact = null) {
     if (!state?.profile) return state;
     const resolvedId = state.id || this.wechatCharacterId(contact) || state.profile.id;
     if (resolvedId) {
       this.rpgStates = { ...(this.rpgStates || {}), [resolvedId]: state };
+      if (contact?.id) {
+        let rebound = false;
+        this.wechatUsers = (this.wechatUsers || []).map((item) => {
+          if (item.id !== contact.id && item.characterId !== contact.characterId && item.name !== contact.name) return item;
+          if (item.characterId === resolvedId) return item;
+          rebound = true;
+          return { ...item, characterId: resolvedId };
+        });
+        if (rebound) this.save?.().catch((err) => console.warn('[微信] 联系人角色绑定保存失败:', err.message));
+      }
       this.syncWechatContactId(resolvedId);
       this.syncWechatContactProfileName(resolvedId, state.profile);
     }
     return state;
+  },
+  wechatMissingRoleCardMessage(contact = {}) {
+    const name = String(contact.name || '该联系人').trim() || '该联系人';
+    return `${name} 的存档角色卡不存在或资料不完整，请先在角色卡管理中确认已入库。`;
+  },
+  async reuseWechatCharacterProfile(contact) {
+    if (!contact || contact.group) return null;
+    const profileTool = window.GameModules.characterProfile;
+    const currentWorld = this.currentWorldTag?.() || window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
+    const existing = this.findWechatCharacterState(contact);
+    const reuseState = (state) => {
+      if (!state?.profile || !profileTool.isRoleCard?.(state.profile)) return null;
+      this.bindWechatCharacterState(state, contact);
+      profileTool.ensureInitialMetricSources?.(state.profile, state.profile, [state.profile.detail, state.note].filter(Boolean).join('；'), this)
+        .then((profile) => {
+          if (!profile || profile === state.profile) return;
+          state.profile = profile;
+          return window.GameModules.sqliteSave.saveCharacterState(state);
+        })
+        .catch((err) => console.warn('[微信] 角色数值来源补全失败:', err.code, err.message, err.stack));
+      return state;
+    };
+    const fromExisting = reuseState(existing);
+    if (fromExisting) return fromExisting;
+    const characterId = this.wechatCharacterId(contact);
+    const saved = profileTool.findSavedRoleCard?.({ id: characterId, name: contact.name, work: currentWorld }, '');
+    return reuseState(saved);
   },
   displayWechatContact(contact) {
     if (!contact || contact.group) return contact;
@@ -110,28 +152,24 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
     });
     return changed;
   },
-  async ensureWechatUserProfile(contact) {
+  async ensureWechatUserProfile(contact, options = {}) {
     if (!contact || contact.group) return null;
     this.wechatProfileInflight = this.wechatProfileInflight || {};
     if (this.wechatProfileInflight[contact.id]) return this.wechatProfileInflight[contact.id];
-    return this.wechatProfileInflight[contact.id] = this.ensureWechatUserProfileRun(contact).finally(() => { delete this.wechatProfileInflight[contact.id]; });
+    return this.wechatProfileInflight[contact.id] = this.ensureWechatUserProfileRun(contact, options).finally(() => { delete this.wechatProfileInflight[contact.id]; });
   },
-  async ensureWechatUserProfileRun(contact) {
+  async ensureWechatUserProfileRun(contact, options = {}) {
+    const reused = await this.reuseWechatCharacterProfile?.(contact);
+    if (reused) return reused;
+    if (!options.generateIfMissing) {
+      this.wechatError = this.wechatMissingRoleCardMessage(contact);
+      console.warn('[微信] 存档角色卡缺失:', contact?.name || contact?.id);
+      return null;
+    }
     const characterId = this.wechatCharacterId(contact);
     const profileTool = window.GameModules.characterProfile;
     const currentWorld = this.currentWorldTag?.() || window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
     const existing = this.findWechatCharacterState(contact);
-    if (existing?.profile && profileTool.isRoleCard?.(existing.profile)) {
-      this.bindWechatCharacterState(existing, contact);
-      profileTool.ensureInitialMetricSources?.(existing.profile, existing.profile, [existing.profile.detail, existing.note].filter(Boolean).join('；'), this)
-        .then((profile) => {
-          if (!profile || profile === existing.profile) return;
-          existing.profile = profile;
-          return window.GameModules.sqliteSave.saveCharacterState(existing);
-        })
-        .catch((err) => console.warn('[微信] 角色数值来源补全失败:', err.code, err.message, err.stack));
-      return existing;
-    }
     this.addRoleCardLoadingCard?.({ id: characterId, name: contact.name || '微信联系人', type: '角色卡' });
     const existingName = existing?.profile?.name || '';
     const contactNameConcrete = profileTool.isConcreteName(contact.name);
@@ -202,7 +240,7 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
     this.wechatUsers = list;
     const stored = this.wechatUsers[index >= 0 ? index : this.wechatUsers.length - 1];
     if (options.generateProfile !== false) {
-      try { await this.ensureWechatUserProfile(stored); }
+      try { await this.ensureWechatUserProfile(stored, { generateIfMissing: true }); }
       catch (err) { console.warn('[微信] 联系人资料生成失败:', err.code, err.message, err.stack); }
     }
     if (options.save !== false) await this.save?.();

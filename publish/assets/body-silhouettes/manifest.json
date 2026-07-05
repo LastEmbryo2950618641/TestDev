@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "note": "可选：在 assets 里填入你自有版权或已授权资源的 URL，会覆盖同 key 的本地 SVG。留空则始终使用本地轮廓。",
+  "assets": {
+    "female-loli": { "url": "" },
+    "female-shoujo": { "url": "" },
+    "female-onee": { "url": "" },
+    "male-boy": { "url": "" },
+    "male-youth": { "url": "" },
+    "male-mature": { "url": "" }
+  }
+}

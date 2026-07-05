@@ -65,10 +65,11 @@ Rules：
 - `level.value`：普通市民 3-6；受过训练者 7-15；精英 16-30；超凡者 30+。
 - `intrinsicBase.*.value`：体弱或幼小者 3-5；普通人 6-10；受过训练者 11-15；超凡者 16-20；高阶超凡者 30+。
 - `intrinsicBase` 固定七项：strength、agility、constitution、intelligence、perception、willpower、charisma。
+- `charisma`（魅力）必须同时评估：① 容貌与长相（五官、脸型、是否漂亮/可爱/清秀/英俊、体态与打扮带来的第一印象）；② 表达、气质与影响他人的社交能力。不得只看性格外向或话多与否；若 Part1/外貌资料明确长相出众，魅力不应明显偏低。
 - 不要生成 `derived`；攻击力与防御力由代码使用 `level.value` 与 `intrinsicBase.intelligence.value` 计算。
 
 ## 输出 JSON 模板
 
-{"name":"刘思琪","rpgField":{"level":{"value":3,"reason":"十六岁高中生且未受专业训练。"},"intrinsicBase":{"strength":{"value":5,"description":"力量低于成年平均","reason":"年龄和体型限制力量表现。"},"agility":{"value":8,"description":"身体灵活反应正常","reason":"年轻且日常体育课维持活动量。"},"constitution":{"value":7,"description":"健康但耐力一般","reason":"身体健康但缺少系统训练。"},"intelligence":{"value":9,"description":"学习理解能力良好","reason":"外国语学校学习经历支撑智力表现。"},"perception":{"value":10,"description":"观察细节较敏锐","reason":"性格安静使她更习惯观察他人。"},"willpower":{"value":6,"description":"压力下容易动摇","reason":"心思细腻且面对冲突较被动。"},"charisma":{"value":7,"description":"清秀但社交内敛","reason":"外貌清秀但主动表达较少。"}}}}
+{"name":"刘思琪","rpgField":{"level":{"value":3,"reason":"十六岁高中生且未受专业训练。"},"intrinsicBase":{"strength":{"value":5,"description":"力量低于成年平均","reason":"年龄和体型限制力量表现。"},"agility":{"value":8,"description":"身体灵活反应正常","reason":"年轻且日常体育课维持活动量。"},"constitution":{"value":7,"description":"健康但耐力一般","reason":"身体健康但缺少系统训练。"},"intelligence":{"value":9,"description":"学习理解能力良好","reason":"外国语学校学习经历支撑智力表现。"},"perception":{"value":10,"description":"观察细节较敏锐","reason":"性格安静使她更习惯观察他人。"},"willpower":{"value":6,"description":"压力下容易动摇","reason":"心思细腻且面对冲突较被动。"},"charisma":{"value":7,"description":"长相清秀但社交内敛","reason":"五官清秀带来基础外貌吸引力，但主动表达较少。"}}}}
 
 注意：示例只展示格式。实际输出必须根据输入人物重写所有字段。

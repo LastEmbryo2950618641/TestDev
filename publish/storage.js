@@ -123,6 +123,7 @@ window.GameModules.storage = {
     if (!save) return false;
     store.phoneSetupDone = save.phoneSetupDone ?? store.phoneSetupDone;
     store.phoneFixedTime = Number(save.phoneFixedTime) || new Date(save.playerProfile?.initializedAt || Date.now()).getTime();
+    store.refreshPhoneClockLabels?.();
     store.playerProfile = { ...store.playerProfile, ...(save.playerProfile || {}) };
     store.playerAspiration = save.playerAspiration || null;
     store.playerName = save.playerName || store.playerProfile?.name || store.playerName;

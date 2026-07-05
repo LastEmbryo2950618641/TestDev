@@ -7,7 +7,7 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatChatActi
     if (selected && bound?.profile && window.GameModules.characterProfile.isRoleCard?.(bound.profile)) {
       this.bindWechatCharacterState?.(bound, selected);
     } else if (selected && !window.GameModules.characterProfile.isConcreteName(profile?.name)) {
-      this.ensureWechatUserProfile?.(selected).then(() => this.save?.()).catch((err) => console.warn('[微信] 选中联系人资料补全失败:', err.code, err.message, err.stack));
+      this.ensureWechatUserProfile?.(selected, { generateIfMissing: true }).then(() => this.save?.()).catch((err) => console.warn('[微信] 选中联系人资料补全失败:', err.code, err.message, err.stack));
     }
     const renamed = this.syncWechatContactsFromRpgStates?.();
     this.wechatUsers = (this.wechatUsers || []).map((item) => item.id === this.wechatSelectedContact ? { ...item, unread: 0 } : item);

@@ -1,0 +1,20 @@
+{
+  "id": "图片1",
+  "overall": ["少女"],
+  "gender": "female",
+  "label": "少女参考 · 图片1",
+  "image": "figure.png",
+  "parts": [
+    { "part": "头发", "anchor": { "x": 50, "y": 9 }, "label": { "x": 10, "y": 6, "side": "left" } },
+    { "part": "脸部", "anchor": { "x": 50, "y": 15 }, "label": { "x": 10, "y": 13, "side": "left" } },
+    { "part": "耳朵", "anchor": { "x": 58, "y": 16 }, "label": { "x": 90, "y": 11, "side": "right" } },
+    { "part": "脖颈", "anchor": { "x": 50, "y": 21 }, "label": { "x": 90, "y": 17, "side": "right" } },
+    { "part": "胸部", "anchor": { "x": 50, "y": 29 }, "label": { "x": 10, "y": 24, "side": "left" } },
+    { "part": "双臂", "anchor": { "x": 74, "y": 34 }, "label": { "x": 90, "y": 26, "side": "right" } },
+    { "part": "小腹", "anchor": { "x": 50, "y": 43 }, "label": { "x": 10, "y": 40, "side": "left" } },
+    { "part": "臀部", "anchor": { "x": 50, "y": 53 }, "label": { "x": 90, "y": 49, "side": "right" } },
+    { "part": "神秘花园", "anchor": { "x": 50, "y": 59 }, "label": { "x": 90, "y": 57, "side": "right" } },
+    { "part": "双大腿", "anchor": { "x": 50, "y": 69 }, "label": { "x": 10, "y": 66, "side": "left" } },
+    { "part": "双小腿", "anchor": { "x": 48, "y": 83 }, "label": { "x": 10, "y": 80, "side": "left" } }
+  ]
+}

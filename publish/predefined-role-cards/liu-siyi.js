@@ -57,7 +57,7 @@ window.GameModules.predefinedRoleCardData['liu-siyi'] = {
         "心理学常识"
       ],
       "requiredIntrinsicBase": [
-        "精神稳定度"
+        "意志"
       ]
     },
     {
@@ -101,7 +101,7 @@ window.GameModules.predefinedRoleCardData['liu-siyi'] = {
         "初中学科知识"
       ],
       "requiredIntrinsicBase": [
-        "学习能力"
+        "智力"
       ]
     }
   ],

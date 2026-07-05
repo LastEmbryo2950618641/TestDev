@@ -59,8 +59,8 @@ window.GameModules.predefinedRoleCardData['liu-you'] = {
         "后端开发与数据库"
       ],
       "requiredIntrinsicBase": [
-        "学习能力",
-        "行动能力"
+        "智力",
+        "敏捷"
       ]
     },
     {
@@ -102,7 +102,7 @@ window.GameModules.predefinedRoleCardData['liu-you'] = {
       "requiredSkills": [],
       "requiredKnowledge": [],
       "requiredIntrinsicBase": [
-        "精神稳定度"
+        "意志"
       ]
     },
     {
@@ -146,7 +146,7 @@ window.GameModules.predefinedRoleCardData['liu-you'] = {
         "计算机科学基础"
       ],
       "requiredIntrinsicBase": [
-        "学习能力"
+        "智力"
       ]
     }
   ],
@@ -550,7 +550,7 @@ window.GameModules.predefinedRoleCardData['liu-you'] = {
     {
       "name": "程序工程师",
       "desc": "在成都星河云栈科技有限公司担任程序工程师，负责全栈开发、系统维护与技术支持，具备中级职称水平。",
-      "level": -1,
+      "level": 4,
       "levelEffects": {
         "lv1": {
           "程度介绍": "入门",
@@ -591,8 +591,8 @@ window.GameModules.predefinedRoleCardData['liu-you'] = {
         "后端开发与数据库"
       ],
       "requiredIntrinsicBase": [
-        "学习能力",
-        "行动能力"
+        "智力",
+        "敏捷"
       ],
       "reason": "刘悠拥有计算机硕士学历与4年工作经验，在现公司承担核心开发角色，绩效良好，属于中级工程师。",
       "description": "执行“程序工程师”相关行动时所需的理解、操作熟练度和稳定发挥能力。",

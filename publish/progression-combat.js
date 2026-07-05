@@ -31,10 +31,9 @@ Object.assign(window.GameModules.progression, {
       }
       const lv = this.clamp(item.level || 1, 1, 7);
       item.level = lv;
-      item.exp = item.exp || { current: 0, next: this.learnedNext[lv] };
+      this.normalizeLearnedExp(item);
       item.levelDescription = item.levelDescription || this.levelDescription(item.type, lv);
       item.effect = item.effect || this.levelEffect(item.name, item.type, lv);
-      item.exp.curve = 'lv1-7:100/250/600/1400/3200/7200/max';
     }
   },
 
@@ -66,7 +65,7 @@ Object.assign(window.GameModules.progression, {
 
   addLearnedExp(item, amount) {
     if (!item || !this.hasLearnedLevel(item) || item.level >= 7) return;
-    item.exp = item.exp || { current: 0, next: this.learnedNext[item.level || 1] };
+    this.normalizeLearnedExp(item);
     item.exp.current += amount;
     while (item.level < 7 && item.exp.current >= item.exp.next) {
       item.exp.current -= item.exp.next;

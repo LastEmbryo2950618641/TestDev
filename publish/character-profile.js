@@ -110,7 +110,7 @@ window.GameModules.characterProfile = {
     const hasFactions = Array.isArray(profile?.factions) && profile.factions.length;
     const forces = profile?.forcePositions || profile?.force_positions;
     const hasForces = Array.isArray(forces) && forces.length;
-    return Boolean(profile?.roleCard && this.isConcreteName(profile.name) && profile?.role && profile?.detail && profile?.personality && profile?.appearance && hasFactions && hasForces);
+    return Boolean(profile?.roleCard && this.isConcreteName(profile.name) && profile?.role && profile?.detail && profile?.personality && profile?.appearance && (hasFactions || hasForces));
   },
 
   isConcreteName(name) {

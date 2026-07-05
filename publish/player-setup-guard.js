@@ -15,6 +15,7 @@ window.GameModules = window.GameModules || {};
       const age = this.playerAgeFromBirthday(birthday);
       this.playerProfile = { ...p, name, birthday, age, refinedCity: p.refinedCity || p.city, refinedRole: p.refinedRole || p.dailyRole || `${age || ''}岁现代都市居民`, refinedLivingStatus: p.refinedLivingStatus || p.livingStatus, parentStatus: p.parentStatus || p.parents || '父母已故', parentDeathCause: p.parentDeathCause || '', initializedAt: p.initializedAt || new Date().toISOString() };
       this.phoneFixedTime = new Date(this.playerProfile.initializedAt).getTime();
+      this.refreshPhoneClockLabels?.();
       await this.syncPlayerProfileLexicon?.();
       this.playerName = name; this.phoneActivationChoice = ''; this.phoneSetupDone = true; this.desktopUnlocked = false;
       await this.ensurePlayerRpgState?.(true); await this.save?.();

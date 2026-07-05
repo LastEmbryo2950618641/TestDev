@@ -183,6 +183,7 @@ window.GameModules.playerSetupActions = {
       }
       this.playerProfile = this.normalizeEnrichedPlayerProfile(base, enriched);
       this.phoneFixedTime = new Date(this.playerProfile.initializedAt || Date.now()).getTime();
+      this.refreshPhoneClockLabels?.();
       await this.syncPlayerProfileLexicon();
       this.playerName = name;
       this.desktopUnlocked = false;

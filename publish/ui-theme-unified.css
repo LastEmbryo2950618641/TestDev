@@ -1,0 +1,312 @@
+/* 全量 UI 主题统一 — 最后加载，覆盖各模块硬编码颜色 */
+
+html[data-ui-theme] {
+  color-scheme: light dark;
+}
+
+/* 通用渐变背景 */
+html[data-ui-theme] :is(
+  .game-shell,
+  .company-app-screen,
+  .boss-app-screen,
+  .calendar-app-screen,
+  .faction-app-screen,
+  .skills-app-screen,
+  .prompt-app-screen,
+  .worldline-app-screen,
+  .taobao-app-screen,
+  .save-app-screen,
+  .settings-app-screen,
+  .role-card-json-app-screen,
+  .control-home-screen,
+  .character-select-screen
+) {
+  background:
+    radial-gradient(circle at 24% 12%, var(--ui-bg-gradient-a), transparent 30%),
+    radial-gradient(circle at 78% 76%, var(--ui-bg-gradient-b), transparent 34%),
+    linear-gradient(145deg, var(--ui-bg-elevated) 0%, var(--ui-bg-base) 52%, var(--ui-bg-elevated) 100%) !important;
+  color: var(--ui-text) !important;
+}
+
+/* 通用卡片 / 面板 */
+html[data-ui-theme] :is(
+  .company-card,
+  .boss-card,
+  .calendar-card,
+  .faction-card,
+  .skills-card,
+  .skills-app-card,
+  .worldline-app-card,
+  .worldline-card,
+  .control-home-card,
+  .character-select-card,
+  .phone-setup-card,
+  .entry-setup-card,
+  .profile-preview-card,
+  .prompt-app-modal,
+  .solidify-panel
+) {
+  background: var(--ui-surface) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+  box-shadow: 0 18px 60px var(--ui-shadow) !important;
+}
+
+html[data-ui-theme] .panel,
+html[data-ui-theme] .control-dock,
+html[data-ui-theme] .top-bar,
+html[data-ui-theme] .mind-panel,
+html[data-ui-theme] .character-panel,
+html[data-ui-theme] .profile-card,
+html[data-ui-theme] .novel-story,
+html[data-ui-theme] .novel-player {
+  background: var(--ui-surface) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+}
+
+/* ===== 现实推演 / 现实功能 ===== */
+html[data-ui-theme] .real-world-overlay,
+html[data-ui-theme] .real-world-function-backdrop {
+  background: color-mix(in srgb, var(--ui-bg-base) 82%, transparent) !important;
+  backdrop-filter: blur(16px) !important;
+}
+
+html[data-ui-theme] .real-world-dialog {
+  background: transparent !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .real-world-function-modal {
+  background: var(--ui-surface) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] :is(
+  .real-world-function-option,
+  .real-world-inventory-item,
+  .real-world-map-node,
+  .real-world-map-info-pop article,
+  .real-world-thinking-panel,
+  .real-world-settlement-row,
+  .real-world-map-summary
+) {
+  background: var(--ui-surface-soft) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] :is(
+  .real-world-function-option strong,
+  .real-world-inventory-item strong,
+  .real-world-map-term b,
+  .real-world-map-summary strong,
+  .real-world-thinking-panel b,
+  .identity-header h2,
+  .identity-header h3
+) {
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] :is(
+  .real-world-function-option small,
+  .real-world-inventory-item small,
+  .real-world-empty,
+  .real-world-clock,
+  .real-world-freedom-controls label,
+  .real-world-map-term span,
+  .identity-header small
+) {
+  color: var(--ui-text-muted) !important;
+}
+
+html[data-ui-theme] .real-world-entry-location {
+  color: var(--ui-accent) !important;
+}
+
+html[data-ui-theme] .real-world-freedom-controls label.active {
+  border-color: rgba(var(--ui-accent-rgb), .52) !important;
+  background: rgba(var(--ui-accent-rgb), .14) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .real-world-word-count-input,
+html[data-ui-theme] .real-world-freedom-controls input[type="radio"] {
+  accent-color: var(--ui-accent) !important;
+}
+
+html[data-ui-theme] .real-world-word-count-input {
+  background: var(--ui-surface) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] :is(
+  .real-world-log-pager button,
+  .real-world-map-info-btn,
+  .real-world-copy-btn,
+  .real-world-settings-btn,
+  .real-world-settlement-btn
+) {
+  border-color: var(--ui-border) !important;
+  background: var(--ui-surface-soft) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .real-world-choice-dock .story-choice-btn {
+  background: var(--ui-surface-soft) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .real-world-settlement-tabs button.active {
+  border-color: rgba(var(--ui-accent-rgb), .5) !important;
+  color: var(--ui-accent) !important;
+}
+
+/* ===== 子 App 内文字 / 控件 ===== */
+html[data-ui-theme] :is(
+  .company-tabs button,
+  .boss-tab,
+  .faction-toolbar button,
+  .faction-list button,
+  .skills-tab,
+  .worldline-tab,
+  .calendar-tab,
+  .slot-btn,
+  .control-role-item,
+  .save-slot-item
+) {
+  border-color: var(--ui-border) !important;
+  background: var(--ui-surface-soft) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] :is(
+  .company-tabs button.active,
+  .boss-tab.active,
+  .faction-list button.active,
+  .skills-tab.active,
+  .slot-btn.active
+) {
+  border-color: rgba(var(--ui-accent-rgb), .52) !important;
+  background: rgba(var(--ui-accent-rgb), .12) !important;
+  color: var(--ui-accent) !important;
+}
+
+html[data-ui-theme] :is(
+  .company-card small,
+  .boss-card small,
+  .faction-card small,
+  .skills-card small,
+  .worldline-card small,
+  .control-role-item small,
+  .field-label,
+  .intro,
+  .rules-box,
+  .role,
+  .quest-text,
+  .age-field small,
+  .psych-pref-count
+) {
+  color: var(--ui-text-muted) !important;
+}
+
+html[data-ui-theme] :is(
+  .company-card strong,
+  .boss-card strong,
+  .faction-card strong,
+  .skills-card strong,
+  .worldline-card strong,
+  .control-role-item strong,
+  h1, h2, h3, h4
+) {
+  color: var(--ui-text) !important;
+  text-shadow: none !important;
+}
+
+html[data-ui-theme] .ghost-wide,
+html[data-ui-theme] .ghost,
+html[data-ui-theme] .small-btn {
+  border-color: var(--ui-border) !important;
+  background: var(--ui-surface-soft) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] select,
+html[data-ui-theme] textarea,
+html[data-ui-theme] input.text-input,
+html[data-ui-theme] input[type="text"],
+html[data-ui-theme] input[type="password"],
+html[data-ui-theme] input[type="number"] {
+  background: var(--ui-surface) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .prompt-app-modal-backdrop {
+  background: color-mix(in srgb, var(--ui-bg-base) 80%, transparent) !important;
+}
+
+html[data-ui-theme] .solidify-panel header button,
+html[data-ui-theme] .solidify-actions button {
+  border-color: var(--ui-border) !important;
+  background: var(--ui-surface-soft) !important;
+  color: var(--ui-text) !important;
+}
+
+/* 浅色主题：强制黑字（覆盖残留浅色字） */
+html[data-ui-theme="light"] :is(.app-window, .real-world-function-modal, .game-shell) :is(p, span, small, label, li, dd, dt, em),
+html[data-ui-theme="pink"] :is(.app-window, .real-world-function-modal, .game-shell) :is(p, span, small, label, li, dd, dt, em),
+html[data-ui-theme="custom"][data-ui-custom-base="light"] :is(.app-window, .real-world-function-modal, .game-shell) :is(p, span, small, label, li, dd, dt, em) {
+  color: var(--ui-text-muted) !important;
+}
+
+html[data-ui-theme="light"] :is(.app-window, .real-world-function-modal, .game-shell) :is(strong, b, h1, h2, h3, h4),
+html[data-ui-theme="pink"] :is(.app-window, .real-world-function-modal, .game-shell) :is(strong, b, h1, h2, h3, h4),
+html[data-ui-theme="custom"][data-ui-custom-base="light"] :is(.app-window, .real-world-function-modal, .game-shell) :is(strong, b, h1, h2, h3, h4) {
+  color: var(--ui-text) !important;
+}
+
+/* ===== 手机桌面：时间 / 状态栏（必须可读） ===== */
+html[data-ui-theme] .phone-desktop-screen .phone-status-bar,
+html[data-ui-theme] .phone-desktop-screen .phone-status-bar > span {
+  position: relative;
+  z-index: 4;
+  color: var(--ui-text) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+html[data-ui-theme] .phone-desktop-screen .desktop-time-card {
+  position: relative;
+  z-index: 3;
+  background: var(--ui-surface) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .phone-desktop-screen .desktop-time-card strong {
+  display: block;
+  color: var(--ui-text) !important;
+  font-size: clamp(28px, 9vw, 42px) !important;
+  line-height: 1.05 !important;
+  letter-spacing: .02em !important;
+  text-shadow: none !important;
+}
+
+html[data-ui-theme] .phone-desktop-screen .desktop-time-card > span {
+  display: block;
+  color: var(--ui-text-muted) !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  text-shadow: none !important;
+}
+
+html[data-ui-theme="light"] .phone-frame::before,
+html[data-ui-theme="pink"] .phone-frame::before,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .phone-frame::before {
+  background: color-mix(in srgb, var(--ui-bg-base) 78%, #111 22%) !important;
+}

@@ -25,6 +25,7 @@ window.GameModules.settingsActions = {
   },
 
   prepareActivationModelSetup() {
+    window.GameModules.uiThemeActions?.initFromStore?.(this);
     void window.GameModules.localSettings?.prepareActivation?.(this).then(() => {
       this.ensureAiOutputLimitSettings?.();
       if (!Array.isArray(this.settingsState?.textModels) || !this.settingsState.textModels.length) {

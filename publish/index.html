@@ -24,6 +24,21 @@
   <link rel="stylesheet" href="settings-app.css">
   <link rel="stylesheet" href="role-card-json-app/role-card-json-app.css">
   <link rel="stylesheet" href="layout.css">
+  <link rel="stylesheet" href="ui-theme.css">
+  <link rel="stylesheet" href="ui-theme-overrides.css">
+  <link rel="stylesheet" href="ui-theme-unified.css">
+  <script>
+    (function () {
+      try {
+        var s = JSON.parse(localStorage.getItem('gamefy-local-settings-v1') || '{}');
+        document.documentElement.setAttribute('data-ui-theme', s.uiThemeId || 'dark');
+        document.documentElement.setAttribute('data-ui-density', 'compact');
+        if ((s.uiThemeId || 'dark') === 'custom' && s.uiThemeCustomColor) {
+          document.documentElement.style.setProperty('--ui-accent', s.uiThemeCustomColor);
+        }
+      } catch (_) {}
+    })();
+  </script>
   <script src="boot/script-loader.js"></script>
   <script src="boot/store-modules.js"></script>
   <script src="boot/script-manifest.js"></script>
@@ -287,6 +302,21 @@
           <pre class="settings-status activation-system-result" x-show="$store.game.systemTestState.result && !$store.game.systemTestState.error" x-text="$store.game.systemTestState.result"></pre>
         </section>
         <p class="settings-status">当前：<b x-text="$store.game.settingsState.textProvider"></b> · <b x-text="$store.game.modelId"></b></p>
+        <section class="model-setting-group">
+          <h3>界面风格</h3>
+          <small>深色 / 白色 / 粉色 / 薄荷，或自定义主题色。</small>
+          <div class="theme-swatch-row">
+            <template x-for="option in $store.game.themeOptions()" :key="`activation-theme-${option.id}`">
+              <button type="button" class="theme-swatch" :class="{ active: $store.game.settingsState.uiThemeId === option.id }" @click="$store.game.selectUiTheme(option.id)"><span class="theme-swatch-dot" :style="`background:${option.accent}`"></span><span x-text="`${option.emoji} ${option.name}`"></span></button>
+            </template>
+          </div>
+          <div class="theme-custom-row">
+            <span>自定义</span>
+            <input type="color" :value="$store.game.settingsState.uiThemeCustomColor" @input="$store.game.setUiThemeCustomColor($event.target.value)">
+            <input type="text" placeholder="#7fe5ff" :value="$store.game.settingsState.uiThemeCustomColor" @change="$store.game.setUiThemeCustomColor($event.target.value)">
+            <button type="button" class="theme-swatch" :class="{ active: $store.game.settingsState.uiThemeId === 'custom' }" @click="$store.game.setUiThemeCustomColor($store.game.settingsState.uiThemeCustomColor || '#7fe5ff')">🎨 应用</button>
+          </div>
+        </section>
       </div>
       <div class="activation-choice-grid">
         <button class="activation-choice" type="button" @click="$store.game.chooseExistingAccountSetup()" :disabled="$store.game.profileSetupBusy">使用已有账号激活新手机</button>
@@ -920,16 +950,16 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.phoneSetupDone && !$store.game.desktopUnlocked" class="phone-desktop-screen" x-init="if (!$store.game._phoneReminderTimer) { $store.game._phoneReminderTimer = setInterval(() => $store.game.checkWorkReminder?.(), 60000); }" x-effect="(!$store.game.loading && $store.game.phoneSetupDone && !$store.game.desktopUnlocked) && $store.game.ensureDesktopModulesReady?.()" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.phoneSetupDone && !$store.game.desktopUnlocked" class="phone-desktop-screen" x-init="if (!$store.game._phoneReminderTimer) { $store.game._phoneReminderTimer = setInterval(() => $store.game.checkWorkReminder?.(), 60000); } $store.game.refreshPhoneClockLabels?.();" x-effect="if (!$store.game.loading && $store.game.phoneSetupDone && !$store.game.desktopUnlocked) { $store.game.refreshPhoneClockLabels?.(); $store.game.ensureDesktopModulesReady?.(); }" x-cloak>
     <div class="phone-frame">
       <button class="phone-collapse-btn" type="button" @click="$store.game.routeCurrentWorldAction()" aria-label="收起手机">收起手机</button>
       <div class="phone-status-bar">
-        <span x-text="$store.game.phoneTimeText().slice(0, 5)"></span>
+        <span x-text="$store.game.phoneClockLabelShort"></span>
         <span x-text="$store.game.currentWorldLabel()"></span>
         <span>5G  88%</span>
       </div>
       <div class="desktop-time-card">
-        <strong x-text="$store.game.phoneTimeText()"></strong>
+        <strong x-text="$store.game.phoneClockLabelFull"></strong>
         <span x-text="$store.game.phoneDateText()"></span>
         <span x-text="$store.game.currentWorldBadgeText()"></span>
       </div>
@@ -948,34 +978,28 @@
       <div class="desktop-pager" @pointerdown="$store.game.startDesktopSwipe($event)" @pointerup="$store.game.endDesktopSwipe($event)" @pointercancel="$store.game.cancelDesktopSwipe()">
         <div class="desktop-pages" :style="`transform: translateX(-${$store.game.desktopPage * 100}%);`">
           <div class="desktop-apps">
-            <button class="desktop-app-icon control-icon" type="button" @click="$store.game.openDesktopApp()" aria-label="打开我要狠狠操控"><span class="app-glyph">控</span><b>我要狠狠操控</b></button>
-            <button class="desktop-app-icon identity-icon" type="button" @click="$store.game.openIdentityApp('player-self')" aria-label="打开身份证"><span class="app-glyph">证</span><b>身份证</b></button>
-            <button class="desktop-app-icon wechat-icon" type="button" @click="$store.game.openWechatApp()" aria-label="打开微信"><span class="app-glyph">微</span><b>微信</b></button>
-            <button class="desktop-app-icon company-icon" type="button" @click="$store.game.openCompanyApp()" aria-label="打开公司"><span class="app-glyph">司</span><b>公司</b></button>
-            <button class="desktop-app-icon boss-icon" type="button" @click="$store.game.openBossApp()" aria-label="打开BOSS招聘"><span class="app-glyph">聘</span><b>BOSS招聘</b></button>
-            <button class="desktop-app-icon calendar-icon" type="button" @click="$store.game.openCalendarApp()" aria-label="打开日历"><span class="app-glyph">历</span><b>日历</b></button>
-            <button class="desktop-app-icon faction-icon" type="button" @click="$store.game.openFactionApp()" aria-label="打开势力"><span class="app-glyph">势</span><b>势力</b></button>
-            <button class="desktop-app-icon skills-icon" type="button" @click="$store.game.openSkillsApp()" aria-label="打开Skills"><span class="app-glyph">技</span><b>Skills</b></button>
-          </div>
-          <div class="desktop-apps">
-            <button class="desktop-app-icon prompt-icon" type="button" @click="$store.game.openPromptApp()" aria-label="打开提示词管理"><span class="app-glyph">词</span><b>提示词</b></button>
-            <button class="desktop-app-icon token-icon" type="button" @click="$store.game.openTokenStatsApp()" aria-label="打开Token统计"><span class="app-glyph">T</span><b>Token统计</b></button>
-            <button class="desktop-app-icon profession-icon" type="button" @click="$store.game.openKnownProfessionApp()" aria-label="打开已知职业"><span class="app-glyph">职</span><b>已知职业</b></button>
-            <button class="desktop-app-icon taobao-icon" type="button" @click="$store.game.openTaobaoApp()" aria-label="打开淘宝"><span class="app-glyph">淘</span><b>淘宝</b></button>
-            <button class="desktop-app-icon save-icon" type="button" @click="$store.game.openSaveApp()" aria-label="打开存档"><span class="app-glyph">存</span><b>存档</b></button>
-            <button class="desktop-app-icon role-card-json-icon" type="button" @click="$store.game.openRoleCardJsonApp()" aria-label="打开角色卡JSON"><span class="app-glyph">JSON</span><b>角色卡JSON</b></button>
-            <button class="desktop-app-icon worldline-icon" type="button" @click="$store.game.openWorldlineApp()" aria-label="打开世界线"><span class="app-glyph">线</span><b>世界线</b></button>
-            <button class="desktop-app-icon settings-icon" type="button" @click="$store.game.openSettingsApp()" aria-label="打开设置"><span class="app-glyph">设</span><b>设置</b></button>
-          </div>
-          <div class="desktop-apps">
-            <button class="desktop-app-icon system-test-icon" type="button" @click="$store.game.openSystemTestApp()" aria-label="打开System测试"><span class="app-glyph">测</span><b>System测试</b></button>
+            <button class="desktop-app-icon control-icon" type="button" @click="$store.game.openDesktopApp()" aria-label="打开我要狠狠操控"><span class="app-glyph-emoji" aria-hidden="true">🎮</span><b>我要狠狠操控</b></button>
+            <button class="desktop-app-icon identity-icon" type="button" @click="$store.game.openIdentityApp('player-self')" aria-label="打开身份证"><span class="app-glyph-emoji" aria-hidden="true">🪪</span><b>身份证</b></button>
+            <button class="desktop-app-icon wechat-icon" type="button" @click="$store.game.openWechatApp()" aria-label="打开微信"><span class="app-glyph-emoji" aria-hidden="true">💬</span><b>微信</b></button>
+            <button class="desktop-app-icon company-icon" type="button" @click="$store.game.openCompanyApp()" aria-label="打开公司"><span class="app-glyph-emoji" aria-hidden="true">🏢</span><b>公司</b></button>
+            <button class="desktop-app-icon boss-icon" type="button" @click="$store.game.openBossApp()" aria-label="打开BOSS招聘"><span class="app-glyph-emoji" aria-hidden="true">💼</span><b>BOSS招聘</b></button>
+            <button class="desktop-app-icon calendar-icon" type="button" @click="$store.game.openCalendarApp()" aria-label="打开日历"><span class="app-glyph-emoji" aria-hidden="true">📅</span><b>日历</b></button>
+            <button class="desktop-app-icon faction-icon" type="button" @click="$store.game.openFactionApp()" aria-label="打开势力"><span class="app-glyph-emoji" aria-hidden="true">🛡️</span><b>势力</b></button>
+            <button class="desktop-app-icon skills-icon" type="button" @click="$store.game.openSkillsApp()" aria-label="打开Skills"><span class="app-glyph-emoji" aria-hidden="true">🌳</span><b>Skills</b></button>
+            <button class="desktop-app-icon prompt-icon" type="button" @click="$store.game.openPromptApp()" aria-label="打开提示词管理"><span class="app-glyph-emoji" aria-hidden="true">📝</span><b>提示词</b></button>
+            <button class="desktop-app-icon token-icon" type="button" @click="$store.game.openTokenStatsApp()" aria-label="打开Token统计"><span class="app-glyph-emoji" aria-hidden="true">📊</span><b>Token统计</b></button>
+            <button class="desktop-app-icon profession-icon" type="button" @click="$store.game.openKnownProfessionApp()" aria-label="打开已知职业"><span class="app-glyph-emoji" aria-hidden="true">🎖️</span><b>已知职业</b></button>
+            <button class="desktop-app-icon taobao-icon" type="button" @click="$store.game.openTaobaoApp()" aria-label="打开淘宝"><span class="app-glyph-emoji" aria-hidden="true">🛒</span><b>淘宝</b></button>
+            <button class="desktop-app-icon save-icon" type="button" @click="$store.game.openSaveApp()" aria-label="打开存档"><span class="app-glyph-emoji" aria-hidden="true">💾</span><b>存档</b></button>
+            <button class="desktop-app-icon role-card-json-icon" type="button" @click="$store.game.openRoleCardJsonApp()" aria-label="打开角色卡JSON"><span class="app-glyph-emoji" aria-hidden="true">🧩</span><b>角色卡JSON</b></button>
+            <button class="desktop-app-icon worldline-icon" type="button" @click="$store.game.openWorldlineApp()" aria-label="打开世界线"><span class="app-glyph-emoji" aria-hidden="true">🌐</span><b>世界线</b></button>
+            <button class="desktop-app-icon settings-icon" type="button" @click="$store.game.openSettingsApp()" aria-label="打开设置"><span class="app-glyph-emoji" aria-hidden="true">⚙️</span><b>设置</b></button>
+            <button class="desktop-app-icon system-test-icon" type="button" @click="$store.game.openSystemTestApp()" aria-label="打开System测试"><span class="app-glyph-emoji" aria-hidden="true">🧪</span><b>System测试</b></button>
           </div>
         </div>
       </div>
-      <div class="desktop-page-dots" aria-label="桌面分页">
-        <button type="button" :class="{ active: $store.game.desktopPage === 0 }" @click="$store.game.setDesktopPage(0)" aria-label="第1页"></button>
-        <button type="button" :class="{ active: $store.game.desktopPage === 1 }" @click="$store.game.setDesktopPage(1)" aria-label="第2页"></button>
-        <button type="button" :class="{ active: $store.game.desktopPage === 2 }" @click="$store.game.setDesktopPage(2)" aria-label="第3页"></button>
+      <div class="desktop-page-dots desktop-page-dots--hidden" aria-hidden="true">
+        <button type="button" class="active" aria-label="第1页"></button>
       </div>
       <div class="phone-dock">
         <span></span><span></span><span></span><span></span>
@@ -1034,7 +1058,7 @@
           <div class="memory-list"><template x-for="item in $store.game.identityMemoryArchiveResults" :key="item.id"><p><b x-text="`${item.meta?.time || '时间未知'}｜${item.meta?.place || '地点未知'}`"></b><span x-text="item.meta?.summary || item.text"></span></p></template><small x-show="!$store.game.identityMemoryArchiveResults.length">暂无搜索结果</small></div>
         </div>
       </section>
-      <section class="identity-rpg dev-section" data-section-title="身份属性与升级体系区" x-data="{ activeIdentityRpgTab: '' }" x-init="$watch(() => $store.game.identityTargetId, () => activeIdentityRpgTab = '')">
+      <section class="identity-rpg dev-section" data-section-title="身份属性与升级体系区" x-data="{ activeIdentityRpgTab: '' }" x-init="$watch(() => $store.game.identityTargetId, () => activeIdentityRpgTab = ''); $watch(() => activeIdentityRpgTab, () => $store.game.clearAbilityDetail?.())">
         <header class="identity-rpg-panel-head">
           <div><span class="identity-rpg-panel-eyebrow">STATUS PANEL</span><strong class="identity-rpg-panel-title">角色状态面板</strong></div>
           <small class="identity-rpg-panel-note">点击分区查看属性</small>
@@ -1053,16 +1077,225 @@
               <span class="rpg-status-section-icon" aria-hidden="true" x-text="$store.game.profileSectionTabMeta(section).icon"></span>
               <div><strong x-text="section.title"></strong><small x-text="$store.game.profileSectionTabMeta(section).hint"></small></div>
             </header>
-            <template x-for="field in section.fields" :key="field.key">
-              <div class="dynamic-row" role="button" tabindex="0" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.toggleRpgField(field)" @keydown.enter.prevent="$store.game.toggleRpgField(field)" @keydown.space.prevent="$store.game.toggleRpgField(field)">
-                <button :class="[$store.game.isRpgListField(field) ? 'rpg-tree-title' : 'rpg-item-card lexicon-tag', { open: $store.game.isRpgFieldOpen(field) }]" type="button" @click.stop="$store.game.toggleRpgField(field)"><strong x-text="$store.game.rpgFieldSummary(field)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
-                <div class="rpg-item-list" x-show="$store.game.isRpgListField(field)" @click.stop>
-                  <template x-for="(item, index) in $store.game.rpgListItems(field)" :key="`${field.key}:${item.name || item}:${index}`">
-                    <button class="rpg-item-card" :class="{ open: $store.game.isRpgItemOpen(field, index), 'body-part-card': $store.game.isBodyProfileField(field) }" type="button" @click="$store.game.toggleRpgItem(field, index)"><strong x-text="$store.game.rpgItemSummary(item, field)"></strong><p class="body-part-description" x-show="$store.game.isBodyProfileField(field)" x-text="$store.game.rpgBodyPartDescription(item)"></p><p class="rpg-field-detail" x-show="$store.game.isRpgItemOpen(field, index)" x-text="$store.game.rpgItemDetail(field, item)"></p></button>
+            <template x-if="section.title === '个人能力'">
+              <div class="personal-ability-panel" x-data="{ advancedOpen: false, ability: null }" x-init="ability = $store.game.personalAbilityPresentation(section.fields, $store.game.identityTargetState()); $watch(() => $store.game.identityTargetId, () => { ability = $store.game.personalAbilityPresentation(section.fields, $store.game.identityTargetState()); $store.game.clearAbilityDetail?.(); })">
+                <p class="ability-panel-hint">点击条目查看完整说明 · 按身内属性分组展示习得</p>
+                <section class="ability-hero">
+                  <div class="ability-hero-top">
+                    <button type="button" class="ability-level-badge ability-expandable" :class="{ open: ability?.hero?.levelField && $store.game.isAbilityDetailOpen(ability.hero.levelField) }" x-show="ability?.hero?.levelField" @click="$store.game.toggleAbilityDetail(ability.hero.levelField)"><small>Lv</small><strong x-text="ability?.hero?.level || 1"></strong></button>
+                    <div class="ability-hero-meta" role="button" tabindex="0" @click="ability?.hero?.expField && $store.game.toggleAbilityDetail(ability.hero.expField)" @keydown.enter.prevent="ability?.hero?.expField && $store.game.toggleAbilityDetail(ability.hero.expField)">
+                      <div class="ability-xp-row"><span class="ability-xp-label">经验</span><span class="ability-xp-value" x-text="ability?.hero?.exp?.display || '0/0'"></span><span class="ability-free-points" x-text="`自由点 ${ability?.hero?.freePoints ?? 0}`"></span></div>
+                      <div class="ability-xp-bar" aria-hidden="true"><i :style="`width:${ability?.hero?.exp?.percent || 0}%`"></i></div>
+                    </div>
+                  </div>
+                  <button type="button" class="ability-meta-line ability-expandable" :class="{ open: ability?.hero?.growthField && $store.game.isAbilityDetailOpen(ability.hero.growthField) }" x-show="ability?.hero?.growthField" @click="$store.game.toggleAbilityDetail(ability.hero.growthField)"><span x-text="ability?.hero?.growthSummary"></span></button>
+                </section>
+                <section class="ability-survival-grid" aria-label="生存状态">
+                  <template x-for="row in ability?.survival || []" :key="`survival-${row.key}`">
+                    <button type="button" class="ability-gauge ability-expandable" :class="[`tone-${row.tone}`, { open: row.field && $store.game.isAbilityDetailOpen(row.field) }]" @click="row.field && $store.game.toggleAbilityDetail(row.field)"><span class="ability-gauge-label" x-text="row.label"></span><span class="ability-gauge-value" x-text="row.display"></span><span class="ability-gauge-bar"><i :style="`width:${row.percent}%`"></i></span></button>
                   </template>
-                </div>
-                <p class="rpg-field-detail" x-show="!$store.game.isRpgListField(field) && !$store.game.isLexiconField(field) && $store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p>
+                </section>
+                <section class="ability-stat-grid" aria-label="成长属性">
+                  <template x-for="row in ability?.growth || []" :key="`growth-${row.key}`">
+                    <button type="button" class="ability-stat ability-expandable" :class="{ open: row.field && $store.game.isAbilityDetailOpen(row.field) }" @click="row.field && $store.game.toggleAbilityDetail(row.field)"><span class="ability-stat-label" x-text="row.label"></span><strong class="ability-stat-value" x-text="row.display"></strong><span class="ability-stat-bar"><i :style="`width:${row.percent}%`"></i></span></button>
+                  </template>
+                </section>
+                <section class="learned-links-panel" aria-label="习得分组">
+                  <header class="learned-links-summary">
+                    <span class="learned-count-chip">📚 知识 <strong x-text="ability?.learnedCounts?.knowledge ?? 0"></strong></span>
+                    <span class="learned-count-chip">⚔️ 技能 <strong x-text="ability?.learnedCounts?.skills ?? 0"></strong></span>
+                    <span class="learned-count-chip">🎖️ 职业 <strong x-text="ability?.learnedCounts?.professions ?? 0"></strong></span>
+                  </header>
+                  <template x-for="group in ability?.learnedGroups || []" :key="`learned-${group.key}`">
+                    <article class="intrinsic-link-group learned-link-group">
+                      <header><span x-text="`${group.icon} ${group.label}`"></span><small x-text="`${group.items.length}项`"></small></header>
+                      <div class="ability-chip-grid">
+                        <template x-for="row in group.items" :key="`${group.key}-${row.type}-${row.index}`">
+                          <button type="button" class="learned-link-chip ability-expandable" :class="[`kind-${row.type}`, { open: row.field && $store.game.isAbilityDetailOpen(row.field, row.item, row.index) }]" @click="row.field && $store.game.toggleAbilityDetail(row.field, row.item, row.index)"><span x-text="row.chipText"></span></button>
+                        </template>
+                      </div>
+                    </article>
+                  </template>
+                </section>
+                <p class="ability-empty" x-show="!(ability?.learnedGroups || []).length">暂无习得记录</p>
+                <section class="ability-advanced" x-show="(ability?.advanced || []).length">
+                  <button type="button" class="ability-advanced-toggle" @click="advancedOpen = !advancedOpen" x-text="advancedOpen ? '战斗与上线体验 ▾' : '战斗与上线体验 ▸'"></button>
+                  <div class="ability-advanced-body" x-show="advancedOpen">
+                    <template x-for="field in ability?.advanced || []" :key="`advanced-${field.key}`">
+                      <button type="button" class="ability-advanced-item ability-expandable" :class="{ open: $store.game.isAbilityDetailOpen(field) }" @click="$store.game.toggleAbilityDetail(field)"><strong x-text="field.label"></strong><span x-text="field.value"></span></button>
+                    </template>
+                  </div>
+                </section>
+                <template x-for="field in ability?.misc || []" :key="`misc-${field.key}`">
+                  <button type="button" class="ability-advanced-item ability-expandable ability-misc-row" :class="{ open: $store.game.isAbilityDetailOpen(field) }" @click="$store.game.toggleAbilityDetail(field)"><strong x-text="$store.game.rpgFieldSummary(field)"></strong><span x-text="field.value"></span></button>
+                </template>
+                <aside class="ability-detail-sheet" x-show="$store.game.abilityDetailPanel?.text" x-transition.opacity.duration.150ms>
+                  <header class="ability-detail-head"><strong x-text="$store.game.abilityDetailPanel?.title || '详情'"></strong><button type="button" class="ability-detail-close" @click="$store.game.clearAbilityDetail()">收起</button></header>
+                  <div class="ability-detail-links" x-show="($store.game.abilityDetailPanel?.links || []).length">
+                    <template x-for="link in ($store.game.abilityDetailPanel?.links || [])" :key="`${link.fieldKey}-${link.name}`">
+                      <button type="button" class="ability-detail-link" @click="$store.game.openAbilityDetailLink(link)" x-text="link.label"></button>
+                    </template>
+                  </div>
+                  <pre class="ability-detail-body" x-text="$store.game.abilityDetailPanel?.text"></pre>
+                </aside>
               </div>
+            </template>
+            <template x-if="section.title === '身内能力'">
+              <div class="intrinsic-ability-panel" x-data="{ intrinsic: null, linksOpen: false }" x-init="intrinsic = $store.game.intrinsicAbilityPresentation(section.fields, $store.game.identityTargetState()); $watch(() => $store.game.identityTargetId, () => { intrinsic = $store.game.intrinsicAbilityPresentation(section.fields, $store.game.identityTargetState()); $store.game.clearAbilityDetail?.(); })">
+                <p class="ability-panel-hint">七维身内属性 · 点击属性查看来源与关联习得</p>
+                <section class="intrinsic-hero" aria-label="属性总览">
+                  <div class="intrinsic-hero-badge">
+                    <span class="intrinsic-hero-icon" aria-hidden="true">⚔️</span>
+                    <div><small>均围</small><strong x-text="intrinsic?.summary?.average ?? 0"></strong></div>
+                  </div>
+                  <div class="intrinsic-hero-side">
+                    <p class="intrinsic-hero-line"><span aria-hidden="true">🏆</span><span>最高 </span><strong x-text="`${intrinsic?.summary?.peak?.icon || ''} ${intrinsic?.summary?.peak?.label || '—'} ${intrinsic?.summary?.peak?.display || ''}`"></strong></p>
+                    <p class="intrinsic-hero-line"><span aria-hidden="true">📉</span><span>最低 </span><strong x-text="`${intrinsic?.summary?.low?.icon || ''} ${intrinsic?.summary?.low?.label || '—'} ${intrinsic?.summary?.low?.display || ''}`"></strong></p>
+                  </div>
+                </section>
+                <template x-for="group in intrinsic?.groups || []" :key="`intrinsic-group-${group.name}`">
+                  <section class="intrinsic-group">
+                    <header class="intrinsic-group-head"><span class="intrinsic-group-icon" x-text="group.icon"></span><strong x-text="group.name"></strong><small x-text="`均${group.average}`"></small></header>
+                    <div class="intrinsic-stat-grid">
+                      <template x-for="stat in group.rows || []" :key="`intrinsic-${stat.key}`">
+                        <button type="button" class="intrinsic-stat-card ability-expandable" :class="[`tone-${stat.tone}`, { open: stat.field && $store.game.isAbilityDetailOpen(stat.field) }]" @click="stat.field && $store.game.toggleAbilityDetail(stat.field)">
+                          <span class="intrinsic-stat-icon" aria-hidden="true" x-text="stat.icon"></span>
+                          <div class="intrinsic-stat-body">
+                            <span class="intrinsic-stat-label" x-text="stat.label"></span>
+                            <strong class="intrinsic-stat-value" x-text="stat.display"></strong>
+                            <span class="intrinsic-stat-bar"><i :style="`width:${stat.percent}%`"></i></span>
+                            <small class="intrinsic-stat-breakdown" x-show="stat.breakdownText" x-text="stat.breakdownText"></small>
+                          </div>
+                        </button>
+                      </template>
+                    </div>
+                  </section>
+                </template>
+                <section class="intrinsic-links" x-show="(intrinsic?.links || []).length">
+                  <button type="button" class="intrinsic-links-toggle" @click="linksOpen = !linksOpen" x-text="linksOpen ? '关联习得 ▾' : '关联习得 ▸'"></button>
+                  <div class="intrinsic-links-body" x-show="linksOpen">
+                    <template x-for="link in intrinsic?.links || []" :key="`intrinsic-link-${link.key}`">
+                      <article class="intrinsic-link-group">
+                        <header><span x-text="`${link.label}关联`"></span><small x-text="`${link.items.length}项`"></small></header>
+                        <div class="ability-chip-grid">
+                          <template x-for="item in link.items" :key="`${link.key}-${item.type}-${item.name}`">
+                            <span class="intrinsic-link-chip" x-text="`${item.type === '技能' ? '⚔️' : item.type === '知识' ? '📚' : '🎖️'} ${item.name}${item.level ? ` lv.${item.level}` : ''}`"></span>
+                          </template>
+                        </div>
+                      </article>
+                    </template>
+                  </div>
+                </section>
+                <aside class="ability-detail-sheet" x-show="$store.game.abilityDetailPanel?.text" x-transition.opacity.duration.150ms>
+                  <header class="ability-detail-head"><strong x-text="$store.game.abilityDetailPanel?.title || '详情'"></strong><button type="button" class="ability-detail-close" @click="$store.game.clearAbilityDetail()">收起</button></header>
+                  <div class="ability-detail-links" x-show="($store.game.abilityDetailPanel?.links || []).length">
+                    <template x-for="link in ($store.game.abilityDetailPanel?.links || [])" :key="`${link.fieldKey}-${link.name}`">
+                      <button type="button" class="ability-detail-link" @click="$store.game.openAbilityDetailLink(link)" x-text="link.label"></button>
+                    </template>
+                  </div>
+                  <pre class="ability-detail-body" x-text="$store.game.abilityDetailPanel?.text"></pre>
+                </aside>
+              </div>
+            </template>
+            <template x-if="section.title === '装备与物品'">
+              <div class="inventory-panel" x-data="{ inv: null }" x-init="inv = $store.game.inventoryPresentation(section.fields); $watch(() => $store.game.identityTargetId, () => { inv = $store.game.inventoryPresentation(section.fields); $store.game.clearAbilityDetail?.(); })">
+                <p class="ability-panel-hint">点击条目查看详情 · 物品可在数据里写 emoji 字段指定图标；未指定时按名称/描述关键词匹配，仍无匹配则用默认图标</p>
+                <header class="inventory-summary">
+                  <span class="learned-count-chip">📦 物品 <strong x-text="inv?.itemCount ?? 0"></strong></span>
+                  <span class="learned-count-chip">👕 穿着 <strong x-text="inv?.wearingCount ?? 0"></strong></span>
+                </header>
+                <section class="inventory-group">
+                  <header class="intrinsic-group-head"><span aria-hidden="true">📦</span><strong>物品</strong><small x-text="`${inv?.itemCount ?? 0}项`"></small></header>
+                  <div class="ability-chip-grid">
+                    <template x-for="row in inv?.items || []" :key="`inv-item-${row.index}`">
+                      <button type="button" class="inventory-chip ability-expandable" :class="{ open: row.field && $store.game.isAbilityDetailOpen(row.field, row.item, row.index) }" @click="row.field && $store.game.toggleAbilityDetail(row.field, row.item, row.index)"><span class="inventory-chip-icon" aria-hidden="true" x-text="row.icon"></span><span x-text="row.name"></span></button>
+                    </template>
+                  </div>
+                  <p class="ability-empty" x-show="!(inv?.items || []).length">暂无物品</p>
+                </section>
+                <section class="inventory-group">
+                  <header class="intrinsic-group-head"><span aria-hidden="true">👗</span><strong>穿着</strong><small x-text="`${inv?.wearSlots?.length ?? 0}槽`"></small></header>
+                  <div class="inventory-wear-grid">
+                    <template x-for="row in inv?.wearSlots || []" :key="`wear-${row.key}`">
+                      <article class="inventory-wear-slot">
+                        <small x-text="`${row.icon} ${row.label}`"></small>
+                        <button type="button" class="inventory-chip ability-expandable" :class="{ open: row.field && $store.game.isAbilityDetailOpen(row.field, row.item, row.index), empty: row.empty }" @click="row.field && $store.game.toggleAbilityDetail(row.field, row.item, row.index)"><span x-text="row.display"></span></button>
+                      </article>
+                    </template>
+                  </div>
+                </section>
+                <aside class="ability-detail-sheet" x-show="$store.game.abilityDetailPanel?.text" x-transition.opacity.duration.150ms>
+                  <header class="ability-detail-head"><strong x-text="$store.game.abilityDetailPanel?.title || '详情'"></strong><button type="button" class="ability-detail-close" @click="$store.game.clearAbilityDetail()">收起</button></header>
+                  <pre class="ability-detail-body" x-text="$store.game.abilityDetailPanel?.text"></pre>
+                </aside>
+              </div>
+            </template>
+            <template x-if="section.title === '当前自然状态' || section.title === '盛装'">
+              <div class="body-profile-panel" x-data="{ body: null }" x-init="body = $store.game.bodyProfilePanel(section); const refreshBody = () => { body = $store.game.bodyProfilePanel(section); }; $watch(() => $store.game.identityTargetId, () => { refreshBody(); $store.game.clearAbilityDetail?.(); }); window.addEventListener('body-silhouette-manifest-ready', refreshBody); window.addEventListener('body-figure-meta-ready', refreshBody);">
+                <p class="ability-panel-hint" x-text="body?.figure ? '点击标注框或部位卡片查看完整描写 · 参考图按整体标签（如少女）匹配' : '点击轮廓或部位卡片查看完整描写 · 轮廓按性别与整体体型自动匹配'"></p>
+                <p class="body-profile-meta" x-show="body?.meta"><span class="learned-count-chip" x-text="body?.meta"></span></p>
+                <div class="body-profile-layout" :class="{ 'has-figure': body?.figure }">
+                  <div class="body-figure-board" x-show="body?.figure">
+                    <div class="body-figure-stage">
+                      <img class="body-figure-img" :src="body.figure.imageSrc" :alt="body.figure.label" loading="lazy">
+                      <template x-for="ann in body.figure.annotations || []" :key="`fig-line-${ann.part}`">
+                        <svg class="body-figure-line-item" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                          <line :x1="ann.line.x1" :y1="ann.line.y1" :x2="ann.line.x2" :y2="ann.line.y2"></line>
+                        </svg>
+                      </template>
+                      <template x-for="ann in body.figure.annotations || []" :key="`fig-ann-${ann.part}`">
+                        <span class="body-figure-anchor" :style="$store.game.bodyFigureAnchorStyle(ann)" aria-hidden="true"></span>
+                        <button type="button" class="body-figure-callout" :class="{ active: $store.game.isBodyFigurePartActive(body.rows, ann.part), 'side-right': ann.label.side === 'right', 'side-left': ann.label.side !== 'right' }" :style="$store.game.bodyFigureCalloutStyle(ann)" @click="$store.game.openBodyFigurePart(body.rows, ann.part)">
+                          <strong x-text="ann.title"></strong>
+                          <small x-show="ann.tags" x-text="ann.tags"></small>
+                          <p x-text="ann.preview"></p>
+                        </button>
+                      </template>
+                    </div>
+                    <small class="body-figure-label" x-text="body.figure.label"></small>
+                  </div>
+                  <aside class="body-silhouette-aside" x-show="body?.silhouette">
+                    <div class="body-silhouette-stage">
+                      <img class="body-silhouette-img" :src="body.silhouette.src" :alt="body.silhouette.label" loading="lazy">
+                      <div class="body-silhouette-hotspots" aria-hidden="true">
+                        <template x-for="spot in body.silhouette.hotspots || []" :key="`sil-${spot.part}`">
+                          <button type="button" class="body-silhouette-hotspot" :class="{ active: $store.game.isBodySilhouettePartActive(body.rows, spot.part) }" :style="`left:${spot.x}%;top:${spot.y}%;width:${spot.w}%;height:${spot.h}%`" :title="spot.part" @click="$store.game.openBodySilhouettePart(body.rows, spot.part)"></button>
+                        </template>
+                      </div>
+                    </div>
+                    <small class="body-silhouette-label" x-text="body.silhouette.label"></small>
+                    <small class="body-silhouette-source" x-show="body.silhouette.remote">远程资源</small>
+                  </aside>
+                  <div class="body-profile-grid">
+                    <template x-for="row in body?.rows || []" :key="`body-${row.index}`">
+                      <button type="button" class="body-part-card ability-expandable" :class="{ open: row.field && $store.game.isAbilityDetailOpen(row.field, row.item, row.index) }" @click="row.field && $store.game.toggleAbilityDetail(row.field, row.item, row.index)">
+                        <span class="body-part-icon" aria-hidden="true" x-text="row.icon"></span>
+                        <strong x-text="row.title"></strong>
+                        <small x-show="row.tags" x-text="row.tags"></small>
+                        <p x-text="row.preview"></p>
+                      </button>
+                    </template>
+                  </div>
+                </div>
+                <p class="ability-empty" x-show="!(body?.rows || []).length">暂无记录</p>
+                <aside class="ability-detail-sheet" x-show="$store.game.abilityDetailPanel?.text" x-transition.opacity.duration.150ms>
+                  <header class="ability-detail-head"><strong x-text="$store.game.abilityDetailPanel?.title || '详情'"></strong><button type="button" class="ability-detail-close" @click="$store.game.clearAbilityDetail()">收起</button></header>
+                  <pre class="ability-detail-body" x-text="$store.game.abilityDetailPanel?.text"></pre>
+                </aside>
+              </div>
+            </template>
+            <template x-if="section.title !== '个人能力' && section.title !== '身内能力' && section.title !== '装备与物品' && section.title !== '当前自然状态' && section.title !== '盛装'">
+              <template x-for="field in section.fields" :key="field.key">
+                <div class="dynamic-row" role="button" tabindex="0" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.toggleRpgField(field)" @keydown.enter.prevent="$store.game.toggleRpgField(field)" @keydown.space.prevent="$store.game.toggleRpgField(field)">
+                  <button :class="[$store.game.isRpgListField(field) ? 'rpg-tree-title' : 'rpg-item-card lexicon-tag', { open: $store.game.isRpgFieldOpen(field) }]" type="button" @click.stop="$store.game.toggleRpgField(field)"><strong x-text="$store.game.rpgFieldSummary(field)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
+                  <div class="rpg-item-list" x-show="$store.game.isRpgListField(field)" @click.stop>
+                    <template x-for="(item, index) in $store.game.rpgListItems(field)" :key="`${field.key}:${item.name || item}:${index}`">
+                      <button class="rpg-item-card" :class="{ open: $store.game.isRpgItemOpen(field, index), 'body-part-card': $store.game.isBodyProfileField(field) }" type="button" @click="$store.game.toggleRpgItem(field, index)"><strong x-text="$store.game.rpgItemSummary(item, field)"></strong><p class="body-part-description" x-show="$store.game.isBodyProfileField(field)" x-text="$store.game.rpgBodyPartDescription(item)"></p><p class="rpg-field-detail" x-show="$store.game.isRpgItemOpen(field, index)" x-text="$store.game.rpgItemDetail(field, item)"></p></button>
+                    </template>
+                  </div>
+                  <p class="rpg-field-detail" x-show="!$store.game.isRpgListField(field) && !$store.game.isLexiconField(field) && $store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p>
+                </div>
+              </template>
             </template>
           </article>
         </template>
@@ -1460,6 +1693,22 @@
             <option :value="style.id" x-text="style.name"></option>
           </template>
         </select>
+      </section>
+      <section class="model-setting-group">
+        <h3>界面风格</h3>
+        <small>深色 / 白色 / 粉色 / 薄荷，或自定义主题色。桌面、身份证、推演等界面统一应用；微信保持独立模拟样式。</small>
+        <div class="theme-swatch-row">
+          <template x-for="option in $store.game.themeOptions()" :key="`theme-${option.id}`">
+            <button type="button" class="theme-swatch" :class="{ active: $store.game.settingsState.uiThemeId === option.id }" @click="$store.game.selectUiTheme(option.id)"><span class="theme-swatch-dot" :style="`background:${option.accent}`"></span><span x-text="`${option.emoji} ${option.name}`"></span></button>
+          </template>
+        </div>
+        <div class="theme-custom-row">
+          <span>自定义</span>
+          <input type="color" :value="$store.game.settingsState.uiThemeCustomColor" @input="$store.game.setUiThemeCustomColor($event.target.value)">
+          <input type="text" placeholder="#7fe5ff" :value="$store.game.settingsState.uiThemeCustomColor" @change="$store.game.setUiThemeCustomColor($event.target.value)">
+          <button type="button" class="theme-swatch" :class="{ active: $store.game.settingsState.uiThemeId === 'custom' }" @click="$store.game.setUiThemeCustomColor($store.game.settingsState.uiThemeCustomColor || '#7fe5ff')">🎨 应用</button>
+        </div>
+        <p class="settings-status">当前界面：<b x-text="$store.game.currentUiThemeLabel()"></b></p>
       </section>
       <section class="model-setting-group">
         <h3>Stage1 资料收集迭代最大次数</h3>
@@ -1925,15 +2174,225 @@
                     <span class="rpg-status-section-icon" aria-hidden="true" x-text="$store.game.profileSectionTabMeta(section).icon"></span>
                     <div><strong x-text="section.title"></strong><small x-text="$store.game.profileSectionTabMeta(section).hint"></small></div>
                   </header>
-                  <template x-for="field in section.fields" :key="`entry-field-${field.key}`">
-                    <div class="dynamic-row" role="button" tabindex="0" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.toggleRpgField(field)" @keydown.enter.prevent="$store.game.toggleRpgField(field)" @keydown.space.prevent="$store.game.toggleRpgField(field)">
-                      <button :class="[$store.game.isRpgListField(field) ? 'rpg-tree-title' : 'rpg-item-card lexicon-tag', { open: $store.game.isRpgFieldOpen(field) }]" type="button" @click.stop="$store.game.toggleRpgField(field)"><strong x-text="$store.game.rpgFieldSummary(field)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
-                      <div class="rpg-item-list" x-show="$store.game.isRpgListField(field)" @click.stop>
-                        <template x-for="(item, index) in $store.game.rpgListItems(field)" :key="`entry-item-${field.key}:${item.name || item}:${index}`">
-                          <button class="rpg-item-card" :class="{ open: $store.game.isRpgItemOpen(field, index), 'body-part-card': $store.game.isBodyProfileField(field) }" type="button" @click="$store.game.toggleRpgItem(field, index)"><strong x-text="$store.game.rpgItemSummary(item, field)"></strong><p class="body-part-description" x-show="$store.game.isBodyProfileField(field)" x-text="$store.game.rpgBodyPartDescription(item)"></p><p class="rpg-field-detail" x-show="$store.game.isRpgItemOpen(field, index)" x-text="$store.game.rpgItemDetail(field, item)"></p></button>
+                  <template x-if="section.title === '个人能力'">
+                    <div class="personal-ability-panel" x-data="{ advancedOpen: false, ability: null }" x-init="ability = $store.game.personalAbilityPresentation(section.fields, $store.game.identityTargetState()); $watch(() => $store.game.identityTargetId, () => { ability = $store.game.personalAbilityPresentation(section.fields, $store.game.identityTargetState()); $store.game.clearAbilityDetail?.(); })">
+                      <p class="ability-panel-hint">点击条目查看完整说明 · 按身内属性分组展示习得</p>
+                      <section class="ability-hero">
+                        <div class="ability-hero-top">
+                          <button type="button" class="ability-level-badge ability-expandable" :class="{ open: ability?.hero?.levelField && $store.game.isAbilityDetailOpen(ability.hero.levelField) }" x-show="ability?.hero?.levelField" @click="$store.game.toggleAbilityDetail(ability.hero.levelField)"><small>Lv</small><strong x-text="ability?.hero?.level || 1"></strong></button>
+                          <div class="ability-hero-meta" role="button" tabindex="0" @click="ability?.hero?.expField && $store.game.toggleAbilityDetail(ability.hero.expField)" @keydown.enter.prevent="ability?.hero?.expField && $store.game.toggleAbilityDetail(ability.hero.expField)">
+                            <div class="ability-xp-row"><span class="ability-xp-label">经验</span><span class="ability-xp-value" x-text="ability?.hero?.exp?.display || '0/0'"></span><span class="ability-free-points" x-text="`自由点 ${ability?.hero?.freePoints ?? 0}`"></span></div>
+                            <div class="ability-xp-bar" aria-hidden="true"><i :style="`width:${ability?.hero?.exp?.percent || 0}%`"></i></div>
+                          </div>
+                        </div>
+                        <button type="button" class="ability-meta-line ability-expandable" :class="{ open: ability?.hero?.growthField && $store.game.isAbilityDetailOpen(ability.hero.growthField) }" x-show="ability?.hero?.growthField" @click="$store.game.toggleAbilityDetail(ability.hero.growthField)"><span x-text="ability?.hero?.growthSummary"></span></button>
+                      </section>
+                      <section class="ability-survival-grid" aria-label="生存状态">
+                        <template x-for="row in ability?.survival || []" :key="`entry-survival-${row.key}`">
+                          <button type="button" class="ability-gauge ability-expandable" :class="[`tone-${row.tone}`, { open: row.field && $store.game.isAbilityDetailOpen(row.field) }]" @click="row.field && $store.game.toggleAbilityDetail(row.field)"><span class="ability-gauge-label" x-text="row.label"></span><span class="ability-gauge-value" x-text="row.display"></span><span class="ability-gauge-bar"><i :style="`width:${row.percent}%`"></i></span></button>
                         </template>
-                      </div>
+                      </section>
+                      <section class="ability-stat-grid" aria-label="成长属性">
+                        <template x-for="row in ability?.growth || []" :key="`entry-growth-${row.key}`">
+                          <button type="button" class="ability-stat ability-expandable" :class="{ open: row.field && $store.game.isAbilityDetailOpen(row.field) }" @click="row.field && $store.game.toggleAbilityDetail(row.field)"><span class="ability-stat-label" x-text="row.label"></span><strong class="ability-stat-value" x-text="row.display"></strong><span class="ability-stat-bar"><i :style="`width:${row.percent}%`"></i></span></button>
+                        </template>
+                      </section>
+                      <section class="learned-links-panel" aria-label="习得分组">
+                        <header class="learned-links-summary">
+                          <span class="learned-count-chip">📚 知识 <strong x-text="ability?.learnedCounts?.knowledge ?? 0"></strong></span>
+                          <span class="learned-count-chip">⚔️ 技能 <strong x-text="ability?.learnedCounts?.skills ?? 0"></strong></span>
+                          <span class="learned-count-chip">🎖️ 职业 <strong x-text="ability?.learnedCounts?.professions ?? 0"></strong></span>
+                        </header>
+                        <template x-for="group in ability?.learnedGroups || []" :key="`entry-learned-${group.key}`">
+                          <article class="intrinsic-link-group learned-link-group">
+                            <header><span x-text="`${group.icon} ${group.label}`"></span><small x-text="`${group.items.length}项`"></small></header>
+                            <div class="ability-chip-grid">
+                              <template x-for="row in group.items" :key="`${group.key}-${row.type}-${row.index}`">
+                                <button type="button" class="learned-link-chip ability-expandable" :class="[`kind-${row.type}`, { open: row.field && $store.game.isAbilityDetailOpen(row.field, row.item, row.index) }]" @click="row.field && $store.game.toggleAbilityDetail(row.field, row.item, row.index)"><span x-text="row.chipText"></span></button>
+                              </template>
+                            </div>
+                          </article>
+                        </template>
+                      </section>
+                      <p class="ability-empty" x-show="!(ability?.learnedGroups || []).length">暂无习得记录</p>
+                      <section class="ability-advanced" x-show="(ability?.advanced || []).length">
+                        <button type="button" class="ability-advanced-toggle" @click="advancedOpen = !advancedOpen" x-text="advancedOpen ? '战斗与上线体验 ▾' : '战斗与上线体验 ▸'"></button>
+                        <div class="ability-advanced-body" x-show="advancedOpen">
+                          <template x-for="field in ability?.advanced || []" :key="`entry-advanced-${field.key}`">
+                            <button type="button" class="ability-advanced-item ability-expandable" :class="{ open: $store.game.isAbilityDetailOpen(field) }" @click="$store.game.toggleAbilityDetail(field)"><strong x-text="field.label"></strong><span x-text="field.value"></span></button>
+                          </template>
+                        </div>
+                      </section>
+                      <template x-for="field in ability?.misc || []" :key="`entry-misc-${field.key}`">
+                        <button type="button" class="ability-advanced-item ability-expandable ability-misc-row" :class="{ open: $store.game.isAbilityDetailOpen(field) }" @click="$store.game.toggleAbilityDetail(field)"><strong x-text="$store.game.rpgFieldSummary(field)"></strong><span x-text="field.value"></span></button>
+                      </template>
+                      <aside class="ability-detail-sheet" x-show="$store.game.abilityDetailPanel?.text" x-transition.opacity.duration.150ms>
+                        <header class="ability-detail-head"><strong x-text="$store.game.abilityDetailPanel?.title || '详情'"></strong><button type="button" class="ability-detail-close" @click="$store.game.clearAbilityDetail()">收起</button></header>
+                        <div class="ability-detail-links" x-show="($store.game.abilityDetailPanel?.links || []).length">
+                          <template x-for="link in ($store.game.abilityDetailPanel?.links || [])" :key="`${link.fieldKey}-${link.name}`">
+                            <button type="button" class="ability-detail-link" @click="$store.game.openAbilityDetailLink(link)" x-text="link.label"></button>
+                          </template>
+                        </div>
+                        <pre class="ability-detail-body" x-text="$store.game.abilityDetailPanel?.text"></pre>
+                      </aside>
                     </div>
+                  </template>
+                  <template x-if="section.title === '身内能力'">
+                    <div class="intrinsic-ability-panel" x-data="{ intrinsic: null, linksOpen: false }" x-init="intrinsic = $store.game.intrinsicAbilityPresentation(section.fields, $store.game.identityTargetState()); $watch(() => $store.game.identityTargetId, () => { intrinsic = $store.game.intrinsicAbilityPresentation(section.fields, $store.game.identityTargetState()); $store.game.clearAbilityDetail?.(); })">
+                      <p class="ability-panel-hint">七维身内属性 · 点击属性查看来源与关联习得</p>
+                      <section class="intrinsic-hero" aria-label="属性总览">
+                        <div class="intrinsic-hero-badge">
+                          <span class="intrinsic-hero-icon" aria-hidden="true">⚔️</span>
+                          <div><small>均围</small><strong x-text="intrinsic?.summary?.average ?? 0"></strong></div>
+                        </div>
+                        <div class="intrinsic-hero-side">
+                          <p class="intrinsic-hero-line"><span aria-hidden="true">🏆</span><span>最高 </span><strong x-text="`${intrinsic?.summary?.peak?.icon || ''} ${intrinsic?.summary?.peak?.label || '—'} ${intrinsic?.summary?.peak?.display || ''}`"></strong></p>
+                          <p class="intrinsic-hero-line"><span aria-hidden="true">📉</span><span>最低 </span><strong x-text="`${intrinsic?.summary?.low?.icon || ''} ${intrinsic?.summary?.low?.label || '—'} ${intrinsic?.summary?.low?.display || ''}`"></strong></p>
+                        </div>
+                      </section>
+                      <template x-for="group in intrinsic?.groups || []" :key="`entry-intrinsic-group-${group.name}`">
+                        <section class="intrinsic-group">
+                          <header class="intrinsic-group-head"><span class="intrinsic-group-icon" x-text="group.icon"></span><strong x-text="group.name"></strong><small x-text="`均${group.average}`"></small></header>
+                          <div class="intrinsic-stat-grid">
+                            <template x-for="stat in group.rows || []" :key="`entry-intrinsic-${stat.key}`">
+                              <button type="button" class="intrinsic-stat-card ability-expandable" :class="[`tone-${stat.tone}`, { open: stat.field && $store.game.isAbilityDetailOpen(stat.field) }]" @click="stat.field && $store.game.toggleAbilityDetail(stat.field)">
+                                <span class="intrinsic-stat-icon" aria-hidden="true" x-text="stat.icon"></span>
+                                <div class="intrinsic-stat-body">
+                                  <span class="intrinsic-stat-label" x-text="stat.label"></span>
+                                  <strong class="intrinsic-stat-value" x-text="stat.display"></strong>
+                                  <span class="intrinsic-stat-bar"><i :style="`width:${stat.percent}%`"></i></span>
+                                  <small class="intrinsic-stat-breakdown" x-show="stat.breakdownText" x-text="stat.breakdownText"></small>
+                                </div>
+                              </button>
+                            </template>
+                          </div>
+                        </section>
+                      </template>
+                      <section class="intrinsic-links" x-show="(intrinsic?.links || []).length">
+                        <button type="button" class="intrinsic-links-toggle" @click="linksOpen = !linksOpen" x-text="linksOpen ? '关联习得 ▾' : '关联习得 ▸'"></button>
+                        <div class="intrinsic-links-body" x-show="linksOpen">
+                          <template x-for="link in intrinsic?.links || []" :key="`entry-intrinsic-link-${link.key}`">
+                            <article class="intrinsic-link-group">
+                              <header><span x-text="`${link.label}关联`"></span><small x-text="`${link.items.length}项`"></small></header>
+                              <div class="ability-chip-grid">
+                                <template x-for="item in link.items" :key="`${link.key}-${item.type}-${item.name}`">
+                                  <span class="intrinsic-link-chip" x-text="`${item.type === '技能' ? '⚔️' : item.type === '知识' ? '📚' : '🎖️'} ${item.name}${item.level ? ` lv.${item.level}` : ''}`"></span>
+                                </template>
+                              </div>
+                            </article>
+                          </template>
+                        </div>
+                      </section>
+                      <aside class="ability-detail-sheet" x-show="$store.game.abilityDetailPanel?.text" x-transition.opacity.duration.150ms>
+                        <header class="ability-detail-head"><strong x-text="$store.game.abilityDetailPanel?.title || '详情'"></strong><button type="button" class="ability-detail-close" @click="$store.game.clearAbilityDetail()">收起</button></header>
+                        <div class="ability-detail-links" x-show="($store.game.abilityDetailPanel?.links || []).length">
+                          <template x-for="link in ($store.game.abilityDetailPanel?.links || [])" :key="`${link.fieldKey}-${link.name}`">
+                            <button type="button" class="ability-detail-link" @click="$store.game.openAbilityDetailLink(link)" x-text="link.label"></button>
+                          </template>
+                        </div>
+                        <pre class="ability-detail-body" x-text="$store.game.abilityDetailPanel?.text"></pre>
+                      </aside>
+                    </div>
+                  </template>
+                  <template x-if="section.title === '装备与物品'">
+                    <div class="inventory-panel" x-data="{ inv: null }" x-init="inv = $store.game.inventoryPresentation(section.fields); $watch(() => $store.game.identityTargetId, () => { inv = $store.game.inventoryPresentation(section.fields); $store.game.clearAbilityDetail?.(); })">
+                      <p class="ability-panel-hint">点击条目查看详情 · 物品可在数据里写 emoji 字段指定图标；未指定时按名称/描述关键词匹配，仍无匹配则用默认图标</p>
+                      <header class="inventory-summary">
+                        <span class="learned-count-chip">📦 物品 <strong x-text="inv?.itemCount ?? 0"></strong></span>
+                        <span class="learned-count-chip">👕 穿着 <strong x-text="inv?.wearingCount ?? 0"></strong></span>
+                      </header>
+                      <section class="inventory-group">
+                        <header class="intrinsic-group-head"><span aria-hidden="true">📦</span><strong>物品</strong><small x-text="`${inv?.itemCount ?? 0}项`"></small></header>
+                        <div class="ability-chip-grid">
+                          <template x-for="row in inv?.items || []" :key="`entry-inv-item-${row.index}`">
+                            <button type="button" class="inventory-chip ability-expandable" :class="{ open: row.field && $store.game.isAbilityDetailOpen(row.field, row.item, row.index) }" @click="row.field && $store.game.toggleAbilityDetail(row.field, row.item, row.index)"><span class="inventory-chip-icon" aria-hidden="true" x-text="row.icon"></span><span x-text="row.name"></span></button>
+                          </template>
+                        </div>
+                        <p class="ability-empty" x-show="!(inv?.items || []).length">暂无物品</p>
+                      </section>
+                      <section class="inventory-group">
+                        <header class="intrinsic-group-head"><span aria-hidden="true">👗</span><strong>穿着</strong><small x-text="`${inv?.wearSlots?.length ?? 0}槽`"></small></header>
+                        <div class="inventory-wear-grid">
+                          <template x-for="row in inv?.wearSlots || []" :key="`entry-wear-${row.key}`">
+                            <article class="inventory-wear-slot">
+                              <small x-text="`${row.icon} ${row.label}`"></small>
+                              <button type="button" class="inventory-chip ability-expandable" :class="{ open: row.field && $store.game.isAbilityDetailOpen(row.field, row.item, row.index), empty: row.empty }" @click="row.field && $store.game.toggleAbilityDetail(row.field, row.item, row.index)"><span x-text="row.display"></span></button>
+                            </article>
+                          </template>
+                        </div>
+                      </section>
+                      <aside class="ability-detail-sheet" x-show="$store.game.abilityDetailPanel?.text" x-transition.opacity.duration.150ms>
+                        <header class="ability-detail-head"><strong x-text="$store.game.abilityDetailPanel?.title || '详情'"></strong><button type="button" class="ability-detail-close" @click="$store.game.clearAbilityDetail()">收起</button></header>
+                        <pre class="ability-detail-body" x-text="$store.game.abilityDetailPanel?.text"></pre>
+                      </aside>
+                    </div>
+                  </template>
+                  <template x-if="section.title === '当前自然状态' || section.title === '盛装'">
+                    <div class="body-profile-panel" x-data="{ body: null }" x-init="body = $store.game.bodyProfilePanel(section); const refreshBody = () => { body = $store.game.bodyProfilePanel(section); }; $watch(() => $store.game.identityTargetId, () => { refreshBody(); $store.game.clearAbilityDetail?.(); }); window.addEventListener('body-silhouette-manifest-ready', refreshBody); window.addEventListener('body-figure-meta-ready', refreshBody);">
+                      <p class="ability-panel-hint" x-text="body?.figure ? '点击标注框或部位卡片查看完整描写 · 参考图按整体标签（如少女）匹配' : '点击轮廓或部位卡片查看完整描写 · 轮廓按性别与整体体型自动匹配'"></p>
+                      <p class="body-profile-meta" x-show="body?.meta"><span class="learned-count-chip" x-text="body?.meta"></span></p>
+                      <div class="body-profile-layout" :class="{ 'has-figure': body?.figure }">
+                        <div class="body-figure-board" x-show="body?.figure">
+                          <div class="body-figure-stage">
+                            <img class="body-figure-img" :src="body.figure.imageSrc" :alt="body.figure.label" loading="lazy">
+                            <template x-for="ann in body.figure.annotations || []" :key="`entry-fig-line-${ann.part}`">
+                              <svg class="body-figure-line-item" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                                <line :x1="ann.line.x1" :y1="ann.line.y1" :x2="ann.line.x2" :y2="ann.line.y2"></line>
+                              </svg>
+                            </template>
+                            <template x-for="ann in body.figure.annotations || []" :key="`entry-fig-ann-${ann.part}`">
+                              <span class="body-figure-anchor" :style="$store.game.bodyFigureAnchorStyle(ann)" aria-hidden="true"></span>
+                              <button type="button" class="body-figure-callout" :class="{ active: $store.game.isBodyFigurePartActive(body.rows, ann.part), 'side-right': ann.label.side === 'right', 'side-left': ann.label.side !== 'right' }" :style="$store.game.bodyFigureCalloutStyle(ann)" @click="$store.game.openBodyFigurePart(body.rows, ann.part)">
+                                <strong x-text="ann.title"></strong>
+                                <small x-show="ann.tags" x-text="ann.tags"></small>
+                                <p x-text="ann.preview"></p>
+                              </button>
+                            </template>
+                          </div>
+                          <small class="body-figure-label" x-text="body.figure.label"></small>
+                        </div>
+                        <aside class="body-silhouette-aside" x-show="body?.silhouette">
+                          <div class="body-silhouette-stage">
+                            <img class="body-silhouette-img" :src="body.silhouette.src" :alt="body.silhouette.label" loading="lazy">
+                            <div class="body-silhouette-hotspots" aria-hidden="true">
+                              <template x-for="spot in body.silhouette.hotspots || []" :key="`entry-sil-${spot.part}`">
+                                <button type="button" class="body-silhouette-hotspot" :class="{ active: $store.game.isBodySilhouettePartActive(body.rows, spot.part) }" :style="`left:${spot.x}%;top:${spot.y}%;width:${spot.w}%;height:${spot.h}%`" :title="spot.part" @click="$store.game.openBodySilhouettePart(body.rows, spot.part)"></button>
+                              </template>
+                            </div>
+                          </div>
+                          <small class="body-silhouette-label" x-text="body.silhouette.label"></small>
+                          <small class="body-silhouette-source" x-show="body.silhouette.remote">远程资源</small>
+                        </aside>
+                        <div class="body-profile-grid">
+                          <template x-for="row in body?.rows || []" :key="`entry-body-${row.index}`">
+                            <button type="button" class="body-part-card ability-expandable" :class="{ open: row.field && $store.game.isAbilityDetailOpen(row.field, row.item, row.index) }" @click="row.field && $store.game.toggleAbilityDetail(row.field, row.item, row.index)">
+                              <span class="body-part-icon" aria-hidden="true" x-text="row.icon"></span>
+                              <strong x-text="row.title"></strong>
+                              <small x-show="row.tags" x-text="row.tags"></small>
+                              <p x-text="row.preview"></p>
+                            </button>
+                          </template>
+                        </div>
+                      </div>
+                      <p class="ability-empty" x-show="!(body?.rows || []).length">暂无记录</p>
+                      <aside class="ability-detail-sheet" x-show="$store.game.abilityDetailPanel?.text" x-transition.opacity.duration.150ms>
+                        <header class="ability-detail-head"><strong x-text="$store.game.abilityDetailPanel?.title || '详情'"></strong><button type="button" class="ability-detail-close" @click="$store.game.clearAbilityDetail()">收起</button></header>
+                        <pre class="ability-detail-body" x-text="$store.game.abilityDetailPanel?.text"></pre>
+                      </aside>
+                    </div>
+                  </template>
+                  <template x-if="section.title !== '个人能力' && section.title !== '身内能力' && section.title !== '装备与物品' && section.title !== '当前自然状态' && section.title !== '盛装'">
+                    <template x-for="field in section.fields" :key="`entry-field-${field.key}`">
+                      <div class="dynamic-row" role="button" tabindex="0" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.toggleRpgField(field)" @keydown.enter.prevent="$store.game.toggleRpgField(field)" @keydown.space.prevent="$store.game.toggleRpgField(field)">
+                        <button :class="[$store.game.isRpgListField(field) ? 'rpg-tree-title' : 'rpg-item-card lexicon-tag', { open: $store.game.isRpgFieldOpen(field) }]" type="button" @click.stop="$store.game.toggleRpgField(field)"><strong x-text="$store.game.rpgFieldSummary(field)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
+                        <div class="rpg-item-list" x-show="$store.game.isRpgListField(field)" @click.stop>
+                          <template x-for="(item, index) in $store.game.rpgListItems(field)" :key="`entry-item-${field.key}:${item.name || item}:${index}`">
+                            <button class="rpg-item-card" :class="{ open: $store.game.isRpgItemOpen(field, index), 'body-part-card': $store.game.isBodyProfileField(field) }" type="button" @click="$store.game.toggleRpgItem(field, index)"><strong x-text="$store.game.rpgItemSummary(item, field)"></strong><p class="body-part-description" x-show="$store.game.isBodyProfileField(field)" x-text="$store.game.rpgBodyPartDescription(item)"></p><p class="rpg-field-detail" x-show="$store.game.isRpgItemOpen(field, index)" x-text="$store.game.rpgItemDetail(field, item)"></p></button>
+                          </template>
+                        </div>
+                        <p class="rpg-field-detail" x-show="!$store.game.isRpgListField(field) && !$store.game.isLexiconField(field) && $store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p>
+                      </div>
+                    </template>
                   </template>
                 </article>
               </template>

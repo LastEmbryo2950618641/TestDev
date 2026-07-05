@@ -64,7 +64,7 @@ function registerGameStore() {
     criticalActionFallback, gm.actions, gm.rpgFieldUi, gm.resultActions, gm.loadingActions, gm.roleCardLoadingActions, gm.solidifyActions, gm.wearingSyncActions, gm.saveActions, gm.styleActions,
     gm.worldlineActions, gm.predefinedRoleCardActions, gm.homeActions, gm.playerSetupActions, gm.playerAspirationActions, gm.playerIdentityActions, gm.identityMemoryActions, gm.identityAppActions, gm.memoryQueryActions, gm.wechatActions, gm.wechatViewActions, gm.wechatMemoryContextActions, gm.wechatChatActions, gm.wechatIncomingActions, gm.wechatImageActions, gm.wechatMentionActions, gm.wechatWorldlineActions, gm.wechatMemoryDebugActions, gm.wechatAppActions, gm.wechatAlbumTagActions, gm.wechatAlbumPromptListActions, gm.wechatAvatarCropActions, gm.wechatAlbumActions, gm.wechatChangePanelActions, gm.entryActions, gm.realWorldClockActions,
     gm.catalogActions, gm.coreActions, gm.controlLinkActions, gm.appSwitchActions, gm.currentWorldActions, gm.inventoryActions, gm.inventoryEquipActions, gm.itemSkillActions, gm.realWorldStreamActions, gm.realWorldThinkingActions, gm.realWorldSettlementActions, gm.realWorldUtilityActions, gm.realWorldActions, gm.realWorldLongingActions, gm.realWorldMapActions, gm.realWorldFactionActions, gm.realWorldMatterActions, gm.companyActions, gm.companyAttendanceActions, gm.companyFactionActions,
-    gm.bossActions, gm.bossAppointmentActions, gm.bossAiActions, gm.calendarActions, gm.factionActions, gm.factionArchiveActions, gm.factionOrgActions, gm.factionAiActions, gm.skillsActions, gm.knownProfessionActions, gm.taobaoActions, gm.taobaoGenerateActions, gm.taobaoBuyActions, gm.promptActions, gm.settingsActions, gm.systemTestActions, gm.tokenStatsActions, gm.roleCardJsonApp?.actions,
+    gm.bossActions, gm.bossAppointmentActions, gm.bossAiActions, gm.calendarActions, gm.factionActions, gm.factionArchiveActions, gm.factionOrgActions, gm.factionAiActions, gm.skillsActions, gm.knownProfessionActions, gm.taobaoActions, gm.taobaoGenerateActions, gm.taobaoBuyActions, gm.promptActions, gm.settingsActions, gm.systemTestActions, gm.tokenStatsActions, gm.uiThemeActions, gm.roleCardJsonApp?.actions,
   ].map((module) => module || {});
 
   Alpine.store('game', {
@@ -81,7 +81,7 @@ function registerGameStore() {
     loadingStages: [], entryStages: [], loadingStartedAt: 0, loadingNow: Date.now(), loadingTimer: null,
     roleCardLoadingState: { open: false, expanded: true, cards: [], startedAt: 0 }, roleCardLoadingRetryQueue: {}, solidifyState: { open: false, candidates: [], selectedKey: '' },
     busy: false, started: false, desktopUnlocked: false, desktopPage: 0, desktopSwipeStart: null, controlSelectOpen: false, controlLinkMenuId: '', sharedControlTargetId: '', sharedControlActive: false, entrySetupOpen: false, entryIdentityOpen: false, identityAppOpen: false, identityReturnTo: '', wechatAppOpen: false, saveAppOpen: false, roleCardJsonAppOpen: false, identityTargetId: 'player-self', wechatSelectedContact: 'player-self', wechatTab: 'chats', wechatView: 'home', wechatAlbumMode: 'profile', wechatAlbumPromptOpen: false, wechatAlbumPromptStep: 'choice', wechatAlbumPromptDraft: null, wechatAlbumGenerating: false, wechatAlbumRequestId: 0, wechatAlbumPhotos: {}, wechatInput: '', wechatSending: false, wechatError: '', wechatReplyRequestId: 0, wechatMessagesByContact: {}, wechatUsers: [], wechatAddName: '', wechatAddRelation: '',
-    initPromise: null, startupWarmupPromise: null, startupWarmupDone: false, phoneSetupDone: false, phoneActivationChoice: '', profileSetupBusy: false, setupError: '', phoneFixedTime: 0, phoneClockTimer: null, existingProfileExpanded: false,
+    initPromise: null, startupWarmupPromise: null, startupWarmupDone: false, phoneSetupDone: false, phoneActivationChoice: '', profileSetupBusy: false, setupError: '', phoneFixedTime: 0, phoneClockStamp: 0, phoneClockLabelShort: '--:--', phoneClockLabelFull: '--:--:--', phoneClockTimer: null, existingProfileExpanded: false,
     roleCardSetup: { loaded: false, usePredefinedPlayerCard: false, cards: [], selectedPlayerName: '', selectedRelationNames: [], relationRoles: {}, selectedRelationCardName: '刘思瑶', gender: '女', relationType: '妹妹', customRelation: '', detailOpen: false, relationDetailOpen: '' },
     knownProfessionState: { open: false, query: '', message: '', selectedName: '', detailOpen: false },
     taobaoState: { open: false, slots: [], selectedId: '', generatingId: '', buyingId: '', requestId: 0, message: '', error: '', walletOpen: false },
@@ -103,6 +103,8 @@ function registerGameStore() {
       modelTestLoading: false,
       modelTestOk: null,
       modelTestMessage: '',
+      uiThemeId: 'dark',
+      uiThemeCustomColor: '#7fe5ff',
     },
     systemTestState: { open: false, loading: false, thinkingLoading: false, platformChatLoading: false, systemText: '你是一个测试助手。无论用户输入什么，只回答：SYSTEM_OK。', userText: '请测试 system role 是否生效。', thinkingPrompt: '请用简洁中文回答：为什么晴天适合散步？列出三点理由即可。', result: '', error: '', thinkingError: '', thinkingResults: [], platformChatPayload: '', platformChatRaw: '', platformChatError: '' },
     playerProfile: { name: '', gender: '', birthday: '', age: '', city: '', refinedCity: '', dailyRole: '', refinedRole: '', livingStatus: '', refinedLivingStatus: '', wealthTier: '中产', wealthAmount: 500000, wealthSource: '', wealthBreakdown: null, wealthFixedIncome: '', relationships: '', relationshipEntries: [], parents: '', parentStatus: '', parentDeathCause: '', worldbuildingNote: '', notes: '', knownProfessions: [], wechatId: '', profileEnrichedAt: '', initializedAt: '', playerCardAiParts: { part2: true, part5: true, part6: true } }, playerName: '',
@@ -149,6 +151,7 @@ function registerGameStore() {
     metricSummaryObserver: null,
     expandedMetricKey: '',
     expandedRpgFieldKey: '',
+    abilityDetailPanel: null,
     quest: '确认操控连接', thinkingMode: true,
     mindText: '', feedbackSource: 'pending',
     characterIntent: '',
@@ -195,6 +198,7 @@ function registerGameStore() {
           window.GameModules.metrics.ensure(this);
           await this.initGame();
           this.startPhoneClock?.();
+          this.refreshPhoneClockLabels?.();
           this.runDeferredInits?.();
         } catch (err) {
           console.error('游戏初始化失败:', err.message, err.stack);
@@ -228,6 +232,26 @@ function registerGameStore() {
     },
 
     ...Object.assign({}, ...modules),
+    refreshPhoneClockLabels() {
+      const initialized = new Date(this.playerProfile?.initializedAt || Date.now()).getTime();
+      const fallback = Number.isFinite(initialized) && initialized > 946684800000 ? initialized : Date.now();
+      const current = Number(this.phoneFixedTime);
+      const ms = Number.isFinite(current) && current > 946684800000 ? current : fallback;
+      if (!Number.isFinite(current) || current <= 946684800000) this.phoneFixedTime = ms;
+      const d = new Date(ms);
+      const parts = [d.getHours(), d.getMinutes(), d.getSeconds()].map((x) => String(x).padStart(2, '0'));
+      this.phoneClockLabelShort = `${parts[0]}:${parts[1]}`;
+      this.phoneClockLabelFull = parts.join(':');
+      this.phoneClockStamp = Date.now();
+    },
+    phoneTimeShortText() {
+      void this.phoneClockStamp;
+      return this.phoneClockLabelShort || '--:--';
+    },
+    phoneTimeDisplayText() {
+      void this.phoneClockStamp;
+      return this.phoneClockLabelFull || '--:--:--';
+    },
     knownProfessions() { return gm.knownProfessionActions?.knownProfessions?.call(this) || []; },
     selectedKnownProfession() { return gm.knownProfessionActions?.selectedKnownProfession?.call(this) || null; },
     professionRequirementText(job) { return gm.knownProfessionActions?.professionRequirementText?.call(this, job) || ''; },

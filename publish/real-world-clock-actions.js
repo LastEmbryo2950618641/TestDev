@@ -1,19 +1,24 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldClockActions = {
-  startPhoneClock() { this.ensurePhoneFixedTime(); },
+  startPhoneClock() {
+    this.ensurePhoneFixedTime();
+    this.phoneClockStamp = Date.now();
+  },
 
   ensurePhoneFixedTime() {
     const initialized = new Date(this.playerProfile?.initializedAt || Date.now()).getTime();
     const base = Number.isFinite(initialized) && initialized > 946684800000 ? initialized : Date.now();
     const current = Number(this.phoneFixedTime);
     if (!Number.isFinite(current) || current <= 946684800000) this.phoneFixedTime = base;
+    this.refreshPhoneClockLabels?.();
   },
 
   advancePhoneTime(seconds = 60) {
     this.ensurePhoneFixedTime();
     const delta = Math.max(0, Math.min(2592000, Math.round(Number(seconds) || 0))) * 1000;
     this.phoneFixedTime += delta;
+    this.refreshPhoneClockLabels?.();
   },
 
   phoneDate() { this.ensurePhoneFixedTime(); return new Date(this.phoneFixedTime); },
@@ -21,6 +26,16 @@ window.GameModules.realWorldClockActions = {
   phoneTimeText() {
     const d = this.phoneDate();
     return [d.getHours(), d.getMinutes(), d.getSeconds()].map((x) => String(x).padStart(2, '0')).join(':');
+  },
+
+  phoneTimeShortText() {
+    void this.phoneClockStamp;
+    return this.phoneClockLabelShort || '--:--';
+  },
+
+  phoneTimeDisplayText() {
+    void this.phoneClockStamp;
+    return this.phoneClockLabelFull || '--:--:--';
   },
 
   phoneDateText() {

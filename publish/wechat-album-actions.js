@@ -7,12 +7,12 @@ window.GameModules.wechatAlbumActions = {
     this.wechatAlbumMode = 'profile';
     const contact = this.wechatSelected?.();
     if (!contact || contact.group) return;
-    const existing = this.findWechatCharacterState?.(contact);
-    if (existing?.profile && window.GameModules.characterProfile.isRoleCard?.(existing.profile)) {
-      this.bindWechatCharacterState?.(existing, contact);
-      return;
-    }
-    this.ensureWechatUserProfile?.(contact).then(() => this.save?.()).catch((err) => console.warn('[微信] 联系人资料补全失败:', err.code, err.message, err.stack));
+    this.reuseWechatCharacterProfile?.(contact)
+      .then((state) => {
+        if (state) return this.save?.();
+        this.wechatError = this.wechatMissingRoleCardMessage?.(contact);
+      })
+      .catch((err) => console.warn('[微信] 联系人资料读取失败:', err.code, err.message, err.stack));
   },
 
   backWechatContactProfile() {

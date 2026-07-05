@@ -5,6 +5,71 @@ window.GameModules.rpgFieldUi = {
   rpgItemKey(field, index) { return `${this.rpgFieldKey(field)}:item:${index}`; },
   toggleRpgField(field) { const key = this.rpgFieldKey(field); if (key) this.expandedRpgFieldKey = this.expandedRpgFieldKey === key ? '' : key; },
   toggleRpgItem(field, index) { const key = this.rpgItemKey(field, index); if (key) this.expandedRpgFieldKey = this.expandedRpgFieldKey === key ? '' : key; },
+  clearAbilityDetail() {
+    this.abilityDetailPanel = null;
+    this.expandedRpgFieldKey = '';
+  },
+  openAbilityDetail(field, item = null, index = null) {
+    if (!field) return;
+    const key = item != null && index != null ? this.rpgItemKey(field, index) : this.rpgFieldKey(field);
+    const title = item != null ? this.rpgItemSummary(item, field) : String(field.label || field.key || '详情');
+    const text = item != null ? this.rpgItemDetail(field, item) : this.rpgFieldDetail(field);
+    const links = item != null ? this.learnedPrerequisiteLinks(item) : [];
+    this.expandedRpgFieldKey = key;
+    this.abilityDetailPanel = { key, title, text, links };
+  },
+  toggleAbilityDetail(field, item = null, index = null) {
+    const key = item != null && index != null ? this.rpgItemKey(field, index) : this.rpgFieldKey(field);
+    if (this.abilityDetailPanel?.key === key) {
+      this.clearAbilityDetail();
+      return;
+    }
+    this.openAbilityDetail(field, item, index);
+  },
+  isAbilityDetailOpen(field, item = null, index = null) {
+    const key = item != null && index != null ? this.rpgItemKey(field, index) : this.rpgFieldKey(field);
+    return this.abilityDetailPanel?.key === key;
+  },
+
+  learnedPrerequisiteLinks(item = {}) {
+    const links = [];
+    const add = (name, fieldKey, prefix) => {
+      const label = String(name || '').trim();
+      if (!label) return;
+      links.push({ label: `${prefix}${label}`, fieldKey, name: label });
+    };
+    (item.requiredSkills || []).forEach((name) => add(name, 'skills', '技能·'));
+    (item.requiredKnowledge || []).forEach((name) => add(name, 'knowledge', '知识·'));
+    const info = item.info || {};
+    (info.learnedAbilities || []).forEach((name) => add(name, 'skills', '技能·'));
+    (info.knowledgeAreas || []).forEach((name) => add(name, 'knowledge', '知识·'));
+    return links.filter((link, index, list) => list.findIndex((row) => row.fieldKey === link.fieldKey && row.name === link.name) === index);
+  },
+
+  openAbilityDetailLink(link = {}) {
+    const store = this;
+    const stateId = String(link.stateId || store.identityTargetId || store.selectedCharacterId || '').trim();
+    const state = store.rpgStates?.[stateId] || store.characterRpgState || store.currentRpgState;
+    if (!state?.values) return;
+    const entries = store.rpgEntries?.(state) || [];
+    const targetField = entries.flatMap((section) => section.fields || []).find((field) => field.key === link.fieldKey);
+    if (!targetField) return;
+    const items = store.rpgListItems(targetField);
+    const index = items.findIndex((item) => {
+      const name = store.rpgItemName(item);
+      return name === link.name || name.includes(link.name) || link.name.includes(name);
+    });
+    if (index < 0) return;
+    store.openAbilityDetail({ ...targetField, stateId: targetField.stateId || state.id }, items[index], index);
+  },
+
+  rpgItemPrerequisiteTags(item = {}) {
+    const tags = [];
+    if ((item.requiredSkills || []).length) tags.push(`技×${item.requiredSkills.length}`);
+    if ((item.requiredKnowledge || []).length) tags.push(`知×${item.requiredKnowledge.length}`);
+    if ((item.requiredIntrinsicBase || []).length) tags.push(`身×${item.requiredIntrinsicBase.length}`);
+    return tags;
+  },
   isRpgFieldOpen(field) { return this.expandedRpgFieldKey === this.rpgFieldKey(field); },
   isRpgItemOpen(field, index) { return this.expandedRpgFieldKey === this.rpgItemKey(field, index); },
   isRpgListField(field) { return ['knowledge', 'skills', 'professions', 'factions', 'force_positions', 'items', 'wearing', 'bodyProfile', 'dressedProfile', 'bodyStatus', 'sexualExperienceParts', 'sexualPartners', 'status_tags'].includes(field?.key) && Array.isArray(field.raw); },
@@ -187,31 +252,103 @@ window.GameModules.rpgFieldUi = {
   },
 
   profileNaturalStateField(state = {}) {
-    const p = state?.profile || {};
+    const source = this.profileAppearanceSource(state);
     const cfg = window.GameModules.appearanceProfileTags;
-    const metaText = cfg?.formatNaturalMeta?.(p.bodyProfileMeta || {}) || '';
-    const field = this.profileBodyStateField(state, p.bodyProfile, {
+    const metaText = cfg?.formatNaturalMeta?.(source.bodyProfileMeta || {}) || '';
+    const field = this.profileBodyStateField(state, source.bodyProfile, {
       key: 'bodyProfile', label: '当前自然状态', kind: '身体原貌', type: '身体原貌',
       desc: '角色未经衣物遮掩、未作人工修饰时的原本身体状态。',
-      reason: `${p.name || '该人物'}的自然状态来自角色卡 Part5 身体原貌生成结果。`,
+      reason: `${source.name || '该人物'}的自然状态来自角色卡 Part5 身体原貌生成结果。`,
       metaText,
     });
-    if (field && p.bodyProfileMeta) field.meta = p.bodyProfileMeta;
-    return field;
+    if (field) {
+      if (source.bodyProfileMeta) field.meta = source.bodyProfileMeta;
+      return field;
+    }
+    if (!metaText && !source.gender && !source.appearance) return null;
+    return {
+      key: 'bodyProfile',
+      stateId: state?.id || '',
+      label: '当前自然状态',
+      kind: '身体原貌',
+      type: '身体原貌',
+      raw: [],
+      value: [],
+      metaText,
+      meta: source.bodyProfileMeta || {},
+      desc: '角色未经衣物遮掩、未作人工修饰时的原本身体状态。',
+      reason: `${source.name || '该人物'}的自然状态来自角色卡 Part5 身体原貌生成结果。`,
+      worldTag: source.work || state?.worldTag || '原创世界',
+      targetType: source.isPlayer ? '非角色' : '角色',
+      commonField: true,
+    };
   },
 
   profileDressedStateField(state = {}) {
-    const p = state?.profile || {};
+    const source = this.profileAppearanceSource(state);
     const cfg = window.GameModules.appearanceProfileTags;
-    const metaText = cfg?.formatDressedMeta?.(p.dressedProfileMeta || {}) || '';
-    const field = this.profileBodyStateField(state, p.dressedProfile, {
+    const metaText = cfg?.formatDressedMeta?.(source.dressedProfileMeta || {}) || '';
+    const field = this.profileBodyStateField(state, source.dressedProfile, {
       key: 'dressedProfile', label: '盛装', kind: '盛装状态', type: '盛装状态',
       desc: '角色盛装或打扮完全后各身体部位的造型、修饰与衣物包裹状态。',
-      reason: `${p.name || '该人物'}的盛装状态来自角色卡 Part6 盛装状态生成结果。`,
+      reason: `${source.name || '该人物'}的盛装状态来自角色卡 Part6 盛装状态生成结果。`,
       metaText,
     });
-    if (field && p.dressedProfileMeta) field.meta = p.dressedProfileMeta;
-    return field;
+    if (field) {
+      if (source.dressedProfileMeta) field.meta = source.dressedProfileMeta;
+      return field;
+    }
+    if (!metaText && !(source.dressedProfile || []).length) return null;
+    return {
+      key: 'dressedProfile',
+      stateId: state?.id || '',
+      label: '盛装',
+      kind: '盛装状态',
+      type: '盛装状态',
+      raw: [],
+      value: [],
+      metaText,
+      meta: source.dressedProfileMeta || {},
+      desc: '角色盛装或打扮完全后各身体部位的造型、修饰与衣物包裹状态。',
+      reason: `${source.name || '该人物'}的盛装状态来自角色卡 Part6 盛装状态生成结果。`,
+      worldTag: source.work || state?.worldTag || '原创世界',
+      targetType: source.isPlayer ? '非角色' : '角色',
+      commonField: true,
+    };
+  },
+
+  profileAppearanceSource(state = {}) {
+    const p = state?.profile || {};
+    const cards = window.GameModules.predefinedRoleCardData || {};
+    const keys = window.GameModules.predefinedRoleCards?.keys || Object.keys(cards);
+    const probe = {
+      ...p,
+      name: String(p.name || state?.name || '').trim(),
+      id: String(p.id || state?.id || '').trim(),
+    };
+    let key = window.GameModules.predefinedRoleCards?.cardKeyFor?.(probe) || '';
+    if (!key && probe.id) key = keys.find((k) => cards[k]?.id === probe.id) || '';
+    if (!key && probe.name) key = keys.find((k) => cards[k]?.name === probe.name) || '';
+    const preset = key ? cards[key] : null;
+    const pickParts = (runtime = [], fallback = []) => {
+      const valid = (list) => (Array.isArray(list) ? list : []).filter((item) => String(item?.part || item?.部位 || '').trim() && String(item?.description || item?.部位描写 || '').trim());
+      const run = valid(runtime);
+      const pre = valid(fallback);
+      if (run.length >= 11) return runtime;
+      if (pre.length) return fallback;
+      return run.length ? runtime : (fallback || []);
+    };
+    return {
+      ...p,
+      name: probe.name || p.name,
+      id: probe.id || p.id,
+      gender: p.gender || preset?.gender || '',
+      appearance: p.appearance || preset?.appearance || '',
+      bodyProfile: pickParts(p.bodyProfile, preset?.bodyProfile),
+      bodyProfileMeta: p.bodyProfileMeta || preset?.bodyProfileMeta || {},
+      dressedProfile: pickParts(p.dressedProfile, preset?.dressedProfile),
+      dressedProfileMeta: p.dressedProfileMeta || preset?.dressedProfileMeta || {},
+    };
   },
 
   profileBodyStateField(state = {}, source = [], meta = {}) {
@@ -357,8 +494,10 @@ window.GameModules.rpgFieldUi = {
       return `${item.part || name}：${item.status || '稳定'}${desc ? `｜${desc}` : ''}`;
     }
     const levelName = Number(item?.level) > 0 ? `${name} lv.${item.level}` : name;
-    if (item?.type === '穿着' && item?.slot && item?.clothing_position) return `${item.clothing_position}｜${levelName}`;
-    return levelName;
+    const tags = this.rpgItemPrerequisiteTags(item);
+    const tagged = tags.length ? `${levelName} · ${tags.join(' ')}` : levelName;
+    if (item?.type === '穿着' && item?.slot && item?.clothing_position) return `${item.clothing_position}｜${tagged}`;
+    return tagged;
   },
 
   sexPartTemplate(defaults = null) {
@@ -410,7 +549,6 @@ window.GameModules.rpgFieldUi = {
     const info = lexicon?.meta?.info || obj?.info || {};
     const exp = obj?.exp || {};
     const statName = { strength: '力量', agility: '敏捷', constitution: '体质', intelligence: '智力', perception: '感知', willpower: '意志', charisma: '魅力' };
-    const linkedStats = (info.intrinsicStats || obj?.linkedStats || []).map((x) => statName[x] || x);
     const kind = field?.key === 'sexualExperienceParts' ? '性经验分类' : (obj?.type || this.lexiconKind(field, obj));
     const name = this.rpgItemName(obj) || field?.label || '未知';
     if (kind === '身体原貌' || kind === '盛装状态') {
@@ -438,18 +576,33 @@ window.GameModules.rpgFieldUi = {
     if ((kind === '社群角色' || kind === '阵营') && (obj?.community || obj?.faction || info.community || info.faction)) lines.push(`社群: ${obj.community || obj.faction || info.community || info.faction}`, `角色: ${obj.role || info.role || obj.position || info.position || '成员'}`);
     if (kind === '势力地位' && (obj?.force || obj?.faction || info.force || info.faction)) lines.push(`势力: ${obj.force || obj.faction || info.force || info.faction}`, `地位: ${obj.position || info.position || '成员'}`);
     if (hasLevel) {
+      const p = window.GameModules.progression;
+      const lv = Number(obj?.level) || 1;
+      const expNext = p?.learnedNext?.[lv] ?? exp.next;
+      const expCurrent = exp.current || 0;
       lines.push(`等级: lv${obj.level}`);
       lines.push(`当前等级含义: ${obj?.levelDescription || info.levelDescription || window.GameModules.progression.levelDescription(kind, obj.level)}`);
       lines.push(`完整等级含义: ${window.GameModules.progression.levelDescriptionList(kind)}`);
       lines.push(`等级效果: ${obj?.effect || info.effect || window.GameModules.progression.levelEffect(name, kind, obj.level)}`);
-      lines.push(`经验值/升级所需经验值: ${exp.current || 0}/${exp.next || 'max'}`);
+      lines.push(`经验值/升级所需经验值: ${expCurrent}/${expNext === Infinity ? 'max' : expNext}`);
     }
-    lines.push(`关联身内能力: ${linkedStats.join('、') || '无直接关联'}`);
+    const sync = window.GameModules.progressionLearnedSync;
+    const requiredSkills = [...new Set([...(obj.requiredSkills || []), ...(info.learnedAbilities || [])])];
+    const requiredKnowledge = [...new Set([...(obj.requiredKnowledge || []), ...(info.knowledgeAreas || [])])];
+    const intrinsicKeys = sync?.normalizeIntrinsicBase?.([
+      ...(obj.requiredIntrinsicBase || []),
+      ...(info.intrinsicStats || []),
+      ...(obj.linkedStats || []),
+    ]) || [];
+    const intrinsicLabels = sync?.intrinsicLabels?.(intrinsicKeys) || (obj.requiredIntrinsicBase || []).map((x) => statName[x] || x);
+    if (requiredSkills.length) lines.push(`前置技能: ${requiredSkills.join('、')}`);
+    if (requiredKnowledge.length) lines.push(`前置知识: ${requiredKnowledge.join('、')}`);
+    lines.push(`关联身内能力: ${intrinsicLabels.join('、') || '无直接关联'}`);
+    if ((info.worldAbilities || []).length) lines.push(`关联世界能力: ${info.worldAbilities.join('、')}`);
     lines.push(`词条层级: ${lexicon?.hierarchy === 'tree' ? '树词条' : '叶子词条'}`);
     lines.push(`生成来源: 词条名${(lexicon?.nameAiGenerated ?? lexicon?.aiGenerated) ? 'AI生成' : '系统/用户给定'}，值${lexicon?.valueAiGenerated ? 'AI生成' : '系统/用户给定'}，变化方式${this.itemChangeMode(obj, lexicon)}`);
     lines.push(`变化原因: ${this.itemChangeReason(field, obj, lexicon)}`);
     lines.push(`当前依据: ${this.itemBasis(field, obj, kind, name)}`);
-    if (obj?.type === '职业' && ((info.learnedAbilities || []).length || (info.worldAbilities || []).length)) lines.push(`职业关联: ${(info.learnedAbilities || []).concat(info.worldAbilities || []).join('、')}`);
     return lines.join('\n');
   },
 
@@ -478,7 +631,445 @@ window.GameModules.rpgFieldUi = {
     if (field?.source) lines.push(`来源: 初始值(${field.source.initial || 0}) + 等级值(${field.source.level || 0}) + 分配值(${field.source.allocated || 0}) + 非玩家成长(${field.source.npc || 0}) = ${field.raw || 0}`);
     if (field?.limit) lines.push(`限制: ${field.limit}`);
     if (field?.key === 'free_attribute_points') lines.push('用途: 可分配到力量、敏捷、体质、智力、感知、意志、魅力；每次真实升级获得1点。');
+    if (field?.key === 'charisma') lines.push('判定提示: 魅力含容貌长相（漂亮/可爱/清秀/英俊等）、气质仪态与社交影响力；仅性格内向或话少，不应单独把魅力压得过低。');
     if (field?.key === 'level_growth' && field.raw?.history?.length) lines.push(`最近升级: ${field.raw.history.map((x) => `${x.from}->${x.to} 自动${Object.entries(x.auto || {}).map(([k, v]) => `${k}+${v}`).join('/')} 自由+${x.free}`).join('；')}`);
     return lines.join('\n');
+  },
+
+  fieldByKey(fields, key) {
+    return (fields || []).find((field) => field?.key === key) || null;
+  },
+
+  parsePoolMetric(field) {
+    if (!field) return { current: 0, max: 100, percent: 0, display: '—' };
+    const raw = field.raw;
+    if (raw && typeof raw === 'object' && Object.prototype.hasOwnProperty.call(raw, 'current')) {
+      const max = Math.max(1, Number(raw.max ?? raw.next) || 1);
+      const current = Number(raw.current) || 0;
+      return {
+        current,
+        max,
+        percent: Math.max(0, Math.min(100, Math.round((current / max) * 100))),
+        display: field.value || `${current}/${max}`,
+      };
+    }
+    const text = String(field.value || '');
+    const match = text.match(/(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?|max)/i);
+    if (match) {
+      const current = Number(match[1]) || 0;
+      const max = String(match[2]).toLowerCase() === 'max' ? Math.max(current, 1) : Number(match[2]) || 100;
+      return { current, max, percent: Math.max(0, Math.min(100, Math.round((current / max) * 100))), display: text };
+    }
+    const num = Number(String(text).replace(/[^\d.]/g, '')) || 0;
+    return { current: num, max: 100, percent: Math.max(0, Math.min(100, num)), display: text || String(num) };
+  },
+
+  parseExpMetric(expField, levelField) {
+    const level = Number(levelField?.raw ?? levelField?.value) || 1;
+    const raw = expField?.raw;
+    if (raw && typeof raw === 'object' && Object.prototype.hasOwnProperty.call(raw, 'current')) {
+      const current = Number(raw.current) || 0;
+      const next = Number(raw.next) || window.GameModules.progression.nextCharacterExp(level);
+      const percent = next ? Math.max(0, Math.min(100, Math.round((current / next) * 100))) : 0;
+      return { current, next, percent, display: expField.value || `${current}/${next}` };
+    }
+    const pool = this.parsePoolMetric(expField);
+    return { current: pool.current, next: pool.max, percent: pool.percent, display: pool.display };
+  },
+
+  learnedTypeIcon(type = '') {
+    return { 技能: '⚔️', 知识: '📚', 职业: '🎖️' }[type] || '📌';
+  },
+
+  learnedItemLinks(item = {}) {
+    const sync = window.GameModules.progressionLearnedSync;
+    const p = window.GameModules.progression;
+    const keys = [
+      ...(Array.isArray(item.linkedStats) ? item.linkedStats : []),
+      ...(sync?.normalizeIntrinsicBase?.(item.requiredIntrinsicBase || []) || []),
+    ];
+    const unique = [...new Set(keys.filter(Boolean))];
+    if (unique.length) return unique;
+    const name = this.rpgItemName(item);
+    return p?.linkedStats?.(name) || ['intelligence'];
+  },
+
+  personalAbilityLearnedGroups(fields = []) {
+    const specs = [
+      { listKey: 'knowledge', key: 'knowledge', label: '知识', type: '知识' },
+      { listKey: 'skills', key: 'skills', label: '技能', type: '技能' },
+      { listKey: 'professions', key: 'professions', label: '职业', type: '职业' },
+    ];
+    return specs.map(({ listKey, key, label, type }) => {
+      const field = this.fieldByKey(fields, listKey);
+      const items = this.rpgListItems(field).map((item, index) => {
+        const name = this.rpgItemName(item);
+        if (!name) return null;
+        const level = Number(item?.level) > 0 ? item.level : null;
+        return {
+          type,
+          field,
+          item,
+          index,
+          name,
+          level,
+          icon: this.learnedTypeIcon(type),
+          chipText: `${this.learnedTypeIcon(type)} ${name}${level ? ` lv.${level}` : ''}`,
+        };
+      }).filter(Boolean);
+      return { key, label, icon: this.learnedTypeIcon(type), items };
+    }).filter((group) => group.items.length);
+  },
+
+  personalAbilityLinkedGroups(fields = []) {
+    return this.personalAbilityLearnedGroups(fields);
+  },
+
+  personalAbilityPresentation(fields = [], state = null) {
+    const byKey = (key) => this.fieldByKey(fields, key);
+    const levelField = byKey('level');
+    const expField = byKey('exp');
+    const exp = this.parseExpMetric(expField, levelField);
+    const hero = {
+      level: Number(levelField?.raw ?? levelField?.value) || 1,
+      levelField,
+      expField,
+      exp,
+      freePoints: Number(byKey('free_attribute_points')?.raw ?? byKey('free_attribute_points')?.value) || 0,
+      freeField: byKey('free_attribute_points'),
+      growthField: byKey('level_growth'),
+      growthSummary: byKey('level_growth')?.value || '暂无升级记录',
+    };
+    const survivalKeys = [
+      { key: 'vitality', label: '生命力', tone: 'hp' },
+      { key: 'stamina_pool', label: '精力', tone: 'energy' },
+      { key: 'satiety', label: '饱食', tone: 'food' },
+      { key: 'hydration', label: '水分', tone: 'water' },
+      { key: 'fatigue', label: '疲劳', tone: 'fatigue' },
+    ];
+    const survival = survivalKeys.map(({ key, label, tone }) => {
+      const field = byKey(key);
+      return { key, label, tone, field, ...this.parsePoolMetric(field) };
+    });
+    const growthKeys = [
+      { key: 'learning_ability', label: '学习', pool: false },
+      { key: 'mental_stability', label: '精神', pool: true },
+      { key: 'growth_potential', label: '潜力', pool: false },
+      { key: 'action_ability', label: '行动', pool: true },
+    ];
+    const growth = growthKeys.map(({ key, label, pool }) => {
+      const field = byKey(key);
+      const metric = pool ? this.parsePoolMetric(field) : null;
+      const value = metric ? metric.current : Number(field?.raw ?? field?.value) || 0;
+      const cap = metric?.max || 100;
+      const percent = Math.max(0, Math.min(100, Math.round((value / cap) * 100)));
+      return { key, label, field, value, cap, percent, display: field?.value || String(value) };
+    });
+    const collectionKeys = [
+      { key: 'knowledge', label: '知识储备', unit: '知识' },
+      { key: 'skills', label: '技能等级', unit: '技能' },
+      { key: 'professions', label: '职业等级', unit: '职业' },
+    ];
+    const learnedCounts = Object.fromEntries(collectionKeys.map(({ key }) => {
+      const field = byKey(key);
+      return [key, this.rpgListItems(field).length];
+    }));
+    const learnedGroups = this.personalAbilityLearnedGroups(fields);
+    const advancedKeys = ['control_experience', 'derived', 'combat_simulation'];
+    const advanced = advancedKeys.map((key) => byKey(key)).filter(Boolean);
+    const usedKeys = new Set([
+      'level', 'exp', 'free_attribute_points', 'level_growth',
+      ...survivalKeys.map((item) => item.key),
+      ...growthKeys.map((item) => item.key),
+      ...collectionKeys.map((item) => item.key),
+      ...advancedKeys,
+    ]);
+    const misc = (fields || []).filter((field) => !usedKeys.has(field.key));
+    return { hero, survival, growth, learnedGroups, linkedGroups: learnedGroups, learnedCounts, advanced, misc };
+  },
+
+  intrinsicStatMeta() {
+    return [
+      { key: 'strength', label: '力量', icon: '💪', tone: 'str', group: '体能', groupIcon: '🏋️' },
+      { key: 'agility', label: '敏捷', icon: '⚡', tone: 'agi', group: '体能', groupIcon: '🏋️' },
+      { key: 'constitution', label: '体质', icon: '🛡️', tone: 'con', group: '体能', groupIcon: '🏋️' },
+      { key: 'intelligence', label: '智力', icon: '🧠', tone: 'int', group: '心智', groupIcon: '🎯' },
+      { key: 'perception', label: '感知', icon: '👁️', tone: 'per', group: '心智', groupIcon: '🎯' },
+      { key: 'willpower', label: '意志', icon: '🔥', tone: 'wil', group: '心智', groupIcon: '🎯' },
+      { key: 'charisma', label: '魅力', icon: '✨', tone: 'cha', group: '气质', groupIcon: '🌟' },
+    ];
+  },
+
+  intrinsicLinkedItems(values = {}) {
+    const sync = window.GameModules.progressionLearnedSync;
+    const labelByKey = sync?.intrinsicLabelByKey || {};
+    const keys = window.GameModules.progression?.intrinsicKeys?.() || [];
+    const map = Object.fromEntries(keys.map((key) => [key, { key, label: labelByKey[key] || key, items: [] }]));
+    const collect = (list = [], type) => {
+      for (const item of list || []) {
+        if (!item || typeof item !== 'object') continue;
+        const linked = [
+          ...(Array.isArray(item.linkedStats) ? item.linkedStats : []),
+          ...(sync?.normalizeIntrinsicBase?.(item.requiredIntrinsicBase || []) || []),
+        ];
+        for (const key of linked) {
+          if (!map[key]) continue;
+          const name = String(item.name || '').trim();
+          if (!name || map[key].items.some((row) => row.name === name && row.type === type)) continue;
+          map[key].items.push({ type, name, level: Number(item.level) > 0 ? item.level : null });
+        }
+      }
+    };
+    collect(values.skills, '技能');
+    collect(values.knowledge, '知识');
+    collect(values.professions, '职业');
+    return keys.map((key) => map[key]).filter((row) => row.items.length);
+  },
+
+  intrinsicAbilityPresentation(fields = [], state = null) {
+    const values = state?.values || {};
+    const stats = this.intrinsicStatMeta().map((meta) => {
+      const field = this.fieldByKey(fields, meta.key);
+      const value = Number(field?.raw ?? field?.value) || 0;
+      const percent = Math.max(0, Math.min(100, Math.round(value)));
+      const src = field?.source || values.intrinsic_sources?.[meta.key] || null;
+      const breakdown = src ? {
+        initial: Number(src.initial) || 0,
+        level: Number(src.level) || 0,
+        allocated: Number(src.allocated) || 0,
+        npc: Number(src.npc) || 0,
+      } : null;
+      const breakdownText = breakdown
+        ? `初${breakdown.initial} + 级${breakdown.level} + 分${breakdown.allocated}${breakdown.npc ? ` + 成长${breakdown.npc}` : ''}`
+        : '';
+      return {
+        ...meta,
+        field,
+        value,
+        percent,
+        display: field?.value || String(value),
+        breakdown,
+        breakdownText,
+      };
+    });
+    const total = stats.reduce((sum, row) => sum + row.value, 0);
+    const average = stats.length ? Math.round(total / stats.length) : 0;
+    const peak = stats.reduce((best, row) => ((!best || row.value > best.value) ? row : best), null);
+    const low = stats.reduce((worst, row) => ((!worst || row.value < worst.value) ? row : worst), null);
+    const groups = ['体能', '心智', '气质'].map((name) => {
+      const rows = stats.filter((row) => row.group === name);
+      const groupIcon = rows[0]?.groupIcon || '📊';
+      const subtotal = rows.reduce((sum, row) => sum + row.value, 0);
+      return { name, icon: groupIcon, rows, subtotal, average: rows.length ? Math.round(subtotal / rows.length) : 0 };
+    });
+    return {
+      stats,
+      groups,
+      links: this.intrinsicLinkedItems(values),
+      summary: { total, average, peak, low },
+    };
+  },
+
+  itemEmoji(itemOrName = '') {
+    const item = itemOrName && typeof itemOrName === 'object' ? itemOrName : null;
+    const name = item ? this.rpgItemName(item) : String(itemOrName || '');
+    const explicit = String(item?.emoji || item?.icon || '').trim();
+    if (explicit && !/^https?:/i.test(explicit)) {
+      const chars = [...explicit];
+      if (chars.length <= 4) return explicit;
+    }
+    const text = [name, item?.desc, item?.description, item?.source, ...(Array.isArray(item?.tags) ? item.tags : [])].filter(Boolean).join(' ');
+    const n = text || name;
+    if (/电脑|笔记本|laptop|平板|ipad/i.test(n)) return '💻';
+    if (/手机|phone|通讯/i.test(n)) return '📱';
+    if (/钥匙|key/i.test(n)) return '🔑';
+    if (/钱包|皮夹|卡包/i.test(n)) return '👛';
+    if (/眼镜|墨镜/i.test(n)) return '👓';
+    if (/耳机|耳麦|airpod/i.test(n)) return '🎧';
+    if (/手表|手环|watch/i.test(n)) return '⌚';
+    if (/伞|雨具/i.test(n)) return '☂️';
+    if (/书|笔记|文档|资料/i.test(n)) return '📚';
+    if (/笔|文具|铅笔|钢笔/i.test(n)) return '✏️';
+    if (/刀|剑|武器|枪/i.test(n)) return '🗡️';
+    if (/药|胶囊|医疗|绷带/i.test(n)) return '💊';
+    if (/食|餐|饭|零食|面包|果/i.test(n)) return '🍱';
+    if (/水|饮|茶|咖啡|奶茶|瓶/i.test(n)) return '🥤';
+    if (/包|袋|背包|手提/i.test(n)) return '🎒';
+    if (/卡|证|身份证|会员/i.test(n)) return '🪪';
+    if (/钱|现金|硬币|纸币/i.test(n)) return '💴';
+    if (/充电|数据|线|电源|电池/i.test(n)) return '🔌';
+    if (/衣|服|裙|裤|鞋|帽|袜|穿戴/i.test(n)) return '👕';
+    if (/妆|护肤|香水|镜/i.test(n)) return '💄';
+    if (/玩具|玩偶|模型/i.test(n)) return '🧸';
+    if (/工具|螺丝|锤/i.test(n)) return '🛠️';
+    return this.fallbackItemEmoji(name);
+  },
+
+  fallbackItemEmoji(name = '') {
+    const pool = ['📦', '🎁', '🧰', '🛍️', '🏷️', '📎', '🧷', '🔖', '📌', '🗂️'];
+    const seed = [...String(name || '物品')].reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+    return pool[seed % pool.length];
+  },
+
+  wearSlotEmoji(slot = '') {
+    const map = {
+      头部: '🧢', 颈部: '🧣', 内衣: '👕', 上衣: '👔', 外套: '🧥', 手套: '🧤',
+      腰部: '🪢', 下装: '👖', 袜子: '🧦', 鞋子: '👟', 手腕: '⌚',
+    };
+    return map[String(slot || '').trim()] || '👕';
+  },
+
+  bodyPartEmoji(part = '') {
+    const map = {
+      头发: '💇', 脸部: '😊', 耳朵: '👂', 脖颈: '🦢', 胸部: '💗', 双臂: '💪',
+      小腹: '🫃', 臀部: '🍑', 神秘花园: '🌸', 双大腿: '🦵', 双小腿: '🦶',
+    };
+    const key = Object.keys(map).find((name) => String(part || '').includes(name));
+    return key ? map[key] : '📍';
+  },
+
+  inventoryPresentation(fields = []) {
+    const itemsField = this.fieldByKey(fields, 'items');
+    const wearingField = this.fieldByKey(fields, 'wearing');
+    const items = this.rpgListItems(itemsField).map((item, index) => ({
+      field: itemsField,
+      item,
+      index,
+      icon: this.itemEmoji(item),
+      name: this.rpgItemName(item),
+    }));
+    const wearSlots = this.rpgListItems(wearingField).map((item, index) => {
+      const slot = item.clothing_position || item.slotLabel || '其他';
+      const name = this.rpgItemName(item);
+      const empty = !name || name === '--' || name === '—';
+      return {
+        field: wearingField,
+        item,
+        index,
+        slot,
+        icon: this.wearSlotEmoji(slot),
+        label: slot,
+        key: `${slot}-${index}`,
+        display: empty ? '—' : name,
+        empty,
+      };
+    });
+    return {
+      items,
+      wearSlots,
+      itemCount: items.length,
+      wearingCount: wearSlots.filter((row) => !row.empty).length,
+    };
+  },
+
+  bodyProfilePanel(section = {}, stateOverride = null) {
+    const title = String(section?.title || '').trim();
+    const field = section?.fields?.[0] || null;
+    const state = stateOverride || this.identityTargetState?.() || null;
+    try {
+      return this.bodyProfilePresentation(field, title, state);
+    } catch (err) {
+      console.error('[身体档案]', err);
+      const silhouette = this.fallbackBodySilhouette(state?.profile || {}, {}, title);
+      return { meta: '', rows: [], count: 0, icon: title === '盛装' ? '👗' : '🌿', silhouette };
+    }
+  },
+
+  bodyProfilePresentation(field, sectionTitle = '', stateOverride = null) {
+    const state = stateOverride || (field ? this.activeDetailState(field) : null) || this.identityTargetState?.() || this.currentRpgState || null;
+    const source = this.profileAppearanceSource(state || {});
+    const profile = { ...(state?.profile || {}), ...source };
+    const cfg = window.GameModules.appearanceProfileTags;
+    const isDressed = sectionTitle === '盛装';
+    const meta = isDressed ? (source.dressedProfileMeta || {}) : (source.bodyProfileMeta || {});
+    const rawList = isDressed ? (source.dressedProfile || []) : (source.bodyProfile || []);
+    const listField = {
+      ...(field || {}),
+      key: isDressed ? 'dressedProfile' : 'bodyProfile',
+      stateId: field?.stateId || state?.id || '',
+      raw: rawList,
+      meta,
+      metaText: isDressed ? (cfg?.formatDressedMeta?.(meta) || '') : (cfg?.formatNaturalMeta?.(meta) || ''),
+      kind: isDressed ? '盛装状态' : '身体原貌',
+      type: isDressed ? '盛装状态' : '身体原貌',
+    };
+    const rows = this.rpgListItems(listField).map((item, index) => {
+      const part = String(item.part || item.name || '').trim();
+      const desc = String(item.description || item['部位描写'] || '').trim();
+      const tags = Array.isArray(item.tags) && item.tags.length ? item.tags.join('、') : '';
+      return {
+        field: listField,
+        item,
+        index,
+        icon: this.bodyPartEmoji(part),
+        title: `${item.index || index + 1}. ${part}`,
+        tags: tags ? `[${tags}]` : '',
+        preview: desc.length > 52 ? `${desc.slice(0, 52)}…` : desc,
+      };
+    });
+    const silhouetteBase = window.GameModules.bodySilhouette?.resolvePresentation?.(profile, meta, sectionTitle)
+      || this.fallbackBodySilhouette(profile, meta, sectionTitle);
+    const figureRaw = window.GameModules.bodyFigure?.resolveSync?.(meta, rows, sectionTitle) || null;
+    const figure = figureRaw && !figureRaw.pending ? figureRaw : null;
+    const silhouette = figure ? null : silhouetteBase;
+    return {
+      meta: listField.metaText || '',
+      rows,
+      count: rows.length,
+      icon: sectionTitle === '盛装' ? '👗' : '🌿',
+      silhouette,
+      figure,
+      figurePending: Boolean(figureRaw?.pending),
+    };
+  },
+
+  fallbackBodySilhouette(profile = {}, meta = {}, sectionTitle = '') {
+    const gender = /男|male/i.test(String(profile.gender || '')) ? 'male' : 'female';
+    const key = gender === 'male' ? 'male-youth' : 'female-shoujo';
+    const hotspots = window.GameModules.bodySilhouette?.hotspots || [
+      { part: '头发', x: 28, y: 1, w: 44, h: 14 },
+      { part: '脸部', x: 30, y: 10, w: 40, h: 12 },
+      { part: '耳朵', x: 22, y: 12, w: 56, h: 8 },
+      { part: '脖颈', x: 36, y: 20, w: 28, h: 7 },
+      { part: '胸部', x: 30, y: 26, w: 40, h: 14 },
+      { part: '双臂', x: 14, y: 28, w: 72, h: 18 },
+      { part: '小腹', x: 32, y: 40, w: 36, h: 12 },
+      { part: '臀部', x: 30, y: 52, w: 40, h: 10 },
+      { part: '神秘花园', x: 36, y: 61, w: 28, h: 9 },
+      { part: '双大腿', x: 28, y: 70, w: 44, h: 14 },
+      { part: '双小腿', x: 30, y: 84, w: 40, h: 14 },
+    ];
+    return {
+      key,
+      label: gender === 'male' ? '男 · 青年体型' : '女 · 少女体型',
+      src: `assets/body-silhouettes/${key}.svg`,
+      remote: false,
+      sectionTitle,
+      hotspots: hotspots.map((spot) => ({ ...spot })),
+    };
+  },
+
+  openBodySilhouettePart(rows = [], part = '') {
+    return window.GameModules.bodySilhouette?.openBodyPartDetail?.(rows, part) || false;
+  },
+
+  isBodySilhouettePartActive(rows = [], part = '') {
+    return window.GameModules.bodySilhouette?.isBodyPartActive?.(rows, part) || false;
+  },
+
+  bodyFigureCalloutStyle(ann = {}) {
+    return window.GameModules.bodyFigure?.calloutStyle?.(ann) || '';
+  },
+
+  bodyFigureAnchorStyle(ann = {}) {
+    return window.GameModules.bodyFigure?.anchorStyle?.(ann) || '';
+  },
+
+  openBodyFigurePart(rows = [], part = '') {
+    return window.GameModules.bodyFigure?.openAnnotationPart?.(rows, part) || false;
+  },
+
+  isBodyFigurePartActive(rows = [], part = '') {
+    return window.GameModules.bodyFigure?.isAnnotationActive?.(rows, part) || false;
   },
 };

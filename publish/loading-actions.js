@@ -134,6 +134,7 @@ window.GameModules.loadingActions = {
       const save = await window.GameModules.storage.get();
       window.GameModules.storage.restore(this, save);
       await window.GameModules.localSettings?.prepareActivation?.(this);
+      window.GameModules.uiThemeActions?.initFromStore?.(this);
       await this.migrateCurrentSaveWealthToOneHundredMillion?.();
       await this.loadWritingStyles();
     });
@@ -166,6 +167,8 @@ window.GameModules.loadingActions = {
     this.initTaobaoApp?.();
     this.initPromptApp?.();
     this.initTokenStatsApp?.();
+    window.GameModules.bodySilhouette?.prefetchManifest?.();
+    window.GameModules.bodyFigure?.prefetchAll?.();
   },
 
   ensureGameplayAssetsReady() {
@@ -217,6 +220,7 @@ window.GameModules.loadingActions = {
       showOverlay: options.showOverlay === true,
     }).then(() => {
       window.GameModules.remergeGameStore?.();
+      this.refreshPhoneClockLabels?.();
       this.runDeferredInits?.();
       this._desktopModulesReady = true;
     }).finally(() => {
@@ -268,7 +272,7 @@ window.GameModules.loadingActions = {
       tasks.push(this.warmupTask('玩家身份', () => this.ensurePlayerRpgState?.()));
     }
     const contacts = (this.wechatUsers || []).filter((item) => item && !item.group);
-    for (const contact of contacts) tasks.push(this.warmupTask(`微信联系人:${contact.name || contact.id}`, () => this.ensureWechatUserProfile?.(contact)));
+    for (const contact of contacts) tasks.push(this.warmupTask(`微信联系人:${contact.name || contact.id}`, () => this.reuseWechatCharacterProfile?.(contact)));
     await Promise.all(tasks.map((task) => task()));
     console.log('[启动预热] 全量异步生成完成', { tasks: tasks.length });
     if (tasks.length) await this.save?.();

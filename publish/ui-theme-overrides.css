@@ -1,0 +1,1289 @@
+/* Global theme overrides — loaded last so tokens apply to all hardcoded surfaces */
+
+html[data-ui-theme] .loading-screen,
+html[data-ui-theme] .start-screen {
+  background:
+    radial-gradient(circle at 24% 12%, var(--ui-bg-gradient-a), transparent 30%),
+    radial-gradient(circle at 78% 76%, var(--ui-bg-gradient-b), transparent 34%),
+    linear-gradient(145deg, var(--ui-bg-elevated) 0%, var(--ui-bg-base) 52%, var(--ui-bg-elevated) 100%) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .home-menu-screen,
+html[data-ui-theme] .phone-setup-screen,
+html[data-ui-theme] .identity-app-screen,
+html[data-ui-theme] .aspiration-wizard-screen {
+  background:
+    radial-gradient(circle at 24% 12%, var(--ui-bg-gradient-a), transparent 30%),
+    radial-gradient(circle at 78% 76%, var(--ui-bg-gradient-b), transparent 34%),
+    linear-gradient(145deg, var(--ui-bg-elevated) 0%, var(--ui-bg-base) 52%, var(--ui-bg-elevated) 100%) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .home-menu-card,
+html[data-ui-theme] .home-load-card,
+html[data-ui-theme] .aspiration-wizard-card {
+  background: var(--ui-surface) !important;
+  border: 1px solid var(--ui-border) !important;
+  color: var(--ui-text) !important;
+  box-shadow: 0 18px 60px var(--ui-shadow) !important;
+}
+
+html[data-ui-theme] .home-menu-card h1,
+html[data-ui-theme] .start-card h1,
+html[data-ui-theme] .start-card h2,
+html[data-ui-theme] .aspiration-wizard-card h1,
+html[data-ui-theme] .aspiration-wizard-card h2 {
+  color: var(--ui-text) !important;
+  text-shadow: none !important;
+}
+
+html[data-ui-theme] .home-menu-card .intro,
+html[data-ui-theme] .start-card .intro,
+html[data-ui-theme] .aspiration-wizard-card .intro,
+html[data-ui-theme] .aspiration-wizard-card .psych-pref-intro,
+html[data-ui-theme] .intro,
+html[data-ui-theme] .home-save-row small,
+html[data-ui-theme] .home-save-row b {
+  color: var(--ui-text-muted) !important;
+}
+
+html[data-ui-theme] .home-save-row b {
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .home-load-overlay {
+  background: color-mix(in srgb, var(--ui-bg-base) 78%, transparent) !important;
+}
+
+html[data-ui-theme] .home-save-panel {
+  border-top-color: var(--ui-border) !important;
+}
+
+html[data-ui-theme] .primary-btn,
+html[data-ui-theme] .free-input button {
+  background: linear-gradient(135deg, rgba(var(--ui-accent-rgb), 1), rgba(var(--ui-accent-2-rgb), .94)) !important;
+  color: var(--ui-text) !important;
+  border: 1px solid rgba(var(--ui-accent-rgb), .45) !important;
+}
+
+html[data-ui-theme="light"] .primary-btn,
+html[data-ui-theme="pink"] .primary-btn,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .primary-btn {
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .loading-card,
+html[data-ui-theme] .start-card,
+html[data-ui-theme] .panel,
+html[data-ui-theme] .control-dock,
+html[data-ui-theme] .top-bar,
+html[data-ui-theme] .entry-setup-card,
+html[data-ui-theme] .phone-setup-card,
+html[data-ui-theme] .role-card-picker,
+html[data-ui-theme] .character-select-card,
+html[data-ui-theme] .profile-preview-card {
+  background: var(--ui-surface) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+  box-shadow: 0 18px 60px var(--ui-shadow) !important;
+}
+
+html[data-ui-theme] .loading-card p,
+html[data-ui-theme] .loading-card small,
+html[data-ui-theme] .loading-progress-meta,
+html[data-ui-theme] .loading-stage,
+html[data-ui-theme] .start-card p,
+html[data-ui-theme] .start-card small,
+html[data-ui-theme] .identity-profile p,
+html[data-ui-theme] .identity-rpg-panel-note,
+html[data-ui-theme] .memory-list small,
+html[data-ui-theme] .memory-tab-panel small {
+  color: var(--ui-text-muted) !important;
+}
+
+html[data-ui-theme] .loading-card > p,
+html[data-ui-theme] .loading-progress-meta b,
+html[data-ui-theme] .loading-stage.running b,
+html[data-ui-theme] .identity-rpg-panel-title,
+html[data-ui-theme] .eyebrow {
+  color: var(--ui-accent) !important;
+}
+
+html[data-ui-theme] .loading-stage,
+html[data-ui-theme] .loading-progress {
+  border-color: var(--ui-border) !important;
+  background: var(--ui-surface-soft) !important;
+}
+
+html[data-ui-theme] .loading-progress i,
+html[data-ui-theme] .spinner {
+  background: linear-gradient(90deg, var(--ui-accent), var(--ui-accent-2)) !important;
+}
+
+html[data-ui-theme] .game-shell {
+  background:
+    radial-gradient(circle at 24% 12%, var(--ui-bg-gradient-a), transparent 30%),
+    radial-gradient(circle at 78% 76%, var(--ui-bg-gradient-b), transparent 34%),
+    linear-gradient(145deg, var(--ui-bg-elevated) 0%, var(--ui-bg-base) 52%, var(--ui-bg-elevated) 100%) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .phone-frame {
+  background: color-mix(in srgb, var(--ui-bg-elevated) 88%, #000 12%) !important;
+  box-shadow: 0 24px 70px var(--ui-shadow), inset 0 0 0 1px var(--ui-border) !important;
+}
+
+html[data-ui-theme="light"] .phone-frame {
+  background: #ffffff !important;
+  box-shadow: 0 20px 50px var(--ui-shadow), inset 0 0 0 1px var(--ui-border) !important;
+}
+
+html[data-ui-theme] .phone-desktop-screen {
+  background:
+    radial-gradient(circle at 24% 12%, var(--ui-bg-gradient-a), transparent 30%),
+    radial-gradient(circle at 78% 76%, var(--ui-bg-gradient-b), transparent 34%),
+    linear-gradient(145deg, var(--ui-bg-elevated) 0%, var(--ui-bg-base) 52%, var(--ui-bg-elevated) 100%) !important;
+}
+
+html[data-ui-theme] .phone-status-bar,
+html[data-ui-theme] .desktop-world-banner {
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .phone-status-bar > span {
+  color: var(--ui-text) !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+html[data-ui-theme] .phone-dock {
+  border: 1px solid var(--ui-border) !important;
+  box-shadow: 0 8px 22px var(--ui-shadow) !important;
+}
+
+html[data-ui-theme] .phone-dock span {
+  border: 1px solid var(--ui-border) !important;
+  background: var(--ui-surface-soft) !important;
+}
+
+html[data-ui-theme="light"] .desktop-page-dots button,
+html[data-ui-theme="pink"] .desktop-page-dots button,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .desktop-page-dots button {
+  background: rgba(17, 17, 17, .28) !important;
+}
+
+html[data-ui-theme="light"] .desktop-page-dots button.active,
+html[data-ui-theme="pink"] .desktop-page-dots button.active,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .desktop-page-dots button.active {
+  background: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .desktop-time-card,
+html[data-ui-theme] .desktop-widgets article {
+  background: var(--ui-surface) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .desktop-time-card small,
+html[data-ui-theme] .desktop-widgets article small {
+  color: var(--ui-text-muted) !important;
+}
+
+html[data-ui-theme] .desktop-time-card strong,
+html[data-ui-theme] .desktop-widgets article strong {
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .desktop-app-icon {
+  background: transparent !important;
+  border: 0 !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .desktop-app-icon:hover,
+html[data-ui-theme] .desktop-app-icon:focus-visible {
+  background: rgba(var(--ui-accent-rgb), .12) !important;
+  box-shadow: 0 4px 14px rgba(var(--ui-accent-rgb), .16) !important;
+}
+
+html[data-ui-theme] .desktop-app-icon:active {
+  background: rgba(var(--ui-accent-rgb), .2) !important;
+}
+
+html[data-ui-theme] .desktop-app-icon b {
+  color: var(--ui-text-muted) !important;
+}
+
+html[data-ui-theme] .identity-card,
+html[data-ui-theme] .identity-header,
+html[data-ui-theme] .identity-profile,
+html[data-ui-theme] .identity-memory-panel,
+html[data-ui-theme] .identity-rpg-section,
+html[data-ui-theme] .identity-rpg-section.rpg-status-section {
+  background: var(--ui-surface) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .identity-rpg-panel-head {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ui-surface) 82%, var(--ui-accent)), var(--ui-surface)) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .identity-rpg-panel-eyebrow {
+  color: var(--ui-accent) !important;
+}
+
+html[data-ui-theme] .rpg-status-tab {
+  background: var(--ui-surface-soft) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text-muted) !important;
+}
+
+html[data-ui-theme] .rpg-status-tab.active {
+  border-color: rgba(var(--ui-accent-rgb), .55) !important;
+  background: rgba(var(--ui-accent-rgb), .12) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .rpg-status-section-head strong {
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .rpg-status-section-head small {
+  color: var(--ui-text-muted) !important;
+}
+
+/* ===== 身份证 RPG 面板：统一浅色表面（去除硬编码深色） ===== */
+html[data-ui-theme] .identity-rpg-tabs {
+  background: var(--ui-surface) !important;
+  border-color: var(--ui-border) !important;
+}
+
+html[data-ui-theme] .rpg-status-section,
+html[data-ui-theme] .rpg-status-section-head {
+  border-color: var(--ui-border) !important;
+}
+
+html[data-ui-theme] .rpg-status-section {
+  background: var(--ui-surface) !important;
+}
+
+html[data-ui-theme] .rpg-status-section-icon,
+html[data-ui-theme] .intrinsic-stat-icon {
+  background: rgba(var(--ui-accent-rgb), .1) !important;
+  border-color: rgba(var(--ui-accent-rgb), .22) !important;
+}
+
+html[data-ui-theme] .ability-hero,
+html[data-ui-theme] .intrinsic-hero {
+  background: var(--ui-surface-soft) !important;
+  border-color: var(--ui-border) !important;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ui-surface) 88%, white) !important;
+}
+
+html[data-ui-theme] .ability-level-badge,
+html[data-ui-theme] .intrinsic-hero-badge {
+  background: rgba(var(--ui-accent-rgb), .12) !important;
+  border-color: rgba(var(--ui-accent-rgb), .28) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .ability-level-badge strong,
+html[data-ui-theme] .ability-level-badge small,
+html[data-ui-theme] .intrinsic-hero-badge strong,
+html[data-ui-theme] .intrinsic-hero-badge small,
+html[data-ui-theme] .ability-xp-value,
+html[data-ui-theme] .ability-collection-head strong,
+html[data-ui-theme] .intrinsic-group-head strong,
+html[data-ui-theme] .ability-detail-head strong,
+html[data-ui-theme] .intrinsic-hero-line strong,
+html[data-ui-theme] .learned-count-chip strong {
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .ability-xp-label,
+html[data-ui-theme] .ability-free-points,
+html[data-ui-theme] .ability-collection-head small,
+html[data-ui-theme] .intrinsic-group-head small,
+html[data-ui-theme] .ability-empty,
+html[data-ui-theme] .ability-advanced-item,
+html[data-ui-theme] .ability-advanced-toggle {
+  color: var(--ui-text-muted) !important;
+}
+
+html[data-ui-theme] .ability-chip,
+html[data-ui-theme] .learned-link-chip,
+html[data-ui-theme] .intrinsic-link-chip {
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .ability-free-points,
+html[data-ui-theme] .ability-meta-line,
+html[data-ui-theme] .ability-gauge,
+html[data-ui-theme] .ability-stat,
+html[data-ui-theme] .intrinsic-stat-card,
+html[data-ui-theme] .ability-chip,
+html[data-ui-theme] .ability-advanced-toggle,
+html[data-ui-theme] .ability-advanced-item,
+html[data-ui-theme] .intrinsic-link-group,
+html[data-ui-theme] .intrinsic-link-chip,
+html[data-ui-theme] .learned-link-chip,
+html[data-ui-theme] .learned-count-chip {
+  background: var(--ui-surface-soft) !important;
+  border-color: var(--ui-border) !important;
+}
+
+html[data-ui-theme] .ability-meta-line {
+  color: var(--ui-text-muted) !important;
+}
+
+html[data-ui-theme] .ability-gauge.open,
+html[data-ui-theme] .ability-stat.open,
+html[data-ui-theme] .ability-chip.open,
+html[data-ui-theme] .ability-advanced-item.open,
+html[data-ui-theme] .intrinsic-stat-card.open,
+html[data-ui-theme] .intrinsic-stat-card:hover {
+  background: rgba(var(--ui-accent-rgb), .1) !important;
+  border-color: rgba(var(--ui-accent-rgb), .38) !important;
+}
+
+html[data-ui-theme] .ability-xp-bar,
+html[data-ui-theme] .ability-gauge-bar,
+html[data-ui-theme] .ability-stat-bar,
+html[data-ui-theme] .intrinsic-stat-bar {
+  background: rgba(var(--ui-accent-rgb), .12) !important;
+}
+
+html[data-ui-theme] .ability-detail-head {
+  background: rgba(var(--ui-accent-rgb), .08) !important;
+  border-bottom-color: var(--ui-border) !important;
+}
+
+html[data-ui-theme] .ability-detail-close,
+html[data-ui-theme] .ability-detail-link,
+html[data-ui-theme] .intrinsic-links-toggle {
+  background: var(--ui-surface-soft) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .ability-panel-hint {
+  background: rgba(var(--ui-accent-rgb), .06) !important;
+  border-color: rgba(var(--ui-accent-rgb), .22) !important;
+  color: var(--ui-text-muted) !important;
+}
+
+html[data-ui-theme="light"] .identity-rpg-panel-head,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .identity-rpg-panel-head {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ui-surface) 88%, white), var(--ui-surface)) !important;
+}
+
+html[data-ui-theme="pink"] .identity-rpg-tabs,
+html[data-ui-theme="light"] .identity-rpg-tabs,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .identity-rpg-tabs {
+  background: rgba(255, 255, 255, .92) !important;
+}
+
+html[data-ui-theme="pink"] .ability-hero,
+html[data-ui-theme="pink"] .intrinsic-hero {
+  background: linear-gradient(135deg, rgba(255, 248, 251, .98), rgba(255, 236, 244, .94)) !important;
+  border-color: rgba(255, 140, 180, .32) !important;
+}
+
+html[data-ui-theme="pink"] .ability-level-badge,
+html[data-ui-theme="pink"] .intrinsic-hero-badge {
+  background: rgba(255, 181, 209, .22) !important;
+  border-color: rgba(255, 120, 170, .42) !important;
+}
+
+html[data-ui-theme="pink"] .rpg-status-tab:hover {
+  background: rgba(255, 181, 209, .18) !important;
+  border-color: rgba(255, 120, 170, .38) !important;
+}
+
+html[data-ui-theme] .dynamic-row,
+html[data-ui-theme] .rpg-item-card,
+html[data-ui-theme] .rpg-tree-title,
+html[data-ui-theme] .lexicon-tag {
+  background: var(--ui-surface-soft) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .rpg-item-card strong,
+html[data-ui-theme] .rpg-tree-title strong {
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .rpg-item-card .rpg-field-detail,
+html[data-ui-theme] .rpg-item-card .body-part-description,
+html[data-ui-theme] .rpg-field-detail {
+  color: var(--ui-text-muted) !important;
+}
+
+html[data-ui-theme] .rpg-item-card.open,
+html[data-ui-theme] .rpg-item-card:hover,
+html[data-ui-theme] .rpg-item-card:focus-visible {
+  border-color: rgba(var(--ui-accent-rgb), .45) !important;
+  background: rgba(var(--ui-accent-rgb), .08) !important;
+}
+
+html[data-ui-theme] .memory-tab-panel,
+html[data-ui-theme] .memory-sub-tabs button,
+html[data-ui-theme] .memory-search-row input {
+  background: var(--ui-surface-soft) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .memory-sub-tabs button.active {
+  border-color: rgba(var(--ui-accent-rgb), .5) !important;
+  color: var(--ui-accent) !important;
+}
+
+html[data-ui-theme] .memory-list p {
+  color: var(--ui-text-muted) !important;
+}
+
+html[data-ui-theme] .memory-list p b {
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .real-world-overlay {
+  background: color-mix(in srgb, var(--ui-bg-base) 78%, transparent) !important;
+}
+
+html[data-ui-theme] .real-world-dialog,
+html[data-ui-theme] .real-world-panel,
+html[data-ui-theme] .real-world-card,
+html[data-ui-theme] .real-world-phone-shell,
+html[data-ui-theme] .deduction-panel {
+  background: var(--ui-surface) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .real-world-dialog h2,
+html[data-ui-theme] .real-world-dialog h3,
+html[data-ui-theme] .real-world-panel strong {
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .real-world-dialog p,
+html[data-ui-theme] .real-world-dialog small,
+html[data-ui-theme] .real-world-panel small {
+  color: var(--ui-text-muted) !important;
+}
+
+html[data-ui-theme] .settings-app-screen,
+html[data-ui-theme] .settings-app-card,
+html[data-ui-theme] .settings-sidebar,
+html[data-ui-theme] .settings-panel,
+html[data-ui-theme] .settings-section {
+  background: var(--ui-surface) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .settings-nav button,
+html[data-ui-theme] .settings-nav a {
+  color: var(--ui-text-muted) !important;
+}
+
+html[data-ui-theme] .settings-nav button.active,
+html[data-ui-theme] .settings-nav button:hover {
+  color: var(--ui-accent) !important;
+  background: rgba(var(--ui-accent-rgb), .08) !important;
+}
+
+html[data-ui-theme] .app-window:not(.wechat-app-screen),
+html[data-ui-theme] .taobao-card,
+html[data-ui-theme] .company-card,
+html[data-ui-theme] .boss-card,
+html[data-ui-theme] .calendar-card,
+html[data-ui-theme] .faction-card,
+html[data-ui-theme] .skills-app-card,
+html[data-ui-theme] .worldline-app-card,
+html[data-ui-theme] .role-card-json-app-card,
+html[data-ui-theme] .prompt-app-card,
+html[data-ui-theme] .token-stats-app-card {
+  background: var(--ui-bg-base) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .taobao-card > *,
+html[data-ui-theme] .company-card > *,
+html[data-ui-theme] .boss-card > *,
+html[data-ui-theme] .calendar-card > *,
+html[data-ui-theme] .faction-card > *,
+html[data-ui-theme] .skills-app-card > *,
+html[data-ui-theme] .worldline-app-card > *,
+html[data-ui-theme] .role-card-json-app-card > *,
+html[data-ui-theme] .prompt-app-card > *,
+html[data-ui-theme] .token-stats-app-card > * {
+  border-color: var(--ui-border) !important;
+}
+
+html[data-ui-theme] input,
+html[data-ui-theme] select,
+html[data-ui-theme] textarea,
+html[data-ui-theme] .text-input {
+  background: var(--ui-surface-soft) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] input::placeholder,
+html[data-ui-theme] textarea::placeholder {
+  color: color-mix(in srgb, var(--ui-text-muted) 72%, transparent) !important;
+}
+
+html[data-ui-theme] button,
+html[data-ui-theme] .small-btn,
+html[data-ui-theme] .identity-back-btn {
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] button.primary,
+html[data-ui-theme] .small-btn.primary {
+  background: rgba(var(--ui-accent-rgb), .18) !important;
+  border-color: rgba(var(--ui-accent-rgb), .42) !important;
+  color: var(--ui-accent) !important;
+}
+
+html[data-ui-theme] .scroll-area::-webkit-scrollbar-thumb {
+  background: rgba(var(--ui-accent-rgb), .35) !important;
+}
+
+html[data-ui-theme] .scroll-area::-webkit-scrollbar-track {
+  background: var(--ui-surface-soft) !important;
+}
+
+/* RPG panels shared */
+html[data-ui-theme] .personal-ability-panel,
+html[data-ui-theme] .intrinsic-ability-panel,
+html[data-ui-theme] .inventory-panel,
+html[data-ui-theme] .body-profile-panel {
+  gap: var(--rpg-gap);
+}
+
+html[data-ui-theme] .inventory-chip,
+html[data-ui-theme] .body-part-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: var(--rpg-chip-pad);
+  border-radius: 999px;
+  border: 1px solid var(--ui-border);
+  background: var(--ui-surface-soft);
+  color: var(--ui-text);
+  font-size: var(--rpg-chip-font);
+  cursor: pointer;
+}
+
+html[data-ui-theme] .inventory-chip.open,
+html[data-ui-theme] .body-part-card.open,
+html[data-ui-theme] .inventory-chip:hover,
+html[data-ui-theme] .body-part-card:hover {
+  border-color: rgba(var(--ui-accent-rgb), .48);
+  background: rgba(var(--ui-accent-rgb), .1);
+}
+
+html[data-ui-theme] .inventory-chip-icon,
+html[data-ui-theme] .body-part-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+html[data-ui-theme] .inventory-group,
+html[data-ui-theme] .inventory-wear-grid {
+  display: grid;
+  gap: 8px;
+}
+
+html[data-ui-theme] .inventory-wear-grid {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+
+html[data-ui-theme] .inventory-wear-slot {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid var(--ui-border);
+  background: var(--ui-surface-soft);
+}
+
+html[data-ui-theme] .inventory-wear-slot small {
+  color: var(--ui-text-muted);
+  font-size: 10px;
+}
+
+html[data-ui-theme] .inventory-wear-slot strong {
+  font-size: 11px;
+  color: var(--ui-text);
+  font-weight: 600;
+}
+
+html[data-ui-theme] .body-profile-layout {
+  display: grid;
+  grid-template-columns: minmax(108px, 132px) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+html[data-ui-theme] .body-silhouette-aside {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  position: sticky;
+  top: 8px;
+}
+
+html[data-ui-theme] .body-silhouette-stage {
+  position: relative;
+  width: 100%;
+  max-width: 120px;
+  aspect-ratio: 1 / 2;
+}
+
+html[data-ui-theme] .body-silhouette-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  color: color-mix(in srgb, var(--ui-text) 78%, var(--ui-accent) 22%);
+  filter: brightness(1.35) contrast(1.08) drop-shadow(0 4px 10px rgba(0, 0, 0, .22));
+  opacity: 0.95;
+  pointer-events: none;
+  user-select: none;
+}
+
+html[data-ui-theme] .body-silhouette-hotspots {
+  position: absolute;
+  inset: 0;
+}
+
+html[data-ui-theme] .body-silhouette-hotspot {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+html[data-ui-theme] .body-silhouette-hotspot:hover,
+html[data-ui-theme] .body-silhouette-hotspot.active {
+  background: rgba(var(--ui-accent-rgb), .22);
+  outline: 1px solid rgba(var(--ui-accent-rgb), .55);
+  box-shadow: inset 0 0 0 1px rgba(var(--ui-accent-rgb), .25);
+}
+
+html[data-ui-theme] .body-silhouette-label {
+  font-size: 10px;
+  color: var(--ui-text-muted);
+  text-align: center;
+  line-height: 1.35;
+}
+
+html[data-ui-theme] .body-silhouette-source {
+  font-size: 9px;
+  color: var(--ui-accent);
+  opacity: .85;
+}
+
+html[data-ui-theme] .body-profile-layout.has-figure {
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+html[data-ui-theme] .body-figure-board {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  width: 100%;
+}
+
+html[data-ui-theme] .body-figure-stage {
+  position: relative;
+  width: min(100%, 560px);
+  aspect-ratio: 3 / 4;
+  background: color-mix(in srgb, var(--ui-surface-soft) 88%, #fff 12%);
+  border: 1px solid var(--ui-border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+html[data-ui-theme] .body-figure-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+html[data-ui-theme] .body-figure-lines,
+html[data-ui-theme] .body-figure-line-item {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+html[data-ui-theme] .body-figure-lines line,
+html[data-ui-theme] .body-figure-line-item line {
+  stroke: rgba(var(--ui-accent-rgb, 120, 180, 255), .72);
+  stroke-width: 0.35;
+  vector-effect: non-scaling-stroke;
+}
+
+html[data-ui-theme] .body-figure-anchor {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(var(--ui-accent-rgb, 120, 180, 255), .92);
+  background: rgba(var(--ui-accent-rgb, 120, 180, 255), .28);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ui-surface) 70%, transparent);
+  pointer-events: none;
+}
+
+html[data-ui-theme] .body-figure-callout {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  gap: 2px;
+  width: min(34vw, 148px);
+  max-width: 148px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(var(--ui-accent-rgb, 120, 180, 255), .55);
+  background: color-mix(in srgb, var(--ui-surface) 92%, transparent);
+  color: var(--ui-text);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .18);
+}
+
+html[data-ui-theme] .body-figure-callout.side-right {
+  text-align: right;
+}
+
+html[data-ui-theme] .body-figure-callout:hover,
+html[data-ui-theme] .body-figure-callout.active {
+  border-color: rgba(var(--ui-accent-rgb, 120, 180, 255), .88);
+  background: rgba(var(--ui-accent-rgb, 120, 180, 255), .12);
+}
+
+html[data-ui-theme] .body-figure-callout strong {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+html[data-ui-theme] .body-figure-callout small {
+  font-size: 9px;
+  color: var(--ui-accent);
+}
+
+html[data-ui-theme] .body-figure-callout p {
+  margin: 0;
+  font-size: 9px;
+  line-height: 1.35;
+  color: var(--ui-text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+html[data-ui-theme] .body-figure-label {
+  font-size: 10px;
+  color: var(--ui-text-muted);
+}
+
+@media (max-width: 520px) {
+  html[data-ui-theme] .body-profile-layout {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  html[data-ui-theme] .body-silhouette-aside {
+    position: static;
+    width: min(100%, 140px);
+  }
+
+  html[data-ui-theme] .body-profile-grid {
+    width: 100%;
+  }
+
+  html[data-ui-theme] .body-figure-callout {
+    width: min(42vw, 120px);
+    max-width: 120px;
+    padding: 5px 6px;
+  }
+}
+
+html[data-ui-theme] .body-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+html[data-ui-theme] .body-part-card {
+  flex-direction: column;
+  align-items: flex-start;
+  border-radius: 12px;
+  min-height: 72px;
+  width: 100%;
+  text-align: left;
+}
+
+html[data-ui-theme] .body-part-card strong {
+  font-size: 11px;
+  color: var(--ui-text);
+}
+
+html[data-ui-theme] .body-part-card small {
+  font-size: 10px;
+  color: var(--ui-accent);
+}
+
+html[data-ui-theme] .body-part-card p {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--ui-text-muted);
+}
+
+html[data-ui-theme] .inventory-summary,
+html[data-ui-theme] .body-profile-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+html[data-ui-theme] .desktop-app-icon .app-glyph-emoji {
+  display: block;
+  width: auto;
+  height: auto;
+  font-size: 26px;
+  line-height: 1;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+html[data-ui-theme] .ability-detail-sheet,
+html[data-ui-theme] .ability-detail-body {
+  background: var(--ui-surface) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .save-app-screen,
+html[data-ui-theme] .character-select-screen {
+  background:
+    radial-gradient(circle at 24% 12%, var(--ui-bg-gradient-a), transparent 30%),
+    linear-gradient(145deg, var(--ui-bg-elevated), var(--ui-bg-base) 60%, var(--ui-bg-elevated)) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .save-app-card {
+  background: var(--ui-surface) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .inventory-chip.empty {
+  opacity: .55;
+  font-style: italic;
+}
+
+html[data-ui-theme][data-ui-custom-base="light"] {
+  --ui-bg-base: #eef1f8;
+  --ui-bg-elevated: #ffffff;
+  --ui-surface: rgba(255, 255, 255, .96);
+  --ui-surface-soft: rgba(15, 23, 42, .05);
+  --ui-text: color-mix(in srgb, var(--ui-accent) 22%, #3a3640 78%);
+  --ui-text-muted: color-mix(in srgb, var(--ui-accent) 18%, #6b6572 82%);
+  --ui-shadow: rgba(15, 23, 42, .12);
+}
+
+html[data-ui-theme][data-ui-custom-base="light"] .phone-frame {
+  background: #ffffff !important;
+}
+
+html[data-ui-theme][data-ui-custom-base="light"] .desktop-app-icon b {
+  color: var(--ui-text-muted) !important;
+  text-shadow: none !important;
+}
+
+html[data-ui-theme="pink"] .phone-frame {
+  background: #fff8fb !important;
+  box-shadow: 0 20px 56px rgba(255, 140, 180, .32), inset 0 0 0 1px rgba(255, 140, 180, .48) !important;
+}
+
+html[data-ui-theme="light"] .desktop-time-card,
+html[data-ui-theme="light"] .desktop-widgets article,
+html[data-ui-theme="light"] .desktop-world-banner,
+html[data-ui-theme="light"] .phone-dock,
+html[data-ui-theme="pink"] .desktop-time-card,
+html[data-ui-theme="pink"] .desktop-widgets article,
+html[data-ui-theme="pink"] .desktop-world-banner,
+html[data-ui-theme="pink"] .phone-dock {
+  background: rgba(255, 255, 255, .88) !important;
+  border-color: var(--ui-border) !important;
+  box-shadow: 0 8px 22px var(--ui-shadow), inset 0 1px 0 rgba(255, 255, 255, .95) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+html[data-ui-theme="light"] .desktop-time-card strong,
+html[data-ui-theme="light"] .desktop-time-card span,
+html[data-ui-theme="light"] .desktop-widgets article small,
+html[data-ui-theme="light"] .desktop-widgets article span,
+html[data-ui-theme="light"] .desktop-widgets article strong,
+html[data-ui-theme="light"] .desktop-app-icon,
+html[data-ui-theme="light"] .desktop-app-icon b,
+html[data-ui-theme="light"] .phone-status-bar,
+html[data-ui-theme="light"] .desktop-world-banner,
+html[data-ui-theme="pink"] .desktop-time-card strong,
+html[data-ui-theme="pink"] .desktop-time-card span,
+html[data-ui-theme="pink"] .desktop-widgets article small,
+html[data-ui-theme="pink"] .desktop-widgets article span,
+html[data-ui-theme="pink"] .desktop-widgets article strong,
+html[data-ui-theme="pink"] .desktop-app-icon,
+html[data-ui-theme="pink"] .desktop-app-icon b,
+html[data-ui-theme="pink"] .phone-status-bar,
+html[data-ui-theme="pink"] .desktop-world-banner {
+  color: var(--ui-text) !important;
+  text-shadow: none !important;
+}
+
+html[data-ui-theme="light"] .desktop-widgets article small,
+html[data-ui-theme="light"] .desktop-time-card span,
+html[data-ui-theme="pink"] .desktop-widgets article small,
+html[data-ui-theme="pink"] .desktop-time-card span {
+  color: var(--ui-text-muted) !important;
+}
+
+html[data-ui-theme="light"] .phone-collapse-btn,
+html[data-ui-theme="pink"] .phone-collapse-btn {
+  color: var(--ui-text) !important;
+  background: rgba(255, 255, 255, .82) !important;
+  border-color: var(--ui-border) !important;
+  box-shadow: 0 6px 18px var(--ui-shadow) !important;
+}
+
+
+html[data-ui-theme="pink"] .identity-rpg-panel-head {
+  background: linear-gradient(180deg, rgba(255, 240, 247, .98), rgba(255, 255, 255, .94)) !important;
+}
+
+html[data-ui-theme="pink"] .loading-card > p,
+html[data-ui-theme="pink"] .identity-rpg-panel-eyebrow,
+html[data-ui-theme="pink"] .eyebrow {
+  color: #ff5c9a !important;
+}
+
+html[data-ui-theme="pink"] .rpg-status-tab {
+  color: var(--ui-text-muted) !important;
+}
+
+html[data-ui-theme="pink"] .rpg-status-tab.active {
+  background: rgba(255, 181, 209, .32) !important;
+  border-color: rgba(255, 120, 170, .65) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme="pink"] .phone-dock span,
+html[data-ui-theme="light"] .phone-dock span,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .phone-dock span {
+  width: 26px !important;
+  height: 26px !important;
+  margin: 0 auto !important;
+  border-radius: 7px !important;
+  background: rgba(255, 181, 209, .42) !important;
+  border-color: rgba(255, 120, 170, .58) !important;
+}
+
+html[data-ui-theme="pink"] .phone-dock,
+html[data-ui-theme="light"] .phone-dock,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .phone-dock {
+  padding: 7px 10px !important;
+  gap: 8px !important;
+  border-radius: 16px !important;
+  background: rgba(255, 255, 255, .9) !important;
+  border: 1px solid var(--ui-border) !important;
+  box-shadow: 0 10px 28px var(--ui-shadow) !important;
+}
+
+/* ===== 浅色主题：全局可读文字（设置 / 身份证 / 子 App） ===== */
+html[data-ui-theme="light"] .settings-app-screen,
+html[data-ui-theme="pink"] .settings-app-screen,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .settings-app-screen {
+  background:
+    radial-gradient(circle at 24% 12%, var(--ui-bg-gradient-a), transparent 32%),
+    linear-gradient(145deg, var(--ui-bg-elevated), var(--ui-bg-base) 58%, var(--ui-bg-elevated)) !important;
+}
+
+html[data-ui-theme="light"] .settings-app-card header strong,
+html[data-ui-theme="light"] .model-setting-group h3,
+html[data-ui-theme="light"] .model-setting-group .settings-status h4,
+html[data-ui-theme="light"] .settings-status b,
+html[data-ui-theme="pink"] .settings-app-card header strong,
+html[data-ui-theme="pink"] .model-setting-group h3,
+html[data-ui-theme="pink"] .model-setting-group .settings-status h4,
+html[data-ui-theme="pink"] .settings-status b,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .settings-app-card header strong,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .model-setting-group h3,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .model-setting-group .settings-status h4,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .settings-status b {
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme="light"] .settings-app-card header small,
+html[data-ui-theme="light"] .model-setting-group small,
+html[data-ui-theme="light"] .settings-status,
+html[data-ui-theme="light"] .settings-status p,
+html[data-ui-theme="light"] .model-setting-group .dev-toggle,
+html[data-ui-theme="light"] .model-setting-group .dev-toggle span,
+html[data-ui-theme="light"] .theme-custom-row span,
+html[data-ui-theme="pink"] .settings-app-card header small,
+html[data-ui-theme="pink"] .model-setting-group small,
+html[data-ui-theme="pink"] .settings-status,
+html[data-ui-theme="pink"] .settings-status p,
+html[data-ui-theme="pink"] .model-setting-group .dev-toggle,
+html[data-ui-theme="pink"] .model-setting-group .dev-toggle span,
+html[data-ui-theme="pink"] .theme-custom-row span,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .settings-app-card header small,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .model-setting-group small,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .settings-status,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .settings-status p,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .model-setting-group .dev-toggle,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .model-setting-group .dev-toggle span,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .theme-custom-row span {
+  color: var(--ui-text-muted) !important;
+}
+
+html[data-ui-theme="light"] .model-setting-group,
+html[data-ui-theme="pink"] .model-setting-group,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .model-setting-group {
+  background: rgba(255, 255, 255, .72) !important;
+  border-color: var(--ui-border) !important;
+}
+
+html[data-ui-theme="light"] .model-setting-group select,
+html[data-ui-theme="light"] .model-setting-group textarea,
+html[data-ui-theme="light"] .model-setting-group input.text-input,
+html[data-ui-theme="light"] .model-setting-group pre,
+html[data-ui-theme="pink"] .model-setting-group select,
+html[data-ui-theme="pink"] .model-setting-group textarea,
+html[data-ui-theme="pink"] .model-setting-group input.text-input,
+html[data-ui-theme="pink"] .model-setting-group pre,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .model-setting-group select,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .model-setting-group textarea,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .model-setting-group input.text-input,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .model-setting-group pre {
+  color: var(--ui-text) !important;
+  background: #ffffff !important;
+  border-color: var(--ui-border) !important;
+}
+
+html[data-ui-theme="light"] .ghost-wide,
+html[data-ui-theme="light"] .small-btn,
+html[data-ui-theme="light"] .theme-swatch,
+html[data-ui-theme="pink"] .ghost-wide,
+html[data-ui-theme="pink"] .small-btn,
+html[data-ui-theme="pink"] .theme-swatch,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .ghost-wide,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .small-btn,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .theme-swatch {
+  color: var(--ui-text) !important;
+  background: rgba(255, 255, 255, .82) !important;
+  border-color: var(--ui-border) !important;
+}
+
+html[data-ui-theme="light"] .app-window:not(.wechat-app-screen) small,
+html[data-ui-theme="light"] .app-window:not(.wechat-app-screen) label,
+html[data-ui-theme="light"] .app-window:not(.wechat-app-screen) p,
+html[data-ui-theme="light"] .app-window:not(.wechat-app-screen) span:not(.rpg-status-tab-icon):not(.theme-swatch-dot),
+html[data-ui-theme="pink"] .app-window:not(.wechat-app-screen) small,
+html[data-ui-theme="pink"] .app-window:not(.wechat-app-screen) label,
+html[data-ui-theme="pink"] .app-window:not(.wechat-app-screen) p,
+html[data-ui-theme="pink"] .app-window:not(.wechat-app-screen) span:not(.rpg-status-tab-icon):not(.theme-swatch-dot),
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .app-window:not(.wechat-app-screen) small,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .app-window:not(.wechat-app-screen) label,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .app-window:not(.wechat-app-screen) p,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .app-window:not(.wechat-app-screen) span:not(.rpg-status-tab-icon):not(.theme-swatch-dot) {
+  color: var(--ui-text-muted) !important;
+}
+
+html[data-ui-theme="light"] .app-window:not(.wechat-app-screen) strong,
+html[data-ui-theme="light"] .app-window:not(.wechat-app-screen) h2,
+html[data-ui-theme="light"] .app-window:not(.wechat-app-screen) h3,
+html[data-ui-theme="light"] .app-window:not(.wechat-app-screen) h4,
+html[data-ui-theme="pink"] .app-window:not(.wechat-app-screen) strong,
+html[data-ui-theme="pink"] .app-window:not(.wechat-app-screen) h2,
+html[data-ui-theme="pink"] .app-window:not(.wechat-app-screen) h3,
+html[data-ui-theme="pink"] .app-window:not(.wechat-app-screen) h4,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .app-window:not(.wechat-app-screen) strong,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .app-window:not(.wechat-app-screen) h2,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .app-window:not(.wechat-app-screen) h3,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .app-window:not(.wechat-app-screen) h4 {
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme="light"] .identity-card small,
+html[data-ui-theme="light"] .identity-profile p,
+html[data-ui-theme="light"] .identity-rpg-panel-note,
+html[data-ui-theme="light"] .rpg-status-section-head small,
+html[data-ui-theme="light"] .rpg-field-detail,
+html[data-ui-theme="light"] .body-part-description,
+html[data-ui-theme="light"] .memory-list p,
+html[data-ui-theme="light"] .memory-tab-panel small,
+html[data-ui-theme="light"] .ability-panel-hint,
+html[data-ui-theme="light"] .ability-xp-label,
+html[data-ui-theme="light"] .ability-gauge-label,
+html[data-ui-theme="light"] .ability-stat-label,
+html[data-ui-theme="light"] .intrinsic-stat-label,
+html[data-ui-theme="light"] .intrinsic-hero-line,
+html[data-ui-theme="light"] .learned-count-chip,
+html[data-ui-theme="pink"] .identity-card small,
+html[data-ui-theme="pink"] .identity-profile p,
+html[data-ui-theme="pink"] .identity-rpg-panel-note,
+html[data-ui-theme="pink"] .rpg-status-section-head small,
+html[data-ui-theme="pink"] .rpg-field-detail,
+html[data-ui-theme="pink"] .body-part-description,
+html[data-ui-theme="pink"] .memory-list p,
+html[data-ui-theme="pink"] .memory-tab-panel small,
+html[data-ui-theme="pink"] .ability-panel-hint,
+html[data-ui-theme="pink"] .ability-xp-label,
+html[data-ui-theme="pink"] .ability-gauge-label,
+html[data-ui-theme="pink"] .ability-stat-label,
+html[data-ui-theme="pink"] .intrinsic-stat-label,
+html[data-ui-theme="pink"] .intrinsic-hero-line,
+html[data-ui-theme="pink"] .learned-count-chip,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .identity-card small,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .identity-profile p,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .identity-rpg-panel-note,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .rpg-status-section-head small,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .rpg-field-detail,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .body-part-description,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .memory-list p,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .memory-tab-panel small,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .ability-panel-hint,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .ability-xp-label,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .ability-gauge-label,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .ability-stat-label,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .intrinsic-stat-label,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .intrinsic-hero-line,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .learned-count-chip {
+  color: var(--ui-text-muted) !important;
+}
+
+html[data-ui-theme="light"] .identity-rpg-panel-title,
+html[data-ui-theme="light"] .rpg-status-section-head strong,
+html[data-ui-theme="light"] .rpg-item-card strong,
+html[data-ui-theme="light"] .ability-stat-value,
+html[data-ui-theme="light"] .intrinsic-stat-value,
+html[data-ui-theme="pink"] .identity-rpg-panel-title,
+html[data-ui-theme="pink"] .rpg-item-card strong,
+html[data-ui-theme="pink"] .ability-stat-value,
+html[data-ui-theme="pink"] .intrinsic-stat-value,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .identity-rpg-panel-title,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .rpg-status-section-head strong,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .rpg-item-card strong,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .ability-stat-value,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .intrinsic-stat-value {
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme="light"] .settings-error,
+html[data-ui-theme="pink"] .settings-error,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .settings-error {
+  color: #b42318 !important;
+  background: rgba(254, 226, 226, .92) !important;
+}
+
+html[data-ui-theme="light"] .settings-success,
+html[data-ui-theme="pink"] .settings-success,
+html[data-ui-theme="custom"][data-ui-custom-base="light"] .settings-success {
+  color: #047857 !important;
+  background: rgba(209, 250, 229, .92) !important;
+}
+
+/* 微信模拟界面：不参与全局 UI 主题，保持 phone-wechat.css 原样式 */
+html[data-ui-theme] .wechat-app-screen {
+  background: linear-gradient(145deg, #d9e0dd, #f4f5f4 60%, #cbd5d1) !important;
+  color: #111 !important;
+}
+
+html[data-ui-theme] .wechat-app-screen input:not([type="color"]),
+html[data-ui-theme] .wechat-app-screen textarea,
+html[data-ui-theme] .wechat-app-screen select {
+  background: #fff !important;
+  border-color: #ddd !important;
+  color: #111 !important;
+}
+
+html[data-ui-theme] .wechat-app-screen input::placeholder,
+html[data-ui-theme] .wechat-app-screen textarea::placeholder {
+  color: #999 !important;
+}
+
+html[data-ui-theme] .wechat-app-screen button {
+  border-color: transparent !important;
+  color: inherit !important;
+}
+
+html[data-ui-theme] .wechat-app-screen .wechat-top button,
+html[data-ui-theme] .wechat-app-screen .wechat-chat-top button,
+html[data-ui-theme] .wechat-app-screen .wechat-input button {
+  background: transparent !important;
+  color: #111 !important;
+}
+
+html[data-ui-theme] .wechat-app-screen .wechat-tabs button {
+  background: transparent !important;
+  color: #555 !important;
+}
+
+html[data-ui-theme] .wechat-app-screen .wechat-tabs button.active {
+  color: #07c160 !important;
+}
+
+html[data-ui-theme] .wechat-app-screen .wechat-add-user button {
+  background: #07c160 !important;
+  color: #fff !important;
+}
+
+html[data-ui-theme] .wechat-app-screen .wechat-thread small {
+  color: #888 !important;
+}
+
+html[data-ui-theme] .wechat-app-screen .wechat-me-card p {
+  color: #777 !important;
+}
+
+html[data-ui-theme] .wechat-app-screen strong,
+html[data-ui-theme] .wechat-app-screen h3,
+html[data-ui-theme] .wechat-app-screen b {
+  color: #111 !important;
+}
+
+html[data-ui-theme] .wechat-app-screen .wechat-empty {
+  color: #888 !important;
+}
+

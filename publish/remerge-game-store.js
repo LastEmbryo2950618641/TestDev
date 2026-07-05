@@ -18,5 +18,6 @@ window.GameModules.remergeGameStore = function remergeGameStore() {
     gm.taobaoActions, gm.taobaoGenerateActions, gm.taobaoBuyActions, gm.promptActions, gm.settingsActions, gm.systemTestActions, gm.tokenStatsActions, gm.roleCardJsonApp?.actions,
   ].filter(Boolean);
   Object.assign(store, ...modules);
+  store.refreshPhoneClockLabels?.();
   return true;
 };

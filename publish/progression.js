@@ -17,7 +17,7 @@ window.GameModules.progression = {
         ['strength', '力量', '肌肉力量、爆发力与近战压制能力。'], ['agility', '敏捷', '速度、反应和身体协调性。'],
         ['constitution', '体质', '抗伤、耐受、恢复和身体基础强度。'], ['intelligence', '智力', '理解、推理、知识运用和术式分析能力。'],
         ['perception', '感知', '观察、直觉、索敌和异常察觉能力。'], ['willpower', '意志', '忍耐、抗压、抵抗精神干涉和坚持目标的能力。'],
-        ['charisma', '魅力', '外在吸引力、表达力和影响他人的能力。'],
+        ['charisma', '魅力', '五官容貌与长相印象（是否漂亮、可爱、清秀等）、气质仪态，以及表达力与影响他人的社交能力。'],
       ].map(([key, label, desc]) => this.field(key, label, 'number', 0, 100, desc)) },
       { title: '习得与职业', fields: [
         this.field('knowledge', '知识储备', 'list', 0, 100, '已掌握的知识领域及等级。'), this.field('skills', '技能等级', 'list', 0, 100, '经过学习或训练获得的技能等级。'),
@@ -57,6 +57,8 @@ window.GameModules.progression = {
     if (this.ensureIntrinsicSources(values)) changed = true;
     if (this.normalizeFreeAttributePoints(values)) changed = true;
     if (this.normalizeLearnedLists(values)) changed = true;
+    if (this.normalizeAllLearnedExp(values)) changed = true;
+    if (window.GameModules.progressionLearnedSync?.syncFromProfile?.(values, character, seed)) changed = true;
     if (!values.vitality?.max || !values.stamina_pool?.max) { this.recalculatePools(values, true, character); changed = true; }
     if (!values.derived?.attackPower) { values.derived = this.derived(values); changed = true; }
     if (!values.combat_simulation) { values.combat_simulation = this.defaultCombat(values); changed = true; }
@@ -91,9 +93,9 @@ window.GameModules.progression = {
       growth_potential: existing.growth_potential ?? this.clamp(character.growthPotential?.value ?? (82 - level * 4 + seed % 25), 0, 100),
       action_ability: existing.action_ability?.max ? existing.action_ability : this.pool(character.actionAbility?.value ?? (35 + intrinsic.agility * 5 + intrinsic.constitution * 2), Math.max(1, 35 + intrinsic.agility * 5 + intrinsic.constitution * 2)),
       ...intrinsic,
-      knowledge: existing.knowledge?.length ? existing.knowledge : this.knowledge(character, seed),
-      skills: existing.skills?.[0]?.level ? existing.skills : this.skills(character, seed),
-      professions: existing.professions?.length ? existing.professions : (character.professions?.length ? character.professions : this.professions(character, seed)),
+      knowledge: this.profileLearnedList(character, 'knowledge', '知识', seed, existing.knowledge),
+      skills: existing.skills?.[0]?.level ? existing.skills : this.profileLearnedList(character, 'skills', '技能', seed, existing.skills),
+      professions: existing.professions?.length ? existing.professions : this.profileLearnedList(character, 'professions', '职业', seed, existing.professions),
       factions: existing.factions?.length ? existing.factions : this.factions(character),
       force_positions: existing.force_positions?.length ? existing.force_positions : this.forcePositions(character),
       derived: {},
@@ -109,7 +111,7 @@ window.GameModules.progression = {
       strength: stat(1, /战士|骑士|佣兵|从者|英灵/.test(text) ? 3 : 0), agility: stat(2, /刺客|弓|剑|忍/.test(text) ? 3 : 0),
       constitution: stat(3, /病弱|幼/.test(text) ? -2 : (/英灵|龙|鬼/.test(text) ? 4 : 0)), intelligence: stat(4, /魔术|学者|医生|教师|军师/.test(text) ? 4 : 0),
       perception: stat(5, /侦探|弓|刺客|感知/.test(text) ? 3 : 0), willpower: stat(6, /王|骑士|复仇|圣/.test(text) ? 3 : 0),
-      charisma: stat(7, /王|偶像|领袖|公主/.test(text) ? 4 : 0),
+      charisma: stat(7, (/王|偶像|领袖|公主/.test(text) ? 4 : 0) + (/漂亮|可爱|清秀|俊|美|帅|貌|颜|颜值|丽人|美女|帅哥/.test(text) ? 3 : 0)),
     };
   },
 
@@ -151,7 +153,46 @@ window.GameModules.progression = {
     const lv = this.clamp(level, 1, 7);
     const cleanName = String(name).slice(0, 16);
     const definition = this.learnedDefinition(cleanName, type, source);
-    return { name: cleanName, type, level: lv, exp: { current: 0, next: this.learnedNext[lv] }, linkedStats, source: definition, description: definition, levelDescription: this.levelDescription(type, lv), effect: this.levelEffect(cleanName, type, lv) };
+    const item = { name: cleanName, type, level: lv, exp: { current: 0, next: this.learnedNext[lv] }, linkedStats, source: definition, description: definition, levelDescription: this.levelDescription(type, lv), effect: this.levelEffect(cleanName, type, lv) };
+    this.normalizeLearnedExp(item);
+    return item;
+  },
+
+  normalizeLearnedExp(item) {
+    if (!this.hasLearnedLevel?.(item)) return false;
+    const lv = this.clamp(Number(item.level) || 1, 1, 7);
+    item.level = lv;
+    const expectedNext = this.learnedNext[lv];
+    if (!item.exp || typeof item.exp !== 'object') {
+      item.exp = { current: 0, next: expectedNext };
+      return true;
+    }
+    let changed = false;
+    if (item.exp.next !== expectedNext) {
+      item.exp.next = expectedNext;
+      changed = true;
+    }
+    const cap = expectedNext === Infinity ? Number.MAX_SAFE_INTEGER : Math.max(0, expectedNext - 1);
+    const current = this.clamp(item.exp.current ?? 0, 0, cap);
+    if (item.exp.current !== current) {
+      item.exp.current = current;
+      changed = true;
+    }
+    const curve = 'lv1-7:100/250/600/1400/3200/7200/max';
+    if (item.exp.curve !== curve) {
+      item.exp.curve = curve;
+      changed = true;
+    }
+    return changed;
+  },
+
+  normalizeAllLearnedExp(values) {
+    if (!values) return false;
+    let changed = false;
+    for (const item of [...(values.knowledge || []), ...(values.skills || []), ...(values.professions || [])]) {
+      if (this.normalizeLearnedExp(item)) changed = true;
+    }
+    return changed;
   },
   linkedStats(name) {
     if (/剑|战|拳|武|射|枪/.test(name)) return ['strength', 'agility', 'perception']; if (/魔|术|医|学|分析/.test(name)) return ['intelligence', 'perception', 'willpower'];
