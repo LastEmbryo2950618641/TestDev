@@ -76,7 +76,7 @@ Rules：
 
 ### 4. workplace / position
 
-1. 职业是内化能力，workplace/position 用于合并展示为"势力地位：势力 / 地位"。
+1. 职业是内化能力，workplace/position 用于合并展示为"人事归属：势力 / 地位"。
 2. workplace 必须根据 refinedRole、地址和现实世界逻辑生成，表示有组织层级的公司、学校、部门、科室或机构；不要把居住社区填成 workplace。
 3. position 是玩家在该势力内的岗位、年级、职位、职级或组织层级，例如"软件工程师""高三学生""科室经理"。
 4. 居住社区、家庭成员、朋友、居民等普通社会归属属于"社群角色"，不属于 workplace/position。

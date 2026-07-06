@@ -16,7 +16,7 @@ window.GameModules = window.GameModules || {};
     if (/地图|地点|路线/u.test(text)) return 'map';
     if (/控势|夺控|占领|领土|territory/u.test(text)) return 'territory-control';
     if (/政体|独立|起义|解散|合并|org-status/u.test(text)) return 'org-status';
-    if (/能力条目|兵种|科室|产线|capability/u.test(text)) return 'org-capability-entry';
+    if (/overviewPanels|ideology|cohesion|economy|politics|military|diplomacy|\u4e94\u9762\u677f|\u610f\u8bc6\u5f62\u6001|\u51dd\u805a\u539f\u56e0|\u7ecf\u6d4e|\u653f\u6cbb|\u519b\u4e8b|\u5916\u4ea4|\u8054\u8c0a/u.test(text)) return 'org-overview-panel';
     if (/人事归属|membership|入职|任职/u.test(text)) return 'membership';
     if (/组织架构|职位|部门|岗位|成员/u.test(text)) return 'faction-structure';
     if (/势力|公司|社群|社区|家庭|组织/u.test(text)) return 'faction-overview';

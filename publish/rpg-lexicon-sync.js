@@ -21,8 +21,8 @@ Object.assign(window.GameModules.rpgLexicon, {
       const entry = this.factionEntry(worldTag, item, state);
       if (entry) entries.push(entry);
     }
-    for (const item of values.force_positions || []) {
-      const entry = this.forcePositionEntry(worldTag, item, state);
+    for (const item of values.memberships || []) {
+      const entry = this.membershipEntry(worldTag, item, state);
       if (entry) entries.push(entry);
     }
     for (const name of values.status_tags || []) entries.push({ worldTag, kind: '状态', name, desc: `${name}表示角色当前处境、身份或剧情状态。`, reason: state?.profile?.rpgFieldReasons?.status_tags, nameAiGenerated: this.isAiStateName(name, state), valueAiGenerated: true, changeMode: state?.profile?.rpgFieldReasons?.status_tags, source: 'state' });
@@ -51,16 +51,17 @@ Object.assign(window.GameModules.rpgLexicon, {
     return { worldTag, kind: '社群角色', name, summary: `${faction}中的${role}`, description, reason, value: { ...obj, name, faction, community: faction, role, position: role, level: -1, reason, changeMode: reason }, nameAiGenerated: this.isAiStateName(name, state), valueAiGenerated: true, changeMode: reason, source: 'state', meta: { info: { faction, community: faction, role, level: -1 } } };
   },
 
-  forcePositionEntry(worldTag, item, state) {
-    const obj = typeof item === 'string' ? { force: item, position: '成员' } : item;
-    const force = String(obj?.force || obj?.faction || obj?.name || '').trim();
-    const position = String(obj?.position || obj?.rank || '成员').trim();
-    if (!force) return null;
-    const name = obj.name && obj.name.includes('/') ? obj.name : `${force} / ${position}`;
-    const description = obj.description || `势力：${force}；地位：${position}。该词条表示角色在有层级制度势力中的等级、职级、年级或职位。`;
+  membershipEntry(worldTag, item, state) {
+    const obj = typeof item === 'string' ? { orgName: item, title: '成员' } : item;
+    const orgName = String(obj?.orgName || obj?.name || '').trim();
+    const title = String(obj?.title || '成员').trim();
+    const department = String(obj?.department || '').trim();
+    if (!orgName) return null;
+    const name = obj.name && obj.name.includes('/') ? obj.name : [orgName, department, title].filter(Boolean).join(' / ');
+    const description = obj.description || `组织：${orgName}；身份：${title}。该词条表示角色在势力或社群组织架构中的部门、职位、身份或成员关系。`;
     const actor = state?.profile?.name || state?.name || '该人物';
-    const reason = this.concreteSocialReason(obj.reason || obj.changeMode || state?.profile?.rpgFieldReasons?.force_positions, `${force}是${actor}资料中可确认的组织、机构或国家级归属，${position}是其在该势力中的当前地位。`);
-    return { worldTag, kind: '势力地位', name, summary: `${force}中的${position}`, description, reason, value: { ...obj, name, force, faction: force, position, level: -1, reason, changeMode: reason }, nameAiGenerated: this.isAiStateName(name, state), valueAiGenerated: true, changeMode: reason, source: 'state', meta: { info: { force, faction: force, position, level: -1 } } };
+    const reason = this.concreteSocialReason(obj.reason || obj.changeMode || state?.profile?.rpgFieldReasons?.memberships, `${orgName}是${actor}资料中可确认的组织归属，${title}是其在该组织中的当前人事身份。`);
+    return { worldTag, kind: '人事归属', name, summary: `${orgName}中的${title}`, description, reason, value: { ...obj, name, orgName, title, department, level: -1, reason, changeMode: reason }, nameAiGenerated: this.isAiStateName(name, state), valueAiGenerated: true, changeMode: reason, source: 'state', meta: { info: { orgName, title, department, level: -1 } } };
   },
 
   learnedDescription(kind, name, item) {
@@ -75,7 +76,7 @@ Object.assign(window.GameModules.rpgLexicon, {
     if (kind === '物品') return `物品词条，说明“${name}”的数量、用途、所在位置和消耗或转让条件。`;
     if (kind === '穿着') return `穿着词条，说明“${name}”占用的槽位、外观、状态和对现实行动的影响。`;
     if (kind === '社群角色' || kind === '阵营') return `社群角色词条，说明角色所属居住社区、家庭、社交圈或临时群体，以及其在其中承担的社会角色。`;
-    if (kind === '势力地位') return `势力地位词条，说明角色在有层级制度势力中的等级、职级、年级或职位。`;
+    if (kind === '人事归属') return `人事归属词条，说明角色在有层级制度势力中的等级、职级、年级或职位。`;
     return `执行“${name}”相关行动时所需的理解、操作熟练度和稳定发挥能力。`;
   },
 

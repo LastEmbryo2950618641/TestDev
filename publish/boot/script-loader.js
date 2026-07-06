@@ -5,8 +5,17 @@ window.GameBoot = window.GameBoot || {
   loaded: new Set(),
   bootComplete: false,
 
-  loadScript(src, options = {}) {
+  versionedSrc(src) {
     const url = String(src || '').trim();
+    if (!url) return '';
+    if (/^(https?:)?\/\//i.test(url) || /^data:/i.test(url) || /^blob:/i.test(url)) return url;
+    const version = String(window.GameScriptManifest?.version || '').trim();
+    if (!version) return url;
+    return url.includes('?') ? `${url}&v=${encodeURIComponent(version)}` : `${url}?v=${encodeURIComponent(version)}`;
+  },
+
+  loadScript(src, options = {}) {
+    const url = this.versionedSrc(src);
     if (!url) return Promise.resolve();
     if (this.loaded.has(url)) return Promise.resolve();
     const existing = Array.from(document.querySelectorAll('script[data-boot-src]')).find((node) => node.dataset.bootSrc === url);

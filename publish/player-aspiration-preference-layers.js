@@ -102,9 +102,10 @@ window.GameModules.playerAspirationPreferenceLayers = {
   },
 
   normalizeLayers(raw = {}) {
+    const source = raw && typeof raw === 'object' ? raw : {};
     const out = {};
     this.layerMeta.forEach(({ key, prefix }) => {
-      out[key] = this.ensurePrefix(prefix, raw[key] || raw[prefix] || '');
+      out[key] = this.ensurePrefix(prefix, source[key] || source[prefix] || '');
     });
     return out;
   },

@@ -268,8 +268,8 @@ test('non-predefined completion keeps original AI-backed setup path', async () =
     'enrichPlayerProfile',
     'normalizeEnrichedPlayerProfile',
     'syncPlayerProfileLexicon',
-    'ensurePlayerRpgState:true',
     'syncRelationshipWechatUsers:false',
+    'ensurePlayerRpgState:true',
     'syncKnownProfessionsFromProfile',
     'save',
   ]);

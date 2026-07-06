@@ -195,8 +195,8 @@ window.GameModules.predefinedRoleCards = {
   identitySummary(card) {
     if (!card) return '未选择角色卡';
     const factions = (card.factions || []).map((x) => x.name || [x.faction, x.role].filter(Boolean).join(' / ')).filter(Boolean).join('；') || '未记录';
-    const forces = (card.force_positions || []).map((x) => x.name || [x.force, x.position].filter(Boolean).join(' / ')).filter(Boolean).join('；') || '未记录';
-    return [`姓名：${card.name}`, `性别：${card.gender || '未记录'}`, `年龄：${card.age || '未记录'}`, `生日：${card.birthday || '未记录'}`, `身份：${card.role || '未记录'}`, `职业：${card.job || '未记录'}`, `社群角色：${factions}`, `势力地位：${forces}`, `关系：${card.relationships || '未记录'}`].join('\n');
+    const memberships = (card.memberships || []).map((x) => x.name || [x.orgName, x.department, x.title].filter(Boolean).join(' / ')).filter(Boolean).join('；') || '未记录';
+    return [`姓名：${card.name}`, `性别：${card.gender || '未记录'}`, `年龄：${card.age || '未记录'}`, `生日：${card.birthday || '未记录'}`, `身份：${card.role || '未记录'}`, `职业：${card.job || '未记录'}`, `社群角色：${factions}`, `人事归属：${memberships}`, `关系：${card.relationships || '未记录'}`].join('\n');
   },
 
   detailSummary(card) {
@@ -246,7 +246,7 @@ window.GameModules.predefinedRoleCards = {
     if (forceAppearance || incompleteAppearance) {
       this.applyAppearanceProfile(profile, appearancePreset);
     }
-    const schema = await window.GameModules.rpgState.ensureSchema(profile.work || '现实世界');
+    const schema = await window.GameModules.rpgState.ensureSchema(profile.work || window.GameModules.realWorld2026?.label || '2026 现代都市现实世界');
     const state = existing || window.GameModules.rpgState.createCharacterState(profile, schema, store);
     state.id = profile.id;
     state.name = profile.name;

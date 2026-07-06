@@ -108,9 +108,9 @@ window.GameModules.characterProfile = {
 
   isRoleCard(profile) {
     const hasFactions = Array.isArray(profile?.factions) && profile.factions.length;
-    const forces = profile?.forcePositions || profile?.force_positions;
-    const hasForces = Array.isArray(forces) && forces.length;
-    return Boolean(profile?.roleCard && this.isConcreteName(profile.name) && profile?.role && profile?.detail && profile?.personality && profile?.appearance && (hasFactions || hasForces));
+    const memberships = profile?.memberships;
+    const hasMemberships = Array.isArray(memberships) && memberships.length;
+    return Boolean(profile?.roleCard && this.isConcreteName(profile.name) && profile?.role && profile?.detail && profile?.personality && profile?.appearance && (hasFactions || hasMemberships));
   },
 
   isConcreteName(name) {
@@ -380,15 +380,31 @@ window.GameModules.characterProfile = {
   },
 
   roleCardPromptTarget(base = {}, store = null) {
-    const work = String(base.work || store?.selectedWork || store?.character?.work || '').trim();
-    if (!work || this.isRealWorldRoleCardTarget(work, base)) return '2026 现代都市互动小说';
-    return work;
+    return this.roleCardWorldTag(base, store);
   },
 
-  isRealWorldRoleCardTarget(work = '', base = {}) {
-    const realWorld = String(window.GameModules.realWorld2026?.label || '2026 现代都市现实世界').trim();
-    const raw = String(work || '').trim();
-    return base.id === 'player-self' || base.isPlayer || raw === realWorld || /^(原创世界|现实世界|2026\s*现代都市现实世界|2026\s*现代都市互动小说)$/.test(raw);
+  roleCardWorldTag(base = {}, store = null) {
+    const raw = String(base.work || store?.currentWorldTag?.() || store?.selectedWork || store?.character?.work || base.worldTag?.value || '').trim();
+    const normalized = window.GameModules.characterQuery?.normalizeWorldTag?.(raw);
+    return String(normalized || raw || '原创世界').trim();
+  },
+
+  normalizedWorldTagField(worldTag, base = {}, store = null) {
+    const source = worldTag && typeof worldTag === 'object' ? worldTag : {};
+    const fallbackValue = this.roleCardWorldTag(base, store);
+    const value = this.roleCardWorldTag({ ...base, work: source.value || fallbackValue, worldTag: source });
+    return {
+      value,
+      reason: String(source.reason || `${base.name || '该人物'}的所属世界来自当前世界设定。`).trim(),
+    };
+  },
+
+  isRealWorldRoleCardTarget(work = '', base = {}, store = null) {
+    if (base.id === 'player-self' || base.isPlayer) return true;
+    const raw = String(work || this.roleCardWorldTag(base, store)).trim();
+    if (!raw) return false;
+    return window.GameModules.characterQuery?.isRealWorldTag?.(raw)
+      || /^(现实世界|现代都市现实世界|2026\s*现代都市现实世界|2026\s*现代都市互动小说)$/.test(raw);
   },
 
   targetLockText(base = {}) {
@@ -636,7 +652,7 @@ window.GameModules.characterProfile = {
 
   partRequiredRawFields(partIndex, fields = null) {
     const byPart = {
-      1: ['name', 'worldTag', 'age', 'gender', 'factions', 'forcePositions'],
+      1: ['name', 'worldTag', 'age', 'gender', 'factions', 'memberships'],
       2: ['name', 'feeling', 'emotions', 'playerFeelings'],
       3: ['name', 'skills', 'knowledge', 'professions', 'level', 'reason'],
       4: ['name', 'items', 'wearing', 'head', 'top', 'bottom', 'socks', 'shoes'],
@@ -660,7 +676,7 @@ window.GameModules.characterProfile = {
       '',
       '## MD角色卡模板字段骨架',
       '下方模板由 MD 文档结构生成，本次输出必须严格遵守这些字段名、嵌套结构和数组元素字段。',
-      '模板中不存在的字段不要输出；不要把旧版 force_positions、数组式 feeling 或数组式 wearing 写回角色卡。',
+      '模板中不存在的字段不要输出；不要把旧版人事归属字段、数组式 feeling 或数组式 wearing 写回角色卡。',
       `Part${partIndex} 模板：`,
       JSON.stringify(template, null, 2),
     ].join('\n');
@@ -840,7 +856,7 @@ window.GameModules.characterProfile = {
     if (partIndex === 1 && key === 'jobConfirmed') return typeof value === 'boolean';
     if (partIndex === 1 && key === 'control_experience') return value && typeof value === 'object' && Number.isInteger(Number(value.上线次数)) && typeof value.习惯程度 === 'string';
     if (partIndex === 1 && key === 'factions') return this.arrayItemsComplete(value, ['faction', 'role', 'reason'], false);
-    if (partIndex === 1 && key === 'forcePositions') return this.arrayItemsComplete(value, ['force', 'position', 'reason'], true);
+    if (partIndex === 1 && key === 'memberships') return this.arrayItemsComplete(value, ['orgName', 'title', 'reason'], true);
     if (partIndex === 1 && key === 'initialMetrics') return this.initialMetricsComplete(value);
     if (partIndex === 2 && key === 'feeling') return this.feelingComplete(value);
     if (partIndex === 3 && ['skills', 'knowledge', 'professions'].includes(key)) return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', 'reason'], key === 'professions', (item) => this.learnedItemComplete(item));
@@ -940,15 +956,12 @@ window.GameModules.characterProfile = {
         if (factions.length) out.factions = factions;
       }
     }
-    const forcesIncomplete = !Array.isArray(out.forcePositions)
-      || !this.arrayItemsComplete(out.forcePositions, ['force', 'position', 'reason'], true)
-      || !out.forcePositions.length;
-    if (forcesIncomplete) {
-      if (preset?.forcePositions?.length) out.forcePositions = preset.forcePositions;
-      else {
-        const forces = this.forcePositions(out, base);
-        if (forces.length) out.forcePositions = forces;
-      }
+    const membershipsIncomplete = !Array.isArray(out.memberships)
+      || !this.arrayItemsComplete(out.memberships, ['orgName', 'title', 'reason'], true)
+      || !out.memberships.length;
+    if (membershipsIncomplete) {
+      const memberships = this.memberships(out, base, store);
+      if (memberships.length) out.memberships = memberships;
     }
     return out;
   },
@@ -1584,7 +1597,7 @@ window.GameModules.characterProfile = {
   mergeGeneratedParts(part1, part2, part3, part4, attrs) {
     const feeling = { emotions: part2.feeling?.emotions, playerFeelings: part2.feeling?.playerFeelings };
     const merged = { ...part1, ...part3, ...part4, initialMetrics: this.sanitizeInitialMetrics(feeling) };
-    merged.forcePositions = part1.forcePositions || part1.force_positions || [];
+    merged.memberships = part1.memberships || [];
     if (part4.essentialPreferenceLayers) {
       merged.essentialPreferenceLayers = window.GameModules.playerAspirationPreferenceLayers?.normalizeLayers?.(part4.essentialPreferenceLayers) || part4.essentialPreferenceLayers;
       merged.essentialPreferenceLayersLocked = part4.essentialPreferenceLayersLocked !== false;
@@ -1596,7 +1609,7 @@ window.GameModules.characterProfile = {
 
   roleReasonsFromParts(profile = {}) {
     const factionText = (profile.factions || []).map((x) => `${x.faction}/${x.role}：${x.reason || ''}`).join('；');
-    const forceText = ((profile.forcePositions || profile.force_positions) || []).map((x) => `${x.force}/${x.position}：${x.reason || ''}`).join('；');
+    const membershipText = (profile.memberships || []).map((x) => [x.orgName, x.department, x.title].filter(Boolean).join('/') + `：${x.reason || ''}`).join('；');
     return {
       姓名: `${profile.name || '该人物'}的姓名来自 Part1 固化身份字段。`,
       所属世界: profile.worldTag?.reason || `${profile.name || '该人物'}的所属世界来自 Part1 worldTag。`,
@@ -1610,7 +1623,7 @@ window.GameModules.characterProfile = {
       性格: profile.personality || '性格来自 Part1 personality。',
       人物说明: profile.detail || '人物说明来自 Part1 detail。',
       社群角色: factionText || '社群角色来自 Part1 factions。',
-      势力地位: forceText || '势力地位来自 Part1 forcePositions。',
+      人事归属: membershipText || '人事归属来自 Part1 memberships。',
       本质偏好: window.GameModules.playerAspirationPreferenceLayers?.summaryText?.(profile.essentialPreferenceLayers) || '本质偏好五层在角色卡生成时固化。',
     };
   },
@@ -2173,7 +2186,7 @@ window.GameModules.characterProfile = {
         `喜好：${profile.preferences || base.preferences || ''}`,
         `性格：${profile.personality || base.personality || ''}`,
         `社群：${(profile.factions || []).map((x) => `${x.faction}/${x.role || x.position || ''}`).join('、') || profile.faction || ''}`,
-        `势力：${((profile.forcePositions || profile.force_positions) || []).map((x) => `${x.force}/${x.position}`).join('、') || profile.rank || ''}`,
+        `组织归属：${(profile.memberships || []).map((x) => [x.orgName, x.department, x.title].filter(Boolean).join('/')).join('、') || profile.rank || ''}`,
       ].join('\n').slice(0, 900),
       playerProfile: [
         player.playerBasic,
@@ -2318,7 +2331,7 @@ window.GameModules.characterProfile = {
       `成长潜力：${part1.growthPotential?.value || ''}`,
       `行动能力：${part1.actionAbility?.value || ''}`,
       `社群：${(part1.factions || []).map((x) => `${x.faction}/${x.role}`).join('、')}`,
-      `势力：${((part1.forcePositions || part1.force_positions) || []).map((x) => `${x.force}/${x.position}`).join('、')}`,
+      `组织归属：${(part1.memberships || []).map((x) => [x.orgName, x.department, x.title].filter(Boolean).join('/')).join('、')}`,
       `职业：${part1.job || '无'}`,
     ];
     const layers = essentialLayers || part1.essentialPreferenceLayers;
@@ -2345,7 +2358,7 @@ window.GameModules.characterProfile = {
         nameHint,
         '必须返回根字段 worldTag（含 value 和 reason）、age（含 value 和 reason）。',
         '必须返回根字段 learningAbility、mentalStability、growthPotential、actionAbility（各含 value 和 reason）。',
-        '必须返回根字段 factions 和 forcePositions（数组，每项含 reason）。',
+        '必须返回根字段 factions 和 memberships（数组；memberships 每项含 orgName、title、reason）。',
         'relationships 只能写“当前人物与别人”的关系，冒号右侧不能是当前人物本人；当前人物自己的长兄、妹妹、学生等身份写入 role/detail。',
         '本轮不要返回 feeling/skills/knowledge/professions/items/wearing/rpgField/rpgFieldReasons。',
       ].join('\n');
@@ -2444,7 +2457,7 @@ window.GameModules.characterProfile = {
     return [
       `目标人物只能是：${base.name}。name 必须逐字等于“${base.name}”，不要同音改字，不要改成亲属、联系人或关系对象。`,
       '必须返回根字段 roleCardFieldReasons，不是 roleCardField、中文字段平铺或社群映射。',
-      'roleCardFieldReasons 必须完整包含：姓名、所属世界、身份、职业、性别、生日、人际关系、外貌、喜好、性格、人物说明、社群角色、势力地位。每个值建议写一句人物相关原因。',
+      'roleCardFieldReasons 必须完整包含：姓名、所属世界、身份、职业、性别、生日、人际关系、外貌、喜好、性格、人物说明、社群角色、人事归属。每个值建议写一句人物相关原因。',
       `必须返回根字段 rpgFieldReasons，并完整包含：${this.rpgFieldReasonKeys(attrs).join('、')}。`,
       '本轮不要返回 initialMetrics、initial_metrics 或任何情绪/感觉数组。',
       'relationships 必须是字符串，格式“关系：姓名”；不要对象。',
@@ -2466,13 +2479,13 @@ window.GameModules.characterProfile = {
     const professions = Array.isArray(profile.professions) ? profile.professions : [];
     const confirmedJob = profile.jobConfirmed === true ? window.GameModules.professionInfo.normalizeJobName(profile.job) : '';
     const factions = this.factionRoles(profile, base, store);
-    const forcePositions = this.forcePositions(profile, base, store);
+    const memberships = this.memberships(profile, base, store);
     const validated = {
       ...base,
       name: this.validName(profile.name, base),
       gender: String(base.gender || profile.gender || '').slice(0, 8),
       age: this.lockedAge(profile, base),
-      worldTag: profile.worldTag || null,
+      worldTag: this.normalizedWorldTagField(profile.worldTag, { ...base, ...profile }),
       learningAbility: profile.learningAbility || null,
       mentalStability: profile.mentalStability || null,
       growthPotential: profile.growthPotential || null,
@@ -2487,10 +2500,9 @@ window.GameModules.characterProfile = {
       faction: String(factions[0]?.faction || profile.faction || '无').slice(0, 30),
       factionRole: String(factions[0]?.role || factions[0]?.position || profile.factionRole || profile.role || '').slice(0, 24),
       job: confirmedJob,
-      rank: String(forcePositions[0]?.position || profile.rank || '').slice(0, 30),
+      rank: String(memberships[0]?.title || profile.rank || '').slice(0, 30),
       factions,
-      forcePositions,
-      force_positions: forcePositions,
+      memberships,
       skills: skills.slice(0, 10).map((skill, index) => {
         const name = String(skill.name || `能力${index + 1}`).slice(0, 16);
         const desc = String(skill.desc || '').slice(0, 60);
@@ -2537,7 +2549,7 @@ window.GameModules.characterProfile = {
       wearingRawRows: Array.isArray(profile._csvRows) ? profile._csvRows.filter((row) => String(row || '').startsWith('wearing,')) : [],
       worldValues: this.worldValues(profile.worldValues, attrs, base.name),
       worldAttributes: attrs,
-      rpgFieldReasons: this.rpgFieldReasons(profile.rpgFieldReasons, attrs, { ...base, ...profile, factions, forcePositions }),
+      rpgFieldReasons: this.rpgFieldReasons(profile.rpgFieldReasons, attrs, { ...base, ...profile, factions, memberships }),
       initialMetrics: options.skipInitialMetrics ? null : this.initialMetrics(profile.initialMetrics, { ...base, ...profile }),
       essentialPreferenceLayers: profile.essentialPreferenceLayers
         ? window.GameModules.playerAspirationPreferenceLayers?.normalizeLayers?.(profile.essentialPreferenceLayers)
@@ -2566,6 +2578,7 @@ window.GameModules.characterProfile = {
     ['work', 'role', 'job', 'faction', 'workplace', 'position', 'rank'].forEach((key) => {
       if (base[key] !== undefined && base[key] !== null && String(base[key]).trim()) locked[key] = base[key];
     });
+    if (locked.worldTag || locked.work || base.work) locked.worldTag = this.normalizedWorldTagField(locked.worldTag, { ...base, work: locked.work || base.work });
     const wrongName = String(profile?.name || '').trim();
     if (base.name && wrongName && wrongName !== base.name) {
       console.warn('[角色卡] AI返回姓名与目标不一致，已强制锁回:', { expected: base.name, actual: wrongName });
@@ -2598,7 +2611,7 @@ window.GameModules.characterProfile = {
         id: base.id, name: base.name, work: base.work, role: base.role, gender: base.gender, age: base.age, birthday: base.birthday,
         relationships: base.relationships, nameRule: base.nameRule, detail: base.detail,
         appearance: base.appearance, preferences: base.preferences, personality: base.personality, presetProfilePath: base.presetProfilePath,
-        factions: base.factions, forcePositions: base.forcePositions || base.force_positions,
+        factions: base.factions, memberships: base.memberships,
       },
       preset: { path: preset?.path || '', summary: preset?.summary || '' },
       player: {
@@ -2644,31 +2657,55 @@ window.GameModules.characterProfile = {
     return [social?.item?.(faction, role) || { name: `${faction} / ${role}`, faction, role }].filter((item) => item?.faction || item?.name).slice(0, 4);
   },
 
-  forcePositions(profile, base = {}) {
+  shouldInferCountryMembership(profile = {}, base = {}) {
+    const world = this.roleCardWorldTag({
+      work: profile.work || profile.worldTag?.value || base.work || base.worldTag?.value || '',
+      worldTag: profile.worldTag || base.worldTag,
+      id: profile.id || base.id,
+      isPlayer: profile.isPlayer || base.isPlayer,
+    });
+    return this.isRealWorldRoleCardTarget(world);
+  },
+
+  countryMembership(profile = {}, base = {}, store = null) {
+    if (!this.shouldInferCountryMembership(profile, base)) return null;
+    const top = window.GameModules.factionSystem?.inferTopCountry?.({ ...base, ...profile });
+    if (!top?.name) return null;
+    const reason = [profile.country, profile.nationality, base.country, base.nationality].some((x) => String(x || '').trim())
+      ? `${profile.name || base.name || '该人物'}的国籍或国家归属由角色资料明确给出，因此登记为${top.name}公民。`
+      : `${profile.name || base.name || '该人物'}当前处于现实世界设定，且没有明确指向其他国家，因此默认登记为${top.name}公民。`;
+    return window.GameModules.socialPosition?.membershipItem?.(top.name, '公民', reason, store, { department: '', departmentFog: false, source: '国家法域推断' })
+      || { name: `${top.name} / 公民`, orgName: top.name, title: '公民', department: '', departmentFog: false, reason, changeMode: reason };
+  },
+
+  memberships(profile, base = {}, store = null) {
     const social = window.GameModules.socialPosition;
-    const list = Array.isArray((profile.forcePositions || profile.force_positions)) ? (profile.forcePositions || profile.force_positions) : [];
-    const blocked = /^(现实社会|现代社会|现实世界|社会|国家|中华人民共和国)$/;
-    const blockedPosition = /^(公民|居民|成年人|成年学生|成员)$/;
-    const toItem = (force, position, reason = '') => {
-      const f = String(force || '').trim();
-      const p = String(position || '').trim();
-      if (!f || !p || blocked.test(f) || blockedPosition.test(p)) return null;
-      const baseItem = social?.forceItem?.(f, p, reason) || { name: `${f} / ${p}`, force: f, position: p };
+    const list = Array.isArray(profile.memberships) ? profile.memberships : [];
+    const toItem = (orgName, title, reason = '', extra = {}) => {
+      const f = String(orgName || '').trim();
+      const p = String(title || '').trim();
+      if (!f || !p) return null;
+      const baseItem = social?.membershipItem?.(f, p, reason, store, extra) || { name: `${f} / ${p}`, orgName: f, title: p, department: extra.department || '', departmentFog: extra.departmentFog !== false };
       const detail = String(reason || baseItem.reason || baseItem.changeMode || '').trim().slice(0, 120);
       return { ...baseItem, reason: detail, changeMode: detail };
     };
-    const items = list.map((item) => {
+    const items = [];
+    const country = this.countryMembership(profile, base, store);
+    if (country) items.push(country);
+    list.map((item) => {
       if (typeof item === 'string') {
-        const [force, position] = item.split('/').map((x) => x.trim());
-        return toItem(force, position || '成员');
+        const [orgName, title] = item.split('/').map((x) => x.trim());
+        return toItem(orgName, title || '成员');
       }
-      return toItem(item.force || item.faction || item.name, item.position || item.rank || '成员', item.reason || item.changeMode || '');
-    }).filter(Boolean);
-    if (!items.length) {
-      const force = profile.force || base.force || profile.workplace || base.workplace || '';
-      const position = profile.position || base.position || '';
-      const item = toItem(force, position);
-      if (item) items.push(item);
+      return toItem(item.orgName || item.name, item.title || '成员', item.reason || item.changeMode || '', item);
+    }).filter(Boolean).forEach((item) => {
+      if (!items.some((existing) => existing.orgName === item.orgName && existing.title === item.title)) items.push(item);
+    });
+    if (items.length <= (country ? 1 : 0)) {
+      const orgName = profile.workplace || base.workplace || '';
+      const title = profile.position || base.position || '';
+      const item = toItem(orgName, title);
+      if (item && !items.some((existing) => existing.orgName === item.orgName && existing.title === item.title)) items.push(item);
     }
     return items.slice(0, 4);
   },
@@ -2796,7 +2833,7 @@ window.GameModules.characterProfile = {
   },
 
   roleCardFieldKeys() {
-    return ['姓名', '所属世界', '身份', '职业', '性别', '生日', '人际关系', '外貌', '喜好', '性格', '人物说明', '社群角色', '势力地位'];
+    return ['姓名', '所属世界', '身份', '职业', '性别', '生日', '人际关系', '外貌', '喜好', '性格', '人物说明', '社群角色', '人事归属'];
   },
 
   abstractReason(text) {
@@ -2841,7 +2878,7 @@ window.GameModules.characterProfile = {
       const customOk = !Array.isArray(wearing.slot) || wearing.slot.every((item) => String(item?.reason || '').trim());
       return fixedOk && customOk;
     };
-    return hasReason(profile?.factions) && hasReason(profile?.forcePositions || profile?.force_positions) && optionalReason(profile?.items) && wearingReason(profile?.wearing) && optionalReason(profile?.wearingItems) && optionalReason(profile?.skills);
+    return hasReason(profile?.factions) && hasReason(profile?.memberships) && optionalReason(profile?.items) && wearingReason(profile?.wearing) && optionalReason(profile?.wearingItems) && optionalReason(profile?.skills);
   },
 
   ensureInventoryReasons(profile) {
@@ -2861,13 +2898,12 @@ window.GameModules.characterProfile = {
       fixed.slot = (Array.isArray(obj.slot) ? obj.slot : []).map((item) => ({ ...item, reason: this.inventoryReason(item, '穿着', profile) }));
       return fixed;
     };
-    const forcePositions = fill((profile.forcePositions || profile.force_positions), '势力地位');
+    const memberships = fill(profile.memberships, '人事归属');
     const wearing = fillWearingObject(profile.wearing);
     const out = {
       ...profile,
       factions: fill(profile.factions, '社群角色'),
-      forcePositions,
-      force_positions: forcePositions,
+      memberships,
       items: fill(profile.items, '物品'),
       wearing,
       wearingItems: fill(profile.wearingItems || this.wearingAsArray(wearing), '穿着').map((item) => ({ ...item, changeMode: item.reason || item.changeMode, source: item.source || 'AI生成' })),

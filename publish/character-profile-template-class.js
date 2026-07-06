@@ -37,7 +37,7 @@ window.GameModules.characterProfileTemplateClass = {
       preferences: '稳定喜好，尤其是穿着偏好、颜色偏好、审美习惯和随身物偏好。',
       personality: '性格倾向、行为习惯和面对压力时的表现。',
       factions: [{ faction: '所属社群', role: '成员身份', reason: '该社群角色由人物生活处境和关系证据确定。' }],
-      forcePositions: [{ force: '所属势力', position: '地位身份', reason: '该势力地位由人物身份、国籍或组织关系确定。' }],
+      memberships: [{ orgName: '所属组织', title: '人事身份', department: '', departmentFog: true, reason: '该人事归属由人物身份、职位或组织关系确定。' }],
       job: '',
       jobConfirmed: false,
       rank: '普通成员',

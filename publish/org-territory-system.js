@@ -170,13 +170,95 @@ window.GameModules.orgTerritory = {
     return ref.label ? `上级：${ref.label}` : '上级：未知';
   },
 
-  defaultCapabilities() {
+
+  defaultOverviewField(value = '', unit = '') {
     return {
-      political: { entries: [] },
-      economic: { entries: [] },
-      asset: { entries: [] },
-      military: { entries: [] },
+      value,
+      unit,
+      establishedAt: '',
+      updatedAt: '',
+      reason: '',
     };
+  },
+
+  defaultOverviewPanels() {
+    return {
+      ideology: {
+        core: this.defaultOverviewField(''),
+        reason: this.defaultOverviewField(''),
+        description: this.defaultOverviewField(''),
+        base: this.defaultOverviewField(''),
+        legitimacy: this.defaultOverviewField(0, '/100'),
+      },
+      economy: { entries: {} },
+      politics: { entries: {} },
+      military: { entries: {} },
+      diplomacy: { entries: {} },
+    };
+  },
+
+  normalizeOverviewField(raw, fallbackValue = '', fallbackUnit = '') {
+    if (raw && typeof raw === 'object' && Object.prototype.hasOwnProperty.call(raw, 'value')) {
+      return {
+        value: raw.value,
+        unit: raw.unit ?? fallbackUnit,
+        establishedAt: String(raw.establishedAt || '').trim(),
+        updatedAt: String(raw.updatedAt || '').trim(),
+        reason: String(raw.reason || '').trim(),
+      };
+    }
+    return this.defaultOverviewField(raw ?? fallbackValue, fallbackUnit);
+  },
+
+  normalizeOverviewEntries(raw) {
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      if (raw.entries && typeof raw.entries === 'object' && !Array.isArray(raw.entries)) {
+        return { ...raw, entries: { ...raw.entries } };
+      }
+      return { entries: { ...raw } };
+    }
+    return { entries: {} };
+  },
+
+  normalizeOverviewPanels(raw = {}) {
+    const ideology = raw?.ideology || {};
+    return {
+      ideology: {
+        core: this.normalizeOverviewField(ideology.core, ''),
+        reason: this.normalizeOverviewField(ideology.reason, ''),
+        description: this.normalizeOverviewField(ideology.description, ''),
+        base: this.normalizeOverviewField(ideology.base, ''),
+        legitimacy: this.normalizeOverviewField(ideology.legitimacy, 0, '/100'),
+      },
+      economy: this.normalizeOverviewEntries(raw?.economy),
+      politics: this.normalizeOverviewEntries(raw?.politics),
+      military: this.normalizeOverviewEntries(raw?.military),
+      diplomacy: this.normalizeOverviewEntries(raw?.diplomacy),
+    };
+  },
+
+  overviewFieldHasValue(field) {
+    if (!field || typeof field !== 'object') return false;
+    const value = field.value;
+    if (typeof value === 'number') return Number.isFinite(value) && value !== 0;
+    return String(value ?? '').trim().length > 0;
+  },
+
+  overviewPanelEstablished(panelKey = '', panels = {}) {
+    if (panelKey === 'ideology') {
+      const ideology = panels.ideology || {};
+      return ['core', 'reason', 'description', 'base', 'legitimacy'].some((key) => this.overviewFieldHasValue(ideology[key]));
+    }
+    const panel = panels?.[panelKey];
+    const entries = panel?.entries;
+    return !!(entries && typeof entries === 'object' && Object.keys(entries).length);
+  },
+
+  deriveMaturityClass(faction = {}, overviewPanels = null) {
+    if (faction?.maturityClass === 'faction' || faction?.maturityClass === 'community') return faction.maturityClass;
+    const panels = overviewPanels || this.normalizeOverviewPanels(faction?.solid?.overviewPanels || {});
+    const complete = ['ideology', 'economy', 'politics', 'military', 'diplomacy'].every((key) => this.overviewPanelEstablished(key, panels));
+    return complete ? 'faction' : 'community';
   },
 
   defaultStub(faction = {}) {
@@ -191,11 +273,12 @@ window.GameModules.orgTerritory = {
     const status = faction.status || 'active';
     const stub = faction.stub && typeof faction.stub === 'object' ? faction.stub : this.defaultStub(faction);
     const solid = faction.solid && typeof faction.solid === 'object'
-      ? { capabilities: { ...this.defaultCapabilities(), ...(faction.solid.capabilities || {}) } }
-      : { capabilities: this.defaultCapabilities() };
+      ? { overviewPanels: this.normalizeOverviewPanels(faction.solid.overviewPanels || {}) }
+      : { overviewPanels: this.defaultOverviewPanels() };
     const structure = (Array.isArray(faction.structure) ? faction.structure : []).map((node, index) => this.normalizeStructureNode(node, faction, index, store));
     const territoryAnchors = (Array.isArray(faction.territoryAnchors) ? faction.territoryAnchors : [])
       .map((id) => String(id || '').trim()).filter(Boolean).slice(0, 8);
+    const maturityClass = this.deriveMaturityClass(faction, solid.overviewPanels);
     return {
       ...faction,
       resolution,
@@ -204,6 +287,8 @@ window.GameModules.orgTerritory = {
       solid,
       structure,
       territoryAnchors,
+      maturityClass,
+      maturityLabel: maturityClass === 'faction' ? '势力' : '社群',
       resolutionBadge: this.resolutionBadge(resolution),
     };
   },
@@ -330,37 +415,28 @@ window.GameModules.orgTerritory = {
     return this.isChangeMode(update) || update.change?.establish === false;
   },
 
-  CAPABILITY_DIMS: ['political', 'economic', 'asset', 'military'],
-  CAPABILITY_LABELS: { political: '政治', economic: '经济', asset: '资产', military: '军事' },
-
-  normalizeCapabilityEntry(raw = {}, faction = {}, dim = 'political', index = 0, store) {
-    const name = String(raw?.name || raw?.title || `条目${index + 1}`).trim();
-    const id = String(raw?.id || `${dim}-${faction.id || 'org'}-${index}-${name.replace(/\s+/g, '-')}`).slice(0, 64);
-    const state = this.normalizeItemState(raw?.state, name ? 'fog' : 'fog');
-    return {
-      ...raw,
-      id,
-      name,
-      kind: String(raw?.kind || raw?.type || '条目').slice(0, 24),
-      state,
-      parentRef: this.normalizeParentRef(raw?.parentRef, '迷雾'),
-      sketchNote: String(raw?.sketchNote || raw?.note || '').trim(),
-      linkStructureId: raw?.linkStructureId || '',
-      stateBadge: this.stateBadge(state),
-      parentLabel: this.nodeParentLabel({ parentRef: this.normalizeParentRef(raw?.parentRef, '迷雾') }),
-    };
-  },
-
-  capabilitySummary(faction = {}, maxPerDim = 2) {
-    const caps = faction.solid?.capabilities || {};
+  overviewSummary(faction = {}, maxPerPanel = 2) {
+    const panels = this.normalizeOverviewPanels(faction.solid?.overviewPanels || {});
     const lines = [];
-    this.CAPABILITY_DIMS.forEach((dim) => {
-      const entries = caps[dim]?.entries || [];
+    const ideology = panels.ideology || {};
+    const core = ideology.core?.value;
+    const legitimacy = ideology.legitimacy?.value;
+    if (String(core ?? '').trim()) {
+      const suffix = String(legitimacy ?? '').trim() ? ' / ' + legitimacy + (ideology.legitimacy?.unit || '') : '';
+      lines.push('\u610f\u8bc6\u5f62\u6001\uff1a' + core + suffix);
+    }
+    const labels = { economy: '\u7ecf\u6d4e', politics: '\u653f\u6cbb', military: '\u519b\u4e8b', diplomacy: '\u5916\u4ea4' };
+    ['economy', 'politics', 'military', 'diplomacy'].forEach((key) => {
+      const entries = Object.entries(panels[key]?.entries || {}).slice(0, maxPerPanel);
       if (!entries.length) return;
-      const brief = entries.slice(0, maxPerDim).map((e) => `${e.name}(${this.stateBadge(e.state)})`).join('、');
-      lines.push(`${this.CAPABILITY_LABELS[dim]}：${brief}`);
+      const brief = entries.map(([name, entry]) => {
+        const value = entry && typeof entry === 'object' ? entry.value : entry;
+        const unit = entry && typeof entry === 'object' ? (entry.unit || '') : '';
+        return name + ':' + (String(value ?? '').trim() || '\u5df2\u786e\u7acb') + unit;
+      }).join('\u3001');
+      lines.push(labels[key] + '\uff1a' + brief);
     });
-    return lines.join('；');
+    return lines.join('\uff1b');
   },
 
   orgIndexLine(faction = {}) {
@@ -395,8 +471,8 @@ window.GameModules.orgTerritory = {
         parts.push(`  · ${title}｜${this.stateBadge(role.state)}`);
       });
     });
-    const cap = this.capabilitySummary(faction, 2);
-    if (cap) parts.push(cap);
+    const overview = this.overviewSummary(faction, 2);
+    if (overview) parts.push(overview);
     return parts.join('\n');
   },
 
@@ -448,7 +524,7 @@ window.GameModules.orgTerritory = {
     if (type === 'territory-control') {
       return String(subject.locationName || subject.name || subject.id || '').trim();
     }
-    if (/^org-status|membership|faction-structure|faction-overview|org-capability/u.test(type)) {
+    if (/^(org-status|membership|faction-structure|faction-overview|org-overview-panel)$/u.test(type)) {
       return String(subject.name || subject.factionId || subject.id || subject.orgId || '').trim();
     }
     return '';
@@ -456,7 +532,7 @@ window.GameModules.orgTerritory = {
 
   isOrgTerritoryUpdate(update = {}) {
     const type = String(update?.updateType || '').trim();
-    return /^(territory-control|org-status|org-structure-node|org-capability-entry|org-capability|membership|faction-structure|faction-overview)$/u.test(type);
+    return /^(territory-control|org-status|org-structure-node|org-overview-panel|membership|faction-structure|faction-overview)$/u.test(type);
   },
 
   REAL_WORLD_WORK_ALIASES: ['2026现代都市现实世界', '2026 现代都市', '现代都市现实世界'],
@@ -597,13 +673,6 @@ window.GameModules.orgTerritory = {
           }
         });
       });
-      this.CAPABILITY_DIMS.forEach((dim) => {
-        (faction.solid?.capabilities?.[dim]?.entries || []).forEach((entry) => {
-          if (entry.state === 'established' && entry.parentRef?.fog === false && !entry.parentRef?.label && !entry.parentRef?.orgNodeId) {
-            notes.push(`C3：「${faction.name}」能力条目「${entry.name}」上级已非迷雾但无 label`);
-          }
-        });
-      });
     });
 
     const hot = this.territoryHotText(store);
@@ -641,14 +710,6 @@ window.GameModules.orgTerritory = {
     if (isAdmin) {
       faction.resolution = 'L1';
       faction.structure = [];
-    }
-
-    if (faction.solid?.capabilities && (lowExposure || isAdmin)) {
-      Object.keys(faction.solid.capabilities).forEach((dim) => {
-        if (faction.id !== 'company-main' || dim !== 'economic') {
-          faction.solid.capabilities[dim].entries = [];
-        }
-      });
     }
 
     if (existing?.resolution === 'L3' || existing?.resolution === 'L4') {
@@ -751,16 +812,6 @@ window.GameModules.orgTerritory = {
     return `控势摘要（已揭示）：\n${this.territoryHotText(store, 800)}`;
   },
 
-  parseCapabilityDim(field = '', value = {}) {
-    const text = String(field || '');
-    const match = text.match(/capabilities\.(political|economic|asset|military)/u);
-    if (match) return match[1];
-    const dim = String(value.dimension || value.capability || value.dim || '').trim().toLowerCase();
-    if (this.CAPABILITY_DIMS.includes(dim)) return dim;
-    const cn = String(value.dimension || value.capability || '').trim();
-    const cnMap = { 政治: 'political', 经济: 'economic', 资产: 'asset', 军事: 'military' };
-    return cnMap[cn] || 'economic';
-  },
 
   resolveOrgIdByName(store, name = '') {
     store?.initFactionSystem?.();
@@ -803,54 +854,10 @@ window.GameModules.orgTerritory = {
     };
   },
 
-  membershipFromForcePosition(entry = {}, store) {
-    return this.normalizeMembership({
-      orgName: entry.force || entry.faction,
-      orgId: entry.orgId,
-      title: entry.position,
-      department: entry.department,
-      departmentFog: entry.departmentFog,
-      since: entry.since,
-      reason: entry.reason,
-    }, store);
-  },
-
-  forcePositionFromMembership(membership = {}) {
-    const orgName = membership.orgName || '';
-    const title = membership.title || '成员';
-    return {
-      name: `${orgName} / ${title}`,
-      force: orgName,
-      faction: orgName,
-      position: title,
-      orgId: membership.orgId || '',
-      department: membership.department || '',
-      reason: membership.reason || '',
-      changeMode: membership.changeMode || 'membership同步',
-    };
-  },
-
   syncCharacterOrgMemberships(state, store) {
     if (!state?.values) return state;
-    const ot = this;
-    const fps = Array.isArray(state.values.force_positions) ? state.values.force_positions : [];
-    const existing = Array.isArray(state.values.memberships) ? state.values.memberships : [];
-    const merged = existing.slice();
-    fps.forEach((fp) => {
-      const mem = ot.membershipFromForcePosition(fp, store);
-      if (!mem.orgId && !mem.orgName) return;
-      const dup = merged.some((m) => (m.orgId && m.orgId === mem.orgId && m.title === mem.title) || (m.orgName === mem.orgName && m.title === mem.title));
-      if (!dup) merged.push(mem);
-    });
-    state.values.memberships = merged.map((m) => ot.normalizeMembership(m, store));
-    state.values.force_positions = fps.map((fp) => {
-      const orgId = fp.orgId || ot.resolveOrgIdByName(store, fp.force || fp.faction);
-      const patch = orgId ? { orgId } : {};
-      if (fp.department !== undefined) return { ...fp, ...patch };
-      const mem = merged.find((m) => (m.orgId && m.orgId === orgId) || m.orgName === fp.force);
-      if (mem?.department) return { ...fp, ...patch, department: mem.department };
-      return { ...fp, ...patch };
-    });
+    const list = Array.isArray(state.values.memberships) ? state.values.memberships : [];
+    state.values.memberships = list.map((m) => this.normalizeMembership(m, store));
     return state;
   },
 
@@ -863,12 +870,6 @@ window.GameModules.orgTerritory = {
     if (idx >= 0) list[idx] = { ...list[idx], ...mem };
     else list.push(mem);
     state.values.memberships = list.map((m) => this.normalizeMembership(m, store));
-    const fp = this.forcePositionFromMembership(mem);
-    const fps = Array.isArray(state.values.force_positions) ? state.values.force_positions : [];
-    const fpIdx = fps.findIndex((f) => f.force === fp.force && f.position === fp.position);
-    if (fpIdx >= 0) fps[fpIdx] = { ...fps[fpIdx], ...fp };
-    else fps.push(fp);
-    state.values.force_positions = fps;
     return mem;
   },
 
@@ -961,24 +962,7 @@ window.GameModules.orgTerritory = {
           stateBadge: this.stateBadge(m.state),
           source: 'membership',
         });
-      });
-      (state.values?.force_positions || []).forEach((fp) => {
-        const orgId = fp.orgId || this.resolveOrgIdByName(store, fp.force || fp.faction);
-        if (orgId !== factionId && fp.force !== factionName) return;
-        if ((state.values?.memberships || []).some((m) => this.normalizeMembership(m, store).orgId === orgId)) return;
-        push({
-          characterName,
-          characterId: state.id,
-          orgId,
-          orgName: fp.force || factionName,
-          title: fp.position || '成员',
-          department: fp.department || '—',
-          since: fp.since || '',
-          reason: fp.reason || '',
-          stateBadge: '兼容',
-          source: 'force_positions',
-        });
-      });
+    });
     });
 
     (faction.structure || []).forEach((node) => {

@@ -5,7 +5,7 @@ description: 根据现实推演正文确认角色在组织中的部门、职位�
 
 # membership-update
 
-正文确认角色 **入职、任职、调岗、离职** 时使用 `membership` 结算；与 `force_positions` 兼容双写。
+正文确认角色 **入职、任职、调岗、离职** 时使用 `membership` 结算；与 `membership` 直接写入。
 
 ## 字段
 

@@ -27,7 +27,7 @@ window.GameModules.orgTerritoryActions = {
     const label = String(name || '').trim();
     let faction = (store.factionState?.factions || []).find((f) => f.name === label || f.id === label);
     if (!faction && label) {
-      store.ensureFactionPosition?.({ force: label, position: '成员', characterName: '未知', reason: '控势或组织结算先创建势力 stub。' });
+      store.ensureFactionMembership?.({ orgName: label, title: '成员', characterName: '未知', reason: '控势或组织结算先创建势力 stub。' });
       faction = (store.factionState?.factions || []).find((f) => f.name === label || f.id === label);
     }
     return faction;
@@ -169,98 +169,106 @@ window.GameModules.orgTerritoryActions = {
 
   ensureFactionSolid(faction = {}) {
     const ot = this.ot();
-    if (!faction.solid || typeof faction.solid !== 'object') {
-      faction.solid = { capabilities: ot.defaultCapabilities() };
-    }
-    faction.solid.capabilities = { ...ot.defaultCapabilities(), ...(faction.solid.capabilities || {}) };
-    ot.CAPABILITY_DIMS.forEach((dim) => {
-      if (!Array.isArray(faction.solid.capabilities[dim]?.entries)) {
-        faction.solid.capabilities[dim] = { entries: [] };
-      }
-    });
+    if (!faction.solid || typeof faction.solid !== 'object') faction.solid = {};
+    faction.solid.overviewPanels = ot.normalizeOverviewPanels(faction.solid.overviewPanels || {});
     return faction.solid;
   },
 
-  upsertCapabilityEntry(entries = [], patch = {}, faction = {}, dim = 'economic', store, update = {}) {
-    const ot = this.ot();
-    const id = String(patch.id || '').trim();
-    const name = String(patch.name || patch.title || '').trim();
-    let entry = entries.find((e) => (id && e.id === id) || (name && e.name === name));
-    if (!entry) {
-      entry = ot.normalizeCapabilityEntry(patch, faction, dim, entries.length, store);
-      entries.push(entry);
-    } else if (!ot.canMutateEstablished(entry, update) && (patch.name || patch.parentRef || patch.sketchNote)) {
-      return { entry: null, blocked: true };
-    } else {
-      if (patch.name) entry.name = String(patch.name).trim();
-      if (patch.kind) entry.kind = String(patch.kind).slice(0, 24);
-      if (patch.state) entry.state = ot.normalizeItemState(patch.state, entry.state);
-      if (patch.parentRef) entry.parentRef = ot.normalizeParentRef(patch.parentRef);
-      if (patch.sketchNote || patch.note) entry.sketchNote = String(patch.sketchNote || patch.note).slice(0, 240);
-      if (patch.establish === true || patch.state === 'established') entry.state = 'established';
-      Object.assign(entry, ot.normalizeCapabilityEntry(entry, faction, dim, 0, store));
-    }
-    return { entry, blocked: false };
+  overviewEntryKey(panel = '', entry = {}) {
+    const raw = String(entry.id || entry.key || entry.name || entry.title || panel || 'entry').trim();
+    return raw.replace(/[^\w\u4e00-\u9fa5-]+/gu, '-').replace(/^-+|-+$/g, '').slice(0, 64) || `${panel}-entry`;
   },
 
-  applyOrgCapabilityEntry(store, update = {}) {
+  upsertOverviewEntry(faction = {}, panelKey = 'economy', patch = {}, meta = {}) {
+    const ot = this.ot();
+    this.ensureFactionSolid(faction);
+    const panel = faction.solid.overviewPanels[panelKey] || { entries: {} };
+    panel.entries = panel.entries && typeof panel.entries === 'object' ? panel.entries : {};
+    const key = this.overviewEntryKey(panelKey, patch);
+    if (meta.mode === 'remove') {
+      delete panel.entries[key];
+      faction.solid.overviewPanels[panelKey] = panel;
+      return key;
+    }
+    const previous = panel.entries[key] && typeof panel.entries[key] === 'object' ? panel.entries[key] : {};
+    panel.entries[key] = {
+      ...previous,
+      ...patch,
+      value: patch.value ?? patch.text ?? previous.value ?? '',
+      unit: patch.unit ?? previous.unit ?? '',
+      kind: patch.kind || patch.type || previous.kind || '',
+      state: patch.state || previous.state || 'sketch',
+      note: patch.note || patch.sketchNote || previous.note || '',
+      updatedAt: meta.now || ot.nowLabel(meta.store),
+      reason: patch.reason || meta.reason || previous.reason || '',
+    };
+    faction.solid.overviewPanels[panelKey] = panel;
+    return key;
+  },
+
+  parseOverviewPanel(update = {}, patch = {}) {
+    const explicit = String(patch.panel || update.panel || update.subject?.panel || '').trim();
+    if (['ideology', 'economy', 'politics', 'military', 'diplomacy'].includes(explicit)) return explicit;
+    const field = String(update.field || '').trim();
+    const match = field.match(/overviewPanels\.(ideology|economy|politics|military|diplomacy)/u);
+    return match?.[1] || '';
+  },
+
+  applyOrgOverviewPanel(store, update = {}) {
     const ot = this.ot();
     store.initFactionSystem?.();
     const subject = update.subject || {};
-    const factionName = String(subject.name || subject.factionId || subject.id || '').trim();
+    const factionName = String(subject.name || subject.factionId || subject.orgId || subject.id || '').trim();
     const faction = this.ensureFaction(store, factionName);
-    if (!faction) return { ok: false, text: `能力：未找到势力「${factionName}」` };
+    if (!faction) return { ok: false, text: `总览：未找到组织「${factionName}」` };
 
     const change = update.change || {};
     const value = change.value ?? update.value ?? {};
-    const patch = typeof value === 'object' && !Array.isArray(value) ? value : { name: String(value || '新条目') };
-    const dim = ot.parseCapabilityDim(update.field, patch);
+    const patch = typeof value === 'object' && !Array.isArray(value) ? value : { value };
+    const panelKey = this.parseOverviewPanel(update, patch);
+    if (!panelKey) return { ok: false, text: `总览：缺少五面板类型「${faction.name}」` };
+
     const reason = this.reasonText(update);
     const now = ot.nowLabel(store);
-
     this.ensureFactionSolid(faction);
-    const entries = faction.solid.capabilities[dim].entries;
-    const { entry, blocked } = this.upsertCapabilityEntry(entries, patch, faction, dim, store, update);
-    if (blocked) return { ok: false, text: `能力：「${patch.name || entry?.name}」已确立，需「更改」类结算` };
-    if (change.mode === 'remove' && entry) {
-      faction.solid.capabilities[dim].entries = entries.filter((e) => e.id !== entry.id);
+    faction.solid.overviewPanels = ot.normalizeOverviewPanels(faction.solid.overviewPanels || {});
+
+    if (panelKey === 'ideology') {
+      const field = String(patch.field || update.field || '').split('.').pop();
+      const key = ['core', 'reason', 'description', 'base', 'legitimacy'].includes(field) ? field : String(patch.key || patch.name || '').trim();
+      if (!['core', 'reason', 'description', 'base', 'legitimacy'].includes(key)) return { ok: false, text: `总览：意识形态字段无效「${key || '未指定'}」` };
+      faction.solid.overviewPanels.ideology[key] = ot.normalizeOverviewField({
+        value: patch.value ?? patch.text ?? '',
+        unit: patch.unit || (key === 'legitimacy' ? '/100' : ''),
+        establishedAt: patch.establishedAt || '',
+        updatedAt: now,
+        reason: patch.reason || reason,
+      }, key === 'legitimacy' ? 0 : '', key === 'legitimacy' ? '/100' : '');
+    } else {
+      const panel = faction.solid.overviewPanels[panelKey] || { entries: {} };
+      const key = this.overviewEntryKey(panelKey, { id: patch.id, name: patch.key || patch.name || patch.title || update.field });
+      if (change.mode === 'remove') {
+        delete panel.entries[key];
+      } else {
+        panel.entries[key] = {
+          value: patch.value ?? patch.name ?? patch.title ?? '',
+          unit: patch.unit || '',
+          kind: patch.kind || patch.type || '',
+          state: patch.state || 'sketch',
+          note: patch.note || patch.description || '',
+          updatedAt: now,
+          reason: patch.reason || reason,
+        };
+      }
+      faction.solid.overviewPanels[panelKey] = panel;
     }
 
     Object.assign(faction, ot.normalizeFaction(faction, store));
     faction.updatedAt = now;
-    faction.changeLog = [{ field: `capabilities.${dim}`, reason, at: now, action: change.mode || 'upsert' }, ...(faction.changeLog || [])].slice(0, 50);
+    faction.changeLog = [{ field: `overviewPanels.${panelKey}`, reason, at: now, action: change.mode || 'upsert' }, ...(faction.changeLog || [])].slice(0, 50);
     if (['L1', 'L2'].includes(String(faction.resolution || 'L1').toUpperCase())) faction.resolution = 'L2';
     store.refreshFactionOrgCache?.();
-    const label = ot.CAPABILITY_LABELS[dim] || dim;
-    return { ok: true, text: `能力条目：${faction.name} / ${label} / ${entry?.name || patch.name}` };
-  },
-
-  applyOrgCapability(store, update = {}) {
-    const ot = this.ot();
-    store.initFactionSystem?.();
-    const subject = update.subject || {};
-    const factionName = String(subject.name || subject.factionId || subject.id || '').trim();
-    const faction = this.ensureFaction(store, factionName);
-    if (!faction) return { ok: false, text: `能力：未找到势力「${factionName}」` };
-
-    const value = update.change?.value ?? update.value ?? {};
-    const patch = typeof value === 'object' && !Array.isArray(value) ? value : {};
-    const dim = ot.parseCapabilityDim(update.field, patch);
-    const reason = this.reasonText(update);
-    const now = ot.nowLabel(store);
-
-    this.ensureFactionSolid(faction);
-    if (patch.level) faction.solid.capabilities[dim].level = String(patch.level).slice(0, 24);
-    if (patch.note || patch.summary) faction.solid.capabilities[dim].note = String(patch.note || patch.summary).slice(0, 240);
-    if (Array.isArray(patch.entries)) {
-      patch.entries.forEach((item) => this.upsertCapabilityEntry(faction.solid.capabilities[dim].entries, item, faction, dim, store, update));
-    }
-
-    Object.assign(faction, ot.normalizeFaction(faction, store));
-    faction.updatedAt = now;
-    faction.changeLog = [{ field: `capabilities.${dim}`, reason, at: now, action: 'capability' }, ...(faction.changeLog || [])].slice(0, 50);
-    store.refreshFactionOrgCache?.();
-    return { ok: true, text: `能力维度：${faction.name} / ${ot.CAPABILITY_LABELS[dim] || dim}` };
+    return { ok: true, text: `总览面板：${faction.name} / ${panelKey}` };
   },
 
   applyMembershipUpdate(store, update = {}) {
@@ -281,8 +289,7 @@ window.GameModules.orgTerritoryActions = {
 
     if (change.mode === 'remove') {
       const orgId = patch.orgId || ot.resolveOrgIdByName(store, patch.orgName || patch.force);
-      state.values.memberships = (state.values.memberships || []).filter((m) => m.orgId !== orgId && m.orgName !== patch.orgName);
-      state.values.force_positions = (state.values.force_positions || []).filter((f) => f.orgId !== orgId && f.force !== patch.orgName);
+      state.values.memberships = (state.values.memberships || []).filter((m) => m.orgId !== orgId && m.orgName !== patch.orgName);
     } else {
       ot.upsertCharacterMembership(state, { ...patch, since: patch.since || now, reason: patch.reason || reason }, store);
     }
@@ -296,19 +303,18 @@ window.GameModules.orgTerritoryActions = {
   syncCompanyEconomicEntry(store, faction = {}, company = {}, reason = '') {
     if (!faction?.id || !company?.name) return;
     const ot = this.ot();
-    this.ensureFactionSolid(faction);
-    const entries = faction.solid.capabilities.economic.entries;
-    const patch = {
+    const now = ot.nowLabel(store);
+    this.upsertOverviewEntry(faction, 'economy', {
       id: `econ-${faction.id}`,
-      name: `${company.name}经营`,
-      kind: '企业',
-      state: entries.find((e) => e.id === `econ-${faction.id}`)?.state || 'sketch',
-      parentRef: ot.parentRefClear(null, faction.parentName || faction.name),
-      sketchNote: [company.industry, company.scale, company.location].filter(Boolean).join('｜').slice(0, 240),
-    };
-    this.upsertCapabilityEntry(entries, patch, faction, 'economic', store, {});
+      key: '????',
+      value: company.name,
+      kind: '????',
+      state: 'sketch',
+      note: [company.industry, company.scale, company.location].filter(Boolean).join(' / ').slice(0, 240),
+      source: 'company-app',
+    }, { reason, now, store });
     Object.assign(faction, ot.normalizeFaction(faction, store));
-    faction.changeLog = [{ field: 'capabilities.economic', reason: reason || '公司APP同步经济能力条目。', at: ot.nowLabel(store), action: 'sync' }, ...(faction.changeLog || [])].slice(0, 50);
+    faction.changeLog = [{ field: 'overviewPanels.economy', reason: reason || '??APP???????', at: now, action: 'sync' }, ...(faction.changeLog || [])].slice(0, 50);
   },
 
   ensureFamilyOrg(store) {
@@ -379,22 +385,22 @@ window.GameModules.orgTerritoryActions = {
     const profile = store.playerProfile;
     const w = wealth || (typeof store.normalizePlayerWealth === 'function' ? store.normalizePlayerWealth(profile) : {});
     const amount = Number(w.wealthAmount ?? profile.wealthAmount ?? 0);
-    const tier = w.wealthTier || profile.wealthTier || '中产';
+    const tier = w.wealthTier || profile.wealthTier || '??';
     const family = this.ensureFamilyOrg(store);
-    this.ensureFactionSolid(family);
-    const entries = family.solid.capabilities.asset.entries;
-    const patch = {
-      id: 'asset-player-cash',
-      name: '家庭可支配现金（镜像）',
-      kind: '现金资产',
+    const now = ot.nowLabel(store);
+    this.upsertOverviewEntry(family, 'economy', {
+      id: 'money',
+      key: '??',
+      value: amount,
+      unit: '?',
+      kind: '????',
       state: 'sketch',
-      parentRef: ot.parentRefClear(family.id, family.name),
-      sketchNote: `${tier}｜${amount.toLocaleString('zh-CN')}元｜来源：playerProfile.wealth（不重复记账）`,
+      note: tier + ' / source: playerProfile.wealth',
+      source: 'playerProfile.wealth',
       wealthMirror: { tier, amount, source: profile.wealthSource || '' },
-    };
-    this.upsertCapabilityEntry(entries, patch, family, 'asset', store, {});
+    }, { reason: 'player wealth mirror', now, store });
     Object.assign(family, ot.normalizeFaction(family, store));
-    family.updatedAt = ot.nowLabel(store);
+    family.updatedAt = now;
     return family;
   },
 
@@ -484,32 +490,39 @@ window.GameModules.orgTerritoryActions = {
 
   applyOrgStatusEconomicCascade(store, faction, reason = '', now = '') {
     const ot = this.ot();
-    const isEmployer = /公司|工作室|企业/u.test(String(faction.type || '')) || faction.kind === 'company';
+    const isEmployer = faction.kind === 'company' || faction.orgDomain === 'corp' || /company|studio|enterprise/i.test(String(faction.type || faction.name || ''));
     if (!isEmployer) return;
     this.ensureFactionSolid(faction);
-    const entries = faction.solid?.capabilities?.economic?.entries || [];
+    const panel = faction.solid.overviewPanels.economy || { entries: {} };
+    panel.entries = panel.entries && typeof panel.entries === 'object' ? panel.entries : {};
     const label = ot.orgStatusLabel(faction) || faction.status;
-    const note = `⚠ ${label}：管治区冲突，发薪/经营或中断（${String(reason || '政体状态变更').slice(0, 60)}）`;
+    const note = label + ': governance/status disruption; ' + String(reason || 'org status changed').slice(0, 80);
     let touched = false;
-    entries.forEach((entry) => {
-      const key = `${entry.name || ''}${entry.kind || ''}`;
-      if (/薪|工资|用工|payroll|经营|营收/ui.test(key)) {
-        entry.sketchNote = [entry.sketchNote, note].filter(Boolean).join('｜').slice(0, 240);
-        entry.state = entry.state || 'sketch';
+    Object.entries(panel.entries).forEach(([key, entry]) => {
+      const value = entry && typeof entry === 'object' ? entry : { value: entry };
+      const text = `${key}${value.value || ''}${value.kind || ''}${value.note || ''}`;
+      if (/payroll|salary|operation|revenue|business|income/i.test(text)) {
+        panel.entries[key] = {
+          ...value,
+          note: [value.note, note].filter(Boolean).join(' / ').slice(0, 240),
+          state: value.state || 'sketch',
+          updatedAt: now || ot.nowLabel(store),
+          reason,
+        };
         touched = true;
       }
     });
     if (!touched) {
-      entries.unshift({
-        id: `economic-disrupt-${String(now || ot.nowLabel(store)).replace(/[^\d]/g, '').slice(-12)}`,
-        name: '经营中断（政体状态）',
-        kind: '经营风险',
+      panel.entries[`economic-disrupt-${String(now || ot.nowLabel(store)).replace(/[^\d]/g, '').slice(-12)}`] = {
+        value: '????',
+        kind: '????',
         state: 'sketch',
-        parentRef: ot.parentRefClear(faction.id, faction.name),
-        sketchNote: note,
-      });
+        note,
+        updatedAt: now || ot.nowLabel(store),
+        reason,
+      };
     }
-    faction.solid.capabilities.economic.entries = entries.slice(0, 24);
+    faction.solid.overviewPanels.economy = panel;
   },
 
   adminSlug(name = '') {
@@ -633,11 +646,8 @@ window.GameModules.orgTerritoryActions = {
       } else if (type === 'faction-structure' || type === 'org-structure-node') {
         const result = this.applyFactionStructureUpdate(store, update);
         if (result.text) lines.push(result.text);
-      } else if (type === 'org-capability-entry') {
-        const result = this.applyOrgCapabilityEntry(store, update);
-        if (result.text) lines.push(result.text);
-      } else if (type === 'org-capability') {
-        const result = this.applyOrgCapability(store, update);
+      } else if (type === 'org-overview-panel') {
+        const result = this.applyOrgOverviewPanel(store, update);
         if (result.text) lines.push(result.text);
       } else if (type === 'membership') {
         const result = this.applyMembershipUpdate(store, update);

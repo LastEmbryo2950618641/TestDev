@@ -1,7 +1,7 @@
 # 势力组织架构 · 森林模型 需求与设计
 
-> 状态：设计稿 v1.3.3（组织成立门槛 + 所属势力展示规则）  
-> 日期：2026-07-05  
+> 状态：设计稿 v1.4.0（势力/社群主轴 + 森林域降为结构属性）  
+> 日期：2026-07-06  
 > 关联：`org-territory-system-design.md`、`faction-audit.md`、`faction-org-actions.js`、`org-territory-system.js`  
 > 前置问题：当前单树 `parentId` 模型导致「公司嵌在街道下」「同名公司上下级重复」「跨省企业无法表达」
 
@@ -9,12 +9,12 @@
 
 ## 1. 结论
 
-**森林模型 + 国立/私立 + 三轴（层级/制度/策略）+ 迷雾/未认知，满足产品目标：模拟任何组织形态（现实与架空），且组织名、机关名、职位名均由 AI/推演填充，不在 schema 中写死。**
+**森林模型 + 国立/私立 + 三轴（层级/制度/策略）+ 迷雾/未认知，足以覆盖绝大多数现实与架空组织形态；组织名、机关名、职位名均由 AI/推演填充，不在 schema 中写死。**
 
 | 产品目标 | 设计回应 |
 | --- | --- |
 | 模拟 **任何组织** | 固定 **域键 + 合法性矩阵 + 节点类型**；实例名、职位、制度正文运行时写入（§3.10） |
-| 现实现代国家/市场/社群 | `geo` ∥ `gov` + `corp` + `community` 四域森林（§3.2–§3.9） |
+| 现实现代国家/市场/社群 | 结构层仍为 `geo` ∥ `gov` + `corp` + `community` 四域森林；玩家页主轴改为 `势力 / 社群`（§3.2–§3.9、§6.1） |
 | 架空/异世界组织 | **同一套骨架**；`worldTag` 隔离实例；域根 **显示名** 可本地化（§2.3、§5.4） |
 | 组织 ≠ 地理 | 法人/机关不用 `parentId` 挂街道；地点走 `location` / 地图 / 控势（§3.3） |
 | 逐步揭示 | 未认知不渲染；L1 迷雾；L2+ 固化（§3.4） |
@@ -50,13 +50,13 @@
 1. **域混淆**：法人 `parentId` 被 bootstrap 挂到最细地理节点（街道），跨省总部逻辑错误。  
 2. **重复节点**：faction「某科技公司」与 structure 根「某科技公司」同名嵌套（截图 2）。  
 3. **兄弟关系丢失**：若再生成「广东省」，与「四川省」本应是同一父下的兄弟，却在单树深度上与公司争抢层级语义。  
-4. **治理关系不可见**：「工信部 / 市场监管局」等应属于 **国家机构树** 或 political capability，不应作为公司的 `parentId`。
+4. **治理关系不可见**：「工信部 / 市场监管局」等应属于 **国家机构树** 或 political overviewPanel，不应作为公司的 `parentId`。
 
 ### 2.2 目标
 
 - 组织架构图表达 **「谁管谁（编制）」** 与 **「谁在哪（地理）」** 两条语义，不强行合一。  
 - **迷雾**仅用于「已知有该组织、细节未明」；未进入玩家认知的组织 **不出现在组织图中**。  
-- 与 `org-territory-system-design.md` §0 推演闭环兼容；新建 org 须有 archive / 正文合理依据，禁止日常语境凭空出现超自然机关等。  
+- 与 `org-territory-system-design.md` §0 推演闭环重构；新建 org 须有 archive / 正文合理依据，禁止日常语境凭空出现超自然机关等。  
 - audit 仅补全已 exposure 组织，不得替推演「猜」出不该存在的实体。  
 - **骨架固定、名字 AI 填**：代码与 prompt 只约束形状与合法性，不写死具体机关名/职位名（§3.10）。
 
@@ -67,7 +67,7 @@
 | ID | 需求 | 验收要点 |
 | --- | --- | --- |
 | PR-1 | **模拟任何组织** | 现实公司/政府/军队/NGO/国际机构/架空教会/公会/宇宙实体等，均能用同一 schema 表达（深度可 0～N） |
-| PR-2 | **骨架固定** | `orgDomain`、`ownership`、parentId 合法矩阵、节点类型（faction/structure/role/capability entry）、三轴分工不可由 AI 破坏 |
+| PR-2 | **骨架固定** | `orgDomain`、`ownership`、parentId 合法矩阵、节点类型（faction/structure/role/overview panel entry）、三轴分工不可由 AI 破坏 |
 | PR-3 | **名字 AI 填** | `name`、`structure[].name`、`roles[].title`、`rules[]` 正文、`fogLabel` 由推演/audit 写入；禁止写入 schema 常量 |
 | PR-4 | **组织与地理分离** | 虚数海、街道、省市区等仅属 geo/地图；组织通过跨域链接关联地点 |
 | PR-5 | **三轴不混用** | 隶属→层级；章程/效忠/契约→制度；并购/监管/经营→策略 |
@@ -79,7 +79,7 @@
 
 #### 2.3.2 设计原则（由 PR 导出）
 
-1. **森林多根**：视窗根下并列 `gov` / `geo` / `corp` / `community` 域树；同一域内可有多条并列机关链（如神权 gov ∥ 世俗 gov）。  
+1. **森林多根（结构层）**：视窗根下并列 `gov` / `geo` / `corp` / `community` 域树；同一域内可有多条并列机关链（如神权 gov ∥ 世俗 gov）。  
 2. **国立/私立二分**：表示 **直接管理者** 是国家链还是私人/市场链；组织 **形式**（营利/宗教/封建/非营利）进 `rules[]`，不单开域。  
 3. **深度无硬上限**：盖亚类实体可仅 1 个 `structure` 节点；控股集团可 corp 链任意层；UI 折叠，不截断数据。  
 4. **单一上级隶属**：松散国际机构等多上级诉求 **不在此设计**；组织节点只有一个 `parentId` 上级（§3.12）。  
@@ -119,13 +119,13 @@
 | **视窗根（viewport root）** | 组织图顶层实体，**动态**随世界观变化：现实开局多为国家（如「中华人民共和国」）；若推演导致世界统一、成立联邦，则视窗根升格为联邦。由 `resolveViewportRoot()` 根据势力树最高 `sovereign` 节点解析，非写死「仅国家」。 |
 | **国立 / 私立（ownership）** | 合法组织的所有制：`state`（国立，隶属 gov 域监管树）或 `private`（私立，隶属 corp 域）。学校、医院、研究机构等均按此分流，不单设 education 域 Tab。 |
 | **认知态（exposure）** | **未认知**：组织图不渲染；**已认知 L1**：以迷雾/stub 显示存在；**L2+**：名称与结构逐步固化。 |
-| **域（orgDomain）** | 一棵独立树的语义类别，决定 `parentId` 合法上级集合。 |
+| **域（orgDomain）** | 一棵独立树的语义类别，决定 `parentId` 合法上级集合；**它是结构域，不是玩家一级页面分类**。 |
 | **域根（domain root）** | 视窗根下的抽象入口节点；**id 固定**（`{sovereignId}-domain-{key}`），**显示名可配置**（§5.4）。 |
-| **骨架（skeleton）** | 不可由 AI 改动的结构：`orgDomain` 枚举、`ownership` 枚举、parentId 合法矩阵、节点类型与 capability 四维。 |
+| **骨架（skeleton）** | 不可由 AI 改动的结构：`orgDomain` 枚举、`ownership` 枚举、parentId 合法矩阵、节点类型与重构替换容器。 |
 | **实例（instance）** | 运行时填充：`name`、机关名、职位名、`rules[]` 正文、`fogLabel` 等（§3.10）。 |
 | **势力节点（faction node）** | `factions[]` 中一条记录，有 id / parentId / orgDomain。 |
 | **编制节点（structure node）** | 仅存在于 **该 faction 内部** 的 `structure[]`，不单独占 faction id（除非升格为独立法人）。 |
-| **跨域链接（cross-link）** | 不用 parentId 表达 org↔地点/控势：location、territory-control、capability.parentRef（**不含** org↔org 横向往来，§3.12） |
+| **跨域链接（cross-link）** | 不用 parentId 表达 org↔地点/控势：location、territory-control、overviewPanel.parentRef（**不含** org↔org 横向往来，§3.12） |
 
 ### 3.2 森林拓扑（示意）
 
@@ -137,7 +137,7 @@
 │   ├── {中央立法机关}                (L2+ 随推演)
 │   ├── {行政机关} → {主管部门A}      (国立监管；未揭示则为迷雾)
 │   │   └── {国立机构X}               ownership=state
-│   └── … 监管 → corp 域 via capabilities.political
+│   └── … 监管 → corp 域 via overviewPanels.politics
 │
 ├── [域根] {geoDomainLabel}           orgDomain=geo
 │   ├── {一级政区A}
@@ -150,7 +150,7 @@
 │   └── (未认知 **不渲染**)
 │
 └── [域根] {communityDomainLabel}     orgDomain=community
-    └── 家庭、小区等
+    └── 家庭驻地、小区、居民共同体等地理社区
 ```
 
 **国立 / 私立分流（所有合法组织通用）**
@@ -169,7 +169,7 @@
 | --- | --- | --- |
 | 行政隶属 | geo 域 parentId | — |
 | 企业隶属国家/集团 | corp 域 parentId | 跨省子公司父节点是集团或「经济组织」，不是某省 |
-| 监管 / 审批 | capabilities.political + Stage4 策略 | 属 **策略轴**；非组织间往来层 |
+| 监管 / 审批 | overviewPanels.politics + Stage4 策略 | 属 **策略轴**；非组织间往来层 |
 | 办公地点 | location, map anchor | 一地多址、远程办公 |
 | 单位内部部门 | structure[] | 非法人编制 |
 | 国立法人 | gov 域 parentId | 行政隶属国家主管机关，非地理链 |
@@ -215,7 +215,7 @@
 | --- | --- | --- | --- |
 | **层级（隶属）** | 谁在上、谁在下；编制汇报链 | `parentId`、`structure[]`、`orgDomain` | 子公司挂集团；部门挂公司 |
 | **制度（静态规章）** | 组织内部的固定规则模板 | `rules[]`、`structure` 模板、`orgForm` 元数据 | 分公司章程 vs 子公司章程；国企三重一大 |
-| **策略（动态决策）** | 运行时经营/治理行为 | `capabilities.*`、Stage4 结算 | 并购、调价、监管处罚、分红政策变更 |
+| **策略（动态决策）** | 运行时经营/治理行为 | `overviewPanels.*`、Stage4 结算 | 并购、调价、监管处罚、分红政策变更 |
 
 **原则**：经营行为与管理方式属于 **策略**，不属于层级。同一母公司下，**分公司与子公司都是其下级组织**，差异体现在 **制度**（是否独立法人、章程、财务并表规则），而非另设域或 `orgSubtype`。
 
@@ -240,9 +240,15 @@
 
 **国立（`ownership: state`）** = **直接归属国家（或其 gov 监管链）管理**，不等于「国家创办」；**私立（`ownership: private`）** = **直接归属私人（或 corp 控股链）管理**。管理 **形式**（营利/非营利、宗教/行业/外交属性）由 **制度 `rules[]`** 表达，不单开第三轨 `orgSubtype`。
 
+**补充规则（2026-07-06）**：
+
+- **社群型组织同样适用 `gov / corp` 分流**。政府主动建立、主管或挂靠的社群型组织，仍走 `gov` 链；个人、公司、民间主体主动建立、主管或挂靠的社群型组织，仍走 `corp` 链。
+- **“社群 / 势力”不是隶属域判断，而是成熟度判断**：关键看五大基础是否补齐，而不是看它挂在 `gov` 还是 `corp`。
+- **`community` 不泛指所有社群**；它只保留给**地理社区/居民共同体/地方共同体**这一类对象。
+
 | 现实类型 | ownership | orgDomain | 说明 |
 | --- | --- | --- | --- |
-| 央企、国企、公立学校 | `state` | `gov` | 挂国资委/主管部门等 gov 链；经营走 `economic` capability |
+| 央企、国企、公立学校 | `state` | `gov` | 挂国资委/主管部门等 gov 链；经营走 `economic` overviewPanel |
 | 民营公司、民办学校 | `private` | `corp` | corp 控股链或经济组织域根 |
 | 红十字会、基金会、寺庙、行业协会 | `state` 或 `private` | `gov` 或 `corp` | 按 **直接管理者** 分流；章程进 `rules[]` |
 | 苹果中国、西门子中国 | `private`（通常） | `corp` | 外资属性进 `rules[]`；上级仍在 corp/gov 隶属链内 |
@@ -262,7 +268,7 @@
 | 所有制 | `ownership`: `state` \| `private` \| `null` |
 | 域根 id | `{sovereignId}-domain-gov|geo|corp|community` |
 | parentId 矩阵 | §5.2；违反则 migrate / 拒绝写入 |
-| 节点类型 | faction → structure[] → roles[]；capability 四维 entries |
+| 节点类型 | faction → structure[] → roles[]；overviewPanel 四维 entries |
 | 三轴 | 层级 / 制度 / 策略 分工（§3.7） |
 | 认知态 | L0–L4；迷雾 / sketch / established |
 | 结算类型 | Stage4 updateType 枚举 |
@@ -273,10 +279,10 @@
 | --- | --- |
 | `faction.name` | 国家名、公司名、机关名、组织名 |
 | `structure[].name` | 部门、内设单位、下属机关 |
-| `roles[].title` | 职位、头衔、法定身份 |
+| `roles[].title` | 职位、头衔、正式组织身份（不以是否合法为判断标准） |
 | `rules[]` | 章程、效忠契约、血缘约束、教会律、分红条款等 **全文** |
 | `fogLabel` | L1 占位展示，如「某机构（迷雾）」 |
-| `capabilities.*.entries[].name` | 兵种、科室、产线、资产包等条目名 |
+| `overviewPanels.*.entries[].name` | 兵种、科室、产线、资产包等条目名 |
 | 域根 **显示名** | 按 `worldTag` / 视窗根本地化（见 §5.4） |
 
 #### 3.10.3 禁止与允许
@@ -306,8 +312,14 @@
 | **盖亚 / 阿赖耶** | 「不是组织」 | 合法 faction；`structure[]` 可仅一项；深度浅是实例特征 |
 | **松散国际机构** | 需 DAG / 多归属 | **不在此设计** 的 org 间往来；若需组织节点 → **单一上级** + `rules[]` |
 | **议会制** | 需 DAG | **gov 机关之一**，`parentId` 在 gov 链 |
-| **网络型 / 细胞组织** | 需图数据库 | **不在本设计范围**（§3.12）；组织层仅上下隶属 |
+| **网络型 / 细胞组织** | 必须单独建图数据库 | 若**无统一意识**且**无可识别上下级结构**，则**不视为单一组织实体**；若存在统一意识，则可直接标记为 **格式塔意识** 并按单一主体建模 |
 | **一国两制** | 双 viewport / 特殊链接 | **同一上级** 下分支；差异仅在 **`rules[]`**（§3.12.3） |
+
+**结论补充（2026-07-06）**：
+
+- 当前组织架构对**势力**与**社群**在 schema 层面基本通用。
+- 当前剩余限制主要不是“社群身份”，而是**组织层仍以树状表达为主**。
+- 因此，能被表达为总群/分群/小组/联络点/骨干链的社群，原则上可直接落入此架构；真正不完全重构的主要是**强网络型、强重叠型、强横向协作型**组织。
 
 ### 3.12 组织边界：仅上下隶属；横向往来不在范围
 
@@ -318,13 +330,13 @@
 | A 是 B 的上级法人/机关 | `parentId` |
 | A 内部部门、职位 | `structure[]` → `roles[]` |
 | 静态章程差异（含一国两制、分/子公司制度差） | 同上级下 **`rules[]` 不同** |
-| 动态监管、经营、军事 | `capabilities.*` + Stage4（策略轴） |
+| 动态监管、经营、军事 | `overviewPanels.*` + Stage4（策略轴） |
 
 #### 3.12.2 不在本设计内（本期不建模）
 
 - 组织与组织之间的 **关系往来**：结盟、对等协作、细胞式联络网等。  
 - 叙事需要时由 **正文 + archive** 承担；组织 schema **不** 增横向关系边或第二套 org 图。  
-- 存档字段 `relations[]` 若仍存在，**不** 作为森林组织层核心；多对多监管等走 **capabilities.political** + Stage4。  
+- 存档字段 `relations[]` 若仍存在，**不** 作为森林组织层核心；多对多监管等走 **overviewPanels.politics** + Stage4。  
 - **legacy 说明**：`relations[]`、rebel 的 hostile 等 **不等于** 组织图上的第二套隶属或 org 往来边；仅作策略/叙事遗留或 archive 补充，**不** 绘制为组织图横向连线（§6.1）。
 
 #### 3.12.3 一国两制
@@ -416,7 +428,7 @@
 | FR-7 | 迷雾节点可点击跳转势力详情；exposure 升档后同位置 **就地替换** 为实名节点。 | P1 |
 | FR-8 | bootstrap / audit / 一致性修复：违反域规则的 `parentId` 自动迁移或写入告警日志。 | P0 |
 | FR-9 | Stage4 / audit 新建 **私立** org 时，`parentId` 指向 corp 域合法上级；**国立** 指向 gov 域主管部门。 | P0 |
-| FR-10 | 监管事实通过 `capabilities.political.entries` 揭示；P2 可选 UI 虚线 **仅表示 capability 策略事实**，不是 org↔org 隶属或往来边（§3.12）。 | P2 |
+| FR-10 | 监管事实通过 `overviewPanels.politics.entries` 揭示；P2 可选 UI 虚线 **仅表示 overviewPanel 策略事实**，不是 org↔org 隶属或往来边（§3.12）。 | P2 |
 | FR-21 | **gov↔geo 对齐**：gov 机关须可关联所辖 geo 节点（`jurisdictionGeoId` / `territoryAnchors`）；见 §5.5、§3.8。 | P1 |
 | FR-15 | **骨架固定**：写入/迁移时校验 `orgDomain` + `ownership` + parentId 矩阵；非法组合拒绝或 auto-fix。 | P0 |
 | FR-16 | **名字 AI 填**：代码与 audit prompt **不得**写死具体机关名/职位名；bootstrap 仅为可替换 stub。 | P0 |
@@ -431,7 +443,7 @@
 
 | ID | 需求 |
 | --- | --- |
-| NFR-1 | 与现有存档兼容：加载时迁移旧 parentId，不丢 faction id。 |
+| NFR-1 | 与现有存档重构：加载时迁移旧 parentId，不丢 faction id。 |
 | NFR-2 | 渲染性能：单域树深度仍限制 UI 4 层可见，更深折叠。 |
 | NFR-3 | 推演约束不变：无 Stage4 不得 L3 固化 structure。 |
 | NFR-4 | fieldReasons / 告警 APP 记录迁移与违规修复。 |
@@ -439,8 +451,8 @@
 
 ### 4.3 用户故事
 
-1. **作为玩家**，打开组织图，视窗根为当前最高主权体；域 Tab 按 gov/geo/corp/community 分树。  
-2. **作为玩家**，在 corp 域看到私立机构；国立机构在 gov 域主管部门链下（名称随推演揭示）。  
+1. **作为玩家**，打开组织系统时，一级页面先按 **势力 / 社群** 区分；进入具体对象后，再查看其组织结构与所属结构域。  
+2. **作为玩家**，查看某个对象时，我可以看到它当前属于 `gov` / `corp` / `community` 中的哪一种结构域，但这不是一级页面分类。  
 3. **作为玩家**，对「听说过但不知道细节」的机构看到 **迷雾** 节点；从未听说过的机构 **不出现**。  
 4. **作为玩家**，点进所属组织，只看到 **部门 → 职位** 树，不会出现组织名套组织名。  
 5. **作为玩家**，控股集团可有多层子公司，UI 深则折叠，系统不强行截断层数。  
@@ -468,13 +480,13 @@
 | `orgForm` | string? | 制度形态元数据：`branch`（分公司）、`subsidiary`（子公司）、`regulator`（监管机关）等；**不**替代 `orgDomain`。 |
 | `jurisdictionGeoId` | string? | gov 机关对应的 geo 政区 faction id（§5.5） |
 | `foundingType` | `'independent' \| 'subordinate' \| null` | 成立路径：`independent`=de facto 自立（玩家/支持者）；`subordinate`=上级承认/收编。见 §3.13、§6.4。 |
-| `parentId` | string | **约束**：须与 `orgDomain` + `ownership` 兼容（见 §5.2）。 |
+| `parentId` | string | **约束**：须与 `orgDomain` + `ownership` 重构（见 §5.2）。 |
 
-**现有字段沿用**：`kind`（admin/community）、`resolution`（L1–L4）、`legitimacy`（`recognized`/`contested`/`unrecognized`，见 `org-territory-system-design.md`）、`location`、`structure[]`、`rules[]`、`solid.capabilities`。
+**现有字段沿用**：`kind`（admin/community）、`resolution`（L1–L4）、`legitimacy`（`recognized`/`contested`/`unrecognized`，见 `org-territory-system-design.md`）、`location`、`structure[]`、`rules[]`、`solid.overviewPanels`（**重构后正式字段，非长期真源**）。
 
 **`parentId` vs 「所属势力」**：`parentId` 为树校验 **必填**（自立 org 可挂域根占位）；**UI「所属势力」** 为语义字段，由 §5.6 解析，**不**把域根当作所属势力展示。
 
-**字段权威**：`orgDomain` + `ownership` 为森林层 **权威**；`kind=admin|community` 为 **迁移期兼容**，须与 `orgDomain` 一致（geo/community），新数据以 `orgDomain` 为准。
+**字段权威**：`orgDomain` + `ownership` 为森林层 **权威**；`kind=admin|community` 为 **重构替换**，须与 `orgDomain` 一致（geo/community），新数据以 `orgDomain` 为准。
 
 ### 5.2 parentId 合法性矩阵
 
@@ -507,7 +519,7 @@
 - `corp` → `geo`（法人通过 location 关联地理，不用 parentId）  
 - `geo` → `corp`  
 - `state` 机构挂到 corp 域根（国立必须走 gov）  
-- `private` 机构挂到 gov 部门下（私立必须走 corp；对国立机构的 **监管** 走 capabilities.political + Stage4，非 org 横向往来）  
+- `private` 机构挂到 gov 部门下（私立必须走 corp；对国立机构的 **监管** 走 overviewPanels.politics + Stage4，非 org 横向往来）  
 - structure 根节点名 = faction.name（见 §5.3）
 
 ### 5.3 structure[] 规则（消除重复公司层）
@@ -536,7 +548,7 @@
 | `gov` | 国家机构 | 帝国机关 / 教廷总署 |
 | `geo` | 行政区划 | 领国版图 / 界域 |
 | `corp` | 经济组织 | 商会联盟 / 魔导企业 |
-| `community` | 社群 | 家族与结社 |
+| `community` | 地理社区 | 家庭驻地 / 居民共同体 |
 
 实现：`FOREST_DOMAIN_LABELS[orgDomain]` 或按 `worldTag` 覆盖；**id 与 orgDomain 键不变**。
 
@@ -579,7 +591,7 @@ function resolveAffiliatedFaction(faction, allFactions) {
   const parent = allFactions.find(f => f.id === faction.parentId)
   if (!parent || parent.isDomainRoot || parent.orgDomain === 'country') return null
   if (faction.foundingType === 'subordinate') return parent
-  // 迁移期：未写 foundingType 时，parent 非域根则视为有所属
+  // 重构后：未写 foundingType 时，parent 非域根则视为有所属
   return parent.isDomainRoot ? null : parent
 }
 ```
@@ -590,26 +602,34 @@ function resolveAffiliatedFaction(faction, allFactions) {
 
 ## 6. UI / 交互设计
 
-### 6.1 组织图模态（视窗根级）
+### 6.1 组织系统入口（玩家视角）
 
-**布局**：顶栏 `{视窗根.name} · 组织架构`（动态）；下方 **域 Tab**：
+**布局**：顶栏 `{视窗根.name} · 组织系统`（动态）；一级页签固定为 **势力** / **社群**。
 
-| 域 Tab | 内容 |
+| 一级页签 | 内容 |
 | --- | --- |
-| 国家机构 | gov 树：行政机关/主管部门等（**名称 AI 填**）；国立机构 |
-| 行政区划 | geo 树；展开至玩家 familiar 深度 |
-| 经济组织 | corp 树：**私立** 公司/学校/民营机构；已认知 L1 为迷雾，未认知不显示 |
-| 社群 | 家庭、小区等 |
+| 势力 | 五大基础已全部确立的对象；列表与详情复用同一套组织结构 + 总览面板 |
+| 社群 | 五大基础未补齐的对象；列表与详情同样复用同一套组织结构 + 总览面板，但面板按社群态语义重解释 |
 
-默认 Tab：玩家主身份所在域（公司 → 经济组织；国立大学生 → 国家机构）或记忆上次选择。
+**二级信息不是分页主轴，而是对象属性/筛选器**：
+
+| 结构属性 / 筛选 | 用途 |
+| --- | --- |
+| `gov` | 表示该对象位于国家/公权管理链 |
+| `corp` | 表示该对象位于私人/公司/市场管理链 |
+| `community` | 表示该对象属于地理社区/居民共同体 |
+| `ownership` / `foundingType` / `格式塔意识` | 作为标签显示，不单开独立一级页面 |
+
+**结构域视图**：进入具体对象后，允许在详情内切换查看 `gov` / `geo` / `corp` / `community` 对应的结构路径与挂靠关系；这属于**结构浏览模式**，不是玩家一级导航。
 
 **不采用**「N 家未揭示企业」聚合行：用户已确认——**知晓存在才显示**，每个 L1 stub 独立一行迷雾。
 
-### 6.2 组织图（选中某公司）
+### 6.2 组织图（选中某对象）
 
-- 面包屑：`{视窗根} / 经济组织 / … / 某科技公司`（控股链完整展示，过深折叠）  
+- 页面入口：`势力页 / 某科技公司` 或 `社群页 / 某读书会`  
+- 结构面包屑：`{视窗根} / 经济组织 / … / 某科技公司`（或对应 gov/community 路径；控股链完整展示，过深折叠）  
 - 主体：仅 **structure → roles** 树（faction 自身为标题，不重复为子节点）  
-- 侧栏可选：location 地图跳转、已揭示的 political capability 监管方
+- 侧栏可选：location 地图跳转、已揭示的 political overviewPanel 监管方、五面板总览
 
 ### 6.3 节点样式（延续现有 CSS）
 
@@ -620,6 +640,29 @@ function resolveAffiliatedFaction(faction, allFactions) {
 | `structure` | 内设部门 |
 | `role` | 职位 |
 | `fog` | 迷雾占位（虚线框 + 「迷雾」meta） |
+
+#### 6.3.1 格式塔意识显示规则
+
+格式塔意识**不单开新页面**，仍按其当前分类进入**势力**或**社群**页面，并复用同一套组织架构树与详情面板；区别只在**显示语义**：
+
+- 类型标签显示为 **`格式塔意识`**
+- 组织架构树不强行使用人类机构式“部门树”语义，而改为**意识结构**
+- 五面板仍复用同一套 `overviewPanels`，但标题映射为：`格式塔意识 / 统一个体 / 资源 / 军事 / 外交`
+
+**组织树显示语义**：
+
+| 抽象层 | 格式塔意识显示示例 |
+| --- | --- |
+| `faction` | 主意识 / 群脑 / 中央意识核 |
+| `structure` | 功能单元 / 感知单元 / 孵化单元 / 战斗单元 / 代理节点 |
+| `role` | 功能位 / 接口位 / 宿主位 / 指令位 / 感知位 / 代理位 |
+| `occupant` | 代理躯体 / 子体 / 宿主 / 末梢个体 / 未命名单元 |
+
+**补充规则**：
+
+1. 若格式塔意识高度统一、几乎无内部分化，则允许只显示**极简单节点**或少量功能分化节点。
+2. `occupant` 层继续保留，但**不强制拟人化显示**；没有独立人格个体时，可显示为空、未分化或未命名单元。
+3. 其组织图本质上仍是树，但树表达的是**意识结构**，不是人类官僚结构。
 
 ### 6.4 所属势力展示（势力列表 / 详情卡）
 
@@ -648,6 +691,8 @@ function resolveAffiliatedFaction(faction, allFactions) {
 ### 6.6 与旧 UI 差异
 
 - 取消「从国一直缩进到街道再挂公司」的单列树。  
+- 取消把 `gov / geo / corp / community` 当作玩家一级页面分类的旧 UI；改为 **势力 / 社群** 一级页。  
+- `gov / geo / corp / community` 保留为**结构域**与筛选标签，不再承担“玩家在看哪一类主体”的页面语义。  
 - `faction-org-actions.buildFactionOrgTree` 改为 `buildFactionOrgForest(viewportRoot)`，其中 `viewportRoot = resolveViewportRoot(factions)`。
 
 ---
@@ -684,7 +729,7 @@ function resolveAffiliatedFaction(faction, allFactions) {
 | --- | --- |
 | faction-overview | 新建 org 须带 `orgDomain` + `ownership` + `foundingType`；须满足认知/合理性门控（§7.5–§7.6）；路径 B 默认 `independent` + 域根 `parentId` |
 | faction-structure | 只写 **该 faction** 的 structure，不新建 geo 子 faction |
-| org-capability-entry | 监管等事实写入 political entries（策略轴） |
+| org-overview-panel | 监管等事实写入 political entries（策略轴） |
 | org-status | **视窗根升格**；**收编/授权**：`parentId` reparent、`foundingType→subordinate`（§3.13、§5.6） |
 | membership | 任职不改变 parentId 域；路径 B 成立时至少一条 **非玩家** membership 或等价确认 |
 
@@ -850,7 +895,7 @@ resolveAffiliatedFaction(faction, allFactions)
 
 | # | 原则 | 设计落点 |
 | --- | --- | --- |
-| 1 | 经营/管理是策略，不是层级 | §3.7：`rules[]`（静）+ capabilities/Stage4（动） |
+| 1 | 经营/管理是策略，不是层级 | §3.7：`rules[]`（静）+ overviewPanels/Stage4（动） |
 | 2 | 每级行政区有并行 gov 机关与职位 | §3.8：geo ∥ gov，`territory-control` 链接 |
 | 3 | 分公司/子公司都是下级组织，差在制度 | §3.7：`orgForm` + `rules[]`，同一 corp 域 |
 | 4 | NGO/宗教/行业协会仍国立/私立二分 | §3.9：无第三轨，制度描述形式 |

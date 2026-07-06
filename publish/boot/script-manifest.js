@@ -1,4 +1,5 @@
 window.GameScriptManifest = {
+  "version": "2026-07-06-faction-overview-ui",
   "chunks": {
     "core": [
       "https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js",
@@ -118,6 +119,10 @@ window.GameScriptManifest = {
       "update/item-update.js",
       "update/faction-structure-update.js",
       "update/faction-overview-update.js",
+      "update/territory-control-update.js",
+      "update/org-status-update.js",
+      "update/org-overview-panel-update.js",
+      "update/membership-update.js",
       "update/map-update.js",
       "update/system-update.js",
       "update/generic-update.js",

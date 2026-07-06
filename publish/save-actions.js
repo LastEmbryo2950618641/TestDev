@@ -196,7 +196,7 @@ window.GameModules.saveActions = {
           const raw = field.key === 'exp' ? window.GameModules.progression.normalizeCharacterExp(state.values.exp, state.values.level) : state.values[field.key];
           const display = window.GameModules.worldAttributes.displayValue(field, raw);
           const source = state.values.intrinsic_sources?.[field.key] || null;
-          const kind = { factions: '社群角色', force_positions: '势力地位', items: '物品', wearing: '穿着', bodyStatus: '当前身体状态', intimacy: '亲密经历', status_tags: '状态', current_location: '位置' }[field.key] || '属性';
+          const kind = { factions: '社群角色', memberships: '人事归属', items: '物品', wearing: '穿着', bodyStatus: '当前身体状态', intimacy: '亲密经历', status_tags: '状态', current_location: '位置' }[field.key] || '属性';
           const targetType = state.profile?.isPlayer ? '非角色' : '角色';
           const commonField = section.title !== '世界固有属性' && field.key !== 'world_tag';
           const reason = state.profile?.rpgFieldReasons?.[field.key] || '';

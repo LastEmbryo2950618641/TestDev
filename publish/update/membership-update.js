@@ -4,7 +4,7 @@ window.GameModules.updateRegistry?.register?.({
   id: 'membership',
   promptId: 'membership-update',
   section: '人事归属',
-  match: (change, text) => /membership|人事归属|入职|任职|force_positions/u.test(text),
+  match: (change, text) => /membership|人事归属|入职|任职/u.test(text),
   card(change) {
     const subject = change.subject || {};
     const id = subject.characterId || subject.id || subject.name || 'character';

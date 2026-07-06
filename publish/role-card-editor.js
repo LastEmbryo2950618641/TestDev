@@ -11,7 +11,7 @@ window.GameModules = window.GameModules || {};
     ['roleCard', '角色卡标记', 'checkbox'], ['roleCardSource', '角色卡来源', 'text'], ['roleCardUpdatedAt', '更新时间', 'text'], ['isPlayer', '玩家本人', 'checkbox'],
   ];
   const jsonFields = [
-    ['factions', '社群角色列表'], ['force_positions', '势力地位列表'], ['skills', '技能'],
+    ['factions', '社群角色列表'], ['memberships', '人事归属列表'], ['skills', '技能'],
     ['items', '物品'], ['wearing', '穿着'], ['roleCardFieldReasons', '角色卡字段原因'],
     ['rpgFieldReasons', 'RPG字段原因'], ['worldAttributes', '世界属性'],
   ];
@@ -37,9 +37,9 @@ window.GameModules = window.GameModules || {};
       const faction = card.faction || card.workplace || '未记录社群';
       card.factions = [{ name: `${faction} / ${card.factionRole || card.role || '成员'}`, faction, role: card.factionRole || card.role || '成员', reason: card.roleCardFieldReasons?.社群角色 || '由玩家角色卡资料确定。', changeMode: '角色卡编辑' }];
     }
-    if (!Array.isArray(card.force_positions)) card.force_positions = [];
-    if (!card.force_positions.length && card.workplace && card.position) {
-      card.force_positions = [{ name: `${card.workplace} / ${card.position}`, force: card.workplace, position: card.position, reason: card.roleCardFieldReasons?.势力地位 || '由玩家角色卡资料确定。', changeMode: '角色卡编辑' }];
+    if (!Array.isArray(card.memberships)) card.memberships = [];
+    if (!card.memberships.length && card.workplace && card.position) {
+      card.memberships = [window.GameModules.socialPosition?.membershipItem?.(card.workplace, card.position, card.roleCardFieldReasons?.人事归属 || '由玩家角色卡资料确定。', null, { source: '角色卡编辑' }) || { name: `${card.workplace} / ${card.position}`, orgName: card.workplace, title: card.position, reason: card.roleCardFieldReasons?.人事归属 || '由玩家角色卡资料确定。', changeMode: '角色卡编辑' }];
     }
   };
 

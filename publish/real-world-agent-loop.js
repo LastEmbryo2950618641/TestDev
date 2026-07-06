@@ -1220,7 +1220,7 @@ window.GameModules.realWorldAgentLoop = {
       '势力总览': { updateType: 'faction-overview', fieldPrefix: 'overview.factions' },
       '政体状态': { updateType: 'org-status', fieldPrefix: 'status' },
       '势力结构': { updateType: 'faction-structure', fieldPrefix: 'structure' },
-      '组织能力': { updateType: 'org-capability-entry', fieldPrefix: 'solid.capabilities' },
+      '????': { updateType: 'org-overview-panel', fieldPrefix: 'overviewPanels' },
       '人事归属': { updateType: 'membership', fieldPrefix: 'values.memberships' },
       '系统记录': { updateType: 'system', fieldPrefix: 'events' },
       '通用固化': { updateType: 'generic', fieldPrefix: 'status_tags' },
@@ -1296,6 +1296,7 @@ window.GameModules.realWorldAgentLoop = {
     const change = { mode: 'delta', value: delta };
     if (status) change.status = status;
     return { updateType: entryCat.updateType, subject, field: `${entryCat.fieldPrefix}.${field}`, change, reasons: [{ trigger: typeName, evidence: reason, confidence: 'confirmed' }] };
+  },
 
   parseGenericSettlementLine(typeName = '', line = '', subject = null, options = {}) {
     const parts = String(line || '').replace(/^更新(?:\d+|N)\s*[：:]/u, '').split(/[，,]/u).map((x) => x.trim());
@@ -1486,7 +1487,7 @@ window.GameModules.realWorldAgentLoop = {
     }
     if (typeName === '角色卡') {
       const [, field, op, value, reason, result] = parts;
-      const allowed = ['当前状态', '身份', '职业', '技能', '知识', '外貌', '性格', '喜好', '人物说明', '社群角色', '势力地位', '人际关系'];
+      const allowed = ['当前状态', '身份', '职业', '技能', '知识', '外貌', '性格', '喜好', '人物说明', '社群角色', '人事归属', '人际关系'];
       if (!field || !op || !value || !['替换', '增加'].includes(op) || !allowed.includes(field)) return null;
       return { updateType: 'role-card', subject, field: field === '当前状态' ? 'status_tags' : `profile.${field}`, change: { mode: op === '替换' ? 'set' : 'append', value: { value, reason, result } }, reasons: [{ trigger: `角色卡${op}`, evidence: reason || value, confidence: 'confirmed' }] };
     }
@@ -1591,13 +1592,12 @@ window.GameModules.realWorldAgentLoop = {
           patch.__updateLines += 1;
           const subject = this.settlementJsonSubject(type, entry, participants) || this.defaultSubjectForSettlement(participants);
           const line = this.settlementJsonUpdateLine(type, entry);
-          const update = type === '关系'
-            ? this.parseRelationshipJsonEntry(entry, subject, participants)
-            : (['情绪', '感觉'].includes(type)
-              ? this.parseMetricSettlementJsonEntry(type, entry, subject, participants, store)
-              : (specialParsers[type]
-              ? specialParsers[type](line, subject)
-              : (['性历史', '角色卡'].includes(type) ? this.parseSpecialSettlementLine(type, line, subject, participants) : this.parseStandardSettlementLine(type, line, subject, participants, store)));
+          let update = null;
+          if (type === '关系') update = this.parseRelationshipJsonEntry(entry, subject, participants);
+          else if (['情绪', '感觉'].includes(type)) update = this.parseMetricSettlementJsonEntry(type, entry, subject, participants, store);
+          else if (specialParsers[type]) update = specialParsers[type](line, subject);
+          else if (['性历史', '角色卡'].includes(type)) update = this.parseSpecialSettlementLine(type, line, subject, participants);
+          else update = this.parseStandardSettlementLine(type, line, subject, participants, store);
           if (update) {
             patch.__parsedUpdates += 1;
             patch.genericUpdates.push(update);
@@ -1768,7 +1768,7 @@ window.GameModules.realWorldAgentLoop = {
       '穿着状态': '穿着部位只能是：全身/整体、胸部/胸口/乳房、上身、外套、下身、腿部/大腿、足部/脚部、内裤、饰品；全身/整体会按外套处理并清空其他衣物槽；同轮若还有局部部位，先应用全身再覆盖局部部位；禁止肩部、腰部、衣领、吊带位置等非槽位字段；必须包含衣物名称和当前状态。',
       '性经历': '分类只能是：阴部、胸部/胸口/乳房、唇部/接吻、口部/嘴部、口部行为、口交、口交中出、阴部进入、阴道插入、阴道中出、肛部/肛门、肛部进入、肛交、肛交中出、腿部/大腿、臀部/屁股、手部/手、皮肤、其他；delta 必须是 +N/-N 且不能为 0；禁止写总次数/总数/全部；无相关行为时输出空数组。',
       '关系': '只记录稳定关系维度，如亲属、朋友、同事、师生、雇佣、敌对、同居、恋人；好感、信任、依赖、警惕等数值态度写“感觉”，不要写关系。',
-      '角色卡': '只写稳定角色卡字段：当前状态、身份、职业、技能、知识、外貌、性格、喜好、人物说明、社群角色、势力地位、人际关系；临时情绪、生命体征、身体、穿着、关系、物品有专门类型时不得写角色卡。',
+      '角色卡': '只写稳定角色卡字段：当前状态、身份、职业、技能、知识、外貌、性格、喜好、人物说明、社群角色、人事归属、人际关系；临时情绪、生命体征、身体、穿着、关系、物品有专门类型时不得写角色卡。',
       '地图': '字段只能是：当前位置、上级地点、地点事实、地图节点、路线事实；角色当前所在地优先写人事安排，不要把角色行动写成地图事实。地图节点最小颗粒度为建筑物（如3栋2单元）或小区级POI（公园、商店）；走廊、楼梯间、单个房间只写当前位置，不要作为地图节点。禁止在本类型写 effectiveOrgId/控势，那属于领土控势。',
       '领土控势': '仅当正文确认已揭示地点的夺控、解放、移交、占领或争议状态时更新；字段：地点名、实控组织、宣称组织、控势状态；未 revealed 地点不得写；同轮同一地点最多一条；普通到达/看见不写本类型。',
       '人事安排': '只更新本回合 participants 中的参与者；field 只能是 当前地点、当前行动、可用状态；正在做什么必须写 当前行动，value 用短句写具体动作（如「从背后抱住刘思琪并揉捏胸部」）；可用状态 value 只能是 在场/场外/暂不可用/未知，禁止把动作或身体反应写进可用状态；reason 只写正文证据，不要重复 value；同一人可写多条（地点、行动、可用状态各一条）；弱推测不更新。',

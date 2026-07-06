@@ -23,7 +23,7 @@ window.GameModules.currentWorldActions = {
   },
 
   currentWorldLabel() {
-    return this.isRealCurrentWorld() ? '现实世界' : this.currentWorldTag();
+    return this.isRealCurrentWorld() ? this.realWorldTag() : this.currentWorldTag();
   },
 
   currentWorldBadgeText() {

@@ -37,10 +37,10 @@ window.GameModules.factionArchive = {
     return hits.slice(0, 6);
   },
 
-  forcePositionNames(state = {}) {
+  membershipOrgNames(state = {}) {
     const profile = state.profile || state || {};
-    const list = profile.force_positions || profile.forcePositions || [];
-    return Array.isArray(list) ? list.map((item) => item.force || item.faction || item.name).filter(Boolean) : [];
+    const list = profile.memberships || [];
+    return Array.isArray(list) ? list.map((item) => item.orgName || item.name).filter(Boolean) : [];
   },
 
   recordRealWorld(store, action = '', result = {}) {
@@ -60,7 +60,7 @@ window.GameModules.factionArchive = {
 
   recordWechat(store, contact = {}, playerText = '', replyText = '', result = {}) {
     const state = store.rpgStates?.[contact.id] || window.GameModules.sqliteSave?.getCharacterState?.(contact.id) || {};
-    const names = this.forcePositionNames(state);
+    const names = this.membershipOrgNames(state);
     const text = [
       `微信对话：${store.playerName || '玩家'}说“${playerText}”`,
       `${state.profile?.name || contact.name || '联系人'}回复“${replyText}”`,

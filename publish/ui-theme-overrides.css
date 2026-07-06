@@ -321,6 +321,36 @@ html[data-ui-theme] .intrinsic-link-chip {
   color: var(--ui-text) !important;
 }
 
+html[data-ui-theme] .identity-info-hero,
+html[data-ui-theme] .identity-info-core-card,
+html[data-ui-theme] .identity-info-lore-card,
+html[data-ui-theme] .identity-info-tag,
+html[data-ui-theme] .identity-info-badge,
+html[data-ui-theme] .identity-info-list-group {
+  background: var(--ui-surface-soft) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .identity-info-crest,
+html[data-ui-theme] .identity-info-lore-icon {
+  background: rgba(var(--ui-accent-rgb), .12) !important;
+  border-color: rgba(var(--ui-accent-rgb), .22) !important;
+}
+
+html[data-ui-theme] .identity-info-hero-eyebrow,
+html[data-ui-theme] .identity-info-group-symbol,
+html[data-ui-theme] .identity-info-badge-icon {
+  color: var(--ui-accent) !important;
+}
+
+html[data-ui-theme] .identity-info-tag-label,
+html[data-ui-theme] .identity-info-hero-note,
+html[data-ui-theme] .identity-info-group-head small,
+html[data-ui-theme] .identity-info-list-head small {
+  color: var(--ui-text-muted) !important;
+}
+
 html[data-ui-theme] .ability-free-points,
 html[data-ui-theme] .ability-meta-line,
 html[data-ui-theme] .ability-gauge,

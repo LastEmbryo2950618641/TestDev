@@ -25,7 +25,7 @@ window.GameModules.factionSystem = {
       resolution: 'L1',
       stub: { oneLine: `${top.name}（国家级法域 stub，推演接触后细化）` },
       status: 'active',
-      solid: { capabilities: { political: { entries: [] }, economic: { entries: [] }, asset: { entries: [] }, military: { entries: [] } } },
+      solid: { overviewPanels: window.GameModules.orgTerritory?.defaultOverviewPanels?.() || { ideology: {}, economy: { entries: {} }, politics: { entries: {} }, military: { entries: {} }, diplomacy: { entries: {} } } },
       structure: [
         { id: `struct-${top.id}-gov`, name: top.gov, kind: 'department', state: 'sketch', parentRef: { fog: false, orgNodeId: null, label: top.name }, level: '国家级别', roles: [{ title: top.head, count: 1, state: 'fog', titleFog: false, dutyFog: true, occupantFog: true, characters: ['未知'], occupants: [] }] },
       ],
@@ -47,7 +47,7 @@ window.GameModules.factionSystem = {
       resolution: 'L1',
       stub: { oneLine: `${name}（公司 stub，内部架构待推演固化）` },
       status: 'active',
-      solid: { capabilities: { political: { entries: [] }, economic: { entries: [] }, asset: { entries: [] }, military: { entries: [] } } },
+      solid: { overviewPanels: window.GameModules.orgTerritory?.defaultOverviewPanels?.() || { ideology: {}, economy: { entries: {} }, politics: { entries: {} }, military: { entries: {} }, diplomacy: { entries: {} } } },
       structure: [], rules: ['内部组织结构由AI按现实合理性生成后固化。'], resources: ['雇佣关系', '薪酬制度', '工作任务'], relations: [], fieldReasons: this.defaultReasons('当前公司上下文初始化字段，后续由AI全量检视补全理由与组织构成。'), fixed: true, updatedAt: new Date().toISOString(),
     };
   },

@@ -104,7 +104,7 @@ window.GameModules.factionAiActions = {
     });
     this.factionState.factions = [...map.values()].map((item) => this.normalizeFactionStructure(item));
     this.syncCompanyFaction();
-    this.syncRoleCardFactionPositions?.();
+    this.syncRoleCardMemberships?.();
     window.GameModules.orgTerritory?.validateWorldConsistency?.(this);
     if (!this.selectedFaction()) this.factionState.selectedId = this.factionState.factions[0]?.id || '';
   },

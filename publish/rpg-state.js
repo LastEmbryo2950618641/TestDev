@@ -125,16 +125,16 @@ window.GameModules.rpgState = {
     let changed = false;
     const profile = state.profile;
     const factions = Array.isArray(profile.factions) ? profile.factions : [];
-    const forces = Array.isArray(profile.force_positions) ? profile.force_positions : (Array.isArray(profile.forcePositions) ? profile.forcePositions : []);
+    const memberships = Array.isArray(profile.memberships) ? profile.memberships : [];
     if ((!Array.isArray(state.values.factions) || !state.values.factions.length) && factions.length) {
       state.values.factions = factions;
       changed = true;
     }
-    if ((!Array.isArray(state.values.force_positions) || !state.values.force_positions.length) && forces.length) {
-      state.values.force_positions = forces;
+    if ((!Array.isArray(state.values.memberships) || !state.values.memberships.length) && memberships.length) {
+      state.values.memberships = memberships;
       changed = true;
     }
-    if (state.values.force_positions?.length || state.values.memberships?.length) {
+    if (state.values.memberships?.length) {
       window.GameModules.orgTerritory?.syncCharacterOrgMemberships?.(state, null);
       changed = true;
     }

@@ -74,8 +74,24 @@ window.GameModules.rpgFieldUi = {
   },
   isRpgFieldOpen(field) { return this.expandedRpgFieldKey === this.rpgFieldKey(field); },
   isRpgItemOpen(field, index) { return this.expandedRpgFieldKey === this.rpgItemKey(field, index); },
-  isRpgListField(field) { return ['knowledge', 'skills', 'professions', 'factions', 'force_positions', 'items', 'wearing', 'bodyProfile', 'dressedProfile', 'bodyStatus', 'sexualExperienceParts', 'sexualPartners', 'status_tags'].includes(field?.key) && Array.isArray(field.raw); },
+  isRpgListField(field) { return ['knowledge', 'skills', 'professions', 'factions', 'memberships', 'items', 'wearing', 'bodyProfile', 'dressedProfile', 'bodyStatus', 'sexualExperienceParts', 'sexualPartners', 'status_tags'].includes(field?.key) && Array.isArray(field.raw); },
+  isIdentityInfoStyledField(field = {}) {
+    const label = String(field?.label || '').trim();
+    const key = String(field?.key || '').trim();
+    return /姓名|身份|职业|所属世界|年龄|生日|性别|思念度|当前位置|外貌|喜好|性格|人物说明|备注|社群角色|阵营|人事归属|world_tag|current_location|appearance|preferences|personality|detail|factions|memberships|longing|(^|[-_])(name|role|job|work|age|birthday|gender)$/.test(`${label} ${key}`);
+  },
+  identityInfoSummary(field = {}) {
+    const meta = this.identityInfoFieldMeta(field);
+    const label = String(field?.label || field?.key || '未记录').trim();
+    if (this.isRpgListField(field)) {
+      const unit = { factions: '项', memberships: '项', sexualPartners: '人' }[field.key] || '项';
+      return `${meta.icon} ${label} · ${this.rpgListItems(field).length}${unit}`;
+    }
+    const preview = this.identityInfoPreview(field, /外貌|喜好|性格|人物说明|detail|appearance|preferences|personality/.test(`${label} ${field?.key || ''}`) ? 26 : 18);
+    return `${meta.icon} ${label} · ${preview || '未记录'}`;
+  },
   rpgFieldSummary(field) {
+    if (this.isIdentityInfoStyledField(field)) return this.identityInfoSummary(field);
     if (!this.isRpgListField(field)) return `${field.label}：${Array.isArray(field.value) ? field.value.join('、') || '无' : field.value}`;
     const unit = { knowledge: '知识', skills: '技能', professions: '职业', bodyProfile: '部位', dressedProfile: '部位', bodyStatus: '部位', sexualExperienceParts: '分类', sexualPartners: '人' }[field.key] || '项';
     return `${field.label}：${field.raw.length}${unit}`;
@@ -125,7 +141,12 @@ window.GameModules.rpgFieldUi = {
   },
 
   shouldShowEssentialPreferenceSection(displayState = {}) {
-    return Boolean(this.essentialPreferenceViewForState?.(displayState));
+    try {
+      return Boolean(this.essentialPreferenceViewForState?.(displayState));
+    } catch (err) {
+      console.warn('[profileSections] essential preference preview skipped:', err?.message || err);
+      return false;
+    }
   },
 
   profileSectionTabMeta(section = {}) {
@@ -169,7 +190,7 @@ window.GameModules.rpgFieldUi = {
     const intimacyFields = intimacyAllFields.filter((field) => intimacyFieldKeys.has(field.key));
     if (!intimacyFields.length) intimacyFields.push(...this.defaultIntimacyBodyFields(displayState));
     const longing = this.profileLongingField(state);
-    const used = new Set(['world_tag', 'age', 'factions', 'force_positions', 'current_location', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'items', 'wearing', 'bodyProfile', 'dressedProfile', 'bodyStatus', 'intimacy', 'status_tags']);
+    const used = new Set(['world_tag', 'age', 'factions', 'memberships', 'current_location', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'items', 'wearing', 'bodyProfile', 'dressedProfile', 'bodyStatus', 'intimacy', 'status_tags']);
     const personal = all.filter((field) => !used.has(field.key));
     const groups = [
       { title: '个人能力', fields: personal },
@@ -179,7 +200,7 @@ window.GameModules.rpgFieldUi = {
       { title: '盛装', fields: dressedState ? [dressedState] : [] },
       { title: '状态标签', fields: take(['status_tags']) },
       { title: '人际关系', fields: relations },
-      { title: '身份信息', fields: [...identityRest, ...(longing ? [longing] : []), ...take(['world_tag', 'age', 'current_location', 'factions', 'force_positions'])] },
+      { title: '身份信息', fields: [...identityRest, ...(longing ? [longing] : []), ...take(['world_tag', 'age', 'current_location', 'factions', 'memberships'])] },
     ];
     if (aspirationFields.length) {
       groups.splice(groups.findIndex((group) => group.title === '身份信息') + 1, 0, {
@@ -379,9 +400,9 @@ window.GameModules.rpgFieldUi = {
 
   lexiconKind(field, item = null) {
     if (item?.type) return item.type;
-    if (field?.key && !item) return { knowledge: '知识树', skills: '技能树', professions: '职业树', factions: '社群角色', force_positions: '势力地位', items: '物品', wearing: '穿着', bodyProfile: '身体原貌', dressedProfile: '盛装状态', status_tags: '状态' }[field.key] || field.kind || '属性';
+    if (field?.key && !item) return { knowledge: '知识树', skills: '技能树', professions: '职业树', factions: '社群角色', memberships: '人事归属', items: '物品', wearing: '穿着', bodyProfile: '身体原貌', dressedProfile: '盛装状态', status_tags: '状态' }[field.key] || field.kind || '属性';
     if (field?.kind) return field.kind;
-    return { factions: '社群角色', force_positions: '势力地位', items: '物品', wearing: '穿着', bodyProfile: '身体原貌', dressedProfile: '盛装状态', status_tags: '状态' }[field?.key] || '属性';
+    return { factions: '社群角色', memberships: '人事归属', items: '物品', wearing: '穿着', bodyProfile: '身体原貌', dressedProfile: '盛装状态', status_tags: '状态' }[field?.key] || '属性';
   },
 
   lexiconFor(field, item = null) {
@@ -408,7 +429,7 @@ window.GameModules.rpgFieldUi = {
   usableChangeReason(reason, blocked = []) {
     const text = String(reason || '').trim();
     if (/^错误：.*缺少AI给出的变化原因/.test(text)) return '';
-    if (/性别：|年龄：|生日：|具体地址：|势力地位：|社群角色：|居住：|父母：|关系：|备注：|关系为.*备注为|居住在.*生活状态.*家庭状态/.test(text)) return '';
+    if (/性别：|年龄：|生日：|具体地址：|人事归属：|社群角色：|居住：|父母：|关系：|备注：|关系为.*备注为|居住在.*生活状态.*家庭状态/.test(text)) return '';
     if (/^(AI演算|系统结算|系统词条调整|用户主动)$/.test(text) || /词条说明|当前作用|用于记录|暂无详细说明/.test(text)) return '';
     if (/依据.*(当前值|上限|已落库|经验曲线)|当前为.*依据|被记录为当前|后续(获得|使用|消耗|转让|遗失|损坏|穿戴|由明确行动|状态变化)时会更新|当前属于.*词条/.test(text)) return '';
     return blocked.some((item) => item && text === String(item).trim()) ? '' : text;
@@ -498,6 +519,9 @@ window.GameModules.rpgFieldUi = {
     const levelName = Number(item?.level) > 0 ? `${name} lv.${item.level}` : name;
     const tags = this.rpgItemPrerequisiteTags(item);
     const tagged = tags.length ? `${levelName} · ${tags.join(' ')}` : levelName;
+    if (field && this.isIdentityInfoStyledField(field) && this.identityInfoFieldMeta(field).section === 'list') {
+      return `${this.identityInfoFieldMeta(field).itemIcon || '✦'} ${tagged}`;
+    }
     if (item?.type === '穿着' && item?.slot && item?.clothing_position) return `${item.clothing_position}｜${tagged}`;
     return tagged;
   },
@@ -537,10 +561,11 @@ window.GameModules.rpgFieldUi = {
       const role = obj.role || info.role || obj.position || info.position || name.split('/')[1]?.trim() || '成员';
       return `社群：${community}；角色：${role}。该词条说明角色所属居住社区、家庭、社交圈或临时群体，以及其在其中承担的社会角色。`;
     }
-    if (kind === '势力地位') {
-      const force = obj.force || obj.faction || info.force || info.faction || name.split('/')[0]?.trim();
-      const position = obj.position || info.position || name.split('/')[1]?.trim() || '成员';
-      return `势力：${force}；地位：${position}。该词条说明角色在有层级制度势力中的等级、职级、年级或职位。`;
+    if (kind === '人事归属') {
+      const orgName = obj.orgName || info.orgName || name.split('/')[0]?.trim();
+      const title = obj.title || info.title || name.split('/').at(-1)?.trim() || '成员';
+      const department = obj.department || info.department || '';
+      return `组织：${orgName}；${department ? `部门：${department}；` : ''}身份：${title}。该词条说明角色在势力或社群组织架构中的部门、职位、身份或成员关系。`;
     }
     return `执行“${name}”相关行动时所需的理解、操作熟练度和稳定发挥能力。`;
   },
@@ -576,7 +601,7 @@ window.GameModules.rpgFieldUi = {
     if (kind === '穿着' && obj?.slot) lines.push(`槽位: ${obj.slot}`);
     if ((kind === '物品' || kind === '穿着' || kind === '装备') && (obj?.id || obj?.ownerId || obj?.characterId)) lines.push(`唯一ID: ${obj.id || '未记录'}`, `所属角色ID: ${obj.ownerId || obj.characterId || '未记录'}`);
     if ((kind === '社群角色' || kind === '阵营') && (obj?.community || obj?.faction || info.community || info.faction)) lines.push(`社群: ${obj.community || obj.faction || info.community || info.faction}`, `角色: ${obj.role || info.role || obj.position || info.position || '成员'}`);
-    if (kind === '势力地位' && (obj?.force || obj?.faction || info.force || info.faction)) lines.push(`势力: ${obj.force || obj.faction || info.force || info.faction}`, `地位: ${obj.position || info.position || '成员'}`);
+    if (kind === '人事归属' && (obj?.orgName || info.orgName)) lines.push(`组织: ${obj.orgName || info.orgName}`, `部门: ${obj.department || info.department || '未记录'}`, `身份: ${obj.title || info.title || '成员'}`);
     if (hasLevel) {
       const p = window.GameModules.progression;
       const lv = Number(obj?.level) || 1;
@@ -725,6 +750,341 @@ window.GameModules.rpgFieldUi = {
 
   personalAbilityLinkedGroups(fields = []) {
     return this.personalAbilityLearnedGroups(fields);
+  },
+
+  identityInfoValueText(field = {}) {
+    if (Array.isArray(field?.value)) return field.value.join('、');
+    if (field?.value != null && field.value !== '') return String(field.value).trim();
+    if (Array.isArray(field?.raw)) return field.raw.map((item) => this.rpgItemSummary(item, field)).join('、');
+    return String(field?.raw ?? '').trim();
+  },
+
+  identityInfoPreview(field = {}, max = 48) {
+    const text = this.identityInfoValueText(field).replace(/\s+/g, ' ').trim();
+    if (!text) return '未记录';
+    return text.length > max ? `${text.slice(0, max)}…` : text;
+  },
+
+  identityInfoFieldMeta(field = {}) {
+    const label = String(field?.label || '').trim();
+    const key = String(field?.key || '').trim();
+    const text = `${label} ${key}`;
+    const match = (pattern) => pattern.test(text);
+    if (match(/姓名|(^|[-_])name$/)) return { icon: '🪪', section: 'hero', tone: 'cyan' };
+    if (match(/身份|(^|[-_])role$/)) return { icon: '🎭', section: 'hero', tone: 'violet' };
+    if (match(/职业|(^|[-_])job$/)) return { icon: '⚒️', section: 'core', tone: 'gold' };
+    if (match(/所属世界|world_tag|(^|[-_])work$/)) return { icon: '🌐', section: 'tag', tone: 'cyan' };
+    if (match(/年龄|(^|[-_])age$/)) return { icon: '📆', section: 'tag', tone: 'gold' };
+    if (match(/生日|(^|[-_])birthday$/)) return { icon: '🎂', section: 'tag', tone: 'pink' };
+    if (match(/性别|(^|[-_])gender$/)) return { icon: '⚥', section: 'tag', tone: 'violet' };
+    if (match(/思念度|longing/)) return { icon: '💞', section: 'tag', tone: 'pink' };
+    if (match(/当前位置|current_location/)) return { icon: '📍', section: 'lore', tone: 'cyan' };
+    if (match(/外貌|appearance/)) return { icon: '🧬', section: 'lore', tone: 'violet' };
+    if (match(/喜好|preferences/)) return { icon: '🎀', section: 'lore', tone: 'pink' };
+    if (match(/性格|personality/)) return { icon: '🧠', section: 'lore', tone: 'cyan' };
+    if (match(/人物说明|detail|备注/)) return { icon: '📜', section: 'lore', tone: 'gold' };
+    if (match(/社群角色|阵营|factions/)) return { icon: '🏘️', section: 'list', tone: 'cyan', itemIcon: '◈' };
+    if (match(/人事归属|memberships/)) return { icon: '🪪', section: 'list', tone: 'gold', itemIcon: '✦' };
+    return { icon: '✧', section: 'core', tone: 'violet' };
+  },
+
+  identityInfoListLabel(field = {}, item = {}) {
+    const label = String(field?.label || '').trim();
+    if (/社群角色|阵营|factions/.test(`${label} ${field?.key || ''}`)) {
+      const community = item.community || item.faction || item.name || '未记录';
+      const role = item.role || item.position || '';
+      return role ? `${community} / ${role}` : community;
+    }
+    if (/人事归属|memberships/.test(`${label} ${field?.key || ''}`)) {
+      const orgName = item.orgName || item.name || '未记录';
+      const title = item.title || '';
+      const department = item.department || '';
+      return [orgName, department, title].filter(Boolean).join(' / ');
+    }
+    return this.rpgItemSummary(item, field);
+  },
+
+  identityInfoPresentation(fields = []) {
+    const cards = (fields || []).filter(Boolean).map((field) => {
+      const meta = this.identityInfoFieldMeta(field);
+      const valueText = this.identityInfoValueText(field);
+      return {
+        field,
+        meta,
+        label: String(field?.label || field?.key || '未记录'),
+        valueText,
+        preview: this.identityInfoPreview(field, meta.section === 'lore' ? 120 : 36),
+      };
+    });
+    const firstBy = (pattern) => cards.find((card) => pattern.test(`${card.label} ${card.field?.key || ''}`));
+    const heroName = firstBy(/姓名|(^|[-_])name$/);
+    const roleField = firstBy(/身份|(^|[-_])role$/);
+    const jobField = firstBy(/职业|(^|[-_])job$/);
+    const detailField = firstBy(/人物说明|detail|备注/);
+    const personalityField = firstBy(/性格|personality/);
+    const appearanceField = firstBy(/外貌|appearance/);
+    const tagCards = cards.filter((card) => card.meta.section === 'tag' && card.valueText);
+    const listCards = cards.filter((card) => card.meta.section === 'list' && this.isRpgListField(card.field)).map((card) => ({
+      ...card,
+      count: this.rpgListItems(card.field).length,
+      items: this.rpgListItems(card.field).map((item, index) => ({
+        field: card.field,
+        item,
+        index,
+        icon: card.meta.itemIcon || '✦',
+        label: this.identityInfoListLabel(card.field, item),
+        preview: this.identityInfoPreview({ value: this.rpgItemSummary(item, card.field) }, 28),
+      })),
+    }));
+    const usedHeroKeys = new Set([heroName?.field, roleField?.field, jobField?.field, ...tagCards.map((card) => card.field)].filter(Boolean));
+    const core = cards.filter((card) => card.meta.section === 'core' && !usedHeroKeys.has(card.field));
+    const lore = cards.filter((card) => card.meta.section === 'lore');
+    const heroTitle = [roleField?.valueText, jobField?.valueText].filter(Boolean).join(' / ') || '基础档案';
+    const heroNote = detailField?.preview || personalityField?.preview || appearanceField?.preview || '该角色的基础身份、外貌与性格档案。';
+    const heroStats = listCards.map((card) => ({
+      icon: card.meta.icon,
+      label: card.label,
+      value: `${card.count}项`,
+    }));
+    return {
+      hero: {
+        name: heroName?.valueText || '未命名角色',
+        title: heroTitle,
+        note: heroNote,
+      },
+      tags: tagCards.map((card) => ({
+        field: card.field,
+        icon: card.meta.icon,
+        label: card.label,
+        value: card.preview,
+      })),
+      stats: heroStats,
+      core,
+      lore,
+      lists: listCards,
+    };
+  },
+
+  preferenceBalanceTone(value = 50) {
+    const num = Number(value) || 0;
+    if (num <= 35) return 'cyan';
+    if (num >= 65) return 'pink';
+    return 'gold';
+  },
+
+  goalsFieldRole(field = {}) {
+    const text = `${field?.label || ''} ${field?.key || ''}`;
+    if (/人生取向总结/.test(text)) return 'portrait';
+    if (/人生取向摘要|summary/.test(text)) return 'summary';
+    if (/近期目标|short/.test(text)) return 'short';
+    if (/中期目标|medium/.test(text)) return 'medium';
+    if (/长期目标|long/.test(text)) return 'long';
+    return 'support';
+  },
+
+  goalsPresentation(fields = []) {
+    const rows = (fields || []).filter(Boolean).map((field) => {
+      const role = this.goalsFieldRole(field);
+      const meta = {
+        portrait: { icon: '📜', title: '人生取向总结', tone: 'violet' },
+        summary: { icon: '🧭', title: '人生取向摘要', tone: 'cyan' },
+        short: { icon: '⚔️', title: '近期目标', tone: 'cyan' },
+        medium: { icon: '🏗️', title: '中期目标', tone: 'gold' },
+        long: { icon: '👑', title: '长期目标', tone: 'pink' },
+        support: { icon: '✦', title: String(field?.label || field?.key || '补充信息'), tone: 'violet' },
+      }[role];
+      return {
+        field,
+        role,
+        ...meta,
+        valueText: this.identityInfoValueText(field),
+        preview: this.identityInfoPreview(field, role === 'portrait' ? 140 : 88),
+      };
+    });
+    const byRole = (role) => rows.find((row) => row.role === role);
+    const portrait = byRole('portrait');
+    const summary = byRole('summary');
+    const cards = ['short', 'medium', 'long'].map((role) => {
+      const row = byRole(role);
+      const fallbackTitle = { short: '近期目标', medium: '中期目标', long: '长期目标' }[role];
+      return {
+        role,
+        tone: row?.tone || (role === 'short' ? 'cyan' : role === 'medium' ? 'gold' : 'pink'),
+        icon: row?.icon || (role === 'short' ? '⚔️' : role === 'medium' ? '🏗️' : '👑'),
+        title: row?.title || fallbackTitle,
+        field: row?.field || null,
+        valueText: row?.valueText || '',
+        preview: row?.preview || '未记录',
+      };
+    });
+    return {
+      hero: {
+        eyebrow: 'DESTINY LOG',
+        title: summary?.preview || portrait?.preview || '人生取向',
+        note: portrait?.preview || '将短期行动、中期发展与长期追求组织成一条可推进的命运路线。',
+      },
+      cards,
+      support: rows.filter((row) => row.role === 'support'),
+    };
+  },
+
+  essentialPreferencePresentation(fields = []) {
+    const tool = window.GameModules.playerAspirationPreferenceLayers;
+    const layerMeta = tool?.layerMeta || [
+      { key: 'layer1', label: '价值立场偏好', prefix: '价值立场偏好' },
+      { key: 'layer2', label: '决策风格偏好', prefix: '决策风格偏好' },
+      { key: 'layer3', label: '人生六维偏好', prefix: '人生六维偏好' },
+      { key: 'layer4', label: '底线锚点偏好', prefix: '底线锚点偏好' },
+      { key: 'layer5', label: '心理偏好', prefix: '心理偏好' },
+    ];
+    const iconByKey = {
+      layer1: '⚖️',
+      layer2: '🧠',
+      layer3: '🜂',
+      layer4: '🛡️',
+      layer5: '✨',
+    };
+    const toneByKey = {
+      layer1: 'violet',
+      layer2: 'cyan',
+      layer3: 'gold',
+      layer4: 'pink',
+      layer5: 'violet',
+    };
+    const layers = {};
+    const rows = (fields || []).filter(Boolean).map((field, index) => {
+      const label = String(field?.label || '').trim();
+      const valueText = this.identityInfoValueText(field);
+      const meta = layerMeta.find((item) => label === item.label || valueText.startsWith(`${item.prefix}:`) || valueText.startsWith(`${item.label}:`)) || layerMeta[index] || null;
+      if (meta && valueText) layers[meta.key] = valueText;
+      return {
+        field,
+        key: meta?.key || `extra-${index}`,
+        title: meta?.label || label || `偏好层 ${index + 1}`,
+        icon: iconByKey[meta?.key] || '✦',
+        tone: toneByKey[meta?.key] || 'violet',
+        preview: this.identityInfoPreview(field, meta?.key === 'layer5' ? 120 : 90),
+        body: meta ? (tool?.stripLayerPrefix?.(valueText, meta.prefix) || valueText) : valueText,
+      };
+    });
+    const normalizedLayers = layerMeta.reduce((acc, item) => {
+      if (layers[item.key]) acc[item.key] = layers[item.key];
+      return acc;
+    }, {});
+    const view = tool?.viewFromLayers?.(normalizedLayers) || null;
+    const fieldByKey = (key) => rows.find((row) => row.key === key)?.field || null;
+    const compact = (items = [], limit = 3) => items.map((item) => String(item || '').trim()).filter(Boolean).slice(0, limit).join(' · ');
+    const layerPreview = (key, row = null) => {
+      if (!view && !row) return '未记录';
+      if (key === 'layer1') return view?.alignmentLabel || row?.body || row?.preview || '未记录';
+      if (key === 'layer2') return `${view?.rationalityLabel || row?.body || '决策风格待整理'} · ${Number(view?.rationality) || 50}/100`;
+      if (key === 'layer3') {
+        return compact((view?.axes || []).map((item) => item.summary || `${item.title || '维度'} ${item.value ?? 50}/100`), 3) || row?.body || row?.preview || '未记录';
+      }
+      if (key === 'layer4') {
+        return compact((view?.guiltLines || []).map((item) => item.summary || `${item.title || '底线'} ${item.value ?? 50}/100`), 2) || row?.body || row?.preview || '未记录';
+      }
+      if (key === 'layer5') {
+        const groups = (view?.psychGroups || []).map((group) => {
+          const tags = (group.tags || []).slice(0, 2).join(' / ');
+          return tags ? `${group.groupLabel}: ${tags}` : group.groupLabel;
+        });
+        return compact(groups, 3) || row?.body || row?.preview || '未记录';
+      }
+      return row?.preview || row?.body || '未记录';
+    };
+    return {
+      hero: {
+        eyebrow: 'ESSENCE MATRIX',
+        title: view?.alignmentLabel || '本质偏好',
+        note: `${view?.rationalityLabel || '决策风格待整理'} · 核心价值与心理偏好被固化为长期行为底层。`,
+        rationality: Number(view?.rationality) || 50,
+      },
+      layers: layerMeta.map((item) => {
+        const row = rows.find((entry) => entry.key === item.key);
+        return {
+          key: item.key,
+          title: item.label,
+          icon: iconByKey[item.key],
+          tone: toneByKey[item.key],
+          field: row?.field || fieldByKey(item.key),
+          preview: layerPreview(item.key, row),
+        };
+      }).filter((row) => row.field || row.preview !== '未记录'),
+      axes: (view?.axes || []).map((item) => ({
+        ...item,
+        tone: this.preferenceBalanceTone(item.value),
+        field: fieldByKey('layer3'),
+      })),
+      guiltLines: (view?.guiltLines || []).map((item) => ({
+        ...item,
+        tone: this.preferenceBalanceTone(item.value),
+        field: fieldByKey('layer4'),
+      })),
+      psychGroups: (view?.psychGroups || []).map((item) => ({
+        ...item,
+        field: fieldByKey('layer5'),
+      })),
+    };
+  },
+
+  intimacyBodyPresentation(fields = []) {
+    const byKey = (key) => this.fieldByKey(fields, key);
+    const summaryRows = [
+      { key: 'sexualStatus', title: '当前状态', icon: '💗', tone: 'pink' },
+      { key: 'sexualPartnerCount', title: '经历人数', icon: '🤝', tone: 'cyan' },
+      { key: 'sexualExperienceCount', title: '总次数', icon: '📚', tone: 'gold' },
+    ].map((meta) => {
+      const field = byKey(meta.key);
+      return {
+        ...meta,
+        field,
+        valueText: this.identityInfoValueText(field) || '未记录',
+        preview: this.identityInfoPreview(field, 48),
+      };
+    }).filter((row) => row.field);
+    const partnersField = byKey('sexualPartners');
+    const experienceField = byKey('sexualExperienceParts');
+    const bodyField = byKey('bodyStatus');
+    const partnerRows = this.rpgListItems(partnersField).map((item, index) => ({
+      field: partnersField,
+      item,
+      index,
+      icon: '◈',
+      title: this.rpgItemSummary(item, partnersField),
+    }));
+    const experienceRows = this.rpgListItems(experienceField).map((item, index) => ({
+      field: experienceField,
+      item,
+      index,
+      icon: '✦',
+      title: item?.name || this.rpgItemName(item),
+      preview: this.rpgItemSummary(item, experienceField),
+    }));
+    const bodyRows = this.rpgListItems(bodyField).map((item, index) => {
+      const row = this.initUiRow(bodyField, item) || {};
+      const desc = item?.description || item?.['描述状态'] || '';
+      return {
+        field: bodyField,
+        item,
+        index,
+        icon: this.bodyPartEmoji(item?.part || item?.partKey || row.name || item?.name || ''),
+        title: row.name || item?.part || item?.partKey || item?.name || `状态 ${index + 1}`,
+        value: row.value || item?.status || '未记录',
+        preview: desc || row.value || '暂无额外说明',
+      };
+    });
+    return {
+      hero: {
+        eyebrow: 'INTIMACY RECORD',
+        title: summaryRows.find((row) => row.key === 'sexualStatus')?.valueText || '身体状态',
+        note: '按当前状态、经历脉络与身体部位记录现实推演中的亲密与体征信息。',
+      },
+      summaryRows,
+      partnerRows,
+      experienceRows,
+      bodyRows,
+    };
   },
 
   personalAbilityPresentation(fields = [], state = null) {

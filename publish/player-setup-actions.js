@@ -14,7 +14,7 @@ window.GameModules.playerSetupActions = {
       row('年龄', p.age ? `${p.age}岁` : '', '由生日按2026-06-12计算得到。'),
       row('具体地址', p.refinedCity || p.city, '玩家当前登记住址。'),
       row('现实身份', p.refinedRole || p.dailyRole, '玩家在2026现实世界中的日常身份。'),
-      row('势力地位', [p.workplace, p.position].filter(Boolean).join(' / '), '玩家当前工作、学习或组织势力及其内部地位。'),
+      row('人事归属', [p.workplace, p.position].filter(Boolean).join(' / '), '玩家当前工作、学习或组织势力及其内部地位。'),
       row('社群角色', [p.refinedCity || p.city, '居民'].filter(Boolean).join(' / '), '玩家当前居住社群及其中承担的社会角色。'),
       row('居住状态', p.refinedLivingStatus || p.livingStatus, '玩家当前居住与生活状态。'),
       row('性经验次数', this.playerIdentityState?.()?.values?.intimacy?.sexualExperienceCount ?? 0, '成人虚构身份的抽象经历次数，只记录数值。'),
@@ -229,7 +229,7 @@ window.GameModules.playerSetupActions = {
     const contacts = (this.wechatUsers || []).filter((contact) => contact && !contact.group);
     await Promise.all([
       this.ensurePlayerRpgState?.(true),
-      ...contacts.map((contact) => this.ensureWechatUserProfile?.(contact)),
+      ...contacts.map((contact) => this.ensureWechatUserProfile?.(contact, { generateIfMissing: true })),
     ]);
   },
 

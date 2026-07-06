@@ -62,7 +62,7 @@ Rules：
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "required": ["name", "worldTag", "age", "gender", "learningAbility", "mentalStability", "growthPotential", "actionAbility", "relationships", "role", "detail", "appearance", "preferences", "personality", "factions", "forcePositions", "job", "jobConfirmed", "rank", "control_experience"],
+  "required": ["name", "worldTag", "age", "gender", "learningAbility", "mentalStability", "growthPotential", "actionAbility", "relationships", "role", "detail", "appearance", "preferences", "personality", "factions", "memberships", "job", "jobConfirmed", "rank", "control_experience"],
   "additionalProperties": false,
   "properties": {
     "name": { "type": "string", "minLength": 1, "description": "当前人物正式姓名。当人物基础区给出正式姓名时必须逐字复制，不得同音改字、近形改字。" },
@@ -80,10 +80,10 @@ Rules：
     "preferences": { "type": "string", "minLength": 1, "description": "稳定喜好。必须提取穿着偏好、颜色偏好、审美习惯和随身物偏好；没有明确喜好时写可由身份和性格推断的保守喜好。" },
     "personality": { "type": "string", "minLength": 1, "description": "性格与关系边界。一句话，不写外貌。" },
     "factions": { "type": "array", "items": { "type": "object", "required": ["faction", "role", "reason"], "additionalProperties": false, "properties": { "faction": { "type": "string", "minLength": 1 }, "role": { "type": "string", "minLength": 1 }, "reason": { "type": "string", "minLength": 1 } } } },
-    "forcePositions": { "type": "array", "items": { "type": "object", "required": ["force", "position", "reason"], "additionalProperties": false, "properties": { "force": { "type": "string", "minLength": 1 }, "position": { "type": "string", "minLength": 1 }, "reason": { "type": "string", "minLength": 1 } } } },
+    "memberships": { "type": "array", "items": { "type": "object", "required": ["orgName", "title", "department", "departmentFog", "reason"], "additionalProperties": false, "properties": { "orgName": { "type": "string", "minLength": 1 }, "title": { "type": "string", "minLength": 1 }, "department": { "type": "string" }, "departmentFog": { "type": "boolean" }, "reason": { "type": "string", "minLength": 1 } } } },
     "job": { "type": "string", "description": "已内化职业。不确定时返回空字符串。" },
     "jobConfirmed": { "type": "boolean", "description": "job是否有确认证据。job为空时必须false。" },
-    "rank": { "type": "string", "description": "首要势力地位。通常取forcePositions[0].position。" },
+    "rank": { "type": "string", "description": "首要人事身份。通常取memberships[0].title；没有组织归属时可取role中的身份定位。" },
     "control_experience": { "type": "object", "required": ["上线次数", "习惯程度"], "additionalProperties": false, "properties": { "上线次数": { "type": "integer", "minimum": 0 }, "习惯程度": { "type": "string", "minLength": 1 } } }
   }
 }
@@ -95,12 +95,12 @@ Rules：
 3. `detail`/`personality` 各一句话，不混写。
 4. `appearance` 必须以感官细节优先，50字以内：调动视觉、触觉、听觉等多维度感知而非单一维度的直白叙述；善用隐喻和类比，通过环境、光线、动态等间接元素烘托；控制节奏与聚焦，聚焦某一局部（如指尖、颈侧、发梢）逐步展开，而非全景扫描式罗列。示例：“黑直长发垂落肩侧，校服领口露出细白颈线，低垂的睫毛在颧骨上投下一小片阴影。”
 5. `preferences` 必须专门承接稳定喜好，尤其是穿着偏好。输入出现“JK/制服/过膝袜/连裤袜/丝袜/黑丝/白丝/黑色/白色”等词时必须逐字保留到 preferences，不得只塞进 appearance 或忽略。例如“偏爱JK制服、百褶裙、黑色过膝袜或连裤袜，审美干净少女系”。
-6. `factions` 只写家庭、社区、社交圈、兴趣小组等社群角色；`forcePositions` 只写具体学校、公司、部门、机构等有组织层级的归属。没有具体组织证据时，`forcePositions` 返回空数组，不要兜底。
-7. 禁止在 `forcePositions` 中写“现实社会”“现代社会”“现实世界”“社会”“国家”“中华人民共和国/公民”“公民”“居民”“成年人”“成年学生”等抽象身份或法定身份；学生必须写具体学校/院系/年级，职场必须写具体公司/部门/岗位。
-8. 所有含 `reason` 的字段（`worldTag.reason`/`age.reason`/`learningAbility.reason`/`mentalStability.reason`/`growthPotential.reason`/`actionAbility.reason`/`factions[].reason`/`forcePositions[].reason`）必须结合角色动机、处境、性格与过去经历来写，不得使用固定句式模板，不得写空话。
+6. `factions` 只写家庭、社区、社交圈、兴趣小组等社群角色；`memberships` 只写具体国家、学校、公司、部门、机构、家庭组织或其它可确认组织中的人事归属。只有当当前世界就是“2026 现代都市现实世界”时，才根据资料补国家法域/国籍；无明确其他国家证据时默认“中华人民共和国/公民”。
+7. `memberships` 不写“现实社会”“现代社会”“现实世界”“社会”“国家”“成年人”等抽象身份；允许写具体国家名下的“公民/国民”。非现实世界不要因为出现城市名、学校、制服、现代生活描述就自动补现实国家。学生必须写具体学校/院系/年级，职场必须写具体公司/部门/岗位。若部门未知，`department` 返回空字符串且 `departmentFog=true`。
+8. 所有含 `reason` 的字段（`worldTag.reason`/`age.reason`/`learningAbility.reason`/`mentalStability.reason`/`growthPotential.reason`/`actionAbility.reason`/`factions[].reason`/`memberships[].reason`）必须结合角色动机、处境、性格与过去经历来写，不得使用固定句式模板，不得写空话。
 
 ## 完整 JSON 示例
 
-{"name":"刘思琪","worldTag":{"value":"现实世界","reason":"刘思琪所属世界来自默认账号激活的现实世界。"},"age":{"value":16,"reason":"刘思琪年龄按2026年推算约为16-17岁。"},"gender":"女","learningAbility":{"value":8,"reason":"刘思琪学习能力来自外国语学校训练和高中阶段学习经验。"},"mentalStability":{"value":6,"reason":"刘思琪精神稳定来自家庭支持，但内向性格使压力积累。"},"growthPotential":{"value":9,"reason":"刘思琪成长潜力来自年轻年龄和尚未定型的发展方向。"},"actionAbility":{"value":5,"reason":"刘思琪行动能力由年轻女性体能和校园生活经验决定。"},"relationships":"姐姐：刘思瑶；母亲：张惠兰","role":"高中二年级学生、妹妹","detail":"住在深圳市南山区粤海街道，就读于深圳外国语学校高二，与母亲和姐姐同住。","appearance":"黑直长发垂落肩侧，校服领口露出细白颈线，低垂的睫毛在颧骨上投下一小片阴影。","preferences":"偏爱JK制服、百褶裙、黑色过膝袜或连裤袜，审美干净少女系。","personality":"安静内向但心思细腻，对亲近的人温柔体贴，对陌生人保持距离。","factions":[{"faction":"刘家","role":"小女儿","reason":"张惠兰与刘建国的次女，自幼在刘家长大。"},{"faction":"深圳外国语学校","role":"学生","reason":"就读于该校高中部二年级。"}],"forcePositions":[{"force":"深圳外国语学校-高中部","position":"高二学生","reason":"目前就读于该校高中部二年级。"}],"job":"","jobConfirmed":false,"rank":"高二学生","control_experience":{"上线次数":0,"习惯程度":"初次操控尚不熟悉"}}
+{"name":"刘思琪","worldTag":{"value":"2026 现代都市现实世界","reason":"刘思琪所属世界来自默认账号激活的2026现代都市现实世界。"},"age":{"value":16,"reason":"刘思琪年龄按2026年推算约为16-17岁。"},"gender":"女","learningAbility":{"value":8,"reason":"刘思琪学习能力来自外国语学校训练和高中阶段学习经验。"},"mentalStability":{"value":6,"reason":"刘思琪精神稳定来自家庭支持，但内向性格使压力积累。"},"growthPotential":{"value":9,"reason":"刘思琪成长潜力来自年轻年龄和尚未定型的发展方向。"},"actionAbility":{"value":5,"reason":"刘思琪行动能力由年轻女性体能和校园生活经验决定。"},"relationships":"姐姐：刘思瑶；母亲：张惠兰","role":"高中二年级学生、妹妹","detail":"住在深圳市南山区粤海街道，就读于深圳外国语学校高二，与母亲和姐姐同住。","appearance":"黑直长发垂落肩侧，校服领口露出细白颈线，低垂的睫毛在颧骨上投下一小片阴影。","preferences":"偏爱JK制服、百褶裙、黑色过膝袜或连裤袜，审美干净少女系。","personality":"安静内向但心思细腻，对亲近的人温柔体贴，对陌生人保持距离。","factions":[{"faction":"刘家","role":"小女儿","reason":"张惠兰与刘建国的次女，自幼在刘家长大。"},{"faction":"深圳外国语学校","role":"学生","reason":"就读于该校高中部二年级。"}],"memberships":[{"orgName":"中华人民共和国","title":"公民","department":"","departmentFog":false,"reason":"刘思琪没有明确指向其他国家，按2026现代都市现实世界背景登记为中华人民共和国公民。"},{"orgName":"深圳外国语学校-高中部","title":"高二学生","department":"高中部","departmentFog":false,"reason":"目前就读于该校高中部二年级。"}],"job":"","jobConfirmed":false,"rank":"公民","control_experience":{"上线次数":0,"习惯程度":"初次操控尚不熟悉"}}
 
 注意：Schema优先级高于示例。当示例与字段定义冲突时，以Schema为准。

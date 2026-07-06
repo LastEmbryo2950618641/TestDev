@@ -1,0 +1,5 @@
+// GENERATED FROM publish/prompts/character-profile-missing-fields.md; DO NOT EDIT.
+window.GameModules = window.GameModules || {};
+window.GameModules.promptTemplates = window.GameModules.promptTemplates || {};
+window.GameModules.promptTemplates.inline = window.GameModules.promptTemplates.inline || {};
+window.GameModules.promptTemplates.inline["character-profile-missing-fields"] = "你正在修复角色卡 Part{{partIndex}}。目标人物只能是：{{角色姓名}}。\r\n\r\n只生成缺失字段：{{缺失字段}}。其余字段已经合格，禁止重复输出、禁止改动。\r\n\r\n输出必须是一个 JSON 对象，根字段只能包含上述缺失字段，并严格遵守下面模板。\r\n\r\n{{额外规则}}\r\n\r\n## 缺失字段模板\r\n{{缺失字段模板}}\r\n\r\n## 已合格字段\r\n只作上下文，不要重写。\r\n\r\n{{已合格字段}}\r\n\r\n## 原始要求\r\n{{原始要求}}";

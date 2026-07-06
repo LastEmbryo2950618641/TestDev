@@ -135,7 +135,7 @@ window.GameModules.characterQuery = {
 
   schemaSectionText(state = {}) {
     const values = state.values || {};
-    const covered = new Set(['world_tag', 'gender', 'age', 'current_location', 'factions', 'force_positions', 'status_tags', 'level', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'health', 'stamina', 'bodyStatus', 'intimacy', 'vitality', 'stamina_pool', 'satiety', 'hydration', 'fatigue', 'mental_stability', 'wearing', 'items', 'skills', 'knowledge', 'control_experience']);
+    const covered = new Set(['world_tag', 'gender', 'age', 'current_location', 'factions', 'memberships', 'status_tags', 'level', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'health', 'stamina', 'bodyStatus', 'intimacy', 'vitality', 'stamina_pool', 'satiety', 'hydration', 'fatigue', 'mental_stability', 'wearing', 'items', 'skills', 'knowledge', 'control_experience']);
     return (state.schema?.sections || []).map((section) => {
       const rows = (section.fields || []).map((field) => {
         if (!field?.key || covered.has(field.key) || values[field.key] === undefined) return '';
@@ -166,7 +166,7 @@ window.GameModules.characterQuery = {
       ...(window.GameModules.playerAspirationPreferenceLayers?.toLines?.(profile.essentialPreferenceLayers) || []),
       this.line('人物说明', profile.detail || state.note),
       this.line('社群角色', this.listText(profile.factions || values.factions, 8)),
-      this.line('势力地位', this.listText(profile.force_positions || profile.forcePositions || values.force_positions, 8)),
+      this.line('人事归属', this.listText(profile.memberships || values.memberships, 8)),
       this.line('状态标签', this.listText(values.status_tags, 12)),
       this.line('核心属性', this.attributeText(values)),
       this.line('身体状态', this.bodyText(values)),

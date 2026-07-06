@@ -203,7 +203,7 @@ window.GameModules.realWorldAgentContextParts.core = {
 
   loadedRoleCardRoutingSummary(item = {}) {
     const text = this.redactPromptPollution(item?.text || '');
-    const keepKeys = /^(资料类型|姓名|角色ID|世界|身份|性别|年龄\/生日|职业|当前地点|人际关系|外貌|性格|喜好|人物说明|社群角色|势力地位|状态标签|核心属性|身体状态|情绪|对玩家感觉|穿着|物品|技能|知识|上线体验|其他身份状态)：/u;
+    const keepKeys = /^(资料类型|姓名|角色ID|世界|身份|性别|年龄\/生日|职业|当前地点|人际关系|外貌|性格|喜好|人物说明|社群角色|人事归属|状态标签|核心属性|身体状态|情绪|对玩家感觉|穿着|物品|技能|知识|上线体验|其他身份状态)：/u;
     const lines = text.split(/\r?\n/u).map((line) => line.trim()).filter((line) => keepKeys.test(line));
     return this.limit(lines.join('\n') || text, 1400);
   },
@@ -283,7 +283,7 @@ window.GameModules.realWorldAgentContextParts.core = {
 
   loadedNarrationSummary(items = []) {
     if (!items.length) return '无';
-    const roleCardFields = /^(?:资料类型|姓名|角色ID|世界|身份|性别|年龄\/生日|职业|当前地点|人际关系|外貌|性格|喜好|人物说明|社群角色|势力地位|状态标签|核心属性|身体状态|情绪|对玩家感觉|穿着|物品|技能|知识|上线体验|其他身份状态)[:：]/u;
+    const roleCardFields = /^(?:资料类型|姓名|角色ID|世界|身份|性别|年龄\/生日|职业|当前地点|人际关系|外貌|性格|喜好|人物说明|社群角色|人事归属|状态标签|核心属性|身体状态|情绪|对玩家感觉|穿着|物品|技能|知识|上线体验|其他身份状态)[:：]/u;
     const factKeywords = /位置|地点|房间|门口|走廊|客厅|空间|相邻|在场|附近|路过|进入|离开|等待|回应|听见|看见|可听见|可看见|通信|微信|事实|关系|历史|当前状态|当前行动|状态/u;
     const protocolKeywords = /文本内容参照|参照对象|关键词查询|资料请求|request_context|不要继续|不要重复|Top3|elapsedSeconds|subject\.id|主体ID规则|结算对象|类型完成|更新N|Skill：|激活条件|返回格式/u;
     return items.map((item, index) => {

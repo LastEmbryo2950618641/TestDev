@@ -1,4 +1,4 @@
-{
+﻿{
   "id": "rel-ai-242269",
   "name": "刘思怡",
   "work": "2026 现代都市现实世界",
@@ -254,7 +254,7 @@
   "roleCardRetryParts": {},
   "presetProfilePath": "",
   "worldTag": {
-    "value": "现实世界",
+    "value": "2026 现代都市现实世界",
     "reason": "刘思怡所属世界来自2026年现代都市日常生活设定。"
   },
   "learningAbility": {
@@ -280,7 +280,7 @@
   "faction": "刘家",
   "factionRole": "小女儿",
   "job": "",
-  "rank": "普通成员",
+  "rank": "公民",
   "factions": [
     {
       "name": "刘家 / 小女儿",
@@ -296,8 +296,6 @@
       "changeMode": "作为三胞胎妹妹之一，与姐姐们和哥哥共同生活。"
     }
   ],
-  "forcePositions": [],
-  "force_positions": [],
   "knowledge": [
     {
       "name": "初中学科知识",
@@ -477,7 +475,7 @@
     "性格": "傲娇但心思细腻，表面嘴硬容易别扭，内心认真观察他人情绪和需求，依赖哥哥刘悠并有占有倾向。",
     "人物说明": "与三胞胎姐姐刘思瑶、刘思琪以及哥哥刘悠同住在成都市武侯区家中，父母已故，由哥哥照顾生活与学习。",
     "社群角色": "刘家/小女儿：作为三胞胎妹妹之一，与姐姐们和哥哥共同生活。",
-    "势力地位": "势力地位来自 Part1 forcePositions。"
+    "人事归属": "人事归属来自 Part1 memberships。"
   },
   "bodyProfile": [
     {
@@ -903,7 +901,6 @@
     "skills": "刘思怡的技能来自人物资料、现实身份或当前生活经验，后续使用和训练会继续更新。",
     "professions": "刘思怡的职业树只记录已有职业资格或长期训练经历，缺少证据时保持为空。",
     "factions": "刘思怡的社群角色来自住址、家庭、社交圈或当前处境。",
-    "force_positions": "刘思怡的势力地位来自国家、学校、公司或组织层级归属。",
     "items": "刘思怡的物品按日常携带和生活需要固化。",
     "wearing": "刘思怡的穿着按当前生活场景、身份和基础穿戴需求固化。",
     "status_tags": "刘思怡的状态标签概括其身份、处境和所属世界，供剧情判定使用。",
@@ -911,7 +908,8 @@
     "bodyStatus": "刘思怡的bodyStatus按当前人物资料、生活经历和世界规则固化，后续由明确剧情事件更新。",
     "control_experience": "初次操控尚不熟悉",
     "derived": "刘思怡的衍生战斗与判定数值由力量、敏捷、体质、感知和意志等已固化能力计算得到。",
-    "combat_simulation": "刘思怡的战斗模拟按当前能力、装备和状态生成，用于后续行动判定而不是独立编造。"
+    "combat_simulation": "刘思怡的战斗模拟按当前能力、装备和状态生成，用于后续行动判定而不是独立编造。",
+    "memberships": []
   },
   "initialMetrics": {
     "emotions": [
@@ -1446,5 +1444,15 @@
   "essentialPreferenceLayersLocked": true,
   "roleCardSource": "ai",
   "roleCardUpdatedAt": "2026-07-05T10:33:14.165Z",
-  "roleCardInputSignature": "v7:2320-40921441"
+  "roleCardInputSignature": "v7:2320-40921441",
+  "memberships": [
+    {
+      "orgName": "中华人民共和国",
+      "title": "公民",
+      "department": "",
+      "departmentFog": false,
+      "reason": "刘思怡没有明确指向其他国家，按2026现代都市现实世界背景登记为中华人民共和国公民。"
+    }
+  ]
 }
+

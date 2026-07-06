@@ -46,7 +46,7 @@ window.GameModules = window.GameModules || {};
         row('年龄', p.age ? `${p.age}岁` : '', '由生日按2026-06-12计算得到。'),
         row('具体地址', p.refinedCity || p.city, '玩家当前登记住址。'),
         row('现实身份', p.refinedRole || p.dailyRole, '玩家在2026现实世界中的日常身份。'),
-        row('势力地位', [p.workplace, p.position].filter(Boolean).join(' / '), '玩家当前工作、学习或组织势力及其内部地位。'),
+        row('人事归属', [p.workplace, p.position].filter(Boolean).join(' / '), '玩家当前工作、学习或组织势力及其内部地位。'),
         row('社群角色', [p.refinedCity || p.city, '居民'].filter(Boolean).join(' / '), '玩家当前居住社群及其中承担的社会角色。'),
         row('居住状态', p.refinedLivingStatus || p.livingStatus, '玩家当前居住与生活状态。'),
         row('父母状态', p.parentStatus || p.parents || '父母已故', '玩家父母当前状态。'),

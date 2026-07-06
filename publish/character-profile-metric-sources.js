@@ -164,7 +164,7 @@ window.GameModules = window.GameModules || {};
       if (this.hasRequiredInitialMetrics(normalized)) {
         return { ...profile, initialMetrics: normalized, initialMetricSourceRepairSignature: profile.roleCardInputSignature || '', initialMetricSourceRepairRemaining: { emotions: [], playerFeelings: [] } };
       }
-      const worldTag = base.work || profile.work || '现实世界';
+      const worldTag = base.work || profile.work || window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
       const lore = await window.GameModules.worldLore.ensure(worldTag, context);
       const attrs = await window.GameModules.rpgState.ensureWorldAttributes(worldTag);
       const initialMetrics = await this.repairInitialMetricSources({ ...profile, initialMetrics: normalized }, base, lore, attrs, context, store);

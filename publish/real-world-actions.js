@@ -104,9 +104,9 @@ window.GameModules.realWorldActions = {
     settlement.push(...this.realWorldFactionSettlement(
       window.GameModules.updateRegistry?.orgNamesFromGenericUpdates?.(result.genericUpdates, this)?.map((name) => ({ factionName: name, action: 'generic' })) || [],
     ));
-    const orgTerritoryTypes = new Set(['territory-control', 'org-structure-node', 'org-capability-entry', 'org-capability', 'membership', 'org-status', 'faction-structure', 'faction-overview']);
+    const orgTerritoryTypes = new Set(['territory-control', 'org-structure-node', 'org-overview-panel', 'membership', 'org-status', 'faction-structure', 'faction-overview']);
     const orgTerritoryUpdates = (result.genericUpdates || []).filter((item) => orgTerritoryTypes.has(item?.updateType));
-    const legacyHandled = new Set(['vital', 'emotion', 'feeling', 'item', 'faction-structure', 'faction-overview', 'territory-control', 'org-structure-node', 'org-capability-entry', 'org-capability', 'membership', 'org-status']);
+    const legacyHandled = new Set(['vital', 'emotion', 'feeling', 'item', 'faction-structure', 'faction-overview', 'territory-control', 'org-structure-node', 'org-overview-panel', 'membership', 'org-status']);
     if (orgTerritoryUpdates.length) {
       const orgLines = window.GameModules.orgTerritoryActions?.applySettlementUpdates?.(this, orgTerritoryUpdates) || [];
       orgLines.forEach((line) => { if (line) settlement.push(line); });

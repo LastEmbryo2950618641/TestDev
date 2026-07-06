@@ -91,14 +91,19 @@ window.GameModules.companyFactionActions = {
     if (!state?.values || !entry.force || !entry.position) return;
     const ot = window.GameModules.orgTerritory;
     const orgId = entry.orgId || ot?.resolveOrgIdByName?.(this, entry.force) || '';
-    const row = { name: `${entry.force} / ${entry.position}`, force: entry.force, position: entry.position, orgId, reason: entry.reason || '由现实职场事项确认。', changeMode: 'Boss招聘同步' };
-    const list = Array.isArray(state.values.force_positions) ? state.values.force_positions : [];
-    if (!list.some((item) => item.force === row.force && item.position === row.position)) state.values.force_positions = [...list, row];
-    ot?.upsertCharacterMembership?.(state, { orgId, orgName: entry.force, title: entry.position, reason: row.reason, since: this.phoneDate?.()?.toISOString?.() || new Date().toISOString() }, this);
+    const row = {
+      orgId,
+      orgName: entry.force,
+      title: entry.position,
+      reason: entry.reason || '由现实职场事项确认。',
+      since: this.phoneDate?.()?.toISOString?.() || new Date().toISOString(),
+      source: 'Boss招聘同步',
+    };
+    const mem = ot?.upsertCharacterMembership?.(state, row, this) || row;
     if (state.profile) {
-      const profileList = Array.isArray(state.profile.force_positions) ? state.profile.force_positions : [];
-      if (!profileList.some((item) => item.force === row.force && item.position === row.position)) state.profile.force_positions = [...profileList, row];
+      const profileList = Array.isArray(state.profile.memberships) ? state.profile.memberships : [];
+      if (!profileList.some((item) => (mem.orgId && item.orgId === mem.orgId) || (item.orgName === mem.orgName && item.title === mem.title))) state.profile.memberships = [...profileList, mem];
     }
-    window.GameModules.sqliteSave.saveCharacterState?.(state).catch((err) => console.warn('[势力地位] 保存失败:', err.message, err.stack));
+    window.GameModules.sqliteSave.saveCharacterState?.(state).catch((err) => console.warn('[人事归属] 保存失败:', err.message, err.stack));
   },
 };

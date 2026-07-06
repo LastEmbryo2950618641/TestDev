@@ -1,5 +1,39 @@
 window.GameModules = window.GameModules || {};
 window.GameModules.playerIdentityActions = {
+  syncPlayerSocialFields(state = null) {
+    const current = state || this.playerIdentityState?.();
+    if (!current?.profile) return false;
+    const tool = window.GameModules.characterProfile;
+    if (!tool?.memberships && !tool?.factionRoles) return false;
+    const base = { ...this.playerCharacterBase(), ...(current.profile || {}) };
+    const nextFactions = tool.factionRoles?.(current.profile, base, this) || (Array.isArray(current.profile.factions) ? current.profile.factions : []);
+    const nextMemberships = tool.memberships?.(current.profile, base, this) || (Array.isArray(current.profile.memberships) ? current.profile.memberships : []);
+    const prevProfileFactions = Array.isArray(current.profile.factions) ? current.profile.factions : [];
+    const prevProfileMemberships = Array.isArray(current.profile.memberships) ? current.profile.memberships : [];
+    const prevValueFactions = Array.isArray(current.values?.factions) ? current.values.factions : [];
+    const prevValueMemberships = Array.isArray(current.values?.memberships) ? current.values.memberships : [];
+    const changed = JSON.stringify(prevProfileFactions) !== JSON.stringify(nextFactions)
+      || JSON.stringify(prevProfileMemberships) !== JSON.stringify(nextMemberships)
+      || JSON.stringify(prevValueFactions) !== JSON.stringify(nextFactions)
+      || JSON.stringify(prevValueMemberships) !== JSON.stringify(nextMemberships);
+    if (!changed) return false;
+    current.profile.factions = nextFactions;
+    current.profile.memberships = nextMemberships;
+    current.values = current.values || {};
+    current.values.factions = nextFactions;
+    current.values.memberships = nextMemberships;
+    window.GameModules.orgTerritory?.syncCharacterOrgMemberships?.(current, this);
+    return true;
+  },
+
+  backfillPlayerMemberships(state = null) {
+    return this.syncPlayerSocialFields?.(state) || false;
+  },
+
+  backfillPlayerFactions(state = null) {
+    return this.syncPlayerSocialFields?.(state) || false;
+  },
+
   playerCharacterBase() {
     const p = this.playerProfile || {};
     const world = window.GameModules.realWorld2026 || {};
@@ -17,7 +51,7 @@ window.GameModules.playerIdentityActions = {
       id: 'player-self', name, age: p.age || '', birthday: p.birthday || '', gender: p.gender || '', work: world.label || '2026 现代都市现实世界', role, job: role,
       rank: position, faction: workplace, city, workplace, position, importance: 'main', isPlayer: true,
       items: p.items || [], wearing: p.wearing || [],
-      detail: `性别：${p.gender || '未知'}；年龄：${p.age || '未知'}；生日：${p.birthday || '未知'}；具体地址：${city}；势力地位：${workplace}/${position}；社群角色：${city}/居民；居住：${living}；父母：${parents}；去世原因：${deathCause}；关系：${relations}；备注：${notes}`,
+      detail: `性别：${p.gender || '未知'}；年龄：${p.age || '未知'}；生日：${p.birthday || '未知'}；具体地址：${city}；人事归属：${workplace}/${position}；社群角色：${city}/居民；居住：${living}；父母：${parents}；去世原因：${deathCause}；关系：${relations}；备注：${notes}`,
       personality: notes,
       skills: [
         { name: '手机操作', desc: '能够使用智能手机完成通讯、检索、拍摄、设置、应用切换和信息处理等操作。', reason: '玩家通过新手机激活和现实应用入口获得该基础操作能力。' },
@@ -44,21 +78,26 @@ window.GameModules.playerIdentityActions = {
     return this.identityTargetState()?.profile || (id === this.character.id ? this.character : { name: '未知角色', work: '未知世界', role: '身份未知', detail: '暂无角色卡。', personality: '', pendingAiProfile: true });
   },
   essentialPreferenceLayersForState(state = null) {
-    const prefTool = window.GameModules.playerAspirationPreferenceLayers;
-    if (!prefTool) return null;
-    const resolved = state || this.identityTargetState();
-    const id = resolved?.id || this.identityTargetId || 'player-self';
-    if (id === 'player-self') {
-      const fromAspiration = this.playerAspiration?.essentialPreferenceLayers
-        || prefTool.buildFromPlayerAspiration?.(this.playerAspiration);
-      if (fromAspiration?.layer1) return prefTool.normalizeLayers(fromAspiration);
-      const profile = resolved?.profile;
-      if (profile) return prefTool.ensureOnProfile(profile);
+    try {
+      const prefTool = window.GameModules.playerAspirationPreferenceLayers;
+      if (!prefTool) return null;
+      const resolved = state || this.identityTargetState();
+      const id = resolved?.id || this.identityTargetId || 'player-self';
+      if (id === 'player-self') {
+        const fromAspiration = this.playerAspiration?.essentialPreferenceLayers
+          || prefTool.buildFromPlayerAspiration?.(this.playerAspiration);
+        if (fromAspiration?.layer1) return prefTool.normalizeLayers(fromAspiration);
+        const profile = resolved?.profile;
+        if (profile) return prefTool.ensureOnProfile(profile);
+        return null;
+      }
+      const profile = resolved?.profile || (id === (this.identityTargetId || '') ? this.identityTargetProfile() : null);
+      if (!profile || typeof profile !== 'object') return null;
+      return prefTool.ensureOnProfile(profile);
+    } catch (err) {
+      console.warn('[identity] essential preference layers unavailable:', err?.message || err);
       return null;
     }
-    const profile = resolved?.profile || (id === (this.identityTargetId || '') ? this.identityTargetProfile() : null);
-    if (!profile || typeof profile !== 'object') return null;
-    return prefTool.ensureOnProfile(profile);
   },
 
   essentialPreferenceViewFromPlayerAspiration(view = null) {
@@ -76,16 +115,21 @@ window.GameModules.playerIdentityActions = {
   },
 
   essentialPreferenceViewForState(state = null) {
-    const resolved = state || this.identityTargetState();
-    const id = resolved?.id || this.identityTargetId || 'player-self';
-    if (id === 'player-self' && this.hasPlayerAspiration?.()) {
-      return this.essentialPreferenceViewFromPlayerAspiration?.();
+    try {
+      const resolved = state || this.identityTargetState();
+      const id = resolved?.id || this.identityTargetId || 'player-self';
+      if (id === 'player-self' && this.hasPlayerAspiration?.()) {
+        return this.essentialPreferenceViewFromPlayerAspiration?.();
+      }
+      const prefTool = window.GameModules.playerAspirationPreferenceLayers;
+      const layers = this.essentialPreferenceLayersForState?.(resolved);
+      const view = prefTool?.viewFromLayers?.(layers);
+      if (view) view.footnote = '角色本质偏好五层在角色卡生成时固化，推演不可修改。';
+      return view || null;
+    } catch (err) {
+      console.warn('[identity] essential preference view unavailable:', err?.message || err);
+      return null;
     }
-    const prefTool = window.GameModules.playerAspirationPreferenceLayers;
-    const layers = this.essentialPreferenceLayersForState?.(resolved);
-    const view = prefTool?.viewFromLayers?.(layers);
-    if (view) view.footnote = '角色本质偏好五层在角色卡生成时固化，推演不可修改。';
-    return view || null;
   },
 
   identityEssentialPreferenceLayers() {
@@ -112,7 +156,7 @@ window.GameModules.playerIdentityActions = {
     ];
     const prefTool = window.GameModules.playerAspirationPreferenceLayers;
     const layerSource = this.essentialPreferenceLayersForState?.(this.identityTargetState());
-    prefTool?.toLines?.(layerSource).forEach((line, index) => {
+    if (layerSource) prefTool?.toLines?.(layerSource).forEach((line, index) => {
       const label = line.split(':')[0]?.trim() || '本质偏好';
       const desc = (this.identityTargetId || 'player-self') === 'player-self'
         ? '玩家本质偏好层；仅玩家可在人生取向向导中修改，推演不可更改。'
@@ -208,6 +252,7 @@ window.GameModules.playerIdentityActions = {
         }
       }
       if (window.GameModules.predefinedRoleCards?.upgradeSavedProfileAppearance?.(existing.profile)) changed = true;
+      if (this.syncPlayerSocialFields?.(existing)) changed = true;
       if (changed) await window.GameModules.sqliteSave.saveCharacterState(existing);
       return existing;
     }
@@ -248,10 +293,9 @@ window.GameModules.playerIdentityActions = {
     state.values.status_tags = ['玩家本人', '手机主人', character.work, character.role];
     if (!state.values.items?.length) state.values.items = character.items || [];
     window.GameModules.progression.syncInventoryFromProfile?.(state, character);
-    state.values.factions = window.GameModules.socialPosition.playerItems({ ...this.playerProfile, workplace: character.workplace, position: character.position });
-    state.values.force_positions = window.GameModules.socialPosition.playerForceItems({ ...this.playerProfile, workplace: character.workplace, position: character.position }, this);
-    state.values.memberships = window.GameModules.socialPosition.membershipItems({ ...this.playerProfile, workplace: character.workplace, position: character.position }, this);
-    window.GameModules.orgTerritory?.syncCharacterOrgMemberships?.(state, this);
+    state.values.factions = Array.isArray(character.factions) ? character.factions : [];
+    state.values.memberships = Array.isArray(character.memberships) ? character.memberships : [];
+    this.syncPlayerSocialFields?.(state);
     window.GameModules.progression.ensureStateMechanics(state, character);
     window.GameModules.initPromptRegistry?.ensureTemplateState?.('intimacyBody', state);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };

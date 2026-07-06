@@ -190,6 +190,9 @@ button {
 .learned-count-chip,
 .intrinsic-link-group,
 .learned-link-group,
+.identity-info-tag,
+.identity-info-badge,
+.identity-info-list-group,
 .intrinsic-group-head small,
 .ability-gauge,
 .ability-stat,
@@ -210,6 +213,8 @@ button {
 .rpg-status-section-head,
 .ability-collection-head,
 .intrinsic-group-head,
+.identity-info-group-head,
+.identity-info-list-head,
 .learned-links-summary {
   color: var(--ui-text);
 }
@@ -218,8 +223,33 @@ button {
 .ability-stat-label,
 .intrinsic-stat-label,
 .intrinsic-hero-line,
+.identity-info-tag-label,
+.identity-info-hero-note,
 .learned-count-chip {
   color: var(--ui-text-muted);
+}
+
+.identity-info-hero,
+.identity-info-core-card,
+.identity-info-lore-card,
+.identity-info-tag,
+.identity-info-badge,
+.identity-info-list-group {
+  border-color: var(--ui-border);
+  background: color-mix(in srgb, var(--ui-surface-soft) 94%, transparent);
+  color: var(--ui-text);
+}
+
+.identity-info-crest,
+.identity-info-lore-icon {
+  border-color: var(--ui-border);
+  background: rgba(var(--ui-accent-rgb), .12);
+}
+
+.identity-info-hero-eyebrow,
+.identity-info-group-symbol,
+.identity-info-badge-icon {
+  color: var(--ui-accent);
 }
 
 .ability-detail-close,

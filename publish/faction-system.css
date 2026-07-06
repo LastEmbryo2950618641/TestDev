@@ -44,4 +44,296 @@
 .faction-reasons { display: grid; gap: 8px; }
 .faction-reasons p { margin: 0; padding: 8px; border-radius: 10px; background: rgba(255,255,255,.045); }
 .faction-reasons b { display: block; color: #eafff5; margin-bottom: 4px; }
+
+.faction-rpg-detail {
+  gap: 12px;
+  padding: 12px;
+  border-color: rgba(255, 205, 112, .34);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255, 205, 112, .20), transparent 32%),
+    radial-gradient(circle at 92% 18%, rgba(93, 214, 255, .18), transparent 30%),
+    linear-gradient(180deg, rgba(16, 20, 37, .98), rgba(7, 12, 24, .98));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.045), 0 30px 90px rgba(0,0,0,.58);
+}
+
+.faction-rpg-hero {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(255, 205, 112, .28);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(47, 34, 18, .92), rgba(21, 31, 55, .92)),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.04) 0 1px, transparent 1px 9px);
+  box-shadow: 0 12px 28px rgba(0,0,0,.28);
+}
+
+.faction-rpg-crest {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: 1px solid rgba(255, 205, 112, .72);
+  border-radius: 16px;
+  color: #ffe2a3;
+  font-size: 28px;
+  background: radial-gradient(circle at 35% 25%, rgba(255,255,255,.35), transparent 26%), linear-gradient(145deg, #52371b, #16284c);
+  box-shadow: inset 0 0 18px rgba(255, 205, 112, .16), 0 0 22px rgba(255, 205, 112, .16);
+}
+
+.faction-rpg-title { min-width: 0; }
+.faction-rpg-title h3 { margin: 1px 0 4px; color: #fff6db; font-size: clamp(20px, 4.2vw, 28px); letter-spacing: .02em; }
+.faction-rpg-title small { display: block; color: #b8c8e8; line-height: 1.45; }
+.faction-rpg-title .eyebrow { margin: 0; color: #72e4ff; letter-spacing: .18em; }
+
+.faction-rpg-tags,
+.faction-rpg-chipset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.faction-rpg-tags { margin-top: 9px; }
+.faction-rpg-tags span,
+.faction-rpg-chipset span {
+  border: 1px solid rgba(255, 205, 112, .28);
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: #ffe7ac;
+  background: rgba(255, 205, 112, .10);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.faction-rpg-close { align-self: start; }
+
+.faction-rpg-section {
+  border-color: rgba(114, 228, 255, .18);
+  background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.035));
+}
+
+.faction-rpg-section h3 { margin: 0 0 8px; color: #fff6db; }
+.faction-rpg-summary p { margin: 0; color: #d5e2ff; font-size: 15px; }
+
+.faction-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.faction-overview-card {
+  position: relative;
+  padding: 12px;
+  border: 1px solid rgba(114, 228, 255, .16);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(30, 47, 79, .62), rgba(15, 24, 44, .80)),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.02) 0 1px, transparent 1px 8px);
+  box-shadow: inset 0 1px rgba(255,255,255,.05);
+  overflow: hidden;
+}
+
+.faction-overview-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, rgba(114,228,255,.8), rgba(255,226,154,.65));
+}
+
+.faction-overview-card.tone-gold::before { background: linear-gradient(180deg, #ffe29a, #ffb347); }
+.faction-overview-card.tone-green::before { background: linear-gradient(180deg, #6fffb0, #1ecb7b); }
+.faction-overview-card.tone-blue::before { background: linear-gradient(180deg, #7fd9ff, #4d8bff); }
+.faction-overview-card.tone-red::before { background: linear-gradient(180deg, #ff8f8f, #ff4f6d); }
+.faction-overview-card.tone-cyan::before { background: linear-gradient(180deg, #8ffff8, #53c8ff); }
+
+.faction-overview-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.faction-overview-symbol {
+  --meter: 0;
+  position: relative;
+  flex: 0 0 58px;
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, rgba(8,16,28,.95) 0 54%, transparent 55%),
+    conic-gradient(#72e4ff calc(var(--meter) * 1%), rgba(255,255,255,.08) 0);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 0 20px rgba(114,228,255,.16);
+}
+
+.faction-overview-symbol span {
+  position: relative;
+  z-index: 1;
+  font-size: 24px;
+  line-height: 1;
+  text-shadow: 0 0 12px rgba(255,255,255,.18);
+}
+
+.faction-overview-symbol i {
+  position: absolute;
+  inset: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+.faction-overview-head small {
+  display: block;
+  color: #72e4ff;
+  letter-spacing: .14em;
+  font-size: 11px;
+}
+
+.faction-overview-head h4 {
+  margin: 4px 0 0;
+  color: #fff6db;
+  font-size: 18px;
+}
+
+.faction-overview-head p {
+  margin: 6px 0 0;
+  color: #aeb9d6;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.faction-overview-count {
+  border: 1px solid rgba(255, 205, 112, .24);
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: #ffe7ac;
+  background: rgba(255, 205, 112, .08);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.faction-overview-list {
+  display: grid;
+  gap: 8px;
+}
+
+.faction-overview-item {
+  padding: 9px 10px;
+  border-radius: 12px;
+  background: rgba(0,0,0,.18);
+  border: 1px solid rgba(255,255,255,.06);
+}
+
+.faction-overview-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.faction-overview-item-head strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #fff6db;
+  font-size: 13px;
+}
+
+.faction-overview-item-head span {
+  color: #72e4ff;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.faction-overview-item p {
+  margin: 0;
+  color: #eef4ff;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.faction-overview-card.empty .faction-note {
+  min-height: 72px;
+  display: grid;
+  place-items: center start;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(0,0,0,.16);
+  border: 1px dashed rgba(255,255,255,.08);
+}
+
+.faction-overview-item small {
+  display: block;
+  margin-top: 5px;
+  color: #aeb9d6;
+  line-height: 1.45;
+}
+
+.faction-rpg-structure article {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(114, 228, 255, .16);
+  background: linear-gradient(135deg, rgba(31, 47, 80, .78), rgba(16, 26, 48, .82));
+}
+
+.faction-rpg-structure article::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, #ffe29a, #72e4ff);
+}
+
+.faction-rpg-node-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 8px;
+}
+
+.faction-rpg-node-head > span {
+  color: #ffe29a;
+  text-shadow: 0 0 12px rgba(255, 205, 112, .45);
+}
+
+.faction-rpg-structure p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin: 6px 0 0;
+  padding: 7px 8px;
+  border-radius: 10px;
+  background: rgba(0,0,0,.18);
+}
+
+.faction-rpg-structure p b { color: #fff6db; }
+.faction-rpg-log p {
+  border: 1px solid rgba(255, 205, 112, .12);
+  background: linear-gradient(180deg, rgba(255, 205, 112, .07), rgba(255,255,255,.035));
+}
+
+.faction-rpg-archive-row {
+  border-color: rgba(255, 205, 112, .22);
+  background: linear-gradient(135deg, rgba(58, 38, 18, .42), rgba(18, 31, 56, .72));
+}
+
+@media (max-width: 760px) {
+  .faction-rpg-hero { grid-template-columns: auto minmax(0, 1fr); }
+  .faction-rpg-close { grid-column: 1 / -1; width: 100%; }
+  .faction-overview-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 420px) {
+  .faction-overview-card { padding: 10px; }
+}
 @media (max-width: 760px) { .faction-card { padding: 12px; } .faction-toolbar, .faction-body, .faction-meta { grid-template-columns: 1fr; } .faction-body { overflow-y: auto; } .faction-list { overflow: visible; } .faction-detail { max-height: 88dvh; overflow-y: auto; } }

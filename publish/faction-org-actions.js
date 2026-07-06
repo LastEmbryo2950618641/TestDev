@@ -356,20 +356,155 @@ const _factionOrgActionsBase = {
     return this.factionState?.forestData?.viewportRoot?.name || window.GameModules.factionOrgForest?.resolveViewportRoot(this.factionState?.factions || [])?.name || '';
   },
 
+  factionOverviewModeMeta(faction = this.selectedFaction()) {
+    const maturityClass = String(faction?.maturityClass || '').trim() || 'community';
+    const ideologyCore = String(faction?.solid?.overviewPanels?.ideology?.core?.value || '').trim();
+    const gestalt = String(faction?.type || '').includes('格式塔意识') || ideologyCore === '格式塔意识';
+    if (gestalt) {
+      return {
+        eyebrow: 'GESTALT PROFILE',
+        labels: { ideology: '格式塔意识', economy: '资源', politics: '统一个体', military: '军事', diplomacy: '外交' },
+        ideologyLabels: { core: '核心', reason: '形成原因', description: '当前说明', base: '意识基底', legitimacy: '统一度' },
+        empty: { ideology: '尚未记录统一意识说明', economy: '尚未记录资源事实', politics: '尚未记录统一个体事实', military: '尚未记录军事事实', diplomacy: '尚未记录外交事实' },
+        hideMilitaryWhenEmpty: false,
+      };
+    }
+    if (maturityClass === 'community') {
+      return {
+        eyebrow: 'COMMUNITY PROFILE',
+        labels: { ideology: '凝聚原因', economy: '可用资源', politics: '管理', military: '军事', diplomacy: '联谊' },
+        ideologyLabels: { core: '核心', reason: '形成原因', description: '当前说明', base: '参与基础', legitimacy: '凝聚力' },
+        empty: { ideology: '尚未记录凝聚原因', economy: '尚未记录可用资源', politics: '默认按沟通协同处理', military: '社群态默认隐藏军事面板', diplomacy: '尚未记录联谊关系' },
+        hideMilitaryWhenEmpty: true,
+      };
+    }
+    return {
+      eyebrow: 'CORE PROFILE',
+      labels: { ideology: '意识形态', economy: '经济', politics: '政治', military: '军事', diplomacy: '外交' },
+      ideologyLabels: { core: '核心', reason: '原因', description: '说明', base: '基础', legitimacy: '合法性' },
+      empty: { ideology: '尚未记录意识形态事实', economy: '尚未记录经济事实', politics: '尚未记录政治事实', military: '尚未记录军事事实', diplomacy: '尚未记录外交事实' },
+      hideMilitaryWhenEmpty: false,
+    };
+  },
+
+  factionOverviewFieldLabel(panelKey = '', fieldKey = '', faction = this.selectedFaction()) {
+    const meta = this.factionOverviewModeMeta(faction);
+    if (panelKey === 'ideology') return meta.ideologyLabels?.[fieldKey] || fieldKey;
+    return fieldKey;
+  },
+
+  factionOverviewEntryValue(entry = {}) {
+    const raw = entry?.value;
+    if (typeof raw === 'number') return `${raw}${entry?.unit || ''}`;
+    const text = String(raw ?? '').trim();
+    return `${text}${entry?.unit || ''}`.trim();
+  },
+
+  factionOverviewPanelSkin(panelKey = '') {
+    const map = {
+      ideology: { icon: '🜁', tone: 'gold', entryIcons: { core: '⚑', reason: '✦', description: '☷', base: '⬡', legitimacy: '♛' } },
+      economy: { icon: '◇', tone: 'green', entryIcons: {} },
+      politics: { icon: '⚖', tone: 'blue', entryIcons: {} },
+      military: { icon: '⚔', tone: 'red', entryIcons: {} },
+      diplomacy: { icon: '✉', tone: 'cyan', entryIcons: {} },
+    };
+    return map[panelKey] || { icon: '◆', tone: 'blue', entryIcons: {} };
+  },
+
+  factionOverviewPanelMeter(panelKey = '', entries = [], faction = null) {
+    if (panelKey === 'ideology') {
+      const value = Number(faction?.solid?.overviewPanels?.ideology?.legitimacy?.value);
+      if (Number.isFinite(value)) return Math.max(0, Math.min(100, value));
+    }
+    return Math.max(0, Math.min(100, entries.length * 28));
+  },
+
+  factionOverviewRankLabel(meter = 0, count = 0) {
+    if (!count) return '迷雾未展开';
+    if (meter >= 75) return '核心态势稳固';
+    if (meter >= 45) return '已形成可观测态势';
+    return '初步确立';
+  },
+
+  selectedFactionOverviewSummary() {
+    const faction = this.selectedFaction?.();
+    if (!faction) return '';
+    const summary = window.GameModules.orgTerritory?.overviewSummary?.(faction, 3) || '';
+    if (summary) return summary;
+    return faction.stub?.oneLine || faction.description || '尚未推演出稳定的宏观总览事实。';
+  },
+
   buildFactionCapabilityCards(faction = this.selectedFaction()) {
     const ot = window.GameModules.orgTerritory;
-    const caps = faction?.solid?.capabilities || ot?.defaultCapabilities?.() || {};
-    return (ot?.CAPABILITY_DIMS || ['political', 'economic', 'asset', 'military']).map((dim) => ({
-      key: `cap-${dim}`,
-      dim,
-      label: ot?.CAPABILITY_LABELS?.[dim] || dim,
-      entries: (caps[dim]?.entries || []).map((entry, index) => ({
-        ...entry,
-        key: `${dim}-${index}-${entry.id || entry.name}`,
-        stateBadge: entry.stateBadge || ot?.stateBadge?.(entry.state) || '',
-        parentLabel: entry.parentLabel || ot?.nodeParentLabel?.({ parentRef: entry.parentRef }) || '',
-      })),
-    }));
+    const panels = ot?.normalizeOverviewPanels?.(faction?.solid?.overviewPanels || {})
+      || ot?.defaultOverviewPanels?.()
+      || { ideology: {}, economy: { entries: {} }, politics: { entries: {} }, military: { entries: {} }, diplomacy: { entries: {} } };
+    const meta = this.factionOverviewModeMeta(faction);
+    return ['ideology', 'economy', 'politics', 'military', 'diplomacy'].map((panelKey) => {
+      const skin = this.factionOverviewPanelSkin(panelKey);
+      if (panelKey === 'ideology') {
+        const ideology = panels.ideology || {};
+        const entries = ['core', 'reason', 'description', 'base', 'legitimacy'].map((fieldKey) => {
+          const field = ideology[fieldKey] || {};
+          const value = field?.value;
+          const hasValue = typeof value === 'number' ? Number.isFinite(value) : String(value ?? '').trim();
+          if (!hasValue && fieldKey !== 'legitimacy') return null;
+          return {
+            key: `ideology-${fieldKey}`,
+            name: fieldKey,
+            label: this.factionOverviewFieldLabel('ideology', fieldKey, faction),
+            value,
+            unit: field?.unit || '',
+            icon: skin.entryIcons[fieldKey] || skin.icon,
+            display: this.factionOverviewEntryValue(field),
+            reason: String(field?.reason || '').trim(),
+            stateBadge: hasValue ? '已记录' : '',
+            parentLabel: '',
+          };
+        }).filter(Boolean);
+        const meter = this.factionOverviewPanelMeter(panelKey, entries, faction);
+        return {
+          key: 'cap-ideology',
+          dim: 'ideology',
+          label: meta.labels.ideology,
+          eyebrow: meta.eyebrow,
+          emptyText: meta.empty.ideology,
+          icon: skin.icon,
+          tone: skin.tone,
+          meter,
+          meterStyle: `--meter:${meter};`,
+          rankLabel: this.factionOverviewRankLabel(meter, entries.length),
+          statusLabel: `${entries.length}项`,
+          entries,
+        };
+      }
+      const entries = Object.entries(panels[panelKey]?.entries || {}).map(([key, entry]) => ({
+        ...(entry && typeof entry === 'object' ? entry : { value: entry }),
+        key: `${panelKey}-${key}`,
+        name: key,
+        label: this.factionOverviewFieldLabel(panelKey, key, faction),
+        icon: skin.entryIcons[key] || skin.icon,
+        display: this.factionOverviewEntryValue(entry && typeof entry === 'object' ? entry : { value: entry }),
+        reason: String(entry?.reason || '').trim(),
+        stateBadge: entry?.state ? (ot?.stateBadge?.(entry.state) || '') : '',
+        parentLabel: '',
+      }));
+      const meter = this.factionOverviewPanelMeter(panelKey, entries, faction);
+      return {
+        key: `cap-${panelKey}`,
+        dim: panelKey,
+        label: meta.labels[panelKey] || panelKey,
+        eyebrow: meta.eyebrow,
+        emptyText: meta.empty[panelKey] || '尚未记录',
+        icon: skin.icon,
+        tone: skin.tone,
+        meter,
+        meterStyle: `--meter:${meter};`,
+        rankLabel: this.factionOverviewRankLabel(meter, entries.length),
+        statusLabel: `${entries.length}项`,
+        entries,
+      };
+    }).filter((card) => !(card.dim === 'military' && meta.hideMilitaryWhenEmpty && !card.entries.length));
   },
 
   factionCapabilityCards() {

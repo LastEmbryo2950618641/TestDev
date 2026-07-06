@@ -34,7 +34,7 @@ window.GameModules.characterReasonFallback = {
       性格: `${profile.personality || detail}体现了${name}面对压力、关系和日常选择时的稳定反应。`,
       人物说明: `${detail}说明了${name}此刻的生活位置、关系牵连和可行动边界。`,
       社群角色: `${name}需要通过居住地、家庭、朋友圈或临时处境确定自己属于哪个社群。`,
-      势力地位: `${name}在国家、学校、公司或组织中的层级会影响资源、责任和可用行动。`,
+      人事归属: `${name}在国家、学校、公司或组织中的层级会影响资源、责任和可用行动。`,
     };
   },
 
@@ -78,7 +78,7 @@ window.GameModules.characterReasonFallback = {
       items: `${name}的物品按日常携带和生活需要固化。`,
       wearing: `${name}的穿着按当前生活场景、身份和基础穿戴需求固化。`,
       factions: `${name}的社群角色来自住址、家庭、社交圈或当前处境。`,
-      force_positions: `${name}的势力地位来自国家、学校、公司或组织层级归属。`,
+      memberships: `${name}的人事归属来自国家、学校、公司或组织层级归属。`,
       status_tags: `${name}的状态标签概括其身份、处境和所属世界，供剧情判定使用。`,
       derived: `${name}的衍生战斗与判定数值由力量、敏捷、体质、感知和意志等已固化能力计算得到。`,
       combat_simulation: `${name}的战斗模拟按当前能力、装备和状态生成，用于后续行动判定而不是独立编造。`,

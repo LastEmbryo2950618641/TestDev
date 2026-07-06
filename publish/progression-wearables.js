@@ -223,7 +223,7 @@ window.GameModules = window.GameModules || {};
       return baseSchemaSections(attrs).map((section) => {
         if (section.title !== '习得与职业') return section;
         const fields = [...section.fields];
-        const insertAfter = fields.findIndex((field) => field.key === 'force_positions') + 1;
+        const insertAfter = fields.findIndex((field) => field.key === 'memberships') + 1;
         const additions = [
           this.field('items', '物品', 'list', 0, 100, '当前持有、可消耗、可转让或可用于现实行动的物品与装备。'),
           this.field('wearing', '穿着', 'list', 0, 100, '当前穿戴在各人体着装部位、饰品位和装备位的衣物、装备、饰品与包具。'),

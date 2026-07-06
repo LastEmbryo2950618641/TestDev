@@ -21,7 +21,7 @@ window.GameModules.factionActions = {
     if (top) this.factionState.factions.sort((a, b) => (a.id === top.id ? -1 : b.id === top.id ? 1 : 0));
     this.syncCompanyFaction?.();
     this.ensureAllCompanyFactions?.();
-    this.syncRoleCardFactionPositions?.();
+    this.syncRoleCardMemberships?.();
   },
 
   syncCompanyFaction() {
@@ -55,7 +55,7 @@ window.GameModules.factionActions = {
   normalizeFactionStructure(faction = {}) {
     const ot = window.GameModules.orgTerritory;
     faction.structure = (faction.structure || []).map((node, index) => {
-      const name = node.name === '角色卡势力地位' ? this.factionPositionNodeName(faction, node.roles?.[0]?.title) : node.name;
+      const name = node.name === '角色卡人事归属' ? this.factionPositionNodeName(faction, node.roles?.[0]?.title) : node.name;
       const base = { ...node, name, roles: node.roles };
       return ot?.normalizeStructureNode?.(base, faction, index, this) || { ...base, roles: this.normalizeFactionRoles(node.roles) };
     });
@@ -78,25 +78,23 @@ window.GameModules.factionActions = {
     });
   },
 
-  syncRoleCardFactionPositions() {
+  syncRoleCardMemberships() {
     if (!this.factionState) return;
-    this.collectRoleCardForcePositions().forEach((item) => this.ensureFactionPosition(item));
+    this.collectRoleCardMemberships().forEach((item) => this.ensureFactionMembership(item));
   },
 
-  collectRoleCardForcePositions() {
+  collectRoleCardMemberships() {
     const cards = [];
     try { cards.push(this.playerCharacter?.()); } catch (_) { /* 玩家角色卡未生成时跳过 */ }
     cards.push(this.selectedPlayerRoleCard?.(), ...(this.selectedRelationRoleCards?.() || []));
     const validCards = cards.filter(Boolean);
     const rows = [];
-    const blockedForce = /^(现实社会|现代社会|现实世界|社会|国家|中华人民共和国)$/;
-    const blockedPosition = /^(公民|居民|成年人|成年学生|成员)$/;
     const push = (entry, characterName = '未知') => {
-      const force = String(entry?.force || entry?.faction || entry?.name || '').split('/')[0].trim();
-      const position = String(entry?.position || entry?.role || entry?.rank || '').trim();
-      if (force && position && !blockedForce.test(force) && !blockedPosition.test(position)) rows.push({ force, position, characterName, reason: entry.reason || '由玩家或角色卡势力地位确认。' });
+      const orgName = String(entry?.orgName || entry?.name || '').split('/')[0].trim();
+      const title = String(entry?.title || '').trim();
+      if (orgName && title) rows.push({ orgName, title, characterName, reason: entry.reason || '由玩家或角色卡人事归属确认。' });
     };
-    validCards.forEach((card) => (card.force_positions || card.forcePositions || []).forEach((entry) => push(entry, card.name || card.id || '未知')));
+    validCards.forEach((card) => (card.memberships || []).forEach((entry) => push(entry, card.name || card.id || '未知')));
     return rows;
   },
 
@@ -105,28 +103,28 @@ window.GameModules.factionActions = {
     return `force-${slug}`;
   },
 
-  ensureFactionPosition(item = {}) {
-    const name = String(item.force || '').trim();
-    const position = String(item.position || '成员').trim();
+  ensureFactionMembership(item = {}) {
+    const name = String(item.orgName || '').trim();
+    const title = String(item.title || '成员').trim();
     if (!name) return null;
     const now = new Date().toISOString();
     let faction = this.factionState.factions.find((x) => x.name === name || x.id === this.factionIdByName(name));
     if (!faction) {
       const top = this.factionState.factions.find((x) => x.type === '国家' && !x.parentId) || window.GameModules.factionSystem.countryFaction(this.playerProfile || {});
       const isTopCountry = name === top.name;
-      faction = this.normalizeFactionStructure({ id: isTopCountry ? top.id : this.factionIdByName(name), name, type: isTopCountry ? '国家' : '组织', parentId: isTopCountry ? '' : top.id, parentName: isTopCountry ? '无势力归属' : top.name, level: isTopCountry ? '国家级' : '组织级', location: this.playerProfile?.refinedCity || this.playerProfile?.city || '未知', domain: '现实组织关系', scale: '未知', stance: '与角色卡势力地位相关', influence: 30, description: `由角色卡势力地位确认的现实势力：${name}。`, structure: [], rules: [], resources: [], relations: [], fixed: true, updatedAt: now });
-      faction.fieldReasons = this.completeFactionReasons?.(faction, {}, '角色卡势力地位只可新增不可移除，系统据此初始化势力。') || {};
-      faction.changeLog = [{ field: 'all', reason: item.reason || '角色卡已有势力地位，追加进入势力系统。', at: now, action: 'add' }];
+      faction = this.normalizeFactionStructure({ id: isTopCountry ? top.id : this.factionIdByName(name), name, type: isTopCountry ? '国家' : '组织', parentId: isTopCountry ? '' : top.id, parentName: isTopCountry ? '无势力归属' : top.name, level: isTopCountry ? '国家级' : '组织级', location: this.playerProfile?.refinedCity || this.playerProfile?.city || '未知', domain: '现实组织关系', scale: '未知', stance: '与角色卡人事归属相关', influence: 30, description: `由角色卡人事归属确认的现实势力：${name}。`, structure: [], rules: [], resources: [], relations: [], fixed: true, updatedAt: now });
+      faction.fieldReasons = this.completeFactionReasons?.(faction, {}, '角色卡人事归属只可新增不可移除，系统据此初始化势力。') || {};
+      faction.changeLog = [{ field: 'all', reason: item.reason || '角色卡已有人事归属，追加进入势力系统。', at: now, action: 'add' }];
       this.factionState.factions.push(faction);
     }
-    this.addFactionRoleOccupant(faction, position, item.characterName || '未知', item.reason || '由角色卡势力地位确认。', now);
+    this.addFactionRoleOccupant(faction, title, item.characterName || '未知', item.reason || '由角色卡人事归属确认。', now);
     return faction;
   },
 
   addFactionRoleOccupant(faction, title, character, reason, at = new Date().toISOString()) {
     faction.structure = faction.structure || [];
     const nodeName = this.factionPositionNodeName(faction, title);
-    let node = faction.structure.find((x) => x.name === nodeName || x.name === '角色卡势力地位');
+    let node = faction.structure.find((x) => x.name === nodeName || x.name === '角色卡人事归属');
     if (!node) {
       node = { name: nodeName, roles: [] };
       faction.structure.push(node);
@@ -188,8 +186,10 @@ window.GameModules.factionActions = {
   },
 
   selectedFaction() {
-    if (!this.factionState) this.initFactionSystem();
-    return this.factionState.factions.find((x) => x.id === this.factionState.selectedId) || this.factionState.factions[0];
+    if (!this.factionState?.factions?.length) this.initFactionSystem?.();
+    const factions = Array.isArray(this.factionState?.factions) ? this.factionState.factions : [];
+    if (!factions.length) return null;
+    return factions.find((x) => x.id === this.factionState?.selectedId) || factions[0] || null;
   },
 
   selectFaction(id) {
@@ -235,8 +235,9 @@ window.GameModules.factionActions = {
   },
 
   factionParentName(faction) {
+    const factions = Array.isArray(this.factionState?.factions) ? this.factionState.factions : [];
     const forest = window.GameModules.factionOrgForest;
-    const affiliated = forest?.resolveAffiliatedFaction?.(faction, this.factionState?.factions || []);
+    const affiliated = forest?.resolveAffiliatedFaction?.(faction, factions);
     if (forest) {
       if (affiliated?.name) return affiliated.name;
       if (!faction?.parentId) return '无势力归属';
@@ -244,7 +245,7 @@ window.GameModules.factionActions = {
       return '无势力归属';
     }
     if (!faction?.parentId) return '无势力归属';
-    return this.factionState.factions.find((x) => x.id === faction.parentId)?.name || faction.parentName || '未知势力';
+    return factions.find((x) => x.id === faction.parentId)?.name || faction.parentName || '未知势力';
   },
 
   selectedFactionAffiliatedLabel() {

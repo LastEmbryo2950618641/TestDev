@@ -22,7 +22,7 @@ window.GameModules.progression = {
       { title: '习得与职业', fields: [
         this.field('knowledge', '知识储备', 'list', 0, 100, '已掌握的知识领域及等级。'), this.field('skills', '技能等级', 'list', 0, 100, '经过学习或训练获得的技能等级。'),
         this.field('professions', '职业等级', 'list', 0, 100, '已内化的职业能力、经验与胜任资格。'), this.field('factions', '社群角色', 'list', 0, 100, '所属社群与在其中承担的社会角色。'),
-        this.field('force_positions', '势力地位', 'list', 0, 100, '在有层级制度势力中的等级、职级、年级或职位。'), this.field('status_tags', '状态标签', 'list', 0, 100, '当前处境、身份标签或剧情状态。'),
+        this.field('memberships', '人事归属', 'list', 0, 100, '角色在势力或社群组织架构中的部门、职位、身份或成员关系。'), this.field('status_tags', '状态标签', 'list', 0, 100, '当前处境、身份标签或剧情状态。'),
         this.field('intimacy', '亲密经历', 'text', 0, 100, '成人虚构角色的抽象经历次数记录。'), this.field('bodyStatus', '身体状态', 'list', 0, 100, '各身体部位的中性短状态。'),
         this.field('control_experience', '上线体验', 'text', 0, 100, '角色对被玩家上线操控的经历记录。'), this.field('derived', '攻防衍生', 'text', 0, 100, '由基础能力推导出的攻防表现。'),
         this.field('combat_simulation', '战斗模拟', 'text', 0, 100, '基于当前状态估算的一次战斗表现。'),
@@ -41,7 +41,7 @@ window.GameModules.progression = {
   normalizeCharacterExp(exp, level, fallbackCurrent = 0) { const next = this.nextCharacterExp(level); return { current: this.clamp(exp?.current ?? fallbackCurrent, 0, next), next, curve: 'nextExp=round(100*level^1.65)' }; },
   ensureProgressionNotes(values) {
     if (!values) return; if (values.exp) values.exp.curve = 'nextExp=round(100*level^1.65)';
-    for (const item of [...(values.factions || []), ...(values.force_positions || []), ...(values.items || []), ...(values.wearing || []), ...(values.status_tags || [])]) if (item && typeof item === 'object' && Object.prototype.hasOwnProperty.call(item, 'level')) item.level = -1;
+    for (const item of [...(values.factions || []), ...(values.memberships || []), ...(values.items || []), ...(values.wearing || []), ...(values.status_tags || [])]) if (item && typeof item === 'object' && Object.prototype.hasOwnProperty.call(item, 'level')) item.level = -1;
   },
 
   ensureStateMechanics(state, character = state?.profile || {}) {
@@ -97,7 +97,7 @@ window.GameModules.progression = {
       skills: existing.skills?.[0]?.level ? existing.skills : this.profileLearnedList(character, 'skills', '技能', seed, existing.skills),
       professions: existing.professions?.length ? existing.professions : this.profileLearnedList(character, 'professions', '职业', seed, existing.professions),
       factions: existing.factions?.length ? existing.factions : this.factions(character),
-      force_positions: existing.force_positions?.length ? existing.force_positions : this.forcePositions(character),
+      memberships: existing.memberships?.length ? existing.memberships : this.memberships(character),
       derived: {},
     };
   },
@@ -136,8 +136,8 @@ window.GameModules.progression = {
     if (Array.isArray(character.factions) && character.factions.length) return character.factions;
     return character.faction ? [social?.item?.(character.faction, character.factionRole || character.role || '成员') || character.faction] : [character.role || '无'].filter((x) => x && x !== '无');
   },
-  forcePositions(character) {
-    if (Array.isArray(character.force_positions) && character.force_positions.length) return character.force_positions;
+  memberships(character) {
+    if (Array.isArray(character.memberships) && character.memberships.length) return character.memberships;
     return [];
   },
   normalizeLearnedLists(values) {

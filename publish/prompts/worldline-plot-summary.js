@@ -1,0 +1,5 @@
+// GENERATED FROM publish/prompts/worldline-plot-summary.md; DO NOT EDIT.
+window.GameModules = window.GameModules || {};
+window.GameModules.promptTemplates = window.GameModules.promptTemplates || {};
+window.GameModules.promptTemplates.inline = window.GameModules.promptTemplates.inline || {};
+window.GameModules.promptTemplates.inline["worldline-plot-summary"] = "你是世界线索引员。只输出一个合法 JSON 对象，不要 Markdown、代码块或解释。\r\n\r\n目标：为后续现实推演动态检索生成短结构索引，不写长篇总结，不改写事实。\r\n\r\n情节标题不超过10个汉字；短摘要300-600字；关键事实最多12条，每条不超过80字；检索标签最多16个；重要片段必须来自记录原文。\r\n\r\n重要记录编号必须是一个字符串，用顿号连接记录编号；不要输出数组。\r\n\r\n返回格式示例：\r\n{{schemaExample}}\r\n\r\n情节编号固定为{{plotId}}。\r\n\r\n## 事件记录\r\n{{eventsText}}";
