@@ -6,6 +6,7 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.orgTerritory = {
   ITEM_STATES: ['fog', 'sketch', 'established'],
+  ORG_CLASSIFICATIONS: ['country', 'faction', 'community', 'claim'],
 
   nowLabel(store) {
     try {
@@ -32,7 +33,7 @@ window.GameModules.orgTerritory = {
   validOrgId(store, orgId = '') {
     const id = String(orgId || '').trim();
     if (!id) return this.defaultCountryOrgId(store);
-    store?.initFactionSystem?.();
+    if (!store?.factionState?.factions?.length) store?.initFactionSystem?.();
     const factions = store?.factionState?.factions || [];
     if (factions.some((f) => f.id === id)) return this.resolveLiveOrgId(store, id);
     const byName = this.resolveOrgIdByName(store, id);
@@ -254,11 +255,90 @@ window.GameModules.orgTerritory = {
     return !!(entries && typeof entries === 'object' && Object.keys(entries).length);
   },
 
-  deriveMaturityClass(faction = {}, overviewPanels = null) {
+  normalizeClassification(value = '') {
+    const text = String(value || '').trim();
+    const map = {
+      国家: 'country',
+      主权体: 'country',
+      势力: 'faction',
+      组织势力: 'faction',
+      社群: 'community',
+      社区: 'community',
+      自称: 'claim',
+      宣称: 'claim',
+      claim: 'claim',
+    };
+    const lower = text.toLowerCase();
+    return this.ORG_CLASSIFICATIONS.includes(lower) ? lower : (map[text] || '');
+  },
+
+  classificationLabel(classification = '') {
+    const map = { country: '国家', faction: '势力', community: '社群', claim: '自称' };
+    return map[this.normalizeClassification(classification)] || '社群';
+  },
+
+  isStructuralCountry(faction = {}) {
+    faction = faction || {};
+    return faction?.sovereign === true || String(faction?.orgDomain || '').trim() === 'country';
+  },
+
+  isKnownRealCountry(faction = {}) {
+    faction = faction || {};
+    const name = String(faction?.name || faction?.displayName || '').replace(/\s+/g, '');
+    if (!name) return false;
+    const names = [
+      '中国', '中华人民共和国', '中华人民共和國', 'PRC', 'China',
+      '美国', '美利坚合众国', 'USA', 'UnitedStates', 'UnitedStatesofAmerica',
+      '日本', '日本国', 'Japan',
+      '英国', '大不列颠及北爱尔兰联合王国', 'UnitedKingdom', 'UK',
+      '法国', '法兰西共和国', 'France',
+      '德国', '德意志联邦共和国', 'Germany',
+      '俄罗斯', '俄罗斯联邦', 'Russia',
+      '韩国', '大韩民国', 'SouthKorea',
+      '朝鲜', '朝鲜民主主义人民共和国', 'NorthKorea',
+      '加拿大', 'Canada',
+      '澳大利亚', 'Australia',
+      '印度', 'India',
+    ];
+    return names.some((item) => name === String(item).replace(/\s+/g, ''));
+  },
+
+  looksLikeSovereigntyClaim(faction = {}) {
+    faction = faction || {};
+    if (this.isStructuralCountry(faction)) return false;
+    const text = [
+      faction.name,
+      faction.type,
+      faction.description,
+      faction.domain,
+      faction.stance,
+      faction.stub?.oneLine,
+      faction.claim,
+    ].filter(Boolean).join(' ');
+    return /自称|宣称|号称|过家家|玩笑|角色扮演|私人王国|私人国家|家庭国家|独立宣言|宣布独立|自封|伪国/.test(text);
+  },
+
+  deriveClassification(faction = {}, overviewPanels = null) {
+    faction = faction || {};
+    const explicit = this.normalizeClassification(faction?.classification || faction?.classificationClass);
+    if (explicit === 'country') {
+      return this.looksLikeSovereigntyClaim(faction) ? 'claim' : 'country';
+    }
+    if (explicit) return explicit;
+    if (this.isStructuralCountry(faction)) return 'country';
+    if (this.looksLikeSovereigntyClaim(faction)) return 'claim';
+    if (this.isKnownRealCountry(faction)) return 'country';
+    if (String(faction?.type || '').trim() === '国家') return 'claim';
     if (faction?.maturityClass === 'faction' || faction?.maturityClass === 'community') return faction.maturityClass;
     const panels = overviewPanels || this.normalizeOverviewPanels(faction?.solid?.overviewPanels || {});
     const complete = ['ideology', 'economy', 'politics', 'military', 'diplomacy'].every((key) => this.overviewPanelEstablished(key, panels));
     return complete ? 'faction' : 'community';
+  },
+
+  deriveMaturityClass(faction = {}, overviewPanels = null) {
+    const classification = this.deriveClassification(faction, overviewPanels);
+    if (classification === 'country' || classification === 'faction') return 'faction';
+    return 'community';
   },
 
   defaultStub(faction = {}) {
@@ -278,7 +358,8 @@ window.GameModules.orgTerritory = {
     const structure = (Array.isArray(faction.structure) ? faction.structure : []).map((node, index) => this.normalizeStructureNode(node, faction, index, store));
     const territoryAnchors = (Array.isArray(faction.territoryAnchors) ? faction.territoryAnchors : [])
       .map((id) => String(id || '').trim()).filter(Boolean).slice(0, 8);
-    const maturityClass = this.deriveMaturityClass(faction, solid.overviewPanels);
+    const classification = this.deriveClassification(faction, solid.overviewPanels);
+    const maturityClass = this.deriveMaturityClass({ ...faction, classification }, solid.overviewPanels);
     return {
       ...faction,
       resolution,
@@ -287,8 +368,10 @@ window.GameModules.orgTerritory = {
       solid,
       structure,
       territoryAnchors,
+      classification,
+      classificationLabel: this.classificationLabel(classification),
       maturityClass,
-      maturityLabel: maturityClass === 'faction' ? '势力' : '社群',
+      maturityLabel: this.classificationLabel(classification),
       resolutionBadge: this.resolutionBadge(resolution),
     };
   },
@@ -1084,6 +1167,11 @@ window.GameModules.orgTerritory = {
   },
 
   validateWorldConsistency(store) {
+    if (!store) return { fixes: [], warnings: [], compliance: null, map: {}, at: new Date().toISOString(), dismissed: false, signature: '' };
+    if (store._orgTerritoryValidationRunning) {
+      return store.orgTerritoryConsistency || { fixes: [], warnings: [], compliance: null, map: store.realWorldMap || {}, at: new Date().toISOString(), dismissed: false, signature: '' };
+    }
+    store._orgTerritoryValidationRunning = true;
     store?.initFactionSystem?.();
     const fixes = [];
     const warnings = [];
@@ -1151,6 +1239,7 @@ window.GameModules.orgTerritory = {
     const dismissed = Boolean(prev.dismissed) && prevSig === nextSig;
     const report = { fixes, warnings, compliance, map, at, dismissed, signature: nextSig };
     if (store) store.orgTerritoryConsistency = report;
+    store._orgTerritoryValidationRunning = false;
     return report;
   },
 

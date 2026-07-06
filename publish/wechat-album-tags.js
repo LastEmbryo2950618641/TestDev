@@ -1,9 +1,23 @@
 window.GameModules = window.GameModules || {};
 window.GameModules.wechatAlbumTagActions = {
-  wechatAlbumFixedTags(kind = 'natural', providerId = this.selectedDrawProviderId?.() || 'pixai') {
+  wechatAlbumTargetGender(contact = this.wechatProfileContact()) {
+    const { profile } = this.wechatAlbumStateData?.(contact) || {};
+    const text = String(profile?.gender || profile?.sex || '').trim().toLowerCase();
+    if (/男|male|man|boy/.test(text)) return 'male';
+    if (/女|female|woman|girl/.test(text)) return 'female';
+    return '';
+  },
+
+  wechatAlbumFixedTags(kind = 'natural', providerId = this.selectedDrawProviderId?.() || 'pixai', contact = this.wechatProfileContact()) {
     const provider = String(providerId || 'pixai').trim().toLowerCase();
     const state = kind === 'dressed' ? 'dressed' : 'natural';
+    const gender = this.wechatAlbumTargetGender?.(contact) || '';
     if (provider === 'pixai') {
+      if (gender === 'male') {
+        return state === 'natural'
+          ? '赤身, 全身, 无遮掩, 双腿, 站立'
+          : '全身, 双腿, 站立';
+      }
       return state === 'natural'
         ? '赤身, 全身, 无遮掩, 美乳, 双腿, 玉足, 站立'
         : '全身, 美乳, 双腿, 玉足, 站立';
@@ -13,8 +27,8 @@ window.GameModules.wechatAlbumTagActions = {
 
   wechatAlbumFixedNaturalTags() { return this.wechatAlbumFixedTags('natural'); },
 
-  appendWechatAlbumFixedTags(prompt = '', kind = 'natural') {
-    const fixed = this.wechatAlbumFixedTags(kind);
+  appendWechatAlbumFixedTags(prompt = '', kind = 'natural', contact = this.wechatProfileContact()) {
+    const fixed = this.wechatAlbumFixedTags(kind, undefined, contact);
     const baseTags = String(prompt || '').split(/[\n,，、；;]+/).map((item) => item.trim()).filter(Boolean);
     const seen = new Set(baseTags.map((item) => item.toLowerCase()));
     const addTags = String(fixed || '').split(/[\n,，、；;]+/).map((item) => item.trim()).filter(Boolean)
@@ -107,7 +121,7 @@ window.GameModules.wechatAlbumTagActions = {
     const extraText = selected?.extraText ? `，${selected.extraText}` : '';
     const identityText = selected?.identityInfo || this.wechatAlbumPromptMaterialText(identityItems);
     const bodyBase = kind === 'custom' ? bodyText : this.wechatAlbumPromptMaterialText(bodyItems);
-    const fixedTags = this.wechatAlbumFixedTags(kind);
+    const fixedTags = this.wechatAlbumFixedTags(kind, undefined, contact);
     const fixedText = fixedTags ? `，${fixedTags}` : '';
     return {
       identityTags: identityText,
@@ -215,7 +229,7 @@ window.GameModules.wechatAlbumTagActions = {
     }
     console.log('[微信相册] 绘图提示词 AI 原始返回:', output);
     const parsed = this.parseWechatAlbumDrawPrompt(output, { strict: true, minFeatureTags: 2 });
-    const prompt = this.pictureGenerateSafeReplacements(this.appendWechatAlbumFixedTags(parsed.prompt, kind));
+    const prompt = this.pictureGenerateSafeReplacements(this.appendWechatAlbumFixedTags(parsed.prompt, kind, contact));
     const negativePrompt = this.pictureGenerateSafeReplacements(parsed.negativePrompt);
     return { prompt: prompt.slice(0, 2000), negativePrompt: negativePrompt.slice(0, 2000), source, raw: output };
   },

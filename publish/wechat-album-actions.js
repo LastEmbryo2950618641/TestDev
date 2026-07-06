@@ -43,6 +43,32 @@ window.GameModules.wechatAlbumActions = {
     this.wechatAlbumPhotos = { ...(this.wechatAlbumPhotos || {}), [contact.id]: [...list] };
   },
 
+  openWechatAlbumDeleteConfirm(index = 0) {
+    const list = this.wechatAlbumPhotoList();
+    if (!list[index]) return;
+    this.wechatAlbumDeleteConfirm = { open: true, index: Number(index) || 0 };
+  },
+
+  closeWechatAlbumDeleteConfirm() {
+    this.wechatAlbumDeleteConfirm = { open: false, index: -1 };
+  },
+
+  async confirmDeleteWechatAlbumPhoto() {
+    const contact = this.wechatProfileContact();
+    const index = Number(this.wechatAlbumDeleteConfirm?.index);
+    const list = this.wechatAlbumPhotoList();
+    if (!contact?.id || !Number.isInteger(index) || index < 0 || !list[index]) {
+      this.closeWechatAlbumDeleteConfirm();
+      return;
+    }
+    this.wechatAlbumPhotos = {
+      ...(this.wechatAlbumPhotos || {}),
+      [contact.id]: list.filter((_, i) => i !== index),
+    };
+    this.closeWechatAlbumDeleteConfirm();
+    await this.save?.();
+  },
+
   wechatAlbumChoiceOpen() {
     this.wechatAlbumPromptStep = 'choice';
     this.wechatAlbumPromptDraft = { kind: 'natural', identityKeys: [], bodyKeys: [], customText: '', extraText: '' };
@@ -53,6 +79,15 @@ window.GameModules.wechatAlbumActions = {
 
   bodyProfileImageKind(section = {}) {
     return String(section?.title || '').trim() === '盛装' ? 'dressed' : 'natural';
+  },
+
+  bodyProfileTargetState(section = {}) {
+    const field = section?.fields?.[0] || null;
+    return (field ? this.activeDetailState?.(field) : null)
+      || this.identityTargetState?.()
+      || this.playerIdentityState?.()
+      || this.currentRpgState
+      || null;
   },
 
   bodyFigureDefaultPartLayout(index = 0) {
@@ -160,6 +195,8 @@ window.GameModules.wechatAlbumActions = {
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
       window.GameModules.bodyFigure?.registerEntry?.(data.entry, data.meta || { ...meta, id: data.path, image: String(data.imagePath || '').split('/').pop() || 'figure.png' });
+      const bound = await window.GameModules.bodyFigure?.bindCurrentFigure?.(data.path, meta.ownerId, contact?.name || meta.ownerName || '', { stateKind: meta.stateKind, force: true });
+      if (bound && !bound.ok) throw new Error(bound.error || '绑定当前形象图失败');
       return data;
     } catch (err) {
       console.warn('[body-figure] 生成形象图本地保存失败:', err?.message || err);
@@ -170,7 +207,7 @@ window.GameModules.wechatAlbumActions = {
 
   async openBodyProfileImageGenerator(section = {}) {
     const kind = this.bodyProfileImageKind(section);
-    const state = this.identityTargetState?.() || this.playerIdentityState?.() || null;
+    const state = this.bodyProfileTargetState?.(section) || null;
     const contact = this.wechatContactFromState(state?.id || this.identityTargetId || 'player-self');
     this.wechatSelectedContact = contact.id;
     this.wechatAlbumBodyFigureContext = { characterId: contact.id, kind, sectionTitle: String(section?.title || ''), startedAt: Date.now() };
@@ -181,7 +218,8 @@ window.GameModules.wechatAlbumActions = {
 
   async openWechatAlbumPromptEditor(kind = 'natural') {
     const contact = this.wechatProfileContact();
-    await this.ensureWechatUserProfile?.(contact);
+    if (contact?.id === 'player-self') await this.ensurePlayerRpgState?.();
+    else await this.ensureWechatUserProfile?.(contact);
     const options = this.wechatAlbumPromptOptions(kind);
     this.wechatAlbumPromptDraft = {
       kind,
@@ -195,7 +233,17 @@ window.GameModules.wechatAlbumActions = {
   },
 
   wechatAlbumStateData(contact = this.wechatProfileContact()) {
-    const state = this.rpgStates?.[contact.id] || window.GameModules.sqliteSave?.getCharacterState?.(contact.id) || {};
+    const key = String(contact?.id || 'player-self').trim() || 'player-self';
+    let state = this.rpgStates?.[key] || window.GameModules.sqliteSave?.getCharacterState?.(key) || {};
+    if (key === 'player-self') {
+      const fallbackProfile = this.playerDisplayCharacter?.() || this.playerCharacterBase?.() || {};
+      const savedProfile = state.profile || {};
+      const profile = { ...fallbackProfile, ...savedProfile, id: 'player-self', isPlayer: true };
+      ['name', 'gender', 'age', 'birthday', 'role', 'job', 'appearance', 'detail', 'description', 'personality'].forEach((field) => {
+        if (!String(profile[field] || '').trim() && fallbackProfile[field]) profile[field] = fallbackProfile[field];
+      });
+      state = { ...state, id: 'player-self', name: profile.name || state.name || this.playerName || '', profile };
+    }
     return { state, profile: state.profile || {} };
   },
   wechatAlbumIdentityItems(contact = this.wechatProfileContact(), state = {}, profile = {}) {
@@ -290,11 +338,12 @@ window.GameModules.wechatAlbumActions = {
     this.wechatAlbumGenerating = true;
     this.wechatAlbumPromptOpen = false;
     try {
-      await this.ensureWechatUserProfile?.(contact);
+      if (contact?.id === 'player-self') await this.ensurePlayerRpgState?.();
+      else await this.ensureWechatUserProfile?.(contact);
       const prompt = String(promptData?.prompt || '').trim();
       if (!prompt) throw new Error('请先选择或生成绘图提示词');
       const negativePrompt = String(promptData?.negativePrompt || '').trim() || 'bad anatomy, extra fingers, extra arms, missing fingers, low quality, blurry, worst quality, watermark, text, logo, bad hands';
-      const promptWithFixedTags = this.appendWechatAlbumFixedTags?.(prompt, kind) || prompt;
+      const promptWithFixedTags = this.appendWechatAlbumFixedTags?.(prompt, kind, contact) || prompt;
       const safePrompt = this.pictureGenerateSafeReplacements?.(promptWithFixedTags) || promptWithFixedTags;
       const safeNegativePrompt = this.pictureGenerateSafeReplacements?.(negativePrompt) || negativePrompt;
       const drawOptions = { prompt: safePrompt.slice(0, 2000), dimension: '2:3', model: this.selectedDrawModelId?.() || 'anime', negativePrompt: safeNegativePrompt.slice(0, 2000) };

@@ -35,7 +35,7 @@ function sendFile(res, filePath) {
       return;
     }
     const ext = path.extname(filePath).toLowerCase();
-    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
+    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': 'no-store' });
     res.end(data);
   });
 }
@@ -137,9 +137,54 @@ function writeBodyFigureIndex(entry) {
   fs.writeFileSync(indexPath, `${JSON.stringify({ ...current, figures: next }, null, 2)}\n`, 'utf8');
 }
 
+function scanBodyFigureEntries() {
+  const root = bodyFiguresDir();
+  const figures = [];
+  function walk(dir, prefix = '') {
+    let items = [];
+    try {
+      items = fs.readdirSync(dir, { withFileTypes: true });
+    } catch (_) {
+      return;
+    }
+    const metaPath = path.join(dir, 'meta.json');
+    if (prefix && fs.existsSync(metaPath) && !prefix.replace(/\\/g, '/').startsWith('mask/')) {
+      let meta = {};
+      try {
+        meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+      } catch (_) {
+        meta = {};
+      }
+      const id = safeName(meta.id || path.basename(dir));
+      figures.push({
+        id,
+        path: prefix.replace(/\\/g, '/'),
+        generated: Boolean(meta.generated),
+        ownerId: meta.ownerId || meta.characterId || meta.personId || '',
+        stateKind: meta.stateKind || '',
+      });
+      return;
+    }
+    items.filter((item) => item.isDirectory()).forEach((item) => {
+      walk(path.join(dir, item.name), prefix ? path.join(prefix, item.name) : item.name);
+    });
+  }
+  walk(root);
+  return figures;
+}
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url || '/', `http://127.0.0.1:${port}`);
   const pathname = decodeURIComponent(url.pathname);
+
+  if (req.method === 'GET' && pathname === '/__dev/body-figure-index') {
+    try {
+      sendJson(res, 200, { ok: true, figures: scanBodyFigureEntries() });
+    } catch (err) {
+      sendJson(res, 500, { ok: false, error: err.message || String(err), figures: [] });
+    }
+    return;
+  }
 
   if (req.method === 'POST' && pathname === '/__dev/body-figure-meta') {
     readJsonBody(req, (err, payload) => {

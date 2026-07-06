@@ -243,7 +243,7 @@
 **补充规则（2026-07-06）**：
 
 - **社群型组织同样适用 `gov / corp` 分流**。政府主动建立、主管或挂靠的社群型组织，仍走 `gov` 链；个人、公司、民间主体主动建立、主管或挂靠的社群型组织，仍走 `corp` 链。
-- **“社群 / 势力”不是隶属域判断，而是成熟度判断**：关键看五大基础是否补齐，而不是看它挂在 `gov` 还是 `corp`。
+- **“社群 / 势力 / 国家 / 自称”不是隶属域判断，而是 AI 语义分类**：关键看上下文、常识、已固化事实与势力化符号，而不是看它挂在 `gov` 还是 `corp`。
 - **`community` 不泛指所有社群**；它只保留给**地理社区/居民共同体/地方共同体**这一类对象。
 
 | 现实类型 | ownership | orgDomain | 说明 |
@@ -475,6 +475,7 @@
 | `orgDomain` | `'country' \| 'gov' \| 'geo' \| 'corp' \| 'community'` | 域标识；`country` 用于视窗根及 sovereign 节点。 |
 | `ownership` | `'state' \| 'private' \| null` | 合法组织所有制：`state`=国立 → gov 链；`private`=私立 → corp 链；社群/家庭可为 null。 |
 | `sovereign` | boolean? | true 表示可作为视窗根的最高主权体（国家、联邦）。 |
+| `classification` | `'country' \| 'faction' \| 'community' \| 'claim'` | 玩家一级语义分类；由 AI / audit / Stage4 优先判断，代码只做保守兜底。 |
 | `isDomainRoot` | boolean? | true 表示「行政区划」「经济组织」等抽象层节点。 |
 | `fogLabel` | string? | L1 展示用，如「某企业（迷雾）」；resolution 升档后清空。 |
 | `orgForm` | string? | 制度形态元数据：`branch`（分公司）、`subsidiary`（子公司）、`regulator`（监管机关）等；**不**替代 `orgDomain`。 |
@@ -608,8 +609,8 @@ function resolveAffiliatedFaction(faction, allFactions) {
 
 | 一级页签 | 内容 |
 | --- | --- |
-| 势力 | 五大基础已全部确立的对象；列表与详情复用同一套组织结构 + 总览面板 |
-| 社群 | 五大基础未补齐的对象；列表与详情同样复用同一套组织结构 + 总览面板，但面板按社群态语义重解释 |
+| 势力 | AI 判断已形成持续组织主体性的对象；列表与详情复用同一套组织结构 + 总览面板 |
+| 社群 | AI 判断尚未形成持续组织主体性的对象；列表与详情同样复用同一套组织结构 + 总览面板，但面板按社群态语义重解释 |
 
 **二级信息不是分页主轴，而是对象属性/筛选器**：
 
@@ -621,6 +622,14 @@ function resolveAffiliatedFaction(faction, allFactions) {
 | `ownership` / `foundingType` / `格式塔意识` | 作为标签显示，不单开独立一级页面 |
 
 **结构域视图**：进入具体对象后，允许在详情内切换查看 `gov` / `geo` / `corp` / `community` 对应的结构路径与挂靠关系；这属于**结构浏览模式**，不是玩家一级导航。
+
+**分类边界补充（2026-07-07）**：
+
+- `classification=country`：已知现实主权国家、上下文确认的架空主权体、或 `sovereign=true / orgDomain=country` 的结构主权体；五面板为空只表示资料未展开，不降为社群。
+- `classification=faction`：AI 判断该主体已经具备持续组织主体性，例如稳定目标、成员边界、规则 / 领导、资源调度、对外行动、组织资产、扩张 / 谈判 / 冲突能力等。
+- `classification=community`：存在组织或社群事实，但尚未形成持续组织主体性。
+- `classification=claim`：只有国家 / 独立 / 势力名号的自称、宣传、玩笑或角色扮演；不得仅因 `type=国家` 升为国家。
+- 五大基础仍是重要证据，但不是唯一机械门槛；AI 可结合现实常识与作品设定判定“中国”等真实国家为国家级势力。
 
 **不采用**「N 家未揭示企业」聚合行：用户已确认——**知晓存在才显示**，每个 L1 stub 独立一行迷雾。
 
@@ -710,7 +719,7 @@ function resolveAffiliatedFaction(faction, allFactions) {
 
 ### 7.2 faction-audit.md 增补（要点）
 
-- 合法组织必须带 `orgDomain` + `ownership`；国立 → gov 链，私立 → corp 链。  
+- 合法组织必须带 `orgDomain` + `ownership`；国立 → gov 链，私立 → corp 链；同时尽量带 `classification` 与分类理由。  
 - **禁止写死名**：不得照抄 prompt 示例专名；名称须来自 archive / 玩家资料 / 上下文。  
 - 公司/民营校 `parentId` → corp 域根或上级控股（corp→corp **不限层**）。  
 - 国立校/公立机构 → gov 主管部门（须已 L2+ 或迷雾 stub）。  
@@ -722,6 +731,7 @@ function resolveAffiliatedFaction(faction, allFactions) {
 - **合理性**：禁止无世界观依据的秘密部门；允许 lore 支撑下的推断，但须 fieldReasons 引用 archive，且仍等 Stage4 固化。
 - **成立路径**（§3.13）：无 Stage2 成立行为/上级承认 → 不新建 faction；路径 B 须 `foundingType=independent`，**勿**在 `parentName` 写具体上级势力名（域根除外）。
 - **所属势力**：`foundingType=independent` 时 fieldReasons 注明「独立成立，无所属势力」；仅 `subordinate` 或收编后写上级 `parentName`。
+- **分类判断**：不得把 `type=国家` 当作国家真源；现实已知国家 / 已确认主权体写 `classification=country`，普通人自称国家写 `classification=claim`。
 
 ### 7.3 Stage4 结算
 

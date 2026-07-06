@@ -818,9 +818,154 @@ html[data-ui-theme] .body-figure-image-btn:hover:not(:disabled) {
   background: rgba(var(--ui-accent-rgb, 120, 180, 255), .22);
 }
 
+html[data-ui-theme] .body-figure-image-btn.secondary {
+  border-color: var(--ui-border);
+  background: color-mix(in srgb, var(--ui-surface-soft) 86%, transparent);
+  color: var(--ui-text);
+}
+
 html[data-ui-theme] .body-figure-image-btn:disabled {
   cursor: progress;
   opacity: .65;
+}
+
+html[data-ui-theme] .body-figure-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: max(16px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  background: rgba(0, 0, 0, .58);
+  backdrop-filter: blur(10px);
+}
+
+html[data-ui-theme] .body-figure-picker-modal {
+  width: min(980px, 100%);
+  max-height: min(760px, 90dvh);
+  display: grid;
+  grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--ui-border-strong);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--ui-surface) 96%, transparent);
+  box-shadow: 0 26px 90px rgba(0, 0, 0, .42);
+  overflow: hidden;
+}
+
+html[data-ui-theme] .body-figure-picker-modal header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+html[data-ui-theme] .body-figure-picker-modal header div {
+  display: grid;
+  gap: 3px;
+}
+
+html[data-ui-theme] .body-figure-picker-modal header strong {
+  color: var(--ui-text);
+  font-size: 15px;
+}
+
+html[data-ui-theme] .body-figure-picker-modal header small,
+html[data-ui-theme] .body-figure-picker-status {
+  color: var(--ui-text-muted);
+  font-size: 11px;
+}
+
+html[data-ui-theme] .body-figure-picker-error {
+  margin: 0;
+  color: var(--ui-danger, #ff6b7a);
+  font-size: 12px;
+}
+
+html[data-ui-theme] .body-figure-picker-grid {
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+  padding-right: 2px;
+}
+
+html[data-ui-theme] .body-figure-picker-card {
+  display: grid;
+  grid-template-rows: auto minmax(74px, auto) auto;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ui-surface-soft) 82%, transparent);
+}
+
+html[data-ui-theme] .body-figure-picker-card.active {
+  border-color: rgba(var(--ui-accent-rgb, 120, 180, 255), .82);
+  box-shadow: 0 0 0 1px rgba(var(--ui-accent-rgb, 120, 180, 255), .24);
+}
+
+html[data-ui-theme] .body-figure-picker-card.disabled {
+  opacity: .72;
+}
+
+html[data-ui-theme] .body-figure-picker-thumb {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ui-surface) 92%, #fff 8%);
+  overflow: hidden;
+}
+
+html[data-ui-theme] .body-figure-picker-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+html[data-ui-theme] .body-figure-picker-info {
+  display: grid;
+  gap: 4px;
+}
+
+html[data-ui-theme] .body-figure-picker-info strong {
+  color: var(--ui-text);
+  font-size: 12px;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html[data-ui-theme] .body-figure-picker-info small {
+  color: var(--ui-text-muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+html[data-ui-theme] .body-figure-picker-info .body-figure-picker-bound {
+  color: var(--ui-accent);
+}
+
+html[data-ui-theme] .body-figure-picker-set {
+  min-height: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(var(--ui-accent-rgb, 120, 180, 255), .55);
+  background: rgba(var(--ui-accent-rgb, 120, 180, 255), .14);
+  color: var(--ui-accent);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+html[data-ui-theme] .body-figure-picker-set:disabled {
+  cursor: default;
+  border-color: var(--ui-border);
+  background: color-mix(in srgb, var(--ui-surface-soft) 76%, transparent);
+  color: var(--ui-text-muted);
 }
 
 html[data-ui-theme] .body-figure-board {
@@ -1439,6 +1584,12 @@ html[data-ui-theme] .wechat-photo-dialog .wechat-album-choice button:first-of-ty
 html[data-ui-theme] .wechat-photo-dialog .wechat-album-actions button:last-child {
   border-color: rgba(7, 193, 96, .28) !important;
   background: #07c160 !important;
+  color: #fff !important;
+}
+
+html[data-ui-theme] .wechat-photo-dialog .wechat-album-actions button.danger {
+  border-color: rgba(217, 48, 37, .32) !important;
+  background: #d93025 !important;
   color: #fff !important;
 }
 

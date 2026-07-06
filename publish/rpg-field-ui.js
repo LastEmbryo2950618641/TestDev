@@ -2,6 +2,12 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.rpgFieldUi = {
   bodyFigureMaskState: { natural: false, dressed: false },
+  bodyFigurePickerOpen: false,
+  bodyFigurePickerLoading: false,
+  bodyFigurePickerError: '',
+  bodyFigurePickerKind: 'natural',
+  bodyFigurePickerTarget: null,
+  bodyFigurePickerItems: [],
 
   rpgFieldKey(field) { return `${field?.stateId || 'state'}:${field?.key || ''}:${field?.label || ''}`; },
   rpgItemKey(field, index) { return `${this.rpgFieldKey(field)}:item:${index}`; },
@@ -1327,7 +1333,7 @@ window.GameModules.rpgFieldUi = {
   bodyProfilePanel(section = {}, stateOverride = null) {
     const title = String(section?.title || '').trim();
     const field = section?.fields?.[0] || null;
-    const state = stateOverride || this.identityTargetState?.() || null;
+    const state = stateOverride || (field ? this.activeDetailState?.(field) : null) || this.identityTargetState?.() || null;
     try {
       return this.bodyProfilePresentation(field, title, state);
     } catch (err) {
@@ -1365,6 +1371,126 @@ window.GameModules.rpgFieldUi = {
 
   toggleBodyFigureMask(section = {}) {
     return this.setBodyFigureMask(section, !this.bodyFigureMaskEnabled(section));
+  },
+
+  bodyFigureCharacterName(id = '', fallback = {}) {
+    const key = String(id || '').trim();
+    if (!key) return '';
+    const state = this.rpgStates?.[key] || window.GameModules.sqliteSave?.getCharacterState?.(key) || (key === 'player-self' ? this.playerIdentityState?.() : null) || {};
+    const profile = state.profile || {};
+    const contact = (this.wechatUsers || []).find((item) => String(item?.id || '') === key) || {};
+    return String(fallback.characterName || fallback.ownerName || fallback.personName || profile.name || state.name || contact.name || (key === 'player-self' ? (this.playerName || this.playerProfile?.name) : '') || key).trim();
+  },
+
+  bodyFigurePickerContext(section = {}) {
+    const title = String(section?.title || '').trim();
+    const field = section?.fields?.[0] || null;
+    const state = (field ? this.activeDetailState?.(field) : null) || this.identityTargetState?.() || this.playerIdentityState?.() || this.currentRpgState || null;
+    const source = this.profileAppearanceSource?.(state || {}) || state?.profile || {};
+    const profile = { ...(state?.profile || {}), ...source };
+    const cfg = window.GameModules.appearanceProfileTags;
+    const kind = this.bodyFigureMaskKey(section);
+    const isDressed = kind === 'dressed';
+    const meta = isDressed ? (source.dressedProfileMeta || {}) : (source.bodyProfileMeta || {});
+    const rawList = isDressed ? (source.dressedProfile || []) : (source.bodyProfile || []);
+    const listField = {
+      ...(section?.fields?.[0] || {}),
+      key: isDressed ? 'dressedProfile' : 'bodyProfile',
+      stateId: state?.id || '',
+      raw: rawList,
+      meta,
+    };
+    const rows = this.rpgListItems(listField).map((item, index) => {
+      const part = String(item.part || item.name || '').trim();
+      const desc = String(item.description || item.detail || '').trim();
+      const tags = Array.isArray(item.tags) && item.tags.length ? item.tags.join('、') : '';
+      return {
+        field: listField,
+        item,
+        index,
+        icon: this.bodyPartEmoji(part),
+        title: `${item.index || index + 1}. ${part}`,
+        tags: tags ? `[${tags}]` : '',
+        preview: desc.length > 52 ? `${desc.slice(0, 52)}…` : desc,
+      };
+    });
+    const characterId = String(state?.id || this.identityTargetId || 'player-self').trim() || 'player-self';
+    const characterName = this.bodyFigureCharacterName(characterId, profile);
+    const normalizedMeta = isDressed
+      ? (cfg?.normalizeDressedMeta?.(meta, profile) || meta || {})
+      : (cfg?.normalizeNaturalMeta?.(meta, profile) || meta || {});
+    return {
+      title,
+      kind,
+      rows,
+      characterId,
+      characterName,
+      figureMeta: { ...(normalizedMeta || {}), characterId, ownerId: characterId, personId: characterId, stateKind: kind },
+    };
+  },
+
+  bodyFigurePickerLabel() {
+    const target = this.bodyFigurePickerTarget || {};
+    return `${target.characterName || target.characterId || '角色'}｜${target.kind === 'dressed' ? '盛装状态' : '自然状态'}`;
+  },
+
+  normalizeBodyFigurePickerItem(item = {}, target = this.bodyFigurePickerTarget || {}) {
+    const boundOwnerId = String(item.boundOwnerId || '').trim();
+    const active = Boolean(boundOwnerId && target.characterId && boundOwnerId === target.characterId);
+    const boundOwnerName = boundOwnerId ? this.bodyFigureCharacterName(boundOwnerId, item) : '';
+    return {
+      ...item,
+      active,
+      boundOwnerName,
+      disabled: Boolean(boundOwnerId && !active),
+      scoreLabel: active ? '当前绑定' : `匹配 ${Math.max(0, Number(item.baseScore || item.score || 0))}`,
+      sourceLabel: item.generated ? '生成图片' : '预设图片',
+    };
+  },
+
+  async refreshBodyFigurePickerItems() {
+    const target = this.bodyFigurePickerTarget;
+    if (!target?.characterId) return;
+    this.bodyFigurePickerLoading = true;
+    this.bodyFigurePickerError = '';
+    try {
+      const choices = await window.GameModules.bodyFigure?.listFigureChoices?.(target.figureMeta, target.rows) || [];
+      this.bodyFigurePickerItems = choices.map((item) => this.normalizeBodyFigurePickerItem(item, target));
+    } catch (err) {
+      this.bodyFigurePickerError = err?.message || String(err);
+      this.bodyFigurePickerItems = [];
+    } finally {
+      this.bodyFigurePickerLoading = false;
+    }
+  },
+
+  async openBodyFigurePicker(section = {}) {
+    this.bodyFigurePickerTarget = this.bodyFigurePickerContext(section);
+    this.bodyFigurePickerKind = this.bodyFigurePickerTarget.kind;
+    this.bodyFigurePickerOpen = true;
+    await this.refreshBodyFigurePickerItems();
+  },
+
+  closeBodyFigurePicker() {
+    if (this.bodyFigurePickerLoading) return;
+    this.bodyFigurePickerOpen = false;
+    this.bodyFigurePickerError = '';
+  },
+
+  async setBodyFigurePickerCurrent(item = {}) {
+    const target = this.bodyFigurePickerTarget;
+    if (!target?.characterId || !item?.path || item.disabled || item.active) return;
+    this.bodyFigurePickerLoading = true;
+    this.bodyFigurePickerError = '';
+    try {
+      const result = await window.GameModules.bodyFigure?.bindCurrentFigure?.(item.path, target.characterId, target.characterName, { stateKind: target.kind });
+      if (!result?.ok) throw new Error(result?.error || '设置形象图失败');
+      await this.refreshBodyFigurePickerItems();
+    } catch (err) {
+      this.bodyFigurePickerError = err?.message || String(err);
+    } finally {
+      this.bodyFigurePickerLoading = false;
+    }
   },
 
   bodyProfilePresentation(field, sectionTitle = '', stateOverride = null) {

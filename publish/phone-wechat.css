@@ -326,7 +326,8 @@
 
 .wechat-refresh-btn,
 .wechat-add-photo-btn,
-.wechat-real-photo-btn {
+.wechat-real-photo-btn,
+.wechat-delete-photo-btn {
   width: 100%;
   min-height: 44px;
   justify-self: center;
@@ -349,9 +350,16 @@
   border: 1px solid #d8eadf;
 }
 
+.wechat-delete-photo-btn {
+  background: #fff;
+  color: #d93025;
+  border: 1px solid #f2c7c3;
+}
+
 .wechat-refresh-btn:disabled,
 .wechat-add-photo-btn:disabled,
-.wechat-real-photo-btn:disabled {
+.wechat-real-photo-btn:disabled,
+.wechat-delete-photo-btn:disabled {
   opacity: .55;
 }
 
@@ -385,6 +393,22 @@
 
 .wechat-photo-dialog article.avatar-crop {
   width: min(340px, 100%);
+}
+
+.wechat-photo-dialog article.wechat-delete-confirm {
+  text-align: center;
+}
+
+.wechat-delete-confirm p {
+  margin: 0;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.wechat-album-actions button.danger {
+  background: #d93025;
+  color: #fff;
 }
 
 .wechat-avatar-crop-frame {
@@ -571,6 +595,11 @@
   color: #fff;
 }
 
+.wechat-album-actions button.danger {
+  background: #d93025;
+  color: #fff;
+}
+
 .wechat-chat-page {
   display: grid;
   grid-template-rows: 1fr auto auto auto;
@@ -693,7 +722,7 @@
 }
 
 .wechat-image-preview-dialog {
-  z-index: 12;
+  z-index: 30;
   background: rgba(0, 0, 0, .86);
 }
 

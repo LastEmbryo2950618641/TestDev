@@ -22,6 +22,23 @@ window.GameModules.storage = {
     await window.GameModules.sqliteSave.deleteSlot(slot || window.GameModules.sqliteSave.activeSlot);
   },
 
+  snapshotPlainValue(value, seen = new WeakSet()) {
+    if (!value || typeof value !== 'object') return typeof value === 'function' ? undefined : value;
+    if (seen.has(value)) return undefined;
+    seen.add(value);
+    if (Array.isArray(value)) {
+      return value.map((item) => this.snapshotPlainValue(item, seen)).filter((item) => item !== undefined);
+    }
+    const plain = {};
+    Object.entries(value).forEach(([key, item]) => {
+      if (key === '_boundStore') return;
+      if (typeof item === 'function') return;
+      const next = this.snapshotPlainValue(item, seen);
+      if (next !== undefined) plain[key] = next;
+    });
+    return plain;
+  },
+
   snapshot(store) {
     return {
       started: store.started,
@@ -103,7 +120,7 @@ window.GameModules.storage = {
       realWorldThinkMode: Boolean(store.realWorldThinkMode),
       realWorldSceneTitle: store.realWorldSceneTitle,
       realWorldLocationName: store.realWorldLocationName,
-      realWorldMap: store.realWorldMap,
+      realWorldMap: this.snapshotPlainValue(store.realWorldMap),
       realWorldQuest: store.realWorldQuest,
       realWorldStatus: store.realWorldStatus,
       realWorldChoices: store.realWorldChoices,

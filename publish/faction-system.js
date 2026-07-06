@@ -19,7 +19,7 @@ window.GameModules.factionSystem = {
   countryFaction(profile = {}) {
     const top = this.inferTopCountry(profile);
     return {
-      id: top.id, name: top.name, type: '国家', orgDomain: 'country', sovereign: true, parentId: '', parentName: '无势力归属', level: '国家级',
+      id: top.id, name: top.name, type: '国家', classification: 'country', orgDomain: 'country', sovereign: true, parentId: '', parentName: '无势力归属', level: '国家级',
       location: top.location, domain: '国家治理', scale: '超大型', stance: '现实秩序维护', influence: 95,
       description: '根据玩家/主角现实资料推断出的最高国家级势力，作为公司、学校和组织归属基准。',
       resolution: 'L1',

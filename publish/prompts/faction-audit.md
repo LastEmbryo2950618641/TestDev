@@ -35,7 +35,8 @@
 | --- | --- | --- | --- |
 | id | string | 是 | 稳定唯一 ID。 |
 | name | string | 是 | 势力名称。 |
-| type | string | 是 | 国家、公司、学校、社区、组织、家庭、部门等。 |
+| type | string | 是 | 国家、公司、学校、社区、组织、家庭、部门等；这是显示类型，不是分类真源。 |
+| classification | string | 是 | `country` / `faction` / `community` / `claim`。AI 基于上下文、现实常识、作品设定和已固化事实判断。 |
 | parentId | string | 是 | 上级势力 ID；无上级时为空字符串。 |
 | parentName | string | 是 | 上级势力名称；无上级时为“无势力归属”。 |
 | level | string | 是 | 国家级、省市级、公司级、部门级、家庭级等。 |
@@ -57,7 +58,7 @@
 | --- | --- | --- | --- |
 | structure[] | object | name, level, roles | `name` 写组织名或下属单位名，例如“中华人民共和国政府”“全国人民代表大会”“最高人民法院”；`level` 写国家级别、中央级别、省级级别、市级级别、区县级别、公司级别、部门级别等；`roles` 必须是职位数组。每项格式为 `{ "title": "职位/地位/法定身份", "count": 1, "characters": ["角色名或未知"] }`。 |
 | relations[] | object | target, relation, detail | 关系目标、关系类型、关系说明。 |
-| fieldReasons | object | name, type, parentId, parentName, level, location, domain, scale, stance, influence, description, structure, rules, resources, relations | 每个字段都写一句审计理由。 |
+| fieldReasons | object | name, type, classification, parentId, parentName, level, location, domain, scale, stance, influence, description, structure, rules, resources, relations | 每个字段都写一句审计理由。 |
 
 ### 最小结构示意
 
@@ -67,7 +68,15 @@
 
 ## 势力定义
 
-任何具有组织形式的实体都算势力；每个势力必须有 parentId 和 parentName，无上级时 parentId 为空且 parentName 为“无势力归属”；所有公司必须归属于主角/玩家所在的最高国家级势力。最高国家级势力应先从主角/玩家备注、国籍、地址、现实身份、学校/公司所在地推断；例如美国人、美国籍、纽约/洛杉矶等证据对应“美利坚合众国”，中国人、中国地址或无明确国家证据时默认“中华人民共和国”。
+任何具有组织形式的实体都可进入组织库；每个势力必须有 parentId 和 parentName，无上级时 parentId 为空且 parentName 为“无势力归属”；所有公司必须归属于主角/玩家所在的最高国家级势力。最高国家级势力应先从主角/玩家备注、国籍、地址、现实身份、学校/公司所在地推断；例如美国人、美国籍、纽约/洛杉矶等证据对应“美利坚合众国”，中国人、中国地址或无明确国家证据时默认“中华人民共和国”。
+
+## classification 分类规则
+
+1. `country`：已知现实主权国家，或上下文 / 作品设定确认的主权体。中国、美国、日本等可基于模型常识直接判断为真实国家；五面板为空只表示资料未展开，不得降为社群。
+2. `faction`：已经形成持续组织主体性，例如稳定目标、成员边界、领导 / 规则、资源调度、对外行动、组织资产、扩张 / 谈判 / 冲突能力等。反抗军、地下会、非法组织、公司、教团等都可成为势力；合法性另写 `legitimacy` 或关系字段。
+3. `community`：存在社群或组织事实，但尚未形成完整持续组织主体性；可有名称、组织者、局部规则或资源，但 AI 判断还不是成熟势力。
+4. `claim`：只有国家、独立、势力名号的自称、宣传、玩笑、角色扮演或过家家式宣称；普通人宣称“我家是国家”应归 `claim` 或社群型 org，不能仅凭 `type=国家` 写成 `country`。
+5. `type` 只是显示类型；不得把 `type=国家` 当作国家真源。真实国家应同时给出 `classification=country`，自称国家应给出 `classification=claim`。
 
 ## 规则
 
@@ -78,6 +87,7 @@
 5. 玩家/角色卡已有人事归属只有在指向具体组织、学校、公司、部门、机构或明确法定机关时才是事实锚点；抽象社会身份不得新增进势力系统。
 6. 每个势力都必须尽量补齐 structure；**但 L1 / 无 archive 接触的 org 除外**（见「审计约束」）。组织架构必须按“组织名/下属单位名 → 级别 → 职位 → 数量 → 角色”表达。职位角色未知时 characters 写 ["未知"]；人数未知时 count 写 "未知"。
 7. 禁止用“现实社会”“现代社会”“现实世界”“社会”“国家”“公民”“居民”“成年人”“成年学生”等抽象概念兜底生成势力、职位或 structure 节点；公司可写总部、部门、小组，学校可写校级、年级、班级。多个同级下属单位可作为 structure 的多个节点并列返回，例如“全国人民代表大会”和“最高人民法院”都写中央级别。
+8. 审计已有势力时，必须检查并补全 `classification`；中国等现实国家保持 `country`，自称国家但缺少事实主权的对象保持 `claim` 或 `community`。
 
 ## 审计约束（推演驱动 · 必读）
 

@@ -1,7 +1,7 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.factionAiActions = {
-  factionFields: ['name', 'type', 'parentId', 'parentName', 'level', 'location', 'domain', 'scale', 'stance', 'influence', 'description', 'structure', 'rules', 'resources', 'relations'],
+  factionFields: ['name', 'type', 'classification', 'parentId', 'parentName', 'level', 'location', 'domain', 'scale', 'stance', 'influence', 'description', 'structure', 'rules', 'resources', 'relations'],
 
   async generateFactionsByAI() {
     this.initFactionSystem();
@@ -60,7 +60,8 @@ window.GameModules.factionAiActions = {
     if (!item?.name) return null;
     const id = String(item.id || `faction-${index}-${item.name}`).replace(/\s+/g, '-');
     const parentId = String(item.parentId || '').trim();
-    const faction = { id, name: String(item.name), type: String(item.type || '组织'), parentId, parentName: parentId ? String(item.parentName || '未知势力') : '无势力归属', level: String(item.level || '组织级'), location: String(item.location || '未知'), domain: String(item.domain || '综合'), scale: String(item.scale || '未知'), stance: String(item.stance || '中立'), influence: Number(item.influence) || 30, description: String(item.description || ''), structure: this.normalizeFactionStructure({ structure: Array.isArray(item.structure) ? item.structure : [] }).structure, rules: Array.isArray(item.rules) ? item.rules.map(String) : [], resources: Array.isArray(item.resources) ? item.resources.map(String) : [], relations: Array.isArray(item.relations) ? item.relations : [], fixed: true, updatedAt: this.phoneDate?.().toISOString?.() || new Date().toISOString() };
+    const classification = window.GameModules.orgTerritory?.deriveClassification?.(item) || window.GameModules.orgTerritory?.normalizeClassification?.(item.classification) || '';
+    const faction = { id, name: String(item.name), type: String(item.type || '组织'), classification: classification || 'community', parentId, parentName: parentId ? String(item.parentName || '未知势力') : '无势力归属', level: String(item.level || '组织级'), location: String(item.location || '未知'), domain: String(item.domain || '综合'), scale: String(item.scale || '未知'), stance: String(item.stance || '中立'), influence: Number(item.influence) || 30, description: String(item.description || ''), structure: this.normalizeFactionStructure({ structure: Array.isArray(item.structure) ? item.structure : [] }).structure, rules: Array.isArray(item.rules) ? item.rules.map(String) : [], resources: Array.isArray(item.resources) ? item.resources.map(String) : [], relations: Array.isArray(item.relations) ? item.relations : [], fixed: true, updatedAt: this.phoneDate?.().toISOString?.() || new Date().toISOString() };
     faction.fieldReasons = this.completeFactionReasons(faction, item.fieldReasons || {}, 'AI全量检视后给出的字段理由。');
     return faction;
   },

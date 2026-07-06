@@ -1,7 +1,7 @@
 {
-  "characterId": "rel-ai-247528",
-  "ownerId": "rel-ai-247528",
-  "personId": "rel-ai-247528",
+  "characterId": "",
+  "ownerId": "",
+  "personId": "",
   "stateKind": "natural",
   "stateLabel": "自然状态",
   "label": "刘思琪 - 自然状态生成形象图",
@@ -46,7 +46,6 @@
     "精致点缀"
   ],
   "tags": [
-    "rel-ai-247528",
     "natural",
     "少女",
     "纤细",
@@ -265,5 +264,6 @@
   "imageSize": {
     "width": 768,
     "height": 1152
-  }
+  },
+  "activeFigure": false
 }

@@ -1,6 +1,13 @@
 {
   "figures": [
     {
+      "id": "rel-ai-247463-1783358656228",
+      "path": "rel-ai-247463-1783358656228",
+      "generated": true,
+      "ownerId": "rel-ai-247463",
+      "stateKind": "natural"
+    },
+    {
       "id": "rel-ai-247528-1783276182507",
       "path": "rel-ai-247528-1783276182507",
       "generated": true,
@@ -11,7 +18,7 @@
       "id": "rel-ai-247528-1783275261314",
       "path": "rel-ai-247528-1783275261314",
       "generated": true,
-      "ownerId": "rel-ai-247528",
+      "ownerId": "",
       "stateKind": "natural"
     },
     {

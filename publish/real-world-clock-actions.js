@@ -83,7 +83,11 @@ window.GameModules.realWorldClockActions = {
     this.realWorldFunctionView = 'menu';
     this.backRealWorldLayoutCatalogList?.();
   },
-  openPhoneFromRealWorld() { this.realWorldFunctionOpen = false; this.closeRealWorldPanel(); },
+  openPhoneFromRealWorld() {
+    this.realWorldFunctionOpen = false;
+    this.closeRealWorldPanel();
+    this.schedulePhoneWarmup?.();
+  },
 
   realWorldFunctionTitle() {
     if (this.realWorldFunctionView === 'layouts' && this.realWorldLayoutCatalogTemplateId) {

@@ -357,7 +357,9 @@ const _factionOrgActionsBase = {
   },
 
   factionOverviewModeMeta(faction = this.selectedFaction()) {
-    const maturityClass = String(faction?.maturityClass || '').trim() || 'community';
+    const ot = window.GameModules.orgTerritory;
+    const fallbackCountry = /^(中国|中华人民共和国|中华人民共和國|美国|美利坚合众国|日本|日本国|英国|法国|德国|俄罗斯|加拿大|澳大利亚|印度)$/u.test(String(faction?.name || '').replace(/\s+/g, ''));
+    const classification = ot?.deriveClassification?.(faction) || ot?.normalizeClassification?.(faction?.classification) || (fallbackCountry ? 'country' : String(faction?.maturityClass || '').trim()) || 'community';
     const ideologyCore = String(faction?.solid?.overviewPanels?.ideology?.core?.value || '').trim();
     const gestalt = String(faction?.type || '').includes('格式塔意识') || ideologyCore === '格式塔意识';
     if (gestalt) {
@@ -369,7 +371,25 @@ const _factionOrgActionsBase = {
         hideMilitaryWhenEmpty: false,
       };
     }
-    if (maturityClass === 'community') {
+    if (classification === 'country') {
+      return {
+        eyebrow: 'COUNTRY PROFILE',
+        labels: { ideology: '国体', economy: '经济', politics: '政治', military: '军事', diplomacy: '外交' },
+        ideologyLabels: { core: '国体核心', reason: '形成原因', description: '当前说明', base: '法理基础', legitimacy: '合法性' },
+        empty: { ideology: '国家事实尚未展开', economy: '经济事实尚未展开', politics: '政治事实尚未展开', military: '军事事实尚未展开', diplomacy: '外交事实尚未展开' },
+        hideMilitaryWhenEmpty: false,
+      };
+    }
+    if (classification === 'claim') {
+      return {
+        eyebrow: 'CLAIM PROFILE',
+        labels: { ideology: '宣称基础', economy: '可用资源', politics: '组织化程度', military: '武力宣称', diplomacy: '外部回应' },
+        ideologyLabels: { core: '宣称核心', reason: '宣称原因', description: '当前说明', base: '参与基础', legitimacy: '可信度' },
+        empty: { ideology: '尚未记录宣称基础', economy: '尚未记录可用资源', politics: '尚未记录组织化事实', military: '尚未记录武力事实', diplomacy: '尚未记录外部回应' },
+        hideMilitaryWhenEmpty: true,
+      };
+    }
+    if (classification === 'community') {
       return {
         eyebrow: 'COMMUNITY PROFILE',
         labels: { ideology: '凝聚原因', economy: '可用资源', politics: '管理', military: '军事', diplomacy: '联谊' },

@@ -2,26 +2,34 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.factionActions = {
   initFactionSystem() {
-    const base = window.GameModules.factionSystem.defaultState(this.playerProfile || {});
-    this.factionState = { ...base, ...(this.factionState || {}) };
-    this.factionState.factions = this.factionState.factions?.length ? this.factionState.factions : base.factions;
-    this.factionState.factions = this.factionState.factions.map((faction) => {
-      const normalized = window.GameModules.orgTerritory?.normalizeFaction?.(
-        this.normalizeFactionStructure({ ...faction, fieldReasons: this.completeFactionReasons?.(faction, faction.fieldReasons) || faction.fieldReasons || {} }),
-        this,
-      ) || this.normalizeFactionStructure({ ...faction, fieldReasons: this.completeFactionReasons?.(faction, faction.fieldReasons) || faction.fieldReasons || {} });
-      return normalized;
-    });
-    window.GameModules.factionOrgForest?.migrateFactionForest?.(this);
-    this.syncAllCharacterMemberships?.();
-    window.GameModules.orgTerritory?.validateWorldConsistency?.(this);
-    window.GameModules.orgTerritoryActions?.syncPlayerWealthAsset?.(this);
-    const top = base.factions[0];
-    if (top && !this.factionState.factions.some((faction) => faction.id === top.id || faction.name === top.name)) this.factionState.factions.unshift(top);
-    if (top) this.factionState.factions.sort((a, b) => (a.id === top.id ? -1 : b.id === top.id ? 1 : 0));
-    this.syncCompanyFaction?.();
-    this.ensureAllCompanyFactions?.();
-    this.syncRoleCardMemberships?.();
+    if (this._initFactionSystemRunning) return this.factionState;
+    this._initFactionSystemRunning = true;
+    try {
+      const base = window.GameModules.factionSystem.defaultState(this.playerProfile || {});
+      this.factionState = { ...base, ...(this.factionState || {}) };
+      this.factionState.factions = this.factionState.factions?.length ? this.factionState.factions : base.factions;
+      this.factionState.factions = this.factionState.factions.map((faction) => {
+        const normalized = window.GameModules.orgTerritory?.normalizeFaction?.(
+          this.normalizeFactionStructure({ ...faction, fieldReasons: this.completeFactionReasons?.(faction, faction.fieldReasons) || faction.fieldReasons || {} }),
+          this,
+        ) || this.normalizeFactionStructure({ ...faction, fieldReasons: this.completeFactionReasons?.(faction, faction.fieldReasons) || faction.fieldReasons || {} });
+        return normalized;
+      });
+      window.GameModules.factionOrgForest?.migrateFactionForest?.(this);
+      this.syncAllCharacterMemberships?.();
+      if (!this._orgTerritoryValidationRunning) window.GameModules.orgTerritory?.validateWorldConsistency?.(this);
+      window.GameModules.orgTerritoryActions?.syncPlayerWealthAsset?.(this);
+      const top = base.factions[0];
+      if (top && !this.factionState.factions.some((faction) => faction.id === top.id || faction.name === top.name)) this.factionState.factions.unshift(top);
+      if (top) this.factionState.factions.sort((a, b) => (a.id === top.id ? -1 : b.id === top.id ? 1 : 0));
+      this.factionState.factions = this.factionState.factions.map((faction) => window.GameModules.orgTerritory?.normalizeFaction?.(faction, this) || faction);
+      this.syncCompanyFaction?.();
+      this.ensureAllCompanyFactions?.();
+      this.syncRoleCardMemberships?.();
+      return this.factionState;
+    } finally {
+      this._initFactionSystemRunning = false;
+    }
   },
 
   syncCompanyFaction() {
@@ -189,7 +197,15 @@ window.GameModules.factionActions = {
     if (!this.factionState?.factions?.length) this.initFactionSystem?.();
     const factions = Array.isArray(this.factionState?.factions) ? this.factionState.factions : [];
     if (!factions.length) return null;
-    return factions.find((x) => x.id === this.factionState?.selectedId) || factions[0] || null;
+    const index = factions.findIndex((x) => x.id === this.factionState?.selectedId);
+    const rawIndex = index >= 0 ? index : 0;
+    const raw = factions[rawIndex] || null;
+    if (!raw) return null;
+    const normalized = window.GameModules.orgTerritory?.normalizeFaction?.(raw, this) || raw;
+    if (normalized !== raw || normalized.classification !== raw.classification || normalized.maturityLabel !== raw.maturityLabel) {
+      this.factionState.factions.splice(rawIndex, 1, normalized);
+    }
+    return normalized;
   },
 
   selectFaction(id) {

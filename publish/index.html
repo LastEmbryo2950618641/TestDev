@@ -698,6 +698,37 @@
     </div>
   </section>
 
+  <section x-show="$store.game.bodyFigurePickerOpen" class="body-figure-picker-backdrop" @click.self="$store.game.closeBodyFigurePicker()" x-cloak>
+    <div class="body-figure-picker-modal">
+      <header>
+        <div>
+          <strong>选择形象图</strong>
+          <small x-text="$store.game.bodyFigurePickerLabel()"></small>
+        </div>
+        <button type="button" class="small-btn" @click="$store.game.closeBodyFigurePicker()">关闭</button>
+      </header>
+      <p class="ability-panel-hint">按当前角色整体、身材、身高、体重、肤色、气质和 11 个身体部位标签排序；已绑定其他角色的形象图不可重复选择。</p>
+      <p class="body-figure-picker-status" x-show="$store.game.bodyFigurePickerLoading">正在读取本地形象图...</p>
+      <p class="body-figure-picker-error" x-show="$store.game.bodyFigurePickerError" x-text="$store.game.bodyFigurePickerError"></p>
+      <div class="body-figure-picker-grid">
+        <template x-for="item in $store.game.bodyFigurePickerItems" :key="item.path">
+          <article class="body-figure-picker-card" :class="{ active: item.active, disabled: item.disabled }">
+            <div class="body-figure-picker-thumb">
+              <img :src="item.imageSrc" :alt="item.label" loading="lazy">
+            </div>
+            <div class="body-figure-picker-info">
+              <strong x-text="item.label"></strong>
+              <small x-text="`${item.scoreLabel} · ${item.sourceLabel}${item.stateKind ? ' · ' + (item.stateKind === 'dressed' ? '盛装' : '自然') : ''}`"></small>
+              <small class="body-figure-picker-bound" x-show="item.boundOwnerId" x-text="`该形象图已绑定${item.boundOwnerName || item.boundOwnerId}`"></small>
+            </div>
+            <button type="button" class="body-figure-picker-set" :disabled="$store.game.bodyFigurePickerLoading || item.disabled || item.active" @click="$store.game.setBodyFigurePickerCurrent(item)" x-text="item.active ? '当前形象图' : '点击设置为形象图'"></button>
+          </article>
+        </template>
+      </div>
+      <p class="ability-empty" x-show="!$store.game.bodyFigurePickerLoading && !$store.game.bodyFigurePickerItems.length">暂无可读取的形象图元数据</p>
+    </div>
+  </section>
+
   <section x-show="$store.game.realWorldOpen" class="real-world-overlay" x-cloak>
     <div class="real-world-dialog game-shell" :class="{ 'section-hints': $store.game.sectionHintsEnabled }">
       <header class="top-bar dev-section" data-section-title="现实世界顶部状态栏">
@@ -989,7 +1020,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.phoneSetupDone && !$store.game.desktopUnlocked" class="phone-desktop-screen" x-init="if (!$store.game._phoneReminderTimer) { $store.game._phoneReminderTimer = setInterval(() => $store.game.checkWorkReminder?.(), 60000); } $store.game.refreshPhoneClockLabels?.();" x-effect="if (!$store.game.loading && $store.game.phoneSetupDone && !$store.game.desktopUnlocked) { $store.game.refreshPhoneClockLabels?.(); $store.game.ensureDesktopModulesReady?.(); }" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.phoneSetupDone && !$store.game.desktopUnlocked" class="phone-desktop-screen" x-init="if (!$store.game._phoneReminderTimer) { $store.game._phoneReminderTimer = setInterval(() => $store.game.checkWorkReminder?.(), 60000); } $store.game.refreshPhoneClockLabels?.();" x-effect="if (!$store.game.loading && $store.game.phoneSetupDone && !$store.game.desktopUnlocked) { $store.game.refreshPhoneClockLabels?.(); $store.game.schedulePhoneWarmup?.(); }" x-cloak>
     <div class="phone-frame">
       <button class="phone-collapse-btn" type="button" @click="$store.game.routeCurrentWorldAction()" aria-label="收起手机">收起手机</button>
       <div class="phone-status-bar">
@@ -1278,6 +1309,7 @@
                     <span>接触遮罩</span>
                   </label>
                   <button type="button" class="body-figure-image-btn" @click="$store.game.openBodyProfileImageGenerator(section)" :disabled="$store.game.wechatAlbumGenerating" x-text="$store.game.wechatAlbumGenerating ? '生成中…' : '生成形象图'"></button>
+                  <button type="button" class="body-figure-image-btn secondary" @click="$store.game.openBodyFigurePicker(section)" :disabled="$store.game.bodyFigurePickerLoading">选择形象图</button>
                   <small x-text="$store.game.bodyFigureMaskEnabled(section) ? '遮罩切换：开启' : '遮罩切换：关闭'"></small>
                 </div>
                 <p class="ability-panel-hint" x-text="body?.figure ? '点击标注框或部位卡片查看完整描写 · 参考图按整体与部位标签匹配' : '点击轮廓或部位卡片查看完整描写 · 轮廓按性别与整体体型自动匹配'"></p>
@@ -2291,9 +2323,16 @@
             <template x-for="(photo, index) in $store.game.wechatAlbumPhotoList()" :key="`${photo.createdAt || index}-${photo.url}`">
               <article class="wechat-album-card">
                 <div class="wechat-photo-slot filled"><img :src="photo.url" alt="联系人照片"><button class="wechat-avatar-crop-btn" type="button" @click.stop="$store.game.openWechatAvatarCrop(index)" title="截取头像">⌗</button><button class="wechat-image-zoom-btn" type="button" @click.stop="$store.game.openWechatImagePreview(photo.url, '相册照片')" title="放大全屏">⌕</button></div>
-                <button class="wechat-real-photo-btn" type="button" @click="$store.game.markWechatAlbumPhotoReal(index)" x-text="photo.real ? '已标记为真实照片' : '标记为真实照片'"></button>
+                <button class="wechat-delete-photo-btn" type="button" @click="$store.game.openWechatAlbumDeleteConfirm(index)">删除</button>
               </article>
             </template>
+          </div>
+          <div class="wechat-photo-dialog" x-show="$store.game.wechatAlbumDeleteConfirm?.open" @click.self="$store.game.closeWechatAlbumDeleteConfirm()" x-cloak>
+            <article class="wechat-delete-confirm">
+              <strong>是否删除</strong>
+              <p>仅从当前存档相册中移除这张图片；若它是形象图，不会删除本地 body-figures 文件夹中的图片和元数据。</p>
+              <div class="wechat-album-actions"><button type="button" @click="$store.game.closeWechatAlbumDeleteConfirm()">取消</button><button type="button" class="danger" @click="$store.game.confirmDeleteWechatAlbumPhoto()">删除</button></div>
+            </article>
           </div>
           <div class="wechat-photo-dialog" x-show="$store.game.wechatAvatarCropOpen" @click.self="$store.game.closeWechatAvatarCrop()" x-cloak>
             <article class="avatar-crop">
@@ -2380,12 +2419,6 @@
               </div>
             </template>
           </div>
-          <div class="wechat-photo-dialog wechat-image-preview-dialog" x-show="$store.game.wechatImagePreview.open" @click.self="$store.game.closeWechatImagePreview()" x-cloak>
-            <article>
-              <button class="wechat-image-preview-close" type="button" @click="$store.game.closeWechatImagePreview()">关闭</button>
-              <img :src="$store.game.wechatImagePreview.url || ''" :alt="$store.game.wechatImagePreview.title || '图片预览'">
-            </article>
-          </div>
           <div class="wechat-photo-dialog" x-show="$store.game.wechatImageConfirmOpen" @click.self="$store.game.closeWechatImageConfirm()" x-cloak>
             <article>
               <strong>是否确认接受（会生成图片）</strong>
@@ -2405,6 +2438,12 @@
           <div class="wechat-input"><button type="button" @click="$store.game.wechatMentionPanelOpen = !$store.game.wechatMentionPanelOpen">@</button><input x-model="$store.game.wechatInput" placeholder="输入消息，可 @联系人 或 @图片ID" @keydown.enter.prevent="$store.game.sendWechatMessage()"><button type="button" @click="$store.game.sendWechatMessage()" :disabled="$store.game.wechatSending || !$store.game.wechatInput.trim()">发送</button></div>
         </section>
       </main>
+      <div class="wechat-photo-dialog wechat-image-preview-dialog" x-show="$store.game.wechatImagePreview.open" @click.self="$store.game.closeWechatImagePreview()" x-cloak>
+        <article>
+          <button class="wechat-image-preview-close" type="button" @click="$store.game.closeWechatImagePreview()">关闭</button>
+          <img :src="$store.game.wechatImagePreview.url || ''" :alt="$store.game.wechatImagePreview.title || '图片预览'">
+        </article>
+      </div>
       <nav class="wechat-tabs" x-show="$store.game.wechatView === 'home'"><button type="button" :class="{ active: $store.game.wechatTab === 'chats' }" @click.stop="$store.game.setWechatTab('chats')">聊天</button><button type="button" :class="{ active: $store.game.wechatTab === 'contacts' }" @click.stop="$store.game.setWechatTab('contacts')">通讯录</button><button type="button" :class="{ active: $store.game.wechatTab === 'me' }" @click.stop="$store.game.setWechatTab('me')">我</button></nav>
     </div>
   </section>
@@ -2740,6 +2779,7 @@
                           <span>接触遮罩</span>
                         </label>
                         <button type="button" class="body-figure-image-btn" @click="$store.game.openBodyProfileImageGenerator(section)" :disabled="$store.game.wechatAlbumGenerating" x-text="$store.game.wechatAlbumGenerating ? '生成中…' : '生成形象图'"></button>
+                        <button type="button" class="body-figure-image-btn secondary" @click="$store.game.openBodyFigurePicker(section)" :disabled="$store.game.bodyFigurePickerLoading">选择形象图</button>
                         <small x-text="$store.game.bodyFigureMaskEnabled(section) ? '遮罩切换：开启' : '遮罩切换：关闭'"></small>
                       </div>
                       <p class="ability-panel-hint" x-text="body?.figure ? '点击标注框或部位卡片查看完整描写 · 参考图按整体与部位标签匹配' : '点击轮廓或部位卡片查看完整描写 · 轮廓按性别与整体体型自动匹配'"></p>

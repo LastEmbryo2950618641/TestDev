@@ -27,8 +27,8 @@
 - 旧“社群角色”不再作为另一套轻量模型；社群与势力共用同一套 org schema，只通过 `classification` 或等价判断区分。
 - “正式组织身份”不是“法定身份”。反抗军、地下会、非法帮派也可以拥有正式组织身份；是否合法、是否被承认，应写入 `legitimacy`、`relations`、`rules[]` 或外部评价字段。
 - `community` 不再泛指一切社群，只保留给地理社区、居民共同体、地方共同体等结构域；微信群、同好会、秘密会社等属于“社群型 org”，可挂在 `gov`、`corp` 或具体上级链下。
-- “势力 / 社群”的分类边界暂按五面板成熟度判断：五大基础全部确立为势力；任一基础未确立时仍归为社群。
-- “中兴会”这类模糊地带先按弱信息 org 或 `membership` 迷雾处理；只有推演逐步补齐五大基础后，才升级为势力。
+- “国家 / 势力 / 社群 / 自称”的分类边界由 AI 基于上下文、现实常识 / 作品设定常识、已固化事实与五面板证据判断；五大基础是重要证据，不是唯一机械门槛。
+- “中兴会”这类模糊地带先按弱信息 org 或 `membership` 迷雾处理；只有推演逐步补齐五大基础，或 AI 判断势力化符号已经足够稳定后，才升级为势力。
 
 ---
 
@@ -74,9 +74,9 @@
 目标：
 
 - 在现有 `factions[]` 上稳定挂载 `overviewPanels`
-- 增加 `classification: faction | community` 或等价判断函数
+- 增加 `classification: country | faction | community | claim` 或等价判断函数
 - 建立从 `membership -> membership`、`overviewPanels -> legacy overviewPanel summary` 的重构派生
-- 增加灰区默认策略：五面板未齐的强组织先归类为 `community`，不因危险、规模或违法性自动升为 `faction`
+- 增加灰区默认策略：五面板未齐时通常先归类为 `community`，但 AI 可根据现实常识 / 作品设定 / 明确上下文把已知国家或成熟组织直接判为 `country` / `faction`；单纯自称、宣传、玩笑或角色扮演归 `claim`
 
 优先涉及文件：
 
@@ -152,7 +152,7 @@
 | `solid.overviewPanels.military` | `overviewPanels.military` + `structure[]` | 兵种条目可先双写，长期以新模型为准 |
 | `membership` | `membership` | 旧角色卡字段保留重构展示 |
 | 势力地位（角色卡文本） | `membership` + `overviewPanels` + `classification` | 角色在组织中的身份、职位、席位、头衔归 `membership`；组织能力归五面板 |
-| 社群角色 / 社群身份 | `membership` + `classification=community` | 社群不是独立模型，而是同构 org 的未完成势力态 |
+| 社群角色 / 社群身份 | `membership` + `classification=community` | 社群不是独立模型，而是同构 org 中尚未形成持续组织主体性的状态 |
 | 法定身份 | 正式组织身份 + `legitimacy` | “合法/非法/未承认”不决定是否能建 org，只决定合法性与外部关系 |
 | 泛化 `community` | 地理 `community` 域 + 社群型 org 分类 | `community` 域只保留给地理社区；线上/圈层社群按直接管理者挂链 |
 | 域 Tab | 势力 / 社群 页 + 结构筛选 | 页面主轴与结构域分离 |
@@ -175,19 +175,21 @@
 - 一次性放弃旧存档重构
 - 为强网络型组织单独引入图数据库
 - 把“中兴会”这类灰区对象提前写死为势力
-- 用合法性、官方承认或公开活动状态替代五面板成熟度判断
+- 只用合法性、官方承认或公开活动状态替代 AI 分类判断；这些字段只能作为证据
 
 ---
 
 ## 7. 社群保留与边界暂定
 
-社群仍保留为玩家一级主轴之一，但它不是另一套存储结构，而是同一套 org 模型下的成熟度分类。后续仍需继续讨论边界，当前计划先按以下默认规则落地：
+社群仍保留为玩家一级主轴之一，但它不是另一套存储结构，而是同一套 org 模型下的 AI 语义分类。后续仍需继续讨论边界，当前计划先按以下默认规则落地：
 
 | 场景 | 默认处理 |
 | --- | --- |
 | 只有称呼、往来、被认为属于某会 | 建弱信息 org 或 `membership` 迷雾，不直接判定为势力 |
 | 有固定名称、负责人、成员筛选、行动分工，但五面板未齐 | 归类为社群型 org |
-| 五大基础 `ideology / economy / politics / military / diplomacy` 全部被推演确立 | 升级为势力 |
+| 五大基础 `ideology / economy / politics / military / diplomacy` 全部被推演确立，或 AI 判断势力化符号已经足够稳定 | 升级为势力 |
+| 已知现实国家、上下文确认的架空主权体 | 归类为国家 / 主权体 |
+| 仅自称国家、独立或势力名号，缺少事实组织主体性 | 归类为自称 / 社群型 org |
 | 已升级为势力后基础崩塌 | 记录为衰败、分裂、解体、吞并或消亡，不退回社群 |
 | 反抗军、地下会、非法组织 | 按同一规则判断势力/社群；违法性写 `legitimacy=unrecognized/contested` 或关系字段 |
 

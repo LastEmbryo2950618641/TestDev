@@ -149,6 +149,49 @@ window.GameModules.bodyFigure = {
     return new Set(tokens);
   },
 
+  figureOwnerId(meta = {}) {
+    return String(meta?.characterId || meta?.ownerId || meta?.personId || '').trim();
+  },
+
+  stripOwnerToken(meta = {}, ownerId = '') {
+    const id = String(ownerId || '').trim();
+    if (!id || !Array.isArray(meta.tags)) return;
+    meta.tags = meta.tags.filter((tag) => String(tag || '').trim() !== id);
+  },
+
+  clearFigureOwner(meta = {}, ownerId = '') {
+    const id = String(ownerId || this.figureOwnerId(meta)).trim();
+    ['characterId', 'ownerId', 'personId'].forEach((key) => {
+      if (!id || String(meta?.[key] || '').trim() === id) meta[key] = '';
+    });
+    ['characterName', 'ownerName', 'personName'].forEach((key) => {
+      if (Object.prototype.hasOwnProperty.call(meta, key)) meta[key] = '';
+    });
+    meta.activeFigure = false;
+    this.stripOwnerToken(meta, id);
+    return meta;
+  },
+
+  assignFigureOwner(meta = {}, ownerId = '', ownerName = '', stateKind = '') {
+    const id = String(ownerId || '').trim();
+    if (!id) return meta;
+    const name = String(ownerName || '').trim();
+    meta.characterId = id;
+    meta.ownerId = id;
+    meta.personId = id;
+    if (name) {
+      meta.characterName = name;
+      meta.ownerName = name;
+      meta.personName = name;
+    }
+    if (stateKind) meta.stateKind = stateKind === 'dressed' ? 'dressed' : 'natural';
+    meta.activeFigure = true;
+    const tags = Array.isArray(meta.tags) ? meta.tags.map((tag) => String(tag || '').trim()).filter(Boolean) : [];
+    if (!tags.includes(id)) tags.unshift(id);
+    meta.tags = tags;
+    return meta;
+  },
+
   scoreFigureMeta(profileTokens, figureMeta = {}) {
     const figureTokens = this.collectFigureTokens(figureMeta);
     let score = 0;
@@ -164,19 +207,143 @@ window.GameModules.bodyFigure = {
     return list[Math.floor(Math.random() * list.length)] || list[0];
   },
 
-  pickFigureEntry(meta = {}, rows = []) {
-    const entries = this.allEntries();
-    if (!entries.length) return null;
+  figureTime(meta = {}, entry = {}) {
+    const stamp = Date.parse(meta?.generatedAt || meta?.createdAt || '') || 0;
+    if (stamp) return stamp;
+    const id = String(entry?.id || entry?.path || meta?.id || '');
+    const match = id.match(/(\d{10,})$/);
+    return match ? Number(match[1]) || 0 : 0;
+  },
+
+  async loadLocalEntries() {
+    try {
+      const res = await fetch('/__dev/body-figure-index', { cache: 'no-cache' });
+      if (!res.ok) return this.manifestEntries;
+      const data = await res.json();
+      const entries = (Array.isArray(data?.figures) ? data.figures : [])
+        .map((item) => ({
+          id: String(item?.id || item?.path || '').trim(),
+          path: String(item?.path || item?.id || '').trim(),
+          default: Boolean(item?.default),
+          generated: Boolean(item?.generated),
+          ownerId: item?.ownerId || '',
+          stateKind: item?.stateKind || '',
+        }))
+        .filter((item) => item.id && item.path);
+      if (entries.length) {
+        const byPath = new Map([...this.manifestEntries, ...entries].map((item) => [item.path, item]));
+        this.manifestEntries = [...byPath.values()];
+      }
+    } catch (_) {
+      // Static hosting has no dev index endpoint; index.json remains the fallback.
+    }
+    return this.manifestEntries;
+  },
+
+  async ensureEntriesLoaded() {
+    await this.loadManifest();
+    await this.loadLocalEntries();
+    await Promise.all(this.allEntries().map((entry) => this.loadMeta(entry.path)));
+    return this.allEntries();
+  },
+
+  scoredFigures(meta = {}, rows = [], options = {}) {
+    const ownerId = String(meta?.characterId || meta?.ownerId || meta?.personId || '').trim();
     const profileTokens = this.collectProfileTokens(meta, rows);
-    const scored = entries.map((entry) => {
-      const cached = this.metaCache[entry.path] || null;
-      return { entry, cached, score: cached ? this.scoreFigureMeta(profileTokens, cached) : 0 };
-    });
+    return this.allEntries()
+      .filter((entry) => !entry?.mask && !String(entry?.path || '').startsWith('mask/'))
+      .map((entry) => {
+        const cached = this.metaCache[entry.path] || null;
+        const boundOwnerId = this.figureOwnerId(cached);
+        const boundOther = Boolean(boundOwnerId && ownerId && boundOwnerId !== ownerId);
+        const exactOwner = Boolean(boundOwnerId && ownerId && boundOwnerId === ownerId);
+        const baseScore = cached ? this.scoreFigureMeta(profileTokens, cached) : 0;
+        const score = baseScore + (exactOwner ? 1000 : 0);
+        return {
+          entry,
+          cached,
+          score,
+          baseScore,
+          exactOwner,
+          boundOwnerId,
+          boundOther,
+          time: this.figureTime(cached || {}, entry),
+        };
+      })
+      .filter((item) => options.includeBoundOthers || !item.boundOther)
+      .sort((a, b) => (b.score - a.score) || (Number(b.exactOwner) - Number(a.exactOwner)) || (b.time - a.time) || String(a.entry.id).localeCompare(String(b.entry.id)));
+  },
+
+  pickFigureEntry(meta = {}, rows = []) {
+    const entries = this.allEntries().filter((entry) => !entry?.mask && !String(entry?.path || '').startsWith('mask/'));
+    if (!entries.length) return null;
+    const scored = this.scoredFigures(meta, rows);
     const cachedScored = scored.filter((item) => item.cached);
     const maxScore = Math.max(0, ...cachedScored.map((item) => item.score));
-    if (maxScore <= 0) return { entry: this.randomEntry(entries), cached: null, score: 0, random: true };
-    const best = cachedScored.filter((item) => item.score === maxScore);
-    return best[Math.floor(Math.random() * best.length)] || best[0];
+    if (maxScore <= 0) {
+      const fallback = cachedScored.length ? cachedScored : scored;
+      const picked = fallback[Math.floor(Math.random() * fallback.length)] || fallback[0] || null;
+      return picked ? { ...picked, random: true } : { entry: this.randomEntry(entries), cached: null, score: 0, random: true };
+    }
+    return cachedScored[0] || null;
+  },
+
+  async listFigureChoices(meta = {}, rows = []) {
+    await this.ensureEntriesLoaded();
+    return this.scoredFigures(meta, rows, { includeBoundOthers: true })
+      .filter((item) => item.cached)
+      .map((item) => {
+        const cached = item.cached || {};
+        return {
+          id: item.entry.id,
+          path: item.entry.path,
+          metaPath: `${item.entry.path}/meta.json`,
+          imageSrc: this.basePath(`${item.entry.path}/${cached.image || 'figure.png'}`),
+          label: cached.label || item.entry.id,
+          score: item.score,
+          baseScore: item.baseScore,
+          exactOwner: item.exactOwner,
+          boundOwnerId: item.boundOwnerId,
+          boundOther: item.boundOther,
+          boundOwnerName: cached.characterName || cached.ownerName || cached.personName || '',
+          stateKind: cached.stateKind || item.entry.stateKind || '',
+          generated: Boolean(cached.generated || item.entry.generated),
+          real: Boolean(cached.real),
+        };
+      });
+  },
+
+  async bindCurrentFigure(pathKey = '', ownerId = '', ownerName = '', options = {}) {
+    const targetPath = String(pathKey || '').replace(/^\/+/, '').replace(/\/meta\.json$/i, '').trim();
+    const id = String(ownerId || '').trim();
+    if (!targetPath || !id) return { ok: false, error: 'missing target or owner' };
+    await this.ensureEntriesLoaded();
+    const target = this.metaCache[targetPath] || await this.loadMeta(targetPath);
+    if (!target) return { ok: false, error: 'target meta not found' };
+    const currentOwner = this.figureOwnerId(target);
+    if (currentOwner && currentOwner !== id && !options.force) {
+      return { ok: false, error: 'figure already bound', boundOwnerId: currentOwner };
+    }
+    const changed = [];
+    this.allEntries().forEach((entry) => {
+      const meta = this.metaCache[entry.path];
+      if (!meta) return;
+      const metaOwner = this.figureOwnerId(meta);
+      if (entry.path === targetPath) {
+        if (metaOwner && metaOwner !== id) this.clearFigureOwner(meta, metaOwner);
+        this.assignFigureOwner(meta, id, ownerName, options.stateKind || meta.stateKind || '');
+        changed.push(entry.path);
+        return;
+      }
+      if (metaOwner === id) {
+        this.clearFigureOwner(meta, id);
+        changed.push(entry.path);
+      }
+    });
+    const saved = await Promise.all([...new Set(changed)].map((path) => this.saveMeta(path, this.metaCache[path])));
+    if (saved.some((ok) => !ok)) return { ok: false, error: 'save failed' };
+    window.dispatchEvent(new CustomEvent('body-figure-meta-ready', { detail: { tag: 'current-figure-changed', id, path: targetPath } }));
+    return { ok: true, path: targetPath };
   },
 
   rowForPart(rows = [], part = '') {

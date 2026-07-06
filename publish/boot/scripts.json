@@ -75,6 +75,7 @@
   "character-intro-card.js",
   "character-query.js",
   "past-event-query.js",
+  "org-territory-system.js",
   "rpg-field-ui.js",
   "progression-combat.js",
   "progression-learned-sync.js",

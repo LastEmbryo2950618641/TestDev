@@ -1,5 +1,5 @@
 window.GameScriptManifest = {
-  "version": "2026-07-06-faction-overview-ui",
+  "version": "2026-07-07-org-restore-recursion-fix",
   "chunks": {
     "core": [
       "https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js",
@@ -57,6 +57,7 @@ window.GameScriptManifest = {
       "character-intro-card.js",
       "character-query.js",
       "past-event-query.js",
+      "org-territory-system.js",
       "body-silhouette.js",
       "body-figure.js",
       "rpg-field-ui.js",
