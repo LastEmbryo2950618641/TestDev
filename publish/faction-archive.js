@@ -30,7 +30,7 @@ window.GameModules.factionArchive = {
       const company = rows.find((f) => f.name === currentCompany || f.id === 'company-main');
       if (company && !hits.some((f) => this.factionKey(f) === this.factionKey(company))) hits.push(company);
     }
-    if (/国家|国籍|政府|美国|中国|日本|英国|法国/.test(raw)) {
+    if (/国家|国籍|政府/.test(raw)) {
       const top = rows.find((f) => f.type === '国家' && !f.parentId);
       if (top && !hits.some((f) => this.factionKey(f) === this.factionKey(top))) hits.push(top);
     }

@@ -30,6 +30,22 @@ window.GameModules.wechatAlbumActions = {
     return { id: key, name, mark: String(name || key).slice(0, 1), relation: profile.role || state.role || '形象图目标', subtitle: profile.work || state.worldTag || '' };
   },
   wechatProfileContact() { return this.wechatSelected?.() || this.wechatContactFromState(this.wechatSelectedContact || 'player-self') || { id: 'player-self', name: '联系人', mark: '联' }; },
+  wechatAlbumContact(targetId = '') {
+    const key = String(targetId || this.wechatAlbumBodyFigureContext?.characterId || '').trim();
+    if (!key) return this.wechatProfileContact();
+    const stateContact = this.wechatContactFromState(key);
+    const explicit = (this.wechatContacts?.() || []).find((item) => item?.id === key && !item?.group);
+    if (!explicit) return stateContact;
+    return {
+      ...explicit,
+      ...stateContact,
+      id: key,
+      mark: stateContact.mark || explicit.mark || String(stateContact.name || explicit.name || key).slice(0, 1),
+      name: stateContact.name || explicit.name || key,
+      relation: stateContact.relation || explicit.relation || explicit.subtitle || '',
+      subtitle: stateContact.subtitle || explicit.subtitle || '',
+    };
+  },
   wechatAlbumPhotoList() {
     const raw = this.wechatAlbumPhotos?.[this.wechatProfileContact()?.id || 'player-self'];
     if (Array.isArray(raw)) return raw.filter((item) => item?.url);
@@ -131,7 +147,7 @@ window.GameModules.wechatAlbumActions = {
     });
   },
 
-  buildGeneratedBodyFigureMeta(kind = 'natural', contact = this.wechatProfileContact(), drawResult = {}, drawOptions = {}) {
+  buildGeneratedBodyFigureMeta(kind = 'natural', contact = this.wechatAlbumContact(), drawResult = {}, drawOptions = {}) {
     const { state, profile } = this.wechatAlbumStateData(contact);
     const cfg = window.GameModules.appearanceProfileTags;
     const source = this.profileAppearanceSource?.(state || {}) || profile || {};
@@ -183,7 +199,7 @@ window.GameModules.wechatAlbumActions = {
     };
   },
 
-  async saveGeneratedBodyFigureAsset(imageUrl = '', kind = 'natural', contact = this.wechatProfileContact(), drawResult = {}, drawOptions = {}) {
+  async saveGeneratedBodyFigureAsset(imageUrl = '', kind = 'natural', contact = this.wechatAlbumContact(), drawResult = {}, drawOptions = {}) {
     const meta = this.buildGeneratedBodyFigureMeta(kind, contact, drawResult, drawOptions);
     const timestamp = Date.now();
     try {
@@ -217,7 +233,7 @@ window.GameModules.wechatAlbumActions = {
   },
 
   async openWechatAlbumPromptEditor(kind = 'natural') {
-    const contact = this.wechatProfileContact();
+    const contact = this.wechatAlbumContact();
     if (contact?.id === 'player-self') await this.ensurePlayerRpgState?.();
     else await this.ensureWechatUserProfile?.(contact);
     const options = this.wechatAlbumPromptOptions(kind);
@@ -232,7 +248,7 @@ window.GameModules.wechatAlbumActions = {
     this.wechatAlbumPromptStep = 'edit';
   },
 
-  wechatAlbumStateData(contact = this.wechatProfileContact()) {
+  wechatAlbumStateData(contact = this.wechatAlbumContact()) {
     const key = String(contact?.id || 'player-self').trim() || 'player-self';
     let state = this.rpgStates?.[key] || window.GameModules.sqliteSave?.getCharacterState?.(key) || {};
     if (key === 'player-self') {
@@ -246,7 +262,7 @@ window.GameModules.wechatAlbumActions = {
     }
     return { state, profile: state.profile || {} };
   },
-  wechatAlbumIdentityItems(contact = this.wechatProfileContact(), state = {}, profile = {}) {
+  wechatAlbumIdentityItems(contact = this.wechatAlbumContact(), state = {}, profile = {}) {
     return [
       ['name', '姓名', profile.name || contact.name || '未记录'], ['role', '身份', profile.role || contact.relation || '微信联系人'],
       ['gender', '性别', profile.gender || '未记录'], ['age', '年龄/生日', `${profile.age || state.values?.age || '未记录'} / ${profile.birthday || '未记录'}`],
@@ -278,7 +294,7 @@ window.GameModules.wechatAlbumActions = {
     return items.length ? items : [{ key: 'body-empty', label: '部位描述', value: '未记录', text: '未记录' }];
   },
   wechatAlbumPromptOptions(kind = this.wechatAlbumPromptDraft?.kind || 'natural') {
-    const contact = this.wechatProfileContact();
+    const contact = this.wechatAlbumContact();
     const { state, profile } = this.wechatAlbumStateData(contact);
     return {
       identity: this.wechatAlbumIdentityItems(contact, state, profile),
@@ -297,7 +313,7 @@ window.GameModules.wechatAlbumActions = {
     const bodyText = draft.kind === 'custom' ? String(draft.customText || '').trim() : bodyItems.map((item) => item.text).join('\n');
     return { identityInfo, bodyText: bodyText || '未记录', extraText: String(draft.extraText || '').trim(), stateName: this.wechatAlbumKindLabel(draft.kind), kind: draft.kind, identityItems, bodyItems };
   },
-  wechatAlbumPromptPreview() { return this.wechatAlbumPhotoPrompt(this.wechatProfileContact(), this.wechatAlbumPromptDraft?.kind || 'natural', this.wechatAlbumPromptDraft); },
+  wechatAlbumPromptPreview() { return this.wechatAlbumPhotoPrompt(this.wechatAlbumContact(), this.wechatAlbumPromptDraft?.kind || 'natural', this.wechatAlbumPromptDraft); },
   wechatAlbumSelectedCharCount() {
     const selected = this.wechatAlbumSelectedText?.();
     const text = selected ? [selected.identityInfo, selected.bodyText, selected.extraText].filter(Boolean).join('\n') : this.wechatAlbumPromptPreview();
@@ -316,10 +332,14 @@ window.GameModules.wechatAlbumActions = {
   async generateWechatAlbumPhotoFromSelectedPrompt() {
     const selectedPrompt = this.wechatAlbumSelectedPrompt?.();
     const kind = selectedPrompt?.kind || this.wechatAlbumPromptDraft?.kind || 'natural';
-    const prompt = this.wechatAlbumPromptEditText || selectedPrompt?.prompt || '';
+    const contact = this.wechatAlbumContact();
+    const prompt = this.normalizeWechatAlbumPromptFixedTags?.(
+      this.wechatAlbumPromptEditText || selectedPrompt?.prompt || '',
+      kind,
+      contact,
+    ) || this.wechatAlbumPromptEditText || selectedPrompt?.prompt || '';
     const negativePrompt = this.wechatAlbumPromptEditNegative || selectedPrompt?.negativePrompt || '';
     if (selectedPrompt) {
-      const contact = this.wechatProfileContact();
       const list = this.wechatAlbumPromptList(contact).map((item) => item.id === selectedPrompt.id ? { ...item, prompt, negativePrompt } : item);
       this.wechatAlbumPrompts = { ...(this.wechatAlbumPrompts || {}), [contact.id]: list };
       await this.save?.();
@@ -328,7 +348,7 @@ window.GameModules.wechatAlbumActions = {
   },
   async generateWechatAlbumPhoto(kind = 'natural', promptData = null) {
     if (this.wechatAlbumGenerating) return;
-    const contact = this.wechatProfileContact();
+    const contact = this.wechatAlbumContact();
     if (!contact || contact.group) return;
     const bodyFigureContext = this.wechatAlbumBodyFigureContext?.characterId === contact.id
       ? { ...this.wechatAlbumBodyFigureContext }

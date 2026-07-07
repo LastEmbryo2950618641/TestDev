@@ -398,3 +398,104 @@ window.GameModules.realWorldMap = {
     return this.mapDisplayRender(map || {});
   },
 };
+
+
+(function enhanceRealWorldMapRoutes() {
+  const mapMod = window.GameModules.realWorldMap;
+  if (!mapMod || mapMod.__routeGraphEnhanced) return;
+  mapMod.__routeGraphEnhanced = true;
+
+  Object.assign(mapMod, {
+    routeEdgeId(fromId = '', toId = '') {
+      return `route_${[String(fromId || ''), String(toId || '')].sort().join('_')}`;
+    },
+
+    normalizeDistanceText(edge = {}) {
+      const direct = String(edge.distanceText || edge.distance || edge.distanceLabel || '').trim();
+      if (direct) return direct.slice(0, 18);
+      const meters = Number(edge.distanceMeters || edge.meters || edge.lengthMeters);
+      if (Number.isFinite(meters) && meters > 0) {
+        return meters >= 1000 ? `${(meters / 1000).toFixed(meters >= 10000 ? 0 : 1)} km` : `${Math.round(meters)} m`;
+      }
+      return '\u8ddd\u79bb\u5f85\u63a8\u6f14';
+    },
+
+    resolveRouteNode(map, value, time = '') {
+      const rawName = typeof value === 'object'
+        ? (value.id || value.name || value.locationName || value.nodeName)
+        : value;
+      const text = String(rawName || '').trim();
+      if (!text) return null;
+      let node = (map.nodes || []).find((item) => item.id === text || item.name === text);
+      if (!node) node = this.upsertNode(map, { name: text, time, onlyIfNew: true });
+      if (!node) return null;
+      return this.resolveExteriorAnchorNode(map, node) || node;
+    },
+
+    normalizeRouteLink(map, raw = {}, time = '') {
+      if (!raw || typeof raw !== 'object') return null;
+      const fromRaw = raw.from || raw.fromName || raw.source || raw.sourceName || raw.start || raw.startName;
+      const toRaw = raw.to || raw.toName || raw.target || raw.targetName || raw.end || raw.endName;
+      const from = this.resolveRouteNode(map, fromRaw, time);
+      const to = this.resolveRouteNode(map, toRaw, time);
+      if (!from || !to || from.id === to.id) return null;
+      const meters = Number(raw.distanceMeters || raw.meters || raw.lengthMeters);
+      return {
+        id: String(raw.id || this.routeEdgeId(from.id, to.id)),
+        from: from.id,
+        to: to.id,
+        fromName: from.name,
+        toName: to.name,
+        distanceMeters: Number.isFinite(meters) && meters > 0 ? Math.round(meters) : null,
+        distanceText: this.normalizeDistanceText(raw),
+        basis: String(raw.basis || raw.reason || raw.description || raw.detail || '').trim().slice(0, 100),
+        updatedAt: time || '',
+      };
+    },
+
+    normalizeEdges(map, time = '') {
+      const edges = [];
+      const seen = new Set();
+      (Array.isArray(map.edges) ? map.edges : []).forEach((raw) => {
+        const edge = this.normalizeRouteLink(map, raw, raw.updatedAt || time);
+        if (!edge || seen.has(edge.id)) return;
+        seen.add(edge.id);
+        edges.push(edge);
+      });
+      map.edges = edges.slice(-80);
+      return map.edges;
+    },
+
+    applyRouteLinks(state, map, routeLinks = [], time = '') {
+      if (!Array.isArray(routeLinks) || !routeLinks.length) return [];
+      if (!Array.isArray(map.edges)) map.edges = [];
+      const existing = new Map(map.edges.map((edge) => [edge.id, edge]));
+      const applied = [];
+      routeLinks.slice(0, 12).forEach((raw) => {
+        const edge = this.normalizeRouteLink(map, raw, time);
+        if (!edge) return;
+        existing.set(edge.id, { ...(existing.get(edge.id) || {}), ...edge });
+        applied.push(edge);
+      });
+      map.edges = [...existing.values()].slice(-80);
+      return applied;
+    },
+  });
+
+  const originalEnsure = mapMod.ensure;
+  mapMod.ensure = function enhancedEnsure(state, profile = {}) {
+    const map = originalEnsure.call(this, state, profile);
+    this.normalizeEdges(map, this.factTime(state));
+    return map;
+  };
+
+  const originalUpdate = mapMod.update;
+  mapMod.update = function enhancedUpdate(state, locationName, result = {}) {
+    const map = originalUpdate.call(this, state, locationName, result);
+    const time = this.factTime(state);
+    this.applyRouteLinks(state, map, result.routeLinks || result.routes || [], time);
+    if (Array.isArray(result.mapLinks)) this.applyRouteLinks(state, map, result.mapLinks, time);
+    map.lastText = this.render(map);
+    return map;
+  };
+}());

@@ -358,8 +358,14 @@ const _factionOrgActionsBase = {
 
   factionOverviewModeMeta(faction = this.selectedFaction()) {
     const ot = window.GameModules.orgTerritory;
-    const fallbackCountry = /^(中国|中华人民共和国|中华人民共和國|美国|美利坚合众国|日本|日本国|英国|法国|德国|俄罗斯|加拿大|澳大利亚|印度)$/u.test(String(faction?.name || '').replace(/\s+/g, ''));
-    const classification = ot?.deriveClassification?.(faction) || ot?.normalizeClassification?.(faction?.classification) || (fallbackCountry ? 'country' : String(faction?.maturityClass || '').trim()) || 'community';
+    const structuralCountry = faction?.sovereign === true
+      || String(faction?.orgDomain || '').trim() === 'country'
+      || String(faction?.type || '').trim() === '国家'
+      || String(faction?.level || '').includes('国家');
+    const classification = ot?.deriveClassification?.(faction)
+      || ot?.normalizeClassification?.(faction?.classification)
+      || (structuralCountry ? 'country' : String(faction?.maturityClass || '').trim())
+      || 'community';
     const ideologyCore = String(faction?.solid?.overviewPanels?.ideology?.core?.value || '').trim();
     const gestalt = String(faction?.type || '').includes('格式塔意识') || ideologyCore === '格式塔意识';
     if (gestalt) {
@@ -446,6 +452,11 @@ const _factionOrgActionsBase = {
     return '初步确立';
   },
 
+  factionOverviewEffectiveCount(panelKey = '', entries = []) {
+    if (panelKey !== 'ideology') return entries.length;
+    return entries.filter((entry) => String(entry?.name || '') !== 'legitimacy').length;
+  },
+
   selectedFactionOverviewSummary() {
     const faction = this.selectedFaction?.();
     if (!faction) return '';
@@ -483,6 +494,7 @@ const _factionOrgActionsBase = {
           };
         }).filter(Boolean);
         const meter = this.factionOverviewPanelMeter(panelKey, entries, faction);
+        const effectiveCount = this.factionOverviewEffectiveCount(panelKey, entries);
         return {
           key: 'cap-ideology',
           dim: 'ideology',
@@ -493,7 +505,7 @@ const _factionOrgActionsBase = {
           tone: skin.tone,
           meter,
           meterStyle: `--meter:${meter};`,
-          rankLabel: this.factionOverviewRankLabel(meter, entries.length),
+          rankLabel: this.factionOverviewRankLabel(meter, effectiveCount),
           statusLabel: `${entries.length}项`,
           entries,
         };
@@ -510,6 +522,7 @@ const _factionOrgActionsBase = {
         parentLabel: '',
       }));
       const meter = this.factionOverviewPanelMeter(panelKey, entries, faction);
+      const effectiveCount = this.factionOverviewEffectiveCount(panelKey, entries);
       return {
         key: `cap-${panelKey}`,
         dim: panelKey,
@@ -520,7 +533,7 @@ const _factionOrgActionsBase = {
         tone: skin.tone,
         meter,
         meterStyle: `--meter:${meter};`,
-        rankLabel: this.factionOverviewRankLabel(meter, entries.length),
+        rankLabel: this.factionOverviewRankLabel(meter, effectiveCount),
         statusLabel: `${entries.length}项`,
         entries,
       };

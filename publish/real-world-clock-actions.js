@@ -70,8 +70,8 @@ window.GameModules.realWorldClockActions = {
     this.realWorldFunctionOpen = true;
     if (view === 'map') {
       requestAnimationFrame(() => {
+        this.ensureRealWorldMapNativeInput?.();
         this.fitRealWorldMapView?.();
-        this.renderRealWorldMapGraph?.();
       });
     }
     if (view === 'layouts') {

@@ -39,11 +39,96 @@
       } catch (_) {}
     })();
   </script>
+  <script>
+    (function () {
+      function clearFallbackClosed() {
+        document.querySelectorAll('.faction-modal-backdrop[data-fallback-closed="true"]').forEach(function (backdrop) {
+          backdrop.style.removeProperty('display');
+          backdrop.removeAttribute('data-fallback-closed');
+        });
+      }
+
+      function closeFactionDetailNative(event) {
+        var target = event && event.target && event.target.closest
+          ? event.target.closest('[data-faction-close-detail], .faction-rpg-close')
+          : null;
+        if (event && !target) return false;
+        if (event && event.preventDefault) event.preventDefault();
+        if (event && event.stopPropagation) event.stopPropagation();
+
+        function hideCurrentBackdrop() {
+          var root = target && target.closest ? target.closest('.faction-modal-backdrop') : null;
+          var roots = root ? [root] : Array.prototype.slice.call(document.querySelectorAll('.faction-modal-backdrop'));
+          roots.forEach(function (backdrop) {
+            if (backdrop.querySelector('.faction-detail, .faction-org-modal')) {
+              backdrop.style.setProperty('display', 'none', 'important');
+              backdrop.setAttribute('data-fallback-closed', 'true');
+            }
+          });
+        }
+
+        var store = window.Alpine && window.Alpine.store ? window.Alpine.store('game') : null;
+        if (store && store.closeFactionDetail) {
+          store.closeFactionDetail();
+          hideCurrentBackdrop();
+          return true;
+        }
+        if (store && store.factionState) {
+          store.factionState.detailOpen = false;
+          store.factionState.orgChartOpen = false;
+          store.factionState.selectedArchiveDocId = '';
+          hideCurrentBackdrop();
+          return true;
+        }
+        hideCurrentBackdrop();
+        return true;
+      }
+
+      function openFactionDetailNative(event) {
+        var row = event.target && event.target.closest ? event.target.closest('[data-faction-id]') : null;
+        if (!row || !row.classList || !row.classList.contains('faction-row')) return;
+        var factionId = row.getAttribute('data-faction-id') || '';
+        var store = window.Alpine && window.Alpine.store ? window.Alpine.store('game') : null;
+        if (store && store.selectFaction && factionId) {
+          store.selectFaction(factionId);
+          if (store.closeFactionArchiveDoc) store.closeFactionArchiveDoc();
+          clearFallbackClosed();
+          return;
+        }
+        var detail = Array.prototype.slice.call(document.querySelectorAll('.faction-modal-backdrop'))
+          .find(function (backdrop) { return backdrop.querySelector('.faction-detail'); });
+        if (detail) {
+          if (event.preventDefault) event.preventDefault();
+          detail.style.removeProperty('display');
+          detail.removeAttribute('data-fallback-closed');
+          detail.scrollTop = 0;
+        }
+      }
+
+      function installFactionDetailNativeNav() {
+        if (window.__factionDetailCloseFallbackInstalled) return;
+        window.__factionDetailCloseFallbackInstalled = true;
+        if (document.documentElement && document.documentElement.dataset) {
+          document.documentElement.dataset.factionNativeNav = 'force-hide-v4';
+        }
+        document.addEventListener('pointerdown', closeFactionDetailNative, true);
+        document.addEventListener('click', closeFactionDetailNative, true);
+        document.addEventListener('click', openFactionDetailNative, true);
+      }
+
+      window.closeFactionDetailNative = closeFactionDetailNative;
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', installFactionDetailNativeNav);
+      } else {
+        installFactionDetailNativeNav();
+      }
+    })();
+  </script>
   <script src="boot/script-loader.js"></script>
   <script src="boot/store-modules.js"></script>
   <script src="boot/script-manifest.js"></script>
   <script src="boot/boot-actions.js"></script>
-  <script src="boot/boot.js"></script>
+  <script src="boot/boot.js?v=2026-07-07-faction-native-nav-v4"></script>
 </head>
 <body x-data="{}">
   <div id="boot-fallback" class="loading-screen">
@@ -820,24 +905,78 @@
             </template>
           </div>
           <div class="real-world-inventory real-world-electronic-map" x-show="$store.game.realWorldFunctionView === 'map'">
-            <button class="small-btn" type="button" @click="$store.game.realWorldFunctionView = 'menu'">返回功能</button>
-            <div class="real-world-map-summary">
-              <strong>当前位置</strong>
-              <span x-text="$store.game.realWorldLocationName || '现实地点'"></span>
+            <div class="real-world-map-toolbar">
+              <button class="small-btn" type="button" @click="$store.game.realWorldFunctionView = 'menu'">&#x8FD4;&#x56DE;&#x529F;&#x80FD;</button>
+              <div class="real-world-map-summary">
+                <strong>&#x7535;&#x5B50;&#x5730;&#x56FE;</strong>
+                <span x-text="$store.game.realWorldLocationName || '当前位置待推演'"></span>
+              </div>
+              <div class="real-world-map-controls" aria-label="map zoom">
+                <button type="button" @click="$store.game.realWorldMapZoomBy(1.12)">+</button>
+                <button type="button" @click="$store.game.realWorldMapZoomBy(0.88)">-</button>
+                <button type="button" @click="$store.game.resetRealWorldMapView()">&#x5B9A;&#x4F4D;</button>
+              </div>
             </div>
-            <template x-for="node in $store.game.realWorldMapRows()" :key="node.id">
-              <article class="real-world-map-node" :class="{ current: node.current }" :style="`--depth:${node.depth}`">
-                <button class="real-world-map-term" type="button" @click="$store.game.toggleRealWorldMapNode(node.id)">
-                  <span x-text="node.hasChildren ? ($store.game.realWorldMap.expanded?.[node.id] ? '▾' : '▸') : '•'"></span>
-                  <b x-text="node.name"></b>
-                </button>
-                <button class="real-world-map-info-btn" type="button" @click.stop="$store.game.showRealWorldMapInfo(node.id)">说明</button>
-              </article>
-            </template>
-            <p class="real-world-empty" x-show="!$store.game.realWorldMapRows().length">电子地图暂无地点。</p>
+            <section class="real-world-map-shell">
+              <div class="real-world-map-viewport" data-real-world-map-native-input="pending">
+                <div class="real-world-map-grid"></div>
+                <canvas class="real-world-map-stage real-world-map-canvas" width="720" height="460" aria-label="&#x7535;&#x5B50;&#x5730;&#x56FE;"></canvas>
+                <p class="real-world-empty real-world-map-empty" x-show="!$store.game.realWorldMapHasGraphNodes()">电子地图暂无建筑节点。玩家初始化只登记当前房间；周边建筑、楼层、房间和距离会随推演逐步揭示。</p>
+              </div>
+              <aside class="real-world-map-interior-panel" x-show="$store.game.realWorldMapInteriorNode()" x-transition x-cloak>
+                <header>
+                  <div>
+                    <small>&#x5EFA;&#x7B51;&#x5185;&#x90E8;</small>
+                    <strong x-text="$store.game.realWorldMapInteriorTitle()"></strong>
+                  </div>
+                  <button class="small-btn" type="button" @click="$store.game.closeRealWorldMapInterior()">&#x5173;&#x95ED;</button>
+                </header>
+                <p class="real-world-map-interior-summary" x-show="$store.game.realWorldMapInteriorSummary()" x-text="$store.game.realWorldMapInteriorSummary()"></p>
+                <template x-if="$store.game.realWorldMapInteriorView() === 'tree'">
+                  <div class="real-world-map-floor-stack">
+                    <p class="real-world-empty" x-show="!$store.game.realWorldMapInteriorFloors().length && !$store.game.realWorldMapInteriorZones().length">该建筑内部仍处于迷雾，等待现实行动推演楼层、房间或公共区域。</p>
+                    <template x-for="floor in $store.game.realWorldMapInteriorFloors()" :key="floor.id">
+                      <article class="real-world-map-floor-card">
+                        <button type="button" class="real-world-map-floor-title" @click="$store.game.toggleRealWorldMapInteriorFloor(floor.id)">
+                          <span x-text="$store.game.realWorldMapInteriorFloorOpen(floor.id) ? '&#x25BE;' : '&#x25B8;'"></span>
+                          <strong x-text="floor.name"></strong>
+                          <em x-text="String((floor.rooms || []).length) + ' 个空间'"></em>
+                        </button>
+                        <div class="real-world-map-room-list" x-show="$store.game.realWorldMapInteriorFloorOpen(floor.id)">
+                          <template x-for="room in floor.rooms" :key="room.id">
+                            <button type="button" class="real-world-map-room-chip" @click="$store.game.openRealWorldMapRoom(room.id)">
+                              <b x-text="room.number || room.name"></b>
+                              <small x-text="$store.game.realWorldMapRoomResidentsLabel(room)"></small>
+                            </button>
+                          </template>
+                        </div>
+                      </article>
+                    </template>
+                    <div class="real-world-map-zone-grid" x-show="$store.game.realWorldMapInteriorZones().length">
+                      <template x-for="zone in $store.game.realWorldMapInteriorZones()" :key="zone.id || zone.name">
+                        <article :class="'real-world-map-zone ' + $store.game.realWorldMapZoneGridClass(zone.position)">
+                          <strong x-text="zone.name"></strong>
+                          <span x-text="zone.kind || '区域'"></span>
+                          <small x-text="zone.description"></small>
+                        </article>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+                <template x-if="$store.game.realWorldMapInteriorView() === 'room'">
+                  <div class="real-world-map-room-detail" x-effect="$store.game.realWorldMapInteriorView() === 'room' && $nextTick(() => $store.game.renderRealWorldMapRoomCanvas())">
+                    <button class="small-btn" type="button" @click="$store.game.backRealWorldMapInteriorTree()">&#x8FD4;&#x56DE;&#x697C;&#x5C42;</button>
+                    <p x-text="$store.game.realWorldMapSelectedRoomResidentsLine()"></p>
+                    <small x-text="$store.game.realWorldMapSelectedRoomTemplateLabel()"></small>
+                    <canvas class="real-world-map-room-canvas" width="480" height="320"></canvas>
+                  </div>
+                </template>
+              </aside>
+            </section>
             <div class="real-world-map-info-pop" x-show="$store.game.realWorldMapInfoNode()" @click.self="$store.game.closeRealWorldMapInfo()" x-cloak>
               <article>
-                <header><strong x-text="$store.game.realWorldMapInfoNode()?.name"></strong><button class="small-btn" type="button" @click="$store.game.closeRealWorldMapInfo()">关闭</button></header>
+                <header><strong x-text="$store.game.realWorldMapInfoNode()?.name"></strong><button class="small-btn" type="button" @click="$store.game.closeRealWorldMapInfo()">&#x5173;&#x95ED;</button></header>
+                <p class="real-world-map-control-line" x-show="$store.game.realWorldMapInfoControlLine()" x-text="$store.game.realWorldMapInfoControlLine()"></p>
                 <div class="real-world-map-facts">
                   <template x-for="(fact, index) in $store.game.realWorldMapInfoFacts()" :key="fact.id || index">
                     <p x-text="$store.game.realWorldMapFactText(fact, index)"></p>
@@ -1853,10 +1992,10 @@
         <section class="faction-list dev-section" data-section-title="势力列表区">
           <p class="faction-note" x-show="$store.game.factionState.error" x-text="$store.game.factionState.error"></p>
           <template x-for="faction in $store.game.factionState.factions" :key="faction.id">
-            <button class="faction-row" type="button" :class="{ active: $store.game.selectedFaction()?.id === faction.id }" @click.stop="$store.game.selectFaction(faction.id); $store.game.closeFactionArchiveDoc()" @keydown.enter.prevent="$store.game.selectFaction(faction.id); $store.game.closeFactionArchiveDoc()"><strong x-text="faction.name"></strong><small x-text="`${faction.type}｜${faction.level}｜归属：${$store.game.factionParentName(faction)}`"></small><em>点击查看详情</em></button>
+            <button class="faction-row" type="button" :data-faction-id="faction.id" :class="{ active: $store.game.selectedFaction()?.id === faction.id }" @click.stop="$store.game.selectFaction(faction.id); $store.game.closeFactionArchiveDoc()" @keydown.enter.prevent="$store.game.selectFaction(faction.id); $store.game.closeFactionArchiveDoc()"><strong x-text="faction.name"></strong><small x-text="`${faction.type}｜${faction.level}｜归属：${$store.game.factionParentName(faction)}`"></small><em>点击查看详情</em></button>
           </template>
         </section>
-        <section class="faction-modal-backdrop" x-show="$store.game.factionState?.detailOpen" @click.self="$store.game.closeFactionDetail()" x-cloak>
+        <section class="faction-modal-backdrop" x-show="$store.game.factionState?.detailOpen" @click.self="$store.game.closeFactionDetail()" @keydown.escape.window="$store.game.closeFactionDetail()" x-cloak>
           <div class="faction-detail faction-rpg-detail dev-section" data-section-title="势力详情弹窗" x-show="$store.game.selectedFaction()" @click.stop>
             <header class="faction-rpg-hero">
               <div class="faction-rpg-crest" aria-hidden="true">⚜</div>
@@ -1920,13 +2059,52 @@
             </section>
             <section class="faction-panel faction-rpg-section"><h3>规则 / 资源 / 下级势力</h3><div class="faction-rpg-chipset"><template x-for="rule in ($store.game.selectedFaction()?.rules || [])" :key="`rule-${rule}`"><span x-text="`律令｜${rule}`"></span></template><template x-for="resource in ($store.game.selectedFaction()?.resources || [])" :key="`resource-${resource}`"><span x-text="`资源｜${resource}`"></span></template><template x-for="child in $store.game.factionChildren($store.game.selectedFaction()?.id)" :key="child.id"><span x-text="`下级｜${child.name}`"></span></template><span x-show="!($store.game.selectedFaction()?.rules || []).length && !($store.game.selectedFaction()?.resources || []).length && !$store.game.factionChildren($store.game.selectedFaction()?.id).length">暂无已揭示条目</span></div></section>
             <section class="faction-panel faction-rpg-section"><div class="faction-panel-head"><h3>资料库</h3><small x-text="`档案：${$store.game.factionArchiveDocs($store.game.selectedFaction()).length}`"></small></div><div class="faction-archive-detail" x-show="$store.game.selectedFactionArchiveDoc()"><button class="small-btn faction-back-btn" type="button" @click.stop="$store.game.closeFactionArchiveDoc()">返回档案列表</button><h4 x-text="$store.game.selectedFactionArchiveDoc()?.title"></h4><p class="faction-note" x-text="$store.game.factionArchiveDocMeta($store.game.selectedFactionArchiveDoc())"></p><div class="faction-reasons faction-rpg-log"><template x-for="item in ($store.game.selectedFactionArchiveDoc()?.paragraphs || [])" :key="`${item.at}-${item.text}`"><p><b x-text="$store.game.factionArchiveParagraphTime(item)"></b><span x-text="item.text"></span></p></template></div></div><div class="faction-archive-list" x-show="!$store.game.selectedFactionArchiveDoc()"><p class="faction-note" x-show="!$store.game.factionArchiveDocs($store.game.selectedFaction()).length">该势力暂无档案。现实推演或微信对话涉及该势力后，会自动写入这里。</p><template x-for="doc in $store.game.factionArchiveDocs($store.game.selectedFaction())" :key="doc.archiveKey"><button class="faction-row faction-rpg-archive-row" type="button" @click.stop="$store.game.openFactionArchiveDoc(doc.archiveKey)"><strong x-text="doc.title"></strong><small x-text="$store.game.factionArchiveDocMeta(doc)"></small><em>展开卷宗</em></button></template></div></section>
-            <section class="faction-panel faction-rpg-section"><h3>调整/新增记录</h3><div class="faction-reasons faction-rpg-log"><template x-for="log in ($store.game.selectedFaction()?.changeLog || []).slice(0, 12)" :key="`${log.at}-${log.field}-${log.action}`"><p><b x-text="`${log.action}:${log.field}`"></b><span x-text="log.reason"></span></p></template><p x-show="!($store.game.selectedFaction()?.changeLog || []).length">暂无调整记录。</p></div></section>
+            <section class="faction-panel faction-rpg-section"><h3>调整/新增记录</h3><div class="faction-reasons faction-rpg-log"><template x-for="(log, index) in ($store.game.selectedFaction()?.changeLog || []).filter(Boolean).slice(0, 12)" :key="`${index}-${log.at || 'unknown'}-${log.field || 'field'}-${log.action || 'change'}`"><p><b x-text="`${log.action || 'change'}:${log.field || 'unknown'}`"></b><span x-text="log.reason || '已记录调整。'"></span></p></template><p x-show="!($store.game.selectedFaction()?.changeLog || []).filter(Boolean).length">暂无调整记录。</p></div></section>
           </div>
         </section>
-        <section class="faction-modal-backdrop" x-show="$store.game.factionState?.orgChartOpen" @click.self="$store.game.closeFactionOrgChart()" @keydown.escape.window="$store.game.closeFactionOrgChart()" x-cloak>
-          <article class="faction-org-modal dev-section" data-section-title="组织架构图弹窗" role="dialog" aria-modal="true" @click.stop>
-            <header class="identity-header"><div><p class="eyebrow">ORG CHART</p><h3 x-text="$store.game.selectedFaction()?.name + ' 组织架构图'"></h3><small>树状展示该势力内部层级、角色与下级势力</small></div><button class="small-btn" type="button" @click.stop="$store.game.closeFactionOrgChart()">关闭</button></header>
-            <div class="faction-org-scroll"><ul class="faction-tree"><li><div class="faction-tree-node root"><strong x-text="$store.game.selectedFaction()?.name"></strong><small x-text="$store.game.selectedFaction()?.level || '势力' "></small></div><ul><template x-for="node in ($store.game.factionState?.orgNodes || [])" :key="node.key"><li><div class="faction-tree-node"><strong x-text="node.name"></strong><small x-text="node.roles"></small></div><ul x-show="node.children?.length"><template x-for="child in node.children" :key="child.key"><li><div class="faction-tree-node role"><strong x-text="child.name"></strong><small x-text="child.roles"></small><button class="mini-link" type="button" x-show="child.role && child.role.overflow" @click.stop="$store.game.openFactionRoleDialog(child.role)">查看全部</button></div></li></template></ul></li></template></ul></li></ul></div>
+        <section class="faction-modal-backdrop faction-org-backdrop" x-show="$store.game.factionState?.orgChartOpen" @click.self="$store.game.closeFactionOrgChart()" @keydown.escape.window="$store.game.closeFactionOrgChart()" x-cloak>
+          <article class="faction-org-modal faction-org-rpg-modal dev-section" data-section-title="org chart modal" role="dialog" aria-modal="true" @click.stop>
+            <header class="identity-header faction-org-header">
+              <div>
+                <p class="eyebrow">ORG CHART</p>
+                <h3 x-text="$store.game.selectedFaction()?.name + ' 组织架构图'"></h3>
+                <small x-text="$store.game.factionOrgChartMode() === 'forest' ? '按势力森林展示域根、归属链和已揭示组织节点。' : '展示当前势力的内部结构、职位与下级势力。'"></small>
+              </div>
+              <div class="faction-org-header-actions">
+                <button class="small-btn" type="button" @click.stop="$store.game.closeFactionOrgChart()">返回上一级</button>
+                <button class="small-btn ghost-btn" type="button" data-faction-close-detail onpointerdown="window.closeFactionDetailNative?.(event)" onmousedown="window.closeFactionDetailNative?.(event)" onclick="window.closeFactionDetailNative?.(event)" @pointerdown.stop.prevent="$store.game.closeFactionDetail()" @click.stop.prevent="$store.game.closeFactionDetail()">关闭详情</button>
+              </div>
+            </header>
+            <div class="faction-org-toolbar">
+              <div class="faction-org-mode-switch">
+                <button type="button" :class="{ active: $store.game.factionOrgChartMode() === 'forest' }" @click.stop="$store.game.setFactionOrgChartMode('forest')">势力森林</button>
+                <button type="button" :class="{ active: $store.game.factionOrgChartMode() === 'detail' }" @click.stop="$store.game.setFactionOrgChartMode('detail')">内部结构</button>
+              </div>
+              <div class="faction-org-domain-tabs" x-show="$store.game.factionOrgChartMode() === 'forest'">
+                <template x-for="tab in $store.game.forestDomainTabs()" :key="tab.key">
+                  <button type="button" :class="{ active: $store.game.factionForestTab() === tab.key }" @click.stop="$store.game.setFactionForestTab(tab.key)" x-text="tab.label"></button>
+                </template>
+              </div>
+              <p class="faction-org-breadcrumb" x-text="$store.game.factionOrgChartMode() === 'forest' ? ($store.game.factionState?.forestData?.breadcrumb || $store.game.factionForestViewportTitle()) : ($store.game.factionState?.orgBreadcrumb || $store.game.selectedFaction()?.name || '')"></p>
+            </div>
+            <div class="faction-org-scroll">
+              <div class="faction-org-rows" x-show="$store.game.factionOrgTreeRows().length">
+                <template x-for="row in $store.game.factionOrgTreeRows()" :key="row.key">
+                  <article class="faction-org-row" :class="['kind-' + (row.kind || 'node')]" :style="'--depth:' + (row.depth || 0)">
+                    <div class="faction-org-row-rail"><span></span></div>
+                    <div class="faction-org-row-card">
+                      <div class="faction-org-row-head">
+                        <strong x-text="row.name"></strong>
+                        <small x-text="row.level || row.roles || row.type || ''"></small>
+                      </div>
+                      <p x-show="row.summary" x-text="row.summary"></p>
+                      <button class="mini-link" type="button" x-show="row.role && $store.game.factionRoleOverflow(row.role)" @click.stop="$store.game.openFactionRoleDialog(row.role)">查看成员</button>
+                    </div>
+                  </article>
+                </template>
+              </div>
+              <p class="faction-note" x-show="!$store.game.factionOrgTreeRows().length">暂无组织节点；等待 AI 推演确立部门、职位或归属关系。</p>
+            </div>
           </article>
         </section>
         <section class="faction-modal-backdrop" x-show="$store.game.factionState?.roleDialogOpen" @click.self="$store.game.closeFactionRoleDialog()" @keydown.escape.window="$store.game.closeFactionRoleDialog()" x-cloak>

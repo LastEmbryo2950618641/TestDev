@@ -179,6 +179,8 @@ window.GameModules.predefinedRoleCards = {
         : this.resolveEssentialPreferenceLayers(cloned, key);
       this.applyEssentialPreferenceLayers(cloned, layers);
       this.applyAppearanceProfile(cloned, window.GameModules.predefinedAppearanceProfiles?.[key]);
+      this.refreshSocialFields(cloned, null);
+      this.refreshDerivedIdentityFields(cloned);
       return cloned;
     }).filter(Boolean);
     if (cards.length !== this.keys.length) {
@@ -216,6 +218,33 @@ window.GameModules.predefinedRoleCards = {
     };
   },
 
+  refreshSocialFields(profile = {}, store = null) {
+    const tool = window.GameModules.characterProfile;
+    if (!profile || !tool) return profile;
+    try {
+      const base = { ...profile };
+      const nextFactions = tool.factionRoles?.(profile, base, store);
+      const nextMemberships = tool.memberships?.(profile, base, store);
+      if (Array.isArray(nextFactions)) profile.factions = nextFactions;
+      if (Array.isArray(nextMemberships)) profile.memberships = nextMemberships;
+    } catch (err) {
+      console.warn('[预定义角色卡] 刷新社群角色/人事归属失败:', err?.message || err);
+    }
+    return profile;
+  },
+
+  refreshDerivedIdentityFields(profile = {}) {
+    if (!profile) return profile;
+    const factions = Array.isArray(profile.factions) ? profile.factions : [];
+    const memberships = Array.isArray(profile.memberships) ? profile.memberships : [];
+    const primaryFaction = factions[0] || {};
+    const primaryMembership = memberships[0] || {};
+    profile.faction = String(primaryFaction.faction || primaryFaction.name || '').trim().slice(0, 30);
+    profile.factionRole = String(primaryFaction.role || primaryFaction.position || '').trim().slice(0, 24);
+    profile.rank = String(primaryMembership.title || '').trim().slice(0, 30);
+    return profile;
+  },
+
   relationshipText(cards, roles = {}) {
     return (cards || []).filter(Boolean).map((card) => `${roles[card.name] || card.role || '关系'}：${card.name}`).join('；');
   },
@@ -246,6 +275,8 @@ window.GameModules.predefinedRoleCards = {
     if (forceAppearance || incompleteAppearance) {
       this.applyAppearanceProfile(profile, appearancePreset);
     }
+    this.refreshSocialFields(profile, store);
+    this.refreshDerivedIdentityFields(profile);
     const schema = await window.GameModules.rpgState.ensureSchema(profile.work || window.GameModules.realWorld2026?.label || '2026 现代都市现实世界');
     const state = existing || window.GameModules.rpgState.createCharacterState(profile, schema, store);
     state.id = profile.id;

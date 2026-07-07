@@ -52,7 +52,7 @@ window.GameModules = window.GameModules || {};
     },
 
     isAbstractFactionName(name = '') {
-      return /^(现实社会|现代社会|现实世界|社会|国家|公民|居民|成年人|成年学生|中华人民共和国)$/.test(String(name || '').trim());
+      return /^(现实社会|现代社会|现实世界|社会|国家|公民|居民|成年人|成年学生)$/.test(String(name || '').trim());
     },
 
     isAbstractPosition(position = '') {
@@ -73,7 +73,7 @@ window.GameModules = window.GameModules || {};
       if (!name) return '新增或调整势力失败：缺少势力名。';
       if (this.isAbstractFactionName(name)) return `跳过抽象势力：${name}。势力必须是具体公司、学校、部门、机构或组织。`;
       const now = store.phoneDate?.().toISOString?.() || new Date().toISOString();
-      const parent = this.findFaction(store, params.parentName || params.parentId || '') || this.factionRows(store).find((f) => f.type === '国家' && !f.parentId) || this.findFaction(store, '中华人民共和国');
+      const parent = this.findFaction(store, params.parentName || params.parentId || '') || this.factionRows(store).find((f) => f.type === '国家' && !f.parentId) || null;
       let faction = this.findFaction(store, name);
       const patch = this.factionPatch(params, parent, now);
       if (!faction) {

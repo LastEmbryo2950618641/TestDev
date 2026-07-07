@@ -941,20 +941,13 @@ window.GameModules.characterProfile = {
 
   backfillPart1SocialFields(part1 = {}, base = {}, store = null) {
     const out = { ...(part1 || {}) };
-    const usePredefined = Boolean(store?.roleCardSetup?.usePredefinedPlayerCard);
-    const prc = window.GameModules.predefinedRoleCards;
-    const cardKey = usePredefined ? (prc?.cardKeyFor?.(base) || '') : '';
-    const preset = usePredefined && cardKey ? window.GameModules.predefinedRoleCardData?.[cardKey] : null;
     if (!this.arrayItemsComplete(out.factions, ['faction', 'role', 'reason'], false)) {
-      if (preset?.factions?.length) out.factions = preset.factions;
-      else {
-        const factions = this.factionRoles(out, base).map((item) => ({
-          faction: item.faction || item.name || '',
-          role: item.role || item.position || '成员',
-          reason: String(item.reason || item.changeMode || `${item.faction || item.name}角色来自人物身份与关系证据。`).slice(0, 120),
-        })).filter((item) => item.faction && item.role);
-        if (factions.length) out.factions = factions;
-      }
+      const factions = this.factionRoles(out, base, store).map((item) => ({
+        faction: item.faction || item.name || '',
+        role: item.role || item.position || '\u6210\u5458',
+        reason: String(item.reason || item.changeMode || `${item.faction || item.name}\u89d2\u8272\u6765\u81ea\u4eba\u7269\u8eab\u4efd\u4e0e\u5173\u7cfb\u8bc1\u636e\u3002`).slice(0, 120),
+      })).filter((item) => item.faction && item.role);
+      if (factions.length) out.factions = factions;
     }
     const membershipsIncomplete = !Array.isArray(out.memberships)
       || !this.arrayItemsComplete(out.memberships, ['orgName', 'title', 'reason'], true)

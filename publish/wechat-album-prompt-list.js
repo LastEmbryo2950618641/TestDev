@@ -27,7 +27,8 @@ window.GameModules.wechatAlbumPromptListActions = {
       await this.ensureWechatUserProfile?.(contact);
       const built = await this.buildWechatAlbumDrawPrompt(contact, kind, this.wechatAlbumPromptDraft);
       if (reqId !== this.wechatAlbumRequestId) return;
-      const item = { id: `prompt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, kind, prompt: built.prompt, negativePrompt: built.negativePrompt, raw: built.raw || '', createdAt: new Date().toISOString() };
+      const prompt = this.normalizeWechatAlbumPromptFixedTags?.(built.prompt, kind, contact) || built.prompt;
+      const item = { id: `prompt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, kind, prompt, negativePrompt: built.negativePrompt, raw: built.raw || '', createdAt: new Date().toISOString() };
       const list = this.wechatAlbumPromptList(contact);
       this.wechatAlbumPrompts = { ...(this.wechatAlbumPrompts || {}), [contact.id]: [item, ...list].slice(0, 30) };
       this.wechatAlbumPromptSelectedId = item.id;
@@ -56,7 +57,11 @@ window.GameModules.wechatAlbumPromptListActions = {
   selectWechatAlbumPrompt(id) {
     this.wechatAlbumPromptSelectedId = id;
     const item = this.wechatAlbumSelectedPrompt();
-    this.wechatAlbumPromptEditText = item?.prompt || '';
+    this.wechatAlbumPromptEditText = this.normalizeWechatAlbumPromptFixedTags?.(
+      item?.prompt || '',
+      item?.kind || this.wechatAlbumPromptDraft?.kind || 'natural',
+      this.wechatProfileContact(),
+    ) || item?.prompt || '';
     this.wechatAlbumPromptEditNegative = item?.negativePrompt || '';
     this.wechatAlbumPromptStep = 'prompt-detail';
   },
@@ -69,8 +74,9 @@ window.GameModules.wechatAlbumPromptListActions = {
     }
     const contact = this.wechatProfileContact();
     const kind = this.wechatAlbumPromptDraft?.kind || 'custom';
+    const normalizedPrompt = this.normalizeWechatAlbumPromptFixedTags?.(prompt, kind, contact) || prompt;
     const negativePrompt = String(this.wechatAlbumPromptEditNegative || '').trim();
-    const item = { id: `prompt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, kind, prompt, negativePrompt, raw: '', manual: true, createdAt: new Date().toISOString() };
+    const item = { id: `prompt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, kind, prompt: normalizedPrompt, negativePrompt, raw: '', manual: true, createdAt: new Date().toISOString() };
     const list = this.wechatAlbumPromptList(contact);
     this.wechatAlbumPrompts = { ...(this.wechatAlbumPrompts || {}), [contact.id]: [item, ...list].slice(0, 30) };
     this.wechatAlbumPromptSelectedId = item.id;

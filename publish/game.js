@@ -21,6 +21,71 @@ function registerGameStore() {
   const gm = window.GameModules;
   gm.realWorld2026 = gm.realWorld2026 || { label: '2026 现代都市现实世界', summary: '' };
   const stateOf = (obj, method, fallback = {}) => (obj?.[method] ? obj[method]({}) : fallback);
+  const defaultBossState = gm.bossRecruitment?.defaultBossState?.({}) || {
+    open: false,
+    filtersCollapsed: false,
+    generating: false,
+    generationError: '',
+    requestId: 0,
+    pageSize: 10,
+    randomSeed: 0,
+    usePlayerFit: false,
+    customPrompt: '',
+    selectedJobId: '',
+    companyDetailOpen: false,
+    detailJobId: '',
+    applyJobId: '',
+    applyHours: 1,
+    applyMessage: '',
+    filters: {
+      industry: '',
+      scale: '',
+      province: '',
+      city: '',
+      county: '',
+      town: '',
+      payType: '',
+      baseMin: '',
+      baseMax: '',
+      performanceMonths: '',
+      creatorPay: '',
+      creatorLevel: '',
+    },
+    jobs: [],
+  };
+  const defaultCompanyState = stateOf(gm.companySystem, 'defaultState', {
+    open: false,
+    companies: [],
+    currentCompanyId: '',
+    employment: { active: false, activeCompanyId: '' },
+    submissions: [],
+    records: [],
+  });
+  const defaultFactionState = stateOf(gm.factionSystem, 'defaultState', {
+    open: false,
+    selectedId: '',
+    factions: [],
+    orgChartMode: 'forest',
+    forestTab: 'corp',
+    forestData: { viewportRoot: null, domains: [], activeTree: null, breadcrumb: '' },
+    orgTree: null,
+    orgNodes: [],
+    structureCards: [],
+    capabilityCards: [],
+    roleDialogOpen: false,
+    roleDialog: null,
+  });
+  const defaultCalendarState = gm.calendarSystem?.defaultCalendarState?.() || {
+    open: false,
+    selectedDate: '',
+    selectedEventId: '',
+    events: [],
+  };
+  const defaultRealWorldMapState = gm.realWorldMap?.defaultState?.({}) || {
+    nodes: [],
+    selectedId: '',
+    infoNodeId: '',
+  };
   const criticalActionFallback = {
     metricGroups(state = null) {
       if (!state || state.id === this.character?.id) {
@@ -100,6 +165,79 @@ function registerGameStore() {
     bossMatchText() { return ''; },
     calendarMonthTitle() { return ''; },
     calendarDays() { return []; },
+    realWorldAvailableMatters() { return []; },
+    activeRealWorldMatter() { return null; },
+    realWorldMatterText() { return '事项资料加载中'; },
+    realWorldFunctionEyebrow() { return 'FUNCTION'; },
+    realWorldFunctionTitle() { return '功能面板'; },
+    realWorldFunctionHint() { return '相关模块加载完成后可用。'; },
+    realWorldMapRows() { return []; },
+    realWorldMapStageStyle() { return ''; },
+    realWorldMapHasGraphNodes() { return false; },
+    renderRealWorldMapGraph() {},
+    ensureRealWorldMapNativeInput() {},
+    realWorldMapWheel() {},
+    realWorldMapPanStart() {},
+    realWorldMapPanMove() {},
+    realWorldMapPanEnd() {},
+    realWorldMapZoomBy() {},
+    resetRealWorldMapView() {},
+    realWorldMapInteriorNode() { return null; },
+    realWorldMapInteriorTitle() { return ''; },
+    realWorldMapInteriorSummary() { return ''; },
+    realWorldMapInteriorView() { return 'tree'; },
+    realWorldMapInteriorFloors() { return []; },
+    realWorldMapInteriorZones() { return []; },
+    realWorldMapInteriorFloorOpen() { return false; },
+    toggleRealWorldMapInteriorFloor() {},
+    closeRealWorldMapInterior() {},
+    openRealWorldMapRoom() {},
+    backRealWorldMapInteriorTree() {},
+    renderRealWorldMapRoomCanvas() {},
+    realWorldMapRoomResidentsLabel() { return ''; },
+    realWorldMapSelectedRoomResidentsLine() { return ''; },
+    realWorldMapSelectedRoomTemplateLabel() { return ''; },
+    realWorldMapZoneGridClass() { return ''; },
+    realWorldMapInfoNode() { return null; },
+    realWorldMapInfoFacts() { return []; },
+    realWorldMapFactText() { return ''; },
+    realWorldMapInfoControlLine() { return ''; },
+    closeRealWorldMapInfo() {},
+    realWorldLogMaxPage() {
+      const total = Math.max(0, Number(this.realWorldLogTotal || this.realWorldLog?.length || 0));
+      const size = Math.max(1, Number(this.realWorldLogPageSize || 12));
+      return Math.max(1, Math.ceil(total / size));
+    },
+    realWorldLogPageLabel() {
+      const total = Math.max(0, Number(this.realWorldLogTotal || this.realWorldLog?.length || 0));
+      return `第 ${this.realWorldLogPage || 1} / ${this.realWorldLogMaxPage()} 页，共 ${total} 条`;
+    },
+    changeRealWorldLogPage(step = 0) {
+      const next = Number(this.realWorldLogPage || 1) + Number(step || 0);
+      this.realWorldLogPage = Math.min(this.realWorldLogMaxPage(), Math.max(1, next));
+    },
+    realWorldChoicesWithMatters() { return Array.isArray(this.realWorldChoices) ? this.realWorldChoices : []; },
+    taobaoWalletRows() { return []; },
+    taobaoFilterLabel(slot = this.taobaoState?.filterSlot) { return slot || '全部'; },
+    taobaoWearFilters() { return [{ slot: '', label: '全部' }]; },
+    currentCompany() {
+      return {
+        name: '暂无在职公司',
+        organization: [],
+        salary: { base: 0, performanceRate: 0, performanceMonths: 0 },
+      };
+    },
+    workStatusText() {
+      return this.companyState?.employment?.active === false ? '当前未处于在职状态。' : '公司资料加载中';
+    },
+    currentWorkAttendance() {
+      return { className: 'idle', status: '未记录', detail: '上班状态尚未加载。', canCheckIn: false };
+    },
+    companyFields() { return []; },
+    companyOrganization() { return []; },
+    monthlyPayPreview() {
+      return { base: 0, rate: 0, performanceMonths: 0, workDays: 0, daily: 0, annualPerformance: 0, total: 0 };
+    },
     selectedFaction() { return null; },
     factionParentName() { return '无势力归属'; },
     factionChildren() { return []; },
@@ -114,13 +252,20 @@ function registerGameStore() {
     },
     selectedFactionStatusLabel() {
       const faction = this.selectedFaction?.();
+      if (!faction) return '';
       return window.GameModules.orgTerritory?.orgStatusLabel?.(faction) || '';
     },
     factionOverviewModeMeta(faction = null) {
       const current = faction || this.selectedFaction?.() || {};
       const ot = window.GameModules.orgTerritory;
-      const fallbackCountry = /^(中国|中华人民共和国|中华人民共和國|美国|美利坚合众国|日本|日本国|英国|法国|德国|俄罗斯|加拿大|澳大利亚|印度)$/u.test(String(current?.name || '').replace(/\s+/g, ''));
-      const classification = ot?.deriveClassification?.(current) || ot?.normalizeClassification?.(current?.classification) || (fallbackCountry ? 'country' : String(current?.maturityClass || '').trim()) || 'community';
+      const structuralCountry = current?.sovereign === true
+        || String(current?.orgDomain || '').trim() === 'country'
+        || String(current?.type || '').trim() === '国家'
+        || String(current?.level || '').includes('国家');
+      const classification = ot?.deriveClassification?.(current)
+        || ot?.normalizeClassification?.(current?.classification)
+        || (structuralCountry ? 'country' : String(current?.maturityClass || '').trim())
+        || 'community';
       const ideologyCore = String(current?.solid?.overviewPanels?.ideology?.core?.value || '').trim();
       const gestalt = String(current?.type || '').includes('格式塔意识') || ideologyCore === '格式塔意识';
       if (gestalt) {
@@ -201,6 +346,10 @@ function registerGameStore() {
       if (meter >= 45) return '已形成可观测态势';
       return '初步确立';
     },
+    factionOverviewEffectiveCount(panelKey = '', entries = []) {
+      if (panelKey !== 'ideology') return entries.length;
+      return entries.filter((entry) => String(entry?.name || '') !== 'legitimacy').length;
+    },
     selectedFactionOverviewSummary() {
       const faction = this.selectedFaction?.();
       if (!faction) return '';
@@ -235,7 +384,8 @@ function registerGameStore() {
             };
           }).filter(Boolean);
           const meter = this.factionOverviewPanelMeter(panelKey, entries, faction);
-          return { key: 'cap-ideology', dim: 'ideology', label: meta.labels.ideology, eyebrow: meta.eyebrow, emptyText: meta.empty.ideology, icon: skin.icon, tone: skin.tone, meter, meterStyle: `--meter:${meter};`, rankLabel: this.factionOverviewRankLabel(meter, entries.length), statusLabel: `${entries.length}项`, entries };
+          const effectiveCount = this.factionOverviewEffectiveCount(panelKey, entries);
+          return { key: 'cap-ideology', dim: 'ideology', label: meta.labels.ideology, eyebrow: meta.eyebrow, emptyText: meta.empty.ideology, icon: skin.icon, tone: skin.tone, meter, meterStyle: `--meter:${meter};`, rankLabel: this.factionOverviewRankLabel(meter, effectiveCount), statusLabel: `${entries.length}项`, entries };
         }
         const entries = Object.entries(panels[panelKey]?.entries || {}).map(([key, entry]) => ({
           ...(entry && typeof entry === 'object' ? entry : { value: entry }),
@@ -248,7 +398,8 @@ function registerGameStore() {
           stateBadge: entry?.state ? (ot?.stateBadge?.(entry.state) || '') : '',
         }));
         const meter = this.factionOverviewPanelMeter(panelKey, entries, faction);
-        return { key: `cap-${panelKey}`, dim: panelKey, label: meta.labels[panelKey] || panelKey, eyebrow: meta.eyebrow, emptyText: meta.empty[panelKey] || '尚未记录', icon: skin.icon, tone: skin.tone, meter, meterStyle: `--meter:${meter};`, rankLabel: this.factionOverviewRankLabel(meter, entries.length), statusLabel: `${entries.length}项`, entries };
+        const effectiveCount = this.factionOverviewEffectiveCount(panelKey, entries);
+        return { key: `cap-${panelKey}`, dim: panelKey, label: meta.labels[panelKey] || panelKey, eyebrow: meta.eyebrow, emptyText: meta.empty[panelKey] || '尚未记录', icon: skin.icon, tone: skin.tone, meter, meterStyle: `--meter:${meter};`, rankLabel: this.factionOverviewRankLabel(meter, effectiveCount), statusLabel: `${entries.length}项`, entries };
       }).filter((card) => !(card.dim === 'military' && meta.hideMilitaryWhenEmpty && !card.entries.length));
     },
     selectedFactionStubNotice() {
@@ -258,6 +409,30 @@ function registerGameStore() {
       if (resolution === 'L1' && !(faction.structure || []).length) return '尚未接触，无法审计结构；仅显示 stub。';
       return '';
     },
+    forestDomainTabs() {
+      const forest = window.GameModules.factionOrgForest;
+      return forest?.DOMAIN_KEYS?.map((key) => ({ key, label: forest.DOMAIN_LABELS?.[key] || key }))
+        || [
+          { key: 'gov', label: '国家机构' },
+          { key: 'geo', label: '行政区划' },
+          { key: 'corp', label: '经济组织' },
+          { key: 'community', label: '社群' },
+        ];
+    },
+    factionOrgChartMode() { return this.factionState?.orgChartMode || 'forest'; },
+    setFactionOrgChartMode(mode = 'forest') {
+      this.factionState = this.factionState || {};
+      this.factionState.orgChartMode = mode === 'detail' ? 'detail' : 'forest';
+    },
+    setFactionForestTab(domain = 'corp') {
+      this.factionState = this.factionState || {};
+      this.factionState.forestTab = domain || 'corp';
+    },
+    factionForestTab() { return this.factionState?.forestTab || 'corp'; },
+    factionForestViewportTitle() {
+      return this.factionState?.forestData?.viewportRoot?.name || this.selectedFaction?.()?.name || '';
+    },
+    factionOrgTreeRows() { return []; },
     skillCategories() { return []; },
     skillsList() { return []; },
     selectedSkill() { return null; },
@@ -293,7 +468,7 @@ function registerGameStore() {
     initPromise: null, startupWarmupPromise: null, startupWarmupDone: false, phoneSetupDone: false, phoneActivationChoice: '', profileSetupBusy: false, setupError: '', phoneFixedTime: 0, phoneClockStamp: 0, phoneClockLabelShort: '--:--', phoneClockLabelFull: '--:--:--', phoneClockTimer: null, existingProfileExpanded: false,
     roleCardSetup: { loaded: false, usePredefinedPlayerCard: false, cards: [], selectedPlayerName: '', selectedRelationNames: [], relationRoles: {}, selectedRelationCardName: '刘思瑶', gender: '女', relationType: '妹妹', customRelation: '', detailOpen: false, relationDetailOpen: '' },
     knownProfessionState: { open: false, query: '', message: '', selectedName: '', detailOpen: false },
-    taobaoState: { open: false, slots: [], selectedId: '', generatingId: '', buyingId: '', requestId: 0, message: '', error: '', walletOpen: false },
+    taobaoState: { open: false, slots: [], selectedId: '', generatingId: '', buyingId: '', requestId: 0, message: '', error: '', walletOpen: false, searchText: '', filterSlot: '' },
     settingsState: {
       open: false,
       loading: false,
@@ -371,7 +546,7 @@ function registerGameStore() {
     mindText: '', feedbackSource: 'pending',
     characterIntent: '',
     choices: cfg.openingChoices,
-    log: [], realWorldOpen: false, realWorldBusy: false, realWorldInput: '', realWorldThinkMode: false, realWorldFreedomMode: 'scope', realWorldWordCount: 1000, realWorldFunctionOpen: false, realWorldFunctionView: 'menu', realWorldMatterState: { open: false, activeId: '' }, realWorldSceneTitle: '现实世界', realWorldLocationName: '', realWorldMap: gm.realWorldMap?.defaultState?.({}) || {}, realWorldQuest: '确认手机异常与现实处境', realWorldStatus: '现实稳定', realWorldChoices: ['检查手机记录', '观察居住环境', '联系熟人确认', '暂时休息'], realWorldLog: [], realWorldLogPage: 1, realWorldLogPageSize: 12, realWorldLogTotal: 0, realWorldLongingEvents: [], realWorldLongingPreparedIds: [], realWorldlineState: { events: [], plots: [], pendingPlot: null }, realWorldProfileOpen: false, companyState: stateOf(gm.companySystem, 'defaultState'), bossState: gm.bossRecruitment?.defaultBossState?.({}) || {}, calendarState: gm.calendarSystem?.defaultCalendarState?.() || {}, factionState: stateOf(gm.factionSystem, 'defaultState'), skillsState: gm.skillsApp?.defaultState?.() || {}, promptState: gm.promptTemplates?.defaultState?.() || {}, tokenStatsState: gm.tokenStats?.defaultState?.() || {},
+    log: [], realWorldOpen: false, realWorldBusy: false, realWorldInput: '', realWorldThinkMode: false, realWorldFreedomMode: 'scope', realWorldWordCount: 1000, realWorldFunctionOpen: false, realWorldFunctionView: 'menu', realWorldMatterState: { open: false, activeId: '' }, realWorldSceneTitle: '现实世界', realWorldLocationName: '', realWorldMap: defaultRealWorldMapState, realWorldQuest: '确认手机异常与现实处境', realWorldStatus: '现实稳定', realWorldChoices: ['检查手机记录', '观察居住环境', '联系熟人确认', '暂时休息'], realWorldLog: [], realWorldLogPage: 1, realWorldLogPageSize: 12, realWorldLogTotal: 0, realWorldLongingEvents: [], realWorldLongingPreparedIds: [], realWorldlineState: { events: [], plots: [], pendingPlot: null }, realWorldProfileOpen: false, companyState: defaultCompanyState, bossState: defaultBossState, calendarState: defaultCalendarState, factionState: defaultFactionState, skillsState: gm.skillsApp?.defaultState?.() || {}, promptState: gm.promptTemplates?.defaultState?.() || {}, tokenStatsState: gm.tokenStats?.defaultState?.() || {},
     nextId: 1,
     ragQuery: '',
     ragContext: '',

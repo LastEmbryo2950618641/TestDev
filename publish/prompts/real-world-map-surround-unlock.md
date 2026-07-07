@@ -58,6 +58,13 @@
 \r
 正文或地点说明出现「豪宅、别墅、大平层、复式、合院、庄园」等词时，优先选上述 luxury 模板，不要用普通「三室一厅」代替。\r
 \r
+
+### 距离与路线规则
+
+- 每个 surroundLocations 项都必须写 `distanceMeters` 或 `distanceText`，并写 `basis` 说明估算依据。
+- 距离必须符合现实尺度：同小区相邻楼栋/单元通常约 20-80 米，小区门口到楼栋通常约 80-300 米，街区商铺间按道路步行距离估算。
+- 不知道距离时不要输出该相邻地点；不要写“很近/不远”这类无法落图的模糊距离。
+- surroundLocations 只生成建筑物级 POI；房间、餐厅、客厅、KTV 等只能写入 interiorLayout.floors[].rooms。
 ## 返回 JSON\r
 \r
 ```json\r

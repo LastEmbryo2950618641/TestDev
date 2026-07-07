@@ -36,19 +36,22 @@ window.GameModules.companyFactionActions = {
     const id = company.id === 'main-company' ? 'company-main' : this.factionIdByName?.(company.name);
     const now = new Date().toISOString();
     const expectedTop = window.GameModules.factionSystem.countryFaction(this.playerProfile || {});
-    const top = this.factionState.factions.find((item) => item.id === expectedTop.id || item.name === expectedTop.name) || this.factionState.factions.find((item) => item.type === '国家' && !item.parentId) || expectedTop;
+    const top = (expectedTop && this.factionState.factions.find((item) => item.id === expectedTop.id || item.name === expectedTop.name))
+      || this.factionState.factions.find((item) => item.type === '国家' && !item.parentId)
+      || expectedTop
+      || null;
     let faction = this.factionState.factions.find((item) => item.id === id || item.name === company.name);
     if (!faction) {
       const forest = window.GameModules.factionOrgForest;
-      const corpRootId = forest?.domainRootId?.(top.id, 'corp') || top.id;
-      const corpRoot = this.factionState.factions.find((item) => item.id === corpRootId);
-      faction = this.normalizeFactionStructure?.({ id, name: company.name, type: company.type || '公司', orgDomain: 'corp', ownership: 'private', foundingType: 'independent', parentId: corpRootId, parentName: corpRoot?.name || forest?.DOMAIN_LABELS?.corp || '经济组织', level: '公司级别', location: company.location || '未知', domain: company.industry || '现代职场', scale: company.scale || '未知', stance: '现实职场势力', influence: 35, description: `公司APP记录的现实公司：${company.name}。`, structure: [], rules: [], resources: [], relations: [], fixed: true, updatedAt: now }) || {};
+      const corpRootId = top?.id ? (forest?.domainRootId?.(top.id, 'corp') || top.id) : '';
+      const corpRoot = corpRootId ? this.factionState.factions.find((item) => item.id === corpRootId) : null;
+      faction = this.normalizeFactionStructure?.({ id, name: company.name, type: company.type || '公司', classification: 'faction', orgDomain: 'corp', ownership: 'private', foundingType: 'independent', parentId: corpRootId, parentName: corpRoot?.name || (corpRootId ? (forest?.DOMAIN_LABELS?.corp || '经济组织') : '无势力归属'), level: '公司级别', location: company.location || '未知', domain: company.industry || '', scale: company.scale || '', stance: '', influence: 0, description: `公司APP记录的组织 stub：${company.name}。`, structure: [], rules: [], resources: [], relations: [], fixed: true, updatedAt: now }) || {};
       this.factionState.factions.push(faction);
     }
     const forestSync = window.GameModules.factionOrgForest;
-    const corpRootIdSync = forestSync?.domainRootId?.(top.id, 'corp') || top.id;
-    const corpRootSync = this.factionState.factions.find((item) => item.id === corpRootIdSync);
-    Object.assign(faction, { name: company.name, type: company.type || faction.type || '公司', location: company.location || faction.location, domain: company.industry || faction.domain, scale: company.scale || faction.scale, orgDomain: faction.orgDomain || 'corp', ownership: faction.ownership || 'private', foundingType: faction.foundingType || 'independent', parentId: corpRootIdSync, parentName: corpRootSync?.name || forestSync?.DOMAIN_LABELS?.corp || '经济组织', updatedAt: now });
+    const corpRootIdSync = top?.id ? (forestSync?.domainRootId?.(top.id, 'corp') || top.id) : '';
+    const corpRootSync = corpRootIdSync ? this.factionState.factions.find((item) => item.id === corpRootIdSync) : null;
+    Object.assign(faction, { name: company.name, type: company.type || faction.type || '公司', classification: faction.classification || 'faction', location: company.location || faction.location, domain: company.industry || faction.domain, scale: company.scale || faction.scale, orgDomain: faction.orgDomain || 'corp', ownership: faction.ownership || 'private', foundingType: faction.foundingType || 'independent', parentId: corpRootIdSync, parentName: corpRootSync?.name || (corpRootIdSync ? (forestSync?.DOMAIN_LABELS?.corp || '经济组织') : '无势力归属'), updatedAt: now });
     this.syncCompanyOrganizationToFaction(faction, company, reason, now);
     window.GameModules.orgTerritoryActions?.syncCompanyEconomicEntry?.(this, faction, company, reason);
     Object.assign(faction, window.GameModules.orgTerritory?.normalizeFaction?.(faction, this) || faction);

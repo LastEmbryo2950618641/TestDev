@@ -3,8 +3,8 @@ window.GameModules.wechatAlbumTagActions = {
   wechatAlbumTargetGender(contact = this.wechatProfileContact()) {
     const { profile } = this.wechatAlbumStateData?.(contact) || {};
     const text = String(profile?.gender || profile?.sex || '').trim().toLowerCase();
-    if (/男|male|man|boy/.test(text)) return 'male';
-    if (/女|female|woman|girl/.test(text)) return 'female';
+    if (text.includes('女') || text.includes('female') || text.includes('woman') || text.includes('girl')) return 'female';
+    if (text.includes('男') || text.includes('male') || text.includes('man') || text.includes('boy')) return 'male';
     return '';
   },
 
@@ -27,11 +27,39 @@ window.GameModules.wechatAlbumTagActions = {
 
   wechatAlbumFixedNaturalTags() { return this.wechatAlbumFixedTags('natural'); },
 
-  appendWechatAlbumFixedTags(prompt = '', kind = 'natural', contact = this.wechatProfileContact()) {
-    const fixed = this.wechatAlbumFixedTags(kind, undefined, contact);
-    const baseTags = String(prompt || '').split(/[\n,，、；;]+/).map((item) => item.trim()).filter(Boolean);
+  wechatAlbumSplitPromptTags(text = '') {
+    return String(text || '').split(/[\n,，、；;]+/).map((item) => item.trim()).filter(Boolean);
+  },
+
+  wechatAlbumFixedTagVariants(providerId = this.selectedDrawProviderId?.() || 'pixai', contact = this.wechatProfileContact()) {
+    const provider = String(providerId || 'pixai').trim().toLowerCase();
+    if (provider !== 'pixai') {
+      return [this.wechatAlbumFixedTags('natural', provider, contact), this.wechatAlbumFixedTags('dressed', provider, contact)];
+    }
+    const genders = ['male', 'female'];
+    const states = ['natural', 'dressed'];
+    const originalGender = this.wechatAlbumTargetGender;
+    const variants = [];
+    try {
+      genders.forEach((gender) => {
+        this.wechatAlbumTargetGender = () => gender;
+        states.forEach((state) => variants.push(this.wechatAlbumFixedTags(state, provider, contact)));
+      });
+    } finally {
+      this.wechatAlbumTargetGender = originalGender;
+    }
+    return variants;
+  },
+
+  normalizeWechatAlbumPromptFixedTags(prompt = '', kind = 'natural', contact = this.wechatProfileContact(), providerId = this.selectedDrawProviderId?.() || 'pixai') {
+    const fixed = this.wechatAlbumFixedTags(kind, providerId, contact);
+    const legacyFixed = new Set(this.wechatAlbumFixedTagVariants(providerId, contact)
+      .flatMap((item) => this.wechatAlbumSplitPromptTags(item))
+      .map((item) => item.toLowerCase()));
+    const baseTags = this.wechatAlbumSplitPromptTags(prompt)
+      .filter((item) => !legacyFixed.has(item.toLowerCase()));
     const seen = new Set(baseTags.map((item) => item.toLowerCase()));
-    const addTags = String(fixed || '').split(/[\n,，、；;]+/).map((item) => item.trim()).filter(Boolean)
+    const addTags = this.wechatAlbumSplitPromptTags(fixed)
       .filter((item) => {
         const key = item.toLowerCase();
         if (seen.has(key)) return false;
@@ -39,6 +67,10 @@ window.GameModules.wechatAlbumTagActions = {
         return true;
       });
     return [...baseTags, ...addTags].join(', ');
+  },
+
+  appendWechatAlbumFixedTags(prompt = '', kind = 'natural', contact = this.wechatProfileContact()) {
+    return this.normalizeWechatAlbumPromptFixedTags(prompt, kind, contact);
   },
 
   pictureGenerateSafeReplacements(text = '') {

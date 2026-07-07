@@ -612,3 +612,38 @@ window.GameModules.realWorldMapFog = {
   },
 
 };
+
+
+(function enhanceRealWorldMapFogRoutes() {
+  const fog = window.GameModules.realWorldMapFog;
+  if (!fog || fog.__routeDistanceEnhanced) return;
+  fog.__routeDistanceEnhanced = true;
+
+  const originalValidate = fog.validateSurroundLocation;
+  fog.validateSurroundLocation = function validateSurroundLocationWithDistance(raw = {}, anchor = {}, map = {}) {
+    const item = originalValidate.call(this, raw, anchor, map);
+    const meters = Number(raw.distanceMeters || raw.meters || raw.lengthMeters);
+    item.distanceMeters = Number.isFinite(meters) && meters > 0 ? Math.round(meters) : null;
+    item.distanceText = String(raw.distanceText || raw.distance || raw.distanceLabel || '').trim().slice(0, 18)
+      || (item.distanceMeters ? (item.distanceMeters >= 1000 ? `${(item.distanceMeters / 1000).toFixed(item.distanceMeters >= 10000 ? 0 : 1)} km` : `${item.distanceMeters} m`) : '\u8ddd\u79bb\u5f85\u63a8\u6f14');
+    item.basis = String(raw.basis || raw.reason || raw.description || '').trim().slice(0, 100);
+    return item;
+  };
+
+  const originalApply = fog.applySurroundUnlock;
+  fog.applySurroundUnlock = function applySurroundUnlockWithRoutes(state, map, anchor, sceneNode, payload = {}) {
+    const unlocked = originalApply.call(this, state, map, anchor, sceneNode, payload);
+    const mapMod = this.mapApi();
+    if (mapMod?.applyRouteLinks && anchor?.name && Array.isArray(payload.surroundLocations)) {
+      const time = mapMod.factTime(state);
+      mapMod.applyRouteLinks(state, map, payload.surroundLocations.map((item) => ({
+        from: anchor.name,
+        to: item.name,
+        distanceMeters: item.distanceMeters,
+        distanceText: item.distanceText,
+        basis: item.basis || item.descriptionFacts?.join(' '),
+      })), time);
+    }
+    return unlocked;
+  };
+}());

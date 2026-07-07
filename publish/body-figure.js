@@ -3,16 +3,16 @@ window.GameModules = window.GameModules || {};
 /** 带部位坐标标注的参考图：按 overall 标签匹配。 */
 window.GameModules.bodyFigure = {
   figureEntries: [
-    { id: 'image1', path: 'girl/image1', default: true },
-    { id: 'adult-petite-small-bust-no-pubic-hair', path: 'adult-petite-small-bust-no-pubic-hair' },
-    { id: 'adult-petite-medium-bust-sparse-pubic-hair', path: 'adult-petite-medium-bust-sparse-pubic-hair' },
-    { id: 'adult-petite-medium-bust-dense-pubic-hair', path: 'adult-petite-medium-bust-dense-pubic-hair' },
-    { id: 'adult-youthful-small-bust-no-pubic-hair', path: 'adult-youthful-small-bust-no-pubic-hair' },
-    { id: 'adult-youthful-medium-bust-sparse-pubic-hair', path: 'adult-youthful-medium-bust-sparse-pubic-hair' },
-    { id: 'adult-youthful-medium-bust-dense-pubic-hair', path: 'adult-youthful-medium-bust-dense-pubic-hair' },
-    { id: 'mature-small-bust-no-pubic-hair', path: 'mature-small-bust-no-pubic-hair' },
-    { id: 'mature-medium-bust-no-pubic-hair', path: 'mature-medium-bust-no-pubic-hair' },
-    { id: 'mature-large-bust-no-pubic-hair', path: 'mature-large-bust-no-pubic-hair' },
+    { id: 'female-adult-petite-small-bust-no-pubic-hair', path: 'female/adult-petite-small-bust-no-pubic-hair', default: true },
+    { id: 'female-adult-petite-medium-bust-sparse-pubic-hair', path: 'female/adult-petite-medium-bust-sparse-pubic-hair' },
+    { id: 'female-adult-petite-medium-bust-dense-pubic-hair', path: 'female/adult-petite-medium-bust-dense-pubic-hair' },
+    { id: 'female-adult-youthful-small-bust-no-pubic-hair', path: 'female/adult-youthful-small-bust-no-pubic-hair' },
+    { id: 'female-adult-youthful-medium-bust-sparse-pubic-hair', path: 'female/adult-youthful-medium-bust-sparse-pubic-hair' },
+    { id: 'female-adult-youthful-medium-bust-dense-pubic-hair', path: 'female/adult-youthful-medium-bust-dense-pubic-hair' },
+    { id: 'female-mature-small-bust-no-pubic-hair', path: 'female/mature-small-bust-no-pubic-hair' },
+    { id: 'female-mature-medium-bust-no-pubic-hair', path: 'female/mature-medium-bust-no-pubic-hair' },
+    { id: 'female-mature-large-bust-no-pubic-hair', path: 'female/mature-large-bust-no-pubic-hair' },
+    { id: 'male-youth-slender-natural', path: 'male/youth-slender-natural', default: true },
   ],
   maskEntry: { id: 'mask-image1', path: 'mask/image1', mask: true },
 
@@ -140,6 +140,26 @@ window.GameModules.bodyFigure = {
     return new Set(tokens);
   },
 
+  normalizeGender(value = '') {
+    const raw = String(value || '').trim().toLowerCase();
+    if (raw.includes('女') || raw.includes('female') || raw.includes('woman') || raw.includes('girl')) return 'female';
+    if (raw.includes('男') || raw.includes('male') || raw.includes('man') || raw.includes('boy')) return 'male';
+    return '';
+  },
+
+  profileGender(meta = {}) {
+    return this.normalizeGender(meta?.gender || meta?.性别 || meta?.profile?.gender || '');
+  },
+
+  figureGender(entry = {}, meta = {}) {
+    const explicit = this.normalizeGender(meta?.gender || entry?.gender || '');
+    if (explicit) return explicit;
+    const target = String(entry?.path || entry?.id || '').trim().toLowerCase();
+    if (target.startsWith('male/')) return 'male';
+    if (target.startsWith('female/')) return 'female';
+    return '';
+  },
+
   collectFigureTokens(meta = {}) {
     const tokens = [];
     ['characterId', 'ownerId', 'personId', 'stateKind', 'tags'].forEach((key) => this.collectTokens(meta?.[key], tokens));
@@ -250,6 +270,7 @@ window.GameModules.bodyFigure = {
   scoredFigures(meta = {}, rows = [], options = {}) {
     const ownerId = String(meta?.characterId || meta?.ownerId || meta?.personId || '').trim();
     const profileTokens = this.collectProfileTokens(meta, rows);
+    const targetGender = this.profileGender(meta);
     return this.allEntries()
       .filter((entry) => !entry?.mask && !String(entry?.path || '').startsWith('mask/'))
       .map((entry) => {
@@ -257,6 +278,8 @@ window.GameModules.bodyFigure = {
         const boundOwnerId = this.figureOwnerId(cached);
         const boundOther = Boolean(boundOwnerId && ownerId && boundOwnerId !== ownerId);
         const exactOwner = Boolean(boundOwnerId && ownerId && boundOwnerId === ownerId);
+        const figureGender = this.figureGender(entry, cached || {});
+        const genderMismatch = Boolean(targetGender && figureGender && targetGender !== figureGender);
         const baseScore = cached ? this.scoreFigureMeta(profileTokens, cached) : 0;
         const score = baseScore + (exactOwner ? 1000 : 0);
         return {
@@ -267,9 +290,12 @@ window.GameModules.bodyFigure = {
           exactOwner,
           boundOwnerId,
           boundOther,
+          figureGender,
+          genderMismatch,
           time: this.figureTime(cached || {}, entry),
         };
       })
+      .filter((item) => !item.genderMismatch || item.exactOwner)
       .filter((item) => options.includeBoundOthers || !item.boundOther)
       .sort((a, b) => (b.score - a.score) || (Number(b.exactOwner) - Number(a.exactOwner)) || (b.time - a.time) || String(a.entry.id).localeCompare(String(b.entry.id)));
   },

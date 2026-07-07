@@ -39,10 +39,13 @@ window.GameModules.factionActions = {
     const item = this.factionState.factions.find((x) => x.id === 'company-main');
     if (!item) return;
     const expectedTop = window.GameModules.factionSystem.countryFaction(this.playerProfile || {});
-    const top = this.factionState.factions.find((x) => x.id === expectedTop.id || x.name === expectedTop.name) || this.factionState.factions.find((x) => x.type === '国家' && !x.parentId) || expectedTop;
+    const top = (expectedTop && this.factionState.factions.find((x) => x.id === expectedTop.id || x.name === expectedTop.name))
+      || this.factionState.factions.find((x) => x.type === '国家' && !x.parentId)
+      || expectedTop
+      || null;
     const forest = window.GameModules.factionOrgForest;
-    const corpRootId = forest?.domainRootId?.(top.id, 'corp') || top.id;
-    const corpRoot = this.factionState.factions.find((x) => x.id === corpRootId);
+    const corpRootId = top?.id ? (forest?.domainRootId?.(top.id, 'corp') || top.id) : '';
+    const corpRoot = corpRootId ? this.factionState.factions.find((x) => x.id === corpRootId) : null;
     const updates = {
       name: c.name,
       type: c.type || item.type,
@@ -52,7 +55,7 @@ window.GameModules.factionActions = {
       ownership: item.ownership || 'private',
       foundingType: item.foundingType || 'independent',
       parentId: corpRootId,
-      parentName: corpRoot?.name || forest?.DOMAIN_LABELS?.corp || '经济组织',
+      parentName: corpRoot?.name || (corpRootId ? (forest?.DOMAIN_LABELS?.corp || '经济组织') : '无势力归属'),
     };
     const changed = Object.keys(updates).filter((key) => updates[key] !== item[key]);
     Object.assign(item, updates);
@@ -71,7 +74,9 @@ window.GameModules.factionActions = {
   },
 
   factionPositionNodeName(faction = {}, title = '') {
-    if (faction.name === '中华人民共和国' && String(title || '').includes('公民')) return '国家法定身份';
+    if ((faction.classification === 'country' || faction.orgDomain === 'country' || faction.sovereign) && String(title || '').includes('公民')) {
+      return '国家法定身份';
+    }
     return '已确认职位';
   },
 
@@ -118,9 +123,33 @@ window.GameModules.factionActions = {
     const now = new Date().toISOString();
     let faction = this.factionState.factions.find((x) => x.name === name || x.id === this.factionIdByName(name));
     if (!faction) {
-      const top = this.factionState.factions.find((x) => x.type === '国家' && !x.parentId) || window.GameModules.factionSystem.countryFaction(this.playerProfile || {});
-      const isTopCountry = name === top.name;
-      faction = this.normalizeFactionStructure({ id: isTopCountry ? top.id : this.factionIdByName(name), name, type: isTopCountry ? '国家' : '组织', parentId: isTopCountry ? '' : top.id, parentName: isTopCountry ? '无势力归属' : top.name, level: isTopCountry ? '国家级' : '组织级', location: this.playerProfile?.refinedCity || this.playerProfile?.city || '未知', domain: '现实组织关系', scale: '未知', stance: '与角色卡人事归属相关', influence: 30, description: `由角色卡人事归属确认的现实势力：${name}。`, structure: [], rules: [], resources: [], relations: [], fixed: true, updatedAt: now });
+      const top = this.factionState.factions.find((x) => x.type === '国家' && !x.parentId)
+        || window.GameModules.factionSystem.countryFaction(this.playerProfile || {})
+        || null;
+      const isTopCountry = Boolean(top?.name) && name === top.name;
+      faction = this.normalizeFactionStructure({
+        id: isTopCountry ? top.id : this.factionIdByName(name),
+        name,
+        type: isTopCountry ? '国家' : '组织',
+        classification: isTopCountry ? 'country' : '',
+        parentId: isTopCountry ? '' : (top?.id || ''),
+        parentName: isTopCountry ? '无势力归属' : (top?.name || '无势力归属'),
+        level: isTopCountry ? '国家级' : '组织级',
+        location: '',
+        domain: '',
+        scale: '',
+        stance: '',
+        influence: 0,
+        description: isTopCountry
+          ? '由现实世界法域推断建立的国家级 L1 stub，待 AI 与推演补全。'
+          : '由角色卡人事归属确认建立的组织 L1 stub，待 AI 与推演补全。',
+        structure: [],
+        rules: [],
+        resources: [],
+        relations: [],
+        fixed: true,
+        updatedAt: now,
+      });
       faction.fieldReasons = this.completeFactionReasons?.(faction, {}, '角色卡人事归属只可新增不可移除，系统据此初始化势力。') || {};
       faction.changeLog = [{ field: 'all', reason: item.reason || '角色卡已有人事归属，追加进入势力系统。', at: now, action: 'add' }];
       this.factionState.factions.push(faction);

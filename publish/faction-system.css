@@ -37,6 +37,126 @@
 .faction-tree-node.root { border-color: rgba(98,255,184,.62); background: rgba(98,255,184,.12); }
 .faction-tree-node.role { min-width: 190px; border-color: rgba(166,188,255,.22); background: rgba(166,188,255,.08); }
 .faction-tree-node small { color: #aeb9d6; }
+.faction-org-backdrop { z-index: 86; }
+.faction-org-rpg-modal {
+  width: min(1040px, 100%);
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
+  border-color: rgba(255, 205, 112, .34);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255, 205, 112, .18), transparent 32%),
+    radial-gradient(circle at 94% 14%, rgba(93, 214, 255, .16), transparent 28%),
+    linear-gradient(180deg, rgba(16, 20, 37, .985), rgba(7, 12, 24, .985));
+}
+.faction-org-header { align-items: start; gap: 12px; }
+.faction-org-header-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.faction-org-header-actions .ghost-btn {
+  border-color: rgba(166,188,255,.28);
+  background: rgba(166,188,255,.1);
+  color: #dce7ff;
+}
+.faction-org-toolbar {
+  display: grid;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(114, 228, 255, .16);
+  border-radius: 16px;
+  background: rgba(255,255,255,.05);
+}
+.faction-org-mode-switch,
+.faction-org-domain-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.faction-org-mode-switch button,
+.faction-org-domain-tabs button {
+  border: 1px solid rgba(255, 205, 112, .22);
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: #ffe7ac;
+  background: rgba(255, 205, 112, .08);
+  font-size: 12px;
+  font-weight: 900;
+}
+.faction-org-mode-switch button.active,
+.faction-org-domain-tabs button.active {
+  border-color: rgba(114, 228, 255, .44);
+  color: #09121e;
+  background: linear-gradient(135deg, #ffe3a3, #6de2ff);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.14) inset;
+}
+.faction-org-breadcrumb {
+  margin: 0;
+  color: #aeb9d6;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+.faction-org-rows { display: grid; gap: 10px; }
+.faction-org-row {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 10px;
+  margin-left: calc(var(--depth, 0) * 22px);
+}
+.faction-org-row-rail {
+  display: grid;
+  justify-items: center;
+}
+.faction-org-row-rail span {
+  width: 2px;
+  min-height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255,205,112,.82), rgba(93,214,255,.32));
+}
+.faction-org-row-card {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid rgba(166,188,255,.14);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.04));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
+}
+.faction-org-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.faction-org-row-head strong { color: #fff6db; }
+.faction-org-row-head em {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #72e4ff;
+}
+.faction-org-row-card small { color: #c7d6f3; line-height: 1.5; }
+.faction-org-row.kind-root .faction-org-row-card,
+.faction-org-row.kind-domain-root .faction-org-row-card {
+  border-color: rgba(255,205,112,.34);
+  background: linear-gradient(135deg, rgba(70, 43, 16, .78), rgba(18, 40, 75, .76));
+}
+.faction-org-row.kind-faction .faction-org-row-card {
+  border-color: rgba(114, 228, 255, .24);
+}
+.faction-org-row.kind-structure .faction-org-row-card {
+  border-color: rgba(141, 255, 201, .22);
+  background: linear-gradient(180deg, rgba(12, 56, 49, .62), rgba(255,255,255,.035));
+}
+.faction-org-row.kind-role .faction-org-row-card {
+  border-color: rgba(166,188,255,.24);
+  background: linear-gradient(180deg, rgba(24, 33, 67, .62), rgba(255,255,255,.03));
+}
+.faction-org-row.kind-fog .faction-org-row-card {
+  border-style: dashed;
+  border-color: rgba(255,255,255,.16);
+  opacity: .84;
+}
 .mini-link { margin-left: 8px; border: 0; color: #62ffb8; background: transparent; font-weight: 900; cursor: pointer; }
 .faction-role-dialog { width: min(560px, 100%); max-height: min(620px, 88dvh); display: grid; gap: 12px; overflow: hidden; padding: 14px; border: 1px solid rgba(98,255,184,.28); border-radius: 22px; background: rgba(7,18,25,.98); box-shadow: 0 26px 90px rgba(0,0,0,.45); }
 .faction-role-list { min-height: 0; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 8px; }
