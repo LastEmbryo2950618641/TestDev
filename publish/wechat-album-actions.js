@@ -46,11 +46,12 @@ window.GameModules.wechatAlbumActions = {
       subtitle: stateContact.subtitle || explicit.subtitle || '',
     };
   },
-  wechatAlbumPhotoList() {
-    const raw = this.wechatAlbumPhotos?.[this.wechatProfileContact()?.id || 'player-self'];
+  wechatAlbumPhotoListForContact(contact = this.wechatProfileContact()) {
+    const raw = this.wechatAlbumPhotos?.[contact?.id || 'player-self'];
     if (Array.isArray(raw)) return raw.filter((item) => item?.url);
     return raw?.url ? [raw] : [];
   },
+  wechatAlbumPhotoList() { return this.wechatAlbumPhotoListForContact(this.wechatProfileContact()); },
   wechatAlbumPhoto() { return this.wechatAlbumPhotoList()[0] || null; },
   refreshWechatAlbum() {
     const contact = this.wechatProfileContact();
@@ -378,7 +379,7 @@ window.GameModules.wechatAlbumActions = {
       const savedFigure = bodyFigureContext
         ? await this.saveGeneratedBodyFigureAsset(url, kind, contact, result, drawOptions)
         : null;
-      const list = this.wechatAlbumPhotoList();
+      const list = this.wechatAlbumPhotoListForContact(contact);
       const photo = {
         url: savedFigure?.imageSrc || url,
         originalUrl: savedFigure?.imageSrc ? url : '',
@@ -392,7 +393,10 @@ window.GameModules.wechatAlbumActions = {
         bodyFigureImagePath: savedFigure?.imagePath || '',
       };
       this.wechatAlbumPhotos = { ...(this.wechatAlbumPhotos || {}), [contact.id]: [photo, ...list] };
-      if (bodyFigureContext) this.wechatAlbumBodyFigureContext = null;
+      if (bodyFigureContext) {
+        await this.autoCaptureWechatAvatar?.(0, contact);
+        this.wechatAlbumBodyFigureContext = null;
+      }
       await this.save?.();
     } catch (err) {
       if (reqId !== this.wechatAlbumRequestId) return;

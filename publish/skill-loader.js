@@ -3,13 +3,18 @@ window.GameModules = window.GameModules || {};
 window.GameModules.skillLoader = {
   manifest: 'skills/manifest.json',
   loaded: false,
+  loadingPromise: null,
 
   async load() {
     if (this.loaded) return window.GameModules.skillsDefinitions || [];
-    const docs = this.shouldUseInlineFirst() ? this.loadFromInline() : await this.loadDocs();
-    this.registerDocs(docs);
-    this.loaded = true;
-    return window.GameModules.skillsDefinitions || [];
+    if (this.loadingPromise) return this.loadingPromise;
+    this.loadingPromise = (async () => {
+      const docs = this.shouldUseInlineFirst() ? this.loadFromInline() : await this.loadDocs();
+      this.registerDocs(docs);
+      this.loaded = true;
+      return window.GameModules.skillsDefinitions || [];
+    })().finally(() => { this.loadingPromise = null; });
+    return this.loadingPromise;
   },
 
   async loadDocs() {

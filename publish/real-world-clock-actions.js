@@ -1,6 +1,14 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldClockActions = {
+  runAfterRealWorldPaint(callback) {
+    const run = () => {
+      try { callback?.(); } catch (err) { console.warn('[real-world] deferred task failed:', err?.message || err); }
+    };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => setTimeout(run, 0));
+    else setTimeout(run, 0);
+  },
+
   startPhoneClock() {
     this.ensurePhoneFixedTime();
     this.phoneClockStamp = Date.now();
@@ -46,16 +54,18 @@ window.GameModules.realWorldClockActions = {
 
   openRealWorldPanel() {
     if (!this.isRealCurrentWorld?.()) return this.routeCurrentWorldAction?.();
-    const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
     this.collapseRealWorldThinking?.();
     this.realWorldOpen = true;
     this.checkWorkReminder?.();
-    window.GameModules.sqliteSave.saveRealWorldLogEntries?.(this.realWorldLog).then(() => this.refreshRealWorldLogPage?.(999999)).catch((err) => console.warn('[现实日志] 分页刷新失败:', err.message, err.stack));
-    this.refreshRealWorldLogPage?.(999999);
-    if (!this.realWorldLog.length) {
-      if (map.current) this.seedRealWorldLog();
-      else this.submitRealWorldAction('根据我的现实资料确认当前所在的具体地点，并建立电子地图根节点');
-    }
+    this.runAfterRealWorldPaint?.(() => {
+      const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
+      window.GameModules.sqliteSave.saveRealWorldLogEntries?.(this.realWorldLog).then(() => this.refreshRealWorldLogPage?.(999999)).catch((err) => console.warn('[现实日志] 分页刷新失败:', err.message, err.stack));
+      this.refreshRealWorldLogPage?.(999999);
+      if (!this.realWorldLog.length) {
+        if (map.current) this.seedRealWorldLog();
+        else this.submitRealWorldAction('根据我的现实资料确认当前所在的具体地点，并建立电子地图根节点');
+      }
+    });
   },
 
   closeRealWorldPanel() {
@@ -69,7 +79,7 @@ window.GameModules.realWorldClockActions = {
     this.realWorldFunctionView = view;
     this.realWorldFunctionOpen = true;
     if (view === 'map') {
-      requestAnimationFrame(() => {
+      this.runAfterRealWorldPaint?.(() => {
         this.ensureRealWorldMapNativeInput?.();
         this.fitRealWorldMapView?.();
       });

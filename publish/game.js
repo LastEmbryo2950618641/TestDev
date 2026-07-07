@@ -137,6 +137,7 @@ function registerGameStore() {
     wechatSelected() { return { id: this.wechatSelectedContact || 'player-self', name: '微信', group: true, mark: '微' }; },
     wechatProfileContact() { return this.wechatSelected?.() || { id: 'player-self', name: '联系人', mark: '联', relation: '', subtitle: '' }; },
     wechatMessages() { return []; },
+    wechatAlbumPhotoListForContact() { return []; },
     wechatAlbumPhotoList() { return []; },
     wechatImageMentionSources() { return []; },
     wechatAlbumPromptList() { return []; },
@@ -168,10 +169,70 @@ function registerGameStore() {
     realWorldAvailableMatters() { return []; },
     activeRealWorldMatter() { return null; },
     realWorldMatterText() { return '事项资料加载中'; },
+    realWorldChoiceIcon() { return '✦'; },
+    realWorldEntryIcon(entry = {}) { return entry?.type === 'user' ? '🧍' : (entry?.transientError ? '⚠️' : '📜'); },
+    realWorldStatusIcon(text = '') {
+      const value = String(text || '');
+      if (/目标|任务/u.test(value)) return '🎯';
+      if (/地点|位置|现实/u.test(value)) return '🗺️';
+      return '✧';
+    },
+    realWorldMatterButtonText() { return this.activeRealWorldMatter?.() ? '📌 事项：进行中' : '📌 事项'; },
+    openRealWorldPanel() { this.realWorldOpen = true; },
+    closeRealWorldPanel() {
+      this.realWorldOpen = false;
+      this.realWorldFunctionOpen = false;
+      this.sharedControlActive = false;
+    },
+    openRealWorldFunctionPanel(view = 'menu') {
+      this.realWorldFunctionView = view;
+      this.realWorldFunctionOpen = true;
+    },
+    closeRealWorldFunctionPanel() {
+      this.realWorldFunctionOpen = false;
+      this.realWorldFunctionView = 'menu';
+    },
+    openPhoneFromRealWorld() {
+      this.realWorldFunctionOpen = false;
+      this.realWorldOpen = false;
+      this.schedulePhoneWarmup?.();
+    },
     realWorldFunctionEyebrow() { return 'FUNCTION'; },
     realWorldFunctionTitle() { return '功能面板'; },
     realWorldFunctionHint() { return '相关模块加载完成后可用。'; },
     realWorldMapRows() { return []; },
+    realWorldDisplayLog(log = this.realWorldLog || []) {
+      const rows = Array.isArray(log) ? log : [];
+      const result = [];
+      let activeActionText = '';
+      let activeActionPending = false;
+      rows.forEach((entry) => {
+        if (entry?.type === 'user') {
+          const text = String(entry.text || entry.playerText || entry.actionText || '').trim();
+          const prev = result[result.length - 1];
+          const prevText = String(prev?.text || prev?.playerText || prev?.actionText || '').trim();
+          if (prev?.type === 'user' && text && text === prevText) return;
+          if (activeActionPending && text && text === activeActionText) return;
+          activeActionText = text;
+          activeActionPending = Boolean(text);
+          result.push(entry);
+          return;
+        }
+        if (entry?.transientError) {
+          const text = String(entry.narration || entry.statusText || entry.text || '').trim();
+          const prev = result[result.length - 1];
+          const prevText = String(prev?.narration || prev?.statusText || prev?.text || '').trim();
+          if (prev?.transientError && text && text === prevText) return;
+          activeActionPending = Boolean(activeActionText);
+          result.push(entry);
+          return;
+        }
+        activeActionText = '';
+        activeActionPending = false;
+        result.push(entry);
+      });
+      return result;
+    },
     realWorldMapStageStyle() { return ''; },
     realWorldMapHasGraphNodes() { return false; },
     renderRealWorldMapGraph() {},

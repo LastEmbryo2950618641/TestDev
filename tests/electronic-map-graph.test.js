@@ -10,6 +10,11 @@ function read(relativePath) {
 function loadScript(context, relativePath) {
   vm.runInNewContext(read(relativePath), context, { filename: relativePath });
 }
+function methodBody(source, name, nextName) {
+  const start = source.indexOf(`  ${name}(`);
+  const end = source.indexOf(`\n  ${nextName}(`, start + 1);
+  return start >= 0 && end > start ? source.slice(start, end) : '';
+}
 
 const tests = [];
 function test(name, fn) { tests.push({ name, fn }); }
@@ -61,12 +66,12 @@ test('map actions cache graph builds between reactive refreshes', () => {
 
 test('map drag redraws canvas without reactive store writes', () => {
   const actions = read('publish/real-world-map-actions.js');
-  const moveBody = actions.match(/realWorldMapPanMove\(event\) \{([\s\S]*?)\n  \},\n\n  realWorldMapPanEnd/)?.[1] || '';
+  const moveBody = methodBody(actions, 'realWorldMapPanMove', 'realWorldMapPanEnd');
   assert.ok(actions.includes('realWorldMapRuntime()'));
   assert.ok(actions.includes('drawRealWorldMapCanvas'));
   assert.ok(actions.includes('queueRealWorldMapViewPaint(view = {})'));
   assert.ok(actions.includes('commitRealWorldMapView(view = this.realWorldMapRuntime().liveView)'));
-  assert.ok(moveBody.includes('queueRealWorldMapViewPaint(pan.view)'));
+  assert.ok(moveBody.includes('this.queueRealWorldMapViewPaint(pan.view)'));
   assert.ok(!actions.includes('stage.replaceChildren()'));
   assert.ok(!actions.includes('document.createElementNS(ns'));
   assert.ok(!moveBody.includes('ensureMapView(map)'));
@@ -75,7 +80,7 @@ test('map drag redraws canvas without reactive store writes', () => {
 
 test('map canvas uses lightweight POI drawing during pan', () => {
   const actions = read('publish/real-world-map-actions.js');
-  const drawBody = actions.match(/drawRealWorldMapCanvas\(viewArg = null\) \{([\s\S]*?)\n  \},\n\n  realWorldMapCanvasHitTest/)?.[1] || '';
+  const drawBody = methodBody(actions, 'drawRealWorldMapCanvas', 'realWorldMapCanvasHitTest');
   assert.ok(actions.includes('const dpr = 1'));
   assert.ok(actions.includes('realWorldMapShortLabel('));
   assert.ok(actions.includes('realWorldMapDrawPill('));
@@ -103,6 +108,42 @@ test('map viewport uses native DOM input instead of Alpine high-frequency handle
   assert.ok(actions.includes('realWorldMapHandleCanvasTap(event)'));
 });
 
+test('map node tap opens info popover before interior drawer', () => {
+  const html = read('publish/index.html');
+  const actions = read('publish/real-world-map-actions.js');
+  const tapBody = methodBody(actions, 'realWorldMapHandleCanvasTap', 'paintRealWorldMapView');
+  const infoBody = methodBody(actions, 'showRealWorldMapInfo', 'closeRealWorldMapInfo');
+  assert.ok(tapBody.includes("if (hit.type === 'info') this.showRealWorldMapInfo(hit.id);"));
+  assert.ok(tapBody.includes("else if (hit.type === 'node') this.showRealWorldMapInfo(hit.id);"));
+  assert.ok(!tapBody.includes("else if (hit.type === 'node') this.showRealWorldMapInterior(hit.id);"));
+  assert.ok(infoBody.includes('this.realWorldMap.infoNodeId = id;'));
+  assert.ok(!infoBody.includes('window.GameModules.realWorldMap.ensure'));
+  assert.ok(infoBody.includes('requestAnimationFrame'));
+  assert.ok(infoBody.includes('setTimeout'));
+  assert.ok(infoBody.indexOf('setTimeout') < infoBody.indexOf('resolveControlLabel'));
+  assert.ok(html.includes('查看建筑内部'));
+});
+
+test('real world panel and map actions defer heavy work until after first paint', () => {
+  const currentWorld = read('publish/current-world-actions.js');
+  const clockActions = read('publish/real-world-clock-actions.js');
+  const mapActions = read('publish/real-world-map-actions.js');
+  const openPanelBody = methodBody(clockActions, 'openRealWorldPanel', 'closeRealWorldPanel');
+  const openFunctionBody = methodBody(clockActions, 'openRealWorldFunctionPanel', 'closeRealWorldFunctionPanel');
+  const showInteriorBody = methodBody(mapActions, 'showRealWorldMapInterior', 'closeRealWorldMapInterior');
+  const drawBody = methodBody(mapActions, 'drawRealWorldMapCanvas', 'realWorldMapCanvasHitTest');
+  assert.ok(clockActions.includes('runAfterRealWorldPaint(callback)'));
+  assert.ok(mapActions.includes('realWorldMapAfterPaint(callback)'));
+  assert.ok(currentWorld.includes('this.realWorldOpen = true;'));
+  assert.ok(!currentWorld.includes('await this.ensureGameplayAssetsReady'));
+  assert.ok(openPanelBody.indexOf('runAfterRealWorldPaint') < openPanelBody.indexOf('realWorldMap.ensure'));
+  assert.ok(openFunctionBody.includes('this.runAfterRealWorldPaint?.(() => {'));
+  assert.ok(showInteriorBody.includes('runtime.interiorPreparingNodeId = key;'));
+  assert.ok(!showInteriorBody.includes('realWorldMap.showInterior'));
+  assert.ok(drawBody.includes('realWorldMapNodeControlCachedLine'));
+  assert.ok(!drawBody.includes('realWorldMapNodeControlLine?.(node.id)'));
+});
+
 test('org territory consistency warning is signature-deduped', () => {
   const org = read('publish/org-territory-system.js');
   assert.ok(org.includes('const repeated = Boolean(prevSig) && prevSig === nextSig'));
@@ -116,6 +157,9 @@ test('game store has graph map UI fallbacks before gameplay chunk loads', () => 
   const game = read('publish/game.js');
   [
     'realWorldMapStageStyle()',
+    'openRealWorldPanel()',
+    'openRealWorldFunctionPanel(view = \'menu\')',
+    'closeRealWorldFunctionPanel()',
     'realWorldMapHasGraphNodes()',
     'ensureRealWorldMapNativeInput()',
     'realWorldMapInteriorNode()',

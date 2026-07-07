@@ -41,6 +41,12 @@ window.GameModules.realWorldThinkingActions = {
     return window.GameModules.realWorldAgentLoop?.reasoningStageGroupKey?.(meta) || String(meta.phase || 'unknown');
   },
 
+  cleanRealWorldThinkingText(value = '') {
+    const text = String(value || '').trim();
+    if (!text || /^[=\-_*#~`|/\\]+$/u.test(text)) return '';
+    return text;
+  },
+
   realWorldThinkingStageGroups(entry = {}) {
     const loop = window.GameModules.realWorldAgentLoop;
     const groupMap = new Map();
@@ -60,12 +66,12 @@ window.GameModules.realWorldThinkingActions = {
 
     const assigned = loop?.assignReasoningSectionMetas?.(entry?.thinkingSections || [], entry) || [];
     assigned.forEach(({ meta, section }) => {
-      const text = String(section?.text || '').trim();
+      const text = this.cleanRealWorldThinkingText(section?.text);
       if (!text) return;
       ensureGroup(meta).reasoningParts.push(text);
     });
 
-    const legacyText = String(entry?.thinking || '').trim();
+    const legacyText = this.cleanRealWorldThinkingText(entry?.thinking);
     if (!assigned.length && legacyText) {
       ensureGroup({ phase: 'unknown', step: 0, label: '现实推演', id: 'legacy-thinking' }).reasoningParts.push(legacyText);
     }
@@ -73,7 +79,7 @@ window.GameModules.realWorldThinkingActions = {
     (Array.isArray(entry?.agentTrace) ? entry.agentTrace : []).forEach((item) => {
       const step = Number(item?.step) || 1;
       const group = ensureGroup({ phase: 'stage1', step, label: `Stage1 - ${step}`, id: `stage1-${step}` });
-      group.traceLines.push(...this.realWorldTraceItemLines(item));
+      group.traceLines.push(...this.realWorldTraceItemLines(item).map((line) => this.cleanRealWorldThinkingText(line)).filter(Boolean));
     });
 
     const order = { stage1: 10, stage2: 20, stage3: 30, stage4: 40, stage5: 50, unknown: 90 };
@@ -93,6 +99,7 @@ window.GameModules.realWorldThinkingActions = {
   },
 
   hasRealWorldThinking(entry) {
+    if (entry?.transientError) return false;
     return this.realWorldThinkingStageGroups(entry).length > 0 || Boolean(entry?.streaming);
   },
 
@@ -127,6 +134,39 @@ window.GameModules.realWorldThinkingActions = {
     const previousId = String(entry.id || '').replace(/-ai$/, '-user');
     const hasUserEntry = (this.realWorldLog || []).some((item) => item.id === previousId && item.type === 'user');
     return hasUserEntry ? '' : String(entry.playerText || entry.actionText || '').trim();
+  },
+
+  realWorldDisplayLog(log = this.realWorldLog || []) {
+    const rows = Array.isArray(log) ? log : [];
+    const result = [];
+    let activeActionText = '';
+    let activeActionPending = false;
+    rows.forEach((entry) => {
+      if (entry?.type === 'user') {
+        const text = String(entry.text || entry.playerText || entry.actionText || '').trim();
+        const prev = result[result.length - 1];
+        const prevText = String(prev?.text || prev?.playerText || prev?.actionText || '').trim();
+        if (prev?.type === 'user' && text && text === prevText) return;
+        if (activeActionPending && text && text === activeActionText) return;
+        activeActionText = text;
+        activeActionPending = Boolean(text);
+        result.push(entry);
+        return;
+      }
+      if (entry?.transientError) {
+        const text = String(entry.narration || entry.statusText || entry.text || '').trim();
+        const prev = result[result.length - 1];
+        const prevText = String(prev?.narration || prev?.statusText || prev?.text || '').trim();
+        if (prev?.transientError && text && text === prevText) return;
+        activeActionPending = Boolean(activeActionText);
+        result.push(entry);
+        return;
+      }
+      activeActionText = '';
+      activeActionPending = false;
+      result.push(entry);
+    });
+    return result;
   },
 
   normalizeRealWorldLog(log = []) {

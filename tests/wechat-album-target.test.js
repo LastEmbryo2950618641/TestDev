@@ -30,6 +30,8 @@ function createStore() {
   context.window.window = context.window;
   loadScript(context, 'publish/wechat-view-actions.js');
   loadScript(context, 'publish/wechat-album-actions.js');
+  loadScript(context, 'publish/wechat-avatar-crop-actions.js');
+  loadScript(context, 'publish/rpg-field-ui.js');
 
   const playerState = {
     id: 'player-self',
@@ -56,6 +58,8 @@ function createStore() {
   const store = {
     ...context.window.GameModules.wechatViewActions,
     ...context.window.GameModules.wechatAlbumActions,
+    ...context.window.GameModules.wechatAvatarCropActions,
+    ...context.window.GameModules.rpgFieldUi,
     rpgStates: { 'player-self': playerState },
     identityTargetId: 'player-self',
     wechatSelectedContact: 'player-self',
@@ -80,7 +84,9 @@ function createStore() {
     ensureWechatUserProfile: async (contact) => { calls.push(`ensureWechatUserProfile:${contact?.id || ''}`); return null; },
     save: async () => {},
   };
-  return { store, calls };
+  context.window.GameModules.tokenStats = { record: () => 'token-1', recordResponse: () => {} };
+  context.window.GameModules.drawProvider = { generate: async () => ({ images: ['generated-image'], taskId: 'task-1' }) };
+  return { store, calls, context };
 }
 
 test('body figure prompt editor uses current identity target instead of default wechat group', async () => {
@@ -92,6 +98,77 @@ test('body figure prompt editor uses current identity target instead of default 
   assert.strictEqual(nameItem?.value, '刘悠');
   assert.strictEqual(roleItem?.value, '玩家');
   assert.deepStrictEqual(calls, ['ensurePlayerRpgState']);
+});
+
+test('body figure generation auto captures the generated real photo as target contact avatar', async () => {
+  const { store } = createStore();
+  store.rpgStates['npc-1'] = {
+    id: 'npc-1',
+    name: 'Npc One',
+    profile: {
+      id: 'npc-1',
+      name: 'Npc One',
+      gender: 'female',
+      bodyProfileMeta: {},
+      dressedProfileMeta: {},
+      bodyProfile: [],
+      dressedProfile: [],
+    },
+  };
+  store.wechatSelectedContact = 'npc-1';
+  store.wechatAlbumBodyFigureContext = { characterId: 'npc-1', kind: 'natural', startedAt: Date.now() };
+  store.selectedDrawModelId = () => 'model-1';
+  store.selectedDrawProviderId = () => 'pixai';
+  store.appendWechatAlbumFixedTags = (prompt) => prompt;
+  store.pictureGenerateSafeReplacements = (text) => text;
+  store.loadWechatAvatarImage = async () => ({ naturalWidth: 100, naturalHeight: 200 });
+  store.detectWechatAvatarFace = async () => ({ x: 0.11, y: 0.22, w: 0.33, ratio: 2 });
+  store.saveGeneratedBodyFigureAsset = async () => ({
+    imageSrc: '/assets/body-figures/npc-1-123/figure.png',
+    path: 'npc-1-123',
+    metaPath: 'npc-1-123/meta.json',
+    imagePath: 'npc-1-123/figure.png',
+  });
+
+  await store.generateWechatAlbumPhoto('natural', { prompt: 'portrait prompt', negativePrompt: '' });
+
+  const photo = store.wechatAlbumPhotos['npc-1']?.[0];
+  const contact = store.wechatUsers.find((item) => item.id === 'npc-1');
+  assert.strictEqual(photo?.real, true);
+  assert.strictEqual(photo?.url, '/assets/body-figures/npc-1-123/figure.png');
+  assert.strictEqual(contact?.avatar?.url, '/assets/body-figures/npc-1-123/figure.png');
+  assert.strictEqual(contact?.avatar?.crop?.x, 0.11);
+  assert.strictEqual(contact?.avatar?.crop?.y, 0.22);
+  assert.strictEqual(contact?.avatar?.crop?.w, 0.33);
+  assert.strictEqual(contact?.avatar?.crop?.ratio, 2);
+});
+
+test('manual body figure selection auto captures selected figure as target contact avatar', async () => {
+  const { store, context } = createStore();
+  let captured = null;
+  let refreshed = false;
+  context.window.GameModules.bodyFigure = {
+    bindCurrentFigure: async () => ({ ok: true, path: 'preset/path' }),
+  };
+  store.bodyFigurePickerTarget = {
+    characterId: 'npc-1',
+    characterName: 'Npc One',
+    kind: 'natural',
+  };
+  store.wechatAlbumContact = (id) => ({ id, name: 'Npc One', mark: 'N' });
+  store.autoCaptureWechatAvatarFromUrl = async (url, contact) => {
+    captured = { url, contact };
+  };
+  store.refreshBodyFigurePickerItems = async () => { refreshed = true; };
+
+  await store.setBodyFigurePickerCurrent({
+    path: 'preset/path',
+    imageSrc: 'assets/body-figures/preset/path/figure.png',
+  });
+
+  assert.strictEqual(captured?.url, 'assets/body-figures/preset/path/figure.png');
+  assert.strictEqual(captured?.contact?.id, 'npc-1');
+  assert.strictEqual(refreshed, true);
 });
 
 (async () => {

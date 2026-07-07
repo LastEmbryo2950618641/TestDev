@@ -2,9 +2,19 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.skillsActions = {
   initSkillsApp() {
+    if (this._skillsAppInitialized && this.skillsState) {
+      if (!this._skillsDefinitionsLoadPromise && !window.GameModules.skillLoader?.loaded) {
+        this._skillsDefinitionsLoadPromise = window.GameModules.skillsApp.loadDefinitions()
+          .catch((err) => console.warn('[Skills] load definitions failed', err.message, err.stack))
+          .finally(() => { this._skillsDefinitionsLoadPromise = null; });
+      }
+      return this.skillsState;
+    }
     const base = window.GameModules.skillsApp.defaultState();
     this.skillsState = { ...base, ...(this.skillsState || {}) };
     window.GameModules.skillsApp.loadDefinitions().catch((err) => console.warn('[Skills] 初始化动态文档失败:', err.message, err.stack));
+    this._skillsAppInitialized = true;
+    return this.skillsState;
   },
 
   openSkillsApp() {

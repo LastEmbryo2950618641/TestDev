@@ -80,24 +80,53 @@ window.GameModules.wechatAvatarCropActions = {
     return { x: left / width, y: top / height, w: size / width, ratio: height / width };
   },
 
-  async autoCaptureWechatAvatar(index = 0) {
-    const photo = this.wechatAlbumPhotoList()[index];
-    if (!photo?.url) return;
+  async autoCaptureWechatAvatar(index = 0, contactOverride = null) {
+    const contact = contactOverride || this.wechatProfileContact();
+    const list = contactOverride && this.wechatAlbumPhotoListForContact
+      ? this.wechatAlbumPhotoListForContact(contact)
+      : this.wechatAlbumPhotoList();
+    const photo = list[index];
+    await this.autoCaptureWechatAvatarFromUrl(photo?.url || '', contact);
+  },
+
+  async autoCaptureWechatAvatarFromUrl(url = '', contactOverride = null) {
+    const src = String(url || '').trim();
+    const contact = contactOverride || this.wechatProfileContact();
+    if (!src) return;
     let crop = this.defaultWechatAvatarCrop();
     try {
-      const img = await this.loadWechatAvatarImage(photo.url);
+      const img = await this.loadWechatAvatarImage(src);
       crop = await this.detectWechatAvatarFace(img) || this.defaultWechatAvatarCrop((img.naturalHeight || 1) / (img.naturalWidth || 1));
     } catch (err) {
       console.warn('[微信相册] 自动截取头像失败，使用固定构图:', err.message, err.stack);
     }
-    await this.applyWechatAvatarCrop(photo.url, crop);
+    await this.applyWechatAvatarCrop(src, crop, contact);
   },
 
-  async applyWechatAvatarCrop(url, crop) {
-    const contact = this.wechatProfileContact();
+  async applyWechatAvatarCrop(url, crop, contactOverride = null) {
+    const contact = contactOverride || this.wechatProfileContact();
     if (!contact?.id) return;
     const avatar = { url, crop };
-    this.wechatUsers = (this.wechatUsers || []).map((item) => item.id === contact.id ? { ...item, avatar } : item);
+    let matched = false;
+    this.wechatUsers = (this.wechatUsers || []).map((item) => {
+      if (item.id !== contact.id) return item;
+      matched = true;
+      return { ...item, avatar };
+    });
+    if (!matched && contact.id !== 'player-self') {
+      this.wechatUsers = [
+        ...(this.wechatUsers || []),
+        {
+          id: contact.id,
+          characterId: contact.characterId || contact.id,
+          name: contact.name || contact.id,
+          mark: contact.mark || String(contact.name || contact.id).slice(0, 1),
+          relation: contact.relation || '',
+          subtitle: contact.subtitle || contact.relation || '',
+          avatar,
+        },
+      ];
+    }
     await this.save?.();
   },
 

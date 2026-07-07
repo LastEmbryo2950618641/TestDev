@@ -2,6 +2,7 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.companyActions = {
   initCompanySystem() {
+    if (this._companySystemInitialized && this.companyState?.companies?.length) return this.companyState;
     const base = window.GameModules.companySystem.defaultState(this.playerProfile || {});
     this.companyState = { ...base, ...(this.companyState || {}) };
     this.companyState.employment = { ...base.employment, ...(this.companyState.employment || {}) };
@@ -9,6 +10,8 @@ window.GameModules.companyActions = {
     this.companyState.companies = this.companyState.companies?.length ? this.companyState.companies : base.companies;
     this.normalizeEmploymentRecords();
     this.syncCompanyLexicon();
+    this._companySystemInitialized = true;
+    return this.companyState;
   },
 
   currentCompany() {

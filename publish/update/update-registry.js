@@ -235,6 +235,7 @@ window.GameModules.updateRegistry = {
     );
     return {
       ...row,
+      rowKey: this.rowKeyPart(row.rowKey || row.id || this.settlementRowKey(row)),
       cardId: card.id || row.cardId,
       cardTitle: card.title || row.cardTitle || row.group,
       section: card.section || row.section || '角色卡',
@@ -283,11 +284,35 @@ window.GameModules.updateRegistry = {
     return this.normalizeSettlementText(String(value ?? ''));
   },
 
+  rowKeyPart(value) {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'object') {
+      try {
+        return JSON.stringify(value);
+      } catch (_error) {
+        return String(value);
+      }
+    }
+    return String(value);
+  },
+
+  settlementRowKey(row = {}) {
+    return [
+      row.cardId || row.cardTitle || row.group || row.section || '',
+      row.updateType || row.field || '',
+      row.name || row.uiName || '',
+      row.value ?? row.uiValue ?? '',
+      row.reason || '',
+      row.at || row.settlementAt || '',
+    ].map((part) => this.rowKeyPart(part)).join('|');
+  },
+
   decorateRow(row = {}) {
     const norm = (value) => (typeof value === 'string' ? this.normalizeSettlementText(value) : value);
     const detailLines = Array.isArray(row.detailLines) ? row.detailLines.map((line) => norm(line)).filter(Boolean) : [];
     return {
       ...row,
+      rowKey: this.rowKeyPart(row.rowKey || row.id || this.settlementRowKey(row)),
       uiTitle: norm(row.uiTitle || row.field || row.group || row.section || '结算'),
       uiName: norm(row.uiName || row.name || ''),
       uiValue: norm(row.uiValue || this.displayValue(row.value)),

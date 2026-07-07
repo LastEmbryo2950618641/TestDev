@@ -62,7 +62,7 @@ window.GameModules.realWorldActions = {
   async markRealWorldActionFailed(id) {
     await window.GameModules.sqliteSave.deleteRealWorldLogEntry?.(id);
     this.realWorldLogTotal = Math.max(0, (this.realWorldLogTotal || 1) - 1);
-    this.realWorldLog = (this.realWorldLog || []).map((entry) => (entry.id === id ? { ...entry, narration: 'AI请求失败，请重试', thinking: '', streaming: false, transientError: true, characterCardChanges: [], agentTrace: [] } : entry));
+    this.realWorldLog = (this.realWorldLog || []).map((entry) => (entry.id === id ? { ...entry, narration: 'AI请求失败，请重试', thinking: '', thinkingSections: [], streamTrace: [], streaming: false, transientError: true, promptPack: null, characterCardChanges: [], agentTrace: [] } : entry));
     this.scrollRealWorldLogBottom?.();
   },
 

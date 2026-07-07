@@ -43,9 +43,19 @@ window.GameModules.currentWorldActions = {
 
   async routeCurrentWorldAction() {
     if (this.isRealCurrentWorld()) {
-      await this.ensureGameplayAssetsReady?.();
-      window.GameModules.remergeGameStore?.();
-      return this.openRealWorldPanel?.();
+      this.realWorldOpen = true;
+      this.desktopUnlocked = false;
+      this.controlSelectOpen = false;
+      this.entrySetupOpen = false;
+      this.profileOpen = false;
+      const opened = this.openRealWorldPanel?.();
+      this.ensureGameplayAssetsReady?.()
+        ?.then?.(() => {
+          window.GameModules.remergeGameStore?.();
+          if (this.realWorldOpen) this.openRealWorldPanel?.();
+        })
+        ?.catch?.((err) => console.warn('[real-world] background warmup failed:', err?.message || err));
+      return opened;
     }
     this.realWorldOpen = false;
     this.desktopUnlocked = true;

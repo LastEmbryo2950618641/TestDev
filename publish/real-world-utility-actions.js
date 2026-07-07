@@ -85,6 +85,38 @@ window.GameModules.realWorldUtilityActions = {
     return '以第二人称续写现实世界中的行动过程和直接结果，不少于300字且不设字数上限，在行动范围内充分描写动作过程、周围情况、别人反应、短期影响和生命体征影响';
   },
 
+  realWorldChoiceIcon(choice = '') {
+    const text = String(choice || '');
+    if (/手机|记录|信息|屏幕|通讯|微信/u.test(text)) return '📱';
+    if (/观察|查看|环境|周围|居住|地图|地点/u.test(text)) return '🔎';
+    if (/联系|熟人|确认|电话|消息/u.test(text)) return '💬';
+    if (/休息|暂停|等待|睡|坐/u.test(text)) return '🕯️';
+    if (/检查|处理|整理|搜索/u.test(text)) return '🧭';
+    if (/行动|前往|进入|离开/u.test(text)) return '👣';
+    return '✦';
+  },
+
+  realWorldEntryIcon(entry = {}) {
+    if (entry?.type === 'user') return '🧍';
+    if (entry?.transientError) return '⚠️';
+    if (entry?.streaming) return '🔮';
+    return '📜';
+  },
+
+  realWorldStatusIcon(text = '') {
+    const value = String(text || '');
+    if (/失败|错误|异常|危险|警/u.test(value)) return '⚠️';
+    if (/目标|任务|确认|处理/u.test(value)) return '🎯';
+    if (/地点|位置|现实|世界/u.test(value)) return '🗺️';
+    if (/稳定|安全|正常/u.test(value)) return '🛡️';
+    return '✧';
+  },
+
+  realWorldMatterButtonText() {
+    const matter = this.activeRealWorldMatter?.();
+    return matter ? `📌 事项：${matter.type || matter.title || '进行中'}` : '📌 事项';
+  },
+
   async copyRealWorldPlayerText(text = '') {
     const value = String(text || '').trim();
     if (!value) return;

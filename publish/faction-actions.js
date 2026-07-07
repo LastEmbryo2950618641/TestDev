@@ -1,8 +1,11 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.factionActions = {
-  initFactionSystem() {
+  initFactionSystem(options = {}) {
     if (this._initFactionSystemRunning) return this.factionState;
+    const force = options?.force === true;
+    const hasUsableState = Array.isArray(this.factionState?.factions) && this.factionState.factions.length;
+    if (this._factionSystemInitialized && hasUsableState && !force) return this.factionState;
     this._initFactionSystemRunning = true;
     try {
       const base = window.GameModules.factionSystem.defaultState(this.playerProfile || {});
@@ -26,6 +29,7 @@ window.GameModules.factionActions = {
       this.syncCompanyFaction?.();
       this.ensureAllCompanyFactions?.();
       this.syncRoleCardMemberships?.();
+      this._factionSystemInitialized = true;
       return this.factionState;
     } finally {
       this._initFactionSystemRunning = false;

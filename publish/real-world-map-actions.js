@@ -13,10 +13,29 @@ window.GameModules.realWorldMapActions = {
     return window.GameModules.realWorldMapRuntime;
   },
 
+  realWorldMapAfterPaint(callback) {
+    const run = () => {
+      try { callback?.(); } catch (err) { console.warn('[real-world-map] deferred task failed:', err?.message || err); }
+    };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => setTimeout(run, 0));
+    else setTimeout(run, 0);
+  },
+
   realWorldMapCurrentMap() {
     return this.realWorldMap && typeof this.realWorldMap === 'object'
       ? this.realWorldMap
       : window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
+  },
+
+  realWorldMapInteractionView() {
+    const runtime = this.realWorldMapRuntime();
+    const map = this.realWorldMap && typeof this.realWorldMap === 'object' ? this.realWorldMap : null;
+    const view = runtime.liveView || map?.view || { x: 0, y: 0, scale: 1 };
+    return {
+      x: Number(view.x) || 0,
+      y: Number(view.y) || 0,
+      scale: Math.min(2.4, Math.max(0.35, Number(view.scale) || 1)),
+    };
   },
 
   realWorldMapGraphSourceSignature(mapArg = null) {
@@ -267,7 +286,7 @@ window.GameModules.realWorldMapActions = {
       });
 
       if (current && !isInteracting) {
-        const controlLine = this.realWorldMapNodeControlLine?.(node.id) || '';
+        const controlLine = this.realWorldMapNodeControlCachedLine?.(node.id) || '';
         if (controlLine) {
           const detail = this.realWorldMapShortLabel(controlLine, 24);
           this.realWorldMapDrawPill(ctx, labelX, labelY + 42, detail, {
@@ -308,7 +327,7 @@ window.GameModules.realWorldMapActions = {
         w: Math.max(labelBox.x + labelBox.w, cx + ring + 8) - Math.min(cx - ring - 8, labelBox.x),
         h: Math.max(labelBox.y + labelBox.h, cy + ring + 8) - Math.min(cy - ring - 8, labelBox.y),
       });
-      runtime.hitRegions.push({ type: 'info', id: node.id, x: infoX - infoR - 4, y: infoY - infoR - 4, w: (infoR + 4) * 2, h: (infoR + 4) * 2 });
+      runtime.hitRegions.push({ type: 'info', id: node.id, x: infoX - infoR - 12, y: infoY - infoR - 12, w: (infoR + 12) * 2, h: (infoR + 12) * 2 });
     });
   },
 
@@ -326,7 +345,7 @@ window.GameModules.realWorldMapActions = {
     const hit = this.realWorldMapCanvasHitTest(event);
     if (!hit) return;
     if (hit.type === 'info') this.showRealWorldMapInfo(hit.id);
-    else if (hit.type === 'node') this.showRealWorldMapInterior(hit.id);
+    else if (hit.type === 'node') this.showRealWorldMapInfo(hit.id);
   },
 
   paintRealWorldMapView(view = {}, commit = false) {
@@ -339,7 +358,9 @@ window.GameModules.realWorldMapActions = {
     runtime.liveView = next;
     this.drawRealWorldMapCanvas(next);
     if (commit) {
-      const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
+      const map = this.realWorldMap && typeof this.realWorldMap === 'object'
+        ? this.realWorldMap
+        : window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
       map.view = { ...next };
       runtime.liveView = null;
     }
@@ -411,12 +432,14 @@ window.GameModules.realWorldMapActions = {
     const onPointerDown = (event) => this.realWorldMapPanStart(event);
     const onPointerMove = (event) => this.realWorldMapPanMove(event);
     const onPointerUp = (event) => this.realWorldMapPanEnd(event);
+    const onContextMenu = (event) => event.preventDefault();
 
     viewport.addEventListener('wheel', onWheel, { passive: false });
     viewport.addEventListener('pointerdown', onPointerDown);
     viewport.addEventListener('pointermove', onPointerMove);
     viewport.addEventListener('pointerup', onPointerUp);
     viewport.addEventListener('pointercancel', onPointerUp);
+    viewport.addEventListener('contextmenu', onContextMenu);
     viewport.dataset.realWorldMapNativeInput = 'bound';
 
     runtime.nativeInputViewport = viewport;
@@ -426,6 +449,7 @@ window.GameModules.realWorldMapActions = {
       viewport.removeEventListener('pointermove', onPointerMove);
       viewport.removeEventListener('pointerup', onPointerUp);
       viewport.removeEventListener('pointercancel', onPointerUp);
+      viewport.removeEventListener('contextmenu', onContextMenu);
       if (viewport.dataset.realWorldMapNativeInput === 'bound') viewport.dataset.realWorldMapNativeInput = 'stale';
       if (runtime.nativeInputViewport === viewport) runtime.nativeInputViewport = null;
     };
@@ -433,8 +457,7 @@ window.GameModules.realWorldMapActions = {
 
   realWorldMapWheel(event) {
     event.preventDefault?.();
-    const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
-    const view = this.realWorldMapRuntime().liveView || this.ensureMapView(map);
+    const view = this.realWorldMapInteractionView();
     const factor = event.deltaY > 0 ? 0.92 : 1.08;
     const nextScale = Math.min(2.4, Math.max(0.35, view.scale * factor));
     const rect = event.currentTarget.getBoundingClientRect();
@@ -453,8 +476,7 @@ window.GameModules.realWorldMapActions = {
   },
 
   realWorldMapZoomBy(delta) {
-    const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
-    const view = this.realWorldMapRuntime().liveView || this.ensureMapView(map);
+    const view = this.realWorldMapInteractionView();
     const viewport = this._realWorldMapViewportSize();
     const cx = viewport.width / 2;
     const cy = viewport.height / 2;
@@ -469,11 +491,17 @@ window.GameModules.realWorldMapActions = {
   },
 
   realWorldMapPanStart(event) {
-    if (event.button !== 0 || event.target.closest('button, .real-world-map-interior-panel')) return;
-    const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
-    const view = this.realWorldMapRuntime().liveView || this.ensureMapView(map);
-    this.realWorldMapRuntime().pan = {
+    if (event.button !== 0 || event.buttons !== 1 || event.target.closest('button, .real-world-map-interior-panel')) {
+      if (event.button === 2) event.preventDefault?.();
+      return;
+    }
+    event.preventDefault?.();
+    const runtime = this.realWorldMapRuntime();
+    clearTimeout(runtime.wheelCommitTimer);
+    const view = this.realWorldMapInteractionView();
+    runtime.pan = {
       pointerId: event.pointerId,
+      viewport: event.currentTarget,
       startX: event.clientX,
       startY: event.clientY,
       origX: Number(view.x) || 0,
@@ -504,23 +532,60 @@ window.GameModules.realWorldMapActions = {
     const pan = runtime.pan;
     if (!pan || (event && pan.pointerId !== event.pointerId)) return;
     const shouldTap = !pan.moved && event;
-    this.commitRealWorldMapView(pan.view);
+    if (pan.moved) this.commitRealWorldMapView(pan.view);
     runtime.pan = null;
     if (shouldTap) this.realWorldMapHandleCanvasTap(event);
   },
 
   openRealWorldMapGraph() {
     this.openRealWorldFunctionPanel?.('map');
-    requestAnimationFrame(() => this.fitRealWorldMapView());
+    this.realWorldMapAfterPaint(() => this.fitRealWorldMapView());
   },
 
   toggleRealWorldMapNode(id) { window.GameModules.realWorldMap.toggle(this, id); },
-  showRealWorldMapInfo(id) { window.GameModules.realWorldMap.showInfo(this, id); },
-  closeRealWorldMapInfo() { window.GameModules.realWorldMap.closeInfo(this); },
+  showRealWorldMapInfo(id) {
+    if (!this.realWorldMap || typeof this.realWorldMap !== 'object') return;
+    this.realWorldMap.infoNodeId = id;
+    this.realWorldMap.interiorNodeId = '';
+    const node = (this.realWorldMap.nodes || []).find((item) => item.id === id);
+    this.realWorldMapInfoCache = {
+      id,
+      controlLine: '',
+      pending: Boolean(node?.revealed),
+    };
+    if (node?.revealed) {
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (this.realWorldMapInfoCache?.id !== id || !this.realWorldMap?.infoNodeId) return;
+          this.realWorldMapInfoCache = {
+            id,
+            controlLine: window.GameModules.orgTerritory?.resolveControlLabel?.(this.realWorldMap, node, this) || '',
+            pending: false,
+          };
+          this.realWorldMap = { ...this.realWorldMap };
+        }, 0);
+      });
+    }
+    if (this.realWorldMap) this.realWorldMap = { ...this.realWorldMap };
+  },
+  closeRealWorldMapInfo() {
+    window.GameModules.realWorldMap.closeInfo(this);
+    this.realWorldMapInfoCache = null;
+    if (this.realWorldMap) this.realWorldMap = { ...this.realWorldMap };
+  },
 
   showRealWorldMapInterior(id) {
-    window.GameModules.realWorldMap.showInterior(this, id);
-    this.realWorldMap = { ...this.realWorldMap };
+    const map = this.realWorldMap && typeof this.realWorldMap === 'object' ? this.realWorldMap : null;
+    if (!map) return;
+    const key = String(id || '');
+    map.interiorNodeId = key;
+    map.interiorRoomId = '';
+    map.infoNodeId = '';
+    map.interiorFloorOpen = map.interiorFloorOpen && typeof map.interiorFloorOpen === 'object' ? map.interiorFloorOpen : {};
+    const runtime = this.realWorldMapRuntime();
+    runtime.interiorPreparingNodeId = key;
+    this.realWorldMap = { ...map };
+    this.realWorldMapAfterPaint(() => this.prepareRealWorldMapInteriorFloors(key));
   },
 
   closeRealWorldMapInterior() {
@@ -560,6 +625,35 @@ window.GameModules.realWorldMapActions = {
 
   realWorldMapInteriorNode() { return window.GameModules.realWorldMap.interiorNode(this.realWorldMap); },
 
+  realWorldMapInteriorFloorSignature(node = {}) {
+    const floors = Array.isArray(node?.interiorLayout?.floors) ? node.interiorLayout.floors : [];
+    return floors.map((floor) => {
+      const rooms = Array.isArray(floor.rooms) ? floor.rooms : [];
+      return [floor.id || '', floor.name || floor.label || '', rooms.length].join(':');
+    }).join('|');
+  },
+
+  prepareRealWorldMapInteriorFloors(nodeId = '') {
+    const map = this.realWorldMap && typeof this.realWorldMap === 'object' ? this.realWorldMap : null;
+    const node = (map?.nodes || []).find((item) => item.id === nodeId);
+    if (!node) return [];
+    const floors = window.GameModules.realWorldMapInterior.ensureFloors(node, this);
+    const runtime = this.realWorldMapRuntime();
+    runtime.interiorFloorCache = runtime.interiorFloorCache || {};
+    runtime.interiorFloorCache[nodeId] = {
+      signature: this.realWorldMapInteriorFloorSignature(node),
+      floors,
+    };
+    if (runtime.interiorPreparingNodeId === nodeId) runtime.interiorPreparingNodeId = '';
+    if (map.interiorFloorOpen && typeof map.interiorFloorOpen === 'object') {
+      floors.forEach((floor) => {
+        if (map.interiorFloorOpen[floor.id] === undefined) map.interiorFloorOpen[floor.id] = false;
+      });
+    }
+    if (map.interiorNodeId === nodeId) this.realWorldMap = { ...map };
+    return floors;
+  },
+
   realWorldMapInteriorView() {
     const map = this.realWorldMap || {};
     return map.interiorRoomId ? 'room' : 'tree';
@@ -579,7 +673,12 @@ window.GameModules.realWorldMapActions = {
   realWorldMapInteriorFloors() {
     const node = this.realWorldMapInteriorNode();
     if (!node) return [];
-    return window.GameModules.realWorldMapInterior.ensureFloors(node, this);
+    const runtime = this.realWorldMapRuntime();
+    const signature = this.realWorldMapInteriorFloorSignature(node);
+    const cached = runtime.interiorFloorCache?.[node.id];
+    if (cached?.signature === signature) return cached.floors || [];
+    if (runtime.interiorPreparingNodeId === node.id) return [];
+    return this.prepareRealWorldMapInteriorFloors(node.id);
   },
 
   realWorldMapInteriorZones() {
@@ -633,22 +732,28 @@ window.GameModules.realWorldMapActions = {
   realWorldMapInfoControlLine() {
     const node = this.realWorldMapInfoNode();
     if (!node?.revealed) return '';
-    const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
+    if (this.realWorldMapInfoCache?.id === node.id) return this.realWorldMapInfoCache.controlLine || '';
+    const map = this.realWorldMap || {};
     return window.GameModules.orgTerritory?.resolveControlLabel?.(map, node, this) || '';
   },
 
   realWorldMapInfoControlHistory() {
     const node = this.realWorldMapInfoNode();
     if (!node?.revealed) return [];
-    const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
+    const map = this.realWorldMap || {};
     return window.GameModules.orgTerritory?.controlHistoryForNode?.(map, node, this) || [];
   },
 
   realWorldMapNodeControlLine(nodeId = '') {
-    const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
+    const map = this.realWorldMap || {};
     const node = (map.nodes || []).find((item) => item.id === nodeId);
     if (!node?.revealed) return '';
     return window.GameModules.orgTerritory?.resolveControlLabel?.(map, node, this) || '';
+  },
+
+  realWorldMapNodeControlCachedLine(nodeId = '') {
+    if (this.realWorldMapInfoCache?.id === nodeId) return this.realWorldMapInfoCache.controlLine || '';
+    return '';
   },
 
   realWorldMapInfoNode() { return window.GameModules.realWorldMap.infoNode(this.realWorldMap); },

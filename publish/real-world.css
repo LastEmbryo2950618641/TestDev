@@ -23,6 +23,76 @@
   overflow: hidden;
 }
 
+/* RPG-style real-world HUD. */
+.real-world-dialog.game-shell {
+  border-color: rgba(255, 211, 126, .26);
+  background:
+    linear-gradient(rgba(4, 8, 18, .88), rgba(5, 8, 18, .95)),
+    radial-gradient(circle at 18% 0, rgba(255, 207, 90, .14), transparent 30%),
+    radial-gradient(circle at 82% 14%, rgba(116, 246, 255, .16), transparent 28%),
+    linear-gradient(145deg, #08111f, #0b1024 52%, #160d22);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .46), inset 0 0 0 1px rgba(255, 255, 255, .035);
+}
+
+.real-world-dialog .top-bar {
+  min-height: 42px;
+  gap: 8px;
+  padding: 5px 8px 5px 10px;
+  border-color: rgba(255, 211, 126, .22);
+  background:
+    linear-gradient(90deg, rgba(255, 211, 126, .12), rgba(116, 246, 255, .08)),
+    rgba(5, 10, 24, .88);
+}
+
+.real-world-hud-status {
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 8px;
+}
+
+.real-world-hud-status strong {
+  max-width: min(240px, 38vw);
+}
+
+.real-world-hud-emblem,
+.real-world-command-icon,
+.real-world-info-icon,
+.real-world-log-avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.real-world-hud-emblem {
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(255, 211, 126, .38);
+  border-radius: 8px;
+  background: rgba(255, 211, 126, .12);
+  box-shadow: inset 0 0 18px rgba(255, 211, 126, .12);
+}
+
+.real-world-actions button,
+.real-world-dialog .small-btn,
+.real-world-copy-btn,
+.prompt-toggle,
+.card-change-toggle,
+.real-world-settlement-btn {
+  border-color: rgba(255, 211, 126, .24);
+  background: linear-gradient(180deg, rgba(255, 211, 126, .13), rgba(8, 14, 30, .72));
+  color: #fff2c7;
+}
+
+.real-world-actions button:hover,
+.real-world-dialog .small-btn:hover,
+.real-world-copy-btn:hover,
+.prompt-toggle:hover,
+.card-change-toggle:hover {
+  border-color: rgba(116, 246, 255, .42);
+  color: #eafcff;
+  box-shadow: 0 0 0 1px rgba(116, 246, 255, .1);
+}
+
 .real-world-clock {
   color: #aeb9d6;
   font-size: 11px;
@@ -30,6 +100,9 @@
 }
 
 .real-world-entry-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   color: #74f6ff;
   font-size: 11px;
   letter-spacing: .08em;
@@ -151,6 +224,115 @@
 .real-world-thinking-panel p { margin: 0; }
 .real-world-thinking-panel b { color: #74f6ff; }
 
+.real-world-scene-title {
+  align-items: center;
+  margin-bottom: 4px;
+  padding: 8px 10px;
+  border: 1px solid rgba(116, 246, 255, .16);
+  border-radius: 14px;
+  background: rgba(4, 12, 28, .56);
+}
+
+.real-world-scene-title span,
+.real-world-scene-title b {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.real-world-scene-title i,
+.real-world-scene-title em {
+  font-style: normal;
+}
+
+.real-world-scene-title em {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.real-world-dialog .story-log {
+  gap: 10px;
+  padding: 2px 12px 4px 4px;
+}
+
+.real-world-dialog .novel-entry {
+  position: relative;
+}
+
+.real-world-log-bubble,
+.real-world-ai-entry {
+  border: 1px solid rgba(116, 246, 255, .16);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .22);
+}
+
+.real-world-log-bubble {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
+  border-color: rgba(82, 255, 150, .2);
+  background:
+    linear-gradient(135deg, rgba(82, 255, 150, .11), rgba(255, 211, 126, .06)),
+    rgba(8, 18, 24, .86);
+}
+
+.real-world-log-bubble p {
+  min-width: 0;
+}
+
+.real-world-log-avatar {
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(116, 246, 255, .26);
+  border-radius: 9px;
+  background: rgba(116, 246, 255, .1);
+  font-size: 15px;
+}
+
+.real-world-ai-entry {
+  padding-left: 46px;
+  border-color: rgba(255, 211, 126, .18);
+  background:
+    linear-gradient(135deg, rgba(116, 246, 255, .08), rgba(255, 211, 126, .065)),
+    rgba(7, 12, 28, .9);
+}
+
+.real-world-log-avatar-ai {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  border-color: rgba(255, 211, 126, .32);
+  background: rgba(255, 211, 126, .12);
+}
+
+.real-world-dialog .novel-body-text {
+  color: #dfe8ff;
+  line-height: 1.68;
+}
+
+.real-world-dialog .novel-tool-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.real-world-dialog .prompt-toggle,
+.real-world-dialog .card-change-toggle {
+  min-height: 26px;
+  width: max-content;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.real-world-dialog .prompt-toggle::before {
+  content: '📜 ';
+}
+
 .real-world-log-pager {
   display: flex;
   align-items: center;
@@ -177,9 +359,10 @@
 .real-world-choice-dock {
   flex: 0 0 auto;
   display: flex;
-  min-height: 38px;
-  padding-top: 5px;
-  border-top: 1px solid rgba(116, 246, 255, .12);
+  min-height: 46px;
+  padding: 8px 8px 0;
+  border-top: 1px solid rgba(255, 211, 126, .16);
+  background: linear-gradient(180deg, rgba(255, 211, 126, .045), transparent);
 }
 
 .real-world-choice-dock .story-choice-list {
@@ -190,17 +373,41 @@
   overflow-y: hidden;
   overscroll-behavior-x: contain;
   padding-bottom: 2px;
-  scrollbar-width: thin;
+  scrollbar-width: none;
+}
+
+.real-world-choice-dock .story-choice-list::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .real-world-choice-dock .story-choice-btn {
   flex: 0 0 auto;
   width: auto;
-  max-width: 180px;
-  min-height: 30px;
+  max-width: 210px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 211, 126, .22);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 211, 126, .14), rgba(14, 22, 42, .82));
+  color: #fff2c7;
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
+}
+
+.real-world-choice-dock .story-choice-btn span {
+  flex: 0 0 auto;
+}
+
+.real-world-choice-dock .story-choice-btn b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
 }
 
 .real-world-choice-dock .story-choice-btn:hover,
@@ -209,6 +416,117 @@
 }
 
 .real-world-actions { position: relative; }
+
+.real-world-actions {
+  flex: 0 0 auto;
+}
+
+.real-world-actions button {
+  min-width: 58px;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.real-world-dialog .mind-panel {
+  border-color: rgba(255, 211, 126, .18);
+  background:
+    linear-gradient(180deg, rgba(255, 211, 126, .08), rgba(116, 246, 255, .045)),
+    rgba(8, 12, 27, .78);
+}
+
+.real-world-dialog .mind-panel h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: #ffd37e;
+  font-size: 12px;
+  letter-spacing: .06em;
+}
+
+.real-world-dialog .mind-panel .quest-text {
+  margin: 0;
+  padding: 9px 10px;
+  border: 1px solid rgba(116, 246, 255, .13);
+  border-radius: 12px;
+  background: rgba(4, 12, 28, .48);
+  color: #dce7ff;
+  line-height: 1.55;
+}
+
+.real-world-info-box {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  border: 1px solid rgba(255, 211, 126, .18);
+  background:
+    linear-gradient(135deg, rgba(255, 211, 126, .13), rgba(116, 246, 255, .08)),
+    rgba(4, 12, 28, .62);
+}
+
+.real-world-info-box p {
+  margin: 0;
+}
+
+.real-world-info-icon {
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(255, 211, 126, .3);
+  border-radius: 10px;
+  background: rgba(255, 211, 126, .12);
+}
+
+.real-world-dialog .control-dock {
+  border-color: rgba(255, 211, 126, .2);
+  background: rgba(6, 10, 24, .88);
+}
+
+.real-world-free-input {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.real-world-command-icon {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(116, 246, 255, .22);
+  border-radius: 10px;
+  background: rgba(116, 246, 255, .08);
+  color: #74f6ff;
+  font-weight: 900;
+}
+
+.real-world-free-input input {
+  min-width: 0;
+  border-color: rgba(255, 211, 126, .18);
+  background: rgba(3, 8, 20, .78);
+}
+
+.real-world-free-input > button:not(.real-world-phone-action) {
+  min-width: 74px;
+  padding: 0 10px;
+  border-color: rgba(255, 211, 126, .34);
+  background: linear-gradient(135deg, #ffd37e, #74f6ff);
+  color: #08111f;
+}
+
+.real-world-free-input > .real-world-phone-action {
+  display: grid;
+  grid-column: auto;
+  grid-row: 1;
+  justify-self: end;
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  padding: 0;
+  border-radius: 12px;
+}
 
 .real-world-electronic-map {
   position: relative;
@@ -455,6 +773,32 @@
     border-radius: 18px;
   }
 
+  .real-world-dialog .top-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .real-world-hud-emblem {
+    width: 24px;
+    height: 24px;
+  }
+
+  .real-world-clock {
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .real-world-actions {
+    gap: 4px;
+  }
+
+  .real-world-actions button {
+    min-width: 62px;
+    min-height: 34px;
+    padding: 0 8px;
+  }
+
   .real-world-dialog .rpg-layout {
     grid-template-columns: 1fr;
     overflow-y: auto;
@@ -463,6 +807,32 @@
   .real-world-dialog .character-panel,
   .real-world-dialog .mind-panel {
     min-height: 180px;
+  }
+
+  .real-world-dialog .control-dock {
+    padding: 8px;
+  }
+
+  .real-world-free-input {
+    grid-template-columns: 30px minmax(0, 1fr) 68px 38px;
+    gap: 6px;
+  }
+
+  .real-world-command-icon {
+    width: 30px;
+    height: 34px;
+  }
+
+  .real-world-free-input > button:not(.real-world-phone-action) {
+    min-width: 68px;
+    padding: 0 6px;
+    font-size: 12px;
+  }
+
+  .real-world-free-input .real-world-phone-action {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
   }
 }
 
@@ -533,6 +903,8 @@
   min-height: 460px;
   overflow: hidden;
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
   border: 1px solid rgba(87, 199, 255, .2);
   border-radius: 22px;
   background:
@@ -540,10 +912,8 @@
     radial-gradient(circle at 82% 68%, rgba(87, 199, 255, .14), transparent 28%),
     linear-gradient(145deg, #041018, var(--map-bg) 48%, #08101d);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .03), inset 0 0 70px rgba(0, 0, 0, .42);
-  cursor: grab;
+  cursor: default;
 }
-
-.real-world-map-viewport:active { cursor: grabbing; }
 
 .real-world-map-grid {
   position: absolute;
@@ -828,6 +1198,8 @@
   color: #93ffd8;
 }
 
+.real-world-map-control-line:empty { display: none; }
+
 @media (max-width: 860px) {
   .real-world-map-toolbar,
   .real-world-map-shell {
@@ -944,8 +1316,7 @@
   min-height: 0;
   transition: none;
   will-change: auto;
-  cursor: grab;
+  cursor: default;
 }
 
-.real-world-map-viewport:active .real-world-map-canvas { cursor: grabbing; }
 .real-world-map-grid { pointer-events: none; }

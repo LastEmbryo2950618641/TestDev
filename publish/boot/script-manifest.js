@@ -1,5 +1,5 @@
 window.GameScriptManifest = {
-  "version": "2026-07-07-electronic-map-fast-path-v1",
+  "version": "2026-07-08-real-world-inference-context-v1",
   "chunks": {
     "core": [
       "https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js",
@@ -193,6 +193,11 @@ window.GameScriptManifest = {
       "real-world-map-fog.js",
       "real-world-map-geopolitical.js",
       "real-world-map-graph.js",
+      "inference/agent-context-core.js",
+      "inference/material-dedup.js",
+      "inference/material-request-catalog.js",
+      "inference/scene-boundary.js",
+      "inference/material-loader.js",
       "real-world-agent-context.js",
       "real-world-longing-actions.js",
       "real-world-agent-history.js",

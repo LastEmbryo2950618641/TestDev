@@ -1485,6 +1485,10 @@ window.GameModules.rpgFieldUi = {
     try {
       const result = await window.GameModules.bodyFigure?.bindCurrentFigure?.(item.path, target.characterId, target.characterName, { stateKind: target.kind });
       if (!result?.ok) throw new Error(result?.error || '设置形象图失败');
+      const contact = this.wechatAlbumContact?.(target.characterId)
+        || this.wechatContactFromState?.(target.characterId)
+        || { id: target.characterId, name: target.characterName || target.characterId };
+      await this.autoCaptureWechatAvatarFromUrl?.(item.imageSrc, contact);
       await this.refreshBodyFigurePickerItems();
     } catch (err) {
       this.bodyFigurePickerError = err?.message || String(err);
