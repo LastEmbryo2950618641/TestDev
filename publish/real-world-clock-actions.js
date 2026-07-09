@@ -72,7 +72,6 @@ window.GameModules.realWorldClockActions = {
     this.collapseRealWorldThinking?.();
     this.realWorldOpen = false;
     this.realWorldFunctionOpen = false;
-    this.sharedControlActive = false;
   },
 
   openRealWorldFunctionPanel(view = 'menu') {

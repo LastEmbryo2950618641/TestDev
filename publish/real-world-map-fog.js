@@ -319,9 +319,17 @@ window.GameModules.realWorldMapFog = {
 
       source: 'real-world-map-surround-unlock',
 
+      sourceTitle: '现实Stage4滑动结算｜电子地图周围解锁',
+
       promptId: 'real-world-map-surround-unlock',
 
       model: state.modelId,
+
+      store: state,
+
+      useRealWorldKvCache: true,
+
+      outputLimitKind: 'stage4',
 
       timeoutMs: 60000,
 

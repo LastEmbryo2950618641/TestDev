@@ -108,6 +108,23 @@ test('map viewport uses native DOM input instead of Alpine high-frequency handle
   assert.ok(actions.includes('realWorldMapHandleCanvasTap(event)'));
 });
 
+test('map auxiliary AI requests reuse real world KV cache path', () => {
+  const loop = read('publish/real-world-agent-loop.js');
+  const jsonUtils = read('publish/json-utils.js');
+  const fog = read('publish/real-world-map-fog.js');
+  const locationFill = read('publish/real-world-agent-location-fill.js');
+  assert.ok(loop.includes('completeCachedJsonPrompt(store, options = {})'));
+  assert.ok(loop.includes('activeKvCacheSession(store, \'real\')'));
+  assert.ok(jsonUtils.includes('useRealWorldKvCache && store'));
+  assert.ok(jsonUtils.includes('completeCachedJsonPrompt(store'));
+  assert.ok(fog.includes("source: 'real-world-map-surround-unlock'"));
+  assert.ok(fog.includes('useRealWorldKvCache: true'));
+  assert.ok(fog.includes("outputLimitKind: 'stage4'"));
+  assert.ok(locationFill.includes("source: 'real-world-location-fill'"));
+  assert.ok(locationFill.includes('useRealWorldKvCache: true'));
+  assert.ok(locationFill.includes("outputLimitKind: 'stage4'"));
+});
+
 test('map node tap opens info popover before interior drawer', () => {
   const html = read('publish/index.html');
   const actions = read('publish/real-world-map-actions.js');

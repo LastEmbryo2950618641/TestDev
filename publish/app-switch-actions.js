@@ -23,6 +23,7 @@ window.GameModules.appSwitchActions = {
     this.savePanelOpen = false;
     this.controlSelectOpen = false;
     this.controlLinkMenuId = '';
+    if (this.eventState) this.eventState.open = false;
     if (this.settingsState) this.settingsState.open = false;
     if (this.systemTestState) this.systemTestState.open = false;
     if (this.companyState) this.companyState.open = false;
@@ -54,6 +55,19 @@ window.GameModules.appSwitchActions = {
   closeControlApp() {
     this.controlSelectOpen = false;
     this.closeAppToDesktop();
+  },
+
+  openEventDesktopApp() {
+    const open = () => {
+      if (typeof this.openEventApp === 'function') {
+        this.openEventApp();
+        return;
+      }
+      console.warn('[桌面] 事件APP模块尚未注册');
+    };
+    void (this.ensureDesktopModulesReady?.({ showOverlay: true }) || Promise.resolve())
+      .then(open)
+      .catch((err) => console.warn('[桌面] 打开事件APP失败:', err?.message || err));
   },
 
   openSaveApp() {

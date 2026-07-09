@@ -232,6 +232,8 @@
   "boss-ai-actions.js",
   "calendar-system.js",
   "calendar-actions.js",
+  "event-system.js",
+  "event-actions.js",
   "faction-system.js",
   "faction-archive.js",
   "faction-archive-actions.js",

@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="company-system.css">
   <link rel="stylesheet" href="boss-recruitment.css">
   <link rel="stylesheet" href="calendar-system.css">
+  <link rel="stylesheet" href="event-system.css">
   <link rel="stylesheet" href="faction-system.css">
   <link rel="stylesheet" href="skills-app.css">
   <link rel="stylesheet" href="character-select.css">
@@ -126,9 +127,34 @@
   </script>
   <script src="boot/script-loader.js"></script>
   <script src="boot/store-modules.js"></script>
-  <script src="boot/script-manifest.js"></script>
+  <script src="boot/script-manifest.js?v=2026-07-10-shared-control-offline-v1"></script>
   <script src="boot/boot-actions.js"></script>
   <script src="boot/boot.js?v=2026-07-07-faction-native-nav-v4"></script>
+  <script>
+    window.openEventAppNative = async function openEventAppNative(event) {
+      try {
+        var store = window.Alpine && window.Alpine.store ? window.Alpine.store('game') : null;
+        if (!store) return;
+        if (typeof store.openEventApp !== 'function') {
+          if (window.GameBoot && window.GameBoot.loadScript) {
+            await window.GameBoot.loadScript('event-system.js');
+            await window.GameBoot.loadScript('event-actions.js');
+          }
+          if (window.GameModules && window.GameModules.remergeGameStore) window.GameModules.remergeGameStore();
+          store = window.Alpine && window.Alpine.store ? window.Alpine.store('game') : store;
+        }
+        if (typeof store.openEventApp === 'function') {
+          store.openEventApp();
+        } else if (store.eventState) {
+          store.closeDesktopApps?.();
+          store.eventState.open = true;
+          store.desktopUnlocked = true;
+        }
+      } catch (err) {
+        console.warn('[桌面] 原生打开事件APP失败:', err && err.message ? err.message : err);
+      }
+    };
+  </script>
 </head>
 <body x-data="{}">
   <div id="boot-fallback" class="loading-screen">
@@ -856,6 +882,10 @@
               <strong>拿出手机</strong>
               <small>点击手机，回到手机桌面继续使用各个 APP。</small>
             </button>
+            <button class="real-world-function-option" type="button" x-show="$store.game.sharedControlState()" @click="$store.game.offlineSharedControlRole()" :disabled="$store.game.realWorldBusy">
+              <strong>下线</strong>
+              <small>退出当前附身控制，把身体控制权交还给被控制者。</small>
+            </button>
             <button class="real-world-function-option" type="button" @click="$store.game.openRealWorldFunctionPanel('inventory')">
               <strong>背包</strong>
               <small>查看当前装备、物品与可调用资源。</small>
@@ -1196,6 +1226,7 @@
             <button class="desktop-app-icon company-icon" type="button" @click="$store.game.openCompanyApp()" aria-label="打开公司"><span class="app-glyph-emoji" aria-hidden="true">🏢</span><b>公司</b></button>
             <button class="desktop-app-icon boss-icon" type="button" @click="$store.game.openBossApp()" aria-label="打开BOSS招聘"><span class="app-glyph-emoji" aria-hidden="true">💼</span><b>BOSS招聘</b></button>
             <button class="desktop-app-icon calendar-icon" type="button" @click="$store.game.openCalendarApp()" aria-label="打开日历"><span class="app-glyph-emoji" aria-hidden="true">📅</span><b>日历</b></button>
+            <button class="desktop-app-icon event-icon" type="button" onclick="window.openEventAppNative && window.openEventAppNative(event)" @click="$store.game.openEventDesktopApp && $store.game.openEventDesktopApp()" aria-label="打开事件"><span class="app-glyph-emoji" aria-hidden="true">🗓️</span><b>事件</b></button>
             <button class="desktop-app-icon faction-icon" type="button" @click="$store.game.openFactionApp()" aria-label="打开势力"><span class="app-glyph-emoji" aria-hidden="true">🛡️</span><b>势力</b></button>
             <button class="desktop-app-icon skills-icon" type="button" @click="$store.game.openSkillsApp()" aria-label="打开Skills"><span class="app-glyph-emoji" aria-hidden="true">🌳</span><b>Skills</b></button>
             <button class="desktop-app-icon prompt-icon" type="button" @click="$store.game.openPromptApp()" aria-label="打开提示词管理"><span class="app-glyph-emoji" aria-hidden="true">📝</span><b>提示词</b></button>
@@ -1219,7 +1250,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.identityAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.taobaoState?.open && !$store.game.settingsState?.open && !$store.game.systemTestState?.open && !$store.game.saveAppOpen && !$store.game.roleCardJsonAppOpen && !$store.game.worldlineAppOpen" class="identity-app-screen app-window section-hints" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.identityAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.eventState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.taobaoState?.open && !$store.game.settingsState?.open && !$store.game.systemTestState?.open && !$store.game.saveAppOpen && !$store.game.roleCardJsonAppOpen && !$store.game.worldlineAppOpen" class="identity-app-screen app-window section-hints" x-cloak>
     <div class="identity-card dev-section" data-section-title="身份证主面板">
       <header class="identity-header dev-section" data-section-title="身份证标题区">
         <button class="small-btn identity-back-btn" type="button" x-show="$store.game.identityReturnTo === 'wechat'" @click="$store.game.backFromIdentityApp()">返回微信</button>
@@ -1968,6 +1999,41 @@
     </div>
   </section>
 
+  <section x-show="!$store.game.loading && $store.game.eventState?.open" class="event-app-screen app-window section-hints" x-cloak x-effect="$store.game.eventState?.open && $store.game.initEventSystem?.()">
+    <div class="event-card dev-section" data-section-title="事件APP主面板">
+      <header class="identity-header event-header"><div><p class="eyebrow">EVENTS</p><h2>事件</h2><small>随机事件、推演事件、周期事件</small></div><div class="event-header-actions"><label class="event-setting"><span>随机事件发生概率</span><input type="number" min="0" max="100" step="1" :value="$store.game.eventRandomProbability()" @change="$store.game.setEventRandomProbability($event.target.value)"><b>%</b></label><button class="small-btn" type="button" @click="$store.game.closeEventApp()">回到桌面</button></div></header>
+      <nav class="event-tabs">
+        <template x-for="tab in $store.game.eventTypeTabs()" :key="tab.type">
+          <button type="button" :class="{ active: $store.game.eventState.tab === tab.type }" @click="$store.game.setEventTab(tab.type)"><span x-text="tab.label"></span><small x-text="` ${tab.count}`"></small></button>
+        </template>
+      </nav>
+      <main class="event-body">
+        <section class="event-list">
+          <template x-for="event in $store.game.currentEventList()" :key="event.id">
+            <button class="event-row" type="button" :class="{ active: $store.game.eventState.selectedId === event.id }" @click="$store.game.eventState.selectedId = event.id">
+              <strong x-text="$store.game.eventName(event)"></strong>
+              <small x-text="$store.game.eventMeta(event)"></small>
+            </button>
+          </template>
+          <p class="empty-lore" x-show="!$store.game.currentEventList().length">暂无该类型事件。</p>
+        </section>
+        <section class="event-detail">
+          <template x-if="$store.game.selectedEvent()">
+            <article>
+              <h3 x-text="$store.game.eventName($store.game.selectedEvent())"></h3>
+              <small x-text="$store.game.eventMeta($store.game.selectedEvent())"></small>
+              <p x-text="$store.game.selectedEvent().content"></p>
+              <div class="event-chip-row"><template x-for="tag in ($store.game.selectedEvent().tags || [])" :key="tag"><span x-text="tag"></span></template></div>
+              <p><b>状态：</b><span x-text="$store.game.eventStatusLabel($store.game.selectedEvent())"></span></p>
+              <p x-show="$store.game.selectedEvent().type === 'random'"><b>触发：</b><span x-text="`${$store.game.selectedEvent().triggeredCount || 0} 次`"></span></p>
+            </article>
+          </template>
+          <p class="empty-lore" x-show="!$store.game.selectedEvent()">选择左侧事件查看详情。</p>
+        </section>
+      </main>
+    </div>
+  </section>
+
   <section x-show="!$store.game.loading && $store.game.calendarState?.open" class="calendar-app-screen app-window section-hints" x-cloak>
     <div class="calendar-card dev-section" data-section-title="日历主面板">
       <header class="identity-header"><div><p class="eyebrow">CALENDAR</p><h2>日历</h2><small>面试、投稿通知、到岗上班约定</small></div><button class="small-btn" type="button" @click="$store.game.closeCalendarApp()">回到桌面</button></header>
@@ -1976,7 +2042,7 @@
         <div class="calendar-weekdays"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
         <div class="calendar-grid">
           <template x-for="cell in $store.game.calendarDays()" :key="cell.key">
-            <article class="calendar-day" :class="{ blank: cell.blank, marked: cell.events?.length, holiday: cell.holiday }"><b x-text="cell.blank ? '' : cell.day"></b><span class="calendar-holiday" x-show="cell.holiday" x-text="cell.holiday"></span><template x-for="event in cell.events" :key="event.id"><p x-text="event.title"></p></template></article>
+            <article class="calendar-day" :class="{ blank: cell.blank, marked: cell.events?.length, holiday: cell.holiday }"><b x-text="cell.blank ? '' : cell.day"></b><span class="calendar-holiday" x-show="cell.holiday" x-text="cell.holiday"></span><template x-for="event in cell.events" :key="event.id"><p :class="{ 'event-calendar-pill': event.source === 'event-system' }" x-text="event.title"></p></template></article>
           </template>
         </div>
       </main>
@@ -2457,7 +2523,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.wechatAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.settingsState?.open && !$store.game.systemTestState?.open && !$store.game.saveAppOpen && !$store.game.roleCardJsonAppOpen && !$store.game.worldlineAppOpen" class="wechat-app-screen app-window section-hints" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.wechatAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.eventState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.settingsState?.open && !$store.game.systemTestState?.open && !$store.game.saveAppOpen && !$store.game.roleCardJsonAppOpen && !$store.game.worldlineAppOpen" class="wechat-app-screen app-window section-hints" x-cloak>
     <div class="wechat-phone dev-section" data-section-title="微信模拟界面">
       <header class="wechat-top" x-show="$store.game.wechatView === 'home'">
         <button type="button" @click="$store.game.closeWechatApp()">返回桌面</button><strong></strong><button type="button">⋯</button>
@@ -2629,7 +2695,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && $store.game.controlSelectOpen && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.settingsState?.open && !$store.game.systemTestState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen && !$store.game.entrySetupOpen" class="control-home-screen app-window dev-section" data-section-title="我要狠狠操控入口界面" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && $store.game.controlSelectOpen && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.eventState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.settingsState?.open && !$store.game.systemTestState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen && !$store.game.entrySetupOpen" class="control-home-screen app-window dev-section" data-section-title="我要狠狠操控入口界面" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <div class="control-home-card dev-section" data-section-title="控制角色上线面板">
       <button class="back-desktop-btn dev-section" data-section-title="返回桌面按钮" type="button" @click="$store.game.closeControlApp()">返回桌面</button>
       <div class="control-home-title dev-section" data-section-title="操控APP标题区">
@@ -2662,7 +2728,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.controlSelectOpen && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.settingsState?.open && !$store.game.systemTestState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen && !$store.game.entrySetupOpen" class="start-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.controlSelectOpen && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.eventState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.settingsState?.open && !$store.game.systemTestState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen && !$store.game.entrySetupOpen" class="start-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <div class="start-card dev-section" data-section-title="首页选择面板">
       <button class="back-desktop-btn" type="button" @click="$store.game.closeAppToDesktop()">返回桌面</button>
       <p class="eyebrow">AI RPG 视觉小说</p>
@@ -2734,7 +2800,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.settingsState?.open && !$store.game.systemTestState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen && $store.game.entrySetupOpen" class="start-screen entry-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <section x-show="!$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.eventState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.settingsState?.open && !$store.game.systemTestState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen && $store.game.entrySetupOpen" class="start-screen entry-screen app-window" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <div class="start-card entry-card dev-section" data-section-title="进入时机配置区">
       <div class="entry-nav-row">
         <button class="back-home-btn" type="button" @click="$store.game.backToHome()" :disabled="$store.game.busy">← 返回首页</button>
@@ -3289,7 +3355,7 @@
     </div>
   </section>
 
-  <main x-show="$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.controlSelectOpen && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.settingsState?.open && !$store.game.systemTestState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen" class="game-shell app-window dev-section" data-section-title="异世界推演主界面" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
+  <main x-show="$store.game.started && !$store.game.loading && $store.game.desktopUnlocked && $store.game.phoneSetupDone && !$store.game.controlSelectOpen && !$store.game.identityAppOpen && !$store.game.wechatAppOpen && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.eventState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.settingsState?.open && !$store.game.systemTestState?.open && !$store.game.saveAppOpen && !$store.game.worldlineAppOpen" class="game-shell app-window dev-section" data-section-title="异世界推演主界面" :class="{ 'section-hints': $store.game.sectionHintsEnabled }" x-cloak>
     <header class="top-bar dev-section" data-section-title="顶部状态栏">
       <div class="mode-status">
         <span class="mode-dot" :class="$store.game.online ? 'online' : 'offline'"></span>

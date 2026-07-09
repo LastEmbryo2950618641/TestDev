@@ -38,9 +38,16 @@ window.GameModules.calendarActions = {
     this.save?.();
   },
 
+  allCalendarEvents() {
+    this.initCalendar();
+    const base = this.calendarState.events || [];
+    const eventItems = this.eventCalendarEntries?.() || [];
+    return [...base, ...eventItems];
+  },
+
   sortedCalendarEvents() {
     this.initCalendar();
-    return [...this.calendarState.events].sort((a, b) => new Date(a.time) - new Date(b.time));
+    return [...this.allCalendarEvents()].sort((a, b) => new Date(a.time) - new Date(b.time));
   },
 
   calendarMonthTitle() {
@@ -75,9 +82,14 @@ window.GameModules.calendarActions = {
   eventsForCalendarDay(day) {
     const y = this.calendarState.year;
     const m = this.calendarState.month;
-    return this.calendarState.events.filter((event) => {
+    return this.allCalendarEvents().filter((event) => {
       const d = new Date(event.time);
-      return d.getFullYear() === y && d.getMonth() === m && d.getDate() === day;
+      const start = Number.isNaN(d.getTime()) ? null : d;
+      const end = event.endTime ? new Date(event.endTime) : start;
+      const cell = new Date(y, m, day, 12, 0, 0);
+      if (!start) return false;
+      return cell >= new Date(start.getFullYear(), start.getMonth(), start.getDate(), 0, 0, 0)
+        && cell <= new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59);
     });
   },
 

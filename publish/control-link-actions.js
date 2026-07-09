@@ -109,12 +109,72 @@ window.GameModules.controlLinkActions = {
       this.realWorldOpen = true;
       this.desktopUnlocked = false;
       this.controlSelectOpen = false;
-      this.realWorldLog = [...(this.realWorldLog || []), { id: `possess-${Date.now()}`, type: 'system', text: `你已上线附身控制${state.name || state.profile?.name || '目标'}。你的意识同时操控自己现实身体与被控角色身体，后续现实推演会以你的附身镜头描写被控角色感官、动作与反应。`, time: this.phoneTimeText?.() || '' }];
+      this.realWorldLog = [...(this.realWorldLog || []), { id: `possess-${Date.now()}`, type: 'system', text: `你已上线附身控制${state.name || state.profile?.name || '目标'}。慎二的意识可以一心二用，同时控制自己的现实本体与被控者身体，并同时感受两个肉体的全部感官；被控者无法控制身体，但意识清醒，能感觉自己身体的所有反馈。后续正文会以你在被控者身体内的附身视角为主，同时保留被控者的内心想法与感受。玩家没有明确指定慎二本体、现实身体、外部的我或其他执行者时，所有身体行动都默认由被控者身体亲自执行。`, time: this.phoneTimeText?.() || '' }];
       await window.GameModules.sqliteSave.saveRealWorldLogEntries?.(this.realWorldLog);
       await this.save?.();
       return;
     }
     await this.connectControlRole(id);
+  },
+
+  sharedControlOfflineNarration(state = null) {
+    const name = state?.name || state?.profile?.name || '被控制者';
+    return `你意识从${name}的肉体深处缓缓抽离，原本重叠在一起的呼吸、心跳、触感和视野像退潮一样分开。那具身体短暂地停顿了一瞬，随后控制权重新回到${name}自己的意识里；你仍能记得刚才附身时残留的感官余温，却已经不再驱使她的手脚。`;
+  },
+
+  async appendSharedControlSystemNarration(text = '', state = null) {
+    const now = this.phoneDate?.() || new Date();
+    const entry = {
+      id: `real-system-offline-${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
+      type: 'ai',
+      systemGenerated: true,
+      narration: String(text || '').trim(),
+      sceneTitle: this.realWorldSceneTitle || '现实世界',
+      locationName: this.realWorldLocationName || this.realWorldMap?.current || '',
+      status: this.realWorldStatus || '',
+      quest: this.realWorldQuest || '',
+      choices: Array.isArray(this.realWorldChoices) ? this.realWorldChoices : [],
+      characterCardChanges: [],
+      genericUpdates: [],
+      thinking: '',
+      thinkingSections: [],
+      streamTrace: [],
+      agentTrace: [],
+      promptPack: null,
+      streaming: false,
+      time: { label: `${this.phoneDateText?.() || ''} ${this.phoneTimeText?.() || ''}`.trim(), iso: now.toISOString() },
+      createdAt: now.toISOString(),
+      controlledCharacterId: state?.id || '',
+      controlledCharacterName: state?.name || state?.profile?.name || '',
+    };
+    await this.assignRealWorldlineEntry?.(entry);
+    await window.GameModules.sqliteSave.saveRealWorldLogEntry?.(entry);
+    this.realWorldLog = this.normalizeRealWorldLog?.([...(this.realWorldLog || []), entry]).slice(-Math.max(1, Number(this.realWorldLogPageSize) || 12)) || [...(this.realWorldLog || []), entry];
+    this.realWorldLogTotal = window.GameModules.sqliteSave.countRealWorldLogEntries?.() || Math.max(this.realWorldLogTotal || 0, this.realWorldLog.length);
+    this.refreshRealWorldLogPage?.(this.realWorldLogMaxPage?.() || this.realWorldLogPage || 1);
+    this.scrollRealWorldLogBottom?.();
+    return entry;
+  },
+
+  async offlineSharedControlRole() {
+    const state = this.sharedControlState?.();
+    if (!state || this.realWorldBusy) return;
+    this.realWorldFunctionOpen = false;
+    this.realWorldFunctionView = 'menu';
+    const narration = this.sharedControlOfflineNarration(state);
+    await this.appendSharedControlSystemNarration(narration, state);
+    this.sharedControlActive = false;
+    state.values = state.values || {};
+    state.values.control_link = {
+      ...(state.values.control_link || {}),
+      linked: true,
+      lastAction: '下线交还控制权',
+      checkedAt: this.phoneDateText?.() || '',
+      offlineNarration: narration,
+    };
+    await window.GameModules.sqliteSave.saveCharacterState?.(state);
+    await this.refreshControlLinkStates?.();
+    await this.save?.();
   },
 
   sharedControlState() { return this.sharedControlActive ? this.rpgStates?.[this.sharedControlTargetId] || null : null; },

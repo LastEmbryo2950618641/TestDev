@@ -141,6 +141,7 @@ window.GameModules.storage = {
       companyState: store.companyState ? { ...store.companyState, open: false } : store.companyState,
       bossState: store.bossState ? { ...store.bossState, open: false, companyDetailOpen: false, generating: false } : store.bossState,
       calendarState: store.calendarState ? { ...store.calendarState, open: false } : store.calendarState,
+      eventState: store.eventState ? { ...store.eventState, open: false, message: '' } : store.eventState,
       factionState: store.factionState ? { ...store.factionState, open: false, detailOpen: false, generating: false } : store.factionState,
       taobaoState: store.taobaoState ? { ...store.taobaoState, open: false, generatingId: '', buyingId: '', walletOpen: false } : store.taobaoState,
       rpgPanelCharacterId: store.rpgPanelCharacterId,
@@ -233,6 +234,8 @@ window.GameModules.storage = {
     store.companyState = save.companyState ? { ...save.companyState, open: false } : store.companyState;
     store.bossState = save.bossState ? { ...save.bossState, open: false, companyDetailOpen: false, generating: false } : store.bossState;
     store.calendarState = save.calendarState ? { ...save.calendarState, open: false } : store.calendarState;
+    store.eventState = save.eventState ? { ...save.eventState, open: false, message: '' } : store.eventState;
+    store.initEventSystem?.();
     store.factionState = save.factionState ? { ...save.factionState, open: false, detailOpen: false, generating: false, archives: save.factionState.archives || save.factionArchives || {} } : store.factionState;
     store.initFactionSystem?.();
     window.GameModules.orgTerritory?.validateWorldConsistency?.(store);

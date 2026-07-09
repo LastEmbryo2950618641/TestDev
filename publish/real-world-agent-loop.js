@@ -93,6 +93,10 @@ window.GameModules.realWorldAgentLoop = {
     return session ? { ...config, kvCacheSession: session } : config;
   },
 
+  activeKvCacheSession(store = null, mode = 'real') {
+    return store?.realWorldAgentActiveKvByMode?.[mode] || null;
+  },
+
   promptToMessages(prompt) {
     return Array.isArray(prompt)
       ? prompt.map((msg) => ({ role: msg?.role || 'user', content: String(msg?.content || '') }))
@@ -352,47 +356,55 @@ window.GameModules.realWorldAgentLoop = {
 
   async runConfigured(store, action, logId = null, config = this.realConfig()) {
     config = this.withDeepSeekKvCacheSession(store, config);
+    store.realWorldAgentActiveKvByMode = store.realWorldAgentActiveKvByMode || {};
+    store.realWorldAgentActiveKvByMode[config.mode] = config.kvCacheSession || null;
     const ctx = config.ctx;
     if (!ctx) throw new Error(`${config.label || 'Loop'}上下文未加载`);
-    const loaded = [];
-    const trace = [];
-    const loadedKeys = new Set();
-    const memoryIds = new Set();
-    const skills = await ctx.skillText(store);
-    const base = ctx.baseSnapshot(store, action);
-    const materialSession = config.materials?.createSession?.(action) || null;
-    let lastPrompt = '';
-    let lastRaw = '';
-    let lastGuidance = null;
+    try {
+      const loaded = [];
+      const trace = [];
+      const loadedKeys = new Set();
+      const memoryIds = new Set();
+      const skills = await ctx.skillText(store);
+      const base = ctx.baseSnapshot(store, action);
+      const materialSession = config.materials?.createSession?.(action) || null;
+      let lastPrompt = '';
+      let lastRaw = '';
+      let lastGuidance = null;
 
-    const guidedMaxSteps = this.guidedMaxSteps(store, config);
-    for (let step = 1; step <= guidedMaxSteps; step += 1) {
-      const prompt = await this.buildConfiguredPrompt({ store, action, base, loaded, skills, step, materialSession, config, guidance: lastGuidance, logId });
-      lastPrompt = prompt;
-      this.markConfiguredStep(store, logId, this.stepText(step, config), config);
-      const raw = await this.completeConfiguredParsedStep(store, prompt, logId, false, false, { ...config, guidedStep: step }, step > 1);
-      lastRaw = raw.raw;
-      const data = raw.data;
-      if (!data) throw new Error(`${config.label || 'Loop'}返回格式错误`);
-      lastGuidance = data;
-      const traceItem = this.traceItem(step, data, raw.raw, ctx);
-      trace.push(traceItem);
+      const guidedMaxSteps = this.guidedMaxSteps(store, config);
+      for (let step = 1; step <= guidedMaxSteps; step += 1) {
+        const prompt = await this.buildConfiguredPrompt({ store, action, base, loaded, skills, step, materialSession, config, guidance: lastGuidance, logId });
+        lastPrompt = prompt;
+        this.markConfiguredStep(store, logId, this.stepText(step, config), config);
+        const raw = await this.completeConfiguredParsedStep(store, prompt, logId, false, false, { ...config, guidedStep: step }, step > 1);
+        lastRaw = raw.raw;
+        const data = raw.data;
+        if (!data) throw new Error(`${config.label || 'Loop'}返回格式错误`);
+        lastGuidance = data;
+        const traceItem = this.traceItem(step, data, raw.raw, ctx);
+        trace.push(traceItem);
 
-      const results = await this.loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step, materialSession, config.materials);
-      traceItem.loaded = results.map((item) => ({ title: item.title, text: ctx.limit(item.text, 800) }));
-      this.updateConfiguredTrace(store, logId, trace, config);
-      if (results.length) {
-        loaded.push(...results);
-        this.markConfiguredStep(store, logId, this.loadedContextText(data, results, step, config), config);
+        const results = await this.loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step, materialSession, config.materials);
+        traceItem.loaded = results.map((item) => ({ title: item.title, text: ctx.limit(item.text, 800) }));
+        this.updateConfiguredTrace(store, logId, trace, config);
+        if (results.length) {
+          loaded.push(...results);
+          this.markConfiguredStep(store, logId, this.loadedContextText(data, results, step, config), config);
+        }
+
+        if (data.type === 'request_context' && step < guidedMaxSteps) continue;
+        if (step < this.minSteps && data.type !== 'context_done') continue;
+        break;
       }
-
-      if (data.type === 'request_context' && step < guidedMaxSteps) continue;
-      if (step < this.minSteps && data.type !== 'context_done') continue;
-      break;
+      const final = await this.generateConfiguredFinal({ store, action, base, loaded, skills, trace, materialSession, logId, prompt: lastPrompt, raw: lastRaw, config });
+      this.persistAgentConversation(store, config.kvCacheSession, config.mode);
+      return final;
+    } finally {
+      if (store.realWorldAgentActiveKvByMode?.[config.mode] === (config.kvCacheSession || null)) {
+        delete store.realWorldAgentActiveKvByMode[config.mode];
+      }
     }
-    const final = await this.generateConfiguredFinal({ store, action, base, loaded, skills, trace, materialSession, logId, prompt: lastPrompt, raw: lastRaw, config });
-    this.persistAgentConversation(store, config.kvCacheSession, config.mode);
-    return final;
   },
 
   async generatePhasedFinal(args) {
@@ -498,11 +510,13 @@ window.GameModules.realWorldAgentLoop = {
     const randomActiveCandidateText = randomActiveCandidates.length
       ? randomActiveCandidates.map((item, index) => `${index + 1}. ${item.name || item.id}`).join('；')
       : '无';
+    const eventStage1Context = store.eventStage1PromptContext?.(actionText) || '';
+    const configuredControlPerspectiveRule = this.configuredControlPerspectiveRule(store, config);
     const commonVars = {
       本次行动: actionText,
       当前步骤: forceFinal ? '收敛/final' : this.guidedStepText(store, step, config),
       最大步骤: this.guidedMaxStepText(store, config),
-      推演自由度规则: config.mode === 'story' ? this.storyFreedomRule(store) : (store.realWorldFreedomRule?.() || '推演自由度：行动范围内。只推演玩家本次输入行动自然抵达的直接结果。'),
+      推演自由度规则: [config.mode === 'story' ? this.storyFreedomRule(store) : (store.realWorldFreedomRule?.() || '推演自由度：行动范围内。只推演玩家本次输入行动自然抵达的直接结果。'), configuredControlPerspectiveRule].filter(Boolean).join('\n'),
       当前步骤输出要求: this.stepOutputRule(step, forceFinal),
       随机场外角色候选: randomActiveCandidateText,
       ['\u8d44\u6599\u8fed\u4ee3\u9650\u5236\u89c4\u5219']: this.stage1IterationRule(store),
@@ -554,6 +568,7 @@ window.GameModules.realWorldAgentLoop = {
         loadedRoutingSummary,
         '可请求资料目录：',
         materialCatalog,
+        eventStage1Context,
         '推演自由度规则：',
         commonVars.推演自由度规则,
         `随机场外角色候选：${randomActiveCandidateText}`,
@@ -616,6 +631,25 @@ window.GameModules.realWorldAgentLoop = {
 
   storyFreedomRule(store) {
     return store.online ? '操控剧情自由度：玩家输入是本回合对被操控者身体或行动方向的控制；正文只能推进到本次行动自然抵达的结果点，不替玩家完成后续长期行动。' : '离线剧情自由度：玩家输入是建议或态度；角色按性格、记忆、处境自主行动。';
+  },
+
+  configuredControlPerspectiveRule(store = null, config = this.realConfig()) {
+    const isStoryOnline = config?.mode === 'story' && Boolean(store?.online);
+    const shared = config?.mode === 'real' ? store?.sharedControlState?.() : null;
+    if (!isStoryOnline && !shared) return '';
+    const target = config?.mode === 'real'
+      ? String(shared?.profile?.name || shared?.name || '被控者').trim()
+      : String(store?.character?.name || '被控者').trim();
+    const player = '慎二';
+    return [
+      '上线附身控制视角规则（高优先级）：',
+      `- ${player}可以一心二用：同一意识能同时控制自己的现实本体与${target}的身体，并同时接收两个肉体的视觉、听觉、触觉、痛觉、疲劳、呼吸、平衡等感官反馈。`,
+      `- ${target}的身体行动权被${player}接管；除非系统或剧情明确解除控制，${target}不能自主夺回身体、不能让身体违背玩家本次控制行动。`,
+      `- ${target}的意识仍清醒存在，能够完整感觉自己身体的所有感官反馈，也会产生抗拒、困惑、羞耻、愤怒、恐惧、试探或顺从等内心反应；正文必须保留一部分${target}的心理想法、情绪和身体感受。`,
+      `- AI生成的正文必须以玩家在${target}身体内的第二人称视角为主来描绘行动，也就是以玩家在被控者身体内的附身体验推进：重点写“你”如何通过被控身体看见、移动、触碰、发声、感受肌肉与环境反馈；同时穿插${target}意识里的想法和感受。`,
+      `- 附身视角动作归属规则：只要玩家没有明确写“${player}本体”“现实身体”“外部的我”或“让其他人执行”，所有“你/我/手/身体/伸手/触碰/捏/按/移动/说话”等行动都默认是${target}的身体亲自执行；不要写成${player}的现实本体从外部对${target}行动。`,
+      `- 不要把${target}写成失去意识、断片、完全无感或可自由操控自己身体；也不要把正文主视角切回纯旁观或只写玩家现实本体。`,
+    ].join('\n');
   },
 
   stepOutputRule(step, forceFinal = false) {
@@ -829,15 +863,18 @@ window.GameModules.realWorldAgentLoop = {
   async buildConfiguredSceneAnchorPrompt({ store, action, base, loaded, trace = [], effectiveSceneLayers = null, materialSession = null, config = this.realConfig() }) {
     const actionText = this.actionText(action, config.mode === 'story' ? '继续推进操控剧情' : '继续观察现实世界');
     const layers = effectiveSceneLayers || this.resolveEffectiveSceneLayers(trace, store, config);
+    const eventNarrationContext = store.eventNarrationPromptContext?.(actionText) || '';
     const anchorContext = config.ctx.buildSceneAnchorContext?.({ store, action: actionText, loaded, trace, effectiveSceneLayers: layers, materialSession, config }) || [
       `模式：${config.label}`,
       `本次行动：${actionText}`,
       `参与者边界：\n${this.sceneLayerSummary(layers, store, config)}`,
     ].join('\n');
+    const controlPerspectiveContext = this.configuredControlPerspectiveRule(store, config);
+    const anchorContextWithEvents = [anchorContext, eventNarrationContext, controlPerspectiveContext].filter(Boolean).join('\n');
     const body = await this.renderPrompt('inference-stage2-scene-anchor', {
       模式标签: config.label,
       本次行动: actionText,
-      场景锚定上下文: anchorContext,
+      场景锚定上下文: anchorContextWithEvents,
       紧凑返回规则: this.compactReturnRule('prose'),
     });
     return body;
@@ -995,9 +1032,11 @@ window.GameModules.realWorldAgentLoop = {
     const narrationContext = config.ctx.buildNarrationContext?.({ store, action: actionText, config }) || this.compactUpdatePromptText(base, 1600);
     const loadedText = config.ctx.loadedNarrationSummary?.(loaded) || config.ctx.buildLoadedText(loaded) || '无';
     const writingStyle = store.selectedWritingStylePrompt?.() || store.writingStylePrompt?.() || '正文采用小说文风，重视画面、动作、感官和心理反应，避免复述玩家指令。';
+    const eventNarrationContext = store.eventNarrationPromptContext?.(actionText) || '';
+    const controlPerspectiveRule = this.configuredControlPerspectiveRule(store, config);
     const modeRule = config.mode === 'story'
       ? `推演自由度：${this.storyFreedomRule(store)}\n玩家不是角色本人，而是操控/影响被操控者行动的存在；正文必须写出本次行动的动作过程、环境变化、其他人物反应、被操控者身体与心理张力、直接结果。`
-      : `推演自由度：${store.realWorldFreedomRule?.() || '只推演玩家本次输入行动自然抵达的直接结果。'}${store.sharedControlState?.() ? '\n同世界附身控制规则：玩家意识附身接管被控角色身体，同时玩家现实本体仍由同一个意识维持控制；正文以第二人称“你”的附身镜头为主，不要让同一角色在两个地点同时出现。' : ''}`;
+      : `推演自由度：${store.realWorldFreedomRule?.() || '只推演玩家本次输入行动自然抵达的直接结果。'}`;
     const narrationRules = '行动范围内充分推演：写出本次行动的动作过程、身体感受、周围环境变化、可见细节、他人反应、对话回应和直接短期连锁影响；场景锚定报告中的强制出场必须在正文中实际出现、行动或回应；不替玩家执行下一步新行动；不把亲吻、抚摸、摩擦、按住等行为自动扩展为脱衣、转移地点、插入、高潮等未输入的新阶段。';
     const completenessRules = [
       '正文完整性规则：',
@@ -1018,7 +1057,7 @@ window.GameModules.realWorldAgentLoop = {
     return this.renderPrompt('inference-stage3-narration', {
       模式标签: config.label,
       本次行动: actionText,
-      基础上下文: [this.continuityFallbackRule(), `小说笔风：${writingStyle}`, modeRule, narrationRules, completenessRules, narrationContext].join('\n'),
+      基础上下文: [this.continuityFallbackRule(), `小说笔风：${writingStyle}`, modeRule, controlPerspectiveRule, narrationRules, completenessRules, eventNarrationContext, narrationContext].filter(Boolean).join('\n'),
       场景锚定报告: sceneAnchorReport || '无',
       已动态载入资料: loadedText || '无',
       紧凑返回规则: this.compactReturnRule('prose'),
@@ -1158,8 +1197,37 @@ window.GameModules.realWorldAgentLoop = {
     return `${raw.slice(0, head)}…${tail ? raw.slice(-tail) : ''}`;
   },
 
+  eventSettlementType() {
+    return '事件';
+  },
+
+  normalizeSettlementEventEntry(entry = {}, store = null, config = this.realConfig()) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+    const text = (value) => String(value ?? '').trim();
+    const rawType = text(entry.type ?? entry.eventType ?? entry['事件类型'] ?? entry.category ?? '');
+    const type = /random|随机/u.test(rawType) ? 'random' : (/periodic|cycle|周期/u.test(rawType) ? 'periodic' : 'inference');
+    const title = text(entry.title ?? entry.name ?? entry.eventName ?? entry['事件名'] ?? '');
+    const content = text(entry.content ?? entry.detail ?? entry.summary ?? entry['事件内容'] ?? '');
+    if (!title || !content) return null;
+    return window.GameModules.eventSystem?.normalizeEvent?.({
+      ...entry,
+      type,
+      title,
+      content,
+      startDate: entry.startDate ?? entry.start ?? entry.timeStart ?? entry['开始时间'] ?? entry['事件开始时间'] ?? entry['事件发生时间段'],
+      endDate: entry.endDate ?? entry.end ?? entry.timeEnd ?? entry['结束时间'] ?? entry['事件结束时间'],
+      location: entry.location ?? entry.place ?? entry['事件发生地点'],
+      people: entry.people ?? entry.relatedPeople ?? entry.participants ?? entry['事件相关人'] ?? (type === 'periodic' ? ['所有人'] : []),
+      tags: entry.tags ?? entry.eventTags ?? entry['事件标签'] ?? [],
+      probability: entry.probability ?? entry.chance ?? entry['发生概率'],
+      source: entry.source || 'stage4',
+      status: entry.status || 'active',
+    }, store) || null;
+  },
+
   settlementTypeQueue(config = this.realConfig()) {
     const base = ['基础结算', '情绪', '感觉', '生命体征', '身体状态', '穿着状态', '性经历', '性历史', '关系', '角色卡', '物品', '地图', '领土控势', '人事安排', '势力总览', '政体状态', '势力结构', '组织能力', '人事归属', '系统记录', '通用固化'];
+    base.push(this.eventSettlementType());
     return config.mode === 'story' ? base.concat(['操控体验']) : base;
   },
 
@@ -1178,6 +1246,7 @@ window.GameModules.realWorldAgentLoop = {
 
   settlementTypeContracts() {
     return {
+      [this.eventSettlementType()]: { title: '事件结算', format: '数组；每项 {"type":"random|inference|periodic","title":"事件名","startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD","location":"地点","content":"内容","people":["相关人"],"tags":["标签"],"probability":25,"status":"active"}；无事件 []' },
       '基础结算': { title: '基础结算', format: '经过时间：秒数\n当前状态：状态文本\n当前目标：目标文本\n场景标题：标题\n地点名称：地点全称\n备选行动1：行动文本\n备选行动2：行动文本\n备选行动3：行动文本\n备选行动4：行动文本' },
       '情绪': { title: '情绪结算', format: '更新N：结算主体，情绪名，+/-数值，变化原因' },
       '感觉': { title: '感觉结算', format: '更新N：结算主体，感觉名，+/-数值，变化原因' },
@@ -1567,13 +1636,24 @@ window.GameModules.realWorldAgentLoop = {
     };
     requestedTypes.forEach((type) => {
       const value = data[type];
-      const patch = { genericUpdates: [], baseFields: {}, __updateLines: 0, __parsedUpdates: 0, __lines: [JSON.stringify({ [type]: value })], __closedByBrace: value !== undefined };
+      const patch = { genericUpdates: [], events: [], baseFields: {}, __updateLines: 0, __parsedUpdates: 0, __lines: [JSON.stringify({ [type]: value })], __closedByBrace: value !== undefined };
       if (value === undefined) {
         incompleteTypes.push(type);
         patchesByType[type] = patch;
         return;
       }
-      if (type === '基础结算') {
+      if (type === this.eventSettlementType()) {
+        if (Array.isArray(value)) {
+          value.forEach((entry) => {
+            if (entry !== undefined && entry !== null) patch.__updateLines += 1;
+            const event = this.normalizeSettlementEventEntry(entry, store, config);
+            if (event) {
+              patch.__parsedUpdates += 1;
+              patch.events.push(event);
+            }
+          });
+        }
+      } else if (type === '基础结算') {
         if (value && typeof value === 'object' && !Array.isArray(value)) {
           ['经过时间', '当前状态', '当前目标', '场景标题', '地点名称'].forEach((key) => { if (value[key] !== undefined) patch.baseFields[key] = String(value[key]).trim(); });
           const choices = Array.isArray(value['备选行动']) ? value['备选行动'] : [];
@@ -1613,7 +1693,8 @@ window.GameModules.realWorldAgentLoop = {
       } else incompleteTypes.push(type);
     });
     const genericUpdates = completeTypes.flatMap((type) => patchesByType[type]?.genericUpdates || []);
-    return { format: 'json', patchesByType, completeTypes, incompleteTypes, genericUpdates, baseFields };
+    const events = completeTypes.flatMap((type) => patchesByType[type]?.events || []);
+    return { format: 'json', patchesByType, completeTypes, incompleteTypes, genericUpdates, events, baseFields };
   },
 
   parseSettlementKv(raw, { requestedTypes = [], participants = [], store = null, config = this.realConfig() } = {}) {
@@ -1760,6 +1841,14 @@ window.GameModules.realWorldAgentLoop = {
   settlementTypeShortRule(type = '') {
     const contracts = this.settlementTypeContracts();
     const c = contracts[type] || { title: `${type}结算`, format: '更新N：类型，字段，变化，原因' };
+    if (type === this.eventSettlementType()) {
+      return [
+        `${c.title}规则：`,
+        '只提取正文中已经明确出现或能由正文稳定推出的事件；普通行动状态不要写成事件。',
+        '推演事件用于未来约定、计划、承诺、毁约风险等；周期事件用于节日、固定赛程、定期征文等重复发生事项；随机事件仅用于需要在未来概率触发的场外变动。',
+        '周期事件 people 固定写 ["所有人"]，必须写 tags；无事件输出 []。',
+      ].join('\n');
+    }
     const rules = {
       '情绪': '字段只能使用本轮“当前情绪基线”里已有指标名；value 必须是 +N/-N 且不能为 0；可把愉悦/开心映射为高兴、惊慌映射为恐惧、不安映射为紧张；没有对应已有指标或无稳定变化时输出空数组。字段含义：field=情绪指标名，value=本回合变化量，status=变化后该情绪在当前数值下的具体表现（禁止写“高兴40：”这类前缀），reason=正文中的具体行为/对话证据。',
       '感觉': '主体只能是出场 NPC，不能是玩家；字段只能使用“出场角色对玩家感觉基线”里已有指标名；value 必须是 +N/-N 且不能为 0；可把信赖映射为信任、亲近映射为好感、害怕映射为畏惧、厌恶映射为反感。字段含义：field=感觉指标名，value=本回合变化量，status=变化后该感觉在当前数值下的具体表现（禁止写“信任40：”这类前缀），reason=正文中证明该 NPC 对玩家态度变化的具体证据。',
@@ -1801,6 +1890,7 @@ window.GameModules.realWorldAgentLoop = {
     const subject = chars[0]?.name || chars[0]?.id || player?.name || player?.id || '角色名';
     const playerName = player?.name || player?.id || '玩家名';
     const otherName = chars[1]?.name || chars[1]?.id || subject;
+    if (type === this.eventSettlementType()) return '"事件":[{"type":"inference","title":"未来约定","startDate":"2026-07-10","endDate":"2026-07-10","location":"地点","content":"正文明确约定的未来事项","people":["相关人"],"tags":["约定"],"status":"active"}]';
     if (type === '基础结算') return '"基础结算":{"经过时间":60,"当前状态":"当前稳定状态","当前目标":"下一步目标","场景标题":"场景标题","地点名称":"地点名","备选行动":["行动一","行动二","行动三","行动四"]}';
     if (type === '情绪') {
       const ex = this.settlementMetricExample(store, participants, '情绪');
@@ -1929,6 +2019,7 @@ window.GameModules.realWorldAgentLoop = {
       if (type === '感觉') return '感觉：数组；每项 {"subject":"出场NPC姓名","field":"感觉指标名","value":"+N/-N","status":"变化后该感觉的具体表现","reason":"正文证据证明该NPC对玩家态度变化"}；无变化 []。status 写程度表现，不要写指标名+数值前缀；缺省时系统会按新数值补模板解释。';
       if (type === '关系') return '关系：数组；每项 {"subject":"姓名","left":"关系左方","right":"关系右方","dimension":"稳定关系维度","status":"关系状态","reason":"证据","result":"结算结果"}；无变化 []。';
       if (type === '角色卡') return '角色卡：数组；每项 {"subject":"姓名","field":"字段","op":"替换/增加","value":"内容","reason":"证据","result":"结果"}；无变化 []。';
+      if (type === this.eventSettlementType()) return '事件：数组；每项 {"type":"random|inference|periodic","title":"事件名","startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD","location":"地点","content":"内容","people":["相关人"],"tags":["标签"],"probability":25,"status":"active"}；无事件 []。';
       return `${type}：数组；每项 {"subject":"结算主体","field":"字段","value":"变化或新值","reason":"证据"}；无变化 []。原合约：${c?.format || '更新N：结算主体，字段，变化，原因'}`;
     }).join('\n');
     const globalShortReason = String(partialByType.__shortOutputReason || '').trim();
@@ -2054,7 +2145,7 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   mergeGroupedUpdatePatches(patches = [], route = {}) {
-    const merged = { type: 'final', genericUpdates: [] };
+    const merged = { type: 'final', genericUpdates: [], events: [] };
     const applyBaseFields = (baseFields = {}) => {
       const choices = ['备选行动1', '备选行动2', '备选行动3', '备选行动4'].map((key) => String(baseFields[key] || '').trim()).filter(Boolean);
       const elapsed = Number(baseFields['经过时间']);
@@ -2072,6 +2163,7 @@ window.GameModules.realWorldAgentLoop = {
       if (!patch || typeof patch !== 'object') return;
       applyBaseFields(patch.baseFields || {});
       if (Array.isArray(patch.genericUpdates)) merged.genericUpdates.push(...patch.genericUpdates);
+      if (Array.isArray(patch.events)) merged.events.push(...patch.events);
     });
     return merged;
   },
@@ -2495,6 +2587,7 @@ window.GameModules.realWorldAgentLoop = {
       itemActions: Array.isArray(updates.itemActions) ? updates.itemActions : [],
       lexiconUpdates: Array.isArray(updates.lexiconUpdates) ? updates.lexiconUpdates : [],
       genericUpdates: Array.isArray(updates.genericUpdates) ? updates.genericUpdates : [],
+      events: Array.isArray(updates.events) ? updates.events : [],
       profilePatches: Array.isArray(updates.profilePatches) ? updates.profilePatches : [],
     };
     return window.GameModules.updateRegistry?.finalizeGenericUpdates?.({
@@ -2623,22 +2716,43 @@ window.GameModules.realWorldAgentLoop = {
       `<正文尾部>${String(narration || '').slice(-1600)}</正文尾部>`,
       '现在仅输出正文后续suffix。',
     ].join('\n');
-    const output = await window.GameModules.aiRequest.complete({
-      source: `${config.mode}-agent-narration-continuation`,
-      model: store.modelId,
-      prompt: continuationPrompt,
-      timeoutMs: 120000,
-      requireDone: true,
+    const output = await this.completeConfiguredStep(store, continuationPrompt, logId, false, {
+      ...config,
+      promptId: 'inference-stage3-narration',
+      sourceTitle: `${config.label}Stage3正文补全`,
+      jsonMode: false,
+      outputLimitKind: 'stage3',
       maxAttempts: 2,
       maxTokens: 900,
-      ...(window.GameModules.promptSkills?.completionOptions?.('inference-stage3-narration') || { jsonMode: false, outputLimitKind: 'stage3' }),
-      outputLengthThreshold: 1200,
+      timeoutMs: 120000,
     });
     return this.cleanPhasedNarration(output);
   },
 
   async completeStep(store, prompt, logId, streamToUi = false) {
     return await this.completeConfiguredStep(store, prompt, logId, streamToUi, this.realConfig());
+  },
+
+  async completeCachedJsonPrompt(store, options = {}) {
+    const promptId = String(options.promptId || options.source || 'cached-json-prompt');
+    const baseConfig = {
+      ...this.realConfig(),
+      promptId,
+      sourceTitle: options.sourceTitle || options.source || promptId,
+      jsonMode: options.jsonMode !== false,
+      responseFormat: options.responseFormat || (options.jsonMode === false ? undefined : { type: 'json_object' }),
+      outputLimitKind: options.outputLimitKind || 'stage4',
+      model: options.model,
+      maxTokens: options.maxTokens,
+      maxAttempts: options.maxAttempts,
+      timeoutMs: options.timeoutMs,
+    };
+    const active = this.activeKvCacheSession(store, 'real');
+    let config = active ? { ...baseConfig, kvCacheSession: active } : this.withDeepSeekKvCacheSession(store, baseConfig);
+    const shouldPersist = !active && config.kvCacheSession && config.kvCacheSession.persist !== false && !config.kvCacheSession.fork;
+    const output = await this.completeConfiguredStep(store, options.prompt || '', null, false, config);
+    if (shouldPersist) this.persistAgentConversation(store, config.kvCacheSession, 'real');
+    return output;
   },
 
   configuredCompletionOptions(config = this.realConfig(), streamToUi = false) {
@@ -2676,18 +2790,18 @@ window.GameModules.realWorldAgentLoop = {
       const isJsonMode = Boolean(completionOptions.jsonMode);
       const requestOptions = {
         source: config.sourceTitle || (streamToUi ? `${config.mode}-agent-loop` : `${config.mode}-agent-context`),
-        model: store.modelId,
+        model: config.model || store.modelId,
         ...(kvMessages ? { messages: kvMessages } : (currentMessages ? { messages: currentMessages } : { prompt })),
         deepThinking: !isJsonMode,
         deepThinkingEffort: 'high',
         jsonMode: isJsonMode,
         responseFormat: completionOptions.responseFormat,
         stream: !isJsonMode,
-        timeoutMs: 240000,
+        timeoutMs: Number(config.timeoutMs) || 240000,
         requireDone: true,
         outputLengthThreshold: 2600,
         outputLimitKind: completionOptions.outputLimitKind,
-        maxAttempts: 3,
+        maxAttempts: Number(config.maxAttempts) || 3,
         onChunk: async (chunk, done, info) => {
           const latest = config.mode === 'story' ? window.GameModules.ai.latestRequestId : window.GameModules.realWorldAi.latestRequestId;
           if (requestId !== latest) return;

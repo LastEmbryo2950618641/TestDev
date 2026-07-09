@@ -121,7 +121,20 @@ window.GameModules.jsonUtils = {
     let lastError = null;
     for (let i = 0; i < max; i += 1) {
       const completionOptions = this.completionOptions(promptId, options);
-      lastText = await this.requestCompletion({ model: options.model, prompt, maxTokens: options.maxTokens, source: options.source || 'json-utils', timeoutMs: options.timeoutMs || 90000, maxAttempts: options.maxAttempts, ...completionOptions });
+      lastText = await this.requestCompletion({
+        model: options.model,
+        prompt,
+        promptId,
+        maxTokens: options.maxTokens,
+        source: options.source || 'json-utils',
+        sourceTitle: options.sourceTitle,
+        timeoutMs: options.timeoutMs || 90000,
+        maxAttempts: options.maxAttempts,
+        store: options.store,
+        useRealWorldKvCache: options.useRealWorldKvCache,
+        tokenMeta: options.tokenMeta,
+        ...completionOptions,
+      });
       try {
         const parsed = options.parse ? options.parse(lastText) : this.parseLoose(lastText);
         return options.validate ? options.validate(parsed) : parsed;
@@ -167,7 +180,23 @@ window.GameModules.jsonUtils = {
     throw error;
   },
 
-  async requestCompletion({ model, prompt, maxTokens, source = 'json-utils', timeoutMs = 90000, maxAttempts, jsonMode = true, outputLimitKind = 'other', responseFormat }) {
+  async requestCompletion({ model, prompt, promptId = '', maxTokens, source = 'json-utils', sourceTitle = '', timeoutMs = 90000, maxAttempts, jsonMode = true, outputLimitKind = 'other', responseFormat, store = null, useRealWorldKvCache = false, tokenMeta = null }) {
+    if (useRealWorldKvCache && store && window.GameModules.realWorldAgentLoop?.completeCachedJsonPrompt) {
+      return await window.GameModules.realWorldAgentLoop.completeCachedJsonPrompt(store, {
+        prompt,
+        promptId: promptId || source,
+        source,
+        sourceTitle,
+        model,
+        maxTokens,
+        timeoutMs,
+        maxAttempts,
+        jsonMode,
+        outputLimitKind,
+        responseFormat: responseFormat || (jsonMode ? { type: 'json_object' } : undefined),
+        tokenMeta,
+      });
+    }
     return window.GameModules.aiRequest.complete({ source, model, maxTokens, prompt, timeoutMs, maxAttempts, jsonMode, responseFormat: responseFormat || (jsonMode ? { type: 'json_object' } : undefined), outputLimitKind });
   },
 

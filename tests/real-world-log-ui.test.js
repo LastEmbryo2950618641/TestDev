@@ -17,7 +17,10 @@ assert.ok(html.includes('realWorldEntryIcon(entry)'));
 assert.ok(html.includes('realWorldChoiceIcon(choice)'));
 assert.ok(html.includes('realWorldStatusIcon($store.game.realWorldStatus)'));
 assert.ok(html.includes('realWorldDisplayLog()'));
+assert.ok(html.includes('offlineSharedControlRole()'));
+assert.ok(html.includes('退出当前附身控制，把身体控制权交还给被控制者。'));
 assert.ok(!html.includes('real-world-paired-player'));
+assert.ok(!read('publish/real-world-clock-actions.js').includes('this.sharedControlActive = false;'));
 
 const actions = read('publish/real-world-actions.js');
 assert.ok(actions.includes('promptPack: null'));
@@ -54,4 +57,54 @@ assert.strictEqual(utility.realWorldEntryIcon({ type: 'user' }), '🧍');
 assert.strictEqual(utility.realWorldEntryIcon({ transientError: true }), '⚠️');
 assert.strictEqual(utility.realWorldStatusIcon('当前目标'), '🎯');
 
-console.log('PASS real world log UI hides failed prompt/thinking noise');
+vm.runInNewContext(read('publish/control-link-actions.js'), context, { filename: 'control-link-actions.js' });
+const control = context.window.GameModules.controlLinkActions;
+const savedEntries = [];
+const savedStates = [];
+context.window.GameModules.sqliteSave = {
+  saveRealWorldLogEntry: async (entry) => { savedEntries.push(entry); },
+  countRealWorldLogEntries: () => savedEntries.length,
+  saveCharacterState: async (state) => { savedStates.push(state); },
+};
+const npc = { id: 'npc-1', name: '刘思琪', profile: { name: '刘思琪' }, values: { control_link: {} } };
+const controlStore = {
+  ...control,
+  sharedControlActive: true,
+  sharedControlTargetId: 'npc-1',
+  rpgStates: { 'npc-1': npc },
+  realWorldBusy: false,
+  realWorldFunctionOpen: true,
+  realWorldFunctionView: 'menu',
+  realWorldLog: [],
+  realWorldLogPageSize: 12,
+  realWorldChoices: ['观察'],
+  realWorldSceneTitle: '测试场景',
+  realWorldLocationName: '测试地点',
+  realWorldStatus: '测试状态',
+  realWorldQuest: '测试目标',
+  phoneDate: () => new Date('2026-07-10T10:00:00+08:00'),
+  phoneDateText: () => '2026年7月10日 周五',
+  phoneTimeText: () => '10:00:00',
+  normalizeRealWorldLog(log) { return log; },
+  realWorldLogMaxPage() { return 1; },
+  refreshRealWorldLogPage() {},
+  scrollRealWorldLogBottom() {},
+  assignRealWorldlineEntry: async () => {},
+  refreshControlLinkStates: async () => {},
+  save: async () => {},
+};
+
+(async () => {
+  await controlStore.offlineSharedControlRole();
+  assert.strictEqual(controlStore.sharedControlActive, false);
+  assert.strictEqual(savedEntries.length, 1);
+  assert.strictEqual(savedEntries[0].type, 'ai');
+  assert.strictEqual(savedEntries[0].promptPack, null);
+  assert.match(savedEntries[0].narration, /你意识从刘思琪的肉体深处缓缓抽离/);
+  assert.match(savedEntries[0].narration, /控制权重新回到刘思琪自己的意识里/);
+  assert.strictEqual(savedStates[0].values.control_link.lastAction, '下线交还控制权');
+  console.log('PASS real world log UI hides failed prompt/thinking noise and shared-control offline appends context narration');
+})().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

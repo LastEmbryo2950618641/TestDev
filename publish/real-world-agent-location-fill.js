@@ -126,7 +126,7 @@ window.GameModules = window.GameModules || {};
           新地点线索: clue,
         });
         payload = await window.GameModules.jsonUtils.generateJsonWithRetry({
-          source: 'real-world-location-fill', promptId: 'real-world-map-location-add', model: store.modelId, timeoutMs: 45000, prompt, format: prompt, max: 2,
+          source: 'real-world-location-fill', sourceTitle: '现实Stage4滑动结算｜电子地图新增地点', promptId: 'real-world-map-location-add', model: store.modelId, store, useRealWorldKvCache: true, outputLimitKind: 'stage4', timeoutMs: 45000, prompt, format: prompt, max: 2,
           parse: (text) => window.GameModules.jsonUtils.parseLoose(text),
           validate: (raw) => this.validateLocationFill(raw),
         });

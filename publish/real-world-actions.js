@@ -44,6 +44,7 @@ window.GameModules.realWorldActions = {
       this.realWorldLogTotal = savedTotal;
       this.realWorldLogPage = this.realWorldLogMaxPage?.() || this.realWorldLogPage || 1;
       this.scrollRealWorldLogBottom?.();
+      this.prepareEventsForRealWorldAction?.(text, entry.id);
       const result = await window.GameModules.realWorldAi.generate(this, '', text, entry.id);
       if (result.promptPack) entry.promptPack = result.promptPack;
       const currentUserEntry = window.GameModules.sqliteSave.getRealWorldLogEntry?.(userEntry.id) || userEntry;
@@ -113,6 +114,8 @@ window.GameModules.realWorldActions = {
     }
     const remainingGeneric = (result.genericUpdates || []).filter((item) => !legacyHandled.has(item?.updateType));
     await window.GameModules.updateRegistry?.applyGeneric?.(this, remainingGeneric);
+    const settledEvents = this.addEventsFromSettlement?.(result.events || [], { logId: id }) || [];
+    if (settledEvents.length) settlement.push(`事件：已写入${settledEvents.length}条事件。`);
     settlement.push(...(await window.GameModules.realWorldProfileStage5?.applyPatches?.(this, result.profilePatches || []) || []));
     const initApplied = await window.GameModules.initPromptRegistry?.apply?.(this, result.initUpdates || []) || [];
     if (initApplied.length) settlement.push(`初始化：已写入${initApplied.length}条初始化记录。`);
