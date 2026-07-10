@@ -177,7 +177,7 @@ window.GameModules.controlLinkActions = {
     await this.save?.();
   },
 
-  sharedControlState() { return this.sharedControlActive ? this.rpgStates?.[this.sharedControlTargetId] || null : null; },
+  sharedControlState() { return this.activeControlTargetState?.() || null; },
   sharedControlLabel() { return this.sharedControlState?.() ? '附身控制中' : ''; },
   realWorldDisplayState() { return this.sharedControlState?.() || this.playerIdentityState?.(); },
   realWorldDisplayCharacter() { return this.sharedControlState?.()?.profile || this.playerDisplayCharacter?.(); },

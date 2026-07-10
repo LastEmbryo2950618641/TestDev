@@ -183,6 +183,7 @@ window.GameScriptManifest = {
       "entry-actions.js",
       "control-actions.js",
       "core-actions.js",
+      "control-state.js",
       "control-link-actions.js",
       "app-switch-actions.js",
       "current-world-actions.js"
