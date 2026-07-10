@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -1207,9 +1207,9 @@
       </div>
       <div class="desktop-widgets">
         <article>
-          <small>今日任务</small>
-          <strong>选择目标</strong>
-          <span>等待操控者接入</span>
+          <small x-text="$store.game.online ? '当前目标' : '今日任务'"></small>
+          <strong x-text="$store.game.desktopTaskTitle()"></strong>
+          <span x-text="$store.game.desktopTaskSubtitle()"></span>
         </article>
         <article>
           <small>系统状态</small>
@@ -2770,7 +2770,7 @@
               <p x-text="item.state.values?.control_experience?.summary || '点击链接后可选择召唤或上线。'"></p>
             </div>
             <div class="control-link-box dev-section" data-section-title="链接操作区">
-              <button class="control-link-btn dev-section" data-section-title="链接按钮" type="button" @click.stop="$store.game.toggleControlLinkMenu($store.game.controlLinkId(item))" :disabled="$store.game.busy">链接</button>
+              <button class="control-link-btn dev-section" data-section-title="链接按钮" type="button" @click.stop="!$store.game.isControlRoleCurrentlyActive(item.state) && $store.game.toggleControlLinkMenu($store.game.controlLinkId(item))" :disabled="$store.game.busy || $store.game.isControlRoleCurrentlyActive(item.state)" x-text="$store.game.isControlRoleCurrentlyActive(item.state) ? '已连接' : '链接'"></button>
               <div class="control-link-menu dev-section" data-section-title="链接功能菜单" x-show="$store.game.controlLinkMenuId === $store.game.controlLinkId(item)" @click.outside="$store.game.controlLinkMenuId = ''" x-cloak>
                 <button type="button" class="dev-section" data-section-title="召唤按钮" @click.stop="$store.game.summonControlRole($store.game.controlLinkId(item))" :disabled="!$store.game.isControlRoleLinked(item.state) || $store.game.busy">召唤</button>
                 <button type="button" class="dev-section" data-section-title="上线按钮" @click.stop="$store.game.onlineControlRole($store.game.controlLinkId(item))" :disabled="$store.game.busy">上线</button>
@@ -3625,3 +3625,5 @@
   </div><!-- HOME_PLAYING_WRAPPER_END -->
 </body>
 </html>
+
+

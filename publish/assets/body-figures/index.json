@@ -1,6 +1,13 @@
 {
   "figures": [
     {
+      "id": "rel-ai-242269-1783673555009",
+      "path": "rel-ai-242269-1783673555009",
+      "generated": true,
+      "ownerId": "rel-ai-242269",
+      "stateKind": "natural"
+    },
+    {
       "id": "player-self-1783391372121",
       "path": "player-self-1783391372121",
       "generated": true,

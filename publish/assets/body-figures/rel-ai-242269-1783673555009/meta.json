@@ -1,23 +1,22 @@
 {
-  "characterId": "",
-  "ownerId": "",
-  "personId": "",
+  "characterId": "rel-ai-242269",
+  "ownerId": "rel-ai-242269",
+  "personId": "rel-ai-242269",
   "stateKind": "natural",
   "stateLabel": "自然状态",
-  "label": "刘思琪 - 自然状态生成形象图",
+  "label": "刘思怡 - 自然状态生成形象图",
   "generated": true,
   "real": true,
   "source": "body-profile-generator",
-  "prompt": "solo, full body, standing, front view, clear face, clean background, anime style, high quality, 赤身, 全身, 无遮掩, 美乳, 双腿, 玉足, 站立",
-  "negativePrompt": "bad anatomy, extra fingers, extra arms, missing fingers, low quality, blurry, worst quality, watermark, text, logo, bad hands",
-  "taskId": "2030570885418008779",
+  "prompt": "1girl, solo, full body, standing, front view, clear face, clean background, anime style, high quality, Liu Siyi, youngest triplet sister, 15 years old, black long straight hair, black eyes, petite 155cm, delicate build, school uniform, bare legs, slender calves, tsundere expression, pale skin, cute face, oval face, small breasts, flat chest, slim waist, thin arms, long legs, no pubic hair, barefoot, standing naked, full body exposure., 赤身, 全身, 无遮掩, 美乳, 双腿, 玉足, 站立",
+  "negativePrompt": "low quality, bad anatomy, distorted, blurry, messy, extra limbs, fused body, ugly, watermark, text, signature, realistic, photo, nsfw explicit.",
+  "taskId": "2032241421109431920",
   "provider": "pixai",
   "overall": [
     "少女"
   ],
   "figure": [
-    "纤细",
-    "苗条"
+    "纤细"
   ],
   "height": "155cm",
   "weight": "43kg",
@@ -25,7 +24,7 @@
     "雪白"
   ],
   "aura": [
-    "清纯"
+    "可爱"
   ],
   "styleBase": [
     "JK风"
@@ -34,7 +33,7 @@
     "清新裸妆"
   ],
   "colorScheme": [
-    "黑系"
+    "白系"
   ],
   "hosiery": [
     "过膝袜"
@@ -46,12 +45,12 @@
     "精致点缀"
   ],
   "tags": [
+    "rel-ai-242269",
     "natural",
     "少女",
     "纤细",
-    "苗条",
     "雪白",
-    "清纯",
+    "可爱",
     "JK风",
     "清新裸妆"
   ],
@@ -64,7 +63,7 @@
         "及腰",
         "黑长直"
       ],
-      "description": "乌黑浓密的黑长直发，自然垂落至腰间，发质柔顺，带有微微光泽，未经任何烫染修饰。",
+      "description": "天然乌黑长发，未经烫染，柔顺垂落至腰部，发丝细腻光滑，走动时微微摇曳。",
       "anchor": {
         "x": 49,
         "y": 9
@@ -80,10 +79,11 @@
       "part": "脸部",
       "tags": [
         "鹅蛋脸",
-        "清秀",
-        "白皙"
+        "黑瞳",
+        "可爱",
+        "素颜"
       ],
-      "description": "鹅蛋形脸庞，素颜清秀，皮肤白皙细腻，眉眼间带着冷淡疏离，天然唇色浅淡，气色纯净。",
+      "description": "素净的鹅蛋脸，皮肤细腻白皙，黑瞳清澈有神，鼻梁秀挺，唇色自然粉嫩，天然清纯气色。",
       "anchor": {
         "x": 49,
         "y": 19
@@ -99,9 +99,9 @@
       "part": "耳朵",
       "tags": [
         "小巧",
-        "精致"
+        "耳垂饱满"
       ],
-      "description": "耳廓小巧玲珑，耳垂圆润，耳后肌肤光洁无瑕，整个耳朵轮廓精致。",
+      "description": "耳廓线条柔和，耳垂小巧圆润，耳后肌肤光洁，佩戴耳饰的痕迹全无。",
       "anchor": {
         "x": 58,
         "y": 16
@@ -117,9 +117,10 @@
       "part": "脖颈",
       "tags": [
         "修长",
-        "锁骨清晰"
+        "白皙",
+        "锁骨突出"
       ],
-      "description": "颈部修长，锁骨线条清晰可见，颈窝浅凹，肌肤雪白，没有任何饰物。",
+      "description": "颈部纤细修长，锁骨清晰可见，颈窝浅浅，皮肤光洁无纹，呼吸时微微起伏。",
       "anchor": {
         "x": 52,
         "y": 24
@@ -135,9 +136,9 @@
       "part": "胸部",
       "tags": [
         "贫乳",
-        "娇小"
+        "平坦"
       ],
-      "description": "少女尚未发育完全的贫乳轮廓，胸脯平坦微隆，形状小巧，未经束缚时自然平缓。",
+      "description": "胸部尚未充分发育，整体平坦，乳晕浅淡小巧，轮廓柔和，未经束缚时呈自然微凸。",
       "anchor": {
         "x": 48,
         "y": 32
@@ -153,9 +154,10 @@
       "part": "双臂",
       "tags": [
         "纤细",
-        "手型修长"
+        "修长",
+        "手型纤细"
       ],
-      "description": "双臂纤细，皮肤洁白，手型修长，手指骨节分明，指甲修剪整齐，无任何装饰。",
+      "description": "手臂修长纤细，手肘腕骨分明，手指纤细修长，指甲修剪整齐，肌肤白皙。",
       "anchor": {
         "x": 72,
         "y": 36
@@ -171,9 +173,10 @@
       "part": "小腹",
       "tags": [
         "平坦",
-        "紧致"
+        "腰细",
+        "肚脐小巧"
       ],
-      "description": "腹部平坦紧致，肚脐小巧内凹，呼吸时微微起伏，肌肤光滑无赘肉。",
+      "description": "腹部平坦紧致，肚脐呈椭圆内凹，腰身纤细，呼吸时腹部轻微起伏。",
       "anchor": {
         "x": 50,
         "y": 44
@@ -188,10 +191,10 @@
       "index": 8,
       "part": "臀部",
       "tags": [
-        "小巧",
-        "圆润"
+        "小巧圆润",
+        "饱满"
       ],
-      "description": "臀部小巧圆润，线条柔和，腰臀连接处自然过渡，没有过度丰满。",
+      "description": "臀部大小适中，曲线圆润但不过分饱满，与纤细腰身自然衔接，站立时臀线柔和。",
       "anchor": {
         "x": 58,
         "y": 53
@@ -207,9 +210,10 @@
       "part": "神秘花园",
       "tags": [
         "无阴毛",
-        "粉嫩"
+        "粉嫩",
+        "紧致"
       ],
-      "description": "私密处无毛发覆盖，天然粉嫩，形态紧凑，腿间距离适中，含蓄而干净。",
+      "description": "私密处光洁无毛，大阴唇饱满紧致，小阴唇内敛，整体形态幼嫩，双腿自然闭合时缝隙隐约。",
       "anchor": {
         "x": 50,
         "y": 58
@@ -225,9 +229,10 @@
       "part": "双大腿",
       "tags": [
         "纤细",
-        "内侧紧贴"
+        "白皙",
+        "大腿根无缝隙"
       ],
-      "description": "大腿纤细匀称，站立时内侧自然贴合，肌肤光滑细腻，线条优美。",
+      "description": "大腿线条细长笔直，根部略丰满，内侧肌肤相贴，站立时无缝隙，肤色白皙光滑。",
       "anchor": {
         "x": 49,
         "y": 68
@@ -242,11 +247,11 @@
       "index": 11,
       "part": "双小腿",
       "tags": [
-        "修长",
         "纤细",
+        "修长",
         "脚踝纤细"
       ],
-      "description": "小腿修长，小腿肚弧度柔和，跟腱明显，脚踝纤细，足弓优美，整体线条流畅。",
+      "description": "小腿肚匀称，跟腱明显，脚踝纤细，足弓自然，脚趾整齐，肌肤光滑无茧。",
       "anchor": {
         "x": 48,
         "y": 84
@@ -258,15 +263,15 @@
       }
     }
   ],
-  "id": "rel-ai-247528-1783275261314",
+  "id": "rel-ai-242269-1783673555009",
   "image": "figure.webp",
-  "generatedAt": "2026-07-05T18:14:23.239Z",
+  "generatedAt": "2026-07-10T08:52:37.563Z",
   "imageSize": {
     "width": 768,
     "height": 1152
   },
-  "activeFigure": false,
-  "characterName": "",
-  "ownerName": "",
-  "personName": ""
+  "characterName": "刘思怡",
+  "ownerName": "刘思怡",
+  "personName": "刘思怡",
+  "activeFigure": true
 }
