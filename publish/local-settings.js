@@ -22,27 +22,11 @@ window.GameModules.localSettings = {
   },
 
   async fetchDeepseekKeyFromDevFile() {
-    try {
-      const res = await fetch('/deepseek_key.txt', { cache: 'no-store' });
-      if (!res.ok) return '';
-      return String(await res.text()).trim();
-    } catch (_) {
-      return '';
-    }
+    return window.GameModules.platformKeySource?.readDeepseekKey?.() || '';
   },
 
   async fetchPixaiKeyFromDevFile() {
-    for (const path of ['/pixai_key.txt', '/pixatart_key.txt']) {
-      try {
-        const res = await fetch(path, { cache: 'no-store' });
-        if (!res.ok) continue;
-        const key = String(await res.text()).trim();
-        if (key) return key;
-      } catch (_) {
-        /* try the next dev filename */
-      }
-    }
-    return '';
+    return window.GameModules.platformKeySource?.readPixaiKey?.() || '';
   },
 
   ensureSettingsDefaults(store) {
