@@ -1633,7 +1633,7 @@
                   </div>
                 </section>
                 <section class="body-status-group" x-show="(intimacy?.partnerRows || []).length">
-                  <header class="body-status-group-head"><strong>关联对象</strong><small>经历名册</small></header>
+                  <header class="body-status-group-head"><strong x-text="intimacy?.groups?.partner?.title || '关联对象'"></strong><small x-text="intimacy?.groups?.partner?.hint || '经历名册'"></small></header>
                   <div class="body-status-badge-grid">
                     <template x-for="row in intimacy?.partnerRows || []" :key="`partner-${row.index}`">
                       <button type="button" class="body-status-badge ability-expandable" :class="{ open: row.field && $store.game.isAbilityDetailOpen(row.field, row.item, row.index) }" @click="row.field && $store.game.toggleAbilityDetail(row.field, row.item, row.index)"><span aria-hidden="true" x-text="row.icon"></span><span x-text="row.title"></span></button>
@@ -1641,7 +1641,7 @@
                   </div>
                 </section>
                 <section class="body-status-group" x-show="(intimacy?.experienceRows || []).length">
-                  <header class="body-status-group-head"><strong>经历谱系</strong><small>分类计数</small></header>
+                  <header class="body-status-group-head"><strong x-text="intimacy?.groups?.experience?.title || '经历谱系'"></strong><small x-text="intimacy?.groups?.experience?.hint || '分类计数'"></small></header>
                   <div class="body-experience-grid">
                     <template x-for="row in intimacy?.experienceRows || []" :key="`experience-${row.index}`">
                       <button type="button" class="body-experience-card ability-expandable" :class="{ open: row.field && $store.game.isAbilityDetailOpen(row.field, row.item, row.index) }" @click="row.field && $store.game.toggleAbilityDetail(row.field, row.item, row.index)">
@@ -1653,7 +1653,7 @@
                   </div>
                 </section>
                 <section class="body-status-group" x-show="(intimacy?.bodyRows || []).length">
-                  <header class="body-status-group-head"><strong>体征监测</strong><small>部位状态</small></header>
+                  <header class="body-status-group-head"><strong x-text="intimacy?.groups?.body?.title || '体征监测'"></strong><small x-text="intimacy?.groups?.body?.hint || '部位状态'"></small></header>
                   <div class="body-state-grid">
                     <template x-for="row in intimacy?.bodyRows || []" :key="`body-state-${row.index}`">
                       <button type="button" class="body-state-card ability-expandable" :class="{ open: row.field && $store.game.isAbilityDetailOpen(row.field, row.item, row.index) }" @click="row.field && $store.game.toggleAbilityDetail(row.field, row.item, row.index)">
@@ -3177,7 +3177,7 @@
                         </div>
                       </section>
                       <section class="body-status-group" x-show="(intimacy?.partnerRows || []).length">
-                        <header class="body-status-group-head"><strong>关联对象</strong><small>经历名册</small></header>
+                        <header class="body-status-group-head"><strong x-text="intimacy?.groups?.partner?.title || '关联对象'"></strong><small x-text="intimacy?.groups?.partner?.hint || '经历名册'"></small></header>
                         <div class="body-status-badge-grid">
                           <template x-for="row in intimacy?.partnerRows || []" :key="`entry-partner-${row.index}`">
                             <button type="button" class="body-status-badge ability-expandable" :class="{ open: row.field && $store.game.isAbilityDetailOpen(row.field, row.item, row.index) }" @click="row.field && $store.game.toggleAbilityDetail(row.field, row.item, row.index)"><span aria-hidden="true" x-text="row.icon"></span><span x-text="row.title"></span></button>
@@ -3185,7 +3185,7 @@
                         </div>
                       </section>
                       <section class="body-status-group" x-show="(intimacy?.experienceRows || []).length">
-                        <header class="body-status-group-head"><strong>经历谱系</strong><small>分类计数</small></header>
+                        <header class="body-status-group-head"><strong x-text="intimacy?.groups?.experience?.title || '经历谱系'"></strong><small x-text="intimacy?.groups?.experience?.hint || '分类计数'"></small></header>
                         <div class="body-experience-grid">
                           <template x-for="row in intimacy?.experienceRows || []" :key="`entry-experience-${row.index}`">
                             <button type="button" class="body-experience-card ability-expandable" :class="{ open: row.field && $store.game.isAbilityDetailOpen(row.field, row.item, row.index) }" @click="row.field && $store.game.toggleAbilityDetail(row.field, row.item, row.index)">
@@ -3197,7 +3197,7 @@
                         </div>
                       </section>
                       <section class="body-status-group" x-show="(intimacy?.bodyRows || []).length">
-                        <header class="body-status-group-head"><strong>体征监测</strong><small>部位状态</small></header>
+                        <header class="body-status-group-head"><strong x-text="intimacy?.groups?.body?.title || '体征监测'"></strong><small x-text="intimacy?.groups?.body?.hint || '部位状态'"></small></header>
                         <div class="body-state-grid">
                           <template x-for="row in intimacy?.bodyRows || []" :key="`entry-body-state-${row.index}`">
                             <button type="button" class="body-state-card ability-expandable" :class="{ open: row.field && $store.game.isAbilityDetailOpen(row.field, row.item, row.index) }" @click="row.field && $store.game.toggleAbilityDetail(row.field, row.item, row.index)">

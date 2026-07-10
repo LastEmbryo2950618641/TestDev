@@ -1036,11 +1036,29 @@ window.GameModules.rpgFieldUi = {
 
   intimacyBodyPresentation(fields = []) {
     const byKey = (key) => this.fieldByKey(fields, key);
-    const summaryRows = [
-      { key: 'sexualStatus', title: '当前状态', icon: '💗', tone: 'pink' },
+    const stateId = String(
+      byKey('sexualStatus')?.stateId
+      || byKey('sexualPartnerCount')?.stateId
+      || byKey('sexualPartners')?.stateId
+      || byKey('sexualExperienceCount')?.stateId
+      || byKey('sexualExperienceParts')?.stateId
+      || this.identityTargetId
+      || ''
+    ).trim();
+    const targetState = stateId && stateId !== 'player-self'
+      ? (this.rpgStates?.[stateId] || window.GameModules.sqliteSave?.getCharacterState?.(stateId) || null)
+      : null;
+    const targetProfile = stateId === 'player-self'
+      ? { ...(this.playerProfile || {}), isPlayer: true }
+      : (targetState?.profile || null);
+    const isMalePlayer = Boolean(targetProfile?.isPlayer) && /^(男|male)$/i.test(String(targetProfile?.gender || '').trim());
+    const summaryRows = (isMalePlayer ? [
+      { key: 'sexualPartnerCount', title: '性经历人数', icon: '🤝', tone: 'cyan' },
+    ] : [
+      { key: 'sexualStatus', title: '当前状态', icon: '💞', tone: 'pink' },
       { key: 'sexualPartnerCount', title: '经历人数', icon: '🤝', tone: 'cyan' },
-      { key: 'sexualExperienceCount', title: '总次数', icon: '📚', tone: 'gold' },
-    ].map((meta) => {
+      { key: 'sexualExperienceCount', title: '总次数', icon: '📎', tone: 'gold' },
+    ]).map((meta) => {
       const field = byKey(meta.key);
       return {
         ...meta,
@@ -1075,24 +1093,44 @@ window.GameModules.rpgFieldUi = {
         item,
         index,
         icon: this.bodyPartEmoji(item?.part || item?.partKey || row.name || item?.name || ''),
-        title: row.name || item?.part || item?.partKey || item?.name || `状态 ${index + 1}`,
+        title: row.name || item?.part || item?.partKey || item?.name || ('状态' + (index + 1)),
         value: row.value || item?.status || '未记录',
         preview: desc || row.value || '暂无额外说明',
       };
     });
+    const visiblePartnerRows = isMalePlayer
+      ? (partnerRows.length ? partnerRows : experienceRows.map((row, index) => ({
+        field: row.field,
+        item: row.item,
+        index,
+        icon: row.icon,
+        title: row.title,
+        preview: row.preview,
+      })))
+      : partnerRows;
     return {
       hero: {
         eyebrow: 'INTIMACY RECORD',
-        title: summaryRows.find((row) => row.key === 'sexualStatus')?.valueText || '身体状态',
-        note: '按当前状态、经历脉络与身体部位记录现实推演中的亲密与体征信息。',
+        title: isMalePlayer
+          ? (summaryRows[0]?.valueText || '性经历档案')
+          : (summaryRows.find((row) => row.key === 'sexualStatus')?.valueText || '身体状态'),
+        note: isMalePlayer
+          ? '男性玩家仅展示性经历人数与性经历列表。'
+          : '按当前状态、经历脉络与身体部位记录现实推演中的亲密与体征信息。',
+      },
+      groups: {
+        partner: isMalePlayer
+          ? { title: '性经历列表', hint: '已记录对象' }
+          : { title: '关联对象', hint: '经历名册' },
+        experience: { title: '经历谱系', hint: '分类计数' },
+        body: { title: '体征监测', hint: '部位状态' },
       },
       summaryRows,
-      partnerRows,
-      experienceRows,
-      bodyRows,
+      partnerRows: visiblePartnerRows,
+      experienceRows: isMalePlayer ? [] : experienceRows,
+      bodyRows: isMalePlayer ? [] : bodyRows,
     };
   },
-
   personalAbilityPresentation(fields = [], state = null) {
     const byKey = (key) => this.fieldByKey(fields, key);
     const levelField = byKey('level');
