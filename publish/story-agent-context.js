@@ -12,6 +12,16 @@ window.GameModules.storyAgentContext = {
     const exp = state.values?.control_experience || {};
     const work = c.work || store.selectedWork || '原创世界';
     const recentWorldline = this.recentWorldlineRecords(store, work, 5000, 6000);
+    const controlExperienceRules = window.GameModules.controlExperienceStage?.renderPromptBlock?.({
+      config: store.controlExperienceConfigState || window.GameModules.controlExperienceConfig?.defaultConfig?.(),
+      experience: exp,
+      variables: {
+        被控制者: c.name || '未知角色',
+        角色性格: c.personality || '',
+        角色身份: c.role || '',
+        当前场景: store.sceneTitle || action || '',
+      },
+    }) || '';
     return [
       `界面：《我狠狠操控》主剧情/被操控角色推演`,
       `背景：正在操控作品《${work}》所在的异世界/原作世界，不是玩家现实世界；现实资料只作为操控者身份与动机背景。`,
@@ -26,6 +36,7 @@ window.GameModules.storyAgentContext = {
       `当前情绪/关系：情绪=${store.mood || '冷静'}｜信任=${store.trust ?? '--'}｜反抗=${store.resistance ?? '--'}`,
       `角色当前数值：\n${store.metricGroups?.(state).map((group) => `${group.title}：${Object.entries(group.values || {}).map(([k, v]) => `${k}${v}`).join('、')}`).join('\n') || '暂无数值。'}`,
       `上线体验：次数=${exp.onlineCount || 0}｜感觉=${exp.feeling || '未知'}｜适应=${exp.adaptation || 0}/100｜摘要=${exp.summary || '尚无经历'}`,
+      controlExperienceRules ? `上线体验阶段：\n${controlExperienceRules}` : '',
       `目标状态快照：\n${window.GameModules.promptSections?.stateSnapshot?.(store, state) || '暂无角色卡快照。'}`,
       `## 最近发送的世界线\n需严格跟着世界线续写，保证正文对最新世界线连续性。\n${recentWorldline}`,
       `最近剧情：\n${this.recentLog(store, 4)}`,
@@ -84,11 +95,23 @@ window.GameModules.storyAgentContext = {
   },
 
   splitChineseRequestLine(line = '') {
-    return window.GameModules.realWorldAgentContext.splitChineseRequestLine(line);
+    const shared = window.GameModules.realWorldAgentContext?.splitChineseRequestLine;
+    if (typeof shared === 'function') return shared(line);
+    const catalog = window.GameModules.realWorldAgentContextParts?.materialRequestCatalog?.splitChineseRequestLine;
+    if (typeof catalog === 'function') return catalog.call(window.GameModules.realWorldAgentContextParts.materialRequestCatalog, line);
+    const body = String(line || '').replace(/^资料请求\d+\s*[：:]/u, '').trim();
+    return body.split(/[，、；;]/u).map((part) => part.trim()).filter(Boolean);
   },
 
   guidedMaterialRequestCatalog(mode = 'story') {
-    const base = window.GameModules.realWorldAgentContext.guidedMaterialRequestCatalog(mode).filter((item) => item.mode === 'both');
+    const sharedCatalog = window.GameModules.realWorldAgentContext?.guidedMaterialRequestCatalog;
+    const fallbackCatalog = window.GameModules.realWorldAgentContextParts?.materialRequestCatalog?.guidedMaterialRequestCatalog;
+    const baseSource = typeof sharedCatalog === 'function'
+      ? sharedCatalog.call(window.GameModules.realWorldAgentContext, mode)
+      : (typeof fallbackCatalog === 'function'
+        ? fallbackCatalog.call(window.GameModules.realWorldAgentContextParts.materialRequestCatalog, mode)
+        : []);
+    const base = baseSource.filter((item) => item.mode === 'both');
     const work = (p, store) => p[1] || this.worldLabel(store);
     return [
       ...base,

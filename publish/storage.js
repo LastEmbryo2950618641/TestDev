@@ -90,6 +90,14 @@ window.GameModules.storage = {
         aiOutputLimitOtherMode: store.settingsState.aiOutputLimitOtherMode,
         aiOutputLimitOtherMaxTokens: store.settingsState.aiOutputLimitOtherMaxTokens,
       } : undefined,
+      controlExperienceConfig: store.controlExperienceConfigState
+        ? (window.GameModules.controlExperienceConfig?.normalize?.(store.controlExperienceConfigState)
+          || window.GameModules.controlExperienceConfig?.normalizeConfig?.(store.controlExperienceConfigState)
+          || {
+            enabled: store.controlExperienceConfigState.enabled !== false,
+            masterPrompt: store.controlExperienceConfigState.masterPrompt || '',
+          })
+        : undefined,
       phoneFixedTime: store.phoneFixedTime,
       selectedSlot: store.selectedSlot,
       selectedWork: store.selectedWork,
@@ -198,6 +206,23 @@ window.GameModules.storage = {
       store.ensureAiOutputLimitSettings?.();
       store.modelId = store.settingsState.textModelId || store.modelId;
       window.GameModules.localSettings?.ensureActivationTextModels?.(store);
+    }
+    if (store.controlExperienceConfigState) {
+      const normalizedControlExperience = window.GameModules.controlExperienceConfig?.normalize?.(save.controlExperienceConfig)
+        || window.GameModules.controlExperienceConfig?.normalizeConfig?.(save.controlExperienceConfig)
+        || {
+          enabled: save.controlExperienceConfig?.enabled !== false,
+          masterPrompt: save.controlExperienceConfig?.masterPrompt || store.controlExperienceConfigState.masterPrompt || '',
+        };
+      store.controlExperienceConfigState = {
+        ...(window.GameModules.controlExperienceConfigApp?.normalizeControlExperienceConfigState?.(store.controlExperienceConfigState)
+          || store.controlExperienceConfigState),
+        ...normalizedControlExperience,
+        open: false,
+        message: '',
+        error: '',
+      };
+      store.controlExperienceConfigState.previewItems = window.GameModules.controlExperienceConfigApp?.controlExperiencePreviewItems?.(store.controlExperienceConfigState) || [];
     }
     window.GameModules.runtimeConfig?.applyToStore?.(store);
     store.realWorldThinkMode = Boolean(save.realWorldThinkMode ?? store.realWorldThinkMode);

@@ -26,6 +26,7 @@ window.GameModules.appSwitchActions = {
     if (this.eventState) this.eventState.open = false;
     if (this.settingsState) this.settingsState.open = false;
     if (this.systemTestState) this.systemTestState.open = false;
+    if (this.controlExperienceConfigState) Object.assign(this.controlExperienceConfigState, { open: false, message: '', error: '' });
     if (this.companyState) this.companyState.open = false;
     if (this.bossState) this.bossState.open = false;
     if (this.calendarState) this.calendarState.open = false;

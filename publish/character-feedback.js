@@ -89,6 +89,16 @@ window.GameModules.characterFeedback = {
       line('摘要', card.summary),
     ].filter(Boolean).join('\n');
     const experience = this.experience(store);
+    const controlExperienceRuleBlock = window.GameModules.controlExperienceStage?.renderPromptBlock?.({
+      config: store.controlExperienceConfigState || window.GameModules.controlExperienceConfig?.defaultConfig?.(),
+      experience,
+      variables: {
+        被控制者: card.name || base.name || '角色',
+        角色性格: card.personality || base.personality || '',
+        角色身份: card.role || base.role || '',
+        当前场景: store.entryCurrentAction || store.sceneTitle || '未知',
+      },
+    }) || '';
     const outputJson = JSON.stringify({
       mind: '角色第一人称内心，30到80字',
       intent: `${base.name || '角色'}自己下一步想做什么，30到80字`,
@@ -109,6 +119,7 @@ window.GameModules.characterFeedback = {
       上线感觉: experience.feeling,
       适应度: experience.adaptation,
       上线摘要: experience.summary,
+      上线体验规则块: controlExperienceRuleBlock,
       输出示例: outputJson,
     });
   },

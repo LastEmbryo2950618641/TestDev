@@ -153,3 +153,58 @@
   color: #fff;
   font-size: 15px;
 }
+
+.control-experience-icon .app-glyph {
+  background:
+    radial-gradient(circle at 28% 22%, rgba(255, 255, 255, .42), transparent 24%),
+    linear-gradient(135deg, #ffb36b, #ff6b9d 52%, #49dcb1);
+}
+
+.control-experience-app-card {
+  width: min(980px, 100%);
+}
+
+.control-experience-textarea {
+  min-height: 280px;
+}
+
+.control-experience-variable-list {
+  margin: 0;
+  min-height: 0;
+  white-space: pre-wrap;
+}
+
+.control-experience-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.control-experience-preview-card {
+  display: grid;
+  gap: 8px;
+  min-height: 0;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .04);
+}
+
+.control-experience-preview-card header {
+  display: grid;
+  gap: 4px;
+}
+
+.control-experience-preview-card header strong {
+  font-size: 15px;
+}
+
+.control-experience-preview-card pre {
+  margin: 0;
+  min-height: 140px;
+  white-space: pre-wrap;
+}
+
+.control-experience-action-row {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
