@@ -182,6 +182,7 @@ window.GameScriptManifest = {
       "item-skill-actions.js",
       "entry-actions.js",
       "control-actions.js",
+      "control-entry-actions.js",
       "core-actions.js",
       "control-state.js",
       "control-link-actions.js",
