@@ -54,11 +54,11 @@ window.GameModules.worldlineActions = {
   },
 
   worldlinePlots(lore) {
-    return window.GameModules.worldlinePlots.items(this.loreWorldline(lore) || {});
+    return callWorldlineQueryService('worldlinePlots', this, lore);
   },
 
   connectionWorldlineEvent(line = {}, context = '') {
-    return window.GameModules.domain.worldline.formatHelpers.connectionWorldlineEvent.call(this, line, context);
+    return callWorldlineQueryService('connectionWorldlineEvent', this, line, context);
   },
 
   async updateWorldlineFromTurn(result = {}) {
@@ -66,15 +66,15 @@ window.GameModules.worldlineActions = {
   },
 
   worldlineTurnEventId(result = {}) {
-    return window.GameModules.domain.worldline.formatHelpers.worldlineTurnEventId.call(this, result);
+    return callWorldlineQueryService('worldlineTurnEventId', this, result);
   },
 
   worldlineSafeId(value = '') {
-    return window.GameModules.domain.worldline.formatHelpers.worldlineSafeId.call(this, value);
+    return callWorldlineQueryService('worldlineSafeId', this, value);
   },
 
   worldlineTurnDetail(result = {}) {
-    return window.GameModules.domain.worldline.formatHelpers.worldlineTurnDetail.call(this, result);
+    return callWorldlineQueryService('worldlineTurnDetail', this, result);
   },
 
   async appendWorldlineEvent(line, event, prefix = '情节') {
