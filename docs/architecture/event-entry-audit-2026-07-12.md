@@ -59,3 +59,40 @@ Treat `publish/event-actions.js` as the best next candidate when looking for ano
 - helper-first cleanup
 - low-coupling refactor
 - top-level entry thinning pass
+## 2026-07-12 First facade consolidation landed
+A first-pass event entry consolidation is now in place in `publish/event-actions.js`.
+
+What changed:
+- introduced a single `eventViewHelperForwarders` map
+- introduced `callEventViewHelper(name, context, ...args)`
+- replaced repeated top-level one-line wrappers with one shared forwarding registration pass
+
+Methods now consolidated through the shared facade registration:
+- `eventTypeTabs()`
+- `currentEventList()`
+- `selectedEvent()`
+- `eventMeta(event)`
+- `eventStatusLabel(event)`
+- `eventListEmptyText()`
+- `eventStatusFieldLabel()`
+- `eventTriggeredCountFieldLabel()`
+- `eventHeaderDescription()`
+- `eventProbabilityFieldLabel()`
+- `eventBackButtonText()`
+- `selectedEventEmptyText()`
+- `selectedEventDetailView()`
+- `eventPanelView()`
+
+What intentionally did not change:
+- event draft write flow
+- event creation / upsert / remove flow
+- random trigger / scoring / prompt context flow
+- calendar sync side effects
+
+Why this is aligned with the broader refactor:
+- makes the top-level entry thinner without changing gameplay behavior
+- preserves the existing `ui/event + eventSystem + event-actions` split
+- provides another repeatable helper-first thinning sample before broader directory cleanup
+
+Verification performed:
+- `node --check publish/event-actions.js`

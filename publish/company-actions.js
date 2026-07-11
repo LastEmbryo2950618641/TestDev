@@ -1,5 +1,21 @@
 ﻿window.GameModules = window.GameModules || {};
 
+const companyViewHelperForwarders = {
+  companyOrganization: 'companyOrganization',
+  companyHeaderView: 'companyHeaderView',
+  companyAttendanceView: 'companyAttendanceView',
+  companyPayPreviewView: 'companyPayPreviewView',
+  companyOrganizationSectionView: 'companyOrganizationSectionView',
+  companyFieldSectionView: 'companyFieldSectionView',
+  companyContractSectionView: 'companyContractSectionView',
+  companyEmploymentRecordSectionView: 'companyEmploymentRecordSectionView',
+  workStatusText: 'workStatusText',
+  monthlyPayPreview: 'monthlyPayPreview',
+};
+
+function callCompanyViewHelper(name, context, ...args) {
+  return window.GameModules.ui.company.viewHelpers[name].call(context, ...args);
+}
 window.GameModules.companyActions = {
   initCompanySystem() {
     if (this._companySystemInitialized && this.companyState?.companies?.length) return this.companyState;
@@ -28,22 +44,6 @@ window.GameModules.companyActions = {
     company.rules = ['遵守公司考勤与保密要求', '按岗位职责完成日常工作', '重大事项需及时汇报', '保持与团队的基础协作'];
     company.organization = company.organization?.length ? company.organization : window.GameModules.companySystem.defaultOrganization(this.playerProfile || {});
   },
-
-  companyOrganization() { return window.GameModules.ui.company.viewHelpers.companyOrganization.call(this); },
-
-  companyHeaderView() { return window.GameModules.ui.company.viewHelpers.companyHeaderView.call(this); },
-
-  companyAttendanceView() { return window.GameModules.ui.company.viewHelpers.companyAttendanceView.call(this); },
-
-  companyPayPreviewView() { return window.GameModules.ui.company.viewHelpers.companyPayPreviewView.call(this); },
-
-  companyOrganizationSectionView() { return window.GameModules.ui.company.viewHelpers.companyOrganizationSectionView.call(this); },
-
-  companyFieldSectionView() { return window.GameModules.ui.company.viewHelpers.companyFieldSectionView.call(this); },
-
-  companyContractSectionView() { return window.GameModules.ui.company.viewHelpers.companyContractSectionView.call(this); },
-
-  companyEmploymentRecordSectionView() { return window.GameModules.ui.company.viewHelpers.companyEmploymentRecordSectionView.call(this); },
 
   normalizeEmploymentRecords() {
     const c = this.currentCompany();
@@ -92,10 +92,6 @@ window.GameModules.companyActions = {
     const org = this.companyOrganization().map((d) => '- ' + d.name + '：' + (Array.isArray(d.jobs) ? d.jobs.map((j) => (j.title || '未命名岗位') + '(' + ((Array.isArray(j.people) && j.people.length) ? j.people.join('、') : '暂无') + ')').join('、') : '暂无岗位')).join('\\n');
     return '# 公司词条\\n' + fields + '\\n# 组织结构\\n' + org + '\\n# 工作状态\\n' + '- 迟到次数：' + (stats.lateCount || 0) + '\\n' + '- 旷班次数：' + (stats.absentCount || 0) + '\\n' + '- 当前绩效：' + (stats.performance ?? 100) + '/100\\n' + '- 公司规则：' + ((c.rules || []).join('、'));
   },
-
-  workStatusText() { return window.GameModules.ui.company.viewHelpers.workStatusText.call(this); },
-
-  monthlyPayPreview() { return window.GameModules.ui.company.viewHelpers.monthlyPayPreview.call(this); },
 
   currentMonthWorkDays() {
     const date = this.phoneDate?.() || new Date();
@@ -175,9 +171,9 @@ window.GameModules.companyActions = {
     this.closeAppToDesktop();
   },
 };
-
-
-
-
-
+Object.entries(companyViewHelperForwarders).forEach(([name, helperName]) => {
+  window.GameModules.companyActions[name] = function companyViewHelperFacade(...args) {
+    return callCompanyViewHelper(helperName, this, ...args);
+  };
+});
 

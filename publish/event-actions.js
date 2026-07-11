@@ -1,5 +1,25 @@
 ﻿window.GameModules = window.GameModules || {};
 
+const eventViewHelperForwarders = {
+  eventTypeTabs: 'eventTypeTabs',
+  currentEventList: 'currentEventList',
+  selectedEvent: 'selectedEvent',
+  eventMeta: 'eventMeta',
+  eventStatusLabel: 'eventStatusLabel',
+  eventListEmptyText: 'eventListEmptyText',
+  eventStatusFieldLabel: 'eventStatusFieldLabel',
+  eventTriggeredCountFieldLabel: 'eventTriggeredCountFieldLabel',
+  eventHeaderDescription: 'eventHeaderDescription',
+  eventProbabilityFieldLabel: 'eventProbabilityFieldLabel',
+  eventBackButtonText: 'eventBackButtonText',
+  selectedEventEmptyText: 'selectedEventEmptyText',
+  selectedEventDetailView: 'selectedEventDetailView',
+  eventPanelView: 'eventPanelView',
+};
+
+function callEventViewHelper(name, context, ...args) {
+  return window.GameModules.ui.event.viewHelpers[name].call(context, ...args);
+}
 window.GameModules.eventActions = {
   initEventSystem() {
     const base = window.GameModules.eventSystem.defaultState();
@@ -22,9 +42,6 @@ window.GameModules.eventActions = {
     this.closeAppToDesktop?.();
   },
 
-  eventTypeTabs() {
-    return window.GameModules.ui.event.viewHelpers.eventTypeTabs.call(this);
-  },
 
   setEventTab(type = 'random') {
     this.initEventSystem();
@@ -40,34 +57,11 @@ window.GameModules.eventActions = {
       .sort((a, b) => String(a.startDate || '').localeCompare(String(b.startDate || '')) || String(a.title || '').localeCompare(String(b.title || '')));
   },
 
-  currentEventList() {
-    return window.GameModules.ui.event.viewHelpers.currentEventList.call(this);
-  },
-
-  selectedEvent() {
-    return window.GameModules.ui.event.viewHelpers.selectedEvent.call(this);
-  },
 
   eventName(event = {}) {
     return window.GameModules.eventSystem.eventDisplayName(event);
   },
 
-  eventMeta(event = {}) {
-    return window.GameModules.ui.event.viewHelpers.eventMeta.call(this, event);
-  },
-
-  eventStatusLabel(event = {}) {
-    return window.GameModules.ui.event.viewHelpers.eventStatusLabel.call(this, event);
-  },
-  eventListEmptyText() { return window.GameModules.ui.event.viewHelpers.eventListEmptyText.call(this); },
-  eventStatusFieldLabel() { return window.GameModules.ui.event.viewHelpers.eventStatusFieldLabel.call(this); },
-  eventTriggeredCountFieldLabel() { return window.GameModules.ui.event.viewHelpers.eventTriggeredCountFieldLabel.call(this); },
-  eventHeaderDescription() { return window.GameModules.ui.event.viewHelpers.eventHeaderDescription.call(this); },
-  eventProbabilityFieldLabel() { return window.GameModules.ui.event.viewHelpers.eventProbabilityFieldLabel.call(this); },
-  eventBackButtonText() { return window.GameModules.ui.event.viewHelpers.eventBackButtonText.call(this); },
-  selectedEventEmptyText() { return window.GameModules.ui.event.viewHelpers.selectedEventEmptyText.call(this); },
-  selectedEventDetailView() { return window.GameModules.ui.event.viewHelpers.selectedEventDetailView.call(this); },
-  eventPanelView() { return window.GameModules.ui.event.viewHelpers.eventPanelView.call(this); },
 
   setEventRandomProbability(value = 10) {
     this.initEventSystem();
@@ -250,7 +244,8 @@ window.GameModules.eventActions = {
     this.calendarState.events = (this.calendarState.events || []).filter((event) => event.source !== 'event-system');
   },
 };
-
-
-
-
+Object.entries(eventViewHelperForwarders).forEach(([name, helperName]) => {
+  window.GameModules.eventActions[name] = function eventViewHelperFacade(...args) {
+    return callEventViewHelper(helperName, this, ...args);
+  };
+});
