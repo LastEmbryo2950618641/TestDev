@@ -62,3 +62,16 @@ It currently mixes:
 - field parity: partial to strong
 - action parity: incomplete
 - cleanup readiness for old duplicated block: not yet
+## 2026-07-12 addendum: action parity refinement
+Further inspection of the later section-based settings area confirms that the following action/status surfaces are already duplicated there as well:
+- fetch text model catalog action button
+- test text model connection action button
+- connection/test status message rendering
+
+This means the remaining uniquely old-block-coupled action surface is primarily:
+- system role test action and result area
+
+Updated practical reading:
+- text field parity is already strong
+- text action parity is mostly complete except for the system-role test surface
+- old duplicated settings block is still not removable as a whole, but its cleanup blocker is now narrower than initially assessed
