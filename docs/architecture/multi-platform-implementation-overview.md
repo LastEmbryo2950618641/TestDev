@@ -1,12 +1,11 @@
-# Multi-Platform Implementation Overview
+﻿# Multi-Platform Implementation Overview
 
 本文档用于汇总当前 `publish/` 共享核心、`desktop/` Windows 宿主壳、`mobile/` Android 宿主壳的正式分工、现有证据和下一阶段实施顺序。
-
 目标不是重复已有细节文档，而是为后续 AI / 人工协作提供一个统一入口，避免：
 
 - 把平台差异重新写回 `publish/` 业务模块
 - 在 `desktop/` 或 `mobile/` 目录复制玩法逻辑
-- 只看单篇草稿文档，缺少整体上下文
+- 只看单篇草稿文档，却缺少整体上下文
 
 ## 一、当前正式边界
 
@@ -39,7 +38,7 @@
 
 - 新的玩法规则
 - 共享 UI 逻辑复制
-- 与移动端无关的共享模块改写
+- 与移动端无关的共享模块改造
 
 ### 3. `mobile/`
 
@@ -59,7 +58,7 @@
 
 ## 二、当前已落地证据
 
-### 1. 共享平台契约已落库
+### 1. 共享平台契约已落地
 
 当前 `publish/platform/` 已存在：
 
@@ -67,7 +66,7 @@
 - `platform-preflight-report.js`
 - `platform-packaging-gap-report.js`
 - `platform-execution-checklist.js`
-- `host/` `files/` `storage/` `keys/` `body-figure/` 子目录下的共享契约或浏览器实现
+- `host/`、`files/`、`storage/`、`keys/`、`body-figure/` 子目录下的共享契约或浏览器实现
 
 这说明：
 
@@ -83,9 +82,9 @@
 - `preloadExposed = true`
 - `rendererLoaded = true`
 
-关键证据：
+关键证据包括：
 
-- `desktop/shell/.artifacts/attempt-launch-result.json`
+- `desktop/shell/.artifacts/electron-smoke-launch-result.json`
 - `desktop/shell/run-electron-attempt-launcher.ps1`
 - `desktop/shell/desktop-packaging-preflight.js`
 - `desktop/shell/desktop-packaging-preflight-verify.js`
@@ -119,7 +118,7 @@
 
 - 契约验证分散
 - shared / desktop / mobile 之间的 readiness 汇总入口还不够集中
-- 容易导致后续会话只看到单点文件，不知道当前整体状态
+- 容易导致后续会话只看到单点文件，却不知道当前整体状态
 
 ### 2. Desktop 尚未进入正式 packaging 输出阶段
 
@@ -169,7 +168,7 @@
 
 1. 补 shared / desktop / mobile 的统一 readiness 汇总文档或脚本入口
 2. 明确哪些业务模块已经走 `platform.core.*`
-3. 明确哪些旧调用仍直接绑浏览器实现，列出迁移清单
+3. 明确哪些旧调用仍直接绑定浏览器实现，列出迁移清单
 
 ### 阶段 B：完成 desktop packaging prep
 
@@ -201,7 +200,7 @@
 
 1. 优先收展示 helper / view object
 2. 避免新增逻辑继续堆回 `publish/` 根目录旧大文件
-3. 把平台差异改造成 adapter，而不是条件分支散写
+3. 把平台差异改造成 adapter，而不是条件分支散入
 
 ## 五、当前协作原则
 
@@ -287,7 +286,7 @@
 
 ## 十一、旧代码清理收尾策略（2026-07-12 补充）
 
-当前项目目标已经明确包含：在 shared runtime / desktop exe / android apk / web index.html 目标基本打成后，再进行旧代码清理与目录收尾。
+当前项目目标已经明确包含：在 shared runtime / desktop exe / android apk / web index.html 目标基本达成后，再进行旧代码清理与目录收尾。
 
 执行原则：
 
@@ -308,7 +307,7 @@
 
 1. 第一批：只处理根目录 `tmp_*` 临时脚本
 2. 第二批：复查 `.bak` / compatibility / legacy 入口是否仍被引用
-3. 第三批：在多端验证进一步稳定后，再收尾退役旧实现与历史副本
+3. 第三批：在多端验证进一步稳定后，再收尾退场旧实现与历史副本
 
 停手边界：
 

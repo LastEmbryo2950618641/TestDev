@@ -28,3 +28,12 @@ This note records a small encoding-stability repair slice applied after repeated
 
 ## Practical implication
 Encoding-stability work should continue as a narrow maintenance slice when malformed literals actively reduce readability or break verification, but it should remain separate from broader gameplay or platform refactors.
+
+## Additional files repaired in the same maintenance track
+- `publish/ui/company/README.md`
+- `docs/architecture/multi-platform-implementation-overview.md`
+
+## Additional repair notes
+- restored company helper directory notes to readable Chinese without changing its architectural guidance
+- restored the multi-platform implementation overview so later desktop/mobile/shared planning can rely on a readable authority document again
+- kept this pass scoped to wording/encoding repair instead of changing implementation strategy

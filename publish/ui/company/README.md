@@ -1,4 +1,4 @@
-# company UI helper directory notes
+﻿# Company UI Helper Directory Notes
 
 ## 目的
 
@@ -54,11 +54,11 @@
 以下逻辑不应继续落在 `publish/ui/company/`：
 
 - 入职 / 离职 / 招聘流程写入
-- 打卡、迟到、旷班等状态写入
+- 打卡、迟到、旷班等状态写回
 - 工作提醒触发
 - 存档与恢复
 - 平台能力访问
-- AI 推演与更新落库
+- AI 推演与更新落地
 
 ## 后续扩展建议
 
