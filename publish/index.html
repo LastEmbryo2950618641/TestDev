@@ -399,50 +399,6 @@
             </template>
           </select>
         </section>
-        <section class="model-setting-group">
-          <h3>缂佹ê娴橀獮鍐插酱</h3>
-          <small>閻劋绨顔讳繆閻╃鍞界粵?AI 閸ュ墽澧栭悽鐔稿灇鐠囬攱鐪伴妴?/small>
-          <select :value="$store.game.settingsState.drawProvider" @change="$store.game.selectDrawProvider($event.target.value)">
-            <option value="pixai">PixAI</option>
-            <option value="dzmm">dzmm</option>
-          </select>
-        </section>
-        <section class="model-setting-group" x-show="$store.game.settingsState.drawProvider === 'pixai'">
-          <h3>PixAI API Root</h3>
-          <input class="text-input" type="text" :value="$store.game.settingsState.pixaiBaseUrl" @change="$store.game.setPixaiBaseUrl($event.target.value)">
-        </section>
-        <section class="model-setting-group" x-show="$store.game.settingsState.drawProvider === 'pixai'">
-          <h3>PixAI API Key</h3>
-          <small>娴犲懍绻氱€涙ê婀ぐ鎾冲濞村繗顫嶉崳?鐎涙ɑ銆傞悳顖氼暔閵?/small>
-          <input class="text-input" type="password" x-model="$store.game.settingsState.pixaiApiKey" @change="$store.game.setPixaiApiKey($event.target.value)">
-        </section>
-        <section class="model-setting-group">
-          <h3>缂佹ê娴樺Ο鈥崇€?/h3>
-          <select :value="$store.game.selectedDrawModelId()" @change="$store.game.selectDrawModel($event.target.value)">
-            <template x-for="model in $store.game.currentDrawModels()" :key="model.id">
-              <option :value="model.id" x-text="$store.game.drawModelOptionLabel(model)"></option>
-            </template>
-          </select>
-        </section>
-        <section class="model-setting-group" x-show="$store.game.settingsState.drawProvider === 'pixai'">
-          <h3>PixAI modelVersionId</h3>
-          <small>婵夘偄鍟?PixAI 濡€崇€锋い鐢告桨 URL 閻ㄥ嫭娓堕崥搴濈濞堢偣鈧?/small>
-          <input class="text-input" type="text" :value="$store.game.settingsState.pixaiModelVersionId" @change="$store.game.setPixaiModelVersionId($event.target.value)">
-        </section>
-        <section class="model-setting-group" x-show="$store.game.settingsState.drawProvider === 'pixai'">
-          <h3>PixAI 鐠愩劑鍣哄Ο鈥崇础</h3>
-          <select :value="$store.game.settingsState.pixaiMode" @change="$store.game.setPixaiMode($event.target.value)">
-            <option value="lite">lite</option>
-            <option value="standard">standard</option>
-            <option value="pro">pro</option>
-            <option value="ultra">ultra</option>
-          </select>
-        </section>
-        <div class="activation-model-actions">
-          <button class="ghost-wide" type="button" @click="$store.game.fetchTextModelCatalog()" :disabled="$store.game.settingsState.loading">閼惧嘲褰囧Ο鈥崇€烽崚妤勩€?/button>
-          <button class="ghost-wide" type="button" @click="$store.game.testTextModelConnection()" :disabled="$store.game.settingsState.modelTestLoading || $store.game.settingsState.loading" x-text="$store.game.settingsState.modelTestLoading ? '鏉╃偞甯村ù瀣槸娑擃厸鈧? : '濞村鐦Ο鈥崇€锋潻鐐村复'"></button>
-        </div>
-        <p class="settings-status" x-show="$store.game.settingsState.modelTestMessage" :class="{ 'settings-error': $store.game.settingsState.modelTestOk === false, 'settings-success': $store.game.settingsState.modelTestOk === true }" x-text="$store.game.settingsState.modelTestMessage"></p>
         <section class="model-setting-group activation-system-test">
           <h3>System 鐟欐帟澹婂ù瀣槸閿涘牆褰查柅澶涚礆</h3>
           <small>閻?system + user 濞戝牊浼呮宀冪槈瑜版挸澧犻弬鍥ㄦ拱濡€崇€烽弰顖氭儊閺€顖涘瘮 system role閵嗗倻绮ㄩ弸婊€绮庨悽銊ょ艾鐠嬪啳鐦敍灞肩瑝瑜板崬鎼峰┑鈧ú缁樼ウ缁嬪鈧?/small>
