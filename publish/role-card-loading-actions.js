@@ -291,34 +291,22 @@ window.GameModules.roleCardLoadingActions = {
   },
 
   roleCardLoadingSummary() {
-    const cards = this.roleCardLoadingState.cards || [];
-    const identity = cards.filter((card) => card.type === '身份补全');
-    const player = cards.filter((card) => card.type === '玩家卡');
-    const role = cards.filter((card) => card.type !== '玩家卡' && card.type !== '身份补全');
-    const done = (items) => items.filter((card) => card.status === 'done').length;
-    const identityText = identity.length ? `${done(identity)}/${identity.length} 身份补全` : '';
-    const playerText = player.length ? `${done(player)}/${player.length} 玩家卡` : '';
-    const roleText = role.length ? `${done(role)}/${role.length} 角色卡` : '';
-    const parts = [identityText, playerText, roleText].filter(Boolean).join(', ');
-    return `正在加载(${parts}) ${this.roleCardLoadingProgressText()}`;
+    return window.GameModules.ui.loading.progressView.roleCardLoadingSummary.call(this);
   },
 
   roleCardLoadingProgressText() {
-    const cards = this.roleCardLoadingState.cards || [];
-    const totals = cards.flatMap((card) => card.steps || []).reduce((acc, step) => ({ done: acc.done + (Number(step.done) || 0), total: acc.total + (Number(step.total) || 0) }), { done: 0, total: 0 });
-    return totals.total ? `(${totals.done}/${totals.total})` : '';
+    return window.GameModules.ui.loading.progressView.roleCardLoadingProgressText.call(this);
   },
 
   roleCardLoadingCardProgress(card = {}) {
-    const totals = (card.steps || []).reduce((acc, step) => ({ done: acc.done + (Number(step.done) || 0), total: acc.total + (Number(step.total) || 0) }), { done: 0, total: 0 });
-    return totals.total ? `(${totals.done}/${totals.total})` : '';
+    return window.GameModules.ui.loading.progressView.roleCardLoadingCardProgress.call(this, card);
   },
 
   roleCardLoadingStepProgress(step = {}) {
-    return `(${Number(step.done) || 0}/${Number(step.total) || 0})`;
+    return window.GameModules.ui.loading.progressView.roleCardLoadingStepProgress.call(this, step);
   },
 
   roleCardLoadingStatusText(status) {
-    return { waiting: '等待', running: '加载中', done: '完成', error: '失败' }[status] || status;
+    return window.GameModules.ui.loading.progressView.roleCardLoadingStatusText.call(this, status);
   },
 };
