@@ -24,6 +24,15 @@ const worldlineViewHelperForwarders = {
 function callWorldlineViewHelper(name, context, ...args) {
   return window.GameModules.ui.worldline.viewHelpers[name].call(context, ...args);
 }
+
+function callWorldlineStateService(name, context, ...args) {
+  return window.GameModules.domain.worldline.stateService[name].call(context, ...args);
+}
+
+function callWorldlineQueryService(name, context, ...args) {
+  return window.GameModules.domain.worldline.queryService[name].call(context, ...args);
+}
+
 window.GameModules.worldlineActions = {
   openWorldlineApp() {
     this.closeDesktopApps?.();
@@ -37,33 +46,11 @@ window.GameModules.worldlineActions = {
   },
 
   realWorldline() {
-    const state = this.realWorldlineState || { events: [], plots: [], pendingPlot: null };
-    const logEvents = (this.realWorldLog || []).filter((entry) => entry.type === 'ai' || entry.type === 'system').map((entry, index) => ({
-      eventId: 'real_' + (entry.id || index),
-      name: entry.sceneTitle || entry.locationName || this.realWorldSceneTitle || '现实事件',
-      time: entry.time?.label || entry.createdAt || ((this.phoneDateText?.() || '') + ' ' + (this.phoneTimeText?.() || '')).trim(),
-      summary: entry.plotId || '未分配情节',
-      plotId: entry.plotId || '',
-      detail: String(entry.narration || entry.thinking || entry.text || ''),
-      status: entry.streaming ? '记录中' : '已记录',
-      kind: 'event',
-    }));
-    const byId = new Map([...(state.events || []), ...logEvents].map((event) => [event.eventId, { ...event, kind: 'event' }]));
-    const events = [...byId.values()];
-    return {
-      timeRange: (this.phoneDateText?.() || '现实时间') + ' - 现在',
-      events,
-      plots: state.plots || [],
-      pendingPlot: state.pendingPlot || null,
-      storyIndexes: ['现实世界独立记录，不并入被操控世界线'],
-      factions: {},
-    };
+    return callWorldlineStateService('realWorldline', this);
   },
 
   loreWorldline(lore) {
-    if (!lore?.worldTag) return null;
-    if (!lore.worldline) lore.worldline = window.GameModules.sqliteSave.getWorldline?.(lore.worldTag) || null;
-    return lore.worldline;
+    return callWorldlineStateService('loreWorldline', this, lore);
   },
 
   worldlinePlots(lore) {
@@ -75,18 +62,7 @@ window.GameModules.worldlineActions = {
   },
 
   async updateWorldlineFromTurn(result = {}) {
-    const worldTag = this.character?.work || '原创世界';
-    const lore = await this.ensureWorldline(`${this.entryTimeLabel?.() || this.sceneTitle} ${result.narration || ''}`);
-    const line = this.loreWorldline(lore);
-    if (!line) return;
-    const eventId = this.worldlineTurnEventId(result);
-    if (!(line.events || []).some((event) => event.eventId === eventId)) {
-      const event = { eventId, name: result.sceneTitle || this.sceneTitle, time: this.entryTimeLabel?.() || this.sceneTitle, detail: this.worldlineTurnDetail(result), storyIndexes: line.storyIndexes || [], factionIds: Object.keys(line.factions || {}).slice(0, 2), status: '进行中' };
-      line.events = [...(line.events || []), event];
-      await this.appendWorldlineEvent(line, event);
-      lore.worldline = line;
-      await window.GameModules.sqliteSave.saveWorldLore(worldTag, lore);
-    }
+    return callWorldlineStateService('updateWorldlineFromTurn', this, result);
   },
 
   worldlineTurnEventId(result = {}) {
@@ -102,20 +78,19 @@ window.GameModules.worldlineActions = {
   },
 
   async appendWorldlineEvent(line, event, prefix = '情节') {
-    await window.GameModules.worldlinePlots.assign(this, line, event, prefix);
+    return callWorldlineStateService('appendWorldlineEvent', this, line, event, prefix);
   },
 
   worldlineFactions(lore) {
-    const factions = this.loreWorldline(lore)?.factions || {};
-    return Object.entries(factions).map(([id, value]) => ({ id, ...value }));
+    return callWorldlineQueryService('worldlineFactions', this, lore);
   },
 
   factionAttrs(faction) {
-    return window.GameModules.domain.worldline.formatHelpers.factionAttrs.call(this, faction);
+    return callWorldlineQueryService('factionAttrs', this, faction);
   },
 
   factionRelations(faction) {
-    return window.GameModules.domain.worldline.formatHelpers.factionRelations.call(this, faction);
+    return callWorldlineQueryService('factionRelations', this, faction);
   },
 };
 Object.entries(worldlineViewHelperForwarders).forEach(([name, helperName]) => {
@@ -123,4 +98,3 @@ Object.entries(worldlineViewHelperForwarders).forEach(([name, helperName]) => {
     return callWorldlineViewHelper(helperName, this, ...args);
   };
 });
-

@@ -312,3 +312,10 @@ window.GameModules.wechatViewHelpers = Object.assign(window.GameModules.wechatVi
     };
   },
 });
+
+window.GameModules.wechatViewHelpers = Object.assign(window.GameModules.wechatViewHelpers || {}, {
+  setWechatTab(tab) {
+    this.wechatTab = tab || 'chats';
+    this.wechatView = 'home';
+  },
+});
