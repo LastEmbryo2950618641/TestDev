@@ -70,43 +70,31 @@ window.GameModules.loadingActions = {
 
   formatDuration(ms = 0) {
     const view = resolveLoadingProgressView();
-    if (view?.formatDuration) return view.formatDuration.call(this, ms);
-    const total = Math.max(0, Math.floor(Number(ms || 0) / 1000));
-    return `${total}s`;
+    return view?.formatDuration ? view.formatDuration.call(this, ms) : '0s';
   },
 
   elapsedText(startedAt = 0, finishedAt = 0) {
     const view = resolveLoadingProgressView();
-    if (view?.elapsedText) return view.elapsedText.call(this, startedAt, finishedAt);
-    if (!startedAt) return '';
-    const end = finishedAt || this.loadingNow || Date.now();
-    return this.formatDuration(Math.max(0, end - startedAt));
+    return view?.elapsedText ? view.elapsedText.call(this, startedAt, finishedAt) : '';
   },
 
   stageElapsedLabel(startedAt = 0, finishedAt = 0) {
     const view = resolveLoadingProgressView();
-    return view?.stageElapsedLabel ? view.stageElapsedLabel.call(this, startedAt, finishedAt) : this.elapsedText(startedAt, finishedAt);
+    return view?.stageElapsedLabel ? view.stageElapsedLabel.call(this, startedAt, finishedAt) : '';
   },
 
   loadingProgressPercent() {
     const view = resolveLoadingProgressView();
-    if (view?.loadingProgressPercent) return view.loadingProgressPercent.call(this);
-    const total = (this.loadingStages || []).length || 1;
-    const done = (this.loadingStages || []).filter((x) => x.status === 'done').length;
-    return Math.min(100, Math.round((done / total) * 100));
+    return view?.loadingProgressPercent ? view.loadingProgressPercent.call(this) : 0;
   },
 
   loadingProgressText() {
     const view = resolveLoadingProgressView();
-    if (view?.loadingProgressText) return view.loadingProgressText.call(this);
-    const total = (this.loadingStages || []).length || 0;
-    const done = (this.loadingStages || []).filter((x) => x.status === 'done').length;
-    return `${done}/${total} 阶段`;
+    return view?.loadingProgressText ? view.loadingProgressText.call(this) : '';
   },
 
   roleCardLoadingProgressPercent() {
     const view = resolveLoadingProgressView();
-    if (view?.roleCardLoadingProgressPercent) return view.roleCardLoadingProgressPercent.call(this);
-    return 0;
+    return view?.roleCardLoadingProgressPercent ? view.roleCardLoadingProgressPercent.call(this) : 0;
   },
 };
