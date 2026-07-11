@@ -1,4 +1,35 @@
-﻿window.GameModules = window.GameModules || {};
+window.GameModules = window.GameModules || {};
+
+const SETTINGS_VIEW_HELPER_METHODS = [
+  'textModelOptionLabel',
+  'currentTextModelRows',
+  'aiOutputLimitKinds',
+  'aiOutputLimitRows',
+  'aiOutputLimitPrefix',
+  'aiOutputLimitEffectiveText',
+  'selectedDrawModelId',
+  'selectedDrawProviderId',
+  'currentDrawModels',
+  'currentDrawModelRows',
+  'textModelSectionView',
+  'drawModelSectionView',
+  'textProviderSectionView',
+  'drawProviderSectionView',
+  'currentSettingsSummaryRows',
+  'currentModelSummaryView',
+  'stage1MaterialSettingView',
+  'aiOutputLimitSectionView',
+  'drawModelOptionLabel',
+  'stage1MaterialMaxIterations',
+  'stage1MaterialIterationLimitText',
+  'settingsSummaryView',
+];
+
+function callSettingsViewHelper(store, method, ...args) {
+  const helper = window.GameModules.ui?.settings?.viewHelpers?.[method];
+  if (typeof helper !== 'function') return undefined;
+  return helper.call(store, ...args);
+}
 
 window.GameModules.settingsActions = {
   async openSettingsApp() {
@@ -235,13 +266,6 @@ window.GameModules.settingsActions = {
     this.settingsState.loaded = false;
     this.settingsState.error = '';
   },
-  textModelOptionLabel(model = {}) {
-    return window.GameModules.ui.settings.viewHelpers.textModelOptionLabel.call(this, model);
-  },
-
-  currentTextModelRows() {
-    return window.GameModules.ui.settings.viewHelpers.currentTextModelRows.call(this);
-  },
 
   async selectTextModel(id) {
     if (!id) return;
@@ -361,18 +385,6 @@ window.GameModules.settingsActions = {
     });
   },
 
-  aiOutputLimitKinds() {
-    return window.GameModules.ui.settings.viewHelpers.aiOutputLimitKinds.call(this);
-  },
-
-  aiOutputLimitRows() {
-    return window.GameModules.ui.settings.viewHelpers.aiOutputLimitRows.call(this);
-  },
-
-  aiOutputLimitPrefix(kind = 'other') {
-    return window.GameModules.ui.settings.viewHelpers.aiOutputLimitPrefix.call(this, kind);
-  },
-
   aiOutputLimitMode(kind = 'other') {
     this.ensureAiOutputLimitSettings?.();
     const prefix = this.aiOutputLimitPrefix(kind);
@@ -383,10 +395,6 @@ window.GameModules.settingsActions = {
     this.ensureAiOutputLimitSettings?.();
     const prefix = this.aiOutputLimitPrefix(kind);
     return Math.max(16, Math.min(64000, Math.round(Number(this.settingsState?.[`${prefix}MaxTokens`]) || 3000)));
-  },
-
-  aiOutputLimitEffectiveText(kind = 'other') {
-    return window.GameModules.ui.settings.viewHelpers.aiOutputLimitEffectiveText.call(this, kind);
   },
 
   async setAiOutputLimitMode(kind = 'other', mode = 'global') {
@@ -405,71 +413,11 @@ window.GameModules.settingsActions = {
     this.settingsState[`${prefix}MaxTokens`] = Math.max(16, Math.min(64000, Math.round(Number(value) || 3000)));
     await this.save?.();
   },
-
-  selectedDrawModelId() {
-    return window.GameModules.ui.settings.viewHelpers.selectedDrawModelId.call(this);
-  },
-
-  selectedDrawProviderId() {
-    return window.GameModules.ui.settings.viewHelpers.selectedDrawProviderId.call(this);
-  },
-
-  currentDrawModels() {
-    return window.GameModules.ui.settings.viewHelpers.currentDrawModels.call(this);
-  },
-
-  currentDrawModelRows() {
-    return window.GameModules.ui.settings.viewHelpers.currentDrawModelRows.call(this);
-  },
-
-  textModelSectionView() {
-    return window.GameModules.ui.settings.viewHelpers.textModelSectionView.call(this);
-  },
-
-  drawModelSectionView() {
-    return window.GameModules.ui.settings.viewHelpers.drawModelSectionView.call(this);
-  },
-
-  textProviderSectionView() {
-    return window.GameModules.ui.settings.viewHelpers.textProviderSectionView.call(this);
-  },
-
-  drawProviderSectionView() {
-    return window.GameModules.ui.settings.viewHelpers.drawProviderSectionView.call(this);
-  },
-
-  currentSettingsSummaryRows() {
-    return window.GameModules.ui.settings.viewHelpers.currentSettingsSummaryRows.call(this);
-  },
-
-  currentModelSummaryView() {
-    return window.GameModules.ui.settings.viewHelpers.currentModelSummaryView.call(this);
-  },
-
-  stage1MaterialSettingView() {
-    return window.GameModules.ui.settings.viewHelpers.stage1MaterialSettingView.call(this);
-  },
-
-  aiOutputLimitSectionView() {
-    return window.GameModules.ui.settings.viewHelpers.aiOutputLimitSectionView.call(this);
-  },
-
-  drawModelOptionLabel(model = {}) {
-    return window.GameModules.ui.settings.viewHelpers.drawModelOptionLabel.call(this, model);
-  },
-
-  stage1MaterialMaxIterations() {
-    return window.GameModules.ui.settings.viewHelpers.stage1MaterialMaxIterations.call(this);
-  },
-
-  stage1MaterialIterationLimitText() {
-    return window.GameModules.ui.settings.viewHelpers.stage1MaterialIterationLimitText.call(this);
-  },
-
-  settingsSummaryView() {
-    return window.GameModules.ui.settings.viewHelpers.settingsSummaryView.call(this);
-  },
 };
 
-
-
+SETTINGS_VIEW_HELPER_METHODS.forEach((method) => {
+  if (typeof window.GameModules.settingsActions[method] === 'function') return;
+  window.GameModules.settingsActions[method] = function settingsViewHelperFacade(...args) {
+    return callSettingsViewHelper(this, method, ...args);
+  };
+});
