@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 window.GameModules.realWorldAgentContextParts = window.GameModules.realWorldAgentContextParts || {};
 
 window.GameModules.realWorldAgentContextParts.materialLoader = {
@@ -184,7 +184,8 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
     if (!node) return '暂无地点资料。';
     const parent = (map.nodes || []).find((item) => item.id === node.parentId)?.name || '无';
     const children = (map.nodes || []).filter((item) => item.parentId === node.id).map((item) => item.name).join('、') || '无';
-    const facts = (node.descriptionFacts || []).map((fact, i) => window.GameModules.realWorldMapFacts.formatFact(fact, i)).join('') || node.description || '暂无说明。';
+    const infoFacts = window.GameModules.realWorldMapFacts?.normalizeFacts?.(node, node.description, '') || [];
+    const facts = infoFacts.map((fact, index) => window.GameModules.ui.realWorld.mapInfoViewHelpers.factText.call(this, fact, index)).filter(Boolean).join('') || node.description || '暂无说明。';
     return `地点：${node.name}\n上级地点：${parent}\n子地点：${children}\n说明：${facts}`;
   },
 

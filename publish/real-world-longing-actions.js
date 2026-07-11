@@ -1,11 +1,11 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldLongingActions = {
   realWorldLongingRoster() {
     const byId = new Map();
     (this.wechatContacts?.() || []).filter((c) => !c.group).forEach((contact) => {
       const id = this.wechatMessageKey?.(contact) || contact.id;
-      const state = this.itemSkillState?.(id) || this.rpgStates?.[id] || window.GameModules.sqliteSave.getCharacterState?.(id);
+      const state = this.itemSkillState?.(id) || this.rpgStates?.[id] || window.GameModules.characterStateStore?.get?.(id);
       if (id && state?.id && state.id !== 'player-self') byId.set(state.id, { contact, state });
     });
     Object.values(this.rpgStates || {}).forEach((state) => {
@@ -26,13 +26,13 @@ window.GameModules.realWorldLongingActions = {
     if (!delta) return [];
     const events = [];
     for (const item of this.realWorldLongingRoster()) {
-      const feeling = Number(item.state?.metrics?.playerFeelings?.好感) || 0;
+      const feeling = Number(item.state?.metrics?.playerFeelings?.濂芥劅) || 0;
       const meter = this.longingStateFor(item.state);
       const triggers = this.longingTriggersFor(item, meter, feeling, elapsedSeconds, startMs, endMs);
       item.state.values.longing_to_player = triggers.meter;
       if (triggers.events.length) events.push(...triggers.events);
       this.rpgStates = { ...(this.rpgStates || {}), [item.state.id]: item.state };
-      await window.GameModules.sqliteSave.saveCharacterState?.(item.state);
+      await window.GameModules.characterStateStore?.save?.(item.state);
     }
     this.realWorldLongingEvents = [...(this.realWorldLongingEvents || []), ...events].slice(-20);
     return events;
@@ -73,8 +73,8 @@ window.GameModules.realWorldLongingActions = {
     const pending = (this.realWorldLongingEvents || []).filter((e) => e?.id);
     if (!pending.length) return '';
     this.realWorldLongingPreparedIds = pending.map((e) => e.id);
-    const events = pending.map((e) => `- ${e.missed ? '过去错过' : '当前触发'}｜${e.timeIso}｜${e.name}(${e.characterId})｜联系人:${e.contactId || '未确认'}｜${e.relation || '关系未知'}｜好感${e.feeling}｜性格:${e.personality || '未记录'}`).join('\n');
-    return [`## 本轮触发的角色思念事件`, `以下事件必须在 final.narration 中明确体现。过去错过事件写成角色在对应过去时间想起玩家、试图联系或靠近但玩家未回应；当前触发事件让角色按性格以找玩家、发微信、打电话、上门、托人询问等合理方式行动。`, `若角色选择微信联系，先请求 wechat.query.listWechatSkills / listContacts / getThread 确认联系人和口吻；final.wechatActions 使用 sendIncomingPast 写过去错过消息，使用 sendIncomingNow 写当前消息。不要代替玩家回复。`, events].join('\n');
+    const events = pending.map((e) => `- ${e.missed ? '杩囧幓閿欒繃' : '褰撳墠瑙﹀彂'}锝?{e.timeIso}锝?{e.name}(${e.characterId})锝滆仈绯讳汉:${e.contactId || '鏈‘璁?}锝?{e.relation || '鍏崇郴鏈煡'}锝滃ソ鎰?{e.feeling}锝滄€ф牸:${e.personality || '鏈褰?}`).join('\n');
+    return [`## 鏈疆瑙﹀彂鐨勮鑹叉€濆康浜嬩欢`, `浠ヤ笅浜嬩欢蹇呴』鍦?final.narration 涓槑纭綋鐜般€傝繃鍘婚敊杩囦簨浠跺啓鎴愯鑹插湪瀵瑰簲杩囧幓鏃堕棿鎯宠捣鐜╁銆佽瘯鍥捐仈绯绘垨闈犺繎浣嗙帺瀹舵湭鍥炲簲锛涘綋鍓嶈Е鍙戜簨浠惰瑙掕壊鎸夋€ф牸浠ユ壘鐜╁銆佸彂寰俊銆佹墦鐢佃瘽銆佷笂闂ㄣ€佹墭浜鸿闂瓑鍚堢悊鏂瑰紡琛屽姩銆俙, `鑻ヨ鑹查€夋嫨寰俊鑱旂郴锛屽厛璇锋眰 wechat.query.listWechatSkills / listContacts / getThread 纭鑱旂郴浜哄拰鍙ｅ惢锛沠inal.wechatActions 浣跨敤 sendIncomingPast 鍐欒繃鍘婚敊杩囨秷鎭紝浣跨敤 sendIncomingNow 鍐欏綋鍓嶆秷鎭€備笉瑕佷唬鏇跨帺瀹跺洖澶嶃€俙, events].join('\n');
   },
 
   clearPreparedRealWorldLongingEvents() {
@@ -83,3 +83,5 @@ window.GameModules.realWorldLongingActions = {
     this.realWorldLongingPreparedIds = [];
   },
 };
+
+

@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 
 window.GameModules.eventActions = {
   initEventSystem() {
@@ -23,7 +23,7 @@ window.GameModules.eventActions = {
   },
 
   eventTypeTabs() {
-    return window.GameModules.eventSystem.EVENT_TYPES.map((type) => ({ type, label: window.GameModules.eventSystem.typeLabel(type), count: this.eventsByType(type).length }));
+    return window.GameModules.ui.event.viewHelpers.eventTypeTabs.call(this);
   },
 
   setEventTab(type = 'random') {
@@ -41,13 +41,11 @@ window.GameModules.eventActions = {
   },
 
   currentEventList() {
-    return this.eventsByType(this.eventState?.tab || 'random');
+    return window.GameModules.ui.event.viewHelpers.currentEventList.call(this);
   },
 
   selectedEvent() {
-    this.initEventSystem();
-    const id = this.eventState.selectedId || this.currentEventList()[0]?.id || '';
-    return (this.eventState.events || []).find((event) => event.id === id) || null;
+    return window.GameModules.ui.event.viewHelpers.selectedEvent.call(this);
   },
 
   eventName(event = {}) {
@@ -55,22 +53,21 @@ window.GameModules.eventActions = {
   },
 
   eventMeta(event = {}) {
-    const dates = `${event.startDate || '未知'} - ${event.endDate || event.startDate || '未知'}`;
-    const people = (event.people || []).join('、') || '无相关人';
-    const tags = (event.tags || []).join('、') || '无标签';
-    return `${dates}｜${event.location || '地点未定'}｜${people}｜${tags}`;
+    return window.GameModules.ui.event.viewHelpers.eventMeta.call(this, event);
   },
 
   eventStatusLabel(event = {}) {
-    if (event.type !== 'periodic' && window.GameModules.eventSystem.isExpired(event, this.phoneDate?.() || new Date())) return '已结束';
-    if (window.GameModules.eventSystem.dateInRange(this.phoneDate?.() || new Date(), event)) return '可触发';
-    return '未到时间';
+    return window.GameModules.ui.event.viewHelpers.eventStatusLabel.call(this, event);
   },
-
-  eventRandomProbability() {
-    this.initEventSystem();
-    return Math.max(0, Math.min(100, Math.round(Number(this.eventState.randomProbability ?? 10) || 0)));
-  },
+  eventListEmptyText() { return window.GameModules.ui.event.viewHelpers.eventListEmptyText.call(this); },
+  eventStatusFieldLabel() { return window.GameModules.ui.event.viewHelpers.eventStatusFieldLabel.call(this); },
+  eventTriggeredCountFieldLabel() { return window.GameModules.ui.event.viewHelpers.eventTriggeredCountFieldLabel.call(this); },
+  eventHeaderDescription() { return window.GameModules.ui.event.viewHelpers.eventHeaderDescription.call(this); },
+  eventProbabilityFieldLabel() { return window.GameModules.ui.event.viewHelpers.eventProbabilityFieldLabel.call(this); },
+  eventBackButtonText() { return window.GameModules.ui.event.viewHelpers.eventBackButtonText.call(this); },
+  selectedEventEmptyText() { return window.GameModules.ui.event.viewHelpers.selectedEventEmptyText.call(this); },
+  selectedEventDetailView() { return window.GameModules.ui.event.viewHelpers.selectedEventDetailView.call(this); },
+  eventPanelView() { return window.GameModules.ui.event.viewHelpers.eventPanelView.call(this); },
 
   setEventRandomProbability(value = 10) {
     this.initEventSystem();
@@ -253,3 +250,7 @@ window.GameModules.eventActions = {
     this.calendarState.events = (this.calendarState.events || []).filter((event) => event.source !== 'event-system');
   },
 };
+
+
+
+

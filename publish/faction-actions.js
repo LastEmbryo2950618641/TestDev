@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 
 window.GameModules.factionActions = {
   initFactionSystem(options = {}) {
@@ -44,7 +44,7 @@ window.GameModules.factionActions = {
     if (!item) return;
     const expectedTop = window.GameModules.factionSystem.countryFaction(this.playerProfile || {});
     const top = (expectedTop && this.factionState.factions.find((x) => x.id === expectedTop.id || x.name === expectedTop.name))
-      || this.factionState.factions.find((x) => x.type === '国家' && !x.parentId)
+      || this.factionState.factions.find((x) => x.type === '鍥藉' && !x.parentId)
       || expectedTop
       || null;
     const forest = window.GameModules.factionOrgForest;
@@ -102,7 +102,7 @@ window.GameModules.factionActions = {
 
   collectRoleCardMemberships() {
     const cards = [];
-    try { cards.push(this.playerCharacter?.()); } catch (_) { /* 玩家角色卡未生成时跳过 */ }
+    try { cards.push(this.playerCharacter?.()); } catch (_) { /* 鐜╁瑙掕壊鍗℃湭鐢熸垚鏃惰烦杩?*/ }
     cards.push(this.selectedPlayerRoleCard?.(), ...(this.selectedRelationRoleCards?.() || []));
     const validCards = cards.filter(Boolean);
     const rows = [];
@@ -122,12 +122,12 @@ window.GameModules.factionActions = {
 
   ensureFactionMembership(item = {}) {
     const name = String(item.orgName || '').trim();
-    const title = String(item.title || '成员').trim();
+    const title = String(item.title || '鎴愬憳').trim();
     if (!name) return null;
     const now = new Date().toISOString();
     let faction = this.factionState.factions.find((x) => x.name === name || x.id === this.factionIdByName(name));
     if (!faction) {
-      const top = this.factionState.factions.find((x) => x.type === '国家' && !x.parentId)
+      const top = this.factionState.factions.find((x) => x.type === '鍥藉' && !x.parentId)
         || window.GameModules.factionSystem.countryFaction(this.playerProfile || {})
         || null;
       const isTopCountry = Boolean(top?.name) && name === top.name;
@@ -144,9 +144,7 @@ window.GameModules.factionActions = {
         scale: '',
         stance: '',
         influence: 0,
-        description: isTopCountry
-          ? '由现实世界法域推断建立的国家级 L1 stub，待 AI 与推演补全。'
-          : '由角色卡人事归属确认建立的组织 L1 stub，待 AI 与推演补全。',
+        description: window.GameModules.ui.faction.overviewViewHelpers.stubDescription({ isTopCountry }),
         structure: [],
         rules: [],
         resources: [],
@@ -180,12 +178,12 @@ window.GameModules.factionActions = {
       changed = true;
     }
     const before = role.characters?.length || 0;
-    role.characters = Array.from(new Set([...(role.characters || []), character || '未知'].filter(Boolean)));
+    role.characters = Array.from(new Set([...(role.characters || []), character || '鏈煡'].filter(Boolean)));
     changed = changed || role.characters.length !== before;
     if (!changed) return;
     faction.updatedAt = at;
     faction.changeLog = [{ field: 'structure', reason, at, action: 'add-position' }, ...(faction.changeLog || [])].slice(0, 50);
-    if (character && character !== '未知') {
+    if (character && character !== '鏈煡') {
       const charState = window.GameModules.orgTerritory?.findCharacterStateByName?.(this, character);
       if (charState) {
         window.GameModules.orgTerritory?.upsertCharacterMembership?.(charState, {
@@ -267,57 +265,40 @@ window.GameModules.factionActions = {
     if (this.factionState) this.factionState.orgChartOpen = false;
   },
 
-  factionRoleText(roles = []) {
-    return this.normalizeFactionRoles(roles).map((role) => `${role.title}：${(role.characters || ['未知']).join('、')}`).join('；') || '职位未记录';
-  },
+  factionRoleText(roles = []) { return window.GameModules.ui.faction.overviewViewHelpers.roleText.call(this, roles); },
 
-  factionOrgNodes() {
-    const faction = this.selectedFaction();
-    const nodes = (faction?.structure || []).map((node, index) => ({
-      key: `s-${index}-${node.name}`,
-      name: node.name,
-      roles: this.factionRoleText(node.roles),
-      children: this.normalizeFactionRoles(node.roles).map((role, roleIndex) => ({ key: `r-${index}-${roleIndex}-${role.title}`, name: role.title, roles: `角色：${(role.characters || ['未知']).join('、')}` })),
-    }));
-    const children = this.factionChildren(faction?.id).map((child) => ({ key: `c-${child.id}`, name: child.name, roles: `${child.type}｜${child.level}`, children: [] }));
-    return [...nodes, ...children];
-  },
+  factionOrgNodes() { return window.GameModules.ui.faction.overviewViewHelpers.orgNodes.call(this); },
 
-  factionParentName(faction) {
-    const factions = Array.isArray(this.factionState?.factions) ? this.factionState.factions : [];
-    const forest = window.GameModules.factionOrgForest;
-    const affiliated = forest?.resolveAffiliatedFaction?.(faction, factions);
-    if (forest) {
-      if (affiliated?.name) return affiliated.name;
-      if (!faction?.parentId) return '无势力归属';
-      if (faction?.foundingType === 'independent') return '独立组织';
-      return '无势力归属';
-    }
-    if (!faction?.parentId) return '无势力归属';
-    return factions.find((x) => x.id === faction.parentId)?.name || faction.parentName || '未知势力';
-  },
+  factionParentName(faction) { return window.GameModules.ui.faction.overviewViewHelpers.parentName.call(this, faction); },
 
-  selectedFactionAffiliatedLabel() {
-    const faction = this.selectedFaction?.();
-    if (!faction) return '';
-    return window.GameModules.factionOrgForest?.affiliatedFactionLabel?.(faction, this.factionState?.factions || []) || '';
-  },
+  selectedFactionAffiliatedLabel() { return window.GameModules.ui.faction.overviewViewHelpers.affiliatedLabel.call(this); },
+  selectedFactionDetailDescription() { return window.GameModules.ui.faction.overviewViewHelpers.detailDescription.call(this); },
+  factionOrgChartTitle() { return window.GameModules.ui.faction.overviewViewHelpers.orgChartTitle.call(this); },
+  factionOrgChartDescription() { return window.GameModules.ui.faction.overviewViewHelpers.orgChartDescription.call(this); },
+  factionOrgChartBreadcrumbText() { return window.GameModules.ui.faction.overviewViewHelpers.orgChartBreadcrumb.call(this); },
+  factionOrgChartEmptyText() { return window.GameModules.ui.faction.overviewViewHelpers.orgChartEmptyText.call(this); },
+  factionOrgChartBackButtonText() { return window.GameModules.ui.faction.overviewViewHelpers.orgChartBackButtonText.call(this); },
+  factionOrgChartCloseDetailButtonText() { return window.GameModules.ui.faction.overviewViewHelpers.orgChartCloseDetailButtonText.call(this); },
+  factionListRow(faction) { return window.GameModules.ui.faction.overviewViewHelpers.listRow.call(this, faction); },
+  selectedFactionTagList() { return window.GameModules.ui.faction.overviewViewHelpers.tagList.call(this); },
+  factionStructureRoleRows(node) { return window.GameModules.ui.faction.overviewViewHelpers.structureRoleRows.call(this, node); },
+  factionStructureEmptyText() { return window.GameModules.ui.faction.overviewViewHelpers.structureEmptyText.call(this); },
+  selectedFactionRelationChipRows() { return window.GameModules.ui.faction.overviewViewHelpers.relationChipRows.call(this); },
+  selectedFactionRelationChipEmptyText() { return window.GameModules.ui.faction.overviewViewHelpers.relationChipEmptyText.call(this); },
+  selectedFactionRelationSectionView() { return window.GameModules.ui.faction.overviewViewHelpers.relationSectionView.call(this); },
+  selectedFactionChangeLogRows() { return window.GameModules.ui.faction.overviewViewHelpers.changeLogRows.call(this); },
+  selectedFactionChangeLogEmptyText() { return window.GameModules.ui.faction.overviewViewHelpers.changeLogEmptyText.call(this); },
+  selectedFactionArchiveCountLabel() { return window.GameModules.ui.faction.overviewViewHelpers.archiveCountLabel.call(this); },
+  selectedFactionArchiveParagraphRows() { return window.GameModules.ui.faction.overviewViewHelpers.archiveParagraphRows.call(this); },
+  selectedFactionArchiveListRows() { return window.GameModules.ui.faction.overviewViewHelpers.archiveListRows.call(this); },
+  selectedFactionArchiveEmptyText() { return window.GameModules.ui.faction.overviewViewHelpers.archiveEmptyText.call(this); },
+  selectedFactionArchiveSectionView() { return window.GameModules.ui.faction.overviewViewHelpers.archiveSectionView.call(this); },
   factionChildren(id) {
     if (!id || !this.factionState?.factions) return [];
     return this.factionState.factions.filter((x) => x.parentId === id);
   },
 
-  orgTerritoryConsistencyNotice() {
-    const report = this.orgTerritoryConsistency;
-    if (!report || report.dismissed) return '';
-    const lines = [];
-    const failed = Object.entries(report.compliance?.checks || {}).filter(([, ok]) => ok === false).map(([key]) => key);
-    if (failed.length) lines.push(`原则合规未通过：${failed.join('、')}`);
-    lines.push(...(report.fixes || []), ...(report.warnings || []));
-    if (!lines.length) return '';
-    const preview = lines.slice(0, 4).join('；');
-    return lines.length > 4 ? `存档一致性：${preview}…（共 ${lines.length} 条）` : `存档一致性：${preview}`;
-  },
+  orgTerritoryConsistencyNotice() { return window.GameModules.ui.faction.overviewViewHelpers.consistencyNotice.call(this); },
 
   dismissOrgTerritoryConsistencyNotice() {
     if (this.orgTerritoryConsistency) this.orgTerritoryConsistency.dismissed = true;
@@ -331,26 +312,16 @@ window.GameModules.factionActions = {
     return (Array.isArray(this.orgTerritoryReconciliationLog) ? this.orgTerritoryReconciliationLog : []).slice().reverse().slice(0, 15);
   },
 
-  orgTerritoryReconciliationText(entry = {}) {
-    const kind = String(entry?.kind || '').trim();
-    const at = String(entry?.at || '').slice(0, 19).replace('T', ' ');
-    if (kind === 'territory-control-dedupe') {
-      return `${at} 控势去重 · ${entry.location || '—'} · 保留 ${entry.keptSummary || '—'}，丢弃 ${entry.droppedSummary || '—'}`;
-    }
-    if (kind === 'story-world-skip') {
-      return `${at} 异世界跳过 · ${entry.count || 0} 条（${entry.types || ''}）`;
-    }
-    if (kind === 'settlement-truncated') {
-      return `${at} 结算截断 · 保留 ${entry.kept || 0} 丢弃 ${entry.dropped || 0}`;
-    }
-    return `${at} ${kind || '记录'}`;
-  },
+  orgTerritoryReconciliationText(entry = {}) { return window.GameModules.ui.faction.overviewViewHelpers.reconciliationText.call(this, entry); },
 
   toggleFactionReconciliationLog() {
     if (!this.factionState) return;
     this.factionState.reconciliationOpen = !this.factionState.reconciliationOpen;
   },
 
+  selectedFactionStubNotice() { return window.GameModules.ui.faction.overviewViewHelpers.stubNotice.call(this); },
+  selectedFactionStructureSectionView() { return window.GameModules.ui.faction.overviewViewHelpers.structureSectionView.call(this); },
+  selectedFactionOverviewView() { return window.GameModules.ui.faction.overviewViewHelpers.selectedFactionOverviewView.call(this); },
   visibleFactions() {
     if (this.factionState?.showAllStubs) return this.factionState?.factions || [];
     return (this.factionState?.factions || []).filter((f) => (window.GameModules.orgTerritory?.factionExposureScore?.(f, this) || 0) > 0);
@@ -360,12 +331,13 @@ window.GameModules.factionActions = {
     if (!this.factionState) return;
     this.factionState.showAllStubs = !this.factionState.showAllStubs;
   },
-
-  selectedFactionStubNotice() {
-    const faction = this.selectedFaction();
-    if (!faction) return '';
-    const resolution = String(faction.resolution || 'L1').toUpperCase();
-    if (resolution === 'L1' && !(faction.structure || []).length) return '尚未接触，无法审计结构；仅显示 stub。';
-    return '';
-  },
 };
+
+
+
+
+
+
+
+
+

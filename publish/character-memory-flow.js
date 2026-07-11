@@ -1,12 +1,12 @@
-/**
- * 人物记忆流转：写入、印象、归纳、长期遗忘。
+﻿/**
+ * 浜虹墿璁板繂娴佽浆锛氬啓鍏ャ€佸嵃璞°€佸綊绾炽€侀暱鏈熼仐蹇樸€?
  */
 window.GameModules = window.GameModules || {};
 
 Object.assign(window.GameModules.characterMemory, {
   async addManual(characterId, text, store) {
     const memory = this.ensure(characterId);
-    const item = this.memoryItem(store, { text: `手动记忆：${text}`, source: 'manual', impression: 70 });
+    const item = this.memoryItem(store, { text: `鎵嬪姩璁板繂锛?{text}`, source: 'manual', impression: 70 });
     memory.shortTerm.recent.push(item);
     this.promote(memory, item);
     await this.compact(characterId, memory);
@@ -27,27 +27,27 @@ Object.assign(window.GameModules.characterMemory, {
   async recordWechatExchange(store, contact, playerText, replyText, result = {}) {
     if (!contact?.id || contact.group) return;
     const characterId = String(contact.id || '').trim();
-    if (!characterId) throw new Error('微信记忆写入失败：联系人缺少角色ID');
-    const state = store.rpgStates?.[characterId] || window.GameModules.sqliteSave.getCharacterState(characterId) || null;
+    if (!characterId) throw new Error('寰俊璁板繂鍐欏叆澶辫触锛氳仈绯讳汉缂哄皯瑙掕壊ID');
+    const state = store.rpgStates?.[characterId] || window.GameModules.characterStateStore?.get?.(characterId) || null;
     if (state && !store.rpgStates?.[characterId]) store.rpgStates = { ...(store.rpgStates || {}), [characterId]: state };
     const display = store.displayWechatContact?.(contact) || contact;
     const phoneTime = store.wechatMemoryTime?.() || this.gameTime({ entryTimeLabel: () => `${store.phoneDateText?.() || ''} ${store.phoneTimeText?.() || ''}`.trim() });
-    const label = store.wechatDialogueTimeLabel?.(phoneTime.label) || phoneTime.label || '时间未知';
-    const playerName = store.playerDisplayCharacter?.().name || store.playerName || '玩家';
-    const contactName = state?.name || state?.profile?.name || display.name || '微信联系人';
-    const text = store.formatWechatDialogueLog?.(playerName, contactName, label, playerText, replyText) || `以下来自微信对话。${playerName}（${label}）：“${playerText}”${contactName}（${label}）：“${replyText}”`;
+    const label = store.wechatDialogueTimeLabel?.(phoneTime.label) || phoneTime.label || '鏃堕棿鏈煡';
+    const playerName = store.playerDisplayCharacter?.().name || store.playerName || '鐜╁';
+    const contactName = state?.name || state?.profile?.name || display.name || '寰俊鑱旂郴浜?;
+    const text = store.formatWechatDialogueLog?.(playerName, contactName, label, playerText, replyText) || `浠ヤ笅鏉ヨ嚜寰俊瀵硅瘽銆?{playerName}锛?{label}锛夛細鈥?{playerText}鈥?{contactName}锛?{label}锛夛細鈥?{replyText}鈥漙;
     const memory = this.ensure(characterId);
-    const item = this.memoryItem(store, { text, source: 'wechat', place: '微信', time: phoneTime, impression: this.resultImpression(result) });
+    const item = this.memoryItem(store, { text, source: 'wechat', place: '寰俊', time: phoneTime, impression: this.resultImpression(result) });
     memory.shortTerm.recent.push(item);
     this.promote(memory, item);
     await this.compact(characterId, memory);
     const playerMemoryText = text;
     const playerMemory = this.ensure('player-self');
-    const playerItem = this.memoryItem(store, { text: playerMemoryText, source: 'wechat', place: '微信', time: phoneTime, impression: this.resultImpression(result) });
+    const playerItem = this.memoryItem(store, { text: playerMemoryText, source: 'wechat', place: '寰俊', time: phoneTime, impression: this.resultImpression(result) });
     playerMemory.shortTerm.recent.push(playerItem);
     this.promote(playerMemory, playerItem);
     await this.compact('player-self', playerMemory);
-    console.log('[微信记忆] 已写入:', { characterId, contact: contactName, player: 'player-self', stateFound: Boolean(state) });
+    console.log('[寰俊璁板繂] 宸插啓鍏?', { characterId, contact: contactName, player: 'player-self', stateFound: Boolean(state) });
   },
 
   relatedStates(store, result) {
@@ -60,7 +60,7 @@ Object.assign(window.GameModules.characterMemory, {
     const item = {
       id: `mem_${Date.now()}_${window.GameModules.rpgState.seed(text)}`,
       time: data.time || this.gameTime(store),
-      place: data.place || store.sceneTitle || '地点未知',
+      place: data.place || store.sceneTitle || '鍦扮偣鏈煡',
       text,
       summary: this.summary(text, this.limits.summaryTargetChars),
       impression: Math.max(0, Math.min(100, Math.round(data.impression || 20))),
@@ -74,13 +74,13 @@ Object.assign(window.GameModules.characterMemory, {
 
   eventText(store, result) {
     return [
-      `地点：${store.sceneTitle}`,
-      `玩家行动：${store.lastAction || '无'}`,
-      `流逝时间：${result.elapsedSeconds || 60}秒`,
-      `发生：${result.narration || ''}`,
-      result.speech ? `她/他说过：${result.speech}` : '',
-      result.mind ? `她/他心里想：${result.mind}` : '',
-      `目标：${result.quest || store.quest}`,
+      `鍦扮偣锛?{store.sceneTitle}`,
+      `鐜╁琛屽姩锛?{store.lastAction || '鏃?}`,
+      `娴侀€濇椂闂达細${result.elapsedSeconds || 60}绉抈,
+      `鍙戠敓锛?{result.narration || ''}`,
+      result.speech ? `濂?浠栬杩囷細${result.speech}` : '',
+      result.mind ? `濂?浠栧績閲屾兂锛?{result.mind}` : '',
+      `鐩爣锛?{result.quest || store.quest}`,
     ].filter(Boolean).join('\n');
   },
 
@@ -89,20 +89,20 @@ Object.assign(window.GameModules.characterMemory, {
   },
 
   summary(text, max = 180) {
-    const raw = String(text || '').replace(/地点：[^ ]+ ?/g, '').replace(/\s+/g, ' ').trim();
-    return raw.length > max ? `${raw.slice(0, max - 1)}…` : raw;
+    const raw = String(text || '').replace(/鍦扮偣锛歔^ ]+ ?/g, '').replace(/\s+/g, ' ').trim();
+    return raw.length > max ? `${raw.slice(0, max - 1)}鈥 : raw;
   },
 
   impression(store, result, text) {
     const all = `${text} ${result.narration || ''} ${result.mind || ''} ${result.quest || ''}`;
     let score = 25;
-    if (/操控|身体|失控|接管|附身/.test(all)) score += 18;
-    if (/受伤|死亡|战斗|血|痛|杀|危险/.test(all)) score += 18;
-    if (/秘密|真相|契约|背叛|承诺|觉醒|圣杯/.test(all)) score += 16;
-    if (/告白|拯救|保护|亲吻|拥抱|泪|崩溃/.test(all)) score += 16;
+    if (/鎿嶆帶|韬綋|澶辨帶|鎺ョ|闄勮韩/.test(all)) score += 18;
+    if (/鍙椾激|姝讳骸|鎴樻枟|琛€|鐥泑鏉€|鍗遍櫓/.test(all)) score += 18;
+    if (/绉樺瘑|鐪熺浉|濂戠害|鑳屽彌|鎵胯|瑙夐啋|鍦ｆ澂/.test(all)) score += 16;
+    if (/鍛婄櫧|鎷晳|淇濇姢|浜插惢|鎷ユ姳|娉獆宕╂簝/.test(all)) score += 16;
     score += this.metricImpact(result.metricUpdates);
     const profile = `${store.character?.role || ''} ${store.character?.detail || ''} ${store.character?.personality || ''}`;
-    if (/幼|弱|病|囚|虐|恐|孤|樱|间桐|虫|牺牲|受害/.test(profile)) score += 8;
+    if (/骞紎寮眧鐥厊鍥殀铏恷鎭恷瀛妯眧闂存|铏珅鐗虹壊|鍙楀/.test(profile)) score += 8;
     return Math.max(0, Math.min(100, score));
   },
 
@@ -154,7 +154,7 @@ Object.assign(window.GameModules.characterMemory, {
   summarizeBuffer(items) {
     const first = items[0]; const last = items[items.length - 1] || first;
     const text = items.map((x) => x.summary || x.text).join(' ');
-    return this.withTokens({ id: `sum_${Date.now()}_${window.GameModules.rpgState.seed(text)}`, time: { label: `${first.time?.label || '时间未知'}-${last.time?.label || '时间未知'}`, value: first.time?.value || null }, place: first.place || last.place || '地点未知', text, summary: this.summary(text, this.limits.summaryTargetChars), impression: Math.max(...items.map((x) => x.impression || 0), 30), source: 'summary', sourceIds: items.map((x) => x.id), linkedLongTermId: '', createdAt: new Date().toISOString() });
+    return this.withTokens({ id: `sum_${Date.now()}_${window.GameModules.rpgState.seed(text)}`, time: { label: `${first.time?.label || '鏃堕棿鏈煡'}-${last.time?.label || '鏃堕棿鏈煡'}`, value: first.time?.value || null }, place: first.place || last.place || '鍦扮偣鏈煡', text, summary: this.summary(text, this.limits.summaryTargetChars), impression: Math.max(...items.map((x) => x.impression || 0), 30), source: 'summary', sourceIds: items.map((x) => x.id), linkedLongTermId: '', createdAt: new Date().toISOString() });
   },
 
   moveOverflow(from, to, maxTokens) {
@@ -175,3 +175,4 @@ Object.assign(window.GameModules.characterMemory, {
     }
   },
 });
+

@@ -1,0 +1,89 @@
+{
+  "figures": [
+    {
+      "id": "rel-ai-242269-1783673555009",
+      "path": "rel-ai-242269-1783673555009",
+      "generated": true,
+      "ownerId": "rel-ai-242269",
+      "stateKind": "natural"
+    },
+    {
+      "id": "player-self-1783391372121",
+      "path": "player-self-1783391372121",
+      "generated": true,
+      "ownerId": "player-self",
+      "stateKind": "natural"
+    },
+    {
+      "id": "rel-ai-247463-1783358656228",
+      "path": "rel-ai-247463-1783358656228",
+      "generated": true,
+      "ownerId": "rel-ai-247463",
+      "stateKind": "natural"
+    },
+    {
+      "id": "rel-ai-247528-1783276182507",
+      "path": "rel-ai-247528-1783276182507",
+      "generated": true,
+      "ownerId": "rel-ai-247528",
+      "stateKind": "natural"
+    },
+    {
+      "id": "rel-ai-247528-1783275261314",
+      "path": "rel-ai-247528-1783275261314",
+      "generated": true,
+      "ownerId": "",
+      "stateKind": "natural"
+    },
+    {
+      "id": "female-adult-petite-small-bust-no-pubic-hair",
+      "path": "female/adult-petite-small-bust-no-pubic-hair",
+      "default": true
+    },
+    {
+      "id": "female-adult-petite-medium-bust-sparse-pubic-hair",
+      "path": "female/adult-petite-medium-bust-sparse-pubic-hair",
+      "default": false
+    },
+    {
+      "id": "female-adult-petite-medium-bust-dense-pubic-hair",
+      "path": "female/adult-petite-medium-bust-dense-pubic-hair",
+      "default": false
+    },
+    {
+      "id": "female-adult-youthful-small-bust-no-pubic-hair",
+      "path": "female/adult-youthful-small-bust-no-pubic-hair",
+      "default": false
+    },
+    {
+      "id": "female-adult-youthful-medium-bust-sparse-pubic-hair",
+      "path": "female/adult-youthful-medium-bust-sparse-pubic-hair",
+      "default": false
+    },
+    {
+      "id": "female-adult-youthful-medium-bust-dense-pubic-hair",
+      "path": "female/adult-youthful-medium-bust-dense-pubic-hair",
+      "default": false
+    },
+    {
+      "id": "female-mature-small-bust-no-pubic-hair",
+      "path": "female/mature-small-bust-no-pubic-hair",
+      "default": false
+    },
+    {
+      "id": "female-mature-medium-bust-no-pubic-hair",
+      "path": "female/mature-medium-bust-no-pubic-hair",
+      "default": false
+    },
+    {
+      "id": "female-mature-large-bust-no-pubic-hair",
+      "path": "female/mature-large-bust-no-pubic-hair",
+      "default": false
+    },
+    {
+      "id": "male-youth-slender-natural",
+      "path": "male/youth-slender-natural",
+      "default": true
+    }
+  ]
+}

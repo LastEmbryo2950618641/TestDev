@@ -94,7 +94,7 @@ window.GameModules.sqliteSave = {
     } catch (err) {
       console.warn('SQLite 存档读取 KV 失败:', err.code, err.message);
     }
-    try { return localStorage.getItem(key); } catch (_) { return null; }
+    return window.GameModules.platform.core.storage.sqliteSlotSource.read(key);
   },
 
   async writeRaw(slot, value) {
@@ -107,13 +107,13 @@ window.GameModules.sqliteSave = {
     } catch (err) {
       console.warn('SQLite 存档写入 KV 失败:', err.code, err.message);
     }
-    try { localStorage.setItem(key, value); } catch (_) { /* 忽略 */ }
+    window.GameModules.platform.core.storage.sqliteSlotSource.write(key, value);
   },
 
   async deleteSlot(slot) {
     const key = this.key(slot);
     try { if (window.dzmm?.kv) await window.dzmm.kv.delete(key); } catch (_) { /* 忽略 */ }
-    try { localStorage.removeItem(key); } catch (_) { /* 忽略 */ }
+    window.GameModules.platform.core.storage.sqliteSlotSource.remove(key);
   },
 
   key(slot) {

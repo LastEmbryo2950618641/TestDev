@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 
 (() => {
   const ctx = window.GameModules.realWorldAgentContext;
@@ -19,11 +19,11 @@ window.GameModules = window.GameModules || {};
     },
 
     characterState(store, id) {
-      return store.rpgStates?.[id] || window.GameModules.sqliteSave.getCharacterState?.(id) || null;
+      return store.rpgStates?.[id] || window.GameModules.characterStateStore?.get?.(id) || null;
     },
 
     characterMemoryName(store, id) {
-      if (id === 'player-self') return store.playerDisplayCharacter?.().name || store.playerName || '玩家本人';
+      if (id === 'player-self') return store.playerDisplayCharacter?.().name || store.playerName || '鐜╁鏈汉';
       const state = this.characterState(store, id) || {};
       return state.name || state.profile?.name || id;
     },
@@ -68,11 +68,11 @@ window.GameModules = window.GameModules || {};
     collectMemoryLines(memory, timelineIndex, limit = 8) {
       const m = window.GameModules.characterMemory;
       const pools = [
-        ['短期-刚发生', memory.shortTerm?.recent],
-        ['短期-归纳中', memory.shortTerm?.summaryBuffer],
-        ['短期-近发生', memory.shortTerm?.summarized],
-        ['长期-难忘', memory.longTerm?.vivid],
-        ['长期-不可忘记', memory.longTerm?.permanent],
+        ['鐭湡-鍒氬彂鐢?, memory.shortTerm?.recent],
+        ['鐭湡-褰掔撼涓?, memory.shortTerm?.summaryBuffer],
+        ['鐭湡-杩戝彂鐢?, memory.shortTerm?.summarized],
+        ['闀挎湡-闅惧繕', memory.longTerm?.vivid],
+        ['闀挎湡-涓嶅彲蹇樿', memory.longTerm?.permanent],
       ];
       const seen = new Set();
       const lines = [];
@@ -82,7 +82,7 @@ window.GameModules = window.GameModules || {};
         if (!key || seen.has(key)) { skipped += 1; return; }
         seen.add(key);
         if (this.memoryDuplicatesTimeline(item, timelineIndex)) { skipped += 1; return; }
-        if (lines.length < limit) lines.push(`- ${name}｜${m.itemText(item)}`);
+        if (lines.length < limit) lines.push(`- ${name}锝?{m.itemText(item)}`);
       }));
       return { lines, skipped };
     },
@@ -100,24 +100,24 @@ window.GameModules = window.GameModules || {};
         const picked = this.collectMemoryLines(memory, index, id === 'player-self' ? 10 : 7);
         skippedTotal += picked.skipped;
         loadedIds.push(id);
-        if (picked.lines.length) sections.push(`### ${this.characterMemoryName(store, id)}（${id}）\n${picked.lines.join('\n')}`);
+        if (picked.lines.length) sections.push(`### ${this.characterMemoryName(store, id)}锛?{id}锛塡n${picked.lines.join('\n')}`);
       });
-      const note = skippedTotal ? `\n（已去重 ${skippedTotal} 条：与已载入现实时间线记录或短/长期记忆重复的同源记录只保留一份。）` : '';
-      const text = this.limit((sections.join('\n\n') || '相关角色暂无可用短期/长期记忆。') + note, 3200);
+      const note = skippedTotal ? `\n锛堝凡鍘婚噸 ${skippedTotal} 鏉★細涓庡凡杞藉叆鐜板疄鏃堕棿绾胯褰曟垨鐭?闀挎湡璁板繂閲嶅鐨勫悓婧愯褰曞彧淇濈暀涓€浠姐€傦級` : '';
+      const text = this.limit((sections.join('\n\n') || '鐩稿叧瑙掕壊鏆傛棤鍙敤鐭湡/闀挎湡璁板繂銆?) + note, 3200);
       return { title: 'memory.query.characterMemoriesForStep', text, max: 3200, ids: loadedIds };
     },
 
     peopleMemoryBrief(store, action = '', maxChars = 2800) {
       const item = this.characterMemoriesForStep(store, action, [{ id: 'all' }], [], new Set(), true);
-      return this.limit(item?.text || '暂无人物短期/长期记忆。', maxChars);
+      return this.limit(item?.text || '鏆傛棤浜虹墿鐭湡/闀挎湡璁板繂銆?, maxChars);
     },
 
     searchAllPeopleMemory(store, keyword = '') {
       return this.limit(this.allCharacterMemoryIds(store).map((id) => {
         const text = store.searchCharacterMemory?.(id, keyword) || '';
-        if (!text || text.includes('未命中') || text.includes('无关键词')) return '';
-        return `### ${this.characterMemoryName(store, id)}（${id}）\n${text}`;
-      }).filter(Boolean).join('\n\n') || '未命中任何人物记忆。', 2600);
+        if (!text || text.includes('鏈懡涓?) || text.includes('鏃犲叧閿瘝')) return '';
+        return `### ${this.characterMemoryName(store, id)}锛?{id}锛塡n${text}`;
+      }).filter(Boolean).join('\n\n') || '鏈懡涓换浣曚汉鐗╄蹇嗐€?, 2600);
     },
   });
 
@@ -125,9 +125,10 @@ window.GameModules = window.GameModules || {};
     const keyword = String(params.keyword || action || '').trim();
     const characterId = String(params.characterId || params.id || 'player-self').trim();
     if (method === 'getAllCharacterMemories') return this.peopleMemoryBrief(store, keyword, 3600);
-    if (method === 'searchMemoryArchive') return await store.searchMemoryArchive?.(characterId, keyword) || '未命中记忆归档。';
-    if (method === 'getCharacterMemory') return characterId === 'all' ? this.peopleMemoryBrief(store, keyword, 3600) : (this.limit(store.getCharacterMemory?.(characterId) || '', 1800) || '暂无人物记忆。');
-    if (method === 'searchCharacterMemory') return characterId === 'all' ? this.searchAllPeopleMemory(store, keyword) : (store.searchCharacterMemory?.(characterId, keyword) || '未命中相关记忆。');
-    return store.searchCharacterMemory?.('player-self', keyword) || store.memoryQueryContext?.('player-self', keyword) || '未命中相关记忆。';
+    if (method === 'searchMemoryArchive') return await store.searchMemoryArchive?.(characterId, keyword) || '鏈懡涓蹇嗗綊妗ｃ€?;
+    if (method === 'getCharacterMemory') return characterId === 'all' ? this.peopleMemoryBrief(store, keyword, 3600) : (this.limit(store.getCharacterMemory?.(characterId) || '', 1800) || '鏆傛棤浜虹墿璁板繂銆?);
+    if (method === 'searchCharacterMemory') return characterId === 'all' ? this.searchAllPeopleMemory(store, keyword) : (store.searchCharacterMemory?.(characterId, keyword) || '鏈懡涓浉鍏宠蹇嗐€?);
+    return store.searchCharacterMemory?.('player-self', keyword) || store.memoryQueryContext?.('player-self', keyword) || '鏈懡涓浉鍏宠蹇嗐€?;
   };
 })();
+

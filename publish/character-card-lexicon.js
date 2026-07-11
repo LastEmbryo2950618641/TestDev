@@ -1,10 +1,10 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 
 window.GameModules.characterCardLexicon = {
   modifySkillId: 'character.card.modify',
   addSkillId: 'character.card.add',
 
-  fieldMap: { 姓名: 'name', 性别: 'gender', 身份: 'role', 职业: 'job', 人物说明: 'detail', 背景: 'detail', 外貌: 'appearance', 喜好: 'preferences', 偏好: 'preferences', 穿着偏好: 'preferences', 性格: 'personality', 人际关系: 'relationships', 关系: 'relationships', 技能: 'skills', essentialPreferenceLayers: 'essentialPreferenceLayers', 本质偏好: 'essentialPreferenceLayers', 价值立场偏好: 'essentialPreferenceLayers', 决策风格偏好: 'essentialPreferenceLayers', 人生六维偏好: 'essentialPreferenceLayers', 底线锚点偏好: 'essentialPreferenceLayers', 心理偏好: 'essentialPreferenceLayers' },
+  fieldMap: { 濮撳悕: 'name', 鎬у埆: 'gender', 韬唤: 'role', 鑱屼笟: 'job', 浜虹墿璇存槑: 'detail', 鑳屾櫙: 'detail', 澶栬矊: 'appearance', 鍠滃ソ: 'preferences', 鍋忓ソ: 'preferences', 绌跨潃鍋忓ソ: 'preferences', 鎬ф牸: 'personality', 浜洪檯鍏崇郴: 'relationships', 鍏崇郴: 'relationships', 鎶€鑳? 'skills', essentialPreferenceLayers: 'essentialPreferenceLayers', 鏈川鍋忓ソ: 'essentialPreferenceLayers', 浠峰€肩珛鍦哄亸濂? 'essentialPreferenceLayers', 鍐崇瓥椋庢牸鍋忓ソ: 'essentialPreferenceLayers', 浜虹敓鍏淮鍋忓ソ: 'essentialPreferenceLayers', 搴曠嚎閿氱偣鍋忓ソ: 'essentialPreferenceLayers', 蹇冪悊鍋忓ソ: 'essentialPreferenceLayers' },
 
   isImmutableProfileUpdate(update = {}) {
     const tool = window.GameModules.playerAspirationPreferenceLayers;
@@ -24,8 +24,8 @@ window.GameModules.characterCardLexicon = {
 
   normalizeKind(raw) {
     const text = String(raw || '').trim();
-    if (text.includes('角色技能')) return '角色技能';
-    if (text.includes('角色卡')) return '角色卡';
+    if (text.includes('瑙掕壊鎶€鑳?)) return '瑙掕壊鎶€鑳?;
+    if (text.includes('瑙掕壊鍗?)) return '瑙掕壊鍗?;
     return text;
   },
 
@@ -33,7 +33,7 @@ window.GameModules.characterCardLexicon = {
     const kind = this.normalizeKind(raw.kind);
     const field = this.normalizeField(raw.field || raw.name);
     const reason = String(raw.reason || raw.modifyReason || '').trim().slice(0, 160);
-    if (!reason || !['角色卡', '角色技能'].includes(kind)) return null;
+    if (!reason || !['瑙掕壊鍗?, '瑙掕壊鎶€鑳?].includes(kind)) return null;
     const value = Object.prototype.hasOwnProperty.call(raw, 'value') ? raw.value : raw.description;
     if (!field || value === undefined || value === null) return null;
     return { ...raw, kind, field, value, reason };
@@ -60,16 +60,16 @@ window.GameModules.characterCardLexicon = {
       state.profile.roleCardUpdatedAt = new Date().toISOString();
       state.profile.roleCardChangeLog = [...(state.profile.roleCardChangeLog || []), ...records.filter((item) => item.applied)].slice(-30);
       window.GameModules.rpgInitializer?.touch?.(state.values, window.Alpine?.store?.('game'));
-      await window.GameModules.sqliteSave.saveCharacterState(state);
+      await window.GameModules.characterStateStore?.save?.(state);
     } else if (records.length && state?.profile) {
-      await window.GameModules.sqliteSave.saveCharacterState(state);
+      await window.GameModules.characterStateStore?.save?.(state);
     }
     return records;
   },
 
   applyOne(profile, update) {
     if (this.isImmutableProfileUpdate(update)) return false;
-    if (update.kind === '角色技能' || update.field === 'skills') return this.applySkill(profile, update);
+    if (update.kind === '瑙掕壊鎶€鑳? || update.field === 'skills') return this.applySkill(profile, update);
     const key = update.field;
     if (!['name', 'gender', 'role', 'job', 'detail', 'appearance', 'preferences', 'personality', 'relationships'].includes(key)) return false;
     const next = String(update.value || '').trim().slice(0, key === 'detail' ? 180 : 120);
@@ -93,6 +93,7 @@ window.GameModules.characterCardLexicon = {
   },
 
   changeRecord(update, applied = true) {
-    return { at: new Date().toISOString(), skillId: update.kind === '角色技能' ? this.addSkillId : this.modifySkillId, field: this.displayField(update.field), name: update.name || update.field, value: update.value, reason: update.reason, applied };
+    return { at: new Date().toISOString(), skillId: update.kind === '瑙掕壊鎶€鑳? ? this.addSkillId : this.modifySkillId, field: this.displayField(update.field), name: update.name || update.field, value: update.value, reason: update.reason, applied };
   },
 };
+

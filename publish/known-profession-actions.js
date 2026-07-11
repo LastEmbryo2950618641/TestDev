@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 
 window.GameModules.knownProfessionActions = {
   initKnownProfessionApp() {
@@ -61,15 +61,15 @@ window.GameModules.knownProfessionActions = {
   async knowProfession(name, worldTag, context = {}) {
     const clean = window.GameModules.professionInfo.normalizeJobName(name);
     if (!clean) return null;
-    const world = worldTag || this.character?.work || window.GameModules.realWorld2026?.label || '原创世界';
+    const world = worldTag || this.character?.work || window.GameModules.realWorld2026?.label || '鍘熷垱涓栫晫';
     const info = await window.GameModules.professionInfo.ensure(world, clean, context);
     if (!info) return null;
     const save = window.GameModules.sqliteSave;
     const list = save.getMetaJson?.('known_professions') || [];
-    const next = { ...info, knownAt: new Date().toISOString(), sourceReason: context.sourceReason || '剧情中已认识该职业' };
+    const next = { ...info, knownAt: new Date().toISOString(), sourceReason: context.sourceReason || '鍓ф儏涓凡璁よ瘑璇ヨ亴涓? };
     const merged = [next, ...list.filter((item) => !(item.worldTag === world && item.name === info.name))].slice(0, 80);
     await save.saveMetaJson?.('known_professions', merged);
-    this.knownProfessionState = { ...(this.knownProfessionState || {}), message: `已认识职业：${info.name}`, selectedName: info.name };
+    this.knownProfessionState = { ...(this.knownProfessionState || {}), message: `宸茶璇嗚亴涓氾細${info.name}`, selectedName: info.name };
     return next;
   },
 
@@ -77,16 +77,16 @@ window.GameModules.knownProfessionActions = {
     if (!job) return '';
     const req = job.requirements || job;
     return [
-      `身内能力：${this.statLabels(req.intrinsicStats).join('、') || '无'}`,
-      `世界专属能力：${(req.worldAbilities || []).join('、') || '无'}`,
-      `技能：${(req.learnedAbilities || []).join('、') || '无'}`,
-      `知识储备：${(req.knowledgeAreas || []).join('、') || '无'}`,
-      req.reason ? `原因：${req.reason}` : '',
+      `韬唴鑳藉姏锛?{this.statLabels(req.intrinsicStats).join('銆?) || '鏃?}`,
+      `涓栫晫涓撳睘鑳藉姏锛?{(req.worldAbilities || []).join('銆?) || '鏃?}`,
+      `鎶€鑳斤細${(req.learnedAbilities || []).join('銆?) || '鏃?}`,
+      `鐭ヨ瘑鍌ㄥ锛?{(req.knowledgeAreas || []).join('銆?) || '鏃?}`,
+      req.reason ? `鍘熷洜锛?{req.reason}` : '',
     ].filter(Boolean).join('\n');
   },
 
   statLabels(keys = []) {
-    const map = { strength: '力量', agility: '敏捷', constitution: '体质', intelligence: '智力', perception: '感知', willpower: '意志', charisma: '魅力' };
+    const map = { strength: '鍔涢噺', agility: '鏁忔嵎', constitution: '浣撹川', intelligence: '鏅哄姏', perception: '鎰熺煡', willpower: '鎰忓織', charisma: '榄呭姏' };
     return (keys || []).map((key) => map[key] || key);
   },
 
@@ -108,19 +108,20 @@ window.GameModules.knownProfessionActions = {
     window.GameModules.rpgProfessionState.ensurePrerequisites(state, job);
     const result = this.professionExamResult(job);
     if (!result.pass) {
-      this.knownProfessionState.message = `考核未通过：缺少 ${[...result.missingStats, ...result.missingWorld, ...result.missingSkills, ...result.missingKnowledge].join('、')}`;
+      this.knownProfessionState.message = `鑰冩牳鏈€氳繃锛氱己灏?${[...result.missingStats, ...result.missingWorld, ...result.missingSkills, ...result.missingKnowledge].join('銆?)}`;
       return false;
     }
     const exists = (state.values.professions || []).some((item) => item.name === job.name);
-    if (!exists) state.values.professions = [...(state.values.professions || []), window.GameModules.progression.learned(job.name, '职业', 1, job.intrinsicStats || ['intelligence'], job.description || job.summary)];
+    if (!exists) state.values.professions = [...(state.values.professions || []), window.GameModules.progression.learned(job.name, '鑱屼笟', 1, job.intrinsicStats || ['intelligence'], job.description || job.summary)];
     const target = state.values.professions.find((item) => item.name === job.name);
     target.info = job;
     target.linkedStats = job.intrinsicStats || target.linkedStats;
     target.levelDescription = job.levelDescription || target.levelDescription;
     target.effect = job.effect || target.effect;
-    await window.GameModules.sqliteSave.saveCharacterState(state);
+    await window.GameModules.characterStateStore?.save?.(state);
     await window.GameModules.rpgLexicon.syncState(state);
-    this.knownProfessionState.message = `已获得职业：${job.name} lv.1`;
+    this.knownProfessionState.message = `宸茶幏寰楄亴涓氾細${job.name} lv.1`;
     return true;
   },
 };
+

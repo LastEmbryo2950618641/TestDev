@@ -1,20 +1,48 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 window.GameModules.taobaoBuyActions = {
+  taobaoPurchaseFailureMessage(err) {
+    return window.GameModules.taobaoDomainHelpers.taobaoPurchaseFailureMessage.call(this, err);
+  },
+
+  taobaoCanStartPurchase(item, buyingId = '') {
+    return window.GameModules.taobaoDomainHelpers.taobaoCanStartPurchase.call(this, item, buyingId);
+  },
+
+  taobaoHasEnoughFunds(money = 0, price = 0) {
+    return window.GameModules.taobaoDomainHelpers.taobaoHasEnoughFunds.call(this, money, price);
+  },
+  taobaoSelectedProduct(product = null) {
+    return window.GameModules.taobaoDomainHelpers.taobaoSelectedProduct.call(this, product);
+  },
+
+  taobaoNormalizedPrice(item = {}) {
+    return window.GameModules.taobaoDomainHelpers.taobaoNormalizedPrice.call(this, item);
+  },
+
+  taobaoInsufficientFundsMessage(money = 0, price = 0) {
+    return window.GameModules.taobaoDomainHelpers.taobaoInsufficientFundsMessage.call(this, money, price);
+  },
+
+  taobaoMissingInventoryStateMessage() {
+    return window.GameModules.taobaoDomainHelpers.taobaoMissingInventoryStateMessage.call(this);
+  },
+
+  taobaoPurchaseSuccessMessage(item = {}, updates = [], price = 0) {
+    return window.GameModules.taobaoDomainHelpers.taobaoPurchaseSuccessMessage.call(this, item, updates, price);
+  },
   taobaoProductBusyKey(item = {}) {
-    return item?.id || item?.name || 'buying';
+    return window.GameModules.taobaoDomainHelpers.taobaoProductBusyKey.call(this, item);
   },
 
   async buyTaobaoSlot(slotId) {
-    this.initTaobaoApp();
-    const slot = this.taobaoState.slots.find((item) => item.id === slotId);
-    await this.buyTaobaoProduct(slot?.product || null);
+    return window.GameModules.taobaoBuyFlow.buyTaobaoSlot.call(this, slotId);
   },
 
   async buyTaobaoProduct(product = null) {
     this.initTaobaoApp();
-    const item = product?.product || product || this.selectedTaobaoSlot()?.product;
-    if (!item || item.purchased || this.taobaoState.buyingId) return;
-    const price = Math.max(1, Math.floor(Number(item.price) || 1));
+    const item = window.GameModules.taobaoBuyFlow.resolveBuyProduct.call(this, product);
+    if (!window.GameModules.taobaoBuyFlow.canStartPurchase.call(this, item)) return;
+    const price = this.taobaoNormalizedPrice(item);
     item.price = price;
     const buyKey = this.taobaoProductBusyKey(item);
     this.taobaoState.buyingId = buyKey;
@@ -22,14 +50,14 @@ window.GameModules.taobaoBuyActions = {
     this.taobaoState.message = `正在购买${item.name}…`;
     try {
       const money = Number(this.playerProfile?.wealthAmount || 0);
-      if (money < price) {
-        this.taobaoState.error = `余额不足：当前财富${money.toLocaleString('zh-CN')}元，商品需${price.toLocaleString('zh-CN')}元。`;
+      if (!this.taobaoHasEnoughFunds(money, price)) {
+        this.taobaoState.error = this.taobaoInsufficientFundsMessage(money, price);
         this.taobaoState.message = '';
         return;
       }
-      const state = await this.ensurePlayerRpgState?.();
+      const state = await window.GameModules.taobaoBuyFlow.ensureBuyInventoryState.call(this);
       if (!state) {
-        this.taobaoState.error = '玩家背包尚未初始化，无法购买。';
+        this.taobaoState.error = this.taobaoMissingInventoryStateMessage();
         this.taobaoState.message = '';
         return;
       }
@@ -38,12 +66,12 @@ window.GameModules.taobaoBuyActions = {
       this.playerProfile.wealthAmount = money - price;
       window.GameModules.orgTerritoryActions?.syncPlayerWealthAsset?.(this);
       item.purchased = true;
-      this.taobaoState.message = `已购买${item.name}，${updates.length}件商品加入背包并扣除${price.toLocaleString('zh-CN')}元。`;
+      this.taobaoState.message = this.taobaoPurchaseSuccessMessage(item, updates, price);
       this.taobaoState.error = '';
       this.taobaoState.buyingId = '';
       await this.save?.();
     } catch (err) {
-      this.taobaoState.error = `购买失败：${err.message || '未知错误'}`;
+      this.taobaoState.error = this.taobaoPurchaseFailureMessage(err);
       console.error('[淘宝] 购买失败:', err.message, err.stack);
     } finally {
       this.taobaoState.buyingId = '';
@@ -51,32 +79,13 @@ window.GameModules.taobaoBuyActions = {
   },
 
   taobaoInventoryUpdates(item) {
-    const setItems = this.taobaoSetItems(item);
-    if (setItems.length) {
-      return setItems.map((part) => ({
-        kind: '装备',
-        name: part.name,
-        value: {
-          name: part.name,
-          description: `${part.description || item.description}（${item.name}套装，淘宝购入，店铺：${item.shop}）`,
-          equipSlots: [part.slot],
-          slot: part.slot,
-          price: Math.max(1, Math.floor(item.price / setItems.length)),
-        },
-        reason: '淘宝套装购买',
-      }));
-    }
-    return [{
-      kind: item.kind || '物品',
-      name: item.name,
-      value: {
-        name: item.name,
-        description: `${item.description}（淘宝购入，店铺：${item.shop}，价格：${item.price}元）`,
-        equipSlots: item.equipSlots,
-        slot: item.equipSlots?.[0] || '',
-        price: item.price,
-      },
-      reason: '淘宝购买',
-    }];
+    return window.GameModules.taobaoDomainHelpers.taobaoInventoryUpdates.call(this, item);
   },
 };
+
+
+
+
+
+
+

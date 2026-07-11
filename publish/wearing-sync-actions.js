@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 
 window.GameModules.wearingSyncActions = {
   async syncSolidifyWearing(cards = []) {
@@ -22,15 +22,15 @@ window.GameModules.wearingSyncActions = {
     const safe = String(name || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     if (!safe || !text.includes(name)) return '';
     const direct = [
-      new RegExp(`${safe}[^。！？]{0,40}?穿着([^。！？]{2,80})`, 'u'),
-      new RegExp(`${safe}[^。！？]{0,40}?一件([^。！？]{2,60})`, 'u'),
-      new RegExp(`${safe}[^。！？]{0,40}?身上([^。！？]{2,80})`, 'u'),
+      new RegExp(`${safe}[^銆傦紒锛焆{0,40}?绌跨潃([^銆傦紒锛焆{2,80})`, 'u'),
+      new RegExp(`${safe}[^銆傦紒锛焆{0,40}?涓€浠?[^銆傦紒锛焆{2,60})`, 'u'),
+      new RegExp(`${safe}[^銆傦紒锛焆{0,40}?韬笂([^銆傦紒锛焆{2,80})`, 'u'),
     ].map((rx) => text.match(rx)?.[1]).find(Boolean);
-    if (direct) return direct.replace(/，.*$/u, '').trim();
+    if (direct) return direct.replace(/锛?*$/u, '').trim();
     const at = text.indexOf(name);
     const after = at >= 0 ? text.slice(at, at + 260) : '';
-    const pronoun = after.match(/[她他其][^。！？]{0,30}?穿着([^。！？]{2,80})/u)?.[1];
-    return pronoun ? pronoun.replace(/，.*$/u, '').trim() : '';
+    const pronoun = after.match(/[濂逛粬鍏禲[^銆傦紒锛焆{0,30}?绌跨潃([^銆傦紒锛焆{2,80})/u)?.[1];
+    return pronoun ? pronoun.replace(/锛?*$/u, '').trim() : '';
   },
 
   async syncWearingForName(name = '', raw = '', card = {}) {
@@ -48,7 +48,8 @@ window.GameModules.wearingSyncActions = {
     }
     if (before === JSON.stringify(state.values.wearing || [])) return false;
     this.rpgStates = { ...(this.rpgStates || {}), [state.id]: state };
-    await window.GameModules.sqliteSave.saveCharacterState?.(state);
+    await window.GameModules.characterStateStore?.save?.(state);
     return true;
   },
 };
+

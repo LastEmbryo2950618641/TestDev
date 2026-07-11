@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 
 (() => {
   const ctx = window.GameModules.realWorldAgentContext;
@@ -165,7 +165,11 @@ window.GameModules = window.GameModules || {};
     },
 
     locationFactsText(map) {
-      return (map.nodes || []).map((node) => `${node.name}：${(node.descriptionFacts || []).map((fact, i) => window.GameModules.realWorldMapFacts.formatFact(fact, i)).join('') || node.description || '暂无说明'}`).join('\n') || '暂无地点说明。';
+      return (map.nodes || []).map((node) => {
+        const infoFacts = window.GameModules.realWorldMapFacts?.normalizeFacts?.(node, node.description, '') || [];
+        const factsText = infoFacts.map((fact, index) => window.GameModules.ui.realWorld.mapInfoViewHelpers.factText.call(this, fact, index)).filter(Boolean).join('') || node.description || '暂无说明';
+        return `${node.name}：${factsText}`;
+      }).join('\\n') || '暂无地点说明。';
     },
 
     validateLocationFill(raw = {}) {

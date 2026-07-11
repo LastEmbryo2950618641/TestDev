@@ -1,4 +1,4 @@
-window.GameScriptManifest = {
+﻿window.GameScriptManifest = {
   "version": "2026-07-10-shared-control-offline-v1",
   "chunks": {
     "core": [
@@ -42,6 +42,9 @@ window.GameScriptManifest = {
       "json-utils.js",
       "local-settings.js",
       "platform-key-source.js",
+      "platform/browser-core.js",
+      "platform/storage/local-settings-source.js",
+      "platform/storage/sqlite-slot-source.js",
       "ui-theme-actions.js",
       "worldline-plots.js",
       "progression.js",
@@ -107,6 +110,20 @@ window.GameScriptManifest = {
       "local-settings.js",
       "platform-key-source.js",
       "catalog-actions.js",
+      "ui/company/company-pay-view-helpers.js",
+      "ui/company/company-field-view-helpers.js",
+      "ui/company/company-attendance-view-helpers.js",
+      "ui/company/view-helpers.js",
+      "ui/taobao/view-helpers.js",
+      "domain/taobao/filter-helpers.js",
+      "app/taobao/generate-flow.js",
+      "app/taobao/buy-flow.js",
+      "ui/real-world/log-view-helpers.js",
+      "ui/real-world/panel-view-helpers.js",
+      "ui/real-world/map-info-view-helpers.js",
+      "ui/real-world/map-control-view-helpers.js",
+      "ui/real-world/map-interior-view-helpers.js",
+      "ui/real-world/map-view-helpers.js",
       "settings-actions.js",
       "system-test-actions.js",
       "ai.js",
@@ -234,6 +251,8 @@ window.GameScriptManifest = {
       "prompts/picture_generate/wechat-album-photo.js",
       "wechat-cleanup.js",
       "wechat-actions.js",
+      "ui/wechat/view-helpers.js",
+      "domain/wechat/change-panel-helpers.js",
       "wechat-view-actions.js",
       "wechat-memory-context-actions.js",
       "wechat-chat-actions.js",
@@ -264,6 +283,7 @@ window.GameScriptManifest = {
       "calendar-system.js",
       "calendar-actions.js",
       "event-system.js",
+      "ui/event/view-helpers.js",
       "event-actions.js",
       "faction-system.js",
       "faction-archive.js",
@@ -317,3 +337,7 @@ window.GameScriptManifest.classify = function classify(url) {
   if (/^real-world-|^org-territory|^inference\/|^story-agent-context\.js$|^assets\/data\/real-world|^game-premise\.js$|^update\/(territory|org-|membership|character-schedule|org-status)/.test(p)) return 'gameplay';
   return 'core';
 };
+
+
+
+

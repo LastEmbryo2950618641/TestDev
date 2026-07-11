@@ -1,4 +1,4 @@
-/**
+﻿/**
 
  * 电子地图迷雾：已访问建筑物 + 其一圈邻域可见；首次抵达且无同级邻点时 AI 解锁周围。
 
@@ -355,7 +355,8 @@ window.GameModules.realWorldMapFog = {
 
     return (map.nodes || []).filter((node) => node.revealed && mapMod.isMapDisplayNode(node, map)).map((node) => {
 
-      const facts = (node.descriptionFacts || []).map((fact, index) => window.GameModules.realWorldMapFacts.formatFact(fact, index)).join('');
+      const infoFacts = window.GameModules.realWorldMapFacts?.normalizeFacts?.(node, node.description, '') || [];
+      const facts = infoFacts.map((fact, index) => window.GameModules.ui.realWorld.mapInfoViewHelpers.factText.call(this, fact, index)).filter(Boolean).join('');
 
       return `${node.name}：${facts || node.description || '暂无说明'}`;
 

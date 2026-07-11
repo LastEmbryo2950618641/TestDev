@@ -7,19 +7,19 @@ window.GameModules.storage = {
   slots: Array.from({ length: 10 }, (_, index) => `slot-${index + 1}`),
 
   async open(slot, options = {}) {
-    await window.GameModules.sqliteSave.open(slot, options);
+    await window.GameModules.platform.storage.backend.open(slot, options);
   },
 
   async put(value) {
-    await window.GameModules.sqliteSave.saveGameState(value);
+    await window.GameModules.platform.storage.backend.put(value);
   },
 
   async get() {
-    return window.GameModules.sqliteSave.loadGameState();
+    return window.GameModules.platform.storage.backend.get();
   },
 
   async remove(slot) {
-    await window.GameModules.sqliteSave.deleteSlot(slot || window.GameModules.sqliteSave.activeSlot);
+    await window.GameModules.platform.storage.backend.remove(slot);
   },
 
   snapshotPlainValue(value, seen = new WeakSet()) {
@@ -159,142 +159,22 @@ window.GameModules.storage = {
 
   restore(store, save) {
     if (!save) return false;
-    store.phoneSetupDone = save.phoneSetupDone ?? store.phoneSetupDone;
-    store.phoneFixedTime = Number(save.phoneFixedTime) || new Date(save.playerProfile?.initializedAt || Date.now()).getTime();
-    store.refreshPhoneClockLabels?.();
-    store.playerProfile = { ...store.playerProfile, ...(save.playerProfile || {}) };
-    store.playerAspiration = save.playerAspiration || null;
-    store.playerName = save.playerName || store.playerProfile?.name || store.playerName;
-    if (save.roleCardSetup && store.roleCardSetup) {
-      store.roleCardSetup = {
-        ...store.roleCardSetup,
-        usePredefinedPlayerCard: Boolean(save.roleCardSetup.usePredefinedPlayerCard),
-        selectedPlayerName: save.roleCardSetup.selectedPlayerName || store.roleCardSetup.selectedPlayerName,
-        selectedRelationNames: Array.isArray(save.roleCardSetup.selectedRelationNames) ? save.roleCardSetup.selectedRelationNames : store.roleCardSetup.selectedRelationNames,
-        relationRoles: save.roleCardSetup.relationRoles && typeof save.roleCardSetup.relationRoles === 'object' ? save.roleCardSetup.relationRoles : store.roleCardSetup.relationRoles,
-      };
-    }
-    store.wechatUsers = Array.isArray(save.wechatUsers) ? save.wechatUsers : (store.wechatUsers || []);
-    store.wechatMessagesByContact = save.wechatMessagesByContact && typeof save.wechatMessagesByContact === 'object' ? save.wechatMessagesByContact : (store.wechatMessagesByContact || {});
-    store.wechatAlbumPhotos = save.wechatAlbumPhotos && typeof save.wechatAlbumPhotos === 'object' ? save.wechatAlbumPhotos : (store.wechatAlbumPhotos || {});
-    store.wechatAlbumPrompts = save.wechatAlbumPrompts && typeof save.wechatAlbumPrompts === 'object' ? save.wechatAlbumPrompts : (store.wechatAlbumPrompts || {});
-    store.bodyFigureMaskState = save.bodyFigureMaskState && typeof save.bodyFigureMaskState === 'object'
-      ? {
-        natural: Boolean(save.bodyFigureMaskState.natural),
-        dressed: Boolean(save.bodyFigureMaskState.dressed),
-      }
-      : { ...(store.bodyFigureMaskState || { natural: false, dressed: false }) };
-    if (save.settingsState && store.settingsState) {
-      const keepKey = String(store.settingsState.deepseekApiKey || '').trim();
-      const keepPixaiKey = String(store.settingsState.pixaiApiKey || '').trim();
-      store.settingsState = { ...store.settingsState, ...save.settingsState, open: false, loading: false, error: '' };
-      if (!String(store.settingsState.deepseekApiKey || '').trim() && keepKey) {
-        store.settingsState.deepseekApiKey = keepKey;
-      }
-      if (!String(store.settingsState.pixaiApiKey || '').trim() && keepPixaiKey) {
-        store.settingsState.pixaiApiKey = keepPixaiKey;
-      }
-      store.settingsState.stage1MaterialIterationLimited = Boolean(store.settingsState.stage1MaterialIterationLimited);
-      store.settingsState.stage1MaterialMaxIterations = Math.max(1, Math.min(8, Math.round(Number(store.settingsState.stage1MaterialMaxIterations) || 2)));
-      store.settingsState.textProvider = store.settingsState.textProvider || 'deepseek';
-      store.settingsState.deepseekBaseUrl = store.settingsState.deepseekBaseUrl || 'https://api.deepseek.com';
-      store.settingsState.drawProvider = store.settingsState.drawProvider || 'pixai';
-      store.settingsState.drawModelId = store.settingsState.drawModelId || 'anime';
-      store.settingsState.pixaiBaseUrl = store.settingsState.pixaiBaseUrl || 'https://api.pixai.art';
-      store.settingsState.pixaiModelVersionId = store.settingsState.pixaiModelVersionId || window.GameModules.config?.drawProviders?.pixai?.defaultModel || '1983308862240288769';
-      store.settingsState.pixaiMode = store.settingsState.pixaiMode || 'standard';
-      store.ensureAiOutputLimitSettings?.();
-      store.modelId = store.settingsState.textModelId || store.modelId;
-      window.GameModules.localSettings?.ensureActivationTextModels?.(store);
-    }
-    if (store.controlExperienceConfigState) {
-      const normalizedControlExperience = window.GameModules.controlExperienceConfig?.normalize?.(save.controlExperienceConfig)
-        || window.GameModules.controlExperienceConfig?.normalizeConfig?.(save.controlExperienceConfig)
-        || {
-          enabled: save.controlExperienceConfig?.enabled !== false,
-          masterPrompt: save.controlExperienceConfig?.masterPrompt || store.controlExperienceConfigState.masterPrompt || '',
-        };
-      store.controlExperienceConfigState = {
-        ...(window.GameModules.controlExperienceConfigApp?.normalizeControlExperienceConfigState?.(store.controlExperienceConfigState)
-          || store.controlExperienceConfigState),
-        ...normalizedControlExperience,
-        open: false,
-        message: '',
-        error: '',
-      };
-      store.controlExperienceConfigState.previewItems = window.GameModules.controlExperienceConfigApp?.controlExperiencePreviewItems?.(store.controlExperienceConfigState) || [];
-    }
-    window.GameModules.runtimeConfig?.applyToStore?.(store);
-    store.realWorldThinkMode = Boolean(save.realWorldThinkMode ?? store.realWorldThinkMode);
-    store.realWorldSceneTitle = save.realWorldSceneTitle || store.realWorldSceneTitle;
-    store.realWorldLocationName = save.realWorldLocationName || store.realWorldLocationName;
-    store.realWorldMap = save.realWorldMap || store.realWorldMap;
-    window.GameModules.realWorldMap?.ensure?.(store, store.playerProfile || {});
-    store.realWorldQuest = save.realWorldQuest || store.realWorldQuest;
-    store.realWorldStatus = save.realWorldStatus || store.realWorldStatus;
-    store.realWorldChoices = save.realWorldChoices || store.realWorldChoices;
-    store.realWorldLog = window.GameModules.realWorldThinkingActions?.normalizeRealWorldLog?.(save.realWorldLog || store.realWorldLog) || (save.realWorldLog || store.realWorldLog);
-    store.realWorldLongingEvents = Array.isArray(save.realWorldLongingEvents) ? save.realWorldLongingEvents : (store.realWorldLongingEvents || []);
-    window.GameModules.sqliteSave.saveRealWorldLogEntries?.(store.realWorldLog).catch((err) => console.warn('[现实日志] 旧日志迁移失败:', err.message, err.stack));
-    store.realWorldlineState = save.realWorldlineState || store.realWorldlineState || { events: [], plots: [], pendingPlot: null };
-    store.realWorldSystemRecords = Array.isArray(save.realWorldSystemRecords) ? save.realWorldSystemRecords : (store.realWorldSystemRecords || []);
-    store.realWorldAgentKvByMode = save.realWorldAgentKvByMode && typeof save.realWorldAgentKvByMode === 'object'
-      ? save.realWorldAgentKvByMode
-      : (store.realWorldAgentKvByMode || {});
-    store.characterSchedules = save.characterSchedules && typeof save.characterSchedules === 'object'
-      ? save.characterSchedules
-      : (store.characterSchedules || {});
-    store.orgTerritoryReconciliationLog = Array.isArray(save.orgTerritoryReconciliationLog)
-      ? save.orgTerritoryReconciliationLog.slice(-30)
-      : (store.orgTerritoryReconciliationLog || []);
-    if (save.orgTerritoryConsistency) {
-      store.orgTerritoryConsistency = {
-        ...(store.orgTerritoryConsistency || {}),
-        dismissed: Boolean(save.orgTerritoryConsistency.dismissed),
-        at: save.orgTerritoryConsistency.at || '',
-        signature: String(save.orgTerritoryConsistency.signature || '').slice(0, 4000),
-      };
-    }
-    window.GameModules.wechatCleanup?.run?.(store);
-    store.companyState = save.companyState ? { ...save.companyState, open: false } : store.companyState;
-    store.bossState = save.bossState ? { ...save.bossState, open: false, companyDetailOpen: false, generating: false } : store.bossState;
-    store.calendarState = save.calendarState ? { ...save.calendarState, open: false } : store.calendarState;
-    store.eventState = save.eventState ? { ...save.eventState, open: false, message: '' } : store.eventState;
-    store.initEventSystem?.();
-    store.factionState = save.factionState ? { ...save.factionState, open: false, detailOpen: false, generating: false, archives: save.factionState.archives || save.factionArchives || {} } : store.factionState;
-    store.initFactionSystem?.();
-    window.GameModules.orgTerritory?.validateWorldConsistency?.(store);
-    store.taobaoState = save.taobaoState ? { ...store.taobaoState, ...save.taobaoState, open: false, generatingId: '', buyingId: '' } : store.taobaoState;
-    store.solidifyState = save.solidifyState ? { ...store.solidifyState, ...save.solidifyState, open: false } : store.solidifyState;
-    store.initTaobaoApp?.();
+    window.GameModules.domain.storage.restoreStateHelpers.normalizePlayerIdentityState(store, save);
+    window.GameModules.domain.storage.restoreStateHelpers.normalizeWechatProfileState(store, save);
+    window.GameModules.domain.storage.restoreStateHelpers.normalizeSettingsState(store, save);
+    window.GameModules.domain.storage.restoreStateHelpers.normalizeControlExperienceConfigState(store, save);
+    window.GameModules.domain.storage.restoreStateHelpers.normalizeRealWorldState(store, save);
+    window.GameModules.app.storage.restorePostFlow.applyNonFieldSideEffects.call(this, store);
+    window.GameModules.domain.storage.restoreStateHelpers.normalizeAppPanelState(store, save);
     if (!save.started) return false;
-    store.selectedWork = save.selectedWork || store.selectedWork;
-    store.selectedCharacterId = save.selectedCharacterId || store.selectedCharacterId;
-    store.characterAge = save.characterAge || store.characterAge;
-    store.entryTime = save.entryTime || store.entryTime;
-    store.entryCalendar = save.entryCalendar || store.entryCalendar;
-    store.entryCurrentAction = save.entryCurrentAction || store.entryCurrentAction;
-    store.controlMode = save.controlMode || store.controlMode;
-    store.online = save.online ?? store.online;
-    store.turn = save.turn || 1;
-    store.sceneTitle = save.sceneTitle || store.sceneTitle;
-    store.mood = save.mood || store.mood;
-    store.trust = save.trust ?? store.trust;
-    store.resistance = save.resistance ?? store.resistance;
-    store.emotions = save.emotions || store.emotions;
-    store.playerFeelings = save.playerFeelings || store.playerFeelings;
-    store.temporaryEmotions = save.temporaryEmotions && typeof save.temporaryEmotions === 'object' ? save.temporaryEmotions : (store.temporaryEmotions || {});
-    store.temporaryPlayerFeelings = save.temporaryPlayerFeelings && typeof save.temporaryPlayerFeelings === 'object' ? save.temporaryPlayerFeelings : (store.temporaryPlayerFeelings || {});
-    store.metricsReady = save.metricsReady ?? true;
-    store.metricNotes = save.metricNotes || store.metricNotes;
+    window.GameModules.domain.storage.restoreStateHelpers.normalizeEntrySceneControlState(store, save);
+    window.GameModules.domain.storage.restoreStateHelpers.normalizeEmotionState(store, save);
+    window.GameModules.domain.storage.restoreStateHelpers.normalizeMetricState(store, save);
     window.GameModules.metrics.ensure(store);
-    store.quest = save.quest || store.quest;
-    store.mindText = save.mindText || store.mindText;
-    store.feedbackSource = save.feedbackSource || store.feedbackSource || 'fallback';
-    store.characterIntent = save.characterIntent || store.characterIntent;
+    window.GameModules.domain.storage.restoreStateHelpers.normalizeQuestIntentState(store, save);
     store.choices = save.choices || store.choices;
     store.log = save.log || store.log;
-    store.rpgPanelCharacterId = save.rpgPanelCharacterId || store.selectedCharacterId;
+    window.GameModules.domain.storage.restoreStateHelpers.normalizeRpgPanelState(store, save);
     store.started = true;
     return true;
   },

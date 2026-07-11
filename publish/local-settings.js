@@ -7,26 +7,19 @@ window.GameModules.localSettings = {
   STORAGE_KEY: 'gamefy-local-settings-v1',
 
   readStored() {
-    try {
-      const raw = localStorage.getItem(this.STORAGE_KEY);
-      return raw ? JSON.parse(raw) : {};
-    } catch (_) {
-      return {};
-    }
+    return window.GameModules.platform.core.storage.localSettingsSource.read(this.STORAGE_KEY);
   },
 
   writeStored(patch = {}) {
-    try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify({ ...this.readStored(), ...patch }));
-    } catch (_) { /* ignore quota / privacy mode */ }
+    window.GameModules.platform.core.storage.localSettingsSource.write(this.STORAGE_KEY, patch);
   },
 
   async fetchDeepseekKeyFromDevFile() {
-    return window.GameModules.platformKeySource?.readDeepseekKey?.() || '';
+    return window.GameModules.platform?.core?.keys?.readDeepseekKey?.() || window.GameModules.platformKeySource?.readDeepseekKey?.() || '';
   },
 
   async fetchPixaiKeyFromDevFile() {
-    return window.GameModules.platformKeySource?.readPixaiKey?.() || '';
+    return window.GameModules.platform?.core?.keys?.readPixaiKey?.() || window.GameModules.platformKeySource?.readPixaiKey?.() || '';
   },
 
   ensureSettingsDefaults(store) {

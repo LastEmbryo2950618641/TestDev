@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldClockActions = {
   runAfterRealWorldPaint(callback) {
@@ -48,8 +48,8 @@ window.GameModules.realWorldClockActions = {
 
   phoneDateText() {
     const d = this.phoneDate();
-    const week = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][d.getDay()];
-    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${week}`;
+    const week = ['鍛ㄦ棩', '鍛ㄤ竴', '鍛ㄤ簩', '鍛ㄤ笁', '鍛ㄥ洓', '鍛ㄤ簲', '鍛ㄥ叚'][d.getDay()];
+    return `${d.getFullYear()}骞?{d.getMonth() + 1}鏈?{d.getDate()}鏃?${week}`;
   },
 
   openRealWorldPanel() {
@@ -59,11 +59,11 @@ window.GameModules.realWorldClockActions = {
     this.checkWorkReminder?.();
     this.runAfterRealWorldPaint?.(() => {
       const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
-      window.GameModules.sqliteSave.saveRealWorldLogEntries?.(this.realWorldLog).then(() => this.refreshRealWorldLogPage?.(999999)).catch((err) => console.warn('[现实日志] 分页刷新失败:', err.message, err.stack));
+      window.GameModules.realWorldLogStore?.saveAll?.(this.realWorldLog).then(() => this.refreshRealWorldLogPage?.(999999)).catch((err) => console.warn('[鐜板疄鏃ュ織] 鍒嗛〉鍒锋柊澶辫触:', err.message, err.stack));
       this.refreshRealWorldLogPage?.(999999);
       if (!this.realWorldLog.length) {
         if (map.current) this.seedRealWorldLog();
-        else this.submitRealWorldAction('根据我的现实资料确认当前所在的具体地点，并建立电子地图根节点');
+        else this.submitRealWorldAction('鏍规嵁鎴戠殑鐜板疄璧勬枡纭褰撳墠鎵€鍦ㄧ殑鍏蜂綋鍦扮偣锛屽苟寤虹珛鐢靛瓙鍦板浘鏍硅妭鐐?);
       }
     });
   },
@@ -100,9 +100,9 @@ window.GameModules.realWorldClockActions = {
 
   realWorldFunctionTitle() {
     if (this.realWorldFunctionView === 'layouts' && this.realWorldLayoutCatalogTemplateId) {
-      return this.realWorldLayoutCatalogSelected()?.name || '户型预览';
+      return this.realWorldLayoutCatalogSelected()?.name || '鎴峰瀷棰勮';
     }
-    return { inventory: '背包', wearing: '穿着', map: '电子地图', generation: 'AI生成范围', layouts: '户型介绍' }[this.realWorldFunctionView] || '现实功能';
+    return { inventory: '鑳屽寘', wearing: '绌跨潃', map: '鐢靛瓙鍦板浘', generation: 'AI鐢熸垚鑼冨洿', layouts: '鎴峰瀷浠嬬粛' }[this.realWorldFunctionView] || '鐜板疄鍔熻兘';
   },
   realWorldFunctionEyebrow() {
     if (this.realWorldFunctionView === 'layouts' && this.realWorldLayoutCatalogTemplateId) return 'LAYOUT PREVIEW';
@@ -110,15 +110,15 @@ window.GameModules.realWorldClockActions = {
   },
   realWorldFunctionHint() {
     if (this.realWorldFunctionView === 'layouts' && this.realWorldLayoutCatalogTemplateId) {
-      return String(this.realWorldLayoutCatalogSelected()?.desc || '预置 Canvas 户型示意，AI 解锁地图时可选用。');
+      return String(this.realWorldLayoutCatalogSelected()?.desc || '棰勭疆 Canvas 鎴峰瀷绀烘剰锛孉I 瑙ｉ攣鍦板浘鏃跺彲閫夌敤銆?);
     }
     return {
-      inventory: '查看玩家本人当前持有或可调用的装备与物品。',
-      wearing: '查看内衣、上衣、下衣、鞋子、饰品和装备槽位等当前穿戴。',
-      map: '查看当前现实地点树，展开子地点或查看地点说明。',
-      generation: '设置现实推演的行动边界、自由发挥或字数要求。',
-      layouts: '浏览全部预置户型模板，点击查看 Canvas 布局示意。',
-    }[this.realWorldFunctionView] || '选择现实世界中要执行的功能。';
+      inventory: '鏌ョ湅鐜╁鏈汉褰撳墠鎸佹湁鎴栧彲璋冪敤鐨勮澶囦笌鐗╁搧銆?,
+      wearing: '鏌ョ湅鍐呰。銆佷笂琛ｃ€佷笅琛ｃ€侀瀷瀛愩€侀グ鍝佸拰瑁呭妲戒綅绛夊綋鍓嶇┛鎴淬€?,
+      map: '鏌ョ湅褰撳墠鐜板疄鍦扮偣鏍戯紝灞曞紑瀛愬湴鐐规垨鏌ョ湅鍦扮偣璇存槑銆?,
+      generation: '璁剧疆鐜板疄鎺ㄦ紨鐨勮鍔ㄨ竟鐣屻€佽嚜鐢卞彂鎸ユ垨瀛楁暟瑕佹眰銆?,
+      layouts: '娴忚鍏ㄩ儴棰勭疆鎴峰瀷妯℃澘锛岀偣鍑绘煡鐪?Canvas 甯冨眬绀烘剰銆?,
+    }[this.realWorldFunctionView] || '閫夋嫨鐜板疄涓栫晫涓鎵ц鐨勫姛鑳姐€?;
   },
 
   seedRealWorldLog() {
@@ -127,11 +127,14 @@ window.GameModules.realWorldClockActions = {
     const now = this.phoneDate();
     const entry = {
       id: this.nextId++, type: 'system', locationName: map.current, time: { label: `${this.phoneDateText()} ${this.phoneTimeText()}`, iso: now.toISOString() }, createdAt: now.toISOString(),
-      narration: '你把手机屏幕压暗，现实世界的声音重新浮上来。熟悉的空间仍保持着原本的秩序，但那台新手机带来的异常感并没有消失。',
-      thinking: '现实世界推演已接入玩家本人资料，只追踪手机外的现实行动。',
+      narration: '浣犳妸鎵嬫満灞忓箷鍘嬫殫锛岀幇瀹炰笘鐣岀殑澹伴煶閲嶆柊娴笂鏉ャ€傜啛鎮夌殑绌洪棿浠嶄繚鎸佺潃鍘熸湰鐨勭З搴忥紝浣嗛偅鍙版柊鎵嬫満甯︽潵鐨勫紓甯告劅骞舵病鏈夋秷澶便€?,
+      thinking: '鐜板疄涓栫晫鎺ㄦ紨宸叉帴鍏ョ帺瀹舵湰浜鸿祫鏂欙紝鍙拷韪墜鏈哄鐨勭幇瀹炶鍔ㄣ€?,
     };
     this.assignRealWorldlineEntry(entry);
     this.realWorldLog = [entry];
-    window.GameModules.sqliteSave.saveRealWorldLogEntry?.(entry).then(() => this.refreshRealWorldLogPage?.(999999)).catch((err) => console.warn('[现实日志] 初始记录保存失败:', err.message, err.stack));
+    window.GameModules.realWorldLogStore?.append?.(entry).then(() => this.refreshRealWorldLogPage?.(999999)).catch((err) => console.warn('[鐜板疄鏃ュ織] 鍒濆璁板綍淇濆瓨澶辫触:', err.message, err.stack));
   },
 };
+
+
+

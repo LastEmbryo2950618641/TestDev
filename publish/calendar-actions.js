@@ -97,4 +97,6 @@ window.GameModules.calendarActions = {
     const d = new Date(value);
     return Number.isNaN(d.getTime()) ? '时间待确认' : d.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
   },
+
+  calendarPanelView() { return window.GameModules.ui.calendar.viewHelpers.panelView.call(this); },
 };

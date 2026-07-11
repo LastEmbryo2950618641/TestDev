@@ -97,44 +97,24 @@ function registerGameStore() {
     infoNodeId: '',
   };
   const criticalActionFallback = {
-    metricGroups(state = null) {
-      if (!state || state.id === this.character?.id) {
-        window.GameModules.metrics.ensure(this);
-        return [
-          { title: '情绪', type: 'emotion', values: this.emotions, ready: this.metricsReady },
-          { title: '感觉', type: 'player', values: this.playerFeelings, ready: this.metricsReady },
-          { title: '临时情绪', type: 'emotion:temporary', values: this.temporaryEmotions || {}, ready: this.metricsReady },
-          { title: '临时感觉', type: 'player:temporary', values: this.temporaryPlayerFeelings || {}, ready: this.metricsReady },
-        ];
-      }
-      const metrics = this.ensureStateMetrics ? this.ensureStateMetrics(state) : (state.metrics || {});
-      return [
-        { title: '情绪', type: 'emotion', values: metrics.emotions || {}, ready: true },
-        { title: '感觉', type: 'player', values: metrics.playerFeelings || {}, ready: true },
-        { title: '临时情绪', type: 'emotion:temporary', values: metrics.temporaryEmotions || {}, ready: true },
-        { title: '临时感觉', type: 'player:temporary', values: metrics.temporaryPlayerFeelings || {}, ready: true },
-      ];
-    },
-    metricEntries(group = {}) { return Object.entries(group.values || {}).map(([key, value]) => ({ key, value, text: this.metricValueText ? this.metricValueText(value, group.ready) : value })); },
-    metricValueText(value, ready = this.metricsReady) { return ready && Number.isFinite(Number(value)) ? value : '--'; },
-    metricCollapsedItems() {
-      window.GameModules.metrics.ensure(this);
-      return window.GameModules.metrics.emotionKeys.map((key) => ({ key, value: this.emotions[key], text: this.metricValueText(this.emotions[key]) })).slice(0, Math.max(1, this.metricSummaryLimit || 3));
-    },
-    installMetricSummaryObserver() {},
-    toggleMetric(type, key) { const id = `${type}:${key}`; this.expandedMetricKey = this.expandedMetricKey === id ? '' : id; },
-    isMetricOpen(type, key) { return this.expandedMetricKey === `${type}:${key}`; },
-    metricNote(type, key) { return window.GameModules.metrics?.descriptions?.[key] || key; },
-    loreNames(list, key) { return (Array.isArray(list) ? list : []).map((item) => item?.[key] || '').filter(Boolean).join('、') || '无'; },
+    metricGroups(state = null) { return window.GameModules.ui.criticalAction.metricViewHelpers.metricGroups.call(this, state); },
+    metricEntries(group = {}) { return window.GameModules.ui.criticalAction.metricViewHelpers.metricEntries.call(this, group); },
+    metricValueText(value, ready = this.metricsReady) { return window.GameModules.ui.criticalAction.metricViewHelpers.metricValueText.call(this, value, ready); },
+    metricCollapsedItems() { return window.GameModules.ui.criticalAction.metricViewHelpers.metricCollapsedItems.call(this); },
+    installMetricSummaryObserver() { return window.GameModules.ui.criticalAction.metricViewHelpers.installMetricSummaryObserver.call(this); },
+    toggleMetric(type, key) { return window.GameModules.ui.criticalAction.metricViewHelpers.toggleMetric.call(this, type, key); },
+    isMetricOpen(type, key) { return window.GameModules.ui.criticalAction.metricViewHelpers.isMetricOpen.call(this, type, key); },
+    metricNote(type, key) { return window.GameModules.ui.criticalAction.metricViewHelpers.metricNote.call(this, type, key); },
+    loreNames(list, key) { return window.GameModules.ui.criticalAction.metricViewHelpers.loreNames.call(this, list, key); },
     async searchLore() {},
     refreshRagContext() {},
     addNovelEntry() { return 0; },
-    promptDialogText() { const pack = this.promptDialogEntry?.promptPack || {}; return this.promptDialogTab === 'user' ? pack.userPrompt : pack.systemPrompt; },
-    feedbackText() { return this.feedbackSource === 'ai' ? (this.mindText || '--') : '--'; },
-    feedbackPlan() { return this.feedbackSource === 'ai' ? (this.characterIntent || '--') : '--'; },
-    feedbackSourceText() { return this.feedbackSource === 'ai' ? 'AI生成' : '本地兜底'; },
-    feedbackSummary() { const text = this.feedbackText(); return `【${this.feedbackSourceText()}】${text.length > 18 ? `${text.slice(0, 18)}…` : text} / ${this.feedbackPlan()}`; },
-    novelLogEntries() { return (this.log || []).filter((entry) => entry.kind === 'novel'); },
+    promptDialogText() { return window.GameModules.ui.criticalAction.metricViewHelpers.promptDialogText.call(this); },
+    feedbackText() { return window.GameModules.ui.criticalAction.metricViewHelpers.feedbackText.call(this); },
+    feedbackPlan() { return window.GameModules.ui.criticalAction.metricViewHelpers.feedbackPlan.call(this); },
+    feedbackSourceText() { return window.GameModules.ui.criticalAction.metricViewHelpers.feedbackSourceText.call(this); },
+    feedbackSummary() { return window.GameModules.ui.criticalAction.metricViewHelpers.feedbackSummary.call(this); },
+    novelLogEntries() { return window.GameModules.ui.criticalAction.metricViewHelpers.novelLogEntries.call(this); },
     tokenPromptList() { return []; },
     tokenPromptCategories() { return []; },
     tokenCategoryLabel() { return '全部分类'; },
@@ -179,15 +159,10 @@ function registerGameStore() {
     realWorldAvailableMatters() { return []; },
     activeRealWorldMatter() { return null; },
     realWorldMatterText() { return '事项资料加载中'; },
-    realWorldChoiceIcon() { return '✦'; },
-    realWorldEntryIcon(entry = {}) { return entry?.type === 'user' ? '🧍' : (entry?.transientError ? '⚠️' : '📜'); },
-    realWorldStatusIcon(text = '') {
-      const value = String(text || '');
-      if (/目标|任务/u.test(value)) return '🎯';
-      if (/地点|位置|现实/u.test(value)) return '🗺️';
-      return '✧';
-    },
-    realWorldMatterButtonText() { return this.activeRealWorldMatter?.() ? '📌 事项：进行中' : '📌 事项'; },
+    realWorldChoiceIcon() { return window.GameModules.ui.realWorld.panelViewHelpers.choiceIcon.call(this); },
+    realWorldEntryIcon(entry = {}) { return window.GameModules.ui.realWorld.panelViewHelpers.entryIcon.call(this, entry); },
+    realWorldStatusIcon(text = '') { return window.GameModules.ui.realWorld.panelViewHelpers.statusIcon.call(this, text); },
+    realWorldMatterButtonText() { return window.GameModules.ui.realWorld.panelViewHelpers.matterButtonText.call(this); },
     openRealWorldPanel() { this.realWorldOpen = true; },
     closeRealWorldPanel() {
       this.realWorldOpen = false;
@@ -206,42 +181,11 @@ function registerGameStore() {
       this.realWorldOpen = false;
       this.schedulePhoneWarmup?.();
     },
-    realWorldFunctionEyebrow() { return 'FUNCTION'; },
-    realWorldFunctionTitle() { return '功能面板'; },
-    realWorldFunctionHint() { return '相关模块加载完成后可用。'; },
+    realWorldFunctionEyebrow() { return window.GameModules.ui.realWorld.panelViewHelpers.functionEyebrow.call(this); },
+    realWorldFunctionTitle() { return window.GameModules.ui.realWorld.panelViewHelpers.functionTitle.call(this); },
+    realWorldFunctionHint() { return window.GameModules.ui.realWorld.panelViewHelpers.functionHint.call(this); },
     realWorldMapRows() { return []; },
-    realWorldDisplayLog(log = this.realWorldLog || []) {
-      const rows = Array.isArray(log) ? log : [];
-      const result = [];
-      let activeActionText = '';
-      let activeActionPending = false;
-      rows.forEach((entry) => {
-        if (entry?.type === 'user') {
-          const text = String(entry.text || entry.playerText || entry.actionText || '').trim();
-          const prev = result[result.length - 1];
-          const prevText = String(prev?.text || prev?.playerText || prev?.actionText || '').trim();
-          if (prev?.type === 'user' && text && text === prevText) return;
-          if (activeActionPending && text && text === activeActionText) return;
-          activeActionText = text;
-          activeActionPending = Boolean(text);
-          result.push(entry);
-          return;
-        }
-        if (entry?.transientError) {
-          const text = String(entry.narration || entry.statusText || entry.text || '').trim();
-          const prev = result[result.length - 1];
-          const prevText = String(prev?.narration || prev?.statusText || prev?.text || '').trim();
-          if (prev?.transientError && text && text === prevText) return;
-          activeActionPending = Boolean(activeActionText);
-          result.push(entry);
-          return;
-        }
-        activeActionText = '';
-        activeActionPending = false;
-        result.push(entry);
-      });
-      return result;
-    },
+    realWorldDisplayLog(log = this.realWorldLog || []) { return window.GameModules.ui.realWorld.logViewHelpers.displayLog.call(this, log); },
     realWorldMapStageStyle() { return ''; },
     realWorldMapHasGraphNodes() { return false; },
     renderRealWorldMapGraph() {},
@@ -278,15 +222,12 @@ function registerGameStore() {
       const size = Math.max(1, Number(this.realWorldLogPageSize || 12));
       return Math.max(1, Math.ceil(total / size));
     },
-    realWorldLogPageLabel() {
-      const total = Math.max(0, Number(this.realWorldLogTotal || this.realWorldLog?.length || 0));
-      return `第 ${this.realWorldLogPage || 1} / ${this.realWorldLogMaxPage()} 页，共 ${total} 条`;
-    },
+    realWorldLogPageLabel() { return window.GameModules.ui.realWorld.logViewHelpers.logPageLabel.call(this); },
     changeRealWorldLogPage(step = 0) {
       const next = Number(this.realWorldLogPage || 1) + Number(step || 0);
       this.realWorldLogPage = Math.min(this.realWorldLogMaxPage(), Math.max(1, next));
     },
-    realWorldChoicesWithMatters() { return Array.isArray(this.realWorldChoices) ? this.realWorldChoices : []; },
+    realWorldChoicesWithMatters() { return window.GameModules.ui.realWorld.panelViewHelpers.choicesWithMatters.call(this); },
     taobaoWalletRows() { return []; },
     taobaoFilterLabel(slot = this.taobaoState?.filterSlot) { return slot || '全部'; },
     taobaoWearFilters() { return [{ slot: '', label: '全部' }]; },
@@ -653,7 +594,7 @@ function registerGameStore() {
       const id = this.currentRpgState?.id;
       return id ? window.GameModules.characterMemory.ensure(id) : window.GameModules.characterMemory.normalize(null, 'none');
     },
-    get savedWorldLores() { return window.GameModules.sqliteSave.db ? window.GameModules.sqliteSave.listWorldLores() : []; },
+    get savedWorldLores() { return window.GameModules.platform.storage.capabilities.isReady?.() ? window.GameModules.platform.storage.worldLoreSource.list?.() : []; },
 
     async init() {
       if (this.initPromise) return this.initPromise;

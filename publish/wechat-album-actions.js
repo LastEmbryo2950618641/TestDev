@@ -204,11 +204,7 @@ window.GameModules.wechatAlbumActions = {
     const meta = this.buildGeneratedBodyFigureMeta(kind, contact, drawResult, drawOptions);
     const timestamp = Date.now();
     try {
-      const res = await fetch('/__dev/body-figure-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrl, ownerId: meta.ownerId, kind, timestamp, meta }),
-      });
+      const res = await window.GameModules.platform.core.assets.bodyFigure.saveImage({ imageUrl, ownerId: meta.ownerId, kind, timestamp, meta });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
       window.GameModules.bodyFigure?.registerEntry?.(data.entry, data.meta || { ...meta, id: data.path, image: String(data.imagePath || '').split('/').pop() || 'figure.png' });

@@ -1,0 +1,6 @@
+﻿{
+    "sourceUrl":  "https://github.com/electron/electron/releases/download/v37.10.3/electron-v37.10.3-win32-x64.zip",
+    "targetZipPath":  "C:\\Users\\liuqi\\AppData\\Local\\electron\\Cache\\electron-v37.10.3-win32-x64.zip",
+    "zipPresentAfterRun":  true,
+    "length":  133848303
+}

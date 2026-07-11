@@ -1,7 +1,7 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 window.GameModules.realWorldStreamActions = {
   updateRealWorldStream(id, raw, options = {}) {
-    const entry = (this.realWorldLog || []).find((item) => item.id === id) || window.GameModules.sqliteSave.getRealWorldLogEntry?.(id);
+    const entry = (this.realWorldLog || []).find((item) => item.id === id) || window.GameModules.realWorldLogStore?.get?.(id);
     if (!entry) return false;
     const pick = (key) => this.pickRealWorldStreamField(raw, key);
     const thinking = this.realWorldThinkMode ? (pick('thinking') || '') : '';
@@ -45,10 +45,11 @@ window.GameModules.realWorldStreamActions = {
   realWorldStreamTrace(raw = '', pick = () => '') {
     const type = pick('type');
     const reason = pick('reason');
-    const lines = ['步骤进行中｜正在推演'];
-    if (type) lines[0] = `步骤进行中｜${this.realWorldTraceType?.(type) || type}`;
-    if (reason) lines.push(`原因：${reason}`);
-    if (!reason && !type && String(raw || '').trim()) lines.push('正在接收现实 AI 的推演内容。');
+    const lines = ['姝ラ杩涜涓綔姝ｅ湪鎺ㄦ紨'];
+    if (type) lines[0] = `姝ラ杩涜涓綔${this.realWorldTraceType?.(type) || type}`;
+    if (reason) lines.push(`鍘熷洜锛?{reason}`);
+    if (!reason && !type && String(raw || '').trim()) lines.push('姝ｅ湪鎺ユ敹鐜板疄 AI 鐨勬帹婕斿唴瀹广€?);
     return lines;
   },
 };
+

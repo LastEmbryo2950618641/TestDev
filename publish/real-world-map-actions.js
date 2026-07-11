@@ -70,6 +70,14 @@ window.GameModules.realWorldMapActions = {
     return this.realWorldMapGraph().nodes.length > 0;
   },
 
+  realWorldMapPanelTitle() { return window.GameModules.ui.realWorld.mapViewHelpers.panelTitle.call(this); },
+
+  realWorldMapLocationText() { return window.GameModules.ui.realWorld.mapViewHelpers.locationText.call(this); },
+
+  realWorldMapEmptyText() { return window.GameModules.ui.realWorld.mapViewHelpers.emptyMapText.call(this); },
+
+  realWorldMapPanelView() { return window.GameModules.ui.realWorld.mapViewHelpers.panelView.call(this); },
+
   renderRealWorldMapGraph() {
     if (this.realWorldFunctionView !== 'map') return;
     this.drawRealWorldMapCanvas();
@@ -608,10 +616,7 @@ window.GameModules.realWorldMapActions = {
     return map.interiorFloorOpen[key] !== false;
   },
 
-  realWorldMapRoomResidentsLabel(room = {}) {
-    const text = String(room?.residentsText || '').trim();
-    return text ? `居住人：${text}` : '居住人：未知';
-  },
+  realWorldMapRoomResidentsLabel(room = {}) { return window.GameModules.ui.realWorld.mapViewHelpers.roomResidentsLabel.call(this, room); },
 
   openRealWorldMapRoom(roomId) {
     const { room } = window.GameModules.realWorldMapInterior.findRoom(this.realWorldMapInteriorFloors(), roomId);
@@ -654,21 +659,9 @@ window.GameModules.realWorldMapActions = {
     return floors;
   },
 
-  realWorldMapInteriorView() {
-    const map = this.realWorldMap || {};
-    return map.interiorRoomId ? 'room' : 'tree';
-  },
+  realWorldMapInteriorView() { return window.GameModules.ui.realWorld.mapViewHelpers.interiorView.call(this); },
 
-  realWorldMapInteriorTitle() {
-    const node = this.realWorldMapInteriorNode();
-    if (!node) return '';
-    const map = this.realWorldMap || {};
-    if (map.interiorRoomId) {
-      const { room } = window.GameModules.realWorldMapInterior.findRoom(this.realWorldMapInteriorFloors(), map.interiorRoomId);
-      return room ? `${room.number || room.name} 房间详情` : node.name;
-    }
-    return node.name;
-  },
+  realWorldMapInteriorTitle() { return window.GameModules.ui.realWorld.mapViewHelpers.interiorTitle.call(this); },
 
   realWorldMapInteriorFloors() {
     const node = this.realWorldMapInteriorNode();
@@ -681,15 +674,13 @@ window.GameModules.realWorldMapActions = {
     return this.prepareRealWorldMapInteriorFloors(node.id);
   },
 
-  realWorldMapInteriorZones() {
-    const node = this.realWorldMapInteriorNode();
-    return Array.isArray(node?.interiorLayout?.zones) ? node.interiorLayout.zones : [];
-  },
+  realWorldMapInteriorZones() { return window.GameModules.ui.realWorld.mapViewHelpers.interiorZones.call(this); },
 
-  realWorldMapInteriorSummary() {
-    const node = this.realWorldMapInteriorNode();
-    return String(node?.interiorLayout?.summary || '').trim();
-  },
+  realWorldMapInteriorZoneRows() { return window.GameModules.ui.realWorld.mapViewHelpers.interiorZoneRows.call(this); },
+
+  realWorldMapInteriorSummary() { return window.GameModules.ui.realWorld.mapViewHelpers.interiorSummary.call(this); },
+
+  realWorldMapInteriorPanelView() { return window.GameModules.ui.realWorld.mapViewHelpers.interiorPanelView.call(this); },
 
   backRealWorldMapInteriorTree() {
     const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
@@ -697,16 +688,9 @@ window.GameModules.realWorldMapActions = {
     this.realWorldMap = { ...map };
   },
 
-  realWorldMapSelectedRoom() {
-    const map = this.realWorldMap || {};
-    return window.GameModules.realWorldMapInterior.findRoom(this.realWorldMapInteriorFloors(), map.interiorRoomId).room;
-  },
+  realWorldMapSelectedRoom() { return window.GameModules.ui.realWorld.mapViewHelpers.selectedRoom.call(this); },
 
-  realWorldMapSelectedRoomResidentsLine() {
-    const room = this.realWorldMapSelectedRoom();
-    if (!room?.residentsText) return '居住人：未知';
-    return `居住人：${room.residentsText}`;
-  },
+  realWorldMapSelectedRoomResidentsLine() { return window.GameModules.ui.realWorld.mapViewHelpers.selectedRoomResidentsLine.call(this); },
 
   renderRealWorldMapRoomCanvas() {
     const room = this.realWorldMapSelectedRoom();
@@ -717,54 +701,63 @@ window.GameModules.realWorldMapActions = {
     window.GameModules.realWorldMapInterior.drawRoomLayout(canvas, layout);
   },
 
-  realWorldMapSelectedRoomTemplateLabel() {
-    const room = this.realWorldMapSelectedRoom();
-    if (!room?.layoutTemplateId) return '布局：待推演';
-    const item = window.GameModules.realWorldMapInteriorTemplates?.list?.().find((row) => row.id === room.layoutTemplateId);
-    return item ? `布局：${item.name}` : '布局：已记录模板';
-  },
+  realWorldMapSelectedRoomTemplateLabel() { return window.GameModules.ui.realWorld.mapViewHelpers.selectedRoomTemplateLabel.call(this); },
 
-  realWorldMapZoneGridClass(position = '') {
-    const map = { 北: 'zone-n', 南: 'zone-s', 东: 'zone-e', 西: 'zone-w', 中: 'zone-c' };
-    return map[String(position || '中').trim()] || 'zone-c';
-  },
+  realWorldMapZoneGridClass(position = '') { return window.GameModules.ui.realWorld.mapViewHelpers.zoneGridClass.call(this, position); },
 
-  realWorldMapInfoControlLine() {
-    const node = this.realWorldMapInfoNode();
-    if (!node?.revealed) return '';
-    if (this.realWorldMapInfoCache?.id === node.id) return this.realWorldMapInfoCache.controlLine || '';
-    const map = this.realWorldMap || {};
-    return window.GameModules.orgTerritory?.resolveControlLabel?.(map, node, this) || '';
-  },
+  realWorldMapInfoControlLine() { return window.GameModules.ui.realWorld.mapViewHelpers.infoControlLine.call(this); },
 
-  realWorldMapInfoControlHistory() {
-    const node = this.realWorldMapInfoNode();
-    if (!node?.revealed) return [];
-    const map = this.realWorldMap || {};
-    return window.GameModules.orgTerritory?.controlHistoryForNode?.(map, node, this) || [];
-  },
+  realWorldMapInfoControlDisplayLine() { return window.GameModules.ui.realWorld.mapViewHelpers.infoControlDisplayLine.call(this); },
 
-  realWorldMapNodeControlLine(nodeId = '') {
-    const map = this.realWorldMap || {};
-    const node = (map.nodes || []).find((item) => item.id === nodeId);
-    if (!node?.revealed) return '';
-    return window.GameModules.orgTerritory?.resolveControlLabel?.(map, node, this) || '';
-  },
+  realWorldMapInfoControlHistory() { return window.GameModules.ui.realWorld.mapViewHelpers.infoControlHistory.call(this); },
 
-  realWorldMapNodeControlCachedLine(nodeId = '') {
-    if (this.realWorldMapInfoCache?.id === nodeId) return this.realWorldMapInfoCache.controlLine || '';
-    return '';
-  },
+  realWorldMapInfoControlHistoryRows() { return window.GameModules.ui.realWorld.mapViewHelpers.infoControlHistoryRows.call(this); },
 
-  realWorldMapInfoNode() { return window.GameModules.realWorldMap.infoNode(this.realWorldMap); },
+  realWorldMapHasInfoControlHistory() { return window.GameModules.ui.realWorld.mapViewHelpers.hasInfoControlHistory.call(this); },
 
-  realWorldMapInfoFacts() {
-    const node = this.realWorldMapInfoNode();
-    if (!node) return [];
-    return window.GameModules.realWorldMapFacts?.normalizeFacts?.(node, node.description, window.GameModules.realWorldMapFacts.nowLabel(this)) || [];
-  },
+  realWorldMapInfoControlHistoryEmptyText() { return window.GameModules.ui.realWorld.mapViewHelpers.infoControlHistoryEmptyText.call(this); },
 
-  realWorldMapFactText(fact, index) {
-    return window.GameModules.realWorldMapFacts?.formatFact?.(fact, index) || '';
-  },
+  realWorldMapInfoControlHistoryKey(line = '', index = 0) { return window.GameModules.ui.realWorld.mapViewHelpers.infoControlHistoryKey.call(this, line, index); },
+
+  realWorldMapInfoControlHistoryText(line = '') { return window.GameModules.ui.realWorld.mapViewHelpers.infoControlHistoryText.call(this, line); },
+
+  realWorldMapNodeControlLine(nodeId = '') { return window.GameModules.ui.realWorld.mapViewHelpers.nodeControlLine.call(this, nodeId); },
+
+  realWorldMapNodeControlCachedLine(nodeId = '') { return window.GameModules.ui.realWorld.mapViewHelpers.nodeControlCachedLine.call(this, nodeId); },
+
+  realWorldMapNodeControlDisplayLine(nodeId = '') { return window.GameModules.ui.realWorld.mapViewHelpers.nodeControlDisplayLine.call(this, nodeId); },
+
+  realWorldMapInfoNode() { return window.GameModules.ui.realWorld.mapViewHelpers.infoNode.call(this); },
+
+  realWorldMapInfoFacts() { return window.GameModules.ui.realWorld.mapViewHelpers.infoFacts.call(this); },
+
+  realWorldMapInfoFactRows() { return window.GameModules.ui.realWorld.mapViewHelpers.infoFactRows.call(this); },
+
+  realWorldMapHasInfoFacts() { return window.GameModules.ui.realWorld.mapViewHelpers.hasInfoFacts.call(this); },
+
+  realWorldMapInfoTitleText() { return window.GameModules.ui.realWorld.mapViewHelpers.infoTitleText.call(this); },
+
+  realWorldMapInfoSubtitleText() { return window.GameModules.ui.realWorld.mapViewHelpers.infoSubtitleText.call(this); },
+
+  realWorldMapInfoDescriptionText() { return window.GameModules.ui.realWorld.mapViewHelpers.infoDescriptionText.call(this); },
+
+  realWorldMapInfoFactsSummaryText() { return window.GameModules.ui.realWorld.mapViewHelpers.infoFactsSummaryText.call(this); },
+
+  realWorldMapInfoFactsJoinedText() { return window.GameModules.ui.realWorld.mapViewHelpers.infoFactsJoinedText.call(this); },
+
+  realWorldMapInfoFactsEmptyText() { return window.GameModules.ui.realWorld.mapViewHelpers.infoFactsEmptyText.call(this); },
+
+  realWorldMapInfoEmptyStateText() { return window.GameModules.ui.realWorld.mapViewHelpers.infoEmptyStateText.call(this); },
+
+  realWorldMapInfoPanelView() { return window.GameModules.ui.realWorld.mapViewHelpers.infoPanelView.call(this); },
+
+  realWorldMapFactKey(fact, index) { return window.GameModules.ui.realWorld.mapViewHelpers.factKey.call(this, fact, index); },
+
+  realWorldMapFactText(fact, index) { return window.GameModules.ui.realWorld.mapViewHelpers.factText.call(this, fact, index); }
 };
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 window.GameModules.entryTime = window.GameModules.entryTime || {};
 
 Object.assign(window.GameModules.entryTime, {
@@ -15,30 +15,30 @@ Object.assign(window.GameModules.entryTime, {
     const age = this.ageAt(birth, at ? { year: at[0], month: at[1], day: at[2] } : null);
     const state = store.rpgStates[store.character.id];
     if (age === null) {
-      store.characterAge = at ? '出生日期缺失' : '';
+      store.characterAge = at ? '鍑虹敓鏃ユ湡缂哄け' : '';
       if (state?.values) {
         delete state.values.age;
         delete state.values.age_label;
         store.rpgStates = { ...store.rpgStates, [state.id]: state };
-        if (window.GameModules.sqliteSave.db) window.GameModules.sqliteSave.saveCharacterState(state);
+        if (window.GameModules.platform.storage.capabilities.isReady?.()) window.GameModules.characterStateStore?.save?.(state);
       }
       return;
     }
-    const ageLabel = birth.month && birth.day ? `${age}岁` : `约${age}岁`;
+    const ageLabel = birth.month && birth.day ? `${age}宀乣 : `绾?{age}宀乣;
     store.characterAge = ageLabel;
     if (state?.values) {
       this.ensureAgeField(state);
       state.values.age = age;
       state.values.age_label = ageLabel;
       store.rpgStates = { ...store.rpgStates, [state.id]: state };
-      if (window.GameModules.sqliteSave.db) window.GameModules.sqliteSave.saveCharacterState(state);
+      if (window.GameModules.platform.storage.capabilities.isReady?.()) window.GameModules.characterStateStore?.save?.(state);
     }
   },
 
   ensureAgeField(state) {
     const section = state.schema?.sections?.[0];
     if (!section || section.fields.some((field) => field.key === 'age')) return;
-    section.fields.unshift({ key: 'age', label: '年龄', type: 'number', min: 0, max: 999 });
+    section.fields.unshift({ key: 'age', label: '骞撮緞', type: 'number', min: 0, max: 999 });
   },
 
   async birthDateFor(store) {
@@ -60,14 +60,14 @@ Object.assign(window.GameModules.entryTime, {
 
   birthDate(profile) {
     const rows = profile?.basics || [];
-    const value = rows.find((x) => /出生|生日|生年月日/.test(x.label))?.value || '';
+    const value = rows.find((x) => /鍑虹敓|鐢熸棩|鐢熷勾鏈堟棩/.test(x.label))?.value || '';
     const source = String(value || profile?.raw || '');
-    if (/不明|年份不明|公元前|年-\d{3,4}年|以前/.test(source)) return null;
-    if (/约/.test(source)) {
-      const yearOnly = source.match(/(\d{3,4})\s*年/);
+    if (/涓嶆槑|骞翠唤涓嶆槑|鍏厓鍓峾骞?\d{3,4}骞磡浠ュ墠/.test(source)) return null;
+    if (/绾?.test(source)) {
+      const yearOnly = source.match(/(\d{3,4})\s*骞?);
       return this.completeBirthDate(yearOnly ? { year: +yearOnly[1], precision: 'year' } : null);
     }
-    const match = source.match(/(\d{3,4})\s*[年\/-]\s*(\d{1,2})\s*[月\/-]\s*(\d{1,2})/);
+    const match = source.match(/(\d{3,4})\s*[骞碶/-]\s*(\d{1,2})\s*[鏈圽/-]\s*(\d{1,2})/);
     return this.completeBirthDate(match ? { year: +match[1], month: +match[2], day: +match[3], precision: 'day' } : null);
   },
 
@@ -88,3 +88,4 @@ Object.assign(window.GameModules.entryTime, {
     return age >= 0 && age < 1000 ? age : null;
   },
 });
+

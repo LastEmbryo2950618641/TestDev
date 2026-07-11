@@ -1,0 +1,40 @@
+﻿{
+    "name":  "gamefy-desktop-shell",
+    "private":  true,
+    "version":  "0.1.0",
+    "description":  "Desktop shell for Gamefy shared runtime packaging.",
+    "author":  "Codex Builder Prep",
+    "type":  "module",
+    "main":  "electron-main-bootstrap.cjs",
+    "scripts":  {
+                    "verify:result-link":  "node electron-live-attempt-result-link-verify.js",
+                    "verify:packaging-toolchain":  "node desktop-packaging-toolchain-preflight-verify.cli.js",
+                    "verify:launch-executor":  "node electron-controlled-launch-executor-verify.js",
+                    "attempt:launch":  ".\\node_modules\\electron\\dist\\electron.exe C:\\Users\\liuqi\\Documents\\TestDev\\desktop\\shell -- --codex-electron-launch",
+                    "verify:preflight":  "npm run verify:shell \u0026\u0026 npm run verify:checklist \u0026\u0026 npm run verify:plan \u0026\u0026 npm run verify:launcher",
+                    "verify:launch-preview":  "node electron-launch-preview-verify.js",
+                    "verify:launcher":  "node electron-smoke-run-launcher-verify.js",
+                    "verify:builder-dry-run-entry":  "node electron-builder-dry-run-entry-verify.cli.js",
+                    "verify:packaging-config":  "node desktop-packaging-config-verify.cli.js",
+                    "acquire:electron-binary":  "node electron-binary-acquire.js",
+                    "verify:packaging-tool":  "node desktop-packaging-tool-recommendation.cli.js",
+                    "verify:packaging-dry-run-plan":  "node desktop-packaging-dry-run-plan-verify.cli.js",
+                    "attempt:live":  "node electron-smoke-run-plan.js --enabled",
+                    "verify:checklist":  "node electron-smoke-run-checklist.js",
+                    "verify:target-download":  "node electron-target-download-verify.js",
+                    "download:electron-target":  "node electron-target-download.js",
+                    "verify:multi-platform-readiness":  "node multi-platform-readiness-report.js",
+                    "verify:binary-acquire":  "node electron-binary-acquire-verify.js",
+                    "verify:attempt-live":  "node electron-live-attempt-entry-verify.js",
+                    "verify:plan":  "node electron-smoke-run-plan-verify.js",
+                    "verify:packaging-preflight":  "node desktop-packaging-preflight-verify.js",
+                    "verify:shell":  "node electron-shell-verify.js",
+                    "verify:binary-probe":  "node electron-binary-probe-verify.js",
+                    "verify:optional-live":  "node electron-optional-live-executor-verify.js",
+                    "verify:electron-dist-state":  "node desktop-packaging-electron-dist-state.cli.js"
+                },
+    "devDependencies":  {
+                            "electron":  "^36.9.5",
+                            "electron-builder":  "26.15.3"
+                        }
+}

@@ -1,0 +1,6 @@
+{
+  "tag": "mask",
+  "figures": [
+    { "id": "image1", "path": "mask/image1", "default": true }
+  ]
+}

@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldAgentLoop = {
   finalSeparator: '<!--REAL_WORLD_JSON-->',
@@ -15,11 +15,11 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   realConfig() {
-    return { mode: 'real', label: '现实', ctx: window.GameModules.realWorldAgentContext, materials: window.GameModules.realWorldMaterials, templateId: 'inference-stage3-narration', firstTemplateId: 'inference-stage1-guided-query' };
+    return { mode: 'real', label: '鐜板疄', ctx: window.GameModules.realWorldAgentContext, materials: window.GameModules.realWorldMaterials, templateId: 'inference-stage3-narration', firstTemplateId: 'inference-stage1-guided-query' };
   },
 
   storyConfig() {
-    return { mode: 'story', label: '操控剧情', ctx: window.GameModules.storyAgentContext, materials: window.GameModules.workLoreMaterials, templateId: 'inference-stage3-narration', firstTemplateId: 'inference-stage1-guided-query' };
+    return { mode: 'story', label: '鎿嶆帶鍓ф儏', ctx: window.GameModules.storyAgentContext, materials: window.GameModules.workLoreMaterials, templateId: 'inference-stage3-narration', firstTemplateId: 'inference-stage1-guided-query' };
   },
 
   renderPrompt(id, vars) {
@@ -131,9 +131,9 @@ window.GameModules.realWorldAgentLoop = {
     if (match) return `stage${match[1]}`;
     if (config.guidedStep) return 'stage1';
     const sourceTitle = String(config.sourceTitle || '');
-    if (sourceTitle.includes('场景锚定')) return 'stage2';
-    if (sourceTitle.includes('Stage5') || sourceTitle.includes('盛装')) return 'stage5';
-    if (sourceTitle.includes('Stage4') || sourceTitle.includes('滑动结算')) return 'stage4';
+    if (sourceTitle.includes('鍦烘櫙閿氬畾')) return 'stage2';
+    if (sourceTitle.includes('Stage5') || sourceTitle.includes('鐩涜')) return 'stage5';
+    if (sourceTitle.includes('Stage4') || sourceTitle.includes('婊戝姩缁撶畻')) return 'stage4';
     if (config.streamToUi) return 'stage3';
     return '';
   },
@@ -163,7 +163,7 @@ window.GameModules.realWorldAgentLoop = {
     if (phase === 'stage5') {
       return { phase, step: 0, label: 'Stage5', id: 'stage5' };
     }
-    return { phase: 'unknown', step: 0, label: '未知阶段', id: `reasoning-${Date.now()}` };
+    return { phase: 'unknown', step: 0, label: '鏈煡闃舵', id: `reasoning-${Date.now()}` };
   },
 
   reasoningStageGroupKey(meta = {}) {
@@ -175,7 +175,7 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   parseReasoningLabel(label = '') {
-    const match = String(label || '').trim().match(/^Stage\s*([1-4])(?:\s*[-–—]\s*(\d+))?/iu);
+    const match = String(label || '').trim().match(/^Stage\s*([1-4])(?:\s*[-鈥撯€擼\s*(\d+))?/iu);
     if (!match) return null;
     const phase = `stage${match[1]}`;
     const step = Number(match[2]) || 0;
@@ -237,7 +237,7 @@ window.GameModules.realWorldAgentLoop = {
     });
     if (!steps.length) steps.push(1);
     const pipeline = steps.map((step) => ({ phase: 'stage1', step, label: `Stage1 - ${step}`, id: `stage1-${step}` }));
-    // Stage2 / Stage4 默认 JSON 模式，不产生深度思考；未知段落按流水线只补 Stage3。
+    // Stage2 / Stage4 榛樿 JSON 妯″紡锛屼笉浜х敓娣卞害鎬濊€冿紱鏈煡娈佃惤鎸夋祦姘寸嚎鍙ˉ Stage3銆?
     pipeline.push({ phase: 'stage3', step: 0, label: 'Stage3', id: 'stage3' });
     return pipeline;
   },
@@ -271,7 +271,7 @@ window.GameModules.realWorldAgentLoop = {
       while (pipeIdx < pipeline.length && occupied.has(this.reasoningStageGroupKey(pipeline[pipeIdx]))) pipeIdx += 1;
       const meta = pipeIdx < pipeline.length
         ? { ...pipeline[pipeIdx++] }
-        : { phase: 'unknown', step: assigned.length, label: String(section?.label || '现实推演'), id: String(section?.id || `legacy-${assigned.length}`) };
+        : { phase: 'unknown', step: assigned.length, label: String(section?.label || '鐜板疄鎺ㄦ紨'), id: String(section?.id || `legacy-${assigned.length}`) };
       occupy(meta, section);
     });
 
@@ -280,7 +280,7 @@ window.GameModules.realWorldAgentLoop = {
 
   reasoningSectionMetaFromStored(section = {}, index = 0, entry = {}) {
     const assigned = this.assignReasoningSectionMetas([section], entry);
-    return assigned[0]?.meta || { phase: 'unknown', step: index, label: '现实推演', id: String(section?.id || `legacy-${index}`) };
+    return assigned[0]?.meta || { phase: 'unknown', step: index, label: '鐜板疄鎺ㄦ紨', id: String(section?.id || `legacy-${index}`) };
   },
 
   patchConfiguredReasoning(store, logId, reasoningText = '', config = this.realConfig()) {
@@ -290,7 +290,7 @@ window.GameModules.realWorldAgentLoop = {
       store.updateNovelEntry?.(logId, { thinking: text });
       return;
     }
-    const entry = (store.realWorldLog || []).find((item) => item.id === logId) || window.GameModules.sqliteSave.getRealWorldLogEntry?.(logId) || {};
+    const entry = (store.realWorldLog || []).find((item) => item.id === logId) || window.GameModules.realWorldLogStore?.get?.(logId) || {};
     const meta = this.reasoningSectionMeta(config);
     const key = String(config.reasoningKey || meta.id);
     const sections = this.mergeThinkingSection(entry, {
@@ -311,19 +311,19 @@ window.GameModules.realWorldAgentLoop = {
         id: String(item?.id || ''),
         phase: String(item?.phase || ''),
         step: Number(item?.step) || 0,
-        label: String(item?.label || '现实推演'),
+        label: String(item?.label || '鐜板疄鎺ㄦ紨'),
         text: String(item?.text || ''),
         open: item?.open !== false,
       })).filter((item) => item.text.trim())
       : [];
     if (!sections.length && String(entry.thinking || '').trim()) {
-      sections.push({ id: 'legacy-thinking', phase: 'unknown', step: 0, label: '现实推演', text: String(entry.thinking || '').trim(), open: true });
+      sections.push({ id: 'legacy-thinking', phase: 'unknown', step: 0, label: '鐜板疄鎺ㄦ紨', text: String(entry.thinking || '').trim(), open: true });
     }
     const next = {
       id: String(section.id || `reasoning-${Date.now()}`),
       phase: String(section.phase || ''),
       step: Number(section.step) || 0,
-      label: String(section.label || '现实推演'),
+      label: String(section.label || '鐜板疄鎺ㄦ紨'),
       text: String(section.text || '').trim(),
       open: section.open !== false,
     };
@@ -359,7 +359,7 @@ window.GameModules.realWorldAgentLoop = {
     store.realWorldAgentActiveKvByMode = store.realWorldAgentActiveKvByMode || {};
     store.realWorldAgentActiveKvByMode[config.mode] = config.kvCacheSession || null;
     const ctx = config.ctx;
-    if (!ctx) throw new Error(`${config.label || 'Loop'}上下文未加载`);
+    if (!ctx) throw new Error(`${config.label || 'Loop'}涓婁笅鏂囨湭鍔犺浇`);
     try {
       const loaded = [];
       const trace = [];
@@ -380,7 +380,7 @@ window.GameModules.realWorldAgentLoop = {
         const raw = await this.completeConfiguredParsedStep(store, prompt, logId, false, false, { ...config, guidedStep: step }, step > 1);
         lastRaw = raw.raw;
         const data = raw.data;
-        if (!data) throw new Error(`${config.label || 'Loop'}返回格式错误`);
+        if (!data) throw new Error(`${config.label || 'Loop'}杩斿洖鏍煎紡閿欒`);
         lastGuidance = data;
         const traceItem = this.traceItem(step, data, raw.raw, ctx);
         trace.push(traceItem);
@@ -414,15 +414,15 @@ window.GameModules.realWorldAgentLoop = {
   async generateConfiguredFinal({ store, action, base, loaded, skills, trace, materialSession, logId, config = this.realConfig() }) {
     const effectiveSceneLayers = this.resolveEffectiveSceneLayers(trace, store, config);
     const sceneAnchorPrompt = await this.buildConfiguredSceneAnchorPrompt({ store, action, base, loaded, trace, effectiveSceneLayers, materialSession, config });
-    this.markConfiguredStep(store, logId, `${config.label}资料已载入，正在生成场景锚定报告…`, config);
+    this.markConfiguredStep(store, logId, `${config.label}璧勬枡宸茶浇鍏ワ紝姝ｅ湪鐢熸垚鍦烘櫙閿氬畾鎶ュ憡鈥, config);
     const sceneAnchor = await this.completeSceneAnchorReport(store, sceneAnchorPrompt, logId, config);
     const sceneAnchorReport = sceneAnchor.text;
     const narrationPrompt = await this.buildConfiguredNarrationPrompt({ store, action, base, loaded, skills, materialSession, sceneAnchorReport, config });
     const narrationMessages = this.buildConfiguredNarrationMessages({ store, action, prompt: narrationPrompt, config });
-    this.markConfiguredStep(store, logId, `${config.label}场景锚定完成，正在生成正文…`, config);
+    this.markConfiguredStep(store, logId, `${config.label}鍦烘櫙閿氬畾瀹屾垚锛屾鍦ㄧ敓鎴愭鏂団€, config);
     const narrationRaw = await this.completeConfiguredStep(store, narrationMessages, logId, true, { ...config, promptId: config.templateId, streamToUi: true });
     const narration = await this.ensureConfiguredNarrationLength(store, action, narrationPrompt, this.cleanPhasedNarration(narrationRaw), logId, config);
-    if (!narration) throw new Error(`${config.label}正文为空`);
+    if (!narration) throw new Error(`${config.label}姝ｆ枃涓虹┖`);
     this.showConfiguredNarration(store, logId, narration, config);
 
     const postStage3Checkpoint = this.snapshotKvMessages(config.kvCacheSession);
@@ -431,16 +431,16 @@ window.GameModules.realWorldAgentLoop = {
       kvCacheSession: this.forkKvCacheSession(config.kvCacheSession, postStage3Checkpoint),
     };
 
-    let settlementPrompt = 'Stage4 紧凑 JSON 滑动结算', settlementRaw = '', updates = {}, profilePatches = [];
+    let settlementPrompt = 'Stage4 绱у噾 JSON 婊戝姩缁撶畻', settlementRaw = '', updates = {}, profilePatches = [];
     const participants = this.mergeNarrationParticipants(this.stageParticipants(effectiveSceneLayers, loaded, store), narration, store, sceneAnchor.data);
     try {
-      this.markConfiguredStep(store, logId, `${config.label}正文已完成，正在并行结算与盛装外观更新…`, config, { keepNarration: true });
+      this.markConfiguredStep(store, logId, `${config.label}姝ｆ枃宸插畬鎴愶紝姝ｅ湪骞惰缁撶畻涓庣洓瑁呭瑙傛洿鏂扳€, config, { keepNarration: true });
       const stage4Promise = (async () => {
         try {
           const settled = await this.completeConfiguredSettlementKvWindow({ store, action, base, loaded, skills, materialSession, narration, trace, participants, logId, config });
           return { ...settled, type: settled.type || 'final' };
         } catch (err) {
-          console.warn(`${config.label}状态更新生成失败，保留已生成正文并使用最小结算:`, err.message);
+          console.warn(`${config.label}鐘舵€佹洿鏂扮敓鎴愬け璐ワ紝淇濈暀宸茬敓鎴愭鏂囧苟浣跨敤鏈€灏忕粨绠?`, err.message);
           return this.fallbackUpdateJson(store, action, config);
         }
       })();
@@ -451,10 +451,10 @@ window.GameModules.realWorldAgentLoop = {
       updates = stage5Result.updates || await stage4Promise;
       updates = { ...updates, type: updates.type || 'final' };
       profilePatches = Array.isArray(stage5Result.patches) ? stage5Result.patches : [];
-      settlementPrompt = 'Stage4 紧凑 JSON 滑动结算 + Stage5 盛装外观（并行）';
+      settlementPrompt = 'Stage4 绱у噾 JSON 婊戝姩缁撶畻 + Stage5 鐩涜澶栬锛堝苟琛岋級';
       settlementRaw = JSON.stringify({ settlement: updates, stage5Gate: stage5Result.gate || null, profilePatches: profilePatches.map((item) => ({ subject: item.subject, parts: item.parts })) });
     } catch (err) {
-      console.warn(`${config.label}并行结算失败，保留已生成正文并使用最小结算:`, err.message);
+      console.warn(`${config.label}骞惰缁撶畻澶辫触锛屼繚鐣欏凡鐢熸垚姝ｆ枃骞朵娇鐢ㄦ渶灏忕粨绠?`, err.message);
       updates = this.fallbackUpdateJson(store, action, config);
       settlementRaw = JSON.stringify(updates);
     }
@@ -499,7 +499,7 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   async buildConfiguredPrompt({ store, action, base, loaded, skills, step, materialSession = null, forceFinal = false, config = this.realConfig(), guidance = null, logId = null }) {
-    const actionText = this.actionText(action, config.mode === 'story' ? '继续推进操控剧情' : '继续观察现实世界');
+    const actionText = this.actionText(action, config.mode === 'story' ? '缁х画鎺ㄨ繘鎿嶆帶鍓ф儏' : '缁х画瑙傚療鐜板疄涓栫晫');
     const loadedText = config.ctx.buildLoadedText(loaded);
     const materialText = config.materials?.summary?.(materialSession, { step }) || '';
     const randomOptions = { mode: config.mode };
@@ -508,90 +508,90 @@ window.GameModules.realWorldAgentLoop = {
     });
     const randomActiveCandidates = !forceFinal ? (config.ctx.randomActiveEventCandidates?.(store, action, randomOptions) || []) : [];
     const randomActiveCandidateText = randomActiveCandidates.length
-      ? randomActiveCandidates.map((item, index) => `${index + 1}. ${item.name || item.id}`).join('；')
-      : '无';
+      ? randomActiveCandidates.map((item, index) => `${index + 1}. ${item.name || item.id}`).join('锛?)
+      : '鏃?;
     const eventStage1Context = store.eventStage1PromptContext?.(actionText) || '';
     const configuredControlPerspectiveRule = this.configuredControlPerspectiveRule(store, config);
     const commonVars = {
-      本次行动: actionText,
-      当前步骤: forceFinal ? '收敛/final' : this.guidedStepText(store, step, config),
-      最大步骤: this.guidedMaxStepText(store, config),
-      推演自由度规则: [config.mode === 'story' ? this.storyFreedomRule(store) : (store.realWorldFreedomRule?.() || '推演自由度：行动范围内。只推演玩家本次输入行动自然抵达的直接结果。'), configuredControlPerspectiveRule].filter(Boolean).join('\n'),
-      当前步骤输出要求: this.stepOutputRule(step, forceFinal),
-      随机场外角色候选: randomActiveCandidateText,
+      鏈琛屽姩: actionText,
+      褰撳墠姝ラ: forceFinal ? '鏀舵暃/final' : this.guidedStepText(store, step, config),
+      鏈€澶ф楠? this.guidedMaxStepText(store, config),
+      鎺ㄦ紨鑷敱搴﹁鍒? [config.mode === 'story' ? this.storyFreedomRule(store) : (store.realWorldFreedomRule?.() || '鎺ㄦ紨鑷敱搴︼細琛屽姩鑼冨洿鍐呫€傚彧鎺ㄦ紨鐜╁鏈杈撳叆琛屽姩鑷劧鎶佃揪鐨勭洿鎺ョ粨鏋溿€?), configuredControlPerspectiveRule].filter(Boolean).join('\n'),
+      褰撳墠姝ラ杈撳嚭瑕佹眰: this.stepOutputRule(step, forceFinal),
+      闅忔満鍦哄瑙掕壊鍊欓€? randomActiveCandidateText,
       ['\u8d44\u6599\u8fed\u4ee3\u9650\u5236\u89c4\u5219']: this.stage1IterationRule(store),
     };
     if (!forceFinal) {
       const stage1RoutingContext = config.ctx.buildStage1RoutingContext?.({ store, action: actionText, loaded, materialSession, config }) || [
-        `模式：${config.label}`,
-        `本次行动：${actionText}`,
-        '已加载资料摘要：无',
-        '可请求资料目录：无',
+        `妯″紡锛?{config.label}`,
+        `鏈琛屽姩锛?{actionText}`,
+        '宸插姞杞借祫鏂欐憳瑕侊細鏃?,
+        '鍙姹傝祫鏂欑洰褰曪細鏃?,
       ].join('\n');
       const previousGuidance = this.previousGuidanceSummary(guidance);
-      const loadedRoutingSummary = config.ctx.loadedRoutingSummary?.(loaded) || '无';
-      const materialCatalog = config.ctx.stage1MaterialCatalogText?.(config.mode) || '无';
+      const loadedRoutingSummary = config.ctx.loadedRoutingSummary?.(loaded) || '鏃?;
+      const materialCatalog = config.ctx.stage1MaterialCatalogText?.(config.mode) || '鏃?;
       const rulesText = [
-        '# Stage1 查询规划：紧凑 JSON 资料路由',
-        '任务：只输出一个合法 JSON 对象，不输出中文 K:V、Markdown、正文或解释。',
-        '你只负责判断本次行动生成正文前还需要哪些已有资料；不得写正文，不得锚定场景，不得结算状态，不得推进后续结果。',
-        '资料请求规则：',
-        '- 使用中文资料请求，不得输出英文 skill/method。',
-        '- 资料请求最多 Top3；超过 Top3 的候选必须丢弃，不得输出资料请求4或更多编号。',
-        '- 角色卡请求只代表可作为参考资料；不得因此把角色写入强制出场。',
-        '- 已加载资料摘要已经覆盖的人物、地点、路线不得重复请求。',
-        '- 不得请求衣着、鞋袜、随身物品等细节；这些细节不属于本阶段必要资料。',
-        '- 不得照抄示例中的占位词；角色全称、世界全称、地点全称、人物全称、作品全称都必须替换为本次行动中的真实名称。',
-        '- 资料请求示例：资料请求1：角色查询，搜索角色卡，刘思琪，2026现代都市现实世界',
-        '- 资料请求示例：资料请求1：地点查询，查询附近地点，锦苑小区3栋2单元',
-        '- 资料请求示例：资料请求1：作品设定查询，搜索人物，阿尔托莉雅·潘德拉贡，Fate/stay night',
-        '随机事件规则：',
-        '- 随机主动事件默认是场外背景，不自动入场。',
-        '- 随机场外角色候选不等于禁止出场；不得仅因角色出现在随机场外角色候选中，就写入禁止出场。',
-        '- 若随机角色已在强制出场、高优先候选、戏剧候选或禁止出场中，必须移除该随机事件。',
-        '- 无明确自然闯入条件时，随机事件闯入条件必须写“无明确条件则禁止闯入”。',
-        '出场边界规则：',
-        '- 本轮必须基于上一轮查询规划摘要继续收敛；若候选层发生变化，以本轮字段作为当前判断，不要无理由重置候选层。',
-        '- 玩家/当前被控主体由系统最终兜底为强制出场；强制出场允许多人，表示本次行动必然涉及、出现、回应或受影响的人物集合。',
-        '- 不强制出场不等于禁止出场；禁止出场只用于明确场外、明确不可到达或被用户/资料规则明确禁止进入当前场景的角色。',
-        '- 同地点/同住/相邻候选不得仅因未强制出场而写入禁止出场；可按相关性放入高优先候选或戏剧候选，或写“无”。',
-        '- 玩家行动明确目标不得写入禁止出场，除非已加载资料明确显示其场外、不可到达或被规则禁止进入当前场景。',
+        '# Stage1 鏌ヨ瑙勫垝锛氱揣鍑?JSON 璧勬枡璺敱',
+        '浠诲姟锛氬彧杈撳嚭涓€涓悎娉?JSON 瀵硅薄锛屼笉杈撳嚭涓枃 K:V銆丮arkdown銆佹鏂囨垨瑙ｉ噴銆?,
+        '浣犲彧璐熻矗鍒ゆ柇鏈琛屽姩鐢熸垚姝ｆ枃鍓嶈繕闇€瑕佸摢浜涘凡鏈夎祫鏂欙紱涓嶅緱鍐欐鏂囷紝涓嶅緱閿氬畾鍦烘櫙锛屼笉寰楃粨绠楃姸鎬侊紝涓嶅緱鎺ㄨ繘鍚庣画缁撴灉銆?,
+        '璧勬枡璇锋眰瑙勫垯锛?,
+        '- 浣跨敤涓枃璧勬枡璇锋眰锛屼笉寰楄緭鍑鸿嫳鏂?skill/method銆?,
+        '- 璧勬枡璇锋眰鏈€澶?Top3锛涜秴杩?Top3 鐨勫€欓€夊繀椤讳涪寮冿紝涓嶅緱杈撳嚭璧勬枡璇锋眰4鎴栨洿澶氱紪鍙枫€?,
+        '- 瑙掕壊鍗¤姹傚彧浠ｈ〃鍙綔涓哄弬鑰冭祫鏂欙紱涓嶅緱鍥犳鎶婅鑹插啓鍏ュ己鍒跺嚭鍦恒€?,
+        '- 宸插姞杞借祫鏂欐憳瑕佸凡缁忚鐩栫殑浜虹墿銆佸湴鐐广€佽矾绾夸笉寰楅噸澶嶈姹傘€?,
+        '- 涓嶅緱璇锋眰琛ｇ潃銆侀瀷琚溿€侀殢韬墿鍝佺瓑缁嗚妭锛涜繖浜涚粏鑺備笉灞炰簬鏈樁娈靛繀瑕佽祫鏂欍€?,
+        '- 涓嶅緱鐓ф妱绀轰緥涓殑鍗犱綅璇嶏紱瑙掕壊鍏ㄧО銆佷笘鐣屽叏绉般€佸湴鐐瑰叏绉般€佷汉鐗╁叏绉般€佷綔鍝佸叏绉伴兘蹇呴』鏇挎崲涓烘湰娆¤鍔ㄤ腑鐨勭湡瀹炲悕绉般€?,
+        '- 璧勬枡璇锋眰绀轰緥锛氳祫鏂欒姹?锛氳鑹叉煡璇紝鎼滅储瑙掕壊鍗★紝鍒樻€濈惇锛?026鐜颁唬閮藉競鐜板疄涓栫晫',
+        '- 璧勬枡璇锋眰绀轰緥锛氳祫鏂欒姹?锛氬湴鐐规煡璇紝鏌ヨ闄勮繎鍦扮偣锛岄敠鑻戝皬鍖?鏍?鍗曞厓',
+        '- 璧勬枡璇锋眰绀轰緥锛氳祫鏂欒姹?锛氫綔鍝佽瀹氭煡璇紝鎼滅储浜虹墿锛岄樋灏旀墭鑾夐泤路娼樺痉鎷夎础锛孎ate/stay night',
+        '闅忔満浜嬩欢瑙勫垯锛?,
+        '- 闅忔満涓诲姩浜嬩欢榛樿鏄満澶栬儗鏅紝涓嶈嚜鍔ㄥ叆鍦恒€?,
+        '- 闅忔満鍦哄瑙掕壊鍊欓€変笉绛変簬绂佹鍑哄満锛涗笉寰椾粎鍥犺鑹插嚭鐜板湪闅忔満鍦哄瑙掕壊鍊欓€変腑锛屽氨鍐欏叆绂佹鍑哄満銆?,
+        '- 鑻ラ殢鏈鸿鑹插凡鍦ㄥ己鍒跺嚭鍦恒€侀珮浼樺厛鍊欓€夈€佹垙鍓у€欓€夋垨绂佹鍑哄満涓紝蹇呴』绉婚櫎璇ラ殢鏈轰簨浠躲€?,
+        '- 鏃犳槑纭嚜鐒堕棷鍏ユ潯浠舵椂锛岄殢鏈轰簨浠堕棷鍏ユ潯浠跺繀椤诲啓鈥滄棤鏄庣‘鏉′欢鍒欑姝㈤棷鍏モ€濄€?,
+        '鍑哄満杈圭晫瑙勫垯锛?,
+        '- 鏈疆蹇呴』鍩轰簬涓婁竴杞煡璇㈣鍒掓憳瑕佺户缁敹鏁涳紱鑻ュ€欓€夊眰鍙戠敓鍙樺寲锛屼互鏈疆瀛楁浣滀负褰撳墠鍒ゆ柇锛屼笉瑕佹棤鐞嗙敱閲嶇疆鍊欓€夊眰銆?,
+        '- 鐜╁/褰撳墠琚帶涓讳綋鐢辩郴缁熸渶缁堝厹搴曚负寮哄埗鍑哄満锛涘己鍒跺嚭鍦哄厑璁稿浜猴紝琛ㄧず鏈琛屽姩蹇呯劧娑夊強銆佸嚭鐜般€佸洖搴旀垨鍙楀奖鍝嶇殑浜虹墿闆嗗悎銆?,
+        '- 涓嶅己鍒跺嚭鍦轰笉绛変簬绂佹鍑哄満锛涚姝㈠嚭鍦哄彧鐢ㄤ簬鏄庣‘鍦哄銆佹槑纭笉鍙埌杈炬垨琚敤鎴?璧勬枡瑙勫垯鏄庣‘绂佹杩涘叆褰撳墠鍦烘櫙鐨勮鑹层€?,
+        '- 鍚屽湴鐐?鍚屼綇/鐩搁偦鍊欓€変笉寰椾粎鍥犳湭寮哄埗鍑哄満鑰屽啓鍏ョ姝㈠嚭鍦猴紱鍙寜鐩稿叧鎬ф斁鍏ラ珮浼樺厛鍊欓€夋垨鎴忓墽鍊欓€夛紝鎴栧啓鈥滄棤鈥濄€?,
+        '- 鐜╁琛屽姩鏄庣‘鐩爣涓嶅緱鍐欏叆绂佹鍑哄満锛岄櫎闈炲凡鍔犺浇璧勬枡鏄庣‘鏄剧ず鍏跺満澶栥€佷笉鍙埌杈炬垨琚鍒欑姝㈣繘鍏ュ綋鍓嶅満鏅€?,
       ].join('\n');
       const contextText = [
-        `本次行动：${actionText}`,
-        `当前步骤：${commonVars.当前步骤} / ${commonVars.最大步骤}`,
-        '路由上下文：',
+        `鏈琛屽姩锛?{actionText}`,
+        `褰撳墠姝ラ锛?{commonVars.褰撳墠姝ラ} / ${commonVars.鏈€澶ф楠`,
+        '璺敱涓婁笅鏂囷細',
         stage1RoutingContext,
-        '本轮上一轮查询规划摘要（同轮 Stage1 步骤间）：',
+        '鏈疆涓婁竴杞煡璇㈣鍒掓憳瑕侊紙鍚岃疆 Stage1 姝ラ闂达級锛?,
         previousGuidance,
-        '已加载资料摘要：',
+        '宸插姞杞借祫鏂欐憳瑕侊細',
         loadedRoutingSummary,
-        '可请求资料目录：',
+        '鍙姹傝祫鏂欑洰褰曪細',
         materialCatalog,
         eventStage1Context,
-        '推演自由度规则：',
-        commonVars.推演自由度规则,
-        `随机场外角色候选：${randomActiveCandidateText}`,
+        '鎺ㄦ紨鑷敱搴﹁鍒欙細',
+        commonVars.鎺ㄦ紨鑷敱搴﹁鍒?
+        `闅忔満鍦哄瑙掕壊鍊欓€夛細${randomActiveCandidateText}`,
       ].join('\n');
       const requestText = [
-        '当前步骤输出要求：',
-        commonVars.当前步骤输出要求,
-        '固定输出规则：',
-        '- 只输出一个紧凑 JSON 对象，首字符必须是 {，末字符必须是 }。',
-        '- 不要 Markdown，不要 ```json 代码块，不要换行解释。',
-        '- status 只能二选一：资料已足够 / 继续请求资料。',
-        '- sceneQueries.location / sceneQueries.causality / sceneQueries.conflict 必须是字符串数组；没有则 []。',
-        '- 若 status 为“继续请求资料”，优先输出 materialRequests，最多 3 条；没有可执行资料请求时 materialRequests 输出 []，但必须保留 sceneQueries 理由或明确参与者候选。',
+        '褰撳墠姝ラ杈撳嚭瑕佹眰锛?,
+        commonVars.褰撳墠姝ラ杈撳嚭瑕佹眰,
+        '鍥哄畾杈撳嚭瑙勫垯锛?,
+        '- 鍙緭鍑轰竴涓揣鍑?JSON 瀵硅薄锛岄瀛楃蹇呴』鏄?{锛屾湯瀛楃蹇呴』鏄?}銆?,
+        '- 涓嶈 Markdown锛屼笉瑕?```json 浠ｇ爜鍧楋紝涓嶈鎹㈣瑙ｉ噴銆?,
+        '- status 鍙兘浜岄€変竴锛氳祫鏂欏凡瓒冲 / 缁х画璇锋眰璧勬枡銆?,
+        '- sceneQueries.location / sceneQueries.causality / sceneQueries.conflict 蹇呴』鏄瓧绗︿覆鏁扮粍锛涙病鏈夊垯 []銆?,
+        '- 鑻?status 涓衡€滅户缁姹傝祫鏂欌€濓紝浼樺厛杈撳嚭 materialRequests锛屾渶澶?3 鏉★紱娌℃湁鍙墽琛岃祫鏂欒姹傛椂 materialRequests 杈撳嚭 []锛屼絾蹇呴』淇濈暀 sceneQueries 鐞嗙敱鎴栨槑纭弬涓庤€呭€欓€夈€?,
         this.stage1IterationRule(store),
-        '- participants.forced / priority / drama / forbidden 都必须是字符串数组；没有则 []。',
-        '- randomEvents 必须是字符串数组；randomIntrusionCondition 没有明确条件时写“无明确条件则禁止闯入”。',
-        '- 资料请求只能使用中文结构，不得输出英文 skill/method。',
-        'JSON schema：',
-        '{"plan":"查询规划摘要","status":"继续请求资料|资料已足够","sceneQueries":{"location":["地点查询理由"],"causality":["因果查询理由"],"conflict":["冲突查询理由"]},"participants":{"forced":["姓名"],"priority":["姓名"],"drama":["姓名"],"forbidden":["姓名"]},"randomEvents":["候选事件"],"randomIntrusionCondition":"无明确条件则禁止闯入","materialRequests":["角色查询，搜索角色卡，刘思琪，2026现代都市现实世界"]}',
-        '【AI自检】：',
-        '- 输出前必须自检 status 与 materialRequests、sceneQueries、participants 是否一致。',
-        '- 若 materialRequests、sceneQueries、participants.forced、participants.priority、participants.drama 全为空，status 必须为“资料已足够”。',
-        '- 不得输出旧 K:V 字段，例如“资料状态：”“资料请求1：”。',
+        '- participants.forced / priority / drama / forbidden 閮藉繀椤绘槸瀛楃涓叉暟缁勶紱娌℃湁鍒?[]銆?,
+        '- randomEvents 蹇呴』鏄瓧绗︿覆鏁扮粍锛況andomIntrusionCondition 娌℃湁鏄庣‘鏉′欢鏃跺啓鈥滄棤鏄庣‘鏉′欢鍒欑姝㈤棷鍏モ€濄€?,
+        '- 璧勬枡璇锋眰鍙兘浣跨敤涓枃缁撴瀯锛屼笉寰楄緭鍑鸿嫳鏂?skill/method銆?,
+        'JSON schema锛?,
+        '{"plan":"鏌ヨ瑙勫垝鎽樿","status":"缁х画璇锋眰璧勬枡|璧勬枡宸茶冻澶?,"sceneQueries":{"location":["鍦扮偣鏌ヨ鐞嗙敱"],"causality":["鍥犳灉鏌ヨ鐞嗙敱"],"conflict":["鍐茬獊鏌ヨ鐞嗙敱"]},"participants":{"forced":["濮撳悕"],"priority":["濮撳悕"],"drama":["濮撳悕"],"forbidden":["濮撳悕"]},"randomEvents":["鍊欓€変簨浠?],"randomIntrusionCondition":"鏃犳槑纭潯浠跺垯绂佹闂叆","materialRequests":["瑙掕壊鏌ヨ锛屾悳绱㈣鑹插崱锛屽垬鎬濈惇锛?026鐜颁唬閮藉競鐜板疄涓栫晫"]}',
+        '銆怉I鑷銆戯細',
+        '- 杈撳嚭鍓嶅繀椤昏嚜妫€ status 涓?materialRequests銆乻ceneQueries銆乸articipants 鏄惁涓€鑷淬€?,
+        '- 鑻?materialRequests銆乻ceneQueries銆乸articipants.forced銆乸articipants.priority銆乸articipants.drama 鍏ㄤ负绌猴紝status 蹇呴』涓衡€滆祫鏂欏凡瓒冲鈥濄€?,
+        '- 涓嶅緱杈撳嚭鏃?K:V 瀛楁锛屼緥濡傗€滆祫鏂欑姸鎬侊細鈥濃€滆祫鏂欒姹?锛氣€濄€?,
       ].join('\n');
       return [
         { role: 'user', content: rulesText },
@@ -601,9 +601,9 @@ window.GameModules.realWorldAgentLoop = {
     }
     return this.renderPrompt(config.templateId, {
       ...commonVars,
-      基础上下文: base,
-      动态载入资料: [loadedText, materialText].filter(Boolean).join('\n\n'),
-      动态Skills: skills,
+      鍩虹涓婁笅鏂? base,
+      鍔ㄦ€佽浇鍏ヨ祫鏂? [loadedText, materialText].filter(Boolean).join('\n\n'),
+      鍔ㄦ€丼kills: skills,
     });
   },
 
@@ -614,7 +614,7 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   guidedMaxStepText(store = {}, config = this.realConfig()) {
-    return store?.settingsState?.stage1MaterialIterationLimited ? String(this.guidedMaxSteps(store, config)) : '不限制';
+    return store?.settingsState?.stage1MaterialIterationLimited ? String(this.guidedMaxSteps(store, config)) : '涓嶉檺鍒?;
   },
 
   guidedStepText(store = {}, step, config = this.realConfig()) {
@@ -623,14 +623,14 @@ window.GameModules.realWorldAgentLoop = {
 
   stage1IterationRule(store = {}) {
     if (!store?.settingsState?.stage1MaterialIterationLimited) {
-      return '- 资料收集迭代默认不限制；只要仍有必要且有可执行资料请求，可以继续请求资料。若资料足够、无法继续获取或请求开始重复，必须进入场景锚定。';
+      return '- 璧勬枡鏀堕泦杩唬榛樿涓嶉檺鍒讹紱鍙浠嶆湁蹇呰涓旀湁鍙墽琛岃祫鏂欒姹傦紝鍙互缁х画璇锋眰璧勬枡銆傝嫢璧勬枡瓒冲銆佹棤娉曠户缁幏鍙栨垨璇锋眰寮€濮嬮噸澶嶏紝蹇呴』杩涘叆鍦烘櫙閿氬畾銆?;
     }
     const max = Math.max(1, Math.min(8, Math.round(Number(store?.settingsState?.stage1MaterialMaxIterations) || 2)));
-    return `- 最多${max}步后进入场景锚定；第${max}步不得为了重复确认而继续扩展资料循环。`;
+    return `- 鏈€澶?{max}姝ュ悗杩涘叆鍦烘櫙閿氬畾锛涚${max}姝ヤ笉寰椾负浜嗛噸澶嶇‘璁よ€岀户缁墿灞曡祫鏂欏惊鐜€俙;
   },
 
   storyFreedomRule(store) {
-    return store.online ? '操控剧情自由度：玩家输入是本回合对被操控者身体或行动方向的控制；正文只能推进到本次行动自然抵达的结果点，不替玩家完成后续长期行动。' : '离线剧情自由度：玩家输入是建议或态度；角色按性格、记忆、处境自主行动。';
+    return store.online ? '鎿嶆帶鍓ф儏鑷敱搴︼細鐜╁杈撳叆鏄湰鍥炲悎瀵硅鎿嶆帶鑰呰韩浣撴垨琛屽姩鏂瑰悜鐨勬帶鍒讹紱姝ｆ枃鍙兘鎺ㄨ繘鍒版湰娆¤鍔ㄨ嚜鐒舵姷杈剧殑缁撴灉鐐癸紝涓嶆浛鐜╁瀹屾垚鍚庣画闀挎湡琛屽姩銆? : '绂荤嚎鍓ф儏鑷敱搴︼細鐜╁杈撳叆鏄缓璁垨鎬佸害锛涜鑹叉寜鎬ф牸銆佽蹇嗐€佸澧冭嚜涓昏鍔ㄣ€?;
   },
 
   configuredControlPerspectiveRule(store = null, config = this.realConfig()) {
@@ -638,75 +638,75 @@ window.GameModules.realWorldAgentLoop = {
     const shared = config?.mode === 'real' ? store?.sharedControlState?.() : null;
     if (!isStoryOnline && !shared) return '';
     const target = config?.mode === 'real'
-      ? String(shared?.profile?.name || shared?.name || '被控者').trim()
-      : String(store?.character?.name || '被控者').trim();
-    const player = '慎二';
+      ? String(shared?.profile?.name || shared?.name || '琚帶鑰?).trim()
+      : String(store?.character?.name || '琚帶鑰?).trim();
+    const player = '鎱庝簩';
     return [
-      '上线附身控制视角规则（高优先级）：',
-      `- ${player}可以一心二用：同一意识能同时控制自己的现实本体与${target}的身体，并同时接收两个肉体的视觉、听觉、触觉、痛觉、疲劳、呼吸、平衡等感官反馈。`,
-      `- ${target}的身体行动权被${player}接管；除非系统或剧情明确解除控制，${target}不能自主夺回身体、不能让身体违背玩家本次控制行动。`,
-      `- ${target}的意识仍清醒存在，能够完整感觉自己身体的所有感官反馈，也会产生抗拒、困惑、羞耻、愤怒、恐惧、试探或顺从等内心反应；正文必须保留一部分${target}的心理想法、情绪和身体感受。`,
-      `- AI生成的正文必须以玩家在${target}身体内的第二人称视角为主来描绘行动，也就是以玩家在被控者身体内的附身体验推进：重点写“你”如何通过被控身体看见、移动、触碰、发声、感受肌肉与环境反馈；同时穿插${target}意识里的想法和感受。`,
-      `- 附身视角动作归属规则：只要玩家没有明确写“${player}本体”“现实身体”“外部的我”或“让其他人执行”，所有“你/我/手/身体/伸手/触碰/捏/按/移动/说话”等行动都默认是${target}的身体亲自执行；不要写成${player}的现实本体从外部对${target}行动。`,
-      `- 不要把${target}写成失去意识、断片、完全无感或可自由操控自己身体；也不要把正文主视角切回纯旁观或只写玩家现实本体。`,
+      '涓婄嚎闄勮韩鎺у埗瑙嗚瑙勫垯锛堥珮浼樺厛绾э級锛?,
+      `- ${player}鍙互涓€蹇冧簩鐢細鍚屼竴鎰忚瘑鑳藉悓鏃舵帶鍒惰嚜宸辩殑鐜板疄鏈綋涓?{target}鐨勮韩浣擄紝骞跺悓鏃舵帴鏀朵袱涓倝浣撶殑瑙嗚銆佸惉瑙夈€佽Е瑙夈€佺棝瑙夈€佺柌鍔炽€佸懠鍚搞€佸钩琛＄瓑鎰熷畼鍙嶉銆俙,
+      `- ${target}鐨勮韩浣撹鍔ㄦ潈琚?{player}鎺ョ锛涢櫎闈炵郴缁熸垨鍓ф儏鏄庣‘瑙ｉ櫎鎺у埗锛?{target}涓嶈兘鑷富澶哄洖韬綋銆佷笉鑳借韬綋杩濊儗鐜╁鏈鎺у埗琛屽姩銆俙,
+      `- ${target}鐨勬剰璇嗕粛娓呴啋瀛樺湪锛岃兘澶熷畬鏁存劅瑙夎嚜宸辫韩浣撶殑鎵€鏈夋劅瀹樺弽棣堬紝涔熶細浜х敓鎶楁嫆銆佸洶鎯戙€佺緸鑰汇€佹劋鎬掋€佹亹鎯с€佽瘯鎺㈡垨椤轰粠绛夊唴蹇冨弽搴旓紱姝ｆ枃蹇呴』淇濈暀涓€閮ㄥ垎${target}鐨勫績鐞嗘兂娉曘€佹儏缁拰韬綋鎰熷彈銆俙,
+      `- AI鐢熸垚鐨勬鏂囧繀椤讳互鐜╁鍦?{target}韬綋鍐呯殑绗簩浜虹О瑙嗚涓轰富鏉ユ弿缁樿鍔紝涔熷氨鏄互鐜╁鍦ㄨ鎺ц€呰韩浣撳唴鐨勯檮韬綋楠屾帹杩涳細閲嶇偣鍐欌€滀綘鈥濆浣曢€氳繃琚帶韬綋鐪嬭銆佺Щ鍔ㄣ€佽Е纰般€佸彂澹般€佹劅鍙楄倢鑲変笌鐜鍙嶉锛涘悓鏃剁┛鎻?{target}鎰忚瘑閲岀殑鎯虫硶鍜屾劅鍙椼€俙,
+      `- 闄勮韩瑙嗚鍔ㄤ綔褰掑睘瑙勫垯锛氬彧瑕佺帺瀹舵病鏈夋槑纭啓鈥?{player}鏈綋鈥濃€滅幇瀹炶韩浣撯€濃€滃閮ㄧ殑鎴戔€濇垨鈥滆鍏朵粬浜烘墽琛屸€濓紝鎵€鏈夆€滀綘/鎴?鎵?韬綋/浼告墜/瑙︾/鎹?鎸?绉诲姩/璇磋瘽鈥濈瓑琛屽姩閮介粯璁ゆ槸${target}鐨勮韩浣撲翰鑷墽琛岋紱涓嶈鍐欐垚${player}鐨勭幇瀹炴湰浣撲粠澶栭儴瀵?{target}琛屽姩銆俙,
+      `- 涓嶈鎶?{target}鍐欐垚澶卞幓鎰忚瘑銆佹柇鐗囥€佸畬鍏ㄦ棤鎰熸垨鍙嚜鐢辨搷鎺ц嚜宸辫韩浣擄紱涔熶笉瑕佹妸姝ｆ枃涓昏瑙掑垏鍥炵函鏃佽鎴栧彧鍐欑帺瀹剁幇瀹炴湰浣撱€俙,
     ].join('\n');
   },
 
   stepOutputRule(step, forceFinal = false) {
     if (forceFinal) {
-      return '当前为收敛步骤：禁止继续请求资料。只输出一个紧凑 JSON 对象；status 必须为“资料已足够”，materialRequests 必须为 []，sceneQueries 与 participants 按已确认事实填写；不得输出正文、旁白、Markdown、代码块或 final JSON。';
+      return '褰撳墠涓烘敹鏁涙楠わ細绂佹缁х画璇锋眰璧勬枡銆傚彧杈撳嚭涓€涓揣鍑?JSON 瀵硅薄锛泂tatus 蹇呴』涓衡€滆祫鏂欏凡瓒冲鈥濓紝materialRequests 蹇呴』涓?[]锛宻ceneQueries 涓?participants 鎸夊凡纭浜嬪疄濉啓锛涗笉寰楄緭鍑烘鏂囥€佹梺鐧姐€丮arkdown銆佷唬鐮佸潡鎴?final JSON銆?;
     }
     if (step === 1) {
-      return '当前是第1步：你是上下文路由器，只判断为了准确生成本次行动范围内正文需要载入哪些已有资料，并尽可能多而全地列出 sceneQueries 中的地点/因果/冲突查询理由。只输出 Stage1 JSON schema；不要写正文，不要结算状态，不要推演后续结果。';
+      return '褰撳墠鏄1姝ワ細浣犳槸涓婁笅鏂囪矾鐢卞櫒锛屽彧鍒ゆ柇涓轰簡鍑嗙‘鐢熸垚鏈琛屽姩鑼冨洿鍐呮鏂囬渶瑕佽浇鍏ュ摢浜涘凡鏈夎祫鏂欙紝骞跺敖鍙兘澶氳€屽叏鍦板垪鍑?sceneQueries 涓殑鍦扮偣/鍥犳灉/鍐茬獊鏌ヨ鐞嗙敱銆傚彧杈撳嚭 Stage1 JSON schema锛涗笉瑕佸啓姝ｆ枃锛屼笉瑕佺粨绠楃姸鎬侊紝涓嶈鎺ㄦ紨鍚庣画缁撴灉銆?;
     }
     if (step >= 2) {
-      return `当前是第${step}步/后续资料路由步骤：继续使用 Stage1 JSON schema 收敛资料需求。达到设置的资料收集迭代最大次数后，系统会带着已加载资料与 sceneQueries 进入场景锚定；若没有可执行 materialRequests，允许 materialRequests 为 [] 但保留 sceneQueries 或 participants 候选。不要输出中文 K:V、正文、旁白、Markdown、代码块和 final JSON。`;
+      return `褰撳墠鏄${step}姝?鍚庣画璧勬枡璺敱姝ラ锛氱户缁娇鐢?Stage1 JSON schema 鏀舵暃璧勬枡闇€姹傘€傝揪鍒拌缃殑璧勬枡鏀堕泦杩唬鏈€澶ф鏁板悗锛岀郴缁熶細甯︾潃宸插姞杞借祫鏂欎笌 sceneQueries 杩涘叆鍦烘櫙閿氬畾锛涜嫢娌℃湁鍙墽琛?materialRequests锛屽厑璁?materialRequests 涓?[] 浣嗕繚鐣?sceneQueries 鎴?participants 鍊欓€夈€備笉瑕佽緭鍑轰腑鏂?K:V銆佹鏂囥€佹梺鐧姐€丮arkdown銆佷唬鐮佸潡鍜?final JSON銆俙;
     }
-    return '当前只负责判断是否继续收集资料：只输出 Stage1 JSON schema。仍缺关键资料就写 status“继续请求资料”并列出 materialRequests；资料足够或无法继续获取时写 status“资料已足够”且 materialRequests 为 []。不要输出中文 K:V、正文、旁白、Markdown、代码块和 final JSON。';
+    return '褰撳墠鍙礋璐ｅ垽鏂槸鍚︾户缁敹闆嗚祫鏂欙細鍙緭鍑?Stage1 JSON schema銆備粛缂哄叧閿祫鏂欏氨鍐?status鈥滅户缁姹傝祫鏂欌€濆苟鍒楀嚭 materialRequests锛涜祫鏂欒冻澶熸垨鏃犳硶缁х画鑾峰彇鏃跺啓 status鈥滆祫鏂欏凡瓒冲鈥濅笖 materialRequests 涓?[]銆備笉瑕佽緭鍑轰腑鏂?K:V銆佹鏂囥€佹梺鐧姐€丮arkdown銆佷唬鐮佸潡鍜?final JSON銆?;
   },
 
   stage1JsonRetryInstruction(err = {}, semanticSelfCheckFailed = false) {
     const droppedSummary = this.summarizeDroppedMaterialRequests(err.parseResult?.droppedMaterialRequests || []);
     const parseDetail = err.parseResult
-      ? `score=${err.parseResult.score}/${err.parseResult.maxScore} successRate=${err.parseResult.successRate} missing=${err.parseResult.missing?.join('、') || '无'} droppedMaterialRequests=${droppedSummary}`
+      ? `score=${err.parseResult.score}/${err.parseResult.maxScore} successRate=${err.parseResult.successRate} missing=${err.parseResult.missing?.join('銆?) || '鏃?} droppedMaterialRequests=${droppedSummary}`
       : '';
     return [
-      `上次 Stage1 JSON ${semanticSelfCheckFailed ? '语义自检失败' : '解析失败'}：${err.message}${parseDetail ? `（${parseDetail}）` : ''}`,
-      `已确认字段：${err.parseResult?.keyHits?.join('、') || '无'}`,
-      `已确认字段值：\n${this.confirmedKvValuesText(err.parseResult)}`,
-      `缺失字段：${err.parseResult?.missing?.join('、') || '未知'}`,
-      `已丢弃资料请求：${droppedSummary}`,
-      '请重新输出完整 Stage1 JSON 对象；必须保留已确认字段值，只补齐或修正缺失/错误字段；不得删除用户明确约束、forbidden 或已确认 forced；不要重复输出已丢弃 materialRequests。',
-      '【AI自检】若 status 为“继续请求资料”，优先输出最多 3 条 materialRequests 或明确 participants 候选；若没有可执行 materialRequests，必须保留尽可能多而全的 sceneQueries，系统会带着这些理由进入场景锚定。不得输出中文 K:V 或旧字段“资料状态：”“资料请求1：”。',
+      `涓婃 Stage1 JSON ${semanticSelfCheckFailed ? '璇箟鑷澶辫触' : '瑙ｆ瀽澶辫触'}锛?{err.message}${parseDetail ? `锛?{parseDetail}锛塦 : ''}`,
+      `宸茬‘璁ゅ瓧娈碉細${err.parseResult?.keyHits?.join('銆?) || '鏃?}`,
+      `宸茬‘璁ゅ瓧娈靛€硷細\n${this.confirmedKvValuesText(err.parseResult)}`,
+      `缂哄け瀛楁锛?{err.parseResult?.missing?.join('銆?) || '鏈煡'}`,
+      `宸蹭涪寮冭祫鏂欒姹傦細${droppedSummary}`,
+      '璇烽噸鏂拌緭鍑哄畬鏁?Stage1 JSON 瀵硅薄锛涘繀椤讳繚鐣欏凡纭瀛楁鍊硷紝鍙ˉ榻愭垨淇缂哄け/閿欒瀛楁锛涗笉寰楀垹闄ょ敤鎴锋槑纭害鏉熴€乫orbidden 鎴栧凡纭 forced锛涗笉瑕侀噸澶嶈緭鍑哄凡涓㈠純 materialRequests銆?,
+      '銆怉I鑷銆戣嫢 status 涓衡€滅户缁姹傝祫鏂欌€濓紝浼樺厛杈撳嚭鏈€澶?3 鏉?materialRequests 鎴栨槑纭?participants 鍊欓€夛紱鑻ユ病鏈夊彲鎵ц materialRequests锛屽繀椤讳繚鐣欏敖鍙兘澶氳€屽叏鐨?sceneQueries锛岀郴缁熶細甯︾潃杩欎簺鐞嗙敱杩涘叆鍦烘櫙閿氬畾銆備笉寰楄緭鍑轰腑鏂?K:V 鎴栨棫瀛楁鈥滆祫鏂欑姸鎬侊細鈥濃€滆祫鏂欒姹?锛氣€濄€?,
     ].join('\n\n');
   },
 
   previousGuidanceSummary(guidance = null) {
     const ctx = window.GameModules.realWorldAgentContext;
     if (ctx?.stage1GuidanceSummary) return ctx.stage1GuidanceSummary(guidance);
-    if (!guidance) return '无';
-    const names = (group = [], reasonLabel = '理由') => (Array.isArray(group) ? group : []).map((item) => {
+    if (!guidance) return '鏃?;
+    const names = (group = [], reasonLabel = '鐞嗙敱') => (Array.isArray(group) ? group : []).map((item) => {
       const name = item.name || item.idOrName || item.id || item.characterName;
-      return `${name}${item.reason ? `（${reasonLabel}：${item.reason}）` : ''}`;
-    }).join('、') || '无';
+      return `${name}${item.reason ? `锛?{reasonLabel}锛?{item.reason}锛塦 : ''}`;
+    }).join('銆?) || '鏃?;
     const random = (Array.isArray(guidance.randomActiveEvents) ? guidance.randomActiveEvents : [])
-      .map((item) => `${item.characterName || item.name}：${item.eventType || item.actionMethod || '背景行动'}｜${item.motivation || item.reason || ''}`)
-      .join('；') || '无';
+      .map((item) => `${item.characterName || item.name}锛?{item.eventType || item.actionMethod || '鑳屾櫙琛屽姩'}锝?{item.motivation || item.reason || ''}`)
+      .join('锛?) || '鏃?;
     const queryReasons = (label, key) => {
       const items = [...new Set(Array.isArray(guidance.sceneQueries?.[key]) ? guidance.sceneQueries[key] : [])];
-      return items.length ? items.map((item, index) => `${label}${index + 1}：${item}`).join('\n') : `${label}1：无`;
+      return items.length ? items.map((item, index) => `${label}${index + 1}锛?{item}`).join('\n') : `${label}1锛氭棤`;
     };
     return [
-      `资料状态：${guidance.type === 'context_done' ? '资料已足够' : '继续请求资料'}`,
-      queryReasons('地点查询理由', 'location'),
-      queryReasons('因果查询理由', 'causality'),
-      queryReasons('冲突查询理由', 'conflict'),
-      `强制出场：${names(guidance.forcedParticipants, '出场理由')}`,
-      `高优先候选：${names(guidance.priorityCandidates, '候选理由')}`,
-      `戏剧候选：${names(guidance.dramaCandidates, '候选理由')}`,
-      `禁止出场：${names(guidance.forbiddenParticipants, '不在场理由')}`,
-      `随机主动事件：${random}`,
-      `随机事件闯入条件：${guidance.randomIntrusionCondition || '无明确条件则禁止闯入'}`,
+      `璧勬枡鐘舵€侊細${guidance.type === 'context_done' ? '璧勬枡宸茶冻澶? : '缁х画璇锋眰璧勬枡'}`,
+      queryReasons('鍦扮偣鏌ヨ鐞嗙敱', 'location'),
+      queryReasons('鍥犳灉鏌ヨ鐞嗙敱', 'causality'),
+      queryReasons('鍐茬獊鏌ヨ鐞嗙敱', 'conflict'),
+      `寮哄埗鍑哄満锛?{names(guidance.forcedParticipants, '鍑哄満鐞嗙敱')}`,
+      `楂樹紭鍏堝€欓€夛細${names(guidance.priorityCandidates, '鍊欓€夌悊鐢?)}`,
+      `鎴忓墽鍊欓€夛細${names(guidance.dramaCandidates, '鍊欓€夌悊鐢?)}`,
+      `绂佹鍑哄満锛?{names(guidance.forbiddenParticipants, '涓嶅湪鍦虹悊鐢?)}`,
+      `闅忔満涓诲姩浜嬩欢锛?{random}`,
+      `闅忔満浜嬩欢闂叆鏉′欢锛?{guidance.randomIntrusionCondition || '鏃犳槑纭潯浠跺垯绂佹闂叆'}`,
     ].join('\n');
   },
 
@@ -722,7 +722,7 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   continuityFallbackRule() {
-    return '连续性兜底规则（最高优先级）：如果“本次行动”为空、无效、明显是 [object Object]、undefined、null、JSON对象或无法解释为玩家意图，则不要另起新场景，不要发明新行动；应把本次行动视为“继续承接最近世界线”，严格从最近世界线最后一幕、当前人物位置、动作状态和对话状态自然续写。若本次行动是有效自然语言，即使与前文弱相关，也必须先承接当前场景，再自然执行该行动。';
+    return '杩炵画鎬у厹搴曡鍒欙紙鏈€楂樹紭鍏堢骇锛夛細濡傛灉鈥滄湰娆¤鍔ㄢ€濅负绌恒€佹棤鏁堛€佹槑鏄炬槸 [object Object]銆乽ndefined銆乶ull銆丣SON瀵硅薄鎴栨棤娉曡В閲婁负鐜╁鎰忓浘锛屽垯涓嶈鍙﹁捣鏂板満鏅紝涓嶈鍙戞槑鏂拌鍔紱搴旀妸鏈琛屽姩瑙嗕负鈥滅户缁壙鎺ユ渶杩戜笘鐣岀嚎鈥濓紝涓ユ牸浠庢渶杩戜笘鐣岀嚎鏈€鍚庝竴骞曘€佸綋鍓嶄汉鐗╀綅缃€佸姩浣滅姸鎬佸拰瀵硅瘽鐘舵€佽嚜鐒剁画鍐欍€傝嫢鏈琛屽姩鏄湁鏁堣嚜鐒惰瑷€锛屽嵆浣夸笌鍓嶆枃寮辩浉鍏筹紝涔熷繀椤诲厛鎵挎帴褰撳墠鍦烘櫙锛屽啀鑷劧鎵ц璇ヨ鍔ㄣ€?;
   },
 
   invisibleCharsPattern() {
@@ -756,7 +756,7 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   compactReturnRule() {
-    return '返回必须紧凑：不要Markdown、不要标题、不要任务说明、不要换行符、不要制表符、不要不可见字符，只输出单行正文文本。';
+    return '杩斿洖蹇呴』绱у噾锛氫笉瑕丮arkdown銆佷笉瑕佹爣棰樸€佷笉瑕佷换鍔¤鏄庛€佷笉瑕佹崲琛岀銆佷笉瑕佸埗琛ㄧ銆佷笉瑕佷笉鍙瀛楃锛屽彧杈撳嚭鍗曡姝ｆ枃鏂囨湰銆?;
   },
 
   participantDisplayName(item = {}) {
@@ -794,7 +794,7 @@ window.GameModules.realWorldAgentLoop = {
         name: sharedName || sharedId,
         role: config?.mode === 'story' ? 'controlled-subject' : 'shared-control-subject',
         canSettle: true,
-        reason: '玩家当前控制主体',
+        reason: '鐜╁褰撳墠鎺у埗涓讳綋',
       });
     }
     return this.dedupeParticipants(forced);
@@ -814,7 +814,7 @@ window.GameModules.realWorldAgentLoop = {
   resolveEffectiveSceneLayers(trace = [], store = null, config = this.realConfig()) {
     const items = Array.isArray(trace) ? trace : (trace ? [trace] : []);
     const forcedBase = this.latestLayer(items, 'forcedParticipants').map((item) => ({ ...item, role: item.role || 'forced', canSettle: item.canSettle === false ? false : true }));
-    const systemForced = this.currentForcedParticipants(store, config).map((item) => ({ ...item, role: item.role || 'actor', canSettle: true, reason: item.reason || '系统固定强制出场' }));
+    const systemForced = this.currentForcedParticipants(store, config).map((item) => ({ ...item, role: item.role || 'actor', canSettle: true, reason: item.reason || '绯荤粺鍥哄畾寮哄埗鍑哄満' }));
     const forcedParticipants = this.dedupeParticipants([...forcedBase, ...systemForced]);
     const forcedNames = new Set(forcedParticipants.flatMap((item) => [this.participantDisplayName(item), this.participantKey(item)]).filter(Boolean));
 
@@ -832,7 +832,7 @@ window.GameModules.realWorldAgentLoop = {
 
     const randomBlocked = new Set([...dramaBlocked, ...dramaNames]);
     const randomActiveEvents = this.dedupeParticipants(this.latestLayer(items, 'randomActiveEvents'), { blockedNames: randomBlocked });
-    const latestCondition = [...items].reverse().find((item) => item?.randomIntrusionCondition)?.randomIntrusionCondition || '无明确条件则禁止闯入';
+    const latestCondition = [...items].reverse().find((item) => item?.randomIntrusionCondition)?.randomIntrusionCondition || '鏃犳槑纭潯浠跺垯绂佹闂叆';
     const query = (key) => [...new Set(items.flatMap((item) => Array.isArray(item?.sceneQueries?.[key]) ? item.sceneQueries[key] : []))];
 
     return {
@@ -848,34 +848,34 @@ window.GameModules.realWorldAgentLoop = {
 
   sceneLayerSummary(trace = [], store = null, config = this.realConfig()) {
     const layers = this.isEffectiveSceneLayers(trace) ? trace : this.resolveEffectiveSceneLayers(trace, store, config);
-    const names = (group = [], reasonLabel = '理由') => group.map((item) => {
+    const names = (group = [], reasonLabel = '鐞嗙敱') => group.map((item) => {
       const name = item.name || item.idOrName || item.id || item.characterName;
-      return `${name}${item.reason ? `（${reasonLabel}：${item.reason}）` : `（${reasonLabel}：需在场景锚定中明确）`}`;
-    }).join('、') || '无';
-    const random = (layers.randomActiveEvents || []).map((item) => `${item.characterName || item.name}：${item.eventType || item.actionMethod || '背景行动'}｜${item.motivation || item.reason || ''}`).join('；') || '无';
+      return `${name}${item.reason ? `锛?{reasonLabel}锛?{item.reason}锛塦 : `锛?{reasonLabel}锛氶渶鍦ㄥ満鏅敋瀹氫腑鏄庣‘锛塦}`;
+    }).join('銆?) || '鏃?;
+    const random = (layers.randomActiveEvents || []).map((item) => `${item.characterName || item.name}锛?{item.eventType || item.actionMethod || '鑳屾櫙琛屽姩'}锝?{item.motivation || item.reason || ''}`).join('锛?) || '鏃?;
     const query = (label, key) => {
       const items = [...new Set(Array.isArray(layers.sceneQueries?.[key]) ? layers.sceneQueries[key] : [])];
-      return items.length ? items.map((item, index) => `${label}${index + 1}：${item}`).join('\n') : `${label}1：无`;
+      return items.length ? items.map((item, index) => `${label}${index + 1}锛?{item}`).join('\n') : `${label}1锛氭棤`;
     };
-    return [`强制出场：${names(layers.forcedParticipants, '出场理由')}`, `高优先候选：${names(layers.priorityCandidates, '出场或不出场理由')}`, `戏剧候选：${names(layers.dramaCandidates, '出场或不出场理由')}`, `禁止出场：${names(layers.forbiddenParticipants, '不出场理由')}`, query('地点查询理由', 'location'), query('因果查询理由', 'causality'), query('冲突查询理由', 'conflict'), `随机主动事件：${random}`, `随机事件闯入条件：${layers.randomIntrusionCondition || '无明确条件则禁止闯入'}`].join('\n');
+    return [`寮哄埗鍑哄満锛?{names(layers.forcedParticipants, '鍑哄満鐞嗙敱')}`, `楂樹紭鍏堝€欓€夛細${names(layers.priorityCandidates, '鍑哄満鎴栦笉鍑哄満鐞嗙敱')}`, `鎴忓墽鍊欓€夛細${names(layers.dramaCandidates, '鍑哄満鎴栦笉鍑哄満鐞嗙敱')}`, `绂佹鍑哄満锛?{names(layers.forbiddenParticipants, '涓嶅嚭鍦虹悊鐢?)}`, query('鍦扮偣鏌ヨ鐞嗙敱', 'location'), query('鍥犳灉鏌ヨ鐞嗙敱', 'causality'), query('鍐茬獊鏌ヨ鐞嗙敱', 'conflict'), `闅忔満涓诲姩浜嬩欢锛?{random}`, `闅忔満浜嬩欢闂叆鏉′欢锛?{layers.randomIntrusionCondition || '鏃犳槑纭潯浠跺垯绂佹闂叆'}`].join('\n');
   },
 
   async buildConfiguredSceneAnchorPrompt({ store, action, base, loaded, trace = [], effectiveSceneLayers = null, materialSession = null, config = this.realConfig() }) {
-    const actionText = this.actionText(action, config.mode === 'story' ? '继续推进操控剧情' : '继续观察现实世界');
+    const actionText = this.actionText(action, config.mode === 'story' ? '缁х画鎺ㄨ繘鎿嶆帶鍓ф儏' : '缁х画瑙傚療鐜板疄涓栫晫');
     const layers = effectiveSceneLayers || this.resolveEffectiveSceneLayers(trace, store, config);
     const eventNarrationContext = store.eventNarrationPromptContext?.(actionText) || '';
     const anchorContext = config.ctx.buildSceneAnchorContext?.({ store, action: actionText, loaded, trace, effectiveSceneLayers: layers, materialSession, config }) || [
-      `模式：${config.label}`,
-      `本次行动：${actionText}`,
-      `参与者边界：\n${this.sceneLayerSummary(layers, store, config)}`,
+      `妯″紡锛?{config.label}`,
+      `鏈琛屽姩锛?{actionText}`,
+      `鍙備笌鑰呰竟鐣岋細\n${this.sceneLayerSummary(layers, store, config)}`,
     ].join('\n');
     const controlPerspectiveContext = this.configuredControlPerspectiveRule(store, config);
     const anchorContextWithEvents = [anchorContext, eventNarrationContext, controlPerspectiveContext].filter(Boolean).join('\n');
     const body = await this.renderPrompt('inference-stage2-scene-anchor', {
-      模式标签: config.label,
-      本次行动: actionText,
-      场景锚定上下文: anchorContextWithEvents,
-      紧凑返回规则: this.compactReturnRule('prose'),
+      妯″紡鏍囩: config.label,
+      鏈琛屽姩: actionText,
+      鍦烘櫙閿氬畾涓婁笅鏂? anchorContextWithEvents,
+      绱у噾杩斿洖瑙勫垯: this.compactReturnRule('prose'),
     });
     return body;
   },
@@ -884,14 +884,14 @@ window.GameModules.realWorldAgentLoop = {
     const jsonData = this.parseSceneAnchorJson(raw, config);
     if (jsonData) return jsonData;
     const parsed = this.parseChineseKvBlock(raw, this.sceneAnchorFields(), { config });
-    const hardAnchors = ['当前地点', '当前时间', '空间状态', '当前动作'];
+    const hardAnchors = ['褰撳墠鍦扮偣', '褰撳墠鏃堕棿', '绌洪棿鐘舵€?, '褰撳墠鍔ㄤ綔'];
     const missingHardAnchor = hardAnchors.some((key) => !String(parsed.values?.[key] || '').trim());
-    if (parsed.successRate < 0.8 || missingHardAnchor) throw new Error('场景锚定报告解析错误请重试');
+    if (parsed.successRate < 0.8 || missingHardAnchor) throw new Error('鍦烘櫙閿氬畾鎶ュ憡瑙ｆ瀽閿欒璇烽噸璇?);
     const v = parsed.values;
     this.assertSceneParticipantBoundary(v);
-    const currentSceneImpactObjects = v['当前场景影响对象'] || '';
-    const orderedText = this.sceneAnchorFields().map((key) => `${key}：${v[key] || ''}`).join('\n');
-    return { text: orderedText, currentLocation: v['当前地点'] || '', currentTime: v['当前时间'] || '', writingFocus: v['正文写作重点'] || '', currentSceneImpactObjects, settlementBoundary: currentSceneImpactObjects, values: v, parseScore: { score: parsed.score, maxScore: parsed.maxScore, successRate: parsed.successRate }, parseDegraded: parsed.successRate < 1 };
+    const currentSceneImpactObjects = v['褰撳墠鍦烘櫙褰卞搷瀵硅薄'] || '';
+    const orderedText = this.sceneAnchorFields().map((key) => `${key}锛?{v[key] || ''}`).join('\n');
+    return { text: orderedText, currentLocation: v['褰撳墠鍦扮偣'] || '', currentTime: v['褰撳墠鏃堕棿'] || '', writingFocus: v['姝ｆ枃鍐欎綔閲嶇偣'] || '', currentSceneImpactObjects, settlementBoundary: currentSceneImpactObjects, values: v, parseScore: { score: parsed.score, maxScore: parsed.maxScore, successRate: parsed.successRate }, parseDegraded: parsed.successRate < 1 };
   },
 
   parseSceneAnchorJson(raw, config = this.realConfig()) {
@@ -905,50 +905,50 @@ window.GameModules.realWorldAgentLoop = {
       }
       return '';
     };
-    const impactValue = data.currentSceneImpactObjects ?? data.impactObjects ?? data.settlementBoundary ?? data['当前场景影响对象'];
+    const impactValue = data.currentSceneImpactObjects ?? data.impactObjects ?? data.settlementBoundary ?? data['褰撳墠鍦烘櫙褰卞搷瀵硅薄'];
     const sceneImpactObjects = this.sceneAnchorImpactGroups(impactValue);
     const values = {
-      '场景锚定报告': pick('sceneAnchorReport', 'report', '场景锚定报告'),
-      '当前地点': pick('currentLocation', 'location', '当前地点'),
-      '当前时间': pick('currentTime', 'time', '当前时间'),
-      '空间状态': pick('spatialState', 'spaceState', '空间状态'),
-      '当前动作': pick('currentAction', 'action', '当前动作'),
-      '强制出场': pick('forcedParticipants', 'forced', '强制出场'),
-      '高优先候选': pick('priorityCandidates', 'priority', '高优先候选'),
-      '戏剧候选': pick('dramaCandidates', 'drama', '戏剧候选'),
-      '禁止出场': pick('forbiddenParticipants', 'forbidden', '禁止出场'),
-      '随机事件影响': pick('randomEventImpact', 'randomEvent', '随机事件影响'),
-      '正文写作重点': pick('writingFocus', 'focus', '正文写作重点'),
-      '当前场景影响对象': this.sceneAnchorJsonText(impactValue) || pick('currentSceneImpactObjects', 'impactObjects', 'settlementBoundary', '当前场景影响对象'),
+      '鍦烘櫙閿氬畾鎶ュ憡': pick('sceneAnchorReport', 'report', '鍦烘櫙閿氬畾鎶ュ憡'),
+      '褰撳墠鍦扮偣': pick('currentLocation', 'location', '褰撳墠鍦扮偣'),
+      '褰撳墠鏃堕棿': pick('currentTime', 'time', '褰撳墠鏃堕棿'),
+      '绌洪棿鐘舵€?: pick('spatialState', 'spaceState', '绌洪棿鐘舵€?),
+      '褰撳墠鍔ㄤ綔': pick('currentAction', 'action', '褰撳墠鍔ㄤ綔'),
+      '寮哄埗鍑哄満': pick('forcedParticipants', 'forced', '寮哄埗鍑哄満'),
+      '楂樹紭鍏堝€欓€?: pick('priorityCandidates', 'priority', '楂樹紭鍏堝€欓€?),
+      '鎴忓墽鍊欓€?: pick('dramaCandidates', 'drama', '鎴忓墽鍊欓€?),
+      '绂佹鍑哄満': pick('forbiddenParticipants', 'forbidden', '绂佹鍑哄満'),
+      '闅忔満浜嬩欢褰卞搷': pick('randomEventImpact', 'randomEvent', '闅忔満浜嬩欢褰卞搷'),
+      '姝ｆ枃鍐欎綔閲嶇偣': pick('writingFocus', 'focus', '姝ｆ枃鍐欎綔閲嶇偣'),
+      '褰撳墠鍦烘櫙褰卞搷瀵硅薄': this.sceneAnchorJsonText(impactValue) || pick('currentSceneImpactObjects', 'impactObjects', 'settlementBoundary', '褰撳墠鍦烘櫙褰卞搷瀵硅薄'),
     };
-    const hardAnchors = ['当前地点', '当前时间', '空间状态', '当前动作'];
+    const hardAnchors = ['褰撳墠鍦扮偣', '褰撳墠鏃堕棿', '绌洪棿鐘舵€?, '褰撳墠鍔ㄤ綔'];
     const missingHardAnchor = hardAnchors.some((key) => !String(values[key] || '').trim());
-    if (missingHardAnchor || !values['正文写作重点'] || !values['当前场景影响对象']) throw new Error('场景锚定报告解析错误请重试');
+    if (missingHardAnchor || !values['姝ｆ枃鍐欎綔閲嶇偣'] || !values['褰撳墠鍦烘櫙褰卞搷瀵硅薄']) throw new Error('鍦烘櫙閿氬畾鎶ュ憡瑙ｆ瀽閿欒璇烽噸璇?);
     this.assertSceneParticipantBoundary(values);
-    const orderedText = this.sceneAnchorFields().map((key) => `${key}：${values[key] || ''}`).join('\n');
-    const currentSceneImpactObjects = values['当前场景影响对象'] || '';
-    return { text: orderedText, currentLocation: values['当前地点'] || '', currentTime: values['当前时间'] || '', writingFocus: values['正文写作重点'] || '', currentSceneImpactObjects, settlementBoundary: currentSceneImpactObjects, sceneImpactObjects, values, parseScore: { score: this.sceneAnchorFields().length, maxScore: this.sceneAnchorFields().length, successRate: 1 }, parseDegraded: false, format: 'json' };
+    const orderedText = this.sceneAnchorFields().map((key) => `${key}锛?{values[key] || ''}`).join('\n');
+    const currentSceneImpactObjects = values['褰撳墠鍦烘櫙褰卞搷瀵硅薄'] || '';
+    return { text: orderedText, currentLocation: values['褰撳墠鍦扮偣'] || '', currentTime: values['褰撳墠鏃堕棿'] || '', writingFocus: values['姝ｆ枃鍐欎綔閲嶇偣'] || '', currentSceneImpactObjects, settlementBoundary: currentSceneImpactObjects, sceneImpactObjects, values, parseScore: { score: this.sceneAnchorFields().length, maxScore: this.sceneAnchorFields().length, successRate: 1 }, parseDegraded: false, format: 'json' };
   },
 
   sceneAnchorJsonText(value) {
     if (value === undefined || value === null) return '';
-    if (Array.isArray(value)) return value.map((item) => this.sceneAnchorJsonText(item)).filter(Boolean).join('、');
+    if (Array.isArray(value)) return value.map((item) => this.sceneAnchorJsonText(item)).filter(Boolean).join('銆?);
     if (typeof value === 'object') {
       const direct = value.name || value.characterName || value.idOrName || value.id || value.text || value.value || value.summary || value.description;
-      const reason = value.reason || value.evidence || value.rationale || value['理由'];
-      if (direct && !this.sceneAnchorHasImpactGroups(value)) return reason ? `${String(direct).trim()}（${String(reason).trim()}）` : String(direct).trim();
+      const reason = value.reason || value.evidence || value.rationale || value['鐞嗙敱'];
+      if (direct && !this.sceneAnchorHasImpactGroups(value)) return reason ? `${String(direct).trim()}锛?{String(reason).trim()}锛塦 : String(direct).trim();
       const groups = [
-        ['people', '人物'], ['persons', '人物'], ['characters', '人物'],
-        ['locations', '地点'], ['places', '地点'],
-        ['items', '物品'], ['objects', '物品'],
-        ['systems', '系统'], ['facts', '事实'],
+        ['people', '浜虹墿'], ['persons', '浜虹墿'], ['characters', '浜虹墿'],
+        ['locations', '鍦扮偣'], ['places', '鍦扮偣'],
+        ['items', '鐗╁搧'], ['objects', '鐗╁搧'],
+        ['systems', '绯荤粺'], ['facts', '浜嬪疄'],
       ].map(([key, label]) => {
         const text = this.sceneAnchorJsonText(value[key]);
-        return text ? `${label}：${text}` : '';
+        return text ? `${label}锛?{text}` : '';
       }).filter(Boolean);
       const summary = this.sceneAnchorJsonText(value.summary || value.description);
-      if (summary && !groups.some((item) => item.includes(summary))) groups.push(`摘要：${summary}`);
-      return groups.join('；') || JSON.stringify(value);
+      if (summary && !groups.some((item) => item.includes(summary))) groups.push(`鎽樿锛?{summary}`);
+      return groups.join('锛?) || JSON.stringify(value);
     }
     return String(value ?? '').trim();
   },
@@ -976,41 +976,41 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   sceneAnchorNameSet(value = '') {
-    return new Set(this.splitNameList(value).map((item) => String(this.parseParticipantToken(item)?.name || item || '').replace(/[（(].*$/u, '').trim()).filter(Boolean));
+    return new Set(this.splitNameList(value).map((item) => String(this.parseParticipantToken(item)?.name || item || '').replace(/[锛?].*$/u, '').trim()).filter(Boolean));
   },
 
   assertSceneParticipantBoundary(values = {}) {
-    const forbidden = this.sceneAnchorNameSet(values['禁止出场']);
+    const forbidden = this.sceneAnchorNameSet(values['绂佹鍑哄満']);
     if (!forbidden.size) return;
-    const conflicted = ['强制出场', '高优先候选', '戏剧候选'].flatMap((key) => [...this.sceneAnchorNameSet(values[key])].filter((name) => forbidden.has(name)));
-    if (conflicted.length) throw new Error(`同一角色不能同时出现在候选/强制出场和禁止出场：${[...new Set(conflicted)].join('、')}`);
+    const conflicted = ['寮哄埗鍑哄満', '楂樹紭鍏堝€欓€?, '鎴忓墽鍊欓€?].flatMap((key) => [...this.sceneAnchorNameSet(values[key])].filter((name) => forbidden.has(name)));
+    if (conflicted.length) throw new Error(`鍚屼竴瑙掕壊涓嶈兘鍚屾椂鍑虹幇鍦ㄥ€欓€?寮哄埗鍑哄満鍜岀姝㈠嚭鍦猴細${[...new Set(conflicted)].join('銆?)}`);
   },
 
   async completeSceneAnchorReport(store, prompt, logId, config = this.realConfig()) {
     let best = null;
     let lastErr = null;
     for (let i = 0; i < 2; i += 1) {
-      const raw = await this.completeConfiguredStep(store, prompt, logId, false, { ...config, sourceTitle: `${config.label}场景锚定`, promptId: 'inference-stage2-scene-anchor' });
+      const raw = await this.completeConfiguredStep(store, prompt, logId, false, { ...config, sourceTitle: `${config.label}鍦烘櫙閿氬畾`, promptId: 'inference-stage2-scene-anchor' });
       try {
         const data = this.parseSceneAnchorReport(raw, config);
         if (!best || data.parseScore.successRate >= best.data.parseScore.successRate) best = { raw, data, text: data.text };
         return best;
       } catch (err) {
         lastErr = err;
-        prompt = `${prompt}\n\n上次场景锚定 JSON 解析失败：${err.message}。请重新输出一个合法 JSON object，必须包含 currentLocation、currentTime、spatialState、currentAction、writingFocus、currentSceneImpactObjects。`;
+        prompt = `${prompt}\n\n涓婃鍦烘櫙閿氬畾 JSON 瑙ｆ瀽澶辫触锛?{err.message}銆傝閲嶆柊杈撳嚭涓€涓悎娉?JSON object锛屽繀椤诲寘鍚?currentLocation銆乧urrentTime銆乻patialState銆乧urrentAction銆亀ritingFocus銆乧urrentSceneImpactObjects銆俙;
       }
     }
     if (best) return best;
-    throw lastErr || new Error('场景锚定报告解析错误请重试');
+    throw lastErr || new Error('鍦烘櫙閿氬畾鎶ュ憡瑙ｆ瀽閿欒璇烽噸璇?);
   },
 
   buildConfiguredNarrationMessages({ store, action, prompt = '', config = this.realConfig() }) {
-    const actionText = this.actionText(action, config.mode === 'story' ? '继续推进操控剧情' : '继续观察现实世界');
+    const actionText = this.actionText(action, config.mode === 'story' ? '缁х画鎺ㄨ繘鎿嶆帶鍓ф儏' : '缁х画瑙傚療鐜板疄涓栫晫');
     const priorKvCount = config.kvCacheSession?.messages?.length || 0;
     const recent = priorKvCount ? '' : this.recentNarrationForMessages(store, config);
     const messages = [{ role: 'user', content: String(prompt || '') }];
     if (recent) messages.push({ role: 'assistant', content: recent });
-    messages.push({ role: 'user', content: `根据前面的规则与资料，推演“本次行动”，字数必须在1000 - 1400字之间。\n本次行动：${actionText}` });
+    messages.push({ role: 'user', content: `鏍规嵁鍓嶉潰鐨勮鍒欎笌璧勬枡锛屾帹婕斺€滄湰娆¤鍔ㄢ€濓紝瀛楁暟蹇呴』鍦?000 - 1400瀛椾箣闂淬€俓n鏈琛屽姩锛?{actionText}` });
     return messages;
   },
 
@@ -1022,45 +1022,45 @@ window.GameModules.realWorldAgentLoop = {
     const text = rows.map((entry, index) => {
       const body = config.mode === 'story' ? entry.storyText : (entry.narration || entry.text || '');
       const action = entry.playerText || entry.actionText || '';
-      return [`最近已发生正文${index + 1}：`, action ? `对应行动：${action}` : '', limitText(body)].filter(Boolean).join('\n');
+      return [`鏈€杩戝凡鍙戠敓姝ｆ枃${index + 1}锛歚, action ? `瀵瑰簲琛屽姩锛?{action}` : '', limitText(body)].filter(Boolean).join('\n');
     }).join('\n---\n');
-    return text || '暂无最近已发生正文；请以第一条 user 消息中的摘要和资料为准。';
+    return text || '鏆傛棤鏈€杩戝凡鍙戠敓姝ｆ枃锛涜浠ョ涓€鏉?user 娑堟伅涓殑鎽樿鍜岃祫鏂欎负鍑嗐€?;
   },
 
   async buildConfiguredNarrationPrompt({ store, action, base, loaded, skills, materialSession = null, sceneAnchorReport = '', config = this.realConfig() }) {
-    const actionText = this.actionText(action, config.mode === 'story' ? '继续推进操控剧情' : '继续观察现实世界');
+    const actionText = this.actionText(action, config.mode === 'story' ? '缁х画鎺ㄨ繘鎿嶆帶鍓ф儏' : '缁х画瑙傚療鐜板疄涓栫晫');
     const narrationContext = config.ctx.buildNarrationContext?.({ store, action: actionText, config }) || this.compactUpdatePromptText(base, 1600);
-    const loadedText = config.ctx.loadedNarrationSummary?.(loaded) || config.ctx.buildLoadedText(loaded) || '无';
-    const writingStyle = store.selectedWritingStylePrompt?.() || store.writingStylePrompt?.() || '正文采用小说文风，重视画面、动作、感官和心理反应，避免复述玩家指令。';
+    const loadedText = config.ctx.loadedNarrationSummary?.(loaded) || config.ctx.buildLoadedText(loaded) || '鏃?;
+    const writingStyle = store.selectedWritingStylePrompt?.() || store.writingStylePrompt?.() || '姝ｆ枃閲囩敤灏忚鏂囬锛岄噸瑙嗙敾闈€佸姩浣溿€佹劅瀹樺拰蹇冪悊鍙嶅簲锛岄伩鍏嶅杩扮帺瀹舵寚浠ゃ€?;
     const eventNarrationContext = store.eventNarrationPromptContext?.(actionText) || '';
     const controlPerspectiveRule = this.configuredControlPerspectiveRule(store, config);
     const modeRule = config.mode === 'story'
-      ? `推演自由度：${this.storyFreedomRule(store)}\n玩家不是角色本人，而是操控/影响被操控者行动的存在；正文必须写出本次行动的动作过程、环境变化、其他人物反应、被操控者身体与心理张力、直接结果。`
-      : `推演自由度：${store.realWorldFreedomRule?.() || '只推演玩家本次输入行动自然抵达的直接结果。'}`;
-    const narrationRules = '行动范围内充分推演：写出本次行动的动作过程、身体感受、周围环境变化、可见细节、他人反应、对话回应和直接短期连锁影响；场景锚定报告中的强制出场必须在正文中实际出现、行动或回应；不替玩家执行下一步新行动；不把亲吻、抚摸、摩擦、按住等行为自动扩展为脱衣、转移地点、插入、高潮等未输入的新阶段。';
+      ? `鎺ㄦ紨鑷敱搴︼細${this.storyFreedomRule(store)}\n鐜╁涓嶆槸瑙掕壊鏈汉锛岃€屾槸鎿嶆帶/褰卞搷琚搷鎺ц€呰鍔ㄧ殑瀛樺湪锛涙鏂囧繀椤诲啓鍑烘湰娆¤鍔ㄧ殑鍔ㄤ綔杩囩▼銆佺幆澧冨彉鍖栥€佸叾浠栦汉鐗╁弽搴斻€佽鎿嶆帶鑰呰韩浣撲笌蹇冪悊寮犲姏銆佺洿鎺ョ粨鏋溿€俙
+      : `鎺ㄦ紨鑷敱搴︼細${store.realWorldFreedomRule?.() || '鍙帹婕旂帺瀹舵湰娆¤緭鍏ヨ鍔ㄨ嚜鐒舵姷杈剧殑鐩存帴缁撴灉銆?}`;
+    const narrationRules = '琛屽姩鑼冨洿鍐呭厖鍒嗘帹婕旓細鍐欏嚭鏈琛屽姩鐨勫姩浣滆繃绋嬨€佽韩浣撴劅鍙椼€佸懆鍥寸幆澧冨彉鍖栥€佸彲瑙佺粏鑺傘€佷粬浜哄弽搴斻€佸璇濆洖搴斿拰鐩存帴鐭湡杩為攣褰卞搷锛涘満鏅敋瀹氭姤鍛婁腑鐨勫己鍒跺嚭鍦哄繀椤诲湪姝ｆ枃涓疄闄呭嚭鐜般€佽鍔ㄦ垨鍥炲簲锛涗笉鏇跨帺瀹舵墽琛屼笅涓€姝ユ柊琛屽姩锛涗笉鎶婁翰鍚汇€佹姎鎽搞€佹懇鎿︺€佹寜浣忕瓑琛屼负鑷姩鎵╁睍涓鸿劚琛ｃ€佽浆绉诲湴鐐广€佹彃鍏ャ€侀珮娼瓑鏈緭鍏ョ殑鏂伴樁娈点€?;
     const completenessRules = [
-      '正文完整性规则：',
-      '- 正文必须形成完整小段落：进入动作 → 现场反馈 → 对方反应 → 短期结果落点。',
-      '- 即使本次行动因边界、consent、年龄、关系或安全限制不能继续描写，也不得短输出。',
-      '- 若不能描写玩家输入中的某些肢体或性化细节，必须改写为允许描写的现场反应：角色察觉、制止、后退、质问、沉默、情绪变化、房间环境声响变化、进入方式、触发反应、双方距离变化、语言/沉默、身体姿态，但必须根据已有资料符合逻辑。',
-      '- 不要只写“她在房间里”或只写场景开头；必须把本次行动推演到一个明确的即时落点。',
-      '- 目标长度 1000-1400 中文字符；低于 1000 汉字视为不合格，不要提前停止。',
-      '- 强制输出结构只作为内部写作配比，最终正文仍必须是无标题、无编号、无换行的单段小说正文。',
-      '- 环境五感渲染约100-150字：写出此刻场景中的气味、光线、触感。',
-      '- 角色内心独白约200-250字：围绕上一轮事件或本次行动带来的心理挣扎、试探或算计展开，必须使用比喻句。',
-      '- 对话与动作细节约400-450字：放慢动作，写清楚衣料摩擦声、眼神偏移、手部小动作、距离变化和对话回应。',
-      '- 悬念/决策钩子约150字：本轮结束时写出心理转向或下一步压力，但不替玩家执行下一步行动。',
-      '- 若动作本身很短，就按上述四块扩展当前阶段内部细节，而不是开启下一步新行动。',
-      '- 禁止把“NPC反问玩家/等待玩家说明来意/门口刚打开”当作最终落点；必须继续写到进入、被拒、落座、对峙、距离变化或关系张力变化等本次行动的直接结果。',
-      '禁止越界不是禁止写长：不允许为了字数推进到新阶段；但必须充分描写当前阶段内部细节。',
+      '姝ｆ枃瀹屾暣鎬ц鍒欙細',
+      '- 姝ｆ枃蹇呴』褰㈡垚瀹屾暣灏忔钀斤細杩涘叆鍔ㄤ綔 鈫?鐜板満鍙嶉 鈫?瀵规柟鍙嶅簲 鈫?鐭湡缁撴灉钀界偣銆?,
+      '- 鍗充娇鏈琛屽姩鍥犺竟鐣屻€乧onsent銆佸勾榫勩€佸叧绯绘垨瀹夊叏闄愬埗涓嶈兘缁х画鎻忓啓锛屼篃涓嶅緱鐭緭鍑恒€?,
+      '- 鑻ヤ笉鑳芥弿鍐欑帺瀹惰緭鍏ヤ腑鐨勬煇浜涜偄浣撴垨鎬у寲缁嗚妭锛屽繀椤绘敼鍐欎负鍏佽鎻忓啓鐨勭幇鍦哄弽搴旓細瑙掕壊瀵熻銆佸埗姝€佸悗閫€銆佽川闂€佹矇榛樸€佹儏缁彉鍖栥€佹埧闂寸幆澧冨０鍝嶅彉鍖栥€佽繘鍏ユ柟寮忋€佽Е鍙戝弽搴斻€佸弻鏂硅窛绂诲彉鍖栥€佽瑷€/娌夐粯銆佽韩浣撳Э鎬侊紝浣嗗繀椤绘牴鎹凡鏈夎祫鏂欑鍚堥€昏緫銆?,
+      '- 涓嶈鍙啓鈥滃ス鍦ㄦ埧闂撮噷鈥濇垨鍙啓鍦烘櫙寮€澶达紱蹇呴』鎶婃湰娆¤鍔ㄦ帹婕斿埌涓€涓槑纭殑鍗虫椂钀界偣銆?,
+      '- 鐩爣闀垮害 1000-1400 涓枃瀛楃锛涗綆浜?1000 姹夊瓧瑙嗕负涓嶅悎鏍硷紝涓嶈鎻愬墠鍋滄銆?,
+      '- 寮哄埗杈撳嚭缁撴瀯鍙綔涓哄唴閮ㄥ啓浣滈厤姣旓紝鏈€缁堟鏂囦粛蹇呴』鏄棤鏍囬銆佹棤缂栧彿銆佹棤鎹㈣鐨勫崟娈靛皬璇存鏂囥€?,
+      '- 鐜浜旀劅娓叉煋绾?00-150瀛楋細鍐欏嚭姝ゅ埢鍦烘櫙涓殑姘斿懗銆佸厜绾裤€佽Е鎰熴€?,
+      '- 瑙掕壊鍐呭績鐙櫧绾?00-250瀛楋細鍥寸粫涓婁竴杞簨浠舵垨鏈琛屽姩甯︽潵鐨勫績鐞嗘專鎵庛€佽瘯鎺㈡垨绠楄灞曞紑锛屽繀椤讳娇鐢ㄦ瘮鍠诲彞銆?,
+      '- 瀵硅瘽涓庡姩浣滅粏鑺傜害400-450瀛楋細鏀炬參鍔ㄤ綔锛屽啓娓呮琛ｆ枡鎽╂摝澹般€佺溂绁炲亸绉汇€佹墜閮ㄥ皬鍔ㄤ綔銆佽窛绂诲彉鍖栧拰瀵硅瘽鍥炲簲銆?,
+      '- 鎮康/鍐崇瓥閽╁瓙绾?50瀛楋細鏈疆缁撴潫鏃跺啓鍑哄績鐞嗚浆鍚戞垨涓嬩竴姝ュ帇鍔涳紝浣嗕笉鏇跨帺瀹舵墽琛屼笅涓€姝ヨ鍔ㄣ€?,
+      '- 鑻ュ姩浣滄湰韬緢鐭紝灏辨寜涓婅堪鍥涘潡鎵╁睍褰撳墠闃舵鍐呴儴缁嗚妭锛岃€屼笉鏄紑鍚笅涓€姝ユ柊琛屽姩銆?,
+      '- 绂佹鎶娾€淣PC鍙嶉棶鐜╁/绛夊緟鐜╁璇存槑鏉ユ剰/闂ㄥ彛鍒氭墦寮€鈥濆綋浣滄渶缁堣惤鐐癸紱蹇呴』缁х画鍐欏埌杩涘叆銆佽鎷掋€佽惤搴с€佸宄欍€佽窛绂诲彉鍖栨垨鍏崇郴寮犲姏鍙樺寲绛夋湰娆¤鍔ㄧ殑鐩存帴缁撴灉銆?,
+      '绂佹瓒婄晫涓嶆槸绂佹鍐欓暱锛氫笉鍏佽涓轰簡瀛楁暟鎺ㄨ繘鍒版柊闃舵锛涗絾蹇呴』鍏呭垎鎻忓啓褰撳墠闃舵鍐呴儴缁嗚妭銆?,
     ].join('\n');
     return this.renderPrompt('inference-stage3-narration', {
-      模式标签: config.label,
-      本次行动: actionText,
-      基础上下文: [this.continuityFallbackRule(), `小说笔风：${writingStyle}`, modeRule, controlPerspectiveRule, narrationRules, completenessRules, eventNarrationContext, narrationContext].filter(Boolean).join('\n'),
-      场景锚定报告: sceneAnchorReport || '无',
-      已动态载入资料: loadedText || '无',
-      紧凑返回规则: this.compactReturnRule('prose'),
+      妯″紡鏍囩: config.label,
+      鏈琛屽姩: actionText,
+      鍩虹涓婁笅鏂? [this.continuityFallbackRule(), `灏忚绗旈锛?{writingStyle}`, modeRule, controlPerspectiveRule, narrationRules, completenessRules, eventNarrationContext, narrationContext].filter(Boolean).join('\n'),
+      鍦烘櫙閿氬畾鎶ュ憡: sceneAnchorReport || '鏃?,
+      宸插姩鎬佽浇鍏ヨ祫鏂? loadedText || '鏃?,
+      绱у噾杩斿洖瑙勫垯: this.compactReturnRule('prose'),
     });
   },
 
@@ -1074,7 +1074,7 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   currentPlayerParticipant(store = null) {
-    const name = String(store?.playerName || store?.playerProfile?.name || store?.realWorldPlayerSettlementName?.() || '玩家').trim() || '玩家';
+    const name = String(store?.playerName || store?.playerProfile?.name || store?.realWorldPlayerSettlementName?.() || '鐜╁').trim() || '鐜╁';
     return { type: 'player', id: 'player-self', name, role: 'actor', canSettle: true };
   },
 
@@ -1140,11 +1140,11 @@ window.GameModules.realWorldAgentLoop = {
   sceneAnchorParticipants(sceneAnchor = null, store = null) {
     const values = sceneAnchor?.values || sceneAnchor || {};
     const playerName = String(store?.playerName || store?.playerProfile?.name || store?.realWorldPlayerSettlementName?.() || '').trim();
-    const fields = ['强制出场', '当前场景影响对象'];
+    const fields = ['寮哄埗鍑哄満', '褰撳墠鍦烘櫙褰卞搷瀵硅薄'];
     return fields.flatMap((key) => this.splitNameList(values[key] || '').map((raw) => {
       const parsed = this.parseParticipantToken(raw);
-      const name = String(parsed?.name || raw || '').replace(/[（(].*$/u, '').trim();
-      return name && !['无', '玩家', '系统', playerName].includes(name) ? { type: 'character', idOrName: name, name, role: 'current-scene', canSettle: true } : null;
+      const name = String(parsed?.name || raw || '').replace(/[锛?].*$/u, '').trim();
+      return name && !['鏃?, '鐜╁', '绯荤粺', playerName].includes(name) ? { type: 'character', idOrName: name, name, role: 'current-scene', canSettle: true } : null;
     }).filter(Boolean));
   },
 
@@ -1156,7 +1156,7 @@ window.GameModules.realWorldAgentLoop = {
     const raw = typeof item === 'string' ? { name: item } : item;
     const id = String(raw?.id || raw?.idOrName || '').trim();
     const name = String(raw?.name || raw?.id || raw?.idOrName || '').trim();
-    if (id === 'player-self') return { type: 'player', id: 'player-self', name: name || '玩家', role: 'actor' };
+    if (id === 'player-self') return { type: 'player', id: 'player-self', name: name || '鐜╁', role: 'actor' };
     const state = this.findParticipantState(store, id, name);
     if (!state) return null;
     return { type: 'character', id: state.id || id || name, name: state.profile?.name || state.name || name || id, role: 'character-role-card' };
@@ -1179,9 +1179,9 @@ window.GameModules.realWorldAgentLoop = {
     return (Array.isArray(loaded) ? loaded : []).flatMap((item) => {
       if (Array.isArray(item?.participants) && item.participants.length) return item.participants;
       const text = [item?.title, item?.text, item?.content, item?.summary].map((part) => String(part || '').trim()).filter(Boolean).join('\n');
-      if (!/角色卡/u.test(text)) return [];
-      const id = text.match(/角色ID[:：]\s*([^\s｜|，,；;\n]+)/u)?.[1] || '';
-      const name = text.match(/姓名[:：]\s*([^\s｜|，,；;\n]+)/u)?.[1] || text.match(/自动资料[:：]\s*([^\s｜|，,；;\n]+?)角色卡/u)?.[1] || '';
+      if (!/瑙掕壊鍗?u.test(text)) return [];
+      const id = text.match(/瑙掕壊ID[:锛歖\s*([^\s锝渱锛?锛?\n]+)/u)?.[1] || '';
+      const name = text.match(/濮撳悕[:锛歖\s*([^\s锝渱锛?锛?\n]+)/u)?.[1] || text.match(/鑷姩璧勬枡[:锛歖\s*([^\s锝渱锛?锛?\n]+?)瑙掕壊鍗?u)?.[1] || '';
       const target = id || name;
       if (!target) return [];
       return [{ type: 'character', id: target, name, role: 'loaded-role-card' }];
@@ -1191,44 +1191,44 @@ window.GameModules.realWorldAgentLoop = {
   compactUpdatePromptText(text = '', limit = 1600, keepTail = false) {
     const raw = String(text || '').replace(/\s+/g, ' ').trim();
     if (raw.length <= limit) return raw;
-    if (keepTail) return `…${raw.slice(-limit)}`;
+    if (keepTail) return `鈥?{raw.slice(-limit)}`;
     const head = Math.ceil(limit * 0.65);
     const tail = Math.max(0, limit - head - 1);
-    return `${raw.slice(0, head)}…${tail ? raw.slice(-tail) : ''}`;
+    return `${raw.slice(0, head)}鈥?{tail ? raw.slice(-tail) : ''}`;
   },
 
   eventSettlementType() {
-    return '事件';
+    return '浜嬩欢';
   },
 
   normalizeSettlementEventEntry(entry = {}, store = null, config = this.realConfig()) {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
     const text = (value) => String(value ?? '').trim();
-    const rawType = text(entry.type ?? entry.eventType ?? entry['事件类型'] ?? entry.category ?? '');
-    const type = /random|随机/u.test(rawType) ? 'random' : (/periodic|cycle|周期/u.test(rawType) ? 'periodic' : 'inference');
-    const title = text(entry.title ?? entry.name ?? entry.eventName ?? entry['事件名'] ?? '');
-    const content = text(entry.content ?? entry.detail ?? entry.summary ?? entry['事件内容'] ?? '');
+    const rawType = text(entry.type ?? entry.eventType ?? entry['浜嬩欢绫诲瀷'] ?? entry.category ?? '');
+    const type = /random|闅忔満/u.test(rawType) ? 'random' : (/periodic|cycle|鍛ㄦ湡/u.test(rawType) ? 'periodic' : 'inference');
+    const title = text(entry.title ?? entry.name ?? entry.eventName ?? entry['浜嬩欢鍚?] ?? '');
+    const content = text(entry.content ?? entry.detail ?? entry.summary ?? entry['浜嬩欢鍐呭'] ?? '');
     if (!title || !content) return null;
     return window.GameModules.eventSystem?.normalizeEvent?.({
       ...entry,
       type,
       title,
       content,
-      startDate: entry.startDate ?? entry.start ?? entry.timeStart ?? entry['开始时间'] ?? entry['事件开始时间'] ?? entry['事件发生时间段'],
-      endDate: entry.endDate ?? entry.end ?? entry.timeEnd ?? entry['结束时间'] ?? entry['事件结束时间'],
-      location: entry.location ?? entry.place ?? entry['事件发生地点'],
-      people: entry.people ?? entry.relatedPeople ?? entry.participants ?? entry['事件相关人'] ?? (type === 'periodic' ? ['所有人'] : []),
-      tags: entry.tags ?? entry.eventTags ?? entry['事件标签'] ?? [],
-      probability: entry.probability ?? entry.chance ?? entry['发生概率'],
+      startDate: entry.startDate ?? entry.start ?? entry.timeStart ?? entry['寮€濮嬫椂闂?] ?? entry['浜嬩欢寮€濮嬫椂闂?] ?? entry['浜嬩欢鍙戠敓鏃堕棿娈?],
+      endDate: entry.endDate ?? entry.end ?? entry.timeEnd ?? entry['缁撴潫鏃堕棿'] ?? entry['浜嬩欢缁撴潫鏃堕棿'],
+      location: entry.location ?? entry.place ?? entry['浜嬩欢鍙戠敓鍦扮偣'],
+      people: entry.people ?? entry.relatedPeople ?? entry.participants ?? entry['浜嬩欢鐩稿叧浜?] ?? (type === 'periodic' ? ['鎵€鏈変汉'] : []),
+      tags: entry.tags ?? entry.eventTags ?? entry['浜嬩欢鏍囩'] ?? [],
+      probability: entry.probability ?? entry.chance ?? entry['鍙戠敓姒傜巼'],
       source: entry.source || 'stage4',
       status: entry.status || 'active',
     }, store) || null;
   },
 
   settlementTypeQueue(config = this.realConfig()) {
-    const base = ['基础结算', '情绪', '感觉', '生命体征', '身体状态', '穿着状态', '性经历', '性历史', '关系', '角色卡', '物品', '地图', '领土控势', '人事安排', '势力总览', '政体状态', '势力结构', '组织能力', '人事归属', '系统记录', '通用固化'];
+    const base = ['鍩虹缁撶畻', '鎯呯华', '鎰熻', '鐢熷懡浣撳緛', '韬綋鐘舵€?, '绌跨潃鐘舵€?, '鎬х粡鍘?, '鎬у巻鍙?, '鍏崇郴', '瑙掕壊鍗?, '鐗╁搧', '鍦板浘', '棰嗗湡鎺у娍', '浜轰簨瀹夋帓', '鍔垮姏鎬昏', '鏀夸綋鐘舵€?, '鍔垮姏缁撴瀯', '缁勭粐鑳藉姏', '浜轰簨褰掑睘', '绯荤粺璁板綍', '閫氱敤鍥哄寲'];
     base.push(this.eventSettlementType());
-    return config.mode === 'story' ? base.concat(['操控体验']) : base;
+    return config.mode === 'story' ? base.concat(['鎿嶆帶浣撻獙']) : base;
   },
 
   settlementTypeWindows(allTypes = []) {
@@ -1246,53 +1246,53 @@ window.GameModules.realWorldAgentLoop = {
 
   settlementTypeContracts() {
     return {
-      [this.eventSettlementType()]: { title: '事件结算', format: '数组；每项 {"type":"random|inference|periodic","title":"事件名","startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD","location":"地点","content":"内容","people":["相关人"],"tags":["标签"],"probability":25,"status":"active"}；无事件 []' },
-      '基础结算': { title: '基础结算', format: '经过时间：秒数\n当前状态：状态文本\n当前目标：目标文本\n场景标题：标题\n地点名称：地点全称\n备选行动1：行动文本\n备选行动2：行动文本\n备选行动3：行动文本\n备选行动4：行动文本' },
-      '情绪': { title: '情绪结算', format: '更新N：结算主体，情绪名，+/-数值，变化原因' },
-      '感觉': { title: '感觉结算', format: '更新N：结算主体，感觉名，+/-数值，变化原因' },
-      '生命体征': { title: '生命体征结算', format: '更新N：结算主体，字段名，+/-数值，变化原因' },
-      '身体状态': { title: '身体状态结算', format: '更新N：结算主体，部位或状态键，新状态，变化原因' },
-      '穿着状态': { title: '穿着状态结算', format: '更新N：结算主体，穿着部位，衣物名称，当前状态，变化原因' },
-      '性经历': { title: '性经历结算', format: '更新N：结算主体，分类，+/-数值，变化原因' },
-      '性历史': { title: '性历史结算', format: '更新N：结算主体，状态转移，性对象，原因与证据' },
-      '关系': { title: '关系结算', format: '更新N：结算主体，甲方(称谓)，乙方(称谓)，维度，当前状态，变化原因，根据性格造成结果' },
-      '角色卡': { title: '角色卡结算', format: '更新N：结算主体，字段，替换/增加，新值，原因，根据性格造成结果' },
-      '物品': { title: '物品结算', format: '更新N：结算主体，物品类型，物品名，事实或变化，变化原因' },
-      '地图': { title: '地图结算', format: '更新N：结算主体，当前位置/上级地点/地点事实/地图节点/路线事实，事实，原因' },
-      '领土控势': { title: '领土控势结算', format: '更新N：地点名，实控组织/宣称组织/控势状态，事实，原因' },
-      '人事安排': { title: '人事安排结算', format: '更新N：结算主体，当前地点/当前行动/可用状态，新值，变化原因' },
-      '势力总览': { title: '势力总览结算', format: '更新N：结算主体，新增势力/上层势力归属/势力APP归属，事实，原因' },
-      '政体状态': { title: '政体状态结算', format: '更新N：组织名，status/legitimacy/successorId，事实，原因' },
-      '势力结构': { title: '势力结构结算', format: '更新N：结算主体，部门角色/职位/成员地位，事实，原因' },
-      '组织能力': { title: '组织能力结算', format: '更新N：结算主体，能力维度/条目名称/条目状态/上级归属，事实，原因' },
-      '人事归属': { title: '人事归属结算', format: '更新N：角色名，组织/部门/职位，事实，原因' },
-      '系统记录': { title: '系统记录结算', format: '更新N：结算主体，事件/记录/通信消息/剧情记录/状态，事实，原因' },
-      '通用固化': { title: '通用固化结算', format: '更新N：结算主体，字段，稳定事实，变化原因' },
-      '操控体验': { title: '操控体验结算', format: '更新N：操控感觉/适应度，字段，+/-数值或新值，变化原因' },
+      [this.eventSettlementType()]: { title: '浜嬩欢缁撶畻', format: '鏁扮粍锛涙瘡椤?{"type":"random|inference|periodic","title":"浜嬩欢鍚?,"startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD","location":"鍦扮偣","content":"鍐呭","people":["鐩稿叧浜?],"tags":["鏍囩"],"probability":25,"status":"active"}锛涙棤浜嬩欢 []' },
+      '鍩虹缁撶畻': { title: '鍩虹缁撶畻', format: '缁忚繃鏃堕棿锛氱鏁癨n褰撳墠鐘舵€侊細鐘舵€佹枃鏈琝n褰撳墠鐩爣锛氱洰鏍囨枃鏈琝n鍦烘櫙鏍囬锛氭爣棰榎n鍦扮偣鍚嶇О锛氬湴鐐瑰叏绉癨n澶囬€夎鍔?锛氳鍔ㄦ枃鏈琝n澶囬€夎鍔?锛氳鍔ㄦ枃鏈琝n澶囬€夎鍔?锛氳鍔ㄦ枃鏈琝n澶囬€夎鍔?锛氳鍔ㄦ枃鏈? },
+      '鎯呯华': { title: '鎯呯华缁撶畻', format: '鏇存柊N锛氱粨绠椾富浣擄紝鎯呯华鍚嶏紝+/-鏁板€硷紝鍙樺寲鍘熷洜' },
+      '鎰熻': { title: '鎰熻缁撶畻', format: '鏇存柊N锛氱粨绠椾富浣擄紝鎰熻鍚嶏紝+/-鏁板€硷紝鍙樺寲鍘熷洜' },
+      '鐢熷懡浣撳緛': { title: '鐢熷懡浣撳緛缁撶畻', format: '鏇存柊N锛氱粨绠椾富浣擄紝瀛楁鍚嶏紝+/-鏁板€硷紝鍙樺寲鍘熷洜' },
+      '韬綋鐘舵€?: { title: '韬綋鐘舵€佺粨绠?, format: '鏇存柊N锛氱粨绠椾富浣擄紝閮ㄤ綅鎴栫姸鎬侀敭锛屾柊鐘舵€侊紝鍙樺寲鍘熷洜' },
+      '绌跨潃鐘舵€?: { title: '绌跨潃鐘舵€佺粨绠?, format: '鏇存柊N锛氱粨绠椾富浣擄紝绌跨潃閮ㄤ綅锛岃。鐗╁悕绉帮紝褰撳墠鐘舵€侊紝鍙樺寲鍘熷洜' },
+      '鎬х粡鍘?: { title: '鎬х粡鍘嗙粨绠?, format: '鏇存柊N锛氱粨绠椾富浣擄紝鍒嗙被锛?/-鏁板€硷紝鍙樺寲鍘熷洜' },
+      '鎬у巻鍙?: { title: '鎬у巻鍙茬粨绠?, format: '鏇存柊N锛氱粨绠椾富浣擄紝鐘舵€佽浆绉伙紝鎬у璞★紝鍘熷洜涓庤瘉鎹? },
+      '鍏崇郴': { title: '鍏崇郴缁撶畻', format: '鏇存柊N锛氱粨绠椾富浣擄紝鐢叉柟(绉拌皳)锛屼箼鏂?绉拌皳)锛岀淮搴︼紝褰撳墠鐘舵€侊紝鍙樺寲鍘熷洜锛屾牴鎹€ф牸閫犳垚缁撴灉' },
+      '瑙掕壊鍗?: { title: '瑙掕壊鍗＄粨绠?, format: '鏇存柊N锛氱粨绠椾富浣擄紝瀛楁锛屾浛鎹?澧炲姞锛屾柊鍊硷紝鍘熷洜锛屾牴鎹€ф牸閫犳垚缁撴灉' },
+      '鐗╁搧': { title: '鐗╁搧缁撶畻', format: '鏇存柊N锛氱粨绠椾富浣擄紝鐗╁搧绫诲瀷锛岀墿鍝佸悕锛屼簨瀹炴垨鍙樺寲锛屽彉鍖栧師鍥? },
+      '鍦板浘': { title: '鍦板浘缁撶畻', format: '鏇存柊N锛氱粨绠椾富浣擄紝褰撳墠浣嶇疆/涓婄骇鍦扮偣/鍦扮偣浜嬪疄/鍦板浘鑺傜偣/璺嚎浜嬪疄锛屼簨瀹烇紝鍘熷洜' },
+      '棰嗗湡鎺у娍': { title: '棰嗗湡鎺у娍缁撶畻', format: '鏇存柊N锛氬湴鐐瑰悕锛屽疄鎺х粍缁?瀹ｇО缁勭粐/鎺у娍鐘舵€侊紝浜嬪疄锛屽師鍥? },
+      '浜轰簨瀹夋帓': { title: '浜轰簨瀹夋帓缁撶畻', format: '鏇存柊N锛氱粨绠椾富浣擄紝褰撳墠鍦扮偣/褰撳墠琛屽姩/鍙敤鐘舵€侊紝鏂板€硷紝鍙樺寲鍘熷洜' },
+      '鍔垮姏鎬昏': { title: '鍔垮姏鎬昏缁撶畻', format: '鏇存柊N锛氱粨绠椾富浣擄紝鏂板鍔垮姏/涓婂眰鍔垮姏褰掑睘/鍔垮姏APP褰掑睘锛屼簨瀹烇紝鍘熷洜' },
+      '鏀夸綋鐘舵€?: { title: '鏀夸綋鐘舵€佺粨绠?, format: '鏇存柊N锛氱粍缁囧悕锛宻tatus/legitimacy/successorId锛屼簨瀹烇紝鍘熷洜' },
+      '鍔垮姏缁撴瀯': { title: '鍔垮姏缁撴瀯缁撶畻', format: '鏇存柊N锛氱粨绠椾富浣擄紝閮ㄩ棬瑙掕壊/鑱屼綅/鎴愬憳鍦颁綅锛屼簨瀹烇紝鍘熷洜' },
+      '缁勭粐鑳藉姏': { title: '缁勭粐鑳藉姏缁撶畻', format: '鏇存柊N锛氱粨绠椾富浣擄紝鑳藉姏缁村害/鏉＄洰鍚嶇О/鏉＄洰鐘舵€?涓婄骇褰掑睘锛屼簨瀹烇紝鍘熷洜' },
+      '浜轰簨褰掑睘': { title: '浜轰簨褰掑睘缁撶畻', format: '鏇存柊N锛氳鑹插悕锛岀粍缁?閮ㄩ棬/鑱屼綅锛屼簨瀹烇紝鍘熷洜' },
+      '绯荤粺璁板綍': { title: '绯荤粺璁板綍缁撶畻', format: '鏇存柊N锛氱粨绠椾富浣擄紝浜嬩欢/璁板綍/閫氫俊娑堟伅/鍓ф儏璁板綍/鐘舵€侊紝浜嬪疄锛屽師鍥? },
+      '閫氱敤鍥哄寲': { title: '閫氱敤鍥哄寲缁撶畻', format: '鏇存柊N锛氱粨绠椾富浣擄紝瀛楁锛岀ǔ瀹氫簨瀹烇紝鍙樺寲鍘熷洜' },
+      '鎿嶆帶浣撻獙': { title: '鎿嶆帶浣撻獙缁撶畻', format: '鏇存柊N锛氭搷鎺ф劅瑙?閫傚簲搴︼紝瀛楁锛?/-鏁板€兼垨鏂板€硷紝鍙樺寲鍘熷洜' },
     };
   },
 
   settlementUpdateCatalog() {
     return {
-      '情绪': { updateType: 'emotion', fieldPrefix: 'metrics.emotions' },
-      '感觉': { updateType: 'feeling', fieldPrefix: 'metrics.playerFeelings' },
-      '生命体征': { updateType: 'vital', fieldMap: { '生命力': 'vitals.vitality', '精力': 'vitals.stamina_pool', '饱食度': 'vitals.satiety', '水分': 'vitals.hydration', '疲劳': 'vitals.fatigue', '精神稳定': 'vitals.mental_stability' } },
-      '身体状态': { updateType: 'body-status', fieldPrefix: 'bodyStatus' },
-      '穿着状态': { updateType: 'wearing-state', fieldPrefix: 'values.wearing' },
-      '性经历': { updateType: 'sexual-experience', fieldPrefix: 'intimacy.sexualExperienceParts' },
-      '性历史': { updateType: 'sexual-history', fieldPrefix: 'intimacy.sexualHistory' },
-      '关系': { updateType: 'relationship', fieldPrefix: 'relationships' },
-      '角色卡': { updateType: 'role-card', fieldPrefix: 'profile' },
-      '物品': { updateType: 'item', fieldPrefix: 'inventory' },
-      '地图': { updateType: 'map', fieldMap: { '当前位置': 'current', '上级地点': 'parent', '地点事实': 'descriptionFacts', '地图节点': 'mapNodes', '路线事实': 'routeLinks' } },
-      '领土控势': { updateType: 'territory-control', fieldPrefix: 'control' },
-      '势力总览': { updateType: 'faction-overview', fieldPrefix: 'overview.factions' },
-      '政体状态': { updateType: 'org-status', fieldPrefix: 'status' },
-      '势力结构': { updateType: 'faction-structure', fieldPrefix: 'structure' },
+      '鎯呯华': { updateType: 'emotion', fieldPrefix: 'metrics.emotions' },
+      '鎰熻': { updateType: 'feeling', fieldPrefix: 'metrics.playerFeelings' },
+      '鐢熷懡浣撳緛': { updateType: 'vital', fieldMap: { '鐢熷懡鍔?: 'vitals.vitality', '绮惧姏': 'vitals.stamina_pool', '楗遍搴?: 'vitals.satiety', '姘村垎': 'vitals.hydration', '鐤插姵': 'vitals.fatigue', '绮剧绋冲畾': 'vitals.mental_stability' } },
+      '韬綋鐘舵€?: { updateType: 'body-status', fieldPrefix: 'bodyStatus' },
+      '绌跨潃鐘舵€?: { updateType: 'wearing-state', fieldPrefix: 'values.wearing' },
+      '鎬х粡鍘?: { updateType: 'sexual-experience', fieldPrefix: 'intimacy.sexualExperienceParts' },
+      '鎬у巻鍙?: { updateType: 'sexual-history', fieldPrefix: 'intimacy.sexualHistory' },
+      '鍏崇郴': { updateType: 'relationship', fieldPrefix: 'relationships' },
+      '瑙掕壊鍗?: { updateType: 'role-card', fieldPrefix: 'profile' },
+      '鐗╁搧': { updateType: 'item', fieldPrefix: 'inventory' },
+      '鍦板浘': { updateType: 'map', fieldMap: { '褰撳墠浣嶇疆': 'current', '涓婄骇鍦扮偣': 'parent', '鍦扮偣浜嬪疄': 'descriptionFacts', '鍦板浘鑺傜偣': 'mapNodes', '璺嚎浜嬪疄': 'routeLinks' } },
+      '棰嗗湡鎺у娍': { updateType: 'territory-control', fieldPrefix: 'control' },
+      '鍔垮姏鎬昏': { updateType: 'faction-overview', fieldPrefix: 'overview.factions' },
+      '鏀夸綋鐘舵€?: { updateType: 'org-status', fieldPrefix: 'status' },
+      '鍔垮姏缁撴瀯': { updateType: 'faction-structure', fieldPrefix: 'structure' },
       '????': { updateType: 'org-overview-panel', fieldPrefix: 'overviewPanels' },
-      '人事归属': { updateType: 'membership', fieldPrefix: 'values.memberships' },
-      '系统记录': { updateType: 'system', fieldPrefix: 'events' },
-      '通用固化': { updateType: 'generic', fieldPrefix: 'status_tags' },
+      '浜轰簨褰掑睘': { updateType: 'membership', fieldPrefix: 'values.memberships' },
+      '绯荤粺璁板綍': { updateType: 'system', fieldPrefix: 'events' },
+      '閫氱敤鍥哄寲': { updateType: 'generic', fieldPrefix: 'status_tags' },
     };
   },
 
@@ -1317,7 +1317,7 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   parseStandardSettlementLine(typeName = '', line = '', subject = null, participants = [], store = null) {
-    let parts = String(line || '').replace(/^更新(?:\d+|N)\s*[：:]/u, '').split(/[，,]/u).map((x) => x.trim());
+    let parts = String(line || '').replace(/^鏇存柊(?:\d+|N)\s*[锛?]/u, '').split(/[锛?]/u).map((x) => x.trim());
     const catalog = this.settlementUpdateCatalog();
     if (!catalog[parts[0]] && parts.length >= 4) {
       const inlineSubject = this.subjectForSettlement(parts[0], participants);
@@ -1331,21 +1331,21 @@ window.GameModules.realWorldAgentLoop = {
     const entry = catalog[type];
     if (!subject || !key || !rawValue || !reason) return null;
     if (!entry) return this.parseGenericSettlementLine(typeName, line, subject, { requireExplicitGeneric: true });
-    let normalizedKey = type === '生命体征' ? this.vitalFieldAlias(key) : key;
+    let normalizedKey = type === '鐢熷懡浣撳緛' ? this.vitalFieldAlias(key) : key;
     const rawValueText = String(rawValue).trim();
     const delta = Number(rawValueText.replace(/[^-+\d.]/gu, ''));
     const hasSignedDelta = Number.isFinite(delta) && /^[+-]\d/u.test(rawValueText) && delta !== 0;
-    if (['情绪', '感觉'].includes(type)) {
+    if (['鎯呯华', '鎰熻'].includes(type)) {
       const allowedKeys = this.settlementMetricKeysForSubject(store, subject, type);
       normalizedKey = this.metricAliasForSettlement(type, normalizedKey);
       if (!allowedKeys.includes(normalizedKey) || !hasSignedDelta) return null;
     }
     if (entry.fieldMap && !entry.fieldMap[normalizedKey]) return null;
-    if (type === '生命体征' && !hasSignedDelta) return null;
+    if (type === '鐢熷懡浣撳緛' && !hasSignedDelta) return null;
     const field = entry.fieldMap?.[normalizedKey] || `${entry.fieldPrefix}.${normalizedKey}`;
     const change = hasSignedDelta ? { mode: 'delta', value: delta } : { mode: 'set', value: rawValue };
     const status = String(statusPart || '').trim();
-    if (status && ['情绪', '感觉'].includes(type)) change.status = status;
+    if (status && ['鎯呯华', '鎰熻'].includes(type)) change.status = status;
     return { updateType: entry.updateType, subject, field, change, reasons: [{ trigger: type, evidence: reason, confidence: 'confirmed' }] };
   },
 
@@ -1354,12 +1354,12 @@ window.GameModules.realWorldAgentLoop = {
     const catalog = this.settlementUpdateCatalog();
     const entryCat = catalog[typeName];
     if (!entryCat) return null;
-    const field = this.metricAliasForSettlement(typeName, String(entry.field ?? entry.字段 ?? entry.key ?? '').trim());
-    const rawValueText = String(entry.value ?? entry.变化 ?? entry.delta ?? entry.数值 ?? '').trim();
+    const field = this.metricAliasForSettlement(typeName, String(entry.field ?? entry.瀛楁 ?? entry.key ?? '').trim());
+    const rawValueText = String(entry.value ?? entry.鍙樺寲 ?? entry.delta ?? entry.鏁板€??? '').trim();
     const delta = Number(rawValueText.replace(/[^-+\d.]/gu, ''));
     const hasSignedDelta = Number.isFinite(delta) && /^[+-]\d/u.test(rawValueText) && delta !== 0;
-    const reason = this.settlementJsonText(entry.reason ?? entry.原因 ?? entry.evidence ?? entry.证据 ?? '');
-    const status = this.settlementJsonText(entry.status ?? entry.程度 ?? entry.解释 ?? entry.程度说明 ?? '');
+    const reason = this.settlementJsonText(entry.reason ?? entry.鍘熷洜 ?? entry.evidence ?? entry.璇佹嵁 ?? '');
+    const status = this.settlementJsonText(entry.status ?? entry.绋嬪害 ?? entry.瑙ｉ噴 ?? entry.绋嬪害璇存槑 ?? '');
     const allowedKeys = this.settlementMetricKeysForSubject(store, subject, typeName);
     if (!field || !hasSignedDelta || !reason || !allowedKeys.includes(field)) return null;
     const change = { mode: 'delta', value: delta };
@@ -1368,10 +1368,10 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   parseGenericSettlementLine(typeName = '', line = '', subject = null, options = {}) {
-    const parts = String(line || '').replace(/^更新(?:\d+|N)\s*[：:]/u, '').split(/[，,]/u).map((x) => x.trim());
+    const parts = String(line || '').replace(/^鏇存柊(?:\d+|N)\s*[锛?]/u, '').split(/[锛?]/u).map((x) => x.trim());
     const [label, key, rawValue, reason] = parts;
     if (!subject || !key || !rawValue || !reason) return null;
-    if (options.requireExplicitGeneric && !/^(?:未知稳定事实|稳定事实|通用固化|通用事实)$/u.test(label || '')) return null;
+    if (options.requireExplicitGeneric && !/^(?:鏈煡绋冲畾浜嬪疄|绋冲畾浜嬪疄|閫氱敤鍥哄寲|閫氱敤浜嬪疄)$/u.test(label || '')) return null;
     return { updateType: 'generic', subject, field: `status_tags.${key}`, change: { mode: 'append', value: { label: label || typeName, value: rawValue, reason } }, reasons: [{ trigger: label || typeName, evidence: reason, confidence: 'confirmed' }] };
   },
 
@@ -1385,156 +1385,156 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   vitalFieldAlias(field = '') {
-    return this.settlementAlias(field, { 生命力: '生命力', 生命值: '生命力', 健康: '生命力', health: '生命力', 精力: '精力', 精力池: '精力', 体力: '精力', stamina: '精力', 饱食度: '饱食度', 饱食: '饱食度', satiety: '饱食度', 水分: '水分', 口渴: '水分', 水合: '水分', hydration: '水分', 疲劳: '疲劳', 疲劳度: '疲劳', fatigue: '疲劳', 精神稳定: '精神稳定', 精神稳定度: '精神稳定', mental_stability: '精神稳定' });
+    return this.settlementAlias(field, { 鐢熷懡鍔? '鐢熷懡鍔?, 鐢熷懡鍊? '鐢熷懡鍔?, 鍋ュ悍: '鐢熷懡鍔?, health: '鐢熷懡鍔?, 绮惧姏: '绮惧姏', 绮惧姏姹? '绮惧姏', 浣撳姏: '绮惧姏', stamina: '绮惧姏', 楗遍搴? '楗遍搴?, 楗遍: '楗遍搴?, satiety: '楗遍搴?, 姘村垎: '姘村垎', 鍙ｆ复: '姘村垎', 姘村悎: '姘村垎', hydration: '姘村垎', 鐤插姵: '鐤插姵', 鐤插姵搴? '鐤插姵', fatigue: '鐤插姵', 绮剧绋冲畾: '绮剧绋冲畾', 绮剧绋冲畾搴? '绮剧绋冲畾', mental_stability: '绮剧绋冲畾' });
   },
 
   allowedBodyPartKeys() { return ['overall', 'mouth', 'chest', 'genital', 'anus', 'hips', 'limbs', 'skin', 'other']; },
 
-  allowedWearingSlots() { return ['bra', 'top', 'outerwear', 'bottom', 'legwear', 'shoes', 'panties', '饰品']; },
+  allowedWearingSlots() { return ['bra', 'top', 'outerwear', 'bottom', 'legwear', 'shoes', 'panties', '楗板搧']; },
 
   allowedSexualPartKeys() { return ['genital', 'chest', 'lips', 'mouth', 'oralAction', 'oralSex', 'oralInternalFinish', 'genitalEntry', 'vaginalInsertion', 'vaginalInternalFinish', 'anus', 'analEntry', 'analSex', 'analInternalFinish', 'legs', 'hips', 'hands', 'skin', 'other']; },
 
   isFullBodyWearingPart(part = '') {
     const clean = String(part || '').trim();
-    return /^(?:全身|整体|整身|全体|全套|全身衣物|全身穿着|整体穿着)$/u.test(clean);
+    return /^(?:鍏ㄨ韩|鏁翠綋|鏁磋韩|鍏ㄤ綋|鍏ㄥ|鍏ㄨ韩琛ｇ墿|鍏ㄨ韩绌跨潃|鏁翠綋绌跨潃)$/u.test(clean);
   },
 
   wearingSlotAlias(part = '', itemName = '') {
     const clean = String(part || '').trim();
     const item = String(itemName || '').trim();
     if (this.isFullBodyWearingPart(clean)) return 'outerwear';
-    if (/腿圈|项圈|手环|脚环|戒指|耳环|饰品/u.test(item)) return '饰品';
-    if (/胸部|胸口|乳房|胸罩|内衣上/u.test(clean)) return 'bra';
-    if (/上身|上衣|衬衫|睡衣上/u.test(clean)) return 'top';
-    if (/外套|罩衫|连衣裙|睡裙|裙装/u.test(clean)) return 'outerwear';
-    if (/下身|裙子|裤子|短裤/u.test(clean)) return 'bottom';
-    if (/腿部|大腿|丝袜|袜裤|裤袜/u.test(clean)) return 'legwear';
-    if (/足部|脚部|鞋|袜/u.test(clean)) return 'shoes';
-    if (/内裤|底裤/u.test(clean)) return 'panties';
-    if (/饰品|首饰|配饰/u.test(clean)) return '饰品';
-    return this.settlementAlias(clean, { 胸部: 'bra', 胸口: 'bra', 乳房: 'bra', 上身: 'top', 外套: 'outerwear', 下身: 'bottom', 腿部: 'legwear', 大腿: 'legwear', 足部: 'shoes', 脚部: 'shoes', 内裤: 'panties', 饰品: '饰品' });
+    if (/鑵垮湀|椤瑰湀|鎵嬬幆|鑴氱幆|鎴掓寚|鑰崇幆|楗板搧/u.test(item)) return '楗板搧';
+    if (/鑳搁儴|鑳稿彛|涔虫埧|鑳哥僵|鍐呰。涓?u.test(clean)) return 'bra';
+    if (/涓婅韩|涓婅。|琛～|鐫¤。涓?u.test(clean)) return 'top';
+    if (/澶栧|缃╄～|杩炶。瑁檤鐫¤|瑁欒/u.test(clean)) return 'outerwear';
+    if (/涓嬭韩|瑁欏瓙|瑁ゅ瓙|鐭￥/u.test(clean)) return 'bottom';
+    if (/鑵块儴|澶ц吙|涓濊|琚滆￥|瑁よ/u.test(clean)) return 'legwear';
+    if (/瓒抽儴|鑴氶儴|闉媩琚?u.test(clean)) return 'shoes';
+    if (/鍐呰￥|搴曡￥/u.test(clean)) return 'panties';
+    if (/楗板搧|棣栭グ|閰嶉グ/u.test(clean)) return '楗板搧';
+    return this.settlementAlias(clean, { 鑳搁儴: 'bra', 鑳稿彛: 'bra', 涔虫埧: 'bra', 涓婅韩: 'top', 澶栧: 'outerwear', 涓嬭韩: 'bottom', 鑵块儴: 'legwear', 澶ц吙: 'legwear', 瓒抽儴: 'shoes', 鑴氶儴: 'shoes', 鍐呰￥: 'panties', 楗板搧: '楗板搧' });
   },
 
   bodyPartAlias(part = '') {
-    return this.settlementAlias(part, { 整体: 'overall', 全身: 'overall', 口部: 'mouth', 嘴唇: 'mouth', 嘴部: 'mouth', 胸部: 'chest', 胸口: 'chest', 乳房: 'chest', 阴部: 'genital', 私处: 'genital', 肛部: 'anus', 臀部: 'hips', 屁股: 'hips', 四肢: 'limbs', 手臂: 'limbs', 腿部: 'limbs', 皮肤: 'skin', 其他: 'other' });
+    return this.settlementAlias(part, { 鏁翠綋: 'overall', 鍏ㄨ韩: 'overall', 鍙ｉ儴: 'mouth', 鍢村攪: 'mouth', 鍢撮儴: 'mouth', 鑳搁儴: 'chest', 鑳稿彛: 'chest', 涔虫埧: 'chest', 闃撮儴: 'genital', 绉佸: 'genital', 鑲涢儴: 'anus', 鑷€閮? 'hips', 灞佽偂: 'hips', 鍥涜偄: 'limbs', 鎵嬭噦: 'limbs', 鑵块儴: 'limbs', 鐨偆: 'skin', 鍏朵粬: 'other' });
   },
 
   bodyPartName(part = '', key = '') {
-    const names = { overall: '整体', mouth: '口部', chest: '胸部', genital: '阴部', anus: '肛部', hips: '臀部', limbs: '四肢', skin: '皮肤', other: '其他' };
+    const names = { overall: '鏁翠綋', mouth: '鍙ｉ儴', chest: '鑳搁儴', genital: '闃撮儴', anus: '鑲涢儴', hips: '鑷€閮?, limbs: '鍥涜偄', skin: '鐨偆', other: '鍏朵粬' };
     return names[key] || String(part || '').trim();
   },
 
   sexualPartAlias(part = '') {
-    return this.settlementAlias(part, { 阴部: 'genital', 胸部: 'chest', 胸口: 'chest', 乳房: 'chest', 唇部: 'lips', 接吻: 'lips', 口部: 'mouth', 嘴部: 'mouth', 口部行为: 'oralAction', 口交: 'oralSex', 口交中出: 'oralInternalFinish', 阴部进入: 'genitalEntry', 阴道插入: 'vaginalInsertion', 阴道中出: 'vaginalInternalFinish', 肛部: 'anus', 肛门: 'anus', 肛部进入: 'analEntry', 肛交: 'analSex', 肛交中出: 'analInternalFinish', 腿部: 'legs', 大腿: 'legs', 臀部: 'hips', 屁股: 'hips', 手部: 'hands', 手: 'hands', 皮肤: 'skin', 其他: 'other' });
+    return this.settlementAlias(part, { 闃撮儴: 'genital', 鑳搁儴: 'chest', 鑳稿彛: 'chest', 涔虫埧: 'chest', 鍞囬儴: 'lips', 鎺ュ惢: 'lips', 鍙ｉ儴: 'mouth', 鍢撮儴: 'mouth', 鍙ｉ儴琛屼负: 'oralAction', 鍙ｄ氦: 'oralSex', 鍙ｄ氦涓嚭: 'oralInternalFinish', 闃撮儴杩涘叆: 'genitalEntry', 闃撮亾鎻掑叆: 'vaginalInsertion', 闃撮亾涓嚭: 'vaginalInternalFinish', 鑲涢儴: 'anus', 鑲涢棬: 'anus', 鑲涢儴杩涘叆: 'analEntry', 鑲涗氦: 'analSex', 鑲涗氦涓嚭: 'analInternalFinish', 鑵块儴: 'legs', 澶ц吙: 'legs', 鑷€閮? 'hips', 灞佽偂: 'hips', 鎵嬮儴: 'hands', 鎵? 'hands', 鐨偆: 'skin', 鍏朵粬: 'other' });
   },
 
   parseWearingSettlementLine(line = '', subject = null, participants = []) {
-    let parts = String(line || '').replace(/^更新(?:\d+|N)\s*[：:]/u, '').split(/[，,]/u).map((x) => x.trim());
-    if (parts[0] !== '穿着状态') {
+    let parts = String(line || '').replace(/^鏇存柊(?:\d+|N)\s*[锛?]/u, '').split(/[锛?]/u).map((x) => x.trim());
+    if (parts[0] !== '绌跨潃鐘舵€?) {
       const inlineSubject = this.subjectForSettlement(parts[0], participants);
       if (inlineSubject) {
         subject = inlineSubject;
-        parts = ['穿着状态', ...parts.slice(1)];
+        parts = ['绌跨潃鐘舵€?, ...parts.slice(1)];
       }
     }
     const [label, part, itemName, state, reason] = parts;
-    if (label !== '穿着状态' || !subject || !part || !itemName || !state || !reason) return null;
+    if (label !== '绌跨潃鐘舵€? || !subject || !part || !itemName || !state || !reason) return null;
     const slot = this.wearingSlotAlias(part, itemName);
     if (!this.allowedWearingSlots().includes(slot)) return null;
-    return { updateType: 'wearing-state', subject, field: 'values.wearing', change: { mode: 'upsert', value: { slot, part, name: itemName, state, reason, fullBody: this.isFullBodyWearingPart(part) } }, reasons: [{ trigger: '穿着状态', evidence: reason, confidence: 'confirmed' }] };
+    return { updateType: 'wearing-state', subject, field: 'values.wearing', change: { mode: 'upsert', value: { slot, part, name: itemName, state, reason, fullBody: this.isFullBodyWearingPart(part) } }, reasons: [{ trigger: '绌跨潃鐘舵€?, evidence: reason, confidence: 'confirmed' }] };
   },
 
   parseBodyStatusSettlementLine(line = '', subject = null, participants = []) {
-    let parts = String(line || '').replace(/^更新(?:\d+|N)\s*[：:]/u, '').split(/[，,]/u).map((x) => x.trim());
-    if (parts[0] !== '身体状态') {
+    let parts = String(line || '').replace(/^鏇存柊(?:\d+|N)\s*[锛?]/u, '').split(/[锛?]/u).map((x) => x.trim());
+    if (parts[0] !== '韬綋鐘舵€?) {
       const inlineSubject = this.subjectForSettlement(parts[0], participants);
       if (inlineSubject) {
         subject = inlineSubject;
-        parts = ['身体状态', ...parts.slice(1)];
+        parts = ['韬綋鐘舵€?, ...parts.slice(1)];
       }
     }
     const [label, part, status, reason] = parts;
-    if (label !== '身体状态' || !subject || !part || !status || !reason) return null;
+    if (label !== '韬綋鐘舵€? || !subject || !part || !status || !reason) return null;
     const aliasKey = this.bodyPartAlias(part);
     const partKey = this.allowedBodyPartKeys().includes(aliasKey) ? aliasKey : part;
-    return { updateType: 'body-status', subject, field: `bodyStatus.${partKey}`, change: { mode: 'merge', value: { partKey, part: this.bodyPartName(part, partKey), status, description: status, reason } }, reasons: [{ trigger: '身体状态', evidence: reason, confidence: 'confirmed' }] };
+    return { updateType: 'body-status', subject, field: `bodyStatus.${partKey}`, change: { mode: 'merge', value: { partKey, part: this.bodyPartName(part, partKey), status, description: status, reason } }, reasons: [{ trigger: '韬綋鐘舵€?, evidence: reason, confidence: 'confirmed' }] };
   },
 
   parseSexualExperienceSettlementLine(line = '', subject = null, participants = []) {
-    let parts = String(line || '').replace(/^更新(?:\d+|N)\s*[：:]/u, '').split(/[，,]/u).map((x) => x.trim());
-    if (parts[0] !== '性经历') {
+    let parts = String(line || '').replace(/^鏇存柊(?:\d+|N)\s*[锛?]/u, '').split(/[锛?]/u).map((x) => x.trim());
+    if (parts[0] !== '鎬х粡鍘?) {
       const inlineSubject = this.subjectForSettlement(parts[0], participants);
       if (inlineSubject) {
         subject = inlineSubject;
-        parts = ['性经历', ...parts.slice(1)];
+        parts = ['鎬х粡鍘?, ...parts.slice(1)];
       }
     }
     const [label, part, rawValue, reason] = parts;
-    if (label !== '性经历' || !subject || !part || !rawValue || !reason) return null;
+    if (label !== '鎬х粡鍘? || !subject || !part || !rawValue || !reason) return null;
     const rawValueText = String(rawValue).trim();
     const delta = Number(rawValueText.replace(/[^-+\d.]/gu, ''));
     if (!Number.isFinite(delta) || !/^[+-]\d/u.test(rawValueText) || delta === 0) return null;
-    if (/^(?:总次数|总数|全部|总体|合计)$/u.test(String(part || '').trim())) {
+    if (/^(?:鎬绘鏁皘鎬绘暟|鍏ㄩ儴|鎬讳綋|鍚堣)$/u.test(String(part || '').trim())) {
       const value = { totalDelta: delta, parts: {} };
-      return { updateType: 'sexual-experience', subject, field: 'intimacy.sexualExperienceCount', change: { mode: 'delta', value }, reasons: [{ trigger: '性经历', evidence: reason, confidence: 'confirmed' }] };
+      return { updateType: 'sexual-experience', subject, field: 'intimacy.sexualExperienceCount', change: { mode: 'delta', value }, reasons: [{ trigger: '鎬х粡鍘?, evidence: reason, confidence: 'confirmed' }] };
     }
     const aliasKey = this.sexualPartAlias(part);
     const key = this.allowedSexualPartKeys().includes(aliasKey) ? aliasKey : part;
     const value = { totalDelta: 0, parts: { [key]: delta } };
-    return { updateType: 'sexual-experience', subject, field: `intimacy.sexualExperienceParts.${key}`, change: { mode: 'delta', value }, reasons: [{ trigger: '性经历', evidence: reason, confidence: 'confirmed' }] };
+    return { updateType: 'sexual-experience', subject, field: `intimacy.sexualExperienceParts.${key}`, change: { mode: 'delta', value }, reasons: [{ trigger: '鎬х粡鍘?, evidence: reason, confidence: 'confirmed' }] };
   },
 
   parseScheduleSettlementLine(line = '', subject = null, participants = []) {
-    // 合同边界：明确通信/移动/约定涉及的人必须先由上游加入 participants；非 participants 仍会被结算对象 gate 拒绝。
-    let parts = String(line || '').replace(/^更新(?:\d+|N)\s*[：:]/u, '').split(/[，,]/u).map((x) => x.trim());
-    if (parts[0] !== '人事安排') {
+    // 鍚堝悓杈圭晫锛氭槑纭€氫俊/绉诲姩/绾﹀畾娑夊強鐨勪汉蹇呴』鍏堢敱涓婃父鍔犲叆 participants锛涢潪 participants 浠嶄細琚粨绠楀璞?gate 鎷掔粷銆?
+    let parts = String(line || '').replace(/^鏇存柊(?:\d+|N)\s*[锛?]/u, '').split(/[锛?]/u).map((x) => x.trim());
+    if (parts[0] !== '浜轰簨瀹夋帓') {
       const inlineSubject = this.subjectForSettlement(parts[0], participants);
       if (inlineSubject) {
         subject = inlineSubject;
-        parts = ['人事安排', ...parts.slice(1)];
+        parts = ['浜轰簨瀹夋帓', ...parts.slice(1)];
       }
     }
     const [label, key, rawValue, reason] = parts;
     const subjectType = String(subject?.type || '').trim();
-    if (label !== '人事安排' || !subject || !['character', 'player'].includes(subjectType) || !key || !rawValue || !reason) return null;
+    if (label !== '浜轰簨瀹夋帓' || !subject || !['character', 'player'].includes(subjectType) || !key || !rawValue || !reason) return null;
     const value = {};
-    const availabilityValues = ['在场', '场外', '未知', '暂不可用'];
-    if (key === '当前地点') value.currentLocation = rawValue;
-    else if (key === '当前行动') value.currentAction = rawValue;
-    else if (key === '可用状态') {
-      value.availability = availabilityValues.includes(rawValue) ? rawValue : '未知';
-      if (reason && reason.length >= 4 && !/^(?:正文|证据|明确|无变化)/u.test(reason)) value.currentAction = reason;
-    } else if (/当前地点|当前行动|可用状态/u.test(rawValue) && availabilityValues.includes(reason)) {
-      if (rawValue === '当前地点') value.currentLocation = key;
-      else if (rawValue === '当前行动') value.currentAction = key;
-      else if (rawValue === '可用状态') value.availability = availabilityValues.includes(reason) ? reason : '未知';
+    const availabilityValues = ['鍦ㄥ満', '鍦哄', '鏈煡', '鏆備笉鍙敤'];
+    if (key === '褰撳墠鍦扮偣') value.currentLocation = rawValue;
+    else if (key === '褰撳墠琛屽姩') value.currentAction = rawValue;
+    else if (key === '鍙敤鐘舵€?) {
+      value.availability = availabilityValues.includes(rawValue) ? rawValue : '鏈煡';
+      if (reason && reason.length >= 4 && !/^(?:姝ｆ枃|璇佹嵁|鏄庣‘|鏃犲彉鍖?/u.test(reason)) value.currentAction = reason;
+    } else if (/褰撳墠鍦扮偣|褰撳墠琛屽姩|鍙敤鐘舵€?u.test(rawValue) && availabilityValues.includes(reason)) {
+      if (rawValue === '褰撳墠鍦扮偣') value.currentLocation = key;
+      else if (rawValue === '褰撳墠琛屽姩') value.currentAction = key;
+      else if (rawValue === '鍙敤鐘舵€?) value.availability = availabilityValues.includes(reason) ? reason : '鏈煡';
     } else if (key.length >= 2 && !availabilityValues.includes(key)) {
-      value.currentAction = [key, rawValue].filter(Boolean).join('，');
-      value.availability = availabilityValues.includes(rawValue) ? rawValue : '在场';
+      value.currentAction = [key, rawValue].filter(Boolean).join('锛?);
+      value.availability = availabilityValues.includes(rawValue) ? rawValue : '鍦ㄥ満';
     } else return null;
     value.reason = reason;
-    return { updateType: 'character-schedule', subject, field: 'characterSchedules', change: { mode: 'merge', value }, reasons: [{ trigger: `人事安排${key}`, evidence: reason, confidence: 'confirmed' }] };
+    return { updateType: 'character-schedule', subject, field: 'characterSchedules', change: { mode: 'merge', value }, reasons: [{ trigger: `浜轰簨瀹夋帓${key}`, evidence: reason, confidence: 'confirmed' }] };
   },
 
   parseSystemSettlementLine(line = '', subject = null, participants = []) {
-    let parts = String(line || '').replace(/^更新(?:\d+|N)\s*[：:]/u, '').split(/[，,]/u).map((x) => x.trim());
-    if (parts[0] !== '系统记录') {
-      if (parts[0] === '系统') {
-        parts = ['系统记录', ...parts.slice(1)];
+    let parts = String(line || '').replace(/^鏇存柊(?:\d+|N)\s*[锛?]/u, '').split(/[锛?]/u).map((x) => x.trim());
+    if (parts[0] !== '绯荤粺璁板綍') {
+      if (parts[0] === '绯荤粺') {
+        parts = ['绯荤粺璁板綍', ...parts.slice(1)];
       } else if (this.subjectForSettlement(parts[0], participants)) {
-        parts = ['系统记录', ...parts.slice(1)];
+        parts = ['绯荤粺璁板綍', ...parts.slice(1)];
       }
     }
-    subject = { type: 'system', id: '系统', name: '系统' };
+    subject = { type: 'system', id: '绯荤粺', name: '绯荤粺' };
     const [label, key, rawValue, reason] = parts;
-    if (label !== '系统记录' || !subject || !key || !rawValue || !reason) return null;
-    const allowed = ['事件', '记录', '通信消息', '剧情记录', '状态'];
+    if (label !== '绯荤粺璁板綍' || !subject || !key || !rawValue || !reason) return null;
+    const allowed = ['浜嬩欢', '璁板綍', '閫氫俊娑堟伅', '鍓ф儏璁板綍', '鐘舵€?];
     if (!allowed.includes(key)) return null;
-    return { updateType: 'system', subject, field: `events.${key}`, change: { mode: 'append', value: { key, value: rawValue, reason } }, reasons: [{ trigger: `系统记录${key}`, evidence: reason, confidence: 'confirmed' }] };
+    return { updateType: 'system', subject, field: `events.${key}`, change: { mode: 'append', value: { key, value: rawValue, reason } }, reasons: [{ trigger: `绯荤粺璁板綍${key}`, evidence: reason, confidence: 'confirmed' }] };
   },
 
   parseSpecialSettlementLine(typeName = '', line = '', subject = null, participants = []) {
-    let parts = String(line || '').replace(/^更新(?:\d+|N)\s*[：:]/u, '').split(/[，,]/u).map((x) => x.trim());
+    let parts = String(line || '').replace(/^鏇存柊(?:\d+|N)\s*[锛?]/u, '').split(/[锛?]/u).map((x) => x.trim());
     if (parts[0] !== typeName) {
       const inlineSubject = this.subjectForSettlement(parts[0], participants);
       if (inlineSubject) {
@@ -1543,22 +1543,22 @@ window.GameModules.realWorldAgentLoop = {
       }
     }
     if (!subject || parts[0] !== typeName) return this.parseGenericSettlementLine(typeName, line, subject, { requireExplicitGeneric: true });
-    if (typeName === '性历史') {
+    if (typeName === '鎬у巻鍙?) {
       const [, transition, partner, evidence] = parts;
       if (!transition || !partner || !evidence) return null;
-      return { updateType: 'sexual-history', subject, field: 'intimacy.sexualHistory', change: { mode: 'merge', value: { transition, partner: { type: 'character', id: partner, name: partner }, evidence, historyText: [transition, partner, evidence].join('，') } }, reasons: [{ trigger: '性历史状态转移', evidence, confidence: 'confirmed' }] };
+      return { updateType: 'sexual-history', subject, field: 'intimacy.sexualHistory', change: { mode: 'merge', value: { transition, partner: { type: 'character', id: partner, name: partner }, evidence, historyText: [transition, partner, evidence].join('锛?) } }, reasons: [{ trigger: '鎬у巻鍙茬姸鎬佽浆绉?, evidence, confidence: 'confirmed' }] };
     }
-    if (typeName === '关系') {
+    if (typeName === '鍏崇郴') {
       const [, left, right, dimension, status, reason, result] = parts;
       if (!left || !right || !dimension || !status || !reason || !result) return null;
-      if (/^(?:好感|好感度|信任|依赖|警惕|畏惧|反感|愤怒|恐惧|紧张|安心|悲伤|开心|高兴)$/u.test(dimension) || /^[-+]?\d/u.test(status)) return null;
-      return { updateType: 'relationship', subject, field: `relationships.${dimension}`, change: { mode: 'upsert', value: { left, right, dimension, status, reason, result } }, reasons: [{ trigger: '关系变化', evidence: reason, confidence: 'confirmed' }] };
+      if (/^(?:濂芥劅|濂芥劅搴淇′换|渚濊禆|璀︽儠|鐣忔儳|鍙嶆劅|鎰ゆ€抾鎭愭儳|绱у紶|瀹夊績|鎮蹭激|寮€蹇億楂樺叴)$/u.test(dimension) || /^[-+]?\d/u.test(status)) return null;
+      return { updateType: 'relationship', subject, field: `relationships.${dimension}`, change: { mode: 'upsert', value: { left, right, dimension, status, reason, result } }, reasons: [{ trigger: '鍏崇郴鍙樺寲', evidence: reason, confidence: 'confirmed' }] };
     }
-    if (typeName === '角色卡') {
+    if (typeName === '瑙掕壊鍗?) {
       const [, field, op, value, reason, result] = parts;
-      const allowed = ['当前状态', '身份', '职业', '技能', '知识', '外貌', '性格', '喜好', '人物说明', '社群角色', '人事归属', '人际关系'];
-      if (!field || !op || !value || !['替换', '增加'].includes(op) || !allowed.includes(field)) return null;
-      return { updateType: 'role-card', subject, field: field === '当前状态' ? 'status_tags' : `profile.${field}`, change: { mode: op === '替换' ? 'set' : 'append', value: { value, reason, result } }, reasons: [{ trigger: `角色卡${op}`, evidence: reason || value, confidence: 'confirmed' }] };
+      const allowed = ['褰撳墠鐘舵€?, '韬唤', '鑱屼笟', '鎶€鑳?, '鐭ヨ瘑', '澶栬矊', '鎬ф牸', '鍠滃ソ', '浜虹墿璇存槑', '绀剧兢瑙掕壊', '浜轰簨褰掑睘', '浜洪檯鍏崇郴'];
+      if (!field || !op || !value || !['鏇挎崲', '澧炲姞'].includes(op) || !allowed.includes(field)) return null;
+      return { updateType: 'role-card', subject, field: field === '褰撳墠鐘舵€? ? 'status_tags' : `profile.${field}`, change: { mode: op === '鏇挎崲' ? 'set' : 'append', value: { value, reason, result } }, reasons: [{ trigger: `瑙掕壊鍗?{op}`, evidence: reason || value, confidence: 'confirmed' }] };
     }
     return null;
   },
@@ -1572,51 +1572,51 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   settlementJsonSubject(type = '', entry = {}, participants = []) {
-    const rawName = entry?.subject ?? entry?.主体 ?? entry?.name ?? entry?.名称 ?? '';
+    const rawName = entry?.subject ?? entry?.涓讳綋 ?? entry?.name ?? entry?.鍚嶇О ?? '';
     const name = String(rawName || '').trim();
     const participant = this.subjectForSettlement(name, participants);
     if (participant) return participant;
     const defaults = {
-      '地图': { type: '地点', id: name || '当前地点', name: name || '当前地点' },
-      '势力总览': { type: '势力', id: name || '势力', name: name || '势力' },
-      '势力结构': { type: '势力', id: name || '势力', name: name || '势力' },
-      '系统记录': { type: 'system', id: name || '系统', name: name || '系统' },
-      '通用固化': { type: 'system', id: name || '系统', name: name || '系统' },
-      '物品': { type: '物品', id: name || '物品', name: name || '物品' },
+      '鍦板浘': { type: '鍦扮偣', id: name || '褰撳墠鍦扮偣', name: name || '褰撳墠鍦扮偣' },
+      '鍔垮姏鎬昏': { type: '鍔垮姏', id: name || '鍔垮姏', name: name || '鍔垮姏' },
+      '鍔垮姏缁撴瀯': { type: '鍔垮姏', id: name || '鍔垮姏', name: name || '鍔垮姏' },
+      '绯荤粺璁板綍': { type: 'system', id: name || '绯荤粺', name: name || '绯荤粺' },
+      '閫氱敤鍥哄寲': { type: 'system', id: name || '绯荤粺', name: name || '绯荤粺' },
+      '鐗╁搧': { type: '鐗╁搧', id: name || '鐗╁搧', name: name || '鐗╁搧' },
     };
     return defaults[type] || null;
   },
 
   settlementJsonText(value = '') {
-    return String(value ?? '').trim().replace(/[，,]/gu, '；');
+    return String(value ?? '').trim().replace(/[锛?]/gu, '锛?);
   },
 
   settlementJsonUpdateLine(type = '', entry = {}) {
     const t = (value) => this.settlementJsonText(value);
-    const field = t(entry.field ?? entry.字段 ?? entry.key ?? entry.类型 ?? entry.part ?? entry.部位 ?? '');
-    const value = t(entry.value ?? entry.变化 ?? entry.新值 ?? entry.delta ?? entry.数值 ?? entry.status ?? entry.state ?? entry.事实 ?? '');
-    const reason = t(entry.reason ?? entry.原因 ?? entry.evidence ?? entry.证据 ?? '');
-    if (type === '穿着状态') return `更新N：穿着状态，${t(entry.part ?? entry.部位)}，${t(entry.item ?? entry.itemName ?? entry.衣物 ?? entry.衣物名称)}，${t(entry.state ?? entry.status ?? entry.状态)}，${reason}`;
-    if (type === '身体状态') return `更新N：身体状态，${t(entry.part ?? entry.部位)}，${t(entry.status ?? entry.value ?? entry.状态)}，${reason}`;
-    if (type === '性经历') return `更新N：性经历，${t(entry.part ?? entry.部位)}，${t(entry.delta ?? entry.value ?? entry.变化)}，${reason}`;
-    if (type === '性历史') return `更新N：性历史，${t(entry.transition ?? entry.状态转移 ?? entry.field ?? entry.字段)}，${t(entry.partner ?? entry.对象 ?? entry.value)}，${t(entry.evidence ?? entry.reason ?? entry.证据)}`;
-    if (type === '关系') return `更新N：关系，${t(entry.left ?? entry.左方 ?? entry.subject ?? entry.主体)}，${t(entry.right ?? entry.右方 ?? entry.target ?? entry.对象)}，${t(entry.dimension ?? entry.维度 ?? entry.field)}，${t(entry.status ?? entry.状态 ?? entry.value)}，${reason}，${t(entry.result ?? entry.结果 ?? entry.value)}`;
-    if (type === '角色卡') return `更新N：角色卡，${field}，${t(entry.op ?? entry.操作 ?? '增加')}，${value}，${reason}，${t(entry.result ?? entry.结果 ?? value)}`;
-    return `更新N：${type}，${field}，${value}，${reason}`;
+    const field = t(entry.field ?? entry.瀛楁 ?? entry.key ?? entry.绫诲瀷 ?? entry.part ?? entry.閮ㄤ綅 ?? '');
+    const value = t(entry.value ?? entry.鍙樺寲 ?? entry.鏂板€??? entry.delta ?? entry.鏁板€??? entry.status ?? entry.state ?? entry.浜嬪疄 ?? '');
+    const reason = t(entry.reason ?? entry.鍘熷洜 ?? entry.evidence ?? entry.璇佹嵁 ?? '');
+    if (type === '绌跨潃鐘舵€?) return `鏇存柊N锛氱┛鐫€鐘舵€侊紝${t(entry.part ?? entry.閮ㄤ綅)}锛?{t(entry.item ?? entry.itemName ?? entry.琛ｇ墿 ?? entry.琛ｇ墿鍚嶇О)}锛?{t(entry.state ?? entry.status ?? entry.鐘舵€?}锛?{reason}`;
+    if (type === '韬綋鐘舵€?) return `鏇存柊N锛氳韩浣撶姸鎬侊紝${t(entry.part ?? entry.閮ㄤ綅)}锛?{t(entry.status ?? entry.value ?? entry.鐘舵€?}锛?{reason}`;
+    if (type === '鎬х粡鍘?) return `鏇存柊N锛氭€х粡鍘嗭紝${t(entry.part ?? entry.閮ㄤ綅)}锛?{t(entry.delta ?? entry.value ?? entry.鍙樺寲)}锛?{reason}`;
+    if (type === '鎬у巻鍙?) return `鏇存柊N锛氭€у巻鍙诧紝${t(entry.transition ?? entry.鐘舵€佽浆绉??? entry.field ?? entry.瀛楁)}锛?{t(entry.partner ?? entry.瀵硅薄 ?? entry.value)}锛?{t(entry.evidence ?? entry.reason ?? entry.璇佹嵁)}`;
+    if (type === '鍏崇郴') return `鏇存柊N锛氬叧绯伙紝${t(entry.left ?? entry.宸︽柟 ?? entry.subject ?? entry.涓讳綋)}锛?{t(entry.right ?? entry.鍙虫柟 ?? entry.target ?? entry.瀵硅薄)}锛?{t(entry.dimension ?? entry.缁村害 ?? entry.field)}锛?{t(entry.status ?? entry.鐘舵€??? entry.value)}锛?{reason}锛?{t(entry.result ?? entry.缁撴灉 ?? entry.value)}`;
+    if (type === '瑙掕壊鍗?) return `鏇存柊N锛氳鑹插崱锛?{field}锛?{t(entry.op ?? entry.鎿嶄綔 ?? '澧炲姞')}锛?{value}锛?{reason}锛?{t(entry.result ?? entry.缁撴灉 ?? value)}`;
+    return `鏇存柊N锛?{type}锛?{field}锛?{value}锛?{reason}`;
   },
 
   parseRelationshipJsonEntry(entry = {}, subject = null, participants = []) {
     const t = (value) => this.settlementJsonText(value);
     const player = (participants || []).find((p) => p?.type === 'player');
-    const left = t(entry.left ?? entry.左方 ?? entry.actor ?? entry.甲方 ?? player?.name ?? player?.id ?? '');
-    const right = t(entry.right ?? entry.右方 ?? entry.target ?? entry.对象 ?? entry.乙方 ?? subject?.name ?? subject?.id ?? '');
-    const dimension = t(entry.dimension ?? entry.维度 ?? entry.field ?? entry.字段 ?? '');
-    const status = t(entry.status ?? entry.状态 ?? entry.value ?? entry.关系状态 ?? '');
-    const reason = t(entry.reason ?? entry.原因 ?? entry.evidence ?? entry.证据 ?? '');
-    const result = t(entry.result ?? entry.结果 ?? status);
+    const left = t(entry.left ?? entry.宸︽柟 ?? entry.actor ?? entry.鐢叉柟 ?? player?.name ?? player?.id ?? '');
+    const right = t(entry.right ?? entry.鍙虫柟 ?? entry.target ?? entry.瀵硅薄 ?? entry.涔欐柟 ?? subject?.name ?? subject?.id ?? '');
+    const dimension = t(entry.dimension ?? entry.缁村害 ?? entry.field ?? entry.瀛楁 ?? '');
+    const status = t(entry.status ?? entry.鐘舵€??? entry.value ?? entry.鍏崇郴鐘舵€??? '');
+    const reason = t(entry.reason ?? entry.鍘熷洜 ?? entry.evidence ?? entry.璇佹嵁 ?? '');
+    const result = t(entry.result ?? entry.缁撴灉 ?? status);
     if (!subject || !left || !right || !dimension || !status || !reason || !result) return null;
-    if (/^(?:好感|好感度|信任|依赖|警惕|畏惧|反感|愤怒|恐惧|紧张|安心|悲伤|开心|高兴)$/u.test(dimension) || /^[-+]?\d/u.test(status)) return null;
-    return { updateType: 'relationship', subject, field: `relationships.${dimension}`, change: { mode: 'upsert', value: { left, right, dimension, status, reason, result } }, reasons: [{ trigger: '关系变化', evidence: reason, confidence: 'confirmed' }] };
+    if (/^(?:濂芥劅|濂芥劅搴淇′换|渚濊禆|璀︽儠|鐣忔儳|鍙嶆劅|鎰ゆ€抾鎭愭儳|绱у紶|瀹夊績|鎮蹭激|寮€蹇億楂樺叴)$/u.test(dimension) || /^[-+]?\d/u.test(status)) return null;
+    return { updateType: 'relationship', subject, field: `relationships.${dimension}`, change: { mode: 'upsert', value: { left, right, dimension, status, reason, result } }, reasons: [{ trigger: '鍏崇郴鍙樺寲', evidence: reason, confidence: 'confirmed' }] };
   },
 
   parseSettlementJson(raw, { requestedTypes = [], participants = [], store = null, config = this.realConfig() } = {}) {
@@ -1626,13 +1626,13 @@ window.GameModules.realWorldAgentLoop = {
     const completeTypes = [];
     const incompleteTypes = [];
     const baseFields = {};
-    const baseKeys = ['经过时间', '当前状态', '当前目标', '场景标题', '地点名称', '备选行动1', '备选行动2', '备选行动3', '备选行动4'];
+    const baseKeys = ['缁忚繃鏃堕棿', '褰撳墠鐘舵€?, '褰撳墠鐩爣', '鍦烘櫙鏍囬', '鍦扮偣鍚嶇О', '澶囬€夎鍔?', '澶囬€夎鍔?', '澶囬€夎鍔?', '澶囬€夎鍔?'];
     const specialParsers = {
-      '人事安排': (line, subject) => this.parseScheduleSettlementLine(line, subject, participants),
-      '系统记录': (line, subject) => this.parseSystemSettlementLine(line, subject, participants),
-      '穿着状态': (line, subject) => this.parseWearingSettlementLine(line, subject, participants),
-      '身体状态': (line, subject) => this.parseBodyStatusSettlementLine(line, subject, participants),
-      '性经历': (line, subject) => this.parseSexualExperienceSettlementLine(line, subject, participants),
+      '浜轰簨瀹夋帓': (line, subject) => this.parseScheduleSettlementLine(line, subject, participants),
+      '绯荤粺璁板綍': (line, subject) => this.parseSystemSettlementLine(line, subject, participants),
+      '绌跨潃鐘舵€?: (line, subject) => this.parseWearingSettlementLine(line, subject, participants),
+      '韬綋鐘舵€?: (line, subject) => this.parseBodyStatusSettlementLine(line, subject, participants),
+      '鎬х粡鍘?: (line, subject) => this.parseSexualExperienceSettlementLine(line, subject, participants),
     };
     requestedTypes.forEach((type) => {
       const value = data[type];
@@ -1653,12 +1653,12 @@ window.GameModules.realWorldAgentLoop = {
             }
           });
         }
-      } else if (type === '基础结算') {
+      } else if (type === '鍩虹缁撶畻') {
         if (value && typeof value === 'object' && !Array.isArray(value)) {
-          ['经过时间', '当前状态', '当前目标', '场景标题', '地点名称'].forEach((key) => { if (value[key] !== undefined) patch.baseFields[key] = String(value[key]).trim(); });
-          const choices = Array.isArray(value['备选行动']) ? value['备选行动'] : [];
+          ['缁忚繃鏃堕棿', '褰撳墠鐘舵€?, '褰撳墠鐩爣', '鍦烘櫙鏍囬', '鍦扮偣鍚嶇О'].forEach((key) => { if (value[key] !== undefined) patch.baseFields[key] = String(value[key]).trim(); });
+          const choices = Array.isArray(value['澶囬€夎鍔?]) ? value['澶囬€夎鍔?] : [];
           [1, 2, 3, 4].forEach((index) => {
-            const key = `备选行动${index}`;
+            const key = `澶囬€夎鍔?{index}`;
             const choice = value[key] ?? choices[index - 1];
             if (choice !== undefined) patch.baseFields[key] = String(choice).trim();
           });
@@ -1673,10 +1673,10 @@ window.GameModules.realWorldAgentLoop = {
           const subject = this.settlementJsonSubject(type, entry, participants) || this.defaultSubjectForSettlement(participants);
           const line = this.settlementJsonUpdateLine(type, entry);
           let update = null;
-          if (type === '关系') update = this.parseRelationshipJsonEntry(entry, subject, participants);
-          else if (['情绪', '感觉'].includes(type)) update = this.parseMetricSettlementJsonEntry(type, entry, subject, participants, store);
+          if (type === '鍏崇郴') update = this.parseRelationshipJsonEntry(entry, subject, participants);
+          else if (['鎯呯华', '鎰熻'].includes(type)) update = this.parseMetricSettlementJsonEntry(type, entry, subject, participants, store);
           else if (specialParsers[type]) update = specialParsers[type](line, subject);
-          else if (['性历史', '角色卡'].includes(type)) update = this.parseSpecialSettlementLine(type, line, subject, participants);
+          else if (['鎬у巻鍙?, '瑙掕壊鍗?].includes(type)) update = this.parseSpecialSettlementLine(type, line, subject, participants);
           else update = this.parseStandardSettlementLine(type, line, subject, participants, store);
           if (update) {
             patch.__parsedUpdates += 1;
@@ -1685,11 +1685,11 @@ window.GameModules.realWorldAgentLoop = {
         });
       }
       const hasParsedAllUpdates = !patch.__updateLines || patch.__parsedUpdates === patch.__updateLines;
-      const hasRequiredBaseFields = type !== '基础结算' || baseKeys.every((key) => String(patch.baseFields[key] || '').trim());
+      const hasRequiredBaseFields = type !== '鍩虹缁撶畻' || baseKeys.every((key) => String(patch.baseFields[key] || '').trim());
       patchesByType[type] = patch;
-      if (hasParsedAllUpdates && hasRequiredBaseFields && (type === '基础结算' || Array.isArray(value))) {
+      if (hasParsedAllUpdates && hasRequiredBaseFields && (type === '鍩虹缁撶畻' || Array.isArray(value))) {
         completeTypes.push(type);
-        if (type === '基础结算') Object.assign(baseFields, patch.baseFields);
+        if (type === '鍩虹缁撶畻') Object.assign(baseFields, patch.baseFields);
       } else incompleteTypes.push(type);
     });
     const genericUpdates = completeTypes.flatMap((type) => patchesByType[type]?.genericUpdates || []);
@@ -1700,16 +1700,16 @@ window.GameModules.realWorldAgentLoop = {
   parseSettlementKv(raw, { requestedTypes = [], participants = [], store = null, config = this.realConfig() } = {}) {
     const contracts = this.settlementTypeContracts();
     const labelsForType = ([type, c]) => [c.title, type];
-    const headingPrefix = (line = '') => Object.entries(contracts).find((entry) => labelsForType(entry).some((label) => line === `${label}：` || line === `${label}:` || line === `${label}{` || line === `${label} {` || line.startsWith(`${label}：`) || line.startsWith(`${label}:`)));
-    const lines = String(raw || '').replace(/；/gu, '\n').split(/\r?\n/u).map((line) => line.trim()).filter(Boolean).flatMap((line) => {
+    const headingPrefix = (line = '') => Object.entries(contracts).find((entry) => labelsForType(entry).some((label) => line === `${label}锛歚 || line === `${label}:` || line === `${label}{` || line === `${label} {` || line.startsWith(`${label}锛歚) || line.startsWith(`${label}:`)));
+    const lines = String(raw || '').replace(/锛?gu, '\n').split(/\r?\n/u).map((line) => line.trim()).filter(Boolean).flatMap((line) => {
       const hit = headingPrefix(line);
       if (!hit) return [line];
       const labels = labelsForType(hit);
       const braceLabel = labels.find((item) => line === `${item}{` || line === `${item} {`);
       if (braceLabel) return [`${hit[1].title}{`];
-      const label = labels.find((item) => line.startsWith(`${item}：`) || line.startsWith(`${item}:`));
+      const label = labels.find((item) => line.startsWith(`${item}锛歚) || line.startsWith(`${item}:`));
       const rest = line.slice(String(label || '').length + 1).trim();
-      return rest ? [`${hit[1].title}：`, rest] : [`${hit[1].title}：`];
+      return rest ? [`${hit[1].title}锛歚, rest] : [`${hit[1].title}锛歚];
     });
     const patchesByType = {};
     const completeTypes = [];
@@ -1717,8 +1717,8 @@ window.GameModules.realWorldAgentLoop = {
     const baseFields = {};
     const blocksByType = {};
     let currentBlock = null;
-    const baseKeys = ['经过时间', '当前状态', '当前目标', '场景标题', '地点名称', '备选行动1', '备选行动2', '备选行动3', '备选行动4'];
-    const settlementTypeFromHeading = (line) => Object.entries(contracts).find((entry) => labelsForType(entry).some((label) => line === `${label}：` || line === `${label}:` || line === `${label}{` || line === `${label} {`));
+    const baseKeys = ['缁忚繃鏃堕棿', '褰撳墠鐘舵€?, '褰撳墠鐩爣', '鍦烘櫙鏍囬', '鍦扮偣鍚嶇О', '澶囬€夎鍔?', '澶囬€夎鍔?', '澶囬€夎鍔?', '澶囬€夎鍔?'];
+    const settlementTypeFromHeading = (line) => Object.entries(contracts).find((entry) => labelsForType(entry).some((label) => line === `${label}锛歚 || line === `${label}:` || line === `${label}{` || line === `${label} {`));
     for (const line of lines) {
       const typeHit = settlementTypeFromHeading(line);
       if (typeHit) {
@@ -1740,63 +1740,63 @@ window.GameModules.realWorldAgentLoop = {
       const blockLines = block.lines || [];
       const patch = { genericUpdates: [], baseFields: {}, __updateLines: 0, __parsedUpdates: 0, __lines: blockLines.slice(), __headingCount: blockCount, __closedByNextHeading: Boolean(block.closedByNextHeading), __closedByBrace: Boolean(block.closedByBrace) };
       let currentSubject = null;
-      const subjectFallbackTypes = ['情绪', '感觉', '生命体征', '身体状态', '穿着状态', '性经历', '性历史', '关系', '角色卡', '物品'];
+      const subjectFallbackTypes = ['鎯呯华', '鎰熻', '鐢熷懡浣撳緛', '韬綋鐘舵€?, '绌跨潃鐘舵€?, '鎬х粡鍘?, '鎬у巻鍙?, '鍏崇郴', '瑙掕壊鍗?, '鐗╁搧'];
       const defaultSubject = subjectFallbackTypes.includes(type) ? this.defaultSubjectForSettlement(participants) : null;
       const normalizeLegacySubjectLine = (line) => {
-        const match = String(line || '').match(/^([^：:]+)[：:]\s*(.+)$/u);
-        if (!match || /^结算状态$/u.test(match[1])) return null;
+        const match = String(line || '').match(/^([^锛?]+)[锛?]\s*(.+)$/u);
+        if (!match || /^缁撶畻鐘舵€?/u.test(match[1])) return null;
         const subject = this.subjectForSettlement(match[1].trim(), participants);
         if (!subject) return null;
         const rest = match[2].trim();
-        const first = rest.split(/[，,]/u)[0]?.trim();
-        if (!first || (first !== type && first !== contracts[type]?.title?.replace(/结算$/u, ''))) return null;
-        return { subject, line: `更新N：${rest}` };
+        const first = rest.split(/[锛?]/u)[0]?.trim();
+        if (!first || (first !== type && first !== contracts[type]?.title?.replace(/缁撶畻$/u, ''))) return null;
+        return { subject, line: `鏇存柊N锛?{rest}` };
       };
       blockLines.slice(1).forEach((line) => {
-        if (type === '基础结算') {
+        if (type === '鍩虹缁撶畻') {
           const base = this.splitKvLine(line);
           if (base && baseKeys.includes(base.key)) {
             patch.baseFields[base.key] = base.value;
             return;
           }
         }
-        if (/^(?:结算对象|参与者)[：:]/u.test(line)) {
-          const [name, objectType, allowed] = line.replace(/^(?:结算对象|参与者)[：:]/u, '').split(/[｜|]/u).map((x) => x.trim());
+        if (/^(?:缁撶畻瀵硅薄|鍙備笌鑰?[锛?]/u.test(line)) {
+          const [name, objectType, allowed] = line.replace(/^(?:缁撶畻瀵硅薄|鍙備笌鑰?[锛?]/u, '').split(/[锝渱]/u).map((x) => x.trim());
           const isSceneParticipant = this.participantAllowedForSettlement(name, participants);
-          const isScheduleSubject = type === '人事安排' && ['角色', '玩家'].includes(objectType);
-          const isNonCharacterSystem = type !== '人事安排' && ['地点', '势力', '世界', '系统'].includes(objectType);
-          currentSubject = allowed === '允许结算' && ((type === '人事安排' && isScheduleSubject && isSceneParticipant) || (type !== '人事安排' && (isSceneParticipant || isNonCharacterSystem))) ? (this.subjectForSettlement(name, participants) || { type: objectType || 'system', id: name, name }) : null;
+          const isScheduleSubject = type === '浜轰簨瀹夋帓' && ['瑙掕壊', '鐜╁'].includes(objectType);
+          const isNonCharacterSystem = type !== '浜轰簨瀹夋帓' && ['鍦扮偣', '鍔垮姏', '涓栫晫', '绯荤粺'].includes(objectType);
+          currentSubject = allowed === '鍏佽缁撶畻' && ((type === '浜轰簨瀹夋帓' && isScheduleSubject && isSceneParticipant) || (type !== '浜轰簨瀹夋帓' && (isSceneParticipant || isNonCharacterSystem))) ? (this.subjectForSettlement(name, participants) || { type: objectType || 'system', id: name, name }) : null;
           return;
         }
         const legacy = normalizeLegacySubjectLine(line);
         const updateLine = legacy?.line || line;
         const updateSubject = legacy?.subject || currentSubject || defaultSubject;
-        if (/^更新(?:\d+|N)[：:]/u.test(updateLine)) {
+        if (/^鏇存柊(?:\d+|N)[锛?]/u.test(updateLine)) {
           patch.__updateLines += 1;
           const specialParsers = {
-            '人事安排': () => this.parseScheduleSettlementLine(updateLine, updateSubject, participants),
-            '系统记录': () => this.parseSystemSettlementLine(updateLine, updateSubject, participants),
-            '穿着状态': () => this.parseWearingSettlementLine(updateLine, updateSubject, participants),
-            '身体状态': () => this.parseBodyStatusSettlementLine(updateLine, updateSubject, participants),
-            '性经历': () => this.parseSexualExperienceSettlementLine(updateLine, updateSubject, participants),
+            '浜轰簨瀹夋帓': () => this.parseScheduleSettlementLine(updateLine, updateSubject, participants),
+            '绯荤粺璁板綍': () => this.parseSystemSettlementLine(updateLine, updateSubject, participants),
+            '绌跨潃鐘舵€?: () => this.parseWearingSettlementLine(updateLine, updateSubject, participants),
+            '韬綋鐘舵€?: () => this.parseBodyStatusSettlementLine(updateLine, updateSubject, participants),
+            '鎬х粡鍘?: () => this.parseSexualExperienceSettlementLine(updateLine, updateSubject, participants),
           };
           const update = specialParsers[type]
             ? specialParsers[type]()
-            : (['性历史', '关系', '角色卡'].includes(type) ? this.parseSpecialSettlementLine(type, updateLine, updateSubject, participants) : this.parseStandardSettlementLine(type, updateLine, updateSubject, participants, store));
+            : (['鎬у巻鍙?, '鍏崇郴', '瑙掕壊鍗?].includes(type) ? this.parseSpecialSettlementLine(type, updateLine, updateSubject, participants) : this.parseStandardSettlementLine(type, updateLine, updateSubject, participants, store));
           if (update) {
             patch.__parsedUpdates += 1;
             patch.genericUpdates.push(update);
           }
           return;
         }
-        if (/^类型完成[：:]是$/u.test(line)) { patch.__typeDone = true; return; }
-        if (/^结算结束[：:]是$/u.test(line)) patch.__settlementDone = true;
+        if (/^绫诲瀷瀹屾垚[锛?]鏄?/u.test(line)) { patch.__typeDone = true; return; }
+        if (/^缁撶畻缁撴潫[锛?]鏄?/u.test(line)) patch.__settlementDone = true;
       });
       return patch;
     };
     const patchIsComplete = (type, patch) => {
       const hasParsedAllUpdates = !patch?.__updateLines || patch.__parsedUpdates === patch.__updateLines;
-      const hasRequiredBaseFields = type !== '基础结算' || baseKeys.every((key) => String(patch?.baseFields?.[key] || '').trim());
+      const hasRequiredBaseFields = type !== '鍩虹缁撶畻' || baseKeys.every((key) => String(patch?.baseFields?.[key] || '').trim());
       const hasBraceCompletion = Boolean(patch?.__closedByBrace);
       return Boolean(hasBraceCompletion && hasParsedAllUpdates && hasRequiredBaseFields);
     };
@@ -1831,7 +1831,7 @@ window.GameModules.realWorldAgentLoop = {
       if (patch) patchesByType[type] = patch;
       if (patchIsComplete(type, patch)) {
         completeTypes.push(type);
-        if (type === '基础结算') Object.assign(baseFields, patch.baseFields);
+        if (type === '鍩虹缁撶畻') Object.assign(baseFields, patch.baseFields);
       } else incompleteTypes.push(type);
     });
     const genericUpdates = completeTypes.flatMap((type) => patchesByType[type]?.genericUpdates || []);
@@ -1840,43 +1840,43 @@ window.GameModules.realWorldAgentLoop = {
 
   settlementTypeShortRule(type = '') {
     const contracts = this.settlementTypeContracts();
-    const c = contracts[type] || { title: `${type}结算`, format: '更新N：类型，字段，变化，原因' };
+    const c = contracts[type] || { title: `${type}缁撶畻`, format: '鏇存柊N锛氱被鍨嬶紝瀛楁锛屽彉鍖栵紝鍘熷洜' };
     if (type === this.eventSettlementType()) {
       return [
-        `${c.title}规则：`,
-        '只提取正文中已经明确出现或能由正文稳定推出的事件；普通行动状态不要写成事件。',
-        '推演事件用于未来约定、计划、承诺、毁约风险等；周期事件用于节日、固定赛程、定期征文等重复发生事项；随机事件仅用于需要在未来概率触发的场外变动。',
-        '周期事件 people 固定写 ["所有人"]，必须写 tags；无事件输出 []。',
+        `${c.title}瑙勫垯锛歚,
+        '鍙彁鍙栨鏂囦腑宸茬粡鏄庣‘鍑虹幇鎴栬兘鐢辨鏂囩ǔ瀹氭帹鍑虹殑浜嬩欢锛涙櫘閫氳鍔ㄧ姸鎬佷笉瑕佸啓鎴愪簨浠躲€?,
+        '鎺ㄦ紨浜嬩欢鐢ㄤ簬鏈潵绾﹀畾銆佽鍒掋€佹壙璇恒€佹瘉绾﹂闄╃瓑锛涘懆鏈熶簨浠剁敤浜庤妭鏃ャ€佸浐瀹氳禌绋嬨€佸畾鏈熷緛鏂囩瓑閲嶅鍙戠敓浜嬮」锛涢殢鏈轰簨浠朵粎鐢ㄤ簬闇€瑕佸湪鏈潵姒傜巼瑙﹀彂鐨勫満澶栧彉鍔ㄣ€?,
+        '鍛ㄦ湡浜嬩欢 people 鍥哄畾鍐?["鎵€鏈変汉"]锛屽繀椤诲啓 tags锛涙棤浜嬩欢杈撳嚭 []銆?,
       ].join('\n');
     }
     const rules = {
-      '情绪': '字段只能使用本轮“当前情绪基线”里已有指标名；value 必须是 +N/-N 且不能为 0；可把愉悦/开心映射为高兴、惊慌映射为恐惧、不安映射为紧张；没有对应已有指标或无稳定变化时输出空数组。字段含义：field=情绪指标名，value=本回合变化量，status=变化后该情绪在当前数值下的具体表现（禁止写“高兴40：”这类前缀），reason=正文中的具体行为/对话证据。',
-      '感觉': '主体只能是出场 NPC，不能是玩家；字段只能使用“出场角色对玩家感觉基线”里已有指标名；value 必须是 +N/-N 且不能为 0；可把信赖映射为信任、亲近映射为好感、害怕映射为畏惧、厌恶映射为反感。字段含义：field=感觉指标名，value=本回合变化量，status=变化后该感觉在当前数值下的具体表现（禁止写“信任40：”这类前缀），reason=正文中证明该 NPC 对玩家态度变化的具体证据。',
-      '生命体征': '字段只能是：生命力、精力、饱食度、水分、疲劳、精神稳定；允许别名输入但最终字段写这 6 个中文名；禁止心率、体温、呼吸频率、血压、血氧、瞳孔、激素、行动能力、肌肉紧张度等新指标；变化必须是 +N/-N 且不能为 0；健康正常或无稳定变化时输出空数组。',
-      '身体状态': '部位只能是：整体/全身、口部/嘴部/嘴唇、胸部/胸口/乳房、阴部/私处、肛部、臀部/屁股、四肢/手臂/腿部、皮肤、其他；整体/全身与局部部位互不冲突，同轮同人可写多条，正文中有就应全部写入；整体写全身综合状态，局部写对应部位细节；禁止把坐姿、可用状态、手指动作等写成新部位字段；全身发颤/肌肉反应等写整体或四肢，不要写进生命体征。',
-      '穿着状态': '穿着部位只能是：全身/整体、胸部/胸口/乳房、上身、外套、下身、腿部/大腿、足部/脚部、内裤、饰品；全身/整体会按外套处理并清空其他衣物槽；同轮若还有局部部位，先应用全身再覆盖局部部位；禁止肩部、腰部、衣领、吊带位置等非槽位字段；必须包含衣物名称和当前状态。',
-      '性经历': '分类只能是：阴部、胸部/胸口/乳房、唇部/接吻、口部/嘴部、口部行为、口交、口交中出、阴部进入、阴道插入、阴道中出、肛部/肛门、肛部进入、肛交、肛交中出、腿部/大腿、臀部/屁股、手部/手、皮肤、其他；delta 必须是 +N/-N 且不能为 0；禁止写总次数/总数/全部；无相关行为时输出空数组。',
-      '关系': '只记录稳定关系维度，如亲属、朋友、同事、师生、雇佣、敌对、同居、恋人；好感、信任、依赖、警惕等数值态度写“感觉”，不要写关系。',
-      '角色卡': '只写稳定角色卡字段：当前状态、身份、职业、技能、知识、外貌、性格、喜好、人物说明、社群角色、人事归属、人际关系；临时情绪、生命体征、身体、穿着、关系、物品有专门类型时不得写角色卡。',
-      '地图': '字段只能是：当前位置、上级地点、地点事实、地图节点、路线事实；角色当前所在地优先写人事安排，不要把角色行动写成地图事实。地图节点最小颗粒度为建筑物（如3栋2单元）或小区级POI（公园、商店）；走廊、楼梯间、单个房间只写当前位置，不要作为地图节点。禁止在本类型写 effectiveOrgId/控势，那属于领土控势。',
-      '领土控势': '仅当正文确认已揭示地点的夺控、解放、移交、占领或争议状态时更新；字段：地点名、实控组织、宣称组织、控势状态；未 revealed 地点不得写；同轮同一地点最多一条；普通到达/看见不写本类型。',
-      '人事安排': '只更新本回合 participants 中的参与者；field 只能是 当前地点、当前行动、可用状态；正在做什么必须写 当前行动，value 用短句写具体动作（如「从背后抱住刘思琪并揉捏胸部」）；可用状态 value 只能是 在场/场外/暂不可用/未知，禁止把动作或身体反应写进可用状态；reason 只写正文证据，不要重复 value；同一人可写多条（地点、行动、可用状态各一条）；弱推测不更新。',
-      '势力总览': '字段只能是：新增势力、上层势力归属、势力APP归属；组织内部部门、职位、成员地位写势力结构。',
-      '政体状态': '字段：组织名、status（active/rebel/independent/dissolved/merged）、legitimacy、successorId；合并/解散须写 successor；地图控势另写领土控势。',
-      '势力结构': '字段只能是：部门角色、职位、成员地位；势力是否存在或隶属关系写势力总览。新建 fog 节点只写名称与意图，上级未明写「迷雾」，禁止猜国防部等。',
-      '组织能力': '字段：能力维度（政治/经济/资产/军事）、条目名称、条目状态、上级归属；新设条目无草案时 state=fog 且上级=迷雾；部门/职位/任职写势力结构，不要混用。',
-      '人事归属': '字段：组织名/orgId、部门、职位；对应 values.memberships；部门未明写 departmentFog；与势力 structure 占坑可同时存在但需一致；抽象「公民/居民」不得写。',
-      '系统记录': '只写系统级、跨角色、且没有专门类型承载的长期事实：日历变更、微信/短信通信、世界线节点、不可逆公共事件、全局状态。禁止把角色当前行动、所在地点、身体反应、感觉、关系、场景描写复述写进系统记录；这些必须分别写人事安排、身体状态、感觉、关系。若正文事实已被世界线记录覆盖，系统记录写空数组 []。',
-      '通用固化': '只能写没有专门类型承载的长期稳定标签；情绪、感觉、生命体征、身体、穿着、性经历、性历史、关系、物品、地图、人事、势力、系统记录有专门类型时不得写通用固化。',
+      '鎯呯华': '瀛楁鍙兘浣跨敤鏈疆鈥滃綋鍓嶆儏缁熀绾库€濋噷宸叉湁鎸囨爣鍚嶏紱value 蹇呴』鏄?+N/-N 涓斾笉鑳戒负 0锛涘彲鎶婃剦鎮?寮€蹇冩槧灏勪负楂樺叴銆佹儕鎱屾槧灏勪负鎭愭儳銆佷笉瀹夋槧灏勪负绱у紶锛涙病鏈夊搴斿凡鏈夋寚鏍囨垨鏃犵ǔ瀹氬彉鍖栨椂杈撳嚭绌烘暟缁勩€傚瓧娈靛惈涔夛細field=鎯呯华鎸囨爣鍚嶏紝value=鏈洖鍚堝彉鍖栭噺锛宻tatus=鍙樺寲鍚庤鎯呯华鍦ㄥ綋鍓嶆暟鍊间笅鐨勫叿浣撹〃鐜帮紙绂佹鍐欌€滈珮鍏?0锛氣€濊繖绫诲墠缂€锛夛紝reason=姝ｆ枃涓殑鍏蜂綋琛屼负/瀵硅瘽璇佹嵁銆?,
+      '鎰熻': '涓讳綋鍙兘鏄嚭鍦?NPC锛屼笉鑳芥槸鐜╁锛涘瓧娈靛彧鑳戒娇鐢ㄢ€滃嚭鍦鸿鑹插鐜╁鎰熻鍩虹嚎鈥濋噷宸叉湁鎸囨爣鍚嶏紱value 蹇呴』鏄?+N/-N 涓斾笉鑳戒负 0锛涘彲鎶婁俊璧栨槧灏勪负淇′换銆佷翰杩戞槧灏勪负濂芥劅銆佸鎬曟槧灏勪负鐣忔儳銆佸帉鎭舵槧灏勪负鍙嶆劅銆傚瓧娈靛惈涔夛細field=鎰熻鎸囨爣鍚嶏紝value=鏈洖鍚堝彉鍖栭噺锛宻tatus=鍙樺寲鍚庤鎰熻鍦ㄥ綋鍓嶆暟鍊间笅鐨勫叿浣撹〃鐜帮紙绂佹鍐欌€滀俊浠?0锛氣€濊繖绫诲墠缂€锛夛紝reason=姝ｆ枃涓瘉鏄庤 NPC 瀵圭帺瀹舵€佸害鍙樺寲鐨勫叿浣撹瘉鎹€?,
+      '鐢熷懡浣撳緛': '瀛楁鍙兘鏄細鐢熷懡鍔涖€佺簿鍔涖€侀ケ椋熷害銆佹按鍒嗐€佺柌鍔炽€佺簿绁炵ǔ瀹氾紱鍏佽鍒悕杈撳叆浣嗘渶缁堝瓧娈靛啓杩?6 涓腑鏂囧悕锛涚姝㈠績鐜囥€佷綋娓┿€佸懠鍚搁鐜囥€佽鍘嬨€佽姘с€佺灣瀛斻€佹縺绱犮€佽鍔ㄨ兘鍔涖€佽倢鑲夌揣寮犲害绛夋柊鎸囨爣锛涘彉鍖栧繀椤绘槸 +N/-N 涓斾笉鑳戒负 0锛涘仴搴锋甯告垨鏃犵ǔ瀹氬彉鍖栨椂杈撳嚭绌烘暟缁勩€?,
+      '韬綋鐘舵€?: '閮ㄤ綅鍙兘鏄細鏁翠綋/鍏ㄨ韩銆佸彛閮?鍢撮儴/鍢村攪銆佽兏閮?鑳稿彛/涔虫埧銆侀槾閮?绉佸銆佽倹閮ㄣ€佽噣閮?灞佽偂銆佸洓鑲?鎵嬭噦/鑵块儴銆佺毊鑲ゃ€佸叾浠栵紱鏁翠綋/鍏ㄨ韩涓庡眬閮ㄩ儴浣嶄簰涓嶅啿绐侊紝鍚岃疆鍚屼汉鍙啓澶氭潯锛屾鏂囦腑鏈夊氨搴斿叏閮ㄥ啓鍏ワ紱鏁翠綋鍐欏叏韬患鍚堢姸鎬侊紝灞€閮ㄥ啓瀵瑰簲閮ㄤ綅缁嗚妭锛涚姝㈡妸鍧愬Э銆佸彲鐢ㄧ姸鎬併€佹墜鎸囧姩浣滅瓑鍐欐垚鏂伴儴浣嶅瓧娈碉紱鍏ㄨ韩鍙戦ⅳ/鑲岃倝鍙嶅簲绛夊啓鏁翠綋鎴栧洓鑲紝涓嶈鍐欒繘鐢熷懡浣撳緛銆?,
+      '绌跨潃鐘舵€?: '绌跨潃閮ㄤ綅鍙兘鏄細鍏ㄨ韩/鏁翠綋銆佽兏閮?鑳稿彛/涔虫埧銆佷笂韬€佸濂椼€佷笅韬€佽吙閮?澶ц吙銆佽冻閮?鑴氶儴銆佸唴瑁ゃ€侀グ鍝侊紱鍏ㄨ韩/鏁翠綋浼氭寜澶栧澶勭悊骞舵竻绌哄叾浠栬。鐗╂Ы锛涘悓杞嫢杩樻湁灞€閮ㄩ儴浣嶏紝鍏堝簲鐢ㄥ叏韬啀瑕嗙洊灞€閮ㄩ儴浣嶏紱绂佹鑲╅儴銆佽叞閮ㄣ€佽。棰嗐€佸悐甯︿綅缃瓑闈炴Ы浣嶅瓧娈碉紱蹇呴』鍖呭惈琛ｇ墿鍚嶇О鍜屽綋鍓嶇姸鎬併€?,
+      '鎬х粡鍘?: '鍒嗙被鍙兘鏄細闃撮儴銆佽兏閮?鑳稿彛/涔虫埧銆佸攪閮?鎺ュ惢銆佸彛閮?鍢撮儴銆佸彛閮ㄨ涓恒€佸彛浜ゃ€佸彛浜や腑鍑恒€侀槾閮ㄨ繘鍏ャ€侀槾閬撴彃鍏ャ€侀槾閬撲腑鍑恒€佽倹閮?鑲涢棬銆佽倹閮ㄨ繘鍏ャ€佽倹浜ゃ€佽倹浜や腑鍑恒€佽吙閮?澶ц吙銆佽噣閮?灞佽偂銆佹墜閮?鎵嬨€佺毊鑲ゃ€佸叾浠栵紱delta 蹇呴』鏄?+N/-N 涓斾笉鑳戒负 0锛涚姝㈠啓鎬绘鏁?鎬绘暟/鍏ㄩ儴锛涙棤鐩稿叧琛屼负鏃惰緭鍑虹┖鏁扮粍銆?,
+      '鍏崇郴': '鍙褰曠ǔ瀹氬叧绯荤淮搴︼紝濡備翰灞炪€佹湅鍙嬨€佸悓浜嬨€佸笀鐢熴€侀泧浣ｃ€佹晫瀵广€佸悓灞呫€佹亱浜猴紱濂芥劅銆佷俊浠汇€佷緷璧栥€佽鎯曠瓑鏁板€兼€佸害鍐欌€滄劅瑙夆€濓紝涓嶈鍐欏叧绯汇€?,
+      '瑙掕壊鍗?: '鍙啓绋冲畾瑙掕壊鍗″瓧娈碉細褰撳墠鐘舵€併€佽韩浠姐€佽亴涓氥€佹妧鑳姐€佺煡璇嗐€佸璨屻€佹€ф牸銆佸枩濂姐€佷汉鐗╄鏄庛€佺ぞ缇よ鑹层€佷汉浜嬪綊灞炪€佷汉闄呭叧绯伙紱涓存椂鎯呯华銆佺敓鍛戒綋寰併€佽韩浣撱€佺┛鐫€銆佸叧绯汇€佺墿鍝佹湁涓撻棬绫诲瀷鏃朵笉寰楀啓瑙掕壊鍗°€?,
+      '鍦板浘': '瀛楁鍙兘鏄細褰撳墠浣嶇疆銆佷笂绾у湴鐐广€佸湴鐐逛簨瀹炪€佸湴鍥捐妭鐐广€佽矾绾夸簨瀹烇紱瑙掕壊褰撳墠鎵€鍦ㄥ湴浼樺厛鍐欎汉浜嬪畨鎺掞紝涓嶈鎶婅鑹茶鍔ㄥ啓鎴愬湴鍥句簨瀹炪€傚湴鍥捐妭鐐规渶灏忛绮掑害涓哄缓绛戠墿锛堝3鏍?鍗曞厓锛夋垨灏忓尯绾OI锛堝叕鍥€佸晢搴楋級锛涜蛋寤娿€佹ゼ姊棿銆佸崟涓埧闂村彧鍐欏綋鍓嶄綅缃紝涓嶈浣滀负鍦板浘鑺傜偣銆傜姝㈠湪鏈被鍨嬪啓 effectiveOrgId/鎺у娍锛岄偅灞炰簬棰嗗湡鎺у娍銆?,
+      '棰嗗湡鎺у娍': '浠呭綋姝ｆ枃纭宸叉彮绀哄湴鐐圭殑澶烘帶銆佽В鏀俱€佺Щ浜ゃ€佸崰棰嗘垨浜夎鐘舵€佹椂鏇存柊锛涘瓧娈碉細鍦扮偣鍚嶃€佸疄鎺х粍缁囥€佸绉扮粍缁囥€佹帶鍔跨姸鎬侊紱鏈?revealed 鍦扮偣涓嶅緱鍐欙紱鍚岃疆鍚屼竴鍦扮偣鏈€澶氫竴鏉★紱鏅€氬埌杈?鐪嬭涓嶅啓鏈被鍨嬨€?,
+      '浜轰簨瀹夋帓': '鍙洿鏂版湰鍥炲悎 participants 涓殑鍙備笌鑰咃紱field 鍙兘鏄?褰撳墠鍦扮偣銆佸綋鍓嶈鍔ㄣ€佸彲鐢ㄧ姸鎬侊紱姝ｅ湪鍋氫粈涔堝繀椤诲啓 褰撳墠琛屽姩锛寁alue 鐢ㄧ煭鍙ュ啓鍏蜂綋鍔ㄤ綔锛堝銆屼粠鑳屽悗鎶变綇鍒樻€濈惇骞舵弶鎹忚兏閮ㄣ€嶏級锛涘彲鐢ㄧ姸鎬?value 鍙兘鏄?鍦ㄥ満/鍦哄/鏆備笉鍙敤/鏈煡锛岀姝㈡妸鍔ㄤ綔鎴栬韩浣撳弽搴斿啓杩涘彲鐢ㄧ姸鎬侊紱reason 鍙啓姝ｆ枃璇佹嵁锛屼笉瑕侀噸澶?value锛涘悓涓€浜哄彲鍐欏鏉★紙鍦扮偣銆佽鍔ㄣ€佸彲鐢ㄧ姸鎬佸悇涓€鏉★級锛涘急鎺ㄦ祴涓嶆洿鏂般€?,
+      '鍔垮姏鎬昏': '瀛楁鍙兘鏄細鏂板鍔垮姏銆佷笂灞傚娍鍔涘綊灞炪€佸娍鍔汚PP褰掑睘锛涚粍缁囧唴閮ㄩ儴闂ㄣ€佽亴浣嶃€佹垚鍛樺湴浣嶅啓鍔垮姏缁撴瀯銆?,
+      '鏀夸綋鐘舵€?: '瀛楁锛氱粍缁囧悕銆乻tatus锛坅ctive/rebel/independent/dissolved/merged锛夈€乴egitimacy銆乻uccessorId锛涘悎骞?瑙ｆ暎椤诲啓 successor锛涘湴鍥炬帶鍔垮彟鍐欓鍦熸帶鍔裤€?,
+      '鍔垮姏缁撴瀯': '瀛楁鍙兘鏄細閮ㄩ棬瑙掕壊銆佽亴浣嶃€佹垚鍛樺湴浣嶏紱鍔垮姏鏄惁瀛樺湪鎴栭毝灞炲叧绯诲啓鍔垮姏鎬昏銆傛柊寤?fog 鑺傜偣鍙啓鍚嶇О涓庢剰鍥撅紝涓婄骇鏈槑鍐欍€岃糠闆俱€嶏紝绂佹鐚滃浗闃查儴绛夈€?,
+      '缁勭粐鑳藉姏': '瀛楁锛氳兘鍔涚淮搴︼紙鏀挎不/缁忔祹/璧勪骇/鍐涗簨锛夈€佹潯鐩悕绉般€佹潯鐩姸鎬併€佷笂绾у綊灞烇紱鏂拌鏉＄洰鏃犺崏妗堟椂 state=fog 涓斾笂绾?杩烽浘锛涢儴闂?鑱屼綅/浠昏亴鍐欏娍鍔涚粨鏋勶紝涓嶈娣风敤銆?,
+      '浜轰簨褰掑睘': '瀛楁锛氱粍缁囧悕/orgId銆侀儴闂ㄣ€佽亴浣嶏紱瀵瑰簲 values.memberships锛涢儴闂ㄦ湭鏄庡啓 departmentFog锛涗笌鍔垮姏 structure 鍗犲潙鍙悓鏃跺瓨鍦ㄤ絾闇€涓€鑷达紱鎶借薄銆屽叕姘?灞呮皯銆嶄笉寰楀啓銆?,
+      '绯荤粺璁板綍': '鍙啓绯荤粺绾с€佽法瑙掕壊銆佷笖娌℃湁涓撻棬绫诲瀷鎵胯浇鐨勯暱鏈熶簨瀹烇細鏃ュ巻鍙樻洿銆佸井淇?鐭俊閫氫俊銆佷笘鐣岀嚎鑺傜偣銆佷笉鍙€嗗叕鍏变簨浠躲€佸叏灞€鐘舵€併€傜姝㈡妸瑙掕壊褰撳墠琛屽姩銆佹墍鍦ㄥ湴鐐广€佽韩浣撳弽搴斻€佹劅瑙夈€佸叧绯汇€佸満鏅弿鍐欏杩板啓杩涚郴缁熻褰曪紱杩欎簺蹇呴』鍒嗗埆鍐欎汉浜嬪畨鎺掋€佽韩浣撶姸鎬併€佹劅瑙夈€佸叧绯汇€傝嫢姝ｆ枃浜嬪疄宸茶涓栫晫绾胯褰曡鐩栵紝绯荤粺璁板綍鍐欑┖鏁扮粍 []銆?,
+      '閫氱敤鍥哄寲': '鍙兘鍐欐病鏈変笓闂ㄧ被鍨嬫壙杞界殑闀挎湡绋冲畾鏍囩锛涙儏缁€佹劅瑙夈€佺敓鍛戒綋寰併€佽韩浣撱€佺┛鐫€銆佹€х粡鍘嗐€佹€у巻鍙层€佸叧绯汇€佺墿鍝併€佸湴鍥俱€佷汉浜嬨€佸娍鍔涖€佺郴缁熻褰曟湁涓撻棬绫诲瀷鏃朵笉寰楀啓閫氱敤鍥哄寲銆?,
     };
     return [
-      `${c.title}规则：`,
-      rules[type] || '只有本轮稳定事实明确支持时才更新；弱氛围、猜测或未确认变化不更新。',
+      `${c.title}瑙勫垯锛歚,
+      rules[type] || '鍙湁鏈疆绋冲畾浜嬪疄鏄庣‘鏀寔鏃舵墠鏇存柊锛涘急姘涘洿銆佺寽娴嬫垨鏈‘璁ゅ彉鍖栦笉鏇存柊銆?,
     ].join('\n');
   },
 
   settlementMetricExample(store = {}, participants = [], metricType = '') {
-    const rows = (Array.isArray(participants) ? participants : []).filter((p) => metricType !== '感觉' || p?.type === 'character');
+    const rows = (Array.isArray(participants) ? participants : []).filter((p) => metricType !== '鎰熻' || p?.type === 'character');
     for (const participant of rows) {
       const keys = this.settlementMetricKeysForSubject(store, participant, metricType);
       if (keys.length) return { subject: participant.name || participant.id, field: keys[0] };
@@ -1887,47 +1887,47 @@ window.GameModules.realWorldAgentLoop = {
   settlementTypeJsonExample(type = '', participants = [], store = {}) {
     const chars = (Array.isArray(participants) ? participants : []).filter((p) => p?.type === 'character');
     const player = (Array.isArray(participants) ? participants : []).find((p) => p?.type === 'player');
-    const subject = chars[0]?.name || chars[0]?.id || player?.name || player?.id || '角色名';
-    const playerName = player?.name || player?.id || '玩家名';
+    const subject = chars[0]?.name || chars[0]?.id || player?.name || player?.id || '瑙掕壊鍚?;
+    const playerName = player?.name || player?.id || '鐜╁鍚?;
     const otherName = chars[1]?.name || chars[1]?.id || subject;
-    if (type === this.eventSettlementType()) return '"事件":[{"type":"inference","title":"未来约定","startDate":"2026-07-10","endDate":"2026-07-10","location":"地点","content":"正文明确约定的未来事项","people":["相关人"],"tags":["约定"],"status":"active"}]';
-    if (type === '基础结算') return '"基础结算":{"经过时间":60,"当前状态":"当前稳定状态","当前目标":"下一步目标","场景标题":"场景标题","地点名称":"地点名","备选行动":["行动一","行动二","行动三","行动四"]}';
-    if (type === '情绪') {
-      const ex = this.settlementMetricExample(store, participants, '情绪');
-      return ex ? `"情绪":[{"subject":"${ex.subject}","field":"${ex.field}","value":"+1","status":"变化后该情绪的具体表现","reason":"正文中的明确行为或对话证据"}]` : '"情绪":[]';
+    if (type === this.eventSettlementType()) return '"浜嬩欢":[{"type":"inference","title":"鏈潵绾﹀畾","startDate":"2026-07-10","endDate":"2026-07-10","location":"鍦扮偣","content":"姝ｆ枃鏄庣‘绾﹀畾鐨勬湭鏉ヤ簨椤?,"people":["鐩稿叧浜?],"tags":["绾﹀畾"],"status":"active"}]';
+    if (type === '鍩虹缁撶畻') return '"鍩虹缁撶畻":{"缁忚繃鏃堕棿":60,"褰撳墠鐘舵€?:"褰撳墠绋冲畾鐘舵€?,"褰撳墠鐩爣":"涓嬩竴姝ョ洰鏍?,"鍦烘櫙鏍囬":"鍦烘櫙鏍囬","鍦扮偣鍚嶇О":"鍦扮偣鍚?,"澶囬€夎鍔?:["琛屽姩涓€","琛屽姩浜?,"琛屽姩涓?,"琛屽姩鍥?]}';
+    if (type === '鎯呯华') {
+      const ex = this.settlementMetricExample(store, participants, '鎯呯华');
+      return ex ? `"鎯呯华":[{"subject":"${ex.subject}","field":"${ex.field}","value":"+1","status":"鍙樺寲鍚庤鎯呯华鐨勫叿浣撹〃鐜?,"reason":"姝ｆ枃涓殑鏄庣‘琛屼负鎴栧璇濊瘉鎹?}]` : '"鎯呯华":[]';
     }
-    if (type === '感觉') {
-      const ex = this.settlementMetricExample(store, participants, '感觉');
-      return ex ? `"感觉":[{"subject":"${ex.subject}","field":"${ex.field}","value":"+1","status":"变化后该感觉的具体表现","reason":"该 NPC 对玩家态度变化的明确证据"}]` : '"感觉":[]';
+    if (type === '鎰熻') {
+      const ex = this.settlementMetricExample(store, participants, '鎰熻');
+      return ex ? `"鎰熻":[{"subject":"${ex.subject}","field":"${ex.field}","value":"+1","status":"鍙樺寲鍚庤鎰熻鐨勫叿浣撹〃鐜?,"reason":"璇?NPC 瀵圭帺瀹舵€佸害鍙樺寲鐨勬槑纭瘉鎹?}]` : '"鎰熻":[]';
     }
-    if (type === '生命体征') return `"生命体征":[{"subject":"${subject}","field":"疲劳","value":"+1","reason":"正文明确出现持续消耗或疲惫证据"}]`;
-    if (type === '身体状态') return `"身体状态":[{"subject":"${subject}","part":"整体","status":"全身综合状态","reason":"正文明确全身状态证据"},{"subject":"${subject}","part":"胸部","status":"局部部位状态","reason":"正文明确该部位证据"}]`;
-    if (type === '穿着状态') return `"穿着状态":[{"subject":"${subject}","part":"外套","item":"衣物名称","state":"当前状态","reason":"正文明确穿着变化证据"}]`;
-    if (type === '性经历') return `"性经历":[{"subject":"${subject}","part":"分类","delta":"+1","reason":"正文明确性相关行为证据"}]`;
-    if (type === '性历史') return `"性历史":[{"subject":"${subject}","transition":"状态转移","partner":"对象","evidence":"正文明确证据"}]`;
-    if (type === '关系') return `"关系":[{"subject":"${subject}","left":"${playerName}","right":"${subject}","dimension":"亲属关系","status":"稳定亲密","reason":"正文中能证明关系状态的具体证据","result":"维持稳定亲密关系"}]`;
-    if (type === '角色卡') return `"角色卡":[{"subject":"${subject}","field":"当前状态","op":"增加","value":"稳定状态标签","reason":"正文明确且可长期固化的证据","result":"加入状态标签"}]`;
-    if (type === '物品') return `"物品":[{"subject":"${subject}","field":"持有物","value":"物品状态","reason":"正文明确物品变化证据"}]`;
-    if (type === '地图') return '"地图":[{"subject":"地点名","field":"地点事实","value":"稳定地点事实","reason":"正文明确地点证据"}]';
-    if (type === '人事安排') return `"人事安排":[{"subject":"${subject}","field":"当前行动","value":"正在做的具体动作","reason":"正文明确行动证据"},{"subject":"${subject}","field":"可用状态","value":"在场","reason":"正文明确在场证据"}]`;
-    if (type === '势力总览') return '"势力总览":[{"subject":"势力名","field":"新增势力","value":"势力事实","reason":"正文明确势力证据"}]';
-    if (type === '势力结构') return `"势力结构":[{"subject":"势力名","field":"成员地位","value":"${subject}的稳定地位","reason":"正文明确组织证据"}]`;
-    if (type === '系统记录') return '"系统记录":[{"subject":"系统","field":"通信消息","value":"已确认的系统级通信或日程事实","reason":"正文明确且不属于角色卡/人事安排的证据"}]';
-    if (type === '通用固化') return `"通用固化":[{"subject":"${subject}","field":"长期标签","value":"稳定标签","reason":"正文明确且无专门类型承载"}]`;
-    if (type === '操控体验') return '"操控体验":[{"subject":"系统","field":"体验","value":"稳定体验变化","reason":"正文明确体验证据"}]';
+    if (type === '鐢熷懡浣撳緛') return `"鐢熷懡浣撳緛":[{"subject":"${subject}","field":"鐤插姵","value":"+1","reason":"姝ｆ枃鏄庣‘鍑虹幇鎸佺画娑堣€楁垨鐤叉儷璇佹嵁"}]`;
+    if (type === '韬綋鐘舵€?) return `"韬綋鐘舵€?:[{"subject":"${subject}","part":"鏁翠綋","status":"鍏ㄨ韩缁煎悎鐘舵€?,"reason":"姝ｆ枃鏄庣‘鍏ㄨ韩鐘舵€佽瘉鎹?},{"subject":"${subject}","part":"鑳搁儴","status":"灞€閮ㄩ儴浣嶇姸鎬?,"reason":"姝ｆ枃鏄庣‘璇ラ儴浣嶈瘉鎹?}]`;
+    if (type === '绌跨潃鐘舵€?) return `"绌跨潃鐘舵€?:[{"subject":"${subject}","part":"澶栧","item":"琛ｇ墿鍚嶇О","state":"褰撳墠鐘舵€?,"reason":"姝ｆ枃鏄庣‘绌跨潃鍙樺寲璇佹嵁"}]`;
+    if (type === '鎬х粡鍘?) return `"鎬х粡鍘?:[{"subject":"${subject}","part":"鍒嗙被","delta":"+1","reason":"姝ｆ枃鏄庣‘鎬х浉鍏宠涓鸿瘉鎹?}]`;
+    if (type === '鎬у巻鍙?) return `"鎬у巻鍙?:[{"subject":"${subject}","transition":"鐘舵€佽浆绉?,"partner":"瀵硅薄","evidence":"姝ｆ枃鏄庣‘璇佹嵁"}]`;
+    if (type === '鍏崇郴') return `"鍏崇郴":[{"subject":"${subject}","left":"${playerName}","right":"${subject}","dimension":"浜插睘鍏崇郴","status":"绋冲畾浜插瘑","reason":"姝ｆ枃涓兘璇佹槑鍏崇郴鐘舵€佺殑鍏蜂綋璇佹嵁","result":"缁存寔绋冲畾浜插瘑鍏崇郴"}]`;
+    if (type === '瑙掕壊鍗?) return `"瑙掕壊鍗?:[{"subject":"${subject}","field":"褰撳墠鐘舵€?,"op":"澧炲姞","value":"绋冲畾鐘舵€佹爣绛?,"reason":"姝ｆ枃鏄庣‘涓斿彲闀挎湡鍥哄寲鐨勮瘉鎹?,"result":"鍔犲叆鐘舵€佹爣绛?}]`;
+    if (type === '鐗╁搧') return `"鐗╁搧":[{"subject":"${subject}","field":"鎸佹湁鐗?,"value":"鐗╁搧鐘舵€?,"reason":"姝ｆ枃鏄庣‘鐗╁搧鍙樺寲璇佹嵁"}]`;
+    if (type === '鍦板浘') return '"鍦板浘":[{"subject":"鍦扮偣鍚?,"field":"鍦扮偣浜嬪疄","value":"绋冲畾鍦扮偣浜嬪疄","reason":"姝ｆ枃鏄庣‘鍦扮偣璇佹嵁"}]';
+    if (type === '浜轰簨瀹夋帓') return `"浜轰簨瀹夋帓":[{"subject":"${subject}","field":"褰撳墠琛屽姩","value":"姝ｅ湪鍋氱殑鍏蜂綋鍔ㄤ綔","reason":"姝ｆ枃鏄庣‘琛屽姩璇佹嵁"},{"subject":"${subject}","field":"鍙敤鐘舵€?,"value":"鍦ㄥ満","reason":"姝ｆ枃鏄庣‘鍦ㄥ満璇佹嵁"}]`;
+    if (type === '鍔垮姏鎬昏') return '"鍔垮姏鎬昏":[{"subject":"鍔垮姏鍚?,"field":"鏂板鍔垮姏","value":"鍔垮姏浜嬪疄","reason":"姝ｆ枃鏄庣‘鍔垮姏璇佹嵁"}]';
+    if (type === '鍔垮姏缁撴瀯') return `"鍔垮姏缁撴瀯":[{"subject":"鍔垮姏鍚?,"field":"鎴愬憳鍦颁綅","value":"${subject}鐨勭ǔ瀹氬湴浣?,"reason":"姝ｆ枃鏄庣‘缁勭粐璇佹嵁"}]`;
+    if (type === '绯荤粺璁板綍') return '"绯荤粺璁板綍":[{"subject":"绯荤粺","field":"閫氫俊娑堟伅","value":"宸茬‘璁ょ殑绯荤粺绾ч€氫俊鎴栨棩绋嬩簨瀹?,"reason":"姝ｆ枃鏄庣‘涓斾笉灞炰簬瑙掕壊鍗?浜轰簨瀹夋帓鐨勮瘉鎹?}]';
+    if (type === '閫氱敤鍥哄寲') return `"閫氱敤鍥哄寲":[{"subject":"${subject}","field":"闀挎湡鏍囩","value":"绋冲畾鏍囩","reason":"姝ｆ枃鏄庣‘涓旀棤涓撻棬绫诲瀷鎵胯浇"}]`;
+    if (type === '鎿嶆帶浣撻獙') return '"鎿嶆帶浣撻獙":[{"subject":"绯荤粺","field":"浣撻獙","value":"绋冲畾浣撻獙鍙樺寲","reason":"姝ｆ枃鏄庣‘浣撻獙璇佹嵁"}]';
     return `"${type}":[]`;
   },
 
   settlementTypeAntiExample(type = '') {
     const map = {
-      '情绪': '反例：{"field":"惊慌","value":"+0"}（新造字段或 0 变化）；正确：用基线已有字段且 +N/-N，或 []。',
-      '感觉': '反例：{"subject":"玩家","field":"警戒"}（玩家不能是感觉主体，警戒不是基线字段）；正确：NPC subject + 基线已有字段，或 []。',
-      '生命体征': '反例：{"field":"心率","value":"98/100"}、{"field":"精神稳定","value":"+0"}；正确：六个允许字段 + 非零增减，或 []。',
-      '身体状态': '反例：正文同时有全身发颤和胸部被触碰，却只写一条或省略整体；正确：整体与局部各写一条（或多条局部），或确实无变化时 []。',
-      '性经历': '反例：把共处、拥抱、照顾写成性经历；正确：没有明确性相关行为就 []。',
-      '关系': '反例：{"dimension":"好感","status":"+5"}、缺 right/result；正确：dimension 写亲属/朋友/恋人/敌对等稳定关系，status 写关系状态。',
-      '角色卡': '反例：{"op":"保持"}、把临时情绪/穿着写入角色卡；正确：op 只能 替换/增加，且必须是长期稳定字段。',
-      '系统记录': '反例：{"field":"事件","value":"刘悠进入房间并抱住对方"}（这是人事/感觉/正文复述）；正确：写微信消息、日历事项、世界线节点，或 []。',
+      '鎯呯华': '鍙嶄緥锛歿"field":"鎯婃厡","value":"+0"}锛堟柊閫犲瓧娈垫垨 0 鍙樺寲锛夛紱姝ｇ‘锛氱敤鍩虹嚎宸叉湁瀛楁涓?+N/-N锛屾垨 []銆?,
+      '鎰熻': '鍙嶄緥锛歿"subject":"鐜╁","field":"璀︽垝"}锛堢帺瀹朵笉鑳芥槸鎰熻涓讳綋锛岃鎴掍笉鏄熀绾垮瓧娈碉級锛涙纭細NPC subject + 鍩虹嚎宸叉湁瀛楁锛屾垨 []銆?,
+      '鐢熷懡浣撳緛': '鍙嶄緥锛歿"field":"蹇冪巼","value":"98/100"}銆亄"field":"绮剧绋冲畾","value":"+0"}锛涙纭細鍏釜鍏佽瀛楁 + 闈為浂澧炲噺锛屾垨 []銆?,
+      '韬綋鐘舵€?: '鍙嶄緥锛氭鏂囧悓鏃舵湁鍏ㄨ韩鍙戦ⅳ鍜岃兏閮ㄨ瑙︾锛屽嵈鍙啓涓€鏉℃垨鐪佺暐鏁翠綋锛涙纭細鏁翠綋涓庡眬閮ㄥ悇鍐欎竴鏉★紙鎴栧鏉″眬閮級锛屾垨纭疄鏃犲彉鍖栨椂 []銆?,
+      '鎬х粡鍘?: '鍙嶄緥锛氭妸鍏卞銆佹嫢鎶便€佺収椤惧啓鎴愭€х粡鍘嗭紱姝ｇ‘锛氭病鏈夋槑纭€х浉鍏宠涓哄氨 []銆?,
+      '鍏崇郴': '鍙嶄緥锛歿"dimension":"濂芥劅","status":"+5"}銆佺己 right/result锛涙纭細dimension 鍐欎翰灞?鏈嬪弸/鎭嬩汉/鏁屽绛夌ǔ瀹氬叧绯伙紝status 鍐欏叧绯荤姸鎬併€?,
+      '瑙掕壊鍗?: '鍙嶄緥锛歿"op":"淇濇寔"}銆佹妸涓存椂鎯呯华/绌跨潃鍐欏叆瑙掕壊鍗★紱姝ｇ‘锛歰p 鍙兘 鏇挎崲/澧炲姞锛屼笖蹇呴』鏄暱鏈熺ǔ瀹氬瓧娈点€?,
+      '绯荤粺璁板綍': '鍙嶄緥锛歿"field":"浜嬩欢","value":"鍒樻偁杩涘叆鎴块棿骞舵姳浣忓鏂?}锛堣繖鏄汉浜?鎰熻/姝ｆ枃澶嶈堪锛夛紱姝ｇ‘锛氬啓寰俊娑堟伅銆佹棩鍘嗕簨椤广€佷笘鐣岀嚎鑺傜偣锛屾垨 []銆?,
     };
     return map[type] || '';
   },
@@ -1940,30 +1940,30 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   settlementMetricKeysForSubject(store = {}, subject = {}, metricType = '') {
-    if (metricType === '感觉' && subject?.type === 'player') return [];
+    if (metricType === '鎰熻' && subject?.type === 'player') return [];
     const participant = { type: subject?.type, id: subject?.id, idOrName: subject?.id, name: subject?.name };
     const metrics = this.settlementParticipantMetrics(store, participant);
-    const group = metricType === '感觉' ? metrics.playerFeelings : metrics.emotions;
+    const group = metricType === '鎰熻' ? metrics.playerFeelings : metrics.emotions;
     return Object.keys(group || {}).filter((key) => String(key || '').trim());
   },
 
   settlementParticipantContextText(store = {}, participants = []) {
-    const playerName = String(store?.playerName || store?.playerProfile?.name || store?.realWorldPlayerSettlementName?.() || '玩家').trim() || '玩家';
+    const playerName = String(store?.playerName || store?.playerProfile?.name || store?.realWorldPlayerSettlementName?.() || '鐜╁').trim() || '鐜╁';
     const chars = (Array.isArray(participants) ? participants : []).filter((p) => p?.type === 'character');
     const roleRows = chars.map((participant) => {
       const state = store?.itemSkillState?.(participant.id) || store?.itemSkillState?.(participant.idOrName) || store?.rpgStates?.[participant.id];
       const profile = state?.profile || {};
-      const facts = [profile.role || state?.role, profile.relationship || profile.identity, profile.age ? `${profile.age}岁` : ''].filter(Boolean).join('；') || '角色卡已加载';
-      return `${participant.name || participant.id}：${facts}`;
-    }).join('\n') || '无';
-    const bindings = [`你=${playerName}（玩家）`].concat(chars.map((p) => `${p.name || p.id}=出场角色，结算主体必须直接写姓名`)).join('\n');
+      const facts = [profile.role || state?.role, profile.relationship || profile.identity, profile.age ? `${profile.age}宀乣 : ''].filter(Boolean).join('锛?) || '瑙掕壊鍗″凡鍔犺浇';
+      return `${participant.name || participant.id}锛?{facts}`;
+    }).join('\n') || '鏃?;
+    const bindings = [`浣?${playerName}锛堢帺瀹讹級`].concat(chars.map((p) => `${p.name || p.id}=鍑哄満瑙掕壊锛岀粨绠椾富浣撳繀椤荤洿鎺ュ啓濮撳悕`)).join('\n');
     return [
-      '玩家与出场人物标注：',
-      `玩家：${playerName}`,
-      `出场角色：${chars.map((p) => p.name || p.id).filter(Boolean).join('、') || '无'}`,
-      '指代绑定：',
+      '鐜╁涓庡嚭鍦轰汉鐗╂爣娉細',
+      `鐜╁锛?{playerName}`,
+      `鍑哄満瑙掕壊锛?{chars.map((p) => p.name || p.id).filter(Boolean).join('銆?) || '鏃?}`,
+      '鎸囦唬缁戝畾锛?,
       bindings,
-      '出场人物角色卡摘要：',
+      '鍑哄満浜虹墿瑙掕壊鍗℃憳瑕侊細',
       roleRows,
     ].join('\n');
   },
@@ -1974,7 +1974,7 @@ window.GameModules.realWorldAgentLoop = {
     const format = (group = {}, keySet = null) => Object.entries(group || {}).filter(([, value]) => value !== undefined && value !== null && value !== '').map(([key, value]) => {
       if (keySet) keySet.add(key);
       return `${key}=${value}`;
-    }).join('、') || '无';
+    }).join('銆?) || '鏃?;
     const rows = (Array.isArray(participants) ? participants : []).map((participant) => {
       const metrics = this.settlementParticipantMetrics(store, participant);
       const state = participant?.type === 'player'
@@ -1986,22 +1986,22 @@ window.GameModules.realWorldAgentLoop = {
     }).filter(Boolean);
     const characterRows = rows.filter((row) => row.type === 'character');
     const playerRows = rows.filter((row) => row.type === 'player');
-    const emotionRows = characterRows.map((row) => `${row.label}：情绪：${row.emotions}`).join('\n') || '无';
-    const playerEmotionRows = playerRows.map((row) => `${row.label}：玩家自我情绪：${row.emotions}`).join('\n') || '无';
-    const feelingRows = characterRows.map((row) => `${row.label}：对玩家感觉：${row.playerFeelings}`).join('\n') || '无';
-    const emotionWhitelist = [...emotionKeys].join('、') || '无';
-    const feelingWhitelist = [...feelingKeys].join('、') || '无';
+    const emotionRows = characterRows.map((row) => `${row.label}锛氭儏缁細${row.emotions}`).join('\n') || '鏃?;
+    const playerEmotionRows = playerRows.map((row) => `${row.label}锛氱帺瀹惰嚜鎴戞儏缁細${row.emotions}`).join('\n') || '鏃?;
+    const feelingRows = characterRows.map((row) => `${row.label}锛氬鐜╁鎰熻锛?{row.playerFeelings}`).join('\n') || '鏃?;
+    const emotionWhitelist = [...emotionKeys].join('銆?) || '鏃?;
+    const feelingWhitelist = [...feelingKeys].join('銆?) || '鏃?;
     return [
-      '出场角色当前情绪基线：',
+      '鍑哄満瑙掕壊褰撳墠鎯呯华鍩虹嚎锛?,
       emotionRows,
-      '玩家自我状态基线：',
+      '鐜╁鑷垜鐘舵€佸熀绾匡細',
       playerEmotionRows,
-      `情绪指标只能使用上述情绪基线中已经存在的指标名：${emotionWhitelist}`,
-      '出场角色对玩家感觉基线：',
+      `鎯呯华鎸囨爣鍙兘浣跨敤涓婅堪鎯呯华鍩虹嚎涓凡缁忓瓨鍦ㄧ殑鎸囨爣鍚嶏細${emotionWhitelist}`,
+      '鍑哄満瑙掕壊瀵圭帺瀹舵劅瑙夊熀绾匡細',
       feelingRows,
-      `感觉指标只能使用出场角色对玩家感觉基线中已经存在的指标名：${feelingWhitelist}`,
-      '若稳定事实不对应上述已有指标名，必须写“无变化”，不得新造情绪/感觉指标。',
-      '边界：情绪是对应主体当前内在情绪；感觉只表示出场角色对玩家的感觉，玩家本人不得作为“对玩家感觉”的结算主体。',
+      `鎰熻鎸囨爣鍙兘浣跨敤鍑哄満瑙掕壊瀵圭帺瀹舵劅瑙夊熀绾夸腑宸茬粡瀛樺湪鐨勬寚鏍囧悕锛?{feelingWhitelist}`,
+      '鑻ョǔ瀹氫簨瀹炰笉瀵瑰簲涓婅堪宸叉湁鎸囨爣鍚嶏紝蹇呴』鍐欌€滄棤鍙樺寲鈥濓紝涓嶅緱鏂伴€犳儏缁?鎰熻鎸囨爣銆?,
+      '杈圭晫锛氭儏缁槸瀵瑰簲涓讳綋褰撳墠鍐呭湪鎯呯华锛涙劅瑙夊彧琛ㄧず鍑哄満瑙掕壊瀵圭帺瀹剁殑鎰熻锛岀帺瀹舵湰浜轰笉寰椾綔涓衡€滃鐜╁鎰熻鈥濈殑缁撶畻涓讳綋銆?,
     ].join('\n');
   },
 
@@ -2010,82 +2010,82 @@ window.GameModules.realWorldAgentLoop = {
     const totalTypes = requestedTypes.length;
     const jsonContracts = requestedTypes.map((type) => {
       const c = contracts[type];
-      if (type === '基础结算') return '基础结算：对象，必须含 keys：经过时间、当前状态、当前目标、场景标题、地点名称、备选行动；备选行动必须是 4 个字符串数组。';
-      if (type === '穿着状态') return '穿着状态：数组；每项 {"subject":"姓名","part":"部位","item":"衣物名称","state":"当前状态","reason":"证据"}；无变化 []。';
-      if (type === '身体状态') return '身体状态：数组；每项 {"subject":"姓名","part":"部位","status":"状态","reason":"证据"}；同轮可有多条，整体/全身与局部部位互不冲突；无变化 []。';
-      if (type === '性经历') return '性经历：数组；每项 {"subject":"姓名","part":"分类","delta":"+N/-N","reason":"证据"}；无变化 []。';
-      if (type === '性历史') return '性历史：数组；每项 {"subject":"姓名","transition":"状态转移","partner":"对象","evidence":"证据"}；无变化 []。';
-      if (type === '情绪') return '情绪：数组；每项 {"subject":"姓名","field":"情绪指标名","value":"+N/-N","status":"变化后该情绪的具体表现","reason":"正文中的具体行为或对话证据"}；无变化 []。status 写程度表现，不要写指标名+数值前缀；缺省时系统会按新数值补模板解释。';
-      if (type === '感觉') return '感觉：数组；每项 {"subject":"出场NPC姓名","field":"感觉指标名","value":"+N/-N","status":"变化后该感觉的具体表现","reason":"正文证据证明该NPC对玩家态度变化"}；无变化 []。status 写程度表现，不要写指标名+数值前缀；缺省时系统会按新数值补模板解释。';
-      if (type === '关系') return '关系：数组；每项 {"subject":"姓名","left":"关系左方","right":"关系右方","dimension":"稳定关系维度","status":"关系状态","reason":"证据","result":"结算结果"}；无变化 []。';
-      if (type === '角色卡') return '角色卡：数组；每项 {"subject":"姓名","field":"字段","op":"替换/增加","value":"内容","reason":"证据","result":"结果"}；无变化 []。';
-      if (type === this.eventSettlementType()) return '事件：数组；每项 {"type":"random|inference|periodic","title":"事件名","startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD","location":"地点","content":"内容","people":["相关人"],"tags":["标签"],"probability":25,"status":"active"}；无事件 []。';
-      return `${type}：数组；每项 {"subject":"结算主体","field":"字段","value":"变化或新值","reason":"证据"}；无变化 []。原合约：${c?.format || '更新N：结算主体，字段，变化，原因'}`;
+      if (type === '鍩虹缁撶畻') return '鍩虹缁撶畻锛氬璞★紝蹇呴』鍚?keys锛氱粡杩囨椂闂淬€佸綋鍓嶇姸鎬併€佸綋鍓嶇洰鏍囥€佸満鏅爣棰樸€佸湴鐐瑰悕绉般€佸閫夎鍔紱澶囬€夎鍔ㄥ繀椤绘槸 4 涓瓧绗︿覆鏁扮粍銆?;
+      if (type === '绌跨潃鐘舵€?) return '绌跨潃鐘舵€侊細鏁扮粍锛涙瘡椤?{"subject":"濮撳悕","part":"閮ㄤ綅","item":"琛ｇ墿鍚嶇О","state":"褰撳墠鐘舵€?,"reason":"璇佹嵁"}锛涙棤鍙樺寲 []銆?;
+      if (type === '韬綋鐘舵€?) return '韬綋鐘舵€侊細鏁扮粍锛涙瘡椤?{"subject":"濮撳悕","part":"閮ㄤ綅","status":"鐘舵€?,"reason":"璇佹嵁"}锛涘悓杞彲鏈夊鏉★紝鏁翠綋/鍏ㄨ韩涓庡眬閮ㄩ儴浣嶄簰涓嶅啿绐侊紱鏃犲彉鍖?[]銆?;
+      if (type === '鎬х粡鍘?) return '鎬х粡鍘嗭細鏁扮粍锛涙瘡椤?{"subject":"濮撳悕","part":"鍒嗙被","delta":"+N/-N","reason":"璇佹嵁"}锛涙棤鍙樺寲 []銆?;
+      if (type === '鎬у巻鍙?) return '鎬у巻鍙诧細鏁扮粍锛涙瘡椤?{"subject":"濮撳悕","transition":"鐘舵€佽浆绉?,"partner":"瀵硅薄","evidence":"璇佹嵁"}锛涙棤鍙樺寲 []銆?;
+      if (type === '鎯呯华') return '鎯呯华锛氭暟缁勶紱姣忛」 {"subject":"濮撳悕","field":"鎯呯华鎸囨爣鍚?,"value":"+N/-N","status":"鍙樺寲鍚庤鎯呯华鐨勫叿浣撹〃鐜?,"reason":"姝ｆ枃涓殑鍏蜂綋琛屼负鎴栧璇濊瘉鎹?}锛涙棤鍙樺寲 []銆俿tatus 鍐欑▼搴﹁〃鐜帮紝涓嶈鍐欐寚鏍囧悕+鏁板€煎墠缂€锛涚己鐪佹椂绯荤粺浼氭寜鏂版暟鍊艰ˉ妯℃澘瑙ｉ噴銆?;
+      if (type === '鎰熻') return '鎰熻锛氭暟缁勶紱姣忛」 {"subject":"鍑哄満NPC濮撳悕","field":"鎰熻鎸囨爣鍚?,"value":"+N/-N","status":"鍙樺寲鍚庤鎰熻鐨勫叿浣撹〃鐜?,"reason":"姝ｆ枃璇佹嵁璇佹槑璇PC瀵圭帺瀹舵€佸害鍙樺寲"}锛涙棤鍙樺寲 []銆俿tatus 鍐欑▼搴﹁〃鐜帮紝涓嶈鍐欐寚鏍囧悕+鏁板€煎墠缂€锛涚己鐪佹椂绯荤粺浼氭寜鏂版暟鍊艰ˉ妯℃澘瑙ｉ噴銆?;
+      if (type === '鍏崇郴') return '鍏崇郴锛氭暟缁勶紱姣忛」 {"subject":"濮撳悕","left":"鍏崇郴宸︽柟","right":"鍏崇郴鍙虫柟","dimension":"绋冲畾鍏崇郴缁村害","status":"鍏崇郴鐘舵€?,"reason":"璇佹嵁","result":"缁撶畻缁撴灉"}锛涙棤鍙樺寲 []銆?;
+      if (type === '瑙掕壊鍗?) return '瑙掕壊鍗★細鏁扮粍锛涙瘡椤?{"subject":"濮撳悕","field":"瀛楁","op":"鏇挎崲/澧炲姞","value":"鍐呭","reason":"璇佹嵁","result":"缁撴灉"}锛涙棤鍙樺寲 []銆?;
+      if (type === this.eventSettlementType()) return '浜嬩欢锛氭暟缁勶紱姣忛」 {"type":"random|inference|periodic","title":"浜嬩欢鍚?,"startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD","location":"鍦扮偣","content":"鍐呭","people":["鐩稿叧浜?],"tags":["鏍囩"],"probability":25,"status":"active"}锛涙棤浜嬩欢 []銆?;
+      return `${type}锛氭暟缁勶紱姣忛」 {"subject":"缁撶畻涓讳綋","field":"瀛楁","value":"鍙樺寲鎴栨柊鍊?,"reason":"璇佹嵁"}锛涙棤鍙樺寲 []銆傚師鍚堢害锛?{c?.format || '鏇存柊N锛氱粨绠椾富浣擄紝瀛楁锛屽彉鍖栵紝鍘熷洜'}`;
     }).join('\n');
     const globalShortReason = String(partialByType.__shortOutputReason || '').trim();
     const incompleteReason = [globalShortReason, incompleteTypes.map((type) => {
       const detail = String(partialByType[type] || '').trim();
-      const safeDetail = /(?:结算状态|结算对象|更新\d*|更新N|结算结束|类型完成|[{}\n\r])/u.test(detail) ? '' : detail;
-      return `${type}：${safeDetail || '上轮 JSON 缺失或字段未通过解析，本轮必须重新输出该 key 的完整 JSON 值'}`;
-    }).join('；')].filter(Boolean).join('\n') || '无';
+      const safeDetail = /(?:缁撶畻鐘舵€亅缁撶畻瀵硅薄|鏇存柊\d*|鏇存柊N|缁撶畻缁撴潫|绫诲瀷瀹屾垚|[{}\n\r])/u.test(detail) ? '' : detail;
+      return `${type}锛?{safeDetail || '涓婅疆 JSON 缂哄け鎴栧瓧娈垫湭閫氳繃瑙ｆ瀽锛屾湰杞繀椤婚噸鏂拌緭鍑鸿 key 鐨勫畬鏁?JSON 鍊?}`;
+    }).join('锛?)].filter(Boolean).join('\n') || '鏃?;
     const stableFactRules = [
-      '内部提取“本轮稳定事实”：只在内部完成，不输出事实列表。',
-      '明确事实：可直接结算。',
-      '强暗示事实：可保守结算，但必须有明确行为、对话或连续动作支撑。',
-      '弱氛围暗示：不得结算。',
+      '鍐呴儴鎻愬彇鈥滄湰杞ǔ瀹氫簨瀹炩€濓細鍙湪鍐呴儴瀹屾垚锛屼笉杈撳嚭浜嬪疄鍒楄〃銆?,
+      '鏄庣‘浜嬪疄锛氬彲鐩存帴缁撶畻銆?,
+      '寮烘殫绀轰簨瀹烇細鍙繚瀹堢粨绠楋紝浣嗗繀椤绘湁鏄庣‘琛屼负銆佸璇濇垨杩炵画鍔ㄤ綔鏀拺銆?,
+      '寮辨皼鍥存殫绀猴細涓嶅緱缁撶畻銆?,
     ].join('\n');
-    const requiredKeyOrder = requestedTypes.join(' → ');
+    const requiredKeyOrder = requestedTypes.join(' 鈫?');
     const jsonExamples = `{${requestedTypes.map((type) => this.settlementTypeJsonExample(type, participants, store)).join(',')}}`;
-    const antiExamples = requestedTypes.map((type) => this.settlementTypeAntiExample(type)).filter(Boolean).join('\n') || '无';
+    const antiExamples = requestedTypes.map((type) => this.settlementTypeAntiExample(type)).filter(Boolean).join('\n') || '鏃?;
     const rulesText = [
-      '你正在执行 Stage4 紧凑 JSON 滑动结算。',
-      '只输出一个合法 JSON 对象；不要 Markdown；不要 ```json 代码块；不要换行；不要解释；不要内部分析。',
-      '上一条 assistant 消息是本轮正文材料；只能依据该正文和本条要求中的材料结算。',
-      'JSON 顶层 key 只能是“本次必须返回的类型”列出的类型；已完成类型不得重复输出；未列入类型不得输出。',
-      '无稳定变化的非基础类型必须输出空数组 []，不要写“无变化”。',
-      '情绪、感觉、生命体征、性经历的 value/delta 必须写 +N 或 -N；禁止写 0、+0、100、98/100、正常、无变化。',
-      '字段名必须使用合约中的中文 key；禁止输出英文顶层 key，例如 life_signs、relationship、role_card。',
-      '感觉主体只能是出场 NPC；玩家本人不得输出感觉更新。',
-      '关系 dimension 必须是稳定关系类别，禁止写好感、信任、依赖、警惕、开心、恐惧等数值态度或情绪。',
-      '每条更新只能写一个字段，禁止把字段合并成“当前地点/当前行动/可用状态”或“事件/记录/状态”。',
+      '浣犳鍦ㄦ墽琛?Stage4 绱у噾 JSON 婊戝姩缁撶畻銆?,
+      '鍙緭鍑轰竴涓悎娉?JSON 瀵硅薄锛涗笉瑕?Markdown锛涗笉瑕?```json 浠ｇ爜鍧楋紱涓嶈鎹㈣锛涗笉瑕佽В閲婏紱涓嶈鍐呴儴鍒嗘瀽銆?,
+      '涓婁竴鏉?assistant 娑堟伅鏄湰杞鏂囨潗鏂欙紱鍙兘渚濇嵁璇ユ鏂囧拰鏈潯瑕佹眰涓殑鏉愭枡缁撶畻銆?,
+      'JSON 椤跺眰 key 鍙兘鏄€滄湰娆″繀椤昏繑鍥炵殑绫诲瀷鈥濆垪鍑虹殑绫诲瀷锛涘凡瀹屾垚绫诲瀷涓嶅緱閲嶅杈撳嚭锛涙湭鍒楀叆绫诲瀷涓嶅緱杈撳嚭銆?,
+      '鏃犵ǔ瀹氬彉鍖栫殑闈炲熀纭€绫诲瀷蹇呴』杈撳嚭绌烘暟缁?[]锛屼笉瑕佸啓鈥滄棤鍙樺寲鈥濄€?,
+      '鎯呯华銆佹劅瑙夈€佺敓鍛戒綋寰併€佹€х粡鍘嗙殑 value/delta 蹇呴』鍐?+N 鎴?-N锛涚姝㈠啓 0銆?0銆?00銆?8/100銆佹甯搞€佹棤鍙樺寲銆?,
+      '瀛楁鍚嶅繀椤讳娇鐢ㄥ悎绾︿腑鐨勪腑鏂?key锛涚姝㈣緭鍑鸿嫳鏂囬《灞?key锛屼緥濡?life_signs銆乺elationship銆乺ole_card銆?,
+      '鎰熻涓讳綋鍙兘鏄嚭鍦?NPC锛涚帺瀹舵湰浜轰笉寰楄緭鍑烘劅瑙夋洿鏂般€?,
+      '鍏崇郴 dimension 蹇呴』鏄ǔ瀹氬叧绯荤被鍒紝绂佹鍐欏ソ鎰熴€佷俊浠汇€佷緷璧栥€佽鎯曘€佸紑蹇冦€佹亹鎯х瓑鏁板€兼€佸害鎴栨儏缁€?,
+      '姣忔潯鏇存柊鍙兘鍐欎竴涓瓧娈碉紝绂佹鎶婂瓧娈靛悎骞舵垚鈥滃綋鍓嶅湴鐐?褰撳墠琛屽姩/鍙敤鐘舵€佲€濇垨鈥滀簨浠?璁板綍/鐘舵€佲€濄€?,
     ].join('\n');
     const requestText = [
-      '任务：输出 Stage4 结算紧凑 JSON。',
-      `本次必须返回的类型：${requestedTypes.join('、')}`,
-      `已完成类型：${completedTypes.join('、') || '无'}`,
-      `未完成类型：${incompleteTypes.join('、') || '无'}`,
-      `必须输出 key 数量：${totalTypes}`,
-      `必须输出 key 顺序：${requiredKeyOrder || '无'}`,
-      `未完成类型原因：${incompleteReason}`,
-      `本回合参与者：${JSON.stringify(participants)}`,
-      '本轮结算材料：',
-      [`行动：${this.actionText(action)}`, this.settlementParticipantContextText(store, participants), this.settlementMetricBaselineText(store, participants), stableFactRules].join('\n'),
-      '类型短规则：',
+      '浠诲姟锛氳緭鍑?Stage4 缁撶畻绱у噾 JSON銆?,
+      `鏈蹇呴』杩斿洖鐨勭被鍨嬶細${requestedTypes.join('銆?)}`,
+      `宸插畬鎴愮被鍨嬶細${completedTypes.join('銆?) || '鏃?}`,
+      `鏈畬鎴愮被鍨嬶細${incompleteTypes.join('銆?) || '鏃?}`,
+      `蹇呴』杈撳嚭 key 鏁伴噺锛?{totalTypes}`,
+      `蹇呴』杈撳嚭 key 椤哄簭锛?{requiredKeyOrder || '鏃?}`,
+      `鏈畬鎴愮被鍨嬪師鍥狅細${incompleteReason}`,
+      `鏈洖鍚堝弬涓庤€咃細${JSON.stringify(participants)}`,
+      '鏈疆缁撶畻鏉愭枡锛?,
+      [`琛屽姩锛?{this.actionText(action)}`, this.settlementParticipantContextText(store, participants), this.settlementMetricBaselineText(store, participants), stableFactRules].join('\n'),
+      '绫诲瀷鐭鍒欙細',
       requestedTypes.map((type) => this.settlementTypeShortRule(type)).join('\n\n'),
-      'JSON 合约：',
+      'JSON 鍚堢害锛?,
       jsonContracts,
-      '本次窗口合法 JSON 示例，只能参考结构；没有正文证据时对应数组必须改成 []：',
+      '鏈绐楀彛鍚堟硶 JSON 绀轰緥锛屽彧鑳藉弬鑰冪粨鏋勶紱娌℃湁姝ｆ枃璇佹嵁鏃跺搴旀暟缁勫繀椤绘敼鎴?[]锛?,
       jsonExamples,
-      '本次窗口常见错误反例，必须避免：',
+      '鏈绐楀彛甯歌閿欒鍙嶄緥锛屽繀椤婚伩鍏嶏細',
       antiExamples,
-      '输出硬规则：',
-      '- 只输出一个紧凑 JSON 对象，首字符必须是 {，末字符必须是 }。',
-      '- 顶层 key 必须且只能包含本次必须返回的类型；按必须输出 key 顺序排列。',
-      '- 基础结算必须输出完整对象；非基础类型必须输出数组，有变化写对象数组，无变化写 []。',
-      '- subject 必须直接写本回合参与者姓名、明确地点名、明确势力名或“系统”；不要写代词。',
-      '- reason/evidence 必须写具体行为、对话或连续动作证据；弱氛围暗示不得结算。',
-      '- 情绪、感觉、生命体征、性经历的 value/delta 必须是带符号非零变化，例如 +2 或 -1；没有变化输出 []。',
-      '- 情绪/感觉每条必须含 field、value、reason；status 写变化后程度表现（禁止“指标名+数值：”前缀），缺省则系统按新数值生成模板解释。',
-      '- 感觉数组中 subject 只能写出场 NPC，不能写玩家姓名。',
-      '- 关系数组中 left/right/dimension/status/reason/result 都必须有；dimension 不能是好感/信任/依赖/警惕等感觉指标。',
-      '- 角色卡 op 只能写“替换”或“增加”；不能写保持、无变化、更新。',
-      '- 字符串中不要使用英文逗号或中文逗号分隔多字段；必要时用顿号或分号。',
-      '- 不要为了凑长度创造更新；空数组是合法完整输出。',
-      '合法形态示例：{"情绪":[],"身体状态":[{"subject":"角色名","part":"整体","status":"全身状态","reason":"证据"},{"subject":"角色名","part":"胸部","status":"局部状态","reason":"证据"}],"系统记录":[]}',
+      '杈撳嚭纭鍒欙細',
+      '- 鍙緭鍑轰竴涓揣鍑?JSON 瀵硅薄锛岄瀛楃蹇呴』鏄?{锛屾湯瀛楃蹇呴』鏄?}銆?,
+      '- 椤跺眰 key 蹇呴』涓斿彧鑳藉寘鍚湰娆″繀椤昏繑鍥炵殑绫诲瀷锛涙寜蹇呴』杈撳嚭 key 椤哄簭鎺掑垪銆?,
+      '- 鍩虹缁撶畻蹇呴』杈撳嚭瀹屾暣瀵硅薄锛涢潪鍩虹绫诲瀷蹇呴』杈撳嚭鏁扮粍锛屾湁鍙樺寲鍐欏璞℃暟缁勶紝鏃犲彉鍖栧啓 []銆?,
+      '- subject 蹇呴』鐩存帴鍐欐湰鍥炲悎鍙備笌鑰呭鍚嶃€佹槑纭湴鐐瑰悕銆佹槑纭娍鍔涘悕鎴栤€滅郴缁熲€濓紱涓嶈鍐欎唬璇嶃€?,
+      '- reason/evidence 蹇呴』鍐欏叿浣撹涓恒€佸璇濇垨杩炵画鍔ㄤ綔璇佹嵁锛涘急姘涘洿鏆楃ず涓嶅緱缁撶畻銆?,
+      '- 鎯呯华銆佹劅瑙夈€佺敓鍛戒綋寰併€佹€х粡鍘嗙殑 value/delta 蹇呴』鏄甫绗﹀彿闈為浂鍙樺寲锛屼緥濡?+2 鎴?-1锛涙病鏈夊彉鍖栬緭鍑?[]銆?,
+      '- 鎯呯华/鎰熻姣忔潯蹇呴』鍚?field銆乿alue銆乺eason锛泂tatus 鍐欏彉鍖栧悗绋嬪害琛ㄧ幇锛堢姝⑩€滄寚鏍囧悕+鏁板€硷細鈥濆墠缂€锛夛紝缂虹渷鍒欑郴缁熸寜鏂版暟鍊肩敓鎴愭ā鏉胯В閲娿€?,
+      '- 鎰熻鏁扮粍涓?subject 鍙兘鍐欏嚭鍦?NPC锛屼笉鑳藉啓鐜╁濮撳悕銆?,
+      '- 鍏崇郴鏁扮粍涓?left/right/dimension/status/reason/result 閮藉繀椤绘湁锛沝imension 涓嶈兘鏄ソ鎰?淇′换/渚濊禆/璀︽儠绛夋劅瑙夋寚鏍囥€?,
+      '- 瑙掕壊鍗?op 鍙兘鍐欌€滄浛鎹⑩€濇垨鈥滃鍔犫€濓紱涓嶈兘鍐欎繚鎸併€佹棤鍙樺寲銆佹洿鏂般€?,
+      '- 瀛楃涓蹭腑涓嶈浣跨敤鑻辨枃閫楀彿鎴栦腑鏂囬€楀彿鍒嗛殧澶氬瓧娈碉紱蹇呰鏃剁敤椤垮彿鎴栧垎鍙枫€?,
+      '- 涓嶈涓轰簡鍑戦暱搴﹀垱閫犳洿鏂帮紱绌烘暟缁勬槸鍚堟硶瀹屾暣杈撳嚭銆?,
+      '鍚堟硶褰㈡€佺ず渚嬶細{"鎯呯华":[],"韬綋鐘舵€?:[{"subject":"瑙掕壊鍚?,"part":"鏁翠綋","status":"鍏ㄨ韩鐘舵€?,"reason":"璇佹嵁"},{"subject":"瑙掕壊鍚?,"part":"鑳搁儴","status":"灞€閮ㄧ姸鎬?,"reason":"璇佹嵁"}],"绯荤粺璁板綍":[]}',
     ].join('\n');
     return [
       { role: 'user', content: rulesText },
-      { role: 'assistant', content: `本轮正文：\n${this.compactUpdatePromptText(narration, 1800, true)}` },
+      { role: 'assistant', content: `鏈疆姝ｆ枃锛歕n${this.compactUpdatePromptText(narration, 1800, true)}` },
       { role: 'user', content: requestText },
     ];
   },
@@ -2100,7 +2100,7 @@ window.GameModules.realWorldAgentLoop = {
     const maxAttempts = Math.max(8, allTypes.length + 2);
     for (let attempt = 0; attempt < maxAttempts && requestedTypes.length; attempt += 1) {
       const messages = await this.buildSettlementTypeWindowMessages({ requestedTypes, completedTypes, incompleteTypes: requestedTypes.filter((type) => partialByType[type]), partialByType, store, action, base, loaded, materialSession, narration, trace, participants, config });
-      const raw = await this.completeConfiguredStep(store, messages, logId, false, { ...config, sourceTitle: `${config.label}Stage4滑动结算`, promptId: 'inference-stage4-settlement-window', settlementAttempt: attempt });
+      const raw = await this.completeConfiguredStep(store, messages, logId, false, { ...config, sourceTitle: `${config.label}Stage4婊戝姩缁撶畻`, promptId: 'inference-stage4-settlement-window', settlementAttempt: attempt });
       const jsonParsed = this.parseSettlementJson(raw, { requestedTypes, participants, store, config });
       const parsed = jsonParsed && (jsonParsed.completeTypes.length || jsonParsed.incompleteTypes.length)
         ? jsonParsed
@@ -2112,14 +2112,14 @@ window.GameModules.realWorldAgentLoop = {
       const hasCompleteBlocksInShortOutput = isShortPartial && parsed.completeTypes.length > 0;
       if (isShortPartial && !hasCompleteBlocksInShortOutput) {
         shortOutputRetries += 1;
-        partialByType.__shortOutputReason = `上轮返回过短：${compactRawLength}/${shortOutputThreshold}；整轮已丢弃，必须按本次必须返回的类型顺序完整重输全部类型。`;
-        if (shortOutputRetries > 1) throw new Error(`Stage4滑动结算返回过短且无完整类型：${compactRawLength}/${shortOutputThreshold}，未完成类型：${requestedTypes.join('、')}`);
-        requestedTypes.forEach((type) => { partialByType[type] = '上轮返回过短且无完整类型；本轮必须重新输出该 key 的完整 JSON 值。'; });
+        partialByType.__shortOutputReason = `涓婅疆杩斿洖杩囩煭锛?{compactRawLength}/${shortOutputThreshold}锛涙暣杞凡涓㈠純锛屽繀椤绘寜鏈蹇呴』杩斿洖鐨勭被鍨嬮『搴忓畬鏁撮噸杈撳叏閮ㄧ被鍨嬨€俙;
+        if (shortOutputRetries > 1) throw new Error(`Stage4婊戝姩缁撶畻杩斿洖杩囩煭涓旀棤瀹屾暣绫诲瀷锛?{compactRawLength}/${shortOutputThreshold}锛屾湭瀹屾垚绫诲瀷锛?{requestedTypes.join('銆?)}`);
+        requestedTypes.forEach((type) => { partialByType[type] = '涓婅疆杩斿洖杩囩煭涓旀棤瀹屾暣绫诲瀷锛涙湰杞繀椤婚噸鏂拌緭鍑鸿 key 鐨勫畬鏁?JSON 鍊笺€?; });
         continue;
       }
       shortOutputRetries = 0;
       const acceptedShortReason = hasCompleteBlocksInShortOutput
-        ? `上轮返回过短：${compactRawLength}/${shortOutputThreshold}；长度不足，但已验收完整块：${parsed.completeTypes.join('、')}；剩余类型必须完整补齐。`
+        ? `涓婅疆杩斿洖杩囩煭锛?{compactRawLength}/${shortOutputThreshold}锛涢暱搴︿笉瓒筹紝浣嗗凡楠屾敹瀹屾暣鍧楋細${parsed.completeTypes.join('銆?)}锛涘墿浣欑被鍨嬪繀椤诲畬鏁磋ˉ榻愩€俙
         : '';
       delete partialByType.__shortOutputReason;
       parsed.completeTypes.forEach((type) => {
@@ -2132,28 +2132,28 @@ window.GameModules.realWorldAgentLoop = {
         const parsedCount = parsed.patchesByType[type]?.__parsedUpdates || 0;
         const updateCount = parsed.patchesByType[type]?.__updateLines || 0;
         const cause = updateCount && parsedCount !== updateCount
-          ? `字段未通过解析：${parsedCount}/${updateCount} 条有效；请检查 subject、field、value 与合约。`
-          : '上轮 JSON 缺失或字段未通过解析。';
-        partialByType[type] = parsedLines.length ? `${cause} 本轮必须重新输出该 key 的完整 JSON 值。` : `${cause} 本轮未返回该类型。`;
+          ? `瀛楁鏈€氳繃瑙ｆ瀽锛?{parsedCount}/${updateCount} 鏉℃湁鏁堬紱璇锋鏌?subject銆乫ield銆乿alue 涓庡悎绾︺€俙
+          : '涓婅疆 JSON 缂哄け鎴栧瓧娈垫湭閫氳繃瑙ｆ瀽銆?;
+        partialByType[type] = parsedLines.length ? `${cause} 鏈疆蹇呴』閲嶆柊杈撳嚭璇?key 鐨勫畬鏁?JSON 鍊笺€俙 : `${cause} 鏈疆鏈繑鍥炶绫诲瀷銆俙;
       });
       if (acceptedShortReason && parsed.incompleteTypes.length) partialByType.__shortOutputReason = acceptedShortReason;
       requestedTypes = this.nextSettlementWindow(allTypes, completedTypes, parsed.incompleteTypes);
     }
     requestedTypes = this.nextSettlementWindow(allTypes, completedTypes, []);
-    if (requestedTypes.length) throw new Error(`Stage4结算类型未完成：${requestedTypes.join('、')}`);
+    if (requestedTypes.length) throw new Error(`Stage4缁撶畻绫诲瀷鏈畬鎴愶細${requestedTypes.join('銆?)}`);
     return this.mergeGroupedUpdatePatches(Object.values(patchesByType), {});
   },
 
   mergeGroupedUpdatePatches(patches = [], route = {}) {
     const merged = { type: 'final', genericUpdates: [], events: [] };
     const applyBaseFields = (baseFields = {}) => {
-      const choices = ['备选行动1', '备选行动2', '备选行动3', '备选行动4'].map((key) => String(baseFields[key] || '').trim()).filter(Boolean);
-      const elapsed = Number(baseFields['经过时间']);
+      const choices = ['澶囬€夎鍔?', '澶囬€夎鍔?', '澶囬€夎鍔?', '澶囬€夎鍔?'].map((key) => String(baseFields[key] || '').trim()).filter(Boolean);
+      const elapsed = Number(baseFields['缁忚繃鏃堕棿']);
       if (Number.isFinite(elapsed) && elapsed > 0) merged.elapsedSeconds = Math.max(1, Math.round(elapsed));
-      if (baseFields['当前状态']) merged.status = String(baseFields['当前状态']).slice(0, 60);
-      if (baseFields['当前目标']) merged.quest = String(baseFields['当前目标']).slice(0, 40);
-      if (baseFields['场景标题']) merged.sceneTitle = String(baseFields['场景标题']).slice(0, 40);
-      if (baseFields['地点名称']) merged.locationName = String(baseFields['地点名称']).slice(0, 60);
+      if (baseFields['褰撳墠鐘舵€?]) merged.status = String(baseFields['褰撳墠鐘舵€?]).slice(0, 60);
+      if (baseFields['褰撳墠鐩爣']) merged.quest = String(baseFields['褰撳墠鐩爣']).slice(0, 40);
+      if (baseFields['鍦烘櫙鏍囬']) merged.sceneTitle = String(baseFields['鍦烘櫙鏍囬']).slice(0, 40);
+      if (baseFields['鍦扮偣鍚嶇О']) merged.locationName = String(baseFields['鍦扮偣鍚嶇О']).slice(0, 60);
       if (choices.length === 4) merged.choices = choices.slice(0, 4);
     };
     ['sceneTitle', 'locationName', 'status', 'quest', 'elapsedSeconds', 'choices'].forEach((key) => {
@@ -2172,66 +2172,66 @@ window.GameModules.realWorldAgentLoop = {
     if (config.mode === 'story') {
       return {
         type: 'final',
-        sceneTitle: store.sceneTitle || '剧情继续',
+        sceneTitle: store.sceneTitle || '鍓ф儏缁х画',
         elapsedSeconds: 60,
-        mood: store.mood || '冷静',
-        quest: store.quest || '继续观察',
-        choices: Array.isArray(store.choices) && store.choices.length ? store.choices.slice(0, 4) : ['观察四周', '尝试行动', '与人交谈', '隐藏异样'],
+        mood: store.mood || '鍐烽潤',
+        quest: store.quest || '缁х画瑙傚療',
+        choices: Array.isArray(store.choices) && store.choices.length ? store.choices.slice(0, 4) : ['瑙傚療鍥涘懆', '灏濊瘯琛屽姩', '涓庝汉浜よ皥', '闅愯棌寮傛牱'],
         statChanges: { health: 0, stamina: 0, mental_stability: 0 },
         metricUpdates: { emotions: [], playerFeelings: [] },
       };
     }
     return {
       type: 'final',
-      sceneTitle: store.realWorldSceneTitle || '现实世界',
+      sceneTitle: store.realWorldSceneTitle || '鐜板疄涓栫晫',
       locationName: store.realWorldLocationName || store.realWorldMap?.current || '',
       elapsedSeconds: 300,
-      status: store.realWorldStatus || '现实推演继续中',
-      quest: store.realWorldQuest || '确认现实处境',
-      choices: Array.isArray(store.realWorldChoices) && store.realWorldChoices.length ? store.realWorldChoices.slice(0, 4) : ['观察手机异常', '处理现实事务', '联系熟人', '暂时休息'],
+      status: store.realWorldStatus || '鐜板疄鎺ㄦ紨缁х画涓?,
+      quest: store.realWorldQuest || '纭鐜板疄澶勫',
+      choices: Array.isArray(store.realWorldChoices) && store.realWorldChoices.length ? store.realWorldChoices.slice(0, 4) : ['瑙傚療鎵嬫満寮傚父', '澶勭悊鐜板疄浜嬪姟', '鑱旂郴鐔熶汉', '鏆傛椂浼戞伅'],
       vitalUpdates: [
-        { key: 'vitality', delta: 0, reason: '结算保留。' },
-        { key: 'stamina_pool', delta: 0, reason: '结算保留。' },
-        { key: 'satiety', delta: 0, reason: '结算保留。' },
-        { key: 'hydration', delta: 0, reason: '结算保留。' },
-        { key: 'fatigue', delta: 0, reason: '结算保留。' },
-        { key: 'mental_stability', delta: 0, reason: '结算保留。' },
+        { key: 'vitality', delta: 0, reason: '缁撶畻淇濈暀銆? },
+        { key: 'stamina_pool', delta: 0, reason: '缁撶畻淇濈暀銆? },
+        { key: 'satiety', delta: 0, reason: '缁撶畻淇濈暀銆? },
+        { key: 'hydration', delta: 0, reason: '缁撶畻淇濈暀銆? },
+        { key: 'fatigue', delta: 0, reason: '缁撶畻淇濈暀銆? },
+        { key: 'mental_stability', delta: 0, reason: '缁撶畻淇濈暀銆? },
       ],
     };
   },
 
   guidedStepFields() {
-    return ['查询规划', '资料状态', '地点查询理由', '因果查询理由', '冲突查询理由', '强制出场', '高优先候选', '戏剧候选', '禁止出场', '随机事件候选', '随机事件闯入条件', '资料请求', '资料请求结束', '地点查询', '因果查询', '冲突查询'];
+    return ['鏌ヨ瑙勫垝', '璧勬枡鐘舵€?, '鍦扮偣鏌ヨ鐞嗙敱', '鍥犳灉鏌ヨ鐞嗙敱', '鍐茬獊鏌ヨ鐞嗙敱', '寮哄埗鍑哄満', '楂樹紭鍏堝€欓€?, '鎴忓墽鍊欓€?, '绂佹鍑哄満', '闅忔満浜嬩欢鍊欓€?, '闅忔満浜嬩欢闂叆鏉′欢', '璧勬枡璇锋眰', '璧勬枡璇锋眰缁撴潫', '鍦扮偣鏌ヨ', '鍥犳灉鏌ヨ', '鍐茬獊鏌ヨ'];
   },
 
   sceneAnchorFields() {
-    return ['场景锚定报告', '当前地点', '当前时间', '空间状态', '当前动作', '强制出场', '高优先候选', '戏剧候选', '禁止出场', '随机事件影响', '正文写作重点', '当前场景影响对象'];
+    return ['鍦烘櫙閿氬畾鎶ュ憡', '褰撳墠鍦扮偣', '褰撳墠鏃堕棿', '绌洪棿鐘舵€?, '褰撳墠鍔ㄤ綔', '寮哄埗鍑哄満', '楂樹紭鍏堝€欓€?, '鎴忓墽鍊欓€?, '绂佹鍑哄満', '闅忔満浜嬩欢褰卞搷', '姝ｆ枃鍐欎綔閲嶇偣', '褰撳墠鍦烘櫙褰卞搷瀵硅薄'];
   },
 
   settlementBaseFields() {
-    return ['基础结算', '结算状态', '经过时间', '当前状态', '当前目标', '场景标题', '地点名称', '备选行动1', '备选行动2', '备选行动3', '备选行动4', '结算结束'];
+    return ['鍩虹缁撶畻', '缁撶畻鐘舵€?, '缁忚繃鏃堕棿', '褰撳墠鐘舵€?, '褰撳墠鐩爣', '鍦烘櫙鏍囬', '鍦扮偣鍚嶇О', '澶囬€夎鍔?', '澶囬€夎鍔?', '澶囬€夎鍔?', '澶囬€夎鍔?', '缁撶畻缁撴潫'];
   },
 
   kvFieldAliases() {
     return {
-      '必须出场': '强制出场',
-      '当前参与者': '强制出场',
-      '不能出场': '禁止出场',
-      '禁止角色': '禁止出场',
-      '场外随机事件': '随机事件候选',
-      '随机主动事件': '随机事件候选',
-      '随机主动事件影响': '随机事件影响',
-      '写作重点': '正文写作重点',
-      '正文重点': '正文写作重点',
-      '结算限制': '当前场景影响对象',
-      '结算边界': '当前场景影响对象',
-      '资料是否足够': '资料状态',
+      '蹇呴』鍑哄満': '寮哄埗鍑哄満',
+      '褰撳墠鍙備笌鑰?: '寮哄埗鍑哄満',
+      '涓嶈兘鍑哄満': '绂佹鍑哄満',
+      '绂佹瑙掕壊': '绂佹鍑哄満',
+      '鍦哄闅忔満浜嬩欢': '闅忔満浜嬩欢鍊欓€?,
+      '闅忔満涓诲姩浜嬩欢': '闅忔満浜嬩欢鍊欓€?,
+      '闅忔満涓诲姩浜嬩欢褰卞搷': '闅忔満浜嬩欢褰卞搷',
+      '鍐欎綔閲嶇偣': '姝ｆ枃鍐欎綔閲嶇偣',
+      '姝ｆ枃閲嶇偣': '姝ｆ枃鍐欎綔閲嶇偣',
+      '缁撶畻闄愬埗': '褰撳墠鍦烘櫙褰卞搷瀵硅薄',
+      '缁撶畻杈圭晫': '褰撳墠鍦烘櫙褰卞搷瀵硅薄',
+      '璧勬枡鏄惁瓒冲': '璧勬枡鐘舵€?,
     };
   },
 
   normalizeKvKey(key = '', allowed = []) {
-    const clean = String(key || '').trim().replace(/[\s　]+/gu, '');
-    const numberedReason = clean.replace(/^(地点查询理由|因果查询理由|冲突查询理由)\d+$/u, '$1');
+    const clean = String(key || '').trim().replace(/[\s銆€]+/gu, '');
+    const numberedReason = clean.replace(/^(鍦扮偣鏌ヨ鐞嗙敱|鍥犳灉鏌ヨ鐞嗙敱|鍐茬獊鏌ヨ鐞嗙敱)\d+$/u, '$1');
     const direct = allowed.find((item) => item === clean || item === numberedReason);
     if (direct) return direct;
     const alias = this.kvFieldAliases()[clean];
@@ -2240,34 +2240,34 @@ window.GameModules.realWorldAgentLoop = {
 
   splitKvLine(line = '') {
     const text = String(line || '').trim();
-    const match = text.match(/^([^：:\n]{1,40})[：:]\s*([\s\S]*)$/u);
+    const match = text.match(/^([^锛?\n]{1,40})[锛?]\s*([\s\S]*)$/u);
     return match ? { key: match[1].trim(), value: match[2].trim() } : null;
   },
 
   requiredKvFields(allowed = []) {
-    const sceneAnchorRequired = ['场景锚定报告', '当前地点', '当前时间', '空间状态', '当前动作', '强制出场', '禁止出场', '随机事件影响', '正文写作重点', '当前场景影响对象'];
+    const sceneAnchorRequired = ['鍦烘櫙閿氬畾鎶ュ憡', '褰撳墠鍦扮偣', '褰撳墠鏃堕棿', '绌洪棿鐘舵€?, '褰撳墠鍔ㄤ綔', '寮哄埗鍑哄満', '绂佹鍑哄満', '闅忔満浜嬩欢褰卞搷', '姝ｆ枃鍐欎綔閲嶇偣', '褰撳墠鍦烘櫙褰卞搷瀵硅薄'];
     if (sceneAnchorRequired.every((key) => allowed.includes(key))) return sceneAnchorRequired;
-    const preferred = ['资料状态', '强制出场', '禁止出场', '随机事件闯入条件', '正文写作重点', '结算边界'];
+    const preferred = ['璧勬枡鐘舵€?, '寮哄埗鍑哄満', '绂佹鍑哄満', '闅忔満浜嬩欢闂叆鏉′欢', '姝ｆ枃鍐欎綔閲嶇偣', '缁撶畻杈圭晫'];
     const required = preferred.filter((key) => allowed.includes(key));
     return required.length ? required : allowed.slice(0, Math.min(allowed.length, 6));
   },
 
   materialRequestPlaceholderReason(line = '') {
-    const placeholders = ['角色全称', '世界全称', '地点全称', '人物全称', '作品全称'];
-    const body = String(line || '').replace(/^资料请求\d+\s*[：:]/u, '').trim();
-    const parts = body.split(/[，,、；;]/u).map((part) => part.trim()).filter(Boolean).slice(2);
+    const placeholders = ['瑙掕壊鍏ㄧО', '涓栫晫鍏ㄧО', '鍦扮偣鍏ㄧО', '浜虹墿鍏ㄧО', '浣滃搧鍏ㄧО'];
+    const body = String(line || '').replace(/^璧勬枡璇锋眰\d+\s*[锛?]/u, '').trim();
+    const parts = body.split(/[锛?銆侊紱;]/u).map((part) => part.trim()).filter(Boolean).slice(2);
     const hit = parts.find((part) => placeholders.includes(part));
-    return hit ? `资料请求包含未替换占位词：${hit}` : '';
+    return hit ? `璧勬枡璇锋眰鍖呭惈鏈浛鎹㈠崰浣嶈瘝锛?{hit}` : '';
   },
 
   fallbackChineseMaterialRequest(line = '', options = {}) {
     if (this.materialRequestPlaceholderReason(line)) return null;
     const ctx = options.config?.ctx || window.GameModules.realWorldAgentContext;
     if (typeof ctx?.parseChineseMaterialRequest === 'function') return ctx.parseChineseMaterialRequest(line, { mode: options.config?.mode, store: options.store });
-    const body = String(line || '').replace(/^资料请求\d+\s*[：:]/u, '').trim();
-    const parts = body.split(/[，,、；;]/u).map((part) => part.trim()).filter(Boolean);
-    if (parts[0] === '角色查询' && parts[1] === '搜索角色卡' && parts[2]) {
-      return { skill: 'character.query', method: 'searchCharacterProfile', params: { name: parts[2], world: parts[3] || window.GameModules.realWorld2026?.label || '2026现代都市现实世界' }, sourceText: String(line || '').trim() };
+    const body = String(line || '').replace(/^璧勬枡璇锋眰\d+\s*[锛?]/u, '').trim();
+    const parts = body.split(/[锛?銆侊紱;]/u).map((part) => part.trim()).filter(Boolean);
+    if (parts[0] === '瑙掕壊鏌ヨ' && parts[1] === '鎼滅储瑙掕壊鍗? && parts[2]) {
+      return { skill: 'character.query', method: 'searchCharacterProfile', params: { name: parts[2], world: parts[3] || window.GameModules.realWorld2026?.label || '2026鐜颁唬閮藉競鐜板疄涓栫晫' }, sourceText: String(line || '').trim() };
     }
     return null;
   },
@@ -2275,11 +2275,11 @@ window.GameModules.realWorldAgentLoop = {
   scoreChineseKvParse(values = {}, allowed = [], materialLines = [], materialRequests = []) {
     const required = this.requiredKvFields(allowed);
     const isGuidedStep = this.guidedStepFields().every((key) => allowed.includes(key));
-    const hasCoreGuidedValues = isGuidedStep && ['资料状态', '随机事件闯入条件'].every((key) => String(values[key] || '').trim());
+    const hasCoreGuidedValues = isGuidedStep && ['璧勬枡鐘舵€?, '闅忔満浜嬩欢闂叆鏉′欢'].every((key) => String(values[key] || '').trim());
     const hasUsefulValue = (key) => {
       const value = String(values[key] || '').trim();
       if (value) return true;
-      return hasCoreGuidedValues && ['强制出场', '禁止出场'].includes(key) && Object.prototype.hasOwnProperty.call(values, key);
+      return hasCoreGuidedValues && ['寮哄埗鍑哄満', '绂佹鍑哄満'].includes(key) && Object.prototype.hasOwnProperty.call(values, key);
     };
     const criticalHits = required.filter((key) => Object.prototype.hasOwnProperty.call(values, key) && hasUsefulValue(key));
     const uniqueValidRequests = [...new Set((materialRequests || []).map((item) => JSON.stringify([item.skill, item.method, item.params])))];
@@ -2290,9 +2290,9 @@ window.GameModules.realWorldAgentLoop = {
 
   summarizeDroppedMaterialRequests(lines = [], limit = 3) {
     const unique = [...new Set((lines || []).map((line) => String(line || '').trim()).filter(Boolean))];
-    if (!unique.length) return '无';
-    const shown = unique.slice(0, limit).join('；');
-    return unique.length > limit ? `${shown}；等${unique.length}条` : shown;
+    if (!unique.length) return '鏃?;
+    const shown = unique.slice(0, limit).join('锛?);
+    return unique.length > limit ? `${shown}锛涚瓑${unique.length}鏉 : shown;
   },
 
   parseChineseKvBlock(raw, fields = [], options = {}) {
@@ -2305,15 +2305,15 @@ window.GameModules.realWorldAgentLoop = {
     lines.forEach((line) => {
       const parsed = this.splitKvLine(line);
       if (!parsed) return;
-      if (/^资料请求\d+$/u.test(parsed.key)) {
-        materialLines.push(`${parsed.key}：${parsed.value}`);
+      if (/^璧勬枡璇锋眰\d+$/u.test(parsed.key)) {
+        materialLines.push(`${parsed.key}锛?{parsed.value}`);
         return;
       }
       const key = this.normalizeKvKey(parsed.key, allowed);
       if (!key) return;
       const existing = String(values[key] || '').trim();
       const next = String(parsed.value || '').trim();
-      values[key] = existing && next && existing !== '无' ? `${existing}；${next}` : parsed.value;
+      values[key] = existing && next && existing !== '鏃? ? `${existing}锛?{next}` : parsed.value;
       keyHits.add(key);
     });
     const materialRequestErrors = [];
@@ -2335,9 +2335,9 @@ window.GameModules.realWorldAgentLoop = {
     const keys = parsed.keyHits || Object.keys(values);
     const lines = keys
       .filter((key) => Object.prototype.hasOwnProperty.call(values, key))
-      .map((key) => `${key}：${String(values[key] ?? '').trim()}`)
+      .map((key) => `${key}锛?{String(values[key] ?? '').trim()}`)
       .filter((line) => line.trim());
-    return lines.length ? lines.join('\n') : '无';
+    return lines.length ? lines.join('\n') : '鏃?;
   },
 
   mergeGuidedParseResults(primary = {}, secondary = {}) {
@@ -2346,7 +2346,7 @@ window.GameModules.realWorldAgentLoop = {
     Object.entries(secondary.values || {}).forEach(([key, value]) => {
       const primaryValue = String(values[key] || '').trim();
       const secondaryValue = String(value || '').trim();
-      if (!Object.prototype.hasOwnProperty.call(values, key) || !primaryValue || (primaryValue === '无' && secondaryValue && secondaryValue !== '无')) values[key] = value;
+      if (!Object.prototype.hasOwnProperty.call(values, key) || !primaryValue || (primaryValue === '鏃? && secondaryValue && secondaryValue !== '鏃?)) values[key] = value;
       else if (value && values[key] !== value) mergeConflicts.push({ key, primary: values[key], secondary: value });
     });
     const requests = [...(primary.materialRequests || [])];
@@ -2359,7 +2359,7 @@ window.GameModules.realWorldAgentLoop = {
       }
     });
     const fields = [...new Set([...(primary.keyHits || []), ...(primary.missing || []), ...(secondary.keyHits || []), ...(secondary.missing || [])])];
-    const materialLines = [...(primary.lines || []), ...(secondary.lines || [])].filter((line) => /^资料请求\d+[：:]/u.test(String(line || '').trim()));
+    const materialLines = [...(primary.lines || []), ...(secondary.lines || [])].filter((line) => /^璧勬枡璇锋眰\d+[锛?]/u.test(String(line || '').trim()));
     const scored = this.scoreChineseKvParse(values, fields, materialLines, requests);
     return { ...primary, values, materialRequests: requests, droppedMaterialRequests: [...(primary.droppedMaterialRequests || []), ...(secondary.droppedMaterialRequests || [])], keyHits: fields.filter((key) => Object.prototype.hasOwnProperty.call(values, key)), missing: fields.filter((key) => !Object.prototype.hasOwnProperty.call(values, key)), score: scored.score, maxScore: scored.maxScore, successRate: scored.successRate, criticalHits: scored.criticalHits, parseDegraded: scored.successRate < 1, mergeConflicts };
   },
@@ -2382,7 +2382,7 @@ window.GameModules.realWorldAgentLoop = {
       lastRaw = await this.completeConfiguredStep(store, prompt, logId, streamToUi, { ...config, guidedStep: stageStep, promptId: config.firstTemplateId || 'inference-stage1-guided-query' });
       if (this.fallbackScore(lastRaw) >= this.fallbackScore(bestRaw)) bestRaw = lastRaw;
       if (allowContextDoneOnProse && this.looksLikeProseInsteadOfStepJson(lastRaw)) {
-        console.warn(`${config.label}资料阶段误返回正文，视为资料已足够并进入正文阶段。`);
+        console.warn(`${config.label}璧勬枡闃舵璇繑鍥炴鏂囷紝瑙嗕负璧勬枡宸茶冻澶熷苟杩涘叆姝ｆ枃闃舵銆俙);
         return { raw: lastRaw, data: this.contextDoneFromProse(lastRaw) };
       }
       try {
@@ -2394,18 +2394,18 @@ window.GameModules.realWorldAgentLoop = {
           return { raw: [...parseResults.map((item) => item.raw), lastRaw].join('\n\n'), data: this.guidedStepDataFromParsed(mergedParsed, [...parseResults.map((item) => item.raw), lastRaw].join('\n\n')) };
         }
         if (i === 1) return { raw: lastRaw, data: allowProseFinal ? this.proseFinal(store, bestRaw || lastRaw) : null };
-        console.warn(`${config.label}格式不完整，自动重试一次`);
+        console.warn(`${config.label}鏍煎紡涓嶅畬鏁达紝鑷姩閲嶈瘯涓€娆);
       } catch (err) {
         lastErr = err;
         if (err.parseResult && !err.skipMerge && !this.isGuidedStepSemanticSelfCheckError(err)) parseResults.push({ raw: lastRaw, parsed: err.parseResult });
         if (allowContextDoneOnProse && this.looksLikeProseInsteadOfStepJson(lastRaw)) {
-          console.warn(`${config.label}资料阶段解析到正文内容，视为资料已足够并进入正文阶段。`);
+          console.warn(`${config.label}璧勬枡闃舵瑙ｆ瀽鍒版鏂囧唴瀹癸紝瑙嗕负璧勬枡宸茶冻澶熷苟杩涘叆姝ｆ枃闃舵銆俙);
           return { raw: lastRaw, data: this.contextDoneFromProse(lastRaw) };
         }
         if (!this.isRetryableParseError(err) || i === 1) break;
         const semanticSelfCheckFailed = this.isGuidedStepSemanticSelfCheckError(err);
-        const parseDetail = err.parseResult ? `score=${err.parseResult.score}/${err.parseResult.maxScore} successRate=${err.parseResult.successRate} missing=${err.parseResult.missing?.join('、') || '无'} droppedMaterialRequests=${this.summarizeDroppedMaterialRequests(err.parseResult?.droppedMaterialRequests || [])}` : '';
-        console.warn(`${config.label}${semanticSelfCheckFailed ? '语义自检失败' : '解析异常'}，自动重试一次:`, err.message, parseDetail);
+        const parseDetail = err.parseResult ? `score=${err.parseResult.score}/${err.parseResult.maxScore} successRate=${err.parseResult.successRate} missing=${err.parseResult.missing?.join('銆?) || '鏃?} droppedMaterialRequests=${this.summarizeDroppedMaterialRequests(err.parseResult?.droppedMaterialRequests || [])}` : '';
+        console.warn(`${config.label}${semanticSelfCheckFailed ? '璇箟鑷澶辫触' : '瑙ｆ瀽寮傚父'}锛岃嚜鍔ㄩ噸璇曚竴娆?`, err.message, parseDetail);
         const retryInstruction = this.stage1JsonRetryInstruction(err, semanticSelfCheckFailed);
         prompt = Array.isArray(prompt)
           ? [...prompt, { role: 'user', content: retryInstruction }]
@@ -2420,7 +2420,7 @@ window.GameModules.realWorldAgentLoop = {
         try {
           return { raw, data: this.guidedStepDataFromParsed(merged, raw) };
         } catch (_) {
-          // 合并后仍未通过语义自检，继续走原失败路径。
+          // 鍚堝苟鍚庝粛鏈€氳繃璇箟鑷锛岀户缁蛋鍘熷け璐ヨ矾寰勩€?
         }
       }
     }
@@ -2434,13 +2434,13 @@ window.GameModules.realWorldAgentLoop = {
     if (!text || text.startsWith('{') || text.startsWith('```')) return false;
     if (text.includes(this.finalSeparator)) return false;
     if (/"type"\s*:\s*"(?:request_context|context_done|final)"/u.test(text)) return false;
-    return text.length >= 80 && /[。！？!?]/u.test(text);
+    return text.length >= 80 && /[銆傦紒锛??]/u.test(text);
   },
 
   contextDoneFromProse() {
     return {
       type: 'context_done',
-      reason: '模型在资料收集阶段误返回正文，停止请求资料并进入正文推演',
+      reason: '妯″瀷鍦ㄨ祫鏂欐敹闆嗛樁娈佃杩斿洖姝ｆ枃锛屽仠姝㈣姹傝祫鏂欏苟杩涘叆姝ｆ枃鎺ㄦ紨',
       requests: [],
       characters: [],
     };
@@ -2459,7 +2459,7 @@ window.GameModules.realWorldAgentLoop = {
     const repaired = this.repairedFinalJson(raw) || {};
     const base = {
       type: 'final',
-      sceneTitle: repaired.sceneTitle || store.realWorldSceneTitle || '现实世界',
+      sceneTitle: repaired.sceneTitle || store.realWorldSceneTitle || '鐜板疄涓栫晫',
       locationName: repaired.locationName || store.realWorldLocationName || store.realWorldMap?.current || '',
       parentLocationName: repaired.parentLocationName || '',
       locationDescription: repaired.locationDescription || '',
@@ -2468,9 +2468,9 @@ window.GameModules.realWorldAgentLoop = {
       locationDescriptionUpdates: Array.isArray(repaired.locationDescriptionUpdates) ? repaired.locationDescriptionUpdates : [],
       narration,
       elapsedSeconds: Math.max(1, Number(repaired.elapsedSeconds) || 300),
-      status: repaired.status || store.realWorldStatus || '现实推演继续中',
-      quest: repaired.quest || store.realWorldQuest || '确认现实处境',
-      choices: Array.isArray(repaired.choices) && repaired.choices.length ? repaired.choices.slice(0, 4) : (store.realWorldChoices || ['观察手机异常', '处理现实事务', '联系熟人', '暂时休息']),
+      status: repaired.status || store.realWorldStatus || '鐜板疄鎺ㄦ紨缁х画涓?,
+      quest: repaired.quest || store.realWorldQuest || '纭鐜板疄澶勫',
+      choices: Array.isArray(repaired.choices) && repaired.choices.length ? repaired.choices.slice(0, 4) : (store.realWorldChoices || ['瑙傚療鎵嬫満寮傚父', '澶勭悊鐜板疄浜嬪姟', '鑱旂郴鐔熶汉', '鏆傛椂浼戞伅']),
       vitalUpdates: Array.isArray(repaired.vitalUpdates) ? repaired.vitalUpdates : [],
       metricUpdates: repaired.metricUpdates && typeof repaired.metricUpdates === 'object' ? repaired.metricUpdates : {},
       wechatActions: Array.isArray(repaired.wechatActions) ? repaired.wechatActions : [],
@@ -2514,11 +2514,11 @@ window.GameModules.realWorldAgentLoop = {
         lastErr = err;
         partial = merged;
         if (i === 2) break;
-        console.warn(`${config.label}更新 JSON 不完整，自动重试:`, err.message);
+        console.warn(`${config.label}鏇存柊 JSON 涓嶅畬鏁达紝鑷姩閲嶈瘯:`, err.message);
         nextPrompt = this.updateJsonRetryPrompt('', partial, err);
       }
     }
-    throw lastErr || new Error(`${config.label}更新 JSON 生成失败`);
+    throw lastErr || new Error(`${config.label}鏇存柊 JSON 鐢熸垚澶辫触`);
   },
 
   mergeJsonContinuation(partial = '', continuation = '') {
@@ -2530,16 +2530,16 @@ window.GameModules.realWorldAgentLoop = {
 
   parseCompleteUpdateJson(raw) {
     const text = this.compactJsonReturn(raw);
-    if (window.GameModules.aiRequest?.outputTailLooksTruncated?.(text)) throw new Error('现实更新 JSON 疑似被截断');
+    if (window.GameModules.aiRequest?.outputTailLooksTruncated?.(text)) throw new Error('鐜板疄鏇存柊 JSON 鐤戜技琚埅鏂?);
     const extracted = window.GameModules.jsonUtils.extractJson(text);
     const data = JSON.parse(window.GameModules.jsonUtils.repairJson(extracted));
-    if (!data || typeof data !== 'object') throw new Error('现实更新 JSON 不是对象');
+    if (!data || typeof data !== 'object') throw new Error('鐜板疄鏇存柊 JSON 涓嶆槸瀵硅薄');
     return data;
   },
 
   updateJsonRetryPrompt(prompt, raw, err) {
     const tail = String(raw || '').replace(/\s+/gu, '').slice(-900);
-    return `上次JSON未完成:${err?.message || 'JSON不完整'}。已输出尾部:${tail}。仅输出从尾部最后一个字符之后继续的JSON后续内容suffix；禁止重复已输出前缀；禁止Markdown；禁止解释；禁止换行、空格、制表符和不可见字符。`;
+    return `涓婃JSON鏈畬鎴?${err?.message || 'JSON涓嶅畬鏁?}銆傚凡杈撳嚭灏鹃儴:${tail}銆備粎杈撳嚭浠庡熬閮ㄦ渶鍚庝竴涓瓧绗︿箣鍚庣户缁殑JSON鍚庣画鍐呭suffix锛涚姝㈤噸澶嶅凡杈撳嚭鍓嶇紑锛涚姝arkdown锛涚姝㈣В閲婏紱绂佹鎹㈣銆佺┖鏍笺€佸埗琛ㄧ鍜屼笉鍙瀛楃銆俙;
   },
 
   parseUpdateJson(raw) {
@@ -2547,8 +2547,8 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   configuredCharacterWorld(store, config = this.realConfig()) {
-    if (config.mode === 'real') return window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
-    return store.currentWorldTag?.() || store.character?.work || store.selectedWork || '原创世界';
+    if (config.mode === 'real') return window.GameModules.realWorld2026?.label || '2026 鐜颁唬閮藉競鐜板疄涓栫晫';
+    return store.currentWorldTag?.() || store.character?.work || store.selectedWork || '鍘熷垱涓栫晫';
   },
 
   normalizeConfiguredCharacters(items = [], store, config = this.realConfig()) {
@@ -2567,7 +2567,7 @@ window.GameModules.realWorldAgentLoop = {
   mergeNarrationAndUpdates(store, narration, updates = {}, config = this.realConfig()) {
     const payload = {
       type: 'final',
-      sceneTitle: updates.sceneTitle || store.realWorldSceneTitle || '现实世界',
+      sceneTitle: updates.sceneTitle || store.realWorldSceneTitle || '鐜板疄涓栫晫',
       locationName: updates.locationName || store.realWorldLocationName || store.realWorldMap?.current || '',
       parentLocationName: updates.parentLocationName || '',
       locationDescription: updates.locationDescription || '',
@@ -2576,9 +2576,9 @@ window.GameModules.realWorldAgentLoop = {
       locationDescriptionUpdates: Array.isArray(updates.locationDescriptionUpdates) ? updates.locationDescriptionUpdates : [],
       narration: this.formatConfiguredNarration(narration),
       elapsedSeconds: Math.max(1, Number(updates.elapsedSeconds) || 300),
-      status: updates.status || store.realWorldStatus || '现实推演继续中',
-      quest: updates.quest || store.realWorldQuest || '确认现实处境',
-      choices: window.GameModules.ai.normalizeChoices?.(updates.choices, store.realWorldChoices || ['观察手机异常', '处理现实事务', '联系熟人', '暂时休息']) || [],
+      status: updates.status || store.realWorldStatus || '鐜板疄鎺ㄦ紨缁х画涓?,
+      quest: updates.quest || store.realWorldQuest || '纭鐜板疄澶勫',
+      choices: window.GameModules.ai.normalizeChoices?.(updates.choices, store.realWorldChoices || ['瑙傚療鎵嬫満寮傚父', '澶勭悊鐜板疄浜嬪姟', '鑱旂郴鐔熶汉', '鏆傛椂浼戞伅']) || [],
       vitalUpdates: Array.isArray(updates.vitalUpdates) ? updates.vitalUpdates : [],
       metricUpdates: updates.metricUpdates && typeof updates.metricUpdates === 'object' ? updates.metricUpdates : {},
       appearedCharacters: this.normalizeConfiguredCharacters(updates.appearedCharacters, store, config),
@@ -2600,18 +2600,18 @@ window.GameModules.realWorldAgentLoop = {
     const fallback = window.GameModules.createFallbackResult?.(store, store.lastAction || '') || {};
     const payload = {
       type: 'final',
-      sceneTitle: String(updates.sceneTitle || fallback.sceneTitle || store.sceneTitle || '剧情继续').slice(0, 12),
+      sceneTitle: String(updates.sceneTitle || fallback.sceneTitle || store.sceneTitle || '鍓ф儏缁х画').slice(0, 12),
       narration: this.formatConfiguredNarration(narration),
       elapsedSeconds: Math.max(1, Number(updates.elapsedSeconds) || fallback.elapsedSeconds || 60),
       thinking: store.thinkingMode ? String(updates.thinking || '').slice(0, 220) : '',
       speech: String(updates.speech || ''),
       mind: String(updates.mind || fallback.mind || ''),
-      mood: String(updates.mood || fallback.mood || store.mood || '冷静').slice(0, 12),
+      mood: String(updates.mood || fallback.mood || store.mood || '鍐烽潤').slice(0, 12),
       trust: Number.isFinite(updates.trust) ? updates.trust : store.trust,
       resistance: Number.isFinite(updates.resistance) ? updates.resistance : store.resistance,
       quest: String(updates.quest || fallback.quest || store.quest || '').slice(0, 24),
       characterIntent: String(updates.characterIntent || '').slice(0, 80),
-      controlFeeling: String(updates.controlFeeling || fallback.controlFeeling || '疑惑').slice(0, 40),
+      controlFeeling: String(updates.controlFeeling || fallback.controlFeeling || '鐤戞儜').slice(0, 40),
       controlAdaptation: window.GameModules.ai.clampNumber?.(updates.controlAdaptation, fallback.controlAdaptation || 0) ?? 0,
       controlExperienceSummary: String(updates.controlExperienceSummary || fallback.controlExperienceSummary || '').slice(0, 80),
       metricUpdates: window.GameModules.ai.normalizeMetricUpdates?.(updates.metricUpdates) || {},
@@ -2638,9 +2638,9 @@ window.GameModules.realWorldAgentLoop = {
 
   stripNarrationInstructionLeak(text = '') {
     return String(text || '')
-      .replace(/<\/?正文尾部>/gu, '')
-      .replace(/\n*\s*(?:你能)?请从上述正文最后一个字符之后继续[\s\S]*?完整句号、问号、感叹号或右引号结束。?/gu, '')
-      .replace(/\n*\s*现在仅输出正文后续suffix。?\s*$/gu, '')
+      .replace(/<\/?姝ｆ枃灏鹃儴>/gu, '')
+      .replace(/\n*\s*(?:浣犺兘)?璇蜂粠涓婅堪姝ｆ枃鏈€鍚庝竴涓瓧绗︿箣鍚庣户缁璠\s\S]*?瀹屾暣鍙ュ彿銆侀棶鍙枫€佹劅鍙瑰彿鎴栧彸寮曞彿缁撴潫銆?/gu, '')
+      .replace(/\n*\s*鐜板湪浠呰緭鍑烘鏂囧悗缁璼uffix銆?\s*$/gu, '')
       .trim();
   },
 
@@ -2652,31 +2652,31 @@ window.GameModules.realWorldAgentLoop = {
     const raw = String(text || '').trim();
     if (!raw) return true;
     const tail = raw.slice(-80);
-    const quoteCount = (raw.match(/[“”"『』「」]/g) || []).length;
-    return /[，、：:；;（(《「『“—…-]$/u.test(tail) || quoteCount % 2 === 1 || !/[。！？!?」』”）)]$/u.test(tail);
+    const quoteCount = (raw.match(/[鈥溾€?銆庛€忋€屻€峕/g) || []).length;
+    return /[锛屻€侊細:锛?锛?銆娿€屻€庘€溾€斺€?]$/u.test(tail) || quoteCount % 2 === 1 || !/[銆傦紒锛??銆嶃€忊€濓級)]$/u.test(tail);
   },
 
   trimIncompleteNarrationTail(text = '') {
     const raw = String(text || '').trim();
     if (!raw || !this.narrationTailLooksIncomplete(raw)) return raw;
-    const quotePairs = { '“': '”', '「': '」', '『': '』', '"': '"' };
+    const quotePairs = { '鈥?: '鈥?, '銆?: '銆?, '銆?: '銆?, '"': '"' };
     const stack = [];
     for (let i = 0; i < raw.length; i += 1) {
       const ch = raw[i];
-      if (ch === '”' && stack.at(-1)?.ch === '“') stack.pop();
-      else if (ch === '」' && stack.at(-1)?.ch === '「') stack.pop();
-      else if (ch === '』' && stack.at(-1)?.ch === '『') stack.pop();
+      if (ch === '鈥? && stack.at(-1)?.ch === '鈥?) stack.pop();
+      else if (ch === '銆? && stack.at(-1)?.ch === '銆?) stack.pop();
+      else if (ch === '銆? && stack.at(-1)?.ch === '銆?) stack.pop();
       else if (ch === '"' && stack.at(-1)?.ch === '"') stack.pop();
       else if (quotePairs[ch]) stack.push({ ch, index: i });
     }
     const openQuoteIndex = stack.length ? stack[stack.length - 1].index : -1;
-    const sentenceEndPattern = /[。！？!?]/gu;
+    const sentenceEndPattern = /[銆傦紒锛??]/gu;
     let lastEnd = -1;
     let match;
     while ((match = sentenceEndPattern.exec(raw))) {
       if (openQuoteIndex >= 0 && match.index > openQuoteIndex) continue;
       lastEnd = match.index + match[0].length;
-      while (/[”」』）)]/u.test(raw[lastEnd] || '')) lastEnd += 1;
+      while (/[鈥濄€嶃€忥級)]/u.test(raw[lastEnd] || '')) lastEnd += 1;
     }
     const cutIndex = Math.max(lastEnd, openQuoteIndex > 0 ? openQuoteIndex : -1);
     if (cutIndex <= 0) return raw;
@@ -2691,7 +2691,7 @@ window.GameModules.realWorldAgentLoop = {
   async ensureConfiguredNarrationLength(store, action, prompt, narration, logId, config = this.realConfig()) {
     const text = this.cleanPhasedNarration(narration);
     const trimmed = this.trimIncompleteNarrationTail(text);
-    if (trimmed !== text) console.warn(`${config.label}正文疑似截断，已本地丢弃最后未完整句段。`, { beforeLength: text.length, afterLength: trimmed.length, tail: text.slice(-80) });
+    if (trimmed !== text) console.warn(`${config.label}姝ｆ枃鐤戜技鎴柇锛屽凡鏈湴涓㈠純鏈€鍚庢湭瀹屾暣鍙ユ銆俙, { beforeLength: text.length, afterLength: trimmed.length, tail: text.slice(-80) });
     return this.formatConfiguredNarration(trimmed);
   },
 
@@ -2703,23 +2703,23 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   async completeConfiguredNarrationContinuation(store, action, prompt, narration, logId, reason = {}, config = this.realConfig()) {
-    const actionText = this.actionText(action, config.mode === 'story' ? '继续推进操控剧情' : '继续观察现实世界');
+    const actionText = this.actionText(action, config.mode === 'story' ? '缁х画鎺ㄨ繘鎿嶆帶鍓ф儏' : '缁х画瑙傚療鐜板疄涓栫晫');
     const continuationPrompt = [
-      '# 现实推演正文补全任务',
+      '# 鐜板疄鎺ㄦ紨姝ｆ枃琛ュ叏浠诲姟',
       reason.shortOutput
-        ? `任务:只输出补全文本本身；从<正文尾部>最后一个字符之后继续，把本次行动范围内的环境、动作过程、可见反应、短期结果补写完整；禁止重复正文尾部；禁止输出任何任务说明、JSON、Markdown、标题；${this.compactReturnRule('prose')}结尾必须是。！？或右引号。`
-        : `任务:只输出补全文本本身；从<正文尾部>最后一个字符之后继续；只补完当前截断句并自然收束；禁止重复正文尾部；禁止输出任何任务说明、JSON、Markdown、标题；${this.compactReturnRule('prose')}结尾必须是。！？或右引号。`,
-      `本次行动:${actionText}`,
+        ? `浠诲姟:鍙緭鍑鸿ˉ鍏ㄦ枃鏈湰韬紱浠?姝ｆ枃灏鹃儴>鏈€鍚庝竴涓瓧绗︿箣鍚庣户缁紝鎶婃湰娆¤鍔ㄨ寖鍥村唴鐨勭幆澧冦€佸姩浣滆繃绋嬨€佸彲瑙佸弽搴斻€佺煭鏈熺粨鏋滆ˉ鍐欏畬鏁达紱绂佹閲嶅姝ｆ枃灏鹃儴锛涚姝㈣緭鍑轰换浣曚换鍔¤鏄庛€丣SON銆丮arkdown銆佹爣棰橈紱${this.compactReturnRule('prose')}缁撳熬蹇呴』鏄€傦紒锛熸垨鍙冲紩鍙枫€俙
+        : `浠诲姟:鍙緭鍑鸿ˉ鍏ㄦ枃鏈湰韬紱浠?姝ｆ枃灏鹃儴>鏈€鍚庝竴涓瓧绗︿箣鍚庣户缁紱鍙ˉ瀹屽綋鍓嶆埅鏂彞骞惰嚜鐒舵敹鏉燂紱绂佹閲嶅姝ｆ枃灏鹃儴锛涚姝㈣緭鍑轰换浣曚换鍔¤鏄庛€丣SON銆丮arkdown銆佹爣棰橈紱${this.compactReturnRule('prose')}缁撳熬蹇呴』鏄€傦紒锛熸垨鍙冲紩鍙枫€俙,
+      `鏈琛屽姩:${actionText}`,
       this.continuityFallbackRule(),
-      reason.shortOutput ? '边界:补足已经开始的本次行动直接过程，不开启下一步新行动，不转移地点，不扩展到未输入的新阶段；如果原动作因边界、consent、年龄、关系或安全限制不能继续描写，改写为角色察觉、制止、后退、质问、沉默、情绪变化、环境声响变化、双方距离变化、语言/沉默、身体姿态和即时落点。' : '边界:只补当前句或收束当前动作，不扩展新动作阶段，不为了字数追加新情节，不替玩家执行下一步。',
-      `问题:汉字数=${reason.count || 0};最低目标=${reason.minChars || 0};正文过短=${reason.shortOutput ? '是' : '否'};句尾未完成=${reason.tailIncomplete ? '是' : '否'}`,
-      `<正文尾部>${String(narration || '').slice(-1600)}</正文尾部>`,
-      '现在仅输出正文后续suffix。',
+      reason.shortOutput ? '杈圭晫:琛ヨ冻宸茬粡寮€濮嬬殑鏈琛屽姩鐩存帴杩囩▼锛屼笉寮€鍚笅涓€姝ユ柊琛屽姩锛屼笉杞Щ鍦扮偣锛屼笉鎵╁睍鍒版湭杈撳叆鐨勬柊闃舵锛涘鏋滃師鍔ㄤ綔鍥犺竟鐣屻€乧onsent銆佸勾榫勩€佸叧绯绘垨瀹夊叏闄愬埗涓嶈兘缁х画鎻忓啓锛屾敼鍐欎负瑙掕壊瀵熻銆佸埗姝€佸悗閫€銆佽川闂€佹矇榛樸€佹儏缁彉鍖栥€佺幆澧冨０鍝嶅彉鍖栥€佸弻鏂硅窛绂诲彉鍖栥€佽瑷€/娌夐粯銆佽韩浣撳Э鎬佸拰鍗虫椂钀界偣銆? : '杈圭晫:鍙ˉ褰撳墠鍙ユ垨鏀舵潫褰撳墠鍔ㄤ綔锛屼笉鎵╁睍鏂板姩浣滈樁娈碉紝涓嶄负浜嗗瓧鏁拌拷鍔犳柊鎯呰妭锛屼笉鏇跨帺瀹舵墽琛屼笅涓€姝ャ€?,
+      `闂:姹夊瓧鏁?${reason.count || 0};鏈€浣庣洰鏍?${reason.minChars || 0};姝ｆ枃杩囩煭=${reason.shortOutput ? '鏄? : '鍚?};鍙ュ熬鏈畬鎴?${reason.tailIncomplete ? '鏄? : '鍚?}`,
+      `<姝ｆ枃灏鹃儴>${String(narration || '').slice(-1600)}</姝ｆ枃灏鹃儴>`,
+      '鐜板湪浠呰緭鍑烘鏂囧悗缁璼uffix銆?,
     ].join('\n');
     const output = await this.completeConfiguredStep(store, continuationPrompt, logId, false, {
       ...config,
       promptId: 'inference-stage3-narration',
-      sourceTitle: `${config.label}Stage3正文补全`,
+      sourceTitle: `${config.label}Stage3姝ｆ枃琛ュ叏`,
       jsonMode: false,
       outputLimitKind: 'stage3',
       maxAttempts: 2,
@@ -2833,33 +2833,33 @@ window.GameModules.realWorldAgentLoop = {
       if (kvMessages) this.rememberDeepSeekKvCache(kvCacheSession, kvMessages, output, doneInfo);
       return output;
     } catch (err) {
-      console.warn(`${config.label} Loop Agent 请求未完成，拒绝使用未完成内容:`, { code: err.code, message: err.message, doneSeen, length: buffer.length, stack: err.stack });
+      console.warn(`${config.label} Loop Agent 璇锋眰鏈畬鎴愶紝鎷掔粷浣跨敤鏈畬鎴愬唴瀹?`, { code: err.code, message: err.message, doneSeen, length: buffer.length, stack: err.stack });
       throw err;
     }
   },
 
   splitNameList(value = '') {
-    return String(value || '').split(/[；;、,，|｜]/u).map((name) => name.trim()).filter((name) => name && name !== '无').slice(0, 12);
+    return String(value || '').split(/[锛?銆?锛寍锝淽/u).map((name) => name.trim()).filter((name) => name && name !== '鏃?).slice(0, 12);
   },
 
   isUsefulQueryReason(value = '') {
     const text = String(value || '').trim();
-    if (!text || text === '无') return false;
-    return !/(?:无需|不需要|不用|已明确|无需进一步|无因果|无潜在冲突|无冲突|当前路线无|没有必要)/u.test(text);
+    if (!text || text === '鏃?) return false;
+    return !/(?:鏃犻渶|涓嶉渶瑕亅涓嶇敤|宸叉槑纭畖鏃犻渶杩涗竴姝鏃犲洜鏋渱鏃犳綔鍦ㄥ啿绐亅鏃犲啿绐亅褰撳墠璺嚎鏃爘娌℃湁蹇呰)/u.test(text);
   },
 
   splitQueryReasonList(value = '') {
-    return String(value || '').split(/[；;|｜\n]/u).map((item) => item.trim()).filter((item) => this.isUsefulQueryReason(item)).slice(0, 12);
+    return String(value || '').split(/[锛?|锝淺n]/u).map((item) => item.trim()).filter((item) => this.isUsefulQueryReason(item)).slice(0, 12);
   },
 
   parseParticipantToken(value = '') {
     const text = String(value || '').trim();
-    if (!text || text === '无') return null;
-    const paren = text.match(/^(.+?)[（(]([^（）()]*)[）)]$/u);
-    const dashed = text.match(/^(.+?)\s*(?:[-—－]|：|:)\s*(.+)$/u);
-    const name = String((paren || dashed)?.[1] || text).trim().replace(/^\d+[.、]\s*/u, '').slice(0, 80);
+    if (!text || text === '鏃?) return null;
+    const paren = text.match(/^(.+?)[锛?]([^锛堬級()]*)[锛?]$/u);
+    const dashed = text.match(/^(.+?)\s*(?:[-鈥旓紞]|锛殀:)\s*(.+)$/u);
+    const name = String((paren || dashed)?.[1] || text).trim().replace(/^\d+[.銆乚\s*/u, '').slice(0, 80);
     const reason = String((paren || dashed)?.[2] || '').trim().slice(0, 160);
-    return name && name !== '无' ? { name, reason } : null;
+    return name && name !== '鏃? ? { name, reason } : null;
   },
 
   normalizeParticipantList(value = [], defaultRole = 'mentioned') {
@@ -2876,14 +2876,14 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   normalizeRandomActiveEvents(value = '', blockedNames = new Set()) {
-    const parts = Array.isArray(value) ? value : String(value || '').split(/[；;\n]/u);
+    const parts = Array.isArray(value) ? value : String(value || '').split(/[锛?\n]/u);
     const seen = new Set();
     return parts.map((raw) => {
-      const text = typeof raw === 'string' ? raw.trim() : `${raw?.characterName || raw?.name || ''}｜${raw?.eventType || raw?.actionMethod || ''}｜${raw?.motivation || raw?.reason || ''}`;
-      if (!text || text === '无') return null;
-      const segs = text.split(/[｜|]/u).map((x) => x.trim()).filter(Boolean);
-      const characterName = segs[0]?.replace(/[：:].*$/u, '').trim();
-      return { characterName, eventType: segs[1] || 'background_only', motivation: segs[2] || text, actionMethod: segs[1] || '背景行动', impactTiming: 'background', canEnterCurrentScene: false, canSettleCurrentScene: false };
+      const text = typeof raw === 'string' ? raw.trim() : `${raw?.characterName || raw?.name || ''}锝?{raw?.eventType || raw?.actionMethod || ''}锝?{raw?.motivation || raw?.reason || ''}`;
+      if (!text || text === '鏃?) return null;
+      const segs = text.split(/[锝渱]/u).map((x) => x.trim()).filter(Boolean);
+      const characterName = segs[0]?.replace(/[锛?].*$/u, '').trim();
+      return { characterName, eventType: segs[1] || 'background_only', motivation: segs[2] || text, actionMethod: segs[1] || '鑳屾櫙琛屽姩', impactTiming: 'background', canEnterCurrentScene: false, canSettleCurrentScene: false };
     }).filter((item) => {
       if (!item?.characterName || blockedNames.has(item.characterName) || seen.has(item.characterName)) return false;
       seen.add(item.characterName);
@@ -2899,33 +2899,33 @@ window.GameModules.realWorldAgentLoop = {
 
   guidedStepDataFromParsed(parsed = {}, raw = '') {
     const v = parsed.values || {};
-    const forcedParticipants = this.normalizeParticipantList(v['强制出场'], 'forced');
-    const priorityCandidates = this.normalizeParticipantList(v['高优先候选'], 'priority-candidate').map((item) => ({ ...item, canSettle: false }));
-    const dramaCandidates = this.normalizeParticipantList(v['戏剧候选'], 'drama-candidate').map((item) => ({ ...item, canSettle: false }));
-    const forbiddenParticipants = this.normalizeParticipantList(v['禁止出场'], 'forbidden').map((item) => ({ ...item, canLoadRoleCard: false, canEnterNarration: false, canSettle: false }));
+    const forcedParticipants = this.normalizeParticipantList(v['寮哄埗鍑哄満'], 'forced');
+    const priorityCandidates = this.normalizeParticipantList(v['楂樹紭鍏堝€欓€?], 'priority-candidate').map((item) => ({ ...item, canSettle: false }));
+    const dramaCandidates = this.normalizeParticipantList(v['鎴忓墽鍊欓€?], 'drama-candidate').map((item) => ({ ...item, canSettle: false }));
+    const forbiddenParticipants = this.normalizeParticipantList(v['绂佹鍑哄満'], 'forbidden').map((item) => ({ ...item, canLoadRoleCard: false, canEnterNarration: false, canSettle: false }));
     const blocked = this.participantNameSet(forcedParticipants, priorityCandidates, dramaCandidates, forbiddenParticipants);
-    const status = String(v['资料状态'] || '').trim();
-    const requestText = String(v['资料请求'] || '').trim();
+    const status = String(v['璧勬枡鐘舵€?] || '').trim();
+    const requestText = String(v['璧勬枡璇锋眰'] || '').trim();
     const sceneQueries = {
-      location: this.splitQueryReasonList(v['地点查询理由'] || v['地点查询']),
-      causality: this.splitQueryReasonList(v['因果查询理由'] || v['因果查询']),
-      conflict: this.splitQueryReasonList(v['冲突查询理由'] || v['冲突查询']),
+      location: this.splitQueryReasonList(v['鍦扮偣鏌ヨ鐞嗙敱'] || v['鍦扮偣鏌ヨ']),
+      causality: this.splitQueryReasonList(v['鍥犳灉鏌ヨ鐞嗙敱'] || v['鍥犳灉鏌ヨ']),
+      conflict: this.splitQueryReasonList(v['鍐茬獊鏌ヨ鐞嗙敱'] || v['鍐茬獊鏌ヨ']),
     };
     const hasActionableRequests = Array.isArray(parsed.materialRequests) && parsed.materialRequests.length > 0;
     const hasRoleCardCandidates = forcedParticipants.length > 0 || priorityCandidates.length > 0 || dramaCandidates.length > 0;
     const hasSceneQueryReasons = Object.values(sceneQueries).some((items) => items.length > 0);
-    const hasDeclaredRequests = Boolean(requestText && requestText !== '无' && !/^无(?:\s*\/\s*0)?$/u.test(requestText));
-    if (status === '继续请求资料' && hasDeclaredRequests && !hasActionableRequests && !hasRoleCardCandidates && !hasSceneQueryReasons) {
-      const err = new Error('解析错误请重试');
+    const hasDeclaredRequests = Boolean(requestText && requestText !== '鏃? && !/^鏃??:\s*\/\s*0)?$/u.test(requestText));
+    if (status === '缁х画璇锋眰璧勬枡' && hasDeclaredRequests && !hasActionableRequests && !hasRoleCardCandidates && !hasSceneQueryReasons) {
+      const err = new Error('瑙ｆ瀽閿欒璇烽噸璇?);
       err.parseResult = parsed;
       err.skipMerge = true;
       throw err;
     }
-    const isContextDone = status === '资料已足够' || (!hasRoleCardCandidates && !hasActionableRequests && !hasSceneQueryReasons && (!requestText || requestText === '无'));
+    const isContextDone = status === '璧勬枡宸茶冻澶? || (!hasRoleCardCandidates && !hasActionableRequests && !hasSceneQueryReasons && (!requestText || requestText === '鏃?));
     return {
       type: isContextDone ? 'context_done' : 'request_context',
       guidanceText: String(raw || '').trim(),
-      reason: v['查询规划'] || '',
+      reason: v['鏌ヨ瑙勫垝'] || '',
       requests: parsed.materialRequests || [],
       needed: [],
       characters: [],
@@ -2934,15 +2934,15 @@ window.GameModules.realWorldAgentLoop = {
       priorityCandidates,
       dramaCandidates,
       forbiddenParticipants,
-      randomActiveEvents: this.normalizeRandomActiveEvents(v['随机事件候选'], blocked),
+      randomActiveEvents: this.normalizeRandomActiveEvents(v['闅忔満浜嬩欢鍊欓€?], blocked),
       sceneQueries,
       sceneQueriesAreReasons: true,
-      randomIntrusionCondition: v['随机事件闯入条件'] || '无明确条件则禁止闯入',
+      randomIntrusionCondition: v['闅忔満浜嬩欢闂叆鏉′欢'] || '鏃犳槑纭潯浠跺垯绂佹闂叆',
       parseScore: { score: parsed.score, maxScore: parsed.maxScore, successRate: parsed.successRate },
       parseDegraded: parsed.successRate < 1,
       droppedMaterialRequests: parsed.droppedMaterialRequests || [],
       mergeConflicts: parsed.mergeConflicts || [],
-      missingContext: status === '继续请求资料' && (hasActionableRequests || hasRoleCardCandidates),
+      missingContext: status === '缁х画璇锋眰璧勬枡' && (hasActionableRequests || hasRoleCardCandidates),
     };
   },
 
@@ -2951,14 +2951,14 @@ window.GameModules.realWorldAgentLoop = {
     if (!data || Array.isArray(data) || typeof data !== 'object') return null;
     const sceneQueries = data.sceneQueries && typeof data.sceneQueries === 'object' ? data.sceneQueries : {};
     const participants = data.participants && typeof data.participants === 'object' ? data.participants : {};
-    const arrayText = (value, sep = '；') => (Array.isArray(value) ? value : this.splitQueryReasonList(value)).map((item) => String(item || '').trim()).filter(Boolean).join(sep) || '无';
-    const nameText = (value) => (Array.isArray(value) ? value : this.splitNameList(value)).map((item) => typeof item === 'string' ? item : (item?.name || item?.characterName || item?.idOrName || item?.id || '')).map((item) => String(item || '').trim()).filter(Boolean).join('、') || '无';
+    const arrayText = (value, sep = '锛?) => (Array.isArray(value) ? value : this.splitQueryReasonList(value)).map((item) => String(item || '').trim()).filter(Boolean).join(sep) || '鏃?;
+    const nameText = (value) => (Array.isArray(value) ? value : this.splitNameList(value)).map((item) => typeof item === 'string' ? item : (item?.name || item?.characterName || item?.idOrName || item?.id || '')).map((item) => String(item || '').trim()).filter(Boolean).join('銆?) || '鏃?;
     const requestRows = (Array.isArray(data.materialRequests) ? data.materialRequests : []).map((item, index) => {
       const body = typeof item === 'string'
         ? item
-        : [item?.type || item?.skill || item?.kind, item?.method, item?.name || item?.target || item?.keyword, item?.world || item?.scope].filter(Boolean).join('，');
-      return `资料请求${index + 1}：${String(body || '').trim()}`;
-    }).filter((line) => !/^资料请求\d+[：:]\s*$/u.test(line)).slice(0, 3);
+        : [item?.type || item?.skill || item?.kind, item?.method, item?.name || item?.target || item?.keyword, item?.world || item?.scope].filter(Boolean).join('锛?);
+      return `璧勬枡璇锋眰${index + 1}锛?{String(body || '').trim()}`;
+    }).filter((line) => !/^璧勬枡璇锋眰\d+[锛?]\s*$/u.test(line)).slice(0, 3);
     const materialRequestErrors = [];
     const droppedMaterialRequests = [];
     const materialRequests = requestRows.map((line) => {
@@ -2971,24 +2971,24 @@ window.GameModules.realWorldAgentLoop = {
       return req;
     }).filter(Boolean);
     const values = {
-      '查询规划': String(data.plan || data['查询规划'] || 'JSON资料路由').trim(),
-      '资料状态': String(data.status || data['资料状态'] || '').trim(),
-      '地点查询理由': arrayText(sceneQueries.location ?? data.locationReasons ?? data['地点查询理由']),
-      '因果查询理由': arrayText(sceneQueries.causality ?? data.causalityReasons ?? data['因果查询理由']),
-      '冲突查询理由': arrayText(sceneQueries.conflict ?? data.conflictReasons ?? data['冲突查询理由']),
-      '强制出场': nameText(participants.forced ?? data.forcedParticipants ?? data['强制出场']),
-      '高优先候选': nameText(participants.priority ?? data.priorityCandidates ?? data['高优先候选']),
-      '戏剧候选': nameText(participants.drama ?? data.dramaCandidates ?? data['戏剧候选']),
-      '禁止出场': nameText(participants.forbidden ?? data.forbiddenParticipants ?? data['禁止出场']),
-      '随机事件候选': arrayText(data.randomEvents ?? data.randomActiveEvents ?? data['随机事件候选']),
-      '随机事件闯入条件': String(data.randomIntrusionCondition || data['随机事件闯入条件'] || '无明确条件则禁止闯入').trim(),
-      '资料请求': requestRows.length ? `${requestRows.length}条` : '无',
-      '资料请求结束': '是',
+      '鏌ヨ瑙勫垝': String(data.plan || data['鏌ヨ瑙勫垝'] || 'JSON璧勬枡璺敱').trim(),
+      '璧勬枡鐘舵€?: String(data.status || data['璧勬枡鐘舵€?] || '').trim(),
+      '鍦扮偣鏌ヨ鐞嗙敱': arrayText(sceneQueries.location ?? data.locationReasons ?? data['鍦扮偣鏌ヨ鐞嗙敱']),
+      '鍥犳灉鏌ヨ鐞嗙敱': arrayText(sceneQueries.causality ?? data.causalityReasons ?? data['鍥犳灉鏌ヨ鐞嗙敱']),
+      '鍐茬獊鏌ヨ鐞嗙敱': arrayText(sceneQueries.conflict ?? data.conflictReasons ?? data['鍐茬獊鏌ヨ鐞嗙敱']),
+      '寮哄埗鍑哄満': nameText(participants.forced ?? data.forcedParticipants ?? data['寮哄埗鍑哄満']),
+      '楂樹紭鍏堝€欓€?: nameText(participants.priority ?? data.priorityCandidates ?? data['楂樹紭鍏堝€欓€?]),
+      '鎴忓墽鍊欓€?: nameText(participants.drama ?? data.dramaCandidates ?? data['鎴忓墽鍊欓€?]),
+      '绂佹鍑哄満': nameText(participants.forbidden ?? data.forbiddenParticipants ?? data['绂佹鍑哄満']),
+      '闅忔満浜嬩欢鍊欓€?: arrayText(data.randomEvents ?? data.randomActiveEvents ?? data['闅忔満浜嬩欢鍊欓€?]),
+      '闅忔満浜嬩欢闂叆鏉′欢': String(data.randomIntrusionCondition || data['闅忔満浜嬩欢闂叆鏉′欢'] || '鏃犳槑纭潯浠跺垯绂佹闂叆').trim(),
+      '璧勬枡璇锋眰': requestRows.length ? `${requestRows.length}鏉 : '鏃?,
+      '璧勬枡璇锋眰缁撴潫': '鏄?,
     };
-    if (!values['资料状态']) {
-      const hasQueryReason = ['地点查询理由', '因果查询理由', '冲突查询理由'].some((key) => this.isUsefulQueryReason(values[key]));
-      const hasParticipants = ['强制出场', '高优先候选', '戏剧候选'].some((key) => String(values[key] || '').trim() && values[key] !== '无');
-      values['资料状态'] = requestRows.length || hasQueryReason || hasParticipants ? '继续请求资料' : '资料已足够';
+    if (!values['璧勬枡鐘舵€?]) {
+      const hasQueryReason = ['鍦扮偣鏌ヨ鐞嗙敱', '鍥犳灉鏌ヨ鐞嗙敱', '鍐茬獊鏌ヨ鐞嗙敱'].some((key) => this.isUsefulQueryReason(values[key]));
+      const hasParticipants = ['寮哄埗鍑哄満', '楂樹紭鍏堝€欓€?, '鎴忓墽鍊欓€?].some((key) => String(values[key] || '').trim() && values[key] !== '鏃?);
+      values['璧勬枡鐘舵€?] = requestRows.length || hasQueryReason || hasParticipants ? '缁х画璇锋眰璧勬枡' : '璧勬枡宸茶冻澶?;
     }
     const keyHits = Object.keys(values).filter((key) => String(values[key] || '').trim());
     const scored = this.scoreChineseKvParse(values, this.guidedStepFields(), requestRows, materialRequests);
@@ -3013,30 +3013,30 @@ window.GameModules.realWorldAgentLoop = {
       const key = parsed ? this.normalizeKvKey(parsed.key, allowed) : '';
       if (key && !Object.prototype.hasOwnProperty.call(values, key)) values[key] = parsed.value;
     });
-    const hasGuidedField = fields.some((key) => Object.prototype.hasOwnProperty.call(values, key)) || lines.some((line) => /^资料请求\d+[：:]/u.test(line));
+    const hasGuidedField = fields.some((key) => Object.prototype.hasOwnProperty.call(values, key)) || lines.some((line) => /^璧勬枡璇锋眰\d+[锛?]/u.test(line));
     if (!hasGuidedField) return text;
     const out = lines.slice();
     const addIfMissing = (key, value) => {
       if (!Object.prototype.hasOwnProperty.call(values, key)) {
         values[key] = value;
-        out.push(`${key}：${value}`);
+        out.push(`${key}锛?{value}`);
       }
     };
-    const isNone = (value) => !String(value || '').trim() || String(value || '').trim() === '无';
-    const numberedRequests = lines.filter((line) => /^资料请求\d+[：:]/u.test(line));
-    const hasExplicitRequestField = Object.prototype.hasOwnProperty.call(values, '资料请求') || numberedRequests.length > 0;
-    const requestText = String(values['资料请求'] || '').trim();
-    const hasQueryReason = ['地点查询理由', '因果查询理由', '冲突查询理由'].some((key) => this.isUsefulQueryReason(values[key]));
+    const isNone = (value) => !String(value || '').trim() || String(value || '').trim() === '鏃?;
+    const numberedRequests = lines.filter((line) => /^璧勬枡璇锋眰\d+[锛?]/u.test(line));
+    const hasExplicitRequestField = Object.prototype.hasOwnProperty.call(values, '璧勬枡璇锋眰') || numberedRequests.length > 0;
+    const requestText = String(values['璧勬枡璇锋眰'] || '').trim();
+    const hasQueryReason = ['鍦扮偣鏌ヨ鐞嗙敱', '鍥犳灉鏌ヨ鐞嗙敱', '鍐茬獊鏌ヨ鐞嗙敱'].some((key) => this.isUsefulQueryReason(values[key]));
     if (!hasExplicitRequestField) return out.join('\n');
-    addIfMissing('查询规划', requestText === '无' && !hasQueryReason ? '资料已足够，进入正文推演' : '补齐资料路由字段');
-    if (!Object.prototype.hasOwnProperty.call(values, '资料状态')) {
-      const shouldContinue = numberedRequests.length > 0 || hasQueryReason || (requestText && requestText !== '无' && !/^无(?:\s*\/\s*0)?$/u.test(requestText));
-      addIfMissing('资料状态', shouldContinue ? '继续请求资料' : '资料已足够');
+    addIfMissing('鏌ヨ瑙勫垝', requestText === '鏃? && !hasQueryReason ? '璧勬枡宸茶冻澶燂紝杩涘叆姝ｆ枃鎺ㄦ紨' : '琛ラ綈璧勬枡璺敱瀛楁');
+    if (!Object.prototype.hasOwnProperty.call(values, '璧勬枡鐘舵€?)) {
+      const shouldContinue = numberedRequests.length > 0 || hasQueryReason || (requestText && requestText !== '鏃? && !/^鏃??:\s*\/\s*0)?$/u.test(requestText));
+      addIfMissing('璧勬枡鐘舵€?, shouldContinue ? '缁х画璇锋眰璧勬枡' : '璧勬枡宸茶冻澶?);
     }
-    ['地点查询理由', '因果查询理由', '冲突查询理由', '强制出场', '高优先候选', '戏剧候选', '禁止出场', '随机事件候选'].forEach((key) => addIfMissing(key, '无'));
-    addIfMissing('随机事件闯入条件', '无明确条件则禁止闯入');
-    if (!Object.prototype.hasOwnProperty.call(values, '资料请求')) addIfMissing('资料请求', `${numberedRequests.length}条`);
-    addIfMissing('资料请求结束', '是');
+    ['鍦扮偣鏌ヨ鐞嗙敱', '鍥犳灉鏌ヨ鐞嗙敱', '鍐茬獊鏌ヨ鐞嗙敱', '寮哄埗鍑哄満', '楂樹紭鍏堝€欓€?, '鎴忓墽鍊欓€?, '绂佹鍑哄満', '闅忔満浜嬩欢鍊欓€?].forEach((key) => addIfMissing(key, '鏃?));
+    addIfMissing('闅忔満浜嬩欢闂叆鏉′欢', '鏃犳槑纭潯浠跺垯绂佹闂叆');
+    if (!Object.prototype.hasOwnProperty.call(values, '璧勬枡璇锋眰')) addIfMissing('璧勬枡璇锋眰', `${numberedRequests.length}鏉);
+    addIfMissing('璧勬枡璇锋眰缁撴潫', '鏄?);
     return out.join('\n');
   },
 
@@ -3044,7 +3044,7 @@ window.GameModules.realWorldAgentLoop = {
     const normalized = options.normalized ? String(raw || '').trim() : this.normalizeGuidedStepText(raw);
     const parsed = this.parseChineseKvBlock(normalized, this.guidedStepFields(), { parseMaterialRequests: true, config });
     if (parsed.materialRequestErrors?.length || parsed.successRate < 0.8) {
-      const detail = parsed.materialRequestErrors?.[0] || '解析错误请重试';
+      const detail = parsed.materialRequestErrors?.[0] || '瑙ｆ瀽閿欒璇烽噸璇?;
       const err = new Error(detail);
       err.parseResult = parsed;
       throw err;
@@ -3056,18 +3056,18 @@ window.GameModules.realWorldAgentLoop = {
     const jsonData = this.parseGuidedStepJson(raw, config);
     if (jsonData) return jsonData;
     const text = this.normalizeGuidedStepText(raw);
-    if (!/查询规划[：:]|资料状态[：:]/u.test(text)) {
-      throw new Error(`${config.label}返回缺少 Stage1 JSON 或中文 K:V 查询规划字段`);
+    if (!/鏌ヨ瑙勫垝[锛?]|璧勬枡鐘舵€乕锛?]/u.test(text)) {
+      throw new Error(`${config.label}杩斿洖缂哄皯 Stage1 JSON 鎴栦腑鏂?K:V 鏌ヨ瑙勫垝瀛楁`);
     }
     return this.parseGuidedStepKv(text, config, { normalized: true });
   },
 
   isGuidedStepSemanticSelfCheckError(err) {
-    return String(err?.message || '').includes('资料状态为继续请求资料时，必须输出可执行的资料请求1、结构化查询或明确参与者候选');
+    return String(err?.message || '').includes('璧勬枡鐘舵€佷负缁х画璇锋眰璧勬枡鏃讹紝蹇呴』杈撳嚭鍙墽琛岀殑璧勬枡璇锋眰1銆佺粨鏋勫寲鏌ヨ鎴栨槑纭弬涓庤€呭€欓€?);
   },
 
   isRetryableParseError(err) {
-    return this.isGuidedStepSemanticSelfCheckError(err) || ['截断', '分隔符后缺少 JSON', '缺少正文', 'JSON missing', '解析错误请重试'].some((text) => String(err?.message || '').includes(text));
+    return this.isGuidedStepSemanticSelfCheckError(err) || ['鎴柇', '鍒嗛殧绗﹀悗缂哄皯 JSON', '缂哄皯姝ｆ枃', 'JSON missing', '瑙ｆ瀽閿欒璇烽噸璇?].some((text) => String(err?.message || '').includes(text));
   },
   traceItem(step, data, raw, ctx = window.GameModules.realWorldAgentContext) {
     const limiter = typeof ctx?.limit === 'function' ? ctx.limit.bind(ctx) : (text, max = 1200) => String(text || '').slice(0, max);
@@ -3097,7 +3097,7 @@ window.GameModules.realWorldAgentLoop = {
     };
   },
   stepText(step, config = this.realConfig()) {
-    return step === 1 ? `${config.label}正在识别相关角色与资料需求…（${step}/${this.maxSteps}）` : `${config.label}正在推演…（${step}/${this.maxSteps}）`;
+    return step === 1 ? `${config.label}姝ｅ湪璇嗗埆鐩稿叧瑙掕壊涓庤祫鏂欓渶姹傗€︼紙${step}/${this.maxSteps}锛塦 : `${config.label}姝ｅ湪鎺ㄦ紨鈥︼紙${step}/${this.maxSteps}锛塦;
   },
   updateAgentTrace(store, logId, trace = []) {
     this.updateConfiguredTrace(store, logId, trace, this.realConfig());
@@ -3135,7 +3135,7 @@ window.GameModules.realWorldAgentLoop = {
       store.updateNovelEntry?.(logId, patch);
       return;
     }
-    const entry = (store.realWorldLog || []).find((item) => item.id === logId) || window.GameModules.sqliteSave.getRealWorldLogEntry?.(logId) || {};
+    const entry = (store.realWorldLog || []).find((item) => item.id === logId) || window.GameModules.realWorldLogStore?.get?.(logId) || {};
     const patch = { streaming: true, statusText: text };
     if (!options.keepNarration && this.shouldUseStatusAsRealNarration(entry)) patch.narration = text;
     store.patchRealWorldLogEntry?.(logId, patch);
@@ -3144,17 +3144,18 @@ window.GameModules.realWorldAgentLoop = {
 
   shouldUseStatusAsStoryText(entry = {}) {
     const text = String(entry?.storyText || '').trim();
-    return !text || /^作者正在续写这一段剧情|操控剧情正在识别|操控剧情正在推演|已识别相关角色|已追加资料/u.test(text);
+    return !text || /^浣滆€呮鍦ㄧ画鍐欒繖涓€娈靛墽鎯厊鎿嶆帶鍓ф儏姝ｅ湪璇嗗埆|鎿嶆帶鍓ф儏姝ｅ湪鎺ㄦ紨|宸茶瘑鍒浉鍏宠鑹瞸宸茶拷鍔犺祫鏂?u.test(text);
   },
 
   shouldUseStatusAsRealNarration(entry = {}) {
     const text = String(entry?.narration || '').trim();
-    return !text || /^现实世界正在推演|现实正在识别|现实正在推演|已识别相关角色|已追加资料/u.test(text);
+    return !text || /^鐜板疄涓栫晫姝ｅ湪鎺ㄦ紨|鐜板疄姝ｅ湪璇嗗埆|鐜板疄姝ｅ湪鎺ㄦ紨|宸茶瘑鍒浉鍏宠鑹瞸宸茶拷鍔犺祫鏂?u.test(text);
   },
   loadedContextText(data = {}, loaded = [], step = 1, config = this.realConfig()) {
-    const fallback = config.mode === 'story' ? '被操控角色' : '玩家本人';
-    const chars = (data.characters || []).map((item) => item.name || item.id || item).filter(Boolean).join('、') || fallback;
-    const titles = loaded.map((item) => item.title).join('、') || '角色记忆';
-    return `${step === 1 ? '已识别相关角色' : '已追加资料'}：${chars}；已载入${titles}${data.reason ? `：${data.reason}` : ''}`;
+    const fallback = config.mode === 'story' ? '琚搷鎺ц鑹? : '鐜╁鏈汉';
+    const chars = (data.characters || []).map((item) => item.name || item.id || item).filter(Boolean).join('銆?) || fallback;
+    const titles = loaded.map((item) => item.title).join('銆?) || '瑙掕壊璁板繂';
+    return `${step === 1 ? '宸茶瘑鍒浉鍏宠鑹? : '宸茶拷鍔犺祫鏂?}锛?{chars}锛涘凡杞藉叆${titles}${data.reason ? `锛?{data.reason}` : ''}`;
   },
 };
+

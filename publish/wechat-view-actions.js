@@ -1,23 +1,51 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 window.GameModules.wechatViewActions = {
   wechatContacts() {
-    const group = this.defaultWechatGroup?.() || { id: 'group-main', name: '操控者交流群', mark: '群', group: true };
-    const users = (this.wechatUsers || []).map((contact) => this.displayWechatContact?.(contact) || contact);
-    return [group, ...users];
+    return window.GameModules.wechatViewHelpers.wechatContacts.call(this);
   },
 
-  wechatThreads() {
-    return this.wechatContacts().map((contact) => {
-      const key = this.wechatMessageKey?.(contact) || contact.id;
-      const latest = this.wechatMessagesByContact?.[key]?.slice(-1)?.[0]?.text || contact.latest || '';
-      return { ...contact, latest: String(latest).slice(0, 80) };
-    });
+  wechatThreadRows() {
+    return window.GameModules.wechatViewHelpers.wechatThreadRows.call(this);
   },
 
-  wechatSelected() {
-    const contacts = this.wechatContacts();
-    const selectedId = this.wechatSelectedContact || 'group-main';
-    return contacts.find((contact) => contact.id === selectedId) || contacts[0] || { id: 'group-main', name: '微信', mark: '微', group: true };
+  wechatContactRows() {
+    return window.GameModules.wechatViewHelpers.wechatContactRows.call(this);
+  },
+
+  wechatMeEntryRows() {
+    return window.GameModules.wechatViewHelpers.wechatMeEntryRows.call(this);
+  },
+
+  wechatChatsPanelView() {
+    return window.GameModules.wechatViewHelpers.wechatChatsPanelView.call(this);
+  },
+
+  wechatContactsPanelView() {
+    return window.GameModules.wechatViewHelpers.wechatContactsPanelView.call(this);
+  },
+
+  wechatAlbumPhotoRows() {
+    return window.GameModules.wechatViewHelpers.wechatAlbumPhotoRows.call(this);
+  },
+
+  wechatAvatarCropView() {
+    return window.GameModules.wechatViewHelpers.wechatAvatarCropView.call(this);
+  },
+
+  wechatProfileHeaderView() {
+    return window.GameModules.wechatViewHelpers.wechatProfileHeaderView.call(this);
+  },
+
+  wechatAlbumPromptChoiceView() {
+    return window.GameModules.wechatViewHelpers.wechatAlbumPromptChoiceView.call(this);
+  },
+
+  wechatAlbumPromptListView() {
+    return window.GameModules.wechatViewHelpers.wechatAlbumPromptListView.call(this);
+  },
+
+  wechatAlbumPromptDetailView() {
+    return window.GameModules.wechatViewHelpers.wechatAlbumPromptDetailView.call(this);
   },
 
   setWechatTab(tab) {

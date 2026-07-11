@@ -1,0 +1,287 @@
+{
+  "characterId": "",
+  "ownerId": "",
+  "personId": "",
+  "stateKind": "natural",
+  "stateLabel": "????",
+  "label": "?? ? ?? ? ???",
+  "generated": false,
+  "real": true,
+  "source": "preset-body-figure",
+  "prompt": "1boy, solo, full body, standing, front view, clear face, clean background, anime style, high quality, 27-year-old male, programmer, short black bedhead hair, glasses, slender build, pale skin, sharp jawline, thin collarbone, flat chest, toned abdomen, slim arms, long fingers, narrow hips, medium buttocks, long thighs, thin calves, visible tendons, barefoot, naked, natural, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry, 赤身, 全身, 无遮掩, 双腿, 站立",
+  "negativePrompt": "bad anatomy, extra fingers, extra arms, missing fingers, low quality, blurry, worst quality, watermark, text, logo, bad hands",
+  "taskId": "2031057913236359582",
+  "provider": "pixai",
+  "overall": [
+    "成熟"
+  ],
+  "figure": [
+    "瘦弱",
+    "匀称"
+  ],
+  "height": "178cm",
+  "weight": "65kg",
+  "skinTone": [
+    "白皙"
+  ],
+  "aura": [
+    "帅气"
+  ],
+  "styleBase": [
+    "休闲",
+    "简约"
+  ],
+  "makeupBase": [
+    "无妆容"
+  ],
+  "colorScheme": [
+    "灰蓝经典"
+  ],
+  "hosiery": [
+    "中筒棉袜"
+  ],
+  "hairstyle": [
+    "清爽碎发"
+  ],
+  "accessoryDensity": [
+    "极简"
+  ],
+  "tags": [
+    "male",
+    "??",
+    "???",
+    "natural",
+    "成熟",
+    "瘦弱",
+    "匀称",
+    "白皙",
+    "帅气",
+    "休闲",
+    "简约",
+    "无妆容"
+  ],
+  "parts": [
+    {
+      "index": 1,
+      "part": "头发",
+      "tags": [
+        "黑色",
+        "短碎发",
+        "自然蓬松"
+      ],
+      "description": "天然黑色短发，碎发层次随意，未经发胶定型时蓬松柔软，额前几缕稍长，自然向右侧分开。发质偏硬但洗后带有微弱的韧性光泽。",
+      "anchor": {
+        "x": 49,
+        "y": 9
+      },
+      "label": {
+        "x": 10,
+        "y": 9,
+        "side": "left"
+      }
+    },
+    {
+      "index": 2,
+      "part": "脸部",
+      "tags": [
+        "清秀",
+        "面部轮廓分明",
+        "素颜淡色",
+        "眼窝略深"
+      ],
+      "description": "素净面容，额头饱满，眉骨清晰，鼻梁直挺，唇形薄而线条分明。肌肤干净无痘痕，因长期面对电脑而略偏苍白，颧骨不过高，下颌角柔和，整体给人安静、清爽的观感。",
+      "anchor": {
+        "x": 49,
+        "y": 19
+      },
+      "label": {
+        "x": 10,
+        "y": 19,
+        "side": "left"
+      }
+    },
+    {
+      "index": 3,
+      "part": "耳朵",
+      "tags": [
+        "耳廓分明",
+        "大小适中",
+        "耳垂圆润"
+      ],
+      "description": "耳朵轮廓清晰，大小与头型协调，耳垂微厚且柔软，耳后肌肤细腻，日常无穿孔或装饰，呈现完全自然的生理形态。",
+      "anchor": {
+        "x": 58,
+        "y": 16
+      },
+      "label": {
+        "x": 90,
+        "y": 16,
+        "side": "right"
+      }
+    },
+    {
+      "index": 4,
+      "part": "脖颈",
+      "tags": [
+        "修长",
+        "喉结明显",
+        "锁骨突出"
+      ],
+      "description": "颈部线条偏长，喉结在吞咽时明显上下移动；锁骨横向突出但不夸张，颈窝浅陷，皮肤白皙，青筋在用力时隐约可见。",
+      "anchor": {
+        "x": 52,
+        "y": 24
+      },
+      "label": {
+        "x": 90,
+        "y": 24,
+        "side": "right"
+      }
+    },
+    {
+      "index": 5,
+      "part": "胸部",
+      "tags": [
+        "平坦",
+        "胸肌不发达",
+        "骨骼轮廓隐约"
+      ],
+      "description": "胸部整体平坦，胸骨和肋骨的轮廓在收缩时隐约可辨；没有经过刻意锻炼，胸肌薄而不明显，乳头呈淡褐色，位置适中，未经刺激时保持自然状态。",
+      "anchor": {
+        "x": 48,
+        "y": 32
+      },
+      "label": {
+        "x": 10,
+        "y": 32,
+        "side": "left"
+      }
+    },
+    {
+      "index": 6,
+      "part": "双臂",
+      "tags": [
+        "纤细",
+        "手臂线条柔和",
+        "手指修长"
+      ],
+      "description": "上臂和前臂均偏细，肌肉量少，但皮肤紧致；手腕关节突出，手背静脉在握拳时微微凸起；手指修长且指节明显，指甲修剪整洁，指腹有薄茧。",
+      "anchor": {
+        "x": 65.1,
+        "y": 36.6
+      },
+      "label": {
+        "x": 90,
+        "y": 36,
+        "side": "right"
+      }
+    },
+    {
+      "index": 7,
+      "part": "小腹",
+      "tags": [
+        "平坦",
+        "没有赘肉",
+        "肚脐椭圆形"
+      ],
+      "description": "腹部平坦紧致，无脂肪堆积，肚脐呈竖直椭圆形，周围肌肤平滑；腹直肌线条微弱，呼吸时腹部起伏平稳，整体给人清瘦健康的质感。",
+      "anchor": {
+        "x": 50,
+        "y": 44
+      },
+      "label": {
+        "x": 10,
+        "y": 44,
+        "side": "left"
+      }
+    },
+    {
+      "index": 8,
+      "part": "臀部",
+      "tags": [
+        "臀部紧实",
+        "中等大小",
+        "腰臀比适中"
+      ],
+      "description": "臀部肌肉量适中，呈自然的圆弧形，久坐后仍保持弹性；与腰部的衔接过渡流畅，股沟浅而清晰，骨盆宽度与肩宽接近，整体比例协调。",
+      "anchor": {
+        "x": 79,
+        "y": 61.2
+      },
+      "label": {
+        "x": 90,
+        "y": 53,
+        "side": "right"
+      }
+    },
+    {
+      "index": 9,
+      "part": "神秘花园",
+      "tags": [
+        "阴毛浓密",
+        "生殖器尺寸中等",
+        "睾丸紧贴"
+      ],
+      "description": "阴毛从耻骨上方开始向下延伸，浓密而卷曲，色泽黑亮；阴茎在自然状态下松垂，长度中等，包皮半露；睾丸紧贴会阴，皮肤表面有细微褶皱。",
+      "anchor": {
+        "x": 59.3,
+        "y": 57
+      },
+      "label": {
+        "x": 90,
+        "y": 58,
+        "side": "right"
+      }
+    },
+    {
+      "index": 10,
+      "part": "双大腿",
+      "tags": [
+        "大腿纤长",
+        "内侧紧贴",
+        "肌肤细腻"
+      ],
+      "description": "大腿整体偏长，肌肉线条不明显，站立时左右大腿内侧自然贴合，几乎无缝隙；皮肤白净细腻，毛孔细小，腿毛稀疏。",
+      "anchor": {
+        "x": 49,
+        "y": 68
+      },
+      "label": {
+        "x": 10,
+        "y": 68,
+        "side": "left"
+      }
+    },
+    {
+      "index": 11,
+      "part": "双小腿",
+      "tags": [
+        "小腿修长",
+        "跟腱明显",
+        "脚踝纤细"
+      ],
+      "description": "小腿肚圆润但不发达，跟腱长而清晰，从后侧看呈优雅的弧线；脚踝细且轮廓分明，足弓略高，脚背皮肤薄透，青筋隐约可见。",
+      "anchor": {
+        "x": 48,
+        "y": 84
+      },
+      "label": {
+        "x": 10,
+        "y": 84,
+        "side": "left"
+      }
+    }
+  ],
+  "id": "youth-slender-natural",
+  "image": "figure.webp",
+  "generatedAt": "2026-07-07T02:29:35.286Z",
+  "imageSize": {
+    "width": 768,
+    "height": 1152
+  },
+  "characterName": "",
+  "ownerName": "",
+  "personName": "",
+  "activeFigure": false,
+  "gender": "male"
+}

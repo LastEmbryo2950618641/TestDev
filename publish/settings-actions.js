@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 
 window.GameModules.settingsActions = {
   async openSettingsApp() {
@@ -176,7 +176,7 @@ window.GameModules.settingsActions = {
       const hasCurrent = current && recommended.some((model) => model.id === current);
       return [
         ...recommended,
-        ...(current ? [{ id: current, displayName: `PixAI ${current}`, description: '当前填写的 modelVersionId' }] : []),
+        ...(current ? [{ id: current, displayName: PixAI , description: '当前填写的 modelVersionId' }] : []),
         { id: 'custom', displayName: '自定义 PixAI modelVersionId', description: '填写模型页面 URL 的最后一段' },
       ];
     }
@@ -208,7 +208,7 @@ window.GameModules.settingsActions = {
     if (providerId !== 'pixai') return models;
     const current = String(this.settingsState?.pixaiModelVersionId || '').trim();
     if (!current || models.some((model) => model?.id === current)) return models;
-    return [{ id: current, displayName: `PixAI ${current}`, description: '当前填写的 modelVersionId' }, ...models];
+    return [{ id: current, displayName: `PixAI ${current}`, description: '褰撳墠濉啓鐨?modelVersionId' }, ...models];
   },
 
   ensureSelectedDrawModel(providerId = this.settingsState?.drawProvider || 'pixai', defaultModel = '') {
@@ -235,13 +235,12 @@ window.GameModules.settingsActions = {
     this.settingsState.loaded = false;
     this.settingsState.error = '';
   },
-
   textModelOptionLabel(model = {}) {
-    const name = model.displayName || model.internalName || '未知模型';
-    const price = model.price || '未知';
-    const thinking = model.thinkingSupported === true ? 'true' : 'false';
-    const description = String(model.description || '').trim();
-    return `${name}｜系数 ${price}｜支持思考: ${thinking}${description ? `｜${description}` : ''}`;
+    return window.GameModules.ui.settings.viewHelpers.textModelOptionLabel.call(this, model);
+  },
+
+  currentTextModelRows() {
+    return window.GameModules.ui.settings.viewHelpers.currentTextModelRows.call(this);
   },
 
   async selectTextModel(id) {
@@ -363,25 +362,15 @@ window.GameModules.settingsActions = {
   },
 
   aiOutputLimitKinds() {
-    return [
-      { kind: 'global', title: '统一配置', desc: '作为各阶段“跟随统一”时的默认输出限制。' },
-      { kind: 'stage1', title: 'Stage1 资料路由', desc: '资料请求规划、人物/地点/记忆加载路由。' },
-      { kind: 'stage2', title: 'Stage2 场景锚定', desc: '场景锚定报告 JSON。' },
-      { kind: 'stage3', title: 'Stage3 正文阶段', desc: '最终正文生成与正文补全。默认限制 3000。' },
-      { kind: 'stage4', title: 'Stage4 结算', desc: '状态更新、滑动结算与更新 JSON。' },
-      { kind: 'other', title: '其他 AI 响应', desc: '微信、角色资料、BOSS、势力、标签等未显式归类请求。' },
-    ];
+    return window.GameModules.ui.settings.viewHelpers.aiOutputLimitKinds.call(this);
+  },
+
+  aiOutputLimitRows() {
+    return window.GameModules.ui.settings.viewHelpers.aiOutputLimitRows.call(this);
   },
 
   aiOutputLimitPrefix(kind = 'other') {
-    return {
-      global: 'aiOutputLimitGlobal',
-      stage1: 'aiOutputLimitStage1',
-      stage2: 'aiOutputLimitStage2',
-      stage3: 'aiOutputLimitStage3',
-      stage4: 'aiOutputLimitStage4',
-      other: 'aiOutputLimitOther',
-    }[kind] || 'aiOutputLimitOther';
+    return window.GameModules.ui.settings.viewHelpers.aiOutputLimitPrefix.call(this, kind);
   },
 
   aiOutputLimitMode(kind = 'other') {
@@ -397,11 +386,7 @@ window.GameModules.settingsActions = {
   },
 
   aiOutputLimitEffectiveText(kind = 'other') {
-    const mode = this.aiOutputLimitMode(kind);
-    if (mode === 'unlimited') return '无限制';
-    if (mode === 'limited') return `限制 ${this.aiOutputLimitMax(kind)} tokens`;
-    const globalMode = this.aiOutputLimitMode('global');
-    return globalMode === 'limited' ? `跟随统一：限制 ${this.aiOutputLimitMax('global')} tokens` : '跟随统一：无限制';
+    return window.GameModules.ui.settings.viewHelpers.aiOutputLimitEffectiveText.call(this, kind);
   },
 
   async setAiOutputLimitMode(kind = 'other', mode = 'global') {
@@ -422,28 +407,69 @@ window.GameModules.settingsActions = {
   },
 
   selectedDrawModelId() {
-    if (this.settingsState?.drawProvider === 'pixai') return this.settingsState?.pixaiModelVersionId || window.GameModules.config?.drawProviders?.pixai?.defaultModel || '1983308862240288769';
-    return this.settingsState?.drawModelId || 'anime';
+    return window.GameModules.ui.settings.viewHelpers.selectedDrawModelId.call(this);
   },
 
   selectedDrawProviderId() {
-    return this.settingsState?.drawProvider || 'pixai';
+    return window.GameModules.ui.settings.viewHelpers.selectedDrawProviderId.call(this);
   },
 
   currentDrawModels() {
-    const providerId = this.settingsState?.drawProvider || 'pixai';
-    return this.drawModelsForProvider(providerId, { models: this.settingsState?.drawModels || [] });
+    return window.GameModules.ui.settings.viewHelpers.currentDrawModels.call(this);
+  },
+
+  currentDrawModelRows() {
+    return window.GameModules.ui.settings.viewHelpers.currentDrawModelRows.call(this);
+  },
+
+  textModelSectionView() {
+    return window.GameModules.ui.settings.viewHelpers.textModelSectionView.call(this);
+  },
+
+  drawModelSectionView() {
+    return window.GameModules.ui.settings.viewHelpers.drawModelSectionView.call(this);
+  },
+
+  textProviderSectionView() {
+    return window.GameModules.ui.settings.viewHelpers.textProviderSectionView.call(this);
+  },
+
+  drawProviderSectionView() {
+    return window.GameModules.ui.settings.viewHelpers.drawProviderSectionView.call(this);
+  },
+
+  currentSettingsSummaryRows() {
+    return window.GameModules.ui.settings.viewHelpers.currentSettingsSummaryRows.call(this);
+  },
+
+  currentModelSummaryView() {
+    return window.GameModules.ui.settings.viewHelpers.currentModelSummaryView.call(this);
+  },
+
+  stage1MaterialSettingView() {
+    return window.GameModules.ui.settings.viewHelpers.stage1MaterialSettingView.call(this);
+  },
+
+  aiOutputLimitSectionView() {
+    return window.GameModules.ui.settings.viewHelpers.aiOutputLimitSectionView.call(this);
   },
 
   drawModelOptionLabel(model = {}) {
-    return `${model.displayName || model.name || model.id}｜${model.description || model.id}`;
+    return window.GameModules.ui.settings.viewHelpers.drawModelOptionLabel.call(this, model);
   },
 
   stage1MaterialMaxIterations() {
-    return Math.max(1, Math.min(8, Math.round(Number(this.settingsState?.stage1MaterialMaxIterations) || 2)));
+    return window.GameModules.ui.settings.viewHelpers.stage1MaterialMaxIterations.call(this);
   },
 
   stage1MaterialIterationLimitText() {
-    return this.settingsState?.stage1MaterialIterationLimited ? `${this.stage1MaterialMaxIterations()} 次` : '不限制';
+    return window.GameModules.ui.settings.viewHelpers.stage1MaterialIterationLimitText.call(this);
+  },
+
+  settingsSummaryView() {
+    return window.GameModules.ui.settings.viewHelpers.settingsSummaryView.call(this);
   },
 };
+
+
+
