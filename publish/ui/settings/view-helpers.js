@@ -213,11 +213,26 @@ window.GameModules.ui.settings.viewHelpers = Object.assign(window.GameModules.ui
   },
 
   drawModelSectionView() {
+    const isPixai = (this.settingsState?.drawProvider || '') === 'pixai';
     return {
       title: 'AI 生成图模型',
       description: '用于微信相册等图片生成请求。',
       rows: this.currentDrawModelRows(),
       selectedId: this.selectedDrawModelId(),
+      showPixaiModelVersion: isPixai,
+      pixaiModelVersionTitle: 'PixAI modelVersionId',
+      pixaiModelVersionDescription: '可覆盖 PixAI 默认模型版本 ID，用于精确指定图片生成模型。',
+      pixaiModelVersionValue: this.settingsState?.pixaiModelVersionId || '',
+      showPixaiMode: isPixai,
+      pixaiModeTitle: 'PixAI 模式',
+      pixaiModeDescription: '对应 PixAI v2 mode，可选 lite / standard / pro / ultra。',
+      pixaiModeValue: this.settingsState?.pixaiMode || 'standard',
+      pixaiModeOptions: [
+        { key: 'lite', value: 'lite', label: 'lite' },
+        { key: 'standard', value: 'standard', label: 'standard' },
+        { key: 'pro', value: 'pro', label: 'pro' },
+        { key: 'ultra', value: 'ultra', label: 'ultra' },
+      ],
     };
   },
 });

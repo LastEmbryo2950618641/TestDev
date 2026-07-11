@@ -2419,19 +2419,18 @@
           </template>
         </select>
       </section>
-      <section class="model-setting-group" x-show="$store.game.settingsState.drawProvider === 'pixai'">
-        <h3>PixAI modelVersionId</h3>
-        <small>閹垫挸绱?PixAI 濡€崇€锋い鐢告桨楠炲爼鈧瀚ㄩ悧鍫熸拱閿涘苯顦查崚?URL 閺堚偓閸氬簼绔村▓闈涳綖閸掓媽绻栭柌灞烩偓?/small>
-        <input class="text-input" type="text" :value="$store.game.settingsState.pixaiModelVersionId" @change="$store.game.setPixaiModelVersionId($event.target.value)">
+      <section class="model-setting-group" x-show="section.showPixaiModelVersion">
+        <h3 x-text="section.pixaiModelVersionTitle"></h3>
+        <small x-text="section.pixaiModelVersionDescription"></small>
+        <input class="text-input" type="text" :value="section.pixaiModelVersionValue" @change="$store.game.setPixaiModelVersionId($event.target.value)">
       </section>
-      <section class="model-setting-group" x-show="$store.game.settingsState.drawProvider === 'pixai'">
-        <h3>PixAI 鐠愩劑鍣哄Ο鈥崇础</h3>
-        <small>鐎规ɑ鏌?v2 mode閿涙ite / standard / pro / ultra閵?/small>
-        <select :value="$store.game.settingsState.pixaiMode" @change="$store.game.setPixaiMode($event.target.value)">
-          <option value="lite">lite</option>
-          <option value="standard">standard</option>
-          <option value="pro">pro</option>
-          <option value="ultra">ultra</option>
+      <section class="model-setting-group" x-show="section.showPixaiMode">
+        <h3 x-text="section.pixaiModeTitle"></h3>
+        <small x-text="section.pixaiModeDescription"></small>
+        <select :value="section.pixaiModeValue" @change="$store.game.setPixaiMode($event.target.value)">
+          <template x-for="option in section.pixaiModeOptions" :key="option.key">
+            <option :value="option.value" x-text="option.label"></option>
+          </template>
         </select>
       </section>
       <section class="model-setting-group">
