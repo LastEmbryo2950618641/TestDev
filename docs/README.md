@@ -58,6 +58,55 @@
   - `docs/plans/2026-07-10-ui-faction-overview-view-helpers-phase1-validation.md`
   - `docs/plans/2026-07-10-ui-real-world-display-helpers-phase2-validation.md`
 
+## 文档分层规则（2026-07-12 补充）
+
+### 1. 哪些文档应该长期保留在根目录
+
+以下类型可以长期保留在 `docs/architecture/` 或 `docs/plans/` 根目录：
+
+- 长期架构规则
+- 目录边界说明
+- 多端职责说明
+- playbook / migration / boundary / contract / roadmap
+- 仍会被后续实现反复引用的 requirement / plan
+- 能代表稳定做法的少量 validation 样例
+- 阶段最终 handoff / final summary / requirement audit
+
+### 2. 哪些文档默认视为过程性文档
+
+以下类型默认不是长期核心文档：
+
+- `draft-validation`
+- `skeleton-validation`
+- `runtime-entry-verification`
+- 一次性 smoke-run checklist / runbook / execution-guide
+- 临时 triage / quick-navigation / candidate-list
+- 重复度很高、只服务于某一轮试探的 validation
+
+这类文档允许短期存在，但后续应被删除、合并，或下沉到专门归档位置，而不是长期堆在根目录。
+
+### 3. plans 根目录的控制规则
+
+- `docs/plans/` 根目录优先放“还会继续指导实现”的计划文档
+- 若同主题已经形成正式 `plan`，后续多轮试探性 validation 不应无限堆在同层
+- 同类 validation 超过 3 份时，应考虑：
+  - 只保留最能代表落地结果的 1 到 2 份
+  - 其余作为过程噪音清理
+- 不要把“计划”与“验证流水账”都放在根目录同等对待
+
+### 4. architecture 根目录的控制规则
+
+- `docs/architecture/` 根目录只保留长期边界、长期规则、长期索引
+- 一次性执行指南、即时状态快照、临时导航页不应长期停留在根目录
+- 若某文档主要作用只是记录某天某次尝试过程，应优先视为可清理候选
+
+### 5. 后续 AI 协作约束
+
+- 不要为了显得严谨就为每一个小动作都新建一份 validation 文档
+- 新增文档前先判断它是“长期规则”还是“短期记录”
+- 如果只是一次性尝试结果，优先合并进已有 plan / audit / summary，而不是新增平行文档
+- 文档治理目标不是“数量变多”，而是“后续接手更快、更稳”
+
 ## 协作约束
 
 - 不要把需求、计划、验证混写在同一份文档里

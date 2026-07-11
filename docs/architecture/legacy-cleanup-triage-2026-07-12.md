@@ -30,14 +30,14 @@ These are active runtime or evidence-carrying paths and should not be cleaned du
 These should not be deleted immediately, but new work should avoid expanding them unless needed for compatibility.
 
 - old compatibility entry files under `publish/` that still bridge callers into newer structure
-- `publish/*_bak` directories:
-  - `publish/predefined-role-cards_bak`
-  - `publish/predefined-templete_bak`
-  - `publish/prompts_bak`
-  - `publish/prompts_bak2`
-- compatibility mentions already visible in runtime docs and manifests, for example:
+- manifest-loaded compatibility or legacy bridge files that are still active:
+  - `publish/storage.js`
+  - `publish/settings-actions.js`
+  - `publish/loading-actions.js`
+  - `publish/save-actions.js`
   - `publish/update/generic-update-compat.js`
-  - compatibility-oriented aggregator entry notes inside `publish/ui/...`
+  - `publish/update/settlement-ui-bridge.js`
+- compatibility-oriented aggregator entry notes inside `publish/ui/...`
 
 ## Class C: Cleanup Candidates Requiring Reference Check
 These look removable eventually, but should be reference-checked before deletion.
@@ -46,7 +46,21 @@ These look removable eventually, but should be reference-checked before deletion
 - old compatibility shells whose callers have not yet been fully migrated
 - generated logs or snapshot evidence that might still be referenced by current reports
 
-## Class D: First-Batch Safe Delete Candidates
+## Class D: Reference-Checked Legacy Backup Candidates
+These legacy backup directories currently have no code-level references in `publish/`, `tools/`, `dev/`, `desktop/`, or `mobile/` and are not part of the runtime manifests. They should still be deleted in a dedicated cleanup commit, not mixed into functional changes.
+
+- `publish/predefined-role-cards_bak`
+  - legacy copies of role card JS/JSON files
+  - active runtime has already moved to `publish/predefined-role-cards/`
+- `publish/predefined-templete_bak`
+  - legacy template JSON snapshots
+  - active runtime has already moved to `publish/predefined-templete/`
+- `publish/prompts_bak`
+- `publish/prompts_bak2`
+  - legacy prompt markdown sets
+  - active runtime and prompt generation now read from `publish/prompts/`
+
+## Class E: First-Batch Safe Delete Candidates
 These are the best initial cleanup targets after an explicit cleanup pass is approved.
 
 Root-level temporary scripts:
@@ -92,6 +106,6 @@ Root-level temporary scripts:
 
 ## Recommended Cleanup Order
 1. Do not delete runtime/evidence directories while Android device install validation is still pending.
-2. First cleanup pass should target only Class D temporary root scripts.
-3. Second cleanup pass should review Class B and C with explicit reference checks.
-4. Final cleanup pass can happen after multi-platform validation is considered stable enough to retire compatibility leftovers.
+2. First cleanup pass should target only Class E temporary root scripts.
+3. Second cleanup pass can remove Class D backup directories in a dedicated cleanup commit.
+4. Final cleanup pass should revisit Class B and C only after compatibility callers are fully retired.
