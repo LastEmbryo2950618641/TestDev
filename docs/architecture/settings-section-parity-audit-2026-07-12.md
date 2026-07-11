@@ -75,3 +75,17 @@ Updated practical reading:
 - text field parity is already strong
 - text action parity is mostly complete except for the system-role test surface
 - old duplicated settings block is still not removable as a whole, but its cleanup blocker is now narrower than initially assessed
+
+## 2026-07-12 addendum: system test duplication note
+Further inspection shows that `system role test` is not only present inside the older duplicated settings block.
+A dedicated `systemTestState.open` app surface already exists later in `publish/index.html` and provides the fuller test flow, including:
+- system text input
+- user text input
+- run action
+- result/error rendering
+- additional thinking-test related fields
+
+This changes the interpretation of the old settings-block `system role test` section:
+- it is no longer the sole owner of that capability
+- it behaves more like a historical shortcut / duplicate entry fragment
+- cleanup risk should now be framed around whether that shortcut is still intentionally needed, not around loss of the underlying system-test capability itself
