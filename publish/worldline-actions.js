@@ -1,8 +1,29 @@
-/**
+﻿/**
  * 图书馆世界线展示辅助。
  */
 window.GameModules = window.GameModules || {};
 
+const worldlineViewHelperForwarders = {
+  selectWorldlineDebugSection: 'selectDebugSection',
+  isWorldlineDebugSection: 'isDebugSection',
+  toggleWorldline: 'toggleLore',
+  isWorldlineOpen: 'isLoreOpen',
+  controlWorldLores: 'controlLores',
+  realWorldTag: 'realTag',
+  realWorldLore: 'realLore',
+  timelineItems: 'timelineItems',
+  worldlineEventsNewestFirst: 'worldlineEventsNewestFirst',
+  realWorldSummarizedPlots: 'summarizedPlots',
+  selectRealWorldPlot: 'selectRealWorldPlot',
+  realWorldSelectedPlot: 'selectedPlot',
+  realWorldPlotEvents: 'selectedPlotEvents',
+  realWorldRecordingEvents: 'recordingEvents',
+  timelineMeta: 'timelineMeta',
+};
+
+function callWorldlineViewHelper(name, context, ...args) {
+  return window.GameModules.ui.worldline.viewHelpers[name].call(context, ...args);
+}
 window.GameModules.worldlineActions = {
   openWorldlineApp() {
     this.closeDesktopApps?.();
@@ -13,34 +34,6 @@ window.GameModules.worldlineActions = {
   closeWorldlineApp() {
     this.worldlineAppOpen = false;
     this.closeAppToDesktop?.();
-  },
-
-  selectWorldlineDebugSection(name) {
-    return window.GameModules.ui.worldline.viewHelpers.selectDebugSection.call(this, name);
-  },
-
-  isWorldlineDebugSection(name) {
-    return window.GameModules.ui.worldline.viewHelpers.isDebugSection.call(this, name);
-  },
-
-  toggleWorldline(lore) {
-    return window.GameModules.ui.worldline.viewHelpers.toggleLore.call(this, lore);
-  },
-
-  isWorldlineOpen(lore) {
-    return window.GameModules.ui.worldline.viewHelpers.isLoreOpen.call(this, lore);
-  },
-
-  controlWorldLores() {
-    return window.GameModules.ui.worldline.viewHelpers.controlLores.call(this);
-  },
-
-  realWorldTag() {
-    return window.GameModules.ui.worldline.viewHelpers.realTag.call(this);
-  },
-
-  realWorldLore() {
-    return window.GameModules.ui.worldline.viewHelpers.realLore.call(this);
   },
 
   realWorldline() {
@@ -73,40 +66,8 @@ window.GameModules.worldlineActions = {
     return lore.worldline;
   },
 
-  timelineItems(lore) {
-    return window.GameModules.ui.worldline.viewHelpers.timelineItems.call(this, lore);
-  },
-
-  worldlineEventsNewestFirst(events = []) {
-    return window.GameModules.ui.worldline.viewHelpers.worldlineEventsNewestFirst.call(this, events);
-  },
-
   worldlinePlots(lore) {
     return window.GameModules.worldlinePlots.items(this.loreWorldline(lore) || {});
-  },
-
-  realWorldSummarizedPlots() {
-    return window.GameModules.ui.worldline.viewHelpers.summarizedPlots.call(this);
-  },
-
-  selectRealWorldPlot(plotId) {
-    return window.GameModules.ui.worldline.viewHelpers.selectRealWorldPlot.call(this, plotId);
-  },
-
-  realWorldSelectedPlot() {
-    return window.GameModules.ui.worldline.viewHelpers.selectedPlot.call(this);
-  },
-
-  realWorldPlotEvents(plot = null) {
-    return window.GameModules.ui.worldline.viewHelpers.selectedPlotEvents.call(this, plot);
-  },
-
-  realWorldRecordingEvents() {
-    return window.GameModules.ui.worldline.viewHelpers.recordingEvents.call(this);
-  },
-
-  timelineMeta(item) {
-    return window.GameModules.ui.worldline.viewHelpers.timelineMeta.call(this, item);
   },
 
   connectionWorldlineEvent(line = {}, context = '') {
@@ -157,3 +118,9 @@ window.GameModules.worldlineActions = {
     return window.GameModules.domain.worldline.formatHelpers.factionRelations.call(this, faction);
   },
 };
+Object.entries(worldlineViewHelperForwarders).forEach(([name, helperName]) => {
+  window.GameModules.worldlineActions[name] = function worldlineViewHelperFacade(...args) {
+    return callWorldlineViewHelper(helperName, this, ...args);
+  };
+});
+
