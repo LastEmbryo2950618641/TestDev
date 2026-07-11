@@ -391,13 +391,6 @@
           <small>娴犲懍绻氱€涙ê婀ぐ鎾冲濞村繗顫嶉崳?鐎涙ɑ銆傞悳顖氼暔閵?/small>
           <input class="text-input" type="password" x-model="$store.game.settingsState.deepseekApiKey" @change="$store.game.setDeepseekApiKey($event.target.value)">
         </section>
-        <section class="model-setting-group activation-system-test">
-          <h3>System 鐟欐帟澹婂ù瀣槸閿涘牆褰查柅澶涚礆</h3>
-          <small>閻?system + user 濞戝牊浼呮宀冪槈瑜版挸澧犻弬鍥ㄦ拱濡€崇€烽弰顖氭儊閺€顖涘瘮 system role閵嗗倻绮ㄩ弸婊€绮庨悽銊ょ艾鐠嬪啳鐦敍灞肩瑝瑜板崬鎼峰┑鈧ú缁樼ウ缁嬪鈧?/small>
-          <button class="ghost-wide" type="button" @click="$store.game.runSystemRoleTest()" :disabled="$store.game.systemTestState.loading || $store.game.settingsState.modelTestLoading" x-text="$store.game.systemTestState.loading ? 'System 濞村鐦稉顓涒偓? : '閸欐垿鈧?system + user 濞村鐦?"></button>
-          <p class="settings-status settings-error" x-show="$store.game.systemTestState.error" x-text="$store.game.systemTestState.error"></p>
-          <pre class="settings-status activation-system-result" x-show="$store.game.systemTestState.result && !$store.game.systemTestState.error" x-text="$store.game.systemTestState.result"></pre>
-        </section>
         <section class="model-setting-group">
           <h3>閻ｅ矂娼版搴㈢壐</h3>
           <small>濞ｈ精澹?/ 閻у€熷 / 缁澹?/ 閽栧嫯宓庨敍灞惧灗閼奉亜鐣炬稊澶夊瘜妫版澹婇妴?/small>
