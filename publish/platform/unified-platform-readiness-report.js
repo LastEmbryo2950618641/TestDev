@@ -43,7 +43,7 @@ function summarizePlatform(name, registry, preflight, gapReport = null) {
   };
 }
 
-export function createUnifiedPlatformReadinessReport() {
+export function createUnifiedPlatformReadinessReport(options = {}) {
   const desktopRegistry = createDesktopPlatformCapabilityRegistry(globalThis);
   const desktopPreflight = createDesktopPlatformPreflightReport(globalThis);
   const desktopGapReport = createDesktopPlatformPackagingGapReport(globalThis);
@@ -87,15 +87,19 @@ export function createUnifiedPlatformReadinessReport() {
     },
   };
 
-  const platformDir = resolvePlatformDir();
-  const artifactPath = path.resolve(platformDir, '.artifacts', 'unified-platform-readiness.json');
-  try {
-    fs.mkdirSync(path.dirname(artifactPath), { recursive: true });
-    fs.writeFileSync(artifactPath, JSON.stringify(report, null, 2));
-  } catch {}
+  const persistArtifact = options.persistArtifact !== false;
+  if (persistArtifact) {
+    const platformDir = resolvePlatformDir();
+    const artifactPath = path.resolve(platformDir, '.artifacts', 'unified-platform-readiness.json');
+    try {
+      fs.mkdirSync(path.dirname(artifactPath), { recursive: true });
+      fs.writeFileSync(artifactPath, JSON.stringify(report, null, 2));
+    } catch {}
+  }
 
   return report;
 }
 
-const report = createUnifiedPlatformReadinessReport();
+const persistArtifact = !process.argv.includes('--no-artifact-write');
+const report = createUnifiedPlatformReadinessReport({ persistArtifact });
 process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);

@@ -24,7 +24,11 @@ const preflight = runJson('node', ['desktop/shell/desktop-packaging-preflight.js
 const toolchain = runJson('node', ['desktop/shell/desktop-packaging-toolchain-preflight.cli.js']);
 const dryRunPlan = runJson('node', ['desktop/shell/desktop-packaging-dry-run-plan.cli.js']);
 const configState = runJson('node', ['desktop/shell/desktop-packaging-electron-dist-state.cli.js']);
-const unified = runJson('node', ['publish/platform/unified-platform-readiness-report.js']);
+const useNoArtifactWrite = process.argv.includes('--no-artifact-write');
+const unifiedArgs = useNoArtifactWrite
+  ? ['publish/platform/unified-platform-readiness-report.js', '--no-artifact-write']
+  : ['publish/platform/unified-platform-readiness-report.js'];
+const unified = runJson('node', unifiedArgs);
 const dryRunState = safeRun('node', ['desktop/shell/desktop-packaging-dry-run-plan-verify.cli.js']);
 
 const report = {
