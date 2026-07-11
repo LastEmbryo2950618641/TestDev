@@ -1,0 +1,14 @@
+﻿# Generated desktop packaging outputs and local verification caches
+desktop/shell/dist/
+desktop/shell/dist-minimal/
+desktop/shell/.artifacts/
+desktop/shell/.verify-storage/
+
+# Generated mobile shell outputs and local verification caches
+mobile/android-webview-shell/.gradle/
+mobile/android-webview-shell/app/build/
+mobile/shell/.verify-storage/
+mobile/shell/.bridge-verify-storage/
+
+# Local mobile toolchain downloads
+mobile/tools/
