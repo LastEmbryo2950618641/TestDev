@@ -44,3 +44,30 @@ That makes calendar a strong candidate for the next helper-first pass.
 
 ## Practical recommendation
 Treat `publish/calendar-actions.js` as the best next top-level entry for another small, provable cleanup slice.
+## 2026-07-12 addendum: post-first-pass assessment
+After the first helper extraction pass, the remaining calendar helpers are less ideal for immediate further extraction.
+
+### Why the next layer is less clean
+The remaining notable read-side functions:
+- `allCalendarEvents()`
+- `sortedCalendarEvents()`
+
+already sit closer to:
+- state/data-source aggregation
+- event-system composition
+- externally exposed app-skill style read APIs
+
+That makes them less presentation-pure than:
+- `calendarMonthTitle()`
+- `calendarDays()`
+- `eventsForCalendarDay(day)`
+- `formatCalendarTime(value)`
+
+### Practical implication
+The first calendar pass captured the highest-value low-risk display derivations.
+A second immediate pass should not be forced unless a dedicated calendar read-model/helper boundary is introduced.
+
+### Updated recommendation
+- treat the current calendar line as a successful first-pass cleanup
+- keep `allCalendarEvents()` / `sortedCalendarEvents()` in the top-level entry for now
+- switch to the next candidate when looking for another helper-first refactor win
