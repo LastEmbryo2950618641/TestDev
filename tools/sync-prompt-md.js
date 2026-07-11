@@ -38,5 +38,5 @@ if (opts.kind === 'template') {
 }
 const out = opts.out ? path.resolve(root, opts.out) : sourcePath.replace(/\.md$/u, '.js');
 fs.mkdirSync(path.dirname(out), { recursive: true });
-fs.writeFileSync(out, output);
+fs.writeFileSync(out, output, 'utf8');
 console.log(path.relative(root, out).replace(/\\/g, '/'));

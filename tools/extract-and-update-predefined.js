@@ -35,7 +35,7 @@ if (!raw) {
 
 // Validate JSON
 const data = JSON.parse(raw);
-fs.writeFileSync(outPath, JSON.stringify(data, null, 2));
+fs.writeFileSync(outPath, JSON.stringify(data, null, 2), 'utf8');
 console.log(`Wrote ${outPath} (${data.characters?.length || 0} characters)`);
 
 execSync(`node "${path.join(__dirname, 'update-predefined-from-export.js')}" "${outPath}"`, {
