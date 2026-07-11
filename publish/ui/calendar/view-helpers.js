@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 window.GameModules.ui = window.GameModules.ui || {};
 window.GameModules.ui.calendar = window.GameModules.ui.calendar || {};
 
@@ -38,6 +38,7 @@ window.GameModules.ui.calendar.viewHelpers = {
     };
   },
 };
+
 window.GameModules.ui.calendar.viewHelpers = Object.assign(window.GameModules.ui.calendar.viewHelpers || {}, {
   calendarMonthTitle() {
     this.initCalendar?.();

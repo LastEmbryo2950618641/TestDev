@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 window.GameModules.ui = window.GameModules.ui || {};
 window.GameModules.ui.loading = window.GameModules.ui.loading || {};
 
@@ -50,6 +50,7 @@ window.GameModules.ui.loading.progressView = {
     return totals.total ? Math.min(100, Math.round((totals.done / totals.total) * 100)) : 0;
   },
 };
+
 window.GameModules.ui.loading.progressView = Object.assign(window.GameModules.ui.loading.progressView || {}, {
   roleCardLoadingSummary() {
     const cards = this.roleCardLoadingState?.cards || [];
