@@ -162,3 +162,20 @@
 - `docs/architecture/encoding-collaboration-rules.md`
 - `docs/architecture/ai-development-workflow.md`
 - `docs/plans/2026-07-11-worktree-risk-audit.md`
+
+## 2026-07-12 follow-up: status changed after initial stabilization
+
+Current re-check result:
+- `node --check publish/ui/settings/view-helpers.js` now passes
+- `node --check publish/settings-actions.js` now passes
+- the active problem is no longer “syntax blocked”, but “readability degraded by legacy mojibake in selected literals”
+
+Practical implication:
+- do not keep following the old assumption that settings is still in a syntax-broken state
+- the safer current slice is targeted readability/encoding stabilization inside helper-facing text first
+- request flow, save flow, provider selection, and system-test behavior should still remain out of scope for these narrow repairs
+
+2026-07-12 narrow repair landed:
+- restored a first small set of readable Chinese labels inside `publish/ui/settings/view-helpers.js`
+- kept the pass limited to helper-facing summary/label text
+- re-verified with `node --check publish/ui/settings/view-helpers.js` after the repair

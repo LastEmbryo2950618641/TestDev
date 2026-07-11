@@ -4,8 +4,8 @@ window.GameModules.ui.settings = window.GameModules.ui.settings || {};
 
 window.GameModules.ui.settings.viewHelpers = {
   textModelOptionLabel(model = {}) {
-    const name = model.displayName || model.internalName || '鏈煡妯″瀷';
-    const price = model.price || '鏈煡';
+    const name = model.displayName || model.internalName || '未知模型';
+    const price = model.price || '未知';
     const thinking = model.thinkingSupported === true ? 'true' : 'false';
     const description = String(model.description || '').trim();
     return `${name} - 系数 ${price} - 支持深度思考 ${thinking}${description ? ` - ${description}` : ""}`;
@@ -14,9 +14,9 @@ window.GameModules.ui.settings.viewHelpers = {
   aiOutputLimitEffectiveText(kind = 'other') {
     const mode = this.aiOutputLimitMode(kind);
     if (mode === 'unlimited') return '无限制';
-    if (mode === 'limited') return `闄愬埗 ${this.aiOutputLimitMax(kind)} tokens`;
+    if (mode === 'limited') return `限制 ${this.aiOutputLimitMax(kind)} tokens`;
     const globalMode = this.aiOutputLimitMode('global');
-    return globalMode === 'limited' ? `璺熼殢缁熶竴锛氶檺鍒?${this.aiOutputLimitMax('global')} tokens` : '璺熼殢缁熶竴锛氭棤闄愬埗';
+    return globalMode === 'limited' ? `跟随统一：限制 ${this.aiOutputLimitMax('global')} tokens` : '跟随统一：无限制';
   },
 
   selectedDrawModelId() {
@@ -82,7 +82,7 @@ window.GameModules.ui.settings.viewHelpers = Object.assign(window.GameModules.ui
   },
 
   textModelSummaryLabel() {
-    return this.modelId || this.settingsState?.textModelId || '鏈€夋嫨';
+    return this.modelId || this.settingsState?.textModelId || '未选择';
   },
 
   drawProviderSummaryLabel() {
@@ -99,12 +99,12 @@ window.GameModules.ui.settings.viewHelpers = Object.assign(window.GameModules.ui
 
   currentSettingsSummaryParts() {
     return [
-      `鏂囨湰鎻愪緵鏂?${this.textProviderSummaryLabel()}`,
-      `鏂囨湰 ${this.textModelSummaryLabel()}`,
-      `缁樺浘骞冲彴 ${this.drawProviderSummaryLabel()}`,
-      `缁樺浘 ${this.drawModelSummaryLabel()}`,
-      `Stage1璧勬枡杩唬 ${this.stage1MaterialIterationLimitText()}`,
-      `姝ｆ枃杈撳嚭 ${this.stage3OutputSummaryLabel()}`,
+      `文本提供方 ${this.textProviderSummaryLabel()}`,
+      `文本 ${this.textModelSummaryLabel()}`,
+      `绘图平台 ${this.drawProviderSummaryLabel()}`,
+      `绘图 ${this.drawModelSummaryLabel()}`,
+      `Stage1资料迭代 ${this.stage1MaterialIterationLimitText()}`,
+      `正文输出 ${this.stage3OutputSummaryLabel()}`,
     ];
   },
 
@@ -130,12 +130,12 @@ window.GameModules.ui.settings.viewHelpers = Object.assign(window.GameModules.ui
   currentSettingsSummaryRows() {
     return [
       { key: 'text-provider', label: '文本提供方', value: this.textProviderSummaryLabel() },
-      { key: 'text-model', label: '鏂囨湰妯″瀷', value: this.textModelSummaryLabel() },
-      { key: 'draw-provider', label: '缁樺浘骞冲彴', value: this.drawProviderSummaryLabel() },
-      { key: 'draw-model', label: '缁樺浘妯″瀷', value: this.drawModelSummaryLabel() },
-      { key: 'writing-style', label: '绗旈', value: this.allWritingStyles().find((style) => style.id === this.selectedWritingStyleId())?.name || '鏈€夋嫨' },
-      { key: 'stage1-iteration', label: 'Stage1璧勬枡杩唬', value: this.stage1MaterialIterationLimitText() },
-      { key: 'stage3-output', label: '姝ｆ枃杈撳嚭', value: this.stage3OutputSummaryLabel() },
+      { key: 'text-model', label: '文本模型', value: this.textModelSummaryLabel() },
+      { key: 'draw-provider', label: '绘图平台', value: this.drawProviderSummaryLabel() },
+      { key: 'draw-model', label: '绘图模型', value: this.drawModelSummaryLabel() },
+      { key: 'writing-style', label: '笔风', value: this.allWritingStyles().find((style) => style.id === this.selectedWritingStyleId())?.name || '未选择' },
+      { key: 'stage1-iteration', label: 'Stage1资料迭代', value: this.stage1MaterialIterationLimitText() },
+      { key: 'stage3-output', label: '正文输出', value: this.stage3OutputSummaryLabel() },
     ];
   },
 
@@ -272,3 +272,5 @@ window.GameModules.ui.settings.viewHelpers = Object.assign(window.GameModules.ui
     };
   },
 });
+
+
