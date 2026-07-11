@@ -12,3 +12,11 @@ mobile/shell/.bridge-verify-storage/
 
 # Local mobile toolchain downloads
 mobile/tools/
+
+
+# Local mobile shell machine-bound state
+mobile/android-webview-shell/.last-asset-sync.json
+mobile/android-webview-shell/.last-build-attempt.json
+mobile/android-webview-shell/local.properties
+mobile/android-webview-shell/local.properties.generated
+
