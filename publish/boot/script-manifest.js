@@ -1,4 +1,4 @@
-﻿window.GameScriptManifest = {
+window.GameScriptManifest = {
   "version": "2026-07-10-shared-control-offline-v1",
   "chunks": {
     "core": [
@@ -255,6 +255,7 @@
       "domain/wechat/change-panel-helpers.js",
       "wechat-view-actions.js",
       "wechat-memory-context-actions.js",
+      "app/wechat/chat-session.js",
       "wechat-chat-actions.js",
       "wechat-past-event-actions.js",
       "wechat-incoming-actions.js",
@@ -337,7 +338,3 @@ window.GameScriptManifest.classify = function classify(url) {
   if (/^real-world-|^org-territory|^inference\/|^story-agent-context\.js$|^assets\/data\/real-world|^game-premise\.js$|^update\/(territory|org-|membership|character-schedule|org-status)/.test(p)) return 'gameplay';
   return 'core';
 };
-
-
-
-
