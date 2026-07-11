@@ -1,4 +1,4 @@
-﻿# Publish Legacy Entry Audit (2026-07-12)
+# Publish Legacy Entry Audit (2026-07-12)
 
 This note records the current status of the remaining high-risk top-level compatibility entries under `publish/`.
 
@@ -54,3 +54,14 @@ Frame them as:
    - it leaves the script manifest
    - its state ownership moves elsewhere
    - its callers are proven retired
+## Index settings duplication note
+A duplicated early settings UI surface is still present inside `publish/index.html` around the older activation/settings area.
+It currently overlaps with the newer section-based settings surfaces later in the same page, including:
+- text provider/model controls
+- draw provider/model controls
+- PixAI-specific config fields
+
+Practical implication:
+- do not spend additional migration effort on the duplicated early block unless required for compatibility
+- prefer migrating and stabilizing the later section-based settings surfaces
+- after caller parity is verified, treat the older duplicated block as a cleanup candidate rather than a long-term target
