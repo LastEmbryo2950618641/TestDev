@@ -52,3 +52,24 @@ Treat `publish/role-card-loading-actions.js` as the best next cleanup line if th
 - helper-first extraction
 - small, provable cleanup slices
 - no gameplay-rule changes
+## 2026-07-12 addendum: post-first-pass assessment
+After the first helper extraction pass, the next remaining functions in `publish/role-card-loading-actions.js` are less attractive cleanup targets.
+
+### Why a second immediate pass is less compelling
+The remaining candidates are more tightly coupled to runtime state ownership, retry behavior, or default step construction, for example:
+- `roleCardLoadingFindId(id)`
+- `roleCardRetrySource(id)`
+- `roleCardLoadingCard(id)`
+- `roleCardLoadingDefaultSteps(type)`
+- retry-related mutators and step-state helpers
+
+These are not as presentation-pure as the first extracted helper set.
+
+### Practical implication
+The first pass delivered the highest-value low-risk extraction already.
+A second pass should not be forced unless a new dedicated read-helper boundary is introduced.
+
+### Updated recommendation
+- treat the current role-card-loading line as a successful first-pass cleanup
+- avoid over-optimizing it in the same style immediately
+- switch to the next top-level candidate with a clearer presentation/helper cluster when seeking another low-risk win
