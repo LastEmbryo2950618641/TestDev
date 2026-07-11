@@ -1,4 +1,4 @@
-﻿# Settings Actions Split Map (2026-07-12)
+# Settings Actions Split Map (2026-07-12)
 
 This note classifies `publish/settings-actions.js` before further refactor work.
 
@@ -58,3 +58,12 @@ These are the best future low-risk split targets.
 - not removable
 - not a thin compatibility shell
 - a future split target, but only via helper-first extraction
+
+## Section-based caller rollout note
+Future caller migration should prefer section-based rollout instead of method-by-method cleanup.
+Safer slices include:
+- text provider / text model surface
+- draw provider / draw model surface
+- output limit / summary surface
+
+This reduces the chance of partially migrating one helper while leaving the rest of the same visual section coupled to `$store.game` facades.
