@@ -1,111 +1,69 @@
-﻿# Legacy Cleanup Triage
+﻿# Legacy Cleanup Triage (2026-07-12)
 
-This document classifies current cleanup candidates without deleting any files.
+This note groups current top-level `publish/` entries by cleanup readiness so later legacy cleanup can happen from evidence instead of intuition.
 
-## Goal
-- Preserve the shared runtime in `publish/`
-- Avoid deleting any file that still participates in browser, desktop, or Android execution
-- Separate safe cleanup candidates from legacy-but-still-useful compatibility layers
+## Purpose
+- support the long-term goal of cleaning legacy entry code only after replacement boundaries are stable
+- separate “already helper-thinned” entries from “still mixed and not ready” entries
+- give later sessions a safe order for post-migration cleanup
 
-## Class A: Must Keep Now
-These are active runtime or evidence-carrying paths and should not be cleaned during the current multi-platform stabilization phase.
+## Group A: helper-thinned, closer to compatibility-shell shape
+These entries already have meaningful readonly/view helper logic moved out and now look more like orchestration shells plus remaining runtime logic:
+- `publish/event-actions.js`
+- `publish/company-actions.js`
+- `publish/worldline-actions.js`
 
-- `publish/`
-  - authoritative shared gameplay/runtime chain
-  - still loaded by browser, desktop, and Android hosts
-- `desktop/shell/dist/`
-- `desktop/shell/dist-minimal/`
-  - real desktop packaging artifacts
-- `desktop/shell/.artifacts/`
-  - current desktop execution and packaging evidence
-- `mobile/android-webview-shell/app/build/`
-  - current Android APK output and build evidence
-- `mobile/android-webview-shell/.artifacts/`
-  - current Android shell evidence
-- `mobile/android-webview-shell/local.properties`
-- `mobile/android-webview-shell/local.properties.generated`
-  - current Android SDK/materialization evidence
+Current evidence:
+- explicit top-level UI facade clusters were consolidated into shared forwarding registration
+- matching boundary audits exist in `docs/architecture/*entry-audit-2026-07-12.md`
+- top-level files still keep write-side or mixed runtime logic and are therefore not yet deletable
 
-## Class B: Keep But Mark As Legacy / Compatibility
-These should not be deleted immediately, but new work should avoid expanding them unless needed for compatibility.
+Cleanup readiness:
+- not ready for deletion
+- ready for continued thinning in later passes
+- strong candidates for future “compatibility shell only” end state
 
-- old compatibility entry files under `publish/` that still bridge callers into newer structure
-- manifest-loaded compatibility or legacy bridge files that are still active:
-  - `publish/storage.js`
-  - `publish/settings-actions.js`
-  - `publish/loading-actions.js`
-  - `publish/save-actions.js`
-  - `publish/update/generic-update-compat.js`
-  - `publish/update/settlement-ui-bridge.js`
-- compatibility-oriented aggregator entry notes inside `publish/ui/...`
+## Group B: helper extraction underway, but still mid-transition
+These entries already have helper landing zones or partial forwarding, but still need more consolidation before any cleanup conversation:
+- `publish/settings-actions.js`
+- `publish/loading-actions.js`
+- `publish/role-card-loading-actions.js`
+- `publish/calendar-actions.js`
 
-## Class C: Cleanup Candidates Requiring Reference Check
-These look removable eventually, but should be reference-checked before deletion.
+Current evidence:
+- dedicated helper files already exist under `publish/ui/...`
+- previous audits confirm first-pass helper movement or forwarding concentration
+- top-level entries still visibly mix state mutation, runtime orchestration, and remaining UI composition
 
-- backup directories under `publish/` that may still serve as manual rollback material
-- old compatibility shells whose callers have not yet been fully migrated
-- generated logs or snapshot evidence that might still be referenced by current reports
+Cleanup readiness:
+- not ready for deletion
+- keep migrating helper-facing logic first
+- reassess only after another thinning pass or two
 
-## Class D: Reference-Checked Legacy Backup Candidates
-These legacy backup directories currently have no code-level references in `publish/`, `tools/`, `dev/`, `desktop/`, or `mobile/` and are not part of the runtime manifests. They should still be deleted in a dedicated cleanup commit, not mixed into functional changes.
+## Group C: not yet in cleanup discussion
+Entries outside the audited/thinned path should not be pulled into cleanup yet merely for symmetry.
 
-- `publish/predefined-role-cards_bak`
-  - legacy copies of role card JS/JSON files
-  - active runtime has already moved to `publish/predefined-role-cards/`
-- `publish/predefined-templete_bak`
-  - legacy template JSON snapshots
-  - active runtime has already moved to `publish/predefined-templete/`
-- `publish/prompts_bak`
-- `publish/prompts_bak2`
-  - legacy prompt markdown sets
-  - active runtime and prompt generation now read from `publish/prompts/`
+Examples include:
+- modules without an explicit helper audit
+- modules whose top-level files still combine runtime rules, mutation, prompt assembly, and display composition without a clear landing zone
+- platform bridge and host-related files used by web/desktop/mobile runtime assembly
 
-## Class E: First-Batch Safe Delete Candidates
-These are the best initial cleanup targets after an explicit cleanup pass is approved.
+Cleanup readiness:
+- do not delete
+- do not rename for aesthetics alone
+- first create a stable landing zone and prove the boundary with an audit
 
-Root-level temporary scripts:
-- `tmp_fix_event_prompt_literals.js`
-- `tmp_fix_event_quote.js`
-- `tmp_fix_faction_membership_literals.js`
-- `tmp_fix_faction_node_name.js`
-- `tmp_fix_faction_quote_lines.js`
-- `tmp_fix_faction_rolecard_reasons.js`
-- `tmp_fix_faction_role_literals.js`
-- `tmp_fix_faction_stub_init.js`
-- `tmp_fix_faction_sync_literals.js`
-- `tmp_fix_index_encoding.js`
-- `tmp_fix_map_summary.js`
-- `tmp_fix_realworld_block.js`
-- `tmp_insert_local_settings_source_manifest.js`
-- `tmp_insert_sqlite_slot_source_manifest.js`
-- `tmp_patch_event_detail.js`
-- `tmp_patch_event_panel_template.js`
-- `tmp_patch_event_panel_view.js`
-- `tmp_patch_faction_changelog_section.js`
-- `tmp_patch_faction_changelog_template.js`
-- `tmp_patch_faction_overview_helper.js`
-- `tmp_patch_faction_relation_section.js`
-- `tmp_patch_faction_relation_template.js`
-- `tmp_patch_index_bootstrap_local_settings_source.js`
-- `tmp_patch_index_strings.js`
-- `tmp_patch_local_settings_storage_source.js`
-- `tmp_patch_map_panel_view.js`
-- `tmp_patch_readme_shell_dirs.js`
-- `tmp_patch_realworld_blocks.js`
-- `tmp_patch_settings_providers.js`
-- `tmp_patch_settings_sections.js`
-- `tmp_patch_sqlite_save_storage_source.js`
-- `tmp_patch_ui_theme_bootstrap.js`
-- `tmp_repair_settings_model_provider_block.js`
-- `tmp_restore_index_raw.js`
-- `tmp_rewrite_event_detail.js`
-- `tmp_rewrite_faction_overview.js`
-- `tmp_rewrite_realworld_ranges.js`
-- `tmp_update_interior_panel.js`
-- `tmp_update_map_shell.js`
+## Stop boundaries before any legacy cleanup
+- Do not delete a top-level entry only because some helper methods moved out.
+- Do not remove files still referenced by `publish/index.html`, runtime boot flow, desktop renderer, or Android WebView asset assembly.
+- Do not treat `publish/platform/`, `desktop/`, or `mobile/` host/runtime files as ordinary legacy clutter; they remain part of multi-platform assembly work.
+- Do not mix “helper cleanup” with persistence, prompt generation, gameplay mutation, or platform bridge rewrites in the same pass.
 
-## Recommended Cleanup Order
-1. Do not delete runtime/evidence directories while Android device install validation is still pending.
-2. First cleanup pass should target only Class E temporary root scripts.
-3. Second cleanup pass can remove Class D backup directories in a dedicated cleanup commit.
-4. Final cleanup pass should revisit Class B and C only after compatibility callers are fully retired.
+## Recommended post-migration cleanup order
+1. Keep helper-first thinning on audited entries until each top-level file is mostly orchestration plus compatibility forwarding.
+2. Re-scan actual call sites and boot references before deleting any remaining legacy wrapper or duplicated block.
+3. Clean temporary scripts, stale backups, and process-only artifacts before deleting runtime entries.
+4. Only after web/desktop/mobile shared runtime paths are stable, evaluate whether top-level compatibility shells can be removed or merged.
+
+## Current recommendation
+The project is not yet at the “delete old entry files” phase. The safe next move is to continue boundary-thinning on audited entries and use this triage to decide what stays in scope for future cleanup.
