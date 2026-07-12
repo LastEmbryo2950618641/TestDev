@@ -152,18 +152,118 @@ worldline 已形成如下职责分层：
 - 宿主产物仍可见 worldline compat 路径
 - 高风险 `real-world` 旧 helper 文件仍不适合直接纳入这条小步迁移线
 
-## company 模块当前状态
+## company 模块当前迁移结果
 
-company 当前已完成多组 section/header helper 拆分，但本文档记录的是“模板消费收敛”阶段，因此仅说明现状：
+### 已完成的模板消费收敛
 
-- 已形成 summary / organization / field / contract / employment record 等 helper 边界
-- compat facade 仍作为外部统一入口存在
-- 当前更像“helper 拆分已成形”，而不是“模板消费收敛已大面积完成”
+以下片段已经改为优先消费显式 view contract：
 
-因此：
+- company 顶部 header
+  - `publish/index.html`
+  - 当前消费 `companyHeaderView()`
+  - 模板直接读取：
+    - `view.eyebrow`
+    - `view.title`
+    - `view.subtitle`
+    - `view.closeLabel`
+  - 模板不再直接读取在职状态、公司名与工作状态文案
 
-- company 仍然是后续可继续推进的模块
-- 但在“模板 contract 样板成熟度”上暂时落后于 worldline 与 event
+- 出勤卡片
+  - `publish/index.html`
+  - 当前消费 `companyAttendanceView()`
+  - 模板直接读取：
+    - `view.className`
+    - `view.label`
+    - `view.status`
+    - `view.detail`
+    - `view.canCheckIn`
+    - `view.actionLabel`
+  - 模板不再重复直接调用 `currentWorkAttendance()`
+
+- profile 字段列表
+  - `publish/index.html`
+  - 当前消费 `companyFieldSectionView()`
+  - 模板直接读取：
+    - `view.showEmpty`
+    - `view.emptyText`
+    - `view.rows`
+  - 行对象继续提供：
+    - `row.field`
+    - `row.summary`
+    - `row.detail`
+    - `row.isOpen`
+  - 模板不再直接依赖 `companyFields()`、`rpgFieldSummary(...)`、`rpgFieldDetail(...)`、`isRpgFieldOpen(...)`
+
+- 组织结构区块
+  - `publish/index.html`
+  - 当前消费 `companyOrganizationSectionView()`
+  - 模板直接读取：
+    - `view.emptyText`
+    - `view.departments`
+  - 部门对象继续提供：
+    - `dept.key`
+    - `dept.sectionTitle`
+    - `dept.name`
+    - `dept.jobRows`
+  - 岗位对象继续提供：
+    - `job.key`
+    - `job.title`
+    - `job.peopleText`
+  - 模板不再直接读取 `companyOrganization()`、`dept.jobs` 与岗位人员拼接细节
+
+- pay 区块
+  - `publish/index.html`
+  - 当前同时消费：
+    - `companyPayPreviewView()`
+    - `companyContractSectionView()`
+  - 薪酬预览卡直接读取：
+    - `summary.title`
+    - `summary.summaryLine`
+    - `summary.performanceLine`
+  - 合同/投稿列表直接读取：
+    - `view.showEmpty`
+    - `view.emptyText`
+    - `view.contractRows`
+    - `view.submissionRows`
+  - 模板不再直接读取 `monthlyPayPreview()`、`companyState.contracts`、`companyState.submissions`
+
+- 任职记录区块
+  - `publish/index.html`
+  - 当前消费 `companyEmploymentRecordSectionView()`
+  - 模板直接读取：
+    - `view.emptyText`
+    - `view.recordRows`
+  - 记录对象继续提供：
+    - `record.title`
+    - `record.status`
+    - `record.startText`
+    - `record.durationText`
+    - `record.showEnd`
+    - `record.endText`
+  - 模板不再直接处理任职时间格式化与 duration 拼接逻辑
+
+### 当前形成的 helper 模式
+
+company 当前已经形成以下展示分层：
+
+- summary / attendance / pay preview：`company-summary-view-helpers.js`
+- organization section：`company-organization-view-helpers.js`
+- field section：`company-field-section-view-helpers.js`
+- contract / submission section：`company-contract-view-helpers.js`
+- employment record section：`company-employment-record-view-helpers.js`
+- compat 入口：`view-helpers.js`
+
+这说明：
+
+- company 已不只是“helper 拆分已成形”
+- 它现在也进入了“主要模板片段消费 section view / summary view”的阶段
+- 在展示 contract 成熟度上，company 已显著接近 worldline 与 event
+
+### 仍未完成的事项
+
+- compat facade 仍保留并仍被动作层依赖
+- recruit / tools 等区块仍未完全纳入这一轮展示 contract 收敛
+- 因此 company 仍不能进入旧入口删除阶段
 
 ## 当前统一结论
 
@@ -171,7 +271,7 @@ company 当前已完成多组 section/header helper 拆分，但本文档记录�
 
 - event 与 worldline 已进入“模板主要消费 view contract”的阶段
 - 这两者都已显著降低模板层对底层结构和散装 helper 的直接依赖
-- company 已具备 helper 边界，但模板消费收敛证据相对较少
+- company 现在也已积累出较明确的模板消费收敛证据
 - 三个模块目前都还不满足 compat 删除条件
 
 因此当前正确动作仍然是：
@@ -191,12 +291,12 @@ company 当前已完成多组 section/header helper 拆分，但本文档记录�
 - 模板仍直接 `.map(...)` 或拼接文案的片段
 - 同层重复调用同一 panel view 的片段
 
-### 2. 为 company 增补模板消费收敛证据
+### 2. 继续补齐 company 的剩余区块证据
 
 下一阶段可重点观察：
 
-- company 页面模板是否仍有直接依赖底层结构的块
-- 哪些 section 已经可以切换成完整 section view contract
+- recruit / tools 等区块是否也值得纳入统一展示 contract
+- 哪些 company 页面片段仍直接依赖底层结构或旧状态字段
 
 ### 3. 不要把“结构更成熟”误判为“可以删 compat”
 
