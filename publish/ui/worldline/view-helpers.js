@@ -83,6 +83,7 @@ window.GameModules.ui.worldline.viewHelpers = {
     if (item.factionIds?.length) parts.push(`势力:${item.factionIds.join('、')}`);
     return parts.join('｜') || (item.kind === 'story' ? '原著剧情索引' : '世界线事件');
   },
+
   timelineRow(item = {}) {
     return {
       key: [item.kind || 'item', item.eventId || item.order || item.name || 'row'].join('-'),
@@ -91,6 +92,17 @@ window.GameModules.ui.worldline.viewHelpers = {
       name: item.name || '未命名记录',
       detail: item.kind === 'event' ? (item.detail || '') : (item.summary || ''),
       meta: this.timelineMeta(item),
+    };
+  },
+
+  realWorldTimelineRow(item = {}) {
+    return {
+      key: ['real', item.eventId || item.order || item.name || 'row'].join('-'),
+      kind: 'event',
+      time: item.time || '现实时间',
+      name: item.name || '未命名记录',
+      detail: item.kind === 'event' ? (item.detail || '') : (item.summary || ''),
+      meta: (item.status || '现实记录') + '｜情节:' + (item.plotId || item.summary),
     };
   },
 
@@ -111,15 +123,9 @@ window.GameModules.ui.worldline.viewHelpers = {
     return {
       timelineTitle: '现实世界线',
       timeRange: line.timeRange || '时间未知',
-      rows: this.timelineItems(lore).map((item) => ({
-        key: ['real', item.eventId || item.order || item.name || 'row'].join('-'),
-        kind: 'event',
-        time: item.time || '现实时间',
-        name: item.name || '未命名记录',
-        detail: item.kind === 'event' ? (item.detail || '') : (item.summary || ''),
-        meta: (item.status || '现实记录') + '｜情节:' + (item.plotId || item.summary),
-      })),
+      rows: this.timelineItems(lore).map((item) => this.realWorldTimelineRow(item)),
       emptyText: '暂无现实世界记录。收起手机并进行现实行动后会写入这里。',
     };
   },
 };
+
