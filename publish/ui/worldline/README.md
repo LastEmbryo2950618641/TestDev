@@ -23,6 +23,11 @@ This layer should transform already-available domain/state data into row, panel,
 - timeline item shaping
 - newest-first event ordering for readonly timeline consumption
 
+### `plot-view-helpers.js`
+- real-world plot selection helpers
+- selected plot event filtering
+- recording event list shaping
+
 ## Boundary rules
 
 Files in this directory should prefer:

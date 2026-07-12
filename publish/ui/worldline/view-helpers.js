@@ -25,32 +25,17 @@ window.GameModules.ui.worldline.viewHelpers = {
 
   worldlineEventsNewestFirst(events = []) { return window.GameModules.ui.worldline.timelineViewHelpers.worldlineEventsNewestFirst.call(this, events); },
 
-  summarizedPlots() {
-    return this.realWorldline().plots || [];
-  },
+  summarizedPlots() { return window.GameModules.ui.worldline.plotViewHelpers.summarizedPlots.call(this); },
 
   selectRealWorldPlot(plotId) {
     this.selectedRealWorldPlotId = plotId || '';
   },
 
-  selectedPlot() {
-    const plots = this.realWorldSummarizedPlots();
-    return plots.find((plot) => plot.情节编号 === this.selectedRealWorldPlotId) || plots[0] || null;
-  },
+  selectedPlot() { return window.GameModules.ui.worldline.plotViewHelpers.selectedPlot.call(this); },
 
-  selectedPlotEvents(plot = null) {
-    const selected = plot || this.realWorldSelectedPlot();
-    const id = selected?.情节编号 || '';
-    if (!id) return [];
-    const recordIds = String(selected?.重要记录编号 || '').split(/[、,，\s]+/).filter(Boolean);
-    return this.worldlineEventsNewestFirst(this.realWorldline().events || []).filter((event) => (event.plotId || event.summary) === id || recordIds.includes(event.eventId));
-  },
+  selectedPlotEvents(plot = null) { return window.GameModules.ui.worldline.plotViewHelpers.selectedPlotEvents.call(this, plot); },
 
-  recordingEvents() {
-    const ids = this.realWorldline().pendingPlot?.recordIds || [];
-    if (!ids.length) return [];
-    return this.worldlineEventsNewestFirst(this.realWorldline().events || []).filter((event) => ids.includes(event.eventId));
-  },
+  recordingEvents() { return window.GameModules.ui.worldline.plotViewHelpers.recordingEvents.call(this); },
 
   timelineMeta(item) {
     const parts = [];
