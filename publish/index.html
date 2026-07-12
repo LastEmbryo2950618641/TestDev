@@ -688,10 +688,10 @@
             <div class="worldline-box" x-data="{ view: $store.game.realWorldTimelinePanelView() }" x-effect="view = $store.game.realWorldTimelinePanelView()">
               <div class="worldline-head"><b x-text="view.timelineTitle"></b><small x-text="view.timeRange"></small></div>
               <section class="real-recording-panel">
-                <article class="real-plot-summary dev-section" data-section-title="濮濓絽婀拋鏉跨秿閹懓濡?>
-                  <h3 x-text="$store.game.realWorldline().pendingPlot?.閹懓濡紓鏍у娇 || '閺嗗倹妫ゅ锝呮躬鐠佹澘缍嶉幆鍛板Ν'"></h3>
-                  <small x-text="$store.game.realWorldline().pendingPlot ? `${$store.game.realWorldline().pendingPlot.startedAt || '閺冨爼妫块張顏嗙叀'} - ${$store.game.realWorldline().pendingPlot.endedAt || '閻滄澘婀?}` : '缁鳖垵顓哥拋鏉跨秿鏉堟儳鍩岄梼鍫濃偓鐓庢倵娴兼俺鍤滈崝銊ョ秺缁剧偨鈧?"></small>
-                  <p x-text="$store.game.realWorldline().pendingPlot ? `瀹歌尙鐤拋?${$store.game.realWorldline().pendingPlot.recordIds?.length || 0} 閺壜ゎ唶瑜版洩绱濈痪?${$store.game.realWorldline().pendingPlot.textLength || 0} 鐎涙顑侀妴淇?: '閺嗗倹妫ら張顏勭秺缁惧疇顔囪ぐ鏇樷偓?"></p>
+                <article class="real-plot-summary dev-section" data-section-title="濮濓絽婀拋鏉跨秿閹懓濡?" x-data="{ summary: $store.game.pendingRealPlotSummaryView() }" x-effect="summary = $store.game.pendingRealPlotSummaryView()">
+                  <h3 x-text="summary.title"></h3>
+                  <small x-text="summary.timeRange"></small>
+                  <p x-text="summary.statsText"></p>
                 </article>
                 <div class="timeline-list real-plot-events"><template x-for="item in $store.game.realWorldRecordingEvents().map((entry) => $store.game.realWorldTimelineRow(entry))" :key="item.key"><article class="timeline-item event"><span class="timeline-dot"></span><div><small x-text="item.time"></small><h4 x-text="item.name"></h4><p x-text="item.detail"></p><em x-text="item.meta"></em></div></article></template><p class="empty-lore" x-show="!$store.game.realWorldRecordingEvents().length">閺嗗倹妫ゅ锝呮躬鐠佹澘缍嶉惃鍕箛鐎圭偘绨ㄦ禒韬测偓?/p></div>
               </section>
