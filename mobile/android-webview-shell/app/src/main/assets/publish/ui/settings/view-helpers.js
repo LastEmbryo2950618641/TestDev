@@ -1,4 +1,4 @@
-﻿window.GameModules = window.GameModules || {};
+window.GameModules = window.GameModules || {};
 window.GameModules.ui = window.GameModules.ui || {};
 window.GameModules.ui.settings = window.GameModules.ui.settings || {};
 
@@ -96,21 +96,6 @@ window.GameModules.ui.settings.viewHelpers = Object.assign(window.GameModules.ui
   stage3OutputSummaryLabel() {
     return this.aiOutputLimitEffectiveText('stage3');
   },
-
-  currentSettingsSummaryParts() {
-    return [
-      `文本提供方 ${this.textProviderSummaryLabel()}`,
-      `文本 ${this.textModelSummaryLabel()}`,
-      `绘图平台 ${this.drawProviderSummaryLabel()}`,
-      `绘图 ${this.drawModelSummaryLabel()}`,
-      `Stage1资料迭代 ${this.stage1MaterialIterationLimitText()}`,
-      `正文输出 ${this.stage3OutputSummaryLabel()}`,
-    ];
-  },
-
-  currentSettingsSummaryText() {
-    return this.currentSettingsSummaryParts().join("；");
-  },
 });window.GameModules.ui.settings.viewHelpers = Object.assign(window.GameModules.ui.settings.viewHelpers || {}, {
   aiOutputLimitRows() {
     return this.aiOutputLimitKinds().map((item) => ({
@@ -138,13 +123,6 @@ window.GameModules.ui.settings.viewHelpers = Object.assign(window.GameModules.ui
       { key: 'stage3-output', label: '正文输出', value: this.stage3OutputSummaryLabel() },
     ];
   },
-
-  settingsSummaryView() {
-    return {
-      rows: this.currentSettingsSummaryRows(),
-      text: this.currentSettingsSummaryText(),
-    };
-  },
 });
 window.GameModules.ui.settings.viewHelpers = Object.assign(window.GameModules.ui.settings.viewHelpers || {}, {
   currentDrawModelRows() {
@@ -168,26 +146,6 @@ window.GameModules.ui.settings.viewHelpers = Object.assign(window.GameModules.ui
 
 
 window.GameModules.ui.settings.viewHelpers = Object.assign(window.GameModules.ui.settings.viewHelpers || {}, {
-  stage1MaterialSettingView() {
-    return {
-      title: 'Stage1 资料收集迭代最大次数',
-      description: '用于现实与异世界推演的 Stage1 资料路由。默认不限制，只在需要控制请求时开启。',
-      toggleLabel: '限制迭代次数',
-      limited: !!this.settingsState?.stage1MaterialIterationLimited,
-      maxIterations: this.stage1MaterialMaxIterations(),
-    };
-  },
-
-  aiOutputLimitSectionView() {
-    return {
-      title: 'AI 输出长度限制',
-      description: '无限制时不发送 max_tokens；限制时作为该次 AI 响应的最大输出预算。Stage3 正文默认限制 3000 tokens，其它默认跟随统一。',
-      rows: this.aiOutputLimitRows(),
-      followGlobalLabel: '跟随统一',
-      unlimitedLabel: '无限制',
-      limitedLabel: '限制为指定 tokens',
-    };
-  },
 });
 
 window.GameModules.ui.settings.viewHelpers = Object.assign(window.GameModules.ui.settings.viewHelpers || {}, {

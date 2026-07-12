@@ -1,0 +1,276 @@
+{
+  "characterId": "rel-ai-247463",
+  "ownerId": "rel-ai-247463",
+  "personId": "rel-ai-247463",
+  "stateKind": "natural",
+  "stateLabel": "自然状态",
+  "label": "刘思瑶 - 自然状态生成形象图",
+  "generated": true,
+  "real": true,
+  "source": "body-profile-generator",
+  "prompt": "1girl, solo, full body, standing, front view, clear face, clean background, anime style, high quality, black long straight hair, waist-length hair, neat bangs, black eyes, clear bright pupils, oval face, fair skin, petite, 155cm, slender build, flat chest, slim arms, slender fingers, pristine armpits, flat stomach, small navel, small round buttocks, hairless, pink labia, smooth private area, long slender legs, thin thighs, shapely calves, barefoot, natural look, innocent aura, gentle expression, teenage girl, no jewelry, no piercings, natural beauty, 赤身, 全身, 无遮掩, 美乳, 双腿, 玉足, 站立",
+  "negativePrompt": "low quality, bad anatomy, distorted proportions, poorly drawn, ugly, extra limbs, missing limbs, fused fingers, text, watermark, signature, blurry, messy, nsfw, suggestive, realistic, photograph, jpeg artifacts, worst quality",
+  "taskId": "2030920458059192976",
+  "provider": "pixai",
+  "overall": [
+    "少女",
+    "清纯"
+  ],
+  "figure": [
+    "纤细",
+    "苗条"
+  ],
+  "height": "155cm",
+  "weight": "43kg",
+  "skinTone": [
+    "白皙"
+  ],
+  "aura": [
+    "可爱",
+    "清纯"
+  ],
+  "styleBase": [
+    "JK风"
+  ],
+  "makeupBase": [
+    "精致妆容"
+  ],
+  "colorScheme": [
+    "白系"
+  ],
+  "hosiery": [
+    "过膝袜"
+  ],
+  "hairstyle": [
+    "公主切"
+  ],
+  "accessoryDensity": [
+    "精致点缀"
+  ],
+  "tags": [
+    "rel-ai-247463",
+    "natural",
+    "少女",
+    "清纯",
+    "纤细",
+    "苗条",
+    "白皙",
+    "可爱",
+    "清纯",
+    "JK风",
+    "精致妆容"
+  ],
+  "parts": [
+    {
+      "index": 1,
+      "part": "头发",
+      "tags": [
+        "乌黑",
+        "及腰",
+        "黑长直"
+      ],
+      "description": "天然乌黑长发垂至腰际，发丝直顺，未经烫染，自然垂落时带有轻柔光泽，刘海齐眉，黑亮而柔软。",
+      "anchor": {
+        "x": 45.2,
+        "y": 9.5
+      },
+      "label": {
+        "x": 10,
+        "y": 9,
+        "side": "left"
+      }
+    },
+    {
+      "index": 2,
+      "part": "脸部",
+      "tags": [
+        "鹅蛋脸",
+        "清纯",
+        "黑瞳"
+      ],
+      "description": "鹅蛋脸型线条柔和，素颜时肌肤白皙透亮，黑瞳清澈明亮，鼻梁小巧，唇色淡粉，整体气质清纯可人，毫无修饰的自然美感。",
+      "anchor": {
+        "x": 48.3,
+        "y": 16.9
+      },
+      "label": {
+        "x": 10,
+        "y": 19,
+        "side": "left"
+      }
+    },
+    {
+      "index": 3,
+      "part": "耳朵",
+      "tags": [
+        "小巧",
+        "耳垂薄"
+      ],
+      "description": "耳朵形状小巧，耳垂薄而柔软，耳后肌肤细腻，没有耳洞，完全保持天然状态。",
+      "anchor": {
+        "x": 59.6,
+        "y": 12.6
+      },
+      "label": {
+        "x": 90,
+        "y": 16,
+        "side": "right"
+      }
+    },
+    {
+      "index": 4,
+      "part": "脖颈",
+      "tags": [
+        "修长",
+        "锁骨明显"
+      ],
+      "description": "颈部线条修长纤细，锁骨轮廓清晰，颈窝浅浅，皮肤光滑，没有项链或其他饰物痕迹。",
+      "anchor": {
+        "x": 53.9,
+        "y": 20.6
+      },
+      "label": {
+        "x": 90,
+        "y": 24,
+        "side": "right"
+      }
+    },
+    {
+      "index": 5,
+      "part": "胸部",
+      "tags": [
+        "贫乳",
+        "平坦"
+      ],
+      "description": "胸部发育程度低，整体平坦，几乎没有隆起，胸型轮廓不明显，乳晕浅淡小巧，完全未经束缚的自然状态。",
+      "anchor": {
+        "x": 43.5,
+        "y": 31.3
+      },
+      "label": {
+        "x": 10,
+        "y": 32,
+        "side": "left"
+      }
+    },
+    {
+      "index": 6,
+      "part": "双臂",
+      "tags": [
+        "纤细",
+        "手型纤细"
+      ],
+      "description": "双臂纤细，手臂线条柔和，手部骨骼小巧，手指纤长，指甲修剪整齐，未涂甲油，皮肤白皙。",
+      "anchor": {
+        "x": 72,
+        "y": 36
+      },
+      "label": {
+        "x": 90,
+        "y": 36,
+        "side": "right"
+      }
+    },
+    {
+      "index": 7,
+      "part": "小腹",
+      "tags": [
+        "平坦",
+        "肚脐小巧"
+      ],
+      "description": "小腹平坦紧致，没有赘肉，肚脐形状小巧，呈竖椭圆形，周边肌肤光滑，呼吸时轻微起伏。",
+      "anchor": {
+        "x": 46.3,
+        "y": 49
+      },
+      "label": {
+        "x": 10,
+        "y": 44,
+        "side": "left"
+      }
+    },
+    {
+      "index": 8,
+      "part": "臀部",
+      "tags": [
+        "小巧",
+        "圆润"
+      ],
+      "description": "臀部体积小巧，但线条圆润，与腰身衔接自然，两侧臀峰微微隆起，皮肤白皙细腻。",
+      "anchor": {
+        "x": 57.8,
+        "y": 50.5
+      },
+      "label": {
+        "x": 90,
+        "y": 53,
+        "side": "right"
+      }
+    },
+    {
+      "index": 9,
+      "part": "神秘花园",
+      "tags": [
+        "无阴毛",
+        "粉嫩"
+      ],
+      "description": "私密处肌肤光洁无毛，大阴唇饱满，小阴唇呈淡粉色，整体形态紧致，腿根间距较窄，散发着天然的少女气息。",
+      "anchor": {
+        "x": 46.2,
+        "y": 53.4
+      },
+      "label": {
+        "x": 90,
+        "y": 58,
+        "side": "right"
+      }
+    },
+    {
+      "index": 10,
+      "part": "双大腿",
+      "tags": [
+        "纤细",
+        "线条柔和"
+      ],
+      "description": "大腿纤细，线条柔和流畅，内侧肌肤紧致，站立时双腿自然并拢，没有缝隙，皮肤白皙细腻。",
+      "anchor": {
+        "x": 42.3,
+        "y": 63.3
+      },
+      "label": {
+        "x": 10,
+        "y": 68,
+        "side": "left"
+      }
+    },
+    {
+      "index": 11,
+      "part": "双小腿",
+      "tags": [
+        "纤细",
+        "修长"
+      ],
+      "description": "小腿肚紧实纤细，跟腱修长，脚踝纤细，足部小巧，脚背肌肤白皙，脚趾排列整齐。",
+      "anchor": {
+        "x": 46.3,
+        "y": 83.3
+      },
+      "label": {
+        "x": 10,
+        "y": 84,
+        "side": "left"
+      }
+    }
+  ],
+  "id": "rel-ai-247463-1783358656228",
+  "image": "figure.webp",
+  "generatedAt": "2026-07-06T17:24:18.030Z",
+  "imageSize": {
+    "width": 768,
+    "height": 1152
+  },
+  "characterName": "刘思瑶",
+  "ownerName": "刘思瑶",
+  "personName": "刘思瑶",
+  "activeFigure": true
+}

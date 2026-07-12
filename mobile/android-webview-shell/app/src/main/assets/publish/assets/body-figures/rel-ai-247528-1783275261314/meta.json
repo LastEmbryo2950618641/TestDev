@@ -1,0 +1,272 @@
+{
+  "characterId": "",
+  "ownerId": "",
+  "personId": "",
+  "stateKind": "natural",
+  "stateLabel": "自然状态",
+  "label": "刘思琪 - 自然状态生成形象图",
+  "generated": true,
+  "real": true,
+  "source": "body-profile-generator",
+  "prompt": "solo, full body, standing, front view, clear face, clean background, anime style, high quality, 赤身, 全身, 无遮掩, 美乳, 双腿, 玉足, 站立",
+  "negativePrompt": "bad anatomy, extra fingers, extra arms, missing fingers, low quality, blurry, worst quality, watermark, text, logo, bad hands",
+  "taskId": "2030570885418008779",
+  "provider": "pixai",
+  "overall": [
+    "少女"
+  ],
+  "figure": [
+    "纤细",
+    "苗条"
+  ],
+  "height": "155cm",
+  "weight": "43kg",
+  "skinTone": [
+    "雪白"
+  ],
+  "aura": [
+    "清纯"
+  ],
+  "styleBase": [
+    "JK风"
+  ],
+  "makeupBase": [
+    "清新裸妆"
+  ],
+  "colorScheme": [
+    "黑系"
+  ],
+  "hosiery": [
+    "过膝袜"
+  ],
+  "hairstyle": [
+    "黑长直"
+  ],
+  "accessoryDensity": [
+    "精致点缀"
+  ],
+  "tags": [
+    "natural",
+    "少女",
+    "纤细",
+    "苗条",
+    "雪白",
+    "清纯",
+    "JK风",
+    "清新裸妆"
+  ],
+  "parts": [
+    {
+      "index": 1,
+      "part": "头发",
+      "tags": [
+        "乌黑",
+        "及腰",
+        "黑长直"
+      ],
+      "description": "乌黑浓密的黑长直发，自然垂落至腰间，发质柔顺，带有微微光泽，未经任何烫染修饰。",
+      "anchor": {
+        "x": 49,
+        "y": 9
+      },
+      "label": {
+        "x": 10,
+        "y": 9,
+        "side": "left"
+      }
+    },
+    {
+      "index": 2,
+      "part": "脸部",
+      "tags": [
+        "鹅蛋脸",
+        "清秀",
+        "白皙"
+      ],
+      "description": "鹅蛋形脸庞，素颜清秀，皮肤白皙细腻，眉眼间带着冷淡疏离，天然唇色浅淡，气色纯净。",
+      "anchor": {
+        "x": 49,
+        "y": 19
+      },
+      "label": {
+        "x": 10,
+        "y": 19,
+        "side": "left"
+      }
+    },
+    {
+      "index": 3,
+      "part": "耳朵",
+      "tags": [
+        "小巧",
+        "精致"
+      ],
+      "description": "耳廓小巧玲珑，耳垂圆润，耳后肌肤光洁无瑕，整个耳朵轮廓精致。",
+      "anchor": {
+        "x": 58,
+        "y": 16
+      },
+      "label": {
+        "x": 90,
+        "y": 16,
+        "side": "right"
+      }
+    },
+    {
+      "index": 4,
+      "part": "脖颈",
+      "tags": [
+        "修长",
+        "锁骨清晰"
+      ],
+      "description": "颈部修长，锁骨线条清晰可见，颈窝浅凹，肌肤雪白，没有任何饰物。",
+      "anchor": {
+        "x": 52,
+        "y": 24
+      },
+      "label": {
+        "x": 90,
+        "y": 24,
+        "side": "right"
+      }
+    },
+    {
+      "index": 5,
+      "part": "胸部",
+      "tags": [
+        "贫乳",
+        "娇小"
+      ],
+      "description": "少女尚未发育完全的贫乳轮廓，胸脯平坦微隆，形状小巧，未经束缚时自然平缓。",
+      "anchor": {
+        "x": 48,
+        "y": 32
+      },
+      "label": {
+        "x": 10,
+        "y": 32,
+        "side": "left"
+      }
+    },
+    {
+      "index": 6,
+      "part": "双臂",
+      "tags": [
+        "纤细",
+        "手型修长"
+      ],
+      "description": "双臂纤细，皮肤洁白，手型修长，手指骨节分明，指甲修剪整齐，无任何装饰。",
+      "anchor": {
+        "x": 72,
+        "y": 36
+      },
+      "label": {
+        "x": 90,
+        "y": 36,
+        "side": "right"
+      }
+    },
+    {
+      "index": 7,
+      "part": "小腹",
+      "tags": [
+        "平坦",
+        "紧致"
+      ],
+      "description": "腹部平坦紧致，肚脐小巧内凹，呼吸时微微起伏，肌肤光滑无赘肉。",
+      "anchor": {
+        "x": 50,
+        "y": 44
+      },
+      "label": {
+        "x": 10,
+        "y": 44,
+        "side": "left"
+      }
+    },
+    {
+      "index": 8,
+      "part": "臀部",
+      "tags": [
+        "小巧",
+        "圆润"
+      ],
+      "description": "臀部小巧圆润，线条柔和，腰臀连接处自然过渡，没有过度丰满。",
+      "anchor": {
+        "x": 58,
+        "y": 53
+      },
+      "label": {
+        "x": 90,
+        "y": 53,
+        "side": "right"
+      }
+    },
+    {
+      "index": 9,
+      "part": "神秘花园",
+      "tags": [
+        "无阴毛",
+        "粉嫩"
+      ],
+      "description": "私密处无毛发覆盖，天然粉嫩，形态紧凑，腿间距离适中，含蓄而干净。",
+      "anchor": {
+        "x": 50,
+        "y": 58
+      },
+      "label": {
+        "x": 90,
+        "y": 58,
+        "side": "right"
+      }
+    },
+    {
+      "index": 10,
+      "part": "双大腿",
+      "tags": [
+        "纤细",
+        "内侧紧贴"
+      ],
+      "description": "大腿纤细匀称，站立时内侧自然贴合，肌肤光滑细腻，线条优美。",
+      "anchor": {
+        "x": 49,
+        "y": 68
+      },
+      "label": {
+        "x": 10,
+        "y": 68,
+        "side": "left"
+      }
+    },
+    {
+      "index": 11,
+      "part": "双小腿",
+      "tags": [
+        "修长",
+        "纤细",
+        "脚踝纤细"
+      ],
+      "description": "小腿修长，小腿肚弧度柔和，跟腱明显，脚踝纤细，足弓优美，整体线条流畅。",
+      "anchor": {
+        "x": 48,
+        "y": 84
+      },
+      "label": {
+        "x": 10,
+        "y": 84,
+        "side": "left"
+      }
+    }
+  ],
+  "id": "rel-ai-247528-1783275261314",
+  "image": "figure.webp",
+  "generatedAt": "2026-07-05T18:14:23.239Z",
+  "imageSize": {
+    "width": 768,
+    "height": 1152
+  },
+  "activeFigure": false,
+  "characterName": "",
+  "ownerName": "",
+  "personName": ""
+}
