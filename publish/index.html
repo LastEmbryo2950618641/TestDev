@@ -166,10 +166,10 @@
       <small x-text="$store.game.loadingDetail || '鐠囬鈼㈢粵澶涚礉娑撳秷顩﹂崗鎶芥４閹存牕寮芥径宥呭煕閺傝埇鈧?"></small>
       <div class="loading-progress-wrap">
         <div class="loading-progress-meta">
-          <span x-text="$store.game.loadingProgressText ? $store.game.loadingProgressText() : ''"></span>
-          <b x-text="`${$store.game.loadingProgressPercent ? $store.game.loadingProgressPercent() : 0}%`"></b>
+          <span x-text="$store.game.loadingProgressText()"></span>
+          <b x-text="`${$store.game.loadingProgressPercent()}%`"></b>
         </div>
-        <div class="loading-progress"><i :style="`width: ${$store.game.loadingProgressPercent ? $store.game.loadingProgressPercent() : 0}%`"></i></div>
+        <div class="loading-progress"><i :style="`width: ${$store.game.loadingProgressPercent()}%`"></i></div>
       </div>
       <div class="loading-stages">
         <template x-for="stage in $store.game.loadingStages" :key="stage.key">
@@ -191,22 +191,22 @@
       </button>
       <div class="loading-progress-wrap role-card-progress-wrap">
         <div class="loading-progress-meta">
-          <span x-text="$store.game.roleCardLoadingProgressText ? $store.game.roleCardLoadingProgressText() : ''"></span>
-          <b x-text="`${$store.game.roleCardLoadingProgressPercent ? $store.game.roleCardLoadingProgressPercent() : 0}%`"></b>
+          <span x-text="$store.game.roleCardLoadingProgressText()"></span>
+          <b x-text="`${$store.game.roleCardLoadingProgressPercent()}%`"></b>
         </div>
-        <div class="loading-progress"><i :style="`width: ${$store.game.roleCardLoadingProgressPercent ? $store.game.roleCardLoadingProgressPercent() : 0}%`"></i></div>
+        <div class="loading-progress"><i :style="`width: ${$store.game.roleCardLoadingProgressPercent()}%`"></i></div>
       </div>
       <div class="role-card-loading-list" x-show="$store.game.roleCardLoadingState.expanded">
         <template x-for="card in $store.game.roleCardLoadingState.cards" :key="card.id">
           <section class="role-card-loading-card" :class="card.status">
             <button type="button" class="role-card-card-head" @click="$store.game.toggleRoleCardLoadingCard(card.id)">
-              <span x-text="`${card.name} - ${card.type} ${$store.game.roleCardLoadingCardProgress ? $store.game.roleCardLoadingCardProgress(card) : ''}`"></span>
+              <span x-text="`${card.name} - ${card.type} ${$store.game.roleCardLoadingCardProgress(card)}`"></span>
               <b x-text="`${$store.game.roleCardLoadingStatusText(card.status)}${$store.game.elapsedText ? ' 璺?' + ($store.game.elapsedText(card.startedAt, card.finishedAt) || '0s') : ''}`"></b>
             </button>
             <ol x-show="card.expanded" class="role-card-step-list">
               <template x-for="step in card.steps" :key="step.key">
                 <li :class="step.status">
-                  <span x-text="`${step.text} ${$store.game.roleCardLoadingStepProgress ? $store.game.roleCardLoadingStepProgress(step) : ''}`"></span>
+                  <span x-text="`${step.text} ${$store.game.roleCardLoadingStepProgress(step)}`"></span>
                   <b x-text="`${step.retrying ? '闁插秷鐦稉? : $store.game.roleCardLoadingStatusText(step.status)}${$store.game.elapsedText ? ' 璺?' + ($store.game.elapsedText(step.startedAt, step.finishedAt) || '0s') : ''}`"></b>
                   <button class="role-card-step-retry" type="button" x-show="$store.game.roleCardStepCanRetry && $store.game.roleCardStepCanRetry(card, step)" @click.stop="$store.game.retryRoleCardLoadingStep(card.id, step.key)">闁插秷鐦?/button>
                 </li>
