@@ -88,7 +88,7 @@ window.GameModules.realWorldMapActions = {
   },
 
   realWorldMapCanvasElement() {
-    return document.querySelector('.real-world-map-canvas');
+    return callRealWorldMapStageViewHelper('canvasElement', this);
   },
 
   realWorldMapCanvasSize(canvas = this.realWorldMapCanvasElement()) {

@@ -10,4 +10,8 @@ window.GameModules.ui.realWorld.mapStageViewHelpers = {
     return this.realWorldMapCanvasElement();
   },
 
+  canvasElement() {
+    return document.querySelector('.real-world-map-canvas');
+  },
+
 };
