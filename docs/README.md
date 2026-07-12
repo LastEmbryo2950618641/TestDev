@@ -64,6 +64,7 @@
 - Compat 清理门槛清单：`docs/architecture/compat-cleanup-gate-checklist-2026-07-12.md`
 - Compat 调用链审计：`docs/architecture/compat-callsite-audit-2026-07-12.md`
 - Compat 调用迁移准备清单：`docs/architecture/compat-callsite-migration-prep-2026-07-12.md`
+- 第一批 compat 收缩试点 gate 清单：`docs/architecture/first-compat-reduction-pilot-gate-checklist-2026-07-12.md`
 - 动作层 compat 迁移审计：`docs/architecture/action-layer-compat-migration-audit-2026-07-12.md`
 - 宿主镜像同步策略说明：`docs/architecture/host-mirror-sync-strategy-note-2026-07-12.md`
 - 宿主镜像同步边界清单：`docs/architecture/host-mirror-sync-boundary-checklist-2026-07-12.md`
