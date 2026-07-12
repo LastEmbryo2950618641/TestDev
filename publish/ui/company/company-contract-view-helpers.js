@@ -25,4 +25,11 @@ window.GameModules.ui.company.contractViewHelpers = {
       submissionRows,
     };
   },
+
+  companyPayPanelView() {
+    return {
+      summary: this.companyPayPreviewView(),
+      section: this.companyContractSectionView(),
+    };
+  },
 };

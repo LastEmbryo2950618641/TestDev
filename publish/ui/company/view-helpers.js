@@ -15,6 +15,8 @@ window.GameModules.ui.company.viewHelpers = {
 
   companyPayPreviewView() { return window.GameModules.ui.company.summaryViewHelpers.companyPayPreviewView.call(this); },
 
+  companyPayPanelView() { return window.GameModules.ui.company.contractViewHelpers.companyPayPanelView.call(this); },
+
   companyOrganizationSectionView() { return window.GameModules.ui.company.organizationViewHelpers.companyOrganizationSectionView.call(this); },
 
   companyFieldSectionView() { return window.GameModules.ui.company.fieldSectionViewHelpers.companyFieldSectionView.call(this); },

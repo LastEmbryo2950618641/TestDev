@@ -1875,11 +1875,11 @@
             <article class="org-dept-card dev-section" :data-section-title="dept.sectionTitle"><h3 x-text="dept.name"></h3><div class="org-job-list"><template x-for="job in dept.jobRows" :key="job.key"><section class="org-job-card"><strong x-text="job.title"></strong><p x-text="job.peopleText"></p></section></template></div></article>
           </template>
         </section>
-        <section class="contract-list" x-show="$store.game.companyState.panelTab === 'pay'" x-data="{ summary: $store.game.companyPayPreviewView(), view: $store.game.companyContractSectionView() }" x-effect="summary = $store.game.companyPayPreviewView(); view = $store.game.companyContractSectionView()">
-          <p class="company-empty" x-show="view.showEmpty" x-text="view.emptyText"></p>
-          <article class="contract-card" x-show="!view.showEmpty"><h3 x-text="summary.title"></h3><p x-text="summary.summaryLine"></p><p x-text="summary.performanceLine"></p></article>
-          <template x-for="item in view.contractRows" :key="item.key"><article class="contract-card"><h3 x-text="item.title"></h3><p x-text="item.body"></p><small x-text="item.meta"></small></article></template>
-          <template x-for="item in view.submissionRows" :key="item.key"><article class="contract-card"><h3 x-text="item.title"></h3><p x-text="item.body"></p><small x-text="item.meta"></small></article></template>
+        <section class="contract-list" x-show="$store.game.companyState.panelTab === 'pay'" x-data="{ panel: $store.game.companyPayPanelView() }" x-effect="panel = $store.game.companyPayPanelView()">
+          <p class="company-empty" x-show="panel.section.showEmpty" x-text="panel.section.emptyText"></p>
+          <article class="contract-card" x-show="!panel.section.showEmpty"><h3 x-text="panel.summary.title"></h3><p x-text="panel.summary.summaryLine"></p><p x-text="panel.summary.performanceLine"></p></article>
+          <template x-for="item in panel.section.contractRows" :key="item.key"><article class="contract-card"><h3 x-text="item.title"></h3><p x-text="item.body"></p><small x-text="item.meta"></small></article></template>
+          <template x-for="item in panel.section.submissionRows" :key="item.key"><article class="contract-card"><h3 x-text="item.title"></h3><p x-text="item.body"></p><small x-text="item.meta"></small></article></template>
         </section>
         <section class="employment-records" x-show="$store.game.companyState.panelTab === 'records'" x-data="{ view: $store.game.companyEmploymentRecordSectionView() }" x-effect="view = $store.game.companyEmploymentRecordSectionView()">
           <p class="company-empty" x-show="!(view.recordRows || []).length" x-text="view.emptyText"></p>
