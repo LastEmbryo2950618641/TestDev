@@ -19,6 +19,10 @@ This layer should transform already-available domain/state data into row, panel,
 - control lore filtering
 - real-world lore display object shaping
 
+### `timeline-view-helpers.js`
+- timeline item shaping
+- newest-first event ordering for readonly timeline consumption
+
 ## Boundary rules
 
 Files in this directory should prefer:

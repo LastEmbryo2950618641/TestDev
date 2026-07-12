@@ -21,16 +21,9 @@ window.GameModules.ui.worldline.viewHelpers = {
 
   realLore() { return window.GameModules.ui.worldline.loreViewHelpers.realLore.call(this); },
 
-  timelineItems(lore) {
-    const worldline = this.loreWorldline(lore) || {};
-    const events = this.worldlineEventsNewestFirst(worldline.events || []).map((event, index) => ({ ...event, kind: 'event', order: index }));
-    const indexes = (worldline.storyIndexes || []).map((text, index) => ({ kind: 'story', order: events.length + index, time: '原著剧情', name: `剧情索引 ${index + 1}`, summary: text }));
-    return [...events, ...indexes];
-  },
+  timelineItems(lore) { return window.GameModules.ui.worldline.timelineViewHelpers.timelineItems.call(this, lore); },
 
-  worldlineEventsNewestFirst(events = []) {
-    return (Array.isArray(events) ? events : []).map((event, index) => ({ ...event, order: index })).sort((a, b) => String(b.time || '').localeCompare(String(a.time || '')) || b.order - a.order);
-  },
+  worldlineEventsNewestFirst(events = []) { return window.GameModules.ui.worldline.timelineViewHelpers.worldlineEventsNewestFirst.call(this, events); },
 
   summarizedPlots() {
     return this.realWorldline().plots || [];
