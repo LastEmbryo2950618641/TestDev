@@ -3,9 +3,8 @@ window.GameModules.domain = window.GameModules.domain || {};
 window.GameModules.domain.worldline = window.GameModules.domain.worldline || {};
 
 window.GameModules.domain.worldline.stateService = {
-  realWorldline() {
-    const state = this.realWorldlineState || { events: [], plots: [], pendingPlot: null };
-    const logEvents = (this.realWorldLog || [])
+  realWorldlineLogEvents() {
+    return (this.realWorldLog || [])
       .filter((entry) => entry.type === 'ai' || entry.type === 'system')
       .map((entry, index) => ({
         eventId: 'real_' + (entry.id || index),
@@ -17,8 +16,17 @@ window.GameModules.domain.worldline.stateService = {
         status: entry.streaming ? '记录中' : '已记录',
         kind: 'event',
       }));
+  },
+
+  realWorldlineMergedEvents(state = this.realWorldlineState || { events: [] }, logEvents = this.realWorldlineLogEvents()) {
     const byId = new Map([...(state.events || []), ...logEvents].map((event) => [event.eventId, { ...event, kind: 'event' }]));
-    const events = [...byId.values()];
+    return [...byId.values()];
+  },
+
+  realWorldline() {
+    const state = this.realWorldlineState || { events: [], plots: [], pendingPlot: null };
+    const logEvents = this.realWorldlineLogEvents();
+    const events = this.realWorldlineMergedEvents(state, logEvents);
     return {
       timeRange: (this.phoneDateText?.() || '现实时间') + ' - 现在',
       events,

@@ -1,4 +1,4 @@
-# Worldline Domain Layer
+﻿# Worldline Domain Layer
 
 This directory stores worldline-specific business logic that has already been separated from top-level action files.
 
@@ -13,7 +13,7 @@ The purpose of `publish/domain/worldline/` is to keep durable worldline logic ou
 ## Current modules
 
 ### `state-service.js`
-- real-world worldline state assembly
+- real-world worldline state assembly, including extracted log-event shaping and merged-event helpers
 - lore worldline selection
 - event append orchestration bridge
 - per-turn worldline update flow
@@ -70,5 +70,7 @@ The preferred pattern for future moves into this directory is:
 ## Immediate practical rule
 
 If a candidate function both mutates runtime UI state and assembles business data, split the readonly/business portion first and only then consider moving it into `publish/domain/worldline/`.
+
+
 
 
