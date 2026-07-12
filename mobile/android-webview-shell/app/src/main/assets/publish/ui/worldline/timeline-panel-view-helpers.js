@@ -47,12 +47,32 @@ window.GameModules.ui.worldline.timelinePanelViewHelpers = {
     };
   },
 
+  buildTimelineEventItems(lore = null) {
+    const worldline = this.loreWorldline(lore) || {};
+    return this.worldlineEventsNewestFirst(worldline.events || []).map((event, index) => ({ ...event, kind: 'event', order: index }));
+  },
+
+  buildTimelineStoryItems(lore = null, offset = 0) {
+    const worldline = this.loreWorldline(lore) || {};
+    return (worldline.storyIndexes || []).map((text, index) => ({ kind: 'story', order: offset + index, time: '原著剧情', name: `剧情索引 ${index + 1}`, summary: text }));
+  },
+
+  buildLoreTimelineItems(lore = null) {
+    const events = this.buildTimelineEventItems(lore);
+    return [...events, ...this.buildTimelineStoryItems(lore, events.length)];
+  },
+
+  buildRealWorldTimelineItems(lore = null) {
+    const events = this.buildTimelineEventItems(lore);
+    return [...events, ...this.buildTimelineStoryItems(lore, events.length)];
+  },
+
   buildLoreTimelineRows(lore = null) {
-    return this.timelineItems(lore).map((item) => this.timelineRow(item));
+    return this.buildLoreTimelineItems(lore).map((item) => this.timelineRow(item));
   },
 
   buildRealWorldTimelineRows(lore = null) {
-    return this.timelineItems(lore).map((item) => this.realWorldTimelineRow(item));
+    return this.buildRealWorldTimelineItems(lore).map((item) => this.realWorldTimelineRow(item));
   },
 
   buildRealWorldRecordingRows() {

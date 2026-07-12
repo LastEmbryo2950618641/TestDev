@@ -39,7 +39,8 @@
 
 为避免该静默卡死，桌面打包配置需要显式注入本地 Electron 分发目录：
 
-- 来源：`desktop/shell/node_modules/electron/dist`
+- 优先来源：`desktop/shell/.electron-dist/electron-v36.9.5-win32-x64`
+- 回退来源：`desktop/shell/node_modules/electron/dist`
 - 接入位置：`desktop-packaging-config.js` 与 `desktop-minimal-packaging-config.js`
 - 统一解析模块：`desktop/shell/desktop-packaging-paths.js`
 
@@ -50,6 +51,11 @@ node desktop/shell/desktop-packaging-electron-dist-state.cli.js
 ```
 
 当 `main.hasElectronDist` 与 `minimal.hasElectronDist` 均为 `true` 时，表示正式配置已接入稳定绕过方案。
+
+补充说明：
+
+- 在 `node_modules/electron/dist` 缺失、`npm install` 又因网络失败无法补齐时，可直接使用本地缓存的 Electron zip 解包到 `.electron-dist/`。
+- `desktop-packaging-paths.js` 会优先选用该目录，以保证主包和最小包都能稳定复现构建结果。
 
 ## 三、执行入口总表
 

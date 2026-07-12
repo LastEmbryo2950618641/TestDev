@@ -1,6 +1,7 @@
-﻿# Generated desktop packaging outputs and local verification caches
+# Generated desktop packaging outputs and local verification caches
 desktop/shell/dist/
 desktop/shell/dist-minimal/
+desktop/shell/.electron-dist/
 desktop/shell/.artifacts/
 desktop/shell/.verify-storage/
 
@@ -19,4 +20,3 @@ mobile/android-webview-shell/.last-asset-sync.json
 mobile/android-webview-shell/.last-build-attempt.json
 mobile/android-webview-shell/local.properties
 mobile/android-webview-shell/local.properties.generated
-

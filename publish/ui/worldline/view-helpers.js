@@ -1,4 +1,4 @@
-﻿window.GameModules = window.GameModules || {};
+window.GameModules = window.GameModules || {};
 window.GameModules.ui = window.GameModules.ui || {};
 window.GameModules.ui.worldline = window.GameModules.ui.worldline || {};
 
@@ -20,8 +20,6 @@ window.GameModules.ui.worldline.viewHelpers = {
   realTag() { return window.GameModules.ui.worldline.loreViewHelpers.realTag.call(this); },
 
   realLore() { return window.GameModules.ui.worldline.loreViewHelpers.realLore.call(this); },
-
-  timelineItems(lore) { return window.GameModules.ui.worldline.timelineViewHelpers.timelineItems.call(this, lore); },
 
   worldlineEventsNewestFirst(events = []) { return window.GameModules.ui.worldline.timelineViewHelpers.worldlineEventsNewestFirst.call(this, events); },
 

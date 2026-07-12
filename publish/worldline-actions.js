@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 图书馆世界线展示辅助。
  */
 window.GameModules = window.GameModules || {};
@@ -11,7 +11,6 @@ const worldlineViewHelperForwarders = {
   controlWorldLores: 'controlLores',
   realWorldTag: 'realTag',
   realWorldLore: 'realLore',
-  timelineItems: 'timelineItems',
   worldlineEventsNewestFirst: 'worldlineEventsNewestFirst',
   realWorldSummarizedPlots: 'summarizedPlots',
   selectRealWorldPlot: 'selectRealWorldPlot',

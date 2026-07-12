@@ -1,4 +1,4 @@
-﻿import fs from 'node:fs';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -19,12 +19,17 @@ export function resolveBuildResourcesDir() {
 }
 
 export function resolveLocalElectronDist(shellDir = resolveShellDir()) {
-  const electronDistDir = path.resolve(shellDir, 'node_modules', 'electron', 'dist');
-  const electronBinary = path.resolve(electronDistDir, 'electron.exe');
+  const candidateDirs = [
+    path.resolve(shellDir, '.electron-dist', 'electron-v36.9.5-win32-x64'),
+    path.resolve(shellDir, 'node_modules', 'electron', 'dist'),
+  ];
 
-  if (!fs.existsSync(electronBinary)) {
-    return null;
+  for (const electronDistDir of candidateDirs) {
+    const electronBinary = path.resolve(electronDistDir, 'electron.exe');
+    if (fs.existsSync(electronBinary)) {
+      return electronDistDir;
+    }
   }
 
-  return electronDistDir;
+  return null;
 }
