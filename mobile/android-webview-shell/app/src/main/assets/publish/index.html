@@ -666,30 +666,31 @@
       <section class="library-panel" x-show="$store.game.libraryTab === 'worlds'">
         <h3>鐞氼偅鎼烽幒褌绗橀悾宀€鍤?/h3>
         <template x-for="lore in $store.game.controlWorldLores()" :key="lore.worldTag">
-          <article class="world-lore-card" :class="{ open: $store.game.isWorldlineOpen(lore) }" @click="$store.game.toggleWorldline(lore)">
-            <div class="world-lore-title"><strong x-text="lore.worldTag"></strong><span x-show="$store.game.loreWorldline(lore)" x-text="$store.game.isWorldlineOpen(lore) ? '閳? : '閳?"></span></div>
-            <p x-text="lore.background"></p>
-            <div class="lore-chip-row"><template x-for="faction in lore.factions" :key="faction.name"><span x-text="faction.name"></span></template></div>
-            <small x-text="`閻楄鐣╅懕灞肩瑹閿?{$store.game.loreNames(lore.specialJobs, 'name')}`"></small>
-            <small x-text="`閼卞奔绗熺粵澶岄獓閿?{lore.jobRanks.join(' / ') || '閺?}`"></small>
-            <small x-text="`閸ュ搫瀵茬仦鐐粹偓褝绱?{$store.game.loreNames(lore.specialFields, 'label')}`"></small>
-            <div class="worldline-box" x-show="$store.game.isWorldlineOpen(lore) && $store.game.loreWorldline(lore)" @click.stop>
+          <article class="world-lore-card" x-data="{ card: $store.game.controlLoreCardView(lore) }" x-effect="card = $store.game.controlLoreCardView(lore)" :class="{ open: $store.game.isWorldlineOpen(lore) }" @click="$store.game.toggleWorldline(lore)">
+            <div class="world-lore-title"><strong x-text="card.worldTag"></strong><span x-show="$store.game.loreWorldline(lore)" x-text="$store.game.isWorldlineOpen(lore) ? '閳? : '閳?"></span></div>
+            <p x-text="card.background"></p>
+            <div class="lore-chip-row"><template x-for="faction in card.factions" :key="faction.name"><span x-text="faction.name"></span></template></div>
+            <small x-text="`閻楄鐣╅懕灞肩瑹閿?{card.specialJobsText}`"></small>
+            <small x-text="`閼卞奔绗熺粵澶岄獓閿?{card.jobRanksText}`"></small>
+            <small x-text="`閸ュ搫瀵茬仦鐐粹偓褝绱?{card.specialFieldsText}`"></small>
+            <div class="worldline-box" x-show="card.timelineVisible" @click.stop x-data="{ view: $store.game.loreTimelinePanelView(lore) }" x-effect="view = $store.game.loreTimelinePanelView(lore)">
               <div class="worldline-head">
-                <b>娑撴牜鏅痪?/b>
-                <small x-text="$store.game.loreWorldline(lore)?.timeRange || '閺冨爼妫块張顏嗙叀'"></small>
+                <b x-text="view.timelineTitle"></b>
+                <small x-text="view.timeRange"></small>
               </div>
               <div class="timeline-list">
-                <template x-for="item in $store.game.timelineItems(lore)" :key="`${item.kind}-${item.eventId || item.order}`">
+                <template x-for="item in (view.rows || [])" :key="item.key">
                   <article class="timeline-item" :class="item.kind">
                     <span class="timeline-dot"></span>
                     <div>
-                      <small x-text="item.time || '閺冨爼妫块張顏嗙叀'"></small>
+                      <small x-text="item.time"></small>
                       <h4 x-text="item.name"></h4>
-                      <p x-text="item.kind === 'event' ? item.detail : item.summary"></p>
-                      <em x-text="$store.game.timelineMeta(item)"></em>
+                      <p x-text="item.detail"></p>
+                      <em x-text="item.meta"></em>
                     </div>
                   </article>
                 </template>
+                <p class="empty-lore" x-show="!(view.rows || []).length" x-text="view.emptyText"></p>
               </div>
               <details class="faction-details">
                 <summary>閺屻儳婀呴幆鍛板Ν瑜版帞鎾?/summary>
@@ -741,18 +742,18 @@
           <p class="empty-lore" x-show="!$store.game.controlWorldLores().length">閺嗗倹妫ょ悮顐ｆ惙閹貉傜瑯閻ｅ瞼鍤庨妴?/p>
         </section>
         <section class="library-panel dev-section" :class="{ 'worldline-debug-selected': $store.game.isWorldlineDebugSection('閻滄澘鐤勬稉鏍櫕閸掑棝銆?) }" data-section-title="閻滄澘鐤勬稉鏍櫕閸掑棝銆? x-show="$store.game.worldlineAppTab === 'real'" @click.stop="$store.game.selectWorldlineDebugSection('閻滄澘鐤勬稉鏍櫕閸掑棝銆?)">
-          <article class="world-lore-card open dev-section" :class="{ 'worldline-debug-selected': $store.game.isWorldlineDebugSection('閻滄澘鐤勬稉鏍櫕缁惧灝宕遍悧?) }" data-section-title="閻滄澘鐤勬稉鏍櫕缁惧灝宕遍悧? @click.stop="$store.game.selectWorldlineDebugSection('閻滄澘鐤勬稉鏍櫕缁惧灝宕遍悧?)">
-            <div class="world-lore-title"><strong x-text="$store.game.realWorldLore().worldTag"></strong><span>閳?/span></div>
-            <p x-text="$store.game.realWorldLore().background"></p>
+          <article class="world-lore-card open dev-section" x-data="{ card: $store.game.realLoreCardView() }" x-effect="card = $store.game.realLoreCardView()" :class="{ 'worldline-debug-selected': $store.game.isWorldlineDebugSection('閻滄澘鐤勬稉鏍櫕缁惧灝宕遍悧?) }" data-section-title="閻滄澘鐤勬稉鏍櫕缁惧灝宕遍悧? @click.stop="$store.game.selectWorldlineDebugSection('閻滄澘鐤勬稉鏍櫕缁惧灝宕遍悧?)">
+            <div class="world-lore-title"><strong x-text="card.worldTag"></strong><span>閳?/span></div>
+            <p x-text="card.background"></p>
             <div class="worldline-box" x-data="{ view: $store.game.realWorldTimelinePanelView() }" x-effect="view = $store.game.realWorldTimelinePanelView()">
               <div class="worldline-head"><b x-text="view.timelineTitle"></b><small x-text="view.timeRange"></small></div>
               <section class="real-recording-panel">
-                <article class="real-plot-summary dev-section" data-section-title="濮濓絽婀拋鏉跨秿閹懓濡?>
-                  <h3 x-text="$store.game.realWorldline().pendingPlot?.閹懓濡紓鏍у娇 || '閺嗗倹妫ゅ锝呮躬鐠佹澘缍嶉幆鍛板Ν'"></h3>
-                  <small x-text="$store.game.realWorldline().pendingPlot ? `${$store.game.realWorldline().pendingPlot.startedAt || '閺冨爼妫块張顏嗙叀'} - ${$store.game.realWorldline().pendingPlot.endedAt || '閻滄澘婀?}` : '缁鳖垵顓哥拋鏉跨秿鏉堟儳鍩岄梼鍫濃偓鐓庢倵娴兼俺鍤滈崝銊ョ秺缁剧偨鈧?"></small>
-                  <p x-text="$store.game.realWorldline().pendingPlot ? `瀹歌尙鐤拋?${$store.game.realWorldline().pendingPlot.recordIds?.length || 0} 閺壜ゎ唶瑜版洩绱濈痪?${$store.game.realWorldline().pendingPlot.textLength || 0} 鐎涙顑侀妴淇?: '閺嗗倹妫ら張顏勭秺缁惧疇顔囪ぐ鏇樷偓?"></p>
+                <article class="real-plot-summary dev-section" data-section-title="濮濓絽婀拋鏉跨秿閹懓濡?" x-data="{ summary: $store.game.pendingRealPlotSummaryView() }" x-effect="summary = $store.game.pendingRealPlotSummaryView()">
+                  <h3 x-text="summary.title"></h3>
+                  <small x-text="summary.timeRange"></small>
+                  <p x-text="summary.statsText"></p>
                 </article>
-                <div class="timeline-list real-plot-events"><template x-for="item in $store.game.realWorldRecordingEvents()" :key="`real-recording-${item.eventId}`"><article class="timeline-item event"><span class="timeline-dot"></span><div><small x-text="item.time || '閻滄澘鐤勯弮鍫曟？'"></small><h4 x-text="item.name"></h4><p x-text="item.detail"></p><em x-text="item.status || '閻滄澘鐤勭拋鏉跨秿'"></em></div></article></template><p class="empty-lore" x-show="!$store.game.realWorldRecordingEvents().length">閺嗗倹妫ゅ锝呮躬鐠佹澘缍嶉惃鍕箛鐎圭偘绨ㄦ禒韬测偓?/p></div>
+                <div class="timeline-list real-plot-events"><template x-for="item in (view.recordingRows || [])" :key="item.key"><article class="timeline-item event"><span class="timeline-dot"></span><div><small x-text="item.time"></small><h4 x-text="item.name"></h4><p x-text="item.detail"></p><em x-text="item.meta"></em></div></article></template><p class="empty-lore" x-show="!(view.recordingRows || []).length" x-text="view.recordingEmptyText"></p></div>
               </section>
               <details class="faction-details"><summary>閺屻儳婀呴崗銊╁劥閻滄澘鐤勭拋鏉跨秿</summary><div class="timeline-list"><template x-for="item in (view.rows || [])" :key="item.key"><article class="timeline-item event"><span class="timeline-dot"></span><div><small x-text="item.time"></small><h4 x-text="item.name"></h4><p x-text="item.detail"></p><em x-text="item.meta"></em></div></article></template><p class="empty-lore" x-show="!(view.rows || []).length" x-text="view.emptyText"></p></div></details>
               <p class="empty-lore" x-show="!(view.rows || []).length" x-text="view.emptyText"></p>
