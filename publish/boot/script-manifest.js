@@ -256,6 +256,7 @@ window.GameScriptManifest = {
       "wechat-view-actions.js",
       "wechat-memory-context-actions.js",
       "app/wechat/chat-session.js",
+      "app/wechat/chat-message-helpers.js",
       "wechat-chat-actions.js",
       "wechat-past-event-actions.js",
       "wechat-incoming-actions.js",

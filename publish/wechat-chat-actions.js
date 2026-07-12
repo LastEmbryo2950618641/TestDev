@@ -4,6 +4,10 @@ function callWechatChatSession(name, context, ...args) {
   return window.GameModules.app.wechat.chatSession[name].call(context, ...args);
 }
 
+function callWechatChatMessageHelper(name, context, ...args) {
+  return window.GameModules.app.wechat.chatMessageHelpers[name].call(context, ...args);
+}
+
 window.GameModules.wechatChatActions = {
   selectWechatContact(id) {
     return callWechatChatSession('selectContact', this, id);
@@ -35,45 +39,31 @@ window.GameModules.wechatChatActions = {
   },
 
   appendWechatMessage(id, msg) {
-    const key = id || 'group-main';
-    const time = msg.time || this.wechatMessageTime();
-    const saved = { ...msg, at: time.label, atDisplay: time.display, time: time.value };
-    const list = [...(this.wechatMessagesByContact?.[key] || []), saved].slice(-40);
-    this.wechatMessagesByContact = { ...(this.wechatMessagesByContact || {}), [key]: list };
-    this.saveWechatHistoryRow?.(key, saved)?.catch?.((err) => console.warn('[微信] 固定历史写入失败:', err?.code || '', err?.message || String(err), err?.stack || ''));
-    if (msg.text) this.updateWechatLatest(key, msg.text, msg.side === 'other');
+    return callWechatChatMessageHelper('appendWechatMessage', this, id, msg);
   },
 
   wechatMessageTime() {
-    const d = this.phoneDate?.() || new Date();
-    return { label: `${this.phoneDateText?.() || ''} ${this.phoneTimeText?.() || ''}`.trim(), display: this.wechatTimeDisplay(d), value: this.wechatTimeValue(d) };
+    return callWechatChatMessageHelper('wechatMessageTime', this);
   },
 
   wechatMemoryTime() {
-    const d = this.phoneDate?.() || new Date();
-    return { label: `${this.phoneDateText?.() || ''} ${this.phoneTimeText?.() || ''}`.trim(), value: this.wechatTimeValue(d) };
+    return callWechatChatMessageHelper('wechatMemoryTime', this);
   },
 
   wechatDialogueTimeLabel(label = '') {
-    return String(label || '时间未知').replace(/日周/g, '日 周');
+    return callWechatChatMessageHelper('wechatDialogueTimeLabel', this, label);
   },
 
   formatWechatDialogueLog(playerName, contactName, label, playerText, replyText = '') {
-    const time = this.wechatDialogueTimeLabel(label);
-    return [
-      '以下来自微信对话。',
-      `${playerName}（${time}）：“${playerText}”`,
-      replyText ? `${contactName}（${time}）：“${replyText}”` : '',
-    ].filter(Boolean).join('');
+    return callWechatChatMessageHelper('formatWechatDialogueLog', this, playerName, contactName, label, playerText, replyText);
   },
 
   wechatTimeValue(d) {
-    return { year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate(), hour: d.getHours(), minute: d.getMinutes(), second: d.getSeconds() };
+    return callWechatChatMessageHelper('wechatTimeValue', this, d);
   },
 
   wechatTimeDisplay(d) {
-    const pad = (n) => String(n).padStart(2, '0');
-    return `${d.getMonth() + 1}月${d.getDate()}日 ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return callWechatChatMessageHelper('wechatTimeDisplay', this, d);
   },
 
 
