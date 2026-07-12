@@ -3342,7 +3342,7 @@
           <template x-for="stage in $store.game.entryStages" :key="stage.key">
             <div class="loading-stage" :class="stage.status" :title="stage.detail">
               <span x-text="stage.name"></span>
-              <b x-text="$store.game.stageText(stage.status)"></b>
+              <b x-text="stage.status"></b>
             </div>
           </template>
         </div>
