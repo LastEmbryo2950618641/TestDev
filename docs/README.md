@@ -63,6 +63,7 @@
 - Worldline 展示层阶段复核：`docs/architecture/worldline-ui-helper-boundary-review-2026-07-12.md`
 - Compat 清理门槛清单：`docs/architecture/compat-cleanup-gate-checklist-2026-07-12.md`
 - Compat 调用链审计：`docs/architecture/compat-callsite-audit-2026-07-12.md`
+- Compat 调用迁移准备清单：`docs/architecture/compat-callsite-migration-prep-2026-07-12.md`
 - 验证样例：
   - `docs/plans/2026-07-10-ui-faction-overview-view-helpers-phase1-validation.md`
   - `docs/plans/2026-07-10-ui-real-world-display-helpers-phase2-validation.md`
