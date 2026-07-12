@@ -37,7 +37,7 @@ window.GameModules.wechatMentionActions = {
   },
 
   wechatMessageImageMentionId(msg = {}, index = 0) {
-    return String(msg.imageId || msg.taskId || `chat-img-${this.wechatMessageMentionId(msg, index)}`).trim();
+    return callWechatMentionIdHelper('wechatMessageImageMentionId', this, msg, index);
   },
 
   wechatMentionedContacts(text = '') {
