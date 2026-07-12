@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 图书馆世界线展示辅助。
  */
 window.GameModules = window.GameModules || {};
@@ -93,10 +93,6 @@ window.GameModules.worldlineActions = {
 
   factionRelations(faction) {
     return callWorldlineFormatHelper('factionRelations', this, faction);
-  },
-
-  timelineMeta(item) {
-    return window.GameModules.ui.worldline.timelinePanelViewHelpers.timelineMeta.call(this, item);
   },
 };
 Object.entries(worldlineViewHelperForwarders).forEach(([name, helperName]) => {
