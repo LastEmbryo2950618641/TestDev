@@ -16,13 +16,9 @@ const SETTINGS_VIEW_HELPER_METHODS = [
   'textProviderSectionView',
   'drawProviderSectionView',
   'currentSettingsSummaryRows',
-  'currentModelSummaryView',
-  'stage1MaterialSettingView',
-  'aiOutputLimitSectionView',
   'drawModelOptionLabel',
   'stage1MaterialMaxIterations',
   'stage1MaterialIterationLimitText',
-  'settingsSummaryView',
 ];
 
 function callSettingsViewHelper(store, method, ...args) {
