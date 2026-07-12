@@ -2,6 +2,10 @@ window.GameModules = window.GameModules || {};
 function callWechatMentionViewHelper(name, context, ...args) {
   return window.GameModules.app.wechat.mentionViewHelpers[name].call(context, ...args);
 }
+function callWechatMentionBasePhotoHelper(name, context, ...args) {
+  return window.GameModules.app.wechat.mentionBasePhotoHelper[name].call(context, ...args);
+}
+
 
 window.GameModules.wechatMentionActions = {
   insertWechatMention(text = '') {
@@ -62,7 +66,6 @@ window.GameModules.wechatMentionActions = {
   },
 
   wechatImageBasePhoto(msg = {}) {
-    const base = msg.imageIntent?.baseImage || msg.baseImage;
-    return base?.url ? { url: base.url, taskId: base.taskId || '', imageId: base.id || '', description: base.description || '' } : null;
+    return callWechatMentionBasePhotoHelper('wechatImageBasePhoto', this, msg);
   },
 };
