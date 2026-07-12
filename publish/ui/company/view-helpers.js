@@ -19,27 +19,7 @@ window.GameModules.ui.company.viewHelpers = {
 
   companyFieldSectionView() { return window.GameModules.ui.company.fieldSectionViewHelpers.companyFieldSectionView.call(this); },
 
-  companyContractSectionView() {
-    const contractRows = (Array.isArray(this.companyState?.contracts) ? this.companyState.contracts : []).map((item = {}) => ({
-      key: item.id || `${item.type || 'contract'}-${item.signedAt || ''}`,
-      title: item.type || '未命名合同',
-      body: item.terms || '',
-      meta: item.signedAt || '',
-    }));
-
-    const submissionRows = (Array.isArray(this.companyState?.submissions) ? this.companyState.submissions : []).map((item = {}) => ({
-      key: item.id || `${item.type || 'submission'}-${item.status || ''}`,
-      title: item.type || '未命名投稿',
-      body: `${item.target || ''}｜${item.rewardRule || ''}`,
-      meta: item.status || '',
-    }));
-
-    return {
-      emptyText: '暂无薪酬绩效信息',
-      contractRows,
-      submissionRows,
-    };
-  },
+  companyContractSectionView() { return window.GameModules.ui.company.contractViewHelpers.companyContractSectionView.call(this); },
 
   companyEmploymentRecordSectionView() {
     const recordRows = (Array.isArray(this.companyState?.employmentRecords) ? this.companyState.employmentRecords : []).map((record = {}, index = 0) => ({
