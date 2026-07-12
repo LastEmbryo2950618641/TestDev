@@ -27,10 +27,15 @@
 第一次进入项目时，建议优先阅读：
 
 1. `README.md`
-2. `docs/architecture/encoding-collaboration-rules.md`
-3. `docs/architecture/ai-development-workflow.md`
-4. `docs/architecture/project-structure.md`
+2. `docs/architecture/architecture-overview-index-2026-07-12.md`
+3. `docs/architecture/project-structure.md`
+4. `docs/architecture/encoding-collaboration-rules.md`
 5. 与当前模块直接相关的 boundary / playbook / plan 文档
+
+补充说明：
+
+- `architecture-overview-index-2026-07-12.md` 作为当前阶段的稳定导航入口，优先帮助后续协作者判断“先看哪里、先不要碰哪里”。
+- 若某份历史文档出现编码显示异常或明显过时，不要直接把它当成唯一权威入口；先回到 `README.md`、`docs/README.md` 与总览索引交叉确认。
 
 ## 推荐命名方式
 
@@ -135,3 +140,4 @@
 
 - 多端总览入口：`docs/architecture/multi-platform-implementation-overview.md`
   - 统一查看 shared / desktop / mobile 的职责边界、当前证据和后续实施顺序
+

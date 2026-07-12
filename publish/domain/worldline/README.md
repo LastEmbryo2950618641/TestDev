@@ -21,7 +21,7 @@ The purpose of `publish/domain/worldline/` is to keep durable worldline logic ou
 ### `query-service.js`
 - plot and faction queries
 - read-oriented worldline lookup helpers
-- compatibility surface for query-style consumers
+- query-only surface after formatting helpers were narrowed back into `format-helpers.js`
 
 ### `format-helpers.js`
 - worldline-safe id generation
@@ -70,4 +70,5 @@ The preferred pattern for future moves into this directory is:
 ## Immediate practical rule
 
 If a candidate function both mutates runtime UI state and assembles business data, split the readonly/business portion first and only then consider moving it into `publish/domain/worldline/`.
+
 

@@ -33,6 +33,10 @@ function callWorldlineQueryService(name, context, ...args) {
   return window.GameModules.domain.worldline.queryService[name].call(context, ...args);
 }
 
+function callWorldlineFormatHelper(name, context, ...args) {
+  return window.GameModules.domain.worldline.formatHelpers[name].call(context, ...args);
+}
+
 window.GameModules.worldlineActions = {
   openWorldlineApp() {
     this.closeDesktopApps?.();
@@ -58,7 +62,7 @@ window.GameModules.worldlineActions = {
   },
 
   connectionWorldlineEvent(line = {}, context = '') {
-    return callWorldlineQueryService('connectionWorldlineEvent', this, line, context);
+    return callWorldlineFormatHelper('connectionWorldlineEvent', this, line, context);
   },
 
   async updateWorldlineFromTurn(result = {}) {
@@ -66,15 +70,15 @@ window.GameModules.worldlineActions = {
   },
 
   worldlineTurnEventId(result = {}) {
-    return callWorldlineQueryService('worldlineTurnEventId', this, result);
+    return callWorldlineFormatHelper('worldlineTurnEventId', this, result);
   },
 
   worldlineSafeId(value = '') {
-    return callWorldlineQueryService('worldlineSafeId', this, value);
+    return callWorldlineFormatHelper('worldlineSafeId', this, value);
   },
 
   worldlineTurnDetail(result = {}) {
-    return callWorldlineQueryService('worldlineTurnDetail', this, result);
+    return callWorldlineFormatHelper('worldlineTurnDetail', this, result);
   },
 
   async appendWorldlineEvent(line, event, prefix = '情节') {
@@ -86,11 +90,11 @@ window.GameModules.worldlineActions = {
   },
 
   factionAttrs(faction) {
-    return callWorldlineQueryService('factionAttrs', this, faction);
+    return callWorldlineFormatHelper('factionAttrs', this, faction);
   },
 
   factionRelations(faction) {
-    return callWorldlineQueryService('factionRelations', this, faction);
+    return callWorldlineFormatHelper('factionRelations', this, faction);
   },
 };
 Object.entries(worldlineViewHelperForwarders).forEach(([name, helperName]) => {

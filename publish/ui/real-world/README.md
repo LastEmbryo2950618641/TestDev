@@ -34,6 +34,7 @@ This layer should prepare panel-facing rows, labels, summaries, and display obje
 ### `map-stage-view-helpers.js`
 - stage shell helpers such as stage style, stage element, and canvas element lookup
 - tiny readonly stage-facing helpers extracted ahead of any runtime canvas logic move
+- readonly text shaping helpers such as wrapped canvas labels and shortened stage labels
 
 ### `panel-view-helpers.js`
 - function panel labels
