@@ -12,11 +12,7 @@ const worldlineViewHelperForwarders = {
   realWorldTag: 'realTag',
   realWorldLore: 'realLore',
   worldlineEventsNewestFirst: 'worldlineEventsNewestFirst',
-  realWorldSummarizedPlots: 'summarizedPlots',
   selectRealWorldPlot: 'selectRealWorldPlot',
-  realWorldSelectedPlot: 'selectedPlot',
-  realWorldPlotEvents: 'selectedPlotEvents',
-  realWorldRecordingEvents: 'recordingEvents',
 };
 
 function callWorldlineViewHelper(name, context, ...args) {

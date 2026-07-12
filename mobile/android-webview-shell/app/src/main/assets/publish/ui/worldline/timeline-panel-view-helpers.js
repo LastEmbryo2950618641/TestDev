@@ -76,7 +76,7 @@ window.GameModules.ui.worldline.timelinePanelViewHelpers = {
   },
 
   buildRealWorldRecordingRows() {
-    return this.realWorldRecordingEvents().map((entry) => this.realWorldTimelineRow(entry));
+    return this.recordingEvents().map((entry) => this.realWorldTimelineRow(entry));
   },
 
   loreTimelinePanelView(lore = null) {

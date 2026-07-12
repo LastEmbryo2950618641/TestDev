@@ -8,12 +8,12 @@ window.GameModules.ui.worldline.plotViewHelpers = {
   },
 
   selectedPlot() {
-    const plots = this.realWorldSummarizedPlots();
+    const plots = this.summarizedPlots();
     return plots.find((plot) => plot.情节编号 === this.selectedRealWorldPlotId) || plots[0] || null;
   },
 
   selectedPlotEvents(plot = null) {
-    const selected = plot || this.realWorldSelectedPlot();
+    const selected = plot || this.selectedPlot();
     const id = selected?.情节编号 || '';
     if (!id) return [];
     const recordIds = String(selected?.重要记录编号 || '').split(/[、,，\s]+/).filter(Boolean);
