@@ -28,6 +28,11 @@ This layer should transform already-available domain/state data into row, panel,
 - selected plot event filtering
 - recording event list shaping
 
+### `timeline-panel-view-helpers.js`
+- timeline meta text shaping
+- timeline row object assembly
+- lore and real-world timeline panel display objects
+
 ## Boundary rules
 
 Files in this directory should prefer:
