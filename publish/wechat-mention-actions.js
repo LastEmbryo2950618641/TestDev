@@ -23,7 +23,7 @@ window.GameModules.wechatMentionActions = {
   },
 
   mentionWechatImage(msg = {}, index = 0) {
-    this.insertWechatMention(`@图片${this.wechatMessageImageMentionId(msg, index)}`);
+    return callWechatMentionIdHelper('mentionWechatImage', this, msg, index);
   },
 
   wechatImageMentionId(photo = {}, index = 0) {

@@ -15,4 +15,8 @@ window.GameModules.app.wechat.mentionBasePhotoHelper = {
     return String(msg.imageId || msg.taskId || ('chat-img-' + this.wechatMessageMentionId(msg, index))).trim();
   },
 
+  mentionWechatImage(msg = {}, index = 0) {
+    this.insertWechatMention('@图片' + this.wechatMessageImageMentionId(msg, index));
+  },
+
 };
