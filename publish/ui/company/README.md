@@ -27,6 +27,12 @@
 - `companyOrganization`
 - `companyFields`
 
+### `company-field-section-view-helpers.js`
+
+负责公司字段展示对象：
+
+- `companyFieldSectionView`
+
 ### `company-attendance-view-helpers.js`
 
 负责出勤状态的只读结果生成：
@@ -52,7 +58,7 @@
 这是兼容聚合入口：
 
 - 对外保留原有 `window.GameModules.ui.company.viewHelpers.*` 访问路径
-- 内部只转发到 `company-pay-view-helpers.js`、`company-field-view-helpers.js`、`company-attendance-view-helpers.js`、`company-summary-view-helpers.js`、`company-organization-view-helpers.js`
+- 内部只转发到 `company-pay-view-helpers.js`、`company-field-view-helpers.js`、`company-field-section-view-helpers.js`、`company-attendance-view-helpers.js`、`company-summary-view-helpers.js`、`company-organization-view-helpers.js`
 - 新逻辑不要优先继续堆在这里，除非只是补兼容转发
 
 ## 适合放入这里的逻辑
@@ -79,6 +85,7 @@
 - 如果公司系统展示逻辑继续增长，可再继续细分：
   - `company-summary-view-helpers.js`
   - `company-organization-view-helpers.js`
+  - `company-field-section-view-helpers.js`
 - 新逻辑优先进入真实主题文件，不要把所有内容继续堆回 `view-helpers.js`
 - 如果后续发现某些 helper 同时服务于桌面壳与移动壳，优先保持其为纯只读、无平台依赖函数
 

@@ -17,17 +17,7 @@ window.GameModules.ui.company.viewHelpers = {
 
   companyOrganizationSectionView() { return window.GameModules.ui.company.organizationViewHelpers.companyOrganizationSectionView.call(this); },
 
-  companyFieldSectionView() {
-    const rows = this.companyFields().map((field) => ({
-      key: field.key,
-      field,
-    }));
-
-    return {
-      emptyText: '暂无在职公司信息',
-      rows,
-    };
-  },
+  companyFieldSectionView() { return window.GameModules.ui.company.fieldSectionViewHelpers.companyFieldSectionView.call(this); },
 
   companyContractSectionView() {
     const contractRows = (Array.isArray(this.companyState?.contracts) ? this.companyState.contracts : []).map((item = {}) => ({
