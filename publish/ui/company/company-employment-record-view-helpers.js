@@ -15,6 +15,7 @@ window.GameModules.ui.company.employmentRecordViewHelpers = {
     }));
 
     return {
+      emptyText: '暂无任职记录',
       recordRows,
     };
   },

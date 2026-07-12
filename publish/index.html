@@ -1880,9 +1880,10 @@
           <template x-for="item in $store.game.companyState.contracts" :key="item.id"><article class="contract-card"><h3 x-text="item.type"></h3><p x-text="item.terms"></p><small x-text="item.signedAt"></small></article></template>
           <template x-for="item in $store.game.companyState.submissions" :key="item.id"><article class="contract-card"><h3 x-text="item.type"></h3><p x-text="`${item.target}閿?{item.rewardRule}`"></p><small x-text="item.status"></small></article></template>
         </section>
-        <section class="employment-records" x-show="$store.game.companyState.panelTab === 'records'">
-          <template x-for="record in $store.game.companyState.employmentRecords" :key="record.id">
-            <article class="record-card dev-section" data-section-title="閸忋儴浜寸拋鏉跨秿妞?><h3 x-text="record.company"></h3><p><b x-text="record.status"></b><span x-text="`瀵偓婵鍙嗛懕宀嬬窗${new Date(record.startAt).toLocaleString()}`"></span><span x-text="`閸︺劏浜撮弮鍫曟？閿?{record.duration || $store.game.employmentDurationText(record.startAt, record.endAt || new Date().toISOString())}`"></span><span x-show="record.endAt" x-text="`缁傛槒浜撮弮鍫曟？閿?{new Date(record.endAt).toLocaleString()}`"></span></p></article>
+        <section class="employment-records" x-show="$store.game.companyState.panelTab === 'records'" x-data="{ view: $store.game.companyEmploymentRecordSectionView() }" x-effect="view = $store.game.companyEmploymentRecordSectionView()">
+          <p class="company-empty" x-show="!(view.recordRows || []).length" x-text="view.emptyText"></p>
+          <template x-for="record in view.recordRows" :key="record.key">
+            <article class="record-card dev-section" data-section-title="閸忋儴浜寸拋鏉跨秿妞?><h3 x-text="record.title"></h3><p><b x-text="record.status"></b><span x-text="record.startText"></span><span x-text="record.durationText"></span><span x-show="record.showEnd" x-text="record.endText"></span></p></article>
           </template>
         </section>
         <section class="company-tools" x-show="$store.game.companyState.panelTab === 'tools'">
