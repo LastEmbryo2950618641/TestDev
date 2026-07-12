@@ -3,6 +3,10 @@ window.GameModules.app = window.GameModules.app || {};
 window.GameModules.app.wechat = window.GameModules.app.wechat || {};
 
 window.GameModules.app.wechat.mentionViewHelpers = {
+  wechatMentionedContacts(text = '') {
+    const raw = String(text || '');
+    return (this.wechatContacts?.() || []).filter((item) => !item.group && item.name && raw.includes('@' + item.name)).slice(0, 5);
+  },
 
   wechatMentionedMessages(text = '', currentId = '') {
     const ids = [];

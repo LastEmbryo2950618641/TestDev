@@ -25,7 +25,7 @@ The goal of this directory is to hold small, reusable, non-entry helper surfaces
 - readonly time-display helpers used by chat and worldline recording
 
 ### `mention-view-helpers.js`
-- mention-context text assembly
+- mention-context text assembly and contact-mention parsing
 - mention-related readonly source formatting for prompt/context usage
 
 ### `mention-base-photo-helper.js`

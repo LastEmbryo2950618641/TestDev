@@ -41,8 +41,7 @@ window.GameModules.wechatMentionActions = {
   },
 
   wechatMentionedContacts(text = '') {
-    const raw = String(text || '');
-    return (this.wechatContacts?.() || []).filter((item) => !item.group && item.name && raw.includes(`@${item.name}`)).slice(0, 5);
+    return callWechatMentionViewHelper('wechatMentionedContacts', this, text);
   },
 
   wechatMentionedImages(text = '', currentId = '') {
