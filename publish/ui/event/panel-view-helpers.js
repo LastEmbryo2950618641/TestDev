@@ -16,9 +16,16 @@ window.GameModules.ui.event.panelViewHelpers = {
 
   selectedEventDetailView() {
     const event = this.selectedEvent();
-    if (!event) return null;
+    if (!event) {
+      return {
+        hasEvent: false,
+        emptyText: this.selectedEventEmptyText(),
+      };
+    }
     const tags = Array.isArray(event.tags) ? event.tags.filter(Boolean) : [];
     return {
+      hasEvent: true,
+      emptyText: this.selectedEventEmptyText(),
       title: this.eventName(event),
       meta: this.eventMeta(event),
       content: String(event.content || '').trim(),

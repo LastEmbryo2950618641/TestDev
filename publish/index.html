@@ -1970,7 +1970,7 @@
           <p class="empty-lore" x-show="!view.events.length" x-text="view.emptyText"></p>
         </section>
         <section class="event-detail" x-data="{ view: $store.game.selectedEventDetailView() }" x-effect="view = $store.game.selectedEventDetailView()">
-          <template x-if="view">
+          <template x-if="view.hasEvent">
             <article>
               <h3 x-text="view.title"></h3>
               <small x-text="view.meta"></small>
@@ -1980,7 +1980,7 @@
               <p x-show="view.showTriggeredCount"><b x-text="view.triggeredCountFieldLabel"></b><span x-text="view.triggeredCountText"></span></p>
             </article>
           </template>
-          <p class="empty-lore" x-show="!view" x-text="$store.game.selectedEventEmptyText()"></p>
+          <p class="empty-lore" x-show="!view.hasEvent" x-text="view.emptyText"></p>
         </section>
       </main>
     </div>
