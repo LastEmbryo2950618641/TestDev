@@ -3,6 +3,18 @@ window.GameModules.ui = window.GameModules.ui || {};
 window.GameModules.ui.event = window.GameModules.ui.event || {};
 
 window.GameModules.ui.event.viewHelpers = {
+  eventsByType(type = this.eventState?.tab || 'random') {
+    this.initEventSystem();
+    const normalized = window.GameModules.eventSystem.normalizeType(type);
+    return (this.eventState.events || [])
+      .filter((event) => event.type === normalized)
+      .sort((a, b) => String(a.startDate || '').localeCompare(String(b.startDate || '')) || String(a.title || '').localeCompare(String(b.title || '')));
+  },
+
+  eventName(event = {}) {
+    return window.GameModules.eventSystem.eventDisplayName(event);
+  },
+
   eventTypeTabs() {
     return window.GameModules.eventSystem.EVENT_TYPES.map((type) => ({ type, label: window.GameModules.eventSystem.typeLabel(type), count: this.eventsByType(type).length }));
   },

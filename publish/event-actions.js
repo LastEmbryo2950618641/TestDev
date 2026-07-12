@@ -50,16 +50,12 @@ window.GameModules.eventActions = {
   },
 
   eventsByType(type = this.eventState?.tab || 'random') {
-    this.initEventSystem();
-    const normalized = window.GameModules.eventSystem.normalizeType(type);
-    return (this.eventState.events || [])
-      .filter((event) => event.type === normalized)
-      .sort((a, b) => String(a.startDate || '').localeCompare(String(b.startDate || '')) || String(a.title || '').localeCompare(String(b.title || '')));
+    return callEventViewHelper('eventsByType', this, type);
   },
 
 
   eventName(event = {}) {
-    return window.GameModules.eventSystem.eventDisplayName(event);
+    return callEventViewHelper('eventName', this, event);
   },
 
 
