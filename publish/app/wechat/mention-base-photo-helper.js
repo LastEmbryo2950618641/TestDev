@@ -7,4 +7,8 @@ window.GameModules.app.wechat.mentionBasePhotoHelper = {
     const base = msg.imageIntent?.baseImage || msg.baseImage;
     return base?.url ? { url: base.url, taskId: base.taskId || '', imageId: base.id || '', description: base.description || '' } : null;
   },
+  wechatImageMentionId(photo = {}, index = 0) {
+    return String(photo.imageId || photo.taskId || ('album-' + index)).trim();
+  },
+
 };
