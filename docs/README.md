@@ -66,6 +66,7 @@
 - Compat 调用迁移准备清单：`docs/architecture/compat-callsite-migration-prep-2026-07-12.md`
 - 动作层 compat 迁移审计：`docs/architecture/action-layer-compat-migration-audit-2026-07-12.md`
 - 宿主镜像同步策略说明：`docs/architecture/host-mirror-sync-strategy-note-2026-07-12.md`
+- 宿主镜像同步边界清单：`docs/architecture/host-mirror-sync-boundary-checklist-2026-07-12.md`
 - Worldline 残余 compat 入口清单：`docs/architecture/worldline-residual-compat-entry-inventory-2026-07-12.md`
 - Worldline 首个 compat 收缩候选说明：`docs/architecture/worldline-first-compat-reduction-candidate-2026-07-12.md`
 - Worldline compat 收缩阻塞说明：`docs/architecture/worldline-compat-reduction-blocking-note-2026-07-12.md`
