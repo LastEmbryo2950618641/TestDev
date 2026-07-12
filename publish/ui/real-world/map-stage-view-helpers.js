@@ -6,4 +6,8 @@ window.GameModules.ui.realWorld.mapStageViewHelpers = {
   stageStyle() {
     return '';
   },
+  stageElement() {
+    return this.realWorldMapCanvasElement();
+  },
+
 };

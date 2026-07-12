@@ -112,7 +112,7 @@ window.GameModules.realWorldMapActions = {
   },
 
   realWorldMapStageElement() {
-    return this.realWorldMapCanvasElement();
+    return callRealWorldMapStageViewHelper('stageElement', this);
   },
 
   realWorldMapStageStyle() {
