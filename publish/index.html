@@ -1952,9 +1952,9 @@
   </section>
 
   <section x-show="!$store.game.loading && $store.game.eventState?.open" class="event-app-screen app-window section-hints" x-cloak x-effect="$store.game.eventState?.open && $store.game.initEventSystem?.()">
-    <div class="event-card dev-section" data-section-title="娴滃娆PP娑撳娼伴弶?>
-      <header class="identity-header event-header" x-data="{ view: $store.game.eventPanelView() }" x-effect="view = $store.game.eventPanelView()"><div><p class="eyebrow">EVENTS</p><h2 x-text="view.title"></h2><small x-text="view.description"></small></div><div class="event-header-actions"><label class="event-setting"><span x-text="view.probabilityFieldLabel"></span><input type="number" min="0" max="100" step="1" :value="view.probabilityValue" @change="$store.game.setEventRandomProbability($event.target.value)"><b>%</b></label><button class="small-btn" type="button" @click="$store.game.closeEventApp()" x-text="view.backButtonText"></button></div></header>
-      <nav class="event-tabs" x-data="{ view: $store.game.eventPanelView() }" x-effect="view = $store.game.eventPanelView()">
+    <div class="event-card dev-section" data-section-title="娴滃娆PP娑撳娼伴弶?" x-data="{ view: $store.game.eventPanelView() }" x-effect="view = $store.game.eventPanelView()">
+      <header class="identity-header event-header"><div><p class="eyebrow">EVENTS</p><h2 x-text="view.title"></h2><small x-text="view.description"></small></div><div class="event-header-actions"><label class="event-setting"><span x-text="view.probabilityFieldLabel"></span><input type="number" min="0" max="100" step="1" :value="view.probabilityValue" @change="$store.game.setEventRandomProbability($event.target.value)"><b>%</b></label><button class="small-btn" type="button" @click="$store.game.closeEventApp()" x-text="view.backButtonText"></button></div></header>
+      <nav class="event-tabs">
         <template x-for="tab in view.tabs" :key="tab.type">
           <button type="button" :class="{ active: $store.game.eventState.tab === tab.type }" @click="$store.game.setEventTab(tab.type)"><span x-text="tab.label"></span><small x-text="` ${tab.count}`"></small></button>
         </template>
