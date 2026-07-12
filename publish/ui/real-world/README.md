@@ -31,6 +31,10 @@ This layer should prepare panel-facing rows, labels, summaries, and display obje
 - aggregation facade that composes shell/info/control/interior helpers
 - compatibility surface for callers still bound to broader map view helper names
 
+### `map-stage-view-helpers.js`
+- stage shell helpers such as stage style, stage element, and canvas element lookup
+- tiny readonly stage-facing helpers extracted ahead of any runtime canvas logic move
+
 ### `panel-view-helpers.js`
 - function panel labels
 - icon and button text helpers
@@ -68,11 +72,11 @@ Files in this directory should avoid:
 The preferred pattern for future moves into this directory is:
 
 1. move readonly text/row/panel shaping first
-2. keep canvas drawing, hit testing, zoom/pan, and runtime caches out of this directory
+2. keep canvas drawing, hit testing, zoom/pan, runtime caches, and canvas sizing writes out of this directory
 3. when a broad helper surface grows, split it by shell/info/control/interior/panel/log responsibility rather than by arbitrary file size
 4. use aggregation facades like `map-view-helpers.js` only when they reduce churn for still-migrating callers
 
 ## Immediate practical rule
 
-If a helper needs DOM access, mutable runtime caches, or live interaction state, it probably belongs outside `publish/ui/real-world/` until its readonly portion is isolated.
+If a helper needs mutable runtime caches, viewport sizing writes, or live interaction state, it probably belongs outside `publish/ui/real-world/` until its readonly portion is isolated. Tiny stage-shell accessors may still live here when they only expose a stable UI-facing element or style hook.
 
