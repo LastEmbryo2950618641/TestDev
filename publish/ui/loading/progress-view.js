@@ -44,6 +44,14 @@ window.GameModules.ui.loading.progressView = {
     return `${done}/${total} 阶段 · ${this.elapsedText(this.loadingStartedAt)}`;
   },
 
+  homeLoadProgressText() {
+    return this.homeLoadLabel || '正在载入存档…';
+  },
+
+  homeLoadProgressDisplayPercent() {
+    return Math.max(0, Math.min(100, Math.round(Number(this.homeLoadPercent) || 0)));
+  },
+
   roleCardLoadingProgressPercent() {
     const cards = this.roleCardLoadingState?.cards || [];
     const totals = cards.flatMap((card) => card.steps || []).reduce((acc, step) => ({ done: acc.done + (Number(step.done) || 0), total: acc.total + (Number(step.total) || 0) }), { done: 0, total: 0 });

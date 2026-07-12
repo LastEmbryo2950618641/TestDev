@@ -93,6 +93,16 @@ window.GameModules.loadingActions = {
     return view?.loadingProgressText ? view.loadingProgressText.call(this) : '';
   },
 
+  homeLoadProgressText() {
+    const view = resolveLoadingProgressView();
+    return view?.homeLoadProgressText ? view.homeLoadProgressText.call(this) : '正在载入存档…';
+  },
+
+  homeLoadProgressDisplayPercent() {
+    const view = resolveLoadingProgressView();
+    return view?.homeLoadProgressDisplayPercent ? view.homeLoadProgressDisplayPercent.call(this) : 0;
+  },
+
   roleCardLoadingProgressPercent() {
     const view = resolveLoadingProgressView();
     return view?.roleCardLoadingProgressPercent ? view.roleCardLoadingProgressPercent.call(this) : 0;

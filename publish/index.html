@@ -252,8 +252,8 @@
 
   <div class="home-load-overlay" x-show="$store.game.homeLoadActive" x-cloak>
     <div class="home-load-card">
-      <p x-text="$store.game.homeLoadProgressText ? $store.game.homeLoadProgressText() : '濮濓絽婀潪钘夊弳閳?"></p>
-      <div class="loading-progress"><i :style="`width: ${$store.game.homeLoadProgressDisplayPercent ? $store.game.homeLoadProgressDisplayPercent() : 0}%`"></i></div>
+      <p x-text="$store.game.homeLoadProgressText()"></p>
+      <div class="loading-progress"><i :style="`width: ${$store.game.homeLoadProgressDisplayPercent()}%`"></i></div>
     </div>
   </div>
 
