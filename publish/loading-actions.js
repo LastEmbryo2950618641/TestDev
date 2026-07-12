@@ -68,31 +68,6 @@ window.GameModules.loadingActions = {
     return view?.stageText ? view.stageText.call(this, status) : (status || '');
   },
 
-  formatDuration(ms = 0) {
-    const view = resolveLoadingProgressView();
-    return view?.formatDuration ? view.formatDuration.call(this, ms) : '0s';
-  },
-
-  elapsedText(startedAt = 0, finishedAt = 0) {
-    const view = resolveLoadingProgressView();
-    return view?.elapsedText ? view.elapsedText.call(this, startedAt, finishedAt) : '';
-  },
-
-  stageElapsedLabel(startedAt = 0, finishedAt = 0) {
-    const view = resolveLoadingProgressView();
-    return view?.stageElapsedLabel ? view.stageElapsedLabel.call(this, startedAt, finishedAt) : '';
-  },
-
-  loadingProgressPercent() {
-    const view = resolveLoadingProgressView();
-    return view?.loadingProgressPercent ? view.loadingProgressPercent.call(this) : 0;
-  },
-
-  loadingProgressText() {
-    const view = resolveLoadingProgressView();
-    return view?.loadingProgressText ? view.loadingProgressText.call(this) : '';
-  },
-
   homeLoadProgressText() {
     const view = resolveLoadingProgressView();
     return view?.homeLoadProgressText ? view.homeLoadProgressText.call(this) : '正在载入存档…';
@@ -113,8 +88,4 @@ window.GameModules.loadingActions = {
     return view?.roleCardLoadingPanelView ? view.roleCardLoadingPanelView.call(this) : { summaryText: '', expanded: true, progressText: '', progressPercent: 0, cards: [] };
   },
 
-  roleCardLoadingProgressPercent() {
-    const view = resolveLoadingProgressView();
-    return view?.roleCardLoadingProgressPercent ? view.roleCardLoadingProgressPercent.call(this) : 0;
-  },
 };
