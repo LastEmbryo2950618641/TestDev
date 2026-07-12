@@ -79,6 +79,11 @@ window.GameModules.loadingActions = {
     return view?.homeLoadProgressDisplayPercent ? view.homeLoadProgressDisplayPercent.call(this) : 0;
   },
 
+  homeLoadOverlayView() {
+    const view = resolveLoadingProgressView();
+    return view?.homeLoadOverlayView ? view.homeLoadOverlayView.call(this) : { progressText: '正在载入存档…', progressPercent: 0 };
+  },
+
   loadingScreenView() {
     const view = resolveLoadingProgressView();
     return view?.loadingScreenView ? view.loadingScreenView.call(this) : { stepText: this.loadingStep || '', detailText: this.loadingDetail || '', progressText: '', progressPercent: 0, stageRows: [] };

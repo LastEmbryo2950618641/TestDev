@@ -52,6 +52,13 @@ window.GameModules.ui.loading.progressView = {
     return Math.max(0, Math.min(100, Math.round(Number(this.homeLoadPercent) || 0)));
   },
 
+  homeLoadOverlayView() {
+    return {
+      progressText: this.homeLoadProgressText(),
+      progressPercent: this.homeLoadProgressDisplayPercent(),
+    };
+  },
+
   roleCardLoadingProgressPercent() {
     const cards = this.roleCardLoadingState?.cards || [];
     const totals = cards.flatMap((card) => card.steps || []).reduce((acc, step) => ({ done: acc.done + (Number(step.done) || 0), total: acc.total + (Number(step.total) || 0) }), { done: 0, total: 0 });

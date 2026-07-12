@@ -250,10 +250,10 @@
     </div>
   </section>
 
-  <div class="home-load-overlay" x-show="$store.game.homeLoadActive" x-cloak>
+  <div class="home-load-overlay" x-show="$store.game.homeLoadActive" x-cloak x-data="{ view: $store.game.homeLoadOverlayView() }" x-effect="view = $store.game.homeLoadOverlayView()">
     <div class="home-load-card">
-      <p x-text="$store.game.homeLoadProgressText()"></p>
-      <div class="loading-progress"><i :style="`width: ${$store.game.homeLoadProgressDisplayPercent()}%`"></i></div>
+      <p x-text="view.progressText"></p>
+      <div class="loading-progress"><i :style="`width: ${view.progressPercent}%`"></i></div>
     </div>
   </div>
 
