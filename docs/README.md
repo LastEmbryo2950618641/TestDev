@@ -71,6 +71,7 @@
 - Worldline 残余 compat 入口清单：`docs/architecture/worldline-residual-compat-entry-inventory-2026-07-12.md`
 - Worldline 首个 compat 收缩候选说明：`docs/architecture/worldline-first-compat-reduction-candidate-2026-07-12.md`
 - Worldline compat 收缩阻塞说明：`docs/architecture/worldline-compat-reduction-blocking-note-2026-07-12.md`
+- timelineMeta 宿主同步可行性说明：`docs/architecture/timelinemeta-host-sync-feasibility-note-2026-07-12.md`
 - Event 残余 forwarding 清单：`docs/architecture/event-residual-forwarding-inventory-2026-07-12.md`
 - 模板消费迁移审计：`docs/architecture/template-consumer-migration-audit-2026-07-12.md`
 - Worldline 模板迁移准备：`docs/architecture/worldline-template-migration-prep-2026-07-12.md`
