@@ -35,16 +35,18 @@
 
 ### `company-summary-view-helpers.js`
 
-负责公司头部摘要展示：
+负责公司摘要卡片与头部展示：
 
 - `companyHeaderView`
+- `companyAttendanceView`
+- `companyPayPreviewView`
 
 ### `view-helpers.js`
 
 这是兼容聚合入口：
 
 - 对外保留原有 `window.GameModules.ui.company.viewHelpers.*` 访问路径
-- 内部只转发到 `company-pay-view-helpers.js`、`company-field-view-helpers.js`、`company-attendance-view-helpers.js`
+- 内部只转发到 `company-pay-view-helpers.js`、`company-field-view-helpers.js`、`company-attendance-view-helpers.js`、`company-summary-view-helpers.js`
 - 新逻辑不要优先继续堆在这里，除非只是补兼容转发
 
 ## 适合放入这里的逻辑
