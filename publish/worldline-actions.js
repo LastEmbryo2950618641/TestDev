@@ -18,7 +18,6 @@ const worldlineViewHelperForwarders = {
   realWorldSelectedPlot: 'selectedPlot',
   realWorldPlotEvents: 'selectedPlotEvents',
   realWorldRecordingEvents: 'recordingEvents',
-  timelineMeta: 'timelineMeta',
 };
 
 function callWorldlineViewHelper(name, context, ...args) {
@@ -95,6 +94,10 @@ window.GameModules.worldlineActions = {
 
   factionRelations(faction) {
     return callWorldlineFormatHelper('factionRelations', this, faction);
+  },
+
+  timelineMeta(item) {
+    return window.GameModules.ui.worldline.timelinePanelViewHelpers.timelineMeta.call(this, item);
   },
 };
 Object.entries(worldlineViewHelperForwarders).forEach(([name, helperName]) => {

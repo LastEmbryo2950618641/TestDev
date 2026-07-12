@@ -37,8 +37,6 @@ window.GameModules.ui.worldline.viewHelpers = {
 
   recordingEvents() { return window.GameModules.ui.worldline.plotViewHelpers.recordingEvents.call(this); },
 
-  timelineMeta(item) { return window.GameModules.ui.worldline.timelinePanelViewHelpers.timelineMeta.call(this, item); },
-
   timelineRow(item = {}) { return window.GameModules.ui.worldline.timelinePanelViewHelpers.timelineRow.call(this, item); },
 
   realWorldTimelineRow(item = {}) { return window.GameModules.ui.worldline.timelinePanelViewHelpers.realWorldTimelineRow.call(this, item); },

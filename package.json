@@ -1,0 +1,7 @@
+{
+  "name": "testdev-packaging-root",
+  "private": true,
+  "workspaces": [
+    "desktop/shell"
+  ]
+}

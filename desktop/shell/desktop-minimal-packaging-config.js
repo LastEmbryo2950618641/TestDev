@@ -6,6 +6,8 @@ import {
   resolveShellDir,
 } from './desktop-packaging-paths.js';
 
+const DESKTOP_ELECTRON_VERSION = '36.9.5';
+
 export function createDesktopMinimalPackagingConfig() {
   const shellDir = resolveShellDir();
   const publishDir = resolvePublishDir();
@@ -16,9 +18,13 @@ export function createDesktopMinimalPackagingConfig() {
     appId: 'com.gamefy.desktop.minimal',
     productName: 'GamefyMinimal',
     directories: {
+      app: shellDir,
       output: path.resolve(shellDir, 'dist-minimal'),
       buildResources: buildResourcesDir,
     },
+    npmRebuild: false,
+    nodeGypRebuild: false,
+    buildDependenciesFromSource: false,
     files: [
       'electron-main-bootstrap.cjs',
       'electron-main.js',
@@ -38,7 +44,11 @@ export function createDesktopMinimalPackagingConfig() {
     ],
     extraMetadata: {
       main: 'electron-main-bootstrap.cjs',
+      devDependencies: {
+        electron: DESKTOP_ELECTRON_VERSION,
+      },
     },
+    electronVersion: DESKTOP_ELECTRON_VERSION,
     asar: false,
     win: {
       target: ['dir'],
