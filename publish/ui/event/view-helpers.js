@@ -49,6 +49,8 @@ window.GameModules.ui.event.viewHelpers = {
 
   selectedEventDetailView() { return window.GameModules.ui.event.panelViewHelpers.selectedEventDetailView.call(this); },
 
+  eventListView() { return window.GameModules.ui.event.panelViewHelpers.eventListView.call(this); },
+
   eventPanelView() { return window.GameModules.ui.event.panelViewHelpers.eventPanelView.call(this); },
 };
 

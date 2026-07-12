@@ -3,6 +3,17 @@ window.GameModules.ui = window.GameModules.ui || {};
 window.GameModules.ui.event = window.GameModules.ui.event || {};
 
 window.GameModules.ui.event.panelViewHelpers = {
+  eventListView() {
+    return {
+      events: this.currentEventList().map((event) => ({
+        id: event.id,
+        name: this.eventName(event),
+        meta: this.eventMeta(event),
+      })),
+      emptyText: this.eventListEmptyText(),
+    };
+  },
+
   selectedEventDetailView() {
     const event = this.selectedEvent();
     if (!event) return null;

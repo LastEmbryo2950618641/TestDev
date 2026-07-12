@@ -1960,14 +1960,14 @@
         </template>
       </nav>
       <main class="event-body">
-        <section class="event-list">
-          <template x-for="event in $store.game.currentEventList()" :key="event.id">
+        <section class="event-list" x-data="{ view: $store.game.eventListView() }" x-effect="view = $store.game.eventListView()">
+          <template x-for="event in view.events" :key="event.id">
             <button class="event-row" type="button" :class="{ active: $store.game.eventState.selectedId === event.id }" @click="$store.game.eventState.selectedId = event.id">
-              <strong x-text="$store.game.eventName(event)"></strong>
-              <small x-text="$store.game.eventMeta(event)"></small>
+              <strong x-text="event.name"></strong>
+              <small x-text="event.meta"></small>
             </button>
           </template>
-          <p class="empty-lore" x-show="!$store.game.currentEventList().length" x-text="$store.game.eventPanelView().listEmptyText"></p>
+          <p class="empty-lore" x-show="!view.events.length" x-text="view.emptyText"></p>
         </section>
         <section class="event-detail" x-data="{ view: $store.game.selectedEventDetailView() }" x-effect="view = $store.game.selectedEventDetailView()">
           <template x-if="view">
