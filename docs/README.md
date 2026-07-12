@@ -59,6 +59,7 @@
 - 模块迁移优先级清单：`docs/architecture/module-migration-priority-ladder-2026-07-11.md`
 - 展示层对象化样板：`docs/architecture/display-object-patterns-playbook-2026-07-11.md`
 - 历史污染稳定化清单：`docs/architecture/legacy-encoding-syntax-stabilization-backlog-2026-07-11.md`
+- Company 展示层阶段复核：`docs/architecture/company-ui-helper-boundary-review-2026-07-12.md`
 - 验证样例：
   - `docs/plans/2026-07-10-ui-faction-overview-view-helpers-phase1-validation.md`
   - `docs/plans/2026-07-10-ui-real-world-display-helpers-phase2-validation.md`
@@ -140,4 +141,3 @@
 
 - 多端总览入口：`docs/architecture/multi-platform-implementation-overview.md`
   - 统一查看 shared / desktop / mobile 的职责边界、当前证据和后续实施顺序
-
