@@ -1,5 +1,9 @@
 window.GameModules = window.GameModules || {};
 
+function callRealWorldMapStageViewHelper(name, context, ...args) {
+  return window.GameModules.ui.realWorld.mapStageViewHelpers[name].call(context, ...args);
+}
+
 window.GameModules.realWorldMapActions = {
   ensureMapView(map = {}) {
     if (!map.view || typeof map.view !== 'object') {
@@ -112,7 +116,7 @@ window.GameModules.realWorldMapActions = {
   },
 
   realWorldMapStageStyle() {
-    return '';
+    return callRealWorldMapStageViewHelper('stageStyle', this);
   },
 
   realWorldMapWrapText(ctx, text = '', maxWidth = 220, maxLines = 2) {
