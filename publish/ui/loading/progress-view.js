@@ -92,3 +92,56 @@ window.GameModules.ui.loading.progressView = Object.assign(window.GameModules.ui
     return { waiting: '等待', running: '加载中', done: '完成', error: '失败' }[status] || status;
   },
 });
+
+
+window.GameModules.ui.loading.progressView = Object.assign(window.GameModules.ui.loading.progressView || {}, {
+  loadingStageRow(stage = {}) {
+    return {
+      key: stage.key || '',
+      name: stage.name || '',
+      status: stage.status || 'waiting',
+      statusText: this.stageText(stage.status),
+      elapsedText: this.elapsedText(stage.startedAt, stage.finishedAt) || '0s',
+    };
+  },
+
+  loadingScreenView() {
+    return {
+      stepText: this.loadingStep || '加载中',
+      detailText: this.loadingDetail || '首次进入或存档较大时会更慢，这是正常现象。',
+      progressText: this.loadingProgressText(),
+      progressPercent: this.loadingProgressPercent(),
+      stageRows: (this.loadingStages || []).map((stage) => this.loadingStageRow(stage)),
+    };
+  },
+
+  roleCardLoadingPanelView() {
+    const state = this.roleCardLoadingState || { open: false, expanded: true, cards: [] };
+    return {
+      summaryText: this.roleCardLoadingSummary(),
+      expanded: Boolean(state.expanded),
+      progressText: this.roleCardLoadingProgressText(),
+      progressPercent: this.roleCardLoadingProgressPercent(),
+      cards: (state.cards || []).map((card = {}) => ({
+        id: card.id,
+        name: card.name || '',
+        type: card.type || '',
+        status: card.status || 'waiting',
+        expanded: Boolean(card.expanded),
+        progressText: this.roleCardLoadingCardProgress(card),
+        statusText: this.roleCardLoadingStatusText(card.status),
+        elapsedText: this.elapsedText(card.startedAt, card.finishedAt) || '0s',
+        steps: (card.steps || []).map((step = {}) => ({
+          key: step.key,
+          text: step.text || '',
+          status: step.status || 'waiting',
+          retrying: Boolean(step.retrying),
+          progressText: this.roleCardLoadingStepProgress(step),
+          statusText: this.roleCardLoadingStatusText(step.status),
+          elapsedText: this.elapsedText(step.startedAt, step.finishedAt) || '0s',
+          canRetry: Boolean(this.roleCardStepCanRetry && this.roleCardStepCanRetry(card, step)),
+        })),
+      })),
+    };
+  },
+});

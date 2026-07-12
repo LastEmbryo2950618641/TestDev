@@ -103,6 +103,16 @@ window.GameModules.loadingActions = {
     return view?.homeLoadProgressDisplayPercent ? view.homeLoadProgressDisplayPercent.call(this) : 0;
   },
 
+  loadingScreenView() {
+    const view = resolveLoadingProgressView();
+    return view?.loadingScreenView ? view.loadingScreenView.call(this) : { stepText: this.loadingStep || '', detailText: this.loadingDetail || '', progressText: '', progressPercent: 0, stageRows: [] };
+  },
+
+  roleCardLoadingPanelView() {
+    const view = resolveLoadingProgressView();
+    return view?.roleCardLoadingPanelView ? view.roleCardLoadingPanelView.call(this) : { summaryText: '', expanded: true, progressText: '', progressPercent: 0, cards: [] };
+  },
+
   roleCardLoadingProgressPercent() {
     const view = resolveLoadingProgressView();
     return view?.roleCardLoadingProgressPercent ? view.roleCardLoadingProgressPercent.call(this) : 0;
