@@ -613,23 +613,24 @@
             <small x-text="`閻楄鐣╅懕灞肩瑹閿?{$store.game.loreNames(lore.specialJobs, 'name')}`"></small>
             <small x-text="`閼卞奔绗熺粵澶岄獓閿?{lore.jobRanks.join(' / ') || '閺?}`"></small>
             <small x-text="`閸ュ搫瀵茬仦鐐粹偓褝绱?{$store.game.loreNames(lore.specialFields, 'label')}`"></small>
-            <div class="worldline-box" x-show="$store.game.isWorldlineOpen(lore) && $store.game.loreWorldline(lore)" @click.stop>
+            <div class="worldline-box" x-show="$store.game.isWorldlineOpen(lore) && $store.game.loreWorldline(lore)" @click.stop x-data="{ view: $store.game.loreTimelinePanelView(lore) }" x-effect="view = $store.game.loreTimelinePanelView(lore)">
               <div class="worldline-head">
-                <b>娑撴牜鏅痪?/b>
-                <small x-text="$store.game.loreWorldline(lore)?.timeRange || '閺冨爼妫块張顏嗙叀'"></small>
+                <b x-text="view.timelineTitle"></b>
+                <small x-text="view.timeRange"></small>
               </div>
               <div class="timeline-list">
-                <template x-for="item in $store.game.timelineItems(lore)" :key="`${item.kind}-${item.eventId || item.order}`">
+                <template x-for="item in (view.rows || [])" :key="item.key">
                   <article class="timeline-item" :class="item.kind">
                     <span class="timeline-dot"></span>
                     <div>
-                      <small x-text="item.time || '閺冨爼妫块張顏嗙叀'"></small>
+                      <small x-text="item.time"></small>
                       <h4 x-text="item.name"></h4>
-                      <p x-text="item.kind === 'event' ? item.detail : item.summary"></p>
-                      <em x-text="$store.game.timelineMeta(item)"></em>
+                      <p x-text="item.detail"></p>
+                      <em x-text="item.meta"></em>
                     </div>
                   </article>
                 </template>
+                <p class="empty-lore" x-show="!(view.rows || []).length" x-text="view.emptyText"></p>
               </div>
               <details class="faction-details">
                 <summary>閺屻儳婀呴幆鍛板Ν瑜版帞鎾?/summary>
@@ -3582,6 +3583,7 @@
   </div><!-- HOME_PLAYING_WRAPPER_END -->
 </body>
 </html>
+
 
 
 
