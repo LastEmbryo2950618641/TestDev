@@ -53,31 +53,17 @@ window.GameModules.ui.event.viewHelpers = {
 };
 
 window.GameModules.ui.event.viewHelpers = Object.assign(window.GameModules.ui.event.viewHelpers || {}, {
-  eventListEmptyText() {
-    return '暂无该类型事件。';
-  },
+  eventListEmptyText() { return window.GameModules.ui.event.labelViewHelpers.eventListEmptyText.call(this); },
 
-  eventStatusFieldLabel() {
-    return '状态：';
-  },
+  eventStatusFieldLabel() { return window.GameModules.ui.event.labelViewHelpers.eventStatusFieldLabel.call(this); },
 
-  eventTriggeredCountFieldLabel() {
-    return '触发：';
-  },
+  eventTriggeredCountFieldLabel() { return window.GameModules.ui.event.labelViewHelpers.eventTriggeredCountFieldLabel.call(this); },
 
-  eventHeaderDescription() {
-    return '随机事件、推演事件、周期事件';
-  },
+  eventHeaderDescription() { return window.GameModules.ui.event.labelViewHelpers.eventHeaderDescription.call(this); },
 
-  eventProbabilityFieldLabel() {
-    return '随机事件发生概率';
-  },
+  eventProbabilityFieldLabel() { return window.GameModules.ui.event.labelViewHelpers.eventProbabilityFieldLabel.call(this); },
 
-  eventBackButtonText() {
-    return '回到桌面';
-  },
+  eventBackButtonText() { return window.GameModules.ui.event.labelViewHelpers.eventBackButtonText.call(this); },
 
-  selectedEventEmptyText() {
-    return '选择左侧事件查看详情。';
-  },
+  selectedEventEmptyText() { return window.GameModules.ui.event.labelViewHelpers.selectedEventEmptyText.call(this); },
 });
