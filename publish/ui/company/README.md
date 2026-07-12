@@ -33,6 +33,12 @@
 
 - `currentWorkAttendance`
 
+### `company-summary-view-helpers.js`
+
+负责公司头部摘要展示：
+
+- `companyHeaderView`
+
 ### `view-helpers.js`
 
 这是兼容聚合入口：

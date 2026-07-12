@@ -9,14 +9,7 @@ window.GameModules.ui.company.viewHelpers = {
   companyFields() { return window.GameModules.ui.company.fieldViewHelpers.companyFields.call(this); },
   currentWorkAttendance() { return window.GameModules.ui.company.attendanceViewHelpers.currentWorkAttendance.call(this); },
 
-  companyHeaderView() {
-    return {
-      eyebrow: 'COMPANY',
-      title: this.companyState?.employment?.active === false ? '暂无在职公司' : this.currentCompany().name,
-      subtitle: this.workStatusText(),
-      closeLabel: '回到桌面',
-    };
-  },
+  companyHeaderView() { return window.GameModules.ui.company.summaryViewHelpers.companyHeaderView.call(this); },
 
   companyAttendanceView() {
     const attendance = this.currentWorkAttendance();
@@ -104,3 +97,4 @@ window.GameModules.ui.company.viewHelpers = {
     };
   },
 };
+
