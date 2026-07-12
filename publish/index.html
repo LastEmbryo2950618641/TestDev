@@ -1839,9 +1839,9 @@
 
   <section x-show="!$store.game.loading && $store.game.companyState?.open" class="company-app-screen app-window section-hints" x-cloak>
     <div class="company-card dev-section" data-section-title="閸忣剙寰冪化鑽ょ埠娑撳娼伴弶?>
-      <header class="identity-header dev-section" data-section-title="閸忣剙寰冮弽鍥暯閸?>
-        <div><p class="eyebrow">COMPANY</p><h2 x-text="$store.game.companyState.employment?.active === false ? '閺嗗倹妫ら崷銊ㄤ捍閸忣剙寰? : $store.game.currentCompany().name"></h2><small x-text="$store.game.workStatusText()"></small></div>
-        <button class="small-btn" type="button" @click="$store.game.closeCompanyApp()">閸ョ偛鍩屽宀勬桨</button>
+      <header class="identity-header dev-section" data-section-title="閸忣剙寰冮弽鍥暯閸?>" x-data="{ view: $store.game.companyHeaderView() }" x-effect="view = $store.game.companyHeaderView()">
+        <div><p class="eyebrow" x-text="view.eyebrow"></p><h2 x-text="view.title"></h2><small x-text="view.subtitle"></small></div>
+        <button class="small-btn" type="button" @click="$store.game.closeCompanyApp()" x-text="view.closeLabel"></button>
       </header>
       <nav class="company-tabs dev-section" data-section-title="閸忣剙寰冪化鑽ょ埠閸掑棝銆?>
         <button type="button" :class="{ active: $store.game.companyState.panelTab === 'profile' }" @click="$store.game.companyState.panelTab = 'profile'">閸忣剙寰冪拠宥嗘蒋</button>
@@ -1852,14 +1852,14 @@
         <button type="button" :class="{ active: $store.game.companyState.panelTab === 'tools' }" @click="$store.game.companyState.panelTab = 'tools'">閸旂喕鍏橀棃銏℃緲</button>
       </nav>
       <main class="company-body scroll-area">
-        <article class="attendance-card dev-section" :class="$store.game.currentWorkAttendance().className" data-section-title="娑撳﹦褰悩鑸碘偓浣稿隘">
-          <div><small>娴犲﹥妫╂稉濠勫疆閻樿埖鈧?/small><strong x-text="$store.game.currentWorkAttendance().status"></strong><p x-text="$store.game.currentWorkAttendance().detail"></p></div>
-          <button class="small-btn" type="button" x-show="$store.game.currentWorkAttendance().canCheckIn" @click="$store.game.checkInWork()">鐠佹澘缍嶉崚鏉跨煐</button>
+        <article class="attendance-card dev-section" x-data="{ view: $store.game.companyAttendanceView() }" x-effect="view = $store.game.companyAttendanceView()" :class="view.className" data-section-title="娑撳﹦褰悩鑸碘偓浣稿隘">
+          <div><small x-text="view.label"></small><strong x-text="view.status"></strong><p x-text="view.detail"></p></div>
+          <button class="small-btn" type="button" x-show="view.canCheckIn" @click="$store.game.checkInWork()" x-text="view.actionLabel"></button>
         </article>
-        <section class="company-grid" x-show="$store.game.companyState.panelTab === 'profile'">
-          <p class="company-empty" x-show="$store.game.companyState.employment?.active === false">閺嗗倹妫ら崷銊ㄤ捍閸忣剙寰冩穱鈩冧紖</p>
-          <template x-for="field in $store.game.companyFields()" :key="field.key">
-            <button class="rpg-item-card lexicon-tag" type="button" @click="$store.game.toggleRpgField(field)"><strong x-text="$store.game.rpgFieldSummary(field)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
+        <section class="company-grid" x-show="$store.game.companyState.panelTab === 'profile'" x-data="{ view: $store.game.companyFieldSectionView() }" x-effect="view = $store.game.companyFieldSectionView()">
+          <p class="company-empty" x-show="view.showEmpty" x-text="view.emptyText"></p>
+          <template x-for="row in view.rows" :key="row.key">
+            <button class="rpg-item-card lexicon-tag" type="button" @click="$store.game.toggleRpgField(row.field)"><strong x-text="row.summary"></strong><p class="rpg-field-detail" x-show="row.isOpen" x-text="row.detail"></p></button>
           </template>
         </section>
         <section class="recruit-grid" x-show="$store.game.companyState.panelTab === 'recruit'">
