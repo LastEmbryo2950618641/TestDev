@@ -290,23 +290,4 @@ window.GameModules.roleCardLoadingActions = {
     ];
   },
 
-  roleCardLoadingSummary() {
-    return window.GameModules.ui.loading.progressView.roleCardLoadingSummary.call(this);
-  },
-
-  roleCardLoadingProgressText() {
-    return window.GameModules.ui.loading.progressView.roleCardLoadingProgressText.call(this);
-  },
-
-  roleCardLoadingCardProgress(card = {}) {
-    return window.GameModules.ui.loading.progressView.roleCardLoadingCardProgress.call(this, card);
-  },
-
-  roleCardLoadingStepProgress(step = {}) {
-    return window.GameModules.ui.loading.progressView.roleCardLoadingStepProgress.call(this, step);
-  },
-
-  roleCardLoadingStatusText(status) {
-    return window.GameModules.ui.loading.progressView.roleCardLoadingStatusText.call(this, status);
-  },
 };
