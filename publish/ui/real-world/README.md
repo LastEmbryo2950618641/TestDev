@@ -1,93 +1,78 @@
-﻿# real-world UI helper directory notes
+# Real-World UI Layer
 
-## 目的
+This directory stores readonly real-world display helpers for panel, map, log, and interior presentation surfaces.
 
-`publish/ui/real-world/` 用于承接现实世界模块中的只读展示逻辑。
-这里的文件不负责流程编排、不负责交互状态写入、不负责平台能力接入，而是专注于：
+## Purpose
 
-- 文案拼装
-- 列表包装
-- 只读摘要
-- 只读格式化
-- 已有状态的展示映射
+The purpose of `publish/ui/real-world/` is to keep display shaping out of top-level real-world action files and out of runtime-heavy map interaction code.
 
-## 当前文件职责
+This layer should prepare panel-facing rows, labels, summaries, and display objects from already-available state without owning save orchestration, canvas drawing, or runtime interaction flow.
 
-### `log-view-helpers.js`
+## Current modules
 
-负责现实世界日志展示：
-- 日志列表去重与压缩
-- 日志分页标签
-
-### `panel-view-helpers.js`
-
-负责现实世界功能面板展示：
-- 入口按钮文案
-- 面板标题/说明
-- 只读状态图标
-- 现实世界选择列表的只读包装
+### `map-shell-view-helpers.js`
+- top-level map shell title/location/empty-state text
+- shell panel object assembly
 
 ### `map-info-view-helpers.js`
-
-负责现实世界地图信息面板：
-- 当前 info 节点
-- 节点事实列表
-- 事实文本格式化
-- 地图信息弹层聚合视图对象
+- selected node info text
+- fact rows and derived info-panel display fields
 
 ### `map-control-view-helpers.js`
-
-负责现实世界地图控制信息展示：
-- 节点控制标签
-- info 节点控制线
-- 控制历史列表
-- 控制缓存线只读转发
+- control-state display lines
+- readonly control-history formatting and rows
 
 ### `map-interior-view-helpers.js`
-
-负责现实世界地图室内展示：
-- 室内视图模式
-- 室内分区只读输出
-- 当前房间只读读取
-- 室内面板聚合视图对象
+- interior panel display
+- selected room display fields
+- floor and room readonly row shaping
 
 ### `map-view-helpers.js`
+- aggregation facade that composes shell/info/control/interior helpers
+- compatibility surface for callers still bound to broader map view helper names
 
-这是兼容聚合入口：
-- 对外保留原有 `mapViewHelpers.*` 访问路径
-- 内部只转发到 `map-info-view-helpers.js`、`map-control-view-helpers.js`、`map-interior-view-helpers.js`
-- 新逻辑不要优先继续堆在这里，除非只是补兼容转发
+### `panel-view-helpers.js`
+- function panel labels
+- icon and button text helpers
 
-## 允许放入这里的逻辑
+### `log-view-helpers.js`
+- log display shaping
+- deduplicated log row preparation
+- log-related labels and panel helper reuse
 
-适合放入 `publish/ui/real-world/` 的逻辑：
-- 读取现有状态并生成展示文本
-- 对现有数组/对象做只读整理
-- 根据已知状态生成标签、标题、摘要、徽标、说明文案
-- 不改变状态的视图层辅助函数
+## Boundary rules
 
-## 不应放入这里的逻辑
+Files in this directory should prefer:
 
-以下逻辑不应继续落在本目录：
+- readonly panel objects
+- row and label assembly
+- derived display summaries
+- grouping and shaping already-known state for templates
 
-- 地图拖拽、缩放、点击命中
-- canvas 绘制
-- runtime cache 管理
-- requestAnimationFrame 调度
-- 地图节点开关状态写入
-- 存档、恢复、平台能力访问
-- AI 推演、更新落库、流程编排
+Files in this directory should avoid:
 
-## 后续扩展规则
+- direct runtime map mutation
+- viewport/canvas interaction handling
+- save persistence
+- prompt generation
+- model/provider orchestration
 
-- 新 helper 优先按主题落到已有文件，而不是继续把所有内容堆进 `map-view-helpers.js`
-- 当某一个主题继续膨胀时，再拆新的主题文件
-- 优先保持“兼容聚合入口 + 真实实现文件”结构，降低调用方迁移成本
+## Relationship to other layers
 
-## 长期方向
+- `publish/real-world-*.js` and `publish/real-world-map-actions.js`: action/orchestration/runtime entry layer
+- `publish/ui/real-world/`: readonly shaping and display layer
+- future `publish/app/real-world/`: if runtime-adjacent but non-UI helper logic needs a distinct application-layer home
 
-这组文件的长期目标不是单纯拆文件，而是把现实世界模块逐步整理成可复用的前端展示层，便于：
+## Migration pattern
 
-- 继续降低 `game.js` 与动作文件的体积与耦合
-- 为未来桌面端 `exe` 与移动端 `apk` 共用前端展示逻辑做准备
-- 让后续 AI / 人工协作有明确目录边界
+The preferred pattern for future moves into this directory is:
+
+1. move readonly text/row/panel shaping first
+2. keep canvas drawing, hit testing, zoom/pan, and runtime caches out of this directory
+3. when a broad helper surface grows, split it by shell/info/control/interior/panel/log responsibility rather than by arbitrary file size
+4. use aggregation facades like `map-view-helpers.js` only when they reduce churn for still-migrating callers
+
+## Immediate practical rule
+
+If a helper needs DOM access, mutable runtime caches, or live interaction state, it probably belongs outside `publish/ui/real-world/` until its readonly portion is isolated.
+
