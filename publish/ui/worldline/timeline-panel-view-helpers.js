@@ -11,6 +11,15 @@ function buildTimelineMeta(item = {}) {
   return parts.join('｜') || (item.kind === 'story' ? '原著剧情索引' : '世界线事件');
 }
 
+function buildTimelinePanelBaseView({ timelineTitle, timeRange, rows, emptyText }) {
+  return {
+    timelineTitle,
+    timeRange,
+    rows,
+    emptyText,
+  };
+}
+
 window.GameModules.ui.worldline.timelinePanelViewHelpers = {
   timelineMeta(item) {
     return buildTimelineMeta(item);
@@ -38,28 +47,41 @@ window.GameModules.ui.worldline.timelinePanelViewHelpers = {
     };
   },
 
+  buildLoreTimelineRows(lore = null) {
+    return this.timelineItems(lore).map((item) => this.timelineRow(item));
+  },
+
+  buildRealWorldTimelineRows(lore = null) {
+    return this.timelineItems(lore).map((item) => this.realWorldTimelineRow(item));
+  },
+
+  buildRealWorldRecordingRows() {
+    return this.realWorldRecordingEvents().map((entry) => this.realWorldTimelineRow(entry));
+  },
+
   loreTimelinePanelView(lore = null) {
     const current = lore || this.realWorldLore?.();
     const line = this.loreWorldline(current) || {};
-    return {
+    return buildTimelinePanelBaseView({
       timelineTitle: '世界线',
       timeRange: line.timeRange || '时间未知',
-      rows: this.timelineItems(current).map((item) => this.timelineRow(item)),
+      rows: this.buildLoreTimelineRows(current),
       emptyText: '暂无世界线记录。',
-    };
+    });
   },
 
   realWorldTimelinePanelView() {
     const lore = this.realWorldLore?.();
     const line = this.realWorldline?.() || {};
-    const recordingRows = this.realWorldRecordingEvents().map((entry) => this.realWorldTimelineRow(entry));
     return {
-      timelineTitle: '现实世界线',
-      timeRange: line.timeRange || '时间未知',
-      rows: this.timelineItems(lore).map((item) => this.realWorldTimelineRow(item)),
-      recordingRows,
+      ...buildTimelinePanelBaseView({
+        timelineTitle: '现实世界线',
+        timeRange: line.timeRange || '时间未知',
+        rows: this.buildRealWorldTimelineRows(lore),
+        emptyText: '暂无现实世界记录。收起手机并进行现实行动后会写入这里。',
+      }),
+      recordingRows: this.buildRealWorldRecordingRows(),
       recordingEmptyText: '暂无现实记录，收起手机并进行现实行动后会写入这里。',
-      emptyText: '暂无现实世界记录。收起手机并进行现实行动后会写入这里。',
     };
   },
 };
