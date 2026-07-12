@@ -64,6 +64,7 @@
 - Compat 清理门槛清单：`docs/architecture/compat-cleanup-gate-checklist-2026-07-12.md`
 - Compat 调用链审计：`docs/architecture/compat-callsite-audit-2026-07-12.md`
 - Compat 调用迁移准备清单：`docs/architecture/compat-callsite-migration-prep-2026-07-12.md`
+- 动作层 compat 迁移审计：`docs/architecture/action-layer-compat-migration-audit-2026-07-12.md`
 - 模板消费迁移审计：`docs/architecture/template-consumer-migration-audit-2026-07-12.md`
 - Worldline 模板迁移准备：`docs/architecture/worldline-template-migration-prep-2026-07-12.md`
 - 验证样例：
