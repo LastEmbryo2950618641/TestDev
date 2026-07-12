@@ -7,6 +7,11 @@ function resolveLoadingProgressView() {
   return window.GameModules?.ui?.loading?.progressView || null;
 }
 
+function resolveStageStatusText(context, status) {
+  const view = resolveLoadingProgressView();
+  return view?.stageText ? view.stageText.call(context, status) : (status || '');
+}
+
 window.GameModules.loadingActions = {
   resetLoadingStages() {
     const now = Date.now();
@@ -56,17 +61,13 @@ window.GameModules.loadingActions = {
   syncLoadingStepHeadline() {
     const running = (this.loadingStages || []).find((stage) => stage.status === 'running');
     if (running) {
-      this.loadingStep = `${running.name}·${this.stageText(running.status)}`;
+      this.loadingStep = `${running.name}·${resolveStageStatusText(this, running.status)}`;
       return;
     }
     const latest = [...(this.loadingStages || [])].reverse().find((stage) => stage.status === 'done' || stage.status === 'error');
-    this.loadingStep = latest ? `${latest.name}·${this.stageText(latest.status)}` : this.loadingStep;
+    this.loadingStep = latest ? `${latest.name}·${resolveStageStatusText(this, latest.status)}` : this.loadingStep;
   },
 
-  stageText(status) {
-    const view = resolveLoadingProgressView();
-    return view?.stageText ? view.stageText.call(this, status) : (status || '');
-  },
 
   homeLoadProgressText() {
     const view = resolveLoadingProgressView();
