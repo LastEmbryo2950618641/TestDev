@@ -23,6 +23,27 @@ window.GameModules.ui.worldline.loreViewHelpers = {
     return window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
   },
 
+
+  controlLoreCardView(lore) {
+    const current = lore || {};
+    return {
+      worldTag: current.worldTag || '',
+      background: current.background || '',
+      factions: Array.isArray(current.factions) ? current.factions : [],
+      specialJobsText: this.loreNames(current.specialJobs, 'name'),
+      jobRanksText: (current.jobRanks || []).join(' / ') || '无',
+      specialFieldsText: this.loreNames(current.specialFields, 'label'),
+      timelineVisible: this.isLoreOpen(current) && Boolean(this.loreWorldline(current)),
+    };
+  },
+
+  realLoreCardView() {
+    const real = this.realLore();
+    return {
+      worldTag: real.worldTag || '',
+      background: real.background || '',
+    };
+  },
   realLore() {
     const tag = this.realWorldTag();
     const saved = (this.savedWorldLores || []).find((lore) => lore.worldTag === tag) || {};

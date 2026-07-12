@@ -21,6 +21,10 @@ window.GameModules.ui.worldline.viewHelpers = {
 
   realLore() { return window.GameModules.ui.worldline.loreViewHelpers.realLore.call(this); },
 
+  controlLoreCardView(lore) { return window.GameModules.ui.worldline.loreViewHelpers.controlLoreCardView.call(this, lore); },
+
+  realLoreCardView() { return window.GameModules.ui.worldline.loreViewHelpers.realLoreCardView.call(this); },
+
   worldlineEventsNewestFirst(events = []) { return window.GameModules.ui.worldline.timelineViewHelpers.worldlineEventsNewestFirst.call(this, events); },
 
   summarizedPlots() { return window.GameModules.ui.worldline.plotViewHelpers.summarizedPlots.call(this); },
