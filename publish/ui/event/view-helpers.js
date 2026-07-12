@@ -47,35 +47,9 @@ window.GameModules.ui.event.viewHelpers = {
     return Math.max(0, Math.min(100, Math.round(Number(this.eventState.randomProbability ?? 10) || 0)));
   },
 
-  selectedEventDetailView() {
-    const event = this.selectedEvent();
-    if (!event) return null;
-    const tags = Array.isArray(event.tags) ? event.tags.filter(Boolean) : [];
-    return {
-      title: this.eventName(event),
-      meta: this.eventMeta(event),
-      content: String(event.content || '').trim(),
-      tags,
-      hasTags: tags.length > 0,
-      statusFieldLabel: this.eventStatusFieldLabel(),
-      statusLabel: this.eventStatusLabel(event),
-      showTriggeredCount: event.type === 'random',
-      triggeredCountFieldLabel: this.eventTriggeredCountFieldLabel(),
-      triggeredCountText: `${event.triggeredCount || 0} 次`,
-    };
-  },
+  selectedEventDetailView() { return window.GameModules.ui.event.panelViewHelpers.selectedEventDetailView.call(this); },
 
-  eventPanelView() {
-    return {
-      title: '事件',
-      description: this.eventHeaderDescription(),
-      probabilityFieldLabel: this.eventProbabilityFieldLabel(),
-      probabilityValue: this.eventRandomProbability(),
-      backButtonText: this.eventBackButtonText(),
-      tabs: this.eventTypeTabs(),
-      listEmptyText: this.eventListEmptyText(),
-    };
-  },
+  eventPanelView() { return window.GameModules.ui.event.panelViewHelpers.eventPanelView.call(this); },
 };
 
 window.GameModules.ui.event.viewHelpers = Object.assign(window.GameModules.ui.event.viewHelpers || {}, {
