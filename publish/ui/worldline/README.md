@@ -33,6 +33,9 @@ This layer should transform already-available domain/state data into row, panel,
 - timeline row object assembly
 - lore and real-world timeline panel display objects
 
+### `real-plot-summary-view-helpers.js`
+- pending real-world plot summary display object
+
 ## Boundary rules
 
 Files in this directory should prefer:
