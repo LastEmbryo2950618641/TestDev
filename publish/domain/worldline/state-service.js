@@ -23,12 +23,16 @@ window.GameModules.domain.worldline.stateService = {
     return [...byId.values()];
   },
 
+  realWorldlineTimeRange() {
+    return (this.phoneDateText?.() || '现实时间') + ' - 现在';
+  },
+
   realWorldline() {
     const state = this.realWorldlineState || { events: [], plots: [], pendingPlot: null };
     const logEvents = this.realWorldlineLogEvents();
     const events = this.realWorldlineMergedEvents(state, logEvents);
     return {
-      timeRange: (this.phoneDateText?.() || '现实时间') + ' - 现在',
+      timeRange: this.realWorldlineTimeRange(),
       events,
       plots: state.plots || [],
       pendingPlot: state.pendingPlot || null,
