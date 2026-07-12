@@ -1868,10 +1868,10 @@
           <article class="recruit-card" x-show="$store.game.companyState.employment?.active !== false"><h3>鐎规碍妞傚?/h3><p>鐟欏嫬鐣鹃弮鍫曟？閸愬懎鐣幋鎰娴犳湹绨ㄩ敍灞肩瑝閸氬牊鐗搁弮鐘冲Г闁邦剨绱濋崥鍫熺壐閹?00%閿涘矁绉存０鍕埂妫版繂顦绘總鏍уС閵?/p><button class="story-choice-btn" @click="$store.game.applyRecruitment('timed')">閹恒儱鐣鹃弮璺轰紣娴犺濮?/button></article>
           <article class="recruit-card" x-show="$store.game.companyState.employment?.active !== false"><h3>閸掓稐缍旈懓鍛佸?/h3><p>閸氭垵鍙曢崣鍛婂缁嬫寧鏌熷鍫涒偓浣哥毈鐠囨番鈧椒缍旈崫渚婄礉闁俺绻冮崥搴″讲缁涙儳鎮庨崥灞烩偓?/p><button class="story-choice-btn" @click="$store.game.applyRecruitment('creator-low')">缁涘墽菙鐎规矮缍嗛崚鍡樺灇</button><button class="story-choice-btn" @click="$store.game.applyRecruitment('creator-high')">缁涘彞缍嗘穱婵嬬彯閸掑棙鍨?/button></article>
         </section>
-        <section class="org-chart" x-show="$store.game.companyState.panelTab === 'org'">
-          <p class="company-empty" x-show="!$store.game.companyOrganization().length">閺嗗倹妫ょ紒鍕矏閺嬭埖鐎?/p>
-          <template x-for="dept in $store.game.companyOrganization()" :key="dept.name">
-            <article class="org-dept-card dev-section" :data-section-title="`${dept.name}缂佸嫮绮愰崠绡?><h3 x-text="dept.name"></h3><div class="org-job-list"><template x-for="job in dept.jobs" :key="`${dept.name}-${job.title}`"><section class="org-job-card"><strong x-text="job.title"></strong><p x-text="`閸︺劌鐭栨禍鍝勬喅閿?{job.people.join('閵?)}`"></p></section></template></div></article>
+        <section class="org-chart" x-show="$store.game.companyState.panelTab === 'org'" x-data="{ view: $store.game.companyOrganizationSectionView() }" x-effect="view = $store.game.companyOrganizationSectionView()">
+          <p class="company-empty" x-show="!(view.departments || []).length" x-text="view.emptyText"></p>
+          <template x-for="dept in view.departments" :key="dept.key">
+            <article class="org-dept-card dev-section" :data-section-title="dept.sectionTitle"><h3 x-text="dept.name"></h3><div class="org-job-list"><template x-for="job in dept.jobRows" :key="job.key"><section class="org-job-card"><strong x-text="job.title"></strong><p x-text="job.peopleText"></p></section></template></div></article>
           </template>
         </section>
         <section class="contract-list" x-show="$store.game.companyState.panelTab === 'pay'">
