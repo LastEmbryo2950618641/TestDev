@@ -69,16 +69,6 @@ window.GameModules.loadingActions = {
   },
 
 
-  homeLoadProgressText() {
-    const view = resolveLoadingProgressView();
-    return view?.homeLoadProgressText ? view.homeLoadProgressText.call(this) : '正在载入存档…';
-  },
-
-  homeLoadProgressDisplayPercent() {
-    const view = resolveLoadingProgressView();
-    return view?.homeLoadProgressDisplayPercent ? view.homeLoadProgressDisplayPercent.call(this) : 0;
-  },
-
   homeLoadOverlayView() {
     const view = resolveLoadingProgressView();
     return view?.homeLoadOverlayView ? view.homeLoadOverlayView.call(this) : { progressText: '正在载入存档…', progressPercent: 0 };
