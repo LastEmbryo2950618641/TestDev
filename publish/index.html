@@ -2548,13 +2548,13 @@
         <button type="button" @click="$store.game.backWechatContactProfile()">閳?/button><strong x-text="$store.game.wechatAlbumMode === 'album' ? '閻╃鍞? : $store.game.wechatProfileContact().name"></strong><span></span>
       </header>
       <main class="wechat-body">
-        <section class="wechat-list-page" x-show="$store.game.wechatView === 'home' && $store.game.wechatTab === 'chats'" x-data="{ view: ($store.game.wechatChatsPanelView ? $store.game.wechatChatsPanelView() : { rows: [], emptyText: '鏆傛棤鑱婂ぉ' }) }" x-effect="view = ($store.game.wechatChatsPanelView ? $store.game.wechatChatsPanelView() : { rows: [], emptyText: '鏆傛棤鑱婂ぉ' })">
+        <section class="wechat-list-page" x-show="$store.game.wechatView === 'home' && $store.game.wechatTab === 'chats'" x-data="{ view: $store.game.wechatChatsPanelView() }" x-effect="view = $store.game.wechatChatsPanelView()">
           <template x-for="thread in (view.rows || [])" :key="thread.key">
             <button class="wechat-thread" type="button" @pointerdown.stop @click.stop="$store.game.selectWechatContact(thread.id)"><span class="wechat-avatar" :style="thread.avatarStyle" x-text="thread.avatarText"></span><span><b x-text="thread.name"></b><small x-text="thread.latest"></small></span><em x-show="thread.unread" x-text="thread.unread"></em></button>
           </template>
           <p class="wechat-empty" x-show="view.emptyText" x-text="view.emptyText"></p>
         </section>
-        <section class="wechat-list-page" x-show="$store.game.wechatView === 'home' && $store.game.wechatTab === 'contacts'" x-data="{ view: ($store.game.wechatContactsPanelView ? $store.game.wechatContactsPanelView() : { rows: [], emptyText: '鏆傛棤鑱旂郴浜? }) }" x-effect="view = ($store.game.wechatContactsPanelView ? $store.game.wechatContactsPanelView() : { rows: [], emptyText: '鏆傛棤鑱旂郴浜? })">
+        <section class="wechat-list-page" x-show="$store.game.wechatView === 'home' && $store.game.wechatTab === 'contacts'" x-data="{ view: $store.game.wechatContactsPanelView() }" x-effect="view = $store.game.wechatContactsPanelView()">
           <div class="wechat-add-user">
             <input x-model="$store.game.wechatAddName" placeholder="濞ｈ濮為懕鏃傞兇娴滃搫顫橀崥?>
             <input x-model="$store.game.wechatAddRelation" placeholder="閸忓磭閮?婢跺洦鏁?>
