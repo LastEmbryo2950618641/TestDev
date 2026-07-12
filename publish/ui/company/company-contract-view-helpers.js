@@ -19,6 +19,7 @@ window.GameModules.ui.company.contractViewHelpers = {
     }));
 
     return {
+      showEmpty: this.companyState?.employment?.active === false,
       emptyText: '暂无薪酬绩效信息',
       contractRows,
       submissionRows,
