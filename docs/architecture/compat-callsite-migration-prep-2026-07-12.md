@@ -62,36 +62,35 @@
 
 #### 迁移优先级
 
-当前优先级：`最低`
+当前优先级：`中`
 
 原因：
 
-- company 虽然展示层样板已形成
-- 但基础 helper 风险高
-- 动作层还明显依赖 compat 动态分发
-- 若现在继续深入，收益低于风险
+- company 的主页面 section 已明显收敛到 summary / section view contract
+- 页面模板层的直接底层依赖已经显著下降
+- 但动作层仍明显依赖 compat 动态分发
+- recruit / tools 等剩余区块仍未完成同等级别收敛
 
 #### 进入下一阶段前需要先满足
 
 - 形成 company 动作层专门迁移计划
-- 补 company 基础 helper 的编码风险审计
 - 明确 `company-actions.js` 是否要继续保留动态转发壳
+- 审计 recruit / tools 区块是否仍需要继续收敛到展示 contract
 
 #### 当前建议
 
-- 暂不把 company 作为第一个 compat 迁移试点
-- 继续保持结构样板状态，等待更充分证据
+- company 仍不建议作为第一个 compat 迁移试点
+- 但它已经不再只是“结构样板状态”，可以进入更积极的迁移准备阶段
 
 ### event
 
 #### 当前主阻塞
 
 - `publish/event-actions.js` 仍通过 compat 做动态分发
-- `publish/index.html` 直接消费：
+- `publish/index.html` 当前主要直接消费：
   - `eventPanelView()`
-  - `currentEventList()`
+  - `eventListView()`
   - `selectedEventDetailView()`
-  - `selectedEventEmptyText()`
 
 #### 迁移优先级
 
@@ -153,6 +152,11 @@
 2. event
 3. company
 
+补充说明：
+
+- company 当前仍排在最后，不是因为页面层没有进展
+- 而是因为动作层 compat 动态分发依赖比 worldline / event 更重
+
 理由：
 
 - worldline：结构最成熟，最适合先做迁移准备
@@ -166,8 +170,8 @@
 建议下一步先盘：
 
 - `publish/index.html` 中 worldline 相关调用
-- 哪些可以稳定切到新 helper 聚合面
-- 哪些仍需保留旧 compat 入口
+- 哪些已稳定切到新 helper 聚合面
+- 哪些仍只是通过 compat facade 对外暴露
 
 ### 优先动作 B：event 页面模板与动作层迁移清单
 
