@@ -1,4 +1,4 @@
-# Worldline UI Layer
+﻿# Worldline UI Layer
 
 This directory stores readonly worldline view helpers used to prepare panel-facing data for rendering.
 
@@ -8,13 +8,16 @@ The purpose of `publish/ui/worldline/` is to keep worldline display preparation 
 
 This layer should transform already-available domain/state data into row, panel, and display objects that templates or entry surfaces can consume directly.
 
-## Current module
+## Current modules
 
 ### `view-helpers.js`
-- worldline panel display selection helpers
-- timeline row assembly
-- plot selection and derived event rows
-- readonly meta/summary formatting for worldline panels
+- compatibility surface for callers still using the broader worldline helper entry
+- aggregation facade over lore, timeline, and plot-facing readonly helpers
+
+### `lore-view-helpers.js`
+- lore expand/collapse readonly behavior
+- control lore filtering
+- real-world lore display object shaping
 
 ## Boundary rules
 
@@ -50,4 +53,3 @@ The preferred rule is:
 ## Immediate practical rule
 
 Any new helper added here should return display-ready rows, labels, summaries, or panel objects rather than raw side effects.
-

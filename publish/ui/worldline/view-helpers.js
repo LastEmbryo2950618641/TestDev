@@ -11,31 +11,15 @@ window.GameModules.ui.worldline.viewHelpers = {
     return this.worldlineDebugSection === name;
   },
 
-  toggleLore(lore) {
-    if (!this.loreWorldline(lore)) return;
-    const tag = lore?.worldTag || '';
-    if (!tag) return;
-    this.expandedWorldlineTag = this.expandedWorldlineTag === tag ? '' : tag;
-  },
+  toggleLore(lore) { return window.GameModules.ui.worldline.loreViewHelpers.toggleLore.call(this, lore); },
 
-  isLoreOpen(lore) {
-    return Boolean(lore?.worldTag && this.expandedWorldlineTag === lore.worldTag);
-  },
+  isLoreOpen(lore) { return window.GameModules.ui.worldline.loreViewHelpers.isLoreOpen.call(this, lore); },
 
-  controlLores() {
-    const realTag = this.realWorldTag();
-    return (this.savedWorldLores || []).filter((lore) => lore.worldTag !== realTag);
-  },
+  controlLores() { return window.GameModules.ui.worldline.loreViewHelpers.controlLores.call(this); },
 
-  realTag() {
-    return window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
-  },
+  realTag() { return window.GameModules.ui.worldline.loreViewHelpers.realTag.call(this); },
 
-  realLore() {
-    const tag = this.realWorldTag();
-    const saved = (this.savedWorldLores || []).find((lore) => lore.worldTag === tag) || {};
-    return { worldTag: tag, background: saved.background || this.playerProfile?.worldbuildingNote || '玩家所在的现代都市现实世界。', factions: saved.factions || [], specialJobs: saved.specialJobs || [], jobRanks: saved.jobRanks || [], specialFields: saved.specialFields || [], worldline: this.realWorldline() };
-  },
+  realLore() { return window.GameModules.ui.worldline.loreViewHelpers.realLore.call(this); },
 
   timelineItems(lore) {
     const worldline = this.loreWorldline(lore) || {};
@@ -128,4 +112,3 @@ window.GameModules.ui.worldline.viewHelpers = {
     };
   },
 };
-
