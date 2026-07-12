@@ -48,10 +48,13 @@ window.GameModules.ui.worldline.timelinePanelViewHelpers = {
   realWorldTimelinePanelView() {
     const lore = this.realWorldLore?.();
     const line = this.realWorldline?.() || {};
+    const recordingRows = this.realWorldRecordingEvents().map((entry) => this.realWorldTimelineRow(entry));
     return {
       timelineTitle: '现实世界线',
       timeRange: line.timeRange || '时间未知',
       rows: this.timelineItems(lore).map((item) => this.realWorldTimelineRow(item)),
+      recordingRows,
+      recordingEmptyText: '暂无现实记录，收起手机并进行现实行动后会写入这里。',
       emptyText: '暂无现实世界记录。收起手机并进行现实行动后会写入这里。',
     };
   },

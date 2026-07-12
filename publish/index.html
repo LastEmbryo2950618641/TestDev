@@ -693,7 +693,7 @@
                   <small x-text="summary.timeRange"></small>
                   <p x-text="summary.statsText"></p>
                 </article>
-                <div class="timeline-list real-plot-events"><template x-for="item in $store.game.realWorldRecordingEvents().map((entry) => $store.game.realWorldTimelineRow(entry))" :key="item.key"><article class="timeline-item event"><span class="timeline-dot"></span><div><small x-text="item.time"></small><h4 x-text="item.name"></h4><p x-text="item.detail"></p><em x-text="item.meta"></em></div></article></template><p class="empty-lore" x-show="!$store.game.realWorldRecordingEvents().length">閺嗗倹妫ゅ锝呮躬鐠佹澘缍嶉惃鍕箛鐎圭偘绨ㄦ禒韬测偓?/p></div>
+                <div class="timeline-list real-plot-events"><template x-for="item in (view.recordingRows || [])" :key="item.key"><article class="timeline-item event"><span class="timeline-dot"></span><div><small x-text="item.time"></small><h4 x-text="item.name"></h4><p x-text="item.detail"></p><em x-text="item.meta"></em></div></article></template><p class="empty-lore" x-show="!(view.recordingRows || []).length" x-text="view.recordingEmptyText"></p></div>
               </section>
               <details class="faction-details"><summary>閺屻儳婀呴崗銊╁劥閻滄澘鐤勭拋鏉跨秿</summary><div class="timeline-list"><template x-for="item in (view.rows || [])" :key="item.key"><article class="timeline-item event"><span class="timeline-dot"></span><div><small x-text="item.time"></small><h4 x-text="item.name"></h4><p x-text="item.detail"></p><em x-text="item.meta"></em></div></article></template><p class="empty-lore" x-show="!(view.rows || []).length" x-text="view.emptyText"></p></div></details>
               <p class="empty-lore" x-show="!(view.rows || []).length" x-text="view.emptyText"></p>
