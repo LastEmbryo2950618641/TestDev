@@ -149,6 +149,7 @@ The goal of this directory is to hold small, reusable, non-entry helper surfaces
 ### `album-prompt-list-helpers.js`
 - WeChat album prompt list filtering and selected-prompt lookup
 - prompt preview text extraction for album prompt list rows
+- selected prompt list update transform used before drawing from edited prompt text
 - pure prompt-list view helpers kept away from generation and save orchestration
 
 ### `album-prompt-helpers.js`

@@ -126,8 +126,14 @@ window.GameModules.wechatAlbumActions = {
     ) || this.wechatAlbumPromptEditText || selectedPrompt?.prompt || '';
     const negativePrompt = this.wechatAlbumPromptEditNegative || selectedPrompt?.negativePrompt || '';
     if (selectedPrompt) {
-      const list = this.wechatAlbumPromptList(contact).map((item) => item.id === selectedPrompt.id ? { ...item, prompt, negativePrompt } : item);
-      this.wechatAlbumPrompts = { ...(this.wechatAlbumPrompts || {}), [contact.id]: list };
+      this.wechatAlbumPrompts = window.GameModules.app.wechat.albumPromptListHelpers.wechatAlbumPromptsAfterSelectedUpdate(
+        this.wechatAlbumPrompts,
+        contact.id,
+        this.wechatAlbumPromptList(contact),
+        selectedPrompt.id,
+        prompt,
+        negativePrompt,
+      );
       await this.save?.();
     }
     await this.generateWechatAlbumPhoto(kind, { prompt, negativePrompt });

@@ -17,4 +17,13 @@ window.GameModules.app.wechat.albumPromptListHelpers = {
     const distinct = tags.filter((tag) => !fixed.has(tag.toLowerCase()));
     return (distinct.length ? distinct : tags).slice(0, 8).join(', ').slice(0, 88) || '未命名提示词';
   },
+
+  wechatAlbumPromptsAfterSelectedUpdate(promptsByContact = {}, contactId = '', list = [], promptId = '', prompt = '', negativePrompt = '') {
+    return {
+      ...(promptsByContact || {}),
+      [contactId]: (Array.isArray(list) ? list : []).map((item) => (
+        item?.id === promptId ? { ...item, prompt, negativePrompt } : item
+      )),
+    };
+  },
 };
