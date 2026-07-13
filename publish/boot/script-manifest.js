@@ -328,6 +328,7 @@ window.GameScriptManifest = {
       "app/wechat/album-prompt-list-helpers.js",
       "wechat-album-prompt-list.js",
       "wechat-avatar-crop-actions.js",
+      "app/wechat/album-photo-state-helpers.js",
       "wechat-album-actions.js",
       "app/wechat/change-panel-orchestration.js",
       "wechat-change-panel-actions.js",
@@ -388,7 +389,7 @@ window.GameScriptManifest = {
     ]
   },
   "generatedAt": "2026-07-13T11:05:00.000Z",
-  "total": 346
+  "total": 347
 };
 
 window.GameScriptManifest.classify = function classify(url) {

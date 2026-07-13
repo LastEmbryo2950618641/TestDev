@@ -42,10 +42,12 @@ window.GameModules.wechatAlbumActions = {
       this.closeWechatAlbumDeleteConfirm();
       return;
     }
-    this.wechatAlbumPhotos = {
-      ...(this.wechatAlbumPhotos || {}),
-      [contact.id]: list.filter((_, i) => i !== index),
-    };
+    this.wechatAlbumPhotos = window.GameModules.app.wechat.albumPhotoStateHelpers.wechatAlbumPhotosAfterDelete(
+      this.wechatAlbumPhotos,
+      contact.id,
+      list,
+      index,
+    );
     this.closeWechatAlbumDeleteConfirm();
     await this.save?.();
   },
@@ -162,7 +164,12 @@ window.GameModules.wechatAlbumActions = {
         : null;
       const list = this.wechatAlbumPhotoListForContact(contact);
       const photo = window.GameModules.app.wechat.albumGenerateHelpers.wechatAlbumGeneratedPhoto.call(this, contact, kind, result, savedFigure, bodyFigureContext);
-      this.wechatAlbumPhotos = { ...(this.wechatAlbumPhotos || {}), [contact.id]: [photo, ...list] };
+      this.wechatAlbumPhotos = window.GameModules.app.wechat.albumPhotoStateHelpers.wechatAlbumPhotosAfterInsert(
+        this.wechatAlbumPhotos,
+        contact.id,
+        list,
+        photo,
+      );
       if (bodyFigureContext) {
         await this.autoCaptureWechatAvatar?.(0, contact);
         this.wechatAlbumBodyFigureContext = null;
@@ -183,7 +190,12 @@ window.GameModules.wechatAlbumActions = {
     const contact = this.wechatProfileContact();
     const list = this.wechatAlbumPhotoList();
     if (!contact || !list[index]) return;
-    this.wechatAlbumPhotos = { ...(this.wechatAlbumPhotos || {}), [contact.id]: list.map((photo, i) => i === index ? { ...photo, real: true } : photo) };
+    this.wechatAlbumPhotos = window.GameModules.app.wechat.albumPhotoStateHelpers.wechatAlbumPhotosAfterMarkReal(
+      this.wechatAlbumPhotos,
+      contact.id,
+      list,
+      index,
+    );
     await this.save?.();
     await this.autoCaptureWechatAvatar?.(index);
   },
