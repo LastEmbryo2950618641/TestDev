@@ -314,6 +314,7 @@ window.GameScriptManifest = {
       "wechat-album-prompt-list.js",
       "wechat-avatar-crop-actions.js",
       "wechat-album-actions.js",
+      "app/wechat/change-panel-orchestration.js",
       "wechat-change-panel-actions.js",
       "player-wechat-setup.js"
     ],

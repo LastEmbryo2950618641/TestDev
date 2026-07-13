@@ -1,36 +1,43 @@
-﻿window.GameModules = window.GameModules || {};
+window.GameModules = window.GameModules || {};
 
-window.GameModules.wechatChangePanelActions = {
-  toggleWechatChangePanel(msg) {
-    if (!msg) return;
-    msg.changeReasonsOpen = !msg.changeReasonsOpen;
+const wechatChangePanelFacadeGroups = [
+  {
+    modulePath: ['app', 'wechat', 'changePanelOrchestration'],
+    methods: ['toggleWechatChangePanel'],
   },
+  {
+    modulePath: ['wechatViewHelpers'],
+    methods: [
+      'wechatHasChangeReasons',
+      'wechatChangeGroups',
+      'wechatMetricReasonItems',
+      'wechatWearingReasonItems',
+    ],
+  },
+  {
+    modulePath: ['wechatDomainHelpers'],
+    methods: [
+      'wechatMetricState',
+      'usefulMetricText',
+      'metricProfileItem',
+    ],
+  },
+];
 
-  wechatHasChangeReasons(msg) {
-    return window.GameModules.wechatViewHelpers.wechatHasChangeReasons.call(this, msg);
-  },
+function resolveWechatChangePanelModule(pathParts) {
+  return pathParts.reduce((current, part) => current?.[part], window.GameModules);
+}
 
-  wechatChangeGroups(msg = {}) {
-    return window.GameModules.wechatViewHelpers.wechatChangeGroups.call(this, msg);
-  },
+function callWechatChangePanelModule(pathParts, methodName, context, args) {
+  return resolveWechatChangePanelModule(pathParts)[methodName].call(context, ...args);
+}
 
-  wechatMetricState(msg = {}) {
-    return window.GameModules.wechatDomainHelpers.wechatMetricState.call(this, msg);
-  },
+window.GameModules.wechatChangePanelActions = {};
 
-  usefulMetricText(text = '', key = '') {
-    return window.GameModules.wechatDomainHelpers.usefulMetricText.call(this, text, key);
-  },
-
-  metricProfileItem(state, group, key) {
-    return window.GameModules.wechatDomainHelpers.metricProfileItem.call(this, state, group, key);
-  },
-
-  wechatMetricReasonItems(list = [], group = 'emotions', msg = {}) {
-    return window.GameModules.wechatViewHelpers.wechatMetricReasonItems.call(this, list, group, msg);
-  },
-
-  wechatWearingReasonItems(list = []) {
-    return window.GameModules.wechatViewHelpers.wechatWearingReasonItems.call(this, list);
-  },
-};
+for (const group of wechatChangePanelFacadeGroups) {
+  for (const methodName of group.methods) {
+    window.GameModules.wechatChangePanelActions[methodName] = function wechatChangePanelFacade(...args) {
+      return callWechatChangePanelModule(group.modulePath, methodName, this, args);
+    };
+  }
+}

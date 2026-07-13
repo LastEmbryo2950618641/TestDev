@@ -118,6 +118,15 @@ const orderedGroups = [
     ],
   },
   {
+    label: 'wechat change panel runtime dependencies',
+    before: 'wechat-change-panel-actions.js',
+    required: [
+      'ui/wechat/view-helpers.js',
+      'domain/wechat/change-panel-helpers.js',
+      'app/wechat/change-panel-orchestration.js',
+    ],
+  },
+  {
     label: 'critical action game runtime dependencies',
     required: [
       'ui/critical-action/metric-view-helpers.js',

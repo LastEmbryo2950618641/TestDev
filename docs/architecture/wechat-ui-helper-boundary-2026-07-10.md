@@ -71,15 +71,14 @@
 - 不直接修改消息状态
 - 不直接触发记忆系统、发送流程或平台能力
 
-当前仍保留在 `publish/wechat-change-panel-actions.js` 的逻辑包括：
+当前已不再由 `publish/wechat-change-panel-actions.js` 直接拥有真实实现。
 
-- `toggleWechatChangePanel`
-- `wechatMetricState`
+现有归属：
 
-保留原因：
+- `toggleWechatChangePanel` 已迁入 `publish/app/wechat/change-panel-orchestration.js`
+- `wechatMetricState` 已迁入 `publish/domain/wechat/change-panel-helpers.js`
 
-- `toggleWechatChangePanel` 属于交互动作，不是只读展示 helper。
-- `wechatMetricState` 更接近状态访问入口，后续若继续分层，更适合再评估是否进入 `domain/wechat`。
+`publish/wechat-change-panel-actions.js` 继续作为兼容 facade，保留原有 `$store.game` public method names。
 
 这意味着微信模块目前已经形成两批 UI helper 收敛，但仍然没有进入消息主链和记忆链的高风险区域。
 
