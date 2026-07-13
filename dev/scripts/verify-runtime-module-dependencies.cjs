@@ -143,6 +143,7 @@ const orderedGroups = [
     before: 'wechat-album-actions.js',
     required: [
       'app/wechat/album-orchestration.js',
+      'app/wechat/album-profile-orchestration.js',
       'app/wechat/album-body-figure-helpers.js',
       'app/wechat/album-body-figure-asset-orchestration.js',
       'app/wechat/album-body-figure-context-helpers.js',

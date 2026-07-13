@@ -79,3 +79,8 @@ Generating from the selected album prompt is now owned by
 `app/wechat/album-selected-generation-orchestration.js`. The module preserves
 prompt/draft fallback, fixed-tag normalization, selected-list update,
 save-before-generation ordering, and the public generation handoff.
+
+Contact profile opening and profile/album/home navigation are now owned by
+`app/wechat/album-profile-orchestration.js`. Group short-circuit behavior,
+asynchronous profile reuse, save-on-success, missing-profile errors, warning
+handling, and two-level back navigation remain unchanged.

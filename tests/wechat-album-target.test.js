@@ -31,6 +31,7 @@ function createStore() {
   loadScript(context, 'publish/ui/wechat/view-helpers.js');
   loadScript(context, 'publish/wechat-view-actions.js');
   loadScript(context, 'publish/app/wechat/album-orchestration.js');
+  loadScript(context, 'publish/app/wechat/album-profile-orchestration.js');
   loadScript(context, 'publish/app/wechat/album-body-figure-context-helpers.js');
   loadScript(context, 'publish/app/wechat/album-body-profile-generator-orchestration.js');
   loadScript(context, 'publish/app/wechat/album-delete-orchestration.js');

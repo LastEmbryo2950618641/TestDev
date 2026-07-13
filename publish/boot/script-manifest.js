@@ -315,6 +315,7 @@ window.GameScriptManifest = {
       "app/wechat/app-orchestration.js",
       "wechat-app-actions.js",
       "app/wechat/album-orchestration.js",
+      "app/wechat/album-profile-orchestration.js",
       "app/wechat/album-body-figure-context-helpers.js",
       "app/wechat/album-body-profile-generator-orchestration.js",
       "app/wechat/album-delete-orchestration.js",

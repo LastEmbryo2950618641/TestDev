@@ -1,27 +1,14 @@
 ﻿window.GameModules = window.GameModules || {};
 window.GameModules.wechatAlbumActions = {
-  openWechatContactProfile(id = '') {
-    this.wechatSelectedContact = id || this.wechatSelectedContact || 'player-self';
-    if (this.wechatSelected?.()?.group) return;
-    this.wechatView = 'profile';
-    this.wechatAlbumMode = 'profile';
-    const contact = this.wechatSelected?.();
-    if (!contact || contact.group) return;
-    this.reuseWechatCharacterProfile?.(contact)
-      .then((state) => {
-        if (state) return this.save?.();
-        this.wechatError = this.wechatMissingRoleCardMessage?.(contact);
-      })
-      .catch((err) => console.warn('[微信] 联系人资料读取失败:', err.code, err.message, err.stack));
+  openWechatContactProfile(...args) {
+    return window.GameModules.app.wechat.albumProfileOrchestration.openWechatContactProfile.call(this, ...args);
   },
 
-  backWechatContactProfile() {
-    if (this.wechatAlbumMode === 'album') { this.wechatAlbumMode = 'profile'; return; }
-    this.wechatView = 'home';
-    this.wechatAlbumMode = 'profile';
+  backWechatContactProfile(...args) {
+    return window.GameModules.app.wechat.albumProfileOrchestration.backWechatContactProfile.call(this, ...args);
   },
 
-  openWechatAlbum() { this.wechatAlbumMode = 'album'; },
+  openWechatAlbum(...args) { return window.GameModules.app.wechat.albumProfileOrchestration.openWechatAlbum.call(this, ...args); },
   wechatContactFromState(...args) { return window.GameModules.app.wechat.albumOrchestration.wechatContactFromState.call(this, ...args); },
   wechatProfileContact(...args) { return window.GameModules.app.wechat.albumOrchestration.wechatProfileContact.call(this, ...args); },
   wechatAlbumContact(...args) { return window.GameModules.app.wechat.albumOrchestration.wechatAlbumContact.call(this, ...args); },
