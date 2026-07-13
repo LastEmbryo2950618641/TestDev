@@ -1,68 +1,49 @@
 window.GameModules = window.GameModules || {};
-function callWechatMentionInputHelper(name, context, ...args) {
-  return window.GameModules.app.wechat.mentionInputHelper[name].call(context, ...args);
+
+const wechatMentionFacadeGroups = [
+  {
+    moduleName: 'mentionInputHelper',
+    methods: ['insertWechatMention', 'mentionWechatMessage'],
+  },
+  {
+    moduleName: 'mentionBasePhotoHelper',
+    methods: [
+      'mentionWechatImage',
+      'wechatImageMentionId',
+      'wechatMessageImageMentionId',
+      'wechatImageBasePhoto',
+    ],
+  },
+  {
+    moduleName: 'mentionReferenceHelpers',
+    methods: [
+      'wechatMessageMentionId',
+      'wechatMentionedImages',
+      'attachWechatMentionedImageIntent',
+    ],
+  },
+  {
+    moduleName: 'mentionViewHelpers',
+    methods: [
+      'wechatMentionedContacts',
+      'wechatMentionedMessages',
+      'wechatMessageMentionSources',
+      'wechatImageMentionSources',
+      'wechatMentionContextText',
+    ],
+  },
+];
+
+function callWechatMentionModule(moduleName, methodName, context, args) {
+  return window.GameModules.app.wechat[moduleName][methodName].call(context, ...args);
 }
-function callWechatMentionViewHelper(name, context, ...args) {
-  return window.GameModules.app.wechat.mentionViewHelpers[name].call(context, ...args);
+
+window.GameModules.wechatMentionActions = {};
+
+for (const group of wechatMentionFacadeGroups) {
+  for (const methodName of group.methods) {
+    window.GameModules.wechatMentionActions[methodName] = function wechatMentionFacade(...args) {
+      return callWechatMentionModule(group.moduleName, methodName, this, args);
+    };
+  }
 }
-function callWechatMentionBasePhotoHelper(name, context, ...args) {
-  return window.GameModules.app.wechat.mentionBasePhotoHelper[name].call(context, ...args);
-}
-
-function callWechatMentionIdHelper(name, context, ...args) {
-  return window.GameModules.app.wechat.mentionBasePhotoHelper[name].call(context, ...args);
-}
-
-function callWechatMentionReferenceHelper(name, context, ...args) {
-  return window.GameModules.app.wechat.mentionReferenceHelpers[name].call(context, ...args);
-}
-
-window.GameModules.wechatMentionActions = {
-  insertWechatMention(text = '') {
-    return callWechatMentionInputHelper('insertWechatMention', this, text);
-  },
-
-  mentionWechatMessage(msg = {}, index = 0) {
-    return callWechatMentionInputHelper('mentionWechatMessage', this, msg, index);
-  },
-
-  mentionWechatImage(msg = {}, index = 0) {
-    return callWechatMentionIdHelper('mentionWechatImage', this, msg, index);
-  },
-
-  wechatImageMentionId(photo = {}, index = 0) {
-    return callWechatMentionIdHelper('wechatImageMentionId', this, photo, index);
-  },
-
-  wechatMessageMentionId(msg = {}, index = 0) {
-    return callWechatMentionReferenceHelper('wechatMessageMentionId', this, msg, index);
-  },
-
-  wechatMessageImageMentionId(msg = {}, index = 0) {
-    return callWechatMentionIdHelper('wechatMessageImageMentionId', this, msg, index);
-  },
-
-  wechatMentionedContacts(text = '') {
-    return callWechatMentionViewHelper('wechatMentionedContacts', this, text);
-  },
-
-  wechatMentionedImages(text = '', currentId = '') {
-    return callWechatMentionReferenceHelper('wechatMentionedImages', this, text, currentId);
-  },
-
-  wechatImageMentionSources(currentId = '') {
-    return callWechatMentionViewHelper('wechatImageMentionSources', this, currentId);
-  },
-
-  wechatMentionContextText(playerText = '', currentId = '') {
-    return callWechatMentionViewHelper('wechatMentionContextText', this, playerText, currentId);
-  },
-
-  attachWechatMentionedImageIntent(result = {}, playerText = '', currentId = '') {
-    return callWechatMentionReferenceHelper('attachWechatMentionedImageIntent', this, result, playerText, currentId);
-  },
-
-  wechatImageBasePhoto(msg = {}) {
-    return callWechatMentionBasePhotoHelper('wechatImageBasePhoto', this, msg);
-  },
-};

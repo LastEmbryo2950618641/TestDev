@@ -183,7 +183,10 @@ for (const marker of [
   assertIncludes(historyContextHelper, `\n  ${marker}`, `${historyContextHelperPath} should own history context implementation`);
 }
 
-assertIncludes(mentionAction, 'callWechatMentionReferenceHelper', `${mentionActionPath} mention reference facade`);
+assertIncludes(mentionAction, 'const wechatMentionFacadeGroups = [', `${mentionActionPath} declarative mention facade groups`);
+assertIncludes(mentionAction, 'function callWechatMentionModule(moduleName, methodName, context, args)', `${mentionActionPath} generic mention module caller`);
+assertIncludes(mentionAction, 'window.GameModules.wechatMentionActions = {};', `${mentionActionPath} mention action shell`);
+assertIncludes(mentionAction, 'callWechatMentionModule(group.moduleName, methodName, this, args)', `${mentionActionPath} declarative mention facade dispatch`);
 for (const [text, relativePath, label] of [
   [mentionAction, mentionActionPath, 'mention action'],
   [mentionViewHelper, mentionViewHelperPath, 'mention view helper'],
@@ -199,6 +202,11 @@ for (const marker of [
   '@消息',
   '玩家',
   '联系人',
+  '当前微信对话',
+  '其它微信对话',
+  '当前联系人相册',
+  '其它联系人相册',
+  '无描述',
 ]) {
   assertIncludes(mentionViewHelper, marker, `${mentionViewHelperPath} should keep readable UTF-8 mention text`);
 }
@@ -206,7 +214,6 @@ assertIncludes(mentionBasePhotoHelper, '@图片', `${mentionBasePhotoHelperPath}
 for (const marker of ['图片)?', '图片\\[']) {
   assertIncludes(mentionReferenceHelper, marker, `${mentionReferenceHelperPath} should keep readable UTF-8 image mention parse text`);
 }
-assertIncludes(mentionAction, 'callWechatMentionInputHelper', `${mentionActionPath} mention input facade`);
 for (const marker of [
   'insertWechatMention(text = \'\')',
   'mentionWechatMessage(msg = {}, index = 0)',
@@ -214,8 +221,6 @@ for (const marker of [
   assertIncludes(mentionInputHelper, `\n  ${marker}`, `${mentionInputHelperPath} should own mention input implementation`);
 }
 assertIncludes(mentionInputHelper, '@消息', `${mentionInputHelperPath} should keep readable message mention insert text`);
-assertIncludes(methodBlock(mentionAction, mentionActionPath, 'insertWechatMention', 'mentionWechatMessage'), "return callWechatMentionInputHelper('insertWechatMention', this, text);", `${mentionActionPath} insertWechatMention facade`);
-assertIncludes(methodBlock(mentionAction, mentionActionPath, 'mentionWechatMessage', 'mentionWechatImage'), "return callWechatMentionInputHelper('mentionWechatMessage', this, msg, index);", `${mentionActionPath} mentionWechatMessage facade`);
 for (const marker of [
   'wechatMessageMentionId(msg = {}, index = 0)',
   'wechatMentionedImages(text = \'\', currentId = \'\')',
@@ -223,9 +228,56 @@ for (const marker of [
 ]) {
   assertIncludes(mentionReferenceHelper, `\n  ${marker}`, `${mentionReferenceHelperPath} should own mention reference implementation`);
 }
-assertIncludes(methodBlock(mentionAction, mentionActionPath, 'wechatMessageMentionId', 'wechatMessageImageMentionId'), "return callWechatMentionReferenceHelper('wechatMessageMentionId', this, msg, index);", `${mentionActionPath} wechatMessageMentionId facade`);
-assertIncludes(methodBlock(mentionAction, mentionActionPath, 'wechatMentionedImages', 'wechatImageMentionSources'), "return callWechatMentionReferenceHelper('wechatMentionedImages', this, text, currentId);", `${mentionActionPath} wechatMentionedImages facade`);
-assertIncludes(methodBlock(mentionAction, mentionActionPath, 'attachWechatMentionedImageIntent', 'wechatImageBasePhoto'), "return callWechatMentionReferenceHelper('attachWechatMentionedImageIntent', this, result, playerText, currentId);", `${mentionActionPath} attachWechatMentionedImageIntent facade`);
+for (const marker of [
+  'mentionWechatImage(msg = {}, index = 0)',
+  'wechatImageMentionId(photo = {}, index = 0)',
+  'wechatMessageImageMentionId(msg = {}, index = 0)',
+  'wechatImageBasePhoto(msg = {})',
+]) {
+  assertIncludes(mentionBasePhotoHelper, `\n  ${marker}`, `${mentionBasePhotoHelperPath} should own mention base-photo implementation`);
+}
+for (const marker of [
+  'wechatMentionedContacts(text = \'\')',
+  'wechatMentionedMessages(text = \'\', currentId = \'\')',
+  'wechatMessageMentionSources(currentId = \'\')',
+  'wechatImageMentionSources(currentId = \'\')',
+  'wechatMentionContextText(playerText = \'\', currentId = \'\')',
+]) {
+  assertIncludes(mentionViewHelper, `\n  ${marker}`, `${mentionViewHelperPath} should own mention view implementation`);
+}
+for (const marker of [
+  "moduleName: 'mentionInputHelper'",
+  "moduleName: 'mentionBasePhotoHelper'",
+  "moduleName: 'mentionReferenceHelpers'",
+  "moduleName: 'mentionViewHelpers'",
+  "'insertWechatMention'",
+  "'mentionWechatMessage'",
+  "'mentionWechatImage'",
+  "'wechatImageMentionId'",
+  "'wechatMessageImageMentionId'",
+  "'wechatImageBasePhoto'",
+  "'wechatMessageMentionId'",
+  "'wechatMentionedImages'",
+  "'attachWechatMentionedImageIntent'",
+  "'wechatMentionedContacts'",
+  "'wechatMentionedMessages'",
+  "'wechatMessageMentionSources'",
+  "'wechatImageMentionSources'",
+  "'wechatMentionContextText'",
+]) {
+  assertIncludes(mentionAction, marker, `${mentionActionPath} declarative mention facade should expose ${marker}`);
+}
+for (const marker of [
+  'const value = String(this.wechatInput || \'\')',
+  'wechatContacts?.()',
+  'wechatMessagesByContact',
+  'wechatAlbumPhotos',
+  'imageIntent?.baseImage',
+  'baseImage: {',
+  '图片ID：',
+]) {
+  assertNotIncludes(mentionAction, marker, `${mentionActionPath} should not own mention business implementation`);
+}
 
 assertIncludes(imageAction, 'const wechatImageFacadeGroups = [', `${imageActionPath} declarative image facade groups`);
 assertIncludes(imageAction, 'const wechatImageAsyncFacades = new Set([', `${imageActionPath} async image facade set`);
