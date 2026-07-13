@@ -127,6 +127,13 @@ const orderedGroups = [
     ],
   },
   {
+    label: 'wechat app runtime dependencies',
+    before: 'wechat-app-actions.js',
+    required: [
+      'app/wechat/app-orchestration.js',
+    ],
+  },
+  {
     label: 'critical action game runtime dependencies',
     required: [
       'ui/critical-action/metric-view-helpers.js',

@@ -86,6 +86,11 @@ The goal of this directory is to hold small, reusable, non-entry helper surfaces
 - small UI state mutation kept outside the legacy public action entry
 - compatibility support for existing message change panel bindings
 
+### `app-orchestration.js`
+- WeChat app open/close orchestration
+- desktop/app visibility state coordination when entering WeChat
+- WeChat contact identity jump coordination from the selected chat target
+
 ### `mention-view-helpers.js`
 - mention-context text assembly and contact-mention parsing
 - mention-related readonly source formatting for prompt/context usage
@@ -138,5 +143,5 @@ The preferred migration pattern for new work here is:
 
 ## Immediate practical rule
 
-If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, history-context, image-record, image-ui, image-album, image-prompt, image-receive-orchestration, image-offer-orchestration, worldline-orchestration, change-panel-orchestration, mention-view, mention-base-photo, mention-reference, or mention-input style boundaries, document the rationale before adding another module here.
+If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, history-context, image-record, image-ui, image-album, image-prompt, image-receive-orchestration, image-offer-orchestration, worldline-orchestration, change-panel-orchestration, app-orchestration, mention-view, mention-base-photo, mention-reference, or mention-input style boundaries, document the rationale before adding another module here.
 
