@@ -184,6 +184,8 @@ window.GameScriptManifest = {
       "role-card-loading-actions.js",
       "solidify-actions.js",
       "wearing-sync-actions.js",
+      "app/save/slot-flow.js",
+      "app/save/slot-mutation-flow.js",
       "ui/save/slot-view.js",
       "save-actions.js",
       "result-actions.js",
@@ -350,8 +352,8 @@ window.GameScriptManifest = {
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-13T09:00:00.000Z",
-  "total": 338
+  "generatedAt": "2026-07-13T10:30:00.000Z",
+  "total": 340
 };
 
 window.GameScriptManifest.classify = function classify(url) {

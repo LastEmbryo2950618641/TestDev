@@ -19,6 +19,13 @@ function defaultSaveMeta(slot) {
   return { slot, exists: false, savedAt: '', playerName: '', phoneSetupDone: false };
 }
 
+function callSaveFlow(flowName, method, context, ...args) {
+  const flow = window.GameModules?.app?.save?.[flowName];
+  const action = flow?.[method];
+  if (typeof action !== 'function') throw new Error(`Save flow unavailable: ${flowName}.${method}`);
+  return action.call(context, ...args);
+}
+
 async function inspectSlotSafe(slot) {
   const inspect = window.GameModules?.platform?.storage?.backend?.inspectSlot;
   if (typeof inspect !== 'function') {
@@ -33,6 +40,22 @@ async function inspectSlotSafe(slot) {
 }
 
 window.GameModules.saveActions = {
+  async openSlot(slot) {
+    return callSaveFlow('slotFlow', 'openSlotFlow', this, slot);
+  },
+
+  async loadSlot(slot) {
+    return callSaveFlow('slotFlow', 'loadSlotFlow', this, slot);
+  },
+
+  async overwriteSlot(slot) {
+    return callSaveFlow('slotMutationFlow', 'overwriteSlotFlow', this, slot);
+  },
+
+  async newSlot(slot) {
+    return callSaveFlow('slotMutationFlow', 'newSlotFlow', this, slot);
+  },
+
   async refreshSaveMetas() {
     const slots = Array.isArray(this.saveSlots) ? this.saveSlots : [];
     const entries = await Promise.all(slots.map(async (slot) => [slot, await inspectSlotSafe(slot)]));

@@ -181,6 +181,8 @@
   "role-card-loading-actions.js",
   "solidify-actions.js",
   "wearing-sync-actions.js",
+  "app/save/slot-flow.js",
+  "app/save/slot-mutation-flow.js",
   "ui/save/slot-view.js",
   "save-actions.js",
   "result-actions.js",

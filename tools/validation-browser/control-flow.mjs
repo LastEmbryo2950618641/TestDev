@@ -91,6 +91,7 @@ const result = await page.evaluate(async () => {
   const startedAt = Date.now();
   while (game.busy && Date.now() - startedAt < 45000) await new Promise((resolve) => setTimeout(resolve, 250));
   const shared = game.sharedControlState?.();
+  const saveSlotApiNames = ['openSlot', 'loadSlot', 'overwriteSlot', 'newSlot'];
   return {
     started: game.started,
     online: game.online,
@@ -106,6 +107,7 @@ const result = await page.evaluate(async () => {
     desktopTaskSubtitle: game.desktopTaskSubtitle?.() || '',
     hasLoop: typeof window.GameModules.realWorldAgentLoop?.runStory === 'function',
     hasMemoryFlow: typeof window.GameModules.characterMemory?.recordTurn === 'function',
+    hasSaveSlotApi: saveSlotApiNames.every((name) => typeof game[name] === 'function'),
     choices: (game.choices || []).map((item) => item.text || item).slice(0, 4),
     feedbackSource: game.feedbackSource || '',
   };
@@ -113,7 +115,7 @@ const result = await page.evaluate(async () => {
 
 const expectedAuthErrors = consoleIssues.filter((item) => /AUTH_REQUIRED|DeepSeek API Key/.test(item.text));
 const unexpectedIssues = consoleIssues.filter((item) => !/AUTH_REQUIRED|DeepSeek API Key|AI 推演失败|人物设定生成失败|AI补全失败|role card generation unavailable|请求未完成/.test(item.text));
-const ok = result.started === true && result.online === true && result.busy === false && result.hasActiveControlTarget === true && result.hasLoop === true && result.hasMemoryFlow === true && badResponses.length === 0 && pageErrors.length === 0 && unexpectedIssues.length === 0;
+const ok = result.started === true && result.online === true && result.busy === false && result.hasActiveControlTarget === true && result.hasLoop === true && result.hasMemoryFlow === true && result.hasSaveSlotApi === true && badResponses.length === 0 && pageErrors.length === 0 && unexpectedIssues.length === 0;
 
 console.log(JSON.stringify({ mode, targetUrl, ok, result, badResponses, pageErrors, expectedAuthErrors: expectedAuthErrors.length, unexpectedIssues }, null, 2));
 await browser.close();

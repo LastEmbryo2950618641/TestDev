@@ -68,9 +68,11 @@ const orderedGroups = [
     ],
   },
   {
-    label: 'save action ui helper dependencies',
+    label: 'save action runtime dependencies',
     before: 'save-actions.js',
     required: [
+      'app/save/slot-flow.js',
+      'app/save/slot-mutation-flow.js',
       'ui/save/slot-view.js',
     ],
   },
