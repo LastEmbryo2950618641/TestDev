@@ -50,6 +50,8 @@ window.GameScriptManifest = {
       "platform/storage/capabilities.js",
       "platform/storage/metadata-source.js",
       "platform/storage/lexicon-source.js",
+      "platform/storage/profession-info-source.js",
+      "platform/storage/rpg-definition-source.js",
       "platform/storage/character-state-source.js",
       "platform/storage/character-memory-source.js",
       "platform/storage/character-intro-source.js",
@@ -59,6 +61,8 @@ window.GameScriptManifest = {
       "platform/storage/real-world-log-source.js",
       "metadata-store.js",
       "lexicon-store.js",
+      "profession-info-store.js",
+      "rpg-definition-store.js",
       "character-state-store.js",
       "character-memory-store.js",
       "character-intro-store.js",
@@ -422,7 +426,7 @@ window.GameScriptManifest = {
     ]
   },
   "generatedAt": "2026-07-13T17:39:40.727Z",
-  "total": 409
+  "total": 413
 };
 
 window.GameScriptManifest.classify = function classify(url) {

@@ -12,6 +12,10 @@ window.GameModules.platform.storage.characterStateSource = {
     return window.GameModules.sqliteSave?.getCharacterStateByName?.(name, worldTag) || null;
   },
 
+  getWorld(id = '') {
+    return window.GameModules.sqliteSave?.getCharacterWorld?.(id) || null;
+  },
+
   resolve(target = '') {
     const key = String(target || '').trim();
     if (!key) return null;

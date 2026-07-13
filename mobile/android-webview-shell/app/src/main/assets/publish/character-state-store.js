@@ -15,6 +15,10 @@ window.GameModules.characterStateStore = {
     return this.source()?.getByName?.(name, worldTag) || null;
   },
 
+  getWorld(id = '') {
+    return this.source()?.getWorld?.(id) || null;
+  },
+
   resolve(target = '') {
     return this.source()?.resolve?.(target) || null;
   },

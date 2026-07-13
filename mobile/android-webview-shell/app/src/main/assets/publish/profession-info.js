@@ -13,12 +13,12 @@ window.GameModules.professionInfo = {
   async ensure(worldTag, name, context = {}) {
     const jobName = this.normalizeJobName(name);
     if (!jobName) return null;
-    const save = window.GameModules.sqliteSave;
-    const existing = save.getProfessionInfo?.(worldTag, jobName);
+    const professionStore = window.GameModules.professionInfoStore;
+    const existing = professionStore?.get?.(worldTag, jobName);
     if (existing) {
       const normalized = this.validate({ ...existing, confirmed: true }, worldTag, existing.name || jobName, context);
       if (normalized) {
-        if (JSON.stringify(normalized) !== JSON.stringify(existing)) await save.saveProfessionInfo?.(worldTag, normalized);
+        if (JSON.stringify(normalized) !== JSON.stringify(existing)) await professionStore?.save?.(worldTag, normalized);
         return normalized;
       }
     }
@@ -31,7 +31,7 @@ window.GameModules.professionInfo = {
   async createAndSave(worldTag, jobName, context) {
     const info = await this.generate(worldTag, jobName, context);
     if (!info) return null;
-    await window.GameModules.sqliteSave.saveProfessionInfo?.(worldTag, info);
+    await window.GameModules.professionInfoStore?.save?.(worldTag, info);
     await window.GameModules.rpgLexicon.save(worldTag, '职业', info.name, { summary: info.summary, description: info.description, reason: info.requirements.reason, nameAiGenerated: true, valueAiGenerated: true, changeMode: info.requirements.reason, related: [...info.intrinsicStats, ...info.learnedAbilities, ...info.knowledgeAreas, ...info.worldAbilities], meta: { info }, source: 'ai' });
     return info;
   },

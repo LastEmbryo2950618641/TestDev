@@ -2,28 +2,27 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.rpgState = {
   async ensureWorldAttributes(worldTag) {
-    const save = window.GameModules.sqliteSave;
+    const definitionStore = window.GameModules.rpgDefinitionStore;
     const attrs = window.GameModules.worldAttributes.defaults(worldTag);
-    const existing = save.getWorldAttributes(worldTag);
+    const existing = definitionStore?.getAttributes?.(worldTag);
     if (existing && window.GameModules.rpgSchema.sameFields(existing.fields, attrs.fields)) return existing;
-    await save.saveWorldAttributes(worldTag, attrs);
+    await definitionStore?.saveAttributes?.(worldTag, attrs);
     return attrs;
   },
 
   async ensureSchema(worldTag) {
-    const save = window.GameModules.sqliteSave;
+    const definitionStore = window.GameModules.rpgDefinitionStore;
     const attrs = await this.ensureWorldAttributes(worldTag);
-    const existing = save.getSchema(worldTag);
+    const existing = definitionStore?.getSchema?.(worldTag);
     const schema = window.GameModules.rpgSchema.base(worldTag, attrs);
     const schemaFields = schema.sections.flatMap((section) => section.fields);
     if (existing && window.GameModules.rpgSchema.matchesAttrs(existing, { fields: schemaFields })) return existing;
     console.log('[RPG状态] 固化世界属性 schema:', worldTag, attrs.fields?.length || 0);
-    await save.saveSchema(worldTag, schema);
+    await definitionStore?.saveSchema?.(worldTag, schema);
     return schema;
   },
 
   async ensureCharacter(character, store = null) {
-    const save = window.GameModules.sqliteSave;
     const stateStore = window.GameModules.characterStateStore;
     const id = character.id || character.name;
     const existing = stateStore?.get?.(id);
@@ -39,7 +38,7 @@ window.GameModules.rpgState = {
       if (profileChanged || upgraded || updated || inventorySynced || professionChanged) await stateStore?.save?.(existing);
       return existing;
     }
-    const worldTag = save.getCharacterWorld(id) || character.work || '原创世界';
+    const worldTag = stateStore?.getWorld?.(id) || character.work || '原创世界';
     console.log('[RPG状态] 创建角色状态:', id, character.name, worldTag);
     const schema = await this.ensureSchema(worldTag);
     const created = this.createCharacterState(character, schema, store);
