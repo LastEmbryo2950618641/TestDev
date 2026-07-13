@@ -14,7 +14,7 @@ function classify(url) {
   // 手机激活 / 身份补全 / 玩家卡生成在 core 启动后就会调用，须与 __game-core.js 一致随 core 加载
   if (/^prompt-fallback\.js$|^prompt-templates\.js$|^prompt-skills\.js$|^prompt-sections\.js$/.test(p)) return 'core';
   if (/(^|\/)wechat|player-wechat-setup|real-world-agent-wechat|prompts\/wechat|wechat-album-photo/.test(p)) return 'wechat';
-  if (/^(company-|boss-|calendar-|faction-|skills-|skill-|known-profession-|taobao-|prompt-actions|token-stats|alert-log|faction-membership|role-card-json-app\/)/.test(p)) return 'apps';
+  if (/^(company-|boss-|calendar-|event-|faction-|skills-|skill-|known-profession-|taobao-|prompt-actions|token-stats|alert-log|faction-membership|role-card-json-app\/)/.test(p)) return 'apps';
   if (/^prompt\.js$|^real-world-prompt\.js$|^prompts\/materials\/|^prompts\/picture_generate\/|^inference-prompts-runtime\.js$/.test(p)) return 'prompts';
   if (/^real-world-|^org-territory|^inference\/|^story-agent-context\.js$|^assets\/data\/real-world|^game-premise\.js$|^update\/(territory|org-|membership|character-schedule|org-status)/.test(p)) return 'gameplay';
   return 'core';
@@ -44,8 +44,21 @@ function buildManifest(urls) {
   return chunks;
 }
 
+function readExistingVersion() {
+  if (!fs.existsSync(manifestPath)) return null;
+  const match = fs.readFileSync(manifestPath, 'utf8').match(/"version"\s*:\s*"([^"]+)"/);
+  return match ? match[1] : null;
+}
+
 function writeManifest(chunks, total) {
-  const body = `window.GameScriptManifest = ${JSON.stringify({ chunks, generatedAt: new Date().toISOString(), total }, null, 2)};
+  const version = readExistingVersion();
+  const payload = {
+    ...(version ? { version } : {}),
+    chunks,
+    generatedAt: new Date().toISOString(),
+    total,
+  };
+  const body = `window.GameScriptManifest = ${JSON.stringify(payload, null, 2)};
 
 window.GameScriptManifest.classify = ${classify.toString()};
 `;

@@ -29,6 +29,30 @@ const orderedGroups = [
       'ui/event/label-view-helpers.js',
     ],
   },
+  {
+    label: 'company ui helper dependencies',
+    before: 'ui/company/view-helpers.js',
+    required: [
+      'ui/company/company-pay-view-helpers.js',
+      'ui/company/company-field-view-helpers.js',
+      'ui/company/company-attendance-view-helpers.js',
+      'ui/company/company-summary-view-helpers.js',
+      'ui/company/company-contract-view-helpers.js',
+      'ui/company/company-organization-view-helpers.js',
+      'ui/company/company-field-section-view-helpers.js',
+      'ui/company/company-employment-record-view-helpers.js',
+    ],
+  },
+  {
+    label: 'real-world map ui helper dependencies',
+    before: 'ui/real-world/map-view-helpers.js',
+    required: [
+      'ui/real-world/map-shell-view-helpers.js',
+      'ui/real-world/map-info-view-helpers.js',
+      'ui/real-world/map-control-view-helpers.js',
+      'ui/real-world/map-interior-view-helpers.js',
+    ],
+  },
 ];
 
 function normalizePath(file) {

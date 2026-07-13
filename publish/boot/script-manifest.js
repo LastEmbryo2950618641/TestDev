@@ -112,6 +112,11 @@ window.GameScriptManifest = {
       "ui/company/company-pay-view-helpers.js",
       "ui/company/company-field-view-helpers.js",
       "ui/company/company-attendance-view-helpers.js",
+      "ui/company/company-summary-view-helpers.js",
+      "ui/company/company-contract-view-helpers.js",
+      "ui/company/company-organization-view-helpers.js",
+      "ui/company/company-field-section-view-helpers.js",
+      "ui/company/company-employment-record-view-helpers.js",
       "ui/company/view-helpers.js",
       "ui/taobao/view-helpers.js",
       "domain/taobao/filter-helpers.js",
@@ -119,6 +124,7 @@ window.GameScriptManifest = {
       "app/taobao/buy-flow.js",
       "ui/real-world/log-view-helpers.js",
       "ui/real-world/panel-view-helpers.js",
+      "ui/real-world/map-shell-view-helpers.js",
       "ui/real-world/map-info-view-helpers.js",
       "ui/real-world/map-control-view-helpers.js",
       "ui/real-world/map-interior-view-helpers.js",
@@ -336,8 +342,8 @@ window.GameScriptManifest = {
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-13T07:30:17.769Z",
-  "total": 324
+  "generatedAt": "2026-07-13T08:00:00.000Z",
+  "total": 330
 };
 
 window.GameScriptManifest.classify = function classify(url) {
