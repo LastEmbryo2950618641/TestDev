@@ -59,7 +59,7 @@ window.GameModules.factionArchive = {
   },
 
   recordWechat(store, contact = {}, playerText = '', replyText = '', result = {}) {
-    const state = store.rpgStates?.[contact.id] || window.GameModules.sqliteSave?.getCharacterState?.(contact.id) || {};
+    const state = store.rpgStates?.[contact.id] || window.GameModules.characterStateStore?.get?.(contact.id) || {};
     const names = this.membershipOrgNames(state);
     const text = [
       `微信对话：${store.playerName || '玩家'}说“${playerText}”`,

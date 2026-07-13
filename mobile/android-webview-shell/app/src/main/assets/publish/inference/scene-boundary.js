@@ -3,7 +3,7 @@ window.GameModules.realWorldAgentContextParts = window.GameModules.realWorldAgen
 
 window.GameModules.realWorldAgentContextParts.sceneBoundary = {
   scheduleNameForId(store, id = '', entry = {}) {
-    const state = store?.rpgStates?.[id] || window.GameModules.sqliteSave?.getCharacterState?.(id);
+    const state = store?.rpgStates?.[id] || window.GameModules.characterStateStore?.get?.(id);
     return String(entry.characterName || state?.profile?.name || state?.name || id || '').trim();
   },
 
@@ -123,7 +123,7 @@ window.GameModules.realWorldAgentContextParts.sceneBoundary = {
         if (name) blocked.add(name);
       });
     });
-    const states = [...Object.values(store?.rpgStates || {}), ...(window.GameModules.sqliteSave.listCharacterStates?.() || [])];
+    const states = [...Object.values(store?.rpgStates || {}), ...(window.GameModules.characterStateStore?.list?.() || [])];
     const seen = new Set();
     return states.map((state) => ({ id: state.id || state.profile?.name || state.name, name: state.profile?.name || state.name }))
       .filter((item) => item.name && !blocked.has(item.name) && !seen.has(item.name) && seen.add(item.name))

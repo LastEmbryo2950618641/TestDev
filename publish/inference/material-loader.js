@@ -10,7 +10,7 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
     const priorParticipantNames = ['forcedParticipants', 'priorityCandidates'].flatMap((key) => (Array.isArray(lastGuidance?.[key]) ? lastGuidance[key] : []))
       .map((item) => (typeof item === 'string' ? item : (item?.name || item?.idOrName || item?.characterName || '')).trim())
       .filter(Boolean);
-    const states = [...Object.values(store?.rpgStates || {}), ...(window.GameModules.sqliteSave.listCharacterStates?.() || [])];
+    const states = [...Object.values(store?.rpgStates || {}), ...(window.GameModules.characterStateStore?.list?.() || [])];
     const seen = new Set();
     const worldOk = (state) => window.GameModules.characterQuery?.worldMatches?.(window.GameModules.realWorld2026?.label || '2026 现代都市现实世界', state.worldTag || state.profile?.work);
     const nameHit = (name) => actionText.includes(name) || priorParticipantNames.includes(name);

@@ -8,8 +8,8 @@ window.GameModules.platform.storage.characterStateSource = {
     return window.GameModules.sqliteSave?.getCharacterState?.(id) || null;
   },
 
-  getByName(name = '') {
-    return window.GameModules.sqliteSave?.getCharacterStateByName?.(name) || null;
+  getByName(name = '', worldTag = '') {
+    return window.GameModules.sqliteSave?.getCharacterStateByName?.(name, worldTag) || null;
   },
 
   resolve(target = '') {

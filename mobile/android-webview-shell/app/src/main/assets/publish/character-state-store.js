@@ -11,8 +11,8 @@ window.GameModules.characterStateStore = {
     return this.source()?.get?.(id) || null;
   },
 
-  getByName(name = '') {
-    return this.source()?.getByName?.(name) || null;
+  getByName(name = '', worldTag = '') {
+    return this.source()?.getByName?.(name, worldTag) || null;
   },
 
   resolve(target = '') {

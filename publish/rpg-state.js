@@ -24,8 +24,9 @@ window.GameModules.rpgState = {
 
   async ensureCharacter(character, store = null) {
     const save = window.GameModules.sqliteSave;
+    const stateStore = window.GameModules.characterStateStore;
     const id = character.id || character.name;
-    const existing = save.getCharacterState(id);
+    const existing = stateStore?.get?.(id);
     if (existing) {
       console.log('[RPG状态] 使用已保存角色状态:', id, existing.worldTag);
       const schema = await this.ensureSchema(existing.worldTag || character.work || '原创世界');
@@ -35,7 +36,7 @@ window.GameModules.rpgState = {
       const inventorySynced = window.GameModules.progression.syncInventoryFromProfile?.(existing, existing.profile || character);
       const professionChanged = await window.GameModules.rpgProfessionState?.ensureInfo?.call(window.GameModules.rpgProfessionState, existing, character, schema);
       await window.GameModules.rpgLexicon.syncState(existing);
-      if (profileChanged || upgraded || updated || inventorySynced || professionChanged) await save.saveCharacterState(existing);
+      if (profileChanged || upgraded || updated || inventorySynced || professionChanged) await stateStore?.save?.(existing);
       return existing;
     }
     const worldTag = save.getCharacterWorld(id) || character.work || '原创世界';
@@ -44,7 +45,7 @@ window.GameModules.rpgState = {
     const created = this.createCharacterState(character, schema, store);
     await window.GameModules.rpgProfessionState?.ensureInfo?.call(window.GameModules.rpgProfessionState, created, character, schema);
     await window.GameModules.rpgLexicon.syncState(created);
-    await save.saveCharacterState(created);
+    await stateStore?.save?.(created);
     return created;
   },
   ensureRoleCard(state, character) {

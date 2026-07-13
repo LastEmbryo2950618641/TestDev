@@ -24,10 +24,10 @@ window.GameModules.characterIntroCard = {
   },
 
   roleCardState(card = {}) {
-    const save = window.GameModules.sqliteSave;
+    const stateStore = window.GameModules.characterStateStore;
     const worldTag = window.GameModules.characterQuery?.normalizeWorldTag?.(card.worldTag || card.work) || card.worldTag;
-    return save?.getCharacterStateByName?.(card.name, worldTag)
-      || (save?.listCharacterStates?.() || []).find((state) => {
+    return stateStore?.getByName?.(card.name, worldTag)
+      || (stateStore?.list?.() || []).find((state) => {
         const profile = state?.profile || {};
         const sameName = state?.name === card.name || profile.name === card.name;
         const sameWorld = window.GameModules.characterQuery?.worldMatches?.(worldTag, state?.worldTag || profile.work) ?? (!worldTag || state?.worldTag === worldTag || profile.work === worldTag);

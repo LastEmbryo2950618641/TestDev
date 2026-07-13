@@ -67,7 +67,7 @@
     },
 
     findCharacterForLocationKeyword(store, keyword = '') {
-      const states = (window.GameModules.sqliteSave.listCharacterStates?.() || []).concat(Object.values(store.rpgStates || {}));
+      const states = (window.GameModules.characterStateStore?.list?.() || []).concat(Object.values(store.rpgStates || {}));
       const hits = states.map((state) => {
         const profile = state?.profile || state || {};
         const text = [state?.id, state?.name, profile.name, profile.role, profile.relationships, profile.detail].filter(Boolean).join(' ');

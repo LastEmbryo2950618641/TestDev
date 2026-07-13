@@ -12,7 +12,7 @@ window.GameModules.wearingSyncActions = {
     const names = new Set([
       ...(result.appearedCharacters || []).map((x) => x?.name),
       ...(result.solidifiableCharacters || []).map((x) => x?.name),
-      ...(window.GameModules.sqliteSave.listCharacterStates?.() || []).map((x) => x?.profile?.name || x?.name),
+      ...(window.GameModules.characterStateStore?.list?.() || []).map((x) => x?.profile?.name || x?.name),
     ].filter(Boolean));
 
     for (const name of names) {

@@ -72,11 +72,11 @@ window.GameModules.characterProfile = {
   },
 
   findSavedRoleCard(base, signature) {
-    const save = window.GameModules.sqliteSave;
+    const stateStore = window.GameModules.characterStateStore;
     const candidates = [
-      save.getCharacterState(base.id),
-      save.getCharacterStateByName?.(base.name, base.work),
-      save.getCharacterStateByName?.(base.name),
+      stateStore?.get?.(base.id),
+      stateStore?.getByName?.(base.name, base.work),
+      stateStore?.getByName?.(base.name),
     ].filter(Boolean);
     const exact = candidates.find((state) => this.roleCardMatchesTarget(state.profile, base) && this.isReusableRoleCard(state.profile, signature));
     if (exact) return exact;

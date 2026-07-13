@@ -1046,7 +1046,7 @@ window.GameModules.rpgFieldUi = {
       || ''
     ).trim();
     const targetState = stateId && stateId !== 'player-self'
-      ? (this.rpgStates?.[stateId] || window.GameModules.sqliteSave?.getCharacterState?.(stateId) || null)
+      ? (this.rpgStates?.[stateId] || window.GameModules.characterStateStore?.get?.(stateId) || null)
       : null;
     const targetProfile = stateId === 'player-self'
       ? { ...(this.playerProfile || {}), isPlayer: true }
@@ -1414,7 +1414,7 @@ window.GameModules.rpgFieldUi = {
   bodyFigureCharacterName(id = '', fallback = {}) {
     const key = String(id || '').trim();
     if (!key) return '';
-    const state = this.rpgStates?.[key] || window.GameModules.sqliteSave?.getCharacterState?.(key) || (key === 'player-self' ? this.playerIdentityState?.() : null) || {};
+    const state = this.rpgStates?.[key] || window.GameModules.characterStateStore?.get?.(key) || (key === 'player-self' ? this.playerIdentityState?.() : null) || {};
     const profile = state.profile || {};
     const contact = (this.wechatUsers || []).find((item) => String(item?.id || '') === key) || {};
     return String(fallback.characterName || fallback.ownerName || fallback.personName || profile.name || state.name || contact.name || (key === 'player-self' ? (this.playerName || this.playerProfile?.name) : '') || key).trim();
