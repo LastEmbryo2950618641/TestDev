@@ -115,7 +115,7 @@ window.GameModules.rpgLexicon = {
   },
 
   get(worldTag, kind, name) {
-    return window.GameModules.sqliteSave.getLexiconEntry?.(worldTag || '原创世界', kind, this.normalizeName(name));
+    return window.GameModules.lexiconStore?.get?.(worldTag || '原创世界', kind, this.normalizeName(name));
   },
 
   async save(worldTag, kind, name, data) {

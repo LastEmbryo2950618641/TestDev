@@ -18,7 +18,7 @@ window.GameModules.itemSkillActions = {
   itemSkillKnownEntries(keyword = '') {
     const key = String(keyword || '').trim();
     const kinds = ['item', 'equipment', '鐗╁搧', '瑁呭'];
-    const rows = kinds.flatMap((kind) => window.GameModules.sqliteSave.listLexiconEntries?.(this.itemSkillWorldTag(), kind) || []);
+    const rows = kinds.flatMap((kind) => window.GameModules.lexiconStore?.list?.(this.itemSkillWorldTag(), kind) || []);
     return rows.filter((entry) => !key || this.itemSkillEntryText(entry).includes(key) || String(entry.name || '').includes(key));
   },
 

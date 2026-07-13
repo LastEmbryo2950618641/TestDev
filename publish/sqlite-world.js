@@ -86,12 +86,20 @@ Object.assign(window.GameModules.sqliteSave, {
   },
 
   async saveLexiconEntry(entry) {
-    if (!this.db || !entry) return;
+    if (!entry) return;
+    await this.saveLexiconEntries([entry]);
+  },
+
+  async saveLexiconEntries(entries = []) {
+    if (!this.db || !Array.isArray(entries) || !entries.length) return;
     const now = new Date().toISOString();
-    this.db.run(
-      'INSERT OR REPLACE INTO lexicon_entries(world_tag,kind,name,entry_json,source,created_at,updated_at) VALUES (?,?,?,?,?,COALESCE((SELECT created_at FROM lexicon_entries WHERE world_tag=? AND kind=? AND name=?),?),?)',
-      [entry.worldTag, entry.kind, entry.name, JSON.stringify(entry), entry.source || 'runtime', entry.worldTag, entry.kind, entry.name, now, now],
-    );
+    entries.forEach((entry) => {
+      if (!entry) return;
+      this.db.run(
+        'INSERT OR REPLACE INTO lexicon_entries(world_tag,kind,name,entry_json,source,created_at,updated_at) VALUES (?,?,?,?,?,COALESCE((SELECT created_at FROM lexicon_entries WHERE world_tag=? AND kind=? AND name=?),?),?)',
+        [entry.worldTag, entry.kind, entry.name, JSON.stringify(entry), entry.source || 'runtime', entry.worldTag, entry.kind, entry.name, now, now],
+      );
+    });
     await this.persist();
   },
 });

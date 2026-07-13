@@ -38,22 +38,17 @@ Object.assign(window.GameModules.rpgLexicon, {
   },
 
   async applyLexiconSkill(payload = {}) {
-    const save = window.GameModules.sqliteSave;
+    const lexiconStore = window.GameModules.lexiconStore;
     const entries = Array.isArray(payload) ? payload : (payload.entries || payload.updates || []);
-    if (!save.db || !Array.isArray(entries) || !entries.length) return [];
+    if (!lexiconStore?.isAvailable?.() || !Array.isArray(entries) || !entries.length) return [];
     const changed = [];
-    const now = new Date().toISOString();
     for (const raw of entries) {
       const entry = this.buildSkillEntry({ source: 'skill', ...raw });
       if (!entry || this.isSameLexiconEntry(this.get(entry.worldTag, entry.kind, entry.name), entry)) continue;
       if (window.GameModules.playerAspirationPreferenceLayers?.isImmutableFieldName?.(entry.name)) continue;
-      save.db.run(
-        'INSERT OR REPLACE INTO lexicon_entries(world_tag,kind,name,entry_json,source,created_at,updated_at) VALUES (?,?,?,?,?,COALESCE((SELECT created_at FROM lexicon_entries WHERE world_tag=? AND kind=? AND name=?),?),?)',
-        [entry.worldTag, entry.kind, entry.name, JSON.stringify(entry), entry.source, entry.worldTag, entry.kind, entry.name, now, now],
-      );
       changed.push(entry);
     }
-    if (changed.length) await save.persist();
+    if (changed.length) await lexiconStore.saveMany(changed);
     return changed;
   },
 

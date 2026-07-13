@@ -204,8 +204,8 @@ window.GameModules = window.GameModules || {};
 
     specialTermEntries(store, params = {}) {
       const worldTag = this.resolveWorldTag(store, params);
-      const rows = window.GameModules.sqliteSave.listLexiconEntries?.(worldTag, '专用术语') || [];
-      return rows.concat(window.GameModules.sqliteSave.listLexiconEntries?.('', '专用术语') || []).filter((entry, index, arr) => arr.findIndex((item) => `${item.worldTag}:${item.kind}:${item.name}` === `${entry.worldTag}:${entry.kind}:${entry.name}`) === index);
+      const rows = window.GameModules.lexiconStore?.list?.(worldTag, '专用术语') || [];
+      return rows.concat(window.GameModules.lexiconStore?.list?.('', '专用术语') || []).filter((entry, index, arr) => arr.findIndex((item) => `${item.worldTag}:${item.kind}:${item.name}` === `${entry.worldTag}:${entry.kind}:${entry.name}`) === index);
     },
 
     findSpecialTerm(entries = [], keyword = '') {

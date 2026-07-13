@@ -49,6 +49,7 @@ window.GameScriptManifest = {
       "platform/storage/backend.js",
       "platform/storage/capabilities.js",
       "platform/storage/metadata-source.js",
+      "platform/storage/lexicon-source.js",
       "platform/storage/character-state-source.js",
       "platform/storage/character-memory-source.js",
       "platform/storage/character-memory-maintenance-source.js",
@@ -56,6 +57,7 @@ window.GameScriptManifest = {
       "platform/storage/worldline-source.js",
       "platform/storage/real-world-log-source.js",
       "metadata-store.js",
+      "lexicon-store.js",
       "character-state-store.js",
       "character-memory-store.js",
       "character-memory-maintenance-store.js",
@@ -418,7 +420,7 @@ window.GameScriptManifest = {
     ]
   },
   "generatedAt": "2026-07-13T17:39:40.727Z",
-  "total": 405
+  "total": 407
 };
 
 window.GameScriptManifest.classify = function classify(url) {
