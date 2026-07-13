@@ -17,6 +17,7 @@ const scripts = [
   'predefined-role-cards.js',
   'real-world-clock-actions.js',
   'real-world-stream-actions.js',
+  'real-world-settlement-actions.js',
   'real-world-thinking-actions.js',
   'ui-theme-actions.js',
   'wechat-actions.js',
