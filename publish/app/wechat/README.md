@@ -66,6 +66,11 @@ The goal of this directory is to hold small, reusable, non-entry helper surfaces
 - WeChat image dynamic tag cleanup
 - prompt rendering and AI completion for WeChat image edit tags
 
+### `image-receive-orchestration.js`
+- final WeChat image receive confirmation flow
+- draw-edit request orchestration after an offered image is accepted
+- album insertion, image record replacement, message update, save, and pending/error recovery ordering
+
 ### `mention-view-helpers.js`
 - mention-context text assembly and contact-mention parsing
 - mention-related readonly source formatting for prompt/context usage
@@ -114,5 +119,5 @@ The preferred migration pattern for new work here is:
 
 ## Immediate practical rule
 
-If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, history-context, image-record, image-ui, image-album, image-prompt, mention-view, mention-base-photo, or mention-reference style boundaries, document the rationale before adding another module here.
+If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, history-context, image-record, image-ui, image-album, image-prompt, image-receive-orchestration, mention-view, mention-base-photo, or mention-reference style boundaries, document the rationale before adding another module here.
 

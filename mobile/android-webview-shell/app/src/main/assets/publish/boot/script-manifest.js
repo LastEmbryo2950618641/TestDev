@@ -300,6 +300,7 @@ window.GameScriptManifest = {
       "app/wechat/image-ui-helpers.js",
       "app/wechat/image-album-helpers.js",
       "app/wechat/image-prompt-helpers.js",
+      "app/wechat/image-receive-orchestration.js",
       "wechat-image-actions.js",
       "wechat-mention-actions.js",
       "domain/worldline/wechat-event-service.js",
