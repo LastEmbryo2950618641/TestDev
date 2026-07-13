@@ -39,3 +39,10 @@ save, avatar-capture, and error-handling orchestration.
 This slice deliberately preserves the previous request-ID expression and the
 existing draw-provider call order. The direct helper regression test lives in
 `tests/wechat-album-generate-helpers.test.js`.
+
+Generated body-figure persistence is now isolated in
+`app/wechat/album-body-figure-asset-orchestration.js`. The facade keeps
+`saveGeneratedBodyFigureAsset()` as a compatibility method, while the new
+module owns only platform asset saving, entry registration, current-figure
+binding, and the existing failure recovery. Album insertion, avatar capture,
+and game save remain outside this boundary.

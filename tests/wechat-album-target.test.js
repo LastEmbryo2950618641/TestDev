@@ -37,6 +37,7 @@ function createStore() {
   loadScript(context, 'publish/app/wechat/album-prompt-editor-helpers.js');
   loadScript(context, 'publish/app/wechat/album-ui-state-helpers.js');
   loadScript(context, 'publish/app/wechat/album-body-figure-helpers.js');
+  loadScript(context, 'publish/app/wechat/album-body-figure-asset-orchestration.js');
   loadScript(context, 'publish/app/wechat/album-prompt-helpers.js');
   loadScript(context, 'publish/app/wechat/album-photo-state-helpers.js');
   loadScript(context, 'publish/app/wechat/avatar-crop-helpers.js');
