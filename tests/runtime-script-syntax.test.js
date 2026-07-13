@@ -8,7 +8,10 @@ const publishRoot = path.join(root, 'publish');
 const manifestEntries = JSON.parse(
   fs.readFileSync(path.join(publishRoot, 'boot', 'scripts.json'), 'utf8'),
 );
-const scripts = ['real-world-clock-actions.js'];
+const scripts = [
+  'real-world-clock-actions.js',
+  'ui-theme-actions.js',
+];
 
 const failures = [];
 for (const absolutePath of scripts) {

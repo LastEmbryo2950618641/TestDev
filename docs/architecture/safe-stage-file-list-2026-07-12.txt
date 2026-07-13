@@ -511,7 +511,7 @@ publish/ui/wechat/README.md
 publish/ui/wechat/view-helpers.js
 publish/ui/worldline/view-helpers.js
 publish/ui-theme-actions.js
-publish/ui-theme-actions-platform-consumer-verify.js
+tests/ui-theme-platform-consumer.test.mjs
 publish/update/generic-update-applier.js
 publish/wearing-sync-actions.js
 publish/wechat-actions.js

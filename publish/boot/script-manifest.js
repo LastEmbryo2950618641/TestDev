@@ -41,6 +41,7 @@ window.GameScriptManifest = {
       "sqlite-real-world-log.js",
       "json-utils.js",
       "local-settings.js",
+      "ui-theme-actions.js",
       "platform-key-source.js",
       "platform/storage/sqlite-slot-source.js",
       "platform/storage/local-settings-source.js",
@@ -393,8 +394,8 @@ window.GameScriptManifest = {
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-13T15:47:31.803Z",
-  "total": 381
+  "generatedAt": "2026-07-13T16:02:00.000Z",
+  "total": 382
 };
 
 window.GameScriptManifest.classify = function classify(url) {

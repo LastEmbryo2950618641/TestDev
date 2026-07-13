@@ -2,11 +2,11 @@
 
 window.GameModules.uiThemeActions = {
   presets: {
-    dark: { id: 'dark', name: '娣辫壊', emoji: '馃寵', accent: '#7fe5ff' },
-    light: { id: 'light', name: '鐧借壊', emoji: '鈽€锔?, accent: '#4f46e5' },
-    pink: { id: 'pink', name: '妯辫姳绮?, emoji: '馃尭', accent: '#ffb5d1' },
-    mint: { id: 'mint', name: '钖勮嵎', emoji: '馃崈', accent: '#5eead4' },
-    custom: { id: 'custom', name: '鑷畾涔?, emoji: '馃帹', accent: '#7fe5ff' },
+    dark: { id: 'dark', name: '深色', emoji: '🌙', accent: '#7fe5ff' },
+    light: { id: 'light', name: '白色', emoji: '☀️', accent: '#4f46e5' },
+    pink: { id: 'pink', name: '樱花粉', emoji: '🌸', accent: '#ffb5d1' },
+    mint: { id: 'mint', name: '薄荷', emoji: '🍃', accent: '#5eead4' },
+    custom: { id: 'custom', name: '自定义', emoji: '🎨', accent: '#7fe5ff' },
   },
 
   themeOptions() {
@@ -99,8 +99,8 @@ window.GameModules.uiThemeActions = {
 
   currentUiThemeLabel() {
     const id = this.settingsState?.uiThemeId || this.readStored().uiThemeId || 'dark';
-    if (id === 'custom') return `鑷畾涔?${this.settingsState?.uiThemeCustomColor || this.readStored().uiThemeCustomColor || ''}`;
-    return `${this.presets[id]?.emoji || ''} ${this.presets[id]?.name || '娣辫壊'}`.trim();
+    if (id === 'custom') return `自定义 ${this.settingsState?.uiThemeCustomColor || this.readStored().uiThemeCustomColor || ''}`;
+    return `${this.presets[id]?.emoji || ''} ${this.presets[id]?.name || '深色'}`.trim();
   },
 };
 

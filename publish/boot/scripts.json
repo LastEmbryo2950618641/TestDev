@@ -38,6 +38,7 @@
   "sqlite-real-world-log.js",
   "json-utils.js",
   "local-settings.js",
+  "ui-theme-actions.js",
   "platform-key-source.js",
   "platform/storage/sqlite-slot-source.js",
   "platform/storage/local-settings-source.js",
