@@ -24,7 +24,7 @@ window.GameModules.realWorldProfileStage5 = {
     const key = String(subject || '').trim();
     if (!key) return null;
     return store?.itemSkillState?.(key)
-      || window.GameModules.sqliteSave?.getCharacterStateByName?.(key)
+      || window.GameModules.characterStateStore?.getByName?.(key)
       || null;
   },
 
@@ -412,7 +412,7 @@ window.GameModules.realWorldProfileStage5 = {
         if (patch.dressedProfileMeta) state.profile.dressedProfileMeta = patch.dressedProfileMeta;
       }
       if (store?.rpgStates && state.id) store.rpgStates[state.id] = state;
-      await window.GameModules.sqliteSave?.saveCharacterState?.(state);
+      await window.GameModules.characterStateStore?.save?.(state);
       const subjectName = patch.subject || state.profile?.name || state.name || '角色';
       const card = settlement?.resolveCharacterSettlementCard?.(store, state.id || patch.subjectId || patch.subject, subjectName)
         || { id: `role:${state.id}`, title: subjectName, section: '角色卡' };

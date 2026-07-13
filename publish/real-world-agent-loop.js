@@ -290,7 +290,7 @@ window.GameModules.realWorldAgentLoop = {
       store.updateNovelEntry?.(logId, { thinking: text });
       return;
     }
-    const entry = (store.realWorldLog || []).find((item) => item.id === logId) || window.GameModules.sqliteSave.getRealWorldLogEntry?.(logId) || {};
+    const entry = (store.realWorldLog || []).find((item) => item.id === logId) || window.GameModules.realWorldLogStore?.get?.(logId) || {};
     const meta = this.reasoningSectionMeta(config);
     const key = String(config.reasoningKey || meta.id);
     const sections = this.mergeThinkingSection(entry, {
@@ -1168,7 +1168,7 @@ window.GameModules.realWorldAgentLoop = {
     for (const key of candidates) {
       const byId = store.itemSkillState?.(key) || store.rpgStates?.[key];
       if (byId) return byId;
-      const byName = store.sqliteSave?.getCharacterStateByName?.(key) || store.getCharacterStateByName?.(key) || window.GameModules.sqliteSave?.getCharacterStateByName?.(key);
+      const byName = window.GameModules.characterStateStore?.getByName?.(key);
       if (byName) return byName;
     }
     const states = Object.values(store.rpgStates || {});
@@ -3135,7 +3135,7 @@ window.GameModules.realWorldAgentLoop = {
       store.updateNovelEntry?.(logId, patch);
       return;
     }
-    const entry = (store.realWorldLog || []).find((item) => item.id === logId) || window.GameModules.sqliteSave.getRealWorldLogEntry?.(logId) || {};
+    const entry = (store.realWorldLog || []).find((item) => item.id === logId) || window.GameModules.realWorldLogStore?.get?.(logId) || {};
     const patch = { streaming: true, statusText: text };
     if (!options.keepNarration && this.shouldUseStatusAsRealNarration(entry)) patch.narration = text;
     store.patchRealWorldLogEntry?.(logId, patch);

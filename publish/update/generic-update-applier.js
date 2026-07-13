@@ -12,7 +12,7 @@ Object.assign(window.GameModules.updateRegistry, {
     if (store?.itemSkillState?.(id) || id === 'player-self') return id;
     const candidates = [subject.name, subject.characterName, this.stripInventedRolePrefix(id)].map((x) => String(x || '').trim()).filter(Boolean);
     for (const candidate of [...new Set(candidates)]) {
-      const state = store?.itemSkillState?.(candidate) || window.GameModules.sqliteSave?.getCharacterStateByName?.(candidate);
+      const state = store?.itemSkillState?.(candidate) || window.GameModules.characterStateStore?.getByName?.(candidate);
       if (state?.id) return state.id;
       const bySuffix = this.findStateByNameSuffix(store, candidate);
       if (bySuffix?.id) return bySuffix.id;

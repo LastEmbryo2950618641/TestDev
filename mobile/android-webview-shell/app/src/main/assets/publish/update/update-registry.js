@@ -210,7 +210,7 @@ window.GameModules.updateRegistry = {
     ].map((item) => String(item || '').trim()).filter(Boolean);
     let state = null;
     for (const key of candidates) {
-      state = store?.itemSkillState?.(key) || window.GameModules.sqliteSave?.getCharacterStateByName?.(key) || null;
+      state = store?.itemSkillState?.(key) || window.GameModules.characterStateStore?.getByName?.(key) || null;
       if (state?.id) break;
     }
     if (!state?.id) return card;
