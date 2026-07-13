@@ -947,7 +947,7 @@ window.GameModules.playerAspirationActions = {
     const state = this.playerIdentityState?.();
     if (state?.profile) {
       tool.applyToProfile(state.profile, layers, { locked: true });
-      await window.GameModules.sqliteSave?.saveCharacterState?.(state);
+      await window.GameModules.characterStateStore?.save?.(state);
       this.rpgStates = { ...(this.rpgStates || {}), [state.id]: state };
     }
   },

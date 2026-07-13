@@ -278,7 +278,7 @@ window.GameModules.characterFeedback = {
     exp.summary = feedback.experienceSummary || exp.summary || '';
     exp.lastUpdated = new Date().toISOString();
     store.rpgStates = { ...store.rpgStates, [state.id]: state };
-    await window.GameModules.sqliteSave?.saveCharacterState?.(state);
+    await window.GameModules.characterStateStore?.save?.(state);
   },
 
   normalizeChoices(value, fallback) {

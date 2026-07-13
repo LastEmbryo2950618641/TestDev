@@ -159,7 +159,7 @@ window.GameModules.predefinedRoleCards = {
     const states = Object.values(store?.rpgStates || {});
     const tasks = states.map(async (state) => {
       if (!state?.profile || !prc.upgradeSavedProfileAppearance(state.profile)) return false;
-      await window.GameModules.sqliteSave?.saveCharacterState?.(state);
+      await window.GameModules.characterStateStore?.save?.(state);
       return true;
     });
     const results = await Promise.all(tasks);

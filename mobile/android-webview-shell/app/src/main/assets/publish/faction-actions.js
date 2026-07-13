@@ -196,7 +196,7 @@ window.GameModules.factionActions = {
           reason,
         }, this);
         this.rpgStates = { ...(this.rpgStates || {}), [charState.id]: charState };
-        window.GameModules.sqliteSave?.saveCharacterState?.(charState);
+        window.GameModules.characterStateStore?.save?.(charState);
       }
     }
   },
