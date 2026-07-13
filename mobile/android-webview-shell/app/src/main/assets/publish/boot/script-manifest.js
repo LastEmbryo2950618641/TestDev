@@ -351,6 +351,7 @@ window.GameScriptManifest = {
       "company-system.js",
       "company-actions.js",
       "company-attendance-actions.js",
+      "company-faction-actions.js",
       "boss-recruitment.js",
       "boss-actions.js",
       "boss-appointment-actions.js",
