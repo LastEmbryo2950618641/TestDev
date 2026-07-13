@@ -24,6 +24,11 @@ The goal of this directory is to hold small, reusable, non-entry helper surfaces
 - dialogue label and formatting helpers
 - readonly time-display helpers used by chat and worldline recording
 
+### `chat-reply-helpers.js`
+- contact profile text assembly used by reply, image, and past-event prompts
+- reply JSON validation and normalization helpers
+- fallback reply text helper for unavailable AI paths
+
 ### `mention-view-helpers.js`
 - mention-context text assembly and contact-mention parsing
 - mention-related readonly source formatting for prompt/context usage
@@ -67,5 +72,5 @@ The preferred migration pattern for new work here is:
 
 ## Immediate practical rule
 
-If a new WeChat helper does not clearly belong to chat-session, chat-message, mention-view, or mention-base-photo style boundaries, document the rationale before adding another module here.
+If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, mention-view, or mention-base-photo style boundaries, document the rationale before adding another module here.
 
