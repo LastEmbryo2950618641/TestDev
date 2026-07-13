@@ -296,6 +296,7 @@ window.GameScriptManifest = {
       "wechat-chat-actions.js",
       "wechat-past-event-actions.js",
       "wechat-incoming-actions.js",
+      "app/wechat/image-record-helpers.js",
       "wechat-image-actions.js",
       "wechat-mention-actions.js",
       "domain/worldline/wechat-event-service.js",

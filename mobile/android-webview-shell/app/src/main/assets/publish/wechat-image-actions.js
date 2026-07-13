@@ -1,4 +1,8 @@
 window.GameModules = window.GameModules || {};
+function callWechatImageRecordHelper(name, context, ...args) {
+  return window.GameModules.app.wechat.imageRecordHelpers[name].call(context, ...args);
+}
+
 window.GameModules.wechatImageActions = {
   async appendWechatPendingImageMessage(characterId, state = {}, contact = {}, imageIntent = {}) {
     const contactName = state?.profile?.name || contact.name || '联系人';
@@ -9,16 +13,6 @@ window.GameModules.wechatImageActions = {
     const imageRecord = this.wechatImageRecordText(contactName, label, imageId, imageDescription);
     this.appendWechatMessage(characterId, { side: 'other', name: contactName, mark: contactName.slice(0, 1), text: '', characterId, imagePending: true, imageStatus: 'pending', imageIntent: { ...imageIntent, imageDescription }, imageId, imageDescription, imageRecord, imageRecordTime: label, imageUnreadBy: ['玩家'], imageReadBy: [] });
     await this.recordWechatImageOffer?.({ ...contact, id: characterId, characterId, name: contactName }, time, imageRecord, imageId, imageIntent);
-  },
-
-  wechatImageRecordText(contactName, label, imageId, imageDescription, read = false) {
-    const unread = read ? '' : '玩家';
-    const readBy = read ? '玩家' : '';
-    return `${contactName || '联系人'}（${label || '时间未知'}）已发送图片[${imageId}]（状态：未读人（${unread}），已读人（${readBy}），图片内容：${imageDescription || '一张联系人发送的近照。'}）`;
-  },
-
-  wechatImageReadRecord(msg = {}) {
-    return this.wechatImageRecordText(msg.name || '联系人', msg.imageRecordTime || msg.atDisplay || msg.at || '时间未知', msg.imageId || '图片ID', msg.imageDescription || msg.imageIntent?.imageDescription || '一张联系人发送的近照。', true);
   },
 
   async recordWechatImageOffer(contact = {}, time = {}, imageRecord = '', imageId = '', imageIntent = {}) {
@@ -41,32 +35,24 @@ window.GameModules.wechatImageActions = {
     await this.appendWorldlineEvent?.(this.realWorldlineState, event, '现实情节');
   },
 
+  wechatImageRecordText(contactName, label, imageId, imageDescription, read = false) {
+    return callWechatImageRecordHelper('wechatImageRecordText', this, contactName, label, imageId, imageDescription, read);
+  },
+
+  wechatImageReadRecord(msg = {}) {
+    return callWechatImageRecordHelper('wechatImageReadRecord', this, msg);
+  },
+
   async replaceWechatImageRecord(msg = {}, readRecord = '') {
-    const oldRecord = String(msg.imageRecord || '');
-    if (!oldRecord || !readRecord) return;
-    const cm = window.GameModules.characterMemory;
-    const ids = [msg.characterId || this.wechatSelectedContact, 'player-self'].filter(Boolean);
-    for (const id of ids) {
-      const memory = cm.ensure(id);
-      if (this.replaceWechatImageRecordInMemory(memory, oldRecord, readRecord)) await cm.compact(id, memory);
-    }
-    this.replaceWechatImageRecordInWorldline(oldRecord, readRecord);
+    return callWechatImageRecordHelper('replaceWechatImageRecord', this, msg, readRecord);
   },
 
   replaceWechatImageRecordInMemory(memory = {}, oldRecord = '', readRecord = '') {
-    let changed = false;
-    const sections = [memory.shortTerm?.recent, memory.shortTerm?.summaryBuffer, memory.shortTerm?.summarized, memory.shortTerm?.forgotten, memory.longTerm?.vivid, memory.longTerm?.permanent];
-    sections.forEach((items) => (items || []).forEach((item) => {
-      if (typeof item === 'string') return;
-      if (String(item.text || '').includes(oldRecord)) { item.text = String(item.text || '').replace(oldRecord, readRecord); changed = true; }
-      if (String(item.summary || '').includes(oldRecord)) { item.summary = String(item.summary || '').replace(oldRecord, readRecord); changed = true; }
-    }));
-    return changed;
+    return callWechatImageRecordHelper('replaceWechatImageRecordInMemory', this, memory, oldRecord, readRecord);
   },
 
   replaceWechatImageRecordInWorldline(oldRecord = '', readRecord = '') {
-    const state = this.realWorldlineState || { events: [], plots: [], pendingPlot: null };
-    this.realWorldlineState = { ...state, events: (state.events || []).map((event) => String(event.detail || '').includes(oldRecord) ? { ...event, detail: String(event.detail || '').replace(oldRecord, readRecord) } : event) };
+    return callWechatImageRecordHelper('replaceWechatImageRecordInWorldline', this, oldRecord, readRecord);
   },
 
   openWechatImageConfirm(msg = {}) {

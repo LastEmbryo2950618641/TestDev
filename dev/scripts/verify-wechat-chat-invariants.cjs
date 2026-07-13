@@ -13,6 +13,8 @@ const memoryContextActionPath = 'publish/wechat-memory-context-actions.js';
 const historyContextHelperPath = 'publish/app/wechat/history-context-helpers.js';
 const mentionActionPath = 'publish/wechat-mention-actions.js';
 const mentionReferenceHelperPath = 'publish/app/wechat/mention-reference-helpers.js';
+const imageActionPath = 'publish/wechat-image-actions.js';
+const imageRecordHelperPath = 'publish/app/wechat/image-record-helpers.js';
 const webManifestPath = 'publish/boot/script-manifest.js';
 const webScriptsPath = 'publish/boot/scripts.json';
 const androidManifestPath = 'mobile/android-webview-shell/app/src/main/assets/publish/boot/script-manifest.js';
@@ -27,6 +29,8 @@ const memoryContextAction = read(memoryContextActionPath);
 const historyContextHelper = read(historyContextHelperPath);
 const mentionAction = read(mentionActionPath);
 const mentionReferenceHelper = read(mentionReferenceHelperPath);
+const imageAction = read(imageActionPath);
+const imageRecordHelper = read(imageRecordHelperPath);
 
 const violations = [];
 
@@ -160,6 +164,22 @@ assertIncludes(methodBlock(mentionAction, mentionActionPath, 'wechatMessageMenti
 assertIncludes(methodBlock(mentionAction, mentionActionPath, 'wechatMentionedImages', 'wechatImageMentionSources'), "return callWechatMentionReferenceHelper('wechatMentionedImages', this, text, currentId);", `${mentionActionPath} wechatMentionedImages facade`);
 assertIncludes(methodBlock(mentionAction, mentionActionPath, 'attachWechatMentionedImageIntent', 'wechatImageBasePhoto'), "return callWechatMentionReferenceHelper('attachWechatMentionedImageIntent', this, result, playerText, currentId);", `${mentionActionPath} attachWechatMentionedImageIntent facade`);
 
+assertIncludes(imageAction, 'callWechatImageRecordHelper', `${imageActionPath} image record facade`);
+for (const marker of [
+  'wechatImageRecordText(contactName, label, imageId, imageDescription, read = false)',
+  'wechatImageReadRecord(msg = {})',
+  'async replaceWechatImageRecord(msg = {}, readRecord = \'\')',
+  'replaceWechatImageRecordInMemory(memory = {}, oldRecord = \'\', readRecord = \'\')',
+  'replaceWechatImageRecordInWorldline(oldRecord = \'\', readRecord = \'\')',
+]) {
+  assertIncludes(imageRecordHelper, `\n  ${marker}`, `${imageRecordHelperPath} should own image record implementation`);
+}
+assertIncludes(methodBlock(imageAction, imageActionPath, 'wechatImageRecordText', 'wechatImageReadRecord'), "return callWechatImageRecordHelper('wechatImageRecordText', this, contactName, label, imageId, imageDescription, read);", `${imageActionPath} wechatImageRecordText facade`);
+assertIncludes(methodBlock(imageAction, imageActionPath, 'wechatImageReadRecord', 'replaceWechatImageRecord'), "return callWechatImageRecordHelper('wechatImageReadRecord', this, msg);", `${imageActionPath} wechatImageReadRecord facade`);
+assertIncludes(methodBlock(imageAction, imageActionPath, 'replaceWechatImageRecord', 'replaceWechatImageRecordInMemory'), "return callWechatImageRecordHelper('replaceWechatImageRecord', this, msg, readRecord);", `${imageActionPath} replaceWechatImageRecord facade`);
+assertIncludes(methodBlock(imageAction, imageActionPath, 'replaceWechatImageRecordInMemory', 'replaceWechatImageRecordInWorldline'), "return callWechatImageRecordHelper('replaceWechatImageRecordInMemory', this, memory, oldRecord, readRecord);", `${imageActionPath} replaceWechatImageRecordInMemory facade`);
+assertIncludes(methodBlock(imageAction, imageActionPath, 'replaceWechatImageRecordInWorldline', 'openWechatImageConfirm'), "return callWechatImageRecordHelper('replaceWechatImageRecordInWorldline', this, oldRecord, readRecord);", `${imageActionPath} replaceWechatImageRecordInWorldline facade`);
+
 assertOrder(sendBlock, [
   "const text = String(this.wechatInput || '').trim();",
   'const target = this.wechatSelected();',
@@ -261,18 +281,22 @@ function assertListOrder(list, relativePath) {
   const memoryContextActionIndex = list.indexOf('wechat-memory-context-actions.js');
   const mentionBasePhotoIndex = list.indexOf('app/wechat/mention-base-photo-helper.js');
   const mentionReferenceIndex = list.indexOf('app/wechat/mention-reference-helpers.js');
+  const imageRecordIndex = list.indexOf('app/wechat/image-record-helpers.js');
   const actionIndex = list.indexOf('wechat-chat-actions.js');
   const pastEventIndex = list.indexOf('wechat-past-event-actions.js');
   const mentionActionIndex = list.indexOf('wechat-mention-actions.js');
+  const imageActionIndex = list.indexOf('wechat-image-actions.js');
   if (helperIndex < 0) fail(`${relativePath}: missing app/wechat/chat-reply-helpers.js`);
   if (orchestrationIndex < 0) fail(`${relativePath}: missing app/wechat/chat-orchestration.js`);
   if (promptIndex < 0) fail(`${relativePath}: missing app/wechat/chat-prompt-helpers.js`);
   if (historyContextIndex < 0) fail(`${relativePath}: missing app/wechat/history-context-helpers.js`);
   if (memoryContextActionIndex < 0) fail(`${relativePath}: missing wechat-memory-context-actions.js`);
   if (mentionReferenceIndex < 0) fail(`${relativePath}: missing app/wechat/mention-reference-helpers.js`);
+  if (imageRecordIndex < 0) fail(`${relativePath}: missing app/wechat/image-record-helpers.js`);
   if (actionIndex < 0) fail(`${relativePath}: missing wechat-chat-actions.js`);
   if (pastEventIndex < 0) fail(`${relativePath}: missing wechat-past-event-actions.js`);
   if (mentionActionIndex < 0) fail(`${relativePath}: missing wechat-mention-actions.js`);
+  if (imageActionIndex < 0) fail(`${relativePath}: missing wechat-image-actions.js`);
   if (helperIndex >= 0 && orchestrationIndex >= 0 && helperIndex > orchestrationIndex) {
     fail(`${relativePath}: chat-reply-helpers.js must load before chat-orchestration.js`);
   }
@@ -294,6 +318,9 @@ function assertListOrder(list, relativePath) {
   if (mentionReferenceIndex >= 0 && mentionActionIndex >= 0 && mentionReferenceIndex > mentionActionIndex) {
     fail(`${relativePath}: mention-reference-helpers.js must load before wechat-mention-actions.js`);
   }
+  if (imageRecordIndex >= 0 && imageActionIndex >= 0 && imageRecordIndex > imageActionIndex) {
+    fail(`${relativePath}: image-record-helpers.js must load before wechat-image-actions.js`);
+  }
 }
 
 function assertManifestOrder(relativePath) {
@@ -310,6 +337,8 @@ function assertManifestOrder(relativePath) {
     '"app/wechat/mention-reference-helpers.js"',
     '"wechat-chat-actions.js"',
     '"wechat-past-event-actions.js"',
+    '"app/wechat/image-record-helpers.js"',
+    '"wechat-image-actions.js"',
     '"wechat-mention-actions.js"',
   ], `${relativePath} wechat manifest order`);
 }
@@ -336,6 +365,8 @@ console.log(JSON.stringify({
       historyContextHelperPath,
       mentionActionPath,
       mentionReferenceHelperPath,
+      imageActionPath,
+      imageRecordHelperPath,
       manifests: [webManifestPath, webScriptsPath, androidManifestPath, androidScriptsPath],
     invariants: [
       'reply-helper-facade',
@@ -343,6 +374,7 @@ console.log(JSON.stringify({
       'chat-prompt-facade',
       'history-context-facade',
       'mention-reference-facade',
+      'image-record-facade',
       'send-message-order',
       'reply-success-order',
       'reply-failure-finally-order',
