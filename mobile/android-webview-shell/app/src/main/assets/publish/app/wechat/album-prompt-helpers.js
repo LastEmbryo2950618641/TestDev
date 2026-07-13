@@ -5,7 +5,7 @@ window.GameModules.app.wechat = window.GameModules.app.wechat || {};
 window.GameModules.app.wechat.albumPromptHelpers = {
   wechatAlbumStateData(contact = this.wechatAlbumContact()) {
     const key = String(contact?.id || 'player-self').trim() || 'player-self';
-    let state = this.rpgStates?.[key] || window.GameModules.sqliteSave?.getCharacterState?.(key) || {};
+    let state = this.rpgStates?.[key] || window.GameModules.characterStateStore?.get?.(key) || {};
     if (key === 'player-self') {
       const fallbackProfile = this.playerDisplayCharacter?.() || this.playerCharacterBase?.() || {};
       const savedProfile = state.profile || {};

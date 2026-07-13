@@ -5,7 +5,7 @@ window.GameModules.app.wechat = window.GameModules.app.wechat || {};
 window.GameModules.app.wechat.albumOrchestration = {
   wechatContactFromState(id = '') {
     const key = String(id || 'player-self').trim() || 'player-self';
-    const state = this.rpgStates?.[key] || window.GameModules.sqliteSave?.getCharacterState?.(key) || (key === 'player-self' ? this.playerIdentityState?.() : null) || {};
+    const state = this.rpgStates?.[key] || window.GameModules.characterStateStore?.get?.(key) || (key === 'player-self' ? this.playerIdentityState?.() : null) || {};
     const profile = state.profile || {};
     const name = profile.name || state.name || (key === 'player-self' ? (this.playerName || this.playerProfile?.name || '玩家') : key);
     return { id: key, name, mark: String(name || key).slice(0, 1), relation: profile.role || state.role || '形象图目标', subtitle: profile.work || state.worldTag || '' };

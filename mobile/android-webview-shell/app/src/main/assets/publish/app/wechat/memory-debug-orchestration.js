@@ -6,7 +6,7 @@ window.GameModules.app.wechat.memoryDebugOrchestration = {
   debugWechatMemory(contact = this.wechatSelected?.()) {
     if (!contact || contact.group) return null;
     const characterId = this.wechatMessageKey(contact);
-    const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
+    const state = this.rpgStates?.[characterId] || window.GameModules.characterStateStore?.get?.(characterId);
     const messages = this.wechatMessagesByContact?.[characterId] || [];
     const memory = this.sqliteWechatMemory(characterId);
     const latestMemory = [...(memory?.shortTerm?.recent || []), ...(memory?.shortTerm?.summarized || [])].slice(-3).map((item) => item.summary || item.text);

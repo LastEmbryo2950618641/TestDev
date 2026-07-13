@@ -6,7 +6,7 @@ window.GameModules.app.wechat.chatReplyHelpers = {
   wechatContactProfileText(contact, playerText = '') {
     const display = this.displayWechatContact?.(contact) || contact;
     const characterId = this.wechatMessageKey(contact);
-    const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
+    const state = this.rpgStates?.[characterId] || window.GameModules.characterStateStore?.get?.(characterId);
     const profile = state?.profile || {};
     const rows = [
       ['姓名', profile.name || display.name], ['微信关系', display.relation || display.subtitle], ['角色定位', profile.role || display.context],
@@ -20,7 +20,7 @@ window.GameModules.app.wechat.chatReplyHelpers = {
     const reply = String(raw?.reply || '').trim().slice(0, 120) || this.fallbackWechatReply(contact, '');
     const impression = Math.max(0, Math.min(100, Math.round(Number(raw?.impression) || 20)));
     const characterId = this.wechatMessageKey(contact);
-    const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
+    const state = this.rpgStates?.[characterId] || window.GameModules.characterStateStore?.get?.(characterId);
     const imageRaw = raw?.imageIntent || {};
     const imageIntent = imageRaw.offer ? { offer: true, reason: String(imageRaw.reason || '联系人愿意发送一张图片').slice(0, 120), imageDescription: String(imageRaw.imageDescription || imageRaw.contentDescription || '一张联系人发送的近照。').slice(0, 180), tagsHint: String(imageRaw.tagsHint || '').slice(0, 300), usesMentionedImage: !!imageRaw.usesMentionedImage } : null;
     return { reply, mood: String(raw?.mood || '平常').slice(0, 20), elapsedSeconds: Math.max(20, Math.min(1800, Number(raw?.elapsedSeconds) || 60)), impression, metricUpdates: window.GameModules.ai.normalizeMetricUpdates?.(raw?.metricUpdates, state) || {}, lexiconUpdates: window.GameModules.ai.normalizeLexiconUpdates?.(raw?.lexiconUpdates, { character: { work: '2026 现代都市现实世界' } }) || [], imageIntent };

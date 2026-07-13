@@ -25,7 +25,7 @@ window.GameModules.app.wechat.chatOrchestration = {
       const result = await this.generateWechatReply(contact, playerText);
       if (reqId !== this.wechatReplyRequestId) return;
       const characterId = contact.id;
-      const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId) || await this.ensureWechatUserProfile?.(contact);
+      const state = this.rpgStates?.[characterId] || window.GameModules.characterStateStore?.get?.(characterId) || await this.ensureWechatUserProfile?.(contact);
       result.characterCardChanges = await window.GameModules.characterCardLexicon?.applyToState?.(state, result.lexiconUpdates || []) || [];
       await this.applyMetricUpdatesToState?.(state, result.metricUpdates);
       await this.applyInventoryUpdatesToState?.(state, result.lexiconUpdates || []);
@@ -43,7 +43,7 @@ window.GameModules.app.wechat.chatOrchestration = {
       this.wechatError = err.message || '联系人暂时没有回复';
       const fallback = '我这边刚刚有点卡，等下再说。';
       const characterId = contact.id;
-      const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
+      const state = this.rpgStates?.[characterId] || window.GameModules.characterStateStore?.get?.(characterId);
       this.advancePhoneTime?.(60);
       this.appendWechatMessage(characterId, { side: 'other', name: state?.profile?.name || contact.name, mark: (state?.profile?.name || contact.name || contact.mark || '').slice(0, 1), text: fallback, characterId });
       await window.GameModules.characterMemory?.recordWechatExchange?.(this, { ...contact, id: characterId, characterId }, playerText, fallback, { mood: '通讯异常' });

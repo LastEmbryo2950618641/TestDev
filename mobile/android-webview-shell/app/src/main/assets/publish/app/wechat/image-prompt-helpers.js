@@ -22,7 +22,7 @@ window.GameModules.app.wechat.imagePromptHelpers = {
   async buildWechatImageTags(msg = {}) {
       const characterId = msg.characterId || this.wechatSelectedContact;
       const contact = this.wechatContacts?.().find((item) => item.id === characterId) || this.wechatSelected?.() || {};
-      const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId) || await this.ensureWechatUserProfile?.(contact);
+      const state = this.rpgStates?.[characterId] || window.GameModules.characterStateStore?.get?.(characterId) || await this.ensureWechatUserProfile?.(contact);
       const memory = this.wechatMemorySections(characterId);
       const prompt = await window.GameModules.renderPrompt('wechat-image-prompt-collect', {
         联系人资料区: this.wechatContactProfileText(contact),

@@ -26,7 +26,7 @@ window.GameModules.app.wechat.chatPromptHelpers = {
     const player = sections.playerProfile(this);
     const stateSkill = await window.GameModules.skillLoader?.instruction?.('emotion.feeling.wearing.assess') || '', imageSkill = await window.GameModules.skillLoader?.instruction?.('image.edit.call') || '', memorySkill = await window.GameModules.skillLoader?.instruction?.('memory.query') || '';
     const characterId = this.wechatMessageKey(contact);
-    const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
+    const state = this.rpgStates?.[characterId] || window.GameModules.characterStateStore?.get?.(characterId);
     const archive = await this.searchMemoryArchive?.(characterId, playerText) || '无';
     const memoryContext = this.wechatMemoryContext?.(characterId, playerText) || this.memoryQueryContext?.(characterId, playerText) || '暂无人物记忆。';
     const historyContext = await this.wechatHistoryContextForReply?.(characterId, playerText, memoryContext) || this.wechatHistoryQueryHint?.(characterId) || '微信历史默认不载入；需要核对原文时再查询固定历史表。';
