@@ -58,3 +58,9 @@ Prompt editor opening is now owned by
 `app/wechat/album-prompt-editor-orchestration.js`. The facade retains the
 public method while profile preparation, option lookup, draft key assignment,
 and the `edit` step transition are isolated from drawing and persistence.
+
+Body-profile image-generator opening is now owned by
+`app/wechat/album-body-profile-generator-orchestration.js`. It resolves the
+section target, assigns the selected contact, creates body-figure context,
+opens the prompt dialog, clears its error state, and delegates to the existing
+prompt-editor orchestration.
