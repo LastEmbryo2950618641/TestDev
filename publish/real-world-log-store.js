@@ -35,4 +35,3 @@ window.GameModules.realWorldLogStore = {
     return this.source()?.count?.() || 0;
   },
 };
-
