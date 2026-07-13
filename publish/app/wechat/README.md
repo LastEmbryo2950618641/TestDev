@@ -126,6 +126,11 @@ The goal of this directory is to hold small, reusable, non-entry helper surfaces
 - body-figure context lookup, draw-option packaging, and generated photo object helpers
 - pure data helpers kept away from draw provider calls, save flows, and prompt loading
 
+### `album-draw-helpers.js`
+- WeChat album draw retry helper
+- retryable draw-provider failure handling and exponential backoff
+- utility flow kept away from album state mutation and photo persistence
+
 ### `album-ui-state-helpers.js`
 - WeChat album delete-confirm and prompt-editor UI state toggles
 - prompt choice open/close state used by the album editor flow
@@ -208,4 +213,4 @@ The preferred migration pattern for new work here is:
 
 ## Immediate practical rule
 
-If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, history-context, image-record, image-ui, image-album, image-prompt, image-receive-orchestration, image-offer-orchestration, worldline-orchestration, change-panel-orchestration, app-orchestration, incoming-orchestration, memory-debug-orchestration, cleanup-orchestration, album-orchestration, album-body-figure, album-body-figure-context, album-generate, album-ui-state, album-prompt-editor, avatar-crop-helpers, album-prompt-list, album-prompt, album-tag, mention-view, mention-base-photo, mention-reference, or mention-input style boundaries, document the rationale before adding another module here.
+If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, history-context, image-record, image-ui, image-album, image-prompt, image-receive-orchestration, image-offer-orchestration, worldline-orchestration, change-panel-orchestration, app-orchestration, incoming-orchestration, memory-debug-orchestration, cleanup-orchestration, album-orchestration, album-body-figure, album-body-figure-context, album-generate, album-draw, album-ui-state, album-prompt-editor, avatar-crop-helpers, album-prompt-list, album-prompt, album-tag, mention-view, mention-base-photo, mention-reference, or mention-input style boundaries, document the rationale before adding another module here.

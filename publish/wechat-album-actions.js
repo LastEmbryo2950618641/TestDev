@@ -190,16 +190,7 @@ window.GameModules.wechatAlbumActions = {
     }
   },
 
-  async wechatDrawWithRetry(fn, max = 3) {
-    for (let i = 0; i < max; i += 1) {
-      try { return await fn(); } catch (err) {
-        const retryable = (window.dzmm?.errors?.isDzmmError?.(err) && err.retryable) || err?.retryable === true;
-        if (!retryable || i === max - 1) throw err;
-        await new Promise((resolve) => setTimeout(resolve, 1000 * (2 ** i)));
-      }
-    }
-    return null;
-  },
+  async wechatDrawWithRetry(...args) { return window.GameModules.app.wechat.albumDrawHelpers.wechatDrawWithRetry.call(this, ...args); },
 
   async markWechatAlbumPhotoReal(index = 0) {
     const contact = this.wechatProfileContact();
