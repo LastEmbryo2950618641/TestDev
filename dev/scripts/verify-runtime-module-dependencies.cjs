@@ -75,6 +75,14 @@ const orderedGroups = [
     ],
   },
   {
+    label: 'storage restore helper dependencies',
+    before: 'storage.js',
+    required: [
+      'domain/storage/restore-state-helpers.js',
+      'app/storage/restore-post-flow.js',
+    ],
+  },
+  {
     label: 'calendar action ui helper dependencies',
     before: 'calendar-actions.js',
     required: [

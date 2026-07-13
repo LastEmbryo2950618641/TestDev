@@ -96,6 +96,8 @@
   "character-feedback.js",
   "character-feedback-fix.js",
   "character-brief.js",
+  "domain/storage/restore-state-helpers.js",
+  "app/storage/restore-post-flow.js",
   "storage.js",
   "lore-sources.js",
   "lore-cache-data.js",

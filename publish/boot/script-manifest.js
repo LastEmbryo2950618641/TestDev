@@ -99,6 +99,8 @@ window.GameScriptManifest = {
       "character-feedback.js",
       "character-feedback-fix.js",
       "character-brief.js",
+      "domain/storage/restore-state-helpers.js",
+      "app/storage/restore-post-flow.js",
       "storage.js",
       "lore-sources.js",
       "lore-cache-data.js",
@@ -348,8 +350,8 @@ window.GameScriptManifest = {
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-13T08:30:00.000Z",
-  "total": 336
+  "generatedAt": "2026-07-13T09:00:00.000Z",
+  "total": 338
 };
 
 window.GameScriptManifest.classify = function classify(url) {
