@@ -114,6 +114,7 @@ const orderedGroups = [
     before: 'wechat-worldline-actions.js',
     required: [
       'domain/worldline/wechat-event-service.js',
+      'app/wechat/worldline-orchestration.js',
     ],
   },
   {

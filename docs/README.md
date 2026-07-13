@@ -77,6 +77,7 @@
 - Worldline 模板迁移准备：`docs/architecture/worldline-template-migration-prep-2026-07-12.md`
 - WeChat chat facade 收口样例：`docs/architecture/wechat-chat-entry-forwarder-consolidation-2026-07-13.md`
 - WeChat mention facade 收口样例：`docs/architecture/wechat-mention-facade-consolidation-2026-07-13.md`
+- WeChat worldline 编排抽取样例：`docs/architecture/wechat-worldline-orchestration-extraction-2026-07-13.md`
 - 验证样例：
   - `docs/plans/2026-07-10-ui-faction-overview-view-helpers-phase1-validation.md`
   - `docs/plans/2026-07-10-ui-real-world-display-helpers-phase2-validation.md`
