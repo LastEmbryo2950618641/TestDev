@@ -277,6 +277,7 @@
   "wechat-cleanup.js",
   "ui/wechat/view-helpers.js",
   "domain/wechat/change-panel-helpers.js",
+  "wechat-actions.js",
   "wechat-view-actions.js",
   "app/wechat/history-context-helpers.js",
   "wechat-memory-context-actions.js",

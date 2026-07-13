@@ -11,6 +11,7 @@ const manifestEntries = JSON.parse(
 const scripts = [
   'real-world-clock-actions.js',
   'ui-theme-actions.js',
+  'wechat-actions.js',
 ];
 
 const failures = [];
