@@ -82,7 +82,7 @@ window.GameModules.wechatAlbumActions = {
     const state = this.bodyProfileTargetState?.(section) || null;
     const contact = this.wechatContactFromState(state?.id || this.identityTargetId || 'player-self');
     this.wechatSelectedContact = contact.id;
-    this.wechatAlbumBodyFigureContext = { characterId: contact.id, kind, sectionTitle: String(section?.title || ''), startedAt: Date.now() };
+    this.wechatAlbumBodyFigureContext = window.GameModules.app.wechat.albumBodyFigureContextHelpers.wechatAlbumBodyFigureContext.call(this, section, contact, kind);
     this.wechatAlbumPromptOpen = true;
     this.wechatAlbumPromptError = '';
     await this.openWechatAlbumPromptEditor(kind);
