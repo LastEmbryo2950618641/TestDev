@@ -93,14 +93,10 @@ window.GameModules.wechatAlbumActions = {
     if (contact?.id === 'player-self') await this.ensurePlayerRpgState?.();
     else await this.ensureWechatUserProfile?.(contact);
     const options = this.wechatAlbumPromptOptions(kind);
-    this.wechatAlbumPromptDraft = {
-      kind,
-      identityKeys: options.identity.map((item) => item.key),
-      bodyKeys: options.body.map((item) => item.key),
-      customText: '',
-      extraText: '',
-      bodyFigureContext: this.wechatAlbumBodyFigureContext?.kind === kind ? { ...this.wechatAlbumBodyFigureContext } : null,
-    };
+    const draft = window.GameModules.app.wechat.albumPromptEditorHelpers.wechatAlbumPromptEditorDraft.call(this, kind, this.wechatAlbumBodyFigureContext);
+    draft.identityKeys = options.identity.map((item) => item.key);
+    draft.bodyKeys = options.body.map((item) => item.key);
+    this.wechatAlbumPromptDraft = draft;
     this.wechatAlbumPromptStep = 'edit';
   },
 
