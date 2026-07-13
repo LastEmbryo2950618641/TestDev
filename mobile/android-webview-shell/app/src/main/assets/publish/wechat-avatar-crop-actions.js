@@ -1,31 +1,11 @@
 window.GameModules = window.GameModules || {};
 window.GameModules.wechatAvatarCropActions = {
-  wechatAvatarText(contact = this.wechatProfileContact()) {
-    return String(contact?.mark || contact?.name?.slice(0, 1) || '微').slice(0, 2);
-  },
-
-  wechatAvatarStyle(contact = this.wechatProfileContact()) {
-    const avatar = contact?.avatar || {};
-    if (!avatar.url) return '';
-    const crop = avatar.crop || this.defaultWechatAvatarCrop();
-    const w = Math.min(0.95, Math.max(0.18, Number(crop.w) || 0.52));
-    const ratio = Math.max(0.5, Number(crop.ratio) || 1.5);
-    const h = Math.min(0.95, w / ratio);
-    const x = Math.min(1 - w, Math.max(0, Number(crop.x) || 0));
-    const y = Math.min(1 - h, Math.max(0, Number(crop.y) || 0));
-    const px = (1 - w) > 0 ? (x / (1 - w)) * 100 : 50;
-    const py = (1 - h) > 0 ? (y / (1 - h)) * 100 : 50;
-    return `background-image:url("${String(avatar.url).replace(/"/g, '%22')}");background-size:${100 / w}% auto;background-position:${px}% ${py}%;color:transparent;`;
-  },
-
-  defaultWechatAvatarCrop(ratio = 1.5) { return { x: 0.24, y: 0.04, w: 0.52, ratio }; },
-
-  wechatMessageAvatarContact(msg = {}) {
-    if (msg.side === 'self') return { name: this.playerDisplayCharacter?.().name || this.playerName || '我', mark: '我' };
-    const id = msg.characterId || this.wechatSelectedContact;
-    return this.wechatContacts?.().find((item) => item.id === id) || this.wechatSelected?.() || { name: msg.name || '', mark: msg.mark || '微' };
-  },
-
+  wechatAvatarText(...args) { return window.GameModules.app.wechat.avatarCropHelpers.wechatAvatarText.call(this, ...args); },
+  wechatAvatarStyle(...args) { return window.GameModules.app.wechat.avatarCropHelpers.wechatAvatarStyle.call(this, ...args); },
+  defaultWechatAvatarCrop(...args) { return window.GameModules.app.wechat.avatarCropHelpers.defaultWechatAvatarCrop.call(this, ...args); },
+  wechatMessageAvatarContact(...args) { return window.GameModules.app.wechat.avatarCropHelpers.wechatMessageAvatarContact.call(this, ...args); },
+  wechatFaceBoxToCrop(...args) { return window.GameModules.app.wechat.avatarCropHelpers.wechatFaceBoxToCrop.call(this, ...args); },
+  wechatAvatarCropImageStyle(...args) { return window.GameModules.app.wechat.avatarCropHelpers.wechatAvatarCropImageStyle.call(this, ...args); },
   loadWechatAvatarImage(url) {
     return new Promise((resolve, reject) => {
       const img = new Image();

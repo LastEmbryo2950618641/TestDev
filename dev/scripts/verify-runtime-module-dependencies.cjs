@@ -146,6 +146,13 @@ const orderedGroups = [
     ],
   },
   {
+    label: 'wechat avatar crop runtime dependencies',
+    before: 'wechat-avatar-crop-actions.js',
+    required: [
+      'app/wechat/avatar-crop-helpers.js',
+    ],
+  },
+  {
     label: 'wechat change panel runtime dependencies',
     before: 'wechat-change-panel-actions.js',
     required: [

@@ -111,6 +111,11 @@ The goal of this directory is to hold small, reusable, non-entry helper surfaces
 - album photo list and refresh helpers for profile/body-figure flows
 - shared album contact state resolution used by album actions
 
+### `avatar-crop-helpers.js`
+- WeChat avatar text and avatar style helpers for contact cards and message avatars
+- avatar crop geometry helpers used by crop preview and face-detected crop calculations
+- pure crop display math extracted away from image loading and save flow
+
 ### `mention-view-helpers.js`
 - mention-context text assembly and contact-mention parsing
 - mention-related readonly source formatting for prompt/context usage
@@ -163,4 +168,4 @@ The preferred migration pattern for new work here is:
 
 ## Immediate practical rule
 
-If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, history-context, image-record, image-ui, image-album, image-prompt, image-receive-orchestration, image-offer-orchestration, worldline-orchestration, change-panel-orchestration, app-orchestration, incoming-orchestration, memory-debug-orchestration, cleanup-orchestration, album-orchestration, mention-view, mention-base-photo, mention-reference, or mention-input style boundaries, document the rationale before adding another module here.
+If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, history-context, image-record, image-ui, image-album, image-prompt, image-receive-orchestration, image-offer-orchestration, worldline-orchestration, change-panel-orchestration, app-orchestration, incoming-orchestration, memory-debug-orchestration, cleanup-orchestration, album-orchestration, avatar-crop-helpers, mention-view, mention-base-photo, mention-reference, or mention-input style boundaries, document the rationale before adding another module here.
