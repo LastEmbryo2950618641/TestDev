@@ -242,6 +242,7 @@ window.GameScriptManifest = {
       "current-world-actions.js"
     ],
     "gameplay": [
+      "real-world-clock-actions.js",
       "assets/data/real-world-2026.js",
       "real-world-map-facts.js",
       "real-world-map-interior-templates.js",
@@ -392,8 +393,8 @@ window.GameScriptManifest = {
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-13T15:09:23.588Z",
-  "total": 380
+  "generatedAt": "2026-07-13T15:47:31.803Z",
+  "total": 381
 };
 
 window.GameScriptManifest.classify = function classify(url) {

@@ -49,7 +49,6 @@ function bundlePathToPublish(relPath) {
     'core/debug.js': 'debug.js',
     'core/json-utils.js': 'json-utils.js',
     'core/token-stats.js': 'token-stats.js',
-    'core/alert-log.js': 'alert-log.js',
     'ai/ai.js': 'ai.js',
     'ai/ai-provider.js': 'ai-provider.js',
     'ai/ai-provider-dzmm.js': 'ai-provider-dzmm.js',

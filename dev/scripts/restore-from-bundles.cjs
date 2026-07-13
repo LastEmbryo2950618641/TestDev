@@ -42,7 +42,6 @@ const FLAT_ALIASES = {
   'features/settings/settings-actions.js': 'settings-actions.js',
   'database/sqlite-real-world-log.js': 'sqlite-real-world-log.js',
   'core/token-stats.js': 'token-stats.js',
-  'core/alert-log.js': 'alert-log.js',
 };
 
 function unescapeJsString(raw) {

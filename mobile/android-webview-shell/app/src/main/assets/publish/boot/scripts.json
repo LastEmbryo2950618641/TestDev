@@ -186,6 +186,7 @@
   "role-card-loading-actions.js",
   "solidify-actions.js",
   "wearing-sync-actions.js",
+  "real-world-clock-actions.js",
   "app/save/slot-flow.js",
   "app/save/slot-mutation-flow.js",
   "ui/save/slot-view.js",
