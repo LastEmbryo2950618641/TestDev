@@ -4,6 +4,7 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 const characterConsumers = [
+  'publish/real-world-agent-history.js',
   'publish/real-world-agent-loop.js',
   'publish/real-world-profile-stage5.js',
   'publish/update/generic-update-applier.js',

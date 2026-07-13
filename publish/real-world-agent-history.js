@@ -19,8 +19,8 @@ Object.assign(window.GameModules.realWorldAgentContext, {
   },
 
   allRealWorldRows(store) {
-    const total = window.GameModules.sqliteSave.countRealWorldLogEntries?.() || 0;
-    if (total) return window.GameModules.sqliteSave.listRealWorldLogEntries?.(1, Math.min(total, 200)) || [];
+    const total = window.GameModules.realWorldLogStore?.count?.() || 0;
+    if (total) return window.GameModules.realWorldLogStore?.list?.(1, Math.min(total, 200)) || [];
     return (store.realWorldLog || []).filter((entry) => entry.type !== 'system');
   },
 
