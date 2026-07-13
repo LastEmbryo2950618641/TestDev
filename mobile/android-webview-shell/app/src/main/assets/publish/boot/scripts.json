@@ -308,6 +308,7 @@
   "app/wechat/app-orchestration.js",
   "wechat-app-actions.js",
   "app/wechat/album-orchestration.js",
+  "app/wechat/album-tag-helpers.js",
   "wechat-album-tags.js",
   "app/wechat/avatar-crop-helpers.js",
   "app/wechat/album-prompt-list-helpers.js",
