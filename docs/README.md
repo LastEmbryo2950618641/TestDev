@@ -80,6 +80,7 @@
 - WeChat change panel facade 收口样例：`docs/architecture/wechat-change-panel-facade-consolidation-2026-07-13.md`
 - WeChat app 编排抽取样例：`docs/architecture/wechat-app-orchestration-extraction-2026-07-13.md`
 - WeChat incoming 编排抽取样例：`docs/architecture/wechat-incoming-orchestration-extraction-2026-07-13.md`
+- WeChat memory debug 编排抽取样例：`docs/architecture/wechat-memory-debug-orchestration-extraction-2026-07-13.md`
 - WeChat worldline 编排抽取样例：`docs/architecture/wechat-worldline-orchestration-extraction-2026-07-13.md`
 - 验证样例：
   - `docs/plans/2026-07-10-ui-faction-overview-view-helpers-phase1-validation.md`

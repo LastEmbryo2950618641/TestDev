@@ -125,6 +125,13 @@ const orderedGroups = [
     ],
   },
   {
+    label: 'wechat memory debug runtime dependencies',
+    before: 'wechat-memory-debug-actions.js',
+    required: [
+      'app/wechat/memory-debug-orchestration.js',
+    ],
+  },
+  {
     label: 'wechat change panel runtime dependencies',
     before: 'wechat-change-panel-actions.js',
     required: [

@@ -309,6 +309,7 @@ window.GameScriptManifest = {
       "domain/worldline/wechat-event-service.js",
       "app/wechat/worldline-orchestration.js",
       "wechat-worldline-actions.js",
+      "app/wechat/memory-debug-orchestration.js",
       "wechat-memory-debug-actions.js",
       "app/wechat/app-orchestration.js",
       "wechat-app-actions.js",
