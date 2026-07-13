@@ -55,6 +55,11 @@ The goal of this directory is to hold small, reusable, non-entry helper surfaces
 - image confirmation prompt text display
 - in-chat image message patching during generation and completion
 
+### `image-album-helpers.js`
+- real-photo lookup for WeChat image editing
+- generated WeChat image insertion into contact albums
+- duplicate image URL guarding before album state updates
+
 ### `mention-view-helpers.js`
 - mention-context text assembly and contact-mention parsing
 - mention-related readonly source formatting for prompt/context usage
@@ -103,5 +108,5 @@ The preferred migration pattern for new work here is:
 
 ## Immediate practical rule
 
-If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, history-context, image-record, image-ui, mention-view, mention-base-photo, or mention-reference style boundaries, document the rationale before adding another module here.
+If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, history-context, image-record, image-ui, image-album, mention-view, mention-base-photo, or mention-reference style boundaries, document the rationale before adding another module here.
 
