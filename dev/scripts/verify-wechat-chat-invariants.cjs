@@ -120,17 +120,35 @@ for (const marker of ['寰俊', '鑱旂郴', '鏂版墜', '璧勬枡', '绯�
   assertNotIncludes(chatSession, marker, `${chatSessionPath} should not contain mojibake defaults`);
 }
 
-assertIncludes(source, "const wechatChatReplyForwarders = {", `${sourcePath} reply facade`);
-assertIncludes(source, "wechatContactProfileText: 'wechatContactProfileText'", `${sourcePath} reply facade`);
-assertIncludes(source, "validateWechatReply: 'validateWechatReply'", `${sourcePath} reply facade`);
-assertIncludes(source, "fallbackWechatReply: 'fallbackWechatReply'", `${sourcePath} reply facade`);
-assertIncludes(source, 'callWechatChatReplyHelper(helperName, this, ...args)', `${sourcePath} reply facade`);
-
-assertIncludes(source, "const wechatChatOrchestrationForwarders = {", `${sourcePath} orchestration facade`);
-assertIncludes(source, "sendWechatMessage: 'sendWechatMessage'", `${sourcePath} orchestration facade`);
-assertIncludes(source, "replyWechatContact: 'replyWechatContact'", `${sourcePath} orchestration facade`);
-assertIncludes(source, "generateWechatReply: 'generateWechatReply'", `${sourcePath} orchestration facade`);
-assertIncludes(source, 'callWechatChatOrchestration(helperName, this, ...args)', `${sourcePath} orchestration facade`);
+assertIncludes(source, 'const wechatChatFacadeGroups = [', `${sourcePath} declarative chat facade groups`);
+assertIncludes(source, 'function callWechatChatModule(moduleName, methodName, context, args)', `${sourcePath} generic chat module caller`);
+assertIncludes(source, 'window.GameModules.wechatChatActions = {};', `${sourcePath} chat action shell`);
+assertIncludes(source, 'callWechatChatModule(group.moduleName, helperName, this, args)', `${sourcePath} declarative chat facade dispatch`);
+for (const marker of [
+  "moduleName: 'chatSession'",
+  "moduleName: 'chatMessageHelpers'",
+  "moduleName: 'chatReplyHelpers'",
+  "moduleName: 'chatOrchestration'",
+  "selectWechatContact: 'selectContact'",
+  "wechatMessageKey: 'messageKey'",
+  "wechatMessages: 'messages'",
+  "updateWechatLatest: 'updateLatest'",
+  "appendWechatMessage: 'appendWechatMessage'",
+  "wechatMessageTime: 'wechatMessageTime'",
+  "wechatMemoryTime: 'wechatMemoryTime'",
+  "wechatDialogueTimeLabel: 'wechatDialogueTimeLabel'",
+  "formatWechatDialogueLog: 'formatWechatDialogueLog'",
+  "wechatTimeValue: 'wechatTimeValue'",
+  "wechatTimeDisplay: 'wechatTimeDisplay'",
+  "wechatContactProfileText: 'wechatContactProfileText'",
+  "validateWechatReply: 'validateWechatReply'",
+  "fallbackWechatReply: 'fallbackWechatReply'",
+  "sendWechatMessage: 'sendWechatMessage'",
+  "replyWechatContact: 'replyWechatContact'",
+  "generateWechatReply: 'generateWechatReply'",
+]) {
+  assertIncludes(source, marker, `${sourcePath} declarative chat facade should expose ${marker}`);
+}
 
 for (const marker of [
   'wechatContactProfileText(contact, playerText = \'\')',
