@@ -3,6 +3,10 @@ function callWechatImageRecordHelper(name, context, ...args) {
   return window.GameModules.app.wechat.imageRecordHelpers[name].call(context, ...args);
 }
 
+function callWechatImageUiHelper(name, context, ...args) {
+  return window.GameModules.app.wechat.imageUiHelpers[name].call(context, ...args);
+}
+
 window.GameModules.wechatImageActions = {
   async appendWechatPendingImageMessage(characterId, state = {}, contact = {}, imageIntent = {}) {
     const contactName = state?.profile?.name || contact.name || '联系人';
@@ -56,22 +60,27 @@ window.GameModules.wechatImageActions = {
   },
 
   openWechatImageConfirm(msg = {}) {
-    if (msg.imageStatus !== 'pending') return;
-    this.wechatImageConfirmMessage = msg;
-    this.wechatImageConfirmOpen = true;
+    return callWechatImageUiHelper('openWechatImageConfirm', this, msg);
   },
 
-  closeWechatImageConfirm() { if (!this.wechatImageGenerating) this.wechatImageConfirmOpen = false; },
+  closeWechatImageConfirm() {
+    return callWechatImageUiHelper('closeWechatImageConfirm', this);
+  },
 
   openWechatImagePreview(url = '', title = '图片预览') {
-    if (!url) return;
-    this.wechatImagePreview = { open: true, url, title };
+    return callWechatImageUiHelper('openWechatImagePreview', this, url, title);
   },
 
-  closeWechatImagePreview() { this.wechatImagePreview = { open: false, url: '', title: '' }; },
+  closeWechatImagePreview() {
+    return callWechatImageUiHelper('closeWechatImagePreview', this);
+  },
 
   wechatImageConfirmPromptText(msg = this.wechatImageConfirmMessage) {
-    return String(msg?.imageDescription || msg?.imageIntent?.imageDescription || msg?.imageIntent?.tagsHint || '一张联系人发送的近照。').trim();
+    return callWechatImageUiHelper('wechatImageConfirmPromptText', this, msg);
+  },
+
+  updateWechatImageMessage(targetMsg = {}, patch = {}) {
+    return callWechatImageUiHelper('updateWechatImageMessage', this, targetMsg, patch);
   },
 
   wechatRealPhotoForContact(characterId = this.wechatSelectedContact) {
@@ -142,14 +151,6 @@ window.GameModules.wechatImageActions = {
     });
     const cleaned = this.cleanWechatImageTags(output);
     return (this.pictureGenerateSafeReplacements?.(cleaned) || cleaned).slice(0, 1000);
-  },
-
-  updateWechatImageMessage(targetMsg = {}, patch = {}) {
-    const key = targetMsg.characterId || this.wechatSelectedContact;
-    const same = (msg) => msg.imagePending && msg.time === targetMsg.time && msg.characterId === targetMsg.characterId;
-    const list = (this.wechatMessagesByContact?.[key] || []).map((msg) => same(msg) ? { ...msg, ...patch } : msg);
-    this.wechatMessagesByContact = { ...(this.wechatMessagesByContact || {}), [key]: list };
-    this.wechatImageConfirmMessage = list.find(same) || null;
   },
 
   async confirmWechatImageReceive() {

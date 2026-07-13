@@ -49,6 +49,12 @@ The goal of this directory is to hold small, reusable, non-entry helper surfaces
 - image read-record conversion
 - memory and worldline record replacement after an offered image is accepted
 
+### `image-ui-helpers.js`
+- image receive confirmation modal state
+- image preview modal state
+- image confirmation prompt text display
+- in-chat image message patching during generation and completion
+
 ### `mention-view-helpers.js`
 - mention-context text assembly and contact-mention parsing
 - mention-related readonly source formatting for prompt/context usage
@@ -97,5 +103,5 @@ The preferred migration pattern for new work here is:
 
 ## Immediate practical rule
 
-If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, history-context, image-record, mention-view, mention-base-photo, or mention-reference style boundaries, document the rationale before adding another module here.
+If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, history-context, image-record, image-ui, mention-view, mention-base-photo, or mention-reference style boundaries, document the rationale before adding another module here.
 

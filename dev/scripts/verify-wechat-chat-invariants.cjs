@@ -15,6 +15,7 @@ const mentionActionPath = 'publish/wechat-mention-actions.js';
 const mentionReferenceHelperPath = 'publish/app/wechat/mention-reference-helpers.js';
 const imageActionPath = 'publish/wechat-image-actions.js';
 const imageRecordHelperPath = 'publish/app/wechat/image-record-helpers.js';
+const imageUiHelperPath = 'publish/app/wechat/image-ui-helpers.js';
 const webManifestPath = 'publish/boot/script-manifest.js';
 const webScriptsPath = 'publish/boot/scripts.json';
 const androidManifestPath = 'mobile/android-webview-shell/app/src/main/assets/publish/boot/script-manifest.js';
@@ -31,6 +32,7 @@ const mentionAction = read(mentionActionPath);
 const mentionReferenceHelper = read(mentionReferenceHelperPath);
 const imageAction = read(imageActionPath);
 const imageRecordHelper = read(imageRecordHelperPath);
+const imageUiHelper = read(imageUiHelperPath);
 
 const violations = [];
 
@@ -180,6 +182,24 @@ assertIncludes(methodBlock(imageAction, imageActionPath, 'replaceWechatImageReco
 assertIncludes(methodBlock(imageAction, imageActionPath, 'replaceWechatImageRecordInMemory', 'replaceWechatImageRecordInWorldline'), "return callWechatImageRecordHelper('replaceWechatImageRecordInMemory', this, memory, oldRecord, readRecord);", `${imageActionPath} replaceWechatImageRecordInMemory facade`);
 assertIncludes(methodBlock(imageAction, imageActionPath, 'replaceWechatImageRecordInWorldline', 'openWechatImageConfirm'), "return callWechatImageRecordHelper('replaceWechatImageRecordInWorldline', this, oldRecord, readRecord);", `${imageActionPath} replaceWechatImageRecordInWorldline facade`);
 
+assertIncludes(imageAction, 'callWechatImageUiHelper', `${imageActionPath} image ui facade`);
+for (const marker of [
+  'openWechatImageConfirm(msg = {})',
+  'closeWechatImageConfirm()',
+  'openWechatImagePreview(url = \'\', title = \'图片预览\')',
+  'closeWechatImagePreview()',
+  'wechatImageConfirmPromptText(msg = this.wechatImageConfirmMessage)',
+  'updateWechatImageMessage(targetMsg = {}, patch = {})',
+]) {
+  assertIncludes(imageUiHelper, `\n  ${marker}`, `${imageUiHelperPath} should own image ui implementation`);
+}
+assertIncludes(methodBlock(imageAction, imageActionPath, 'openWechatImageConfirm', 'closeWechatImageConfirm'), "return callWechatImageUiHelper('openWechatImageConfirm', this, msg);", `${imageActionPath} openWechatImageConfirm facade`);
+assertIncludes(methodBlock(imageAction, imageActionPath, 'closeWechatImageConfirm', 'openWechatImagePreview'), "return callWechatImageUiHelper('closeWechatImageConfirm', this);", `${imageActionPath} closeWechatImageConfirm facade`);
+assertIncludes(methodBlock(imageAction, imageActionPath, 'openWechatImagePreview', 'closeWechatImagePreview'), "return callWechatImageUiHelper('openWechatImagePreview', this, url, title);", `${imageActionPath} openWechatImagePreview facade`);
+assertIncludes(methodBlock(imageAction, imageActionPath, 'closeWechatImagePreview', 'wechatImageConfirmPromptText'), "return callWechatImageUiHelper('closeWechatImagePreview', this);", `${imageActionPath} closeWechatImagePreview facade`);
+assertIncludes(methodBlock(imageAction, imageActionPath, 'wechatImageConfirmPromptText', 'updateWechatImageMessage'), "return callWechatImageUiHelper('wechatImageConfirmPromptText', this, msg);", `${imageActionPath} wechatImageConfirmPromptText facade`);
+assertIncludes(methodBlock(imageAction, imageActionPath, 'updateWechatImageMessage', 'wechatRealPhotoForContact'), "return callWechatImageUiHelper('updateWechatImageMessage', this, targetMsg, patch);", `${imageActionPath} updateWechatImageMessage facade`);
+
 assertOrder(sendBlock, [
   "const text = String(this.wechatInput || '').trim();",
   'const target = this.wechatSelected();',
@@ -282,6 +302,7 @@ function assertListOrder(list, relativePath) {
   const mentionBasePhotoIndex = list.indexOf('app/wechat/mention-base-photo-helper.js');
   const mentionReferenceIndex = list.indexOf('app/wechat/mention-reference-helpers.js');
   const imageRecordIndex = list.indexOf('app/wechat/image-record-helpers.js');
+  const imageUiIndex = list.indexOf('app/wechat/image-ui-helpers.js');
   const actionIndex = list.indexOf('wechat-chat-actions.js');
   const pastEventIndex = list.indexOf('wechat-past-event-actions.js');
   const mentionActionIndex = list.indexOf('wechat-mention-actions.js');
@@ -293,6 +314,7 @@ function assertListOrder(list, relativePath) {
   if (memoryContextActionIndex < 0) fail(`${relativePath}: missing wechat-memory-context-actions.js`);
   if (mentionReferenceIndex < 0) fail(`${relativePath}: missing app/wechat/mention-reference-helpers.js`);
   if (imageRecordIndex < 0) fail(`${relativePath}: missing app/wechat/image-record-helpers.js`);
+  if (imageUiIndex < 0) fail(`${relativePath}: missing app/wechat/image-ui-helpers.js`);
   if (actionIndex < 0) fail(`${relativePath}: missing wechat-chat-actions.js`);
   if (pastEventIndex < 0) fail(`${relativePath}: missing wechat-past-event-actions.js`);
   if (mentionActionIndex < 0) fail(`${relativePath}: missing wechat-mention-actions.js`);
@@ -321,6 +343,9 @@ function assertListOrder(list, relativePath) {
   if (imageRecordIndex >= 0 && imageActionIndex >= 0 && imageRecordIndex > imageActionIndex) {
     fail(`${relativePath}: image-record-helpers.js must load before wechat-image-actions.js`);
   }
+  if (imageUiIndex >= 0 && imageActionIndex >= 0 && imageUiIndex > imageActionIndex) {
+    fail(`${relativePath}: image-ui-helpers.js must load before wechat-image-actions.js`);
+  }
 }
 
 function assertManifestOrder(relativePath) {
@@ -338,6 +363,7 @@ function assertManifestOrder(relativePath) {
     '"wechat-chat-actions.js"',
     '"wechat-past-event-actions.js"',
     '"app/wechat/image-record-helpers.js"',
+    '"app/wechat/image-ui-helpers.js"',
     '"wechat-image-actions.js"',
     '"wechat-mention-actions.js"',
   ], `${relativePath} wechat manifest order`);
@@ -367,6 +393,7 @@ console.log(JSON.stringify({
       mentionReferenceHelperPath,
       imageActionPath,
       imageRecordHelperPath,
+      imageUiHelperPath,
       manifests: [webManifestPath, webScriptsPath, androidManifestPath, androidScriptsPath],
     invariants: [
       'reply-helper-facade',
@@ -375,6 +402,7 @@ console.log(JSON.stringify({
       'history-context-facade',
       'mention-reference-facade',
       'image-record-facade',
+      'image-ui-facade',
       'send-message-order',
       'reply-success-order',
       'reply-failure-finally-order',
