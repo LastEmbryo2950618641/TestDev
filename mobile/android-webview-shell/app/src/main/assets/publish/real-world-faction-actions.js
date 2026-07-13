@@ -5,12 +5,12 @@ window.GameModules.realWorldFactionActions = {
     if (!Array.isArray(updates) || !updates.length) return [];
     this.initFactionSystem?.();
     const ctx = window.GameModules.realWorldAgentContext;
-    const orgActions = window.GameModules.orgTerritoryActions;
+    const settlementActions = window.GameModules.app?.orgTerritory?.settlementActions;
     const out = [];
     for (const item of updates.slice(0, 8)) {
       const action = String(item?.action || item?.method || '').trim();
       if (action === 'updateStructure') {
-        const result = orgActions?.applyLegacyStructure?.(this, item);
+        const result = settlementActions?.applyLegacyStructure?.(this, item);
         if (result?.text) out.push(result.text);
         continue;
       }

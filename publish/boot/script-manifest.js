@@ -305,9 +305,11 @@ window.GameScriptManifest = {
       "real-world-map-actions.js",
       "real-world-faction-actions.js",
       "real-world-matter-actions.js",
+      "domain/org-territory/update-rules.js",
       "app/org-territory/record-helpers.js",
       "app/org-territory/family-actions.js",
       "app/org-territory/economy-actions.js",
+      "app/org-territory/settlement-actions.js",
       "org-territory-actions.js"
     ],
     "wechat": [
@@ -430,8 +432,8 @@ window.GameScriptManifest = {
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-13T19:33:12.143Z",
-  "total": 418
+  "generatedAt": "2026-07-13T19:40:05.098Z",
+  "total": 420
 };
 
 window.GameScriptManifest.classify = function classify(url) {

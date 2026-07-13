@@ -109,7 +109,7 @@ window.GameModules.realWorldActions = {
     const orgTerritoryUpdates = (result.genericUpdates || []).filter((item) => orgTerritoryTypes.has(item?.updateType));
     const legacyHandled = new Set(['vital', 'emotion', 'feeling', 'item', 'faction-structure', 'faction-overview', 'territory-control', 'org-structure-node', 'org-overview-panel', 'membership', 'org-status']);
     if (orgTerritoryUpdates.length) {
-      const orgLines = window.GameModules.orgTerritoryActions?.applySettlementUpdates?.(this, orgTerritoryUpdates) || [];
+      const orgLines = window.GameModules.app?.orgTerritory?.settlementActions?.applySettlementUpdates?.(this, orgTerritoryUpdates) || [];
       orgLines.forEach((line) => { if (line) settlement.push(line); });
     }
     const remainingGeneric = (result.genericUpdates || []).filter((item) => !legacyHandled.has(item?.updateType));

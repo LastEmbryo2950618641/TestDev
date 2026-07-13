@@ -8,6 +8,8 @@ const actionPath = path.join(root, 'publish/org-territory-actions.js');
 const familyActionPath = path.join(root, 'publish/app/org-territory/family-actions.js');
 const recordHelperPath = path.join(root, 'publish/app/org-territory/record-helpers.js');
 const economyActionPath = path.join(root, 'publish/app/org-territory/economy-actions.js');
+const updateRulesPath = path.join(root, 'publish/domain/org-territory/update-rules.js');
+const settlementActionPath = path.join(root, 'publish/app/org-territory/settlement-actions.js');
 const requiredMethods = [
   'applyLegacyStructure',
   'applySettlementUpdates',
@@ -25,16 +27,20 @@ for (const relativePath of [
 ]) {
   const scripts = JSON.parse(fs.readFileSync(path.join(root, relativePath), 'utf8'));
   const systemIndex = scripts.indexOf('org-territory-system.js');
+  const updateRulesIndex = scripts.indexOf('domain/org-territory/update-rules.js');
   const recordHelpersIndex = scripts.indexOf('app/org-territory/record-helpers.js');
   const familyActionsIndex = scripts.indexOf('app/org-territory/family-actions.js');
   const economyActionsIndex = scripts.indexOf('app/org-territory/economy-actions.js');
+  const settlementActionsIndex = scripts.indexOf('app/org-territory/settlement-actions.js');
   const actionsIndex = scripts.indexOf('org-territory-actions.js');
   const factionActionsIndex = scripts.indexOf('faction-actions.js');
   const earlyWealthIndex = scripts.indexOf('player-wealth-actions.js');
-  assert.ok(systemIndex >= 0 && systemIndex < recordHelpersIndex, `${relativePath} must load orgTerritory before recordHelpers`);
+  assert.ok(systemIndex >= 0 && systemIndex < updateRulesIndex, `${relativePath} must load orgTerritory before updateRules`);
+  assert.strictEqual(updateRulesIndex + 1, recordHelpersIndex, `${relativePath} must load updateRules immediately before recordHelpers`);
   assert.strictEqual(recordHelpersIndex + 1, familyActionsIndex, `${relativePath} must load recordHelpers immediately before familyActions`);
   assert.strictEqual(familyActionsIndex + 1, economyActionsIndex, `${relativePath} must load familyActions immediately before economyActions`);
-  assert.strictEqual(economyActionsIndex + 1, actionsIndex, `${relativePath} must load economyActions immediately before the compatibility facade`);
+  assert.strictEqual(economyActionsIndex + 1, settlementActionsIndex, `${relativePath} must load economyActions immediately before settlementActions`);
+  assert.strictEqual(settlementActionsIndex + 1, actionsIndex, `${relativePath} must load settlementActions immediately before the compatibility facade`);
   assert.ok(earlyWealthIndex < actionsIndex, `${relativePath} must not activate orgTerritoryActions before faction initialization is available`);
   assert.strictEqual(actionsIndex + 1, factionActionsIndex, `${relativePath} must load orgTerritoryActions immediately before factionActions`);
 }
@@ -47,14 +53,18 @@ for (const relativePath of [
   vm.runInContext(fs.readFileSync(path.join(root, relativePath), 'utf8'), manifestContext, { filename: relativePath });
   const runtimeScripts = Object.values(manifestContext.window.GameScriptManifest.chunks).flat();
   const systemIndex = runtimeScripts.indexOf('org-territory-system.js');
+  const updateRulesIndex = runtimeScripts.indexOf('domain/org-territory/update-rules.js');
   const recordHelpersIndex = runtimeScripts.indexOf('app/org-territory/record-helpers.js');
   const familyActionsIndex = runtimeScripts.indexOf('app/org-territory/family-actions.js');
   const economyActionsIndex = runtimeScripts.indexOf('app/org-territory/economy-actions.js');
+  const settlementActionsIndex = runtimeScripts.indexOf('app/org-territory/settlement-actions.js');
   const facadeIndex = runtimeScripts.indexOf('org-territory-actions.js');
-  assert.ok(systemIndex >= 0 && systemIndex < recordHelpersIndex, `${relativePath} must load orgTerritory before recordHelpers`);
+  assert.ok(systemIndex >= 0 && systemIndex < updateRulesIndex, `${relativePath} must load orgTerritory before updateRules`);
+  assert.ok(updateRulesIndex < recordHelpersIndex, `${relativePath} must load updateRules before recordHelpers`);
   assert.ok(recordHelpersIndex < familyActionsIndex, `${relativePath} must load recordHelpers before familyActions`);
   assert.ok(familyActionsIndex < economyActionsIndex, `${relativePath} must load familyActions before economyActions`);
-  assert.ok(economyActionsIndex < facadeIndex, `${relativePath} must load economyActions before the compatibility facade`);
+  assert.ok(economyActionsIndex < settlementActionsIndex, `${relativePath} must load economyActions before settlementActions`);
+  assert.ok(settlementActionsIndex < facadeIndex, `${relativePath} must load settlementActions before the compatibility facade`);
 }
 
 const source = fs.readFileSync(actionPath, 'utf8');
@@ -62,11 +72,15 @@ assert.doesNotMatch(source, /window\.GameModules\.sqliteSave/u, 'org territory a
 assert.ok(fs.existsSync(familyActionPath), 'family actions must live under publish/app/org-territory');
 assert.ok(fs.existsSync(recordHelperPath), 'record helpers must live under publish/app/org-territory');
 assert.ok(fs.existsSync(economyActionPath), 'economy actions must live under publish/app/org-territory');
+assert.ok(fs.existsSync(updateRulesPath), 'update rules must live under publish/domain/org-territory');
+assert.ok(fs.existsSync(settlementActionPath), 'settlement actions must live under publish/app/org-territory');
 
 const context = vm.createContext({ window: { GameModules: {} } });
+vm.runInContext(fs.readFileSync(updateRulesPath, 'utf8'), context, { filename: 'domain/org-territory/update-rules.js' });
 vm.runInContext(fs.readFileSync(recordHelperPath, 'utf8'), context, { filename: 'app/org-territory/record-helpers.js' });
 vm.runInContext(fs.readFileSync(familyActionPath, 'utf8'), context, { filename: 'app/org-territory/family-actions.js' });
 vm.runInContext(fs.readFileSync(economyActionPath, 'utf8'), context, { filename: 'app/org-territory/economy-actions.js' });
+vm.runInContext(fs.readFileSync(settlementActionPath, 'utf8'), context, { filename: 'app/org-territory/settlement-actions.js' });
 vm.runInContext(source, context, { filename: 'org-territory-actions.js' });
 const actions = context.window.GameModules.orgTerritoryActions;
 const familyActions = context.window.GameModules.app?.orgTerritory?.familyActions;
@@ -80,6 +94,15 @@ for (const method of ['appendOrgTerritorySystemRecord', 'ensureFactionSolid', 'o
 const economyActions = context.window.GameModules.app?.orgTerritory?.economyActions;
 for (const method of ['syncCompanyEconomicEntry', 'syncPlayerWealthAsset', 'applyOrgStatusEconomicCascade', 'syncEmploymentOnOrgDissolved']) {
   assert.strictEqual(typeof economyActions?.[method], 'function', `economyActions.${method} must be available at runtime`);
+}
+const updateRules = context.window.GameModules.domain?.orgTerritory?.updateRules;
+assert.strictEqual(JSON.stringify(updateRules?.parseStructurePath('solid.structure.后勤.roles')), JSON.stringify({ nodeName: '后勤', tail: ['roles'] }), 'structure paths must preserve node and tail parsing');
+assert.strictEqual(updateRules?.settlementRank('org-status'), 0, 'org status updates must settle first');
+assert.strictEqual(updateRules?.settlementRank('territory-control'), 1, 'territory updates must settle second');
+assert.strictEqual(updateRules?.settlementRank('membership'), 2, 'other updates must settle after status and territory');
+const settlementActions = context.window.GameModules.app?.orgTerritory?.settlementActions;
+for (const method of ['applyTerritoryControl', 'applyFactionStructureUpdate', 'applyOrgOverviewPanel', 'applyMembershipUpdate', 'applyOrgStatus', 'applySettlementUpdates', 'applyLegacyStructure']) {
+  assert.strictEqual(typeof settlementActions?.[method], 'function', `settlementActions.${method} must be available at runtime`);
 }
 for (const method of requiredMethods) assert.strictEqual(typeof actions[method], 'function', `${method} must be available at runtime`);
 
@@ -114,6 +137,10 @@ for (const [relativePath, method] of [
   const consumer = fs.readFileSync(path.join(root, relativePath), 'utf8');
   assert.doesNotMatch(consumer, new RegExp(`orgTerritoryActions\\?\\.${method}`, 'u'), `${relativePath} must call economyActions.${method} directly`);
 }
+const realWorldConsumer = fs.readFileSync(path.join(root, 'publish/real-world-actions.js'), 'utf8');
+assert.doesNotMatch(realWorldConsumer, /orgTerritoryActions\?\.applySettlementUpdates/u, 'real-world actions must call settlementActions.applySettlementUpdates directly');
+const legacyFactionConsumer = fs.readFileSync(path.join(root, 'publish/real-world-faction-actions.js'), 'utf8');
+assert.doesNotMatch(legacyFactionConsumer, /orgTerritoryActions/u, 'legacy faction updates must call settlementActions.applyLegacyStructure directly');
 
 const integrationContext = vm.createContext({
   console,
@@ -128,9 +155,11 @@ const integrationContext = vm.createContext({
 });
 for (const relativePath of [
   'publish/org-territory-system.js',
+  'publish/domain/org-territory/update-rules.js',
   'publish/app/org-territory/record-helpers.js',
   'publish/app/org-territory/family-actions.js',
   'publish/app/org-territory/economy-actions.js',
+  'publish/app/org-territory/settlement-actions.js',
   'publish/org-territory-actions.js',
   'publish/real-world-map-geopolitical.js',
 ]) {
@@ -198,6 +227,42 @@ assert.strictEqual(economy.syncEmploymentOnOrgDissolved(store, dissolvedCompany,
 assert.strictEqual(store.companyState.employment.active, false, 'employment must become inactive');
 assert.strictEqual(store.companyState.employmentRecords[0].status, '已离职', 'employment record must become resigned');
 assert.strictEqual(store.companyState.employmentRecords[0].duration, '6个月', 'employment duration must be preserved through the store helper');
+
+const dispatchCalls = [];
+const integrationSettlementActions = modules.app.orgTerritory.settlementActions;
+const originalDedupe = modules.orgTerritory.dedupeOrgTerritoryUpdates;
+const originalApplyStatus = integrationSettlementActions.applyOrgStatus;
+const originalApplyTerritory = integrationSettlementActions.applyTerritoryControl;
+const originalApplyMembership = integrationSettlementActions.applyMembershipUpdate;
+modules.orgTerritory.dedupeOrgTerritoryUpdates = (updates) => updates;
+integrationSettlementActions.applyOrgStatus = () => { dispatchCalls.push('org-status'); return { text: 'status' }; };
+integrationSettlementActions.applyTerritoryControl = () => { dispatchCalls.push('territory-control'); return { text: 'territory' }; };
+integrationSettlementActions.applyMembershipUpdate = () => { dispatchCalls.push('membership'); return { text: 'membership' }; };
+const dispatchLines = integrationSettlementActions.applySettlementUpdates(store, [
+  { updateType: 'membership' },
+  { updateType: 'territory-control' },
+  { updateType: 'org-status' },
+]);
+assert.strictEqual(dispatchCalls.join(','), 'org-status,territory-control,membership', 'settlement dispatch must preserve status and territory priority');
+assert.strictEqual(dispatchLines.join(','), 'status,territory,membership', 'settlement dispatch must preserve result text order');
+dispatchCalls.length = 0;
+store.orgTerritoryReconciliationLog = [];
+integrationSettlementActions.applyMembershipUpdate = () => { dispatchCalls.push('membership'); return { text: 'membership' }; };
+const originalWarn = console.warn;
+const settlementWarnings = [];
+console.warn = (...args) => settlementWarnings.push(args.join(' '));
+try {
+  integrationSettlementActions.applySettlementUpdates(store, Array.from({ length: 14 }, () => ({ updateType: 'membership' })));
+} finally {
+  console.warn = originalWarn;
+}
+assert.strictEqual(dispatchCalls.length, 12, 'settlement dispatch must preserve the per-turn update limit');
+assert.strictEqual(store.orgTerritoryReconciliationLog[0].dropped, 2, 'settlement dispatch must record truncated updates');
+assert.ok(settlementWarnings.some((line) => line.includes('丢弃 2 条')), 'settlement dispatch must report truncated updates');
+modules.orgTerritory.dedupeOrgTerritoryUpdates = originalDedupe;
+integrationSettlementActions.applyOrgStatus = originalApplyStatus;
+integrationSettlementActions.applyTerritoryControl = originalApplyTerritory;
+integrationSettlementActions.applyMembershipUpdate = originalApplyMembership;
 
 const territory = modules.orgTerritory;
 assert.strictEqual(
