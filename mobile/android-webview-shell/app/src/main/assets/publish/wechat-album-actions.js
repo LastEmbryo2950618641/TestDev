@@ -1,4 +1,5 @@
 ﻿window.GameModules = window.GameModules || {};
+// Compatibility facade: keep business logic in app/wechat modules.
 window.GameModules.wechatAlbumActions = {
   openWechatContactProfile(...args) {
     return window.GameModules.app.wechat.albumProfileOrchestration.openWechatContactProfile.call(this, ...args);
@@ -58,7 +59,9 @@ window.GameModules.wechatAlbumActions = {
   wechatAlbumBodyText(...args) { return window.GameModules.app.wechat.albumPromptHelpers.wechatAlbumBodyText.call(this, ...args); },
   wechatAlbumPhotoPrompt(...args) { return window.GameModules.app.wechat.albumPromptHelpers.wechatAlbumPhotoPrompt.call(this, ...args); },
 
-  async generateWechatAlbumSelectedPhoto() { await this.generateWechatAlbumPhotoFromSelectedPrompt(); },
+  async generateWechatAlbumSelectedPhoto(...args) {
+    return window.GameModules.app.wechat.albumSelectedGenerationOrchestration.generateWechatAlbumSelectedPhoto.call(this, ...args);
+  },
   async generateWechatAlbumPhotoFromSelectedPrompt(...args) {
     return window.GameModules.app.wechat.albumSelectedGenerationOrchestration.generateWechatAlbumPhotoFromSelectedPrompt.call(this, ...args);
   },

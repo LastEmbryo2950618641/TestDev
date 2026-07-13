@@ -3,6 +3,10 @@ window.GameModules.app = window.GameModules.app || {};
 window.GameModules.app.wechat = window.GameModules.app.wechat || {};
 
 window.GameModules.app.wechat.albumSelectedGenerationOrchestration = {
+  async generateWechatAlbumSelectedPhoto() {
+    await this.generateWechatAlbumPhotoFromSelectedPrompt();
+  },
+
   async generateWechatAlbumPhotoFromSelectedPrompt() {
     const selectedPrompt = this.wechatAlbumSelectedPrompt?.();
     const kind = selectedPrompt?.kind || this.wechatAlbumPromptDraft?.kind || 'natural';

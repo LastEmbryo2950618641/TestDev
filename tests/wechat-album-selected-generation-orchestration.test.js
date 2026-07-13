@@ -18,8 +18,10 @@ function loadSelectedGenerationOrchestration(context) {
 
 async function testFacadeForwarding() {
   const forwardedResult = { source: 'selected-generation-orchestration' };
+  const shortcutResult = { source: 'selected-generation-shortcut' };
   let receivedThis = null;
   let receivedArgs = null;
+  let shortcutThis = null;
   const context = vm.createContext({
     console,
     window: {
@@ -31,6 +33,11 @@ async function testFacadeForwarding() {
                 receivedThis = this;
                 receivedArgs = args;
                 return forwardedResult;
+              },
+              async generateWechatAlbumSelectedPhoto(...args) {
+                shortcutThis = this;
+                assert.deepStrictEqual(args, ['shortcut-arg']);
+                return shortcutResult;
               },
             },
             albumPromptListHelpers: {},
@@ -49,9 +56,12 @@ async function testFacadeForwarding() {
     generateWechatAlbumPhoto: async () => {},
   };
   const result = await store.generateWechatAlbumPhotoFromSelectedPrompt('arg');
+  const shortcut = await store.generateWechatAlbumSelectedPhoto('shortcut-arg');
 
   assert.strictEqual(result, forwardedResult);
+  assert.strictEqual(shortcut, shortcutResult);
   assert.strictEqual(receivedThis, store);
+  assert.strictEqual(shortcutThis, store);
   assert.deepStrictEqual(receivedArgs, ['arg']);
 }
 
@@ -156,6 +166,25 @@ async function testNoSelectedPromptFlow() {
   ]]);
 }
 
+async function testSelectedGenerationShortcut() {
+  const context = vm.createContext({
+    console,
+    window: { GameModules: { app: { wechat: { albumPromptListHelpers: {} } } } },
+  });
+  context.window.window = context.window;
+  const orchestration = loadSelectedGenerationOrchestration(context);
+  assert.strictEqual(typeof orchestration.generateWechatAlbumSelectedPhoto, 'function');
+  let calls = 0;
+  const store = {
+    async generateWechatAlbumPhotoFromSelectedPrompt() { calls += 1; },
+  };
+
+  const result = await orchestration.generateWechatAlbumSelectedPhoto.call(store);
+
+  assert.strictEqual(result, undefined);
+  assert.strictEqual(calls, 1);
+}
+
 (async () => {
   await testFacadeForwarding();
   console.log('PASS selected-generation facade forwards context and arguments');
@@ -163,6 +192,8 @@ async function testNoSelectedPromptFlow() {
   console.log('PASS selected-generation orchestration preserves selected prompt flow');
   await testNoSelectedPromptFlow();
   console.log('PASS selected-generation orchestration preserves no-selection flow');
+  await testSelectedGenerationShortcut();
+  console.log('PASS selected-generation orchestration preserves shortcut behavior');
 })().catch((err) => {
     console.error(err);
     process.exit(1);

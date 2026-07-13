@@ -84,3 +84,13 @@ Contact profile opening and profile/album/home navigation are now owned by
 `app/wechat/album-profile-orchestration.js`. Group short-circuit behavior,
 asynchronous profile reuse, save-on-success, missing-profile errors, warning
 handling, and two-level back navigation remain unchanged.
+
+## Facade Completion
+
+All album business logic has been removed from `wechat-album-actions.js`. The
+file remains intentionally as the stable public registration facade used by
+templates and store merging. `npm run verify:wechat-album-facade` enforces that
+all 39 methods remain direct module forwarders with no state mutation, local
+business state, control flow, or store-level orchestration. See
+`wechat-album-facade-completion-audit-2026-07-13.md` for the evidence and
+retention decision.

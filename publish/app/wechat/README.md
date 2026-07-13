@@ -257,6 +257,10 @@ The preferred migration pattern for new work here is:
 - `publish/app/wechat/`: helper and small utility layer
 - `publish/domain/worldline/`: shared worldline business logic when the helper is no longer WeChat-local
 
+`publish/wechat-album-actions.js` is now a compatibility-only facade. Run
+`npm run verify:wechat-album-facade` after album changes to ensure business
+logic does not return to that public entry file.
+
 ## Immediate practical rule
 
 If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, history-context, image-record, image-ui, image-album, image-prompt, image-receive-orchestration, image-offer-orchestration, worldline-orchestration, change-panel-orchestration, app-orchestration, incoming-orchestration, memory-debug-orchestration, cleanup-orchestration, album-orchestration, album-profile-orchestration, album-body-figure, album-body-figure-context, album-body-profile-generator-orchestration, album-delete-orchestration, album-mark-real-orchestration, album-body-figure-asset-orchestration, album-generate, album-generation-orchestration, album-selected-generation-orchestration, album-photo-state, album-draw, album-ui-state, album-prompt-editor, album-prompt-editor-orchestration, avatar-crop-helpers, album-prompt-list, album-prompt, album-tag, mention-view, mention-base-photo, mention-reference, or mention-input style boundaries, document the rationale before adding another module here.

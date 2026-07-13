@@ -26,6 +26,8 @@ selected-list persistence, and generation ordering.
    prompt-list helper and await one `save()` call.
 6. After optional persistence, always call `generateWechatAlbumPhoto()` with
    the derived kind and `{ prompt, negativePrompt }`.
+7. The public `generateWechatAlbumSelectedPhoto()` shortcut remains a thin
+   wrapper that awaits the from-selected method and returns `undefined`.
 
 ## Verification
 

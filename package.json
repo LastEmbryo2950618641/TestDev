@@ -8,6 +8,7 @@
     "verify:runtime-coverage": "node dev/scripts/verify-runtime-module-coverage.cjs",
     "verify:runtime-deps": "node dev/scripts/verify-runtime-module-dependencies.cjs",
     "verify:wechat-chat-invariants": "node dev/scripts/verify-wechat-chat-invariants.cjs",
+    "verify:wechat-album-facade": "node tests/wechat-album-facade.test.js",
     "android:assemble-debug": "cd mobile/android-webview-shell && gradlew.bat :app:assembleDebug --no-daemon",
     "validate:control:http": "npm --prefix tools/validation-browser run control:http",
     "validate:control:file": "npm --prefix tools/validation-browser run control:file",
