@@ -8,6 +8,10 @@ window.GameModules.platform.storage.worldlineSource = {
     return window.GameModules.sqliteSave?.getWorldline?.(worldTag) || null;
   },
 
+  listEvents(worldTag = '') {
+    return window.GameModules.sqliteSave?.listWorldlineEvents?.(worldTag) || [];
+  },
+
   save(worldTag = '', worldline = null) {
     return window.GameModules.sqliteSave?.saveWorldline?.(worldTag, worldline);
   },

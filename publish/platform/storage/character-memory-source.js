@@ -4,6 +4,10 @@ window.GameModules.platform.core = window.GameModules.platform.core || {};
 window.GameModules.platform.storage = window.GameModules.platform.storage || {};
 
 window.GameModules.platform.storage.characterMemorySource = {
+  isAvailable() {
+    return Boolean(window.GameModules.sqliteSave?.db);
+  },
+
   get(characterId = '') {
     return window.GameModules.sqliteSave?.getCharacterMemory?.(characterId) || null;
   },

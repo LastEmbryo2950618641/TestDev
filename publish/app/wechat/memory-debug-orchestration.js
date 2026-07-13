@@ -30,22 +30,18 @@ window.GameModules.app.wechat.memoryDebugOrchestration = {
   },
 
   sqliteWechatMemory(characterId) {
-    if (!characterId || !window.GameModules.sqliteSave?.db) return null;
+    if (!characterId || !window.GameModules.characterMemoryStore?.isAvailable?.()) return null;
     try { return window.GameModules.characterMemory?.ensure?.(characterId) || null; }
     catch (err) { console.warn('[微信记忆检查] 读取记忆失败:', err.message, err.stack); return null; }
   },
 
   sqliteWechatWorldline() {
-    const db = window.GameModules.sqliteSave?.db;
-    if (!db) return this.memoryDebugRuntimeWorldline();
     const rows = [];
     try {
-      const stmt = db.prepare('SELECT event_json FROM worldline_events ORDER BY updated_at');
-      while (stmt.step()) {
-        const event = JSON.parse(stmt.getAsObject().event_json);
+      const events = window.GameModules.worldlineStore?.listEvents?.() || [];
+      events.forEach((event) => {
         if (String(event.eventId || '').startsWith('wx_') || String(event.detail || '').includes('以下来自微信对话')) rows.push(event);
-      }
-      stmt.free();
+      });
     } catch (err) { console.warn('[微信记忆检查] 读取世界线表失败:', err.message, err.stack); }
     return rows.length ? rows : this.memoryDebugRuntimeWorldline();
   },

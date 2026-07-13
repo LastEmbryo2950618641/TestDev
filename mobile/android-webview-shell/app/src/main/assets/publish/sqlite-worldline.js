@@ -44,6 +44,19 @@ window.GameModules = window.GameModules || {};
     return row ? JSON.parse(row.worldline_json) : null;
   };
 
+  save.listWorldlineEvents = function listWorldlineEvents(worldTag = '') {
+    if (!this.db) return [];
+    const sql = worldTag
+      ? 'SELECT event_json FROM worldline_events WHERE world_tag=? ORDER BY updated_at'
+      : 'SELECT event_json FROM worldline_events ORDER BY updated_at';
+    const stmt = this.db.prepare(sql);
+    if (worldTag) stmt.bind([worldTag]);
+    const events = [];
+    while (stmt.step()) events.push(JSON.parse(stmt.getAsObject().event_json));
+    stmt.free();
+    return events;
+  };
+
   save.saveWorldline = async function saveWorldline(worldTag, worldline) {
     if (!this.db || !worldline) return;
     const now = new Date().toISOString();

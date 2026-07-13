@@ -11,6 +11,10 @@ window.GameModules.worldlineStore = {
     return this.source()?.get?.(worldTag) || null;
   },
 
+  listEvents(worldTag = '') {
+    return this.source()?.listEvents?.(worldTag) || [];
+  },
+
   save(worldTag = '', worldline = null) {
     return this.source()?.save?.(worldTag, worldline);
   },

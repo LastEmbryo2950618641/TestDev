@@ -7,6 +7,10 @@ window.GameModules.characterMemoryStore = {
       || null;
   },
 
+  isAvailable() {
+    return Boolean(this.source()?.isAvailable?.());
+  },
+
   get(characterId = '') {
     return this.source()?.get?.(characterId) || null;
   },

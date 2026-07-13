@@ -36,6 +36,7 @@ const context = vm.createContext({
   window: {
     GameModules: {
       sqliteSave: {
+        db: {},
         getCharacterMemory(characterId) { calls.push(['get', characterId]); return memory; },
         async saveCharacterMemory(characterId, value) { calls.push(['save', characterId, value]); return value; },
         listMemoryArchives(characterId) { calls.push(['listArchives', characterId]); return [archive]; },
@@ -48,6 +49,7 @@ vm.runInContext(fs.readFileSync(sourcePath, 'utf8'), context, { filename: 'chara
 vm.runInContext(fs.readFileSync(storePath, 'utf8'), context, { filename: 'character-memory-store.js' });
 const store = context.window.GameModules.characterMemoryStore;
 
+assert.strictEqual(store.isAvailable(), true);
 assert.strictEqual(store.get('c1'), memory);
 assert.deepStrictEqual(JSON.parse(JSON.stringify(store.listArchives('c1'))), [archive]);
 
