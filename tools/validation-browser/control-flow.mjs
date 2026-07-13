@@ -102,6 +102,14 @@ const result = await page.evaluate(async () => {
     'currentSettingsSummaryParts',
     'currentSettingsSummaryText',
   ];
+  const companyViewApiNames = [
+    'companyFields',
+    'currentWorkAttendance',
+    'companyPayPanelView',
+    'companyHeaderView',
+    'companyAttendanceView',
+    'companyPayPreviewView',
+  ];
   return {
     started: game.started,
     online: game.online,
@@ -119,6 +127,7 @@ const result = await page.evaluate(async () => {
     hasMemoryFlow: typeof window.GameModules.characterMemory?.recordTurn === 'function',
     hasSaveSlotApi: saveSlotApiNames.every((name) => typeof game[name] === 'function'),
     hasSettingsSummaryApi: settingsSummaryApiNames.every((name) => typeof game[name] === 'function'),
+    hasCompanyViewApi: companyViewApiNames.every((name) => typeof game[name] === 'function'),
     choices: (game.choices || []).map((item) => item.text || item).slice(0, 4),
     feedbackSource: game.feedbackSource || '',
   };
@@ -126,7 +135,7 @@ const result = await page.evaluate(async () => {
 
 const expectedAuthErrors = consoleIssues.filter((item) => /AUTH_REQUIRED|DeepSeek API Key/.test(item.text));
 const unexpectedIssues = consoleIssues.filter((item) => !/AUTH_REQUIRED|DeepSeek API Key|AI 推演失败|人物设定生成失败|AI补全失败|role card generation unavailable|请求未完成/.test(item.text));
-const ok = result.started === true && result.online === true && result.busy === false && result.hasActiveControlTarget === true && result.hasLoop === true && result.hasMemoryFlow === true && result.hasSaveSlotApi === true && result.hasSettingsSummaryApi === true && badResponses.length === 0 && pageErrors.length === 0 && unexpectedIssues.length === 0;
+const ok = result.started === true && result.online === true && result.busy === false && result.hasActiveControlTarget === true && result.hasLoop === true && result.hasMemoryFlow === true && result.hasSaveSlotApi === true && result.hasSettingsSummaryApi === true && result.hasCompanyViewApi === true && badResponses.length === 0 && pageErrors.length === 0 && unexpectedIssues.length === 0;
 
 console.log(JSON.stringify({ mode, targetUrl, ok, result, badResponses, pageErrors, expectedAuthErrors: expectedAuthErrors.length, unexpectedIssues }, null, 2));
 await browser.close();

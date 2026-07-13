@@ -2,9 +2,12 @@
 
 const companyViewHelperForwarders = {
   companyOrganization: 'companyOrganization',
+  companyFields: 'companyFields',
+  currentWorkAttendance: 'currentWorkAttendance',
   companyHeaderView: 'companyHeaderView',
   companyAttendanceView: 'companyAttendanceView',
   companyPayPreviewView: 'companyPayPreviewView',
+  companyPayPanelView: 'companyPayPanelView',
   companyOrganizationSectionView: 'companyOrganizationSectionView',
   companyFieldSectionView: 'companyFieldSectionView',
   companyContractSectionView: 'companyContractSectionView',
