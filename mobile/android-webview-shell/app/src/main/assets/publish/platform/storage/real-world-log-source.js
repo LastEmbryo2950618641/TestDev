@@ -12,6 +12,10 @@ window.GameModules.platform.storage.realWorldLogSource = {
     return window.GameModules.sqliteSave?.getRealWorldLogEntry?.(id) || null;
   },
 
+  remove(id = '') {
+    return window.GameModules.sqliteSave?.deleteRealWorldLogEntry?.(id);
+  },
+
   list(page = 1, pageSize = 20) {
     return window.GameModules.sqliteSave?.listRealWorldLogEntries?.(page, pageSize) || [];
   },

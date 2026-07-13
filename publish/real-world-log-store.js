@@ -15,6 +15,10 @@ window.GameModules.realWorldLogStore = {
     return this.source()?.get?.(id) || null;
   },
 
+  remove(id = '') {
+    return this.source()?.remove?.(id);
+  },
+
   list(page = 1, pageSize = 20) {
     return this.source()?.list?.(page, pageSize) || [];
   },

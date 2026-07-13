@@ -278,6 +278,7 @@ window.GameScriptManifest = {
       "real-world-settlement-actions.js",
       "real-world-profile-stage5.js",
       "real-world-utility-actions.js",
+      "real-world-actions.js",
       "ui/real-world/map-stage-view-helpers.js",
       "real-world-map-actions.js",
       "real-world-faction-actions.js",

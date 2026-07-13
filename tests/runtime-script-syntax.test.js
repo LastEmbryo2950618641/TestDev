@@ -15,6 +15,7 @@ const scripts = [
   'company-faction-actions.js',
   'known-profession-actions.js',
   'predefined-role-cards.js',
+  'real-world-actions.js',
   'real-world-clock-actions.js',
   'real-world-stream-actions.js',
   'real-world-settlement-actions.js',
