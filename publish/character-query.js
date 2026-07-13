@@ -43,9 +43,9 @@ window.GameModules.characterQuery = {
   introByName(name = '', worldTag = '') {
     const key = String(name || '').trim();
     if (!key) return null;
-    const save = window.GameModules.sqliteSave;
-    return save?.getCharacterIntro?.(key, worldTag)
-      || (save?.listCharacterIntros?.() || []).find((card) => card?.name === key && this.worldMatches(worldTag, card.worldTag || card.work))
+    const introStore = window.GameModules.characterIntroStore;
+    return introStore?.get?.(key, worldTag)
+      || (introStore?.list?.() || []).find((card) => card?.name === key && this.worldMatches(worldTag, card.worldTag || card.work))
       || null;
   },
 
@@ -69,7 +69,7 @@ window.GameModules.characterQuery = {
   listKnownCharacters(store = null, params = {}) {
     const worldTag = this.worldOf(store, params);
     const states = (window.GameModules.characterStateStore?.list?.() || []).filter((state) => this.worldMatches(worldTag, state.worldTag || state.profile?.work));
-    const intros = (window.GameModules.sqliteSave?.listCharacterIntros?.() || []).filter((card) => this.worldMatches(worldTag, card.worldTag || card.work));
+    const intros = (window.GameModules.characterIntroStore?.list?.() || []).filter((card) => this.worldMatches(worldTag, card.worldTag || card.work));
     const rows = [
       ...states.slice(0, 12).map((state) => `角色卡｜${state.name || state.profile?.name || state.id}｜${state.worldTag || worldTag}｜${state.profile?.role || state.profile?.detail || '完整资料已固化'}`),
       ...intros.slice(0, 12).map((card) => `介绍卡｜${card.name}｜${card.worldTag || worldTag}｜${card.role || ''}｜${card.intro || ''}`),

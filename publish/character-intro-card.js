@@ -42,10 +42,10 @@ window.GameModules.characterIntroCard = {
     const card = this.normalize(raw, store, source);
     if (!card) return null;
     if (this.roleCardExists(card)) return { ...card, displayType: 'role' };
-    const save = window.GameModules.sqliteSave;
-    const existing = save?.getCharacterIntro?.(card.name, card.worldTag);
+    const introStore = window.GameModules.characterIntroStore;
+    const existing = introStore?.get?.(card.name, card.worldTag);
     if (existing) return existing;
-    return await save?.saveCharacterIntro?.({ ...card, createdAt: new Date().toISOString() });
+    return await introStore?.save?.({ ...card, createdAt: new Date().toISOString() });
   },
 
   async ensureMany(store, items = [], source = 'ai') {
