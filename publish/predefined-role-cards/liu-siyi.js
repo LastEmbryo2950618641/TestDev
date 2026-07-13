@@ -1457,4 +1457,3 @@ window.GameModules.predefinedRoleCardData['liu-siyi'] = {
     }
   ]
 };
-

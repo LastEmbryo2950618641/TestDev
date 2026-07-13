@@ -98,6 +98,3 @@ window.GameModules.taobaoActions = {
     if (!slot.product) await this.generateTaobaoProduct(slot.id);
   },
 };
-
-
-

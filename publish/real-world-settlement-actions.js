@@ -177,4 +177,3 @@ window.GameModules.realWorldSettlementActions = {
     await window.GameModules.characterStateStore?.save?.(state);
   },
 };
-

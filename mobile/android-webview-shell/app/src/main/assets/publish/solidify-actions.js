@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 
 window.GameModules.solidifyActions = {
   async collectSolidifiableCharacters(result = {}, mode = 'story') {

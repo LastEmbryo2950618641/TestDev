@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 window.GameModules.predefinedRoleCardData = window.GameModules.predefinedRoleCardData || {};
 window.GameModules.predefinedRoleCardData['liu-siqi'] = {
   "id": "rel-ai-247528",

@@ -332,12 +332,3 @@ window.GameModules.factionActions = {
     this.factionState.showAllStubs = !this.factionState.showAllStubs;
   },
 };
-
-
-
-
-
-
-
-
-

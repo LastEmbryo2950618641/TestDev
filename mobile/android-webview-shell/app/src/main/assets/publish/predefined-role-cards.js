@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 
 window.GameModules.predefinedRoleCards = {
   keys: ['liu-you', 'liu-siyao', 'liu-siqi', 'liu-siyi'],

@@ -82,10 +82,3 @@ window.GameModules.taobaoBuyActions = {
     return window.GameModules.taobaoDomainHelpers.taobaoInventoryUpdates.call(this, item);
   },
 };
-
-
-
-
-
-
-

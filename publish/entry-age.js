@@ -90,4 +90,3 @@ Object.assign(window.GameModules.entryTime, {
     return age >= 0 && age < 1000 ? age : null;
   },
 });
-

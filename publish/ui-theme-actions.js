@@ -110,4 +110,3 @@ window.GameModules.uiThemeActions = {
     window.GameModules.uiThemeActions.apply(stored.uiThemeId || 'dark', stored.uiThemeCustomColor || '#7fe5ff');
   } catch (_) { /* ignore */ }
 })();
-

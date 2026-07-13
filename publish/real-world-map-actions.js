@@ -733,9 +733,3 @@ window.GameModules.realWorldMapActions = {
 
   realWorldMapFactText(fact, index) { return window.GameModules.ui.realWorld.mapViewHelpers.factText.call(this, fact, index); }
 };
-
-
-
-
-
-

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 鎵嬫満鏃堕棿涓庣幇瀹炰笘鐣屾帹婕旂晫闈€?
  */
 window.GameModules = window.GameModules || {};

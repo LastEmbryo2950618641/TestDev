@@ -176,4 +176,3 @@ Object.entries(companyViewHelperForwarders).forEach(([name, helperName]) => {
     return callCompanyViewHelper(helperName, this, ...args);
   };
 });
-

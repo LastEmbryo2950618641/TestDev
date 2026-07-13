@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 window.GameModules.updateRegistry = window.GameModules.updateRegistry || {};
 Object.assign(window.GameModules.updateRegistry, {
   targetState(store, update = {}) {

@@ -139,6 +139,3 @@ window.GameModules.controlLinkActions = {
   realWorldDisplayState() { return window.GameModules.domain.control.linkRules.realWorldDisplayState.call(this); },
   realWorldDisplayCharacter() { return window.GameModules.domain.control.linkRules.realWorldDisplayCharacter.call(this); },
 };
-
-
-

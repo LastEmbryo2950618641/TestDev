@@ -110,4 +110,3 @@ window.GameModules.companyFactionActions = {
     window.GameModules.characterStateStore?.save?.(state).catch((err) => console.warn('[浜轰簨褰掑睘] 淇濆瓨澶辫触:', err.message, err.stack));
   },
 };
-

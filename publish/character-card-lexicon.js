@@ -96,4 +96,3 @@ window.GameModules.characterCardLexicon = {
     return { at: new Date().toISOString(), skillId: update.kind === '瑙掕壊鎶€鑳? ? this.addSkillId : this.modifySkillId, field: this.displayField(update.field), name: update.name || update.field, value: update.value, reason: update.reason, applied };
   },
 };
-

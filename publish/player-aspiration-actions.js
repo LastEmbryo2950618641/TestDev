@@ -1072,5 +1072,3 @@ window.GameModules.playerAspirationActions = {
     }
   },
 };
-
-

@@ -1406,4 +1406,3 @@ window.GameModules.predefinedRoleCardData['liu-siqi'] = {
     }
   ]
 };
-

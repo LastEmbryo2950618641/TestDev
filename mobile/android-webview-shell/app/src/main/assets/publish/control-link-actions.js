@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 
 window.GameModules.controlLinkActions = {
   controlLinkMetricKeys: window.GameModules.domain?.control?.linkRules?.controlLinkMetricKeys || ['好感', '信任', '依赖', '爱情', '亲情', '友情', '肉欲', '服从'],

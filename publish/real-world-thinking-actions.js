@@ -345,4 +345,3 @@ window.GameModules.realWorldThinkingActions = {
     return type || '鏈煡姝ラ';
   },
 };
-

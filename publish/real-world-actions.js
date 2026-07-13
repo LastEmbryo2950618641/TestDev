@@ -161,5 +161,3 @@ window.GameModules.realWorldActions = {
     this.scrollRealWorldLogBottom?.();
   },
 };
-
-

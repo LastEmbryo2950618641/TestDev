@@ -337,4 +337,3 @@
     return this.addWechatUsers(merged, options);
   },
 };
-

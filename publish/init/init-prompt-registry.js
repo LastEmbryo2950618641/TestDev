@@ -191,4 +191,3 @@ registerAll(prefix = '') { this.prompts = {}; Object.entries(window.GameModules.
   skillText(ids = null, store = null) { const selected = Array.isArray(ids) ? this.selectByNames(ids, store) : this.pending(String(ids || ''), store); return selected.map((item) => [`## ${item.name || item.id}`, item.body, item.template?.promptText?.() || ''].filter(Boolean).join('\n\n')).filter(Boolean).join('\n\n'); },
   schema(ids = null, store = null) { const result = { initUpdates: [] }, selected = Array.isArray(ids) ? this.selectByNames(ids, store) : this.pending(String(ids || ''), store); selected.forEach((item) => { const schema = item.template?.jsonFormat?.(); if (Array.isArray(schema?.initUpdates)) result.initUpdates.push(...schema.initUpdates); }); return result; },
 };
-

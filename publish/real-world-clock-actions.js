@@ -135,6 +135,3 @@ window.GameModules.realWorldClockActions = {
     window.GameModules.realWorldLogStore?.append?.(entry).then(() => this.refreshRealWorldLogPage?.(999999)).catch((err) => console.warn('[鐜板疄鏃ュ織] 鍒濆璁板綍淇濆瓨澶辫触:', err.message, err.stack));
   },
 };
-
-
-

@@ -5,6 +5,7 @@ desktop/shell/dist-minimal/
 desktop/shell/.electron-dist/
 desktop/shell/.artifacts/
 desktop/shell/.verify-storage/
+publish/platform/.artifacts/
 
 # Generated mobile shell outputs and local verification caches
 mobile/android-webview-shell/.gradle/

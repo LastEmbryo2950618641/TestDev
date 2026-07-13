@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {}; window.GameModules.wechatActions = {
+﻿window.GameModules = window.GameModules || {}; window.GameModules.wechatActions = {
   defaultWechatGroup() {
     return { id: 'group-main', name: '鎿嶆帶鑰呬氦娴佺兢', mark: '缇?, subtitle: '鑱婂ぉ缇?, latest: '绯荤粺锛氭柊鎵嬫満宸叉縺娲汇€?, unread: 8, group: true };
   },

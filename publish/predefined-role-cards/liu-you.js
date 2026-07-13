@@ -1604,4 +1604,3 @@ window.GameModules.predefinedRoleCardData['liu-you'] = {
     }
   ]
 };
-

@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 window.GameModules.realWorldStreamActions = {
   updateRealWorldStream(id, raw, options = {}) {
     const entry = (this.realWorldLog || []).find((item) => item.id === id) || window.GameModules.realWorldLogStore?.get?.(id);

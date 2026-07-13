@@ -34,6 +34,3 @@ window.GameModules.wechatChangePanelActions = {
     return window.GameModules.wechatViewHelpers.wechatWearingReasonItems.call(this, list);
   },
 };
-
-
-

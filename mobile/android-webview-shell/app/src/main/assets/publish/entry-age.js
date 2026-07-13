@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 window.GameModules.entryTime = window.GameModules.entryTime || {};
 
 Object.assign(window.GameModules.entryTime, {

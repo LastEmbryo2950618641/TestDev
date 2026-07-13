@@ -160,6 +160,12 @@
 - `mobile/shell/.bridge-verify-storage/`
 - 本地环境文件如 `local.properties`
 
+提交前建议运行：
+
+- `npm run verify:repo-boundaries`
+- `npm run verify:assets`
+- `npm run android:sync-assets -- --check`
+
 如需提交，必须白名单确认其确实属于长期项目资产，而不是构建或验证副产物。
 
 ## 推荐阅读顺序

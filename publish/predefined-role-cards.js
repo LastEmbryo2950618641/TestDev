@@ -481,5 +481,3 @@ window.GameModules.predefinedRoleCardActions = {
     this.applySelectedRelationshipRoleCards();
   },
 };
-
-

@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 window.GameModules.taobaoGenerateActions = {
   async taobaoPrompt(slot = {}) {
     const p = this.playerProfile || {};

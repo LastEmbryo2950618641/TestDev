@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 window.GameModules.predefinedRoleCardData = window.GameModules.predefinedRoleCardData || {};
 window.GameModules.predefinedRoleCardData['liu-you'] = {
   "id": "player-self",

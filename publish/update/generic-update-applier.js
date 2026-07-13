@@ -419,5 +419,3 @@ Object.assign(window.GameModules.updateRegistry, {
     }
   },
 });
-
-

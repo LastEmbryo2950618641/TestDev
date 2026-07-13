@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 window.GameModules.taobaoBuyActions = {
   taobaoPurchaseFailureMessage(err) {
     return window.GameModules.taobaoDomainHelpers.taobaoPurchaseFailureMessage.call(this, err);

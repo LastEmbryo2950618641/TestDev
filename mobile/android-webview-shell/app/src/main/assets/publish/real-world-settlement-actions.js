@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldSettlementActions = {
   realWorldSettlementRecord(field, name, value, reason, group = '', card = null) {

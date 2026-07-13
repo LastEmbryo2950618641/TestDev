@@ -45,5 +45,3 @@ window.GameModules.taobaoGenerateActions = {
     return window.GameModules.taobaoAppFlow.generateTaobaoProduct.call(this, slotId);
   },
 };
-
-

@@ -1482,4 +1482,3 @@ window.GameModules.predefinedRoleCardData['liu-siyao'] = {
     }
   ]
 };
-

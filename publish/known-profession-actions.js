@@ -152,4 +152,3 @@ window.GameModules.knownProfessionActions = {
     return true;
   },
 };
-

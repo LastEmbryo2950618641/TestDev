@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 
 const companyViewHelperForwarders = {
   companyOrganization: 'companyOrganization',

@@ -665,5 +665,3 @@ window.GameModules.playerAspirationConfig = {
     return [...existing, ...appended.slice(0, count)];
   },
 };
-
-

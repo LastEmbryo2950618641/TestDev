@@ -27,4 +27,3 @@ window.GameModules.characterStateStore = {
     return this.source()?.save?.(state);
   },
 };
-
