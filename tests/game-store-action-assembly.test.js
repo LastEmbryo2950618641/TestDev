@@ -6,15 +6,17 @@ const root = path.resolve(__dirname, '..');
 const gameSource = fs.readFileSync(path.join(root, 'publish', 'game.js'), 'utf8');
 const remergeSource = fs.readFileSync(path.join(root, 'publish', 'remerge-game-store.js'), 'utf8');
 
-assert.match(
-  gameSource,
-  /gm\.factionMembershipActions/u,
-  'initial game store must include faction membership actions',
-);
-assert.match(
-  remergeSource,
-  /gm\.factionMembershipActions/u,
-  'dynamic game store remerge must include faction membership actions',
-);
+for (const namespace of ['factionMembershipActions', 'controlEntryActions']) {
+  assert.match(
+    gameSource,
+    new RegExp(`gm\\.${namespace}`, 'u'),
+    `initial game store must include ${namespace}`,
+  );
+  assert.match(
+    remergeSource,
+    new RegExp(`gm\\.${namespace}`, 'u'),
+    `dynamic game store remerge must include ${namespace}`,
+  );
+}
 
-console.log('PASS game store includes faction membership actions in both assembly paths');
+console.log('PASS game store includes required action modules in both assembly paths');
