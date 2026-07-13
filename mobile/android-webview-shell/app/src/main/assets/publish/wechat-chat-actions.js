@@ -1,5 +1,22 @@
 window.GameModules = window.GameModules || {};
 
+const wechatChatSessionForwarders = {
+  selectWechatContact: 'selectContact',
+  wechatMessageKey: 'messageKey',
+  wechatMessages: 'messages',
+  updateWechatLatest: 'updateLatest',
+};
+
+const wechatChatMessageForwarders = {
+  appendWechatMessage: 'appendWechatMessage',
+  wechatMessageTime: 'wechatMessageTime',
+  wechatMemoryTime: 'wechatMemoryTime',
+  wechatDialogueTimeLabel: 'wechatDialogueTimeLabel',
+  formatWechatDialogueLog: 'formatWechatDialogueLog',
+  wechatTimeValue: 'wechatTimeValue',
+  wechatTimeDisplay: 'wechatTimeDisplay',
+};
+
 function callWechatChatSession(name, context, ...args) {
   return window.GameModules.app.wechat.chatSession[name].call(context, ...args);
 }
@@ -9,21 +26,6 @@ function callWechatChatMessageHelper(name, context, ...args) {
 }
 
 window.GameModules.wechatChatActions = {
-  selectWechatContact(id) {
-    return callWechatChatSession('selectContact', this, id);
-  },
-
-  wechatMessageKey(contact) {
-    return callWechatChatSession('messageKey', this, contact);
-  },
-
-  wechatMessages() {
-    return callWechatChatSession('messages', this);
-  },
-  updateWechatLatest(id, latest, incoming = false) {
-    return callWechatChatSession('updateLatest', this, id, latest, incoming);
-  },
-
   async sendWechatMessage() {
     const text = String(this.wechatInput || '').trim();
     const target = this.wechatSelected();
@@ -36,34 +38,6 @@ window.GameModules.wechatChatActions = {
     await this.save?.();
     if (target.group) return;
     await this.replyWechatContact(target, text);
-  },
-
-  appendWechatMessage(id, msg) {
-    return callWechatChatMessageHelper('appendWechatMessage', this, id, msg);
-  },
-
-  wechatMessageTime() {
-    return callWechatChatMessageHelper('wechatMessageTime', this);
-  },
-
-  wechatMemoryTime() {
-    return callWechatChatMessageHelper('wechatMemoryTime', this);
-  },
-
-  wechatDialogueTimeLabel(label = '') {
-    return callWechatChatMessageHelper('wechatDialogueTimeLabel', this, label);
-  },
-
-  formatWechatDialogueLog(playerName, contactName, label, playerText, replyText = '') {
-    return callWechatChatMessageHelper('formatWechatDialogueLog', this, playerName, contactName, label, playerText, replyText);
-  },
-
-  wechatTimeValue(d) {
-    return callWechatChatMessageHelper('wechatTimeValue', this, d);
-  },
-
-  wechatTimeDisplay(d) {
-    return callWechatChatMessageHelper('wechatTimeDisplay', this, d);
   },
 
 
@@ -179,3 +153,15 @@ window.GameModules.wechatChatActions = {
     return `我看到啦，等我想一下再回你。`;
   },
 };
+
+Object.entries(wechatChatSessionForwarders).forEach(([name, helperName]) => {
+  window.GameModules.wechatChatActions[name] = function wechatChatSessionFacade(...args) {
+    return callWechatChatSession(helperName, this, ...args);
+  };
+});
+
+Object.entries(wechatChatMessageForwarders).forEach(([name, helperName]) => {
+  window.GameModules.wechatChatActions[name] = function wechatChatMessageFacade(...args) {
+    return callWechatChatMessageHelper(helperName, this, ...args);
+  };
+});
