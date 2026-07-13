@@ -748,9 +748,12 @@ window.GameModules.orgTerritory = {
     });
 
     const hot = this.territoryHotText(store);
+    const hotLocationNames = new Set(String(hot || '').split('\n')
+      .map((line) => String(line || '').split('｜')[0].trim())
+      .filter(Boolean));
     (map.nodes || []).forEach((node) => {
       if (node.revealed || !node.name) return;
-      if (hot.includes(node.name)) notes.push(`C6：未揭示地点「${node.name}」不应出现在 Territory Hot`);
+      if (hotLocationNames.has(node.name)) notes.push(`C6：未揭示地点「${node.name}」不应出现在 Territory Hot`);
     });
 
     const checks = {
@@ -1086,10 +1089,10 @@ window.GameModules.orgTerritory = {
     return `${at || '未知时间'}｜${controlText}｜${status}${item.reason ? `｜${item.reason}` : ''}`;
   },
 
-  resolveHomeMapNode(store) {
+  resolveHomeMapNode(store, activeMap = null) {
     const profile = store?.playerProfile || {};
     const mapMod = window.GameModules.realWorldMap;
-    const map = mapMod?.ensure?.(store, profile) || store.realWorldMap || {};
+    const map = activeMap || mapMod?.ensure?.(store, profile) || store.realWorldMap || {};
     const homeName = mapMod?.inferHomeName?.(profile) || '';
     if (!homeName) return null;
     const exact = this.findMapNode(map, homeName);
@@ -1243,6 +1246,8 @@ window.GameModules.orgTerritory = {
     const left = this.normalizeLocationLabel(a);
     const right = this.normalizeLocationLabel(b);
     if (!left || !right) return true;
+    const isUnknown = (value) => /^(?:当前位置未知|未知地点|未知位置|现实地点|当前位置)$/u.test(value);
+    if (isUnknown(left) || isUnknown(right)) return true;
     if (left === right) return true;
     return left.includes(right) || right.includes(left);
   },

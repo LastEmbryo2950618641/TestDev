@@ -393,6 +393,7 @@ window.GameScriptManifest = {
       "faction-archive.js",
       "faction-archive-actions.js",
       "ui/faction/overview-view-helpers.js",
+      "org-territory-actions.js",
       "faction-actions.js",
       "faction-org-actions.js",
       "faction-membership-actions.js",
@@ -427,7 +428,7 @@ window.GameScriptManifest = {
     ]
   },
   "generatedAt": "2026-07-13T17:39:40.727Z",
-  "total": 414
+  "total": 415
 };
 
 window.GameScriptManifest.classify = function classify(url) {

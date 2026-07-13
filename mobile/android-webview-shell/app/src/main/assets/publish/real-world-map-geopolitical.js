@@ -104,11 +104,11 @@ window.GameModules.realWorldMapGeopolitical = {
       const homeNode = window.GameModules.orgTerritory?.findMapNode?.(map, homeName)
         || map.nodes.find((n) => n.name === homeName || homeName.includes(n.name) || n.name.includes(homeName));
       if (homeNode && parentNodeId && !homeNode.parentId) homeNode.parentId = parentNodeId;
-      if (communityOrgId) otActions?.linkFamilyToCommunity?.(store, communityOrgId);
+      if (communityOrgId) otActions?.linkFamilyToCommunity?.(store, communityOrgId, map);
     }
 
     if (communityOrgId && communityNodeId) {
-      otActions?.linkFamilyToCommunity?.(store, communityOrgId);
+      otActions?.linkFamilyToCommunity?.(store, communityOrgId, map);
     }
 
     window.GameModules.orgTerritory?.ensureMapControls?.(map, store);
