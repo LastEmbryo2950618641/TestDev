@@ -53,6 +53,48 @@ const orderedGroups = [
       'ui/real-world/map-interior-view-helpers.js',
     ],
   },
+  {
+    label: 'settings action ui helper dependencies',
+    before: 'settings-actions.js',
+    required: [
+      'ui/settings/view-helpers.js',
+    ],
+  },
+  {
+    label: 'loading action ui helper dependencies',
+    before: 'loading-actions.js',
+    required: [
+      'ui/loading/progress-view.js',
+    ],
+  },
+  {
+    label: 'save action ui helper dependencies',
+    before: 'save-actions.js',
+    required: [
+      'ui/save/slot-view.js',
+    ],
+  },
+  {
+    label: 'calendar action ui helper dependencies',
+    before: 'calendar-actions.js',
+    required: [
+      'ui/calendar/view-helpers.js',
+    ],
+  },
+  {
+    label: 'faction action ui helper dependencies',
+    before: 'faction-actions.js',
+    required: [
+      'ui/faction/overview-view-helpers.js',
+    ],
+  },
+  {
+    label: 'real-world map action ui helper dependencies',
+    before: 'real-world-map-actions.js',
+    required: [
+      'ui/real-world/map-stage-view-helpers.js',
+    ],
+  },
 ];
 
 function normalizePath(file) {

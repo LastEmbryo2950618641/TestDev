@@ -129,6 +129,7 @@ window.GameScriptManifest = {
       "ui/real-world/map-control-view-helpers.js",
       "ui/real-world/map-interior-view-helpers.js",
       "ui/real-world/map-view-helpers.js",
+      "ui/settings/view-helpers.js",
       "settings-actions.js",
       "system-test-actions.js",
       "ai.js",
@@ -176,10 +177,12 @@ window.GameScriptManifest = {
       "novel-log.js",
       "debug.js",
       "control-monitor.js",
+      "ui/loading/progress-view.js",
       "loading-actions.js",
       "role-card-loading-actions.js",
       "solidify-actions.js",
       "wearing-sync-actions.js",
+      "ui/save/slot-view.js",
       "save-actions.js",
       "result-actions.js",
       "style-actions.js",
@@ -258,6 +261,7 @@ window.GameScriptManifest = {
       "real-world-target-updates.js",
       "real-world-profile-stage5.js",
       "real-world-utility-actions.js",
+      "ui/real-world/map-stage-view-helpers.js",
       "real-world-map-actions.js",
       "real-world-faction-actions.js",
       "real-world-matter-actions.js"
@@ -299,6 +303,7 @@ window.GameScriptManifest = {
       "boss-appointment-actions.js",
       "boss-ai-actions.js",
       "calendar-system.js",
+      "ui/calendar/view-helpers.js",
       "calendar-actions.js",
       "event-system.js",
       "ui/event/panel-view-helpers.js",
@@ -308,6 +313,7 @@ window.GameScriptManifest = {
       "faction-system.js",
       "faction-archive.js",
       "faction-archive-actions.js",
+      "ui/faction/overview-view-helpers.js",
       "faction-actions.js",
       "faction-org-actions.js",
       "faction-ai-actions.js",
@@ -342,8 +348,8 @@ window.GameScriptManifest = {
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-13T08:00:00.000Z",
-  "total": 330
+  "generatedAt": "2026-07-13T08:30:00.000Z",
+  "total": 336
 };
 
 window.GameScriptManifest.classify = function classify(url) {

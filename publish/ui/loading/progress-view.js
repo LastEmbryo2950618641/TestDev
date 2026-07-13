@@ -2,6 +2,10 @@
 window.GameModules.ui = window.GameModules.ui || {};
 window.GameModules.ui.loading = window.GameModules.ui.loading || {};
 
+function loadingProgressView() {
+  return window.GameModules.ui.loading.progressView || {};
+}
+
 window.GameModules.ui.loading.progressView = {
   stageText(status) {
     return { waiting: '等待中', running: '加载中', done: '完成', error: '失败' }[status] || status;
@@ -22,12 +26,12 @@ window.GameModules.ui.loading.progressView = {
     const end = finishedAt || this.loadingNow || Date.now();
     const ms = Math.max(0, end - startedAt);
     if (ms < 1000) return '<1s';
-    return this.formatDuration(ms);
+    return loadingProgressView().formatDuration.call(this, ms);
   },
 
   stageElapsedLabel(startedAt = 0, finishedAt = 0) {
     void this.loadingClockTick;
-    return this.elapsedText(startedAt, finishedAt);
+    return loadingProgressView().elapsedText.call(this, startedAt, finishedAt);
   },
 
   loadingProgressPercent() {
@@ -41,7 +45,7 @@ window.GameModules.ui.loading.progressView = {
     void this.loadingClockTick;
     const total = (this.loadingStages || []).length || 0;
     const done = (this.loadingStages || []).filter((x) => x.status === 'done').length;
-    return `${done}/${total} 阶段 · ${this.elapsedText(this.loadingStartedAt)}`;
+    return `${done}/${total} 阶段 · ${loadingProgressView().elapsedText.call(this, this.loadingStartedAt)}`;
   },
 
   homeLoadProgressText() {
@@ -54,8 +58,8 @@ window.GameModules.ui.loading.progressView = {
 
   homeLoadOverlayView() {
     return {
-      progressText: this.homeLoadProgressText(),
-      progressPercent: this.homeLoadProgressDisplayPercent(),
+      progressText: loadingProgressView().homeLoadProgressText.call(this),
+      progressPercent: loadingProgressView().homeLoadProgressDisplayPercent.call(this),
     };
   },
 
@@ -77,7 +81,7 @@ window.GameModules.ui.loading.progressView = Object.assign(window.GameModules.ui
     const playerText = player.length ? `${done(player)}/${player.length} 玩家卡` : '';
     const roleText = role.length ? `${done(role)}/${role.length} 角色卡` : '';
     const parts = [identityText, playerText, roleText].filter(Boolean).join(', ');
-    return `正在加载(${parts}) ${this.roleCardLoadingProgressText()}`;
+    return `正在加载(${parts}) ${loadingProgressView().roleCardLoadingProgressText.call(this)}`;
   },
 
   roleCardLoadingProgressText() {
@@ -107,8 +111,8 @@ window.GameModules.ui.loading.progressView = Object.assign(window.GameModules.ui
       key: stage.key || '',
       name: stage.name || '',
       status: stage.status || 'waiting',
-      statusText: this.stageText(stage.status),
-      elapsedText: this.elapsedText(stage.startedAt, stage.finishedAt) || '0s',
+      statusText: loadingProgressView().stageText.call(this, stage.status),
+      elapsedText: loadingProgressView().elapsedText.call(this, stage.startedAt, stage.finishedAt) || '0s',
     };
   },
 
@@ -116,36 +120,36 @@ window.GameModules.ui.loading.progressView = Object.assign(window.GameModules.ui
     return {
       stepText: this.loadingStep || '加载中',
       detailText: this.loadingDetail || '首次进入或存档较大时会更慢，这是正常现象。',
-      progressText: this.loadingProgressText(),
-      progressPercent: this.loadingProgressPercent(),
-      stageRows: (this.loadingStages || []).map((stage) => this.loadingStageRow(stage)),
+      progressText: loadingProgressView().loadingProgressText.call(this),
+      progressPercent: loadingProgressView().loadingProgressPercent.call(this),
+      stageRows: (this.loadingStages || []).map((stage) => loadingProgressView().loadingStageRow.call(this, stage)),
     };
   },
 
   roleCardLoadingPanelView() {
     const state = this.roleCardLoadingState || { open: false, expanded: true, cards: [] };
     return {
-      summaryText: this.roleCardLoadingSummary(),
+      summaryText: loadingProgressView().roleCardLoadingSummary.call(this),
       expanded: Boolean(state.expanded),
-      progressText: this.roleCardLoadingProgressText(),
-      progressPercent: this.roleCardLoadingProgressPercent(),
+      progressText: loadingProgressView().roleCardLoadingProgressText.call(this),
+      progressPercent: loadingProgressView().roleCardLoadingProgressPercent.call(this),
       cards: (state.cards || []).map((card = {}) => ({
         id: card.id,
         name: card.name || '',
         type: card.type || '',
         status: card.status || 'waiting',
         expanded: Boolean(card.expanded),
-        progressText: this.roleCardLoadingCardProgress(card),
-        statusText: this.roleCardLoadingStatusText(card.status),
-        elapsedText: this.elapsedText(card.startedAt, card.finishedAt) || '0s',
+        progressText: loadingProgressView().roleCardLoadingCardProgress.call(this, card),
+        statusText: loadingProgressView().roleCardLoadingStatusText.call(this, card.status),
+        elapsedText: loadingProgressView().elapsedText.call(this, card.startedAt, card.finishedAt) || '0s',
         steps: (card.steps || []).map((step = {}) => ({
           key: step.key,
           text: step.text || '',
           status: step.status || 'waiting',
           retrying: Boolean(step.retrying),
-          progressText: this.roleCardLoadingStepProgress(step),
-          statusText: this.roleCardLoadingStatusText(step.status),
-          elapsedText: this.elapsedText(step.startedAt, step.finishedAt) || '0s',
+          progressText: loadingProgressView().roleCardLoadingStepProgress.call(this, step),
+          statusText: loadingProgressView().roleCardLoadingStatusText.call(this, step.status),
+          elapsedText: loadingProgressView().elapsedText.call(this, step.startedAt, step.finishedAt) || '0s',
           canRetry: Boolean(this.roleCardStepCanRetry && this.roleCardStepCanRetry(card, step)),
         })),
       })),
