@@ -189,7 +189,61 @@ assertIncludes(methodBlock(mentionAction, mentionActionPath, 'wechatMessageMenti
 assertIncludes(methodBlock(mentionAction, mentionActionPath, 'wechatMentionedImages', 'wechatImageMentionSources'), "return callWechatMentionReferenceHelper('wechatMentionedImages', this, text, currentId);", `${mentionActionPath} wechatMentionedImages facade`);
 assertIncludes(methodBlock(mentionAction, mentionActionPath, 'attachWechatMentionedImageIntent', 'wechatImageBasePhoto'), "return callWechatMentionReferenceHelper('attachWechatMentionedImageIntent', this, result, playerText, currentId);", `${mentionActionPath} attachWechatMentionedImageIntent facade`);
 
-assertIncludes(imageAction, 'callWechatImageRecordHelper', `${imageActionPath} image record facade`);
+assertIncludes(imageAction, 'const wechatImageFacadeGroups = [', `${imageActionPath} declarative image facade groups`);
+assertIncludes(imageAction, 'const wechatImageAsyncFacades = new Set([', `${imageActionPath} async image facade set`);
+assertIncludes(imageAction, 'function callWechatImageModule(moduleName, methodName, context, args)', `${imageActionPath} generic image module caller`);
+assertIncludes(imageAction, 'window.GameModules.wechatImageActions = {};', `${imageActionPath} image action shell`);
+assertIncludes(imageAction, 'callWechatImageModule(group.moduleName, methodName, this, args)', `${imageActionPath} declarative image facade dispatch`);
+for (const marker of [
+  'memory.shortTerm.recent.push',
+  'appendWorldlineEvent',
+  'renderPrompt',
+  'drawProvider',
+  'wechatImageGenerating',
+  'imageStatus:',
+]) {
+  assertNotIncludes(imageAction, marker, `${imageActionPath} should not own image business implementation`);
+}
+for (const marker of [
+  "moduleName: 'imageOfferOrchestration'",
+  "moduleName: 'imageRecordHelpers'",
+  "moduleName: 'imageUiHelpers'",
+  "moduleName: 'imageAlbumHelpers'",
+  "moduleName: 'imagePromptHelpers'",
+  "moduleName: 'imageReceiveOrchestration'",
+  "'appendWechatPendingImageMessage'",
+  "'recordWechatImageOffer'",
+  "'wechatImageRecordText'",
+  "'wechatImageReadRecord'",
+  "'replaceWechatImageRecord'",
+  "'replaceWechatImageRecordInMemory'",
+  "'replaceWechatImageRecordInWorldline'",
+  "'openWechatImageConfirm'",
+  "'closeWechatImageConfirm'",
+  "'openWechatImagePreview'",
+  "'closeWechatImagePreview'",
+  "'wechatImageConfirmPromptText'",
+  "'updateWechatImageMessage'",
+  "'wechatRealPhotoForContact'",
+  "'addWechatImageToAlbum'",
+  "'wechatMemorySections'",
+  "'wechatWearingContext'",
+  "'cleanWechatImageTags'",
+  "'buildWechatImageTags'",
+  "'confirmWechatImageReceive'",
+]) {
+  assertIncludes(imageAction, marker, `${imageActionPath} declarative image facade should expose ${marker}`);
+}
+for (const marker of [
+  "'appendWechatPendingImageMessage'",
+  "'recordWechatImageOffer'",
+  "'replaceWechatImageRecord'",
+  "'buildWechatImageTags'",
+  "'confirmWechatImageReceive'",
+]) {
+  assertIncludes(imageAction, marker, `${imageActionPath} async image facade should include ${marker}`);
+}
+
 for (const marker of [
   'wechatImageRecordText(contactName, label, imageId, imageDescription, read = false)',
   'wechatImageReadRecord(msg = {})',
@@ -199,13 +253,7 @@ for (const marker of [
 ]) {
   assertIncludes(imageRecordHelper, `\n  ${marker}`, `${imageRecordHelperPath} should own image record implementation`);
 }
-assertIncludes(methodBlock(imageAction, imageActionPath, 'wechatImageRecordText', 'wechatImageReadRecord'), "return callWechatImageRecordHelper('wechatImageRecordText', this, contactName, label, imageId, imageDescription, read);", `${imageActionPath} wechatImageRecordText facade`);
-assertIncludes(methodBlock(imageAction, imageActionPath, 'wechatImageReadRecord', 'replaceWechatImageRecord'), "return callWechatImageRecordHelper('wechatImageReadRecord', this, msg);", `${imageActionPath} wechatImageReadRecord facade`);
-assertIncludes(methodBlock(imageAction, imageActionPath, 'replaceWechatImageRecord', 'replaceWechatImageRecordInMemory'), "return callWechatImageRecordHelper('replaceWechatImageRecord', this, msg, readRecord);", `${imageActionPath} replaceWechatImageRecord facade`);
-assertIncludes(methodBlock(imageAction, imageActionPath, 'replaceWechatImageRecordInMemory', 'replaceWechatImageRecordInWorldline'), "return callWechatImageRecordHelper('replaceWechatImageRecordInMemory', this, memory, oldRecord, readRecord);", `${imageActionPath} replaceWechatImageRecordInMemory facade`);
-assertIncludes(methodBlock(imageAction, imageActionPath, 'replaceWechatImageRecordInWorldline', 'openWechatImageConfirm'), "return callWechatImageRecordHelper('replaceWechatImageRecordInWorldline', this, oldRecord, readRecord);", `${imageActionPath} replaceWechatImageRecordInWorldline facade`);
 
-assertIncludes(imageAction, 'callWechatImageUiHelper', `${imageActionPath} image ui facade`);
 for (const marker of [
   'openWechatImageConfirm(msg = {})',
   'closeWechatImageConfirm()',
@@ -216,24 +264,14 @@ for (const marker of [
 ]) {
   assertIncludes(imageUiHelper, `\n  ${marker}`, `${imageUiHelperPath} should own image ui implementation`);
 }
-assertIncludes(methodBlock(imageAction, imageActionPath, 'openWechatImageConfirm', 'closeWechatImageConfirm'), "return callWechatImageUiHelper('openWechatImageConfirm', this, msg);", `${imageActionPath} openWechatImageConfirm facade`);
-assertIncludes(methodBlock(imageAction, imageActionPath, 'closeWechatImageConfirm', 'openWechatImagePreview'), "return callWechatImageUiHelper('closeWechatImageConfirm', this);", `${imageActionPath} closeWechatImageConfirm facade`);
-assertIncludes(methodBlock(imageAction, imageActionPath, 'openWechatImagePreview', 'closeWechatImagePreview'), "return callWechatImageUiHelper('openWechatImagePreview', this, url, title);", `${imageActionPath} openWechatImagePreview facade`);
-assertIncludes(methodBlock(imageAction, imageActionPath, 'closeWechatImagePreview', 'wechatImageConfirmPromptText'), "return callWechatImageUiHelper('closeWechatImagePreview', this);", `${imageActionPath} closeWechatImagePreview facade`);
-assertIncludes(methodBlock(imageAction, imageActionPath, 'wechatImageConfirmPromptText', 'updateWechatImageMessage'), "return callWechatImageUiHelper('wechatImageConfirmPromptText', this, msg);", `${imageActionPath} wechatImageConfirmPromptText facade`);
-assertIncludes(methodBlock(imageAction, imageActionPath, 'updateWechatImageMessage', 'wechatRealPhotoForContact'), "return callWechatImageUiHelper('updateWechatImageMessage', this, targetMsg, patch);", `${imageActionPath} updateWechatImageMessage facade`);
 
-assertIncludes(imageAction, 'callWechatImageAlbumHelper', `${imageActionPath} image album facade`);
 for (const marker of [
   'wechatRealPhotoForContact(characterId = this.wechatSelectedContact)',
   'addWechatImageToAlbum(characterId = \'\', photo = {})',
 ]) {
   assertIncludes(imageAlbumHelper, `\n  ${marker}`, `${imageAlbumHelperPath} should own image album implementation`);
 }
-assertIncludes(methodBlock(imageAction, imageActionPath, 'wechatRealPhotoForContact', 'addWechatImageToAlbum'), "return callWechatImageAlbumHelper('wechatRealPhotoForContact', this, characterId);", `${imageActionPath} wechatRealPhotoForContact facade`);
-assertIncludes(methodBlock(imageAction, imageActionPath, 'addWechatImageToAlbum', 'wechatMemorySections'), "return callWechatImageAlbumHelper('addWechatImageToAlbum', this, characterId, photo);", `${imageActionPath} addWechatImageToAlbum facade`);
 
-assertIncludes(imageAction, 'callWechatImagePromptHelper', `${imageActionPath} image prompt facade`);
 for (const marker of [
   'wechatMemorySections(characterId = \'\')',
   'wechatWearingContext(state = {})',
@@ -242,24 +280,15 @@ for (const marker of [
 ]) {
   assertIncludes(imagePromptHelper, `\n  ${marker}`, `${imagePromptHelperPath} should own image prompt implementation`);
 }
-assertIncludes(methodBlock(imageAction, imageActionPath, 'wechatMemorySections', 'wechatWearingContext'), "return callWechatImagePromptHelper('wechatMemorySections', this, characterId);", `${imageActionPath} wechatMemorySections facade`);
-assertIncludes(methodBlock(imageAction, imageActionPath, 'wechatWearingContext', 'cleanWechatImageTags'), "return callWechatImagePromptHelper('wechatWearingContext', this, state);", `${imageActionPath} wechatWearingContext facade`);
-assertIncludes(methodBlock(imageAction, imageActionPath, 'cleanWechatImageTags', 'buildWechatImageTags'), "return callWechatImagePromptHelper('cleanWechatImageTags', this, text);", `${imageActionPath} cleanWechatImageTags facade`);
-assertIncludes(methodBlock(imageAction, imageActionPath, 'buildWechatImageTags', 'confirmWechatImageReceive'), "return callWechatImagePromptHelper('buildWechatImageTags', this, msg);", `${imageActionPath} buildWechatImageTags facade`);
 
-assertIncludes(imageAction, 'callWechatImageReceiveOrchestration', `${imageActionPath} image receive orchestration facade`);
 assertIncludes(imageReceiveOrchestration, '\n  async confirmWechatImageReceive()', `${imageReceiveOrchestrationPath} should own image receive orchestration implementation`);
-assertIncludes(methodBlock(imageAction, imageActionPath, 'confirmWechatImageReceive'), "return callWechatImageReceiveOrchestration('confirmWechatImageReceive', this);", `${imageActionPath} confirmWechatImageReceive facade`);
 
-assertIncludes(imageAction, 'callWechatImageOfferOrchestration', `${imageActionPath} image offer orchestration facade`);
 for (const marker of [
   'async appendWechatPendingImageMessage(characterId, state = {}, contact = {}, imageIntent = {})',
   'async recordWechatImageOffer(contact = {}, time = {}, imageRecord = \'\', imageId = \'\', imageIntent = {})',
 ]) {
   assertIncludes(imageOfferOrchestration, `\n  ${marker}`, `${imageOfferOrchestrationPath} should own image offer orchestration implementation`);
 }
-assertIncludes(methodBlock(imageAction, imageActionPath, 'appendWechatPendingImageMessage', 'recordWechatImageOffer'), "return callWechatImageOfferOrchestration('appendWechatPendingImageMessage', this, characterId, state, contact, imageIntent);", `${imageActionPath} appendWechatPendingImageMessage facade`);
-assertIncludes(methodBlock(imageAction, imageActionPath, 'recordWechatImageOffer', 'wechatImageRecordText'), "return callWechatImageOfferOrchestration('recordWechatImageOffer', this, contact, time, imageRecord, imageId, imageIntent);", `${imageActionPath} recordWechatImageOffer facade`);
 
 assertOrder(sendBlock, [
   "const text = String(this.wechatInput || '').trim();",
