@@ -43,7 +43,7 @@ window.GameModules.domain.worldline.stateService = {
 
   loreWorldline(lore) {
     if (!lore?.worldTag) return null;
-    if (!lore.worldline) lore.worldline = window.GameModules.sqliteSave.getWorldline?.(lore.worldTag) || null;
+    if (!lore.worldline) lore.worldline = window.GameModules.worldlineStore?.get?.(lore.worldTag) || null;
     return lore.worldline;
   },
 

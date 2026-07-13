@@ -62,7 +62,7 @@ window.GameModules.storyAgentContext = {
 
   recentWorldlineRecords(store, worldTag = '', targetChars = 5000, maxChars = 6000) {
     const lore = (store.savedWorldLores || []).find((item) => item.worldTag === worldTag) || {};
-    const line = lore.worldline || window.GameModules.sqliteSave.getWorldline?.(worldTag) || {};
+    const line = lore.worldline || window.GameModules.worldlineStore?.get?.(worldTag) || {};
     const events = (line.events || []).filter((event) => String(event.detail || '').trim());
     const picked = [];
     let total = 0;
@@ -395,7 +395,7 @@ window.GameModules.storyAgentContext = {
   worldlineFor(store, worldTag = '') {
     const tag = String(worldTag || store.character?.work || store.selectedWork || '原创世界').trim();
     const lore = (store.savedWorldLores || []).find((item) => item.worldTag === tag) || {};
-    return lore.worldline || window.GameModules.sqliteSave.getWorldline?.(tag) || { events: [], plots: [], pendingPlot: null };
+    return lore.worldline || window.GameModules.worldlineStore?.get?.(tag) || { events: [], plots: [], pendingPlot: null };
   },
 
   worldlineIndex(store, worldTag = '') {

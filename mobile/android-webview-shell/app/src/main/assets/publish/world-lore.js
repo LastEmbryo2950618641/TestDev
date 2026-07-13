@@ -4,17 +4,17 @@ window.GameModules.worldLore = {
   inflight: {},
 
   async ensure(worldTag, context = '') {
-    const save = window.GameModules.sqliteSave;
     const loreStore = window.GameModules.worldLoreStore;
+    const worldlineStore = window.GameModules.worldlineStore;
     const existing = loreStore?.get?.(worldTag);
     if (existing) {
-      if (!existing.worldline && !save.getWorldline?.(worldTag)) {
+      if (!existing.worldline && !worldlineStore?.get?.(worldTag)) {
         console.debug('[世界观] 旧设定缺少世界线，正在补齐:', worldTag);
         const upgraded = this.validate(existing, worldTag);
         await loreStore?.save?.(worldTag, upgraded);
         return upgraded;
       }
-      if (!existing.worldline) existing.worldline = save.getWorldline?.(worldTag);
+      if (!existing.worldline) existing.worldline = worldlineStore?.get?.(worldTag);
       console.debug('[世界观] 使用已保存设定:', worldTag);
       return existing;
     }
