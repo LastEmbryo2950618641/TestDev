@@ -134,9 +134,7 @@ window.GameModules.wechatAlbumActions = {
     if (this.wechatAlbumGenerating) return;
     const contact = this.wechatAlbumContact();
     if (!contact || contact.group) return;
-    const bodyFigureContext = this.wechatAlbumBodyFigureContext?.characterId === contact.id
-      ? { ...this.wechatAlbumBodyFigureContext }
-      : null;
+    const bodyFigureContext = window.GameModules.app.wechat.albumGenerateHelpers.wechatAlbumBodyFigureContextForContact.call(this, contact);
     const reqId = (this.wechatAlbumRequestId || 0) + 1;
     this.wechatAlbumRequestId = reqId;
     this.wechatAlbumGenerating = true;
@@ -163,18 +161,7 @@ window.GameModules.wechatAlbumActions = {
         ? await this.saveGeneratedBodyFigureAsset(url, kind, contact, result, drawOptions)
         : null;
       const list = this.wechatAlbumPhotoListForContact(contact);
-      const photo = {
-        url: savedFigure?.imageSrc || url,
-        originalUrl: savedFigure?.imageSrc ? url : '',
-        kind,
-        taskId: result.taskId || '',
-        real: Boolean(bodyFigureContext),
-        createdAt: new Date().toISOString(),
-        characterId: contact.id,
-        bodyFigurePath: savedFigure?.path || '',
-        bodyFigureMetaPath: savedFigure?.metaPath || '',
-        bodyFigureImagePath: savedFigure?.imagePath || '',
-      };
+      const photo = window.GameModules.app.wechat.albumGenerateHelpers.wechatAlbumGeneratedPhoto.call(this, contact, kind, result, savedFigure, bodyFigureContext);
       this.wechatAlbumPhotos = { ...(this.wechatAlbumPhotos || {}), [contact.id]: [photo, ...list] };
       if (bodyFigureContext) {
         await this.autoCaptureWechatAvatar?.(0, contact);
