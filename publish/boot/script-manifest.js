@@ -93,6 +93,7 @@ window.GameScriptManifest = {
       "character-profile-template-class.js",
       "appearance-profile-tags-config.js",
       "character-profile.js",
+      "character-profile-metric-sources.js",
       "character-memory.js",
       "character-memory-flow.js",
       "memory-query-actions.js",

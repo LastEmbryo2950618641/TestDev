@@ -10,6 +10,7 @@ const manifestEntries = JSON.parse(
 );
 const scripts = [
   'character-card-lexicon.js',
+  'character-profile-metric-sources.js',
   'company-attendance-actions.js',
   'company-faction-actions.js',
   'known-profession-actions.js',
