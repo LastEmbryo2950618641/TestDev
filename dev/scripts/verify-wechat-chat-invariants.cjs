@@ -17,6 +17,7 @@ const imageActionPath = 'publish/wechat-image-actions.js';
 const imageRecordHelperPath = 'publish/app/wechat/image-record-helpers.js';
 const imageUiHelperPath = 'publish/app/wechat/image-ui-helpers.js';
 const imageAlbumHelperPath = 'publish/app/wechat/image-album-helpers.js';
+const imagePromptHelperPath = 'publish/app/wechat/image-prompt-helpers.js';
 const webManifestPath = 'publish/boot/script-manifest.js';
 const webScriptsPath = 'publish/boot/scripts.json';
 const androidManifestPath = 'mobile/android-webview-shell/app/src/main/assets/publish/boot/script-manifest.js';
@@ -35,6 +36,7 @@ const imageAction = read(imageActionPath);
 const imageRecordHelper = read(imageRecordHelperPath);
 const imageUiHelper = read(imageUiHelperPath);
 const imageAlbumHelper = read(imageAlbumHelperPath);
+const imagePromptHelper = read(imagePromptHelperPath);
 
 const violations = [];
 
@@ -212,6 +214,20 @@ for (const marker of [
 assertIncludes(methodBlock(imageAction, imageActionPath, 'wechatRealPhotoForContact', 'addWechatImageToAlbum'), "return callWechatImageAlbumHelper('wechatRealPhotoForContact', this, characterId);", `${imageActionPath} wechatRealPhotoForContact facade`);
 assertIncludes(methodBlock(imageAction, imageActionPath, 'addWechatImageToAlbum', 'wechatMemorySections'), "return callWechatImageAlbumHelper('addWechatImageToAlbum', this, characterId, photo);", `${imageActionPath} addWechatImageToAlbum facade`);
 
+assertIncludes(imageAction, 'callWechatImagePromptHelper', `${imageActionPath} image prompt facade`);
+for (const marker of [
+  'wechatMemorySections(characterId = \'\')',
+  'wechatWearingContext(state = {})',
+  'cleanWechatImageTags(text = \'\')',
+  'async buildWechatImageTags(msg = {})',
+]) {
+  assertIncludes(imagePromptHelper, `\n  ${marker}`, `${imagePromptHelperPath} should own image prompt implementation`);
+}
+assertIncludes(methodBlock(imageAction, imageActionPath, 'wechatMemorySections', 'wechatWearingContext'), "return callWechatImagePromptHelper('wechatMemorySections', this, characterId);", `${imageActionPath} wechatMemorySections facade`);
+assertIncludes(methodBlock(imageAction, imageActionPath, 'wechatWearingContext', 'cleanWechatImageTags'), "return callWechatImagePromptHelper('wechatWearingContext', this, state);", `${imageActionPath} wechatWearingContext facade`);
+assertIncludes(methodBlock(imageAction, imageActionPath, 'cleanWechatImageTags', 'buildWechatImageTags'), "return callWechatImagePromptHelper('cleanWechatImageTags', this, text);", `${imageActionPath} cleanWechatImageTags facade`);
+assertIncludes(methodBlock(imageAction, imageActionPath, 'buildWechatImageTags', 'confirmWechatImageReceive'), "return callWechatImagePromptHelper('buildWechatImageTags', this, msg);", `${imageActionPath} buildWechatImageTags facade`);
+
 assertOrder(sendBlock, [
   "const text = String(this.wechatInput || '').trim();",
   'const target = this.wechatSelected();',
@@ -316,6 +332,7 @@ function assertListOrder(list, relativePath) {
   const imageRecordIndex = list.indexOf('app/wechat/image-record-helpers.js');
   const imageUiIndex = list.indexOf('app/wechat/image-ui-helpers.js');
   const imageAlbumIndex = list.indexOf('app/wechat/image-album-helpers.js');
+  const imagePromptIndex = list.indexOf('app/wechat/image-prompt-helpers.js');
   const actionIndex = list.indexOf('wechat-chat-actions.js');
   const pastEventIndex = list.indexOf('wechat-past-event-actions.js');
   const mentionActionIndex = list.indexOf('wechat-mention-actions.js');
@@ -329,6 +346,7 @@ function assertListOrder(list, relativePath) {
   if (imageRecordIndex < 0) fail(`${relativePath}: missing app/wechat/image-record-helpers.js`);
   if (imageUiIndex < 0) fail(`${relativePath}: missing app/wechat/image-ui-helpers.js`);
   if (imageAlbumIndex < 0) fail(`${relativePath}: missing app/wechat/image-album-helpers.js`);
+  if (imagePromptIndex < 0) fail(`${relativePath}: missing app/wechat/image-prompt-helpers.js`);
   if (actionIndex < 0) fail(`${relativePath}: missing wechat-chat-actions.js`);
   if (pastEventIndex < 0) fail(`${relativePath}: missing wechat-past-event-actions.js`);
   if (mentionActionIndex < 0) fail(`${relativePath}: missing wechat-mention-actions.js`);
@@ -363,6 +381,9 @@ function assertListOrder(list, relativePath) {
   if (imageAlbumIndex >= 0 && imageActionIndex >= 0 && imageAlbumIndex > imageActionIndex) {
     fail(`${relativePath}: image-album-helpers.js must load before wechat-image-actions.js`);
   }
+  if (imagePromptIndex >= 0 && imageActionIndex >= 0 && imagePromptIndex > imageActionIndex) {
+    fail(`${relativePath}: image-prompt-helpers.js must load before wechat-image-actions.js`);
+  }
 }
 
 function assertManifestOrder(relativePath) {
@@ -382,6 +403,7 @@ function assertManifestOrder(relativePath) {
     '"app/wechat/image-record-helpers.js"',
     '"app/wechat/image-ui-helpers.js"',
     '"app/wechat/image-album-helpers.js"',
+    '"app/wechat/image-prompt-helpers.js"',
     '"wechat-image-actions.js"',
     '"wechat-mention-actions.js"',
   ], `${relativePath} wechat manifest order`);
@@ -413,6 +435,7 @@ console.log(JSON.stringify({
       imageRecordHelperPath,
       imageUiHelperPath,
       imageAlbumHelperPath,
+      imagePromptHelperPath,
       manifests: [webManifestPath, webScriptsPath, androidManifestPath, androidScriptsPath],
     invariants: [
       'reply-helper-facade',
@@ -423,6 +446,7 @@ console.log(JSON.stringify({
       'image-record-facade',
       'image-ui-facade',
       'image-album-facade',
+      'image-prompt-facade',
       'send-message-order',
       'reply-success-order',
       'reply-failure-finally-order',
