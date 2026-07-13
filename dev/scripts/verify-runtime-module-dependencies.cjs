@@ -118,6 +118,13 @@ const orderedGroups = [
     ],
   },
   {
+    label: 'wechat incoming runtime dependencies',
+    before: 'wechat-incoming-actions.js',
+    required: [
+      'app/wechat/incoming-orchestration.js',
+    ],
+  },
+  {
     label: 'wechat change panel runtime dependencies',
     before: 'wechat-change-panel-actions.js',
     required: [
