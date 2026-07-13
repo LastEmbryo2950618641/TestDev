@@ -46,3 +46,10 @@ Generated body-figure persistence is now isolated in
 module owns only platform asset saving, entry registration, current-figure
 binding, and the existing failure recovery. Album insertion, avatar capture,
 and game save remain outside this boundary.
+
+The complete `generateWechatAlbumPhoto()` async sequence is now owned by
+`app/wechat/album-generation-orchestration.js`. The legacy action keeps the
+same public method as a compatibility forwarder. Request staleness checks,
+token recording, draw ordering, body-figure coordination, album insertion,
+avatar capture, game save, and conditional busy-state cleanup remain in their
+original order.
