@@ -90,6 +90,10 @@ The goal of this directory is to hold small, reusable, non-entry helper surfaces
 - mentioned image reference parsing
 - reply-result image-intent attachment for mentioned base images
 
+### `mention-input-helper.js`
+- WeChat input-box mention insertion
+- message mention token insertion using readable `@消息` prefixes
+
 ## Boundary rules
 
 Helpers in this directory should prefer:
@@ -124,5 +128,5 @@ The preferred migration pattern for new work here is:
 
 ## Immediate practical rule
 
-If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, history-context, image-record, image-ui, image-album, image-prompt, image-receive-orchestration, image-offer-orchestration, mention-view, mention-base-photo, or mention-reference style boundaries, document the rationale before adding another module here.
+If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, history-context, image-record, image-ui, image-album, image-prompt, image-receive-orchestration, image-offer-orchestration, mention-view, mention-base-photo, mention-reference, or mention-input style boundaries, document the rationale before adding another module here.
 

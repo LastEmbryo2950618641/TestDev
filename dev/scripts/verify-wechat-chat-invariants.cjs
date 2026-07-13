@@ -16,6 +16,7 @@ const mentionActionPath = 'publish/wechat-mention-actions.js';
 const mentionViewHelperPath = 'publish/app/wechat/mention-view-helpers.js';
 const mentionBasePhotoHelperPath = 'publish/app/wechat/mention-base-photo-helper.js';
 const mentionReferenceHelperPath = 'publish/app/wechat/mention-reference-helpers.js';
+const mentionInputHelperPath = 'publish/app/wechat/mention-input-helper.js';
 const imageActionPath = 'publish/wechat-image-actions.js';
 const imageRecordHelperPath = 'publish/app/wechat/image-record-helpers.js';
 const imageUiHelperPath = 'publish/app/wechat/image-ui-helpers.js';
@@ -40,6 +41,7 @@ const mentionAction = read(mentionActionPath);
 const mentionViewHelper = read(mentionViewHelperPath);
 const mentionBasePhotoHelper = read(mentionBasePhotoHelperPath);
 const mentionReferenceHelper = read(mentionReferenceHelperPath);
+const mentionInputHelper = read(mentionInputHelperPath);
 const imageAction = read(imageActionPath);
 const imageRecordHelper = read(imageRecordHelperPath);
 const imageUiHelper = read(imageUiHelperPath);
@@ -187,6 +189,7 @@ for (const [text, relativePath, label] of [
   [mentionViewHelper, mentionViewHelperPath, 'mention view helper'],
   [mentionBasePhotoHelper, mentionBasePhotoHelperPath, 'mention base-photo helper'],
   [mentionReferenceHelper, mentionReferenceHelperPath, 'mention reference helper'],
+  [mentionInputHelper, mentionInputHelperPath, 'mention input helper'],
 ]) {
   for (const marker of ['娑堟伅', '鍥剧墖', '鐜╁', '鑱旂郴浜']) {
     assertNotIncludes(text, marker, `${relativePath} ${label} should not contain mojibake mention text`);
@@ -203,6 +206,16 @@ assertIncludes(mentionBasePhotoHelper, '@图片', `${mentionBasePhotoHelperPath}
 for (const marker of ['图片)?', '图片\\[']) {
   assertIncludes(mentionReferenceHelper, marker, `${mentionReferenceHelperPath} should keep readable UTF-8 image mention parse text`);
 }
+assertIncludes(mentionAction, 'callWechatMentionInputHelper', `${mentionActionPath} mention input facade`);
+for (const marker of [
+  'insertWechatMention(text = \'\')',
+  'mentionWechatMessage(msg = {}, index = 0)',
+]) {
+  assertIncludes(mentionInputHelper, `\n  ${marker}`, `${mentionInputHelperPath} should own mention input implementation`);
+}
+assertIncludes(mentionInputHelper, '@消息', `${mentionInputHelperPath} should keep readable message mention insert text`);
+assertIncludes(methodBlock(mentionAction, mentionActionPath, 'insertWechatMention', 'mentionWechatMessage'), "return callWechatMentionInputHelper('insertWechatMention', this, text);", `${mentionActionPath} insertWechatMention facade`);
+assertIncludes(methodBlock(mentionAction, mentionActionPath, 'mentionWechatMessage', 'mentionWechatImage'), "return callWechatMentionInputHelper('mentionWechatMessage', this, msg, index);", `${mentionActionPath} mentionWechatMessage facade`);
 for (const marker of [
   'wechatMessageMentionId(msg = {}, index = 0)',
   'wechatMentionedImages(text = \'\', currentId = \'\')',
@@ -416,6 +429,7 @@ function assertListOrder(list, relativePath) {
   const memoryContextActionIndex = list.indexOf('wechat-memory-context-actions.js');
   const mentionBasePhotoIndex = list.indexOf('app/wechat/mention-base-photo-helper.js');
   const mentionReferenceIndex = list.indexOf('app/wechat/mention-reference-helpers.js');
+  const mentionInputIndex = list.indexOf('app/wechat/mention-input-helper.js');
   const imageRecordIndex = list.indexOf('app/wechat/image-record-helpers.js');
   const imageUiIndex = list.indexOf('app/wechat/image-ui-helpers.js');
   const imageAlbumIndex = list.indexOf('app/wechat/image-album-helpers.js');
@@ -432,6 +446,7 @@ function assertListOrder(list, relativePath) {
   if (historyContextIndex < 0) fail(`${relativePath}: missing app/wechat/history-context-helpers.js`);
   if (memoryContextActionIndex < 0) fail(`${relativePath}: missing wechat-memory-context-actions.js`);
   if (mentionReferenceIndex < 0) fail(`${relativePath}: missing app/wechat/mention-reference-helpers.js`);
+  if (mentionInputIndex < 0) fail(`${relativePath}: missing app/wechat/mention-input-helper.js`);
   if (imageRecordIndex < 0) fail(`${relativePath}: missing app/wechat/image-record-helpers.js`);
   if (imageUiIndex < 0) fail(`${relativePath}: missing app/wechat/image-ui-helpers.js`);
   if (imageAlbumIndex < 0) fail(`${relativePath}: missing app/wechat/image-album-helpers.js`);
@@ -462,6 +477,9 @@ function assertListOrder(list, relativePath) {
   }
   if (mentionReferenceIndex >= 0 && mentionActionIndex >= 0 && mentionReferenceIndex > mentionActionIndex) {
     fail(`${relativePath}: mention-reference-helpers.js must load before wechat-mention-actions.js`);
+  }
+  if (mentionInputIndex >= 0 && mentionActionIndex >= 0 && mentionInputIndex > mentionActionIndex) {
+    fail(`${relativePath}: mention-input-helper.js must load before wechat-mention-actions.js`);
   }
   if (imageRecordIndex >= 0 && imageActionIndex >= 0 && imageRecordIndex > imageActionIndex) {
     fail(`${relativePath}: image-record-helpers.js must load before wechat-image-actions.js`);
@@ -495,6 +513,7 @@ function assertManifestOrder(relativePath) {
     '"app/wechat/mention-view-helpers.js"',
     '"app/wechat/mention-base-photo-helper.js"',
     '"app/wechat/mention-reference-helpers.js"',
+    '"app/wechat/mention-input-helper.js"',
     '"wechat-chat-actions.js"',
     '"wechat-past-event-actions.js"',
     '"app/wechat/image-record-helpers.js"',
@@ -533,6 +552,7 @@ console.log(JSON.stringify({
       mentionViewHelperPath,
       mentionBasePhotoHelperPath,
       mentionReferenceHelperPath,
+      mentionInputHelperPath,
       imageActionPath,
       imageRecordHelperPath,
       imageUiHelperPath,
@@ -548,6 +568,7 @@ console.log(JSON.stringify({
       'chat-prompt-facade',
       'history-context-facade',
       'mention-utf8-defaults',
+      'mention-input-facade',
       'mention-reference-facade',
       'image-record-facade',
       'image-ui-facade',

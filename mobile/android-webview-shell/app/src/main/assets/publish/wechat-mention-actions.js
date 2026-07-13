@@ -1,4 +1,7 @@
 window.GameModules = window.GameModules || {};
+function callWechatMentionInputHelper(name, context, ...args) {
+  return window.GameModules.app.wechat.mentionInputHelper[name].call(context, ...args);
+}
 function callWechatMentionViewHelper(name, context, ...args) {
   return window.GameModules.app.wechat.mentionViewHelpers[name].call(context, ...args);
 }
@@ -16,13 +19,11 @@ function callWechatMentionReferenceHelper(name, context, ...args) {
 
 window.GameModules.wechatMentionActions = {
   insertWechatMention(text = '') {
-    const value = String(this.wechatInput || '');
-    const gap = value && !/\s$/.test(value) ? ' ' : '';
-    this.wechatInput = `${value}${gap}${text} `;
+    return callWechatMentionInputHelper('insertWechatMention', this, text);
   },
 
   mentionWechatMessage(msg = {}, index = 0) {
-    this.insertWechatMention(`@消息${this.wechatMessageMentionId(msg, index)}`);
+    return callWechatMentionInputHelper('mentionWechatMessage', this, msg, index);
   },
 
   mentionWechatImage(msg = {}, index = 0) {
