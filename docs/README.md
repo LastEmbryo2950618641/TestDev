@@ -22,6 +22,12 @@
   - 记录玩法规则、阶段规则、提示词约束、数值口径
   - 这类文档应服务于“逻辑玩法不变”的目标，而不是随代码漂移
 
+## 当前协作核心文档
+
+- AI 开发工作流：`docs/architecture/ai-development-workflow.md`
+- 目录落点执行规则：`docs/architecture/ai-directory-landing-rules.md`
+- 编码与安全编辑协作规则：`docs/architecture/encoding-collaboration-rules.md`
+
 ## 推荐阅读顺序
 
 第一次进入项目时，建议优先阅读：
@@ -49,6 +55,7 @@
 - `docs/requirements/_template.md`
 - `docs/plans/_template.md`
 - `docs/plans/_validation-template.md`
+- `docs/superpowers/plans/2026-07-13-ai-development-workflow-repair.md`
 
 ## 当前最值得参考的真实样例
 
