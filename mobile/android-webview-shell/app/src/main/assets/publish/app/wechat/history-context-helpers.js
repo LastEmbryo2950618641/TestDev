@@ -4,19 +4,14 @@ window.GameModules.app.wechat = window.GameModules.app.wechat || {};
 
 window.GameModules.app.wechat.historyContextHelpers = {
   ensureWechatHistoryTable() {
-    const db = window.GameModules.sqliteSave;
-    if (!db?.db) return false;
-    db.db.run('CREATE TABLE IF NOT EXISTS wechat_history(id TEXT PRIMARY KEY, contact_id TEXT NOT NULL, message_json TEXT NOT NULL, created_at TEXT NOT NULL)');
-    return true;
+    return window.GameModules.wechatHistoryStore?.ensure?.() || false;
   },
 
   async saveWechatHistoryRow(contactId, message) {
-    const db = window.GameModules.sqliteSave;
-    if (!contactId || !message || !this.ensureWechatHistoryTable()) return;
+    if (!contactId || !message) return;
     const createdAt = this.wechatHistoryCreatedAt(message);
     const id = `${contactId}_${createdAt}_${String(message.side || '').slice(0, 1)}_${window.GameModules.rpgState?.seed?.(message.text || message.imageRecord || createdAt) || Date.now()}`;
-    db.db.run('INSERT OR REPLACE INTO wechat_history(id,contact_id,message_json,created_at) VALUES (?,?,?,?)', [id, contactId, JSON.stringify(message), createdAt]);
-    await db.persist();
+    await window.GameModules.wechatHistoryStore?.append?.({ id, contactId, message, createdAt });
   },
 
   wechatHistoryCreatedAt(message = {}) {
@@ -30,17 +25,8 @@ window.GameModules.app.wechat.historyContextHelpers = {
   },
 
   listWechatHistoryRows(contactId, limit = 12) {
-    const db = window.GameModules.sqliteSave;
-    if (!contactId || !this.ensureWechatHistoryTable()) return [];
-    const rows = [];
-    const stmt = db.db.prepare('SELECT message_json FROM wechat_history WHERE contact_id=? ORDER BY created_at DESC LIMIT ?');
-    stmt.bind([contactId, limit]);
-    while (stmt.step()) {
-      try { rows.push(JSON.parse(stmt.getAsObject().message_json)); }
-      catch (_) { /* 忽略坏行 */ }
-    }
-    stmt.free();
-    return rows.reverse();
+    if (!contactId) return [];
+    return window.GameModules.wechatHistoryStore?.list?.(contactId, limit) || [];
   },
 
   wechatHistoryQueryText(contactId, limit = 12) {

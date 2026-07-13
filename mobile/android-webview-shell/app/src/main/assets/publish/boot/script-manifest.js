@@ -285,6 +285,8 @@ window.GameScriptManifest = {
       "real-world-matter-actions.js"
     ],
     "wechat": [
+      "platform/storage/wechat-history-source.js",
+      "wechat-history-store.js",
       "prompts/wechat/wechat-image-prompt-collect.js",
       "prompts/picture_generate/wechat-album-photo.js",
       "app/wechat/cleanup-orchestration.js",
@@ -406,8 +408,8 @@ window.GameScriptManifest = {
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-13T16:20:00.000Z",
-  "total": 387
+  "generatedAt": "2026-07-13T17:39:40.727Z",
+  "total": 396
 };
 
 window.GameScriptManifest.classify = function classify(url) {
