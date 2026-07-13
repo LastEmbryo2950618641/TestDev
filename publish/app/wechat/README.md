@@ -29,6 +29,11 @@ The goal of this directory is to hold small, reusable, non-entry helper surfaces
 - reply JSON validation and normalization helpers
 - fallback reply text helper for unavailable AI paths
 
+### `chat-orchestration.js`
+- message-send orchestration for self-message append, save, and group/direct branching
+- direct-contact reply orchestration for generated replies, fallback replies, and side-effect ordering
+- reply generation wrapper around prompt creation, JSON retry, validation, and image-intent attachment
+
 ### `mention-view-helpers.js`
 - mention-context text assembly and contact-mention parsing
 - mention-related readonly source formatting for prompt/context usage
@@ -72,5 +77,5 @@ The preferred migration pattern for new work here is:
 
 ## Immediate practical rule
 
-If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, mention-view, or mention-base-photo style boundaries, document the rationale before adding another module here.
+If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, mention-view, or mention-base-photo style boundaries, document the rationale before adding another module here.
 

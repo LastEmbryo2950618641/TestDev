@@ -1,10 +1,10 @@
 # WeChat Chat Send/Reply Invariants (2026-07-13)
 
-This note defines the guardrails required before any deeper split of `publish/wechat-chat-actions.js`.
+This note defines the guardrails required before and after deeper splits of the WeChat chat send/reply flow.
 
 ## Why this gate exists
 
-The remaining code in `wechat-chat-actions.js` is no longer a simple facade-only surface. It owns live orchestration for:
+The send/reply flow owns live orchestration for:
 
 - message sending
 - direct-contact AI reply generation
@@ -13,7 +13,14 @@ The remaining code in `wechat-chat-actions.js` is no longer a simple facade-only
 - save timing
 - `wechatSending` reset behavior
 
-These flows affect gameplay continuity, so future extraction must preserve observable behavior before cleanup continues.
+These flows affect gameplay continuity, so extraction must preserve observable behavior before cleanup continues.
+
+## Current ownership
+
+- Public legacy store methods remain exposed through `publish/wechat-chat-actions.js`.
+- Send/reply orchestration now lives in `publish/app/wechat/chat-orchestration.js`.
+- Reply-support helpers live in `publish/app/wechat/chat-reply-helpers.js`.
+- The legacy action file is still required as the stable public facade until callers are migrated.
 
 ## Locked invariants
 
@@ -61,7 +68,8 @@ These flows affect gameplay continuity, so future extraction must preserve obser
 
 ### Runtime module order
 
-- `app/wechat/chat-reply-helpers.js` must load before `wechat-chat-actions.js`.
+- `app/wechat/chat-reply-helpers.js` must load before `app/wechat/chat-orchestration.js`.
+- `app/wechat/chat-orchestration.js` must load before `wechat-chat-actions.js`.
 - Web and Android manifests must both contain this order.
 
 ## Automated gate
@@ -76,7 +84,7 @@ This gate is intentionally static and narrow. It does not prove full gameplay co
 
 ## Future extraction rule
 
-Do not extract `sendWechatMessage()`, `replyWechatContact()`, or `generateWechatReply()` into another module unless:
+Do not further split `sendWechatMessage()`, `replyWechatContact()`, or `generateWechatReply()` unless:
 
 - this invariant gate passes before and after the change
 - HTTP and `file://` control validation pass

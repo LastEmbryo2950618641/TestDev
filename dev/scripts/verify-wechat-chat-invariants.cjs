@@ -6,6 +6,7 @@ const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'u
 
 const sourcePath = 'publish/wechat-chat-actions.js';
 const helperPath = 'publish/app/wechat/chat-reply-helpers.js';
+const orchestrationPath = 'publish/app/wechat/chat-orchestration.js';
 const webManifestPath = 'publish/boot/script-manifest.js';
 const webScriptsPath = 'publish/boot/scripts.json';
 const androidManifestPath = 'mobile/android-webview-shell/app/src/main/assets/publish/boot/script-manifest.js';
@@ -13,6 +14,7 @@ const androidScriptsPath = 'mobile/android-webview-shell/app/src/main/assets/pub
 
 const source = read(sourcePath);
 const helper = read(helperPath);
+const orchestration = read(orchestrationPath);
 
 const violations = [];
 
@@ -48,33 +50,39 @@ function assertOrder(text, needles, label) {
   }
 }
 
-function methodBlock(name, nextName = null) {
+function methodBlock(text, relativePath, name, nextName = null) {
   const startPattern = new RegExp(`\\n  (?:async )?${name}\\(`);
-  const startMatch = startPattern.exec(source);
+  const startMatch = startPattern.exec(text);
   if (!startMatch) {
-    fail(`${sourcePath}: missing method ${name}`);
+    fail(`${relativePath}: missing method ${name}`);
     return '';
   }
   const start = startMatch.index;
-  if (!nextName) return source.slice(start);
+  if (!nextName) return text.slice(start);
   const nextPattern = new RegExp(`\\n  (?:async )?${nextName}\\(`);
-  const nextMatch = nextPattern.exec(source.slice(start + 1));
+  const nextMatch = nextPattern.exec(text.slice(start + 1));
   if (!nextMatch) {
-    fail(`${sourcePath}: missing next method ${nextName} after ${name}`);
-    return source.slice(start);
+    fail(`${relativePath}: missing next method ${nextName} after ${name}`);
+    return text.slice(start);
   }
-  return source.slice(start, start + 1 + nextMatch.index);
+  return text.slice(start, start + 1 + nextMatch.index);
 }
 
-const sendBlock = methodBlock('sendWechatMessage', 'replyWechatContact');
-const replyBlock = methodBlock('replyWechatContact', 'generateWechatReply');
-const generateBlock = methodBlock('generateWechatReply', 'wechatReplyPrompt');
+const sendBlock = methodBlock(orchestration, orchestrationPath, 'sendWechatMessage', 'replyWechatContact');
+const replyBlock = methodBlock(orchestration, orchestrationPath, 'replyWechatContact', 'generateWechatReply');
+const generateBlock = methodBlock(orchestration, orchestrationPath, 'generateWechatReply');
 
 assertIncludes(source, "const wechatChatReplyForwarders = {", `${sourcePath} reply facade`);
 assertIncludes(source, "wechatContactProfileText: 'wechatContactProfileText'", `${sourcePath} reply facade`);
 assertIncludes(source, "validateWechatReply: 'validateWechatReply'", `${sourcePath} reply facade`);
 assertIncludes(source, "fallbackWechatReply: 'fallbackWechatReply'", `${sourcePath} reply facade`);
 assertIncludes(source, 'callWechatChatReplyHelper(helperName, this, ...args)', `${sourcePath} reply facade`);
+
+assertIncludes(source, "const wechatChatOrchestrationForwarders = {", `${sourcePath} orchestration facade`);
+assertIncludes(source, "sendWechatMessage: 'sendWechatMessage'", `${sourcePath} orchestration facade`);
+assertIncludes(source, "replyWechatContact: 'replyWechatContact'", `${sourcePath} orchestration facade`);
+assertIncludes(source, "generateWechatReply: 'generateWechatReply'", `${sourcePath} orchestration facade`);
+assertIncludes(source, 'callWechatChatOrchestration(helperName, this, ...args)', `${sourcePath} orchestration facade`);
 
 for (const marker of [
   'wechatContactProfileText(contact, playerText = \'\')',
@@ -83,6 +91,15 @@ for (const marker of [
 ]) {
   assertNotIncludes(source, `\n  ${marker}`, `${sourcePath} should not own reply helper implementation`);
   assertIncludes(helper, `\n  ${marker}`, `${helperPath} should own reply helper implementation`);
+}
+
+for (const marker of [
+  'async sendWechatMessage()',
+  'async replyWechatContact(contact, playerText)',
+  'async generateWechatReply(contact, playerText)',
+]) {
+  assertNotIncludes(source, `\n  ${marker}`, `${sourcePath} should not own chat orchestration implementation`);
+  assertIncludes(orchestration, `\n  ${marker}`, `${orchestrationPath} should own chat orchestration implementation`);
 }
 
 assertOrder(sendBlock, [
@@ -164,11 +181,16 @@ function parseJsonList(relativePath) {
 
 function assertListOrder(list, relativePath) {
   const helperIndex = list.indexOf('app/wechat/chat-reply-helpers.js');
+  const orchestrationIndex = list.indexOf('app/wechat/chat-orchestration.js');
   const actionIndex = list.indexOf('wechat-chat-actions.js');
   if (helperIndex < 0) fail(`${relativePath}: missing app/wechat/chat-reply-helpers.js`);
+  if (orchestrationIndex < 0) fail(`${relativePath}: missing app/wechat/chat-orchestration.js`);
   if (actionIndex < 0) fail(`${relativePath}: missing wechat-chat-actions.js`);
-  if (helperIndex >= 0 && actionIndex >= 0 && helperIndex > actionIndex) {
-    fail(`${relativePath}: chat-reply-helpers.js must load before wechat-chat-actions.js`);
+  if (helperIndex >= 0 && orchestrationIndex >= 0 && helperIndex > orchestrationIndex) {
+    fail(`${relativePath}: chat-reply-helpers.js must load before chat-orchestration.js`);
+  }
+  if (orchestrationIndex >= 0 && actionIndex >= 0 && orchestrationIndex > actionIndex) {
+    fail(`${relativePath}: chat-orchestration.js must load before wechat-chat-actions.js`);
   }
 }
 
@@ -177,6 +199,7 @@ function assertManifestOrder(relativePath) {
   assertOrder(text, [
     '"app/wechat/chat-message-helpers.js"',
     '"app/wechat/chat-reply-helpers.js"',
+    '"app/wechat/chat-orchestration.js"',
     '"app/wechat/mention-view-helpers.js"',
     '"wechat-chat-actions.js"',
   ], `${relativePath} wechat manifest order`);
@@ -197,9 +220,11 @@ console.log(JSON.stringify({
   checked: {
     sourcePath,
     helperPath,
+    orchestrationPath,
     manifests: [webManifestPath, webScriptsPath, androidManifestPath, androidScriptsPath],
     invariants: [
       'reply-helper-facade',
+      'chat-orchestration-facade',
       'send-message-order',
       'reply-success-order',
       'reply-failure-finally-order',
