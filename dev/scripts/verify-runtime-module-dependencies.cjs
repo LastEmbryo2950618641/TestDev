@@ -139,6 +139,13 @@ const orderedGroups = [
     ],
   },
   {
+    label: 'wechat album runtime dependencies',
+    before: 'wechat-album-actions.js',
+    required: [
+      'app/wechat/album-orchestration.js',
+    ],
+  },
+  {
     label: 'wechat change panel runtime dependencies',
     before: 'wechat-change-panel-actions.js',
     required: [

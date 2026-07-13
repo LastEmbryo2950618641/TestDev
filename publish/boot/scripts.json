@@ -307,6 +307,7 @@
   "wechat-memory-debug-actions.js",
   "app/wechat/app-orchestration.js",
   "wechat-app-actions.js",
+  "app/wechat/album-orchestration.js",
   "wechat-album-tags.js",
   "wechat-album-prompt-list.js",
   "wechat-avatar-crop-actions.js",

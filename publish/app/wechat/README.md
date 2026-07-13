@@ -106,6 +106,11 @@ The goal of this directory is to hold small, reusable, non-entry helper surfaces
 - old worldline/event/message memory cleanup logic
 - SQLite memory archive cleanup and cleanup-state persistence
 
+### `album-orchestration.js`
+- WeChat album contact/profile lookup helpers
+- album photo list and refresh helpers for profile/body-figure flows
+- shared album contact state resolution used by album actions
+
 ### `mention-view-helpers.js`
 - mention-context text assembly and contact-mention parsing
 - mention-related readonly source formatting for prompt/context usage
@@ -158,4 +163,4 @@ The preferred migration pattern for new work here is:
 
 ## Immediate practical rule
 
-If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, history-context, image-record, image-ui, image-album, image-prompt, image-receive-orchestration, image-offer-orchestration, worldline-orchestration, change-panel-orchestration, app-orchestration, incoming-orchestration, memory-debug-orchestration, cleanup-orchestration, mention-view, mention-base-photo, mention-reference, or mention-input style boundaries, document the rationale before adding another module here.
+If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, history-context, image-record, image-ui, image-album, image-prompt, image-receive-orchestration, image-offer-orchestration, worldline-orchestration, change-panel-orchestration, app-orchestration, incoming-orchestration, memory-debug-orchestration, cleanup-orchestration, album-orchestration, mention-view, mention-base-photo, mention-reference, or mention-input style boundaries, document the rationale before adding another module here.
