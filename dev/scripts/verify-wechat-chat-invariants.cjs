@@ -161,6 +161,7 @@ for (const marker of [
   'wechatPastEventContext(contact, playerText = \'\', state = null)',
   'async wechatReplyPrompt(contact, playerText)',
 ]) {
+  assertNotIncludes(source, `\n  ${marker}`, `${sourcePath} should not own chat prompt implementation`);
   assertNotIncludes(pastEvent, `\n  ${marker}`, `${pastEventPath} should not own chat prompt implementation`);
   assertIncludes(promptHelper, `\n  ${marker}`, `${promptHelperPath} should own chat prompt implementation`);
 }
@@ -520,6 +521,9 @@ function assertListOrder(list, relativePath) {
   }
   if (promptIndex >= 0 && pastEventIndex >= 0 && promptIndex > pastEventIndex) {
     fail(`${relativePath}: chat-prompt-helpers.js must load before wechat-past-event-actions.js`);
+  }
+  if (actionIndex >= 0 && pastEventIndex >= 0 && actionIndex > pastEventIndex) {
+    fail(`${relativePath}: wechat-chat-actions.js must load before wechat-past-event-actions.js`);
   }
   if (historyContextIndex >= 0 && memoryContextActionIndex >= 0 && historyContextIndex > memoryContextActionIndex) {
     fail(`${relativePath}: history-context-helpers.js must load before wechat-memory-context-actions.js`);

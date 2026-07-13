@@ -39,4 +39,12 @@ Therefore the safe extraction target is the past-event prompt surface, not only 
 
 ## Follow-up
 
-The base `wechatReplyPrompt()` still present in `publish/wechat-chat-actions.js` is likely shadowed by `wechat-past-event-actions.js` during the standard WeChat boot flow. Do not delete it until a dedicated callsite/load-order audit confirms no partial loader path depends on the base method before the past-event extension is loaded.
+The base `wechatReplyPrompt()` residue in `publish/wechat-chat-actions.js` has now been removed after the load-order audit confirmed the standard Web and Android runtime manifests load:
+
+1. `app/wechat/chat-prompt-helpers.js`
+2. `wechat-chat-actions.js`
+3. `wechat-past-event-actions.js`
+
+`publish/wechat-past-event-actions.js` remains the public prompt facade extension and forwards `wechatReplyPrompt()` to `publish/app/wechat/chat-prompt-helpers.js`.
+
+The invariant verifier now guards this boundary by checking that `publish/wechat-chat-actions.js` does not own prompt implementations and that `wechat-chat-actions.js` still loads before `wechat-past-event-actions.js`.
