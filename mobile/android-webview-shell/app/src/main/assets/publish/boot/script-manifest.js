@@ -309,8 +309,7 @@ window.GameScriptManifest = {
       "app/org-territory/record-helpers.js",
       "app/org-territory/family-actions.js",
       "app/org-territory/economy-actions.js",
-      "app/org-territory/settlement-actions.js",
-      "org-territory-actions.js"
+      "app/org-territory/settlement-actions.js"
     ],
     "wechat": [
       "platform/storage/wechat-history-source.js",
@@ -432,8 +431,8 @@ window.GameScriptManifest = {
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-13T19:40:05.098Z",
-  "total": 420
+  "generatedAt": "2026-07-13T19:45:41.269Z",
+  "total": 419
 };
 
 window.GameScriptManifest.classify = function classify(url) {

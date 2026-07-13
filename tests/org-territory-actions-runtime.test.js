@@ -5,21 +5,14 @@ const vm = require('vm');
 
 const root = path.resolve(__dirname, '..');
 const actionPath = path.join(root, 'publish/org-territory-actions.js');
+const androidActionPath = path.join(root, 'mobile/android-webview-shell/app/src/main/assets/publish/org-territory-actions.js');
 const familyActionPath = path.join(root, 'publish/app/org-territory/family-actions.js');
 const recordHelperPath = path.join(root, 'publish/app/org-territory/record-helpers.js');
 const economyActionPath = path.join(root, 'publish/app/org-territory/economy-actions.js');
 const updateRulesPath = path.join(root, 'publish/domain/org-territory/update-rules.js');
 const settlementActionPath = path.join(root, 'publish/app/org-territory/settlement-actions.js');
-const requiredMethods = [
-  'applyLegacyStructure',
-  'applySettlementUpdates',
-  'ensureAdminOrgStub',
-  'ensureFamilyOrg',
-  'linkFamilyToCommunity',
-  'syncCompanyEconomicEntry',
-  'syncEmploymentOnOrgDissolved',
-  'syncPlayerWealthAsset',
-];
+assert.ok(!fs.existsSync(actionPath), 'legacy org territory action facade must be removed after all consumers migrate');
+assert.ok(!fs.existsSync(androidActionPath), 'Android assets must not retain the removed org territory action facade');
 
 for (const relativePath of [
   'publish/boot/scripts.json',
@@ -32,17 +25,14 @@ for (const relativePath of [
   const familyActionsIndex = scripts.indexOf('app/org-territory/family-actions.js');
   const economyActionsIndex = scripts.indexOf('app/org-territory/economy-actions.js');
   const settlementActionsIndex = scripts.indexOf('app/org-territory/settlement-actions.js');
-  const actionsIndex = scripts.indexOf('org-territory-actions.js');
   const factionActionsIndex = scripts.indexOf('faction-actions.js');
-  const earlyWealthIndex = scripts.indexOf('player-wealth-actions.js');
   assert.ok(systemIndex >= 0 && systemIndex < updateRulesIndex, `${relativePath} must load orgTerritory before updateRules`);
   assert.strictEqual(updateRulesIndex + 1, recordHelpersIndex, `${relativePath} must load updateRules immediately before recordHelpers`);
   assert.strictEqual(recordHelpersIndex + 1, familyActionsIndex, `${relativePath} must load recordHelpers immediately before familyActions`);
   assert.strictEqual(familyActionsIndex + 1, economyActionsIndex, `${relativePath} must load familyActions immediately before economyActions`);
   assert.strictEqual(economyActionsIndex + 1, settlementActionsIndex, `${relativePath} must load economyActions immediately before settlementActions`);
-  assert.strictEqual(settlementActionsIndex + 1, actionsIndex, `${relativePath} must load settlementActions immediately before the compatibility facade`);
-  assert.ok(earlyWealthIndex < actionsIndex, `${relativePath} must not activate orgTerritoryActions before faction initialization is available`);
-  assert.strictEqual(actionsIndex + 1, factionActionsIndex, `${relativePath} must load orgTerritoryActions immediately before factionActions`);
+  assert.strictEqual(settlementActionsIndex + 1, factionActionsIndex, `${relativePath} must load settlementActions immediately before factionActions`);
+  assert.ok(!scripts.includes('org-territory-actions.js'), `${relativePath} must not load the removed compatibility facade`);
 }
 
 for (const relativePath of [
@@ -58,22 +48,24 @@ for (const relativePath of [
   const familyActionsIndex = runtimeScripts.indexOf('app/org-territory/family-actions.js');
   const economyActionsIndex = runtimeScripts.indexOf('app/org-territory/economy-actions.js');
   const settlementActionsIndex = runtimeScripts.indexOf('app/org-territory/settlement-actions.js');
-  const facadeIndex = runtimeScripts.indexOf('org-territory-actions.js');
+  const factionActionsIndex = runtimeScripts.indexOf('faction-actions.js');
   assert.ok(systemIndex >= 0 && systemIndex < updateRulesIndex, `${relativePath} must load orgTerritory before updateRules`);
   assert.ok(updateRulesIndex < recordHelpersIndex, `${relativePath} must load updateRules before recordHelpers`);
   assert.ok(recordHelpersIndex < familyActionsIndex, `${relativePath} must load recordHelpers before familyActions`);
   assert.ok(familyActionsIndex < economyActionsIndex, `${relativePath} must load familyActions before economyActions`);
   assert.ok(economyActionsIndex < settlementActionsIndex, `${relativePath} must load economyActions before settlementActions`);
-  assert.ok(settlementActionsIndex < facadeIndex, `${relativePath} must load settlementActions before the compatibility facade`);
+  assert.ok(settlementActionsIndex < factionActionsIndex, `${relativePath} must load settlementActions before factionActions`);
+  assert.ok(!runtimeScripts.includes('org-territory-actions.js'), `${relativePath} must not load the removed compatibility facade`);
 }
 
-const source = fs.readFileSync(actionPath, 'utf8');
-assert.doesNotMatch(source, /window\.GameModules\.sqliteSave/u, 'org territory actions must use shared stores');
 assert.ok(fs.existsSync(familyActionPath), 'family actions must live under publish/app/org-territory');
 assert.ok(fs.existsSync(recordHelperPath), 'record helpers must live under publish/app/org-territory');
 assert.ok(fs.existsSync(economyActionPath), 'economy actions must live under publish/app/org-territory');
 assert.ok(fs.existsSync(updateRulesPath), 'update rules must live under publish/domain/org-territory');
 assert.ok(fs.existsSync(settlementActionPath), 'settlement actions must live under publish/app/org-territory');
+for (const modulePath of [familyActionPath, recordHelperPath, economyActionPath, updateRulesPath, settlementActionPath]) {
+  assert.doesNotMatch(fs.readFileSync(modulePath, 'utf8'), /window\.GameModules\.sqliteSave/u, `${modulePath} must use shared stores`);
+}
 
 const context = vm.createContext({ window: { GameModules: {} } });
 vm.runInContext(fs.readFileSync(updateRulesPath, 'utf8'), context, { filename: 'domain/org-territory/update-rules.js' });
@@ -81,8 +73,6 @@ vm.runInContext(fs.readFileSync(recordHelperPath, 'utf8'), context, { filename: 
 vm.runInContext(fs.readFileSync(familyActionPath, 'utf8'), context, { filename: 'app/org-territory/family-actions.js' });
 vm.runInContext(fs.readFileSync(economyActionPath, 'utf8'), context, { filename: 'app/org-territory/economy-actions.js' });
 vm.runInContext(fs.readFileSync(settlementActionPath, 'utf8'), context, { filename: 'app/org-territory/settlement-actions.js' });
-vm.runInContext(source, context, { filename: 'org-territory-actions.js' });
-const actions = context.window.GameModules.orgTerritoryActions;
 const familyActions = context.window.GameModules.app?.orgTerritory?.familyActions;
 for (const method of ['ensureFamilyOrg', 'syncFamilyTerritoryAnchor', 'ensureAdminOrgStub', 'linkFamilyToCommunity']) {
   assert.strictEqual(typeof familyActions?.[method], 'function', `familyActions.${method} must be available at runtime`);
@@ -104,8 +94,6 @@ const settlementActions = context.window.GameModules.app?.orgTerritory?.settleme
 for (const method of ['applyTerritoryControl', 'applyFactionStructureUpdate', 'applyOrgOverviewPanel', 'applyMembershipUpdate', 'applyOrgStatus', 'applySettlementUpdates', 'applyLegacyStructure']) {
   assert.strictEqual(typeof settlementActions?.[method], 'function', `settlementActions.${method} must be available at runtime`);
 }
-for (const method of requiredMethods) assert.strictEqual(typeof actions[method], 'function', `${method} must be available at runtime`);
-
 for (const relativePath of [
   'publish/company-faction-actions.js',
   'publish/faction-actions.js',
@@ -118,8 +106,7 @@ for (const relativePath of [
   'publish/taobao-buy-actions.js',
 ]) {
   const consumer = fs.readFileSync(path.join(root, relativePath), 'utf8');
-  const names = [...consumer.matchAll(/orgTerritoryActions\?\.([A-Za-z_$][\w$]*)/gu)].map((match) => match[1]);
-  for (const name of names) assert.strictEqual(typeof actions[name], 'function', `${relativePath} calls missing orgTerritoryActions.${name}`);
+  assert.doesNotMatch(consumer, /orgTerritoryActions/u, `${relativePath} must not call the removed compatibility facade`);
 }
 
 const systemConsumer = fs.readFileSync(path.join(root, 'publish/org-territory-system.js'), 'utf8');
@@ -160,7 +147,6 @@ for (const relativePath of [
   'publish/app/org-territory/family-actions.js',
   'publish/app/org-territory/economy-actions.js',
   'publish/app/org-territory/settlement-actions.js',
-  'publish/org-territory-actions.js',
   'publish/real-world-map-geopolitical.js',
 ]) {
   vm.runInContext(fs.readFileSync(path.join(root, relativePath), 'utf8'), integrationContext, { filename: relativePath });

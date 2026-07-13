@@ -389,7 +389,6 @@
   "app/org-territory/family-actions.js",
   "app/org-territory/economy-actions.js",
   "app/org-territory/settlement-actions.js",
-  "org-territory-actions.js",
   "faction-actions.js",
   "faction-org-actions.js",
   "faction-membership-actions.js",

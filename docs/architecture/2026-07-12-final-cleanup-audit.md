@@ -48,3 +48,24 @@
 - 无消费者
 三类分组。
 3. 最后再开始真实的旧代码删除与验证。
+
+## 2026-07-14 组织领地动作兼容层清理
+
+本轮已完成 `publish/org-territory-actions.js` 的真实迁移与删除，不再保留顶层 facade 或 Android 孤儿镜像。
+
+职责现落位为：
+
+- `publish/domain/org-territory/update-rules.js`：结构路径、面板类型和结算优先级纯规则。
+- `publish/app/org-territory/record-helpers.js`：总览条目与系统记录共享写入。
+- `publish/app/org-territory/family-actions.js`：家庭、政区 stub、社区归属和家庭地图锚点。
+- `publish/app/org-territory/economy-actions.js`：公司/财富镜像、经济级联和就业结束同步。
+- `publish/app/org-territory/settlement-actions.js`：Stage4 组织、领土、成员和状态结算编排。
+
+删除 gate 证据：
+
+- `publish/` 与 Android assets 中已无 `orgTerritoryActions` 符号和 `org-territory-actions.js` 清单项。
+- Web 与 Android 四份运行时清单顺序统一为 `update-rules -> record-helpers -> family-actions -> economy-actions -> settlement-actions -> faction-actions`。
+- `verify:runtime-coverage`、`verify:runtime-deps`、`verify:repo-boundaries`、`verify:orphan-runtime-files` 全部通过。
+- `build:multi-platform` 与 `verify:multi-platform` 全部通过；Web 文件/HTTP 可启动，APK 运行时资产无漂移，EXE 发布文件无漂移且可启动。
+
+该结果证明本兼容层满足“先迁移消费者和行为，再删除旧入口”的清理门槛，可作为后续高耦合动作文件拆分的实施样板。

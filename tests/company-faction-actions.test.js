@@ -41,8 +41,12 @@ function loadActions(overrides = {}) {
             return row;
           },
         },
-        orgTerritoryActions: {
-          syncCompanyEconomicEntry: () => {},
+        app: {
+          orgTerritory: {
+            economyActions: {
+              syncCompanyEconomicEntry: () => {},
+            },
+          },
         },
         characterStateStore: {
           save: async (state) => savedStates.push(state),
