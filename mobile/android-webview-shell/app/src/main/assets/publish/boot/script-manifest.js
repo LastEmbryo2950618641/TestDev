@@ -291,6 +291,7 @@ window.GameScriptManifest = {
       "app/wechat/chat-prompt-helpers.js",
       "app/wechat/mention-view-helpers.js",
       "app/wechat/mention-base-photo-helper.js",
+      "app/wechat/mention-reference-helpers.js",
       "wechat-chat-actions.js",
       "wechat-past-event-actions.js",
       "wechat-incoming-actions.js",

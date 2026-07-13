@@ -48,6 +48,11 @@ The goal of this directory is to hold small, reusable, non-entry helper surfaces
 - image mention id helpers
 - image mention action helper slices that stay close to image mention utility flow
 
+### `mention-reference-helpers.js`
+- message mention id generation
+- mentioned image reference parsing
+- reply-result image-intent attachment for mentioned base images
+
 ## Boundary rules
 
 Helpers in this directory should prefer:
@@ -82,5 +87,5 @@ The preferred migration pattern for new work here is:
 
 ## Immediate practical rule
 
-If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, mention-view, or mention-base-photo style boundaries, document the rationale before adding another module here.
+If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, mention-view, mention-base-photo, or mention-reference style boundaries, document the rationale before adding another module here.
 

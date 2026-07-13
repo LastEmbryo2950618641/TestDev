@@ -9,6 +9,8 @@ const pastEventPath = 'publish/wechat-past-event-actions.js';
 const helperPath = 'publish/app/wechat/chat-reply-helpers.js';
 const orchestrationPath = 'publish/app/wechat/chat-orchestration.js';
 const promptHelperPath = 'publish/app/wechat/chat-prompt-helpers.js';
+const mentionActionPath = 'publish/wechat-mention-actions.js';
+const mentionReferenceHelperPath = 'publish/app/wechat/mention-reference-helpers.js';
 const webManifestPath = 'publish/boot/script-manifest.js';
 const webScriptsPath = 'publish/boot/scripts.json';
 const androidManifestPath = 'mobile/android-webview-shell/app/src/main/assets/publish/boot/script-manifest.js';
@@ -19,6 +21,8 @@ const pastEvent = read(pastEventPath);
 const helper = read(helperPath);
 const orchestration = read(orchestrationPath);
 const promptHelper = read(promptHelperPath);
+const mentionAction = read(mentionActionPath);
+const mentionReferenceHelper = read(mentionReferenceHelperPath);
 
 const violations = [];
 
@@ -122,6 +126,18 @@ for (const marker of [
   assertIncludes(promptHelper, `\n  ${marker}`, `${promptHelperPath} should own chat prompt implementation`);
 }
 
+assertIncludes(mentionAction, 'callWechatMentionReferenceHelper', `${mentionActionPath} mention reference facade`);
+for (const marker of [
+  'wechatMessageMentionId(msg = {}, index = 0)',
+  'wechatMentionedImages(text = \'\', currentId = \'\')',
+  'attachWechatMentionedImageIntent(result = {}, playerText = \'\', currentId = \'\')',
+]) {
+  assertIncludes(mentionReferenceHelper, `\n  ${marker}`, `${mentionReferenceHelperPath} should own mention reference implementation`);
+}
+assertIncludes(methodBlock(mentionAction, mentionActionPath, 'wechatMessageMentionId', 'wechatMessageImageMentionId'), "return callWechatMentionReferenceHelper('wechatMessageMentionId', this, msg, index);", `${mentionActionPath} wechatMessageMentionId facade`);
+assertIncludes(methodBlock(mentionAction, mentionActionPath, 'wechatMentionedImages', 'wechatImageMentionSources'), "return callWechatMentionReferenceHelper('wechatMentionedImages', this, text, currentId);", `${mentionActionPath} wechatMentionedImages facade`);
+assertIncludes(methodBlock(mentionAction, mentionActionPath, 'attachWechatMentionedImageIntent', 'wechatImageBasePhoto'), "return callWechatMentionReferenceHelper('attachWechatMentionedImageIntent', this, result, playerText, currentId);", `${mentionActionPath} attachWechatMentionedImageIntent facade`);
+
 assertOrder(sendBlock, [
   "const text = String(this.wechatInput || '').trim();",
   'const target = this.wechatSelected();',
@@ -219,13 +235,18 @@ function assertListOrder(list, relativePath) {
   const helperIndex = list.indexOf('app/wechat/chat-reply-helpers.js');
   const orchestrationIndex = list.indexOf('app/wechat/chat-orchestration.js');
   const promptIndex = list.indexOf('app/wechat/chat-prompt-helpers.js');
+  const mentionBasePhotoIndex = list.indexOf('app/wechat/mention-base-photo-helper.js');
+  const mentionReferenceIndex = list.indexOf('app/wechat/mention-reference-helpers.js');
   const actionIndex = list.indexOf('wechat-chat-actions.js');
   const pastEventIndex = list.indexOf('wechat-past-event-actions.js');
+  const mentionActionIndex = list.indexOf('wechat-mention-actions.js');
   if (helperIndex < 0) fail(`${relativePath}: missing app/wechat/chat-reply-helpers.js`);
   if (orchestrationIndex < 0) fail(`${relativePath}: missing app/wechat/chat-orchestration.js`);
   if (promptIndex < 0) fail(`${relativePath}: missing app/wechat/chat-prompt-helpers.js`);
+  if (mentionReferenceIndex < 0) fail(`${relativePath}: missing app/wechat/mention-reference-helpers.js`);
   if (actionIndex < 0) fail(`${relativePath}: missing wechat-chat-actions.js`);
   if (pastEventIndex < 0) fail(`${relativePath}: missing wechat-past-event-actions.js`);
+  if (mentionActionIndex < 0) fail(`${relativePath}: missing wechat-mention-actions.js`);
   if (helperIndex >= 0 && orchestrationIndex >= 0 && helperIndex > orchestrationIndex) {
     fail(`${relativePath}: chat-reply-helpers.js must load before chat-orchestration.js`);
   }
@@ -238,6 +259,12 @@ function assertListOrder(list, relativePath) {
   if (promptIndex >= 0 && pastEventIndex >= 0 && promptIndex > pastEventIndex) {
     fail(`${relativePath}: chat-prompt-helpers.js must load before wechat-past-event-actions.js`);
   }
+  if (mentionBasePhotoIndex >= 0 && mentionReferenceIndex >= 0 && mentionBasePhotoIndex > mentionReferenceIndex) {
+    fail(`${relativePath}: mention-base-photo-helper.js must load before mention-reference-helpers.js`);
+  }
+  if (mentionReferenceIndex >= 0 && mentionActionIndex >= 0 && mentionReferenceIndex > mentionActionIndex) {
+    fail(`${relativePath}: mention-reference-helpers.js must load before wechat-mention-actions.js`);
+  }
 }
 
 function assertManifestOrder(relativePath) {
@@ -248,8 +275,11 @@ function assertManifestOrder(relativePath) {
     '"app/wechat/chat-orchestration.js"',
     '"app/wechat/chat-prompt-helpers.js"',
     '"app/wechat/mention-view-helpers.js"',
+    '"app/wechat/mention-base-photo-helper.js"',
+    '"app/wechat/mention-reference-helpers.js"',
     '"wechat-chat-actions.js"',
     '"wechat-past-event-actions.js"',
+    '"wechat-mention-actions.js"',
   ], `${relativePath} wechat manifest order`);
 }
 
@@ -268,14 +298,17 @@ console.log(JSON.stringify({
   checked: {
     sourcePath,
     pastEventPath,
-    helperPath,
-    orchestrationPath,
-    promptHelperPath,
-    manifests: [webManifestPath, webScriptsPath, androidManifestPath, androidScriptsPath],
+      helperPath,
+      orchestrationPath,
+      promptHelperPath,
+      mentionActionPath,
+      mentionReferenceHelperPath,
+      manifests: [webManifestPath, webScriptsPath, androidManifestPath, androidScriptsPath],
     invariants: [
       'reply-helper-facade',
       'chat-orchestration-facade',
       'chat-prompt-facade',
+      'mention-reference-facade',
       'send-message-order',
       'reply-success-order',
       'reply-failure-finally-order',
