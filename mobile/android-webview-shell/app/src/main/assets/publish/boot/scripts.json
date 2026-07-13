@@ -50,6 +50,7 @@
   "platform/storage/real-world-log-source.js",
   "platform/storage/wechat-history-source.js",
   "character-state-store.js",
+  "world-lore-store.js",
   "wechat-history-store.js",
   "worldline-plots.js",
   "progression.js",

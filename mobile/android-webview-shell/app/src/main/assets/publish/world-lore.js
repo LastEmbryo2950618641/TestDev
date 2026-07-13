@@ -5,12 +5,13 @@ window.GameModules.worldLore = {
 
   async ensure(worldTag, context = '') {
     const save = window.GameModules.sqliteSave;
-    const existing = save.getWorldLore(worldTag);
+    const loreStore = window.GameModules.worldLoreStore;
+    const existing = loreStore?.get?.(worldTag);
     if (existing) {
       if (!existing.worldline && !save.getWorldline?.(worldTag)) {
         console.debug('[世界观] 旧设定缺少世界线，正在补齐:', worldTag);
         const upgraded = this.validate(existing, worldTag);
-        await save.saveWorldLore(worldTag, upgraded);
+        await loreStore?.save?.(worldTag, upgraded);
         return upgraded;
       }
       if (!existing.worldline) existing.worldline = save.getWorldline?.(worldTag);
@@ -22,7 +23,7 @@ window.GameModules.worldLore = {
     this.inflight[key] = (async () => {
       console.debug('[世界观] 开始生成设定:', worldTag, 'contextLength=', String(context || '').length);
       const lore = await this.generate(worldTag, context);
-      await save.saveWorldLore(worldTag, lore);
+      await loreStore?.save?.(worldTag, lore);
       return lore;
     })();
     try { return await this.inflight[key]; }

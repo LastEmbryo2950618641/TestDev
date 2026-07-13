@@ -14,13 +14,12 @@ window.GameModules.entryTime = {
   },
 
   async persistCalendar(store, calendar) {
-    const save = window.GameModules.sqliteSave;
-    if (!save?.db) return;
+    const loreStore = window.GameModules.worldLoreStore;
     const worldTag = store.character.work || '原创世界';
-    const lore = save.getWorldLore(worldTag);
+    const lore = loreStore?.get?.(worldTag);
     if (!lore) return;
     lore.calendar = calendar;
-    await save.saveWorldLore(worldTag, lore);
+    await loreStore?.save?.(worldTag, lore);
   },
 
   calendarFor(worldTag, lore) {

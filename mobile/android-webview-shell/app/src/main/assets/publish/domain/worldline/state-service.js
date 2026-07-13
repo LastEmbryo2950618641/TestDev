@@ -70,7 +70,7 @@ window.GameModules.domain.worldline.stateService = {
       line.events = [...(line.events || []), event];
       await this.appendWorldlineEvent(line, event);
       lore.worldline = line;
-      await window.GameModules.sqliteSave.saveWorldLore(worldTag, lore);
+      await window.GameModules.worldLoreStore?.save?.(worldTag, lore);
     }
   },
 };

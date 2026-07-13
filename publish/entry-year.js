@@ -30,7 +30,7 @@ window.GameModules.entryYear = {
   },
 
   fallbackBaseYear(calendar, store) {
-    const lore = window.GameModules.sqliteSave?.getWorldLore?.(store?.character?.work || '原创世界');
+    const lore = window.GameModules.worldLoreStore?.get?.(store?.character?.work || '原创世界');
     const text = `${calendar.label || ''} ${store?.character?.work || ''} ${lore?.background || ''}`;
     const years = text.match(/\b(1[5-9]\d{2}|20\d{2}|21\d{2})\b/g);
     if (years?.length) return Number(years[0]);
@@ -53,7 +53,7 @@ window.GameModules.entryYear = {
 
   async localEvidence(store, mode) {
     const character = store?.character || {};
-    const lore = window.GameModules.sqliteSave?.getWorldLore?.(character.work || '原创世界');
+    const lore = window.GameModules.worldLoreStore?.get?.(character.work || '原创世界');
     const profile = store?.characterProfiles?.[character.id] || null;
     const basics = (profile?.basics || []).map((x) => `${x.label}:${x.value}`).join('\n');
     const base = `${character.name || ''} ${(character.aliases || []).join(' ')} ${character.role || ''} ${character.detail || ''}\n${lore?.background || ''}\n${profile?.summary || ''}\n${basics}`;

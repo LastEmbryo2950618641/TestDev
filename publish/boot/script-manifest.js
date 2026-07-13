@@ -52,6 +52,7 @@ window.GameScriptManifest = {
       "platform/storage/world-lore-source.js",
       "platform/storage/real-world-log-source.js",
       "character-state-store.js",
+      "world-lore-store.js",
       "worldline-plots.js",
       "progression.js",
       "progression-wearables.js",
@@ -409,7 +410,7 @@ window.GameScriptManifest = {
     ]
   },
   "generatedAt": "2026-07-13T17:39:40.727Z",
-  "total": 396
+  "total": 397
 };
 
 window.GameScriptManifest.classify = function classify(url) {
