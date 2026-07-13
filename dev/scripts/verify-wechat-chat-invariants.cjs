@@ -6,6 +6,7 @@ const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'u
 
 const sourcePath = 'publish/wechat-chat-actions.js';
 const pastEventPath = 'publish/wechat-past-event-actions.js';
+const chatSessionPath = 'publish/app/wechat/chat-session.js';
 const helperPath = 'publish/app/wechat/chat-reply-helpers.js';
 const orchestrationPath = 'publish/app/wechat/chat-orchestration.js';
 const promptHelperPath = 'publish/app/wechat/chat-prompt-helpers.js';
@@ -27,6 +28,7 @@ const androidScriptsPath = 'mobile/android-webview-shell/app/src/main/assets/pub
 
 const source = read(sourcePath);
 const pastEvent = read(pastEventPath);
+const chatSession = read(chatSessionPath);
 const helper = read(helperPath);
 const orchestration = read(orchestrationPath);
 const promptHelper = read(promptHelperPath);
@@ -98,6 +100,19 @@ const sendBlock = methodBlock(orchestration, orchestrationPath, 'sendWechatMessa
 const replyBlock = methodBlock(orchestration, orchestrationPath, 'replyWechatContact', 'generateWechatReply');
 const generateBlock = methodBlock(orchestration, orchestrationPath, 'generateWechatReply');
 const promptBlock = methodBlock(promptHelper, promptHelperPath, 'wechatReplyPrompt');
+
+for (const marker of [
+  '[微信] 选中联系人资料补全失败',
+  "name: '系统'",
+  "mark: '系'",
+  '新手机已激活，微信数据同步完成。',
+  '资料已同步。',
+]) {
+  assertIncludes(chatSession, marker, `${chatSessionPath} should keep readable UTF-8 defaults`);
+}
+for (const marker of ['寰俊', '鑱旂郴', '鏂版墜', '璧勬枡', '绯荤粺']) {
+  assertNotIncludes(chatSession, marker, `${chatSessionPath} should not contain mojibake defaults`);
+}
 
 assertIncludes(source, "const wechatChatReplyForwarders = {", `${sourcePath} reply facade`);
 assertIncludes(source, "wechatContactProfileText: 'wechatContactProfileText'", `${sourcePath} reply facade`);
@@ -455,6 +470,7 @@ console.log(JSON.stringify({
     sourcePath,
     pastEventPath,
       helperPath,
+      chatSessionPath,
       orchestrationPath,
       promptHelperPath,
       memoryContextActionPath,
@@ -471,6 +487,7 @@ console.log(JSON.stringify({
       manifests: [webManifestPath, webScriptsPath, androidManifestPath, androidScriptsPath],
     invariants: [
       'reply-helper-facade',
+      'chat-session-utf8-defaults',
       'chat-orchestration-facade',
       'chat-prompt-facade',
       'history-context-facade',

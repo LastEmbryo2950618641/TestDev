@@ -11,7 +11,7 @@ window.GameModules.app.wechat.chatSession = {
     if (selected && bound?.profile && window.GameModules.characterProfile.isRoleCard?.(bound.profile)) {
       this.bindWechatCharacterState?.(bound, selected);
     } else if (selected && !window.GameModules.characterProfile.isConcreteName(profile?.name)) {
-      this.ensureWechatUserProfile?.(selected, { generateIfMissing: true }).then(() => this.save?.()).catch((err) => console.warn('[寰俊] 閫変腑鑱旂郴浜鸿祫鏂欒ˉ鍏ㄥけ璐?', err.code, err.message, err.stack));
+      this.ensureWechatUserProfile?.(selected, { generateIfMissing: true }).then(() => this.save?.()).catch((err) => console.warn('[微信] 选中联系人资料补全失败', err.code, err.message, err.stack));
     }
     const renamed = this.syncWechatContactsFromRpgStates?.();
     this.wechatUsers = (this.wechatUsers || []).map((item) => item.id === this.wechatSelectedContact ? { ...item, unread: 0 } : item);
@@ -30,8 +30,8 @@ window.GameModules.app.wechat.chatSession = {
     const key = this.wechatMessageKey(target);
     const stored = this.wechatMessagesByContact?.[key] || [];
     if (stored.length) return stored;
-    if (target?.group) return [{ side: 'other', name: '绯荤粺', mark: '绯?', text: '鏂版墜鏈哄凡婵€娲伙紝寰俊鏁版嵁鍚屾瀹屾垚銆?' }];
-    return [{ side: 'other', name: target?.name, mark: target?.mark, text: target?.latest || '璧勬枡宸插悓姝ャ€?' }];
+    if (target?.group) return [{ side: 'other', name: '系统', mark: '系', text: '新手机已激活，微信数据同步完成。' }];
+    return [{ side: 'other', name: target?.name, mark: target?.mark, text: target?.latest || '资料已同步。' }];
   },
 
   updateLatest(id, latest, incoming = false) {
