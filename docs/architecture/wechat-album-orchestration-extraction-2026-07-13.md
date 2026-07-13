@@ -53,3 +53,8 @@ same public method as a compatibility forwarder. Request staleness checks,
 token recording, draw ordering, body-figure coordination, album insertion,
 avatar capture, game save, and conditional busy-state cleanup remain in their
 original order.
+
+Prompt editor opening is now owned by
+`app/wechat/album-prompt-editor-orchestration.js`. The facade retains the
+public method while profile preparation, option lookup, draft key assignment,
+and the `edit` step transition are isolated from drawing and persistence.

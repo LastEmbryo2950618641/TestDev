@@ -319,6 +319,7 @@ window.GameScriptManifest = {
       "app/wechat/album-generate-helpers.js",
       "app/wechat/album-draw-helpers.js",
       "app/wechat/album-prompt-editor-helpers.js",
+      "app/wechat/album-prompt-editor-orchestration.js",
       "app/wechat/album-ui-state-helpers.js",
       "app/wechat/album-body-figure-helpers.js",
       "app/wechat/album-body-figure-asset-orchestration.js",

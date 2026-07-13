@@ -148,6 +148,8 @@ const orderedGroups = [
       'app/wechat/album-generate-helpers.js',
       'app/wechat/album-photo-state-helpers.js',
       'app/wechat/album-generation-orchestration.js',
+      'app/wechat/album-prompt-editor-helpers.js',
+      'app/wechat/album-prompt-editor-orchestration.js',
     ],
   },
   {
