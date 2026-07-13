@@ -90,6 +90,7 @@
 - WeChat memory debug 编排抽取样例：`docs/architecture/wechat-memory-debug-orchestration-extraction-2026-07-13.md`
 - WeChat cleanup 编排抽取样例：`docs/architecture/wechat-cleanup-orchestration-extraction-2026-07-13.md`
 - WeChat avatar crop helper 抽取样例：`docs/architecture/wechat-avatar-crop-helper-extraction-2026-07-13.md`
+- WeChat album prompt list helper 抽取样例：`docs/architecture/wechat-album-prompt-list-helper-extraction-2026-07-13.md`
 - WeChat album 编排抽取样例：`docs/architecture/wechat-album-orchestration-extraction-2026-07-13.md`
 - WeChat worldline 编排抽取样例：`docs/architecture/wechat-worldline-orchestration-extraction-2026-07-13.md`
 - 验证样例：

@@ -153,6 +153,13 @@ const orderedGroups = [
     ],
   },
   {
+    label: 'wechat album prompt list runtime dependencies',
+    before: 'wechat-album-prompt-list.js',
+    required: [
+      'app/wechat/album-prompt-list-helpers.js',
+    ],
+  },
+  {
     label: 'wechat change panel runtime dependencies',
     before: 'wechat-change-panel-actions.js',
     required: [
