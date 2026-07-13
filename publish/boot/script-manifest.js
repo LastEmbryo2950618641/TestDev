@@ -283,6 +283,7 @@ window.GameScriptManifest = {
       "ui/wechat/view-helpers.js",
       "domain/wechat/change-panel-helpers.js",
       "wechat-view-actions.js",
+      "app/wechat/history-context-helpers.js",
       "wechat-memory-context-actions.js",
       "app/wechat/chat-session.js",
       "app/wechat/chat-message-helpers.js",

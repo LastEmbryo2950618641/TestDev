@@ -9,6 +9,8 @@ const pastEventPath = 'publish/wechat-past-event-actions.js';
 const helperPath = 'publish/app/wechat/chat-reply-helpers.js';
 const orchestrationPath = 'publish/app/wechat/chat-orchestration.js';
 const promptHelperPath = 'publish/app/wechat/chat-prompt-helpers.js';
+const memoryContextActionPath = 'publish/wechat-memory-context-actions.js';
+const historyContextHelperPath = 'publish/app/wechat/history-context-helpers.js';
 const mentionActionPath = 'publish/wechat-mention-actions.js';
 const mentionReferenceHelperPath = 'publish/app/wechat/mention-reference-helpers.js';
 const webManifestPath = 'publish/boot/script-manifest.js';
@@ -21,6 +23,8 @@ const pastEvent = read(pastEventPath);
 const helper = read(helperPath);
 const orchestration = read(orchestrationPath);
 const promptHelper = read(promptHelperPath);
+const memoryContextAction = read(memoryContextActionPath);
+const historyContextHelper = read(historyContextHelperPath);
 const mentionAction = read(mentionActionPath);
 const mentionReferenceHelper = read(mentionReferenceHelperPath);
 
@@ -124,6 +128,24 @@ for (const marker of [
 ]) {
   assertNotIncludes(pastEvent, `\n  ${marker}`, `${pastEventPath} should not own chat prompt implementation`);
   assertIncludes(promptHelper, `\n  ${marker}`, `${promptHelperPath} should own chat prompt implementation`);
+}
+
+assertIncludes(memoryContextAction, "const wechatHistoryContextForwarders = {", `${memoryContextActionPath} history context facade`);
+assertIncludes(memoryContextAction, 'callWechatHistoryContextHelper(helperName, this, ...args)', `${memoryContextActionPath} history context facade`);
+for (const marker of [
+  'ensureWechatHistoryTable()',
+  'async saveWechatHistoryRow(contactId, message)',
+  'wechatHistoryCreatedAt(message = {})',
+  'listWechatHistoryRows(contactId, limit = 12)',
+  'wechatHistoryQueryText(contactId, limit = 12)',
+  'wechatHistoryText(id)',
+  'wechatMemoryContext(characterId, playerText = \'\')',
+  'validateWechatHistoryDecision(raw = {})',
+  'async wechatHistoryContextForReply(contactId, playerText = \'\', memoryContext = \'\')',
+  'wechatHistoryQueryHint(characterId)',
+]) {
+  assertNotIncludes(memoryContextAction, `\n  ${marker}`, `${memoryContextActionPath} should not own history context implementation`);
+  assertIncludes(historyContextHelper, `\n  ${marker}`, `${historyContextHelperPath} should own history context implementation`);
 }
 
 assertIncludes(mentionAction, 'callWechatMentionReferenceHelper', `${mentionActionPath} mention reference facade`);
@@ -235,6 +257,8 @@ function assertListOrder(list, relativePath) {
   const helperIndex = list.indexOf('app/wechat/chat-reply-helpers.js');
   const orchestrationIndex = list.indexOf('app/wechat/chat-orchestration.js');
   const promptIndex = list.indexOf('app/wechat/chat-prompt-helpers.js');
+  const historyContextIndex = list.indexOf('app/wechat/history-context-helpers.js');
+  const memoryContextActionIndex = list.indexOf('wechat-memory-context-actions.js');
   const mentionBasePhotoIndex = list.indexOf('app/wechat/mention-base-photo-helper.js');
   const mentionReferenceIndex = list.indexOf('app/wechat/mention-reference-helpers.js');
   const actionIndex = list.indexOf('wechat-chat-actions.js');
@@ -243,6 +267,8 @@ function assertListOrder(list, relativePath) {
   if (helperIndex < 0) fail(`${relativePath}: missing app/wechat/chat-reply-helpers.js`);
   if (orchestrationIndex < 0) fail(`${relativePath}: missing app/wechat/chat-orchestration.js`);
   if (promptIndex < 0) fail(`${relativePath}: missing app/wechat/chat-prompt-helpers.js`);
+  if (historyContextIndex < 0) fail(`${relativePath}: missing app/wechat/history-context-helpers.js`);
+  if (memoryContextActionIndex < 0) fail(`${relativePath}: missing wechat-memory-context-actions.js`);
   if (mentionReferenceIndex < 0) fail(`${relativePath}: missing app/wechat/mention-reference-helpers.js`);
   if (actionIndex < 0) fail(`${relativePath}: missing wechat-chat-actions.js`);
   if (pastEventIndex < 0) fail(`${relativePath}: missing wechat-past-event-actions.js`);
@@ -259,6 +285,9 @@ function assertListOrder(list, relativePath) {
   if (promptIndex >= 0 && pastEventIndex >= 0 && promptIndex > pastEventIndex) {
     fail(`${relativePath}: chat-prompt-helpers.js must load before wechat-past-event-actions.js`);
   }
+  if (historyContextIndex >= 0 && memoryContextActionIndex >= 0 && historyContextIndex > memoryContextActionIndex) {
+    fail(`${relativePath}: history-context-helpers.js must load before wechat-memory-context-actions.js`);
+  }
   if (mentionBasePhotoIndex >= 0 && mentionReferenceIndex >= 0 && mentionBasePhotoIndex > mentionReferenceIndex) {
     fail(`${relativePath}: mention-base-photo-helper.js must load before mention-reference-helpers.js`);
   }
@@ -270,6 +299,8 @@ function assertListOrder(list, relativePath) {
 function assertManifestOrder(relativePath) {
   const text = read(relativePath);
   assertOrder(text, [
+    '"app/wechat/history-context-helpers.js"',
+    '"wechat-memory-context-actions.js"',
     '"app/wechat/chat-message-helpers.js"',
     '"app/wechat/chat-reply-helpers.js"',
     '"app/wechat/chat-orchestration.js"',
@@ -301,6 +332,8 @@ console.log(JSON.stringify({
       helperPath,
       orchestrationPath,
       promptHelperPath,
+      memoryContextActionPath,
+      historyContextHelperPath,
       mentionActionPath,
       mentionReferenceHelperPath,
       manifests: [webManifestPath, webScriptsPath, androidManifestPath, androidScriptsPath],
@@ -308,6 +341,7 @@ console.log(JSON.stringify({
       'reply-helper-facade',
       'chat-orchestration-facade',
       'chat-prompt-facade',
+      'history-context-facade',
       'mention-reference-facade',
       'send-message-order',
       'reply-success-order',

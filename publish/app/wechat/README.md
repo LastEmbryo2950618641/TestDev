@@ -39,6 +39,11 @@ The goal of this directory is to hold small, reusable, non-entry helper surfaces
 - past-event question detection and query context assembly for chat replies
 - prompt variable packaging used by `wechat-past-event-actions.js` facades
 
+### `history-context-helpers.js`
+- fixed WeChat history table setup and row persistence
+- history text/query helpers used by chat replies and image prompts
+- memory context assembly and on-demand history decision flow
+
 ### `mention-view-helpers.js`
 - mention-context text assembly and contact-mention parsing
 - mention-related readonly source formatting for prompt/context usage
@@ -87,5 +92,5 @@ The preferred migration pattern for new work here is:
 
 ## Immediate practical rule
 
-If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, mention-view, mention-base-photo, or mention-reference style boundaries, document the rationale before adding another module here.
+If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, history-context, mention-view, mention-base-photo, or mention-reference style boundaries, document the rationale before adding another module here.
 
