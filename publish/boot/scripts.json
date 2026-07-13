@@ -384,6 +384,7 @@
   "faction-archive.js",
   "faction-archive-actions.js",
   "ui/faction/overview-view-helpers.js",
+  "app/org-territory/family-actions.js",
   "org-territory-actions.js",
   "faction-actions.js",
   "faction-org-actions.js",

@@ -63,7 +63,6 @@ window.GameScriptManifest = {
       "lexicon-store.js",
       "profession-info-store.js",
       "rpg-definition-store.js",
-      "real-world-log-store.js",
       "character-state-store.js",
       "character-memory-store.js",
       "character-intro-store.js",
@@ -85,7 +84,6 @@ window.GameScriptManifest = {
       "character-intro-card.js",
       "character-query.js",
       "past-event-query.js",
-      "org-territory-system.js",
       "body-silhouette.js",
       "body-figure.js",
       "rpg-field-ui.js",
@@ -174,10 +172,6 @@ window.GameScriptManifest = {
       "update/item-update.js",
       "update/faction-structure-update.js",
       "update/faction-overview-update.js",
-      "update/territory-control-update.js",
-      "update/org-status-update.js",
-      "update/org-overview-panel-update.js",
-      "update/membership-update.js",
       "update/map-update.js",
       "update/system-update.js",
       "update/generic-update.js",
@@ -261,9 +255,21 @@ window.GameScriptManifest = {
       "domain/control/online-control-helpers.js",
       "control-link-actions.js",
       "app-switch-actions.js",
-      "current-world-actions.js"
+      "current-world-actions.js",
+      "ui/real-world/map-stage-view-helpers.js",
+      "ui/calendar/view-helpers.js",
+      "ui/event/panel-view-helpers.js",
+      "ui/event/label-view-helpers.js",
+      "ui/event/view-helpers.js",
+      "ui/faction/overview-view-helpers.js"
     ],
     "gameplay": [
+      "real-world-log-store.js",
+      "org-territory-system.js",
+      "update/territory-control-update.js",
+      "update/org-status-update.js",
+      "update/org-overview-panel-update.js",
+      "update/membership-update.js",
       "real-world-clock-actions.js",
       "assets/data/real-world-2026.js",
       "real-world-map-facts.js",
@@ -279,7 +285,6 @@ window.GameScriptManifest = {
       "inference/scene-boundary.js",
       "inference/material-loader.js",
       "real-world-agent-context.js",
-      "real-world-agent-wechat.js",
       "real-world-longing-actions.js",
       "real-world-agent-history.js",
       "real-world-agent-memory.js",
@@ -297,14 +302,16 @@ window.GameScriptManifest = {
       "real-world-profile-stage5.js",
       "real-world-utility-actions.js",
       "real-world-actions.js",
-      "ui/real-world/map-stage-view-helpers.js",
       "real-world-map-actions.js",
       "real-world-faction-actions.js",
-      "real-world-matter-actions.js"
+      "real-world-matter-actions.js",
+      "app/org-territory/family-actions.js",
+      "org-territory-actions.js"
     ],
     "wechat": [
       "platform/storage/wechat-history-source.js",
       "wechat-history-store.js",
+      "real-world-agent-wechat.js",
       "prompts/wechat/wechat-image-prompt-collect.js",
       "prompts/picture_generate/wechat-album-photo.js",
       "app/wechat/cleanup-orchestration.js",
@@ -382,18 +389,12 @@ window.GameScriptManifest = {
       "boss-appointment-actions.js",
       "boss-ai-actions.js",
       "calendar-system.js",
-      "ui/calendar/view-helpers.js",
       "calendar-actions.js",
       "event-system.js",
-      "ui/event/panel-view-helpers.js",
-      "ui/event/label-view-helpers.js",
-      "ui/event/view-helpers.js",
       "event-actions.js",
       "faction-system.js",
       "faction-archive.js",
       "faction-archive-actions.js",
-      "ui/faction/overview-view-helpers.js",
-      "org-territory-actions.js",
       "faction-actions.js",
       "faction-org-actions.js",
       "faction-membership-actions.js",
@@ -427,17 +428,18 @@ window.GameScriptManifest = {
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-13T17:39:40.727Z",
-  "total": 415
+  "generatedAt": "2026-07-13T19:27:31.635Z",
+  "total": 416
 };
 
 window.GameScriptManifest.classify = function classify(url) {
   const p = String(url || '').replace(/^\.\//, '').toLowerCase();
   if (/^https?:\/\//.test(p)) return 'core';
+  // 手机激活 / 身份补全 / 玩家卡生成在 core 启动后就会调用，须与 __game-core.js 一致随 core 加载
   if (/^prompt-fallback\.js$|^prompt-templates\.js$|^prompt-skills\.js$|^prompt-sections\.js$/.test(p)) return 'core';
   if (/(^|\/)wechat|player-wechat-setup|real-world-agent-wechat|prompts\/wechat|wechat-album-photo/.test(p)) return 'wechat';
   if (/^(company-|boss-|calendar-|event-|faction-|skills-|skill-|known-profession-|taobao-|prompt-actions|token-stats|alert-log|faction-membership|role-card-json-app\/)/.test(p)) return 'apps';
   if (/^prompt\.js$|^real-world-prompt\.js$|^prompts\/materials\/|^prompts\/picture_generate\/|^inference-prompts-runtime\.js$/.test(p)) return 'prompts';
-  if (/^real-world-|^org-territory|^inference\/|^story-agent-context\.js$|^assets\/data\/real-world|^game-premise\.js$|^update\/(territory|org-|membership|character-schedule|org-status)/.test(p)) return 'gameplay';
+  if (/^real-world-|^org-territory|^(?:app|domain)\/org-territory\/|^inference\/|^story-agent-context\.js$|^assets\/data\/real-world|^game-premise\.js$|^update\/(territory|org-|membership|character-schedule|org-status)/.test(p)) return 'gameplay';
   return 'core';
 };

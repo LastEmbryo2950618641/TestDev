@@ -64,7 +64,7 @@ window.GameModules.realWorldMapGeopolitical = {
   ensure(store, map, profile = {}) {
     if (!store || !map) return map;
     const mapMod = window.GameModules.realWorldMap;
-    const otActions = window.GameModules.orgTerritoryActions;
+    const familyActions = window.GameModules.app?.orgTerritory?.familyActions;
     const chain = this.parseAdminChain(profile);
     if (!chain.length) return map;
 
@@ -87,7 +87,7 @@ window.GameModules.realWorldMapGeopolitical = {
       if (item.kind !== 'community') node.mapVisible = false;
       parentNodeId = node.id;
 
-      const org = otActions?.ensureAdminOrgStub?.(store, item, lastAdminOrgId);
+      const org = familyActions?.ensureAdminOrgStub?.(store, item, lastAdminOrgId);
       if (org?.id) {
         if (item.kind === 'community') {
           communityOrgId = org.id;
@@ -104,11 +104,11 @@ window.GameModules.realWorldMapGeopolitical = {
       const homeNode = window.GameModules.orgTerritory?.findMapNode?.(map, homeName)
         || map.nodes.find((n) => n.name === homeName || homeName.includes(n.name) || n.name.includes(homeName));
       if (homeNode && parentNodeId && !homeNode.parentId) homeNode.parentId = parentNodeId;
-      if (communityOrgId) otActions?.linkFamilyToCommunity?.(store, communityOrgId, map);
+      if (communityOrgId) familyActions?.linkFamilyToCommunity?.(store, communityOrgId, map);
     }
 
     if (communityOrgId && communityNodeId) {
-      otActions?.linkFamilyToCommunity?.(store, communityOrgId, map);
+      familyActions?.linkFamilyToCommunity?.(store, communityOrgId, map);
     }
 
     window.GameModules.orgTerritory?.ensureMapControls?.(map, store);

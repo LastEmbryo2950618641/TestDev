@@ -968,7 +968,7 @@ window.GameModules.orgTerritory = {
   ensurePresetFamilyMemberships(store) {
     if (!store) return;
     store.initFactionSystem?.();
-    window.GameModules.orgTerritoryActions?.ensureFamilyOrg?.(store);
+    window.GameModules.app?.orgTerritory?.familyActions?.ensureFamilyOrg?.(store);
     const familyId = 'family-player-home';
     const family = (store.factionState?.factions || []).find((f) => f.id === familyId);
     if (!family) return;

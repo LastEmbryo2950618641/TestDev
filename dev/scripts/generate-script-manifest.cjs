@@ -16,7 +16,7 @@ function classify(url) {
   if (/(^|\/)wechat|player-wechat-setup|real-world-agent-wechat|prompts\/wechat|wechat-album-photo/.test(p)) return 'wechat';
   if (/^(company-|boss-|calendar-|event-|faction-|skills-|skill-|known-profession-|taobao-|prompt-actions|token-stats|alert-log|faction-membership|role-card-json-app\/)/.test(p)) return 'apps';
   if (/^prompt\.js$|^real-world-prompt\.js$|^prompts\/materials\/|^prompts\/picture_generate\/|^inference-prompts-runtime\.js$/.test(p)) return 'prompts';
-  if (/^real-world-|^org-territory|^inference\/|^story-agent-context\.js$|^assets\/data\/real-world|^game-premise\.js$|^update\/(territory|org-|membership|character-schedule|org-status)/.test(p)) return 'gameplay';
+  if (/^real-world-|^org-territory|^(?:app|domain)\/org-territory\/|^inference\/|^story-agent-context\.js$|^assets\/data\/real-world|^game-premise\.js$|^update\/(territory|org-|membership|character-schedule|org-status)/.test(p)) return 'gameplay';
   return 'core';
 }
 

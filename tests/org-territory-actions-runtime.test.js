@@ -5,6 +5,7 @@ const vm = require('vm');
 
 const root = path.resolve(__dirname, '..');
 const actionPath = path.join(root, 'publish/org-territory-actions.js');
+const familyActionPath = path.join(root, 'publish/app/org-territory/family-actions.js');
 const requiredMethods = [
   'applyLegacyStructure',
   'applySettlementUpdates',
@@ -22,20 +23,42 @@ for (const relativePath of [
 ]) {
   const scripts = JSON.parse(fs.readFileSync(path.join(root, relativePath), 'utf8'));
   const systemIndex = scripts.indexOf('org-territory-system.js');
+  const familyActionsIndex = scripts.indexOf('app/org-territory/family-actions.js');
   const actionsIndex = scripts.indexOf('org-territory-actions.js');
   const factionActionsIndex = scripts.indexOf('faction-actions.js');
   const earlyWealthIndex = scripts.indexOf('player-wealth-actions.js');
-  assert.ok(systemIndex >= 0 && systemIndex < actionsIndex, `${relativePath} must load orgTerritory before orgTerritoryActions`);
+  assert.ok(systemIndex >= 0 && systemIndex < familyActionsIndex, `${relativePath} must load orgTerritory before familyActions`);
+  assert.strictEqual(familyActionsIndex + 1, actionsIndex, `${relativePath} must load familyActions immediately before the compatibility facade`);
   assert.ok(earlyWealthIndex < actionsIndex, `${relativePath} must not activate orgTerritoryActions before faction initialization is available`);
   assert.strictEqual(actionsIndex + 1, factionActionsIndex, `${relativePath} must load orgTerritoryActions immediately before factionActions`);
 }
 
+for (const relativePath of [
+  'publish/boot/script-manifest.js',
+  'mobile/android-webview-shell/app/src/main/assets/publish/boot/script-manifest.js',
+]) {
+  const manifestContext = vm.createContext({ window: {} });
+  vm.runInContext(fs.readFileSync(path.join(root, relativePath), 'utf8'), manifestContext, { filename: relativePath });
+  const runtimeScripts = Object.values(manifestContext.window.GameScriptManifest.chunks).flat();
+  const systemIndex = runtimeScripts.indexOf('org-territory-system.js');
+  const familyActionsIndex = runtimeScripts.indexOf('app/org-territory/family-actions.js');
+  const facadeIndex = runtimeScripts.indexOf('org-territory-actions.js');
+  assert.ok(systemIndex >= 0 && systemIndex < familyActionsIndex, `${relativePath} must load orgTerritory before familyActions`);
+  assert.ok(familyActionsIndex < facadeIndex, `${relativePath} must load familyActions before the compatibility facade`);
+}
+
 const source = fs.readFileSync(actionPath, 'utf8');
 assert.doesNotMatch(source, /window\.GameModules\.sqliteSave/u, 'org territory actions must use shared stores');
+assert.ok(fs.existsSync(familyActionPath), 'family actions must live under publish/app/org-territory');
 
 const context = vm.createContext({ window: { GameModules: {} } });
+vm.runInContext(fs.readFileSync(familyActionPath, 'utf8'), context, { filename: 'app/org-territory/family-actions.js' });
 vm.runInContext(source, context, { filename: 'org-territory-actions.js' });
 const actions = context.window.GameModules.orgTerritoryActions;
+const familyActions = context.window.GameModules.app?.orgTerritory?.familyActions;
+for (const method of ['ensureFamilyOrg', 'syncFamilyTerritoryAnchor', 'ensureAdminOrgStub', 'linkFamilyToCommunity']) {
+  assert.strictEqual(typeof familyActions?.[method], 'function', `familyActions.${method} must be available at runtime`);
+}
 for (const method of requiredMethods) assert.strictEqual(typeof actions[method], 'function', `${method} must be available at runtime`);
 
 for (const relativePath of [
@@ -54,6 +77,11 @@ for (const relativePath of [
   for (const name of names) assert.strictEqual(typeof actions[name], 'function', `${relativePath} calls missing orgTerritoryActions.${name}`);
 }
 
+const systemConsumer = fs.readFileSync(path.join(root, 'publish/org-territory-system.js'), 'utf8');
+assert.doesNotMatch(systemConsumer, /orgTerritoryActions\?\.ensureFamilyOrg/u, 'org territory system must call familyActions.ensureFamilyOrg directly');
+const geopoliticalConsumer = fs.readFileSync(path.join(root, 'publish/real-world-map-geopolitical.js'), 'utf8');
+assert.doesNotMatch(geopoliticalConsumer, /orgTerritoryActions/u, 'geopolitical map must call the focused family actions module directly');
+
 const integrationContext = vm.createContext({
   console,
   Date,
@@ -67,6 +95,7 @@ const integrationContext = vm.createContext({
 });
 for (const relativePath of [
   'publish/org-territory-system.js',
+  'publish/app/org-territory/family-actions.js',
   'publish/org-territory-actions.js',
   'publish/real-world-map-geopolitical.js',
 ]) {
