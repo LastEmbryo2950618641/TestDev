@@ -279,6 +279,7 @@ window.GameScriptManifest = {
       "real-world-agent-wechat.js",
       "prompts/wechat/wechat-image-prompt-collect.js",
       "prompts/picture_generate/wechat-album-photo.js",
+      "app/wechat/cleanup-orchestration.js",
       "wechat-cleanup.js",
       "ui/wechat/view-helpers.js",
       "domain/wechat/change-panel-helpers.js",

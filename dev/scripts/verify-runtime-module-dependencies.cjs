@@ -132,6 +132,13 @@ const orderedGroups = [
     ],
   },
   {
+    label: 'wechat cleanup runtime dependencies',
+    before: 'wechat-cleanup.js',
+    required: [
+      'app/wechat/cleanup-orchestration.js',
+    ],
+  },
+  {
     label: 'wechat change panel runtime dependencies',
     before: 'wechat-change-panel-actions.js',
     required: [
