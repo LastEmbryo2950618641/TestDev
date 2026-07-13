@@ -269,7 +269,6 @@
   "real-world-map-actions.js",
   "real-world-faction-actions.js",
   "real-world-matter-actions.js",
-  "real-world-agent-wechat.js",
   "prompts/wechat/wechat-image-prompt-collect.js",
   "prompts/picture_generate/wechat-album-photo.js",
   "app/wechat/cleanup-orchestration.js",
@@ -379,8 +378,5 @@
   "prompts/picture_generate/sensitive-replacements.js",
   "prompts/picture_generate/draw-tag-prompt.js",
   "prompts/picture_generate/common-image-edit-generate.js",
-  "prompts/推演引擎/stage5-profile-gate.js",
-  "prompts/推演引擎/stage5-body-profile-patch.js",
-  "prompts/推演引擎/stage5-dressed-profile-patch.js",
   "inference-prompts-runtime.js"
 ]

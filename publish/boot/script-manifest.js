@@ -276,7 +276,6 @@ window.GameScriptManifest = {
       "real-world-matter-actions.js"
     ],
     "wechat": [
-      "real-world-agent-wechat.js",
       "prompts/wechat/wechat-image-prompt-collect.js",
       "prompts/picture_generate/wechat-album-photo.js",
       "app/wechat/cleanup-orchestration.js",
@@ -390,14 +389,11 @@ window.GameScriptManifest = {
       "prompts/picture_generate/sensitive-replacements.js",
       "prompts/picture_generate/draw-tag-prompt.js",
       "prompts/picture_generate/common-image-edit-generate.js",
-      "prompts/推演引擎/stage5-profile-gate.js",
-      "prompts/推演引擎/stage5-body-profile-patch.js",
-      "prompts/推演引擎/stage5-dressed-profile-patch.js",
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-13T11:05:00.000Z",
-  "total": 347
+  "generatedAt": "2026-07-13T15:09:23.588Z",
+  "total": 380
 };
 
 window.GameScriptManifest.classify = function classify(url) {

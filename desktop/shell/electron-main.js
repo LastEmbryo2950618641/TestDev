@@ -3,6 +3,7 @@
 import './electron-main-entry-log.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveDesktopRuntimePaths } from './desktop-runtime-paths.js';
 import { createDesktopUnifiedHostContract } from './unified-host-contract.js';
 import { createOptionalElectronApiAdapter } from './electron-api-adapter.js';
 import { attemptDesktopElectronRealLaunch } from './electron-real-launch-attempt.js';
@@ -10,13 +11,7 @@ import { createElectronPreloadFullExposePayload } from './electron-preload.js';
 
 function resolveShellPaths() {
   const shellDir = path.dirname(fileURLToPath(import.meta.url));
-  const workspaceRoot = path.resolve(shellDir, '..', '..');
-  return {
-    shellDir,
-    workspaceRoot,
-    preloadPath: path.resolve(shellDir, 'electron-preload.js'),
-    rendererEntry: path.resolve(workspaceRoot, 'publish', 'index.html'),
-  };
+  return resolveDesktopRuntimePaths(shellDir);
 }
 
 export function createElectronRuntimeSkeleton(target = globalThis) {

@@ -12,6 +12,7 @@ function resolveElectronInstallState() {
   const distDir = path.resolve(electronDir, 'dist');
   const localDist = resolveLocalElectronDist(shellDir);
   const electronExe = localDist ? path.resolve(localDist, 'electron.exe') : path.resolve(distDir, 'electron.exe');
+  const runningInElectron = Boolean(process.versions?.electron);
 
   return {
     shellDir,
@@ -20,6 +21,7 @@ function resolveElectronInstallState() {
     distDir,
     localDist,
     electronExe,
+    runningInElectron,
     packagePresent: fs.existsSync(electronDir),
     pathFilePresent: fs.existsSync(pathFile),
     distPresent: fs.existsSync(distDir),
@@ -43,7 +45,7 @@ function normalizeElectronApi(electronModule) {
 export async function loadOptionalElectronModule() {
   const installState = resolveElectronInstallState();
   try {
-    if (!installState.electronExePresent) {
+    if (!installState.runningInElectron && !installState.electronExePresent) {
       return { electronModule: null, electronApi: null, installState, reason: 'electron-runtime-missing' };
     }
 

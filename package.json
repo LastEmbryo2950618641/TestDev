@@ -9,12 +9,21 @@
     "verify:runtime-deps": "node dev/scripts/verify-runtime-module-dependencies.cjs",
     "verify:wechat-chat-invariants": "node dev/scripts/verify-wechat-chat-invariants.cjs",
     "verify:wechat-album-facade": "node tests/wechat-album-facade.test.js",
+    "verify:android:apk-assets": "node dev/scripts/verify-android-apk-assets.cjs",
+    "verify:desktop:package": "node dev/scripts/verify-desktop-package.cjs",
     "android:assemble-debug": "cd mobile/android-webview-shell && gradlew.bat :app:assembleDebug --no-daemon",
+    "desktop:build:dir": "electron-builder --dir --config desktop/shell/electron-builder.config.js",
+    "build:multi-platform": "npm run android:sync-assets && npm run android:assemble-debug && npm run desktop:build:dir",
     "validate:control:http": "npm --prefix tools/validation-browser run control:http",
     "validate:control:file": "npm --prefix tools/validation-browser run control:file",
     "validate:netprobe": "npm --prefix tools/validation-browser run netprobe",
     "validate:desktop:preflight": "npm --prefix desktop/shell run verify:preflight",
-    "validate:desktop:launch": "npm --prefix desktop/shell run attempt:launch"
+    "validate:desktop:launch": "npm --prefix desktop/shell run attempt:launch",
+    "verify:shared": "npm run verify:assets && npm run verify:runtime-coverage && npm run verify:runtime-deps && npm run verify:repo-boundaries && npm run verify:wechat-chat-invariants && npm run verify:wechat-album-facade",
+    "verify:web": "npm run validate:control:file && npm run validate:control:http",
+    "verify:android": "npm run verify:android:apk-assets",
+    "verify:desktop": "npm run verify:desktop:package",
+    "verify:multi-platform": "npm run verify:shared && npm run verify:web && npm run verify:android && npm run verify:desktop"
   },
   "workspaces": [
     "desktop/shell"

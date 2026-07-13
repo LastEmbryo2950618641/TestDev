@@ -5,6 +5,7 @@ import {
   resolvePublishDir,
   resolveShellDir,
 } from './desktop-packaging-paths.js';
+import { DESKTOP_RUNTIME_FILES } from './desktop-runtime-files.js';
 
 const DESKTOP_ELECTRON_VERSION = '36.9.5';
 
@@ -26,11 +27,8 @@ export function createDesktopPackagingConfig() {
     nodeGypRebuild: false,
     buildDependenciesFromSource: false,
     files: [
-      'electron-main-bootstrap.cjs',
-      'electron-main.js',
-      'electron-preload.js',
+      ...DESKTOP_RUNTIME_FILES,
       'package.json',
-      'bridge/**/*',
       {
         from: publishDir,
         to: 'publish',
