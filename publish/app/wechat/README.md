@@ -34,6 +34,11 @@ The goal of this directory is to hold small, reusable, non-entry helper surfaces
 - direct-contact reply orchestration for generated replies, fallback replies, and side-effect ordering
 - reply generation wrapper around prompt creation, JSON retry, validation, and image-intent attachment
 
+### `chat-prompt-helpers.js`
+- WeChat chat reply prompt assembly
+- past-event question detection and query context assembly for chat replies
+- prompt variable packaging used by `wechat-past-event-actions.js` facades
+
 ### `mention-view-helpers.js`
 - mention-context text assembly and contact-mention parsing
 - mention-related readonly source formatting for prompt/context usage
@@ -77,5 +82,5 @@ The preferred migration pattern for new work here is:
 
 ## Immediate practical rule
 
-If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, mention-view, or mention-base-photo style boundaries, document the rationale before adding another module here.
+If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, mention-view, or mention-base-photo style boundaries, document the rationale before adding another module here.
 

@@ -5,16 +5,20 @@ const root = path.resolve(__dirname, '..', '..');
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8');
 
 const sourcePath = 'publish/wechat-chat-actions.js';
+const pastEventPath = 'publish/wechat-past-event-actions.js';
 const helperPath = 'publish/app/wechat/chat-reply-helpers.js';
 const orchestrationPath = 'publish/app/wechat/chat-orchestration.js';
+const promptHelperPath = 'publish/app/wechat/chat-prompt-helpers.js';
 const webManifestPath = 'publish/boot/script-manifest.js';
 const webScriptsPath = 'publish/boot/scripts.json';
 const androidManifestPath = 'mobile/android-webview-shell/app/src/main/assets/publish/boot/script-manifest.js';
 const androidScriptsPath = 'mobile/android-webview-shell/app/src/main/assets/publish/boot/scripts.json';
 
 const source = read(sourcePath);
+const pastEvent = read(pastEventPath);
 const helper = read(helperPath);
 const orchestration = read(orchestrationPath);
+const promptHelper = read(promptHelperPath);
 
 const violations = [];
 
@@ -71,6 +75,7 @@ function methodBlock(text, relativePath, name, nextName = null) {
 const sendBlock = methodBlock(orchestration, orchestrationPath, 'sendWechatMessage', 'replyWechatContact');
 const replyBlock = methodBlock(orchestration, orchestrationPath, 'replyWechatContact', 'generateWechatReply');
 const generateBlock = methodBlock(orchestration, orchestrationPath, 'generateWechatReply');
+const promptBlock = methodBlock(promptHelper, promptHelperPath, 'wechatReplyPrompt');
 
 assertIncludes(source, "const wechatChatReplyForwarders = {", `${sourcePath} reply facade`);
 assertIncludes(source, "wechatContactProfileText: 'wechatContactProfileText'", `${sourcePath} reply facade`);
@@ -100,6 +105,21 @@ for (const marker of [
 ]) {
   assertNotIncludes(source, `\n  ${marker}`, `${sourcePath} should not own chat orchestration implementation`);
   assertIncludes(orchestration, `\n  ${marker}`, `${orchestrationPath} should own chat orchestration implementation`);
+}
+
+assertIncludes(pastEvent, "const wechatChatPromptForwarders = {", `${pastEventPath} prompt facade`);
+assertIncludes(pastEvent, "isWechatPastEventQuestion: 'isWechatPastEventQuestion'", `${pastEventPath} prompt facade`);
+assertIncludes(pastEvent, "wechatPastEventContext: 'wechatPastEventContext'", `${pastEventPath} prompt facade`);
+assertIncludes(pastEvent, "wechatReplyPrompt: 'wechatReplyPrompt'", `${pastEventPath} prompt facade`);
+assertIncludes(pastEvent, 'callWechatChatPromptHelper(helperName, this, ...args)', `${pastEventPath} prompt facade`);
+
+for (const marker of [
+  'isWechatPastEventQuestion(text = \'\')',
+  'wechatPastEventContext(contact, playerText = \'\', state = null)',
+  'async wechatReplyPrompt(contact, playerText)',
+]) {
+  assertNotIncludes(pastEvent, `\n  ${marker}`, `${pastEventPath} should not own chat prompt implementation`);
+  assertIncludes(promptHelper, `\n  ${marker}`, `${promptHelperPath} should own chat prompt implementation`);
 }
 
 assertOrder(sendBlock, [
@@ -165,6 +185,22 @@ assertOrder(generateBlock, [
   'return this.attachWechatMentionedImageIntent?.(result, playerText, this.wechatMessageKey(contact)) || result;',
 ], 'generateWechatReply order');
 
+assertOrder(promptBlock, [
+  'const sections = window.GameModules.promptSections;',
+  'const player = sections.playerProfile(this);',
+  "const stateSkill = await window.GameModules.skillLoader?.instruction?.('emotion.feeling.wearing.assess')",
+  'const characterId = this.wechatMessageKey(contact);',
+  'const state = this.rpgStates?.[characterId]',
+  'const archive = await this.searchMemoryArchive?.(characterId, playerText)',
+  'const memoryContext = this.wechatMemoryContext?.(characterId, playerText)',
+  'const historyContext = await this.wechatHistoryContextForReply?.',
+  "return window.GameModules.renderPrompt('wechat-chat-reply', {",
+  'this.wechatContactProfileText(contact, playerText)',
+  'sections.stateSnapshot(this, state)',
+  'this.wechatMentionContextText?.(playerText, characterId)',
+  'this.wechatPastEventContext(contact, playerText, state)',
+], 'wechatReplyPrompt effective prompt order');
+
 function parseJsonList(relativePath) {
   try {
     const value = JSON.parse(read(relativePath));
@@ -182,15 +218,25 @@ function parseJsonList(relativePath) {
 function assertListOrder(list, relativePath) {
   const helperIndex = list.indexOf('app/wechat/chat-reply-helpers.js');
   const orchestrationIndex = list.indexOf('app/wechat/chat-orchestration.js');
+  const promptIndex = list.indexOf('app/wechat/chat-prompt-helpers.js');
   const actionIndex = list.indexOf('wechat-chat-actions.js');
+  const pastEventIndex = list.indexOf('wechat-past-event-actions.js');
   if (helperIndex < 0) fail(`${relativePath}: missing app/wechat/chat-reply-helpers.js`);
   if (orchestrationIndex < 0) fail(`${relativePath}: missing app/wechat/chat-orchestration.js`);
+  if (promptIndex < 0) fail(`${relativePath}: missing app/wechat/chat-prompt-helpers.js`);
   if (actionIndex < 0) fail(`${relativePath}: missing wechat-chat-actions.js`);
+  if (pastEventIndex < 0) fail(`${relativePath}: missing wechat-past-event-actions.js`);
   if (helperIndex >= 0 && orchestrationIndex >= 0 && helperIndex > orchestrationIndex) {
     fail(`${relativePath}: chat-reply-helpers.js must load before chat-orchestration.js`);
   }
+  if (orchestrationIndex >= 0 && promptIndex >= 0 && orchestrationIndex > promptIndex) {
+    fail(`${relativePath}: chat-orchestration.js must load before chat-prompt-helpers.js`);
+  }
   if (orchestrationIndex >= 0 && actionIndex >= 0 && orchestrationIndex > actionIndex) {
     fail(`${relativePath}: chat-orchestration.js must load before wechat-chat-actions.js`);
+  }
+  if (promptIndex >= 0 && pastEventIndex >= 0 && promptIndex > pastEventIndex) {
+    fail(`${relativePath}: chat-prompt-helpers.js must load before wechat-past-event-actions.js`);
   }
 }
 
@@ -200,8 +246,10 @@ function assertManifestOrder(relativePath) {
     '"app/wechat/chat-message-helpers.js"',
     '"app/wechat/chat-reply-helpers.js"',
     '"app/wechat/chat-orchestration.js"',
+    '"app/wechat/chat-prompt-helpers.js"',
     '"app/wechat/mention-view-helpers.js"',
     '"wechat-chat-actions.js"',
+    '"wechat-past-event-actions.js"',
   ], `${relativePath} wechat manifest order`);
 }
 
@@ -219,16 +267,20 @@ console.log(JSON.stringify({
   ok: true,
   checked: {
     sourcePath,
+    pastEventPath,
     helperPath,
     orchestrationPath,
+    promptHelperPath,
     manifests: [webManifestPath, webScriptsPath, androidManifestPath, androidScriptsPath],
     invariants: [
       'reply-helper-facade',
       'chat-orchestration-facade',
+      'chat-prompt-facade',
       'send-message-order',
       'reply-success-order',
       'reply-failure-finally-order',
       'generate-reply-order',
+      'effective-reply-prompt-order',
       'runtime-manifest-order',
     ],
   },
