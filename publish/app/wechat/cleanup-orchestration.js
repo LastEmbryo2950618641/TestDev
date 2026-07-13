@@ -6,11 +6,12 @@ window.GameModules.app.wechat.cleanupOrchestration = {
   version: 'clear-old-wechat-records-v2',
 
   run(store) {
-    const save = window.GameModules.sqliteSave;
-    if (!save?.db || save.getMetaJson?.(this.version)) return false;
+    const metadataStore = window.GameModules.metadataStore;
+    const memoryStore = window.GameModules.characterMemoryMaintenanceStore;
+    if (!metadataStore?.isAvailable?.() || !memoryStore?.isAvailable?.() || metadataStore.get?.(this.version)) return false;
     let changed = this.cleanWorldline(store);
-    changed = this.cleanMemories(save) || changed;
-    save.saveMetaJson(this.version, { cleanedAt: new Date().toISOString(), changed }).catch((err) => console.warn('[微信清理] 标记迁移失败:', err.message, err.stack));
+    changed = this.cleanMemories(memoryStore) || changed;
+    metadataStore.save(this.version, { cleanedAt: new Date().toISOString(), changed }).catch((err) => console.warn('[微信清理] 标记迁移失败:', err.message, err.stack));
     if (changed) window.GameModules.storage.put(window.GameModules.storage.snapshot(store)).catch((err) => console.warn('[微信清理] 保存清理结果失败:', err.message, err.stack));
     return changed;
   },
@@ -28,27 +29,16 @@ window.GameModules.app.wechat.cleanupOrchestration = {
     return changed;
   },
 
-  cleanMemories(save) {
+  cleanMemories(memoryStore) {
     let changed = false;
-    const stmt = save.db.prepare('SELECT character_id,memory_json FROM character_memory');
-    const rows = [];
-    while (stmt.step()) rows.push(stmt.getAsObject());
-    stmt.free();
-    rows.forEach((row) => {
-      const memory = JSON.parse(row.memory_json);
+    memoryStore.listMemories().forEach(({ characterId, memory }) => {
       const next = this.cleanMemoryObject(memory);
       if (!next.changed) return;
-      save.db.run('INSERT OR REPLACE INTO character_memory(character_id,memory_json,updated_at) VALUES (?,?,?)', [row.character_id, JSON.stringify(next.memory), new Date().toISOString()]);
+      memoryStore.replaceMemory(characterId, next.memory);
       changed = true;
     });
-    const archive = save.db.prepare('SELECT id,text FROM memory_archive');
-    const archiveIds = [];
-    while (archive.step()) {
-      const row = archive.getAsObject();
-      if (this.isOldWechatText(row.text)) archiveIds.push(row.id);
-    }
-    archive.free();
-    archiveIds.forEach((id) => save.db.run('DELETE FROM memory_archive WHERE id=?', [id]));
+    const archiveIds = memoryStore.listArchives().filter((row) => this.isOldWechatText(row.text)).map((row) => row.id);
+    archiveIds.forEach((id) => memoryStore.removeArchive(id));
     return archiveIds.length > 0 || changed;
   },
 
