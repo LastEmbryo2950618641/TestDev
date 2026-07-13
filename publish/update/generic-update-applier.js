@@ -36,7 +36,7 @@ Object.assign(window.GameModules.updateRegistry, {
   genericTarget(store, update = {}) {
     const state = store?.playerIdentityState?.();
     if (!state?.values) return null;
-    const card = this.cardForChange?.(update, store) || { id: `generic:${update.updateType || update.subject?.type || 'misc'}`, title: update.updateType || '閫氱敤鏇存柊', section: '閫氱敤' };
+    const card = this.cardForChange?.(update, store) || { id: 'generic:' + (update.updateType || update.subject?.type || 'misc'), title: update.updateType || '通用更新', section: '通用' };
     state.values.genericUpdateStates = state.values.genericUpdateStates || {};
     state.values.genericUpdateStates[card.id] = state.values.genericUpdateStates[card.id] || { title: card.title, section: card.section };
     return { state, root: state.values.genericUpdateStates[card.id] };
@@ -87,8 +87,8 @@ Object.assign(window.GameModules.updateRegistry, {
     const next = window.GameModules.metrics.clamp(before + delta);
     const reason = this.metricReasonText(update);
     const rawStatus = String(update.change?.status ?? update.status ?? update.绋嬪害 ?? update.瑙ｉ噴 ?? '').trim();
-    const status = temporary && !rawStatus ? `${key}锛氱煭鏈熺姸鎬併€俙 : rawStatus;
-    window.GameModules.metrics.writeMetric(target, metrics.notes || (metrics.notes = {}), group, { key, delta, status, reason, temporary }, next, '鐜板疄鎺ㄦ紨缁撶畻銆?);
+    const status = temporary && !rawStatus ? (String(key) + '：短期状态。') : rawStatus;
+    window.GameModules.metrics.writeMetric(target, metrics.notes || (metrics.notes = {}), group, { key, delta, status, reason, temporary }, next, '现实推演结算。');
     return next !== before || Boolean(reason);
   },
 
@@ -100,8 +100,8 @@ Object.assign(window.GameModules.updateRegistry, {
       ...value,
       partKey,
       part: value.part || partKey,
-      description: value.description || value['鎻忚堪鐘舵€?] || value.desc || '',
-      reason: value.reason || this.reasonText(update, '鐜板疄鎺ㄦ紨纭韬綋鐘舵€佸彉鍖栥€?),
+      description: value.description || value['描述状态'] || value.desc || '',
+      reason: value.reason || this.reasonText(update, '现实推演确认了身体状态变化。'),
       updatedAt: value.updatedAt || new Date().toISOString(),
     };
   },
@@ -127,8 +127,8 @@ Object.assign(window.GameModules.updateRegistry, {
   notePath(field = '') {
     const parts = String(field || '').split('.').filter(Boolean), leaf = parts.at(-1);
     if (!parts.length) return '';
-    if (parts[0] === 'metrics' && parts.length >= 3) return `${parts[0]}.notes.${parts[1]}.${leaf}`;
-    return `${parts.slice(0, -1).join('.')}.reason`.replace(/^\./, '');
+    if (parts[0] === 'metrics' && parts.length >= 3) return parts[0] + '.notes.' + parts[1] + '.' + leaf;
+    return (parts.slice(0, -1).join('.') + '.reason').replace(/^\./, '');
   },
 
   noteValue(field = '', value, reason = '') {
@@ -152,7 +152,7 @@ Object.assign(window.GameModules.updateRegistry, {
     const current = this.get(root, path), next = this.nextValue(current, update);
     if (next === undefined || JSON.stringify(current) === JSON.stringify(next)) return false;
     this.set(root, path, next);
-    const note = this.notePath(path), reason = this.reasonText(update, '鐜板疄鎺ㄦ紨纭鐘舵€佸彉鍖栥€?);
+    const note = this.notePath(path), reason = this.reasonText(update, '现实推演确认了状态变化。');
     if (note) this.set(root, note, this.noteValue(path, next, reason));
     if (/^(values\.)?wearing$/u.test(field) && state.profile) {
       state.profile.wearingItems = next;
@@ -165,15 +165,15 @@ Object.assign(window.GameModules.updateRegistry, {
   normalizeWearingSlot(raw = {}) {
     const part = String(raw.part || raw.slot || '').trim();
     const slot = String(raw.slot || '').trim();
-    if (/^(?:鍏ㄨ韩|鏁翠綋|鏁磋韩|鍏ㄤ綋|鍏ㄥ|鍏ㄨ韩琛ｇ墿|鍏ㄨ韩绌跨潃|鏁翠綋绌跨潃)$/u.test(part)) return 'outerwear';
+    if (/^(?:全身|整体|整身|全体|全套|全身衣物|全身穿着|整体穿着)$/u.test(part)) return 'outerwear';
     if (['bra', 'top', 'outerwear', 'bottom', 'legwear', 'shoes', 'panties', '楗板搧'].includes(slot)) return slot;
-    if (/鑳搁儴|鑳稿彛|涔虫埧|鑳哥僵|鍐呰。涓?u.test(part)) return 'bra';
-    if (/涓婅韩|涓婅。|琛～|鐫¤。涓?u.test(part)) return 'top';
-    if (/澶栧|缃╄～|杩炶。瑁檤鐫¤|瑁欒/u.test(part)) return 'outerwear';
-    if (/涓嬭韩|瑁欏瓙|瑁ゅ瓙|鐭￥/u.test(part)) return 'bottom';
-    if (/鑵块儴|澶ц吙|涓濊|琚滆￥|瑁よ/u.test(part)) return 'legwear';
-    if (/瓒抽儴|鑴氶儴|闉媩琚?u.test(part)) return 'shoes';
-    if (/鍐呰￥|搴曡￥/u.test(part)) return 'panties';
+    if (/胸部|胸口|乳房|胸罩|内衣/u.test(part)) return 'bra';
+    if (/上身|上衣|衬衫|睡衣/u.test(part)) return 'top';
+    if (/外套|罩衫|连衣裙|睡袍|裙装/u.test(part)) return 'outerwear';
+    if (/下身|裙子|裤子|短裤/u.test(part)) return 'bottom';
+    if (/腿部|大腿|丝袜|裤袜|袜裤/u.test(part)) return 'legwear';
+    if (/足部|脚部|鞋|靴/u.test(part)) return 'shoes';
+    if (/内裤|底裤/u.test(part)) return 'panties';
     if (/楗板搧|棣栭グ|閰嶉グ/u.test(part)) return '楗板搧';
     return slot || '楗板搧';
   },
@@ -212,9 +212,9 @@ Object.assign(window.GameModules.updateRegistry, {
     const value = this.normalizeBodyStatusValue(update);
     if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
     const partKey = value.partKey || this.leafName(update.field) || 'other';
-    const path = `bodyStatus.${partKey}`;
+    const path = 'bodyStatus.' + partKey;
     const current = this.get(state.values, path);
-    const next = { ...(current && typeof current === 'object' ? current : {}), ...value, initializedByAi: true, source: 'AI鏇存柊' };
+    const next = { ...(current && typeof current === 'object' ? current : {}), ...value, initializedByAi: true, source: 'AI更新' };
     if (JSON.stringify(current) === JSON.stringify(next)) return false;
     this.set(state.values, path, next);
     return true;
@@ -339,7 +339,7 @@ Object.assign(window.GameModules.updateRegistry, {
       const parts = raw && typeof raw === 'object' ? (raw.parts || (raw.partKey ? { [raw.partKey]: raw.count ?? 1 } : {})) : (fieldPart ? { [fieldPart]: raw } : {});
       Object.entries(parts).forEach(([key, value]) => { next.sexualExperienceParts[key] = Math.max(0, Math.round((Number(next.sexualExperienceParts[key]) || 0) + (Number(value) || 0))); });
     }
-    next.reason = this.reasonText(update, '鐜板疄鎺ㄦ紨纭鎬х粡楠屾鏁板彉鍖栥€?);
+    next.reason = this.reasonText(update, '现实推演确认了性经历次数变化。');
     next.updatedAt = new Date().toISOString();
     if (JSON.stringify(current) === JSON.stringify(next)) return false;
     state.values.intimacy = next;
@@ -364,7 +364,7 @@ Object.assign(window.GameModules.updateRegistry, {
 
   applyRelationshipEntry(state, update = {}) {
     const value = this.changeValue(update), mode = update.change?.mode || 'upsert';
-    const relation = String(value?.relation || this.leafName(update.field) || update.name || '鍏崇郴').trim().slice(0, 60);
+    const relation = String(value?.relation || this.leafName(update.field) || update.name || '关系').trim().slice(0, 60);
     const name = String(value?.name || value || '').trim().slice(0, 60);
     const detail = String(value?.detail || value?.summary || this.reasonText(update, '') || '').trim().slice(0, 500);
     if (!relation || (!name && mode !== 'remove')) return false;
@@ -379,7 +379,7 @@ Object.assign(window.GameModules.updateRegistry, {
       if (index >= 0) entries[index] = { ...entries[index], ...next, detail: detail || entries[index].detail };
       else entries.push(next);
     }
-    const nextText = entries.map((item) => `${item.relation}锛?{item.name}${item.detail ? `锛?{item.detail}锛塦 : ''}`).join('锛?).slice(0, 1200);
+    const nextText = entries.map((item) => { const head = String(item.relation || '') + '：' + String(item.name || ''); return item.detail ? (head + '（' + String(item.detail) + '）') : head; }).join('；').slice(0, 1200);
     if (!nextText || nextText === oldText) return false;
     state.profile.relationships = nextText;
     state.profile.roleCardUpdatedAt = new Date().toISOString();
@@ -387,12 +387,12 @@ Object.assign(window.GameModules.updateRegistry, {
   },
 
   relationshipEntriesFromText(text = '') {
-    return String(text || '').split(/[锛?\n]+/).map((part) => {
+    return String(text || '').split(/[；\n]+/).map((part) => {
       const raw = String(part || '').trim();
       if (!raw) return null;
-      const match = raw.match(/^([^锛?]+)[锛?](.*?)(?:[锛?]([^锛堬級()]*)[锛?])?$/u);
-      if (!match) return { relation: '鍏崇郴', name: raw, detail: '' };
-      return { relation: match[1].trim(), name: match[2].trim().replace(/[锛?][^锛堬級()]*[锛?]$/u, ''), detail: String(match[3] || '').trim() };
+      const match = raw.match(/^([^：]+)：(.*?)(?:（([^（）()]*)）)?$/u);
+      if (!match) return { relation: '关系', name: raw, detail: '' };
+      return { relation: match[1].trim(), name: match[2].trim(), detail: String(match[3] || '').trim() };
     }).filter(Boolean);
   },
 

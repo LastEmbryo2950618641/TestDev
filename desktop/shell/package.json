@@ -10,7 +10,7 @@
                     "verify:result-link":  "node electron-live-attempt-result-link-verify.js",
                     "verify:packaging-toolchain":  "node desktop-packaging-toolchain-preflight-verify.cli.js",
                     "verify:launch-executor":  "node electron-controlled-launch-executor-verify.js",
-                    "attempt:launch":  ".\\node_modules\\electron\\dist\\electron.exe C:\\Users\\liuqi\\Documents\\TestDev\\desktop\\shell -- --codex-electron-launch",
+                    "attempt:launch":  "powershell -ExecutionPolicy Bypass -File ./run-electron-attempt-launcher.ps1",
                     "verify:preflight":  "npm run verify:shell \u0026\u0026 npm run verify:checklist \u0026\u0026 npm run verify:plan \u0026\u0026 npm run verify:launcher",
                     "verify:launch-preview":  "node electron-launch-preview-verify.js",
                     "verify:launcher":  "node electron-smoke-run-launcher-verify.js",

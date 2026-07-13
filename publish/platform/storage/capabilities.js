@@ -5,7 +5,15 @@ window.GameModules.platform.storage = window.GameModules.platform.storage || {};
 
 window.GameModules.platform.storage.capabilities = {
   isReady() {
-    return Boolean(window.GameModules.sqliteSave?.db);
+    const sqliteSave = window.GameModules.sqliteSave;
+    const backend = window.GameModules.platform?.storage?.backend;
+    return Boolean(
+      backend
+      && typeof backend.open === 'function'
+      && typeof backend.put === 'function'
+      && typeof backend.get === 'function'
+      && (sqliteSave?.db || sqliteSave?.fallback || window.GameModules.platform?.core?.storage?.sqliteSlotSource)
+    );
   },
 };
 

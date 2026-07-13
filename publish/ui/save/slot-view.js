@@ -4,7 +4,9 @@ window.GameModules.ui.save = window.GameModules.ui.save || {};
 
 window.GameModules.ui.save.slotView = {
   findEmptySlot() {
-    return (this.saveSlots || []).find((slot) => !this.saveMeta(slot).exists) || null;
+    const slots = Array.isArray(this.saveSlots) ? this.saveSlots : [];
+    const metas = this.saveMetas || {};
+    return slots.find((slot) => !(metas[slot]?.exists)) || null;
   },
 
   meta(slot) {

@@ -183,9 +183,11 @@ window.GameModules.playerAspirationActions = {
   resolvePsychTagGroup(tagGroup = null) {
     if (!tagGroup) return null;
     const cfg = window.GameModules.playerAspirationConfig;
+    const playerGender = this.aspirationPlayerGender();
     return {
       ...tagGroup,
-      fallbackTags: cfg.resolvePsychFallbackTags(tagGroup, this.aspirationPlayerGender()),
+      playerGender,
+      fallbackTags: cfg.resolvePsychFallbackTags(tagGroup, playerGender),
     };
   },
 

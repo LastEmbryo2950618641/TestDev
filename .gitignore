@@ -1,4 +1,5 @@
 # Generated desktop packaging outputs and local verification caches
+node_modules/
 desktop/shell/dist/
 desktop/shell/dist-minimal/
 desktop/shell/.electron-dist/
@@ -7,6 +8,7 @@ desktop/shell/.verify-storage/
 
 # Generated mobile shell outputs and local verification caches
 mobile/android-webview-shell/.gradle/
+mobile/android-webview-shell/.artifacts/
 mobile/android-webview-shell/app/build/
 mobile/shell/.verify-storage/
 mobile/shell/.bridge-verify-storage/
@@ -20,3 +22,10 @@ mobile/android-webview-shell/.last-asset-sync.json
 mobile/android-webview-shell/.last-build-attempt.json
 mobile/android-webview-shell/local.properties
 mobile/android-webview-shell/local.properties.generated
+
+# Local browser validation dependencies and scratch probes
+tools/validation-browser/node_modules/
+tools/validation-browser/tmp-*.mjs
+
+# Scratch files from local status audits
+temp_status_list.txt

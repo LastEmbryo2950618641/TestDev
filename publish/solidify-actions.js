@@ -9,7 +9,7 @@ window.GameModules.solidifyActions = {
   },
 
   solidifyParticipantName(item = '') {
-    if (typeof item === 'string') return item.replace(/[锛?].*$/u, '').trim();
+    if (typeof item === 'string') return item.replace(/[，。；：？！].*$/u, '').trim();
     return String(item?.name || item?.characterName || item?.idOrName || '').trim();
   },
 
@@ -18,22 +18,47 @@ window.GameModules.solidifyActions = {
   },
 
   parseLoadedMaterialCharacter(item = {}) {
-    const text = [item?.title, item?.text, item?.content, item?.summary].map((part) => String(part || '').trim()).filter(Boolean).join('\n');
+    const text = [item?.title, item?.text, item?.content, item?.summary]
+      .map((part) => String(part || '').trim())
+      .filter(Boolean)
+      .join('\n');
     if (!text) return null;
-    const isRoleCard = /(?:^|\n)璧勬枡绫诲瀷[:锛歖\s*(?:瀹屾暣)?瑙掕壊鍗?u.test(text) || /(?:^|\n)瑙掕壊ID[:锛歖/u.test(text);
-    const isIntroCard = /(?:^|\n)璧勬枡绫诲瀷[:锛歖\s*浠嬬粛鍗?u.test(text);
+
+    const lines = text.split(/\r?\n/u).map((line) => line.trim()).filter(Boolean);
+    const findValue = (keys = []) => {
+      for (const line of lines) {
+        for (const key of keys) {
+          if (!line.includes(key)) continue;
+          const value = line.split(/[:：]/u).slice(1).join(':').trim();
+          if (value) return value;
+        }
+      }
+      return '';
+    };
+
+    const materialType = findValue(['资料类型', '璧勬枡绫诲瀷']);
+    const isRoleCard = text.includes('角色ID') || text.includes('瑙掕壊ID') || /角色卡|瑙掕壊鍗/u.test(materialType);
+    const isIntroCard = /介绍卡|浠嬬粛鍗/u.test(materialType);
     if (!isRoleCard && !isIntroCard) return null;
-    const name = text.match(/(?:^|\n)濮撳悕[:锛歖\s*([^\s锝渱锛?锛?\n]+)/u)?.[1]?.trim().slice(0, 24) || '';
-    if (!name || ['鏃?, '鐜╁', '绯荤粺'].includes(name) || !this.solidifyLooksLikePersonName(name)) return null;
-    const role = text.match(/(?:^|\n)韬唤[:锛歖\s*([^\n]+)/u)?.[1]?.trim().slice(0, 40) || '鍑哄満浜虹墿';
-    const intro = text.match(/(?:^|\n)浜虹墿璇存槑[:锛歖\s*([^\n]+)/u)?.[1]
-      || text.match(/(?:^|\n)浠嬬粛[:锛歖\s*([^\n]+)/u)?.[1]
-      || text.match(/(?:^|\n)鎬ф牸[:锛歖\s*([^\n]+)/u)?.[1]
+
+    const rawName = findValue(['姓名', '濮撳悕']).split(/[\s（(]/u)[0].trim();
+    if (!rawName || ['无', '鏃', '玩家', '鐜╁', '系统', '绯荤粺'].includes(rawName) || !this.solidifyLooksLikePersonName(rawName)) return null;
+
+    const role = findValue(['身份', '韬唤']).slice(0, 40) || '出场人物';
+    const intro = findValue(['人物说明', '浜虹墿璇存槑'])
+      || findValue(['介绍', '浠嬬粛'])
+      || findValue(['性格', '鎬ф牸'])
       || '';
-    const worldTag = text.match(/(?:^|\n)涓栫晫[:锛歖\s*([^\n]+)/u)?.[1]?.trim().slice(0, 40)
+    const worldTag = findValue(['世界', '涓栫晫']).slice(0, 40)
       || window.GameModules.realWorld2026?.label
       || '';
-    return { name, worldTag, role, intro: String(intro || '鏈洖鍚堣浇鍏ョ殑璧勬枡浜虹墿銆?).slice(0, 280) };
+
+    return {
+      name: rawName.slice(0, 24),
+      worldTag,
+      role,
+      intro: String(intro || '本回合载入的资料人物。').slice(0, 280),
+    };
   },
 
   solidifyParticipantsFromTrace(trace = []) {
@@ -73,13 +98,17 @@ window.GameModules.solidifyActions = {
   },
 
   solidifyCleanPersonToken(raw = '') {
-    const name = String(raw || '')
-      .replace(/^(?:浜虹墿|瑙掕壊|浜哄憳)[:锛歖\s*/u, '')
-      .replace(/[锛?].*$/u, '')
+    const source = String(raw || '').trim();
+    if (!source) return '';
+
+    const cleaned = source
+      .replace(/^[^:：]*[:：]s*/u, '')
+      .replace(/[，。；：？！].*$/u, '')
       .trim();
-    if (!name || name === '鏃?) return '';
-    if (/^(?:鐗╁搧|鍦扮偣|浜嬪疄|绯荤粺)[:锛歖/u.test(String(raw || ''))) return '';
-    return this.solidifyLooksLikePersonName(name) ? name : '';
+
+    if (!cleaned || ['无', '鏃'].includes(cleaned)) return '';
+    if (/^(?:物品|地点|事实|系统|鐗╁搧|鍦扮偣|浜嬪疄|绯荤粺)/u.test(source)) return '';
+    return this.solidifyLooksLikePersonName(cleaned) ? cleaned : '';
   },
 
   solidifyPeopleFromAnchorReport(anchorRoot = {}) {
@@ -92,21 +121,17 @@ window.GameModules.solidifyActions = {
       });
       return out;
     }
+
     const anchor = anchorRoot.values || anchorRoot;
-    const text = String(anchor['褰撳墠鍦烘櫙褰卞搷瀵硅薄'] || anchor.currentSceneImpactObjects || '').trim();
+    const text = String(anchor['褰撳墠鍦烘櫙褰卞搷瀵硅薄'] || anchor.currentSceneImpactObjects || '').replace(/\r/g, '').trim();
     if (!text) return out;
-    const peopleMatch = text.match(/(?:浜虹墿|瑙掕壊|浜哄憳)[:锛歖\s*([^锛?|锝淽+)/u);
-    if (peopleMatch) {
-      peopleMatch[1].split(/[銆?锛宂/u).forEach((raw) => {
-        const name = this.solidifyCleanPersonToken(raw);
-        if (name) out.push({ name, role: 'current-scene' });
-      });
-      return out;
-    }
-    text.split(/[銆?锛岋紱;\n]/u).forEach((raw) => {
-      const name = this.solidifyCleanPersonToken(raw);
-      if (name) out.push({ name, role: 'current-scene' });
-    });
+
+    text
+      .split(/[，,；;、]/u)
+      .map((raw) => this.solidifyCleanPersonToken(raw))
+      .filter(Boolean)
+      .forEach((name) => out.push({ name, role: 'current-scene' }));
+
     return out;
   },
 
@@ -127,7 +152,7 @@ window.GameModules.solidifyActions = {
       if (!item) return;
       const raw = typeof item === 'string' ? { name: item } : item;
       const name = String(raw?.name || raw?.characterName || '').trim().slice(0, 24);
-      if (!name || name === playerName || seen.has(name) || ['鐜╁', '绯荤粺', '鏃?].includes(name)) return;
+      if (!name || name === playerName || seen.has(name) || ['鐜╁', '绯荤粺', '鏃'].includes(name)) return;
       if (!this.solidifyLooksLikePersonName(name)) return;
       seen.add(name);
       out.push(raw);
@@ -155,7 +180,7 @@ window.GameModules.solidifyActions = {
   solidifyKey(card = {}) { return card?.name ? `${card.worldTag || ''}::${card.name}` : ''; },
 
   solidifyPersonName(card = {}) {
-    return String(card?.name || '').replace(/^浜虹墿[:锛歖\s*/u, '').trim();
+    return String(card?.name || '').split(/[:：]/u).pop().trim();
   },
 
   solidifyPersonKey(card = {}) {
@@ -165,9 +190,9 @@ window.GameModules.solidifyActions = {
   },
 
   solidifyLooksLikePersonName(name = '') {
-    const clean = String(name || '').replace(/^浜虹墿[:锛歖\s*/u, '').trim();
+    const clean = String(name || '').split(/[:：]/u).pop().trim();
     if (!clean || clean.length < 2 || clean.length > 16) return false;
-    if (/^(?:鎵ц|缁х画|褰撳墠|绯荤粺|鐜╁|鏃?$/u.test(clean)) return false;
+    if (/^(?:鎵ц|缁х画|褰撳墠|绯荤粺|鐜╁|鏃)$/u.test(clean)) return false;
     if (/琛屽姩$|鎺у埗閮?|鎺у埗浣撻獙$|缁撶畻$|鐩爣$|鐘舵€?/u.test(clean)) return false;
     if (/鎶变綇|鎶氭懜|鎻夋崗|璇㈤棶|鍚庨€€|鎵ц|鎺у埗/u.test(clean)) return false;
     if (this.solidifyLooksLikeObjectOrSceneName(clean)) return false;
@@ -177,10 +202,15 @@ window.GameModules.solidifyActions = {
   solidifyLooksLikeObjectOrSceneName(name = '') {
     const clean = String(name || '').trim();
     if (!clean) return true;
-    if (/^(?:浠ュ強|浠ュ強鎴块棿|浠ュ強.+|绛夌墿|绛夌墿鍝?$/u.test(clean)) return true;
-    if (/(?:涔嬬被|绛夌墿|绛夌墿鍝亅绛?$/u.test(clean)) return true;
-    return /^(?:琚ぅ|鏋曞ご|搴婇摵|搴妡琚瓙|搴婂崟|琚崟|姣瓙|娌欏彂|鑼跺嚑|妗屽瓙|妞呭瓙|鍙扮伅|绐楀笜|闂▅澧檤鍦版澘|鎴块棿|闂ㄩ搩|鎵嬫満|鐢佃剳|鐢佃|琛ｆ煖|鎶藉眽|姊冲鍙皘鍦版|闈犲灚|鎶辨灂|搴婂崟|甯ⅵ鎬潀搴婂灚|琚姱|鏋曡姱|搴婂ご|搴婂熬|搴婃灦|搴婂崟|闂ㄦ妸鎵媩绐楁埛|绐梶闀渱闀滃瓙|鐏瘄闊冲搷|绌鸿皟|椋庢墖|鏆栨皵|鏆栨皵|鍨冨溇妗秥涔﹀寘|鑳屽寘|姘存澂|鏉瓙|纰梶鐩榺閿厊鍒€|鍙墊鍕簗涔鏈瑋绗攟绾竱鐩抾琚媩鐡秥缃恷绠眧鏌渱鏋秥鏍弢鏉唡缁硘绾縷甯億宸緗琚渱闉媩甯絴闀渱閿亅閽鍖檤鍗绁▅閽眧甯亅鐗?$/u.test(clean)
-      || /(?:琚ぅ|鏋曞ご|搴婇摵|娌欏彂|绐楀笜|鍙扮伅|琛ｆ煖|姊冲鍙皘闂ㄩ搩|绌鸿皟|闈犲灚|鎶辨灂)$/u.test(clean);
+
+    const obviousPrefixes = ['浠ュ強', '以及'];
+    if (obviousPrefixes.some((prefix) => clean.startsWith(prefix))) return true;
+
+    const obviousSuffixes = ['涔嬬被', '绛夌墿', '之类', '等物'];
+    if (obviousSuffixes.some((suffix) => clean.endsWith(suffix))) return true;
+
+    const objectKeywords = ['房间', '地点', '物品', '系统', '鎴块棿', '鐗╁搧', '绯荤粺', '琚ぅ', '鏋曞ご', '搴婇摵', '娌欏彂', '绐楀笜', '鍙扮伅', '琛ｆ煖', '闂ㄩ搩', '绌鸿皟'];
+    return objectKeywords.some((keyword) => clean.includes(keyword));
   },
 
   solidifyShouldSkipCard(card = {}) {
@@ -208,7 +238,7 @@ window.GameModules.solidifyActions = {
   solidifyDisplayCard(card = {}) {
     if (!card?.name) return null;
     const state = window.GameModules.characterIntroCard.roleCardState(card);
-    if (state) return { ...card, displayType: 'role', roleState: state, profile: state.profile || {}, role: state.profile?.role || card.role || '瑙掕壊鍗?, intro: state.profile?.detail || card.intro || '瀹屾暣瑙掕壊鍗″凡鍥哄寲銆? };
+    if (state) return { ...card, displayType: 'role', roleState: state, profile: state.profile || {}, role: state.profile?.role || card.role || '瑙掕壊鍗', intro: state.profile?.detail || card.intro || '瀹屾暣瑙掕壊鍗″凡鍥哄寲銆' };
     return { ...card, displayType: 'intro' };
   },
 
@@ -229,9 +259,9 @@ window.GameModules.solidifyActions = {
     return this.solidifyDisplayCards(derived);
   },
 
-  solidifyPanelTitle(card = this.selectedSolidifyCard()) { return card?.displayType === 'role' ? '瑙掕壊鍗℃煡鐪? : '浠嬬粛鍗″浐鍖?; },
+  solidifyPanelTitle(card = this.selectedSolidifyCard()) { return card?.displayType === 'role' ? '角色卡查看' : '介绍卡固化'; },
 
-  solidifyTypeLabel(card = this.selectedSolidifyCard()) { return card?.displayType === 'role' ? '瑙掕壊鍗? : '浠嬬粛鍗?; },
+  solidifyTypeLabel(card = this.selectedSolidifyCard()) { return card?.displayType === 'role' ? '角色卡' : '介绍卡'; },
 
   solidifyDetailRows(card = this.selectedSolidifyCard()) {
     if (!card) return [];
@@ -239,24 +269,24 @@ window.GameModules.solidifyActions = {
       ['涓栫晫', card.worldTag || '鏈煡涓栫晫'],
       ['韬唤', card.role || '鍑哄満浜虹墿'],
       ['绌跨潃', this.solidifyWearingText(card)],
-      ['浠嬬粛', card.intro || '鏆傛棤浠嬬粛銆?],
+      ['浠嬬粛', card.intro || '鏆傛棤浠嬬粛銆'],
     ];
     const profile = card.profile || card.roleState?.profile || {};
     return [
       ['涓栫晫', card.roleState?.worldTag || card.worldTag || profile.work || '鏈煡涓栫晫'],
-      ['韬唤', profile.role || card.role || '瑙掕壊鍗?],
+      ['韬唤', profile.role || card.role || '瑙掕壊鍗'],
       ['绌跨潃', this.solidifyWearingText(card.roleState || profile)],
-      ['澶栬矊', profile.appearance || '鏈褰?],
-      ['鎬ф牸', profile.personality || '鏈褰?],
-      ['璇︽儏', profile.detail || card.intro || '瀹屾暣瑙掕壊鍗″凡鍥哄寲銆?],
+      ['澶栬矊', profile.appearance || '鏈褰'],
+      ['鎬ф牸', profile.personality || '鏈褰'],
+      ['璇︽儏', profile.detail || card.intro || '瀹屾暣瑙掕壊鍗″凡鍥哄寲銆'],
     ];
   },
 
   solidifyWearingText(source = {}) {
     const list = this.solidifyWearingItems(source);
-    if (list.length) return list.map((item) => this.solidifyWearingItemText(item)).filter(Boolean).join('锛?) || '褰撳墠鏃犳槑纭┛鐫€璁板綍銆?;
+    if (list.length) return list.map((item) => this.solidifyWearingItemText(item)).filter(Boolean).join('，') || '褰撳墠鏃犳槑纭┛鐫€璁板綍銆';
     const raw = this.solidifyRawWearing(source);
-    return String(raw || '褰撳墠鏃犳槑纭┛鐫€璁板綍銆?).slice(0, 260);
+    return String(raw || '褰撳墠鏃犳槑纭┛鐫€璁板綍銆').slice(0, 260);
   },
 
   solidifyRawWearing(source = {}) {
@@ -270,8 +300,8 @@ window.GameModules.solidifyActions = {
     const list = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? Object.values(raw).flat() : []);
     if (list.length) return list.map((item) => this.solidifyNormalizeWearingItem(item, state)).filter(Boolean);
     const text = String(raw || '').trim();
-    if (!text || /^褰撳墠鏃犳槑纭畖鏈褰晐鏃?/u.test(text)) return [];
-    return [this.solidifyNormalizeWearingItem({ name: text, slot: this.solidifyInferWearSlot(text), description: text, reason: '鐜板疄鎺ㄦ紨姝ｆ枃纭鐨勫綋鍓嶇┛鐫€銆? }, state)].filter(Boolean);
+    if (!text || /^褰撳墠鏃犳槑纭畖鏈褰晐鏃/iu.test(text)) return [];
+    return [this.solidifyNormalizeWearingItem({ name: text, slot: this.solidifyInferWearSlot(text), description: text, reason: '鐜板疄鎺ㄦ紨姝ｆ枃纭鐨勫綋鍓嶇┛鐫€銆' }, state)].filter(Boolean);
   },
 
   solidifyNormalizeWearingItem(item, state = null) {
@@ -279,9 +309,9 @@ window.GameModules.solidifyActions = {
     const p = window.GameModules.progression;
     const raw = typeof item === 'string' ? { name: item } : { ...item };
     const name = String(raw.name || raw.label || raw.description || '').trim();
-    if (!name || name === '鏈┛鎴? || name === '鏈褰?) return null;
+    if (!name || name === '鏈┛鎴' || name === '鏈褰') return null;
     const slot = p.canonicalWearSlot?.({ ...raw, slot: raw.slot || this.solidifyInferWearSlot(name) }) || raw.slot || '瑁呭';
-    return p.normalizeCarryItem?.({ ...raw, name, slot, description: raw.description || name, reason: raw.reason || '鐜板疄鎺ㄦ紨姝ｆ枃纭鐨勫綋鍓嶇┛鐫€銆?, changeMode: '鐜板疄鎺ㄦ紨', source: 'AI鐢熸垚' }, '绌跨潃', state?.id || raw.ownerId || raw.characterId || '') || { ...raw, name, slot, type: '绌跨潃' };
+    return p.normalizeCarryItem?.({ ...raw, name, slot, description: raw.description || name, reason: raw.reason || '鐜板疄鎺ㄦ紨姝ｆ枃纭鐨勫綋鍓嶇┛鐫€銆', changeMode: '鐜板疄鎺ㄦ紨', source: 'AI鐢熸垚' }, '绌跨潃', state?.id || raw.ownerId || raw.characterId || '') || { ...raw, name, slot, type: '绌跨潃' };
   },
 
   solidifyInferWearSlot(text = '') {
@@ -289,8 +319,8 @@ window.GameModules.solidifyActions = {
     if (/瑁鐭￥|闀胯￥|涓嬭/u.test(text)) return 'bottom';
     if (/鍐呰。|鑳歌。|鏂囪兏/u.test(text)) return 'innerwearTop';
     if (/鍐呰￥|搴曡￥/u.test(text)) return 'innerwearBottom';
-    if (/琚?u.test(text)) return 'socks';
-    if (/闉媩闈?u.test(text)) return 'shoes';
+    if (/琚/iu.test(text)) return 'socks';
+    if (/闉媩闈/iu.test(text)) return 'shoes';
     if (/澶栧|澶ц。|椋庤。/u.test(text)) return 'outerwear';
     return '瑁呭';
   },
@@ -299,9 +329,9 @@ window.GameModules.solidifyActions = {
     if (!item) return '';
     if (typeof item === 'string') return item;
     const name = item.name || item.label || item.description || '';
-    if (!name || name === '鏈┛鎴? || name === '鏈褰?) return '';
+    if (!name || name === '鏈┛鎴' || name === '鏈褰') return '';
     const slot = item.slotLabel || item.clothing_position || item.slot || item.part || '';
-    return `${slot ? `${slot}锛歚 : ''}${name}`;
+    return `${slot ? `${slot}锛歚` : ''}${name}`;
   },
 
   selectSolidifyCard(card) { this.solidifyState.selectedKey = this.solidifyKey(card); },
@@ -330,7 +360,7 @@ window.GameModules.solidifyActions = {
   async solidifySelectedIntroCard(card = this.selectedSolidifyCard(), entry = null) {
     if (!card || card.displayType === 'role' || this.busy) return;
     const source = { id: `npc-${window.GameModules.characterProfile.slug(card.worldTag)}-${window.GameModules.characterProfile.slug(card.name)}`, name: card.name, work: card.worldTag, role: card.role, detail: card.intro, importance: 'support', isMinor: false };
-    this.startRoleCardLoadingBatch?.([{ id: source.id, name: card.name, type: '瑙掕壊鍗?, source, context: card.intro }]);
+    this.startRoleCardLoadingBatch?.([{ id: source.id, name: card.name, type: '瑙掕壊鍗', source, context: card.intro }]);
     await this.ensureRpgForCharacter(source, card.intro, { loadMetrics: false, allowManualSolidify: true });
     if (entry) {
       entry.solidifyCards = this.solidifyDisplayCards(entry.solidifyCards || []);

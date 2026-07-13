@@ -90,10 +90,10 @@ async apply(store, updates = []) {
   markInitializedValue(templateKey = '', key = '', value) {
     if (templateKey !== 'intimacyBody' || !value || typeof value !== 'object' || Array.isArray(value)) return value;
     const next = this.clone(value);
-    if (key === 'intimacy') return { ...next, initializedByAi: true, source: 'AI鍒濆鍖? };
+    if (key === 'intimacy') return { ...next, initializedByAi: true, source: 'AI初始化' };
     if (key !== 'bodyStatus') return value;
     Object.keys(next).forEach((partKey) => {
-      if (next[partKey] && typeof next[partKey] === 'object' && !Array.isArray(next[partKey])) next[partKey] = { ...next[partKey], initializedByAi: true, source: 'AI鍒濆鍖? };
+      if (next[partKey] && typeof next[partKey] === 'object' && !Array.isArray(next[partKey])) next[partKey] = { ...next[partKey], initializedByAi: true, source: 'AI初始化' };
     });
     return next;
   },
@@ -158,16 +158,16 @@ sexPartRows(template, def, raw = {}, initial = {}) {
       const count = Number(raw?.[key]) || 0, initialCount = Number(initial?.[key]) || 0;
       return { partKey: key, name, count, initialCount, laterCount: Math.max(0, count - initialCount), prompt: template.sexPartPrompts?.[key] || template.sexPartPrompts?.other || '', type: template.fieldMeta?.[def.meta]?.kind };
     });
-    return { value: rows.map((item) => template.formatExperienceSplit?.(item) || `${item.name}锛?{item.count}`), raw: rows, initialMeeting: rows.map((item) => template.formatInitialExperience?.(item) || `${item.name}锛?{item.initialCount}`) };
+    return { value: rows.map((item) => template.formatExperienceSplit?.(item) || ((item.name || '') + '：' + (item.count ?? ''))), raw: rows, initialMeeting: rows.map((item) => template.formatInitialExperience?.(item) || ((item.name || '') + '：' + (item.initialCount ?? ''))) };
   },
 bodyStatusRows(template, def, raw = {}, initial = {}) {
     const rows = Object.values(raw || {}).map((item) => ({ ...item, name: item.part || item.partKey, type: template.fieldMeta?.[def.meta]?.kind }));
-    return { value: rows.map((item) => template.formatBodyStatus?.(item) || `${item.part || item.partKey}锛?{item.status || '--'}`), raw: rows, initialMeeting: Object.values(initial || {}).map((item) => template.formatInitialBody?.(item) || `${item.part}锛?{item.status}`) };
+    return { value: rows.map((item) => template.formatBodyStatus?.(item) || ((item.part || item.partKey || '') + '：' + (item.status || '--'))), raw: rows, initialMeeting: Object.values(initial || {}).map((item) => template.formatInitialBody?.(item) || ((item.part || '') + '：' + (item.status || ''))) };
   },
 fields(templateKey = '', state = {}) {
     const template = this.template(templateKey);
     if (!template || !state?.values) return [];
-    const initial = template.initialMeeting?.() || {}, p = state.profile || {}, base = { stateId: state.id || '', worldTag: p.work || state.worldTag || '鍘熷垱涓栫晫', targetType: p.isPlayer ? '闈炶鑹? : '瑙掕壊', commonField: true };
+    const initial = template.initialMeeting?.() || {}, p = state.profile || {}, base = { stateId: state.id || '', worldTag: p.work || state.worldTag || '原创世界', targetType: p.isPlayer ? '非角色' : '角色', commonField: true };
     return (template.uiFieldDefs || []).map((def) => {
       const meta = template.fieldMeta?.[def.meta] || {}, shown = this.fieldRows(template, def, this.get(state.values, def.path), this.get(initial, def.initialPath));
       return { key: def.key, templateKey, ...meta, ...base, ...shown, reason: this.get(state.values, `${def.path}.reason`) || this.get(state.values, 'intimacy.reason') || meta.reasonFallback || '' };

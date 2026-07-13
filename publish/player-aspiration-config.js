@@ -585,7 +585,15 @@ window.GameModules.playerAspirationConfig = {
   /** 每组预置 10 个内置标签（来自 fallbackTags，去重后取前 10） */
   getBuiltinPsychTags(group, count = null) {
     const total = count ?? this.psychOptionCount ?? 10;
-    const pool = [...new Set((Array.isArray(group?.fallbackTags) ? group.fallbackTags : [])
+    const gender = this.playerGenderLabel?.(group?.playerGender) || group?.playerGender || '';
+    const genderBuckets = group?.fallbackTagsByGender && typeof group.fallbackTagsByGender === 'object'
+      ? (group.fallbackTagsByGender[gender] || group.fallbackTagsByGender[group?.playerGender] || [])
+      : [];
+    const mergedPool = [
+      ...(Array.isArray(genderBuckets) ? genderBuckets : []),
+      ...(Array.isArray(group?.fallbackTags) ? group.fallbackTags : []),
+    ];
+    const pool = [...new Set(mergedPool
       .map((item) => String(item || '').trim())
       .filter(Boolean))];
     if (pool.length >= total) return pool.slice(0, total);
@@ -597,7 +605,6 @@ window.GameModules.playerAspirationConfig = {
     }
     return padded.slice(0, total);
   },
-
   fallbackPsychTags(group, count = 10) {
     const pool = Array.isArray(group?.fallbackTags) ? group.fallbackTags.slice() : [];
     if (!pool.length) return Array.from({ length: count }, (_, i) => `选项${i + 1}`);

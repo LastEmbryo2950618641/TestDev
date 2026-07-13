@@ -1,21 +1,37 @@
-﻿param(
+param(
   [int]$WaitSeconds = 6
 )
 
 $ErrorActionPreference = 'Stop'
 $ShellDir = 'C:\Users\liuqi\Documents\TestDev\desktop\shell'
-$ElectronExe = Join-Path $ShellDir 'node_modules\electron\dist\electron.exe'
+$LocalElectronExe = Join-Path $ShellDir '.electron-dist\electron-v36.9.5-win32-x64\electron.exe'
+$NodeModulesElectronExe = Join-Path $ShellDir 'node_modules\electron\dist\electron.exe'
+$ElectronExe = if (Test-Path $LocalElectronExe) { $LocalElectronExe } else { $NodeModulesElectronExe }
 $ArtifactsDir = Join-Path $ShellDir '.artifacts'
 $BootstrapLog = Join-Path $ArtifactsDir 'electron-bootstrap-entry.log'
 $MainLog = Join-Path $ArtifactsDir 'electron-main-entry.log'
 $AttemptArtifact = Join-Path $ArtifactsDir 'attempt-launch-result.json'
 $LauncherLog = Join-Path $ArtifactsDir 'electron-launcher-run.log'
 
+function Read-TextOrEmpty($Path) {
+  if (Test-Path $Path) {
+    return [string](Get-Content -LiteralPath $Path -Raw)
+  }
+  return ''
+}
+
+function Read-TailOrEmpty($Path, $Count = 40) {
+  if (Test-Path $Path) {
+    return [string]::Join("`n", (Get-Content -LiteralPath $Path -Tail $Count))
+  }
+  return ''
+}
+
 New-Item -ItemType Directory -Path $ArtifactsDir -Force | Out-Null
 '' | Set-Content -LiteralPath $LauncherLog -Encoding UTF8
 Add-Content -LiteralPath $LauncherLog -Value ((Get-Date).ToString('o') + ' launcher-start')
 
-foreach ($path in @($BootstrapLog, $MainLog, $AttemptArtifact)) {
+foreach ($path in @($BootstrapLog, $AttemptArtifact)) {
   if (Test-Path $path) {
     Remove-Item -LiteralPath $path -Force
     Add-Content -LiteralPath $LauncherLog -Value ((Get-Date).ToString('o') + ' removed=' + $path)
@@ -46,9 +62,9 @@ $result = [pscustomobject]@{
   bootstrapLogPresent = (Test-Path $BootstrapLog)
   mainLogPresent = (Test-Path $MainLog)
   attemptArtifactPresent = (Test-Path $AttemptArtifact)
-  bootstrapLog = if (Test-Path $BootstrapLog) { Get-Content -LiteralPath $BootstrapLog -Raw } else { '' }
-  mainLog = if (Test-Path $MainLog) { Get-Content -LiteralPath $MainLog -Raw } else { '' }
-  attemptArtifact = if (Test-Path $AttemptArtifact) { Get-Content -LiteralPath $AttemptArtifact -Raw } else { '' }
+  bootstrapLogTail = Read-TailOrEmpty $BootstrapLog 20
+  mainLogTail = Read-TailOrEmpty $MainLog 20
+  attemptArtifact = Read-TextOrEmpty $AttemptArtifact
 }
 
 $result | ConvertTo-Json -Depth 6

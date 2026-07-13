@@ -1,6 +1,16 @@
 {
   "name": "testdev-packaging-root",
   "private": true,
+  "scripts": {
+    "android:sync-assets": "node dev/scripts/sync-android-assets.cjs",
+    "verify:assets": "node dev/scripts/verify-platform-assets.cjs",
+    "android:assemble-debug": "cd mobile/android-webview-shell && gradlew.bat :app:assembleDebug --no-daemon",
+    "validate:control:http": "npm --prefix tools/validation-browser run control:http",
+    "validate:control:file": "npm --prefix tools/validation-browser run control:file",
+    "validate:netprobe": "npm --prefix tools/validation-browser run netprobe",
+    "validate:desktop:preflight": "npm --prefix desktop/shell run verify:preflight",
+    "validate:desktop:launch": "npm --prefix desktop/shell run attempt:launch"
+  },
   "workspaces": [
     "desktop/shell"
   ]

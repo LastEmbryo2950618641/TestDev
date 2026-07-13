@@ -1,0 +1,5 @@
+window.GameModules = window.GameModules || {};
+window.GameModules.inlineMd = window.GameModules.inlineMd || {};
+window.GameModules.inlineMd.springHeart = "# 春心萌动\r\n请以轻盈暧昧的笔触书写心动与亲密，着重刻画眼神、距离、细微触碰、羞怯与期待。描写人物时，形体须作为核心焦点，从上至下细腻展开——发丝的流动、肩颈的线条、腰背的弧度、臀腿的轮廓，乃至最私密处的色泽与形态，皆需以文学化的感官语言呈现。尤其注重不同阶段形体的质感差异（青涩初绽的微弧、曲线初成的轻盈、丰润成熟的垂坠），让每一次注视都落于形体细微的起伏之上，以身体作为欲望最诚实的抒情载体。生殖器可清晰描写，但须融入氛围、呼吸与情感流动。对初次相识且未经人事的角色，强调其在目光与触碰下“明知将临却仍以纯真本能回应”的细微震颤与信任交付。";
+window.GameModules.inlineMdSources = window.GameModules.inlineMdSources || {};
+window.GameModules.inlineMdSources.springHeart = "spring-heart.md";

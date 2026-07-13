@@ -24,7 +24,7 @@ Object.assign(window.GameModules.entryTime, {
       }
       return;
     }
-    const ageLabel = birth.month && birth.day ? `${age}宀乣 : `绾?{age}宀乣;
+    const ageLabel = birth.month && birth.day ? `${age}岁` : `约${age}岁`;
     store.characterAge = ageLabel;
     if (state?.values) {
       this.ensureAgeField(state);
@@ -60,15 +60,17 @@ Object.assign(window.GameModules.entryTime, {
 
   birthDate(profile) {
     const rows = profile?.basics || [];
-    const value = rows.find((x) => /鍑虹敓|鐢熸棩|鐢熷勾鏈堟棩/.test(x.label))?.value || '';
+    const value = rows.find((x) => /出生|生日|生年|出生年|鍑虹敓|鐢熸棩|鐢熷勾/.test(x.label))?.value || '';
     const source = String(value || profile?.raw || '');
-    if (/涓嶆槑|骞翠唤涓嶆槑|鍏厓鍓峾骞?\d{3,4}骞磡浠ュ墠/.test(source)) return null;
-    if (/绾?.test(source)) {
-      const yearOnly = source.match(/(\d{3,4})\s*骞?);
+    if (/不明|年份不明|不详|未知|涓嶆槑|骞翠唤涓嶆槑/.test(source)) return null;
+    const match = source.match(/(\d{3,4})\s*(?:年|骞碶|-|\/)\s*(\d{1,2})\s*(?:月|鏈圽|-|\/)\s*(\d{1,2})/);
+    if (match) return this.completeBirthDate({ year: +match[1], month: +match[2], day: +match[3], precision: 'day' });
+    if (/约|左右|绾/.test(source)) {
+      const yearOnly = source.match(/(\d{3,4})\s*(?:年|骞?)/);
       return this.completeBirthDate(yearOnly ? { year: +yearOnly[1], precision: 'year' } : null);
     }
-    const match = source.match(/(\d{3,4})\s*[骞碶/-]\s*(\d{1,2})\s*[鏈圽/-]\s*(\d{1,2})/);
-    return this.completeBirthDate(match ? { year: +match[1], month: +match[2], day: +match[3], precision: 'day' } : null);
+    const yearOnly = source.match(/(\d{3,4})\s*(?:年|骞?)/);
+    return this.completeBirthDate(yearOnly ? { year: +yearOnly[1], precision: 'year' } : null);
   },
 
   completeBirthDate(date) {

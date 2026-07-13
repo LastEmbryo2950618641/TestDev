@@ -38,6 +38,11 @@ window.GameModules.knownProfessionActions = {
     return data.filter((item) => !q || [item.name, item.worldTag, item.summary, item.sourceReason].join(' ').toLowerCase().includes(q));
   },
 
+  setKnownProfessionQuery(value = '') {
+    this.initKnownProfessionApp();
+    this.knownProfessionState.query = String(value || '');
+  },
+
   openKnownProfessionDetail(job) {
     this.initKnownProfessionApp();
     if (!job?.name) return;
@@ -56,6 +61,29 @@ window.GameModules.knownProfessionActions = {
     if (!this.knownProfessionState.selectedName) return null;
     const list = this.knownProfessions();
     return list.find((item) => item.name === this.knownProfessionState.selectedName) || null;
+  },
+
+  knownProfessionPanelView() {
+    this.initKnownProfessionApp();
+    const items = this.knownProfessions();
+    return {
+      open: !!this.knownProfessionState?.open,
+      query: this.knownProfessionState?.query || '',
+      message: this.knownProfessionState?.message || '',
+      items,
+      empty: !items.length,
+      detailOpen: !!this.knownProfessionState?.detailOpen,
+      selected: this.selectedKnownProfession(),
+    };
+  },
+
+  selectedKnownProfessionDetailView() {
+    const view = this.knownProfessionPanelView();
+    return {
+      detailOpen: view.detailOpen,
+      item: view.selected,
+      requirementText: this.professionRequirementText(view.selected),
+    };
   },
 
   async knowProfession(name, worldTag, context = {}) {

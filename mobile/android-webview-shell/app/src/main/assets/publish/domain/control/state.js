@@ -7,6 +7,9 @@ window.GameModules.domain.control.state = {
     if (this.sharedControlActive && this.sharedControlTargetId) {
       return this.rpgStates?.[this.sharedControlTargetId] || null;
     }
+    if (this.started && this.online && this.character?.id && this.character.id !== 'player-self') {
+      return this.rpgStates?.[this.character.id] || null;
+    }
     return null;
   },
 

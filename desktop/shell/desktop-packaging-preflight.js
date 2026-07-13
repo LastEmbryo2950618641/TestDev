@@ -1,6 +1,7 @@
 ﻿import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveLocalElectronDist } from './desktop-packaging-paths.js';
 
 function resolveShellDir() {
   return path.dirname(fileURLToPath(import.meta.url));
@@ -18,7 +19,8 @@ export function createDesktopPackagingPreflight() {
   const shellDir = resolveShellDir();
   const attemptArtifactPath = path.resolve(shellDir, '.artifacts', 'attempt-launch-result.json');
   const packageJsonPath = path.resolve(shellDir, 'package.json');
-  const electronExePath = path.resolve(shellDir, 'node_modules', 'electron', 'dist', 'electron.exe');
+  const electronDist = resolveLocalElectronDist(shellDir);
+  const electronExePath = electronDist ? path.resolve(electronDist, 'electron.exe') : path.resolve(shellDir, 'node_modules', 'electron', 'dist', 'electron.exe');
   const bootstrapPath = path.resolve(shellDir, 'electron-main-bootstrap.cjs');
   const preloadPath = path.resolve(shellDir, 'electron-preload.js');
   const rendererEntryPath = path.resolve(shellDir, '..', '..', 'publish', 'index.html');
@@ -35,6 +37,7 @@ export function createDesktopPackagingPreflight() {
     shellLocalOnly: true,
     packageJsonPath,
     attemptArtifactPath,
+    electronDist,
     electronExePath,
     bootstrapPath,
     preloadPath,
@@ -56,6 +59,8 @@ export function createDesktopPackagingPreflight() {
   };
 }
 
-process.stdout.write(`${JSON.stringify(createDesktopPackagingPreflight(), null, 2)}\n`);
+if (import.meta.url === `file://${process.argv[1]?.replace(/\\/g, '/')}`) {
+  process.stdout.write(`${JSON.stringify(createDesktopPackagingPreflight(), null, 2)}\n`);
+}
 
 

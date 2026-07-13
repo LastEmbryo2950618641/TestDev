@@ -1,0 +1,181 @@
+window.GameModules = window.GameModules || {};
+
+function callWechatChatSession(name, context, ...args) {
+  return window.GameModules.app.wechat.chatSession[name].call(context, ...args);
+}
+
+function callWechatChatMessageHelper(name, context, ...args) {
+  return window.GameModules.app.wechat.chatMessageHelpers[name].call(context, ...args);
+}
+
+window.GameModules.wechatChatActions = {
+  selectWechatContact(id) {
+    return callWechatChatSession('selectContact', this, id);
+  },
+
+  wechatMessageKey(contact) {
+    return callWechatChatSession('messageKey', this, contact);
+  },
+
+  wechatMessages() {
+    return callWechatChatSession('messages', this);
+  },
+  updateWechatLatest(id, latest, incoming = false) {
+    return callWechatChatSession('updateLatest', this, id, latest, incoming);
+  },
+
+  async sendWechatMessage() {
+    const text = String(this.wechatInput || '').trim();
+    const target = this.wechatSelected();
+    if (!text || this.wechatSending || !target) return;
+    this.wechatError = '';
+    this.wechatInput = '';
+    this.wechatMentionPanelOpen = false;
+    this.appendWechatMessage(this.wechatMessageKey(target), { side: 'self', name: this.playerDisplayCharacter?.().name || this.playerName || '我', mark: '我', text });
+    if (target.group) await this.recordWechatWorldline(target, text, '');
+    await this.save?.();
+    if (target.group) return;
+    await this.replyWechatContact(target, text);
+  },
+
+  appendWechatMessage(id, msg) {
+    return callWechatChatMessageHelper('appendWechatMessage', this, id, msg);
+  },
+
+  wechatMessageTime() {
+    return callWechatChatMessageHelper('wechatMessageTime', this);
+  },
+
+  wechatMemoryTime() {
+    return callWechatChatMessageHelper('wechatMemoryTime', this);
+  },
+
+  wechatDialogueTimeLabel(label = '') {
+    return callWechatChatMessageHelper('wechatDialogueTimeLabel', this, label);
+  },
+
+  formatWechatDialogueLog(playerName, contactName, label, playerText, replyText = '') {
+    return callWechatChatMessageHelper('formatWechatDialogueLog', this, playerName, contactName, label, playerText, replyText);
+  },
+
+  wechatTimeValue(d) {
+    return callWechatChatMessageHelper('wechatTimeValue', this, d);
+  },
+
+  wechatTimeDisplay(d) {
+    return callWechatChatMessageHelper('wechatTimeDisplay', this, d);
+  },
+
+
+  async replyWechatContact(contact, playerText) {
+    this.wechatSending = true;
+    const reqId = (this.wechatReplyRequestId || 0) + 1;
+    this.wechatReplyRequestId = reqId;
+    try {
+      const result = await this.generateWechatReply(contact, playerText);
+      if (reqId !== this.wechatReplyRequestId) return;
+      const characterId = contact.id;
+      const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId) || await this.ensureWechatUserProfile?.(contact);
+      result.characterCardChanges = await window.GameModules.characterCardLexicon?.applyToState?.(state, result.lexiconUpdates || []) || [];
+      await this.applyMetricUpdatesToState?.(state, result.metricUpdates);
+      await this.applyInventoryUpdatesToState?.(state, result.lexiconUpdates || []);
+      this.advancePhoneTime?.(result.elapsedSeconds || 60);
+      this.appendWechatMessage(characterId, { side: 'other', name: state?.profile?.name || contact.name, mark: (state?.profile?.name || contact.name || '').slice(0, 1), text: result.reply, characterId, metricUpdates: result.metricUpdates, lexiconUpdates: result.lexiconUpdates, characterCardChanges: result.characterCardChanges, cardChangesOpen: false, changeReasonsOpen: false });
+      if (result.imageIntent?.offer) await this.appendWechatPendingImageMessage(characterId, state, contact, { ...result.imageIntent, impression: result.impression });
+      await window.GameModules.characterMemory?.recordWechatExchange?.(this, { ...contact, id: characterId, characterId }, playerText, result.reply, result);
+      window.GameModules.factionArchive?.recordWechat?.(this, { ...contact, id: characterId, characterId }, playerText, result.reply, result);
+      await this.recordWechatWorldline({ ...contact, id: characterId, characterId }, playerText, result.reply, result);
+      this.debugWechatMemory?.({ ...contact, id: characterId, characterId });
+      await this.save?.();
+    } catch (err) {
+      if (reqId !== this.wechatReplyRequestId) return;
+      console.error('[微信] 联系人回复生成失败:', err.code, err.message, err.stack);
+      this.wechatError = err.message || '联系人暂时没有回复';
+      const fallback = '我这边刚刚有点卡，等下再说。';
+      const characterId = contact.id;
+      const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
+      this.advancePhoneTime?.(60);
+      this.appendWechatMessage(characterId, { side: 'other', name: state?.profile?.name || contact.name, mark: (state?.profile?.name || contact.name || contact.mark || '').slice(0, 1), text: fallback, characterId });
+      await window.GameModules.characterMemory?.recordWechatExchange?.(this, { ...contact, id: characterId, characterId }, playerText, fallback, { mood: '通讯异常' });
+      window.GameModules.factionArchive?.recordWechat?.(this, { ...contact, id: characterId, characterId }, playerText, fallback, { mood: '通讯异常' });
+      await this.recordWechatWorldline({ ...contact, id: characterId, characterId }, playerText, fallback, { mood: '通讯异常' });
+      await this.save?.();
+    } finally {
+      if (reqId === this.wechatReplyRequestId) this.wechatSending = false;
+    }
+  },
+
+  async generateWechatReply(contact, playerText) {
+    if (!window.dzmm?.completions) return { reply: this.fallbackWechatReply(contact, playerText), elapsedSeconds: 60, impression: 20 };
+    try { await this.ensureWechatUserProfile?.(contact); }
+    catch (err) { console.warn('[微信] 回复前资料补全失败，继续用现有资料:', err.code, err.message, err.stack); }
+    const prompt = await this.wechatReplyPrompt(contact, playerText);
+    const result = await window.GameModules.jsonUtils.generateJsonWithRetry({
+      source: 'wechat-chat-reply', promptId: 'wechat-chat-reply', model: this.modelId || this.settingsState?.textModelId, timeoutMs: 60000, prompt, format: prompt, max: 2,
+      parse: (text) => window.GameModules.jsonUtils.parseLoose(text),
+      validate: (raw) => this.validateWechatReply(raw, contact),
+    });
+    return this.attachWechatMentionedImageIntent?.(result, playerText, this.wechatMessageKey(contact)) || result;
+  },
+
+  async wechatReplyPrompt(contact, playerText) {
+    const sections = window.GameModules.promptSections;
+    const player = sections.playerProfile(this);
+    const stateSkill = await window.GameModules.skillLoader?.instruction?.('emotion.feeling.wearing.assess') || '', imageSkill = await window.GameModules.skillLoader?.instruction?.('image.edit.call') || '', memorySkill = await window.GameModules.skillLoader?.instruction?.('memory.query') || '';
+    const characterId = this.wechatMessageKey(contact);
+    const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
+    const archive = await this.searchMemoryArchive?.(characterId, playerText) || '无';
+    const memoryContext = this.wechatMemoryContext?.(characterId, playerText) || this.memoryQueryContext?.(characterId, playerText) || '暂无人物记忆。';
+    const historyContext = await this.wechatHistoryContextForReply?.(characterId, playerText, memoryContext) || this.wechatHistoryQueryHint?.(characterId) || '微信历史默认不载入；需要核对原文时再查询固定历史表。';
+    return window.GameModules.renderPrompt('wechat-chat-reply', {
+      玩家基础资料区: player.playerBasic,
+      玩家现实身份区: player.playerIdentity,
+      玩家居住家庭区: player.playerHome,
+      玩家人际关系区: player.playerRelations,
+      玩家备注区: player.playerNotes,
+      联系人资料区: this.wechatContactProfileText(contact, playerText),
+      手机时间: `${this.phoneDateText?.() || '未知'} ${this.phoneTimeText?.() || ''}`,
+      现实场景: this.realWorldSceneTitle || '现实世界',
+      现实地点: this.realWorldLocationName || '未确认',
+      现实状态: this.realWorldStatus || '现实稳定',
+      目标状态快照: sections.stateSnapshot(this, state),
+      微信历史: historyContext,
+      提及上下文: this.wechatMentionContextText?.(playerText, characterId) || '无',
+      记忆查询结果: [memoryContext, `## 记忆归档\n${archive}`].join('\n\n'),
+      玩家消息: playerText,
+      状态判定Skill: stateSkill,
+      图片编辑Skill: imageSkill,
+      记忆查询Skill: memorySkill,
+    });
+  },
+
+  wechatContactProfileText(contact, playerText = '') {
+    const display = this.displayWechatContact?.(contact) || contact;
+    const characterId = this.wechatMessageKey(contact);
+    const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
+    const profile = state?.profile || {};
+    const rows = [
+      ['姓名', profile.name || display.name], ['微信关系', display.relation || display.subtitle], ['角色定位', profile.role || display.context],
+      ['背景', profile.detail || contact.latest], ['外貌', profile.appearance], ['性格', profile.personality], ['关系', profile.relationships],
+    ];
+    const archive = window.GameModules.factionArchive?.contextFor?.(this, `${profile.name || display.name || ''} ${playerText || ''} ${this.realWorldLocationName || ''}`, 1200) || '暂无势力资料库记录。';
+    return `${rows.map(([label, value]) => `- ${label}：${String(value || '未记录')}`).join('\n')}\n\n### 相关势力资料库\n${archive}`;
+  },
+
+
+  validateWechatReply(raw, contact) {
+    const reply = String(raw?.reply || '').trim().slice(0, 120) || this.fallbackWechatReply(contact, '');
+    const impression = Math.max(0, Math.min(100, Math.round(Number(raw?.impression) || 20)));
+    const characterId = this.wechatMessageKey(contact);
+    const state = this.rpgStates?.[characterId] || window.GameModules.sqliteSave?.getCharacterState?.(characterId);
+    const imageRaw = raw?.imageIntent || {};
+    const imageIntent = imageRaw.offer ? { offer: true, reason: String(imageRaw.reason || '联系人愿意发送一张图片').slice(0, 120), imageDescription: String(imageRaw.imageDescription || imageRaw.contentDescription || '一张联系人发送的近照。').slice(0, 180), tagsHint: String(imageRaw.tagsHint || '').slice(0, 300), usesMentionedImage: !!imageRaw.usesMentionedImage } : null;
+    return { reply, mood: String(raw?.mood || '平常').slice(0, 20), elapsedSeconds: Math.max(20, Math.min(1800, Number(raw?.elapsedSeconds) || 60)), impression, metricUpdates: window.GameModules.ai.normalizeMetricUpdates?.(raw?.metricUpdates, state) || {}, lexiconUpdates: window.GameModules.ai.normalizeLexiconUpdates?.(raw?.lexiconUpdates, { character: { work: '2026 现代都市现实世界' } }) || [], imageIntent };
+  },
+
+  fallbackWechatReply(contact, text) {
+    const rel = String(contact?.relation || '你').replace(/之一|之二/g, '');
+    if (/在吗|你好|嗨|哈喽/.test(text)) return `在呀，怎么突然找我？`;
+    return `我看到啦，等我想一下再回你。`;
+  },
+};

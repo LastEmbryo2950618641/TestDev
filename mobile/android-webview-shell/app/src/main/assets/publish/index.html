@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content, user-scalable=no">
-  <title>閹存垹瀚氶悪鐘虫惙閹?/title>
+  <title>我要狠狠操控</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="phone-desktop.css">
   <link rel="stylesheet" href="taobao-app.css">
@@ -28,11 +28,10 @@
   <link rel="stylesheet" href="ui-theme.css">
   <link rel="stylesheet" href="ui-theme-overrides.css">
   <link rel="stylesheet" href="ui-theme-unified.css">
-  <script type="module">
-    import { attachBrowserPlatformCore, readBrowserUiSettings } from './platform/browser-core.js';
-
-    attachBrowserPlatformCore(window);
-    const s = readBrowserUiSettings(window, 'gamefy-local-settings-v1');
+  <script src="platform/browser-core-global.js"></script>
+  <script>
+    window.GameModules.platform.browserCore.attachBrowserPlatformCore(window);
+    const s = window.GameModules.platform.browserCore.readBrowserUiSettings(window, 'gamefy-local-settings-v1');
     document.documentElement.setAttribute('data-ui-theme', s.uiThemeId || 'dark');
     document.documentElement.setAttribute('data-ui-density', 'compact');
     if ((s.uiThemeId || 'dark') === 'custom' && s.uiThemeCustomColor) {
@@ -2140,23 +2139,23 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.skillsState?.open" class="skills-app-screen app-window section-hints" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.skillsPanelView().open" class="skills-app-screen app-window section-hints" x-cloak>
     <div class="skills-card dev-section" data-section-title="Skills娑撳娼伴弶?>
       <header class="identity-header dev-section" data-section-title="Skills閺嶅洭顣介崠?>
         <div><p class="eyebrow">AI SKILLS</p><h2>Skills</h2><small>閸忋劍鐖堕幋寤嘔閸欘垵鐨熼悽銊ㄥ厴閸旀稒鏁為崘宀冦€冮敍娑欏閺堝閮寸紒鐔峰弳閸欙綁鍏樻惔鏃囧厴閸︺劏绻栭柌灞绢梾缁?/small></div>
         <button class="small-btn" type="button" @click="$store.game.closeSkillsApp()">閸ョ偛鍩屽宀勬桨</button>
       </header>
       <section class="skills-toolbar dev-section" data-section-title="Skills缁涙盯鈧灏?>
-        <input x-model="$store.game.skillsState.query" placeholder="閹兼粎鍌╯kill閸氬秲鈧焦鏌熷▔鏇樷偓浣筋嚛閺?>
-        <select x-model="$store.game.skillsState.category">
+        <input :value="$store.game.skillsPanelView().query" @input="$store.game.setSkillsQuery($event.target.value)" placeholder="閹兼粎鍌╯kill閸氬秲鈧焦鏌熷▔鏇樷偓浣筋嚛閺?>
+        <select :value="$store.game.skillsPanelView().category" @change="$store.game.selectSkillCategory($event.target.value)">
           <option value="">閸忋劑鍎撮崚鍡欒</option>
-          <template x-for="category in $store.game.skillCategories()" :key="category"><option :value="category" x-text="category"></option></template>
+          <template x-for="category in $store.game.skillsPanelView().categories" :key="category"><option :value="category" x-text="category"></option></template>
         </select>
       </section>
       <main class="skills-body">
         <section class="skills-list dev-section" data-section-title="Skill閸掓銆冮崠?>
-          <p class="skills-note" x-show="!$store.game.skillsList().length">濞屸剝婀侀崠褰掑帳閻ㄥ墕kill閵?/p>
-          <template x-for="skill in $store.game.skillsList()" :key="skill.id">
+          <p class="skills-note" x-show="$store.game.skillsPanelView().empty">濞屸剝婀侀崠褰掑帳閻ㄥ墕kill閵?/p>
+          <template x-for="skill in $store.game.skillsPanelView().items" :key="skill.id">
             <button class="skill-row prompt-row" type="button" @click="$store.game.openSkillDetail(skill.id)">
               <span class="skill-row-title prompt-title"><strong x-text="skill.name"></strong></span><small x-text="`${skill.category}閿?{skill.description || '閺屻儳婀呯拠锔藉剰'}`"></small>
             </button>
@@ -2164,32 +2163,32 @@
         </section>
       </main>
     </div>
-    <section class="skills-modal-backdrop" x-show="$store.game.skillsState?.detailOpen" @click.self="$store.game.closeSkillDetail()" x-cloak>
-      <article class="skills-detail dev-section" data-section-title="Skill鐠囷附鍎忓鍦崶" x-show="$store.game.selectedSkill()" @click.stop>
-        <header class="identity-header"><div><p class="eyebrow" x-text="$store.game.selectedSkill()?.category"></p><h3 x-text="$store.game.selectedSkill()?.name"></h3><small x-text="$store.game.selectedSkill()?.description"></small></div><button class="small-btn" type="button" @click.stop="$store.game.closeSkillDetail()">閸忔娊妫?/button></header>
+    <section class="skills-modal-backdrop" x-show="$store.game.selectedSkillDetailView().detailOpen" @click.self="$store.game.closeSkillDetail()" x-cloak>
+      <article class="skills-detail dev-section" data-section-title="Skill鐠囷附鍎忓鍦崶" x-show="$store.game.selectedSkillDetailView().item" @click.stop>
+        <header class="identity-header"><div><p class="eyebrow" x-text="$store.game.selectedSkillDetailView().item?.category"></p><h3 x-text="$store.game.selectedSkillDetailView().item?.name"></h3><small x-text="$store.game.selectedSkillDetailView().item?.description"></small></div><button class="small-btn" type="button" @click.stop="$store.game.closeSkillDetail()">閸忔娊妫?/button></header>
         <ul>
-          <li><strong>閸掑棛琚敍?/strong><span x-text="$store.game.selectedSkill()?.category"></span></li>
-          <li><strong>閺傝纭堕敍?/strong><em x-text="$store.game.selectedSkill()?.method"></em></li>
-          <li><strong>閸欏倹鏆熼敍?/strong><span x-text="$store.game.selectedSkill()?.params"></span></li>
-          <li><strong>鏉╂柨娲栭敍?/strong><span x-text="$store.game.selectedSkill()?.returns"></span></li>
-          <li><strong>鐠囷妇绮忛敍?/strong><span x-text="$store.game.selectedSkill()?.detail"></span></li>
+          <li><strong>閸掑棛琚敍?/strong><span x-text="$store.game.selectedSkillDetailView().item?.category"></span></li>
+          <li><strong>閺傝纭堕敍?/strong><em x-text="$store.game.selectedSkillDetailView().item?.method"></em></li>
+          <li><strong>閸欏倹鏆熼敍?/strong><span x-text="$store.game.selectedSkillDetailView().item?.params"></span></li>
+          <li><strong>鏉╂柨娲栭敍?/strong><span x-text="$store.game.selectedSkillDetailView().item?.returns"></span></li>
+          <li><strong>鐠囷妇绮忛敍?/strong><span x-text="$store.game.selectedSkillDetailView().item?.detail"></span></li>
         </ul>
         <p class="skills-note">鐠囧瓨妲戦敍姘崇箹娴滄硞kill闂堛垹鎮滈崗銊︾埗閹村粐I鐠嬪啰鏁ら弫瀵告倞閿涘苯瀵橀崥顐ｅ閺堣櫣骞囩€圭偟閮寸紒鐔粹偓浣碘偓濠冨灉鐟曚胶瀚氶悪鐘虫惙閹貉佲偓瀣潡閼硅尙鏁撻幋鎰┾偓浣界槤閺夆€叉叏閺€骞库偓浣哥摠濡楋絼绗岄崥鍑橮P閼宠棄濮忛妴?/p>
       </article>
     </section>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.knownProfessionState?.open" class="skills-app-screen app-window section-hints" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.knownProfessionPanelView().open" class="skills-app-screen app-window section-hints" x-cloak>
     <div class="skills-card dev-section" data-section-title="瀹歌尙鐓￠懕灞肩瑹娑撳娼伴弶?>
       <header class="identity-header dev-section" data-section-title="瀹歌尙鐓￠懕灞肩瑹閺嶅洭顣介崠?>
         <div><p class="eyebrow">KNOWN JOBS</p><h2>瀹歌尙鐓￠懕灞肩瑹</h2><small>閸撗勫剰娑擃叀顫︾涵顔款吇娑撴梻顑侀崥鍫滅瑯閻ｅ矁顫囬惃鍕捍娑撴熬绱遍崣顖濃偓鍐╃壋閼惧嘲绶?lv.1</small></div>
         <button class="small-btn" type="button" @click="$store.game.closeKnownProfessionApp()">閸ョ偛鍩屽宀勬桨</button>
       </header>
-      <section class="skills-toolbar dev-section" data-section-title="瀹歌尙鐓￠懕灞肩瑹缁涙盯鈧灏?><input x-model="$store.game.knownProfessionState.query" placeholder="閹兼粎鍌ㄩ懕灞肩瑹閵嗕椒绗橀悾灞烩偓浣筋嚛閺?><p class="skills-note" x-show="$store.game.knownProfessionState.message" x-text="$store.game.knownProfessionState.message"></p></section>
+      <section class="skills-toolbar dev-section" data-section-title="瀹歌尙鐓￠懕灞肩瑹缁涙盯鈧灏?><input :value="$store.game.knownProfessionPanelView().query" @input="$store.game.setKnownProfessionQuery($event.target.value)" placeholder="閹兼粎鍌ㄩ懕灞肩瑹閵嗕椒绗橀悾灞烩偓浣筋嚛閺?><p class="skills-note" x-show="$store.game.knownProfessionPanelView().message" x-text="$store.game.knownProfessionPanelView().message"></p></section>
       <main class="skills-body">
         <section class="skills-list dev-section" data-section-title="瀹歌尙鐓￠懕灞肩瑹閸掓銆冮崠?>
-          <p class="skills-note" x-show="!$store.game.knownProfessions().length">閺嗗倹妫ゅ鑼叀閼卞奔绗熼妴鍌濅捍娑撴艾绻€妞よ婀崜褎鍎忛幒銊︾川娑擃厼鍤悳鑸偓浣哄负鐎瑰墎鐓￠柆鎾冲従閸氼偂绠熸稉鏃傤儊閸氬牆缍嬮崜宥勭瑯閻ｅ矁顫囬崥搴礉閹靛秳绱版潻娑樺弳鏉╂瑩鍣烽妴?/p>
-          <template x-for="job in $store.game.knownProfessions()" :key="`${job.worldTag}-${job.name}`">
+          <p class="skills-note" x-show="$store.game.knownProfessionPanelView().empty">閺嗗倹妫ゅ鑼叀閼卞奔绗熼妴鍌濅捍娑撴艾绻€妞よ婀崜褎鍎忛幒銊︾川娑擃厼鍤悳鑸偓浣哄负鐎瑰墎鐓￠柆鎾冲従閸氼偂绠熸稉鏃傤儊閸氬牆缍嬮崜宥勭瑯閻ｅ矁顫囬崥搴礉閹靛秳绱版潻娑樺弳鏉╂瑩鍣烽妴?/p>
+          <template x-for="job in $store.game.knownProfessionPanelView().items" :key="`${job.worldTag}-${job.name}`">
             <button class="skill-row prompt-row" type="button" @click="$store.game.openKnownProfessionDetail(job)"><span class="skill-row-title prompt-title"><strong x-text="job.name"></strong></span><small x-text="`${job.worldTag}閿?{job.summary || '閺嗗倹妫ょ拠瀛樻'}`"></small></button>
           </template>
         </section>
@@ -2197,26 +2196,26 @@
     </div>
   </section>
 
-  <section class="skills-modal-backdrop" x-show="$store.game.knownProfessionState?.detailOpen" @click.self="$store.game.closeKnownProfessionDetail()" x-cloak>
-    <article class="skills-detail dev-section" data-section-title="瀹歌尙鐓￠懕灞肩瑹鐠囷附鍎忓鍦崶" x-show="$store.game.selectedKnownProfession()" @click.stop>
-      <header class="identity-header"><div><p class="eyebrow">JOB LV.1</p><h3 x-text="$store.game.selectedKnownProfession()?.name"></h3><small x-text="$store.game.selectedKnownProfession()?.description"></small></div><button class="small-btn" type="button" @click.stop="$store.game.closeKnownProfessionDetail()">閸忔娊妫?/button></header>
-      <pre class="prompt-markdown" x-text="$store.game.professionRequirementText($store.game.selectedKnownProfession())"></pre>
-      <button class="primary-btn" type="button" @click.stop="$store.game.addProfessionToPlayer($store.game.selectedKnownProfession())">閼板啯鐗抽獮鑸靛潑閸旂姾浜存稉?/button>
+  <section class="skills-modal-backdrop" x-show="$store.game.selectedKnownProfessionDetailView().detailOpen" @click.self="$store.game.closeKnownProfessionDetail()" x-cloak>
+    <article class="skills-detail dev-section" data-section-title="瀹歌尙鐓￠懕灞肩瑹鐠囷附鍎忓鍦崶" x-show="$store.game.selectedKnownProfessionDetailView().item" @click.stop>
+      <header class="identity-header"><div><p class="eyebrow">JOB LV.1</p><h3 x-text="$store.game.selectedKnownProfessionDetailView().item?.name"></h3><small x-text="$store.game.selectedKnownProfessionDetailView().item?.description"></small></div><button class="small-btn" type="button" @click.stop="$store.game.closeKnownProfessionDetail()">閸忔娊妫?/button></header>
+      <pre class="prompt-markdown" x-text="$store.game.selectedKnownProfessionDetailView().requirementText"></pre>
+      <button class="primary-btn" type="button" @click.stop="$store.game.addProfessionToPlayer($store.game.selectedKnownProfessionDetailView().item)">閼板啯鐗抽獮鑸靛潑閸旂姾浜存稉?/button>
     </article>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.promptState?.open" class="skills-app-screen prompt-app-screen app-window section-hints" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.promptPanelView().open" class="skills-app-screen prompt-app-screen app-window section-hints" x-cloak>
     <div class="skills-card prompt-card dev-section" data-section-title="閹绘劗銇氱拠宥囶吀閻炲棔瀵岄棃銏℃緲">
       <header class="identity-header dev-section" data-section-title="閹绘劗銇氱拠宥嗙垼妫版ê灏?><div><p class="eyebrow">PROMPTS</p><h2>閹绘劗銇氱拠宥囶吀閻?/h2><small>閸ュ搫鐣?Markdown 濡剝婢樻稉搴ょ箥鐞涘本妞?AI 鐠囬攱鐪伴敍娑氬仯閸戠粯鐖ｆ０妯荤叀閻鐣弫瀛樺絹缁€楦跨槤</small></div><button class="small-btn" type="button" @click="$store.game.closePromptApp()">閸ョ偛鍩屽宀勬桨</button></header>
-      <section class="skills-toolbar dev-section" data-section-title="閹绘劗銇氱拠宥囩摣闁灏?><input x-model="$store.game.promptState.query" placeholder="閹兼粎鍌ㄩ幓鎰仛鐠囧秵鐖ｆ０妯糕偓浣稿瀻缁眹鈧浇顕╅弰?><div class="custom-select skills-filter-select" :class="{ open: open }" x-data="{ open: false }" @click.outside="open = false"><button class="custom-select-btn" type="button" @click.stop="open = !open"><span x-text="$store.game.promptCategoryLabel()"></span><i></i></button><div class="custom-select-menu" x-show="open" @pointerdown.stop @click.stop x-cloak><button type="button" @click.stop="$store.game.selectPromptCategory(''); open = false">閸忋劑鍎撮崚鍡欒</button><template x-for="category in $store.game.promptCategories()" :key="category"><button type="button" @click.stop="$store.game.selectPromptCategory(category); open = false" x-text="category"></button></template></div></div></section>
-      <main class="skills-body"><section class="skills-list prompt-list dev-section" data-section-title="閹绘劗銇氱拠宥呭灙鐞涖劌灏?><p class="skills-note" x-show="!$store.game.promptList().length">濞屸剝婀侀崠褰掑帳閻ㄥ嫭褰佺粈楦跨槤閵?/p><p class="skills-note" x-show="$store.game.promptState.error" x-text="$store.game.promptState.error"></p><template x-for="item in $store.game.promptList()" :key="item.id"><button class="skill-row prompt-row" type="button" @click="$store.game.togglePromptDetail(item.id)"><span class="skill-row-title prompt-title"><strong x-text="item.title"></strong></span><small x-text="`${item.category}閿?{item.summary}`"></small></button></template></section></main>
+      <section class="skills-toolbar dev-section" data-section-title="閹绘劗銇氱拠宥囩摣闁灏?><input :value="$store.game.promptPanelView().query" @input="$store.game.setPromptQuery($event.target.value)" placeholder="閹兼粎鍌ㄩ幓鎰仛鐠囧秵鐖ｆ０妯糕偓浣稿瀻缁眹鈧浇顕╅弰?><div class="custom-select skills-filter-select" :class="{ open: open }" x-data="{ open: false }" @click.outside="open = false"><button class="custom-select-btn" type="button" @click.stop="open = !open"><span x-text="$store.game.promptPanelView().categoryLabel"></span><i></i></button><div class="custom-select-menu" x-show="open" @pointerdown.stop @click.stop x-cloak><button type="button" @click.stop="$store.game.selectPromptCategory(''); open = false">閸忋劑鍎撮崚鍡欒</button><template x-for="category in $store.game.promptPanelView().categories" :key="category"><button type="button" @click.stop="$store.game.selectPromptCategory(category); open = false" x-text="category"></button></template></div></div></section>
+      <main class="skills-body"><section class="skills-list prompt-list dev-section" data-section-title="閹绘劗銇氱拠宥呭灙鐞涖劌灏?><p class="skills-note" x-show="$store.game.promptPanelView().empty">濞屸剝婀侀崠褰掑帳閻ㄥ嫭褰佺粈楦跨槤閵?/p><p class="skills-note" x-show="$store.game.promptPanelView().error" x-text="$store.game.promptPanelView().error"></p><template x-for="item in $store.game.promptPanelView().items" :key="item.id"><button class="skill-row prompt-row" type="button" @click="$store.game.togglePromptDetail(item.id)"><span class="skill-row-title prompt-title"><strong x-text="item.title"></strong></span><small x-text="`${item.category}閿?{item.summary}`"></small></button></template></section></main>
     </div>
   </section>
 
-  <section class="prompt-app-modal-backdrop" x-show="$store.game.promptState?.selectedId" @click.self="$store.game.closePromptDetail()" x-cloak>
+  <section class="prompt-app-modal-backdrop" x-show="$store.game.promptDetailView().open" @click.self="$store.game.closePromptDetail()" x-cloak>
     <article class="prompt-app-modal dev-section" data-section-title="閹绘劗銇氱拠宥呭敶鐎圭懓鑴婄粣?>
-      <header><div><p class="eyebrow">PROMPT MD</p><h3 x-text="$store.game.currentPromptItem()?.title || '閹绘劗銇氱拠宥喣侀弶?"></h3></div><button class="small-btn" type="button" @click="$store.game.closePromptDetail()">閸忔娊妫?/button></header>
-      <pre class="prompt-markdown" x-text="$store.game.promptState.selectedText || ($store.game.promptState.loading ? '鐠囪褰囨稉顓涒偓? : ($store.game.promptState.error || '閺嗗倹妫ら崘鍛啇'))"></pre>
+      <header><div><p class="eyebrow">PROMPT MD</p><h3 x-text="$store.game.promptDetailView().item?.title || '閹绘劗銇氱拠宥喣侀弶?'"></h3></div><button class="small-btn" type="button" @click="$store.game.closePromptDetail()">閸忔娊妫?/button></header>
+      <pre class="prompt-markdown" x-text="$store.game.promptDetailView().text || ($store.game.promptDetailView().loading ? '鐠囪褰囨稉顓涒偓? : ($store.game.promptDetailView().error || '閺嗗倹妫ら崘鍛啇'))"></pre>
     </article>
   </section>
 

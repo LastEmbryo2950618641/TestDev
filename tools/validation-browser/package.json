@@ -1,0 +1,18 @@
+{
+  "name": "validation-browser",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "control:http": "node control-flow.mjs --http",
+    "control:file": "node control-flow.mjs --file",
+    "netprobe": "node netprobe.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "playwright": "^1.55.0"
+  }
+}
