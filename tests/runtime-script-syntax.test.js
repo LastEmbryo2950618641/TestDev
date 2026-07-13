@@ -11,6 +11,7 @@ const manifestEntries = JSON.parse(
 const scripts = [
   'character-card-lexicon.js',
   'company-attendance-actions.js',
+  'known-profession-actions.js',
   'real-world-clock-actions.js',
   'ui-theme-actions.js',
   'wechat-actions.js',

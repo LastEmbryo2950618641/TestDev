@@ -368,6 +368,7 @@
   "skill-loader.js",
   "skills-app.js",
   "skills-actions.js",
+  "known-profession-actions.js",
   "taobao-actions.js",
   "taobao-generate-actions.js",
   "taobao-buy-actions.js",

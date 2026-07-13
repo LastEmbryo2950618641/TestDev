@@ -377,6 +377,7 @@ window.GameScriptManifest = {
       "skill-loader.js",
       "skills-app.js",
       "skills-actions.js",
+      "known-profession-actions.js",
       "taobao-actions.js",
       "taobao-generate-actions.js",
       "taobao-buy-actions.js",
@@ -397,8 +398,8 @@ window.GameScriptManifest = {
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-13T16:12:00.000Z",
-  "total": 385
+  "generatedAt": "2026-07-13T16:16:00.000Z",
+  "total": 386
 };
 
 window.GameScriptManifest.classify = function classify(url) {
