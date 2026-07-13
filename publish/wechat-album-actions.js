@@ -143,10 +143,11 @@ window.GameModules.wechatAlbumActions = {
     const contact = this.wechatAlbumContact();
     if (!contact || contact.group) return;
     const bodyFigureContext = window.GameModules.app.wechat.albumGenerateHelpers.wechatAlbumBodyFigureContextForContact.call(this, contact);
-    const reqId = (this.wechatAlbumRequestId || 0) + 1;
-    this.wechatAlbumRequestId = reqId;
-    this.wechatAlbumGenerating = true;
-    this.wechatAlbumPromptOpen = false;
+    const generationState = window.GameModules.app.wechat.albumGenerateHelpers.wechatAlbumGenerationStartState(this.wechatAlbumRequestId);
+    const reqId = generationState.requestId;
+    this.wechatAlbumRequestId = generationState.requestId;
+    this.wechatAlbumGenerating = generationState.generating;
+    this.wechatAlbumPromptOpen = generationState.promptOpen;
     try {
       if (contact?.id === 'player-self') await this.ensurePlayerRpgState?.();
       else await this.ensureWechatUserProfile?.(contact);

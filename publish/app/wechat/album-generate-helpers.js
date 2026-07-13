@@ -3,6 +3,14 @@ window.GameModules.app = window.GameModules.app || {};
 window.GameModules.app.wechat = window.GameModules.app.wechat || {};
 
 window.GameModules.app.wechat.albumGenerateHelpers = {
+  wechatAlbumGenerationStartState(currentRequestId = 0) {
+    return {
+      requestId: (currentRequestId || 0) + 1,
+      generating: true,
+      promptOpen: false,
+    };
+  },
+
   wechatAlbumBodyFigureContextForContact(contact = {}) {
     return this.wechatAlbumBodyFigureContext?.characterId === contact.id
       ? { ...this.wechatAlbumBodyFigureContext }

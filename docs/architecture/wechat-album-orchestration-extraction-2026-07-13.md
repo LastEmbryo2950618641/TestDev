@@ -26,3 +26,16 @@ Do not delete `publish/wechat-album-actions.js` yet. Other album body-figure and
 ## Verification
 
 Runtime dependency verification now requires `app/wechat/album-orchestration.js` to load before `wechat-album-actions.js` in Web and Android manifests.
+
+## Follow-up Extraction: Generation Start State
+
+`publish/app/wechat/album-generate-helpers.js` now owns the pure
+`wechatAlbumGenerationStartState()` helper. It packages the next request ID,
+the busy-generation flag, and prompt-panel closing state without touching the
+store or any provider. `publish/wechat-album-actions.js` remains responsible
+for applying that returned state and continues to own the asynchronous draw,
+save, avatar-capture, and error-handling orchestration.
+
+This slice deliberately preserves the previous request-ID expression and the
+existing draw-provider call order. The direct helper regression test lives in
+`tests/wechat-album-generate-helpers.test.js`.

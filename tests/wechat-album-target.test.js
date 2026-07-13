@@ -28,7 +28,18 @@ function createStore() {
     },
   });
   context.window.window = context.window;
+  loadScript(context, 'publish/ui/wechat/view-helpers.js');
   loadScript(context, 'publish/wechat-view-actions.js');
+  loadScript(context, 'publish/app/wechat/album-orchestration.js');
+  loadScript(context, 'publish/app/wechat/album-body-figure-context-helpers.js');
+  loadScript(context, 'publish/app/wechat/album-generate-helpers.js');
+  loadScript(context, 'publish/app/wechat/album-draw-helpers.js');
+  loadScript(context, 'publish/app/wechat/album-prompt-editor-helpers.js');
+  loadScript(context, 'publish/app/wechat/album-ui-state-helpers.js');
+  loadScript(context, 'publish/app/wechat/album-body-figure-helpers.js');
+  loadScript(context, 'publish/app/wechat/album-prompt-helpers.js');
+  loadScript(context, 'publish/app/wechat/album-photo-state-helpers.js');
+  loadScript(context, 'publish/app/wechat/avatar-crop-helpers.js');
   loadScript(context, 'publish/wechat-album-actions.js');
   loadScript(context, 'publish/wechat-avatar-crop-actions.js');
   loadScript(context, 'publish/rpg-field-ui.js');
