@@ -295,6 +295,8 @@ window.GameScriptManifest = {
       "calendar-system.js",
       "calendar-actions.js",
       "event-system.js",
+      "ui/event/panel-view-helpers.js",
+      "ui/event/label-view-helpers.js",
       "ui/event/view-helpers.js",
       "event-actions.js",
       "faction-system.js",
@@ -334,8 +336,8 @@ window.GameScriptManifest = {
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-13T07:23:44.416Z",
-  "total": 322
+  "generatedAt": "2026-07-13T07:30:17.769Z",
+  "total": 324
 };
 
 window.GameScriptManifest.classify = function classify(url) {

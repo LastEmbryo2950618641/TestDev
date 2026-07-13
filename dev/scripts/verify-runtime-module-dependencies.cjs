@@ -21,6 +21,14 @@ const orderedGroups = [
       'ui/worldline/real-plot-summary-view-helpers.js',
     ],
   },
+  {
+    label: 'event ui helper dependencies',
+    before: 'ui/event/view-helpers.js',
+    required: [
+      'ui/event/panel-view-helpers.js',
+      'ui/event/label-view-helpers.js',
+    ],
+  },
 ];
 
 function normalizePath(file) {
