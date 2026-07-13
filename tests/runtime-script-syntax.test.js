@@ -12,6 +12,7 @@ const scripts = [
   'character-card-lexicon.js',
   'company-attendance-actions.js',
   'known-profession-actions.js',
+  'predefined-role-cards.js',
   'real-world-clock-actions.js',
   'ui-theme-actions.js',
   'wechat-actions.js',

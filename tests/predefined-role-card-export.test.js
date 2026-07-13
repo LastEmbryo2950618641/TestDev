@@ -368,10 +368,10 @@ test('predefined saver persists edited setup cards directly', async () => {
           'liu-siqi': { id: 'rel-2', name: '刘思琪', role: '原始关系' },
           'liu-siyi': { id: 'rel-3', name: '刘思怡', role: '原始关系' },
         },
-        sqliteSave: {
-          db: true,
-          getCharacterState: () => null,
-          saveCharacterState: async (state) => { saved.push(JSON.parse(JSON.stringify(state))); },
+        platform: { storage: { capabilities: { isReady: () => true } } },
+        characterStateStore: {
+          get: () => null,
+          save: async (state) => { saved.push(JSON.parse(JSON.stringify(state))); },
         },
         characterProfile: {
           hasRequiredInitialMetrics: () => false,
@@ -422,10 +422,10 @@ test('saveSelectedRoleCardStates initializes schedules from current_location', a
           'liu-siqi': { id: 'rel-2', name: '刘思琪', role: '三胞胎妹妹之二', work: '现实世界' },
           'liu-siyi': { id: 'rel-3', name: '刘思怡', role: '三胞胎妹妹之三', work: '现实世界' },
         },
-        sqliteSave: {
-          db: true,
-          getCharacterState: () => null,
-          saveCharacterState: async (state) => { saved.push(JSON.parse(JSON.stringify(state))); },
+        platform: { storage: { capabilities: { isReady: () => true } } },
+        characterStateStore: {
+          get: () => null,
+          save: async (state) => { saved.push(JSON.parse(JSON.stringify(state))); },
         },
         characterProfile: { hasRequiredInitialMetrics: () => false },
         rpgState: {
@@ -496,10 +496,10 @@ test('initial schedules do not overwrite event-driven schedules', async () => {
           'liu-siqi': { id: 'rel-2', name: '刘思琪', role: '三胞胎妹妹之二', work: '现实世界' },
           'liu-siyi': { id: 'rel-3', name: '刘思怡', role: '三胞胎妹妹之三', work: '现实世界' },
         },
-        sqliteSave: {
-          db: true,
-          getCharacterState: () => null,
-          saveCharacterState: async () => {},
+        platform: { storage: { capabilities: { isReady: () => true } } },
+        characterStateStore: {
+          get: () => null,
+          save: async () => {},
         },
         characterProfile: { hasRequiredInitialMetrics: () => false },
         rpgState: {

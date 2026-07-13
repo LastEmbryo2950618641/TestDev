@@ -14,6 +14,7 @@ window.GameScriptManifest = {
       "predefined-role-cards/liu-siyi.js",
       "predefined-role-cards/triplet-essential-preference-layers.js",
       "predefined-role-cards/predefined-appearance-profiles.js",
+      "predefined-role-cards.js",
       "role-card-editor.js",
       "app-background.js",
       "ai-provider.js",
@@ -398,8 +399,8 @@ window.GameScriptManifest = {
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-13T16:16:00.000Z",
-  "total": 386
+  "generatedAt": "2026-07-13T16:20:00.000Z",
+  "total": 387
 };
 
 window.GameScriptManifest.classify = function classify(url) {

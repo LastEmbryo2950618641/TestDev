@@ -184,7 +184,7 @@ window.GameModules.predefinedRoleCards = {
       return cloned;
     }).filter(Boolean);
     if (cards.length !== this.keys.length) {
-      console.warn('[棰勫畾涔夎鑹插崱] 鏈湴鑴氭湰鏁版嵁缂哄け:', this.keys.filter((key) => !source[key]).join('銆?));
+      console.warn('[预定义角色卡] 本地脚本数据缺失:', this.keys.filter((key) => !source[key]).join('、'));
     }
     this.cache = cards;
     return cards;
@@ -195,17 +195,17 @@ window.GameModules.predefinedRoleCards = {
   },
 
   identitySummary(card) {
-    if (!card) return '鏈€夋嫨瑙掕壊鍗?;
-    const factions = (card.factions || []).map((x) => x.name || [x.faction, x.role].filter(Boolean).join(' / ')).filter(Boolean).join('锛?) || '鏈褰?;
-    const memberships = (card.memberships || []).map((x) => x.name || [x.orgName, x.department, x.title].filter(Boolean).join(' / ')).filter(Boolean).join('锛?) || '鏈褰?;
-    return [`濮撳悕锛?{card.name}`, `鎬у埆锛?{card.gender || '鏈褰?}`, `骞撮緞锛?{card.age || '鏈褰?}`, `鐢熸棩锛?{card.birthday || '鏈褰?}`, `韬唤锛?{card.role || '鏈褰?}`, `鑱屼笟锛?{card.job || '鏈褰?}`, `绀剧兢瑙掕壊锛?{factions}`, `浜轰簨褰掑睘锛?{memberships}`, `鍏崇郴锛?{card.relationships || '鏈褰?}`].join('\n');
+    if (!card) return '未选择角色卡';
+    const factions = (card.factions || []).map((x) => x.name || [x.faction, x.role].filter(Boolean).join(' / ')).filter(Boolean).join('；') || '未记录';
+    const memberships = (card.memberships || []).map((x) => x.name || [x.orgName, x.department, x.title].filter(Boolean).join(' / ')).filter(Boolean).join('；') || '未记录';
+    return [`姓名：${card.name}`, `性别：${card.gender || '未记录'}`, `年龄：${card.age || '未记录'}`, `生日：${card.birthday || '未记录'}`, `身份：${card.role || '未记录'}`, `职业：${card.job || '未记录'}`, `社群角色：${factions}`, `人事归属：${memberships}`, `关系：${card.relationships || '未记录'}`].join('\n');
   },
 
   detailSummary(card) {
     if (!card) return '';
-    const emotions = (card.initialMetrics?.emotions || []).map((x) => `${x.key}${x.value}`).join('銆?) || '鏃?;
-    const feelings = (card.initialMetrics?.playerFeelings || []).map((x) => `${x.key}${x.value}`).join('銆?) || '鏃?;
-    return [`浜虹墿璇存槑锛?{card.detail || '鏃?}`, `澶栬矊锛?{card.appearance || '鏃?}`, `鍠滃ソ锛?{card.preferences || '鏃?}`, `鎬ф牸锛?{card.personality || '鏃?}`, `鎶€鑳斤細${(card.skills || []).map((x) => x.name).join('銆?) || '鏃?}`, `鐗╁搧锛?{(card.items || []).map((x) => x.name).join('銆?) || '鏃?}`, `鎯呯华鏁板€硷細${emotions}`, `瀵圭帺瀹舵劅鎯咃細${feelings}`].join('\n');
+    const emotions = (card.initialMetrics?.emotions || []).map((x) => `${x.key}${x.value}`).join('、') || '无';
+    const feelings = (card.initialMetrics?.playerFeelings || []).map((x) => `${x.key}${x.value}`).join('、') || '无';
+    return [`人物说明：${card.detail || '无'}`, `外貌：${card.appearance || '无'}`, `喜好：${card.preferences || '无'}`, `性格：${card.personality || '无'}`, `技能：${(card.skills || []).map((x) => x.name).join('、') || '无'}`, `物品：${(card.items || []).map((x) => x.name).join('、') || '无'}`, `情绪数值：${emotions}`, `对玩家感情：${feelings}`].join('\n');
   },
 
   playerProfileFromCard(card, fallback = {}) {
@@ -228,7 +228,7 @@ window.GameModules.predefinedRoleCards = {
       if (Array.isArray(nextFactions)) profile.factions = nextFactions;
       if (Array.isArray(nextMemberships)) profile.memberships = nextMemberships;
     } catch (err) {
-      console.warn('[棰勫畾涔夎鑹插崱] 鍒锋柊绀剧兢瑙掕壊/浜轰簨褰掑睘澶辫触:', err?.message || err);
+      console.warn('[预定义角色卡] 刷新社群角色/人事归属失败:', err?.message || err);
     }
     return profile;
   },
@@ -246,7 +246,7 @@ window.GameModules.predefinedRoleCards = {
   },
 
   relationshipText(cards, roles = {}) {
-    return (cards || []).filter(Boolean).map((card) => `${roles[card.name] || card.role || '鍏崇郴'}锛?{card.name}`).join('锛?);
+    return (cards || []).filter(Boolean).map((card) => `${roles[card.name] || card.role || '关系'}：${card.name}`).join('；');
   },
 
   getExistingState(id = '') {
@@ -290,7 +290,7 @@ window.GameModules.predefinedRoleCards = {
     const profile = this.buildRoleCardProfile(card, existing, id);
     this.refreshSocialFields(profile, store);
     this.refreshDerivedIdentityFields(profile);
-    const schema = await window.GameModules.rpgState.ensureSchema(profile.work || window.GameModules.realWorld2026?.label || '2026 鐜颁唬閮藉競鐜板疄涓栫晫');
+    const schema = await window.GameModules.rpgState.ensureSchema(profile.work || window.GameModules.realWorld2026?.label || '2026 现代都市现实世界');
     const state = existing || window.GameModules.rpgState.createCharacterState(profile, schema, store);
     state.id = profile.id;
     state.name = profile.name;
@@ -300,7 +300,7 @@ window.GameModules.predefinedRoleCards = {
     state.note = profile.detail || state.note || '';
     window.GameModules.rpgState.upgradeCharacterState(state, schema);
     if (profile.isPlayer) {
-      state.values.status_tags = ['鐜╁鏈汉', '鎵嬫満涓讳汉', profile.work, profile.role];
+      state.values.status_tags = ['玩家本人', '手机主人', profile.work, profile.role];
       state.profile.isPlayer = true;
     }
     window.GameModules.rpgProfileMetrics?.rebase?.(state, profile, existing?.profile || {});
@@ -316,12 +316,12 @@ window.GameModules.predefinedRoleCards = {
     const raw = state?.values?.current_location;
     const name = typeof raw === 'string' ? raw : raw?.name;
     const clean = String(name || '').trim();
-    if (clean && !/^褰撳墠浣嶇疆鏈煡|鏈煡鍦扮偣|鐜板疄鍦扮偣|褰撳墠浣嶇疆$/u.test(clean)) return clean;
-    return String(store?.realWorldLocationName || store?.realWorldMap?.current || '褰撳墠浣嶇疆鏈煡').trim() || '褰撳墠浣嶇疆鏈煡';
+    if (clean && !/^当前位置未知|未知地点|现实地点|当前位置$/u.test(clean)) return clean;
+    return String(store?.realWorldLocationName || store?.realWorldMap?.current || '当前位置未知').trim() || '当前位置未知';
   },
 
   scheduleAvailability(locationName = '') {
-    return /^褰撳墠浣嶇疆鏈煡|鏈煡鍦扮偣|鐜板疄鍦扮偣|褰撳墠浣嶇疆$/u.test(String(locationName || '').trim()) ? '鏈煡' : '鍦ㄥ満';
+    return /^当前位置未知|未知地点|现实地点|当前位置$/u.test(String(locationName || '').trim()) ? '未知' : '在场';
   },
 
   scheduleUpdatedAt(store = {}) {
@@ -329,7 +329,7 @@ window.GameModules.predefinedRoleCards = {
   },
 
   defaultScheduleAction(state = {}) {
-    return state?.id === 'player-self' ? '鐢辩帺瀹跺綋鍓嶈鍔ㄥ喅瀹? : '鎸夎鑹叉棩甯稿畨鎺掓椿鍔?;
+    return state?.id === 'player-self' ? '由玩家当前行动决定' : '按角色日常安排活动';
   },
 
   buildInitialScheduleEntry(state = {}, store = {}) {
@@ -340,11 +340,11 @@ window.GameModules.predefinedRoleCards = {
       currentLocation: location,
       currentAction: this.defaultScheduleAction(state),
       availability: this.scheduleAvailability(location),
-      confidence: this.scheduleAvailability(location) === '鏈煡' ? '榛樿' : '纭',
-      source: '瑙掕壊鍗″垵濮嬪寲',
-      stability: '榛樿绋冲畾',
+      confidence: this.scheduleAvailability(location) === '未知' ? '默认' : '确认',
+      source: '角色卡初始化',
+      stability: '默认稳定',
       updatedAt: this.scheduleUpdatedAt(store),
-      reason: '杩涘叆娓告垙鏃舵牴鎹鑹插崱褰撳墠鎵€鍦ㄤ綅缃缓绔嬮粯璁ゆ棩绋嬶紱鍚庣画浠呯敱缁撶畻鎴栨槑纭簨浠舵洿鏂般€?,
+      reason: '进入游戏时根据角色卡当前所在位置建立默认日程；后续仅由结算或明确事件更新。',
     };
   },
 
@@ -352,8 +352,8 @@ window.GameModules.predefinedRoleCards = {
     if (!store || !state?.id) return null;
     store.characterSchedules = store.characterSchedules && typeof store.characterSchedules === 'object' ? store.characterSchedules : {};
     const existing = store.characterSchedules[state.id];
-    if (existing && existing.source !== '瑙掕壊鍗″垵濮嬪寲') return existing;
-    if (existing && existing.stability && existing.stability !== '榛樿绋冲畾') return existing;
+    if (existing && existing.source !== '角色卡初始化') return existing;
+    if (existing && existing.stability && existing.stability !== '默认稳定') return existing;
     const entry = this.buildInitialScheduleEntry(state, store);
     store.characterSchedules[state.id] = entry;
     if (entry.currentLocation) {
@@ -368,7 +368,7 @@ window.GameModules.predefinedRoleCards = {
 
   async ensurePlayerState(store) {
     const cards = store?.roleCardSetup?.cards?.length ? store.roleCardSetup.cards : await this.loadAll();
-    const name = store.roleCardSetup?.selectedPlayerName || '鍒樻偁';
+    const name = store.roleCardSetup?.selectedPlayerName || '刘悠';
     const card = this.byName(cards, name);
     if (!card) return null;
     return this.createState({ ...card, id: 'player-self', isPlayer: true }, store, 'player-self');
@@ -391,7 +391,7 @@ window.GameModules.predefinedRoleCards = {
 
   async saveSelectedRelationshipStates(store) {
     const cards = store?.roleCardSetup?.cards?.length ? store.roleCardSetup.cards : await this.loadAll();
-    const names = store.roleCardSetup?.selectedRelationNames?.length ? store.roleCardSetup.selectedRelationNames : ['鍒樻€濈懚', '鍒樻€濈惇', '鍒樻€濇€?];
+    const names = store.roleCardSetup?.selectedRelationNames?.length ? store.roleCardSetup.selectedRelationNames : ['刘思瑶', '刘思琪', '刘思怡'];
     const tasks = names.map((name) => {
       const card = this.byName(cards, name);
       return card ? this.createState(card, store, card.id || name) : null;
@@ -406,12 +406,12 @@ window.GameModules.predefinedRoleCardActions = {
     const cards = await window.GameModules.predefinedRoleCards.loadAll();
     this.roleCardSetup.cards = cards;
     this.roleCardSetup.loaded = true;
-    if (!this.roleCardSetup.selectedPlayerName) this.roleCardSetup.selectedPlayerName = cards.find((x) => x.isPlayer)?.name || '鍒樻偁';
+    if (!this.roleCardSetup.selectedPlayerName) this.roleCardSetup.selectedPlayerName = cards.find((x) => x.isPlayer)?.name || '刘悠';
     if (!this.roleCardSetup.selectedRelationNames.length) this.roleCardSetup.selectedRelationNames = cards.filter((x) => !x.isPlayer).map((x) => x.name);
     this.roleCardSetup.relationRoles = this.roleCardSetup.relationRoles || {};
     this.roleCardSetup.selectedRelationNames.forEach((name) => {
       const card = window.GameModules.predefinedRoleCards.byName(cards, name);
-      if (card && !this.roleCardSetup.relationRoles[name]) this.roleCardSetup.relationRoles[name] = card.role || '鍏崇郴';
+      if (card && !this.roleCardSetup.relationRoles[name]) this.roleCardSetup.relationRoles[name] = card.role || '关系';
     });
     this.syncRelationCardGenderFilter();
     if (!this.phoneSetupDone && this.roleCardSetup.usePredefinedPlayerCard) {
@@ -452,7 +452,7 @@ window.GameModules.predefinedRoleCardActions = {
     const cardEntries = cards.map((card) => {
       const old = existingByName.get(card.name) || {};
       return {
-        relation: old.relation || this.roleCardSetup.relationRoles?.[card.name] || card.role || '鍏崇郴鑱旂郴浜?,
+        relation: old.relation || this.roleCardSetup.relationRoles?.[card.name] || card.role || '关系联系人',
         name: card.name,
         detail: old.detail || card.detail || card.personality || '',
       };
@@ -465,7 +465,7 @@ window.GameModules.predefinedRoleCardActions = {
   },
 
   relationTypeLabel() {
-    return this.roleCardSetup.relationType === '鑷畾涔? ? (this.roleCardSetup.customRelation || '鑷畾涔夊叧绯?) : this.roleCardSetup.relationType;
+    return this.roleCardSetup.relationType === '自定义' ? (this.roleCardSetup.customRelation || '自定义关系') : this.roleCardSetup.relationType;
   },
 
   addSetupRelationshipCard() {

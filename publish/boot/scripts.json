@@ -11,6 +11,7 @@
   "predefined-role-cards/liu-siyi.js",
   "predefined-role-cards/triplet-essential-preference-layers.js",
   "predefined-role-cards/predefined-appearance-profiles.js",
+  "predefined-role-cards.js",
   "role-card-editor.js",
   "app-background.js",
   "ai-provider.js",
