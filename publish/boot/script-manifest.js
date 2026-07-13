@@ -177,6 +177,11 @@ window.GameScriptManifest = {
       "save-actions.js",
       "result-actions.js",
       "style-actions.js",
+      "ui/worldline/lore-view-helpers.js",
+      "ui/worldline/timeline-view-helpers.js",
+      "ui/worldline/plot-view-helpers.js",
+      "ui/worldline/timeline-panel-view-helpers.js",
+      "ui/worldline/real-plot-summary-view-helpers.js",
       "ui/worldline/view-helpers.js",
       "domain/worldline/format-helpers.js",
       "domain/worldline/query-service.js",
@@ -329,8 +334,8 @@ window.GameScriptManifest = {
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-05T05:55:00.000Z",
-  "total": 252
+  "generatedAt": "2026-07-13T07:23:44.416Z",
+  "total": 322
 };
 
 window.GameScriptManifest.classify = function classify(url) {

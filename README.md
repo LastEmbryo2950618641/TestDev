@@ -163,6 +163,7 @@
 提交前建议运行：
 
 - `npm run verify:repo-boundaries`
+- `npm run verify:runtime-deps`
 - `npm run verify:assets`
 - `npm run android:sync-assets -- --check`
 

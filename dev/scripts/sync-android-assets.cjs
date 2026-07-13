@@ -5,13 +5,17 @@ const {
   collectManifestFiles,
   manifestBaseDir,
   readScriptManifest,
-  uniqueFiles,
 } = require('./manifest-utils.cjs');
 
+const sourceManifestPath = 'publish/boot/script-manifest.js';
 const mobileManifestPath = 'mobile/android-webview-shell/app/src/main/assets/publish/boot/script-manifest.js';
-const webBaseDir = path.resolve('publish');
+const webBaseDir = manifestBaseDir(sourceManifestPath);
 const mobileBaseDir = manifestBaseDir(mobileManifestPath);
 const checkOnly = process.argv.includes('--check');
+const alwaysSyncFiles = [
+  'boot/scripts.json',
+  'boot/script-manifest.js',
+];
 
 function sha1(filePath) {
   return crypto.createHash('sha1').update(fs.readFileSync(filePath)).digest('hex');
@@ -21,8 +25,11 @@ function sameFile(left, right) {
   return fs.existsSync(left) && fs.existsSync(right) && sha1(left) === sha1(right);
 }
 
-const manifest = readScriptManifest(mobileManifestPath);
-const files = uniqueFiles(collectManifestFiles(manifest));
+const manifest = readScriptManifest(sourceManifestPath);
+const files = [...new Set([
+  ...collectManifestFiles(manifest).map((row) => row.file),
+  ...alwaysSyncFiles,
+])];
 const missingSource = [];
 const missingTarget = [];
 const outdated = [];
@@ -49,7 +56,7 @@ for (const file of files) {
 
 const summary = {
   mode: checkOnly ? 'check' : 'sync',
-  manifest: path.normalize(mobileManifestPath),
+  manifest: path.normalize(sourceManifestPath),
   total: files.length,
   missingSource: missingSource.length,
   missingTarget: missingTarget.length,

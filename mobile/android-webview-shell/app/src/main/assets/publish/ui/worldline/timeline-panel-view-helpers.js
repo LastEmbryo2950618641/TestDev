@@ -21,10 +21,6 @@ function buildTimelinePanelBaseView({ timelineTitle, timeRange, rows, emptyText 
 }
 
 window.GameModules.ui.worldline.timelinePanelViewHelpers = {
-  timelineMeta(item) {
-    return buildTimelineMeta(item);
-  },
-
   timelineRow(item = {}) {
     return {
       key: [item.kind || 'item', item.eventId || item.order || item.name || 'row'].join('-'),
