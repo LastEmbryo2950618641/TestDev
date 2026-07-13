@@ -16,6 +16,7 @@ const scripts = [
   'known-profession-actions.js',
   'predefined-role-cards.js',
   'real-world-clock-actions.js',
+  'real-world-stream-actions.js',
   'ui-theme-actions.js',
   'wechat-actions.js',
 ];

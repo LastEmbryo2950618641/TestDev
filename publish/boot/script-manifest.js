@@ -271,6 +271,7 @@ window.GameScriptManifest = {
       "real-world-agent-loop.js",
       "real-world-vitals.js",
       "real-world-ai.js",
+      "real-world-stream-actions.js",
       "real-world-style-polish.js",
       "real-world-target-updates.js",
       "real-world-profile-stage5.js",
