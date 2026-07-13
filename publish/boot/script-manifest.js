@@ -331,6 +331,7 @@ window.GameScriptManifest = {
       "wechat-album-tags.js",
       "app/wechat/avatar-crop-helpers.js",
       "app/wechat/album-prompt-list-helpers.js",
+      "app/wechat/album-selected-generation-orchestration.js",
       "wechat-album-prompt-list.js",
       "wechat-avatar-crop-actions.js",
       "app/wechat/album-photo-state-helpers.js",

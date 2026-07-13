@@ -177,6 +177,11 @@ The goal of this directory is to hold small, reusable, non-entry helper surfaces
 - selected prompt list update transform used before drawing from edited prompt text
 - pure prompt-list view helpers kept away from generation and save orchestration
 
+### `album-selected-generation-orchestration.js`
+- selected prompt and draft-kind resolution for album generation
+- fixed-tag normalization and selected prompt-list persistence
+- save-before-generation ordering through existing public boundaries
+
 ### `album-prompt-helpers.js`
 - WeChat album state/profile material packaging for prompt editing
 - identity/body prompt option assembly and selected-text summaries
@@ -249,4 +254,4 @@ The preferred migration pattern for new work here is:
 
 ## Immediate practical rule
 
-If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, history-context, image-record, image-ui, image-album, image-prompt, image-receive-orchestration, image-offer-orchestration, worldline-orchestration, change-panel-orchestration, app-orchestration, incoming-orchestration, memory-debug-orchestration, cleanup-orchestration, album-orchestration, album-body-figure, album-body-figure-context, album-body-profile-generator-orchestration, album-delete-orchestration, album-mark-real-orchestration, album-body-figure-asset-orchestration, album-generate, album-generation-orchestration, album-photo-state, album-draw, album-ui-state, album-prompt-editor, album-prompt-editor-orchestration, avatar-crop-helpers, album-prompt-list, album-prompt, album-tag, mention-view, mention-base-photo, mention-reference, or mention-input style boundaries, document the rationale before adding another module here.
+If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, history-context, image-record, image-ui, image-album, image-prompt, image-receive-orchestration, image-offer-orchestration, worldline-orchestration, change-panel-orchestration, app-orchestration, incoming-orchestration, memory-debug-orchestration, cleanup-orchestration, album-orchestration, album-body-figure, album-body-figure-context, album-body-profile-generator-orchestration, album-delete-orchestration, album-mark-real-orchestration, album-body-figure-asset-orchestration, album-generate, album-generation-orchestration, album-selected-generation-orchestration, album-photo-state, album-draw, album-ui-state, album-prompt-editor, album-prompt-editor-orchestration, avatar-crop-helpers, album-prompt-list, album-prompt, album-tag, mention-view, mention-base-photo, mention-reference, or mention-input style boundaries, document the rationale before adding another module here.
