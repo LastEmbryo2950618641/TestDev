@@ -274,6 +274,7 @@ window.GameScriptManifest = {
       "real-world-stream-actions.js",
       "real-world-style-polish.js",
       "real-world-target-updates.js",
+      "real-world-thinking-actions.js",
       "real-world-profile-stage5.js",
       "real-world-utility-actions.js",
       "ui/real-world/map-stage-view-helpers.js",

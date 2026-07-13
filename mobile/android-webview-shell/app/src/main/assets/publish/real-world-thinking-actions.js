@@ -1,4 +1,4 @@
-﻿window.GameModules = window.GameModules || {};
+window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldThinkingActions = {
   toggleRealWorldThinking(entry) {
@@ -56,7 +56,7 @@ window.GameModules.realWorldThinkingActions = {
         id: key,
         phase: meta.phase || 'unknown',
         step: Number(meta.step) || 0,
-        label: meta.label || '鏈煡闃舵',
+        label: meta.label || '未知阶段',
         reasoningParts: [],
         traceLines: [],
       };
@@ -73,7 +73,7 @@ window.GameModules.realWorldThinkingActions = {
 
     const legacyText = this.cleanRealWorldThinkingText(entry?.thinking);
     if (!assigned.length && legacyText) {
-      ensureGroup({ phase: 'unknown', step: 0, label: '鐜板疄鎺ㄦ紨', id: 'legacy-thinking' }).reasoningParts.push(legacyText);
+      ensureGroup({ phase: 'unknown', step: 0, label: '现实推演', id: 'legacy-thinking' }).reasoningParts.push(legacyText);
     }
 
     (Array.isArray(entry?.agentTrace) ? entry.agentTrace : []).forEach((item) => {
@@ -114,7 +114,7 @@ window.GameModules.realWorldThinkingActions = {
   },
 
   realWorldSystemTraceLines(entry = {}) {
-    return this.realWorldTraceLines(entry).map((text) => ({ label: '绯荤粺鎻愮ず', text }));
+    return this.realWorldTraceLines(entry).map((text) => ({ label: '系统提示', text }));
   },
 
   realWorldEntryCacheText(entry = {}) {
@@ -124,9 +124,9 @@ window.GameModules.realWorldThinkingActions = {
     const requests = Math.max(0, Math.round(Number(cache.requestCount) || 0));
     if (!hit && !miss && !requests) return '';
     const total = hit + miss;
-    if (!total) return `缂撳瓨鍛戒腑锛?{hit} tokens`;
+    if (!total) return `缓存命中：${hit} tokens`;
     const ratio = Math.round((hit / total) * 100);
-    return `缂撳瓨鍛戒腑锛?{hit} / ${total} tokens锛?{ratio}%锛塦;
+    return `缓存命中：${hit} / ${total} tokens（${ratio}%）`;
   },
 
   realWorldEntryPlayerText(entry = {}) {
@@ -200,7 +200,7 @@ window.GameModules.realWorldThinkingActions = {
               id: String(item?.id || ''),
               phase: String(item?.phase || parsed?.phase || ''),
               step: Number.isFinite(Number(item?.step)) ? Number(item.step) : (parsed?.step || 0),
-              label: parsed?.label || label || '鐜板疄鎺ㄦ紨',
+              label: parsed?.label || label || '现实推演',
               open: item?.open !== false,
             };
           })
@@ -229,7 +229,7 @@ window.GameModules.realWorldThinkingActions = {
       const parsed = Date.parse(entry.createdAt || entry.time?.iso || '');
       if (Number.isFinite(parsed)) return String(parsed).padStart(16, '0');
       const label = String(entry.time?.label || '');
-      const match = label.match(/(\d{4})骞?\d{1,2})鏈?\d{1,2})鏃?*?(\d{1,2}):(\d{1,2}):(\d{1,2})/);
+      const match = label.match(/(\d{4})年(\d{1,2})月(\d{1,2})日.*?(\d{1,2}):(\d{1,2}):(\d{1,2})/);
       if (match) {
         const [, year, month, day, hour, minute, second] = match;
         const at = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second)).getTime();
@@ -302,7 +302,7 @@ window.GameModules.realWorldThinkingActions = {
   },
 
   realWorldLogPageLabel() {
-    return `绗?${this.realWorldLogPage || 1} / ${this.realWorldLogMaxPage()} 椤碉紝鍏?${this.realWorldLogTotal || this.realWorldLog.length} 鏉;
+    return `第 ${this.realWorldLogPage || 1} / ${this.realWorldLogMaxPage()} 页，共 ${this.realWorldLogTotal || this.realWorldLog.length} 条`;
   },
 
   changeRealWorldLogPage(delta) {
@@ -311,7 +311,7 @@ window.GameModules.realWorldThinkingActions = {
 
   scrollRealWorldLogBottom() {
     const run = () => {
-      const el = document.querySelector('[data-section-title="鐜板疄璁板綍鍒楄〃"]') || document.querySelector('.real-world-dialog .story-log');
+      const el = document.querySelector('[data-section-title="现实记录列表"]') || document.querySelector('.real-world-dialog .story-log');
       if (el) el.scrollTop = el.scrollHeight;
     };
     requestAnimationFrame(run);
@@ -321,27 +321,27 @@ window.GameModules.realWorldThinkingActions = {
   realWorldTraceLines(entry) {
     const stream = Array.isArray(entry?.streamTrace) ? entry.streamTrace : [];
     const trace = Array.isArray(entry?.agentTrace) ? entry.agentTrace : [];
-    const fallback = entry?.streaming && !entry?.thinking && !stream.length && !trace.length ? ['姝ラ杩涜涓綔姝ｅ湪鎺ㄦ紨', '姝ｅ湪鎺ユ敹鐜板疄 AI 鐨勬帹婕斿唴瀹广€?] : [];
+    const fallback = entry?.streaming && !entry?.thinking && !stream.length && !trace.length ? ['步骤进行中｜正在推演', '正在接收现实 AI 的推演内容。'] : [];
     return stream.concat(fallback, trace.flatMap((item) => this.realWorldTraceItemLines(item))).map((line, index) => `${index + 1}. ${line}`);
   },
 
   realWorldTraceItemLines(item = {}) {
-    const head = [`闃舵 ${item.step || '?'}锝?{this.realWorldTraceType(item.type)}`];
-    if (item.reason) head.push(`reason锛?{item.reason}`);
+    const head = [`阶段 ${item.step || '?'}｜${this.realWorldTraceType(item.type)}`];
+    if (item.reason) head.push(`reason：${item.reason}`);
     const requests = (item.requests || []).map((req) => {
       const params = req.params ? JSON.stringify(req.params) : '{}';
-      return `璋冪敤锛?{req.skill || 'unknown'}.${req.method || 'unknown'} ${params}`;
+      return `调用：${req.skill || 'unknown'}.${req.method || 'unknown'} ${params}`;
     });
-    const loaded = (item.loaded || []).map((ctx) => `杞藉叆锛?{ctx.title}`);
-    if (!requests.length && !loaded.length && item.raw) head.push(`杩斿洖锛?{item.raw}`);
+    const loaded = (item.loaded || []).map((ctx) => `载入：${ctx.title}`);
+    if (!requests.length && !loaded.length && item.raw) head.push(`返回：${item.raw}`);
     return head.concat(requests, loaded);
   },
 
   realWorldTraceType(type) {
-    if (type === 'request_context') return '璇锋眰澶栭儴璧勬枡';
-    if (type === 'context_done') return '璧勬枡宸茶冻澶?;
-    if (type === 'final') return '鐢熸垚鏈€缁堝唴瀹?;
-    if (type === 'parse_failed') return '瑙ｆ瀽澶辫触';
-    return type || '鏈煡姝ラ';
+    if (type === 'request_context') return '请求外部资料';
+    if (type === 'context_done') return '资料已足够';
+    if (type === 'final') return '生成最终内容';
+    if (type === 'parse_failed') return '解析失败';
+    return type || '未知步骤';
   },
 };
