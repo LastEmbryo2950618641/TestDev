@@ -69,3 +69,8 @@ Album deletion is now owned by `app/wechat/album-delete-orchestration.js`.
 The compatibility facade preserves the public method while the new module
 keeps validation, pure photo-map transformation, confirmation closing, and
 save ordering together as one small side-effect boundary.
+
+Marking an album photo as real is now owned by
+`app/wechat/album-mark-real-orchestration.js`. The public facade remains stable
+while the new module keeps photo validation, pure state transformation,
+save-before-avatar ordering, and index forwarding together.

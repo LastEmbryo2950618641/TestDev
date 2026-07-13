@@ -148,6 +148,7 @@ const orderedGroups = [
       'app/wechat/album-body-figure-context-helpers.js',
       'app/wechat/album-body-profile-generator-orchestration.js',
       'app/wechat/album-delete-orchestration.js',
+      'app/wechat/album-mark-real-orchestration.js',
       'app/wechat/album-generate-helpers.js',
       'app/wechat/album-photo-state-helpers.js',
       'app/wechat/album-generation-orchestration.js',

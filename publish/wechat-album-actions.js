@@ -101,17 +101,7 @@ window.GameModules.wechatAlbumActions = {
 
   async wechatDrawWithRetry(...args) { return window.GameModules.app.wechat.albumDrawHelpers.wechatDrawWithRetry.call(this, ...args); },
 
-  async markWechatAlbumPhotoReal(index = 0) {
-    const contact = this.wechatProfileContact();
-    const list = this.wechatAlbumPhotoList();
-    if (!contact || !list[index]) return;
-    this.wechatAlbumPhotos = window.GameModules.app.wechat.albumPhotoStateHelpers.wechatAlbumPhotosAfterMarkReal(
-      this.wechatAlbumPhotos,
-      contact.id,
-      list,
-      index,
-    );
-    await this.save?.();
-    await this.autoCaptureWechatAvatar?.(index);
+  async markWechatAlbumPhotoReal(...args) {
+    return window.GameModules.app.wechat.albumMarkRealOrchestration.markWechatAlbumPhotoReal.call(this, ...args);
   },
 };
