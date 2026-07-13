@@ -143,4 +143,22 @@ window.GameModules = window.GameModules || {};
     stmt.free();
     return this.sortedRealWorldLogEntries(rows).slice(offset, offset + size);
   };
+
+  save.listRecentRealWorldLogEntries = function listRecentRealWorldLogEntries(limit = 600) {
+    const size = Math.max(1, Math.min(600, Number(limit) || 600));
+    if (this.fallback) {
+      return this.sortedRealWorldLogEntries(Object.values(this.fallbackState?.realWorldLogEntries || {})).reverse().slice(0, size);
+    }
+    if (!this.db) return [];
+    const rows = [];
+    const stmt = this.db.prepare('SELECT entry_json,created_at FROM real_world_log ORDER BY created_at DESC LIMIT ?');
+    stmt.bind([size]);
+    while (stmt.step()) {
+      const row = stmt.getAsObject();
+      const entry = JSON.parse(row.entry_json);
+      rows.push({ ...entry, createdAt: entry.createdAt || row.created_at });
+    }
+    stmt.free();
+    return rows;
+  };
 })();

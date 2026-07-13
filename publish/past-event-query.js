@@ -48,19 +48,8 @@ window.GameModules.pastEventQuery = {
   },
 
   realRows() {
-    const db = window.GameModules.sqliteSave;
     try {
-      if (db?.db) {
-        const rows = [];
-        const stmt = db.db.prepare('SELECT entry_json,created_at FROM real_world_log ORDER BY created_at DESC LIMIT 600');
-        while (stmt.step()) {
-          const row = stmt.getAsObject();
-          const entry = JSON.parse(row.entry_json);
-          rows.push(this.row('现实日志', entry.sceneTitle || entry.locationName || entry.id, entry.time?.label || row.created_at, `${entry.text || ''}\n${entry.narration || ''}\n${entry.thinking || ''}`, entry));
-        }
-        stmt.free();
-        return rows;
-      }
+      return (window.GameModules.realWorldLogStore?.listRecent?.(600) || []).map((entry) => this.row('现实日志', entry.sceneTitle || entry.locationName || entry.id, entry.time?.label || entry.createdAt, `${entry.text || ''}\n${entry.narration || ''}\n${entry.thinking || ''}`, entry));
     } catch (_) { /* 忽略表不存在 */ }
     return [];
   },
@@ -103,18 +92,10 @@ window.GameModules.pastEventQuery = {
     const rows = [];
     const wanted = String(params.contactId || params.characterId || '').trim();
     try {
-      const db = window.GameModules.sqliteSave;
-      if (db?.db) {
-        const sql = wanted ? 'SELECT contact_id,message_json,created_at FROM wechat_history WHERE contact_id=? ORDER BY created_at DESC LIMIT 300' : 'SELECT contact_id,message_json,created_at FROM wechat_history ORDER BY created_at DESC LIMIT 300';
-        const stmt = db.db.prepare(sql);
-        if (wanted) stmt.bind([wanted]);
-        while (stmt.step()) {
-          const row = stmt.getAsObject();
-          const msg = JSON.parse(row.message_json);
-          rows.push(this.row(`微信历史:${row.contact_id}`, msg.side === 'self' ? '玩家消息' : (msg.name || '联系人消息'), msg.at || msg.atDisplay || row.created_at, msg.imageRecord || msg.text || '', msg));
-        }
-        stmt.free();
-      }
+      (window.GameModules.wechatHistoryStore?.listRecent?.(wanted, 300) || []).forEach((record) => {
+        const msg = record.message || {};
+        rows.push(this.row(`微信历史:${record.contactId}`, msg.side === 'self' ? '玩家消息' : (msg.name || '联系人消息'), msg.at || msg.atDisplay || record.createdAt, msg.imageRecord || msg.text || '', msg));
+      });
     } catch (_) { /* 忽略表不存在 */ }
     Object.entries(store?.wechatMessagesByContact || {}).forEach(([id, list]) => {
       if (wanted && id !== wanted) return;

@@ -20,6 +20,10 @@ window.GameModules.platform.storage.realWorldLogSource = {
     return window.GameModules.sqliteSave?.listRealWorldLogEntries?.(page, pageSize) || [];
   },
 
+  listRecent(limit = 600) {
+    return window.GameModules.sqliteSave?.listRecentRealWorldLogEntries?.(limit) || [];
+  },
+
   saveAll(entries = []) {
     return window.GameModules.sqliteSave?.saveRealWorldLogEntries?.(entries);
   },

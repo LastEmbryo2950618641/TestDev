@@ -63,6 +63,7 @@ window.GameScriptManifest = {
       "lexicon-store.js",
       "profession-info-store.js",
       "rpg-definition-store.js",
+      "real-world-log-store.js",
       "character-state-store.js",
       "character-memory-store.js",
       "character-intro-store.js",
@@ -426,7 +427,7 @@ window.GameScriptManifest = {
     ]
   },
   "generatedAt": "2026-07-13T17:39:40.727Z",
-  "total": 413
+  "total": 414
 };
 
 window.GameScriptManifest.classify = function classify(url) {

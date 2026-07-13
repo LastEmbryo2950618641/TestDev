@@ -34,6 +34,26 @@ window.GameModules.platform.storage.wechatHistorySource = {
     stmt.free();
     return rows.reverse();
   },
+
+  listRecent(contactId = '', limit = 300) {
+    if (!this.ensure()) return [];
+    const save = window.GameModules.sqliteSave;
+    const size = Math.max(1, Math.min(300, Number(limit) || 300));
+    const sql = contactId
+      ? 'SELECT contact_id,message_json,created_at FROM wechat_history WHERE contact_id=? ORDER BY created_at DESC LIMIT ?'
+      : 'SELECT contact_id,message_json,created_at FROM wechat_history ORDER BY created_at DESC LIMIT ?';
+    const stmt = save.db.prepare(sql);
+    stmt.bind(contactId ? [contactId, size] : [size]);
+    const rows = [];
+    while (stmt.step()) {
+      try {
+        const row = stmt.getAsObject();
+        rows.push({ contactId: row.contact_id, message: JSON.parse(row.message_json), createdAt: row.created_at });
+      } catch (_) { /* Ignore malformed legacy rows. */ }
+    }
+    stmt.free();
+    return rows;
+  },
 };
 
 window.GameModules.platform.core.storage = window.GameModules.platform.core.storage || {};

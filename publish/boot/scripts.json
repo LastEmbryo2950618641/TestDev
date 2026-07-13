@@ -61,6 +61,7 @@
   "lexicon-store.js",
   "profession-info-store.js",
   "rpg-definition-store.js",
+  "real-world-log-store.js",
   "character-state-store.js",
   "character-memory-store.js",
   "character-intro-store.js",

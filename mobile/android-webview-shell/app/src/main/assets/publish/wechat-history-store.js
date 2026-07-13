@@ -18,4 +18,8 @@ window.GameModules.wechatHistoryStore = {
   list(contactId = '', limit = 12) {
     return this.source()?.list?.(contactId, limit) || [];
   },
+
+  listRecent(contactId = '', limit = 300) {
+    return this.source()?.listRecent?.(contactId, limit) || [];
+  },
 };
