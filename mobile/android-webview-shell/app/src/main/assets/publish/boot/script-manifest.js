@@ -33,6 +33,7 @@ window.GameScriptManifest = {
       "prompts/pen_style/suspense.js",
       "prompts/pen_style/spring-heart.js",
       "metrics.js",
+      "ui/critical-action/metric-view-helpers.js",
       "sqlite-save.js",
       "sqlite-world.js",
       "sqlite-worldline.js",
@@ -100,6 +101,7 @@ window.GameScriptManifest = {
       "character-feedback-fix.js",
       "character-brief.js",
       "domain/storage/restore-state-helpers.js",
+      "domain/storage/restore-settings-helpers.js",
       "app/storage/restore-post-flow.js",
       "storage.js",
       "lore-sources.js",
@@ -179,6 +181,9 @@ window.GameScriptManifest = {
       "novel-log.js",
       "debug.js",
       "control-monitor.js",
+      "app/loading/deferred-init-flow.js",
+      "app/loading/desktop-module-flow.js",
+      "app/loading/startup-warmup.js",
       "ui/loading/progress-view.js",
       "loading-actions.js",
       "role-card-loading-actions.js",
@@ -288,6 +293,7 @@ window.GameScriptManifest = {
       "wechat-incoming-actions.js",
       "wechat-image-actions.js",
       "wechat-mention-actions.js",
+      "domain/worldline/wechat-event-service.js",
       "wechat-worldline-actions.js",
       "wechat-memory-debug-actions.js",
       "wechat-app-actions.js",
@@ -352,8 +358,8 @@ window.GameScriptManifest = {
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-13T10:30:00.000Z",
-  "total": 340
+  "generatedAt": "2026-07-13T11:05:00.000Z",
+  "total": 346
 };
 
 window.GameScriptManifest.classify = function classify(url) {

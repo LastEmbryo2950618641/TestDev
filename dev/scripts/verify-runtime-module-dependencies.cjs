@@ -61,9 +61,12 @@ const orderedGroups = [
     ],
   },
   {
-    label: 'loading action ui helper dependencies',
+    label: 'loading action runtime dependencies',
     before: 'loading-actions.js',
     required: [
+      'app/loading/deferred-init-flow.js',
+      'app/loading/desktop-module-flow.js',
+      'app/loading/startup-warmup.js',
       'ui/loading/progress-view.js',
     ],
   },
@@ -81,6 +84,7 @@ const orderedGroups = [
     before: 'storage.js',
     required: [
       'domain/storage/restore-state-helpers.js',
+      'domain/storage/restore-settings-helpers.js',
       'app/storage/restore-post-flow.js',
     ],
   },
@@ -103,6 +107,19 @@ const orderedGroups = [
     before: 'real-world-map-actions.js',
     required: [
       'ui/real-world/map-stage-view-helpers.js',
+    ],
+  },
+  {
+    label: 'wechat worldline runtime dependencies',
+    before: 'wechat-worldline-actions.js',
+    required: [
+      'domain/worldline/wechat-event-service.js',
+    ],
+  },
+  {
+    label: 'critical action game runtime dependencies',
+    required: [
+      'ui/critical-action/metric-view-helpers.js',
     ],
   },
 ];
@@ -134,8 +151,8 @@ const violations = [];
 for (const entry of runtimeLists) {
   const list = readList(entry);
   for (const group of orderedGroups) {
-    const beforeIndex = list.indexOf(group.before);
-    if (beforeIndex === -1) {
+    const beforeIndex = group.before ? list.indexOf(group.before) : Number.POSITIVE_INFINITY;
+    if (group.before && beforeIndex === -1) {
       violations.push({ manifest: entry.path, group: group.label, issue: 'missing-before', file: group.before });
       continue;
     }
