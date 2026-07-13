@@ -349,6 +349,7 @@ window.GameScriptManifest = {
       "token-stats.js",
       "company-system.js",
       "company-actions.js",
+      "company-attendance-actions.js",
       "boss-recruitment.js",
       "boss-actions.js",
       "boss-appointment-actions.js",
@@ -396,8 +397,8 @@ window.GameScriptManifest = {
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-13T16:08:24.597Z",
-  "total": 384
+  "generatedAt": "2026-07-13T16:12:00.000Z",
+  "total": 385
 };
 
 window.GameScriptManifest.classify = function classify(url) {

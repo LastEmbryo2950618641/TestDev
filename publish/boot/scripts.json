@@ -340,6 +340,7 @@
   "token-stats.js",
   "company-system.js",
   "company-actions.js",
+  "company-attendance-actions.js",
   "boss-recruitment.js",
   "boss-actions.js",
   "boss-appointment-actions.js",
