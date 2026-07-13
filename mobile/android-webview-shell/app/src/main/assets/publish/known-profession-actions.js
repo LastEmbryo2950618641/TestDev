@@ -33,7 +33,7 @@ window.GameModules.knownProfessionActions = {
 
   knownProfessions() {
     this.initKnownProfessionApp();
-    const data = window.GameModules.sqliteSave.getMetaJson?.('known_professions') || [];
+    const data = window.GameModules.metadataStore?.get?.('known_professions') || [];
     const q = String(this.knownProfessionState.query || '').trim().toLowerCase();
     return data.filter((item) => !q || [item.name, item.worldTag, item.summary, item.sourceReason].join(' ').toLowerCase().includes(q));
   },
@@ -92,11 +92,11 @@ window.GameModules.knownProfessionActions = {
     const world = worldTag || this.character?.work || window.GameModules.realWorld2026?.label || '原创世界';
     const info = await window.GameModules.professionInfo.ensure(world, clean, context);
     if (!info) return null;
-    const save = window.GameModules.sqliteSave;
-    const list = save.getMetaJson?.('known_professions') || [];
+    const metadataStore = window.GameModules.metadataStore;
+    const list = metadataStore?.get?.('known_professions') || [];
     const next = { ...info, knownAt: new Date().toISOString(), sourceReason: context.sourceReason || '剧情中已认识该职业' };
     const merged = [next, ...list.filter((item) => !(item.worldTag === world && item.name === info.name))].slice(0, 80);
-    await save.saveMetaJson?.('known_professions', merged);
+    await metadataStore?.save?.('known_professions', merged);
     this.knownProfessionState = { ...(this.knownProfessionState || {}), message: `已认识职业：${info.name}`, selectedName: info.name };
     return next;
   },

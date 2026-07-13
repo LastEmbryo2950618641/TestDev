@@ -12,8 +12,8 @@ window.GameModules.platform.storage.metadataSource = {
     return window.GameModules.sqliteSave?.getMetaJson?.(key) ?? null;
   },
 
-  save(key = '', value = null) {
-    return window.GameModules.sqliteSave?.saveMetaJson?.(key, value);
+  save(key = '', value = null, options = {}) {
+    return window.GameModules.sqliteSave?.saveMetaJson?.(key, value, options);
   },
 };
 

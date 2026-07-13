@@ -15,7 +15,7 @@ window.GameModules.metadataStore = {
     return this.source()?.get?.(key) ?? null;
   },
 
-  save(key = '', value = null) {
-    return this.source()?.save?.(key, value);
+  save(key = '', value = null, options = {}) {
+    return this.source()?.save?.(key, value, options);
   },
 };

@@ -12,7 +12,7 @@ const knownJobs = [
 const context = {
   window: {
     GameModules: {
-      sqliteSave: { getMetaJson: () => knownJobs },
+      metadataStore: { get: () => knownJobs },
       rpgProfessionState: { ensurePrerequisites() {} },
       progression: {
         learned(name, type, level, linkedStats, description) {

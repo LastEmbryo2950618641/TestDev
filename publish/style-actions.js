@@ -15,7 +15,7 @@ window.GameModules.styleActions = {
   async loadWritingStyles(options = {}) {
     const registered = window.GameModules.penStyleRegistry?.list?.() || [];
     if (registered.length) this.defaultWritingStyles = registered;
-    const saved = window.GameModules.sqliteSave.getMetaJson?.('writing_styles');
+    const saved = window.GameModules.metadataStore?.get?.('writing_styles');
     this.customWritingStyles = Array.isArray(saved?.custom) ? saved.custom : [];
     const availableIds = new Set(this.allWritingStyles().map((style) => style.id));
     const active = Array.isArray(saved?.active) ? saved.active.filter((id) => availableIds.has(id)) : [];
@@ -83,7 +83,7 @@ window.GameModules.styleActions = {
   },
 
   async saveWritingStyles(options = {}) {
-    await window.GameModules.sqliteSave.saveMetaJson?.('writing_styles', {
+    await window.GameModules.metadataStore?.save?.('writing_styles', {
       active: this.activeStyleIds,
       defaults: this.defaultWritingStyles,
       custom: this.customWritingStyles,
