@@ -53,7 +53,7 @@ window.GameModules.companyFactionActions = {
     const corpRootSync = corpRootIdSync ? this.factionState.factions.find((item) => item.id === corpRootIdSync) : null;
     Object.assign(faction, { name: company.name, type: company.type || faction.type || '公司', classification: faction.classification || 'faction', location: company.location || faction.location, domain: company.industry || faction.domain, scale: company.scale || faction.scale, orgDomain: faction.orgDomain || 'corp', ownership: faction.ownership || 'private', foundingType: faction.foundingType || 'independent', parentId: corpRootIdSync, parentName: corpRootSync?.name || (corpRootIdSync ? (forestSync?.DOMAIN_LABELS?.corp || '经济组织') : '无势力归属'), updatedAt: now });
     this.syncCompanyOrganizationToFaction(faction, company, reason, now);
-    window.GameModules.orgTerritoryActions?.syncCompanyEconomicEntry?.(this, faction, company, reason);
+    window.GameModules.app?.orgTerritory?.economyActions?.syncCompanyEconomicEntry?.(this, faction, company, reason);
     Object.assign(faction, window.GameModules.orgTerritory?.normalizeFaction?.(faction, this) || faction);
     faction.fieldReasons = this.completeFactionReasons?.(faction, faction.fieldReasons, reason) || faction.fieldReasons || {};
     faction.changeLog = [{ field: 'company-sync', reason, at: now, action: 'sync' }, ...(faction.changeLog || [])].slice(0, 50);

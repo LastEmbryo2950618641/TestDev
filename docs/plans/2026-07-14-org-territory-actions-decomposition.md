@@ -18,6 +18,9 @@
 - `publish/app/org-territory/family-actions.js`
   - 承载家庭组织、家庭地图锚点、行政区 stub、社区挂接。
   - 依赖 `GameModules.orgTerritory` 规则服务和显式传入的 store/map。
+- `publish/app/org-territory/record-helpers.js`
+  - 承载总览条目幂等 upsert、旧 `solid.overviewPanels` 规范化和现实系统记录追加。
+  - 作为 economy 与 settlement 的单向共享写入边界，不调用任何具体动作模块。
 - `publish/app/org-territory/economy-actions.js`
   - 承载公司经济镜像、玩家财富镜像、组织解散后的就业同步、状态经济级联。
   - 家庭组织只通过 `familyActions.ensureFamilyOrg()` 获取，不反向依赖结算编排。
@@ -32,7 +35,8 @@
 依赖方向固定为：
 
 ```text
-consumer -> app/org-territory/* -> domain/org-territory/update-rules
+consumer -> app/org-territory/* -> app/org-territory/record-helpers
+                              -> domain/org-territory/update-rules
                               -> org-territory-system
                               -> shared stores
 
@@ -99,6 +103,7 @@ Commit: `refactor: isolate org territory family actions`
 ### Task 2: 经济同步动作迁移
 
 **Files:**
+- Create: `publish/app/org-territory/record-helpers.js`
 - Create: `publish/app/org-territory/economy-actions.js`
 - Modify: `publish/org-territory-actions.js`
 - Modify: `publish/company-faction-actions.js`
@@ -116,6 +121,7 @@ Commit: `refactor: isolate org territory family actions`
 
 ```js
 const economy = modules.app.orgTerritory.economyActions;
+assert.strictEqual(typeof modules.app.orgTerritory.recordHelpers.upsertOverviewEntry, 'function');
 assert.strictEqual(typeof economy.syncCompanyEconomicEntry, 'function');
 assert.strictEqual(typeof economy.syncPlayerWealthAsset, 'function');
 assert.strictEqual(typeof economy.syncEmploymentOnOrgDissolved, 'function');
@@ -144,6 +150,7 @@ window.GameModules.app.orgTerritory.economyActions = {
 ```
 
 所有现有外部消费者改为直接调用该模块；旧 facade 只转发。经济模块通过 `familyActions.ensureFamilyOrg()` 获取家庭组织，不复制家庭创建逻辑。
+总览条目和系统记录统一通过 `recordHelpers` 写入，economy 不调用旧 facade，也不复制 upsert 实现。
 
 - [ ] **Step 4: 运行局部与共享验证**
 
@@ -204,7 +211,7 @@ window.GameModules.app.orgTerritory.settlementActions = {
 };
 ```
 
-内部共同写入 helper 保持模块私有；组织状态的经济副作用只调用 `economyActions`。`real-world-actions.js` 改为直接调用 `settlementActions.applySettlementUpdates()`。
+跨 economy/settlement 的共同写入统一调用 `recordHelpers`；结算私有 helper 保持模块私有。组织状态的经济副作用只调用 `economyActions`。`real-world-actions.js` 改为直接调用 `settlementActions.applySettlementUpdates()`。
 
 - [ ] **Step 4: 运行结算与现实世界回归**
 

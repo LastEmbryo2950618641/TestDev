@@ -54,7 +54,7 @@ Object.assign(setupActions, {
     const amount = hasAmount && Number.isFinite(Number(profile.wealthAmount)) ? Number(profile.wealthAmount) : this.playerWealthDefaultAmount(tier);
     const breakdown = this.playerWealthBreakdown(tier, amount, profile);
     const result = { wealthTier: tier, wealthAmount: amount, wealthBreakdown: breakdown, wealthFixedIncome: breakdown.fixedIncome, wealthSource: this.playerWealthSource(tier, amount, profile.wealthSource, breakdown) };
-    window.GameModules.orgTerritoryActions?.syncPlayerWealthAsset?.(this, result);
+    window.GameModules.app?.orgTerritory?.economyActions?.syncPlayerWealthAsset?.(this, result);
     return result;
   },
 

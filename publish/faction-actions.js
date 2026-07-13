@@ -21,7 +21,7 @@ window.GameModules.factionActions = {
       window.GameModules.factionOrgForest?.migrateFactionForest?.(this);
       this.syncAllCharacterMemberships?.();
       if (!this._orgTerritoryValidationRunning) window.GameModules.orgTerritory?.validateWorldConsistency?.(this);
-      window.GameModules.orgTerritoryActions?.syncPlayerWealthAsset?.(this);
+      window.GameModules.app?.orgTerritory?.economyActions?.syncPlayerWealthAsset?.(this);
       const top = base.factions[0];
       if (top && !this.factionState.factions.some((faction) => faction.id === top.id || faction.name === top.name)) this.factionState.factions.unshift(top);
       if (top) this.factionState.factions.sort((a, b) => (a.id === top.id ? -1 : b.id === top.id ? 1 : 0));

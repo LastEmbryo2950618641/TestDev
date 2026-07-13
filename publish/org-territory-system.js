@@ -1214,7 +1214,7 @@ window.GameModules.orgTerritory = {
     const company = (store?.factionState?.factions || []).find((f) => f.id === 'company-main');
     if (company && ['dissolved', 'merged'].includes(company.status) && store?.companyState?.employment?.active !== false) {
       warnings.push(`公司 org 已${company.status}，但 employment 仍 active；同步离职`);
-      window.GameModules.orgTerritoryActions?.syncEmploymentOnOrgDissolved?.(store, company, '读档一致性校验');
+      window.GameModules.app?.orgTerritory?.economyActions?.syncEmploymentOnOrgDissolved?.(store, company, '读档一致性校验');
     }
 
     this.validateLocationConsistency(store, map, warnings);

@@ -64,7 +64,7 @@ window.GameModules.taobaoBuyActions = {
       const updates = this.taobaoInventoryUpdates(item);
       await this.applyInventoryUpdatesToState(state, updates);
       this.playerProfile.wealthAmount = money - price;
-      window.GameModules.orgTerritoryActions?.syncPlayerWealthAsset?.(this);
+      window.GameModules.app?.orgTerritory?.economyActions?.syncPlayerWealthAsset?.(this);
       item.purchased = true;
       this.taobaoState.message = this.taobaoPurchaseSuccessMessage(item, updates, price);
       this.taobaoState.error = '';

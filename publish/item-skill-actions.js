@@ -115,7 +115,7 @@ window.GameModules.itemSkillActions = {
     const result = await this.addItemToTarget(target, { ...payload, price, reason: payload.reason || 'purchase item' });
     if (!result.ok) return result;
     this.playerProfile.wealthAmount = money - price;
-    window.GameModules.orgTerritoryActions?.syncPlayerWealthAsset?.(this);
+    window.GameModules.app?.orgTerritory?.economyActions?.syncPlayerWealthAsset?.(this);
     await this.save?.();
     return { ...result, paid: price, balance: this.playerProfile.wealthAmount, message: `${result.message}; paid ${price}` };
   },

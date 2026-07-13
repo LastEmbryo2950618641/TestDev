@@ -6,6 +6,8 @@ const vm = require('vm');
 const root = path.resolve(__dirname, '..');
 const actionPath = path.join(root, 'publish/org-territory-actions.js');
 const familyActionPath = path.join(root, 'publish/app/org-territory/family-actions.js');
+const recordHelperPath = path.join(root, 'publish/app/org-territory/record-helpers.js');
+const economyActionPath = path.join(root, 'publish/app/org-territory/economy-actions.js');
 const requiredMethods = [
   'applyLegacyStructure',
   'applySettlementUpdates',
@@ -23,12 +25,16 @@ for (const relativePath of [
 ]) {
   const scripts = JSON.parse(fs.readFileSync(path.join(root, relativePath), 'utf8'));
   const systemIndex = scripts.indexOf('org-territory-system.js');
+  const recordHelpersIndex = scripts.indexOf('app/org-territory/record-helpers.js');
   const familyActionsIndex = scripts.indexOf('app/org-territory/family-actions.js');
+  const economyActionsIndex = scripts.indexOf('app/org-territory/economy-actions.js');
   const actionsIndex = scripts.indexOf('org-territory-actions.js');
   const factionActionsIndex = scripts.indexOf('faction-actions.js');
   const earlyWealthIndex = scripts.indexOf('player-wealth-actions.js');
-  assert.ok(systemIndex >= 0 && systemIndex < familyActionsIndex, `${relativePath} must load orgTerritory before familyActions`);
-  assert.strictEqual(familyActionsIndex + 1, actionsIndex, `${relativePath} must load familyActions immediately before the compatibility facade`);
+  assert.ok(systemIndex >= 0 && systemIndex < recordHelpersIndex, `${relativePath} must load orgTerritory before recordHelpers`);
+  assert.strictEqual(recordHelpersIndex + 1, familyActionsIndex, `${relativePath} must load recordHelpers immediately before familyActions`);
+  assert.strictEqual(familyActionsIndex + 1, economyActionsIndex, `${relativePath} must load familyActions immediately before economyActions`);
+  assert.strictEqual(economyActionsIndex + 1, actionsIndex, `${relativePath} must load economyActions immediately before the compatibility facade`);
   assert.ok(earlyWealthIndex < actionsIndex, `${relativePath} must not activate orgTerritoryActions before faction initialization is available`);
   assert.strictEqual(actionsIndex + 1, factionActionsIndex, `${relativePath} must load orgTerritoryActions immediately before factionActions`);
 }
@@ -41,23 +47,39 @@ for (const relativePath of [
   vm.runInContext(fs.readFileSync(path.join(root, relativePath), 'utf8'), manifestContext, { filename: relativePath });
   const runtimeScripts = Object.values(manifestContext.window.GameScriptManifest.chunks).flat();
   const systemIndex = runtimeScripts.indexOf('org-territory-system.js');
+  const recordHelpersIndex = runtimeScripts.indexOf('app/org-territory/record-helpers.js');
   const familyActionsIndex = runtimeScripts.indexOf('app/org-territory/family-actions.js');
+  const economyActionsIndex = runtimeScripts.indexOf('app/org-territory/economy-actions.js');
   const facadeIndex = runtimeScripts.indexOf('org-territory-actions.js');
-  assert.ok(systemIndex >= 0 && systemIndex < familyActionsIndex, `${relativePath} must load orgTerritory before familyActions`);
-  assert.ok(familyActionsIndex < facadeIndex, `${relativePath} must load familyActions before the compatibility facade`);
+  assert.ok(systemIndex >= 0 && systemIndex < recordHelpersIndex, `${relativePath} must load orgTerritory before recordHelpers`);
+  assert.ok(recordHelpersIndex < familyActionsIndex, `${relativePath} must load recordHelpers before familyActions`);
+  assert.ok(familyActionsIndex < economyActionsIndex, `${relativePath} must load familyActions before economyActions`);
+  assert.ok(economyActionsIndex < facadeIndex, `${relativePath} must load economyActions before the compatibility facade`);
 }
 
 const source = fs.readFileSync(actionPath, 'utf8');
 assert.doesNotMatch(source, /window\.GameModules\.sqliteSave/u, 'org territory actions must use shared stores');
 assert.ok(fs.existsSync(familyActionPath), 'family actions must live under publish/app/org-territory');
+assert.ok(fs.existsSync(recordHelperPath), 'record helpers must live under publish/app/org-territory');
+assert.ok(fs.existsSync(economyActionPath), 'economy actions must live under publish/app/org-territory');
 
 const context = vm.createContext({ window: { GameModules: {} } });
+vm.runInContext(fs.readFileSync(recordHelperPath, 'utf8'), context, { filename: 'app/org-territory/record-helpers.js' });
 vm.runInContext(fs.readFileSync(familyActionPath, 'utf8'), context, { filename: 'app/org-territory/family-actions.js' });
+vm.runInContext(fs.readFileSync(economyActionPath, 'utf8'), context, { filename: 'app/org-territory/economy-actions.js' });
 vm.runInContext(source, context, { filename: 'org-territory-actions.js' });
 const actions = context.window.GameModules.orgTerritoryActions;
 const familyActions = context.window.GameModules.app?.orgTerritory?.familyActions;
 for (const method of ['ensureFamilyOrg', 'syncFamilyTerritoryAnchor', 'ensureAdminOrgStub', 'linkFamilyToCommunity']) {
   assert.strictEqual(typeof familyActions?.[method], 'function', `familyActions.${method} must be available at runtime`);
+}
+const recordHelpers = context.window.GameModules.app?.orgTerritory?.recordHelpers;
+for (const method of ['appendOrgTerritorySystemRecord', 'ensureFactionSolid', 'overviewEntryKey', 'upsertOverviewEntry']) {
+  assert.strictEqual(typeof recordHelpers?.[method], 'function', `recordHelpers.${method} must be available at runtime`);
+}
+const economyActions = context.window.GameModules.app?.orgTerritory?.economyActions;
+for (const method of ['syncCompanyEconomicEntry', 'syncPlayerWealthAsset', 'applyOrgStatusEconomicCascade', 'syncEmploymentOnOrgDissolved']) {
+  assert.strictEqual(typeof economyActions?.[method], 'function', `economyActions.${method} must be available at runtime`);
 }
 for (const method of requiredMethods) assert.strictEqual(typeof actions[method], 'function', `${method} must be available at runtime`);
 
@@ -81,6 +103,17 @@ const systemConsumer = fs.readFileSync(path.join(root, 'publish/org-territory-sy
 assert.doesNotMatch(systemConsumer, /orgTerritoryActions\?\.ensureFamilyOrg/u, 'org territory system must call familyActions.ensureFamilyOrg directly');
 const geopoliticalConsumer = fs.readFileSync(path.join(root, 'publish/real-world-map-geopolitical.js'), 'utf8');
 assert.doesNotMatch(geopoliticalConsumer, /orgTerritoryActions/u, 'geopolitical map must call the focused family actions module directly');
+for (const [relativePath, method] of [
+  ['publish/company-faction-actions.js', 'syncCompanyEconomicEntry'],
+  ['publish/faction-actions.js', 'syncPlayerWealthAsset'],
+  ['publish/item-skill-actions.js', 'syncPlayerWealthAsset'],
+  ['publish/player-wealth-actions.js', 'syncPlayerWealthAsset'],
+  ['publish/taobao-buy-actions.js', 'syncPlayerWealthAsset'],
+  ['publish/org-territory-system.js', 'syncEmploymentOnOrgDissolved'],
+]) {
+  const consumer = fs.readFileSync(path.join(root, relativePath), 'utf8');
+  assert.doesNotMatch(consumer, new RegExp(`orgTerritoryActions\\?\\.${method}`, 'u'), `${relativePath} must call economyActions.${method} directly`);
+}
 
 const integrationContext = vm.createContext({
   console,
@@ -95,7 +128,9 @@ const integrationContext = vm.createContext({
 });
 for (const relativePath of [
   'publish/org-territory-system.js',
+  'publish/app/org-territory/record-helpers.js',
   'publish/app/org-territory/family-actions.js',
+  'publish/app/org-territory/economy-actions.js',
   'publish/org-territory-actions.js',
   'publish/real-world-map-geopolitical.js',
 ]) {
@@ -142,6 +177,27 @@ assert.strictEqual(nestedEnsureCalls, 0, 'geopolitical initialization must not r
 assert.ok(family && community, 'geopolitical initialization must create family and community organizations');
 assert.strictEqual(family.parentId, community.id, 'family organization must attach to the generated community');
 assert.ok(family.territoryAnchors.includes('home-node'), 'family organization must retain the active home map anchor');
+modules.realWorldMap.ensure = () => activeMap;
+
+const economy = modules.app.orgTerritory.economyActions;
+economy.syncPlayerWealthAsset(store, { wealthAmount: 12345, wealthTier: '小康' });
+const moneyEntry = family.solid.overviewPanels.economy.entries.money;
+assert.strictEqual(moneyEntry.value, 12345, 'wealth mirror must preserve the normalized amount');
+assert.strictEqual(moneyEntry.wealthMirror.tier, '小康', 'wealth mirror must preserve the normalized tier');
+economy.syncCompanyEconomicEntry(store, family, { name: '测试公司', industry: '软件', scale: '小型', location: '深圳' }, '公司同步');
+assert.strictEqual(family.solid.overviewPanels.economy.entries['econ-family-player-home'].source, 'company-app', 'company mirror must preserve its source');
+
+store.companyState = {
+  employment: { active: true, startAt: '2026-01-01T00:00:00.000Z' },
+  employmentRecords: [{ status: '在职', startAt: '2026-01-01T00:00:00.000Z', duration: '' }],
+};
+store.currentCompany = () => ({ name: '测试公司' });
+store.employmentDurationText = () => '6个月';
+const dissolvedCompany = { id: 'company-main', name: '测试公司', status: 'dissolved' };
+assert.strictEqual(economy.syncEmploymentOnOrgDissolved(store, dissolvedCompany, '组织解散'), true, 'dissolved player company must end active employment');
+assert.strictEqual(store.companyState.employment.active, false, 'employment must become inactive');
+assert.strictEqual(store.companyState.employmentRecords[0].status, '已离职', 'employment record must become resigned');
+assert.strictEqual(store.companyState.employmentRecords[0].duration, '6个月', 'employment duration must be preserved through the store helper');
 
 const territory = modules.orgTerritory;
 assert.strictEqual(
