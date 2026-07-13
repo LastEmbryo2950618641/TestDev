@@ -13,6 +13,8 @@ const promptHelperPath = 'publish/app/wechat/chat-prompt-helpers.js';
 const memoryContextActionPath = 'publish/wechat-memory-context-actions.js';
 const historyContextHelperPath = 'publish/app/wechat/history-context-helpers.js';
 const mentionActionPath = 'publish/wechat-mention-actions.js';
+const mentionViewHelperPath = 'publish/app/wechat/mention-view-helpers.js';
+const mentionBasePhotoHelperPath = 'publish/app/wechat/mention-base-photo-helper.js';
 const mentionReferenceHelperPath = 'publish/app/wechat/mention-reference-helpers.js';
 const imageActionPath = 'publish/wechat-image-actions.js';
 const imageRecordHelperPath = 'publish/app/wechat/image-record-helpers.js';
@@ -35,6 +37,8 @@ const promptHelper = read(promptHelperPath);
 const memoryContextAction = read(memoryContextActionPath);
 const historyContextHelper = read(historyContextHelperPath);
 const mentionAction = read(mentionActionPath);
+const mentionViewHelper = read(mentionViewHelperPath);
+const mentionBasePhotoHelper = read(mentionBasePhotoHelperPath);
 const mentionReferenceHelper = read(mentionReferenceHelperPath);
 const imageAction = read(imageActionPath);
 const imageRecordHelper = read(imageRecordHelperPath);
@@ -178,6 +182,27 @@ for (const marker of [
 }
 
 assertIncludes(mentionAction, 'callWechatMentionReferenceHelper', `${mentionActionPath} mention reference facade`);
+for (const [text, relativePath, label] of [
+  [mentionAction, mentionActionPath, 'mention action'],
+  [mentionViewHelper, mentionViewHelperPath, 'mention view helper'],
+  [mentionBasePhotoHelper, mentionBasePhotoHelperPath, 'mention base-photo helper'],
+  [mentionReferenceHelper, mentionReferenceHelperPath, 'mention reference helper'],
+]) {
+  for (const marker of ['娑堟伅', '鍥剧墖', '鐜╁', '鑱旂郴浜']) {
+    assertNotIncludes(text, marker, `${relativePath} ${label} should not contain mojibake mention text`);
+  }
+}
+for (const marker of [
+  '@消息',
+  '玩家',
+  '联系人',
+]) {
+  assertIncludes(mentionViewHelper, marker, `${mentionViewHelperPath} should keep readable UTF-8 mention text`);
+}
+assertIncludes(mentionBasePhotoHelper, '@图片', `${mentionBasePhotoHelperPath} should keep readable UTF-8 image mention insert text`);
+for (const marker of ['图片)?', '图片\\[']) {
+  assertIncludes(mentionReferenceHelper, marker, `${mentionReferenceHelperPath} should keep readable UTF-8 image mention parse text`);
+}
 for (const marker of [
   'wechatMessageMentionId(msg = {}, index = 0)',
   'wechatMentionedImages(text = \'\', currentId = \'\')',
@@ -505,6 +530,8 @@ console.log(JSON.stringify({
       memoryContextActionPath,
       historyContextHelperPath,
       mentionActionPath,
+      mentionViewHelperPath,
+      mentionBasePhotoHelperPath,
       mentionReferenceHelperPath,
       imageActionPath,
       imageRecordHelperPath,
@@ -520,6 +547,7 @@ console.log(JSON.stringify({
       'chat-orchestration-facade',
       'chat-prompt-facade',
       'history-context-facade',
+      'mention-utf8-defaults',
       'mention-reference-facade',
       'image-record-facade',
       'image-ui-facade',
