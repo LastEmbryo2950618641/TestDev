@@ -9,6 +9,7 @@ const manifestEntries = JSON.parse(
   fs.readFileSync(path.join(publishRoot, 'boot', 'scripts.json'), 'utf8'),
 );
 const scripts = [
+  'character-card-lexicon.js',
   'real-world-clock-actions.js',
   'ui-theme-actions.js',
   'wechat-actions.js',

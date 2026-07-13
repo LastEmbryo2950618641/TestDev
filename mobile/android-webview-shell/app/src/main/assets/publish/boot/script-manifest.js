@@ -62,6 +62,7 @@ window.GameScriptManifest = {
       "lexicon-skill.js",
       "rpg-lexicon-sync.js",
       "rpg-lexicon-update.js",
+      "character-card-lexicon.js",
       "character-intro-card.js",
       "character-query.js",
       "past-event-query.js",
@@ -395,8 +396,8 @@ window.GameScriptManifest = {
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-13T16:15:00.000Z",
-  "total": 383
+  "generatedAt": "2026-07-13T16:08:24.597Z",
+  "total": 384
 };
 
 window.GameScriptManifest.classify = function classify(url) {

@@ -59,6 +59,7 @@
   "lexicon-skill.js",
   "rpg-lexicon-sync.js",
   "rpg-lexicon-update.js",
+  "character-card-lexicon.js",
   "character-intro-card.js",
   "character-query.js",
   "past-event-query.js",
