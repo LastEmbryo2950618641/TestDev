@@ -13,6 +13,7 @@ const scripts = [
   'character-profile-metric-sources.js',
   'company-attendance-actions.js',
   'company-faction-actions.js',
+  'faction-membership-actions.js',
   'known-profession-actions.js',
   'predefined-role-cards.js',
   'real-world-actions.js',

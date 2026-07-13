@@ -375,6 +375,7 @@ window.GameScriptManifest = {
       "ui/faction/overview-view-helpers.js",
       "faction-actions.js",
       "faction-org-actions.js",
+      "faction-membership-actions.js",
       "faction-ai-actions.js",
       "skills-definitions-core.js",
       "skills-definitions-apps.js",
