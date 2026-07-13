@@ -4,6 +4,10 @@ window.GameModules.platform.core = window.GameModules.platform.core || {};
 window.GameModules.platform.storage = window.GameModules.platform.storage || {};
 
 window.GameModules.platform.storage.backend = {
+  currentSlot() {
+    return String(window.GameModules.sqliteSave?.activeSlot || '');
+  },
+
   async open(slot, options = {}) {
     await window.GameModules.sqliteSave.open(slot, options);
   },

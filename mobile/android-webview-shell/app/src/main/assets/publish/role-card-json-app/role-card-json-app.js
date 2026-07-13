@@ -47,12 +47,12 @@ window.GameModules.roleCardJsonApp = {
     },
 
     async refreshRoleCardJsonText() {
-        const app = window.GameModules.roleCardJsonApp;
+      const app = window.GameModules.roleCardJsonApp;
       try {
-        const save = window.GameModules.sqliteSave;
+        const storage = window.GameModules.platform?.storage?.backend;
         const states = window.GameModules.characterStateStore?.list?.() || [];
         const exportedAt = new Date().toISOString();
-        const slot = this.selectedSlot || save?.activeSlot || '';
+        const slot = this.selectedSlot || storage?.currentSlot?.() || '';
         const payload = app.buildPayload({ slot, states, exportedAt });
         this.roleCardJsonText = app.formatPayload(payload);
         this.roleCardJsonMeta = { slot: payload.slot, count: payload.count, exportedAt: payload.exportedAt };

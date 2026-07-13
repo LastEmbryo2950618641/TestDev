@@ -23,6 +23,15 @@ function loadRoleCardJsonApp(gameModules = {}) {
   return context.window.GameModules.roleCardJsonApp;
 }
 
+function loadStorageBackend(sqliteSave = {}) {
+  const context = vm.createContext({
+    window: { GameModules: { sqliteSave } },
+  });
+  const code = fs.readFileSync(path.join(__dirname, '..', 'publish/platform/storage/backend.js'), 'utf8');
+  vm.runInContext(code, context, { filename: 'publish/platform/storage/backend.js' });
+  return context.window.GameModules.platform.storage.backend;
+}
+
 function sampleState(overrides = {}) {
   return {
     id: 'rel-1',
@@ -61,15 +70,22 @@ test('formatPayload returns pretty json text for textarea copying', () => {
   assert.strictEqual(text, '{\n  "slot": "slot-1",\n  "exportedAt": "2026-06-29T12:00:00.000Z",\n  "count": 0,\n  "characters": []\n}');
 });
 
-test('actions refreshRoleCardJsonText reads sqliteSave listCharacterStates and updates txt fields', async () => {
+test('storage backend exposes the active slot through the platform boundary', () => {
+  const backend = loadStorageBackend({ activeSlot: 'slot-7' });
+  assert.strictEqual(backend.currentSlot(), 'slot-7');
+});
+
+test('actions refreshRoleCardJsonText reads shared storage boundaries and updates txt fields', async () => {
   const app = loadRoleCardJsonApp({
-    sqliteSave: {
-      activeSlot: 'slot-7',
-      listCharacterStates: () => [sampleState()],
+    platform: {
+      storage: {
+        backend: { currentSlot: () => 'slot-7' },
+      },
     },
+    characterStateStore: { list: () => [sampleState()] },
   });
   const store = {
-    selectedSlot: 'slot-7',
+    selectedSlot: '',
     roleCardJsonText: '',
     roleCardJsonMeta: { slot: '', count: 0, exportedAt: '' },
     roleCardJsonError: '',
@@ -93,6 +109,9 @@ test('actions refreshRoleCardJsonText reads sqliteSave listCharacterStates and u
   assert.ok(!Number.isNaN(Date.parse(store.roleCardJsonMeta.exportedAt)));
   assert.ok(store.roleCardJsonText.includes('"name": "刘思瑶"'));
 });
+
+const roleCardSource = fs.readFileSync(path.join(__dirname, '..', 'publish/role-card-json-app/role-card-json-app.js'), 'utf8');
+assert.doesNotMatch(roleCardSource, /sqliteSave/u, 'role card JSON app must stay behind shared storage boundaries');
 
 (async () => {
   for (const item of tests) {
