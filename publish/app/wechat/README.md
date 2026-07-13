@@ -116,6 +116,11 @@ The goal of this directory is to hold small, reusable, non-entry helper surfaces
 - body-figure part layout and normalized part packaging
 - generated body-figure metadata assembly kept away from image generation and local asset persistence
 
+### `album-ui-state-helpers.js`
+- WeChat album delete-confirm and prompt-editor UI state toggles
+- prompt choice open/close state used by the album editor flow
+- pure UI state mutation kept away from delete/save side effects
+
 ### `avatar-crop-helpers.js`
 - WeChat avatar text and avatar style helpers for contact cards and message avatars
 - avatar crop geometry helpers used by crop preview and face-detected crop calculations
@@ -188,4 +193,4 @@ The preferred migration pattern for new work here is:
 
 ## Immediate practical rule
 
-If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, history-context, image-record, image-ui, image-album, image-prompt, image-receive-orchestration, image-offer-orchestration, worldline-orchestration, change-panel-orchestration, app-orchestration, incoming-orchestration, memory-debug-orchestration, cleanup-orchestration, album-orchestration, album-body-figure, avatar-crop-helpers, album-prompt-list, album-prompt, album-tag, mention-view, mention-base-photo, mention-reference, or mention-input style boundaries, document the rationale before adding another module here.
+If a new WeChat helper does not clearly belong to chat-session, chat-message, chat-reply, chat-orchestration, chat-prompt, history-context, image-record, image-ui, image-album, image-prompt, image-receive-orchestration, image-offer-orchestration, worldline-orchestration, change-panel-orchestration, app-orchestration, incoming-orchestration, memory-debug-orchestration, cleanup-orchestration, album-orchestration, album-body-figure, album-ui-state, avatar-crop-helpers, album-prompt-list, album-prompt, album-tag, mention-view, mention-base-photo, mention-reference, or mention-input style boundaries, document the rationale before adding another module here.

@@ -30,15 +30,9 @@ window.GameModules.wechatAlbumActions = {
   wechatAlbumPhoto(...args) { return window.GameModules.app.wechat.albumOrchestration.wechatAlbumPhoto.call(this, ...args); },
   refreshWechatAlbum(...args) { return window.GameModules.app.wechat.albumOrchestration.refreshWechatAlbum.call(this, ...args); },
 
-  openWechatAlbumDeleteConfirm(index = 0) {
-    const list = this.wechatAlbumPhotoList();
-    if (!list[index]) return;
-    this.wechatAlbumDeleteConfirm = { open: true, index: Number(index) || 0 };
-  },
+  openWechatAlbumDeleteConfirm(...args) { return window.GameModules.app.wechat.albumUiStateHelpers.openWechatAlbumDeleteConfirm.call(this, ...args); },
 
-  closeWechatAlbumDeleteConfirm() {
-    this.wechatAlbumDeleteConfirm = { open: false, index: -1 };
-  },
+  closeWechatAlbumDeleteConfirm(...args) { return window.GameModules.app.wechat.albumUiStateHelpers.closeWechatAlbumDeleteConfirm.call(this, ...args); },
 
   async confirmDeleteWechatAlbumPhoto() {
     const contact = this.wechatProfileContact();
@@ -56,13 +50,8 @@ window.GameModules.wechatAlbumActions = {
     await this.save?.();
   },
 
-  wechatAlbumChoiceOpen() {
-    this.wechatAlbumPromptStep = 'choice';
-    this.wechatAlbumPromptDraft = { kind: 'natural', identityKeys: [], bodyKeys: [], customText: '', extraText: '' };
-    this.wechatAlbumBodyFigureContext = null;
-    this.wechatAlbumPromptOpen = true;
-  },
-  wechatAlbumChoiceClose() { if (!this.wechatAlbumGenerating) this.wechatAlbumPromptOpen = false; },
+  wechatAlbumChoiceOpen(...args) { return window.GameModules.app.wechat.albumUiStateHelpers.wechatAlbumChoiceOpen.call(this, ...args); },
+  wechatAlbumChoiceClose(...args) { return window.GameModules.app.wechat.albumUiStateHelpers.wechatAlbumChoiceClose.call(this, ...args); },
 
   bodyProfileImageKind(...args) { return window.GameModules.app.wechat.albumBodyFigureHelpers.bodyProfileImageKind.call(this, ...args); },
   bodyProfileTargetState(...args) { return window.GameModules.app.wechat.albumBodyFigureHelpers.bodyProfileTargetState.call(this, ...args); },
