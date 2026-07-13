@@ -34,22 +34,8 @@ window.GameModules.wechatAlbumActions = {
 
   closeWechatAlbumDeleteConfirm(...args) { return window.GameModules.app.wechat.albumUiStateHelpers.closeWechatAlbumDeleteConfirm.call(this, ...args); },
 
-  async confirmDeleteWechatAlbumPhoto() {
-    const contact = this.wechatProfileContact();
-    const index = Number(this.wechatAlbumDeleteConfirm?.index);
-    const list = this.wechatAlbumPhotoList();
-    if (!contact?.id || !Number.isInteger(index) || index < 0 || !list[index]) {
-      this.closeWechatAlbumDeleteConfirm();
-      return;
-    }
-    this.wechatAlbumPhotos = window.GameModules.app.wechat.albumPhotoStateHelpers.wechatAlbumPhotosAfterDelete(
-      this.wechatAlbumPhotos,
-      contact.id,
-      list,
-      index,
-    );
-    this.closeWechatAlbumDeleteConfirm();
-    await this.save?.();
+  async confirmDeleteWechatAlbumPhoto(...args) {
+    return window.GameModules.app.wechat.albumDeleteOrchestration.confirmDeleteWechatAlbumPhoto.call(this, ...args);
   },
 
   wechatAlbumChoiceOpen(...args) { return window.GameModules.app.wechat.albumUiStateHelpers.wechatAlbumChoiceOpen.call(this, ...args); },

@@ -64,3 +64,8 @@ Body-profile image-generator opening is now owned by
 section target, assigns the selected contact, creates body-figure context,
 opens the prompt dialog, clears its error state, and delegates to the existing
 prompt-editor orchestration.
+
+Album deletion is now owned by `app/wechat/album-delete-orchestration.js`.
+The compatibility facade preserves the public method while the new module
+keeps validation, pure photo-map transformation, confirmation closing, and
+save ordering together as one small side-effect boundary.
