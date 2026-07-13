@@ -5,6 +5,7 @@
     "android:sync-assets": "node dev/scripts/sync-android-assets.cjs",
     "verify:assets": "node dev/scripts/verify-platform-assets.cjs",
     "verify:repo-boundaries": "node dev/scripts/verify-repository-boundaries.cjs",
+    "verify:runtime-coverage": "node dev/scripts/verify-runtime-module-coverage.cjs",
     "verify:runtime-deps": "node dev/scripts/verify-runtime-module-dependencies.cjs",
     "android:assemble-debug": "cd mobile/android-webview-shell && gradlew.bat :app:assembleDebug --no-daemon",
     "validate:control:http": "npm --prefix tools/validation-browser run control:http",

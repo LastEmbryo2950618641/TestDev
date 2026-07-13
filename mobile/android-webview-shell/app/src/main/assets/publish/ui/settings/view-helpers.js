@@ -123,6 +123,16 @@ window.GameModules.ui.settings.viewHelpers = Object.assign(window.GameModules.ui
       { key: 'stage3-output', label: '正文输出', value: this.stage3OutputSummaryLabel() },
     ];
   },
+
+  currentSettingsSummaryParts() {
+    return this.currentSettingsSummaryRows()
+      .map((row) => `${row.label}: ${row.value}`)
+      .filter(Boolean);
+  },
+
+  currentSettingsSummaryText() {
+    return this.currentSettingsSummaryParts().join(' / ');
+  },
 });
 window.GameModules.ui.settings.viewHelpers = Object.assign(window.GameModules.ui.settings.viewHelpers || {}, {
   currentDrawModelRows() {
