@@ -35,7 +35,10 @@ Evidence from the rebuilt debug APK:
 
 - Gradle `:app:assembleDebug` completed successfully.
 - The APK contains every managed local runtime file.
+- `index.html` and `game.js` are explicit managed startup assets even though
+  they are intentionally outside the dynamic script manifest.
 - Missing runtime paths: `0`.
+- Byte-mismatched managed assets after APK extraction: `0`.
 - Duplicate runtime paths: `0`.
 - Non-ASCII packaged runtime paths: `0`.
 - Missing Stage5 prompt registrations: `0`.

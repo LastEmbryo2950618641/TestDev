@@ -1,4 +1,5 @@
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
 const {
@@ -26,6 +27,13 @@ if (!fs.existsSync(apkPath)) {
 
 const runtimeFiles = collectManifestFiles(readScriptManifest(manifestPath))
   .map((row) => row.file);
+const managedFiles = [...new Set([
+  ...runtimeFiles,
+  'index.html',
+  'game.js',
+  'boot/scripts.json',
+  'boot/script-manifest.js',
+])];
 const duplicateRuntimePaths = runtimeFiles.filter(
   (file, index) => runtimeFiles.indexOf(file) !== index,
 );
@@ -51,12 +59,32 @@ const missingRuntimeFiles = runtimeFiles.filter(
 const nonAsciiArchiveEntries = archiveEntries.filter(
   (entry) => entry.startsWith('assets/publish/') && /[^\x00-\x7f]/u.test(entry),
 );
+const extractionRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'gamefy-apk-assets-'));
+const mismatchedManagedFiles = [];
+try {
+  execFileSync('tar', ['-xf', apkPath, '-C', extractionRoot, 'assets/publish'], {
+    maxBuffer: 16 * 1024 * 1024,
+  });
+  for (const file of managedFiles) {
+    const source = path.join(root, 'publish', file);
+    const packaged = path.join(extractionRoot, 'assets', 'publish', file);
+    if (
+      !fs.existsSync(packaged)
+      || !fs.readFileSync(source).equals(fs.readFileSync(packaged))
+    ) {
+      mismatchedManagedFiles.push(file);
+    }
+  }
+} finally {
+  fs.rmSync(extractionRoot, { recursive: true, force: true });
+}
 
 const summary = {
   apk: path.relative(root, apkPath).replace(/\\/gu, '/'),
   runtimeFiles: runtimeFiles.length,
   duplicateRuntimePaths: duplicateRuntimePaths.length,
   missingRuntimeFiles: missingRuntimeFiles.length,
+  mismatchedManagedFiles: mismatchedManagedFiles.length,
   missingStage5Registrations: missingStage5Registrations.length,
   nonAsciiRuntimePaths: nonAsciiRuntimePaths.length,
   nonAsciiArchiveEntries: nonAsciiArchiveEntries.length,
@@ -66,6 +94,9 @@ console.log(JSON.stringify(summary, null, 2));
 
 if (missingRuntimeFiles.length) {
   console.error('Missing runtime files in APK:', missingRuntimeFiles);
+}
+if (mismatchedManagedFiles.length) {
+  console.error('Managed APK assets differ from publish/:', mismatchedManagedFiles);
 }
 if (duplicateRuntimePaths.length) {
   console.error('Runtime manifest paths must be unique:', duplicateRuntimePaths);
@@ -82,6 +113,7 @@ if (nonAsciiArchiveEntries.length) {
 
 if (
   missingRuntimeFiles.length
+  || mismatchedManagedFiles.length
   || duplicateRuntimePaths.length
   || missingStage5Registrations.length
   || nonAsciiRuntimePaths.length

@@ -13,6 +13,8 @@ const webBaseDir = manifestBaseDir(sourceManifestPath);
 const mobileBaseDir = manifestBaseDir(mobileManifestPath);
 const checkOnly = process.argv.includes('--check');
 const alwaysSyncFiles = [
+  'index.html',
+  'game.js',
   'boot/scripts.json',
   'boot/script-manifest.js',
 ];

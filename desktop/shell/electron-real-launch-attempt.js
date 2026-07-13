@@ -23,6 +23,7 @@ async function writeLaunchArtifact(artifactPath, result) {
 
 export async function attemptDesktopElectronRealLaunch(options = {}, target = globalThis) {
   const enabled = options.enabled === true;
+  const rendererLoadTimeoutMs = Math.max(1000, Number(options.rendererLoadTimeoutMs) || 15000);
   const artifactPath = resolveArtifactPath(options);
   const adapter = await createOptionalElectronApiAdapter();
   const skeleton = createElectronRuntimeSkeleton(target);
@@ -99,7 +100,7 @@ export async function attemptDesktopElectronRealLaunch(options = {}, target = gl
         const timeoutId = setTimeout(() => {
           result.notes.push('renderer-load-timeout');
           resolve();
-        }, 4000);
+        }, rendererLoadTimeoutMs);
 
         browserWindow.webContents.once('did-finish-load', () => {
           clearTimeout(timeoutId);
