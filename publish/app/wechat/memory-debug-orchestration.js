@@ -56,7 +56,7 @@ window.GameModules.app.wechat.memoryDebugOrchestration = {
 
   sqliteWechatArchiveCount(characterId) {
     if (!characterId) return 0;
-    try { return window.GameModules.sqliteSave?.listMemoryArchives?.(characterId)?.length || 0; }
+    try { return window.GameModules.characterMemoryStore?.listArchives?.(characterId)?.length || 0; }
     catch (_) { return 0; }
   },
 };

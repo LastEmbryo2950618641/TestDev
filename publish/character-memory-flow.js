@@ -140,7 +140,7 @@ Object.assign(window.GameModules.characterMemory, {
     if (this.stats(memory.shortTerm.summaryBuffer, this.limits.summaryBuffer).tokens > this.limits.summaryBuffer) {
       const summary = this.summarizeBuffer(memory.shortTerm.summaryBuffer);
       memory.shortTerm.summarized.push(summary);
-      await window.GameModules.sqliteSave.saveMemoryArchive(characterId, this.archiveItem(characterId, summary, memory.shortTerm.summaryBuffer.map((x) => x.text).join('\n')));
+      await window.GameModules.characterMemoryStore?.saveArchive?.(characterId, this.archiveItem(characterId, summary, memory.shortTerm.summaryBuffer.map((x) => x.text).join('\n')));
       memory.shortTerm.summaryBuffer = [];
     }
     this.moveOverflow(memory.shortTerm.summarized, memory.shortTerm.forgotten, this.limits.summarized);
@@ -148,7 +148,7 @@ Object.assign(window.GameModules.characterMemory, {
     this.trimVivid(memory.longTerm.vivid, this.limits.vivid);
     memory.updatedAt = new Date().toISOString();
     memory.archive = this.archiveStats(characterId);
-    await window.GameModules.sqliteSave.saveCharacterMemory(characterId, memory);
+    await window.GameModules.characterMemoryStore?.save?.(characterId, memory);
   },
 
   summarizeBuffer(items) {

@@ -20,7 +20,7 @@ window.GameModules.characterMemory = {
   },
 
   ensure(characterId) {
-    const raw = window.GameModules.sqliteSave.getCharacterMemory(characterId);
+    const raw = window.GameModules.characterMemoryStore?.get?.(characterId);
     const memory = this.normalize(raw, characterId);
     memory.archive = this.archiveStats(characterId);
     return memory;
@@ -39,7 +39,7 @@ window.GameModules.characterMemory = {
   },
 
   archiveStats(characterId) {
-    const count = window.GameModules.sqliteSave.listMemoryArchives(characterId).length;
+    const count = window.GameModules.characterMemoryStore?.listArchives?.(characterId)?.length || 0;
     return { indexCount: count, itemCount: count };
   },
 
@@ -103,7 +103,7 @@ window.GameModules.characterMemory = {
   async queryArchive(characterId, rawQuery) {
     const query = await this.intentQuery(rawQuery);
     const qv = this.vectorize(query);
-    return window.GameModules.sqliteSave.listMemoryArchives(characterId).map((item) => ({ ...item, score: this.cosine(qv, item.vector) })).sort((a, b) => b.score - a.score).slice(0, this.limits.archiveHits);
+    return (window.GameModules.characterMemoryStore?.listArchives?.(characterId) || []).map((item) => ({ ...item, score: this.cosine(qv, item.vector) })).sort((a, b) => b.score - a.score).slice(0, this.limits.archiveHits);
   },
 
   async intentQuery(rawQuery) {

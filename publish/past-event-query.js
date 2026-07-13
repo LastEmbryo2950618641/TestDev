@@ -84,7 +84,7 @@ window.GameModules.pastEventQuery = {
       if (!memory) return;
       const pools = [['刚发生记忆', memory.shortTerm?.recent], ['归纳中记忆', memory.shortTerm?.summaryBuffer], ['近发生记忆', memory.shortTerm?.summarized], ['遗忘区记忆', memory.shortTerm?.forgotten], ['难忘记忆', memory.longTerm?.vivid], ['永久记忆', memory.longTerm?.permanent]];
       pools.forEach(([name, list]) => (list || []).forEach((item) => rows.push(this.row(`${name}:${id}`, item.summary || item.id, item.time?.label, `${item.summary || ''}\n${item.text || ''}`, item))));
-      (window.GameModules.sqliteSave?.listMemoryArchives?.(id) || []).forEach((item) => rows.push(this.row(`记忆归档:${id}`, item.meta?.summary || item.id, item.meta?.time || item.createdAt, item.text || item.meta?.summary || '', item)));
+      (window.GameModules.characterMemoryStore?.listArchives?.(id) || []).forEach((item) => rows.push(this.row(`记忆归档:${id}`, item.meta?.summary || item.id, item.meta?.time || item.createdAt, item.text || item.meta?.summary || '', item)));
     });
     return rows;
   },
