@@ -23,6 +23,7 @@ async function writeLaunchArtifact(artifactPath, result) {
 
 export async function attemptDesktopElectronRealLaunch(options = {}, target = globalThis) {
   const enabled = options.enabled === true;
+  const keepOpen = options.keepOpen === true;
   const rendererLoadTimeoutMs = Math.max(1000, Number(options.rendererLoadTimeoutMs) || 15000);
   const artifactPath = resolveArtifactPath(options);
   const adapter = await createOptionalElectronApiAdapter();
@@ -133,7 +134,7 @@ export async function attemptDesktopElectronRealLaunch(options = {}, target = gl
   await writeLaunchArtifact(artifactPath, result);
 
   try {
-    if (browserWindow && !browserWindow.isDestroyed()) {
+    if (!keepOpen && browserWindow && !browserWindow.isDestroyed()) {
       browserWindow.destroy();
     }
   } catch (_error) {

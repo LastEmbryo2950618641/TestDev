@@ -145,13 +145,20 @@ export async function bootstrapElectronRuntime(target = globalThis) {
   };
 }
 
+export function shouldLaunchDesktopWindow(target = process) {
+  return Boolean(target?.versions?.electron);
+}
+
 const isElectronHostEntry = process.argv.includes('--codex-electron-launch');
 
-if (isElectronHostEntry) {
-  const result = await attemptDesktopElectronRealLaunch({ enabled: true });
-  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+if (shouldLaunchDesktopWindow()) {
+  const result = await attemptDesktopElectronRealLaunch({
+    enabled: true,
+    keepOpen: !isElectronHostEntry,
+  });
+  if (isElectronHostEntry) process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   const adapter = await createOptionalElectronApiAdapter();
-  if (adapter.available && typeof adapter.app?.quit === 'function') {
+  if (isElectronHostEntry && adapter.available && typeof adapter.app?.quit === 'function') {
     await adapter.app.quit();
   }
 }

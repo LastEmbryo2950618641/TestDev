@@ -31,7 +31,8 @@
                     "verify:shell":  "node electron-shell-verify.js",
                     "verify:binary-probe":  "node electron-binary-probe-verify.js",
                     "verify:optional-live":  "node electron-optional-live-executor-verify.js",
-                    "verify:electron-dist-state":  "node desktop-packaging-electron-dist-state.cli.js"
+                    "verify:electron-dist-state":  "node desktop-packaging-electron-dist-state.cli.js",
+                    "verify:packaged-startup":  "node electron-packaged-startup-verify.js"
                 },
     "devDependencies":  {
                             "electron":  "^36.9.5",
