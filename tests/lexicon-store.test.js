@@ -86,7 +86,7 @@ async function run() {
       },
     },
   });
-  vm.runInContext(fs.readFileSync(path.join(root, 'publish/sqlite-world.js'), 'utf8'), sqliteContext, { filename: 'sqlite-world.js' });
+  vm.runInContext(fs.readFileSync(path.join(root, 'publish/platform/storage/sqlite/world.js'), 'utf8'), sqliteContext, { filename: 'platform/storage/sqlite/world.js' });
   await sqliteContext.window.GameModules.sqliteSave.saveLexiconEntries([
     { worldTag: 'world-a', kind: 'item', name: 'one', source: 'test' },
     { worldTag: 'world-a', kind: 'item', name: 'two', source: 'test' },

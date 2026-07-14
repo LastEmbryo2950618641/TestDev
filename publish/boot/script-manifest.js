@@ -35,11 +35,11 @@ window.GameScriptManifest = {
       "prompts/pen_style/spring-heart.js",
       "metrics.js",
       "ui/critical-action/metric-view-helpers.js",
-      "sqlite-save.js",
-      "sqlite-world.js",
-      "sqlite-worldline.js",
-      "sqlite-memory.js",
-      "sqlite-real-world-log.js",
+      "platform/storage/sqlite/save.js",
+      "platform/storage/sqlite/world.js",
+      "platform/storage/sqlite/worldline.js",
+      "platform/storage/sqlite/memory.js",
+      "platform/storage/sqlite/real-world-log.js",
       "json-utils.js",
       "local-settings.js",
       "ui-theme-actions.js",
@@ -431,7 +431,7 @@ window.GameScriptManifest = {
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-13T19:45:41.269Z",
+  "generatedAt": "2026-07-13T20:01:40.360Z",
   "total": 419
 };
 

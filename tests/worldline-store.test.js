@@ -73,7 +73,7 @@ const sqliteContext = vm.createContext({
     },
   },
 });
-vm.runInContext(fs.readFileSync(path.join(root, 'publish/sqlite-worldline.js'), 'utf8'), sqliteContext, { filename: 'sqlite-worldline.js' });
+vm.runInContext(fs.readFileSync(path.join(root, 'publish/platform/storage/sqlite/worldline.js'), 'utf8'), sqliteContext, { filename: 'platform/storage/sqlite/worldline.js' });
 const persistedEvents = sqliteContext.window.GameModules.sqliteSave.listWorldlineEvents('world-a');
 assert.deepStrictEqual(JSON.parse(JSON.stringify(persistedEvents)), [{ eventId: 'event-1' }, { eventId: 'event-2' }]);
 assert.match(eventQuery, /WHERE world_tag=\? ORDER BY updated_at/u);

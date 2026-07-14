@@ -55,11 +55,11 @@ function bundlePathToPublish(relPath) {
     'ai/ai-provider-deepseek.js': 'ai-provider-deepseek.js',
     'ai/ai-request.js': 'ai-request.js',
     'ai/ai-lexicon.js': 'ai-lexicon.js',
-    'database/sqlite-save.js': 'sqlite-save.js',
-    'database/sqlite-world.js': 'sqlite-world.js',
-    'database/sqlite-worldline.js': 'sqlite-worldline.js',
-    'database/sqlite-memory.js': 'sqlite-memory.js',
-    'database/sqlite-real-world-log.js': 'sqlite-real-world-log.js',
+    'database/sqlite-save.js': 'platform/storage/sqlite/save.js',
+    'database/sqlite-world.js': 'platform/storage/sqlite/world.js',
+    'database/sqlite-worldline.js': 'platform/storage/sqlite/worldline.js',
+    'database/sqlite-memory.js': 'platform/storage/sqlite/memory.js',
+    'database/sqlite-real-world-log.js': 'platform/storage/sqlite/real-world-log.js',
     'features/settings/settings-actions.js': 'settings-actions.js',
   };
   if (explicit[relPath]) return explicit[relPath];
