@@ -2594,6 +2594,7 @@
       </header>
       <main class="wechat-body">
         <section class="wechat-list-page" x-show="$store.game.wechatView === 'home' && $store.game.wechatTab === 'chats'">
+          <p class="wechat-empty" x-show="!$store.game.wechatThreads().length">暂无聊天</p>
           <template x-for="thread in $store.game.wechatThreads()" :key="thread.id">
             <button class="wechat-thread" type="button" @pointerdown.stop @click.stop="$store.game.selectWechatContact(thread.id)"><span class="wechat-avatar" :style="$store.game.wechatAvatarStyle(thread)" x-text="$store.game.wechatAvatarText(thread)"></span><span><b x-text="thread.name"></b><small x-text="thread.latest"></small></span><em x-show="thread.unread" x-text="thread.unread"></em></button>
           </template>

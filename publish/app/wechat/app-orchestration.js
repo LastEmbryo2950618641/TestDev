@@ -13,10 +13,12 @@ window.GameModules.app.wechat.appOrchestration = {
     if (this.skillsState) this.skillsState.open = false;
     if (this.knownProfessionState) this.knownProfessionState.open = false;
     if (this.promptState) this.promptState.open = false; if (this.tokenStatsState) this.tokenStatsState.open = false;
+    const validTabs = new Set(['chats', 'contacts', 'me']);
+    const validViews = new Set(['home', 'chat', 'profile']);
+    if (!validTabs.has(this.wechatTab)) this.wechatTab = 'chats';
+    if (!validViews.has(this.wechatView)) this.wechatView = 'home';
     this.wechatAppOpen = true; this.desktopUnlocked = true;
     if (this.syncWechatContactsFromRpgStates?.()) this.save?.();
-    this.wechatTab = this.wechatTab || 'chats';
-    this.wechatView = this.wechatView || 'home';
     setTimeout(() => this.debugWechatMemory?.(), 0);
   },
 

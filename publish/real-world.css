@@ -485,16 +485,21 @@
 
 .real-world-free-input {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto 42px;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
   min-width: 0;
 }
 
 .real-world-command-icon {
-  width: 34px;
-  height: 34px;
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  margin-left: 6px;
   border: 1px solid rgba(116, 246, 255, .22);
   border-radius: 10px;
   background: rgba(116, 246, 255, .08);
@@ -503,12 +508,18 @@
 }
 
 .real-world-free-input input {
+  grid-column: 1;
+  grid-row: 1;
   min-width: 0;
+  padding-left: 44px;
   border-color: rgba(255, 211, 126, .18);
   background: rgba(3, 8, 20, .78);
 }
 
 .real-world-free-input > button:not(.real-world-phone-action) {
+  grid-column: 2;
+  grid-row: 1;
+  width: auto;
   min-width: 74px;
   padding: 0 10px;
   border-color: rgba(255, 211, 126, .34);
@@ -518,7 +529,7 @@
 
 .real-world-free-input > .real-world-phone-action {
   display: grid;
-  grid-column: auto;
+  grid-column: 3;
   grid-row: 1;
   justify-self: end;
   width: 42px;
@@ -814,13 +825,18 @@
   }
 
   .real-world-free-input {
-    grid-template-columns: 30px minmax(0, 1fr) 68px 38px;
+    grid-template-columns: minmax(0, 1fr) 68px 38px;
     gap: 6px;
   }
 
   .real-world-command-icon {
-    width: 30px;
-    height: 34px;
+    width: 28px;
+    height: 30px;
+    margin-left: 5px;
+  }
+
+  .real-world-free-input input {
+    padding-left: 38px;
   }
 
   .real-world-free-input > button:not(.real-world-phone-action) {

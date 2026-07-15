@@ -11,6 +11,15 @@
   gap: 5px;
 }
 
+.real-world-free-input {
+  display: grid;
+}
+
+.real-world-free-input input,
+.real-world-free-input button {
+  flex: initial;
+}
+
 .toggle-btn {
   flex: 1;
   background: rgba(255, 255, 255, .08);
