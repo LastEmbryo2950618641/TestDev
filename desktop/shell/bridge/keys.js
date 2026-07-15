@@ -37,11 +37,32 @@ export const desktopKeysBridge = {
     };
   },
 
+  async readTextFile(filePath, target = globalThis) {
+    const channel = this.channel(target);
+    if (!channel) throw notImplemented('readTextFile', channel);
+    const bridge = target?.electron?.storage || target?.nativeBridge?.storage || target?.tauri?.storage || null;
+    if (typeof bridge?.readRaw === 'function') {
+      const raw = await bridge.readRaw(filePath);
+      return raw == null ? '' : String(raw);
+    }
+    if (typeof bridge?.readText === 'function') {
+      const text = await bridge.readText(filePath);
+      return text == null ? '' : String(text);
+    }
+    throw notImplemented('readTextFile', channel);
+  },
+
   async readDeepseekKey(target = globalThis) {
-    throw notImplemented('readDeepseekKey', this.channel(target));
+    const value = await this.readTextFile('deepseek_key.txt', target);
+    return String(value || '').trim();
   },
 
   async readPixaiKey(target = globalThis) {
-    throw notImplemented('readPixaiKey', this.channel(target));
+    const candidates = ['pixatart_key.txt', 'pixai_key.txt'];
+    for (const candidate of candidates) {
+      const value = String(await this.readTextFile(candidate, target) || '').trim();
+      if (value) return value;
+    }
+    return '';
   },
 };

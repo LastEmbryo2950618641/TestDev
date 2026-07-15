@@ -1,8 +1,7 @@
 window.GameScriptManifest = {
-  "version": "2026-07-10-shared-control-offline-v1",
+  "version": "2026-07-15-body-figure-static-v1",
   "chunks": {
     "core": [
-      "https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js",
       "config.js",
       "boot-manifest.js",
       "asset-loader.js",
@@ -85,6 +84,7 @@ window.GameScriptManifest = {
       "character-query.js",
       "past-event-query.js",
       "body-silhouette.js",
+      "assets/body-figures/index.js",
       "body-figure.js",
       "rpg-field-ui.js",
       "progression-combat.js",
@@ -258,9 +258,11 @@ window.GameScriptManifest = {
       "current-world-actions.js",
       "ui/real-world/map-stage-view-helpers.js",
       "ui/calendar/view-helpers.js",
+      "event-system.js",
       "ui/event/panel-view-helpers.js",
       "ui/event/label-view-helpers.js",
       "ui/event/view-helpers.js",
+      "event-actions.js",
       "ui/faction/overview-view-helpers.js"
     ],
     "gameplay": [
@@ -393,8 +395,6 @@ window.GameScriptManifest = {
       "boss-ai-actions.js",
       "calendar-system.js",
       "calendar-actions.js",
-      "event-system.js",
-      "event-actions.js",
       "faction-system.js",
       "faction-archive.js",
       "faction-archive-actions.js",
@@ -438,7 +438,7 @@ window.GameScriptManifest = {
 window.GameScriptManifest.classify = function classify(url) {
   const p = String(url || '').replace(/^\.\//, '').toLowerCase();
   if (/^https?:\/\//.test(p)) return 'core';
-  // 手机激活 / 身份补全 / 玩家卡生成在 core 启动后就会调用，须与 __game-core.js 一致随 core 加载
+  // 閹靛婧€濠碘偓濞?/ 闊偂鍞ょ悰銉ュ弿 / 閻溾晛顔嶉崡锛勬晸閹存劕婀?core 閸氼垰濮╅崥搴℃皑娴兼俺鐨熼悽顭掔礉妞よ绗?__game-core.js 娑撯偓閼锋挳娈?core 閸旂姾娴?
   if (/^prompt-fallback\.js$|^prompt-templates\.js$|^prompt-skills\.js$|^prompt-sections\.js$/.test(p)) return 'core';
   if (/(^|\/)wechat|player-wechat-setup|real-world-agent-wechat|prompts\/wechat|wechat-album-photo/.test(p)) return 'wechat';
   if (/^(company-|boss-|calendar-|event-|faction-|skills-|skill-|known-profession-|taobao-|prompt-actions|token-stats|alert-log|faction-membership|role-card-json-app\/)/.test(p)) return 'apps';

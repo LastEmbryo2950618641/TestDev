@@ -96,6 +96,13 @@ window.GameModules.resultActions = {
   },
 
   loadMetricsFromCharacterState(state = this.characterRpgState) {
+    if (!state) {
+      window.GameModules.metrics.ensure?.(this);
+      this.metricNotes = { ...(this.metricNotes || {}) };
+      this.metricsReady = true;
+      this.syncMetricDerived();
+      return;
+    }
     const metrics = this.ensureStateMetrics(state);
     this.emotions = { ...metrics.emotions };
     this.playerFeelings = { ...metrics.playerFeelings };

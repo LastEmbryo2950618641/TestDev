@@ -198,3 +198,4 @@
     actions.completePlayerSetup.predefinedRoleCardGuard = true;
   }
 })();
+

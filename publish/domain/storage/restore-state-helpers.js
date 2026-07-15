@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 window.GameModules.domain = window.GameModules.domain || {};
 window.GameModules.domain.storage = window.GameModules.domain.storage || {};
 
@@ -139,6 +139,7 @@ window.GameModules.domain.storage.restoreStateHelpers = {
     store.ensureAiOutputLimitSettings?.();
     store.modelId = store.settingsState.textModelId || store.modelId;
     window.GameModules.localSettings?.ensureActivationTextModels?.(store);
+    window.GameModules.rootKeyAutofill?.scheduleApply?.(store);
   },
 
   normalizeControlExperienceConfigState(store, save) {
@@ -160,3 +161,5 @@ window.GameModules.domain.storage.restoreStateHelpers = {
     store.controlExperienceConfigState.previewItems = window.GameModules.controlExperienceConfigApp?.controlExperiencePreviewItems?.(store.controlExperienceConfigState) || [];
   },
 };
+
+

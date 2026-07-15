@@ -1,7 +1,7 @@
-try {
+﻿try {
   window.parent?.postMessage?.('iframe:content-ready', '*');
 } catch (err) {
-  console.warn('平台就绪通知失败:', err.message);
+  console.warn('骞冲彴灏辩华閫氱煡澶辫触:', err.message);
 }
 
 const dzmmReady = new Promise((resolve) => {
@@ -126,6 +126,12 @@ function registerGameStore() {
         })),
       };
     },
+    roleCardLoadingSummary() { return window.GameModules.ui.loading.progressView.roleCardLoadingSummary.call(this); },
+    roleCardLoadingProgressText() { return window.GameModules.ui.loading.progressView.roleCardLoadingProgressText.call(this); },
+    roleCardLoadingProgressPercent() { return window.GameModules.ui.loading.progressView.roleCardLoadingProgressPercent.call(this); },
+    roleCardLoadingCardProgress(card = {}) { return window.GameModules.ui.loading.progressView.roleCardLoadingCardProgress.call(this, card); },
+    roleCardLoadingStepProgress(step = {}) { return window.GameModules.ui.loading.progressView.roleCardLoadingStepProgress.call(this, step); },
+    roleCardLoadingStatusText(status = '') { return window.GameModules.ui.loading.progressView.roleCardLoadingStatusText.call(this, status); },
     memoryStatus(kind = 'shortTerm') {
       return kind === 'longTerm' ? 'Long-term memory is temporarily simplified.' : 'Short-term memory is temporarily simplified.';
     },
@@ -158,6 +164,21 @@ function registerGameStore() {
     wechatImageMentionSources() { return []; },
     wechatAlbumPromptList() { return []; },
     wechatAlbumPromptOptions() { return { identity: [], body: [] }; },
+    eventRandomProbability() { return Math.max(0, Math.min(100, Math.round(Number(this.eventState?.randomProbability ?? 10) || 0))); },
+    eventTypeTabs() {
+      return [
+        { type: 'random', label: '随机事件', count: 0 },
+        { type: 'inference', label: '推演事件', count: 0 },
+        { type: 'periodic', label: '周期事件', count: 0 },
+      ];
+    },
+    currentEventList() { return []; },
+    selectedEvent() { return null; },
+    eventName(event = {}) { return event.title || event.name || '未命名事件'; },
+    eventMeta(event = {}) { return event.type || ''; },
+    eventStatusLabel(event = {}) { return event.status || '未开始'; },
+    setEventTab(type = 'random') { this.eventState = { ...(this.eventState || {}), tab: type }; },
+    setEventRandomProbability(value = 10) { this.eventState = { ...(this.eventState || {}), randomProbability: Math.max(0, Math.min(100, Math.round(Number(value) || 0))) }; },
     wechatAlbumKindLabel(kind = '') { return kind === 'dressed' ? '盛装状态' : kind === 'custom' ? '自定义状态' : '自然状态'; },
     wechatAlbumSelectedPrompt() { return null; },
     wechatAlbumPromptListPreview() { return ''; },
@@ -526,9 +547,34 @@ function registerGameStore() {
   };
   const modules = [
     criticalActionFallback, gm.actions, gm.rpgFieldUi, gm.resultActions, gm.loadingActions, gm.roleCardLoadingActions, gm.solidifyActions, gm.wearingSyncActions, gm.saveActions, gm.styleActions,
-    gm.worldlineActions, gm.predefinedRoleCardActions, gm.homeActions, gm.playerSetupActions, gm.playerAspirationActions, gm.playerIdentityActions, gm.rpgActions, gm.identityMemoryActions, gm.identityAppActions, gm.memoryQueryActions, gm.wechatActions, gm.wechatViewActions, gm.wechatMemoryContextActions, gm.wechatChatActions, gm.wechatIncomingActions, gm.wechatImageActions, gm.wechatMentionActions, gm.wechatWorldlineActions, gm.wechatMemoryDebugActions, gm.wechatAppActions, gm.wechatAlbumTagActions, gm.wechatAlbumPromptListActions, gm.wechatAvatarCropActions, gm.wechatAlbumActions, gm.wechatChangePanelActions, gm.controlEntryActions, gm.entryActions, gm.realWorldClockActions,
+    gm.worldlineActions, gm.domain?.worldline?.stateService, gm.predefinedRoleCardActions, gm.homeActions, gm.playerSetupActions, gm.playerAspirationActions, gm.playerIdentityActions, gm.rpgActions, gm.identityMemoryActions, gm.identityAppActions, gm.memoryQueryActions, gm.wechatActions, gm.wechatViewActions, gm.wechatMemoryContextActions, gm.wechatChatActions, gm.wechatIncomingActions, gm.wechatImageActions, gm.wechatMentionActions, gm.wechatWorldlineActions, gm.wechatMemoryDebugActions, gm.wechatAppActions, gm.wechatAlbumTagActions, gm.wechatAlbumPromptListActions, gm.wechatAvatarCropActions, gm.wechatAlbumActions, gm.wechatChangePanelActions, gm.controlEntryActions, gm.entryActions, gm.realWorldClockActions,
     gm.catalogActions, gm.coreActions, gm.controlState, gm.controlLinkActions, gm.appSwitchActions, gm.currentWorldActions, gm.inventoryActions, gm.inventoryEquipActions, gm.itemSkillActions, gm.realWorldStreamActions, gm.realWorldThinkingActions, gm.realWorldSettlementActions, gm.realWorldUtilityActions, gm.realWorldActions, gm.realWorldLongingActions, gm.realWorldMapActions, gm.realWorldFactionActions, gm.realWorldMatterActions, gm.companyActions, gm.companyAttendanceActions, gm.companyFactionActions,
     gm.bossActions, gm.bossAppointmentActions, gm.bossAiActions, gm.calendarActions, gm.eventActions, gm.factionActions, gm.factionArchiveActions, gm.factionOrgActions, gm.factionAiActions, gm.factionMembershipActions, gm.skillsActions, gm.knownProfessionActions, gm.taobaoActions, gm.taobaoGenerateActions, gm.taobaoBuyActions, gm.promptActions, gm.controlExperienceConfigApp, gm.settingsActions, gm.systemTestActions, gm.tokenStatsActions, gm.uiThemeActions, gm.roleCardJsonApp?.actions,
+    {
+      openWechatApp(...args) {
+        const fn = window.GameModules.app?.wechat?.appOrchestration?.openWechatApp;
+        if (typeof fn === 'function') return fn.call(this, ...args);
+        this.closeDesktopApps?.();
+        this.wechatAppOpen = true;
+        this.desktopUnlocked = true;
+        return undefined;
+      },
+      closeWechatApp() {
+        const fn = window.GameModules.app?.wechat?.appOrchestration?.closeWechatApp;
+        if (typeof fn === 'function') return fn.call(this);
+        return this.closeAppToDesktop?.();
+      },
+      async openWechatIdentity(...args) {
+        const fn = window.GameModules.app?.wechat?.appOrchestration?.openWechatIdentity;
+        if (typeof fn === 'function') return fn.call(this, ...args);
+        return this.openIdentityApp?.('player-self', 'wechat');
+      },
+      parentFallbackLabel(kind = '') {
+        if (kind === 'independent') return '独立组织';
+        if (kind === 'unknown') return '未知势力';
+        return '无势力归属';
+      },
+    },
   ].map((module) => module || {});
 
   Alpine.store('game', {
@@ -650,6 +696,7 @@ function registerGameStore() {
 
     get character() {
       const list = Array.isArray(this.characters) ? this.characters : [];
+      if (this.selectedCharacterId === 'player-self') return this.playerDisplayCharacter?.() || this.playerCharacterBase?.() || { id: 'player-self', name: this.playerName || 'player-self', work: this.selectedWork || '2026 现代都市现实世界', role: '玩家本人', isPlayer: true };
       const catalogCharacter = window.GameModules.catalog?.find?.(this.selectedCharacterId);
       if (catalogCharacter) return catalogCharacter;
       const fallbackCharacter = list.find((c) => c.id === this.selectedCharacterId) || list[0] || {};

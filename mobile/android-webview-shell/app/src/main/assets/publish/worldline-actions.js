@@ -51,8 +51,47 @@ window.GameModules.worldlineActions = {
     return callWorldlineStateService('loreWorldline', this, lore);
   },
 
+  timelineItems(lore) {
+    const worldline = this.loreWorldline(lore) || {};
+    const events = this.worldlineEventsNewestFirst(worldline.events || []).map((event, index) => ({ ...event, kind: 'event', order: index }));
+    const indexes = (worldline.storyIndexes || []).map((text, index) => ({ kind: 'story', order: events.length + index, time: '原著剧情', name: `剧情索引 ${index + 1}`, summary: text }));
+    return [...events, ...indexes];
+  },
+
   worldlinePlots(lore) {
     return callWorldlineQueryService('worldlinePlots', this, lore);
+  },
+
+  realWorldSummarizedPlots() {
+    return this.realWorldline().plots || [];
+  },
+
+  realWorldSelectedPlot() {
+    const plots = this.realWorldSummarizedPlots();
+    return plots.find((plot) => plot.情节编号 === this.selectedRealWorldPlotId) || plots[0] || null;
+  },
+
+  realWorldPlotEvents(plot = null) {
+    const selected = plot || this.realWorldSelectedPlot();
+    const id = selected?.情节编号 || '';
+    if (!id) return [];
+    const recordIds = String(selected?.重要记录编号 || '').split(/[、,，\s]+/).filter(Boolean);
+    return this.worldlineEventsNewestFirst(this.realWorldline().events || []).filter((event) => (event.plotId || event.summary) === id || recordIds.includes(event.eventId));
+  },
+
+  realWorldRecordingEvents() {
+    const ids = this.realWorldline().pendingPlot?.recordIds || [];
+    if (!ids.length) return [];
+    return this.worldlineEventsNewestFirst(this.realWorldline().events || []).filter((event) => ids.includes(event.eventId));
+  },
+
+  timelineMeta(item) {
+    const parts = [];
+    if (item.status) parts.push(item.status);
+    if (item.kind === 'event' && (item.plotId || item.summary)) parts.push(`情节:${item.plotId || item.summary}`);
+    if (item.storyIndexes?.length) parts.push(`剧情:${item.storyIndexes.join('、')}`);
+    if (item.factionIds?.length) parts.push(`势力:${item.factionIds.join('、')}`);
+    return parts.join('｜') || (item.kind === 'story' ? '原著剧情索引' : '世界线事件');
   },
 
   connectionWorldlineEvent(line = {}, context = '') {

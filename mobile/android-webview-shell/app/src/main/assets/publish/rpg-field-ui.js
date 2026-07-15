@@ -146,6 +146,74 @@ window.GameModules.rpgFieldUi = {
     return { ...(state || {}), id, name: profile.name, worldTag: profile.work, profile, values: {} };
   },
 
+  rpgEntries(state = {}) {
+    const values = state?.values || {};
+    const profile = state?.profile || {};
+    const stateId = state?.id || profile.id || this.identityTargetId || 'player-self';
+    const labels = {
+      world_tag: '世界',
+      age: '年龄',
+      current_location: '当前位置',
+      level: '等级',
+      exp: '经验',
+      free_attribute_points: '可分配属性点',
+      health: '生命力',
+      stamina: '体力',
+      vitality: '生命池',
+      stamina_pool: '体力池',
+      satiety: '饱食度',
+      hydration: '饮水度',
+      fatigue: '疲劳',
+      learning_ability: '学习能力',
+      mental_stability: '心智稳定',
+      growth_potential: '成长潜力',
+      action_ability: '行动能力',
+      strength: '力量',
+      agility: '敏捷',
+      constitution: '体质',
+      intelligence: '智力',
+      perception: '感知',
+      willpower: '意志',
+      charisma: '魅力',
+      knowledge: '知识',
+      skills: '技能',
+      professions: '职业',
+      factions: '社群角色',
+      memberships: '人事归属',
+      items: '物品',
+      wearing: '穿着',
+      status_tags: '状态标签',
+      control_experience: '上线体验',
+    };
+    const formatValue = (value) => {
+      if (Array.isArray(value)) return value;
+      if (value && typeof value === 'object') return this.rpgFieldValue?.(value) || JSON.stringify(value);
+      return value ?? '';
+    };
+    const field = (key, kind = '角色状态') => ({
+      key,
+      stateId,
+      label: labels[key] || key,
+      kind,
+      type: kind,
+      value: formatValue(values[key]),
+      raw: Array.isArray(values[key]) ? values[key] : values[key],
+      desc: profile.rpgFieldReasons?.[key] || profile.roleCardFieldReasons?.[labels[key]] || '',
+      reason: profile.rpgFieldReasons?.[key] || profile.roleCardFieldReasons?.[labels[key]] || '',
+      worldTag: values.world_tag || state.worldTag || profile.work || '',
+    });
+    const existing = (key) => Object.prototype.hasOwnProperty.call(values, key);
+    const take = (keys, kind) => keys.filter(existing).map((key) => field(key, kind));
+    return [
+      { title: '基础状态', fields: take(['world_tag', 'age', 'current_location', 'level', 'exp', 'free_attribute_points', 'health', 'stamina', 'vitality', 'stamina_pool', 'satiety', 'hydration', 'fatigue', 'learning_ability', 'mental_stability', 'growth_potential', 'action_ability', 'control_experience'], '基础状态') },
+      { title: '身内能力', fields: take(['strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma'], '身内能力') },
+      { title: '习得能力', fields: take(['knowledge', 'skills', 'professions'], '习得能力') },
+      { title: '关系归属', fields: take(['factions', 'memberships'], '身份归属') },
+      { title: '装备与物品', fields: take(['items', 'wearing'], '装备与物品') },
+      { title: '状态标签', fields: take(['status_tags'], '状态标签') },
+    ].filter((section) => section.fields.length);
+  },
+
   shouldShowEssentialPreferenceSection(displayState = {}) {
     try {
       return Boolean(this.essentialPreferenceViewForState?.(displayState));

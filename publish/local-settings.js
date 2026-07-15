@@ -14,12 +14,20 @@ window.GameModules.localSettings = {
     window.GameModules.platform.core.storage.localSettingsSource.write(this.STORAGE_KEY, patch);
   },
 
+  readGeneratedDeepseekKey() {
+    return String(window.GameModules.generatedKeys?.deepseekKey || '').trim();
+  },
+
+  readGeneratedPixaiKey() {
+    return String(window.GameModules.generatedKeys?.pixaiKey || '').trim();
+  },
+
   async fetchDeepseekKeyFromDevFile() {
-    return window.GameModules.platform?.core?.keys?.readDeepseekKey?.() || window.GameModules.platformKeySource?.readDeepseekKey?.() || '';
+    return this.readGeneratedDeepseekKey() || window.GameModules.platform?.core?.keys?.readDeepseekKey?.() || window.GameModules.platformKeySource?.readDeepseekKey?.() || '';
   },
 
   async fetchPixaiKeyFromDevFile() {
-    return window.GameModules.platform?.core?.keys?.readPixaiKey?.() || window.GameModules.platformKeySource?.readPixaiKey?.() || '';
+    return this.readGeneratedPixaiKey() || window.GameModules.platform?.core?.keys?.readPixaiKey?.() || window.GameModules.platformKeySource?.readPixaiKey?.() || '';
   },
 
   ensureSettingsDefaults(store) {
@@ -30,7 +38,7 @@ window.GameModules.localSettings = {
     s.textProvider = s.textProvider || cfg.textProviders?.defaultProvider || 'deepseek';
     s.deepseekBaseUrl = s.deepseekBaseUrl || cfg.textProviders?.deepseek?.baseUrl || 'https://api.deepseek.com';
     s.deepseekModel = s.deepseekModel || cfg.textProviders?.deepseek?.defaultModel || 'deepseek-v4-flash';
-    s.textModelId = s.textModelId || store.modelId || cfg.defaultModelId || 'nalang-turbo-0826';
+    s.textModelId = s.textModelId || store.modelId || cfg.textProviders?.deepseek?.defaultModel || cfg.defaultModelId || 'deepseek-v4-flash';
     if (!s.drawProvider || (!s.drawProviderExplicit && s.drawProvider === 'dzmm' && defaultDrawProvider === 'pixai')) {
       s.drawProvider = defaultDrawProvider;
     }

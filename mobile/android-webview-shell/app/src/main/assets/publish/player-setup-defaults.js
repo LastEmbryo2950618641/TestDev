@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 window.GameModules.playerSetupActions = window.GameModules.playerSetupActions || {};
 Object.assign(window.GameModules.playerSetupActions, {
   defaultProfileData() {
@@ -131,14 +131,26 @@ Object.assign(window.GameModules.playerSetupActions, {
       this.phoneFixedTime = new Date(this.playerProfile.initializedAt).getTime();
       this.refreshPhoneClockLabels?.();
       await this.syncPlayerProfileLexicon?.();
-      this.playerName = name; this.phoneActivationChoice = ''; this.phoneSetupDone = true; this.desktopUnlocked = false;
+      this.playerName = name;
+      this.phoneActivationChoice = '';
+      this.phoneSetupDone = true;
+      this.homeScreenView = 'playing';
+      this.started = false;
+      this.desktopUnlocked = false;
+      this.aspirationSetupOpen = false;
+      this.selectedWork = String(window.GameModules.realWorld2026?.label || this.selectedWork || '2026 现代都市现实世界').trim();
+      this.selectedCharacterId = 'player-self';
+      this.identityTargetId = 'player-self';
+      this.rpgPanelCharacterId = 'player-self';
       await window.GameModules.predefinedRoleCards.saveSelectedRoleCardStates(this);
       await this.syncKnownProfessionsFromProfile?.(this.playerProfile.knownProfessions);
       await this.save?.();
-      this.finishActivationFlow?.();
     } catch (err) {
       console.error('[玩家身份] 激活失败:', err.code, err.message, err.stack);
       this.setupError = err.message || '激活失败';
+      this.homeScreenView = 'new-game';
+      this.phoneActivationChoice = 'existing';
+      this.phoneSetupDone = false;
     } finally {
       this.profileSetupBusy = false;
     }

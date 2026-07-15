@@ -2,7 +2,7 @@
   "name": "testdev-packaging-root",
   "private": true,
   "scripts": {
-    "android:sync-assets": "node dev/scripts/sync-android-assets.cjs",
+    "android:sync-assets": "npm run generate:root-key-js && node dev/scripts/sync-android-assets.cjs",
     "verify:assets": "node dev/scripts/verify-platform-assets.cjs",
     "verify:repo-boundaries": "node dev/scripts/verify-repository-boundaries.cjs",
     "verify:runtime-coverage": "node dev/scripts/verify-runtime-module-coverage.cjs",
@@ -58,7 +58,8 @@
     "verify:web": "npm run validate:control:file && npm run validate:control:http",
     "verify:android": "npm run verify:android:apk-assets",
     "verify:desktop": "npm run verify:desktop:package",
-    "verify:multi-platform": "npm run verify:shared && npm run verify:web && npm run verify:android && npm run verify:desktop"
+    "verify:multi-platform": "npm run verify:shared && npm run verify:web && npm run verify:android && npm run verify:desktop",
+    "generate:root-key-js": "node dev/scripts/generate-root-key-js.cjs"
   },
   "workspaces": [
     "desktop/shell"

@@ -106,6 +106,14 @@ window.GameModules.rpgState = {
     const tool = window.GameModules.characterProfile;
     const before = JSON.stringify(state.profile.rpgFieldReasons || {});
     state.profile.worldAttributes = state.profile.worldAttributes || { fields: (state.schema?.sections || []).flatMap((section) => section.fields || []) };
+    const keys = tool.rpgFieldReasonKeys?.(state.profile.worldAttributes) || [];
+    const fallback = window.GameModules.characterReasonFallback?.rpgReasons?.(state.profile, state.profile.worldAttributes) || {};
+    const name = state.profile.name || state.name || state.id || '角色';
+    state.profile.rpgFieldReasons = state.profile.rpgFieldReasons || {};
+    keys.forEach((key) => {
+      if (tool.validRpgReasonText?.(state.profile.rpgFieldReasons[key])) return;
+      state.profile.rpgFieldReasons[key] = String(fallback[key] || `${name}的${key}由预定义角色卡资料初始化。`).slice(0, 120);
+    });
     state.profile.rpgFieldReasons = tool.requireRpgFieldReasons(state.profile, state.profile.worldAttributes, state.profile.name || state.name || state.id);
     return before !== JSON.stringify(state.profile.rpgFieldReasons || {});
   },

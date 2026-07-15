@@ -173,7 +173,7 @@ window.GameModules.settingsActions = {
     return providerPreferred.find((id) => ids.includes(id))
       || (config.preferredTextModelIds || []).find((id) => ids.includes(id))
       || window.GameModules.aiProvider?.providerDefaultModel?.(providerId)
-      || (providerId === 'deepseek' ? 'deepseek-v4-flash' : config.defaultModelId || 'nalang-turbo-0826');
+      || (providerId === 'deepseek' ? 'deepseek-v4-flash' : config.defaultModelId || 'deepseek-v4-flash');
   },
 
   enrichTextModelsWithThinking(result = {}) {
@@ -199,7 +199,7 @@ window.GameModules.settingsActions = {
       ];
     }
     return [
-      { internalName: 'nalang-turbo-0826', displayName: '快速经济 0826', description: '默认备用文本模型', thinkingSupported: false },
+      { internalName: 'deepseek-v4-flash', displayName: 'DeepSeek V4 Flash', description: 'DeepSeek 默认备用文本模型', thinkingSupported: false },
       { internalName: 'nalang-medium-0826', displayName: '均衡性能', description: '默认备用文本模型', thinkingSupported: false },
     ];
   },
@@ -211,7 +211,7 @@ window.GameModules.settingsActions = {
       const hasCurrent = current && recommended.some((model) => model.id === current);
       return [
         ...recommended,
-        ...(current ? [{ id: current, displayName: PixAI , description: '当前填写的 modelVersionId' }] : []),
+        ...(current ? [{ id: current, displayName: `PixAI ${current}`, description: '当前填写的 modelVersionId' }] : []),
         { id: 'custom', displayName: '自定义 PixAI modelVersionId', description: '填写模型页面 URL 的最后一段' },
       ];
     }
@@ -243,7 +243,7 @@ window.GameModules.settingsActions = {
     if (providerId !== 'pixai') return models;
     const current = String(this.settingsState?.pixaiModelVersionId || '').trim();
     if (!current || models.some((model) => model?.id === current)) return models;
-    return [{ id: current, displayName: `PixAI ${current}`, description: '褰撳墠濉啓鐨?modelVersionId' }, ...models];
+    return [{ id: current, displayName: `PixAI ${current}`, description: '当前填写的 modelVersionId' }, ...models];
   },
 
   ensureSelectedDrawModel(providerId = this.settingsState?.drawProvider || 'pixai', defaultModel = '') {

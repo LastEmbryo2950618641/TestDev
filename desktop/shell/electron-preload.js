@@ -55,6 +55,16 @@ export function createElectronPreloadFullExposePayload(target = globalThis, opti
   return {
     ...preloadPayload,
     storage: createElectronStorageExposePayload(options),
+    keys: {
+      async readDeepseekKey() {
+        const { desktopKeysBridge } = await import('./bridge/keys.js');
+        return desktopKeysBridge.readDeepseekKey(target);
+      },
+      async readPixaiKey() {
+        const { desktopKeysBridge } = await import('./bridge/keys.js');
+        return desktopKeysBridge.readPixaiKey(target);
+      },
+    },
   };
 }
 

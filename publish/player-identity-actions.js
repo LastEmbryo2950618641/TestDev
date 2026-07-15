@@ -95,6 +95,89 @@ window.GameModules.playerIdentityActions = {
     return this.identityTargetState()?.profile || (id === this.character.id ? this.character : { name: 'unknown-character', work: 'unknown-world', role: 'unknown-role', detail: 'no role card yet', personality: '', pendingAiProfile: true });
   },
 
+  identityTargetFields() {
+    const p = this.identityTargetProfile();
+    const worldTag = p.work || this.identityTargetState()?.worldTag || '原创世界';
+    const reasonFor = this.roleCardReasonGetter?.(p) || (() => '');
+    const row = (key, label, value, desc, extra = {}) => ({ key: `id-${this.identityTargetId || 'player-self'}-${key}`, stateId: this.identityTargetId || 'player-self', label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: '角色', commonField: true, ...extra });
+    const fields = [
+      row('name', '姓名', p.name, '角色卡固化姓名。'),
+      row('work', '所属世界', worldTag, '角色出身作品或世界。'),
+      row('role', '身份', p.role, '角色卡固化身份。'),
+      row('appearance', '外貌', p.appearance, '角色卡固化外貌。'),
+      row('preferences', '喜好', p.preferences, '角色稳定喜好和穿着偏好。'),
+      row('personality', '性格', p.personality, '角色卡固化性格。'),
+      row('job', '职业', p.job, '角色真实职业、训练身份或社会功能。'),
+    ];
+    const prefTool = window.GameModules.playerAspirationPreferenceLayers;
+    const layerSource = this.essentialPreferenceLayersForState?.(this.identityTargetState());
+    if (layerSource) prefTool?.toLines?.(layerSource).forEach((line, index) => {
+      const label = line.split(':')[0]?.trim() || '本质偏好';
+      const desc = (this.identityTargetId || 'player-self') === 'player-self'
+        ? '玩家本质偏好层；仅玩家可在人生取向向导中修改，推演不可更改。'
+        : '角色本质偏好五层；角色卡固化后永久不可被推演修改。';
+      fields.push(row(`pref-${index}`, label, line, desc, { profileGroup: '本质偏好', immutable: true }));
+    });
+    if ((this.identityTargetId || 'player-self') === 'player-self') {
+      fields.push(...(this.playerAspirationLexiconFields?.().filter((item) => !prefTool?.isImmutableFieldName?.(item.label)) || []));
+    }
+    return fields;
+  },
+
+  ensureIdentityMetricSources(targetId = '') {
+    const id = targetId || this.identityTargetId || 'player-self';
+    return this.rpgStates?.[id] || null;
+  },
+
+  playerMemory() { return window.GameModules.characterMemory.ensure('player-self'); },
+  playerMemoryItems(kind) {
+    const memory = this.playerMemory();
+    if (kind === 'shortTerm') return [...(memory.shortTerm?.recent || []), ...(memory.shortTerm?.summarized || [])];
+    if (kind === 'longTerm') return [...(memory.longTerm?.vivid || []), ...(memory.longTerm?.permanent || [])];
+    return [];
+  },
+  playerMemoryStatus(kind) {
+    const memory = this.playerMemory();
+    const m = window.GameModules.characterMemory;
+    if (kind === 'shortTerm') return [m.statLine('刚发生记忆', m.stats(memory.shortTerm?.recent || [], m.limits.recent)), m.statLine('近发生记忆', m.stats(memory.shortTerm?.summarized || [], m.limits.summarized)), m.statLine('遗忘区', m.stats(memory.shortTerm?.forgotten || [], m.limits.forgotten))].join('｜');
+    return [m.statLine('难以忘记', m.stats(memory.longTerm?.vivid || [], m.limits.vivid)), m.statLine('不可忘记', m.stats(memory.longTerm?.permanent || [], m.limits.permanent))].join('｜');
+  },
+  realWorldMemoryTargetId() {
+    return this.sharedControlState?.()?.id || 'player-self';
+  },
+  realWorldMemory() {
+    return window.GameModules.characterMemory.ensure(this.realWorldMemoryTargetId());
+  },
+  realWorldMemoryShortLabel() {
+    return ({ recent: '刚发生记忆', summarized: '近发生记忆', forgotten: '遗忘区' })[this.realWorldMemoryShortTab] || '刚发生记忆';
+  },
+  realWorldMemoryLongLabel() {
+    return ({ vivid: '难以忘记', permanent: '不可忘记' })[this.realWorldMemoryLongTab] || '难以忘记';
+  },
+  realWorldMemoryItems(kind) {
+    const memory = this.realWorldMemory();
+    if (kind === 'shortTerm') return memory.shortTerm?.[this.realWorldMemoryShortTab || 'recent'] || [];
+    if (kind === 'longTerm') return memory.longTerm?.[this.realWorldMemoryLongTab || 'vivid'] || [];
+    return [];
+  },
+  realWorldMemoryStatus(kind) {
+    const m = window.GameModules.characterMemory;
+    if (kind === 'shortTerm') return m.statLine(this.realWorldMemoryShortLabel(), m.stats(this.realWorldMemoryItems('shortTerm'), m.limits[this.realWorldMemoryShortTab || 'recent'] || m.limits.recent));
+    return m.statLine(this.realWorldMemoryLongLabel(), m.stats(this.realWorldMemoryItems('longTerm'), m.limits[this.realWorldMemoryLongTab || 'vivid'] || m.limits.vivid));
+  },
+  async addPlayerManualMemory() {
+    const text = (this.realWorldMemoryInput || '').trim();
+    if (!text) return;
+    const realStore = { ...this, sceneTitle: this.realWorldSceneTitle || '现实世界' };
+    await window.GameModules.characterMemory.addManual(this.realWorldMemoryTargetId(), text, realStore);
+    this.realWorldMemoryInput = '';
+  },
+  async searchPlayerMemoryArchive() {
+    const query = (this.realWorldMemoryArchiveQuery || '').trim();
+    if (!query) return;
+    this.realWorldMemoryArchiveResults = await window.GameModules.characterMemory.queryArchive(this.realWorldMemoryTargetId(), query);
+  },
+
   essentialPreferenceLayersForState(state = null) {
     try {
       const prefTool = window.GameModules.playerAspirationPreferenceLayers;

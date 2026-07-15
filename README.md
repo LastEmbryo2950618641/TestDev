@@ -39,6 +39,13 @@
   - 开发服务、辅助脚本、验证脚本、后续开发工具入口
   - 不承载具体玩法业务规则
 
+#### 已注册工具
+
+- `dev/scripts/generate-root-key-js.cjs`
+  - 将根目录的 `*.txt` 密钥文件生成同目录同名 `*.js` 运行时模块
+  - 约束：`txt` 与 `js` 必须同名并放在一起，例如 `deepseek_key.txt -> deepseek_key.js`
+  - 用途：让 Web / Windows / Android 三端都通过统一脚本加载链读取密钥文本结果，而不是各端单独直读本地文件
+
 ### 文档目录
 
 - `docs/`

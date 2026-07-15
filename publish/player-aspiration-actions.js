@@ -1,4 +1,4 @@
-window.GameModules = window.GameModules || {};
+﻿window.GameModules = window.GameModules || {};
 
 window.GameModules.playerAspirationActions = {
   defaultAspirationDraft() {
@@ -947,7 +947,7 @@ window.GameModules.playerAspirationActions = {
     const state = this.playerIdentityState?.();
     if (state?.profile) {
       tool.applyToProfile(state.profile, layers, { locked: true });
-      await window.GameModules.characterStateStore?.save?.(state);
+      await window.GameModules.sqliteSave?.saveCharacterState?.(state);
       this.rpgStates = { ...(this.rpgStates || {}), [state.id]: state };
     }
   },
@@ -1072,3 +1072,4 @@ window.GameModules.playerAspirationActions = {
     }
   },
 };
+

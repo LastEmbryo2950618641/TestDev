@@ -166,15 +166,15 @@ window.GameModules.storage = {
     window.GameModules.domain.storage.restoreStateHelpers.normalizeRealWorldState(store, save);
     window.GameModules.app.storage.restorePostFlow.applyNonFieldSideEffects.call(this, store);
     window.GameModules.domain.storage.restoreStateHelpers.normalizeAppPanelState(store, save);
-    if (!save.started) return false;
     window.GameModules.domain.storage.restoreStateHelpers.normalizeEntrySceneControlState(store, save);
+    window.GameModules.domain.storage.restoreStateHelpers.normalizeRpgPanelState(store, save);
+    if (!save.started) return false;
     window.GameModules.domain.storage.restoreStateHelpers.normalizeEmotionState(store, save);
     window.GameModules.domain.storage.restoreStateHelpers.normalizeMetricState(store, save);
     window.GameModules.metrics.ensure(store);
     window.GameModules.domain.storage.restoreStateHelpers.normalizeQuestIntentState(store, save);
     store.choices = save.choices || store.choices;
     store.log = save.log || store.log;
-    window.GameModules.domain.storage.restoreStateHelpers.normalizeRpgPanelState(store, save);
     store.started = true;
     return true;
   },

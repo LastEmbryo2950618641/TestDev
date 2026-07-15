@@ -1,5 +1,5 @@
-/**
- * SQLite 存档：每个 slot 一个 sqlite 数据库，序列化后写入 dzmm.kv/localStorage。
+﻿/**
+ * SQLite 瀛樻。锛氭瘡涓?slot 涓€涓?sqlite 鏁版嵁搴擄紝搴忓垪鍖栧悗鍐欏叆 dzmm.kv/localStorage銆?
  */
 window.GameModules = window.GameModules || {};
 
@@ -12,9 +12,18 @@ window.GameModules.sqliteSave = {
 
   async init() {
     if (this.SQL || this.fallback) return this.SQL;
+    if (window.location?.protocol === 'file:') {
+      this.fallback = true;
+      return null;
+    }
     try {
+      if (!window.initSqlJs && window.GameBoot?.loadScript) {
+        try {
+          await window.GameBoot.loadScript('https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js');
+        } catch (_) { /* ignore and fallback below */ }
+      }
       if (!window.initSqlJs) throw new Error('sql.js 未加载');
-      this.SQL = await window.initSqlJs({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/${f}` });
+      this.SQL = await window.initSqlJs({ locateFile: (f) => 'https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/' + f });
       return this.SQL;
     } catch (err) {
       console.warn('SQLite 初始化失败，改用基础 JSON 存档:', err.message, err.stack);
@@ -61,9 +70,9 @@ window.GameModules.sqliteSave = {
           const main = JSON.parse(String(row[0] || '{}'));
           playerName = String(main.playerName || main.playerProfile?.name || '').trim();
           phoneSetupDone = Boolean(main.phoneSetupDone);
-        } catch (_) { /* 忽略 */ }
+        } catch (_) { /* 蹇界暐 */ }
       }
-    } catch (_) { /* 忽略 */ }
+    } catch (_) { /* 蹇界暐 */ }
     db.close();
     return { slot, exists: true, savedAt, playerName, phoneSetupDone };
   },
@@ -92,7 +101,7 @@ window.GameModules.sqliteSave = {
     try {
       if (window.dzmm?.kv) return (await window.dzmm.kv.get(key))?.value || null;
     } catch (err) {
-      console.warn('SQLite 存档读取 KV 失败:', err.code, err.message);
+      console.warn('SQLite 瀛樻。璇诲彇 KV 澶辫触:', err.code, err.message);
     }
     return window.GameModules.platform.core.storage.sqliteSlotSource.read(key);
   },
@@ -105,14 +114,14 @@ window.GameModules.sqliteSave = {
         return;
       }
     } catch (err) {
-      console.warn('SQLite 存档写入 KV 失败:', err.code, err.message);
+      console.warn('SQLite 瀛樻。鍐欏叆 KV 澶辫触:', err.code, err.message);
     }
     window.GameModules.platform.core.storage.sqliteSlotSource.write(key, value);
   },
 
   async deleteSlot(slot) {
     const key = this.key(slot);
-    try { if (window.dzmm?.kv) await window.dzmm.kv.delete(key); } catch (_) { /* 忽略 */ }
+    try { if (window.dzmm?.kv) await window.dzmm.kv.delete(key); } catch (_) { /* 蹇界暐 */ }
     window.GameModules.platform.core.storage.sqliteSlotSource.remove(key);
   },
 
@@ -227,7 +236,7 @@ window.GameModules.sqliteSave = {
 
   realWorldAliases() {
     const label = window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
-    return [label, '2026 现代都市现实世界', '现代都市现实世界', '现实世界'];
+    return [label, '2026 现代都市现实世界', '现代都市现实世界', '现实世界', '2026 鐜颁唬閮藉競鐜板疄涓栫晫', '鐜颁唬閮藉競鐜板疄涓栫晫', '鐜板疄涓栫晫'];
   },
 
   normalizeQueryWorldTag(worldTag = '') {
@@ -269,7 +278,7 @@ window.GameModules.sqliteSave = {
 
 
   introKey(worldTag, name) {
-    return `${worldTag || '未知世界'}::${name || '未知角色'}`;
+    return `${worldTag || '鏈煡涓栫晫'}::${name || '鏈煡瑙掕壊'}`;
   },
 
   getCharacterIntro(name, worldTag = '') {
@@ -300,7 +309,7 @@ window.GameModules.sqliteSave = {
   async saveCharacterIntro(card) {
     if (!card?.name) return null;
     const now = new Date().toISOString();
-    const intro = { ...card, worldTag: this.normalizeQueryWorldTag(card.worldTag || card.work || '未知世界'), updatedAt: now, createdAt: card.createdAt || now };
+    const intro = { ...card, worldTag: this.normalizeQueryWorldTag(card.worldTag || card.work || '鏈煡涓栫晫'), updatedAt: now, createdAt: card.createdAt || now };
     if (this.fallback) {
       this.fallbackState = this.fallbackState || { version: 1, main: null, updatedAt: '', characterIntros: {} };
       this.fallbackState.characterIntros = { ...(this.fallbackState.characterIntros || {}), [this.introKey(intro.worldTag, intro.name)]: intro };
@@ -320,7 +329,7 @@ window.GameModules.sqliteSave = {
   async saveCharacterState(character) {
     if (!character) return;
     const now = new Date().toISOString();
-    const worldTag = this.normalizeQueryWorldTag(character.worldTag || character.profile?.work || '未知世界');
+    const worldTag = this.normalizeQueryWorldTag(character.worldTag || character.profile?.work || '鏈煡涓栫晫');
     character.worldTag = worldTag;
     if (character.values) character.values.world_tag = worldTag;
     if (character.profile?.work) character.profile.work = worldTag;

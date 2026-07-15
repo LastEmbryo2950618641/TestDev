@@ -19,6 +19,16 @@ function resolveBodyFigureAssetSource() {
   };
 }
 
+function staticBodyFigureIndex() {
+  const data = window.GameModules?.bodyFigureStatic?.index || {};
+  return Array.isArray(data?.figures) ? data.figures : [];
+}
+
+function staticBodyFigureMeta(relativePath = '') {
+  const key = String(relativePath || '').trim().replace(/^\/+/, '').replace(/\/+$/, '');
+  return key ? (window.GameModules?.bodyFigureStatic?.metas || {})[key] || null : null;
+}
+
 function normalizeBodyFigureMeta(meta = {}, fallback = {}) {
   return {
     ...fallback,
@@ -54,6 +64,41 @@ function pickBodyFigureRowValue(rows = [], keys = []) {
     if (!keys.length || keys.includes(tag)) return text;
   }
   return '';
+}
+
+function normalizeBodyFigureAnnotations(meta = {}) {
+  if (Array.isArray(meta?.annotations) && meta.annotations.length) return meta.annotations;
+  return (Array.isArray(meta?.parts) ? meta.parts : [])
+    .map((part, index) => {
+      const partName = String(part?.part || part?.name || part?.title || '').trim();
+      const anchor = part?.anchor || {};
+      const label = part?.label || {};
+      const anchorX = Number(anchor.x ?? part?.anchorX ?? part?.x ?? 50);
+      const anchorY = Number(anchor.y ?? part?.anchorY ?? part?.y ?? (10 + index * 7));
+      const labelX = Number(label.x ?? part?.labelX ?? (anchorX >= 55 ? 90 : 10));
+      const labelY = Number(label.y ?? part?.labelY ?? anchorY);
+      return {
+        ...part,
+        part: partName,
+        title: partName,
+        anchorX,
+        anchorY,
+        x: labelX,
+        y: labelY,
+        label: {
+          x: labelX,
+          y: labelY,
+          side: label.side || (labelX >= anchorX ? 'right' : 'left'),
+        },
+        line: {
+          x1: anchorX,
+          y1: anchorY,
+          x2: labelX,
+          y2: labelY,
+        },
+      };
+    })
+    .filter((part) => part.part);
 }
 
 window.GameModules.bodyFigure = {
@@ -93,6 +138,11 @@ window.GameModules.bodyFigure = {
     const key = String(relativePath || '').trim();
     if (!key) return null;
     if (this.metaCache[key]) return this.metaCache[key];
+    const staticMeta = staticBodyFigureMeta(key);
+    if (staticMeta) {
+      this.metaCache[key] = normalizeBodyFigureMeta(staticMeta, { path: key, id: key });
+      return this.metaCache[key];
+    }
     try {
       const res = await fetch(this.basePath(`${key}/meta.json`), { cache: 'no-cache' });
       if (!res.ok) return null;
@@ -109,12 +159,14 @@ window.GameModules.bodyFigure = {
     if (this.manifestLoaded) return this.manifestEntries;
     if (this.manifestPromise) return this.manifestPromise;
     this.manifestPromise = (async () => {
-      let figures = [];
+      let figures = staticBodyFigureIndex();
       try {
-        const res = await resolveBodyFigureAssetSource().loadIndex();
-        if (res?.ok) {
+        if (!figures.length) {
+          const res = await resolveBodyFigureAssetSource().loadIndex();
+          if (res?.ok) {
           const data = await res.json().catch(() => ({}));
           figures = Array.isArray(data?.figures) ? data.figures : [];
+          }
         }
       } catch (err) {
         console.warn('[body-figure] manifest load failed:', err?.message || err);
@@ -232,13 +284,16 @@ window.GameModules.bodyFigure = {
     const resolvedMeta = this.metaCache[path] || normalizeBodyFigureMeta(meta, { path, id: path });
     const imageName = String(resolvedMeta?.image || 'figure.png').trim() || 'figure.png';
     const tag = `${String(resolvedMeta?.ownerId || meta?.ownerId || meta?.characterId || 'figure').trim()}:${String(resolvedMeta?.stateKind || meta?.stateKind || 'natural').trim()}:${String(sectionTitle || '').trim()}`;
-    const annotations = Array.isArray(resolvedMeta?.annotations) ? resolvedMeta.annotations : [];
+    const annotations = normalizeBodyFigureAnnotations(resolvedMeta);
+    const imageSrc = this.buildImageSrc(path, imageName);
+    const maskSrc = options?.mask ? this.buildImageSrc(this.maskEntry.path, 'figure.png') : '';
     return {
       id: resolvedMeta.id || path,
       path,
       tag,
-      imageSrc: this.buildImageSrc(path, imageName),
-      maskSrc: options?.mask ? this.buildImageSrc(this.maskEntry.path, 'figure.png') : '',
+      imageSrc,
+      maskSrc,
+      displaySrc: maskSrc || imageSrc,
       title: String(resolvedMeta?.title || resolvedMeta?.label || sectionTitle || '').trim(),
       summary: String(resolvedMeta?.summary || pickBodyFigureRowValue(rows, ['summary', 'overall']) || '').trim(),
       annotations,
@@ -262,6 +317,15 @@ window.GameModules.bodyFigure = {
     const boundPath = this.getBinding(ownerId, stateKind);
     if (boundPath && this.metaCache[boundPath]) {
       const resolved = this.buildResolvedFigure(boundPath, meta, rows, sectionTitle, options);
+      this.resolvedCache[cacheKey] = resolved;
+      return resolved;
+    }
+    const staticEntries = (this.manifestEntries?.length ? this.manifestEntries : staticBodyFigureIndex().map((entry) => normalizeBodyFigureEntry(entry, { image: 'figure.png' }))).filter((entry) => entry.path);
+    const staticPath = this.chooseDefaultPath(meta, staticEntries);
+    const staticMeta = staticBodyFigureMeta(staticPath);
+    if (staticPath && staticMeta) {
+      this.metaCache[staticPath] = normalizeBodyFigureMeta(staticMeta, { path: staticPath, id: staticPath });
+      const resolved = this.buildResolvedFigure(staticPath, meta, rows, sectionTitle, options);
       this.resolvedCache[cacheKey] = resolved;
       return resolved;
     }
