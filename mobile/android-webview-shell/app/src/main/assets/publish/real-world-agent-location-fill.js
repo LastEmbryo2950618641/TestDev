@@ -8,22 +8,40 @@
   Object.assign(ctx, {
     locationFillInstalled: true,
 
-    async location(store, method, params = {}, action = '') {
+    async location(store, method, params = {}, action = '', options = {}) {
       const map = window.GameModules.realWorldMap.ensure(store, store.playerProfile || {});
       const keyword = String(params.keyword || params.locationName || params.name || '').trim();
+      const queryOnly = Boolean(options.queryOnly || options.noAudit || options.returnJsonOnMiss);
       if (method === 'getCurrentLocationContext') {
         const current = this.ensurePlayerCurrentLocation(store, action);
         return this.locationDetail(map, current?.name || map.current || store.realWorldLocationName);
       }
-      if ((method === 'searchLocation' || method === 'getLocationDetail') && keyword) {
+      if ((method === 'searchLocation' || method === 'searchLocationOne' || method === 'searchLocationWindow' || method === 'getLocationDetail') && keyword) {
         const existing = this.findLocationHit(map, keyword);
         if (existing) return this.locationDetail(map, existing.name);
-        if (this.shouldFillCharacterLocation(store, keyword, action)) return await this.fillCharacterLocation(store, this.locationTargetKeyword(store, `${keyword} ${action}`) || keyword, action);
+        if (queryOnly) return this.locationQueryMissText(method, keyword, params);
+        const graphHit = await this.ensurePropertyNodeWithAudit(store, keyword, action, options);
+        if (this.isResolvedPropertyNodeEnsure(graphHit)) return this.propertyNodeEnsureText(store, graphHit);
+        if (this.shouldFillCharacterLocation(store, keyword, action)) return await this.fillCharacterLocation(store, this.locationTargetKeyword(store, `${keyword} ${action}`) || keyword, action, this.locationFillRequestOptions(options));
       }
       return baseLocation ? baseLocation(store, method, params) : '';
     },
 
-    async actionLocationForStep(store, action = '', characters = [], reason = '', loadedKeys = new Set()) {
+    locationQueryMissText(method = '', keyword = '', params = {}) {
+      return JSON.stringify({
+        ok: true,
+        hit: false,
+        skill: 'realworld.location.query',
+        method,
+        keyword,
+        result: null,
+        results: [],
+        note: '地点查询未命中；Stage1 不补地图。若本轮仍需要该地点，请根据上下文做符合逻辑的保守推演；正文结束后由 Stage4 电子地图周围解锁/地图更新根据正文持久化地点、户型、摆件与周围直接相邻地点。',
+        params,
+      }, null, 2);
+    },
+
+    async actionLocationForStep(store, action = '', characters = [], reason = '', loadedKeys = new Set(), options = {}) {
       const text = `${action} ${reason} ${characters.map((item) => `${item?.id || item} ${item?.name || ''}`).join(' ')}`;
       const wantsPerson = /房间|卧室|找|去|前往|位置|所在|妹妹|姐姐|哥哥|弟弟|母亲|父亲/u.test(text);
       if (!wantsPerson) return null;
@@ -34,8 +52,102 @@
       const target = this.locationTargetKeyword(store, text);
       if (!target) return null;
       const existing = this.findLocationHit(window.GameModules.realWorldMap.ensure(store, store.playerProfile || {}), target);
-      const detail = existing ? this.locationDetail(window.GameModules.realWorldMap.ensure(store, store.playerProfile || {}), existing.name) : await this.fillCharacterLocation(store, target, action);
+      const graphHit = existing ? null : await this.ensurePropertyNodeWithAudit(store, target, action, options);
+      const detail = existing
+        ? this.locationDetail(window.GameModules.realWorldMap.ensure(store, store.playerProfile || {}), existing.name)
+        : this.isResolvedPropertyNodeEnsure(graphHit)
+          ? this.propertyNodeEnsureText(store, graphHit)
+          : await this.fillCharacterLocation(store, target, action, this.locationFillRequestOptions(options));
       return { title: 'realworld.location.query.autoCharacterRoute', text: detail, max: 1800 };
+    },
+
+    locationFillRequestOptions(options = {}) {
+      const label = String(options.label || '现实');
+      const phase = String(options.phase || options.reasoningPhase || '').toLowerCase();
+      const isStage1 = phase === 'stage1' || Number(options.guidedStep) > 0;
+      const title = options.sourceTitle || (isStage1 ? `${label}Stage1资料路由｜电子地图新增地点` : `${label}Stage4滑动结算｜电子地图新增地点`);
+      const outputLimitKind = options.outputLimitKind || (isStage1 ? 'stage1' : 'stage4');
+      const summary = isStage1 ? 'Stage1 资料路由中按当前行动补齐玩家已知地点。' : 'Stage4 滑动结算中按正文补齐玩家已知地点。';
+      return {
+        sourceTitle: title,
+        outputLimitKind,
+        tokenMeta: {
+          title,
+          category: '现实推演',
+          summary,
+          ...(options.tokenMeta || {}),
+        },
+      };
+    },
+
+    ensurePropertyNodeBeforeFill(store, keyword = '', action = '', options = {}) {
+      const skills = window.GameModules.realWorldLocationGraphSkills;
+      if (!skills?.nodeEnsure) return null;
+      try {
+        return skills.nodeEnsure(store, {
+          stage: String(options.phase || options.reasoningPhase || '').toLowerCase() === 'stage1' || Number(options.guidedStep) > 0 ? 'stage1' : 'stage4',
+          intent: 'reuse-or-create',
+          targetKeyword: keyword,
+          currentLegacyLocationName: store.realWorldMap?.current || store.realWorldLocationName || '',
+          requiredScope: ['current-poi', 'path-to-target', 'interior-needed'],
+          visibleNeed: `现实行动需要确认地点：${keyword}`,
+          actionText: action || store.realWorldInput || '',
+        });
+      } catch (err) {
+        console.warn('[real-world-location-graph] ensure before fill failed:', err.message);
+        return null;
+      }
+    },
+
+    async ensurePropertyNodeWithAudit(store, keyword = '', action = '', options = {}) {
+      const skills = window.GameModules.realWorldLocationGraphSkills;
+      const precheck = this.ensurePropertyNodeBeforeFill(store, keyword, action, options);
+      if (precheck?.decision === 'reuse-existing') return precheck;
+      if (!skills?.nodeEnsureAsync) return precheck;
+      try {
+        return await skills.nodeEnsureAsync(store, {
+          stage: String(options.phase || options.reasoningPhase || '').toLowerCase() === 'stage1' || Number(options.guidedStep) > 0 ? 'stage1' : 'stage4',
+          intent: 'reuse-or-create',
+          targetKeyword: keyword,
+          currentLegacyLocationName: store.realWorldMap?.currentId || store.realWorldMap?.current || store.realWorldLocationName || '',
+          requiredScope: ['current-poi', 'path-to-target', 'direct-neighbor-poi', 'floor-room-layout'],
+          visibleNeed: `现实行动需要确认并补齐地点：${keyword}`,
+          actionText: action || store.realWorldInput || '',
+        });
+      } catch (err) {
+        console.warn('[real-world-location-graph] audit ensure before fill failed:', err.message);
+        return precheck;
+      }
+    },
+
+    isResolvedPropertyNodeEnsure(result = null) {
+      return Boolean(result?.nodeId && ['reuse-existing', 'patch-existing', 'create-new'].includes(result.decision));
+    },
+
+    isDeferredPropertyNodeEnsure(result = null) {
+      return result?.decision === 'defer-unknown';
+    },
+
+    propertyNodeEnsureText(store, result = {}) {
+      const skills = window.GameModules.realWorldLocationGraphSkills;
+      const nodeText = skills?.getNode ? skills.getNode(store, { nodeId: result.nodeId }) : '';
+      const evidence = (result.queryEvidence || []).map((item) => `${item.skill || 'query'}：${item.summary || ''}`).filter(Boolean).join('\n');
+      const verb = result.decision === 'create-new' ? '已按显式地点补全新增' : result.decision === 'patch-existing' ? '已按显式地点补全更新' : '地点图已命中';
+      return [
+        `${verb}“${result.path?.[result.path.length - 1] || result.nodeId}”，本轮使用地点图节点，不绕过显式补全入口重复新增。`,
+        nodeText,
+        evidence ? `查询证据：\n${evidence}` : '',
+      ].filter(Boolean).join('\n\n');
+    },
+
+    propertyNodeDeferText(result = {}) {
+      const reason = result.audit?.reason || result.reason || '地点图未收到显式补全 JSON，当前暂不新增。';
+      const evidence = (result.queryEvidence || []).map((item) => `${item.skill || 'query'}：${item.summary || ''}`).filter(Boolean).join('\n');
+      return [
+        `地点图暂不新增“${result.targetKeyword || '未知地点'}”。`,
+        `原因：${reason}`,
+        evidence ? `查询证据：\n${evidence}` : '',
+      ].filter(Boolean).join('\n\n');
     },
 
     findLocationHit(map, keyword = '') {
@@ -99,10 +211,11 @@
       const map = window.GameModules.realWorldMap.ensure(store, store.playerProfile || {});
       if (map.current && !window.GameModules.realWorldMap.isAbstractName(map.current)) return this.findLocationHit(map, map.current);
       const fallback = this.playerHomeLocationName(store, action);
-      return fallback ? window.GameModules.realWorldMap.addLocation(store, {
+      return fallback ? window.GameModules.realWorldLocationGraph?.ensurePoiFromPayload?.(store, {
         name: fallback,
         descriptionFacts: [`玩家当前位于${fallback}，这是本次现实推演的路线起点。`],
-      }, window.GameModules.realWorldMap.factTime(store)) : null;
+        time: window.GameModules.realWorldMap.factTime(store),
+      }, { source: 'player-current-location-fallback' }) : null;
     },
 
     playerHomeLocationName(store, action = '') {
@@ -112,8 +225,11 @@
       return window.GameModules.realWorldMap.cleanName(match?.[1] || profile.refinedCity || profile.homeLocation || store.realWorldLocationName || '');
     },
 
-    async fillCharacterLocation(store, keyword = '', action = '') {
+    async fillCharacterLocation(store, keyword = '', action = '', requestOptions = {}) {
       const map = window.GameModules.realWorldMap.ensure(store, store.playerProfile || {});
+      const graphHit = await this.ensurePropertyNodeWithAudit(store, keyword, action, requestOptions);
+      if (this.isResolvedPropertyNodeEnsure(graphHit)) return this.propertyNodeEnsureText(store, graphHit);
+      if (this.isDeferredPropertyNodeEnsure(graphHit)) return this.propertyNodeDeferText({ ...graphHit, targetKeyword: keyword });
       const character = this.findCharacterForLocationKeyword(store, `${keyword} ${action}`);
       const clue = this.locationFillClue(store, keyword, character, action);
       let payload = null;
@@ -126,7 +242,7 @@
           新地点线索: clue,
         });
         payload = await window.GameModules.jsonUtils.generateJsonWithRetry({
-          source: 'real-world-location-fill', sourceTitle: '现实Stage4滑动结算｜电子地图新增地点', promptId: 'real-world-map-location-add', model: store.modelId, store, useRealWorldKvCache: true, outputLimitKind: 'stage4', timeoutMs: 45000, prompt, format: prompt, max: 2,
+          source: 'real-world-location-fill', sourceTitle: requestOptions.sourceTitle || '现实Stage4滑动结算｜电子地图新增地点', promptId: 'real-world-map-location-add', model: store.modelId, store, useRealWorldKvCache: true, outputLimitKind: requestOptions.outputLimitKind || 'stage4', tokenMeta: requestOptions.tokenMeta, timeoutMs: 45000, prompt, format: prompt, max: 2,
           parse: (text) => window.GameModules.jsonUtils.parseLoose(text),
           validate: (raw) => this.validateLocationFill(raw),
         });
@@ -136,7 +252,8 @@
       }
       const time = window.GameModules.realWorldMap.factTime(store);
       const routeNodes = this.applyRouteNodes(store, payload.routeNodes || [], time);
-      const node = window.GameModules.realWorldMap.addLocation(store, payload, time);
+      const node = window.GameModules.realWorldLocationGraph?.ensurePoiFromPayload?.(store, { ...payload, time }, { source: 'real-world-location-fill-payload' });
+      if (!node) return this.propertyNodeDeferText({ targetKeyword: keyword, reason: '地点图写入入口不可用，暂不通过旧地图入口新增。' });
       return [`地图未命中“${keyword}”，已视为现实世界地点未加载完全并补齐地点。`, this.routeSummary(routeNodes, node), this.locationDetail(map, node?.name || payload.name), '补齐结论：玩家当前地点、目标人物地点、从当前地点前往目标地点的中间路线和当前可用上下文已经足够用于本次现实推演；除非玩家提出新的未知地点，不要继续为同一人物地点或路线重复 request_context。'].join('\n');
     },
 
@@ -154,7 +271,15 @@
 
     applyRouteNodes(store, routeNodes = [], time = '') {
       return (Array.isArray(routeNodes) ? routeNodes : []).slice(0, 5).map((item) => {
-        try { return window.GameModules.realWorldMap.addLocation(store, this.validateRouteNode(item), time); }
+        try {
+          const routeNode = this.validateRouteNode(item);
+          const graphHit = this.ensurePropertyNodeBeforeFill(store, routeNode.name, routeNode.descriptionFacts?.join(' ') || '', { phase: 'stage1' });
+          if (graphHit?.decision === 'reuse-existing') {
+            const name = graphHit.path?.[graphHit.path.length - 1] || routeNode.name;
+            return { id: graphHit.nodeId, graphNodeId: graphHit.nodeId, name, descriptionFacts: routeNode.descriptionFacts, reusedFromLocationGraph: true };
+          }
+          return window.GameModules.realWorldLocationGraph?.ensurePoiFromPayload?.(store, { ...routeNode, time }, { source: 'real-world-route-node' });
+        }
         catch (_) { return null; }
       }).filter(Boolean);
     },

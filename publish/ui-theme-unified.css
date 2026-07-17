@@ -79,9 +79,17 @@ html[data-ui-theme] .real-world-dialog {
 }
 
 html[data-ui-theme] .real-world-function-modal {
-  background: var(--ui-surface) !important;
+  background: color-mix(in srgb, var(--ui-bg-base) 96%, #000 4%) !important;
   border-color: var(--ui-border) !important;
   color: var(--ui-text) !important;
+}
+
+html[data-ui-theme] .real-world-map-info-pop {
+  background: var(--ui-bg-base) !important;
+}
+
+html[data-ui-theme] .real-world-map-info-pop article {
+  background: color-mix(in srgb, var(--ui-bg-base) 94%, var(--ui-surface) 6%) !important;
 }
 
 html[data-ui-theme] :is(
@@ -398,7 +406,7 @@ html[data-ui-theme] :is(
 }
 
 html[data-ui-theme] .real-world-map-interior-panel {
-  background: var(--ui-surface) !important;
+  background: color-mix(in srgb, var(--ui-bg-base) 94%, var(--ui-surface) 6%) !important;
 }
 
 html[data-ui-theme] :is(.real-world-map-floor-card, .real-world-map-room-chip, .real-world-map-zone) {

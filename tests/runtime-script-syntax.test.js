@@ -8,6 +8,9 @@ const publishRoot = path.join(root, 'publish');
 const manifestEntries = JSON.parse(
   fs.readFileSync(path.join(publishRoot, 'boot', 'scripts.json'), 'utf8'),
 );
+const indexSource = fs.readFileSync(path.join(publishRoot, 'index.html'), 'utf8');
+const scriptManifestSource = fs.readFileSync(path.join(publishRoot, 'boot', 'script-manifest.js'), 'utf8');
+const manifestVersion = (scriptManifestSource.match(/"version":\s*"([^"]+)"/) || [])[1];
 const scripts = [
   'character-card-lexicon.js',
   'character-profile-metric-sources.js',
@@ -42,6 +45,16 @@ assert.deepStrictEqual(
   failures,
   [],
   `runtime scripts must be valid JavaScript:\n${failures.join('\n')}`,
+);
+
+assert.ok(manifestVersion, 'boot/script-manifest.js must expose a version');
+assert.ok(
+  indexSource.includes(`boot/script-manifest.js?v=${manifestVersion}`),
+  'index.html must load boot/script-manifest.js with the current manifest version',
+);
+assert.ok(
+  indexSource.includes(`boot/boot.js?v=${manifestVersion}`),
+  'index.html must load boot/boot.js with the current manifest version',
 );
 
 console.log(`PASS ${scripts.length} required compatibility scripts are loaded and valid`);

@@ -54,16 +54,24 @@ window.GameModules.realWorldActions = {
       await this.save();
     } catch (err) {
       console.error('现实推演请求失败:', err.code, err.message, err.stack);
-      await this.markRealWorldActionFailed(entry.id);
+      await this.markRealWorldActionFailed(entry.id, err);
     } finally {
       this.realWorldBusy = false;
     }
   },
 
-  async markRealWorldActionFailed(id) {
+  realWorldActionErrorText(err = null) {
+    const message = String(err?.message || '').trim();
+    if (/insufficient balance|HTTP 402/i.test(message)) return 'AI请求失败：DeepSeek 账户余额不足，请充值或更换可用 Key';
+    if (/API Key|AUTH_REQUIRED|未配置/i.test(`${err?.code || ''} ${message}`)) return 'AI请求失败：DeepSeek API Key 未配置或不可用';
+    return message ? `AI请求失败：${message}` : 'AI请求失败，请重试';
+  },
+
+  async markRealWorldActionFailed(id, err = null) {
     await window.GameModules.realWorldLogStore?.remove?.(id);
     this.realWorldLogTotal = Math.max(0, (this.realWorldLogTotal || 1) - 1);
-    this.realWorldLog = (this.realWorldLog || []).map((entry) => (entry.id === id ? { ...entry, narration: 'AI请求失败，请重试', thinking: '', thinkingSections: [], streamTrace: [], streaming: false, transientError: true, promptPack: null, characterCardChanges: [], agentTrace: [] } : entry));
+    const narration = this.realWorldActionErrorText(err);
+    this.realWorldLog = (this.realWorldLog || []).map((entry) => (entry.id === id ? { ...entry, narration, thinking: '', thinkingSections: [], streamTrace: [], streaming: false, transientError: true, promptPack: null, characterCardChanges: [], agentTrace: [] } : entry));
     this.scrollRealWorldLogBottom?.();
   },
 
@@ -123,6 +131,12 @@ window.GameModules.realWorldActions = {
     result.characterCardChanges = settlement;
     const startedAt = this.phoneDate().toISOString();
     this.advancePhoneTime(elapsedSeconds);
+    const propertySettlement = window.GameModules.realWorldLocationGraph?.settleUsageContracts?.(this, this.phoneDate?.() || new Date()) || null;
+    if (propertySettlement?.settled?.length || propertySettlement?.debts?.length) {
+      const settledCount = propertySettlement.settled?.length || 0;
+      const debtCount = propertySettlement.debts?.length || 0;
+      settlement.push(`房产合同：已结算${settledCount}条，欠款/催债${debtCount}条。`);
+    }
     await this.applyWechatActions?.(result.wechatActions || []);
     const longingEvents = await this.settleRealWorldLongingMeters?.(elapsedSeconds, new Date(startedAt).getTime(), this.phoneDate().getTime()) || [];
     if (longingEvents.length) settlement.push(`角色思念：${longingEvents.length}次思念事件等待下次现实推演体现。`);

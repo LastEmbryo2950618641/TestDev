@@ -1,5 +1,5 @@
 /**
- * 预置屋内 Canvas 布局模板。AI 选择 layoutTemplateId + slotAssignments，运行时 materialize 成 shapes。
+ * 预置屋内 Canvas 布局模板。AI 选择 layoutTemplateId + slotAssignments + slotObjects，运行时 materialize 成 shapes。
  */
 window.GameModules = window.GameModules || {};
 
@@ -382,16 +382,109 @@ window.GameModules.realWorldMapInteriorTemplates = {
     return out;
   },
 
-  materialize(templateId = '', slotAssignments = {}) {
+  residentSlotLabel(templateId = '', slot = '', label = '') {
+    const text = String(label || '').trim();
+    if (!text || !this.residentSlotIds(templateId).includes(slot)) return text;
+    return templateId === 'dormitory' ? `${text}的床位` : `${text}的卧室`;
+  },
+
+  objectLabels(value) {
+    const rows = Array.isArray(value)
+      ? value
+      : (value && typeof value === 'object'
+        ? (this.objectLabel(value) ? [value] : Object.values(value))
+        : String(value || '').split(/[、,，;；/|]/u));
+    return [...new Set(rows.map((item) => this.objectLabel(item)).filter(Boolean))].slice(0, 12);
+  },
+
+  objectLabel(item) {
+    if (item && typeof item === 'object') {
+      return String(item.name || item.label || item.title || item.objectName || item.id || '').trim().slice(0, 18);
+    }
+    return String(item || '').trim().slice(0, 18);
+  },
+
+  objectRect(item = {}) {
+    if (!item || typeof item !== 'object') return null;
+    const rawX = Number(item.x ?? item.left);
+    const rawY = Number(item.y ?? item.top);
+    const rawW = Number(item.w ?? item.width);
+    const rawH = Number(item.h ?? item.height);
+    if (![rawX, rawY, rawW, rawH].every(Number.isFinite) || rawW <= 0 || rawH <= 0) return null;
+    const w = Math.max(12, Math.min(460, rawW));
+    const h = Math.max(10, Math.min(300, rawH));
+    return {
+      x: Math.round(Math.max(0, Math.min(480 - w, rawX))),
+      y: Math.round(Math.max(0, Math.min(320 - h, rawY))),
+      w: Math.round(w),
+      h: Math.round(h),
+    };
+  },
+
+  objectRecords(value) {
+    const rows = Array.isArray(value)
+      ? value
+      : (value && typeof value === 'object' && this.objectLabel(value)
+        ? [value]
+        : (value && typeof value === 'object' ? Object.values(value) : String(value || '').split(/[、,，;；/|]/u)));
+    const seen = new Set();
+    const records = [];
+    rows.forEach((item) => {
+      const label = this.objectLabel(item);
+      if (!label) return;
+      if (!item || typeof item !== 'object') {
+        if (!seen.has(label)) {
+          seen.add(label);
+          records.push(label);
+        }
+        return;
+      }
+      const out = { name: label };
+      const id = String(item.id || item.key || '').trim().slice(0, 48);
+      const rect = this.objectRect(item);
+      const containerContents = this.objectLabels(item.containerContents || item.contents || item.containedItems || item.insideObjects || item.onObjects);
+      if (id) out.id = id;
+      if (rect) Object.assign(out, rect);
+      if (containerContents.length) out.containerContents = containerContents;
+      if (typeof item.fill === 'string' && item.fill.trim()) out.fill = item.fill.trim().slice(0, 64);
+      if (typeof item.strokeColor === 'string' && item.strokeColor.trim()) out.strokeColor = item.strokeColor.trim().slice(0, 64);
+      const key = out.id || out.name;
+      if (seen.has(key)) return;
+      seen.add(key);
+      records.push(Object.keys(out).length > 1 ? out : label);
+    });
+    return records.slice(0, 24);
+  },
+
+  materialize(templateId = '', slotAssignments = {}, options = {}) {
     const tpl = this.get(templateId);
     if (!tpl) return null;
     const assignments = slotAssignments && typeof slotAssignments === 'object' ? slotAssignments : {};
+    const slotObjects = options.slotObjects && typeof options.slotObjects === 'object' ? options.slotObjects : {};
+    const slotObjectContents = options.slotObjectContents && typeof options.slotObjectContents === 'object' ? options.slotObjectContents : {};
     const shapes = (tpl.shapes || []).map((shape) => {
       const next = { ...shape };
       if (!next.slot) return next;
-      const label = String(assignments[next.slot] || next.defaultLabel || '').trim();
+      const assignedLabel = this.residentSlotLabel(templateId, next.slot, assignments[next.slot]);
+      const label = String(assignedLabel || next.defaultLabel || '').trim();
       if (label) next.label = label;
       else if (next.defaultLabel) next.label = next.defaultLabel;
+      const objects = this.objectRecords(slotObjects[next.slot]);
+      if (objects.length) next.objects = objects;
+      const contentsMap = slotObjectContents[next.slot] && typeof slotObjectContents[next.slot] === 'object' ? slotObjectContents[next.slot] : null;
+      const objectContents = Object.fromEntries(objects
+        .filter((object) => object && typeof object === 'object' && Array.isArray(object.containerContents) && object.containerContents.length)
+        .flatMap((object) => [object.id, object.name].filter(Boolean).map((key) => [key, object.containerContents])));
+      if (contentsMap) {
+        const normalizedContents = Object.fromEntries(Object.entries(contentsMap)
+          .map(([name, contents]) => [String(name || '').trim(), this.objectLabels(contents)])
+          .filter(([name, contents]) => name && contents.length));
+        if (Object.keys(normalizedContents).length || Object.keys(objectContents).length) {
+          next.containerContentsByObject = { ...objectContents, ...normalizedContents };
+        }
+      } else if (Object.keys(objectContents).length) {
+        next.containerContentsByObject = objectContents;
+      }
       delete next.slot;
       delete next.defaultLabel;
       return next;
@@ -401,6 +494,13 @@ window.GameModules.realWorldMapInteriorTemplates = {
       height: this.HEIGHT,
       templateId,
       slotAssignments: { ...assignments },
+      slotObjects: Object.fromEntries(Object.entries(slotObjects).map(([slot, objects]) => [slot, this.objectRecords(objects)]).filter(([, objects]) => objects.length)),
+      slotObjectContents: Object.fromEntries(Object.entries(slotObjectContents).map(([slot, contents]) => {
+        const normalized = contents && typeof contents === 'object'
+          ? Object.fromEntries(Object.entries(contents).map(([name, rows]) => [String(name || '').trim(), this.objectLabels(rows)]).filter(([name, rows]) => name && rows.length))
+          : {};
+        return [slot, normalized];
+      }).filter(([, contents]) => Object.keys(contents).length)),
       shapes,
     };
   },
@@ -411,7 +511,7 @@ window.GameModules.realWorldMapInteriorTemplates = {
       ...this.autoSlotAssignments(id, options.residents || []),
       ...(options.slotAssignments || {}),
     };
-    return this.materialize(id, assignments);
+    return this.materialize(id, assignments, { slotObjects: options.slotObjects || {}, slotObjectContents: options.slotObjectContents || {} });
   },
 };
 

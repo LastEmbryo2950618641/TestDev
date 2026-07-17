@@ -75,13 +75,13 @@ window.GameModules.realWorldMapGeopolitical = {
     let communityNodeId = '';
 
     chain.forEach((item) => {
-      const node = mapMod.upsertNode(map, {
+      const node = window.GameModules.realWorldLocationGraph?.ensurePoiFromPayload?.(store, {
         name: item.name,
         parentId: parentNodeId,
         description: `${item.name}（政区 stub，接触后细化）`,
         mapVisible: item.kind === 'community',
-        onlyIfNew: true,
-      });
+        geopoliticalStub: true,
+      }, { source: 'real-world-map-geopolitical' });
       if (!node) return;
       node.geopoliticalStub = true;
       if (item.kind !== 'community') node.mapVisible = false;

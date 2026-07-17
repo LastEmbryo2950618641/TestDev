@@ -87,7 +87,7 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
       loadedKeys.add(key);
       const material = materials?.optionFor?.({ skill, method, params });
       const max = material?.maxChars || this.maxFor(skill);
-      const text = await this.dispatch(store, action, skill, method, { ...params, maxChars: max });
+      const text = await this.dispatch(store, action, skill, method, { ...params, maxChars: max }, options);
       if (text) {
         const title = `${skill}.${method}`;
         const ref = this.materialReferenceFor(text, this.materialReferenceCandidates(store, loaded, [...current, ...out]));
@@ -104,6 +104,7 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
     if (skill === 'past.event.query') return 5200;
     if (skill === 'character.query') return 3200;
     if (skill === 'realworld.location.query') return 1500;
+    if (String(skill || '').startsWith('realworld.property.')) return 1800;
     if (skill === 'memory.query') return 1600;
     if (skill === 'realworld.history.query') return 1800;
     if (skill === 'company.query') return 1400;
@@ -124,10 +125,16 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
   },
 
 
-  async dispatch(store, action, skill, method, params) {
+  async dispatch(store, action, skill, method, params, options = {}) {
     if (skill === 'company.query') return this.company(store, method, params);
     if (skill === 'faction.query') return this.faction(store, method, params);
-    if (skill === 'realworld.location.query') return this.location(store, method, params, action);
+    if (skill === 'realworld.location.query') {
+      const locationOptions = { phase: 'stage1', guidedStep: options.step || 1, label: options.label || '现实', queryOnly: true, noAudit: true, returnJsonOnMiss: true };
+      const realContext = window.GameModules.realWorldAgentContext;
+      if (realContext?.location) return await realContext.location(store, method, params, action, locationOptions);
+      return this.location(store, method, params, action, locationOptions);
+    }
+    if (String(skill || '').startsWith('realworld.property.')) return this.property(store, skill, method, params);
     if (skill === 'realworld.history.query') return this.history(store, method, params);
     if (skill === 'memory.query') return await this.memory(store, action, method, params);
     if (skill === 'character.query') return window.GameModules.characterQuery?.query?.(store, method, params) || '';
@@ -176,6 +183,16 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
     if (method === 'listTopLocations') return this.topLocations(map);
     if (method === 'searchLocation') return this.searchLocation(map, keyword);
     return this.locationDetail(map, keyword || map.current);
+  },
+
+
+  property(store, skill = '', method = '', params = {}) {
+    const suffix = String(skill || '').replace(/^realworld\.property\./, '');
+    const actualMethod = method && method !== skill ? method : suffix;
+    const normalizedMethod = suffix === 'node.ensure' || actualMethod === 'node.ensure' || actualMethod === 'nodeEnsure'
+      ? 'nodeEnsureAsync'
+      : actualMethod;
+    return window.GameModules.realWorldLocationGraphSkills?.query?.(store, normalizedMethod, params) || '现实地点图查询模块未加载。';
   },
 
 

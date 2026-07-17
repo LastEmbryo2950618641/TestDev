@@ -210,14 +210,32 @@ function registerGameStore() {
     realWorldEntryIcon(entry = {}) { return window.GameModules.ui.realWorld.panelViewHelpers.entryIcon.call(this, entry); },
     realWorldStatusIcon(text = '') { return window.GameModules.ui.realWorld.panelViewHelpers.statusIcon.call(this, text); },
     realWorldMatterButtonText() { return window.GameModules.ui.realWorld.panelViewHelpers.matterButtonText.call(this); },
-    openRealWorldPanel() { this.realWorldOpen = true; },
+    async openRealWorldPanel() {
+      this.realWorldOpen = true;
+      const previous = this.openRealWorldPanel;
+      await window.GameModules.assetLoader?.ensureChunks?.(['gameplay'], this);
+      window.GameModules.remergeGameStore?.();
+      if (this.openRealWorldPanel !== previous) return this.openRealWorldPanel();
+      return undefined;
+    },
     closeRealWorldPanel() {
       this.realWorldOpen = false;
       this.realWorldFunctionOpen = false;
     },
-    openRealWorldFunctionPanel(view = 'menu') {
+    async openRealWorldFunctionPanel(view = 'menu') {
       this.realWorldFunctionView = view;
       this.realWorldFunctionOpen = true;
+      if (['inventory', 'wearing', 'map', 'generation'].includes(view)) {
+        const previous = this.openRealWorldFunctionPanel;
+        await window.GameModules.assetLoader?.ensureChunks?.(['gameplay'], this);
+        window.GameModules.remergeGameStore?.();
+        if (this.openRealWorldFunctionPanel !== previous) return this.openRealWorldFunctionPanel(view);
+        if (view === 'map') {
+          this.ensureRealWorldMapNativeInput?.();
+          this.fitRealWorldMapView?.();
+        }
+      }
+      return undefined;
     },
     closeRealWorldFunctionPanel() {
       this.realWorldFunctionOpen = false;
@@ -241,7 +259,13 @@ function registerGameStore() {
     realWorldMapPanStart() {},
     realWorldMapPanMove() {},
     realWorldMapPanEnd() {},
-    realWorldMapZoomBy() {},
+    async realWorldMapZoomBy(...args) {
+      const previous = this.realWorldMapZoomBy;
+      await window.GameModules.assetLoader?.ensureChunks?.(['gameplay'], this);
+      window.GameModules.remergeGameStore?.();
+      if (this.realWorldMapZoomBy !== previous) return this.realWorldMapZoomBy(...args);
+      return undefined;
+    },
     resetRealWorldMapView() {},
     realWorldMapInteriorNode() { return null; },
     realWorldMapInteriorTitle() { return ''; },
@@ -251,12 +275,37 @@ function registerGameStore() {
     realWorldMapInteriorZones() { return []; },
     realWorldMapInteriorFloorOpen() { return false; },
     toggleRealWorldMapInteriorFloor() {},
+    async openRealWorldMapInteriorFloor(...args) {
+      const previous = this.openRealWorldMapInteriorFloor;
+      await window.GameModules.assetLoader?.ensureChunks?.(['gameplay'], this);
+      window.GameModules.remergeGameStore?.();
+      if (this.openRealWorldMapInteriorFloor !== previous) return this.openRealWorldMapInteriorFloor(...args);
+      return undefined;
+    },
+    async openRealWorldMapInfoInterior(...args) {
+      const previous = this.openRealWorldMapInfoInterior;
+      await window.GameModules.assetLoader?.ensureChunks?.(['gameplay'], this);
+      window.GameModules.remergeGameStore?.();
+      if (this.openRealWorldMapInfoInterior !== previous) return this.openRealWorldMapInfoInterior(...args);
+      return undefined;
+    },
     closeRealWorldMapInterior() {},
     openRealWorldMapRoom() {},
     backRealWorldMapInteriorTree() {},
+    backRealWorldMapInteriorFloor() {},
+    realWorldMapSelectedFloor() { return null; },
     renderRealWorldMapRoomCanvas() {},
+    renderRealWorldMapFloorPlanCanvas() {},
+    realWorldMapFloorPlanClick() {},
+    realWorldMapRoomLayoutClick() {},
+    clearRealWorldMapRoomArea() {},
+    realWorldMapRoomTitle(room = {}) { return room?.number || room?.name || ''; },
     realWorldMapRoomResidentsLabel() { return ''; },
     realWorldMapSelectedRoomResidentsLine() { return ''; },
+    realWorldMapSelectedRoomObjectsLine() { return ''; },
+    realWorldMapSelectedRoomAreaTitle() { return ''; },
+    realWorldMapSelectedRoomObjectTitle() { return ''; },
+    realWorldMapSelectedRoomObjectLine() { return ''; },
     realWorldMapSelectedRoomTemplateLabel() { return ''; },
     realWorldMapZoneGridClass() { return ''; },
     realWorldMapInfoNode() { return null; },
@@ -551,7 +600,8 @@ function registerGameStore() {
     gm.catalogActions, gm.coreActions, gm.controlState, gm.controlLinkActions, gm.appSwitchActions, gm.currentWorldActions, gm.inventoryActions, gm.inventoryEquipActions, gm.itemSkillActions, gm.realWorldStreamActions, gm.realWorldThinkingActions, gm.realWorldSettlementActions, gm.realWorldUtilityActions, gm.realWorldActions, gm.realWorldLongingActions, gm.realWorldMapActions, gm.realWorldFactionActions, gm.realWorldMatterActions, gm.companyActions, gm.companyAttendanceActions, gm.companyFactionActions,
     gm.bossActions, gm.bossAppointmentActions, gm.bossAiActions, gm.calendarActions, gm.eventActions, gm.factionActions, gm.factionArchiveActions, gm.factionOrgActions, gm.factionAiActions, gm.factionMembershipActions, gm.skillsActions, gm.knownProfessionActions, gm.taobaoActions, gm.taobaoGenerateActions, gm.taobaoBuyActions, gm.promptActions, gm.controlExperienceConfigApp, gm.settingsActions, gm.systemTestActions, gm.tokenStatsActions, gm.uiThemeActions, gm.roleCardJsonApp?.actions,
     {
-      openWechatApp(...args) {
+      async openWechatApp(...args) {
+        await window.GameModules.assetLoader?.ensureChunks?.(['wechat'], this);
         const fn = window.GameModules.app?.wechat?.appOrchestration?.openWechatApp;
         if (typeof fn === 'function') return fn.call(this, ...args);
         this.closeDesktopApps?.();

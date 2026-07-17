@@ -502,7 +502,7 @@ window.GameModules.storyAgentContext = {
     if (skill === 'item.query') return await realCtx.itemQuery(store, method, { target: params.target || store.character?.id, ...params });
     if (skill === 'company.query') return realCtx.company(store, method, params);
     if (skill === 'faction.query') return realCtx.faction(store, method, params);
-    if (skill === 'realworld.location.query') return realCtx.location(store, method, params, action);
+    if (skill === 'realworld.location.query') return realCtx.location(store, method, params, action, { queryOnly: true, noAudit: true, returnJsonOnMiss: true });
     if (skill === 'realworld.history.query') return this.history(store, method, { ...params, world: params.world || params.worldTag || store.character?.work });
     return '';
   },

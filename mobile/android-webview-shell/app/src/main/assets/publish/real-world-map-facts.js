@@ -92,11 +92,11 @@ window.GameModules.realWorldMapFacts = {
     const map = window.GameModules.realWorldMap.ensure(state, state.playerProfile || {});
     const time = this.nowLabel(state);
     const locationPayloads = [...(result.newLocations || []), ...(result.mapLocationAdds || [])];
-    locationPayloads.forEach((item) => window.GameModules.realWorldMap.addLocation(state, item, time));
+    locationPayloads.forEach((item) => window.GameModules.realWorldLocationGraph?.ensurePoiFromPayload?.(state, { ...item, time }, { source: 'real-world-map-facts' }));
     (result.locationDescriptionUpdates || result.mapDescriptionUpdates || []).forEach((change) => {
       const name = window.GameModules.realWorldMap.cleanName(change.locationName || change.name);
       if (!name) return;
-      const node = window.GameModules.realWorldMap.upsertNode(map, { name, parentName: change.parentName, time });
+      const node = window.GameModules.realWorldLocationGraph?.ensurePoiFromPayload?.(state, { name, parentName: change.parentName, time }, { source: 'real-world-map-facts' });
       this.updateFact(node, change, time);
     });
     map.lastText = window.GameModules.realWorldMap.render(map);

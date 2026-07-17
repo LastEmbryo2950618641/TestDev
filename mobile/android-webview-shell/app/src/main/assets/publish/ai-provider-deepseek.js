@@ -14,7 +14,12 @@ window.GameModules.aiProvider.register('deepseek', {
   },
 
   apiKey() {
-    return String(this.settings().deepseekApiKey || '').trim();
+    return String(
+      this.settings().deepseekApiKey
+      || window.GameModules.localSettings?.readGeneratedDeepseekKey?.()
+      || window.GameModules.generatedKeys?.deepseekKey
+      || '',
+    ).trim();
   },
 
   ensureApiKey() {
@@ -120,8 +125,9 @@ window.GameModules.aiProvider.register('deepseek', {
       model: this.requestModel(requestOptions),
       messages: this.jsonMessages(options.messages || [], options),
       max_tokens: options.maxTokens,
-      stream: Boolean(options.stream) && !responseFormat,
+      stream: Boolean(options.stream),
     };
+    if (payload.stream) payload.stream_options = { include_usage: true };
     if (responseFormat) payload.response_format = responseFormat;
     if (thinking) {
       payload.thinking = thinking;

@@ -8,7 +8,11 @@ window.GameModules.ui.realWorld.mapShellViewHelpers = {
   },
 
   locationText() {
-    return String(this.realWorldLocationName || '').trim() || '当前位置待推演';
+    const map = this.realWorldMap || {};
+    const anchorId = map.mapAnchorId || map.currentId || '';
+    const anchor = (map.nodes || []).find((node) => node.id === anchorId);
+    const exterior = window.GameModules.realWorldMap?.mapExteriorName?.(anchor?.name || map.current || this.realWorldLocationName || '');
+    return String(exterior || anchor?.name || map.current || this.realWorldLocationName || '').trim() || '当前位置待推演';
   },
 
   emptyMapText() {

@@ -33,6 +33,20 @@ window.GameModules.realWorldMap = {
     return String(text || fallback).replace(/[\n\r]+/g, ' ').trim().slice(0, 160) || fallback;
   },
 
+  mapExteriorName(name = '') {
+    const text = this.cleanName(name);
+    if (!text) return '';
+    const match = text.match(/^(.+?(?:\d+|[一二三四五六七八九十]+)\s*(?:栋|幢|号楼|座))(?:\s*(?:\d+|[一二三四五六七八九十]+)\s*单元.*|.*(?:房间|卧室|客厅|厨房|卫生间|洗手间|浴室|走廊|楼梯间|电梯间|门厅).*)$/u);
+    return this.cleanName(match?.[1] || text);
+  },
+
+  interiorNameWithinExterior(name = '', exteriorName = '') {
+    const text = this.cleanName(name);
+    const exterior = this.cleanName(exteriorName);
+    if (!text || !exterior || text === exterior || !text.startsWith(exterior)) return text;
+    return this.cleanName(text.slice(exterior.length)) || text;
+  },
+
   /** 建筑物内部场景：不出现在电子地图节点上，只进 interiorLayout。 */
   isInteriorLocationName(name = '') {
     const text = this.cleanName(name);
@@ -47,22 +61,34 @@ window.GameModules.realWorldMap = {
   isMapExteriorNode(name = '') {
     const text = this.cleanName(name);
     if (!text || this.isInteriorLocationName(text)) return false;
-    if (/\d+\s*栋[\s\S]{0,12}单元|\d+\s*号楼[\s\S]{0,8}单元|\d+\s*幢[\s\S]{0,8}单元/u.test(text)) return true;
-    if (/栋|单元|座|号楼|幢/u.test(text) && !/走廊|楼梯|房间/u.test(text)) return true;
+    const exterior = this.mapExteriorName(text);
+    if (exterior && exterior !== text) return false;
+    if (/栋|座|号楼|幢/u.test(text) && !/单元|走廊|楼梯|房间/u.test(text)) return true;
     if (/小区|社区|公园|花园|超市|商店|店铺|广场|学校|公司|办公|车场|停车场|门岗|菜市|市场/u.test(text)) return true;
-    if (/省|市|区|县|镇|街道/u.test(text) && /栋|单元|楼/u.test(text)) return true;
+    if (/省|市|区|县|镇|街道/u.test(text) && /栋|楼/u.test(text) && !/单元/u.test(text)) return true;
     return false;
   },
 
   isCommunityLevelNode(name = '') {
     const text = this.cleanName(name);
+    if (this.mapExteriorName(text) !== text) return false;
     return Boolean(text) && /小区|社区|园|广场/u.test(text) && !this.isInteriorLocationName(text) && !this.isMapExteriorNode(text);
+  },
+
+  isAggregateMapNode(name = '') {
+    const text = this.cleanName(name);
+    if (this.mapExteriorName(text) !== text) return false;
+    return Boolean(text) && /小区|社区|街道|园区|片区/u.test(text) && !/栋|单元|座|号楼|幢/u.test(text);
   },
 
   isMapDisplayNode(node = {}, map = null) {
     if (!node?.name) return false;
     if (node.mapVisible === false) return false;
     if (this.isInteriorLocationName(node.name)) return false;
+    if (map && this.isAggregateMapNode(node.name)) {
+      const kids = this.childrenOf(map, node.id);
+      if (kids.some((child) => child.mapVisible !== false && this.isMapExteriorNode(child.name))) return false;
+    }
     if (this.isMapExteriorNode(node.name)) return true;
     if (this.isCommunityLevelNode(node.name)) {
       const kids = map ? this.childrenOf(map, node.id) : [];
@@ -74,13 +100,11 @@ window.GameModules.realWorldMap = {
   resolveExteriorAnchorNode(map, node) {
     if (!node) return null;
     let current = node;
-    let best = null;
     for (let guard = 0; guard < 12 && current; guard += 1) {
-      if (this.isMapExteriorNode(current.name)) best = current;
+      if (this.isMapExteriorNode(current.name) && !this.isAggregateMapNode(current.name)) return current;
       if (!current.parentId) break;
       current = (map.nodes || []).find((item) => item.id === current.parentId);
     }
-    if (best) return best;
     current = node;
     for (let guard = 0; guard < 12 && current; guard += 1) {
       if (!this.isInteriorLocationName(current.name)) return current;
@@ -175,7 +199,7 @@ window.GameModules.realWorldMap = {
   },
 
   makeNode(name, parentId = '', description = '', time = '') {
-    const clean = this.cleanName(name);
+    const clean = this.mapExteriorName(name) || this.cleanName(name);
     if (this.isAbstractName(clean)) return null;
     return this.syncFacts({ id: this.nodeId(clean), name: clean, parentId, description: this.cleanDescription(description), order: Date.now(), visited: false, revealed: false, mapVisible: true, interiorLayout: { summary: '', zones: [] }, control: null, controlHistory: [] }, description, time);
   },
@@ -224,10 +248,17 @@ window.GameModules.realWorldMap = {
   normalizeNodes(map, profile = {}, time = '', store = null) {
     const nodes = [];
     const add = (node) => {
-      const name = this.cleanName(node?.name || node);
+      const rawName = this.cleanName(node?.name || node);
+      const name = this.mapExteriorName(rawName) || rawName;
       if (this.isAbstractName(name)) return;
       const id = node?.id || this.nodeId(name);
-      if (nodes.some((item) => item.id === id)) return;
+      const existing = nodes.find((item) => item.id === id || item.name === name);
+      if (existing) {
+        if (!existing.interiorLayout && node?.interiorLayout) existing.interiorLayout = node.interiorLayout;
+        if (!existing.descriptionFacts?.length && (node?.descriptionFacts || node?.facts)) existing.descriptionFacts = node.descriptionFacts || node.facts;
+        existing.mapVisible = existing.mapVisible !== false || node?.mapVisible !== false;
+        return;
+      }
       nodes.push(this.syncFacts({
         id,
         name,
@@ -238,6 +269,8 @@ window.GameModules.realWorldMap = {
         revealed: node?.revealed,
         visited: node?.visited,
         mapVisible: node?.mapVisible,
+        exteriorRingUnlocked: node?.exteriorRingUnlocked,
+        interiorLayout: node?.interiorLayout,
         control: node?.control,
         controlHistory: node?.controlHistory,
         geopoliticalStub: node?.geopoliticalStub,
@@ -258,7 +291,9 @@ window.GameModules.realWorldMap = {
     const map = this.ensure(state, state.playerProfile || {});
     const time = this.factTime(state);
     const rawNext = this.cleanName(locationName || result.locationName || map.current);
-    const nextName = this.isAbstractName(rawNext) ? this.inferHomeName(state.playerProfile || {}) : rawNext;
+    const exteriorName = this.mapExteriorName(rawNext);
+    const unitLevel = Boolean(exteriorName && exteriorName !== rawNext);
+    const nextName = this.isAbstractName(rawNext) ? this.inferHomeName(state.playerProfile || {}) : (unitLevel ? exteriorName : rawNext);
     if (!nextName) return map;
     const parentName = this.cleanName(result.parentLocationName || result.parentLocation || '');
     const descriptionRaw = result.locationDescription || result.description;
@@ -284,6 +319,9 @@ window.GameModules.realWorldMap = {
         node.parentId = anchor.id;
         this.addInteriorZone(anchor, { name: nextName, description });
       }
+    } else if (unitLevel) {
+      node.mapVisible = true;
+      this.addInteriorZone(node, { name: this.interiorNameWithinExterior(rawNext, exteriorName), description });
     } else if (this.isMapExteriorNode(nextName)) {
       node.mapVisible = true;
     }
@@ -308,18 +346,34 @@ window.GameModules.realWorldMap = {
 
   addLocation(state, item = {}, time = '', fallbackParent = null) {
     const map = this.ensure(state, state.playerProfile || {});
-    const name = this.cleanName(item.name || item.locationName);
+    const rawName = this.cleanName(item.name || item.locationName);
+    const exteriorName = this.mapExteriorName(rawName);
+    const unitLevel = Boolean(exteriorName && exteriorName !== rawName);
+    const name = unitLevel ? exteriorName : rawName;
     if (!name) return null;
     if (this.isInteriorLocationName(name)) {
       const anchor = fallbackParent || this.resolveExteriorAnchorNode(map, this.currentNode(map));
       if (anchor) this.addInteriorZone(anchor, item);
       return anchor;
     }
+    const graphNode = window.GameModules.realWorldLocationGraph?.ensurePoiFromPayload?.(state, {
+      ...item,
+      name,
+      parentId: fallbackParent?.id || item.parentId || '',
+      time,
+    }, { source: 'real-world-map-addLocation' });
+    if (graphNode) {
+      if (unitLevel) this.addInteriorZone(graphNode, { ...item, name: this.interiorNameWithinExterior(rawName, exteriorName) });
+      if (fallbackParent && this.isMapDisplayNode(fallbackParent, map)) map.expanded[fallbackParent.id] = true;
+      map.lastText = this.render(map);
+      return graphNode;
+    }
     const parentName = this.cleanName(item.parentName || item.parentLocationName || item.parentLocation || '');
     const parent = parentName ? this.upsertNode(map, { name: parentName, time }) : fallbackParent;
     const facts = item.descriptionFacts || item.facts || item.fact || item.description || item.summary || `${name}，电子地图记录的地点。`;
     const node = this.upsertNode(map, { name, parentId: parent?.id || '', description: Array.isArray(facts) ? '' : facts, descriptionFacts: facts, time });
     if (node) node.mapVisible = this.isMapExteriorNode(name) || this.isCommunityLevelNode(name);
+    if (node && unitLevel) this.addInteriorZone(node, { ...item, name: this.interiorNameWithinExterior(rawName, exteriorName) });
     if (parent && this.isMapDisplayNode(parent, map)) map.expanded[parent.id] = true;
     map.lastText = this.render(map);
     return node;
@@ -335,8 +389,27 @@ window.GameModules.realWorldMap = {
   },
 
   upsertNode(map, data = {}) {
-    const name = this.cleanName(data.name);
+    const name = this.mapExteriorName(data.name) || this.cleanName(data.name);
     if (!name || this.isAbstractName(name)) return null;
+    const store = map?._boundStore || null;
+    if (store && window.GameModules.realWorldLocationGraph?.ensurePoiFromPayload) {
+      const graphNode = window.GameModules.realWorldLocationGraph.ensurePoiFromPayload(store, { ...data, name }, { source: 'real-world-map-upsertNode' });
+      if (graphNode) {
+        if (data.parentId !== undefined && data.parentId !== graphNode.id) graphNode.parentId = data.parentId;
+        if (this.isInteriorLocationName(name)) graphNode.mapVisible = false;
+        else if (data.mapVisible === false) graphNode.mapVisible = false;
+        else if (this.isMapExteriorNode(name) || this.isCommunityLevelNode(name)) graphNode.mapVisible = true;
+        this.syncFacts(graphNode, data.description || graphNode.description, data.time);
+        const facts = window.GameModules.realWorldMapFacts;
+        if (data.descriptionFacts) graphNode.descriptionFacts = facts?.normalizeFacts?.({ descriptionFacts: data.descriptionFacts }, '', data.time) || graphNode.descriptionFacts;
+        if (data.appendFact && data.description) facts?.addFact?.(graphNode, data.description, data.time);
+        if (!data.onlyIfNew && data.description && !graphNode.descriptionFacts?.length) facts?.addFact?.(graphNode, data.description, data.time);
+        this.syncFacts(graphNode, data.description || graphNode.description, data.time);
+        window.GameModules.orgTerritory?.normalizeNodeControl?.(graphNode, map, store);
+        this.trimMapNodes(map, store);
+        return graphNode;
+      }
+    }
     const id = data.id || this.nodeId(name);
     let node = map.nodes.find((item) => item.id === id || item.name === name);
     if (!node) {
@@ -375,11 +448,20 @@ window.GameModules.realWorldMap = {
   },
 
   toggle(state, id) { const map = this.ensure(state, state.playerProfile || {}); map.expanded[id] = !map.expanded[id]; },
-  showInfo(state, id) { const map = this.ensure(state, state.playerProfile || {}); map.infoNodeId = id; map.interiorNodeId = ''; },
+  showInfo(state, id) {
+    const map = this.ensure(state, state.playerProfile || {});
+    map.infoNodeId = id;
+    map.interiorNodeId = '';
+    map.interiorRoomId = '';
+    map.interiorRoomAreaId = '';
+    map.interiorRoomShapeId = '';
+  },
   showInterior(state, id) {
     const map = this.ensure(state, state.playerProfile || {});
     map.interiorNodeId = id;
     map.interiorRoomId = '';
+    map.interiorRoomAreaId = '';
+    map.interiorRoomShapeId = '';
     map.infoNodeId = '';
     map.interiorFloorOpen = map.interiorFloorOpen && typeof map.interiorFloorOpen === 'object' ? map.interiorFloorOpen : {};
     const node = (map.nodes || []).find((item) => item.id === id);
@@ -391,8 +473,19 @@ window.GameModules.realWorldMap = {
     }
   },
   closeInfo(state) { if (state.realWorldMap) state.realWorldMap.infoNodeId = ''; },
-  closeInterior(state) { if (state.realWorldMap) { state.realWorldMap.interiorNodeId = ''; state.realWorldMap.interiorRoomId = ''; } },
-  interiorNode(map) { return (map?.nodes || []).find((node) => node.id === map.interiorNodeId) || null; },
+  closeInterior(state) {
+    if (state.realWorldMap) {
+      state.realWorldMap.interiorNodeId = '';
+      state.realWorldMap.interiorRoomId = '';
+      state.realWorldMap.interiorRoomAreaId = '';
+      state.realWorldMap.interiorRoomShapeId = '';
+    }
+  },
+  interiorNode(map) {
+    const key = String(map?.interiorNodeId || '');
+    if (!key) return null;
+    return (map?.nodes || []).find((node) => node.id === key || node.name === key) || null;
+  },
   infoNode(map) { return (map?.nodes || []).find((node) => node.id === map.infoNodeId) || null; },
   render(map) {
     return this.mapDisplayRender(map || {});

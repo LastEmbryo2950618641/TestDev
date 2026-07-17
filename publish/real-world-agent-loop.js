@@ -385,7 +385,7 @@ window.GameModules.realWorldAgentLoop = {
         const traceItem = this.traceItem(step, data, raw.raw, ctx);
         trace.push(traceItem);
 
-        const results = await this.loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step, materialSession, config.materials);
+        const results = await this.loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step, materialSession, config.materials, config);
         traceItem.loaded = results.map((item) => ({ title: item.title, text: ctx.limit(item.text, 800) }));
         this.updateConfiguredTrace(store, logId, trace, config);
         if (results.length) {
@@ -464,14 +464,14 @@ window.GameModules.realWorldAgentLoop = {
     return { result, prompt: `---SCENE_ANCHOR---\n${sceneAnchorPrompt}\n\n---NARRATION---\n${narrationPrompt}\n\n---SETTLEMENT_JSON---\n${settlementPrompt}`, loaded, raw: `${sceneAnchor.raw}\n\n${narrationRaw}\n\n${settlementRaw}`, trace: anchoredTrace, deepseekCache: this.deepSeekKvCacheSummary(config.kvCacheSession) };
   },
 
-  async loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step, materialSession = null, materials = window.GameModules.realWorldMaterials) {
+  async loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step, materialSession = null, materials = window.GameModules.realWorldMaterials, config = this.realConfig()) {
     const out = [];
     if (data.type === 'request_context') {
       const autoLoaded = await ctx.autoLoadForStep?.(store, action, loadedKeys, materialSession, materials, memoryIds, step, loaded, out) || [];
       out.push(...autoLoaded);
       const load = async (requests, limit) => {
         if (!Array.isArray(requests) || !requests.length) return [];
-        return await ctx.loadRequests(store, action, requests, loadedKeys, materialSession, materials, memoryIds, loaded, out, { limit, step });
+        return await ctx.loadRequests(store, action, requests, loadedKeys, materialSession, materials, memoryIds, loaded, out, { limit, step, label: config.label || '现实' });
       };
       const profileRequests = ctx.participantProfileRequests?.(data, { store, mode: data.mode }) || [];
       out.push(...await load(profileRequests, 3));
@@ -479,11 +479,6 @@ window.GameModules.realWorldAgentLoop = {
       out.push(...await load(anchorRequests, 4));
       const requestList = Array.isArray(data.requests) && data.requests.length ? data.requests : (Array.isArray(data.needed) ? data.needed : []);
       out.push(...await load(requestList, 2));
-    }
-    const locationItem = await ctx.actionLocationForStep?.(store, action, data.characters || data.relatedCharacters || [], data.reason || '', loadedKeys);
-    if (locationItem?.text) {
-      materials?.record?.(materialSession, { skill: 'realworld.location.query', method: 'searchLocation', params: { keyword: 'autoCharacterRoute' } }, locationItem.title, locationItem.text);
-      out.push(locationItem);
     }
     const memoryItem = ctx.characterMemoriesForStep?.(store, action, data.characters || data.relatedCharacters || [], [...loaded, ...out], memoryIds, step === 1);
     if (memoryItem?.text) {
@@ -536,14 +531,14 @@ window.GameModules.realWorldAgentLoop = {
         '任务：只输出一个合法 JSON 对象，不输出中文 K:V、Markdown、正文或解释。',
         '你只负责判断本次行动生成正文前还需要哪些已有资料；不得写正文，不得锚定场景，不得结算状态，不得推进后续结果。',
         '资料请求规则：',
-        '- 使用中文资料请求，不得输出英文 skill/method。',
+        '- 使用中文资料请求，不得输出英文 skill/method。地点查询未命中时，不要请求地点图补全；基于上下文进行符合逻辑的保守推演，地图持久化交给 Stage4 电子地图周围解锁/地图更新。',
         '- 资料请求最多 Top3；超过 Top3 的候选必须丢弃，不得输出资料请求4或更多编号。',
         '- 角色卡请求只代表可作为参考资料；不得因此把角色写入强制出场。',
         '- 已加载资料摘要已经覆盖的人物、地点、路线不得重复请求。',
         '- 不得请求衣着、鞋袜、随身物品等细节；这些细节不属于本阶段必要资料。',
         '- 不得照抄示例中的占位词；角色全称、世界全称、地点全称、人物全称、作品全称都必须替换为本次行动中的真实名称。',
         '- 资料请求示例：资料请求1：角色查询，搜索角色卡，刘思琪，2026现代都市现实世界',
-        '- 资料请求示例：资料请求1：地点查询，查询附近地点，锦苑小区3栋2单元',
+        '- 资料请求示例：资料请求1：地点查询，查询附近地点，锦苑小区3栋',
         '- 资料请求示例：资料请求1：作品设定查询，搜索人物，阿尔托莉雅·潘德拉贡，Fate/stay night',
         '随机事件规则：',
         '- 随机主动事件默认是场外背景，不自动入场。',
@@ -585,7 +580,7 @@ window.GameModules.realWorldAgentLoop = {
         this.stage1IterationRule(store),
         '- participants.forced / priority / drama / forbidden 都必须是字符串数组；没有则 []。',
         '- randomEvents 必须是字符串数组；randomIntrusionCondition 没有明确条件时写“无明确条件则禁止闯入”。',
-        '- 资料请求只能使用中文结构，不得输出英文 skill/method。',
+        '- 资料请求只能使用中文结构，不得输出英文 skill/method；不得在 Stage1 请求地点图新增、地点图补全或 ensure。',
         'JSON schema：',
         '{"plan":"查询规划摘要","status":"继续请求资料|资料已足够","sceneQueries":{"location":["地点查询理由"],"causality":["因果查询理由"],"conflict":["冲突查询理由"]},"participants":{"forced":["姓名"],"priority":["姓名"],"drama":["姓名"],"forbidden":["姓名"]},"randomEvents":["候选事件"],"randomIntrusionCondition":"无明确条件则禁止闯入","materialRequests":["角色查询，搜索角色卡，刘思琪，2026现代都市现实世界"]}',
         '【AI自检】：',
@@ -1858,7 +1853,7 @@ window.GameModules.realWorldAgentLoop = {
       '性经历': '分类只能是：阴部、胸部/胸口/乳房、唇部/接吻、口部/嘴部、口部行为、口交、口交中出、阴部进入、阴道插入、阴道中出、肛部/肛门、肛部进入、肛交、肛交中出、腿部/大腿、臀部/屁股、手部/手、皮肤、其他；delta 必须是 +N/-N 且不能为 0；禁止写总次数/总数/全部；无相关行为时输出空数组。',
       '关系': '只记录稳定关系维度，如亲属、朋友、同事、师生、雇佣、敌对、同居、恋人；好感、信任、依赖、警惕等数值态度写“感觉”，不要写关系。',
       '角色卡': '只写稳定角色卡字段：当前状态、身份、职业、技能、知识、外貌、性格、喜好、人物说明、社群角色、人事归属、人际关系；临时情绪、生命体征、身体、穿着、关系、物品有专门类型时不得写角色卡。',
-      '地图': '字段只能是：当前位置、上级地点、地点事实、地图节点、路线事实；角色当前所在地优先写人事安排，不要把角色行动写成地图事实。地图节点最小颗粒度为建筑物（如3栋2单元）或小区级POI（公园、商店）；走廊、楼梯间、单个房间只写当前位置，不要作为地图节点。禁止在本类型写 effectiveOrgId/控势，那属于领土控势。',
+      '地图': '字段只能是：当前位置、上级地点、地点事实、地图节点、路线事实；角色当前所在地优先写人事安排，不要把角色行动写成地图事实。地图节点最小颗粒度为建筑物（如锦苑小区3栋）或小区级POI（公园、商店）；走廊、楼梯间、单个房间只写当前位置，不要作为地图节点。禁止在本类型写 effectiveOrgId/控势，那属于领土控势。',
       '领土控势': '仅当正文确认已揭示地点的夺控、解放、移交、占领或争议状态时更新；字段：地点名、实控组织、宣称组织、控势状态；未 revealed 地点不得写；同轮同一地点最多一条；普通到达/看见不写本类型。',
       '人事安排': '只更新本回合 participants 中的参与者；field 只能是 当前地点、当前行动、可用状态；正在做什么必须写 当前行动，value 用短句写具体动作（如「从背后抱住刘思琪并揉捏胸部」）；可用状态 value 只能是 在场/场外/暂不可用/未知，禁止把动作或身体反应写进可用状态；reason 只写正文证据，不要重复 value；同一人可写多条（地点、行动、可用状态各一条）；弱推测不更新。',
       '势力总览': '字段只能是：新增势力、上层势力归属、势力APP归属；组织内部部门、职位、成员地位写势力结构。',
@@ -2746,6 +2741,7 @@ window.GameModules.realWorldAgentLoop = {
       maxTokens: options.maxTokens,
       maxAttempts: options.maxAttempts,
       timeoutMs: options.timeoutMs,
+      tokenMeta: options.tokenMeta,
     };
     const active = this.activeKvCacheSession(store, 'real');
     let config = active ? { ...baseConfig, kvCacheSession: active } : this.withDeepSeekKvCacheSession(store, baseConfig);
@@ -2788,6 +2784,8 @@ window.GameModules.realWorldAgentLoop = {
     try {
       const completionOptions = this.configuredCompletionOptions(config, streamToUi);
       const isJsonMode = Boolean(completionOptions.jsonMode);
+      const providerId = window.GameModules.aiProvider?.currentProviderId?.() || '';
+      const shouldStream = !isJsonMode || providerId === 'deepseek';
       const requestOptions = {
         source: config.sourceTitle || (streamToUi ? `${config.mode}-agent-loop` : `${config.mode}-agent-context`),
         model: config.model || store.modelId,
@@ -2796,7 +2794,7 @@ window.GameModules.realWorldAgentLoop = {
         deepThinkingEffort: 'high',
         jsonMode: isJsonMode,
         responseFormat: completionOptions.responseFormat,
-        stream: !isJsonMode,
+        stream: shouldStream,
         timeoutMs: Number(config.timeoutMs) || 240000,
         requireDone: true,
         outputLengthThreshold: 2600,
@@ -2825,6 +2823,7 @@ window.GameModules.realWorldAgentLoop = {
         },
       };
       if (config.maxTokens !== undefined && config.maxTokens !== null) requestOptions.maxTokens = config.maxTokens;
+      if (config.tokenMeta) requestOptions.tokenMeta = config.tokenMeta;
       const output = await window.GameModules.aiRequest.complete(requestOptions);
       if (streamToUi && logId && buffer) {
         if (config.mode === 'story') store.updateStoryAgentStream?.(logId, buffer);
@@ -2953,23 +2952,33 @@ window.GameModules.realWorldAgentLoop = {
     const participants = data.participants && typeof data.participants === 'object' ? data.participants : {};
     const arrayText = (value, sep = '；') => (Array.isArray(value) ? value : this.splitQueryReasonList(value)).map((item) => String(item || '').trim()).filter(Boolean).join(sep) || '无';
     const nameText = (value) => (Array.isArray(value) ? value : this.splitNameList(value)).map((item) => typeof item === 'string' ? item : (item?.name || item?.characterName || item?.idOrName || item?.id || '')).map((item) => String(item || '').trim()).filter(Boolean).join('、') || '无';
-    const requestRows = (Array.isArray(data.materialRequests) ? data.materialRequests : []).map((item, index) => {
+    const rawMaterialRequestItems = (Array.isArray(data.materialRequests) ? data.materialRequests : []).slice(0, 3).filter((item) => typeof item === 'string');
+    const directMaterialRequests = rawMaterialRequestItems.map(() => null);
+    const requestRows = rawMaterialRequestItems.map((item, index) => {
       const body = typeof item === 'string'
         ? item
-        : [item?.type || item?.skill || item?.kind, item?.method, item?.name || item?.target || item?.keyword, item?.world || item?.scope].filter(Boolean).join('，');
+        : directMaterialRequests[index]
+          ? [directMaterialRequests[index].skill, directMaterialRequests[index].method].filter(Boolean).join('，')
+          : [item?.type || item?.skill || item?.kind, item?.method, item?.name || item?.target || item?.keyword, item?.world || item?.scope].filter(Boolean).join('，');
       return `资料请求${index + 1}：${String(body || '').trim()}`;
     }).filter((line) => !/^资料请求\d+[：:]\s*$/u.test(line)).slice(0, 3);
     const materialRequestErrors = [];
     const droppedMaterialRequests = [];
-    const materialRequests = requestRows.map((line) => {
+    const materialRequests = [];
+    requestRows.forEach((line, index) => {
+      if (directMaterialRequests[index]) {
+        materialRequests.push(directMaterialRequests[index]);
+        return;
+      }
       const placeholderReason = this.materialRequestPlaceholderReason(line);
       const req = this.fallbackChineseMaterialRequest(line, { config });
       if (!req) {
         droppedMaterialRequests.push(line);
         if (placeholderReason) materialRequestErrors.push(placeholderReason);
+        return;
       }
-      return req;
-    }).filter(Boolean);
+      materialRequests.push(req);
+    });
     const values = {
       '查询规划': String(data.plan || data['查询规划'] || 'JSON资料路由').trim(),
       '资料状态': String(data.status || data['资料状态'] || '').trim(),

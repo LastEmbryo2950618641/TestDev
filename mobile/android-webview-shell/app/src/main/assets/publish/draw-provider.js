@@ -131,7 +131,12 @@ window.GameModules.drawProvider.register('pixai', {
   },
 
   apiKey() {
-    return String(this.settings().pixaiApiKey || '').trim();
+    return String(
+      this.settings().pixaiApiKey
+      || window.GameModules.localSettings?.readGeneratedPixaiKey?.()
+      || window.GameModules.generatedKeys?.pixaiKey
+      || '',
+    ).trim();
   },
 
   ensureApiKey() {

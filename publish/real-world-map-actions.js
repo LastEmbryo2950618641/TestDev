@@ -147,11 +147,19 @@ window.GameModules.realWorldMapActions = {
     if (!label) return { x, y, w: 0, h: 0 };
     const fontSize = options.fontSize || 13;
     const padX = options.padX || 10;
-    const height = options.height || 28;
+    const padY = options.padY || Math.max(6, fontSize * 0.45);
+    const lineHeight = options.lineHeight || Math.max(fontSize + 4, fontSize * 1.28);
+    const minWidth = options.minWidth || 42;
+    const maxWidth = options.maxWidth || 210;
+    const maxLines = options.maxLines || 3;
     ctx.save();
     ctx.font = `${options.weight || 800} ${fontSize}px "Microsoft YaHei", sans-serif`;
-    const width = Math.min(options.maxWidth || 210, Math.max(options.minWidth || 42, ctx.measureText(label).width + padX * 2));
-    this.realWorldMapRoundRect(ctx, x, y, width, height, height / 2);
+    const contentMaxWidth = Math.max(1, maxWidth - padX * 2);
+    const lines = this.realWorldMapWrapText(ctx, label, contentMaxWidth, maxLines);
+    const contentWidth = Math.max(...lines.map((line) => ctx.measureText(line).width), 0);
+    const width = Math.min(maxWidth, Math.max(minWidth, contentWidth + padX * 2));
+    const height = Math.max(options.height || 0, lines.length * lineHeight + padY * 2);
+    this.realWorldMapRoundRect(ctx, x, y, width, height, Math.min(height / 2, 18));
     ctx.fillStyle = options.fill || 'rgba(4,18,30,0.86)';
     ctx.fill();
     ctx.strokeStyle = options.stroke || 'rgba(87,199,255,0.42)';
@@ -160,7 +168,10 @@ window.GameModules.realWorldMapActions = {
     ctx.fillStyle = options.color || '#e8fcff';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(label, x + padX, y + height / 2 + 0.5);
+    const firstLineY = y + height / 2 - ((lines.length - 1) * lineHeight) / 2;
+    lines.forEach((line, index) => {
+      ctx.fillText(line, x + padX, firstLineY + index * lineHeight + 0.5);
+    });
     ctx.restore();
     return { x, y, w: width, h: height };
   },
@@ -193,6 +204,8 @@ window.GameModules.realWorldMapActions = {
     ctx.restore();
 
     const scale = Math.min(2.4, Math.max(0.35, Number(view.scale) || 1));
+    const uiScale = Math.min(1.75, Math.max(0.68, scale));
+    const scaleUi = (value) => Math.max(1, value * uiScale);
     const tx = Number(view.x) || 0;
     const ty = Number(view.y) || 0;
     const sx = (value) => tx + value * scale;
@@ -216,7 +229,7 @@ window.GameModules.realWorldMapActions = {
       ctx.stroke();
       ctx.restore();
 
-      if (!isInteracting && scale >= 0.48) {
+      if (!isInteracting) {
         const label = String(edge.distanceText || '\u8ddd\u79bb\u5f85\u63a8\u6f14');
         const mx = sx(edge.mx);
         const my = sy(edge.my);
@@ -238,8 +251,8 @@ window.GameModules.realWorldMapActions = {
       const cy = sy(node.y + node.h / 2);
       const current = Boolean(node.current);
       const visited = Boolean(node.visited);
-      const radius = current ? 11 : (visited ? 8 : 7);
-      const ring = radius + (current ? 8 : 5);
+      const radius = scaleUi(current ? 11 : (visited ? 8 : 7));
+      const ring = radius + scaleUi(current ? 8 : 5);
       const color = current ? '#ffd166' : (visited ? '#22f0ad' : '#7fa6ba');
 
       ctx.save();
@@ -258,14 +271,16 @@ window.GameModules.realWorldMapActions = {
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      const label = this.realWorldMapShortLabel(node.name, current ? 28 : 18);
-      const labelX = cx + ring + 8;
-      const labelY = cy - (current ? 20 : 14);
+      const label = String(node.name || '').trim();
+      const labelX = cx + ring + scaleUi(8);
+      const labelY = cy - scaleUi(current ? 20 : 14);
       const labelBox = this.realWorldMapDrawPill(ctx, labelX, labelY, label, {
-        fontSize: current ? 15 : 13,
-        height: current ? 36 : 28,
-        minWidth: current ? 116 : 68,
-        maxWidth: current ? 260 : 190,
+        fontSize: scaleUi(current ? 15 : 13),
+        padX: scaleUi(10),
+        height: scaleUi(current ? 36 : 28),
+        minWidth: scaleUi(current ? 116 : 68),
+        maxWidth: scaleUi(current ? 260 : 190),
+        maxLines: current ? 3 : 2,
         fill: current ? 'rgba(44,31,9,0.92)' : 'rgba(4,18,30,0.84)',
         stroke: current ? 'rgba(255,209,102,0.70)' : (visited ? 'rgba(34,240,173,0.42)' : 'rgba(126,160,180,0.34)'),
         color: current ? '#fff4c7' : '#e8fcff',
@@ -275,11 +290,12 @@ window.GameModules.realWorldMapActions = {
         const controlLine = this.realWorldMapNodeControlCachedLine?.(node.id) || '';
         if (controlLine) {
           const detail = this.realWorldMapShortLabel(controlLine, 24);
-          this.realWorldMapDrawPill(ctx, labelX, labelY + 42, detail, {
-            fontSize: 12,
-            height: 26,
-            minWidth: 92,
-            maxWidth: 220,
+          this.realWorldMapDrawPill(ctx, labelX, labelY + scaleUi(42), detail, {
+            fontSize: scaleUi(12),
+            padX: scaleUi(10),
+            height: scaleUi(26),
+            minWidth: scaleUi(92),
+            maxWidth: scaleUi(220),
             fill: 'rgba(6,16,28,0.80)',
             stroke: 'rgba(255,209,102,0.26)',
             color: '#d6e4ef',
@@ -288,8 +304,8 @@ window.GameModules.realWorldMapActions = {
         }
       }
 
-      const infoR = current ? 13 : 11;
-      const infoX = Math.min(size.width - infoR - 8, labelBox.x + labelBox.w + infoR + 6);
+      const infoR = scaleUi(current ? 13 : 11);
+      const infoX = Math.min(size.width - infoR - scaleUi(8), labelBox.x + labelBox.w + infoR + scaleUi(6));
       const infoY = labelBox.y + labelBox.h / 2;
       ctx.beginPath();
       ctx.arc(infoX, infoY, infoR, 0, Math.PI * 2);
@@ -298,7 +314,7 @@ window.GameModules.realWorldMapActions = {
       ctx.strokeStyle = 'rgba(87,199,255,0.46)';
       ctx.lineWidth = 1;
       ctx.stroke();
-      ctx.font = `900 ${current ? 14 : 12}px "Microsoft YaHei", sans-serif`;
+      ctx.font = `900 ${scaleUi(current ? 14 : 12)}px "Microsoft YaHei", sans-serif`;
       ctx.fillStyle = '#c9f6ff';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -308,12 +324,12 @@ window.GameModules.realWorldMapActions = {
       runtime.hitRegions.push({
         type: 'node',
         id: node.id,
-        x: Math.min(cx - ring - 8, labelBox.x),
-        y: Math.min(cy - ring - 8, labelBox.y),
-        w: Math.max(labelBox.x + labelBox.w, cx + ring + 8) - Math.min(cx - ring - 8, labelBox.x),
-        h: Math.max(labelBox.y + labelBox.h, cy + ring + 8) - Math.min(cy - ring - 8, labelBox.y),
+        x: Math.min(cx - ring - scaleUi(8), labelBox.x),
+        y: Math.min(cy - ring - scaleUi(8), labelBox.y),
+        w: Math.max(labelBox.x + labelBox.w, cx + ring + scaleUi(8)) - Math.min(cx - ring - scaleUi(8), labelBox.x),
+        h: Math.max(labelBox.y + labelBox.h, cy + ring + scaleUi(8)) - Math.min(cy - ring - scaleUi(8), labelBox.y),
       });
-      runtime.hitRegions.push({ type: 'info', id: node.id, x: infoX - infoR - 12, y: infoY - infoR - 12, w: (infoR + 12) * 2, h: (infoR + 12) * 2 });
+      runtime.hitRegions.push({ type: 'info', id: node.id, x: infoX - infoR - scaleUi(12), y: infoY - infoR - scaleUi(12), w: (infoR + scaleUi(12)) * 2, h: (infoR + scaleUi(12)) * 2 });
     });
   },
 
@@ -533,6 +549,9 @@ window.GameModules.realWorldMapActions = {
     if (!this.realWorldMap || typeof this.realWorldMap !== 'object') return;
     this.realWorldMap.infoNodeId = id;
     this.realWorldMap.interiorNodeId = '';
+    this.realWorldMap.interiorRoomId = '';
+    this.realWorldMap.interiorRoomAreaId = '';
+    this.realWorldMap.interiorRoomShapeId = '';
     const node = (this.realWorldMap.nodes || []).find((item) => item.id === id);
     this.realWorldMapInfoCache = {
       id,
@@ -563,19 +582,50 @@ window.GameModules.realWorldMapActions = {
   showRealWorldMapInterior(id) {
     const map = this.realWorldMap && typeof this.realWorldMap === 'object' ? this.realWorldMap : null;
     if (!map) return;
-    const key = String(id || '');
+    const infoNode = this.realWorldMapInfoNode?.() || null;
+    const fallbackId = infoNode?.id || map.infoNodeId || '';
+    let key = String(id || fallbackId || '');
+    let node = (map.nodes || []).find((item) => item.id === key) || null;
+    if (!node && infoNode?.name) node = (map.nodes || []).find((item) => item.name === infoNode.name) || null;
+    if (!node && key) node = (map.nodes || []).find((item) => item.name === key) || null;
+    if (node?.id) key = node.id;
+    if (!key) return;
     map.interiorNodeId = key;
     map.interiorRoomId = '';
+    map.interiorFloorId = '';
+    map.interiorRoomAreaId = '';
+    map.interiorRoomShapeId = '';
     map.infoNodeId = '';
     map.interiorFloorOpen = map.interiorFloorOpen && typeof map.interiorFloorOpen === 'object' ? map.interiorFloorOpen : {};
     const runtime = this.realWorldMapRuntime();
     runtime.interiorPreparingNodeId = key;
+    if (runtime.interiorFloorCache?.[key]) delete runtime.interiorFloorCache[key];
     this.realWorldMap = { ...map };
     this.realWorldMapAfterPaint(() => this.prepareRealWorldMapInteriorFloors(key));
   },
 
+  openRealWorldMapInfoInterior(id = '') {
+    const map = this.realWorldMap && typeof this.realWorldMap === 'object' ? this.realWorldMap : null;
+    const infoNode = this.realWorldMapInfoNode?.() || null;
+    let key = String(id || infoNode?.id || map?.infoNodeId || '');
+    let node = (map?.nodes || []).find((item) => item.id === key) || null;
+    if (!node && infoNode?.name) node = (map?.nodes || []).find((item) => item.name === infoNode.name) || null;
+    if (!node && key) node = (map?.nodes || []).find((item) => item.name === key) || null;
+    if (node?.id) key = node.id;
+    if (!key) return;
+    this.showRealWorldMapInterior(key);
+    if (this.realWorldMap?.infoNodeId) this.realWorldMap.infoNodeId = '';
+    if (this.realWorldMap) this.realWorldMap = { ...this.realWorldMap };
+  },
+
   closeRealWorldMapInterior() {
     window.GameModules.realWorldMap.closeInterior(this);
+    if (this.realWorldMap) {
+      this.realWorldMap.interiorFloorId = '';
+      this.realWorldMap.interiorRoomId = '';
+      this.realWorldMap.interiorRoomAreaId = '';
+      this.realWorldMap.interiorRoomShapeId = '';
+    }
     this.realWorldMap = { ...this.realWorldMap };
   },
 
@@ -587,6 +637,16 @@ window.GameModules.realWorldMapActions = {
     this.realWorldMap = { ...map };
   },
 
+  openRealWorldMapInteriorFloor(floorId) {
+    const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
+    map.interiorFloorId = String(floorId || '');
+    map.interiorRoomId = '';
+    map.interiorRoomAreaId = '';
+    map.interiorRoomShapeId = '';
+    this.realWorldMap = { ...map };
+    requestAnimationFrame(() => this.renderRealWorldMapFloorPlanCanvas());
+  },
+
   realWorldMapInteriorFloorOpen(floorId) {
     const map = this.realWorldMap || {};
     const key = String(floorId || '');
@@ -596,14 +656,17 @@ window.GameModules.realWorldMapActions = {
 
   realWorldMapRoomResidentsLabel(room = {}) { return window.GameModules.ui.realWorld.mapViewHelpers.roomResidentsLabel.call(this, room); },
 
+  realWorldMapRoomTitle(room = {}) { return window.GameModules.realWorldMapInterior.roomDisplayTitle(room); },
+
   openRealWorldMapRoom(roomId) {
-    const { room } = window.GameModules.realWorldMapInterior.findRoom(this.realWorldMapInteriorFloors(), roomId);
+    const { floor, room } = window.GameModules.realWorldMapInterior.findRoom(this.realWorldMapInteriorFloors(), roomId);
     const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
+    if (floor?.id) map.interiorFloorId = floor.id;
     map.interiorRoomId = String(roomId || '');
+    map.interiorRoomAreaId = '';
+    map.interiorRoomShapeId = '';
     this.realWorldMap = { ...map };
-    if (room?.hasLayout || room?.layout || room?.layoutTemplateId) {
-      requestAnimationFrame(() => this.renderRealWorldMapRoomCanvas());
-    }
+    if (room) requestAnimationFrame(() => this.renderRealWorldMapRoomCanvas());
   },
 
   realWorldMapInteriorNode() { return window.GameModules.realWorldMap.interiorNode(this.realWorldMap); },
@@ -662,21 +725,107 @@ window.GameModules.realWorldMapActions = {
 
   backRealWorldMapInteriorTree() {
     const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
+    map.interiorFloorId = '';
     map.interiorRoomId = '';
+    map.interiorRoomAreaId = '';
+    map.interiorRoomShapeId = '';
     this.realWorldMap = { ...map };
   },
+
+  backRealWorldMapInteriorFloor() {
+    const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
+    map.interiorRoomId = '';
+    map.interiorRoomAreaId = '';
+    map.interiorRoomShapeId = '';
+    this.realWorldMap = { ...map };
+    requestAnimationFrame(() => this.renderRealWorldMapFloorPlanCanvas());
+  },
+
+  realWorldMapSelectedFloor() { return window.GameModules.ui.realWorld.mapViewHelpers.selectedFloor.call(this); },
 
   realWorldMapSelectedRoom() { return window.GameModules.ui.realWorld.mapViewHelpers.selectedRoom.call(this); },
 
   realWorldMapSelectedRoomResidentsLine() { return window.GameModules.ui.realWorld.mapViewHelpers.selectedRoomResidentsLine.call(this); },
 
+  realWorldMapSelectedRoomObjectsLine() { return window.GameModules.ui.realWorld.mapViewHelpers.selectedRoomObjectsLine.call(this); },
+
+  realWorldMapSelectedRoomObjectTitle() { return window.GameModules.ui.realWorld.mapViewHelpers.selectedRoomObjectTitle.call(this); },
+
+  realWorldMapSelectedRoomObjectLine() { return window.GameModules.ui.realWorld.mapViewHelpers.selectedRoomObjectLine.call(this); },
+
+  realWorldMapSelectedRoomAreaTitle() { return window.GameModules.ui.realWorld.mapViewHelpers.selectedRoomAreaTitle.call(this); },
+
+  clearRealWorldMapRoomArea() {
+    const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
+    map.interiorRoomAreaId = '';
+    map.interiorRoomShapeId = '';
+    this.realWorldMap = { ...map };
+    requestAnimationFrame(() => this.renderRealWorldMapRoomCanvas());
+  },
+
+  renderRealWorldMapFloorPlanCanvas() {
+    const floor = this.realWorldMapSelectedFloor();
+    const canvas = document.querySelector('.real-world-map-floorplan-canvas');
+    if (!floor || !canvas) return;
+    const regions = window.GameModules.realWorldMapInterior.drawFloorPlan(canvas, floor);
+    const runtime = this.realWorldMapRuntime();
+    runtime.floorPlanRegions = regions || [];
+  },
+
+  realWorldMapFloorPlanClick(event) {
+    const canvas = event?.currentTarget;
+    if (!canvas?.getBoundingClientRect) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = (canvas.width || rect.width || 1) / Math.max(rect.width || 1, 1);
+    const scaleY = (canvas.height || rect.height || 1) / Math.max(rect.height || 1, 1);
+    const x = (event.clientX - rect.left) * scaleX;
+    const y = (event.clientY - rect.top) * scaleY;
+    const hit = (this.realWorldMapRuntime().floorPlanRegions || []).find((region) => x >= region.x && x <= region.x + region.w && y >= region.y && y <= region.y + region.h);
+    if (hit?.roomId) this.openRealWorldMapRoom(hit.roomId);
+  },
+
   renderRealWorldMapRoomCanvas() {
     const room = this.realWorldMapSelectedRoom();
     const canvas = document.querySelector('.real-world-map-room-canvas');
     if (!room || !canvas) return;
-    const layout = window.GameModules.realWorldMapInterior.resolveRoomLayout(room);
+    const baseLayout = window.GameModules.realWorldMapInterior.resolveRoomLayout(room);
+    const areaId = String(this.realWorldMap?.interiorRoomAreaId || '');
+    const areaRegion = areaId
+      ? window.GameModules.realWorldMapInterior.roomLayoutRegions(baseLayout).find((region) => region.id === areaId)
+      : null;
+    const areaLayout = areaRegion ? window.GameModules.realWorldMapInterior.roomAreaDetailLayout(room, areaRegion) : null;
+    const layout = areaLayout || baseLayout;
     if (!layout) return;
-    window.GameModules.realWorldMapInterior.drawRoomLayout(canvas, layout);
+    const regions = window.GameModules.realWorldMapInterior.drawRoomLayout(canvas, layout, { selectedId: this.realWorldMap?.interiorRoomShapeId || '' });
+    const runtime = this.realWorldMapRuntime();
+    runtime.roomLayoutRegions = regions || [];
+    runtime.roomLayoutMode = areaLayout ? 'area-detail' : 'room-overview';
+    runtime.roomLayoutAreaRegion = areaRegion || null;
+    runtime.roomLayoutAreaLayout = areaLayout || null;
+  },
+
+  realWorldMapRoomLayoutClick(event) {
+    const canvas = event?.currentTarget;
+    if (!canvas?.getBoundingClientRect) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = (canvas.width || rect.width || 1) / Math.max(rect.width || 1, 1);
+    const scaleY = (canvas.height || rect.height || 1) / Math.max(rect.height || 1, 1);
+    const x = (event.clientX - rect.left) * scaleX;
+    const y = (event.clientY - rect.top) * scaleY;
+    const runtime = this.realWorldMapRuntime();
+    const hit = (runtime.roomLayoutRegions || []).slice().reverse().find((region) => window.GameModules.realWorldMapInterior.regionContainsPoint(region, x, y));
+    if (!hit?.id) return;
+    const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
+    if (runtime.roomLayoutMode === 'area-detail') {
+      map.interiorRoomShapeId = hit.id;
+    } else if (window.GameModules.realWorldMapInterior.isDrillableRoomRegion(hit)) {
+      map.interiorRoomAreaId = hit.id;
+      map.interiorRoomShapeId = '';
+    } else {
+      map.interiorRoomShapeId = hit.id;
+    }
+    this.realWorldMap = { ...map };
+    requestAnimationFrame(() => this.renderRealWorldMapRoomCanvas());
   },
 
   realWorldMapSelectedRoomTemplateLabel() { return window.GameModules.ui.realWorld.mapViewHelpers.selectedRoomTemplateLabel.call(this); },
@@ -733,3 +882,22 @@ window.GameModules.realWorldMapActions = {
 
   realWorldMapFactText(fact, index) { return window.GameModules.ui.realWorld.mapViewHelpers.factText.call(this, fact, index); }
 };
+
+(function installRealWorldMapInteriorNativeOpen() {
+  if (window.GameModules.__realWorldMapInteriorNativeOpenInstalled) return;
+  window.GameModules.__realWorldMapInteriorNativeOpenInstalled = true;
+
+  document.addEventListener('click', async (event) => {
+    const button = event.target?.closest?.('[data-real-world-open-interior], .real-world-map-info-pop .ghost-wide');
+    if (!button) return;
+    const pop = button.closest?.('.real-world-map-info-pop');
+    if (!pop) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const store = window.Alpine?.store?.('game');
+    if (!store) return;
+    await window.GameModules.assetLoader?.ensureChunks?.(['gameplay'], store);
+    window.GameModules.remergeGameStore?.();
+    store.openRealWorldMapInfoInterior(store.realWorldMapInfoNode?.()?.id || store.realWorldMap?.infoNodeId || '');
+  }, true);
+}());

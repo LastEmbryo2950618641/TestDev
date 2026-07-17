@@ -5,7 +5,12 @@ window.GameModules.tokenStats = {
   seq: 0,
   maxRecords: 120,
   modelPrices: {},
-  defaultState() { return { open: false, query: '', category: '', categoryMenuOpen: false, selectedId: '', selectedTab: 'prompt' }; },
+  defaultState() { return { open: false, query: '', category: '', categoryMenuOpen: false, selectedId: '', selectedTab: 'prompt', version: 0 }; },
+  notifyChange() {
+    const store = window.Alpine?.store?.('game');
+    if (!store?.tokenStatsState) return;
+    store.tokenStatsState.version = (Number(store.tokenStatsState.version) || 0) + 1;
+  },
   priceValue(price) {
     const match = String(price ?? '').match(/[\d.]+/);
     const value = match ? Number(match[0]) : Number(price);
@@ -22,6 +27,48 @@ window.GameModules.tokenStats = {
   estimateCredits(tokens, model = '') {
     const price = this.modelPrices?.[model] || 1;
     return Math.max(1, Math.ceil(((Number(tokens) || 0) / 1000) * price));
+  },
+  normalizeUsage(meta = {}) {
+    const usage = meta?.usage && typeof meta.usage === 'object' ? meta.usage : {};
+    const cache = meta?.deepseekCache && typeof meta.deepseekCache === 'object' ? meta.deepseekCache : {};
+    const numberOf = (...values) => {
+      for (const value of values) {
+        const num = Number(value);
+        if (Number.isFinite(num) && num > 0) return Math.round(num);
+      }
+      return 0;
+    };
+    const promptTokens = numberOf(usage.prompt_tokens, usage.promptTokens, meta.promptTokens);
+    const completionTokens = numberOf(usage.completion_tokens, usage.completionTokens, meta.completionTokens);
+    const totalTokens = numberOf(usage.total_tokens, usage.totalTokens, promptTokens + completionTokens);
+    const promptCacheHitTokens = numberOf(cache.promptCacheHitTokens, cache.hitTokens, usage.prompt_cache_hit_tokens, usage.promptCacheHitTokens);
+    const promptCacheMissTokens = numberOf(cache.promptCacheMissTokens, cache.missTokens, usage.prompt_cache_miss_tokens, usage.promptCacheMissTokens);
+    return { usage, promptTokens, completionTokens, totalTokens, promptCacheHitTokens, promptCacheMissTokens };
+  },
+  formatDuration(ms = 0) {
+    const value = Math.max(0, Math.round(Number(ms) || 0));
+    if (!value) return '';
+    if (value < 1000) return `${value}ms`;
+    return `${(value / 1000).toFixed(value < 10000 ? 1 : 0)}s`;
+  },
+  cacheText(record = {}) {
+    const hit = Math.max(0, Math.round(Number(record.promptCacheHitTokens) || 0));
+    const miss = Math.max(0, Math.round(Number(record.promptCacheMissTokens) || 0));
+    const total = hit + miss;
+    if (!hit && !miss) return '';
+    if (!total) return `缓存命中${hit} token`;
+    return `缓存命中${hit}/${total} token（${Math.round((hit / total) * 100)}%）`;
+  },
+  rowCostText(record = {}) {
+    if (!record) return '未生成';
+    const total = Math.max(0, Math.round(Number(record.actualTotalTokens) || 0));
+    const estimate = Math.max(0, Math.round(Number(record.tokens) || 0));
+    const completed = Boolean(record.completedAt || record.status === 'completed');
+    const tokenText = total ? `实耗 ${total} token` : `${completed ? '未返回用量' : '请求中'}，估算 ${estimate} token`;
+    const cache = this.cacheText(record);
+    const duration = this.formatDuration(record.durationMs);
+    const parts = [tokenText, cache, duration ? `耗时${duration}` : '', `约 ${record.credits || this.estimateCredits(total || estimate, record.model)} 积分`];
+    return parts.filter(Boolean).join('｜');
   },
   templateIdForSource(promptId) {
     const id = String(promptId || '');
@@ -57,6 +104,10 @@ window.GameModules.tokenStats = {
     const outputTokens = Math.max(0, Number(meta.maxTokens) || 0);
     const tokens = inputTokens + outputTokens;
     const model = meta.model || '';
+    const title = meta.title || this.titleForSource(promptId, item);
+    const category = meta.category || item?.category || '未分类';
+    const summary = meta.summary || item?.summary || '';
+    const file = meta.file || item?.file || '';
     const record = {
       id: `${createdAt}-${++this.seq}-${promptId}`,
       promptId,
@@ -67,25 +118,55 @@ window.GameModules.tokenStats = {
       model,
       price: this.modelPrices?.[model] || 1,
       credits: this.estimateCredits(tokens, model),
-      title: meta.title || this.titleForSource(promptId, item),
-      category: meta.category || item?.category || '未分类',
-      summary: meta.summary || item?.summary || '',
-      file: meta.file || item?.file || '',
+      title,
+      category,
+      summary,
+      file,
       kind: meta.kind || 'completion',
       responseText: String(meta.responseText || ''),
       responseImages: Array.isArray(meta.responseImages) ? meta.responseImages.filter(Boolean) : [],
+      providerUsage: null,
+      actualInputTokens: 0,
+      actualOutputTokens: 0,
+      actualTotalTokens: 0,
+      promptCacheHitTokens: 0,
+      promptCacheMissTokens: 0,
+      queueWaitMs: 0,
+      durationMs: 0,
+      chunkCount: 0,
+      status: 'pending',
       createdAt,
       updatedAt: new Date(createdAt).toLocaleString('zh-CN'),
     };
     this.records.unshift(record);
     if (this.records.length > this.maxRecords) this.records.length = this.maxRecords;
+    this.notifyChange();
     return record.id;
   },
-  recordResponse(recordId, responseText, responseImages = []) {
+  recordResponse(recordId, responseText, responseImages = [], meta = {}) {
     const record = this.item(recordId);
     if (!record) return;
+    if (!Array.isArray(responseImages) && responseImages && typeof responseImages === 'object') {
+      meta = responseImages;
+      responseImages = [];
+    }
     record.responseText = String(responseText || '');
+    record.status = 'completed';
     if (Array.isArray(responseImages)) record.responseImages = responseImages.filter(Boolean);
+    const usage = this.normalizeUsage(meta);
+    record.providerUsage = Object.keys(usage.usage || {}).length ? usage.usage : record.providerUsage;
+    record.actualInputTokens = usage.promptTokens || record.actualInputTokens || 0;
+    record.actualOutputTokens = usage.completionTokens || record.actualOutputTokens || 0;
+    record.actualTotalTokens = usage.totalTokens || record.actualTotalTokens || 0;
+    record.promptCacheHitTokens = usage.promptCacheHitTokens || record.promptCacheHitTokens || 0;
+    record.promptCacheMissTokens = usage.promptCacheMissTokens || record.promptCacheMissTokens || 0;
+    record.deepseekCache = { promptCacheHitTokens: record.promptCacheHitTokens, promptCacheMissTokens: record.promptCacheMissTokens };
+    record.queueWaitMs = Math.max(0, Math.round(Number(meta.queueWaitMs) || record.queueWaitMs || 0));
+    record.durationMs = Math.max(0, Math.round(Number(meta.durationMs) || record.durationMs || 0));
+    record.chunkCount = Math.max(0, Math.round(Number(meta.chunkCount) || record.chunkCount || 0));
+    if (meta.completedAt) record.completedAt = Number(meta.completedAt) || record.completedAt;
+    if (record.completedAt) record.completedAtText = new Date(record.completedAt).toLocaleString('zh-CN');
+    this.notifyChange();
   },
   item(recordId) { return this.records.find((item) => item.id === recordId) || null; },
   categories() {
@@ -121,6 +202,7 @@ window.GameModules.tokenStatsActions = {
   closeTokenStatsApp() { if (this.tokenStatsState) Object.assign(this.tokenStatsState, { open: false, selectedId: '' }); this.closeAppToDesktop(); },
   tokenPromptList() {
     this.initTokenStatsApp();
+    this.tokenStatsState.version;
     return window.GameModules.tokenStats.list({ query: this.tokenStatsState.query, category: this.tokenStatsState.category });
   },
   tokenPromptCategories() { return window.GameModules.tokenStats.categories(); },
@@ -137,5 +219,21 @@ window.GameModules.tokenStatsActions = {
   tokenResponseText(id) { return window.GameModules.tokenStats.item(id)?.responseText || '暂无 AI 返回值。请求完成后这里会显示原始返回内容。'; },
   tokenResponseImages(id) { return window.GameModules.tokenStats.item(id)?.responseImages || []; },
   tokenPromptDetailText() { const id = this.tokenStatsState?.selectedId; return this.tokenStatsState?.selectedTab === 'response' ? this.tokenResponseText(id) : this.tokenPromptText(id); },
-  tokenPromptCostText(id) { const stat = window.GameModules.tokenStats.item(id); return stat ? `输入${stat.inputTokens || stat.tokens} + 预留输出${stat.outputTokens || 0} token｜模型${stat.model || '未知'}×${stat.price || 1}｜约 ${stat.credits} 积分` : '未生成'; },
+  tokenPromptRowCostText(item) {
+    this.tokenStatsState?.version;
+    return window.GameModules.tokenStats.rowCostText(item);
+  },
+  tokenPromptCostText(id) {
+    this.tokenStatsState?.version;
+    const stat = window.GameModules.tokenStats.item(id);
+    if (!stat) return '未生成';
+    const completed = Boolean(stat.completedAt || stat.status === 'completed');
+    const usage = stat.actualTotalTokens
+      ? `实耗输入${stat.actualInputTokens || 0} + 输出${stat.actualOutputTokens || 0} token`
+      : `${completed ? '未返回用量' : '请求中'}：输入${stat.inputTokens || stat.tokens} + 预留输出${stat.outputTokens || 0} token`;
+    const cache = window.GameModules.tokenStats.cacheText(stat);
+    const duration = window.GameModules.tokenStats.formatDuration(stat.durationMs);
+    const queue = stat.queueWaitMs > 300 ? `排队${window.GameModules.tokenStats.formatDuration(stat.queueWaitMs)}` : '';
+    return [usage, cache, duration ? `耗时${duration}` : '', queue, `模型${stat.model || '未知'}×${stat.price || 1}`, `约 ${stat.credits} 积分`].filter(Boolean).join('｜');
+  },
 };

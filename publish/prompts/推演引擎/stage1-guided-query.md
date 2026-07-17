@@ -1,4 +1,4 @@
-# Stage1 查询规划：紧凑 JSON 资料路由
+﻿# Stage1 查询规划：紧凑 JSON 资料路由
 
 任务：只输出一个合法 JSON 对象，不输出中文 K:V、Markdown、正文或解释。
 你只负责判断本次行动生成正文前还需要哪些已有资料；不得写正文，不得锚定场景，不得结算状态，不得推进后续结果。
@@ -26,14 +26,14 @@
 随机场外角色候选：{{随机场外角色候选}}
 
 资料请求规则：
-- 使用中文资料请求，不得输出英文 skill/method。
+- 使用中文资料请求，不得输出英文 skill/method。地点查询未命中时，不要请求地点图补全；基于上下文进行符合逻辑的保守推演，地图持久化交给 Stage4 电子地图周围解锁/地图更新。
 - 资料请求最多 Top3；超过 Top3 的候选必须丢弃，不得输出资料请求4或更多编号。
 - 角色卡请求只代表可作为参考资料；不得因此把角色写入强制出场。
 - 已加载资料摘要已经覆盖的人物、地点、路线不得重复请求。
 - 不得请求衣着、鞋袜、随身物品等细节；这些细节不属于本阶段必要资料。
 - 不得照抄示例中的占位词；角色全称、世界全称、地点全称、人物全称、作品全称都必须替换为本次行动中的真实名称。
 - 资料请求示例：角色查询，搜索角色卡，刘思琪，2026现代都市现实世界
-- 资料请求示例：地点查询，查询附近地点，锦苑小区3栋2单元
+- 资料请求示例：地点查询，查询附近地点，锦苑小区3栋
 - 资料请求示例：作品设定查询，搜索人物，阿尔托莉雅·潘德拉贡，Fate/stay night
 
 随机事件规则：
@@ -58,6 +58,7 @@
 {{资料迭代限制规则}}
 - participants.forced / priority / drama / forbidden 都必须是字符串数组；没有则 []。
 - randomEvents 必须是字符串数组；randomIntrusionCondition 没有明确条件时写“无明确条件则禁止闯入”。
+- 资料请求只能使用中文结构，不得输出英文 skill/method；不得在 Stage1 请求地点图新增、地点图补全或 ensure。
 - 不得输出旧 K:V 字段，例如“资料状态：”“资料请求1：”。
 
 JSON schema：
@@ -67,3 +68,4 @@ JSON schema：
 - 输出前必须自检 status 与 materialRequests、sceneQueries、participants 是否一致。
 - 若 materialRequests、sceneQueries、participants.forced、participants.priority、participants.drama 全为空，status 必须为“资料已足够”。
 - 不得输出旧 K:V 字段或 Markdown。
+

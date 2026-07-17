@@ -109,6 +109,24 @@ window.GameModules.playerIdentityActions = {
       row('personality', '性格', p.personality, '角色卡固化性格。'),
       row('job', '职业', p.job, '角色真实职业、训练身份或社会功能。'),
     ];
+    const propertyInfo = this.identityTargetState()?.properties?.realWorldProperties || p.properties?.realWorldProperties || null;
+    const formatPropertyPath = (item = {}) => item.path || item.name || item.nodeId || '未命名房产';
+    const ownedProperties = Array.isArray(propertyInfo?.owned) ? propertyInfo.owned : [];
+    const usingProperties = Array.isArray(propertyInfo?.using) ? propertyInfo.using : [];
+    if (ownedProperties.length) {
+      fields.push(row('owned-properties', '所有房产', ownedProperties.map((item) => {
+        const rent = Number(item.monthlyRentIncome) || 0;
+        const users = (Array.isArray(item.users) ? item.users : []).filter(Boolean).join('、') || '无';
+        return `所有：${formatPropertyPath(item)}（标识:${item.nodeId || '未知'}，+${rent}租金（使用者:${users}））`;
+      }).join('\n'), '地点图反向索引：该角色拥有或收款的房产/空间。', { profileGroup: '房产' }));
+    }
+    if (usingProperties.length) {
+      fields.push(row('using-properties', '使用房产', usingProperties.map((item) => {
+        const rent = Number(item.monthlyRentCost) || 0;
+        const owners = (Array.isArray(item.owners) ? item.owners : []).filter(Boolean).join('、') || '未知';
+        return `使用：${formatPropertyPath(item)}（标识:${item.nodeId || '未知'}，-${rent}租金（所属者:${owners}））`;
+      }).join('\n'), '地点图反向索引：该角色正在使用或承租的房产/空间。', { profileGroup: '房产' }));
+    }
     const prefTool = window.GameModules.playerAspirationPreferenceLayers;
     const layerSource = this.essentialPreferenceLayersForState?.(this.identityTargetState());
     if (layerSource) prefTool?.toLines?.(layerSource).forEach((line, index) => {

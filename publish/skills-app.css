@@ -188,8 +188,19 @@
 }
 
 .token-row { min-width: 0; }
-.token-row .prompt-title { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
-.token-row .prompt-title em { white-space: nowrap; }
+.token-row .prompt-title {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 4px;
+}
+.token-row .prompt-title em {
+  justify-self: end;
+  max-width: 100%;
+  text-align: right;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 .token-list { overflow-x: hidden; }
 
 .prompt-app-modal-backdrop {

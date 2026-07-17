@@ -129,9 +129,9 @@
   <script src="../pixatart_key.js"></script>
   <script src="boot/script-loader.js"></script>
   <script src="boot/store-modules.js"></script>
-  <script src="boot/script-manifest.js?v=2026-07-15-body-figure-static-v1"></script>
+  <script src="boot/script-manifest.js?v=2026-07-17-explicit-location-patch-v28"></script>
   <script src="boot/boot-actions.js"></script>
-  <script src="boot/boot.js?v=2026-07-07-faction-native-nav-v4"></script>
+  <script src="boot/boot.js?v=2026-07-17-explicit-location-patch-v28"></script>
   <script>
     window.openEventAppNative = async function openEventAppNative(event) {
       try {
@@ -2273,7 +2273,7 @@
     <div class="skills-card prompt-card dev-section" data-section-title="Token统计主面板">
       <header class="identity-header dev-section" data-section-title="Token统计标题区"><div><p class="eyebrow">PROMPT TOKENS</p><h2>提示词 Token 统计</h2><small>按每次 AI 请求记录；同一提示词标题可出现多次，点击查看完整提示词</small></div><button class="small-btn" type="button" @click="$store.game.closeTokenStatsApp()">回到桌面</button></header>
       <section class="skills-toolbar dev-section" data-section-title="Token筛选区"><input x-model="$store.game.tokenStatsState.query" placeholder="搜索提示词标题、分类、说明"><div class="custom-select skills-filter-select" :class="{ open: open }" x-data="{ open: false }" @click.outside="open = false"><button class="custom-select-btn" type="button" @click.stop="open = !open"><span x-text="$store.game.tokenCategoryLabel()"></span><i></i></button><div class="custom-select-menu" x-show="open" @pointerdown.stop @click.stop x-cloak><button type="button" @click.stop="$store.game.selectTokenCategory(''); open = false">全部分类</button><template x-for="category in $store.game.tokenPromptCategories()" :key="category"><button type="button" @click.stop="$store.game.selectTokenCategory(category); open = false" x-text="category"></button></template></div></div></section>
-      <main class="skills-body"><section class="skills-list prompt-list token-list dev-section" data-section-title="Token列表区"><p class="skills-note" x-show="!$store.game.tokenPromptList().length">暂无请求记录。先触发 AI 生成流程后，这里会按每次请求显示。</p><template x-for="item in $store.game.tokenPromptList()" :key="item.id"><button class="skill-row prompt-row token-row" type="button" @click="$store.game.openTokenPromptDetail(item.id)"><span class="skill-row-title prompt-title"><strong x-text="item.title"></strong><em x-text="`${item.tokens} token｜约 ${item.credits} 积分`"></em></span><small x-text="`${item.category}｜${item.updatedAt}`"></small></button></template></section></main>
+      <main class="skills-body"><section class="skills-list prompt-list token-list dev-section" data-section-title="Token列表区"><p class="skills-note" x-show="!$store.game.tokenPromptList().length">暂无请求记录。先触发 AI 生成流程后，这里会按每次请求显示。</p><template x-for="item in $store.game.tokenPromptList()" :key="item.id"><button class="skill-row prompt-row token-row" type="button" @click="$store.game.openTokenPromptDetail(item.id)"><span class="skill-row-title prompt-title"><strong x-text="item.title"></strong><em x-text="$store.game.tokenPromptRowCostText(item)"></em></span><small x-text="`${item.category}｜${item.updatedAt}`"></small></button></template></section></main>
     </div>
   </section>
 
@@ -2594,6 +2594,7 @@
       </header>
       <main class="wechat-body">
         <section class="wechat-list-page" x-show="$store.game.wechatView === 'home' && $store.game.wechatTab === 'chats'">
+          <p class="wechat-empty" x-show="!$store.game.wechatThreads().length">暂无聊天</p>
           <template x-for="thread in $store.game.wechatThreads()" :key="thread.id">
             <button class="wechat-thread" type="button" @pointerdown.stop @click.stop="$store.game.selectWechatContact(thread.id)"><span class="wechat-avatar" :style="$store.game.wechatAvatarStyle(thread)" x-text="$store.game.wechatAvatarText(thread)"></span><span><b x-text="thread.name"></b><small x-text="thread.latest"></small></span><em x-show="thread.unread" x-text="thread.unread"></em></button>
           </template>

@@ -197,7 +197,7 @@ window.GameModules.jsonUtils = {
         tokenMeta,
       });
     }
-    return window.GameModules.aiRequest.complete({ source, model, maxTokens, prompt, timeoutMs, maxAttempts, jsonMode, responseFormat: responseFormat || (jsonMode ? { type: 'json_object' } : undefined), outputLimitKind });
+    return window.GameModules.aiRequest.complete({ source, model, maxTokens, prompt, timeoutMs, maxAttempts, jsonMode, responseFormat: responseFormat || (jsonMode ? { type: 'json_object' } : undefined), outputLimitKind, tokenMeta });
   },
 
   async repairPrompt(format, badOutput, err, hint = '') {

@@ -321,10 +321,13 @@ window.GameModules.aiRequest = {
     await this.timeout(Promise.resolve(request).then(() => callbackChain), options.timeoutMs, options.source);
     if (options.requireDone && !doneSeen) throw new Error(`${options.source}流式未完成`);
     this.completedCount += 1;
+    const completedAt = Date.now();
+    const durationMs = completedAt - startAt;
+    const queueWaitMs = startAt - options.enqueueAt;
     const risk = this.outputLengthRisk(buffer, options);
-    this.log('完成', { id: options.id, source: options.source, chunkCount, length: risk.length, outputThreshold: risk.threshold, overThreshold: risk.overThreshold, tailLooksTruncated: risk.tailLooksTruncated, possibleTruncated: risk.overThreshold || risk.tailLooksTruncated, doneSeen, durationMs: Date.now() - startAt });
-    this.logRawResponse(options, buffer, { chunkCount, doneSeen, durationMs: Date.now() - startAt, ...responseMeta });
-    window.GameModules.tokenStats?.recordResponse?.(options.tokenRecordId, buffer);
+    this.log('完成', { id: options.id, source: options.source, chunkCount, length: risk.length, outputThreshold: risk.threshold, overThreshold: risk.overThreshold, tailLooksTruncated: risk.tailLooksTruncated, possibleTruncated: risk.overThreshold || risk.tailLooksTruncated, doneSeen, durationMs });
+    this.logRawResponse(options, buffer, { chunkCount, doneSeen, durationMs, queueWaitMs, ...responseMeta });
+    window.GameModules.tokenStats?.recordResponse?.(options.tokenRecordId, buffer, [], { chunkCount, doneSeen, durationMs, queueWaitMs, startedAt: startAt, completedAt, ...responseMeta });
     if (risk.overThreshold || risk.tailLooksTruncated) {
       console.debug('[AI请求] 返回长度可能被截断:', { id: options.id, source: options.source, length: risk.length, threshold: risk.threshold, overThreshold: risk.overThreshold, tailLooksTruncated: risk.tailLooksTruncated, doneSeen, tailPreview: buffer.slice(-180) });
     }

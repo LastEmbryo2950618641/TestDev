@@ -17,12 +17,13 @@ window.GameModules.aiProvider.register('dzmm', {
       throw window.GameModules.aiProvider.createError('dzmm.completions unavailable', 'AI_PROVIDER_UNAVAILABLE');
     }
     let buffer = '';
-    await window.dzmm.completions({
+    const payload = {
       model: options.model,
       messages: options.messages || [],
-      maxTokens: options.maxTokens,
-      deepThinking: options.deepThinking,
-    }, async (chunk, done) => {
+    };
+    if (options.maxTokens !== undefined && options.maxTokens !== null) payload.maxTokens = options.maxTokens;
+    if (options.deepThinking === true) payload.deepThinking = true;
+    await window.dzmm.completions(payload, async (chunk, done) => {
       const text = String(chunk || '');
       if (text) buffer = window.GameModules.jsonUtils?.mergeStreamText?.(buffer, text) ?? (buffer + text);
       const info = { buffer, chunkCount: 0, done: Boolean(done), doneSeen: Boolean(done) };
