@@ -31,7 +31,7 @@ window.GameModules.realWorldActions = {
     const savedTotalBeforeAppend = window.GameModules.realWorldLogStore?.count?.() || this.realWorldLogTotal || 0;
     if (savedTotalBeforeAppend > 0) this.refreshRealWorldLogPage?.(Math.max(1, Math.ceil(savedTotalBeforeAppend / (Number(this.realWorldLogPageSize) || 12))));
     const userEntry = { id: `${baseId}-user`, type: 'user', text: rawText, matter: this.activeRealWorldMatter?.() || null, time: startTime, createdAt: start.toISOString() };
-    const entry = { id: `${baseId}-ai`, type: 'ai', narration: '现实世界正在推演…', thinking: '', streaming: true, playerText: rawText, actionText: text, time: startTime, createdAt: responseCreatedAt };
+    const entry = { id: `${baseId}-ai`, type: 'ai', narration: '现实世界正在推演…', thinking: '', thinkingSections: [], settlementThinking: '', settlementThinkingSections: [], settlementThinkingOpen: true, streaming: true, playerText: rawText, actionText: text, time: startTime, createdAt: responseCreatedAt };
     entry.promptPack = { systemPrompt: '现实世界 Loop Agent 将按步骤动态载入上下文。', userPrompt: text, model: this.modelId, promptTokens: 0 };
     this.realWorldLog = this.normalizeRealWorldLog([...(this.realWorldLog || []), userEntry, entry]).slice(-Math.max(1, Number(this.realWorldLogPageSize) || 12));
     this.realWorldLogTotal = Math.max(this.realWorldLogTotal || 0, window.GameModules.realWorldLogStore?.count?.() || 0) + 2;
@@ -71,7 +71,7 @@ window.GameModules.realWorldActions = {
     await window.GameModules.realWorldLogStore?.remove?.(id);
     this.realWorldLogTotal = Math.max(0, (this.realWorldLogTotal || 1) - 1);
     const narration = this.realWorldActionErrorText(err);
-    this.realWorldLog = (this.realWorldLog || []).map((entry) => (entry.id === id ? { ...entry, narration, thinking: '', thinkingSections: [], streamTrace: [], streaming: false, transientError: true, promptPack: null, characterCardChanges: [], agentTrace: [] } : entry));
+    this.realWorldLog = (this.realWorldLog || []).map((entry) => (entry.id === id ? { ...entry, narration, thinking: '', thinkingSections: [], settlementThinking: '', settlementThinkingSections: [], streamTrace: [], streaming: false, transientError: true, promptPack: null, characterCardChanges: [], agentTrace: [] } : entry));
     this.scrollRealWorldLogBottom?.();
   },
 
@@ -144,6 +144,8 @@ window.GameModules.realWorldActions = {
     this.refreshRealWorldMatterStatus?.();
     this.checkWorkReminder?.();
     window.GameModules.realWorldMap.update(this, result.locationName || this.realWorldLocationName, result);
+    const currentGraphNode = window.GameModules.realWorldLocationGraph?.getNode?.(this, this.realWorldMap?.currentId || result.locationName || this.realWorldLocationName);
+    if (currentGraphNode?.id) window.GameModules.realWorldLocationGraph?.setCharacterCurrentNode?.(this, 'player-self', currentGraphNode.id, { reason: '现实推演结算后的主角当前位置。', time: this.phoneDate?.()?.toISOString?.() || '' });
     const fogResult = await window.GameModules.realWorldMapFog?.afterLocationUpdate?.(this, result) || {};
     if (fogResult.unlocked?.length) settlement.push(`地图解锁：${fogResult.unlocked.join('、')}`);
     this.ensureControlRoleLocation?.(state, '现实推演后更新玩家当前位置。');
@@ -165,7 +167,9 @@ window.GameModules.realWorldActions = {
     const existingEntry = this.realWorldLog.find((entry) => entry.id === id) || {};
     const nextThinkingSections = Array.isArray(cleanResult.thinkingSections) && cleanResult.thinkingSections.length ? cleanResult.thinkingSections : (existingEntry.thinkingSections || []);
     const nextThinking = String(cleanResult.thinking || '').trim() || String(existingEntry.thinking || '').trim();
-    const next = { ...existingEntry, ...cleanResult, thinking: nextThinking, thinkingSections: nextThinkingSections, type: 'ai', streaming: false, statusText: '', streamTrace: [], time, agentTrace: result.agentTrace || [] };
+    const nextSettlementThinkingSections = Array.isArray(cleanResult.settlementThinkingSections) && cleanResult.settlementThinkingSections.length ? cleanResult.settlementThinkingSections : (existingEntry.settlementThinkingSections || []);
+    const nextSettlementThinking = String(cleanResult.settlementThinking || '').trim() || String(existingEntry.settlementThinking || '').trim();
+    const next = { ...existingEntry, ...cleanResult, thinking: nextThinking, thinkingSections: nextThinkingSections, settlementThinking: nextSettlementThinking, settlementThinkingSections: nextSettlementThinkingSections, settlementThinkingOpen: existingEntry.settlementThinkingOpen !== false, type: 'ai', streaming: false, statusText: '', streamTrace: [], time, agentTrace: result.agentTrace || [] };
     await this.assignRealWorldlineEntry(next);
     if (playerEntry?.id) await window.GameModules.realWorldLogStore?.append?.(playerEntry);
     await window.GameModules.realWorldLogStore?.append?.(next);

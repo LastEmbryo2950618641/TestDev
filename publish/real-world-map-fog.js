@@ -405,6 +405,7 @@ window.GameModules.realWorldMapFog = {
     const compactNode = (node = {}) => node ? ({
       id: trimText(node.id, 64),
       graphNodeId: trimText(node.graphNodeId, 64),
+      identityKey: trimText(node.identityKey, 140),
       name: trimText(node.displayName || node.name, 100),
       type: trimText(node.type || 'poi', 24),
       parentId: trimText(node.parentId, 64),
@@ -521,7 +522,7 @@ window.GameModules.realWorldMapFog = {
 
       format: prompt,
 
-      max: 2,
+      max: 1,
 
       parse: (text) => window.GameModules.jsonUtils.parseLoose(text),
 
@@ -575,10 +576,6 @@ window.GameModules.realWorldMapFog = {
 
     const noChange = raw.noChange === true || rawPatch.noChange === true || responseMode === 'patch' && !interiorLayout && !surroundLocations.length;
 
-    if (responseMode === 'full' && !surroundLocations.length) throw new Error('surroundLocations 为空');
-    if (responseMode === 'full' && !interiorLayout) throw new Error('interiorLayout 为空');
-    if (responseMode === 'patch' && !noChange && !interiorLayout && !surroundLocations.length) throw new Error('patch 为空');
-
     return { responseMode, noChange, interiorLayout, surroundLocations };
 
   },
@@ -613,7 +610,7 @@ window.GameModules.realWorldMapFog = {
 
       .filter((zone) => zone.name && zone.description);
 
-    if (!floors.length && !zones.length) throw new Error('interiorLayout 需包含 floors 或 zones');
+    if (!floors.length && !zones.length) return { summary, zones: [], floors: [] };
 
     if (!zones.length) {
 
@@ -962,6 +959,9 @@ window.GameModules.realWorldMapFog = {
     anchor.exteriorRingUnlocked = true;
 
     const unlocked = [];
+    const projectedNodeIds = [];
+    const anchorGraphNode = window.GameModules.realWorldLocationGraph?.getNode?.(state, anchor?.graphNodeId || anchor?.id || anchor?.identityKey || anchor?.name);
+    const anchorGraphParentId = anchorGraphNode?.parentId || anchor.parentId || '';
 
     for (const item of (payload.surroundLocations || [])) {
       const ensureParams = {
@@ -994,25 +994,32 @@ window.GameModules.realWorldMapFog = {
       const created = window.GameModules.realWorldLocationGraph?.ensurePoiFromPayload?.(state, {
         name: item.name,
         parentName: item.parentName,
-        parentId: anchor.parentId || '',
+        parentId: anchorGraphParentId,
         descriptionFacts: item.descriptionFacts,
         time,
-      }, { source: 'real-world-map-fog-fallback' });
+      }, { source: 'real-world-map-fog-fallback', skipProject: true });
 
       if (created) {
 
-        this.normalizeNodeFlags(created);
-
-        created.mapVisible = true;
-
-        created.revealed = true;
-
-        created.visited = false;
+        projectedNodeIds.push(created.graphNodeId || created.id);
 
         unlocked.push(created.name);
 
       }
 
+    }
+
+    if (projectedNodeIds.length) {
+      window.GameModules.realWorldLocationGraph?.projectLocationGraphToLegacyMap?.(state);
+      projectedNodeIds.forEach((nodeId) => {
+        const graphNode = window.GameModules.realWorldLocationGraph?.getNode?.(state, nodeId);
+        const mapNode = (map.nodes || []).find((node) => node.graphNodeId === nodeId || node.id === nodeId || node.name === graphNode?.name);
+        if (!mapNode) return;
+        this.normalizeNodeFlags(mapNode);
+        mapNode.mapVisible = true;
+        mapNode.revealed = true;
+        mapNode.visited = false;
+      });
     }
 
     map.mapAnchorId = anchor.id;

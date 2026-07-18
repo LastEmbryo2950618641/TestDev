@@ -9,6 +9,9 @@ window.GameModules.realWorldLocationGraph = {
       nextNodeSeq: 1,
       nodesById: {},
       legacyAliases: {},
+      identityIndex: {},
+      searchIndex: { locationNodeIds: [], byNormalizedName: {} },
+      characterLocations: {},
       poiGraph: { nodes: [], edges: [] },
       updatedAt: '',
     };
@@ -21,12 +24,17 @@ window.GameModules.realWorldLocationGraph = {
     graph.nextNodeSeq = Math.max(1, Number(graph.nextNodeSeq) || 1);
     graph.nodesById = graph.nodesById && typeof graph.nodesById === 'object' ? graph.nodesById : {};
     graph.legacyAliases = graph.legacyAliases && typeof graph.legacyAliases === 'object' ? graph.legacyAliases : {};
+    graph.identityIndex = graph.identityIndex && typeof graph.identityIndex === 'object' ? graph.identityIndex : {};
+    graph.searchIndex = graph.searchIndex && typeof graph.searchIndex === 'object' ? graph.searchIndex : { locationNodeIds: [], byNormalizedName: {} };
+    graph.characterLocations = graph.characterLocations && typeof graph.characterLocations === 'object' ? graph.characterLocations : {};
     graph.poiGraph = graph.poiGraph && typeof graph.poiGraph === 'object' ? graph.poiGraph : { nodes: [], edges: [] };
     graph.poiGraph.nodes = Array.isArray(graph.poiGraph.nodes) ? graph.poiGraph.nodes : [];
     graph.poiGraph.edges = Array.isArray(graph.poiGraph.edges) ? graph.poiGraph.edges : [];
     graph.auditCache = graph.auditCache && typeof graph.auditCache === 'object' ? graph.auditCache : {};
     this.syncNextSeq(graph);
     this.importLegacyMap(state, graph);
+    this.rebuildIdentityIndex(graph);
+    this.rebuildSearchIndex(graph);
     this.syncNextSeq(graph);
     return graph;
   },
@@ -59,6 +67,68 @@ window.GameModules.realWorldLocationGraph = {
   legacyKey(kind = '', value = '') {
     const text = String(value || '').trim();
     return text ? `${kind}:${text}` : '';
+  },
+
+  normalizeIdentityName(value = '') {
+    return this.cleanName(value).toLowerCase().replace(/\s+/g, '');
+  },
+
+  identityKeyFor(data = {}) {
+    const type = String(data.type || 'node').trim().toLowerCase() || 'node';
+    const parentId = String(data.parentId || '').trim() || 'root';
+    const name = this.normalizeIdentityName(data.displayName || data.name);
+    return name ? `${type}|${parentId}|${name}` : '';
+  },
+
+  rememberIdentity(graph = {}, node = {}) {
+    const key = this.identityKeyFor(node);
+    if (!key || !node?.id) return '';
+    node.identityKey = key;
+    graph.identityIndex = graph.identityIndex && typeof graph.identityIndex === 'object' ? graph.identityIndex : {};
+    graph.identityIndex[key] = node.id;
+    this.rememberAlias(graph, this.legacyKey('identity', key), node.id);
+    return key;
+  },
+
+  rememberSearchNode(graph = {}, node = {}) {
+    if (!node?.id || !this.isLocationSearchNode(node)) return;
+    graph.searchIndex = graph.searchIndex && typeof graph.searchIndex === 'object' ? graph.searchIndex : { locationNodeIds: [], byNormalizedName: {} };
+    graph.searchIndex.locationNodeIds = Array.isArray(graph.searchIndex.locationNodeIds) ? graph.searchIndex.locationNodeIds : [];
+    graph.searchIndex.byNormalizedName = graph.searchIndex.byNormalizedName && typeof graph.searchIndex.byNormalizedName === 'object' ? graph.searchIndex.byNormalizedName : {};
+    if (!graph.searchIndex.locationNodeIds.includes(node.id)) graph.searchIndex.locationNodeIds.push(node.id);
+    const key = this.normalizeIdentityName(node.displayName || node.name);
+    if (!key) return;
+    graph.searchIndex.byNormalizedName[key] = graph.searchIndex.byNormalizedName[key] || [];
+    if (!graph.searchIndex.byNormalizedName[key].includes(node.id)) graph.searchIndex.byNormalizedName[key].push(node.id);
+  },
+
+  rebuildIdentityIndex(graph = {}) {
+    graph.identityIndex = {};
+    Object.values(graph.nodesById || {}).forEach((node) => this.rememberIdentity(graph, node));
+    return graph.identityIndex;
+  },
+
+  locationSearchTypes() {
+    return new Set(['poi', 'floor', 'room', 'zone', 'function-zone', 'inner-room']);
+  },
+
+  isLocationSearchNode(node = {}) {
+    return this.locationSearchTypes().has(String(node.type || '').toLowerCase());
+  },
+
+  rebuildSearchIndex(graph = {}) {
+    const byNormalizedName = {};
+    const locationNodeIds = [];
+    Object.values(graph.nodesById || {}).forEach((node) => {
+      if (!node?.id || !this.isLocationSearchNode(node)) return;
+      locationNodeIds.push(node.id);
+      const key = this.normalizeIdentityName(node.displayName || node.name);
+      if (!key) return;
+      byNormalizedName[key] = byNormalizedName[key] || [];
+      if (!byNormalizedName[key].includes(node.id)) byNormalizedName[key].push(node.id);
+    });
+    graph.searchIndex = { locationNodeIds, byNormalizedName };
+    return graph.searchIndex;
   },
 
   alias(graph = {}, key = '') {
@@ -108,6 +178,8 @@ window.GameModules.realWorldLocationGraph = {
     };
     graph.nodesById[id] = node;
     aliasKeys.forEach((key) => this.rememberAlias(graph, key, id));
+    this.rememberIdentity(graph, node);
+    this.rememberSearchNode(graph, node);
     if (!graph.poiGraph.nodes.includes(id)) graph.poiGraph.nodes.push(id);
     return node;
   },
@@ -220,7 +292,8 @@ window.GameModules.realWorldLocationGraph = {
 
   ensureChildNode(graph = {}, data = {}) {
     const legacy = data.legacyKey || '';
-    const existingId = this.alias(graph, legacy);
+    const identityKey = this.identityKeyFor(data);
+    const existingId = this.alias(graph, legacy) || graph.identityIndex?.[identityKey] || this.alias(graph, this.legacyKey('identity', identityKey));
     if (existingId && graph.nodesById[existingId]) return graph.nodesById[existingId];
     const id = this.allocateLocationNodeIdNoImport(graph);
     const node = {
@@ -238,6 +311,8 @@ window.GameModules.realWorldLocationGraph = {
     };
     graph.nodesById[id] = node;
     if (legacy) this.rememberAlias(graph, legacy, id);
+    this.rememberIdentity(graph, node);
+    this.rememberSearchNode(graph, node);
     return node;
   },
 
@@ -274,7 +349,29 @@ window.GameModules.realWorldLocationGraph = {
   getNode(state = {}, nodeId = '') {
     const graph = this.ensureGraphState(state);
     const key = String(nodeId || '').trim();
-    return graph.nodesById[key] || graph.nodesById[this.alias(graph, this.legacyKey('mapId', key))] || graph.nodesById[this.alias(graph, this.legacyKey('name', key))] || null;
+    return graph.nodesById[key]
+      || graph.nodesById[graph.identityIndex?.[key]]
+      || graph.nodesById[this.alias(graph, this.legacyKey('identity', key))]
+      || graph.nodesById[this.alias(graph, this.legacyKey('mapId', key))]
+      || graph.nodesById[this.alias(graph, this.legacyKey('name', key))]
+      || null;
+  },
+
+  findStrictNode(state = {}, params = {}) {
+    const graph = this.ensureGraphState(state);
+    const direct = this.getNode(state, params.nodeId || params.id || params.identityKey || '');
+    if (direct) return direct;
+    const name = this.normalizeIdentityName(params.name || params.displayName || params.targetKeyword || params.keyword);
+    if (!name) return null;
+    const type = String(params.type || '').trim().toLowerCase();
+    const parentId = String(params.parentId || '').trim();
+    const hits = Object.values(graph.nodesById || {}).filter((node) => {
+      if (!node) return false;
+      if (type && String(node.type || '').toLowerCase() !== type) return false;
+      if (parentId && node.parentId !== parentId) return false;
+      return this.normalizeIdentityName(node.displayName || node.name) === name;
+    });
+    return hits[0] || null;
   },
 
   pathByNodeId(state = {}, nodeId = '') {
@@ -294,13 +391,22 @@ window.GameModules.realWorldLocationGraph = {
     return this.pathByNodeId(state, nodeId).map((node) => node.displayName || node.name || node.id).join(' -> ');
   },
 
-  searchNode(state = {}, keyword = '', limit = 20) {
+  searchNode(state = {}, keyword = '', limit = 20, options = {}) {
+    const graph = this.ensureGraphState(state);
     const key = this.cleanName(keyword).toLowerCase();
     if (!key) return [];
-    return this.allNodes(state)
+    const normalizedKey = this.normalizeIdentityName(keyword);
+    const includeTypes = Array.isArray(options.includeTypes) ? new Set(options.includeTypes.map((type) => String(type || '').toLowerCase())) : null;
+    const indexedIds = includeTypes
+      ? Object.values(graph.nodesById || {}).filter((node) => includeTypes.has(String(node.type || '').toLowerCase())).map((node) => node.id)
+      : (graph.searchIndex?.locationNodeIds || []);
+    return indexedIds
+      .map((id) => graph.nodesById[id])
       .filter((node) => {
+        if (!node) return false;
         const haystack = [
           node.id,
+          node.identityKey,
           node.name,
           node.displayName,
           node.legacyMapNodeId,
@@ -308,7 +414,7 @@ window.GameModules.realWorldLocationGraph = {
           JSON.stringify(node.ownerRefs || []),
           JSON.stringify(node.usageContracts || []),
         ].join(' ').toLowerCase();
-        return haystack.includes(key);
+        return haystack.includes(key) || this.normalizeIdentityName(node.displayName || node.name).includes(normalizedKey);
       })
       .slice(0, Math.max(1, Number(limit) || 20));
   },
@@ -347,6 +453,108 @@ window.GameModules.realWorldLocationGraph = {
       });
     }
     return rows;
+  },
+
+  edgeIdFor(fromPoiId = '', toPoiId = '') {
+    const pair = [String(fromPoiId || ''), String(toPoiId || '')].sort();
+    return pair[0] && pair[1] ? `edge_${pair[0]}_${pair[1]}` : '';
+  },
+
+  ensureRouteEdge(state = {}, fromRef = '', toRef = '', data = {}) {
+    const graph = this.ensureGraphState(state);
+    const fromNode = this.poiAncestor(state, fromRef) || this.getNode(state, fromRef);
+    const toNode = this.poiAncestor(state, toRef) || this.getNode(state, toRef);
+    if (!fromNode?.id || !toNode?.id || fromNode.id === toNode.id) return null;
+    const id = data.id || this.edgeIdFor(fromNode.id, toNode.id);
+    if (!id) return null;
+    const existing = (graph.poiGraph.edges || []).find((edge) => edge.id === id);
+    const meters = Number(data.distanceMeters || data.meters || data.lengthMeters);
+    const edge = {
+      ...(existing || {}),
+      id,
+      fromPoiId: fromNode.id,
+      toPoiId: toNode.id,
+      relation: data.relation || 'route',
+      directNeighbor: data.directNeighbor !== false,
+      noIntermediateLocations: data.noIntermediateLocations !== false,
+      intermediateLocations: Array.isArray(data.intermediateLocations) ? data.intermediateLocations : [],
+      distanceMeters: Number.isFinite(meters) && meters > 0 ? Math.round(meters) : existing?.distanceMeters || null,
+      distanceText: data.distanceText || data.distance || existing?.distanceText || '',
+      basis: data.basis || data.reason || existing?.basis || '',
+      source: data.source || existing?.source || 'location-graph-route',
+      updatedAt: data.time || new Date().toISOString(),
+    };
+    if (existing) Object.assign(existing, edge);
+    else graph.poiGraph.edges.push(edge);
+    graph.updatedAt = edge.updatedAt;
+    return edge;
+  },
+
+  linkRoutePath(state = {}, refs = [], data = {}) {
+    const nodes = (Array.isArray(refs) ? refs : [])
+      .map((ref) => (typeof ref === 'object' ? this.getNode(state, ref.nodeId || ref.graphNodeId || ref.id || ref.identityKey || ref.name) : this.getNode(state, ref)))
+      .filter(Boolean);
+    const edges = [];
+    for (let index = 1; index < nodes.length; index += 1) {
+      const edge = this.ensureRouteEdge(state, nodes[index - 1].id, nodes[index].id, { ...data, routeIndex: index });
+      if (edge) edges.push(edge);
+    }
+    return edges;
+  },
+
+  characterKey(character = 'player-self') {
+    if (character && typeof character === 'object') return String(character.characterId || character.playerId || character.id || character.profile?.id || character.profile?.name || character.name || 'player-self').trim();
+    return String(character || 'player-self').trim();
+  },
+
+  setCharacterCurrentNode(state = {}, character = 'player-self', nodeRef = '', data = {}) {
+    const graph = this.ensureGraphState(state);
+    const node = this.getNode(state, nodeRef);
+    const characterId = this.characterKey(character);
+    if (!characterId || !node?.id) return null;
+    const row = {
+      ...(graph.characterLocations?.[characterId] || {}),
+      characterId,
+      characterName: data.characterName || character?.name || character?.profile?.name || characterId,
+      nodeId: node.id,
+      identityKey: node.identityKey || '',
+      locationName: node.displayName || node.name || node.id,
+      reason: data.reason || '',
+      updatedAt: data.time || new Date().toISOString(),
+    };
+    graph.characterLocations[characterId] = row;
+    state.characterSchedules = state.characterSchedules && typeof state.characterSchedules === 'object' ? state.characterSchedules : {};
+    const schedule = state.characterSchedules[characterId];
+    if (schedule) {
+      state.characterSchedules[characterId] = { ...schedule, currentLocation: row.locationName, currentNodeId: row.nodeId, currentLocationIdentityKey: row.identityKey };
+    }
+    if (characterId === 'player-self' || characterId === state.playerIdentityState?.()?.id) {
+      state.realWorldLocationName = row.locationName;
+      if (state.realWorldMap) {
+        state.realWorldMap.current = row.locationName;
+        state.realWorldMap.currentId = node.legacyMapNodeId || node.id;
+      }
+      const playerState = state.playerIdentityState?.();
+      if (playerState?.values) {
+        playerState.values.current_location = { ...(playerState.values.current_location || {}), name: row.locationName, nodeId: row.nodeId, identityKey: row.identityKey };
+      }
+    }
+    return row;
+  },
+
+  getCharacterCurrentNode(state = {}, character = 'player-self') {
+    const graph = this.ensureGraphState(state);
+    const characterId = this.characterKey(character);
+    const recorded = graph.characterLocations?.[characterId];
+    const direct = recorded?.nodeId ? this.getNode(state, recorded.nodeId) : null;
+    if (direct) return direct;
+    const schedule = state.characterSchedules?.[characterId];
+    const scheduleNode = schedule ? this.getNode(state, schedule.currentNodeId || schedule.currentLocationIdentityKey || schedule.currentLocation) : null;
+    if (scheduleNode) return scheduleNode;
+    if (characterId === 'player-self') {
+      return this.getNode(state, state.realWorldMap?.currentId || state.realWorldMap?.current || state.realWorldLocationName);
+    }
+    return null;
   },
 
   searchByPerson(state = {}, name = '', mode = 'both') {
@@ -391,7 +599,19 @@ window.GameModules.realWorldLocationGraph = {
       const parent = this.ensurePoiFromPayload(state, { name: parentName, description: `${parentName}，${name} 的上级地点。` }, { ...options, skipProject: true });
       parentId = parent?.id || '';
     }
-    const existing = this.searchNode(state, name, 5).find((node) => node.type === 'poi' && (node.name === name || node.displayName === name));
+    const identityKey = payload.identityKey || this.identityKeyFor({ type: 'poi', parentId, name });
+    const existing = this.findStrictNode(state, {
+      nodeId: payload.nodeId || payload.id,
+      identityKey,
+      name,
+      type: 'poi',
+      parentId,
+    }) || this.findStrictNode(state, {
+      nodeId: payload.nodeId || payload.id,
+      identityKey,
+      name,
+      type: 'poi',
+    });
     const id = existing?.id || this.allocateLocationNodeId(state);
     const facts = payload.descriptionFacts || payload.facts || payload.fact || '';
     const description = Array.isArray(facts) ? '' : String(payload.description || payload.summary || facts || '').slice(0, 240);
@@ -403,7 +623,8 @@ window.GameModules.realWorldLocationGraph = {
       displayName: name,
       parentId: parentId || graph.nodesById[id]?.parentId || '',
       legacyMapNodeId: graph.nodesById[id]?.legacyMapNodeId || id,
-      legacyAliases: [...new Set([...(graph.nodesById[id]?.legacyAliases || []), this.legacyKey('mapId', id), this.legacyKey('name', name)].filter(Boolean))],
+      legacyAliases: [...new Set([...(graph.nodesById[id]?.legacyAliases || []), this.legacyKey('mapId', id), this.legacyKey('name', name), this.legacyKey('identity', identityKey)].filter(Boolean))],
+      identityKey,
       mapVisible: payload.mapVisible !== false,
       known: true,
       source: options.source || payload.source || 'location-graph-facade',
@@ -418,6 +639,8 @@ window.GameModules.realWorldLocationGraph = {
     graph.nodesById[id] = node;
     node.legacyAliases.forEach((key) => this.rememberAlias(graph, key, id));
     this.rememberAlias(graph, this.legacyKey('name', name), id);
+    this.rememberIdentity(graph, node);
+    this.rememberSearchNode(graph, node);
     if (!graph.poiGraph.nodes.includes(id)) graph.poiGraph.nodes.push(id);
     if (!options.skipProject) this.projectLocationGraphToLegacyMap(state);
     const map = state.realWorldMap;
@@ -608,6 +831,7 @@ window.GameModules.realWorldLocationGraph = {
       mapNode.mapVisible = node.mapVisible !== false;
       mapNode.description = node.description || mapNode.description || '';
       mapNode.descriptionFacts = Array.isArray(node.descriptionFacts) ? node.descriptionFacts : (mapNode.descriptionFacts || []);
+      mapNode.identityKey = node.identityKey || mapNode.identityKey || '';
       mapNode.ownerRefs = Array.isArray(node.ownerRefs) ? node.ownerRefs : (mapNode.ownerRefs || []);
       mapNode.usageContracts = Array.isArray(node.usageContracts) ? node.usageContracts : (mapNode.usageContracts || []);
       mapNode.effectiveAuthorityRef = node.effectiveAuthorityRef || mapNode.effectiveAuthorityRef || null;

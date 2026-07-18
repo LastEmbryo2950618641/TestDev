@@ -209,13 +209,22 @@
 
     ensurePlayerCurrentLocation(store, action = '') {
       const map = window.GameModules.realWorldMap.ensure(store, store.playerProfile || {});
-      if (map.current && !window.GameModules.realWorldMap.isAbstractName(map.current)) return this.findLocationHit(map, map.current);
+      const graphApi = window.GameModules.realWorldLocationGraph;
+      const recorded = graphApi?.getCharacterCurrentNode?.(store, 'player-self');
+      if (recorded) return recorded;
+      if (map.current && !window.GameModules.realWorldMap.isAbstractName(map.current)) {
+        const hit = graphApi?.getNode?.(store, map.currentId || map.current) || this.findLocationHit(map, map.current);
+        if (hit?.id) graphApi?.setCharacterCurrentNode?.(store, 'player-self', hit.graphNodeId || hit.id, { reason: '玩家当前地图锚点。' });
+        return hit;
+      }
       const fallback = this.playerHomeLocationName(store, action);
-      return fallback ? window.GameModules.realWorldLocationGraph?.ensurePoiFromPayload?.(store, {
+      const node = fallback ? graphApi?.ensurePoiFromPayload?.(store, {
         name: fallback,
         descriptionFacts: [`玩家当前位于${fallback}，这是本次现实推演的路线起点。`],
         time: window.GameModules.realWorldMap.factTime(store),
       }, { source: 'player-current-location-fallback' }) : null;
+      if (node?.id) graphApi?.setCharacterCurrentNode?.(store, 'player-self', node.graphNodeId || node.id, { reason: '玩家当前地点兜底生成。' });
+      return node;
     },
 
     playerHomeLocationName(store, action = '') {
@@ -251,9 +260,11 @@
         payload = this.fallbackLocationFill(store, keyword, character);
       }
       const time = window.GameModules.realWorldMap.factTime(store);
+      const current = this.ensurePlayerCurrentLocation(store, action);
       const routeNodes = this.applyRouteNodes(store, payload.routeNodes || [], time);
       const node = window.GameModules.realWorldLocationGraph?.ensurePoiFromPayload?.(store, { ...payload, time }, { source: 'real-world-location-fill-payload' });
       if (!node) return this.propertyNodeDeferText({ targetKeyword: keyword, reason: '地点图写入入口不可用，暂不通过旧地图入口新增。' });
+      window.GameModules.realWorldLocationGraph?.linkRoutePath?.(store, [current, ...routeNodes, node], { source: 'stage1-location-fill-route', basis: 'Stage1 地点路线补齐。', time });
       return [`地图未命中“${keyword}”，已视为现实世界地点未加载完全并补齐地点。`, this.routeSummary(routeNodes, node), this.locationDetail(map, node?.name || payload.name), '补齐结论：玩家当前地点、目标人物地点、从当前地点前往目标地点的中间路线和当前可用上下文已经足够用于本次现实推演；除非玩家提出新的未知地点，不要继续为同一人物地点或路线重复 request_context。'].join('\n');
     },
 
@@ -285,7 +296,7 @@
     },
 
     routeSummary(routeNodes = [], target = null) {
-      const names = [...routeNodes.map((node) => node.name), target?.name].filter(Boolean);
+      const names = [...routeNodes.map((node) => `${node.name}${node.id ? `(${node.id})` : ''}`), target ? `${target.name}${target.id ? `(${target.id})` : ''}` : ''].filter(Boolean);
       return names.length ? `路线节点：${names.join(' → ')}` : '路线节点：已根据当前地点和目标地点补齐。';
     },
 

@@ -121,6 +121,10 @@ window.GameModules.jsonUtils = {
     let lastError = null;
     for (let i = 0; i < max; i += 1) {
       const completionOptions = this.completionOptions(promptId, options);
+      const baseTitle = String(options.sourceTitle || options.source || promptId || 'json-utils');
+      const attemptTitle = max > 1
+        ? `${baseTitle}｜${i === 0 ? '尝试' : '重试'}${i + 1}/${max}`
+        : baseTitle;
       lastText = await this.requestCompletion({
         model: options.model,
         prompt,
@@ -132,7 +136,7 @@ window.GameModules.jsonUtils = {
         maxAttempts: options.maxAttempts,
         store: options.store,
         useRealWorldKvCache: options.useRealWorldKvCache,
-        tokenMeta: options.tokenMeta,
+        tokenMeta: { ...(options.tokenMeta || {}), title: attemptTitle },
         ...completionOptions,
       });
       try {

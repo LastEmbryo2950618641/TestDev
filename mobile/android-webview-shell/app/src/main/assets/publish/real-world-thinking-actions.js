@@ -9,6 +9,14 @@ window.GameModules.realWorldThinkingActions = {
     ));
   },
 
+  toggleRealWorldSettlementThinking(entry) {
+    if (!entry) return;
+    const id = String(entry.id || '');
+    this.realWorldLog = (this.realWorldLog || []).map((item) => (
+      item?.id === id ? { ...item, settlementThinkingOpen: !item.settlementThinkingOpen } : item
+    ));
+  },
+
   toggleRealWorldThinkingSection(entry, sectionId) {
     this.toggleRealWorldThinkingStageGroup(entry, sectionId);
   },
@@ -113,6 +121,23 @@ window.GameModules.realWorldThinkingActions = {
     }));
   },
 
+  hasRealWorldSettlementThinking(entry) {
+    if (entry?.transientError) return false;
+    return this.realWorldSettlementThinkingLines(entry).length > 0;
+  },
+
+  realWorldSettlementThinkingLines(entry = {}) {
+    const sections = Array.isArray(entry?.settlementThinkingSections) ? entry.settlementThinkingSections : [];
+    const lines = sections.map((section, index) => ({
+      id: String(section?.id || `settlement-${index}`),
+      label: String(section?.label || 'AI结算思考'),
+      text: this.cleanRealWorldThinkingText(section?.text),
+    })).filter((line) => line.text);
+    const legacyText = this.cleanRealWorldThinkingText(entry?.settlementThinking);
+    if (!lines.length && legacyText) lines.push({ id: 'settlement-thinking', label: 'AI结算思考', text: legacyText });
+    return lines;
+  },
+
   realWorldSystemTraceLines(entry = {}) {
     return this.realWorldTraceLines(entry).map((text) => ({ label: '系统提示', text }));
   },
@@ -188,6 +213,7 @@ window.GameModules.realWorldThinkingActions = {
         id: entry?.id || `real-log-${index}`,
         type: entry?.type || 'ai',
         thinkingOpen: Boolean(entry?.thinkingOpen),
+        settlementThinkingOpen: entry?.settlementThinkingOpen !== false,
         thinkingStageOpen: entry?.thinkingStageOpen && typeof entry.thinkingStageOpen === 'object' ? { ...entry.thinkingStageOpen } : {},
         cardChangesOpen: Boolean(entry?.cardChangesOpen),
         settlementTab: entry?.settlementTab || '',
@@ -204,6 +230,16 @@ window.GameModules.realWorldThinkingActions = {
               open: item?.open !== false,
             };
           })
+          : [],
+        settlementThinkingSections: Array.isArray(entry?.settlementThinkingSections)
+          ? entry.settlementThinkingSections.map((item, itemIndex) => ({
+            id: String(item?.id || `settlement-${itemIndex}`),
+            phase: String(item?.phase || 'stage4'),
+            step: Number.isFinite(Number(item?.step)) ? Number(item.step) : itemIndex,
+            label: String(item?.label || 'AI结算思考'),
+            text: String(item?.text || ''),
+            open: item?.open !== false,
+          })).filter((item) => item.text.trim())
           : [],
         characterCardChanges: Array.isArray(entry?.characterCardChanges) ? entry.characterCardChanges : [],
         solidifyCards,

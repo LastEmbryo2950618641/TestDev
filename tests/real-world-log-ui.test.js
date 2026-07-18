@@ -10,6 +10,12 @@ const html = read('publish/index.html');
 assert.ok(html.includes("!entry.transientError && ($store.game.hasRealWorldThinking(entry) || entry.promptPack)"));
 assert.ok(html.includes('aria-label="查看生成提示词">提示词</button>'));
 assert.ok(html.includes('realWorldThinkingLines(entry)'));
+assert.ok(html.includes('AI结算思考'));
+assert.ok(html.includes('realWorldSettlementThinkingLines(entry)'));
+assert.ok(html.indexOf('entry.narration || entry.statusText || entry.text') < html.indexOf('现实AI结算思考'));
+assert.ok(html.indexOf('现实AI结算思考') < html.indexOf('real-world-settlement-btn'));
+assert.ok(html.includes('&& entry.settlementThinkingOpen'));
+assert.ok(!html.includes('entry.streaming || entry.settlementThinkingOpen'));
 assert.ok(!html.includes('realWorldTraceLines(entry)"'));
 assert.ok(html.includes('real-world-hud-emblem'));
 assert.ok(html.includes('realWorldMatterButtonText()'));
@@ -25,9 +31,21 @@ assert.ok(!read('publish/real-world-clock-actions.js').includes('this.sharedCont
 const actions = read('publish/real-world-actions.js');
 assert.ok(actions.includes('promptPack: null'));
 assert.ok(actions.includes('thinkingSections: []'));
+assert.ok(actions.includes('settlementThinkingSections: []'));
 assert.ok(actions.includes('streamTrace: []'));
 
-const context = { window: { GameModules: {} }, console };
+const context = { window: { GameModules: { domain: { control: {
+  linkRules: {
+    sharedControlState() { return this.rpgStates?.[this.sharedControlTargetId] || null; },
+    sharedControlTargetName(state) { return state?.name || state?.profile?.name || '被控制者'; },
+    sharedControlLabel() { return ''; },
+    realWorldDisplayState() { return null; },
+    realWorldDisplayCharacter() { return null; },
+  },
+  controlPatchHelpers: {
+    buildOfflineControlLinkPatch(_state, narration) { return { active: false, lastAction: '下线交还控制权', reason: narration }; },
+  },
+} } } }, console };
 vm.runInNewContext(read('publish/real-world-thinking-actions.js'), context, { filename: 'real-world-thinking-actions.js' });
 const thinking = context.window.GameModules.realWorldThinkingActions;
 const store = {
@@ -35,9 +53,13 @@ const store = {
   ...thinking,
 };
 assert.strictEqual(store.hasRealWorldThinking({ transientError: true, promptPack: { systemPrompt: 'x' }, thinking: '=' }), false);
+assert.strictEqual(store.hasRealWorldSettlementThinking({ transientError: true, settlementThinking: '不显示' }), false);
 assert.strictEqual(store.cleanRealWorldThinkingText('='), '');
 assert.strictEqual(store.cleanRealWorldThinkingText('===---'), '');
 assert.strictEqual(store.cleanRealWorldThinkingText('有效推演'), '有效推演');
+assert.deepStrictEqual(JSON.parse(JSON.stringify(store.realWorldSettlementThinkingLines({
+  settlementThinkingSections: [{ id: 'stage4', label: 'Stage4滑动结算', text: '检查更新' }],
+}))), [{ id: 'stage4', label: 'Stage4滑动结算', text: '检查更新' }]);
 assert.strictEqual(store.realWorldDisplayLog([
   { id: 'u1', type: 'user', text: 'same action' },
   { id: 'u2', type: 'user', text: 'same action' },
@@ -65,6 +87,13 @@ context.window.GameModules.sqliteSave = {
   saveRealWorldLogEntry: async (entry) => { savedEntries.push(entry); },
   countRealWorldLogEntries: () => savedEntries.length,
   saveCharacterState: async (state) => { savedStates.push(state); },
+};
+context.window.GameModules.characterStateStore = {
+  save: async (state) => { savedStates.push(state); },
+};
+context.window.GameModules.realWorldLogStore = {
+  append: async (entry) => { savedEntries.push(entry); },
+  count: () => savedEntries.length,
 };
 const npc = { id: 'npc-1', name: '刘思琪', profile: { name: '刘思琪' }, values: { control_link: {} } };
 const controlStore = {

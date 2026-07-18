@@ -950,7 +950,7 @@
                 <button type="button" @click="$store.game.resetRealWorldMapView()">&#x5B9A;&#x4F4D;</button>
               </div>
             </div>
-            <section class="real-world-map-shell">
+            <section class="real-world-map-shell" :class="{ 'real-world-map-shell--interior-open': $store.game.realWorldMapInteriorNode() }">
               <div class="real-world-map-viewport" data-real-world-map-native-input="pending" @contextmenu.prevent>
                 <div class="real-world-map-grid"></div>
                 <canvas class="real-world-map-stage real-world-map-canvas" width="720" height="460" aria-label="&#x7535;&#x5B50;&#x5730;&#x56FE;"></canvas>
@@ -1015,7 +1015,7 @@
                     <p x-text="$store.game.realWorldMapFactText(fact, index)"></p>
                   </template>
                 </div>
-                <button class="ghost-wide" type="button" @click="$store.game.showRealWorldMapInterior($store.game.realWorldMapInfoNode()?.id); $store.game.closeRealWorldMapInfo()">查看建筑内部</button>
+                <button class="ghost-wide" type="button" @click="$store.game.openRealWorldMapInfoInterior($store.game.realWorldMapInfoNode()?.id)">查看建筑内部</button>
               </article>
             </div>
           </div>
@@ -1120,6 +1120,8 @@
                   <div class="novel-tool-row" x-show="!entry.transientError && ($store.game.hasRealWorldThinking(entry) || entry.promptPack)"><button class="card-change-toggle" :class="{ open: entry.thinkingOpen }" x-show="$store.game.hasRealWorldThinking(entry)" @click="$store.game.toggleRealWorldThinking(entry)" x-text="entry.thinkingOpen ? 'ai思考 ▼' : 'ai思考 ▶'"></button><button class="prompt-toggle" x-show="entry.promptPack" @click="$store.game.openRealWorldPrompt(entry.id)" title="查看生成提示词" aria-label="查看生成提示词">提示词</button></div>
                   <div class="real-world-thinking-panel dev-section" data-section-title="现实AI思考" x-show="!entry.transientError && entry.thinkingOpen && $store.game.hasRealWorldThinking(entry)"><template x-for="line in $store.game.realWorldThinkingLines(entry)" :key="`${entry.id}-${line.id}`"><p x-show="line.text"><b x-text="`【${line.label}】`"></b><span x-text="line.text"></span></p></template></div>
                   <p class="novel-body-text" x-text="entry.narration || entry.statusText || entry.text"></p>
+                  <div class="novel-tool-row" x-show="!entry.transientError && $store.game.hasRealWorldSettlementThinking(entry)"><button class="card-change-toggle" :class="{ open: entry.settlementThinkingOpen }" @click="$store.game.toggleRealWorldSettlementThinking(entry)" x-text="entry.settlementThinkingOpen || entry.streaming ? 'AI结算思考 ▼' : 'AI结算思考 ▶'"></button></div>
+                  <div class="real-world-thinking-panel real-world-settlement-thinking-panel dev-section" data-section-title="现实AI结算思考" x-show="!entry.transientError && $store.game.hasRealWorldSettlementThinking(entry) && entry.settlementThinkingOpen"><template x-for="line in $store.game.realWorldSettlementThinkingLines(entry)" :key="`${entry.id}-settlement-${line.id}`"><p x-show="line.text"><b x-text="`【${line.label}】`"></b><span x-text="line.text"></span></p></template></div>
                   <section class="solidify-dock entry-solidify-dock" x-show="$store.game.solidifyEntryCards(entry).length" x-cloak>
                     <div class="solidify-side-tabs">
                       <template x-for="card in $store.game.solidifyEntryCards(entry)" :key="`${entry.id}-${$store.game.solidifyKey(card)}`">

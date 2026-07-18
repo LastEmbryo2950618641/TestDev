@@ -24,6 +24,7 @@ window.GameModules.realWorldLocationGraphSkills = {
     if (!node?.id) return '';
     const graph = this.graph();
     return [
+      node.identityKey ? `identityKey:${node.identityKey}` : '',
       `标识：${node.id}`,
       `类型：${node.type || '未知'}`,
       `名称：${node.displayName || node.name || '未命名'}`,
@@ -160,7 +161,14 @@ window.GameModules.realWorldLocationGraphSkills = {
     const graph = this.graph();
     graph.ensureGraphState(store);
     const keyword = params.targetKeyword || params.keyword || params.name || params.currentLegacyLocationName || '';
-    const hits = graph.searchNode(store, keyword, 5);
+    const hit = graph.findStrictNode?.(store, {
+      nodeId: params.nodeId || params.id,
+      identityKey: params.identityKey,
+      name: params.name || params.targetKeyword || params.keyword || params.currentLegacyLocationName,
+      type: params.type,
+      parentId: params.parentId,
+    });
+    const hits = hit ? [hit] : [];
     const queryEvidence = [{
       skill: 'realworld.property.searchNode',
       paramsSummary: String(keyword || '').slice(0, 80),

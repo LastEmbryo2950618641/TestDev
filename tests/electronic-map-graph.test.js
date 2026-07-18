@@ -43,6 +43,8 @@ test('index uses graph viewport and interior drawer instead of legacy map rows',
   assert.ok(html.includes('real-world-map-canvas'));
   assert.ok(html.includes('real-world-map-stage'));
   assert.ok(html.includes('real-world-map-interior-panel'));
+  assert.ok(html.includes('real-world-map-shell--interior-open'));
+  assert.ok(html.includes(":class=\"{ 'real-world-map-shell--interior-open': $store.game.realWorldMapInteriorNode() }\""));
   assert.ok(html.includes('realWorldMapHasGraphNodes()'));
   assert.ok(!html.includes('realWorldMapRows()'));
   assert.ok(!html.includes('realWorldFunctionView === \'map\' && $nextTick'));
@@ -197,6 +199,8 @@ test('map auxiliary AI requests reuse real world KV cache path', () => {
   assert.ok(jsonUtils.includes('useRealWorldKvCache && store'));
   assert.ok(jsonUtils.includes('completeCachedJsonPrompt(store'));
   assert.ok(jsonUtils.includes('tokenMeta,'));
+  assert.ok(jsonUtils.includes('attemptTitle'));
+  assert.ok(jsonUtils.includes("'重试'"));
   assert.ok(fog.includes("source: 'real-world-map-surround-unlock'"));
   assert.ok(fog.includes('useRealWorldKvCache: true'));
   assert.ok(fog.includes("outputLimitKind: 'stage4'"));
@@ -221,6 +225,12 @@ test('map node tap opens info popover before interior drawer', () => {
   assert.ok(infoBody.includes('setTimeout'));
   assert.ok(infoBody.indexOf('setTimeout') < infoBody.indexOf('resolveControlLabel'));
   assert.ok(html.includes('\u67e5\u770b\u5efa\u7b51\u5185\u90e8'));
+  assert.ok(html.includes('openRealWorldMapInfoInterior($store.game.realWorldMapInfoNode()?.id)'));
+  assert.ok(!html.includes('showRealWorldMapInterior($store.game.realWorldMapInfoNode()?.id); $store.game.closeRealWorldMapInfo()'));
+  const infoInteriorBody = methodBody(actions, 'openRealWorldMapInfoInterior', 'closeRealWorldMapInterior');
+  assert.ok(infoInteriorBody.includes('this.showRealWorldMapInterior(key);'));
+  assert.ok(infoInteriorBody.includes('this.realWorldMap.infoNodeId = \'\';'));
+  assert.ok(!infoInteriorBody.includes('closeRealWorldMapInfo'));
 });
 
 test('real world panel and map actions defer heavy work until after first paint', () => {
@@ -467,6 +477,27 @@ test('surround unlock patch mode merges object container contents locally', () =
   const desk = merged.floors[0].rooms[0].slotObjects.bed_2.find((item) => item.name === '书桌');
   assert.deepStrictEqual(Array.from(desk.containerContents), ['书本', '台灯', '刚放下的书']);
   assert.strictEqual(merged.floors[0].rooms.length, 1);
+});
+
+test('surround unlock accepts empty structural patch without retry completeness validation', () => {
+  const context = { window: { GameModules: {} }, console };
+  loadScript(context, 'publish/real-world-map-fog.js');
+  const fog = context.window.GameModules.realWorldMapFog;
+  const full = fog.validateUnlockPayload({ responseMode: 'full', surroundLocations: [] }, { name: '锦苑小区3栋' }, {}, 'full');
+  assert.strictEqual(full.responseMode, 'full');
+  assert.deepStrictEqual(full.surroundLocations, []);
+  assert.ok(full.interiorLayout);
+  const patch = fog.validateUnlockPayload({ responseMode: 'patch', surroundLocations: [] }, { name: '锦苑小区3栋' }, {}, 'patch');
+  assert.strictEqual(patch.responseMode, 'patch');
+  assert.strictEqual(patch.noChange, true);
+});
+
+test('surround unlock request is single pass because prompt carries structure rules', () => {
+  const source = read('publish/real-world-map-fog.js');
+  assert.ok(source.includes('max: 1'));
+  assert.ok(!source.includes("throw new Error('surroundLocations 为空')"));
+  assert.ok(!source.includes("throw new Error('interiorLayout 为空')"));
+  assert.ok(!source.includes("throw new Error('patch 为空')"));
 });
 
 (async () => {

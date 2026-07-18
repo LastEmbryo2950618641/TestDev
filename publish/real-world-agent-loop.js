@@ -305,6 +305,79 @@ window.GameModules.realWorldAgentLoop = {
     store.patchRealWorldLogEntry?.(logId, { thinkingSections: sections, thinking: this.joinThinkingSections(sections) }, { live: Boolean(config.livePatch) });
   },
 
+  isSettlementReasoning(config = {}) {
+    if (config.settlementThinking) return true;
+    const phase = this.inferReasoningPhase(config);
+    return phase === 'stage4' || phase === 'stage5';
+  },
+
+  settlementReasoningLabel(meta = {}, config = {}) {
+    if (config.settlementThinkingLabel) return String(config.settlementThinkingLabel);
+    if (meta.phase === 'stage5') return 'Stage5 外观更新';
+    if (meta.phase === 'stage4') return meta.step > 0 ? `Stage4 滑动结算 - ${meta.step + 1}` : 'Stage4 滑动结算';
+    return 'AI结算思考';
+  },
+
+  patchConfiguredSettlementThinking(store, logId, reasoningText = '', config = this.realConfig()) {
+    const text = String(reasoningText || '').trim();
+    if (!text || !logId || config.mode === 'story') return;
+    const entry = (store.realWorldLog || []).find((item) => item.id === logId) || window.GameModules.realWorldLogStore?.get?.(logId) || {};
+    const meta = this.reasoningSectionMeta(config);
+    const key = String(config.settlementThinkingKey || config.reasoningKey || meta.id || 'settlement-thinking');
+    const sections = this.mergeSettlementThinkingSection(entry, {
+      id: key,
+      phase: meta.phase,
+      step: meta.step,
+      label: this.settlementReasoningLabel(meta, config),
+      text,
+      open: true,
+    });
+    store.patchRealWorldLogEntry?.(logId, {
+      settlementThinkingSections: sections,
+      settlementThinking: this.joinSettlementThinkingSections(sections),
+      settlementThinkingOpen: entry.settlementThinkingOpen !== false,
+    }, { live: Boolean(config.livePatch) });
+  },
+
+  mergeSettlementThinkingSection(entry = {}, section = {}) {
+    const sections = Array.isArray(entry.settlementThinkingSections)
+      ? entry.settlementThinkingSections.map((item) => ({
+        id: String(item?.id || ''),
+        phase: String(item?.phase || 'stage4'),
+        step: Number(item?.step) || 0,
+        label: String(item?.label || 'AI结算思考'),
+        text: String(item?.text || ''),
+        open: item?.open !== false,
+      })).filter((item) => item.text.trim())
+      : [];
+    if (!sections.length && String(entry.settlementThinking || '').trim()) {
+      sections.push({ id: 'settlement-thinking', phase: 'stage4', step: 0, label: 'AI结算思考', text: String(entry.settlementThinking || '').trim(), open: true });
+    }
+    const next = {
+      id: String(section.id || `settlement-${Date.now()}`),
+      phase: String(section.phase || 'stage4'),
+      step: Number(section.step) || 0,
+      label: String(section.label || 'AI结算思考'),
+      text: String(section.text || '').trim(),
+      open: section.open !== false,
+    };
+    if (!next.text) return sections;
+    const index = sections.findIndex((item) => item.id === next.id);
+    if (index >= 0) {
+      sections[index] = { ...sections[index], ...next, open: sections[index].open !== false || next.open !== false };
+      return sections;
+    }
+    sections.push(next);
+    return sections;
+  },
+
+  joinSettlementThinkingSections(sections = []) {
+    return (Array.isArray(sections) ? sections : [])
+      .map((section) => String(section?.text || '').trim())
+      .filter(Boolean)
+      .join('\n\n');
+  },
+
   mergeThinkingSection(entry = {}, section = {}) {
     const sections = Array.isArray(entry.thinkingSections)
       ? entry.thinkingSections.map((item) => ({
@@ -424,6 +497,7 @@ window.GameModules.realWorldAgentLoop = {
     const narration = await this.ensureConfiguredNarrationLength(store, action, narrationPrompt, this.cleanPhasedNarration(narrationRaw), logId, config);
     if (!narration) throw new Error(`${config.label}正文为空`);
     this.showConfiguredNarration(store, logId, narration, config);
+    this.patchConfiguredSettlementThinking(store, logId, '正文已完成，准备进入结算。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
 
     const postStage3Checkpoint = this.snapshotKvMessages(config.kvCacheSession);
     const stage5KvConfig = {
@@ -435,6 +509,7 @@ window.GameModules.realWorldAgentLoop = {
     const participants = this.mergeNarrationParticipants(this.stageParticipants(effectiveSceneLayers, loaded, store), narration, store, sceneAnchor.data);
     try {
       this.markConfiguredStep(store, logId, `${config.label}正文已完成，正在并行结算与盛装外观更新…`, config, { keepNarration: true });
+      this.patchConfiguredSettlementThinking(store, logId, '正文已完成，正在并行结算与盛装外观更新。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
       const stage4Promise = (async () => {
         try {
           const settled = await this.completeConfiguredSettlementKvWindow({ store, action, base, loaded, skills, materialSession, narration, trace, participants, logId, config });
@@ -451,10 +526,12 @@ window.GameModules.realWorldAgentLoop = {
       updates = stage5Result.updates || await stage4Promise;
       updates = { ...updates, type: updates.type || 'final' };
       profilePatches = Array.isArray(stage5Result.patches) ? stage5Result.patches : [];
+      this.patchConfiguredSettlementThinking(store, logId, '结算完成，正在写入本回合状态与日志。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
       settlementPrompt = 'Stage4 紧凑 JSON 滑动结算 + Stage5 盛装外观（并行）';
       settlementRaw = JSON.stringify({ settlement: updates, stage5Gate: stage5Result.gate || null, profilePatches: profilePatches.map((item) => ({ subject: item.subject, parts: item.parts })) });
     } catch (err) {
       console.warn(`${config.label}并行结算失败，保留已生成正文并使用最小结算:`, err.message);
+      this.patchConfiguredSettlementThinking(store, logId, `结算失败，已保留正文并使用最小结算：${err.message || '未知错误'}`, { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
       updates = this.fallbackUpdateJson(store, action, config);
       settlementRaw = JSON.stringify(updates);
     }
@@ -2094,6 +2171,7 @@ window.GameModules.realWorldAgentLoop = {
     let shortOutputRetries = 0;
     const maxAttempts = Math.max(8, allTypes.length + 2);
     for (let attempt = 0; attempt < maxAttempts && requestedTypes.length; attempt += 1) {
+      this.patchConfiguredSettlementThinking(store, logId, `Stage4滑动结算：正在结算 ${requestedTypes.join('、')}。`, { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
       const messages = await this.buildSettlementTypeWindowMessages({ requestedTypes, completedTypes, incompleteTypes: requestedTypes.filter((type) => partialByType[type]), partialByType, store, action, base, loaded, materialSession, narration, trace, participants, config });
       const raw = await this.completeConfiguredStep(store, messages, logId, false, { ...config, sourceTitle: `${config.label}Stage4滑动结算`, promptId: 'inference-stage4-settlement-window', settlementAttempt: attempt });
       const jsonParsed = this.parseSettlementJson(raw, { requestedTypes, participants, store, config });
@@ -2136,6 +2214,7 @@ window.GameModules.realWorldAgentLoop = {
     }
     requestedTypes = this.nextSettlementWindow(allTypes, completedTypes, []);
     if (requestedTypes.length) throw new Error(`Stage4结算类型未完成：${requestedTypes.join('、')}`);
+    this.patchConfiguredSettlementThinking(store, logId, 'Stage4滑动结算：所有结算窗口已完成。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
     return this.mergeGroupedUpdatePatches(Object.values(patchesByType), {});
   },
 
@@ -2810,7 +2889,11 @@ window.GameModules.realWorldAgentLoop = {
           const reasoningText = info.deepseekReasoning?.text || '';
           if (reasoningText && (done || now - lastReasoningPaint > 180)) {
             lastReasoningPaint = now;
-            this.patchConfiguredReasoning(store, logId, reasoningText, { ...config, ...reasoningMeta, reasoningKey, livePatch: true });
+            if (this.isSettlementReasoning(config)) {
+              this.patchConfiguredSettlementThinking(store, logId, reasoningText, { ...config, ...reasoningMeta, reasoningKey: `settlement-${reasoningKey}`, livePatch: true });
+            } else {
+              this.patchConfiguredReasoning(store, logId, reasoningText, { ...config, ...reasoningMeta, reasoningKey, livePatch: true });
+            }
           }
           if (!streamToUi || !logId) return;
           if (!done && now - lastPaint <= 120) return;

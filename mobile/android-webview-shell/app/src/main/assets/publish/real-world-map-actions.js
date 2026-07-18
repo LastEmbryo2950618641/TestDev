@@ -614,8 +614,11 @@ window.GameModules.realWorldMapActions = {
     if (node?.id) key = node.id;
     if (!key) return;
     this.showRealWorldMapInterior(key);
-    if (this.realWorldMap?.infoNodeId) this.realWorldMap.infoNodeId = '';
-    if (this.realWorldMap) this.realWorldMap = { ...this.realWorldMap };
+    this.realWorldMapInfoCache = null;
+    if (this.realWorldMap) {
+      this.realWorldMap.infoNodeId = '';
+      this.realWorldMap = { ...this.realWorldMap };
+    }
   },
 
   closeRealWorldMapInterior() {

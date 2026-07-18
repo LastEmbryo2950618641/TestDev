@@ -312,6 +312,8 @@ Object.assign(window.GameModules.updateRegistry, {
     const nextLoc = String(next.currentLocation || '').trim();
     store.characterSchedules = { ...(store.characterSchedules || {}), [id]: next };
     if (nextLoc && nextLoc !== prevLoc) {
+      const knownNode = window.GameModules.realWorldLocationGraph?.getNode?.(store, next.currentNodeId || next.currentLocationIdentityKey || nextLoc);
+      if (knownNode?.id) window.GameModules.realWorldLocationGraph?.setCharacterCurrentNode?.(store, id, knownNode.id, { characterName: next.characterName, reason: next.reason || '人事安排更新当前位置。', time: updatedAt });
       window.GameModules.orgTerritory?.bumpOrgExposureOnScheduleLocation?.(store, nextLoc);
     }
     update.settlementAt = updatedAt;

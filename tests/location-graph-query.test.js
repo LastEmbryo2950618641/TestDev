@@ -128,14 +128,36 @@ test('nearby BFS climbs from interior node to owning POI', () => {
 test('node ensure reuses hits and defers unknown creation during phase zero', () => {
   const context = makeContext();
   const skills = context.window.GameModules.realWorldLocationGraphSkills;
+  const graphApi = context.window.GameModules.realWorldLocationGraph;
   const state = makeState();
-  const reuse = skills.nodeEnsure(state, { targetKeyword: '刘思琪' });
+  const bedroom = graphApi.allNodes(state).find((node) => node.type === 'zone');
+  const reuse = skills.nodeEnsure(state, { nodeId: bedroom.id });
   assert.strictEqual(reuse.decision, 'reuse-existing');
   assert.ok(reuse.nodeId);
   assert.ok(reuse.queryEvidence[0].hitNodeIds.includes(reuse.nodeId));
   const defer = skills.nodeEnsure(state, { targetKeyword: '不存在的新地点' });
   assert.strictEqual(defer.decision, 'defer-unknown');
   assert.strictEqual(defer.changedNodeIds.length, 0);
+});
+
+test('location graph ensure uses strict ids and identity keys instead of fuzzy name matching', () => {
+  const context = makeContext();
+  const graphApi = context.window.GameModules.realWorldLocationGraph;
+  const skills = context.window.GameModules.realWorldLocationGraphSkills;
+  const state = makeState();
+
+  const first = graphApi.ensurePoiFromPayload(state, { name: 'Strict Building 3', parentName: 'Strict Community' }, { skipProject: true });
+  const second = graphApi.ensurePoiFromPayload(state, { name: 'Strict Building 3', parentName: 'Strict Community' }, { skipProject: true });
+  assert.strictEqual(second.id, first.id);
+  assert.ok(first.identityKey, 'created POI should expose a stable identity key');
+  assert.strictEqual(graphApi.getNode(state, first.identityKey).id, first.id);
+
+  const partial = skills.nodeEnsure(state, { targetKeyword: 'Strict Building' });
+  assert.strictEqual(partial.decision, 'defer-unknown', 'ensure must not reuse partial fuzzy name hits');
+
+  const exact = skills.nodeEnsure(state, { identityKey: first.identityKey, targetKeyword: 'Strict Building' });
+  assert.strictEqual(exact.decision, 'reuse-existing');
+  assert.strictEqual(exact.nodeId, first.id);
 });
 
 test('node ensure async applies explicit real-agent patch with code allocated ids', async () => {
@@ -211,7 +233,7 @@ test('node ensure async applies explicit real-agent patch with code allocated id
   assert.notStrictEqual(result.nodeId, 'poi_new');
   const created = graphApi.getNode(state, result.nodeId);
   assert.strictEqual(created.name, 'New Building 5');
-  assert.ok(graphApi.searchNode(state, 'Sheet').some((node) => node.type === 'container-item'));
+  assert.ok(graphApi.searchNode(state, 'Sheet', 20, { includeTypes: ['container-item'] }).some((node) => node.type === 'container-item'));
   assert.ok(graphApi.nearbyBfs(state, result.nodeId, 1).some((row) => row.node.id === graphApi.getNode(state, 'home_legacy').id));
   const legacyNode = state.realWorldMap.nodes.find((node) => node.id === result.nodeId);
   assert.ok(legacyNode, 'AI-created graph POI should be projected into legacy realWorldMap nodes for the UI');
@@ -296,7 +318,7 @@ test('audit interiors support nested rooms and function zones with projected det
   assert.match(result.nodeId, /^loc_\d+$/);
   assert.ok(graphApi.searchNode(state, 'Reading Nook').some((node) => node.type === 'zone'));
   assert.ok(graphApi.searchNode(state, 'Inner Storage Room').some((node) => node.type === 'room'));
-  assert.ok(graphApi.searchNode(state, 'Photo Album').some((node) => node.type === 'container-item'));
+  assert.ok(graphApi.searchNode(state, 'Photo Album', 20, { includeTypes: ['container-item'] }).some((node) => node.type === 'container-item'));
   const legacyNode = state.realWorldMap.nodes.find((node) => node.name === 'Nested Building');
   const livingShape = legacyNode.interiorLayout.floors[0].rooms[0].layout.shapes.find((shape) => shape.label === 'Living Area');
   assert.ok(livingShape.detailLayout, 'nested area should project to a detail layout for click-through display');
@@ -366,6 +388,23 @@ test('property index and monthly rent settlement update character cards and debt
   const debtEvent = state.calendarState.events.find((event) => event.type === 'rent-arrears' && event.nodeId === 'loc_2');
   assert.ok(debtEvent);
   assert.strictEqual(debtEvent.time, '2026-07-18');
+});
+
+test('character schedule location update binds known current node id', () => {
+  const context = makeContext();
+  loadScript(context, 'publish/update/generic-update-applier.js');
+  const graphApi = context.window.GameModules.realWorldLocationGraph;
+  const state = makeState();
+  const node = graphApi.ensurePoiFromPayload(state, { name: 'Known Schedule Place' }, { skipProject: true });
+  context.window.GameModules.orgTerritory = { bumpOrgExposureOnScheduleLocation() {} };
+  const applied = context.window.GameModules.updateRegistry.applyCharacterScheduleUpdate(state, {
+    updateType: 'character-schedule',
+    subject: { type: 'character', id: 'siqi', name: 'Siqi' },
+    change: { mode: 'merge', value: { currentLocation: 'Known Schedule Place', availability: '在场', reason: 'arrived' } },
+  });
+  assert.strictEqual(applied, true);
+  assert.strictEqual(state.characterSchedules.siqi.currentNodeId, node.id);
+  assert.strictEqual(graphApi.getCharacterCurrentNode(state, 'siqi').id, node.id);
 });
 
 
@@ -638,6 +677,37 @@ test('stage4 surround unlock creates graph neighbor without location audit polli
   assert.ok(map.nodes.some((node) => node.name === 'Stage4 Neighbor Building'));
 });
 
+test('stage4 surround unlock batches legacy map projection for new neighbors', async () => {
+  const context = makeContext();
+  context.window.GameModules.orgTerritory = { ensureMapControls() {} };
+  context.window.GameModules.realWorldMap.applyRouteLinks = () => {};
+  context.window.GameModules.realWorldMap.isMapDisplayNode = () => true;
+  context.window.GameModules.realWorldMap.resolveExteriorAnchorNode = (map, node) => node;
+  loadScript(context, 'publish/real-world-map-fog.js');
+  const graphApi = context.window.GameModules.realWorldLocationGraph;
+  const originalProject = graphApi.projectLocationGraphToLegacyMap;
+  let projectCount = 0;
+  graphApi.projectLocationGraphToLegacyMap = function countedProject(...args) {
+    projectCount += 1;
+    return originalProject.apply(this, args);
+  };
+  const state = makeState();
+  const map = state.realWorldMap;
+  const anchor = map.nodes[0];
+  const surroundLocations = Array.from({ length: 6 }, (_, index) => ({
+    name: `Batch Neighbor ${index + 1}`,
+    parentName: anchor.name,
+    descriptionFacts: [`neighbor ${index + 1}`],
+    directNeighbor: true,
+    noIntermediateLocations: true,
+  }));
+
+  const unlocked = await context.window.GameModules.realWorldMapFog.applySurroundUnlock(state, map, anchor, anchor, { surroundLocations });
+
+  assert.strictEqual(unlocked.length, 6);
+  assert.strictEqual(projectCount, 1, 'new neighbor batch should project the graph into the legacy map once');
+});
+
 
 
 
@@ -772,6 +842,33 @@ test('route nodes reuse graph hit before legacy addLocation', () => {
   assert.strictEqual(rows.length, 1);
   assert.strictEqual(rows[0].reusedFromLocationGraph, true);
   assert.ok(rows[0].graphNodeId);
+});
+
+test('stage1 route graph binds player current node and links route path by ids', () => {
+  const context = makeContext();
+  loadScript(context, 'publish/real-world-agent-location-fill.js');
+  const graphApi = context.window.GameModules.realWorldLocationGraph;
+  const ctx = context.window.GameModules.realWorldAgentContext;
+  const state = makeState();
+  const current = ctx.ensurePlayerCurrentLocation(state, 'go through hallway to target room');
+  const routeNodes = ctx.applyRouteNodes(state, [
+    { name: 'Route Hallway A', descriptionFacts: ['从当前房间门口出来后经过走廊。'] },
+    { name: 'Route Stairs B', descriptionFacts: ['沿走廊右侧上楼梯到目标楼层。'] },
+  ], 'now');
+  const target = graphApi.ensurePoiFromPayload(state, { name: 'Route Target Room', descriptionFacts: ['穿过楼梯后到达右手第二间房间。'] }, { source: 'test-route-target', skipProject: true });
+  const edges = graphApi.linkRoutePath(state, [current, ...routeNodes, target], { source: 'test-route-path', basis: 'known route' });
+  assert.strictEqual(graphApi.getCharacterCurrentNode(state, 'player-self').id, current.graphNodeId || current.id);
+  assert.strictEqual(edges.length, 3);
+  assert.ok(edges.every((edge) => /^loc_\d+$/.test(edge.fromPoiId) && /^loc_\d+$/.test(edge.toPoiId)));
+  assert.ok(graphApi.nearbyBfs(state, current.graphNodeId || current.id, 3).some((row) => row.node.id === target.id));
+});
+
+test('default fuzzy node search only traverses location index', () => {
+  const context = makeContext();
+  const graphApi = context.window.GameModules.realWorldLocationGraph;
+  const state = makeState();
+  assert.ok(graphApi.searchNode(state, 'desk').every((node) => node.type !== 'object'));
+  assert.ok(graphApi.searchNode(state, 'desk', 20, { includeTypes: ['object'] }).some((node) => node.type === 'object'));
 });
 
 test('location tree audit prompt documents recursive interiors and property contracts', () => {
