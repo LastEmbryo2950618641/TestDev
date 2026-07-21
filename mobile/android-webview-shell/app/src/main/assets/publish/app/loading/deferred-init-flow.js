@@ -19,7 +19,6 @@ window.GameModules.app.loading.deferredInitFlow = {
       () => this.initFactionSystem?.(),
       () => this.ensureAllCompanyFactions?.(),
       () => canFetchLocalAssetManifests && window.GameModules.bodySilhouette?.prefetchManifest?.(),
-      () => canFetchLocalAssetManifests && window.GameModules.bodyFigure?.prefetchAll?.(),
     ];
     const runNext = () => {
       const job = jobs.shift();

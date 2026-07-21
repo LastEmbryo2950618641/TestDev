@@ -4,86 +4,12 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldMapInterior = {
-  templatesApi() {
-    return window.GameModules.realWorldMapInteriorTemplates;
-  },
-
-  buildLayoutFromTemplate(templateId = '', options = {}) {
-    return this.templatesApi()?.build?.(templateId, options) || null;
-  },
-
-  genericRoomLayout(room = {}) {
-    const title = String(room.name || room.number || room.kind || '房间').trim();
-    const kind = String(room.kind || title || '').trim();
-    const rect = (id, x, y, w, h, label, fill = 'rgba(116,246,255,0.10)') => ({
-      type: 'rect', id, x, y, w, h, label, fill, strokeColor: 'rgba(116,246,255,0.55)',
-    });
-    const layout = { width: 480, height: 320, shapes: [] };
-    if (/走廊|过道|电梯|楼梯|门厅/u.test(kind)) {
-      layout.shapes = [
-        rect('corridor', 36, 118, 408, 72, title || '走廊', 'rgba(87,199,255,0.10)'),
-        rect('door_left', 56, 88, 70, 30, '门', 'rgba(255,209,102,0.12)'),
-        rect('door_right', 354, 190, 70, 30, '门', 'rgba(255,209,102,0.12)'),
-      ];
-      return layout;
-    }
-    if (/客厅|起居/u.test(kind)) {
-      layout.shapes = [
-        rect('sofa', 56, 68, 150, 54, '沙发'),
-        rect('tea_table', 226, 92, 92, 44, '茶几', 'rgba(255,223,138,0.10)'),
-        rect('tv', 350, 58, 58, 112, '电视柜'),
-        rect('activity', 72, 214, 320, 44, '活动区', 'rgba(34,240,173,0.10)'),
-      ];
-      return layout;
-    }
-    if (/厨房/u.test(kind)) {
-      layout.shapes = [
-        rect('counter', 46, 50, 360, 48, '料理台'),
-        rect('stove', 64, 126, 82, 66, '灶台'),
-        rect('sink', 174, 126, 82, 66, '水槽'),
-        rect('fridge', 318, 126, 72, 92, '冰箱'),
-      ];
-      return layout;
-    }
-    if (/卫生间|洗手间|浴室/u.test(kind)) {
-      layout.shapes = [
-        rect('shower', 54, 52, 126, 92, '淋浴区'),
-        rect('toilet', 228, 66, 86, 64, '马桶'),
-        rect('sink', 330, 164, 86, 52, '洗手台'),
-      ];
-      return layout;
-    }
-    layout.shapes = [
-      rect('bed', 56, 58, 150, 88, '床', 'rgba(116,246,255,0.12)'),
-      rect('desk', 250, 58, 120, 52, '书桌'),
-      rect('closet', 56, 190, 110, 54, '衣柜'),
-      rect('door', 330, 206, 58, 38, '门', 'rgba(255,209,102,0.12)'),
-    ];
-    return layout;
-  },
 
   resolveRoomLayout(room = {}) {
-    const normalizedLayout = this.normalizeRoomLayout(room.layout, {
+    return this.normalizeRoomLayout(room.layout, {
       slotObjects: room.slotObjects || {},
       slotObjectContents: room.slotObjectContents || {},
-    });
-    if (normalizedLayout?.shapes?.length) return normalizedLayout;
-    const templateId = room.layoutTemplateId || room.templateId;
-    if (!templateId) return this.genericRoomLayout(room);
-    return this.buildLayoutFromTemplate(templateId, {
-      residents: room.residents || [],
-      slotAssignments: room.slotAssignments || {},
-      slotObjects: room.slotObjects || {},
-      slotObjectContents: room.slotObjectContents || {},
-    }) || this.genericRoomLayout(room);
-  },
-
-  defaultRoom202Layout() {
-    return this.buildLayoutFromTemplate('four_bedroom_one_living', {
-      residents: ['刘悠', '刘思琪', '刘思瑶', '刘思怡'],
-      slotAssignments: { bed_1: '刘悠', bed_2: '刘思琪', bed_3: '刘思瑶', bed_4: '刘思怡' },
-      slotObjects: this.defaultSlotObjects('four_bedroom_one_living', { bed_1: '刘悠', bed_2: '刘思琪', bed_3: '刘思瑶', bed_4: '刘思怡' }),
-    });
+    }) || null;
   },
 
   isValidResidentName(name = '') {
@@ -251,23 +177,6 @@ window.GameModules.realWorldMapInterior = {
     };
   },
 
-  defaultSlotObjects(templateId = '', slotAssignments = {}) {
-    const slots = this.templatesApi()?.list?.().find((item) => item.id === templateId)?.slots || [];
-    const out = {};
-    slots.forEach((slot) => {
-      const label = String(slotAssignments?.[slot] || '').trim();
-      if (/^(bed_\d+|master|suite_\d+|guest_\d+)$/u.test(slot)) out[slot] = ['床', '书桌', '衣柜', '床头柜', '台灯'];
-      else if (/living|hall|grand_hall|foyer/u.test(slot)) out[slot] = ['沙发', '茶几', '电视柜', '地毯'];
-      else if (/kitchen/u.test(slot)) out[slot] = ['料理台', '灶台', '水槽', '冰箱'];
-      else if (/bathroom/u.test(slot)) out[slot] = ['淋浴区', '马桶', '洗手台', '镜柜'];
-      else if (/dining/u.test(slot)) out[slot] = ['餐桌', '餐椅', '餐边柜'];
-      else if (/study/u.test(slot)) out[slot] = ['书桌', '书架', '椅子'];
-      else if (/terrace|garden/u.test(slot)) out[slot] = ['盆栽', '栏杆', '户外椅'];
-      if (label && out[slot]) out[slot] = out[slot].slice(0, 8);
-    });
-    return out;
-  },
-
   isValidRoomNumber(number = '') {
     return /^\d{3,4}$/u.test(String(number || '').trim());
   },
@@ -287,88 +196,26 @@ window.GameModules.realWorldMapInterior = {
     return /^刘(悠|思琪|思瑶|思怡)$/u.test(String(name || '').trim());
   },
 
-  collectHouseholdFromZones(zones = []) {
-    const names = new Set();
-    (Array.isArray(zones) ? zones : []).forEach((zone) => {
-      const label = String(zone?.name || '').trim();
-      if (!label || this.isInfrastructureZone(label)) return;
-      this.parseResidentsFromZoneName(label).forEach((item) => names.add(item));
-      this.sanitizeResidents(zone.residents || zone.occupants).forEach((item) => names.add(item));
-      const match = label.match(/刘[\u4e00-\u9fff]{1,2}/gu) || [];
-      match.forEach((item) => { if (this.isHouseholdMemberName(item)) names.add(item); });
-    });
-    return [...names];
-  },
-
-  parseZoneRoomMap(zones = []) {
-    const map = new Map();
-    (Array.isArray(zones) ? zones : []).forEach((zone) => {
-      const name = String(zone?.name || '').trim();
-      if (!name || this.isInfrastructureZone(name)) return;
-      const number = this.inferRoomNumberFromZoneName(name);
-      if (!number || !this.isValidRoomNumber(number)) return;
-      const residents = this.sanitizeResidents(zone.residents || zone.occupants).length
-        ? this.sanitizeResidents(zone.residents || zone.occupants)
-        : this.parseResidentsFromZoneName(name);
-      if (!map.has(number)) map.set(number, new Set());
-      residents.forEach((item) => map.get(number).add(item));
-    });
-    return map;
-  },
-
   parseResidentsFromZoneName(name = '') {
     const text = String(name || '').trim();
     const person = text.match(/^([\u4e00-\u9fff]{2,4})的(?:房|室|房间|卧室)/u);
     return person ? this.sanitizeResidents([person[1]]) : [];
   },
 
-  homeUnit202Residents(store = {}, zones = []) {
-    const profile = store.playerProfile || {};
-    const player = profile.name || profile.displayName || '刘悠';
-    const base = this.sanitizeResidents([player, '刘思琪', '刘思瑶', '刘思怡']);
-    const merged = new Set(base);
-    this.collectHouseholdFromZones(zones).forEach((name) => {
-      if (this.isHouseholdMemberName(name)) merged.add(name);
-    });
-    return [...merged];
-  },
-
-  buildDiscoveredHomeFloors(store = {}, zones = []) {
-    const residents202 = this.homeUnit202Residents(store, zones);
-    const templateId = 'four_bedroom_one_living';
-    const slotAssignments = this.templatesApi()?.autoSlotAssignments?.(templateId, residents202) || {};
-    const slotObjects = this.defaultSlotObjects(templateId, slotAssignments);
-    const layout = this.buildLayoutFromTemplate(templateId, { residents: residents202, slotAssignments, slotObjects });
-    const floor2Numbers = ['201', '202', '203', '204'];
-    const rooms = floor2Numbers.map((number) => this.normalizeRoom({
-      id: `room_${number}`,
-      number,
-      name: number,
-      residents: number === '202' ? residents202 : [],
-      layoutTemplateId: number === '202' ? templateId : '',
-      slotAssignments: number === '202' ? slotAssignments : {},
-      slotObjects: number === '202' ? slotObjects : {},
-      layout: number === '202' ? layout : null,
-    }));
-    return [{ id: 'floor_2', name: '第二层', rooms }];
-  },
-
   normalizeRoom(raw = {}, index = 0) {
-    const labelRaw = String(raw.number || raw.name || raw.room || raw.label || '').trim();
+    const labelRaw = String(raw.number || raw.roomNumber || raw.name || raw.roomName || raw.room || raw.label || raw.title || '').trim();
     const number = this.isValidRoomNumber(labelRaw)
       ? labelRaw
       : (labelRaw.match(/(\d{3,4})/u)?.[1] || '');
-    const residents = this.sanitizeResidents(raw.residents || raw.occupants);
+    const ownerRefs = Array.isArray(raw.ownerRefs) ? raw.ownerRefs : [];
+    const usageContracts = Array.isArray(raw.usageContracts) ? raw.usageContracts : [];
+    const residents = this.roomResidentNames({ residents: raw.residents || raw.occupants, ownerRefs, usageContracts });
     const displayName = String(raw.name || raw.label || number || labelRaw || `房间${index + 1}`).trim().slice(0, 16);
     const displayNumber = number || displayName;
-    const layoutTemplateId = String(raw.layoutTemplateId || raw.templateId || '').trim();
     const slotAssignments = raw.slotAssignments && typeof raw.slotAssignments === 'object' ? raw.slotAssignments : {};
     const slotObjects = this.normalizeSlotObjects(raw.slotObjects || raw.layoutObjects || raw.objectsBySlot || raw.shapeObjects);
     const slotObjectContents = this.normalizeSlotObjectContents(raw.slotObjectContents || raw.containerContentsBySlot || raw.objectContentsBySlot || raw.contentsBySlot);
-    let layout = this.normalizeRoomLayout(raw.layout || raw.roomLayout || raw.floorPlan, { slotObjects, slotObjectContents });
-    if (!layout?.shapes?.length && layoutTemplateId) {
-      layout = this.buildLayoutFromTemplate(layoutTemplateId, { residents, slotAssignments, slotObjects, slotObjectContents });
-    }
+    const layout = this.normalizeRoomLayout(raw.layout || raw.roomLayout || raw.floorPlan, { slotObjects, slotObjectContents });
     return {
       id: String(raw.id || `room_${displayNumber || index + 1}`),
       number: displayNumber,
@@ -376,12 +223,12 @@ window.GameModules.realWorldMapInterior = {
       kind: String(raw.kind || raw.type || '').trim().slice(0, 12),
       residents,
       residentsText: residents.join('、'),
-      layoutTemplateId,
+      ownerRefs,
+      usageContracts,
       slotAssignments,
       slotObjects,
       slotObjectContents,
       layout,
-      hasLayout: Boolean(layout?.shapes?.length),
     };
   },
 
@@ -397,120 +244,65 @@ window.GameModules.realWorldMapInterior = {
     };
   },
 
-  isQualityFloors(floors = []) {
-    const rooms = floors.flatMap((floor) => floor.rooms || []);
-    if (!rooms.length) return false;
-    if (rooms.some((room) => /^R\d+$/u.test(room.number))) return false;
-    if (rooms.some((room) => /\u53d1\u73b0|\u8d70\u5eca|\u5165\u53e3|\u697c\u68af/u.test(room.residentsText || ''))) return false;
-    return rooms.some((room) => this.isValidRoomNumber(room.number) || room.name);
+  refDisplayName(ref = {}) {
+    return String(ref?.name || ref?.displayName || ref?.id || '').trim();
   },
 
-  isHomeBuildingNode(node, store = {}) {
-    const mapMod = window.GameModules.realWorldMap;
-    if (!mapMod?.cleanName || !mapMod?.inferHomeName) return false;
-    const name = mapMod.cleanName(node?.name || '');
-    const home = mapMod.inferHomeName(store.playerProfile || {});
-    if (!name || !home) return false;
-    return name === home || home.includes(name) || name.includes(home);
-  },
-
-  isApartmentBuildingNode(node, store = {}) {
-    const mapMod = window.GameModules.realWorldMap;
-    if (!mapMod?.cleanName || !mapMod?.inferHomeName) return /小区|公寓|单元|栋|幢|号楼|座/u.test(String(node?.name || ''));
-    const name = mapMod.cleanName(node?.name || '');
-    const home = mapMod.cleanName(mapMod.inferHomeName(store.playerProfile || {}));
-    const text = `${name} ${home}`;
-    if (/别墅|独栋|合院|庄园|平层/u.test(text)) return false;
-    return /小区|公寓|单元|栋|幢|号楼|座/u.test(text);
-  },
-
-  hasNumberedRooms(floors = []) {
-    return (Array.isArray(floors) ? floors : []).some((floor) => (
-      (floor.rooms || []).some((room) => this.isValidRoomNumber(room.number) || this.isValidRoomNumber(room.name))
-    ));
-  },
-
-  parseCnFloorNumber(text = '') {
-    const raw = String(text || '').trim();
-    const digit = raw.match(/(?:第)?(\d{1,3})\s*[层楼]/u) || raw.match(/(\d{1,3})\s*(?:F|f|楼)/u);
-    if (digit) return Math.max(1, Number(digit[1]) || 1);
-    const cn = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10 };
-    const cnMatch = raw.match(/(?:第)?([一二三四五六七八九十]{1,3})[层楼]/u);
-    if (!cnMatch) return 0;
-    const chars = cnMatch[1];
-    if (chars === '十') return 10;
-    if (chars.startsWith('十')) return 10 + (cn[chars[1]] || 0);
-    if (chars.includes('十')) return (cn[chars[0]] || 1) * 10 + (cn[chars[2]] || 0);
-    return cn[chars] || 0;
-  },
-
-  floorDisplayName(rank = 1) {
-    const n = Math.max(1, Number(rank) || 1);
-    const cn = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
-    if (n <= 10) return `第${cn[n]}层`;
-    return `第${n}层`;
-  },
-
-  inferZoneKind(zone = {}) {
-    const text = String([zone.kind, zone.name, zone.description].filter(Boolean).join(' '));
-    if (/走廊|过道/u.test(text)) return '走廊';
-    if (/楼梯/u.test(text)) return '楼梯间';
-    if (/电梯/u.test(text)) return '电梯间';
-    if (/客厅|起居/u.test(text)) return '客厅';
-    if (/厨房/u.test(text)) return '厨房';
-    if (/卫生间|洗手间|浴室/u.test(text)) return '卫生间';
-    if (/卧室|房间|的房/u.test(text)) return '卧室';
-    return String(zone.kind || '房间').slice(0, 12);
-  },
-
-  zoneRoomName(zone = {}, index = 0) {
-    const raw = String(zone.name || zone.label || '').trim();
-    const person = raw.match(/^([\u4e00-\u9fff]{2,4})的(?:房|室|房间|卧室)/u);
-    if (person) return `${person[1]}的卧室`;
-    if (raw) return raw.replace(/^第?[一二三四五六七八九十\d]+[层楼]/u, '').trim() || raw;
-    return `空间${index + 1}`;
-  },
-
-  roomFromZone(zone = {}, index = 0) {
-    const kind = this.inferZoneKind(zone);
-    const name = this.zoneRoomName(zone, index);
-    const residents = this.sanitizeResidents(zone.residents || zone.occupants).length
-      ? this.sanitizeResidents(zone.residents || zone.occupants)
-      : this.parseResidentsFromZoneName(name);
-    return this.normalizeRoom({
-      id: zone.id || `zone_room_${index + 1}`,
-      name,
-      kind,
-      residents,
-      layoutTemplateId: kind === '卧室' ? 'single_room' : '',
-      layout: zone.layout,
-    }, index);
-  },
-
-  buildFloorsFromZones(zones = [], node = {}, store = {}) {
-    const rows = (Array.isArray(zones) ? zones : []).filter((zone) => String(zone?.name || zone?.label || '').trim());
-    if (!rows.length) return [];
-    const explicitRanks = rows
-      .map((zone) => this.parseCnFloorNumber([zone.name, zone.description].filter(Boolean).join(' ')))
-      .filter(Boolean);
-    const currentRank = this.parseCnFloorNumber(store.realWorldLocationName || store.realWorldMap?.current || node.name || '');
-    const defaultRank = explicitRanks[0] || currentRank || 1;
-    const groups = new Map();
-    rows.forEach((zone, index) => {
-      const rank = this.parseCnFloorNumber([zone.name, zone.description].filter(Boolean).join(' ')) || defaultRank;
-      if (!groups.has(rank)) groups.set(rank, []);
-      groups.get(rank).push(this.roomFromZone(zone, index));
+  contractUserNames(usageContracts = []) {
+    const names = new Set();
+    (Array.isArray(usageContracts) ? usageContracts : []).forEach((contract) => {
+      if (contract?.status === 'ended') return;
+      (Array.isArray(contract?.userRefs) ? contract.userRefs : []).forEach((ref) => {
+        const name = this.refDisplayName(ref);
+        if (name) names.add(name);
+      });
     });
-    return [...groups.entries()]
-      .sort((a, b) => a[0] - b[0])
-      .map(([rank, rooms]) => ({
-        id: `floor_${rank}`,
-        name: this.floorDisplayName(rank),
-        order: rank,
-        rooms: rooms
-          .filter((room, index, list) => list.findIndex((item) => item.id === room.id || item.name === room.name) === index)
-          .sort((a, b) => String(a.number || a.name).localeCompare(String(b.number || b.name), 'zh-Hans-CN', { numeric: true })),
-      }));
+    return [...names];
+  },
+
+  ownerResidentNames(ownerRefs = []) {
+    return (Array.isArray(ownerRefs) ? ownerRefs : [])
+      .map((ref) => this.refDisplayName(ref))
+      .filter(Boolean);
+  },
+
+  roomExplicitResidentNames(room = {}) {
+    return this.uniqueNames(room?.residentsText ? String(room.residentsText).split('、') : room.residents);
+  },
+
+  uniqueNames(names = []) {
+    return [...new Set((Array.isArray(names) ? names : [])
+      .map((name) => String(name || '').trim())
+      .filter(Boolean))];
+  },
+
+  sameNameSet(left = [], right = []) {
+    const a = this.uniqueNames(left);
+    const b = this.uniqueNames(right);
+    if (!a.length || a.length !== b.length) return false;
+    const bSet = new Set(b);
+    return a.every((name) => bSet.has(name));
+  },
+
+  roomResidentNames(room = {}) {
+    const explicit = this.sanitizeResidents(room.residents || room.occupants);
+    if (explicit.length) return explicit;
+    return this.contractUserNames(room.usageContracts);
+  },
+
+  roomOccupancyLabel(room = {}) {
+    const users = this.contractUserNames(room.usageContracts);
+    const owners = this.ownerResidentNames(room.ownerRefs);
+    const explicitResidents = this.roomExplicitResidentNames(room);
+    const displayUsers = users.length ? users : explicitResidents;
+    const residents = explicitResidents.length ? explicitResidents : (displayUsers.length ? displayUsers : owners);
+    const title = this.roomDisplayTitle(room);
+    const prefix = title ? `房间：${title}` : '';
+    const parts = prefix ? [prefix] : [];
+    parts.push(residents.length ? `居住人：${residents.join('、')}` : '居住人：未知');
+    parts.push(displayUsers.length ? `使用人：${displayUsers.join('、')}` : '使用人：未知');
+    parts.push(owners.length ? `所有人：${owners.join('、')}` : '所有人：未知');
+    return parts.join('｜');
   },
 
   floorRank(floor = {}, index = 0) {
@@ -535,32 +327,14 @@ window.GameModules.realWorldMapInterior = {
   ensureFloors(node, store = {}) {
     if (!node) return [];
     const layout = node.interiorLayout && typeof node.interiorLayout === 'object' ? node.interiorLayout : {};
-    node.interiorLayout = layout;
-
-    let floors = Array.isArray(layout.floors) ? layout.floors.map((floor, index) => this.normalizeFloor(floor, index)) : [];
-    floors = floors
-      .filter((floor) => floor.rooms.length)
-      .map((floor, index) => ({ ...floor, _sourceIndex: index }))
+    return (Array.isArray(layout.floors) ? layout.floors : [])
+      .filter((floor) => String(floor?.id || floor?.name || floor?.label || '').trim() || (Array.isArray(floor?.rooms) && floor.rooms.length))
+      .map((floor, index) => ({ ...floor, _sourceIndex: index, rooms: Array.isArray(floor?.rooms) ? floor.rooms : [] }))
       .sort((a, b) => this.floorRank(a, a._sourceIndex) - this.floorRank(b, b._sourceIndex))
       .map(({ _sourceIndex, ...floor }) => ({
         ...floor,
-        rooms: (floor.rooms || []).slice().sort((a, b) => String(a.number || a.name).localeCompare(String(b.number || b.name), 'zh-Hans-CN', { numeric: true })),
+        rooms: floor.rooms.slice().sort((a, b) => String(a?.number || a?.name || '').localeCompare(String(b?.number || b?.name || ''), 'zh-Hans-CN', { numeric: true })),
       }));
-
-    const needsHomeApartmentFallback = this.isHomeBuildingNode(node, store)
-      && this.isApartmentBuildingNode(node, store)
-      && !this.hasNumberedRooms(floors);
-
-    if (needsHomeApartmentFallback) {
-      const homeFloors = this.buildDiscoveredHomeFloors(store, layout.zones || []);
-      if (homeFloors.length) floors = homeFloors;
-    } else if (!this.isQualityFloors(floors)) {
-      const zoneFloors = this.buildFloorsFromZones(layout.zones || [], node, store);
-      if (zoneFloors.length) floors = zoneFloors;
-    }
-
-    layout.floors = floors;
-    return floors;
   },
 
   findRoom(floors = [], roomId = '') {
@@ -582,9 +356,13 @@ window.GameModules.realWorldMapInterior = {
     const number = String(room.number || '').trim();
     const name = String(room.name || '').trim();
     const kind = String(room.kind || '').trim();
-    if (name && (name !== number || !this.isValidRoomNumber(number))) return name;
-    if (kind && !/^\d{3,4}$/u.test(number)) return `${number || name || '房间'} · ${kind}`;
-    return number || name || '未命名房间';
+    if (number && this.isValidRoomNumber(number)) {
+      if (name && name !== number) return `${number} · ${name}`;
+      return number;
+    }
+    if (name) return name;
+    if (kind) return kind;
+    return number || '未命名房间';
   },
 
   roomObjectLabels(room = {}) {
@@ -931,106 +709,6 @@ window.GameModules.realWorldMapInterior = {
       roomId: room.id || room.number || room.name || '',
       shapes: [roomFloor, ...wall, ...objectShapes],
     };
-  },
-
-  floorPlanRegions(floor = {}, width = 520, height = 340) {
-    const rooms = Array.isArray(floor?.rooms) ? floor.rooms : [];
-    if (!rooms.length) return [];
-    const padding = 18;
-    const gap = 12;
-    const cols = Math.max(1, Math.ceil(Math.sqrt(rooms.length)));
-    const rows = Math.max(1, Math.ceil(rooms.length / cols));
-    const roomW = Math.max(74, (width - padding * 2 - gap * (cols - 1)) / cols);
-    const roomH = Math.max(58, (height - padding * 2 - gap * (rows - 1)) / rows);
-    return rooms.map((room, index) => {
-      const col = index % cols;
-      const row = Math.floor(index / cols);
-      return {
-        room,
-        roomId: room.id || room.number || room.name || `room_${index + 1}`,
-        x: padding + col * (roomW + gap),
-        y: padding + row * (roomH + gap),
-        w: roomW,
-        h: roomH,
-      };
-    });
-  },
-
-  drawWrappedText(ctx, text = '', x = 0, y = 0, maxWidth = 120, lineHeight = 16, maxLines = 2) {
-    const chars = Array.from(String(text || '').trim());
-    const lines = [];
-    let line = '';
-    chars.forEach((ch) => {
-      const next = line + ch;
-      if (!line || ctx.measureText(next).width <= maxWidth) {
-        line = next;
-        return;
-      }
-      lines.push(line);
-      line = ch;
-    });
-    if (line) lines.push(line);
-    const clipped = lines.slice(0, maxLines);
-    if (lines.length > maxLines) clipped[maxLines - 1] = `${clipped[maxLines - 1].slice(0, Math.max(1, clipped[maxLines - 1].length - 1))}…`;
-    clipped.forEach((item, index) => ctx.fillText(item, x, y + index * lineHeight));
-  },
-
-  drawRoundRect(ctx, x, y, w, h, r = 12) {
-    if (typeof ctx.roundRect === 'function') {
-      ctx.beginPath();
-      ctx.roundRect(x, y, w, h, r);
-      return;
-    }
-    const radius = Math.min(r, w / 2, h / 2);
-    ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.lineTo(x + w - radius, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
-    ctx.lineTo(x + w, y + h - radius);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
-    ctx.lineTo(x + radius, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
-    ctx.lineTo(x, y + radius);
-    ctx.quadraticCurveTo(x, y, x + radius, y);
-  },
-
-  drawFloorPlan(canvas, floor = {}) {
-    if (!canvas?.getContext) return [];
-    const ctx = canvas.getContext('2d');
-    const width = canvas.width || 520;
-    const height = canvas.height || 340;
-    const regions = this.floorPlanRegions(floor, width, height);
-    ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = '#07101f';
-    ctx.fillRect(0, 0, width, height);
-    ctx.strokeStyle = 'rgba(87,199,255,0.18)';
-    ctx.lineWidth = 1;
-    for (let x = 16; x < width; x += 40) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x + height * 0.45, height);
-      ctx.stroke();
-    }
-    regions.forEach((region, index) => {
-      const room = region.room || {};
-      const hasLayout = Boolean(room.hasLayout || room.layout || room.layoutTemplateId);
-      ctx.save();
-      ctx.fillStyle = hasLayout ? 'rgba(34,240,173,0.12)' : 'rgba(87,199,255,0.08)';
-      ctx.strokeStyle = hasLayout ? 'rgba(34,240,173,0.54)' : 'rgba(87,199,255,0.34)';
-      ctx.lineWidth = 2;
-      this.drawRoundRect(ctx, region.x, region.y, region.w, region.h, 12);
-      ctx.fill();
-      ctx.stroke();
-      ctx.fillStyle = '#eef8ff';
-      ctx.font = '800 14px "Microsoft YaHei", sans-serif';
-      this.drawWrappedText(ctx, this.roomDisplayTitle(room), region.x + 12, region.y + 24, region.w - 24, 17, 2);
-      ctx.fillStyle = '#9fb2c8';
-      ctx.font = '12px "Microsoft YaHei", sans-serif';
-      const detail = room.residentsText ? `居住人：${room.residentsText}` : (room.kind || `空间 ${index + 1}`);
-      this.drawWrappedText(ctx, detail, region.x + 12, region.y + region.h - 30, region.w - 24, 15, 2);
-      ctx.restore();
-    });
-    return regions;
   },
 
   drawRoomLayout(canvas, layout = {}, options = {}) {

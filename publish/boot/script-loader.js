@@ -45,8 +45,25 @@ window.GameBoot = window.GameBoot || {
     });
   },
 
+  preloadScripts(urls = []) {
+    const list = (Array.isArray(urls) ? urls : []).map((src) => this.versionedSrc(src)).filter(Boolean);
+    list.forEach((url) => {
+      if (this.loaded.has(url)) return;
+      const existing = Array.from(document.querySelectorAll('link[data-boot-preload]')).find((node) => node.dataset.bootPreload === url);
+      if (existing) return;
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'script';
+      link.href = url;
+      link.dataset.bootPreload = url;
+      if (/^(https?:)?\/\//i.test(url)) link.crossOrigin = 'anonymous';
+      document.head.appendChild(link);
+    });
+  },
+
   async loadScripts(urls = [], onProgress) {
     const list = (Array.isArray(urls) ? urls : []).filter(Boolean);
+    this.preloadScripts(list);
     for (let i = 0; i < list.length; i += 1) {
       onProgress?.({ index: i, total: list.length, url: list[i] });
       await this.loadScript(list[i]);

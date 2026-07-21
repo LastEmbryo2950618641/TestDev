@@ -49,12 +49,6 @@ window.GameModules.currentWorldActions = {
       this.entrySetupOpen = false;
       this.profileOpen = false;
       const opened = this.openRealWorldPanel?.();
-      this.ensureGameplayAssetsReady?.()
-        ?.then?.(() => {
-          window.GameModules.remergeGameStore?.();
-          if (this.realWorldOpen) this.openRealWorldPanel?.();
-        })
-        ?.catch?.((err) => console.warn('[real-world] background warmup failed:', err?.message || err));
       return opened;
     }
     this.realWorldOpen = false;

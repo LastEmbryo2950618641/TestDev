@@ -8,7 +8,7 @@ window.GameModules.app.save.slotFlow = {
     await window.GameModules.storage.open(slot);
     const save = await window.GameModules.storage.get();
     if (save) window.GameModules.storage.restore(this, save);
-    await this.loadWritingStyles();
+    await this.loadWritingStyles({ readOnly: true });
     this.ensureCatalogSelection();
     this.loadSavedRpgStates();
   },

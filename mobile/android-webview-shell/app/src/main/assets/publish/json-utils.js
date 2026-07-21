@@ -235,7 +235,7 @@ window.GameModules.jsonUtils = {
   },
 
   repairJson(json) {
-    let out = this.normalizeJsonSyntax(this.trimDanglingProperty(String(json || '')))
+    let out = this.repairMissingCommas(this.normalizeJsonSyntax(this.trimDanglingProperty(String(json || ''))))
       .replace(/([}\]"0-9]|true|false|null)\s*,\s*(")/g, '$1,$2')
       .replace(/([}\]])\s*，\s*([\[{])/g, '$1,$2')
       .replace(/([}\]])\s*，\s*(")/g, '$1,$2')
@@ -256,6 +256,69 @@ window.GameModules.jsonUtils = {
       .replace(/,\s*([}\]])/g, '$1');
     out = this.repairMisnestedMetricArrays(out);
     out = this.repairBareReasonArrays(out);
+    return out;
+  },
+
+  repairMissingCommas(text) {
+    const source = String(text || '');
+    let out = '';
+    let inString = false;
+    let escaped = false;
+    let previousSignificant = '';
+    let previousValueEnded = false;
+    const valueEndChars = new Set(['}', ']', '"']);
+    const isValueEndChar = (char) => valueEndChars.has(char) || /[0-9eE]|[a-z]/.test(char);
+    const quotedTokenIsObjectKey = (index) => {
+      let cursor = index + 1;
+      let tokenEscaped = false;
+      for (; cursor < source.length; cursor += 1) {
+        const char = source[cursor];
+        if (tokenEscaped) { tokenEscaped = false; continue; }
+        if (char === '\\') { tokenEscaped = true; continue; }
+        if (char === '"') break;
+      }
+      if (cursor >= source.length) return false;
+      cursor += 1;
+      while (/\s/.test(source[cursor] || '')) cursor += 1;
+      return source[cursor] === ':';
+    };
+    for (let index = 0; index < source.length; index += 1) {
+      const char = source[index];
+      if (escaped) {
+        out += char;
+        escaped = false;
+        continue;
+      }
+      if (inString) {
+        out += char;
+        if (char === '\\') escaped = true;
+        else if (char === '"') {
+          inString = false;
+          previousSignificant = '"';
+          previousValueEnded = true;
+        }
+        continue;
+      }
+      if (char === '"') {
+        if (previousValueEnded && previousSignificant !== ':' && previousSignificant !== ',' && previousSignificant !== '[' && previousSignificant !== '{' && quotedTokenIsObjectKey(index)) {
+          out = out.replace(/\s*$/, (space) => `,${space}`);
+        }
+        inString = true;
+        out += char;
+        previousSignificant = '"';
+        previousValueEnded = false;
+        continue;
+      }
+      if (!/\s/.test(char)) {
+        if ((char === '{' || char === '[') && previousValueEnded && previousSignificant !== ':' && previousSignificant !== ',' && previousSignificant !== '[' && previousSignificant !== '{') {
+          out = out.replace(/\s*$/, (space) => `,${space}`);
+        }
+        previousSignificant = char;
+        previousValueEnded = isValueEndChar(char);
+        if (char === ':' || char === ',' || char === '[' || char === '{') previousValueEnded = false;
+      }
+      out += char;
+    }
     return out;
   },
 

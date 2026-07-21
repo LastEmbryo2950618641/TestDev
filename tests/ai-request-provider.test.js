@@ -29,6 +29,8 @@ function createContext(overrides = {}) {
     console,
     setTimeout,
     clearTimeout,
+    setInterval,
+    clearInterval,
     window: {
       GameModules: {
         config: {
@@ -93,6 +95,57 @@ test('aiRequest.complete delegates to current provider and returns merged buffer
     messages: [{ role: 'user', content: '你好' }],
     maxTokens: 400,
   }]);
+});
+
+test('aiRequest.complete reports token record id before provider starts', async () => {
+  const events = [];
+  const context = createContext();
+  context.window.GameModules.tokenStats = {
+    record() { events.push('record'); return 'token-live-1'; },
+    recordResponse() { events.push('response'); },
+    recordProgress() {},
+  };
+  loadScript(context, 'publish/ai-provider.js');
+  context.window.GameModules.aiProvider.register('deepseek', {
+    async complete(options) {
+      events.push(`provider:${options.tokenRecordId || 'none'}`);
+      await options.onChunk?.('ok', true, {});
+      return 'ok';
+    },
+  });
+  loadScript(context, 'publish/ai-request.js');
+  const seen = [];
+  const text = await context.window.GameModules.aiRequest.complete({
+    source: 'unit-test-live-token',
+    prompt: 'hello',
+    timeoutMs: 2000,
+    onTokenRecord(recordId) { seen.push(recordId); events.push(`callback:${recordId}`); },
+  });
+  assert.strictEqual(text, 'ok');
+  assert.deepStrictEqual(seen, ['token-live-1']);
+  assert.deepStrictEqual(events.slice(0, 3), ['record', 'callback:token-live-1', 'provider:token-live-1']);
+});
+
+test('aiRequest.complete still invokes token record callback when tokenStats is unavailable', async () => {
+  const context = createContext();
+  delete context.window.GameModules.tokenStats;
+  loadScript(context, 'publish/ai-provider.js');
+  context.window.GameModules.aiProvider.register('deepseek', {
+    async complete(options) {
+      await options.onChunk?.('ok', true, {});
+      return 'ok';
+    },
+  });
+  loadScript(context, 'publish/ai-request.js');
+  const seen = [];
+  const text = await context.window.GameModules.aiRequest.complete({
+    source: 'unit-test-no-token-module',
+    prompt: 'hello',
+    timeoutMs: 2000,
+    onTokenRecord(recordId) { seen.push(recordId); },
+  });
+  assert.strictEqual(text, 'ok');
+  assert.deepStrictEqual(seen, [undefined]);
 });
 
 test('deepseek streaming requests include usage and update cache stats', async () => {

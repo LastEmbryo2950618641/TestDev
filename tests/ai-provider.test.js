@@ -68,6 +68,41 @@ test('provider registry resolves current provider from settings state', () => {
   assert.strictEqual(provider.providerConfig('deepseek').baseUrl, 'https://api.deepseek.com');
 });
 
+test('provider direct complete records token stats unless suppressed', async () => {
+  const calls = [];
+  const context = createContext();
+  context.window.GameModules.tokenStats = {
+    record(source, text, meta) {
+      calls.push(['record', source, text, meta.title]);
+      return 'token-1';
+    },
+    recordProgress(id, meta) {
+      calls.push(['progress', id, meta.status]);
+    },
+    recordResponse(id, text) {
+      calls.push(['response', id, text]);
+    },
+    recordError(id, err) {
+      calls.push(['error', id, err?.message || String(err)]);
+    },
+  };
+  loadScript(context, 'publish/ai-provider.js');
+  const registry = context.window.GameModules.aiProvider;
+  registry.register('deepseek', {
+    async complete(options) {
+      await options.onChunk?.('OK', true, { buffer: 'OK', usage: { total_tokens: 2 } });
+      await options.onDone?.({ usage: { total_tokens: 2 } });
+      return 'OK';
+    },
+  });
+  const provider = registry.get('deepseek');
+  assert.strictEqual(await provider.complete({ source: 'direct-test', prompt: 'hello' }), 'OK');
+  assert.deepStrictEqual(calls.map((item) => item[0]), ['record', 'progress', 'response']);
+  calls.length = 0;
+  assert.strictEqual(await provider.complete({ source: 'direct-test', prompt: 'hello', suppressTokenStats: true }), 'OK');
+  assert.deepStrictEqual(calls, []);
+});
+
 test('deepseek listTextModels normalizes model payload', async () => {
   const fetchCalls = [];
   const context = createContext({

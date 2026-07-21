@@ -18,7 +18,129 @@ window.GameModules.realWorldMapFog = {
 
   },
 
+  debugMode(state = {}) {
 
+    return state?.realWorldMapDebugMode !== false && state?.config?.realWorldMapDebug !== false;
+
+  },
+
+  debugConsoleMode(state = {}) {
+
+    if (state?.realWorldMapDebugConsole === true || state?.config?.realWorldMapDebugConsole === true) return true;
+    try {
+      return window.localStorage?.getItem?.('realWorldMapDebugConsole') === '1';
+    } catch (err) {
+      return false;
+    }
+
+  },
+
+  rawMapState(map = {}) {
+
+    if (!map || typeof map !== 'object') return map;
+    try {
+      return window.Alpine?.raw ? window.Alpine.raw(map) : map;
+    } catch (err) {
+      return map;
+    }
+
+  },
+
+  surroundUnlockDebug(state = {}, event = '', detail = {}) {
+
+    const row = {
+      time: new Date().toISOString(),
+      event,
+      ...detail,
+    };
+
+    if (state && typeof state === 'object') {
+      if (!Array.isArray(state.realWorldMapSurroundUnlockDebugLog)) state.realWorldMapSurroundUnlockDebugLog = [];
+      state.realWorldMapSurroundUnlockDebugLog.push(row);
+      if (state.realWorldMapSurroundUnlockDebugLog.length > 120) {
+        state.realWorldMapSurroundUnlockDebugLog.splice(0, state.realWorldMapSurroundUnlockDebugLog.length - 120);
+      }
+    }
+
+    if (this.debugConsoleMode(state)) {
+      try {
+        console.log('[电子地图周围解锁Debug]', JSON.stringify(row));
+      } catch (error) {
+        console.log('[电子地图周围解锁Debug]', row);
+      }
+    }
+
+    return row;
+
+  },
+
+  summarizeInteriorLayout(layout = {}) {
+
+    const floors = Array.isArray(layout?.floors) ? layout.floors : [];
+    const zones = Array.isArray(layout?.zones) ? layout.zones : [];
+    let rooms = 0;
+    let shapes = 0;
+    let slotObjectGroups = 0;
+    let slotObjects = 0;
+    let containerContentItems = 0;
+    let ownerRefs = Array.isArray(layout?.ownerRefs) ? layout.ownerRefs.length : 0;
+    let usageContracts = Array.isArray(layout?.usageContracts) ? layout.usageContracts.length : 0;
+
+    floors.forEach((floor) => {
+      ownerRefs += Array.isArray(floor?.ownerRefs) ? floor.ownerRefs.length : 0;
+      usageContracts += Array.isArray(floor?.usageContracts) ? floor.usageContracts.length : 0;
+      (Array.isArray(floor?.rooms) ? floor.rooms : []).forEach((room) => {
+        rooms += 1;
+        ownerRefs += Array.isArray(room?.ownerRefs) ? room.ownerRefs.length : 0;
+        usageContracts += Array.isArray(room?.usageContracts) ? room.usageContracts.length : 0;
+        shapes += Array.isArray(room?.layout?.shapes) ? room.layout.shapes.length : 0;
+        const slotMap = room?.slotObjects && typeof room.slotObjects === 'object' ? room.slotObjects : {};
+        Object.values(slotMap).forEach((items) => {
+          slotObjectGroups += 1;
+          (Array.isArray(items) ? items : []).forEach((item) => {
+            slotObjects += 1;
+            containerContentItems += Array.isArray(item?.containerContents) ? item.containerContents.length : 0;
+          });
+        });
+        const contentMap = room?.slotObjectContents && typeof room.slotObjectContents === 'object' ? room.slotObjectContents : {};
+        Object.values(contentMap).forEach((items) => {
+          containerContentItems += Array.isArray(items) ? items.length : 0;
+        });
+      });
+    });
+
+    return {
+      floors: floors.length,
+      rooms,
+      zones: zones.length,
+      shapes,
+      slotObjectGroups,
+      slotObjects,
+      containerContentItems,
+      ownerRefs,
+      usageContracts,
+    };
+
+  },
+
+  summarizeUnlockRawPayload(raw = {}) {
+
+    const patch = raw?.patch && typeof raw.patch === 'object' ? raw.patch : {};
+    const rawInterior = raw?.interiorLayout || raw?.interiorPatch || patch?.interiorLayout || patch?.interiorPatch || null;
+    return {
+      responseMode: String(raw?.responseMode || raw?.mode || raw?.updateMode || ''),
+      topLevelKeys: raw && typeof raw === 'object' ? Object.keys(raw).slice(0, 30) : [],
+      patchKeys: patch && typeof patch === 'object' ? Object.keys(patch).slice(0, 30) : [],
+      hasInteriorLayout: Boolean(raw?.interiorLayout),
+      hasInteriorPatch: Boolean(raw?.interiorPatch),
+      hasPatchInteriorLayout: Boolean(patch?.interiorLayout),
+      hasPatchInteriorPatch: Boolean(patch?.interiorPatch),
+      hasSurroundLocations: Array.isArray(raw?.surroundLocations),
+      surroundLocationCount: Array.isArray(raw?.surroundLocations) ? raw.surroundLocations.length : 0,
+      rawInteriorSummary: rawInterior ? this.summarizeInteriorLayout(rawInterior) : null,
+    };
+
+  },
 
   normalizeNodeFlags(node = {}) {
 
@@ -212,6 +334,27 @@ window.GameModules.realWorldMapFog = {
     return /(放|放置|放进|放在|放到|摆上|拿|取走|取出|移动|挪|整理|收拾|打开|关闭|挂|贴|藏|塞|桌|床|柜|架|墙|地板|窗|门|包|箱|抽屉|物品|摆件|容器|户型|布局|新房间|陌生房间|进入.{0,24}(房间|卧室|客厅|厨房|卫生间|楼层)|查看.{0,24}(柜|桌|床|墙|地板|窗|门|房间|卧室|摆件|物品)|观察.{0,24}(房间|卧室|客厅|厨房|卫生间|摆件|物品))/u.test(text);
   },
 
+  hasKnownInteriorFloors(anchor = {}) {
+    return Array.isArray(anchor?.interiorLayout?.floors) && anchor.interiorLayout.floors.length > 0;
+  },
+
+  shouldBootstrapMissingInterior(state = {}, result = {}, sceneNode = {}, anchor = {}) {
+    if (!anchor || this.hasKnownInteriorFloors(anchor)) return false;
+    const mapMod = this.mapApi();
+    const sceneName = String(sceneNode?.name || '');
+    if (mapMod?.isInteriorLocationName?.(sceneName)) return true;
+    const text = [
+      sceneName,
+      state.realWorldInput,
+      result.actionText,
+      result.narration,
+      result.locationName,
+      result.locationDescription,
+      result.status,
+    ].map((item) => String(item || '')).join('\n').slice(0, 3200);
+    return /(房间|卧室|客厅|厨房|卫生间|书房|阳台|玄关|衣帽间|楼层|室内|户型|布局|床|柜|桌|墙|地板|窗|门|摆件|物品|进入.{0,24}(房间|卧室|室内)|查看.{0,24}(建筑内部|房间|卧室|室内|户型|布局)|观察.{0,24}(房间|卧室|室内|户型|布局))/u.test(text);
+  },
+
 
 
   bootstrapHome(map) {
@@ -258,10 +401,33 @@ window.GameModules.realWorldMapFog = {
 
     const { firstVisit, anchor } = this.markVisited(map, node.id);
     if (firstVisit && anchor) window.GameModules.orgTerritory?.bumpOrgExposureOnMapVisit?.(state, map, anchor);
-    const needUnlock = firstVisit || this.shouldUnlockSurroundings(map, anchor);
+    const needInteriorBootstrap = this.shouldBootstrapMissingInterior(state, result, node, anchor);
+    const needUnlock = firstVisit || this.shouldUnlockSurroundings(map, anchor) || needInteriorBootstrap;
     const needPatchReview = !needUnlock && anchor?.exteriorRingUnlocked && this.shouldReviewKnownLocationPatch(result);
+    this.surroundUnlockDebug(state, 'after-location-update-decision', {
+      sceneNodeId: node?.id || '',
+      sceneNodeName: node?.name || '',
+      anchorId: anchor?.id || '',
+      anchorGraphNodeId: anchor?.graphNodeId || '',
+      anchorName: anchor?.name || '',
+      firstVisit,
+      exteriorRingUnlocked: Boolean(anchor?.exteriorRingUnlocked),
+      hasKnownInteriorFloors: this.hasKnownInteriorFloors(anchor),
+      needInteriorBootstrap,
+      needUnlock,
+      needPatchReview,
+      mode: needUnlock ? 'full' : (needPatchReview ? 'patch' : 'skip'),
+      existingInteriorSummary: this.summarizeInteriorLayout(anchor?.interiorLayout || {}),
+      narrationLength: String(result?.narration || '').length,
+      actionTextLength: String(state?.realWorldInput || result?.actionText || '').length,
+    });
 
     if (!needUnlock && !needPatchReview) {
+      this.surroundUnlockDebug(state, 'after-location-update-skip', {
+        reason: 'no-first-visit-no-surround-unlock-no-known-location-patch',
+        anchorId: anchor?.id || '',
+        anchorName: anchor?.name || '',
+      });
       window.GameModules.orgTerritory?.ensureMapControls?.(map, state);
       return { unlocked: [], interior: anchor?.interiorLayout || null };
     }
@@ -279,10 +445,30 @@ window.GameModules.realWorldMapFog = {
       window.GameModules.orgTerritory?.ensureMapControls?.(map, state);
 
       map.lastText = mapMod.render(map);
+      state.realWorldMap = this.rawMapState({ ...map, _boundStore: state });
+      const refreshedInteriorNode = map.interiorNodeId
+        ? (state.realWorldMap.nodes || []).find((item) => item.id === map.interiorNodeId || item.name === map.interiorNodeId)
+        : null;
+      this.surroundUnlockDebug(state, 'after-location-update-map-refreshed', {
+        mapAnchorId: state.realWorldMap.mapAnchorId || '',
+        interiorNodeId: state.realWorldMap.interiorNodeId || '',
+        interiorNodeName: refreshedInteriorNode?.name || '',
+        interiorNodeFloors: Array.isArray(refreshedInteriorNode?.interiorLayout?.floors)
+          ? refreshedInteriorNode.interiorLayout.floors.length
+          : 0,
+        anchorInteriorSummary: this.summarizeInteriorLayout(anchor?.interiorLayout || {}),
+      });
 
       return { unlocked, interior: anchor.interiorLayout || null };
 
     } catch (err) {
+
+      this.surroundUnlockDebug(state, 'after-location-update-failed', {
+        anchorId: anchor?.id || '',
+        anchorName: anchor?.name || '',
+        message: err?.message || String(err || ''),
+        stack: String(err?.stack || '').slice(0, 1200),
+      });
 
       console.warn('电子地图周围解锁失败:', err.message);
 
@@ -393,7 +579,6 @@ window.GameModules.realWorldMapFog = {
           slotAssignments: room.slotAssignments && typeof room.slotAssignments === 'object' ? room.slotAssignments : {},
           slotObjects: compactSlotObjects(room.slotObjects),
           slotObjectContents: room.slotObjectContents && typeof room.slotObjectContents === 'object' ? room.slotObjectContents : {},
-          layoutTemplateId: trimText(room.layoutTemplateId || room.templateId, 64),
           layout: room.layout && typeof room.layout === 'object' ? {
             width: Number(room.layout.width) || 480,
             height: Number(room.layout.height) || 320,
@@ -472,6 +657,27 @@ window.GameModules.realWorldMapFog = {
 
     const indoor = sceneName && sceneName !== anchorName ? sceneName : '无';
 
+    const contextJson = this.buildSurroundUnlockContext(state, map, anchor, sceneNode);
+    const contextText = JSON.stringify(contextJson, null, 2).slice(0, 16000);
+
+    this.surroundUnlockDebug(state, 'generate-start', {
+      mode: mode === 'patch' ? 'patch' : 'full',
+      sceneNodeId: sceneNode?.id || '',
+      sceneNodeName: sceneName,
+      anchorId: anchor?.id || '',
+      anchorGraphNodeId: anchor?.graphNodeId || '',
+      anchorName,
+      parentId: parent?.id || '',
+      parentName: parent?.name || '',
+      indoor,
+      exteriorRingUnlocked: Boolean(anchor?.exteriorRingUnlocked),
+      contextLength: contextText.length,
+      contextInteriorSummary: this.summarizeInteriorLayout(contextJson?.interiorLayout || {}),
+      knownDirectNeighborCount: Array.isArray(contextJson?.knownDirectNeighbors) ? contextJson.knownDirectNeighbors.length : 0,
+      sameParentPoiCount: Array.isArray(contextJson?.sameParentPois) ? contextJson.sameParentPois.length : 0,
+      existingRouteEdgeCount: Array.isArray(contextJson?.existingRouteEdges) ? contextJson.existingRouteEdges.length : 0,
+    });
+
     const prompt = await window.GameModules.renderPrompt('real-world-map-surround-unlock', {
 
       手机时间: `${state.phoneDateText?.() || ''} ${state.phoneTimeText?.() || ''}`.trim(),
@@ -490,14 +696,21 @@ window.GameModules.realWorldMapFog = {
 
       地点说明: this.locationFactsText(map),
 
-      当前地点完整JSON: JSON.stringify(this.buildSurroundUnlockContext(state, map, anchor, sceneNode), null, 2).slice(0, 16000),
+      当前地点完整JSON: contextText,
 
       本轮正文: String(result.narration || '').slice(0, 1200),
 
       玩家行动: String(state.realWorldInput || result.actionText || '').slice(0, 200),
 
-      布局模板目录: window.GameModules.realWorldMapInteriorTemplates?.catalogText?.() || '无',
+    });
 
+    this.surroundUnlockDebug(state, 'prompt-ready', {
+      mode: mode === 'patch' ? 'patch' : 'full',
+      promptLength: String(prompt || '').length,
+      promptHasFloorRule: String(prompt || '').includes('室内结构根层只允许使用 `interiorLayout.floors[]`'),
+      promptHasDirectMappingRule: String(prompt || '').includes('UI 会直接按 `floors[].rooms[]` 渲染'),
+      promptHasOwnershipRule: String(prompt || '').includes('使用者和所属者可以是同一个人'),
+      promptPreview: String(prompt || '').slice(0, 1200),
     });
 
     return window.GameModules.jsonUtils.generateJsonWithRetry({
@@ -524,9 +737,30 @@ window.GameModules.realWorldMapFog = {
 
       max: 1,
 
-      parse: (text) => window.GameModules.jsonUtils.parseLoose(text),
+      parse: (text) => {
+        const rawText = String(text || '');
+        this.surroundUnlockDebug(state, 'raw-response', {
+          mode: mode === 'patch' ? 'patch' : 'full',
+          length: rawText.length,
+          preview: rawText.slice(0, 1800),
+        });
+        const parsed = window.GameModules.jsonUtils.parseLoose(text);
+        this.surroundUnlockDebug(state, 'parsed-response', this.summarizeUnlockRawPayload(parsed));
+        return parsed;
+      },
 
-      validate: (raw) => this.validateUnlockPayload(raw, anchor, map, mode),
+      validate: (raw) => {
+        this.surroundUnlockDebug(state, 'validate-start', this.summarizeUnlockRawPayload(raw));
+        const payload = this.validateUnlockPayload(raw, anchor, map, mode);
+        this.surroundUnlockDebug(state, 'validate-done', {
+          responseMode: payload.responseMode,
+          noChange: Boolean(payload.noChange),
+          interiorSummary: payload.interiorLayout ? this.summarizeInteriorLayout(payload.interiorLayout) : null,
+          surroundLocationCount: Array.isArray(payload.surroundLocations) ? payload.surroundLocations.length : 0,
+          surroundLocationNames: (payload.surroundLocations || []).map((item) => item.name).slice(0, 12),
+        });
+        return payload;
+      },
 
     });
 
@@ -553,9 +787,10 @@ window.GameModules.realWorldMapFog = {
 
   validateUnlockPayload(raw = {}, anchor = {}, map = {}, expectedMode = 'full') {
 
-    const responseMode = String(raw.responseMode || raw.mode || raw.updateMode || expectedMode || 'full').trim().toLowerCase() === 'patch' ? 'patch' : 'full';
-    const rawPatch = raw.patch && typeof raw.patch === 'object' ? raw.patch : {};
-    const rawInterior = raw.interiorLayout || raw.interiorPatch || rawPatch.interiorLayout || rawPatch.interiorPatch || null;
+    const rawObj = raw && typeof raw === 'object' ? raw : {};
+    const responseMode = String(rawObj.responseMode || rawObj.mode || rawObj.updateMode || expectedMode || 'full').trim().toLowerCase() === 'patch' ? 'patch' : 'full';
+    const rawPatch = rawObj.patch && typeof rawObj.patch === 'object' ? rawObj.patch : {};
+    const rawInterior = rawObj.interiorLayout || rawObj.interiorPatch || rawPatch.interiorLayout || rawPatch.interiorPatch || null;
     let interiorLayout = null;
     if (rawInterior) {
       interiorLayout = this.normalizeInterior(rawInterior, anchor.name);
@@ -563,7 +798,7 @@ window.GameModules.realWorldMapFog = {
       interiorLayout = this.normalizeInterior({}, anchor.name);
     }
 
-    const surroundLocations = (Array.isArray(raw.surroundLocations) ? raw.surroundLocations : [])
+    const surroundLocations = (Array.isArray(rawObj.surroundLocations) ? rawObj.surroundLocations : [])
 
       .slice(0, 6)
 
@@ -574,13 +809,17 @@ window.GameModules.realWorldMapFog = {
 
       .filter(Boolean);
 
-    const noChange = raw.noChange === true || rawPatch.noChange === true || responseMode === 'patch' && !interiorLayout && !surroundLocations.length;
+    const noChange = rawObj.noChange === true || rawPatch.noChange === true || responseMode === 'patch' && !interiorLayout && !surroundLocations.length;
 
-    return { responseMode, noChange, interiorLayout, surroundLocations };
+    return {
+      responseMode,
+      noChange,
+      interiorLayout,
+      surroundLocations,
+      debugShape: this.summarizeUnlockRawPayload(rawObj),
+    };
 
   },
-
-
 
   normalizeInterior(value = {}, nodeName = '') {
 
@@ -606,17 +845,15 @@ window.GameModules.realWorldMapFog = {
 
         description: String(zone.description || zone.detail || '').slice(0, 80),
 
+        ownerRefs: this.normalizeOwnershipRefs(zone.ownerRefs),
+
+        usageContracts: this.normalizeUsageContracts(zone.usageContracts),
+
       }))
 
       .filter((zone) => zone.name && zone.description);
 
     if (!floors.length && !zones.length) return { summary, zones: [], floors: [] };
-
-    if (!zones.length) {
-
-      zones.push({ id: 'zone_corridor', name: '走廊', kind: '走廊', position: '中', description: '连接各户与楼梯间。' });
-
-    }
 
     return { summary, zones, floors };
 
@@ -626,53 +863,42 @@ window.GameModules.realWorldMapFog = {
 
     const interiorMod = window.GameModules.realWorldMapInterior;
 
-    const tpl = window.GameModules.realWorldMapInteriorTemplates;
-
     return (Array.isArray(floorsRaw) ? floorsRaw : []).slice(0, 8).map((floor, floorIndex) => {
 
       const rooms = (Array.isArray(floor.rooms) ? floor.rooms : []).slice(0, 12).map((room, roomIndex) => {
 
-        const number = String(room.number || room.name || '').trim();
+        const label = String(room.number || room.roomNumber || room.name || room.roomName || room.label || room.title || room.id || '').trim();
+        const explicitNumber = String(room.number || room.roomNumber || '').trim();
+        const number = explicitNumber || (label.match(/(\d{2,4})(?:号|室|房)?/u)?.[1] || '');
+        const name = String(room.name || room.roomName || room.label || room.title || number || label).trim();
 
-        const residents = interiorMod?.sanitizeResidents?.(room.residents || room.occupants) || [];
+        const ownerRefs = this.normalizeOwnershipRefs(room.ownerRefs);
+        const usageContracts = this.normalizeUsageContracts(room.usageContracts);
+        const explicitResidents = interiorMod?.sanitizeResidents?.(room.residents || room.occupants) || [];
+        const residents = explicitResidents.length
+          ? explicitResidents
+          : (interiorMod?.contractUserNames?.(usageContracts) || this.contractUserNames(usageContracts));
 
-        let layoutTemplateId = String(room.layoutTemplateId || room.templateId || '').trim();
         const slotAssignments = room.slotAssignments && typeof room.slotAssignments === 'object' ? room.slotAssignments : {};
         const slotObjects = interiorMod?.normalizeSlotObjects?.(room.slotObjects || room.layoutObjects || room.objectsBySlot || room.shapeObjects) || {};
         const slotObjectContents = interiorMod?.normalizeSlotObjectContents?.(room.slotObjectContents || room.containerContentsBySlot || room.objectContentsBySlot || room.contentsBySlot) || {};
-        const rawLayout = interiorMod?.normalizeRoomLayout?.(room.layout || room.roomLayout || room.floorPlan, { slotObjects, slotObjectContents }) || null;
-
-        if (layoutTemplateId && !tpl?.isValidId?.(layoutTemplateId)) layoutTemplateId = rawLayout ? '' : tpl.suggestTemplateId(residents.length);
-
-        if (!rawLayout && !layoutTemplateId && residents.length) layoutTemplateId = tpl?.suggestTemplateId?.(residents.length) || '';
-
-        const mergedAssignments = {
-
-          ...(tpl?.autoSlotAssignments?.(layoutTemplateId, residents) || {}),
-
-          ...slotAssignments,
-
-        };
-
-        const layout = rawLayout || (layoutTemplateId
-
-          ? interiorMod?.buildLayoutFromTemplate?.(layoutTemplateId, { residents, slotAssignments: mergedAssignments, slotObjects, slotObjectContents })
-
-          : null);
+        const layout = interiorMod?.normalizeRoomLayout?.(room.layout || room.roomLayout || room.floorPlan, { slotObjects, slotObjectContents }) || null;
 
         return {
 
-          id: String(room.id || `room_${number || roomIndex + 1}`),
+          id: String(room.id || `room_${number || name || roomIndex + 1}`),
 
           number,
 
-          name: String(room.name || number).slice(0, 16),
+          name: name.slice(0, 16),
 
           residents,
 
-          layoutTemplateId,
+          ownerRefs,
 
-          slotAssignments: mergedAssignments,
+          usageContracts,
+
+          slotAssignments,
 
           slotObjects,
 
@@ -690,11 +916,15 @@ window.GameModules.realWorldMapFog = {
 
         name: String(floor.name || floor.label || `第${floorIndex + 1}楼`).slice(0, 12),
 
+        ownerRefs: this.normalizeOwnershipRefs(floor.ownerRefs),
+
+        usageContracts: this.normalizeUsageContracts(floor.usageContracts),
+
         rooms,
 
       };
 
-    }).filter((floor) => floor.rooms.length);
+    }).filter((floor) => String(floor.id || floor.name || '').trim() || floor.rooms.length);
 
   },
 
@@ -714,6 +944,94 @@ window.GameModules.realWorldMapFog = {
 
     return '中';
 
+  },
+
+  normalizeOwnershipRefs(value = []) {
+    return (Array.isArray(value) ? value : []).slice(0, 12).map((ref) => ({
+      type: String(ref?.type || '').trim().slice(0, 24),
+      id: String(ref?.id || ref?.nodeId || '').trim().slice(0, 64),
+      name: String(ref?.name || ref?.displayName || ref?.label || '').trim().slice(0, 80),
+      role: String(ref?.role || '').trim().slice(0, 40),
+    })).filter((ref) => ref.type || ref.id || ref.name);
+  },
+
+  normalizeUsageContracts(value = []) {
+    return (Array.isArray(value) ? value : []).slice(0, 12).map((contract) => {
+      const ownerRefs = this.normalizeOwnershipRefs(contract?.ownerRefs);
+      const userRefs = this.normalizeOwnershipRefs(contract?.userRefs);
+      return {
+        id: String(contract?.id || '').trim().slice(0, 64),
+        type: String(contract?.type || contract?.kind || 'usage').trim().slice(0, 40),
+        status: String(contract?.status || 'active').trim().slice(0, 32),
+        billingCycle: String(contract?.billingCycle || contract?.cycle || 'monthly').trim().slice(0, 24),
+        monthlyRent: Number(contract?.monthlyRent) || 0,
+        currency: String(contract?.currency || 'CNY').trim().slice(0, 12),
+        debtAmount: Number(contract?.debtAmount) || 0,
+        basis: String(contract?.basis || contract?.description || '').trim().slice(0, 120),
+        ownerRefs,
+        userRefs,
+      };
+    }).filter((contract) => (
+      contract.id
+      || contract.ownerRefs.length
+      || contract.userRefs.length
+      || contract.basis
+      || contract.monthlyRent
+      || contract.debtAmount
+    ));
+  },
+
+  contractUserNames(usageContracts = []) {
+    const names = new Set();
+    (Array.isArray(usageContracts) ? usageContracts : []).forEach((contract) => {
+      if (contract?.status === 'ended') return;
+      (Array.isArray(contract?.userRefs) ? contract.userRefs : []).forEach((ref) => {
+        const name = String(ref?.name || ref?.displayName || ref?.id || '').trim();
+        if (name) names.add(name);
+      });
+    });
+    return [...names];
+  },
+
+  mergeOwnershipRefs(existing = [], incoming = []) {
+    const keyOf = (ref = {}, index = 0) => String(ref.id || ref.name || ref.type || `ref_${index}`).trim();
+    const map = new Map();
+    this.normalizeOwnershipRefs(existing).forEach((ref, index) => {
+      const key = keyOf(ref, index);
+      if (key) map.set(key, ref);
+    });
+    this.normalizeOwnershipRefs(incoming).forEach((ref, index) => {
+      const key = keyOf(ref, index);
+      if (!key) return;
+      map.set(key, { ...(map.get(key) || {}), ...ref });
+    });
+    return [...map.values()];
+  },
+
+  mergeUsageContracts(existing = [], incoming = []) {
+    const keyOf = (contract = {}, index = 0) => {
+      if (contract.id) return contract.id;
+      const users = this.normalizeOwnershipRefs(contract.userRefs).map((ref) => ref.id || ref.name).join('|');
+      const owners = this.normalizeOwnershipRefs(contract.ownerRefs).map((ref) => ref.id || ref.name).join('|');
+      return `${contract.type || 'usage'}:${owners}->${users}` || `contract_${index}`;
+    };
+    const map = new Map();
+    this.normalizeUsageContracts(existing).forEach((contract, index) => {
+      const key = keyOf(contract, index);
+      if (key) map.set(key, contract);
+    });
+    this.normalizeUsageContracts(incoming).forEach((contract, index) => {
+      const key = keyOf(contract, index);
+      if (!key) return;
+      const prev = map.get(key) || {};
+      map.set(key, {
+        ...prev,
+        ...contract,
+        ownerRefs: this.mergeOwnershipRefs(prev.ownerRefs, contract.ownerRefs),
+        userRefs: this.mergeOwnershipRefs(prev.userRefs, contract.userRefs),
+      });
+    });
+    return [...map.values()];
   },
 
   mergeObjectList(existing = [], incoming = []) {
@@ -793,22 +1111,57 @@ window.GameModules.realWorldMapFog = {
     };
   },
 
+  syncSlotObjectsIntoLayout(layout = null, slotObjects = {}) {
+    if (!layout || typeof layout !== 'object' || !Array.isArray(layout.shapes)) return layout || null;
+    const source = slotObjects && typeof slotObjects === 'object' ? slotObjects : {};
+    const patchObjectsByName = new Map();
+    Object.values(source).forEach((objects) => {
+      (Array.isArray(objects) ? objects : []).forEach((object) => {
+        const name = String(object?.name || object?.label || '').trim();
+        if (name) patchObjectsByName.set(name, object);
+      });
+    });
+    return {
+      ...layout,
+      shapes: layout.shapes.map((shape) => {
+        const slot = String(shape?.slot || shape?.id || '').trim();
+        const objects = slot ? source[slot] : null;
+        const existingObjects = Array.isArray(shape?.objects) ? shape.objects : [];
+        const matchingObjects = existingObjects
+          .map((object) => patchObjectsByName.get(String(object?.name || object?.label || object || '').trim()))
+          .filter(Boolean);
+        if ((!Array.isArray(objects) || !objects.length) && !matchingObjects.length) return shape;
+        return {
+          ...shape,
+          objects: this.mergeObjectList(existingObjects, [
+            ...(Array.isArray(objects) ? objects : []),
+            ...matchingObjects,
+          ]),
+        };
+      }),
+    };
+  },
+
 
   mergeInteriorRoom(existing = {}, incoming = {}) {
+    const slotObjects = this.mergeSlotObjects(existing.slotObjects, incoming.slotObjects);
+    const layout = this.syncSlotObjectsIntoLayout(this.mergeRoomLayout(existing.layout, incoming.layout), slotObjects);
     return {
       ...existing,
       ...incoming,
       residents: Array.isArray(incoming.residents) && incoming.residents.length ? incoming.residents : (existing.residents || []),
+      ownerRefs: this.mergeOwnershipRefs(existing.ownerRefs, incoming.ownerRefs),
+      usageContracts: this.mergeUsageContracts(existing.usageContracts, incoming.usageContracts),
       slotAssignments: {
         ...(existing.slotAssignments && typeof existing.slotAssignments === 'object' ? existing.slotAssignments : {}),
         ...(incoming.slotAssignments && typeof incoming.slotAssignments === 'object' ? incoming.slotAssignments : {}),
       },
-      slotObjects: this.mergeSlotObjects(existing.slotObjects, incoming.slotObjects),
+      slotObjects,
       slotObjectContents: {
         ...(existing.slotObjectContents && typeof existing.slotObjectContents === 'object' ? existing.slotObjectContents : {}),
         ...(incoming.slotObjectContents && typeof incoming.slotObjectContents === 'object' ? incoming.slotObjectContents : {}),
       },
-      layout: this.mergeRoomLayout(existing.layout, incoming.layout),
+      layout,
     };
   },
 
@@ -819,29 +1172,99 @@ window.GameModules.realWorldMapFog = {
 
     const next = incoming && typeof incoming === 'object' ? incoming : {};
 
+    const parseChineseNumber = (text = '') => {
+      const raw = String(text || '').trim();
+      if (!raw) return '';
+      if (/^\d+$/u.test(raw)) return raw;
+      const digits = { 零: 0, 一: 1, 二: 2, 两: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+      if (raw === '十') return '10';
+      const tenIndex = raw.indexOf('十');
+      if (tenIndex >= 0) {
+        const left = raw.slice(0, tenIndex);
+        const right = raw.slice(tenIndex + 1);
+        const tens = left ? digits[left] : 1;
+        const ones = right ? digits[right] : 0;
+        if (Number.isFinite(tens) && Number.isFinite(ones)) return String(tens * 10 + ones);
+      }
+      return Object.prototype.hasOwnProperty.call(digits, raw) ? String(digits[raw]) : '';
+    };
+
+    const floorNumberKey = (floor = {}) => {
+      const idText = String(floor.id || '').trim();
+      const explicitText = [floor.number, floor.name, floor.label].map((item) => String(item || '')).join(' ');
+      const digit = idText.match(/^floor[_-]?(\d+)$/iu)?.[1]
+        || explicitText.match(/(?:第)?(\d+)(?:层|樓|楼|f)\b/iu)?.[1]
+        || explicitText.match(/^\s*(\d+)\s*$/u)?.[1];
+      if (digit) return `floor-number:${Number(digit)}`;
+      const chinese = explicitText.match(/第([零一二两三四五六七八九十]+)[层樓楼]/u)?.[1];
+      const parsed = parseChineseNumber(chinese);
+      return parsed ? `floor-number:${Number(parsed)}` : '';
+    };
+
+    const roomNumberKey = (room = {}) => {
+      const idText = String(room.id || '').trim();
+      const explicitText = [room.number, room.name, room.label].map((item) => String(item || '')).join(' ');
+      const digit = explicitText.match(/(\d{2,4})(?:号|室|房)?/iu)?.[1]
+        || idText.match(/^room[_-]?(\d{2,4})$/iu)?.[1];
+      return digit ? `room-number:${digit}` : '';
+    };
+
+    const floorKeys = (floor = {}) => [...new Set([
+      String(floor.id || '').trim(),
+      String(floor.name || '').trim(),
+      String(floor.number || '').trim(),
+      floorNumberKey(floor),
+    ].filter(Boolean))];
+
+    const roomKeys = (room = {}) => [...new Set([
+      String(room.id || '').trim(),
+      String(room.number || '').trim(),
+      String(room.name || '').trim(),
+      roomNumberKey(room),
+    ].filter(Boolean))];
+
     const floorMap = new Map();
+    const floorAliases = new Map();
 
     (Array.isArray(current.floors) ? current.floors : []).forEach((floor) => {
 
-      const key = String(floor.id || floor.name || '').trim();
+      const keys = floorKeys(floor);
 
-      if (key) floorMap.set(key, { ...floor, rooms: Array.isArray(floor.rooms) ? [...floor.rooms] : [] });
+      const key = keys[0] || '';
+
+      if (key) {
+        floorMap.set(key, { ...floor, rooms: Array.isArray(floor.rooms) ? [...floor.rooms] : [] });
+        keys.forEach((alias) => floorAliases.set(alias, key));
+      }
 
     });
 
     (Array.isArray(next.floors) ? next.floors : []).forEach((floor) => {
 
-      const key = String(floor.id || floor.name || '').trim();
+      const keys = floorKeys(floor);
+
+      const key = keys.map((alias) => floorAliases.get(alias)).find(Boolean) || keys[0] || '';
 
       if (!key) return;
 
       const target = floorMap.get(key) || { ...floor, rooms: [] };
 
-      const roomMap = new Map((Array.isArray(target.rooms) ? target.rooms : []).map((room) => [String(room.id || room.number || room.name || '').trim(), room]));
+      const roomMap = new Map();
+      const roomAliases = new Map();
+
+      (Array.isArray(target.rooms) ? target.rooms : []).forEach((room) => {
+        const keysForRoom = roomKeys(room);
+        const primary = keysForRoom[0] || '';
+        if (!primary) return;
+        roomMap.set(primary, room);
+        keysForRoom.forEach((alias) => roomAliases.set(alias, primary));
+      });
 
       (Array.isArray(floor.rooms) ? floor.rooms : []).forEach((room) => {
 
-        const roomKey = String(room.id || room.number || room.name || '').trim();
+        const keysForRoom = roomKeys(room);
+
+        const roomKey = keysForRoom.map((alias) => roomAliases.get(alias)).find(Boolean) || keysForRoom[0] || '';
 
         if (!roomKey) return;
 
@@ -849,7 +1272,17 @@ window.GameModules.realWorldMapFog = {
 
       });
 
-      floorMap.set(key, { ...target, ...floor, rooms: [...roomMap.values()] });
+      floorMap.set(key, {
+        ...target,
+        ...floor,
+        id: target.id || floor.id,
+        name: target.name || floor.name,
+        ownerRefs: this.mergeOwnershipRefs(target.ownerRefs, floor.ownerRefs),
+        usageContracts: this.mergeUsageContracts(target.usageContracts, floor.usageContracts),
+        rooms: [...roomMap.values()],
+      });
+
+      keys.forEach((alias) => floorAliases.set(alias, key));
 
     });
 
@@ -937,33 +1370,42 @@ window.GameModules.realWorldMapFog = {
   },
 
 
-
   async applySurroundUnlock(state, map, anchor, sceneNode, payload = {}) {
 
     const mapMod = this.mapApi();
 
     const time = mapMod.factTime(state);
 
-    if (payload.interiorLayout) {
+    this.surroundUnlockDebug(state, 'apply-start', {
+      anchorId: anchor?.id || '',
+      anchorGraphNodeId: anchor?.graphNodeId || '',
+      anchorName: anchor?.name || '',
+      sceneNodeId: sceneNode?.id || '',
+      sceneNodeName: sceneNode?.name || '',
+      responseMode: payload?.responseMode || '',
+      noChange: Boolean(payload?.noChange),
+      rawShape: payload?.debugShape || null,
+      beforeInteriorSummary: this.summarizeInteriorLayout(anchor?.interiorLayout || {}),
+      incomingInteriorSummary: payload?.interiorLayout ? this.summarizeInteriorLayout(payload.interiorLayout) : null,
+      surroundLocationCount: Array.isArray(payload?.surroundLocations) ? payload.surroundLocations.length : 0,
+      surroundLocationNames: (payload?.surroundLocations || []).map((item) => item.name).slice(0, 12),
+    });
 
-      anchor.interiorLayout = this.mergeInteriorLayout(anchor.interiorLayout, payload.interiorLayout);
-
-      if (sceneNode && sceneNode.id !== anchor.id && mapMod.isInteriorLocationName(sceneNode.name)) {
-
-        mapMod.addInteriorZone(anchor, { name: sceneNode.name, description: sceneNode.description });
-
-      }
-
-    }
-
-    anchor.exteriorRingUnlocked = true;
-
+    const shouldRefreshOpenInterior = Boolean(state?.realWorldFunctionOpen && state?.realWorldFunctionView === 'map' && map?.interiorNodeId);
     const unlocked = [];
     const projectedNodeIds = [];
     const anchorGraphNode = window.GameModules.realWorldLocationGraph?.getNode?.(state, anchor?.graphNodeId || anchor?.id || anchor?.identityKey || anchor?.name);
     const anchorGraphParentId = anchorGraphNode?.parentId || anchor.parentId || '';
 
     for (const item of (payload.surroundLocations || [])) {
+      this.surroundUnlockDebug(state, 'apply-neighbor-start', {
+        anchorId: anchor?.id || '',
+        anchorName: anchor?.name || '',
+        itemName: item?.name || '',
+        parentName: item?.parentName || '',
+        distanceMeters: item?.distanceMeters || null,
+        distanceText: item?.distanceText || '',
+      });
       const ensureParams = {
         stage: 'stage4',
         intent: 'create-neighbor',
@@ -971,11 +1413,18 @@ window.GameModules.realWorldMapFog = {
         currentNodeId: anchor?.id || '',
         currentLegacyLocationName: anchor?.name || '',
         requiredScope: ['poi-neighbors', 'direct-neighbor-edges'],
-        visibleNeed: `电子地图周围解锁需要确认 ${item.name} 是否已存在。`,
+        visibleNeed: '电子地图周围解锁需要确认 ' + item.name + ' 是否已存在。',
         actionText: item.descriptionFacts?.join?.('；') || '',
       };
       const skills = window.GameModules.realWorldLocationGraphSkills;
       const ensureResult = skills?.nodeEnsure?.(state, ensureParams);
+      this.surroundUnlockDebug(state, 'apply-neighbor-ensure-result', {
+        itemName: item?.name || '',
+        decision: ensureResult?.decision || '',
+        nodeId: ensureResult?.nodeId || '',
+        path: ensureResult?.path || [],
+        reason: ensureResult?.reason || '',
+      });
 
       if (ensureResult?.nodeId && ['reuse-existing', 'patch-existing', 'create-new'].includes(ensureResult.decision)) {
         const graphNode = window.GameModules.realWorldLocationGraph?.getNode?.(state, ensureResult.nodeId);
@@ -1000,16 +1449,19 @@ window.GameModules.realWorldMapFog = {
       }, { source: 'real-world-map-fog-fallback', skipProject: true });
 
       if (created) {
-
+        this.surroundUnlockDebug(state, 'apply-neighbor-fallback-created', {
+          itemName: item?.name || '',
+          createdId: created?.id || '',
+          createdGraphNodeId: created?.graphNodeId || '',
+          createdName: created?.name || '',
+        });
         projectedNodeIds.push(created.graphNodeId || created.id);
-
         unlocked.push(created.name);
-
       }
-
     }
 
     if (projectedNodeIds.length) {
+      this.surroundUnlockDebug(state, 'apply-project-legacy-map', { projectedNodeIds });
       window.GameModules.realWorldLocationGraph?.projectLocationGraphToLegacyMap?.(state);
       projectedNodeIds.forEach((nodeId) => {
         const graphNode = window.GameModules.realWorldLocationGraph?.getNode?.(state, nodeId);
@@ -1022,11 +1474,37 @@ window.GameModules.realWorldMapFog = {
       });
     }
 
+    const finalAnchor = (map.nodes || []).find((node) => node.id === anchor?.id) || anchor;
+    if (payload.interiorLayout && finalAnchor) {
+      finalAnchor.interiorLayout = this.mergeInteriorLayout(finalAnchor.interiorLayout, payload.interiorLayout);
+    }
+    if (finalAnchor) {
+      finalAnchor.exteriorRingUnlocked = true;
+      finalAnchor.visited = true;
+      finalAnchor.revealed = true;
+      this.normalizeNodeFlags(finalAnchor);
+      anchor = finalAnchor;
+    }
+
+    const anchorHasInterior = Array.isArray(anchor?.interiorLayout?.floors) && anchor.interiorLayout.floors.length > 0;
+    if (shouldRefreshOpenInterior && anchorHasInterior && map.interiorNodeId !== anchor.id) {
+      map.interiorNodeId = anchor.id;
+    }
     map.mapAnchorId = anchor.id;
 
     this.syncRevealed(map);
 
     window.GameModules.orgTerritory?.ensureMapControls?.(map, state);
+
+    this.surroundUnlockDebug(state, 'apply-done', {
+      anchorId: anchor?.id || '',
+      anchorName: anchor?.name || '',
+      unlocked,
+      projectedNodeIds,
+      afterInteriorSummary: this.summarizeInteriorLayout(anchor?.interiorLayout || {}),
+      mapNodeCount: Array.isArray(map?.nodes) ? map.nodes.length : 0,
+      mapEdgeCount: Array.isArray(map?.edges) ? map.edges.length : 0,
+    });
 
     return unlocked;
 

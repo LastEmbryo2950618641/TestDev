@@ -161,11 +161,6 @@ window.GameModules.realWorldMap = {
         description: node.description || `${node.name}，${anchor.name} 内部空间。`,
       });
     });
-    (map.nodes || []).forEach((node) => {
-      if (!this.isMapExteriorNode(node.name) || !node.exteriorRingUnlocked) return;
-      const siblings = (map.nodes || []).filter((item) => item.parentId === node.parentId && item.id !== node.id && this.isMapDisplayNode(item, map));
-      if (!siblings.length) node.exteriorRingUnlocked = false;
-    });
   },
 
   mapDisplayRender(map) {
@@ -212,7 +207,10 @@ window.GameModules.realWorldMap = {
   },
 
   ensure(state, profile = {}) {
-    if (!state.realWorldMap || typeof state.realWorldMap !== 'object') state.realWorldMap = this.defaultState(profile);
+    if (!state.realWorldMap || typeof state.realWorldMap !== 'object') {
+      const initialMap = this.defaultState(profile);
+      state.realWorldMap = window.Alpine?.raw ? window.Alpine.raw(initialMap) : initialMap;
+    }
     const map = state.realWorldMap;
     map.expanded = map.expanded && typeof map.expanded === 'object' ? map.expanded : {};
     map.view = map.view && typeof map.view === 'object' ? map.view : { x: 0, y: 0, scale: 1 };
@@ -245,6 +243,23 @@ window.GameModules.realWorldMap = {
     return map;
   },
 
+  interiorLayoutScore(layout = {}) {
+    if (!layout || typeof layout !== 'object') return 0;
+    const floors = Array.isArray(layout.floors) ? layout.floors : [];
+    const zones = Array.isArray(layout.zones) ? layout.zones : [];
+    let score = zones.length;
+    floors.forEach((floor) => {
+      const rooms = Array.isArray(floor?.rooms) ? floor.rooms : [];
+      score += 10 + rooms.length * 10;
+      rooms.forEach((room) => {
+        score += Array.isArray(room?.layout?.shapes) ? room.layout.shapes.length : 0;
+        const slotObjects = room?.slotObjects && typeof room.slotObjects === 'object' ? room.slotObjects : {};
+        Object.values(slotObjects).forEach((items) => { score += Array.isArray(items) ? items.length : 0; });
+      });
+    });
+    return score;
+  },
+
   normalizeNodes(map, profile = {}, time = '', store = null) {
     const nodes = [];
     const add = (node) => {
@@ -254,9 +269,16 @@ window.GameModules.realWorldMap = {
       const id = node?.id || this.nodeId(name);
       const existing = nodes.find((item) => item.id === id || item.name === name);
       if (existing) {
-        if (!existing.interiorLayout && node?.interiorLayout) existing.interiorLayout = node.interiorLayout;
+        if (node?.interiorLayout && this.interiorLayoutScore(node.interiorLayout) >= this.interiorLayoutScore(existing.interiorLayout)) existing.interiorLayout = node.interiorLayout;
         if (!existing.descriptionFacts?.length && (node?.descriptionFacts || node?.facts)) existing.descriptionFacts = node.descriptionFacts || node.facts;
         existing.mapVisible = existing.mapVisible !== false || node?.mapVisible !== false;
+        existing.revealed = Boolean(existing.revealed || node?.revealed);
+        existing.visited = Boolean(existing.visited || node?.visited);
+        existing.exteriorRingUnlocked = Boolean(existing.exteriorRingUnlocked || node?.exteriorRingUnlocked);
+        existing.graphNodeId = existing.graphNodeId || node?.graphNodeId || '';
+        existing.identityKey = existing.identityKey || node?.identityKey || '';
+        existing.ownerRefs = Array.isArray(existing.ownerRefs) && existing.ownerRefs.length ? existing.ownerRefs : (node?.ownerRefs || existing.ownerRefs);
+        existing.usageContracts = Array.isArray(existing.usageContracts) && existing.usageContracts.length ? existing.usageContracts : (node?.usageContracts || existing.usageContracts);
         return;
       }
       nodes.push(this.syncFacts({
@@ -271,6 +293,10 @@ window.GameModules.realWorldMap = {
         mapVisible: node?.mapVisible,
         exteriorRingUnlocked: node?.exteriorRingUnlocked,
         interiorLayout: node?.interiorLayout,
+        graphNodeId: node?.graphNodeId,
+        identityKey: node?.identityKey,
+        ownerRefs: node?.ownerRefs,
+        usageContracts: node?.usageContracts,
         control: node?.control,
         controlHistory: node?.controlHistory,
         geopoliticalStub: node?.geopoliticalStub,
@@ -391,8 +417,17 @@ window.GameModules.realWorldMap = {
   upsertNode(map, data = {}) {
     const name = this.mapExteriorName(data.name) || this.cleanName(data.name);
     if (!name || this.isAbstractName(name)) return null;
+    const id = data.id || this.nodeId(name);
+    const existingMapNode = map.nodes.find((item) => item.id === id || item.name === name);
+    if (data.onlyIfNew && existingMapNode) return existingMapNode;
     const store = map?._boundStore || null;
     if (store && window.GameModules.realWorldLocationGraph?.ensurePoiFromPayload) {
+      const previousInterior = existingMapNode?.interiorLayout;
+      const previousFlags = existingMapNode ? {
+        visited: existingMapNode.visited,
+        revealed: existingMapNode.revealed,
+        exteriorRingUnlocked: existingMapNode.exteriorRingUnlocked,
+      } : null;
       const graphNode = window.GameModules.realWorldLocationGraph.ensurePoiFromPayload(store, { ...data, name }, { source: 'real-world-map-upsertNode' });
       if (graphNode) {
         if (data.parentId !== undefined && data.parentId !== graphNode.id) graphNode.parentId = data.parentId;
@@ -407,11 +442,22 @@ window.GameModules.realWorldMap = {
         this.syncFacts(graphNode, data.description || graphNode.description, data.time);
         window.GameModules.orgTerritory?.normalizeNodeControl?.(graphNode, map, store);
         this.trimMapNodes(map, store);
+        const projectedMapNode = map.nodes.find((item) => item.id === graphNode.id || item.graphNodeId === graphNode.id || item.name === name) || null;
+        if (projectedMapNode) {
+          if (previousInterior && this.interiorLayoutScore(previousInterior) >= this.interiorLayoutScore(projectedMapNode.interiorLayout)) projectedMapNode.interiorLayout = previousInterior;
+          if (previousFlags) {
+            projectedMapNode.visited = Boolean(projectedMapNode.visited || previousFlags.visited);
+            projectedMapNode.revealed = Boolean(projectedMapNode.revealed || previousFlags.revealed);
+            projectedMapNode.exteriorRingUnlocked = Boolean(projectedMapNode.exteriorRingUnlocked || previousFlags.exteriorRingUnlocked);
+          }
+          projectedMapNode.graphNodeId = projectedMapNode.graphNodeId || graphNode.id;
+          projectedMapNode.identityKey = projectedMapNode.identityKey || graphNode.identityKey || '';
+          return projectedMapNode;
+        }
         return graphNode;
       }
     }
-    const id = data.id || this.nodeId(name);
-    let node = map.nodes.find((item) => item.id === id || item.name === name);
+    let node = existingMapNode;
     if (!node) {
       node = this.makeNode(name, data.parentId || '', data.description || `${name}，现实推演记录到的地点。`, data.time);
       if (!node) return null;
@@ -463,14 +509,6 @@ window.GameModules.realWorldMap = {
     map.interiorRoomAreaId = '';
     map.interiorRoomShapeId = '';
     map.infoNodeId = '';
-    map.interiorFloorOpen = map.interiorFloorOpen && typeof map.interiorFloorOpen === 'object' ? map.interiorFloorOpen : {};
-    const node = (map.nodes || []).find((item) => item.id === id);
-    if (node) {
-      const floors = window.GameModules.realWorldMapInterior?.ensureFloors?.(node, state) || [];
-      floors.forEach((floor) => {
-        if (map.interiorFloorOpen[floor.id] === undefined) map.interiorFloorOpen[floor.id] = false;
-      });
-    }
   },
   closeInfo(state) { if (state.realWorldMap) state.realWorldMap.infoNodeId = ''; },
   closeInterior(state) {
@@ -484,7 +522,8 @@ window.GameModules.realWorldMap = {
   interiorNode(map) {
     const key = String(map?.interiorNodeId || '');
     if (!key) return null;
-    return (map?.nodes || []).find((node) => node.id === key || node.name === key) || null;
+    const nodes = Array.isArray(map?.nodes) ? map.nodes : [];
+    return nodes.find((item) => item.id === key || item.name === key) || null;
   },
   infoNode(map) { return (map?.nodes || []).find((node) => node.id === map.infoNodeId) || null; },
   render(map) {

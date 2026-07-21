@@ -92,7 +92,7 @@ window.GameModules.homeActions = {
   async continueGame() {
     if (this.busy) return;
     this.homeMessage = '';
-    await this.refreshSaveMetas?.();
+    if (!Object.keys(this.saveMetas || {}).length) await this.refreshSaveMetas?.();
     const slot = this.latestSaveSlot();
     if (!slot) {
       this.homeMessage = '没有可继续的存档，请先开始新游戏。';
@@ -105,22 +105,36 @@ window.GameModules.homeActions = {
     if (this.busy || !this.saveMeta(slot).exists) return;
     this.busy = true;
     try {
-      await this.openSlot(slot);
-      await this.refreshSaveMetas?.();
+      this.selectedSlot = slot;
+      await window.GameModules.storage.open(slot);
+      const save = await window.GameModules.storage.get();
+      if (!save) throw new Error(`${slot} 没有可读取的存档数据`);
+      window.GameModules.storage.restore(this, save);
+      await this.loadWritingStyles?.({ readOnly: true });
+      const stateIds = [...new Set(['player-self', this.selectedCharacterId, this.rpgPanelCharacterId].filter(Boolean))];
+      const nextStates = { ...(this.rpgStates || {}) };
+      stateIds.forEach((id) => {
+        const state = window.GameModules.characterStateStore?.get?.(id);
+        if (state?.id) nextStates[state.id] = state;
+      });
+      this.rpgStates = nextStates;
+      this.rpgPanelCharacterId = this.rpgPanelCharacterId || this.selectedCharacterId || 'player-self';
       if (!this.phoneSetupDone) {
         this.homeMessage = `${slot} 尚未完成手机激活，请从新游戏继续设置。`;
         this.homeScreenView = 'new-game';
         return;
       }
-      this.loadSavedRpgStates?.();
-      this.ensureCatalogSelection?.();
-      await this.initPredefinedRoleCards?.();
       this.homeScreenView = 'playing';
       this.homeSavePanelOpen = false;
       this.aspirationSetupOpen = false;
       this.desktopUnlocked = false;
       this.saveMessage = `已载入 ${slot}`;
-      this.startStartupWarmup?.();
+      this.scheduleIdleLoad?.(() => {
+        this.ensureCatalogSelection?.();
+        if (!this.roleCardSetup?.loaded) void this.initPredefinedRoleCards?.();
+        this.startStartupWarmup?.();
+      }, 1200);
+      this.scheduleIdleLoad?.(() => void this.refreshSaveMetas?.(), 1600);
     } catch (err) {
       console.error('[首页] 载入存档失败:', err.message, err.stack);
       this.homeMessage = err.message || '载入存档失败';

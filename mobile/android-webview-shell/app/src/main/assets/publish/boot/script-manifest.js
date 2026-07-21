@@ -1,5 +1,5 @@
 window.GameScriptManifest = {
-  "version": "2026-07-17-explicit-location-patch-v28",
+  "version": "2026-07-21-continue-flat-v37",
   "chunks": {
     "core": [
       "https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js",

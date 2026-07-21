@@ -3,9 +3,83 @@ window.GameModules = window.GameModules || {};
 window.GameModules.aiProvider = {
   providers: {},
 
+  wrapComplete(id, provider) {
+    if (typeof provider.complete !== 'function' || provider.__tokenStatsWrapped) return provider;
+    const original = provider.complete;
+    provider.complete = async function wrappedProviderComplete(options = {}) {
+      if (options?.suppressTokenStats === true || options?.tokenRecordId) {
+        return original.call(this, options);
+      }
+      const messages = Array.isArray(options.messages)
+        ? options.messages
+        : [{ role: 'user', content: options.prompt || '' }];
+      const promptText = messages.map((msg) => String(msg?.content || '')).join('\n');
+      const source = String(options.source || options.promptId || `provider-${id}` || 'provider-complete');
+      const model = options.model || window.GameModules.aiProvider?.selectedTextModel?.() || '';
+      const recordId = window.GameModules.tokenStats?.record?.(source, promptText, {
+        ...(options.tokenMeta || {}),
+        model,
+        maxTokens: options.maxTokens,
+        title: options.tokenMeta?.title || options.sourceTitle || source,
+      });
+      const startedAt = Date.now();
+      let responseText = '';
+      let responseMeta = {};
+      let chunkCount = 0;
+      const userOnChunk = options.onChunk;
+      const userOnDone = options.onDone;
+      try {
+        const output = await original.call(this, {
+          ...options,
+          onChunk: async (chunk, done, info = {}) => {
+            const text = String(chunk || '');
+            if (text) {
+              chunkCount += 1;
+              responseText = info.buffer || (window.GameModules.jsonUtils?.mergeStreamText?.(responseText, text) ?? (responseText + text));
+            }
+            responseMeta = { ...responseMeta, ...info };
+            window.GameModules.tokenStats?.recordProgress?.(recordId, {
+              status: done ? 'completed' : (responseText ? 'streaming' : 'running'),
+              responseText,
+              chunkCount,
+              durationMs: Date.now() - startedAt,
+              ...responseMeta,
+            });
+            await userOnChunk?.(chunk, done, info);
+          },
+          onDone: async (info = {}) => {
+            responseMeta = { ...responseMeta, ...info };
+            await userOnDone?.(info);
+          },
+        });
+        const completedAt = Date.now();
+        window.GameModules.tokenStats?.recordResponse?.(recordId, responseText || output || '', [], {
+          ...responseMeta,
+          chunkCount,
+          startedAt,
+          completedAt,
+          durationMs: completedAt - startedAt,
+        });
+        return output;
+      } catch (err) {
+        window.GameModules.tokenStats?.recordError?.(recordId, err, {
+          ...responseMeta,
+          chunkCount,
+          startedAt,
+          completedAt: Date.now(),
+          durationMs: Date.now() - startedAt,
+          responseText,
+        });
+        throw err;
+      }
+    };
+    provider.__tokenStatsWrapped = true;
+    return provider;
+  },
+
   register(id, provider) {
     if (!id || !provider) return;
-    this.providers[id] = provider;
+    this.providers[id] = this.wrapComplete(id, provider);
   },
 
   get(id) {

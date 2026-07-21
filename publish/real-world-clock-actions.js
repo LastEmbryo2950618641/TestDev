@@ -59,8 +59,17 @@ window.GameModules.realWorldClockActions = {
     this.checkWorkReminder?.();
     this.runAfterRealWorldPaint?.(() => {
       const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
-      window.GameModules.realWorldLogStore?.saveAll?.(this.realWorldLog).then(() => this.refreshRealWorldLogPage?.(999999)).catch((err) => console.warn('[现实日志] 分页刷新失败:', err.message, err.stack));
-      this.refreshRealWorldLogPage?.(999999);
+      const total = window.GameModules.realWorldLogStore?.count?.() || 0;
+      if (total <= 0 && (this.realWorldLog || []).length) {
+        window.GameModules.realWorldLogStore?.saveAll?.(this.realWorldLog).then(() => this.refreshRealWorldLogPage?.(999999)).catch((err) => console.warn('[现实日志] 分页刷新失败:', err.message, err.stack));
+      }
+      const pageSize = Math.max(1, Number(this.realWorldLogPageSize) || 12);
+      const maxPage = Math.max(1, Math.ceil(total / pageSize));
+      const loadedLatest = total > 0
+        && (this.realWorldLog || []).length > 0
+        && Number(this.realWorldLogTotal || 0) === total
+        && Number(this.realWorldLogPage || 1) === maxPage;
+      if (!loadedLatest) this.refreshRealWorldLogPage?.(999999);
       if (!this.realWorldLog.length) {
         if (map.current) this.seedRealWorldLog();
         else this.submitRealWorldAction('根据我的现实资料确认当前所在的具体地点，并建立电子地图根节点');

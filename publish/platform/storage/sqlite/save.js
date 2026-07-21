@@ -19,11 +19,11 @@ window.GameModules.sqliteSave = {
     try {
       if (!window.initSqlJs && window.GameBoot?.loadScript) {
         try {
-          await window.GameBoot.loadScript('https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js');
+          await window.GameBoot.loadScript('vendor/sql-wasm.js');
         } catch (_) { /* ignore and fallback below */ }
       }
       if (!window.initSqlJs) throw new Error('sql.js 未加载');
-      this.SQL = await window.initSqlJs({ locateFile: (f) => 'https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/' + f });
+      this.SQL = await window.initSqlJs({ locateFile: (f) => `vendor/${f}` });
       return this.SQL;
     } catch (err) {
       console.warn('SQLite 初始化失败，改用基础 JSON 存档:', err.message, err.stack);

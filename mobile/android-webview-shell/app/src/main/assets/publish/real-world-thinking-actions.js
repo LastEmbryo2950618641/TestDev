@@ -123,7 +123,9 @@ window.GameModules.realWorldThinkingActions = {
 
   hasRealWorldSettlementThinking(entry) {
     if (entry?.transientError) return false;
-    return this.realWorldSettlementThinkingLines(entry).length > 0;
+    const sections = Array.isArray(entry?.settlementThinkingSections) ? entry.settlementThinkingSections : [];
+    if (sections.some((section) => this.cleanRealWorldThinkingText(section?.text))) return true;
+    return Boolean(this.cleanRealWorldThinkingText(entry?.settlementThinking));
   },
 
   realWorldSettlementThinkingLines(entry = {}) {
@@ -213,7 +215,7 @@ window.GameModules.realWorldThinkingActions = {
         id: entry?.id || `real-log-${index}`,
         type: entry?.type || 'ai',
         thinkingOpen: Boolean(entry?.thinkingOpen),
-        settlementThinkingOpen: entry?.settlementThinkingOpen !== false,
+        settlementThinkingOpen: Boolean(entry?.settlementThinkingOpen || entry?.streaming),
         thinkingStageOpen: entry?.thinkingStageOpen && typeof entry.thinkingStageOpen === 'object' ? { ...entry.thinkingStageOpen } : {},
         cardChangesOpen: Boolean(entry?.cardChangesOpen),
         settlementTab: entry?.settlementTab || '',

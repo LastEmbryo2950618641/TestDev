@@ -128,6 +128,12 @@ window.GameModules.realWorldUtilityActions = {
   openRealWorldPrompt(id) {
     const entry = this.realWorldLog.find((item) => item.id === id);
     if (!entry?.promptPack) return;
+    const runtimeRecordId = entry.promptPack.runtimeRecordId || entry.promptPack.tokenRecordId;
+    if (runtimeRecordId) {
+      this.openTokenStatsApp?.();
+      this.openTokenPromptDetail?.(runtimeRecordId);
+      return;
+    }
     this.promptDialogEntry = entry;
     this.promptDialogTab = 'system';
     this.promptDialogOpen = true;

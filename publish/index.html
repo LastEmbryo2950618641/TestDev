@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="calendar-system.css">
   <link rel="stylesheet" href="event-system.css">
   <link rel="stylesheet" href="faction-system.css">
-  <link rel="stylesheet" href="skills-app.css">
+  <link rel="stylesheet" href="skills-app.css?v=2026-07-21-continue-flat-v37">
   <link rel="stylesheet" href="character-select.css">
   <link rel="stylesheet" href="player-aspiration.css">
   <link rel="stylesheet" href="profile-preview.css">
@@ -127,11 +127,11 @@
   </script>
   <script src="../deepseek_key.js"></script>
   <script src="../pixatart_key.js"></script>
-  <script src="boot/script-loader.js"></script>
+  <script src="boot/script-loader.js?v=2026-07-21-continue-flat-v37"></script>
   <script src="boot/store-modules.js"></script>
-  <script src="boot/script-manifest.js?v=2026-07-17-explicit-location-patch-v28"></script>
-  <script src="boot/boot-actions.js"></script>
-  <script src="boot/boot.js?v=2026-07-17-explicit-location-patch-v28"></script>
+  <script src="boot/script-manifest.js?v=2026-07-21-continue-flat-v37"></script>
+  <script src="boot/boot-actions.js?v=2026-07-21-continue-flat-v37"></script>
+  <script src="boot/boot.js?v=2026-07-21-continue-flat-v37"></script>
   <script>
     window.openEventAppNative = async function openEventAppNative(event) {
       try {
@@ -967,31 +967,29 @@
                 <p class="real-world-map-interior-summary" x-show="$store.game.realWorldMapInteriorSummary()" x-text="$store.game.realWorldMapInteriorSummary()"></p>
                 <template x-if="$store.game.realWorldMapInteriorView() === 'tree'">
                   <div class="real-world-map-floor-stack">
-                    <p class="real-world-empty" x-show="!$store.game.realWorldMapInteriorFloors().length && !$store.game.realWorldMapInteriorZones().length">该建筑内部仍处于迷雾，等待现实行动推演楼层、房间或公共区域。</p>
+                    <p class="real-world-empty" x-show="!$store.game.realWorldMapInteriorFloors().length">该建筑内部仍处于迷雾，等待现实行动推演楼层、房间或公共区域。</p>
                     <template x-for="floor in $store.game.realWorldMapInteriorFloors()" :key="floor.id">
                       <article class="real-world-map-floor-card">
-                        <button type="button" class="real-world-map-floor-title" @click="$store.game.toggleRealWorldMapInteriorFloor(floor.id)">
-                          <span x-text="$store.game.realWorldMapInteriorFloorOpen(floor.id) ? '&#x25BE;' : '&#x25B8;'"></span>
+                        <button type="button" class="real-world-map-floor-title" @click="$store.game.openRealWorldMapInteriorFloor(floor.id)">
+                          <span>&#x25B8;</span>
                           <strong x-text="floor.name"></strong>
                           <em x-text="String((floor.rooms || []).length) + ' 个空间'"></em>
                         </button>
-                        <div class="real-world-map-room-list" x-show="$store.game.realWorldMapInteriorFloorOpen(floor.id)">
-                          <template x-for="room in floor.rooms" :key="room.id">
-                            <button type="button" class="real-world-map-room-chip" @click="$store.game.openRealWorldMapRoom(room.id)">
-                              <b x-text="room.number || room.name"></b>
-                              <small x-text="$store.game.realWorldMapRoomResidentsLabel(room)"></small>
-                            </button>
-                          </template>
-                        </div>
                       </article>
                     </template>
-                    <div class="real-world-map-zone-grid" x-show="$store.game.realWorldMapInteriorZones().length">
-                      <template x-for="zone in $store.game.realWorldMapInteriorZones()" :key="zone.id || zone.name">
-                        <article :class="'real-world-map-zone ' + $store.game.realWorldMapZoneGridClass(zone.position)">
-                          <strong x-text="zone.name"></strong>
-                          <span x-text="zone.kind || '区域'"></span>
-                          <small x-text="zone.description"></small>
-                        </article>
+                  </div>
+                </template>
+                <template x-if="$store.game.realWorldMapInteriorView() === 'floor'">
+                  <div class="real-world-map-floorplan">
+                    <button class="small-btn" type="button" @click="$store.game.backRealWorldMapInteriorTree()">返回楼层</button>
+                    <strong x-text="$store.game.realWorldMapSelectedFloor()?.name || '楼层平面图'"></strong>
+                    <small>点击房间查看房间号、居住人、所属人/使用人和布置。</small>
+                    <div class="real-world-map-room-list real-world-map-room-list-compact">
+                      <template x-for="room in ($store.game.realWorldMapSelectedFloor()?.rooms || [])" :key="room.id || room.number || room.name">
+                        <button type="button" class="real-world-map-room-chip" @click="$store.game.openRealWorldMapRoom(room.id || room.number || room.name)">
+                          <b x-text="room.number || room.name"></b>
+                          <small x-text="$store.game.realWorldMapRoomResidentsLabel(room)"></small>
+                        </button>
                       </template>
                     </div>
                   </div>
@@ -1000,7 +998,6 @@
                   <div class="real-world-map-room-detail" x-effect="$store.game.realWorldMapInteriorView() === 'room' && $nextTick(() => $store.game.renderRealWorldMapRoomCanvas())">
                     <button class="small-btn" type="button" @click="$store.game.backRealWorldMapInteriorTree()">&#x8FD4;&#x56DE;&#x697C;&#x5C42;</button>
                     <p x-text="$store.game.realWorldMapSelectedRoomResidentsLine()"></p>
-                    <small x-text="$store.game.realWorldMapSelectedRoomTemplateLabel()"></small>
                     <canvas class="real-world-map-room-canvas" width="480" height="320"></canvas>
                   </div>
                 </template>
@@ -1118,10 +1115,10 @@
                   <span class="real-world-log-avatar real-world-log-avatar-ai" aria-hidden="true" x-text="$store.game.realWorldEntryIcon(entry)"></span>
                   <small class="real-world-entry-location" x-show="entry.locationName"><span aria-hidden="true">📍</span><span x-text="`地点｜${entry.locationName}`"></span></small>
                   <div class="novel-tool-row" x-show="!entry.transientError && ($store.game.hasRealWorldThinking(entry) || entry.promptPack)"><button class="card-change-toggle" :class="{ open: entry.thinkingOpen }" x-show="$store.game.hasRealWorldThinking(entry)" @click="$store.game.toggleRealWorldThinking(entry)" x-text="entry.thinkingOpen ? 'ai思考 ▼' : 'ai思考 ▶'"></button><button class="prompt-toggle" x-show="entry.promptPack" @click="$store.game.openRealWorldPrompt(entry.id)" title="查看生成提示词" aria-label="查看生成提示词">提示词</button></div>
-                  <div class="real-world-thinking-panel dev-section" data-section-title="现实AI思考" x-show="!entry.transientError && entry.thinkingOpen && $store.game.hasRealWorldThinking(entry)"><template x-for="line in $store.game.realWorldThinkingLines(entry)" :key="`${entry.id}-${line.id}`"><p x-show="line.text"><b x-text="`【${line.label}】`"></b><span x-text="line.text"></span></p></template></div>
+                  <template x-if="!entry.transientError && entry.thinkingOpen && $store.game.hasRealWorldThinking(entry)"><div class="real-world-thinking-panel dev-section" data-section-title="现实AI思考"><template x-for="line in $store.game.realWorldThinkingLines(entry)" :key="`${entry.id}-${line.id}`"><p x-show="line.text"><b x-text="`【${line.label}】`"></b><span x-text="line.text"></span></p></template></div></template>
                   <p class="novel-body-text" x-text="entry.narration || entry.statusText || entry.text"></p>
                   <div class="novel-tool-row" x-show="!entry.transientError && $store.game.hasRealWorldSettlementThinking(entry)"><button class="card-change-toggle" :class="{ open: entry.settlementThinkingOpen }" @click="$store.game.toggleRealWorldSettlementThinking(entry)" x-text="entry.settlementThinkingOpen || entry.streaming ? 'AI结算思考 ▼' : 'AI结算思考 ▶'"></button></div>
-                  <div class="real-world-thinking-panel real-world-settlement-thinking-panel dev-section" data-section-title="现实AI结算思考" x-show="!entry.transientError && $store.game.hasRealWorldSettlementThinking(entry) && entry.settlementThinkingOpen"><template x-for="line in $store.game.realWorldSettlementThinkingLines(entry)" :key="`${entry.id}-settlement-${line.id}`"><p x-show="line.text"><b x-text="`【${line.label}】`"></b><span x-text="line.text"></span></p></template></div>
+                  <template x-if="!entry.transientError && $store.game.hasRealWorldSettlementThinking(entry) && entry.settlementThinkingOpen"><div class="real-world-thinking-panel real-world-settlement-thinking-panel dev-section" data-section-title="现实AI结算思考"><template x-for="line in $store.game.realWorldSettlementThinkingLines(entry)" :key="`${entry.id}-settlement-${line.id}`"><p x-show="line.text"><b x-text="`【${line.label}】`"></b><span x-text="line.text"></span></p></template></div></template>
                   <section class="solidify-dock entry-solidify-dock" x-show="$store.game.solidifyEntryCards(entry).length" x-cloak>
                     <div class="solidify-side-tabs">
                       <template x-for="card in $store.game.solidifyEntryCards(entry)" :key="`${entry.id}-${$store.game.solidifyKey(card)}`">
@@ -1138,7 +1135,7 @@
                     </article>
                   </section>
                   <button class="card-change-toggle real-world-settlement-btn" :class="{ open: entry.cardChangesOpen }" x-show="entry.characterCardChanges?.length || entry.genericUpdates?.length" @click="$store.game.toggleCardChanges(entry)" x-text="entry.cardChangesOpen ? '结算▾' : '结算▸'"></button>
-                  <div class="card-change-panel real-world-settlement-panel" x-show="entry.cardChangesOpen">
+                  <template x-if="entry.cardChangesOpen"><div class="card-change-panel real-world-settlement-panel">
                     <div class="real-world-settlement-tabs">
                       <template x-for="tab in $store.game.realWorldSettlementTabs(entry)" :key="`${entry.id}-${tab.id}`">
                         <button type="button" :class="{ active: $store.game.activeRealWorldSettlementTab(entry) === tab.id }" @click="$store.game.selectRealWorldSettlementTab(entry, tab.id)"><span x-text="tab.title"></span><small x-text="`${tab.section || ''} ${tab.count}`"></small></button>
@@ -1155,7 +1152,7 @@
                         </template>
                       </div>
                     </template>
-                  </div>
+                  </div></template>
                 </div>
               </article>
             </template>
@@ -2283,7 +2280,8 @@
     <article class="prompt-app-modal dev-section" data-section-title="完整提示词弹窗" role="dialog" aria-modal="true">
       <header><div><p class="eyebrow">FINAL PROMPT</p><h3 x-text="$store.game.currentTokenPromptRecord()?.title || '完整提示词'"></h3><small x-text="$store.game.currentTokenPromptRecord() ? `${$store.game.tokenPromptCostText($store.game.tokenStatsState?.selectedId)}｜${$store.game.currentTokenPromptRecord().updatedAt}` : '未生成'"></small></div><button class="small-btn" type="button" @click="$store.game.closeTokenPromptDetail()">关闭</button></header>
       <div class="prompt-tabs"><button :class="{ active: $store.game.tokenStatsState?.selectedTab !== 'response' }" @click="$store.game.tokenStatsState.selectedTab = 'prompt'">完整提示词</button><button :class="{ active: $store.game.tokenStatsState?.selectedTab === 'response' }" @click="$store.game.tokenStatsState.selectedTab = 'response'">AI返回值</button></div>
-      <pre class="prompt-markdown" x-text="$store.game.tokenPromptDetailText()"></pre>
+      <pre class="prompt-markdown" x-show="$store.game.tokenStatsState?.selectedTab !== 'response'" x-text="$store.game.tokenPromptDetailText()" x-cloak></pre>
+      <textarea class="prompt-markdown token-response-textarea" x-show="$store.game.tokenStatsState?.selectedTab === 'response'" readonly spellcheck="false" :value="$store.game.tokenPromptDetailText()" @focus="$event.target.select()" x-cloak></textarea>
       <div class="token-response-images" x-show="$store.game.tokenStatsState?.selectedTab === 'response' && $store.game.tokenResponseImages($store.game.tokenStatsState?.selectedId).length" x-cloak><template x-for="(url, index) in $store.game.tokenResponseImages($store.game.tokenStatsState?.selectedId)" :key="`token-image-${index}-${url}`"><img :src="url" alt="AI返回图片"></template></div>
     </article>
   </section>
@@ -3631,5 +3629,3 @@
   <script src="root-key-autofill.js"></script>
 </body>
 </html>
-
-

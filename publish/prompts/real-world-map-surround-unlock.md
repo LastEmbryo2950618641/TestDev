@@ -18,11 +18,6 @@
 - 当前地点完整JSON：{{当前地点完整JSON}}\r
 - 本轮正文：{{本轮正文}}\r
 - 玩家行动：{{玩家行动}}\r
-- 预置布局模板目录：见下文\r
-\r
-## 预置 Canvas 布局模板（AI 户型不足时模板兜底）\r
-\r
-{{布局模板目录}}\r
 \r
 ## 颗粒度规则（重要）\r
 
@@ -50,23 +45,46 @@
 - **禁止**把走廊、楼梯间、单个房间写进 surroundLocations。\r
 \r
 ### interiorLayout.floors（楼层与户内）\r
+- 室内结构根层只允许使用 `interiorLayout.floors[]` 表达楼层；UI 会直接按 `floors[].rooms[]` 渲染，不会把 `zones[]` 改造成楼层。
+- `3栋/2单元/某栋楼/某单元` 属于地图 POI、锚点名称或路径层级，不属于建筑内部区域；禁止把它们写进 `interiorLayout.zones[]` 或 `floors[].rooms[]`。
 \r
 - 只写**已发现/可确认**的楼层；未发现楼层不要编造。\r
 - 每层 `rooms[]` 写户号（如 201、202）与 `residents`（居住人姓名列表）。\r
-- 每个有居住人或需要展示布局的房间必须指定 `layout.shapes` 或 `layoutTemplateId`：\r
-  - 优先使用 `layout.shapes`：由 AI 生成完整户型，直接输出该房间/住户内部的房间分割、墙体区域、客厅、卧室、厨房、卫生间等可点击区域\r
-  - 模板兜底：只有在无法可靠生成户型时，才从上方模板目录选择 `layoutTemplateId`\r
-  - `slotAssignments`：若使用模板，把居住人填入模板槽位（如 bed_1、bed_2）；若使用 `layout.shapes`，可把每个 shape 的 `id/slot` 作为摆件挂载槽位\r
+- 若能从上下文推断居住/使用关系，必须在该房间同时写 `residents`、`ownerRefs` 和 `usageContracts[]`；不能只生成空户号导致界面显示“居住人：未知”。
+- 每个有居住人或需要展示布局的房间必须指定 `layout.shapes`；系统只保存并渲染 `layout.shapes`，不会使用 `layoutTemplateId` 或模板兜底。\r
+  - `layout.shapes`：由 AI 生成完整户型，直接输出该房间/住户内部的房间分割、墙体区域、客厅、卧室、厨房、卫生间等可点击区域\r
+  - `slotAssignments`：可选；若使用则把每个 shape 的 `id/slot` 作为摆件挂载槽位\r
   - `slotObjects`：把每个已知槽位内的首次可见大型摆件写成对象数组，每个对象必须包含 `name/x/y/w/h/containerContents`；点击户型图时系统只读取这里保存的摆件，不再临时询问 AI\r
 - 同一户内同住的人写在**同一 room** 的 residents 里，不要拆成多个户号。\r
-- `zones` 只写建筑物公共区（走廊、楼梯间、单元门厅），不要写各户内部。\r
+- 根层 `interiorLayout.zones` 默认返回 `[]`。走廊、楼梯间、门厅等若本轮确实需要展示，优先写入对应楼层下的房间/功能区 `layout.shapes`，不要写成根层卡片。\r
 \r
-### slotAssignments / slotObjects 示例\r
+### 所属权 / 使用权 / 居住人规则\r
 \r
-四人同住 202（普通单元），选 `four_bedroom_one_living`：\r
+- `ownerRefs[]` 表示节点所属权/管理权，可为 `{ "type": "character|org|entity", "id": "", "name": "", "role": "" }`。\r
+- `usageContracts[]` 表示节点使用权合同，字段包含 `id`、`type`、`status`、`billingCycle`、`monthlyRent`、`currency`、`userRefs`、`ownerRefs`、`debtAmount`、`basis`。\r
+- 免费自用、口头允许使用也必须写合同，`monthlyRent: 0`；欠款写 `debtAmount`，没有欠款写 0。\r
+- 使用者和所属者可以是同一个人/同一组织/同一实体；自住房/自用房应同时把该对象写入 `ownerRefs` 和 `usageContracts[].userRefs / ownerRefs`。\r
+- 房间卡片优先显示 `residents`，其次显示 `usageContracts[].userRefs`，再显示 `ownerRefs`；所以已知居住者/使用者时不要漏写这些字段。\r
+- 字段必须使用标准 JSON 键名：`"ownerRefs"` 和 `"usageContracts"`，不要改成中文键名或只写说明文字。\r
+\r
+### layout.shapes / slotObjects 示例\r
+\r
+四人同住 202（普通单元），直接输出 `layout.shapes`：\r
 ```json\r
-"layoutTemplateId": "four_bedroom_one_living",\r
 "residents": ["刘悠", "刘思琪", "刘思瑶", "刘思怡"],\r
+"layout": {\r
+  "width": 480,\r
+  "height": 320,\r
+  "shapes": [\r
+    { "type": "rect", "id": "bed_1", "x": 36, "y": 42, "w": 138, "h": 92, "label": "刘悠卧室区" },\r
+    { "type": "rect", "id": "bed_2", "x": 190, "y": 42, "w": 138, "h": 92, "label": "刘思琪卧室区" },\r
+    { "type": "rect", "id": "bed_3", "x": 36, "y": 154, "w": 138, "h": 86, "label": "刘思瑶卧室区" },\r
+    { "type": "rect", "id": "bed_4", "x": 190, "y": 154, "w": 138, "h": 86, "label": "刘思怡卧室区" },\r
+    { "type": "rect", "id": "living", "x": 344, "y": 42, "w": 96, "h": 118, "label": "客厅" },\r
+    { "type": "rect", "id": "kitchen", "x": 344, "y": 178, "w": 96, "h": 50, "label": "厨房" },\r
+    { "type": "rect", "id": "bathroom", "x": 344, "y": 242, "w": 76, "h": 44, "label": "卫生间" }\r
+  ]\r
+},\r
 "slotAssignments": { "bed_1": "刘悠", "bed_2": "刘思琪", "bed_3": "刘思瑶", "bed_4": "刘思怡", "living": "客厅", "kitchen": "厨房", "bathroom": "卫生间" },\r
 "slotObjects": {\r
   "bed_1": [{ "name": "靠墙单人床", "x": 54, "y": 58, "w": 154, "h": 92, "containerContents": ["床单", "被子", "枕头"] }],\r
@@ -79,15 +97,7 @@
 }\r
 ```\r
 \r
-**豪宅/高端住宅**请从目录【豪宅/高端】段选用，常见对应关系：\r
-- 城市顶级**大平层** → `luxury_penthouse`\r
-- **复式/跃层**豪宅 → `duplex_luxury`\r
-- **独栋别墅**（带花园门厅） → `standalone_villa`\r
-- **合院**（中庭围合） → `courtyard_villa`\r
-- **庄园大宅**（多套房+佣人/酒窖/健身） → `mansion_estate`\r
-- **空中别墅**（整层+露台） → `sky_villa`\r
-\r
-正文或地点说明出现「豪宅、别墅、大平层、复式、合院、庄园」等词时，优先选上述 luxury 模板，不要用普通「三室一厅」代替。\r
+正文或地点说明出现「豪宅、别墅、大平层、复式、合院、庄园」等词时，直接按对应住宅档次生成 `layout.shapes`，不要输出模板 id，也不要把普通公寓生成成豪宅。\r
 \r
 
 ### 距离与路线规则
@@ -111,7 +121,17 @@
           {\r
             "number": "202",\r
             "residents": ["刘悠", "刘思琪", "刘思瑶", "刘思怡"],\r
-            "layoutTemplateId": "four_bedroom_one_living",\r
+            "layout": {\r
+              "width": 480,\r
+              "height": 320,\r
+              "shapes": [\r
+                { "type": "rect", "id": "bed_1", "x": 36, "y": 42, "w": 138, "h": 92, "label": "刘悠卧室区" },\r
+                { "type": "rect", "id": "bed_2", "x": 190, "y": 42, "w": 138, "h": 92, "label": "刘思琪卧室区" },\r
+                { "type": "rect", "id": "living", "x": 344, "y": 42, "w": 96, "h": 118, "label": "客厅" },\r
+                { "type": "rect", "id": "kitchen", "x": 344, "y": 178, "w": 96, "h": 50, "label": "厨房" },\r
+                { "type": "rect", "id": "bathroom", "x": 344, "y": 242, "w": 76, "h": 44, "label": "卫生间" }\r
+              ]\r
+            },\r
             "slotAssignments": {\r
               "bed_1": "刘悠",\r
               "bed_2": "刘思琪",\r
@@ -134,9 +154,7 @@
         ]\r
       }\r
     ],\r
-    "zones": [\r
-      { "name": "走廊", "kind": "走廊", "position": "中", "description": "连接各户与楼梯间" }\r
-    ]\r
+    "zones": []\r
   },\r
   "surroundLocations": [\r
     {\r
@@ -184,7 +202,7 @@
 
 1. 本次返回的 `interiorLayout` 会被系统永久写入该建筑节点；下次打开建筑内部会直接使用已保存布局，不会再次询问 AI。因此不要输出临时、猜测或无关的房间构造。
 2. `interiorLayout.floors[].rooms[]` 只允许写玩家当前已经进入、看见、被明确告知、或本轮行动必须知晓的房间/户号。未知楼层、未知住户、未接触房间保持缺省，不要为了填满楼层而生成。
-3. 有 layout 的 room 必须是“需要展示内部构造”的房间；只知道门牌号但未进入/未观察的房间，允许只写 number/name/residents，不要写 layoutTemplateId、slotAssignments 和 slotObjects。
+3. 有 layout 的 room 必须是“需要展示内部构造”的房间；只知道门牌号但未进入/未观察的房间，允许只写 number/name/residents，不要写 layout、slotAssignments 和 slotObjects。
 4. `slotObjects` 是首次地点/房间空间构图的一部分，必须随 `interiorLayout` 一起持久化；只写玩家当前需要知晓的区域摆件，不要为未知房间、未知楼层或未进入区域补全。
 5. `surroundLocations[]` 只允许写与当前建筑地点直接相连、步行路线中间没有其他具体地点的地点。
 6. 若从当前建筑到目标地点之间存在商店、门口、道路节点、广场、楼栋、门禁、走廊等任何具体地点，则目标地点不是直接相邻，不得写入 `surroundLocations`。例如“我家 -> 商店 -> 公园”时，只能写“商店”，不能写“公园”。
@@ -196,7 +214,7 @@
 
 ## 最高优先级补充：layout.shapes 可由 AI 生成完整户型
 
-默认优先让 AI 生成完整户型：在 `interiorLayout.floors[].rooms[]` 内写入 `layout.shapes`，系统会优先使用 `layout.shapes` 并持久化；只有缺少有效 `layout.shapes` 时才使用 `layoutTemplateId` 模板兜底。
+必须让 AI 生成完整户型：在 `interiorLayout.floors[].rooms[]` 内写入 `layout.shapes`，系统只使用 `layout.shapes` 并持久化；缺少有效 `layout.shapes` 时该房间会显示为无布局/迷雾，不会使用模板兜底。
 
 ```json
 "layout": {
@@ -215,7 +233,7 @@
 - `id` 同时作为 `slotObjects` 的挂载槽位；例如 `id: "bed_2"` 的区域，其大型摆件写入 `slotObjects.bed_2`。
 - 户型必须根据建筑类型、住户财力、家庭结构、人物关系、上下文和已知剧情生成；不要把普通公寓生成成豪宅，也不要凭空生成未知房间。
 - `layout.shapes` 一旦生成会随房间持久化，后续打开直接复用，不再重新询问 AI。
-- 如果没有足够上下文生成完整户型，则输出 `layoutTemplateId` 作为模板兜底。
+- 如果没有足够上下文生成完整户型，则不要输出布局字段；不要输出 `layoutTemplateId`。
 
 ## 最高优先级补充：slotObjects 必须由 AI 生成物品名与位置
 

@@ -309,7 +309,7 @@ window.GameModules.app.orgTerritory.settlementActions = {
         }
       });
       map.lastText = window.GameModules.realWorldMap.render(map);
-      store.realWorldMap = map;
+      store.realWorldMap = window.Alpine?.raw ? window.Alpine.raw(map) : map;
     }
 
     if (nextStatus === 'rebel' || nextStatus === 'independent') {

@@ -213,6 +213,7 @@ window.GameModules.aiRequest = {
     const maxTokens = this.clampMaxTokens(this.configuredMaxTokens(options), undefined);
     const enqueueAt = Date.now();
     const tokenRecordId = window.GameModules.tokenStats?.record?.(source, messages.map((msg) => String(msg?.content || '')).join('\n'), { ...(options.tokenMeta || {}), model, maxTokens });
+    try { options.onTokenRecord?.(tokenRecordId, { id, source, model, maxTokens, enqueueAt, messages }); } catch (err) { console.warn('[AI请求] onTokenRecord failed:', err?.message || err); }
     const sourceCount = this.countSource(source);
     this.logicalCount += 1;
     this.queued += 1;
@@ -297,9 +298,23 @@ window.GameModules.aiRequest = {
     const payload = { model: options.model, messages: options.messages };
     if (options.maxTokens !== undefined && options.maxTokens !== null) payload.maxTokens = options.maxTokens;
     this.logRawRequest(options, payload, { attempt: attempt + 1, queueWaitMs: startAt - options.enqueueAt });
+    const progressRecord = (status = 'running') => {
+      window.GameModules.tokenStats?.recordProgress?.(options.tokenRecordId, {
+        status,
+        chunkCount,
+        doneSeen,
+        durationMs: Date.now() - startAt,
+        queueWaitMs: startAt - options.enqueueAt,
+        ...responseMeta,
+        responseText: buffer,
+      });
+    };
+    const progressTimer = options.tokenRecordId ? setInterval(() => progressRecord(buffer ? 'streaming' : 'running'), 2000) : 0;
+    try {
     const provider = window.GameModules.aiProvider?.currentProvider?.();
     const request = provider.complete({
       ...options,
+      suppressTokenStats: true,
       payload,
       onChunk: async (chunk, done, providerInfo = {}) => {
         mergeResponseMeta(providerInfo);
@@ -315,6 +330,9 @@ window.GameModules.aiRequest = {
           await options.onChunk?.(text, Boolean(done), info);
           if (done) await options.onDone?.(info);
         });
+        if (options.tokenRecordId && (done || chunkCount <= 2 || chunkCount % 5 === 0)) {
+          progressRecord(done ? 'completed' : (buffer ? 'streaming' : 'running'));
+        }
       },
       onDone: async (providerInfo = {}) => { mergeResponseMeta(providerInfo); },
     });
@@ -332,5 +350,22 @@ window.GameModules.aiRequest = {
       console.debug('[AI请求] 返回长度可能被截断:', { id: options.id, source: options.source, length: risk.length, threshold: risk.threshold, overThreshold: risk.overThreshold, tailLooksTruncated: risk.tailLooksTruncated, doneSeen, tailPreview: buffer.slice(-180) });
     }
     return buffer;
+    } catch (err) {
+      if (options.tokenRecordId) {
+        window.GameModules.tokenStats?.recordError?.(options.tokenRecordId, err, {
+          chunkCount,
+          doneSeen,
+          startedAt: startAt,
+          completedAt: Date.now(),
+          durationMs: Date.now() - startAt,
+          queueWaitMs: startAt - options.enqueueAt,
+          ...responseMeta,
+          responseText: buffer,
+        });
+      }
+      throw err;
+    } finally {
+      if (progressTimer) clearInterval(progressTimer);
+    }
   },
 };

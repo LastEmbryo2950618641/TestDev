@@ -243,6 +243,11 @@ window.GameModules.realWorldLocationGraph = {
         parentId: roomId,
         name,
         legacyKey: this.legacyKey('shape', `${roomId}:${shape.nodeId || shape.id || name || index}`),
+        order: Number(shape.order) || index + 1,
+        x: shape.x,
+        y: shape.y,
+        w: shape.w,
+        h: shape.h,
         ownerRefs: shape.ownerRefs,
         usageContracts: shape.usageContracts,
       });
@@ -269,6 +274,11 @@ window.GameModules.realWorldLocationGraph = {
       parentId,
       name: objectName,
       legacyKey: this.legacyKey('object', `${parentId}:${object?.id || objectName}:${index}`),
+      order: Number(object?.order) || index + 1,
+      x: object?.x,
+      y: object?.y,
+      w: object?.w,
+      h: object?.h,
       ownerRefs: object?.ownerRefs,
       usageContracts: object?.usageContracts,
     });
@@ -294,21 +304,26 @@ window.GameModules.realWorldLocationGraph = {
     const legacy = data.legacyKey || '';
     const identityKey = this.identityKeyFor(data);
     const existingId = this.alias(graph, legacy) || graph.identityIndex?.[identityKey] || this.alias(graph, this.legacyKey('identity', identityKey));
-    if (existingId && graph.nodesById[existingId]) return graph.nodesById[existingId];
-    const id = this.allocateLocationNodeIdNoImport(graph);
+    const id = existingId && graph.nodesById[existingId] ? existingId : this.allocateLocationNodeIdNoImport(graph);
     const node = {
+      ...(graph.nodesById[id] || {}),
       id,
-      type: data.type || 'node',
-      name: this.cleanName(data.name),
-      displayName: this.cleanName(data.displayName || data.name),
-      parentId: data.parentId || '',
-      order: data.order || 0,
-      legacyAliases: legacy ? [legacy] : [],
-      ownerRefs: Array.isArray(data.ownerRefs) ? data.ownerRefs : [],
-      usageContracts: Array.isArray(data.usageContracts) ? data.usageContracts : [],
-      effectiveAuthorityRef: data.effectiveAuthorityRef || null,
-      source: 'legacy-interior',
+      type: data.type || graph.nodesById[id]?.type || 'node',
+      name: this.cleanName(data.name) || graph.nodesById[id]?.name || '',
+      displayName: this.cleanName(data.displayName || data.name) || graph.nodesById[id]?.displayName || graph.nodesById[id]?.name || '',
+      parentId: data.parentId || graph.nodesById[id]?.parentId || '',
+      order: Number(data.order) || Number(graph.nodesById[id]?.order) || 0,
+      legacyAliases: [...new Set([...(graph.nodesById[id]?.legacyAliases || []), legacy].filter(Boolean))],
+      ownerRefs: Array.isArray(data.ownerRefs) ? data.ownerRefs : (graph.nodesById[id]?.ownerRefs || []),
+      usageContracts: Array.isArray(data.usageContracts) ? data.usageContracts : (graph.nodesById[id]?.usageContracts || []),
+      effectiveAuthorityRef: data.effectiveAuthorityRef || graph.nodesById[id]?.effectiveAuthorityRef || null,
+      source: graph.nodesById[id]?.source || 'legacy-interior',
     };
+    if (data.roomCode !== undefined) node.roomCode = String(data.roomCode || '');
+    ['x', 'y', 'w', 'h'].forEach((key) => {
+      const value = Number(data[key]);
+      if (Number.isFinite(value)) node[key] = value;
+    });
     graph.nodesById[id] = node;
     if (legacy) this.rememberAlias(graph, legacy, id);
     this.rememberIdentity(graph, node);
@@ -818,15 +833,23 @@ window.GameModules.realWorldLocationGraph = {
       const node = graph.nodesById[nodeId];
       if (!node) return;
       const mapNodeId = mapNodeIdFor(node);
+      const displayName = node.displayName || node.name || node.id;
+      const normalizedDisplayName = this.normalizeIdentityName(displayName);
       this.rememberAlias(graph, this.legacyKey('mapId', mapNodeId), node.id);
-      this.rememberAlias(graph, this.legacyKey('name', node.displayName || node.name), node.id);
-      let mapNode = map.nodes.find((item) => item.id === mapNodeId || item.id === node.id || item.name === node.name);
+      this.rememberAlias(graph, this.legacyKey('name', displayName), node.id);
+      let mapNode = map.nodes.find((item) => (
+        item.id === mapNodeId
+        || item.id === node.id
+        || item.graphNodeId === node.id
+        || item.identityKey && item.identityKey === node.identityKey
+        || this.normalizeIdentityName(item.displayName || item.name) === normalizedDisplayName
+      ));
       if (!mapNode) {
-        mapNode = { id: mapNodeId, name: node.displayName || node.name || node.id, mapVisible: node.mapVisible !== false };
+        mapNode = { id: mapNodeId, name: displayName, mapVisible: node.mapVisible !== false };
         map.nodes.push(mapNode);
       }
       mapNode.id = mapNode.id || mapNodeId;
-      mapNode.name = node.displayName || node.name || mapNode.name || node.id;
+      mapNode.name = displayName || mapNode.name || node.id;
       mapNode.parentId = node.parentId ? mapNodeIdFor(graph.nodesById[node.parentId]) : '';
       mapNode.mapVisible = node.mapVisible !== false;
       mapNode.description = node.description || mapNode.description || '';
@@ -857,6 +880,89 @@ window.GameModules.realWorldLocationGraph = {
         basis: edge.basis || '',
         relation: edge.relation || 'direct-neighbor',
       });
+    });
+    this.compactProjectedMapDisplayNodes(state, map);
+    return map;
+  },
+
+  compactProjectedMapDisplayNodes(state = {}, map = {}) {
+    if (!Array.isArray(map.nodes) || map.nodes.length < 2) return map;
+    const mapApi = window.GameModules.realWorldMap || {};
+    const isDisplayCandidate = (node = {}) => {
+      if (!node?.id || !node?.name || node.mapVisible === false) return false;
+      if (mapApi.isInteriorLocationName?.(node.name)) return false;
+      return true;
+    };
+    const normalized = (node = {}) => this.normalizeIdentityName(node.displayName || node.name || '');
+    const normalizedFull = (node = {}) => String(node.displayName || node.name || '').replace(/[\n\r|]+/g, ' ').replace(/\s+/g, '').trim().toLowerCase();
+    const sameDisplayPlace = (a = {}, b = {}) => {
+      if (!isDisplayCandidate(a) || !isDisplayCandidate(b)) return false;
+      if (a.graphNodeId && b.graphNodeId && a.graphNodeId === b.graphNodeId) return true;
+      if (a.identityKey && b.identityKey && a.identityKey === b.identityKey) return true;
+      const ak = normalizedFull(a);
+      const bk = normalizedFull(b);
+      if (!ak || !bk) return false;
+      if (ak === bk) return true;
+      const minLength = Math.min(ak.length, bk.length);
+      return minLength >= 4 && (ak.endsWith(bk) || bk.endsWith(ak));
+    };
+    const floorCount = (node = {}) => Array.isArray(node?.interiorLayout?.floors) ? node.interiorLayout.floors.length : 0;
+    const chooseKeep = (a = {}, b = {}) => {
+      const an = normalized(a);
+      const bn = normalized(b);
+      if (an.length !== bn.length) return an.length < bn.length ? a : b;
+      if (floorCount(a) !== floorCount(b)) return floorCount(a) > floorCount(b) ? a : b;
+      if (a.graphNodeId && !b.graphNodeId) return a;
+      if (b.graphNodeId && !a.graphNodeId) return b;
+      return a;
+    };
+    const mergeNode = (target = {}, source = {}) => {
+      target.graphNodeId = target.graphNodeId || source.graphNodeId || '';
+      target.identityKey = target.identityKey || source.identityKey || '';
+      target.parentId = target.parentId || source.parentId || '';
+      target.description = target.description || source.description || '';
+      target.descriptionFacts = Array.isArray(target.descriptionFacts) && target.descriptionFacts.length
+        ? target.descriptionFacts
+        : (Array.isArray(source.descriptionFacts) ? source.descriptionFacts : []);
+      target.ownerRefs = Array.isArray(target.ownerRefs) && target.ownerRefs.length ? target.ownerRefs : (source.ownerRefs || []);
+      target.usageContracts = Array.isArray(target.usageContracts) && target.usageContracts.length ? target.usageContracts : (source.usageContracts || []);
+      target.effectiveAuthorityRef = target.effectiveAuthorityRef || source.effectiveAuthorityRef || null;
+      target.revealed = Boolean(target.revealed || source.revealed);
+      target.visited = Boolean(target.visited || source.visited);
+      target.exteriorRingUnlocked = Boolean(target.exteriorRingUnlocked || source.exteriorRingUnlocked);
+      if (!floorCount(target) && floorCount(source)) target.interiorLayout = source.interiorLayout;
+      return target;
+    };
+    const remap = {};
+    const removed = new Set();
+    for (let i = 0; i < map.nodes.length; i += 1) {
+      const a = map.nodes[i];
+      if (removed.has(a?.id)) continue;
+      for (let j = i + 1; j < map.nodes.length; j += 1) {
+        const b = map.nodes[j];
+        if (removed.has(b?.id) || !sameDisplayPlace(a, b)) continue;
+        const keep = chooseKeep(a, b);
+        const drop = keep === a ? b : a;
+        mergeNode(keep, drop);
+        remap[drop.id] = keep.id;
+        removed.add(drop.id);
+        if (drop === a) break;
+      }
+    }
+    if (!removed.size) return map;
+    map.nodes = map.nodes.filter((node) => !removed.has(node.id));
+    const remapId = (id = '') => remap[id] || id;
+    ['currentId', 'mapAnchorId', 'infoNodeId', 'interiorNodeId'].forEach((key) => {
+      if (map[key]) map[key] = remapId(map[key]);
+    });
+    map.edges = (Array.isArray(map.edges) ? map.edges : []).map((edge) => ({
+      ...edge,
+      from: remapId(edge.from),
+      to: remapId(edge.to),
+    })).filter((edge, index, edges) => {
+      if (!edge.from || !edge.to || edge.from === edge.to) return false;
+      const key = [edge.from, edge.to].sort().join('|');
+      return edges.findIndex((item) => [item.from, item.to].sort().join('|') === key) === index;
     });
     return map;
   },

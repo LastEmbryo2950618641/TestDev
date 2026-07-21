@@ -50,6 +50,27 @@ test('index uses graph viewport and interior drawer instead of legacy map rows',
   assert.ok(!html.includes('realWorldFunctionView === \'map\' && $nextTick'));
 });
 
+test('interior drawer opens floors first and compact room list second', () => {
+  const html = read('publish/index.html');
+  assert.ok(html.includes('openRealWorldMapInteriorFloor(floor.id)'));
+  assert.ok(html.includes('realWorldMapInteriorView() === \'floor\''));
+  assert.ok(html.includes('real-world-map-room-list-compact'));
+  assert.ok(html.includes('openRealWorldMapRoom(room.id || room.number || room.name)'));
+  assert.ok(!html.includes('real-world-map-floorplan-canvas'));
+  assert.ok(!html.includes('realWorldMapFloorPlanClick($event)'));
+  assert.ok(!html.includes('toggleRealWorldMapInteriorFloor(floor.id)'));
+  assert.ok(!html.includes('real-world-map-zone-grid'));
+});
+
+test('token response detail uses copyable textarea', () => {
+  const html = read('publish/index.html');
+  const css = read('publish/skills-app.css');
+  assert.ok(html.includes('token-response-textarea'));
+  assert.ok(html.includes(':value="$store.game.tokenPromptDetailText()"'));
+  assert.ok(html.includes('@focus="$event.target.select()"'));
+  assert.ok(css.includes('.token-response-textarea'));
+});
+
 test('map prompts require building nodes, realistic route distance, and fogged interiors', () => {
   const prompt = read('publish/prompts/\u63a8\u6f14\u5f15\u64ce/update/map-update-prompt.md');
   assert.ok(prompt.includes('\u5efa\u7b51\u7269\u7ea7 POI'));
@@ -78,12 +99,12 @@ test('surround unlock prompt requires contextual AI furniture contents persisten
   assert.ok(prompt.includes('containerContents'));
 });
 
-test('surround unlock prompt allows AI generated room layouts before templates', () => {
+test('surround unlock prompt requires AI generated room layouts without templates', () => {
   const prompt = read('publish/prompts/real-world-map-surround-unlock.md');
   assert.ok(prompt.includes('layout.shapes'));
   assert.ok(prompt.includes('AI \u751f\u6210\u5b8c\u6574\u6237\u578b'));
-  assert.ok(prompt.includes('\u4f18\u5148\u4f7f\u7528 `layout.shapes`'));
-  assert.ok(prompt.includes('\u6a21\u677f\u515c\u5e95'));
+  assert.ok(prompt.includes('\u7cfb\u7edf\u53ea\u4fdd\u5b58\u5e76\u6e32\u67d3 `layout.shapes`'));
+  assert.ok(prompt.includes('\u4e0d\u8981\u8f93\u51fa `layoutTemplateId`'));
 });
 
 test('surround unlock prompt documents full and patch response modes', () => {
@@ -94,6 +115,29 @@ test('surround unlock prompt documents full and patch response modes', () => {
   assert.ok(prompt.includes('\u8fd4\u56de\u6a21\u5f0f=patch'));
   assert.ok(prompt.includes('noChange'));
   assert.ok(prompt.includes('currentPoi'));
+});
+
+test('surround unlock prompt requires direct floor JSON mapping', () => {
+  const prompt = read('publish/prompts/real-world-map-surround-unlock.md');
+  const inline = read('publish/prompts/real-world-map-surround-unlock.js');
+  assert.ok(prompt.includes('电子地图周围一圈解锁'));
+  assert.ok(prompt.includes('室内结构根层只允许使用 `interiorLayout.floors[]`'));
+  assert.ok(prompt.includes('UI 会直接按 `floors[].rooms[]` 渲染'));
+  assert.ok(prompt.includes('禁止把它们写进 `interiorLayout.zones[]`'));
+  assert.ok(prompt.includes('"zones": []'));
+  assert.ok(inline.includes('电子地图周围一圈解锁'));
+  assert.ok(inline.includes('室内结构根层只允许使用 `interiorLayout.floors[]`'));
+  assert.ok(!prompt.includes('\ufffd'));
+  assert.ok(!inline.includes('\ufffd'));
+  assert.ok(!prompt.includes('zones` 只写建筑物公共区（走廊、楼梯间、单元门厅）'));
+});
+
+test('surround unlock prompt requires ownership usage on known rooms', () => {
+  const prompt = read('publish/prompts/real-world-map-surround-unlock.md');
+  assert.ok(prompt.includes('必须在该房间同时写 `residents`、`ownerRefs` 和 `usageContracts[]`'));
+  assert.ok(prompt.includes('使用者和所属者可以是同一个人'));
+  assert.ok(prompt.includes('"ownerRefs"'));
+  assert.ok(prompt.includes('"usageContracts"'));
 });
 
 test('map actions cache graph builds between reactive refreshes', () => {
@@ -211,20 +255,27 @@ test('map auxiliary AI requests reuse real world KV cache path', () => {
   assert.ok(locationFill.includes('tokenMeta: requestOptions.tokenMeta'));
 });
 
-test('map node tap opens info popover before interior drawer', () => {
+test('map node tap opens selected node interior directly', () => {
   const html = read('publish/index.html');
   const actions = read('publish/real-world-map-actions.js');
+  const map = read('publish/real-world-map.js');
   const tapBody = methodBody(actions, 'realWorldMapHandleCanvasTap', 'paintRealWorldMapView');
   const infoBody = methodBody(actions, 'showRealWorldMapInfo', 'closeRealWorldMapInfo');
+  const interiorNodeBody = methodBody(map, 'interiorNode', 'infoNode');
+  const showInteriorBody = methodBody(actions, 'showRealWorldMapInterior', 'openRealWorldMapInfoInterior');
   assert.ok(tapBody.includes("if (hit.type === 'info') this.showRealWorldMapInfo(hit.id);"));
-  assert.ok(tapBody.includes("else if (hit.type === 'node') this.showRealWorldMapInfo(hit.id);"));
-  assert.ok(!tapBody.includes("else if (hit.type === 'node') this.showRealWorldMapInterior(hit.id);"));
+  assert.ok(tapBody.includes("else if (hit.type === 'node') this.showRealWorldMapInterior(hit.id);"));
+  assert.ok(!tapBody.includes("else if (hit.type === 'node') this.showRealWorldMapInfo(hit.id);"));
+  assert.ok(interiorNodeBody.includes('return nodes.find((item) => item.id === key || item.name === key) || null;'));
+  assert.ok(!interiorNodeBody.includes('graphNodeId'));
+  assert.ok(!interiorNodeBody.includes('identityKey'));
+  assert.ok(!showInteriorBody.includes('realWorldMapInfoNode'));
+  assert.ok(!showInteriorBody.includes('fallbackId'));
   assert.ok(infoBody.includes('this.realWorldMap.infoNodeId = id;'));
   assert.ok(!infoBody.includes('window.GameModules.realWorldMap.ensure'));
   assert.ok(infoBody.includes('requestAnimationFrame'));
   assert.ok(infoBody.includes('setTimeout'));
   assert.ok(infoBody.indexOf('setTimeout') < infoBody.indexOf('resolveControlLabel'));
-  assert.ok(html.includes('\u67e5\u770b\u5efa\u7b51\u5185\u90e8'));
   assert.ok(html.includes('openRealWorldMapInfoInterior($store.game.realWorldMapInfoNode()?.id)'));
   assert.ok(!html.includes('showRealWorldMapInterior($store.game.realWorldMapInfoNode()?.id); $store.game.closeRealWorldMapInfo()'));
   const infoInteriorBody = methodBody(actions, 'openRealWorldMapInfoInterior', 'closeRealWorldMapInterior');
@@ -247,10 +298,83 @@ test('real world panel and map actions defer heavy work until after first paint'
   assert.ok(!currentWorld.includes('await this.ensureGameplayAssetsReady'));
   assert.ok(openPanelBody.indexOf('runAfterRealWorldPaint') < openPanelBody.indexOf('realWorldMap.ensure'));
   assert.ok(openFunctionBody.includes('this.runAfterRealWorldPaint?.(() => {'));
-  assert.ok(showInteriorBody.includes('runtime.interiorPreparingNodeId = key;'));
+  assert.ok(showInteriorBody.includes('this.prepareRealWorldMapInteriorFloors(key, { commit: false, node });'));
+  assert.ok(showInteriorBody.indexOf('prepareRealWorldMapInteriorFloors') < showInteriorBody.indexOf('this.setRealWorldMapState({ ...map })'));
+  assert.ok(!showInteriorBody.includes('this.realWorldMapAfterPaint(() => this.prepareRealWorldMapInteriorFloors(key))'));
   assert.ok(!showInteriorBody.includes('realWorldMap.showInterior'));
   assert.ok(drawBody.includes('realWorldMapNodeControlCachedLine'));
   assert.ok(!drawBody.includes('realWorldMapNodeControlLine?.(node.id)'));
+});
+
+test('interior floor signature stays lightweight for room detail changes', () => {
+  const context = {
+    window: { GameModules: {} },
+    document: { addEventListener() {} },
+    requestAnimationFrame(callback) { if (typeof callback === 'function') callback(); },
+    setTimeout(callback) { if (typeof callback === 'function') callback(); return 0; },
+    clearTimeout() {},
+  };
+  loadScript(context, 'publish/real-world-map-interior.js');
+  loadScript(context, 'publish/real-world-map-actions.js');
+  const actions = context.window.GameModules.realWorldMapActions;
+  const baseNode = {
+    interiorLayout: {
+      floors: [{
+        id: 'floor_1',
+        name: '第一层',
+        rooms: [{
+          id: 'room_101',
+          name: '主卧',
+          number: '101',
+          kind: '卧室',
+          residents: ['张三'],
+          slotObjects: {
+            bed: [{ name: '床', containerContents: ['床单'] }],
+          },
+        }],
+      }],
+    },
+  };
+  const changedNode = JSON.parse(JSON.stringify(baseNode));
+  changedNode.interiorLayout.floors[0].rooms[0].slotObjects.bed[0].containerContents.push('枕头');
+  const signature = actions.realWorldMapInteriorFloorSignature(baseNode);
+  assert.strictEqual(signature, actions.realWorldMapInteriorFloorSignature(changedNode));
+  assert.ok(signature.includes('floor_1:第一层:1'));
+  assert.ok(!signature.includes('枕头'));
+  assert.ok(!signature.includes('床单'));
+});
+
+test('interior node only returns the explicitly selected map node', () => {
+  const context = {
+    window: { GameModules: {} },
+    console,
+  };
+  loadScript(context, 'publish/real-world-map-facts.js');
+  loadScript(context, 'publish/real-world-map.js');
+  const mapApi = context.window.GameModules.realWorldMap;
+  const map = {
+    interiorNodeId: 'long_home',
+    nodes: [
+      {
+        id: 'long_home',
+        name: '四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋',
+        graphNodeId: 'loc_1',
+        interiorLayout: { summary: '', zones: [] },
+      },
+      {
+        id: 'short_home',
+        name: '锦苑小区3栋',
+        graphNodeId: 'loc_1',
+        interiorLayout: {
+          floors: [{ id: 'floor_6', name: '第六层', rooms: [{ id: 'room_601', number: '601' }] }],
+          zones: [],
+        },
+      },
+    ],
+  };
+  const node = mapApi.interiorNode(map);
+  assert.strictEqual(node.id, 'long_home');
+  assert.ok(!Array.isArray(node.interiorLayout.floors));
 });
 
 test('org territory consistency warning is signature-deduped', () => {
@@ -276,6 +400,8 @@ test('game store has graph map UI fallbacks before gameplay chunk loads', () => 
     'realWorldMapInteriorSummary()',
     'realWorldMapInteriorView()',
     'realWorldMapInfoControlLine()',
+    'realWorldWordCountValue()',
+    'realWorldWordCountValid()',
   ].forEach((name) => assert.ok(game.includes(name), `missing fallback ${name}`));
 });
 
@@ -344,19 +470,56 @@ test('interior floors come only from inferred layout and sort low to high', () =
   assert.ok(floors[1].rooms.some((room) => room.name === 'KTV'));
 });
 
-test('interior room template persists AI generated slot objects', () => {
+test('interior renderer preserves known floors without rooms', () => {
   const context = { window: { GameModules: {} }, console };
-  loadScript(context, 'publish/real-world-map-interior-templates.js');
+  loadScript(context, 'publish/real-world-map-interior.js');
+  const interior = context.window.GameModules.realWorldMapInterior;
+  const node = {
+    name: '锦苑小区3栋',
+    interiorLayout: {
+      floors: [{ id: 'floor_2', name: '\u7b2c\u4e8c\u5c42', rooms: [] }],
+      zones: [],
+    },
+  };
+  const floors = interior.ensureFloors(node, {});
+  assert.strictEqual(floors.length, 1);
+  assert.strictEqual(floors[0].name, '\u7b2c\u4e8c\u5c42');
+  assert.deepStrictEqual(floors[0].rooms, []);
+});
+
+test('interior renderer does not synthesize floors from root zones', () => {
+  const context = { window: { GameModules: {} }, console };
+  loadScript(context, 'publish/real-world-map-interior.js');
+  const interior = context.window.GameModules.realWorldMapInterior;
+  const node = {
+    name: '锦苑小区3栋',
+    interiorLayout: {
+      floors: [],
+      zones: [{ id: 'zone_unit_2', name: '2单元', kind: '区域', description: '错误的单元区域' }],
+    },
+  };
+  assert.deepStrictEqual(interior.ensureFloors(node, {}), []);
+  assert.deepStrictEqual(node.interiorLayout.floors, []);
+});
+
+test('interior room layout persists AI generated slot objects', () => {
+  const context = { window: { GameModules: {} }, console };
   loadScript(context, 'publish/real-world-map-interior.js');
   const interior = context.window.GameModules.realWorldMapInterior;
   const room = interior.normalizeRoom({
     number: '202',
     residents: ['Liuyou', 'Siqi'],
-    layoutTemplateId: 'four_bedroom_one_living',
     slotAssignments: { bed_1: 'Liuyou', bed_2: 'Siqi', living: '\u5ba2\u5385' },
     slotObjects: {
       bed_2: ['pink sheet', 'star lamp', 'rabbit pillow'],
       living: ['blue sofa', 'glass table'],
+    },
+    layout: {
+      shapes: [
+        { type: 'rect', id: 'bed_1', x: 20, y: 20, w: 120, h: 80, label: 'Liuyou\u7684\u5367\u5ba4' },
+        { type: 'rect', id: 'bed_2', x: 160, y: 20, w: 120, h: 80, label: 'Siqi\u7684\u5367\u5ba4' },
+        { type: 'rect', id: 'living', x: 20, y: 120, w: 260, h: 100, label: '\u5ba2\u5385' },
+      ],
     },
   });
   assert.deepStrictEqual(Array.from(room.slotObjects.bed_2), ['pink sheet', 'star lamp', 'rabbit pillow']);
@@ -369,18 +532,21 @@ test('interior room template persists AI generated slot objects', () => {
 
 test('interior room detail uses AI generated object positions and container contents', () => {
   const context = { window: { GameModules: {} }, console };
-  loadScript(context, 'publish/real-world-map-interior-templates.js');
   loadScript(context, 'publish/real-world-map-interior.js');
   const interior = context.window.GameModules.realWorldMapInterior;
   const aiObjectName = '\u661f\u7eb9\u8eba\u6905';
   const aiContents = ['\u8584\u6bef', '\u9065\u63a7\u5668'];
   const room = interior.normalizeRoom({
     number: '202',
-    layoutTemplateId: 'four_bedroom_one_living',
     slotAssignments: { bed_2: '\u5218\u601d\u742a' },
     slotObjects: {
       bed_2: [
         { name: aiObjectName, x: 301, y: 119, w: 73, h: 57, containerContents: aiContents },
+      ],
+    },
+    layout: {
+      shapes: [
+        { type: 'rect', id: 'bed_2', x: 40, y: 52, w: 154, h: 104, label: '\u5218\u601d\u742a\u7684\u5367\u5ba4' },
       ],
     },
   });
@@ -392,7 +558,7 @@ test('interior room detail uses AI generated object positions and container cont
     Array.isArray(shape.objects)
     && shape.objects.some((object) => object?.name === aiObjectName)
   ));
-  assert.ok(areaShape, 'template must keep AI object records on the room area');
+  assert.ok(areaShape, 'layout must keep AI object records on the room area');
 
   const areaRegion = interior.roomLayoutRegions(layout).find((region) => region.shape === areaShape);
   const detail = interior.roomAreaDetailLayout(room, areaRegion);
@@ -402,9 +568,8 @@ test('interior room detail uses AI generated object positions and container cont
   assert.deepStrictEqual(Array.from(objectShape.containerContents), aiContents);
 });
 
-test('interior unlock normalization persists AI generated room layout before template fallback', () => {
+test('interior unlock normalization persists AI generated room layout without template fallback', () => {
   const context = { window: { GameModules: {} }, console };
-  loadScript(context, 'publish/real-world-map-interior-templates.js');
   loadScript(context, 'publish/real-world-map-interior.js');
   loadScript(context, 'publish/real-world-map-fog.js');
   const fog = context.window.GameModules.realWorldMapFog;
@@ -422,7 +587,6 @@ test('interior unlock normalization persists AI generated room layout before tem
     rooms: [{
       number: '202',
       residents: ['\u5218\u601d\u742a'],
-      layoutTemplateId: 'four_bedroom_one_living',
       layout,
     }],
   }]);
@@ -430,6 +594,76 @@ test('interior unlock normalization persists AI generated room layout before tem
   assert.strictEqual(room.layout.shapes[0].id, 'ai_bedroom');
   assert.deepStrictEqual(room.layout.shapes.map((shape) => shape.id), ['ai_bedroom', 'ai_living']);
   assert.strictEqual(room.layout.templateId, undefined);
+});
+
+test('interior unlock normalization keeps root zones direct', () => {
+  const context = { window: { GameModules: {} }, console };
+  loadScript(context, 'publish/real-world-map-interior-templates.js');
+  loadScript(context, 'publish/real-world-map-interior.js');
+  loadScript(context, 'publish/real-world-map-fog.js');
+  const fog = context.window.GameModules.realWorldMapFog;
+  const interior = fog.normalizeInterior({
+    summary: '直接映射楼层',
+    floors: [{ id: 'floor_2', name: '第二层', rooms: [{ number: '202', residents: ['刘悠'] }] }],
+    zones: [],
+  }, '锦苑小区3栋');
+  assert.deepStrictEqual(interior.zones, []);
+  assert.strictEqual(interior.floors[0].rooms[0].number, '202');
+});
+
+test('surround unlock normalization accepts AI room aliases and preserves known empty floors', () => {
+  const context = { window: { GameModules: {} }, console };
+  loadScript(context, 'publish/real-world-map-interior-templates.js');
+  loadScript(context, 'publish/real-world-map-interior.js');
+  loadScript(context, 'publish/real-world-map-fog.js');
+  const fog = context.window.GameModules.realWorldMapFog;
+  const interior = fog.normalizeInterior({
+    summary: 'AI 返回的楼层结构',
+    floors: [
+      { id: 'floor_1', name: '第一层', rooms: [] },
+      {
+        id: 'floor_2',
+        name: '第二层',
+        rooms: [{
+          roomNumber: '202',
+          roomName: '刘思琪家',
+          residents: ['刘思琪'],
+        }],
+      },
+    ],
+    zones: [],
+  }, '锦苑小区3栋');
+  assert.strictEqual(interior.floors.length, 2);
+  assert.strictEqual(interior.floors[0].name, '第一层');
+  assert.deepStrictEqual(interior.floors[0].rooms, []);
+  assert.strictEqual(interior.floors[1].rooms[0].number, '202');
+  assert.strictEqual(interior.floors[1].rooms[0].name, '刘思琪家');
+});
+
+test('room occupancy label always shows resident user and owner lines', () => {
+  const context = { window: { GameModules: {} }, console };
+  loadScript(context, 'publish/real-world-map-interior-templates.js');
+  loadScript(context, 'publish/real-world-map-interior.js');
+  const interior = context.window.GameModules.realWorldMapInterior;
+  const label = interior.roomOccupancyLabel({
+    number: '601',
+    ownerRefs: [{ type: 'character', id: 'owner-1', name: '乔一' }],
+    usageContracts: [{
+      status: 'active',
+      userRefs: [{ type: 'character', id: 'user-1', name: '乔一' }],
+      ownerRefs: [{ type: 'character', id: 'owner-1', name: '乔一' }],
+      monthlyRent: 0,
+      debtAmount: 0,
+    }],
+  });
+  assert.ok(label.includes('房间：601'));
+  assert.ok(label.includes('居住人：乔一'));
+  assert.ok(label.includes('使用人：乔一'));
+  assert.ok(label.includes('所有人：乔一'));
+  const unknown = interior.roomOccupancyLabel({ number: '602' });
+  assert.ok(unknown.includes('居住人：未知'));
+  assert.ok(unknown.includes('使用人：未知'));
+  assert.ok(unknown.includes('所有人：未知'));
 });
 
 test('surround unlock patch mode merges object container contents locally', () => {
@@ -490,6 +724,79 @@ test('surround unlock accepts empty structural patch without retry completeness 
   const patch = fog.validateUnlockPayload({ responseMode: 'patch', surroundLocations: [] }, { name: '锦苑小区3栋' }, {}, 'patch');
   assert.strictEqual(patch.responseMode, 'patch');
   assert.strictEqual(patch.noChange, true);
+});
+
+test('surround unlock debug is enabled by default and records raw shape', () => {
+  const context = { window: { GameModules: {} }, console };
+  loadScript(context, 'publish/real-world-map-fog.js');
+  const fog = context.window.GameModules.realWorldMapFog;
+  const state = {};
+  assert.strictEqual(fog.debugMode(state), true);
+  fog.surroundUnlockDebug(state, 'unit-test', { ok: true });
+  assert.strictEqual(state.realWorldMapSurroundUnlockDebugLog.length, 1);
+  const payload = fog.validateUnlockPayload({
+    responseMode: 'full',
+    interiorLayout: {
+      floors: [{ id: 'floor_6', name: '第六层', rooms: [{ number: '602' }] }],
+    },
+  }, { name: '锦苑小区3栋' }, {}, 'full');
+  assert.strictEqual(payload.debugShape.hasInteriorLayout, true);
+  assert.strictEqual(payload.debugShape.rawInteriorSummary.floors, 1);
+  assert.strictEqual(payload.interiorLayout.floors[0].rooms[0].number, '602');
+});
+
+test('visited unlocked building with empty interior still bootstraps full interior on indoor action', () => {
+  const context = {
+    window: {
+      GameModules: {
+        realWorldMap: {
+          isInteriorLocationName(name) {
+            return /房间|卧室|客厅|厨房|卫生间/u.test(String(name || ''));
+          },
+        },
+      },
+    },
+    console,
+  };
+  loadScript(context, 'publish/real-world-map-fog.js');
+  const fog = context.window.GameModules.realWorldMapFog;
+  assert.strictEqual(
+    fog.shouldBootstrapMissingInterior(
+      { realWorldInput: '我前往刘思思房间' },
+      { narration: '推开门进入卧室，看到床和书桌。' },
+      { name: '刘思思房间' },
+      { name: '锦苑小区3栋', interiorLayout: { summary: '', zones: [] }, visited: true, exteriorRingUnlocked: true },
+    ),
+    true,
+  );
+  assert.strictEqual(
+    fog.shouldBootstrapMissingInterior(
+      { realWorldInput: '我前往刘思思房间' },
+      { narration: '推开门进入卧室，看到床和书桌。' },
+      { name: '刘思思房间' },
+      { name: '锦苑小区3栋', interiorLayout: { floors: [{ id: 'floor_2', rooms: [{ id: 'room_201', name: '201' }] }] } },
+    ),
+    false,
+  );
+});
+
+test('surround unlock applies interior json by direct merge only', () => {
+  const source = read('publish/real-world-map-fog.js');
+  assert.ok(source.includes('finalAnchor.interiorLayout = this.mergeInteriorLayout(finalAnchor.interiorLayout, payload.interiorLayout)'));
+  assert.ok(!source.includes('syncInteriorLayoutAliases'));
+  assert.ok(!source.includes('findProjectedAnchorNode'));
+  assert.ok(!source.includes('applyInteriorObjectPatchToGraph'));
+  assert.ok(!source.includes('apply-audit-fill-patch'));
+});
+
+test('surround unlock logs prompt freshness and apply boundaries', () => {
+  const source = read('publish/real-world-map-fog.js');
+  assert.ok(source.includes('promptHasFloorRule'));
+  assert.ok(source.includes('promptHasDirectMappingRule'));
+  assert.ok(source.includes('promptHasOwnershipRule'));
+  assert.ok(source.includes('raw-response'));
+  assert.ok(source.includes('parsed-response'));
+  assert.ok(source.includes('apply-done'));
 });
 
 test('surround unlock request is single pass because prompt carries structure rules', () => {

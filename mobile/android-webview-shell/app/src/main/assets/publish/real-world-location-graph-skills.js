@@ -408,6 +408,8 @@ window.GameModules.realWorldLocationGraphSkills = {
       updatedAt: new Date().toISOString(),
     };
     stateGraph.nodesById[id] = node;
+    graph.rememberIdentity?.(stateGraph, node);
+    graph.rememberSearchNode?.(stateGraph, node);
     if (tempRef) tempMap[tempRef] = id;
     return node;
   },

@@ -23,7 +23,7 @@ window.GameModules.styleActions = {
     this.activeStyleIds = (!saved || (active.length === 1 && active[0] === 'literary')) ? [preferredDefault] : (active.length ? active : [preferredDefault]);
     this.customStyleName = '';
     this.customStylePrompt = '';
-    await this.saveWritingStyles(options);
+    if (options.readOnly !== true) await this.saveWritingStyles(options);
   },
 
   selectedWritingStyleId() {

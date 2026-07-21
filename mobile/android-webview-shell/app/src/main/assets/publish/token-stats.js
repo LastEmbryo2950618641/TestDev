@@ -168,6 +168,43 @@ window.GameModules.tokenStats = {
     if (record.completedAt) record.completedAtText = new Date(record.completedAt).toLocaleString('zh-CN');
     this.notifyChange();
   },
+  recordProgress(recordId, meta = {}) {
+    const record = this.item(recordId);
+    if (!record) return;
+    if (meta.status) record.status = String(meta.status);
+    const usage = this.normalizeUsage(meta);
+    record.providerUsage = Object.keys(usage.usage || {}).length ? usage.usage : record.providerUsage;
+    record.actualInputTokens = usage.promptTokens || record.actualInputTokens || 0;
+    record.actualOutputTokens = usage.completionTokens || record.actualOutputTokens || 0;
+    record.actualTotalTokens = usage.totalTokens || record.actualTotalTokens || 0;
+    record.promptCacheHitTokens = usage.promptCacheHitTokens || record.promptCacheHitTokens || 0;
+    record.promptCacheMissTokens = usage.promptCacheMissTokens || record.promptCacheMissTokens || 0;
+    record.deepseekCache = { promptCacheHitTokens: record.promptCacheHitTokens, promptCacheMissTokens: record.promptCacheMissTokens };
+    record.queueWaitMs = Math.max(0, Math.round(Number(meta.queueWaitMs) || record.queueWaitMs || 0));
+    record.durationMs = Math.max(0, Math.round(Number(meta.durationMs) || record.durationMs || 0));
+    record.chunkCount = Math.max(0, Math.round(Number(meta.chunkCount) || record.chunkCount || 0));
+    if (meta.responseText && String(meta.responseText).length <= 120000) record.responseText = String(meta.responseText || '');
+    this.notifyChange();
+  },
+  recordError(recordId, err = {}, meta = {}) {
+    const record = this.item(recordId);
+    if (!record) return;
+    record.status = 'failed';
+    const completedAt = Number(meta.completedAt) || Date.now();
+    record.completedAt = completedAt;
+    record.completedAtText = new Date(completedAt).toLocaleString('zh-CN');
+    const message = String(err?.message || err || 'AI request failed');
+    const code = String(err?.code || '').trim();
+    const partial = String(meta.responseText || '').trim();
+    const errorText = `AI请求失败${code ? `（${code}）` : ''}: ${message}`;
+    record.responseText = partial ? `${partial}\n\n---\n${errorText}` : errorText;
+    this.recordProgress(recordId, {
+      ...meta,
+      status: 'failed',
+      durationMs: Math.max(0, Math.round(Number(meta.durationMs) || (completedAt - record.createdAt))),
+      responseText: record.responseText,
+    });
+  },
   item(recordId) { return this.records.find((item) => item.id === recordId) || null; },
   categories() {
     const templateCategories = window.GameModules.promptTemplates.list().map((item) => item.category);

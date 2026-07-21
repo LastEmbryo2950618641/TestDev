@@ -138,10 +138,16 @@ window.GameModules = window.GameModules || {};
     }
     if (!this.db) return [];
     const rows = [];
-    const stmt = this.db.prepare('SELECT entry_json FROM real_world_log');
+    const stmt = this.db.prepare(`
+      SELECT entry_json
+      FROM real_world_log
+      ORDER BY CASE WHEN entry_type='system' THEN 0 ELSE 1 END, created_at ASC, id ASC
+      LIMIT ? OFFSET ?
+    `);
+    stmt.bind([size, offset]);
     while (stmt.step()) rows.push(JSON.parse(stmt.getAsObject().entry_json));
     stmt.free();
-    return this.sortedRealWorldLogEntries(rows).slice(offset, offset + size);
+    return rows;
   };
 
   save.listRecentRealWorldLogEntries = function listRecentRealWorldLogEntries(limit = 600) {

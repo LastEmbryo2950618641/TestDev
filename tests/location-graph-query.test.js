@@ -100,6 +100,81 @@ test('imports legacy map into globally incremented location graph ids', () => {
   assert.ok(!graph.nodesById[nextId], 'allocation returns a fresh id for caller to use');
 });
 
+test('projecting graph POIs reuses legacy map node by display name and identity', () => {
+  const context = makeContext();
+  const graphApi = context.window.GameModules.realWorldLocationGraph;
+  const state = {
+    realWorldMap: {
+      currentId: 'legacy_home',
+      nodes: [
+        { id: 'legacy_home', name: 'Home Building', mapVisible: true },
+      ],
+      edges: [],
+    },
+  };
+  const graph = graphApi.ensureGraphState(state);
+  const newNode = {
+    id: 'loc_99',
+    type: 'poi',
+    name: 'Home Building',
+    displayName: 'Home Building',
+    identityKey: graphApi.identityKeyFor({ type: 'poi', parentId: '', name: 'Home Building' }),
+    mapVisible: true,
+  };
+  graph.nodesById[newNode.id] = newNode;
+  if (!graph.poiGraph.nodes.includes(newNode.id)) graph.poiGraph.nodes.push(newNode.id);
+  graphApi.projectLocationGraphToLegacyMap(state);
+  const homeNodes = state.realWorldMap.nodes.filter((node) => node.name === 'Home Building');
+  assert.strictEqual(homeNodes.length, 1);
+  assert.strictEqual(homeNodes[0].id, 'legacy_home');
+  assert.strictEqual(homeNodes[0].graphNodeId, 'loc_99');
+});
+
+test('projecting graph POIs compacts polluted long-address duplicate display nodes', () => {
+  const context = makeContext();
+  const graphApi = context.window.GameModules.realWorldLocationGraph;
+  const state = {
+    realWorldMap: {
+      currentId: 'long_home',
+      mapAnchorId: 'long_home',
+      nodes: [
+        {
+          id: 'long_home',
+          name: 'Sichuan Chengdu Wuhou Yulin Community Home Building',
+          mapVisible: true,
+          visited: true,
+          interiorLayout: { floors: [{ id: 'floor_6', rooms: [{ id: 'room_601', name: '601' }] }] },
+        },
+        {
+          id: 'short_home',
+          name: 'Home Building',
+          mapVisible: true,
+        },
+      ],
+      edges: [{ from: 'long_home', to: 'short_home' }],
+    },
+  };
+  graphApi.compactProjectedMapDisplayNodes(state, state.realWorldMap);
+  assert.strictEqual(state.realWorldMap.nodes.length, 1);
+  assert.strictEqual(state.realWorldMap.nodes[0].id, 'short_home');
+  assert.strictEqual(state.realWorldMap.nodes[0].name, 'Home Building');
+  assert.strictEqual(state.realWorldMap.nodes[0].visited, true);
+  assert.strictEqual(state.realWorldMap.nodes[0].interiorLayout.floors.length, 1);
+  assert.strictEqual(state.realWorldMap.currentId, 'short_home');
+  assert.deepStrictEqual(state.realWorldMap.edges, []);
+});
+
+test('audit patch nodes are indexed for strict reuse', () => {
+  const context = makeContext();
+  const skills = context.window.GameModules.realWorldLocationGraphSkills;
+  const graphApi = context.window.GameModules.realWorldLocationGraph;
+  const state = { realWorldMap: { currentId: '', nodes: [], edges: [] } };
+  const node = skills.mergeAuditNode(state, { tempRef: 'poi_home', type: 'poi', name: 'Audit Home' }, 'poi', '', {});
+  assert.ok(node.id);
+  assert.strictEqual(graphApi.findStrictNode(state, { name: 'Audit Home', type: 'poi' })?.id, node.id);
+  assert.ok(graphApi.searchNode(state, 'Audit Home').some((item) => item.id === node.id));
+});
+
 test('searches interior nodes and returns full path', () => {
   const context = makeContext();
   const graphApi = context.window.GameModules.realWorldLocationGraph;
@@ -708,8 +783,232 @@ test('stage4 surround unlock batches legacy map projection for new neighbors', a
   assert.strictEqual(projectCount, 1, 'new neighbor batch should project the graph into the legacy map once');
 });
 
+test('stage4 graph-style unlock payload is ignored by strict interior merge path', () => {
+  const context = makeContext();
+  context.window.GameModules.realWorldMap.isInteriorLocationName = () => false;
+  loadScript(context, 'publish/real-world-map-fog.js');
+  const fog = context.window.GameModules.realWorldMapFog;
+  const payload = fog.validateUnlockPayload({
+    patchType: 'location-tree-audit-fill',
+    audit: { decision: 'patch-existing', queriedBeforeDecision: true, isComplete: true, reason: 'details unlocked' },
+    poiGraphPatch: { nodes: [], edges: [] },
+    interiorsPatch: [{ targetPoiRef: 'existing:home_legacy', floors: [{ name: 'First Floor' }] }],
+  }, { id: 'home_legacy', name: 'Home Building' }, {}, 'full');
+  assert.strictEqual(payload.auditFillPayload, undefined);
+  assert.strictEqual(payload.interiorLayout.floors.length, 0);
+});
+
+test('stage4 full unlock JSON persists complete interior and neighbor into rendered map', async () => {
+  const context = makeContext();
+  context.window.GameModules.orgTerritory = { ensureMapControls() {} };
+  context.window.GameModules.realWorldMap.applyRouteLinks = () => {};
+  context.window.GameModules.realWorldMap.isMapDisplayNode = () => true;
+  context.window.GameModules.realWorldMap.isInteriorLocationName = () => false;
+  context.window.GameModules.realWorldMap.isMapExteriorNode = () => true;
+  context.window.GameModules.realWorldMap.resolveExteriorAnchorNode = (map, node) => node;
+  loadScript(context, 'publish/real-world-map-interior-templates.js');
+  loadScript(context, 'publish/real-world-map-interior.js');
+  loadScript(context, 'publish/real-world-map-fog.js');
+  const state = {
+    realWorldMap: {
+      currentId: 'home_legacy',
+      current: '锦苑小区3栋',
+      nodes: [{ id: 'home_legacy', name: '锦苑小区3栋', mapVisible: true, revealed: true }],
+      edges: [],
+    },
+  };
+  const map = state.realWorldMap;
+  const anchor = map.nodes[0];
+  const payload = context.window.GameModules.realWorldMapFog.validateUnlockPayload({
+    responseMode: 'full',
+    interiorLayout: {
+      summary: '锦苑小区3栋已解锁的楼层与户内结构。',
+      zones: [],
+      floors: [{
+        id: 'floor_1',
+        name: '第一层',
+        rooms: [{
+          id: 'room_101',
+          number: '101',
+          name: '101号',
+          residents: ['刘思琪'],
+          layout: {
+            width: 480,
+            height: 320,
+            shapes: [
+              { id: 'bedroom_area', type: 'rect', x: 32, y: 40, w: 160, h: 110, label: '刘思琪的卧室' },
+              { id: 'desk_area', type: 'rect', x: 220, y: 48, w: 110, h: 80, label: '书桌区' },
+            ],
+          },
+          slotObjects: {
+            bedroom_area: [
+              { id: 'bed_101', name: '床', x: 44, y: 64, w: 108, h: 62, containerContents: ['床单', '枕头'] },
+            ],
+            desk_area: [
+              { id: 'desk_101', name: '书桌', x: 232, y: 66, w: 90, h: 44, containerContents: ['课本', '台灯'] },
+            ],
+          },
+        }],
+      }],
+    },
+    surroundLocations: [{
+      name: '锦苑小区门口便利店',
+      parentName: '锦苑小区',
+      descriptionFacts: ['位于小区正门外侧', '可步行抵达'],
+      distanceMeters: 80,
+      distanceText: '80m',
+      directNeighbor: true,
+      noIntermediateLocations: true,
+    }],
+  }, anchor, map, 'full');
+
+  await context.window.GameModules.realWorldMapFog.applySurroundUnlock(state, map, anchor, anchor, payload);
+
+  assert.strictEqual(anchor.interiorLayout.floors.length, 1);
+  assert.strictEqual(anchor.interiorLayout.floors[0].rooms[0].number, '101');
+  assert.strictEqual(anchor.interiorLayout.floors[0].rooms[0].layout.shapes.length, 2);
+  const bed = anchor.interiorLayout.floors[0].rooms[0].slotObjects.bedroom_area.find((item) => item.name === '床');
+  assert.deepStrictEqual(Array.from(bed.containerContents), ['床单', '枕头']);
+  assert.ok(map.nodes.some((node) => node.name === '锦苑小区门口便利店' && node.mapVisible === true));
+});
+
+test('stage4 patch unlock JSON applies incremental interior changes without replacing whole layout', async () => {
+  const context = makeContext();
+  context.window.GameModules.orgTerritory = { ensureMapControls() {} };
+  context.window.GameModules.realWorldMap.applyRouteLinks = () => {};
+  context.window.GameModules.realWorldMap.isMapDisplayNode = () => true;
+  context.window.GameModules.realWorldMap.isInteriorLocationName = () => false;
+  context.window.GameModules.realWorldMap.resolveExteriorAnchorNode = (map, node) => node;
+  loadScript(context, 'publish/real-world-map-interior-templates.js');
+  loadScript(context, 'publish/real-world-map-interior.js');
+  loadScript(context, 'publish/real-world-map-fog.js');
+  const state = {
+    realWorldMap: {
+      currentId: 'home_legacy',
+      current: '锦苑小区3栋',
+      nodes: [{
+        id: 'home_legacy',
+        name: '锦苑小区3栋',
+        mapVisible: true,
+        revealed: true,
+        exteriorRingUnlocked: true,
+        interiorLayout: {
+          summary: '已有结构',
+          zones: [],
+          floors: [{
+            id: 'floor_1',
+            name: '第一层',
+            rooms: [
+              {
+                id: 'room_101',
+                number: '101',
+                name: '101号',
+                layout: { width: 480, height: 320, shapes: [{ id: 'bedroom_area', label: '卧室', x: 40, y: 40, w: 120, h: 90 }] },
+                slotObjects: {
+                  bedroom_area: [{ id: 'bed_101', name: '床', containerContents: ['床单', '枕头'] }],
+                },
+              },
+              { id: 'room_102', number: '102', name: '102号', layout: { width: 480, height: 320, shapes: [] } },
+            ],
+          }],
+        },
+      }],
+      edges: [],
+    },
+  };
+  const map = state.realWorldMap;
+  const anchor = map.nodes[0];
+  const payload = context.window.GameModules.realWorldMapFog.validateUnlockPayload({
+    responseMode: 'patch',
+    patch: {
+      interiorLayout: {
+        floors: [{
+          id: 'floor_1',
+          rooms: [{
+            id: 'room_101',
+            number: '101',
+            slotObjects: {
+              bedroom_area: [
+                { id: 'bed_101', name: '床', containerContents: ['床单', '枕头', '刚放下的手机'] },
+                { id: 'wardrobe_101', name: '衣柜', containerContents: ['校服', '外套'] },
+              ],
+            },
+          }],
+        }],
+      },
+    },
+    surroundLocations: [],
+  }, anchor, map, 'patch');
+
+  await context.window.GameModules.realWorldMapFog.applySurroundUnlock(state, map, anchor, anchor, payload);
+
+  const floor = anchor.interiorLayout.floors.find((item) => item.id === 'floor_1');
+  const room101 = floor.rooms.find((room) => room.id === 'room_101');
+  const room102 = floor.rooms.find((room) => room.id === 'room_102');
+  const bed = room101.slotObjects.bedroom_area.find((item) => item.id === 'bed_101');
+  const wardrobe = room101.slotObjects.bedroom_area.find((item) => item.id === 'wardrobe_101');
+  assert.ok(room102, 'incremental patch must not delete untouched rooms');
+  assert.deepStrictEqual(Array.from(bed.containerContents), ['床单', '枕头', '刚放下的手机']);
+  assert.deepStrictEqual(Array.from(wardrobe.containerContents), ['校服', '外套']);
+  assert.strictEqual(room101.layout.shapes.length, 1, 'incremental patch must keep existing room layout shapes');
+});
 
 
+
+
+test('interior drawer renders only selected node json without graph hydration', () => {
+  const context = makeContext();
+  context.document = { addEventListener() {}, removeEventListener() {} };
+  context.window.document = context.document;
+  context.window.requestAnimationFrame = (callback) => callback();
+  context.window.GameModules.orgTerritory = { ensureMapControls() {} };
+  context.window.GameModules.realWorldMap.applyRouteLinks = () => {};
+  context.window.GameModules.realWorldMap.isMapDisplayNode = () => true;
+  context.window.GameModules.realWorldMap.isInteriorLocationName = () => false;
+  context.window.GameModules.realWorldMap.isMapExteriorNode = () => true;
+  context.window.GameModules.realWorldMap.resolveExteriorAnchorNode = (map, node) => node;
+  loadScript(context, 'publish/real-world-map-facts.js');
+  loadScript(context, 'publish/real-world-map-interior-templates.js');
+  loadScript(context, 'publish/real-world-map-interior.js');
+  loadScript(context, 'publish/real-world-map.js');
+  loadScript(context, 'publish/real-world-map-fog.js');
+  loadScript(context, 'publish/real-world-map-geopolitical.js');
+  loadScript(context, 'publish/real-world-map-graph.js');
+  loadScript(context, 'publish/real-world-map-actions.js');
+  const state = makeState();
+  context.window.GameModules.realWorldMap.ensure(state, state.playerProfile || {});
+  Object.assign(state, context.window.GameModules.realWorldMapActions);
+  state.realWorldMapAfterPaint = (callback) => callback();
+  state.realWorldMapRuntime = () => (state.__realWorldMapRuntime = state.__realWorldMapRuntime || {});
+  const anchor = state.realWorldMap.nodes[0];
+  const payload = context.window.GameModules.realWorldMapFog.validateUnlockPayload({
+    patchType: 'location-tree-audit-fill',
+    audit: { decision: 'patch-existing', queriedBeforeDecision: true, isComplete: true, reason: 'details unlocked' },
+    patch: {
+      poiGraphPatch: { nodes: [], edges: [] },
+      interiorsPatch: [{
+        targetPoiRef: `existing:${anchor.id}`,
+        floors: [{
+          tempRef: 'floor_1',
+          name: 'First Floor',
+          rooms: [{
+            tempRef: 'room_101',
+            name: '101',
+            number: '101',
+            zones: [{ tempRef: 'zone_bedroom', name: 'Bedroom' }],
+          }],
+        }],
+      }],
+    },
+  }, anchor, state.realWorldMap, 'full');
+
+  context.window.GameModules.realWorldLocationGraphSkills.applyAuditFillPatch(state, payload.auditFillPayload, { currentNode: anchor });
+  anchor.interiorLayout = { summary: '', zones: [{ id: 'zone_old', name: '旧区域' }] };
+
+  const floors = state.prepareRealWorldMapInteriorFloors(anchor.id);
+  assert.strictEqual(floors.length, 0);
+  assert.strictEqual(state.realWorldMap.nodes[0].interiorLayout.floors, undefined);
+});
 
 test('realWorldMap route links allocate graph ids for implicit endpoint nodes', () => {
   const context = makeContext();
@@ -747,6 +1046,47 @@ test('realWorldMap addLocation and update allocate graph ids for new POIs', () =
   const updated = map.nodes.find((node) => node.name === 'Updated Facade Building');
   assert.match(updated.id, /^loc_\d+$/);
   assert.notStrictEqual(updated.id, context.window.GameModules.realWorldMap.nodeId('Updated Facade Building'));
+});
+
+test('realWorldMap normalizeNodes keeps richer interior layout on duplicate names', () => {
+  const context = makeContext();
+  loadScript(context, 'publish/real-world-map.js');
+  const state = {
+    playerProfile: {},
+    realWorldMap: {
+      current: '锦苑小区3栋',
+      currentId: 'legacy_empty',
+      nodes: [
+        { id: 'legacy_empty', name: '锦苑小区3栋', interiorLayout: { summary: '', zones: [] }, visited: true },
+        {
+          id: 'graph_rich',
+          name: '锦苑小区3栋',
+          graphNodeId: 'loc_1',
+          interiorLayout: {
+            floors: [{
+              id: 'floor_2',
+              name: '第二层',
+              rooms: [{
+                id: 'room_202',
+                name: '202号房',
+                slotObjects: { bedroom: [{ name: '书桌', containerContents: ['钥匙'] }] },
+              }],
+            }],
+          },
+          exteriorRingUnlocked: true,
+        },
+      ],
+      edges: [],
+      expanded: {},
+    },
+  };
+  const map = context.window.GameModules.realWorldMap.ensure(state, state.playerProfile);
+  const node = map.nodes.find((item) => item.name === '锦苑小区3栋');
+  assert.strictEqual(map.nodes.filter((item) => item.name === '锦苑小区3栋').length, 1);
+  assert.strictEqual(node.interiorLayout.floors.length, 1);
+  assert.strictEqual(node.interiorLayout.floors[0].rooms[0].slotObjects.bedroom[0].containerContents[0], '钥匙');
+  assert.strictEqual(node.exteriorRingUnlocked, true);
+  assert.strictEqual(node.graphNodeId, 'loc_1');
 });
 
 test('map facts location adds use graph allocated ids before legacy addLocation', () => {

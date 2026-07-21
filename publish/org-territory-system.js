@@ -1131,6 +1131,14 @@ window.GameModules.orgTerritory = {
     return status === 'active' && !leg ? '' : `${base}${leg}`;
   },
 
+  warnOnce(key = '', ...args) {
+    window.GameModules.orgTerritoryWarned = window.GameModules.orgTerritoryWarned || {};
+    const id = String(key || args.join('|')).slice(0, 240);
+    if (window.GameModules.orgTerritoryWarned[id]) return;
+    window.GameModules.orgTerritoryWarned[id] = true;
+    console.warn(...args);
+  },
+
   resolveLiveOrgId(store, orgId = '', seen = null) {
     store?.initFactionSystem?.();
     const chain = seen || new Set();
@@ -1141,7 +1149,7 @@ window.GameModules.orgTerritory = {
       chain.add(current);
       const faction = (store?.factionState?.factions || []).find((f) => f.id === current);
       if (!faction) {
-        console.warn('[orgTerritory] 无效 orgId，回退法域 stub:', current);
+        this.warnOnce(`invalid-org:${current}`, '[orgTerritory] 无效 orgId，回退法域 stub:', current);
         return this.defaultCountryOrgId(store);
       }
       if (faction.status === 'dissolved' || faction.status === 'merged') {
@@ -1150,7 +1158,7 @@ window.GameModules.orgTerritory = {
           current = next;
           continue;
         }
-        console.warn('[orgTerritory] 已解散/合并 org 无 successor，回退法域:', faction.id);
+        this.warnOnce(`dissolved-org-no-successor:${faction.id}`, '[orgTerritory] 已解散/合并 org 无 successor，回退法域:', faction.id);
         return this.defaultCountryOrgId(store);
       }
       return faction.id;

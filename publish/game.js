@@ -272,9 +272,6 @@ function registerGameStore() {
     realWorldMapInteriorSummary() { return ''; },
     realWorldMapInteriorView() { return 'tree'; },
     realWorldMapInteriorFloors() { return []; },
-    realWorldMapInteriorZones() { return []; },
-    realWorldMapInteriorFloorOpen() { return false; },
-    toggleRealWorldMapInteriorFloor() {},
     async openRealWorldMapInteriorFloor(...args) {
       const previous = this.openRealWorldMapInteriorFloor;
       await window.GameModules.assetLoader?.ensureChunks?.(['gameplay'], this);
@@ -295,8 +292,6 @@ function registerGameStore() {
     backRealWorldMapInteriorFloor() {},
     realWorldMapSelectedFloor() { return null; },
     renderRealWorldMapRoomCanvas() {},
-    renderRealWorldMapFloorPlanCanvas() {},
-    realWorldMapFloorPlanClick() {},
     realWorldMapRoomLayoutClick() {},
     clearRealWorldMapRoomArea() {},
     realWorldMapRoomTitle(room = {}) { return room?.number || room?.name || ''; },
@@ -306,8 +301,6 @@ function registerGameStore() {
     realWorldMapSelectedRoomAreaTitle() { return ''; },
     realWorldMapSelectedRoomObjectTitle() { return ''; },
     realWorldMapSelectedRoomObjectLine() { return ''; },
-    realWorldMapSelectedRoomTemplateLabel() { return ''; },
-    realWorldMapZoneGridClass() { return ''; },
     realWorldMapInfoNode() { return null; },
     realWorldMapInfoFacts() { return []; },
     realWorldMapFactText() { return ''; },
@@ -593,6 +586,12 @@ function registerGameStore() {
     wechatAvatarCropImageStyle() { return ''; },
     phoneDateText() { return ''; },
     phoneTimeText() { return ''; },
+    realWorldWordCountValue() {
+      return Math.floor(Number(this.realWorldWordCount) || 0);
+    },
+    realWorldWordCountValid() {
+      return this.realWorldFreedomMode !== 'words' || this.realWorldWordCountValue() >= 200;
+    },
   };
   const modules = [
     criticalActionFallback, gm.actions, gm.rpgFieldUi, gm.resultActions, gm.loadingActions, gm.roleCardLoadingActions, gm.solidifyActions, gm.wearingSyncActions, gm.saveActions, gm.styleActions,

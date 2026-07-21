@@ -2865,6 +2865,7 @@ window.GameModules.realWorldAgentLoop = {
       const isJsonMode = Boolean(completionOptions.jsonMode);
       const providerId = window.GameModules.aiProvider?.currentProviderId?.() || '';
       const shouldStream = !isJsonMode || providerId === 'deepseek';
+      const defaultTimeoutMs = streamToUi ? 240000 : 90000;
       const requestOptions = {
         source: config.sourceTitle || (streamToUi ? `${config.mode}-agent-loop` : `${config.mode}-agent-context`),
         model: config.model || store.modelId,
@@ -2874,11 +2875,29 @@ window.GameModules.realWorldAgentLoop = {
         jsonMode: isJsonMode,
         responseFormat: completionOptions.responseFormat,
         stream: shouldStream,
-        timeoutMs: Number(config.timeoutMs) || 240000,
+        timeoutMs: Number(config.timeoutMs) || defaultTimeoutMs,
         requireDone: true,
         outputLengthThreshold: 2600,
         outputLimitKind: completionOptions.outputLimitKind,
         maxAttempts: Number(config.maxAttempts) || 3,
+        onTokenRecord: (tokenRecordId) => {
+          if (!tokenRecordId || !logId) return;
+          const patchPromptPack = (entry = {}) => ({
+            ...(entry.promptPack || {}),
+            runtimeRecordId: tokenRecordId,
+            tokenRecordId,
+            model: config.model || store.modelId,
+          });
+          if (config.mode === 'story') {
+            const entry = (store.novel || []).find((item) => item?.id === logId) || {};
+            store.attachNovelPrompt?.(logId, patchPromptPack(entry));
+            return;
+          }
+          const entry = (store.realWorldLog || []).find((item) => item?.id === logId)
+            || window.GameModules.realWorldLogStore?.get?.(logId)
+            || {};
+          store.patchRealWorldLogEntry?.(logId, { promptPack: patchPromptPack(entry) }, { live: true });
+        },
         onChunk: async (chunk, done, info) => {
           const latest = config.mode === 'story' ? window.GameModules.ai.latestRequestId : window.GameModules.realWorldAi.latestRequestId;
           if (requestId !== latest) return;

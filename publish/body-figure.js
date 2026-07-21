@@ -116,6 +116,7 @@ window.GameModules.bodyFigure = {
   ],
   maskEntry: { id: 'mask-image1', path: 'mask/image1', mask: true },
   metaCache: {},
+  metaPromises: {},
   manifestEntries: [],
   manifestLoaded: false,
   manifestPromise: null,
@@ -138,21 +139,27 @@ window.GameModules.bodyFigure = {
     const key = String(relativePath || '').trim();
     if (!key) return null;
     if (this.metaCache[key]) return this.metaCache[key];
+    if (this.metaPromises[key]) return this.metaPromises[key];
     const staticMeta = staticBodyFigureMeta(key);
     if (staticMeta) {
       this.metaCache[key] = normalizeBodyFigureMeta(staticMeta, { path: key, id: key });
       return this.metaCache[key];
     }
-    try {
-      const res = await fetch(this.basePath(`${key}/meta.json`), { cache: 'no-cache' });
-      if (!res.ok) return null;
-      const meta = await res.json();
-      this.metaCache[key] = normalizeBodyFigureMeta(meta, { path: key, id: key });
-      return this.metaCache[key];
-    } catch (err) {
-      console.warn('[body-figure] meta load failed:', key, err?.message || err);
-      return null;
-    }
+    this.metaPromises[key] = (async () => {
+      try {
+        const res = await fetch(this.basePath(`${key}/meta.json`), { cache: 'no-cache' });
+        if (!res.ok) return null;
+        const meta = await res.json();
+        this.metaCache[key] = normalizeBodyFigureMeta(meta, { path: key, id: key });
+        return this.metaCache[key];
+      } catch (err) {
+        console.warn('[body-figure] meta load failed:', key, err?.message || err);
+        return null;
+      } finally {
+        delete this.metaPromises[key];
+      }
+    })();
+    return this.metaPromises[key];
   },
 
   async loadManifest() {

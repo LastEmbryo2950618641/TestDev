@@ -15,6 +15,8 @@ assert.ok(html.includes('realWorldSettlementThinkingLines(entry)'));
 assert.ok(html.indexOf('entry.narration || entry.statusText || entry.text') < html.indexOf('现实AI结算思考'));
 assert.ok(html.indexOf('现实AI结算思考') < html.indexOf('real-world-settlement-btn'));
 assert.ok(html.includes('&& entry.settlementThinkingOpen'));
+assert.ok(html.includes('<template x-if="!entry.transientError && $store.game.hasRealWorldSettlementThinking(entry) && entry.settlementThinkingOpen"'));
+assert.ok(html.includes('<template x-if="entry.cardChangesOpen"'));
 assert.ok(!html.includes('entry.streaming || entry.settlementThinkingOpen'));
 assert.ok(!html.includes('realWorldTraceLines(entry)"'));
 assert.ok(html.includes('real-world-hud-emblem'));
@@ -27,6 +29,30 @@ assert.ok(html.includes('offlineSharedControlRole()'));
 assert.ok(html.includes('退出当前附身控制，把身体控制权交还给被控制者。'));
 assert.ok(!html.includes('real-world-paired-player'));
 assert.ok(!read('publish/real-world-clock-actions.js').includes('this.sharedControlActive = false;'));
+const clockActions = read('publish/real-world-clock-actions.js');
+assert.ok(clockActions.includes('const total = window.GameModules.realWorldLogStore?.count?.() || 0'));
+assert.ok(clockActions.includes('const loadedLatest = total > 0'));
+assert.ok(clockActions.includes('if (!loadedLatest) this.refreshRealWorldLogPage?.(999999)'));
+assert.ok(!read('publish/current-world-actions.js').includes('if (this.realWorldOpen) this.openRealWorldPanel?.()'));
+const sqliteRealWorldLog = read('publish/platform/storage/sqlite/real-world-log.js');
+assert.ok(sqliteRealWorldLog.includes('LIMIT ? OFFSET ?'));
+assert.ok(sqliteRealWorldLog.includes("ORDER BY CASE WHEN entry_type='system' THEN 0 ELSE 1 END, created_at ASC, id ASC"));
+assert.ok(!sqliteRealWorldLog.includes("SELECT entry_json FROM real_world_log');"));
+const restorePostFlow = read('publish/app/storage/restore-post-flow.js');
+assert.ok(restorePostFlow.includes("realWorldLogStore?.count?.() || 0) <= 0"));
+assert.ok(restorePostFlow.indexOf("realWorldLogStore?.count") < restorePostFlow.indexOf("realWorldLogStore?.saveAll?.(store.realWorldLog)"));
+assert.ok(restorePostFlow.includes('schedulePostRestoreSideEffects(store)'));
+assert.ok(restorePostFlow.includes('store.scheduleIdleLoad?.bind(store)'));
+assert.ok(!restorePostFlow.includes('    store.initFactionSystem?.();\n    window.GameModules.orgTerritory?.validateWorldConsistency?.(store);\n    store.initTaobaoApp?.();'));
+assert.ok(!read('publish/home-actions.js').includes('      this.loadSavedRpgStates?.();'));
+assert.ok(read('publish/home-actions.js').includes('this.scheduleIdleLoad?.(() =>'));
+assert.ok(read('publish/home-actions.js').includes('if (!Object.keys(this.saveMetas || {}).length) await this.refreshSaveMetas?.();'));
+assert.ok(!read('publish/home-actions.js').includes('      await this.refreshSaveMetas?.();\n      if (!this.phoneSetupDone)'));
+assert.ok(!read('publish/home-actions.js').includes('      await this.openSlot(slot);'));
+assert.ok(read('publish/home-actions.js').includes('window.GameModules.storage.restore(this, save);'));
+assert.ok(read('publish/home-actions.js').includes("const stateIds = [...new Set(['player-self', this.selectedCharacterId, this.rpgPanelCharacterId].filter(Boolean))];"));
+assert.ok(read('publish/app/save/slot-flow.js').includes('await this.loadWritingStyles({ readOnly: true });'));
+assert.ok(read('publish/style-actions.js').includes('if (options.readOnly !== true) await this.saveWritingStyles(options);'));
 
 const actions = read('publish/real-world-actions.js');
 assert.ok(actions.includes('promptPack: null'));
@@ -60,6 +86,8 @@ assert.strictEqual(store.cleanRealWorldThinkingText('有效推演'), '有效推�
 assert.deepStrictEqual(JSON.parse(JSON.stringify(store.realWorldSettlementThinkingLines({
   settlementThinkingSections: [{ id: 'stage4', label: 'Stage4滑动结算', text: '检查更新' }],
 }))), [{ id: 'stage4', label: 'Stage4滑动结算', text: '检查更新' }]);
+assert.strictEqual(store.normalizeRealWorldLog([{ id: 'done', settlementThinking: '已完成' }])[0].settlementThinkingOpen, false);
+assert.strictEqual(store.normalizeRealWorldLog([{ id: 'live', streaming: true, settlementThinking: '进行中' }])[0].settlementThinkingOpen, true);
 assert.strictEqual(store.realWorldDisplayLog([
   { id: 'u1', type: 'user', text: 'same action' },
   { id: 'u2', type: 'user', text: 'same action' },

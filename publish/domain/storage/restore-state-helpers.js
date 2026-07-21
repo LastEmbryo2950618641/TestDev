@@ -3,6 +3,14 @@ window.GameModules.domain = window.GameModules.domain || {};
 window.GameModules.domain.storage = window.GameModules.domain.storage || {};
 
 window.GameModules.domain.storage.restoreStateHelpers = {
+  rawLargeValue(value) {
+    if (!value || typeof value !== 'object') return value;
+    try {
+      return window.Alpine?.raw ? window.Alpine.raw(value) : value;
+    } catch (err) {
+      return value;
+    }
+  },
   normalizeRpgPanelState(store, save) {
     store.rpgPanelCharacterId = save.rpgPanelCharacterId || store.selectedCharacterId;
   },
@@ -60,7 +68,7 @@ window.GameModules.domain.storage.restoreStateHelpers = {
     store.realWorldThinkMode = Boolean(save.realWorldThinkMode ?? store.realWorldThinkMode);
     store.realWorldSceneTitle = save.realWorldSceneTitle || store.realWorldSceneTitle;
     store.realWorldLocationName = save.realWorldLocationName || store.realWorldLocationName;
-    store.realWorldMap = save.realWorldMap || store.realWorldMap;
+    store.realWorldMap = this.rawLargeValue(save.realWorldMap || store.realWorldMap);
     store.realWorldQuest = save.realWorldQuest || store.realWorldQuest;
     store.realWorldStatus = save.realWorldStatus || store.realWorldStatus;
     store.realWorldChoices = save.realWorldChoices || store.realWorldChoices;
