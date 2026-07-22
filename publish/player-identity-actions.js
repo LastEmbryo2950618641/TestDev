@@ -69,7 +69,9 @@ window.GameModules.playerIdentityActions = {
       items: p.items || [],
       wearing: p.wearing || [],
       detail: 'gender: ' + (p.gender || 'unknown') + '; age: ' + (p.age || 'unknown') + '; birthday: ' + (p.birthday || 'unknown') + '; currentLocation: ' + (currentLocation || 'unknown') + '; city: ' + city + '; workplace: ' + workplace + '; position: ' + position + '; living: ' + living + '; parents: ' + parents + '; death cause: ' + deathCause + '; relations: ' + relations + '; notes: ' + notes,
-      personality: notes,
+      appearance: p.appearance || '',
+      preferences: p.preferences || '',
+      personality: p.personality || '',
       skills: [
         { name: 'mobile-operation', desc: 'Can use a smartphone for communication, search, shooting, settings, app switching, and information handling.', reason: 'Granted by phone setup and real-world app entry flow.' },
         { name: 'real-world-observation', desc: 'Can judge the current situation from environmental changes and reactions of others.', reason: 'Needed for real-world identity and environment interaction.' }
@@ -104,12 +106,10 @@ window.GameModules.playerIdentityActions = {
     const worldTag = p.work || state?.worldTag || '原创世界';
     const reasonFor = this.roleCardReasonGetter?.(p) || (() => '');
     const row = (key, label, value, desc, extra = {}) => ({ key: `id-${this.identityTargetId || 'player-self'}-${key}`, stateId: this.identityTargetId || 'player-self', label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: '角色', commonField: true, ...extra });
-    const stateLocation = state?.values?.current_location;
-    const currentLocation = p.currentLocation || stateLocation?.currentLocation || stateLocation?.name || '';
     const fields = [
       row('name', '姓名', p.name, '角色卡固化姓名。'),
       row('work', '所属世界', worldTag, '角色出身作品或世界。'),
-      row('currentLocation', '当前位置', currentLocation, '玩家当前位置，格式为“势力·势力层级1·势力层级2·地点·地点内位置”；地点段直接作为电子地图节点名。', { raw: stateLocation || currentLocation }),
+      row('currentLocation', '当前位置', p.currentLocation, '玩家当前位置来自角色卡 profile.currentLocation。'),
       row('role', '身份', p.role, '角色卡固化身份。'),
       row('appearance', '外貌', p.appearance, '角色卡固化外貌。'),
       row('preferences', '喜好', p.preferences, '角色稳定喜好和穿着偏好。'),

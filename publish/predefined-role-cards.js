@@ -243,6 +243,7 @@ window.GameModules.predefinedRoleCards = {
       workplace: profile.workplace || fallback.workplace || '', position: profile.position || fallback.position || '',
       livingStatus: profile.livingStatus || '', refinedLivingStatus: profile.refinedLivingStatus || profile.livingStatus || '',
       parents: profile.parents || '', parentStatus: profile.parentStatus || profile.parents || '', parentDeathCause: profile.parentDeathCause || '',
+      appearance: profile.appearance ?? '', preferences: profile.preferences ?? '', personality: profile.personality ?? '',
       relationships: profile.relationships || fallback.relationships || '', notes: profile.notes || profile.detail || '', worldbuildingNote: profile.worldbuildingNote || '',
       initializedAt: fallback.initializedAt || new Date().toISOString(),
     };

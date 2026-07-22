@@ -2235,6 +2235,15 @@
   background: rgba(255, 255, 255, .025);
 }
 
+.phone-setup-trait {
+  grid-column: 1 / -1;
+}
+
+.phone-setup-trait textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+
 .phone-setup-card label,
 .phone-setup-wide,
 .activation-choice,

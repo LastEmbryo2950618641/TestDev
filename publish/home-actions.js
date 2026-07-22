@@ -50,6 +50,7 @@ window.GameModules.homeActions = {
     try {
       this.phoneSetupDone = false;
       this.phoneActivationChoice = '';
+      this.playerProfileTraitDefaultsApplied = false;
       this.desktopUnlocked = false;
       this.started = false;
       await this.newSlot?.(emptySlot);

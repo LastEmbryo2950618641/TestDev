@@ -23,6 +23,24 @@ function loadPredefinedRoleCardsModule(data) {
   return context.window.GameModules;
 }
 
+function loadRoleCardEditorModules() {
+  const context = {
+    console,
+    window: {
+      GameModules: {
+        predefinedRoleCardData: {},
+        predefinedRoleCardActions: {},
+        playerAspirationConfig: {},
+        appearanceProfileTags: null,
+      },
+    },
+  };
+  vm.createContext(context);
+  vm.runInContext(fs.readFileSync('publish/predefined-role-cards.js', 'utf8'), context);
+  vm.runInContext(fs.readFileSync('publish/role-card-editor.js', 'utf8'), context);
+  return context.window.GameModules;
+}
+
 function loadPlayerSetupDefaultsModule() {
   const context = {
     console,
@@ -51,6 +69,29 @@ function loadPlayerSetupDefaultsModule() {
   return context.window.GameModules;
 }
 
+function loadPlayerSetupActionsModule() {
+  const context = {
+    console,
+    window: {
+      GameModules: {
+        playerSetupActions: {},
+        currentLocationField: { normalize: (value) => String(value || '').trim() },
+        characterProfile: { formatRelationships: (value) => value || '' },
+        progression: {
+          normalizeCarryItem: (item) => ({ ...item, name: String(item?.name || '') }),
+          inferEquipSlots: () => [],
+        },
+      },
+    },
+    setTimeout,
+    clearTimeout,
+  };
+  vm.createContext(context);
+  vm.runInContext(fs.readFileSync('publish/player-setup-actions.js', 'utf8'), context);
+  vm.runInContext(fs.readFileSync('publish/player-setup-extra-actions.js', 'utf8'), context);
+  return context.window.GameModules;
+}
+
 function loadPlayerIdentityActionsModule() {
   const context = {
     console,
@@ -58,6 +99,25 @@ function loadPlayerIdentityActionsModule() {
   };
   vm.createContext(context);
   vm.runInContext(fs.readFileSync('publish/player-identity-actions.js', 'utf8'), context);
+  return context.window.GameModules;
+}
+
+function loadIdentityUiModules() {
+  const context = {
+    console,
+    window: {
+      GameModules: {
+        playerIdentityActions: {},
+        rpgFieldUi: {},
+        saveActions: {},
+        realWorld2026: { label: '2026 现代都市现实世界' },
+      },
+    },
+  };
+  vm.createContext(context);
+  ['publish/save-actions.js', 'publish/rpg-field-ui.js', 'publish/player-identity-actions.js'].forEach((file) => {
+    vm.runInContext(fs.readFileSync(file, 'utf8'), context);
+  });
   return context.window.GameModules;
 }
 
@@ -102,6 +162,103 @@ test('player profile from card does not inherit fallback current location', () =
   assert.strictEqual(profile.currentLocation, '');
   assert.strictEqual(profile.livingStatus, '');
   assert.strictEqual(profile.refinedLivingStatus, '');
+});
+
+test('player profile from predefined card copies editable traits', () => {
+  const modules = loadPredefinedRoleCardsModule({});
+  const profile = modules.predefinedRoleCards.playerProfileFromCard({
+    id: 'player',
+    name: '刘悠',
+    appearance: '短发戴眼镜',
+    preferences: '喜欢阅读',
+    personality: '沉稳内敛',
+  }, {});
+
+  assert.strictEqual(profile.appearance, '短发戴眼镜');
+  assert.strictEqual(profile.preferences, '喜欢阅读');
+  assert.strictEqual(profile.personality, '沉稳内敛');
+});
+
+test('profile trait input updates profile and selected predefined card', () => {
+  const modules = loadRoleCardEditorModules();
+  const card = { id: 'player', name: '刘悠', isPlayer: true, appearance: '旧外貌' };
+  const store = {
+    playerProfile: { name: '刘悠', appearance: '旧外貌' },
+    roleCardSetup: { usePredefinedPlayerCard: true, selectedPlayerId: 'player', cards: [card] },
+  };
+  Object.assign(store, modules.predefinedRoleCardActions);
+
+  store.setPlayerProfileTrait('appearance', '戴金属框眼镜');
+
+  assert.strictEqual(store.playerProfile.appearance, '戴金属框眼镜');
+  assert.strictEqual(card.appearance, '戴金属框眼镜');
+});
+
+test('new profile normalization preserves user traits', () => {
+  const modules = loadPlayerSetupActionsModule();
+  const store = {
+    playerProfile: {
+      appearance: '  用户外貌  ',
+      preferences: '  用户喜好  ',
+      personality: '  用户性格  ',
+    },
+  };
+  Object.assign(store, modules.playerSetupActions);
+
+  const base = store.normalizePlayerSetupBase('刘悠', '1998-11-19');
+  const enriched = store.normalizeEnrichedPlayerProfile(base, { personality: 'AI改写值' });
+
+  assert.strictEqual(enriched.appearance, '用户外貌');
+  assert.strictEqual(enriched.preferences, '用户喜好');
+  assert.strictEqual(enriched.personality, '用户性格');
+});
+
+test('default profile parses player trait defaults', () => {
+  const modules = loadPlayerSetupDefaultsModule();
+  const store = {
+    normalizeRelationshipEntries: (entries) => entries || [],
+  };
+  Object.assign(store, modules.playerSetupActions);
+  const markdown = fs.readFileSync('publish/config/default-existing-profile.md', 'utf8');
+
+  const profile = store.parseDefaultProfileMd(markdown);
+
+  assert.strictEqual(profile.appearance, '黑直短发，戴金属框眼镜，眉宇间带着一丝疲惫，常穿深色格子衬衫，身高178cm，体型偏瘦。');
+  assert.strictEqual(profile.preferences, '偏爱休闲简约风格，常穿T恤、牛仔裤和运动鞋，对颜色没有特殊偏好，随身携带笔记本电脑和手机。');
+  assert.strictEqual(profile.personality, '责任感强，对妹妹们有保护欲，性格沉稳内敛，不善表达情感但行动体贴，压力下会独自沉默。');
+});
+
+test('new account applies player trait defaults only once', async () => {
+  const modules = loadPlayerSetupDefaultsModule();
+  const defaults = { appearance: '默认外貌', preferences: '默认喜好', personality: '默认性格' };
+  const store = {
+    profileSetupBusy: false,
+    playerProfileTraitDefaultsApplied: false,
+    playerProfile: {},
+    roleCardSetup: {},
+    defaultExistingAccountProfile: async () => defaults,
+    normalizeRelationshipEntries: (entries) => entries || [],
+  };
+  Object.assign(store, modules.playerSetupActions);
+  store.defaultExistingAccountProfile = async () => defaults;
+
+  await store.chooseNewAccountSetup();
+  assert.strictEqual(store.playerProfile.appearance, '默认外貌');
+  assert.strictEqual(store.playerProfile.preferences, '默认喜好');
+  assert.strictEqual(store.playerProfile.personality, '默认性格');
+  assert.strictEqual(store.playerProfileTraitDefaultsApplied, true);
+
+  store.playerProfile.appearance = '';
+  await store.chooseNewAccountSetup();
+  assert.strictEqual(store.playerProfile.appearance, '');
+});
+
+test('game declares and new game resets player trait default initialization', () => {
+  const gameSource = fs.readFileSync('publish/game.js', 'utf8');
+  const homeSource = fs.readFileSync('publish/home-actions.js', 'utf8');
+
+  assert.ok(gameSource.includes('playerProfileTraitDefaultsApplied: false'));
+  assert.ok(homeSource.includes('this.playerProfileTraitDefaultsApplied = false'));
 });
 
 test('missing predefined player current location is inferred and written to card', async () => {
@@ -195,7 +352,27 @@ test('identity display does not fall back to setup player profile', () => {
   assert.strictEqual(profile.pendingRoleCard, true);
 });
 
-test('identity current location reads saved rpg state value', () => {
+test('new player character base keeps user supplied traits', () => {
+  const modules = loadPlayerIdentityActionsModule();
+  const store = {
+    playerProfile: {
+      name: '刘悠',
+      appearance: '短发戴眼镜',
+      preferences: '喜欢阅读',
+      personality: '沉稳内敛',
+      notes: '家庭备注',
+    },
+  };
+  Object.assign(store, modules.playerIdentityActions);
+
+  const card = store.playerCharacterBase();
+
+  assert.strictEqual(card.appearance, '短发戴眼镜');
+  assert.strictEqual(card.preferences, '喜欢阅读');
+  assert.strictEqual(card.personality, '沉稳内敛');
+});
+
+test('identity current location does not fall back to rpg state value', () => {
   const modules = loadPlayerIdentityActionsModule();
   const store = {
     identityTargetId: 'player-self',
@@ -219,8 +396,41 @@ test('identity current location reads saved rpg state value', () => {
 
   const field = store.identityTargetFields().find((item) => item.label === '当前位置');
 
-  assert.strictEqual(field.value, '中华人民共和国·四川省·成都市·锦苑小区3栋·2单元601号');
-  assert.strictEqual(field.raw.name, '中华人民共和国·四川省·成都市·锦苑小区3栋·2单元601号');
+  assert.strictEqual(field.value, '未记录');
+  assert.strictEqual(field.raw, '');
+});
+
+test('identity section contains one current location sourced from profile', () => {
+  const modules = loadIdentityUiModules();
+  const state = {
+    id: 'player-self',
+    name: '刘悠',
+    worldTag: '2026 现代都市现实世界',
+    profile: {
+      id: 'player-self',
+      name: '刘悠',
+      work: '2026 现代都市现实世界',
+      roleCard: true,
+      currentLocation: '角色档案地址',
+    },
+    values: {
+      world_tag: '2026 现代都市现实世界',
+      current_location: { name: 'RPG状态地址' },
+    },
+  };
+  const store = {
+    identityTargetId: 'player-self',
+    rpgStates: { 'player-self': state },
+    roleCardReasonGetter: () => () => '',
+  };
+  Object.assign(store, modules.saveActions, modules.rpgFieldUi, modules.playerIdentityActions);
+
+  const sections = store.profileSections(state, store.identityTargetFields());
+  const identity = sections.find((section) => section.title === '身份信息');
+  const locations = identity.fields.filter((item) => item.label === '当前位置');
+
+  assert.strictEqual(locations.length, 1);
+  assert.strictEqual(locations[0].value, '角色档案地址');
 });
 
 test('predefined player state opens storage before creation', async () => {
@@ -338,6 +548,23 @@ test('activation page contains current location progress dialog', () => {
   assert.ok(html.includes('获取玩家当前位置'));
   assert.ok(html.includes('写入玩家角色卡当前位置并建立地图根节点'));
   assert.ok(html.includes('confirmPhoneActivationSetup()'));
+});
+
+test('activation form exposes appearance preferences and personality inputs', () => {
+  const html = fs.readFileSync('publish/index.html', 'utf8');
+  for (const key of ['appearance', 'preferences', 'personality']) {
+    assert.ok(html.includes(`playerProfile.${key}`));
+    assert.ok(html.includes(`setPlayerProfileTrait('${key}', $event.target.value)`));
+  }
+});
+
+test('game initializes editable player profile traits', () => {
+  const source = fs.readFileSync('publish/game.js', 'utf8');
+  const profileDefaults = source.match(/playerProfile:\s*\{([^}]+)\}/)?.[1] || '';
+
+  assert.ok(profileDefaults.includes("appearance: ''"));
+  assert.ok(profileDefaults.includes("preferences: ''"));
+  assert.ok(profileDefaults.includes("personality: ''"));
 });
 
 test('identity dossier rerenders when section fields change', () => {

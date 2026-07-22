@@ -46,6 +46,9 @@ Object.assign(window.GameModules.playerSetupActions, {
       wealthTier: map['财富等级'] || '中产',
       wealthAmount: map['当前财富'] || '',
       wealthSource: map['财富来源'] || '',
+      appearance: map['外貌'] || '',
+      preferences: map['喜好'] || '',
+      personality: map['性格'] || '',
       relationships,
       relationshipEntries: this.normalizeRelationshipEntries ? this.normalizeRelationshipEntries(relationshipEntries, relationships) : relationshipEntries,
       notes: map['备注'] || '',
@@ -92,6 +95,7 @@ Object.assign(window.GameModules.playerSetupActions, {
       this.setupError = '';
       if (this.roleCardSetup) this.roleCardSetup.usePredefinedPlayerCard = false;
       const example = await this.defaultExistingAccountProfile();
+      const initializeTraits = !this.playerProfileTraitDefaultsApplied;
       this.playerProfile = {
         ...this.playerProfile,
         name: this.playerProfile.name || example.name || '',
@@ -106,8 +110,12 @@ Object.assign(window.GameModules.playerSetupActions, {
         parentDeathCause: this.playerProfile.parentDeathCause || example.parentDeathCause || '',
         relationships: this.playerProfile.relationships || example.relationships || '',
         relationshipEntries: this.playerProfile.relationshipEntries?.length ? this.playerProfile.relationshipEntries : example.relationshipEntries || [],
+        appearance: initializeTraits ? (example.appearance || '') : (this.playerProfile.appearance ?? ''),
+        preferences: initializeTraits ? (example.preferences || '') : (this.playerProfile.preferences ?? ''),
+        personality: initializeTraits ? (example.personality || '') : (this.playerProfile.personality ?? ''),
         notes: this.playerProfile.notes || example.notes || '',
       };
+      this.playerProfileTraitDefaultsApplied = true;
       this.playerProfile.relationshipEntries = this.normalizeRelationshipEntries(this.playerProfile.relationshipEntries, this.playerProfile.relationships);
       this.existingProfileExpanded = true;
       this.phoneActivationChoice = 'new';
