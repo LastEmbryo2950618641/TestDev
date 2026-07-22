@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="calendar-system.css">
   <link rel="stylesheet" href="event-system.css">
   <link rel="stylesheet" href="faction-system.css">
-  <link rel="stylesheet" href="skills-app.css?v=2026-07-22-map-direct-render-v42">
+  <link rel="stylesheet" href="skills-app.css?v=2026-07-22-role-card-split-v43">
   <link rel="stylesheet" href="character-select.css">
   <link rel="stylesheet" href="player-aspiration.css">
   <link rel="stylesheet" href="profile-preview.css">
@@ -127,11 +127,11 @@
   </script>
   <script src="../deepseek_key.js"></script>
   <script src="../pixatart_key.js"></script>
-  <script src="boot/script-loader.js?v=2026-07-22-map-direct-render-v42"></script>
+  <script src="boot/script-loader.js?v=2026-07-22-role-card-split-v43"></script>
   <script src="boot/store-modules.js"></script>
-  <script src="boot/script-manifest.js?v=2026-07-22-map-direct-render-v42"></script>
-  <script src="boot/boot-actions.js?v=2026-07-22-map-direct-render-v42"></script>
-  <script src="boot/boot.js?v=2026-07-22-map-direct-render-v42"></script>
+  <script src="boot/script-manifest.js?v=2026-07-22-role-card-split-v43"></script>
+  <script src="boot/boot-actions.js?v=2026-07-22-role-card-split-v43"></script>
+  <script src="boot/boot.js?v=2026-07-22-role-card-split-v43"></script>
   <script>
     window.openEventAppNative = async function openEventAppNative(event) {
       try {
@@ -218,6 +218,33 @@
           </section>
         </template>
       </div>
+    </article>
+  </section>
+
+  <section x-show="$store.game.currentLocationFillState?.open || ($store.game.profileSetupBusy && $store.game.phoneActivationChoice === 'existing')" class="role-card-loading-backdrop current-location-fill-backdrop" x-cloak>
+    <article class="role-card-loading-modal current-location-fill-modal" role="dialog" aria-modal="true">
+      <div class="role-card-loading-head">
+        <span>获取玩家当前位置</span>
+        <b x-text="$store.game.currentLocationFillState.status === 'done' ? '完成' : ($store.game.currentLocationFillState.status === 'error' ? '失败' : '进行中')"></b>
+      </div>
+      <div class="loading-progress-wrap role-card-progress-wrap">
+        <div class="loading-progress-meta">
+          <span x-text="$store.game.currentLocationFillState.step || '准备获取地点'"></span>
+          <b x-text="`${$store.game.currentLocationFillState.percent || 0}%`"></b>
+        </div>
+        <div class="loading-progress"><i :style="`width: ${$store.game.currentLocationFillState.percent || 0}%`"></i></div>
+      </div>
+      <section class="current-location-fill-card" :class="$store.game.currentLocationFillState.status">
+        <p x-text="$store.game.currentLocationFillState.detail || '当前只需要补全玩家角色卡的 currentLocation 字段。'"></p>
+        <ol class="role-card-step-list">
+          <li :class="$store.game.currentLocationFillState.percent >= 35 ? 'done' : 'running'"><span>请求 AI 根据角色卡上下文推演正式地点</span><b x-text="$store.game.currentLocationFillState.percent >= 35 ? '完成' : '等待'"></b></li>
+          <li :class="$store.game.currentLocationFillState.percent >= 80 ? 'done' : 'waiting'"><span>校验“势力·层级1·层级2·地点·地点内位置”格式</span><b x-text="$store.game.currentLocationFillState.percent >= 80 ? '完成' : '等待'"></b></li>
+          <li :class="$store.game.currentLocationFillState.percent >= 100 ? 'done' : 'waiting'"><span>写入玩家角色卡当前位置并建立地图根节点</span><b x-text="$store.game.currentLocationFillState.percent >= 100 ? '完成' : '等待'"></b></li>
+        </ol>
+        <small class="current-location-fill-result" x-show="$store.game.currentLocationFillState.currentLocation" x-text="`当前位置：${$store.game.currentLocationFillState.currentLocation}`"></small>
+        <small class="current-location-fill-error" x-show="$store.game.currentLocationFillState.error" x-text="$store.game.currentLocationFillState.error"></small>
+        <button class="role-card-step-retry" type="button" x-show="$store.game.currentLocationFillState.status === 'error'" @click="$store.game.currentLocationFillState.open = false">关闭</button>
+      </section>
     </article>
   </section>
 
@@ -539,7 +566,6 @@
         </div>
       </article>
       <label class="phone-setup-wide dev-section" data-section-title="备注设定区"><span>备注设定</span><textarea x-model="$store.game.playerProfile.notes" placeholder="例如：家庭处境、性格、亲密关系边界、近期目标等。可留空。"></textarea><small>参考默认账号：刘悠是程序工程师，与成年三胞胎妹妹同居，承担家庭支柱职责。</small></label>
-      <article class="real-world-note dev-section" data-section-title="玩家卡生成选项区"><strong>玩家卡生成选项</strong><p>以下选项只影响新账号玩家卡本人；使用已有账号时会直接使用预定义角色卡。</p><label><input type="checkbox" x-model="$store.game.playerProfile.playerCardAiParts.part2"> Part2 情感数值使用 AI 生成</label><label><input type="checkbox" x-model="$store.game.playerProfile.playerCardAiParts.part5"> Part5 身体原貌使用 AI 生成</label><label><input type="checkbox" x-model="$store.game.playerProfile.playerCardAiParts.part6"> Part6 盛装状态使用 AI 生成</label><small>Part2/5/6 默认使用 AI 生成。玩家本人：情绪 + 感觉均为当前自我状态；出场角色：情绪 + 对玩家感觉（现有逻辑）。取消勾选后对应部分采用系统缺省值并直接标记完成。</small></article>
       <article class="real-world-note dev-section" data-section-title="AI身份补全提示区"><strong>激活补全</strong><p>完成激活时会根据生日计算年龄，并让 AI 把地址补全到省市区县、镇街道、小区、楼栋门牌级别，同时补全身份、居住信息与世界观备注；父母未填写时默认已故并生成合理死因。</p><small x-show="$store.game.profileSetupBusy">正在补全身份资料，约 10-30 秒，请勿重复点击。</small><small x-show="$store.game.setupError" x-text="$store.game.setupError"></small></article>
       <article class="real-world-note dev-section" data-section-title="现实世界背景区">
         <strong x-text="window.GameModules.realWorld2026.label"></strong>
@@ -547,7 +573,7 @@
       </article>
       <div class="phone-setup-actions dev-section" data-section-title="激活操作区">
         <button class="small-btn" type="button" @click="$store.game.backActivationChoice()" :disabled="$store.game.profileSetupBusy">上一步</button>
-        <button class="primary-btn" @click="$store.game.completePlayerSetup()" :disabled="$store.game.profileSetupBusy || !$store.game.playerProfile.name.trim() || !$store.game.playerProfile.birthday"> <span x-text="$store.game.profileSetupBusy ? '生成中…' : '确认'"></span></button>
+        <button class="primary-btn" @click="$store.game.confirmPhoneActivationSetup()" :disabled="$store.game.profileSetupBusy || !$store.game.playerProfile.name.trim() || !$store.game.playerProfile.birthday"> <span x-text="$store.game.profileSetupBusy ? '生成中…' : '确认'"></span></button>
       </div>
     </div>
   </section>
@@ -1528,7 +1554,7 @@
               </div>
             </template>
             <template x-if="section.title === '身份信息'">
-              <div class="identity-info-panel" x-data="{ dossier: null }" x-init="dossier = $store.game.identityInfoPresentation(section.fields); $watch(() => $store.game.identityTargetId, () => { dossier = $store.game.identityInfoPresentation(section.fields); $store.game.clearAbilityDetail?.(); })">
+              <div class="identity-info-panel" x-data="{ dossier: null }" x-init="dossier = $store.game.identityInfoPresentation(section.fields); $watch(() => $store.game.identityTargetId, () => { dossier = $store.game.identityInfoPresentation(section.fields); $store.game.clearAbilityDetail?.(); })" x-effect="dossier = $store.game.identityInfoPresentation(section.fields)">
                 <section class="identity-info-hero">
                   <div class="identity-info-crest" aria-hidden="true">🪪</div>
                   <div class="identity-info-hero-main">
@@ -1667,7 +1693,12 @@
                   <template x-for="card in goals?.cards || []" :key="`goal-card-${card.role}`">
                     <button type="button" class="goal-card ability-expandable" :class="[`tone-${card.tone}`, { open: card.field && $store.game.isAbilityDetailOpen(card.field) }]" @click="card.field && $store.game.toggleAbilityDetail(card.field)">
                       <span class="goal-card-icon" aria-hidden="true" x-text="card.icon"></span>
-                      <span class="goal-card-label" x-text="card.title"></span>
+                      <span class="goal-card-label"><span x-text="card.title"></span><em x-show="card.direction?.dominant" x-text="`主轴：${card.direction.dominant}`"></em></span>
+                      <span class="goal-stat-grid" x-show="(card.direction?.metrics || []).length">
+                        <template x-for="metric in card.direction?.metrics || []" :key="`${card.role}-${metric.name}`">
+                          <span class="goal-stat-chip"><i x-text="metric.icon"></i><b x-text="metric.name"></b><em x-text="metric.value"></em><u :style="`width:${metric.value}%`"></u></span>
+                        </template>
+                      </span>
                       <strong class="goal-card-copy" x-text="card.preview"></strong>
                     </button>
                   </template>
@@ -3129,7 +3160,7 @@
                     </div>
                   </template>
                   <template x-if="section.title === '身份信息'">
-                    <div class="identity-info-panel" x-data="{ dossier: null }" x-init="dossier = $store.game.identityInfoPresentation(section.fields); $watch(() => $store.game.identityTargetId, () => { dossier = $store.game.identityInfoPresentation(section.fields); $store.game.clearAbilityDetail?.(); })">
+                    <div class="identity-info-panel" x-data="{ dossier: null }" x-init="dossier = $store.game.identityInfoPresentation(section.fields); $watch(() => $store.game.identityTargetId, () => { dossier = $store.game.identityInfoPresentation(section.fields); $store.game.clearAbilityDetail?.(); })" x-effect="dossier = $store.game.identityInfoPresentation(section.fields)">
                       <section class="identity-info-hero">
                         <div class="identity-info-crest" aria-hidden="true">🪪</div>
                         <div class="identity-info-hero-main">
@@ -3268,7 +3299,12 @@
                         <template x-for="card in goals?.cards || []" :key="`entry-goal-card-${card.role}`">
                           <button type="button" class="goal-card ability-expandable" :class="[`tone-${card.tone}`, { open: card.field && $store.game.isAbilityDetailOpen(card.field) }]" @click="card.field && $store.game.toggleAbilityDetail(card.field)">
                             <span class="goal-card-icon" aria-hidden="true" x-text="card.icon"></span>
-                            <span class="goal-card-label" x-text="card.title"></span>
+                            <span class="goal-card-label"><span x-text="card.title"></span><em x-show="card.direction?.dominant" x-text="`主轴：${card.direction.dominant}`"></em></span>
+                            <span class="goal-stat-grid" x-show="(card.direction?.metrics || []).length">
+                              <template x-for="metric in card.direction?.metrics || []" :key="`entry-${card.role}-${metric.name}`">
+                                <span class="goal-stat-chip"><i x-text="metric.icon"></i><b x-text="metric.name"></b><em x-text="metric.value"></em><u :style="`width:${metric.value}%`"></u></span>
+                              </template>
+                            </span>
                             <strong class="goal-card-copy" x-text="card.preview"></strong>
                           </button>
                         </template>
@@ -3614,3 +3650,4 @@
   <script src="root-key-autofill.js"></script>
 </body>
 </html>
+

@@ -21,7 +21,7 @@ window.GameModules.promptSections = {
         ['现实身份', p.refinedRole || p.dailyRole], ['工作/学校/组织', p.workplace], ['地位/岗位/年级', p.position], ['已知势力库', factions], ['世界观补全', p.worldbuildingNote || '无'],
       ]),
       playerHome: this.lines([
-        ['具体地址', p.refinedCity || p.city], ['居住状态', p.refinedLivingStatus || p.livingStatus], ['财富等级', p.wealthTier], ['当前财富', p.wealthAmount ? `${Number(p.wealthAmount).toLocaleString('zh-CN')}元` : '0元'], ['财富来源量化', p.wealthSource], ['固定收入', p.wealthFixedIncome], ['父母状态', p.parentStatus || p.parents], ['父母去世原因', p.parentDeathCause || '无'],
+        ['当前位置', p.currentLocation], ['居住状态', p.refinedLivingStatus || p.livingStatus], ['财富等级', p.wealthTier], ['当前财富', p.wealthAmount ? `${Number(p.wealthAmount).toLocaleString('zh-CN')}元` : '0元'], ['财富来源量化', p.wealthSource], ['固定收入', p.wealthFixedIncome], ['父母状态', p.parentStatus || p.parents], ['父母去世原因', p.parentDeathCause || '无'],
       ]),
       playerRelations: this.playerRelationshipLines(store),
       playerNotes: this.lines([

@@ -5,10 +5,10 @@
   "asset-loader.js",
   "remerge-game-store.js",
   "config/default-existing-profile.js",
-  "predefined-role-cards/liu-you.js",
-  "predefined-role-cards/liu-siyao.js",
-  "predefined-role-cards/liu-siqi.js",
-  "predefined-role-cards/liu-siyi.js",
+  "predefined-role-cards/01-刘思琪-rel-ai-247528.js",
+  "predefined-role-cards/02-刘思怡-rel-ai-242269.js",
+  "predefined-role-cards/03-刘思瑶-rel-ai-247463.js",
+  "predefined-role-cards/04-刘悠-player-self.js",
   "predefined-role-card-support/triplet-essential-preference-layers.js",
   "predefined-role-card-support/predefined-appearance-profiles.js",
   "predefined-role-cards.js",
@@ -423,4 +423,3 @@
   "prompts/picture_generate/common-image-edit-generate.js",
   "inference-prompts-runtime.js"
 ]
-

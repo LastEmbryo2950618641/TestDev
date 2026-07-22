@@ -234,11 +234,17 @@ window.GameModules.predefinedRoleCards = {
 
   playerProfileFromCard(card, fallback = {}) {
     if (!card) return fallback;
+    const profile = this.roleProfile(card);
     return {
       ...fallback,
-      name: card.name || fallback.name || '', gender: card.gender || fallback.gender || '', birthday: card.birthday || fallback.birthday || '', age: card.age || fallback.age || '',
-      city: fallback.city || '', dailyRole: card.role || fallback.dailyRole || '', workplace: card.workplace || fallback.workplace || '', position: card.position || fallback.position || '',
-      livingStatus: fallback.livingStatus || '', parents: fallback.parents || '', relationships: card.relationships || fallback.relationships || '', notes: fallback.notes || card.detail || '', initializedAt: fallback.initializedAt || new Date().toISOString(),
+      name: profile.name || fallback.name || '', gender: profile.gender || fallback.gender || '', birthday: profile.birthday || fallback.birthday || '', age: profile.age || fallback.age || '',
+      city: profile.city || profile.refinedCity || '', refinedCity: profile.refinedCity || profile.city || '', currentLocation: profile.currentLocation || '',
+      dailyRole: profile.role || profile.dailyRole || fallback.dailyRole || '', refinedRole: profile.refinedRole || profile.role || profile.dailyRole || fallback.refinedRole || '',
+      workplace: profile.workplace || fallback.workplace || '', position: profile.position || fallback.position || '',
+      livingStatus: profile.livingStatus || '', refinedLivingStatus: profile.refinedLivingStatus || profile.livingStatus || '',
+      parents: profile.parents || '', parentStatus: profile.parentStatus || profile.parents || '', parentDeathCause: profile.parentDeathCause || '',
+      relationships: profile.relationships || fallback.relationships || '', notes: profile.notes || profile.detail || '', worldbuildingNote: profile.worldbuildingNote || '',
+      initializedAt: fallback.initializedAt || new Date().toISOString(),
     };
   },
 
@@ -281,6 +287,13 @@ window.GameModules.predefinedRoleCards = {
     return window.GameModules.characterStateStore?.save?.(state);
   },
 
+  async ensureStorageReady(store = {}) {
+    if (window.GameModules.platform.storage.capabilities.isReady?.()) return true;
+    const slot = store.selectedSlot || window.GameModules.platform.storage.backend?.currentSlot?.() || 'slot-1';
+    await window.GameModules.storage?.open?.(slot, { deferPersist: true });
+    return Boolean(window.GameModules.platform.storage.capabilities.isReady?.());
+  },
+
   buildRoleCardProfile(card = {}, existing = null, id = '') {
     let profile = { ...card, id, roleCard: true, roleCardSource: card.roleCardSource || 'predefined-edited', roleCardUpdatedAt: card.roleCardUpdatedAt || existing?.profile?.roleCardUpdatedAt || new Date().toISOString() };
     if (window.GameModules.characterProfile?.hasRequiredInitialMetrics?.(existing?.profile?.initialMetrics)) profile.initialMetrics = existing.profile.initialMetrics;
@@ -308,7 +321,9 @@ window.GameModules.predefinedRoleCards = {
   },
 
   async createState(card, store, idOverride = '') {
-    if (!card || !window.GameModules.platform.storage.capabilities.isReady?.()) return null;
+    if (!card) return null;
+    const ready = await this.ensureStorageReady(store);
+    if (!ready) throw new Error('角色卡存储未就绪，无法创建正式角色状态');
     const id = idOverride || card.id || card.name;
     const existing = this.getExistingState(id);
     const profile = this.buildRoleCardProfile(card, existing, id);
@@ -326,6 +341,9 @@ window.GameModules.predefinedRoleCards = {
     if (profile.isPlayer) {
       state.values.status_tags = ['玩家本人', '手机主人', profile.work, profile.role];
       state.profile.isPlayer = true;
+      if (profile.currentLocation && window.GameModules.currentLocationField?.stateValue) {
+        state.values.current_location = window.GameModules.currentLocationField.stateValue(profile, store, '玩家角色卡当前位置字段覆盖同步。');
+      }
     }
     window.GameModules.rpgProfileMetrics?.rebase?.(state, profile, existing?.profile || {});
     store.initFactionSystem?.();
@@ -405,6 +423,7 @@ window.GameModules.predefinedRoleCards = {
       this.ensurePlayerState(store),
       this.saveSelectedInitialCardStates(store),
     ]);
+    if (!player) throw new Error('玩家角色卡未创建成功，无法进入游戏');
     const states = [player, ...relations].filter(Boolean);
     this.ensureInitialSchedules(store, states);
     return states;
@@ -420,6 +439,11 @@ window.GameModules.predefinedRoleCards = {
     }).filter(Boolean);
     const loaded = await Promise.all(tasks);
     return loaded.filter(Boolean);
+  },
+
+  playerProfileNeedsRoleCard(profile = {}) {
+    const name = String(profile?.name || '').trim();
+    return !profile?.roleCard || !name || name === 'player-self';
   },
 };
 
@@ -440,6 +464,9 @@ window.GameModules.predefinedRoleCardActions = {
     this.syncInitialCardPicker();
     if (!this.phoneSetupDone && this.roleCardSetup.usePredefinedPlayerCard) {
       this.applySelectedPlayerRoleCard();
+    }
+    if (this.phoneSetupDone && this.roleCardSetup.usePredefinedPlayerCard) {
+      await this.repairSelectedPlayerRoleCardState();
     }
   },
 
@@ -505,6 +532,13 @@ window.GameModules.predefinedRoleCardActions = {
     const card = this.selectedPlayerRoleCard?.();
     if (!card) return;
     this.playerProfile = window.GameModules.predefinedRoleCards.playerProfileFromCard(card, this.playerProfile || {});
+  },
+
+  async repairSelectedPlayerRoleCardState() {
+    if (!this.roleCardSetup?.usePredefinedPlayerCard) return null;
+    const state = this.rpgStates?.['player-self'] || window.GameModules.characterStateStore?.get?.('player-self') || null;
+    if (state?.profile && !window.GameModules.predefinedRoleCards.playerProfileNeedsRoleCard(state.profile)) return state;
+    return window.GameModules.predefinedRoleCards.ensurePlayerState(this);
   },
 
   addSetupRoleCard() {

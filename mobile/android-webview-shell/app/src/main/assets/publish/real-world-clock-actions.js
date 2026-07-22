@@ -58,7 +58,7 @@ window.GameModules.realWorldClockActions = {
     this.realWorldOpen = true;
     this.checkWorkReminder?.();
     this.runAfterRealWorldPaint?.(() => {
-      const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
+      const map = window.GameModules.realWorldMap.ensure(this, window.GameModules.currentLocationField?.roleProfile?.(this) || {});
       const total = window.GameModules.realWorldLogStore?.count?.() || 0;
       if (total <= 0 && (this.realWorldLog || []).length) {
         window.GameModules.realWorldLogStore?.saveAll?.(this.realWorldLog).then(() => this.refreshRealWorldLogPage?.(999999)).catch((err) => console.warn('[现实日志] 分页刷新失败:', err.message, err.stack));
@@ -72,7 +72,6 @@ window.GameModules.realWorldClockActions = {
       if (!loadedLatest) this.refreshRealWorldLogPage?.(999999);
       if (!this.realWorldLog.length) {
         if (map.current) this.seedRealWorldLog();
-        else this.submitRealWorldAction('根据我的现实资料确认当前所在的具体地点，并建立电子地图根节点');
       }
     });
   },
@@ -120,7 +119,7 @@ window.GameModules.realWorldClockActions = {
   },
 
   seedRealWorldLog() {
-    const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
+    const map = window.GameModules.realWorldMap.ensure(this, window.GameModules.currentLocationField?.roleProfile?.(this) || {});
     if (!map.current) return;
     const now = this.phoneDate();
     const entry = {

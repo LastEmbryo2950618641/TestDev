@@ -954,7 +954,40 @@ window.GameModules.rpgFieldUi = {
     if (/近期目标|short/.test(text)) return 'short';
     if (/中期目标|medium/.test(text)) return 'medium';
     if (/长期目标|long/.test(text)) return 'long';
+    if (/^目标$|目标方向|目标摘要/.test(String(field?.label || '').trim()) || /goal/.test(text)) return 'goalBundle';
     return 'support';
+  },
+
+  extractGoalSection(text = '', labels = []) {
+    const source = String(text || '');
+    const escaped = labels.map((label) => label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+    if (!escaped) return '';
+    const match = source.match(new RegExp(`(?:^|\\n)\\s*(?:${escaped})\\s*[：:]\\s*([\\s\\S]*?)(?=\\n\\s*(?:目标方向|目标摘要|近期方向|中期方向|长期方向|近期目标|中期目标|长期目标)\\s*[：:]|$)`));
+    return String(match?.[1] || '').trim();
+  },
+
+  parseGoalDirection(text = '', role = 'short') {
+    const label = { short: '近期方向', medium: '中期方向', long: '长期方向' }[role];
+    const line = this.extractGoalSection(text, [label]);
+    const metricLabels = ['权力', '财富', '感情', '欲望'];
+    const metrics = metricLabels.map((name) => {
+      const match = line.match(new RegExp(`${name}\\s*(\\d+)`));
+      const value = Math.max(0, Math.min(100, Number(match?.[1]) || 0));
+      return { name, value, icon: { 权力: '⚔️', 财富: '💰', 感情: '💞', 欲望: '🔥' }[name] };
+    }).filter((item) => item.value > 0 || line.includes(item.name));
+    const dominant = line.match(/主轴偏\s*([^；;，,\n]+)/)?.[1] || '';
+    return { label, line, metrics, dominant };
+  },
+
+  goalCardField(sourceField = null, role = 'short', title = '', value = '', direction = null) {
+    const directionText = direction?.line ? `${direction.label}：${direction.line}` : '';
+    return {
+      ...(sourceField || {}),
+      key: `life_goal_${role}`,
+      label: title,
+      value: [directionText, value].filter(Boolean).join('\n'),
+      desc: `${title}：人生取向确认后的阶段目标。`,
+    };
   },
 
   goalsPresentation(fields = []) {
@@ -966,6 +999,7 @@ window.GameModules.rpgFieldUi = {
         short: { icon: '⚔️', title: '近期目标', tone: 'cyan' },
         medium: { icon: '🏗️', title: '中期目标', tone: 'gold' },
         long: { icon: '👑', title: '长期目标', tone: 'pink' },
+        goalBundle: { icon: '🧭', title: '目标总览', tone: 'cyan' },
         support: { icon: '✦', title: String(field?.label || field?.key || '补充信息'), tone: 'violet' },
       }[role];
       return {
@@ -979,27 +1013,43 @@ window.GameModules.rpgFieldUi = {
     const byRole = (role) => rows.find((row) => row.role === role);
     const portrait = byRole('portrait');
     const summary = byRole('summary');
+    const bundle = byRole('goalBundle');
+    const bundleText = bundle?.valueText || '';
+    const goalText = (role) => {
+      const direct = byRole(role);
+      if (direct?.valueText) return direct.valueText;
+      return this.extractGoalSection(bundleText, {
+        short: ['近期目标'],
+        medium: ['中期目标'],
+        long: ['长期目标'],
+      }[role]);
+    };
     const cards = ['short', 'medium', 'long'].map((role) => {
       const row = byRole(role);
       const fallbackTitle = { short: '近期目标', medium: '中期目标', long: '长期目标' }[role];
+      const direction = this.parseGoalDirection(bundleText, role);
+      const valueText = goalText(role);
+      const field = row?.field || this.goalCardField(bundle?.field, role, row?.title || fallbackTitle, valueText, direction);
       return {
         role,
         tone: row?.tone || (role === 'short' ? 'cyan' : role === 'medium' ? 'gold' : 'pink'),
         icon: row?.icon || (role === 'short' ? '⚔️' : role === 'medium' ? '🏗️' : '👑'),
         title: row?.title || fallbackTitle,
-        field: row?.field || null,
-        valueText: row?.valueText || '',
-        preview: row?.preview || '未记录',
+        field,
+        valueText,
+        preview: valueText ? (valueText.length > 96 ? `${valueText.slice(0, 96)}…` : valueText) : '未记录',
+        direction,
       };
     });
+    const summaryText = this.extractGoalSection(bundleText, ['目标摘要']);
     return {
       hero: {
         eyebrow: 'DESTINY LOG',
-        title: summary?.preview || portrait?.preview || '人生取向',
+        title: summaryText || summary?.preview || '人生取向',
         note: portrait?.preview || '将短期行动、中期发展与长期追求组织成一条可推进的命运路线。',
       },
       cards,
-      support: rows.filter((row) => row.role === 'support'),
+      support: rows.filter((row) => row.role === 'support' || row.role === 'portrait' || row.role === 'summary'),
     };
   },
 

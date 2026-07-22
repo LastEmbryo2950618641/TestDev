@@ -1,5 +1,5 @@
 window.GameScriptManifest = {
-  "version": "2026-07-22-map-direct-render-v42",
+  "version": "2026-07-22-role-card-split-v43",
   "chunks": {
     "core": [
       "https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js",
@@ -8,10 +8,10 @@ window.GameScriptManifest = {
       "asset-loader.js",
       "remerge-game-store.js",
       "config/default-existing-profile.js",
-      "predefined-role-cards/liu-siqi.js",
-      "predefined-role-cards/liu-siyao.js",
-      "predefined-role-cards/liu-siyi.js",
-      "predefined-role-cards/liu-you.js",
+      "predefined-role-cards/01-刘思琪-rel-ai-247528.js",
+      "predefined-role-cards/02-刘思怡-rel-ai-242269.js",
+      "predefined-role-cards/03-刘思瑶-rel-ai-247463.js",
+      "predefined-role-cards/04-刘悠-player-self.js",
       "predefined-role-card-support/triplet-essential-preference-layers.js",
       "predefined-role-card-support/predefined-appearance-profiles.js",
       "predefined-role-cards.js",
@@ -435,7 +435,7 @@ window.GameScriptManifest = {
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-17T18:48:07.019Z",
+  "generatedAt": "2026-07-22T11:52:24.120Z",
   "total": 423
 };
 
@@ -450,4 +450,3 @@ window.GameScriptManifest.classify = function classify(url) {
   if (/^real-world-|^org-territory|^(?:app|domain)\/org-territory\/|^inference\/|^story-agent-context\.js$|^assets\/data\/real-world|^game-premise\.js$|^update\/(territory|org-|membership|character-schedule|org-status)/.test(p)) return 'gameplay';
   return 'core';
 };
-

@@ -38,7 +38,7 @@ window.GameModules = window.GameModules || {};
     },
 
     location(store, method, params = {}, action = '') {
-      const map = window.GameModules.realWorldMap.ensure(store, store.playerProfile || {});
+      const map = window.GameModules.realWorldMap.ensure(store, window.GameModules.currentLocationField?.roleProfile?.(store) || {});
       const keyword = String(params.keyword || params.locationName || params.name || '').trim();
       if (method === 'searchLocationOne') {
         const hit = this.findLocationHit?.(map, keyword) || (map.nodes || []).find((node) => this.locationNodeText(node).includes(keyword));

@@ -426,16 +426,6 @@ window.GameModules.characterProfile = {
     return templates;
   },
 
-  playerCardAiPartEnabled(store, partIndex, base = {}) {
-    if (base.id !== 'player-self' && !base.isPlayer) return true;
-    const flags = store?.playerProfile?.playerCardAiParts;
-    const map = { 2: 'part2', 5: 'part5', 6: 'part6' };
-    const key = map[partIndex];
-    if (!key) return true;
-    if (!flags || typeof flags !== 'object') return true;
-    return flags[key] !== false;
-  },
-
   isPlayerSelfTarget(base = {}) {
     return base.id === 'player-self' || Boolean(base.isPlayer);
   },
@@ -561,9 +551,6 @@ window.GameModules.characterProfile = {
   },
 
   async generateOrDefaultPart(partIndex, promptId, stepKey, vars, template, base, lore, attrs, store, total) {
-    if (!this.playerCardAiPartEnabled(store, partIndex, base)) {
-      return this.buildPlayerCardDefaultPart(partIndex, stepKey, template, base, lore, attrs, store, total);
-    }
     if (partIndex === 2) {
       return this.generatePart2Progressive(promptId, stepKey, vars, template, base, lore, attrs, store, total);
     }

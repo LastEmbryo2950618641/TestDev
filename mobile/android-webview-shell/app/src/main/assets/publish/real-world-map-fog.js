@@ -390,7 +390,7 @@ window.GameModules.realWorldMapFog = {
 
     const mapMod = this.mapApi();
 
-    const map = mapMod.ensure(state, state.playerProfile || {});
+    const map = mapMod.ensure(state, window.GameModules.currentLocationField?.roleProfile?.(state) || {});
 
     const node = mapMod.currentNode(map);
 
@@ -1407,8 +1407,8 @@ window.GameModules.realWorldMapFog = {
 
   async applySurroundUnlock(state, map, anchor, sceneNode, payload = {}) {
 
+    const graphApi = window.GameModules.realWorldLocationGraph;
     const mapMod = this.mapApi();
-
     const time = mapMod.factTime(state);
 
     this.surroundUnlockDebug(state, 'apply-start', {
@@ -1426,10 +1426,17 @@ window.GameModules.realWorldMapFog = {
       surroundLocationNames: (payload?.surroundLocations || []).map((item) => item.name).slice(0, 12),
     });
 
-    const shouldRefreshOpenInterior = Boolean(state?.realWorldFunctionOpen && state?.realWorldFunctionView === 'map' && map?.interiorNodeId);
     const unlocked = [];
-    const projectedNodeIds = [];
-    const anchorGraphNode = window.GameModules.realWorldLocationGraph?.getNode?.(state, anchor?.graphNodeId || anchor?.id || anchor?.identityKey || anchor?.name);
+    const touchedNodeIds = [];
+    const anchorRef = anchor?.graphNodeId || anchor?.id || map?.mapAnchorId || map?.currentId || '';
+    let anchorGraphNode = graphApi?.poiAncestor?.(state, anchorRef) || graphApi?.getNode?.(state, anchorRef);
+    if (!anchorGraphNode) {
+      anchorGraphNode = graphApi?.ensurePoiFromPayload?.(state, {
+        nodeId: anchor?.graphNodeId || anchor?.id,
+        name: anchor?.name || map?.current || state?.realWorldLocationName,
+        time,
+      }, { source: 'real-world-map-surround-anchor', skipProject: true });
+    }
     const anchorGraphParentId = anchorGraphNode?.parentId || anchor.parentId || '';
 
     for (const item of (payload.surroundLocations || [])) {
@@ -1441,72 +1448,33 @@ window.GameModules.realWorldMapFog = {
         distanceMeters: item?.distanceMeters || null,
         distanceText: item?.distanceText || '',
       });
-      const ensureParams = {
-        stage: 'stage4',
-        intent: 'create-neighbor',
-        targetKeyword: item.name,
-        currentNodeId: anchor?.id || '',
-        currentLegacyLocationName: anchor?.name || '',
-        requiredScope: ['poi-neighbors', 'direct-neighbor-edges'],
-        visibleNeed: '电子地图周围解锁需要确认 ' + item.name + ' 是否已存在。',
-        actionText: item.descriptionFacts?.join?.('；') || '',
-      };
-      const skills = window.GameModules.realWorldLocationGraphSkills;
-      const ensureResult = skills?.nodeEnsure?.(state, ensureParams);
-      this.surroundUnlockDebug(state, 'apply-neighbor-ensure-result', {
-        itemName: item?.name || '',
-        decision: ensureResult?.decision || '',
-        nodeId: ensureResult?.nodeId || '',
-        path: ensureResult?.path || [],
-        reason: ensureResult?.reason || '',
-      });
-
-      if (ensureResult?.nodeId && ['reuse-existing', 'patch-existing', 'create-new'].includes(ensureResult.decision)) {
-        const graphNode = window.GameModules.realWorldLocationGraph?.getNode?.(state, ensureResult.nodeId);
-        const mapNode = (map.nodes || []).find((node) => node.graphNodeId === ensureResult.nodeId || node.id === ensureResult.nodeId || node.name === graphNode?.name);
-        if (mapNode) {
-          this.normalizeNodeFlags(mapNode);
-          mapNode.mapVisible = true;
-          mapNode.revealed = true;
-          mapNode.visited = false;
-        }
-        const reusedName = ensureResult.path?.[ensureResult.path.length - 1] || item.name;
-        if (reusedName && !unlocked.includes(reusedName)) unlocked.push(reusedName);
-        continue;
-      }
-
-      const created = window.GameModules.realWorldLocationGraph?.ensurePoiFromPayload?.(state, {
+      const created = graphApi?.ensurePoiFromPayload?.(state, {
         name: item.name,
         parentName: item.parentName,
         parentId: anchorGraphParentId,
         descriptionFacts: item.descriptionFacts,
         time,
-      }, { source: 'real-world-map-fog-fallback', skipProject: true });
+      }, { source: 'real-world-map-surround-neighbor', skipProject: true });
 
       if (created) {
-        this.surroundUnlockDebug(state, 'apply-neighbor-fallback-created', {
+        this.surroundUnlockDebug(state, 'apply-neighbor-merged', {
           itemName: item?.name || '',
           createdId: created?.id || '',
-          createdGraphNodeId: created?.graphNodeId || '',
           createdName: created?.name || '',
         });
-        projectedNodeIds.push(created.graphNodeId || created.id);
+        graphApi?.ensureRouteEdge?.(state, anchorGraphNode?.id || anchor?.graphNodeId || anchor?.id, created.id, {
+          relation: 'direct-neighbor',
+          directNeighbor: true,
+          noIntermediateLocations: true,
+          distanceMeters: item.distanceMeters,
+          distanceText: item.distanceText,
+          basis: item.basis,
+          source: 'real-world-map-surround-unlock',
+          time,
+        });
+        touchedNodeIds.push(created.id);
         unlocked.push(created.name);
       }
-    }
-
-    if (projectedNodeIds.length) {
-      this.surroundUnlockDebug(state, 'apply-project-legacy-map', { projectedNodeIds });
-      window.GameModules.realWorldLocationGraph?.projectLocationGraphToLegacyMap?.(state);
-      projectedNodeIds.forEach((nodeId) => {
-        const graphNode = window.GameModules.realWorldLocationGraph?.getNode?.(state, nodeId);
-        const mapNode = (map.nodes || []).find((node) => node.graphNodeId === nodeId || node.id === nodeId || node.name === graphNode?.name);
-        if (!mapNode) return;
-        this.normalizeNodeFlags(mapNode);
-        mapNode.mapVisible = true;
-        mapNode.revealed = true;
-        mapNode.visited = false;
-      });
     }
 
     const finalAnchor = (map.nodes || []).find((node) => node.id === anchor?.id) || anchor;
@@ -1526,6 +1494,19 @@ window.GameModules.realWorldMapFog = {
       });
       finalAnchor.descriptionFacts = [...factSet].slice(-30);
     }
+    if ((locationInfo.length || factionInfo.length) && anchorGraphNode) {
+      const existingFacts = Array.isArray(anchorGraphNode.descriptionFacts) ? anchorGraphNode.descriptionFacts : [];
+      const factSet = new Set(existingFacts.map((item) => String(item || '').trim()).filter(Boolean));
+      locationInfo.forEach((item) => {
+        const text = String(item || '').trim();
+        if (text) factSet.add(text);
+      });
+      factionInfo.forEach((item) => {
+        const text = String(item || '').trim();
+        if (text) factSet.add(`势力：${text}`);
+      });
+      anchorGraphNode.descriptionFacts = [...factSet].slice(-30);
+    }
     if (finalAnchor) {
       finalAnchor.exteriorRingUnlocked = true;
       finalAnchor.visited = true;
@@ -1544,10 +1525,11 @@ window.GameModules.realWorldMapFog = {
       anchorId: anchor?.id || '',
       anchorName: anchor?.name || '',
       unlocked,
-      projectedNodeIds,
+      touchedNodeIds,
       afterInteriorSummary: this.summarizeInteriorLayout(anchor?.interiorLayout || {}),
       mapNodeCount: Array.isArray(map?.nodes) ? map.nodes.length : 0,
-      mapEdgeCount: Array.isArray(map?.edges) ? map.edges.length : 0,
+      graphNodeCount: graphApi?.standardPoiGraph?.(state)?.nodes?.length || 0,
+      graphEdgeCount: graphApi?.standardPoiGraph?.(state)?.edges?.length || 0,
     });
 
     return unlocked;
@@ -1556,37 +1538,3 @@ window.GameModules.realWorldMapFog = {
 
 };
 
-
-(function enhanceRealWorldMapFogRoutes() {
-  const fog = window.GameModules.realWorldMapFog;
-  if (!fog || fog.__routeDistanceEnhanced) return;
-  fog.__routeDistanceEnhanced = true;
-
-  const originalValidate = fog.validateSurroundLocation;
-  fog.validateSurroundLocation = function validateSurroundLocationWithDistance(raw = {}, anchor = {}, map = {}) {
-    const item = originalValidate.call(this, raw, anchor, map);
-    const meters = Number(raw.distanceMeters || raw.meters || raw.lengthMeters);
-    item.distanceMeters = Number.isFinite(meters) && meters > 0 ? Math.round(meters) : null;
-    item.distanceText = String(raw.distanceText || raw.distance || raw.distanceLabel || raw['距离'] || item.distanceText || '').trim().slice(0, 18)
-      || (item.distanceMeters ? (item.distanceMeters >= 1000 ? `${(item.distanceMeters / 1000).toFixed(item.distanceMeters >= 10000 ? 0 : 1)} km` : `${item.distanceMeters} m`) : '\u8ddd\u79bb\u5f85\u63a8\u6f14');
-    item.basis = String(raw.basis || raw.reason || raw.description || '').trim().slice(0, 100);
-    return item;
-  };
-
-  const originalApply = fog.applySurroundUnlock;
-  fog.applySurroundUnlock = async function applySurroundUnlockWithRoutes(state, map, anchor, sceneNode, payload = {}) {
-    const unlocked = await originalApply.call(this, state, map, anchor, sceneNode, payload);
-    const mapMod = this.mapApi();
-    if (mapMod?.applyRouteLinks && anchor?.name && Array.isArray(payload.surroundLocations)) {
-      const time = mapMod.factTime(state);
-      mapMod.applyRouteLinks(state, map, payload.surroundLocations.map((item) => ({
-        from: anchor.name,
-        to: item.name,
-        distanceMeters: item.distanceMeters,
-        distanceText: item.distanceText,
-        basis: item.basis || item.descriptionFacts?.join(' '),
-      })), time);
-    }
-    return unlocked;
-  };
-}());

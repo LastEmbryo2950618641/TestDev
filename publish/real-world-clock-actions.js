@@ -72,7 +72,6 @@ window.GameModules.realWorldClockActions = {
       if (!loadedLatest) this.refreshRealWorldLogPage?.(999999);
       if (!this.realWorldLog.length) {
         if (map.current) this.seedRealWorldLog();
-        else this.submitRealWorldAction('根据我的现实资料确认当前所在的具体地点，并建立电子地图根节点');
       }
     });
   },

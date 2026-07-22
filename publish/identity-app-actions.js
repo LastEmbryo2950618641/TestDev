@@ -1,6 +1,7 @@
 window.GameModules = window.GameModules || {};
 window.GameModules.identityAppActions = {
   async openIdentityApp(targetId = 'player-self', returnTo = '') {
+    if ((targetId || 'player-self') === 'player-self') await this.repairSelectedPlayerRoleCardState?.();
     this.identityReturnTo = returnTo;
     this.wechatAppOpen = false; this.saveAppOpen = false; this.roleCardJsonAppOpen = false; this.worldlineAppOpen = false;
     if (this.companyState) this.companyState.open = false;

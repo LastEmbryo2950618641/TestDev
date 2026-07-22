@@ -5,7 +5,7 @@ window.GameModules.playerIdentityActions = {
     if (!current?.profile) return false;
     const tool = window.GameModules.characterProfile;
     if (!tool?.memberships && !tool?.factionRoles) return false;
-    const base = { ...this.playerCharacterBase(), ...(current.profile || {}) };
+    const base = { ...(current.profile || {}) };
     const nextFactions = tool.factionRoles?.(current.profile, base, this) || (Array.isArray(current.profile.factions) ? current.profile.factions : []);
     const nextMemberships = tool.memberships?.(current.profile, base, this) || (Array.isArray(current.profile.memberships) ? current.profile.memberships : []);
     const prevProfileFactions = Array.isArray(current.profile.factions) ? current.profile.factions : [];
@@ -80,7 +80,7 @@ window.GameModules.playerIdentityActions = {
   playerDisplayCharacter() {
     const saved = this.playerIdentityState?.()?.profile;
     if (saved?.roleCard) return saved;
-    return { ...this.playerCharacterBase(), name: this.playerName || this.playerProfile?.name || 'player-self', pendingAiProfile: true };
+    return { id: 'player-self', name: 'player-self', work: this.selectedWork || '原创世界', role: '', job: '', currentLocation: '', pendingRoleCard: true };
   },
 
   playerCharacter() {
@@ -94,19 +94,22 @@ window.GameModules.playerIdentityActions = {
   identityTargetState() { return this.rpgStates[this.identityTargetId || 'player-self'] || null; },
   identityTargetProfile() {
     const id = this.identityTargetId || 'player-self';
-    if (id === 'player-self') return this.playerDisplayCharacter();
+    if (id === 'player-self') return this.playerIdentityState?.()?.profile || this.playerDisplayCharacter();
     return this.identityTargetState()?.profile || (id === this.character.id ? this.character : { name: 'unknown-character', work: 'unknown-world', role: 'unknown-role', detail: 'no role card yet', personality: '', pendingAiProfile: true });
   },
 
   identityTargetFields() {
     const p = this.identityTargetProfile();
-    const worldTag = p.work || this.identityTargetState()?.worldTag || '原创世界';
+    const state = this.identityTargetState();
+    const worldTag = p.work || state?.worldTag || '原创世界';
     const reasonFor = this.roleCardReasonGetter?.(p) || (() => '');
     const row = (key, label, value, desc, extra = {}) => ({ key: `id-${this.identityTargetId || 'player-self'}-${key}`, stateId: this.identityTargetId || 'player-self', label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: '角色', commonField: true, ...extra });
+    const stateLocation = state?.values?.current_location;
+    const currentLocation = p.currentLocation || stateLocation?.currentLocation || stateLocation?.name || '';
     const fields = [
       row('name', '姓名', p.name, '角色卡固化姓名。'),
       row('work', '所属世界', worldTag, '角色出身作品或世界。'),
-      row('currentLocation', '当前位置', p.currentLocation, '玩家当前位置，格式为“势力·势力层级1·势力层级2·地点·地点内位置”；地点段直接作为电子地图节点名。'),
+      row('currentLocation', '当前位置', currentLocation, '玩家当前位置，格式为“势力·势力层级1·势力层级2·地点·地点内位置”；地点段直接作为电子地图节点名。', { raw: stateLocation || currentLocation }),
       row('role', '身份', p.role, '角色卡固化身份。'),
       row('appearance', '外貌', p.appearance, '角色卡固化外貌。'),
       row('preferences', '喜好', p.preferences, '角色稳定喜好和穿着偏好。'),

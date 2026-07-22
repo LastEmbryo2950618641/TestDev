@@ -111,6 +111,7 @@ window.GameModules.characterQuery = {
   locationText(value) {
     if (!value) return '';
     if (typeof value === 'string') return value;
+    if (value.currentLocation) return value.currentLocation;
     return [value.name, value.worldTag, value.reason].filter(Boolean).join('｜');
   },
 

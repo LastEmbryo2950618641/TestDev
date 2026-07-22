@@ -10,7 +10,7 @@ window.GameModules.realWorldAgentContext = {
   ...realWorldAgentContextParts.materialLoader,
   baseSnapshot(store, action = '') {
     const realWorld = window.GameModules.realWorld2026 || {};
-    const map = window.GameModules.realWorldMap.ensure(store, store.playerProfile || {});
+    const map = window.GameModules.realWorldMap.ensure(store, window.GameModules.currentLocationField?.roleProfile?.(store) || {});
     const companies = this.companyNames(store);
     const recent = this.recentLog(store, 3);
     const recentWorldline = this.recentWorldlineRecords(store, 5000, 6000);

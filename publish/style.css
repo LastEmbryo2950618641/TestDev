@@ -312,6 +312,14 @@ button:not(:disabled):active {
 .role-card-step-list li span { margin-right: 8px; }
 .role-card-step-retry { min-width: 48px; height: 28px; border: 1px solid rgba(116, 246, 255, .45); border-radius: 999px; background: rgba(116, 246, 255, .12); color: #dffcff; font-size: 12px; font-weight: 900; }
 .role-card-step-retry:active { transform: translateY(1px); }
+.current-location-fill-modal { grid-template-rows: auto auto auto; }
+.current-location-fill-backdrop { z-index: 260; }
+.current-location-fill-card { display: grid; gap: 10px; padding: 12px; border: 1px solid rgba(116, 246, 255, .18); border-radius: 14px; background: rgba(255, 255, 255, .045); color: #dce7ff; }
+.current-location-fill-card p { margin: 0; line-height: 1.55; }
+.current-location-fill-card.done { border-color: rgba(82, 255, 150, .35); }
+.current-location-fill-card.error { border-color: rgba(255, 125, 125, .42); }
+.current-location-fill-result { color: #9fffd0; line-height: 1.5; word-break: break-all; }
+.current-location-fill-error { color: #ffabab; line-height: 1.5; word-break: break-all; }
 
 .solidify-dock { display: grid; grid-template-columns: auto auto; justify-items: end; align-items: start; gap: 8px; }
 .entry-solidify-dock { position: absolute; right: -64px; top: 8px; z-index: 5; }

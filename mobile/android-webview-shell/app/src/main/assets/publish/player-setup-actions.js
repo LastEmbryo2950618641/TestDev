@@ -2,7 +2,7 @@
 
 window.GameModules.playerSetupActions = {
   playerProfileLexiconFields() {
-    const p = this.playerProfile || {};
+    const p = this.playerIdentityState?.()?.profile || this.playerProfile || {};
     const worldTag = window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
     const row = (name, value, desc) => window.GameModules.playerProfileLexicon.row(name, value, desc, worldTag);
     const fields = [
@@ -12,10 +12,9 @@ window.GameModules.playerSetupActions = {
       row('性别', p.gender, '玩家登记的性别。'),
       row('生日', p.birthday, '玩家登记生日，用于计算年龄与现实身份。'),
       row('年龄', p.age ? `${p.age}岁` : '', '由生日按2026-06-12计算得到。'),
-      row('具体地址', p.refinedCity || p.city, '玩家当前登记住址。'),
+      row('当前位置', window.GameModules.currentLocationField?.display?.(p) || p.currentLocation, '玩家当前所在位置，格式为“势力·势力层级1·势力层级2·地点·地点内位置”；其中“地点”直接作为电子地图节点名。'),
       row('现实身份', p.refinedRole || p.dailyRole, '玩家在2026现实世界中的日常身份。'),
       row('人事归属', [p.workplace, p.position].filter(Boolean).join(' / '), '玩家当前工作、学习或组织势力及其内部地位。'),
-      row('社群角色', [p.refinedCity || p.city, '居民'].filter(Boolean).join(' / '), '玩家当前居住社群及其中承担的社会角色。'),
       row('居住状态', p.refinedLivingStatus || p.livingStatus, '玩家当前居住与生活状态。'),
       row('性经验次数', this.playerIdentityState?.()?.values?.intimacy?.sexualExperienceCount ?? 0, '成人虚构身份的抽象经历次数，只记录数值。'),
       row('当前身体状态', Object.values(this.playerIdentityState?.()?.values?.bodyStatus || {}).map((item) => `${item.part || item.partKey}：${item.status || '稳定'}`).join('；') || '未记录', '身体部位的中性短状态记录。'),
@@ -218,6 +217,7 @@ window.GameModules.playerSetupActions = {
       age: this.playerAgeFromBirthday(birthday),
       gender: (p.gender || '').trim(),
       city: (p.city || '').trim(),
+      currentLocation: (p.currentLocation || '').trim(),
       dailyRole: (p.dailyRole || '').trim(),
       workplace: (p.workplace || '').trim(), position: (p.position || '').trim(),
       livingStatus: (p.livingStatus || '').trim(),
@@ -263,12 +263,14 @@ window.GameModules.playerSetupActions = {
     const social = window.GameModules.socialPosition || {};
     const workplace = String(data?.workplace || base.workplace || social.workplace?.(role, city) || '').slice(0, 80);
     const position = String(data?.position || base.position || social.position?.(role) || '').slice(0, 60);
+    const currentLocation = window.GameModules.currentLocationField?.normalize?.(data?.currentLocation || base.currentLocation) || String(data?.currentLocation || base.currentLocation || '').trim().slice(0, 160);
     const noParents = !base.parents;
     const status = String(data?.parentStatus || (noParents ? '父母已故' : base.parents)).slice(0, 80);
     const cause = String(data?.parentDeathCause || (noParents ? this.fallbackParentDeathCause(base.age) : '')).slice(0, 120);
     return {
       ...base,
       refinedCity: city,
+      currentLocation,
       refinedRole: role, workplace, position,
       refinedLivingStatus: String(data?.refinedLivingStatus || base.livingStatus || `${city}，长期居住地址已登记`).slice(0, 100),
       relationshipEntries: this.normalizeRelationshipEntries(base.relationshipEntries?.length ? base.relationshipEntries : null, data?.relationships || base.relationships),

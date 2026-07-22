@@ -505,6 +505,54 @@ window.GameModules.realWorldLocationGraph = {
     return edge;
   },
 
+  isStandardMapNode(state = {}, node = {}) {
+    if (!node?.id || node.mapVisible === false) return false;
+    if (node.type && node.type !== 'poi') return false;
+    return true;
+  },
+
+  standardPoiGraph(state = {}) {
+    const graph = this.ensureGraphState(state);
+    const candidateIds = (Array.isArray(graph.poiGraph.nodes) ? graph.poiGraph.nodes : [])
+      .filter((id) => this.isStandardMapNode(state, graph.nodesById?.[id]));
+    const candidateIdSet = new Set(candidateIds);
+    const routeEdges = (Array.isArray(graph.poiGraph.edges) ? graph.poiGraph.edges : [])
+      .filter((edge) => {
+        if (!candidateIdSet.has(edge.fromPoiId) || !candidateIdSet.has(edge.toPoiId) || edge.fromPoiId === edge.toPoiId) return false;
+        const meters = Number(edge.distanceMeters);
+        return meters > 0 || String(edge.distanceText || '').trim();
+      });
+    const linkedIdSet = new Set(routeEdges.flatMap((edge) => [edge.fromPoiId, edge.toPoiId]));
+    const visibleNodeIds = candidateIds.filter((id) => linkedIdSet.has(id));
+    const currentGraphNode = this.poiAncestor(state, state.realWorldMap?.mapAnchorId || state.realWorldMap?.currentId)
+      || this.getNode(state, state.realWorldMap?.mapAnchorId || state.realWorldMap?.currentId || state.realWorldLocationName);
+    const currentId = visibleNodeIds.includes(currentGraphNode?.id) ? currentGraphNode.id : visibleNodeIds[0] || '';
+    return {
+      currentId,
+      nodes: visibleNodeIds.map((id, index) => {
+        const node = graph.nodesById[id] || {};
+        return {
+          id,
+          name: node.displayName || node.name || id,
+          current: id === currentId,
+          visited: Boolean(node.visited || id === currentId),
+          revealed: node.known !== false,
+          mapVisible: node.mapVisible !== false,
+          order: Number(node.order) || index + 1,
+        };
+      }),
+      edges: routeEdges
+        .map((edge) => ({
+          id: edge.id || this.edgeIdFor(edge.fromPoiId, edge.toPoiId),
+          from: edge.fromPoiId,
+          to: edge.toPoiId,
+          weight: Number(edge.distanceMeters) || null,
+          distanceMeters: Number(edge.distanceMeters) || null,
+          distanceText: edge.distanceText || '',
+        })),
+    };
+  },
+
   linkRoutePath(state = {}, refs = [], data = {}) {
     const nodes = (Array.isArray(refs) ? refs : [])
       .map((ref) => (typeof ref === 'object' ? this.getNode(state, ref.nodeId || ref.graphNodeId || ref.id || ref.identityKey || ref.name) : this.getNode(state, ref)))
@@ -657,7 +705,8 @@ window.GameModules.realWorldLocationGraph = {
     this.rememberIdentity(graph, node);
     this.rememberSearchNode(graph, node);
     if (!graph.poiGraph.nodes.includes(id)) graph.poiGraph.nodes.push(id);
-    if (!options.skipProject) this.projectLocationGraphToLegacyMap(state);
+    if (options.skipProject) return node;
+    this.projectLocationGraphToLegacyMap(state);
     const map = state.realWorldMap;
     return (map?.nodes || []).find((item) => item.graphNodeId === id || item.id === id || item.name === name) || node;
   },

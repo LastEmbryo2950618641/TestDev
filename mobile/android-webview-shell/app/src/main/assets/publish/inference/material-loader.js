@@ -176,7 +176,7 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
 
 
   location(store, method, params = {}) {
-    const map = window.GameModules.realWorldMap.ensure(store, store.playerProfile || {});
+    const map = window.GameModules.realWorldMap.ensure(store, window.GameModules.currentLocationField?.roleProfile?.(store) || {});
     const keyword = String(params.keyword || params.locationName || params.name || '').trim();
     if (method === 'getCurrentLocationContext') return this.locationDetail(map, map.current || store.realWorldLocationName);
     if (method === 'getNearbyLocations') return this.nearby(map, keyword || map.current);

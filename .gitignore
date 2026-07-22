@@ -30,3 +30,7 @@ tools/validation-browser/tmp-*.mjs
 
 # Scratch files from local status audits
 temp_status_list.txt
+
+# Local Codex scratch probes and screenshots
+.codex*
+output/playwright/

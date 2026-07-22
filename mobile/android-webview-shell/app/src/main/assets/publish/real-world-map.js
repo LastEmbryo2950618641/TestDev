@@ -16,8 +16,7 @@ window.GameModules.realWorldMap = {
   },
 
   inferHomeName(profile = {}) {
-    const candidates = [profile.homeLocation, profile.locationName, profile.refinedCity, profile.city];
-    return candidates.map((x) => this.cleanName(x)).find((x) => !this.isAbstractName(x) && /区|县|镇|街|路|巷|号|栋|楼|室|小区|公寓|学校|公司|工位/u.test(x)) || '';
+    return this.cleanName(window.GameModules.currentLocationField?.mapNodeName?.(profile) || '');
   },
 
   defaultDescription(name, profile = {}) {
@@ -207,22 +206,23 @@ window.GameModules.realWorldMap = {
   },
 
   ensure(state, profile = {}) {
+    const sourceProfile = state?.playerIdentityState?.()?.profile || profile || {};
     if (!state.realWorldMap || typeof state.realWorldMap !== 'object') {
-      const initialMap = this.defaultState(profile);
+      const initialMap = this.defaultState(sourceProfile);
       state.realWorldMap = window.Alpine?.raw ? window.Alpine.raw(initialMap) : initialMap;
     }
     const map = state.realWorldMap;
     map.expanded = map.expanded && typeof map.expanded === 'object' ? map.expanded : {};
     map.view = map.view && typeof map.view === 'object' ? map.view : { x: 0, y: 0, scale: 1 };
-    map.nodes = this.normalizeNodes(map, profile, this.factTime(state), state);
+    map.nodes = this.normalizeNodes(map, sourceProfile, this.factTime(state), state);
     map._boundStore = state;
     map.edges = Array.isArray(map.edges) ? map.edges : [];
     map.nodes.forEach((node) => window.GameModules.realWorldMapFog?.normalizeNodeFlags?.(node));
     window.GameModules.orgTerritory?.ensureMapControls?.(map, state);
     this.compactInteriorNodes(map);
-    const inferred = this.inferHomeName(profile);
-    const currentName = this.isAbstractName(map.current || state.realWorldLocationName) ? inferred : this.cleanName(map.current || state.realWorldLocationName);
-    const currentNode = currentName ? this.upsertNode(map, { name: currentName, description: this.defaultDescription(currentName, profile), time: this.factTime(state), onlyIfNew: true }) : this.currentNode(map);
+    const inferred = this.inferHomeName(sourceProfile);
+    const currentName = inferred || (this.isAbstractName(map.current || state.realWorldLocationName) ? '' : this.cleanName(map.current || state.realWorldLocationName));
+    const currentNode = currentName ? this.upsertNode(map, { name: currentName, description: this.defaultDescription(currentName, sourceProfile), time: this.factTime(state), onlyIfNew: true }) : this.currentNode(map);
     if (currentNode) {
       map.current = currentNode.name;
       map.currentId = currentNode.id;
@@ -314,12 +314,13 @@ window.GameModules.realWorldMap = {
   },
 
   update(state, locationName, result = {}) {
-    const map = this.ensure(state, state.playerProfile || {});
+    const sourceProfile = state?.playerIdentityState?.()?.profile || state?.playerProfile || {};
+    const map = this.ensure(state, sourceProfile);
     const time = this.factTime(state);
     const rawNext = this.cleanName(locationName || result.locationName || map.current);
     const exteriorName = this.mapExteriorName(rawNext);
     const unitLevel = Boolean(exteriorName && exteriorName !== rawNext);
-    const nextName = this.isAbstractName(rawNext) ? this.inferHomeName(state.playerProfile || {}) : (unitLevel ? exteriorName : rawNext);
+    const nextName = this.isAbstractName(rawNext) ? this.inferHomeName(sourceProfile) : (unitLevel ? exteriorName : rawNext);
     if (!nextName) return map;
     const parentName = this.cleanName(result.parentLocationName || result.parentLocation || '');
     const descriptionRaw = result.locationDescription || result.description;
@@ -372,7 +373,7 @@ window.GameModules.realWorldMap = {
   },
 
   addLocation(state, item = {}, time = '', fallbackParent = null) {
-    const map = this.ensure(state, state.playerProfile || {});
+    const map = this.ensure(state, state.playerIdentityState?.()?.profile || state.playerProfile || {});
     const rawName = this.cleanName(item.name || item.locationName);
     const exteriorName = this.mapExteriorName(rawName);
     const unitLevel = Boolean(exteriorName && exteriorName !== rawName);
@@ -494,9 +495,9 @@ window.GameModules.realWorldMap = {
     return rows;
   },
 
-  toggle(state, id) { const map = this.ensure(state, state.playerProfile || {}); map.expanded[id] = !map.expanded[id]; },
+  toggle(state, id) { const map = this.ensure(state, state.playerIdentityState?.()?.profile || state.playerProfile || {}); map.expanded[id] = !map.expanded[id]; },
   showInfo(state, id) {
-    const map = this.ensure(state, state.playerProfile || {});
+    const map = this.ensure(state, state.playerIdentityState?.()?.profile || state.playerProfile || {});
     map.infoNodeId = id;
     map.interiorNodeId = '';
     map.interiorRoomId = '';
@@ -504,7 +505,7 @@ window.GameModules.realWorldMap = {
     map.interiorRoomShapeId = '';
   },
   showInterior(state, id) {
-    const map = this.ensure(state, state.playerProfile || {});
+    const map = this.ensure(state, state.playerIdentityState?.()?.profile || state.playerProfile || {});
     map.interiorNodeId = id;
     map.interiorRoomId = '';
     map.interiorRoomAreaId = '';
@@ -524,9 +525,15 @@ window.GameModules.realWorldMap = {
     const key = String(map?.interiorNodeId || '');
     if (!key) return null;
     const nodes = Array.isArray(map?.nodes) ? map.nodes : [];
-    return nodes.find((item) => item.id === key || item.name === key) || null;
+    return nodes.find((item) => item.id === key || item.name === key)
+      || window.GameModules.realWorldLocationGraph?.getNode?.(map?._boundStore || {}, key)
+      || null;
   },
-  infoNode(map) { return (map?.nodes || []).find((node) => node.id === map.infoNodeId) || null; },
+  infoNode(map) {
+    return (map?.nodes || []).find((node) => node.id === map.infoNodeId)
+      || window.GameModules.realWorldLocationGraph?.getNode?.(map?._boundStore || {}, map?.infoNodeId)
+      || null;
+  },
   render(map) {
     return this.mapDisplayRender(map || {});
   },

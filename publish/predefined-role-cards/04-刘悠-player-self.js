@@ -1,4 +1,6 @@
-{
+window.GameModules = window.GameModules || {};
+window.GameModules.predefinedRoleCardData = window.GameModules.predefinedRoleCardData || {};
+window.GameModules.predefinedRoleCardData["04-刘悠-player-self"] = {
   "id": "player-self",
   "name": "刘悠",
   "worldTag": "2026 现代都市现实世界",
@@ -4936,13 +4938,13 @@
         "orgId": "family-player-home",
         "orgName": "刘悠家庭（四川省-成都市-武侯区-）",
         "title": "户主/同住者",
-        "department": "刘悠家庭（四川省-成都市-武侯区-）",
+        "department": "家庭",
         "state": "sketch",
         "reason": "玩家家庭 org 预绑定。",
         "source": "preset-family",
         "departmentFog": false,
-        "since": "2026-07-22T09:29:26.571Z",
-        "displayLine": "刘悠家庭（四川省-成都市-武侯区-） / 刘悠家庭（四川省-成都市-武侯区-） / 户主/同住者"
+        "since": "",
+        "displayLine": "刘悠家庭（四川省-成都市-武侯区-） / 家庭 / 户主/同住者"
       }
     ],
     "items": [
@@ -5798,4 +5800,4 @@
     ]
   },
   "updatedAt": "2026-07-22T09:32:07.069Z"
-}
+};

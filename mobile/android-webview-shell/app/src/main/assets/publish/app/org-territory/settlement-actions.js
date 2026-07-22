@@ -28,7 +28,7 @@ window.GameModules.app.orgTerritory.settlementActions = {
 
   applyTerritoryControl(store, update = {}) {
     const ot = this.ot();
-    const map = window.GameModules.realWorldMap.ensure(store, store.playerProfile || {});
+    const map = window.GameModules.realWorldMap.ensure(store, window.GameModules.currentLocationField?.roleProfile?.(store) || {});
     const subject = update.subject || {};
     const value = update.change?.value ?? update.value ?? {};
     const locationName = String(subject.locationName || subject.name || subject.id || value.locationName || value.name || '').trim();
@@ -287,7 +287,7 @@ window.GameModules.app.orgTerritory.settlementActions = {
     if (patch.name) faction.name = String(patch.name).trim();
 
     if ((nextStatus === 'merged' || nextStatus === 'dissolved') && faction.successorIds?.length) {
-      const map = window.GameModules.realWorldMap.ensure(store, store.playerProfile || {});
+      const map = window.GameModules.realWorldMap.ensure(store, window.GameModules.currentLocationField?.roleProfile?.(store) || {});
       (map.nodes || []).forEach((node) => {
         if (!node.control) return;
         let touched = false;
