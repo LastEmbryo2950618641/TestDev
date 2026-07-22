@@ -171,14 +171,87 @@ Run: `node --test tests/player-identity-actions.test.js tests/predefined-role-ca
 
 Expected: PASS。
 
-### Task 4: 回归验证
+### Task 4: 增加新账号默认资料
+
+**Files:**
+- Modify: `tests/predefined-role-card-selection.test.js`
+- Modify: `publish/config/default-existing-profile.md`
+- Generate: `publish/config/default-existing-profile.js`
+- Modify: `publish/player-setup-defaults.js`
+- Modify: `publish/game.js`
+- Modify: `publish/home-actions.js`
+
+- [ ] **Step 1: Write failing default parsing and initialization tests**
+
+```js
+test('default profile parses player traits', () => {
+  const profile = store.parseDefaultProfileMd(defaultProfileMarkdown);
+  assert.strictEqual(profile.appearance, '黑直短发，戴金属框眼镜，眉宇间带着一丝疲惫，常穿深色格子衬衫，身高178cm，体型偏瘦。');
+  assert.strictEqual(profile.preferences, '偏爱休闲简约风格，常穿T恤、牛仔裤和运动鞋，对颜色没有特殊偏好，随身携带笔记本电脑和手机。');
+  assert.strictEqual(profile.personality, '责任感强，对妹妹们有保护欲，性格沉稳内敛，不善表达情感但行动体贴，压力下会独自沉默。');
+});
+
+test('new account applies player trait defaults only once', async () => {
+  await store.chooseNewAccountSetup();
+  assert.strictEqual(store.playerProfile.appearance, '默认外貌');
+  store.playerProfile.appearance = '';
+  await store.chooseNewAccountSetup();
+  assert.strictEqual(store.playerProfile.appearance, '');
+});
+```
+
+增加静态断言，要求 `game.js` 声明 `playerProfileTraitDefaultsApplied: false`，并要求 `home-actions.js` 在 `startNewGame()` 中重置该标记。
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `node --test tests/predefined-role-card-selection.test.js`
+
+Expected: FAIL，因为默认资料解析器尚未返回三个字段，新账号初始化尚未复制默认值，也没有一次性标记。
+
+- [ ] **Step 3: Add defaults and one-time initialization**
+
+在 `default-existing-profile.md` 增加：
+
+```text
+外貌：黑直短发，戴金属框眼镜，眉宇间带着一丝疲惫，常穿深色格子衬衫，身高178cm，体型偏瘦。
+喜好：偏爱休闲简约风格，常穿T恤、牛仔裤和运动鞋，对颜色没有特殊偏好，随身携带笔记本电脑和手机。
+性格：责任感强，对妹妹们有保护欲，性格沉稳内敛，不善表达情感但行动体贴，压力下会独自沉默。
+```
+
+让 `parseDefaultProfileMd()` 返回 `appearance`、`preferences`、`personality`。在 `chooseNewAccountSetup()` 中，仅当 `playerProfileTraitDefaultsApplied` 为 `false` 时复制三个默认值，然后把标记设为 `true`；标记为 `true` 时原样保留当前字段，包括空字符串。
+
+在 `game.js` 默认状态中加入：
+
+```js
+playerProfileTraitDefaultsApplied: false,
+```
+
+在 `startNewGame()` 重置：
+
+```js
+this.playerProfileTraitDefaultsApplied = false;
+```
+
+- [ ] **Step 4: Regenerate the runtime snapshot**
+
+Run: `node tools/md-to-inline-js.js publish/config/default-existing-profile.md`
+
+Expected: `publish/config/default-existing-profile.js` 包含三项新增默认资料，并继续声明源文件为 `default-existing-profile.md`。
+
+- [ ] **Step 5: Run tests to verify they pass**
+
+Run: `node --test tests/predefined-role-card-selection.test.js`
+
+Expected: PASS。
+
+### Task 5: 回归验证
 
 **Files:**
 - Verify only
 
 - [ ] **Step 1: Check syntax and whitespace**
 
-Run: `node --check publish/player-setup-actions.js; node --check publish/predefined-role-cards.js; node --check publish/role-card-editor.js; node --check publish/player-identity-actions.js; git diff --check`
+Run: `node --check publish/player-setup-actions.js; node --check publish/player-setup-defaults.js; node --check publish/predefined-role-cards.js; node --check publish/role-card-editor.js; node --check publish/player-identity-actions.js; git diff --check`
 
 Expected: 所有命令退出码为 0。
 
