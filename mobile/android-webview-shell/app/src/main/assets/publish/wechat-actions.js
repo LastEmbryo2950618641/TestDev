@@ -260,9 +260,8 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
     return contact;
   },
   predefinedRelationshipCards() {
-    const selected = this.roleCardSetup?.selectedRelationNames || [];
     const cards = this.roleCardSetup?.cards || window.GameModules.predefinedRoleCards?.cache || [];
-    return cards.filter((card) => card?.name && card?.id && (!selected.length || selected.includes(card.name)));
+    return cards.filter((card) => card?.name && card?.id);
   },
   relationshipContactsFromPart(part, relation, rest, index, selfName) {
     const rawText = String(part || '').trim();
@@ -320,14 +319,10 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
     return structured.length ? structured : this.inferWechatUsersFromRelationships(this.playerProfile?.relationships || '');
   },
 
-  selectedPredefinedWechatUsers() {
-    return this.predefinedRelationshipCards().map((card) => ({ id: card.id, characterId: card.id, name: card.name, relation: this.roleCardSetup?.relationRoles?.[card.name] || card.role || '关系联系人', latest: `${card.role || card.name}资料已从预定义角色卡同步。`, source: 'predefined-role-card', context: card.detail || card.relationships || '', needsNameAi: false }));
-  },
   async syncRelationshipWechatUsers(options = {}) {
     this.syncRelationshipTextFromEntries?.();
     const users = this.inferWechatUsersFromProfile();
-    const predefined = this.roleCardSetup?.usePredefinedPlayerCard ? this.selectedPredefinedWechatUsers() : [];
-    const merged = [...users, ...predefined].filter((user, index, list) => list.findIndex((item) => item.id === user.id) === index);
+    const merged = users.filter((user, index, list) => list.findIndex((item) => item.id === user.id) === index);
     const replacements = new Map(users.filter((user) => user.context && !user.needsNameAi).map((user) => [String(user.relation || ''), user]));
     this.wechatUsers = (this.wechatUsers || []).map((item) => {
       if (!this.isWechatPlaceholderName(item?.name)) return item;

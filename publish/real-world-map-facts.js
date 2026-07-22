@@ -89,7 +89,7 @@ window.GameModules.realWorldMapFacts = {
   },
 
   applyLocationUpdates(state, result = {}) {
-    const map = window.GameModules.realWorldMap.ensure(state, state.playerProfile || {});
+    const map = window.GameModules.realWorldMap.ensure(state, window.GameModules.currentLocationField?.roleProfile?.(state) || {});
     const time = this.nowLabel(state);
     const locationPayloads = [...(result.newLocations || []), ...(result.mapLocationAdds || [])];
     locationPayloads.forEach((item) => window.GameModules.realWorldLocationGraph?.ensurePoiFromPayload?.(state, { ...item, time }, { source: 'real-world-map-facts' }));

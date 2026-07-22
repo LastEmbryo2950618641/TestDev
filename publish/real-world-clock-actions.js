@@ -58,7 +58,7 @@ window.GameModules.realWorldClockActions = {
     this.realWorldOpen = true;
     this.checkWorkReminder?.();
     this.runAfterRealWorldPaint?.(() => {
-      const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
+      const map = window.GameModules.realWorldMap.ensure(this, window.GameModules.currentLocationField?.roleProfile?.(this) || {});
       const total = window.GameModules.realWorldLogStore?.count?.() || 0;
       if (total <= 0 && (this.realWorldLog || []).length) {
         window.GameModules.realWorldLogStore?.saveAll?.(this.realWorldLog).then(() => this.refreshRealWorldLogPage?.(999999)).catch((err) => console.warn('[现实日志] 分页刷新失败:', err.message, err.stack));
@@ -89,6 +89,7 @@ window.GameModules.realWorldClockActions = {
     if (view === 'map') {
       this.runAfterRealWorldPaint?.(() => {
         this.ensureRealWorldMapNativeInput?.();
+        this.refreshRealWorldMapJsonDump?.();
         this.fitRealWorldMapView?.();
       });
     }
@@ -119,7 +120,7 @@ window.GameModules.realWorldClockActions = {
   },
 
   seedRealWorldLog() {
-    const map = window.GameModules.realWorldMap.ensure(this, this.playerProfile || {});
+    const map = window.GameModules.realWorldMap.ensure(this, window.GameModules.currentLocationField?.roleProfile?.(this) || {});
     if (!map.current) return;
     const now = this.phoneDate();
     const entry = {

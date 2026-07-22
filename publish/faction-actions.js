@@ -103,7 +103,7 @@ window.GameModules.factionActions = {
   collectRoleCardMemberships() {
     const cards = [];
     try { cards.push(this.playerCharacter?.()); } catch (_) { /* 鐜╁瑙掕壊鍗℃湭鐢熸垚鏃惰烦杩?*/ }
-    cards.push(this.selectedPlayerRoleCard?.(), ...(this.selectedRelationRoleCards?.() || []));
+    cards.push(this.selectedPlayerRoleCard?.(), ...(this.selectedInitialRoleCards?.() || []));
     const validCards = cards.filter(Boolean);
     const rows = [];
     const push = (entry, characterName = '未知') => {

@@ -81,7 +81,8 @@ window.GameModules.ui.loading.progressView = Object.assign(window.GameModules.ui
     const playerText = player.length ? `${done(player)}/${player.length} 玩家卡` : '';
     const roleText = role.length ? `${done(role)}/${role.length} 角色卡` : '';
     const parts = [identityText, playerText, roleText].filter(Boolean).join(', ');
-    return `正在加载(${parts}) ${loadingProgressView().roleCardLoadingProgressText.call(this)}`;
+    const elapsed = loadingProgressView().elapsedText.call(this, this.roleCardLoadingState?.startedAt) || '';
+    return `正在加载(${parts})${elapsed ? ` · ${elapsed}` : ''} ${loadingProgressView().roleCardLoadingProgressText.call(this)}`;
   },
 
   roleCardLoadingProgressText() {

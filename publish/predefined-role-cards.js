@@ -1,16 +1,38 @@
 ﻿window.GameModules = window.GameModules || {};
 
 window.GameModules.predefinedRoleCards = {
-  keys: ['liu-you', 'liu-siyao', 'liu-siqi', 'liu-siyi'],
   cache: null,
+
+  roleProfile(record = {}) {
+    return record?.profile && typeof record.profile === 'object' ? record.profile : record;
+  },
+
+  roleCardId(card = {}) {
+    return String(card?.id || card?.name || '').trim();
+  },
+
+  uniqueCards(cards = []) {
+    const seen = new Set();
+    return (cards || []).filter((card) => {
+      const id = this.roleCardId(card);
+      if (!id || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  },
 
   cardKeyFor(card = {}) {
     if (!card) return '';
-    const byId = this.keys.find((key) => {
-      const src = window.GameModules.predefinedRoleCardData?.[key];
-      return src && (src.id === card.id || src.name === card.name);
+    const cardId = this.roleCardId(card);
+    const byId = this.loadedKeys().find((key) => {
+      const src = this.roleProfile(window.GameModules.predefinedRoleCardData?.[key]);
+      return src && (this.roleCardId(src) === cardId || src.name === card.name);
     });
     return byId || '';
+  },
+
+  loadedKeys() {
+    return Object.keys(window.GameModules.predefinedRoleCardData || {});
   },
 
   resolveEssentialPreferenceLayers(card = {}, key = '') {
@@ -170,8 +192,8 @@ window.GameModules.predefinedRoleCards = {
     if (this.cache) return this.cache;
     const source = window.GameModules.predefinedRoleCardData || {};
     const clone = (card) => window.GameModules.predefinedRoleCardActions?.cloneRoleCardForEditing?.(card) || JSON.parse(JSON.stringify(card));
-    const cards = this.keys.map((key) => {
-      const card = source[key];
+    const cards = Object.keys(source).map((key) => {
+      const card = this.roleProfile(source[key]);
       if (!card?.name) return null;
       const cloned = clone(card);
       const layers = this.isTripletSisterKey(key)
@@ -183,15 +205,17 @@ window.GameModules.predefinedRoleCards = {
       this.refreshDerivedIdentityFields(cloned);
       return cloned;
     }).filter(Boolean);
-    if (cards.length !== this.keys.length) {
-      console.warn('[预定义角色卡] 本地脚本数据缺失:', this.keys.filter((key) => !source[key]).join('、'));
-    }
-    this.cache = cards;
-    return cards;
+    this.cache = this.uniqueCards(cards);
+    return this.cache;
   },
 
   byName(cards, name) {
     return (cards || this.cache || []).find((card) => card.name === name) || null;
+  },
+
+  byId(cards, id) {
+    const target = String(id || '').trim();
+    return (cards || this.cache || []).find((card) => this.roleCardId(card) === target) || null;
   },
 
   identitySummary(card) {
@@ -368,33 +392,31 @@ window.GameModules.predefinedRoleCards = {
 
   async ensurePlayerState(store) {
     const cards = store?.roleCardSetup?.cards?.length ? store.roleCardSetup.cards : await this.loadAll();
-    const name = store.roleCardSetup?.selectedPlayerName || '刘悠';
-    const card = this.byName(cards, name);
+    const id = store.roleCardSetup?.selectedPlayerId || '';
+    const name = store.roleCardSetup?.selectedPlayerName || '';
+    const card = this.byId(cards, id) || this.byName(cards, name) || cards.find((x) => x.isPlayer) || cards[0];
     if (!card) return null;
     return this.createState({ ...card, id: 'player-self', isPlayer: true }, store, 'player-self');
-  },
-
-  async preloadRelationshipStates(store) {
-    return this.saveSelectedRelationshipStates(store);
   },
 
   async saveSelectedRoleCardStates(store) {
     if (!store?.roleCardSetup?.usePredefinedPlayerCard) return [];
     const [player, relations] = await Promise.all([
       this.ensurePlayerState(store),
-      this.saveSelectedRelationshipStates(store),
+      this.saveSelectedInitialCardStates(store),
     ]);
     const states = [player, ...relations].filter(Boolean);
     this.ensureInitialSchedules(store, states);
     return states;
   },
 
-  async saveSelectedRelationshipStates(store) {
+  async saveSelectedInitialCardStates(store) {
     const cards = store?.roleCardSetup?.cards?.length ? store.roleCardSetup.cards : await this.loadAll();
-    const names = store.roleCardSetup?.selectedRelationNames?.length ? store.roleCardSetup.selectedRelationNames : ['刘思瑶', '刘思琪', '刘思怡'];
-    const tasks = names.map((name) => {
-      const card = this.byName(cards, name);
-      return card ? this.createState(card, store, card.id || name) : null;
+    const playerId = store.roleCardSetup?.selectedPlayerId || '';
+    const ids = Array.isArray(store.roleCardSetup?.selectedCardIds) ? store.roleCardSetup.selectedCardIds : [];
+    const tasks = ids.filter((id) => id && id !== playerId).map((id) => {
+      const card = this.byId(cards, id);
+      return card ? this.createState(card, store, card.id || id) : null;
     }).filter(Boolean);
     const loaded = await Promise.all(tasks);
     return loaded.filter(Boolean);
@@ -406,35 +428,76 @@ window.GameModules.predefinedRoleCardActions = {
     const cards = await window.GameModules.predefinedRoleCards.loadAll();
     this.roleCardSetup.cards = cards;
     this.roleCardSetup.loaded = true;
-    if (!this.roleCardSetup.selectedPlayerName) this.roleCardSetup.selectedPlayerName = cards.find((x) => x.isPlayer)?.name || '刘悠';
-    if (!this.roleCardSetup.selectedRelationNames.length) this.roleCardSetup.selectedRelationNames = cards.filter((x) => !x.isPlayer).map((x) => x.name);
-    this.roleCardSetup.relationRoles = this.roleCardSetup.relationRoles || {};
-    this.roleCardSetup.selectedRelationNames.forEach((name) => {
-      const card = window.GameModules.predefinedRoleCards.byName(cards, name);
-      if (card && !this.roleCardSetup.relationRoles[name]) this.roleCardSetup.relationRoles[name] = card.role || '关系';
-    });
-    this.syncRelationCardGenderFilter();
+    this.migrateRoleCardSelectionIds();
+    if (!this.roleCardSetup.selectedPlayerId) {
+      const player = cards.find((x) => x.isPlayer) || cards[0] || null;
+      this.roleCardSetup.selectedPlayerId = window.GameModules.predefinedRoleCards.roleCardId(player);
+      this.roleCardSetup.selectedPlayerName = player?.name || '';
+    }
+    if (!Array.isArray(this.roleCardSetup.selectedCardIds)) this.roleCardSetup.selectedCardIds = [];
+    if (!this.roleCardSetup.selectedCardIds.length) this.roleCardSetup.selectedCardIds = cards.map((x) => window.GameModules.predefinedRoleCards.roleCardId(x)).filter(Boolean);
+    this.pruneSelectedInitialCards();
+    this.syncInitialCardPicker();
     if (!this.phoneSetupDone && this.roleCardSetup.usePredefinedPlayerCard) {
       this.applySelectedPlayerRoleCard();
-      this.applySelectedRelationshipRoleCards();
     }
   },
 
-  selectedPlayerRoleCard() { return window.GameModules.predefinedRoleCards.byName(this.roleCardSetup.cards, this.roleCardSetup.selectedPlayerName); },
-  selectedRelationRoleCards() { return (this.roleCardSetup.selectedRelationNames || []).map((name) => window.GameModules.predefinedRoleCards.byName(this.roleCardSetup.cards, name)).filter(Boolean); },
-  filteredRelationRoleCards() {
-    const gender = this.roleCardSetup.gender || '';
-    return (this.roleCardSetup.cards || []).filter((card) => !card.isPlayer && (!gender || card.gender === gender));
+  roleCardId(card = {}) { return window.GameModules.predefinedRoleCards.roleCardId(card); },
+  selectedPlayerRoleCard() {
+    return window.GameModules.predefinedRoleCards.byId(this.roleCardSetup.cards, this.roleCardSetup.selectedPlayerId)
+      || window.GameModules.predefinedRoleCards.byName(this.roleCardSetup.cards, this.roleCardSetup.selectedPlayerName);
   },
-  syncRelationCardGenderFilter() {
-    const list = this.filteredRelationRoleCards();
-    if (!list.some((card) => card.name === this.roleCardSetup.selectedRelationCardName)) this.roleCardSetup.selectedRelationCardName = list[0]?.name || '';
+  migrateRoleCardSelectionIds() {
+    const tool = window.GameModules.predefinedRoleCards;
+    const cards = this.roleCardSetup.cards || [];
+    if (!this.roleCardSetup.selectedPlayerId && this.roleCardSetup.selectedPlayerName) {
+      this.roleCardSetup.selectedPlayerId = tool.roleCardId(tool.byName(cards, this.roleCardSetup.selectedPlayerName));
+    }
+    if (!Array.isArray(this.roleCardSetup.selectedCardIds)) {
+      this.roleCardSetup.selectedCardIds = Array.isArray(this.roleCardSetup.selectedCardNames)
+        ? this.roleCardSetup.selectedCardNames.map((name) => tool.roleCardId(tool.byName(cards, name))).filter(Boolean)
+        : [];
+    }
+  },
+  selectedInitialRoleCards() {
+    this.migrateRoleCardSelectionIds();
+    const playerId = this.roleCardSetup.selectedPlayerId || '';
+    return (this.roleCardSetup.selectedCardIds || [])
+      .map((id) => window.GameModules.predefinedRoleCards.byId(this.roleCardSetup.cards, id))
+      .filter((card) => window.GameModules.predefinedRoleCards.roleCardId(card) !== playerId)
+      .filter(Boolean);
+  },
+  availableInitialRoleCards() {
+    this.migrateRoleCardSelectionIds();
+    const selected = new Set(this.roleCardSetup.selectedCardIds || []);
+    const playerId = this.roleCardSetup.selectedPlayerId || '';
+    return (this.roleCardSetup.cards || []).filter((card) => {
+      const id = window.GameModules.predefinedRoleCards.roleCardId(card);
+      return id && id !== playerId && !selected.has(id);
+    });
+  },
+  pruneSelectedInitialCards() {
+    this.migrateRoleCardSelectionIds();
+    const playerId = this.roleCardSetup.selectedPlayerId || '';
+    this.roleCardSetup.selectedCardIds = [...new Set(this.roleCardSetup.selectedCardIds || [])].filter((id) => id && id !== playerId);
+  },
+  syncInitialCardPicker() {
+    this.pruneSelectedInitialCards();
+    const list = this.availableInitialRoleCards();
+    if (!list.some((card) => window.GameModules.predefinedRoleCards.roleCardId(card) === this.roleCardSetup.selectedCardId)) {
+      this.roleCardSetup.selectedCardId = window.GameModules.predefinedRoleCards.roleCardId(list[0]);
+    }
   },
   roleCardIdentitySummary(card) { return window.GameModules.predefinedRoleCards.identitySummary(card); },
   roleCardDetailSummary(card) { return window.GameModules.predefinedRoleCards.detailSummary(card); },
 
-  selectPlayerRoleCard(name) {
-    this.roleCardSetup.selectedPlayerName = name;
+  selectPlayerRoleCard(id) {
+    const card = window.GameModules.predefinedRoleCards.byId(this.roleCardSetup.cards, id);
+    this.roleCardSetup.selectedPlayerId = id;
+    this.roleCardSetup.selectedPlayerName = card?.name || '';
+    this.pruneSelectedInitialCards();
+    this.syncInitialCardPicker();
     this.applySelectedPlayerRoleCard();
   },
 
@@ -442,42 +505,17 @@ window.GameModules.predefinedRoleCardActions = {
     const card = this.selectedPlayerRoleCard?.();
     if (!card) return;
     this.playerProfile = window.GameModules.predefinedRoleCards.playerProfileFromCard(card, this.playerProfile || {});
-    this.applySelectedRelationshipRoleCards();
   },
 
-  applySelectedRelationshipRoleCards() {
-    const cards = this.selectedRelationRoleCards?.() || [];
-    const existing = this.normalizeRelationshipEntries?.(this.playerProfile?.relationshipEntries, this.playerProfile?.relationships) || [];
-    const existingByName = new Map(existing.filter((entry) => entry.name).map((entry) => [entry.name, entry]));
-    const cardEntries = cards.map((card) => {
-      const old = existingByName.get(card.name) || {};
-      return {
-        relation: old.relation || this.roleCardSetup.relationRoles?.[card.name] || card.role || '关系联系人',
-        name: card.name,
-        detail: old.detail || card.detail || card.personality || '',
-      };
-    });
-    const merged = [...cardEntries, ...existing.filter((entry) => !cardEntries.some((item) => item.name === entry.name))];
-    if (merged.length) {
-      this.playerProfile.relationshipEntries = merged;
-      this.playerProfile.relationships = this.relationshipEntriesText?.(merged) || window.GameModules.predefinedRoleCards.relationshipText(cards, this.roleCardSetup.relationRoles || {});
-    }
+  addSetupRoleCard() {
+    const id = this.roleCardSetup.selectedCardId;
+    if (!id || this.roleCardSetup.selectedCardIds.includes(id)) return;
+    this.roleCardSetup.selectedCardIds = [...this.roleCardSetup.selectedCardIds, id];
+    this.syncInitialCardPicker();
   },
 
-  relationTypeLabel() {
-    return this.roleCardSetup.relationType === '自定义' ? (this.roleCardSetup.customRelation || '自定义关系') : this.roleCardSetup.relationType;
-  },
-
-  addSetupRelationshipCard() {
-    const name = this.roleCardSetup.selectedRelationCardName;
-    if (!name || this.roleCardSetup.selectedRelationNames.includes(name)) return;
-    this.roleCardSetup.relationRoles = { ...(this.roleCardSetup.relationRoles || {}), [name]: this.relationTypeLabel() };
-    this.roleCardSetup.selectedRelationNames = [...this.roleCardSetup.selectedRelationNames, name];
-    this.applySelectedRelationshipRoleCards();
-  },
-
-  removeSetupRelationshipCard(name) {
-    this.roleCardSetup.selectedRelationNames = this.roleCardSetup.selectedRelationNames.filter((item) => item !== name);
-    this.applySelectedRelationshipRoleCards();
+  removeSetupRoleCard(id) {
+    this.roleCardSetup.selectedCardIds = this.roleCardSetup.selectedCardIds.filter((item) => item !== id);
+    this.syncInitialCardPicker();
   },
 };

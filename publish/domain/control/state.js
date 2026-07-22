@@ -61,7 +61,7 @@ window.GameModules.domain.control.state = {
 
   realWorldLocationLabel() {
     if (this.hasActiveControlTarget?.()) return this.controlLinkLocationText?.(this.sharedControlState?.()) || '现实位置未登记';
-    return this.playerProfile?.refinedLivingStatus || this.playerProfile?.refinedCity || '现实位置未登记';
+    return this.controlLinkLocationText?.(this.playerIdentityState?.()) || '现实位置未登记';
   },
 
   realWorldProfileHeading() {

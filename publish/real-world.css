@@ -906,6 +906,21 @@
   font-weight: 800;
 }
 
+.real-world-map-json-dump {
+  width: 210px;
+  height: 42px;
+  min-height: 42px;
+  resize: vertical;
+  border: 1px solid rgba(255, 95, 216, .45);
+  border-radius: 10px;
+  background: rgba(2, 6, 16, .82);
+  color: #dffcff;
+  font-size: 11px;
+  line-height: 1.35;
+  padding: 6px 8px;
+  white-space: pre;
+}
+
 .real-world-map-shell {
   min-height: 0;
   display: grid;
@@ -1397,14 +1412,14 @@
 /* Electronic map canvas renderer: map products keep the moving layer as one paint surface. */
 .real-world-map-stage.real-world-map-canvas {
   position: absolute;
-  inset: 0;
+  left: 0;
+  top: 0;
   display: block;
-  width: 100%;
-  height: 100%;
   min-width: 0;
   min-height: 0;
   transition: none;
-  will-change: auto;
+  transform-origin: 0 0;
+  will-change: transform;
   cursor: default;
 }
 

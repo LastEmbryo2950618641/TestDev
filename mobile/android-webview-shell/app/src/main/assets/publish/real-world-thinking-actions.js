@@ -185,7 +185,8 @@ window.GameModules.realWorldThinkingActions = {
         const prev = result[result.length - 1];
         const prevText = String(prev?.narration || prev?.statusText || prev?.text || '').trim();
         if (prev?.transientError && text && text === prevText) return;
-        activeActionPending = Boolean(activeActionText);
+        activeActionText = '';
+        activeActionPending = false;
         result.push(entry);
         return;
       }

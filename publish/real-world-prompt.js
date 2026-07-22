@@ -6,7 +6,7 @@ window.GameModules = window.GameModules || {};
 window.GameModules.createRealWorldPrompt = async function createRealWorldPrompt(state, action) {
   const realWorld = window.GameModules.realWorld2026 || {};
   const memoryArchive = await state.searchMemoryArchive?.('player-self', action) || '无';
-  const map = window.GameModules.realWorldMap.ensure(state, state.playerProfile || {});
+  const map = window.GameModules.realWorldMap.ensure(state, window.GameModules.currentLocationField?.roleProfile?.(state) || {});
   const recent = (state.realWorldLog || []).slice(-6).map((entry) => (entry.type === 'user' ? `玩家行动：${entry.text}` : `地点：${entry.locationName || state.realWorldLocationName || map.current}\n推演结果：${entry.narration || entry.text || ''}`)).join('\n') || '暂无现实世界推演记录。';
   const facts = (map.nodes || []).map((node) => {
     const infoFacts = window.GameModules.realWorldMapFacts?.normalizeFacts?.(node, node.description, window.GameModules.realWorldMapFacts.nowLabel(state)) || [];

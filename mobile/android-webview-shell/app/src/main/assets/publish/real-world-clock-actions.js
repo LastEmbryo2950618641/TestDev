@@ -89,6 +89,7 @@ window.GameModules.realWorldClockActions = {
     if (view === 'map') {
       this.runAfterRealWorldPaint?.(() => {
         this.ensureRealWorldMapNativeInput?.();
+        this.refreshRealWorldMapJsonDump?.();
         this.fitRealWorldMapView?.();
       });
     }

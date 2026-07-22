@@ -9,7 +9,7 @@
     locationFillInstalled: true,
 
     async location(store, method, params = {}, action = '', options = {}) {
-      const map = window.GameModules.realWorldMap.ensure(store, store.playerProfile || {});
+      const map = window.GameModules.realWorldMap.ensure(store, window.GameModules.currentLocationField?.roleProfile?.(store) || {});
       const keyword = String(params.keyword || params.locationName || params.name || '').trim();
       const queryOnly = Boolean(options.queryOnly || options.noAudit || options.returnJsonOnMiss);
       if (method === 'getCurrentLocationContext') {
@@ -51,10 +51,10 @@
       this.ensurePlayerCurrentLocation(store, action);
       const target = this.locationTargetKeyword(store, text);
       if (!target) return null;
-      const existing = this.findLocationHit(window.GameModules.realWorldMap.ensure(store, store.playerProfile || {}), target);
+      const existing = this.findLocationHit(window.GameModules.realWorldMap.ensure(store, window.GameModules.currentLocationField?.roleProfile?.(store) || {}), target);
       const graphHit = existing ? null : await this.ensurePropertyNodeWithAudit(store, target, action, options);
       const detail = existing
-        ? this.locationDetail(window.GameModules.realWorldMap.ensure(store, store.playerProfile || {}), existing.name)
+        ? this.locationDetail(window.GameModules.realWorldMap.ensure(store, window.GameModules.currentLocationField?.roleProfile?.(store) || {}), existing.name)
         : this.isResolvedPropertyNodeEnsure(graphHit)
           ? this.propertyNodeEnsureText(store, graphHit)
           : await this.fillCharacterLocation(store, target, action, this.locationFillRequestOptions(options));
@@ -208,7 +208,7 @@
     },
 
     ensurePlayerCurrentLocation(store, action = '') {
-      const map = window.GameModules.realWorldMap.ensure(store, store.playerProfile || {});
+      const map = window.GameModules.realWorldMap.ensure(store, window.GameModules.currentLocationField?.roleProfile?.(store) || {});
       const graphApi = window.GameModules.realWorldLocationGraph;
       const recorded = graphApi?.getCharacterCurrentNode?.(store, 'player-self');
       if (recorded) return recorded;
@@ -235,7 +235,7 @@
     },
 
     async fillCharacterLocation(store, keyword = '', action = '', requestOptions = {}) {
-      const map = window.GameModules.realWorldMap.ensure(store, store.playerProfile || {});
+      const map = window.GameModules.realWorldMap.ensure(store, window.GameModules.currentLocationField?.roleProfile?.(store) || {});
       const graphHit = await this.ensurePropertyNodeWithAudit(store, keyword, action, requestOptions);
       if (this.isResolvedPropertyNodeEnsure(graphHit)) return this.propertyNodeEnsureText(store, graphHit);
       if (this.isDeferredPropertyNodeEnsure(graphHit)) return this.propertyNodeDeferText({ ...graphHit, targetKeyword: keyword });
@@ -269,7 +269,7 @@
     },
 
     locationFillClue(store, keyword = '', character = null, action = '') {
-      const map = window.GameModules.realWorldMap.ensure(store, store.playerProfile || {});
+      const map = window.GameModules.realWorldMap.ensure(store, window.GameModules.currentLocationField?.roleProfile?.(store) || {});
       const profile = character?.profile || character || {};
       return [
         `查询关键词：${keyword}`,
@@ -323,7 +323,7 @@
     },
 
     fallbackLocationFill(store, keyword = '', character = null) {
-      const map = window.GameModules.realWorldMap.ensure(store, store.playerProfile || {});
+      const map = window.GameModules.realWorldMap.ensure(store, window.GameModules.currentLocationField?.roleProfile?.(store) || {});
       const profile = character?.profile || character || {};
       const name = profile.name ? `${profile.name}的房间` : window.GameModules.realWorldMap.cleanName(keyword.replace(/地点|信息|位置/gu, ''));
       const route = map.current ? `从${map.current}出发，沿住处内部走廊或楼梯前往，房门位于家庭卧室区域的第二间。` : '从当前室内位置出发，沿走廊前往家庭卧室区域，目标房门在第二间。';

@@ -20,6 +20,16 @@ function resolveStageStatusText(context, status) {
 }
 
 window.GameModules.loadingActions = {
+  stageText(status = '') {
+    const view = resolveLoadingProgressView();
+    return view?.stageText ? view.stageText.call(this, status) : (status || '');
+  },
+
+  elapsedText(startedAt = 0, finishedAt = 0) {
+    const view = resolveLoadingProgressView();
+    return view?.elapsedText ? view.elapsedText.call(this, startedAt, finishedAt) : '';
+  },
+
   resetLoadingStages() {
     const now = Date.now();
     this.loadingStartedAt = now;

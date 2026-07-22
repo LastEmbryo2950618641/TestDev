@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="calendar-system.css">
   <link rel="stylesheet" href="event-system.css">
   <link rel="stylesheet" href="faction-system.css">
-  <link rel="stylesheet" href="skills-app.css?v=2026-07-21-continue-flat-v37">
+  <link rel="stylesheet" href="skills-app.css?v=2026-07-22-map-direct-render-v42">
   <link rel="stylesheet" href="character-select.css">
   <link rel="stylesheet" href="player-aspiration.css">
   <link rel="stylesheet" href="profile-preview.css">
@@ -127,11 +127,11 @@
   </script>
   <script src="../deepseek_key.js"></script>
   <script src="../pixatart_key.js"></script>
-  <script src="boot/script-loader.js?v=2026-07-21-continue-flat-v37"></script>
+  <script src="boot/script-loader.js?v=2026-07-22-map-direct-render-v42"></script>
   <script src="boot/store-modules.js"></script>
-  <script src="boot/script-manifest.js?v=2026-07-21-continue-flat-v37"></script>
-  <script src="boot/boot-actions.js?v=2026-07-21-continue-flat-v37"></script>
-  <script src="boot/boot.js?v=2026-07-21-continue-flat-v37"></script>
+  <script src="boot/script-manifest.js?v=2026-07-22-map-direct-render-v42"></script>
+  <script src="boot/boot-actions.js?v=2026-07-22-map-direct-render-v42"></script>
+  <script src="boot/boot.js?v=2026-07-22-map-direct-render-v42"></script>
   <script>
     window.openEventAppNative = async function openEventAppNative(event) {
       try {
@@ -485,7 +485,7 @@
         <p class="intro" x-text="$store.game.phoneActivationChoice === 'existing' ? '默认读取四张预定义角色卡：刘悠、刘思瑶、刘思琪、刘思怡。确认后会直接创建玩家卡与三张关系角色卡，不再请求 AI 生成这些卡。' : '现实世界默认为 2026 年现代都市。你的个人信息和相关人际关系完全由你自己设定；未填写的关系，剧情不会擅自补完。'"></p>
       </section>
       <article class="role-card-picker dev-section" data-section-title="选择玩家角色卡" x-show="$store.game.phoneActivationChoice === 'existing'">
-        <label><span>选择角色卡</span><select class="text-input" x-model="$store.game.roleCardSetup.selectedPlayerName" @change="$store.game.selectPlayerRoleCard($event.target.value)"><template x-for="card in $store.game.roleCardSetup.cards" :key="card.name"><option :value="card.name" x-text="`${card.name}｜${card.role || '角色卡'}`"></option></template></select></label>
+        <label><span>选择角色卡</span><select class="text-input" x-model="$store.game.roleCardSetup.selectedPlayerId" @change="$store.game.selectPlayerRoleCard($event.target.value)"><template x-for="card in $store.game.roleCardSetup.cards" :key="$store.game.roleCardId(card)"><option :value="$store.game.roleCardId(card)" x-text="`${card.name}｜${card.role || '角色卡'}`"></option></template></select></label>
         <pre class="activation-profile-summary" x-text="$store.game.roleCardIdentitySummary($store.game.selectedPlayerRoleCard())"></pre>
         <button class="small-btn" type="button" @click="$store.game.roleCardSetup.detailOpen = !$store.game.roleCardSetup.detailOpen" x-text="$store.game.roleCardSetup.detailOpen ? '收起数值与详情' : '展开数值与详情'"></button>
         <div class="role-card-editor" x-show="$store.game.roleCardSetup.detailOpen" x-cloak>
@@ -505,21 +505,21 @@
           <label class="dev-section" data-section-title="姓名代号输入"><span>姓名 / 代号</span><input class="text-input" x-model="$store.game.playerProfile.name" placeholder="例如：刘悠"><small>参考默认账号：刘悠</small></label>
           <label class="dev-section" data-section-title="性别输入"><span>性别</span><select class="text-input" x-model="$store.game.playerProfile.gender"><option value="">请选择</option><option>男</option><option>女</option><option>其他</option></select><small>参考默认账号：男</small></label>
           <label class="dev-section" data-section-title="生日输入"><span>生日（必填）</span><input class="text-input" type="date" x-model="$store.game.playerProfile.birthday"><small>参考默认账号：1998-11-19</small></label>
-          <label class="dev-section" data-section-title="具体地址输入"><span>具体地址</span><input class="text-input" x-model="$store.game.playerProfile.city" placeholder="例如：四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号"><small>参考默认账号：四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号</small></label>
+          <label class="dev-section" data-section-title="当前位置输入"><span>当前位置</span><input class="text-input" x-model="$store.game.playerProfile.currentLocation" placeholder="格式：势力·势力层级1·势力层级2·地点·地点内位置，例如：中华人民共和国·四川省·成都市武侯区·锦苑小区3栋·2单元601号"><small>第4段“地点”会直接作为电子地图节点名。</small></label>
           <label class="dev-section" data-section-title="现实身份输入"><span>现实身份</span><input class="text-input" x-model="$store.game.playerProfile.dailyRole" placeholder="例如：程序工程师，计算机科学与技术硕士"><small>参考默认账号：程序工程师，计算机科学与技术硕士</small></label>
           <label class="dev-section" data-section-title="居住状态输入"><span>居住状态</span><input class="text-input" x-model="$store.game.playerProfile.livingStatus" placeholder="例如：与18岁成年三胞胎妹妹刘思瑶、刘思琪、刘思怡同居"><small>参考默认账号：与18岁成年三胞胎妹妹刘思瑶、刘思琪、刘思怡同居</small></label>
           <label class="dev-section" data-section-title="财富等级输入"><span>财富等级</span><select class="text-input" x-model="$store.game.playerProfile.wealthTier" @change="$store.game.syncPlayerWealthDefaults()"><template x-for="option in $store.game.playerWealthOptions()" :key="option.tier"><option :value="option.tier" x-text="`${option.tier}（默认${option.amount.toLocaleString('zh-CN')}元）`"></option></template></select><small x-text="$store.game.playerWealthText()"></small></label>
           <label class="dev-section" data-section-title="父母信息输入"><span>父母信息</span><input class="text-input" x-model="$store.game.playerProfile.parents" placeholder="例如：父母已故"><small>参考默认账号：父母已故</small></label>
         </div>
       </div>
-      <article class="role-card-picker dev-section" data-section-title="人际关系角色卡区" x-show="$store.game.phoneActivationChoice === 'existing'" x-cloak>
-        <strong>人际关系角色卡</strong>
-        <template x-for="card in $store.game.selectedRelationRoleCards()" :key="card.name">
+      <article class="role-card-picker dev-section" data-section-title="初始化角色卡列表" x-show="$store.game.phoneActivationChoice === 'existing'" x-cloak>
+        <strong>初始化载入角色卡</strong>
+        <template x-for="card in $store.game.selectedInitialRoleCards()" :key="$store.game.roleCardId(card)">
           <div class="relation-card-row">
-            <div><b x-text="card.name"></b><small x-text="`${$store.game.roleCardSetup.relationRoles[card.name] || card.role || '关系'}｜${card.gender || '未记录'}｜${card.age || '未知'}岁`"></small></div>
-            <button class="small-btn" type="button" @click="$store.game.roleCardSetup.relationDetailOpen = $store.game.roleCardSetup.relationDetailOpen === card.name ? '' : card.name" x-text="$store.game.roleCardSetup.relationDetailOpen === card.name ? '收起' : '详情'"></button>
-            <button class="small-btn" type="button" @click="$store.game.removeSetupRelationshipCard(card.name)">移除</button>
-            <div class="role-card-editor" x-show="$store.game.roleCardSetup.relationDetailOpen === card.name" x-cloak>
+            <div><b x-text="card.name"></b><small x-text="`${card.role || '角色卡'}｜${card.gender || '未记录'}｜${card.age || '未知'}岁`"></small></div>
+            <button class="small-btn" type="button" @click="$store.game.roleCardSetup.cardDetailOpen = $store.game.roleCardSetup.cardDetailOpen === $store.game.roleCardId(card) ? '' : $store.game.roleCardId(card)" x-text="$store.game.roleCardSetup.cardDetailOpen === $store.game.roleCardId(card) ? '收起' : '详情'"></button>
+            <button class="small-btn" type="button" @click="$store.game.removeSetupRoleCard($store.game.roleCardId(card))">移除</button>
+            <div class="role-card-editor" x-show="$store.game.roleCardSetup.cardDetailOpen === $store.game.roleCardId(card)" x-cloak>
               <template x-for="field in $store.game.roleCardSimpleFields()" :key="field.key">
                 <label><span x-text="field.label"></span><input x-show="field.type !== 'textarea' && field.type !== 'checkbox'" class="text-input" :type="field.type" :value="$store.game.roleCardFieldValue(card, field.key)" @input="$store.game.setRoleCardField(card, field.key, $event.target.value)"><textarea x-show="field.type === 'textarea'" class="text-input" :value="$store.game.roleCardFieldValue(card, field.key)" @input="$store.game.setRoleCardField(card, field.key, $event.target.value)"></textarea><input x-show="field.type === 'checkbox'" type="checkbox" :checked="$store.game.roleCardFieldValue(card, field.key)" @change="$store.game.setRoleCardField(card, field.key, $event.target.checked)"></label>
               </template>
@@ -533,26 +533,10 @@
           </div>
         </template>
         <div class="relation-add-grid">
-          <label><span>性别</span><select class="text-input" x-model="$store.game.roleCardSetup.gender" @change="$store.game.syncRelationCardGenderFilter()"><option value="">全部</option><option>女</option><option>男</option><option>其他</option></select></label>
-          <label><span>关系</span><select class="text-input" x-model="$store.game.roleCardSetup.relationType"><option>母亲</option><option>父亲</option><option>妹妹</option><option>侄女</option><option>青梅竹马</option><option>自定义</option></select></label>
-          <label x-show="$store.game.roleCardSetup.relationType === '自定义'"><span>自定义关系</span><input class="text-input" x-model="$store.game.roleCardSetup.customRelation" placeholder="例如：邻居 / 同事"></label>
-          <label><span>已有角色卡</span><select class="text-input" x-model="$store.game.roleCardSetup.selectedRelationCardName"><template x-for="card in $store.game.filteredRelationRoleCards()" :key="card.name"><option :value="card.name" x-text="`${card.name}｜${card.gender || '未记录'}｜${card.role || '角色卡'}`"></option></template></select></label>
-          <button class="small-btn" type="button" @click="$store.game.addSetupRelationshipCard()" :disabled="!$store.game.filteredRelationRoleCards().length || !$store.game.roleCardSetup.selectedRelationCardName">＋ 添加角色卡</button>
+          <label><span>已有角色卡</span><select class="text-input" x-model="$store.game.roleCardSetup.selectedCardId"><template x-for="card in $store.game.availableInitialRoleCards()" :key="$store.game.roleCardId(card)"><option :value="$store.game.roleCardId(card)" x-text="`${card.name}｜${card.gender || '未记录'}｜${card.role || '角色卡'}`"></option></template></select></label>
+          <button class="small-btn" type="button" @click="$store.game.addSetupRoleCard()" :disabled="!$store.game.availableInitialRoleCards().length || !$store.game.roleCardSetup.selectedCardId">＋ 添加角色卡</button>
           <button class="small-btn" type="button" @click="$store.game.existingProfileExpanded = true">新增 / 编辑角色卡</button>
         </div>
-      </article>
-      <article class="phone-setup-wide relationship-entry-panel dev-section" data-section-title="人际关系设定区">
-        <div class="relationship-entry-head"><strong>与你相关的人际关系</strong><button class="small-btn" type="button" @click="$store.game.addPlayerRelationshipEntry()">＋ 添加关系</button></div>
-        <p>每行单独填写关系名、姓名与该人物设定；系统会自动整理成“关系：姓名”给角色卡和微信联系人使用。</p>
-        <template x-for="(entry, index) in ($store.game.playerProfile.relationshipEntries || [])" :key="index">
-          <div class="relationship-entry-row">
-            <label><span>关系名</span><input class="text-input" x-model="entry.relation" @input="$store.game.syncRelationshipTextFromEntries()" placeholder="如：三胞胎妹妹之一"></label>
-            <label><span>姓名</span><input class="text-input" x-model="entry.name" @input="$store.game.syncRelationshipTextFromEntries()" placeholder="如：刘思瑶"></label>
-            <label class="relationship-entry-detail"><span>该人物设定</span><textarea class="text-input" x-model="entry.detail" placeholder="外貌、性格、同居情况、关系边界、特殊偏好等"></textarea></label>
-            <button class="small-btn" type="button" @click="$store.game.removePlayerRelationshipEntry(index)">删除</button>
-          </div>
-        </template>
-        <small>参考：三胞胎妹妹之一 / 刘思瑶；三胞胎妹妹之二 / 刘思琪；三胞胎妹妹之三 / 刘思怡。</small>
       </article>
       <label class="phone-setup-wide dev-section" data-section-title="备注设定区"><span>备注设定</span><textarea x-model="$store.game.playerProfile.notes" placeholder="例如：家庭处境、性格、亲密关系边界、近期目标等。可留空。"></textarea><small>参考默认账号：刘悠是程序工程师，与成年三胞胎妹妹同居，承担家庭支柱职责。</small></label>
       <article class="real-world-note dev-section" data-section-title="玩家卡生成选项区"><strong>玩家卡生成选项</strong><p>以下选项只影响新账号玩家卡本人；使用已有账号时会直接使用预定义角色卡。</p><label><input type="checkbox" x-model="$store.game.playerProfile.playerCardAiParts.part2"> Part2 情感数值使用 AI 生成</label><label><input type="checkbox" x-model="$store.game.playerProfile.playerCardAiParts.part5"> Part5 身体原貌使用 AI 生成</label><label><input type="checkbox" x-model="$store.game.playerProfile.playerCardAiParts.part6"> Part6 盛装状态使用 AI 生成</label><small>Part2/5/6 默认使用 AI 生成。玩家本人：情绪 + 感觉均为当前自我状态；出场角色：情绪 + 对玩家感觉（现有逻辑）。取消勾选后对应部分采用系统缺省值并直接标记完成。</small></article>
@@ -948,6 +932,8 @@
                 <button type="button" @click="$store.game.realWorldMapZoomBy(1.12)">+</button>
                 <button type="button" @click="$store.game.realWorldMapZoomBy(0.88)">-</button>
                 <button type="button" @click="$store.game.resetRealWorldMapView()">&#x5B9A;&#x4F4D;</button>
+                <button type="button" @click="$store.game.refreshRealWorldMapJsonDump?.()">刷新文本</button>
+                <textarea class="real-world-map-json-dump" readonly spellcheck="false" :value="$store.game.realWorldMapJsonDump || ''" @focus="$event.target.select()" title="当前电子地图 JSON"></textarea>
               </div>
             </div>
             <section class="real-world-map-shell" :class="{ 'real-world-map-shell--interior-open': $store.game.realWorldMapInteriorNode() }">
@@ -1012,7 +998,6 @@
                     <p x-text="$store.game.realWorldMapFactText(fact, index)"></p>
                   </template>
                 </div>
-                <button class="ghost-wide" type="button" @click="$store.game.openRealWorldMapInfoInterior($store.game.realWorldMapInfoNode()?.id)">查看建筑内部</button>
               </article>
             </div>
           </div>
@@ -1025,7 +1010,7 @@
             <div class="avatar-orb" x-text="$store.game.realWorldDisplayCharacter().name.slice(0, 1)"></div>
             <div class="character-status-main">
               <div class="name-role-block"><h2 x-text="$store.game.realWorldDisplayCharacter().name"></h2><p class="role" x-text="$store.game.sharedControlState() ? '附身控制中' : ($store.game.playerProfile.refinedRole || $store.game.playerProfile.dailyRole || '现实世界居民')"></p></div>
-              <small x-text="$store.game.sharedControlState() ? $store.game.controlLinkLocationText($store.game.sharedControlState()) : ($store.game.playerProfile.refinedLivingStatus || $store.game.playerProfile.refinedCity || '现实位置未登记')"></small>
+              <small x-text="$store.game.sharedControlState() ? $store.game.controlLinkLocationText($store.game.sharedControlState()) : ($store.game.playerProfile.currentLocation || '现实位置未登记')"></small>
               <div class="vital-bars" x-show="$store.game.realWorldDisplayState()">
                 <template x-for="vital in $store.game.rpgVitals($store.game.realWorldDisplayState())" :key="`player-${vital.key}`">
                   <div class="vital-row" :class="vital.key"><span x-text="vital.label"></span><i><b :style="`width: ${Math.max(0, Math.min(100, vital.value))}%`"></b></i><em x-text="vital.text || `${vital.value}%`"></em></div>

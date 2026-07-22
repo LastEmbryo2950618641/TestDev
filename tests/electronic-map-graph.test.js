@@ -46,6 +46,9 @@ test('index uses graph viewport and interior drawer instead of legacy map rows',
   assert.ok(html.includes('real-world-map-shell--interior-open'));
   assert.ok(html.includes(":class=\"{ 'real-world-map-shell--interior-open': $store.game.realWorldMapInteriorNode() }\""));
   assert.ok(html.includes('realWorldMapHasGraphNodes()'));
+  assert.ok(html.includes('refreshRealWorldMapJsonDump'));
+  assert.ok(html.includes(':value="$store.game.realWorldMapJsonDump || \'\'"'));
+  assert.ok(!html.includes('JSON.stringify($store.game.realWorldMap'));
   assert.ok(!html.includes('realWorldMapRows()'));
   assert.ok(!html.includes('realWorldFunctionView === \'map\' && $nextTick'));
 });
@@ -89,55 +92,47 @@ test('map update prompt captures item container changes during settlement', () =
   assert.ok(prompt.includes('\u7a33\u5b9a\u4e8b\u5b9e'));
 });
 
-test('surround unlock prompt requires contextual AI furniture contents persistence', () => {
+test('surround unlock prompt forbids interior building payloads', () => {
   const prompt = read('publish/prompts/real-world-map-surround-unlock.md');
-  assert.ok(prompt.includes('\u4eba\u7269\u6027\u683c'));
-  assert.ok(prompt.includes('\u8d22\u529b'));
-  assert.ok(prompt.includes('containerContents'));
-  assert.ok(prompt.includes('AI'));
-  assert.ok(prompt.includes('\u5927\u578b\u6446\u4ef6'));
-  assert.ok(prompt.includes('containerContents'));
+  assert.ok(prompt.includes('这次只做“周边解锁”'));
+  assert.ok(prompt.includes('禁止返回 `interiorLayout`'));
+  assert.ok(prompt.includes('`floors`'));
+  assert.ok(prompt.includes('`slotObjects`'));
 });
 
-test('surround unlock prompt requires AI generated room layouts without templates', () => {
+test('surround unlock prompt documents simple four-field response', () => {
   const prompt = read('publish/prompts/real-world-map-surround-unlock.md');
-  assert.ok(prompt.includes('layout.shapes'));
-  assert.ok(prompt.includes('AI \u751f\u6210\u5b8c\u6574\u6237\u578b'));
-  assert.ok(prompt.includes('\u7cfb\u7edf\u53ea\u4fdd\u5b58\u5e76\u6e32\u67d3 `layout.shapes`'));
-  assert.ok(prompt.includes('\u4e0d\u8981\u8f93\u51fa `layoutTemplateId`'));
-});
-
-test('surround unlock prompt documents full and patch response modes', () => {
-  const prompt = read('publish/prompts/real-world-map-surround-unlock.md');
-  assert.ok(prompt.includes('\u8fd4\u56de\u6a21\u5f0f\uff1a{{\u8fd4\u56de\u6a21\u5f0f}}'));
   assert.ok(prompt.includes('\u5f53\u524d\u5730\u70b9\u5b8c\u6574JSON'));
-  assert.ok(prompt.includes('\u8fd4\u56de\u6a21\u5f0f=full'));
-  assert.ok(prompt.includes('\u8fd4\u56de\u6a21\u5f0f=patch'));
-  assert.ok(prompt.includes('noChange'));
-  assert.ok(prompt.includes('currentPoi'));
+  assert.ok(prompt.includes('"当前节点"'));
+  assert.ok(prompt.includes('"周围地点"'));
+  assert.ok(prompt.includes('"势力"'));
+  assert.ok(prompt.includes('"地点信息"'));
+  assert.ok(prompt.includes('"距离"'));
+  assert.ok(prompt.includes('"地点名"'));
+  assert.ok(prompt.includes('势力名·势力层级1·势力层级2'));
+  assert.ok(prompt.includes('正式地图地点名'));
+  assert.ok(prompt.includes('如果玩家当前在房间/卧室/走廊等室内空间，必须写其所在建筑'));
+  assert.ok(prompt.includes('刘思琪房间-锦苑小区3栋'));
+  assert.ok(prompt.includes('不得使用“房间-建筑”“人物-地点”等拼接名'));
+  assert.ok(prompt.includes('第一个必须是最高层级控制势力或行政管辖势力'));
+  assert.ok(prompt.includes('禁止家庭/住户/使用人'));
+  assert.ok(prompt.includes('同一地图尺度'));
+  assert.ok(prompt.includes('异世界可使用州、郡、城、宫殿、城门、神殿、港口、关隘'));
+  assert.ok(prompt.includes('同尺度、可互通、可标注距离'));
+  assert.ok(prompt.includes('中华人民共和国·四川省成都市·武侯区'));
 });
 
-test('surround unlock prompt requires direct floor JSON mapping', () => {
+test('surround unlock prompt is simple and inline synced', () => {
   const prompt = read('publish/prompts/real-world-map-surround-unlock.md');
   const inline = read('publish/prompts/real-world-map-surround-unlock.js');
-  assert.ok(prompt.includes('电子地图周围一圈解锁'));
-  assert.ok(prompt.includes('室内结构根层只允许使用 `interiorLayout.floors[]`'));
-  assert.ok(prompt.includes('UI 会直接按 `floors[].rooms[]` 渲染'));
-  assert.ok(prompt.includes('禁止把它们写进 `interiorLayout.zones[]`'));
-  assert.ok(prompt.includes('"zones": []'));
-  assert.ok(inline.includes('电子地图周围一圈解锁'));
-  assert.ok(inline.includes('室内结构根层只允许使用 `interiorLayout.floors[]`'));
+  assert.ok(prompt.includes('电子地图周边解锁'));
+  assert.ok(prompt.includes('字段固定只有四个'));
+  assert.ok(inline.includes('电子地图周边解锁'));
+  assert.ok(inline.includes('字段固定只有四个'));
   assert.ok(!prompt.includes('\ufffd'));
   assert.ok(!inline.includes('\ufffd'));
-  assert.ok(!prompt.includes('zones` 只写建筑物公共区（走廊、楼梯间、单元门厅）'));
-});
-
-test('surround unlock prompt requires ownership usage on known rooms', () => {
-  const prompt = read('publish/prompts/real-world-map-surround-unlock.md');
-  assert.ok(prompt.includes('必须在该房间同时写 `residents`、`ownerRefs` 和 `usageContracts[]`'));
-  assert.ok(prompt.includes('使用者和所属者可以是同一个人'));
-  assert.ok(prompt.includes('"ownerRefs"'));
-  assert.ok(prompt.includes('"usageContracts"'));
+  assert.ok(!prompt.includes('layout.shapes'));
+  assert.ok(!prompt.includes('usageContracts'));
 });
 
 test('map actions cache graph builds between reactive refreshes', () => {
@@ -149,30 +144,123 @@ test('map actions cache graph builds between reactive refreshes', () => {
   assert.ok(actions.includes('if (options.fast && runtime.graphCache?.graph) return runtime.graphCache.graph;'));
 });
 
-test('map drag redraws canvas without reactive store writes', () => {
+test('map json dump exports only standard graph nodes and edges', () => {
+  const context = {
+    window: { GameModules: {} },
+    document: { addEventListener() {} },
+    console,
+  };
+  loadScript(context, 'publish/real-world-location-graph.js');
+  loadScript(context, 'publish/real-world-map-actions.js');
+  const actions = context.window.GameModules.realWorldMapActions;
+  const store = {
+    realWorldMap: { currentId: 'legacy_a', mapAnchorId: 'legacy_a', nodes: [], edges: [] },
+    locationGraph: {
+      version: 1,
+      nodesById: {
+        loc_a: { id: 'loc_a', type: 'poi', name: '锦苑小区3栋', displayName: '锦苑小区3栋', descriptionFacts: ['旧事实'], ownerRefs: [{ name: '甲' }], interiorLayout: { floors: [] } },
+        loc_b: { id: 'loc_b', type: 'poi', name: '锦苑小区2栋', displayName: '锦苑小区2栋' },
+      },
+      legacyAliases: { 'mapId:legacy_a': 'loc_a' },
+      identityIndex: {},
+      searchIndex: { locationNodeIds: [], byNormalizedName: {} },
+      characterLocations: {},
+      poiGraph: {
+        nodes: ['loc_a', 'loc_b'],
+        edges: [{ id: 'edge_loc_a_loc_b', fromPoiId: 'loc_a', toPoiId: 'loc_b', distanceMeters: 20, distanceText: '约20米' }],
+      },
+    },
+  };
+  const text = actions.realWorldMapJsonDumpText.call({
+    ...store,
+    realWorldMapCurrentMap() { return store.realWorldMap; },
+  });
+  const payload = JSON.parse(text);
+  assert.strictEqual(payload.currentId, 'loc_a');
+  assert.deepStrictEqual(payload.nodes.map((node) => node.name), ['锦苑小区3栋', '锦苑小区2栋']);
+  assert.strictEqual(payload.edges[0].weight, 20);
+  assert.ok(text.includes('"nodes"'));
+  assert.ok(text.includes('"edges"'));
+  assert.ok(!text.includes('descriptionFacts'));
+  assert.ok(!text.includes('ownerRefs'));
+  assert.ok(!text.includes('interiorLayout'));
+  assert.ok(!text.includes('"error"'));
+});
+
+test('standard graph exports structural poi nodes only when distance-linked', () => {
+  const context = {
+    window: { GameModules: {} },
+    console,
+  };
+  loadScript(context, 'publish/real-world-map.js');
+  loadScript(context, 'publish/real-world-location-graph.js');
+  const state = {
+    realWorldMap: { currentId: 'room', mapAnchorId: 'room', nodes: [], edges: [] },
+    locationGraph: {
+      version: 1,
+      nodesById: {
+        building3: { id: 'building3', type: 'poi', name: '锦苑小区3栋', displayName: '锦苑小区3栋', mapVisible: true },
+        building2: { id: 'building2', type: 'poi', name: '锦苑小区2栋', displayName: '锦苑小区2栋', mapVisible: true },
+        province: { id: 'province', type: 'poi', name: '四川省', displayName: '四川省', mapVisible: false },
+        city: { id: 'city', type: 'poi', name: '成都市', displayName: '成都市', mapVisible: false },
+        community: { id: 'community', type: 'region', name: '成都市武侯区玉林街道玉林北路社区', displayName: '成都市武侯区玉林街道玉林北路社区', mapVisible: true },
+        room: { id: 'room', type: 'room', name: '刘思琪房间', displayName: '刘思琪房间', mapVisible: true },
+        unlinkedPark: { id: 'unlinkedPark', type: 'poi', name: '玉林公园', displayName: '玉林公园', mapVisible: true },
+        palace: { id: 'palace', type: 'poi', name: '星辉宫殿', displayName: '星辉宫殿', mapVisible: true },
+        gate: { id: 'gate', type: 'poi', name: '北城门', displayName: '北城门', mapVisible: true },
+      },
+      legacyAliases: { 'mapId:room': 'room' },
+      identityIndex: {},
+      searchIndex: { locationNodeIds: [], byNormalizedName: {} },
+      characterLocations: {},
+      poiGraph: {
+        nodes: ['building3', 'building2', 'province', 'city', 'community', 'room', 'unlinkedPark', 'palace', 'gate'],
+        edges: [
+          { id: 'edge_building3_building2', fromPoiId: 'building3', toPoiId: 'building2', distanceMeters: 20, distanceText: '约20米' },
+          { id: 'edge_palace_gate', fromPoiId: 'palace', toPoiId: 'gate', distanceMeters: 900, distanceText: '约900米' },
+        ],
+      },
+    },
+  };
+
+  const graph = context.window.GameModules.realWorldLocationGraph.standardPoiGraph(state);
+
+  assert.deepStrictEqual(graph.nodes.map((node) => node.name), ['锦苑小区3栋', '锦苑小区2栋', '星辉宫殿', '北城门']);
+  assert.deepStrictEqual(graph.edges.map((edge) => [edge.from, edge.to, edge.weight]), [['building3', 'building2', 20], ['palace', 'gate', 900]]);
+  assert.strictEqual(graph.currentId, 'building3');
+});
+
+test('map drag moves cached canvas with transform only', () => {
   const actions = read('publish/real-world-map-actions.js');
   const moveBody = methodBody(actions, 'realWorldMapPanMove', 'realWorldMapPanEnd');
+  const queueBody = methodBody(actions, 'queueRealWorldMapViewPaint', 'commitRealWorldMapView');
   assert.ok(actions.includes('realWorldMapRuntime()'));
   assert.ok(actions.includes('drawRealWorldMapCanvas'));
   assert.ok(actions.includes('queueRealWorldMapViewPaint(view = {})'));
   assert.ok(actions.includes('commitRealWorldMapView(view = this.realWorldMapRuntime().liveView)'));
+  assert.ok(actions.includes('applyRealWorldMapCanvasTransform(view = {})'));
   assert.ok(moveBody.includes('this.queueRealWorldMapViewPaint(pan.view)'));
+  assert.ok(queueBody.includes('this.applyRealWorldMapCanvasTransform(runtime.liveView)'));
+  assert.ok(!queueBody.includes('drawRealWorldMapCanvas(runtime.liveView)'));
   assert.ok(!actions.includes('stage.replaceChildren()'));
   assert.ok(!actions.includes('document.createElementNS(ns'));
   assert.ok(!moveBody.includes('ensureMapView(map)'));
   assert.ok(!moveBody.includes('map.view'));
 });
 
-test('map canvas uses lightweight POI drawing during pan', () => {
+test('map canvas draws world once and hit tests through view transform', () => {
   const actions = read('publish/real-world-map-actions.js');
   const drawBody = methodBody(actions, 'drawRealWorldMapCanvas', 'realWorldMapCanvasHitTest');
+  const hitBody = methodBody(actions, 'realWorldMapCanvasHitTest', 'realWorldMapHandleCanvasTap');
   assert.ok(actions.includes('const dpr = 1'));
   assert.ok(actions.includes('realWorldMapShortLabel('));
-  assert.ok(actions.includes('realWorldMapDrawPill('));
-  assert.ok(drawBody.includes('const isInteracting = Boolean(runtime.pan)'));
-  assert.ok(drawBody.includes('this.realWorldMapGraph({ fast: Boolean(viewArg || runtime.pan), map })'));
-  assert.ok(drawBody.includes('if (current && !isInteracting)'));
+  assert.ok(drawBody.includes('const drawSignature = `${signature}|${size.width}x${size.height}`;'));
+  assert.ok(drawBody.includes('if (runtime.canvasDrawSignature === drawSignature && runtime.hitRegions?.length) return;'));
+  assert.ok(drawBody.includes('this.applyRealWorldMapCanvasTransform(view);'));
+  assert.ok(drawBody.includes('const graph = this.realWorldMapGraph({ map: graphData })'));
+  assert.ok(drawBody.includes("ctx.fillText(this.realWorldMapShortLabel(label, current ? 24 : 18), labelX + 12, labelY + labelHeight / 2 + 1)"));
   assert.ok(drawBody.includes("ctx.fillText('i'"));
+  assert.ok(hitBody.includes('const x = (event.clientX - rect.left - (Number(view.x) || 0)) / scale;'));
   assert.ok(!drawBody.includes('ctx.shadowBlur'));
   assert.ok(!drawBody.includes('createLinearGradient'));
 });
@@ -255,7 +343,7 @@ test('map auxiliary AI requests reuse real world KV cache path', () => {
   assert.ok(locationFill.includes('tokenMeta: requestOptions.tokenMeta'));
 });
 
-test('map node tap opens selected node interior directly', () => {
+test('map node tap opens location info directly', () => {
   const html = read('publish/index.html');
   const actions = read('publish/real-world-map-actions.js');
   const map = read('publish/real-world-map.js');
@@ -264,9 +352,9 @@ test('map node tap opens selected node interior directly', () => {
   const interiorNodeBody = methodBody(map, 'interiorNode', 'infoNode');
   const showInteriorBody = methodBody(actions, 'showRealWorldMapInterior', 'openRealWorldMapInfoInterior');
   assert.ok(tapBody.includes("if (hit.type === 'info') this.showRealWorldMapInfo(hit.id);"));
-  assert.ok(tapBody.includes("else if (hit.type === 'node') this.showRealWorldMapInterior(hit.id);"));
-  assert.ok(!tapBody.includes("else if (hit.type === 'node') this.showRealWorldMapInfo(hit.id);"));
-  assert.ok(interiorNodeBody.includes('return nodes.find((item) => item.id === key || item.name === key) || null;'));
+  assert.ok(tapBody.includes("else if (hit.type === 'node') this.showRealWorldMapInfo(hit.id);"));
+  assert.ok(!tapBody.includes("else if (hit.type === 'node') this.showRealWorldMapInterior(hit.id);"));
+  assert.ok(interiorNodeBody.includes('window.GameModules.realWorldLocationGraph?.getNode?.(map?._boundStore || {}, key)'));
   assert.ok(!interiorNodeBody.includes('graphNodeId'));
   assert.ok(!interiorNodeBody.includes('identityKey'));
   assert.ok(!showInteriorBody.includes('realWorldMapInfoNode'));
@@ -276,7 +364,10 @@ test('map node tap opens selected node interior directly', () => {
   assert.ok(infoBody.includes('requestAnimationFrame'));
   assert.ok(infoBody.includes('setTimeout'));
   assert.ok(infoBody.indexOf('setTimeout') < infoBody.indexOf('resolveControlLabel'));
-  assert.ok(html.includes('openRealWorldMapInfoInterior($store.game.realWorldMapInfoNode()?.id)'));
+  assert.ok(!html.includes('查看建筑内部'));
+  assert.ok(!html.includes('openRealWorldMapInfoInterior($store.game.realWorldMapInfoNode()?.id)'));
+  assert.ok(!actions.includes('installRealWorldMapInteriorNativeOpen'));
+  assert.ok(!actions.includes('.real-world-map-info-pop .ghost-wide'));
   assert.ok(!html.includes('showRealWorldMapInterior($store.game.realWorldMapInfoNode()?.id); $store.game.closeRealWorldMapInfo()'));
   const infoInteriorBody = methodBody(actions, 'openRealWorldMapInfoInterior', 'closeRealWorldMapInterior');
   assert.ok(infoInteriorBody.includes('this.showRealWorldMapInterior(key);'));
@@ -302,8 +393,9 @@ test('real world panel and map actions defer heavy work until after first paint'
   assert.ok(showInteriorBody.indexOf('prepareRealWorldMapInteriorFloors') < showInteriorBody.indexOf('this.setRealWorldMapState({ ...map })'));
   assert.ok(!showInteriorBody.includes('this.realWorldMapAfterPaint(() => this.prepareRealWorldMapInteriorFloors(key))'));
   assert.ok(!showInteriorBody.includes('realWorldMap.showInterior'));
-  assert.ok(drawBody.includes('realWorldMapNodeControlCachedLine'));
-  assert.ok(!drawBody.includes('realWorldMapNodeControlLine?.(node.id)'));
+  assert.ok(drawBody.includes('const graph = this.realWorldMapGraph({ map: graphData })'));
+  assert.ok(!drawBody.includes('realWorldMapNodeControlCachedLine'));
+  assert.ok(!drawBody.includes('realWorldMapDrawPill('));
 });
 
 test('interior floor signature stays lightweight for room detail changes', () => {
@@ -394,6 +486,7 @@ test('game store has graph map UI fallbacks before gameplay chunk loads', () => 
     'openRealWorldFunctionPanel(view = \'menu\')',
     'closeRealWorldFunctionPanel()',
     'realWorldMapHasGraphNodes()',
+    'refreshRealWorldMapJsonDump()',
     'ensureRealWorldMapNativeInput()',
     'realWorldMapInteriorNode()',
     'realWorldMapInteriorTitle()',
@@ -450,6 +543,29 @@ test('graph builds network edges with distance labels', () => {
   assert.strictEqual(graph.edges.length, 1);
   assert.strictEqual(graph.edges[0].distanceText, '126 m');
   assert.ok(graph.nodes.every((node) => node.h >= 88));
+});
+
+test('graph renderer maps stored json directly without compatibility edges', () => {
+  const source = read('publish/real-world-map-graph.js');
+  assert.ok(source.includes('Array.isArray(map.nodes) ? map.nodes : []'));
+  assert.ok(source.includes('Array.isArray(map.edges) ? map.edges : []'));
+  assert.ok(!source.includes('realWorldMapFog'));
+  assert.ok(!source.includes('visibleNodes'));
+  assert.ok(!source.includes('isMapDisplayNode'));
+  assert.ok(!source.includes('fallback'));
+  const context = { window: { GameModules: {} }, console };
+  context.window.GameModules.realWorldMap = { isMapDisplayNode: (node) => node.mapVisible !== false };
+  loadScript(context, 'publish/real-world-map-graph.js');
+  const graph = context.window.GameModules.realWorldMapGraph.build({
+    currentId: 'a',
+    nodes: [
+      { id: 'a', name: 'building-a', mapVisible: true },
+      { id: 'b', name: 'building-b', mapVisible: true, parentId: 'a' },
+    ],
+    edges: [],
+  });
+  assert.strictEqual(graph.nodes.length, 2);
+  assert.strictEqual(graph.edges.length, 0);
 });
 
 test('interior floors come only from inferred layout and sort low to high', () => {
@@ -707,27 +823,36 @@ test('surround unlock patch mode merges object container contents locally', () =
     },
     surroundLocations: [],
   }, { name: '锦苑小区3栋' }, {}, 'patch');
-  const merged = fog.mergeInteriorLayout(existing, payload.interiorLayout);
+  const merged = fog.mergeInteriorLayout(existing, payload.interiorLayout || {});
   const desk = merged.floors[0].rooms[0].slotObjects.bed_2.find((item) => item.name === '书桌');
-  assert.deepStrictEqual(Array.from(desk.containerContents), ['书本', '台灯', '刚放下的书']);
+  assert.deepStrictEqual(Array.from(desk.containerContents), ['书本', '台灯']);
   assert.strictEqual(merged.floors[0].rooms.length, 1);
+  assert.strictEqual(payload.interiorLayout, undefined);
 });
 
 test('surround unlock accepts empty structural patch without retry completeness validation', () => {
   const context = { window: { GameModules: {} }, console };
   loadScript(context, 'publish/real-world-map-fog.js');
   const fog = context.window.GameModules.realWorldMapFog;
-  const full = fog.validateUnlockPayload({ responseMode: 'full', surroundLocations: [] }, { name: '锦苑小区3栋' }, {}, 'full');
-  assert.strictEqual(full.responseMode, 'full');
+  const full = fog.validateUnlockPayload({ surroundLocations: [] }, { name: '锦苑小区3栋' }, {}, 'full');
+  assert.strictEqual(full.responseMode, 'neighbors');
   assert.deepStrictEqual(full.surroundLocations, []);
-  assert.ok(full.interiorLayout);
-  const patch = fog.validateUnlockPayload({ responseMode: 'patch', surroundLocations: [] }, { name: '锦苑小区3栋' }, {}, 'patch');
-  assert.strictEqual(patch.responseMode, 'patch');
+  assert.strictEqual(full.interiorLayout, undefined);
+  const patch = fog.validateUnlockPayload({ surroundLocations: [] }, { name: '锦苑小区3栋' }, {}, 'patch');
+  assert.strictEqual(patch.responseMode, 'neighbors');
   assert.strictEqual(patch.noChange, true);
 });
 
 test('surround unlock debug is enabled by default and records raw shape', () => {
-  const context = { window: { GameModules: {} }, console };
+  const context = { window: { GameModules: {
+    realWorldMap: {
+      cleanName: (value) => String(value || '').trim(),
+      isAbstractName: () => false,
+      isInteriorLocationName: () => false,
+      isMapExteriorNode: () => true,
+      isCommunityLevelNode: () => false,
+    },
+  } }, console };
   loadScript(context, 'publish/real-world-map-fog.js');
   const fog = context.window.GameModules.realWorldMapFog;
   const state = {};
@@ -735,14 +860,18 @@ test('surround unlock debug is enabled by default and records raw shape', () => 
   fog.surroundUnlockDebug(state, 'unit-test', { ok: true });
   assert.strictEqual(state.realWorldMapSurroundUnlockDebugLog.length, 1);
   const payload = fog.validateUnlockPayload({
-    responseMode: 'full',
-    interiorLayout: {
-      floors: [{ id: 'floor_6', name: '第六层', rooms: [{ number: '602' }] }],
-    },
+    当前节点: '锦苑小区3栋',
+    周围地点: [{ 距离: '约30米', 地点名: '锦苑小区2栋' }],
+    势力: ['锦苑小区物业·社区管理组织·楼栋管理'],
+    地点信息: ['1. 当前节点位于小区内部。'],
   }, { name: '锦苑小区3栋' }, {}, 'full');
-  assert.strictEqual(payload.debugShape.hasInteriorLayout, true);
-  assert.strictEqual(payload.debugShape.rawInteriorSummary.floors, 1);
-  assert.strictEqual(payload.interiorLayout.floors[0].rooms[0].number, '602');
+  assert.strictEqual(payload.debugShape.hasInteriorLayout, false);
+  assert.strictEqual(payload.currentNode, '锦苑小区3栋');
+  assert.strictEqual(payload.locationInfo.length, 1);
+  assert.strictEqual(payload.factionInfo[0], '锦苑小区物业·社区管理组织·楼栋管理');
+  assert.strictEqual(payload.debugShape.factionInfoCount, 1);
+  assert.strictEqual(payload.surroundLocations[0].name, '锦苑小区2栋');
+  assert.strictEqual(payload.surroundLocations[0].distanceText, '约30米');
 });
 
 test('visited unlocked building with empty interior still bootstraps full interior on indoor action', () => {
@@ -780,9 +909,9 @@ test('visited unlocked building with empty interior still bootstraps full interi
   );
 });
 
-test('surround unlock applies interior json by direct merge only', () => {
+test('surround unlock no longer applies interior json', () => {
   const source = read('publish/real-world-map-fog.js');
-  assert.ok(source.includes('finalAnchor.interiorLayout = this.mergeInteriorLayout(finalAnchor.interiorLayout, payload.interiorLayout)'));
+  assert.ok(!source.includes('finalAnchor.interiorLayout = this.mergeInteriorLayout'));
   assert.ok(!source.includes('syncInteriorLayoutAliases'));
   assert.ok(!source.includes('findProjectedAnchorNode'));
   assert.ok(!source.includes('applyInteriorObjectPatchToGraph'));
@@ -791,9 +920,8 @@ test('surround unlock applies interior json by direct merge only', () => {
 
 test('surround unlock logs prompt freshness and apply boundaries', () => {
   const source = read('publish/real-world-map-fog.js');
-  assert.ok(source.includes('promptHasFloorRule'));
-  assert.ok(source.includes('promptHasDirectMappingRule'));
-  assert.ok(source.includes('promptHasOwnershipRule'));
+  assert.ok(source.includes('promptForbidsInteriorLayout'));
+  assert.ok(source.includes('promptHasSimpleSurroundRule'));
   assert.ok(source.includes('raw-response'));
   assert.ok(source.includes('parsed-response'));
   assert.ok(source.includes('apply-done'));

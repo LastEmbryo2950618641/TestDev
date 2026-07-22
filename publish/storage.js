@@ -48,9 +48,9 @@ window.GameModules.storage = {
       playerName: store.playerName,
       roleCardSetup: {
         usePredefinedPlayerCard: Boolean(store.roleCardSetup?.usePredefinedPlayerCard),
+        selectedPlayerId: store.roleCardSetup?.selectedPlayerId || '',
         selectedPlayerName: store.roleCardSetup?.selectedPlayerName || '',
-        selectedRelationNames: store.roleCardSetup?.selectedRelationNames || [],
-        relationRoles: store.roleCardSetup?.relationRoles || {},
+        selectedCardIds: store.roleCardSetup?.selectedCardIds || [],
       },
       wechatUsers: store.wechatUsers || [],
       wechatMessagesByContact: store.wechatMessagesByContact || {},

@@ -69,7 +69,9 @@ window.GameModules.realWorldActions = {
 
   async markRealWorldActionFailed(id, err = null) {
     await window.GameModules.realWorldLogStore?.remove?.(id);
-    this.realWorldLogTotal = Math.max(0, (this.realWorldLogTotal || 1) - 1);
+    const userId = String(id || '').replace(/-ai$/u, '-user');
+    if (userId && userId !== id) await window.GameModules.realWorldLogStore?.remove?.(userId);
+    this.realWorldLogTotal = Math.max(0, (this.realWorldLogTotal || 2) - (userId && userId !== id ? 2 : 1));
     const narration = this.realWorldActionErrorText(err);
     this.realWorldLog = (this.realWorldLog || []).map((entry) => (entry.id === id ? { ...entry, narration, thinking: '', thinkingSections: [], settlementThinking: '', settlementThinkingSections: [], streamTrace: [], streaming: false, transientError: true, promptPack: null, characterCardChanges: [], agentTrace: [] } : entry));
     this.scrollRealWorldLogBottom?.();

@@ -418,15 +418,16 @@ window.GameModules.rpgFieldUi = {
     const p = state?.profile || {};
     const cards = window.GameModules.predefinedRoleCardData || {};
     const keys = window.GameModules.predefinedRoleCards?.keys || Object.keys(cards);
+    const roleProfile = window.GameModules.predefinedRoleCards?.roleProfile || ((record) => record);
     const probe = {
       ...p,
       name: String(p.name || state?.name || '').trim(),
       id: String(p.id || state?.id || '').trim(),
     };
     let key = window.GameModules.predefinedRoleCards?.cardKeyFor?.(probe) || '';
-    if (!key && probe.id) key = keys.find((k) => cards[k]?.id === probe.id) || '';
-    if (!key && probe.name) key = keys.find((k) => cards[k]?.name === probe.name) || '';
-    const preset = key ? cards[key] : null;
+    if (!key && probe.id) key = keys.find((k) => roleProfile(cards[k])?.id === probe.id) || '';
+    if (!key && probe.name) key = keys.find((k) => roleProfile(cards[k])?.name === probe.name) || '';
+    const preset = key ? roleProfile(cards[key]) : null;
     const pickParts = (runtime = [], fallback = []) => {
       const valid = (list) => (Array.isArray(list) ? list : []).filter((item) => String(item?.part || item?.部位 || '').trim() && String(item?.description || item?.部位描写 || '').trim());
       const run = valid(runtime);

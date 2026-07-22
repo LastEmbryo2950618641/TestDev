@@ -512,7 +512,7 @@ window.GameModules.characterProfile = {
     const usePredefined = Boolean(store?.roleCardSetup?.usePredefinedPlayerCard);
     const prc = window.GameModules.predefinedRoleCards;
     const cardKey = usePredefined ? (prc?.cardKeyFor?.(base) || '') : '';
-    const sourceCard = usePredefined && cardKey ? window.GameModules.predefinedRoleCardData?.[cardKey] : null;
+    const sourceCard = usePredefined && cardKey ? prc?.roleProfile?.(window.GameModules.predefinedRoleCardData?.[cardKey]) : null;
     const stub = {
       name: base.name,
       appearance: base.appearance || sourceCard?.appearance || '',

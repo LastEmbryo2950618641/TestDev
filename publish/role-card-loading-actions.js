@@ -202,7 +202,7 @@ window.GameModules.roleCardLoadingActions = {
   },
 
   roleCardStepCanRetry(card = {}, step = {}) {
-    return ['profile', 'essentialPreferences', 'feeling', 'abilities', 'inventory', 'bodyProfile', 'dressedProfile', 'rpgField', 'state'].includes(step.key)
+    return ['identity', 'profile', 'essentialPreferences', 'feeling', 'abilities', 'inventory', 'bodyProfile', 'dressedProfile', 'rpgField', 'state'].includes(step.key)
       && card.status !== 'running'
       && step.status !== 'running'
       && !step.retrying;
@@ -214,17 +214,21 @@ window.GameModules.roleCardLoadingActions = {
     if (!card || this.roleCardLoadingRetryQueue?.[targetId]) return;
     const step = (card.steps || []).find((item) => item.key === stepKey);
     if (!this.roleCardStepCanRetry(card, step)) return;
-    const source = card.source || this.roleCardRetrySource(targetId);
-    if (!source) {
-      this.updateRoleCardLoadingStep(targetId, stepKey, 'error', '没有可重试的角色来源');
-      return;
-    }
     this.roleCardLoadingRetryQueue = { ...(this.roleCardLoadingRetryQueue || {}), [targetId]: true };
     this.markRoleCardStepRetrying(targetId, stepKey);
     try {
-      const retrySource = { ...source, forceRoleCardRegenerate: true, retryFromStep: stepKey, roleCardRetryParts: card.parts || {} };
-      if (card.type === '玩家卡' || source.id === 'player-self') await this.ensurePlayerRpgState?.(true, true, retrySource);
-      else await this.ensureRpgForCharacter?.(retrySource, card.context || this.entryCurrentAction || this.sceneTitle || '', { loadMetrics: source.id === this.character?.id });
+      if (card.type === '身份补全' || stepKey === 'identity') {
+        await this.completePlayerSetup?.({ forceAi: true });
+      } else {
+        const source = card.source || this.roleCardRetrySource(targetId);
+        if (!source) {
+          this.updateRoleCardLoadingStep(targetId, stepKey, 'error', '没有可重试的角色来源');
+          return;
+        }
+        const retrySource = { ...source, forceRoleCardRegenerate: true, retryFromStep: stepKey, roleCardRetryParts: card.parts || {} };
+        if (card.type === '玩家卡' || source.id === 'player-self') await this.ensurePlayerRpgState?.(true, true, retrySource);
+        else await this.ensureRpgForCharacter?.(retrySource, card.context || this.entryCurrentAction || this.sceneTitle || '', { loadMetrics: source.id === this.character?.id });
+      }
     } catch (err) {
       console.warn('[角色卡] 手动重试失败:', err.message, err.stack);
       this.updateRoleCardLoadingStep(targetId, stepKey, 'error', err.message || '重试失败');

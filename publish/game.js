@@ -132,6 +132,8 @@ function registerGameStore() {
     roleCardLoadingCardProgress(card = {}) { return window.GameModules.ui.loading.progressView.roleCardLoadingCardProgress.call(this, card); },
     roleCardLoadingStepProgress(step = {}) { return window.GameModules.ui.loading.progressView.roleCardLoadingStepProgress.call(this, step); },
     roleCardLoadingStatusText(status = '') { return window.GameModules.ui.loading.progressView.roleCardLoadingStatusText.call(this, status); },
+    stageText(status = '') { return window.GameModules.ui.loading.progressView.stageText.call(this, status); },
+    elapsedText(startedAt = 0, finishedAt = 0) { return window.GameModules.ui.loading.progressView.elapsedText.call(this, startedAt, finishedAt); },
     memoryStatus(kind = 'shortTerm') {
       return kind === 'longTerm' ? 'Long-term memory is temporarily simplified.' : 'Short-term memory is temporarily simplified.';
     },
@@ -143,7 +145,8 @@ function registerGameStore() {
     },
     selectedPlayerRoleCard() {
       const cards = this.roleCardSetup?.cards || [];
-      return cards.find((card) => card?.name === this.roleCardSetup?.selectedPlayerName) || cards[0] || { name: 'Player' };
+      const id = this.roleCardSetup?.selectedPlayerId || '';
+      return cards.find((card) => window.GameModules.predefinedRoleCards?.roleCardId?.(card) === id) || cards.find((card) => card?.name === this.roleCardSetup?.selectedPlayerName) || cards[0] || { name: 'Player' };
     },
     roleCardSimpleFields() { return []; },
     novelLogEntries() { return window.GameModules.ui.criticalAction.metricViewHelpers.novelLogEntries.call(this); },
@@ -253,6 +256,9 @@ function registerGameStore() {
     realWorldDisplayLog(log = this.realWorldLog || []) { return window.GameModules.ui.realWorld.logViewHelpers.displayLog.call(this, log); },
     realWorldMapStageStyle() { return ''; },
     realWorldMapHasGraphNodes() { return false; },
+    realWorldMapJsonDump: '',
+    realWorldMapJsonDumpText() { return ''; },
+    refreshRealWorldMapJsonDump() { return ''; },
     renderRealWorldMapGraph() {},
     ensureRealWorldMapNativeInput() {},
     realWorldMapWheel() {},
@@ -641,7 +647,7 @@ function registerGameStore() {
     roleCardLoadingState: { open: false, expanded: true, cards: [], startedAt: 0 }, roleCardLoadingRetryQueue: {}, solidifyState: { open: false, candidates: [], selectedKey: '' },
     busy: false, started: false, desktopUnlocked: false, desktopPage: 0, desktopSwipeStart: null, controlSelectOpen: false, controlLinkMenuId: '', sharedControlTargetId: '', sharedControlActive: false, entrySetupOpen: false, entryIdentityOpen: false, identityAppOpen: false, identityReturnTo: '', wechatAppOpen: false, saveAppOpen: false, roleCardJsonAppOpen: false, identityTargetId: 'player-self', wechatSelectedContact: 'player-self', wechatTab: 'chats', wechatView: 'home', wechatAlbumMode: 'profile', wechatAlbumPromptOpen: false, wechatAlbumPromptStep: 'choice', wechatAlbumPromptDraft: null, wechatAlbumPromptError: '', wechatAlbumBodyFigureContext: null, wechatAlbumGenerating: false, wechatAlbumRequestId: 0, wechatAlbumDeleteConfirm: { open: false, index: -1 }, wechatAlbumPhotos: {}, wechatInput: '', wechatSending: false, wechatError: '', wechatReplyRequestId: 0, wechatMessagesByContact: {}, wechatUsers: [], wechatAddName: '', wechatAddRelation: '',
     initPromise: null, startupWarmupPromise: null, startupWarmupDone: false, phoneSetupDone: false, phoneActivationChoice: '', profileSetupBusy: false, setupError: '', phoneFixedTime: 0, phoneClockStamp: 0, phoneClockLabelShort: '--:--', phoneClockLabelFull: '--:--:--', phoneClockTimer: null, existingProfileExpanded: false,
-    roleCardSetup: { loaded: false, usePredefinedPlayerCard: false, cards: [], selectedPlayerName: '', selectedRelationNames: [], relationRoles: {}, selectedRelationCardName: '刘思瑶', gender: '女', relationType: '妹妹', customRelation: '', detailOpen: false, relationDetailOpen: '' },
+    roleCardSetup: { loaded: false, usePredefinedPlayerCard: false, cards: [], selectedPlayerId: '', selectedPlayerName: '', selectedCardIds: [], selectedCardId: '', detailOpen: false, cardDetailOpen: '' },
     knownProfessionState: { open: false, query: '', message: '', selectedName: '', detailOpen: false },
     taobaoState: { open: false, slots: [], selectedId: '', generatingId: '', buyingId: '', requestId: 0, message: '', error: '', walletOpen: false, searchText: '', filterSlot: '' },
     settingsState: {

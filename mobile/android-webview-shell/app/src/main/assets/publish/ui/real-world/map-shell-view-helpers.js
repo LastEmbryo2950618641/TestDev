@@ -20,11 +20,12 @@ window.GameModules.ui.realWorld.mapShellViewHelpers = {
   },
 
   panelView() {
+    const map = this.realWorldMap || {};
     return {
       title: this.realWorldMapPanelTitle(),
       locationText: this.realWorldMapLocationText(),
       emptyMapText: this.realWorldMapEmptyText(),
-      hasGraphNodes: this.realWorldMapHasGraphNodes(),
+      hasGraphNodes: Array.isArray(map.nodes) && map.nodes.some((node) => node && node.name && node.mapVisible !== false),
     };
   },
 };

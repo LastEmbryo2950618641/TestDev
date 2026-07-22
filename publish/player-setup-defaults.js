@@ -38,6 +38,7 @@ Object.assign(window.GameModules.playerSetupActions, {
       gender: map['性别'] || '',
       birthday: map['生日'] || '',
       city: map['具体地址'] || map['地址'] || '',
+      currentLocation: map['当前位置'] || '',
       dailyRole: map['现实身份'] || '',
       livingStatus: map['居住状态'] || '',
       parents: map['父母信息'] || '',
@@ -74,7 +75,6 @@ Object.assign(window.GameModules.playerSetupActions, {
       await this.initPredefinedRoleCards?.();
       this.roleCardSetup.usePredefinedPlayerCard = true;
       this.applySelectedPlayerRoleCard?.();
-      this.applySelectedRelationshipRoleCards?.();
       this.existingProfileExpanded = false;
       this.phoneActivationChoice = 'existing';
     } catch (err) {
@@ -98,6 +98,7 @@ Object.assign(window.GameModules.playerSetupActions, {
         gender: this.playerProfile.gender || example.gender || '',
         birthday: this.playerProfile.birthday || example.birthday || '',
         city: this.playerProfile.city || example.city || '',
+        currentLocation: this.playerProfile.currentLocation || example.currentLocation || '',
         dailyRole: this.playerProfile.dailyRole || example.dailyRole || '',
         livingStatus: this.playerProfile.livingStatus || example.livingStatus || '',
         ...this.normalizePlayerWealth?.(this.playerProfile),
@@ -127,7 +128,7 @@ Object.assign(window.GameModules.playerSetupActions, {
       this.setupError = '';
       this.syncRelationshipTextFromEntries?.();
       const age = this.playerAgeFromBirthday(birthday);
-      this.playerProfile = { ...p, name, birthday, age, refinedCity: p.refinedCity || p.city, refinedRole: p.refinedRole || p.dailyRole || `${age || ''}岁现代都市居民`, refinedLivingStatus: p.refinedLivingStatus || p.livingStatus, parentStatus: p.parentStatus || p.parents || '父母已故', parentDeathCause: p.parentDeathCause || '', initializedAt: p.initializedAt || new Date().toISOString() };
+      this.playerProfile = { ...p, name, birthday, age, refinedCity: p.refinedCity || p.city, currentLocation: p.currentLocation || '', refinedRole: p.refinedRole || p.dailyRole || `${age || ''}岁现代都市居民`, refinedLivingStatus: p.refinedLivingStatus || p.livingStatus, parentStatus: p.parentStatus || p.parents || '父母已故', parentDeathCause: p.parentDeathCause || '', initializedAt: p.initializedAt || new Date().toISOString() };
       this.phoneFixedTime = new Date(this.playerProfile.initializedAt).getTime();
       this.refreshPhoneClockLabels?.();
       await this.syncPlayerProfileLexicon?.();

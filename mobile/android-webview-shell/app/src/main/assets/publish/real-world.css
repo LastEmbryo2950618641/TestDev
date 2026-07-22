@@ -906,6 +906,21 @@
   font-weight: 800;
 }
 
+.real-world-map-json-dump {
+  width: 210px;
+  height: 42px;
+  min-height: 42px;
+  resize: vertical;
+  border: 1px solid rgba(255, 95, 216, .45);
+  border-radius: 10px;
+  background: rgba(2, 6, 16, .82);
+  color: #dffcff;
+  font-size: 11px;
+  line-height: 1.35;
+  padding: 6px 8px;
+  white-space: pre;
+}
+
 .real-world-map-shell {
   min-height: 0;
   display: grid;

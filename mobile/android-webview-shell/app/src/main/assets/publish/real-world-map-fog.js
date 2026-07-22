@@ -2,7 +2,7 @@
 
  * 电子地图迷雾：已访问建筑物 + 其一圈邻域可见；首次抵达且无同级邻点时 AI 解锁周围。
 
- * 地图最小颗粒度 = 建筑物；走廊/房间/楼梯间只在 interiorLayout 中展示。
+ * 地图最小颗粒度 = 建筑物；周边解锁只处理外部相邻 POI，不生成室内布局。
 
  */
 
@@ -126,18 +126,17 @@ window.GameModules.realWorldMapFog = {
   summarizeUnlockRawPayload(raw = {}) {
 
     const patch = raw?.patch && typeof raw.patch === 'object' ? raw.patch : {};
-    const rawInterior = raw?.interiorLayout || raw?.interiorPatch || patch?.interiorLayout || patch?.interiorPatch || null;
     return {
       responseMode: String(raw?.responseMode || raw?.mode || raw?.updateMode || ''),
       topLevelKeys: raw && typeof raw === 'object' ? Object.keys(raw).slice(0, 30) : [],
       patchKeys: patch && typeof patch === 'object' ? Object.keys(patch).slice(0, 30) : [],
+      currentNode: String(raw?.currentNode || raw?.current || raw?.['当前节点'] || '').slice(0, 120),
+      locationInfoCount: this.normalizeLocationInfo(raw?.locationInfo || raw?.facts || raw?.['地点信息']).length,
+      factionInfoCount: this.normalizeFactionInfo(raw?.factions || raw?.faction || raw?.['势力']).length,
       hasInteriorLayout: Boolean(raw?.interiorLayout),
-      hasInteriorPatch: Boolean(raw?.interiorPatch),
-      hasPatchInteriorLayout: Boolean(patch?.interiorLayout),
-      hasPatchInteriorPatch: Boolean(patch?.interiorPatch),
       hasSurroundLocations: Array.isArray(raw?.surroundLocations),
-      surroundLocationCount: Array.isArray(raw?.surroundLocations) ? raw.surroundLocations.length : 0,
-      rawInteriorSummary: rawInterior ? this.summarizeInteriorLayout(rawInterior) : null,
+      hasSimpleSurroundLocations: Boolean(raw?.surroundingLocations || raw?.nearbyLocations || raw?.['周围地点']),
+      surroundLocationCount: this.normalizeSurroundLocationRows(raw).length,
     };
 
   },
@@ -446,6 +445,7 @@ window.GameModules.realWorldMapFog = {
 
       map.lastText = mapMod.render(map);
       state.realWorldMap = this.rawMapState({ ...map, _boundStore: state });
+      state.refreshRealWorldMapJsonDump?.();
       const refreshedInteriorNode = map.interiorNodeId
         ? (state.realWorldMap.nodes || []).find((item) => item.id === map.interiorNodeId || item.name === map.interiorNodeId)
         : null;
@@ -707,9 +707,8 @@ window.GameModules.realWorldMapFog = {
     this.surroundUnlockDebug(state, 'prompt-ready', {
       mode: mode === 'patch' ? 'patch' : 'full',
       promptLength: String(prompt || '').length,
-      promptHasFloorRule: String(prompt || '').includes('室内结构根层只允许使用 `interiorLayout.floors[]`'),
-      promptHasDirectMappingRule: String(prompt || '').includes('UI 会直接按 `floors[].rooms[]` 渲染'),
-      promptHasOwnershipRule: String(prompt || '').includes('使用者和所属者可以是同一个人'),
+      promptForbidsInteriorLayout: String(prompt || '').includes('禁止返回 `interiorLayout`'),
+      promptHasSimpleSurroundRule: String(prompt || '').includes('每项只写 `距离` 和 `地点名`'),
       promptPreview: String(prompt || '').slice(0, 1200),
     });
 
@@ -755,7 +754,8 @@ window.GameModules.realWorldMapFog = {
         this.surroundUnlockDebug(state, 'validate-done', {
           responseMode: payload.responseMode,
           noChange: Boolean(payload.noChange),
-          interiorSummary: payload.interiorLayout ? this.summarizeInteriorLayout(payload.interiorLayout) : null,
+          locationInfoCount: Array.isArray(payload.locationInfo) ? payload.locationInfo.length : 0,
+          factionInfoCount: Array.isArray(payload.factionInfo) ? payload.factionInfo.length : 0,
           surroundLocationCount: Array.isArray(payload.surroundLocations) ? payload.surroundLocations.length : 0,
           surroundLocationNames: (payload.surroundLocations || []).map((item) => item.name).slice(0, 12),
         });
@@ -788,17 +788,9 @@ window.GameModules.realWorldMapFog = {
   validateUnlockPayload(raw = {}, anchor = {}, map = {}, expectedMode = 'full') {
 
     const rawObj = raw && typeof raw === 'object' ? raw : {};
-    const responseMode = String(rawObj.responseMode || rawObj.mode || rawObj.updateMode || expectedMode || 'full').trim().toLowerCase() === 'patch' ? 'patch' : 'full';
-    const rawPatch = rawObj.patch && typeof rawObj.patch === 'object' ? rawObj.patch : {};
-    const rawInterior = rawObj.interiorLayout || rawObj.interiorPatch || rawPatch.interiorLayout || rawPatch.interiorPatch || null;
-    let interiorLayout = null;
-    if (rawInterior) {
-      interiorLayout = this.normalizeInterior(rawInterior, anchor.name);
-    } else if (responseMode === 'full') {
-      interiorLayout = this.normalizeInterior({}, anchor.name);
-    }
+    const responseMode = 'neighbors';
 
-    const surroundLocations = (Array.isArray(rawObj.surroundLocations) ? rawObj.surroundLocations : [])
+    const surroundLocations = this.normalizeSurroundLocationRows(rawObj)
 
       .slice(0, 6)
 
@@ -809,16 +801,57 @@ window.GameModules.realWorldMapFog = {
 
       .filter(Boolean);
 
-    const noChange = rawObj.noChange === true || rawPatch.noChange === true || responseMode === 'patch' && !interiorLayout && !surroundLocations.length;
+    const locationInfo = this.normalizeLocationInfo(rawObj.locationInfo || rawObj.facts || rawObj['地点信息']);
+    const factionInfo = this.normalizeFactionInfo(rawObj.factions || rawObj.faction || rawObj['势力']);
+    const noChange = rawObj.noChange === true || !surroundLocations.length && !locationInfo.length && !factionInfo.length;
 
     return {
       responseMode,
       noChange,
-      interiorLayout,
+      currentNode: String(rawObj.currentNode || rawObj.current || rawObj['当前节点'] || anchor?.name || '').trim().slice(0, 120),
+      locationInfo,
+      factionInfo,
       surroundLocations,
       debugShape: this.summarizeUnlockRawPayload(rawObj),
     };
 
+  },
+
+  normalizeSurroundLocationRows(rawObj = {}) {
+    const source = rawObj.surroundLocations || rawObj.surroundingLocations || rawObj.nearbyLocations || rawObj['周围地点'] || [];
+    if (Array.isArray(source)) return source;
+    if (!source || typeof source !== 'object') return [];
+    return Object.entries(source).map(([key, value]) => {
+      if (value && typeof value === 'object') return { ...value, name: value.name || value.locationName || value['地点名'] || key };
+      return { name: key, distanceText: String(value || '').trim() };
+    });
+  },
+
+  normalizeLocationInfo(value = []) {
+    const rows = Array.isArray(value) ? value : (typeof value === 'string' ? value.split(/\n+/u) : []);
+    return rows
+      .map((item, index) => String(item || '').trim().replace(/^\d+[.、]\s*/u, `${index + 1}. `))
+      .filter(Boolean)
+      .slice(0, 8)
+      .map((item, index) => /^\d+[.、]/u.test(item) ? item.slice(0, 160) : `${index + 1}. ${item.slice(0, 150)}`);
+  },
+
+  normalizeFactionInfo(value = []) {
+    const rows = Array.isArray(value) ? value : (typeof value === 'string' ? value.split(/[\n,，;；]+/u) : []);
+    return rows
+      .map((item) => {
+        if (item && typeof item === 'object') {
+          return [
+            item.name || item.factionName || item['势力名'],
+            item.level1 || item.tier1 || item['势力层级1'],
+            item.level2 || item.tier2 || item['势力层级2'],
+          ].map((part) => String(part || '').trim()).filter(Boolean).join('·');
+        }
+        return String(item || '').trim();
+      })
+      .map((item) => item.split('·').map((part) => part.trim()).filter(Boolean).slice(0, 3).join('·'))
+      .filter(Boolean)
+      .slice(0, 8);
   },
 
   normalizeInterior(value = {}, nodeName = '') {
@@ -1320,7 +1353,7 @@ window.GameModules.realWorldMapFog = {
 
     const mapMod = this.mapApi();
 
-    const name = mapMod.cleanName(raw.name || raw.locationName);
+    const name = mapMod.cleanName(raw.name || raw.locationName || raw['地点名']);
 
     if (!name || mapMod.isAbstractName(name)) throw new Error('周围地点名无效');
 
@@ -1332,9 +1365,9 @@ window.GameModules.realWorldMapFog = {
 
     }
 
-    const directNeighbor = raw.directNeighbor === true || raw.isDirectNeighbor === true || raw.adjacent === true;
+    const directNeighbor = raw.directNeighbor !== false && raw.isDirectNeighbor !== false && raw.adjacent !== false;
 
-    const noIntermediate = raw.noIntermediateLocations === true || raw.noIntermediate === true || raw.intermediateFree === true;
+    const noIntermediate = raw.noIntermediateLocations !== false && raw.noIntermediate !== false && raw.intermediateFree !== false;
 
     const intermediateLocations = Array.isArray(raw.intermediateLocations)
       ? raw.intermediateLocations.map((item) => String(item || '').trim()).filter(Boolean)
@@ -1356,7 +1389,7 @@ window.GameModules.realWorldMapFog = {
 
       ? raw.descriptionFacts.map((item) => String(item || '').trim()).filter(Boolean).slice(0, 2)
 
-      : [String(raw.description || `${name}，与${anchor.name}相邻的可前往地点。`).slice(0, 80)];
+      : [String(raw.description || raw.info || raw['地点信息'] || `${name}，与${anchor.name}相邻的可前往地点。`).slice(0, 80)];
 
     return {
       name,
@@ -1365,6 +1398,8 @@ window.GameModules.realWorldMapFog = {
       granularity: 'building',
       directNeighbor: true,
       noIntermediateLocations: true,
+      distanceMeters: Number(raw.distanceMeters || raw.meters || raw.lengthMeters) || null,
+      distanceText: String(raw.distanceText || raw.distance || raw['距离'] || '').trim().slice(0, 18),
     };
 
   },
@@ -1386,7 +1421,7 @@ window.GameModules.realWorldMapFog = {
       noChange: Boolean(payload?.noChange),
       rawShape: payload?.debugShape || null,
       beforeInteriorSummary: this.summarizeInteriorLayout(anchor?.interiorLayout || {}),
-      incomingInteriorSummary: payload?.interiorLayout ? this.summarizeInteriorLayout(payload.interiorLayout) : null,
+      locationInfoCount: Array.isArray(payload?.locationInfo) ? payload.locationInfo.length : 0,
       surroundLocationCount: Array.isArray(payload?.surroundLocations) ? payload.surroundLocations.length : 0,
       surroundLocationNames: (payload?.surroundLocations || []).map((item) => item.name).slice(0, 12),
     });
@@ -1475,8 +1510,21 @@ window.GameModules.realWorldMapFog = {
     }
 
     const finalAnchor = (map.nodes || []).find((node) => node.id === anchor?.id) || anchor;
-    if (payload.interiorLayout && finalAnchor) {
-      finalAnchor.interiorLayout = this.mergeInteriorLayout(finalAnchor.interiorLayout, payload.interiorLayout);
+    const locationInfo = Array.isArray(payload.locationInfo) ? payload.locationInfo : [];
+    const factionInfo = Array.isArray(payload.factionInfo) ? payload.factionInfo : [];
+    if ((locationInfo.length || factionInfo.length) && finalAnchor) {
+      const existingFacts = Array.isArray(finalAnchor.descriptionFacts) ? finalAnchor.descriptionFacts : [];
+      const factSet = new Set(existingFacts.map((item) => String(item || '').trim()).filter(Boolean));
+      locationInfo.forEach((item) => {
+        const text = String(item || '').trim();
+        if (text && !factSet.has(text)) factSet.add(text);
+      });
+      factionInfo.forEach((item) => {
+        const text = String(item || '').trim();
+        const fact = text ? `势力：${text}` : '';
+        if (fact && !factSet.has(fact)) factSet.add(fact);
+      });
+      finalAnchor.descriptionFacts = [...factSet].slice(-30);
     }
     if (finalAnchor) {
       finalAnchor.exteriorRingUnlocked = true;
@@ -1486,10 +1534,6 @@ window.GameModules.realWorldMapFog = {
       anchor = finalAnchor;
     }
 
-    const anchorHasInterior = Array.isArray(anchor?.interiorLayout?.floors) && anchor.interiorLayout.floors.length > 0;
-    if (shouldRefreshOpenInterior && anchorHasInterior && map.interiorNodeId !== anchor.id) {
-      map.interiorNodeId = anchor.id;
-    }
     map.mapAnchorId = anchor.id;
 
     this.syncRevealed(map);
@@ -1523,7 +1567,7 @@ window.GameModules.realWorldMapFog = {
     const item = originalValidate.call(this, raw, anchor, map);
     const meters = Number(raw.distanceMeters || raw.meters || raw.lengthMeters);
     item.distanceMeters = Number.isFinite(meters) && meters > 0 ? Math.round(meters) : null;
-    item.distanceText = String(raw.distanceText || raw.distance || raw.distanceLabel || '').trim().slice(0, 18)
+    item.distanceText = String(raw.distanceText || raw.distance || raw.distanceLabel || raw['距离'] || item.distanceText || '').trim().slice(0, 18)
       || (item.distanceMeters ? (item.distanceMeters >= 1000 ? `${(item.distanceMeters / 1000).toFixed(item.distanceMeters >= 10000 ? 0 : 1)} km` : `${item.distanceMeters} m`) : '\u8ddd\u79bb\u5f85\u63a8\u6f14');
     item.basis = String(raw.basis || raw.reason || raw.description || '').trim().slice(0, 100);
     return item;

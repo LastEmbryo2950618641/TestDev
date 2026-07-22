@@ -39,6 +39,7 @@ window.GameModules.playerIdentityActions = {
     const world = window.GameModules.realWorld2026 || {};
     const name = p.name || this.playerName || 'player-self';
     const city = p.refinedCity || p.city || world.defaults?.city || 'unknown-city';
+    const currentLocation = window.GameModules.currentLocationField?.fromProfile?.(p) || p.currentLocation || '';
     const role = p.refinedRole || p.dailyRole || world.defaults?.dailyRole || 'city-resident';
     const living = p.refinedLivingStatus || p.livingStatus || world.defaults?.livingStatus || 'unknown-living-status';
     const parents = p.parentStatus || p.parents || 'unknown-parent-status';
@@ -59,13 +60,15 @@ window.GameModules.playerIdentityActions = {
       rank: position,
       faction: workplace,
       city,
+      currentLocation,
+      mapLocationName: window.GameModules.currentLocationField?.mapNodeName?.(currentLocation) || '',
       workplace,
       position,
       importance: 'main',
       isPlayer: true,
       items: p.items || [],
       wearing: p.wearing || [],
-      detail: 'gender: ' + (p.gender || 'unknown') + '; age: ' + (p.age || 'unknown') + '; birthday: ' + (p.birthday || 'unknown') + '; city: ' + city + '; workplace: ' + workplace + '; position: ' + position + '; living: ' + living + '; parents: ' + parents + '; death cause: ' + deathCause + '; relations: ' + relations + '; notes: ' + notes,
+      detail: 'gender: ' + (p.gender || 'unknown') + '; age: ' + (p.age || 'unknown') + '; birthday: ' + (p.birthday || 'unknown') + '; currentLocation: ' + (currentLocation || 'unknown') + '; city: ' + city + '; workplace: ' + workplace + '; position: ' + position + '; living: ' + living + '; parents: ' + parents + '; death cause: ' + deathCause + '; relations: ' + relations + '; notes: ' + notes,
       personality: notes,
       skills: [
         { name: 'mobile-operation', desc: 'Can use a smartphone for communication, search, shooting, settings, app switching, and information handling.', reason: 'Granted by phone setup and real-world app entry flow.' },
@@ -103,6 +106,7 @@ window.GameModules.playerIdentityActions = {
     const fields = [
       row('name', '姓名', p.name, '角色卡固化姓名。'),
       row('work', '所属世界', worldTag, '角色出身作品或世界。'),
+      row('currentLocation', '当前位置', p.currentLocation, '玩家当前位置，格式为“势力·势力层级1·势力层级2·地点·地点内位置”；地点段直接作为电子地图节点名。'),
       row('role', '身份', p.role, '角色卡固化身份。'),
       row('appearance', '外貌', p.appearance, '角色卡固化外貌。'),
       row('preferences', '喜好', p.preferences, '角色稳定喜好和穿着偏好。'),
@@ -203,10 +207,10 @@ window.GameModules.playerIdentityActions = {
       const resolved = state || this.identityTargetState();
       const id = resolved?.id || this.identityTargetId || 'player-self';
       if (id === 'player-self') {
-        const fromAspiration = this.playerAspiration?.essentialPreferenceLayers || prefTool.buildFromPlayerAspiration?.(this.playerAspiration);
-        if (fromAspiration?.layer1) return prefTool.normalizeLayers(fromAspiration);
         const profile = resolved?.profile;
         if (profile) return prefTool.ensureOnProfile(profile);
+        const fromAspiration = this.playerAspiration?.essentialPreferenceLayers || prefTool.buildFromPlayerAspiration?.(this.playerAspiration);
+        if (fromAspiration?.layer1) return prefTool.normalizeLayers(fromAspiration);
         return null;
       }
       const profile = resolved?.profile || (id === (this.identityTargetId || '') ? this.identityTargetProfile() : null);

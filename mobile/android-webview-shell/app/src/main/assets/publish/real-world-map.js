@@ -367,6 +367,7 @@ window.GameModules.realWorldMap = {
     map.expanded[anchor.id] = true;
     state.realWorldLocationName = node.name;
     map.lastText = this.render(map);
+    state.refreshRealWorldMapJsonDump?.();
     return map;
   },
 

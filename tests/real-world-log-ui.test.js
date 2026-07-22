@@ -59,6 +59,7 @@ assert.ok(actions.includes('promptPack: null'));
 assert.ok(actions.includes('thinkingSections: []'));
 assert.ok(actions.includes('settlementThinkingSections: []'));
 assert.ok(actions.includes('streamTrace: []'));
+assert.ok(actions.includes("replace(/-ai$/u, '-user')"));
 
 const context = { window: { GameModules: { domain: { control: {
   linkRules: {
@@ -97,7 +98,7 @@ assert.strictEqual(store.realWorldDisplayLog([
   { id: 'u4', type: 'user', text: 'new action' },
   { id: 'a3', type: 'ai', narration: 'normal result' },
   { id: 'u5', type: 'user', text: 'same action' },
-]).map((entry) => entry.id).join(','), 'u1,a1,u4,a3,u5');
+]).map((entry) => entry.id).join(','), 'u1,a1,u3,a2,u4,a3,u5');
 
 vm.runInNewContext(read('publish/real-world-utility-actions.js'), context, { filename: 'real-world-utility-actions.js' });
 const utility = context.window.GameModules.realWorldUtilityActions;

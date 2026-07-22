@@ -74,7 +74,6 @@ Object.assign(window.GameModules.playerSetupActions, {
       await this.initPredefinedRoleCards?.();
       this.roleCardSetup.usePredefinedPlayerCard = true;
       this.applySelectedPlayerRoleCard?.();
-      this.applySelectedRelationshipRoleCards?.();
       this.existingProfileExpanded = false;
       this.phoneActivationChoice = 'existing';
     } catch (err) {

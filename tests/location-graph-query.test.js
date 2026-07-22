@@ -745,34 +745,33 @@ test('stage4 surround unlock creates graph neighbor without location audit polli
   const map = state.realWorldMap;
   const anchor = map.nodes[0];
   const unlocked = await context.window.GameModules.realWorldMapFog.applySurroundUnlock(state, map, anchor, anchor, {
-    surroundLocations: [{ name: 'Stage4 Neighbor Building', descriptionFacts: ['next door'], directNeighbor: true, noIntermediateLocations: true }],
+    surroundLocations: [{ name: 'Stage4 Neighbor Building', descriptionFacts: ['next door'], distanceMeters: 18, distanceText: '18m', directNeighbor: true, noIntermediateLocations: true }],
   });
   assert.strictEqual(auditPromptCalled, false);
   assert.ok(unlocked.includes('Stage4 Neighbor Building'));
-  assert.ok(map.nodes.some((node) => node.name === 'Stage4 Neighbor Building'));
+  const standardGraph = context.window.GameModules.realWorldLocationGraph.standardPoiGraph(state);
+  assert.ok(standardGraph.nodes.some((node) => node.name === 'Stage4 Neighbor Building'));
 });
 
-test('stage4 surround unlock batches legacy map projection for new neighbors', async () => {
+test('stage4 surround unlock merges directly into standard graph', async () => {
   const context = makeContext();
   context.window.GameModules.orgTerritory = { ensureMapControls() {} };
-  context.window.GameModules.realWorldMap.applyRouteLinks = () => {};
   context.window.GameModules.realWorldMap.isMapDisplayNode = () => true;
   context.window.GameModules.realWorldMap.resolveExteriorAnchorNode = (map, node) => node;
   loadScript(context, 'publish/real-world-map-fog.js');
   const graphApi = context.window.GameModules.realWorldLocationGraph;
-  const originalProject = graphApi.projectLocationGraphToLegacyMap;
-  let projectCount = 0;
-  graphApi.projectLocationGraphToLegacyMap = function countedProject(...args) {
-    projectCount += 1;
-    return originalProject.apply(this, args);
+  graphApi.projectLocationGraphToLegacyMap = () => {
+    throw new Error('stage4 surround unlock must not project into legacy map');
   };
   const state = makeState();
   const map = state.realWorldMap;
   const anchor = map.nodes[0];
   const surroundLocations = Array.from({ length: 6 }, (_, index) => ({
-    name: `Batch Neighbor ${index + 1}`,
+    name: `Batch Neighbor Building ${index + 1}`,
     parentName: anchor.name,
     descriptionFacts: [`neighbor ${index + 1}`],
+    distanceMeters: 20 + index,
+    distanceText: `${20 + index}m`,
     directNeighbor: true,
     noIntermediateLocations: true,
   }));
@@ -780,7 +779,9 @@ test('stage4 surround unlock batches legacy map projection for new neighbors', a
   const unlocked = await context.window.GameModules.realWorldMapFog.applySurroundUnlock(state, map, anchor, anchor, { surroundLocations });
 
   assert.strictEqual(unlocked.length, 6);
-  assert.strictEqual(projectCount, 1, 'new neighbor batch should project the graph into the legacy map once');
+  const standardGraph = graphApi.standardPoiGraph(state);
+  assert.strictEqual(standardGraph.nodes.filter((node) => node.name.startsWith('Batch Neighbor Building')).length, 6);
+  assert.strictEqual(standardGraph.edges.filter((edge) => edge.from !== edge.to).length >= 6, true);
 });
 
 test('stage4 graph-style unlock payload is ignored by strict interior merge path', () => {
@@ -795,10 +796,11 @@ test('stage4 graph-style unlock payload is ignored by strict interior merge path
     interiorsPatch: [{ targetPoiRef: 'existing:home_legacy', floors: [{ name: 'First Floor' }] }],
   }, { id: 'home_legacy', name: 'Home Building' }, {}, 'full');
   assert.strictEqual(payload.auditFillPayload, undefined);
-  assert.strictEqual(payload.interiorLayout.floors.length, 0);
+  assert.strictEqual(payload.interiorLayout, undefined);
+  assert.strictEqual(payload.noChange, true);
 });
 
-test('stage4 full unlock JSON persists complete interior and neighbor into rendered map', async () => {
+test('stage4 simple unlock JSON persists neighbor and location info only', async () => {
   const context = makeContext();
   context.window.GameModules.orgTerritory = { ensureMapControls() {} };
   context.window.GameModules.realWorldMap.applyRouteLinks = () => {};
@@ -820,59 +822,25 @@ test('stage4 full unlock JSON persists complete interior and neighbor into rende
   const map = state.realWorldMap;
   const anchor = map.nodes[0];
   const payload = context.window.GameModules.realWorldMapFog.validateUnlockPayload({
-    responseMode: 'full',
-    interiorLayout: {
-      summary: '锦苑小区3栋已解锁的楼层与户内结构。',
-      zones: [],
-      floors: [{
-        id: 'floor_1',
-        name: '第一层',
-        rooms: [{
-          id: 'room_101',
-          number: '101',
-          name: '101号',
-          residents: ['刘思琪'],
-          layout: {
-            width: 480,
-            height: 320,
-            shapes: [
-              { id: 'bedroom_area', type: 'rect', x: 32, y: 40, w: 160, h: 110, label: '刘思琪的卧室' },
-              { id: 'desk_area', type: 'rect', x: 220, y: 48, w: 110, h: 80, label: '书桌区' },
-            ],
-          },
-          slotObjects: {
-            bedroom_area: [
-              { id: 'bed_101', name: '床', x: 44, y: 64, w: 108, h: 62, containerContents: ['床单', '枕头'] },
-            ],
-            desk_area: [
-              { id: 'desk_101', name: '书桌', x: 232, y: 66, w: 90, h: 44, containerContents: ['课本', '台灯'] },
-            ],
-          },
-        }],
-      }],
-    },
-    surroundLocations: [{
-      name: '锦苑小区门口便利店',
-      parentName: '锦苑小区',
-      descriptionFacts: ['位于小区正门外侧', '可步行抵达'],
-      distanceMeters: 80,
-      distanceText: '80m',
-      directNeighbor: true,
-      noIntermediateLocations: true,
-    }],
+    当前节点: '刘思琪房间-锦苑小区3栋',
+    周围地点: [{ 地点名: '锦苑小区门口便利店', 距离: '80m' }],
+    势力: ['锦苑小区物业·社区管理组织·楼栋管理'],
+    地点信息: ['1. 当前节点周围有小区步道。'],
   }, anchor, map, 'full');
 
   await context.window.GameModules.realWorldMapFog.applySurroundUnlock(state, map, anchor, anchor, payload);
 
-  assert.strictEqual(anchor.interiorLayout.floors.length, 1);
-  assert.strictEqual(anchor.interiorLayout.floors[0].rooms[0].number, '101');
-  assert.strictEqual(anchor.interiorLayout.floors[0].rooms[0].layout.shapes.length, 2);
-  const bed = anchor.interiorLayout.floors[0].rooms[0].slotObjects.bedroom_area.find((item) => item.name === '床');
-  assert.deepStrictEqual(Array.from(bed.containerContents), ['床单', '枕头']);
-  assert.ok(map.nodes.some((node) => node.name === '锦苑小区门口便利店' && node.mapVisible === true));
+  assert.strictEqual(anchor.interiorLayout?.floors, undefined);
+  assert.ok(anchor.descriptionFacts.includes('1. 当前节点周围有小区步道。'));
+  assert.ok(anchor.descriptionFacts.includes('势力：锦苑小区物业·社区管理组织·楼栋管理'));
+  const standardGraph = context.window.GameModules.realWorldLocationGraph.standardPoiGraph(state);
+  assert.ok(!standardGraph.nodes.some((node) => node.name === '刘思琪房间-锦苑小区3栋'));
+  assert.ok(standardGraph.nodes.some((node) => node.name === '锦苑小区3栋'));
+  assert.ok(standardGraph.nodes.some((node) => node.name === '锦苑小区门口便利店'));
+  assert.ok(standardGraph.edges.some((edge) => edge.distanceText === '80m'));
 });
 
-test('stage4 patch unlock JSON applies incremental interior changes without replacing whole layout', async () => {
+test('stage4 simple unlock ignores interior patch payloads', async () => {
   const context = makeContext();
   context.window.GameModules.orgTerritory = { ensureMapControls() {} };
   context.window.GameModules.realWorldMap.applyRouteLinks = () => {};
@@ -937,7 +905,9 @@ test('stage4 patch unlock JSON applies incremental interior changes without repl
         }],
       },
     },
-    surroundLocations: [],
+    周围地点: [],
+    势力: ['刘悠一家·家庭势力·居住单元'],
+    地点信息: ['1. 只记录当前节点周边事实。'],
   }, anchor, map, 'patch');
 
   await context.window.GameModules.realWorldMapFog.applySurroundUnlock(state, map, anchor, anchor, payload);
@@ -946,11 +916,11 @@ test('stage4 patch unlock JSON applies incremental interior changes without repl
   const room101 = floor.rooms.find((room) => room.id === 'room_101');
   const room102 = floor.rooms.find((room) => room.id === 'room_102');
   const bed = room101.slotObjects.bedroom_area.find((item) => item.id === 'bed_101');
-  const wardrobe = room101.slotObjects.bedroom_area.find((item) => item.id === 'wardrobe_101');
   assert.ok(room102, 'incremental patch must not delete untouched rooms');
-  assert.deepStrictEqual(Array.from(bed.containerContents), ['床单', '枕头', '刚放下的手机']);
-  assert.deepStrictEqual(Array.from(wardrobe.containerContents), ['校服', '外套']);
-  assert.strictEqual(room101.layout.shapes.length, 1, 'incremental patch must keep existing room layout shapes');
+  assert.deepStrictEqual(Array.from(bed.containerContents), ['床单', '枕头']);
+  assert.strictEqual(room101.slotObjects.bedroom_area.length, 1);
+  assert.ok(anchor.descriptionFacts.includes('1. 只记录当前节点周边事实。'));
+  assert.ok(anchor.descriptionFacts.includes('势力：刘悠一家·家庭势力·居住单元'));
 });
 
 

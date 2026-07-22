@@ -13,8 +13,26 @@ window.GameModules.playerAspirationActions = {
   },
 
   hasPlayerAspiration() {
-    const data = this.playerAspiration || {};
+    const data = this.activePlayerLifeOrientation?.() || this.playerAspiration || {};
     return Boolean(data.completedAt && data.alignment);
+  },
+
+  cloneAspirationValue(value) {
+    if (value === undefined) return undefined;
+    return JSON.parse(JSON.stringify(value));
+  },
+
+  playerRoleCardLifeOrientation() {
+    const profile = this.playerIdentityState?.()?.profile;
+    return profile?.lifeOrientation || null;
+  },
+
+  activePlayerLifeOrientation() {
+    const roleCardOrientation = this.playerRoleCardLifeOrientation?.();
+    if (roleCardOrientation?.completedAt && roleCardOrientation?.alignment) return roleCardOrientation;
+    const localOrientation = this.playerAspiration || {};
+    if (localOrientation?.completedAt && localOrientation?.alignment) return localOrientation;
+    return null;
   },
 
   async finishActivationFlow() {
@@ -563,7 +581,7 @@ window.GameModules.playerAspirationActions = {
   },
 
   playerAspirationSummary() {
-    const data = this.playerAspiration || {};
+    const data = this.activePlayerLifeOrientation?.() || {};
     if (!this.hasPlayerAspiration()) return '';
     const goals = data.goals || {};
     const prefTool = window.GameModules.playerAspirationPreferenceLayers;
@@ -577,6 +595,85 @@ window.GameModules.playerAspirationActions = {
       goals.long ? `长期目标：${goals.long}` : '',
     ].filter(Boolean);
     return parts.join('\n');
+  },
+
+  playerLifeOrientationForRoleCard(source = this.playerAspiration) {
+    const data = source || {};
+    if (!data.alignment) return null;
+    const cfg = window.GameModules.playerAspirationConfig;
+    const rationality = data.rationality ?? 50;
+    const guiltLine = data.guiltLine || cfg.primaryGuiltLineId(data.guiltAxes);
+    const guilt = cfg.guiltLineById(guiltLine);
+    const axes = this.cloneAspirationValue(data.axes || cfg.defaultAxes());
+    const guiltAxes = this.cloneAspirationValue(data.guiltAxes || cfg.defaultGuiltAxes());
+    const directions = this.cloneAspirationValue(data.directions || cfg.defaultDirections());
+    const psychPreferences = this.cloneAspirationValue(data.psychPreferences || cfg.defaultPsychPreferences());
+    const goals = this.cloneAspirationValue(data.goals || {});
+    const orientation = {
+      alignment: data.alignment,
+      alignmentLabel: data.alignmentLabel || this.aspirationAlignmentLabel(data.alignment),
+      rationality,
+      rationalityLabel: data.rationalityLabel || this.aspirationRationalityLabel(rationality),
+      axes,
+      guiltAxes,
+      guiltLine,
+      guiltLabel: data.guiltLabel || this.aspirationGuiltLineLabel(guiltLine),
+      guiltQuote: data.guiltQuote || guilt?.quote || '',
+      psychPreferences,
+      essentialPreferenceLayers: this.cloneAspirationValue(
+        data.essentialPreferenceLayers || window.GameModules.playerAspirationPreferenceLayers?.buildFromPlayerAspiration?.(data),
+      ),
+      portraitSummary: String(data.portraitSummary || '').trim(),
+      directions,
+      goals,
+      summary: String(data.summary || goals.summary || '').trim(),
+      completedAt: data.completedAt || new Date().toISOString(),
+    };
+    orientation.lifeAxesSummary = this.lifeOrientationAxesSummary(orientation.axes);
+    orientation.boundaryAnchorsSummary = this.lifeOrientationGuiltSummary(orientation.guiltAxes, orientation.guiltLine);
+    orientation.psychSummary = this.aspirationPsychSummary(orientation.psychPreferences);
+    orientation.goalSummary = this.lifeOrientationGoalSummary(orientation);
+    return orientation;
+  },
+
+  lifeOrientationAxesSummary(axes = {}) {
+    const cfg = window.GameModules.playerAspirationConfig;
+    return cfg.axes.map((axis) => {
+      const value = axes?.[axis.key] ?? 50;
+      return `${axis.title}：${cfg.axisLeanText(value, axis)}（${value}/100，${axis.leftTag}/${axis.rightTag}）`;
+    }).join('\n');
+  },
+
+  lifeOrientationGuiltSummary(guiltAxes = {}, primaryGuiltLine = '') {
+    const cfg = window.GameModules.playerAspirationConfig;
+    const primary = cfg.guiltLineById(primaryGuiltLine || cfg.primaryGuiltLineId(guiltAxes));
+    const lines = cfg.guiltLines.map((item) => {
+      const value = guiltAxes?.[item.id] ?? 50;
+      return `${item.title}：${cfg.guiltLeanText(value, item)}（${value}/100，${item.leftTag}/${item.rightTag}）`;
+    });
+    if (primary) lines.unshift(`主锚点：${primary.category}·${primary.theme}｜${primary.guiltName}｜「${primary.quote}」`);
+    return lines.join('\n');
+  },
+
+  lifeOrientationDirectionSummary(directions = {}) {
+    const cfg = window.GameModules.playerAspirationConfig;
+    return cfg.directionHorizons.map((horizon) => {
+      const weights = directions?.[horizon.key] || cfg.defaultDirectionWeights();
+      const dominant = cfg.dominantDirection(weights);
+      const parts = cfg.directionChoices.map((choice) => `${choice.label}${weights[choice.id] ?? 50}`);
+      return `${horizon.label}：${parts.join(' / ')}；主轴偏${dominant?.label || '均衡'}`;
+    }).join('\n');
+  },
+
+  lifeOrientationGoalSummary(data = {}) {
+    const goals = data.goals || {};
+    return [
+      data.directions ? `目标方向：\n${this.lifeOrientationDirectionSummary(data.directions)}` : '',
+      goals.summary ? `目标摘要：${goals.summary}` : '',
+      goals.short ? `近期目标：${goals.short}` : '',
+      goals.medium ? `中期目标：${goals.medium}` : '',
+      goals.long ? `长期目标：${goals.long}` : '',
+    ].filter(Boolean).join('\n');
   },
 
   aspirationSelectionSummaryFromData(data = {}) {
@@ -923,19 +1020,20 @@ window.GameModules.playerAspirationActions = {
 
   playerAspirationLexiconFields() {
     if (!this.hasPlayerAspiration()) return [];
-    const data = this.playerAspiration || {};
-    const goals = data.goals || {};
+    const data = this.activePlayerLifeOrientation?.() || {};
     const worldTag = window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
     const row = (name, value, desc) => ({
       ...window.GameModules.playerProfileLexicon.row(name, value, desc, worldTag),
       profileGroup: '人生取向',
     });
     return [
-      row('人生取向总结', data.portraitSummary || this.aspirationSummaryDraft?.portrait || '', '第 6 步确认的人生取向画像。'),
-      row('人生取向摘要', data.summary || goals.summary || '', '激活向导确认后的一句话概括。'),
-      row('近期目标', goals.short || '', '数天到数周内可推进的具体方向。'),
-      row('中期目标', goals.medium || '', '数月内的成长或处境变化。'),
-      row('长期目标', goals.long || '', '数年或人生方向层面的追求。'),
+      row('价值立场', data.alignmentLabel || this.aspirationAlignmentLabel(data.alignment), '第 1 步原始选择：DND 九宫格价值立场。'),
+      row('决策风格', `${data.rationalityLabel || this.aspirationRationalityLabel(data.rationality)}（${data.rationality ?? 50}/100）`, '第 2 步原始选择：理性/感性决策滑块。'),
+      row('人生六维', data.lifeAxesSummary || this.lifeOrientationAxesSummary(data.axes), '第 3 步原始选择：六组人生取向滑块。'),
+      row('底线锚点', data.boundaryAnchorsSummary || this.lifeOrientationGuiltSummary(data.guiltAxes, data.guiltLine), '第 4 步原始选择：底线/罪恶感锚点。'),
+      row('心理偏好', data.psychSummary || this.aspirationPsychSummary(data.psychPreferences), '第 5 步原始选择：所有心理偏好标签。'),
+      row('人生总结', data.portraitSummary || data.summary || this.aspirationSummaryDraft?.portrait || '', '第 6 步确认的人生取向画像。'),
+      row('目标', data.goalSummary || this.lifeOrientationGoalSummary(data), '第 7 步确认的目标方向与短中长期目标。'),
     ];
   },
 
@@ -947,6 +1045,9 @@ window.GameModules.playerAspirationActions = {
     const state = this.playerIdentityState?.();
     if (state?.profile) {
       tool.applyToProfile(state.profile, layers, { locked: true });
+      const lifeOrientation = this.playerLifeOrientationForRoleCard?.(this.playerAspiration);
+      if (lifeOrientation) state.profile.lifeOrientation = lifeOrientation;
+      if (lifeOrientation?.psychPreferences) state.profile.psychPreferences = this.cloneAspirationValue(lifeOrientation.psychPreferences);
       await window.GameModules.sqliteSave?.saveCharacterState?.(state);
       this.rpgStates = { ...(this.rpgStates || {}), [state.id]: state };
     }
@@ -954,7 +1055,7 @@ window.GameModules.playerAspirationActions = {
 
   playerAspirationView() {
     if (!this.hasPlayerAspiration()) return null;
-    const data = this.playerAspiration || {};
+    const data = this.activePlayerLifeOrientation?.() || {};
     const cfg = window.GameModules.playerAspirationConfig;
     const guiltAxes = data.guiltAxes || cfg.defaultGuiltAxes();
     const directions = data.directions || cfg.defaultDirections();

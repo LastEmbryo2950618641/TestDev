@@ -9,8 +9,8 @@
   "predefined-role-cards/liu-siyao.js",
   "predefined-role-cards/liu-siqi.js",
   "predefined-role-cards/liu-siyi.js",
-  "predefined-role-cards/triplet-essential-preference-layers.js",
-  "predefined-role-cards/predefined-appearance-profiles.js",
+  "predefined-role-card-support/triplet-essential-preference-layers.js",
+  "predefined-role-card-support/predefined-appearance-profiles.js",
   "predefined-role-cards.js",
   "role-card-editor.js",
   "app-background.js",
@@ -423,3 +423,4 @@
   "prompts/picture_generate/common-image-edit-generate.js",
   "inference-prompts-runtime.js"
 ]
+

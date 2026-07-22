@@ -133,18 +133,12 @@ window.GameModules = window.GameModules || {};
 
   actions.renameRoleCardReferences = function renameRoleCardReferences(oldName, newName) {
     if (this.roleCardSetup.selectedPlayerName === oldName) this.roleCardSetup.selectedPlayerName = newName;
-    this.roleCardSetup.selectedRelationNames = (this.roleCardSetup.selectedRelationNames || []).map((name) => (name === oldName ? newName : name));
-    if (this.roleCardSetup.selectedRelationCardName === oldName) this.roleCardSetup.selectedRelationCardName = newName;
-    if (this.roleCardSetup.relationRoles?.[oldName]) {
-      this.roleCardSetup.relationRoles[newName] = this.roleCardSetup.relationRoles[oldName];
-      delete this.roleCardSetup.relationRoles[oldName];
-    }
   };
 
   actions.syncEditedPlayerCard = function syncEditedPlayerCard(card) {
-    if (!card || card.name !== this.roleCardSetup.selectedPlayerName) return;
+    const id = window.GameModules.predefinedRoleCards?.roleCardId?.(card);
+    if (!card || id !== this.roleCardSetup.selectedPlayerId) return;
     this.playerProfile = window.GameModules.predefinedRoleCards.playerProfileFromCard(card, this.playerProfile || {});
-    this.applySelectedRelationshipRoleCards?.();
   };
 
   actions.cloneRoleCardForEditing = function cloneRoleCardForEditing(card) {

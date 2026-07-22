@@ -105,9 +105,9 @@ window.GameModules.domain.storage.restoreStateHelpers = {
       store.roleCardSetup = {
         ...store.roleCardSetup,
         usePredefinedPlayerCard: Boolean(save.roleCardSetup.usePredefinedPlayerCard),
+        selectedPlayerId: save.roleCardSetup.selectedPlayerId || store.roleCardSetup.selectedPlayerId,
         selectedPlayerName: save.roleCardSetup.selectedPlayerName || store.roleCardSetup.selectedPlayerName,
-        selectedRelationNames: Array.isArray(save.roleCardSetup.selectedRelationNames) ? save.roleCardSetup.selectedRelationNames : store.roleCardSetup.selectedRelationNames,
-        relationRoles: save.roleCardSetup.relationRoles && typeof save.roleCardSetup.relationRoles === 'object' ? save.roleCardSetup.relationRoles : store.roleCardSetup.relationRoles,
+        selectedCardIds: Array.isArray(save.roleCardSetup.selectedCardIds) ? save.roleCardSetup.selectedCardIds : store.roleCardSetup.selectedCardIds,
       };
     }
   },
