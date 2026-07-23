@@ -150,15 +150,87 @@ window.GameModules.realWorldActions = {
     if (currentGraphNode?.id) window.GameModules.realWorldLocationGraph?.setCharacterCurrentNode?.(this, 'player-self', currentGraphNode.id, { reason: '现实推演结算后的主角当前位置。', time: this.phoneDate?.()?.toISOString?.() || '' });
     const fogResult = await window.GameModules.realWorldMapFog?.afterLocationUpdate?.(this, result) || {};
     if (fogResult.unlocked?.length) settlement.push(`地图解锁：${fogResult.unlocked.join('、')}`);
+    if (fogResult.characterLocationApplied?.length) {
+      settlement.push(
+        `出场人物位置：已写入${fogResult.characterLocationApplied.map((item) => item.name || item.characterId).filter(Boolean).join('、')}`,
+      );
+    }
+    // Ensure schedule locations written by surround-unlock are mirrored onto live rpgStates + store.
+    const locField = window.GameModules.currentLocationField;
+    const scheduleRows = Object.entries(this.characterSchedules || {});
+    for (const [characterId, schedule] of scheduleRows) {
+      const full = String(schedule?.profileCurrentLocation || '').trim();
+      if (!locField?.isValidProfileFormat?.(full)) continue;
+      const live = window.GameModules.realWorldMapFog?.ensureLiveCharacter?.(this, characterId, schedule?.characterName)
+        || this.rpgStates?.[characterId]
+        || window.GameModules.characterStateStore?.get?.(characterId, this);
+      if (!live?.profile) continue;
+      if (String(live.profile.currentLocation || '').trim() === full) {
+        // Still refresh values.current_location so identity/fromCharacterState stay valid.
+        if (!locField.isValidProfileFormat(live.values?.current_location?.currentLocation || '')) {
+          live.values = live.values && typeof live.values === 'object' ? live.values : {};
+          live.values.current_location = locField.stateValueFromText(
+            full,
+            this,
+            '周围解锁后回填 values.current_location。',
+            live.worldTag || live.profile?.work || '',
+          );
+          await window.GameModules.characterStateStore?.save?.(live, this);
+        }
+        continue;
+      }
+      window.GameModules.realWorldMapFog?.writeCharacterProfileLocation?.(this, live, full, {
+        characterId,
+        reason: '周围解锁后回填角色卡当前位置。',
+        source: '电子地图周围解锁回填',
+      });
+      await window.GameModules.characterStateStore?.save?.(live, this);
+    }
     if (this.realWorldFunctionOpen && this.realWorldFunctionView === 'map' && this.realWorldMap?.interiorNodeId) {
       this.showRealWorldMapInterior?.(this.realWorldMap.interiorNodeId);
     }
     this.ensureControlRoleLocation?.(state, '现实推演后更新玩家当前位置。');
-    if (state?.values?.current_location) state.values.current_location.name = this.realWorldLocationName || result.locationName || state.values.current_location.name;
+    // Persist any scene-healed locations (including possessed NPCs) into character_state.
+    const needing = window.GameModules.realWorldMapFog?.charactersNeedingProfileLocation?.(this) || [];
+    for (const row of needing) {
+      const healed = locField?.buildSceneProfileLocation?.(this, row.character) || '';
+      if (!locField?.isValidProfileFormat?.(healed)) continue;
+      window.GameModules.realWorldMapFog?.writeCharacterProfileLocation?.(this, row.character, healed, {
+        characterId: row.id,
+        reason: '推演结算后场景回填并写入角色卡库。',
+        source: '推演结算场景回填',
+      });
+      await window.GameModules.characterStateStore?.save?.(row.character, this);
+    }
+    // Repair older slots where Stage4 only stamped schedules / appearingLocationById.
+    await window.GameModules.realWorldMapFog?.flushAppearingLocationsToCharacterDb?.(this);
+    if (state?.values?.current_location) {
+      const playerFull = locField?.fromCharacterState?.(state) || '';
+      if (locField?.isValidProfileFormat?.(playerFull)) {
+        state.profile = state.profile || {};
+        state.profile.currentLocation = playerFull;
+        state.values.current_location = locField.stateValue(state.profile, this, '现实推演后保留合法角色卡当前位置。');
+        if (this.playerProfile) this.playerProfile.currentLocation = playerFull;
+      } else {
+        state.values.current_location.name = this.realWorldLocationName || result.locationName || state.values.current_location.name;
+      }
+    }
     const shared = this.sharedControlState?.();
     if (shared) {
-      this.ensureControlRoleLocation?.(shared, '共享感官现实推演后同步位置。');
-      shared.values.current_location = { ...(shared.values.current_location || {}), name: this.realWorldLocationName || result.locationName || '现实当前位置', worldTag: window.GameModules.realWorld2026?.label || '2026 现代都市现实世界', updatedAt: this.phoneDateText?.() || '', reason: '共享感官控制中与玩家同处现实推演位置。' };
+      const sharedFull = locField?.fromCharacterState?.(shared) || '';
+      if (locField?.isValidProfileFormat?.(sharedFull)) {
+        shared.profile = shared.profile || {};
+        shared.profile.currentLocation = sharedFull;
+        shared.values = shared.values || {};
+        shared.values.current_location = locField.stateValueFromText(
+          sharedFull,
+          this,
+          '共享感官推演后保留合法角色卡当前位置。',
+          window.GameModules.realWorld2026?.label || shared.worldTag || shared.profile?.work || '未知世界',
+        );
+      } else {
+        this.ensureControlRoleLocation?.(shared, '共享感官现实推演后同步位置。');
+      }
       await window.GameModules.characterStateStore?.save?.(shared);
     }
     if (state) await window.GameModules.characterStateStore?.save?.(state);

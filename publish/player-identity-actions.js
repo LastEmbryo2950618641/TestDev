@@ -101,15 +101,66 @@ window.GameModules.playerIdentityActions = {
   },
 
   identityTargetFields() {
-    const p = this.identityTargetProfile();
-    const state = this.identityTargetState();
+    const locField = window.GameModules.currentLocationField;
+    const storeApi = window.GameModules.characterStateStore;
+    const targetId = this.identityTargetId || 'player-self';
+    const live = storeApi?.get?.(targetId, this) || this.identityTargetState();
+    if (live && this.rpgStates && this.rpgStates[targetId] !== live) {
+      this.rpgStates[targetId] = live;
+    }
+    const p = live?.profile || this.identityTargetProfile();
+    const state = live || this.identityTargetState();
     const worldTag = p.work || state?.worldTag || '原创世界';
     const reasonFor = this.roleCardReasonGetter?.(p) || (() => '');
-    const row = (key, label, value, desc, extra = {}) => ({ key: `id-${this.identityTargetId || 'player-self'}-${key}`, stateId: this.identityTargetId || 'player-self', label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: '角色', commonField: true, ...extra });
+    const scheduleById = String(
+      this.characterSchedules?.[targetId || state?.id || '']?.profileCurrentLocation
+      || '',
+    ).trim();
+    const scheduleByName = Object.values(this.characterSchedules || {}).find((row) => {
+      const rowName = String(row?.characterName || '').trim();
+      const profileName = String(p?.name || state?.name || '').trim();
+      return rowName && profileName && rowName === profileName
+        && locField?.isRecordedLocation?.(row?.profileCurrentLocation);
+    });
+    const byAppearingId = String(
+      this.appearingLocationById?.[targetId]
+      || this.appearingLocationById?.[`name:${p?.name || state?.name || ''}`]
+      || '',
+    ).trim();
+    const pickRecorded = (...candidates) => {
+      for (const item of candidates) {
+        const text = locField?.normalize?.(item || '') || String(item || '').trim();
+        if (locField?.isRecordedLocation?.(text) || (!locField && text)) return text;
+      }
+      return '';
+    };
+    let locationText = pickRecorded(
+      byAppearingId,
+      p.currentLocation,
+      locField?.fromCharacterState?.(state),
+      scheduleById,
+      scheduleByName?.profileCurrentLocation,
+      locField?.buildSceneProfileLocation?.(this, state),
+    );
+    // Heal empty profile from schedule / values so 叙事档案 and persistence stay aligned.
+    if (locationText && state?.profile && !locField?.isRecordedLocation?.(state.profile.currentLocation || '')) {
+      state.profile.currentLocation = locationText;
+      if (locField?.stateValueFromText) {
+        state.values = state.values && typeof state.values === 'object' ? state.values : {};
+        state.values.current_location = locField.stateValueFromText(
+          locationText,
+          this,
+          '身份证展示时回填角色卡当前位置。',
+          worldTag,
+        );
+      }
+      storeApi?.mergeOntoLive?.(state, this);
+    }
+    const row = (key, label, value, desc, extra = {}) => ({ key: `id-${targetId}-${key}`, stateId: targetId, label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: '角色', commonField: true, ...extra });
     const fields = [
       row('name', '姓名', p.name, '角色卡固化姓名。'),
       row('work', '所属世界', worldTag, '角色出身作品或世界。'),
-      row('currentLocation', '当前位置', p.currentLocation, '玩家当前位置来自角色卡 profile.currentLocation。'),
+      row('currentLocation', '当前位置', locationText, '角色卡当前位置；格式为[势力层级链...]·地点·地点内位置（倒数第2段=地图节点，最后1段=尽量精确的室内位置）。'),
       row('role', '身份', p.role, '角色卡固化身份。'),
       row('appearance', '外貌', p.appearance, '角色卡固化外貌。'),
       row('preferences', '喜好', p.preferences, '角色稳定喜好和穿着偏好。'),

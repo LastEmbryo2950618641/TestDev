@@ -117,9 +117,13 @@ window.GameModules.realWorldAgentContextParts.core = {
   stage1GuidanceSummary(guidance = null) {
     if (!guidance) return '无';
     const names = (group = [], reasonLabel = '理由') => (Array.isArray(group) ? group : []).map((item) => {
-      const name = typeof item === 'string' ? item : (item.name || item.idOrName || item.id || item.characterName);
+      const rawName = typeof item === 'string' ? item : (item.name || item.idOrName || item.id || item.characterName);
+      const id = typeof item === 'object' && item ? String(item.id || '').trim() : '';
+      const parsed = typeof rawName === 'string' && rawName.includes('(')
+        ? rawName
+        : (rawName && id ? `${rawName}(${id})` : rawName);
       const reason = typeof item === 'object' && item ? item.reason : '';
-      return `${name}${reason ? `（${reasonLabel}：${reason}）` : ''}`;
+      return `${parsed || ''}${reason ? `（${reasonLabel}：${reason}）` : ''}`;
     }).join('、') || '无';
     const random = (Array.isArray(guidance.randomActiveEvents) ? guidance.randomActiveEvents : [])
       .map((item) => `${item.characterName || item.name}：${item.eventType || item.actionMethod || '背景行动'}｜${item.motivation || item.reason || ''}`)

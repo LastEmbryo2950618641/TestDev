@@ -1,5 +1,5 @@
 window.GameScriptManifest = {
-  "version": "2026-07-22-role-card-split-v43",
+  "version": "2026-07-23-db-write-fix-v15",
   "chunks": {
     "core": [
       "https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js",
@@ -64,6 +64,8 @@ window.GameScriptManifest = {
       "profession-info-store.js",
       "rpg-definition-store.js",
       "character-state-store.js",
+      "character-id-ensure.js",
+      "narration-role-markup.js",
       "character-memory-store.js",
       "character-intro-store.js",
       "character-memory-maintenance-store.js",

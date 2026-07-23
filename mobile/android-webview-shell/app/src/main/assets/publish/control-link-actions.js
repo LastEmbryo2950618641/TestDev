@@ -72,8 +72,7 @@ window.GameModules.controlLinkActions = {
       this.realWorldOpen = true;
       this.desktopUnlocked = false;
       this.controlSelectOpen = false;
-      this.realWorldLog = [...(this.realWorldLog || []), { id: `possess-${Date.now()}`, type: 'system', text: this.buildOnlineControlLogText(state), time: this.phoneTimeText?.() || '' }];
-      await window.GameModules.realWorldLogStore?.saveAll?.(this.realWorldLog);
+      await this.appendSharedControlSystemNarration(this.buildOnlineControlLogText(state), state);
       await this.save?.();
       return;
     }
@@ -93,7 +92,7 @@ window.GameModules.controlLinkActions = {
       systemGenerated: true,
       narration: String(text || '').trim(),
       sceneTitle: this.realWorldSceneTitle || '现实世界',
-      locationName: this.realWorldLocationName || this.realWorldMap?.current || '',
+      locationName: this.realWorldLocationLabel?.() || this.realWorldLocationName || this.realWorldMap?.current || '',
       status: this.realWorldStatus || '',
       quest: this.realWorldQuest || '',
       choices: Array.isArray(this.realWorldChoices) ? this.realWorldChoices : [],

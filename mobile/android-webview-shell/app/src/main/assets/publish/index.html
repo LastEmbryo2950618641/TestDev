@@ -537,6 +537,9 @@
           <label class="dev-section" data-section-title="居住状态输入"><span>居住状态</span><input class="text-input" x-model="$store.game.playerProfile.livingStatus" placeholder="例如：与18岁成年三胞胎妹妹刘思瑶、刘思琪、刘思怡同居"><small>参考默认账号：与18岁成年三胞胎妹妹刘思瑶、刘思琪、刘思怡同居</small></label>
           <label class="dev-section" data-section-title="财富等级输入"><span>财富等级</span><select class="text-input" x-model="$store.game.playerProfile.wealthTier" @change="$store.game.syncPlayerWealthDefaults()"><template x-for="option in $store.game.playerWealthOptions()" :key="option.tier"><option :value="option.tier" x-text="`${option.tier}（默认${option.amount.toLocaleString('zh-CN')}元）`"></option></template></select><small x-text="$store.game.playerWealthText()"></small></label>
           <label class="dev-section" data-section-title="父母信息输入"><span>父母信息</span><input class="text-input" x-model="$store.game.playerProfile.parents" placeholder="例如：父母已故"><small>参考默认账号：父母已故</small></label>
+          <label class="phone-setup-trait dev-section" data-section-title="外貌输入"><span>外貌</span><textarea class="text-input" :value="$store.game.playerProfile.appearance || ''" @input="$store.game.setPlayerProfileTrait('appearance', $event.target.value)" placeholder="填写发型、五官、身高、体型、常见穿着等外貌特征。"></textarea></label>
+          <label class="phone-setup-trait dev-section" data-section-title="喜好输入"><span>喜好</span><textarea class="text-input" :value="$store.game.playerProfile.preferences || ''" @input="$store.game.setPlayerProfileTrait('preferences', $event.target.value)" placeholder="填写偏爱的风格、活动、颜色、物品或生活习惯。"></textarea></label>
+          <label class="phone-setup-trait dev-section" data-section-title="性格输入"><span>性格</span><textarea class="text-input" :value="$store.game.playerProfile.personality || ''" @input="$store.game.setPlayerProfileTrait('personality', $event.target.value)" placeholder="填写性格特点、情绪表达方式和行为倾向。"></textarea></label>
         </div>
       </div>
       <article class="role-card-picker dev-section" data-section-title="初始化角色卡列表" x-show="$store.game.phoneActivationChoice === 'existing'" x-cloak>
@@ -1036,7 +1039,7 @@
             <div class="avatar-orb" x-text="$store.game.realWorldDisplayCharacter().name.slice(0, 1)"></div>
             <div class="character-status-main">
               <div class="name-role-block"><h2 x-text="$store.game.realWorldDisplayCharacter().name"></h2><p class="role" x-text="$store.game.sharedControlState() ? '附身控制中' : ($store.game.playerProfile.refinedRole || $store.game.playerProfile.dailyRole || '现实世界居民')"></p></div>
-              <small x-text="$store.game.sharedControlState() ? $store.game.controlLinkLocationText($store.game.sharedControlState()) : ($store.game.playerProfile.currentLocation || '现实位置未登记')"></small>
+              <small x-text="$store.game.realWorldLocationLabel()"></small>
               <div class="vital-bars" x-show="$store.game.realWorldDisplayState()">
                 <template x-for="vital in $store.game.rpgVitals($store.game.realWorldDisplayState())" :key="`player-${vital.key}`">
                   <div class="vital-row" :class="vital.key"><span x-text="vital.label"></span><i><b :style="`width: ${Math.max(0, Math.min(100, vital.value))}%`"></b></i><em x-text="vital.text || `${vital.value}%`"></em></div>
@@ -1116,7 +1119,7 @@
         </aside>
 
         <section class="panel story-panel dev-section" data-section-title="现实推演日志区">
-          <div class="scene-title real-world-scene-title dev-section" data-section-title="现实场景标题栏"><span><i aria-hidden="true">📖</i><em x-text="$store.game.realWorldSceneTitle"></em></span><b><i aria-hidden="true">📍</i><em x-text="$store.game.realWorldLocationName || '现实地点'"></em></b></div>
+          <div class="scene-title real-world-scene-title dev-section" data-section-title="现实场景标题栏"><span><i aria-hidden="true">📖</i><em x-text="$store.game.realWorldSceneTitle"></em></span><b><i aria-hidden="true">📍</i><em x-text="$store.game.realWorldLocationLabel()"></em></b></div>
           <div class="story-log scroll-area dev-section" data-section-title="现实记录列表">
             <template x-for="entry in $store.game.realWorldDisplayLog()" :key="`${entry.id}-${entry.type}-${entry.createdAt || entry.time?.label || ''}`">
               <article class="novel-entry" :class="entry.type === 'user' ? 'player' : 'advice'">
@@ -1183,7 +1186,7 @@
 
         <aside class="panel mind-panel dev-section" data-section-title="现实信息栏">
           <h3><span aria-hidden="true">🗺️</span>当前位置</h3>
-          <p class="quest-text dev-section" data-section-title="现实地点区" x-text="$store.game.realWorldLocationName || '现实地点'"></p>
+          <p class="quest-text dev-section" data-section-title="现实地点区" x-text="$store.game.realWorldLocationLabel()"></p>
           <h3><span aria-hidden="true">🛡️</span>现实状态</h3>
           <div class="mind-box real-world-info-box dev-section" data-section-title="现实状态区"><span class="real-world-info-icon" aria-hidden="true" x-text="$store.game.realWorldStatusIcon($store.game.realWorldStatus)"></span><p x-text="$store.game.realWorldStatus"></p></div>
           <h3><span aria-hidden="true">🎯</span>当前目标</h3>
@@ -1513,7 +1516,7 @@
                       <template x-for="ann in body?.figure?.annotations || []" :key="`fig-ann-${ann.part}`">
                         <div class="body-figure-annotation">
                           <span class="body-figure-anchor" :style="$store.game.bodyFigureAnchorStyle(ann)" :title="`拖动调整 ${ann.title || ann.part} 点位`" @pointerdown.prevent.stop="$store.game.startBodyFigureAnchorDrag($event, body.figure, ann)"></span>
-                          <button type="button" class="body-figure-callout" :class="{ active: $store.game.isBodyFigurePartActive(body.rows, ann.part), 'side-right': ann.label.side === 'right', 'side-left': ann.label.side !== 'right' }" :style="$store.game.bodyFigureCalloutStyle(ann)" @click="$store.game.openBodyFigurePart(body.rows, ann.part)">
+                          <button type="button" class="body-figure-callout" :class="{ active: $store.game.isBodyFigurePartActive(body.rows, ann.part), 'side-right': ann.label.side === 'right', 'side-left': ann.label.side !== 'right' }" :style="$store.game.bodyFigureCalloutStyle(ann)" @pointerdown.prevent.stop="$store.game.startBodyFigureLabelDrag($event, body.figure, ann)" @click="$store.game.openBodyFigurePart(body.rows, ann.part, $event)">
                             <strong x-text="ann.title"></strong>
                             <small x-show="ann.tags" x-text="ann.tags"></small>
                             <p x-text="ann.preview"></p>
@@ -2797,7 +2800,7 @@
             </div>
           </article>
         </template>
-        <p class="empty-lore dev-section" data-section-title="可上线角色空状态" x-show="!$store.game.controlRoleList().length">暂无可上线角色。请先新增控制角色并完成进入配置。</p>
+        <p class="empty-lore dev-section" data-section-title="可上线角色空状态" x-show="!$store.game.controlRoleList().length">暂无可上线角色。已生成角色卡的角色会出现在这里；也可新增控制角色并完成进入配置。</p>
       </div>
       <button class="primary-btn dev-section" data-section-title="新增控制角色按钮" type="button" @click="$store.game.openControlCharacterAdd()">＋ 新增控制角色</button>
     </div>
@@ -3119,7 +3122,7 @@
                             <template x-for="ann in body?.figure?.annotations || []" :key="`entry-fig-ann-${ann.part}`">
                               <div class="body-figure-annotation">
                                 <span class="body-figure-anchor" :style="$store.game.bodyFigureAnchorStyle(ann)" :title="`拖动调整 ${ann.title || ann.part} 点位`" @pointerdown.prevent.stop="$store.game.startBodyFigureAnchorDrag($event, body.figure, ann)"></span>
-                                <button type="button" class="body-figure-callout" :class="{ active: $store.game.isBodyFigurePartActive(body.rows, ann.part), 'side-right': ann.label.side === 'right', 'side-left': ann.label.side !== 'right' }" :style="$store.game.bodyFigureCalloutStyle(ann)" @click="$store.game.openBodyFigurePart(body.rows, ann.part)">
+                                <button type="button" class="body-figure-callout" :class="{ active: $store.game.isBodyFigurePartActive(body.rows, ann.part), 'side-right': ann.label.side === 'right', 'side-left': ann.label.side !== 'right' }" :style="$store.game.bodyFigureCalloutStyle(ann)" @pointerdown.prevent.stop="$store.game.startBodyFigureLabelDrag($event, body.figure, ann)" @click="$store.game.openBodyFigurePart(body.rows, ann.part, $event)">
                                   <strong x-text="ann.title"></strong>
                                   <small x-show="ann.tags" x-text="ann.tags"></small>
                                   <p x-text="ann.preview"></p>

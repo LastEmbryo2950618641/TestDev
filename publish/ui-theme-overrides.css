@@ -1052,9 +1052,11 @@ html[data-ui-theme] .body-figure-callout {
   z-index: 2;
   display: grid;
   gap: 1px;
-  width: min(24vw, 126px);
+  /* Keep in sync with BODY_FIGURE_CALLOUT_WIDTH_PCT in body-figure.js */
+  width: 22%;
   max-width: 126px;
   min-height: 40px;
+  box-sizing: border-box;
   padding: 5px 7px;
   border-radius: 8px;
   border: 1px solid rgba(var(--ui-accent-rgb, 120, 180, 255), .55);
@@ -1062,12 +1064,17 @@ html[data-ui-theme] .body-figure-callout {
   color: var(--ui-text);
   text-align: left;
   cursor: pointer;
+  touch-action: none;
   box-shadow: 0 4px 14px rgba(0, 0, 0, .18);
   pointer-events: auto;
 }
 
 html[data-ui-theme] .body-figure-callout.side-right {
   text-align: right;
+}
+
+html[data-ui-theme] .body-figure-callout.dragging {
+  cursor: grabbing;
 }
 
 html[data-ui-theme] .body-figure-callout:hover,
@@ -1118,7 +1125,8 @@ html[data-ui-theme] .body-figure-label {
   }
 
   html[data-ui-theme] .body-figure-callout {
-    width: min(34vw, 112px);
+    /* Keep in sync with BODY_FIGURE_CALLOUT_WIDTH_PCT */
+    width: 22%;
     max-width: 112px;
     min-height: 36px;
     padding: 4px 6px;

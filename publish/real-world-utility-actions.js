@@ -85,6 +85,46 @@ window.GameModules.realWorldUtilityActions = {
     return '以第二人称续写现实世界中的行动过程和直接结果，不少于300字且不设字数上限，在行动范围内充分描写动作过程、周围情况、别人反应、短期影响和生命体征影响';
   },
 
+  realWorldNarrationHtml(entry = {}) {
+    const raw = entry?.narration || entry?.statusText || entry?.text || '';
+    return window.GameModules.narrationRoleMarkup?.toSafeHtml?.(raw)
+      || String(raw || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  },
+
+  novelStoryHtml(entry = {}) {
+    const raw = entry?.storyText || '';
+    return window.GameModules.narrationRoleMarkup?.toSafeHtml?.(raw)
+      || String(raw || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  },
+
+  /**
+   * Scene header / 当前位置: full profile chain of the active body.
+   * Possessing → controlled character; otherwise → player-self.
+   */
+  realWorldSceneLocationText() {
+    const locField = window.GameModules.currentLocationField;
+    const shared = this.sharedControlState?.();
+    const subject = shared
+      || this.playerIdentityState?.()
+      || this.rpgStates?.['player-self']
+      || null;
+    const id = String(subject?.id || (!shared ? 'player-self' : '') || '').trim();
+    const candidates = [
+      locField?.fromCharacterState?.(subject),
+      subject?.profile?.currentLocation,
+      id ? this.appearingLocationById?.[id] : '',
+      id ? this.characterSchedules?.[id]?.profileCurrentLocation : '',
+      !shared ? this.playerProfile?.currentLocation : '',
+      this.controlLinkLocationText?.(subject),
+    ];
+    for (const item of candidates) {
+      const text = locField?.normalize?.(item) || String(item || '').trim();
+      if (locField?.isRecordedLocation?.(text)) return text;
+      if (!locField && text && text !== '当前位置未登记') return text;
+    }
+    return this.realWorldLocationName || '现实地点';
+  },
+
   realWorldChoiceIcon(choice = '') {
     const text = String(choice || '');
     if (/手机|记录|信息|屏幕|通讯|微信/u.test(text)) return '📱';

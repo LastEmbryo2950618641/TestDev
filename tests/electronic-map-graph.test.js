@@ -94,41 +94,49 @@ test('map update prompt captures item container changes during settlement', () =
 
 test('surround unlock prompt forbids interior building payloads', () => {
   const prompt = read('publish/prompts/real-world-map-surround-unlock.md');
-  assert.ok(prompt.includes('这次只做“周边解锁”'));
+  assert.ok(prompt.includes('这次只做“周边解锁 + 出场人物位置按需同步”'));
   assert.ok(prompt.includes('禁止返回 `interiorLayout`'));
   assert.ok(prompt.includes('`floors`'));
   assert.ok(prompt.includes('`slotObjects`'));
+  assert.ok(prompt.includes('周边解锁硬约束'));
+  assert.ok(prompt.includes('禁止返回空数组'));
 });
 
-test('surround unlock prompt documents simple four-field response', () => {
+test('surround unlock prompt documents five-field response with neighbor faction and character locations', () => {
   const prompt = read('publish/prompts/real-world-map-surround-unlock.md');
   assert.ok(prompt.includes('\u5f53\u524d\u5730\u70b9\u5b8c\u6574JSON'));
   assert.ok(prompt.includes('"当前节点"'));
   assert.ok(prompt.includes('"周围地点"'));
   assert.ok(prompt.includes('"势力"'));
   assert.ok(prompt.includes('"地点信息"'));
+  assert.ok(prompt.includes('"出场人物位置"'));
+  assert.ok(prompt.includes('出场人物地点快照：{{出场人物地点快照}}'));
+  assert.ok(prompt.includes('## 出场人物位置（必读）'));
+  assert.ok(prompt.includes('"ID"'));
+  assert.ok(prompt.includes('越具体越好') || prompt.includes('尽量精确'));
+  assert.ok(prompt.includes('不需要更新（禁止输出）'));
+  assert.ok(prompt.includes('需要更新（必须输出）'));
+  assert.ok(prompt.includes('[势力层级链...]·地点·地点内位置'));
+  assert.ok(prompt.includes('倒数第 2 段'));
+  assert.ok(prompt.includes('最后 1 段'));
+  assert.ok(prompt.includes('段数不固定'));
   assert.ok(prompt.includes('"距离"'));
   assert.ok(prompt.includes('"地点名"'));
-  assert.ok(prompt.includes('势力名·势力层级1·势力层级2'));
+  assert.ok(prompt.includes('每项必须写 `距离`、`地点名`、`势力`'));
+  assert.ok(prompt.includes('出场人物：{{出场人物}}'));
   assert.ok(prompt.includes('正式地图地点名'));
-  assert.ok(prompt.includes('如果玩家当前在房间/卧室/走廊等室内空间，必须写其所在建筑'));
-  assert.ok(prompt.includes('刘思琪房间-锦苑小区3栋'));
-  assert.ok(prompt.includes('不得使用“房间-建筑”“人物-地点”等拼接名'));
-  assert.ok(prompt.includes('第一个必须是最高层级控制势力或行政管辖势力'));
-  assert.ok(prompt.includes('禁止家庭/住户/使用人'));
-  assert.ok(prompt.includes('同一地图尺度'));
-  assert.ok(prompt.includes('异世界可使用州、郡、城、宫殿、城门、神殿、港口、关隘'));
-  assert.ok(prompt.includes('同尺度、可互通、可标注距离'));
-  assert.ok(prompt.includes('中华人民共和国·四川省成都市·武侯区'));
+  assert.ok(prompt.includes('中华人民共和国·四川省成都市·武侯区·锦苑小区3栋·2单元601室内楼梯上第一间房间床上'));
+  assert.ok(prompt.includes('"出场人物位置": []'));
 });
 
 test('surround unlock prompt is simple and inline synced', () => {
   const prompt = read('publish/prompts/real-world-map-surround-unlock.md');
   const inline = read('publish/prompts/real-world-map-surround-unlock.js');
   assert.ok(prompt.includes('电子地图周边解锁'));
-  assert.ok(prompt.includes('字段固定只有四个'));
+  assert.ok(prompt.includes('字段固定只有五个'));
   assert.ok(inline.includes('电子地图周边解锁'));
-  assert.ok(inline.includes('字段固定只有四个'));
+  assert.ok(inline.includes('字段固定只有五个'));
+  assert.ok(inline.includes('出场人物位置'));
   assert.ok(!prompt.includes('\ufffd'));
   assert.ok(!inline.includes('\ufffd'));
   assert.ok(!prompt.includes('layout.shapes'));
@@ -332,7 +340,9 @@ test('map auxiliary AI requests reuse real world KV cache path', () => {
   assert.ok(jsonUtils.includes('completeCachedJsonPrompt(store'));
   assert.ok(jsonUtils.includes('tokenMeta,'));
   assert.ok(jsonUtils.includes('attemptTitle'));
-  assert.ok(jsonUtils.includes("'重试'"));
+  assert.ok(jsonUtils.includes('max > 1 && i > 0'));
+  assert.ok(jsonUtils.includes('重试${i + 1}/${max}') || jsonUtils.includes('重试${i + 1}/'));
+  assert.ok(!jsonUtils.includes("'尝试'"));
   assert.ok(fog.includes("source: 'real-world-map-surround-unlock'"));
   assert.ok(fog.includes('useRealWorldKvCache: true'));
   assert.ok(fog.includes("outputLimitKind: 'stage4'"));
@@ -853,6 +863,7 @@ test('surround unlock debug is enabled by default and records raw shape', () => 
       isCommunityLevelNode: () => false,
     },
   } }, console };
+  loadScript(context, 'publish/current-location-field.js');
   loadScript(context, 'publish/real-world-map-fog.js');
   const fog = context.window.GameModules.realWorldMapFog;
   const state = {};
@@ -861,9 +872,10 @@ test('surround unlock debug is enabled by default and records raw shape', () => 
   assert.strictEqual(state.realWorldMapSurroundUnlockDebugLog.length, 1);
   const payload = fog.validateUnlockPayload({
     当前节点: '锦苑小区3栋',
-    周围地点: [{ 距离: '约30米', 地点名: '锦苑小区2栋' }],
+    周围地点: [{ 距离: '约30米', 地点名: '锦苑小区2栋', 势力: '中华人民共和国·四川省成都市·武侯区' }],
     势力: ['锦苑小区物业·社区管理组织·楼栋管理'],
     地点信息: ['1. 当前节点位于小区内部。'],
+    出场人物位置: [{ 姓名: '刘思琪', 当前位置: '中华人民共和国·四川省成都市·武侯区·锦苑小区3栋·2单元202' }],
   }, { name: '锦苑小区3栋' }, {}, 'full');
   assert.strictEqual(payload.debugShape.hasInteriorLayout, false);
   assert.strictEqual(payload.currentNode, '锦苑小区3栋');
@@ -872,6 +884,10 @@ test('surround unlock debug is enabled by default and records raw shape', () => 
   assert.strictEqual(payload.debugShape.factionInfoCount, 1);
   assert.strictEqual(payload.surroundLocations[0].name, '锦苑小区2栋');
   assert.strictEqual(payload.surroundLocations[0].distanceText, '约30米');
+  assert.strictEqual(payload.surroundLocations[0].faction, '中华人民共和国·四川省成都市·武侯区');
+  assert.strictEqual(payload.characterLocations[0].name, '刘思琪');
+  assert.strictEqual(payload.characterLocations[0].location, '中华人民共和国·四川省成都市·武侯区·锦苑小区3栋·2单元202');
+  assert.strictEqual(payload.characterLocations[0].mapNodeName, '锦苑小区3栋');
 });
 
 test('visited unlocked building with empty interior still bootstraps full interior on indoor action', () => {
@@ -921,15 +937,330 @@ test('surround unlock no longer applies interior json', () => {
 test('surround unlock logs prompt freshness and apply boundaries', () => {
   const source = read('publish/real-world-map-fog.js');
   assert.ok(source.includes('promptForbidsInteriorLayout'));
-  assert.ok(source.includes('promptHasSimpleSurroundRule'));
+  assert.ok(source.includes('promptHasSurroundFactionRule'));
+  assert.ok(source.includes('promptHasCharacterLocationField'));
+  assert.ok(source.includes('promptHasProfileLocationFormat'));
   assert.ok(source.includes('raw-response'));
   assert.ok(source.includes('parsed-response'));
   assert.ok(source.includes('apply-done'));
+  assert.ok(source.includes('applyCharacterLocations'));
 });
 
-test('surround unlock request is single pass because prompt carries structure rules', () => {
+test('surround unlock applies neighbor faction and appearing character locations', async () => {
+  const context = {
+    window: {
+      GameModules: {
+        realWorldMap: {
+          cleanName: (value) => String(value || '').trim(),
+          isAbstractName: () => false,
+          isInteriorLocationName: () => false,
+          isMapExteriorNode: () => true,
+          isCommunityLevelNode: () => false,
+          isMapDisplayNode: () => true,
+          resolveExteriorAnchorNode: (map, node) => node,
+          factTime: () => '2026-07-23T12:00:00.000Z',
+          applyRouteLinks: () => {},
+        },
+        orgTerritory: { ensureMapControls() {}, bumpOrgExposureOnScheduleLocation() {} },
+        realWorldLocationGraph: {
+          poiAncestor: () => null,
+          getNode(state, ref) {
+            const name = String(ref || '').trim();
+            const nodes = Object.values(state.locationGraph?.nodesById || {});
+            return nodes.find((node) => node.id === name || node.name === name) || null;
+          },
+          ensurePoiFromPayload(state, payload = {}) {
+            state.locationGraph = state.locationGraph || { nodesById: {}, poiGraph: { nodes: [], edges: [] } };
+            const id = `loc_${payload.name}`;
+            const node = {
+              id,
+              name: payload.name,
+              parentId: payload.parentId || '',
+              descriptionFacts: Array.isArray(payload.descriptionFacts) ? payload.descriptionFacts.slice() : [],
+              effectiveAuthorityRef: payload.effectiveAuthorityRef || null,
+            };
+            state.locationGraph.nodesById[id] = node;
+            if (!state.locationGraph.poiGraph.nodes.includes(id)) state.locationGraph.poiGraph.nodes.push(id);
+            return node;
+          },
+          ensureRouteEdge() { return { ok: true }; },
+          standardPoiGraph(state) {
+            return {
+              nodes: Object.values(state.locationGraph?.nodesById || {}),
+              edges: state.locationGraph?.poiGraph?.edges || [],
+            };
+          },
+          setCharacterCurrentNode(state, characterId, nodeId, data = {}) {
+            state.locationGraph = state.locationGraph || { characterLocations: {} };
+            state.locationGraph.characterLocations = state.locationGraph.characterLocations || {};
+            const node = this.getNode(state, nodeId);
+            state.locationGraph.characterLocations[characterId] = {
+              characterId,
+              nodeId,
+              locationName: node?.name || '',
+              characterName: data.characterName || characterId,
+            };
+            return state.locationGraph.characterLocations[characterId];
+          },
+          findCharacterByRef(state, ref = {}) {
+            return (state.rpgStates && Object.values(state.rpgStates).find((item) => item?.name === ref.name || item?.profile?.name === ref.name)) || null;
+          },
+          characterKey(character) {
+            if (character && typeof character === 'object') {
+              return String(character.id || character.profile?.name || character.name || 'player-self').trim();
+            }
+            return String(character || 'player-self').trim();
+          },
+        },
+      },
+    },
+    console,
+  };
+  loadScript(context, 'publish/current-location-field.js');
+  loadScript(context, 'publish/real-world-map-fog.js');
+  const fog = context.window.GameModules.realWorldMapFog;
+  const fullLocation = '中华人民共和国·四川省成都市·武侯区·锦苑小区3栋·2单元202';
+  const state = {
+    locationGraph: {
+      nodesById: {
+        loc_home: { id: 'loc_home', name: '锦苑小区3栋', identityKey: 'home' },
+      },
+      poiGraph: { nodes: ['loc_home'], edges: [] },
+      characterLocations: {},
+    },
+    characterSchedules: {},
+    rpgStates: {
+      sis: { id: 'sis', name: '刘思琪', profile: { name: '刘思琪', currentLocation: '当前位置未知' }, values: { current_location: { name: '当前位置未知' } } },
+    },
+    realWorldMap: {
+      currentId: 'home',
+      current: '锦苑小区3栋',
+      nodes: [{ id: 'home', name: '锦苑小区3栋', mapVisible: true, revealed: true, descriptionFacts: [] }],
+      edges: [],
+    },
+  };
+  const map = state.realWorldMap;
+  const anchor = map.nodes[0];
+  const payload = fog.validateUnlockPayload({
+    当前节点: '锦苑小区3栋',
+    周围地点: [{ 距离: '约30米', 地点名: '锦苑小区2栋', 势力: '中华人民共和国·四川省成都市·武侯区' }],
+    势力: [
+      '中华人民共和国·四川省成都市·武侯区',
+      '玉林街道玉林北路社区·基层治理组织·社区管辖',
+    ],
+    地点信息: ['1. 当前节点位于锦苑小区内部，为住宅楼栋。'],
+    出场人物位置: [{ 姓名: '刘思琪', 当前位置: fullLocation }],
+  }, anchor, map, 'full', { requiredLocationNames: ['刘思琪'] });
+
+  await fog.applySurroundUnlock(state, map, anchor, anchor, payload);
+
+  const neighbor = Object.values(state.locationGraph.nodesById).find((node) => node.name === '锦苑小区2栋');
+  assert.ok(neighbor);
+  assert.ok(neighbor.descriptionFacts.some((item) => item.includes('势力：中华人民共和国·四川省成都市·武侯区')));
+  assert.strictEqual(neighbor.effectiveAuthorityRef?.name, '中华人民共和国·四川省成都市·武侯区');
+  assert.ok(anchor.descriptionFacts.some((item) => item.includes('势力：中华人民共和国·四川省成都市·武侯区')));
+  assert.strictEqual(state.characterSchedules.sis.currentLocation, '锦苑小区3栋');
+  assert.strictEqual(state.rpgStates.sis.profile.currentLocation, fullLocation);
+  assert.strictEqual(state.rpgStates.sis.values.current_location.currentLocation, fullLocation);
+  assert.strictEqual(state.rpgStates.sis.values.current_location.name, '锦苑小区3栋');
+});
+
+test('surround unlock keeps AI character location text even when map format is invalid', () => {
+  const context = { window: { GameModules: {} }, console };
+  loadScript(context, 'publish/current-location-field.js');
+  loadScript(context, 'publish/real-world-map-fog.js');
+  const fog = context.window.GameModules.realWorldMapFog;
+  const payload = fog.validateUnlockPayload({
+    周围地点: [],
+    出场人物位置: [{ 姓名: '刘思琪', ID: 'rel-ai-247528', 当前位置: '锦苑小区3栋' }],
+  }, { name: '锦苑小区3栋' }, {}, 'full');
+  assert.strictEqual(payload.characterLocations.length, 1);
+  assert.strictEqual(payload.characterLocations[0].location, '锦苑小区3栋');
+  assert.strictEqual(payload.characterLocations[0].id, 'rel-ai-247528');
+  assert.strictEqual(payload.characterLocations[0].mapNodeName, '');
+});
+
+test('surround unlock keeps six-part admin chain and uses second-last as map node', () => {
+  const context = { window: { GameModules: {} }, console };
+  loadScript(context, 'publish/current-location-field.js');
+  loadScript(context, 'publish/real-world-map-fog.js');
+  const fog = context.window.GameModules.realWorldMapFog;
+  const six = '中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋·2单元601室';
+  const payload = fog.validateUnlockPayload({
+    周围地点: [],
+    出场人物位置: [{
+      姓名: '刘思琪',
+      当前位置: six,
+    }],
+  }, { name: '锦苑小区3栋' }, {}, 'full');
+  assert.strictEqual(payload.characterLocations.length, 1);
+  assert.strictEqual(payload.characterLocations[0].location, six);
+  assert.strictEqual(payload.characterLocations[0].mapNodeName, '锦苑小区3栋');
+  assert.strictEqual(payload.characterLocations[0].interiorPosition, '2单元601室');
+});
+
+test('surround unlock missing required names does not fail validation', () => {
+  const context = { window: { GameModules: {
+    realWorldMap: {
+      cleanName: (value) => String(value || '').trim(),
+      isAbstractName: () => false,
+      isInteriorLocationName: () => false,
+      isMapExteriorNode: () => true,
+      isCommunityLevelNode: () => false,
+    },
+  } }, console };
+  loadScript(context, 'publish/current-location-field.js');
+  loadScript(context, 'publish/real-world-map-fog.js');
+  const fog = context.window.GameModules.realWorldMapFog;
+  const payload = fog.validateUnlockPayload({
+    当前节点: '锦苑小区3栋',
+    周围地点: [],
+    势力: [],
+    地点信息: [],
+    出场人物位置: [{ 姓名: '刘思琪', 当前位置: '中华人民共和国·四川省成都市·武侯区·锦苑小区3栋·2单元601' }],
+  }, { name: '锦苑小区3栋' }, {}, 'full', { requiredLocationNames: ['刘思琪', '刘悠'] });
+  assert.strictEqual(payload.characterLocations.length, 1);
+  assert.strictEqual(payload.characterLocations[0].name, '刘思琪');
+});
+
+test('surround unlock writes profile.currentLocation for matched character', async () => {
+  const context = {
+    window: {
+      GameModules: {
+        realWorldMap: {
+          cleanName: (value) => String(value || '').trim(),
+          isAbstractName: () => false,
+          isInteriorLocationName: () => false,
+          isMapExteriorNode: () => true,
+          isCommunityLevelNode: () => false,
+          isMapDisplayNode: () => true,
+          resolveExteriorAnchorNode: (map, node) => node,
+          factTime: () => '2026-07-23T12:00:00.000Z',
+          applyRouteLinks: () => {},
+        },
+        orgTerritory: { ensureMapControls() {}, bumpOrgExposureOnScheduleLocation() {} },
+        characterStateStore: { saved: [], save(state) { this.saved.push(state); return state; } },
+        realWorldLocationGraph: {
+          poiAncestor: () => null,
+          getNode() { return null; },
+          ensurePoiFromPayload() { return null; },
+          ensureRouteEdge() { return null; },
+          standardPoiGraph() { return { nodes: [], edges: [] }; },
+          setCharacterCurrentNode() { return null; },
+          findCharacterByRef(state, ref = {}) {
+            return Object.values(state.rpgStates || {}).find((item) => item?.name === ref.name || item?.profile?.name === ref.name) || null;
+          },
+          characterKey(character) {
+            return String(character?.id || character?.name || 'player-self').trim();
+          },
+        },
+      },
+    },
+    console,
+  };
+  loadScript(context, 'publish/current-location-field.js');
+  loadScript(context, 'publish/real-world-map-fog.js');
+  const fog = context.window.GameModules.realWorldMapFog;
+  const full = '中华人民共和国·四川省成都市·武侯区·锦苑小区3栋·2单元601';
+  const state = {
+    rpgStates: {
+      sis: { id: 'sis', name: '刘思琪', profile: { name: '刘思琪' }, values: { current_location: { name: '当前位置未知' } } },
+    },
+    characterSchedules: {},
+    realWorldMap: { currentId: 'home', current: '锦苑小区3栋', nodes: [{ id: 'home', name: '锦苑小区3栋', revealed: true }], edges: [] },
+  };
+  const map = state.realWorldMap;
+  const payload = fog.validateUnlockPayload({
+    周围地点: [],
+    出场人物位置: [{ 姓名: '刘思琪', 当前位置: full }],
+  }, map.nodes[0], map, 'full');
+  await fog.applySurroundUnlock(state, map, map.nodes[0], map.nodes[0], payload);
+  assert.strictEqual(state.rpgStates.sis.profile.currentLocation, full);
+  assert.strictEqual(state.rpgStates.sis.values.current_location.currentLocation, full);
+  assert.strictEqual(context.window.GameModules.characterStateStore.saved[0]?.profile?.currentLocation, full);
+});
+
+test('surround unlock matches by ID and merges onto live card', async () => {
+  const context = {
+    window: {
+      GameModules: {
+        realWorldMap: {
+          cleanName: (value) => String(value || '').trim(),
+          isAbstractName: () => false,
+          isInteriorLocationName: () => false,
+          isMapExteriorNode: () => true,
+          isCommunityLevelNode: () => false,
+          isMapDisplayNode: () => true,
+          resolveExteriorAnchorNode: (map, node) => node,
+          factTime: () => '2026-07-23T12:00:00.000Z',
+          applyRouteLinks: () => {},
+        },
+        orgTerritory: { ensureMapControls() {}, bumpOrgExposureOnScheduleLocation() {} },
+        characterStateStore: null,
+        realWorldLocationGraph: {
+          poiAncestor: () => null,
+          getNode() { return null; },
+          ensurePoiFromPayload() { return null; },
+          ensureRouteEdge() { return null; },
+          standardPoiGraph() { return { nodes: [], edges: [] }; },
+          setCharacterCurrentNode() { return null; },
+          findCharacterByRef() { return null; },
+          characterKey(character) {
+            return String(character?.id || character?.name || '').trim();
+          },
+        },
+      },
+    },
+    console,
+  };
+  loadScript(context, 'publish/character-state-store.js');
+  loadScript(context, 'publish/current-location-field.js');
+  loadScript(context, 'publish/real-world-map-fog.js');
+  const fog = context.window.GameModules.realWorldMapFog;
+  const storeApi = context.window.GameModules.characterStateStore;
+  const full = '中华人民共和国·四川省成都市·武侯区·锦苑小区3栋·2单元601室内楼梯上第一间房间床上';
+  const live = {
+    id: 'rel-ai-247528',
+    name: '刘思琪',
+    profile: { id: 'rel-ai-247528', name: '刘思琪' },
+    values: { current_location: { name: '当前位置未知' } },
+  };
+  const state = {
+    rpgStates: { 'rel-ai-247528': live },
+    characterSchedules: {},
+    realWorldMap: { currentId: 'home', current: '锦苑小区3栋', nodes: [{ id: 'home', name: '锦苑小区3栋', revealed: true }], edges: [] },
+  };
+  storeApi.bindLiveHost(state);
+  const stale = {
+    id: 'rel-ai-247528',
+    name: '刘思琪',
+    profile: { id: 'rel-ai-247528', name: '刘思琪' },
+    values: { current_location: { name: '当前位置未知' } },
+  };
+  const payload = fog.validateUnlockPayload({
+    周围地点: [],
+    出场人物位置: [{ 姓名: '刘思琪', ID: 'rel-ai-247528', 当前位置: full }],
+  }, state.realWorldMap.nodes[0], state.realWorldMap, 'full');
+  assert.strictEqual(payload.characterLocations[0].id, 'rel-ai-247528');
+  assert.strictEqual(payload.characterLocations[0].interiorPosition, '2单元601室内楼梯上第一间房间床上');
+  // Simulate a stale copy being present; write must still land on live.
+  state.rpgStates['rel-ai-247528'] = live;
+  await fog.applyCharacterLocations(state, payload.characterLocations);
+  assert.strictEqual(live.profile.currentLocation, full);
+  assert.strictEqual(state.rpgStates['rel-ai-247528'].profile.currentLocation, full);
+  assert.strictEqual(state.characterSchedules['rel-ai-247528'].profileCurrentLocation, full);
+  // adopt/mergeOntoLive must not clobber a live recorded location with a stale clone's alternate value
+  stale.profile.currentLocation = '中华人民共和国·四川省成都市·武侯区·锦苑小区3栋·客厅沙发上';
+  storeApi.adopt(stale, state);
+  assert.strictEqual(live.profile.currentLocation, full);
+});
+
+test('surround unlock request retries when prompt carries structure rules', () => {
   const source = read('publish/real-world-map-fog.js');
-  assert.ok(source.includes('max: 1'));
+  assert.ok(source.includes('max: 2'));
+  assert.ok(source.includes('需更新=否且正文未改地点'));
+  assert.ok(!source.includes('出场人物位置未覆盖全部需更新人物'));
+  assert.ok(!source.includes("throw new Error('出场人物位置缺少需更新人物"));
   assert.ok(!source.includes("throw new Error('surroundLocations 为空')"));
   assert.ok(!source.includes("throw new Error('interiorLayout 为空')"));
   assert.ok(!source.includes("throw new Error('patch 为空')"));

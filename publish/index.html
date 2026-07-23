@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="calendar-system.css">
   <link rel="stylesheet" href="event-system.css">
   <link rel="stylesheet" href="faction-system.css">
-  <link rel="stylesheet" href="skills-app.css?v=2026-07-22-role-card-split-v43">
+  <link rel="stylesheet" href="skills-app.css?v=2026-07-23-db-write-fix-v15">
   <link rel="stylesheet" href="character-select.css">
   <link rel="stylesheet" href="player-aspiration.css">
   <link rel="stylesheet" href="profile-preview.css">
@@ -127,11 +127,11 @@
   </script>
   <script src="../deepseek_key.js"></script>
   <script src="../pixatart_key.js"></script>
-  <script src="boot/script-loader.js?v=2026-07-22-role-card-split-v43"></script>
+  <script src="boot/script-loader.js?v=2026-07-23-db-write-fix-v15"></script>
   <script src="boot/store-modules.js"></script>
-  <script src="boot/script-manifest.js?v=2026-07-22-role-card-split-v43"></script>
-  <script src="boot/boot-actions.js?v=2026-07-22-role-card-split-v43"></script>
-  <script src="boot/boot.js?v=2026-07-22-role-card-split-v43"></script>
+  <script src="boot/script-manifest.js?v=2026-07-23-db-write-fix-v15"></script>
+  <script src="boot/boot-actions.js?v=2026-07-23-db-write-fix-v15"></script>
+  <script src="boot/boot.js?v=2026-07-23-db-write-fix-v15"></script>
   <script>
     window.openEventAppNative = async function openEventAppNative(event) {
       try {
@@ -1039,7 +1039,7 @@
             <div class="avatar-orb" x-text="$store.game.realWorldDisplayCharacter().name.slice(0, 1)"></div>
             <div class="character-status-main">
               <div class="name-role-block"><h2 x-text="$store.game.realWorldDisplayCharacter().name"></h2><p class="role" x-text="$store.game.sharedControlState() ? '附身控制中' : ($store.game.playerProfile.refinedRole || $store.game.playerProfile.dailyRole || '现实世界居民')"></p></div>
-              <small x-text="$store.game.sharedControlState() ? $store.game.controlLinkLocationText($store.game.sharedControlState()) : ($store.game.playerProfile.currentLocation || '现实位置未登记')"></small>
+              <small x-text="$store.game.realWorldSceneLocationText() || '现实位置未登记'"></small>
               <div class="vital-bars" x-show="$store.game.realWorldDisplayState()">
                 <template x-for="vital in $store.game.rpgVitals($store.game.realWorldDisplayState())" :key="`player-${vital.key}`">
                   <div class="vital-row" :class="vital.key"><span x-text="vital.label"></span><i><b :style="`width: ${Math.max(0, Math.min(100, vital.value))}%`"></b></i><em x-text="vital.text || `${vital.value}%`"></em></div>
@@ -1119,7 +1119,7 @@
         </aside>
 
         <section class="panel story-panel dev-section" data-section-title="现实推演日志区">
-          <div class="scene-title real-world-scene-title dev-section" data-section-title="现实场景标题栏"><span><i aria-hidden="true">📖</i><em x-text="$store.game.realWorldSceneTitle"></em></span><b><i aria-hidden="true">📍</i><em x-text="$store.game.realWorldLocationName || '现实地点'"></em></b></div>
+          <div class="scene-title real-world-scene-title dev-section" data-section-title="现实场景标题栏"><span><i aria-hidden="true">📖</i><em x-text="$store.game.realWorldSceneTitle"></em></span><b><i aria-hidden="true">📍</i><em x-text="$store.game.realWorldSceneLocationText() || '现实地点'"></em></b></div>
           <div class="story-log scroll-area dev-section" data-section-title="现实记录列表">
             <template x-for="entry in $store.game.realWorldDisplayLog()" :key="`${entry.id}-${entry.type}-${entry.createdAt || entry.time?.label || ''}`">
               <article class="novel-entry" :class="entry.type === 'user' ? 'player' : 'advice'">
@@ -1130,7 +1130,7 @@
                   <small class="real-world-entry-location" x-show="entry.locationName"><span aria-hidden="true">📍</span><span x-text="`地点｜${entry.locationName}`"></span></small>
                   <div class="novel-tool-row" x-show="!entry.transientError && ($store.game.hasRealWorldThinking(entry) || entry.promptPack)"><button class="card-change-toggle" :class="{ open: entry.thinkingOpen }" x-show="$store.game.hasRealWorldThinking(entry)" @click="$store.game.toggleRealWorldThinking(entry)" x-text="entry.thinkingOpen ? 'ai思考 ▼' : 'ai思考 ▶'"></button><button class="prompt-toggle" x-show="entry.promptPack" @click="$store.game.openRealWorldPrompt(entry.id)" title="查看生成提示词" aria-label="查看生成提示词">提示词</button></div>
                   <template x-if="!entry.transientError && entry.thinkingOpen && $store.game.hasRealWorldThinking(entry)"><div class="real-world-thinking-panel dev-section" data-section-title="现实AI思考"><template x-for="line in $store.game.realWorldThinkingLines(entry)" :key="`${entry.id}-${line.id}`"><p x-show="line.text"><b x-text="`【${line.label}】`"></b><span x-text="line.text"></span></p></template></div></template>
-                  <p class="novel-body-text" x-text="entry.narration || entry.statusText || entry.text"></p>
+                  <p class="novel-body-text" x-html="$store.game.realWorldNarrationHtml(entry)"></p>
                   <div class="novel-tool-row" x-show="!entry.transientError && $store.game.hasRealWorldSettlementThinking(entry)"><button class="card-change-toggle" :class="{ open: entry.settlementThinkingOpen }" @click="$store.game.toggleRealWorldSettlementThinking(entry)" x-text="entry.settlementThinkingOpen || entry.streaming ? 'AI结算思考 ▼' : 'AI结算思考 ▶'"></button></div>
                   <template x-if="!entry.transientError && $store.game.hasRealWorldSettlementThinking(entry) && entry.settlementThinkingOpen"><div class="real-world-thinking-panel real-world-settlement-thinking-panel dev-section" data-section-title="现实AI结算思考"><template x-for="line in $store.game.realWorldSettlementThinkingLines(entry)" :key="`${entry.id}-settlement-${line.id}`"><p x-show="line.text"><b x-text="`【${line.label}】`"></b><span x-text="line.text"></span></p></template></div></template>
                   <section class="solidify-dock entry-solidify-dock" x-show="$store.game.solidifyEntryCards(entry).length" x-cloak>
@@ -1186,7 +1186,7 @@
 
         <aside class="panel mind-panel dev-section" data-section-title="现实信息栏">
           <h3><span aria-hidden="true">🗺️</span>当前位置</h3>
-          <p class="quest-text dev-section" data-section-title="现实地点区" x-text="$store.game.realWorldLocationName || '现实地点'"></p>
+          <p class="quest-text dev-section" data-section-title="现实地点区" x-text="$store.game.realWorldSceneLocationText() || '现实地点'"></p>
           <h3><span aria-hidden="true">🛡️</span>现实状态</h3>
           <div class="mind-box real-world-info-box dev-section" data-section-title="现实状态区"><span class="real-world-info-icon" aria-hidden="true" x-text="$store.game.realWorldStatusIcon($store.game.realWorldStatus)"></span><p x-text="$store.game.realWorldStatus"></p></div>
           <h3><span aria-hidden="true">🎯</span>当前目标</h3>
@@ -3581,7 +3581,7 @@
                     <button class="card-change-toggle" :class="{ open: entry.cardChangesOpen }" x-show="entry.characterCardChanges?.length" @click="$store.game.toggleCardChanges(entry)" x-text="entry.cardChangesOpen ? '角色卡变更▾' : '角色卡变更▸'"></button>
                     <button class="prompt-toggle" x-show="entry.promptPack" @click="$store.game.openNovelPrompt(entry.id)" title="查看生成提示词">≡</button>
                   </div>
-                  <p class="novel-body-text" x-text="entry.storyText"></p>
+                  <p class="novel-body-text" x-html="$store.game.novelStoryHtml(entry)"></p>
                   <section class="solidify-dock entry-solidify-dock" x-show="$store.game.solidifyEntryCards(entry).length" x-cloak>
                     <div class="solidify-side-tabs">
                       <template x-for="card in $store.game.solidifyEntryCards(entry)" :key="`${entry.id}-${$store.game.solidifyKey(card)}`">
@@ -3650,7 +3650,7 @@
     </footer>
   </main>
   </div><!-- HOME_PLAYING_WRAPPER_END -->
-  <script src="root-key-autofill.js"></script>
+  <script src="root-key-autofill.js?v=2026-07-23-db-write-fix-v15"></script>
 </body>
 </html>
 

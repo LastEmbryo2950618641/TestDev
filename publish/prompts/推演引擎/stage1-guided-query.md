@@ -1,4 +1,4 @@
-﻿# Stage1 查询规划：紧凑 JSON 资料路由
+# Stage1 查询规划：紧凑 JSON 资料路由
 
 任务：只输出一个合法 JSON 对象，不输出中文 K:V、Markdown、正文或解释。
 你只负责判断本次行动生成正文前还需要哪些已有资料；不得写正文，不得锚定场景，不得结算状态，不得推进后续结果。
@@ -49,6 +49,14 @@
 - 同地点/同住/相邻候选不得仅因未强制出场而写入禁止出场；可按相关性放入 participants.priority 或 participants.drama，或留空数组。
 - 玩家行动明确目标不得写入禁止出场，除非已加载资料明确显示其场外、不可到达或被规则禁止进入当前场景。
 
+## 角色唯一标识（强制，防忘记）
+
+- `participants.forced / priority / drama / forbidden` **每一项**必须写成 `角色名(ID)`，禁止只写姓名。
+- 已知角色：使用资料/角色卡中的真实 ID。示例：`刘思琪(rel-ai-247528)`、`刘悠(player-self)`。
+- 本回合首次出现、尚无角色卡：写占位 ID `待建卡`，示例：`陌生邻居(待建卡)`。Stage1 **整段结束后**系统会**一次性批量建卡**分配真实 `rel-ai-*`；禁止在 Stage1 多轮里反复请求逐个建卡。
+- 同一角色全程必须同一 ID；姓名可重复，ID 不可重复。
+- 输出前自检：任一 participants 项缺少 `(ID)` → 整份 JSON 不合格，必须重写。
+
 固定输出规则：
 - 只输出一个紧凑 JSON 对象，首字符必须是 {，末字符必须是 }。
 - 不要 Markdown，不要 ```json 代码块，不要换行解释。
@@ -56,16 +64,16 @@
 - sceneQueries.location / sceneQueries.causality / sceneQueries.conflict 必须是字符串数组；没有则 []。
 - 若 status 为“继续请求资料”，优先输出 materialRequests，最多 3 条；没有可执行资料请求时 materialRequests 输出 []，但必须保留 sceneQueries 理由或明确 participants 候选。
 {{资料迭代限制规则}}
-- participants.forced / priority / drama / forbidden 都必须是字符串数组；没有则 []。
+- participants.forced / priority / drama / forbidden 都必须是字符串数组；没有则 []；数组元素格式固定为 `角色名(ID)`。
 - randomEvents 必须是字符串数组；randomIntrusionCondition 没有明确条件时写“无明确条件则禁止闯入”。
 - 资料请求只能使用中文结构，不得输出英文 skill/method；不得在 Stage1 请求地点图新增、地点图补全或 ensure。
 - 不得输出旧 K:V 字段，例如“资料状态：”“资料请求1：”。
 
 JSON schema：
-{"plan":"查询规划摘要","status":"继续请求资料|资料已足够","sceneQueries":{"location":["地点查询理由"],"causality":["因果查询理由"],"conflict":["冲突查询理由"]},"participants":{"forced":["姓名"],"priority":["姓名"],"drama":["姓名"],"forbidden":["姓名"]},"randomEvents":["候选事件"],"randomIntrusionCondition":"无明确条件则禁止闯入","materialRequests":["角色查询，搜索角色卡，刘思琪，2026现代都市现实世界"]}
+{"plan":"查询规划摘要","status":"继续请求资料|资料已足够","sceneQueries":{"location":["地点查询理由"],"causality":["因果查询理由"],"conflict":["冲突查询理由"]},"participants":{"forced":["刘悠(player-self)","刘思琪(rel-ai-247528)"],"priority":["陌生邻居(待建卡)"],"drama":[],"forbidden":[]},"randomEvents":["候选事件"],"randomIntrusionCondition":"无明确条件则禁止闯入","materialRequests":["角色查询，搜索角色卡，刘思琪，2026现代都市现实世界"]}
 
 【AI自检】：
 - 输出前必须自检 status 与 materialRequests、sceneQueries、participants 是否一致。
+- 输出前必须自检 participants 每一项都是 `角色名(ID)`，没有裸姓名。
 - 若 materialRequests、sceneQueries、participants.forced、participants.priority、participants.drama 全为空，status 必须为“资料已足够”。
 - 不得输出旧 K:V 字段或 Markdown。
-

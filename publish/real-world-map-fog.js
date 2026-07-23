@@ -133,6 +133,10 @@ window.GameModules.realWorldMapFog = {
       currentNode: String(raw?.currentNode || raw?.current || raw?.['当前节点'] || '').slice(0, 120),
       locationInfoCount: this.normalizeLocationInfo(raw?.locationInfo || raw?.facts || raw?.['地点信息']).length,
       factionInfoCount: this.normalizeFactionInfo(raw?.factions || raw?.faction || raw?.['势力']).length,
+      characterLocationCount: (() => {
+        try { return this.normalizeCharacterLocations(raw, { strict: false }).length; }
+        catch (_) { return 0; }
+      })(),
       hasInteriorLayout: Boolean(raw?.interiorLayout),
       hasSurroundLocations: Array.isArray(raw?.surroundLocations),
       hasSimpleSurroundLocations: Boolean(raw?.surroundingLocations || raw?.nearbyLocations || raw?.['周围地点']),
@@ -309,16 +313,23 @@ window.GameModules.realWorldMapFog = {
 
 
 
-  shouldUnlockSurroundings(map, anchor) {
+  /** True when the electronic map already has route-linked neighbors around the anchor. */
+  hasPersistedSurroundNeighbors(state = null, map = null, anchor = null) {
+    if (this.exteriorSiblings(map, anchor).length > 0) return true;
+    const host = state || map?._boundStore || null;
+    const graphApi = window.GameModules.realWorldLocationGraph;
+    if (!host || !graphApi?.standardPoiGraph) return false;
+    const std = graphApi.standardPoiGraph(host);
+    return Array.isArray(std?.edges) && std.edges.length > 0
+      && Array.isArray(std?.nodes) && std.nodes.length > 1;
+  },
 
+  shouldUnlockSurroundings(map, anchor, state = null) {
     if (!anchor?.visited) return false;
-
-    if (anchor.exteriorRingUnlocked) return false;
-
-    if (this.exteriorSiblings(map, anchor).length > 0) return false;
-
+    // exteriorRingUnlocked alone must not permanently skip Stage4 when the graph is still empty
+    // (legacy false-positive unlock). Do not clear flags or force-run here — only decide needUnlock.
+    if (this.hasPersistedSurroundNeighbors(state, map, anchor)) return false;
     return true;
-
   },
 
 
@@ -401,8 +412,15 @@ window.GameModules.realWorldMapFog = {
     const { firstVisit, anchor } = this.markVisited(map, node.id);
     if (firstVisit && anchor) window.GameModules.orgTerritory?.bumpOrgExposureOnMapVisit?.(state, map, anchor);
     const needInteriorBootstrap = this.shouldBootstrapMissingInterior(state, result, node, anchor);
-    const needUnlock = firstVisit || this.shouldUnlockSurroundings(map, anchor) || needInteriorBootstrap;
-    const needPatchReview = !needUnlock && anchor?.exteriorRingUnlocked && this.shouldReviewKnownLocationPatch(result);
+    const appearingCharacters = this.appearingCharacterNames(state, result);
+    const locationSnapshots = this.appearingCharacterLocationSnapshots(state, appearingCharacters, result);
+    const needCharacterLocationSync = locationSnapshots.some((item) => item?.needUpdate)
+      || this.charactersNeedingProfileLocation(state).length > 0;
+    const needUnlock = firstVisit || this.shouldUnlockSurroundings(map, anchor, state) || needInteriorBootstrap;
+    const needPatchReview = !needUnlock && (
+      (anchor?.exteriorRingUnlocked && this.shouldReviewKnownLocationPatch(result))
+      || needCharacterLocationSync
+    );
     this.surroundUnlockDebug(state, 'after-location-update-decision', {
       sceneNodeId: node?.id || '',
       sceneNodeName: node?.name || '',
@@ -413,6 +431,8 @@ window.GameModules.realWorldMapFog = {
       exteriorRingUnlocked: Boolean(anchor?.exteriorRingUnlocked),
       hasKnownInteriorFloors: this.hasKnownInteriorFloors(anchor),
       needInteriorBootstrap,
+      needCharacterLocationSync,
+      needingLocationIds: this.charactersNeedingProfileLocation(state).map((item) => item.id).slice(0, 12),
       needUnlock,
       needPatchReview,
       mode: needUnlock ? 'full' : (needPatchReview ? 'patch' : 'skip'),
@@ -427,8 +447,10 @@ window.GameModules.realWorldMapFog = {
         anchorId: anchor?.id || '',
         anchorName: anchor?.name || '',
       });
+      // Even when Stage4 AI is skipped, locally heal empty role locations from scene/player chain.
+      const healed = await this.healMissingCharacterLocationsLocally(state);
       window.GameModules.orgTerritory?.ensureMapControls?.(map, state);
-      return { unlocked: [], interior: anchor?.interiorLayout || null };
+      return { unlocked: [], interior: anchor?.interiorLayout || null, characterLocationApplied: healed };
     }
 
 
@@ -436,6 +458,8 @@ window.GameModules.realWorldMapFog = {
     try {
 
       const payload = await this.generateSurroundUnlock(state, map, node, anchor, result, needUnlock ? 'full' : 'patch');
+      // Write character locations FIRST — map neighbor apply must not gate identity persistence.
+      const earlyApplied = await this.applyCharacterLocations(state, payload.characterLocations || []);
 
       const unlocked = await this.applySurroundUnlock(state, map, anchor, node, payload);
 
@@ -445,7 +469,12 @@ window.GameModules.realWorldMapFog = {
 
       map.lastText = mapMod.render(map);
       state.realWorldMap = this.rawMapState({ ...map, _boundStore: state });
+      state.locationGraph = window.GameModules.realWorldLocationGraph?.ensureGraphState?.(state) || state.locationGraph;
       state.refreshRealWorldMapJsonDump?.();
+      if (typeof state.save === 'function') {
+        try { await Promise.resolve(state.save()); }
+        catch (err) { console.warn('[real-world-map] 周围解锁后保存大地图失败:', err?.message || err); }
+      }
       const refreshedInteriorNode = map.interiorNodeId
         ? (state.realWorldMap.nodes || []).find((item) => item.id === map.interiorNodeId || item.name === map.interiorNodeId)
         : null;
@@ -456,10 +485,35 @@ window.GameModules.realWorldMapFog = {
         interiorNodeFloors: Array.isArray(refreshedInteriorNode?.interiorLayout?.floors)
           ? refreshedInteriorNode.interiorLayout.floors.length
           : 0,
+        graphNodeCount: window.GameModules.realWorldLocationGraph?.standardPoiGraph?.(state)?.nodes?.length || 0,
+        graphEdgeCount: window.GameModules.realWorldLocationGraph?.standardPoiGraph?.(state)?.edges?.length || 0,
+        legacyNodeCount: Array.isArray(state.realWorldMap?.nodes) ? state.realWorldMap.nodes.length : 0,
+        legacyEdgeCount: Array.isArray(state.realWorldMap?.edges) ? state.realWorldMap.edges.length : 0,
         anchorInteriorSummary: this.summarizeInteriorLayout(anchor?.interiorLayout || {}),
+        characterLocationApplied: Array.isArray(unlocked?.characterLocationApplied)
+          ? unlocked.characterLocationApplied.length
+          : (Array.isArray(payload?.characterLocations) ? payload.characterLocations.length : 0),
       });
 
-      return { unlocked, interior: anchor.interiorLayout || null };
+      const characterLocationApplied = [
+        ...(Array.isArray(earlyApplied) ? earlyApplied : []),
+        ...(Array.isArray(unlocked?.characterLocationApplied) ? unlocked.characterLocationApplied : []),
+      ].filter((item, index, arr) => (
+        item?.characterId
+        && arr.findIndex((other) => other?.characterId === item.characterId) === index
+      ));
+      // After AI apply, still locally heal anyone the model omitted.
+      const healed = await this.healMissingCharacterLocationsLocally(state);
+      healed.forEach((item) => {
+        if (!characterLocationApplied.some((row) => row.characterId === item.characterId)) {
+          characterLocationApplied.push(item);
+        }
+      });
+      return {
+        unlocked: Array.isArray(unlocked) ? unlocked : (unlocked?.unlocked || []),
+        interior: anchor.interiorLayout || null,
+        characterLocationApplied,
+      };
 
     } catch (err) {
 
@@ -659,6 +713,8 @@ window.GameModules.realWorldMapFog = {
 
     const contextJson = this.buildSurroundUnlockContext(state, map, anchor, sceneNode);
     const contextText = JSON.stringify(contextJson, null, 2).slice(0, 16000);
+    const appearingCharacters = this.appearingCharacterNames(state, result);
+    const locationSnapshots = this.appearingCharacterLocationSnapshots(state, appearingCharacters, result);
 
     this.surroundUnlockDebug(state, 'generate-start', {
       mode: mode === 'patch' ? 'patch' : 'full',
@@ -676,6 +732,9 @@ window.GameModules.realWorldMapFog = {
       knownDirectNeighborCount: Array.isArray(contextJson?.knownDirectNeighbors) ? contextJson.knownDirectNeighbors.length : 0,
       sameParentPoiCount: Array.isArray(contextJson?.sameParentPois) ? contextJson.sameParentPois.length : 0,
       existingRouteEdgeCount: Array.isArray(contextJson?.existingRouteEdges) ? contextJson.existingRouteEdges.length : 0,
+      appearingCharacterCount: appearingCharacters.length,
+      appearingCharacters: appearingCharacters.slice(0, 12),
+      locationNeedUpdateCount: locationSnapshots.filter((item) => item.needUpdate).length,
     });
 
     const prompt = await window.GameModules.renderPrompt('real-world-map-surround-unlock', {
@@ -702,13 +761,19 @@ window.GameModules.realWorldMapFog = {
 
       玩家行动: String(state.realWorldInput || result.actionText || '').slice(0, 200),
 
+      出场人物: appearingCharacters.length ? appearingCharacters.join('、') : '无',
+
+      出场人物地点快照: this.formatAppearingCharacterLocationSnapshots(locationSnapshots),
+
     });
 
     this.surroundUnlockDebug(state, 'prompt-ready', {
       mode: mode === 'patch' ? 'patch' : 'full',
       promptLength: String(prompt || '').length,
       promptForbidsInteriorLayout: String(prompt || '').includes('禁止返回 `interiorLayout`'),
-      promptHasSimpleSurroundRule: String(prompt || '').includes('每项只写 `距离` 和 `地点名`'),
+      promptHasSurroundFactionRule: String(prompt || '').includes('每项必须写 `距离`、`地点名`、`势力`'),
+      promptHasCharacterLocationField: String(prompt || '').includes('出场人物位置'),
+      promptHasProfileLocationFormat: String(prompt || '').includes('[势力层级链...]·地点·地点内位置'),
       promptPreview: String(prompt || '').slice(0, 1200),
     });
 
@@ -734,7 +799,7 @@ window.GameModules.realWorldMapFog = {
 
       format: prompt,
 
-      max: 1,
+      max: 2,
 
       parse: (text) => {
         const rawText = String(text || '');
@@ -756,8 +821,11 @@ window.GameModules.realWorldMapFog = {
           noChange: Boolean(payload.noChange),
           locationInfoCount: Array.isArray(payload.locationInfo) ? payload.locationInfo.length : 0,
           factionInfoCount: Array.isArray(payload.factionInfo) ? payload.factionInfo.length : 0,
+          characterLocationCount: Array.isArray(payload.characterLocations) ? payload.characterLocations.length : 0,
           surroundLocationCount: Array.isArray(payload.surroundLocations) ? payload.surroundLocations.length : 0,
           surroundLocationNames: (payload.surroundLocations || []).map((item) => item.name).slice(0, 12),
+          surroundLocationFactions: (payload.surroundLocations || []).map((item) => item.faction || '').slice(0, 12),
+          locationNeedUpdateNames: locationSnapshots.filter((item) => item.needUpdate).map((item) => item.name).slice(0, 12),
         });
         return payload;
       },
@@ -785,7 +853,7 @@ window.GameModules.realWorldMapFog = {
 
 
 
-  validateUnlockPayload(raw = {}, anchor = {}, map = {}, expectedMode = 'full') {
+  validateUnlockPayload(raw = {}, anchor = {}, map = {}, expectedMode = 'full', options = {}) {
 
     const rawObj = raw && typeof raw === 'object' ? raw : {};
     const responseMode = 'neighbors';
@@ -803,7 +871,9 @@ window.GameModules.realWorldMapFog = {
 
     const locationInfo = this.normalizeLocationInfo(rawObj.locationInfo || rawObj.facts || rawObj['地点信息']);
     const factionInfo = this.normalizeFactionInfo(rawObj.factions || rawObj.faction || rawObj['势力']);
-    const noChange = rawObj.noChange === true || !surroundLocations.length && !locationInfo.length && !factionInfo.length;
+    const characterLocations = this.normalizeCharacterLocations(rawObj);
+    const noChange = rawObj.noChange === true
+      || (!surroundLocations.length && !locationInfo.length && !factionInfo.length && !characterLocations.length);
 
     return {
       responseMode,
@@ -811,10 +881,662 @@ window.GameModules.realWorldMapFog = {
       currentNode: String(rawObj.currentNode || rawObj.current || rawObj['当前节点'] || anchor?.name || '').trim().slice(0, 120),
       locationInfo,
       factionInfo,
+      characterLocations,
       surroundLocations,
       debugShape: this.summarizeUnlockRawPayload(rawObj),
     };
 
+  },
+
+  appearingCharacterNames(state = {}, result = {}) {
+    const names = [];
+    const seen = new Set();
+    const push = (value) => {
+      const name = String(value || '').trim();
+      if (!name || seen.has(name)) return;
+      seen.add(name);
+      names.push(name);
+    };
+    (Array.isArray(result?.appearedCharacters) ? result.appearedCharacters : []).forEach((item) => {
+      if (typeof item === 'string') push(item);
+      else push(item?.name || item?.characterName || item?.profile?.name);
+    });
+    (Array.isArray(result?.solidifiableCharacters) ? result.solidifiableCharacters : []).forEach((item) => {
+      if (typeof item === 'string') push(item);
+      else push(item?.name || item?.characterName || item?.profile?.name);
+    });
+    // Always include the currently controlled / entry character so 附身中的角色也会进地点快照。
+    const control = state?.sharedControlState?.()
+      || state?.controlRoleState?.()
+      || state?.rpgStates?.[state?.identityTargetId]
+      || state?.character;
+    if (control && typeof control === 'object') {
+      push(control.profile?.name || control.name);
+    }
+    const shared = state?.sharedControlState?.();
+    if (shared) push(shared.profile?.name || shared.name);
+    const playerName = state?.playerIdentityState?.()?.profile?.name
+      || state?.playerIdentityState?.()?.name
+      || state?.character?.name
+      || '';
+    if (playerName) push(playerName);
+    return names.slice(0, 16);
+  },
+
+  sameAppearingPersonName(a = '', b = '') {
+    const left = String(a || '').trim();
+    const right = String(b || '').trim();
+    if (!left || !right) return false;
+    if (left === right) return true;
+    if (left.includes(right) || right.includes(left)) return true;
+    return false;
+  },
+
+  resolveAppearingCharacter(state = {}, name = '') {
+    const clean = String(name || '').trim();
+    if (!clean) return null;
+    const storeApi = window.GameModules.characterStateStore;
+    const byId = storeApi?.get?.(clean, state) || storeApi?.resolve?.(clean, state);
+    if (byId) return byId;
+    const shared = state?.sharedControlState?.();
+    if (shared && this.sameAppearingPersonName(shared.profile?.name || shared.name, clean)) {
+      return storeApi?.get?.(shared.id, state) || state.rpgStates?.[shared.id] || shared;
+    }
+    const player = state?.playerIdentityState?.();
+    if (player && (this.sameAppearingPersonName(player.profile?.name || player.name, clean) || clean === '玩家')) {
+      return storeApi?.get?.('player-self', state) || player;
+    }
+    const fromRpg = Object.values(state?.rpgStates || {}).find((item) => (
+      this.sameAppearingPersonName(item?.profile?.name || item?.name, clean)
+    ));
+    if (fromRpg) return storeApi?.get?.(fromRpg.id, state) || fromRpg;
+    const viaItemSkill = state?.itemSkillState?.(clean);
+    if (viaItemSkill && this.sameAppearingPersonName(viaItemSkill.profile?.name || viaItemSkill.name, clean)) {
+      return storeApi?.get?.(viaItemSkill.id, state) || state.rpgStates?.[viaItemSkill.id] || viaItemSkill;
+    }
+    const graphApi = window.GameModules.realWorldLocationGraph;
+    const byRef = graphApi?.findCharacterByRef?.(state, { name: clean });
+    if (byRef?.id) return storeApi?.get?.(byRef.id, state) || state.rpgStates?.[byRef.id] || byRef;
+    return null;
+  },
+
+  liveCharactersMatchingIdOrName(state = {}, id = '', name = '') {
+    const storeApi = window.GameModules.characterStateStore;
+    const cleanId = String(id || '').trim();
+    const cleanName = String(name || '').trim();
+    const seen = new Set();
+    const rows = [];
+    const push = (character) => {
+      if (!character || typeof character !== 'object') return;
+      const live = this.ensureLiveCharacter(state, character.id || character.profile?.id || cleanId, character.profile?.name || character.name || cleanName)
+        || character;
+      const liveId = String(live.id || live.profile?.id || '').trim();
+      if (!liveId || seen.has(liveId)) return;
+      seen.add(liveId);
+      rows.push(live);
+    };
+    if (cleanId) {
+      push(this.ensureLiveCharacter(state, cleanId, cleanName));
+      push(state?.rpgStates?.[cleanId]);
+    }
+    if (!rows.length && cleanName) {
+      this.liveCharactersMatchingName(state, cleanName).forEach((item) => push(item));
+    }
+    return rows;
+  },
+
+  ensureLiveCharacter(state = {}, id = '', name = '') {
+    const storeApi = window.GameModules.characterStateStore;
+    const cleanId = String(id || '').trim();
+    const cleanName = String(name || '').trim();
+    if (cleanId) {
+      const byId = storeApi?.get?.(cleanId, state) || state?.rpgStates?.[cleanId] || null;
+      if (byId) {
+        if (storeApi?.mergeOntoLive) return storeApi.mergeOntoLive(byId, state);
+        state.rpgStates = state.rpgStates && typeof state.rpgStates === 'object' ? state.rpgStates : {};
+        state.rpgStates[cleanId] = byId;
+        return byId;
+      }
+    }
+    if (cleanName) {
+      const byName = storeApi?.getByName?.(cleanName, '', state)
+        || this.resolveAppearingCharacter(state, cleanName);
+      if (byName) {
+        const liveId = String(byName.id || byName.profile?.id || cleanId || '').trim();
+        if (liveId) {
+          byName.id = liveId;
+          if (storeApi?.mergeOntoLive) return storeApi.mergeOntoLive(byName, state);
+          state.rpgStates = state.rpgStates && typeof state.rpgStates === 'object' ? state.rpgStates : {};
+          state.rpgStates[liveId] = byName;
+        }
+        return byName;
+      }
+    }
+    if (cleanId === 'player-self') {
+      const player = state?.playerIdentityState?.()
+        || state?.rpgStates?.['player-self']
+        || {
+          id: 'player-self',
+          name: state?.playerName || state?.playerProfile?.name || '玩家',
+          profile: { ...(state?.playerProfile || {}), id: 'player-self', name: state?.playerName || state?.playerProfile?.name || '玩家', isPlayer: true },
+          values: {},
+        };
+      player.id = 'player-self';
+      if (storeApi?.mergeOntoLive) return storeApi.mergeOntoLive(player, state);
+      state.rpgStates = state.rpgStates && typeof state.rpgStates === 'object' ? state.rpgStates : {};
+      state.rpgStates['player-self'] = player;
+      return player;
+    }
+    if (cleanId) {
+      const stub = {
+        id: cleanId,
+        name: cleanName || cleanId,
+        worldTag: window.GameModules.realWorld2026?.label || state?.selectedWork || '未知世界',
+        profile: {
+          id: cleanId,
+          name: cleanName || cleanId,
+          work: window.GameModules.realWorld2026?.label || state?.selectedWork || '未知世界',
+        },
+        values: {},
+      };
+      console.warn('[real-world-map] 出场人物位置按ID创建临时 live 卡:', cleanId, cleanName);
+      if (storeApi?.mergeOntoLive) return storeApi.mergeOntoLive(stub, state);
+      state.rpgStates = state.rpgStates && typeof state.rpgStates === 'object' ? state.rpgStates : {};
+      state.rpgStates[cleanId] = stub;
+      return stub;
+    }
+    return null;
+  },
+
+  liveCharactersMatchingName(state = {}, name = '') {
+    const clean = String(name || '').trim();
+    if (!clean) return [];
+    const storeApi = window.GameModules.characterStateStore;
+    const seen = new Set();
+    const rows = [];
+    const push = (character) => {
+      if (!character || typeof character !== 'object') return;
+      // Force through store so we always hold the live rpgStates[id] object.
+      const live = storeApi?.resolve?.(character.id || character.profile?.id || clean, state)
+        || storeApi?.getByName?.(clean, character.worldTag || character.profile?.work || '', state)
+        || character;
+      const id = String(live.id || live.profile?.id || '').trim();
+      if (!id || seen.has(id)) return;
+      if (!this.sameAppearingPersonName(live.profile?.name || live.name, clean)) return;
+      seen.add(id);
+      rows.push(live);
+    };
+    push(storeApi?.getByName?.(clean, '', state));
+    push(this.resolveAppearingCharacter(state, name));
+    Object.values(state?.rpgStates || {}).forEach((item) => {
+      if (this.sameAppearingPersonName(item?.profile?.name || item?.name, clean)) push(item);
+    });
+    return rows;
+  },
+
+  writeCharacterProfileLocation(state = {}, character = null, location = '', meta = {}) {
+    const locField = window.GameModules.currentLocationField;
+    const graphApi = window.GameModules.realWorldLocationGraph;
+    const storeApi = window.GameModules.characterStateStore;
+    // Card/DB: keep AI text as returned (normalize separators only). No format gate.
+    location = locField?.normalize?.(location) || String(location || '').trim();
+    if (!character || !location) return null;
+    const time = meta.time || this.mapApi()?.factTime?.(state) || new Date().toISOString();
+    let characterId = String(
+      meta.characterId
+      || character.id
+      || character.profile?.id
+      || graphApi?.characterKey?.(character)
+      || '',
+    ).trim();
+    // Name is not an id. Resolve to the live rpgStates[id] object only.
+    if (!characterId || characterId === String(character.profile?.name || character.name || '').trim()) {
+      const byName = storeApi?.getByName?.(
+        character.profile?.name || character.name || '',
+        character.worldTag || character.profile?.work || '',
+        state,
+      );
+      characterId = String(byName?.id || characterId || '').trim();
+      if (byName) character = byName;
+    }
+    if (!characterId) return null;
+    character = storeApi?.get?.(characterId, state) || character;
+    character.id = characterId;
+    character.profile = character.profile && typeof character.profile === 'object' ? character.profile : {};
+    character.profile.id = character.profile.id || characterId;
+    character.profile.currentLocation = location;
+    character.values = character.values && typeof character.values === 'object' ? character.values : {};
+
+    // Map merge only: validate chain; on failure skip map side entirely (card write still stands).
+    const mapOk = Boolean(locField?.isValidProfileFormat?.(location));
+    const mapNodeName = mapOk
+      ? (meta.mapNodeName || locField.mapNodeName(location) || '')
+      : '';
+    const interiorPosition = mapOk
+      ? (meta.interiorPosition || locField.interiorPosition(location) || '')
+      : '';
+    const node = mapOk
+      ? (graphApi?.getNode?.(state, mapNodeName) || graphApi?.getNode?.(state, location) || null)
+      : null;
+    if (node?.id) {
+      graphApi.setCharacterCurrentNode?.(state, characterId, node.id, {
+        characterName: character?.profile?.name || character?.name || characterId,
+        reason: meta.reason || '电子地图周围解锁同步出场人物角色卡当前位置。',
+        time,
+      });
+    }
+
+    character.values.current_location = {
+      ...locField.stateValueFromText(
+        location,
+        state,
+        meta.reason || '电子地图周围解锁覆盖角色卡当前位置。',
+        character.worldTag || character.profile?.work || window.GameModules.realWorld2026?.label || '未知世界',
+      ),
+      nodeId: node?.id || character.values.current_location?.nodeId || '',
+      identityKey: node?.identityKey || character.values.current_location?.identityKey || '',
+      mapNodeName: mapNodeName || character.values.current_location?.mapNodeName || '',
+      interiorPosition: interiorPosition || character.values.current_location?.interiorPosition || '',
+    };
+    // Merge onto live slot by id so stale copies cannot drop profile.currentLocation.
+    if (storeApi?.mergeOntoLive) character = storeApi.mergeOntoLive(character, state);
+    else if (storeApi?.adopt) character = storeApi.adopt(character, state);
+    else {
+      state.rpgStates = state.rpgStates && typeof state.rpgStates === 'object' ? state.rpgStates : {};
+      state.rpgStates[characterId] = character;
+    }
+    state.characterSchedules = state.characterSchedules && typeof state.characterSchedules === 'object'
+      ? state.characterSchedules
+      : {};
+    const prev = state.characterSchedules[characterId] || {};
+    state.characterSchedules[characterId] = {
+      ...prev,
+      characterId,
+      characterName: prev.characterName || character?.profile?.name || character?.name || characterId,
+      currentLocation: mapNodeName || prev.currentLocation || '',
+      currentNodeId: node?.id || prev.currentNodeId || '',
+      currentLocationIdentityKey: node?.identityKey || prev.currentLocationIdentityKey || '',
+      profileCurrentLocation: location,
+      reason: meta.reason || '电子地图周围解锁同步出场人物角色卡当前位置。',
+      updatedAt: time,
+      source: meta.source || '电子地图周围解锁',
+    };
+    if (characterId === 'player-self' || character.profile?.isPlayer) {
+      if (state.playerProfile && typeof state.playerProfile === 'object') {
+        state.playerProfile.currentLocation = location;
+      }
+      if (mapOk && mapNodeName) {
+        state.realWorldLocationName = mapNodeName;
+        if (state.realWorldMap) {
+          state.realWorldMap.current = mapNodeName;
+          if (node?.legacyMapNodeId || node?.id) {
+            state.realWorldMap.currentId = node.legacyMapNodeId || node.id;
+          }
+        }
+      }
+    }
+    if (mapOk && mapNodeName) {
+      window.GameModules.orgTerritory?.bumpOrgExposureOnScheduleLocation?.(state, mapNodeName);
+    }
+    return {
+      name: character.profile?.name || character.name || characterId,
+      characterId,
+      location,
+      mapNodeName,
+      nodeId: node?.id || '',
+      character,
+    };
+  },
+
+  async applyCharacterLocations(state = {}, locations = []) {
+    const rows = Array.isArray(locations) ? locations : [];
+    if (!rows.length || !state) return [];
+    const locField = window.GameModules.currentLocationField;
+    const storeApi = window.GameModules.characterStateStore;
+    const time = this.mapApi()?.factTime?.(state) || new Date().toISOString();
+    const applied = [];
+    const pendingSaves = [];
+    state.characterSchedules = state.characterSchedules && typeof state.characterSchedules === 'object'
+      ? state.characterSchedules
+      : {};
+    state.rpgStates = state.rpgStates && typeof state.rpgStates === 'object' ? state.rpgStates : {};
+    // Dedicated persisted lookup: survives profile rebuild / invalid merge overwrites.
+    state.appearingLocationById = state.appearingLocationById && typeof state.appearingLocationById === 'object'
+      ? state.appearingLocationById
+      : {};
+
+    for (const row of rows) {
+      const name = String(row?.name || '').trim();
+      const characterId = String(row?.id || row?.characterId || '').trim();
+      // Card/DB write: AI text as-is (normalize only). No format validation here.
+      const location = locField?.normalize?.(row?.location || '')
+        || String(row?.location || '').trim();
+      if ((!name && !characterId) || !location) {
+        console.warn('[real-world-map] 出场人物位置跳过（缺姓名/ID或空位置）:', { name, characterId, location: row?.location });
+        continue;
+      }
+      const mapOk = Boolean(locField?.isValidProfileFormat?.(location));
+      const mapNodeName = mapOk
+        ? (row.mapNodeName || locField.mapNodeName(location) || '')
+        : '';
+      // Stamp dedicated map + schedule by ID first (identity reads these even if card write flaps).
+      if (characterId) {
+        state.appearingLocationById[characterId] = location;
+        if (name) state.appearingLocationById[`name:${name}`] = location;
+        const prev = state.characterSchedules[characterId] || {};
+        state.characterSchedules[characterId] = {
+          ...prev,
+          characterId,
+          characterName: name || prev.characterName || characterId,
+          currentLocation: mapNodeName || prev.currentLocation || '',
+          profileCurrentLocation: location,
+          reason: '电子地图周围解锁覆盖角色卡当前位置。',
+          updatedAt: time,
+          source: '电子地图周围解锁',
+        };
+      }
+      const targets = this.liveCharactersMatchingIdOrName(state, characterId, name);
+      if (!targets.length) {
+        console.warn('[real-world-map] 出场人物位置无法匹配角色卡，已跳过卡片写入（日程/appearingLocationById 已保留）:', { name, characterId, location });
+        applied.push({ name: name || characterId, characterId, location, mapNodeName, nodeId: '' });
+        continue;
+      }
+      const writtenIds = new Set();
+      targets.forEach((target) => {
+        const written = this.writeCharacterProfileLocation(state, target, location, {
+          characterId: characterId || target.id,
+          mapNodeName: mapNodeName || undefined,
+          interiorPosition: mapOk ? row.interiorPosition : undefined,
+          time,
+          reason: '电子地图周围解锁覆盖角色卡当前位置。',
+          source: '电子地图周围解锁',
+        });
+        if (!written || writtenIds.has(written.characterId)) return;
+        writtenIds.add(written.characterId);
+        state.appearingLocationById[written.characterId] = written.location;
+        console.info('[real-world-map] 出场人物位置已写入:', {
+          name: written.name,
+          characterId: written.characterId,
+          location: written.location,
+          profile: written.character?.profile?.currentLocation,
+          mapMerged: Boolean(written.nodeId),
+        });
+        if (storeApi?.save) {
+          pendingSaves.push(Promise.resolve(storeApi.save(written.character, state)).catch((err) => {
+            console.warn('[real-world-map] 保存出场人物位置失败:', name || characterId, err?.message || err);
+          }));
+        }
+        applied.push({
+          name: written.name,
+          characterId: written.characterId,
+          location: written.location,
+          mapNodeName: written.mapNodeName,
+          nodeId: written.nodeId,
+        });
+      });
+    }
+    // Poke Alpine reactivity so open identity pages refresh.
+    state.rpgStates = { ...state.rpgStates };
+    state.characterSchedules = { ...state.characterSchedules };
+    state.appearingLocationById = { ...state.appearingLocationById };
+    if (pendingSaves.length) await Promise.all(pendingSaves);
+    // Second pass: any stamped appearingLocationById must land on live card + SQLite even if first write missed.
+    await this.flushAppearingLocationsToCharacterDb(state);
+    if (applied.length && typeof state.save === 'function') {
+      try { await Promise.resolve(state.save()); }
+      catch (err) { console.warn('[real-world-map] 保存出场人物日程位置失败:', err?.message || err); }
+    }
+    return applied;
+  },
+
+  /**
+   * Persist appearingLocationById / schedule profileCurrentLocation onto character_state.
+   * Repairs older saves where Stage4 stamped schedules but never wrote SQLite cards.
+   */
+  async flushAppearingLocationsToCharacterDb(state = {}) {
+    if (!state) return [];
+    const locField = window.GameModules.currentLocationField;
+    const storeApi = window.GameModules.characterStateStore;
+    const map = state.appearingLocationById && typeof state.appearingLocationById === 'object'
+      ? state.appearingLocationById
+      : {};
+    const schedules = state.characterSchedules && typeof state.characterSchedules === 'object'
+      ? state.characterSchedules
+      : {};
+    const ids = new Set([
+      ...Object.keys(map).filter((key) => key && !String(key).startsWith('name:')),
+      ...Object.keys(schedules),
+    ]);
+    const flushed = [];
+    for (const characterId of ids) {
+      const fromMap = locField?.normalize?.(map[characterId] || '') || String(map[characterId] || '').trim();
+      const fromSchedule = locField?.normalize?.(schedules[characterId]?.profileCurrentLocation || '')
+        || String(schedules[characterId]?.profileCurrentLocation || '').trim();
+      const location = (locField?.isRecordedLocation?.(fromMap) ? fromMap : '')
+        || (locField?.isRecordedLocation?.(fromSchedule) ? fromSchedule : '');
+      if (!location) continue;
+      const target = this.ensureLiveCharacter(
+        state,
+        characterId,
+        schedules[characterId]?.characterName || '',
+      );
+      if (!target) continue;
+      const already = locField?.normalize?.(target.profile?.currentLocation || '') || '';
+      if (already === location) {
+        // Still force SQLite write so export matches live.
+        await storeApi?.save?.(target, state);
+        flushed.push({ characterId, location, reused: true });
+        continue;
+      }
+      const written = this.writeCharacterProfileLocation(state, target, location, {
+        characterId,
+        reason: '出场人物位置固化到角色卡库。',
+        source: '出场人物位置落库',
+      });
+      if (!written) continue;
+      await storeApi?.save?.(written.character, state);
+      flushed.push({ characterId, location: written.location, reused: false });
+    }
+    if (flushed.length) {
+      console.info('[real-world-map] 出场人物位置已固化到角色卡库:', flushed);
+    }
+    return flushed;
+  },
+
+  appearingCharacterLocationSnapshots(state = {}, names = [], result = {}) {
+    const locField = window.GameModules.currentLocationField;
+    const sceneHint = String(result?.locationName || state?.realWorldLocationName || state?.realWorldMap?.current || '').trim();
+    return (Array.isArray(names) ? names : []).map((raw) => {
+      const token = String(raw || '').trim();
+      const parsed = window.GameModules.realWorldAgentLoop?.parseParticipantToken?.(token);
+      const name = String(parsed?.name || token || '').replace(/[（(].*$/u, '').trim();
+      const knownId = String(parsed?.id || '').trim();
+      const character = (knownId && this.resolveAppearingCharacter(state, knownId))
+        || this.resolveAppearingCharacter(state, name);
+      const characterId = String(character?.id || knownId || '').trim();
+      const recorded = locField?.fromCharacterState?.(character)
+        || String(state?.characterSchedules?.[characterId]?.profileCurrentLocation || '').trim()
+        || String(state?.characterSchedules?.[characterId]?.currentLocation || '').trim()
+        || '';
+      const valid = Boolean(locField?.isValidProfileFormat?.(recorded));
+      const needUpdate = !valid;
+      return {
+        name: character?.profile?.name || character?.name || name,
+        characterId,
+        recorded: recorded || '（空）',
+        valid,
+        needUpdate,
+        sceneHint,
+      };
+    });
+  },
+
+  charactersNeedingProfileLocation(state = {}) {
+    const locField = window.GameModules.currentLocationField;
+    const seen = new Set();
+    const rows = [];
+    const push = (character) => {
+      if (!character || typeof character !== 'object') return;
+      const id = String(character.id || character.profile?.id || '').trim();
+      if (!id || seen.has(id)) return;
+      const recorded = locField?.fromCharacterState?.(character)
+        || String(state?.characterSchedules?.[id]?.profileCurrentLocation || '').trim()
+        || '';
+      if (locField?.isValidProfileFormat?.(recorded)) return;
+      seen.add(id);
+      rows.push({
+        id,
+        name: character.profile?.name || character.name || id,
+        character,
+      });
+    };
+    push(state?.rpgStates?.['player-self'] || state?.playerIdentityState?.());
+    push(state?.character);
+    push(state?.sharedControlState?.());
+    push(state?.rpgStates?.[state?.identityTargetId]);
+    Object.values(state?.rpgStates || {}).forEach((item) => {
+      if (item?.profile?.roleCard || item?.profile?.isPlayer || item?.id === 'player-self') push(item);
+    });
+    Object.keys(state?.characterSchedules || {}).forEach((id) => {
+      push(state?.rpgStates?.[id] || this.ensureLiveCharacter(state, id, state.characterSchedules[id]?.characterName));
+    });
+    return rows.slice(0, 16);
+  },
+
+  async healMissingCharacterLocationsLocally(state = {}) {
+    const locField = window.GameModules.currentLocationField;
+    const storeApi = window.GameModules.characterStateStore;
+    if (!state || !locField?.buildSceneProfileLocation) return [];
+    const needing = this.charactersNeedingProfileLocation(state);
+    const applied = [];
+    const pendingSaves = [];
+    for (const row of needing) {
+      const location = locField.buildSceneProfileLocation(state, row.character);
+      if (!locField.isValidProfileFormat(location)) continue;
+      const written = this.writeCharacterProfileLocation(state, row.character, location, {
+        characterId: row.id,
+        reason: '场景上下文本地回填角色卡当前位置（Stage4未覆盖或被跳过）。',
+        source: '场景本地回填',
+      });
+      if (!written) continue;
+      console.info('[real-world-map] 场景本地回填出场人物位置:', {
+        name: written.name,
+        characterId: written.characterId,
+        location: written.location,
+      });
+      if (storeApi?.save) {
+        pendingSaves.push(Promise.resolve(storeApi.save(written.character, state)).catch((err) => {
+          console.warn('[real-world-map] 本地回填保存失败:', row.id, err?.message || err);
+        }));
+      }
+      applied.push({
+        name: written.name,
+        characterId: written.characterId,
+        location: written.location,
+        mapNodeName: written.mapNodeName,
+        nodeId: written.nodeId,
+      });
+    }
+    if (pendingSaves.length) await Promise.all(pendingSaves);
+    if (applied.length && typeof state.save === 'function') {
+      try { await Promise.resolve(state.save()); }
+      catch (err) { console.warn('[real-world-map] 本地回填日程保存失败:', err?.message || err); }
+    }
+    return applied;
+  },
+
+  formatAppearingCharacterLocationSnapshots(snapshots = []) {
+    const rows = Array.isArray(snapshots) ? snapshots : [];
+    if (!rows.length) return '无出场人物。';
+    const lines = rows.map((item) => (
+      `${item.name}(${item.characterId || '缺ID'})｜当前记录：${item.recorded}｜格式：${item.valid ? '合规链式' : '不合规'}｜需更新：${item.needUpdate ? '是（必须输出姓名+ID+当前位置覆盖）' : '否（格式已合规；正文未改地点则不要输出）'}｜场景提示：${item.sceneHint || '无'}`
+    ));
+    return [
+      '说明：需更新=否且正文未改地点 → 不要写入出场人物位置；需更新=是或正文确认搬迁 → 必须输出 {姓名,ID,当前位置}；ID 原样抄写括号内真实 ID；当前位置倒数第2段=地图地点，最后1段=尽量精确的室内位置（勿再拆·）。',
+      ...lines,
+    ].join('\n');
+  },
+
+  normalizeCharacterLocations(rawObj = {}, options = {}) {
+    const locField = window.GameModules.currentLocationField;
+    const source = rawObj.characterLocations
+      || rawObj.participantLocations
+      || rawObj['出场人物位置']
+      || rawObj['角色位置']
+      || rawObj['人物位置']
+      || [];
+    const rows = Array.isArray(source)
+      ? source
+      : (source && typeof source === 'object'
+        ? Object.entries(source).map(([key, value]) => {
+          if (value && typeof value === 'object') {
+            return {
+              ...value,
+              name: value.name || value.characterName || value['姓名'] || key,
+              id: value.id || value.characterId || value.ID || value['ID'] || value['角色ID'],
+              location: value.location || value.currentLocation || value['当前位置'] || value['地点'],
+            };
+          }
+          return { name: key, location: value };
+        })
+        : []);
+    return rows
+      .map((item) => {
+        if (!item || typeof item !== 'object') return null;
+        const name = String(item.name || item.characterName || item['姓名'] || '').trim().slice(0, 32);
+        const id = String(item.id || item.characterId || item.ID || item['ID'] || item['角色ID'] || '').trim().slice(0, 64);
+        const rawLocation = locField?.normalize?.(
+          item.location
+          || item.currentLocation
+          || item.locationName
+          || item['当前位置']
+          || item['地点']
+          || '',
+        ) || String(
+          item.location
+          || item.currentLocation
+          || item.locationName
+          || item['当前位置']
+          || item['地点']
+          || '',
+        ).trim().slice(0, 280);
+        if ((!name && !id) || !rawLocation) return null;
+        // Keep AI location text as returned. Map-node fields only when chain validates.
+        const location = rawLocation;
+        const mapOk = Boolean(locField?.isValidProfileFormat?.(location));
+        const mapNodeName = mapOk ? locField.mapNodeName(location) : '';
+        const interiorPosition = mapOk ? locField.interiorPosition(location) : '';
+        return { name, id, characterId: id, location, mapNodeName, interiorPosition };
+      })
+      .filter(Boolean)
+      .slice(0, 16);
+  },
+
+  normalizeSurroundLocationFaction(raw = {}) {
+    const direct = raw.faction
+      || raw.factionChain
+      || raw.authority
+      || raw.control
+      || raw['势力']
+      || raw.highestControl
+      || raw['最高控制'];
+    if (Array.isArray(direct)) return this.normalizeFactionInfo(direct)[0] || '';
+    if (direct && typeof direct === 'object') return this.normalizeFactionInfo([direct])[0] || '';
+    const text = String(direct || '').trim();
+    if (text) return this.normalizeFactionInfo([text])[0] || '';
+    // Tolerate malformed model output that put the faction as a third unlabeled string-like value.
+    const knownKeys = new Set([
+      'name', 'locationName', '地点名', 'distance', 'distanceText', '距离', 'distanceMeters', 'meters',
+      'parentName', 'parentLocationName', 'description', 'descriptionFacts', 'info', '地点信息',
+      'directNeighbor', 'isDirectNeighbor', 'adjacent', 'noIntermediateLocations', 'noIntermediate',
+      'intermediateFree', 'intermediateLocations', 'basis', 'faction', 'factionChain', 'authority',
+      'control', '势力', 'highestControl', '最高控制',
+    ]);
+    const extras = Object.entries(raw || {})
+      .filter(([key, value]) => !knownKeys.has(key) && typeof value === 'string' && String(value).includes('·'))
+      .map(([, value]) => String(value || '').trim())
+      .filter(Boolean);
+    return extras.length ? (this.normalizeFactionInfo(extras)[0] || '') : '';
   },
 
   normalizeSurroundLocationRows(rawObj = {}) {
@@ -1391,17 +2113,41 @@ window.GameModules.realWorldMapFog = {
 
       : [String(raw.description || raw.info || raw['地点信息'] || `${name}，与${anchor.name}相邻的可前往地点。`).slice(0, 80)];
 
-    return {
+    const faction = this.normalizeSurroundLocationFaction(raw);
+    if (faction) {
+      const fact = `势力：${faction}`;
+      if (!facts.includes(fact)) facts.push(fact);
+    }
+
+    const row = {
       name,
       parentName,
-      descriptionFacts: facts,
+      descriptionFacts: facts.slice(0, 3),
+      faction,
+      effectiveAuthorityRef: faction ? { type: 'faction-chain', name: faction } : null,
       granularity: 'building',
       directNeighbor: true,
       noIntermediateLocations: true,
       distanceMeters: Number(raw.distanceMeters || raw.meters || raw.lengthMeters) || null,
       distanceText: String(raw.distanceText || raw.distance || raw['距离'] || '').trim().slice(0, 18),
     };
+    // Prefer numeric meters; also parse「约20米 / 20m」so graph edges stay visible after merge.
+    if (!(row.distanceMeters > 0)) {
+      const parsed = this.parseDistanceMeters(row.distanceText);
+      if (parsed > 0) row.distanceMeters = parsed;
+    }
+    return row;
+  },
 
+  parseDistanceMeters(text = '') {
+    const raw = String(text || '').trim();
+    if (!raw) return null;
+    const km = raw.match(/(\d+(?:\.\d+)?)\s*(?:km|千米|公里)/iu);
+    if (km) return Math.round(Number(km[1]) * 1000);
+    const meters = raw.match(/(\d+(?:\.\d+)?)\s*(?:m|米)/iu);
+    if (meters) return Math.round(Number(meters[1]));
+    const bare = raw.match(/(\d+(?:\.\d+)?)/u);
+    return bare ? Math.round(Number(bare[1])) : null;
   },
 
 
@@ -1422,6 +2168,8 @@ window.GameModules.realWorldMapFog = {
       rawShape: payload?.debugShape || null,
       beforeInteriorSummary: this.summarizeInteriorLayout(anchor?.interiorLayout || {}),
       locationInfoCount: Array.isArray(payload?.locationInfo) ? payload.locationInfo.length : 0,
+      factionInfoCount: Array.isArray(payload?.factionInfo) ? payload.factionInfo.length : 0,
+      characterLocationCount: Array.isArray(payload?.characterLocations) ? payload.characterLocations.length : 0,
       surroundLocationCount: Array.isArray(payload?.surroundLocations) ? payload.surroundLocations.length : 0,
       surroundLocationNames: (payload?.surroundLocations || []).map((item) => item.name).slice(0, 12),
     });
@@ -1447,20 +2195,33 @@ window.GameModules.realWorldMapFog = {
         parentName: item?.parentName || '',
         distanceMeters: item?.distanceMeters || null,
         distanceText: item?.distanceText || '',
+        faction: item?.faction || '',
       });
       const created = graphApi?.ensurePoiFromPayload?.(state, {
         name: item.name,
         parentName: item.parentName,
         parentId: anchorGraphParentId,
         descriptionFacts: item.descriptionFacts,
+        effectiveAuthorityRef: item.effectiveAuthorityRef || (item.faction ? { type: 'faction-chain', name: item.faction } : null),
         time,
       }, { source: 'real-world-map-surround-neighbor', skipProject: true });
 
       if (created) {
+        if (item.faction) {
+          const existingFacts = Array.isArray(created.descriptionFacts) ? created.descriptionFacts : [];
+          const fact = `势力：${item.faction}`;
+          if (!existingFacts.includes(fact)) {
+            created.descriptionFacts = [...existingFacts, fact].slice(-30);
+          }
+          if (!created.effectiveAuthorityRef) {
+            created.effectiveAuthorityRef = { type: 'faction-chain', name: item.faction };
+          }
+        }
         this.surroundUnlockDebug(state, 'apply-neighbor-merged', {
           itemName: item?.name || '',
           createdId: created?.id || '',
           createdName: created?.name || '',
+          faction: item?.faction || '',
         });
         graphApi?.ensureRouteEdge?.(state, anchorGraphNode?.id || anchor?.graphNodeId || anchor?.id, created.id, {
           relation: 'direct-neighbor',
@@ -1493,6 +2254,9 @@ window.GameModules.realWorldMapFog = {
         if (fact && !factSet.has(fact)) factSet.add(fact);
       });
       finalAnchor.descriptionFacts = [...factSet].slice(-30);
+      if (factionInfo[0]) {
+        finalAnchor.effectiveAuthorityRef = { type: 'faction-chain', name: factionInfo[0] };
+      }
     }
     if ((locationInfo.length || factionInfo.length) && anchorGraphNode) {
       const existingFacts = Array.isArray(anchorGraphNode.descriptionFacts) ? anchorGraphNode.descriptionFacts : [];
@@ -1506,9 +2270,13 @@ window.GameModules.realWorldMapFog = {
         if (text) factSet.add(`势力：${text}`);
       });
       anchorGraphNode.descriptionFacts = [...factSet].slice(-30);
+      if (factionInfo[0]) {
+        anchorGraphNode.effectiveAuthorityRef = { type: 'faction-chain', name: factionInfo[0] };
+      }
     }
     if (finalAnchor) {
-      finalAnchor.exteriorRingUnlocked = true;
+      // Only mark unlocked when neighbor POIs actually landed; otherwise Stage4 would be skipped forever.
+      if (unlocked.length > 0) finalAnchor.exteriorRingUnlocked = true;
       finalAnchor.visited = true;
       finalAnchor.revealed = true;
       this.normalizeNodeFlags(finalAnchor);
@@ -1517,6 +2285,20 @@ window.GameModules.realWorldMapFog = {
 
     map.mapAnchorId = anchor.id;
 
+    const characterLocationApplied = await this.applyCharacterLocations(state, payload.characterLocations || []);
+
+    // Neighbor writes used skipProject for speed; merge annotated graph into legacy big map before UI/save.
+    graphApi?.projectLocationGraphToLegacyMap?.(state);
+    const projected = state.realWorldMap || map;
+    if (projected && projected !== map) {
+      map.nodes = projected.nodes || map.nodes;
+      map.edges = projected.edges || map.edges;
+      map.mapAnchorId = projected.mapAnchorId || map.mapAnchorId;
+      map.currentId = projected.currentId || map.currentId;
+      map.current = projected.current || map.current;
+    }
+    state.realWorldMap = map;
+    state.locationGraph = graphApi?.ensureGraphState?.(state) || state.locationGraph;
     this.syncRevealed(map);
 
     window.GameModules.orgTerritory?.ensureMapControls?.(map, state);
@@ -1526,12 +2308,15 @@ window.GameModules.realWorldMapFog = {
       anchorName: anchor?.name || '',
       unlocked,
       touchedNodeIds,
+      characterLocationApplied,
       afterInteriorSummary: this.summarizeInteriorLayout(anchor?.interiorLayout || {}),
       mapNodeCount: Array.isArray(map?.nodes) ? map.nodes.length : 0,
       graphNodeCount: graphApi?.standardPoiGraph?.(state)?.nodes?.length || 0,
       graphEdgeCount: graphApi?.standardPoiGraph?.(state)?.edges?.length || 0,
     });
 
+    // Keep array return for callers using .includes/.length; attach applied rows for settlement.
+    unlocked.characterLocationApplied = characterLocationApplied;
     return unlocked;
 
   },

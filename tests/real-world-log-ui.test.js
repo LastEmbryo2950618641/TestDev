@@ -36,7 +36,8 @@ assert.ok(clockActions.includes('if (!loadedLatest) this.refreshRealWorldLogPage
 assert.ok(!read('publish/current-world-actions.js').includes('if (this.realWorldOpen) this.openRealWorldPanel?.()'));
 const sqliteRealWorldLog = read('publish/platform/storage/sqlite/real-world-log.js');
 assert.ok(sqliteRealWorldLog.includes('LIMIT ? OFFSET ?'));
-assert.ok(sqliteRealWorldLog.includes("ORDER BY CASE WHEN entry_type='system' THEN 0 ELSE 1 END, created_at ASC, id ASC"));
+assert.ok(sqliteRealWorldLog.includes('ORDER BY created_at ASC, id ASC'));
+assert.ok(!sqliteRealWorldLog.includes("ORDER BY CASE WHEN entry_type='system' THEN 0 ELSE 1 END"));
 assert.ok(!sqliteRealWorldLog.includes("SELECT entry_json FROM real_world_log');"));
 const restorePostFlow = read('publish/app/storage/restore-post-flow.js');
 assert.ok(restorePostFlow.includes("realWorldLogStore?.count?.() || 0) <= 0"));
@@ -50,8 +51,10 @@ assert.ok(read('publish/home-actions.js').includes('if (!Object.keys(this.saveMe
 assert.ok(!read('publish/home-actions.js').includes('      await this.refreshSaveMetas?.();\n      if (!this.phoneSetupDone)'));
 assert.ok(!read('publish/home-actions.js').includes('      await this.openSlot(slot);'));
 assert.ok(read('publish/home-actions.js').includes('window.GameModules.storage.restore(this, save);'));
-assert.ok(read('publish/home-actions.js').includes("const stateIds = [...new Set(['player-self', this.selectedCharacterId, this.rpgPanelCharacterId].filter(Boolean))];"));
-assert.ok(read('publish/app/save/slot-flow.js').includes('await this.loadWritingStyles({ readOnly: true });'));
+assert.ok(read('publish/home-actions.js').includes('const storedStates = window.GameModules.characterStateStore?.list?.() || [];'));
+assert.ok(read('publish/home-actions.js').includes("['player-self', this.selectedCharacterId, this.rpgPanelCharacterId]"));
+assert.ok(read('publish/control-link-actions.js').includes('appendSharedControlSystemNarration(this.buildOnlineControlLogText(state), state)'));
+assert.ok(!read('publish/control-link-actions.js').includes("id: `possess-${Date.now()}`"));
 assert.ok(read('publish/style-actions.js').includes('if (options.readOnly !== true) await this.saveWritingStyles(options);'));
 
 const actions = read('publish/real-world-actions.js');

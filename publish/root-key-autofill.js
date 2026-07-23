@@ -14,17 +14,19 @@ window.GameModules.rootKeyAutofill = {
   },
 
   async readFromDesktopBridge(store) {
-    const bridge = window.electron?.keys || window.GameModules.platformBridge?.keys || window.GameModules.platform?.keys || null;
-    if (!bridge) return false;
+    // Only real desktop/Electron key bridges — not the platform.keys namespace object.
+    const bridge = window.electron?.keys || window.GameModules.platformBridge?.keys || null;
+    if (!bridge || typeof bridge.readDeepseekKey !== 'function') return false;
     if (store?.settingsState) {
-      if (!String(store.settingsState.deepseekApiKey || '').trim() && typeof bridge.readDeepseekKey === 'function') {
+      if (!String(store.settingsState.deepseekApiKey || '').trim()) {
         store.settingsState.deepseekApiKey = String(await bridge.readDeepseekKey(window)).trim();
       }
       if (!String(store.settingsState.pixaiApiKey || '').trim() && typeof bridge.readPixaiKey === 'function') {
         store.settingsState.pixaiApiKey = String(await bridge.readPixaiKey(window)).trim();
       }
     }
-    return true;
+    return Boolean(String(store?.settingsState?.deepseekApiKey || '').trim()
+      || String(store?.settingsState?.pixaiApiKey || '').trim());
   },
 
   async readTextFileCandidates(paths = []) {
@@ -60,18 +62,24 @@ window.GameModules.rootKeyAutofill = {
 
   async applyToStore(store) {
     if (!store?.settingsState) return;
-    if (this.applyGeneratedKeys(store)) return;
-    const usedBridge = await this.readFromDesktopBridge(store);
-    if (usedBridge) return;
+    this.applyGeneratedKeys(store);
+    await this.readFromDesktopBridge(store);
     const settings = store.settingsState;
+    // Keep filling from root/publish key files until present — do not abort after a false bridge hit.
     if (!String(settings.deepseekApiKey || '').trim()) {
       settings.deepseekApiKey = await this.readTextFileCandidates([
+        '/deepseek_key.txt',
+        './deepseek_key.txt',
         `file:///${this.rootDir()}/deepseek_key.txt`,
         '../deepseek_key.txt',
       ]);
     }
     if (!String(settings.pixaiApiKey || '').trim()) {
       settings.pixaiApiKey = await this.readTextFileCandidates([
+        '/pixai_key.txt',
+        '/pixatart_key.txt',
+        './pixai_key.txt',
+        './pixatart_key.txt',
         `file:///${this.rootDir()}/pixatart_key.txt`,
         `file:///${this.rootDir()}/pixai_key.txt`,
         '../pixatart_key.txt',

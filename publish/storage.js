@@ -129,6 +129,7 @@ window.GameModules.storage = {
       realWorldSceneTitle: store.realWorldSceneTitle,
       realWorldLocationName: store.realWorldLocationName,
       realWorldMap: this.snapshotPlainValue(store.realWorldMap),
+      locationGraph: this.snapshotPlainValue(store.locationGraph),
       realWorldQuest: store.realWorldQuest,
       realWorldStatus: store.realWorldStatus,
       realWorldChoices: store.realWorldChoices,
@@ -138,6 +139,7 @@ window.GameModules.storage = {
       realWorldSystemRecords: (store.realWorldSystemRecords || []).slice(-60),
       realWorldAgentKvByMode: store.realWorldAgentKvByMode || {},
       characterSchedules: store.characterSchedules && typeof store.characterSchedules === 'object' ? store.characterSchedules : {},
+      appearingLocationById: store.appearingLocationById && typeof store.appearingLocationById === 'object' ? store.appearingLocationById : {},
       orgTerritoryReconciliationLog: (store.orgTerritoryReconciliationLog || []).slice(-30),
       orgTerritoryConsistency: store.orgTerritoryConsistency ? {
         dismissed: Boolean(store.orgTerritoryConsistency.dismissed),

@@ -63,6 +63,8 @@
   "rpg-definition-store.js",
   "real-world-log-store.js",
   "character-state-store.js",
+  "character-id-ensure.js",
+  "narration-role-markup.js",
   "character-memory-store.js",
   "character-intro-store.js",
   "character-memory-maintenance-store.js",

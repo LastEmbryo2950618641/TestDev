@@ -1,4 +1,147 @@
-﻿window.GameModules = window.GameModules || {};
+window.GameModules = window.GameModules || {};
+
+const BODY_FIGURE_META_STORE_KEY = 'body-figure-meta-v1';
+
+function clampBodyFigurePercent(value, min = 0, max = 100) {
+  return Math.min(max, Math.max(min, Number(value) || 0));
+}
+
+/** Callout width as % of stage — keep in sync with `.body-figure-callout` CSS. */
+const BODY_FIGURE_CALLOUT_WIDTH_PCT = 22;
+/** Approx callout height as % of stage — keeps top edge inside when anchored at bottom. */
+const BODY_FIGURE_CALLOUT_HEIGHT_PCT = 8;
+
+/**
+ * Layout reference (x,y) is the outer bottom corner in the side gutter.
+ * Left grows right; right grows left — boxes stay in-frame.
+ * Line attaches to the inner bottom corner facing the figure.
+ */
+function bodyFigureCalloutLayout(ann = {}) {
+  const side = ann?.label?.side === 'right' ? 'right' : 'left';
+  let x = clampBodyFigurePercent(ann?.label?.x ?? ann?.x ?? ann?.left ?? (side === 'right' ? 90 : 10));
+  let y = clampBodyFigurePercent(ann?.label?.y ?? ann?.y ?? ann?.top ?? 50);
+  y = Math.max(y, BODY_FIGURE_CALLOUT_HEIGHT_PCT);
+  if (side === 'right') {
+    x = Math.max(x, BODY_FIGURE_CALLOUT_WIDTH_PCT);
+    return {
+      side,
+      x,
+      y,
+      transform: 'translate(-100%, -100%)',
+      lineX: clampBodyFigurePercent(x - BODY_FIGURE_CALLOUT_WIDTH_PCT),
+      lineY: y,
+    };
+  }
+  x = Math.min(x, 100 - BODY_FIGURE_CALLOUT_WIDTH_PCT);
+  return {
+    side,
+    x,
+    y,
+    transform: 'translate(0, -100%)',
+    lineX: clampBodyFigurePercent(x + BODY_FIGURE_CALLOUT_WIDTH_PCT),
+    lineY: y,
+  };
+}
+
+function roundBodyFigurePoint(point = {}) {
+  return {
+    x: Math.round(clampBodyFigurePercent(point.x) * 10) / 10,
+    y: Math.round(clampBodyFigurePercent(point.y) * 10) / 10,
+  };
+}
+
+function bodyFigureImageSize(meta = {}) {
+  const width = Number(meta?.imageSize?.width ?? meta?.width ?? 529) || 529;
+  const height = Number(meta?.imageSize?.height ?? meta?.height ?? 1024) || 1024;
+  return { width, height };
+}
+
+function bodyFigureStagePoint(point = {}, meta = {}) {
+  const x = clampBodyFigurePercent(point.x);
+  const y = clampBodyFigurePercent(point.y);
+  const { width, height } = bodyFigureImageSize(meta);
+  if (!width || !height) return { x, y };
+  const imageAspect = width / height;
+  const stageAspect = 3 / 4;
+  if (imageAspect < stageAspect) {
+    const usedWidth = (imageAspect / stageAspect) * 100;
+    const padX = (100 - usedWidth) / 2;
+    return { x: padX + (x / 100) * usedWidth, y };
+  }
+  if (imageAspect > stageAspect) {
+    const usedHeight = (stageAspect / imageAspect) * 100;
+    const padY = (100 - usedHeight) / 2;
+    return { x, y: padY + (y / 100) * usedHeight };
+  }
+  return { x, y };
+}
+
+function bodyFigureImagePointFromStage(point = {}, meta = {}) {
+  const x = clampBodyFigurePercent(point.x);
+  const y = clampBodyFigurePercent(point.y);
+  const { width, height } = bodyFigureImageSize(meta);
+  if (!width || !height) return roundBodyFigurePoint({ x, y });
+  const imageAspect = width / height;
+  const stageAspect = 3 / 4;
+  if (imageAspect < stageAspect) {
+    const usedWidth = (imageAspect / stageAspect) * 100;
+    const padX = (100 - usedWidth) / 2;
+    return roundBodyFigurePoint({ x: ((x - padX) / usedWidth) * 100, y });
+  }
+  if (imageAspect > stageAspect) {
+    const usedHeight = (stageAspect / imageAspect) * 100;
+    const padY = (100 - usedHeight) / 2;
+    return roundBodyFigurePoint({ x, y: ((y - padY) / usedHeight) * 100 });
+  }
+  return roundBodyFigurePoint({ x, y });
+}
+
+function readBodyFigureStoredMeta(pathKey = '') {
+  const cleanPath = String(pathKey || '').trim().replace(/^\/+/, '').replace(/\/+$/, '');
+  if (!cleanPath) return null;
+  const key = `${BODY_FIGURE_META_STORE_KEY}:${cleanPath}`;
+  try {
+    const saved = window.GameModules?.metadataStore?.get?.(key);
+    if (saved && typeof saved === 'object') return saved;
+  } catch (err) {
+    console.warn('[body-figure] metadata store read failed:', err?.message || err);
+  }
+  try {
+    const raw = window.localStorage?.getItem?.(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch (err) {
+    console.warn('[body-figure] local storage read failed:', err?.message || err);
+    return null;
+  }
+}
+
+async function writeBodyFigureStoredMeta(pathKey = '', meta = {}) {
+  const cleanPath = String(pathKey || '').trim().replace(/^\/+/, '').replace(/\/+$/, '');
+  if (!cleanPath) return false;
+  const key = `${BODY_FIGURE_META_STORE_KEY}:${cleanPath}`;
+  let ok = false;
+  try {
+    const saved = window.GameModules?.metadataStore?.save?.(key, meta || {});
+    if (saved && typeof saved.then === 'function') await saved;
+    ok = true;
+  } catch (err) {
+    console.warn('[body-figure] metadata store save failed:', err?.message || err);
+  }
+  try {
+    window.localStorage?.setItem?.(key, JSON.stringify(meta || {}));
+    ok = true;
+  } catch (err) {
+    console.warn('[body-figure] local storage save failed:', err?.message || err);
+  }
+  return ok;
+}
+
+function mergeBodyFigureMeta(base = {}, override = {}) {
+  return {
+    ...(base || {}),
+    ...(override || {}),
+  };
+}
 
 function resolveBodyFigureAssetSource() {
   const coreSource = window.GameModules?.platform?.core?.assets?.bodyFigure;
@@ -67,34 +210,45 @@ function pickBodyFigureRowValue(rows = [], keys = []) {
 }
 
 function normalizeBodyFigureAnnotations(meta = {}) {
-  if (Array.isArray(meta?.annotations) && meta.annotations.length) return meta.annotations;
-  return (Array.isArray(meta?.parts) ? meta.parts : [])
+  const parts = Array.isArray(meta?.annotations) && meta.annotations.length ? meta.annotations : (Array.isArray(meta?.parts) ? meta.parts : []);
+  return parts
     .map((part, index) => {
       const partName = String(part?.part || part?.name || part?.title || '').trim();
       const anchor = part?.anchor || {};
       const label = part?.label || {};
-      const anchorX = Number(anchor.x ?? part?.anchorX ?? part?.x ?? 50);
-      const anchorY = Number(anchor.y ?? part?.anchorY ?? part?.y ?? (10 + index * 7));
-      const labelX = Number(label.x ?? part?.labelX ?? (anchorX >= 55 ? 90 : 10));
-      const labelY = Number(label.y ?? part?.labelY ?? anchorY);
+      const imageAnchor = {
+        x: Number(anchor.imageX ?? anchor.x ?? part?.anchorX ?? part?.x ?? 50),
+        y: Number(anchor.imageY ?? anchor.y ?? part?.anchorY ?? part?.y ?? (10 + index * 7)),
+      };
+      const stageAnchor = bodyFigureStagePoint(imageAnchor, meta);
+      const labelX = Number(label.x ?? part?.labelX ?? part?.x ?? (stageAnchor.x >= 55 ? 90 : 10));
+      const labelY = Number(label.y ?? part?.labelY ?? part?.y ?? stageAnchor.y);
+      const side = label.side || part?.side || (labelX >= stageAnchor.x ? 'right' : 'left');
+      const layout = bodyFigureCalloutLayout({ label: { x: labelX, y: labelY, side } });
       return {
         ...part,
         part: partName,
         title: partName,
-        anchorX,
-        anchorY,
+        anchorX: stageAnchor.x,
+        anchorY: stageAnchor.y,
+        anchor: {
+          x: stageAnchor.x,
+          y: stageAnchor.y,
+          imageX: imageAnchor.x,
+          imageY: imageAnchor.y,
+        },
         x: labelX,
         y: labelY,
         label: {
           x: labelX,
           y: labelY,
-          side: label.side || (labelX >= anchorX ? 'right' : 'left'),
+          side,
         },
         line: {
-          x1: anchorX,
-          y1: anchorY,
-          x2: labelX,
-          y2: labelY,
+          x1: stageAnchor.x,
+          y1: stageAnchor.y,
+          x2: layout.lineX,
+          y2: layout.lineY,
         },
       };
     })
@@ -140,9 +294,10 @@ window.GameModules.bodyFigure = {
     if (!key) return null;
     if (this.metaCache[key]) return this.metaCache[key];
     if (this.metaPromises[key]) return this.metaPromises[key];
+    const storedMeta = readBodyFigureStoredMeta(key);
     const staticMeta = staticBodyFigureMeta(key);
-    if (staticMeta) {
-      this.metaCache[key] = normalizeBodyFigureMeta(staticMeta, { path: key, id: key });
+    if (staticMeta || storedMeta) {
+      this.metaCache[key] = normalizeBodyFigureMeta(mergeBodyFigureMeta(staticMeta || {}, storedMeta || {}), { path: key, id: key });
       return this.metaCache[key];
     }
     this.metaPromises[key] = (async () => {
@@ -150,7 +305,7 @@ window.GameModules.bodyFigure = {
         const res = await fetch(this.basePath(`${key}/meta.json`), { cache: 'no-cache' });
         if (!res.ok) return null;
         const meta = await res.json();
-        this.metaCache[key] = normalizeBodyFigureMeta(meta, { path: key, id: key });
+        this.metaCache[key] = normalizeBodyFigureMeta(mergeBodyFigureMeta(meta, readBodyFigureStoredMeta(key) || {}), { path: key, id: key });
         return this.metaCache[key];
       } catch (err) {
         console.warn('[body-figure] meta load failed:', key, err?.message || err);
@@ -331,7 +486,7 @@ window.GameModules.bodyFigure = {
     const staticPath = this.chooseDefaultPath(meta, staticEntries);
     const staticMeta = staticBodyFigureMeta(staticPath);
     if (staticPath && staticMeta) {
-      this.metaCache[staticPath] = normalizeBodyFigureMeta(staticMeta, { path: staticPath, id: staticPath });
+      this.metaCache[staticPath] = normalizeBodyFigureMeta(mergeBodyFigureMeta(staticMeta, readBodyFigureStoredMeta(staticPath) || {}), { path: staticPath, id: staticPath });
       const resolved = this.buildResolvedFigure(staticPath, meta, rows, sectionTitle, options);
       this.resolvedCache[cacheKey] = resolved;
       return resolved;
@@ -356,23 +511,191 @@ window.GameModules.bodyFigure = {
   },
 
   calloutStyle(ann = {}) {
-    const x = Number(ann?.x ?? ann?.left ?? 0);
-    const y = Number(ann?.y ?? ann?.top ?? 0);
-    return `left:${x}%;top:${y}%;`;
+    const layout = bodyFigureCalloutLayout(ann);
+    return `left:${layout.x}%;top:${layout.y}%;transform:${layout.transform};`;
   },
 
   anchorStyle(ann = {}) {
-    const x = Number(ann?.anchorX ?? ann?.x ?? ann?.left ?? 0);
-    const y = Number(ann?.anchorY ?? ann?.y ?? ann?.top ?? 0);
-    return `left:${x}%;top:${y}%;`;
+    const x = clampBodyFigurePercent(ann?.anchor?.x ?? ann?.anchorX ?? ann?.x ?? ann?.left ?? 50);
+    const y = clampBodyFigurePercent(ann?.anchor?.y ?? ann?.anchorY ?? ann?.y ?? ann?.top ?? 50);
+    return `left:${x}%;top:${y}%;transform:translate(-50%, -50%);`;
   },
 
-  startAnchorDrag() {
-    return false;
+  stagePercentFromEvent(event, stage) {
+    const rect = stage?.getBoundingClientRect?.();
+    if (!rect?.width || !rect?.height) return null;
+    return {
+      x: clampBodyFigurePercent(((event.clientX - rect.left) / rect.width) * 100),
+      y: clampBodyFigurePercent(((event.clientY - rect.top) / rect.height) * 100),
+    };
   },
 
-  openAnnotationPart(rows = [], part = '') {
+  updateAnnotationAnchor(figure = {}, ann = {}, stagePoint = {}) {
+    const cached = this.metaCache?.[figure.path];
+    if (!cached || !ann?.part) return null;
+    const imagePoint = bodyFigureImagePointFromStage(stagePoint, cached);
+    const renderedPoint = bodyFigureStagePoint(imagePoint, cached);
+    const item = (cached.parts || []).find((part) => String(part?.part || '') === String(ann.part || ''));
+    if (item) {
+      item.anchor = {
+        x: renderedPoint.x,
+        y: renderedPoint.y,
+        imageX: imagePoint.x,
+        imageY: imagePoint.y,
+      };
+      item.anchorX = renderedPoint.x;
+      item.anchorY = renderedPoint.y;
+      item.line = {
+        ...(item.line || {}),
+        x1: renderedPoint.x,
+        y1: renderedPoint.y,
+      };
+    }
+    ann.anchor = {
+      x: renderedPoint.x,
+      y: renderedPoint.y,
+      imageX: imagePoint.x,
+      imageY: imagePoint.y,
+    };
+    ann.anchorX = renderedPoint.x;
+    ann.anchorY = renderedPoint.y;
+    if (ann.line) {
+      ann.line.x1 = renderedPoint.x;
+      ann.line.y1 = renderedPoint.y;
+    }
+    return { cached, imagePoint, renderedPoint };
+  },
+
+  updateAnnotationLabel(figure = {}, ann = {}, stagePoint = {}) {
+    const cached = this.metaCache?.[figure.path];
+    if (!cached || !ann?.part) return null;
+    const x = clampBodyFigurePercent(stagePoint.x);
+    const y = clampBodyFigurePercent(stagePoint.y);
+    const side = x >= clampBodyFigurePercent(ann?.anchor?.x ?? ann?.anchorX ?? 50) ? 'right' : 'left';
+    const layout = bodyFigureCalloutLayout({ label: { x, y, side } });
+    const item = (cached.parts || []).find((part) => String(part?.part || '') === String(ann.part || ''));
+    if (item) {
+      item.label = {
+        ...(item.label || {}),
+        x,
+        y,
+        side,
+      };
+      item.x = x;
+      item.y = y;
+      item.line = {
+        ...(item.line || {}),
+        x2: layout.lineX,
+        y2: layout.lineY,
+      };
+    }
+    ann.x = x;
+    ann.y = y;
+    ann.label = {
+      ...(ann.label || {}),
+      x,
+      y,
+      side,
+    };
+    if (ann.line) {
+      ann.line.x2 = layout.lineX;
+      ann.line.y2 = layout.lineY;
+    }
+    return { cached, stagePoint: { x, y } };
+  },
+
+  async saveMeta(pathKey = '', meta = {}) {
+    const key = String(pathKey || '').replace(/^\/+/, '');
+    if (!key) return false;
+    const stored = await writeBodyFigureStoredMeta(key, meta);
+    try {
+      const result = await resolveBodyFigureAssetSource().saveMeta({ path: `${key}/meta.json`, meta });
+      const ok = Boolean(result?.ok ?? result?.status === 200 ?? result?.status === 204);
+      if (!ok && !stored) throw new Error('saveMeta returned not ok');
+      window.dispatchEvent?.(new CustomEvent('body-figure-meta-saved', { detail: { path: key, fallback: !ok } }));
+      return true;
+    } catch (err) {
+      if (!stored) {
+        console.warn('[body-figure] meta 保存失败:', err?.message || err);
+        return false;
+      }
+      window.dispatchEvent?.(new CustomEvent('body-figure-meta-saved', { detail: { path: key, fallback: true } }));
+      return true;
+    }
+  },
+
+  startAnchorDrag(event, figure = {}, ann = {}) {
+    const stage = event?.currentTarget?.closest?.('.body-figure-stage');
+    if (!stage || !figure?.path || !ann?.part) return;
+    const target = event.currentTarget;
+    const pointerId = event?.pointerId;
+    target.setPointerCapture?.(pointerId);
+    target.classList.add('dragging');
+    const apply = (pointerEvent) => {
+      const stagePoint = this.stagePercentFromEvent(pointerEvent, stage);
+      if (!stagePoint) return;
+      this.updateAnnotationAnchor(figure, ann, stagePoint);
+    };
+    const finish = async (pointerEvent) => {
+      apply(pointerEvent);
+      target.releasePointerCapture?.(pointerId);
+      target.classList.remove('dragging');
+      window.removeEventListener('pointermove', apply);
+      window.removeEventListener('pointerup', finish);
+      window.removeEventListener('pointercancel', finish);
+      const cached = this.metaCache?.[figure.path];
+      if (cached) await this.saveMeta(figure.path, cached);
+    };
+    apply(event);
+    window.addEventListener('pointermove', apply);
+    window.addEventListener('pointerup', finish, { once: true });
+    window.addEventListener('pointercancel', finish, { once: true });
+  },
+
+  startLabelDrag(event, figure = {}, ann = {}) {
+    const stage = event?.currentTarget?.closest?.('.body-figure-stage');
+    if (!stage || !figure?.path || !ann?.part) return;
+    const target = event.currentTarget;
+    const pointerId = event?.pointerId;
+    const startPoint = { x: Number(event?.clientX) || 0, y: Number(event?.clientY) || 0 };
+    let dragging = false;
+    target.setPointerCapture?.(pointerId);
+    const apply = (pointerEvent) => {
+      const moveX = Math.abs((Number(pointerEvent?.clientX) || 0) - startPoint.x);
+      const moveY = Math.abs((Number(pointerEvent?.clientY) || 0) - startPoint.y);
+      if (!dragging && moveX < 4 && moveY < 4) return;
+      dragging = true;
+      target.classList.add('dragging');
+      const stagePoint = this.stagePercentFromEvent(pointerEvent, stage);
+      if (!stagePoint) return;
+      this.updateAnnotationLabel(figure, ann, stagePoint);
+    };
+    const finish = async (pointerEvent) => {
+      apply(pointerEvent);
+      target.releasePointerCapture?.(pointerId);
+      target.classList.remove('dragging');
+      window.removeEventListener('pointermove', apply);
+      window.removeEventListener('pointerup', finish);
+      window.removeEventListener('pointercancel', finish);
+      if (dragging) {
+        target.dataset.bodyFigureDragMoved = '1';
+        const cached = this.metaCache?.[figure.path];
+        if (cached) await this.saveMeta(figure.path, cached);
+      }
+    };
+    window.addEventListener('pointermove', apply);
+    window.addEventListener('pointerup', finish, { once: true });
+    window.addEventListener('pointercancel', finish, { once: true });
+  },
+
+  openAnnotationPart(rows = [], part = '', event = null) {
     const cleanPart = String(part || '').trim();
+    if (event?.currentTarget?.dataset?.bodyFigureDragMoved === '1') {
+      delete event.currentTarget.dataset.bodyFigureDragMoved;
+      event.preventDefault?.();
+      event.stopPropagation?.();
+      return false;
+    }
     this.activeAnnotationPart = cleanPart;
     return Boolean(cleanPart && (rows || []).length >= 0);
   },

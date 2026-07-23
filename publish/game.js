@@ -1,4 +1,4 @@
-﻿try {
+try {
   window.parent?.postMessage?.('iframe:content-ready', '*');
 } catch (err) {
   console.warn('骞冲彴灏辩华閫氱煡澶辫触:', err.message);
@@ -729,7 +729,7 @@ function registerGameStore() {
     mindText: '', feedbackSource: 'pending',
     characterIntent: '',
     choices: cfg.openingChoices,
-    log: [], realWorldOpen: false, realWorldBusy: false, realWorldInput: '', realWorldThinkMode: false, realWorldFreedomMode: 'scope', realWorldWordCount: 1000, realWorldFunctionOpen: false, realWorldFunctionView: 'menu', realWorldMatterState: { open: false, activeId: '' }, realWorldSceneTitle: '现实世界', realWorldLocationName: '', realWorldMap: defaultRealWorldMapState, realWorldQuest: '确认手机异常与现实处境', realWorldStatus: '现实稳定', realWorldChoices: ['检查手机记录', '观察居住环境', '联系熟人确认', '暂时休息'], realWorldLog: [], realWorldLogPage: 1, realWorldLogPageSize: 12, realWorldLogTotal: 0, realWorldLongingEvents: [], realWorldLongingPreparedIds: [], realWorldlineState: { events: [], plots: [], pendingPlot: null }, realWorldProfileOpen: false, companyState: defaultCompanyState, bossState: defaultBossState, calendarState: defaultCalendarState, eventState: defaultEventState, factionState: defaultFactionState, skillsState: gm.skillsApp?.defaultState?.() || {}, promptState: gm.promptTemplates?.defaultState?.() || {}, tokenStatsState: gm.tokenStats?.defaultState?.() || {},
+    log: [], realWorldOpen: false, realWorldBusy: false, realWorldInput: '', realWorldThinkMode: false, realWorldFreedomMode: 'scope', realWorldWordCount: 1000, realWorldFunctionOpen: false, realWorldFunctionView: 'menu', realWorldMatterState: { open: false, activeId: '' }, realWorldSceneTitle: '现实世界', realWorldLocationName: '', realWorldMap: defaultRealWorldMapState, locationGraph: null, realWorldQuest: '确认手机异常与现实处境', realWorldStatus: '现实稳定', realWorldChoices: ['检查手机记录', '观察居住环境', '联系熟人确认', '暂时休息'], realWorldLog: [], realWorldLogPage: 1, realWorldLogPageSize: 12, realWorldLogTotal: 0, realWorldLongingEvents: [], realWorldLongingPreparedIds: [], realWorldlineState: { events: [], plots: [], pendingPlot: null }, realWorldProfileOpen: false, companyState: defaultCompanyState, bossState: defaultBossState, calendarState: defaultCalendarState, eventState: defaultEventState, factionState: defaultFactionState, skillsState: gm.skillsApp?.defaultState?.() || {}, promptState: gm.promptTemplates?.defaultState?.() || {}, tokenStatsState: gm.tokenStats?.defaultState?.() || {},
     nextId: 1,
     ragQuery: '',
     ragContext: '',
@@ -800,6 +800,7 @@ function registerGameStore() {
       if (this.initPromise) return this.initPromise;
       document.getElementById('boot-fallback')?.remove(); this.initPromise = (async () => {
         try {
+          window.GameModules.characterStateStore?.bindLiveHost?.(this);
           window.GameModules.metrics.ensure(this);
           await this.initGame();
           this.startPhoneClock?.();

@@ -122,8 +122,9 @@ window.GameModules.jsonUtils = {
     for (let i = 0; i < max; i += 1) {
       const completionOptions = this.completionOptions(promptId, options);
       const baseTitle = String(options.sourceTitle || options.source || promptId || 'json-utils');
-      const attemptTitle = max > 1
-        ? `${baseTitle}｜${i === 0 ? '尝试' : '重试'}${i + 1}/${max}`
+      // Only annotate retries. First attempt keeps the clean title (no「尝试1/2」).
+      const attemptTitle = (max > 1 && i > 0)
+        ? `${baseTitle}｜重试${i + 1}/${max}`
         : baseTitle;
       lastText = await this.requestCompletion({
         model: options.model,

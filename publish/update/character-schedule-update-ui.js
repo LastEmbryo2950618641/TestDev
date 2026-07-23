@@ -4,15 +4,7 @@ window.GameModules = window.GameModules || {};
   const registry = window.GameModules.updateRegistry;
   if (!registry) return;
 
-  const scheduleKey = (update = {}, raw = {}) => {
-    const trigger = String((Array.isArray(update.reasons) ? update.reasons.find(Boolean) : null)?.trigger || '');
-    const fromTrigger = trigger.match(/^人事安排(.+)$/u)?.[1];
-    if (fromTrigger) return fromTrigger;
-    if (raw.currentLocation) return '当前地点';
-    if (raw.currentAction) return '当前行动';
-    if (raw.availability) return '可用状态';
-    return '状态';
-  };
+  const scheduleKey = () => '当前安排';
 
   const scheduleDisplay = (store = {}, subjectId = '', raw = {}, key = '', value = '', evidence = '') => {
     const norm = (text) => registry.normalizeSettlementText(String(text || ''));
@@ -34,10 +26,15 @@ window.GameModules = window.GameModules || {};
       const subjectId = subject.characterId || subject.playerId || subject.id || update.target || 'player-self';
       const subjectName = store?.realWorldSettlementTargetGroup?.(subjectId, subject.name || '') || subject.name || subjectId;
       const raw = update.change?.value && typeof update.change.value === 'object' ? update.change.value : {};
-      const key = scheduleKey(update, raw);
-      const value = key === '当前地点' ? raw.currentLocation || '' : key === '当前行动' ? raw.currentAction || '' : key === '可用状态' ? raw.availability || '' : raw.currentAction || raw.currentLocation || raw.availability || '';
+      const key = scheduleKey();
+      const value = raw.currentAction || raw.currentLocation || raw.availability || '';
       const first = Array.isArray(update.reasons) ? update.reasons.find(Boolean) || {} : {};
-      const evidence = registry.normalizeSettlementText(first.evidence || raw.reason || update.reason || row.reason || '');
+      const evidence = registry.normalizeSettlementText(
+        [first.evidence, raw.reason, update.reason, row.reason]
+          .map((item) => String(item || '').trim())
+          .filter(Boolean)
+          .join('；') || '',
+      );
       const norm = (text) => registry.normalizeSettlementText(String(text || ''));
       const timeLabel = norm(raw.updatedAt || update.settlementAt || row.settlementAt || entry?.time?.label || '');
       const composite = scheduleDisplay(store, subjectId, raw, key, value, evidence);
@@ -46,13 +43,14 @@ window.GameModules = window.GameModules || {};
         uiTitle: '人事安排',
         name: subjectName,
         uiName: subjectName,
-        value: norm(value),
+        value: composite,
         uiValue: composite,
         reason: evidence,
         settlementAt: timeLabel,
+        rowKey: `schedule:${subjectId}`,
         detailLines: [
           timeLabel ? `时间：${timeLabel}` : '',
-          first.trigger ? `触发：${norm(first.trigger)}` : '',
+          '触发：当前人事安排',
           first.confidence ? `确认：${norm(first.confidence)}` : '',
         ].filter(Boolean),
       };

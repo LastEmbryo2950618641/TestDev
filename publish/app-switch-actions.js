@@ -49,6 +49,7 @@ window.GameModules.appSwitchActions = {
       this.desktopUnlocked = true;
       this.controlSelectOpen = true;
       this.entrySetupOpen = false;
+      this.hydrateControlRoleStates?.();
       this.refreshControlLinkStates?.().catch?.((err) => console.warn('刷新控制链接状态失败:', err.message, err.stack));
     }).catch((err) => console.warn('[桌面] 打开操控入口失败:', err?.message || err));
   },

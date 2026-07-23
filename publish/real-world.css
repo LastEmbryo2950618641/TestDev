@@ -312,6 +312,13 @@
   line-height: 1.68;
 }
 
+.novel-body-text .narration-role {
+  color: #ffe2a0;
+  font-weight: 700;
+  cursor: default;
+  border-bottom: 1px dotted rgba(255, 226, 160, .45);
+}
+
 .real-world-dialog .novel-tool-row {
   display: flex;
   flex-wrap: wrap;

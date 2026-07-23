@@ -113,17 +113,21 @@ window.GameModules = window.GameModules || {};
 
   save.realWorldLogSortKey = function realWorldLogSortKey(entry = {}) {
     const timeKey = () => {
-      const parsed = Date.parse(entry.createdAt || entry.time?.iso || '');
+      const parsed = Date.parse(entry.createdAt || entry.time?.iso || (typeof entry.time === 'string' && entry.time.includes('T') ? entry.time : ''));
       if (Number.isFinite(parsed)) return String(parsed).padStart(16, '0');
+      const idMatch = String(entry.id || '').match(/(\d{10,})/);
+      if (idMatch) return String(idMatch[1]).padStart(16, '0');
       const idNumber = Number(entry.id);
       if (Number.isFinite(idNumber)) return String(idNumber).padStart(16, '0');
       return `zzzz-${String(entry.time?.label || entry.id || '')}`;
     };
-    if (entry.type === 'system' && entry.narration && !entry.text) return `0000-${timeKey()}-${String(entry.id || '')}`;
+    // Entrance / system notices stay in chronological flow with other entries.
+    // Prefer stable timestamps; extract millis from ids like possess-<epoch>.
+    if (entry.type === 'system') return `1000-${timeKey()}-0-${String(entry.id || '')}`;
     const id = String(entry.id || '');
     const match = id.match(/^(real-(\d+)-[a-z0-9]+)-(user|ai)$/u);
-    if (match) return `1000-${String(match[2]).padStart(16, '0')}-${match[1]}-${match[3] === 'user' ? '0' : '1'}`;
-    return `1000-${timeKey()}-2-${String(entry.id || '')}`;
+    if (match) return `1000-${String(match[2]).padStart(16, '0')}-${match[1]}-${match[3] === 'user' ? '1' : '2'}`;
+    return `1000-${timeKey()}-3-${String(entry.id || '')}`;
   };
 
   save.sortedRealWorldLogEntries = function sortedRealWorldLogEntries(entries = []) {
@@ -141,7 +145,7 @@ window.GameModules = window.GameModules || {};
     const stmt = this.db.prepare(`
       SELECT entry_json
       FROM real_world_log
-      ORDER BY CASE WHEN entry_type='system' THEN 0 ELSE 1 END, created_at ASC, id ASC
+      ORDER BY created_at ASC, id ASC
       LIMIT ? OFFSET ?
     `);
     stmt.bind([size, offset]);

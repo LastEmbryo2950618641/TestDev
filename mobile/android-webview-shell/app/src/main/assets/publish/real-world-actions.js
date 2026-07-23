@@ -154,11 +154,34 @@ window.GameModules.realWorldActions = {
       this.showRealWorldMapInterior?.(this.realWorldMap.interiorNodeId);
     }
     this.ensureControlRoleLocation?.(state, '现实推演后更新玩家当前位置。');
-    if (state?.values?.current_location) state.values.current_location.name = this.realWorldLocationName || result.locationName || state.values.current_location.name;
+    const locField = window.GameModules.currentLocationField;
+    if (state?.values?.current_location) {
+      const playerFull = locField?.fromCharacterState?.(state) || '';
+      if (locField?.isValidProfileFormat?.(playerFull)) {
+        state.profile = state.profile || {};
+        state.profile.currentLocation = playerFull;
+        state.values.current_location = locField.stateValue(state.profile, this, '现实推演后保留合法角色卡当前位置。');
+        if (this.playerProfile) this.playerProfile.currentLocation = playerFull;
+      } else {
+        state.values.current_location.name = this.realWorldLocationName || result.locationName || state.values.current_location.name;
+      }
+    }
     const shared = this.sharedControlState?.();
     if (shared) {
-      this.ensureControlRoleLocation?.(shared, '共享感官现实推演后同步位置。');
-      shared.values.current_location = { ...(shared.values.current_location || {}), name: this.realWorldLocationName || result.locationName || '现实当前位置', worldTag: window.GameModules.realWorld2026?.label || '2026 现代都市现实世界', updatedAt: this.phoneDateText?.() || '', reason: '共享感官控制中与玩家同处现实推演位置。' };
+      const sharedFull = locField?.fromCharacterState?.(shared) || '';
+      if (locField?.isValidProfileFormat?.(sharedFull)) {
+        shared.profile = shared.profile || {};
+        shared.profile.currentLocation = sharedFull;
+        shared.values = shared.values || {};
+        shared.values.current_location = locField.stateValueFromText(
+          sharedFull,
+          this,
+          '共享感官推演后保留合法角色卡当前位置。',
+          window.GameModules.realWorld2026?.label || shared.worldTag || shared.profile?.work || '未知世界',
+        );
+      } else {
+        this.ensureControlRoleLocation?.(shared, '共享感官现实推演后同步位置。');
+      }
       await window.GameModules.characterStateStore?.save?.(shared);
     }
     if (state) await window.GameModules.characterStateStore?.save?.(state);
