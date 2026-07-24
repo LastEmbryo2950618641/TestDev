@@ -1133,7 +1133,7 @@ window.GameModules.rpgFieldUi = {
         const row = rows.find((entry) => entry.key === item.key);
         return {
           key: item.key,
-          title: item.label,
+          title: String(item.label || '').replace(/偏好$/u, '') || item.label,
           icon: iconByKey[item.key],
           tone: toneByKey[item.key],
           field: row?.field || fieldByKey(item.key),

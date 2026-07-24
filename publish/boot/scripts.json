@@ -169,6 +169,7 @@
   "update/role-card-update.js",
   "update/relationship-update.js",
   "update/sexual-experience-update.js",
+  "update/control-experience-update.js",
   "update/sexual-history-update.js",
   "update/body-status-update.js",
   "update/wearing-state-update.js",

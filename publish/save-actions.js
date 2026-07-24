@@ -99,7 +99,7 @@ window.GameModules.saveActions = {
     if (Object.prototype.hasOwnProperty.call(value, 'current') && Object.prototype.hasOwnProperty.call(value, 'max')) return `${value.current}/${value.max}`;
     if (value.type === '职业') return `${value.name} lv.${value.level || 1}`;
     if (Object.values(value).some((item) => item?.partKey && item?.status)) return Object.values(value).map((item) => `${item.part || item.partKey}：${item.status || '稳定'}`).join('；');
-    if (Object.prototype.hasOwnProperty.call(value, 'onlineCount')) return `上线${value.onlineCount || 0}次｜${value.feeling || '未知'}｜适应${value.adaptation || 0}/100｜${value.summary || ''}`;
+    if (Object.prototype.hasOwnProperty.call(value, 'onlineCount')) return `上线${value.onlineCount || 0}次｜${value.feeling || '未知'}｜适应${value.adaptation || 0}/100｜了解:${value.controllerAwareness || '尚不知晓控制者是谁'}｜${value.summary || ''}`;
     if (Object.prototype.hasOwnProperty.call(value, 'totalLevelUps')) return `累计升级${value.totalLevelUps || 0}次｜自动${value.autoPointsPerLevel || 1}点/级｜自由${value.freePointsPerLevel || 1}点/级`;
     if (value.attackPower || value.defensePower) return `攻${value.attackPower || 0}｜防${value.defensePower || 0}｜${value.damageRuleNote || ''}`;
     if (value.effectiveDamage !== undefined) return `${value.summary || '战斗模拟'}｜伤害${value.effectiveDamage}`;

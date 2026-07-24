@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content, user-scalable=no">
   <title>我狠狠操控</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="phone-desktop.css">
+  <link rel="stylesheet" href="phone-desktop.css?v=2026-07-24-pref-rpg-v17">
   <link rel="stylesheet" href="taobao-app.css">
   <link rel="stylesheet" href="real-world.css">
   <link rel="stylesheet" href="real-world-settlement.css">
@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="calendar-system.css">
   <link rel="stylesheet" href="event-system.css">
   <link rel="stylesheet" href="faction-system.css">
-  <link rel="stylesheet" href="skills-app.css?v=2026-07-23-db-write-fix-v15">
+  <link rel="stylesheet" href="skills-app.css?v=2026-07-24-pref-rpg-v17">
   <link rel="stylesheet" href="character-select.css">
   <link rel="stylesheet" href="player-aspiration.css">
   <link rel="stylesheet" href="profile-preview.css">
@@ -127,11 +127,11 @@
   </script>
   <script src="../deepseek_key.js"></script>
   <script src="../pixatart_key.js"></script>
-  <script src="boot/script-loader.js?v=2026-07-23-db-write-fix-v15"></script>
+  <script src="boot/script-loader.js?v=2026-07-24-pref-rpg-v17"></script>
   <script src="boot/store-modules.js"></script>
-  <script src="boot/script-manifest.js?v=2026-07-23-db-write-fix-v15"></script>
-  <script src="boot/boot-actions.js?v=2026-07-23-db-write-fix-v15"></script>
-  <script src="boot/boot.js?v=2026-07-23-db-write-fix-v15"></script>
+  <script src="boot/script-manifest.js?v=2026-07-24-pref-rpg-v17"></script>
+  <script src="boot/boot-actions.js?v=2026-07-24-pref-rpg-v17"></script>
+  <script src="boot/boot.js?v=2026-07-24-pref-rpg-v17"></script>
   <script>
     window.openEventAppNative = async function openEventAppNative(event) {
       try {
@@ -1726,35 +1726,51 @@
                   <div class="pref-hero-crest" aria-hidden="true">✦</div>
                   <div class="pref-hero-copy">
                     <span class="pref-hero-eyebrow" x-text="pref?.hero?.eyebrow || 'ESSENCE MATRIX'"></span>
-                    <strong class="pref-hero-title" x-text="pref?.hero?.title || '本质偏好'"></strong>
-                    <p class="pref-hero-note" x-text="pref?.hero?.note || '本质偏好五层会长期约束角色的价值、决策与心理表达。'"></p>
+                    <span class="pref-align-badge" x-text="pref?.hero?.title || '本质偏好'"></span>
+                    <p class="pref-hero-note" x-show="!((pref?.axes || []).length)" x-text="pref?.hero?.note || '本质偏好五层会长期约束角色的价值、决策与心理表达。'"></p>
                   </div>
-                  <div class="pref-hero-meter"><span>理性感性轴</span><strong x-text="`${pref?.hero?.rationality ?? 50}/100`"></strong><i :style="`width:${pref?.hero?.rationality ?? 50}%`"></i></div>
+                  <div class="pref-hero-meter">
+                    <div class="pref-meter-head"><span>理性感性轴</span><strong x-text="pref?.hero?.rationality ?? 50"></strong></div>
+                    <div class="pref-meter-track"><small>理性</small><b class="pref-gauge-track"><i :style="`width:${pref?.hero?.rationality ?? 50}%`"></i></b><small>感性</small></div>
+                  </div>
                 </section>
                 <p class="ability-empty" x-show="!(pref?.layers || []).length && !(pref?.axes || []).length && !(pref?.guiltLines || []).length && !(pref?.psychGroups || []).length">本质偏好五层尚未固化；完成玩家人生取向或角色卡生成后会显示完整矩阵。</p>
-                <section class="pref-layer-grid" x-show="(pref?.layers || []).length">
+                <section class="pref-layer-rail" x-show="(pref?.layers || []).length">
                   <template x-for="layer in pref?.layers || []" :key="`pref-layer-${layer.key}`">
-                    <button type="button" class="pref-layer-card ability-expandable" :class="[`tone-${layer.tone}`, { open: layer.field && $store.game.isAbilityDetailOpen(layer.field) }]" @click="layer.field && $store.game.toggleAbilityDetail(layer.field)">
+                    <button type="button" class="pref-layer-chip ability-expandable" :class="[`tone-${layer.tone}`, { open: layer.field && $store.game.isAbilityDetailOpen(layer.field) }]" @click="layer.field && $store.game.toggleAbilityDetail(layer.field)" :title="layer.preview || layer.title">
                       <span class="pref-layer-icon" aria-hidden="true" x-text="layer.icon"></span>
                       <strong x-text="layer.title"></strong>
-                      <p x-text="layer.preview"></p>
                     </button>
                   </template>
                 </section>
-                <section class="pref-axis-grid" x-show="(pref?.axes || []).length">
+                <section class="pref-axis-list" x-show="(pref?.axes || []).length">
+                  <header class="pref-group-head"><strong>人生六维</strong><small>属性条 0–100</small></header>
                   <template x-for="row in pref?.axes || []" :key="`pref-axis-${row.key}`">
-                    <button type="button" class="pref-axis-card ability-expandable" :class="[`tone-${row.tone}`, { open: row.field && $store.game.isAbilityDetailOpen(row.field) }]" @click="row.field && $store.game.toggleAbilityDetail(row.field)">
+                    <button type="button" class="pref-axis-row ability-expandable" :class="[`tone-${row.tone}`, { open: row.field && $store.game.isAbilityDetailOpen(row.field) }]" @click="row.field && $store.game.toggleAbilityDetail(row.field)" :title="row.summary || row.title">
                       <span class="pref-axis-title" x-text="row.title"></span>
-                      <strong x-text="row.summary"></strong>
-                      <span class="pref-axis-scale"><small x-text="row.leftTag || row.left"></small><i :style="`width:${row.value}%`"></i><small x-text="row.rightTag || row.right"></small></span>
+                      <span class="pref-axis-scale">
+                        <small x-text="row.leftTag || row.left"></small>
+                        <b class="pref-gauge-track"><i :style="`width:${row.value}%`"></i></b>
+                        <small x-text="row.rightTag || row.right"></small>
+                        <em class="pref-axis-val" x-text="row.value"></em>
+                      </span>
                     </button>
                   </template>
                 </section>
-                <section class="pref-guilt-grid" x-show="(pref?.guiltLines || []).length">
+                <section class="pref-guilt-list" x-show="(pref?.guiltLines || []).length">
+                  <header class="pref-group-head"><strong>底线锚点</strong><small>边界强度</small></header>
                   <template x-for="row in pref?.guiltLines || []" :key="`pref-guilt-${row.id}`">
-                    <button type="button" class="pref-guilt-card ability-expandable" :class="[`tone-${row.tone}`, { open: row.field && $store.game.isAbilityDetailOpen(row.field) }]" @click="row.field && $store.game.toggleAbilityDetail(row.field)">
+                    <button type="button" class="pref-guilt-row ability-expandable" :class="[`tone-${row.tone}`, { open: row.field && $store.game.isAbilityDetailOpen(row.field) }]" @click="row.field && $store.game.toggleAbilityDetail(row.field)" :title="row.summary || row.title">
                       <span class="pref-guilt-icon" aria-hidden="true">🜁</span>
-                      <div><strong x-text="row.title"></strong><p x-text="row.summary"></p></div>
+                      <div class="pref-guilt-body">
+                        <strong x-text="row.title"></strong>
+                        <span class="pref-axis-scale">
+                          <small x-text="row.leftTag || row.left || '无感'"></small>
+                          <b class="pref-gauge-track"><i :style="`width:${row.value ?? 50}%`"></i></b>
+                          <small x-text="row.rightTag || row.right || '铁律'"></small>
+                          <em class="pref-axis-val" x-text="row.value ?? 50"></em>
+                        </span>
+                      </div>
                     </button>
                   </template>
                 </section>
@@ -1762,7 +1778,7 @@
                   <header class="pref-group-head"><strong>心理偏好簇</strong><small>长期触发标签</small></header>
                   <div class="pref-psych-grid">
                     <template x-for="group in pref?.psychGroups || []" :key="`pref-psych-${group.groupLabel}`">
-                      <button type="button" class="pref-psych-card ability-expandable" :class="{ open: group.field && $store.game.isAbilityDetailOpen(group.field) }" @click="group.field && $store.game.toggleAbilityDetail(group.field)">
+                      <button type="button" class="pref-psych-group ability-expandable" :class="{ open: group.field && $store.game.isAbilityDetailOpen(group.field) }" @click="group.field && $store.game.toggleAbilityDetail(group.field)">
                         <strong x-text="group.groupLabel"></strong>
                         <div class="pref-tag-cloud">
                           <template x-for="tag in group.tags || []" :key="`${group.groupLabel}-${tag}`">
@@ -3328,63 +3344,79 @@
                   </template>
                   <template x-if="section.view === 'essentialPreference'">
                     <div class="pref-panel" x-data="{ pref: null }" x-init="pref = $store.game.essentialPreferencePresentation(section.fields); $watch(() => $store.game.identityTargetId, () => { pref = $store.game.essentialPreferencePresentation(section.fields); $store.game.clearAbilityDetail?.(); })">
-                      <section class="pref-hero">
-                        <div class="pref-hero-crest" aria-hidden="true">✦</div>
-                        <div class="pref-hero-copy">
-                          <span class="pref-hero-eyebrow" x-text="pref?.hero?.eyebrow || 'ESSENCE MATRIX'"></span>
-                          <strong class="pref-hero-title" x-text="pref?.hero?.title || '本质偏好'"></strong>
-                          <p class="pref-hero-note" x-text="pref?.hero?.note || '本质偏好五层会长期约束角色的价值、决策与心理表达。'"></p>
-                        </div>
-                        <div class="pref-hero-meter"><span>理性感性轴</span><strong x-text="`${pref?.hero?.rationality ?? 50}/100`"></strong><i :style="`width:${pref?.hero?.rationality ?? 50}%`"></i></div>
-                      </section>
-                      <p class="ability-empty" x-show="!(pref?.layers || []).length && !(pref?.axes || []).length && !(pref?.guiltLines || []).length && !(pref?.psychGroups || []).length">本质偏好五层尚未固化；完成玩家人生取向或角色卡生成后会显示完整矩阵。</p>
-                      <section class="pref-layer-grid" x-show="(pref?.layers || []).length">
-                        <template x-for="layer in pref?.layers || []" :key="`entry-pref-layer-${layer.key}`">
-                          <button type="button" class="pref-layer-card ability-expandable" :class="[`tone-${layer.tone}`, { open: layer.field && $store.game.isAbilityDetailOpen(layer.field) }]" @click="layer.field && $store.game.toggleAbilityDetail(layer.field)">
-                            <span class="pref-layer-icon" aria-hidden="true" x-text="layer.icon"></span>
-                            <strong x-text="layer.title"></strong>
-                            <p x-text="layer.preview"></p>
-                          </button>
-                        </template>
-                      </section>
-                      <section class="pref-axis-grid" x-show="(pref?.axes || []).length">
-                        <template x-for="row in pref?.axes || []" :key="`entry-pref-axis-${row.key}`">
-                          <button type="button" class="pref-axis-card ability-expandable" :class="[`tone-${row.tone}`, { open: row.field && $store.game.isAbilityDetailOpen(row.field) }]" @click="row.field && $store.game.toggleAbilityDetail(row.field)">
-                            <span class="pref-axis-title" x-text="row.title"></span>
-                            <strong x-text="row.summary"></strong>
-                            <span class="pref-axis-scale"><small x-text="row.leftTag || row.left"></small><i :style="`width:${row.value}%`"></i><small x-text="row.rightTag || row.right"></small></span>
-                          </button>
-                        </template>
-                      </section>
-                      <section class="pref-guilt-grid" x-show="(pref?.guiltLines || []).length">
-                        <template x-for="row in pref?.guiltLines || []" :key="`entry-pref-guilt-${row.id}`">
-                          <button type="button" class="pref-guilt-card ability-expandable" :class="[`tone-${row.tone}`, { open: row.field && $store.game.isAbilityDetailOpen(row.field) }]" @click="row.field && $store.game.toggleAbilityDetail(row.field)">
-                            <span class="pref-guilt-icon" aria-hidden="true">🜁</span>
-                            <div><strong x-text="row.title"></strong><p x-text="row.summary"></p></div>
-                          </button>
-                        </template>
-                      </section>
-                      <section class="pref-psych-section" x-show="(pref?.psychGroups || []).length">
-                        <header class="pref-group-head"><strong>心理偏好簇</strong><small>长期触发标签</small></header>
-                        <div class="pref-psych-grid">
-                          <template x-for="group in pref?.psychGroups || []" :key="`entry-pref-psych-${group.groupLabel}`">
-                            <button type="button" class="pref-psych-card ability-expandable" :class="{ open: group.field && $store.game.isAbilityDetailOpen(group.field) }" @click="group.field && $store.game.toggleAbilityDetail(group.field)">
-                              <strong x-text="group.groupLabel"></strong>
-                              <div class="pref-tag-cloud">
-                                <template x-for="tag in group.tags || []" :key="`${group.groupLabel}-${tag}`">
-                                  <span class="pref-tag-chip" x-text="tag"></span>
-                                </template>
-                              </div>
-                            </button>
+                <section class="pref-hero">
+                  <div class="pref-hero-crest" aria-hidden="true">✦</div>
+                  <div class="pref-hero-copy">
+                    <span class="pref-hero-eyebrow" x-text="pref?.hero?.eyebrow || 'ESSENCE MATRIX'"></span>
+                    <span class="pref-align-badge" x-text="pref?.hero?.title || '本质偏好'"></span>
+                    <p class="pref-hero-note" x-show="!((pref?.axes || []).length)" x-text="pref?.hero?.note || '本质偏好五层会长期约束角色的价值、决策与心理表达。'"></p>
+                  </div>
+                  <div class="pref-hero-meter">
+                    <div class="pref-meter-head"><span>理性感性轴</span><strong x-text="pref?.hero?.rationality ?? 50"></strong></div>
+                    <div class="pref-meter-track"><small>理性</small><b class="pref-gauge-track"><i :style="`width:${pref?.hero?.rationality ?? 50}%`"></i></b><small>感性</small></div>
+                  </div>
+                </section>
+                <p class="ability-empty" x-show="!(pref?.layers || []).length && !(pref?.axes || []).length && !(pref?.guiltLines || []).length && !(pref?.psychGroups || []).length">本质偏好五层尚未固化；完成玩家人生取向或角色卡生成后会显示完整矩阵。</p>
+                <section class="pref-layer-rail" x-show="(pref?.layers || []).length">
+                  <template x-for="layer in pref?.layers || []" :key="`entry-pref-layer-${layer.key}`">
+                    <button type="button" class="pref-layer-chip ability-expandable" :class="[`tone-${layer.tone}`, { open: layer.field && $store.game.isAbilityDetailOpen(layer.field) }]" @click="layer.field && $store.game.toggleAbilityDetail(layer.field)" :title="layer.preview || layer.title">
+                      <span class="pref-layer-icon" aria-hidden="true" x-text="layer.icon"></span>
+                      <strong x-text="layer.title"></strong>
+                    </button>
+                  </template>
+                </section>
+                <section class="pref-axis-list" x-show="(pref?.axes || []).length">
+                  <header class="pref-group-head"><strong>人生六维</strong><small>属性条 0–100</small></header>
+                  <template x-for="row in pref?.axes || []" :key="`entry-pref-axis-${row.key}`">
+                    <button type="button" class="pref-axis-row ability-expandable" :class="[`tone-${row.tone}`, { open: row.field && $store.game.isAbilityDetailOpen(row.field) }]" @click="row.field && $store.game.toggleAbilityDetail(row.field)" :title="row.summary || row.title">
+                      <span class="pref-axis-title" x-text="row.title"></span>
+                      <span class="pref-axis-scale">
+                        <small x-text="row.leftTag || row.left"></small>
+                        <b class="pref-gauge-track"><i :style="`width:${row.value}%`"></i></b>
+                        <small x-text="row.rightTag || row.right"></small>
+                        <em class="pref-axis-val" x-text="row.value"></em>
+                      </span>
+                    </button>
+                  </template>
+                </section>
+                <section class="pref-guilt-list" x-show="(pref?.guiltLines || []).length">
+                  <header class="pref-group-head"><strong>底线锚点</strong><small>边界强度</small></header>
+                  <template x-for="row in pref?.guiltLines || []" :key="`entry-pref-guilt-${row.id}`">
+                    <button type="button" class="pref-guilt-row ability-expandable" :class="[`tone-${row.tone}`, { open: row.field && $store.game.isAbilityDetailOpen(row.field) }]" @click="row.field && $store.game.toggleAbilityDetail(row.field)" :title="row.summary || row.title">
+                      <span class="pref-guilt-icon" aria-hidden="true">🜁</span>
+                      <div class="pref-guilt-body">
+                        <strong x-text="row.title"></strong>
+                        <span class="pref-axis-scale">
+                          <small x-text="row.leftTag || row.left || '无感'"></small>
+                          <b class="pref-gauge-track"><i :style="`width:${row.value ?? 50}%`"></i></b>
+                          <small x-text="row.rightTag || row.right || '铁律'"></small>
+                          <em class="pref-axis-val" x-text="row.value ?? 50"></em>
+                        </span>
+                      </div>
+                    </button>
+                  </template>
+                </section>
+                <section class="pref-psych-section" x-show="(pref?.psychGroups || []).length">
+                  <header class="pref-group-head"><strong>心理偏好簇</strong><small>长期触发标签</small></header>
+                  <div class="pref-psych-grid">
+                    <template x-for="group in pref?.psychGroups || []" :key="`entry-pref-psych-${group.groupLabel}`">
+                      <button type="button" class="pref-psych-group ability-expandable" :class="{ open: group.field && $store.game.isAbilityDetailOpen(group.field) }" @click="group.field && $store.game.toggleAbilityDetail(group.field)">
+                        <strong x-text="group.groupLabel"></strong>
+                        <div class="pref-tag-cloud">
+                          <template x-for="tag in group.tags || []" :key="`${group.groupLabel}-${tag}`">
+                            <span class="pref-tag-chip" x-text="tag"></span>
                           </template>
                         </div>
-                      </section>
-                      <aside class="ability-detail-sheet" x-show="$store.game.abilityDetailPanel?.text" x-transition.opacity.duration.150ms>
-                        <header class="ability-detail-head"><strong x-text="$store.game.abilityDetailPanel?.title || '详情'"></strong><button type="button" class="ability-detail-close" @click="$store.game.clearAbilityDetail()">收起</button></header>
-                        <pre class="ability-detail-body" x-text="$store.game.abilityDetailPanel?.text"></pre>
-                      </aside>
-                    </div>
-                  </template>
+                      </button>
+                    </template>
+                  </div>
+                </section>
+                <aside class="ability-detail-sheet" x-show="$store.game.abilityDetailPanel?.text" x-transition.opacity.duration.150ms>
+                  <header class="ability-detail-head"><strong x-text="$store.game.abilityDetailPanel?.title || '详情'"></strong><button type="button" class="ability-detail-close" @click="$store.game.clearAbilityDetail()">收起</button></header>
+                  <pre class="ability-detail-body" x-text="$store.game.abilityDetailPanel?.text"></pre>
+                </aside>
+              </div>
+            </template>
                   <template x-if="section.title !== '个人能力' && section.title !== '身内能力' && section.title !== '装备与物品' && section.title !== '当前自然状态' && section.title !== '盛装' && section.title !== '身份信息' && section.title !== '身体状态' && section.view !== 'goals' && section.view !== 'essentialPreference'">
                     <template x-for="field in section.fields" :key="`entry-field-${field.key}`">
                       <div class="dynamic-row" role="button" tabindex="0" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.toggleRpgField(field)" @keydown.enter.prevent="$store.game.toggleRpgField(field)" @keydown.space.prevent="$store.game.toggleRpgField(field)">

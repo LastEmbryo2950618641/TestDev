@@ -1,5 +1,5 @@
 window.GameScriptManifest = {
-  "version": "2026-07-23-db-write-fix-v15",
+  "version": "2026-07-24-pref-rpg-v17",
   "chunks": {
     "core": [
       "https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js",
@@ -168,6 +168,7 @@ window.GameScriptManifest = {
       "update/role-card-update.js",
       "update/relationship-update.js",
       "update/sexual-experience-update.js",
+      "update/control-experience-update.js",
       "update/sexual-history-update.js",
       "update/body-status-update.js",
       "update/wearing-state-update.js",

@@ -107,6 +107,8 @@ window.GameModules.characterFeedback = {
       controlFeeling: '疑惑/恐惧/愤怒等短语',
       adaptation: 0,
       experienceSummary: '40字内',
+      controllerAwarenessLevel: 'unknown|traitKnown|identityGuessed',
+      controllerAwareness: '对控制者了解，不超过20字',
       choices: ['4个行动选项，每个12字内'],
     });
     return window.GameModules.renderPrompt('character-feedback', {
@@ -119,6 +121,8 @@ window.GameModules.characterFeedback = {
       上线感觉: experience.feeling,
       适应度: experience.adaptation,
       上线摘要: experience.summary,
+      对控制者了解等级: experience.controllerAwarenessLevel || 'unknown',
+      对控制者了解: experience.controllerAwareness || '尚不知晓控制者是谁',
       上线体验规则块: controlExperienceRuleBlock,
       输出示例: outputJson,
     });
@@ -151,6 +155,10 @@ window.GameModules.characterFeedback = {
       controlFeeling: String(data.controlFeeling || fallback.controlFeeling || '疑惑').slice(0, 40),
       adaptation: this.clamp(data.adaptation, fallback.adaptation),
       experienceSummary: String(data.experienceSummary || fallback.experienceSummary).slice(0, 80),
+      ...((window.GameModules.controlExperienceStage?.normalizeControllerAwareness?.(data, fallback)) || {
+        controllerAwarenessLevel: String(data.controllerAwarenessLevel || fallback.controllerAwarenessLevel || 'unknown'),
+        controllerAwareness: String(data.controllerAwareness || fallback.controllerAwareness || '尚不知晓控制者是谁').slice(0, 20),
+      }),
       choices: this.normalizeChoices(data.choices, fallback.choices),
       source,
     };
@@ -168,6 +176,8 @@ window.GameModules.characterFeedback = {
       intent: pick('intent'),
       controlFeeling: pick('controlFeeling'),
       experienceSummary: pick('experienceSummary'),
+      controllerAwarenessLevel: pick('controllerAwarenessLevel'),
+      controllerAwareness: pick('controllerAwareness'),
     };
   },
 
@@ -187,6 +197,8 @@ window.GameModules.characterFeedback = {
       controlFeeling: experience.onlineCount > 0 ? experience.feeling : '疑惑',
       adaptation: experience.adaptation,
       experienceSummary: '身体突然失控，她/他还无法确认你会做什么。',
+      controllerAwarenessLevel: experience.controllerAwarenessLevel || 'unknown',
+      controllerAwareness: experience.controllerAwareness || '尚不知晓控制者是谁',
       choices: ['确认周围状况', '尝试移动身体', '寻找安全位置', '接近关键人物'],
       source: 'fallback',
     };
@@ -258,14 +270,34 @@ window.GameModules.characterFeedback = {
         feeling: '未知',
         adaptation: 0,
         summary: '尚未经历上线操控。',
+        controllerAwarenessLevel: 'unknown',
+        controllerAwareness: '尚不知晓控制者是谁',
         lastUpdated: '',
       };
     }
-    return state.values.control_experience;
+    const exp = state.values.control_experience;
+    const awareness = window.GameModules.controlExperienceStage?.normalizeControllerAwareness?.(exp, {
+      controllerAwarenessLevel: 'unknown',
+      controllerAwareness: '尚不知晓控制者是谁',
+    }) || {
+      controllerAwarenessLevel: exp.controllerAwarenessLevel || 'unknown',
+      controllerAwareness: exp.controllerAwareness || '尚不知晓控制者是谁',
+    };
+    exp.controllerAwarenessLevel = awareness.controllerAwarenessLevel;
+    exp.controllerAwareness = awareness.controllerAwareness;
+    return exp;
   },
 
   experience(store) {
-    return this.ensureExperience(store) || { onlineCount: 0, feeling: '未知', adaptation: 0, summary: '尚未经历上线操控。', lastUpdated: '' };
+    return this.ensureExperience(store) || {
+      onlineCount: 0,
+      feeling: '未知',
+      adaptation: 0,
+      summary: '尚未经历上线操控。',
+      controllerAwarenessLevel: 'unknown',
+      controllerAwareness: '尚不知晓控制者是谁',
+      lastUpdated: '',
+    };
   },
 
   async applyExperience(store, feedback) {
@@ -276,6 +308,12 @@ window.GameModules.characterFeedback = {
     exp.feeling = feedback.controlFeeling || exp.feeling || '疑惑';
     exp.adaptation = this.clamp(feedback.adaptation, exp.adaptation || 0);
     exp.summary = feedback.experienceSummary || exp.summary || '';
+    const awareness = window.GameModules.controlExperienceStage?.normalizeControllerAwareness?.(feedback, exp) || {
+      controllerAwarenessLevel: feedback.controllerAwarenessLevel || exp.controllerAwarenessLevel || 'unknown',
+      controllerAwareness: String(feedback.controllerAwareness || exp.controllerAwareness || '尚不知晓控制者是谁').slice(0, 20),
+    };
+    exp.controllerAwarenessLevel = awareness.controllerAwarenessLevel;
+    exp.controllerAwareness = awareness.controllerAwareness;
     exp.lastUpdated = new Date().toISOString();
     store.rpgStates = { ...store.rpgStates, [state.id]: state };
     await window.GameModules.characterStateStore?.save?.(state);

@@ -141,6 +141,7 @@ Object.assign(window.GameModules.updateRegistry, {
     if (update.updateType === 'relationship') return this.applyRelationshipUpdate(store, update);
     if (update.updateType === 'body-status') return this.applyBodyStatusUpdate(store, update);
     if (update.updateType === 'sexual-experience') return this.applySexualExperienceUpdate(store, update);
+    if (update.updateType === 'control-experience') return this.applyControlExperienceUpdate(store, update);
     if (update.updateType === 'wearing-state') return this.applyWearingStateUpdate(store, update);
     if (update.updateType === 'emotion' || update.updateType === 'feeling') return this.applyMetricUpdate(store, update);
     const direct = this.targetState(store, update), generic = direct ? null : this.genericTarget(store, update);
@@ -321,6 +322,112 @@ Object.assign(window.GameModules.updateRegistry, {
       update.change.value = { ...update.change.value, updatedAt };
     }
     return true;
+  },
+
+  parseAdaptationDelta(raw) {
+    if (raw === undefined || raw === null || raw === '') return 0;
+    if (typeof raw === 'number' && Number.isFinite(raw)) return Math.trunc(raw);
+    const text = String(raw).trim().replace(/^\+/, '');
+    const numeric = Number(text);
+    return Number.isFinite(numeric) ? Math.trunc(numeric) : 0;
+  },
+
+  applyControlExperienceUpdate(store, update = {}) {
+    const state = this.targetState(store, update)
+      || store?.sharedControlState?.()
+      || store?.rpgStates?.[update?.subject?.id]
+      || null;
+    if (!state?.values) return false;
+    const raw = this.changeValue(update);
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return false;
+    const needUpdate = raw.needUpdate === true || raw.needUpdate === 'true' || raw['需要更新'] === true;
+    if (!needUpdate) return false;
+
+    const stage = window.GameModules.controlExperienceStage;
+    const current = state.values.control_experience && typeof state.values.control_experience === 'object'
+      ? { ...state.values.control_experience }
+      : {
+        onlineCount: 0,
+        feeling: '未知',
+        adaptation: 0,
+        summary: '尚未经历上线操控。',
+        controllerAwarenessLevel: 'unknown',
+        controllerAwareness: '尚不知晓控制者是谁',
+        lastUpdated: '',
+      };
+
+    const allowed = new Set(['feeling', 'adaptation', 'summary', 'controllerAwarenessLevel', 'controllerAwareness']);
+    const fieldAliases = {
+      feeling: 'feeling',
+      操控感觉: 'feeling',
+      感觉: 'feeling',
+      adaptation: 'adaptation',
+      适应度: 'adaptation',
+      summary: 'summary',
+      体验摘要: 'summary',
+      摘要: 'summary',
+      controllerAwarenessLevel: 'controllerAwarenessLevel',
+      对控制者了解等级: 'controllerAwarenessLevel',
+      controllerAwareness: 'controllerAwareness',
+      对控制者了解: 'controllerAwareness',
+    };
+    const requested = Array.isArray(raw.updateFields) ? raw.updateFields
+      : (Array.isArray(raw['更新字段']) ? raw['更新字段'] : []);
+    const fields = [...new Set(
+      (requested.length ? requested : Object.keys(raw))
+        .map((key) => fieldAliases[String(key || '').trim()] || String(key || '').trim())
+        .filter((key) => allowed.has(key)),
+    )];
+    if (!fields.length) return false;
+
+    let changed = false;
+    current.onlineCount = Math.max(0, Math.floor(Number(current.onlineCount) || 0) + 1);
+    changed = true;
+
+    if (fields.includes('feeling') && raw.feeling !== undefined) {
+      const nextFeeling = String(raw.feeling ?? raw['操控感觉'] ?? '').trim().slice(0, 40);
+      if (nextFeeling && nextFeeling !== current.feeling) {
+        current.feeling = nextFeeling;
+        changed = true;
+      } else if (nextFeeling) current.feeling = nextFeeling;
+    }
+    if (fields.includes('adaptation') && (raw.adaptation !== undefined || raw['适应度'] !== undefined)) {
+      const delta = this.parseAdaptationDelta(raw.adaptation ?? raw['适应度']);
+      const nextAdaptation = stage?.normalizeAdaptation?.(Number(current.adaptation || 0) + delta)
+        ?? Math.max(0, Math.min(100, Math.floor(Number(current.adaptation) || 0) + delta));
+      if (nextAdaptation !== current.adaptation) changed = true;
+      current.adaptation = nextAdaptation;
+    }
+    if (fields.includes('summary') && (raw.summary !== undefined || raw['体验摘要'] !== undefined)) {
+      const nextSummary = String(raw.summary ?? raw['体验摘要'] ?? '').trim().slice(0, 200);
+      if (nextSummary) {
+        current.summary = nextSummary;
+        changed = true;
+      }
+    }
+    if (fields.includes('controllerAwarenessLevel') || fields.includes('controllerAwareness')) {
+      const awareness = stage?.normalizeControllerAwareness?.({
+        controllerAwarenessLevel: fields.includes('controllerAwarenessLevel')
+          ? (raw.controllerAwarenessLevel ?? raw['对控制者了解等级'] ?? current.controllerAwarenessLevel)
+          : current.controllerAwarenessLevel,
+        controllerAwareness: fields.includes('controllerAwareness')
+          ? (raw.controllerAwareness ?? raw['对控制者了解'] ?? current.controllerAwareness)
+          : current.controllerAwareness,
+      }, current) || {
+        controllerAwarenessLevel: current.controllerAwarenessLevel || 'unknown',
+        controllerAwareness: String(current.controllerAwareness || '尚不知晓控制者是谁').slice(0, 20),
+      };
+      if (
+        awareness.controllerAwarenessLevel !== current.controllerAwarenessLevel
+        || awareness.controllerAwareness !== current.controllerAwareness
+      ) changed = true;
+      current.controllerAwarenessLevel = awareness.controllerAwarenessLevel;
+      current.controllerAwareness = awareness.controllerAwareness;
+    }
+
+    current.lastUpdated = new Date().toISOString();
+    state.values.control_experience = current;
+    return changed;
   },
 
   applySexualExperienceUpdate(store, update = {}) {

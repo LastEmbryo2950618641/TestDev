@@ -29,10 +29,10 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
       const key = this.materialRequestKey(req.skill, req.method, req.params, materials);
       if (loadedKeys.has(key)) continue;
       loadedKeys.add(key);
-      const text = window.GameModules.characterQuery?.stateText?.(state, req.params.world, 3200) || '';
+      const text = window.GameModules.characterQuery?.stateText?.(state, req.params.world, 0) || '';
       if (!text) continue;
       materials?.record?.(materialSession, req, `自动资料：${name}角色卡`, text);
-      out.push({ title: `自动资料：${name}角色卡`, text, max: 3200, participants: [{ type: 'character', id: state.id || name, name, role: 'loaded-role-card' }] });
+      out.push({ title: `自动资料：${name}角色卡`, text, max: 0, unlimited: true, participants: [{ type: 'character', id: state.id || name, name, role: 'loaded-role-card' }] });
     }
     return out;
   },
@@ -86,14 +86,24 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
       if (loadedKeys.has(key)) continue;
       loadedKeys.add(key);
       const material = materials?.optionFor?.({ skill, method, params });
-      const max = material?.maxChars || this.maxFor(skill);
-      const text = await this.dispatch(store, action, skill, method, { ...params, maxChars: max }, options);
+      const configuredMax = material && Object.prototype.hasOwnProperty.call(material, 'maxChars')
+        ? Number(material.maxChars)
+        : this.maxFor(skill);
+      const max = Number.isFinite(configuredMax) ? configuredMax : this.maxFor(skill);
+      const unlimitedRoleCard = skill === 'character.query' && method === 'searchCharacterProfile' && !(max > 0);
+      const text = await this.dispatch(store, action, skill, method, { ...params, maxChars: unlimitedRoleCard ? 0 : max }, options);
       if (text) {
         const title = `${skill}.${method}`;
         const ref = this.materialReferenceFor(text, this.materialReferenceCandidates(store, loaded, [...current, ...out]));
         const finalText = ref ? this.materialReferenceText(ref) : text;
         materials?.record?.(materialSession, { skill, method, params }, title, finalText);
-        out.push({ title, text: finalText, max: ref ? 260 : max, referenceId: ref?.id });
+        out.push({
+          title,
+          text: finalText,
+          max: ref ? 260 : (unlimitedRoleCard ? 0 : max),
+          unlimited: !ref && unlimitedRoleCard,
+          referenceId: ref?.id,
+        });
       }
     }
     return out;
@@ -102,7 +112,7 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
 
   maxFor(skill) {
     if (skill === 'past.event.query') return 5200;
-    if (skill === 'character.query') return 3200;
+    if (skill === 'character.query') return 0;
     if (skill === 'realworld.location.query') return 1500;
     if (String(skill || '').startsWith('realworld.property.')) return 1800;
     if (skill === 'memory.query') return 1600;

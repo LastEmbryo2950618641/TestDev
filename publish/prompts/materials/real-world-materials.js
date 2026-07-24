@@ -2,7 +2,7 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldMaterials = {
   items: [
-    { id: 'character-profile-search', title: '查询角色完整身份资料', size: 'medium', maxChars: 3200, skill: 'character.query', method: 'searchCharacterProfile', paramsHint: { world: '世界名', name: '角色名' }, when: '中文资料请求：角色查询，搜索角色卡，角色全称，世界全称。场景锚定确认强制出场、高优先候选或戏剧候选时查询完整角色卡；角色卡 Top3，优先强制出场，其次高优先候选，最后开放场景戏剧候选。加载角色卡不等于出场或结算；不得输出英文 skill/method。' },
+    { id: 'character-profile-search', title: '查询角色完整身份资料', size: 'medium', maxChars: 0, skill: 'character.query', method: 'searchCharacterProfile', paramsHint: { world: '世界名', name: '角色名' }, when: '中文资料请求：角色查询，搜索角色卡，角色全称，世界全称。场景锚定确认强制出场、高优先候选或戏剧候选时查询完整角色卡；角色卡 Top3，优先强制出场，其次高优先候选，最后开放场景戏剧候选。加载角色卡不等于出场或结算；不得输出英文 skill/method。角色卡整卡放行，不截断长度。' },
     { id: 'character-known-list', title: '已知角色资料清单', size: 'small', maxChars: 1200, skill: 'character.query', method: 'listKnownCharacters', paramsHint: { world: '世界名' }, when: '需要先了解当前世界已有角色卡和介绍卡。' },
     { id: 'past-event-search', title: '统一查询过去事件', size: 'large', maxChars: 5200, skill: 'past.event.query', method: 'searchPastEvent', paramsHint: { world: '世界名', question: '用户问题', keywords: ['角色名', '事件词', '地点或时间'], characterName: '角色名', timeHint: '几天前/昨天/某日期', contactId: '微信联系人id可选' }, when: '玩家询问几天前、之前、上次、记不记得、旧承诺、图片、地点、物品、微信原文或角色过去经历。' },
     { id: 'company-list', title: '玩家相关公司列表', size: 'small', maxChars: 800, skill: 'company.query', method: 'listPlayerCompanies', paramsHint: { world: '世界名',}, when: '确认玩家有哪些公司、组织或雇主资料。' },

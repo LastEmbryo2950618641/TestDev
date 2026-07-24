@@ -1203,6 +1203,22 @@
   font-size: 28px;
   border: 1px solid rgba(255, 196, 120, .24);
   background: linear-gradient(180deg, rgba(255, 196, 120, .16), rgba(167, 139, 250, .08));
+  box-shadow: 0 0 24px rgba(255, 196, 120, .12);
+}
+
+.pref-align-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 2px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: #f4ecff;
+  border: 1px solid rgba(167, 139, 250, .42);
+  background: linear-gradient(135deg, rgba(167, 139, 250, .22), rgba(255, 126, 214, .12));
+  box-shadow: inset 0 1px rgba(255, 255, 255, .08), 0 8px 18px rgba(74, 36, 120, .18);
 }
 
 .pref-hero-meter {
@@ -1214,18 +1230,134 @@
   background: rgba(255, 255, 255, .04);
 }
 
+.pref-meter-head,
 .pref-hero-meter span,
 .pref-hero-meter strong {
   color: #eef4ff;
 }
 
-.pref-hero-meter i,
-.pref-axis-scale i {
+.pref-meter-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.pref-meter-head strong,
+.pref-axis-val {
+  font-variant-numeric: tabular-nums;
+  font-style: normal;
+  font-weight: 700;
+  color: #f8fbff;
+}
+
+.pref-meter-track {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  color: #8ea0cc;
+  font-size: 11px;
+}
+
+.pref-gauge-track {
+  position: relative;
   display: block;
   height: 8px;
   border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, .08);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .28);
+}
+
+.pref-hero-meter i,
+.pref-axis-scale i,
+.pref-gauge-track > i {
+  display: block;
+  height: 100%;
+  min-height: 8px;
+  border-radius: 999px;
   background: linear-gradient(90deg, rgba(111, 228, 255, .92), rgba(255, 126, 214, .88));
   box-shadow: 0 0 18px rgba(111, 228, 255, .18);
+  transition: width .2s ease;
+}
+
+.pref-layer-rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pref-layer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: #eef4ff;
+  border: 1px solid rgba(255, 255, 255, .1);
+  background: linear-gradient(180deg, rgba(22, 29, 55, .96), rgba(13, 20, 38, .98));
+  cursor: pointer;
+}
+
+.pref-layer-chip .pref-layer-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.pref-layer-chip strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pref-layer-chip.open,
+.pref-axis-row.open,
+.pref-guilt-row.open,
+.pref-psych-group.open {
+  border-color: rgba(127, 229, 255, .45);
+  box-shadow: 0 0 0 1px rgba(127, 229, 255, .18), inset 0 0 18px rgba(127, 229, 255, .06);
+}
+
+.pref-axis-list,
+.pref-guilt-list {
+  display: grid;
+  gap: 6px;
+}
+
+.pref-axis-row,
+.pref-guilt-row {
+  width: 100%;
+  text-align: left;
+  color: #eef4ff;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  background: linear-gradient(180deg, rgba(22, 29, 55, .96), rgba(13, 20, 38, .98));
+  cursor: pointer;
+}
+
+.pref-axis-row {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+}
+
+.pref-guilt-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+}
+
+.pref-guilt-body {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pref-guilt-body strong {
+  font-size: 13px;
 }
 
 .pref-layer-grid,
@@ -1237,6 +1369,10 @@
 .body-state-grid {
   display: grid;
   gap: 12px;
+}
+
+.pref-psych-grid {
+  gap: 8px;
 }
 
 .pref-layer-grid {
@@ -1258,6 +1394,7 @@
 .pref-axis-card,
 .pref-guilt-card,
 .pref-psych-card,
+.pref-psych-group,
 .body-summary-card,
 .body-experience-card,
 .body-state-card {
@@ -1267,6 +1404,15 @@
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, .08);
   background: linear-gradient(180deg, rgba(22, 29, 55, .96), rgba(13, 20, 38, .98));
+}
+
+.pref-psych-group {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .03);
+  cursor: pointer;
 }
 
 .pref-layer-card,
@@ -1315,11 +1461,16 @@
 
 .pref-axis-scale {
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 10px;
+  grid-template-columns: minmax(2.4em, auto) minmax(0, 1fr) minmax(2.4em, auto) 2em;
+  gap: 8px;
   align-items: center;
   color: #8ea0cc;
   font-size: 11px;
+}
+
+.pref-axis-val {
+  justify-self: end;
+  font-size: 12px;
 }
 
 .pref-guilt-icon {
@@ -1334,6 +1485,7 @@
   justify-content: space-between;
   gap: 10px;
   padding: 0 2px;
+  margin-bottom: 2px;
 }
 
 .pref-group-head strong,
@@ -1366,8 +1518,9 @@
 }
 
 .pref-psych-card strong,
+.pref-psych-group strong,
 .body-state-copy strong {
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .body-status-group {
@@ -1458,6 +1611,15 @@
 
   .pref-hero,
   .body-status-hero {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .pref-hero-meter {
+    grid-column: 1 / -1;
+  }
+
+  .pref-axis-list,
+  .pref-guilt-list {
     grid-template-columns: 1fr;
   }
 }

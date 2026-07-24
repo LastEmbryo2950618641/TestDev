@@ -35,7 +35,7 @@ window.GameModules.storyAgentContext = {
       `当前目标：${store.quest || '确认操控连接'}`,
       `当前情绪/关系：情绪=${store.mood || '冷静'}｜信任=${store.trust ?? '--'}｜反抗=${store.resistance ?? '--'}`,
       `角色当前数值：\n${store.metricGroups?.(state).map((group) => `${group.title}：${Object.entries(group.values || {}).map(([k, v]) => `${k}${v}`).join('、')}`).join('\n') || '暂无数值。'}`,
-      `上线体验：次数=${exp.onlineCount || 0}｜感觉=${exp.feeling || '未知'}｜适应=${exp.adaptation || 0}/100｜摘要=${exp.summary || '尚无经历'}`,
+      `上线体验：次数=${exp.onlineCount || 0}｜感觉=${exp.feeling || '未知'}｜适应=${exp.adaptation || 0}/100｜对控制者了解=${exp.controllerAwareness || '尚不知晓控制者是谁'}｜摘要=${exp.summary || '尚无经历'}`,
       controlExperienceRules ? `上线体验阶段：\n${controlExperienceRules}` : '',
       `目标状态快照：\n${window.GameModules.promptSections?.stateSnapshot?.(store, state) || '暂无角色卡快照。'}`,
       `## 最近发送的世界线\n需严格跟着世界线续写，保证正文对最新世界线连续性。\n${recentWorldline}`,
@@ -79,8 +79,7 @@ window.GameModules.storyAgentContext = {
   },
 
   buildLoadedText(items = []) {
-    if (!items.length) return '本轮尚未动态载入额外资料。';
-    return items.map((item, index) => `### 资料${index + 1}｜${item.title}\n${this.limit(item.text, item.max || 1600)}`).join('\n\n');
+    return window.GameModules.realWorldAgentContext.buildLoadedText(items);
   },
 
   async skillText(store) {

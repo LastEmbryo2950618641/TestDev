@@ -187,8 +187,26 @@ window.GameModules.rpgState = {
     let changed = false;
     if (!state.values) state.values = {};
     if (!state.values.control_experience) {
-      state.values.control_experience = { onlineCount: 0, feeling: '未知', adaptation: 0, summary: '尚未经历上线操控。', lastUpdated: '' };
+      state.values.control_experience = {
+        onlineCount: 0,
+        feeling: '未知',
+        adaptation: 0,
+        summary: '尚未经历上线操控。',
+        controllerAwarenessLevel: 'unknown',
+        controllerAwareness: '尚不知晓控制者是谁',
+        lastUpdated: '',
+      };
       changed = true;
+    } else {
+      const awareness = window.GameModules.controlExperienceStage?.normalizeControllerAwareness?.(state.values.control_experience);
+      if (awareness && (
+        state.values.control_experience.controllerAwarenessLevel !== awareness.controllerAwarenessLevel
+        || state.values.control_experience.controllerAwareness !== awareness.controllerAwareness
+      )) {
+        state.values.control_experience.controllerAwarenessLevel = awareness.controllerAwarenessLevel;
+        state.values.control_experience.controllerAwareness = awareness.controllerAwareness;
+        changed = true;
+      }
     }
     const sections = state.schema?.sections || [];
     const itemSection = sections.find((section) => section.title === '习得与职业') || sections.find((section) => section.fields.some((field) => field.key === 'status_tags')) || sections.at(-1);
@@ -221,7 +239,15 @@ window.GameModules.rpgState = {
     values.current_location = character.id === 'player-self' && character.currentLocation && window.GameModules.currentLocationField?.stateValue
       ? window.GameModules.currentLocationField.stateValue(character, store, '创建玩家角色卡时从角色卡当前位置字段登记。')
       : { name: this.initialLocationName(character, store), worldTag: schema.worldTag, updatedAt: store?.phoneDateText?.() || '', reason: '创建角色卡时根据明确上下文登记；资料不足则等待后续剧情推演填充。' };
-    values.control_experience = { onlineCount: 0, feeling: '未知', adaptation: 0, summary: '尚未经历上线操控。', lastUpdated: '' };
+    values.control_experience = {
+      onlineCount: 0,
+      feeling: '未知',
+      adaptation: 0,
+      summary: '尚未经历上线操控。',
+      controllerAwarenessLevel: 'unknown',
+      controllerAwareness: '尚不知晓控制者是谁',
+      lastUpdated: '',
+    };
     values.intimacy = window.GameModules.initPromptRegistry?.markPendingInit?.(window.GameModules.initPromptRegistry?.defaultValue?.('intimacyBody', 'intimacy') || {});
     values.bodyStatus = window.GameModules.initPromptRegistry?.markPendingInit?.(window.GameModules.initPromptRegistry?.defaultValue?.('intimacyBody', 'bodyStatus') || {});
     const state = {

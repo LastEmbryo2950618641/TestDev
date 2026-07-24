@@ -57,12 +57,13 @@ window.GameModules.characterQuery = {
   searchCharacter(store = null, params = {}) {
     const name = String(params.name || params.keyword || params.characterName || '').trim();
     const worldTag = this.worldOf(store, params);
-    const maxChars = Number(params.maxChars) || 3200;
+    const maxRaw = params.maxChars;
+    const maxChars = maxRaw === 0 || maxRaw === '0' ? 0 : (Number(maxRaw) || 0);
     if (!name) return '未提供角色名，无法查询角色资料。';
     const state = this.stateByName(store, name, worldTag);
     if (state) return this.stateText(state, worldTag, maxChars);
     const intro = this.introByName(name, worldTag);
-    if (intro) return this.introText(intro, maxChars);
+    if (intro) return this.introText(intro, maxChars || 1600);
     return `未找到角色资料：${name}｜世界：${worldTag}。若正文确认该人物存在，请在结算 JSON 的 appearedCharacters 写入 name、role、intro、work；若值得手动固化，同时写入 solidifiableCharacters。`;
   },
 
@@ -78,7 +79,10 @@ window.GameModules.characterQuery = {
   },
 
   limit(text = '', max = 3200) {
-    return String(text || '').trim().slice(0, Math.max(200, Number(max) || 3200));
+    const raw = String(text || '').trim();
+    const n = Number(max);
+    if (!Number.isFinite(n) || n <= 0) return raw;
+    return raw.slice(0, Math.max(200, n));
   },
 
   line(label, value) {
@@ -93,7 +97,7 @@ window.GameModules.characterQuery = {
     if (value.name && (value.current !== undefined || value.max !== undefined)) return `${value.name}:${value.current ?? ''}/${value.max ?? ''}`;
     if (value.name && (value.level || value.type)) return `${value.name}${value.level ? ` lv.${value.level}` : ''}${value.type ? `（${value.type}）` : ''}`;
     if (Object.prototype.hasOwnProperty.call(value, 'current')) return `${value.current}/${value.max ?? 'max'}`;
-    if (Object.prototype.hasOwnProperty.call(value, 'onlineCount')) return `上线${value.onlineCount || 0}次｜${value.feeling || '未知'}｜适应${value.adaptation || 0}/100｜${value.summary || ''}`;
+    if (Object.prototype.hasOwnProperty.call(value, 'onlineCount')) return `上线${value.onlineCount || 0}次｜${value.feeling || '未知'}｜适应${value.adaptation || 0}/100｜了解:${value.controllerAwareness || '尚不知晓控制者是谁'}｜${value.summary || ''}`;
     if (Object.values(value).some((item) => item?.partKey && item?.status)) return Object.values(value).filter((item) => item?.partKey || item?.part || item?.name).map((item) => `${item.part || item.name || item.partKey}：${item.status || item.summary || '稳定'}`).join('；');
     return JSON.stringify(value);
   },
@@ -146,7 +150,26 @@ window.GameModules.characterQuery = {
     }).filter(Boolean).join('\n');
   },
 
-  stateText(state = {}, fallbackWorld = '', maxChars = 3200) {
+  lifeOrientationLines(profile = {}) {
+    const lo = profile?.lifeOrientation && typeof profile.lifeOrientation === 'object' ? profile.lifeOrientation : null;
+    if (!lo) return [];
+    const goals = lo.goals || {};
+    const rows = [
+      this.line('人生总结', lo.portraitSummary || lo.summary),
+      this.line('目标摘要', goals.summary),
+      this.line('近期目标', goals.short),
+      this.line('中期目标', goals.medium),
+      this.line('长期目标', goals.long),
+    ].filter(Boolean);
+    if (rows.length) return rows;
+    const goalBundle = String(lo.goalSummary || '').trim();
+    if (!goalBundle) return [];
+    return goalBundle.split(/\r?\n/u).map((line) => line.trim()).filter(Boolean).map((line) => (
+      /^(?:目标方向|目标摘要|近期方向|中期方向|长期方向|近期目标|中期目标|长期目标)[:：]/u.test(line) ? line : `目标：${line}`
+    ));
+  },
+
+  stateText(state = {}, fallbackWorld = '', maxChars = 0) {
     const profile = state.profile || {};
     const values = state.values || {};
     const metrics = state.metrics || {};
@@ -165,6 +188,7 @@ window.GameModules.characterQuery = {
       this.line('性格', profile.personality),
       this.line('喜好', profile.preferences),
       ...(window.GameModules.playerAspirationPreferenceLayers?.toLines?.(profile.essentialPreferenceLayers) || []),
+      ...this.lifeOrientationLines(profile),
       this.line('人物说明', profile.detail || state.note),
       this.line('社群角色', this.listText(profile.factions || values.factions, 8)),
       this.line('人事归属', this.listText(profile.memberships || values.memberships, 8)),

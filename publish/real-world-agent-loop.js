@@ -302,7 +302,12 @@ window.GameModules.realWorldAgentLoop = {
       open: true,
       collapseOthers: Boolean(config.livePatch),
     });
-    store.patchRealWorldLogEntry?.(logId, { thinkingSections: sections, thinking: this.joinThinkingSections(sections) }, { live: Boolean(config.livePatch) });
+    store.patchRealWorldLogEntry?.(logId, {
+      thinkingSections: sections,
+      thinking: this.joinThinkingSections(sections),
+      // Stage3 深度思考只进思考面板；自动展开，避免气泡停在“场景锚定中”时像卡住。
+      thinkingOpen: true,
+    }, { live: Boolean(config.livePatch) });
   },
 
   isSettlementReasoning(config = {}) {
@@ -743,16 +748,26 @@ window.GameModules.realWorldAgentLoop = {
     const playerName = String(store?.playerName || store?.playerProfile?.name || store?.rpgStates?.['player-self']?.profile?.name || '玩家').trim() || '玩家';
     const playerTag = markup?.roleTag?.('player-self', playerName) || playerName;
     const targetTag = markup?.roleTag?.(targetId, targetName) || targetName;
+    const exp = (config?.mode === 'real'
+      ? (shared?.values?.control_experience || store?.rpgStates?.[shared?.id]?.values?.control_experience)
+      : (store?.characterRpgState?.values?.control_experience || targetState?.values?.control_experience)) || {};
+    const awarenessRule = window.GameModules.controlExperienceStage?.controllerAwarenessNarrationRule?.({
+      ...exp,
+      playerName,
+      targetName,
+    }) || '';
     return [
       '上线附身控制视角规则（高优先级）：',
       `- ${playerTag}可以一心二用：同一意识能同时控制自己的现实本体与${targetTag}的身体，并同时接收两个肉体的视觉、听觉、触觉、痛觉、疲劳、呼吸、平衡等感官反馈。`,
       `- ${targetTag}的身体行动权被${playerTag}接管；除非系统或剧情明确解除控制，${targetTag}不能自主夺回身体、不能让身体违背玩家本次控制行动。`,
       `- ${targetTag}的意识仍清醒存在，能够完整感觉自己身体的所有感官反馈，也会产生抗拒、困惑、羞耻、愤怒、恐惧、试探或顺从等内心反应；正文必须保留一部分${targetTag}的心理想法、情绪和身体感受。`,
-      `- AI生成的正文必须以玩家在${targetTag}身体内的第二人称视角为主来描绘行动，也就是以玩家在被控者身体内的附身体验推进：重点写“你”如何通过被控身体看见、移动、触碰、发声、感受肌肉与环境反馈；同时穿插${targetTag}意识里的想法和感受。`,
+      `- AI生成的正文必须以玩家在${targetTag}身体内的第二人称视角为主来描绘行动，也就是以玩家在被控者身体内的附身体验推进：重点写“你”如何通过被控身体看见、移动、触碰、发声，并即时接收该肉体回传的感官；同时穿插${targetTag}意识里的想法和感受。`,
+      `- 附身感官回流（通用）：附身期间，“你”默认站在${targetTag}的肉体感官里体验。凡该身体当下的触碰、受力、温度、疼痛、酸胀、敏感、舒服、发颤、疲惫、呼吸与平衡变化，都应写成“你”能直接感到的身体反馈；若是这具身体自己触碰或刺激自身，也要同时写出执行侧（手/身体如何动）与接收侧（被触部位回传给你的感觉），不要只写外部动作、也不要写成隔空旁观。${targetTag}的意识仍平行感受同一套身体反馈。`,
       `- 附身视角动作归属规则：只要玩家没有明确写“${playerTag}本体”“现实身体”“外部的我”或“让其他人执行”，所有“你/我/手/身体/伸手/触碰/捏/按/移动/说话”等行动都默认是${targetTag}的身体亲自执行；不要写成${playerTag}的现实本体从外部对${targetTag}行动。`,
       `- 正文里除“你”外每次写出角色姓名必须使用角色标签，例如 ${playerTag}、${targetTag}；禁止裸写姓名，禁止自造 id。`,
       `- 不要把${targetTag}写成失去意识、断片、完全无感或可自由操控自己身体；也不要把正文主视角切回纯旁观或只写玩家现实本体。`,
-    ].join('\n');
+      awarenessRule,
+    ].filter(Boolean).join('\n');
   },
 
   stepOutputRule(step, forceFinal = false) {
@@ -1357,10 +1372,12 @@ window.GameModules.realWorldAgentLoop = {
     }, store) || null;
   },
 
-  settlementTypeQueue(config = this.realConfig()) {
+  settlementTypeQueue(config = this.realConfig(), store = null) {
     const base = ['基础结算', '情绪', '感觉', '生命体征', '身体状态', '穿着状态', '性经历', '性历史', '关系', '角色卡', '物品', '地图', '领土控势', '人事安排', '势力总览', '政体状态', '势力结构', '组织能力', '人事归属', '系统记录', '通用固化'];
     base.push(this.eventSettlementType());
-    return config.mode === 'story' ? base.concat(['操控体验']) : base;
+    const story = config.mode === 'story';
+    const realPossessed = config.mode === 'real' && Boolean(store?.sharedControlState?.());
+    return (story || realPossessed) ? base.concat(['操控体验']) : base;
   },
 
   settlementTypeWindows(allTypes = []) {
@@ -1400,7 +1417,7 @@ window.GameModules.realWorldAgentLoop = {
       '人事归属': { title: '人事归属结算', format: '更新N：角色名，组织/部门/职位，事实，原因' },
       '系统记录': { title: '系统记录结算', format: '更新N：结算主体，事件/记录/通信消息/剧情记录/状态，事实，原因' },
       '通用固化': { title: '通用固化结算', format: '更新N：结算主体，字段，稳定事实，变化原因' },
-      '操控体验': { title: '操控体验结算', format: '更新N：操控感觉/适应度，字段，+/-数值或新值，变化原因' },
+      '操控体验': { title: '操控体验结算', format: '数组；每项先确认 needUpdate 与 updateFields；needUpdate=false 时可不填字段值；needUpdate=true 时 adaptation 写增量(+N/-N)，其余文本字段基于原基线生成完整新文本直接覆盖；上线次数由系统每次+1，AI不要输出 onlineCount' },
     };
   },
 
@@ -1425,6 +1442,7 @@ window.GameModules.realWorldAgentLoop = {
       '人事归属': { updateType: 'membership', fieldPrefix: 'values.memberships' },
       '系统记录': { updateType: 'system', fieldPrefix: 'events' },
       '通用固化': { updateType: 'generic', fieldPrefix: 'status_tags' },
+      '操控体验': { updateType: 'control-experience', fieldPrefix: 'values.control_experience' },
     };
   },
 
@@ -1796,6 +1814,73 @@ window.GameModules.realWorldAgentLoop = {
     return { updateType: 'relationship', subject, field: `relationships.${dimension}`, change: { mode: 'upsert', value: { left, right, dimension, status, reason, result } }, reasons: [{ trigger: '关系变化', evidence: reason, confidence: 'confirmed' }] };
   },
 
+  parseControlExperienceJsonEntry(entry = {}, subject = null, participants = []) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+    const needUpdate = entry.needUpdate === true || entry.needUpdate === 'true' || entry['需要更新'] === true;
+    const reason = this.settlementJsonText(entry.reason ?? entry.原因 ?? entry.evidence ?? entry.证据 ?? '');
+    const updateFieldsRaw = Array.isArray(entry.updateFields)
+      ? entry.updateFields
+      : (Array.isArray(entry['更新字段']) ? entry['更新字段'] : []);
+    const fieldAliases = {
+      feeling: 'feeling',
+      操控感觉: 'feeling',
+      感觉: 'feeling',
+      adaptation: 'adaptation',
+      适应度: 'adaptation',
+      summary: 'summary',
+      体验摘要: 'summary',
+      摘要: 'summary',
+      controllerAwarenessLevel: 'controllerAwarenessLevel',
+      对控制者了解等级: 'controllerAwarenessLevel',
+      controllerAwareness: 'controllerAwareness',
+      对控制者了解: 'controllerAwareness',
+    };
+    const updateFields = [...new Set(
+      updateFieldsRaw
+        .map((key) => fieldAliases[String(key || '').trim()] || String(key || '').trim())
+        .filter((key) => ['feeling', 'adaptation', 'summary', 'controllerAwarenessLevel', 'controllerAwareness'].includes(key)),
+    )];
+    if (needUpdate && !updateFields.length) return null;
+    if (needUpdate && !reason) return null;
+    if (needUpdate) {
+      const missing = updateFields.some((field) => {
+        if (field === 'feeling') return entry.feeling === undefined && entry['操控感觉'] === undefined;
+        if (field === 'adaptation') return entry.adaptation === undefined && entry['适应度'] === undefined;
+        if (field === 'summary') return entry.summary === undefined && entry['体验摘要'] === undefined;
+        if (field === 'controllerAwarenessLevel') return entry.controllerAwarenessLevel === undefined && entry['对控制者了解等级'] === undefined;
+        if (field === 'controllerAwareness') return entry.controllerAwareness === undefined && entry['对控制者了解'] === undefined;
+        return true;
+      });
+      if (missing) return null;
+      const adaptationRaw = entry.adaptation ?? entry['适应度'];
+      if (updateFields.includes('adaptation')) {
+        const text = String(adaptationRaw ?? '').trim();
+        if (!/^[+\-]\d+$/u.test(text) || Number(text) === 0) return null;
+      }
+    }
+    const resolvedSubject = subject || this.defaultSubjectForSettlement(participants);
+    if (!resolvedSubject) return null;
+    return {
+      updateType: 'control-experience',
+      subject: resolvedSubject,
+      field: 'values.control_experience',
+      change: {
+        mode: 'merge',
+        value: {
+          needUpdate,
+          updateFields,
+          feeling: entry.feeling ?? entry['操控感觉'],
+          adaptation: entry.adaptation ?? entry['适应度'],
+          summary: entry.summary ?? entry['体验摘要'],
+          controllerAwarenessLevel: entry.controllerAwarenessLevel ?? entry['对控制者了解等级'],
+          controllerAwareness: entry.controllerAwareness ?? entry['对控制者了解'],
+          reason,
+        },
+      },
+      reasons: [{ trigger: '操控体验变化', evidence: reason || '本轮无需更新操控体验', confidence: 'confirmed' }],
+    };
+  },
+
   parseSettlementJson(raw, { requestedTypes = [], participants = [], store = null, config = this.realConfig() } = {}) {
     const data = this.parseCompactSettlementJson(raw);
     if (!data || Array.isArray(data) || typeof data !== 'object') return null;
@@ -1851,6 +1936,7 @@ window.GameModules.realWorldAgentLoop = {
           const line = this.settlementJsonUpdateLine(type, entry);
           let update = null;
           if (type === '关系') update = this.parseRelationshipJsonEntry(entry, subject, participants);
+          else if (type === '操控体验') update = this.parseControlExperienceJsonEntry(entry, subject, participants);
           else if (type === '人事安排') update = this.parseScheduleJsonEntry(entry, subject, participants);
           else if (['情绪', '感觉'].includes(type)) update = this.parseMetricSettlementJsonEntry(type, entry, subject, participants, store);
           else if (specialParsers[type]) update = specialParsers[type](line, subject);
@@ -2053,6 +2139,14 @@ window.GameModules.realWorldAgentLoop = {
       '人事归属': '字段：组织名/orgId、部门、职位；对应 values.memberships；部门未明写 departmentFog；与势力 structure 占坑可同时存在但需一致；抽象「公民/居民」不得写。',
       '系统记录': '只写系统级、跨角色、且没有专门类型承载的长期事实：日历变更、微信/短信通信、世界线节点、不可逆公共事件、全局状态。禁止把角色当前行动、所在地点、身体反应、感觉、关系、场景描写复述写进系统记录；这些必须分别写人事安排、身体状态、感觉、关系。若正文事实已被世界线记录覆盖，系统记录写空数组 []。',
       '通用固化': '只能写没有专门类型承载的长期稳定标签；情绪、感觉、生命体征、身体、穿着、性经历、性历史、关系、物品、地图、人事、势力、系统记录有专门类型时不得写通用固化。',
+      '操控体验': [
+        '只结算当前被控角色的上线体验（values.control_experience）。',
+        '流程：1）先确认本轮是否需要更新（needUpdate）以及要更新哪些字段（updateFields）；2）再生成对应字段值。',
+        '可更新字段仅限：feeling（操控感觉）、adaptation（适应度）、summary（体验摘要）、controllerAwarenessLevel（unknown|traitKnown|identityGuessed）、controllerAwareness（≤20字）。',
+        'adaptation 只写本回合增量，如 +3 或 -1，禁止写绝对值；其余文本字段基于“操控体验基线”生成完整新文本并直接覆盖。',
+        '上线次数（onlineCount）不要输出；系统在 needUpdate=true 时自动 +1，且无上限。',
+        '正文无明确被控体验变化时输出 [{"subject":"被控角色名","needUpdate":false}] 或 []。',
+      ].join(''),
     };
     return [
       `${c.title}规则：`,
@@ -2069,7 +2163,7 @@ window.GameModules.realWorldAgentLoop = {
     return null;
   },
 
-  settlementTypeJsonExample(type = '', participants = [], store = {}) {
+  settlementTypeJsonExample(type = '', participants = [], store = {}, config = this.realConfig()) {
     const chars = (Array.isArray(participants) ? participants : []).filter((p) => p?.type === 'character');
     const player = (Array.isArray(participants) ? participants : []).find((p) => p?.type === 'player');
     const subject = chars[0]?.name || chars[0]?.id || player?.name || player?.id || '角色名';
@@ -2099,7 +2193,10 @@ window.GameModules.realWorldAgentLoop = {
     if (type === '势力结构') return `"势力结构":[{"subject":"势力名","field":"成员地位","value":"${subject}的稳定地位","reason":"正文明确组织证据"}]`;
     if (type === '系统记录') return '"系统记录":[{"subject":"系统","field":"通信消息","value":"已确认的系统级通信或日程事实","reason":"正文明确且不属于角色卡/人事安排的证据"}]';
     if (type === '通用固化') return `"通用固化":[{"subject":"${subject}","field":"长期标签","value":"稳定标签","reason":"正文明确且无专门类型承载"}]`;
-    if (type === '操控体验') return '"操控体验":[{"subject":"系统","field":"体验","value":"稳定体验变化","reason":"正文明确体验证据"}]';
+    if (type === '操控体验') {
+      const target = this.settlementControlExperienceTarget(store, participants, config)?.name || subject;
+      return `"操控体验":[{"subject":"${target}","needUpdate":true,"updateFields":["feeling","adaptation","summary","controllerAwarenessLevel","controllerAwareness"],"feeling":"紧绷抗拒","adaptation":"+5","summary":"被迫旁观身体失控。","controllerAwarenessLevel":"traitKnown","controllerAwareness":"感到操控者冷静强势但不知是谁","reason":"正文明确被控体验证据"}]`;
+    }
     return `"${type}":[]`;
   },
 
@@ -2113,6 +2210,7 @@ window.GameModules.realWorldAgentLoop = {
       '关系': '反例：{"dimension":"好感","status":"+5"}、缺 right/result；正确：dimension 写亲属/朋友/恋人/敌对等稳定关系，status 写关系状态。',
       '角色卡': '反例：{"op":"保持"}、把临时情绪/穿着写入角色卡；正确：op 只能 替换/增加，且必须是长期稳定字段。',
       '系统记录': '反例：{"field":"事件","value":"刘悠进入房间并抱住对方"}（这是人事/感觉/正文复述）；正确：写微信消息、日历事项、世界线节点，或 []。',
+      '操控体验': '反例：{"adaptation":"45"}（写成绝对值）、输出 onlineCount、needUpdate=true 却缺 updateFields/reason；正确：adaptation 写 +N/-N，文本字段覆盖，或 needUpdate=false。',
     };
     return map[type] || '';
   },
@@ -2190,6 +2288,64 @@ window.GameModules.realWorldAgentLoop = {
     ].join('\n');
   },
 
+  settlementControlExperienceTarget(store = {}, participants = [], config = this.realConfig()) {
+    if (config?.mode === 'real') {
+      const shared = store?.sharedControlState?.();
+      if (shared) {
+        return {
+          id: shared.id,
+          name: String(shared.profile?.name || shared.name || '').trim(),
+          state: shared,
+        };
+      }
+    }
+    if (config?.mode === 'story') {
+      const state = store?.characterRpgState
+        || store?.rpgStates?.[store?.character?.id]
+        || store?.character;
+      if (state) {
+        return {
+          id: state.id || store?.character?.id,
+          name: String(state.profile?.name || state.name || store?.character?.name || '').trim(),
+          state,
+        };
+      }
+    }
+    const chars = (Array.isArray(participants) ? participants : []).filter((p) => p?.type === 'character');
+    const first = chars[0];
+    if (!first) return null;
+    const state = store?.itemSkillState?.(first.id)
+      || store?.itemSkillState?.(first.idOrName)
+      || store?.rpgStates?.[first.id]
+      || null;
+    return {
+      id: first.id || state?.id,
+      name: String(first.name || state?.profile?.name || first.id || '').trim(),
+      state,
+    };
+  },
+
+  settlementControlExperienceBaselineText(store = {}, participants = [], config = this.realConfig()) {
+    const target = this.settlementControlExperienceTarget(store, participants, config);
+    const exp = target?.state?.values?.control_experience || {};
+    const stage = window.GameModules.controlExperienceStage;
+    const awareness = stage?.normalizeControllerAwareness?.(exp) || {
+      controllerAwarenessLevel: exp.controllerAwarenessLevel || 'unknown',
+      controllerAwareness: exp.controllerAwareness || '尚不知晓控制者是谁',
+    };
+    const name = target?.name || '被控角色';
+    return [
+      '操控体验基线（仅被控角色；文本字段覆盖时必须基于此改写）：',
+      `主体：${name}`,
+      `上线次数：${Math.max(0, Math.floor(Number(exp.onlineCount) || 0))}（系统在 needUpdate=true 时自动+1；AI不要输出）`,
+      `feeling：${String(exp.feeling || '未知').trim() || '未知'}`,
+      `adaptation：${Math.max(0, Math.min(100, Math.floor(Number(exp.adaptation) || 0)))}`,
+      `summary：${String(exp.summary || '尚未经历上线操控。').trim() || '尚未经历上线操控。'}`,
+      `controllerAwarenessLevel：${awareness.controllerAwarenessLevel}`,
+      `controllerAwareness：${awareness.controllerAwareness}`,
+    ].join('\n');
+  },
+
   async buildSettlementTypeWindowMessages({ requestedTypes = [], completedTypes = [], incompleteTypes = [], partialByType = {}, store, action, base, loaded, materialSession = null, narration, trace = [], participants = [], config = this.realConfig() }) {
     const contracts = this.settlementTypeContracts();
     const totalTypes = requestedTypes.length;
@@ -2204,6 +2360,7 @@ window.GameModules.realWorldAgentLoop = {
       if (type === '感觉') return '感觉：数组；每项 {"subject":"出场NPC姓名","field":"感觉指标名","value":"+N/-N","status":"变化后该感觉的具体表现","reason":"正文证据证明该NPC对玩家态度变化"}；无变化 []。status 写程度表现，不要写指标名+数值前缀；缺省时系统会按新数值补模板解释。';
       if (type === '关系') return '关系：数组；每项 {"subject":"姓名","left":"关系左方","right":"关系右方","dimension":"稳定关系维度","status":"关系状态","reason":"证据","result":"结算结果"}；无变化 []。';
       if (type === '角色卡') return '角色卡：数组；每项 {"subject":"姓名","field":"字段","op":"替换/增加","value":"内容","reason":"证据","result":"结果"}；无变化 []。';
+      if (type === '操控体验') return '操控体验：数组；每项先输出 needUpdate 与 updateFields。needUpdate=false 时可不填字段值；needUpdate=true 时必须含 subject、updateFields、reason，以及 updateFields 对应值。adaptation 只写 +N/-N 增量；feeling/summary/controllerAwarenessLevel/controllerAwareness 基于基线生成完整新文本直接覆盖；禁止输出 onlineCount。无变化 [{"subject":"被控角色名","needUpdate":false}] 或 []。';
       if (type === this.eventSettlementType()) return '事件：数组；每项 {"type":"random|inference|periodic","title":"事件名","startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD","location":"地点","content":"内容","people":["相关人"],"tags":["标签"],"probability":25,"status":"active"}；无事件 []。';
       return `${type}：数组；每项 {"subject":"结算主体","field":"字段","value":"变化或新值","reason":"证据"}；无变化 []。原合约：${c?.format || '更新N：结算主体，字段，变化，原因'}`;
     }).join('\n');
@@ -2220,7 +2377,7 @@ window.GameModules.realWorldAgentLoop = {
       '弱氛围暗示：不得结算。',
     ].join('\n');
     const requiredKeyOrder = requestedTypes.join(' → ');
-    const jsonExamples = `{${requestedTypes.map((type) => this.settlementTypeJsonExample(type, participants, store)).join(',')}}`;
+    const jsonExamples = `{${requestedTypes.map((type) => this.settlementTypeJsonExample(type, participants, store, config)).join(',')}}`;
     const antiExamples = requestedTypes.map((type) => this.settlementTypeAntiExample(type)).filter(Boolean).join('\n') || '无';
     const rulesText = [
       '你正在执行 Stage4 紧凑 JSON 滑动结算。',
@@ -2244,7 +2401,13 @@ window.GameModules.realWorldAgentLoop = {
       `未完成类型原因：${incompleteReason}`,
       `本回合参与者：${JSON.stringify(participants)}`,
       '本轮结算材料：',
-      [`行动：${this.actionText(action)}`, this.settlementParticipantContextText(store, participants), this.settlementMetricBaselineText(store, participants), stableFactRules].join('\n'),
+      [
+        `行动：${this.actionText(action)}`,
+        this.settlementParticipantContextText(store, participants),
+        this.settlementMetricBaselineText(store, participants),
+        requestedTypes.includes('操控体验') ? this.settlementControlExperienceBaselineText(store, participants, config) : '',
+        stableFactRules,
+      ].filter(Boolean).join('\n'),
       '类型短规则：',
       requestedTypes.map((type) => this.settlementTypeShortRule(type)).join('\n\n'),
       'JSON 合约：',
@@ -2264,6 +2427,7 @@ window.GameModules.realWorldAgentLoop = {
       '- 感觉数组中 subject 只能写出场 NPC，不能写玩家姓名。',
       '- 关系数组中 left/right/dimension/status/reason/result 都必须有；dimension 不能是好感/信任/依赖/警惕等感觉指标。',
       '- 角色卡 op 只能写“替换”或“增加”；不能写保持、无变化、更新。',
+      '- 操控体验必须先写 needUpdate 与 updateFields；adaptation 只写增量；文本字段覆盖；不要输出 onlineCount。',
       '- 字符串中不要使用英文逗号或中文逗号分隔多字段；必要时用顿号或分号。',
       '- 不要为了凑长度创造更新；空数组是合法完整输出。',
       '合法形态示例：{"情绪":[],"身体状态":[{"subject":"角色名","part":"整体","status":"全身状态","reason":"证据"},{"subject":"角色名","part":"胸部","status":"局部状态","reason":"证据"}],"系统记录":[]}',
@@ -2276,7 +2440,7 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   async completeConfiguredSettlementKvWindow({ store, action, base, loaded, materialSession = null, narration, trace = [], participants = [], logId = null, config = this.realConfig() }) {
-    const allTypes = this.settlementTypeQueue(config);
+    const allTypes = this.settlementTypeQueue(config, store);
     const completedTypes = [];
     const partialByType = {};
     const patchesByType = {};
@@ -3423,12 +3587,19 @@ window.GameModules.realWorldAgentLoop = {
 
   shouldUseStatusAsStoryText(entry = {}) {
     const text = String(entry?.storyText || '').trim();
-    return !text || /^作者正在续写这一段剧情|操控剧情正在识别|操控剧情正在推演|已识别相关角色|已追加资料/u.test(text);
+    if (!text) return true;
+    if (text.length >= 200) return false;
+    return /^(?:作者正在续写这一段剧情|操控剧情正在识别|操控剧情正在推演|已识别相关角色|已追加资料)/u.test(text)
+      || /资料已载入|场景锚定|正在生成正文|正文已完成|批量建卡|正在推演|正在识别|正在结算/u.test(text);
   },
 
   shouldUseStatusAsRealNarration(entry = {}) {
     const text = String(entry?.narration || '').trim();
-    return !text || /^现实世界正在推演|现实正在识别|现实正在推演|已识别相关角色|已追加资料/u.test(text);
+    if (!text) return true;
+    // 真实正文通常很长；短进度文案应允许被后续状态覆盖（含“正在生成场景锚定报告”→“正在生成正文”）。
+    if (text.length >= 200) return false;
+    return /^(?:现实世界正在推演|现实正在识别|现实正在推演|已识别相关角色|已追加资料)/u.test(text)
+      || /资料已载入|场景锚定|正在生成正文|正文已完成|批量建卡|正在推演|正在识别|正在结算|正在写入/u.test(text);
   },
   loadedContextText(data = {}, loaded = [], step = 1, config = this.realConfig()) {
     const fallback = config.mode === 'story' ? '被操控角色' : '玩家本人';

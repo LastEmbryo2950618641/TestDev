@@ -587,9 +587,16 @@ window.GameModules.playerAspirationActions = {
     const prefTool = window.GameModules.playerAspirationPreferenceLayers;
     const layers = data.essentialPreferenceLayers || prefTool?.buildFromPlayerAspiration?.(data);
     const prefLines = prefTool?.toLines?.(layers) || [];
+    const portrait = String(data.portraitSummary || '').trim();
+    const goalSummary = String(data.goalSummary || '').trim();
+    const shortSummary = String(data.summary || goals.summary || '').trim();
     const parts = [
       prefLines.length ? `本质偏好五层（永久固化）：\n${prefLines.join('\n')}` : '',
-      data.summary || this.aspirationSelectionSummaryFromData(data),
+      portrait ? `人生总结：${portrait}` : '',
+      !portrait && shortSummary ? shortSummary : '',
+      portrait && shortSummary && shortSummary !== portrait ? `目标摘要：${shortSummary}` : '',
+      !portrait && !shortSummary ? this.aspirationSelectionSummaryFromData(data) : '',
+      goalSummary && !goals.short ? `目标：${goalSummary}` : '',
       goals.short ? `近期目标：${goals.short}` : '',
       goals.medium ? `中期目标：${goals.medium}` : '',
       goals.long ? `长期目标：${goals.long}` : '',
