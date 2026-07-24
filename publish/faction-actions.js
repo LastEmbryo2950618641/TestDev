@@ -4,13 +4,13 @@ window.GameModules.factionActions = {
   initFactionSystem(options = {}) {
     if (this._initFactionSystemRunning) return this.factionState;
     const force = options?.force === true;
-    const hasUsableState = Array.isArray(this.factionState?.factions) && this.factionState.factions.length;
+    const hasUsableState = Array.isArray(this.factionState?.factions);
     if (this._factionSystemInitialized && hasUsableState && !force) return this.factionState;
     this._initFactionSystemRunning = true;
     try {
       const base = window.GameModules.factionSystem.defaultState(this.playerProfile || {});
       this.factionState = { ...base, ...(this.factionState || {}) };
-      this.factionState.factions = this.factionState.factions?.length ? this.factionState.factions : base.factions;
+      this.factionState.factions = Array.isArray(this.factionState.factions) ? this.factionState.factions : [];
       this.factionState.factions = this.factionState.factions.map((faction) => {
         const normalized = window.GameModules.orgTerritory?.normalizeFaction?.(
           this.normalizeFactionStructure({ ...faction, fieldReasons: this.completeFactionReasons?.(faction, faction.fieldReasons) || faction.fieldReasons || {} }),
@@ -22,13 +22,8 @@ window.GameModules.factionActions = {
       this.syncAllCharacterMemberships?.();
       if (!this._orgTerritoryValidationRunning) window.GameModules.orgTerritory?.validateWorldConsistency?.(this);
       window.GameModules.app?.orgTerritory?.economyActions?.syncPlayerWealthAsset?.(this);
-      const top = base.factions[0];
-      if (top && !this.factionState.factions.some((faction) => faction.id === top.id || faction.name === top.name)) this.factionState.factions.unshift(top);
-      if (top) this.factionState.factions.sort((a, b) => (a.id === top.id ? -1 : b.id === top.id ? 1 : 0));
-      this.factionState.factions = this.factionState.factions.map((faction) => window.GameModules.orgTerritory?.normalizeFaction?.(faction, this) || faction);
+      // Only refresh fields on AI-created company-main if it already exists — never seed.
       this.syncCompanyFaction?.();
-      this.ensureAllCompanyFactions?.();
-      this.syncRoleCardMemberships?.();
       this._factionSystemInitialized = true;
       return this.factionState;
     } finally {
@@ -42,13 +37,10 @@ window.GameModules.factionActions = {
     if (!c) return;
     const item = this.factionState.factions.find((x) => x.id === 'company-main');
     if (!item) return;
-    const expectedTop = window.GameModules.factionSystem.countryFaction(this.playerProfile || {});
-    const top = (expectedTop && this.factionState.factions.find((x) => x.id === expectedTop.id || x.name === expectedTop.name))
-      || this.factionState.factions.find((x) => x.type === '鍥藉' && !x.parentId)
-      || expectedTop
-      || null;
+    // Parent only from AI-created sovereign already in DB — never invent a country.
+    const top = this.factionState.factions.find((x) => x.type === '国家' && !x.parentId) || null;
     const forest = window.GameModules.factionOrgForest;
-    const corpRootId = top?.id ? (forest?.domainRootId?.(top.id, 'corp') || top.id) : '';
+    const corpRootId = top?.id ? forest?.domainRootId?.(top.id, 'corp') || '' : '';
     const corpRoot = corpRootId ? this.factionState.factions.find((x) => x.id === corpRootId) : null;
     const updates = {
       name: c.name,
@@ -58,8 +50,9 @@ window.GameModules.factionActions = {
       orgDomain: 'corp',
       ownership: item.ownership || 'private',
       foundingType: item.foundingType || 'independent',
-      parentId: corpRootId,
-      parentName: corpRoot?.name || (corpRootId ? (forest?.DOMAIN_LABELS?.corp || '经济组织') : '无势力归属'),
+      // Only attach under an AI-created corp domain root — never invent parent ids.
+      parentId: corpRoot ? corpRootId : (item.parentId || ''),
+      parentName: corpRoot?.name || item.parentName || '无势力归属',
     };
     const changed = Object.keys(updates).filter((key) => updates[key] !== item[key]);
     Object.assign(item, updates);
@@ -97,12 +90,13 @@ window.GameModules.factionActions = {
 
   syncRoleCardMemberships() {
     if (!this.factionState) return;
-    this.collectRoleCardMemberships().forEach((item) => this.ensureFactionMembership(item));
+    // Only attach roles to factions that AI already created — never invent orgs from cards.
+    this.collectRoleCardMemberships().forEach((item) => this.ensureFactionMembership(item, { createIfMissing: false }));
   },
 
   collectRoleCardMemberships() {
     const cards = [];
-    try { cards.push(this.playerCharacter?.()); } catch (_) { /* 鐜╁瑙掕壊鍗℃湭鐢熸垚鏃惰烦杩?*/ }
+    try { cards.push(this.playerCharacter?.()); } catch (_) { /* skip */ }
     cards.push(this.selectedPlayerRoleCard?.(), ...(this.selectedInitialRoleCards?.() || []));
     const validCards = cards.filter(Boolean);
     const rows = [];
@@ -120,42 +114,14 @@ window.GameModules.factionActions = {
     return `force-${slug}`;
   },
 
-  ensureFactionMembership(item = {}) {
+  ensureFactionMembership(item = {}, _options = {}) {
     const name = String(item.orgName || '').trim();
-    const title = String(item.title || '鎴愬憳').trim();
+    const title = String(item.title || '成员').trim();
     if (!name) return null;
     const now = new Date().toISOString();
-    let faction = this.factionState.factions.find((x) => x.name === name || x.id === this.factionIdByName(name));
-    if (!faction) {
-      const top = this.factionState.factions.find((x) => x.type === '鍥藉' && !x.parentId)
-        || window.GameModules.factionSystem.countryFaction(this.playerProfile || {})
-        || null;
-      const isTopCountry = Boolean(top?.name) && name === top.name;
-      faction = this.normalizeFactionStructure({
-        id: isTopCountry ? top.id : this.factionIdByName(name),
-        name,
-        type: isTopCountry ? '国家' : '组织',
-        classification: isTopCountry ? 'country' : '',
-        parentId: isTopCountry ? '' : (top?.id || ''),
-        parentName: isTopCountry ? '无势力归属' : (top?.name || '无势力归属'),
-        level: isTopCountry ? '国家级' : '组织级',
-        location: '',
-        domain: '',
-        scale: '',
-        stance: '',
-        influence: 0,
-        description: window.GameModules.ui.faction.overviewViewHelpers.stubDescription({ isTopCountry }),
-        structure: [],
-        rules: [],
-        resources: [],
-        relations: [],
-        fixed: true,
-        updatedAt: now,
-      });
-      faction.fieldReasons = this.completeFactionReasons?.(faction, {}, '角色卡人事归属只可新增不可移除，系统据此初始化势力。') || {};
-      faction.changeLog = [{ field: 'all', reason: item.reason || '角色卡已有人事归属，追加进入势力系统。', at: now, action: 'add' }];
-      this.factionState.factions.push(faction);
-    }
+    // Never invent factions from membership sync — AI / upsertFaction must create them first.
+    const faction = this.factionState.factions.find((x) => x.name === name || x.id === this.factionIdByName(name));
+    if (!faction) return null;
     this.addFactionRoleOccupant(faction, title, item.characterName || '未知', item.reason || '由角色卡人事归属确认。', now);
     return faction;
   },
@@ -178,12 +144,12 @@ window.GameModules.factionActions = {
       changed = true;
     }
     const before = role.characters?.length || 0;
-    role.characters = Array.from(new Set([...(role.characters || []), character || '鏈煡'].filter(Boolean)));
+    role.characters = Array.from(new Set([...(role.characters || []), character || '未知'].filter(Boolean)));
     changed = changed || role.characters.length !== before;
     if (!changed) return;
     faction.updatedAt = at;
     faction.changeLog = [{ field: 'structure', reason, at, action: 'add-position' }, ...(faction.changeLog || [])].slice(0, 50);
-    if (character && character !== '鏈煡') {
+    if (character && character !== '未知') {
       const charState = window.GameModules.orgTerritory?.findCharacterStateByName?.(this, character);
       if (charState) {
         window.GameModules.orgTerritory?.upsertCharacterMembership?.(charState, {
@@ -259,10 +225,24 @@ window.GameModules.factionActions = {
     if (!this.factionState.forestTab) this.factionState.forestTab = 'corp';
     this.refreshFactionOrgCache?.();
     this.factionState.orgChartOpen = true;
+    document.querySelectorAll('.faction-org-backdrop[data-fallback-closed="true"], .faction-modal-backdrop[data-fallback-closed="true"]').forEach((backdrop) => {
+      if (!backdrop.querySelector('.faction-org-modal')) return;
+      backdrop.style.removeProperty('display');
+      backdrop.removeAttribute('data-fallback-closed');
+    });
   },
 
   closeFactionOrgChart() {
     if (this.factionState) this.factionState.orgChartOpen = false;
+  },
+
+  backFactionOrgChart() {
+    if (!this.factionState) return;
+    if (this.factionOrgChartMode?.() === 'detail') {
+      this.setFactionOrgChartMode?.('forest');
+      return;
+    }
+    this.closeFactionOrgChart();
   },
 
   factionRoleText(roles = []) { return window.GameModules.ui.faction.overviewViewHelpers.roleText.call(this, roles); },

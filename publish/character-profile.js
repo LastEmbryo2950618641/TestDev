@@ -2647,15 +2647,9 @@ window.GameModules.characterProfile = {
     return this.isRealWorldRoleCardTarget(world);
   },
 
-  countryMembership(profile = {}, base = {}, store = null) {
-    if (!this.shouldInferCountryMembership(profile, base)) return null;
-    const top = window.GameModules.factionSystem?.inferTopCountry?.({ ...base, ...profile });
-    if (!top?.name) return null;
-    const reason = [profile.country, profile.nationality, base.country, base.nationality].some((x) => String(x || '').trim())
-      ? `${profile.name || base.name || '该人物'}的国籍或国家归属由角色资料明确给出，因此登记为${top.name}公民。`
-      : `${profile.name || base.name || '该人物'}当前处于现实世界设定，且没有明确指向其他国家，因此默认登记为${top.name}公民。`;
-    return window.GameModules.socialPosition?.membershipItem?.(top.name, '公民', reason, store, { department: '', departmentFog: false, source: '国家法域推断' })
-      || { name: `${top.name} / 公民`, orgName: top.name, title: '公民', department: '', departmentFog: false, reason, changeMode: reason };
+  /** Country orgs are AI-generated only — never invent default citizenship (e.g. China) in code. */
+  countryMembership(_profile = {}, _base = {}, _store = null) {
+    return null;
   },
 
   memberships(profile, base = {}, store = null) {

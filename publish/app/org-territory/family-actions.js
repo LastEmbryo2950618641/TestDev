@@ -6,58 +6,31 @@ window.GameModules.app.orgTerritory = window.GameModules.app.orgTerritory || {};
   const territory = () => window.GameModules.orgTerritory;
 
   window.GameModules.app.orgTerritory.familyActions = {
+    /** Look up AI-created family org only — never invent stubs from profile. */
     ensureFamilyOrg(store, options = {}) {
       store.initFactionSystem?.();
       const ot = territory();
-      const profile = store.playerProfile || {};
       const id = 'family-player-home';
-      let faction = (store.factionState?.factions || []).find((f) => f.id === id);
-      const country = (store.factionState?.factions || []).find((f) => f.type === '国家' && !f.parentId)
-        || window.GameModules.factionSystem?.countryFaction?.(profile);
-      const community = (store.factionState?.factions || []).find((f) => f.kind === 'community');
-      const parent = community || country;
-      const name = ot.inferFamilyOrgName(profile);
-      const now = ot.nowLabel(store);
-      if (!faction) {
-        faction = ot.normalizeFaction({
-          id,
-          name,
-          type: '家庭',
-          kind: 'family',
-          parentId: parent?.id || '',
-          parentName: parent?.name || '无势力归属',
-          level: '家庭级',
-          location: profile.refinedCity || profile.city || '现实城市未登记',
-          domain: '家庭资产与同住',
-          scale: '小型',
-          stance: '私人',
-          influence: 10,
-          description: '玩家家庭组织 stub；个人现金资产单向同步至 asset 能力条目。',
-          resolution: 'L1',
-          stub: { oneLine: `${name}（家庭 stub，资产随 playerProfile.wealth 镜像）` },
-          status: 'active',
-          legitimacy: 'recognized',
-          structure: [],
-          rules: [],
-          resources: [],
-          relations: [],
-          fixed: true,
-          updatedAt: now,
-        }, store);
-        store.factionState.factions.push(faction);
-      } else {
-        faction.name = name;
-        faction.parentId = community?.id || country?.id || faction.parentId;
-        faction.parentName = community?.name || country?.name || faction.parentName;
-        Object.assign(faction, ot.normalizeFaction(faction, store));
+      const byId = (store.factionState?.factions || []).find((f) => f.id === id);
+      if (byId) {
+        this.syncFamilyTerritoryAnchor(store, byId, options.activeMap || null);
+        return byId;
       }
-      this.syncFamilyTerritoryAnchor(store, faction, options.activeMap || null);
-      return faction;
+      const name = ot.inferFamilyOrgName?.(store.playerProfile || {}) || '';
+      const byName = name
+        ? (store.factionState?.factions || []).find((f) => f.name === name || f.kind === 'family')
+        : (store.factionState?.factions || []).find((f) => f.kind === 'family');
+      if (byName) {
+        this.syncFamilyTerritoryAnchor(store, byName, options.activeMap || null);
+        return byName;
+      }
+      return null;
     },
 
     syncFamilyTerritoryAnchor(store, family = null, activeMap = null) {
       const ot = territory();
       const item = family || this.ensureFamilyOrg(store, { activeMap });
+      if (!item) return null;
       const node = ot.resolveHomeMapNode?.(store, activeMap);
       if (!node?.id) return item;
       const anchors = Array.isArray(item.territoryAnchors) ? item.territoryAnchors.slice() : [];
@@ -68,64 +41,33 @@ window.GameModules.app.orgTerritory = window.GameModules.app.orgTerritory || {};
       return item;
     },
 
+    /** Look up AI-created admin/community org only — never invent stubs. */
     ensureAdminOrgStub(store, item = {}, parentOrgId = '') {
       const ot = territory();
       store.initFactionSystem?.();
-      const profile = store.playerProfile || {};
-      const country = (store.factionState?.factions || []).find((f) => f.type === '国家' && !f.parentId)
-        || window.GameModules.factionSystem?.countryFaction?.(profile);
       const kind = item.kind || 'admin';
       const slug = String(item.name || '').replace(/[^\w\u4e00-\u9fa5]+/gu, '-').replace(/^-+|-+$/gu, '').slice(0, 48) || 'region';
       const id = kind === 'community' ? `community-${slug}` : `admin-${slug}`;
-      const parentId = parentOrgId || country?.id || '';
-      const parentFaction = (store.factionState?.factions || []).find((f) => f.id === parentId);
-      const parentName = parentFaction?.name || country?.name || '无势力归属';
-      let faction = (store.factionState?.factions || []).find((f) => f.id === id || f.name === item.name);
-      const now = ot.nowLabel(store);
-      const type = kind === 'community' ? '社区' : '行政区';
-      if (!faction) {
-        faction = ot.normalizeFaction({
-          id,
-          name: item.name,
-          type,
-          kind,
-          parentId,
-          parentName,
-          level: item.level || '行政区级',
-          location: item.name,
-          domain: kind === 'community' ? '居住社区' : '地方政区',
-          scale: kind === 'community' ? '小型' : '大型',
-          stance: '中立',
-          influence: kind === 'community' ? 15 : 40,
-          description: `${item.name}（${item.level || '政区'} stub，地址链自动生成）`,
-          resolution: 'L1',
-          stub: { oneLine: `${item.name}（${item.level || '政区'} stub，尚未推演接触）` },
-          status: 'active',
-          structure: [],
-          rules: [],
-          resources: [],
-          relations: [],
-          fixed: true,
-          updatedAt: now,
-        }, store);
-        store.factionState.factions.push(faction);
-      } else if (parentId && !faction.parentId) {
-        faction.parentId = parentId;
-        faction.parentName = parentName;
+      const faction = (store.factionState?.factions || []).find((f) => f.id === id || f.name === item.name);
+      if (!faction) return null;
+      if (parentOrgId && !faction.parentId) {
+        const parentFaction = (store.factionState?.factions || []).find((f) => f.id === parentOrgId);
+        faction.parentId = parentOrgId;
+        faction.parentName = parentFaction?.name || faction.parentName || '无势力归属';
         Object.assign(faction, ot.normalizeFaction(faction, store));
       }
       return faction;
     },
 
     linkFamilyToCommunity(store, communityOrgId = '', activeMap = null) {
-      if (!communityOrgId) return;
-      const ot = territory();
-      const community = (store.factionState?.factions || []).find((f) => f.id === communityOrgId);
-      if (!community) return;
       const family = this.ensureFamilyOrg(store, { activeMap });
+      if (!family || !communityOrgId) return family;
+      const community = (store.factionState?.factions || []).find((f) => f.id === communityOrgId);
+      if (!community) return family;
       family.parentId = community.id;
       family.parentName = community.name;
-      Object.assign(family, ot.normalizeFaction(family, store));
+      Object.assign(family, territory().normalizeFaction(family, store));
+      return family;
     },
   };
-}());
+})();

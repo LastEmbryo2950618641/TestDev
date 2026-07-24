@@ -2,35 +2,32 @@
 id: faction.query
 category: 势力查询
 name: 势力系统查询与调整
-method: listFactions(), searchFactionOne(keyword), getFactionDetail(name), upsertFaction(payload), addFactionPosition(payload), listMemberships(params), getTerritoryControl(params), resolveTerritoryBrief(params)
-params: keyword/name/factionName/parentName/position/characterName/reason 等
-returns: 势力列表、势力详情、新增或调整后的势力与职位角色
-trigger: 现实世界推演中，行动涉及国家、公司、学校、社区、家庭、组织、部门、下属单位、职位、角色人事归属或组织关系时查询或调整。
+method: listFactions(), getFactionField(id,panel,field), getFactionDetail(name), createFaction(payload), patchFactionField(params), searchFactionOne(keyword), listMemberships(params), getTerritoryControl(params), resolveTerritoryBrief(params)
+params: id/panel/field/op/value/index/reason/name 等
+returns: 势力列表（含ID与架构）、局部字段、创建完整势力、字段补丁结果
+trigger: 正文前查询势力；正文后 Stage6 创建或按字段更新势力。
 ---
 
 # 势力系统查询与调整 Skill
 
 ## 激活描述
 
-现实推演遇到国家、公司、学校、社区、家庭、组织、部门、下属单位、职位或角色人事归属时，应先查询势力系统。若确认出现新势力、已有势力的新下属单位、或某势力下新增职位/角色占位，可通过本 Skill 写入。
+正文前：默认应掌握全部势力名/ID 与组织架构；可按势力 ID + 面板 + 字段读取最新局部数据（国体/经济等）。
+Stage1 若发现现实势力出现在上下文但不在列表中，可用 `createFaction` 创建（按资料与常识补全）。
+正文后 Stage8：正文出现且未入库 → `createFaction`；已入库且正文有事实数据变化 → `patchFactionField`；仅提及无变化则不 patch。
 
 ## 可用方法
 
-1. `listFactions()`：列出当前已知势力。
-2. `searchFactionOne(keyword)`：按关键词查询一条势力。
-3. `getFactionDetail(name)`：读取势力详情、归属、组织架构、职位角色、规则和资源。
-4. `searchFactionArchive(keyword)`：按关键词读取相关势力资料库最近档案片段。
-5. `upsertFaction(payload)`：新增或调整势力；payload 可含 name、type、parentName、level、location、domain、scale、stance、influence、description、structure、rules、resources、relations、reason。
-6. `addFactionPosition(payload)`：给势力新增职位与角色占位；payload 含 factionName、position、characterName、reason。角色未知时 characterName 写“未知”。
-7. `listMemberships(params)`：列出势力或全部角色的 orgId 人事归属（membership 与 structure 占坑合并视图）；params 可含 name/factionName。
-8. `getTerritoryControl(params)`：读取地点控势一行与时间轴；params 含 locationName。
-9. `resolveTerritoryBrief(params)`：读取地点控势摘要（无完整时间轴）；params 含 locationName，空则返回已揭示地点控势列表。
+1. `listFactions()`：列出全部势力（含 id、名称、所属世界、组织架构）。
+2. `getFactionField(params)`：按 `id` + 可选 `panel`（ideology/economy/politics/military/diplomacy/territory）+ `field` 读取最新一条/一组数据。
+3. `searchFactionOne(keyword)` / `getFactionDetail(name)`：关键词或详情查询。
+4. `createFaction(payload)`：**创建**完整势力；须含 id、name、type、classification、worldTag、structure、solid.overviewPanels 等已知字段。Stage1 与 Stage8 均可创建；Stage1 禁止 patch。
+5. `patchFactionField(params)`：按势力 ID/字段更新。`op=set` 覆盖；`op=append` 列表末尾追加；`op=delete` 按 `index`（从 0）删除列表项。仅正文后 Stage8。
+6. `listMemberships` / `getTerritoryControl` / `resolveTerritoryBrief`：人事与控势只读。
 
 ## 使用规则
 
-1. 玩家/角色卡已有人事归属只有指向具体公司、学校、部门、机构或明确组织时才可新增进势力系统。
-2. 组织架构必须精确到职位或地位，以及该职位上的角色；角色未知时写“未知”。
-3. 禁止用“现实社会”“现代社会”“现实世界”“社会”“国家”“公民”“居民”“成年人”“成年学生”等抽象身份兜底生成势力或职位。
-4. 新增势力必须写 parentName；未写时系统优先归属到主角/玩家所在最高国家级势力。只有在现实世界且缺少任何其它国家证据时才可默认“中华人民共和国”；若并非现实世界或国家证据不足，允许暂不补国家级顶层势力。
-5. 调整已有势力只能新增或有理由地修改字段，不要删除旧结构。
-6. 不要为了补全世界而一次性新增大量无关势力；只写本次现实行动确认或强相关的势力。
+1. Stage1 可创建新势力；字段补丁写库仅 Stage8。
+2. 创建必须给全量可知数据；更新只给 patch 参数。
+3. 禁止抽象身份（现实社会/公民等）造势力。
+4. 只写本轮确认或强相关势力，不要批量灌库。

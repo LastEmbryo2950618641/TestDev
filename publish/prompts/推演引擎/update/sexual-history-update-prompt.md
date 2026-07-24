@@ -3,7 +3,7 @@ name: sexual-history-update
 description: 根据成人虚构身份的稳定事实，更新性经历当前状态、经历人数与经历人列表
 ---
 
-# sexual-history-update
+# Stage4 性历史更新
 
 确认玩家或角色的性经历身份状态发生稳定变化时，使用“性历史”结算类型输出中文 K:V 更新。
 

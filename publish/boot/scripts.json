@@ -280,6 +280,7 @@
   "inference/material-request-catalog.js",
   "inference/scene-boundary.js",
   "inference/material-loader.js",
+  "inference/faction-stage-update.js",
   "real-world-agent-context.js",
   "real-world-agent-wechat.js",
   "real-world-longing-actions.js",
@@ -424,5 +425,6 @@
   "prompts/picture_generate/sensitive-replacements.js",
   "prompts/picture_generate/draw-tag-prompt.js",
   "prompts/picture_generate/common-image-edit-generate.js",
+  "prompts/推演引擎/stage6-faction-update.js",
   "inference-prompts-runtime.js"
 ]

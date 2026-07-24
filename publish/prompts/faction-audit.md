@@ -37,6 +37,7 @@
 | name | string | 是 | 势力名称。 |
 | type | string | 是 | 国家、公司、学校、社区、组织、家庭、部门等；这是显示类型，不是分类真源。 |
 | classification | string | 是 | `country` / `faction` / `community` / `claim`。AI 基于上下文、现实常识、作品设定和已固化事实判断。 |
+| worldTag | string | 是 | 所属世界标签（如 `2026 现代都市现实世界`、作品世界名）；同一存档内不同世界的同名国家必须用不同 worldTag 区分。 |
 | parentId | string | 是 | 上级势力 ID；无上级时为空字符串。 |
 | parentName | string | 是 | 上级势力名称；无上级时为“无势力归属”。 |
 | level | string | 是 | 国家级、省市级、公司级、部门级、家庭级等。 |
@@ -58,7 +59,7 @@
 | --- | --- | --- | --- |
 | structure[] | object | name, level, roles | `name` 写组织名或下属单位名，例如“中华人民共和国政府”“全国人民代表大会”“最高人民法院”；`level` 写国家级别、中央级别、省级级别、市级级别、区县级别、公司级别、部门级别等；`roles` 必须是职位数组。每项格式为 `{ "title": "职位/地位/法定身份", "count": 1, "characters": ["角色名或未知"] }`。 |
 | relations[] | object | target, relation, detail | 关系目标、关系类型、关系说明。 |
-| fieldReasons | object | name, type, classification, parentId, parentName, level, location, domain, scale, stance, influence, description, structure, rules, resources, relations | 每个字段都写一句审计理由。 |
+| fieldReasons | object | name, type, classification, worldTag, parentId, parentName, level, location, domain, scale, stance, influence, description, structure, rules, resources, relations | 每个字段都写一句审计理由。 |
 
 ### 最小结构示意
 
@@ -68,7 +69,7 @@
 
 ## 势力定义
 
-任何具有组织形式的实体都可进入组织库；每个势力必须有 parentId 和 parentName，无上级时 parentId 为空且 parentName 为“无势力归属”；所有公司必须归属于主角/玩家所在的最高国家级势力。最高国家级势力应先从主角/玩家备注、国籍、地址、现实身份、学校/公司所在地推断。只有在“2026 现代都市现实世界 / 现实世界”且没有任何其它国家证据时，才默认“中华人民共和国”；非现实世界或现实世界中证据不足时，允许暂时不建立国家顶层势力，等待后续推演揭示。
+任何具有组织形式的实体都可进入组织库；每个势力必须有 parentId 和 parentName，无上级时 parentId 为空且 parentName 为“无势力归属”；所有公司必须归属于主角/玩家所在的最高国家级势力（若已建立）。最高国家级势力必须从主角/玩家备注、国籍、地址、现实身份、学校/公司所在地等证据推断并生成；证据不足时允许暂时不建立国家顶层势力，等待后续推演揭示。禁止因“现实世界缺省”而机械写死某个国家。
 
 ## classification 分类规则
 
@@ -83,7 +84,7 @@
 1. 首次初始化时，先确定主角/玩家所在最高国家级势力；数据库没有该国家时应新增为顶层势力。再根据上下文推演当前已存在势力和已知部分构成；数据库没有的势力，可按部分构成推演大致组织结构并固化。
 2. 数据库已有势力不能随意重写；发现不同处只能调整或增加，并且每个被调整/新增词条必须在 fieldReasons 里给合理理由。
 3. 全量检视每个势力，每个词条都必须有理由；无变化也说明为什么保持。
-4. 保留主角/玩家所在最高国家级势力与当前公司；当前公司归属于该最高国家级势力。若资料明确指向其它国家，不要强行归属中国；只有在现实世界且缺少任何其它国家证据时才默认中国。若并非现实世界，或现实世界中国家证据仍不足，则允许先不补国家级顶层势力。
+4. 保留主角/玩家所在最高国家级势力与当前公司（若已存在）；当前公司归属于该最高国家级势力。国家与公司都必须由本次推演/审计从证据生成或调整，不得依赖代码默认国家。证据不足时允许先不补国家级顶层势力。
 5. 玩家/角色卡已有人事归属只有在指向具体组织、学校、公司、部门、机构或明确法定机关时才是事实锚点；抽象社会身份不得新增进势力系统。
 6. 每个势力都必须尽量补齐 structure；**但 L1 / 无 archive 接触的 org 除外**（见「审计约束」）。组织架构必须按“组织名/下属单位名 → 级别 → 职位 → 数量 → 角色”表达。职位角色未知时 characters 写 ["未知"]；人数未知时 count 写 "未知"。
 7. 禁止用“现实社会”“现代社会”“现实世界”“社会”“国家”“公民”“居民”“成年人”“成年学生”等抽象概念兜底生成势力、职位或 structure 节点；公司可写总部、部门、小组，学校可写校级、年级、班级。多个同级下属单位可作为 structure 的多个节点并列返回，例如“全国人民代表大会”和“最高人民法院”都写中央级别。
@@ -93,11 +94,12 @@
 
 本审计 **不得替代** Stage2→Stage4 推演闭环；仅补全 **已在推演/档案中出现** 的组织。
 
-1. **exposure 不足（resolution 为 L1 / 无 archive 片段）的 org**：只保留 `stub` 一行与基础字段；**禁止**输出完整 `structure` 树或编造 `overviewPanels.*.entries`。
-2. **不清楚即迷雾**：上级、职位职责、任职人、兵种隶属未在 archive/玩家资料中出现 → 对应字段保持 `*Fog` 或 absent；**禁止**默认挂「国防部/总参谋部/匿名负责人」。
+1. **exposure 不足（resolution 为 L1 / 无 archive 片段）的 org**：结构树仍保持精简 stub，**禁止**编造完整未接触的 `structure`；但对已知现实国家 / 作品设定主权体 / 上下文已点名组织，**允许**按上下文与模型常识补写 `overviewPanels`（尤其 ideology 五字段与经济/政治等可推条目），不要只留空面板或仅合法性占位。
+2. **不清楚即迷雾**：上级、职位职责、任职人、兵种隶属未在 archive/玩家资料中出现 → 对应字段保持 `*Fog` 或 absent；**禁止**默认挂「国防部/总参谋部/匿名负责人」。结构迷雾不等于禁止五面板宏观常识。
 3. **已确立（state: established）条目**：无 archive 硬事实依据时 **不得**修改；只能写 fieldReasons 说明「保持」。
 4. **地图控势**：audit **不得**修改 `realWorldMap` 节点 `control`；夺控/移交只经 `territory-control` 结算。
-5. **能力四维**：军事/政治/经济/资产用 **动态 entries**；无推演条目时 entries 为空数组，**禁止**用固定「陆军/海军/空军」模板填空。
+5. **五面板与统治区域**：`ideology` 固定写 `core/reason/description/base/legitimacy`；`economy`/`politics`/`military`/`diplomacy`/`territory` 按各自固定清单。已知组织可按常识与上下文填入，**禁止**因「未在本轮正文逐字出现」而整面板留空。
+
 6. **公司 sync**：当前公司已接触（公司 APP 存在）时，可补 economic 条目 stub，但仍不得编造未推演的部门树。
 
 ## 玩家资料

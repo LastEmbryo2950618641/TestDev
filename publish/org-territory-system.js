@@ -19,8 +19,7 @@ window.GameModules.orgTerritory = {
   defaultCountryOrgId(store) {
     const factions = store?.factionState?.factions || [];
     const country = factions.find((f) => f.type === '国家' && !f.parentId);
-    if (country?.id) return country.id;
-    return window.GameModules.factionSystem?.inferTopCountry?.(store?.playerProfile || {})?.id || '';
+    return country?.id || '';
   },
 
   orgNameById(store, orgId = '') {
@@ -38,7 +37,8 @@ window.GameModules.orgTerritory = {
     if (factions.some((f) => f.id === id)) return this.resolveLiveOrgId(store, id);
     const byName = this.resolveOrgIdByName(store, id);
     if (byName) return this.resolveLiveOrgId(store, byName);
-    return this.resolveLiveOrgId(store, id);
+    // No invent / country兜底 — unknown org stays empty until AI creates it.
+    return '';
   },
 
   parentRefFog(label = '迷雾') {
@@ -191,11 +191,681 @@ window.GameModules.orgTerritory = {
         base: this.defaultOverviewField(''),
         legitimacy: this.defaultOverviewField(0, '/100'),
       },
-      economy: { entries: {} },
-      politics: { entries: {} },
-      military: { entries: {} },
-      diplomacy: { entries: {} },
+      economy: { entries: this.emptyEconomyEntries() },
+      politics: { entries: this.emptyPoliticsEntries() },
+      military: { entries: this.emptyMilitaryEntries() },
+      diplomacy: { entries: this.emptyDiplomacyEntries() },
+      territory: { entries: this.emptyTerritoryEntries() },
     };
+  },
+
+  /** Standard overview value kinds. Parse accepts only this JSON shape — no markdown / legacy shape compat. */
+  overviewValueKinds() {
+    return {
+      text: {
+        empty: () => '',
+        parse(raw) {
+          if (typeof raw === 'string' || typeof raw === 'number' || typeof raw === 'boolean') return String(raw).trim();
+          return '';
+        },
+        format(value, unit = '') {
+          const text = String(value ?? '').trim();
+          return text ? `${text}${unit || ''}`.trim() : '待推演补全';
+        },
+        hasValue(value) {
+          return String(value ?? '').trim().length > 0;
+        },
+      },
+      number: {
+        empty: () => 0,
+        parse(raw) {
+          if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+          if (typeof raw === 'string' && raw.trim()) {
+            const n = Number(raw.trim());
+            return Number.isFinite(n) ? n : null;
+          }
+          return null;
+        },
+        format(value, unit = '') {
+          if (typeof value !== 'number' || !Number.isFinite(value)) return unit ? `0${unit}` : '待推演补全';
+          return `${value}${unit || ''}`;
+        },
+        hasValue(value) {
+          return typeof value === 'number' && Number.isFinite(value);
+        },
+      },
+      nameDescList: {
+        empty: () => [],
+        parse(raw) {
+          if (!Array.isArray(raw)) return [];
+          return raw.map((item) => {
+            if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
+            const name = String(item.name ?? '').trim();
+            if (!name) return null;
+            return {
+              name,
+              description: String(item.description ?? '').trim(),
+            };
+          }).filter(Boolean);
+        },
+        format(rows) {
+          if (!Array.isArray(rows) || !rows.length) return '待推演补全';
+          return rows.map((row) => `- ${row.name}${row.description ? `: ${row.description}` : ''}`).join('\n');
+        },
+        hasValue(rows) {
+          return Array.isArray(rows) && rows.length > 0;
+        },
+      },
+      relationList: {
+        empty: () => [],
+        parse(raw) {
+          if (!Array.isArray(raw)) return [];
+          return raw.map((item) => {
+            if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
+            const name = String(item.name ?? '').trim();
+            if (!name) return null;
+            return {
+              name,
+              description: String(item.description ?? '').trim(),
+              viewOfSelf: String(item.viewOfSelf ?? '').trim(),
+            };
+          }).filter(Boolean);
+        },
+        format(rows) {
+          if (!Array.isArray(rows) || !rows.length) return '待推演补全';
+          return rows.map((row) => {
+            const parts = [
+              row.description,
+              row.viewOfSelf ? `对自己的看法: ${row.viewOfSelf}` : '',
+            ].filter(Boolean).join('；');
+            return `- ${row.name}${parts ? `: ${parts}` : ''}`;
+          }).join('\n');
+        },
+        hasValue(rows) {
+          return Array.isArray(rows) && rows.length > 0;
+        },
+      },
+      groupItemsList: {
+        empty: () => [],
+        parse(raw) {
+          if (!Array.isArray(raw)) return [];
+          return raw.map((item) => {
+            if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
+            const name = String(item.name ?? '').trim();
+            if (!name) return null;
+            const items = Array.isArray(item.items)
+              ? item.items.map((row) => String(row ?? '').trim()).filter(Boolean)
+              : [];
+            return { name, items };
+          }).filter(Boolean);
+        },
+        format(rows) {
+          if (!Array.isArray(rows) || !rows.length) return '待推演补全';
+          const lines = [];
+          rows.forEach((row) => {
+            lines.push(`- ${row.name}`);
+            (row.items || []).forEach((item) => lines.push(`-- ${item}`));
+          });
+          return lines.join('\n');
+        },
+        hasValue(rows) {
+          return Array.isArray(rows) && rows.some((row) => row?.name && Array.isArray(row.items) && row.items.length > 0);
+        },
+      },
+      regionList: {
+        empty: () => [],
+        parse(raw) {
+          if (!Array.isArray(raw)) return [];
+          return raw.map((item) => {
+            if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
+            const name = String(item.name ?? '').trim();
+            if (!name) return null;
+            return {
+              name,
+              capital: String(item.capital ?? item.省会 ?? '').trim(),
+              area: String(item.area ?? item.面积 ?? '').trim(),
+              controlRate: String(item.controlRate ?? item.控制率 ?? '').trim(),
+              population: String(item.population ?? item.人数 ?? '').trim(),
+              description: String(item.description ?? item.描述 ?? '').trim(),
+              garrison: String(item.garrison ?? item.驻军 ?? '').trim(),
+            };
+          }).filter(Boolean);
+        },
+        format(rows) {
+          if (!Array.isArray(rows) || !rows.length) return '待推演补全';
+          return rows.map((row) => {
+            const parts = [
+              row.capital ? `省会${row.capital}` : '',
+              row.area || '',
+              row.controlRate ? `控制率${row.controlRate}` : '',
+              row.population || '',
+              row.description || '',
+              row.garrison || '',
+            ].filter(Boolean).join('；');
+            return `- ${row.name}${parts ? `: ${parts}` : ''}`;
+          }).join('\n');
+        },
+        hasValue(rows) {
+          return Array.isArray(rows) && rows.length > 0;
+        },
+      },
+    };
+  },
+
+  overviewFieldSchema() {
+    return {
+      ideology: {
+        core: 'text',
+        reason: 'text',
+        description: 'text',
+        base: 'text',
+        legitimacy: 'number',
+      },
+      economy: {
+        gdp: 'text',
+        income: 'text',
+        expenditure: 'text',
+        assets: 'text',
+        resources: 'text',
+        production: 'text',
+        system: 'text',
+        institutions: 'nameDescList',
+        laws: 'nameDescList',
+        works: 'nameDescList',
+      },
+      politics: {
+        regime: 'text',
+        powerStructure: 'text',
+        rulemaking: 'text',
+        adjudication: 'text',
+        execution: 'text',
+        participation: 'text',
+        leadership: 'text',
+        institutions: 'nameDescList',
+        laws: 'nameDescList',
+        works: 'nameDescList',
+      },
+      military: {
+        posture: 'text',
+        forces: 'groupItemsList',
+        personnel: 'text',
+        quality: 'text',
+        sustainment: 'text',
+        projection: 'text',
+        equipment: 'text',
+        institutions: 'nameDescList',
+        laws: 'nameDescList',
+        works: 'nameDescList',
+      },
+      diplomacy: {
+        posture: 'text',
+        orientation: 'text',
+        allies: 'relationList',
+        rivals: 'relationList',
+        memberships: 'nameDescList',
+        treaties: 'nameDescList',
+        presence: 'text',
+        institutions: 'nameDescList',
+        laws: 'nameDescList',
+        works: 'nameDescList',
+      },
+      territory: {
+        capital: 'text',
+        area: 'text',
+        population: 'text',
+        adminDivision: 'text',
+        regions: 'regionList',
+      },
+    };
+  },
+
+  overviewFieldKind(panelKey = '', fieldKey = '') {
+    return this.overviewFieldSchema()?.[panelKey]?.[fieldKey] || '';
+  },
+
+  overviewKindApi(kind = '') {
+    return this.overviewValueKinds()?.[kind] || null;
+  },
+
+  overviewEmptyValue(panelKey = '', fieldKey = '') {
+    const api = this.overviewKindApi(this.overviewFieldKind(panelKey, fieldKey));
+    return api ? api.empty() : '';
+  },
+
+  normalizeOverviewEntryValue(panelKey = '', fieldKey = '', raw) {
+    const api = this.overviewKindApi(this.overviewFieldKind(panelKey, fieldKey));
+    if (!api) return raw ?? '';
+    return api.parse(raw);
+  },
+
+  formatOverviewEntryDisplay(panelKey = '', fieldKey = '', entry = {}) {
+    const kind = this.overviewFieldKind(panelKey, fieldKey);
+    const api = this.overviewKindApi(kind);
+    if (!api) {
+      const text = String(entry?.value ?? '').trim();
+      return text ? `${text}${entry?.unit || ''}`.trim() : '待推演补全';
+    }
+    if (kind === 'text' || kind === 'number') return api.format(entry?.value, entry?.unit || '');
+    return api.format(entry?.value);
+  },
+
+  overviewEntryHasValue(panelKey = '', fieldKey = '', entry = {}) {
+    const api = this.overviewKindApi(this.overviewFieldKind(panelKey, fieldKey));
+    if (!api || !entry || typeof entry !== 'object') return false;
+    return api.hasValue(entry.value);
+  },
+
+  overviewListKinds() {
+    return new Set(['nameDescList', 'relationList', 'groupItemsList', 'regionList']);
+  },
+
+  overviewFieldIsList(panelKey = '', fieldKey = '') {
+    return this.overviewListKinds().has(this.overviewFieldKind(panelKey, fieldKey));
+  },
+
+  economyFixedKeys() {
+    return ['gdp', 'income', 'expenditure', 'assets', 'resources', 'production', 'system', 'institutions', 'laws', 'works'];
+  },
+
+  economyListKeys() {
+    return ['institutions', 'laws', 'works'];
+  },
+
+  economyFieldLabels() {
+    return {
+      gdp: 'GDP',
+      income: '收入',
+      expenditure: '支出',
+      assets: '资产',
+      resources: '资源',
+      production: '产量',
+      system: '经济制度',
+      institutions: '经济机构',
+      laws: '经济法案/法律',
+      works: '经济作品',
+    };
+  },
+
+  economyFieldAlias(key = '') {
+    const text = String(key || '').trim();
+    const map = {
+      gdp: 'gdp',
+      GDP: 'gdp',
+      income: 'income',
+      收入: 'income',
+      revenue: 'income',
+      expenditure: 'expenditure',
+      支出: 'expenditure',
+      expense: 'expenditure',
+      spending: 'expenditure',
+      assets: 'assets',
+      资产: 'assets',
+      resources: 'resources',
+      资源: 'resources',
+      production: 'production',
+      产量: 'production',
+      output: 'production',
+      system: 'system',
+      经济制度: 'system',
+      economicSystem: 'system',
+      institutions: 'institutions',
+      经济机构: 'institutions',
+      agencies: 'institutions',
+      laws: 'laws',
+      经济法案: 'laws',
+      经济法律: 'laws',
+      '经济法案/法律': 'laws',
+      bills: 'laws',
+      works: 'works',
+      经济作品: 'works',
+      literature: 'works',
+    };
+    return map[text] || (this.economyFixedKeys().includes(text) ? text : '');
+  },
+
+  emptyEconomyEntries() {
+    return Object.fromEntries(this.economyFixedKeys().map((key) => [key, {
+      value: this.overviewEmptyValue('economy', key),
+      unit: '',
+      kind: key,
+      state: 'fog',
+      note: '',
+      reason: '',
+      updatedAt: '',
+    }]));
+  },
+
+  normalizeEconomyListValue(raw) {
+    return this.overviewKindApi('nameDescList').parse(raw);
+  },
+
+  normalizeEconomyEntryValue(key = '', raw) {
+    return this.normalizeOverviewEntryValue('economy', key, raw);
+  },
+
+  formatEconomyDisplay(key = '', entry = {}) {
+    return this.formatOverviewEntryDisplay('economy', key, entry);
+  },
+
+  economyEntryHasValue(key = '', entry = {}) {
+    return this.overviewEntryHasValue('economy', key, entry);
+  },
+
+  politicsFixedKeys() {
+    return ['regime', 'powerStructure', 'rulemaking', 'adjudication', 'execution', 'participation', 'leadership', 'institutions', 'laws', 'works'];
+  },
+
+  politicsListKeys() {
+    return ['institutions', 'laws', 'works'];
+  },
+
+  politicsFieldLabels() {
+    return {
+      regime: '政体',
+      powerStructure: '权力结构',
+      rulemaking: '规则制定',
+      adjudication: '裁决解释',
+      execution: '行政执行',
+      participation: '参与与选举',
+      leadership: '统治与继承',
+      institutions: '政治机构',
+      laws: '政治法案/宪法/组织法',
+      works: '政治作品',
+    };
+  },
+
+  politicsFieldAlias(key = '') {
+    const text = String(key || '').trim();
+    const map = {
+      regime: 'regime',
+      政体: 'regime',
+      powerStructure: 'powerStructure',
+      权力结构: 'powerStructure',
+      institution: 'powerStructure',
+      rulemaking: 'rulemaking',
+      规则制定: 'rulemaking',
+      rulemakingPower: 'rulemaking',
+      adjudication: 'adjudication',
+      裁决解释: 'adjudication',
+      adjudicationPower: 'adjudication',
+      execution: 'execution',
+      行政执行: 'execution',
+      executionPower: 'execution',
+      participation: 'participation',
+      参与与选举: 'participation',
+      参与: 'participation',
+      选举: 'participation',
+      leadership: 'leadership',
+      统治与继承: 'leadership',
+      统治: 'leadership',
+      继承: 'leadership',
+      institutions: 'institutions',
+      政治机构: 'institutions',
+      laws: 'laws',
+      政治法案: 'laws',
+      宪法: 'laws',
+      组织法: 'laws',
+      '政治法案/宪法/组织法': 'laws',
+      works: 'works',
+      政治作品: 'works',
+    };
+    return map[text] || (this.politicsFixedKeys().includes(text) ? text : '');
+  },
+
+  emptyPoliticsEntries() {
+    return Object.fromEntries(this.politicsFixedKeys().map((key) => [key, {
+      value: this.overviewEmptyValue('politics', key),
+      unit: '',
+      kind: key,
+      state: 'fog',
+      note: '',
+      reason: '',
+      updatedAt: '',
+    }]));
+  },
+
+  normalizePoliticsEntryValue(key = '', raw) {
+    return this.normalizeOverviewEntryValue('politics', key, raw);
+  },
+
+  formatPoliticsDisplay(key = '', entry = {}) {
+    return this.formatOverviewEntryDisplay('politics', key, entry);
+  },
+
+  politicsEntryHasValue(key = '', entry = {}) {
+    return this.overviewEntryHasValue('politics', key, entry);
+  },
+
+  militaryFixedKeys() {
+    return ['posture', 'forces', 'personnel', 'quality', 'sustainment', 'projection', 'equipment', 'institutions', 'laws', 'works'];
+  },
+
+  militaryListKeys() {
+    return ['institutions', 'laws', 'works'];
+  },
+
+  /** @deprecated forces uses groupItemsList schema; kept for callers that still check map keys. */
+  militaryMapKeys() {
+    return ['forces'];
+  },
+
+  militaryNestedKeys() {
+    return this.militaryMapKeys();
+  },
+
+  militaryFieldLabels() {
+    return {
+      posture: '军事总览',
+      forces: '兵力构成',
+      personnel: '兵力规模',
+      quality: '质量战备',
+      sustainment: '持续力/后勤',
+      projection: '投送与控制',
+      equipment: '装备与武库',
+      institutions: '军事机构',
+      laws: '军事法案/法规',
+      works: '军事作品',
+    };
+  },
+
+  militaryFieldAlias(key = '') {
+    const text = String(key || '').trim();
+    const map = {
+      posture: 'posture',
+      军事总览: 'posture',
+      overview: 'posture',
+      forces: 'forces',
+      兵力构成: 'forces',
+      personnel: 'personnel',
+      兵力规模: 'personnel',
+      quality: 'quality',
+      质量战备: 'quality',
+      sustainment: 'sustainment',
+      持续力: 'sustainment',
+      后勤: 'sustainment',
+      '持续力/后勤': 'sustainment',
+      projection: 'projection',
+      投送与控制: 'projection',
+      equipment: 'equipment',
+      装备与武库: 'equipment',
+      装备: 'equipment',
+      institutions: 'institutions',
+      军事机构: 'institutions',
+      laws: 'laws',
+      军事法案: 'laws',
+      军事法规: 'laws',
+      '军事法案/法规': 'laws',
+      works: 'works',
+      军事作品: 'works',
+    };
+    return map[text] || (this.militaryFixedKeys().includes(text) ? text : '');
+  },
+
+  emptyMilitaryEntries() {
+    return Object.fromEntries(this.militaryFixedKeys().map((key) => [key, {
+      value: this.overviewEmptyValue('military', key),
+      unit: '',
+      kind: key,
+      state: 'fog',
+      note: '',
+      reason: '',
+      updatedAt: '',
+    }]));
+  },
+
+  normalizeMilitaryEntryValue(key = '', raw) {
+    return this.normalizeOverviewEntryValue('military', key, raw);
+  },
+
+  formatMilitaryDisplay(key = '', entry = {}) {
+    return this.formatOverviewEntryDisplay('military', key, entry);
+  },
+
+  militaryEntryHasValue(key = '', entry = {}) {
+    return this.overviewEntryHasValue('military', key, entry);
+  },
+
+  emptyDiplomacyEntries() {
+    return Object.fromEntries(this.diplomacyFixedKeys().map((key) => [key, {
+      value: this.overviewEmptyValue('diplomacy', key),
+      unit: '',
+      kind: key,
+      state: 'fog',
+      note: '',
+      reason: '',
+      updatedAt: '',
+    }]));
+  },
+
+  normalizeDiplomacyEntryValue(key = '', raw) {
+    return this.normalizeOverviewEntryValue('diplomacy', key, raw);
+  },
+
+  formatDiplomacyDisplay(key = '', entry = {}) {
+    return this.formatOverviewEntryDisplay('diplomacy', key, entry);
+  },
+
+  diplomacyEntryHasValue(key = '', entry = {}) {
+    return this.overviewEntryHasValue('diplomacy', key, entry);
+  },
+
+  diplomacyFixedKeys() {
+    return ['posture', 'orientation', 'allies', 'rivals', 'memberships', 'treaties', 'presence', 'institutions', 'laws', 'works'];
+  },
+
+  diplomacyListKeys() {
+    return ['allies', 'rivals', 'memberships', 'treaties', 'institutions', 'laws', 'works'];
+  },
+
+  diplomacyFieldLabels() {
+    return {
+      posture: '外交总览',
+      orientation: '对外取向',
+      allies: '盟友与伙伴',
+      rivals: '对手与摩擦',
+      memberships: '国际组织与机制',
+      treaties: '条约与协定',
+      presence: '驻外网络',
+      institutions: '外交机构',
+      laws: '涉外法规',
+      works: '外交作品',
+    };
+  },
+
+  diplomacyFieldAlias(key = '') {
+    const text = String(key || '').trim();
+    const map = {
+      posture: 'posture',
+      外交总览: 'posture',
+      orientation: 'orientation',
+      对外取向: 'orientation',
+      allies: 'allies',
+      盟友与伙伴: 'allies',
+      盟友: 'allies',
+      partners: 'allies',
+      rivals: 'rivals',
+      对手与摩擦: 'rivals',
+      对手: 'rivals',
+      adversaries: 'rivals',
+      memberships: 'memberships',
+      国际组织与机制: 'memberships',
+      国际组织: 'memberships',
+      organizations: 'memberships',
+      treaties: 'treaties',
+      条约与协定: 'treaties',
+      条约: 'treaties',
+      presence: 'presence',
+      驻外网络: 'presence',
+      使领馆: 'presence',
+      institutions: 'institutions',
+      外交机构: 'institutions',
+      laws: 'laws',
+      涉外法规: 'laws',
+      外交法规: 'laws',
+      works: 'works',
+      外交作品: 'works',
+    };
+    return map[text] || (this.diplomacyFixedKeys().includes(text) ? text : '');
+  },
+
+  territoryFixedKeys() {
+    return ['capital', 'area', 'population', 'adminDivision', 'regions'];
+  },
+
+  territoryFieldLabels() {
+    return {
+      capital: '首都',
+      area: '统治面积',
+      population: '统治人数',
+      adminDivision: '统治行政区划分',
+      regions: '统治区域',
+    };
+  },
+
+  territoryFieldAlias(key = '') {
+    const text = String(key || '').trim();
+    const map = {
+      capital: 'capital',
+      首都: 'capital',
+      area: 'area',
+      统治面积: 'area',
+      面积: 'area',
+      population: 'population',
+      统治人数: 'population',
+      人数: 'population',
+      adminDivision: 'adminDivision',
+      统治行政区划分: 'adminDivision',
+      行政区划: 'adminDivision',
+      行政区划分: 'adminDivision',
+      regions: 'regions',
+      统治区域: 'regions',
+      行政区: 'regions',
+    };
+    return map[text] || (this.territoryFixedKeys().includes(text) ? text : '');
+  },
+
+  emptyTerritoryEntries() {
+    return Object.fromEntries(this.territoryFixedKeys().map((key) => [key, {
+      value: this.overviewEmptyValue('territory', key),
+      unit: '',
+      kind: key,
+      state: 'fog',
+      note: '',
+      reason: '',
+      updatedAt: '',
+    }]));
+  },
+
+  normalizeTerritoryEntryValue(key = '', raw) {
+    return this.normalizeOverviewEntryValue('territory', key, raw);
+  },
+
+  formatTerritoryDisplay(key = '', entry = {}) {
+    return this.formatOverviewEntryDisplay('territory', key, entry);
+  },
+
+  territoryEntryHasValue(key = '', entry = {}) {
+    return this.overviewEntryHasValue('territory', key, entry);
   },
 
   normalizeOverviewField(raw, fallbackValue = '', fallbackUnit = '') {
@@ -211,14 +881,54 @@ window.GameModules.orgTerritory = {
     return this.defaultOverviewField(raw ?? fallbackValue, fallbackUnit);
   },
 
-  normalizeOverviewEntries(raw) {
-    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
-      if (raw.entries && typeof raw.entries === 'object' && !Array.isArray(raw.entries)) {
-        return { ...raw, entries: { ...raw.entries } };
+  normalizeOverviewEntries(raw, { panelKey = '' } = {}) {
+    const base = (() => {
+      if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+        if (raw.entries && typeof raw.entries === 'object' && !Array.isArray(raw.entries)) {
+          return { ...raw, entries: { ...raw.entries } };
+        }
+        return { entries: { ...raw } };
       }
-      return { entries: { ...raw } };
-    }
-    return { entries: {} };
+      return { entries: {} };
+    })();
+    const fixedPanel = ['economy', 'politics', 'military', 'diplomacy', 'territory'].includes(panelKey);
+    if (!fixedPanel) return base;
+    const emptyByPanel = {
+      economy: () => this.emptyEconomyEntries(),
+      politics: () => this.emptyPoliticsEntries(),
+      military: () => this.emptyMilitaryEntries(),
+      diplomacy: () => this.emptyDiplomacyEntries(),
+      territory: () => this.emptyTerritoryEntries(),
+    };
+    const aliasByPanel = {
+      economy: (key) => this.economyFieldAlias(key),
+      politics: (key) => this.politicsFieldAlias(key),
+      military: (key) => this.militaryFieldAlias(key),
+      diplomacy: (key) => this.diplomacyFieldAlias(key),
+      territory: (key) => this.territoryFieldAlias(key),
+    };
+    const keysByPanel = {
+      economy: () => this.economyFixedKeys(),
+      politics: () => this.politicsFixedKeys(),
+      military: () => this.militaryFixedKeys(),
+      diplomacy: () => this.diplomacyFixedKeys(),
+      territory: () => this.territoryFixedKeys(),
+    };
+    const fixed = emptyByPanel[panelKey]();
+    const alias = aliasByPanel[panelKey];
+    const fixedKeys = keysByPanel[panelKey]();
+    const normalizeValue = (key, value) => this.normalizeOverviewEntryValue(panelKey, key, value);
+    Object.entries(base.entries || {}).forEach(([key, entry]) => {
+      const mapped = alias(key) || key;
+      const normalized = entry && typeof entry === 'object' && !Array.isArray(entry)
+        ? { ...entry }
+        : { value: entry };
+      if (fixedKeys.includes(mapped)) {
+        normalized.value = normalizeValue(mapped, normalized.value);
+        fixed[mapped] = { ...fixed[mapped], ...normalized, kind: mapped };
+      }
+    });
+    return { ...base, entries: fixed };
   },
 
   normalizeOverviewPanels(raw = {}) {
@@ -231,10 +941,11 @@ window.GameModules.orgTerritory = {
         base: this.normalizeOverviewField(ideology.base, ''),
         legitimacy: this.normalizeOverviewField(ideology.legitimacy, 0, '/100'),
       },
-      economy: this.normalizeOverviewEntries(raw?.economy),
-      politics: this.normalizeOverviewEntries(raw?.politics),
-      military: this.normalizeOverviewEntries(raw?.military),
-      diplomacy: this.normalizeOverviewEntries(raw?.diplomacy),
+      economy: this.normalizeOverviewEntries(raw?.economy, { panelKey: 'economy' }),
+      politics: this.normalizeOverviewEntries(raw?.politics, { panelKey: 'politics' }),
+      military: this.normalizeOverviewEntries(raw?.military, { panelKey: 'military' }),
+      diplomacy: this.normalizeOverviewEntries(raw?.diplomacy, { panelKey: 'diplomacy' }),
+      territory: this.normalizeOverviewEntries(raw?.territory, { panelKey: 'territory' }),
     };
   },
 
@@ -336,6 +1047,20 @@ window.GameModules.orgTerritory = {
     };
   },
 
+  /** Top-level「所属世界」; storage key is worldTag. */
+  resolveFactionWorldTag(faction = {}, store = null) {
+    const raw = faction?.worldTag ?? faction?.所属世界 ?? faction?.world ?? '';
+    const text = String(raw || '').trim();
+    if (text) return text.slice(0, 40);
+    const fromStore = store?.currentWorldTag?.()
+      || store?.currentWorldLabel?.()
+      || store?.character?.work
+      || store?.selectedWork
+      || '';
+    const fallback = String(fromStore || window.GameModules.realWorld2026?.label || '未知世界').trim();
+    return fallback.slice(0, 40) || '未知世界';
+  },
+
   normalizeFaction(faction = {}, store) {
     if (!faction || typeof faction !== 'object') return faction;
     const resolution = faction.resolution || (faction.structure?.length ? 'L2' : 'L1');
@@ -349,8 +1074,11 @@ window.GameModules.orgTerritory = {
       .map((id) => String(id || '').trim()).filter(Boolean).slice(0, 8);
     const classification = this.deriveClassification(faction, solid.overviewPanels);
     const maturityClass = this.deriveMaturityClass({ ...faction, classification }, solid.overviewPanels);
+    const worldTag = this.resolveFactionWorldTag(faction, store);
+    const { 所属世界: _legacyWorldLabel, ...rest } = faction;
     return {
-      ...faction,
+      ...rest,
+      worldTag,
       resolution,
       stub,
       status,
@@ -895,8 +1623,6 @@ window.GameModules.orgTerritory = {
     const factions = store?.factionState?.factions || [];
     const hit = factions.find((f) => f.name === label || f.id === label);
     if (hit?.id) return hit.id;
-    if (label === '美利坚合众国') return 'country-usa';
-    if (label === '中华人民共和国') return 'country-china';
     const slug = store?.factionIdByName?.(label);
     if (slug && factions.some((f) => f.id === slug)) return slug;
     return '';
@@ -968,9 +1694,11 @@ window.GameModules.orgTerritory = {
   ensurePresetFamilyMemberships(store) {
     if (!store) return;
     store.initFactionSystem?.();
+    // Bind only when AI already created the family org — never invent family-player-home.
     window.GameModules.app?.orgTerritory?.familyActions?.ensureFamilyOrg?.(store);
     const familyId = 'family-player-home';
-    const family = (store.factionState?.factions || []).find((f) => f.id === familyId);
+    const family = (store.factionState?.factions || []).find((f) => f.id === familyId)
+      || (store.factionState?.factions || []).find((f) => f.kind === 'family');
     if (!family) return;
     const profile = store.playerProfile || {};
     const playerName = String(profile.name || profile.playerName || '').trim();
@@ -982,7 +1710,7 @@ window.GameModules.orgTerritory = {
       if (!this.isCohabitantCharacter(name, profile) && !/妹妹|兄弟|姐姐|同住/.test(rel)) return;
       const title = /妹妹/.test(rel) ? '妹妹' : (/兄弟/.test(rel) ? '兄弟' : (/姐姐/.test(rel) ? '姐姐' : '同住家庭成员'));
       this.upsertCharacterMembership(state, {
-        orgId: familyId,
+        orgId: family.id,
         orgName: family.name,
         title,
         department: '家庭',
@@ -995,12 +1723,12 @@ window.GameModules.orgTerritory = {
     const player = store.playerIdentityState?.();
     if (player) {
       this.upsertCharacterMembership(player, {
-        orgId: familyId,
+        orgId: family.id,
         orgName: family.name,
         title: '户主/同住者',
         department: '家庭',
         state: 'sketch',
-        reason: '玩家家庭 org 预绑定。',
+        reason: '玩家家庭 org 绑定（仅当 AI 已创建家庭势力）。',
         source: 'preset-family',
       }, store);
     }
@@ -1149,8 +1877,8 @@ window.GameModules.orgTerritory = {
       chain.add(current);
       const faction = (store?.factionState?.factions || []).find((f) => f.id === current);
       if (!faction) {
-        this.warnOnce(`invalid-org:${current}`, '[orgTerritory] 无效 orgId，回退法域 stub:', current);
-        return this.defaultCountryOrgId(store);
+        this.warnOnce(`invalid-org:${current}`, '[orgTerritory] 无效 orgId，不兜底 invent：', current);
+        return '';
       }
       if (faction.status === 'dissolved' || faction.status === 'merged') {
         const next = (faction.successorIds || [])[0];
@@ -1158,8 +1886,8 @@ window.GameModules.orgTerritory = {
           current = next;
           continue;
         }
-        this.warnOnce(`dissolved-org-no-successor:${faction.id}`, '[orgTerritory] 已解散/合并 org 无 successor，回退法域:', faction.id);
-        return this.defaultCountryOrgId(store);
+        this.warnOnce(`dissolved-org-no-successor:${faction.id}`, '[orgTerritory] 已解散/合并 org 无 successor，不兜底 invent：', faction.id);
+        return '';
       }
       return faction.id;
     }

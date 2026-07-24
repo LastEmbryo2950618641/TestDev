@@ -38,10 +38,8 @@ function createContext() {
           },
         },
         factionSystem: {
-          inferTopCountry(profile = {}) {
-            const text = [profile.country, profile.nationality, profile.work, profile.detail].filter(Boolean).join(' ');
-            if (/美国|USA|United States/i.test(text)) return { name: '美利坚合众国' };
-            return { name: '中华人民共和国' };
+          inferTopCountry() {
+            return null;
           },
         },
       },
@@ -52,12 +50,12 @@ function createContext() {
   return context;
 }
 
-test('memberships add China citizenship by default only in real world', () => {
+test('memberships do not invent default China citizenship in code', () => {
   const context = createContext();
   const tool = context.window.GameModules.characterProfile;
   const result = tool.memberships({ name: '刘悠', work: '2026 现代都市现实世界' }, { workplace: '', position: '' });
-  assert.strictEqual(result[0].orgName, '中华人民共和国');
-  assert.strictEqual(result[0].title, '公民');
+  assert.strictEqual(Array.isArray(result), true);
+  assert.ok(!result.some((item) => item.orgName === '中华人民共和国' && item.title === '公民'));
 });
 
 test('memberships do not fabricate China citizenship for non-real-world characters', () => {

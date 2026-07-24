@@ -31,7 +31,7 @@ window.GameModules.realWorldActions = {
     const savedTotalBeforeAppend = window.GameModules.realWorldLogStore?.count?.() || this.realWorldLogTotal || 0;
     if (savedTotalBeforeAppend > 0) this.refreshRealWorldLogPage?.(Math.max(1, Math.ceil(savedTotalBeforeAppend / (Number(this.realWorldLogPageSize) || 12))));
     const userEntry = { id: `${baseId}-user`, type: 'user', text: rawText, matter: this.activeRealWorldMatter?.() || null, time: startTime, createdAt: start.toISOString() };
-    const entry = { id: `${baseId}-ai`, type: 'ai', narration: '现实世界正在推演…', thinking: '', thinkingSections: [], settlementThinking: '', settlementThinkingSections: [], settlementThinkingOpen: true, streaming: true, playerText: rawText, actionText: text, time: startTime, createdAt: responseCreatedAt };
+    const entry = { id: `${baseId}-ai`, type: 'ai', narration: '现实世界正在推演…', thinking: '', thinkingSections: [], thinkingOpen: false, settlementThinking: '', settlementThinkingSections: [], settlementThinkingOpen: false, streaming: true, playerText: rawText, actionText: text, time: startTime, createdAt: responseCreatedAt };
     entry.promptPack = { systemPrompt: '现实世界 Loop Agent 将按步骤动态载入上下文。', userPrompt: text, model: this.modelId, promptTokens: 0 };
     this.realWorldLog = this.normalizeRealWorldLog([...(this.realWorldLog || []), userEntry, entry]).slice(-Math.max(1, Number(this.realWorldLogPageSize) || 12));
     this.realWorldLogTotal = Math.max(this.realWorldLogTotal || 0, window.GameModules.realWorldLogStore?.count?.() || 0) + 2;
@@ -148,7 +148,15 @@ window.GameModules.realWorldActions = {
     window.GameModules.realWorldMap.update(this, result.locationName || this.realWorldLocationName, result);
     const currentGraphNode = window.GameModules.realWorldLocationGraph?.getNode?.(this, this.realWorldMap?.currentId || result.locationName || this.realWorldLocationName);
     if (currentGraphNode?.id) window.GameModules.realWorldLocationGraph?.setCharacterCurrentNode?.(this, 'player-self', currentGraphNode.id, { reason: '现实推演结算后的主角当前位置。', time: this.phoneDate?.()?.toISOString?.() || '' });
-    const fogResult = await window.GameModules.realWorldMapFog?.afterLocationUpdate?.(this, result) || {};
+    let fogResult = {};
+    try {
+      fogResult = await window.GameModules.realWorldMapFog?.afterLocationUpdate?.(this, { ...result, logId: id }) || {};
+    } finally {
+      // Stage9 可能已追加到 pending 会话；回写存档后再清，保证续玩能续上前缀。
+      const pending = window.GameModules.realWorldAgentLoop?.pendingKvCacheSession?.(this, 'real');
+      if (pending) window.GameModules.realWorldAgentLoop?.persistAgentConversation?.(this, pending, 'real');
+      window.GameModules.realWorldAgentLoop?.clearPendingKvCacheSession?.(this, 'real');
+    }
     if (fogResult.unlocked?.length) settlement.push(`地图解锁：${fogResult.unlocked.join('、')}`);
     if (fogResult.characterLocationApplied?.length) {
       settlement.push(
@@ -246,7 +254,7 @@ window.GameModules.realWorldActions = {
     const nextThinking = String(cleanResult.thinking || '').trim() || String(existingEntry.thinking || '').trim();
     const nextSettlementThinkingSections = Array.isArray(cleanResult.settlementThinkingSections) && cleanResult.settlementThinkingSections.length ? cleanResult.settlementThinkingSections : (existingEntry.settlementThinkingSections || []);
     const nextSettlementThinking = String(cleanResult.settlementThinking || '').trim() || String(existingEntry.settlementThinking || '').trim();
-    const next = { ...existingEntry, ...cleanResult, thinking: nextThinking, thinkingSections: nextThinkingSections, settlementThinking: nextSettlementThinking, settlementThinkingSections: nextSettlementThinkingSections, settlementThinkingOpen: false, type: 'ai', streaming: false, statusText: '', streamTrace: [], time, agentTrace: result.agentTrace || [] };
+    const next = { ...existingEntry, ...cleanResult, thinking: nextThinking, thinkingSections: nextThinkingSections, thinkingOpen: false, settlementThinking: nextSettlementThinking, settlementThinkingSections: nextSettlementThinkingSections, settlementThinkingOpen: false, type: 'ai', streaming: false, statusText: '', streamTrace: [], time, agentTrace: result.agentTrace || [] };
     await this.assignRealWorldlineEntry(next);
     if (playerEntry?.id) await window.GameModules.realWorldLogStore?.append?.(playerEntry);
     await window.GameModules.realWorldLogStore?.append?.(next);

@@ -2,4 +2,4 @@
 window.GameModules = window.GameModules || {};
 window.GameModules.promptTemplates = window.GameModules.promptTemplates || {};
 window.GameModules.promptTemplates.inline = window.GameModules.promptTemplates.inline || {};
-window.GameModules.promptTemplates.inline["inference-update-wearing-state"] = "# wearing-state update prompt\r\n\r\n中文 K:V 结算字段说明源。\r\n";
+window.GameModules.promptTemplates.inline["inference-update-wearing-state"] = "# Stage4 穿着状态更新\r\n\r\n中文 K:V 结算字段说明源。\r\n";

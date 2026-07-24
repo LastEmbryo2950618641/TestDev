@@ -36,6 +36,43 @@
     return true;
   }
 
+  function closeFactionOrgChartNative(event) {
+    const target = event?.target?.closest?.('[data-faction-org-back]');
+    if (event && !target) return;
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+
+    const hideOrgBackdrop = () => {
+      const root = target?.closest?.('.faction-modal-backdrop');
+      const roots = root ? [root] : Array.from(document.querySelectorAll('.faction-org-backdrop, .faction-modal-backdrop'));
+      roots.forEach((backdrop) => {
+        if (backdrop.querySelector('.faction-org-modal')) {
+          backdrop.style.setProperty('display', 'none', 'important');
+          backdrop.setAttribute('data-fallback-closed', 'true');
+        }
+      });
+    };
+
+    const store = window.Alpine?.store?.('game');
+    if (store?.backFactionOrgChart) {
+      store.backFactionOrgChart();
+      if (!store.factionState?.orgChartOpen) hideOrgBackdrop();
+      return true;
+    }
+    if (store?.closeFactionOrgChart) {
+      store.closeFactionOrgChart();
+      hideOrgBackdrop();
+      return true;
+    }
+    if (store?.factionState) {
+      store.factionState.orgChartOpen = false;
+      hideOrgBackdrop();
+      return true;
+    }
+    hideOrgBackdrop();
+    return true;
+  }
+
   function openFactionDetailNative(event) {
     const row = event.target?.closest?.('[data-faction-id]');
     if (!row || !row.classList?.contains('faction-row')) return;
@@ -61,17 +98,21 @@
   }
 
   window.closeFactionDetailNative = closeFactionDetailNative;
+  window.closeFactionOrgChartNative = closeFactionOrgChartNative;
 
   function installFactionDetailCloseFallback() {
     if (window.__factionDetailCloseFallbackInstalled) return;
     window.__factionDetailCloseFallbackInstalled = true;
     if (document.documentElement?.dataset) {
-      document.documentElement.dataset.factionNativeNav = 'force-hide-v4';
+      document.documentElement.dataset.factionNativeNav = 'force-hide-v5';
     }
 
     document.addEventListener('pointerdown', closeFactionDetailNative, true);
     document.addEventListener('mousedown', closeFactionDetailNative, true);
     document.addEventListener('click', closeFactionDetailNative, true);
+    document.addEventListener('pointerdown', closeFactionOrgChartNative, true);
+    document.addEventListener('mousedown', closeFactionOrgChartNative, true);
+    document.addEventListener('click', closeFactionOrgChartNative, true);
     document.addEventListener('click', openFactionDetailNative, true);
   }
 

@@ -3,7 +3,7 @@ name: system-update
 description: 根据现实推演正文提取系统、日历、世界线或通用状态变化
 ---
 
-# system-update
+# Stage4 系统记录更新
 
 确认公司、日历、微信、世界线等系统级记录变化时，使用“系统记录”结算类型输出中文 K:V 更新。
 

@@ -3,7 +3,7 @@ name: sexual-experience-update
 description: 根据虚构身份的稳定事实，进行性经验总次数与分类次数的抽象更新；只记录总数与分类次数，不记录过程
 ---
 
-# sexual-experience-update
+# Stage4 性经历更新
 
 确认玩家或角色的性经历次数发生稳定变化时，使用“性经历”结算类型输出中文 K:V 更新。
 

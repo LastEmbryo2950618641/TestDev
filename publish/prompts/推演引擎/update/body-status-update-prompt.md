@@ -3,7 +3,7 @@ name: body-status-update
 description: 根据现实推演正文提取玩家或角色整体与各身体部位当前状态更新
 ---
 
-# body-status-update
+# Stage4 身体状态更新
 
 确认玩家或角色当前身体状态发生稳定变化时，使用“身体状态”结算类型输出中文 K:V 更新。
 

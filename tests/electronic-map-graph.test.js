@@ -132,9 +132,9 @@ test('surround unlock prompt documents five-field response with neighbor faction
 test('surround unlock prompt is simple and inline synced', () => {
   const prompt = read('publish/prompts/real-world-map-surround-unlock.md');
   const inline = read('publish/prompts/real-world-map-surround-unlock.js');
-  assert.ok(prompt.includes('电子地图周边解锁'));
+  assert.ok(prompt.includes('Stage9 电子地图周围解锁') || prompt.includes('电子地图周围解锁'));
   assert.ok(prompt.includes('字段固定只有五个'));
-  assert.ok(inline.includes('电子地图周边解锁'));
+  assert.ok(inline.includes('Stage9 电子地图周围解锁') || inline.includes('电子地图周围解锁'));
   assert.ok(inline.includes('字段固定只有五个'));
   assert.ok(inline.includes('出场人物位置'));
   assert.ok(!prompt.includes('\ufffd'));
@@ -329,15 +329,21 @@ test('map auxiliary AI requests reuse real world KV cache path', () => {
   const loop = read('publish/real-world-agent-loop.js');
   const jsonUtils = read('publish/json-utils.js');
   const fog = read('publish/real-world-map-fog.js');
+  const actions = read('publish/real-world-actions.js');
   const locationFill = read('publish/real-world-agent-location-fill.js');
   assert.ok(loop.includes('completeCachedJsonPrompt(store, options = {})'));
-  assert.ok(loop.includes('activeKvCacheSession(store, \'real\')'));
+  assert.ok(loop.includes('activeKvCacheSession(store = null, mode = \'real\')') || loop.includes("activeKvCacheSession(store = null, mode = 'real')"));
+  assert.ok(loop.includes('pendingKvCacheSession(store'));
+  assert.ok(loop.includes('clearPendingKvCacheSession(store'));
+  assert.ok(loop.includes('realWorldAgentPendingKvByMode'));
+  assert.ok(loop.includes('resolveKvCacheSession(store'));
   assert.ok(loop.includes('loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step, materialSession, config.materials, config)'));
   assert.ok(loop.includes('materials = window.GameModules.realWorldMaterials, config = this.realConfig()'));
   assert.ok(loop.includes('tokenMeta: options.tokenMeta'));
   assert.ok(loop.includes('requestOptions.tokenMeta = config.tokenMeta'));
   assert.ok(jsonUtils.includes('useRealWorldKvCache && store'));
   assert.ok(jsonUtils.includes('completeCachedJsonPrompt(store'));
+  assert.ok(jsonUtils.includes('kvCacheSession,'));
   assert.ok(jsonUtils.includes('tokenMeta,'));
   assert.ok(jsonUtils.includes('attemptTitle'));
   assert.ok(jsonUtils.includes('max > 1 && i > 0'));
@@ -345,7 +351,12 @@ test('map auxiliary AI requests reuse real world KV cache path', () => {
   assert.ok(!jsonUtils.includes("'尝试'"));
   assert.ok(fog.includes("source: 'real-world-map-surround-unlock'"));
   assert.ok(fog.includes('useRealWorldKvCache: true'));
+  assert.ok(fog.includes('kvCacheSession: state.realWorldAgentPendingKvByMode'));
+  assert.ok(fog.includes('logId: result.logId'));
   assert.ok(fog.includes("outputLimitKind: 'stage4'"));
+  assert.ok(actions.includes('clearPendingKvCacheSession'));
+  assert.ok(loop.includes('wantsDeepThinking') || loop.includes('deepThinking: wantsDeepThinking') || loop.includes('deepThinking !== false'));
+  assert.ok(loop.includes('apiJsonMode'));
   assert.ok(locationFill.includes("source: 'real-world-location-fill'"));
   assert.ok(locationFill.includes('useRealWorldKvCache: true'));
   assert.ok(locationFill.includes('locationFillRequestOptions(options = {})'));

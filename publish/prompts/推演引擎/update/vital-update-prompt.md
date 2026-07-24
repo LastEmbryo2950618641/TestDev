@@ -3,7 +3,7 @@ name: vital-update
 description: 根据现实推演正文提取玩家生命力、饱食、水分、疲劳与精神稳定更新
 ---
 
-# vital-update
+# Stage4 生命体征更新
 
 触发玩家或角色生命体征变化时，使用“生命体征”结算类型输出中文 K:V 更新。
 

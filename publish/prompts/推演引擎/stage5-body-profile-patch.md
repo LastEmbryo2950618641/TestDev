@@ -1,4 +1,4 @@
-# Stage5 自然状态局部更新（Part5 Patch）
+# Stage6 自然外观补丁
 
 ## System Prompt
 

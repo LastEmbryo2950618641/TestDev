@@ -137,6 +137,9 @@ window.GameModules.jsonUtils = {
         maxAttempts: options.maxAttempts,
         store: options.store,
         useRealWorldKvCache: options.useRealWorldKvCache,
+        kvCacheSession: options.kvCacheSession,
+        reasoningPhase: options.reasoningPhase,
+        logId: options.logId,
         tokenMeta: { ...(options.tokenMeta || {}), title: attemptTitle },
         ...completionOptions,
       });
@@ -185,7 +188,7 @@ window.GameModules.jsonUtils = {
     throw error;
   },
 
-  async requestCompletion({ model, prompt, promptId = '', maxTokens, source = 'json-utils', sourceTitle = '', timeoutMs = 90000, maxAttempts, jsonMode = true, outputLimitKind = 'other', responseFormat, store = null, useRealWorldKvCache = false, tokenMeta = null }) {
+  async requestCompletion({ model, prompt, promptId = '', maxTokens, source = 'json-utils', sourceTitle = '', timeoutMs = 90000, maxAttempts, jsonMode = true, outputLimitKind = 'other', responseFormat, store = null, useRealWorldKvCache = false, kvCacheSession = null, reasoningPhase = '', logId = null, tokenMeta = null }) {
     if (useRealWorldKvCache && store && window.GameModules.realWorldAgentLoop?.completeCachedJsonPrompt) {
       return await window.GameModules.realWorldAgentLoop.completeCachedJsonPrompt(store, {
         prompt,
@@ -199,6 +202,9 @@ window.GameModules.jsonUtils = {
         jsonMode,
         outputLimitKind,
         responseFormat: responseFormat || (jsonMode ? { type: 'json_object' } : undefined),
+        kvCacheSession,
+        reasoningPhase,
+        logId,
         tokenMeta,
       });
     }

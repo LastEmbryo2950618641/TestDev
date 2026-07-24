@@ -3,7 +3,7 @@ name: role-card-update
 description: 根据现实推演正文提取玩家或角色卡字段的稳定事实变化
 ---
 
-# role-card-update
+# Stage4 角色卡更新
 
 确认玩家或角色卡资料、身份、职业、技能、外貌、性格、人际关系等稳定变化时，使用“角色卡”结算类型输出中文 K:V 更新。
 

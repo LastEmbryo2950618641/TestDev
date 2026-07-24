@@ -126,6 +126,10 @@ window.GameModules = window.GameModules || {};
     return [
       ...(entry.characterCardChanges || []).map((item) => {
         if (item?.field && !item?.updateType) {
+          // 旧日志里可能直接塞了 characterSchedules 对象；走 UI 格式化，避免 JSON 原文。
+          if (/characterSchedules?|人事安排/iu.test(String(item.field || item.name || ''))) {
+            return this.rowFromSettlement(item, store, entry);
+          }
           return this.decorateRow(this.normalizeSettlementCardRow(item, store));
         }
         return this.rowFromSettlement(item, store, entry);

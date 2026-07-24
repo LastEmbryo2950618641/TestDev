@@ -3,7 +3,7 @@ name: feeling-update
 description: 根据现实推演正文提取角色或玩家对玩家本人的感觉变化更新
 ---
 
-# feeling-update
+# Stage4 感觉更新
 
 触发角色对玩家本人的感觉变化时，使用“感觉”结算类型输出中文 K:V 更新。
 

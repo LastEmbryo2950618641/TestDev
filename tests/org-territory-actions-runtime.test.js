@@ -154,6 +154,7 @@ for (const relativePath of [
 
 const modules = integrationContext.window.GameModules;
 let nestedEnsureCalls = 0;
+const activeMap = { nodes: [{ id: 'home-node', name: '幸福花园', parentId: '' }] };
 modules.realWorldMap = {
   inferHomeName: () => '幸福花园',
   upsertNode(map, data) {
@@ -169,9 +170,16 @@ modules.realWorldMap = {
     throw new Error('geopolitical initialization must reuse the active map');
   },
 };
+modules.realWorldLocationGraph = {
+  ensurePoiFromPayload(store, data = {}) {
+    const map = store.activeMap || activeMap;
+    return modules.realWorldMap.upsertNode(map, data);
+  },
+};
 
 const store = {
   playerProfile: { name: '测试玩家', refinedCity: '广东省深圳市南山区幸福花园' },
+  activeMap,
   factionState: {
     factions: [{
       id: 'country-china',
@@ -179,28 +187,47 @@ const store = {
       type: '国家',
       parentId: '',
       overviewPanels: {},
+    }, {
+      id: 'family-player-home',
+      name: '测试家庭',
+      kind: 'family',
+      type: '家庭',
+      parentId: '',
+      territoryAnchors: [],
+      overviewPanels: {},
+    }, {
+      id: 'community-幸福花园',
+      name: '幸福花园',
+      kind: 'community',
+      type: '社区',
+      parentId: 'country-china',
+      territoryAnchors: [],
+      overviewPanels: {},
     }],
   },
   initFactionSystem() {},
   phoneDate: () => new Date('2026-07-14T00:00:00.000Z'),
 };
-const activeMap = { nodes: [{ id: 'home-node', name: '幸福花园', parentId: '' }] };
 modules.realWorldMapGeopolitical.ensure(store, activeMap, store.playerProfile);
 const family = store.factionState.factions.find((faction) => faction.id === 'family-player-home');
 const community = store.factionState.factions.find((faction) => faction.kind === 'community');
+const inventedAdmins = store.factionState.factions.filter((faction) => String(faction.id || '').startsWith('admin-'));
 assert.strictEqual(nestedEnsureCalls, 0, 'geopolitical initialization must not recursively ensure the active map');
-assert.ok(family && community, 'geopolitical initialization must create family and community organizations');
+assert.ok(family && community, 'geopolitical init may attach to AI-created family/community orgs');
+assert.strictEqual(inventedAdmins.length, 0, 'geopolitical init must not invent admin org stubs');
 assert.strictEqual(family.parentId, community.id, 'family organization must attach to the generated community');
 assert.ok(family.territoryAnchors.includes('home-node'), 'family organization must retain the active home map anchor');
 modules.realWorldMap.ensure = () => activeMap;
 
 const economy = modules.app.orgTerritory.economyActions;
 economy.syncPlayerWealthAsset(store, { wealthAmount: 12345, wealthTier: '小康' });
-const moneyEntry = family.solid.overviewPanels.economy.entries.money;
-assert.strictEqual(moneyEntry.value, 12345, 'wealth mirror must preserve the normalized amount');
+const moneyEntry = family.solid.overviewPanels.economy.entries.assets;
+assert.strictEqual(Number(moneyEntry.value), 12345, 'wealth mirror must preserve the normalized amount');
 assert.strictEqual(moneyEntry.wealthMirror.tier, '小康', 'wealth mirror must preserve the normalized tier');
 economy.syncCompanyEconomicEntry(store, family, { name: '测试公司', industry: '软件', scale: '小型', location: '深圳' }, '公司同步');
-assert.strictEqual(family.solid.overviewPanels.economy.entries['econ-family-player-home'].source, 'company-app', 'company mirror must preserve its source');
+const institutions = family.solid.overviewPanels.economy.entries.institutions;
+assert.strictEqual(institutions.source, 'company-app', 'company mirror must preserve its source');
+assert.ok(Array.isArray(institutions.value) && institutions.value.some((item) => item.name === '测试公司'), 'company mirror must land in institutions checklist');
 
 store.companyState = {
   employment: { active: true, startAt: '2026-01-01T00:00:00.000Z' },

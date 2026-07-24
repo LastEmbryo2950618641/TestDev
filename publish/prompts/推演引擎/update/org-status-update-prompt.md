@@ -3,7 +3,7 @@ name: org-status-update
 description: 根据现实推演正文变更组织政体状态（独立、起义、解散、合并）
 ---
 
-# org-status-update
+# Stage4 政体状态更新
 
 正文确认组织 **政体级** 变化时使用；须在 `territory-control` 之前 apply（若同轮兼有控势变更）。
 

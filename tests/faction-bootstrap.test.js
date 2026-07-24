@@ -51,37 +51,43 @@ function createContext() {
   return context;
 }
 
-test('inferTopCountry defaults to China only for real-world profiles without country clues', () => {
+test('inferTopCountry never invents a country from profile', () => {
   const context = createContext();
   const system = context.window.GameModules.factionSystem;
-  const top = system.inferTopCountry({ work: '2026 现代都市现实世界', refinedRole: '记者' });
-  assert.ok(top);
-  assert.strictEqual(top.name, '中华人民共和国');
+  assert.strictEqual(system.inferTopCountry({ work: '2026 现代都市现实世界', refinedRole: '记者' }), null);
+  assert.strictEqual(system.inferTopCountry({ work: 'Fate/stay night', refinedRole: '魔术师学徒' }), null);
 });
 
-test('inferTopCountry keeps non-real-world profiles unresolved when no country clues exist', () => {
+test('countryFaction and companyFaction never seed stubs', () => {
   const context = createContext();
   const system = context.window.GameModules.factionSystem;
-  const top = system.inferTopCountry({ work: 'Fate/stay night', refinedRole: '魔术师学徒' });
-  assert.strictEqual(top, null);
+  assert.strictEqual(system.countryFaction({ work: '2026 现代都市现实世界' }), null);
+  assert.strictEqual(system.companyFaction({ workplace: '星河云栈' }), null);
 });
 
-test('defaultState does not fabricate a company when workplace context is missing', () => {
+test('defaultState starts with empty factions for all profiles', () => {
   const context = createContext();
   const system = context.window.GameModules.factionSystem;
-  const state = system.defaultState({ work: '2026 现代都市现实世界', refinedRole: '自由职业者' });
-  assert.strictEqual(state.factions.length, 1);
-  assert.strictEqual(state.factions[0].id, 'country-china');
-  assert.strictEqual(state.selectedId, 'country-china');
+  for (const profile of [
+    { work: '2026 现代都市现实世界', refinedRole: '自由职业者' },
+    { work: '原创异世界', refinedRole: '旅行者' },
+  ]) {
+    const state = system.defaultState(profile);
+    assert.strictEqual(Array.isArray(state.factions), true);
+    assert.strictEqual(state.factions.length, 0);
+    assert.strictEqual(state.selectedId, '');
+  }
 });
 
-test('defaultState keeps non-real-world unknown affiliation empty until later inference', () => {
+test('ensureDomainRoots never invents domain-root stubs', () => {
   const context = createContext();
-  const system = context.window.GameModules.factionSystem;
-  const state = system.defaultState({ work: '原创异世界', refinedRole: '旅行者' });
-  assert.strictEqual(Array.isArray(state.factions), true);
-  assert.strictEqual(state.factions.length, 0);
-  assert.strictEqual(state.selectedId, '');
+  loadScript(context, 'publish/faction-org-forest.js');
+  const forest = context.window.GameModules.factionOrgForest;
+  const sovereign = { id: 'country-china', name: '中华人民共和国', type: '国家', parentId: '' };
+  const result = forest.ensureDomainRoots([sovereign], sovereign);
+  assert.strictEqual(result.created.length, 0);
+  assert.strictEqual(result.factions.length, 1);
+  assert.strictEqual(result.factions[0].id, 'country-china');
 });
 
 (async () => {

@@ -87,14 +87,17 @@ window.GameModules.promptSkills = {
 
   behavior(id = '') {
     const templateId = this.templateId(id);
-    const stageMatch = templateId.match(/^inference-stage([1-5])-/u);
+    const stageMatch = templateId.match(/^inference-stage(\d+)-/u);
     if (stageMatch) {
-      const stage = `stage${stageMatch[1]}`;
+      const n = Number(stageMatch[1]) || 0;
+      const stage = `stage${n}`;
+      // Stage3 正文是散文；其余推演阶段（含势力更新）一律强制 JSON，才能与 DeepSeek 前缀缓存同模型路径。
+      const jsonMode = n !== 3;
       return {
         stage,
-        outputLimitKind: stage === 'stage5' ? 'other' : stage,
-        jsonMode: stage === 'stage1' || stage === 'stage2' || stage === 'stage4' || stage === 'stage5',
-        responseFormat: stage === 'stage1' || stage === 'stage2' || stage === 'stage4' || stage === 'stage5' ? { type: 'json_object' } : undefined,
+        outputLimitKind: n === 1 || n === 2 || n === 4 ? stage : (n === 3 ? 'stage3' : 'other'),
+        jsonMode,
+        responseFormat: jsonMode ? { type: 'json_object' } : undefined,
       };
     }
     const jsonPrompts = new Set([

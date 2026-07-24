@@ -3,7 +3,7 @@ name: item-update
 description: 根据现实推演正文提取物品获得、转移、删除、购买或生成更新
 ---
 
-# item-update
+# Stage4 物品更新
 
 确认物品、装备、库存归属或数量变化时，使用“物品”结算类型输出中文 K:V 更新。
 

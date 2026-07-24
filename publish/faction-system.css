@@ -177,9 +177,6 @@
 }
 
 .faction-rpg-hero {
-  position: sticky;
-  top: 0;
-  z-index: 2;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 12px;
@@ -238,7 +235,6 @@
 }
 
 .faction-rpg-section h3 { margin: 0 0 8px; color: #fff6db; }
-.faction-rpg-summary p { margin: 0; color: #d5e2ff; font-size: 15px; }
 
 .faction-overview-grid {
   display: grid;
@@ -379,6 +375,12 @@
   color: #eef4ff;
   font-size: 15px;
   font-weight: 900;
+}
+
+.faction-overview-item p.multiline {
+  white-space: pre-wrap;
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 .faction-overview-card.empty .faction-note {

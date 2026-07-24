@@ -3,7 +3,7 @@ name: emotion-update
 description: 根据现实推演正文提取玩家或角色的即时情绪变化更新
 ---
 
-# emotion-update
+# Stage4 情绪更新
 
 触发角色或玩家即时情绪变化时，使用“情绪”结算类型输出中文 K:V 更新。
 

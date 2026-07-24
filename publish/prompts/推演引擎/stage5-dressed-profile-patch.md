@@ -1,4 +1,4 @@
-# Stage5 盛装状态局部更新（Part6 Patch）
+# Stage7 盛装外观补丁
 
 ## System Prompt
 

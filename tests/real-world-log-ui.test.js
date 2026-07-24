@@ -88,8 +88,8 @@ assert.strictEqual(store.cleanRealWorldThinkingText('='), '');
 assert.strictEqual(store.cleanRealWorldThinkingText('===---'), '');
 assert.strictEqual(store.cleanRealWorldThinkingText('有效推演'), '有效推演');
 assert.deepStrictEqual(JSON.parse(JSON.stringify(store.realWorldSettlementThinkingLines({
-  settlementThinkingSections: [{ id: 'stage4', label: 'Stage4滑动结算', text: '检查更新' }],
-}))), [{ id: 'stage4', label: 'Stage4滑动结算', text: '检查更新' }]);
+  settlementThinkingSections: [{ id: 'stage4', label: 'Stage4 状态结算', text: '检查更新' }],
+}))), [{ id: 'stage4', label: 'Stage4 状态结算', text: '检查更新' }]);
 assert.strictEqual(store.normalizeRealWorldLog([{ id: 'done', settlementThinking: '已完成' }])[0].settlementThinkingOpen, false);
 assert.strictEqual(store.normalizeRealWorldLog([{ id: 'live', streaming: true, settlementThinking: '进行中' }])[0].settlementThinkingOpen, true);
 assert.strictEqual(store.realWorldDisplayLog([

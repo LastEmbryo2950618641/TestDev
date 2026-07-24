@@ -3,7 +3,7 @@ name: territory-control-update
 description: 根据现实推演正文提取地图 POI 控势变化（夺控、解放、移交、占领）
 ---
 
-# territory-control-update
+# Stage4 领土控势更新
 
 正文确认某 **已揭示** 地图地点的行政/治安/实控归属变化时，使用 `territory-control` 结算类型。
 

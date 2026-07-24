@@ -3,7 +3,7 @@ name: membership-update
 description: 根据现实推演正文确认角色在组织中的部门、职位与 orgId 归属
 ---
 
-# membership-update
+# Stage4 人事归属更新
 
 正文确认角色 **入职、任职、调岗、离职** 时使用 `membership` 结算；与 `membership` 直接写入。
 

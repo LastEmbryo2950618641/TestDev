@@ -177,6 +177,7 @@ window.GameScriptManifest = {
       "update/faction-overview-update.js",
       "update/map-update.js",
       "update/system-update.js",
+      "update/character-schedule-update.js",
       "update/generic-update.js",
       "update/emotion-update-ui.js",
       "update/feeling-update-ui.js",
@@ -192,6 +193,7 @@ window.GameScriptManifest = {
       "update/faction-overview-update-ui.js",
       "update/map-update-ui.js",
       "update/system-update-ui.js",
+      "update/character-schedule-update-ui.js",
       "update/generic-update-ui.js",
       "update/generic-update-compat.js",
       "update/generic-update-template.js",
@@ -291,6 +293,7 @@ window.GameScriptManifest = {
       "inference/material-request-catalog.js",
       "inference/scene-boundary.js",
       "inference/material-loader.js",
+      "inference/faction-stage-update.js",
       "real-world-agent-context.js",
       "real-world-longing-actions.js",
       "real-world-agent-history.js",
@@ -435,11 +438,12 @@ window.GameScriptManifest = {
       "prompts/picture_generate/sensitive-replacements.js",
       "prompts/picture_generate/draw-tag-prompt.js",
       "prompts/picture_generate/common-image-edit-generate.js",
+      "prompts/推演引擎/stage6-faction-update.js",
       "inference-prompts-runtime.js"
     ]
   },
   "generatedAt": "2026-07-22T11:52:24.120Z",
-  "total": 423
+  "total": 425
 };
 
 window.GameScriptManifest.classify = function classify(url) {

@@ -97,20 +97,9 @@ window.GameModules.factionOrgForest = {
     };
   },
 
-  ensureDomainRoots(factions = [], sovereign = null) {
-    const list = [...factions];
-    const root = sovereign || this.resolveViewportRoot(list);
-    if (!root?.id) return { factions: list, created: [] };
-    const created = [];
-    this.DOMAIN_KEYS.forEach((domain) => {
-      const id = this.domainRootId(root.id, domain);
-      if (!list.some((f) => f.id === id)) {
-        const node = this.makeDomainRoot(root, domain);
-        list.push(node);
-        created.push(node);
-      }
-    });
-    return { factions: list, created };
+  /** Never invent domain-root stubs — only AI / upsert may create them. */
+  ensureDomainRoots(factions = [], _sovereign = null) {
+    return { factions: [...(factions || [])], created: [] };
   },
 
   stripDuplicateStructureRoot(faction = {}) {
@@ -152,31 +141,32 @@ window.GameModules.factionOrgForest = {
     const sovereign = forest.resolveViewportRoot(allFactions);
     if (!sovereign?.id) return faction;
 
-    const corpRoot = forest.domainRootId(sovereign.id, 'corp');
-    const govRoot = forest.domainRootId(sovereign.id, 'gov');
-    const geoRoot = forest.domainRootId(sovereign.id, 'geo');
+    const corpRootId = forest.domainRootId(sovereign.id, 'corp');
+    const govRootId = forest.domainRootId(sovereign.id, 'gov');
+    const geoRootId = forest.domainRootId(sovereign.id, 'geo');
+    const corpRoot = allFactions.find((f) => f.id === corpRootId) || null;
+    const govRoot = allFactions.find((f) => f.id === govRootId) || null;
+    const geoRoot = allFactions.find((f) => f.id === geoRootId) || null;
 
     const isCompany = faction.orgDomain === 'corp' || ['公司', '工作室', '企业'].includes(faction.type);
     const isPrivate = faction.ownership === 'private' || (isCompany && faction.ownership !== 'state');
 
-    if (isPrivate && (forest.isAdminGeoParent(faction.parentId) || faction.parentId === sovereign.id)) {
-      log.push({ kind: 'parent-reparent', factionId: faction.id, from: faction.parentId, to: corpRoot });
-      faction.parentId = corpRoot;
-      const root = allFactions.find((f) => f.id === corpRoot);
-      faction.parentName = root?.name || forest.DOMAIN_LABELS.corp;
+    // Only reparent onto domain roots that AI already created — never invent parent ids.
+    if (corpRoot && isPrivate && (forest.isAdminGeoParent(faction.parentId) || faction.parentId === sovereign.id)) {
+      log.push({ kind: 'parent-reparent', factionId: faction.id, from: faction.parentId, to: corpRootId });
+      faction.parentId = corpRootId;
+      faction.parentName = corpRoot.name || forest.DOMAIN_LABELS.corp;
     }
 
-    if (faction.ownership === 'state' && forest.isAdminGeoParent(faction.parentId)) {
-      log.push({ kind: 'state-to-gov-root', factionId: faction.id, from: faction.parentId, to: govRoot });
-      faction.parentId = govRoot;
-      const root = allFactions.find((f) => f.id === govRoot);
-      faction.parentName = root?.name || forest.DOMAIN_LABELS.gov;
+    if (govRoot && faction.ownership === 'state' && forest.isAdminGeoParent(faction.parentId)) {
+      log.push({ kind: 'state-to-gov-root', factionId: faction.id, from: faction.parentId, to: govRootId });
+      faction.parentId = govRootId;
+      faction.parentName = govRoot.name || forest.DOMAIN_LABELS.gov;
     }
 
-    if (faction.kind === 'admin' && faction.parentId === sovereign.id) {
-      faction.parentId = geoRoot;
-      const root = allFactions.find((f) => f.id === geoRoot);
-      faction.parentName = root?.name || forest.DOMAIN_LABELS.geo;
+    if (geoRoot && faction.kind === 'admin' && faction.parentId === sovereign.id) {
+      faction.parentId = geoRootId;
+      faction.parentName = geoRoot.name || forest.DOMAIN_LABELS.geo;
       faction.orgDomain = 'geo';
     }
 
@@ -204,11 +194,6 @@ window.GameModules.factionOrgForest = {
     if (sovereign) {
       sovereign.orgDomain = 'country';
       sovereign.sovereign = true;
-      const ensured = this.ensureDomainRoots(factions, sovereign);
-      factions = ensured.factions;
-      if (ensured.created.length) {
-        log.push({ kind: 'domain-roots-created', count: ensured.created.length, sovereignId: sovereign.id });
-      }
     }
 
     factions = factions.map((f) => this.sanitizeFactionParentDomain(f, factions, log));

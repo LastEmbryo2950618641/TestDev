@@ -1,3 +1,3 @@
-# wearing-state update prompt
+# Stage4 穿着状态更新
 
 中文 K:V 结算字段说明源。

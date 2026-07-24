@@ -352,6 +352,7 @@ function registerGameStore() {
     factionArchiveDocMeta() { return ''; },
     factionArchiveParagraphTime() { return ''; },
     factionStructureCards() { return []; },
+    factionTerritoryEntries() { return []; },
     selectedFactionResolutionBadge() {
       const faction = this.selectedFaction?.();
       return faction?.resolutionBadge || window.GameModules.orgTerritory?.resolutionBadge?.(faction?.resolution) || '';
@@ -454,7 +455,7 @@ function registerGameStore() {
     },
     factionOverviewEffectiveCount(panelKey = '', entries = []) {
       if (panelKey !== 'ideology') return entries.length;
-      return entries.filter((entry) => String(entry?.name || '') !== 'legitimacy').length;
+      return entries.filter((entry) => String(entry?.name || '') !== 'legitimacy' && entry?.filled).length;
     },
     selectedFactionOverviewSummary() {
       const faction = this.selectedFaction?.();
@@ -477,21 +478,27 @@ function registerGameStore() {
           const entries = ['core', 'reason', 'description', 'base', 'legitimacy'].map((fieldKey) => {
             const field = ideology[fieldKey] || {};
             const value = field?.value;
-            const hasValue = typeof value === 'number' ? Number.isFinite(value) : String(value ?? '').trim();
-            if (!hasValue && fieldKey !== 'legitimacy') return null;
+            const hasValue = typeof value === 'number'
+              ? Number.isFinite(value)
+              : Boolean(String(value ?? '').trim());
+            const display = hasValue
+              ? this.factionOverviewEntryValue(field)
+              : (fieldKey === 'legitimacy' ? '0/100' : '待推演补全');
             return {
               key: `ideology-${fieldKey}`,
               name: fieldKey,
               label: this.factionOverviewFieldLabel('ideology', fieldKey, faction),
               icon: skin.entryIcons[fieldKey] || skin.icon,
-              display: this.factionOverviewEntryValue(field),
+              display,
               reason: String(field?.reason || '').trim(),
-              stateBadge: hasValue ? '已记录' : '',
+              stateBadge: hasValue ? '已记录' : '待填',
+              filled: hasValue,
             };
-          }).filter(Boolean);
+          });
           const meter = this.factionOverviewPanelMeter(panelKey, entries, faction);
           const effectiveCount = this.factionOverviewEffectiveCount(panelKey, entries);
-          return { key: 'cap-ideology', dim: 'ideology', label: meta.labels.ideology, eyebrow: meta.eyebrow, emptyText: meta.empty.ideology, icon: skin.icon, tone: skin.tone, meter, meterStyle: `--meter:${meter};`, rankLabel: this.factionOverviewRankLabel(meter, effectiveCount), statusLabel: `${entries.length}项`, entries };
+          const filledCount = entries.filter((entry) => entry.filled).length;
+          return { key: 'cap-ideology', dim: 'ideology', label: meta.labels.ideology, eyebrow: meta.eyebrow, emptyText: meta.empty.ideology, icon: skin.icon, tone: skin.tone, meter, meterStyle: `--meter:${meter};`, rankLabel: this.factionOverviewRankLabel(meter, effectiveCount), statusLabel: `${filledCount}/5项`, entries };
         }
         const entries = Object.entries(panels[panelKey]?.entries || {}).map(([key, entry]) => ({
           ...(entry && typeof entry === 'object' ? entry : { value: entry }),

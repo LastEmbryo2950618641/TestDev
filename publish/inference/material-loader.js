@@ -5,6 +5,19 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
   async autoLoadForStep(store, action = '', loadedKeys = new Set(), materialSession = null, materials = window.GameModules.realWorldMaterials, memoryIds = new Set(), step = 1, loaded = [], current = []) {
     if (step !== 1) return [];
     const ctx = window.GameModules.realWorldAgentContext || window.GameModules.realWorldAgentContextParts?.core || {};
+    const out = [];
+
+    // Default: all faction names/IDs + internal structure for Stage1 context.
+    store?.initFactionSystem?.();
+    const factionReq = { skill: 'faction.query', method: 'listFactions', params: { world: window.GameModules.realWorld2026?.label || '2026 现代都市现实世界', auto: true } };
+    const factionKey = this.materialRequestKey(factionReq.skill, factionReq.method, factionReq.params, materials);
+    if (!loadedKeys.has(factionKey)) {
+      loadedKeys.add(factionKey);
+      const factionText = ctx.factionList?.(store) || ctx.faction?.(store, 'listFactions', {}) || '暂无势力。';
+      materials?.record?.(materialSession, factionReq, '自动资料：全部势力名/ID与组织架构', factionText);
+      out.push({ title: '自动资料：全部势力名/ID与组织架构', text: factionText, max: 3200 });
+    }
+
     const actionText = String(action || '');
     const lastGuidance = ctx.lastRoundStage1GuidanceFromStore?.(store) || null;
     const priorParticipantNames = ['forcedParticipants', 'priorityCandidates'].flatMap((key) => (Array.isArray(lastGuidance?.[key]) ? lastGuidance[key] : []))
@@ -22,7 +35,6 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
       seen.add(key);
       return true;
     }).slice(0, 3);
-    const out = [];
     for (const state of hits) {
       const name = state.profile?.name || state.name;
       const req = { skill: 'character.query', method: 'searchCharacterProfile', params: { name, world: window.GameModules.realWorld2026?.label || '2026 现代都市现实世界', auto: true } };
@@ -51,7 +63,7 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
     if (policy === 'deny') {
       return [
         `资料请求未执行：${pair} 属于 Stage1 禁止的写库/结算/侧效应 skill。`,
-        '此类变更应通过 Stage4 结算 genericUpdates 写入，或在后续步骤改用只读查询替代。',
+        '势力字段补丁请走正文后 Stage8（patchFactionField）；新势力可在 Stage1 用「势力查询，创建势力，势力名」创建。其它变更走 Stage4 结算。',
       ].join('\n');
     }
     if (policy === 'deep') {

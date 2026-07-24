@@ -3,7 +3,7 @@ name: faction-structure-update
 description: 根据现实推演正文提取势力组织结构、职位、成员与层级变化
 ---
 
-# faction-structure-update
+# 遗留：势力结构更新
 
 确认已有势力内部组织架构、部门、职位、成员、角色地位变化时，使用“势力结构”结算类型输出中文 K:V 更新。
 

@@ -18,12 +18,9 @@ window.GameModules.app.orgTerritory.settlementActions = {
   ensureFaction(store, name = '') {
     store.initFactionSystem?.();
     const label = String(name || '').trim();
-    let faction = (store.factionState?.factions || []).find((f) => f.name === label || f.id === label);
-    if (!faction && label) {
-      store.ensureFactionMembership?.({ orgName: label, title: '成员', characterName: '未知', reason: '控势或组织结算先创建势力 stub。' });
-      faction = (store.factionState?.factions || []).find((f) => f.name === label || f.id === label);
-    }
-    return faction;
+    if (!label) return null;
+    // Never invent factions from settlement stubs — Stage6 createFaction / generate path must create them.
+    return (store.factionState?.factions || []).find((f) => f.name === label || f.id === label) || null;
   },
 
   applyTerritoryControl(store, update = {}) {
@@ -205,21 +202,52 @@ window.GameModules.app.orgTerritory.settlementActions = {
       }, key === 'legitimacy' ? 0 : '', key === 'legitimacy' ? '/100' : '');
     } else {
       const panel = faction.solid.overviewPanels[panelKey] || { entries: {} };
-      const key = this.overviewEntryKey(panelKey, { id: patch.id, name: patch.key || patch.name || patch.title || update.field });
+      let key = this.overviewEntryKey(panelKey, { id: patch.id, name: patch.key || patch.name || patch.title || update.field });
+      if (panelKey === 'economy' || panelKey === 'politics' || panelKey === 'military' || panelKey === 'diplomacy' || panelKey === 'territory') {
+        const alias = panelKey === 'economy'
+          ? ot.economyFieldAlias?.bind(ot)
+          : (panelKey === 'politics'
+            ? ot.politicsFieldAlias?.bind(ot)
+            : (panelKey === 'military'
+              ? ot.militaryFieldAlias?.bind(ot)
+              : (panelKey === 'diplomacy' ? ot.diplomacyFieldAlias?.bind(ot) : ot.territoryFieldAlias?.bind(ot))));
+        const fixedKeys = panelKey === 'economy'
+          ? ot.economyFixedKeys?.()
+          : (panelKey === 'politics'
+            ? ot.politicsFixedKeys?.()
+            : (panelKey === 'military'
+              ? ot.militaryFixedKeys?.()
+              : (panelKey === 'diplomacy' ? ot.diplomacyFixedKeys?.() : ot.territoryFixedKeys?.())));
+        key = alias?.(key) || alias?.(patch.key || patch.name || '') || key;
+        if (!(fixedKeys || []).includes(key)) {
+          const labelMap = {
+            economy: '经济', politics: '政治', military: '军事', diplomacy: '外交', territory: '统治区域',
+          };
+          return { ok: false, text: `总览：${labelMap[panelKey] || panelKey}字段无效「${key || '未指定'}」，须为固定清单字段` };
+        }
+      }
       if (change.mode === 'remove') {
         delete panel.entries[key];
       } else {
+        const rawValue = patch.value ?? patch.items ?? patch.list ?? patch.name ?? patch.title ?? '';
+        const value = ['economy', 'politics', 'military', 'diplomacy', 'territory'].includes(panelKey)
+          ? ot.normalizeOverviewEntryValue?.(panelKey, key, rawValue)
+          : rawValue;
         panel.entries[key] = {
-          value: patch.value ?? patch.name ?? patch.title ?? '',
+          value,
           unit: patch.unit || '',
-          kind: patch.kind || patch.type || '',
+          kind: patch.kind || patch.type || key,
           state: patch.state || 'sketch',
           note: patch.note || patch.description || '',
           updatedAt: now,
           reason: patch.reason || reason,
         };
       }
-      faction.solid.overviewPanels[panelKey] = panel;
+      if (['economy', 'politics', 'military', 'diplomacy', 'territory'].includes(panelKey)) {
+        faction.solid.overviewPanels[panelKey] = ot.normalizeOverviewEntries?.(panel, { panelKey }) || panel;
+      } else {
+        faction.solid.overviewPanels[panelKey] = panel;
+      }
     }
 
     Object.assign(faction, ot.normalizeFaction(faction, store));

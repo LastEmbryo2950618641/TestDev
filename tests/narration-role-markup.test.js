@@ -49,6 +49,23 @@ assert.ok(html.includes('class="narration-role"'));
 assert.ok(!html.includes('<role'));
 assert.ok(html.includes('你走进房间'));
 
+const forceTagged = '你在<force id="force-company-1">成都市高新区科创有限公司</force>上班。';
+const forceMentions = api.extractForceMentions(forceTagged);
+assert.strictEqual(forceMentions.length, 1);
+assert.strictEqual(forceMentions[0].id, 'force-company-1');
+const forceHtml = api.toSafeHtml(forceTagged);
+assert.ok(forceHtml.includes('class="narration-force"'));
+assert.ok(forceHtml.includes('data-force-id="force-company-1"'));
+assert.ok(!forceHtml.includes('<force'));
+
+const bareForce = '成都市高新区科创有限公司在高新区。';
+const wrappedForce = api.wrapMissingForceTags(bareForce, [{ id: 'force-company-1', name: '成都市高新区科创有限公司' }]);
+assert.ok(wrappedForce.includes('<force id="force-company-1">成都市高新区科创有限公司</force>'));
+assert.strictEqual(api.forceTag('force-company-1', '成都市高新区科创有限公司'), '<force id="force-company-1">成都市高新区科创有限公司</force>');
+
+assert.ok(prompt.includes('<force id="真实ID">势力名</force>') || prompt.includes('<force id='));
+assert.ok(read('publish/real-world.css').includes('.narration-force'));
+
 const unsafe = '攻击<script>alert(1)</script><role id="rel-ai-1">甲</role>';
 const safe = api.toSafeHtml(unsafe);
 assert.ok(!safe.includes('<script'));

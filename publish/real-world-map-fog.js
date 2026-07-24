@@ -781,7 +781,9 @@ window.GameModules.realWorldMapFog = {
 
       source: 'real-world-map-surround-unlock',
 
-      sourceTitle: '现实Stage4滑动结算｜电子地图周围解锁',
+      sourceTitle: 'Stage9 电子地图周围解锁',
+
+      reasoningPhase: 'stage9',
 
       promptId: 'real-world-map-surround-unlock',
 
@@ -790,6 +792,16 @@ window.GameModules.realWorldMapFog = {
       store: state,
 
       useRealWorldKvCache: true,
+
+      kvCacheSession: state.realWorldAgentPendingKvByMode?.real
+        || state.realWorldAgentActiveKvByMode?.real
+        || null,
+
+      logId: result.logId || result.realWorldLogId || state.realWorldActiveLogId || null,
+
+      jsonMode: true,
+
+      responseFormat: { type: 'json_object' },
 
       outputLimitKind: 'stage4',
 

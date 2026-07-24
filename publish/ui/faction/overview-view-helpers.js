@@ -167,6 +167,14 @@ window.GameModules.ui.faction.overviewViewHelpers = {
     return this.factionState?.orgBreadcrumb || this.selectedFaction?.()?.name || '';
   },
 
+  orgChartBackButtonText() {
+    return this.factionOrgChartMode?.() === 'detail' ? '返回势力森林' : '返回上一级';
+  },
+
+  orgChartCloseDetailButtonText() {
+    return '关闭详情';
+  },
+
   orgChartEmptyText() {
     return '暂无组织节点；等待 AI 推演确立部门、职位或归属关系。';
   },
@@ -369,7 +377,6 @@ window.GameModules.ui.faction.overviewViewHelpers = {
   selectedFactionOverviewView() {
     const faction = this.selectedFaction?.();
     if (!faction) return null;
-    const meta = this.factionOverviewModeMeta(faction);
     return {
       title: faction.name || '未命名势力',
       description: faction.description || '',
@@ -379,9 +386,6 @@ window.GameModules.ui.faction.overviewViewHelpers = {
       statusLabel: this.selectedFactionStatusLabel?.() || '',
       resolutionBadge: this.selectedFactionResolutionBadge?.() || '',
       parentLabel: '归属：' + this.parentName(faction),
-      summaryTitle: '势力总览',
-      summaryEyebrow: meta.eyebrow || '',
-      summaryText: this.selectedFactionOverviewSummary?.() || '',
       overviewTitle: '战略态势图',
       overviewEyebrow: 'OVERVIEW PANELS',
       overviewCards: this.factionCapabilityCards?.() || [],
@@ -399,12 +403,12 @@ window.GameModules.ui.faction.overviewViewHelpers = {
 
   structureSectionView() {
     return {
-      title: '组织结构',
-      actionLabel: '打开树状图',
-      notice: this.stubNotice() || '结构是已固化的组织骨架；未推演的职责、角色和下级会保持迷雾。',
-      cards: this.structureCardRows(),
-      emptyText: this.structureEmptyText(),
-      expandLabel: '查看全部',
+      title: '统治区域',
+      actionLabel: '',
+      notice: '按最高行政区展示已固化的统治范围；未知项保持待推演补全。',
+      cards: this.factionTerritoryEntries?.() || [],
+      emptyText: '暂无统治区域事实，等待推演补全。',
+      expandLabel: '',
     };
   },
 };

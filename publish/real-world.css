@@ -319,6 +319,13 @@
   border-bottom: 1px dotted rgba(255, 226, 160, .45);
 }
 
+.novel-body-text .narration-force {
+  color: #8fd6ff;
+  font-weight: 700;
+  cursor: default;
+  border-bottom: 1px dotted rgba(143, 214, 255, .5);
+}
+
 .real-world-dialog .novel-tool-row {
   display: flex;
   flex-wrap: wrap;

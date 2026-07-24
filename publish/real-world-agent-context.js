@@ -96,7 +96,7 @@ window.GameModules.realWorldAgentContext = {
       orgTerritoryHint,
       this.scheduleCandidateHintText(store, action, location),
       priorCount
-        ? `前轮完整推演上下文：已通过对话链继承（${priorCount} 条消息，不压缩）；本轮仅补充以下增量，勿重复请求前轮已载入资料。`
+        ? `前轮完整推演上下文：已通过对话链继承（${priorCount} 条消息，不压缩）。前轮资料与之后的结算/正文变更都可综合使用；请对照当前桌面时间与本轮行动，判断现有上下文是否已能支撑正文。仅当缺失、冲突或无法可靠还原时才重新请求。`
         : '',
       `已加载资料摘要：\n${this.loadedRoutingSummary(loaded)}`,
       `可请求资料目录：\n${this.stage1MaterialCatalogText(config?.mode || 'real')}`,
