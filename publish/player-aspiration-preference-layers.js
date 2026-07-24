@@ -34,9 +34,9 @@ window.GameModules.playerAspirationPreferenceLayers = {
   formatLayer3(axes = {}) {
     const cfg = window.GameModules.playerAspirationConfig;
     const parts = (cfg?.axes || []).map((axis) => {
-      const value = Number(axes[axis.key]) || 50;
+      const raw = Number(axes?.[axis.key]);
+      const value = Number.isFinite(raw) ? Math.max(0, Math.min(100, raw)) : 50;
       const lean = cfg.axisLeanText(value, axis);
-      const tag = value <= 35 ? axis.leftTag : value >= 65 ? axis.rightTag : '均衡';
       return `${axis.leftTag}/${axis.rightTag}${lean}${value}`;
     });
     return `人生六维偏好: ${parts.join(',')}`;
@@ -45,7 +45,8 @@ window.GameModules.playerAspirationPreferenceLayers = {
   formatLayer4(guiltAxes = {}) {
     const cfg = window.GameModules.playerAspirationConfig;
     const parts = (cfg?.guiltLines || []).map((item) => {
-      const value = Number(guiltAxes[item.id]) || 50;
+      const raw = Number(guiltAxes?.[item.id]);
+      const value = Number.isFinite(raw) ? Math.max(0, Math.min(100, raw)) : 50;
       const lean = cfg.guiltLeanText(value, item);
       return `${item.category}·${item.theme}${lean}${value}`;
     });
@@ -56,20 +57,29 @@ window.GameModules.playerAspirationPreferenceLayers = {
     const cfg = window.GameModules.playerAspirationConfig;
     const psych = psychPreferences || cfg?.defaultPsychPreferences?.() || { selected: {} };
     const groups = [];
-    (cfg?.psychPreferenceCategories || []).forEach((category) => {
-      cfg.psychCategoryGroups(category).forEach((group) => {
-        let tags = psych.selected?.[group.id];
-        if (!Array.isArray(tags) || !tags.length) {
-          const legacy = [];
-          ['normal', 'acg'].forEach((laneId) => {
-            const old = psych.selected?.[`${laneId}:${group.id}`];
-            if (Array.isArray(old)) legacy.push(...old);
-          });
-          tags = [...new Set(legacy)];
-        }
-        if (tags.length) groups.push(`${group.label}:${tags.join(',')}`);
+    const categories = cfg?.psychPreferenceCategories || [];
+    if (categories.length && cfg?.psychCategoryGroups) {
+      categories.forEach((category) => {
+        cfg.psychCategoryGroups(category).forEach((group) => {
+          let tags = psych.selected?.[group.id];
+          if (!Array.isArray(tags) || !tags.length) {
+            const legacy = [];
+            ['normal', 'acg'].forEach((laneId) => {
+              const old = psych.selected?.[`${laneId}:${group.id}`];
+              if (Array.isArray(old)) legacy.push(...old);
+            });
+            tags = [...new Set(legacy)];
+          }
+          if (tags.length) groups.push(`${group.label}:${tags.join(',')}`);
+        });
       });
-    });
+    } else if (psych?.selected && typeof psych.selected === 'object') {
+      Object.entries(psych.selected).forEach(([key, tags]) => {
+        if (!Array.isArray(tags) || !tags.length) return;
+        if (String(key).includes(':')) return;
+        groups.push(`${key}:${tags.join(',')}`);
+      });
+    }
     return groups.length ? `心理偏好: ${groups.join('; ')}` : '心理偏好: 未勾选';
   },
 
@@ -137,7 +147,13 @@ window.GameModules.playerAspirationPreferenceLayers = {
     const text = String(name || '').trim();
     if (!text) return false;
     if (/^layer[1-5]$/.test(text) || text === 'essentialPreferenceLayers') return true;
-    return this.layerMeta.some(({ label, prefix }) => text === label || text === prefix || text.includes('本质偏好'));
+    if (text.includes('本质偏好')) return true;
+    // layer1–4 titles end with「…偏好」；layer5 标题恰为「心理偏好」，
+    // 与人生取向词条同名，不能当成不可变字段名去过滤人生取向展示。
+    return this.layerMeta.some(({ label, prefix }) => {
+      if (prefix === '心理偏好' || label === '心理偏好') return false;
+      return text === label || text === prefix;
+    });
   },
 
   psychGroupMeta() {
@@ -185,16 +201,59 @@ window.GameModules.playerAspirationPreferenceLayers = {
     return profile;
   },
 
-  ensureOnProfile(profile = {}) {
+  ensureOnProfile(profile = {}, orientation = null) {
     if (!profile || typeof profile !== 'object') return null;
+    const assignIfChanged = (next) => {
+      const layers = this.normalizeLayers(next);
+      try {
+        if (JSON.stringify(profile.essentialPreferenceLayers || null) === JSON.stringify(layers)) return layers;
+      } catch (_) { /* ignore */ }
+      profile.essentialPreferenceLayers = layers;
+      if (profile.essentialPreferenceLayersLocked == null) profile.essentialPreferenceLayersLocked = true;
+      return layers;
+    };
+    const source = orientation || profile.lifeOrientation || null;
+    // Prefer life-orientation numbers when present — fixes continue-game / 0→50 corrupted layers.
+    if (source?.alignment && (source.axes || source.guiltAxes || source.rationality != null)) {
+      const fromOrientation = this.buildFromPlayerAspiration(source);
+      if (fromOrientation?.layer1) return assignIfChanged(fromOrientation);
+    }
     const normalized = this.normalizeLayers(profile.essentialPreferenceLayers || {});
-    if (normalized.layer1) return normalized;
+    if (normalized.layer1) {
+      const layer5Body = this.stripLayerPrefix(normalized.layer5, '心理偏好');
+      const needsPsych = !layer5Body || layer5Body === '未勾选';
+      if (needsPsych) {
+        const psych = profile.psychPreferences
+          || profile.lifeOrientation?.psychPreferences
+          || orientation?.psychPreferences
+          || null;
+        let repaired = psych ? this.formatLayer5(psych) : '';
+        if (!repaired || /未勾选/.test(repaired)) {
+          const summary = String(
+            profile.psychSummary
+            || profile.lifeOrientation?.psychSummary
+            || orientation?.psychSummary
+            || '',
+          ).trim();
+          if (summary) {
+            const body = summary
+              .replace(/\n+/g, '; ')
+              .replace(/：/g, ':')
+              .replace(/；/g, ';')
+              .replace(/、/g, ',')
+              .replace(/^[^\n:]*倾向[：:]\s*/u, '');
+            repaired = this.ensurePrefix('心理偏好', body);
+          }
+        }
+        if (repaired && !/未勾选/.test(repaired)) {
+          return assignIfChanged({ ...normalized, layer5: repaired });
+        }
+      }
+      return normalized;
+    }
     const fallback = window.GameModules.characterProfile?.fallbackEssentialPreferenceLayers?.(profile);
     if (!fallback) return null;
-    const layers = this.normalizeLayers(fallback);
-    profile.essentialPreferenceLayers = layers;
-    profile.essentialPreferenceLayersLocked = true;
-    return layers;
+    return assignIfChanged(fallback);
   },
 
   stripLayerPrefix(line = '', prefix = '') {

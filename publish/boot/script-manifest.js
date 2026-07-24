@@ -66,6 +66,7 @@ window.GameScriptManifest = {
       "character-state-store.js",
       "character-id-ensure.js",
       "narration-role-markup.js",
+      "character-goal-system.js",
       "character-memory-store.js",
       "character-intro-store.js",
       "character-memory-maintenance-store.js",
@@ -178,6 +179,7 @@ window.GameScriptManifest = {
       "update/map-update.js",
       "update/system-update.js",
       "update/character-schedule-update.js",
+      "update/character-goal-update.js",
       "update/generic-update.js",
       "update/emotion-update-ui.js",
       "update/feeling-update-ui.js",
@@ -194,6 +196,7 @@ window.GameScriptManifest = {
       "update/map-update-ui.js",
       "update/system-update-ui.js",
       "update/character-schedule-update-ui.js",
+      "update/character-goal-update-ui.js",
       "update/generic-update-ui.js",
       "update/generic-update-compat.js",
       "update/generic-update-template.js",
@@ -454,6 +457,6 @@ window.GameScriptManifest.classify = function classify(url) {
   if (/(^|\/)wechat|player-wechat-setup|real-world-agent-wechat|prompts\/wechat|wechat-album-photo/.test(p)) return 'wechat';
   if (/^(company-|boss-|calendar-|event-|faction-|skills-|skill-|known-profession-|taobao-|prompt-actions|token-stats|alert-log|faction-membership|role-card-json-app\/)/.test(p)) return 'apps';
   if (/^prompt\.js$|^real-world-prompt\.js$|^prompts\/materials\/|^prompts\/picture_generate\/|^inference-prompts-runtime\.js$/.test(p)) return 'prompts';
-  if (/^real-world-|^org-territory|^(?:app|domain)\/org-territory\/|^inference\/|^story-agent-context\.js$|^assets\/data\/real-world|^game-premise\.js$|^update\/(territory|org-|membership|character-schedule|org-status)/.test(p)) return 'gameplay';
+  if (/^real-world-|^org-territory|^(?:app|domain)\/org-territory\/|^inference\/|^story-agent-context\.js$|^assets\/data\/real-world|^game-premise\.js$|^update\/(territory|org-|membership|character-schedule|character-goal|org-status)/.test(p)) return 'gameplay';
   return 'core';
 };

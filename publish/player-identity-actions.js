@@ -197,6 +197,25 @@ window.GameModules.playerIdentityActions = {
     if ((this.identityTargetId || 'player-self') === 'player-self') {
       fields.push(...(this.playerAspirationLexiconFields?.().filter((item) => !prefTool?.isImmutableFieldName?.(item.label)) || []));
     }
+    const goalApi = window.GameModules.characterGoalSystem;
+    if (goalApi && p) {
+      const aspiration = (this.identityTargetId || 'player-self') === 'player-self'
+        ? (this.activePlayerLifeOrientation?.() || this.playerAspiration || null)
+        : (p.lifeOrientation || null);
+      const goalBundleField = fields.find((item) => String(item?.label || '').trim() === '目标');
+      const goalSystem = goalApi.ensureOnProfile(p, [
+        aspiration,
+        aspiration?.goals,
+        aspiration?.goalSystem,
+        aspiration?.goalSummary || '',
+        goalBundleField?.value || goalBundleField?.raw || '',
+        p.lifeOrientation,
+      ].filter(Boolean));
+      // Drop legacy「目标」bundle; structured tiers live under profileGroup「长期目标」.
+      const withoutBundle = fields.filter((item) => String(item?.label || '').trim() !== '目标');
+      fields.length = 0;
+      fields.push(...withoutBundle, ...goalApi.lexiconFields(goalSystem, { targetId, worldTag }));
+    }
     return fields;
   },
 
@@ -260,20 +279,71 @@ window.GameModules.playerIdentityActions = {
       if (!prefTool) return null;
       const resolved = state || this.identityTargetState();
       const id = resolved?.id || this.identityTargetId || 'player-self';
+      const aspiration = id === 'player-self'
+        ? (this.activePlayerLifeOrientation?.() || this.playerAspiration || null)
+        : (resolved?.profile?.lifeOrientation || null);
       if (id === 'player-self') {
         const profile = resolved?.profile;
-        if (profile) return prefTool.ensureOnProfile(profile);
-        const fromAspiration = this.playerAspiration?.essentialPreferenceLayers || prefTool.buildFromPlayerAspiration?.(this.playerAspiration);
-        if (fromAspiration?.layer1) return prefTool.normalizeLayers(fromAspiration);
+        if (profile) {
+          const layers = prefTool.ensureOnProfile(profile, aspiration);
+          const layer5Body = prefTool.stripLayerPrefix?.(layers?.layer5 || '', '心理偏好') || '';
+          if (layers?.layer1 && (!layer5Body || layer5Body === '未勾选')) {
+            const psych = aspiration?.psychPreferences || profile.psychPreferences || null;
+            if (psych && prefTool.formatLayer5) {
+              const repaired = prefTool.formatLayer5(psych);
+              if (repaired && !/未勾选/.test(repaired)) {
+                const next = prefTool.normalizeLayers({ ...layers, layer5: repaired });
+                try {
+                  if (JSON.stringify(profile.essentialPreferenceLayers || null) !== JSON.stringify(next)) {
+                    profile.essentialPreferenceLayers = next;
+                  }
+                } catch (_) {
+                  profile.essentialPreferenceLayers = next;
+                }
+                return next;
+              }
+            }
+          }
+          if (layers?.layer1) return layers;
+        }
+        const fromAspiration = aspiration?.essentialPreferenceLayers
+          || prefTool.buildFromPlayerAspiration?.(aspiration)
+          || this.playerAspiration?.essentialPreferenceLayers
+          || prefTool.buildFromPlayerAspiration?.(this.playerAspiration);
+        if (fromAspiration?.layer1) {
+          const next = prefTool.normalizeLayers(fromAspiration);
+          if (profile) {
+            try {
+              if (JSON.stringify(profile.essentialPreferenceLayers || null) !== JSON.stringify(next)) {
+                profile.essentialPreferenceLayers = next;
+                if (profile.essentialPreferenceLayersLocked == null) profile.essentialPreferenceLayersLocked = true;
+              }
+            } catch (_) {
+              profile.essentialPreferenceLayers = next;
+              if (profile.essentialPreferenceLayersLocked == null) profile.essentialPreferenceLayersLocked = true;
+            }
+          }
+          return next;
+        }
         return null;
       }
       const profile = resolved?.profile || (id === (this.identityTargetId || '') ? this.identityTargetProfile() : null);
       if (!profile || typeof profile !== 'object') return null;
-      return prefTool.ensureOnProfile(profile);
+      return prefTool.ensureOnProfile(profile, aspiration);
     } catch (err) {
       console.warn('[identity] essential preference layers unavailable:', err?.message || err);
       return null;
     }
+  },
+
+  essentialPreferenceViewForState(state = null) {
+    const layers = this.essentialPreferenceLayersForState(state);
+    const view = window.GameModules.playerAspirationPreferenceLayers?.viewFromLayers?.(layers);
+    if (view?.alignmentLabel) return view;
+    if ((state?.id || this.identityTargetId || 'player-self') === 'player-self') {
+      return this.essentialPreferenceViewFromPlayerAspiration?.() || null;
+    }
+    return null;
   },
 
   essentialPreferenceViewFromPlayerAspiration(view = null) {

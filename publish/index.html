@@ -1727,29 +1727,15 @@
                 </aside>
               </div>
             </template>
-            <template x-if="section.view === 'goals'">
-              <div class="goals-panel" x-data="{ goals: null }" x-init="goals = $store.game.goalsPresentation(section.fields); $watch(() => $store.game.identityTargetId, () => { goals = $store.game.goalsPresentation(section.fields); $store.game.clearAbilityDetail?.(); })">
+            <template x-if="section.view === 'lifeOrientation'">
+              <div class="goals-panel life-orientation-panel" x-data="{ orient: null }" x-init="orient = $store.game.lifeOrientationPresentation(section.fields); $watch(() => [$store.game.identityTargetId, section.fields], () => { orient = $store.game.lifeOrientationPresentation(section.fields); $store.game.clearAbilityDetail?.(); })">
                 <section class="goals-hero">
-                  <span class="goals-hero-eyebrow" x-text="goals?.hero?.eyebrow || 'DESTINY LOG'"></span>
-                  <strong class="goals-hero-title" x-text="goals?.hero?.title || '人生目标'"></strong>
-                  <p class="goals-hero-note" x-text="goals?.hero?.note || '将近期、中期与长期目标组织成可推进的命运路线。'"></p>
+                  <span class="goals-hero-eyebrow" x-text="orient?.hero?.eyebrow || 'LIFE ORIENTATION'"></span>
+                  <strong class="goals-hero-title" x-text="orient?.hero?.title || '人生取向'"></strong>
+                  <p class="goals-hero-note" x-text="orient?.hero?.note || '价值立场、决策风格与心理偏好等长期取向。'"></p>
                 </section>
-                <div class="goals-track">
-                  <template x-for="card in goals?.cards || []" :key="`goal-card-${card.role}`">
-                    <button type="button" class="goal-card ability-expandable" :class="[`tone-${card.tone}`, { open: card.field && $store.game.isAbilityDetailOpen(card.field) }]" @click="card.field && $store.game.toggleAbilityDetail(card.field)">
-                      <span class="goal-card-icon" aria-hidden="true" x-text="card.icon"></span>
-                      <span class="goal-card-label"><span x-text="card.title"></span><em x-show="card.direction?.dominant" x-text="`主轴：${card.direction.dominant}`"></em></span>
-                      <span class="goal-stat-grid" x-show="(card.direction?.metrics || []).length">
-                        <template x-for="metric in card.direction?.metrics || []" :key="`${card.role}-${metric.name}`">
-                          <span class="goal-stat-chip"><i x-text="metric.icon"></i><b x-text="metric.name"></b><em x-text="metric.value"></em><u :style="`width:${metric.value}%`"></u></span>
-                        </template>
-                      </span>
-                      <strong class="goal-card-copy" x-text="card.preview"></strong>
-                    </button>
-                  </template>
-                </div>
-                <div class="goals-support-grid" x-show="(goals?.support || []).length">
-                  <template x-for="card in goals?.support || []" :key="`goal-support-${card.title}`">
+                <div class="goals-support-grid" x-show="(orient?.support || []).length">
+                  <template x-for="card in orient?.support || []" :key="`orient-support-${card.title}`">
                     <button type="button" class="goal-support-card ability-expandable" :class="[`tone-${card.tone}`, { open: card.field && $store.game.isAbilityDetailOpen(card.field) }]" @click="card.field && $store.game.toggleAbilityDetail(card.field)">
                       <span class="goal-support-icon" aria-hidden="true" x-text="card.icon"></span>
                       <div><strong x-text="card.title"></strong><p x-text="card.preview"></p></div>
@@ -1762,8 +1748,45 @@
                 </aside>
               </div>
             </template>
+            <template x-if="section.view === 'goalSystem' || section.view === 'goals'">
+              <div class="goals-panel goal-system-panel" x-data="{ goals: null }" x-init="goals = $store.game.goalsPresentation(section.fields); $watch(() => [$store.game.identityTargetId, section.fields], () => { goals = $store.game.goalsPresentation(section.fields); $store.game.clearAbilityDetail?.(); })">
+                <section class="goals-hero">
+                  <span class="goals-hero-eyebrow" x-text="goals?.hero?.eyebrow || 'GOAL SYSTEM'"></span>
+                  <strong class="goals-hero-title" x-text="goals?.hero?.title || '长期目标'"></strong>
+                  <p class="goals-hero-note" x-text="goals?.hero?.note || '短期、中期与长期目标及阶段成果，用于驱动行为与完成度。'"></p>
+                </section>
+                <p class="ability-empty" x-show="goals?.empty">尚未建立长期目标；完成人生取向向导后自动生成。</p>
+                <div class="goals-track" x-show="!goals?.empty">
+                  <template x-for="card in goals?.cards || []" :key="`goal-card-${card.role}`">
+                    <button type="button" class="goal-card ability-expandable" :class="[`tone-${card.tone}`, { open: card.field && $store.game.isAbilityDetailOpen(card.field) }]" @click="card.field && $store.game.toggleAbilityDetail(card.field)">
+                      <header class="goal-card-head">
+                        <span class="goal-card-icon" aria-hidden="true" x-text="card.icon"></span>
+                        <span class="goal-card-label"><span x-text="card.title"></span></span>
+                        <strong class="goal-card-progress" x-text="`${card.progress ?? 0}%`"></strong>
+                      </header>
+                      <span class="goal-meta-row"><em x-text="card.deadlineLabel || '未设期限'"></em></span>
+                      <span class="goal-progress-track"><i :style="`width:${card.progress || 0}%`"></i></span>
+                      <strong class="goal-card-copy" x-text="card.preview"></strong>
+                      <span class="goal-card-detail" x-show="card.detail" x-text="card.detail"></span>
+                    </button>
+                  </template>
+                </div>
+                <section class="goal-achievements" x-show="(goals?.achievements || []).length">
+                  <header class="goal-achievements-head"><span>🏆</span><strong>阶段成果</strong><small x-show="(goals?.achievementTotal || 0) > 0" x-text="`共 ${goals.achievementTotal} 条`"></small></header>
+                  <ul>
+                    <template x-for="(item, index) in goals?.achievements || []" :key="`goal-ach-${index}`">
+                      <li><em x-text="`成果${index + 1}`"></em><span><span x-text="item.text || item"></span><small class="goal-ach-date" x-show="item.at" x-text="item.at"></small></span></li>
+                    </template>
+                  </ul>
+                </section>
+                <aside class="ability-detail-sheet" x-show="$store.game.abilityDetailPanel?.text" x-transition.opacity.duration.150ms>
+                  <header class="ability-detail-head"><strong x-text="$store.game.abilityDetailPanel?.title || '详情'"></strong><button type="button" class="ability-detail-close" @click="$store.game.clearAbilityDetail()">收起</button></header>
+                  <pre class="ability-detail-body" x-text="$store.game.abilityDetailPanel?.text"></pre>
+                </aside>
+              </div>
+            </template>
             <template x-if="section.view === 'essentialPreference'">
-              <div class="pref-panel" x-data="{ pref: null }" x-init="pref = $store.game.essentialPreferencePresentation(section.fields); $watch(() => $store.game.identityTargetId, () => { pref = $store.game.essentialPreferencePresentation(section.fields); $store.game.clearAbilityDetail?.(); })">
+              <div class="pref-panel" x-data="{ pref: null }" x-init="pref = $store.game.essentialPreferencePresentation(section.fields); $watch(() => [$store.game.identityTargetId, section.fields], () => { pref = $store.game.essentialPreferencePresentation(section.fields); $store.game.clearAbilityDetail?.(); })">
                 <section class="pref-hero">
                   <div class="pref-hero-crest" aria-hidden="true">✦</div>
                   <div class="pref-hero-copy">
@@ -1837,7 +1860,7 @@
                 </aside>
               </div>
             </template>
-            <template x-if="section.title !== '个人能力' && section.title !== '身内能力' && section.title !== '装备与物品' && section.title !== '当前自然状态' && section.title !== '盛装' && section.title !== '身份信息' && section.title !== '身体状态' && section.view !== 'goals' && section.view !== 'essentialPreference'">
+            <template x-if="section.title !== '个人能力' && section.title !== '身内能力' && section.title !== '装备与物品' && section.title !== '当前自然状态' && section.title !== '盛装' && section.title !== '身份信息' && section.title !== '身体状态' && section.view !== 'goals' && section.view !== 'goalSystem' && section.view !== 'lifeOrientation' && section.view !== 'essentialPreference'">
               <template x-for="field in section.fields" :key="field.key">
                 <div class="dynamic-row" role="button" tabindex="0" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.toggleRpgField(field)" @keydown.enter.prevent="$store.game.toggleRpgField(field)" @keydown.space.prevent="$store.game.toggleRpgField(field)">
                   <button :class="[$store.game.isRpgListField(field) ? 'rpg-tree-title' : 'rpg-item-card lexicon-tag', { open: $store.game.isRpgFieldOpen(field) }]" type="button" @click.stop="$store.game.toggleRpgField(field)"><strong x-text="$store.game.rpgFieldSummary(field)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
@@ -3356,29 +3379,15 @@
                       </aside>
                     </div>
                   </template>
-                  <template x-if="section.view === 'goals'">
-                    <div class="goals-panel" x-data="{ goals: null }" x-init="goals = $store.game.goalsPresentation(section.fields); $watch(() => $store.game.identityTargetId, () => { goals = $store.game.goalsPresentation(section.fields); $store.game.clearAbilityDetail?.(); })">
+                  <template x-if="section.view === 'lifeOrientation'">
+                    <div class="goals-panel life-orientation-panel" x-data="{ orient: null }" x-init="orient = $store.game.lifeOrientationPresentation(section.fields); $watch(() => [$store.game.identityTargetId, section.fields], () => { orient = $store.game.lifeOrientationPresentation(section.fields); $store.game.clearAbilityDetail?.(); })">
                       <section class="goals-hero">
-                        <span class="goals-hero-eyebrow" x-text="goals?.hero?.eyebrow || 'DESTINY LOG'"></span>
-                        <strong class="goals-hero-title" x-text="goals?.hero?.title || '人生目标'"></strong>
-                        <p class="goals-hero-note" x-text="goals?.hero?.note || '将近期、中期与长期目标组织成可推进的命运路线。'"></p>
+                        <span class="goals-hero-eyebrow" x-text="orient?.hero?.eyebrow || 'LIFE ORIENTATION'"></span>
+                        <strong class="goals-hero-title" x-text="orient?.hero?.title || '人生取向'"></strong>
+                        <p class="goals-hero-note" x-text="orient?.hero?.note || '价值立场、决策风格与心理偏好等长期取向。'"></p>
                       </section>
-                      <div class="goals-track">
-                        <template x-for="card in goals?.cards || []" :key="`entry-goal-card-${card.role}`">
-                          <button type="button" class="goal-card ability-expandable" :class="[`tone-${card.tone}`, { open: card.field && $store.game.isAbilityDetailOpen(card.field) }]" @click="card.field && $store.game.toggleAbilityDetail(card.field)">
-                            <span class="goal-card-icon" aria-hidden="true" x-text="card.icon"></span>
-                            <span class="goal-card-label"><span x-text="card.title"></span><em x-show="card.direction?.dominant" x-text="`主轴：${card.direction.dominant}`"></em></span>
-                            <span class="goal-stat-grid" x-show="(card.direction?.metrics || []).length">
-                              <template x-for="metric in card.direction?.metrics || []" :key="`entry-${card.role}-${metric.name}`">
-                                <span class="goal-stat-chip"><i x-text="metric.icon"></i><b x-text="metric.name"></b><em x-text="metric.value"></em><u :style="`width:${metric.value}%`"></u></span>
-                              </template>
-                            </span>
-                            <strong class="goal-card-copy" x-text="card.preview"></strong>
-                          </button>
-                        </template>
-                      </div>
-                      <div class="goals-support-grid" x-show="(goals?.support || []).length">
-                        <template x-for="card in goals?.support || []" :key="`entry-goal-support-${card.title}`">
+                      <div class="goals-support-grid" x-show="(orient?.support || []).length">
+                        <template x-for="card in orient?.support || []" :key="`entry-orient-support-${card.title}`">
                           <button type="button" class="goal-support-card ability-expandable" :class="[`tone-${card.tone}`, { open: card.field && $store.game.isAbilityDetailOpen(card.field) }]" @click="card.field && $store.game.toggleAbilityDetail(card.field)">
                             <span class="goal-support-icon" aria-hidden="true" x-text="card.icon"></span>
                             <div><strong x-text="card.title"></strong><p x-text="card.preview"></p></div>
@@ -3391,8 +3400,45 @@
                       </aside>
                     </div>
                   </template>
+                  <template x-if="section.view === 'goalSystem' || section.view === 'goals'">
+                    <div class="goals-panel goal-system-panel" x-data="{ goals: null }" x-init="goals = $store.game.goalsPresentation(section.fields); $watch(() => [$store.game.identityTargetId, section.fields], () => { goals = $store.game.goalsPresentation(section.fields); $store.game.clearAbilityDetail?.(); })">
+                      <section class="goals-hero">
+                        <span class="goals-hero-eyebrow" x-text="goals?.hero?.eyebrow || 'GOAL SYSTEM'"></span>
+                        <strong class="goals-hero-title" x-text="goals?.hero?.title || '长期目标'"></strong>
+                        <p class="goals-hero-note" x-text="goals?.hero?.note || '短期、中期与长期目标及阶段成果，用于驱动行为与完成度。'"></p>
+                      </section>
+                      <p class="ability-empty" x-show="goals?.empty">尚未建立长期目标；完成人生取向向导后自动生成。</p>
+                      <div class="goals-track" x-show="!goals?.empty">
+                        <template x-for="card in goals?.cards || []" :key="`entry-goal-card-${card.role}`">
+                          <button type="button" class="goal-card ability-expandable" :class="[`tone-${card.tone}`, { open: card.field && $store.game.isAbilityDetailOpen(card.field) }]" @click="card.field && $store.game.toggleAbilityDetail(card.field)">
+                            <header class="goal-card-head">
+                              <span class="goal-card-icon" aria-hidden="true" x-text="card.icon"></span>
+                              <span class="goal-card-label"><span x-text="card.title"></span></span>
+                              <strong class="goal-card-progress" x-text="`${card.progress ?? 0}%`"></strong>
+                            </header>
+                            <span class="goal-meta-row"><em x-text="card.deadlineLabel || '未设期限'"></em></span>
+                            <span class="goal-progress-track"><i :style="`width:${card.progress || 0}%`"></i></span>
+                            <strong class="goal-card-copy" x-text="card.preview"></strong>
+                            <span class="goal-card-detail" x-show="card.detail" x-text="card.detail"></span>
+                          </button>
+                        </template>
+                      </div>
+                      <section class="goal-achievements" x-show="(goals?.achievements || []).length">
+                        <header class="goal-achievements-head"><span>🏆</span><strong>阶段成果</strong><small x-show="(goals?.achievementTotal || 0) > 0" x-text="`共 ${goals.achievementTotal} 条`"></small></header>
+                        <ul>
+                          <template x-for="(item, index) in goals?.achievements || []" :key="`entry-goal-ach-${index}`">
+                            <li><em x-text="`成果${index + 1}`"></em><span><span x-text="item.text || item"></span><small class="goal-ach-date" x-show="item.at" x-text="item.at"></small></span></li>
+                          </template>
+                        </ul>
+                      </section>
+                      <aside class="ability-detail-sheet" x-show="$store.game.abilityDetailPanel?.text" x-transition.opacity.duration.150ms>
+                        <header class="ability-detail-head"><strong x-text="$store.game.abilityDetailPanel?.title || '详情'"></strong><button type="button" class="ability-detail-close" @click="$store.game.clearAbilityDetail()">收起</button></header>
+                        <pre class="ability-detail-body" x-text="$store.game.abilityDetailPanel?.text"></pre>
+                      </aside>
+                    </div>
+                  </template>
                   <template x-if="section.view === 'essentialPreference'">
-                    <div class="pref-panel" x-data="{ pref: null }" x-init="pref = $store.game.essentialPreferencePresentation(section.fields); $watch(() => $store.game.identityTargetId, () => { pref = $store.game.essentialPreferencePresentation(section.fields); $store.game.clearAbilityDetail?.(); })">
+                    <div class="pref-panel" x-data="{ pref: null }" x-init="pref = $store.game.essentialPreferencePresentation(section.fields); $watch(() => [$store.game.identityTargetId, section.fields], () => { pref = $store.game.essentialPreferencePresentation(section.fields); $store.game.clearAbilityDetail?.(); })">
                 <section class="pref-hero">
                   <div class="pref-hero-crest" aria-hidden="true">✦</div>
                   <div class="pref-hero-copy">
@@ -3466,7 +3512,7 @@
                 </aside>
               </div>
             </template>
-                  <template x-if="section.title !== '个人能力' && section.title !== '身内能力' && section.title !== '装备与物品' && section.title !== '当前自然状态' && section.title !== '盛装' && section.title !== '身份信息' && section.title !== '身体状态' && section.view !== 'goals' && section.view !== 'essentialPreference'">
+                  <template x-if="section.title !== '个人能力' && section.title !== '身内能力' && section.title !== '装备与物品' && section.title !== '当前自然状态' && section.title !== '盛装' && section.title !== '身份信息' && section.title !== '身体状态' && section.view !== 'goals' && section.view !== 'goalSystem' && section.view !== 'lifeOrientation' && section.view !== 'essentialPreference'">
                     <template x-for="field in section.fields" :key="`entry-field-${field.key}`">
                       <div class="dynamic-row" role="button" tabindex="0" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.toggleRpgField(field)" @keydown.enter.prevent="$store.game.toggleRpgField(field)" @keydown.space.prevent="$store.game.toggleRpgField(field)">
                         <button :class="[$store.game.isRpgListField(field) ? 'rpg-tree-title' : 'rpg-item-card lexicon-tag', { open: $store.game.isRpgFieldOpen(field) }]" type="button" @click.stop="$store.game.toggleRpgField(field)"><strong x-text="$store.game.rpgFieldSummary(field)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>

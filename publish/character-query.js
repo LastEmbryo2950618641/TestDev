@@ -151,15 +151,26 @@ window.GameModules.characterQuery = {
   },
 
   lifeOrientationLines(profile = {}) {
+    const goalApi = window.GameModules.characterGoalSystem;
+    const goalSystem = profile?.goalSystem || profile?.lifeOrientation?.goalSystem;
+    if (goalSystem && goalApi?.formatText) {
+      const text = goalApi.formatText(goalSystem);
+      if (text && !/（未填写）[\s\S]*（暂无）/.test(text.replace(/\n/g, ''))) {
+        // Always emit structured block when any content exists.
+        const has = goalApi.TIER_KEYS.some((key) => goalApi.normalize(goalSystem)[key]?.content)
+          || (goalApi.normalize(goalSystem).achievements || []).length;
+        if (has) return [text];
+      }
+    }
     const lo = profile?.lifeOrientation && typeof profile.lifeOrientation === 'object' ? profile.lifeOrientation : null;
     if (!lo) return [];
     const goals = lo.goals || {};
     const rows = [
       this.line('人生总结', lo.portraitSummary || lo.summary),
       this.line('目标摘要', goals.summary),
-      this.line('近期目标', goals.short),
-      this.line('中期目标', goals.medium),
-      this.line('长期目标', goals.long),
+      this.line('近期目标', typeof goals.short === 'object' ? goals.short.content : goals.short),
+      this.line('中期目标', typeof goals.medium === 'object' ? goals.medium.content : goals.medium),
+      this.line('长期目标', typeof goals.long === 'object' ? goals.long.content : goals.long),
     ].filter(Boolean);
     if (rows.length) return rows;
     const goalBundle = String(lo.goalSummary || '').trim();

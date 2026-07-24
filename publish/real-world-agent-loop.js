@@ -1471,7 +1471,7 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   settlementTypeQueue(config = this.realConfig(), store = null) {
-    const base = ['基础结算', '情绪', '感觉', '生命体征', '身体状态', '穿着状态', '性经历', '性历史', '关系', '角色卡', '物品', '地图', '领土控势', '人事安排', '政体状态', '人事归属', '系统记录', '通用固化'];
+    const base = ['基础结算', '情绪', '感觉', '生命体征', '身体状态', '穿着状态', '性经历', '性历史', '关系', '角色卡', '长期目标', '物品', '地图', '领土控势', '人事安排', '政体状态', '人事归属', '系统记录', '通用固化'];
     base.push(this.eventSettlementType());
     const story = config.mode === 'story';
     const realPossessed = config.mode === 'real' && Boolean(store?.sharedControlState?.());
@@ -1504,6 +1504,7 @@ window.GameModules.realWorldAgentLoop = {
       '性历史': { title: '性历史结算', format: '更新N：结算主体，状态转移，性对象，原因与证据' },
       '关系': { title: '关系结算', format: '更新N：结算主体，甲方(称谓)，乙方(称谓)，维度，当前状态，变化原因，根据性格造成结果' },
       '角色卡': { title: '角色卡结算', format: '更新N：结算主体，字段，替换/增加，新值，原因，根据性格造成结果' },
+      '长期目标': { title: '长期目标结算', format: '数组；每项可含 subject、short/medium/long（content/deadline/progress/detail）、achievement、reason；无变化 []' },
       '物品': { title: '物品结算', format: '更新N：结算主体，物品类型，物品名，事实或变化，变化原因' },
       '地图': { title: '地图结算', format: '更新N：结算主体，当前位置/上级地点/地点事实/地图节点/路线事实，事实，原因' },
       '领土控势': { title: '领土控势结算', format: '更新N：地点名，实控组织/宣称组织/控势状态，事实，原因' },
@@ -1530,6 +1531,7 @@ window.GameModules.realWorldAgentLoop = {
       '性历史': { updateType: 'sexual-history', fieldPrefix: 'intimacy.sexualHistory' },
       '关系': { updateType: 'relationship', fieldPrefix: 'relationships' },
       '角色卡': { updateType: 'role-card', fieldPrefix: 'profile' },
+      '长期目标': { updateType: 'character-goal', fieldPrefix: 'profile.goalSystem' },
       '物品': { updateType: 'item', fieldPrefix: 'inventory' },
       '地图': { updateType: 'map', fieldMap: { '当前位置': 'current', '上级地点': 'parent', '地点事实': 'descriptionFacts', '地图节点': 'mapNodes', '路线事实': 'routeLinks' } },
       '领土控势': { updateType: 'territory-control', fieldPrefix: 'control' },
@@ -1806,6 +1808,52 @@ window.GameModules.realWorldAgentLoop = {
       field: 'characterSchedules',
       change: { mode: 'merge', value },
       reasons: [{ trigger: '人事安排', evidence: value.reason, confidence: 'confirmed' }],
+    };
+  },
+
+  parseGoalJsonEntry(entry = {}, subject = null, participants = []) {
+    const t = (value) => this.settlementJsonText(value);
+    const resolved = subject || this.settlementJsonSubject('长期目标', entry, participants);
+    const subjectType = String(resolved?.type || '').trim();
+    if (!resolved || !['character', 'player'].includes(subjectType)) return null;
+    const api = window.GameModules.characterGoalSystem;
+    const value = {};
+    const tiers = api?.resolveTierFromEntry?.(entry) || {};
+    ['short', 'medium', 'long'].forEach((key) => {
+      const tier = tiers[key] || entry[key];
+      if (!tier || typeof tier !== 'object') return;
+      const normalized = api?.normalizeTier?.(tier) || tier;
+      if (normalized.content || normalized.deadline || normalized.detail || Number(normalized.progress) > 0
+        || tier.content !== undefined || tier.deadline !== undefined || tier.progress !== undefined || tier.detail !== undefined) {
+        value[key] = {
+          content: tier.content !== undefined ? t(tier.content) : undefined,
+          deadline: tier.deadline !== undefined ? t(tier.deadline) : undefined,
+          progress: tier.progress !== undefined ? tier.progress : undefined,
+          detail: (tier.detail ?? tier.progressText ?? tier.progressDesc) !== undefined
+            ? t(tier.detail ?? tier.progressText ?? tier.progressDesc)
+            : undefined,
+        };
+        Object.keys(value[key]).forEach((k) => { if (value[key][k] === undefined) delete value[key][k]; });
+      }
+    });
+    const achievements = [];
+    if (Array.isArray(entry.achievements)) achievements.push(...entry.achievements.map((item) => t(item?.text || item)).filter(Boolean));
+    if (entry.achievement) achievements.push(t(entry.achievement));
+    if (entry.阶段成果) {
+      if (Array.isArray(entry.阶段成果)) achievements.push(...entry.阶段成果.map((item) => t(item?.text || item)).filter(Boolean));
+      else achievements.push(t(entry.阶段成果));
+    }
+    if (achievements.length === 1) value.achievement = achievements[0];
+    else if (achievements.length > 1) value.achievements = achievements;
+    const reason = t(entry.reason ?? entry.原因 ?? entry.evidence ?? entry.证据 ?? '');
+    if (!Object.keys(value).length) return null;
+    value.reason = reason || '正文明确证据';
+    return {
+      updateType: 'character-goal',
+      subject: resolved,
+      field: 'profile.goalSystem',
+      change: { mode: 'merge', value },
+      reasons: [{ trigger: '长期目标', evidence: value.reason, confidence: 'confirmed' }],
     };
   },
 
@@ -2185,6 +2233,7 @@ window.GameModules.realWorldAgentLoop = {
           else if (type === '操控体验') update = this.parseControlExperienceJsonEntry(entry, subject, participants);
           else if (type === '组织能力') update = this.parseOrgOverviewPanelJsonEntry(entry, subject);
           else if (type === '人事安排') update = this.parseScheduleJsonEntry(entry, subject, participants);
+          else if (type === '长期目标') update = this.parseGoalJsonEntry(entry, subject, participants);
           else if (['情绪', '感觉'].includes(type)) update = this.parseMetricSettlementJsonEntry(type, entry, subject, participants, store);
           else if (specialParsers[type]) update = specialParsers[type](line, subject);
           else if (['性历史', '角色卡'].includes(type)) {
@@ -2207,6 +2256,9 @@ window.GameModules.realWorldAgentLoop = {
         });
         if (type === '人事安排' || type === '角色卡') {
           patch.genericUpdates = window.GameModules.characterScheduleUpdates?.coalesce?.(patch.genericUpdates) || patch.genericUpdates;
+        }
+        if (type === '长期目标') {
+          patch.genericUpdates = window.GameModules.characterGoalUpdates?.coalesce?.(patch.genericUpdates) || patch.genericUpdates;
         }
       }
       const hasParsedAllUpdates = !patch.__updateLines || patch.__parsedUpdates === patch.__updateLines;
@@ -2399,7 +2451,8 @@ window.GameModules.realWorldAgentLoop = {
       '穿着状态': '穿着部位只能是：全身/整体、胸部/胸口/乳房、上身、外套、下身、腿部/大腿、足部/脚部、内裤、饰品；全身/整体会按外套处理并清空其他衣物槽；同轮若还有局部部位，先应用全身再覆盖局部部位；禁止肩部、腰部、衣领、吊带位置等非槽位字段；必须包含衣物名称和当前状态。',
       '性经历': '分类只能是：阴部、胸部/胸口/乳房、唇部/接吻、口部/嘴部、口部行为、口交、口交中出、阴部进入、阴道插入、阴道中出、肛部/肛门、肛部进入、肛交、肛交中出、腿部/大腿、臀部/屁股、手部/手、皮肤、其他；delta 必须是 +N/-N 且不能为 0；禁止写总次数/总数/全部；无相关行为时输出空数组。',
       '关系': '只记录稳定关系维度，如亲属、朋友、同事、师生、雇佣、敌对、同居、恋人；好感、信任、依赖、警惕等数值态度写“感觉”，不要写关系。',
-      '角色卡': '只写稳定角色卡字段：当前状态、身份、职业、技能、知识、外貌、性格、喜好、人物说明、社群角色、人事归属、人际关系；禁止写当前地点/当前位置/当前行动/可用状态（那些必须写人事安排）；临时情绪、生命体征、身体、穿着、关系、物品有专门类型时不得写角色卡。',
+      '角色卡': '只写稳定角色卡字段：当前状态、身份、职业、技能、知识、外貌、性格、喜好、人物说明、社群角色、人事归属、人际关系；禁止写当前地点/当前位置/当前行动/可用状态（那些必须写人事安排）；禁止写短中长期目标进度与阶段成果（那些必须写长期目标）；临时情绪、生命体征、身体、穿着、关系、物品有专门类型时不得写角色卡。',
+      '长期目标': '只更新本回合 participants 的角色卡长期目标系统。可写 short/medium/long（content、deadline YYYY-MM-DD、progress 0-100、detail）与 achievement/achievements。规则：①任一档完成（progress=100 或正文确认达成）必须追加阶段成果，并基于当前上下文生成同档下一条新目标，progress 重置为较低起点（通常 0-20）；禁止只写 100% 不换 content。②玩家目标表达特别明确（点名短/中/长期，或「近期完成」「几个月内达成」等）且旧目标未完成时，新 content 必须融合旧未完部分与新目标，progress 通常适当下调并在 detail 说明；模糊愿望不触发。③未点名档位时按难易/耗时判定 short≈数天~数周、medium≈数月、long≈数年或人生方向。④即时下一步仍写基础结算「当前目标」；弱推测不更新。',
       '地图': '字段只能是：当前位置、上级地点、地点事实、地图节点、路线事实；角色当前所在地优先写人事安排，不要把角色行动写成地图事实。地图节点最小颗粒度为建筑物（如锦苑小区3栋）或小区级POI（公园、商店）；走廊、楼梯间、单个房间只写当前位置，不要作为地图节点。禁止在本类型写 effectiveOrgId/控势，那属于领土控势。',
       '领土控势': '仅当正文确认已揭示地点的夺控、解放、移交、占领或争议状态时更新；字段：地点名、实控组织、宣称组织、控势状态；未 revealed 地点不得写；同轮同一地点最多一条；普通到达/看见不写本类型。',
       '人事安排': '只更新本回合 participants 中的参与者；同一人每回合最多一条当前人事安排。把当前地点、当前行动、可用状态合并进同一条（无变化字段可省略）；正在做什么必须写 当前行动，value 用短句写具体动作；可用状态 value 只能是 在场/场外/暂不可用/未知，禁止把动作或身体反应写进可用状态；reason 只写正文证据；禁止同一人拆成地点/行动/可用多条；禁止把地点写进角色卡；弱推测不更新。',
@@ -2419,7 +2472,7 @@ window.GameModules.realWorldAgentLoop = {
       ].join(''),
       '人事归属': '字段：组织名/orgId、部门、职位；对应 values.memberships；部门未明写 departmentFog；与势力 structure 占坑可同时存在但需一致；抽象「公民/居民」不得写。',
       '系统记录': '只写系统级、跨角色、且没有专门类型承载的长期事实：日历变更、微信/短信通信、世界线节点、不可逆公共事件、全局状态。禁止把角色当前行动、所在地点、身体反应、感觉、关系、场景描写复述写进系统记录；这些必须分别写人事安排、身体状态、感觉、关系。若正文事实已被世界线记录覆盖，系统记录写空数组 []。',
-      '通用固化': '只能写没有专门类型承载的长期稳定标签；情绪、感觉、生命体征、身体、穿着、性经历、性历史、关系、物品、地图、人事、势力、系统记录有专门类型时不得写通用固化。',
+      '通用固化': '只能写没有专门类型承载的长期稳定标签；情绪、感觉、生命体征、身体、穿着、性经历、性历史、关系、物品、地图、人事、势力、长期目标、系统记录有专门类型时不得写通用固化。',
       '操控体验': [
         '只结算当前被控角色的上线体验（values.control_experience）。',
         '流程：1）先确认本轮是否需要更新（needUpdate）以及要更新哪些字段（updateFields）；2）再生成对应字段值。',
@@ -2467,6 +2520,7 @@ window.GameModules.realWorldAgentLoop = {
     if (type === '性历史') return `"性历史":[{"subject":"${subject}","transition":"状态转移","partner":"对象","evidence":"正文明确证据"}]`;
     if (type === '关系') return `"关系":[{"subject":"${subject}","left":"${playerName}","right":"${subject}","dimension":"亲属关系","status":"稳定亲密","reason":"正文中能证明关系状态的具体证据","result":"维持稳定亲密关系"}]`;
     if (type === '角色卡') return `"角色卡":[{"subject":"${subject}","field":"当前状态","op":"增加","value":"稳定状态标签","reason":"正文明确且可长期固化的证据","result":"加入状态标签"}]`;
+    if (type === '长期目标') return `"长期目标":[{"subject":"${subject}","short":{"content":"短期目标内容","deadline":"2026-08-01","progress":40,"detail":"进度说明"},"achievement":"已完成的阶段成果","reason":"正文明确证据"}]`;
     if (type === '物品') return `"物品":[{"subject":"${subject}","field":"持有物","value":"物品状态","reason":"正文明确物品变化证据"}]`;
     if (type === '地图') return '"地图":[{"subject":"地点名","field":"地点事实","value":"稳定地点事实","reason":"正文明确地点证据"}]';
     if (type === '人事安排') return `"人事安排":[{"subject":"${subject}","currentLocation":"地点","currentAction":"正在做的具体动作","availability":"在场","reason":"正文明确证据"}]`;
@@ -2642,6 +2696,7 @@ window.GameModules.realWorldAgentLoop = {
       if (type === '感觉') return '感觉：数组；每项 {"subject":"出场NPC姓名","field":"感觉指标名","value":"+N/-N","status":"变化后该感觉的具体表现","reason":"正文证据证明该NPC对玩家态度变化"}；无变化 []。status 写程度表现，不要写指标名+数值前缀；缺省时系统会按新数值补模板解释。';
       if (type === '关系') return '关系：数组；每项 {"subject":"姓名","left":"关系左方","right":"关系右方","dimension":"稳定关系维度","status":"关系状态","reason":"证据","result":"结算结果"}；无变化 []。';
       if (type === '角色卡') return '角色卡：数组；每项 {"subject":"姓名","field":"字段","op":"替换/增加","value":"内容","reason":"证据","result":"结果"}；无变化 []。';
+      if (type === '长期目标') return '长期目标：数组；每项 {"subject":"姓名","short|medium|long":{"content":"目标","deadline":"YYYY-MM-DD","progress":0-100,"detail":"进度描述"},"achievement":"阶段成果","reason":"证据"}；完成某档必须换同档新 content 并重置较低 progress；玩家明确改目标且旧档未完成须融合改写；可只写变化字段；无变化 []。';
       if (type === '操控体验') return '操控体验：数组；每项先输出 needUpdate 与 updateFields。needUpdate=false 时可不填字段值；needUpdate=true 时必须含 subject、updateFields、reason，以及 updateFields 对应值。adaptation 只写 +N/-N 增量；feeling/summary/controllerAwarenessLevel/controllerAwareness 基于基线生成完整新文本直接覆盖；禁止输出 onlineCount。无变化 [{"subject":"被控角色名","needUpdate":false}] 或 []。';
       if (type === this.eventSettlementType()) return '事件：数组；每项 {"type":"random|inference|periodic","title":"事件名","startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD","location":"地点","content":"内容","people":["相关人"],"tags":["标签"],"probability":25,"status":"active"}；无事件 []。';
       return `${type}：数组；每项 {"subject":"结算主体","field":"字段","value":"变化或新值","reason":"证据"}；无变化 []。原合约：${c?.format || '更新N：结算主体，字段，变化，原因'}`;

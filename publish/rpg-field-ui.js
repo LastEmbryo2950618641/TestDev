@@ -238,20 +238,32 @@ window.GameModules.rpgFieldUi = {
       状态标签: { icon: '🏷️', label: '标签', hint: '当前状态标记' },
       人际关系: { icon: '🤝', label: '关系', hint: '社交与亲属' },
       身份信息: { icon: '🪪', label: '身份', hint: '基础档案' },
-      人生目标: { icon: '🧭', label: '目标', hint: '人生取向' },
+      人生取向: { icon: '🧭', label: '取向', hint: '人生价值取向' },
+      人生目标: { icon: '🧭', label: '取向', hint: '人生价值取向' },
+      长期目标: { icon: '🎯', label: '目标', hint: '短中长期目标与成果' },
       本质偏好: { icon: '✨', label: '偏好', hint: '本质偏好五层' },
       身体状态: { icon: '💓', label: '身体', hint: '亲密与体征' },
     };
     if (section.view === 'essentialPreference') return { icon: '✨', label: '偏好', hint: '本质偏好五层' };
-    if (section.view === 'goals') return { icon: '🧭', label: '目标', hint: '人生取向' };
+    if (section.view === 'lifeOrientation') return { icon: '🧭', label: '取向', hint: '人生价值取向' };
+    if (section.view === 'goalSystem' || section.view === 'goals') return { icon: '🎯', label: '目标', hint: '短中长期目标与成果' };
     return byTitle[title] || { icon: '📋', label: title.slice(0, 4) || '分区', hint: title || '状态分区' };
+  },
+
+  isGoalSystemField(field = {}) {
+    if (field?.profileGroup === '长期目标') return true;
+    if (['short', 'medium', 'long', 'achievements', 'goalBundle'].includes(field?.goalsRole)) return true;
+    const label = String(field?.label || '').trim();
+    return /^(?:短期目标|近期目标|中期目标|长期目标|阶段成果|目标)$/u.test(label);
   },
 
   profileSections(state, identityFields = []) {
     const displayState = this.profileDisplayState(state, identityFields);
     const aspirationFields = (identityFields || []).filter((field) => field.profileGroup === '人生取向');
+    const orientationFields = aspirationFields.filter((field) => !this.isGoalSystemField(field));
+    const goalSystemFields = (identityFields || []).filter((field) => this.isGoalSystemField(field));
     const essentialPreferenceFields = (identityFields || []).filter((field) => field.profileGroup === '本质偏好');
-    const baseIdentityFields = (identityFields || []).filter((field) => field.profileGroup !== '人生取向' && field.profileGroup !== '本质偏好');
+    const baseIdentityFields = (identityFields || []).filter((field) => field.profileGroup !== '人生取向' && field.profileGroup !== '本质偏好' && field.profileGroup !== '长期目标');
     const entries = this.rpgEntries?.(displayState) || [];
     const all = entries.flatMap((section) => section.fields || []);
     const byKey = (key) => all.find((field) => field.key === key);
@@ -280,23 +292,32 @@ window.GameModules.rpgFieldUi = {
       { title: '人际关系', fields: relations },
       { title: '身份信息', fields: [...identityRest, ...(longing ? [longing] : []), ...take(['world_tag', 'age', 'factions', 'memberships'])] },
     ];
-    if (aspirationFields.length) {
-      groups.splice(groups.findIndex((group) => group.title === '身份信息') + 1, 0, {
-        title: '人生目标',
-        fields: aspirationFields,
-        view: 'goals',
+    let insertAt = groups.findIndex((group) => group.title === '身份信息') + 1;
+    if (insertAt < 1) insertAt = groups.length;
+    if (orientationFields.length) {
+      groups.splice(insertAt, 0, {
+        title: '人生取向',
+        fields: orientationFields,
+        view: 'lifeOrientation',
       });
+      insertAt += 1;
+    }
+    if (goalSystemFields.length) {
+      groups.splice(insertAt, 0, {
+        title: '长期目标',
+        fields: goalSystemFields,
+        view: 'goalSystem',
+      });
+      insertAt += 1;
     }
     if (this.shouldShowEssentialPreferenceSection(displayState)) {
-      const anchor = groups.findIndex((group) => group.title === '人生目标');
-      const at = anchor >= 0 ? anchor + 1 : groups.findIndex((group) => group.title === '身份信息') + 1;
-      groups.splice(at < 0 ? groups.length : at, 0, {
+      groups.splice(insertAt, 0, {
         title: '本质偏好',
         fields: essentialPreferenceFields,
         view: 'essentialPreference',
       });
     }
-    return this.placeProfileSection(groups, { title: intimacyUi.sectionTitle || '身体状态', fields: intimacyFields }, intimacyUi).filter((group) => group.fields.length || group.view === 'goals' || group.view === 'essentialPreference');
+    return this.placeProfileSection(groups, { title: intimacyUi.sectionTitle || '身体状态', fields: intimacyFields }, intimacyUi).filter((group) => group.fields.length || group.view === 'lifeOrientation' || group.view === 'goalSystem' || group.view === 'goals' || group.view === 'essentialPreference');
   },
 
   placeProfileSection(groups = [], section = {}, ui = {}) {
@@ -952,13 +973,15 @@ window.GameModules.rpgFieldUi = {
   },
 
   goalsFieldRole(field = {}) {
-    const text = `${field?.label || ''} ${field?.key || ''}`;
-    if (/人生取向总结/.test(text)) return 'portrait';
-    if (/人生取向摘要|summary/.test(text)) return 'summary';
-    if (/近期目标|short/.test(text)) return 'short';
-    if (/中期目标|medium/.test(text)) return 'medium';
-    if (/长期目标|long/.test(text)) return 'long';
-    if (/^目标$|目标方向|目标摘要/.test(String(field?.label || '').trim()) || /goal/.test(text)) return 'goalBundle';
+    if (field?.goalsRole) return field.goalsRole;
+    const label = String(field?.label || '').trim();
+    if (/^(?:人生取向总结|人生总结)$/u.test(label)) return 'portrait';
+    if (/^(?:人生取向摘要|目标摘要)$/u.test(label)) return 'summary';
+    if (/^(?:短期目标|近期目标)$/u.test(label)) return 'short';
+    if (/^中期目标$/u.test(label)) return 'medium';
+    if (/^长期目标$/u.test(label)) return 'long';
+    if (/^阶段成果$/u.test(label)) return 'achievements';
+    if (/^(?:目标|目标方向)$/u.test(label)) return 'goalBundle';
     return 'support';
   },
 
@@ -994,15 +1017,58 @@ window.GameModules.rpgFieldUi = {
     };
   },
 
+  lifeOrientationPresentation(fields = []) {
+    const iconByLabel = {
+      价值立场: '⚖️',
+      决策风格: '🧠',
+      人生六维: '🜂',
+      底线锚点: '🛡️',
+      心理偏好: '✨',
+      人生总结: '📜',
+      人生取向总结: '📜',
+    };
+    const toneByLabel = {
+      价值立场: 'violet',
+      决策风格: 'cyan',
+      人生六维: 'gold',
+      底线锚点: 'pink',
+      心理偏好: 'violet',
+      人生总结: 'violet',
+      人生取向总结: 'violet',
+    };
+    const rows = (fields || []).filter(Boolean).map((field) => {
+      const label = String(field?.label || '').trim();
+      return {
+        field,
+        title: label || '补充信息',
+        icon: iconByLabel[label] || '✦',
+        tone: toneByLabel[label] || 'violet',
+        preview: this.identityInfoPreview(field, label.includes('总结') ? 140 : 88),
+        valueText: this.identityInfoValueText(field),
+      };
+    });
+    const portrait = rows.find((row) => /总结/.test(row.title)) || null;
+    const support = rows.filter((row) => row !== portrait);
+    return {
+      hero: {
+        eyebrow: 'LIFE ORIENTATION',
+        title: '人生取向',
+        note: portrait?.preview || '价值立场、决策风格与心理偏好等长期取向。',
+      },
+      support: portrait ? [portrait, ...support] : support,
+    };
+  },
+
   goalsPresentation(fields = []) {
     const rows = (fields || []).filter(Boolean).map((field) => {
       const role = this.goalsFieldRole(field);
       const meta = {
         portrait: { icon: '📜', title: '人生取向总结', tone: 'violet' },
         summary: { icon: '🧭', title: '人生取向摘要', tone: 'cyan' },
-        short: { icon: '⚔️', title: '近期目标', tone: 'cyan' },
+        short: { icon: '⚔️', title: '短期目标', tone: 'cyan' },
         medium: { icon: '🏗️', title: '中期目标', tone: 'gold' },
         long: { icon: '👑', title: '长期目标', tone: 'pink' },
+        achievements: { icon: '🏆', title: '阶段成果', tone: 'violet' },
         goalBundle: { icon: '🧭', title: '目标总览', tone: 'cyan' },
         support: { icon: '✦', title: String(field?.label || field?.key || '补充信息'), tone: 'violet' },
       }[role];
@@ -1015,7 +1081,6 @@ window.GameModules.rpgFieldUi = {
       };
     });
     const byRole = (role) => rows.find((row) => row.role === role);
-    const portrait = byRole('portrait');
     const summary = byRole('summary');
     const bundle = byRole('goalBundle');
     const bundleText = bundle?.valueText || '';
@@ -1023,17 +1088,41 @@ window.GameModules.rpgFieldUi = {
       const direct = byRole(role);
       if (direct?.valueText) return direct.valueText;
       return this.extractGoalSection(bundleText, {
-        short: ['近期目标'],
+        short: ['短期目标', '近期目标'],
         medium: ['中期目标'],
         long: ['长期目标'],
       }[role]);
     };
     const cards = ['short', 'medium', 'long'].map((role) => {
       const row = byRole(role);
-      const fallbackTitle = { short: '近期目标', medium: '中期目标', long: '长期目标' }[role];
+      const fallbackTitle = { short: '短期目标', medium: '中期目标', long: '长期目标' }[role];
       const direction = this.parseGoalDirection(bundleText, role);
       const valueText = goalText(role);
+      let tier = row?.field?.goalTier || null;
+      if ((!tier || !tier.content) && valueText && valueText !== '未记录') {
+        const api = window.GameModules.characterGoalSystem;
+        const extracted = api?.normalizeTier?.(valueText.split('\n')[0].replace(/^(?:短期|近期|中期|长期)目标\s*[：:]\s*/u, '')) || null;
+        const plain = String(valueText || '').replace(/^(?:短期|近期|中期|长期)目标\s*[：:]\s*/u, '').split('\n')[0].trim();
+        if (plain && plain !== '未记录') {
+          tier = {
+            content: plain,
+            deadline: tier?.deadline || '',
+            progress: Number.isFinite(Number(tier?.progress)) ? Number(tier.progress) : 0,
+            detail: tier?.detail || '',
+          };
+        } else if (extracted?.content) {
+          tier = extracted;
+        }
+      }
+      if (!tier) {
+        tier = { content: '', deadline: '', progress: 0, detail: '' };
+      }
       const field = row?.field || this.goalCardField(bundle?.field, role, row?.title || fallbackTitle, valueText, direction);
+      const progress = Math.max(0, Math.min(100, Number.isFinite(Number(tier.progress)) ? Number(tier.progress) : 0));
+      const content = String(tier.content || '').trim();
+      const preview = content
+        ? (content.length > 96 ? `${content.slice(0, 96)}…` : content)
+        : (valueText && valueText !== '未记录' ? (valueText.length > 96 ? `${valueText.slice(0, 96)}…` : valueText) : '未记录');
       return {
         role,
         tone: row?.tone || (role === 'short' ? 'cyan' : role === 'medium' ? 'gold' : 'pink'),
@@ -1041,19 +1130,35 @@ window.GameModules.rpgFieldUi = {
         title: row?.title || fallbackTitle,
         field,
         valueText,
-        preview: valueText ? (valueText.length > 96 ? `${valueText.slice(0, 96)}…` : valueText) : '未记录',
+        preview,
+        deadline: tier.deadline || '',
+        deadlineLabel: tier.deadline ? `期限 ${tier.deadline}` : '未设期限',
+        progress,
+        detail: String(tier.detail || '').trim(),
         direction,
       };
     });
+    const achievementRow = byRole('achievements');
+    const achievements = Array.isArray(achievementRow?.field?.goalAchievements)
+      ? achievementRow.field.goalAchievements
+      : String(achievementRow?.valueText || '')
+        .split(/\n+/u)
+        .map((line) => line.replace(/^成果\d+[：:]\s*/u, '').trim())
+        .filter((line) => line && line !== '未记录')
+        .map((text) => ({ text }));
     const summaryText = this.extractGoalSection(bundleText, ['目标摘要']);
+    const hasContent = cards.some((card) => card.preview && card.preview !== '未记录') || achievements.length > 0;
     return {
       hero: {
-        eyebrow: 'DESTINY LOG',
-        title: summaryText || summary?.preview || '人生取向',
-        note: portrait?.preview || '将短期行动、中期发展与长期追求组织成一条可推进的命运路线。',
+        eyebrow: 'GOAL SYSTEM',
+        title: summaryText || summary?.preview || '长期目标',
+        note: hasContent ? '短期、中期与长期目标及阶段成果，用于驱动行为与完成度。' : '尚未建立长期目标；完成人生取向向导后自动生成。',
       },
       cards,
-      support: rows.filter((row) => row.role === 'support' || row.role === 'portrait' || row.role === 'summary'),
+      achievements: achievements.slice(0, 5),
+      achievementTotal: achievements.length,
+      empty: !hasContent,
+      support: [],
     };
   },
 
@@ -1100,7 +1205,31 @@ window.GameModules.rpgFieldUi = {
       if (layers[item.key]) acc[item.key] = layers[item.key];
       return acc;
     }, {});
-    const view = tool?.viewFromLayers?.(normalizedLayers) || null;
+    // Prefer profile layers (with layer5 repair) so 心理偏好簇 does not vanish when
+    // section fields still carry a stale「未勾选」line.
+    const stateLayers = this.essentialPreferenceLayersForState?.(this.identityTargetState?.() || null) || null;
+    const mergedLayers = { ...normalizedLayers, ...(stateLayers || {}) };
+    const stateLayer5 = String(stateLayers?.layer5 || '');
+    if (stateLayer5 && !/未勾选/.test(stateLayer5)) mergedLayers.layer5 = stateLayer5;
+    let view = tool?.viewFromLayers?.(mergedLayers) || tool?.viewFromLayers?.(normalizedLayers) || null;
+    // Continue-game often has empty section fields; rebuild from state/aspiration view.
+    if (!view?.alignmentLabel || !(view?.axes || []).length) {
+      const stateView = this.essentialPreferenceViewForState?.(this.identityTargetState?.() || null) || null;
+      if (stateView?.alignmentLabel) {
+        view = {
+          ...(view || {}),
+          ...stateView,
+          axes: (view?.axes || []).length ? view.axes : (stateView.axes || []),
+          guiltLines: (view?.guiltLines || []).length ? view.guiltLines : (stateView.guiltLines || []),
+          psychGroups: (view?.psychGroups || []).length ? view.psychGroups : (stateView.psychGroups || []),
+        };
+      }
+    } else if (!(view?.psychGroups || []).length) {
+      const aspirationView = this.essentialPreferenceViewFromPlayerAspiration?.() || null;
+      if ((aspirationView?.psychGroups || []).length) {
+        view = { ...(view || {}), psychGroups: aspirationView.psychGroups };
+      }
+    }
     const fieldByKey = (key) => rows.find((row) => row.key === key)?.field || null;
     const compact = (items = [], limit = 3) => items.map((item) => String(item || '').trim()).filter(Boolean).slice(0, limit).join(' · ');
     const layerPreview = (key, row = null) => {

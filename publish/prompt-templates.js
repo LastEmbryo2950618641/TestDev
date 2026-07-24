@@ -25,6 +25,7 @@ window.GameModules.promptTemplates = {
     { id: 'inference-update-feeling', title: 'Stage4 感觉更新', category: '结算更新', file: 'prompts/推演引擎/update/feeling-update-prompt.md', summary: 'Stage4 对玩家感觉变化更新说明。' },
     { id: 'inference-update-vital', title: 'Stage4 生命体征更新', category: '结算更新', file: 'prompts/推演引擎/update/vital-update-prompt.md', summary: 'Stage4 生命体征更新说明。' },
     { id: 'inference-update-role-card', title: 'Stage4 角色卡更新', category: '结算更新', file: 'prompts/推演引擎/update/role-card-update-prompt.md', summary: 'Stage4 角色卡稳定事实更新说明。' },
+    { id: 'inference-update-character-goal', title: 'Stage4 长期目标更新', category: '结算更新', file: 'prompts/推演引擎/update/character-goal-update-prompt.md', summary: 'Stage4 短中长期目标进度与阶段成果更新说明。' },
     { id: 'inference-update-relationship', title: 'Stage4 关系更新', category: '结算更新', file: 'prompts/推演引擎/update/relationship-update-prompt.md', summary: 'Stage4 关系变化更新说明。' },
     { id: 'inference-update-sexual-experience', title: 'Stage4 性经历更新', category: '结算更新', file: 'prompts/推演引擎/update/sexual-experience-update-prompt.md', summary: 'Stage4 经历次数抽象更新说明。' },
     { id: 'inference-update-sexual-history', title: 'Stage4 性历史更新', category: '结算更新', file: 'prompts/推演引擎/update/sexual-history-update-prompt.md', summary: 'Stage4 经历历史抽象更新说明。' },

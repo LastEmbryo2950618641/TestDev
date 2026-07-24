@@ -137,6 +137,7 @@ Object.assign(window.GameModules.updateRegistry, {
 
   applyOne(store, update = {}) {
     if (update.updateType === 'character-schedule') return this.applyCharacterScheduleUpdate(store, update);
+    if (update.updateType === 'character-goal') return this.applyCharacterGoalUpdate(store, update);
     if (update.updateType === 'system') return this.applySystemUpdate(store, update);
     if (update.updateType === 'relationship') return this.applyRelationshipUpdate(store, update);
     if (update.updateType === 'body-status') return this.applyBodyStatusUpdate(store, update);
@@ -320,6 +321,41 @@ Object.assign(window.GameModules.updateRegistry, {
     update.settlementAt = updatedAt;
     if (update.change?.value && typeof update.change.value === 'object' && !Array.isArray(update.change.value)) {
       update.change.value = { ...update.change.value, updatedAt };
+    }
+    return true;
+  },
+
+  applyCharacterGoalUpdate(store, update = {}) {
+    const subject = update.subject || {};
+    const id = this.normalizeSubjectId(store, subject.characterId || subject.playerId || subject.id || update.target || 'player-self', subject);
+    if (!store || !id) return false;
+    const state = store.rpgStates?.[id] || window.GameModules.characterStateStore?.get?.(id, store);
+    if (!state?.profile) return false;
+    const raw = this.changeValue(update);
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return false;
+    const api = window.GameModules.characterGoalSystem;
+    if (!api?.applyToProfile) return false;
+    const patch = { ...raw };
+    const tierFromEntry = api.resolveTierFromEntry?.(raw) || {};
+    Object.assign(patch, tierFromEntry);
+    const changed = api.applyToProfile(state.profile, patch);
+    if (!changed) return false;
+    store.rpgStates = { ...(store.rpgStates || {}), [id]: state };
+    window.GameModules.characterStateStore?.mergeOntoLive?.(state, store);
+    if (id === 'player-self' && store.playerAspiration) {
+      const goals = api.ensureOnProfile(state.profile);
+      store.playerAspiration = {
+        ...(store.playerAspiration || {}),
+        goals: {
+          ...(store.playerAspiration.goals || {}),
+          short: goals.short?.content || store.playerAspiration.goals?.short || '',
+          medium: goals.medium?.content || store.playerAspiration.goals?.medium || '',
+          long: goals.long?.content || store.playerAspiration.goals?.long || '',
+          summary: store.playerAspiration.goals?.summary || '',
+          achievements: goals.achievements || [],
+        },
+        goalSystem: goals,
+      };
     }
     return true;
   },
