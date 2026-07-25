@@ -32,7 +32,7 @@ window.GameModules.realWorldAgentContext = {
       `玩家财富：${store.playerWealthText?.(store.playerProfile || {}) || `${Number(store.playerProfile?.wealthAmount || 0).toLocaleString('zh-CN')}元`}`,
       `现实身体状态：${this.vitalsText(store, store.playerIdentityState?.())}`,
       `主体ID规则：\n${window.GameModules.promptSections?.subjectIdRules?.(store) || '玩家本人固定 id:player-self；未知角色直接写完整姓名，禁止自造前缀。'}`,
-      ...(shared ? [`同世界附身控制：当前上线对象为${sharedProfile.name || shared.name || '未知角色'}；身份：${sharedProfile.role || '未知'}；所在位置：${sharedLocation}。玩家意识已附身接管该角色身体，可直接控制其动作、视线、表情、触觉、嗅觉、味觉、听觉、身体反馈与局部反应；同时玩家现实本体仍由同一个意识维持控制，属于一心多用。描写时以第二人称“你”的附身镜头为主，重点写被控角色身体内的视角、动作执行、感官回流和外界反应；不要写成单纯远程旁观，也不要让玩家本体消失或失控。`, `被控角色身体与状态：${sharedBody}`] : []),
+      ...(shared ? [`同世界附身控制：当前上线对象为${sharedProfile.name || shared.name || '未知角色'}；身份：${sharedProfile.role || '未知'}；所在位置：${sharedLocation}。玩家意识已附身接管该角色身体，可直接控制其动作、视线、表情与身体局部反应；同时玩家现实本体仍由同一个意识维持控制，属于一心多用。描写时以第二人称“你”的附身镜头为主：站在被控肉体感官里写视野、动作执行，以及该身体回传的触觉、痛觉、敏感、舒服、疲惫等；若身体自触自身，同时写执行侧与接收侧体感。穿插被控者意识反应；不要写成单纯远程旁观，也不要让玩家本体消失或失控。`, `被控角色身体与状态：${sharedBody}`] : []),
       `当前场景：${store.realWorldSceneTitle || '现实世界'}`,
       `当前地点：${store.realWorldLocationName || map.current || '尚未生成具体地点'}`,
       `当前目标：${store.realWorldQuest || '确认现实处境'}`,
@@ -96,7 +96,7 @@ window.GameModules.realWorldAgentContext = {
       orgTerritoryHint,
       this.scheduleCandidateHintText(store, action, location),
       priorCount
-        ? `前轮完整推演上下文：已通过对话链继承（${priorCount} 条消息，不压缩）；本轮仅补充以下增量，勿重复请求前轮已载入资料。`
+        ? `前轮完整推演上下文：已通过对话链继承（${priorCount} 条消息，不压缩）。前轮资料与之后的结算/正文变更都可综合使用；请对照当前桌面时间与本轮行动，判断现有上下文是否已能支撑正文。仅当缺失、冲突或无法可靠还原时才重新请求。`
         : '',
       `已加载资料摘要：\n${this.loadedRoutingSummary(loaded)}`,
       `可请求资料目录：\n${this.stage1MaterialCatalogText(config?.mode || 'real')}`,
@@ -107,6 +107,7 @@ window.GameModules.realWorldAgentContext = {
     const map = window.GameModules.realWorldMap?.ensure?.(store, store?.playerProfile || {}) || {};
     const recentWorldline = this.redactNarrationPollution(this.recentWorldline(store, 800, '\n'));
     const recent = this.redactNarrationPollution(this.recentSummary(store, 4));
+    const lifeOrientation = String(store?.playerAspirationSummary?.() || '').trim();
     return [
       `模式：${config?.label || '现实'}`,
       `本次行动：${action || '继续观察现实世界'}`,
@@ -114,6 +115,7 @@ window.GameModules.realWorldAgentContext = {
       `当前场景：${store?.realWorldSceneTitle || '现实世界'}`,
       `当前时间提示：${[store?.phoneDateText?.(), store?.phoneTimeText?.()].filter(Boolean).join(' ') || '未知时间'}`,
       `玩家可写资料：${store?.playerSetupSummary?.() || store?.playerName || '玩家'}`,
+      ...(lifeOrientation ? [`人生取向：\n${this.limit(lifeOrientation, 1800)}`] : []),
       `最近事实连续性：正文承接最近已发生事实，不改写已发送内容；只写本次行动直接结果。`,
       `最近世界线摘要：\n${recentWorldline || '无'}`,
       `最近记录摘要：\n${recent || '无'}`,
@@ -136,3 +138,7 @@ window.GameModules.realWorldAgentContext = {
     ].join('\n');
   },
 };
+
+// 若资料查询脚本早于本文件执行，或 context 被重建，重新挂载 skill 实现
+window.GameModules.installFactionQuery?.();
+window.GameModules.installMaterialQuery?.();

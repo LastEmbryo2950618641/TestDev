@@ -31,7 +31,7 @@ window.GameModules.realWorldActions = {
     const savedTotalBeforeAppend = window.GameModules.realWorldLogStore?.count?.() || this.realWorldLogTotal || 0;
     if (savedTotalBeforeAppend > 0) this.refreshRealWorldLogPage?.(Math.max(1, Math.ceil(savedTotalBeforeAppend / (Number(this.realWorldLogPageSize) || 12))));
     const userEntry = { id: `${baseId}-user`, type: 'user', text: rawText, matter: this.activeRealWorldMatter?.() || null, time: startTime, createdAt: start.toISOString() };
-    const entry = { id: `${baseId}-ai`, type: 'ai', narration: '现实世界正在推演…', thinking: '', thinkingSections: [], settlementThinking: '', settlementThinkingSections: [], settlementThinkingOpen: true, streaming: true, playerText: rawText, actionText: text, time: startTime, createdAt: responseCreatedAt };
+    const entry = { id: `${baseId}-ai`, type: 'ai', narration: '现实世界正在推演…', thinking: '', thinkingSections: [], thinkingOpen: false, settlementThinking: '', settlementThinkingSections: [], settlementThinkingOpen: false, streaming: true, playerText: rawText, actionText: text, time: startTime, createdAt: responseCreatedAt };
     entry.promptPack = { systemPrompt: '现实世界 Loop Agent 将按步骤动态载入上下文。', userPrompt: text, model: this.modelId, promptTokens: 0 };
     this.realWorldLog = this.normalizeRealWorldLog([...(this.realWorldLog || []), userEntry, entry]).slice(-Math.max(1, Number(this.realWorldLogPageSize) || 12));
     this.realWorldLogTotal = Math.max(this.realWorldLogTotal || 0, window.GameModules.realWorldLogStore?.count?.() || 0) + 2;
@@ -148,13 +148,70 @@ window.GameModules.realWorldActions = {
     window.GameModules.realWorldMap.update(this, result.locationName || this.realWorldLocationName, result);
     const currentGraphNode = window.GameModules.realWorldLocationGraph?.getNode?.(this, this.realWorldMap?.currentId || result.locationName || this.realWorldLocationName);
     if (currentGraphNode?.id) window.GameModules.realWorldLocationGraph?.setCharacterCurrentNode?.(this, 'player-self', currentGraphNode.id, { reason: '现实推演结算后的主角当前位置。', time: this.phoneDate?.()?.toISOString?.() || '' });
-    const fogResult = await window.GameModules.realWorldMapFog?.afterLocationUpdate?.(this, result) || {};
+    let fogResult = {};
+    try {
+      fogResult = await window.GameModules.realWorldMapFog?.afterLocationUpdate?.(this, { ...result, logId: id }) || {};
+    } finally {
+      // Stage9 可能已追加到 pending 会话；回写存档后再清，保证续玩能续上前缀。
+      const pending = window.GameModules.realWorldAgentLoop?.pendingKvCacheSession?.(this, 'real');
+      if (pending) window.GameModules.realWorldAgentLoop?.persistAgentConversation?.(this, pending, 'real');
+      window.GameModules.realWorldAgentLoop?.clearPendingKvCacheSession?.(this, 'real');
+    }
     if (fogResult.unlocked?.length) settlement.push(`地图解锁：${fogResult.unlocked.join('、')}`);
+    if (fogResult.characterLocationApplied?.length) {
+      settlement.push(
+        `出场人物位置：已写入${fogResult.characterLocationApplied.map((item) => item.name || item.characterId).filter(Boolean).join('、')}`,
+      );
+    }
+    // Ensure schedule locations written by surround-unlock are mirrored onto live rpgStates + store.
+    const locField = window.GameModules.currentLocationField;
+    const scheduleRows = Object.entries(this.characterSchedules || {});
+    for (const [characterId, schedule] of scheduleRows) {
+      const full = String(schedule?.profileCurrentLocation || '').trim();
+      if (!locField?.isValidProfileFormat?.(full)) continue;
+      const live = window.GameModules.realWorldMapFog?.ensureLiveCharacter?.(this, characterId, schedule?.characterName)
+        || this.rpgStates?.[characterId]
+        || window.GameModules.characterStateStore?.get?.(characterId, this);
+      if (!live?.profile) continue;
+      if (String(live.profile.currentLocation || '').trim() === full) {
+        // Still refresh values.current_location so identity/fromCharacterState stay valid.
+        if (!locField.isValidProfileFormat(live.values?.current_location?.currentLocation || '')) {
+          live.values = live.values && typeof live.values === 'object' ? live.values : {};
+          live.values.current_location = locField.stateValueFromText(
+            full,
+            this,
+            '周围解锁后回填 values.current_location。',
+            live.worldTag || live.profile?.work || '',
+          );
+          await window.GameModules.characterStateStore?.save?.(live, this);
+        }
+        continue;
+      }
+      window.GameModules.realWorldMapFog?.writeCharacterProfileLocation?.(this, live, full, {
+        characterId,
+        reason: '周围解锁后回填角色卡当前位置。',
+        source: '电子地图周围解锁回填',
+      });
+      await window.GameModules.characterStateStore?.save?.(live, this);
+    }
     if (this.realWorldFunctionOpen && this.realWorldFunctionView === 'map' && this.realWorldMap?.interiorNodeId) {
       this.showRealWorldMapInterior?.(this.realWorldMap.interiorNodeId);
     }
     this.ensureControlRoleLocation?.(state, '现实推演后更新玩家当前位置。');
-    const locField = window.GameModules.currentLocationField;
+    // Persist any scene-healed locations (including possessed NPCs) into character_state.
+    const needing = window.GameModules.realWorldMapFog?.charactersNeedingProfileLocation?.(this) || [];
+    for (const row of needing) {
+      const healed = locField?.buildSceneProfileLocation?.(this, row.character) || '';
+      if (!locField?.isValidProfileFormat?.(healed)) continue;
+      window.GameModules.realWorldMapFog?.writeCharacterProfileLocation?.(this, row.character, healed, {
+        characterId: row.id,
+        reason: '推演结算后场景回填并写入角色卡库。',
+        source: '推演结算场景回填',
+      });
+      await window.GameModules.characterStateStore?.save?.(row.character, this);
+    }
+    // Repair older slots where Stage4 only stamped schedules / appearingLocationById.
+    await window.GameModules.realWorldMapFog?.flushAppearingLocationsToCharacterDb?.(this);
     if (state?.values?.current_location) {
       const playerFull = locField?.fromCharacterState?.(state) || '';
       if (locField?.isValidProfileFormat?.(playerFull)) {
@@ -197,7 +254,7 @@ window.GameModules.realWorldActions = {
     const nextThinking = String(cleanResult.thinking || '').trim() || String(existingEntry.thinking || '').trim();
     const nextSettlementThinkingSections = Array.isArray(cleanResult.settlementThinkingSections) && cleanResult.settlementThinkingSections.length ? cleanResult.settlementThinkingSections : (existingEntry.settlementThinkingSections || []);
     const nextSettlementThinking = String(cleanResult.settlementThinking || '').trim() || String(existingEntry.settlementThinking || '').trim();
-    const next = { ...existingEntry, ...cleanResult, thinking: nextThinking, thinkingSections: nextThinkingSections, settlementThinking: nextSettlementThinking, settlementThinkingSections: nextSettlementThinkingSections, settlementThinkingOpen: false, type: 'ai', streaming: false, statusText: '', streamTrace: [], time, agentTrace: result.agentTrace || [] };
+    const next = { ...existingEntry, ...cleanResult, thinking: nextThinking, thinkingSections: nextThinkingSections, thinkingOpen: false, settlementThinking: nextSettlementThinking, settlementThinkingSections: nextSettlementThinkingSections, settlementThinkingOpen: false, type: 'ai', streaming: false, statusText: '', streamTrace: [], time, agentTrace: result.agentTrace || [] };
     await this.assignRealWorldlineEntry(next);
     if (playerEntry?.id) await window.GameModules.realWorldLogStore?.append?.(playerEntry);
     await window.GameModules.realWorldLogStore?.append?.(next);

@@ -79,8 +79,8 @@ Rules：
     "appearance": { "type": "string", "minLength": 1, "maxLength": 50, "description": "外貌。50字以内，感官细节优先，不承载详细穿着偏好。" },
     "preferences": { "type": "string", "minLength": 1, "description": "稳定喜好。必须提取穿着偏好、颜色偏好、审美习惯和随身物偏好；没有明确喜好时写可由身份和性格推断的保守喜好。" },
     "personality": { "type": "string", "minLength": 1, "description": "性格与关系边界。一句话，不写外貌。" },
-    "factions": { "type": "array", "items": { "type": "object", "required": ["faction", "role", "reason"], "additionalProperties": false, "properties": { "faction": { "type": "string", "minLength": 1 }, "role": { "type": "string", "minLength": 1 }, "reason": { "type": "string", "minLength": 1 } } } },
-    "memberships": { "type": "array", "items": { "type": "object", "required": ["orgName", "title", "department", "departmentFog", "reason"], "additionalProperties": false, "properties": { "orgName": { "type": "string", "minLength": 1 }, "title": { "type": "string", "minLength": 1 }, "department": { "type": "string" }, "departmentFog": { "type": "boolean" }, "reason": { "type": "string", "minLength": 1 } } } },
+    "factions": { "type": "array", "items": { "type": "object", "required": ["faction", "role", "reason"], "additionalProperties": false, "properties": { "faction": { "type": "string", "minLength": 1 }, "role": { "type": "string", "minLength": 1 }, "reason": { "type": "string", "minLength": 1 } } }, "description": "社群角色列表。见下方「社群角色 / 人事归属」定义与归类要求。" },
+    "memberships": { "type": "array", "items": { "type": "object", "required": ["orgName", "title", "department", "departmentFog", "reason"], "additionalProperties": false, "properties": { "orgName": { "type": "string", "minLength": 1 }, "title": { "type": "string", "minLength": 1 }, "department": { "type": "string" }, "departmentFog": { "type": "boolean" }, "reason": { "type": "string", "minLength": 1 } } }, "description": "人事归属列表。见下方「社群角色 / 人事归属」定义与归类要求。" },
     "job": { "type": "string", "description": "已内化职业。不确定时返回空字符串。" },
     "jobConfirmed": { "type": "boolean", "description": "job是否有确认证据。job为空时必须false。" },
     "rank": { "type": "string", "description": "首要人事身份。通常取memberships[0].title；没有组织归属时可取role中的身份定位。" },
@@ -95,9 +95,33 @@ Rules：
 3. `detail`/`personality` 各一句话，不混写。
 4. `appearance` 必须以感官细节优先，50字以内：调动视觉、触觉、听觉等多维度感知而非单一维度的直白叙述；善用隐喻和类比，通过环境、光线、动态等间接元素烘托；控制节奏与聚焦，聚焦某一局部（如指尖、颈侧、发梢）逐步展开，而非全景扫描式罗列。示例：“黑直长发垂落肩侧，校服领口露出细白颈线，低垂的睫毛在颧骨上投下一小片阴影。”
 5. `preferences` 必须专门承接稳定喜好，尤其是穿着偏好。输入出现“JK/制服/过膝袜/连裤袜/丝袜/黑丝/白丝/黑色/白色”等词时必须逐字保留到 preferences，不得只塞进 appearance 或忽略。例如“偏爱JK制服、百褶裙、黑色过膝袜或连裤袜，审美干净少女系”。
-6. `factions` 只写家庭、社区、社交圈、兴趣小组等社群角色；`memberships` 只写具体国家、学校、公司、部门、机构、家庭组织或其它可确认组织中的人事归属。只有当当前世界就是“2026 现代都市现实世界”时，才根据资料补国家法域/国籍；无明确其他国家证据时默认“中华人民共和国/公民”。
-7. `memberships` 不写“现实社会”“现代社会”“现实世界”“社会”“国家”“成年人”等抽象身份；允许写具体国家名下的“公民/国民”。非现实世界不要因为出现城市名、学校、制服、现代生活描述就自动补现实国家。学生必须写具体学校/院系/年级，职场必须写具体公司/部门/岗位。若部门未知，`department` 返回空字符串且 `departmentFog=true`。
-8. 所有含 `reason` 的字段（`worldTag.reason`/`age.reason`/`learningAbility.reason`/`mentalStability.reason`/`growthPotential.reason`/`actionAbility.reason`/`factions[].reason`/`memberships[].reason`）必须结合角色动机、处境、性格与过去经历来写，不得使用固定句式模板，不得写空话。
+6. **社群角色 / 人事归属（先理解含义，再填构成要素，再求全）**
+
+### 6.1 定义（含义）
+
+- **社群角色 `factions`**：角色在相对软性、日常社会关系网中的位置——“我在这个圈子里是谁”。强调社会角色与归属感，不要求正式编制或劳动合同。
+- **人事归属 `memberships`**：角色在可指认组织实体中的正式或准正式身份——“我在这个组织里担任什么”。强调组织编制、学籍、职级、成员身份等可核对关系。
+
+判断时先看含义是否贴近，不要因为措辞不够“硬”或不够“官方”就整条丢掉；边界模糊时选更贴近的一类写入，**禁止因过严分类把本有事实依据的身份判成“都不是”**。
+
+### 6.2 构成要素
+
+- **社群角色**每项：`faction`（社群/圈子名）+ `role`（其中角色）+ `reason`（事实依据）。
+  - 社群名可为：家庭、家族、同住单元、居住社区/小区、朋友圈、同学圈、兴趣小组、临时群体等。
+  - 角色可为：女儿、长兄、居民、室友、圈内熟人、成员等。
+- **人事归属**每项：`orgName`（组织名）+ `title`（职位/学籍/成员身份）+ `department`（部门；未知则 `""` 且 `departmentFog=true`）+ `reason`。
+  - 组织名可为：具体国家、学校、院系、公司、部门、机关、社团正式编制、家庭组织实体等。
+  - 同一实体若既有软性角色又有编制身份（如学校：社群侧“学生朋友圈中的同学”，人事侧“某校高二学生”），允许两边各写一条，要素不同即可。
+
+### 6.3 归类完备性（尽可能全）
+
+- 资料/上下文中**已经出现**、且有事实依据、**非胡编乱造**的身份与归属，**必须**归入社群角色或人事归属二者之一（或按 6.2 合理双边各写）。
+- 求全优先于过严过滤：宁可按定义归入更贴近的一类，也不要因“不够典型”而省略。
+- 仍不要编造未出现的组织或角色；不要写无主体的空壳身份（如单独的“现实社会/现代社会/成年人”且无具体组织或圈子名）。
+- 当前世界为“2026 现代都市现实世界”且无其他国家证据时，可写 `中华人民共和国 / 公民` 人事归属；非现实世界不要因现代生活描写自动补现实国籍。
+- 学生尽量写到学校/院系/年级；职场尽量写到公司/部门/岗位；部门未知时 `departmentFog=true`。
+
+7. 所有含 `reason` 的字段（`worldTag.reason`/`age.reason`/`learningAbility.reason`/`mentalStability.reason`/`growthPotential.reason`/`actionAbility.reason`/`factions[].reason`/`memberships[].reason`）必须结合角色动机、处境、性格与过去经历来写，不得使用固定句式模板，不得写空话。
 
 ## 完整 JSON 示例
 

@@ -69,7 +69,9 @@ window.GameModules.playerIdentityActions = {
       items: p.items || [],
       wearing: p.wearing || [],
       detail: 'gender: ' + (p.gender || 'unknown') + '; age: ' + (p.age || 'unknown') + '; birthday: ' + (p.birthday || 'unknown') + '; currentLocation: ' + (currentLocation || 'unknown') + '; city: ' + city + '; workplace: ' + workplace + '; position: ' + position + '; living: ' + living + '; parents: ' + parents + '; death cause: ' + deathCause + '; relations: ' + relations + '; notes: ' + notes,
-      personality: notes,
+      appearance: p.appearance || '',
+      preferences: p.preferences || '',
+      personality: p.personality || '',
       skills: [
         { name: 'mobile-operation', desc: 'Can use a smartphone for communication, search, shooting, settings, app switching, and information handling.', reason: 'Granted by phone setup and real-world app entry flow.' },
         { name: 'real-world-observation', desc: 'Can judge the current situation from environmental changes and reactions of others.', reason: 'Needed for real-world identity and environment interaction.' }
@@ -99,17 +101,66 @@ window.GameModules.playerIdentityActions = {
   },
 
   identityTargetFields() {
-    const p = this.identityTargetProfile();
-    const state = this.identityTargetState();
+    const locField = window.GameModules.currentLocationField;
+    const storeApi = window.GameModules.characterStateStore;
+    const targetId = this.identityTargetId || 'player-self';
+    const live = storeApi?.get?.(targetId, this) || this.identityTargetState();
+    if (live && this.rpgStates && this.rpgStates[targetId] !== live) {
+      this.rpgStates[targetId] = live;
+    }
+    const p = live?.profile || this.identityTargetProfile();
+    const state = live || this.identityTargetState();
     const worldTag = p.work || state?.worldTag || '原创世界';
     const reasonFor = this.roleCardReasonGetter?.(p) || (() => '');
-    const row = (key, label, value, desc, extra = {}) => ({ key: `id-${this.identityTargetId || 'player-self'}-${key}`, stateId: this.identityTargetId || 'player-self', label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: '角色', commonField: true, ...extra });
-    const stateLocation = state?.values?.current_location;
-    const currentLocation = p.currentLocation || stateLocation?.currentLocation || stateLocation?.name || '';
+    const scheduleById = String(
+      this.characterSchedules?.[targetId || state?.id || '']?.profileCurrentLocation
+      || '',
+    ).trim();
+    const scheduleByName = Object.values(this.characterSchedules || {}).find((row) => {
+      const rowName = String(row?.characterName || '').trim();
+      const profileName = String(p?.name || state?.name || '').trim();
+      return rowName && profileName && rowName === profileName
+        && locField?.isRecordedLocation?.(row?.profileCurrentLocation);
+    });
+    const byAppearingId = String(
+      this.appearingLocationById?.[targetId]
+      || this.appearingLocationById?.[`name:${p?.name || state?.name || ''}`]
+      || '',
+    ).trim();
+    const pickRecorded = (...candidates) => {
+      for (const item of candidates) {
+        const text = locField?.normalize?.(item || '') || String(item || '').trim();
+        if (locField?.isRecordedLocation?.(text) || (!locField && text)) return text;
+      }
+      return '';
+    };
+    let locationText = pickRecorded(
+      byAppearingId,
+      p.currentLocation,
+      locField?.fromCharacterState?.(state),
+      scheduleById,
+      scheduleByName?.profileCurrentLocation,
+      locField?.buildSceneProfileLocation?.(this, state),
+    );
+    // Heal empty profile from schedule / values so 叙事档案 and persistence stay aligned.
+    if (locationText && state?.profile && !locField?.isRecordedLocation?.(state.profile.currentLocation || '')) {
+      state.profile.currentLocation = locationText;
+      if (locField?.stateValueFromText) {
+        state.values = state.values && typeof state.values === 'object' ? state.values : {};
+        state.values.current_location = locField.stateValueFromText(
+          locationText,
+          this,
+          '身份证展示时回填角色卡当前位置。',
+          worldTag,
+        );
+      }
+      storeApi?.mergeOntoLive?.(state, this);
+    }
+    const row = (key, label, value, desc, extra = {}) => ({ key: `id-${targetId}-${key}`, stateId: targetId, label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: '角色', commonField: true, ...extra });
     const fields = [
       row('name', '姓名', p.name, '角色卡固化姓名。'),
       row('work', '所属世界', worldTag, '角色出身作品或世界。'),
-      row('currentLocation', '当前位置', currentLocation, '玩家当前位置，格式为“势力·势力层级1·势力层级2·地点·地点内位置”；地点段直接作为电子地图节点名。', { raw: stateLocation || currentLocation }),
+      row('currentLocation', '当前位置', locationText, '角色卡当前位置；格式为[势力层级链...]·地点·地点内位置（倒数第2段=地图节点，最后1段=尽量精确的室内位置）。'),
       row('role', '身份', p.role, '角色卡固化身份。'),
       row('appearance', '外貌', p.appearance, '角色卡固化外貌。'),
       row('preferences', '喜好', p.preferences, '角色稳定喜好和穿着偏好。'),
@@ -145,6 +196,25 @@ window.GameModules.playerIdentityActions = {
     });
     if ((this.identityTargetId || 'player-self') === 'player-self') {
       fields.push(...(this.playerAspirationLexiconFields?.().filter((item) => !prefTool?.isImmutableFieldName?.(item.label)) || []));
+    }
+    const goalApi = window.GameModules.characterGoalSystem;
+    if (goalApi && p) {
+      const aspiration = (this.identityTargetId || 'player-self') === 'player-self'
+        ? (this.activePlayerLifeOrientation?.() || this.playerAspiration || null)
+        : (p.lifeOrientation || null);
+      const goalBundleField = fields.find((item) => String(item?.label || '').trim() === '目标');
+      const goalSystem = goalApi.ensureOnProfile(p, [
+        aspiration,
+        aspiration?.goals,
+        aspiration?.goalSystem,
+        aspiration?.goalSummary || '',
+        goalBundleField?.value || goalBundleField?.raw || '',
+        p.lifeOrientation,
+      ].filter(Boolean));
+      // Drop legacy「目标」bundle; structured tiers live under profileGroup「长期目标」.
+      const withoutBundle = fields.filter((item) => String(item?.label || '').trim() !== '目标');
+      fields.length = 0;
+      fields.push(...withoutBundle, ...goalApi.lexiconFields(goalSystem, { targetId, worldTag }));
     }
     return fields;
   },
@@ -209,20 +279,71 @@ window.GameModules.playerIdentityActions = {
       if (!prefTool) return null;
       const resolved = state || this.identityTargetState();
       const id = resolved?.id || this.identityTargetId || 'player-self';
+      const aspiration = id === 'player-self'
+        ? (this.activePlayerLifeOrientation?.() || this.playerAspiration || null)
+        : (resolved?.profile?.lifeOrientation || null);
       if (id === 'player-self') {
         const profile = resolved?.profile;
-        if (profile) return prefTool.ensureOnProfile(profile);
-        const fromAspiration = this.playerAspiration?.essentialPreferenceLayers || prefTool.buildFromPlayerAspiration?.(this.playerAspiration);
-        if (fromAspiration?.layer1) return prefTool.normalizeLayers(fromAspiration);
+        if (profile) {
+          const layers = prefTool.ensureOnProfile(profile, aspiration);
+          const layer5Body = prefTool.stripLayerPrefix?.(layers?.layer5 || '', '心理偏好') || '';
+          if (layers?.layer1 && (!layer5Body || layer5Body === '未勾选')) {
+            const psych = aspiration?.psychPreferences || profile.psychPreferences || null;
+            if (psych && prefTool.formatLayer5) {
+              const repaired = prefTool.formatLayer5(psych);
+              if (repaired && !/未勾选/.test(repaired)) {
+                const next = prefTool.normalizeLayers({ ...layers, layer5: repaired });
+                try {
+                  if (JSON.stringify(profile.essentialPreferenceLayers || null) !== JSON.stringify(next)) {
+                    profile.essentialPreferenceLayers = next;
+                  }
+                } catch (_) {
+                  profile.essentialPreferenceLayers = next;
+                }
+                return next;
+              }
+            }
+          }
+          if (layers?.layer1) return layers;
+        }
+        const fromAspiration = aspiration?.essentialPreferenceLayers
+          || prefTool.buildFromPlayerAspiration?.(aspiration)
+          || this.playerAspiration?.essentialPreferenceLayers
+          || prefTool.buildFromPlayerAspiration?.(this.playerAspiration);
+        if (fromAspiration?.layer1) {
+          const next = prefTool.normalizeLayers(fromAspiration);
+          if (profile) {
+            try {
+              if (JSON.stringify(profile.essentialPreferenceLayers || null) !== JSON.stringify(next)) {
+                profile.essentialPreferenceLayers = next;
+                if (profile.essentialPreferenceLayersLocked == null) profile.essentialPreferenceLayersLocked = true;
+              }
+            } catch (_) {
+              profile.essentialPreferenceLayers = next;
+              if (profile.essentialPreferenceLayersLocked == null) profile.essentialPreferenceLayersLocked = true;
+            }
+          }
+          return next;
+        }
         return null;
       }
       const profile = resolved?.profile || (id === (this.identityTargetId || '') ? this.identityTargetProfile() : null);
       if (!profile || typeof profile !== 'object') return null;
-      return prefTool.ensureOnProfile(profile);
+      return prefTool.ensureOnProfile(profile, aspiration);
     } catch (err) {
       console.warn('[identity] essential preference layers unavailable:', err?.message || err);
       return null;
     }
+  },
+
+  essentialPreferenceViewForState(state = null) {
+    const layers = this.essentialPreferenceLayersForState(state);
+    const view = window.GameModules.playerAspirationPreferenceLayers?.viewFromLayers?.(layers);
+    if (view?.alignmentLabel) return view;
+    if ((state?.id || this.identityTargetId || 'player-self') === 'player-self') {
+      return this.essentialPreferenceViewFromPlayerAspiration?.() || null;
+    }
+    return null;
   },
 
   essentialPreferenceViewFromPlayerAspiration(view = null) {

@@ -17,6 +17,9 @@ const alwaysSyncFiles = [
   'game.js',
   'boot/scripts.json',
   'boot/script-manifest.js',
+  'phone-desktop.css',
+  'skills-app.css',
+  'ui-theme-overrides.css',
 ];
 
 function sha1(filePath) {

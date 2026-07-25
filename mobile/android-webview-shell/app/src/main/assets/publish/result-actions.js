@@ -132,11 +132,25 @@ window.GameModules.resultActions = {
     if (!this.online || this.controlMode !== 'possess') return;
     const state = this.characterRpgState;
     if (!state?.values) return;
-    const exp = state.values.control_experience || { onlineCount: 0, feeling: '鏈煡', adaptation: 0, summary: '', lastUpdated: '' };
+    const exp = state.values.control_experience || {
+      onlineCount: 0,
+      feeling: '未知',
+      adaptation: 0,
+      summary: '',
+      controllerAwarenessLevel: 'unknown',
+      controllerAwareness: '尚不知晓控制者是谁',
+      lastUpdated: '',
+    };
     exp.onlineCount = Math.max(0, Number(exp.onlineCount) || 0);
-    exp.feeling = result.controlFeeling || exp.feeling || '鐤戞儜';
+    exp.feeling = result.controlFeeling || exp.feeling || '疑惑';
     exp.adaptation = Math.max(0, Math.min(100, Math.round(Number(result.controlAdaptation ?? exp.adaptation) || 0)));
     exp.summary = result.controlExperienceSummary || exp.summary || '';
+    const awareness = window.GameModules.controlExperienceStage?.normalizeControllerAwareness?.(result, exp) || {
+      controllerAwarenessLevel: result.controllerAwarenessLevel || exp.controllerAwarenessLevel || 'unknown',
+      controllerAwareness: String(result.controllerAwareness || exp.controllerAwareness || '尚不知晓控制者是谁').slice(0, 20),
+    };
+    exp.controllerAwarenessLevel = awareness.controllerAwarenessLevel;
+    exp.controllerAwareness = awareness.controllerAwareness;
     exp.lastUpdated = new Date().toISOString();
     state.values.control_experience = exp;
     window.GameModules.rpgInitializer?.touch(state.values, this);

@@ -12,17 +12,25 @@ window.GameModules.app.orgTerritory = window.GameModules.app.orgTerritory || {};
       if (!faction?.id || !company?.name) return;
       const ot = territory();
       const now = ot.nowLabel(store);
+      records().ensureFactionSolid(faction);
+      const previous = faction.solid?.overviewPanels?.economy?.entries?.institutions;
+      const prevList = Array.isArray(previous?.value) ? previous.value.slice() : [];
+      const nextItem = {
+        name: company.name,
+        description: [company.industry, company.scale, company.location].filter(Boolean).join(' / ').slice(0, 240),
+      };
+      const withoutDup = prevList.filter((item) => item?.name !== company.name);
       records().upsertOverviewEntry(faction, 'economy', {
-        id: `econ-${faction.id}`,
-        key: '????',
-        value: company.name,
-        kind: '????',
+        id: 'institutions',
+        key: 'institutions',
+        value: [...withoutDup, nextItem],
+        kind: 'institutions',
         state: 'sketch',
-        note: [company.industry, company.scale, company.location].filter(Boolean).join(' / ').slice(0, 240),
+        note: reason || '公司 APP 同步',
         source: 'company-app',
       }, { reason, now, store });
       Object.assign(faction, ot.normalizeFaction(faction, store));
-      faction.changeLog = [{ field: 'overviewPanels.economy', reason: reason || '??APP???????', at: now, action: 'sync' }, ...(faction.changeLog || [])].slice(0, 50);
+      faction.changeLog = [{ field: 'overviewPanels.economy', reason: reason || '公司 APP 同步到势力经济面板。', at: now, action: 'sync' }, ...(faction.changeLog || [])].slice(0, 50);
     },
 
     syncPlayerWealthAsset(store, wealth = null) {
@@ -31,17 +39,18 @@ window.GameModules.app.orgTerritory = window.GameModules.app.orgTerritory || {};
       const profile = store.playerProfile;
       const normalizedWealth = wealth || (typeof store.normalizePlayerWealth === 'function' ? store.normalizePlayerWealth(profile) : {});
       const amount = Number(normalizedWealth.wealthAmount ?? profile.wealthAmount ?? 0);
-      const tier = normalizedWealth.wealthTier || profile.wealthTier || '??';
+      const tier = normalizedWealth.wealthTier || profile.wealthTier || '未知';
       const family = families().ensureFamilyOrg(store);
+      if (!family) return null;
       const now = ot.nowLabel(store);
       records().upsertOverviewEntry(family, 'economy', {
-        id: 'money',
-        key: '??',
+        id: 'assets',
+        key: 'assets',
         value: amount,
-        unit: '?',
-        kind: '????',
+        unit: '元',
+        kind: 'assets',
         state: 'sketch',
-        note: tier + ' / source: playerProfile.wealth',
+        note: `${tier} / source: playerProfile.wealth`,
         source: 'playerProfile.wealth',
         wealthMirror: { tier, amount, source: profile.wealthSource || '' },
       }, { reason: 'player wealth mirror', now, store });
@@ -58,12 +67,12 @@ window.GameModules.app.orgTerritory = window.GameModules.app.orgTerritory || {};
       const panel = faction.solid.overviewPanels.economy || { entries: {} };
       panel.entries = panel.entries && typeof panel.entries === 'object' ? panel.entries : {};
       const label = ot.orgStatusLabel(faction) || faction.status;
-      const note = label + ': governance/status disruption; ' + String(reason || 'org status changed').slice(0, 80);
+      const note = `${label}：治理/状态受扰；${String(reason || 'org status changed').slice(0, 80)}`;
       let touched = false;
       Object.entries(panel.entries).forEach(([key, entry]) => {
         const value = entry && typeof entry === 'object' ? entry : { value: entry };
         const text = `${key}${value.value || ''}${value.kind || ''}${value.note || ''}`;
-        if (/payroll|salary|operation|revenue|business|income/i.test(text)) {
+        if (/payroll|salary|operation|revenue|business|income|assets|production/i.test(text)) {
           panel.entries[key] = {
             ...value,
             note: [value.note, note].filter(Boolean).join(' / ').slice(0, 240),
@@ -75,9 +84,10 @@ window.GameModules.app.orgTerritory = window.GameModules.app.orgTerritory || {};
         }
       });
       if (!touched) {
-        panel.entries[`economic-disrupt-${String(now || ot.nowLabel(store)).replace(/[^\d]/g, '').slice(-12)}`] = {
-          value: '????',
-          kind: '????',
+        panel.entries.system = {
+          ...(panel.entries.system && typeof panel.entries.system === 'object' ? panel.entries.system : {}),
+          value: '受扰',
+          kind: 'system',
           state: 'sketch',
           note,
           updatedAt: now || ot.nowLabel(store),

@@ -50,6 +50,7 @@ window.GameModules.homeActions = {
     try {
       this.phoneSetupDone = false;
       this.phoneActivationChoice = '';
+      this.playerProfileTraitDefaultsApplied = false;
       this.desktopUnlocked = false;
       this.started = false;
       await this.newSlot?.(emptySlot);
@@ -111,13 +112,27 @@ window.GameModules.homeActions = {
       if (!save) throw new Error(`${slot} 没有可读取的存档数据`);
       window.GameModules.storage.restore(this, save);
       await this.loadWritingStyles?.({ readOnly: true });
-      const stateIds = [...new Set(['player-self', this.selectedCharacterId, this.rpgPanelCharacterId].filter(Boolean))];
+      const storedStates = window.GameModules.characterStateStore?.list?.() || [];
       const nextStates = { ...(this.rpgStates || {}) };
-      stateIds.forEach((id) => {
+      const ensureIds = new Set(['player-self', this.selectedCharacterId, this.rpgPanelCharacterId].filter(Boolean));
+      storedStates.forEach((state) => {
+        if (!state?.id) return;
+        const profile = state.profile || {};
+        const solidified = profile.roleCard === true || profile.roleCardSource || profile.roleCardUpdatedAt;
+        if (ensureIds.has(state.id) || solidified) nextStates[state.id] = state;
+      });
+      ensureIds.forEach((id) => {
+        if (nextStates[id]) return;
         const state = window.GameModules.characterStateStore?.get?.(id);
         if (state?.id) nextStates[state.id] = state;
       });
       this.rpgStates = nextStates;
+      Object.values(nextStates).forEach((state) => {
+        if (!state?.values) return;
+        if (window.GameModules.progression?.ensureStateMechanics?.(state, state.profile || {})) {
+          window.GameModules.characterStateStore?.save?.(state, this);
+        }
+      });
       this.rpgPanelCharacterId = this.rpgPanelCharacterId || this.selectedCharacterId || 'player-self';
       if (!this.phoneSetupDone) {
         this.homeMessage = `${slot} 尚未完成手机激活，请从新游戏继续设置。`;

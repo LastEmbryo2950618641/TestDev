@@ -40,12 +40,11 @@ Object.assign(window.GameModules.progression, {
   applySceneChanges(state, changes = {}, result = {}) {
     this.ensureStateMechanics(state);
     const v = state.values;
-    this.addExp(v, 12 + (result.combatEvent ? 12 : 0), state.profile || {});
+    // 个人经验：Stage10 击杀/吸收；知识/技能/职业经验：Stage10 AI learnedGains。此处不再自动涨经验。
     if (Number.isFinite(changes.stamina)) this.deltaPool(v.stamina_pool, changes.stamina);
     if (Number.isFinite(changes.mental_stability)) this.deltaPool(v.mental_stability, changes.mental_stability);
     if (Number.isFinite(changes.health)) this.applyVitalityChange(v, changes.health, result.combatEvent);
     v.fatigue.current = this.clamp(v.fatigue.current + Math.max(0, -(changes.stamina || 0)), 0, v.fatigue.max);
-    this.advanceLearned(v, result);
     v.derived = this.derived(v);
     this.ensureProgressionNotes(v);
     v.health = this.percent(v.vitality);
@@ -56,22 +55,18 @@ Object.assign(window.GameModules.progression, {
     pool.current = this.clamp(pool.current + pool.max * percentDelta / 100, 0, pool.max);
   },
 
-  advanceLearned(values, result) {
-    const quality = result.combatEvent ? 1.4 : 1;
-    const gain = Math.round(8 * (0.5 + (values.learning_ability || 50) / 100) * quality);
-    for (const item of [...(values.knowledge || []).slice(0, 1), ...(values.skills || []).slice(0, 2)]) this.addLearnedExp(item, gain);
-    for (const job of (values.professions || []).slice(0, 1)) this.addLearnedExp(job, Math.round(gain / 2));
-  },
-
   addLearnedExp(item, amount) {
-    if (!item || !this.hasLearnedLevel(item) || item.level >= 7) return;
+    if (!item || !this.hasLearnedLevel(item) || item.level >= 7) return false;
     this.normalizeLearnedExp(item);
-    item.exp.current += amount;
+    const gain = Math.max(0, Math.round(Number(amount) || 0));
+    if (gain <= 0) return false;
+    item.exp.current += gain;
     while (item.level < 7 && item.exp.current >= item.exp.next) {
       item.exp.current -= item.exp.next;
       item.level += 1;
       item.exp.next = this.learnedNext[item.level];
     }
+    return true;
   },
 
   applyVitalityChange(values, percentDelta, event) {

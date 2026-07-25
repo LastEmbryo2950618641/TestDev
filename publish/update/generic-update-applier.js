@@ -142,12 +142,17 @@ Object.assign(window.GameModules.updateRegistry, {
     if (update.updateType === 'relationship') return this.applyRelationshipUpdate(store, update);
     if (update.updateType === 'body-status') return this.applyBodyStatusUpdate(store, update);
     if (update.updateType === 'sexual-experience') return this.applySexualExperienceUpdate(store, update);
+    if (update.updateType === 'sexual-history') return this.applySexualHistoryUpdate(store, update);
     if (update.updateType === 'control-experience') return this.applyControlExperienceUpdate(store, update);
     if (update.updateType === 'wearing-state') return this.applyWearingStateUpdate(store, update);
     if (update.updateType === 'emotion' || update.updateType === 'feeling') return this.applyMetricUpdate(store, update);
     const direct = this.targetState(store, update), generic = direct ? null : this.genericTarget(store, update);
     const state = direct || generic?.state, field = String(update.field || '').trim();
     if (!state || !field) return false;
+    // 经历人数由经历对象名单自动派生，忽略单独写入。
+    if (/(?:^|\.)sexualPartnerCount$/u.test(field)) {
+      return this.syncSexualPartnerCountFromList(state);
+    }
     const root = generic?.root || (field.startsWith('metrics.') ? state : (field.startsWith('profile.') ? state : state.values));
     const path = field.startsWith('profile.') ? field.replace(/^profile\./, 'profile.') : field.replace(/^values\./, '');
     if (!root) return false;
@@ -160,6 +165,18 @@ Object.assign(window.GameModules.updateRegistry, {
       state.profile.wearingItems = next;
       state.profile.wearing = next;
       state.profile.roleCardUpdatedAt = new Date().toISOString();
+    }
+    if ((field === 'profile.factions' || path === 'profile.factions') && state.profile) {
+      state.values = state.values || {};
+      state.values.factions = Array.isArray(state.profile.factions) ? state.profile.factions.slice() : [];
+      state.profile.roleCardUpdatedAt = new Date().toISOString();
+    }
+    if ((field === 'profile.memberships' || path === 'profile.memberships') && state.values) {
+      state.values.memberships = Array.isArray(state.profile.memberships) ? state.profile.memberships.slice() : [];
+      state.profile.roleCardUpdatedAt = new Date().toISOString();
+    }
+    if (/(?:^|\.)sexualPartners$/u.test(path) || /(?:^|\.)intimacy\.sexualPartners$/u.test(field)) {
+      this.syncSexualPartnerCountFromList(state);
     }
     return true;
   },
@@ -216,7 +233,13 @@ Object.assign(window.GameModules.updateRegistry, {
     const partKey = value.partKey || this.leafName(update.field) || 'other';
     const path = 'bodyStatus.' + partKey;
     const current = this.get(state.values, path);
-    const next = { ...(current && typeof current === 'object' ? current : {}), ...value, initializedByAi: true, source: 'AI更新' };
+    const next = {
+      ...(current && typeof current === 'object' ? current : {}),
+      ...value,
+      pendingAiInit: false,
+      initializedByAi: true,
+      source: 'AI更新',
+    };
     if (JSON.stringify(current) === JSON.stringify(next)) return false;
     this.set(state.values, path, next);
     return true;
@@ -470,25 +493,187 @@ Object.assign(window.GameModules.updateRegistry, {
     const state = this.targetState(store, update);
     if (!state?.values) return false;
     window.GameModules.initPromptRegistry?.ensureTemplateState?.('intimacyBody', state);
+    const field = String(update.field || '').trim();
     const raw = this.changeValue(update);
     const current = state.values.intimacy || {};
-    const next = { ...current, sexualExperienceParts: { ...(current.sexualExperienceParts || {}) }, initializedByAi: true, source: 'AI鏇存柊' };
+    const next = { ...current, sexualExperienceParts: { ...(current.sexualExperienceParts || {}) }, initializedByAi: true, source: 'AI更新', pendingAiInit: false };
+
+    // 总次数由各部位次数求和派生，忽略 AI 单独写入总次数。
+    if (/(?:^|\.)sexualExperienceCount$/u.test(field) && !(raw && typeof raw === 'object' && (raw.parts || raw.partKey))) {
+      state.values.intimacy = next;
+      this.syncSexualExperienceCountFromParts(state);
+      this.syncSexualPartnerCountFromList(state);
+      return true;
+    }
+
     if (update.change?.mode === 'set') {
-      if (raw && typeof raw === 'object' && raw.parts) next.sexualExperienceParts = { ...next.sexualExperienceParts, ...raw.parts };
-      else if (raw && typeof raw === 'object' && raw.partKey) next.sexualExperienceParts[raw.partKey] = Math.max(0, Math.round(Number(raw.count) || 0));
-      else next.sexualExperienceCount = Math.max(0, Math.round(Number(raw) || 0));
+      if (raw && typeof raw === 'object' && raw.parts) {
+        Object.entries(raw.parts).forEach(([key, value]) => {
+          next.sexualExperienceParts[key] = Math.max(0, Math.round(Number(value) || 0));
+        });
+      } else if (raw && typeof raw === 'object' && raw.partKey) {
+        next.sexualExperienceParts[raw.partKey] = Math.max(0, Math.round(Number(raw.count) || 0));
+      } else {
+        state.values.intimacy = next;
+        this.syncSexualExperienceCountFromParts(state);
+        this.syncSexualPartnerCountFromList(state);
+        return true;
+      }
     } else {
-      const fieldPart = String(update.field || '').match(/sexualExperienceParts\.([^\.]+)/u)?.[1] || '';
-      const total = raw && typeof raw === 'object' ? (raw.totalDelta ?? raw.count ?? 0) : (fieldPart ? 0 : raw);
-      next.sexualExperienceCount = Math.max(0, Math.round((Number(next.sexualExperienceCount) || 0) + (Number(total) || 0)));
-      const parts = raw && typeof raw === 'object' ? (raw.parts || (raw.partKey ? { [raw.partKey]: raw.count ?? 1 } : {})) : (fieldPart ? { [fieldPart]: raw } : {});
-      Object.entries(parts).forEach(([key, value]) => { next.sexualExperienceParts[key] = Math.max(0, Math.round((Number(next.sexualExperienceParts[key]) || 0) + (Number(value) || 0))); });
+      const fieldPart = String(field).match(/sexualExperienceParts\.([^\.]+)/u)?.[1] || '';
+      const parts = raw && typeof raw === 'object'
+        ? (raw.parts || (raw.partKey ? { [raw.partKey]: raw.count ?? 1 } : {}))
+        : (fieldPart ? { [fieldPart]: raw } : {});
+      Object.entries(parts).forEach(([key, value]) => {
+        next.sexualExperienceParts[key] = Math.max(0, Math.round((Number(next.sexualExperienceParts[key]) || 0) + (Number(value) || 0)));
+      });
     }
     next.reason = this.reasonText(update, '现实推演确认了性经历次数变化。');
     next.updatedAt = new Date().toISOString();
-    if (JSON.stringify(current) === JSON.stringify(next)) return false;
     state.values.intimacy = next;
+    this.syncSexualExperienceCountFromParts(state);
+    this.syncSexualPartnerCountFromList(state);
     return true;
+  },
+
+  syncSexualExperienceCountFromParts(state = null) {
+    if (!state?.values) return false;
+    const intimacy = state.values.intimacy && typeof state.values.intimacy === 'object' ? { ...state.values.intimacy } : {};
+    const parts = intimacy.sexualExperienceParts && typeof intimacy.sexualExperienceParts === 'object'
+      ? intimacy.sexualExperienceParts
+      : {};
+    let sum = 0;
+    Object.values(parts).forEach((value) => {
+      if (typeof value === 'number' || typeof value === 'string') sum += Math.max(0, Math.round(Number(value) || 0));
+      else if (value && typeof value === 'object') sum += Math.max(0, Math.round(Number(value.count ?? value.total ?? 0) || 0));
+    });
+    if (Number(intimacy.sexualExperienceCount) === sum) {
+      state.values.intimacy = intimacy;
+      return false;
+    }
+    intimacy.sexualExperienceCount = sum;
+    state.values.intimacy = intimacy;
+    return true;
+  },
+
+  sexualPartnerName(item = null) {
+    if (item == null) return '';
+    if (typeof item === 'string' || typeof item === 'number') return String(item).trim();
+    if (typeof item !== 'object') return '';
+    return String(item.name || item.id || item.partner || item.characterName || '').trim();
+  },
+
+  normalizeSexualPartners(list = []) {
+    const seen = new Set();
+    const out = [];
+    for (const item of Array.isArray(list) ? list : []) {
+      const name = this.sexualPartnerName(item);
+      if (!name || /^(?:无|未知|--|none)$/iu.test(name)) continue;
+      const key = name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(typeof item === 'string' || typeof item === 'number' ? name : { ...item, name: item.name || name });
+    }
+    return out;
+  },
+
+  syncSexualPartnerCountFromList(state = null) {
+    if (!state?.values) return false;
+    const intimacy = state.values.intimacy && typeof state.values.intimacy === 'object' ? { ...state.values.intimacy } : {};
+    const partners = this.normalizeSexualPartners(intimacy.sexualPartners);
+    const count = partners.length;
+    const prevCount = Number(intimacy.sexualPartnerCount);
+    const prevPartners = intimacy.sexualPartners;
+    intimacy.sexualPartners = partners;
+    intimacy.sexualPartnerCount = count;
+    if (JSON.stringify(prevPartners) === JSON.stringify(partners) && prevCount === count) return false;
+    state.values.intimacy = intimacy;
+    return true;
+  },
+
+  resolveSexualStatusFromHistory(value = {}) {
+    const direct = String(value.virginityStatus || value.sexualStatus || value.status || '').trim();
+    if (/^(?:处女|处男|非处女|非处男|未知)$/u.test(direct)) return direct;
+    const transition = String(value.transition || value.historyText || '').trim();
+    const arrow = transition.match(/(处女|处男|非处女|非处男|未知)\s*(?:→|->|➜|⇒)\s*(处女|处男|非处女|非处男|未知)/u);
+    if (arrow?.[2]) return arrow[2];
+    if (/非处女|非处男|破处/u.test(transition)) return /男|处男/u.test(transition) && !/非处男/u.test(transition) ? '非处男' : '非处女';
+    if (/处女|处男/u.test(transition)) return /处男/u.test(transition) ? '处男' : '处女';
+    return '';
+  },
+
+  applySexualHistoryUpdate(store, update = {}) {
+    const state = this.targetState(store, update);
+    if (!state?.values) return false;
+    window.GameModules.initPromptRegistry?.ensureTemplateState?.('intimacyBody', state);
+    const field = String(update.field || '').trim();
+    const raw = this.changeValue(update);
+    const intimacy = { ...(state.values.intimacy || {}) };
+    let changed = false;
+
+    // 经历人数只读派生，忽略单独 set。
+    if (/(?:^|\.)sexualPartnerCount$/u.test(field)) {
+      return this.syncSexualPartnerCountFromList(state);
+    }
+
+    if (/(?:^|\.)sexualPartners$/u.test(field)) {
+      const current = this.normalizeSexualPartners(intimacy.sexualPartners);
+      const next = this.normalizeSexualPartners(this.nextValue(current, update));
+      if (JSON.stringify(current) !== JSON.stringify(next)) {
+        intimacy.sexualPartners = next;
+        changed = true;
+      }
+    } else if (/(?:^|\.)sexualStatus$/u.test(field)) {
+      const nextStatus = String(typeof raw === 'object' ? (raw.sexualStatus || raw.status || raw.value || '') : raw || '').trim();
+      if (nextStatus && intimacy.sexualStatus !== nextStatus) {
+        intimacy.sexualStatus = nextStatus;
+        changed = true;
+      }
+    } else {
+      const path = field.replace(/^values\./u, '');
+      const historyPath = path.startsWith('intimacy.') ? path.slice('intimacy.'.length) : path;
+      const currentHistory = historyPath === 'sexualHistory'
+        ? (intimacy.sexualHistory && typeof intimacy.sexualHistory === 'object' ? intimacy.sexualHistory : {})
+        : this.get(intimacy, historyPath);
+      const nextHistory = this.nextValue(currentHistory, update);
+      if (nextHistory !== undefined && JSON.stringify(currentHistory) !== JSON.stringify(nextHistory)) {
+        if (historyPath === 'sexualHistory') intimacy.sexualHistory = nextHistory;
+        else this.set(intimacy, historyPath, nextHistory);
+        changed = true;
+      }
+
+      const historyValue = historyPath === 'sexualHistory'
+        ? (intimacy.sexualHistory || {})
+        : (raw && typeof raw === 'object' ? raw : {});
+      const status = this.resolveSexualStatusFromHistory({
+        ...(historyValue && typeof historyValue === 'object' ? historyValue : {}),
+        ...(raw && typeof raw === 'object' ? raw : {}),
+      });
+      if (status && intimacy.sexualStatus !== status) {
+        intimacy.sexualStatus = status;
+        changed = true;
+      }
+
+      const partnerRaw = (raw && typeof raw === 'object' ? (raw.partner || raw.firstVaginalPartner) : null)
+        || (historyValue && typeof historyValue === 'object' ? (historyValue.partner || historyValue.firstVaginalPartner) : null);
+      const partnerName = this.sexualPartnerName(partnerRaw);
+      if (partnerName && !/^(?:无|未知|--|none|配偶)$/iu.test(partnerName)) {
+        const partners = this.normalizeSexualPartners([...(intimacy.sexualPartners || []), partnerRaw || partnerName]);
+        if (JSON.stringify(partners) !== JSON.stringify(this.normalizeSexualPartners(intimacy.sexualPartners))) {
+          intimacy.sexualPartners = partners;
+          changed = true;
+        }
+      }
+    }
+
+    intimacy.initializedByAi = true;
+    intimacy.source = 'AI更新';
+    intimacy.pendingAiInit = false;
+    intimacy.reason = this.reasonText(update, intimacy.reason || '现实推演确认了性历史变化。');
+    intimacy.updatedAt = new Date().toISOString();
+    state.values.intimacy = intimacy;
+    const synced = this.syncSexualPartnerCountFromList(state);
+    return changed || synced;
   },
 
   applyRelationshipUpdate(store, update = {}) {

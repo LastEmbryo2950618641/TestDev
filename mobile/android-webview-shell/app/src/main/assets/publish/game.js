@@ -1,4 +1,4 @@
-﻿try {
+try {
   window.parent?.postMessage?.('iframe:content-ready', '*');
 } catch (err) {
   console.warn('骞冲彴灏辩华閫氱煡澶辫触:', err.message);
@@ -352,6 +352,7 @@ function registerGameStore() {
     factionArchiveDocMeta() { return ''; },
     factionArchiveParagraphTime() { return ''; },
     factionStructureCards() { return []; },
+    factionTerritoryEntries() { return []; },
     selectedFactionResolutionBadge() {
       const faction = this.selectedFaction?.();
       return faction?.resolutionBadge || window.GameModules.orgTerritory?.resolutionBadge?.(faction?.resolution) || '';
@@ -454,7 +455,7 @@ function registerGameStore() {
     },
     factionOverviewEffectiveCount(panelKey = '', entries = []) {
       if (panelKey !== 'ideology') return entries.length;
-      return entries.filter((entry) => String(entry?.name || '') !== 'legitimacy').length;
+      return entries.filter((entry) => String(entry?.name || '') !== 'legitimacy' && entry?.filled).length;
     },
     selectedFactionOverviewSummary() {
       const faction = this.selectedFaction?.();
@@ -477,21 +478,27 @@ function registerGameStore() {
           const entries = ['core', 'reason', 'description', 'base', 'legitimacy'].map((fieldKey) => {
             const field = ideology[fieldKey] || {};
             const value = field?.value;
-            const hasValue = typeof value === 'number' ? Number.isFinite(value) : String(value ?? '').trim();
-            if (!hasValue && fieldKey !== 'legitimacy') return null;
+            const hasValue = typeof value === 'number'
+              ? Number.isFinite(value)
+              : Boolean(String(value ?? '').trim());
+            const display = hasValue
+              ? this.factionOverviewEntryValue(field)
+              : (fieldKey === 'legitimacy' ? '0/100' : '待推演补全');
             return {
               key: `ideology-${fieldKey}`,
               name: fieldKey,
               label: this.factionOverviewFieldLabel('ideology', fieldKey, faction),
               icon: skin.entryIcons[fieldKey] || skin.icon,
-              display: this.factionOverviewEntryValue(field),
+              display,
               reason: String(field?.reason || '').trim(),
-              stateBadge: hasValue ? '已记录' : '',
+              stateBadge: hasValue ? '已记录' : '待填',
+              filled: hasValue,
             };
-          }).filter(Boolean);
+          });
           const meter = this.factionOverviewPanelMeter(panelKey, entries, faction);
           const effectiveCount = this.factionOverviewEffectiveCount(panelKey, entries);
-          return { key: 'cap-ideology', dim: 'ideology', label: meta.labels.ideology, eyebrow: meta.eyebrow, emptyText: meta.empty.ideology, icon: skin.icon, tone: skin.tone, meter, meterStyle: `--meter:${meter};`, rankLabel: this.factionOverviewRankLabel(meter, effectiveCount), statusLabel: `${entries.length}项`, entries };
+          const filledCount = entries.filter((entry) => entry.filled).length;
+          return { key: 'cap-ideology', dim: 'ideology', label: meta.labels.ideology, eyebrow: meta.eyebrow, emptyText: meta.empty.ideology, icon: skin.icon, tone: skin.tone, meter, meterStyle: `--meter:${meter};`, rankLabel: this.factionOverviewRankLabel(meter, effectiveCount), statusLabel: `${filledCount}/5项`, entries };
         }
         const entries = Object.entries(panels[panelKey]?.entries || {}).map(([key, entry]) => ({
           ...(entry && typeof entry === 'object' ? entry : { value: entry }),
@@ -679,7 +686,8 @@ function registerGameStore() {
     },
     controlExperienceConfigState: gm.controlExperienceConfigApp?.defaultState?.() || { open: false, enabled: true, masterPrompt: '', message: '', error: '', previewItems: [] },
     systemTestState: { open: false, loading: false, thinkingLoading: false, platformChatLoading: false, systemText: '你是一个测试助手。无论用户输入什么，只回答：SYSTEM_OK。', userText: '请测试 system role 是否生效。', thinkingPrompt: '请用简洁中文回答：为什么晴天适合散步？列出三点理由即可。', result: '', error: '', thinkingError: '', thinkingResults: [], platformChatPayload: '', platformChatRaw: '', platformChatError: '' },
-    playerProfile: { name: '', gender: '', birthday: '', age: '', city: '', refinedCity: '', dailyRole: '', refinedRole: '', livingStatus: '', refinedLivingStatus: '', wealthTier: '中产', wealthAmount: 500000, wealthSource: '', wealthBreakdown: null, wealthFixedIncome: '', relationships: '', relationshipEntries: [], parents: '', parentStatus: '', parentDeathCause: '', worldbuildingNote: '', notes: '', knownProfessions: [], wechatId: '', profileEnrichedAt: '', initializedAt: '' }, playerName: '',
+    playerProfile: { name: '', gender: '', birthday: '', age: '', city: '', refinedCity: '', dailyRole: '', refinedRole: '', livingStatus: '', refinedLivingStatus: '', wealthTier: '中产', wealthAmount: 500000, wealthSource: '', wealthBreakdown: null, wealthFixedIncome: '', relationships: '', relationshipEntries: [], parents: '', parentStatus: '', parentDeathCause: '', appearance: '', preferences: '', personality: '', worldbuildingNote: '', notes: '', knownProfessions: [], wechatId: '', profileEnrichedAt: '', initializedAt: '' }, playerName: '',
+    playerProfileTraitDefaultsApplied: false,
     selectedSlot: 'slot-1', saveSlots: window.GameModules.storage.slots,
     savePanelOpen: false, functionPanelOpen: false, worldlineAppOpen: false,
     libraryTab: 'worlds', worldlineAppTab: 'control', realWorldlineSubTab: 'recording', expandedWorldlineTag: '', worldlineDebugSection: '世界线APP主面板', selectedRealWorldPlotId: '',
@@ -728,7 +736,7 @@ function registerGameStore() {
     mindText: '', feedbackSource: 'pending',
     characterIntent: '',
     choices: cfg.openingChoices,
-    log: [], realWorldOpen: false, realWorldBusy: false, realWorldInput: '', realWorldThinkMode: false, realWorldFreedomMode: 'scope', realWorldWordCount: 1000, realWorldFunctionOpen: false, realWorldFunctionView: 'menu', realWorldMatterState: { open: false, activeId: '' }, realWorldSceneTitle: '现实世界', realWorldLocationName: '', realWorldMap: defaultRealWorldMapState, realWorldQuest: '确认手机异常与现实处境', realWorldStatus: '现实稳定', realWorldChoices: ['检查手机记录', '观察居住环境', '联系熟人确认', '暂时休息'], realWorldLog: [], realWorldLogPage: 1, realWorldLogPageSize: 12, realWorldLogTotal: 0, realWorldLongingEvents: [], realWorldLongingPreparedIds: [], realWorldlineState: { events: [], plots: [], pendingPlot: null }, realWorldProfileOpen: false, companyState: defaultCompanyState, bossState: defaultBossState, calendarState: defaultCalendarState, eventState: defaultEventState, factionState: defaultFactionState, skillsState: gm.skillsApp?.defaultState?.() || {}, promptState: gm.promptTemplates?.defaultState?.() || {}, tokenStatsState: gm.tokenStats?.defaultState?.() || {},
+    log: [], realWorldOpen: false, realWorldBusy: false, realWorldInput: '', realWorldThinkMode: false, realWorldFreedomMode: 'scope', realWorldWordCount: 1000, realWorldFunctionOpen: false, realWorldFunctionView: 'menu', realWorldMatterState: { open: false, activeId: '' }, realWorldSceneTitle: '现实世界', realWorldLocationName: '', realWorldMap: defaultRealWorldMapState, locationGraph: null, realWorldQuest: '确认手机异常与现实处境', realWorldStatus: '现实稳定', realWorldChoices: ['检查手机记录', '观察居住环境', '联系熟人确认', '暂时休息'], realWorldLog: [], realWorldLogPage: 1, realWorldLogPageSize: 12, realWorldLogTotal: 0, realWorldLongingEvents: [], realWorldLongingPreparedIds: [], realWorldlineState: { events: [], plots: [], pendingPlot: null }, realWorldProfileOpen: false, companyState: defaultCompanyState, bossState: defaultBossState, calendarState: defaultCalendarState, eventState: defaultEventState, factionState: defaultFactionState, skillsState: gm.skillsApp?.defaultState?.() || {}, promptState: gm.promptTemplates?.defaultState?.() || {}, tokenStatsState: gm.tokenStats?.defaultState?.() || {},
     nextId: 1,
     ragQuery: '',
     ragContext: '',
@@ -799,6 +807,7 @@ function registerGameStore() {
       if (this.initPromise) return this.initPromise;
       document.getElementById('boot-fallback')?.remove(); this.initPromise = (async () => {
         try {
+          window.GameModules.characterStateStore?.bindLiveHost?.(this);
           window.GameModules.metrics.ensure(this);
           await this.initGame();
           this.startPhoneClock?.();

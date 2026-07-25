@@ -1,5 +1,5 @@
 window.GameScriptManifest = {
-  "version": "2026-07-24-pref-rpg-v17",
+  "version": "2026-07-25-learned-stage10-v26",
   "chunks": {
     "core": [
       "https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js",
@@ -91,6 +91,7 @@ window.GameScriptManifest = {
       "body-figure.js",
       "rpg-field-ui.js",
       "progression-combat.js",
+      "progression-life-energy.js",
       "progression-learned-sync.js",
       "rpg-initializer.js",
       "rpg-profile-metrics.js",
@@ -178,8 +179,6 @@ window.GameScriptManifest = {
       "update/faction-overview-update.js",
       "update/map-update.js",
       "update/system-update.js",
-      "update/character-schedule-update.js",
-      "update/character-goal-update.js",
       "update/generic-update.js",
       "update/emotion-update-ui.js",
       "update/feeling-update-ui.js",
@@ -195,8 +194,6 @@ window.GameScriptManifest = {
       "update/faction-overview-update-ui.js",
       "update/map-update-ui.js",
       "update/system-update-ui.js",
-      "update/character-schedule-update-ui.js",
-      "update/character-goal-update-ui.js",
       "update/generic-update-ui.js",
       "update/generic-update-compat.js",
       "update/generic-update-template.js",
@@ -271,7 +268,8 @@ window.GameScriptManifest = {
       "ui/event/view-helpers.js",
       "ui/faction/overview-view-helpers.js",
       "prompts/location-tree-audit-fill.js",
-      "prompts/real-world-map-surround-unlock.js"
+      "prompts/real-world-map-surround-unlock.js",
+      "prompts/推演引擎/stage6-faction-update.js"
     ],
     "gameplay": [
       "real-world-log-store.js",
@@ -280,6 +278,8 @@ window.GameScriptManifest = {
       "update/org-status-update.js",
       "update/org-overview-panel-update.js",
       "update/membership-update.js",
+      "update/character-goal-update.js",
+      "update/character-goal-update-ui.js",
       "real-world-clock-actions.js",
       "assets/data/real-world-2026.js",
       "real-world-map-facts.js",
@@ -297,7 +297,11 @@ window.GameScriptManifest = {
       "inference/scene-boundary.js",
       "inference/material-loader.js",
       "inference/faction-stage-update.js",
+      "inference/life-energy-stage.js",
       "real-world-agent-context.js",
+      "prompts/materials/real-world-materials.js",
+      "prompts/materials/real-world-material-query.js",
+      "prompts/materials/real-world-faction-query.js",
       "real-world-longing-actions.js",
       "real-world-agent-history.js",
       "real-world-agent-memory.js",
@@ -433,20 +437,16 @@ window.GameScriptManifest = {
     "prompts": [
       "prompt.js",
       "real-world-prompt.js",
-      "prompts/materials/real-world-materials.js",
       "prompts/materials/work-lore-materials.js",
-      "prompts/materials/real-world-material-query.js",
-      "prompts/materials/real-world-faction-query.js",
       "prompts/materials/work-lore-material-query.js",
       "prompts/picture_generate/sensitive-replacements.js",
       "prompts/picture_generate/draw-tag-prompt.js",
       "prompts/picture_generate/common-image-edit-generate.js",
-      "prompts/推演引擎/stage6-faction-update.js",
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-22T11:52:24.120Z",
-  "total": 425
+  "generatedAt": "2026-07-25T10:01:51.251Z",
+  "total": 431
 };
 
 window.GameScriptManifest.classify = function classify(url) {
@@ -456,6 +456,8 @@ window.GameScriptManifest.classify = function classify(url) {
   if (/^prompt-fallback\.js$|^prompt-templates\.js$|^prompt-skills\.js$|^prompt-sections\.js$/.test(p)) return 'core';
   if (/(^|\/)wechat|player-wechat-setup|real-world-agent-wechat|prompts\/wechat|wechat-album-photo/.test(p)) return 'wechat';
   if (/^(company-|boss-|calendar-|event-|faction-|skills-|skill-|known-profession-|taobao-|prompt-actions|token-stats|alert-log|faction-membership|role-card-json-app\/)/.test(p)) return 'apps';
+  // Stage1/8 推演依赖势力/资料查询；继续游戏只加载 gameplayReady，不能等 prompts 分包
+  if (/^prompts\/materials\/real-world-(?:faction|material)-query\.js$|^prompts\/materials\/real-world-materials\.js$/.test(p)) return 'gameplay';
   if (/^prompt\.js$|^real-world-prompt\.js$|^prompts\/materials\/|^prompts\/picture_generate\/|^inference-prompts-runtime\.js$/.test(p)) return 'prompts';
   if (/^real-world-|^org-territory|^(?:app|domain)\/org-territory\/|^inference\/|^story-agent-context\.js$|^assets\/data\/real-world|^game-premise\.js$|^update\/(territory|org-|membership|character-schedule|character-goal|org-status)/.test(p)) return 'gameplay';
   return 'core';

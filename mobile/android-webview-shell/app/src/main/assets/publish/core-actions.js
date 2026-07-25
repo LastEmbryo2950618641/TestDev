@@ -45,10 +45,45 @@ window.GameModules.coreActions = {
   },
 
   controlRoleList() {
-    return Object.values(this.rpgStates || {})
-      .filter((state) => state?.id && state.id !== 'player-self')
-      .map((state) => ({ state, character: window.GameModules.catalog.find(state.id) || state.profile || { id: state.id, name: state.name || state.profile?.name || '未知角色', mark: state.profile?.mark || '控', role: state.profile?.role || '可上线角色', work: state.profile?.work || state.worldTag || '未知世界' } }))
-      .sort((a, b) => String(a.character.work || '').localeCompare(String(b.character.work || ''), 'zh-Hans') || String(a.character.name || '').localeCompare(String(b.character.name || ''), 'zh-Hans'));
+    const byId = new Map();
+    const adopt = (state) => {
+      if (!state?.id || state.id === 'player-self') return;
+      if (!byId.has(state.id)) byId.set(state.id, state);
+    };
+    Object.values(this.rpgStates || {}).forEach(adopt);
+    // Role cards live in characterStateStore; rpgStates may only hold the active few after save load.
+    (window.GameModules.characterStateStore?.list?.() || []).forEach((state) => {
+      const profile = state?.profile || {};
+      if (profile.roleCard === true || profile.roleCardSource || profile.roleCardUpdatedAt) adopt(state);
+    });
+    return [...byId.values()]
+      .map((state) => ({
+        state,
+        character: window.GameModules.catalog.find(state.id) || state.profile || {
+          id: state.id,
+          name: state.name || state.profile?.name || '未知角色',
+          mark: state.profile?.mark || '控',
+          role: state.profile?.role || '可上线角色',
+          work: state.profile?.work || state.worldTag || '未知世界',
+        },
+      }))
+      .sort((a, b) => String(a.character.work || '').localeCompare(String(b.character.work || ''), 'zh-Hans')
+        || String(a.character.name || '').localeCompare(String(b.character.name || ''), 'zh-Hans'));
+  },
+
+  hydrateControlRoleStates() {
+    const listed = window.GameModules.characterStateStore?.list?.() || [];
+    const next = { ...(this.rpgStates || {}) };
+    let changed = false;
+    listed.forEach((state) => {
+      if (!state?.id || state.id === 'player-self' || next[state.id]) return;
+      const profile = state.profile || {};
+      if (!(profile.roleCard === true || profile.roleCardSource || profile.roleCardUpdatedAt)) return;
+      next[state.id] = state;
+      changed = true;
+    });
+    if (changed) this.rpgStates = next;
+    return changed;
   },
 
   openCharacterDetail() {

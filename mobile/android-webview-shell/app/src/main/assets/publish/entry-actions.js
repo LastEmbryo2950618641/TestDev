@@ -184,9 +184,15 @@ window.GameModules.entryActions = {
       this.loadMetricsFromCharacterState();
       const currentAction = this.cleanEntryAction(this.entryCurrentAction) || `${this.character.name}正在按当前时间点的处境行动。`;
       this.entryCurrentAction = currentAction;
-      const action = `你在手机上的《我狠狠控制》APP里选中${this.character.name}，按下连接按钮。意识陷入黑暗后，你在${this.entryTimeLabel()}醒来，发现自己已经附身到${this.character.name}身上。上线规则：慎二可以一心二用，同时控制自己的现实本体与${this.character.name}的身体，并同时感受两个肉体的所有感官；${this.character.name}无法控制自己的身体，但意识清醒，能感觉身体全部反馈。AI正文必须以玩家在${this.character.name}身体内的第二人称附身视角为主，同时保留${this.character.name}的心理想法与感受。动作归属规则：玩家未明确指定慎二本体、现实身体、外部的我或其他执行者时，所有“你/我/手/身体/伸手/触碰/捏/按/移动/说话”等行动都默认由${this.character.name}的身体亲自执行，不要写成慎二现实本体从外部对${this.character.name}行动。当前场景：${currentAction}`;
+      const markup = window.GameModules.narrationRoleMarkup;
+      const playerName = String(this.playerName || this.playerProfile?.name || this.rpgStates?.['player-self']?.profile?.name || '玩家').trim() || '玩家';
+      const targetName = String(this.character?.name || '被控者').trim();
+      const targetId = String(this.character?.id || this.selectedCharacterId || '').trim();
+      const playerTag = markup?.roleTag?.('player-self', playerName) || playerName;
+      const targetTag = markup?.roleTag?.(targetId, targetName) || targetName;
+      const action = `你在手机上的《我狠狠控制》APP里选中${targetTag}，按下连接按钮。意识陷入黑暗后，你在${this.entryTimeLabel()}醒来，发现自己已经附身到${targetTag}身上。上线规则：${playerTag}可以一心二用，同时控制自己的现实本体与${targetTag}的身体，并同时感受两个肉体的所有感官；${targetTag}无法控制自己的身体，但意识清醒，能感觉身体全部反馈。AI正文必须以玩家在${targetTag}身体内的第二人称附身视角为主，同时保留${targetTag}的心理想法与感受。正文除“你”外每次写角色姓名必须使用 <role id="真实ID">姓名</role>。动作归属规则：玩家未明确指定${playerTag}本体、现实身体、外部的我或其他执行者时，所有“你/我/手/身体/伸手/触碰/捏/按/移动/说话”等行动都默认由${targetTag}的身体亲自执行，不要写成${playerTag}现实本体从外部对${targetTag}行动。当前场景：${currentAction}`;
       const logId = this.addNovelEntry(action, { playerVisible: false });
-      console.log('[控制上线] 已创建开场日志，开始生成:', { logId, character: this.character.name });
+      console.log('[控制上线] 已创建开场日志，开始生成:', { logId, character: targetName });
       const feedbackTask = window.GameModules.characterFeedback.initial(this);
       try {
         await Promise.race([this.refreshRagContext(action), new Promise((_, reject) => setTimeout(() => reject(new Error('资料检索超时')), 8000))]);

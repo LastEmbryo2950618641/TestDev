@@ -29,9 +29,32 @@ window.GameModules.realWorldAgentContextParts.materialRequestCatalog = {
       { mode: 'real', category: '公司查询', action: '工作上下文', skill: 'company.query', method: 'getWorkContext', requiredParams: [], buildParams: (p) => ({ companyName: p[0] || '' }) },
       { mode: 'real', category: '势力查询', action: '势力列表', skill: 'faction.query', method: 'listFactions', requiredParams: [], buildParams: (p) => ({ world: p[0] || world() }) },
       { mode: 'real', category: '势力查询', action: '搜索势力', skill: 'faction.query', method: 'searchFactionOne', requiredParams: ['keyword'], buildParams: (p) => ({ keyword: p[0] || '' }) },
+      { mode: 'real', category: '势力查询', action: '势力字段', skill: 'faction.query', method: 'getFactionField', requiredParams: ['id'], buildParams: (p) => ({ id: p[0] || '', panel: p[1] || '', field: p[2] || '', world: p[3] || world() }) },
       { mode: 'real', category: '势力查询', action: '势力档案', skill: 'faction.query', method: 'searchFactionArchive', requiredParams: ['keyword'], buildParams: (p) => ({ keyword: p[0] || '', world: p[1] || world() }) },
       { mode: 'real', category: '势力查询', action: '人事归属', skill: 'faction.query', method: 'listMemberships', requiredParams: [], buildParams: (p) => ({ name: p[0] || '', world: p[1] || world() }) },
       { mode: 'real', category: '势力查询', action: '势力详情', skill: 'faction.query', method: 'getFactionDetail', requiredParams: ['name'], buildParams: (p) => ({ name: p[0] || '', world: p[1] || world() }) },
+      {
+        mode: 'real',
+        category: '势力查询',
+        action: '创建势力',
+        skill: 'faction.query',
+        method: 'createFaction',
+        requiredParams: ['name'],
+        buildParams: (p) => {
+          const name = p[0] || '';
+          const type = p[1] || (/公司|有限|集团|工作室|企业/.test(name) ? '公司' : (/学校|大学|学院|中学/.test(name) ? '学校' : '组织'));
+          const classification = p[2] || (/国家|政府|机关/.test(type) ? 'country' : 'community');
+          return {
+            name,
+            type,
+            classification,
+            worldTag: p[3] || world(),
+            level: '组织级',
+            description: `Stage1 据上下文补全创建的现实势力：${name}`,
+            reason: 'Stage1：上下文出现且势力列表未收录的现实势力，按已有资料与常识补全创建。',
+          };
+        },
+      },
       { mode: 'real', category: '控势查询', action: '控势摘要', skill: 'faction.query', method: 'resolveTerritoryBrief', requiredParams: [], buildParams: (p) => ({ locationName: p[0] || '', world: p[1] || world() }) },
       { mode: 'real', category: '控势查询', action: '地点控势详情', skill: 'faction.query', method: 'getTerritoryControl', requiredParams: ['locationName'], buildParams: (p) => ({ locationName: p[0] || '', world: p[1] || world() }) },
       { mode: 'both', category: '物品查询', action: '角色物品', skill: 'item.query', method: 'listCharacterItems', requiredParams: ['target'], buildParams: (p) => ({ target: p[0] || '' }) },

@@ -159,7 +159,8 @@ window.GameModules.rpgFieldUi = {
       age: '年龄',
       current_location: '当前位置',
       level: '等级',
-      exp: '经验',
+      level: '生命层次',
+      exp: '能量',
       free_attribute_points: '可分配属性点',
       health: '生命力',
       stamina: '体力',
@@ -341,19 +342,18 @@ window.GameModules.rpgFieldUi = {
 
   defaultIntimacyBodyFields(state = {}) {
     const template = window.GameModules.initDefaults?.intimacyBody || window.GameModules.initTemplateSources?.intimacyBody;
-    const intimacy = template?.intimacy?.() || template?.intimacyDefaults || {};
     const bodyStatus = template?.bodyStatus?.() || template?.bodyStatusDefaults || {};
     const sexRows = Object.entries(template?.sexPartLabels || {}).map(([partKey, name]) => ({ partKey, name, count: 0, initialCount: 0, laterCount: 0, prompt: template?.sexPartPrompts?.[partKey] || template?.sexPartPrompts?.other || '', type: template?.fieldMeta?.sexualExperienceParts?.kind || '性经验分类', pendingAiInit: true }));
-    const bodyRows = Object.values(bodyStatus || {}).map((item) => ({ ...item, name: item.part || item.partKey, type: template?.fieldMeta?.bodyStatus?.kind || '当前身体状态', pendingAiInit: true, reason: '尚未经过现实推演AI初始化；当前仅按模板占位显示。' }));
-    const base = { templateKey: 'intimacyBody', stateId: state.id || '', worldTag: state.worldTag || state.profile?.work || '原创世界', targetType: state.profile?.isPlayer ? '非角色' : '角色', commonField: true, pendingAiInit: true, reason: '待AI初始化。' };
+    const bodyRows = Object.values(bodyStatus || {}).map((item) => ({ ...item, name: item.part || item.partKey, type: template?.fieldMeta?.bodyStatus?.kind || '当前身体状态', pendingAiInit: true, reason: '未知' }));
+    const base = { templateKey: 'intimacyBody', stateId: state.id || '', worldTag: state.worldTag || state.profile?.work || '原创世界', targetType: state.profile?.isPlayer ? '非角色' : '角色', commonField: true, pendingAiInit: true, reason: '未知' };
     const meta = template?.fieldMeta || {};
     return [
-      { key: 'sexualStatus', ...base, ...(meta.sexualStatus || {}), value: `${intimacy.sexualStatus || '待AI判断'}｜模板占位，待AI初始化`, raw: intimacy.sexualStatus || '待AI判断' },
-      { key: 'sexualPartnerCount', ...base, ...(meta.sexualPartnerCount || {}), value: `${Number(intimacy.sexualPartnerCount) || 0}人｜模板占位，待AI初始化`, raw: Number(intimacy.sexualPartnerCount) || 0 },
-      { key: 'sexualPartners', ...base, ...(meta.sexualPartners || {}), value: [template?.displayTexts?.noPartner || '无', '模板占位，待AI初始化'], raw: [template?.displayTexts?.noPartner || '无'] },
-      { key: 'sexualExperienceCount', ...base, ...(meta.sexualExperienceCount || {}), value: `${Number(intimacy.sexualExperienceCount) || 0}次｜模板占位，待AI初始化`, raw: Number(intimacy.sexualExperienceCount) || 0 },
-      { key: 'sexualExperienceParts', ...base, ...(meta.sexualExperienceParts || {}), value: sexRows.map((item) => `${item.name}：0(初次见面) + 0 (后续次数)`), raw: sexRows },
-      { key: 'bodyStatus', ...base, ...(meta.bodyStatus || {}), value: bodyRows.map((item) => template?.formatBodyStatus?.(item) || `${item.part || item.partKey}：${item.status || '--'}`), raw: bodyRows, desc: '身体状态尚未经过现实推演AI初始化；当前显示的是模板占位，不作为真实原始值。' },
+      { key: 'sexualStatus', ...base, ...(meta.sexualStatus || {}), value: '未知', raw: null },
+      { key: 'sexualPartnerCount', ...base, ...(meta.sexualPartnerCount || {}), value: '未知', raw: null },
+      { key: 'sexualPartners', ...base, ...(meta.sexualPartners || {}), value: ['未知'], raw: [] },
+      { key: 'sexualExperienceCount', ...base, ...(meta.sexualExperienceCount || {}), value: '未知', raw: null },
+      { key: 'sexualExperienceParts', ...base, ...(meta.sexualExperienceParts || {}), value: sexRows.map((item) => `${item.name}：未知`), raw: sexRows },
+      { key: 'bodyStatus', ...base, ...(meta.bodyStatus || {}), value: bodyRows.map((item) => `${item.part || item.partKey}：未知`), raw: bodyRows, desc: '尚未初始化，当前未知。' },
     ];
   },
 
@@ -685,12 +685,13 @@ window.GameModules.rpgFieldUi = {
     if (kind === '性经验分类') {
       const defaults = window.GameModules.initDefaults?.intimacyBody;
       const partKey = this.sexPartKey(obj, defaults);
-      return [`分类: ${obj.name || name}`, `字段: intimacy.sexualExperienceParts.${partKey}`, `次数: ${defaults?.formatExperienceSplit?.(obj) || ''}`, `初始化: ${obj.pendingAiInit ? '否，当前为模板占位，待AI初始化' : (field?.pendingAiInit ? '否，当前为模板占位，待AI初始化' : '按当前记录')}`, `次数增加标准: ${this.sexPartPrompt(obj, defaults)}`, `所属世界: ${field?.worldTag || defaults?.displayTexts?.publicWorld || '公共'}`].join('\n');
+      return [`分类: ${obj.name || name}`, `字段: intimacy.sexualExperienceParts.${partKey}`, `次数: ${defaults?.formatExperienceSplit?.(obj) || ''}`, `初始化: ${obj.pendingAiInit || field?.pendingAiInit ? '否，当前未知' : '按当前记录'}`, `次数增加标准: ${this.sexPartPrompt(obj, defaults)}`, `所属世界: ${field?.worldTag || defaults?.displayTexts?.publicWorld || '公共'}`].join('\n');
     }
     if (kind === '当前身体状态') {
       const uiRow = this.initUiRow(field, obj);
       const defaults = window.GameModules.initDefaults?.intimacyBody, text = defaults?.displayTexts || {}, values = defaults?.valueDefaults || {};
-      const lines = [`部位: ${uiRow?.name || obj.part || name}`, `状态: ${obj.status || values.bodyStatus || ''}`, `初始化: ${obj.pendingAiInit ? '否，当前为模板占位，待AI初始化' : (obj.initializedByAi ? '是，已由AI初始化' : '未标记')}`, `初始见面: ${obj.initialMeeting || text.noRecord || ''}`, `描述状态: ${obj.description || text.noRecord || ''}`];
+      const statusText = obj.pendingAiInit ? '未知' : (obj.status || values.bodyStatus || '未知');
+      const lines = [`部位: ${uiRow?.name || obj.part || name}`, `状态: ${statusText}`, `初始化: ${obj.pendingAiInit ? '否，当前未知' : (obj.initializedByAi ? '是，已由AI初始化' : '未标记')}`, `初始见面: ${obj.initialMeeting || text.noRecord || ''}`, `描述状态: ${obj.pendingAiInit ? '未知' : (obj.description || text.noRecord || '')}`];
       if (Array.isArray(uiRow?.detailLines)) lines.push(...uiRow.detailLines);
       lines.push(`变化原因: ${obj.reason || text.currentRecord || ''}`, `更新时间: ${obj.updatedAt || text.noRecord || ''}`, `所属世界: ${field?.worldTag || text.publicWorld || '公共'}`);
       return lines.join('\n');
@@ -743,7 +744,7 @@ window.GameModules.rpgFieldUi = {
       if (field.raw.updatedAt) lines.push(`更新时间: ${field.raw.updatedAt}`);
       if (field.raw.reason && !String(rawValue || '').includes(field.raw.reason)) lines.push(`登记依据: ${field.raw.reason}`);
     }
-    if (field?.pendingAiInit) lines.push('初始化: 否，当前为模板占位，待AI初始化');
+    if (field?.pendingAiInit) lines.push('初始化: 否，当前未知');
     if (field && Object.prototype.hasOwnProperty.call(field, 'initialMeeting')) lines.push(`初始见面: ${Array.isArray(field.initialMeeting) ? field.initialMeeting.join('、') || '无' : field.initialMeeting}`);
     lines.push(`变化原因: ${this.fieldChangeReason(field, lexicon)}`);
     lines.push(`当前依据: ${this.fallbackBasis(field)}`);
@@ -827,12 +828,33 @@ window.GameModules.rpgFieldUi = {
       { listKey: 'skills', key: 'skills', label: '技能', type: '技能' },
       { listKey: 'professions', key: 'professions', label: '职业', type: '职业' },
     ];
+    const progression = window.GameModules.progression;
     return specs.map(({ listKey, key, label, type }) => {
       const field = this.fieldByKey(fields, listKey);
       const items = this.rpgListItems(field).map((item, index) => {
         const name = this.rpgItemName(item);
         if (!name) return null;
-        const level = Number(item?.level) > 0 ? item.level : null;
+        const hasLevel = Number(item?.level) > 0;
+        const level = hasLevel ? Number(item.level) : null;
+        if (hasLevel && progression?.normalizeLearnedExp) {
+          try { progression.normalizeLearnedExp(item); } catch (_) { /* ignore */ }
+        }
+        const maxed = hasLevel && level >= 7;
+        const current = maxed ? Math.max(0, Number(item?.exp?.current) || 0) : Math.max(0, Number(item?.exp?.current) || 0);
+        const nextRaw = item?.exp?.next;
+        const next = maxed || nextRaw === Infinity || nextRaw == null
+          ? null
+          : Math.max(1, Number(nextRaw) || 1);
+        const percent = !hasLevel
+          ? 0
+          : maxed
+            ? 100
+            : Math.max(0, Math.min(100, Math.round((current / next) * 100)));
+        const expDisplay = !hasLevel
+          ? '—'
+          : maxed
+            ? 'MAX'
+            : `${current}/${next}`;
         return {
           type,
           field,
@@ -842,6 +864,11 @@ window.GameModules.rpgFieldUi = {
           level,
           icon: this.learnedTypeIcon(type),
           chipText: `${this.learnedTypeIcon(type)} ${name}${level ? ` lv.${level}` : ''}`,
+          expCurrent: current,
+          expNext: next,
+          expPercent: percent,
+          expDisplay,
+          maxed,
         };
       }).filter(Boolean);
       return { key, label, icon: this.learnedTypeIcon(type), items };
@@ -852,11 +879,20 @@ window.GameModules.rpgFieldUi = {
     return this.personalAbilityLearnedGroups(fields);
   },
 
+  sanitizeIntimacyDisplayText(text = '') {
+    return String(text || '')
+      .replace(/[｜|]\s*模板占位，待AI初始化/g, '')
+      .replace(/模板占位，待AI初始化/g, '')
+      .replace(/待AI判断/g, '未知')
+      .replace(/\s*[｜|]\s*$/g, '')
+      .trim();
+  },
+
   identityInfoValueText(field = {}) {
-    if (Array.isArray(field?.value)) return field.value.join('、');
-    if (field?.value != null && field.value !== '') return String(field.value).trim();
-    if (Array.isArray(field?.raw)) return field.raw.map((item) => this.rpgItemSummary(item, field)).join('、');
-    return String(field?.raw ?? '').trim();
+    if (Array.isArray(field?.value)) return this.sanitizeIntimacyDisplayText(field.value.join('、'));
+    if (field?.value != null && field.value !== '') return this.sanitizeIntimacyDisplayText(field.value);
+    if (Array.isArray(field?.raw)) return this.sanitizeIntimacyDisplayText(field.raw.map((item) => this.rpgItemSummary(item, field)).join('、'));
+    return this.sanitizeIntimacyDisplayText(field?.raw ?? '');
   },
 
   identityInfoPreview(field = {}, max = 48) {
@@ -1312,11 +1348,14 @@ window.GameModules.rpgFieldUi = {
       { key: 'sexualExperienceCount', title: '总次数', icon: '📎', tone: 'gold' },
     ]).map((meta) => {
       const field = byKey(meta.key);
+      const valueText = field?.pendingAiInit
+        ? '未知'
+        : (this.sanitizeIntimacyDisplayText(this.identityInfoValueText(field)) || '未知');
       return {
         ...meta,
         field,
-        valueText: this.identityInfoValueText(field) || '未记录',
-        preview: this.identityInfoPreview(field, 48),
+        valueText,
+        preview: valueText,
       };
     }).filter((row) => row.field);
     const partnersField = byKey('sexualPartners');
@@ -1339,15 +1378,17 @@ window.GameModules.rpgFieldUi = {
     }));
     const bodyRows = this.rpgListItems(bodyField).map((item, index) => {
       const row = this.initUiRow(bodyField, item) || {};
-      const desc = item?.description || item?.['描述状态'] || '';
+      const pending = Boolean(item?.pendingAiInit || bodyField?.pendingAiInit);
+      const rawDesc = pending ? '' : (item?.description || item?.['描述状态'] || '');
+      const desc = this.sanitizeIntimacyDisplayText(rawDesc);
       return {
         field: bodyField,
         item,
         index,
         icon: this.bodyPartEmoji(item?.part || item?.partKey || row.name || item?.name || ''),
         title: row.name || item?.part || item?.partKey || item?.name || ('状态' + (index + 1)),
-        value: row.value || item?.status || '未记录',
-        preview: desc || row.value || '暂无额外说明',
+        value: pending ? '未知' : (row.value || item?.status || '未记录'),
+        preview: pending ? '未知' : (desc || row.value || '暂无额外说明'),
       };
     });
     const visiblePartnerRows = isMalePlayer
@@ -1363,9 +1404,7 @@ window.GameModules.rpgFieldUi = {
     return {
       hero: {
         eyebrow: 'INTIMACY RECORD',
-        title: isMalePlayer
-          ? (summaryRows[0]?.valueText || '性经历档案')
-          : (summaryRows.find((row) => row.key === 'sexualStatus')?.valueText || '身体状态'),
+        title: isMalePlayer ? '性经历档案' : '身体状态',
         note: isMalePlayer
           ? '男性玩家仅展示性经历人数与性经历列表。'
           : '按当前状态、经历脉络与身体部位记录现实推演中的亲密与体征信息。',
@@ -1373,7 +1412,7 @@ window.GameModules.rpgFieldUi = {
       groups: {
         partner: isMalePlayer
           ? { title: '性经历列表', hint: '已记录对象' }
-          : { title: '关联对象', hint: '经历名册' },
+          : { title: '经历对象', hint: '经历名册' },
         experience: { title: '经历谱系', hint: '分类计数' },
         body: { title: '体征监测', hint: '部位状态' },
       },
@@ -1384,16 +1423,27 @@ window.GameModules.rpgFieldUi = {
     };
   },
   personalAbilityPresentation(fields = [], state = null) {
+    if (state?.values) {
+      window.GameModules.progression?.ensureStateMechanics?.(state, state.profile || {});
+    }
     const byKey = (key) => this.fieldByKey(fields, key);
+    const poolField = (key) => {
+      const field = byKey(key);
+      const live = state?.values?.[key];
+      if (live && typeof live === 'object' && Object.prototype.hasOwnProperty.call(live, 'current')) {
+        return { ...field, raw: live, value: this.rpgFieldValue?.(live) || `${live.current}/${live.max}` };
+      }
+      return field;
+    };
     const levelField = byKey('level');
     const expField = byKey('exp');
     const exp = this.parseExpMetric(expField, levelField);
     const hero = {
-      level: Number(levelField?.raw ?? levelField?.value) || 1,
+      level: Number(state?.values?.level ?? levelField?.raw ?? levelField?.value) || 1,
       levelField,
       expField,
       exp,
-      freePoints: Number(byKey('free_attribute_points')?.raw ?? byKey('free_attribute_points')?.value) || 0,
+      freePoints: Number(state?.values?.free_attribute_points ?? byKey('free_attribute_points')?.raw ?? byKey('free_attribute_points')?.value) || 0,
       freeField: byKey('free_attribute_points'),
       growthField: byKey('level_growth'),
       growthSummary: byKey('level_growth')?.value || '暂无升级记录',
@@ -1406,7 +1456,7 @@ window.GameModules.rpgFieldUi = {
       { key: 'fatigue', label: '疲劳', tone: 'fatigue' },
     ];
     const survival = survivalKeys.map(({ key, label, tone }) => {
-      const field = byKey(key);
+      const field = poolField(key);
       return { key, label, tone, field, ...this.parsePoolMetric(field) };
     });
     const growthKeys = [
@@ -1416,9 +1466,23 @@ window.GameModules.rpgFieldUi = {
       { key: 'action_ability', label: '行动', pool: true },
     ];
     const growth = growthKeys.map(({ key, label, pool }) => {
-      const field = byKey(key);
+      const field = pool ? poolField(key) : byKey(key);
       const metric = pool ? this.parsePoolMetric(field) : null;
-      const value = metric ? metric.current : Number(field?.raw ?? field?.value) || 0;
+      if (key === 'growth_potential') {
+        const base = window.GameModules.progression?.growthPotentialBase?.(state?.values || { growth_potential: Number(field?.raw ?? field?.value) || 0 }) ?? (Number(field?.raw ?? field?.value) || 0);
+        const effective = window.GameModules.progression?.effectiveGrowthPotential?.(state?.values || { growth_potential: base, level: state?.values?.level || 1 }) ?? base;
+        const shown = Math.round(effective);
+        return {
+          key,
+          label,
+          field,
+          value: shown,
+          cap: 100,
+          percent: Math.max(0, Math.min(100, shown)),
+          display: `${shown}/${base}`,
+        };
+      }
+      const value = metric ? metric.current : Number(state?.values?.[key] ?? field?.raw ?? field?.value) || 0;
       const cap = metric?.max || 100;
       const percent = Math.max(0, Math.min(100, Math.round((value / cap) * 100)));
       return { key, label, field, value, cap, percent, display: field?.value || String(value) };

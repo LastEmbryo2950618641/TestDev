@@ -148,21 +148,36 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
 
 
   async dispatch(store, action, skill, method, params, options = {}) {
-    if (skill === 'company.query') return this.company(store, method, params);
-    if (skill === 'faction.query') return this.faction(store, method, params);
+    const realContext = window.GameModules.realWorldAgentContext;
+    if (skill === 'company.query') {
+      if (typeof realContext?.company === 'function') return realContext.company(store, method, params);
+      return this.company(store, method, params);
+    }
+    if (skill === 'faction.query') {
+      if (typeof realContext?.faction === 'function') return realContext.faction(store, method, params);
+      return '势力查询模块未加载。';
+    }
     if (skill === 'realworld.location.query') {
       const locationOptions = { phase: 'stage1', guidedStep: options.step || 1, label: options.label || '现实', queryOnly: true, noAudit: true, returnJsonOnMiss: true };
-      const realContext = window.GameModules.realWorldAgentContext;
-      if (realContext?.location) return await realContext.location(store, method, params, action, locationOptions);
+      if (typeof realContext?.location === 'function') return await realContext.location(store, method, params, action, locationOptions);
       return this.location(store, method, params, action, locationOptions);
     }
     if (String(skill || '').startsWith('realworld.property.')) return this.property(store, skill, method, params);
-    if (skill === 'realworld.history.query') return this.history(store, method, params);
+    if (skill === 'realworld.history.query') {
+      if (typeof realContext?.history === 'function') return realContext.history(store, method, params);
+      return '现实历史查询模块未加载。';
+    }
     if (skill === 'memory.query') return await this.memory(store, action, method, params);
     if (skill === 'character.query') return window.GameModules.characterQuery?.query?.(store, method, params) || '';
     if (skill === 'past.event.query') return window.GameModules.pastEventQuery?.query?.(store, method, { question: action, ...params }) || '';
-    if (skill === 'lexicon.query') return await this.lexicon(store, method, params);
-    if (skill === 'item.query') return await this.itemQuery(store, method, params);
+    if (skill === 'lexicon.query') {
+      if (typeof realContext?.lexicon === 'function') return await realContext.lexicon(store, method, params);
+      return '词条查询模块未加载。';
+    }
+    if (skill === 'item.query') {
+      if (typeof realContext?.itemQuery === 'function') return await realContext.itemQuery(store, method, params);
+      return '物品查询模块未加载。';
+    }
     if (skill === 'wechat.query') return window.GameModules.realWorldAgentWechat?.wechat?.(store, method, params) || '';
     if (skill === 'worklore.query') return await window.GameModules.workLoreQuery?.dispatch?.(store, action, method, params) || '';
     return this.unsupportedMaterialText(skill, method);

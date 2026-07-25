@@ -5,12 +5,12 @@ window.GameModules.progression = {
     return [
       { title: '基础能力', fields: [
         this.field('world_tag', '所属世界', 'text', 0, 100, '角色所属的作品或世界。'), this.field('age', '年龄', 'number', 0, 999, '角色在当前进入时间点的年龄。'),
-        this.field('level', '个人等级', 'number', 1, 100, '角色综合成长阶段。'), this.field('exp', '个人经验', 'text', 0, 100, '当前经验与升到下一级所需经验。'),
-        this.field('free_attribute_points', '自由属性点', 'number', 0, 999, '升级获得、可用于分配到身内能力的点数。'), this.field('level_growth', '升级成长记录', 'text', 0, 100, '个人等级提升时自动加点与自由属性点记录。'),
+        this.field('level', '生命层次', 'number', 1, 100, '生命层次；由能量积累升级提升。'), this.field('exp', '能量经验', 'text', 0, 100, '能量积累进度；击杀生命体吸收能量或吸收能力可增加，升级所需经验随层次提高。'),
+        this.field('free_attribute_points', '自由属性点', 'number', 0, 999, '生命层次提升时获得、可用于分配到身内能力的点数。'), this.field('level_growth', '层次成长记录', 'text', 0, 100, '生命层次提升时自动加点与自由属性点记录。'),
         this.field('vitality', '生命力', 'text', 0, 100, '当前承伤、生存与身体完整状态。'), this.field('stamina_pool', '精力池', 'text', 0, 100, '体能、耐力与持续行动余量。'),
-        this.field('satiety', '饱食度', 'text', 0, 100, '进食状态对体力与恢复的影响。'), this.field('hydration', '水分', 'text', 0, 100, '补水状态对体力与判断的影响。'),
-        this.field('fatigue', '疲劳度', 'text', 0, 100, '累积疲惫、伤痛和行动消耗。'), this.field('learning_ability', '学习能力', 'number', 0, 100, '理解、模仿和掌握新知识技能的效率。'),
-        this.field('mental_stability', '精神稳定', 'text', 0, 100, '心理稳定、创伤压力和判断能力。'), this.field('growth_potential', '成长潜力', 'number', 0, 100, '未来继续成长与突破的空间。'),
+        this.field('satiety', '饱食度', 'text', 0, 100, '进食储备上限：30+等级×2+体质×3+力量；当前值按比例随上限重算。'), this.field('hydration', '水分', 'text', 0, 100, '体液调节上限：30+等级×2+体质×2+感知×2+意志；当前值按比例随上限重算。'),
+        this.field('fatigue', '疲劳度', 'text', 0, 100, '疲惫承受上限：30+等级×2+体质×2+意志×3；当前值按比例随上限重算。'), this.field('learning_ability', '学习能力', 'number', 0, 100, '理解、模仿和掌握新知识技能的效率。'),
+        this.field('mental_stability', '精神稳定', 'text', 0, 100, '心理稳定、创伤压力和判断能力。'), this.field('growth_potential', '成长潜力', 'number', 0, 100, '创建时固定的基础潜力；有效潜力=基础×max(0,1-等级/120)，调制生命层次经验；有效为0时经验恒为0。'),
         this.field('action_ability', '行动能力', 'text', 0, 100, '可执行行动的灵活度、协调性与主动性。'),
       ] },
       { title: '身内能力', fields: [
@@ -59,9 +59,30 @@ window.GameModules.progression = {
     if (this.normalizeLearnedLists(values)) changed = true;
     if (this.normalizeAllLearnedExp(values)) changed = true;
     if (window.GameModules.progressionLearnedSync?.syncFromProfile?.(values, character, seed)) changed = true;
-    if (!values.vitality?.max || !values.stamina_pool?.max) { this.recalculatePools(values, true, character); changed = true; }
-    if (!values.derived?.attackPower) { values.derived = this.derived(values); changed = true; }
-    if (!values.combat_simulation) { values.combat_simulation = this.defaultCombat(values); changed = true; }
+    {
+      const caps = this.poolCaps(values, character);
+      const needsPoolRefresh = !values.vitality?.max || !values.stamina_pool?.max
+        || !values.satiety?.max || !values.hydration?.max || !values.fatigue?.max
+        || !values.mental_stability?.max || !values.action_ability?.max
+        || values.vitality.max !== caps.vitality
+        || values.stamina_pool.max !== caps.stamina
+        || values.satiety.max !== caps.satiety
+        || values.hydration.max !== caps.hydration
+        || values.fatigue.max !== caps.fatigue
+        || values.mental_stability.max !== caps.mental
+        || values.action_ability.max !== caps.action;
+      if (needsPoolRefresh) { this.recalculatePools(values, true, character); changed = true; }
+    }
+    {
+      const derived = this.derived(values);
+      if (!values.derived?.attackPower
+        || values.derived.attackPower !== derived.attackPower
+        || values.derived.defensePower !== derived.defensePower) {
+        values.derived = derived;
+        values.combat_simulation = this.defaultCombat(values);
+        changed = true;
+      }
+    }
     this.ensureProgressionNotes(values);
     values.health = this.percent(values.vitality);
     values.stamina = this.percent(values.stamina_pool);
@@ -77,6 +98,7 @@ window.GameModules.progression = {
     const learning = this.clamp(character.learningAbility?.value ?? (35 + intrinsic.intelligence * 4 + seed % 18), 0, 100);
     const vitalityMax = level * 10 + intrinsic.constitution * 8;
     const staminaMax = level * 8 + intrinsic.constitution * 5 + this.trainingBonus(character);
+    const caps = this.poolCaps({ level, ...intrinsic }, character);
     return {
       level,
       exp: this.normalizeCharacterExp(existing.exp, level, seed % 60),
@@ -85,9 +107,9 @@ window.GameModules.progression = {
       intrinsic_sources: this.createIntrinsicSources(intrinsic),
       vitality: existing.vitality?.max ? existing.vitality : this.pool(existing.health ?? vitalityMax, vitalityMax),
       stamina_pool: existing.stamina_pool?.max ? existing.stamina_pool : this.pool(existing.stamina ?? staminaMax, staminaMax),
-      satiety: existing.satiety || this.pool(70 + seed % 20, 100),
-      hydration: existing.hydration || this.pool(72 + seed % 18, 100),
-      fatigue: existing.fatigue || this.pool(seed % 25, 100),
+      satiety: existing.satiety?.max ? existing.satiety : this.pool(existing.satiety?.current ?? Math.round(caps.satiety * 0.75), caps.satiety),
+      hydration: existing.hydration?.max ? existing.hydration : this.pool(existing.hydration?.current ?? Math.round(caps.hydration * 0.75), caps.hydration),
+      fatigue: existing.fatigue?.max ? existing.fatigue : this.pool(existing.fatigue?.current ?? seed % Math.max(1, Math.round(caps.fatigue * 0.25)), caps.fatigue),
       learning_ability: learning,
       mental_stability: existing.mental_stability?.max ? existing.mental_stability : this.pool(character.mentalStability?.value ?? (40 + intrinsic.willpower * 4 + intrinsic.perception * 2), Math.max(1, 70 + intrinsic.willpower * 4)),
       growth_potential: existing.growth_potential ?? this.clamp(character.growthPotential?.value ?? (82 - level * 4 + seed % 25), 0, 100),
@@ -200,6 +222,37 @@ window.GameModules.progression = {
   },
 
   trainingBonus(character) { return /士兵|骑士|运动|佣兵|从者|英灵/.test(`${character.role || ''}${character.job || ''}`) ? 20 : 0; }, percent(pool) { return pool?.max ? this.clamp((pool.current / pool.max) * 100, 0, 100) : 100; },
+  /** 创建时写入的成长潜力基础值 P0（0-100），不随等级改写。 */
+  growthPotentialBase(values = {}) {
+    const raw = Number(values?.growth_potential);
+    if (!Number.isFinite(raw)) return 0;
+    return this.clamp(raw, 0, 100);
+  },
+  /**
+   * 有效成长潜力：P_eff = P0 × max(0, 1 - L/120)。
+   * 所有角色卡通用；用于调制 AI 返回的生命层次经验。
+   */
+  effectiveGrowthPotential(values = {}) {
+    const base = this.growthPotentialBase(values);
+    const level = Math.max(1, Number(values?.level) || 1);
+    return Math.max(0, base * (1 - level / 120));
+  },
+  /**
+   * 实际经验 = round(E_ai × P_eff / 50)；P_eff=0 时恒为 0；上限 clamp 到 2×E_ai。
+   * 中性点：有效潜力 50 ≈ ×1。
+   */
+  scaleExpByGrowthPotential(values = {}, aiExp = 0) {
+    const ai = Math.max(0, Math.round(Number(aiExp) || 0));
+    const basePotential = this.growthPotentialBase(values);
+    const effectivePotential = this.effectiveGrowthPotential(values);
+    if (ai <= 0 || effectivePotential <= 0) {
+      return { aiExp: ai, basePotential, effectivePotential, expGain: 0, factor: 0 };
+    }
+    const factor = effectivePotential / 50;
+    const scaled = Math.round(ai * factor);
+    const expGain = Math.max(0, Math.min(ai * 2, scaled));
+    return { aiExp: ai, basePotential, effectivePotential, expGain, factor };
+  },
   intrinsicKeys() { return ['strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma']; },
   createIntrinsicSources(values) { return Object.fromEntries(this.intrinsicKeys().map((k) => [k, { initial: values[k] || 1, level: 0, allocated: 0, npc: 0 }])); },
   ensureIntrinsicSources(values) {
@@ -224,20 +277,52 @@ window.GameModules.progression = {
   },
 
   recalculatePools(values, keepRatio, character = {}) {
-    const hpRatio = keepRatio && values.vitality?.max ? values.vitality.current / values.vitality.max : 1;
-    const spRatio = keepRatio && values.stamina_pool?.max ? values.stamina_pool.current / values.stamina_pool.max : 1;
-    const msRatio = keepRatio && values.mental_stability?.max ? values.mental_stability.current / values.mental_stability.max : 1;
-    const acRatio = keepRatio && values.action_ability?.max ? values.action_ability.current / values.action_ability.max : 1;
-    const hpMax = values.level * 10 + values.constitution * 8;
-    const spMax = values.level * 8 + values.constitution * 5 + this.trainingBonus(character);
-    const msMax = 70 + values.willpower * 4;
-    const acMax = 35 + values.agility * 5 + values.constitution * 2;
-    values.vitality = this.pool(hpMax * hpRatio, hpMax);
-    values.stamina_pool = this.pool(spMax * spRatio, spMax);
-    values.mental_stability = this.pool(msMax * msRatio, msMax);
-    values.action_ability = this.pool(acMax * acRatio, acMax);
+    const ratio = (pool) => (keepRatio && pool?.max ? pool.current / pool.max : 1);
+    const hpRatio = ratio(values.vitality);
+    const spRatio = ratio(values.stamina_pool);
+    const msRatio = ratio(values.mental_stability);
+    const acRatio = ratio(values.action_ability);
+    const satRatio = ratio(values.satiety);
+    const hydRatio = ratio(values.hydration);
+    const fatRatio = ratio(values.fatigue);
+    const caps = this.poolCaps(values, character);
+    values.vitality = this.pool(caps.vitality * hpRatio, caps.vitality);
+    values.stamina_pool = this.pool(caps.stamina * spRatio, caps.stamina);
+    values.satiety = this.pool(caps.satiety * satRatio, caps.satiety);
+    values.hydration = this.pool(caps.hydration * hydRatio, caps.hydration);
+    values.fatigue = this.pool(caps.fatigue * fatRatio, caps.fatigue);
+    values.mental_stability = this.pool(caps.mental * msRatio, caps.mental);
+    values.action_ability = this.pool(caps.action * acRatio, caps.action);
     values.learning_ability = this.clamp(25 + values.intelligence * 4 + Math.floor((values.perception + values.willpower) / 4), 0, 100);
     values.derived = this.derived(values);
     values.combat_simulation = this.defaultCombat(values);
+  },
+
+  /**
+   * 各池上限公式（随生命层次与身内能力变化；升级时由 recalculatePools 重算）。
+   * - 生命力：等级×10 + 体质×8
+   * - 精力：等级×8 + 体质×5 + 训练加成
+   * - 饱食：30 + 等级×2 + 体质×3 + 力量
+   * - 水分：30 + 等级×2 + 体质×2 + 感知×2 + 意志
+   * - 疲劳：30 + 等级×2 + 体质×2 + 意志×3（越高表示可承受的疲惫阈值越大）
+   * - 精神稳定：70 + 意志×4
+   * - 行动能力：35 + 敏捷×5 + 体质×2
+   */
+  poolCaps(values = {}, character = {}) {
+    const level = Math.max(1, Number(values.level) || 1);
+    const strength = Math.max(1, Number(values.strength) || 1);
+    const agility = Math.max(1, Number(values.agility) || 1);
+    const constitution = Math.max(1, Number(values.constitution) || 1);
+    const perception = Math.max(1, Number(values.perception) || 1);
+    const willpower = Math.max(1, Number(values.willpower) || 1);
+    return {
+      vitality: level * 10 + constitution * 8,
+      stamina: level * 8 + constitution * 5 + this.trainingBonus(character),
+      satiety: 30 + level * 2 + constitution * 3 + strength,
+      hydration: 30 + level * 2 + constitution * 2 + perception * 2 + willpower,
+      fatigue: 30 + level * 2 + constitution * 2 + willpower * 3,
+      mental: 70 + willpower * 4,
+      action: 35 + agility * 5 + constitution * 2,
+    };
   },
 };

@@ -59,9 +59,9 @@ const intimacyBodyTemplate = {
   bodyDescriptions: intimacyBodyDescriptions,  // 使用新描述
 
   valueDefaults: {
-    sexualStatus: '处女', sexualStatusChanged: '非处女', sexualPartnerCount: 0, sexualPartners: [],
-    sexualExperienceCount: 0, sexualExperiencePartCount: 0, updatedAt: '', intimacyReason: '默认未记录',
-    bodyStatus: '稳定', bodyDescription: '身体状态稳定，无性经历痕迹', bodyReason: '初始处女状态', empty: '--',
+    sexualStatus: '未知', sexualStatusChanged: '非处女', sexualPartnerCount: 0, sexualPartners: [],
+    sexualExperienceCount: 0, sexualExperiencePartCount: 0, updatedAt: '', intimacyReason: '尚未按上下文判定',
+    bodyStatus: '稳定', bodyDescription: '身体状态稳定，当前状态待按上下文判定', bodyReason: '初始占位，待按身份与世界观判定', empty: '--',
   },
 
   displayTexts: {
@@ -70,32 +70,32 @@ const intimacyBodyTemplate = {
   },
 
   sexualExperiencePartDefaults: intimacyBodySexParts,
-  sexualHistoryDefaults: { sexualStatus: '处女', sexualPartnerCount: 0, sexualPartners: [] },
+  sexualHistoryDefaults: { sexualStatus: '未知', sexualPartnerCount: 0, sexualPartners: [] },
 
   intimacyDefaults: {
-    sexualStatus: '处女', sexualPartnerCount: 0, sexualPartners: [], sexualExperienceCount: 0,
-    sexualExperienceParts: intimacyBodySexParts, updatedAt: '', reason: '默认处女状态，未经任何性行为',
+    sexualStatus: '未知', sexualPartnerCount: 0, sexualPartners: [], sexualExperienceCount: 0,
+    sexualExperienceParts: intimacyBodySexParts, updatedAt: '', reason: '尚未按身份与世界观判定当前状态',
   },
 
   bodyStatusDefaults: {
-    overall: { partKey: 'overall', part: '整体', status: '稳定', description: intimacyBodyDescriptions.overall, reason: '初始处女身体状态', updatedAt: '' },
-    mouth: { partKey: 'mouth', part: '口部', status: '稳定', description: intimacyBodyDescriptions.mouth, reason: '初始处女身体状态', updatedAt: '' },
-    chest: { partKey: 'chest', part: '胸部', status: '稳定', description: intimacyBodyDescriptions.chest, reason: '初始处女身体状态', updatedAt: '' },
-    genital: { partKey: 'genital', part: '阴部', status: '稳定', description: intimacyBodyDescriptions.genital, reason: '初始处女身体状态', updatedAt: '' },
-    anus: { partKey: 'anus', part: '肛部', status: '稳定', description: intimacyBodyDescriptions.anus, reason: '初始处女身体状态', updatedAt: '' },
-    hips: { partKey: 'hips', part: '臀部', status: '稳定', description: intimacyBodyDescriptions.hips, reason: '初始处女身体状态', updatedAt: '' },
-    limbs: { partKey: 'limbs', part: '四肢', status: '稳定', description: intimacyBodyDescriptions.limbs, reason: '初始处女身体状态', updatedAt: '' },
-    skin: { partKey: 'skin', part: '皮肤', status: '稳定', description: intimacyBodyDescriptions.skin, reason: '初始处女身体状态', updatedAt: '' },
-    other: { partKey: 'other', part: '其他', status: '稳定', description: intimacyBodyDescriptions.other, reason: '初始处女身体状态', updatedAt: '' },
+    overall: { partKey: 'overall', part: '整体', status: '稳定', description: intimacyBodyDescriptions.overall, reason: '初始占位身体状态', updatedAt: '' },
+    mouth: { partKey: 'mouth', part: '口部', status: '稳定', description: intimacyBodyDescriptions.mouth, reason: '初始占位身体状态', updatedAt: '' },
+    chest: { partKey: 'chest', part: '胸部', status: '稳定', description: intimacyBodyDescriptions.chest, reason: '初始占位身体状态', updatedAt: '' },
+    genital: { partKey: 'genital', part: '阴部', status: '稳定', description: intimacyBodyDescriptions.genital, reason: '初始占位身体状态', updatedAt: '' },
+    anus: { partKey: 'anus', part: '肛部', status: '稳定', description: intimacyBodyDescriptions.anus, reason: '初始占位身体状态', updatedAt: '' },
+    hips: { partKey: 'hips', part: '臀部', status: '稳定', description: intimacyBodyDescriptions.hips, reason: '初始占位身体状态', updatedAt: '' },
+    limbs: { partKey: 'limbs', part: '四肢', status: '稳定', description: intimacyBodyDescriptions.limbs, reason: '初始占位身体状态', updatedAt: '' },
+    skin: { partKey: 'skin', part: '皮肤', status: '稳定', description: intimacyBodyDescriptions.skin, reason: '初始占位身体状态', updatedAt: '' },
+    other: { partKey: 'other', part: '其他', status: '稳定', description: intimacyBodyDescriptions.other, reason: '初始占位身体状态', updatedAt: '' },
   },
 
   fieldMeta: {
-    sexualStatus: { label: '当前状态', kind: '性经历', desc: '亲密经历当前状态（初始为处女）。', reasonFallback: '默认处女。' },
-    sexualPartnerCount: { label: '经历人数', kind: '性经历', unit: '人', desc: '发生性关系的对象总数。', reasonFallback: '默认0人。' },
-    sexualPartners: { label: '经历人列表', kind: '性经历', desc: '已计入经历的具体对象。', reasonFallback: '默认空。' },
-    sexualExperienceCount: { label: '性经验总次数', kind: '角色卡', unit: '次', desc: '所有类型性行为的总次数。', reasonFallback: '默认0次。' },
-    sexualExperienceParts: { label: '性经验分类次数', kind: '性经验分类', desc: '按部位细分的性行为次数。', reasonFallback: '默认全0。' },
-    bodyStatus: { label: '当前身体状态', kind: '当前身体状态', desc: '身体各部位的状态描述（色情化）。', reasonFallback: '初始处女状态描述。' },
+    sexualStatus: { label: '当前状态', kind: '性经历', desc: '亲密经历当前状态（处女/处男/非处女/非处男/未知）；须按身份、世界观与正文推定，禁止一律默认处女。', reasonFallback: '尚未按上下文判定。' },
+    sexualPartnerCount: { label: '经历人数', kind: '性经历', unit: '人', desc: '发生性关系的对象总数；由经历对象名单自动计算。', reasonFallback: '默认0人。' },
+    sexualPartners: { label: '经历人列表', kind: '性经历', desc: '已计入经历的具体对象名字；人数由此自动派生。', reasonFallback: '默认空。' },
+    sexualExperienceCount: { label: '性经验总次数', kind: '角色卡', unit: '次', desc: '各分类次数之和；由系统自动计算。', reasonFallback: '默认0次。' },
+    sexualExperienceParts: { label: '性经验分类次数', kind: '性经验分类', desc: '按部位细分的性行为次数；总次数由此求和。', reasonFallback: '默认全0。' },
+    bodyStatus: { label: '当前身体状态', kind: '当前身体状态', desc: '身体各部位的状态描述（应与当前状态判定一致）。', reasonFallback: '初始身体状态描述。' },
   },
 
   stateDefaults: [
@@ -149,11 +149,11 @@ const intimacyBodyTemplate = {
     const f = this.fields();
     return {
       intimacy: { meaning: '玩家或角色的亲密经历初始化，只保存中性元数据。', defaults: f.intimacyDefaults.defaultValue, fields: {
-        sexualStatus: { defaultValue: f.sexualHistoryDefaults.defaultValue?.sexualStatus, meaning: '性经历当前状态；初始为处女。' },
-        sexualPartnerCount: { defaultValue: f.sexualHistoryDefaults.defaultValue?.sexualPartnerCount, meaning: '经历人数。' },
-        sexualPartners: { defaultValue: f.sexualHistoryDefaults.defaultValue?.sexualPartners, meaning: '经历对象列表。' },
-        sexualExperienceCount: { defaultValue: f.intimacyDefaults.defaultValue?.sexualExperienceCount, meaning: '抽象性经验总次数；初始0。' },
-        sexualExperienceParts: { defaultValue: f.sexualExperiencePartDefaults.defaultValue, meaning: '分部位抽象次数统计；每个分类默认0；只有符合 sexPartPrompts 对应次数增加标准时才能增加。' },
+        sexualStatus: { defaultValue: f.sexualHistoryDefaults.defaultValue?.sexualStatus, meaning: '性经历当前状态；须按身份/世界观/正文推定为处女、处男、非处女、非处男或未知；禁止一律默认处女。' },
+        sexualPartnerCount: { defaultValue: f.sexualHistoryDefaults.defaultValue?.sexualPartnerCount, meaning: '经历人数；由系统按经历对象名单自动计算，AI 不要单独填写。' },
+        sexualPartners: { defaultValue: f.sexualHistoryDefaults.defaultValue?.sexualPartners, meaning: '经历对象名字列表；仅阴部插入确认后写入，系统据此同步经历人数。' },
+        sexualExperienceCount: { defaultValue: f.intimacyDefaults.defaultValue?.sexualExperienceCount, meaning: '抽象性经验总次数；由系统按各部位分类次数求和，AI 不要单独填写。' },
+        sexualExperienceParts: { defaultValue: f.sexualExperiencePartDefaults.defaultValue, meaning: '分部位抽象次数统计；每个分类默认0；只有符合 sexPartPrompts 对应次数增加标准时才能增加；总次数由此自动派生。' },
         updatedAt: { defaultValue: f.intimacyDefaults.defaultValue?.updatedAt, meaning: '初始化时间；无明确时间可留空。' },
         reason: { defaultValue: f.intimacyDefaults.defaultValue?.reason, meaning: '初始化依据；引用现实推演正文事实。' },
       } },
@@ -161,8 +161,8 @@ const intimacyBodyTemplate = {
         partKey: { defaultValue: 'overall', meaning: '部位键；只能使用 bodyStatusDefaults 中存在的键。' },
         part: { defaultValue: f.partLabels.defaultValue?.overall, meaning: '部位中文名。' },
         status: { defaultValue: f.valueDefaults.defaultValue?.bodyStatus, meaning: '短状态。' },
-        description: { defaultValue: f.valueDefaults.defaultValue?.bodyDescription, meaning: '色情化处女状态描述。' },
-        reason: { defaultValue: f.valueDefaults.defaultValue?.bodyReason, meaning: '初始化依据；引用现实推演正文事实。' },
+        description: { defaultValue: f.valueDefaults.defaultValue?.bodyDescription, meaning: '身体部位描述；须与 sexualStatus 判定一致，已非处时禁止写处子专属描述。' },
+        reason: { defaultValue: f.valueDefaults.defaultValue?.bodyReason, meaning: '初始化依据；引用身份推定、世界观或正文事实。' },
         updatedAt: { defaultValue: f.valueDefaults.defaultValue?.updatedAt, meaning: '初始化时间；无明确时间可留空。' },
       } },
     };
@@ -174,7 +174,7 @@ const intimacyBodyTemplate = {
   },
 
   promptText() {
-    return ['### 亲密与身体状态初始化字段模板（色情化）', '只在现实推演正文明确支持初始化时填写；没有依据的字段保持缺省值或不返回。', `全部默认配置与含义：${JSON.stringify(this.fields())}`, `可填写字段与含义：${JSON.stringify(this.editableFields())}`, `规范 JSON 格式：${JSON.stringify(this.jsonFormat())}`].join('\n\n');
+    return ['### 亲密与身体状态初始化字段模板', 'sexualStatus 必须按身份、世界观与正文推定，禁止无依据填处女；没有依据的字段保持未知或缺省。', `全部默认配置与含义：${JSON.stringify(this.fields())}`, `可填写字段与含义：${JSON.stringify(this.editableFields())}`, `规范 JSON 格式：${JSON.stringify(this.jsonFormat())}`].join('\n\n');
   },
 };
 

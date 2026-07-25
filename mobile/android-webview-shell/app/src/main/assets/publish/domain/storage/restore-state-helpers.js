@@ -69,6 +69,7 @@ window.GameModules.domain.storage.restoreStateHelpers = {
     store.realWorldSceneTitle = save.realWorldSceneTitle || store.realWorldSceneTitle;
     store.realWorldLocationName = save.realWorldLocationName || store.realWorldLocationName;
     store.realWorldMap = this.rawLargeValue(save.realWorldMap || store.realWorldMap);
+    store.locationGraph = this.rawLargeValue(save.locationGraph || store.locationGraph);
     store.realWorldQuest = save.realWorldQuest || store.realWorldQuest;
     store.realWorldStatus = save.realWorldStatus || store.realWorldStatus;
     store.realWorldChoices = save.realWorldChoices || store.realWorldChoices;
@@ -82,6 +83,9 @@ window.GameModules.domain.storage.restoreStateHelpers = {
     store.characterSchedules = save.characterSchedules && typeof save.characterSchedules === 'object'
       ? save.characterSchedules
       : (store.characterSchedules || {});
+    store.appearingLocationById = save.appearingLocationById && typeof save.appearingLocationById === 'object'
+      ? save.appearingLocationById
+      : (store.appearingLocationById || {});
     store.orgTerritoryReconciliationLog = Array.isArray(save.orgTerritoryReconciliationLog)
       ? save.orgTerritoryReconciliationLog.slice(-30)
       : (store.orgTerritoryReconciliationLog || []);

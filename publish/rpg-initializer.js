@@ -48,8 +48,11 @@ window.GameModules.rpgInitializer = {
       values.growth_potential = this.clamp(values.growth_potential + (ctx.weak ? 8 : 0) - Math.floor(values.level / 8), 0, 100);
     }
     values.exp = window.GameModules.progression.normalizeCharacterExp(values.exp, values.level);
-    this.applyPools(values, ctx);
-    if (character.rpgField && character.mentalStability?.value !== undefined) values.mental_stability = window.GameModules.progression.pool(character.mentalStability.value, Math.max(character.mentalStability.value, 100));
+    this.applyPools(values, ctx, character);
+    if (character.rpgField && character.mentalStability?.value !== undefined) {
+      const mentalMax = Math.max(1, window.GameModules.progression.poolCaps(values, character).mental);
+      values.mental_stability = window.GameModules.progression.pool(character.mentalStability.value, mentalMax);
+    }
     this.applyWorld(values, attrs, ctx, seed);
     values.initial_context = this.summary(character, store, ctx);
     return values;
@@ -64,17 +67,25 @@ window.GameModules.rpgInitializer = {
     if (character.growthPotential?.value !== undefined) values.growth_potential = this.clamp(character.growthPotential.value, 0, 100);
   },
 
-  applyPools(values, ctx) {
-    const hpMax = Math.max(1, values.level * 10 + values.constitution * 8);
-    const spMax = Math.max(1, values.level * 8 + values.constitution * 5 + ctx.fighter * 3);
-    const mentalMax = Math.max(1, 70 + values.willpower * 4);
+  applyPools(values, ctx, character = {}) {
+    const progression = window.GameModules.progression;
+    const caps = progression.poolCaps(values, character);
     const hpRatio = this.clamp(100 - ctx.weak * 6 - ctx.danger * 2, 20, 100) / 100;
     const spRatio = this.clamp(88 - ctx.weak * 5 - ctx.danger * 3, 15, 100) / 100;
     const mentalRatio = this.clamp(82 - ctx.trauma * 7 - ctx.danger * 4, 10, 100) / 100;
-    values.vitality = window.GameModules.progression.pool(hpMax * hpRatio, hpMax);
-    values.stamina_pool = window.GameModules.progression.pool(spMax * spRatio, spMax);
-    values.mental_stability = window.GameModules.progression.pool(mentalMax * mentalRatio, mentalMax);
-    values.fatigue = window.GameModules.progression.pool(this.clamp(ctx.weak * 10 + ctx.danger * 5, 0, 100), 100);
+    const satRatio = this.clamp(78 - ctx.weak * 4, 25, 100) / 100;
+    const hydRatio = this.clamp(82 - ctx.weak * 3 - ctx.danger, 30, 100) / 100;
+    const fatRatio = this.clamp(ctx.weak * 10 + ctx.danger * 5, 0, 90) / 100;
+    values.vitality = progression.pool(caps.vitality * hpRatio, caps.vitality);
+    values.stamina_pool = progression.pool(caps.stamina * spRatio, caps.stamina);
+    values.satiety = progression.pool(caps.satiety * satRatio, caps.satiety);
+    values.hydration = progression.pool(caps.hydration * hydRatio, caps.hydration);
+    values.fatigue = progression.pool(caps.fatigue * fatRatio, caps.fatigue);
+    values.mental_stability = progression.pool(caps.mental * mentalRatio, caps.mental);
+    values.action_ability = progression.pool(
+      values.action_ability?.current ?? caps.action,
+      caps.action,
+    );
   },
 
   applyWorld(values, attrs, ctx, seed) {
@@ -99,7 +110,9 @@ window.GameModules.rpgInitializer = {
       this.driftPool(v.vitality, (ctx.weak ? -ctx.weak : 1) * scale);
       this.driftPool(v.stamina_pool, (1 - ctx.danger - ctx.weak) * scale);
       this.driftPool(v.mental_stability, (1 - ctx.trauma - ctx.danger) * scale);
-      v.fatigue = window.GameModules.progression.pool(this.clamp((v.fatigue?.current || 0) + (ctx.danger + ctx.weak) * 3 * scale, 0, 100), 100);
+      this.driftPool(v.satiety, -Math.max(0, scale * 2));
+      this.driftPool(v.hydration, -Math.max(0, scale * 3));
+      this.driftPool(v.fatigue, (ctx.danger + ctx.weak) * 3 * scale);
       this.applyNpcGrowth(v, character, ctx, scale);
     }
     v.health = window.GameModules.progression.percent(v.vitality);

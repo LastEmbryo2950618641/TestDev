@@ -2631,10 +2631,10 @@ window.GameModules.characterProfile = {
       const reason = String(item.reason || item.changeMode || baseItem.reason || baseItem.changeMode || '').trim().slice(0, 120);
       return { ...baseItem, reason, changeMode: reason };
     }).filter((item) => item?.faction || item?.name);
-    if (items.length) return items.slice(0, 4);
+    if (items.length) return items.slice(0, 16);
     const faction = profile.faction || base.faction || store?.playerProfile?.refinedCity || store?.playerProfile?.city || '临时关系社群';
     const role = profile.factionRole || base.factionRole || base.role || profile.role || '成员';
-    return [social?.item?.(faction, role) || { name: `${faction} / ${role}`, faction, role }].filter((item) => item?.faction || item?.name).slice(0, 4);
+    return [social?.item?.(faction, role) || { name: `${faction} / ${role}`, faction, role }].filter((item) => item?.faction || item?.name).slice(0, 16);
   },
 
   shouldInferCountryMembership(profile = {}, base = {}) {
@@ -2681,7 +2681,7 @@ window.GameModules.characterProfile = {
       const item = toItem(orgName, title);
       if (item && !items.some((existing) => existing.orgName === item.orgName && existing.title === item.title)) items.push(item);
     }
-    return items.slice(0, 4);
+    return items.slice(0, 16);
   },
 
   carryItemsLoose(value, kind) {

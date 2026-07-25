@@ -15,6 +15,27 @@ window.GameModules = window.GameModules || {};
     { key: 'high', label: '高适应', min: 66, max: 100 },
   ];
 
+  const AWARENESS_LEVELS = Object.freeze([
+    {
+      key: 'unknown',
+      label: '不知控制者',
+      defaultSummary: '尚不知晓控制者是谁',
+      guide: '被控者完全不知道是谁在控制自己；内心可写失控、恐惧、困惑，但不得点名任何真实身份。',
+    },
+    {
+      key: 'traitKnown',
+      label: '知品行不知身份',
+      defaultSummary: '感到操控者冷静强势但不知是谁',
+      guide: '被控者能模糊感知控制者的品行/性格倾向（如冷静、算计、强势），但仍不知道控制者的真实身份与姓名。',
+    },
+    {
+      key: 'identityGuessed',
+      label: '知晓控制者是谁',
+      defaultSummary: '怀疑控制者是某熟人',
+      guide: '被控者自认知晓控制者是谁，可写出其猜测的身份称呼；该猜测不必与玩家真实身份完全一致，允许误认、半对半错。',
+    },
+  ]);
+
   const COUNT_FRAGMENTS = {
     first: '这是她第一次经历这种身体控制权变化，对这一状态几乎没有既有经验。',
     earlyRepeat: '她已经经历过这种状态再次出现，对它并非完全陌生，但经验仍然有限。',
@@ -50,6 +71,49 @@ window.GameModules = window.GameModules || {};
     return clamp(normalizeInteger(value, 0), 0, 100);
   }
 
+  function awarenessLevelMeta(level = '') {
+    const key = String(level || '').trim();
+    return AWARENESS_LEVELS.find((item) => item.key === key) || AWARENESS_LEVELS[0];
+  }
+
+  function normalizeControllerAwareness(input = {}, fallback = null) {
+    const source = input && typeof input === 'object' ? input : {};
+    const base = fallback && typeof fallback === 'object' ? fallback : {};
+    const meta = awarenessLevelMeta(source.controllerAwarenessLevel || base.controllerAwarenessLevel || 'unknown');
+    const rawSummary = String(
+      source.controllerAwareness
+      ?? source.对控制者了解
+      ?? base.controllerAwareness
+      ?? '',
+    ).trim();
+    const summary = (rawSummary || meta.defaultSummary).slice(0, 20);
+    return {
+      controllerAwarenessLevel: meta.key,
+      controllerAwareness: summary || meta.defaultSummary,
+    };
+  }
+
+  function controllerAwarenessNarrationRule(input = {}) {
+    const source = input && typeof input === 'object' ? input : {};
+    const awareness = normalizeControllerAwareness(source);
+    const meta = awarenessLevelMeta(awareness.controllerAwarenessLevel);
+    const playerName = String(source.playerName || '玩家').trim() || '玩家';
+    const targetName = String(source.targetName || '被控者').trim() || '被控者';
+    const lines = [
+      `对控制者了解（高优先级）：等级=${meta.label}；梗概=${awareness.controllerAwareness}`,
+      `- ${meta.guide}`,
+      `- 写${targetName}内心与旁观反应时，必须服从上述认识程度，不得越级揭露。`,
+    ];
+    if (awareness.controllerAwarenessLevel === 'unknown') {
+      lines.push(`- 禁止在${targetName}的内心独白、猜测或对话里点名${playerName}，也不得写“就是${playerName}在控制”。`);
+    } else if (awareness.controllerAwarenessLevel === 'traitKnown') {
+      lines.push(`- 可写对控制者品行/性格的模糊印象，但禁止确认其真实姓名就是${playerName}。`);
+    } else {
+      lines.push(`- 可写${targetName}认为自己知道控制者是谁；该判断可与真实身份不完全一致，不要自动校正为“其实就是${playerName}”。`);
+    }
+    return lines.join('\n');
+  }
+
   function pickTier(value, tiers) {
     return tiers.find((item) => value >= item.min && value <= item.max) || tiers[tiers.length - 1];
   }
@@ -63,6 +127,7 @@ window.GameModules = window.GameModules || {};
     const experience = source.experience && typeof source.experience === 'object' ? source.experience : source;
     const onlineCount = normalizeOnlineCount(experience.onlineCount);
     const adaptation = normalizeAdaptation(experience.adaptation);
+    const awareness = normalizeControllerAwareness(experience);
     const countTierMeta = pickTier(onlineCount, COUNT_TIERS);
     const adaptationTierMeta = pickTier(adaptation, ADAPTATION_TIERS);
     const countTier = countTierMeta.key;
@@ -70,12 +135,14 @@ window.GameModules = window.GameModules || {};
     return {
       onlineCount,
       adaptation,
+      ...awareness,
       countTier,
       adaptationTier,
       onlineTier: countTier,
       stageKey: `${countTier}.${adaptationTier}`,
       stageLabel: `${countTierMeta.label} / ${adaptationTierMeta.label}`,
       stageDescription: stageDescription(countTier, adaptationTier),
+      awarenessLabel: awarenessLevelMeta(awareness.controllerAwarenessLevel).label,
     };
   }
 
@@ -130,6 +197,8 @@ window.GameModules = window.GameModules || {};
       适应度: meta.adaptation,
       上线阶段: meta.stageLabel,
       阶段说明: meta.stageDescription,
+      对控制者了解等级: meta.awarenessLabel || awarenessLevelMeta(meta.controllerAwarenessLevel).label,
+      对控制者了解: meta.controllerAwareness || '',
     };
   }
 
@@ -145,10 +214,13 @@ window.GameModules = window.GameModules || {};
   modules.controlExperienceStage = {
     normalizeOnlineCount,
     normalizeAdaptation,
+    normalizeControllerAwareness,
+    controllerAwarenessNarrationRule,
+    awarenessLevels: AWARENESS_LEVELS.map((item) => ({ ...item })),
     resolveStageMeta,
     renderPromptBlock,
     buildPromptVariables,
     contextKeys: CONTEXT_KEYS.slice(),
-    derivedVariables: DERIVED_VARIABLES.slice(),
+    derivedVariables: DERIVED_VARIABLES.concat(['对控制者了解等级', '对控制者了解']),
   };
 })(window.GameModules);

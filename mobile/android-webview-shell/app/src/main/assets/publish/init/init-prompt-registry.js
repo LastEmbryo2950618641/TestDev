@@ -65,6 +65,15 @@ async apply(store, updates = []) {
       const templateKey = this.templateKeyForUpdate(update, store);
       if (templateKey) this.ensureTemplateState(templateKey, state);
       Object.entries(fields).forEach(([key, value]) => this.applyField(state.values, key, this.markInitializedValue(templateKey, key, value)));
+      if (state.values?.intimacy && typeof state.values.intimacy === 'object') {
+        const partners = this.normalizeSexualPartners(state.values.intimacy.sexualPartners);
+        state.values.intimacy.sexualPartners = partners;
+        state.values.intimacy.sexualPartnerCount = partners.length;
+        const parts = state.values.intimacy.sexualExperienceParts && typeof state.values.intimacy.sexualExperienceParts === 'object'
+          ? state.values.intimacy.sexualExperienceParts
+          : {};
+        state.values.intimacy.sexualExperienceCount = Object.values(parts).reduce((acc, value) => acc + Math.max(0, Math.round(Number(value) || 0)), 0);
+      }
       applied.push(update);
       await window.GameModules.characterStateStore?.save?.(state);
     }
@@ -87,13 +96,30 @@ async apply(store, updates = []) {
     if (current && typeof current === 'object' && !Array.isArray(current) && value && typeof value === 'object' && !Array.isArray(value)) values[key] = this.deepMerge(current, value);
     else values[key] = this.clone(value);
   },
+  normalizeSexualPartners(list = []) {
+    const seen = new Set();
+    const out = [];
+    for (const item of Array.isArray(list) ? list : []) {
+      const name = typeof item === 'string' || typeof item === 'number'
+        ? String(item).trim()
+        : String(item?.name || item?.id || '').trim();
+      if (!name || /^(?:无|未知|--|none)$/iu.test(name)) continue;
+      const key = name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(typeof item === 'string' || typeof item === 'number' ? name : { ...item, name: item.name || name });
+    }
+    return out;
+  },
   markInitializedValue(templateKey = '', key = '', value) {
     if (templateKey !== 'intimacyBody' || !value || typeof value !== 'object' || Array.isArray(value)) return value;
     const next = this.clone(value);
-    if (key === 'intimacy') return { ...next, initializedByAi: true, source: 'AI初始化' };
+    if (key === 'intimacy') return { ...next, pendingAiInit: false, initializedByAi: true, source: 'AI初始化' };
     if (key !== 'bodyStatus') return value;
     Object.keys(next).forEach((partKey) => {
-      if (next[partKey] && typeof next[partKey] === 'object' && !Array.isArray(next[partKey])) next[partKey] = { ...next[partKey], initializedByAi: true, source: 'AI初始化' };
+      if (next[partKey] && typeof next[partKey] === 'object' && !Array.isArray(next[partKey])) {
+        next[partKey] = { ...next[partKey], pendingAiInit: false, initializedByAi: true, source: 'AI初始化' };
+      }
     });
     return next;
   },
@@ -173,7 +199,15 @@ fields(templateKey = '', state = {}) {
       return { key: def.key, templateKey, ...meta, ...base, ...shown, reason: this.get(state.values, `${def.path}.reason`) || this.get(state.values, 'intimacy.reason') || meta.reasonFallback || '' };
     });
   },
-registerAll(prefix = '') { this.prompts = {}; Object.entries(window.GameModules.initPromptSources || {}).forEach(([key, source]) => { if (!prefix || String(key).startsWith(prefix)) this.register(key, source); }); },
+registerAll(prefix = '') {
+    this.prompts = {};
+    const sources = { ...(window.GameModules.initPromptSources || {}) };
+    const inline = window.GameModules.promptTemplates?.inline || {};
+    if (!sources['intimacy-body'] && inline['inference-init-intimacy-body']) {
+      sources['intimacy-body'] = { prompt: inline['inference-init-intimacy-body'], templateKey: 'intimacyBody' };
+    }
+    Object.entries(sources).forEach(([key, source]) => { if (!prefix || String(key).startsWith(prefix)) this.register(key, source); });
+  },
   selectByNames(names = [], store = null) { const wanted = this.normalizedSkillNameSet(names); return this.pending('', store).filter((item) => wanted.has(item.id) || wanted.has(item.templateKey) || wanted.has(item.name)); },
   canonicalSkillIds(names = [], store = null) { const wanted = this.normalizedSkillNameSet(names); return this.pending('', store).filter((item) => wanted.has(item.id) || wanted.has(item.templateKey) || wanted.has(item.name)).map((item) => item.id); },
   normalizedSkillNameSet(names = []) {

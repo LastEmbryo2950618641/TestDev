@@ -2635,16 +2635,16 @@ test('Stage4 sexual-experience settlement maps aliases and preserves unknown cat
   const participants = [{ type: 'character', id: 'rushiqi', name: '刘思琪', role: 'forced' }];
   const parsed = loop.parseSettlementKv(`性经历结算{
 结算对象：刘思琪｜角色｜允许结算
-更新1：性经历，总次数，+1，稳定事实确认新增一次抽象经历
-更新2：性经历，胸部，+1，稳定事实确认胸部相关抽象次数
-更新3：性经历，耳垂，+1，稳定事实确认耳垂相关抽象次数
+更新1：性经历，胸部，+1，稳定事实确认胸部相关抽象次数
+更新2：性经历，耳垂，+1，稳定事实确认耳垂相关抽象次数
+更新3：性经历，总次数，+9，应被忽略的总数写入
 }`, { requestedTypes: ['性经历'], participants, store, config: loop.realConfig() });
 
   assert.strictEqual(JSON.stringify(parsed.completeTypes), JSON.stringify(['性经历']));
   await context.window.GameModules.updateRegistry.applyGeneric(store, parsed.genericUpdates);
-  assert.strictEqual(store.__npc.values.intimacy.sexualExperienceCount, 1);
   assert.strictEqual(store.__npc.values.intimacy.sexualExperienceParts.chest, 1);
   assert.strictEqual(store.__npc.values.intimacy.sexualExperienceParts['耳垂'], 1);
+  assert.strictEqual(store.__npc.values.intimacy.sexualExperienceCount, 2);
 });
 
 test('character-schedule update merges into store schedules without touching role card values', async () => {
@@ -2747,6 +2747,34 @@ test('sexual-history supports unknown to virgin to non-virgin facts', async () =
   await context.window.GameModules.updateRegistry.applyGeneric(store, updates);
   assert.strictEqual(store.__npc.values.intimacy.sexualHistory.virginityStatus, '非处女');
   assert.strictEqual(store.__npc.values.intimacy.sexualHistory.firstVaginalPartner.id, 'player-self');
+  assert.strictEqual(store.__npc.values.intimacy.sexualStatus, '非处女');
+  assert.strictEqual(store.__npc.values.intimacy.sexualPartnerCount, 1);
+  assert.strictEqual(String(store.__npc.values.intimacy.sexualPartners[0]?.name || store.__npc.values.intimacy.sexualPartners[0] || ''), '玩家');
+});
+
+test('sexualPartners list auto syncs sexualPartnerCount and ignores manual count', async () => {
+  const context = createContext();
+  loadCore(context);
+  const store = makeStore();
+  await context.window.GameModules.updateRegistry.applyGeneric(store, [
+    {
+      updateType: 'sexual-history',
+      subject: { type: 'character', id: 'rushiqi', name: '刘思琪' },
+      field: 'intimacy.sexualPartners',
+      change: { mode: 'append', value: ['刘悠', '刘悠'] },
+      reasons: [{ trigger: '经历对象确认', evidence: '正文确认', confidence: 'confirmed' }],
+    },
+    {
+      updateType: 'sexual-history',
+      subject: { type: 'character', id: 'rushiqi', name: '刘思琪' },
+      field: 'intimacy.sexualPartnerCount',
+      change: { mode: 'set', value: 99 },
+      reasons: [{ trigger: '错误人数', evidence: '应被忽略', confidence: 'confirmed' }],
+    },
+  ]);
+  assert.strictEqual(store.__npc.values.intimacy.sexualPartners.length, 1);
+  assert.strictEqual(String(store.__npc.values.intimacy.sexualPartners[0]), '刘悠');
+  assert.strictEqual(store.__npc.values.intimacy.sexualPartnerCount, 1);
 });
 
 test('sexual-history records defloweredPartners on the other subject', async () => {

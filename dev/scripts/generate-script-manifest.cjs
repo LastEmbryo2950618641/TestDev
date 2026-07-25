@@ -15,8 +15,10 @@ function classify(url) {
   if (/^prompt-fallback\.js$|^prompt-templates\.js$|^prompt-skills\.js$|^prompt-sections\.js$/.test(p)) return 'core';
   if (/(^|\/)wechat|player-wechat-setup|real-world-agent-wechat|prompts\/wechat|wechat-album-photo/.test(p)) return 'wechat';
   if (/^(company-|boss-|calendar-|event-|faction-|skills-|skill-|known-profession-|taobao-|prompt-actions|token-stats|alert-log|faction-membership|role-card-json-app\/)/.test(p)) return 'apps';
+  // Stage1/8 推演依赖势力/资料查询；继续游戏只加载 gameplayReady，不能等 prompts 分包
+  if (/^prompts\/materials\/real-world-(?:faction|material)-query\.js$|^prompts\/materials\/real-world-materials\.js$/.test(p)) return 'gameplay';
   if (/^prompt\.js$|^real-world-prompt\.js$|^prompts\/materials\/|^prompts\/picture_generate\/|^inference-prompts-runtime\.js$/.test(p)) return 'prompts';
-  if (/^real-world-|^org-territory|^(?:app|domain)\/org-territory\/|^inference\/|^story-agent-context\.js$|^assets\/data\/real-world|^game-premise\.js$|^update\/(territory|org-|membership|character-schedule|org-status)/.test(p)) return 'gameplay';
+  if (/^real-world-|^org-territory|^(?:app|domain)\/org-territory\/|^inference\/|^story-agent-context\.js$|^assets\/data\/real-world|^game-premise\.js$|^update\/(territory|org-|membership|character-schedule|character-goal|org-status)/.test(p)) return 'gameplay';
   return 'core';
 }
 

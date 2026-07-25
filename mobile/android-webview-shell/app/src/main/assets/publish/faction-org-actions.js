@@ -102,6 +102,7 @@ const _factionOrgActionsBase = {
       this.factionState.orgNodes = this.factionState.orgTree?.children || [];
     }
     this.factionState.capabilityCards = this.buildFactionCapabilityCards(faction);
+    this.factionState.territoryEntries = this.buildFactionTerritoryEntries(faction);
   },
 
   buildFactionOrgForest() {
@@ -373,6 +374,9 @@ const _factionOrgActionsBase = {
         eyebrow: 'GESTALT PROFILE',
         labels: { ideology: '格式塔意识', economy: '资源', politics: '统一个体', military: '军事', diplomacy: '外交' },
         ideologyLabels: { core: '核心', reason: '形成原因', description: '当前说明', base: '意识基底', legitimacy: '统一度' },
+        economyLabels: window.GameModules.orgTerritory?.economyFieldLabels?.() || {},
+        politicsLabels: window.GameModules.orgTerritory?.politicsFieldLabels?.() || {},
+        militaryLabels: window.GameModules.orgTerritory?.militaryFieldLabels?.() || {},
         empty: { ideology: '尚未记录统一意识说明', economy: '尚未记录资源事实', politics: '尚未记录统一个体事实', military: '尚未记录军事事实', diplomacy: '尚未记录外交事实' },
         hideMilitaryWhenEmpty: false,
       };
@@ -382,6 +386,9 @@ const _factionOrgActionsBase = {
         eyebrow: 'COUNTRY PROFILE',
         labels: { ideology: '国体', economy: '经济', politics: '政治', military: '军事', diplomacy: '外交' },
         ideologyLabels: { core: '国体核心', reason: '形成原因', description: '当前说明', base: '法理基础', legitimacy: '合法性' },
+        economyLabels: window.GameModules.orgTerritory?.economyFieldLabels?.() || {},
+        politicsLabels: window.GameModules.orgTerritory?.politicsFieldLabels?.() || {},
+        militaryLabels: window.GameModules.orgTerritory?.militaryFieldLabels?.() || {},
         empty: { ideology: '国家事实尚未展开', economy: '经济事实尚未展开', politics: '政治事实尚未展开', military: '军事事实尚未展开', diplomacy: '外交事实尚未展开' },
         hideMilitaryWhenEmpty: false,
       };
@@ -391,6 +398,9 @@ const _factionOrgActionsBase = {
         eyebrow: 'CLAIM PROFILE',
         labels: { ideology: '宣称基础', economy: '可用资源', politics: '组织化程度', military: '武力宣称', diplomacy: '外部回应' },
         ideologyLabels: { core: '宣称核心', reason: '宣称原因', description: '当前说明', base: '参与基础', legitimacy: '可信度' },
+        economyLabels: window.GameModules.orgTerritory?.economyFieldLabels?.() || {},
+        politicsLabels: window.GameModules.orgTerritory?.politicsFieldLabels?.() || {},
+        militaryLabels: window.GameModules.orgTerritory?.militaryFieldLabels?.() || {},
         empty: { ideology: '尚未记录宣称基础', economy: '尚未记录可用资源', politics: '尚未记录组织化事实', military: '尚未记录武力事实', diplomacy: '尚未记录外部回应' },
         hideMilitaryWhenEmpty: true,
       };
@@ -400,6 +410,9 @@ const _factionOrgActionsBase = {
         eyebrow: 'COMMUNITY PROFILE',
         labels: { ideology: '凝聚原因', economy: '可用资源', politics: '管理', military: '军事', diplomacy: '联谊' },
         ideologyLabels: { core: '核心', reason: '形成原因', description: '当前说明', base: '参与基础', legitimacy: '凝聚力' },
+        economyLabels: window.GameModules.orgTerritory?.economyFieldLabels?.() || {},
+        politicsLabels: window.GameModules.orgTerritory?.politicsFieldLabels?.() || {},
+        militaryLabels: window.GameModules.orgTerritory?.militaryFieldLabels?.() || {},
         empty: { ideology: '尚未记录凝聚原因', economy: '尚未记录可用资源', politics: '默认按沟通协同处理', military: '社群态默认隐藏军事面板', diplomacy: '尚未记录联谊关系' },
         hideMilitaryWhenEmpty: true,
       };
@@ -408,6 +421,9 @@ const _factionOrgActionsBase = {
       eyebrow: 'CORE PROFILE',
       labels: { ideology: '意识形态', economy: '经济', politics: '政治', military: '军事', diplomacy: '外交' },
       ideologyLabels: { core: '核心', reason: '原因', description: '说明', base: '基础', legitimacy: '合法性' },
+      economyLabels: window.GameModules.orgTerritory?.economyFieldLabels?.() || {},
+        politicsLabels: window.GameModules.orgTerritory?.politicsFieldLabels?.() || {},
+        militaryLabels: window.GameModules.orgTerritory?.militaryFieldLabels?.() || {},
       empty: { ideology: '尚未记录意识形态事实', economy: '尚未记录经济事实', politics: '尚未记录政治事实', military: '尚未记录军事事实', diplomacy: '尚未记录外交事实' },
       hideMilitaryWhenEmpty: false,
     };
@@ -416,10 +432,38 @@ const _factionOrgActionsBase = {
   factionOverviewFieldLabel(panelKey = '', fieldKey = '', faction = this.selectedFaction()) {
     const meta = this.factionOverviewModeMeta(faction);
     if (panelKey === 'ideology') return meta.ideologyLabels?.[fieldKey] || fieldKey;
+    if (panelKey === 'economy') {
+      return meta.economyLabels?.[fieldKey]
+        || window.GameModules.orgTerritory?.economyFieldLabels?.()?.[fieldKey]
+        || fieldKey;
+    }
+    if (panelKey === 'politics') {
+      return meta.politicsLabels?.[fieldKey]
+        || window.GameModules.orgTerritory?.politicsFieldLabels?.()?.[fieldKey]
+        || fieldKey;
+    }
+    if (panelKey === 'military') {
+      return meta.militaryLabels?.[fieldKey]
+        || window.GameModules.orgTerritory?.militaryFieldLabels?.()?.[fieldKey]
+        || fieldKey;
+    }
+    if (panelKey === 'diplomacy') {
+      return meta.diplomacyLabels?.[fieldKey]
+        || window.GameModules.orgTerritory?.diplomacyFieldLabels?.()?.[fieldKey]
+        || fieldKey;
+    }
+    if (panelKey === 'territory') {
+      return meta.territoryLabels?.[fieldKey]
+        || window.GameModules.orgTerritory?.territoryFieldLabels?.()?.[fieldKey]
+        || fieldKey;
+    }
     return fieldKey;
   },
 
-  factionOverviewEntryValue(entry = {}) {
+  factionOverviewEntryValue(entry = {}, panelKey = '', fieldKey = '') {
+    if (['economy', 'politics', 'military', 'diplomacy', 'territory'].includes(panelKey)) {
+      return window.GameModules.orgTerritory?.formatOverviewEntryDisplay?.(panelKey, fieldKey, entry) || '待推演补全';
+    }
     const raw = entry?.value;
     if (typeof raw === 'number') return `${raw}${entry?.unit || ''}`;
     const text = String(raw ?? '').trim();
@@ -429,10 +473,70 @@ const _factionOrgActionsBase = {
   factionOverviewPanelSkin(panelKey = '') {
     const map = {
       ideology: { icon: '🜁', tone: 'gold', entryIcons: { core: '⚑', reason: '✦', description: '☷', base: '⬡', legitimacy: '♛' } },
-      economy: { icon: '◇', tone: 'green', entryIcons: {} },
-      politics: { icon: '⚖', tone: 'blue', entryIcons: {} },
-      military: { icon: '⚔', tone: 'red', entryIcons: {} },
-      diplomacy: { icon: '✉', tone: 'cyan', entryIcons: {} },
+      economy: {
+        icon: '◇',
+        tone: 'green',
+        entryIcons: {
+          gdp: '▣',
+          income: '▲',
+          expenditure: '▼',
+          assets: '⌂',
+          resources: '◆',
+          production: '↻',
+          system: '☰',
+          institutions: '🏛',
+          laws: '📜',
+          works: '✉',
+        },
+      },
+      politics: {
+        icon: '⚖',
+        tone: 'blue',
+        entryIcons: {
+          regime: '🏛',
+          powerStructure: '⚖',
+          rulemaking: '✎',
+          adjudication: '◆',
+          execution: '▶',
+          participation: '▣',
+          leadership: '♛',
+          institutions: '⌂',
+          laws: '📜',
+          works: '✉',
+        },
+      },
+      military: {
+        icon: '⚔',
+        tone: 'red',
+        entryIcons: {
+          posture: '⚑',
+          forces: '⚔',
+          personnel: '▣',
+          quality: '◆',
+          sustainment: '⌂',
+          projection: '▶',
+          equipment: '⚒',
+          institutions: '🏛',
+          laws: '📜',
+          works: '✉',
+        },
+      },
+      diplomacy: {
+        icon: '✉',
+        tone: 'cyan',
+        entryIcons: {
+          posture: '⚑',
+          orientation: '◈',
+          allies: '🤝',
+          rivals: '⚔',
+          memberships: '◉',
+          treaties: '📜',
+          presence: '⌂',
+          institutions: '🏛',
+          laws: '⚖',
+          works: '✉',
+        },
+      },
     };
     return map[panelKey] || { icon: '◆', tone: 'blue', entryIcons: {} };
   },
@@ -441,6 +545,11 @@ const _factionOrgActionsBase = {
     if (panelKey === 'ideology') {
       const value = Number(faction?.solid?.overviewPanels?.ideology?.legitimacy?.value);
       if (Number.isFinite(value)) return Math.max(0, Math.min(100, value));
+    }
+    if (panelKey === 'economy' || panelKey === 'politics' || panelKey === 'military' || panelKey === 'diplomacy') {
+      const filled = entries.filter((entry) => entry?.filled).length;
+      const total = Math.max(1, entries.length || 10);
+      return Math.max(0, Math.min(100, Math.round((filled / total) * 100)));
     }
     return Math.max(0, Math.min(100, entries.length * 28));
   },
@@ -453,8 +562,13 @@ const _factionOrgActionsBase = {
   },
 
   factionOverviewEffectiveCount(panelKey = '', entries = []) {
-    if (panelKey !== 'ideology') return entries.length;
-    return entries.filter((entry) => String(entry?.name || '') !== 'legitimacy').length;
+    if (panelKey === 'ideology') {
+      return entries.filter((entry) => String(entry?.name || '') !== 'legitimacy' && entry?.filled).length;
+    }
+    if (panelKey === 'economy' || panelKey === 'politics' || panelKey === 'military' || panelKey === 'diplomacy') {
+      return entries.filter((entry) => entry?.filled).length;
+    }
+    return entries.length;
   },
 
   selectedFactionOverviewSummary() {
@@ -478,8 +592,9 @@ const _factionOrgActionsBase = {
         const entries = ['core', 'reason', 'description', 'base', 'legitimacy'].map((fieldKey) => {
           const field = ideology[fieldKey] || {};
           const value = field?.value;
-          const hasValue = typeof value === 'number' ? Number.isFinite(value) : String(value ?? '').trim();
-          if (!hasValue && fieldKey !== 'legitimacy') return null;
+          const hasValue = typeof value === 'number'
+            ? Number.isFinite(value)
+            : Boolean(String(value ?? '').trim());
           return {
             key: `ideology-${fieldKey}`,
             name: fieldKey,
@@ -487,14 +602,19 @@ const _factionOrgActionsBase = {
             value,
             unit: field?.unit || '',
             icon: skin.entryIcons[fieldKey] || skin.icon,
-            display: this.factionOverviewEntryValue(field),
+            display: hasValue
+              ? this.factionOverviewEntryValue(field, 'ideology', fieldKey)
+              : (fieldKey === 'legitimacy' ? '0/100' : '待推演补全'),
             reason: String(field?.reason || '').trim(),
-            stateBadge: hasValue ? '已记录' : '',
+            stateBadge: hasValue ? '已记录' : '待填',
+            filled: hasValue,
+            multiline: false,
             parentLabel: '',
           };
-        }).filter(Boolean);
+        });
         const meter = this.factionOverviewPanelMeter(panelKey, entries, faction);
         const effectiveCount = this.factionOverviewEffectiveCount(panelKey, entries);
+        const filledCount = entries.filter((entry) => entry.filled).length;
         return {
           key: 'cap-ideology',
           dim: 'ideology',
@@ -506,7 +626,179 @@ const _factionOrgActionsBase = {
           meter,
           meterStyle: `--meter:${meter};`,
           rankLabel: this.factionOverviewRankLabel(meter, effectiveCount),
-          statusLabel: `${entries.length}项`,
+          statusLabel: `${filledCount}/5项`,
+          entries,
+        };
+      }
+      if (panelKey === 'economy') {
+        const economyEntries = panels.economy?.entries || {};
+        const keys = window.GameModules.orgTerritory?.economyFixedKeys?.()
+          || ['gdp', 'income', 'expenditure', 'assets', 'resources', 'production', 'system', 'institutions', 'laws', 'works'];
+        const listKeys = new Set(window.GameModules.orgTerritory?.economyListKeys?.() || ['institutions', 'laws', 'works']);
+        const entries = keys.map((fieldKey) => {
+          const field = economyEntries[fieldKey] || {};
+          const hasValue = window.GameModules.orgTerritory?.economyEntryHasValue?.(fieldKey, field)
+            || Boolean(String(field?.value ?? '').trim());
+          return {
+            key: `economy-${fieldKey}`,
+            name: fieldKey,
+            label: this.factionOverviewFieldLabel('economy', fieldKey, faction),
+            value: field?.value,
+            unit: field?.unit || '',
+            icon: skin.entryIcons[fieldKey] || skin.icon,
+            display: this.factionOverviewEntryValue(field, 'economy', fieldKey),
+            reason: String(field?.reason || '').trim(),
+            stateBadge: hasValue ? '已记录' : '待填',
+            filled: hasValue,
+            multiline: listKeys.has(fieldKey),
+            parentLabel: '',
+          };
+        });
+        const meter = this.factionOverviewPanelMeter(panelKey, entries, faction);
+        const effectiveCount = this.factionOverviewEffectiveCount(panelKey, entries);
+        const filledCount = entries.filter((entry) => entry.filled).length;
+        return {
+          key: 'cap-economy',
+          dim: 'economy',
+          label: meta.labels.economy,
+          eyebrow: meta.eyebrow,
+          emptyText: meta.empty.economy,
+          icon: skin.icon,
+          tone: skin.tone,
+          meter,
+          meterStyle: `--meter:${meter};`,
+          rankLabel: this.factionOverviewRankLabel(meter, effectiveCount),
+          statusLabel: `${filledCount}/${keys.length}项`,
+          entries,
+        };
+      }
+      if (panelKey === 'politics') {
+        const politicsEntries = panels.politics?.entries || {};
+        const keys = window.GameModules.orgTerritory?.politicsFixedKeys?.()
+          || ['regime', 'powerStructure', 'rulemaking', 'adjudication', 'execution', 'participation', 'leadership', 'institutions', 'laws', 'works'];
+        const listKeys = new Set(window.GameModules.orgTerritory?.politicsListKeys?.() || ['institutions', 'laws', 'works']);
+        const entries = keys.map((fieldKey) => {
+          const field = politicsEntries[fieldKey] || {};
+          const hasValue = window.GameModules.orgTerritory?.politicsEntryHasValue?.(fieldKey, field)
+            || Boolean(String(field?.value ?? '').trim());
+          return {
+            key: `politics-${fieldKey}`,
+            name: fieldKey,
+            label: this.factionOverviewFieldLabel('politics', fieldKey, faction),
+            value: field?.value,
+            unit: field?.unit || '',
+            icon: skin.entryIcons[fieldKey] || skin.icon,
+            display: this.factionOverviewEntryValue(field, 'politics', fieldKey),
+            reason: String(field?.reason || '').trim(),
+            stateBadge: hasValue ? '已记录' : '待填',
+            filled: hasValue,
+            multiline: listKeys.has(fieldKey),
+            parentLabel: '',
+          };
+        });
+        const meter = this.factionOverviewPanelMeter(panelKey, entries, faction);
+        const effectiveCount = this.factionOverviewEffectiveCount(panelKey, entries);
+        const filledCount = entries.filter((entry) => entry.filled).length;
+        return {
+          key: 'cap-politics',
+          dim: 'politics',
+          label: meta.labels.politics,
+          eyebrow: meta.eyebrow,
+          emptyText: meta.empty.politics,
+          icon: skin.icon,
+          tone: skin.tone,
+          meter,
+          meterStyle: `--meter:${meter};`,
+          rankLabel: this.factionOverviewRankLabel(meter, effectiveCount),
+          statusLabel: `${filledCount}/${keys.length}项`,
+          entries,
+        };
+      }
+      if (panelKey === 'military') {
+        const militaryEntries = panels.military?.entries || {};
+        const keys = window.GameModules.orgTerritory?.militaryFixedKeys?.()
+          || ['posture', 'forces', 'personnel', 'quality', 'sustainment', 'projection', 'equipment', 'institutions', 'laws', 'works'];
+        const listKeys = new Set([
+          ...(window.GameModules.orgTerritory?.militaryMapKeys?.() || ['forces']),
+          ...(window.GameModules.orgTerritory?.militaryListKeys?.() || ['institutions', 'laws', 'works']),
+        ]);
+        const entries = keys.map((fieldKey) => {
+          const field = militaryEntries[fieldKey] || {};
+          const hasValue = window.GameModules.orgTerritory?.militaryEntryHasValue?.(fieldKey, field) === true;
+          return {
+            key: `military-${fieldKey}`,
+            name: fieldKey,
+            label: this.factionOverviewFieldLabel('military', fieldKey, faction),
+            value: field?.value,
+            unit: field?.unit || '',
+            icon: skin.entryIcons[fieldKey] || skin.icon,
+            display: this.factionOverviewEntryValue(field, 'military', fieldKey),
+            reason: String(field?.reason || '').trim(),
+            stateBadge: hasValue ? '已记录' : '待填',
+            filled: hasValue,
+            multiline: listKeys.has(fieldKey) || fieldKey === 'equipment' || fieldKey === 'personnel' || fieldKey === 'quality' || fieldKey === 'sustainment' || fieldKey === 'projection' || fieldKey === 'posture',
+            parentLabel: '',
+          };
+        });
+        const meter = this.factionOverviewPanelMeter(panelKey, entries, faction);
+        const effectiveCount = this.factionOverviewEffectiveCount(panelKey, entries);
+        const filledCount = entries.filter((entry) => entry.filled).length;
+        return {
+          key: 'cap-military',
+          dim: 'military',
+          label: meta.labels.military,
+          eyebrow: meta.eyebrow,
+          emptyText: meta.empty.military,
+          icon: skin.icon,
+          tone: skin.tone,
+          meter,
+          meterStyle: `--meter:${meter};`,
+          rankLabel: this.factionOverviewRankLabel(meter, effectiveCount),
+          statusLabel: `${filledCount}/${keys.length}项`,
+          entries,
+        };
+      }
+      if (panelKey === 'diplomacy') {
+        const diplomacyEntries = panels.diplomacy?.entries || {};
+        const keys = window.GameModules.orgTerritory?.diplomacyFixedKeys?.()
+          || ['posture', 'orientation', 'allies', 'rivals', 'memberships', 'treaties', 'presence', 'institutions', 'laws', 'works'];
+        const listKeys = new Set(window.GameModules.orgTerritory?.diplomacyListKeys?.()
+          || ['allies', 'rivals', 'memberships', 'treaties', 'institutions', 'laws', 'works']);
+        const entries = keys.map((fieldKey) => {
+          const field = diplomacyEntries[fieldKey] || {};
+          const hasValue = window.GameModules.orgTerritory?.diplomacyEntryHasValue?.(fieldKey, field) === true;
+          return {
+            key: `diplomacy-${fieldKey}`,
+            name: fieldKey,
+            label: this.factionOverviewFieldLabel('diplomacy', fieldKey, faction),
+            value: field?.value,
+            unit: field?.unit || '',
+            icon: skin.entryIcons[fieldKey] || skin.icon,
+            display: hasValue
+              ? this.factionOverviewEntryValue(field, 'diplomacy', fieldKey)
+              : '待推演补全',
+            reason: String(field?.reason || '').trim(),
+            stateBadge: hasValue ? '已记录' : '待填',
+            filled: hasValue,
+            multiline: listKeys.has(fieldKey) || fieldKey === 'posture' || fieldKey === 'orientation' || fieldKey === 'presence',
+            parentLabel: '',
+          };
+        });
+        const meter = this.factionOverviewPanelMeter(panelKey, entries, faction);
+        const effectiveCount = this.factionOverviewEffectiveCount(panelKey, entries);
+        const filledCount = entries.filter((entry) => entry.filled).length;
+        return {
+          key: 'cap-diplomacy',
+          dim: 'diplomacy',
+          label: meta.labels.diplomacy,
+          eyebrow: meta.eyebrow,
+          emptyText: meta.empty.diplomacy,
+          icon: skin.icon,
+          tone: skin.tone,
+          meter,
+          meterStyle: `--meter:${meter};`,
+          rankLabel: this.factionOverviewRankLabel(meter, effectiveCount),
+          statusLabel: `${filledCount}/${keys.length}项`,
           entries,
         };
       }
@@ -516,9 +808,11 @@ const _factionOrgActionsBase = {
         name: key,
         label: this.factionOverviewFieldLabel(panelKey, key, faction),
         icon: skin.entryIcons[key] || skin.icon,
-        display: this.factionOverviewEntryValue(entry && typeof entry === 'object' ? entry : { value: entry }),
+        display: this.factionOverviewEntryValue(entry && typeof entry === 'object' ? entry : { value: entry }, panelKey, key),
         reason: String(entry?.reason || '').trim(),
         stateBadge: entry?.state ? (ot?.stateBadge?.(entry.state) || '') : '',
+        filled: true,
+        multiline: false,
         parentLabel: '',
       }));
       const meter = this.factionOverviewPanelMeter(panelKey, entries, faction);
@@ -537,7 +831,53 @@ const _factionOrgActionsBase = {
         statusLabel: `${entries.length}项`,
         entries,
       };
-    }).filter((card) => !(card.dim === 'military' && meta.hideMilitaryWhenEmpty && !card.entries.length));
+    }).filter((card) => !(card.dim === 'military' && meta.hideMilitaryWhenEmpty && !card.entries.some((entry) => entry.filled)));
+  },
+
+  buildFactionTerritoryEntries(faction = this.selectedFaction()) {
+    const ot = window.GameModules.orgTerritory;
+    const panels = ot?.normalizeOverviewPanels?.(faction?.solid?.overviewPanels || {})
+      || ot?.defaultOverviewPanels?.()
+      || {};
+    const territoryEntries = panels.territory?.entries || {};
+    const keys = ot?.territoryFixedKeys?.() || ['capital', 'area', 'population', 'adminDivision', 'regions'];
+    const icons = {
+      capital: '⌖',
+      area: '▣',
+      population: '◉',
+      adminDivision: '☰',
+      regions: '🗺',
+    };
+    return keys.map((fieldKey) => {
+      const field = territoryEntries[fieldKey] || {};
+      const hasValue = ot?.territoryEntryHasValue?.(fieldKey, field) === true;
+      return {
+        key: `territory-${fieldKey}`,
+        name: fieldKey,
+        label: this.factionOverviewFieldLabel('territory', fieldKey, faction),
+        value: field?.value,
+        unit: field?.unit || '',
+        icon: icons[fieldKey] || '◆',
+        display: hasValue
+          ? this.factionOverviewEntryValue(field, 'territory', fieldKey)
+          : '待推演补全',
+        reason: String(field?.reason || '').trim(),
+        stateBadge: hasValue ? '已记录' : '待填',
+        filled: hasValue,
+        multiline: ot?.overviewFieldIsList?.('territory', fieldKey)
+          || fieldKey === 'adminDivision'
+          || fieldKey === 'area'
+          || fieldKey === 'population',
+      };
+    });
+  },
+
+  factionTerritoryEntries() {
+    const faction = this.selectedFaction();
+    if (this.factionState?.orgCacheSelectedId === faction?.id && this.factionState?.territoryEntries) {
+      return this.factionState.territoryEntries;
+    }
+    return this.buildFactionTerritoryEntries(faction);
   },
 
   factionCapabilityCards() {

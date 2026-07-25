@@ -243,6 +243,7 @@ window.GameModules.predefinedRoleCards = {
       workplace: profile.workplace || fallback.workplace || '', position: profile.position || fallback.position || '',
       livingStatus: profile.livingStatus || '', refinedLivingStatus: profile.refinedLivingStatus || profile.livingStatus || '',
       parents: profile.parents || '', parentStatus: profile.parentStatus || profile.parents || '', parentDeathCause: profile.parentDeathCause || '',
+      appearance: profile.appearance ?? '', preferences: profile.preferences ?? '', personality: profile.personality ?? '',
       relationships: profile.relationships || fallback.relationships || '', notes: profile.notes || profile.detail || '', worldbuildingNote: profile.worldbuildingNote || '',
       initializedAt: fallback.initializedAt || new Date().toISOString(),
     };
@@ -279,12 +280,12 @@ window.GameModules.predefinedRoleCards = {
     return (cards || []).filter(Boolean).map((card) => `${roles[card.name] || card.role || '关系'}：${card.name}`).join('；');
   },
 
-  getExistingState(id = '') {
-    return window.GameModules.characterStateStore?.get?.(id) || null;
+  getExistingState(id = '', store = null) {
+    return window.GameModules.characterStateStore?.get?.(id, store) || null;
   },
 
-  async saveState(state = null) {
-    return window.GameModules.characterStateStore?.save?.(state);
+  async saveState(state = null, store = null) {
+    return window.GameModules.characterStateStore?.save?.(state, store);
   },
 
   async ensureStorageReady(store = {}) {
@@ -297,6 +298,9 @@ window.GameModules.predefinedRoleCards = {
   buildRoleCardProfile(card = {}, existing = null, id = '') {
     let profile = { ...card, id, roleCard: true, roleCardSource: card.roleCardSource || 'predefined-edited', roleCardUpdatedAt: card.roleCardUpdatedAt || existing?.profile?.roleCardUpdatedAt || new Date().toISOString() };
     if (window.GameModules.characterProfile?.hasRequiredInitialMetrics?.(existing?.profile?.initialMetrics)) profile.initialMetrics = existing.profile.initialMetrics;
+    // Preserve runtime location chain written by map/surround-unlock; predefined cards usually omit it.
+    const existingLocation = String(existing?.profile?.currentLocation || existing?.values?.current_location?.currentLocation || '').trim();
+    if (existingLocation && !String(profile.currentLocation || '').trim()) profile.currentLocation = existingLocation;
     const cardKey = this.cardKeyFor(card);
     const presetLayers = this.isTripletSisterKey(cardKey)
       ? window.GameModules.predefinedTripletEssentialLayers?.[cardKey]
@@ -325,33 +329,63 @@ window.GameModules.predefinedRoleCards = {
     const ready = await this.ensureStorageReady(store);
     if (!ready) throw new Error('角色卡存储未就绪，无法创建正式角色状态');
     const id = idOverride || card.id || card.name;
-    const existing = this.getExistingState(id);
+    const storeApi = window.GameModules.characterStateStore;
+    const existing = this.getExistingState(id, store);
+    const liveLocation = String(
+      store?.rpgStates?.[id]?.profile?.currentLocation
+      || store?.appearingLocationById?.[id]
+      || store?.characterSchedules?.[id]?.profileCurrentLocation
+      || '',
+    ).trim();
     const profile = this.buildRoleCardProfile(card, existing, id);
+    if (liveLocation && !String(profile.currentLocation || '').trim()) profile.currentLocation = liveLocation;
     this.refreshSocialFields(profile, store);
     this.refreshDerivedIdentityFields(profile);
     const schema = await window.GameModules.rpgState.ensureSchema(profile.work || window.GameModules.realWorld2026?.label || '2026 现代都市现实世界');
+    // Reuse the existing live object when present — never orphan rpgStates[id] with a new reference.
     const state = existing || window.GameModules.rpgState.createCharacterState(profile, schema, store);
     state.id = profile.id;
     state.name = profile.name;
     state.worldTag = schema.worldTag;
     state.schema = schema;
-    state.profile = profile;
+    const preservedLocation = String(
+      profile.currentLocation
+      || existing?.profile?.currentLocation
+      || state?.profile?.currentLocation
+      || liveLocation
+      || '',
+    ).trim();
+    state.profile = {
+      ...(existing?.profile || {}),
+      ...profile,
+      ...(preservedLocation ? { currentLocation: preservedLocation } : {}),
+    };
     state.note = profile.detail || state.note || '';
     window.GameModules.rpgState.upgradeCharacterState(state, schema);
+    const locField = window.GameModules.currentLocationField;
     if (profile.isPlayer) {
       state.values.status_tags = ['玩家本人', '手机主人', profile.work, profile.role];
       state.profile.isPlayer = true;
-      if (profile.currentLocation && window.GameModules.currentLocationField?.stateValue) {
-        state.values.current_location = window.GameModules.currentLocationField.stateValue(profile, store, '玩家角色卡当前位置字段覆盖同步。');
-      }
+    }
+    if (preservedLocation && locField?.isValidProfileFormat?.(preservedLocation) && locField?.stateValueFromText) {
+      state.values = state.values && typeof state.values === 'object' ? state.values : {};
+      state.values.current_location = {
+        ...(state.values.current_location || {}),
+        ...locField.stateValueFromText(
+          preservedLocation,
+          store,
+          '角色卡重建时保留当前位置链。',
+          state.worldTag || state.profile?.work || window.GameModules.realWorld2026?.label || '未知世界',
+        ),
+      };
     }
     window.GameModules.rpgProfileMetrics?.rebase?.(state, profile, existing?.profile || {});
     store.initFactionSystem?.();
     window.GameModules.orgTerritory?.ensurePresetFamilyMemberships?.(store);
     await window.GameModules.rpgLexicon.syncState(state);
-    await this.saveState(state);
-    store.rpgStates = { ...(store.rpgStates || {}), [state.id]: state };
-    return state;
+    const live = storeApi?.mergeOntoLive?.(state, store) || state;
+    await this.saveState(live, store);
+    return live;
   },
 
   scheduleLocationName(state = {}, store = {}) {

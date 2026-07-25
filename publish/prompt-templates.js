@@ -19,6 +19,7 @@ window.GameModules.promptTemplates = {
     { id: 'inference-stage5-body-profile-patch', title: 'Stage6 自然外观补丁', category: '剧情推演', file: 'prompts/推演引擎/stage5-body-profile-patch.md', summary: '局部重写 Part5 bodyProfileMeta/bodyProfile。' },
     { id: 'inference-stage5-dressed-profile-patch', title: 'Stage7 盛装外观补丁', category: '剧情推演', file: 'prompts/推演引擎/stage5-dressed-profile-patch.md', summary: '局部重写 Part6 dressedProfileMeta/dressedProfile。' },
     { id: 'inference-stage6-faction-update', title: 'Stage8 势力更新', category: '剧情推演', file: 'prompts/推演引擎/stage6-faction-update.md', summary: '串行势力创建与字段补丁（Skill 写库）。' },
+    { id: 'inference-stage10-life-energy-exp', title: 'Stage10 经验结算', category: '剧情推演', file: 'prompts/推演引擎/stage10-life-energy-exp.md', summary: '击杀/吸收结算生命层次经验；正文练习/使用结算知识技能职业经验。' },
     { id: 'inference-init-intimacy-body', title: 'Stage4 亲密身体初始化', category: '结算初始化', file: 'prompts/推演引擎/init/intimacy-body-init-prompt.md', summary: 'Stage4 亲密与身体状态初始化说明。' },
     { id: 'inference-update-generic', title: 'Stage4 通用固化', category: '结算更新', file: 'prompts/推演引擎/update/generic-update-prompt.md', summary: 'Stage4 通用固化更新说明。' },
     { id: 'inference-update-emotion', title: 'Stage4 情绪更新', category: '结算更新', file: 'prompts/推演引擎/update/emotion-update-prompt.md', summary: 'Stage4 情绪变化更新说明。' },

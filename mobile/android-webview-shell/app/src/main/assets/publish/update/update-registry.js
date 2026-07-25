@@ -161,8 +161,18 @@ window.GameModules.updateRegistry = {
       }
     });
     return window.GameModules.orgTerritory?.dedupeOrgTerritoryUpdates?.(
-      this.uniqueUpdates([...base, ...legacyMetrics, ...extras]),
+      window.GameModules.characterGoalUpdates?.coalesce?.(
+        window.GameModules.characterScheduleUpdates?.coalesce?.(
+          this.uniqueUpdates([...base, ...legacyMetrics, ...extras]),
+        ) || this.uniqueUpdates([...base, ...legacyMetrics, ...extras]),
+      ) || window.GameModules.characterScheduleUpdates?.coalesce?.(
+        this.uniqueUpdates([...base, ...legacyMetrics, ...extras]),
+      ) || this.uniqueUpdates([...base, ...legacyMetrics, ...extras]),
       store,
+    ).slice(0, 80) || window.GameModules.characterGoalUpdates?.coalesce?.(
+      window.GameModules.characterScheduleUpdates?.coalesce?.(
+        this.uniqueUpdates([...base, ...legacyMetrics, ...extras]),
+      ) || this.uniqueUpdates([...base, ...legacyMetrics, ...extras]),
     ).slice(0, 80) || this.uniqueUpdates([...base, ...legacyMetrics, ...extras]).slice(0, 80);
   },
 

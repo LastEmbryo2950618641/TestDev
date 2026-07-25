@@ -1,5 +1,5 @@
 window.GameScriptManifest = {
-  "version": "2026-07-22-role-card-split-v43",
+  "version": "2026-07-25-learned-stage10-v26",
   "chunks": {
     "core": [
       "https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js",
@@ -64,6 +64,9 @@ window.GameScriptManifest = {
       "profession-info-store.js",
       "rpg-definition-store.js",
       "character-state-store.js",
+      "character-id-ensure.js",
+      "narration-role-markup.js",
+      "character-goal-system.js",
       "character-memory-store.js",
       "character-intro-store.js",
       "character-memory-maintenance-store.js",
@@ -88,6 +91,7 @@ window.GameScriptManifest = {
       "body-figure.js",
       "rpg-field-ui.js",
       "progression-combat.js",
+      "progression-life-energy.js",
       "progression-learned-sync.js",
       "rpg-initializer.js",
       "rpg-profile-metrics.js",
@@ -166,6 +170,7 @@ window.GameScriptManifest = {
       "update/role-card-update.js",
       "update/relationship-update.js",
       "update/sexual-experience-update.js",
+      "update/control-experience-update.js",
       "update/sexual-history-update.js",
       "update/body-status-update.js",
       "update/wearing-state-update.js",
@@ -263,7 +268,8 @@ window.GameScriptManifest = {
       "ui/event/view-helpers.js",
       "ui/faction/overview-view-helpers.js",
       "prompts/location-tree-audit-fill.js",
-      "prompts/real-world-map-surround-unlock.js"
+      "prompts/real-world-map-surround-unlock.js",
+      "prompts/推演引擎/stage6-faction-update.js"
     ],
     "gameplay": [
       "real-world-log-store.js",
@@ -272,6 +278,8 @@ window.GameScriptManifest = {
       "update/org-status-update.js",
       "update/org-overview-panel-update.js",
       "update/membership-update.js",
+      "update/character-goal-update.js",
+      "update/character-goal-update-ui.js",
       "real-world-clock-actions.js",
       "assets/data/real-world-2026.js",
       "real-world-map-facts.js",
@@ -288,7 +296,12 @@ window.GameScriptManifest = {
       "inference/material-request-catalog.js",
       "inference/scene-boundary.js",
       "inference/material-loader.js",
+      "inference/faction-stage-update.js",
+      "inference/life-energy-stage.js",
       "real-world-agent-context.js",
+      "prompts/materials/real-world-materials.js",
+      "prompts/materials/real-world-material-query.js",
+      "prompts/materials/real-world-faction-query.js",
       "real-world-longing-actions.js",
       "real-world-agent-history.js",
       "real-world-agent-memory.js",
@@ -424,10 +437,7 @@ window.GameScriptManifest = {
     "prompts": [
       "prompt.js",
       "real-world-prompt.js",
-      "prompts/materials/real-world-materials.js",
       "prompts/materials/work-lore-materials.js",
-      "prompts/materials/real-world-material-query.js",
-      "prompts/materials/real-world-faction-query.js",
       "prompts/materials/work-lore-material-query.js",
       "prompts/picture_generate/sensitive-replacements.js",
       "prompts/picture_generate/draw-tag-prompt.js",
@@ -435,8 +445,8 @@ window.GameScriptManifest = {
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-22T11:52:24.120Z",
-  "total": 423
+  "generatedAt": "2026-07-25T10:01:51.251Z",
+  "total": 431
 };
 
 window.GameScriptManifest.classify = function classify(url) {
@@ -446,7 +456,9 @@ window.GameScriptManifest.classify = function classify(url) {
   if (/^prompt-fallback\.js$|^prompt-templates\.js$|^prompt-skills\.js$|^prompt-sections\.js$/.test(p)) return 'core';
   if (/(^|\/)wechat|player-wechat-setup|real-world-agent-wechat|prompts\/wechat|wechat-album-photo/.test(p)) return 'wechat';
   if (/^(company-|boss-|calendar-|event-|faction-|skills-|skill-|known-profession-|taobao-|prompt-actions|token-stats|alert-log|faction-membership|role-card-json-app\/)/.test(p)) return 'apps';
+  // Stage1/8 推演依赖势力/资料查询；继续游戏只加载 gameplayReady，不能等 prompts 分包
+  if (/^prompts\/materials\/real-world-(?:faction|material)-query\.js$|^prompts\/materials\/real-world-materials\.js$/.test(p)) return 'gameplay';
   if (/^prompt\.js$|^real-world-prompt\.js$|^prompts\/materials\/|^prompts\/picture_generate\/|^inference-prompts-runtime\.js$/.test(p)) return 'prompts';
-  if (/^real-world-|^org-territory|^(?:app|domain)\/org-territory\/|^inference\/|^story-agent-context\.js$|^assets\/data\/real-world|^game-premise\.js$|^update\/(territory|org-|membership|character-schedule|org-status)/.test(p)) return 'gameplay';
+  if (/^real-world-|^org-territory|^(?:app|domain)\/org-territory\/|^inference\/|^story-agent-context\.js$|^assets\/data\/real-world|^game-premise\.js$|^update\/(territory|org-|membership|character-schedule|character-goal|org-status)/.test(p)) return 'gameplay';
   return 'core';
 };

@@ -120,6 +120,7 @@ function syncInferencePromptRuntime() {
     'prompts/推演引擎/stage5-body-profile-patch.js',
     'prompts/推演引擎/stage5-dressed-profile-patch.js',
     'prompts/推演引擎/stage6-faction-update.js',
+    'prompts/推演引擎/stage10-life-energy-exp.js',
     'prompts/推演引擎/init/intimacy-body-init-prompt.js',
     'prompts/推演引擎/update/generic-update-prompt.js',
     'prompts/推演引擎/update/emotion-update-prompt.js',

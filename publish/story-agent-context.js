@@ -493,15 +493,15 @@ window.GameModules.storyAgentContext = {
 
   async dispatch(store, action, skill, method, params) {
     const realCtx = window.GameModules.realWorldAgentContext;
-    if (skill === 'worklore.query') return await window.GameModules.workLoreQuery.dispatch(store, action, method, params);
-    if (skill === 'memory.query') return await realCtx.memory(store, action, method, { characterId: params.characterId || store.character?.id, ...params });
+    if (skill === 'worklore.query') return await window.GameModules.workLoreQuery?.dispatch?.(store, action, method, params) || '';
+    if (skill === 'memory.query') return typeof realCtx?.memory === 'function' ? await realCtx.memory(store, action, method, { characterId: params.characterId || store.character?.id, ...params }) : '';
     if (skill === 'character.query') return window.GameModules.characterQuery?.query?.(store, method, { worldTag: params.worldTag || params.world || params.work || store.character?.work, ...params }) || '';
     if (skill === 'past.event.query') return window.GameModules.pastEventQuery?.query?.(store, method, { question: action, characterId: store.character?.id, characterName: store.character?.name, worldTag: store.character?.work, ...params }) || '';
-    if (skill === 'lexicon.query') return await realCtx.lexicon(store, method, params);
-    if (skill === 'item.query') return await realCtx.itemQuery(store, method, { target: params.target || store.character?.id, ...params });
-    if (skill === 'company.query') return realCtx.company(store, method, params);
-    if (skill === 'faction.query') return realCtx.faction(store, method, params);
-    if (skill === 'realworld.location.query') return realCtx.location(store, method, params, action, { queryOnly: true, noAudit: true, returnJsonOnMiss: true });
+    if (skill === 'lexicon.query') return typeof realCtx?.lexicon === 'function' ? await realCtx.lexicon(store, method, params) : '词条查询模块未加载。';
+    if (skill === 'item.query') return typeof realCtx?.itemQuery === 'function' ? await realCtx.itemQuery(store, method, { target: params.target || store.character?.id, ...params }) : '物品查询模块未加载。';
+    if (skill === 'company.query') return typeof realCtx?.company === 'function' ? realCtx.company(store, method, params) : '公司查询模块未加载。';
+    if (skill === 'faction.query') return typeof realCtx?.faction === 'function' ? realCtx.faction(store, method, params) : '势力查询模块未加载。';
+    if (skill === 'realworld.location.query') return typeof realCtx?.location === 'function' ? realCtx.location(store, method, params, action, { queryOnly: true, noAudit: true, returnJsonOnMiss: true }) : '';
     if (skill === 'realworld.history.query') return this.history(store, method, { ...params, world: params.world || params.worldTag || store.character?.work });
     return '';
   },

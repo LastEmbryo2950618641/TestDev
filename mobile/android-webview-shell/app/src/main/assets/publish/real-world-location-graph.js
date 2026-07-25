@@ -484,6 +484,12 @@ window.GameModules.realWorldLocationGraph = {
     if (!id) return null;
     const existing = (graph.poiGraph.edges || []).find((edge) => edge.id === id);
     const meters = Number(data.distanceMeters || data.meters || data.lengthMeters);
+    let distanceMeters = Number.isFinite(meters) && meters > 0 ? Math.round(meters) : existing?.distanceMeters || null;
+    const distanceText = data.distanceText || data.distance || existing?.distanceText || '';
+    if (!(distanceMeters > 0) && distanceText) {
+      const parsed = window.GameModules.realWorldMapFog?.parseDistanceMeters?.(distanceText);
+      if (parsed > 0) distanceMeters = parsed;
+    }
     const edge = {
       ...(existing || {}),
       id,
@@ -493,8 +499,8 @@ window.GameModules.realWorldLocationGraph = {
       directNeighbor: data.directNeighbor !== false,
       noIntermediateLocations: data.noIntermediateLocations !== false,
       intermediateLocations: Array.isArray(data.intermediateLocations) ? data.intermediateLocations : [],
-      distanceMeters: Number.isFinite(meters) && meters > 0 ? Math.round(meters) : existing?.distanceMeters || null,
-      distanceText: data.distanceText || data.distance || existing?.distanceText || '',
+      distanceMeters,
+      distanceText,
       basis: data.basis || data.reason || existing?.basis || '',
       source: data.source || existing?.source || 'location-graph-route',
       updatedAt: data.time || new Date().toISOString(),
@@ -526,6 +532,10 @@ window.GameModules.realWorldLocationGraph = {
     const visibleNodeIds = candidateIds.filter((id) => linkedIdSet.has(id));
     const currentGraphNode = this.poiAncestor(state, state.realWorldMap?.mapAnchorId || state.realWorldMap?.currentId)
       || this.getNode(state, state.realWorldMap?.mapAnchorId || state.realWorldMap?.currentId || state.realWorldLocationName);
+    // Always surface the current POI even before surround edges exist (dump was empty with orphan home).
+    if (currentGraphNode?.id && candidateIdSet.has(currentGraphNode.id) && !visibleNodeIds.includes(currentGraphNode.id)) {
+      visibleNodeIds.unshift(currentGraphNode.id);
+    }
     const currentId = visibleNodeIds.includes(currentGraphNode?.id) ? currentGraphNode.id : visibleNodeIds[0] || '';
     return {
       currentId,
@@ -712,17 +722,12 @@ window.GameModules.realWorldLocationGraph = {
   },
 
   characterStates(state = {}) {
-    const rows = [
-      ...Object.values(state.rpgStates || {}),
-      ...(window.GameModules.characterStateStore?.list?.() || []),
-    ].filter((item) => item && typeof item === 'object');
-    const seen = new Set();
-    return rows.filter((item) => {
-      const key = String(item.id || item.profile?.id || item.profile?.name || item.name || '').trim();
-      if (!key || seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+    const storeApi = window.GameModules.characterStateStore;
+    if (storeApi?.listLive) {
+      const live = storeApi.listLive(state);
+      if (live.length) return live;
+    }
+    return Object.values(state.rpgStates || {}).filter((item) => item && typeof item === 'object');
   },
 
   refMatchesCharacter(ref = {}, character = {}) {

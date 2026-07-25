@@ -1,4 +1,4 @@
-﻿window.GameModules = window.GameModules || {};
+window.GameModules = window.GameModules || {};
 
 window.GameModules.controlLinkActions = {
   controlLinkMetricKeys: window.GameModules.domain?.control?.linkRules?.controlLinkMetricKeys || ['好感', '信任', '依赖', '爱情', '亲情', '友情', '肉欲', '服从'],
@@ -80,8 +80,13 @@ window.GameModules.controlLinkActions = {
   },
 
   sharedControlOfflineNarration(state = null) {
-    const name = this.sharedControlTargetName(state);
-    return `你意识从${name}的肉体深处缓缓抽离，原本重叠在一起的呼吸、心跳、触感和视野像退潮一样分开。那具身体短暂地停顿了一瞬，随后控制权重新回到${name}自己的意识里；你仍能记得刚才附身时残留的感官余温，却已经不再驱使她的手脚。`;
+    const helpers = window.GameModules.domain.control.onlineControlHelpers;
+    const target = helpers?.targetControlIdentity?.call(this, state) || {
+      id: state?.id || '',
+      name: this.sharedControlTargetName(state),
+    };
+    const targetTag = helpers?.roleLabel?.(target.id, target.name) || target.name;
+    return `你意识从${targetTag}的肉体深处缓缓抽离，原本重叠在一起的呼吸、心跳、触感和视野像退潮一样分开。那具身体短暂地停顿了一瞬，随后控制权重新回到${targetTag}自己的意识里；你仍能记得刚才附身时残留的感官余温，却已经不再驱使她的手脚。`;
   },
 
   async appendSharedControlSystemNarration(text = '', state = null) {

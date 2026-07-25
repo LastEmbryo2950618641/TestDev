@@ -127,9 +127,13 @@ window.GameModules.rpgFieldUi = {
     const p = state?.profile || {};
     const worldTag = p.work || state?.worldTag || '原创世界';
     const reasonFor = this.roleCardReasonGetter(p);
+    const locationText = p.currentLocation
+      || window.GameModules.currentLocationField?.fromCharacterState?.(state)
+      || '';
     const row = (key, label, value, desc) => ({ key: `profile-${state?.id || 'target'}-${key}`, stateId: state?.id || '', label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: key !== 'work' });
     return [
       row('name', '姓名', p.name || state?.name, '角色卡固化姓名。'), row('work', '所属世界', worldTag, '角色出身作品或世界。'),
+      row('currentLocation', '当前位置', locationText, '角色卡当前位置；格式为[势力层级链...]·地点·地点内位置（倒数第2段=地图节点，最后1段=室内细节）。'),
       row('role', '身份', p.role || p.job, '角色当前身份。'),
       row('job', '职业', p.job, '角色真实职业、训练身份或社会功能。'),
       row('gender', '性别', p.gender, '角色性别资料。'), row('birthday', '生日', p.birthday, '角色生日资料。'),
@@ -155,7 +159,8 @@ window.GameModules.rpgFieldUi = {
       age: '年龄',
       current_location: '当前位置',
       level: '等级',
-      exp: '经验',
+      level: '生命层次',
+      exp: '能量',
       free_attribute_points: '可分配属性点',
       health: '生命力',
       stamina: '体力',
@@ -234,20 +239,32 @@ window.GameModules.rpgFieldUi = {
       状态标签: { icon: '🏷️', label: '标签', hint: '当前状态标记' },
       人际关系: { icon: '🤝', label: '关系', hint: '社交与亲属' },
       身份信息: { icon: '🪪', label: '身份', hint: '基础档案' },
-      人生目标: { icon: '🧭', label: '目标', hint: '人生取向' },
+      人生取向: { icon: '🧭', label: '取向', hint: '人生价值取向' },
+      人生目标: { icon: '🧭', label: '取向', hint: '人生价值取向' },
+      长期目标: { icon: '🎯', label: '目标', hint: '短中长期目标与成果' },
       本质偏好: { icon: '✨', label: '偏好', hint: '本质偏好五层' },
       身体状态: { icon: '💓', label: '身体', hint: '亲密与体征' },
     };
     if (section.view === 'essentialPreference') return { icon: '✨', label: '偏好', hint: '本质偏好五层' };
-    if (section.view === 'goals') return { icon: '🧭', label: '目标', hint: '人生取向' };
+    if (section.view === 'lifeOrientation') return { icon: '🧭', label: '取向', hint: '人生价值取向' };
+    if (section.view === 'goalSystem' || section.view === 'goals') return { icon: '🎯', label: '目标', hint: '短中长期目标与成果' };
     return byTitle[title] || { icon: '📋', label: title.slice(0, 4) || '分区', hint: title || '状态分区' };
+  },
+
+  isGoalSystemField(field = {}) {
+    if (field?.profileGroup === '长期目标') return true;
+    if (['short', 'medium', 'long', 'achievements', 'goalBundle'].includes(field?.goalsRole)) return true;
+    const label = String(field?.label || '').trim();
+    return /^(?:短期目标|近期目标|中期目标|长期目标|阶段成果|目标)$/u.test(label);
   },
 
   profileSections(state, identityFields = []) {
     const displayState = this.profileDisplayState(state, identityFields);
     const aspirationFields = (identityFields || []).filter((field) => field.profileGroup === '人生取向');
+    const orientationFields = aspirationFields.filter((field) => !this.isGoalSystemField(field));
+    const goalSystemFields = (identityFields || []).filter((field) => this.isGoalSystemField(field));
     const essentialPreferenceFields = (identityFields || []).filter((field) => field.profileGroup === '本质偏好');
-    const baseIdentityFields = (identityFields || []).filter((field) => field.profileGroup !== '人生取向' && field.profileGroup !== '本质偏好');
+    const baseIdentityFields = (identityFields || []).filter((field) => field.profileGroup !== '人生取向' && field.profileGroup !== '本质偏好' && field.profileGroup !== '长期目标');
     const entries = this.rpgEntries?.(displayState) || [];
     const all = entries.flatMap((section) => section.fields || []);
     const byKey = (key) => all.find((field) => field.key === key);
@@ -274,25 +291,34 @@ window.GameModules.rpgFieldUi = {
       { title: '盛装', fields: dressedState ? [dressedState] : [] },
       { title: '状态标签', fields: take(['status_tags']) },
       { title: '人际关系', fields: relations },
-      { title: '身份信息', fields: [...identityRest, ...(longing ? [longing] : []), ...take(['world_tag', 'age', 'current_location', 'factions', 'memberships'])] },
+      { title: '身份信息', fields: [...identityRest, ...(longing ? [longing] : []), ...take(['world_tag', 'age', 'factions', 'memberships'])] },
     ];
-    if (aspirationFields.length) {
-      groups.splice(groups.findIndex((group) => group.title === '身份信息') + 1, 0, {
-        title: '人生目标',
-        fields: aspirationFields,
-        view: 'goals',
+    let insertAt = groups.findIndex((group) => group.title === '身份信息') + 1;
+    if (insertAt < 1) insertAt = groups.length;
+    if (orientationFields.length) {
+      groups.splice(insertAt, 0, {
+        title: '人生取向',
+        fields: orientationFields,
+        view: 'lifeOrientation',
       });
+      insertAt += 1;
+    }
+    if (goalSystemFields.length) {
+      groups.splice(insertAt, 0, {
+        title: '长期目标',
+        fields: goalSystemFields,
+        view: 'goalSystem',
+      });
+      insertAt += 1;
     }
     if (this.shouldShowEssentialPreferenceSection(displayState)) {
-      const anchor = groups.findIndex((group) => group.title === '人生目标');
-      const at = anchor >= 0 ? anchor + 1 : groups.findIndex((group) => group.title === '身份信息') + 1;
-      groups.splice(at < 0 ? groups.length : at, 0, {
+      groups.splice(insertAt, 0, {
         title: '本质偏好',
         fields: essentialPreferenceFields,
         view: 'essentialPreference',
       });
     }
-    return this.placeProfileSection(groups, { title: intimacyUi.sectionTitle || '身体状态', fields: intimacyFields }, intimacyUi).filter((group) => group.fields.length || group.view === 'goals' || group.view === 'essentialPreference');
+    return this.placeProfileSection(groups, { title: intimacyUi.sectionTitle || '身体状态', fields: intimacyFields }, intimacyUi).filter((group) => group.fields.length || group.view === 'lifeOrientation' || group.view === 'goalSystem' || group.view === 'goals' || group.view === 'essentialPreference');
   },
 
   placeProfileSection(groups = [], section = {}, ui = {}) {
@@ -316,19 +342,18 @@ window.GameModules.rpgFieldUi = {
 
   defaultIntimacyBodyFields(state = {}) {
     const template = window.GameModules.initDefaults?.intimacyBody || window.GameModules.initTemplateSources?.intimacyBody;
-    const intimacy = template?.intimacy?.() || template?.intimacyDefaults || {};
     const bodyStatus = template?.bodyStatus?.() || template?.bodyStatusDefaults || {};
     const sexRows = Object.entries(template?.sexPartLabels || {}).map(([partKey, name]) => ({ partKey, name, count: 0, initialCount: 0, laterCount: 0, prompt: template?.sexPartPrompts?.[partKey] || template?.sexPartPrompts?.other || '', type: template?.fieldMeta?.sexualExperienceParts?.kind || '性经验分类', pendingAiInit: true }));
-    const bodyRows = Object.values(bodyStatus || {}).map((item) => ({ ...item, name: item.part || item.partKey, type: template?.fieldMeta?.bodyStatus?.kind || '当前身体状态', pendingAiInit: true, reason: '尚未经过现实推演AI初始化；当前仅按模板占位显示。' }));
-    const base = { templateKey: 'intimacyBody', stateId: state.id || '', worldTag: state.worldTag || state.profile?.work || '原创世界', targetType: state.profile?.isPlayer ? '非角色' : '角色', commonField: true, pendingAiInit: true, reason: '待AI初始化。' };
+    const bodyRows = Object.values(bodyStatus || {}).map((item) => ({ ...item, name: item.part || item.partKey, type: template?.fieldMeta?.bodyStatus?.kind || '当前身体状态', pendingAiInit: true, reason: '未知' }));
+    const base = { templateKey: 'intimacyBody', stateId: state.id || '', worldTag: state.worldTag || state.profile?.work || '原创世界', targetType: state.profile?.isPlayer ? '非角色' : '角色', commonField: true, pendingAiInit: true, reason: '未知' };
     const meta = template?.fieldMeta || {};
     return [
-      { key: 'sexualStatus', ...base, ...(meta.sexualStatus || {}), value: `${intimacy.sexualStatus || '待AI判断'}｜模板占位，待AI初始化`, raw: intimacy.sexualStatus || '待AI判断' },
-      { key: 'sexualPartnerCount', ...base, ...(meta.sexualPartnerCount || {}), value: `${Number(intimacy.sexualPartnerCount) || 0}人｜模板占位，待AI初始化`, raw: Number(intimacy.sexualPartnerCount) || 0 },
-      { key: 'sexualPartners', ...base, ...(meta.sexualPartners || {}), value: [template?.displayTexts?.noPartner || '无', '模板占位，待AI初始化'], raw: [template?.displayTexts?.noPartner || '无'] },
-      { key: 'sexualExperienceCount', ...base, ...(meta.sexualExperienceCount || {}), value: `${Number(intimacy.sexualExperienceCount) || 0}次｜模板占位，待AI初始化`, raw: Number(intimacy.sexualExperienceCount) || 0 },
-      { key: 'sexualExperienceParts', ...base, ...(meta.sexualExperienceParts || {}), value: sexRows.map((item) => `${item.name}：0(初次见面) + 0 (后续次数)`), raw: sexRows },
-      { key: 'bodyStatus', ...base, ...(meta.bodyStatus || {}), value: bodyRows.map((item) => template?.formatBodyStatus?.(item) || `${item.part || item.partKey}：${item.status || '--'}`), raw: bodyRows, desc: '身体状态尚未经过现实推演AI初始化；当前显示的是模板占位，不作为真实原始值。' },
+      { key: 'sexualStatus', ...base, ...(meta.sexualStatus || {}), value: '未知', raw: null },
+      { key: 'sexualPartnerCount', ...base, ...(meta.sexualPartnerCount || {}), value: '未知', raw: null },
+      { key: 'sexualPartners', ...base, ...(meta.sexualPartners || {}), value: ['未知'], raw: [] },
+      { key: 'sexualExperienceCount', ...base, ...(meta.sexualExperienceCount || {}), value: '未知', raw: null },
+      { key: 'sexualExperienceParts', ...base, ...(meta.sexualExperienceParts || {}), value: sexRows.map((item) => `${item.name}：未知`), raw: sexRows },
+      { key: 'bodyStatus', ...base, ...(meta.bodyStatus || {}), value: bodyRows.map((item) => `${item.part || item.partKey}：未知`), raw: bodyRows, desc: '尚未初始化，当前未知。' },
     ];
   },
 
@@ -660,12 +685,13 @@ window.GameModules.rpgFieldUi = {
     if (kind === '性经验分类') {
       const defaults = window.GameModules.initDefaults?.intimacyBody;
       const partKey = this.sexPartKey(obj, defaults);
-      return [`分类: ${obj.name || name}`, `字段: intimacy.sexualExperienceParts.${partKey}`, `次数: ${defaults?.formatExperienceSplit?.(obj) || ''}`, `初始化: ${obj.pendingAiInit ? '否，当前为模板占位，待AI初始化' : (field?.pendingAiInit ? '否，当前为模板占位，待AI初始化' : '按当前记录')}`, `次数增加标准: ${this.sexPartPrompt(obj, defaults)}`, `所属世界: ${field?.worldTag || defaults?.displayTexts?.publicWorld || '公共'}`].join('\n');
+      return [`分类: ${obj.name || name}`, `字段: intimacy.sexualExperienceParts.${partKey}`, `次数: ${defaults?.formatExperienceSplit?.(obj) || ''}`, `初始化: ${obj.pendingAiInit || field?.pendingAiInit ? '否，当前未知' : '按当前记录'}`, `次数增加标准: ${this.sexPartPrompt(obj, defaults)}`, `所属世界: ${field?.worldTag || defaults?.displayTexts?.publicWorld || '公共'}`].join('\n');
     }
     if (kind === '当前身体状态') {
       const uiRow = this.initUiRow(field, obj);
       const defaults = window.GameModules.initDefaults?.intimacyBody, text = defaults?.displayTexts || {}, values = defaults?.valueDefaults || {};
-      const lines = [`部位: ${uiRow?.name || obj.part || name}`, `状态: ${obj.status || values.bodyStatus || ''}`, `初始化: ${obj.pendingAiInit ? '否，当前为模板占位，待AI初始化' : (obj.initializedByAi ? '是，已由AI初始化' : '未标记')}`, `初始见面: ${obj.initialMeeting || text.noRecord || ''}`, `描述状态: ${obj.description || text.noRecord || ''}`];
+      const statusText = obj.pendingAiInit ? '未知' : (obj.status || values.bodyStatus || '未知');
+      const lines = [`部位: ${uiRow?.name || obj.part || name}`, `状态: ${statusText}`, `初始化: ${obj.pendingAiInit ? '否，当前未知' : (obj.initializedByAi ? '是，已由AI初始化' : '未标记')}`, `初始见面: ${obj.initialMeeting || text.noRecord || ''}`, `描述状态: ${obj.pendingAiInit ? '未知' : (obj.description || text.noRecord || '')}`];
       if (Array.isArray(uiRow?.detailLines)) lines.push(...uiRow.detailLines);
       lines.push(`变化原因: ${obj.reason || text.currentRecord || ''}`, `更新时间: ${obj.updatedAt || text.noRecord || ''}`, `所属世界: ${field?.worldTag || text.publicWorld || '公共'}`);
       return lines.join('\n');
@@ -718,7 +744,7 @@ window.GameModules.rpgFieldUi = {
       if (field.raw.updatedAt) lines.push(`更新时间: ${field.raw.updatedAt}`);
       if (field.raw.reason && !String(rawValue || '').includes(field.raw.reason)) lines.push(`登记依据: ${field.raw.reason}`);
     }
-    if (field?.pendingAiInit) lines.push('初始化: 否，当前为模板占位，待AI初始化');
+    if (field?.pendingAiInit) lines.push('初始化: 否，当前未知');
     if (field && Object.prototype.hasOwnProperty.call(field, 'initialMeeting')) lines.push(`初始见面: ${Array.isArray(field.initialMeeting) ? field.initialMeeting.join('、') || '无' : field.initialMeeting}`);
     lines.push(`变化原因: ${this.fieldChangeReason(field, lexicon)}`);
     lines.push(`当前依据: ${this.fallbackBasis(field)}`);
@@ -802,12 +828,33 @@ window.GameModules.rpgFieldUi = {
       { listKey: 'skills', key: 'skills', label: '技能', type: '技能' },
       { listKey: 'professions', key: 'professions', label: '职业', type: '职业' },
     ];
+    const progression = window.GameModules.progression;
     return specs.map(({ listKey, key, label, type }) => {
       const field = this.fieldByKey(fields, listKey);
       const items = this.rpgListItems(field).map((item, index) => {
         const name = this.rpgItemName(item);
         if (!name) return null;
-        const level = Number(item?.level) > 0 ? item.level : null;
+        const hasLevel = Number(item?.level) > 0;
+        const level = hasLevel ? Number(item.level) : null;
+        if (hasLevel && progression?.normalizeLearnedExp) {
+          try { progression.normalizeLearnedExp(item); } catch (_) { /* ignore */ }
+        }
+        const maxed = hasLevel && level >= 7;
+        const current = maxed ? Math.max(0, Number(item?.exp?.current) || 0) : Math.max(0, Number(item?.exp?.current) || 0);
+        const nextRaw = item?.exp?.next;
+        const next = maxed || nextRaw === Infinity || nextRaw == null
+          ? null
+          : Math.max(1, Number(nextRaw) || 1);
+        const percent = !hasLevel
+          ? 0
+          : maxed
+            ? 100
+            : Math.max(0, Math.min(100, Math.round((current / next) * 100)));
+        const expDisplay = !hasLevel
+          ? '—'
+          : maxed
+            ? 'MAX'
+            : `${current}/${next}`;
         return {
           type,
           field,
@@ -817,6 +864,11 @@ window.GameModules.rpgFieldUi = {
           level,
           icon: this.learnedTypeIcon(type),
           chipText: `${this.learnedTypeIcon(type)} ${name}${level ? ` lv.${level}` : ''}`,
+          expCurrent: current,
+          expNext: next,
+          expPercent: percent,
+          expDisplay,
+          maxed,
         };
       }).filter(Boolean);
       return { key, label, icon: this.learnedTypeIcon(type), items };
@@ -827,11 +879,20 @@ window.GameModules.rpgFieldUi = {
     return this.personalAbilityLearnedGroups(fields);
   },
 
+  sanitizeIntimacyDisplayText(text = '') {
+    return String(text || '')
+      .replace(/[｜|]\s*模板占位，待AI初始化/g, '')
+      .replace(/模板占位，待AI初始化/g, '')
+      .replace(/待AI判断/g, '未知')
+      .replace(/\s*[｜|]\s*$/g, '')
+      .trim();
+  },
+
   identityInfoValueText(field = {}) {
-    if (Array.isArray(field?.value)) return field.value.join('、');
-    if (field?.value != null && field.value !== '') return String(field.value).trim();
-    if (Array.isArray(field?.raw)) return field.raw.map((item) => this.rpgItemSummary(item, field)).join('、');
-    return String(field?.raw ?? '').trim();
+    if (Array.isArray(field?.value)) return this.sanitizeIntimacyDisplayText(field.value.join('、'));
+    if (field?.value != null && field.value !== '') return this.sanitizeIntimacyDisplayText(field.value);
+    if (Array.isArray(field?.raw)) return this.sanitizeIntimacyDisplayText(field.raw.map((item) => this.rpgItemSummary(item, field)).join('、'));
+    return this.sanitizeIntimacyDisplayText(field?.raw ?? '');
   },
 
   identityInfoPreview(field = {}, max = 48) {
@@ -948,13 +1009,15 @@ window.GameModules.rpgFieldUi = {
   },
 
   goalsFieldRole(field = {}) {
-    const text = `${field?.label || ''} ${field?.key || ''}`;
-    if (/人生取向总结/.test(text)) return 'portrait';
-    if (/人生取向摘要|summary/.test(text)) return 'summary';
-    if (/近期目标|short/.test(text)) return 'short';
-    if (/中期目标|medium/.test(text)) return 'medium';
-    if (/长期目标|long/.test(text)) return 'long';
-    if (/^目标$|目标方向|目标摘要/.test(String(field?.label || '').trim()) || /goal/.test(text)) return 'goalBundle';
+    if (field?.goalsRole) return field.goalsRole;
+    const label = String(field?.label || '').trim();
+    if (/^(?:人生取向总结|人生总结)$/u.test(label)) return 'portrait';
+    if (/^(?:人生取向摘要|目标摘要)$/u.test(label)) return 'summary';
+    if (/^(?:短期目标|近期目标)$/u.test(label)) return 'short';
+    if (/^中期目标$/u.test(label)) return 'medium';
+    if (/^长期目标$/u.test(label)) return 'long';
+    if (/^阶段成果$/u.test(label)) return 'achievements';
+    if (/^(?:目标|目标方向)$/u.test(label)) return 'goalBundle';
     return 'support';
   },
 
@@ -990,15 +1053,58 @@ window.GameModules.rpgFieldUi = {
     };
   },
 
+  lifeOrientationPresentation(fields = []) {
+    const iconByLabel = {
+      价值立场: '⚖️',
+      决策风格: '🧠',
+      人生六维: '🜂',
+      底线锚点: '🛡️',
+      心理偏好: '✨',
+      人生总结: '📜',
+      人生取向总结: '📜',
+    };
+    const toneByLabel = {
+      价值立场: 'violet',
+      决策风格: 'cyan',
+      人生六维: 'gold',
+      底线锚点: 'pink',
+      心理偏好: 'violet',
+      人生总结: 'violet',
+      人生取向总结: 'violet',
+    };
+    const rows = (fields || []).filter(Boolean).map((field) => {
+      const label = String(field?.label || '').trim();
+      return {
+        field,
+        title: label || '补充信息',
+        icon: iconByLabel[label] || '✦',
+        tone: toneByLabel[label] || 'violet',
+        preview: this.identityInfoPreview(field, label.includes('总结') ? 140 : 88),
+        valueText: this.identityInfoValueText(field),
+      };
+    });
+    const portrait = rows.find((row) => /总结/.test(row.title)) || null;
+    const support = rows.filter((row) => row !== portrait);
+    return {
+      hero: {
+        eyebrow: 'LIFE ORIENTATION',
+        title: '人生取向',
+        note: portrait?.preview || '价值立场、决策风格与心理偏好等长期取向。',
+      },
+      support: portrait ? [portrait, ...support] : support,
+    };
+  },
+
   goalsPresentation(fields = []) {
     const rows = (fields || []).filter(Boolean).map((field) => {
       const role = this.goalsFieldRole(field);
       const meta = {
         portrait: { icon: '📜', title: '人生取向总结', tone: 'violet' },
         summary: { icon: '🧭', title: '人生取向摘要', tone: 'cyan' },
-        short: { icon: '⚔️', title: '近期目标', tone: 'cyan' },
+        short: { icon: '⚔️', title: '短期目标', tone: 'cyan' },
         medium: { icon: '🏗️', title: '中期目标', tone: 'gold' },
         long: { icon: '👑', title: '长期目标', tone: 'pink' },
+        achievements: { icon: '🏆', title: '阶段成果', tone: 'violet' },
         goalBundle: { icon: '🧭', title: '目标总览', tone: 'cyan' },
         support: { icon: '✦', title: String(field?.label || field?.key || '补充信息'), tone: 'violet' },
       }[role];
@@ -1011,7 +1117,6 @@ window.GameModules.rpgFieldUi = {
       };
     });
     const byRole = (role) => rows.find((row) => row.role === role);
-    const portrait = byRole('portrait');
     const summary = byRole('summary');
     const bundle = byRole('goalBundle');
     const bundleText = bundle?.valueText || '';
@@ -1019,17 +1124,41 @@ window.GameModules.rpgFieldUi = {
       const direct = byRole(role);
       if (direct?.valueText) return direct.valueText;
       return this.extractGoalSection(bundleText, {
-        short: ['近期目标'],
+        short: ['短期目标', '近期目标'],
         medium: ['中期目标'],
         long: ['长期目标'],
       }[role]);
     };
     const cards = ['short', 'medium', 'long'].map((role) => {
       const row = byRole(role);
-      const fallbackTitle = { short: '近期目标', medium: '中期目标', long: '长期目标' }[role];
+      const fallbackTitle = { short: '短期目标', medium: '中期目标', long: '长期目标' }[role];
       const direction = this.parseGoalDirection(bundleText, role);
       const valueText = goalText(role);
+      let tier = row?.field?.goalTier || null;
+      if ((!tier || !tier.content) && valueText && valueText !== '未记录') {
+        const api = window.GameModules.characterGoalSystem;
+        const extracted = api?.normalizeTier?.(valueText.split('\n')[0].replace(/^(?:短期|近期|中期|长期)目标\s*[：:]\s*/u, '')) || null;
+        const plain = String(valueText || '').replace(/^(?:短期|近期|中期|长期)目标\s*[：:]\s*/u, '').split('\n')[0].trim();
+        if (plain && plain !== '未记录') {
+          tier = {
+            content: plain,
+            deadline: tier?.deadline || '',
+            progress: Number.isFinite(Number(tier?.progress)) ? Number(tier.progress) : 0,
+            detail: tier?.detail || '',
+          };
+        } else if (extracted?.content) {
+          tier = extracted;
+        }
+      }
+      if (!tier) {
+        tier = { content: '', deadline: '', progress: 0, detail: '' };
+      }
       const field = row?.field || this.goalCardField(bundle?.field, role, row?.title || fallbackTitle, valueText, direction);
+      const progress = Math.max(0, Math.min(100, Number.isFinite(Number(tier.progress)) ? Number(tier.progress) : 0));
+      const content = String(tier.content || '').trim();
+      const preview = content
+        ? (content.length > 96 ? `${content.slice(0, 96)}…` : content)
+        : (valueText && valueText !== '未记录' ? (valueText.length > 96 ? `${valueText.slice(0, 96)}…` : valueText) : '未记录');
       return {
         role,
         tone: row?.tone || (role === 'short' ? 'cyan' : role === 'medium' ? 'gold' : 'pink'),
@@ -1037,19 +1166,35 @@ window.GameModules.rpgFieldUi = {
         title: row?.title || fallbackTitle,
         field,
         valueText,
-        preview: valueText ? (valueText.length > 96 ? `${valueText.slice(0, 96)}…` : valueText) : '未记录',
+        preview,
+        deadline: tier.deadline || '',
+        deadlineLabel: tier.deadline ? `期限 ${tier.deadline}` : '未设期限',
+        progress,
+        detail: String(tier.detail || '').trim(),
         direction,
       };
     });
+    const achievementRow = byRole('achievements');
+    const achievements = Array.isArray(achievementRow?.field?.goalAchievements)
+      ? achievementRow.field.goalAchievements
+      : String(achievementRow?.valueText || '')
+        .split(/\n+/u)
+        .map((line) => line.replace(/^成果\d+[：:]\s*/u, '').trim())
+        .filter((line) => line && line !== '未记录')
+        .map((text) => ({ text }));
     const summaryText = this.extractGoalSection(bundleText, ['目标摘要']);
+    const hasContent = cards.some((card) => card.preview && card.preview !== '未记录') || achievements.length > 0;
     return {
       hero: {
-        eyebrow: 'DESTINY LOG',
-        title: summaryText || summary?.preview || '人生取向',
-        note: portrait?.preview || '将短期行动、中期发展与长期追求组织成一条可推进的命运路线。',
+        eyebrow: 'GOAL SYSTEM',
+        title: summaryText || summary?.preview || '长期目标',
+        note: hasContent ? '短期、中期与长期目标及阶段成果，用于驱动行为与完成度。' : '尚未建立长期目标；完成人生取向向导后自动生成。',
       },
       cards,
-      support: rows.filter((row) => row.role === 'support' || row.role === 'portrait' || row.role === 'summary'),
+      achievements: achievements.slice(0, 5),
+      achievementTotal: achievements.length,
+      empty: !hasContent,
+      support: [],
     };
   },
 
@@ -1096,7 +1241,31 @@ window.GameModules.rpgFieldUi = {
       if (layers[item.key]) acc[item.key] = layers[item.key];
       return acc;
     }, {});
-    const view = tool?.viewFromLayers?.(normalizedLayers) || null;
+    // Prefer profile layers (with layer5 repair) so 心理偏好簇 does not vanish when
+    // section fields still carry a stale「未勾选」line.
+    const stateLayers = this.essentialPreferenceLayersForState?.(this.identityTargetState?.() || null) || null;
+    const mergedLayers = { ...normalizedLayers, ...(stateLayers || {}) };
+    const stateLayer5 = String(stateLayers?.layer5 || '');
+    if (stateLayer5 && !/未勾选/.test(stateLayer5)) mergedLayers.layer5 = stateLayer5;
+    let view = tool?.viewFromLayers?.(mergedLayers) || tool?.viewFromLayers?.(normalizedLayers) || null;
+    // Continue-game often has empty section fields; rebuild from state/aspiration view.
+    if (!view?.alignmentLabel || !(view?.axes || []).length) {
+      const stateView = this.essentialPreferenceViewForState?.(this.identityTargetState?.() || null) || null;
+      if (stateView?.alignmentLabel) {
+        view = {
+          ...(view || {}),
+          ...stateView,
+          axes: (view?.axes || []).length ? view.axes : (stateView.axes || []),
+          guiltLines: (view?.guiltLines || []).length ? view.guiltLines : (stateView.guiltLines || []),
+          psychGroups: (view?.psychGroups || []).length ? view.psychGroups : (stateView.psychGroups || []),
+        };
+      }
+    } else if (!(view?.psychGroups || []).length) {
+      const aspirationView = this.essentialPreferenceViewFromPlayerAspiration?.() || null;
+      if ((aspirationView?.psychGroups || []).length) {
+        view = { ...(view || {}), psychGroups: aspirationView.psychGroups };
+      }
+    }
     const fieldByKey = (key) => rows.find((row) => row.key === key)?.field || null;
     const compact = (items = [], limit = 3) => items.map((item) => String(item || '').trim()).filter(Boolean).slice(0, limit).join(' · ');
     const layerPreview = (key, row = null) => {
@@ -1129,7 +1298,7 @@ window.GameModules.rpgFieldUi = {
         const row = rows.find((entry) => entry.key === item.key);
         return {
           key: item.key,
-          title: item.label,
+          title: String(item.label || '').replace(/偏好$/u, '') || item.label,
           icon: iconByKey[item.key],
           tone: toneByKey[item.key],
           field: row?.field || fieldByKey(item.key),
@@ -1179,11 +1348,14 @@ window.GameModules.rpgFieldUi = {
       { key: 'sexualExperienceCount', title: '总次数', icon: '📎', tone: 'gold' },
     ]).map((meta) => {
       const field = byKey(meta.key);
+      const valueText = field?.pendingAiInit
+        ? '未知'
+        : (this.sanitizeIntimacyDisplayText(this.identityInfoValueText(field)) || '未知');
       return {
         ...meta,
         field,
-        valueText: this.identityInfoValueText(field) || '未记录',
-        preview: this.identityInfoPreview(field, 48),
+        valueText,
+        preview: valueText,
       };
     }).filter((row) => row.field);
     const partnersField = byKey('sexualPartners');
@@ -1206,15 +1378,17 @@ window.GameModules.rpgFieldUi = {
     }));
     const bodyRows = this.rpgListItems(bodyField).map((item, index) => {
       const row = this.initUiRow(bodyField, item) || {};
-      const desc = item?.description || item?.['描述状态'] || '';
+      const pending = Boolean(item?.pendingAiInit || bodyField?.pendingAiInit);
+      const rawDesc = pending ? '' : (item?.description || item?.['描述状态'] || '');
+      const desc = this.sanitizeIntimacyDisplayText(rawDesc);
       return {
         field: bodyField,
         item,
         index,
         icon: this.bodyPartEmoji(item?.part || item?.partKey || row.name || item?.name || ''),
         title: row.name || item?.part || item?.partKey || item?.name || ('状态' + (index + 1)),
-        value: row.value || item?.status || '未记录',
-        preview: desc || row.value || '暂无额外说明',
+        value: pending ? '未知' : (row.value || item?.status || '未记录'),
+        preview: pending ? '未知' : (desc || row.value || '暂无额外说明'),
       };
     });
     const visiblePartnerRows = isMalePlayer
@@ -1230,9 +1404,7 @@ window.GameModules.rpgFieldUi = {
     return {
       hero: {
         eyebrow: 'INTIMACY RECORD',
-        title: isMalePlayer
-          ? (summaryRows[0]?.valueText || '性经历档案')
-          : (summaryRows.find((row) => row.key === 'sexualStatus')?.valueText || '身体状态'),
+        title: isMalePlayer ? '性经历档案' : '身体状态',
         note: isMalePlayer
           ? '男性玩家仅展示性经历人数与性经历列表。'
           : '按当前状态、经历脉络与身体部位记录现实推演中的亲密与体征信息。',
@@ -1240,7 +1412,7 @@ window.GameModules.rpgFieldUi = {
       groups: {
         partner: isMalePlayer
           ? { title: '性经历列表', hint: '已记录对象' }
-          : { title: '关联对象', hint: '经历名册' },
+          : { title: '经历对象', hint: '经历名册' },
         experience: { title: '经历谱系', hint: '分类计数' },
         body: { title: '体征监测', hint: '部位状态' },
       },
@@ -1251,16 +1423,27 @@ window.GameModules.rpgFieldUi = {
     };
   },
   personalAbilityPresentation(fields = [], state = null) {
+    if (state?.values) {
+      window.GameModules.progression?.ensureStateMechanics?.(state, state.profile || {});
+    }
     const byKey = (key) => this.fieldByKey(fields, key);
+    const poolField = (key) => {
+      const field = byKey(key);
+      const live = state?.values?.[key];
+      if (live && typeof live === 'object' && Object.prototype.hasOwnProperty.call(live, 'current')) {
+        return { ...field, raw: live, value: this.rpgFieldValue?.(live) || `${live.current}/${live.max}` };
+      }
+      return field;
+    };
     const levelField = byKey('level');
     const expField = byKey('exp');
     const exp = this.parseExpMetric(expField, levelField);
     const hero = {
-      level: Number(levelField?.raw ?? levelField?.value) || 1,
+      level: Number(state?.values?.level ?? levelField?.raw ?? levelField?.value) || 1,
       levelField,
       expField,
       exp,
-      freePoints: Number(byKey('free_attribute_points')?.raw ?? byKey('free_attribute_points')?.value) || 0,
+      freePoints: Number(state?.values?.free_attribute_points ?? byKey('free_attribute_points')?.raw ?? byKey('free_attribute_points')?.value) || 0,
       freeField: byKey('free_attribute_points'),
       growthField: byKey('level_growth'),
       growthSummary: byKey('level_growth')?.value || '暂无升级记录',
@@ -1273,7 +1456,7 @@ window.GameModules.rpgFieldUi = {
       { key: 'fatigue', label: '疲劳', tone: 'fatigue' },
     ];
     const survival = survivalKeys.map(({ key, label, tone }) => {
-      const field = byKey(key);
+      const field = poolField(key);
       return { key, label, tone, field, ...this.parsePoolMetric(field) };
     });
     const growthKeys = [
@@ -1283,9 +1466,23 @@ window.GameModules.rpgFieldUi = {
       { key: 'action_ability', label: '行动', pool: true },
     ];
     const growth = growthKeys.map(({ key, label, pool }) => {
-      const field = byKey(key);
+      const field = pool ? poolField(key) : byKey(key);
       const metric = pool ? this.parsePoolMetric(field) : null;
-      const value = metric ? metric.current : Number(field?.raw ?? field?.value) || 0;
+      if (key === 'growth_potential') {
+        const base = window.GameModules.progression?.growthPotentialBase?.(state?.values || { growth_potential: Number(field?.raw ?? field?.value) || 0 }) ?? (Number(field?.raw ?? field?.value) || 0);
+        const effective = window.GameModules.progression?.effectiveGrowthPotential?.(state?.values || { growth_potential: base, level: state?.values?.level || 1 }) ?? base;
+        const shown = Math.round(effective);
+        return {
+          key,
+          label,
+          field,
+          value: shown,
+          cap: 100,
+          percent: Math.max(0, Math.min(100, shown)),
+          display: `${shown}/${base}`,
+        };
+      }
+      const value = metric ? metric.current : Number(state?.values?.[key] ?? field?.raw ?? field?.value) || 0;
       const cap = metric?.max || 100;
       const percent = Math.max(0, Math.min(100, Math.round((value / cap) * 100)));
       return { key, label, field, value, cap, percent, display: field?.value || String(value) };
@@ -1756,8 +1953,12 @@ window.GameModules.rpgFieldUi = {
     return window.GameModules.bodyFigure?.startAnchorDrag?.(event, figure, ann);
   },
 
-  openBodyFigurePart(rows = [], part = '') {
-    return window.GameModules.bodyFigure?.openAnnotationPart?.(rows, part) || false;
+  startBodyFigureLabelDrag(event, figure = {}, ann = {}) {
+    return window.GameModules.bodyFigure?.startLabelDrag?.(event, figure, ann);
+  },
+
+  openBodyFigurePart(rows = [], part = '', event = null) {
+    return window.GameModules.bodyFigure?.openAnnotationPart?.(rows, part, event) || false;
   },
 
   isBodyFigurePartActive(rows = [], part = '') {

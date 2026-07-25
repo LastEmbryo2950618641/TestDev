@@ -1,25 +1,13 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.factionAiActions = {
-  factionFields: ['name', 'type', 'classification', 'parentId', 'parentName', 'level', 'location', 'domain', 'scale', 'stance', 'influence', 'description', 'structure', 'rules', 'resources', 'relations'],
+  factionFields: ['name', 'type', 'classification', 'worldTag', 'parentId', 'parentName', 'level', 'location', 'domain', 'scale', 'stance', 'influence', 'description', 'structure', 'rules', 'resources', 'relations'],
 
   async generateFactionsByAI() {
-    this.initFactionSystem();
-    if (this.factionState.generating) return;
-    const requestId = (this.factionState.requestId || 0) + 1;
-    Object.assign(this.factionState, { generating: true, error: '', requestId });
-    try {
-      const text = await Promise.race([this.requestFactionText(requestId), new Promise((resolve) => setTimeout(() => resolve(''), 60000))]);
-      if (requestId !== this.factionState.requestId) return;
-      const factions = this.parseFactions(text);
-      if (factions.length) this.applyGeneratedFactions(factions);
-      else this.factionState.error = 'AI未返回有效势力，已保留数据库内已固化势力。';
-      this.save?.();
-    } catch (err) {
-      console.error('AI生成势力失败:', err.code, err.message, err.stack);
-      this.factionState.error = 'AI生成暂时不可用，已保留数据库内已固化势力。';
-    } finally {
-      if (requestId === this.factionState.requestId) this.factionState.generating = false;
+    this.initFactionSystem?.();
+    if (this.factionState) {
+      this.factionState.generating = false;
+      this.factionState.error = '手动全量检视已移除；势力由正文后 Stage6（createFaction / patchFactionField）写入。';
     }
   },
 
@@ -61,7 +49,10 @@ window.GameModules.factionAiActions = {
     const id = String(item.id || `faction-${index}-${item.name}`).replace(/\s+/g, '-');
     const parentId = String(item.parentId || '').trim();
     const classification = window.GameModules.orgTerritory?.deriveClassification?.(item) || window.GameModules.orgTerritory?.normalizeClassification?.(item.classification) || '';
-    const faction = { id, name: String(item.name), type: String(item.type || '组织'), classification: classification || 'community', parentId, parentName: parentId ? String(item.parentName || '未知势力') : '无势力归属', level: String(item.level || '组织级'), location: String(item.location || '未知'), domain: String(item.domain || '综合'), scale: String(item.scale || '未知'), stance: String(item.stance || '中立'), influence: Number(item.influence) || 30, description: String(item.description || ''), structure: this.normalizeFactionStructure({ structure: Array.isArray(item.structure) ? item.structure : [] }).structure, rules: Array.isArray(item.rules) ? item.rules.map(String) : [], resources: Array.isArray(item.resources) ? item.resources.map(String) : [], relations: Array.isArray(item.relations) ? item.relations : [], fixed: true, updatedAt: this.phoneDate?.().toISOString?.() || new Date().toISOString() };
+    const worldTag = window.GameModules.orgTerritory?.resolveFactionWorldTag?.(item, this)
+      || String(item.worldTag || item.所属世界 || this.currentWorldTag?.() || '').trim()
+      || '未知世界';
+    const faction = { id, name: String(item.name), type: String(item.type || '组织'), classification: classification || 'community', worldTag, parentId, parentName: parentId ? String(item.parentName || '未知势力') : '无势力归属', level: String(item.level || '组织级'), location: String(item.location || '未知'), domain: String(item.domain || '综合'), scale: String(item.scale || '未知'), stance: String(item.stance || '中立'), influence: Number(item.influence) || 30, description: String(item.description || ''), structure: this.normalizeFactionStructure({ structure: Array.isArray(item.structure) ? item.structure : [] }).structure, rules: Array.isArray(item.rules) ? item.rules.map(String) : [], resources: Array.isArray(item.resources) ? item.resources.map(String) : [], relations: Array.isArray(item.relations) ? item.relations : [], fixed: true, updatedAt: this.phoneDate?.().toISOString?.() || new Date().toISOString() };
     faction.fieldReasons = this.completeFactionReasons(faction, item.fieldReasons || {}, 'AI全量检视后给出的字段理由。');
     return faction;
   },
@@ -105,6 +96,7 @@ window.GameModules.factionAiActions = {
     });
     this.factionState.factions = [...map.values()].map((item) => this.normalizeFactionStructure(item));
     this.syncCompanyFaction();
+    // Attach role-card titles only onto orgs AI already created.
     this.syncRoleCardMemberships?.();
     window.GameModules.orgTerritory?.validateWorldConsistency?.(this);
     if (!this.selectedFaction()) this.factionState.selectedId = this.factionState.factions[0]?.id || '';

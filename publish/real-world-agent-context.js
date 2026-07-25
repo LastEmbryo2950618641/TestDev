@@ -138,3 +138,7 @@ window.GameModules.realWorldAgentContext = {
     ].join('\n');
   },
 };
+
+// 若资料查询脚本早于本文件执行，或 context 被重建，重新挂载 skill 实现
+window.GameModules.installFactionQuery?.();
+window.GameModules.installMaterialQuery?.();

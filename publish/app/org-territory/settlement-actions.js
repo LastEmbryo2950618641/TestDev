@@ -282,6 +282,11 @@ window.GameModules.app.orgTerritory.settlementActions = {
       ot.upsertCharacterMembership(state, { ...patch, since: patch.since || now, reason: patch.reason || reason }, store);
     }
 
+    if (state.profile) {
+      state.profile.memberships = Array.isArray(state.values.memberships) ? state.values.memberships.slice() : [];
+      state.profile.roleCardUpdatedAt = now;
+    }
+
     store.rpgStates = { ...(store.rpgStates || {}), [state.id]: state };
     window.GameModules.characterStateStore?.save?.(state);
     const mem = (state.values.memberships || []).slice(-1)[0];

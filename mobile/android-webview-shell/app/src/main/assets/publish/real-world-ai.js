@@ -104,24 +104,29 @@ window.GameModules.realWorldAi = {
   },
 
   formatNarration(value, limit = 100) {
-    const text = String(value || '').replace(/\s*\n+\s*/g, '').trim();
-    if (!text) return '';
-    const sentences = this.splitNarrationSentences(text);
-    const grouped = [];
-    let current = '';
-    for (const sentence of sentences) {
-      if (!current) { current = sentence; continue; }
-      if ((current + sentence).length > limit && !/^[”’"』」）】》〕〉〗,，]/u.test(sentence)) {
-        grouped.push(current);
-        current = sentence;
-      } else {
-        current += sentence;
+    const markup = window.GameModules.narrationRoleMarkup;
+    const run = (source) => {
+      const text = String(source || '').replace(/\s*\n+\s*/g, '').trim();
+      if (!text) return '';
+      const sentences = this.splitNarrationSentences(text);
+      const grouped = [];
+      let current = '';
+      for (const sentence of sentences) {
+        if (!current) { current = sentence; continue; }
+        if ((current + sentence).length > limit && !/^[”’"』」）】》〕〉〗,，]/u.test(sentence)) {
+          grouped.push(current);
+          current = sentence;
+        } else {
+          current += sentence;
+        }
       }
-    }
-    if (current) grouped.push(current);
-    const parts = [];
-    for (const chunk of grouped) parts.push(...this.wrapNarrationChunk(chunk, limit));
-    return parts.join('\n\n');
+      if (current) grouped.push(current);
+      const parts = [];
+      for (const chunk of grouped) parts.push(...this.wrapNarrationChunk(chunk, limit));
+      return parts.join('\n\n');
+    };
+    if (markup?.withProtectedRoleTags) return markup.withProtectedRoleTags(value, run);
+    return run(value);
   },
 
   wrapNarrationChunk(text = '', limit = 100) {

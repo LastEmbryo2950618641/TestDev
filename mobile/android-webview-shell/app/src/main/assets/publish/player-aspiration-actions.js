@@ -587,12 +587,23 @@ window.GameModules.playerAspirationActions = {
     const prefTool = window.GameModules.playerAspirationPreferenceLayers;
     const layers = data.essentialPreferenceLayers || prefTool?.buildFromPlayerAspiration?.(data);
     const prefLines = prefTool?.toLines?.(layers) || [];
+    const portrait = String(data.portraitSummary || '').trim();
+    const goalSummary = String(data.goalSummary || '').trim();
+    const shortSummary = String(data.summary || goals.summary || '').trim();
     const parts = [
       prefLines.length ? `本质偏好五层（永久固化）：\n${prefLines.join('\n')}` : '',
-      data.summary || this.aspirationSelectionSummaryFromData(data),
-      goals.short ? `近期目标：${goals.short}` : '',
-      goals.medium ? `中期目标：${goals.medium}` : '',
-      goals.long ? `长期目标：${goals.long}` : '',
+      portrait ? `人生总结：${portrait}` : '',
+      !portrait && shortSummary ? shortSummary : '',
+      portrait && shortSummary && shortSummary !== portrait ? `目标摘要：${shortSummary}` : '',
+      !portrait && !shortSummary ? this.aspirationSelectionSummaryFromData(data) : '',
+      goalSummary && !goals.short ? `目标：${goalSummary}` : '',
+      goals.short ? `近期目标：${typeof goals.short === 'object' ? (goals.short.content || '') : goals.short}` : '',
+      goals.medium ? `中期目标：${typeof goals.medium === 'object' ? (goals.medium.content || '') : goals.medium}` : '',
+      goals.long ? `长期目标：${typeof goals.long === 'object' ? (goals.long.content || '') : goals.long}` : '',
+      (() => {
+        const system = data.goalSystem || this.playerIdentityState?.()?.profile?.goalSystem;
+        return system ? window.GameModules.characterGoalSystem?.formatContextBlock?.(system, '玩家') : '';
+      })(),
     ].filter(Boolean);
     return parts.join('\n');
   },
@@ -667,12 +678,16 @@ window.GameModules.playerAspirationActions = {
 
   lifeOrientationGoalSummary(data = {}) {
     const goals = data.goals || {};
+    const textOf = (value) => {
+      if (value && typeof value === 'object') return String(value.content || value.text || '').trim();
+      return String(value || '').trim();
+    };
     return [
       data.directions ? `目标方向：\n${this.lifeOrientationDirectionSummary(data.directions)}` : '',
       goals.summary ? `目标摘要：${goals.summary}` : '',
-      goals.short ? `近期目标：${goals.short}` : '',
-      goals.medium ? `中期目标：${goals.medium}` : '',
-      goals.long ? `长期目标：${goals.long}` : '',
+      textOf(goals.short) ? `近期目标：${textOf(goals.short)}` : '',
+      textOf(goals.medium) ? `中期目标：${textOf(goals.medium)}` : '',
+      textOf(goals.long) ? `长期目标：${textOf(goals.long)}` : '',
     ].filter(Boolean).join('\n');
   },
 
@@ -1033,7 +1048,7 @@ window.GameModules.playerAspirationActions = {
       row('底线锚点', data.boundaryAnchorsSummary || this.lifeOrientationGuiltSummary(data.guiltAxes, data.guiltLine), '第 4 步原始选择：底线/罪恶感锚点。'),
       row('心理偏好', data.psychSummary || this.aspirationPsychSummary(data.psychPreferences), '第 5 步原始选择：所有心理偏好标签。'),
       row('人生总结', data.portraitSummary || data.summary || this.aspirationSummaryDraft?.portrait || '', '第 6 步确认的人生取向画像。'),
-      row('目标', data.goalSummary || this.lifeOrientationGoalSummary(data), '第 7 步确认的目标方向与短中长期目标。'),
+      // 短/中/长期与阶段成果改由 characterGoalSystem lexicon（profileGroup=长期目标）单独成页。
     ];
   },
 
@@ -1153,12 +1168,19 @@ window.GameModules.playerAspirationActions = {
         portraitSummary: String(this.aspirationSummaryDraft?.portrait || '').trim(),
         directions: JSON.parse(JSON.stringify(draft.directions || cfg.defaultDirections())),
         goals,
+        goalSystem: window.GameModules.characterGoalSystem?.fromAspirationGoals?.(goals) || null,
         summary: goals.summary,
         completedAt: new Date().toISOString(),
       };
       this.realWorldQuest = goals.short || this.realWorldQuest;
       this.quest = goals.short || this.quest;
       await this.syncEssentialPreferenceLayersToPlayerState?.();
+      const playerState = this.playerIdentityState?.();
+      if (playerState?.profile && this.playerAspiration.goalSystem) {
+        playerState.profile.goalSystem = window.GameModules.characterGoalSystem.normalize(this.playerAspiration.goalSystem);
+        await window.GameModules.sqliteSave?.saveCharacterState?.(playerState);
+        this.rpgStates = { ...(this.rpgStates || {}), [playerState.id]: playerState };
+      }
       await this.syncPlayerProfileLexicon?.();
       await this.save?.();
       this.aspirationError = '';

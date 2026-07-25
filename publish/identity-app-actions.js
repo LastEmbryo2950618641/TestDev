@@ -12,6 +12,16 @@ window.GameModules.identityAppActions = {
     }
     if (live?.id) {
       this.rpgStates = { ...(this.rpgStates || {}), [live.id]: live };
+      const poolsChanged = Boolean(window.GameModules.progression?.ensureStateMechanics?.(live, live.profile || {}));
+      if (poolsChanged) {
+        storeApi?.mergeOntoLive?.(live, this);
+        // Force Alpine to see nested pool max changes on the same object reference.
+        this.rpgStates = { ...(this.rpgStates || {}), [live.id]: live };
+        await storeApi?.save?.(live, this);
+        if (typeof this.save === 'function') {
+          try { await Promise.resolve(this.save()); } catch (_) { /* ignore */ }
+        }
+      }
       // Prefer any recorded AI/card text. Only fill blanks from appearing/schedule/scene.
       const recorded = locField?.fromCharacterState?.(live)
         || locField?.normalize?.(live.profile?.currentLocation || '')

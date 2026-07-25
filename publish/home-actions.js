@@ -127,6 +127,12 @@ window.GameModules.homeActions = {
         if (state?.id) nextStates[state.id] = state;
       });
       this.rpgStates = nextStates;
+      Object.values(nextStates).forEach((state) => {
+        if (!state?.values) return;
+        if (window.GameModules.progression?.ensureStateMechanics?.(state, state.profile || {})) {
+          window.GameModules.characterStateStore?.save?.(state, this);
+        }
+      });
       this.rpgPanelCharacterId = this.rpgPanelCharacterId || this.selectedCharacterId || 'player-self';
       if (!this.phoneSetupDone) {
         this.homeMessage = `${slot} 尚未完成手机激活，请从新游戏继续设置。`;

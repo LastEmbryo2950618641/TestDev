@@ -3658,20 +3658,20 @@ window.GameModules.predefinedRoleCardData["04-刘悠-player-self"] = {
     },
     "satiety": {
       "current": 72,
-      "max": 100
+      "max": 84
     },
     "hydration": {
       "current": 88,
-      "max": 100
+      "max": 104
     },
     "fatigue": {
       "current": 20,
-      "max": 100
+      "max": 106
     },
     "learning_ability": 14,
     "mental_stability": {
       "current": 12,
-      "max": 100
+      "max": 118
     },
     "growth_potential": 10,
     "action_ability": {
@@ -5551,7 +5551,7 @@ window.GameModules.predefinedRoleCardData["04-刘悠-player-self"] = {
             "type": "text",
             "min": 0,
             "max": 100,
-            "desc": "进食状态对体力与恢复的影响。",
+            "desc": "进食储备上限：30+等级×2+体质×3+力量；当前值按比例随上限重算。",
             "grade": false
           },
           {
@@ -5560,7 +5560,7 @@ window.GameModules.predefinedRoleCardData["04-刘悠-player-self"] = {
             "type": "text",
             "min": 0,
             "max": 100,
-            "desc": "补水状态对体力与判断的影响。",
+            "desc": "体液调节上限：30+等级×2+体质×2+感知×2+意志；当前值按比例随上限重算。",
             "grade": false
           },
           {
@@ -5569,7 +5569,7 @@ window.GameModules.predefinedRoleCardData["04-刘悠-player-self"] = {
             "type": "text",
             "min": 0,
             "max": 100,
-            "desc": "累积疲惫、伤痛和行动消耗。",
+            "desc": "疲惫承受上限：30+等级×2+体质×2+意志×3；当前值按比例随上限重算。",
             "grade": false
           },
           {

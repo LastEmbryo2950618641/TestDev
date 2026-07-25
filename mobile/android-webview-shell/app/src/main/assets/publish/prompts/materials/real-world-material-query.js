@@ -1,55 +1,56 @@
 window.GameModules = window.GameModules || {};
 
 (() => {
-  const ctx = window.GameModules.realWorldAgentContext;
-  if (!ctx || ctx.materialQueryInstalled) return;
-  const baseLocation = ctx.location?.bind(ctx);
+  function installMaterialQuery(target = window.GameModules.realWorldAgentContext) {
+    if (!target) return false;
+    if (target.materialQueryInstalled && typeof target.company === 'function' && typeof target.history === 'function') return true;
+    const baseLocation = target.location?.bind(target);
 
-  Object.assign(ctx, {
-    materialQueryInstalled: true,
+    Object.assign(target, {
+      materialQueryInstalled: true,
 
-    sliceAround(text = '', keyword = '', before = 400, after = 800) {
-      const raw = String(text || '');
-      const key = String(keyword || '').trim();
-      if (!key) return raw.slice(0, before + after);
-      const index = raw.indexOf(key);
-      if (index < 0) return '';
-      const start = Math.max(0, index - Math.max(0, Number(before) || 0));
-      const end = Math.min(raw.length, index + key.length + Math.max(0, Number(after) || 0));
-      return raw.slice(start, end);
-    },
+      sliceAround(text = '', keyword = '', before = 400, after = 800) {
+        const raw = String(text || '');
+        const key = String(keyword || '').trim();
+        if (!key) return raw.slice(0, before + after);
+        const index = raw.indexOf(key);
+        if (index < 0) return '';
+        const start = Math.max(0, index - Math.max(0, Number(before) || 0));
+        const end = Math.min(raw.length, index + key.length + Math.max(0, Number(after) || 0));
+        return raw.slice(start, end);
+      },
 
-    companyRawText(store, company = {}) {
-      return JSON.stringify(company || {}, null, 2);
-    },
+      companyRawText(store, company = {}) {
+        return JSON.stringify(company || {}, null, 2);
+      },
 
-    company(store, method, params = {}) {
-      const current = store.currentCompany?.();
-      const list = store.companyState?.companies || (current ? [current] : []);
-      const keyword = String(params.keyword || params.companyName || params.name || '').trim();
-      if (method === 'listPlayerCompanies') return list.map((c) => `- ${c.name}：${c.type || '组织'}｜${c.industry || '行业未知'}｜${c.location || '地点未知'}`).join('\n') || '暂无公司。';
-      const company = list.find((c) => !keyword || this.companyRawText(store, c).includes(keyword) || String(c.name || '').includes(keyword)) || current || list[0];
-      if (!company) return '暂无公司资料。';
-      if (method === 'searchCompanyOne') return keyword && !this.companyRawText(store, company).includes(keyword) ? '未命中公司资料。' : this.limit(this.companySummary(store, company), 900);
-      if (method === 'searchCompanyWindow') return this.sliceAround(this.companyRawText(store, company), keyword, params.beforeChars, params.afterChars) || '未命中公司资料。';
-      if (method === 'searchCompany' && keyword && !this.companyRawText(store, company).includes(keyword)) return '未命中公司资料。';
-      if (method === 'getWorkContext') return this.workContext(store, company);
-      return this.companySummary(store, company);
-    },
+      company(store, method, params = {}) {
+        const current = store.currentCompany?.();
+        const list = store.companyState?.companies || (current ? [current] : []);
+        const keyword = String(params.keyword || params.companyName || params.name || '').trim();
+        if (method === 'listPlayerCompanies') return list.map((c) => `- ${c.name}：${c.type || '组织'}｜${c.industry || '行业未知'}｜${c.location || '地点未知'}`).join('\n') || '暂无公司。';
+        const company = list.find((c) => !keyword || this.companyRawText(store, c).includes(keyword) || String(c.name || '').includes(keyword)) || current || list[0];
+        if (!company) return '暂无公司资料。';
+        if (method === 'searchCompanyOne') return keyword && !this.companyRawText(store, company).includes(keyword) ? '未命中公司资料。' : this.limit(this.companySummary(store, company), 900);
+        if (method === 'searchCompanyWindow') return this.sliceAround(this.companyRawText(store, company), keyword, params.beforeChars, params.afterChars) || '未命中公司资料。';
+        if (method === 'searchCompany' && keyword && !this.companyRawText(store, company).includes(keyword)) return '未命中公司资料。';
+        if (method === 'getWorkContext') return this.workContext(store, company);
+        return this.companySummary(store, company);
+      },
 
-    location(store, method, params = {}, action = '') {
-      const map = window.GameModules.realWorldMap.ensure(store, window.GameModules.currentLocationField?.roleProfile?.(store) || {});
-      const keyword = String(params.keyword || params.locationName || params.name || '').trim();
-      if (method === 'searchLocationOne') {
-        const hit = this.findLocationHit?.(map, keyword) || (map.nodes || []).find((node) => this.locationNodeText(node).includes(keyword));
-        return hit ? this.limit(this.locationDetail(map, hit.name), 900) : '未命中地点。';
-      }
-      if (method === 'searchLocationWindow') {
-        const hit = this.findLocationHit?.(map, keyword) || (map.nodes || []).find((node) => this.locationNodeText(node).includes(keyword));
-        return hit ? (this.sliceAround(this.locationNodeText(hit), keyword, params.beforeChars, params.afterChars) || this.limit(this.locationDetail(map, hit.name), 1400)) : '未命中地点。';
-      }
-      return baseLocation ? baseLocation(store, method, params, action) : '';
-    },
+      location(store, method, params = {}, action = '') {
+        const map = window.GameModules.realWorldMap.ensure(store, window.GameModules.currentLocationField?.roleProfile?.(store) || {});
+        const keyword = String(params.keyword || params.locationName || params.name || '').trim();
+        if (method === 'searchLocationOne') {
+          const hit = this.findLocationHit?.(map, keyword) || (map.nodes || []).find((node) => this.locationNodeText(node).includes(keyword));
+          return hit ? this.limit(this.locationDetail(map, hit.name), 900) : '未命中地点。';
+        }
+        if (method === 'searchLocationWindow') {
+          const hit = this.findLocationHit?.(map, keyword) || (map.nodes || []).find((node) => this.locationNodeText(node).includes(keyword));
+          return hit ? (this.sliceAround(this.locationNodeText(hit), keyword, params.beforeChars, params.afterChars) || this.limit(this.locationDetail(map, hit.name), 1400)) : '未命中地点。';
+        }
+        return baseLocation ? baseLocation(store, method, params, action) : '';
+      },
 
     locationNodeText(node = {}) {
       return `${node.name || ''}\n${node.description || ''}\n${JSON.stringify(node.descriptionFacts || [])}`;
@@ -254,4 +255,9 @@ window.GameModules = window.GameModules || {};
       return rows.map((item) => `- ${m?.itemText?.(item) || item.summary || item.text || JSON.stringify(item)}`).join('\n') || '暂无人物记忆。';
     },
   });
+    return true;
+  }
+
+  window.GameModules.installMaterialQuery = installMaterialQuery;
+  installMaterialQuery();
 })();

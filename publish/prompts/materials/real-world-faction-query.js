@@ -1,10 +1,7 @@
 window.GameModules = window.GameModules || {};
 
 (() => {
-  const ctx = window.GameModules.realWorldAgentContext;
-  if (!ctx || ctx.factionQueryInstalled) return;
-
-  Object.assign(ctx, {
+  const methods = {
     factionQueryInstalled: true,
 
     limit(text = '', max = 1600) {
@@ -256,7 +253,17 @@ window.GameModules = window.GameModules || {};
       const name = String(params.name || params.factionName || '').trim();
       if (!name) return '创建势力失败：缺少 name。';
       if (this.isAbstractFactionName(name)) return `跳过抽象势力：${name}。`;
-      const id = String(params.id || store.factionIdByName?.(name) || `force-${Date.now()}`).trim();
+      const typeText = String(params.type || '').trim();
+      const looksFamily = params.kind === 'family'
+        || /家庭|家族|家族势力/.test(typeText)
+        || /(家庭|家族)$/.test(name)
+        || (/家$/.test(name) && name.length <= 4 && !/国家|专家/.test(name))
+        || String(params.id || '').trim() === 'family-player-home';
+      const id = String(
+        params.id
+        || store.factionIdByName?.(name)
+        || (looksFamily ? 'family-player-home' : `force-${Date.now()}`)
+      ).trim();
       if (this.findFaction(store, id) || this.findFaction(store, name)) {
         return `创建失败：势力已存在（${id}/${name}）。请改用 patchFactionField。`;
       }
@@ -278,6 +285,11 @@ window.GameModules = window.GameModules || {};
         fixed: true,
         updatedAt: now,
       };
+      // 家庭/家族也是正式势力（如「刘家」「刘悠家庭」），需可被 Stage1/8 创建并被 family-actions 识别
+      if (looksFamily || patch.kind === 'family') {
+        faction.kind = 'family';
+        faction.type = typeText || patch.type || '家庭';
+      }
       if (params.solid?.overviewPanels) {
         faction.solid = { overviewPanels: ot?.normalizeOverviewPanels?.(params.solid.overviewPanels) || params.solid.overviewPanels };
       }
@@ -287,7 +299,7 @@ window.GameModules = window.GameModules || {};
         || store.normalizeFactionStructure?.(faction)
         || faction;
       store.factionState.factions.push(faction);
-      return `已创建势力：${name}（${id}）\n${this.factionText(store, faction)}`;
+      return `已创建势力：${name}（${faction.id}）\n${this.factionText(store, faction)}`;
     },
 
     patchFactionField(store, params = {}) {
@@ -370,5 +382,17 @@ window.GameModules = window.GameModules || {};
       Object.assign(faction, ot?.normalizeFaction?.(faction, store) || faction);
       return `已更新势力字段：${faction.name}｜${panel ? `${panel}.` : ''}${field}｜${op}`;
     },
-  });
+  };
+
+  function installFactionQuery(target = window.GameModules.realWorldAgentContext) {
+    if (!target) return false;
+    if (typeof target.faction === 'function' && target.factionQueryInstalled) return true;
+    Object.assign(target, methods);
+    return true;
+  }
+
+  window.GameModules.realWorldAgentContextParts = window.GameModules.realWorldAgentContextParts || {};
+  window.GameModules.realWorldAgentContextParts.factionQuery = methods;
+  window.GameModules.installFactionQuery = installFactionQuery;
+  installFactionQuery();
 })();

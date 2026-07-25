@@ -191,7 +191,7 @@ window.GameModules.realWorldProfileStage5 = {
     agentLoop.markConfiguredStep(store, logId, `${config.label}并行判定外观更新…`, config, { keepNarration: true });
     const raw = await agentLoop.completeConfiguredStep(store, prompt, logId, false, {
       ...config,
-      sourceTitle: `${config.label}Stage5外观判定`,
+      sourceTitle: `${config.label}Stage5 外观判定`,
       promptId: 'inference-stage5-profile-gate',
       reasoningPhase: 'stage5',
       jsonMode: true,
@@ -265,8 +265,9 @@ window.GameModules.realWorldProfileStage5 = {
     if (!state?.profile) return null;
     const profileType = target.profileType || 'dressedProfile';
     const updateScope = target.updateScope || 'parts';
-    const label = profileType === 'bodyProfile' ? '自然' : '盛装';
-    agentLoop.markConfiguredStep(store, logId, `${config.label}更新${target.subject}${label}（${updateScope}）…`, config, { keepNarration: true });
+    const reasoningPhase = profileType === 'bodyProfile' ? 'stage6' : 'stage7';
+    const stageTitle = profileType === 'bodyProfile' ? 'Stage6 自然外观补丁' : 'Stage7 盛装外观补丁';
+    agentLoop.markConfiguredStep(store, logId, `${config.label}${stageTitle}：${target.subject}（${updateScope}）…`, config, { keepNarration: true });
     const profile = state.profile;
     const base = { id: state.id, name: profile.name || state.name };
     const allowedParts = cp.bodyProfileParts();
@@ -305,9 +306,9 @@ window.GameModules.realWorldProfileStage5 = {
     try {
       raw = await agentLoop.completeConfiguredStep(store, format, logId, false, {
         ...config,
-        sourceTitle: `${config.label}Stage5${label}Patch`,
+        sourceTitle: `${config.label}${stageTitle}`,
         promptId,
-        reasoningPhase: 'stage5',
+        reasoningPhase,
         jsonMode: true,
       });
       let data;
@@ -317,9 +318,9 @@ window.GameModules.realWorldProfileStage5 = {
         const repairFormat = `${format}\n\n## 修复要求\n${validationErr.message}；每项 description 必须 ${this.DESC_MIN}-${this.DESC_MAX} 汉字；tags 至少 2 个。`;
         raw = await agentLoop.completeConfiguredStep(store, repairFormat, logId, false, {
           ...config,
-          sourceTitle: `${config.label}Stage5${label}Patch重试`,
+          sourceTitle: `${config.label}${stageTitle}重试`,
           promptId,
-          reasoningPhase: 'stage5',
+          reasoningPhase,
           jsonMode: true,
         });
         data = this.validatePatchData(cp.parse(raw), base, { ...target, parts: targetParts });
@@ -372,13 +373,11 @@ window.GameModules.realWorldProfileStage5 = {
     }
   },
 
-  async runParallelWithStage4({ store, narration, participants, logId, config, loop, stage4Promise }) {
+  async runAfterStage4({ store, narration, participants, logId, config, loop, updates }) {
     if (config?.mode === 'story') {
-      const updates = await stage4Promise;
       return { patches: [], gate: null, skipped: true, updates };
     }
-    const gatePromise = this.runGate({ store, narration, participants, logId, config, loop });
-    const [gate, updates] = await Promise.all([gatePromise, stage4Promise]);
+    const gate = await this.runGate({ store, narration, participants, logId, config, loop });
     let targets = this.normalizeGateTargets(gate, store);
     targets = this.mergeTargetsFromWearing(store, targets, updates?.genericUpdates || []);
     const wearingChanged = (updates?.genericUpdates || []).some((item) => item?.updateType === 'wearing-state');
@@ -395,6 +394,11 @@ window.GameModules.realWorldProfileStage5 = {
       if (patch) patches.push(patch);
     }
     return { patches, gate, skipped: !patches.length, updates };
+  },
+
+  async runParallelWithStage4({ store, narration, participants, logId, config, loop, stage4Promise }) {
+    const updates = await stage4Promise;
+    return this.runAfterStage4({ store, narration, participants, logId, config, loop, updates });
   },
 
   async applyPatches(store, patches = []) {

@@ -2631,10 +2631,10 @@ window.GameModules.characterProfile = {
       const reason = String(item.reason || item.changeMode || baseItem.reason || baseItem.changeMode || '').trim().slice(0, 120);
       return { ...baseItem, reason, changeMode: reason };
     }).filter((item) => item?.faction || item?.name);
-    if (items.length) return items.slice(0, 4);
+    if (items.length) return items.slice(0, 16);
     const faction = profile.faction || base.faction || store?.playerProfile?.refinedCity || store?.playerProfile?.city || '临时关系社群';
     const role = profile.factionRole || base.factionRole || base.role || profile.role || '成员';
-    return [social?.item?.(faction, role) || { name: `${faction} / ${role}`, faction, role }].filter((item) => item?.faction || item?.name).slice(0, 4);
+    return [social?.item?.(faction, role) || { name: `${faction} / ${role}`, faction, role }].filter((item) => item?.faction || item?.name).slice(0, 16);
   },
 
   shouldInferCountryMembership(profile = {}, base = {}) {
@@ -2647,15 +2647,9 @@ window.GameModules.characterProfile = {
     return this.isRealWorldRoleCardTarget(world);
   },
 
-  countryMembership(profile = {}, base = {}, store = null) {
-    if (!this.shouldInferCountryMembership(profile, base)) return null;
-    const top = window.GameModules.factionSystem?.inferTopCountry?.({ ...base, ...profile });
-    if (!top?.name) return null;
-    const reason = [profile.country, profile.nationality, base.country, base.nationality].some((x) => String(x || '').trim())
-      ? `${profile.name || base.name || '该人物'}的国籍或国家归属由角色资料明确给出，因此登记为${top.name}公民。`
-      : `${profile.name || base.name || '该人物'}当前处于现实世界设定，且没有明确指向其他国家，因此默认登记为${top.name}公民。`;
-    return window.GameModules.socialPosition?.membershipItem?.(top.name, '公民', reason, store, { department: '', departmentFog: false, source: '国家法域推断' })
-      || { name: `${top.name} / 公民`, orgName: top.name, title: '公民', department: '', departmentFog: false, reason, changeMode: reason };
+  /** Country orgs are AI-generated only — never invent default citizenship (e.g. China) in code. */
+  countryMembership(_profile = {}, _base = {}, _store = null) {
+    return null;
   },
 
   memberships(profile, base = {}, store = null) {
@@ -2687,7 +2681,7 @@ window.GameModules.characterProfile = {
       const item = toItem(orgName, title);
       if (item && !items.some((existing) => existing.orgName === item.orgName && existing.title === item.title)) items.push(item);
     }
-    return items.slice(0, 4);
+    return items.slice(0, 16);
   },
 
   carryItemsLoose(value, kind) {

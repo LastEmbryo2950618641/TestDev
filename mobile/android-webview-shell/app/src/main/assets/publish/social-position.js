@@ -43,7 +43,7 @@ window.GameModules.socialPosition = {
     const f = String(community || '未设定社群').trim();
     const r = String(role || '成员').trim();
     const detail = this.concreteReason(reason, `${f}来自角色当前住址、家庭、社交圈或临时群体资料，${r}是其在该社群中的社会角色。`);
-    return { name: `${f} / ${r}`, type: '社群角色', faction: f, community: f, role: r, position: r, level: -1, description: `社群：${f}；角色：${r}。该词条表示角色当前所属的居住社区、家庭、社交圈或临时群体，以及其在其中承担的社会角色。`, source: 'ai', reason: detail, changeMode: detail };
+    return { name: `${f} / ${r}`, type: '社群角色', faction: f, community: f, role: r, position: r, level: -1, description: `社群：${f}；角色：${r}。社群角色表示角色在家庭、居住社区、社交圈、兴趣小组或临时群体等软性关系网中的位置（圈子名+角色）。`, source: 'ai', reason: detail, changeMode: detail };
   },
 
   membershipItem(orgName, title, reason = '', factionsOrStore = null, extra = {}) {
@@ -62,7 +62,7 @@ window.GameModules.socialPosition = {
       departmentFog: extra.departmentFog !== false && !String(extra.department || '').trim(),
       state: extra.state || 'sketch',
       level: -1,
-      description: `组织：${f}；身份：${p}。${orgId ? `组织ID：${orgId}。` : ''}该词条表示角色在势力或社群组织架构中的部门、职位、身份或成员关系。`,
+      description: `组织：${f}；身份：${p}。${orgId ? `组织ID：${orgId}。` : ''}人事归属表示角色在可指认组织中的正式或准正式身份（组织名+职位/学籍等）。`,
       source: 'ai',
       reason: detail,
       changeMode: detail,

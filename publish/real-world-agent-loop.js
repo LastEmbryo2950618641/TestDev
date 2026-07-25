@@ -149,11 +149,13 @@ window.GameModules.realWorldAgentLoop = {
       'inference-stage5-body-profile-patch': 'stage6',
       'inference-stage5-dressed-profile-patch': 'stage7',
       'inference-stage6-faction-update': 'stage8',
+      'inference-stage10-life-energy-exp': 'stage10',
       'real-world-map-surround-unlock': 'stage9',
     };
     if (byPromptId[promptId]) return byPromptId[promptId];
     if (config.guidedStep) return 'stage1';
     const sourceTitle = String(config.sourceTitle || '');
+    if (/Stage\s*10|生命层次/iu.test(sourceTitle)) return 'stage10';
     if (/Stage\s*9|周围解锁/iu.test(sourceTitle)) return 'stage9';
     if (/Stage\s*8|势力更新/iu.test(sourceTitle)) return 'stage8';
     if (/Stage\s*7|盛装外观补丁/iu.test(sourceTitle)) return 'stage7';
@@ -176,6 +178,7 @@ window.GameModules.realWorldAgentLoop = {
       stage7: 'Stage7 盛装外观补丁',
       stage8: 'Stage8 势力更新',
       stage9: 'Stage9 电子地图周围解锁',
+      stage10: 'Stage10 经验结算',
     };
     return labels[phase] || '未知阶段';
   },
@@ -196,7 +199,7 @@ window.GameModules.realWorldAgentLoop = {
         id: attempt > 0 ? `stage4-${attempt}` : 'stage4',
       };
     }
-    if (/^stage[2-9]$/u.test(phase)) {
+    if (/^stage(?:[2-9]|10)$/u.test(phase)) {
       return { phase, step: 0, label: this.stagePhaseLabel(phase), id: phase };
     }
     return { phase: 'unknown', step: 0, label: '未知阶段', id: `reasoning-${Date.now()}` };
@@ -251,6 +254,7 @@ window.GameModules.realWorldAgentLoop = {
         stage7: 'Stage7 盛装外观补丁',
         stage8: 'Stage8 势力更新',
         stage9: 'Stage9 电子地图周围解锁',
+        stage10: 'Stage10 经验结算',
       };
       return {
         phase: storedPhase,
@@ -264,7 +268,7 @@ window.GameModules.realWorldAgentLoop = {
       const step = Number(stage1Match[1]) || 1;
       return { phase: 'stage1', step, label: this.stagePhaseLabel('stage1', step), id: `stage1-${step}` };
     }
-    if (/^stage[2-9]$/u.test(id)) {
+    if (/^stage(?:[2-9]|10)$/u.test(id)) {
       return { phase: id, step: 0, label: this.stagePhaseLabel(id), id };
     }
     if (/^stage4(?:-attempt-|-)?(\d+)?$/iu.test(id) || id === 'stage4') {
@@ -588,7 +592,7 @@ window.GameModules.realWorldAgentLoop = {
     const participants = this.mergeNarrationParticipants(this.stageParticipants(effectiveSceneLayers, loaded, store), narration, store, sceneAnchor.data);
     try {
       this.markConfiguredStep(store, logId, `${config.label}正文已完成，正在串行结算…`, config, { keepNarration: true });
-      this.patchConfiguredSettlementThinking(store, logId, '正文已完成，正在串行结算（Stage4 状态结算 → Stage5–7 外观 → Stage8 势力更新；地图周围解锁为 Stage9）。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
+      this.patchConfiguredSettlementThinking(store, logId, '正文已完成，正在串行结算（Stage4 状态结算 → Stage5–7 外观 → Stage8 势力更新 → Stage10 经验结算；地图周围解锁为 Stage9）。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
       let stage4Updates;
       try {
         const settled = await this.completeConfiguredSettlementKvWindow({ store, action, base, loaded, skills, materialSession, narration, trace, participants, logId, config });
@@ -635,13 +639,38 @@ window.GameModules.realWorldAgentLoop = {
           };
         }
       }
+      const stage10 = window.GameModules.inferenceLifeEnergyStage;
+      let lifeEnergyGains = [];
+      let learnedGains = [];
+      if (stage10?.runAfterSettlement) {
+        const stage10Result = await stage10.runAfterSettlement({
+          store,
+          action,
+          narration,
+          updates,
+          participants,
+          logId,
+          config,
+          loop: this,
+        });
+        lifeEnergyGains = Array.isArray(stage10Result?.gains) ? stage10Result.gains : [];
+        learnedGains = Array.isArray(stage10Result?.learnedGains) ? stage10Result.learnedGains : [];
+        if (stage10Result?.lines?.length) {
+          updates = {
+            ...updates,
+            characterCardChanges: [...(updates.characterCardChanges || []), ...stage10Result.lines],
+          };
+        }
+      }
       this.patchConfiguredSettlementThinking(store, logId, '结算完成，正在写入本回合状态与日志。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
-      settlementPrompt = 'Stage4 状态结算 → Stage5–7 外观 → Stage8 势力更新（串行；Stage9 地图周围解锁在落库后）';
+      settlementPrompt = 'Stage4 状态结算 → Stage5–7 外观 → Stage8 势力更新 → Stage10 经验结算（生命层次+习得；Stage9 地图周围解锁在落库后）';
       settlementRaw = JSON.stringify({
         settlement: updates,
         stage5Gate: stage5Result.gate || null,
         profilePatches: profilePatches.map((item) => ({ subject: item.subject, parts: item.parts })),
         factionOps,
+        lifeEnergyGains,
+        learnedGains,
       });
     } catch (err) {
       console.warn(`${config.label}串行结算失败，保留已生成正文并使用最小结算:`, err.message);
@@ -1725,12 +1754,12 @@ window.GameModules.realWorldAgentLoop = {
     const delta = Number(rawValueText.replace(/[^-+\d.]/gu, ''));
     if (!Number.isFinite(delta) || !/^[+-]\d/u.test(rawValueText) || delta === 0) return null;
     if (/^(?:总次数|总数|全部|总体|合计)$/u.test(String(part || '').trim())) {
-      const value = { totalDelta: delta, parts: {} };
-      return { updateType: 'sexual-experience', subject, field: 'intimacy.sexualExperienceCount', change: { mode: 'delta', value }, reasons: [{ trigger: '性经历', evidence: reason, confidence: 'confirmed' }] };
+      // 总次数由各部位次数求和派生，忽略 AI 单独写入。
+      return null;
     }
     const aliasKey = this.sexualPartAlias(part);
     const key = this.allowedSexualPartKeys().includes(aliasKey) ? aliasKey : part;
-    const value = { totalDelta: 0, parts: { [key]: delta } };
+    const value = { parts: { [key]: delta } };
     return { updateType: 'sexual-experience', subject, field: `intimacy.sexualExperienceParts.${key}`, change: { mode: 'delta', value }, reasons: [{ trigger: '性经历', evidence: reason, confidence: 'confirmed' }] };
   },
 
@@ -1899,9 +1928,202 @@ window.GameModules.realWorldAgentLoop = {
       const [, field, op, value, reason, result] = parts;
       const allowed = ['当前状态', '身份', '职业', '技能', '知识', '外貌', '性格', '喜好', '人物说明', '社群角色', '人事归属', '人际关系'];
       if (!field || !op || !value || !['替换', '增加'].includes(op) || !allowed.includes(field)) return null;
-      return { updateType: 'role-card', subject, field: field === '当前状态' ? 'status_tags' : `profile.${field}`, change: { mode: op === '替换' ? 'set' : 'append', value: { value, reason, result } }, reasons: [{ trigger: `角色卡${op}`, evidence: reason || value, confidence: 'confirmed' }] };
+      return this.buildRoleCardSettlementUpdate(subject, field, op, value, reason, result);
     }
     return null;
+  },
+
+  roleCardFieldPath(field = '') {
+    const map = {
+      当前状态: 'status_tags',
+      身份: 'profile.role',
+      职业: 'profile.job',
+      技能: 'profile.skills',
+      知识: 'profile.knowledge',
+      外貌: 'profile.appearance',
+      性格: 'profile.personality',
+      喜好: 'profile.preferences',
+      人物说明: 'profile.detail',
+      社群角色: 'profile.factions',
+      人事归属: 'values.memberships',
+      人际关系: 'profile.relationships',
+    };
+    return map[String(field || '').trim()] || '';
+  },
+
+  normalizeFactionRoleSettlementValue(raw = '', reason = '') {
+    const social = window.GameModules.socialPosition;
+    if (Array.isArray(raw)) return raw.map((item) => this.normalizeFactionRoleSettlementValue(item, reason)).filter(Boolean);
+    if (raw && typeof raw === 'object') {
+      const faction = String(raw.faction || raw.community || raw.name || '').trim();
+      const role = String(raw.role || raw.position || '成员').trim();
+      if (!faction) return null;
+      return social?.item?.(faction, role, reason || raw.reason || '') || { name: `${faction} / ${role}`, faction, community: faction, role, reason: reason || raw.reason || '' };
+    }
+    const text = String(raw?.value ?? raw ?? '').trim();
+    if (!text) return null;
+    const [faction, role] = text.split(/[/／]/).map((part) => String(part || '').trim());
+    const community = faction || text;
+    const title = role || '成员';
+    return social?.item?.(community, title, reason) || { name: `${community} / ${title}`, faction: community, community, role: title, reason };
+  },
+
+  normalizeMembershipSettlementValue(raw = '', reason = '') {
+    const social = window.GameModules.socialPosition;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      const orgName = String(raw.orgName || raw.force || raw.name || raw.组织 || raw.组织名 || '').trim();
+      const title = String(raw.title || raw.position || raw.职位 || raw.岗位 || '成员').trim();
+      if (!orgName || !title) return null;
+      const department = String(raw.department || raw.部门 || '').trim();
+      return social?.membershipItem?.(orgName, title, reason || raw.reason || '', null, {
+        department,
+        departmentFog: raw.departmentFog !== false && !department,
+        state: raw.state || 'sketch',
+        orgId: raw.orgId || '',
+      }) || {
+        orgName,
+        orgId: String(raw.orgId || '').trim(),
+        title,
+        department,
+        departmentFog: raw.departmentFog !== false && !department,
+        state: raw.state || 'sketch',
+        reason: reason || raw.reason || '',
+      };
+    }
+    const text = String(raw?.value ?? raw ?? '').trim();
+    if (!text) return null;
+    const parts = text.split(/[/／]/).map((part) => String(part || '').trim()).filter(Boolean);
+    const orgName = parts[0] || '';
+    const title = parts.length >= 3 ? parts[2] : (parts[1] || '成员');
+    const department = parts.length >= 3 ? parts[1] : '';
+    if (!orgName || !title) return null;
+    return social?.membershipItem?.(orgName, title, reason, null, { department, departmentFog: !department }) || {
+      orgName,
+      title,
+      department,
+      departmentFog: !department,
+      state: 'sketch',
+      reason,
+    };
+  },
+
+  buildRoleCardSettlementUpdate(subject, field = '', op = '增加', value = '', reason = '', result = '') {
+    const mode = op === '替换' ? 'set' : 'append';
+    if (field === '社群角色') {
+      const item = this.normalizeFactionRoleSettlementValue(value, reason);
+      if (!item) return null;
+      return {
+        updateType: 'role-card',
+        subject,
+        field: 'profile.factions',
+        change: { mode, value: mode === 'set' ? (Array.isArray(item) ? item : [item]) : item },
+        reasons: [{ trigger: `角色卡${op}`, evidence: reason || value, confidence: 'confirmed' }],
+      };
+    }
+    if (field === '人事归属') {
+      const patch = this.normalizeMembershipSettlementValue(value, reason);
+      if (!patch) return null;
+      return {
+        updateType: 'membership',
+        subject,
+        field: 'values.memberships',
+        change: { mode: 'upsert', value: patch },
+        reasons: [{ trigger: `角色卡${op}`, evidence: reason || value, confidence: 'confirmed' }],
+      };
+    }
+    const path = this.roleCardFieldPath(field);
+    if (!path) return null;
+    if (path === 'status_tags') {
+      return {
+        updateType: 'role-card',
+        subject,
+        field: 'status_tags',
+        change: { mode: op === '替换' ? 'set' : 'append', value: { value, reason, result } },
+        reasons: [{ trigger: `角色卡${op}`, evidence: reason || value, confidence: 'confirmed' }],
+      };
+    }
+    const listPaths = new Set(['profile.skills', 'profile.knowledge']);
+    const text = typeof value === 'object' && value && !Array.isArray(value) && value.value != null
+      ? value.value
+      : value;
+    if (listPaths.has(path)) {
+      return {
+        updateType: 'role-card',
+        subject,
+        field: path,
+        change: { mode: op === '替换' ? 'set' : 'append', value: text },
+        reasons: [{ trigger: `角色卡${op}`, evidence: reason || String(text || ''), confidence: 'confirmed' }],
+      };
+    }
+    // 文本型角色卡字段统一 set；「增加」表示写入/覆盖稳定新值，避免把 {value,reason} 对象写进字符串字段
+    return {
+      updateType: 'role-card',
+      subject,
+      field: path,
+      change: { mode: 'set', value: String(text ?? '') },
+      reasons: [{ trigger: `角色卡${op}`, evidence: reason || String(text || ''), confidence: 'confirmed' }],
+    };
+  },
+
+  parseRoleCardJsonEntry(entry = {}, subject = null, participants = []) {
+    if (!subject || !entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+    const field = String(entry.field ?? entry.字段 ?? entry.key ?? '').trim();
+    const op = String(entry.op ?? entry.操作 ?? '增加').trim();
+    const value = entry.value ?? entry.新值 ?? entry.变化 ?? '';
+    const reason = this.settlementJsonText(entry.reason ?? entry.原因 ?? entry.evidence ?? entry.证据 ?? '');
+    const result = this.settlementJsonText(entry.result ?? entry.结果 ?? value);
+    const allowed = ['当前状态', '身份', '职业', '技能', '知识', '外貌', '性格', '喜好', '人物说明', '社群角色', '人事归属', '人际关系'];
+    if (!field || !['替换', '增加'].includes(op) || !allowed.includes(field)) return null;
+    if (value === undefined || value === null || value === '') return null;
+    if (!reason) return null;
+    return this.buildRoleCardSettlementUpdate(subject, field, op, value, reason, result);
+  },
+
+  parseMembershipJsonEntry(entry = {}, subject = null, participants = []) {
+    if (!subject || !entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+    const t = (value) => this.settlementJsonText(value);
+    let orgName = t(entry.orgName ?? entry.组织 ?? entry.组织名 ?? entry.force ?? '');
+    let title = t(entry.title ?? entry.职位 ?? entry.岗位 ?? entry.position ?? '');
+    let department = t(entry.department ?? entry.部门 ?? '');
+    let orgId = t(entry.orgId ?? entry.组织ID ?? '');
+    const state = t(entry.state ?? entry.状态 ?? 'sketch') || 'sketch';
+    let reason = t(entry.reason ?? entry.原因 ?? entry.evidence ?? entry.证据 ?? '');
+    if (!orgName || !title) {
+      const field = t(entry.field ?? entry.字段 ?? entry.key ?? '');
+      const value = t(entry.value ?? entry.新值 ?? entry.事实 ?? entry.变化 ?? '');
+      const parts = value.split(/[/／]/).map((part) => String(part || '').trim()).filter(Boolean);
+      if (parts.length >= 2) {
+        orgName = orgName || parts[0];
+        if (parts.length >= 3) {
+          department = department || parts[1];
+          title = title || parts[2];
+        } else {
+          title = title || parts[1];
+        }
+      } else if (field && value) {
+        orgName = orgName || field;
+        title = title || value;
+      }
+    }
+    if (!reason) reason = t(entry.reason ?? entry.原因 ?? '正文确认人事归属变化');
+    if (!orgName || !title || !reason) return null;
+    const patch = this.normalizeMembershipSettlementValue({
+      orgId,
+      orgName,
+      title,
+      department,
+      departmentFog: entry.departmentFog !== false && !department,
+      state,
+      reason,
+    }, reason);
+    if (!patch) return null;
+    return {
+      updateType: 'membership',
+      subject,
+      field: 'values.memberships',
+      change: { mode: 'upsert', value: patch },
+      reasons: [{ trigger: '人事归属', evidence: reason, confidence: 'confirmed' }],
+    };
   },
 
   /**
@@ -1971,6 +2193,12 @@ window.GameModules.realWorldAgentLoop = {
     if (type === '性历史') return `更新N：性历史，${t(entry.transition ?? entry.状态转移 ?? entry.field ?? entry.字段)}，${t(entry.partner ?? entry.对象 ?? entry.value)}，${t(entry.evidence ?? entry.reason ?? entry.证据)}`;
     if (type === '关系') return `更新N：关系，${t(entry.left ?? entry.左方 ?? entry.subject ?? entry.主体)}，${t(entry.right ?? entry.右方 ?? entry.target ?? entry.对象)}，${t(entry.dimension ?? entry.维度 ?? entry.field)}，${t(entry.status ?? entry.状态 ?? entry.value)}，${reason}，${t(entry.result ?? entry.结果 ?? entry.value)}`;
     if (type === '角色卡') return `更新N：角色卡，${field}，${t(entry.op ?? entry.操作 ?? '增加')}，${value}，${reason}，${t(entry.result ?? entry.结果 ?? value)}`;
+    if (type === '人事归属') {
+      const org = t(entry.orgName ?? entry.组织名 ?? entry.field ?? '');
+      const title = t(entry.title ?? entry.职位 ?? entry.value ?? '');
+      const dept = t(entry.department ?? entry.部门 ?? '');
+      return `更新N：人事归属，${org}${dept ? `/${dept}` : ''}，${title}，${reason}`;
+    }
     return `更新N：${type}，${field}，${value}，${reason}`;
   },
 
@@ -2234,11 +2462,13 @@ window.GameModules.realWorldAgentLoop = {
           else if (type === '组织能力') update = this.parseOrgOverviewPanelJsonEntry(entry, subject);
           else if (type === '人事安排') update = this.parseScheduleJsonEntry(entry, subject, participants);
           else if (type === '长期目标') update = this.parseGoalJsonEntry(entry, subject, participants);
+          else if (type === '人事归属') update = this.parseMembershipJsonEntry(entry, subject, participants);
           else if (['情绪', '感觉'].includes(type)) update = this.parseMetricSettlementJsonEntry(type, entry, subject, participants, store);
           else if (specialParsers[type]) update = specialParsers[type](line, subject);
-          else if (['性历史', '角色卡'].includes(type)) {
-            update = this.parseSpecialSettlementLine(type, line, subject, participants);
-            if (!update && type === '角色卡') {
+          else if (type === '角色卡') {
+            update = this.parseRoleCardJsonEntry(entry, subject, participants)
+              || this.parseSpecialSettlementLine(type, line, subject, participants);
+            if (!update) {
               update = this.remapRoleCardEntryToSchedule(entry, subject, participants);
               if (!update) {
                 // 非法字段（如当前地点）若未能改写：计为已处理，避免滑动窗口死循环重试。
@@ -2248,6 +2478,7 @@ window.GameModules.realWorldAgentLoop = {
               }
             }
           }
+          else if (type === '性历史') update = this.parseSpecialSettlementLine(type, line, subject, participants);
           else update = this.parseStandardSettlementLine(type, line, subject, participants, store);
           if (update) {
             patch.__parsedUpdates += 1;
@@ -2449,9 +2680,16 @@ window.GameModules.realWorldAgentLoop = {
       '生命体征': '字段只能是：生命力、精力、饱食度、水分、疲劳、精神稳定；允许别名输入但最终字段写这 6 个中文名；禁止心率、体温、呼吸频率、血压、血氧、瞳孔、激素、行动能力、肌肉紧张度等新指标；变化必须是 +N/-N 且不能为 0；健康正常或无稳定变化时输出空数组。',
       '身体状态': '部位只能是：整体/全身、口部/嘴部/嘴唇、胸部/胸口/乳房、阴部/私处、肛部、臀部/屁股、四肢/手臂/腿部、皮肤、其他；整体/全身与局部部位互不冲突，同轮同人可写多条，正文中有就应全部写入；整体写全身综合状态，局部写对应部位细节；禁止把坐姿、可用状态、手指动作等写成新部位字段；全身发颤/肌肉反应等写整体或四肢，不要写进生命体征。',
       '穿着状态': '穿着部位只能是：全身/整体、胸部/胸口/乳房、上身、外套、下身、腿部/大腿、足部/脚部、内裤、饰品；全身/整体会按外套处理并清空其他衣物槽；同轮若还有局部部位，先应用全身再覆盖局部部位；禁止肩部、腰部、衣领、吊带位置等非槽位字段；必须包含衣物名称和当前状态。',
-      '性经历': '分类只能是：阴部、胸部/胸口/乳房、唇部/接吻、口部/嘴部、口部行为、口交、口交中出、阴部进入、阴道插入、阴道中出、肛部/肛门、肛部进入、肛交、肛交中出、腿部/大腿、臀部/屁股、手部/手、皮肤、其他；delta 必须是 +N/-N 且不能为 0；禁止写总次数/总数/全部；无相关行为时输出空数组。',
+      '性经历': '分类只能是：阴部、胸部/胸口/乳房、唇部/接吻、口部/嘴部、口部行为、口交、口交中出、阴部进入、阴道插入、阴道中出、肛部/肛门、肛部进入、肛交、肛交中出、腿部/大腿、臀部/屁股、手部/手、皮肤、其他；delta 必须是 +N/-N 且不能为 0；禁止写总次数/总数/全部（总次数由系统按各部位次数求和自动计算）；无相关行为时输出空数组。',
+      '性历史': '只写身份状态转移与经历对象名单；transition 建议如 未知→非处女、处女→非处女；partner 写姓名；经历人数由系统按去重后的经历对象名单自动计算，禁止单独写人数；当前未知时禁止无依据写成处女：妻子/丈夫/配偶/已婚/已育→非处女/非处男；守贞或以失贞为耻、古老部落童贞规范下无特殊说明的少女/少年→处女/处男；童贞可耻或性开放常态且已成年融入→可非处；现代都市未婚无插入证据可保持未知输出 []；仅阴部插入后才把对象写入名单；evidence 写身份或正文依据。',
       '关系': '只记录稳定关系维度，如亲属、朋友、同事、师生、雇佣、敌对、同居、恋人；好感、信任、依赖、警惕等数值态度写“感觉”，不要写关系。',
-      '角色卡': '只写稳定角色卡字段：当前状态、身份、职业、技能、知识、外貌、性格、喜好、人物说明、社群角色、人事归属、人际关系；禁止写当前地点/当前位置/当前行动/可用状态（那些必须写人事安排）；禁止写短中长期目标进度与阶段成果（那些必须写长期目标）；临时情绪、生命体征、身体、穿着、关系、物品有专门类型时不得写角色卡。',
+      '角色卡': [
+        '只写稳定角色卡字段：当前状态、身份、职业、技能、知识、外貌、性格、喜好、人物说明、社群角色、人事归属、人际关系。',
+        '禁止写当前地点/当前位置/当前行动/可用状态（那些必须写人事安排）；禁止写短中长期目标进度与阶段成果（那些必须写长期目标）；临时情绪、生命体征、身体、穿着、关系、物品有专门类型时不得写角色卡。',
+        '社群角色含义：软性圈子里的社会角色（家庭/社区/朋友圈/兴趣小组等），构成要素=圈子名+角色。',
+        '人事归属含义：可指认组织中的正式或准正式身份（学校/公司/机关/国家公民等），构成要素=组织名+职位(+部门)。',
+        '正文或资料中已出现、有事实依据、非胡编的身份与归属，必须归入社群角色或人事归属二者之一（或要素不同时双边各写）；求全优先于过严过滤，禁止因分类犹豫判成“都不是”。',
+      ].join(''),
       '长期目标': '只更新本回合 participants 的角色卡长期目标系统。可写 short/medium/long（content、deadline YYYY-MM-DD、progress 0-100、detail）与 achievement/achievements。规则：①任一档完成（progress=100 或正文确认达成）必须追加阶段成果，并基于当前上下文生成同档下一条新目标，progress 重置为较低起点（通常 0-20）；禁止只写 100% 不换 content。②玩家目标表达特别明确（点名短/中/长期，或「近期完成」「几个月内达成」等）且旧目标未完成时，新 content 必须融合旧未完部分与新目标，progress 通常适当下调并在 detail 说明；模糊愿望不触发。③未点名档位时按难易/耗时判定 short≈数天~数周、medium≈数月、long≈数年或人生方向。④即时下一步仍写基础结算「当前目标」；弱推测不更新。',
       '地图': '字段只能是：当前位置、上级地点、地点事实、地图节点、路线事实；角色当前所在地优先写人事安排，不要把角色行动写成地图事实。地图节点最小颗粒度为建筑物（如锦苑小区3栋）或小区级POI（公园、商店）；走廊、楼梯间、单个房间只写当前位置，不要作为地图节点。禁止在本类型写 effectiveOrgId/控势，那属于领土控势。',
       '领土控势': '仅当正文确认已揭示地点的夺控、解放、移交、占领或争议状态时更新；字段：地点名、实控组织、宣称组织、控势状态；未 revealed 地点不得写；同轮同一地点最多一条；普通到达/看见不写本类型。',
@@ -2470,7 +2708,13 @@ window.GameModules.realWorldAgentLoop = {
         'territory 固定清单：capital、area、population、adminDivision、regions；regions 为最高行政区列表（含 capital/area/controlRate/population/description/garrison）。',
         '部门/职位/任职写势力结构，不要混用。',
       ].join(''),
-      '人事归属': '字段：组织名/orgId、部门、职位；对应 values.memberships；部门未明写 departmentFog；与势力 structure 占坑可同时存在但需一致；抽象「公民/居民」不得写。',
+      '人事归属': [
+        '含义：可指认组织中的正式或准正式身份（编制/学籍/职级/成员等），不是软性圈子角色。',
+        '构成要素：组织名/orgId + 职位 + 部门（未明写 departmentFog）；对应 values.memberships。',
+        '触发：正文或资料确认的入职、任职、调岗、离职、升学/转学、入籍或其它稳定组织身份变化均可写，不要把门槛收得过死。',
+        '完备性：已出现且有事实依据的组织身份必须归入本类型；求全优先于过严过滤；禁止因分类犹豫漏写。',
+        '与势力 structure 占坑可同时存在但需一致；无组织名的空壳「现实社会/成年人」不要写；具体国家下的公民/国民有依据时可写。',
+      ].join(''),
       '系统记录': '只写系统级、跨角色、且没有专门类型承载的长期事实：日历变更、微信/短信通信、世界线节点、不可逆公共事件、全局状态。禁止把角色当前行动、所在地点、身体反应、感觉、关系、场景描写复述写进系统记录；这些必须分别写人事安排、身体状态、感觉、关系。若正文事实已被世界线记录覆盖，系统记录写空数组 []。',
       '通用固化': '只能写没有专门类型承载的长期稳定标签；情绪、感觉、生命体征、身体、穿着、性经历、性历史、关系、物品、地图、人事、势力、长期目标、系统记录有专门类型时不得写通用固化。',
       '操控体验': [
@@ -2519,7 +2763,7 @@ window.GameModules.realWorldAgentLoop = {
     if (type === '性经历') return `"性经历":[{"subject":"${subject}","part":"分类","delta":"+1","reason":"正文明确性相关行为证据"}]`;
     if (type === '性历史') return `"性历史":[{"subject":"${subject}","transition":"状态转移","partner":"对象","evidence":"正文明确证据"}]`;
     if (type === '关系') return `"关系":[{"subject":"${subject}","left":"${playerName}","right":"${subject}","dimension":"亲属关系","status":"稳定亲密","reason":"正文中能证明关系状态的具体证据","result":"维持稳定亲密关系"}]`;
-    if (type === '角色卡') return `"角色卡":[{"subject":"${subject}","field":"当前状态","op":"增加","value":"稳定状态标签","reason":"正文明确且可长期固化的证据","result":"加入状态标签"}]`;
+    if (type === '角色卡') return `"角色卡":[{"subject":"${subject}","field":"社群角色","op":"增加","value":"刘家/长兄","reason":"正文明确家庭身份证据","result":"写入社群角色"}]`;
     if (type === '长期目标') return `"长期目标":[{"subject":"${subject}","short":{"content":"短期目标内容","deadline":"2026-08-01","progress":40,"detail":"进度说明"},"achievement":"已完成的阶段成果","reason":"正文明确证据"}]`;
     if (type === '物品') return `"物品":[{"subject":"${subject}","field":"持有物","value":"物品状态","reason":"正文明确物品变化证据"}]`;
     if (type === '地图') return '"地图":[{"subject":"地点名","field":"地点事实","value":"稳定地点事实","reason":"正文明确地点证据"}]';
@@ -2527,6 +2771,7 @@ window.GameModules.realWorldAgentLoop = {
     if (type === '势力总览') return '"势力总览":[{"subject":"势力名","field":"新增势力","value":"势力事实","reason":"正文明确势力证据"}]';
     if (type === '势力结构') return `"势力结构":[{"subject":"势力名","field":"成员地位","value":"${subject}的稳定地位","reason":"正文明确组织证据"}]`;
     if (type === '组织能力') return '"组织能力":[{"subject":"中华人民共和国","panel":"military","field":"forces","value":[{"name":"陆军","items":["第一集团军：规模约10万人；训练率约70%"]}],"reason":"groupItemsList"},{"subject":"中华人民共和国","panel":"diplomacy","field":"allies","value":[{"name":"俄罗斯","description":"全面战略协作伙伴","viewOfSelf":"视我为可靠协作方"}],"reason":"relationList"}]';
+    if (type === '人事归属') return `"人事归属":[{"subject":"${subject}","orgName":"组织名","orgId":"","title":"职位","department":"部门","departmentFog":false,"state":"sketch","reason":"正文明确入职、调岗或学籍证据"}]`;
     if (type === '系统记录') return '"系统记录":[{"subject":"系统","field":"通信消息","value":"已确认的系统级通信或日程事实","reason":"正文明确且不属于角色卡/人事安排的证据"}]';
     if (type === '通用固化') return `"通用固化":[{"subject":"${subject}","field":"长期标签","value":"稳定标签","reason":"正文明确且无专门类型承载"}]`;
     if (type === '操控体验') {
@@ -2695,9 +2940,10 @@ window.GameModules.realWorldAgentLoop = {
       if (type === '情绪') return '情绪：数组；每项 {"subject":"姓名","field":"情绪指标名","value":"+N/-N","status":"变化后该情绪的具体表现","reason":"正文中的具体行为或对话证据"}；无变化 []。status 写程度表现，不要写指标名+数值前缀；缺省时系统会按新数值补模板解释。';
       if (type === '感觉') return '感觉：数组；每项 {"subject":"出场NPC姓名","field":"感觉指标名","value":"+N/-N","status":"变化后该感觉的具体表现","reason":"正文证据证明该NPC对玩家态度变化"}；无变化 []。status 写程度表现，不要写指标名+数值前缀；缺省时系统会按新数值补模板解释。';
       if (type === '关系') return '关系：数组；每项 {"subject":"姓名","left":"关系左方","right":"关系右方","dimension":"稳定关系维度","status":"关系状态","reason":"证据","result":"结算结果"}；无变化 []。';
-      if (type === '角色卡') return '角色卡：数组；每项 {"subject":"姓名","field":"字段","op":"替换/增加","value":"内容","reason":"证据","result":"结果"}；无变化 []。';
+      if (type === '角色卡') return '角色卡：数组；每项 {"subject":"姓名","field":"字段","op":"替换/增加","value":"内容","reason":"证据","result":"结果"}；社群角色 value 可用「圈子/角色」；人事归属可写角色卡字段或改走「人事归属」类型；无变化 []。';
       if (type === '长期目标') return '长期目标：数组；每项 {"subject":"姓名","short|medium|long":{"content":"目标","deadline":"YYYY-MM-DD","progress":0-100,"detail":"进度描述"},"achievement":"阶段成果","reason":"证据"}；完成某档必须换同档新 content 并重置较低 progress；玩家明确改目标且旧档未完成须融合改写；可只写变化字段；无变化 []。';
       if (type === '操控体验') return '操控体验：数组；每项先输出 needUpdate 与 updateFields。needUpdate=false 时可不填字段值；needUpdate=true 时必须含 subject、updateFields、reason，以及 updateFields 对应值。adaptation 只写 +N/-N 增量；feeling/summary/controllerAwarenessLevel/controllerAwareness 基于基线生成完整新文本直接覆盖；禁止输出 onlineCount。无变化 [{"subject":"被控角色名","needUpdate":false}] 或 []。';
+      if (type === '人事归属') return '人事归属：数组；每项 {"subject":"姓名","orgName":"组织名","title":"职位","department":"部门或空","departmentFog":true/false,"state":"fog|sketch|established","reason":"证据"}；可带 orgId；无变化 []。';
       if (type === this.eventSettlementType()) return '事件：数组；每项 {"type":"random|inference|periodic","title":"事件名","startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD","location":"地点","content":"内容","people":["相关人"],"tags":["标签"],"probability":25,"status":"active"}；无事件 []。';
       return `${type}：数组；每项 {"subject":"结算主体","field":"字段","value":"变化或新值","reason":"证据"}；无变化 []。原合约：${c?.format || '更新N：结算主体，字段，变化，原因'}`;
     }).join('\n');

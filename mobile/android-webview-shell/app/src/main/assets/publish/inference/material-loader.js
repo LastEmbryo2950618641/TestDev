@@ -5,6 +5,19 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
   async autoLoadForStep(store, action = '', loadedKeys = new Set(), materialSession = null, materials = window.GameModules.realWorldMaterials, memoryIds = new Set(), step = 1, loaded = [], current = []) {
     if (step !== 1) return [];
     const ctx = window.GameModules.realWorldAgentContext || window.GameModules.realWorldAgentContextParts?.core || {};
+    const out = [];
+
+    // Default: all faction names/IDs + internal structure for Stage1 context.
+    store?.initFactionSystem?.();
+    const factionReq = { skill: 'faction.query', method: 'listFactions', params: { world: window.GameModules.realWorld2026?.label || '2026 现代都市现实世界', auto: true } };
+    const factionKey = this.materialRequestKey(factionReq.skill, factionReq.method, factionReq.params, materials);
+    if (!loadedKeys.has(factionKey)) {
+      loadedKeys.add(factionKey);
+      const factionText = ctx.factionList?.(store) || ctx.faction?.(store, 'listFactions', {}) || '暂无势力。';
+      materials?.record?.(materialSession, factionReq, '自动资料：全部势力名/ID与组织架构', factionText);
+      out.push({ title: '自动资料：全部势力名/ID与组织架构', text: factionText, max: 3200 });
+    }
+
     const actionText = String(action || '');
     const lastGuidance = ctx.lastRoundStage1GuidanceFromStore?.(store) || null;
     const priorParticipantNames = ['forcedParticipants', 'priorityCandidates'].flatMap((key) => (Array.isArray(lastGuidance?.[key]) ? lastGuidance[key] : []))
@@ -22,17 +35,16 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
       seen.add(key);
       return true;
     }).slice(0, 3);
-    const out = [];
     for (const state of hits) {
       const name = state.profile?.name || state.name;
       const req = { skill: 'character.query', method: 'searchCharacterProfile', params: { name, world: window.GameModules.realWorld2026?.label || '2026 现代都市现实世界', auto: true } };
       const key = this.materialRequestKey(req.skill, req.method, req.params, materials);
       if (loadedKeys.has(key)) continue;
       loadedKeys.add(key);
-      const text = window.GameModules.characterQuery?.stateText?.(state, req.params.world, 3200) || '';
+      const text = window.GameModules.characterQuery?.stateText?.(state, req.params.world, 0) || '';
       if (!text) continue;
       materials?.record?.(materialSession, req, `自动资料：${name}角色卡`, text);
-      out.push({ title: `自动资料：${name}角色卡`, text, max: 3200, participants: [{ type: 'character', id: state.id || name, name, role: 'loaded-role-card' }] });
+      out.push({ title: `自动资料：${name}角色卡`, text, max: 0, unlimited: true, participants: [{ type: 'character', id: state.id || name, name, role: 'loaded-role-card' }] });
     }
     return out;
   },
@@ -51,7 +63,7 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
     if (policy === 'deny') {
       return [
         `资料请求未执行：${pair} 属于 Stage1 禁止的写库/结算/侧效应 skill。`,
-        '此类变更应通过 Stage4 结算 genericUpdates 写入，或在后续步骤改用只读查询替代。',
+        '势力字段补丁请走正文后 Stage8（patchFactionField）；新势力可在 Stage1 用「势力查询，创建势力，势力名」创建。其它变更走 Stage4 结算。',
       ].join('\n');
     }
     if (policy === 'deep') {
@@ -86,14 +98,24 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
       if (loadedKeys.has(key)) continue;
       loadedKeys.add(key);
       const material = materials?.optionFor?.({ skill, method, params });
-      const max = material?.maxChars || this.maxFor(skill);
-      const text = await this.dispatch(store, action, skill, method, { ...params, maxChars: max }, options);
+      const configuredMax = material && Object.prototype.hasOwnProperty.call(material, 'maxChars')
+        ? Number(material.maxChars)
+        : this.maxFor(skill);
+      const max = Number.isFinite(configuredMax) ? configuredMax : this.maxFor(skill);
+      const unlimitedRoleCard = skill === 'character.query' && method === 'searchCharacterProfile' && !(max > 0);
+      const text = await this.dispatch(store, action, skill, method, { ...params, maxChars: unlimitedRoleCard ? 0 : max }, options);
       if (text) {
         const title = `${skill}.${method}`;
         const ref = this.materialReferenceFor(text, this.materialReferenceCandidates(store, loaded, [...current, ...out]));
         const finalText = ref ? this.materialReferenceText(ref) : text;
         materials?.record?.(materialSession, { skill, method, params }, title, finalText);
-        out.push({ title, text: finalText, max: ref ? 260 : max, referenceId: ref?.id });
+        out.push({
+          title,
+          text: finalText,
+          max: ref ? 260 : (unlimitedRoleCard ? 0 : max),
+          unlimited: !ref && unlimitedRoleCard,
+          referenceId: ref?.id,
+        });
       }
     }
     return out;
@@ -102,7 +124,7 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
 
   maxFor(skill) {
     if (skill === 'past.event.query') return 5200;
-    if (skill === 'character.query') return 3200;
+    if (skill === 'character.query') return 0;
     if (skill === 'realworld.location.query') return 1500;
     if (String(skill || '').startsWith('realworld.property.')) return 1800;
     if (skill === 'memory.query') return 1600;
@@ -126,21 +148,36 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
 
 
   async dispatch(store, action, skill, method, params, options = {}) {
-    if (skill === 'company.query') return this.company(store, method, params);
-    if (skill === 'faction.query') return this.faction(store, method, params);
+    const realContext = window.GameModules.realWorldAgentContext;
+    if (skill === 'company.query') {
+      if (typeof realContext?.company === 'function') return realContext.company(store, method, params);
+      return this.company(store, method, params);
+    }
+    if (skill === 'faction.query') {
+      if (typeof realContext?.faction === 'function') return realContext.faction(store, method, params);
+      return '势力查询模块未加载。';
+    }
     if (skill === 'realworld.location.query') {
       const locationOptions = { phase: 'stage1', guidedStep: options.step || 1, label: options.label || '现实', queryOnly: true, noAudit: true, returnJsonOnMiss: true };
-      const realContext = window.GameModules.realWorldAgentContext;
-      if (realContext?.location) return await realContext.location(store, method, params, action, locationOptions);
+      if (typeof realContext?.location === 'function') return await realContext.location(store, method, params, action, locationOptions);
       return this.location(store, method, params, action, locationOptions);
     }
     if (String(skill || '').startsWith('realworld.property.')) return this.property(store, skill, method, params);
-    if (skill === 'realworld.history.query') return this.history(store, method, params);
+    if (skill === 'realworld.history.query') {
+      if (typeof realContext?.history === 'function') return realContext.history(store, method, params);
+      return '现实历史查询模块未加载。';
+    }
     if (skill === 'memory.query') return await this.memory(store, action, method, params);
     if (skill === 'character.query') return window.GameModules.characterQuery?.query?.(store, method, params) || '';
     if (skill === 'past.event.query') return window.GameModules.pastEventQuery?.query?.(store, method, { question: action, ...params }) || '';
-    if (skill === 'lexicon.query') return await this.lexicon(store, method, params);
-    if (skill === 'item.query') return await this.itemQuery(store, method, params);
+    if (skill === 'lexicon.query') {
+      if (typeof realContext?.lexicon === 'function') return await realContext.lexicon(store, method, params);
+      return '词条查询模块未加载。';
+    }
+    if (skill === 'item.query') {
+      if (typeof realContext?.itemQuery === 'function') return await realContext.itemQuery(store, method, params);
+      return '物品查询模块未加载。';
+    }
     if (skill === 'wechat.query') return window.GameModules.realWorldAgentWechat?.wechat?.(store, method, params) || '';
     if (skill === 'worklore.query') return await window.GameModules.workLoreQuery?.dispatch?.(store, action, method, params) || '';
     return this.unsupportedMaterialText(skill, method);

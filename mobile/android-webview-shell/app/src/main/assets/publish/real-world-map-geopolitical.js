@@ -1,5 +1,6 @@
 /**
- * 从玩家地址 deterministic 生成政区 map 父链 + 对应 org stub（L1，无 structure）。
+ * 从玩家地址 deterministic 生成政区 map 父链。
+ * 组织势力不在此创建：仅挂接 AI 已生成的 admin/community/family org。
  */
 window.GameModules = window.GameModules || {};
 

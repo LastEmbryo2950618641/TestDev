@@ -59,6 +59,15 @@ window.GameModules = window.GameModules || {};
     this.syncEditedPlayerCard(card);
   };
 
+  actions.setPlayerProfileTrait = function setPlayerProfileTrait(key, value) {
+    if (!['appearance', 'preferences', 'personality'].includes(key)) return;
+    const clean = String(value ?? '').slice(0, 1000);
+    this.playerProfile = { ...(this.playerProfile || {}), [key]: clean };
+    if (!this.roleCardSetup?.usePredefinedPlayerCard) return;
+    const card = this.selectedPlayerRoleCard?.();
+    if (card) card[key] = clean;
+  };
+
   actions.flattenRoleCardLeaves = function flattenRoleCardLeaves(value, path) {
     if (Array.isArray(value)) return value.flatMap((item, index) => this.flattenRoleCardLeaves(item, [...path, index]));
     if (value && typeof value === 'object') return Object.keys(value).flatMap((key) => this.flattenRoleCardLeaves(value[key], [...path, key]));

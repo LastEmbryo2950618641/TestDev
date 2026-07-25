@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content, user-scalable=no">
   <title>我狠狠操控</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="phone-desktop.css?v=2026-07-24-pref-rpg-v17">
+  <link rel="stylesheet" href="phone-desktop.css?v=2026-07-25-learned-stage10-v26">
   <link rel="stylesheet" href="taobao-app.css">
   <link rel="stylesheet" href="real-world.css">
   <link rel="stylesheet" href="real-world-settlement.css">
@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="calendar-system.css">
   <link rel="stylesheet" href="event-system.css">
   <link rel="stylesheet" href="faction-system.css">
-  <link rel="stylesheet" href="skills-app.css?v=2026-07-24-pref-rpg-v17">
+  <link rel="stylesheet" href="skills-app.css?v=2026-07-25-learned-stage10-v26">
   <link rel="stylesheet" href="character-select.css">
   <link rel="stylesheet" href="player-aspiration.css">
   <link rel="stylesheet" href="profile-preview.css">
@@ -169,11 +169,11 @@
   </script>
   <script src="../deepseek_key.js"></script>
   <script src="../pixatart_key.js"></script>
-  <script src="boot/script-loader.js?v=2026-07-24-pref-rpg-v17"></script>
+  <script src="boot/script-loader.js?v=2026-07-25-learned-stage10-v26"></script>
   <script src="boot/store-modules.js"></script>
-  <script src="boot/script-manifest.js?v=2026-07-24-pref-rpg-v17"></script>
-  <script src="boot/boot-actions.js?v=2026-07-24-pref-rpg-v17"></script>
-  <script src="boot/boot.js?v=2026-07-24-pref-rpg-v17"></script>
+  <script src="boot/script-manifest.js?v=2026-07-25-learned-stage10-v26"></script>
+  <script src="boot/boot-actions.js?v=2026-07-25-learned-stage10-v26"></script>
+  <script src="boot/boot.js?v=2026-07-25-learned-stage10-v26"></script>
   <script>
     window.openEventAppNative = async function openEventAppNative(event) {
       try {
@@ -1379,13 +1379,13 @@
               <div><strong x-text="section.title"></strong><small x-text="$store.game.profileSectionTabMeta(section).hint"></small></div>
             </header>
             <template x-if="section.title === '个人能力'">
-              <div class="personal-ability-panel" x-data="{ advancedOpen: false, ability: null }" x-init="ability = $store.game.personalAbilityPresentation(section.fields, $store.game.identityTargetState()); $watch(() => $store.game.identityTargetId, () => { ability = $store.game.personalAbilityPresentation(section.fields, $store.game.identityTargetState()); $store.game.clearAbilityDetail?.(); })">
+              <div class="personal-ability-panel" x-data="{ advancedOpen: false, ability: null }" x-init="ability = $store.game.personalAbilityPresentation(section.fields, $store.game.identityTargetState()); $watch(() => $store.game.identityTargetId, () => { ability = $store.game.personalAbilityPresentation(section.fields, $store.game.identityTargetState()); $store.game.clearAbilityDetail?.(); })" x-effect="ability = $store.game.personalAbilityPresentation(section.fields, $store.game.identityTargetState())">
                 <p class="ability-panel-hint">点击条目查看完整说明 · 按身内属性分组展示习得</p>
                 <section class="ability-hero">
                   <div class="ability-hero-top">
                     <button type="button" class="ability-level-badge ability-expandable" :class="{ open: ability?.hero?.levelField && $store.game.isAbilityDetailOpen(ability.hero.levelField) }" x-show="ability?.hero?.levelField" @click="$store.game.toggleAbilityDetail(ability.hero.levelField)"><small>Lv</small><strong x-text="ability?.hero?.level || 1"></strong></button>
                     <div class="ability-hero-meta" role="button" tabindex="0" @click="ability?.hero?.expField && $store.game.toggleAbilityDetail(ability.hero.expField)" @keydown.enter.prevent="ability?.hero?.expField && $store.game.toggleAbilityDetail(ability.hero.expField)">
-                      <div class="ability-xp-row"><span class="ability-xp-label">经验</span><span class="ability-xp-value" x-text="ability?.hero?.exp?.display || '0/0'"></span><span class="ability-free-points" x-text="`自由点 ${ability?.hero?.freePoints ?? 0}`"></span></div>
+                      <div class="ability-xp-row"><span class="ability-xp-label">能量</span><span class="ability-xp-value" x-text="ability?.hero?.exp?.display || '0/0'"></span><span class="ability-free-points" x-text="`自由点 ${ability?.hero?.freePoints ?? 0}`"></span></div>
                       <div class="ability-xp-bar" aria-hidden="true"><i :style="`width:${ability?.hero?.exp?.percent || 0}%`"></i></div>
                     </div>
                   </div>
@@ -1410,9 +1410,19 @@
                   <template x-for="group in ability?.learnedGroups || []" :key="`learned-${group.key}`">
                     <article class="intrinsic-link-group learned-link-group">
                       <header><span x-text="`${group.icon} ${group.label}`"></span><small x-text="`${group.items.length}项`"></small></header>
-                      <div class="ability-chip-grid">
+                      <div class="learned-exp-grid">
                         <template x-for="row in group.items" :key="`${group.key}-${row.type}-${row.index}`">
-                          <button type="button" class="learned-link-chip ability-expandable" :class="[`kind-${row.type}`, { open: row.field && $store.game.isAbilityDetailOpen(row.field, row.item, row.index) }]" @click="row.field && $store.game.toggleAbilityDetail(row.field, row.item, row.index)"><span x-text="row.chipText"></span></button>
+                          <button type="button" class="learned-link-chip learned-exp-chip ability-expandable" :class="[`kind-${row.type}`, { open: row.field && $store.game.isAbilityDetailOpen(row.field, row.item, row.index), maxed: row.maxed }]" @click="row.field && $store.game.toggleAbilityDetail(row.field, row.item, row.index)">
+                            <span class="learned-exp-top">
+                              <span class="learned-exp-icon" aria-hidden="true" x-text="row.icon"></span>
+                              <span class="learned-exp-name" x-text="row.name"></span>
+                              <span class="learned-exp-lv" x-text="row.level ? `lv.${row.level}` : '—'"></span>
+                            </span>
+                            <span class="learned-exp-track">
+                              <span class="learned-exp-bar" aria-hidden="true"><i :style="`width:${row.expPercent || 0}%`"></i></span>
+                              <span class="learned-exp-num" x-text="row.expDisplay"></span>
+                            </span>
+                          </button>
                         </template>
                       </div>
                     </article>
@@ -1673,7 +1683,7 @@
               </div>
             </template>
             <template x-if="section.title === '身体状态'">
-              <div class="body-status-panel" x-data="{ intimacy: null }" x-init="intimacy = $store.game.intimacyBodyPresentation(section.fields); $watch(() => $store.game.identityTargetId, () => { intimacy = $store.game.intimacyBodyPresentation(section.fields); $store.game.clearAbilityDetail?.(); })">
+              <div class="body-status-panel" x-data="{ intimacy: null }" x-init="intimacy = $store.game.intimacyBodyPresentation(section.fields); $watch(() => [$store.game.identityTargetId, section.fields], () => { intimacy = $store.game.intimacyBodyPresentation(section.fields); $store.game.clearAbilityDetail?.(); })" x-effect="intimacy = $store.game.intimacyBodyPresentation(section.fields)">
                 <section class="body-status-hero">
                   <div class="body-status-hero-main">
                     <span class="body-status-eyebrow" x-text="intimacy?.hero?.eyebrow || 'INTIMACY RECORD'"></span>
@@ -3031,13 +3041,13 @@
                     <div><strong x-text="section.title"></strong><small x-text="$store.game.profileSectionTabMeta(section).hint"></small></div>
                   </header>
                   <template x-if="section.title === '个人能力'">
-                    <div class="personal-ability-panel" x-data="{ advancedOpen: false, ability: null }" x-init="ability = $store.game.personalAbilityPresentation(section.fields, $store.game.identityTargetState()); $watch(() => $store.game.identityTargetId, () => { ability = $store.game.personalAbilityPresentation(section.fields, $store.game.identityTargetState()); $store.game.clearAbilityDetail?.(); })">
+                    <div class="personal-ability-panel" x-data="{ advancedOpen: false, ability: null }" x-init="ability = $store.game.personalAbilityPresentation(section.fields, $store.game.identityTargetState()); $watch(() => $store.game.identityTargetId, () => { ability = $store.game.personalAbilityPresentation(section.fields, $store.game.identityTargetState()); $store.game.clearAbilityDetail?.(); })" x-effect="ability = $store.game.personalAbilityPresentation(section.fields, $store.game.identityTargetState())">
                       <p class="ability-panel-hint">点击条目查看完整说明 · 按身内属性分组展示习得</p>
                       <section class="ability-hero">
                         <div class="ability-hero-top">
                           <button type="button" class="ability-level-badge ability-expandable" :class="{ open: ability?.hero?.levelField && $store.game.isAbilityDetailOpen(ability.hero.levelField) }" x-show="ability?.hero?.levelField" @click="$store.game.toggleAbilityDetail(ability.hero.levelField)"><small>Lv</small><strong x-text="ability?.hero?.level || 1"></strong></button>
                           <div class="ability-hero-meta" role="button" tabindex="0" @click="ability?.hero?.expField && $store.game.toggleAbilityDetail(ability.hero.expField)" @keydown.enter.prevent="ability?.hero?.expField && $store.game.toggleAbilityDetail(ability.hero.expField)">
-                            <div class="ability-xp-row"><span class="ability-xp-label">经验</span><span class="ability-xp-value" x-text="ability?.hero?.exp?.display || '0/0'"></span><span class="ability-free-points" x-text="`自由点 ${ability?.hero?.freePoints ?? 0}`"></span></div>
+                            <div class="ability-xp-row"><span class="ability-xp-label">能量</span><span class="ability-xp-value" x-text="ability?.hero?.exp?.display || '0/0'"></span><span class="ability-free-points" x-text="`自由点 ${ability?.hero?.freePoints ?? 0}`"></span></div>
                             <div class="ability-xp-bar" aria-hidden="true"><i :style="`width:${ability?.hero?.exp?.percent || 0}%`"></i></div>
                           </div>
                         </div>
@@ -3062,9 +3072,19 @@
                         <template x-for="group in ability?.learnedGroups || []" :key="`entry-learned-${group.key}`">
                           <article class="intrinsic-link-group learned-link-group">
                             <header><span x-text="`${group.icon} ${group.label}`"></span><small x-text="`${group.items.length}项`"></small></header>
-                            <div class="ability-chip-grid">
+                            <div class="learned-exp-grid">
                               <template x-for="row in group.items" :key="`${group.key}-${row.type}-${row.index}`">
-                                <button type="button" class="learned-link-chip ability-expandable" :class="[`kind-${row.type}`, { open: row.field && $store.game.isAbilityDetailOpen(row.field, row.item, row.index) }]" @click="row.field && $store.game.toggleAbilityDetail(row.field, row.item, row.index)"><span x-text="row.chipText"></span></button>
+                                <button type="button" class="learned-link-chip learned-exp-chip ability-expandable" :class="[`kind-${row.type}`, { open: row.field && $store.game.isAbilityDetailOpen(row.field, row.item, row.index), maxed: row.maxed }]" @click="row.field && $store.game.toggleAbilityDetail(row.field, row.item, row.index)">
+                                  <span class="learned-exp-top">
+                                    <span class="learned-exp-icon" aria-hidden="true" x-text="row.icon"></span>
+                                    <span class="learned-exp-name" x-text="row.name"></span>
+                                    <span class="learned-exp-lv" x-text="row.level ? `lv.${row.level}` : '—'"></span>
+                                  </span>
+                                  <span class="learned-exp-track">
+                                    <span class="learned-exp-bar" aria-hidden="true"><i :style="`width:${row.expPercent || 0}%`"></i></span>
+                                    <span class="learned-exp-num" x-text="row.expDisplay"></span>
+                                  </span>
+                                </button>
                               </template>
                             </div>
                           </article>
@@ -3325,7 +3345,7 @@
                     </div>
                   </template>
                   <template x-if="section.title === '身体状态'">
-                    <div class="body-status-panel" x-data="{ intimacy: null }" x-init="intimacy = $store.game.intimacyBodyPresentation(section.fields); $watch(() => $store.game.identityTargetId, () => { intimacy = $store.game.intimacyBodyPresentation(section.fields); $store.game.clearAbilityDetail?.(); })">
+                    <div class="body-status-panel" x-data="{ intimacy: null }" x-init="intimacy = $store.game.intimacyBodyPresentation(section.fields); $watch(() => [$store.game.identityTargetId, section.fields], () => { intimacy = $store.game.intimacyBodyPresentation(section.fields); $store.game.clearAbilityDetail?.(); })" x-effect="intimacy = $store.game.intimacyBodyPresentation(section.fields)">
                       <section class="body-status-hero">
                         <div class="body-status-hero-main">
                           <span class="body-status-eyebrow" x-text="intimacy?.hero?.eyebrow || 'INTIMACY RECORD'"></span>

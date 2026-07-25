@@ -122,8 +122,9 @@ window.GameModules.jsonUtils = {
     for (let i = 0; i < max; i += 1) {
       const completionOptions = this.completionOptions(promptId, options);
       const baseTitle = String(options.sourceTitle || options.source || promptId || 'json-utils');
-      const attemptTitle = max > 1
-        ? `${baseTitle}｜${i === 0 ? '尝试' : '重试'}${i + 1}/${max}`
+      // Only annotate retries. First attempt keeps the clean title (no「尝试1/2」).
+      const attemptTitle = (max > 1 && i > 0)
+        ? `${baseTitle}｜重试${i + 1}/${max}`
         : baseTitle;
       lastText = await this.requestCompletion({
         model: options.model,
@@ -136,6 +137,9 @@ window.GameModules.jsonUtils = {
         maxAttempts: options.maxAttempts,
         store: options.store,
         useRealWorldKvCache: options.useRealWorldKvCache,
+        kvCacheSession: options.kvCacheSession,
+        reasoningPhase: options.reasoningPhase,
+        logId: options.logId,
         tokenMeta: { ...(options.tokenMeta || {}), title: attemptTitle },
         ...completionOptions,
       });
@@ -184,7 +188,7 @@ window.GameModules.jsonUtils = {
     throw error;
   },
 
-  async requestCompletion({ model, prompt, promptId = '', maxTokens, source = 'json-utils', sourceTitle = '', timeoutMs = 90000, maxAttempts, jsonMode = true, outputLimitKind = 'other', responseFormat, store = null, useRealWorldKvCache = false, tokenMeta = null }) {
+  async requestCompletion({ model, prompt, promptId = '', maxTokens, source = 'json-utils', sourceTitle = '', timeoutMs = 90000, maxAttempts, jsonMode = true, outputLimitKind = 'other', responseFormat, store = null, useRealWorldKvCache = false, kvCacheSession = null, reasoningPhase = '', logId = null, tokenMeta = null }) {
     if (useRealWorldKvCache && store && window.GameModules.realWorldAgentLoop?.completeCachedJsonPrompt) {
       return await window.GameModules.realWorldAgentLoop.completeCachedJsonPrompt(store, {
         prompt,
@@ -198,6 +202,9 @@ window.GameModules.jsonUtils = {
         jsonMode,
         outputLimitKind,
         responseFormat: responseFormat || (jsonMode ? { type: 'json_object' } : undefined),
+        kvCacheSession,
+        reasoningPhase,
+        logId,
         tokenMeta,
       });
     }
