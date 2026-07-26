@@ -14,7 +14,7 @@ window.GameModules.app.wechat.appOrchestration = {
     if (this.knownProfessionState) this.knownProfessionState.open = false;
     if (this.promptState) this.promptState.open = false; if (this.tokenStatsState) this.tokenStatsState.open = false;
     const validTabs = new Set(['chats', 'contacts', 'me']);
-    const validViews = new Set(['home', 'chat', 'profile']);
+    const validViews = new Set(['home', 'chat', 'profile', 'friendRequests']);
     if (!validTabs.has(this.wechatTab)) this.wechatTab = 'chats';
     if (!validViews.has(this.wechatView)) this.wechatView = 'home';
     this.wechatAppOpen = true; this.desktopUnlocked = true;

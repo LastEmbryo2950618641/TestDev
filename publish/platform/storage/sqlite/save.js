@@ -297,6 +297,13 @@ window.GameModules.sqliteSave = {
     return this.getJson('SELECT intro_json FROM character_intro WHERE name=? ORDER BY updated_at DESC LIMIT 1', [name]);
   },
 
+  getCharacterIntroById(id = '') {
+    const key = String(id || '').trim();
+    if (!key) return null;
+    const rows = this.listCharacterIntros() || [];
+    return rows.find((card) => card?.id === key || card?.links?.roleCardId === key || card?.links?.scheduleId === key) || null;
+  },
+
   listCharacterIntros() {
     if (this.fallback) return Object.values(this.fallbackState?.characterIntros || {});
     if (!this.db) return [];

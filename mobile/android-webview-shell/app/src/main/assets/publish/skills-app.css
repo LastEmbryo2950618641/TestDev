@@ -331,3 +331,90 @@
   .skills-detail { overflow-y: auto; }
   .skill-row-title { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* 角色管理 */
+.character-roster-card .roster-badges {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.character-roster-card .roster-badges i {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(120, 150, 200, 0.18);
+  color: #d7e2f5;
+}
+.roster-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.roster-detail-head strong { display: block; font-size: 18px; }
+.roster-detail-head small { color: #aeb9d6; }
+.roster-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.roster-tab {
+  border: 1px solid rgba(180, 200, 230, 0.22);
+  background: rgba(20, 28, 44, 0.55);
+  color: #c9d4ea;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.roster-tab.active {
+  background: rgba(90, 140, 220, 0.28);
+  border-color: rgba(140, 180, 240, 0.45);
+  color: #fff;
+}
+.roster-intro-card {
+  border: 1px solid rgba(180, 200, 230, 0.18);
+  border-radius: 16px;
+  padding: 16px;
+  background:
+    radial-gradient(120% 80% at 0% 0%, rgba(120, 160, 220, 0.14), transparent 55%),
+    rgba(14, 20, 32, 0.72);
+  margin-bottom: 12px;
+}
+.roster-intro-card-head { margin-bottom: 12px; }
+.roster-intro-card-head h3 { margin: 4px 0; font-size: 22px; }
+.roster-intro-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px 14px;
+  margin: 0;
+}
+.roster-intro-grid div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.roster-intro-grid dt {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #8fa0c0;
+  text-transform: none;
+}
+.roster-intro-grid dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #e8eef8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.roster-role-pane .primary-btn,
+.roster-intro-pane .primary-btn {
+  margin-top: 8px;
+  width: 100%;
+}

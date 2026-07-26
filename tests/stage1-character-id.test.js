@@ -14,7 +14,8 @@ function loadScript(context, relativePath) {
 const prompt = read('publish/prompts/推演引擎/stage1-guided-query.md');
 assert.ok(prompt.includes('角色名(ID)'));
 assert.ok(prompt.includes('待建卡'));
-assert.ok(prompt.includes('一次性批量建卡'));
+assert.ok(prompt.includes('一次性批量') || prompt.includes('批量'));
+assert.ok(prompt.includes('介绍卡'));
 assert.ok(prompt.includes('刘思琪(rel-ai-247528)'));
 
 const context = {

@@ -11,6 +11,13 @@ window.GameModules.characterIntroStore = {
     return this.source()?.get?.(name, worldTag) || null;
   },
 
+  getById(id = '') {
+    const key = String(id || '').trim();
+    if (!key) return null;
+    if (this.source()?.getById) return this.source().getById(key) || null;
+    return (this.list() || []).find((card) => card?.id === key || card?.links?.roleCardId === key || card?.links?.scheduleId === key) || null;
+  },
+
   list() {
     return this.source()?.list?.() || [];
   },

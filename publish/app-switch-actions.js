@@ -33,6 +33,7 @@ window.GameModules.appSwitchActions = {
     if (this.factionState) this.factionState.open = false;
     if (this.skillsState) Object.assign(this.skillsState, { open: false, detailOpen: false });
     if (this.knownProfessionState) Object.assign(this.knownProfessionState, { open: false, detailOpen: false });
+    if (this.characterRosterState) Object.assign(this.characterRosterState, { open: false, selectedKey: '', tab: 'role' });
     if (this.taobaoState) Object.assign(this.taobaoState, { open: false, generatingId: '', walletOpen: false });
     if (this.promptState) Object.assign(this.promptState, { open: false, selectedId: '', selectedText: '', loading: false });
     if (this.tokenStatsState) Object.assign(this.tokenStatsState, { open: false, selectedId: '' });

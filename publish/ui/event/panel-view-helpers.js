@@ -41,7 +41,7 @@ window.GameModules.ui.event.panelViewHelpers = {
 
   eventPanelView() {
     return {
-      title: '事件',
+      title: '日常驱动与事件系统',
       description: this.eventHeaderDescription(),
       probabilityFieldLabel: this.eventProbabilityFieldLabel(),
       probabilityValue: this.eventRandomProbability(),

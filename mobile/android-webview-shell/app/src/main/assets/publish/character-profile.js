@@ -207,6 +207,13 @@ window.GameModules.characterProfile = {
         remember('essentialPreferences', essentialPref);
       }
       const essentialPrefSummary = window.GameModules.playerAspirationPreferenceLayers?.summaryText?.(essentialPref?.essentialPreferenceLayers) || '';
+      let socialDrivePart = shouldReuse('socialDrive') ? retryParts.socialDrive : null;
+      if (!socialDrivePart) {
+        this.onProgress(store, loadingId, 'socialDrive', 'running', '', { done: 0, total: 1 });
+        socialDrivePart = await this.generateSocialDrive(namedBase, store, part1, p1Summary, commonVars);
+        this.onProgress(store, loadingId, 'socialDrive', 'done', '', { done: 1, total: 1 });
+        remember('socialDrive', socialDrivePart);
+      }
       const part2Total = this.partProgressTotal(2, templates[2], attrs);
       let part2 = shouldReuse('feeling') ? retryParts.feeling : null;
       if (!part2) {
@@ -255,7 +262,15 @@ window.GameModules.characterProfile = {
         this.onProgress(store, loadingId, 'rpgField', 'done', '', { done: this.partProgressDone(7, part7), total: part7Total });
         remember('rpgField', part7);
       }
-      const merged = this.mergeGeneratedParts(part1, part2, part3, { ...part4, ...part5, ...part6, ...part7, essentialPreferenceLayers: essentialPref?.essentialPreferenceLayers, essentialPreferenceLayersLocked: true }, attrs);
+      const merged = this.mergeGeneratedParts(part1, part2, part3, {
+        ...part4,
+        ...part5,
+        ...part6,
+        ...part7,
+        essentialPreferenceLayers: essentialPref?.essentialPreferenceLayers,
+        essentialPreferenceLayersLocked: true,
+        socialDrive: socialDrivePart?.socialDrive,
+      }, attrs);
       const profile = this.validate(merged, base, lore, attrs, store, { skipInitialMetrics: false });
       return this.withSignature(profile, signature);
     } catch (err) {
@@ -267,10 +282,53 @@ window.GameModules.characterProfile = {
 
   shouldReuseRoleCardPart(retryFromStep = '', stepKey = '') {
     if (!retryFromStep) return false;
-    const order = ['profile', 'essentialPreferences', 'feeling', 'abilities', 'inventory', 'bodyProfile', 'dressedProfile', 'rpgField', 'state'];
+    const order = ['profile', 'essentialPreferences', 'socialDrive', 'feeling', 'abilities', 'inventory', 'bodyProfile', 'dressedProfile', 'rpgField', 'state'];
     const retryIndex = order.indexOf(retryFromStep);
     const stepIndex = order.indexOf(stepKey);
     return retryIndex > 0 && stepIndex >= 0 && stepIndex < retryIndex;
+  },
+
+  async generateSocialDrive(base, store, part1, p1Summary, commonVars = {}) {
+    const tool = window.GameModules.characterSocialDrive;
+    const fallback = () => ({
+      name: base.name || part1?.name,
+      socialDrive: tool?.normalizeForRoleCard?.(base.socialDrive || {
+        relationToPlayer: this.isPlayerSelfTarget(base) ? '本人' : '',
+        relationDetail: '',
+        familiarity: this.isPlayerSelfTarget(base) ? 100 : 20,
+        lastContactAt: '',
+        lastContactChannel: 'none',
+        reach: this.isPlayerSelfTarget(base) ? [] : ['scene'],
+        agenda: {
+          short: String(part1?.detail || part1?.role || base.detail || '').slice(0, 160),
+          deadline: '',
+          needPlayer: false,
+          needPlayerWhy: '',
+          urgency: 0.15,
+          cooldownUntil: '',
+        },
+      }, base) || tool?.empty?.() || {},
+    });
+    try {
+      const prompt = await window.GameModules.renderPrompt('character-profile-part8-social-drive', {
+        ...commonVars,
+        part1Summary: p1Summary,
+      });
+      const raw = await window.GameModules.jsonUtils.generateJsonWithRetry({
+        source: 'character-profile-part8-social-drive',
+        promptId: 'character-profile-part8-social-drive',
+        model: window.GameModules.aiRequest?.selectedTextModel?.(),
+        timeoutMs: 60000,
+        prompt,
+      });
+      const parsed = typeof raw === 'string' ? this.parse(raw) : raw;
+      const drive = tool?.normalizeForRoleCard?.(parsed?.socialDrive || parsed, base);
+      if (!drive) return fallback();
+      return { name: parsed?.name || base.name || part1?.name, socialDrive: drive };
+    } catch (err) {
+      console.warn('[角色卡] Part8 社交驱动生成失败，使用回退:', err?.message || err);
+      return fallback();
+    }
   },
 
   async generateEssentialPreferenceLayers(base, store, part1, p1Summary, commonVars = {}) {
@@ -1582,6 +1640,10 @@ window.GameModules.characterProfile = {
       merged.essentialPreferenceLayers = window.GameModules.playerAspirationPreferenceLayers?.normalizeLayers?.(part4.essentialPreferenceLayers) || part4.essentialPreferenceLayers;
       merged.essentialPreferenceLayersLocked = part4.essentialPreferenceLayersLocked !== false;
     }
+    if (part4.socialDrive) {
+      merged.socialDrive = window.GameModules.characterSocialDrive?.normalizeForRoleCard?.(part4.socialDrive, merged)
+        || part4.socialDrive;
+    }
     merged.roleCardFieldReasons = this.roleReasonsFromParts(merged);
     merged.rpgFieldReasons = this.rpgReasonsFromPart4(merged, attrs);
     return merged;
@@ -2535,6 +2597,10 @@ window.GameModules.characterProfile = {
         ? window.GameModules.playerAspirationPreferenceLayers?.normalizeLayers?.(profile.essentialPreferenceLayers)
         : null,
       essentialPreferenceLayersLocked: Boolean(profile.essentialPreferenceLayersLocked && profile.essentialPreferenceLayers),
+      socialDrive: window.GameModules.characterSocialDrive?.normalizeForRoleCard?.(
+        profile.socialDrive || {},
+        { ...base, ...profile },
+      ) || window.GameModules.characterSocialDrive?.empty?.() || null,
       roleCard: true,
       roleCardSource: 'ai',
       roleCardUpdatedAt: new Date().toISOString(),

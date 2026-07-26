@@ -64,6 +64,7 @@ window.GameModules.identityAppActions = {
     if (this.factionState) this.factionState.open = false;
     if (this.skillsState) this.skillsState.open = false;
     if (this.knownProfessionState) this.knownProfessionState.open = false;
+    if (this.characterRosterState) this.characterRosterState.open = false;
     if (this.promptState) this.promptState.open = false; if (this.tokenStatsState) this.tokenStatsState.open = false;
     this.identityTargetId = id; this.identityAppOpen = true;
     this.desktopUnlocked = true;
@@ -71,6 +72,12 @@ window.GameModules.identityAppActions = {
   },
   closeIdentityApp() { this.identityReturnTo = ''; this.closeAppToDesktop(); },
   backFromIdentityApp() {
+    if (this.identityReturnTo === 'character-roster') {
+      this.identityAppOpen = false;
+      this.identityReturnTo = '';
+      this.openCharacterRosterApp?.();
+      return;
+    }
     if (this.identityReturnTo !== 'wechat') return this.closeIdentityApp();
     this.identityAppOpen = false;
     this.identityReturnTo = '';

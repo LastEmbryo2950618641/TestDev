@@ -66,36 +66,88 @@ window.GameModules.characterIdEnsure = {
     const storeApi = window.GameModules.characterStateStore;
     const world = this.worldTag(store);
     const existing = storeApi?.getByName?.(clean, world, store);
-    if (existing?.id) return existing;
+    if (existing?.id) {
+      // 已有空壳或完整卡时，仍确保同 ID 介绍卡存在
+      await this.ensureMatchingIntro?.(store, existing);
+      return existing;
+    }
     const id = this.allocateId(clean, world);
+    const presenceKind = window.GameModules.characterSocialDrive?.inferPresenceKind?.({ name: clean }) || 'individual';
+    const role = presenceKind === 'group' ? '一类人（团体原型）' : '新登场人物';
+    const detail = `Stage1 批量建卡：${clean}`;
+    // 先用同一 ID 落介绍卡，再写空壳角色状态
+    await this.ensureMatchingIntro?.(store, {
+      id,
+      name: clean,
+      worldTag: world,
+      profile: { id, name: clean, work: world, role, detail, presenceKind, roleCardStub: true },
+    });
     const card = {
       id,
       name: clean,
       work: world,
       worldTag: world,
-      role: '新登场人物',
-      detail: `Stage1 批量建卡：${clean}`,
+      role,
+      detail,
       appearance: '',
       preferences: '',
       personality: '',
+      presenceKind,
+      roleCardStub: true,
     };
     const created = await window.GameModules.predefinedRoleCards?.createState?.(card, store, id);
+    let state = created;
     if (created?.id) {
+      if (created.profile) {
+        created.profile.presenceKind = presenceKind;
+        created.profile.roleCardStub = true;
+      }
       storeApi?.adopt?.(created, store);
       await storeApi?.save?.(created, store);
-      return created;
+    } else {
+      const minimal = {
+        id,
+        name: clean,
+        worldTag: world,
+        profile: {
+          id,
+          name: clean,
+          work: world,
+          role: card.role,
+          detail: card.detail,
+          presenceKind,
+          roleCardStub: true,
+        },
+        values: {},
+        meta: { roleCardStub: true },
+      };
+      store.rpgStates = { ...(store.rpgStates || {}), [id]: minimal };
+      storeApi?.adopt?.(minimal, store);
+      await storeApi?.save?.(minimal, store);
+      state = minimal;
     }
-    const minimal = {
+    return state;
+  },
+
+  async ensureMatchingIntro(store, state = null) {
+    const name = String(state?.profile?.name || state?.name || '').trim();
+    const id = String(state?.id || state?.profile?.id || '').trim();
+    if (!name) return null;
+    const presenceKind = state?.profile?.presenceKind
+      || window.GameModules.characterSocialDrive?.inferPresenceKind?.({ name })
+      || 'individual';
+    return window.GameModules.characterIntroCard?.ensure?.(store, {
       id,
-      name: clean,
-      worldTag: world,
-      profile: { id, name: clean, work: world, role: '新登场人物', detail: card.detail },
-      values: {},
-    };
-    store.rpgStates = { ...(store.rpgStates || {}), [id]: minimal };
-    storeApi?.adopt?.(minimal, store);
-    await storeApi?.save?.(minimal, store);
-    return minimal;
+      name,
+      worldTag: state?.worldTag || state?.profile?.work || this.worldTag(store),
+      role: state?.profile?.role || (presenceKind === 'group' ? '一类人（团体原型）' : '出场人物'),
+      presenceKind,
+      intro: state?.profile?.detail || '',
+      links: {
+        roleCardId: id,
+        scheduleId: id,
+      },
+    }, 'stage1');
   },
 
   /**

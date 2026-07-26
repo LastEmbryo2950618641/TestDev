@@ -51,6 +51,7 @@ window.GameModules.promptTemplates = {
     { id: 'player-aspiration-psych-tags', title: '心理偏好标签生成', category: '手机激活', file: 'prompts/player-aspiration-psych-tags.md', summary: '换一批时在内置与自定义标签基础上生成不重复的新候选。' },
     { id: 'character-profile-part1-base-identity', title: '角色卡 Part1 基础身份', category: '角色生成', file: 'prompts/character-profile-part1-base-identity.md', summary: '按预定义 JSON 生成基础身份与社会关系。' },
     { id: 'character-profile-essential-preference-layers', title: '角色卡本质偏好五层', category: '角色生成', file: 'prompts/character-profile-essential-preference-layers.md', summary: '根据 Part1 与上下文生成价值立场至心理偏好五层。' },
+    { id: 'character-profile-part8-social-drive', title: '角色卡 Part8 社交驱动', category: '角色生成', file: 'prompts/character-profile-part8-social-drive.md', summary: '独立生成 socialDrive（关系门闩、议程、可达渠道），不并入 Part1–7。' },
     { id: 'character-profile-part2-feeling', title: '角色卡 Part2 情感数值', category: '角色生成', file: 'prompts/character-profile-part2-feeling.md', summary: '按 JSON Schema 生成情绪与对玩家感觉数值。' },
     { id: 'character-profile-part2-feeling-fix', title: '角色卡 Part2 情感数值 JSON 修复', category: '角色生成', file: 'prompts/character-profile-part2-feeling-fix.md', summary: '只补齐 Part2 缺失或不完整的 feeling JSON 字段。' },
     { id: 'character-profile-csv-fix', title: '角色卡 JSON 通用修复', category: '角色生成', file: 'prompts/character-profile-csv-fix.md', summary: '只补齐角色卡 JSON 分段中缺失或不完整的字段。' },

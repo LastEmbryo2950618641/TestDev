@@ -1186,7 +1186,7 @@
                       <section class="solidify-card" x-show="$store.game.selectedSolidifyCard(entry)">
                         <h3 x-text="$store.game.selectedSolidifyCard(entry)?.name"></h3>
                         <template x-for="row in $store.game.solidifyDetailRows($store.game.selectedSolidifyCard(entry))" :key="row[0]"><p><b x-text="`${row[0]}：`"></b><span x-text="row[1]"></span></p></template>
-                        <div class="solidify-actions" x-show="$store.game.selectedSolidifyCard(entry)?.displayType !== 'role'"><button type="button" @click="$store.game.solidifySelectedIntroCard($store.game.selectedSolidifyCard(entry), entry)">固化为角色卡</button></div>
+                        <div class="solidify-actions" x-show="$store.game.selectedSolidifyCard(entry)?.displayType !== 'role'"><button type="button" @click="$store.game.solidifySelectedIntroCard($store.game.selectedSolidifyCard(entry), entry)">升格为角色卡</button></div>
                       </section>
                     </article>
                   </section>
@@ -1279,11 +1279,12 @@
           <div class="desktop-apps">
             <button class="desktop-app-icon control-icon" type="button" @click="$store.game.openDesktopApp()" aria-label="打开我要狠狠操控"><span class="app-glyph-emoji" aria-hidden="true">🎮</span><b>我要狠狠操控</b></button>
             <button class="desktop-app-icon identity-icon" type="button" @click="$store.game.openIdentityApp('player-self')" aria-label="打开身份证"><span class="app-glyph-emoji" aria-hidden="true">🪪</span><b>身份证</b></button>
+            <button class="desktop-app-icon character-roster-icon" type="button" @click="$store.game.openCharacterRosterApp()" aria-label="打开角色管理"><span class="app-glyph-emoji" aria-hidden="true">👥</span><b>角色管理</b></button>
             <button class="desktop-app-icon wechat-icon" type="button" @click="$store.game.openWechatApp()" aria-label="打开微信"><span class="app-glyph-emoji" aria-hidden="true">💬</span><b>微信</b></button>
             <button class="desktop-app-icon company-icon" type="button" @click="$store.game.openCompanyApp()" aria-label="打开公司"><span class="app-glyph-emoji" aria-hidden="true">🏢</span><b>公司</b></button>
             <button class="desktop-app-icon boss-icon" type="button" @click="$store.game.openBossApp()" aria-label="打开BOSS招聘"><span class="app-glyph-emoji" aria-hidden="true">💼</span><b>BOSS招聘</b></button>
             <button class="desktop-app-icon calendar-icon" type="button" @click="$store.game.openCalendarApp()" aria-label="打开日历"><span class="app-glyph-emoji" aria-hidden="true">📅</span><b>日历</b></button>
-            <button class="desktop-app-icon event-icon" type="button" onclick="window.openEventAppNative && window.openEventAppNative(event)" @click="$store.game.openEventDesktopApp && $store.game.openEventDesktopApp()" aria-label="打开事件"><span class="app-glyph-emoji" aria-hidden="true">🗓️</span><b>事件</b></button>
+            <button class="desktop-app-icon event-icon" type="button" onclick="window.openEventAppNative && window.openEventAppNative(event)" @click="$store.game.openEventDesktopApp && $store.game.openEventDesktopApp()" aria-label="打开日常驱动"><span class="app-glyph-emoji" aria-hidden="true">🗓️</span><b>日常驱动</b></button>
             <button class="desktop-app-icon faction-icon" type="button" @click="$store.game.openFactionApp()" aria-label="打开势力"><span class="app-glyph-emoji" aria-hidden="true">🛡️</span><b>势力</b></button>
             <button class="desktop-app-icon skills-icon" type="button" @click="$store.game.openSkillsApp()" aria-label="打开Skills"><span class="app-glyph-emoji" aria-hidden="true">🌳</span><b>Skills</b></button>
             <button class="desktop-app-icon prompt-icon" type="button" @click="$store.game.openPromptApp()" aria-label="打开提示词管理"><span class="app-glyph-emoji" aria-hidden="true">📝</span><b>提示词</b></button>
@@ -1308,10 +1309,10 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.identityAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.eventState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.taobaoState?.open && !$store.game.settingsState?.open && !$store.game.controlExperienceConfigState?.open && !$store.game.systemTestState?.open && !$store.game.saveAppOpen && !$store.game.roleCardJsonAppOpen && !$store.game.worldlineAppOpen" class="identity-app-screen app-window section-hints" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.identityAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.eventState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.characterRosterState?.open && !$store.game.taobaoState?.open && !$store.game.settingsState?.open && !$store.game.controlExperienceConfigState?.open && !$store.game.systemTestState?.open && !$store.game.saveAppOpen && !$store.game.roleCardJsonAppOpen && !$store.game.worldlineAppOpen" class="identity-app-screen app-window section-hints" x-cloak>
     <div class="identity-card dev-section" data-section-title="身份证主面板">
       <header class="identity-header dev-section" data-section-title="身份证标题区">
-        <button class="small-btn identity-back-btn" type="button" x-show="$store.game.identityReturnTo === 'wechat'" @click="$store.game.backFromIdentityApp()">返回微信</button>
+        <button class="small-btn identity-back-btn" type="button" x-show="$store.game.identityReturnTo === 'wechat' || $store.game.identityReturnTo === 'character-roster'" @click="$store.game.backFromIdentityApp()" x-text="$store.game.identityReturnTo === 'character-roster' ? '返回角色管理' : '返回微信'"></button>
         <div><p class="eyebrow">ID CARD</p><h2>身份证</h2><small x-text="$store.game.identityTargetProfile().work || '现实世界'"></small></div>
         <button class="small-btn" type="button" @click="$store.game.closeIdentityApp()">回到桌面</button>
       </header>
@@ -2111,37 +2112,133 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.eventState?.open" class="event-app-screen app-window section-hints" x-cloak x-effect="$store.game.eventState?.open && $store.game.initEventSystem?.()">
-    <div class="event-card dev-section" data-section-title="事件APP主面板">
-      <header class="identity-header event-header"><div><p class="eyebrow">EVENTS</p><h2>事件</h2><small>随机事件、推演事件、周期事件</small></div><div class="event-header-actions"><label class="event-setting"><span>随机事件发生概率</span><input type="number" min="0" max="100" step="1" :value="$store.game.eventRandomProbability()" @change="$store.game.setEventRandomProbability($event.target.value)"><b>%</b></label><button class="small-btn" type="button" @click="$store.game.closeEventApp()">回到桌面</button></div></header>
-      <nav class="event-tabs">
-        <template x-for="tab in $store.game.eventTypeTabs()" :key="tab.type">
-          <button type="button" :class="{ active: $store.game.eventState.tab === tab.type }" @click="$store.game.setEventTab(tab.type)"><span x-text="tab.label"></span><small x-text="` ${tab.count}`"></small></button>
+  <section x-show="!$store.game.loading && $store.game.eventState?.open" class="event-app-screen drive-app-screen app-window section-hints" x-cloak x-effect="$store.game.eventState?.open && $store.game.initEventSystem?.()">
+    <div class="event-card drive-card dev-section" data-section-title="日常驱动与事件系统主面板">
+      <header class="identity-header event-header drive-header">
+        <div>
+          <p class="eyebrow">DAILY DRIVE</p>
+          <h2>日常驱动与事件系统</h2>
+          <small x-text="$store.game.eventHeaderDescription?.() || '熟人入队 · 场外事件 · 推进节奏'">熟人入队 · 场外事件 · 推进节奏</small>
+        </div>
+        <div class="event-header-actions">
+          <button class="small-btn" type="button" @click="$store.game.closeEventApp()">回到桌面</button>
+        </div>
+      </header>
+      <nav class="event-tabs drive-primary-tabs" role="tablist" aria-label="日常驱动一级页签">
+        <template x-for="tab in $store.game.drivePrimaryTabs()" :key="tab.id">
+          <button type="button" role="tab" :aria-selected="$store.game.eventState.primaryTab === tab.id" :class="{ active: $store.game.eventState.primaryTab === tab.id }" @click="$store.game.setDrivePrimaryTab(tab.id)">
+            <span x-text="tab.label"></span>
+            <small x-show="tab.showCount && tab.count" x-text="` ${tab.count}`"></small>
+          </button>
         </template>
       </nav>
-      <main class="event-body">
-        <section class="event-list">
-          <template x-for="event in $store.game.currentEventList()" :key="event.id">
-            <button class="event-row" type="button" :class="{ active: $store.game.eventState.selectedId === event.id }" @click="$store.game.eventState.selectedId = event.id">
-              <strong x-text="$store.game.eventName(event)"></strong>
-              <small x-text="$store.game.eventMeta(event)"></small>
-            </button>
+
+      <main class="drive-pane" x-show="$store.game.eventState.primaryTab === 'inbox'" role="tabpanel">
+        <nav class="event-tabs drive-filter-tabs" aria-label="队列状态滤镜">
+          <template x-for="tab in $store.game.inboxFilterTabs()" :key="tab.id">
+            <button type="button" :class="{ active: $store.game.eventState.inboxFilter === tab.id }" @click="$store.game.setInboxFilter(tab.id)" x-text="tab.label"></button>
           </template>
-          <p class="empty-lore" x-show="!$store.game.currentEventList().length">暂无该类型事件。</p>
-        </section>
-        <section class="event-detail">
-          <template x-if="$store.game.selectedEvent()">
-            <article>
-              <h3 x-text="$store.game.eventName($store.game.selectedEvent())"></h3>
-              <small x-text="$store.game.eventMeta($store.game.selectedEvent())"></small>
-              <p x-text="$store.game.selectedEvent().content"></p>
-              <div class="event-chip-row"><template x-for="tag in ($store.game.selectedEvent().tags || [])" :key="tag"><span x-text="tag"></span></template></div>
-              <p><b>状态：</b><span x-text="$store.game.eventStatusLabel($store.game.selectedEvent())"></span></p>
-              <p x-show="$store.game.selectedEvent().type === 'random'"><b>触发：</b><span x-text="`${$store.game.selectedEvent().triggeredCount || 0} 次`"></span></p>
-            </article>
+          <small class="drive-queue-cap">排队上限 30</small>
+        </nav>
+        <div class="event-body drive-inbox-body">
+          <section class="event-list">
+            <template x-for="item in $store.game.currentInboxList()" :key="item.id">
+              <button class="event-row drive-inbox-row" type="button" :class="{ active: ($store.game.eventState.inboxSelectedId || $store.game.currentInboxList()[0]?.id) === item.id }" @click="$store.game.selectInboxItem(item.id)">
+                <strong>
+                  <span x-text="item.actorName || '未知'"></span>
+                  <em class="drive-channel-chip" x-text="$store.game.inboxChannelLabel(item.channel)"></em>
+                  <em class="drive-urgency-chip" x-text="$store.game.inboxUrgencyDots(item.urgency).label"></em>
+                </strong>
+                <small x-text="item.want || item.needPlayerWhy || '（无事务摘要）'"></small>
+                <small x-text="`${$store.game.inboxStatusLabel(item.status)} · ${$store.game.inboxRelativeTime(item.createdAt) || '时间未知'}`"></small>
+              </button>
+            </template>
+            <p class="empty-lore" x-show="!$store.game.currentInboxList().length" x-text="$store.game.inboxListEmptyText?.() || '暂无待处理日常入队。'">暂无待处理日常入队。</p>
+          </section>
+          <section class="event-detail">
+            <template x-if="$store.game.selectedInboxItem()">
+              <article>
+                <h3 x-text="$store.game.selectedInboxItem().actorName || '未知'"></h3>
+                <small x-text="`渠道 ${$store.game.inboxChannelLabel($store.game.selectedInboxItem().channel)}｜关系 ${$store.game.selectedInboxItem().relationToPlayer || '未填'}｜紧迫 ${$store.game.inboxUrgencyDots($store.game.selectedInboxItem().urgency).label}`"></small>
+                <p><b>事务：</b><span x-text="$store.game.selectedInboxItem().want || '（无）'"></span></p>
+                <p><b>为何找你：</b><span x-text="$store.game.selectedInboxItem().needPlayerWhy || '（无）'"></span></p>
+                <p><b>好感</b> <span x-text="$store.game.selectedInboxItem().affection ?? 0"></span> · <b>熟识</b> <span x-text="$store.game.selectedInboxItem().familiarity ?? 0"></span></p>
+                <div class="event-chip-row" x-show="$store.game.selectedInboxItem().mayRequestWechat"><span>可申请加微信</span></div>
+                <p><b>状态：</b><span x-text="$store.game.inboxStatusLabel($store.game.selectedInboxItem().status)"></span></p>
+                <p x-show="$store.game.selectedInboxItem().createdAt"><b>创建：</b><span x-text="$store.game.selectedInboxItem().createdAt"></span></p>
+                <p x-show="$store.game.selectedInboxItem().dueAt"><b>到期：</b><span x-text="$store.game.selectedInboxItem().dueAt"></span></p>
+              </article>
+            </template>
+            <p class="empty-lore" x-show="!$store.game.selectedInboxItem()">选择左侧条目查看驱动详情。</p>
+          </section>
+        </div>
+      </main>
+
+      <main class="drive-pane" x-show="$store.game.eventState.primaryTab === 'events'" role="tabpanel">
+        <nav class="event-tabs" aria-label="事件类型">
+          <template x-for="tab in $store.game.eventTypeTabs()" :key="tab.type">
+            <button type="button" :class="{ active: $store.game.eventState.tab === tab.type }" @click="$store.game.setEventTab(tab.type)"><span x-text="tab.label"></span><small x-text="` ${tab.count}`"></small></button>
           </template>
-          <p class="empty-lore" x-show="!$store.game.selectedEvent()">选择左侧事件查看详情。</p>
+        </nav>
+        <div class="event-body">
+          <section class="event-list">
+            <template x-for="event in $store.game.currentEventList()" :key="event.id">
+              <button class="event-row" type="button" :class="{ active: $store.game.eventState.selectedId === event.id }" @click="$store.game.eventState.selectedId = event.id">
+                <strong x-text="$store.game.eventName(event)"></strong>
+                <small x-text="$store.game.eventMeta(event)"></small>
+              </button>
+            </template>
+            <p class="empty-lore" x-show="!$store.game.currentEventList().length">暂无该类型事件。</p>
+          </section>
+          <section class="event-detail">
+            <template x-if="$store.game.selectedEvent()">
+              <article>
+                <h3 x-text="$store.game.eventName($store.game.selectedEvent())"></h3>
+                <small x-text="$store.game.eventMeta($store.game.selectedEvent())"></small>
+                <p x-text="$store.game.selectedEvent().content"></p>
+                <div class="event-chip-row"><template x-for="tag in ($store.game.selectedEvent().tags || [])" :key="tag"><span x-text="tag"></span></template></div>
+                <p><b>状态：</b><span x-text="$store.game.eventStatusLabel($store.game.selectedEvent())"></span></p>
+                <p x-show="$store.game.selectedEvent().type === 'random'"><b>触发：</b><span x-text="`${$store.game.selectedEvent().triggeredCount || 0} 次`"></span></p>
+              </article>
+            </template>
+            <p class="empty-lore" x-show="!$store.game.selectedEvent()">选择左侧事件查看详情。</p>
+          </section>
+        </div>
+      </main>
+
+      <main class="drive-pane drive-tempo-pane scroll-area" x-show="$store.game.eventState.primaryTab === 'tempo'" role="tabpanel">
+        <section class="drive-tempo-block">
+          <h3>推进时长 → 熟人入队人数</h3>
+          <p class="drive-tempo-note">按本次时间跨度决定最多几人进入日常队列（期望 / 硬顶）。</p>
+          <div class="drive-budget-table" role="table" aria-label="入队人数阶梯">
+            <div class="drive-budget-head" role="row">
+              <span role="columnheader">时间跨度</span>
+              <span role="columnheader">期望人数</span>
+              <span role="columnheader">硬顶人数</span>
+            </div>
+            <template x-for="(tier, index) in $store.game.inboxBudgetTiersView()" :key="`budget-${index}`">
+              <div class="drive-budget-row" role="row">
+                <label role="cell"><span class="sr-only">时间跨度</span><strong x-text="tier.label"></strong></label>
+                <label role="cell"><span class="sr-only">期望人数</span><input type="number" min="0" max="20" step="0.05" :value="tier.expected" @change="$store.game.setInboxBudgetTier(index, 'expected', $event.target.value)"></label>
+                <label role="cell"><span class="sr-only">硬顶人数</span><input type="number" min="0" max="20" step="1" :value="tier.hardCap" @change="$store.game.setInboxBudgetTier(index, 'hardCap', $event.target.value)"></label>
+              </div>
+            </template>
+          </div>
+          <button class="small-btn" type="button" @click="$store.game.resetInboxBudgetTiers()">恢复默认阶梯</button>
         </section>
+        <section class="drive-tempo-block">
+          <h3>场外随机</h3>
+          <label class="event-setting drive-tempo-setting">
+            <span>随机事件发生概率</span>
+            <input type="number" min="0" max="100" step="1" :value="$store.game.eventRandomProbability()" @change="$store.game.setEventRandomProbability($event.target.value)">
+            <b>%</b>
+          </label>
+        </section>
+        <section class="drive-tempo-block drive-tempo-reserve">
+          <h3>更多开关</h3>
+          <p class="drive-tempo-note">后续节奏相关选项将放在这里。</p>
+        </section>
+        <p class="event-message" x-show="$store.game.eventState.message" x-text="$store.game.eventState.message"></p>
       </main>
     </div>
   </section>
@@ -2356,6 +2453,95 @@
           <p class="skills-note" x-show="!$store.game.knownProfessions().length">暂无已知职业。职业必须在剧情推演中出现、玩家知道其含义且符合当前世界观后，才会进入这里。</p>
           <template x-for="job in $store.game.knownProfessions()" :key="`${job.worldTag}-${job.name}`">
             <button class="skill-row prompt-row" type="button" @click="$store.game.openKnownProfessionDetail(job)"><span class="skill-row-title prompt-title"><strong x-text="job.name"></strong></span><small x-text="`${job.worldTag}｜${job.summary || '暂无说明'}`"></small></button>
+          </template>
+        </section>
+      </main>
+    </div>
+  </section>
+
+  <section x-show="!$store.game.loading && $store.game.characterRosterState?.open" class="skills-app-screen character-roster-screen app-window section-hints" x-cloak>
+    <div class="skills-card character-roster-card dev-section" data-section-title="角色管理主面板">
+      <header class="identity-header dev-section" data-section-title="角色管理标题区">
+        <div>
+          <p class="eyebrow">CHARACTERS</p>
+          <h2>角色管理</h2>
+          <small>角色卡与介绍卡独立存放；升格后介绍卡仍保留，查询优先角色卡</small>
+        </div>
+        <button class="small-btn" type="button" @click="$store.game.closeCharacterRosterApp()">回到桌面</button>
+      </header>
+      <section class="skills-toolbar dev-section" data-section-title="角色管理筛选区">
+        <input x-model="$store.game.characterRosterState.query" placeholder="搜索姓名、世界、关系、事务">
+        <p class="skills-note" x-show="$store.game.characterRosterState.message" x-text="$store.game.characterRosterState.message"></p>
+      </section>
+      <main class="skills-body character-roster-body" x-show="!$store.game.characterRosterState.selectedKey">
+        <section class="skills-list dev-section" data-section-title="角色列表区">
+          <p class="skills-note" x-show="!$store.game.characterRosterPeople().length">暂无角色或介绍卡。推演出场人物会先写入介绍卡；固化后生成独立角色卡。</p>
+          <template x-for="person in $store.game.characterRosterPeople()" :key="person.key">
+            <button class="skill-row prompt-row character-roster-row" type="button" @click="$store.game.selectCharacterRosterPerson(person.key)">
+              <span class="skill-row-title prompt-title">
+                <strong x-text="person.name"></strong>
+                <em class="roster-badges">
+                  <i x-show="person.hasRole">角色卡</i>
+                  <i x-show="person.hasIntro">介绍卡</i>
+                </em>
+              </span>
+              <small x-text="`${person.worldTag}｜${person.relation || '关系未记'}｜${person.agendaShort || '暂无议程'}`"></small>
+            </button>
+          </template>
+        </section>
+      </main>
+      <main class="skills-body character-roster-detail" x-show="$store.game.characterRosterState.selectedKey">
+        <header class="roster-detail-head">
+          <button class="small-btn" type="button" @click="$store.game.clearCharacterRosterSelection()">返回列表</button>
+          <div>
+            <strong x-text="$store.game.selectedCharacterRosterPerson()?.name || '角色'"></strong>
+            <small x-text="$store.game.selectedCharacterRosterPerson()?.worldTag || ''"></small>
+          </div>
+        </header>
+        <nav class="roster-tabs" aria-label="角色卡与介绍卡">
+          <button type="button" class="roster-tab" :class="{ active: $store.game.characterRosterState.tab === 'role' }" @click="$store.game.setCharacterRosterTab('role')">角色卡</button>
+          <button type="button" class="roster-tab" :class="{ active: $store.game.characterRosterState.tab === 'intro' }" @click="$store.game.setCharacterRosterTab('intro')">介绍卡</button>
+        </nav>
+        <section class="roster-pane" x-show="$store.game.characterRosterState.tab === 'role'">
+          <template x-if="$store.game.selectedCharacterRosterPerson()?.hasRole">
+            <div class="roster-role-pane">
+              <p class="skills-note">角色卡使用身份证界面查看完整档案与「社交驱动」分区。</p>
+              <dl class="roster-intro-grid">
+                <div><dt>角色卡ID</dt><dd x-text="$store.game.selectedCharacterRosterPerson()?.roleId || '—'"></dd></div>
+                <div><dt>与主角关系</dt><dd x-text="$store.game.selectedCharacterRosterPerson()?.relation || '未记录'"></dd></div>
+                <div><dt>当前事务</dt><dd x-text="$store.game.selectedCharacterRosterPerson()?.agendaShort || '暂无'"></dd></div>
+              </dl>
+              <button class="primary-btn" type="button" @click="$store.game.openRosterRoleAsIdentity()">打开身份证（角色卡）</button>
+            </div>
+          </template>
+          <template x-if="!$store.game.selectedCharacterRosterPerson()?.hasRole">
+            <div class="roster-role-pane empty">
+              <p class="skills-note">尚未生成角色卡。可在「介绍卡」页手动升格；升格后介绍卡仍保留。</p>
+              <button class="primary-btn" type="button" x-show="$store.game.selectedCharacterRosterPerson()?.hasIntro" @click="$store.game.setCharacterRosterTab('intro')">前往介绍卡升格</button>
+            </div>
+          </template>
+        </section>
+        <section class="roster-pane" x-show="$store.game.characterRosterState.tab === 'intro'">
+          <template x-if="$store.game.selectedCharacterRosterPerson()?.hasIntro">
+            <div class="roster-intro-pane">
+              <div class="roster-intro-card">
+                <header class="roster-intro-card-head">
+                  <p class="eyebrow">INTRO CARD</p>
+                  <h3 x-text="$store.game.selectedCharacterRosterPerson()?.introCard?.name"></h3>
+                  <small x-text="$store.game.selectedCharacterRosterPerson()?.introCard?.identity?.role || $store.game.selectedCharacterRosterPerson()?.introCard?.role || '出场人物'"></small>
+                </header>
+                <dl class="roster-intro-grid">
+                  <template x-for="row in $store.game.characterRosterIntroRows($store.game.selectedCharacterRosterPerson()?.introCard)" :key="row.label">
+                    <div><dt x-text="row.label"></dt><dd x-text="row.value"></dd></div>
+                  </template>
+                </dl>
+              </div>
+              <button class="primary-btn" type="button" x-show="!$store.game.selectedCharacterRosterPerson()?.hasRole" @click="$store.game.solidifyRosterIntroCard()">升格为角色卡</button>
+              <p class="skills-note" x-show="$store.game.selectedCharacterRosterPerson()?.hasRole">已升格：角色卡独立存在；本介绍卡不会被覆盖或删除。</p>
+            </div>
+          </template>
+          <template x-if="!$store.game.selectedCharacterRosterPerson()?.hasIntro">
+            <p class="skills-note">没有介绍卡。此人可能来自预定义角色卡或开局种子。</p>
           </template>
         </section>
       </main>
@@ -2698,7 +2884,7 @@
     </div>
   </section>
 
-  <section x-show="!$store.game.loading && $store.game.wechatAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.eventState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.settingsState?.open && !$store.game.controlExperienceConfigState?.open && !$store.game.systemTestState?.open && !$store.game.saveAppOpen && !$store.game.roleCardJsonAppOpen && !$store.game.worldlineAppOpen" class="wechat-app-screen app-window section-hints" x-cloak>
+  <section x-show="!$store.game.loading && $store.game.wechatAppOpen && !$store.game.companyState?.open && !$store.game.bossState?.open && !$store.game.calendarState?.open && !$store.game.eventState?.open && !$store.game.factionState?.open && !$store.game.skillsState?.open && !$store.game.promptState?.open && !$store.game.tokenStatsState?.open && !$store.game.knownProfessionState?.open && !$store.game.characterRosterState?.open && !$store.game.settingsState?.open && !$store.game.controlExperienceConfigState?.open && !$store.game.systemTestState?.open && !$store.game.saveAppOpen && !$store.game.roleCardJsonAppOpen && !$store.game.worldlineAppOpen" class="wechat-app-screen app-window section-hints" x-cloak>
     <div class="wechat-phone dev-section" data-section-title="微信模拟界面">
       <header class="wechat-top" x-show="$store.game.wechatView === 'home'">
         <button type="button" @click="$store.game.closeWechatApp()">返回桌面</button><strong></strong><button type="button">⋯</button>
@@ -2709,6 +2895,9 @@
       <header class="wechat-chat-top" x-show="$store.game.wechatView === 'profile'">
         <button type="button" @click="$store.game.backWechatContactProfile()">‹</button><strong x-text="$store.game.wechatAlbumMode === 'album' ? '相册' : $store.game.wechatProfileContact().name"></strong><span></span>
       </header>
+      <header class="wechat-chat-top" x-show="$store.game.wechatView === 'friendRequests'">
+        <button type="button" @click="$store.game.wechatView = 'home'; $store.game.wechatTab = 'contacts'">‹</button><strong>新的朋友</strong><span></span>
+      </header>
       <main class="wechat-body">
         <section class="wechat-list-page" x-show="$store.game.wechatView === 'home' && $store.game.wechatTab === 'chats'">
           <p class="wechat-empty" x-show="!$store.game.wechatThreads().length">暂无聊天</p>
@@ -2717,6 +2906,11 @@
           </template>
         </section>
         <section class="wechat-list-page" x-show="$store.game.wechatView === 'home' && $store.game.wechatTab === 'contacts'">
+          <button class="wechat-contact-row wechat-new-friends-entry" type="button" @pointerdown.stop @click.stop="$store.game.openWechatFriendRequests()">
+            <span class="wechat-avatar wechat-new-friends-icon">友</span>
+            <span class="wechat-new-friends-meta"><b>新的朋友</b><small x-show="$store.game.wechatFriendRequestPendingCount()">待处理申请</small></span>
+            <em x-show="$store.game.wechatFriendRequestPendingCount()" x-text="$store.game.wechatFriendRequestPendingCount()"></em>
+          </button>
           <div class="wechat-add-user">
             <input x-model="$store.game.wechatAddName" placeholder="添加联系人姓名">
             <input x-model="$store.game.wechatAddRelation" placeholder="关系/备注">
@@ -2725,6 +2919,23 @@
           <p class="wechat-empty" x-show="!$store.game.wechatContacts().filter(x => !x.group).length">暂无联系人</p>
           <template x-for="contact in $store.game.wechatContacts().filter(x => !x.group)" :key="contact.id">
             <button class="wechat-contact-row" type="button" @pointerdown.stop @click.stop="$store.game.openWechatContactProfile(contact.id)"><span class="wechat-avatar" :style="$store.game.wechatAvatarStyle(contact)" x-text="$store.game.wechatAvatarText(contact)"></span><b x-text="contact.name"></b></button>
+          </template>
+        </section>
+        <section class="wechat-list-page wechat-friend-requests-page" x-show="$store.game.wechatView === 'friendRequests'">
+          <p class="wechat-empty" x-show="!$store.game.wechatFriendRequestPendingList().length">暂无新的朋友</p>
+          <template x-for="req in $store.game.wechatFriendRequestPendingList()" :key="req.id">
+            <div class="wechat-friend-request-row">
+              <span class="wechat-avatar" x-text="(req.fromName || '?').slice(0, 1)"></span>
+              <div class="wechat-friend-request-body">
+                <b x-text="req.fromName"></b>
+                <small x-text="req.relation || '申请添加你为朋友'"></small>
+                <p x-text="req.reason || '希望添加你为微信好友'"></p>
+              </div>
+              <div class="wechat-friend-request-actions">
+                <button type="button" class="wechat-friend-accept" @click.stop="$store.game.acceptWechatFriendRequest(req.id)">同意</button>
+                <button type="button" class="wechat-friend-reject" @click.stop="$store.game.rejectWechatFriendRequest(req.id)">拒绝</button>
+              </div>
+            </div>
           </template>
         </section>
         <section class="wechat-me-page" x-show="$store.game.wechatView === 'home' && $store.game.wechatTab === 'me'">
@@ -3740,7 +3951,7 @@
                       <section class="solidify-card" x-show="$store.game.selectedSolidifyCard(entry)">
                         <h3 x-text="$store.game.selectedSolidifyCard(entry)?.name"></h3>
                         <template x-for="row in $store.game.solidifyDetailRows($store.game.selectedSolidifyCard(entry))" :key="row[0]"><p><b x-text="`${row[0]}：`"></b><span x-text="row[1]"></span></p></template>
-                        <div class="solidify-actions" x-show="$store.game.selectedSolidifyCard(entry)?.displayType !== 'role'"><button type="button" @click="$store.game.solidifySelectedIntroCard($store.game.selectedSolidifyCard(entry), entry)">固化为角色卡</button></div>
+                        <div class="solidify-actions" x-show="$store.game.selectedSolidifyCard(entry)?.displayType !== 'role'"><button type="button" @click="$store.game.solidifySelectedIntroCard($store.game.selectedSolidifyCard(entry), entry)">升格为角色卡</button></div>
                       </section>
                     </article>
                   </section>

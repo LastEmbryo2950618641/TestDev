@@ -5,11 +5,22 @@ window.GameModules.app.wechat = window.GameModules.app.wechat || {};
 window.GameModules.app.wechat.incomingOrchestration = {
   async applyWechatActions(actions = []) {
     const list = Array.isArray(actions) ? actions : [];
-    for (const action of list.slice(0, 6)) await this.applyWechatIncomingAction(action);
+    for (const action of list.slice(0, 8)) await this.applyWechatIncomingAction(action);
   },
 
   async applyWechatIncomingAction(action = {}) {
     const type = String(action.action || action.method || '').trim();
+    if (type === 'requestWechatFriend' || type === 'requestFriend') {
+      this.requestWechatFriend?.({
+        fromCharacterId: action.characterId || action.contactId || action.fromCharacterId || '',
+        fromName: action.name || action.fromName || action.contactId || '',
+        relation: action.relation || action.relationToPlayer || '',
+        reason: action.reason || action.text || action.message || '希望添加你为微信好友',
+        source: action.source || 'narration',
+        inboxId: action.inboxId || '',
+      });
+      return;
+    }
     if (!['sendIncomingNow', 'sendIncomingPast'].includes(type)) return;
     const contact = this.findWechatIncomingContact(action.contactId || action.characterId || action.name);
     if (!contact) return;

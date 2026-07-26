@@ -16,7 +16,7 @@ window.GameModules.ui.event.labelViewHelpers = {
   },
 
   eventHeaderDescription() {
-    return '随机事件、推演事件、周期事件';
+    return '熟人入队 · 场外事件 · 推进节奏';
   },
 
   eventProbabilityFieldLabel() {

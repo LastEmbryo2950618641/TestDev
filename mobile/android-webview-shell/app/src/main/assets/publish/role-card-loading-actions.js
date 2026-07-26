@@ -202,7 +202,7 @@ window.GameModules.roleCardLoadingActions = {
   },
 
   roleCardStepCanRetry(card = {}, step = {}) {
-    return ['identity', 'profile', 'essentialPreferences', 'feeling', 'abilities', 'inventory', 'bodyProfile', 'dressedProfile', 'rpgField', 'state'].includes(step.key)
+    return ['identity', 'profile', 'essentialPreferences', 'socialDrive', 'feeling', 'abilities', 'inventory', 'bodyProfile', 'dressedProfile', 'rpgField', 'state'].includes(step.key)
       && card.status !== 'running'
       && step.status !== 'running'
       && !step.retrying;
@@ -284,6 +284,7 @@ window.GameModules.roleCardLoadingActions = {
     return [
       { key: 'profile', text: first, status: 'waiting', total: 19 },
       { key: 'essentialPreferences', text: '生成本质偏好五层', status: 'waiting', total: 5 },
+      { key: 'socialDrive', text: '生成社交驱动 Part8', status: 'waiting', total: 1 },
       { key: 'feeling', text: '生成情感数值 Part2', status: 'waiting', total: this.part2FeelingStepTotal() },
       { key: 'abilities', text: '生成能力职业 Part3', status: 'waiting', total: 3 },
       { key: 'inventory', text: '生成物品穿着 Part4', status: 'waiting', total: 13 },

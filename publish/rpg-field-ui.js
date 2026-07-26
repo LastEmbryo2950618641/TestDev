@@ -238,6 +238,7 @@ window.GameModules.rpgFieldUi = {
       盛装: { icon: '👗', label: '盛装', hint: '打扮与造型' },
       状态标签: { icon: '🏷️', label: '标签', hint: '当前状态标记' },
       人际关系: { icon: '🤝', label: '关系', hint: '社交与亲属' },
+      社交驱动: { icon: '📬', label: '日常', hint: '议程与主动联络门闩' },
       身份信息: { icon: '🪪', label: '身份', hint: '基础档案' },
       人生取向: { icon: '🧭', label: '取向', hint: '人生价值取向' },
       人生目标: { icon: '🧭', label: '取向', hint: '人生价值取向' },
@@ -248,6 +249,7 @@ window.GameModules.rpgFieldUi = {
     if (section.view === 'essentialPreference') return { icon: '✨', label: '偏好', hint: '本质偏好五层' };
     if (section.view === 'lifeOrientation') return { icon: '🧭', label: '取向', hint: '人生价值取向' };
     if (section.view === 'goalSystem' || section.view === 'goals') return { icon: '🎯', label: '目标', hint: '短中长期目标与成果' };
+    if (section.view === 'socialDrive') return { icon: '📬', label: '日常', hint: '议程与主动联络门闩' };
     return byTitle[title] || { icon: '📋', label: title.slice(0, 4) || '分区', hint: title || '状态分区' };
   },
 
@@ -264,7 +266,8 @@ window.GameModules.rpgFieldUi = {
     const orientationFields = aspirationFields.filter((field) => !this.isGoalSystemField(field));
     const goalSystemFields = (identityFields || []).filter((field) => this.isGoalSystemField(field));
     const essentialPreferenceFields = (identityFields || []).filter((field) => field.profileGroup === '本质偏好');
-    const baseIdentityFields = (identityFields || []).filter((field) => field.profileGroup !== '人生取向' && field.profileGroup !== '本质偏好' && field.profileGroup !== '长期目标');
+    const socialDriveFields = (identityFields || []).filter((field) => field.profileGroup === '社交驱动');
+    const baseIdentityFields = (identityFields || []).filter((field) => field.profileGroup !== '人生取向' && field.profileGroup !== '本质偏好' && field.profileGroup !== '长期目标' && field.profileGroup !== '社交驱动');
     const entries = this.rpgEntries?.(displayState) || [];
     const all = entries.flatMap((section) => section.fields || []);
     const byKey = (key) => all.find((field) => field.key === key);
@@ -293,8 +296,18 @@ window.GameModules.rpgFieldUi = {
       { title: '人际关系', fields: relations },
       { title: '身份信息', fields: [...identityRest, ...(longing ? [longing] : []), ...take(['world_tag', 'age', 'factions', 'memberships'])] },
     ];
-    let insertAt = groups.findIndex((group) => group.title === '身份信息') + 1;
-    if (insertAt < 1) insertAt = groups.length;
+    let insertAt = groups.findIndex((group) => group.title === '人际关系');
+    if (insertAt < 0) insertAt = groups.findIndex((group) => group.title === '身份信息');
+    if (insertAt < 0) insertAt = groups.length;
+    else insertAt += 1;
+    if (socialDriveFields.length) {
+      groups.splice(insertAt, 0, {
+        title: '社交驱动',
+        fields: socialDriveFields,
+        view: 'socialDrive',
+      });
+      insertAt += 1;
+    }
     if (orientationFields.length) {
       groups.splice(insertAt, 0, {
         title: '人生取向',

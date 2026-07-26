@@ -200,10 +200,41 @@ window.GameModules.ai = {
   normalizeCharacter(value, store, worldOverride = '') {
     const fallbackWork = String(worldOverride || store?.currentWorldTag?.() || store?.character?.work || '原创世界');
     const work = String(fallbackWork || '原创世界').slice(0, 40);
-    if (typeof value === 'string') return { name: value.slice(0, 16), work, worldTag: work, isMinor: false, importance: 'support' };
+    const social = window.GameModules.characterSocialDrive;
+    if (typeof value === 'string') {
+      const name = value.slice(0, 24).trim();
+      if (!name) return null;
+      const presenceKind = social?.inferPresenceKind?.({ name }) || 'individual';
+      return {
+        name,
+        work,
+        worldTag: work,
+        role: presenceKind === 'group' ? '一类人（团体原型）' : '出场人物',
+        presenceKind,
+        isMinor: false,
+        importance: 'support',
+      };
+    }
     if (!value?.name) return null;
+    const name = String(value.name).slice(0, 24).trim();
+    if (!name) return null;
     const importance = ['minor', 'support', 'main'].includes(value.importance) ? value.importance : (value.isMinor ? 'minor' : 'support');
-    return { name: String(value.name).slice(0, 16), role: String(value.role || (value.isMinor ? '路人' : '出场人物')).slice(0, 18), detail: String(value.detail || value.intro || value.desc || value.summary || '').slice(0, 120), personality: String(value.personality || '').slice(0, 80), wearing: value.wearing || value.clothing || value.outfit || '', work, worldTag: work, isMinor: Boolean(value.isMinor), importance };
+    const role = String(value.role || (value.isMinor ? '路人' : '出场人物')).slice(0, 40);
+    const presenceKind = social?.normalizePresenceKind?.(value.presenceKind || value.人物形态)
+      || social?.inferPresenceKind?.({ ...value, name, role })
+      || 'individual';
+    return {
+      name,
+      role,
+      detail: String(value.detail || value.intro || value.desc || value.summary || '').slice(0, 120),
+      personality: String(value.personality || '').slice(0, 80),
+      wearing: value.wearing || value.clothing || value.outfit || '',
+      work,
+      worldTag: work,
+      presenceKind,
+      isMinor: Boolean(value.isMinor),
+      importance,
+    };
   },
 
   clampNumber(value, fallback) { return Math.max(0, Math.min(100, Number.isFinite(value) ? Math.round(value) : fallback)); },

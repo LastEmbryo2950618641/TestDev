@@ -8,6 +8,14 @@ window.GameModules.platform.storage.characterIntroSource = {
     return window.GameModules.sqliteSave?.getCharacterIntro?.(name, worldTag) || null;
   },
 
+  getById(id = '') {
+    return window.GameModules.sqliteSave?.getCharacterIntroById?.(id)
+      || (window.GameModules.sqliteSave?.listCharacterIntros?.() || []).find((card) => (
+        card?.id === id || card?.links?.roleCardId === id || card?.links?.scheduleId === id
+      ))
+      || null;
+  },
+
   list() {
     return window.GameModules.sqliteSave?.listCharacterIntros?.() || [];
   },

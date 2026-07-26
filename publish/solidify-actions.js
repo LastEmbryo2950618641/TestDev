@@ -185,12 +185,15 @@ window.GameModules.solidifyActions = {
 
   solidifyLooksLikePersonName(name = '') {
     const clean = String(name || '').replace(/^人物[:：]\s*/u, '').trim();
-    if (!clean || clean.length < 2 || clean.length > 16) return false;
+    // 允许路人标签与一类人称呼（如「川大女学生」「女仆团女仆」），最长与介绍卡姓名对齐
+    if (!clean || clean.length < 2 || clean.length > 24) return false;
     if (/^(?:执行|继续|当前|系统|玩家|无)$/u.test(clean)) return false;
     if (/行动$|控制部$|控制体验$|结算$|目标$|状态$/u.test(clean)) return false;
     if (/抱住|抚摸|揉捏|询问|后退|执行|控制/u.test(clean)) return false;
     if (this.solidifyLooksLikeObjectOrSceneName(clean)) return false;
-    return /^[\u4e00-\u9fff·]{2,16}$/u.test(clean);
+    // 纯「路人」无区分度：不算合格人名；「路人甲」「路过外卖骑手」可以
+    if (/^路人$/u.test(clean)) return false;
+    return /^[\u4e00-\u9fff·A-Za-z0-9]{2,24}$/u.test(clean);
   },
 
   solidifyLooksLikeObjectOrSceneName(name = '') {
@@ -226,9 +229,26 @@ window.GameModules.solidifyActions = {
 
   solidifyDisplayCard(card = {}) {
     if (!card?.name) return null;
-    const state = window.GameModules.characterIntroCard.roleCardState(card);
-    if (state) return { ...card, displayType: 'role', roleState: state, profile: state.profile || {}, role: state.profile?.role || card.role || '角色卡', intro: state.profile?.detail || card.intro || '完整角色卡已固化。' };
-    return { ...card, displayType: 'intro' };
+    const introApi = window.GameModules.characterIntroCard;
+    const state = introApi.roleCardState(card);
+    const complete = state && !introApi.isIncompleteRoleStub?.(state);
+    if (complete) {
+      return {
+        ...card,
+        displayType: 'role',
+        roleState: state,
+        presenceKind: state.profile?.presenceKind || card.presenceKind || 'individual',
+        profile: state.profile || {},
+        role: state.profile?.role || card.role || '角色卡',
+        intro: state.profile?.detail || card.intro || '完整角色卡已固化。',
+      };
+    }
+    return {
+      ...card,
+      displayType: 'intro',
+      roleState: state || null,
+      presenceKind: card.presenceKind || window.GameModules.characterSocialDrive?.inferPresenceKind?.(card) || 'individual',
+    };
   },
 
   solidifyCandidates() { return this.solidifyDisplayCards(); },
@@ -248,13 +268,20 @@ window.GameModules.solidifyActions = {
     return this.solidifyDisplayCards(derived);
   },
 
-  solidifyPanelTitle(card = this.selectedSolidifyCard()) { return card?.displayType === 'role' ? '角色卡查看' : '介绍卡固化'; },
+  solidifyPanelTitle(card = this.selectedSolidifyCard()) { return card?.displayType === 'role' ? '角色卡查看' : '介绍卡升格'; },
 
   solidifyTypeLabel(card = this.selectedSolidifyCard()) { return card?.displayType === 'role' ? '角色卡' : '介绍卡'; },
 
+  solidifyPresenceKindLabel(card = {}) {
+    const kind = card?.presenceKind || card?.profile?.presenceKind || window.GameModules.characterSocialDrive?.inferPresenceKind?.(card) || 'individual';
+    return window.GameModules.characterSocialDrive?.presenceKindLabel?.(kind) || '具体的一个人';
+  },
+
   solidifyDetailRows(card = this.selectedSolidifyCard()) {
     if (!card) return [];
+    const presence = this.solidifyPresenceKindLabel(card);
     if (card.displayType !== 'role') return [
+      ['人物形态', presence],
       ['世界', card.worldTag || '未知世界'],
       ['身份', card.role || '出场人物'],
       ['穿着', this.solidifyWearingText(card)],
@@ -262,6 +289,7 @@ window.GameModules.solidifyActions = {
     ];
     const profile = card.profile || card.roleState?.profile || {};
     return [
+      ['人物形态', presence],
       ['世界', card.roleState?.worldTag || card.worldTag || profile.work || '未知世界'],
       ['身份', profile.role || card.role || '角色卡'],
       ['穿着', this.solidifyWearingText(card.roleState || profile)],
@@ -347,10 +375,89 @@ window.GameModules.solidifyActions = {
   },
 
   async solidifySelectedIntroCard(card = this.selectedSolidifyCard(), entry = null) {
-    if (!card || card.displayType === 'role' || this.busy) return;
-    const source = { id: `npc-${window.GameModules.characterProfile.slug(card.worldTag)}-${window.GameModules.characterProfile.slug(card.name)}`, name: card.name, work: card.worldTag, role: card.role, detail: card.intro, importance: 'support', isMinor: false };
-    this.startRoleCardLoadingBatch?.([{ id: source.id, name: card.name, type: '角色卡', source, context: card.intro }]);
-    await this.ensureRpgForCharacter(source, card.intro, { loadMetrics: false, allowManualSolidify: true });
+    if (!card || this.busy) return;
+    // 完整角色卡不可再升格；空壳 stub 仍可从介绍卡升格
+    if (card.displayType === 'role' && !window.GameModules.characterIntroCard?.isIncompleteRoleStub?.(card.roleState)) return;
+    const identity = card.identity || {};
+    const persona = card.persona || {};
+    const social = card.social || {};
+    const presenceKind = card.presenceKind
+      || window.GameModules.characterSocialDrive?.inferPresenceKind?.(card)
+      || 'individual';
+    const drive = window.GameModules.characterSocialDrive?.normalizeForRoleCard?.({
+      relationToPlayer: social.relationToPlayer,
+      relationDetail: social.relationDetail,
+      familiarity: social.familiarity,
+      lastContactAt: social.lastContactAt,
+      lastContactChannel: social.lastContactChannel,
+      reach: social.reach,
+      agenda: card.agenda,
+    }, { name: card.name }) || null;
+    const existingStubId = card.roleState?.id && window.GameModules.characterIntroCard?.isIncompleteRoleStub?.(card.roleState)
+      ? card.roleState.id
+      : '';
+    const sharedFromCard = window.GameModules.characterSocialDrive?.isSharedCharacterId?.(card.id)
+      ? card.id
+      : (window.GameModules.characterSocialDrive?.isSharedCharacterId?.(card.links?.roleCardId) ? card.links.roleCardId : '');
+    const source = {
+      id: existingStubId || sharedFromCard || `npc-${window.GameModules.characterProfile.slug(card.worldTag)}-${window.GameModules.characterProfile.slug(card.name)}`,
+      name: card.name,
+      work: card.worldTag,
+      role: identity.role || card.role,
+      detail: persona.background || card.intro,
+      appearance: persona.appearance || '',
+      personality: persona.personality || '',
+      preferences: Array.isArray(persona.preferences) ? persona.preferences.join('、') : (persona.preferences || ''),
+      gender: identity.gender || '',
+      socialDrive: drive || undefined,
+      presenceKind,
+      roleCardStub: false,
+      importance: presenceKind === 'group' ? 'support' : 'support',
+      isMinor: false,
+    };
+    const context = persona.background || card.intro || '';
+    this.startRoleCardLoadingBatch?.([{ id: source.id, name: card.name, type: '角色卡', source, context }]);
+    await this.ensureRpgForCharacter(source, context, { loadMetrics: false, allowManualSolidify: true });
+    // 升格后清 stub 标记
+    try {
+      const live = window.GameModules.characterStateStore?.get?.(source.id) || this.rpgStates?.[source.id];
+      if (live?.profile) {
+        live.profile.presenceKind = presenceKind;
+        live.profile.roleCardStub = false;
+        live.profile.solidifyComplete = true;
+        if (live.meta) live.meta.roleCardStub = false;
+        await window.GameModules.characterStateStore?.save?.(live, this);
+      }
+    } catch (err) {
+      console.warn('[介绍卡升格] 清除 stub 标记失败:', err?.message || err);
+    }
+    // 升格：介绍卡与角色卡共用同一 ID；保留介绍卡正文，只回写链接与状态
+    try {
+      const introStore = window.GameModules.characterIntroStore;
+      const intro = introStore?.getById?.(card.id)
+        || introStore?.get?.(card.name)
+        || (introStore?.list?.() || []).find((item) => item.id === card.id || item.name === card.name);
+      if (intro) {
+        const next = window.GameModules.characterIntroCard?.normalize?.({
+          ...intro,
+          id: source.id,
+          presenceKind,
+          links: {
+            ...(intro.links || {}),
+            roleCardId: source.id,
+            scheduleId: source.id,
+          },
+          meta: {
+            ...(intro.meta || {}),
+            solidifyStatus: 'solidified',
+            updatedAt: new Date().toISOString(),
+          },
+        }, this, intro.meta?.source || 'ai');
+        if (next) await introStore?.save?.(next);
+      }
+    } catch (err) {
+      console.warn('[介绍卡升格] 回写介绍卡链接失败:', err?.message || err);
+    }
     if (entry) {
       entry.solidifyCards = this.solidifyDisplayCards(entry.solidifyCards || []);
       entry.solidifySelectedKey = this.solidifyKey(card);

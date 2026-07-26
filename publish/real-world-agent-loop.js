@@ -767,6 +767,7 @@ window.GameModules.realWorldAgentLoop = {
         '- 随机场外角色候选不等于禁止出场；不得仅因角色出现在随机场外角色候选中，就写入禁止出场。',
         '- 若随机角色已在强制出场、高优先候选、戏剧候选或禁止出场中，必须移除该随机事件。',
         '- 无明确自然闯入条件时，随机事件闯入条件必须写“无明确条件则禁止闯入”。',
+        window.GameModules.socialEventBoundary?.stage1Ops?.() || '',
         '势力资料规则：',
         '- 系统已自动载入全部势力名/ID与组织架构；先对照该列表，不要重复请求势力列表。',
         '- 若行动/资料/角色卡中出现现实世界真实组织、公司、学校、机关、社群等势力名，且不在已知列表中：必须请求「势力查询，创建势力，势力名，公司」。',
@@ -779,7 +780,12 @@ window.GameModules.realWorldAgentLoop = {
         '- 不强制出场不等于禁止出场；禁止出场只用于明确场外、明确不可到达或被用户/资料规则明确禁止进入当前场景的角色。',
         '- 同地点/同住/相邻候选不得仅因未强制出场而写入禁止出场；可按相关性放入高优先候选或戏剧候选，或写“无”。',
         '- 玩家行动明确目标不得写入禁止出场，除非已加载资料明确显示其场外、不可到达或被规则禁止进入当前场景。',
-      ].join('\n');
+        '角色唯一标识与介绍卡：',
+        '- participants 每一项必须是角色名(ID)；已知用真实ID，首次无真实ID写某某(待建卡)。',
+        '- Stage1整段结束后系统一次性批量分配 rel-ai-* 共享ID：先写同ID介绍卡再写空壳；不是完整角色卡，完整卡仅玩家手动升格（同一ID）。',
+        '- 姓名必须可区分：禁止无名纯「路人」；可用「路人甲」「川大女学生」等。一类人/团体原型按群体意识理解。',
+        '- 角色查询可命中完整角色卡或介绍卡；不得因查到资料就强制写入出场。',
+      ].filter(Boolean).join('\n');
       const contextText = [
         `本次行动：${actionText}`,
         `当前步骤：${commonVars.当前步骤} / ${commonVars.最大步骤}`,
@@ -807,8 +813,9 @@ window.GameModules.realWorldAgentLoop = {
         '- 若 status 为“继续请求资料”，优先输出 materialRequests，最多 3 条；没有可执行资料请求时 materialRequests 输出 []，但必须保留 sceneQueries 理由或明确参与者候选。',
         this.stage1IterationRule(store),
         '- participants.forced / priority / drama / forbidden 都必须是字符串数组；没有则 []。',
-        '- 【强制】participants 每一项必须是角色名(ID)。已知用真实ID，如刘思琪(rel-ai-247528)、刘悠(player-self)；首次无卡写刘某(待建卡)。禁止裸姓名。',
-        '- Stage1整段结束后系统会一次性批量建卡分配真实ID；禁止在Stage1多轮里逐个申请建卡。',
+        '- 【强制】participants 每一项必须是角色名(ID)。已知用真实ID（角色卡/介绍卡均可），如刘思琪(rel-ai-247528)、刘悠(player-self)；首次无真实ID写某某(待建卡)。禁止裸姓名。',
+        '- Stage1整段结束后系统一次性批量：分配 rel-ai-* 共享ID，先写同ID介绍卡再写空壳（不是完整角色卡；完整卡仅玩家手动升格且仍用同一ID）。禁止Stage1多轮逐个申请建卡或编造完整角色卡。',
+        '- 姓名必须可区分：禁止无名纯「路人」；可用「路人甲」「川大女学生」等标签。一类人/团体原型按群体意识与团队行动理解（presenceKind=group）。',
         '- randomEvents 必须是字符串数组；randomIntrusionCondition 没有明确条件时写“无明确条件则禁止闯入”。',
         '- 资料请求只能使用中文结构，不得输出英文 skill/method；不得在 Stage1 请求地点图新增、地点图补全或 ensure。',
         'JSON schema：',
@@ -1132,6 +1139,8 @@ window.GameModules.realWorldAgentLoop = {
       模式标签: config.label,
       本次行动: actionText,
       场景锚定上下文: anchorContextWithEvents,
+      日常驱动与事件系统分工: window.GameModules.socialEventBoundary?.divisionBlock?.() || '',
+      日常驱动与事件Stage2要点: window.GameModules.socialEventBoundary?.stage2Ops?.() || '',
       紧凑返回规则: this.compactReturnRule('prose'),
     });
     return body;
@@ -1479,7 +1488,13 @@ window.GameModules.realWorldAgentLoop = {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
     const text = (value) => String(value ?? '').trim();
     const rawType = text(entry.type ?? entry.eventType ?? entry['事件类型'] ?? entry.category ?? '');
-    const type = /random|随机/u.test(rawType) ? 'random' : (/periodic|cycle|周期/u.test(rawType) ? 'periodic' : 'inference');
+    const type = /random|随机/u.test(rawType)
+      ? 'random'
+      : (/periodic|cycle|周期/u.test(rawType)
+        ? 'periodic'
+        : (/inference|推演|大地图|地图事件|活动事件|map|world/u.test(rawType) ? 'inference' : ''));
+    // 未知类型不默认写库，避免把人员约定误落成事件
+    if (!type) return null;
     const title = text(entry.title ?? entry.name ?? entry.eventName ?? entry['事件名'] ?? '');
     const content = text(entry.content ?? entry.detail ?? entry.summary ?? entry['事件内容'] ?? '');
     if (!title || !content) return null;
@@ -1491,7 +1506,8 @@ window.GameModules.realWorldAgentLoop = {
       startDate: entry.startDate ?? entry.start ?? entry.timeStart ?? entry['开始时间'] ?? entry['事件开始时间'] ?? entry['事件发生时间段'],
       endDate: entry.endDate ?? entry.end ?? entry.timeEnd ?? entry['结束时间'] ?? entry['事件结束时间'],
       location: entry.location ?? entry.place ?? entry['事件发生地点'],
-      people: entry.people ?? entry.relatedPeople ?? entry.participants ?? entry['事件相关人'] ?? (type === 'periodic' ? ['所有人'] : []),
+      people: entry.people ?? entry.relatedPeople ?? entry.participants ?? entry['事件相关人']
+        ?? ((type === 'periodic' || type === 'inference') ? ['所有人'] : []),
       tags: entry.tags ?? entry.eventTags ?? entry['事件标签'] ?? [],
       probability: entry.probability ?? entry.chance ?? entry['发生概率'],
       source: entry.source || 'stage4',
@@ -1522,7 +1538,7 @@ window.GameModules.realWorldAgentLoop = {
 
   settlementTypeContracts() {
     return {
-      [this.eventSettlementType()]: { title: '事件结算', format: '数组；每项 {"type":"random|inference|periodic","title":"事件名","startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD","location":"地点","content":"内容","people":["相关人"],"tags":["标签"],"probability":25,"status":"active"}；无事件 []' },
+      [this.eventSettlementType()]: { title: '事件结算', format: '数组；每项 {"type":"random|inference|periodic","title":"事件名","startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD","location":"地点","content":"内容","people":["所有人或受众标签"],"tags":["标签"],"probability":25,"status":"active"}；inference=大地图/活动；无事件 []' },
       '基础结算': { title: '基础结算', format: '经过时间：秒数\n当前状态：状态文本\n当前目标：目标文本\n场景标题：标题\n地点名称：地点全称\n备选行动1：行动文本\n备选行动2：行动文本\n备选行动3：行动文本\n备选行动4：行动文本' },
       '情绪': { title: '情绪结算', format: '更新N：结算主体，情绪名，+/-数值，变化原因' },
       '感觉': { title: '感觉结算', format: '更新N：结算主体，感觉名，+/-数值，变化原因' },
@@ -2667,12 +2683,10 @@ window.GameModules.realWorldAgentLoop = {
     const contracts = this.settlementTypeContracts();
     const c = contracts[type] || { title: `${type}结算`, format: '更新N：类型，字段，变化，原因' };
     if (type === this.eventSettlementType()) {
-      return [
-        `${c.title}规则：`,
-        '只提取正文中已经明确出现或能由正文稳定推出的事件；普通行动状态不要写成事件。',
-        '推演事件用于未来约定、计划、承诺、毁约风险等；周期事件用于节日、固定赛程、定期征文等重复发生事项；随机事件仅用于需要在未来概率触发的场外变动。',
-        '周期事件 people 固定写 ["所有人"]，必须写 tags；无事件输出 []。',
-      ].join('\n');
+      const eventLines = window.GameModules.socialEventBoundary?.stage4EventSettlementLines?.() || [
+        '只提取正文中已经明确出现或能由正文稳定推出的事件；无事件输出 []。',
+      ];
+      return [`${c.title}规则：`, ...eventLines].join('\n');
     }
     const rules = {
       '情绪': '字段只能使用本轮“当前情绪基线”里已有指标名；value 必须是 +N/-N 且不能为 0；可把愉悦/开心映射为高兴、惊慌映射为恐惧、不安映射为紧张；没有对应已有指标或无稳定变化时输出空数组。字段含义：field=情绪指标名，value=本回合变化量，status=变化后该情绪在当前数值下的具体表现（禁止写“高兴40：”这类前缀），reason=正文中的具体行为/对话证据。',
@@ -2685,6 +2699,7 @@ window.GameModules.realWorldAgentLoop = {
       '关系': '只记录稳定关系维度，如亲属、朋友、同事、师生、雇佣、敌对、同居、恋人；好感、信任、依赖、警惕等数值态度写“感觉”，不要写关系。',
       '角色卡': [
         '只写稳定角色卡字段：当前状态、身份、职业、技能、知识、外貌、性格、喜好、人物说明、社群角色、人事归属、人际关系。',
+        '只更新已有完整角色卡；空壳 stub 或仅介绍卡人物不要当完整角色卡硬改（完整卡仅玩家手动升格）。',
         '禁止写当前地点/当前位置/当前行动/可用状态（那些必须写人事安排）；禁止写短中长期目标进度与阶段成果（那些必须写长期目标）；临时情绪、生命体征、身体、穿着、关系、物品有专门类型时不得写角色卡。',
         '社群角色含义：软性圈子里的社会角色（家庭/社区/朋友圈/兴趣小组等），构成要素=圈子名+角色。',
         '人事归属含义：可指认组织中的正式或准正式身份（学校/公司/机关/国家公民等），构成要素=组织名+职位(+部门)。',
@@ -2747,7 +2762,7 @@ window.GameModules.realWorldAgentLoop = {
     const subject = chars[0]?.name || chars[0]?.id || player?.name || player?.id || '角色名';
     const playerName = player?.name || player?.id || '玩家名';
     const otherName = chars[1]?.name || chars[1]?.id || subject;
-    if (type === this.eventSettlementType()) return '"事件":[{"type":"inference","title":"未来约定","startDate":"2026-07-10","endDate":"2026-07-10","location":"地点","content":"正文明确约定的未来事项","people":["相关人"],"tags":["约定"],"status":"active"}]';
+    if (type === this.eventSettlementType()) return '"事件":[{"type":"inference","title":"市级马拉松","startDate":"2026-07-12","endDate":"2026-07-12","location":"天府大道沿线","content":"周末举行市级马拉松，沿线临时交通管制","people":["所有人"],"tags":["比赛","交通"],"status":"active"}]';
     if (type === '基础结算') return '"基础结算":{"经过时间":60,"当前状态":"当前稳定状态","当前目标":"下一步目标","场景标题":"场景标题","地点名称":"地点名","备选行动":["行动一","行动二","行动三","行动四"]}';
     if (type === '情绪') {
       const ex = this.settlementMetricExample(store, participants, '情绪');
@@ -2944,7 +2959,7 @@ window.GameModules.realWorldAgentLoop = {
       if (type === '长期目标') return '长期目标：数组；每项 {"subject":"姓名","short|medium|long":{"content":"目标","deadline":"YYYY-MM-DD","progress":0-100,"detail":"进度描述"},"achievement":"阶段成果","reason":"证据"}；完成某档必须换同档新 content 并重置较低 progress；玩家明确改目标且旧档未完成须融合改写；可只写变化字段；无变化 []。';
       if (type === '操控体验') return '操控体验：数组；每项先输出 needUpdate 与 updateFields。needUpdate=false 时可不填字段值；needUpdate=true 时必须含 subject、updateFields、reason，以及 updateFields 对应值。adaptation 只写 +N/-N 增量；feeling/summary/controllerAwarenessLevel/controllerAwareness 基于基线生成完整新文本直接覆盖；禁止输出 onlineCount。无变化 [{"subject":"被控角色名","needUpdate":false}] 或 []。';
       if (type === '人事归属') return '人事归属：数组；每项 {"subject":"姓名","orgName":"组织名","title":"职位","department":"部门或空","departmentFog":true/false,"state":"fog|sketch|established","reason":"证据"}；可带 orgId；无变化 []。';
-      if (type === this.eventSettlementType()) return '事件：数组；每项 {"type":"random|inference|periodic","title":"事件名","startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD","location":"地点","content":"内容","people":["相关人"],"tags":["标签"],"probability":25,"status":"active"}；无事件 []。';
+      if (type === this.eventSettlementType()) return '事件：数组；每项 {"type":"random|inference|periodic","title":"事件名","startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD","location":"地点","content":"内容","people":["所有人或受众标签"],"tags":["标签"],"probability":25,"status":"active"}；inference 仅大地图/活动，禁止私人约定；无事件 []。';
       return `${type}：数组；每项 {"subject":"结算主体","field":"字段","value":"变化或新值","reason":"证据"}；无变化 []。原合约：${c?.format || '更新N：结算主体，字段，变化，原因'}`;
     }).join('\n');
     const globalShortReason = String(partialByType.__shortOutputReason || '').trim();

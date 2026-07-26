@@ -52,8 +52,9 @@ test('random event with 100 probability is prepared for narration context', () =
   loadScript(context, 'publish/calendar-actions.js');
   const modules = context.window.GameModules;
   const store = createStore(modules);
-  assert.strictEqual(store.eventRandomProbability(), 10);
+  assert.strictEqual(store.eventState.randomProbability, 10);
   store.setEventRandomProbability(100);
+  assert.strictEqual(store.eventState.randomProbability, 100);
   store.upsertEvent({
     type: 'random',
     title: '突发停电',
@@ -102,27 +103,66 @@ test('settlement json extracts event entries into final update payload', () => {
   assert.strictEqual(merged.events.length, 1);
 });
 
-test('event entries are projected into calendar day ranges', () => {
+test('map inference events project into calendar and narration context', () => {
   const context = createContext();
   loadScript(context, 'publish/event-system.js');
   loadScript(context, 'publish/event-actions.js');
   loadScript(context, 'publish/calendar-system.js');
   loadScript(context, 'publish/calendar-actions.js');
   const modules = context.window.GameModules;
+  assert.ok(modules.eventSystem.EVENT_TYPES.includes('inference'));
+  assert.strictEqual(modules.eventSystem.typeLabel('inference'), '大地图事件');
   const store = createStore(modules);
-  store.calendarState.currentYear = 2026;
-  store.calendarState.currentMonth = 6;
+  store.realWorldLocationName = '天府大道';
   store.upsertEvent({
     type: 'inference',
-    title: '周末约会',
+    title: '市级马拉松',
     startDate: '2026-07-10',
     endDate: '2026-07-12',
-    content: '两人约定周末约会。',
-    people: ['刘思琪'],
-    tags: ['约会'],
+    location: '天府大道',
+    content: '周末举行市级马拉松，沿线临时交通管制。',
+    people: ['所有人'],
+    tags: ['比赛', '交通'],
   }, { save: false });
-  const dayEvents = store.eventsForCalendarDay(11);
-  assert.ok(dayEvents.some((event) => event.source === 'event-system' && event.title.includes('周末约会')));
+  assert.ok((store.eventState.events || []).some((event) => (
+    event.type === 'inference' && event.title.includes('市级马拉松') && (event.people || []).includes('所有人')
+  )));
+  const narration = store.eventNarrationPromptContext('沿天府大道前往公司');
+  assert.match(narration, /大地图事件/);
+  assert.match(narration, /市级马拉松/);
+  assert.match(narration, /Social Inbox/);
+});
+
+test('settlement accepts inference as map event and rejects unknown type', () => {
+  const context = createContext();
+  context.window.GameModules.jsonUtils = {
+    extractJson(text = '') {
+      const raw = String(text || '').trim();
+      return raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1);
+    },
+    repairJson(text = '') { return String(text || ''); },
+    parseLoose(text = '') { return JSON.parse(this.extractJson(text)); },
+  };
+  loadScript(context, 'publish/event-system.js');
+  loadScript(context, 'publish/real-world-agent-loop.js');
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  const ok = loop.normalizeSettlementEventEntry({
+    type: 'inference',
+    title: '夜市嘉年华',
+    content: '宽窄巷子周末夜市嘉年华',
+    location: '宽窄巷子',
+    people: ['所有人'],
+    tags: ['活动'],
+  }, { phoneDate: () => new Date('2026-07-10T00:00:00+08:00') });
+  assert.ok(ok);
+  assert.strictEqual(ok.type, 'inference');
+  assert.ok((ok.people || []).includes('所有人'));
+  const bad = loop.normalizeSettlementEventEntry({
+    type: '约会',
+    title: '和刘思琪吃饭',
+    content: '私人约定',
+  }, { phoneDate: () => new Date('2026-07-10T00:00:00+08:00') });
+  assert.strictEqual(bad, null);
 });
 
 (async () => {

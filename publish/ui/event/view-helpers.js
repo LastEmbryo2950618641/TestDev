@@ -31,9 +31,9 @@ window.GameModules.ui.event.viewHelpers = {
 
   eventMeta(event = {}) {
     const dates = `${event.startDate || '未知'} - ${event.endDate || event.startDate || '未知'}`;
-    const people = (event.people || []).join('、') || '无相关人';
+    const audience = (event.people || []).join('、') || (event.type === 'inference' ? '影响范围未定' : '无相关人');
     const tags = (event.tags || []).join('、') || '无标签';
-    return `${dates}｜${event.location || '地点未定'}｜${people}｜${tags}`;
+    return `${dates}｜${event.location || '地点未定'}｜${audience}｜${tags}`;
   },
 
   eventStatusLabel(event = {}) {

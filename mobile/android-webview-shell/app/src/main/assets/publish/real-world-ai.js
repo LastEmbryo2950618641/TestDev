@@ -187,12 +187,27 @@ window.GameModules.realWorldAi = {
   normalizeWechatActions(value) {
     return (Array.isArray(value) ? value : []).map((item) => {
       const action = String(item?.action || item?.method || '').trim();
+      if (action === 'requestWechatFriend' || action === 'requestFriend') {
+        const fromName = String(item.name || item.fromName || item.contactId || item.characterId || '').trim().slice(0, 24);
+        if (!fromName) return null;
+        return {
+          action: 'requestWechatFriend',
+          name: fromName,
+          fromName,
+          characterId: String(item.characterId || item.fromCharacterId || item.contactId || '').trim().slice(0, 80),
+          contactId: String(item.contactId || item.characterId || '').trim().slice(0, 40),
+          relation: String(item.relation || item.relationToPlayer || '').trim().slice(0, 40),
+          reason: String(item.reason || item.text || item.message || '希望添加你为微信好友').trim().slice(0, 160),
+          source: String(item.source || 'narration').slice(0, 32),
+          inboxId: String(item.inboxId || '').slice(0, 80),
+        };
+      }
       if (!['sendIncomingNow', 'sendIncomingPast'].includes(action)) return null;
       const contactId = String(item.contactId || item.characterId || item.target || item.name || '').trim().slice(0, 40);
       const text = String(item.text || item.message || '').trim().slice(0, 180);
       if (!contactId || !text) return null;
       return { action, contactId, text, timeIso: String(item.timeIso || item.time || '').trim(), reason: String(item.reason || '').slice(0, 120) };
-    }).filter(Boolean).slice(0, 6);
+    }).filter(Boolean).slice(0, 8);
   },
 
   fallback(store, action) {

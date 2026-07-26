@@ -104,6 +104,96 @@
   font-size: 12px;
 }
 
+.wechat-new-friends-entry .wechat-new-friends-meta {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.wechat-new-friends-entry .wechat-new-friends-meta small {
+  color: #888;
+  font-size: 12px;
+}
+
+.wechat-new-friends-icon {
+  background: linear-gradient(135deg, #fa9d3b, #f56c6c) !important;
+  color: #fff;
+  font-weight: 800;
+}
+
+.wechat-contact-row em,
+.wechat-new-friends-entry em {
+  min-width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #fa5151;
+  color: #fff;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.wechat-friend-request-row {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  gap: 12px;
+  align-items: start;
+  padding: 12px 14px;
+  border-bottom: 1px solid #ddd;
+  background: #fff;
+}
+
+.wechat-friend-request-body {
+  min-width: 0;
+}
+
+.wechat-friend-request-body b {
+  display: block;
+  font-size: 15px;
+}
+
+.wechat-friend-request-body small {
+  display: block;
+  margin-top: 2px;
+  color: #888;
+  font-size: 12px;
+}
+
+.wechat-friend-request-body p {
+  margin: 6px 0 0;
+  color: #444;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.wechat-friend-request-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.wechat-friend-accept,
+.wechat-friend-reject {
+  min-width: 64px;
+  min-height: 30px;
+  border: 0;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.wechat-friend-accept {
+  background: #07c160;
+  color: #fff;
+}
+
+.wechat-friend-reject {
+  background: #f2f2f2;
+  color: #666;
+}
+
 .wechat-thread em {
   min-width: 18px;
   height: 18px;

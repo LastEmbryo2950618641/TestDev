@@ -1,12 +1,25 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.eventSystem = {
+  // inference = 大地图/活动类事件（非人员日常驱动）；人员找主角走 Social Inbox。
   EVENT_TYPES: ['random', 'inference', 'periodic'],
-  TYPE_LABELS: { random: '随机事件', inference: '推演事件', periodic: '周期事件' },
+  TYPE_LABELS: { random: '随机事件', inference: '大地图事件', periodic: '周期事件' },
 
   defaultState() {
+    const inboxBudgetTiers = window.GameModules.socialInbox?.defaultBudgetTiers?.()
+      || [
+        { maxSeconds: 30 * 60, expected: 0, hardCap: 1, label: '不足 30 分钟' },
+        { maxSeconds: 3 * 3600, expected: 0.45, hardCap: 1, label: '30 分钟 – 3 小时' },
+        { maxSeconds: 12 * 3600, expected: 1.2, hardCap: 2, label: '3 – 12 小时' },
+        { maxSeconds: 48 * 3600, expected: 2.2, hardCap: 3, label: '12 – 48 小时' },
+        { maxSeconds: null, expected: 3.2, hardCap: 4, label: '48 小时及以上' },
+      ];
     return {
       open: false,
+      primaryTab: 'events', // inbox | events | tempo
+      inboxFilter: 'pending', // pending | prepared | consumed | all
+      inboxSelectedId: '',
+      inboxBudgetTiers,
       tab: 'random',
       selectedId: '',
       message: '',
@@ -19,7 +32,7 @@ window.GameModules.eventSystem = {
 
   defaultDraft(type = 'random') {
     return {
-      type: this.normalizeType(type),
+      type: this.normalizeWritableType(type),
       title: '',
       startDate: '',
       endDate: '',
@@ -34,13 +47,25 @@ window.GameModules.eventSystem = {
   normalizeType(type = '') {
     const value = String(type || '').trim().toLowerCase();
     if (['random', '随机事件', 'random-event'].includes(value)) return 'random';
-    if (['inference', '推演事件', 'story', 'derived'].includes(value)) return 'inference';
+    if (['inference', '推演事件', '大地图事件', '地图事件', '活动事件', 'story', 'derived', 'map-event', 'world-event'].includes(value)) {
+      return 'inference';
+    }
     if (['periodic', '周期事件', 'cycle', 'recurring'].includes(value)) return 'periodic';
-    return 'inference';
+    return 'random';
+  },
+
+  normalizeWritableType(type = '') {
+    const normalized = this.normalizeType(type);
+    return this.EVENT_TYPES.includes(normalized) ? normalized : 'random';
+  },
+
+  isWritableType(type = '') {
+    return this.EVENT_TYPES.includes(this.normalizeType(type));
   },
 
   typeLabel(type = '') {
-    return this.TYPE_LABELS[this.normalizeType(type)] || this.TYPE_LABELS.inference;
+    const key = this.normalizeType(type);
+    return this.TYPE_LABELS[key] || this.TYPE_LABELS.random;
   },
 
   splitList(value = '') {
@@ -69,7 +94,9 @@ window.GameModules.eventSystem = {
     const endDate = this.isoDate(raw.endDate || raw.end || raw.timeEnd || raw['结束时间'] || raw['事件结束时间'], startDate);
     const title = String(raw.title || raw.name || raw.eventName || raw['事件名'] || '').replace(/^【[^】]+】/u, '').trim() || '未命名事件';
     const id = String(raw.id || raw.eventId || '').trim() || `evt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const people = this.splitList(raw.people || raw.relatedPeople || raw.participants || raw['事件相关人'] || (type === 'periodic' ? '所有人' : ''));
+    // 大地图/周期：受众默认「所有人」；禁止用具体熟人名单冒充人员日常驱动
+    const defaultPeople = (type === 'periodic' || type === 'inference') ? '所有人' : '';
+    const people = this.splitList(raw.people || raw.relatedPeople || raw.participants || raw['事件相关人'] || defaultPeople);
     const tags = this.splitList(raw.tags || raw.eventTags || raw['事件标签']);
     return {
       id,
@@ -79,7 +106,7 @@ window.GameModules.eventSystem = {
       endDate: endDate < startDate ? startDate : endDate,
       location: String(raw.location || raw.place || raw['事件发生地点'] || '').trim(),
       content: String(raw.content || raw.detail || raw.summary || raw['事件内容'] || '').trim(),
-      people: people.length ? people : (type === 'periodic' ? ['所有人'] : []),
+      people: people.length ? people : ((type === 'periodic' || type === 'inference') ? ['所有人'] : []),
       tags,
       probability: type === 'random' ? Math.max(0, Math.min(100, Math.round(Number(raw.probability ?? raw.chance ?? raw['发生概率'] ?? store?.eventState?.randomProbability ?? 10)))) : 100,
       source: String(raw.source || raw.origin || '').trim(),
@@ -125,6 +152,15 @@ window.GameModules.eventSystem = {
       ...(Array.isArray(context.tags) ? context.tags : []),
     ].join(' ');
     let score = 0;
+    // 大地图事件优先按地点/标签匹配，弱化具体人名（避免当作成熟人人际驱动）
+    if (event.type === 'inference') {
+      if (event.location && haystack.includes(event.location)) score += 8;
+      (event.tags || []).forEach((tag) => { if (haystack.includes(tag)) score += 5; });
+      (event.people || []).forEach((person) => {
+        if (person === '所有人') score += 1;
+      });
+      return score;
+    }
     (event.people || []).forEach((person) => {
       if (person === '所有人') score += 1;
       else if (haystack.includes(person)) score += 6;
@@ -135,11 +171,12 @@ window.GameModules.eventSystem = {
   },
 
   promptLine(event = {}) {
+    const audienceLabel = event.type === 'inference' ? '影响范围' : '相关人';
     return [
       this.eventDisplayName(event),
       `时间段:${event.startDate || '未知'}-${event.endDate || event.startDate || '未知'}`,
       `地点:${event.location || '未指定'}`,
-      `相关人:${(event.people || []).join('、') || '未指定'}`,
+      `${audienceLabel}:${(event.people || []).join('、') || '未指定'}`,
       `标签:${(event.tags || []).join('、') || '无'}`,
       `内容:${event.content || '无'}`,
     ].join('；');

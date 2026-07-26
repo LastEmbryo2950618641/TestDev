@@ -49,31 +49,65 @@ window.GameModules.characterQuery = {
       || null;
   },
 
+  introById(id = '') {
+    const key = String(id || '').trim();
+    if (!key) return null;
+    return window.GameModules.characterIntroStore?.getById?.(key) || null;
+  },
+
+  stateById(store = null, id = '') {
+    const key = String(id || '').trim();
+    if (!key) return null;
+    return window.GameModules.characterStateStore?.get?.(key, store)
+      || store?.rpgStates?.[key]
+      || null;
+  },
+
   query(store = null, method = '', params = {}) {
     if (method === 'listKnownCharacters') return this.listKnownCharacters(store, params);
     return this.searchCharacter(store, params);
   },
 
   searchCharacter(store = null, params = {}) {
+    const id = String(params.id || params.characterId || '').trim();
     const name = String(params.name || params.keyword || params.characterName || '').trim();
     const worldTag = this.worldOf(store, params);
     const maxRaw = params.maxChars;
     const maxChars = maxRaw === 0 || maxRaw === '0' ? 0 : (Number(maxRaw) || 0);
-    if (!name) return '未提供角色名，无法查询角色资料。';
-    const state = this.stateByName(store, name, worldTag);
-    if (state) return this.stateText(state, worldTag, maxChars);
-    const intro = this.introByName(name, worldTag);
+    if (!id && !name) return '未提供角色ID或角色名，无法查询角色资料。';
+
+    let state = id ? this.stateById(store, id) : null;
+    if (!state && name) state = this.stateByName(store, name, worldTag);
+    if (!state && id) state = this.stateByName(store, id, worldTag);
+
+    const complete = state && !window.GameModules.characterIntroCard?.isIncompleteRoleStub?.(state);
+    if (complete) return this.stateText(state, worldTag, maxChars);
+
+    const sharedId = state?.id || id || '';
+    let intro = sharedId ? this.introById(sharedId) : null;
+    if (!intro && name) intro = this.introByName(name, worldTag);
+    if (!intro && id) intro = this.introById(id) || this.introByName(id, worldTag);
     if (intro) return this.introText(intro, maxChars || 1600);
-    return `未找到角色资料：${name}｜世界：${worldTag}。若正文确认该人物存在，请在结算 JSON 的 appearedCharacters 写入 name、role、intro、work；若值得手动固化，同时写入 solidifiableCharacters。`;
+
+    const label = name || id;
+    return `未找到角色资料：${label}｜世界：${worldTag}。自然出场请用可区分姓名写入 Stage1 participants 为 姓名(待建卡)，系统会分配共享 ID 并先生成介绍卡（不是完整角色卡）。结算可补 appearedCharacters（name、role、intro、work、presenceKind：individual|group）；solidifiableCharacters 仅标记值得玩家手动升格。禁止无名纯「路人」。`;
   },
 
   listKnownCharacters(store = null, params = {}) {
     const worldTag = this.worldOf(store, params);
+    const introApi = window.GameModules.characterIntroCard;
     const states = (window.GameModules.characterStateStore?.list?.() || []).filter((state) => this.worldMatches(worldTag, state.worldTag || state.profile?.work));
     const intros = (window.GameModules.characterIntroStore?.list?.() || []).filter((card) => this.worldMatches(worldTag, card.worldTag || card.work));
+    const completeIds = new Set(
+      states.filter((state) => !introApi?.isIncompleteRoleStub?.(state)).map((state) => state.id),
+    );
     const rows = [
-      ...states.slice(0, 12).map((state) => `角色卡｜${state.name || state.profile?.name || state.id}｜${state.worldTag || worldTag}｜${state.profile?.role || state.profile?.detail || '完整资料已固化'}`),
-      ...intros.slice(0, 12).map((card) => `介绍卡｜${card.name}｜${card.worldTag || worldTag}｜${card.role || ''}｜${card.intro || ''}`),
+      ...states.filter((state) => !introApi?.isIncompleteRoleStub?.(state)).slice(0, 12).map((state) => (
+        `角色卡｜${state.name || state.profile?.name || state.id}｜ID:${state.id}｜${state.worldTag || worldTag}｜${state.profile?.role || state.profile?.detail || '完整资料已固化'}`
+      )),
+      ...intros.filter((card) => !completeIds.has(card.id) && !completeIds.has(card.links?.roleCardId)).slice(0, 12).map((card) => (
+        `介绍卡｜${card.name}｜ID:${card.id || ''}｜${card.worldTag || worldTag}｜${card.role || ''}｜${card.intro || ''}`
+      )),
     ];
     return rows.join('\n') || `世界 ${worldTag} 暂无角色卡或介绍卡。`;
   },
@@ -189,6 +223,7 @@ window.GameModules.characterQuery = {
       `姓名：${state.name || profile.name || state.id || '未知'}`,
       `角色ID：${state.id || profile.id || state.name || '未知'}`,
       `世界：${state.worldTag || profile.work || fallbackWorld || '未知世界'}`,
+      `人物形态：${window.GameModules.characterSocialDrive?.presenceKindLabel?.(profile.presenceKind) || '具体的一个人'}`,
       `身份：${profile.role || profile.job || '未知'}`,
       this.line('性别', profile.gender || values.gender),
       this.line('年龄/生日', [values.age ?? profile.age, profile.birthday].filter(Boolean).join(' / ')),
@@ -200,6 +235,7 @@ window.GameModules.characterQuery = {
       this.line('喜好', profile.preferences),
       ...(window.GameModules.playerAspirationPreferenceLayers?.toLines?.(profile.essentialPreferenceLayers) || []),
       ...this.lifeOrientationLines(profile),
+      ...this.socialDriveLines(profile.socialDrive),
       this.line('人物说明', profile.detail || state.note),
       this.line('社群角色', this.listText(profile.factions || values.factions, 8)),
       this.line('人事归属', this.listText(profile.memberships || values.memberships, 8)),
@@ -218,16 +254,56 @@ window.GameModules.characterQuery = {
     return this.limit(rows.join('\n'), maxChars);
   },
 
+  socialDriveLines(drive = null) {
+    if (!drive || typeof drive !== 'object') return [];
+    const agenda = drive.agenda || {};
+    const reach = Array.isArray(drive.reach) ? drive.reach.join('、') : '';
+    return [
+      this.line('与主角关系', drive.relationToPlayer),
+      this.line('关系说明', drive.relationDetail),
+      drive.familiarity != null && drive.familiarity !== '' ? `熟识：${drive.familiarity}` : '',
+      this.line('上次沟通', drive.lastContactAt),
+      this.line('沟通渠道', drive.lastContactChannel),
+      this.line('可达渠道', reach),
+      this.line('当前事务', agenda.short),
+      this.line('找主角理由', agenda.needPlayer ? (agenda.needPlayerWhy || '需要主角') : ''),
+      agenda.urgency != null && agenda.needPlayer ? `紧迫度：${agenda.urgency}` : '',
+    ].filter(Boolean);
+  },
+
   introText(card = {}, maxChars = 1600) {
+    const identity = card.identity || {};
+    const persona = card.persona || {};
+    const social = card.social || {};
+    const agenda = card.agenda || {};
+    const role = identity.role || card.role || '出场人物';
+    const background = persona.background || card.intro || card.detail || '暂无介绍。';
+    const prefs = Array.isArray(persona.preferences) ? persona.preferences.join('、') : '';
+    const attraction = Array.isArray(persona.attraction) ? persona.attraction.join('、') : '';
+    const reach = Array.isArray(social.reach) ? social.reach.join('、') : '';
     return this.limit([
       `资料类型：介绍卡`,
       `姓名：${card.name}`,
+      `角色ID：${card.id || card.links?.roleCardId || ''}`,
       `世界：${card.worldTag || card.work || '未知世界'}`,
-      `身份：${card.role || '出场人物'}`,
-      this.line('介绍', card.intro || card.detail || '暂无介绍。'),
-      this.line('性格', card.personality),
-      this.line('关系', card.relationships || card.relation),
-      this.line('外貌', card.appearance),
+      `人物形态：${window.GameModules.characterSocialDrive?.presenceKindLabel?.(card.presenceKind) || '具体的一个人'}`,
+      `身份：${role}`,
+      this.line('职业', identity.job),
+      this.line('介绍', background),
+      this.line('外貌', persona.appearance || card.appearance),
+      this.line('性格', persona.personality || card.personality),
+      this.line('喜好', prefs),
+      this.line('吸引偏好', attraction),
+      this.line('与主角关系', social.relationToPlayer || card.relation || card.relationships),
+      this.line('关系说明', social.relationDetail),
+      social.affection != null && social.affection !== '' ? `好感：${social.affection}` : '',
+      social.familiarity != null && social.familiarity !== '' ? `熟识：${social.familiarity}` : '',
+      this.line('上次沟通', social.lastContactAt),
+      this.line('沟通渠道', social.lastContactChannel),
+      this.line('可达渠道', reach),
+      this.line('当前事务', agenda.short),
+      this.line('找主角理由', agenda.needPlayer ? (agenda.needPlayerWhy || '需要主角') : ''),
+      agenda.urgency != null && agenda.needPlayer ? `紧迫度：${agenda.urgency}` : '',
     ].filter(Boolean).join('\n'), maxChars);
   },
 };

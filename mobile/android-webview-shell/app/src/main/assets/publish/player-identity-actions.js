@@ -159,6 +159,7 @@ window.GameModules.playerIdentityActions = {
     const row = (key, label, value, desc, extra = {}) => ({ key: `id-${targetId}-${key}`, stateId: targetId, label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: '角色', commonField: true, ...extra });
     const fields = [
       row('name', '姓名', p.name, '角色卡固化姓名。'),
+      row('presenceKind', '人物形态', window.GameModules.characterSocialDrive?.presenceKindLabel?.(p.presenceKind) || '具体的一个人', '具体的一个人＝个人档案；一类人＝团体原型，字段表示群体意识，行动视为团队行动。'),
       row('work', '所属世界', worldTag, '角色出身作品或世界。'),
       row('currentLocation', '当前位置', locationText, '角色卡当前位置；格式为[势力层级链...]·地点·地点内位置（倒数第2段=地图节点，最后1段=尽量精确的室内位置）。'),
       row('role', '身份', p.role, '角色卡固化身份。'),
@@ -167,6 +168,30 @@ window.GameModules.playerIdentityActions = {
       row('personality', '性格', p.personality, '角色卡固化性格。'),
       row('job', '职业', p.job, '角色真实职业、训练身份或社会功能。'),
     ];
+    // 日常驱动（Part8 socialDrive）：身份证单独分区展示
+    if ((this.identityTargetId || 'player-self') !== 'player-self') {
+      const drive = window.GameModules.characterSocialDrive?.normalizeForRoleCard?.(p.socialDrive || {}, {
+        id: targetId,
+        name: p.name,
+        isPlayer: false,
+      }) || p.socialDrive || {};
+      const agenda = drive.agenda || {};
+      const reachText = Array.isArray(drive.reach) && drive.reach.length ? drive.reach.join('、') : '未记录';
+      const channelLabel = { wechat: '微信', call: '电话', scene: '当面', none: '无' }[drive.lastContactChannel] || (drive.lastContactChannel || '无');
+      fields.push(
+        row('sd-relation', '与主角关系', drive.relationToPlayer, '日常主动找人的关系门闩叙述。', { profileGroup: '社交驱动' }),
+        row('sd-relation-detail', '关系说明', drive.relationDetail, '关系细节补充。', { profileGroup: '社交驱动' }),
+        row('sd-familiarity', '熟识度', drive.familiarity != null ? String(drive.familiarity) : '', '0-100；影响是否进入 Social Inbox。', { profileGroup: '社交驱动' }),
+        row('sd-reach', '可达渠道', reachText, '可主动联络的渠道：微信/电话/当面。', { profileGroup: '社交驱动' }),
+        row('sd-last-contact', '上次沟通', drive.lastContactAt, '最近一次主动或被联络时间。', { profileGroup: '社交驱动' }),
+        row('sd-last-channel', '沟通渠道', channelLabel, '上次沟通使用的渠道。', { profileGroup: '社交驱动' }),
+        row('sd-agenda', '当前事务', agenda.short, '对方自己的事（议程），非玩家主线。', { profileGroup: '社交驱动' }),
+        row('sd-need-player', '是否需要主角', agenda.needPlayer ? `是｜${agenda.needPlayerWhy || '未说明理由'}` : '否', 'needPlayer 与理由。', { profileGroup: '社交驱动' }),
+        row('sd-urgency', '紧迫度', agenda.needPlayer || agenda.urgency ? String(agenda.urgency ?? 0) : '', '0-1；越高越优先入队。', { profileGroup: '社交驱动' }),
+        row('sd-deadline', '事务期限', agenda.deadline, '议程截止日期。', { profileGroup: '社交驱动' }),
+        row('sd-cooldown', '联络冷却至', agenda.cooldownUntil, '冷却结束前降低再次主动概率。', { profileGroup: '社交驱动' }),
+      );
+    }
     const propertyInfo = this.identityTargetState()?.properties?.realWorldProperties || p.properties?.realWorldProperties || null;
     const formatPropertyPath = (item = {}) => item.path || item.name || item.nodeId || '未命名房产';
     const ownedProperties = Array.isArray(propertyInfo?.owned) ? propertyInfo.owned : [];

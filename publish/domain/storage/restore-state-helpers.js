@@ -75,6 +75,8 @@ window.GameModules.domain.storage.restoreStateHelpers = {
     store.realWorldChoices = save.realWorldChoices || store.realWorldChoices;
     store.realWorldLog = window.GameModules.realWorldThinkingActions?.normalizeRealWorldLog?.(save.realWorldLog || store.realWorldLog) || (save.realWorldLog || store.realWorldLog);
     store.realWorldLongingEvents = Array.isArray(save.realWorldLongingEvents) ? save.realWorldLongingEvents : (store.realWorldLongingEvents || []);
+    store.socialInbox = Array.isArray(save.socialInbox) ? save.socialInbox : (store.socialInbox || []);
+    store.socialInboxPreparedIds = Array.isArray(save.socialInboxPreparedIds) ? save.socialInboxPreparedIds : (store.socialInboxPreparedIds || []);
     store.realWorldlineState = save.realWorldlineState || store.realWorldlineState || { events: [], plots: [], pendingPlot: null };
     store.realWorldSystemRecords = Array.isArray(save.realWorldSystemRecords) ? save.realWorldSystemRecords : (store.realWorldSystemRecords || []);
     store.realWorldAgentKvByMode = save.realWorldAgentKvByMode && typeof save.realWorldAgentKvByMode === 'object'
@@ -118,6 +120,7 @@ window.GameModules.domain.storage.restoreStateHelpers = {
 
   normalizeWechatProfileState(store, save) {
     store.wechatUsers = Array.isArray(save.wechatUsers) ? save.wechatUsers : (store.wechatUsers || []);
+    store.wechatFriendRequests = Array.isArray(save.wechatFriendRequests) ? save.wechatFriendRequests : (store.wechatFriendRequests || []);
     store.wechatMessagesByContact = save.wechatMessagesByContact && typeof save.wechatMessagesByContact === 'object' ? save.wechatMessagesByContact : (store.wechatMessagesByContact || {});
     store.wechatAlbumPhotos = save.wechatAlbumPhotos && typeof save.wechatAlbumPhotos === 'object' ? save.wechatAlbumPhotos : (store.wechatAlbumPhotos || {});
     store.wechatAlbumPrompts = save.wechatAlbumPrompts && typeof save.wechatAlbumPrompts === 'object' ? save.wechatAlbumPrompts : (store.wechatAlbumPrompts || {});

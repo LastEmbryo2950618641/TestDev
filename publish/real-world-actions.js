@@ -143,6 +143,15 @@ window.GameModules.realWorldActions = {
     const longingEvents = await this.settleRealWorldLongingMeters?.(elapsedSeconds, new Date(startedAt).getTime(), this.phoneDate().getTime()) || [];
     if (longingEvents.length) settlement.push(`角色思念：${longingEvents.length}次思念事件等待下次现实推演体现。`);
     this.clearPreparedRealWorldLongingEvents?.();
+    const socialInboxItems = this.settleSocialInbox?.(elapsedSeconds, new Date(startedAt).getTime(), this.phoneDate().getTime()) || [];
+    if (socialInboxItems.length) settlement.push(`社交主动：${socialInboxItems.length}条待处理（等待下次现实推演注入）。`);
+    const inboxClear = await this.clearPreparedSocialInbox?.() || {};
+    const promotedRequests = Array.isArray(inboxClear) ? inboxClear : (inboxClear.friendRequests || []);
+    const wechatDeliveries = Array.isArray(inboxClear) ? [] : (inboxClear.wechatDeliveries || []);
+    const writebacks = Array.isArray(inboxClear) ? [] : (inboxClear.writebacks || []);
+    if (wechatDeliveries.length) settlement.push(`微信来信：已向${wechatDeliveries.length}位好友写入未读消息（Social Inbox）。`);
+    if (promotedRequests.length) settlement.push(`微信申请：已新增${promotedRequests.length}条待处理好友申请（需玩家同意，未自动添加）。`);
+    if (writebacks.length) settlement.push(`社交回写：已更新${writebacks.length}人议程/上次沟通/冷却。`);
     this.refreshRealWorldMatterStatus?.();
     this.checkWorkReminder?.();
     window.GameModules.realWorldMap.update(this, result.locationName || this.realWorldLocationName, result);

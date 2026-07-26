@@ -2,7 +2,7 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldMaterials = {
   items: [
-    { id: 'character-profile-search', title: '查询角色完整身份资料', size: 'medium', maxChars: 0, skill: 'character.query', method: 'searchCharacterProfile', paramsHint: { world: '世界名', name: '角色名' }, when: '中文资料请求：角色查询，搜索角色卡，角色全称，世界全称。场景锚定确认强制出场、高优先候选或戏剧候选时查询完整角色卡；角色卡 Top3，优先强制出场，其次高优先候选，最后开放场景戏剧候选。加载角色卡不等于出场或结算；不得输出英文 skill/method。角色卡整卡放行，不截断长度。' },
+    { id: 'character-profile-search', title: '查询角色完整身份资料', size: 'medium', maxChars: 0, skill: 'character.query', method: 'searchCharacterProfile', paramsHint: { world: '世界名', name: '角色名' }, when: '中文资料请求：角色查询，搜索角色卡，角色全称，世界全称。优先完整角色卡，没有则返回介绍卡；场景锚定确认强制出场、高优先候选或戏剧候选时查询。加载资料不等于出场或结算；不得输出英文 skill/method。角色卡整卡放行，不截断长度。' },
     { id: 'character-known-list', title: '已知角色资料清单', size: 'small', maxChars: 1200, skill: 'character.query', method: 'listKnownCharacters', paramsHint: { world: '世界名' }, when: '需要先了解当前世界已有角色卡和介绍卡。' },
     { id: 'past-event-search', title: '统一查询过去事件', size: 'large', maxChars: 5200, skill: 'past.event.query', method: 'searchPastEvent', paramsHint: { world: '世界名', question: '用户问题', keywords: ['角色名', '事件词', '地点或时间'], characterName: '角色名', timeHint: '几天前/昨天/某日期', contactId: '微信联系人id可选' }, when: '玩家询问几天前、之前、上次、记不记得、旧承诺、图片、地点、物品、微信原文或角色过去经历。' },
     { id: 'company-list', title: '玩家相关公司列表', size: 'small', maxChars: 800, skill: 'company.query', method: 'listPlayerCompanies', paramsHint: { world: '世界名',}, when: '确认玩家有哪些公司、组织或雇主资料。' },
@@ -46,8 +46,9 @@ window.GameModules.realWorldMaterials = {
     { id: 'wechat-skills', title: '微信可操作技能清单', size: 'small', maxChars: 1000, skill: 'wechat.query', method: 'listWechatSkills', paramsHint: { world: '世界名',}, when: '角色思念、联系玩家、发送当前或过去微信消息前，确认微信可执行操作。' },
     { id: 'wechat-contacts', title: '微信联系人清单', size: 'small', maxChars: 1000, skill: 'wechat.query', method: 'listContacts', paramsHint: { world: '世界名',}, when: '需要确认角色是否在玩家微信里、联系人ID、关系和未读情况。' },
     { id: 'wechat-thread', title: '微信会话片段', size: 'medium', maxChars: 1600, skill: 'wechat.query', method: 'getThread', paramsHint: { world: '世界名', contactId: '联系人id或角色id', count: 8 }, when: '角色思念事件准备用微信联系玩家，需要查看最近消息口吻与上下文。' },
-    { id: 'wechat-send-now', title: '主动发送当前微信消息给玩家', size: 'small', maxChars: 900, skill: 'wechat.message.incoming', method: 'sendIncomingNow', paramsHint: { world: '世界名', contactId: '联系人id或角色id', text: '消息内容' }, when: '思念角色在当前时刻主动给玩家发微信；在 final.wechatActions 中执行。' },
-    { id: 'wechat-send-past', title: '主动在过去发送微信消息给玩家', size: 'small', maxChars: 900, skill: 'wechat.message.incoming', method: 'sendIncomingPast', paramsHint: { world: '世界名', contactId: '联系人id或角色id', text: '消息内容', timeIso: '过去时间ISO' }, when: '回溯错过的思念触发，写入过去未读微信；在 final.wechatActions 中执行。' },
+    { id: 'wechat-send-now', title: '主动发送当前微信消息给玩家', size: 'small', maxChars: 900, skill: 'wechat.message.incoming', method: 'sendIncomingNow', paramsHint: { world: '世界名', contactId: '联系人id或角色id', text: '消息内容' }, when: '已是微信好友的角色在当前时刻主动给玩家发微信；在 final.wechatActions 中执行。未通过好友申请前禁止使用。' },
+    { id: 'wechat-send-past', title: '主动在过去发送微信消息给玩家', size: 'small', maxChars: 900, skill: 'wechat.message.incoming', method: 'sendIncomingPast', paramsHint: { world: '世界名', contactId: '联系人id或角色id', text: '消息内容', timeIso: '过去时间ISO' }, when: '已是好友时回溯错过的未读微信；在 final.wechatActions 中执行。' },
+    { id: 'wechat-friend-request', title: '发起微信好友申请', size: 'small', maxChars: 900, skill: 'wechat.friend.request', method: 'requestWechatFriend', paramsHint: { world: '世界名', name: '申请人姓名', characterId: '角色id可选', reason: '申请理由', relation: '关系' }, when: '对方尚非微信好友但提出加微信；在 final.wechatActions 写 action:requestWechatFriend。只产生待处理申请，禁止直接加为好友。' },
     { id: 'character-items', title: '查询玩家或角色物品', size: 'small', maxChars: 1200, skill: 'item.query', method: 'listCharacterItems', paramsHint: { world: '世界名', target: 'player-self或角色id/姓名' }, when: '行动涉及查看、使用、赠送、丢弃、损坏、购买、交给某人或从某人获得物品前。' },
     { id: 'known-item-search', title: '搜索世界已知物品', size: 'small', maxChars: 1000, skill: 'item.query', method: 'searchKnownItem', paramsHint: { world: '世界名', keyword: '物品名或关键词' }, when: '每次需要生成物品细节前必须先搜索；命中则复用已知物品，不要重复生成。' },
     { id: 'item-generate', title: '生成世界已知物品', size: 'small', maxChars: 1000, skill: 'item.query', method: 'generateItemSkill', paramsHint: { world: '世界名', name: '物品名', kind: '物品或装备', detailed: true, description: '玩家检查或到手后的详细信息' }, when: '搜索世界已知物品未命中，且玩家明确检查、接触或实际到手，需要固化物品细节。' },
@@ -71,6 +72,7 @@ window.GameModules.realWorldMaterials = {
     'item.query.purchaseItemSkill',
     'wechat.message.incoming.sendIncomingNow',
     'wechat.message.incoming.sendIncomingPast',
+    'wechat.friend.request.requestWechatFriend',
   ]),
 
   STAGE1_DEEP_READ_PAIRS: new Set([

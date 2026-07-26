@@ -15,6 +15,7 @@ window.GameModules.realWorldAgentContext = {
     const recent = this.recentLog(store, 3);
     const recentWorldline = this.recentWorldlineRecords(store, 5000, 6000);
     const longing = store.prepareRealWorldLongingContext?.() || '';
+    const socialInbox = store.prepareSocialInboxContext?.() || '';
     const shared = store.sharedControlState?.();
     const sharedProfile = shared?.profile || {};
     const sharedLocation = shared ? store.controlLinkLocationText?.(shared) || '当前位置未登记' : '';
@@ -42,6 +43,10 @@ window.GameModules.realWorldAgentContext = {
       `控势摘要（Territory Hot）：\n${window.GameModules.orgTerritory?.territoryHotText?.(store, 600) || '暂无已揭示地点控势。'}`,
       `势力资料库：\n${window.GameModules.factionArchive?.contextFor?.(store, action, 1600) || '暂无势力资料库记录。'}`,
       ...(longing ? [`角色思念上下文：\n${longing}`] : []),
+      ...(window.GameModules.socialEventBoundary?.divisionBlock?.()
+        ? [window.GameModules.socialEventBoundary.divisionBlock()]
+        : []),
+      ...(socialInbox ? [`社交主动上下文：\n${socialInbox}`] : []),
       `## 最近发送的世界线\n需严格跟着世界线续写，保证正文对最新世界线连续性。\n${recentWorldline}`,
       `系统级补充记录（日历/通信/世界线节点等；不含角色行动复述）：\n${this.recentSystemRecords(store, 8, 1200)}`,
       `最近记录摘要：\n${recent}`,

@@ -8,10 +8,10 @@ window.GameScriptManifest = {
       "asset-loader.js",
       "remerge-game-store.js",
       "config/default-existing-profile.js",
-      "predefined-role-cards/01-刘思琪-rel-ai-247528.js",
-      "predefined-role-cards/02-刘思怡-rel-ai-242269.js",
-      "predefined-role-cards/03-刘思瑶-rel-ai-247463.js",
-      "predefined-role-cards/04-刘悠-player-self.js",
+      "predefined-role-cards/01-鍒樻€濈惇-rel-ai-247528.js",
+      "predefined-role-cards/02-鍒樻€濇€?rel-ai-242269.js",
+      "predefined-role-cards/03-鍒樻€濈懚-rel-ai-247463.js",
+      "predefined-role-cards/04-鍒樻偁-player-self.js",
       "predefined-role-card-support/triplet-essential-preference-layers.js",
       "predefined-role-card-support/predefined-appearance-profiles.js",
       "predefined-role-cards.js",
@@ -67,6 +67,7 @@ window.GameScriptManifest = {
       "character-id-ensure.js",
       "narration-role-markup.js",
       "character-goal-system.js",
+      "character-social-drive.js",
       "character-memory-store.js",
       "character-intro-store.js",
       "character-memory-maintenance-store.js",
@@ -91,7 +92,6 @@ window.GameScriptManifest = {
       "body-figure.js",
       "rpg-field-ui.js",
       "progression-combat.js",
-      "progression-life-energy.js",
       "progression-learned-sync.js",
       "rpg-initializer.js",
       "rpg-profile-metrics.js",
@@ -261,6 +261,9 @@ window.GameScriptManifest = {
       "control-link-actions.js",
       "app-switch-actions.js",
       "current-world-actions.js",
+      "social-event-boundary.js",
+      "social-inbox.js",
+      "character-roster-actions.js",
       "ui/real-world/map-stage-view-helpers.js",
       "ui/calendar/view-helpers.js",
       "ui/event/panel-view-helpers.js",
@@ -269,7 +272,7 @@ window.GameScriptManifest = {
       "ui/faction/overview-view-helpers.js",
       "prompts/location-tree-audit-fill.js",
       "prompts/real-world-map-surround-unlock.js",
-      "prompts/推演引擎/stage6-faction-update.js"
+      "prompts/鎺ㄦ紨寮曟搸/stage6-faction-update.js"
     ],
     "gameplay": [
       "real-world-log-store.js",
@@ -297,7 +300,6 @@ window.GameScriptManifest = {
       "inference/scene-boundary.js",
       "inference/material-loader.js",
       "inference/faction-stage-update.js",
-      "inference/life-energy-stage.js",
       "real-world-agent-context.js",
       "prompts/materials/real-world-materials.js",
       "prompts/materials/real-world-material-query.js",
@@ -332,6 +334,7 @@ window.GameScriptManifest = {
       "platform/storage/wechat-history-source.js",
       "wechat-history-store.js",
       "real-world-agent-wechat.js",
+      "wechat-friend-request.js",
       "prompts/wechat/wechat-image-prompt-collect.js",
       "prompts/picture_generate/wechat-album-photo.js",
       "app/wechat/cleanup-orchestration.js",
@@ -445,8 +448,8 @@ window.GameScriptManifest = {
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-25T10:01:51.251Z",
-  "total": 431
+  "generatedAt": "2026-07-26T07:04:46.100Z",
+  "total": 436
 };
 
 window.GameScriptManifest.classify = function classify(url) {
