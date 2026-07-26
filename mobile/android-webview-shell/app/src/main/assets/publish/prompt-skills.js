@@ -113,6 +113,7 @@ window.GameModules.promptSkills = {
       'profession-info',
       'entry-year-audit',
       'wechat-chat-reply',
+      'wechat-behavior-short',
       'wechat-history-decision',
       'worldline-plot-summary',
       'real-world-final-style-polish',

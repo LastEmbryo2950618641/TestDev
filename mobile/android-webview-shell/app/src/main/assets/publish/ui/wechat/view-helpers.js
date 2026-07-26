@@ -34,6 +34,7 @@ window.GameModules.wechatViewHelpers = Object.assign(window.GameModules.wechatVi
       { title: '情绪变化', items: this.wechatMetricReasonItems(metrics.emotions, 'emotions', msg) },
       { title: '感觉变化', items: this.wechatMetricReasonItems(metrics.playerFeelings, 'playerFeelings', msg) },
       { title: '穿着变化', items: this.wechatWearingReasonItems(msg.lexiconUpdates) },
+      { title: '身体状态', items: this.wechatBodyStatusReasonItems(msg.bodyStatusUpdates) },
     ].filter((group) => group.items.length);
   },
 
@@ -73,6 +74,14 @@ window.GameModules.wechatViewHelpers = Object.assign(window.GameModules.wechatVi
         reason: item?.reason || value.reason || '',
       };
     }).filter((item) => item.reason || item.summary);
+  },
+
+  wechatBodyStatusReasonItems(list = []) {
+    return (Array.isArray(list) ? list : []).map((item) => ({
+      name: item?.part || item?.partKey || '身体',
+      summary: [item?.status, item?.description].filter(Boolean).join('｜'),
+      reason: item?.reason || '',
+    })).filter((item) => item.reason || item.summary);
   },
 });
 

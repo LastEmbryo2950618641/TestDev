@@ -101,8 +101,15 @@ window.GameModules.promptSections = {
     const metrics = state ? store?.ensureStateMetrics?.(state) : { emotions: store?.emotions, playerFeelings: store?.playerFeelings };
     const wearing = store?.wearingItems?.(state || store?.inventoryTargetState?.()) || [];
     const vitals = store?.rpgVitals?.(state || store?.inventoryTargetState?.()) || [];
+    const body = state?.values?.bodyStatus && typeof state.values.bodyStatus === 'object'
+      ? Object.values(state.values.bodyStatus).map((item) => {
+        if (!item || typeof item !== 'object') return '';
+        return `${item.part || item.partKey || '部位'}:${item.status || item.description || '未知'}`;
+      }).filter(Boolean).join('；')
+      : '';
     return this.lines([
-      ['已有身体状态', vitals.map((item) => `${item.label}:${item.value}/100${item.text ? `(${item.text})` : ''}`).join('；') || '无'],
+      ['已有生命体征', vitals.map((item) => `${item.label}:${item.value}/100${item.text ? `(${item.text})` : ''}`).join('；') || '无'],
+      ['已有身体状态', body || '无'],
       ['已有情绪', JSON.stringify(metrics?.emotions || {})],
       ['已有对玩家感觉', JSON.stringify(metrics?.playerFeelings || {})],
       ['已有穿着', wearing.map((item) => `${item.slot}:${item.name || '未穿戴'}`).join('、') || '无'],

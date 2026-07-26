@@ -23,7 +23,37 @@ window.GameModules.app.wechat.chatReplyHelpers = {
     const state = this.rpgStates?.[characterId] || window.GameModules.characterStateStore?.get?.(characterId);
     const imageRaw = raw?.imageIntent || {};
     const imageIntent = imageRaw.offer ? { offer: true, reason: String(imageRaw.reason || '联系人愿意发送一张图片').slice(0, 120), imageDescription: String(imageRaw.imageDescription || imageRaw.contentDescription || '一张联系人发送的近照。').slice(0, 180), tagsHint: String(imageRaw.tagsHint || '').slice(0, 300), usesMentionedImage: !!imageRaw.usesMentionedImage } : null;
-    return { reply, mood: String(raw?.mood || '平常').slice(0, 20), elapsedSeconds: Math.max(20, Math.min(1800, Number(raw?.elapsedSeconds) || 60)), impression, metricUpdates: window.GameModules.ai.normalizeMetricUpdates?.(raw?.metricUpdates, state) || {}, lexiconUpdates: window.GameModules.ai.normalizeLexiconUpdates?.(raw?.lexiconUpdates, { character: { work: '2026 现代都市现实世界' } }) || [], imageIntent };
+    return {
+      reply,
+      mood: String(raw?.mood || '平常').slice(0, 20),
+      elapsedSeconds: Math.max(20, Math.min(1800, Number(raw?.elapsedSeconds) || 60)),
+      impression,
+      metricUpdates: window.GameModules.ai.normalizeMetricUpdates?.(raw?.metricUpdates, state) || {},
+      lexiconUpdates: window.GameModules.ai.normalizeLexiconUpdates?.(raw?.lexiconUpdates, { character: { work: '2026 现代都市现实世界' } }) || [],
+      bodyStatusUpdates: this.normalizeWechatBodyStatusUpdates?.(raw?.bodyStatusUpdates) || [],
+      imageIntent,
+    };
+  },
+
+  normalizeWechatBodyStatusUpdates(raw = []) {
+    const loop = window.GameModules.realWorldAgentLoop;
+    const allowed = loop?.allowedBodyPartKeys?.() || ['overall', 'mouth', 'chest', 'genital', 'anus', 'hips', 'limbs', 'skin', 'other'];
+    return (Array.isArray(raw) ? raw : []).map((item) => {
+      const partRaw = String(item?.part || item?.部位 || '').trim();
+      const status = String(item?.status || item?.状态 || '').trim().slice(0, 80);
+      const reason = String(item?.reason || item?.变化原因 || '').trim().slice(0, 200);
+      const description = String(item?.description || item?.['描述状态'] || status).trim().slice(0, 300);
+      if (!partRaw || !status || !reason) return null;
+      const partKey = loop?.bodyPartAlias?.(partRaw) || partRaw;
+      if (!allowed.includes(partKey)) return null;
+      return {
+        part: loop?.bodyPartName?.(partRaw, partKey) || partRaw,
+        partKey,
+        status,
+        description,
+        reason,
+      };
+    }).filter(Boolean).slice(0, 6);
   },
 
   fallbackWechatReply(contact, text) {

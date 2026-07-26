@@ -68,6 +68,208 @@ window.GameModules.realWorldAgentLoop = {
     };
   },
 
+  /**
+   * 把外部事件（如微信对话）追加进持久推演上下文。
+   * 存档字段 realWorldAgentKvByMode 会随存档恢复；缓存失效时仍保留对话链。
+   */
+  appendExternalContextMessage(store, content = '', mode = 'real', role = 'user') {
+    const text = String(content || '').trim();
+    if (!store || !text) return null;
+    const message = { role: role === 'assistant' ? 'assistant' : 'user', content: text };
+    const live = this.activeKvCacheSession(store, mode) || this.pendingKvCacheSession(store, mode);
+    if (live && Array.isArray(live.messages)) {
+      live.messages = [...live.messages, message];
+      this.persistAgentConversation(store, live, mode);
+      return message;
+    }
+    const prior = this.loadPersistedAgentMessages(store, mode);
+    prior.push(message);
+    store.realWorldAgentKvByMode = store.realWorldAgentKvByMode || {};
+    const prev = store.realWorldAgentKvByMode[mode] || {};
+    store.realWorldAgentKvByMode[mode] = {
+      messages: prior,
+      updatedAt: Date.now(),
+      requestCount: Math.max(0, Math.round(Number(prev.requestCount) || 0)),
+    };
+    return message;
+  },
+
+  appendWechatDialogueContext(store, {
+    contactName = '',
+    contactId = '',
+    playerText = '',
+    replyText = '',
+    timeLabel = '',
+    kind = 'exchange',
+  } = {}) {
+    const name = String(contactName || '微信联系人').trim().slice(0, 40);
+    const id = String(contactId || '').trim().slice(0, 80);
+    const when = String(timeLabel || '').trim() || '时间未知';
+    const player = String(playerText || '').trim().slice(0, 500);
+    const reply = String(replyText || '').trim().slice(0, 500);
+    const lines = [
+      '【微信对话·已写入持久推演上下文】',
+      `联系人：${name}${id ? `（id:${id}）` : ''}`,
+      `手机时间：${when}`,
+    ];
+    if (kind === 'incoming' || (!player && reply)) {
+      lines.push(`${name}：${reply || player}`);
+    } else {
+      if (player) lines.push(`玩家：${player}`);
+      if (reply) lines.push(`${name}：${reply}`);
+    }
+    lines.push('说明：以上微信原文已在对话链中。后续推演承接该对话时直接使用本上下文；勿再请求记忆查询、世界线/现实历史或 wechat.getThread 重复拉取同一原文。');
+    const message = this.appendExternalContextMessage(store, lines.filter(Boolean).join('\n'), 'real', 'user');
+    return message;
+  },
+
+  /**
+   * 微信往来后的人物行为短推演结果 → 同一条持久推演上下文。
+   */
+  appendCharacterBehaviorContext(store, {
+    contactName = '',
+    contactId = '',
+    narration = '',
+    currentLocation = '',
+    currentAction = '',
+    availability = '',
+    timeLabel = '',
+  } = {}) {
+    const name = String(contactName || '角色').trim().slice(0, 40);
+    const id = String(contactId || '').trim().slice(0, 80);
+    const when = String(timeLabel || '').trim() || '时间未知';
+    const body = String(narration || '').trim().slice(0, 800);
+    if (!body) return null;
+    const lines = [
+      '【人物行为·已写入持久推演上下文】',
+      `角色：${name}${id ? `（id:${id}）` : ''}`,
+      `手机时间：${when}`,
+    ];
+    if (currentLocation) lines.push(`当前地点：${String(currentLocation).trim().slice(0, 120)}`);
+    if (currentAction) lines.push(`当前行动：${String(currentAction).trim().slice(0, 160)}`);
+    if (availability) lines.push(`可用状态：${String(availability).trim().slice(0, 40)}`);
+    lines.push(`短推演：${body}`);
+    lines.push('说明：以上为微信往来后的场外人物行为短推演，已在对话链中；打开推演界面时与微信对话一并可见。');
+    return this.appendExternalContextMessage(store, lines.filter(Boolean).join('\n'), 'real', 'user');
+  },
+
+  /**
+   * 把持久上下文条目镜像进 realWorldLog，打开推演面板即可看到。
+   */
+  async mirrorExternalContextToRealWorldLog(store, {
+    content = '',
+    kind = 'context',
+    contactName = '',
+    contactId = '',
+    timeLabel = '',
+    locationName = '',
+  } = {}) {
+    const text = String(content || '').trim();
+    if (!store || !text) return null;
+    const now = store.phoneDate?.() || new Date();
+    const label = String(timeLabel || '').trim()
+      || `${store.phoneDateText?.() || ''} ${store.phoneTimeText?.() || ''}`.trim()
+      || now.toLocaleString();
+    const sceneTitle = kind === 'wechat' ? '微信对话'
+      : (kind === 'behavior' ? '人物行为' : '持久上下文');
+    const entry = {
+      id: `real-ctx-${kind}-${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
+      type: 'ai',
+      systemGenerated: true,
+      contextKind: kind,
+      narration: text,
+      sceneTitle,
+      locationName: String(locationName || store.realWorldLocationLabel?.() || store.realWorldMap?.current || '').trim(),
+      status: '',
+      quest: '',
+      choices: [],
+      characterCardChanges: [],
+      genericUpdates: [],
+      thinking: '',
+      thinkingSections: [],
+      streamTrace: [],
+      agentTrace: [],
+      promptPack: null,
+      streaming: false,
+      time: { label, iso: now.toISOString() },
+      createdAt: now.toISOString(),
+      controlledCharacterId: String(contactId || '').trim(),
+      controlledCharacterName: String(contactName || '').trim(),
+    };
+    try {
+      await store.assignRealWorldlineEntry?.(entry);
+    } catch (_) { /* worldline optional for context mirror */ }
+    await window.GameModules.realWorldLogStore?.append?.(entry);
+    const pageSize = Math.max(1, Number(store.realWorldLogPageSize) || 12);
+    store.realWorldLog = store.normalizeRealWorldLog?.(
+      [...(store.realWorldLog || []), entry],
+    ).slice(-pageSize) || [...(store.realWorldLog || []), entry];
+    store.realWorldLogTotal = window.GameModules.realWorldLogStore?.count?.()
+      || Math.max(store.realWorldLogTotal || 0, store.realWorldLog.length);
+    if (store.realWorldOpen) {
+      store.refreshRealWorldLogPage?.(store.realWorldLogMaxPage?.() || store.realWorldLogPage || 1);
+      store.scrollRealWorldLogBottom?.();
+    }
+    return entry;
+  },
+
+  summarizeWechatInAgentContext(store, mode = 'real', limitMessages = 48) {
+    const msgs = this.loadPersistedAgentMessages(store, mode).slice(-limitMessages);
+    const ids = new Set();
+    const names = new Set();
+    let count = 0;
+    msgs.forEach((item) => {
+      const content = String(item?.content || '');
+      if (!content.includes('【微信对话')) return;
+      count += 1;
+      const idMatch = content.match(/id:([^\s）)]+)/u);
+      if (idMatch?.[1]) ids.add(String(idMatch[1]).trim());
+      const nameMatch = content.match(/联系人：([^\n（(]+)/u);
+      if (nameMatch?.[1]) names.add(String(nameMatch[1]).trim());
+    });
+    if (!count) return { hasWechat: false, count: 0, ids: [], names: [], hint: '' };
+    const idList = [...ids];
+    const nameList = [...names];
+    return {
+      hasWechat: true,
+      count,
+      ids: idList,
+      names: nameList,
+      hint: [
+        `近期微信对话：对话链中已有 ${count} 段【微信对话】原文（持久上下文，不依赖缓存命中）。`,
+        nameList.length ? `涉及联系人：${nameList.join('、')}` : '',
+        '资料请求规则：对这些联系人的同一段微信原文，禁止再请求 记忆查询 / 现实历史·世界线 / wechat.query.getThread；上下文已覆盖。仅当需要更早、其它人或未写入对话链的信息时才请求。',
+        '若对话链中还有【人物行为】短推演，亦直接承接，勿重复查询同一时段人事安排。',
+      ].filter(Boolean).join('\n'),
+    };
+  },
+
+  shouldSkipMaterialDueToWechatContext(store, request = {}, mode = 'real') {
+    const summary = this.summarizeWechatInAgentContext(store, mode);
+    if (!summary.hasWechat) return false;
+    const skill = String(request.skill || '').trim();
+    const method = String(request.method || '').trim();
+    const params = request.params && typeof request.params === 'object' ? request.params : {};
+    const needle = [
+      params.contactId,
+      params.characterId,
+      params.characterName,
+      params.name,
+      params.keyword,
+      params.question,
+    ].map((x) => String(x || '').trim()).filter(Boolean);
+    const touchesKnown = !needle.length || needle.some((value) => (
+      summary.ids.includes(value)
+      || summary.names.some((name) => value.includes(name) || name.includes(value))
+    ));
+    if (!touchesKnown) return false;
+    if (skill === 'wechat.query' && (method === 'getThread' || !method)) return true;
+    if (skill === 'memory.query') return true;
+    if (skill === 'realworld.history.query') return true;
+    if (skill === 'past.event.query' && /微信|聊天|对话|消息/u.test(String(params.question || params.keyword || ''))) return true;
+    return false;
+  },
+
   createDeepSeekKvCacheSession(store, config = this.realConfig()) {
     const providerId = window.GameModules.aiProvider?.currentProviderId?.();
     const mode = config.mode || 'real';

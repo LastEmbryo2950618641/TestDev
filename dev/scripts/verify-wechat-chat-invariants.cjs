@@ -142,10 +142,16 @@ for (const marker of [
   "wechatTimeDisplay: 'wechatTimeDisplay'",
   "wechatContactProfileText: 'wechatContactProfileText'",
   "validateWechatReply: 'validateWechatReply'",
+  "normalizeWechatBodyStatusUpdates: 'normalizeWechatBodyStatusUpdates'",
   "fallbackWechatReply: 'fallbackWechatReply'",
   "sendWechatMessage: 'sendWechatMessage'",
   "replyWechatContact: 'replyWechatContact'",
   "generateWechatReply: 'generateWechatReply'",
+  "applyWechatBodyStatusUpdates: 'applyWechatBodyStatusUpdates'",
+  "fallbackWechatBehavior: 'fallbackWechatBehavior'",
+  "wechatBehaviorShortPrompt: 'wechatBehaviorShortPrompt'",
+  "validateWechatBehaviorShort: 'validateWechatBehaviorShort'",
+  "runWechatBehaviorShortInference: 'runWechatBehaviorShortInference'",
 ]) {
   assertIncludes(source, marker, `${sourcePath} declarative chat facade should expose ${marker}`);
 }
@@ -153,6 +159,7 @@ for (const marker of [
 for (const marker of [
   'wechatContactProfileText(contact, playerText = \'\')',
   'validateWechatReply(raw, contact)',
+  'normalizeWechatBodyStatusUpdates(raw = [])',
   'fallbackWechatReply(contact, text)',
 ]) {
   assertNotIncludes(source, `\n  ${marker}`, `${sourcePath} should not own reply helper implementation`);
@@ -163,6 +170,8 @@ for (const marker of [
   'async sendWechatMessage()',
   'async replyWechatContact(contact, playerText)',
   'async generateWechatReply(contact, playerText)',
+  'async applyWechatBodyStatusUpdates(state, updates = [])',
+  'async runWechatBehaviorShortInference(contact, playerText, replyText, state, meta = {})',
 ]) {
   assertNotIncludes(source, `\n  ${marker}`, `${sourcePath} should not own chat orchestration implementation`);
   assertIncludes(orchestration, `\n  ${marker}`, `${orchestrationPath} should own chat orchestration implementation`);
@@ -424,6 +433,7 @@ assertOrder(replyBlock, [
   'result.characterCardChanges = await window.GameModules.characterCardLexicon?.applyToState?.',
   'await this.applyMetricUpdatesToState?.(state, result.metricUpdates);',
   'await this.applyInventoryUpdatesToState?.(state, result.lexiconUpdates || []);',
+  'result.bodyStatusUpdates = await this.applyWechatBodyStatusUpdates?.',
   'this.advancePhoneTime?.(result.elapsedSeconds || 60);',
   'this.appendWechatMessage(characterId',
   'if (result.imageIntent?.offer) await this.appendWechatPendingImageMessage',
@@ -432,6 +442,9 @@ assertOrder(replyBlock, [
   'await this.recordWechatWorldline',
   'this.debugWechatMemory?.',
   'window.GameModules.wechatOutreachContext?.closeOutreach?.',
+  'window.GameModules.realWorldAgentLoop?.appendWechatDialogueContext?.',
+  'await window.GameModules.realWorldAgentLoop?.mirrorExternalContextToRealWorldLog?.',
+  'await this.runWechatBehaviorShortInference?.',
   'await this.save?.();',
 ], 'replyWechatContact success order');
 
@@ -448,6 +461,9 @@ assertOrder(replyBlock, [
   'window.GameModules.factionArchive?.recordWechat?.',
   'await this.recordWechatWorldline',
   'window.GameModules.wechatOutreachContext?.closeOutreach?.',
+  'window.GameModules.realWorldAgentLoop?.appendWechatDialogueContext?.',
+  'await window.GameModules.realWorldAgentLoop?.mirrorExternalContextToRealWorldLog?.',
+  'await this.runWechatBehaviorShortInference?.',
   'await this.save?.();',
   '} finally {',
   'if (reqId === this.wechatReplyRequestId) this.wechatSending = false;',

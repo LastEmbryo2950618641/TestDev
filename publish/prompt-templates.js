@@ -65,6 +65,7 @@ window.GameModules.promptTemplates = {
     { id: 'character-profile-metric-group', title: '角色卡初始数值组生成', category: '角色生成', file: 'prompts/character-profile-metric-group.md', summary: '按 JSON Schema 拆分生成初始情绪或对玩家感觉数值数组。' },
     { id: 'wechat-relation-profile', title: '微信关系联系人资料生成上下文', category: '微信', file: 'prompts/wechat-relation-profile.md', summary: '从玩家关系与联系人上下文生成微信联系人资料。' },
     { id: 'wechat-chat-reply', title: '微信联系人对话回复', category: '微信', file: 'prompts/wechat-chat-reply.md', summary: '根据联系人角色卡、玩家资料和微信历史模拟联系人口吻回复。' },
+    { id: 'wechat-behavior-short', title: '微信往来后人物行为短推演', category: '微信', file: 'prompts/wechat-behavior-short.md', summary: '微信回复后，短推演联系人当场在现实中的行为与处境。' },
     { id: 'wechat-image-prompt-collect', title: '微信图片提示词收集', category: '微信', file: 'prompts/wechat/wechat-image-prompt-collect.md', summary: '根据联系人记忆和当前穿戴收集图片编辑动态标签。' },
     { id: 'wechat-album-photo', title: '微信相册图片生成模板', category: '图片生成', file: 'prompts/picture_generate/wechat-album-photo.md', summary: '使用标签变量生成微信联系人全身正面照。' },
     { id: 'draw-tag-prompt', title: '二次元绘画标签提示词生成', category: '图片生成', file: 'prompts/picture_generate/draw-tag-prompt.md', summary: '根据角色身份与部位标签生成正向/负面绘图提示词。' },

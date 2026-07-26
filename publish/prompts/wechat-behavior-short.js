@@ -1,0 +1,5 @@
+// GENERATED FROM publish/prompts/wechat-behavior-short.md; DO NOT EDIT.
+window.GameModules = window.GameModules || {};
+window.GameModules.promptTemplates = window.GameModules.promptTemplates || {};
+window.GameModules.promptTemplates.inline = window.GameModules.promptTemplates.inline || {};
+window.GameModules.promptTemplates.inline["wechat-behavior-short"] = "# 微信往来后人物行为短推演\n\n你只做一次极短的场外人物行为推演：在刚才微信往来之后，该联系人此刻在现实中在做什么。\n不要写玩家行动，不要推进主线剧情，不要写长篇小说。\n\n## 输入\n\n- 联系人：{{contactName}}（id:{{contactId}}）\n- 手机时间：{{phoneTime}}\n- 联系人资料摘要：{{contactSummary}}\n- 当前人事安排摘要：{{scheduleSummary}}\n- 玩家刚发：{{playerText}}\n- 联系人刚回：{{replyText}}\n\n## 输出\n\n只返回一个合法 JSON 对象，字段：\n\n| 字段 | 类型 | 必填 | 说明 |\n| --- | --- | --- | --- |\n| narration | string | 是 | 80-180 汉字，第二人称以外的第三人称短叙述：对方放下手机后/边聊边做的当下行为与处境。 |\n| currentLocation | string | 否 | 当前地点短句；无把握可省略。 |\n| currentAction | string | 否 | 正在做的具体短句；无把握可省略。 |\n| availability | string | 否 | 只能是 在场/场外/暂不可用/未知 之一。 |\n\n规则：\n1. 行为必须承接刚才微信内容与对方性格/处境，禁止无因果跳戏。\n2. 不要复述整段微信原文；可点到关系或事由。\n3. 不要输出 Markdown、代码块或解释。\n";

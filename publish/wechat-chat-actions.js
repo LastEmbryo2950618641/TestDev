@@ -27,6 +27,7 @@ const wechatChatFacadeGroups = [
     methods: {
       wechatContactProfileText: 'wechatContactProfileText',
       validateWechatReply: 'validateWechatReply',
+      normalizeWechatBodyStatusUpdates: 'normalizeWechatBodyStatusUpdates',
       fallbackWechatReply: 'fallbackWechatReply',
     },
   },
@@ -36,6 +37,11 @@ const wechatChatFacadeGroups = [
       sendWechatMessage: 'sendWechatMessage',
       replyWechatContact: 'replyWechatContact',
       generateWechatReply: 'generateWechatReply',
+      applyWechatBodyStatusUpdates: 'applyWechatBodyStatusUpdates',
+      fallbackWechatBehavior: 'fallbackWechatBehavior',
+      wechatBehaviorShortPrompt: 'wechatBehaviorShortPrompt',
+      validateWechatBehaviorShort: 'validateWechatBehaviorShort',
+      runWechatBehaviorShortInference: 'runWechatBehaviorShortInference',
     },
   },
 ];

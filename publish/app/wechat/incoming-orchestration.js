@@ -58,6 +58,24 @@ window.GameModules.app.wechat.incomingOrchestration = {
       this.wechatUsers = this.wechatUsers.map((c) => (c.id === contact.id ? { ...c, outreachOpen } : c));
     }
     if (state?.id) await window.GameModules.characterMemory?.recordWechatExchange?.(this, { ...contact, id: state.id, characterId: state.id }, '未回复', text, { mood: '思念主动联系', impression: 40 });
+    await this.recordWechatWorldline?.({ ...contact, id: state?.id || contact.characterId || contact.id, characterId: state?.id || contact.characterId || contact.id }, '', text);
+    const timeLabel = time?.label || `${this.phoneDateText?.() || ''} ${this.phoneTimeText?.() || ''}`.trim();
+    const contactName = state?.profile?.name || contact.name;
+    const contactId = state?.id || contact.characterId || contact.id;
+    const wechatMsg = window.GameModules.realWorldAgentLoop?.appendWechatDialogueContext?.(this, {
+      contactName,
+      contactId,
+      replyText: text,
+      timeLabel,
+      kind: 'incoming',
+    });
+    await window.GameModules.realWorldAgentLoop?.mirrorExternalContextToRealWorldLog?.(this, {
+      content: wechatMsg?.content || '',
+      kind: 'wechat',
+      contactName,
+      contactId,
+      timeLabel,
+    });
   },
 
   findWechatIncomingContact(value = '') {

@@ -485,6 +485,25 @@ window.GameModules.socialInbox = {
       if (Array.isArray(store.wechatUsers)) {
         store.wechatUsers = store.wechatUsers.map((c) => (c.id === contact.id ? nextContact : c));
       }
+      store.recordWechatWorldline?.({
+        ...contact,
+        id: contact.characterId || contact.id,
+        characterId: contact.characterId || contact.id,
+      }, '', text);
+      const wechatMsg = window.GameModules.realWorldAgentLoop?.appendWechatDialogueContext?.(store, {
+        contactName: item.actorName || contact.name,
+        contactId: contact.characterId || contact.id,
+        replyText: text,
+        timeLabel: nowIso,
+        kind: 'incoming',
+      });
+      window.GameModules.realWorldAgentLoop?.mirrorExternalContextToRealWorldLog?.(store, {
+        content: wechatMsg?.content || '',
+        kind: 'wechat',
+        contactName: item.actorName || contact.name,
+        contactId: contact.characterId || contact.id,
+        timeLabel: nowIso,
+      });
       item.deliveredAt = nowIso;
       item.deliveryText = text;
       item.sourceRecordId = sourceRecordId;

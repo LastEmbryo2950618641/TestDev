@@ -84,6 +84,13 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
       const method = String(req?.method || '').trim();
       const params = req?.params && typeof req.params === 'object' ? req.params : {};
       if (!skill || !method) continue;
+      if (window.GameModules.realWorldAgentLoop?.shouldSkipMaterialDueToWechatContext?.(store, { skill, method, params }, options.mode || 'real')) {
+        const title = `skipped:${skill}.${method}`;
+        const text = '已跳过：对应微信原文已在持久推演对话链中，无需再查记忆/世界线/微信会话。';
+        materials?.record?.(materialSession, { skill, method, params, skipped: 'wechat-context' }, title, text);
+        out.push({ title, text, max: 220 });
+        continue;
+      }
       if (materials?.isStage1Eligible && !materials.isStage1Eligible({ skill, method }, step)) {
         const policy = materials.stage1PolicyFor?.({ skill, method }) || 'deny';
         materials.recordStage1Block?.(materialSession, store, { skill, method, params }, policy, step);

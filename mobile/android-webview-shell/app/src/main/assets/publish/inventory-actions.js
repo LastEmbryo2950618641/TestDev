@@ -126,11 +126,14 @@ window.GameModules.inventoryActions = {
   },
 
   writeWearingItem(values, item, ownerId = '') {
-    const target = this.ensureWearSlot(values, item.slot || item.equipSlots?.[0] || 'equipment', false, ownerId);
+    const progression = window.GameModules.progression;
+    const rawSlot = item?.slot || item?.equipSlots?.[0] || 'equipment';
+    const slot = progression?.canonicalWearSlot?.({ ...(item || {}), slot: rawSlot }) || rawSlot;
+    const target = this.ensureWearSlot(values, slot, false, ownerId);
     const finalOwnerId = item.ownerId || item.characterId || ownerId;
     const worn = {
       ...item,
-      id: item.id || (finalOwnerId ? window.GameModules.progression.itemId?.(finalOwnerId, 'wearing', target, item.name || 'empty-slot') : ''),
+      id: item.id || (finalOwnerId ? progression?.itemId?.(finalOwnerId, 'wearing', target, item.name || 'empty-slot') : ''),
       ownerId: finalOwnerId,
       characterId: finalOwnerId,
       slot: target,
@@ -158,8 +161,8 @@ window.GameModules.inventoryActions = {
       const kind = raw?.kind;
       const value = raw?.value && typeof raw.value === 'object' ? raw.value : {};
       const item = window.GameModules.progression.normalizeCarryItem({ ...value, name: raw?.name || value.name, slot: raw?.slot || value.slot, description: raw?.description || raw?.summary || value.description, changeMode: raw?.reason || raw?.changeMode || 'AI merge' }, kind, state.id || '');
-      if (kind === 'item' || kind === 'equipment' || kind === '鐗╁搧' || kind === '瑁呭') upsert(values.items, item);
-      if (kind === 'wearing' || kind === '绌跨潃') {
+      if (kind === 'item' || kind === 'equipment' || kind === '物品' || kind === '装备') upsert(values.items, item);
+      if (kind === 'wearing' || kind === '穿着') {
         this.writeWearingItem(values, item, state.id || '');
         changed = true;
       }
