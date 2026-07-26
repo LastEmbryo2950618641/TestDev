@@ -471,9 +471,11 @@ assertOrder(promptBlock, [
   'const archive = await this.searchMemoryArchive?.(characterId, playerText)',
   'const memoryContext = this.wechatMemoryContext?.(characterId, playerText)',
   'const historyContext = await this.wechatHistoryContextForReply?.',
+  'const outreach = window.GameModules.wechatOutreachContext',
   "return window.GameModules.renderPrompt('wechat-chat-reply', {",
   'this.wechatContactProfileText(contact, playerText)',
   'sections.stateSnapshot(this, state)',
+  '外联上下文: outreachBlock',
   'this.wechatMentionContextText?.(playerText, characterId)',
   'this.wechatPastEventContext(contact, playerText, state)',
 ], 'wechatReplyPrompt effective prompt order');

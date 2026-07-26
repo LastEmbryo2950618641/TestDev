@@ -293,6 +293,7 @@
   "real-world-longing-actions.js",
   "social-event-boundary.js",
   "social-inbox.js",
+  "wechat-outreach-context.js",
   "wechat-friend-request.js",
   "character-roster-actions.js",
   "real-world-agent-history.js",

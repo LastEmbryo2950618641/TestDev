@@ -139,6 +139,7 @@ window.GameModules.realWorldActions = {
       const debtCount = propertySettlement.debts?.length || 0;
       settlement.push(`房产合同：已结算${settledCount}条，欠款/催债${debtCount}条。`);
     }
+    this.realWorldSettlementLogId = id || '';
     await this.applyWechatActions?.(result.wechatActions || []);
     const longingEvents = await this.settleRealWorldLongingMeters?.(elapsedSeconds, new Date(startedAt).getTime(), this.phoneDate().getTime()) || [];
     if (longingEvents.length) settlement.push(`角色思念：${longingEvents.length}次思念事件等待下次现实推演体现。`);
@@ -146,6 +147,7 @@ window.GameModules.realWorldActions = {
     const socialInboxItems = this.settleSocialInbox?.(elapsedSeconds, new Date(startedAt).getTime(), this.phoneDate().getTime()) || [];
     if (socialInboxItems.length) settlement.push(`社交主动：${socialInboxItems.length}条待处理（等待下次现实推演注入）。`);
     const inboxClear = await this.clearPreparedSocialInbox?.() || {};
+    this.realWorldSettlementLogId = '';
     const promotedRequests = Array.isArray(inboxClear) ? inboxClear : (inboxClear.friendRequests || []);
     const wechatDeliveries = Array.isArray(inboxClear) ? [] : (inboxClear.wechatDeliveries || []);
     const writebacks = Array.isArray(inboxClear) ? [] : (inboxClear.writebacks || []);

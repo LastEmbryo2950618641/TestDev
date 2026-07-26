@@ -327,23 +327,29 @@ window.GameModules.socialInbox = {
     return new Date(base + ms).toISOString();
   },
 
-  nextAgendaAfterOutreach(agenda = {}, item = {}) {
+  nextAgendaAfterOutreach(agenda = {}, item = {}, options = {}) {
     const src = agenda && typeof agenda === 'object' ? agenda : {};
     const urgency = Math.max(0, Math.min(1, Number(src.urgency ?? item.urgency) || 0));
     const short = String(src.short || item.want || '').trim();
+    const keepNeedPlayer = !!options.keepNeedPlayer;
+    const needPlayerWhy = keepNeedPlayer
+      ? String(src.needPlayerWhy || item.needPlayerWhy || '').trim().slice(0, 120)
+      : '';
     return window.GameModules.characterSocialDrive?.normalizeAgenda?.({
-      short: short ? `${short.replace(/（已主动联系）$/u, '')}（已主动联系）`.slice(0, 160) : '已主动联系主角',
+      short: keepNeedPlayer
+        ? (short || '待与主角微信对接').slice(0, 160)
+        : (short ? `${short.replace(/（已主动联系）$/u, '')}（已主动联系）`.slice(0, 160) : '已主动联系主角'),
       deadline: src.deadline || '',
-      needPlayer: false,
-      needPlayerWhy: '',
-      urgency: Math.min(urgency, 0.25),
+      needPlayer: keepNeedPlayer,
+      needPlayerWhy,
+      urgency: keepNeedPlayer ? Math.max(urgency, 0.35) : Math.min(urgency, 0.25),
       cooldownUntil: '',
     }) || {
-      short: short || '已主动联系主角',
+      short: short || (keepNeedPlayer ? '待与主角微信对接' : '已主动联系主角'),
       deadline: '',
-      needPlayer: false,
-      needPlayerWhy: '',
-      urgency: Math.min(urgency, 0.25),
+      needPlayer: keepNeedPlayer,
+      needPlayerWhy,
+      urgency: keepNeedPlayer ? Math.max(urgency, 0.35) : Math.min(urgency, 0.25),
       cooldownUntil: '',
     };
   },
@@ -354,8 +360,8 @@ window.GameModules.socialInbox = {
   async applyOutreachWriteback(store = {}, item = {}, options = {}) {
     const channel = String(options.channel || item.channel || 'call');
     const when = String(options.atIso || (store.phoneDate?.() || new Date()).toISOString?.() || new Date().toISOString());
-    const cooldownHours = Number(options.cooldownHours) || this.COOLDOWN_HOURS;
-    const cooldownUntil = this.cooldownUntilIso(when, cooldownHours);
+    const cooldownHours = options.cooldownHours === 0 ? 0 : (Number(options.cooldownHours) || this.COOLDOWN_HOURS);
+    const cooldownUntil = cooldownHours > 0 ? this.cooldownUntilIso(when, cooldownHours) : '';
     const id = String(item.actorId || item.fromCharacterId || '').trim();
     const name = String(item.actorName || item.fromName || '').trim();
     const agendaPatch = this.nextAgendaAfterOutreach(item.agenda || {
@@ -363,7 +369,7 @@ window.GameModules.socialInbox = {
       needPlayer: true,
       needPlayerWhy: item.needPlayerWhy,
       urgency: item.urgency,
-    }, item);
+    }, item, options);
     agendaPatch.cooldownUntil = cooldownUntil;
 
     const result = { actorId: id, actorName: name, channel, at: when, cooldownUntil, targets: [] };
@@ -434,6 +440,7 @@ window.GameModules.socialInbox = {
   },
 
   deliverWechatItems(store = {}, items = []) {
+    const outreach = window.GameModules.wechatOutreachContext;
     const list = (Array.isArray(items) ? items : []).filter((item) => (
       item && item.channel === 'wechat' && item.hasWechatContact && !item.deliveredAt
     ));
@@ -449,15 +456,37 @@ window.GameModules.socialInbox = {
       if (!contact) return;
       const text = this.buildDeliveryText(item);
       const key = store.wechatMessageKey?.(contact) || contact.id;
-      store.appendWechatMessage?.(key, {
+      const intentChain = outreach?.normalizeIntentChain?.(item.intentChain)
+        || outreach?.intentChainFromInboxItem?.(item);
+      const sourceRecordId = outreach?.resolveSourceRecordId?.(store, item.sourceRecordId) || '';
+      const meta = {
         side: 'other',
         name: item.actorName || contact.name,
         mark: String(item.actorName || contact.name || '?').slice(0, 1),
         text,
         characterId: contact.characterId || contact.id,
-      });
+        sourceRecordId,
+        intentChain,
+        openedAt: nowIso,
+        outreachSource: 'social-inbox',
+      };
+      store.appendWechatMessage?.(key, meta);
+      const nextContact = {
+        ...contact,
+        outreachOpen: {
+          sourceRecordId,
+          intentChain,
+          openedAt: nowIso,
+          source: 'incoming',
+        },
+      };
+      if (Array.isArray(store.wechatUsers)) {
+        store.wechatUsers = store.wechatUsers.map((c) => (c.id === contact.id ? nextContact : c));
+      }
       item.deliveredAt = nowIso;
       item.deliveryText = text;
+      item.sourceRecordId = sourceRecordId;
+      item.intentChain = intentChain;
       delivered.push({ ...item, contactId: contact.id, text });
     });
     return delivered;
@@ -525,9 +554,12 @@ window.GameModules.realWorldSocialInboxActions = {
       const channel = item.channel === 'wechat' && item.hasWechatContact
         ? 'wechat'
         : (item.channel === 'scene' ? 'scene' : 'call');
+      const keepNeedPlayer = channel === 'wechat' && item.hasWechatContact;
       return window.GameModules.socialInbox?.applyOutreachWriteback?.(this, item, {
         channel,
         atIso: item.deliveredAt || nowIso,
+        keepNeedPlayer,
+        cooldownHours: keepNeedPlayer ? 0 : undefined,
       });
     }))).filter(Boolean);
     this.socialInbox = (this.socialInbox || []).map((item) => (

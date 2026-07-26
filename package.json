@@ -37,6 +37,7 @@
     "verify:social-event-boundary": "node tests/social-event-boundary.test.js",
     "verify:character-roster": "node tests/character-roster.test.js",
     "verify:wechat-friend-request": "node tests/wechat-friend-request.test.js",
+    "verify:wechat-outreach-context": "node tests/wechat-outreach-context.test.js",
     "verify:character-state-consumer-boundaries": "node tests/character-state-consumer-boundaries.test.js",
     "verify:character-state-store-boundaries": "node tests/character-state-store-boundaries.test.js",
     "verify:character-profile-metric-sources": "node tests/character-profile-metric-sources.test.js",

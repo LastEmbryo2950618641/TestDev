@@ -25,6 +25,7 @@ const context = vm.createContext({
 
 load('publish/character-social-drive.js', context);
 load('publish/character-intro-card.js', context);
+load('publish/wechat-outreach-context.js', context);
 load('publish/social-inbox.js', context);
 load('publish/wechat-friend-request.js', context);
 
@@ -163,9 +164,9 @@ async function run() {
   const drive = store.rpgStates['npc-a'].profile.socialDrive;
   assert.ok(drive.lastContactAt);
   assert.strictEqual(drive.lastContactChannel, 'wechat');
-  assert.strictEqual(drive.agenda.needPlayer, false);
-  assert.ok(Number(drive.agenda.urgency) < 0.7);
-  assert.ok(drive.agenda.cooldownUntil);
+  assert.strictEqual(drive.agenda.needPlayer, true, 'wechat delivery keeps needPlayer until chat resolves');
+  assert.ok(Number(drive.agenda.urgency) >= 0.35);
+  assert.ok(!drive.agenda.cooldownUntil, 'wechat delivery defers cooldown');
 
   const introSaved = savedIntros.find((c) => c.name === '钱进') || savedIntros[savedIntros.length - 1];
   assert.ok(introSaved, 'intro card should be saved');

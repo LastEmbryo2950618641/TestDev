@@ -782,7 +782,7 @@ window.GameModules.realWorldAgentLoop = {
         '- 玩家行动明确目标不得写入禁止出场，除非已加载资料明确显示其场外、不可到达或被规则禁止进入当前场景。',
         '角色唯一标识与介绍卡：',
         '- participants 每一项必须是角色名(ID)；已知用真实ID，首次无真实ID写某某(待建卡)。',
-        '- Stage1整段结束后系统一次性批量分配 rel-ai-* 空壳ID并生成介绍卡；不是完整角色卡，完整卡仅玩家手动升格。',
+        '- Stage1整段结束后系统一次性批量分配 rel-ai-* 共享ID：先写同ID介绍卡再写空壳；不是完整角色卡，完整卡仅玩家手动升格（同一ID）。',
         '- 姓名必须可区分：禁止无名纯「路人」；可用「路人甲」「川大女学生」等。一类人/团体原型按群体意识理解。',
         '- 角色查询可命中完整角色卡或介绍卡；不得因查到资料就强制写入出场。',
       ].filter(Boolean).join('\n');
@@ -814,7 +814,7 @@ window.GameModules.realWorldAgentLoop = {
         this.stage1IterationRule(store),
         '- participants.forced / priority / drama / forbidden 都必须是字符串数组；没有则 []。',
         '- 【强制】participants 每一项必须是角色名(ID)。已知用真实ID（角色卡/介绍卡均可），如刘思琪(rel-ai-247528)、刘悠(player-self)；首次无真实ID写某某(待建卡)。禁止裸姓名。',
-        '- Stage1整段结束后系统一次性批量：分配 rel-ai-* 空壳ID并同步生成介绍卡（不是完整角色卡；完整卡仅玩家手动升格）。禁止Stage1多轮逐个申请建卡或编造完整角色卡。',
+        '- Stage1整段结束后系统一次性批量：分配 rel-ai-* 共享ID，先写同ID介绍卡再写空壳（不是完整角色卡；完整卡仅玩家手动升格且仍用同一ID）。禁止Stage1多轮逐个申请建卡或编造完整角色卡。',
         '- 姓名必须可区分：禁止无名纯「路人」；可用「路人甲」「川大女学生」等标签。一类人/团体原型按群体意识与团队行动理解（presenceKind=group）。',
         '- randomEvents 必须是字符串数组；randomIntrusionCondition 没有明确条件时写“无明确条件则禁止闯入”。',
         '- 资料请求只能使用中文结构，不得输出英文 skill/method；不得在 Stage1 请求地点图新增、地点图补全或 ensure。',

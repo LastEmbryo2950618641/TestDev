@@ -24,6 +24,7 @@ const context = vm.createContext({
 });
 
 load('publish/character-social-drive.js', context);
+load('publish/wechat-outreach-context.js', context);
 load('publish/social-inbox.js', context);
 load('publish/wechat-friend-request.js', context);
 

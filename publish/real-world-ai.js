@@ -59,6 +59,7 @@ window.GameModules.realWorldAi = {
         solidifiableCharacters: this.normalizeRealSolidifiableCharacters(data.solidifiableCharacters, data.appearedCharacters, store),
         itemActions: Array.isArray(data.itemActions) ? data.itemActions.slice(0, 8) : [],
         wechatActions: this.normalizeWechatActions(data.wechatActions),
+        events: this.normalizeSettlementEvents(data.events),
         lexiconUpdates: window.GameModules.ai.normalizeLexiconUpdates?.(data.lexiconUpdates, store) || [],
         genericUpdates: data.genericUpdates || [],
         profilePatches: Array.isArray(data.profilePatches) ? data.profilePatches.slice(0, 4) : [],
@@ -184,9 +185,34 @@ window.GameModules.realWorldAi = {
     return [...new Set(list.map((x) => String(x || '').trim().slice(0, 14)).filter(Boolean).concat(['观察手机异常', '处理现实事务', '联系熟人', '暂时休息']))].slice(0, 4);
   },
 
+  normalizeSettlementEvents(value) {
+    const list = Array.isArray(value) ? value : [];
+    const eventSystem = window.GameModules.eventSystem;
+    return list.slice(0, 12).map((raw) => {
+      if (!raw || typeof raw !== 'object') return null;
+      const type = eventSystem?.normalizeType?.(raw.type || raw.eventType || raw['事件类型']) || String(raw.type || '').trim();
+      if (eventSystem?.isWritableType && !eventSystem.isWritableType(type)) return null;
+      return {
+        ...raw,
+        type,
+        title: String(raw.title || raw.name || raw['标题'] || '').trim().slice(0, 40),
+        content: String(raw.content || raw.detail || raw['内容'] || '').trim().slice(0, 400),
+        startDate: String(raw.startDate || raw.start || '').trim().slice(0, 16),
+        endDate: String(raw.endDate || raw.end || '').trim().slice(0, 16),
+        location: String(raw.location || '').trim().slice(0, 40),
+        people: Array.isArray(raw.people) ? raw.people.slice(0, 8) : [],
+        tags: Array.isArray(raw.tags) ? raw.tags.slice(0, 8) : [],
+      };
+    }).filter(Boolean);
+  },
+
   normalizeWechatActions(value) {
+    const outreach = window.GameModules.wechatOutreachContext;
     return (Array.isArray(value) ? value : []).map((item) => {
       const action = String(item?.action || item?.method || '').trim();
+      const intentChain = outreach?.normalizeIntentChain?.(item.intentChain || item.意图链 || item)
+        || outreach?.intentChainFromReason?.(item.reason || item.text || item.message || '');
+      const sourceRecordId = String(item.sourceRecordId || item.recordId || item.logId || '').trim().slice(0, 120);
       if (action === 'requestWechatFriend' || action === 'requestFriend') {
         const fromName = String(item.name || item.fromName || item.contactId || item.characterId || '').trim().slice(0, 24);
         if (!fromName) return null;
@@ -197,16 +223,26 @@ window.GameModules.realWorldAi = {
           characterId: String(item.characterId || item.fromCharacterId || item.contactId || '').trim().slice(0, 80),
           contactId: String(item.contactId || item.characterId || '').trim().slice(0, 40),
           relation: String(item.relation || item.relationToPlayer || '').trim().slice(0, 40),
-          reason: String(item.reason || item.text || item.message || '希望添加你为微信好友').trim().slice(0, 160),
+          reason: String(item.reason || item.text || item.message || intentChain?.whyPlayer || '希望添加你为微信好友').trim().slice(0, 160),
           source: String(item.source || 'narration').slice(0, 32),
           inboxId: String(item.inboxId || '').slice(0, 80),
+          sourceRecordId,
+          intentChain,
         };
       }
       if (!['sendIncomingNow', 'sendIncomingPast'].includes(action)) return null;
       const contactId = String(item.contactId || item.characterId || item.target || item.name || '').trim().slice(0, 40);
       const text = String(item.text || item.message || '').trim().slice(0, 180);
       if (!contactId || !text) return null;
-      return { action, contactId, text, timeIso: String(item.timeIso || item.time || '').trim(), reason: String(item.reason || '').slice(0, 120) };
+      return {
+        action,
+        contactId,
+        text,
+        timeIso: String(item.timeIso || item.time || '').trim(),
+        reason: String(item.reason || intentChain?.whyPlayer || '').slice(0, 120),
+        sourceRecordId,
+        intentChain,
+      };
     }).filter(Boolean).slice(0, 8);
   },
 

@@ -9,6 +9,8 @@ window.GameModules.app.wechat.incomingOrchestration = {
   },
 
   async applyWechatIncomingAction(action = {}) {
+    const outreach = window.GameModules.wechatOutreachContext;
+    if (outreach?.shouldSkipAiIncoming?.(this, action)) return;
     const type = String(action.action || action.method || '').trim();
     if (type === 'requestWechatFriend' || type === 'requestFriend') {
       this.requestWechatFriend?.({
@@ -18,6 +20,8 @@ window.GameModules.app.wechat.incomingOrchestration = {
         reason: action.reason || action.text || action.message || '希望添加你为微信好友',
         source: action.source || 'narration',
         inboxId: action.inboxId || '',
+        sourceRecordId: action.sourceRecordId || outreach?.resolveSourceRecordId?.(this) || '',
+        intentChain: action.intentChain || outreach?.intentChainFromReason?.(action.reason || action.text || ''),
       });
       return;
     }
@@ -28,10 +32,28 @@ window.GameModules.app.wechat.incomingOrchestration = {
     const time = type === 'sendIncomingPast' ? this.wechatPastMessageTime(action.timeIso) : null;
     const text = String(action.text || '').trim().slice(0, 180);
     if (!text) return;
+    const sourceRecordId = outreach?.resolveSourceRecordId?.(this, action.sourceRecordId) || '';
+    const intentChain = outreach?.normalizeIntentChain?.(action.intentChain)
+      || outreach?.intentChainFromReason?.(action.reason || text);
+    const openedAt = type === 'sendIncomingPast' && action.timeIso
+      ? new Date(action.timeIso).toISOString()
+      : ((this.phoneDate?.() || new Date()).toISOString?.() || new Date().toISOString());
     this.appendWechatMessage(contact.id, {
-      side: 'other', name: state?.profile?.name || contact.name, mark: (state?.profile?.name || contact.name || '').slice(0, 1), text,
-      characterId: state?.id || contact.characterId || contact.id, time,
+      side: 'other',
+      name: state?.profile?.name || contact.name,
+      mark: (state?.profile?.name || contact.name || '').slice(0, 1),
+      text,
+      characterId: state?.id || contact.characterId || contact.id,
+      time,
+      sourceRecordId,
+      intentChain,
+      openedAt,
+      outreachSource: 'inference',
     });
+    const outreachOpen = { sourceRecordId, intentChain, openedAt, source: 'incoming' };
+    if (Array.isArray(this.wechatUsers)) {
+      this.wechatUsers = this.wechatUsers.map((c) => (c.id === contact.id ? { ...c, outreachOpen } : c));
+    }
     if (state?.id) await window.GameModules.characterMemory?.recordWechatExchange?.(this, { ...contact, id: state.id, characterId: state.id }, '未回复', text, { mood: '思念主动联系', impression: 40 });
   },
 

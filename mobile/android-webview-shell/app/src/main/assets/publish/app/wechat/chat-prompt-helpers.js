@@ -30,6 +30,11 @@ window.GameModules.app.wechat.chatPromptHelpers = {
     const archive = await this.searchMemoryArchive?.(characterId, playerText) || '无';
     const memoryContext = this.wechatMemoryContext?.(characterId, playerText) || this.memoryQueryContext?.(characterId, playerText) || '暂无人物记忆。';
     const historyContext = await this.wechatHistoryContextForReply?.(characterId, playerText, memoryContext) || this.wechatHistoryQueryHint?.(characterId) || '微信历史默认不载入；需要核对原文时再查询固定历史表。';
+    const outreach = window.GameModules.wechatOutreachContext;
+    const open = outreach?.findOpenOutreach?.(this, contact);
+    const outreachBlock = open
+      ? outreach.buildOutreachPromptBlock(this, open)
+      : '## 本线外联上下文\n无进行中的外联线程；按普通微信回复处理。';
     return window.GameModules.renderPrompt('wechat-chat-reply', {
       玩家基础资料区: player.playerBasic,
       玩家现实身份区: player.playerIdentity,
@@ -42,6 +47,7 @@ window.GameModules.app.wechat.chatPromptHelpers = {
       现实地点: this.realWorldLocationName || '未确认',
       现实状态: this.realWorldStatus || '现实稳定',
       目标状态快照: sections.stateSnapshot(this, state),
+      外联上下文: outreachBlock,
       微信历史: historyContext,
       提及上下文: this.wechatMentionContextText?.(playerText, characterId) || '无',
       记忆查询结果: [memoryContext, `## 记忆归档\n${archive}`].join('\n\n'),

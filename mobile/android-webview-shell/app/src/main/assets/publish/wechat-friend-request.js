@@ -12,14 +12,19 @@ window.GameModules.wechatFriendRequest = {
     const fromCharacterId = String(raw.fromCharacterId || raw.characterId || raw.actorId || '').trim().slice(0, 80);
     const status = ['pending', 'accepted', 'rejected', 'expired'].includes(raw.status) ? raw.status : 'pending';
     const now = new Date().toISOString();
+    const outreach = window.GameModules.wechatOutreachContext;
+    const intentChain = outreach?.normalizeIntentChain?.(raw.intentChain)
+      || outreach?.intentChainFromReason?.(raw.reason || raw.needPlayerWhy || raw.want || '');
     return {
       id: String(raw.id || `wfr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`).slice(0, 80),
       fromCharacterId,
       fromName,
       relation: String(raw.relation || raw.relationToPlayer || '').trim().slice(0, 40),
-      reason: String(raw.reason || raw.needPlayerWhy || raw.want || '').trim().slice(0, 160),
+      reason: String(raw.reason || raw.needPlayerWhy || raw.want || intentChain?.whyPlayer || '').trim().slice(0, 160),
       source: String(raw.source || 'narration').trim().slice(0, 32),
       inboxId: String(raw.inboxId || '').trim().slice(0, 80),
+      sourceRecordId: String(raw.sourceRecordId || raw.recordId || raw.logId || '').trim().slice(0, 120),
+      intentChain,
       status,
       createdAt: String(raw.createdAt || now),
       resolvedAt: String(raw.resolvedAt || ''),
@@ -66,7 +71,13 @@ window.GameModules.wechatFriendRequestActions = {
 
   requestWechatFriend(raw = {}) {
     const tool = window.GameModules.wechatFriendRequest;
-    const req = tool.normalize(raw);
+    const outreach = window.GameModules.wechatOutreachContext;
+    const withMeta = {
+      ...raw,
+      sourceRecordId: outreach?.resolveSourceRecordId?.(this, raw.sourceRecordId) || raw.sourceRecordId || '',
+      intentChain: raw.intentChain || outreach?.intentChainFromReason?.(raw.reason || raw.needPlayerWhy || raw.want || ''),
+    };
+    const req = tool.normalize(withMeta);
     if (!req) return null;
     if (tool.isAlreadyContact(this, req)) return null;
     if (tool.hasPending(this, req)) {
@@ -83,6 +94,11 @@ window.GameModules.wechatFriendRequestActions = {
     const id = String(requestId || '').trim();
     const req = (this.wechatFriendRequests || []).find((item) => item.id === id);
     if (!req || req.status !== 'pending') return null;
+    const outreach = window.GameModules.wechatOutreachContext;
+    const intentChain = outreach?.normalizeIntentChain?.(req.intentChain)
+      || outreach?.intentChainFromReason?.(req.reason);
+    const sourceRecordId = String(req.sourceRecordId || '').trim();
+    const openedAt = String(req.createdAt || new Date().toISOString());
     const contact = await this.addWechatUser?.({
       id: req.fromCharacterId || undefined,
       characterId: req.fromCharacterId || undefined,
@@ -90,36 +106,68 @@ window.GameModules.wechatFriendRequestActions = {
       relation: req.relation || '微信联系人',
       source: 'friend-request',
       context: req.reason,
+      outreachOpen: {
+        sourceRecordId,
+        intentChain,
+        openedAt,
+        source: 'friend-accept',
+      },
     }, { generateProfile: false, save: false });
+    if (contact) {
+      contact.outreachOpen = {
+        sourceRecordId,
+        intentChain,
+        openedAt,
+        source: 'friend-accept',
+      };
+      if (Array.isArray(this.wechatUsers)) {
+        this.wechatUsers = this.wechatUsers.map((c) => (c.id === contact.id ? { ...c, outreachOpen: contact.outreachOpen } : c));
+      }
+    }
     const now = new Date().toISOString();
     this.wechatFriendRequests = (this.wechatFriendRequests || []).map((item) => (
-      item.id === id ? { ...item, status: 'accepted', resolvedAt: now } : item
+      item.id === id ? { ...item, status: 'accepted', resolvedAt: now, intentChain, sourceRecordId } : item
     ));
-    // 回写介绍卡/角色卡：wechat 链接、reach、lastContact、议程冷却
+    // 回写：保留 needPlayer，等微信把事谈完再冷却
     try {
       await window.GameModules.socialInbox?.applyOutreachWriteback?.(this, {
         actorId: req.fromCharacterId,
         actorName: req.fromName,
         want: req.reason,
         needPlayerWhy: req.reason,
-        urgency: 0.2,
+        urgency: 0.45,
         agenda: {
-          short: req.reason || '已通过微信好友申请',
-          needPlayer: false,
-          needPlayerWhy: '',
-          urgency: 0.15,
+          short: req.reason || '已通过微信好友申请，待微信对接',
+          needPlayer: true,
+          needPlayerWhy: req.reason || intentChain?.whyPlayer || '等待微信对接',
+          urgency: 0.45,
         },
       }, {
         channel: 'wechat',
         atIso: now,
         addWechatReach: true,
         wechatContactId: contact?.id || '',
-        cooldownHours: 6,
+        cooldownHours: 0,
+        keepNeedPlayer: true,
       });
     } catch (err) {
       console.warn('[微信申请] 回写人物状态失败:', err?.message || err);
     }
     await this.save?.();
+    const playerText = outreach?.ACCEPT_PLAYER_TEXT || '我通过了你的好友申请';
+    if (contact && typeof this.replyWechatContact === 'function') {
+      try {
+        this.appendWechatMessage?.(contact.id, {
+          side: 'self',
+          name: this.playerDisplayCharacter?.().name || this.playerName || '我',
+          mark: '我',
+          text: playerText,
+        });
+        await this.replyWechatContact(contact, playerText);
+      } catch (err) {
+        console.warn('[微信申请] 通过后首回失败:', err?.message || err);
+      }
+    }
     return contact;
   },
 
@@ -138,19 +186,24 @@ window.GameModules.wechatFriendRequestActions = {
 
   /** 从已 prepared 的 Social Inbox 条目生成微信申请（无微信且 mayRequestWechat） */
   promoteSocialInboxWechatRequests(items = null) {
+    const outreach = window.GameModules.wechatOutreachContext;
     const list = Array.isArray(items)
       ? items
       : (this.socialInbox || []).filter((item) => item && (this.socialInboxPreparedIds || []).includes(item.id));
     const created = [];
     list.forEach((item) => {
       if (!item?.mayRequestWechat || item.hasWechatContact) return;
+      const intentChain = outreach?.normalizeIntentChain?.(item.intentChain)
+        || outreach?.intentChainFromInboxItem?.(item);
       const req = this.requestWechatFriend?.({
         fromCharacterId: item.actorId,
         fromName: item.actorName,
         relation: item.relationToPlayer,
-        reason: item.needPlayerWhy || item.want || '希望添加你为微信好友',
+        reason: item.needPlayerWhy || item.want || intentChain?.whyPlayer || '希望添加你为微信好友',
         source: 'social-inbox',
         inboxId: item.id,
+        sourceRecordId: outreach?.resolveSourceRecordId?.(this, item.sourceRecordId) || '',
+        intentChain,
       });
       if (req) created.push(req);
     });
