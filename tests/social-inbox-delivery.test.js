@@ -69,7 +69,7 @@ const store = {
   }],
   socialInboxPreparedIds: ['inbox-wx-1', 'inbox-call-1'],
   wechatFriendRequests: [],
-  wechatUsers: [{ id: 'wx-chen', characterId: 'npc-a', name: '陈默', group: false }],
+  wechatUsers: [{ id: 'npc-a', characterId: 'npc-a', name: '陈默', group: false }],
   wechatMessagesByContact: {},
   realWorldSettlementLogId: 'real-settle-ai',
   rpgStates: {

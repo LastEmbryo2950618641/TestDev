@@ -31,8 +31,11 @@ load('publish/wechat-friend-request.js', context);
 const fr = context.window.GameModules.wechatFriendRequest;
 assert.ok(fr, 'wechatFriendRequest module must exist');
 
+load('publish/character-id-ensure.js', context);
+load('publish/wechat-actions.js', context);
+
 const req = fr.normalize({
-  fromCharacterId: 'intro-b',
+  fromCharacterId: 'rel-ai-linxia',
   fromName: '林夏',
   reason: '电话里说想加微信方便约周末',
   source: 'social-inbox',
@@ -51,25 +54,11 @@ async function run() {
     socialInboxPreparedIds: [],
     realWorldSettlementLogId: 'real-test-ai',
     async save() {},
-    normalizeWechatContact(user = {}) {
-      const name = String(user.name || '').trim();
-      if (!name) return null;
-      const id = String(user.id || user.characterId || `wx-${name}`).slice(0, 40);
-      return {
-        id,
-        characterId: String(user.characterId || id),
-        name,
-        relation: String(user.relation || '微信联系人').slice(0, 40),
-        mark: name.slice(0, 1),
-        latest: '',
-        unread: 0,
-        source: user.source || 'friend-request',
-        group: false,
-        ...(user.outreachOpen ? { outreachOpen: user.outreachOpen } : {}),
-      };
-    },
+    normalizeWechatContact: context.window.GameModules.wechatActions.normalizeWechatContact,
+    isWechatContactCharacterId: context.window.GameModules.wechatActions.isWechatContactCharacterId,
     async addWechatUser(user = {}, options = {}) {
       const contact = this.normalizeWechatContact(user);
+      if (!contact) return null;
       this.wechatUsers = [...(this.wechatUsers || []), contact];
       this._lastAddOptions = options;
       return contact;
@@ -80,7 +69,7 @@ async function run() {
   Object.assign(store, context.window.GameModules.realWorldSocialInboxActions);
 
   const created = store.requestWechatFriend({
-    fromCharacterId: 'intro-b',
+    fromCharacterId: 'rel-ai-linxia',
     fromName: '林夏',
     reason: '方便约周末聚餐',
     source: 'social-inbox',
@@ -90,16 +79,19 @@ async function run() {
   assert.strictEqual(store.wechatFriendRequests.length, 1);
   assert.strictEqual(store.wechatFriendRequestPendingCount(), 1);
 
-  store.requestWechatFriend({ fromCharacterId: 'intro-b', fromName: '林夏', reason: '再申请一次' });
+  store.requestWechatFriend({ fromCharacterId: 'rel-ai-linxia', fromName: '林夏', reason: '再申请一次' });
   assert.strictEqual(store.wechatFriendRequests.length, 1);
 
-  store.wechatUsers = [{ id: 'wx-chen', characterId: 'npc-a', name: '陈默', group: false }];
+  store.wechatUsers = [{ id: 'npc-a', characterId: 'npc-a', name: '陈默', group: false }];
   const skipped = store.requestWechatFriend({ fromCharacterId: 'npc-a', fromName: '陈默', reason: '已是好友' });
   assert.strictEqual(skipped, null);
 
   await store.acceptWechatFriendRequest(created.id);
   assert.strictEqual(store.wechatFriendRequests.find((x) => x.id === created.id).status, 'accepted');
-  assert.ok(store.wechatUsers.some((c) => c.name === '林夏'));
+  const lin = store.wechatUsers.find((c) => c.name === '林夏');
+  assert.ok(lin);
+  assert.strictEqual(lin.id, 'rel-ai-linxia');
+  assert.strictEqual(lin.characterId, 'rel-ai-linxia');
   assert.strictEqual(store._lastAddOptions.generateProfile, false);
   assert.strictEqual(store.wechatFriendRequestPendingCount(), 0);
 

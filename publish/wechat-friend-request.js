@@ -96,14 +96,21 @@ window.GameModules.wechatFriendRequestActions = {
     const id = String(requestId || '').trim();
     const req = (this.wechatFriendRequests || []).find((item) => item.id === id);
     if (!req || req.status !== 'pending') return null;
+    const roleId = String(req.fromCharacterId || '').trim();
+    const validId = window.GameModules.wechatActions?.isWechatContactCharacterId?.(roleId);
+    if (!roleId || !validId) {
+      this.wechatError = '该好友申请缺少有效角色ID，无法加入通讯录。';
+      console.warn('[微信] 同意好友申请失败：无有效角色ID', req?.fromName, roleId);
+      return null;
+    }
     const outreach = window.GameModules.wechatOutreachContext;
     const intentChain = outreach?.normalizeIntentChain?.(req.intentChain)
       || outreach?.intentChainFromReason?.(req.reason);
     const sourceRecordId = String(req.sourceRecordId || '').trim();
     const openedAt = String(req.createdAt || new Date().toISOString());
     const contact = await this.addWechatUser?.({
-      id: req.fromCharacterId || undefined,
-      characterId: req.fromCharacterId || undefined,
+      id: roleId,
+      characterId: roleId,
       name: req.fromName,
       relation: req.relation || '微信联系人',
       source: 'friend-request',
@@ -116,17 +123,19 @@ window.GameModules.wechatFriendRequestActions = {
         source: 'friend-accept',
       },
     }, { generateProfile: false, save: false });
-    if (contact) {
-      contact.outreachOpen = {
-        status: 'open',
-        sourceRecordId,
-        intentChain,
-        openedAt,
-        source: 'friend-accept',
-      };
-      if (Array.isArray(this.wechatUsers)) {
-        this.wechatUsers = this.wechatUsers.map((c) => (c.id === contact.id ? { ...c, outreachOpen: contact.outreachOpen } : c));
-      }
+    if (!contact) {
+      this.wechatError = '无法写入通讯录：角色ID无效。';
+      return null;
+    }
+    contact.outreachOpen = {
+      status: 'open',
+      sourceRecordId,
+      intentChain,
+      openedAt,
+      source: 'friend-accept',
+    };
+    if (Array.isArray(this.wechatUsers)) {
+      this.wechatUsers = this.wechatUsers.map((c) => (c.id === contact.id ? { ...c, outreachOpen: contact.outreachOpen } : c));
     }
     const now = new Date().toISOString();
     this.wechatFriendRequests = (this.wechatFriendRequests || []).map((item) => (

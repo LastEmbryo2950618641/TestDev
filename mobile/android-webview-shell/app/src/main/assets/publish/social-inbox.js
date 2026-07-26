@@ -439,7 +439,7 @@ window.GameModules.socialInbox = {
     return this.applyOutreachWriteback(store, item, { channel, atIso });
   },
 
-  deliverWechatItems(store = {}, items = []) {
+  async deliverWechatItems(store = {}, items = []) {
     const outreach = window.GameModules.wechatOutreachContext;
     const list = (Array.isArray(items) ? items : []).filter((item) => (
       item && item.channel === 'wechat' && item.hasWechatContact && !item.deliveredAt
@@ -447,25 +447,27 @@ window.GameModules.socialInbox = {
     const delivered = [];
     const nowIso = (store.phoneDate?.() || new Date()).toISOString?.()
       || new Date().toISOString();
-    list.forEach((item) => {
+    for (const item of list) {
       const contact = store.findWechatIncomingContact?.(item.actorId)
         || store.findWechatIncomingContact?.(item.actorName)
         || (store.wechatContacts?.() || store.wechatUsers || []).find((c) => (
-          !c?.group && (c.characterId === item.actorId || c.id === item.actorId || c.name === item.actorName)
+          !c?.group && (c.id === item.actorId || c.characterId === item.actorId || c.name === item.actorName)
         ));
-      if (!contact) return;
+      if (!contact) continue;
+      const contactId = String(contact.id || contact.characterId || '').trim();
+      if (!contactId) continue;
       const intentChain = outreach?.normalizeIntentChain?.(item.intentChain)
         || outreach?.intentChainFromInboxItem?.(item);
       const sourceRecordId = outreach?.resolveSourceRecordId?.(store, item.sourceRecordId) || '';
-      if (!sourceRecordId) return;
+      if (!sourceRecordId) continue;
       const text = this.buildDeliveryText(item);
-      const key = store.wechatMessageKey?.(contact) || contact.id;
+      const key = store.wechatMessageKey?.(contact) || contactId;
       const meta = {
         side: 'other',
         name: item.actorName || contact.name,
         mark: String(item.actorName || contact.name || '?').slice(0, 1),
         text,
-        characterId: contact.characterId || contact.id,
+        characterId: contactId,
         sourceRecordId,
         intentChain,
         openedAt: nowIso,
@@ -474,6 +476,8 @@ window.GameModules.socialInbox = {
       store.appendWechatMessage?.(key, meta);
       const nextContact = {
         ...contact,
+        id: contactId,
+        characterId: contactId,
         outreachOpen: {
           status: 'open',
           sourceRecordId,
@@ -483,33 +487,33 @@ window.GameModules.socialInbox = {
         },
       };
       if (Array.isArray(store.wechatUsers)) {
-        store.wechatUsers = store.wechatUsers.map((c) => (c.id === contact.id ? nextContact : c));
+        store.wechatUsers = store.wechatUsers.map((c) => (c.id === contact.id || c.id === contactId ? nextContact : c));
       }
       store.recordWechatWorldline?.({
         ...contact,
-        id: contact.characterId || contact.id,
-        characterId: contact.characterId || contact.id,
+        id: contactId,
+        characterId: contactId,
       }, '', text);
       const wechatMsg = window.GameModules.realWorldAgentLoop?.appendWechatDialogueContext?.(store, {
         contactName: item.actorName || contact.name,
-        contactId: contact.characterId || contact.id,
+        contactId,
         replyText: text,
         timeLabel: nowIso,
         kind: 'incoming',
       });
-      window.GameModules.realWorldAgentLoop?.mirrorExternalContextToRealWorldLog?.(store, {
+      await window.GameModules.realWorldAgentLoop?.mirrorExternalContextToRealWorldLog?.(store, {
         content: wechatMsg?.content || '',
         kind: 'wechat',
         contactName: item.actorName || contact.name,
-        contactId: contact.characterId || contact.id,
+        contactId,
         timeLabel: nowIso,
       });
       item.deliveredAt = nowIso;
       item.deliveryText = text;
       item.sourceRecordId = sourceRecordId;
       item.intentChain = intentChain;
-      delivered.push({ ...item, contactId: contact.id, text });
-    });
+      delivered.push({ ...item, contactId, text });
+    }
     return delivered;
   },
 
@@ -567,7 +571,7 @@ window.GameModules.realWorldSocialInboxActions = {
     const prepared = (this.socialInbox || []).filter((item) => item && ids.has(item.id));
     const nowIso = (this.phoneDate?.() || new Date()).toISOString?.() || new Date().toISOString();
     // 有微信：代码直写未读来信（不依赖本轮 AI sendIncoming）
-    const wechatDeliveries = window.GameModules.socialInbox?.deliverWechatItems?.(this, prepared) || [];
+    const wechatDeliveries = await window.GameModules.socialInbox?.deliverWechatItems?.(this, prepared) || [];
     // 无微信且 mayRequestWechat：pending 好友申请
     const friendRequests = this.promoteSocialInboxWechatRequests?.() || [];
     // 回写议程 / 上次沟通 / 冷却（call、scene、wechat 均回写）

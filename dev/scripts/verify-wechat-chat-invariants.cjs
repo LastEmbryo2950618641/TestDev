@@ -469,6 +469,13 @@ assertOrder(replyBlock, [
   'if (reqId === this.wechatReplyRequestId) this.wechatSending = false;',
 ], 'replyWechatContact failure/finally order');
 
+assertIncludes(orchestration, "closeOutreach?.(this, { ...contact, id: characterId, characterId });", `${orchestrationPath} closeOutreach must pass matching characterId`);
+assertNotIncludes(read('publish/wechat-actions.js'), '`wx-${name}', 'wechat-actions must not generate wx-* contact ids');
+assertIncludes(read('publish/wechat-actions.js'), 'isWechatContactCharacterId', 'wechat-actions must validate contact role ids');
+assertIncludes(read('publish/wechat-actions.js'), 'migrateWechatContactIdentity', 'wechat-actions must migrate legacy contact ids');
+assertIncludes(read('publish/domain/storage/restore-state-helpers.js'), 'migrateWechatContactIdentity', 'restore must migrate wechat contact ids');
+assertIncludes(read('publish/social-inbox.js'), 'await window.GameModules.realWorldAgentLoop?.mirrorExternalContextToRealWorldLog?', 'inbox delivery must await log mirror');
+
 assertOrder(generateBlock, [
   'if (!window.dzmm?.completions) return { reply: this.fallbackWechatReply(contact, playerText), elapsedSeconds: 60, impression: 20 };',
   'try { await this.ensureWechatUserProfile?.(contact); }',

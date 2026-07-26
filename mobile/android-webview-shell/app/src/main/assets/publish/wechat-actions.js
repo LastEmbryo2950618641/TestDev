@@ -2,13 +2,33 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
   defaultWechatGroup() {
     return { id: 'group-main', name: '操控者交流群', mark: '群', subtitle: '聊天群', latest: '系统：新手机已激活。', unread: 8, group: true };
   },
+  /** 通讯录联系人 id 必须等于真实角色 id；禁止 wx-* / intro-* / group-*。 */
+  isWechatContactCharacterId(id = '') {
+    const text = String(id || '').trim();
+    if (!text) return false;
+    if (/^(?:wx-|intro-|group-)/iu.test(text)) return false;
+    if (window.GameModules.characterIdEnsure?.isRealCharacterId?.(text)) return true;
+    return text === 'player-self' || /^rel-ai-[\w-]+$/iu.test(text) || /^npc-[\w-]+$/iu.test(text);
+  },
+  sanitizeWechatRoleId(raw = '') {
+    return String(raw || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80);
+  },
+  resolveWechatContactRoleId(raw = {}) {
+    const api = window.GameModules.wechatActions || this;
+    const characterId = api.sanitizeWechatRoleId(raw.characterId);
+    const id = api.sanitizeWechatRoleId(raw.id);
+    if (api.isWechatContactCharacterId(characterId)) return characterId;
+    if (api.isWechatContactCharacterId(id)) return id;
+    return '';
+  },
   normalizeWechatContact(raw = {}) {
+    const api = window.GameModules.wechatActions || this;
     const name = String(raw.name || '').trim().slice(0, 24);
     if (!name) return null;
+    const roleId = api.resolveWechatContactRoleId(raw);
+    if (!roleId) return null;
     const relation = String(raw.relation || raw.subtitle || '联系人').trim().slice(0, 30);
-    const id = String(raw.id || raw.characterId || `wx-${name}-${relation}`).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || `wx-${window.GameModules.rpgState.seed(`${name}-${relation}`)}`;
-    const needsNameAi = raw.needsNameAi ?? (this.isWechatPlaceholderName(name) && !raw.id);
-    const characterId = String(raw.characterId || id).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80) || id;
+    const needsNameAi = raw.needsNameAi ?? (api.isWechatPlaceholderName(name) && !raw.id && !raw.characterId);
     const outreachOpen = raw.outreachOpen && typeof raw.outreachOpen === 'object'
       ? {
         status: raw.outreachOpen.status === 'done' ? 'done' : 'open',
@@ -19,8 +39,8 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
       }
       : undefined;
     return {
-      id,
-      characterId,
+      id: roleId,
+      characterId: roleId,
       name,
       relation,
       subtitle: relation,
@@ -33,6 +53,71 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
       needsNameAi,
       ...(outreachOpen ? { outreachOpen } : {}),
     };
+  },
+  remapWechatKeyedBucket(bucket = {}, remaps = {}) {
+    if (!bucket || typeof bucket !== 'object' || Array.isArray(bucket)) return bucket || {};
+    const next = { ...bucket };
+    Object.entries(remaps).forEach(([from, to]) => {
+      if (!from || !to || from === to || !(from in next)) return;
+      const incoming = next[from];
+      const existing = next[to];
+      if (Array.isArray(incoming) || Array.isArray(existing)) {
+        next[to] = [...(Array.isArray(existing) ? existing : (existing ? [existing] : [])), ...(Array.isArray(incoming) ? incoming : (incoming ? [incoming] : []))];
+      } else if (existing == null) {
+        next[to] = incoming;
+      }
+      delete next[from];
+    });
+    return next;
+  },
+  /**
+   * 旧存档：wx-* / id≠characterId → 统一为角色 id，并合并消息/相册索引。
+   * @returns {{ changed: boolean, remaps: Record<string, string> }}
+   */
+  migrateWechatContactIdentity(store = this) {
+    const api = window.GameModules.wechatActions || this;
+    const remaps = {};
+    const users = Array.isArray(store.wechatUsers) ? store.wechatUsers : [];
+    const nextUsers = [];
+    users.forEach((item) => {
+      if (!item) return;
+      if (item.group) {
+        nextUsers.push(item);
+        return;
+      }
+      const roleId = api.resolveWechatContactRoleId?.(item) || '';
+      if (!roleId) return;
+      const oldId = String(item.id || '').trim();
+      if (oldId && oldId !== roleId) remaps[oldId] = roleId;
+      const oldCharacterId = String(item.characterId || '').trim();
+      if (oldCharacterId && oldCharacterId !== roleId) remaps[oldCharacterId] = roleId;
+      const existing = nextUsers.find((c) => !c.group && c.id === roleId);
+      if (existing) {
+        existing.unread = (Number(existing.unread) || 0) + (Number(item.unread) || 0);
+        if (!existing.outreachOpen && item.outreachOpen) existing.outreachOpen = item.outreachOpen;
+        if (item.name && (!existing.name || api.isWechatPlaceholderName?.(existing.name))) {
+          existing.name = item.name;
+          existing.mark = String(item.name).slice(0, 1);
+        }
+        return;
+      }
+      nextUsers.push({
+        ...item,
+        id: roleId,
+        characterId: roleId,
+      });
+    });
+    const before = JSON.stringify(users);
+    store.wechatUsers = nextUsers;
+    if (Object.keys(remaps).length) {
+      store.wechatMessagesByContact = api.remapWechatKeyedBucket(store.wechatMessagesByContact || {}, remaps);
+      store.wechatAlbumPhotos = api.remapWechatKeyedBucket(store.wechatAlbumPhotos || {}, remaps);
+      store.wechatAlbumPrompts = api.remapWechatKeyedBucket(store.wechatAlbumPrompts || {}, remaps);
+      const selected = String(store.wechatSelectedContact || '').trim();
+      if (selected && remaps[selected]) store.wechatSelectedContact = remaps[selected];
+    }
+    const changed = before !== JSON.stringify(store.wechatUsers) || Object.keys(remaps).length > 0;
+    return { changed, remaps };
   },
   isWechatPlaceholderName(name = '') {
     const text = String(name || '').trim();
@@ -47,67 +132,42 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
   },
   wechatCharacterId(contact) {
     if (!contact || contact.group) return '';
-    return String(contact.characterId || contact.id || '').trim();
+    const id = String(contact.id || '').trim();
+    if (this.isWechatContactCharacterId?.(id)) return id;
+    return String(contact.characterId || '').trim();
   },
   findWechatCharacterState(contact) {
     if (!contact || contact.group) return null;
     const save = window.GameModules.characterStateStore;
-    const query = window.GameModules.characterQuery;
-    const profileTool = window.GameModules.characterProfile;
-    const world = this.currentWorldTag?.() || window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
     const characterId = this.wechatCharacterId(contact);
-    const seen = new Set();
-    const candidates = [];
-    const push = (state) => {
-      const id = String(state?.id || '').trim();
-      if (!state?.profile || !id || seen.has(id)) return;
-      seen.add(id);
-      candidates.push(state);
-    };
-    [characterId, contact.id, contact.characterId].filter(Boolean).forEach((id) => {
-      push(this.rpgStates?.[id]);
-      push(save.get?.(id));
-    });
-    [contact.name, this.concreteWechatProfileName(this.rpgStates?.[characterId]?.profile, contact)].filter(Boolean).forEach((name) => {
-      push(query?.stateByName?.(this, name, world));
-      push(query?.stateByName?.(this, name));
-      push(save.getByName?.(name, world));
-      push(save.getByName?.(name));
-    });
-    (save.list?.() || []).forEach((state) => {
-      const profile = state?.profile || {};
-      const name = String(profile.name || state?.name || '').trim();
-      if (!name || name === String(this.playerProfile?.name || this.playerName || '').trim()) return;
-      if (name === contact.name) push(state);
-      else if (contact.relation && String(profile.role || '').trim() === String(contact.relation).trim() && profileTool.isConcreteName(name)) push(state);
-    });
-    const scoreState = (state) => {
-      const profile = state?.profile;
-      if (!profile) return -1;
-      if (profileTool.isReusableRoleCard?.(profile)) return 300;
-      if (profileTool.isRoleCard?.(profile)) return 200;
-      if (profile.roleCard && profileTool.isConcreteName?.(profile.name)) return 50;
-      return 0;
-    };
-    if (!candidates.length) return null;
-    return [...candidates].sort((a, b) => scoreState(b) - scoreState(a))[0];
+    if (!characterId) return null;
+    return this.rpgStates?.[characterId] || save?.get?.(characterId) || null;
   },
   bindWechatCharacterState(state, contact = null) {
     if (!state?.profile) return state;
     const resolvedId = state.id || this.wechatCharacterId(contact) || state.profile.id;
-    if (resolvedId) {
-      this.rpgStates = { ...(this.rpgStates || {}), [resolvedId]: state };
-      if (contact?.id) {
-        let rebound = false;
-        this.wechatUsers = (this.wechatUsers || []).map((item) => {
-          if (item.id !== contact.id && item.characterId !== contact.characterId && item.name !== contact.name) return item;
-          if (item.characterId === resolvedId) return item;
-          rebound = true;
-          return { ...item, characterId: resolvedId };
-        });
-        if (rebound) this.save?.().catch((err) => console.warn('[微信] 联系人角色绑定保存失败:', err.message));
+    if (!resolvedId || !this.isWechatContactCharacterId?.(resolvedId)) return state;
+    this.rpgStates = { ...(this.rpgStates || {}), [resolvedId]: state };
+    if (contact) {
+      const oldId = String(contact.id || contact.characterId || '').trim();
+      let rebound = false;
+      this.wechatUsers = (this.wechatUsers || []).map((item) => {
+        if (item.group) return item;
+        const match = (oldId && (item.id === oldId || item.characterId === oldId))
+          || (contact.name && item.name === contact.name);
+        if (!match) return item;
+        if (item.id === resolvedId && item.characterId === resolvedId) return item;
+        rebound = true;
+        return { ...item, id: resolvedId, characterId: resolvedId };
+      });
+      if (rebound && oldId && oldId !== resolvedId) {
+        const remaps = { [oldId]: resolvedId };
+        this.wechatMessagesByContact = this.remapWechatKeyedBucket?.(this.wechatMessagesByContact || {}, remaps) || this.wechatMessagesByContact;
+        this.wechatAlbumPhotos = this.remapWechatKeyedBucket?.(this.wechatAlbumPhotos || {}, remaps) || this.wechatAlbumPhotos;
+        this.wechatAlbumPrompts = this.remapWechatKeyedBucket?.(this.wechatAlbumPrompts || {}, remaps) || this.wechatAlbumPrompts;
+        if (this.wechatSelectedContact === oldId) this.wechatSelectedContact = resolvedId;
       }
-      this.syncWechatContactId(resolvedId);
+      if (rebound) this.save?.().catch((err) => console.warn('[微信] 联系人角色绑定保存失败:', err.message));
       this.syncWechatContactProfileName(resolvedId, state.profile);
     }
     return state;
@@ -147,12 +207,14 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
     return name ? { ...contact, characterId: state?.id || characterId, name, mark: name.slice(0, 1), avatar: contact.avatar, needsNameAi: false } : { ...contact, characterId: state?.id || characterId, avatar: contact.avatar };
   },
   syncWechatContactId(id) {
-    if (!id) return false;
+    if (!id || !this.isWechatContactCharacterId?.(id)) return false;
     let changed = false;
     this.wechatUsers = (this.wechatUsers || []).map((item) => {
-      if (item.id !== id || item.characterId === id) return item;
+      if (item.group) return item;
+      if (item.id !== id && item.characterId !== id) return item;
+      if (item.id === id && item.characterId === id) return item;
       changed = true;
-      return { ...item, characterId: id };
+      return { ...item, id, characterId: id };
     });
     return changed;
   },
@@ -166,6 +228,7 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
   syncWechatContactsFromRpgStates() {
     let changed = false;
     this.wechatUsers = (this.wechatUsers || []).map((item) => {
+      if (item?.group) return item;
       const characterId = this.wechatCharacterId(item);
       const state = this.findWechatCharacterState?.(item) || this.rpgStates?.[characterId] || window.GameModules.characterStateStore?.get?.(characterId);
       const name = this.concreteWechatProfileName(state?.profile, item);
@@ -174,6 +237,8 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
       if (next !== item) changed = true;
       return next;
     });
+    const migrated = this.migrateWechatContactIdentity?.();
+    if (migrated?.changed) changed = true;
     return changed;
   },
   async ensureWechatUserProfile(contact, options = {}) {
@@ -255,15 +320,18 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
   },
   async addWechatUser(user = {}, options = {}) {
     const contact = this.normalizeWechatContact(user);
-    if (!contact) return null;
+    if (!contact) {
+      console.warn('[微信] 拒绝写入无角色ID的联系人:', user?.name || user?.id || '');
+      return null;
+    }
     const list = Array.isArray(this.wechatUsers) ? [...this.wechatUsers] : [];
     const normalized = {
       ...contact,
-      characterId: contact.characterId || contact.id,
+      characterId: contact.id,
       ...(user.outreachOpen && !contact.outreachOpen ? { outreachOpen: user.outreachOpen } : {}),
     };
-    const index = list.findIndex((item) => item.id === normalized.id);
-    if (index >= 0) list[index] = { ...list[index], ...normalized };
+    const index = list.findIndex((item) => item.id === normalized.id || item.characterId === normalized.id);
+    if (index >= 0) list[index] = { ...list[index], ...normalized, id: normalized.id, characterId: normalized.id };
     else list.push(normalized);
     this.wechatUsers = list;
     const stored = this.wechatUsers[index >= 0 ? index : this.wechatUsers.length - 1];
@@ -280,7 +348,19 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
     return results.filter(Boolean);
   },
   async submitWechatAddUser() {
-    const contact = await this.addWechatUser({ name: this.wechatAddName, relation: this.wechatAddRelation || '微信联系人', source: 'manual' }, { generateProfile: true });
+    const name = String(this.wechatAddName || '').trim();
+    const relation = String(this.wechatAddRelation || '微信联系人').trim() || '微信联系人';
+    if (!name) return null;
+    const world = this.currentWorldTag?.() || window.GameModules.realWorld2026?.label || '2026 现代都市现实世界';
+    const roleId = window.GameModules.characterIdEnsure?.allocateId?.(name, world)
+      || `rel-ai-${window.GameModules.rpgState?.seed?.(`${name}-${relation}`) || Date.now()}`;
+    const contact = await this.addWechatUser({
+      id: roleId,
+      characterId: roleId,
+      name,
+      relation,
+      source: 'manual',
+    }, { generateProfile: true });
     if (!contact) return null;
     this.wechatAddName = '';
     this.wechatAddRelation = '';

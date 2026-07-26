@@ -75,7 +75,7 @@ const store = {
   socialInbox: [],
   phoneFixedTime: Date.parse('2026-07-26T12:00:00+08:00'),
   wechatContacts() {
-    return [{ id: 'wx-1', characterId: 'npc-a', name: '陈默', group: false }];
+    return [{ id: 'npc-a', characterId: 'npc-a', name: '陈默', group: false }];
   },
   rpgStates: {
     'player-self': { id: 'player-self', name: '玩家', profile: { socialDrive: { relationToPlayer: '本人' } }, metrics: {} },

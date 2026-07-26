@@ -14,6 +14,7 @@ window.GameModules.characterIdEnsure = {
   isRealCharacterId(id = '') {
     const text = String(id || '').trim();
     if (!text || this.isPendingId(text)) return false;
+    if (/^(?:wx-|intro-|group-)/iu.test(text)) return false;
     return text === 'player-self' || /^rel-ai-[\w-]+$/iu.test(text) || /^[a-z][\w-]{3,64}$/iu.test(text);
   },
 

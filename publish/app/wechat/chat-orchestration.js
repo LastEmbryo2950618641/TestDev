@@ -37,10 +37,10 @@ window.GameModules.app.wechat.chatOrchestration = {
       window.GameModules.factionArchive?.recordWechat?.(this, { ...contact, id: characterId, characterId }, playerText, result.reply, result);
       await this.recordWechatWorldline({ ...contact, id: characterId, characterId }, playerText, result.reply, result);
       this.debugWechatMemory?.({ ...contact, id: characterId, characterId });
-      window.GameModules.wechatOutreachContext?.closeOutreach?.(this, { ...contact, id: characterId, characterId: state?.id || contact.characterId || characterId });
+      window.GameModules.wechatOutreachContext?.closeOutreach?.(this, { ...contact, id: characterId, characterId });
       const timeLabel = `${this.phoneDateText?.() || ''} ${this.phoneTimeText?.() || ''}`.trim();
       const contactName = state?.profile?.name || contact.name;
-      const contactId = state?.id || contact.characterId || characterId;
+      const contactId = characterId;
       const wechatMsg = window.GameModules.realWorldAgentLoop?.appendWechatDialogueContext?.(this, {
         contactName,
         contactId,
@@ -70,7 +70,7 @@ window.GameModules.app.wechat.chatOrchestration = {
       await window.GameModules.characterMemory?.recordWechatExchange?.(this, { ...contact, id: characterId, characterId }, playerText, fallback, { mood: '通讯异常' });
       window.GameModules.factionArchive?.recordWechat?.(this, { ...contact, id: characterId, characterId }, playerText, fallback, { mood: '通讯异常' });
       await this.recordWechatWorldline({ ...contact, id: characterId, characterId }, playerText, fallback, { mood: '通讯异常' });
-      window.GameModules.wechatOutreachContext?.closeOutreach?.(this, { ...contact, id: characterId });
+      window.GameModules.wechatOutreachContext?.closeOutreach?.(this, { ...contact, id: characterId, characterId });
       const timeLabel = `${this.phoneDateText?.() || ''} ${this.phoneTimeText?.() || ''}`.trim();
       const contactName = state?.profile?.name || contact.name;
       const wechatMsg = window.GameModules.realWorldAgentLoop?.appendWechatDialogueContext?.(this, {

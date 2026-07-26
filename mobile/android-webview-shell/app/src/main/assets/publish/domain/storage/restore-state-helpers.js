@@ -124,6 +124,9 @@ window.GameModules.domain.storage.restoreStateHelpers = {
     store.wechatMessagesByContact = save.wechatMessagesByContact && typeof save.wechatMessagesByContact === 'object' ? save.wechatMessagesByContact : (store.wechatMessagesByContact || {});
     store.wechatAlbumPhotos = save.wechatAlbumPhotos && typeof save.wechatAlbumPhotos === 'object' ? save.wechatAlbumPhotos : (store.wechatAlbumPhotos || {});
     store.wechatAlbumPrompts = save.wechatAlbumPrompts && typeof save.wechatAlbumPrompts === 'object' ? save.wechatAlbumPrompts : (store.wechatAlbumPrompts || {});
+    if (save.wechatSelectedContact) store.wechatSelectedContact = save.wechatSelectedContact;
+    const migrate = window.GameModules.wechatActions?.migrateWechatContactIdentity;
+    if (typeof migrate === 'function') migrate.call(store, store);
     store.bodyFigureMaskState = save.bodyFigureMaskState && typeof save.bodyFigureMaskState === 'object'
       ? {
         natural: Boolean(save.bodyFigureMaskState.natural),

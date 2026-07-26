@@ -110,7 +110,7 @@ const store = {
   }],
   socialInboxPreparedIds: ['inbox-call-1', 'inbox-wx-1'],
   wechatFriendRequests: [],
-  wechatUsers: [{ id: 'wx-chen', characterId: 'npc-a', name: '陈默', group: false }],
+  wechatUsers: [{ id: 'npc-a', characterId: 'npc-a', name: '陈默', group: false }],
   wechatMessagesByContact: {},
   phoneFixedTime: Date.parse('2026-07-26T12:00:00.000Z'),
   realWorldSettlementLogId: 'real-settle-ai',
@@ -178,22 +178,27 @@ async function run() {
 
   // accept friend request also writebacks reach + lastContact
   Object.assign(store, context.window.GameModules.wechatFriendRequestActions);
+  load('publish/character-id-ensure.js', context);
+  load('publish/wechat-actions.js', context);
   store.wechatFriendRequests = [{
     id: 'wfr-1',
-    fromCharacterId: 'intro-e',
+    fromCharacterId: 'npc-qian',
     fromName: '钱进',
     relation: '同事',
     reason: '加微信发文件',
     status: 'pending',
     source: 'social-inbox',
   }];
-  store.normalizeWechatContact = function normalizeWechatContact(user = {}) {
-    const name = String(user.name || '').trim();
-    const id = String(user.id || user.characterId || `wx-${name}`);
-    return { id, characterId: id, name, relation: user.relation || '', group: false, mark: name.slice(0, 1), latest: '', unread: 0, source: 'friend-request' };
+  store.rpgStates['npc-qian'] = store.rpgStates['intro-e'] || {
+    id: 'npc-qian',
+    name: '钱进',
+    profile: { socialDrive: { reach: [], agenda: { short: '', needPlayer: true, needPlayerWhy: '', urgency: 0.4, cooldownUntil: '' } } },
   };
+  store.normalizeWechatContact = context.window.GameModules.wechatActions.normalizeWechatContact;
+  store.isWechatContactCharacterId = context.window.GameModules.wechatActions.isWechatContactCharacterId;
   store.addWechatUser = async function addWechatUser(user, options) {
     const c = this.normalizeWechatContact(user);
+    if (!c) return null;
     this.wechatUsers = [...this.wechatUsers, c];
     this._addOpts = options;
     return c;
@@ -201,8 +206,11 @@ async function run() {
 
   await store.acceptWechatFriendRequest('wfr-1');
   const after = savedIntros.filter((c) => c.name === '钱进').pop();
-  assert.ok(after?.links?.wechatContactId, 'accept must write wechatContactId');
+  assert.ok(after?.links?.wechatContactId === 'npc-qian' || after?.links?.wechatContactId, 'accept must write wechatContactId');
   assert.ok((after.social?.reach || []).includes('wechat'));
+  const qianContact = store.wechatUsers.find((c) => c.name === '钱进');
+  assert.strictEqual(qianContact?.id, 'npc-qian');
+  assert.strictEqual(qianContact?.characterId, 'npc-qian');
 
   const actionsSrc = fs.readFileSync(path.join(root, 'publish/real-world-actions.js'), 'utf8');
   assert.match(actionsSrc, /writebacks|议程回写|冷却/u);

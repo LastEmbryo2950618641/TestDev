@@ -81,7 +81,7 @@ test('outreach prompt block injects intent, record text, and time-span consequen
   assert.match(block, /时间跨度|事后发展|人物反应|意图/u);
 });
 
-test('deliverWechatItems attaches sourceRecordId and intentChain', () => {
+test('deliverWechatItems attaches sourceRecordId and intentChain', async () => {
   const context = createContext();
   load('publish/character-social-drive.js', context);
   load('publish/wechat-outreach-context.js', context);
@@ -91,13 +91,13 @@ test('deliverWechatItems attaches sourceRecordId and intentChain', () => {
   const store = {
     realWorldSettlementLogId: 'real-settle-ai',
     phoneDate: () => new Date('2026-07-26T15:00:00+08:00'),
-    wechatUsers: [{ id: 'wx-chen', characterId: 'npc-a', name: '陈默', group: false }],
+    wechatUsers: [{ id: 'npc-a', characterId: 'npc-a', name: '陈默', group: false }],
     findWechatIncomingContact(v) {
       return this.wechatUsers.find((c) => c.id === v || c.characterId === v || c.name === v) || null;
     },
     appendWechatMessage(id, msg) { appended.push({ id, msg }); },
   };
-  const delivered = inbox.deliverWechatItems(store, [{
+  const delivered = await inbox.deliverWechatItems(store, [{
     id: 'inbox-1',
     actorId: 'npc-a',
     actorName: '陈默',
@@ -115,6 +115,8 @@ test('deliverWechatItems attaches sourceRecordId and intentChain', () => {
 test('friend request stores sourceRecordId+intentChain; accept keeps agenda and triggers reply', async () => {
   const context = createContext();
   load('publish/character-social-drive.js', context);
+  load('publish/character-id-ensure.js', context);
+  load('publish/wechat-actions.js', context);
   load('publish/wechat-outreach-context.js', context);
   load('publish/social-inbox.js', context);
   load('publish/wechat-friend-request.js', context);
@@ -124,8 +126,8 @@ test('friend request stores sourceRecordId+intentChain; accept keeps agenda and 
     wechatUsers: [],
     realWorldSettlementLogId: 'real-fr-ai',
     rpgStates: {
-      'intro-b': {
-        id: 'intro-b',
+      'rel-ai-linxia': {
+        id: 'rel-ai-linxia',
         profile: {
           socialDrive: {
             agenda: { short: '约周末', needPlayer: true, needPlayerWhy: '方便约聚餐', urgency: 0.6, cooldownUntil: '' },
@@ -134,13 +136,11 @@ test('friend request stores sourceRecordId+intentChain; accept keeps agenda and 
       },
     },
     async save() {},
-    normalizeWechatContact(user = {}) {
-      const name = String(user.name || '').trim();
-      const id = String(user.id || user.characterId || `wx-${name}`).slice(0, 40);
-      return { id, characterId: String(user.characterId || id), name, relation: '微信联系人', mark: name.slice(0, 1), latest: '', unread: 0, group: false };
-    },
+    normalizeWechatContact: context.window.GameModules.wechatActions.normalizeWechatContact,
+    isWechatContactCharacterId: context.window.GameModules.wechatActions.isWechatContactCharacterId,
     async addWechatUser(user = {}) {
       const contact = this.normalizeWechatContact(user);
+      if (!contact) return null;
       this.wechatUsers = [...this.wechatUsers, contact];
       return contact;
     },
@@ -150,7 +150,7 @@ test('friend request stores sourceRecordId+intentChain; accept keeps agenda and 
   };
   Object.assign(store, context.window.GameModules.wechatFriendRequestActions);
   const req = store.requestWechatFriend({
-    fromCharacterId: 'intro-b',
+    fromCharacterId: 'rel-ai-linxia',
     fromName: '林夏',
     reason: '方便约周末聚餐',
     source: 'social-inbox',
@@ -166,11 +166,12 @@ test('friend request stores sourceRecordId+intentChain; accept keeps agenda and 
   assert.strictEqual(req.intentChain.whyPlayer, '需要你确认时间');
 
   await store.acceptWechatFriendRequest(req.id);
-  const drive = store.rpgStates['intro-b'].profile.socialDrive;
+  const drive = store.rpgStates['rel-ai-linxia'].profile.socialDrive;
   assert.strictEqual(drive.agenda.needPlayer, true, 'accept must not clear needPlayer before chat resolves');
   assert.ok(replyCalls.length >= 1, 'accept must trigger wechat reply pipeline');
   assert.match(replyCalls[0].playerText, /通过|好友申请/u);
   const contact = store.wechatUsers.find((c) => c.name === '林夏');
+  assert.strictEqual(contact.id, 'rel-ai-linxia');
   assert.ok(contact.outreachOpen?.sourceRecordId || contact.outreachOpen?.intentChain);
 });
 
@@ -180,7 +181,7 @@ test('closeOutreach marks thread done so later replies skip block', () => {
   const mod = context.window.GameModules.wechatOutreachContext;
   const store = {
     wechatUsers: [{
-      id: 'wx-chen',
+      id: 'npc-a',
       characterId: 'npc-a',
       name: '陈默',
       outreachOpen: {
@@ -192,7 +193,7 @@ test('closeOutreach marks thread done so later replies skip block', () => {
       },
     }],
     wechatMessagesByContact: {
-      'wx-chen': [{ side: 'other', text: '在吗', sourceRecordId: 'real-1', intentChain: { cause: 'a', process: 'b', result: 'c', whyPlayer: 'd' } }],
+      'npc-a': [{ side: 'other', text: '在吗', sourceRecordId: 'real-1', intentChain: { cause: 'a', process: 'b', result: 'c', whyPlayer: 'd' } }],
     },
   };
   const contact = store.wechatUsers[0];
@@ -202,7 +203,7 @@ test('closeOutreach marks thread done so later replies skip block', () => {
   assert.strictEqual(mod.findOpenOutreach(store, store.wechatUsers[0]), null);
 });
 
-test('deliverWechatItems skips when sourceRecordId missing', () => {
+test('deliverWechatItems skips when sourceRecordId missing', async () => {
   const context = createContext();
   load('publish/character-social-drive.js', context);
   load('publish/wechat-outreach-context.js', context);
@@ -212,13 +213,13 @@ test('deliverWechatItems skips when sourceRecordId missing', () => {
   const store = {
     realWorldSettlementLogId: '',
     phoneDate: () => new Date('2026-07-26T15:00:00+08:00'),
-    wechatUsers: [{ id: 'wx-chen', characterId: 'npc-a', name: '陈默', group: false }],
+    wechatUsers: [{ id: 'npc-a', characterId: 'npc-a', name: '陈默', group: false }],
     findWechatIncomingContact(v) {
       return this.wechatUsers.find((c) => c.id === v || c.characterId === v || c.name === v) || null;
     },
     appendWechatMessage(id, msg) { appended.push({ id, msg }); },
   };
-  const delivered = inbox.deliverWechatItems(store, [{
+  const delivered = await inbox.deliverWechatItems(store, [{
     id: 'inbox-1',
     actorId: 'npc-a',
     actorName: '陈默',

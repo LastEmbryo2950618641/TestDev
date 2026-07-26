@@ -38,6 +38,7 @@
     "verify:character-roster": "node tests/character-roster.test.js",
     "verify:wechat-friend-request": "node tests/wechat-friend-request.test.js",
     "verify:wechat-outreach-context": "node tests/wechat-outreach-context.test.js",
+    "verify:wechat-contact-id-unify": "node tests/wechat-contact-id-unify.test.js",
     "verify:wechat-agent-context-append": "node tests/wechat-agent-context-append.test.js",
     "verify:wechat-body-status-updates": "node tests/wechat-body-status-updates.test.js",
     "verify:wechat-reply-settlement-audit": "node tests/wechat-reply-settlement-audit.test.js",
