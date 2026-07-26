@@ -6,9 +6,33 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
     const name = String(raw.name || '').trim().slice(0, 24);
     if (!name) return null;
     const relation = String(raw.relation || raw.subtitle || '联系人').trim().slice(0, 30);
-    const id = String(raw.id || `wx-${name}-${relation}`).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || `wx-${window.GameModules.rpgState.seed(`${name}-${relation}`)}`;
+    const id = String(raw.id || raw.characterId || `wx-${name}-${relation}`).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || `wx-${window.GameModules.rpgState.seed(`${name}-${relation}`)}`;
     const needsNameAi = raw.needsNameAi ?? (this.isWechatPlaceholderName(name) && !raw.id);
-    return { id, characterId: id, name, relation, subtitle: relation, mark: String(raw.mark || name.slice(0, 1)).slice(0, 2), latest: String(raw.latest || `${relation}资料已同步。`).slice(0, 80), unread: Number(raw.unread) || 0, group: false, source: raw.source || 'manual', context: raw.context || '', needsNameAi };
+    const characterId = String(raw.characterId || id).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80) || id;
+    const outreachOpen = raw.outreachOpen && typeof raw.outreachOpen === 'object'
+      ? {
+        status: raw.outreachOpen.status === 'done' ? 'done' : 'open',
+        sourceRecordId: String(raw.outreachOpen.sourceRecordId || '').trim().slice(0, 120),
+        intentChain: window.GameModules.wechatOutreachContext?.normalizeIntentChain?.(raw.outreachOpen.intentChain) || raw.outreachOpen.intentChain || null,
+        openedAt: String(raw.outreachOpen.openedAt || '').trim(),
+        source: String(raw.outreachOpen.source || 'incoming').slice(0, 32),
+      }
+      : undefined;
+    return {
+      id,
+      characterId,
+      name,
+      relation,
+      subtitle: relation,
+      mark: String(raw.mark || name.slice(0, 1)).slice(0, 2),
+      latest: String(raw.latest || `${relation}资料已同步。`).slice(0, 80),
+      unread: Number(raw.unread) || 0,
+      group: false,
+      source: raw.source || 'manual',
+      context: raw.context || '',
+      needsNameAi,
+      ...(outreachOpen ? { outreachOpen } : {}),
+    };
   },
   isWechatPlaceholderName(name = '') {
     const text = String(name || '').trim();
@@ -233,7 +257,11 @@ window.GameModules = window.GameModules || {}; window.GameModules.wechatActions 
     const contact = this.normalizeWechatContact(user);
     if (!contact) return null;
     const list = Array.isArray(this.wechatUsers) ? [...this.wechatUsers] : [];
-    const normalized = { ...contact, characterId: contact.id };
+    const normalized = {
+      ...contact,
+      characterId: contact.characterId || contact.id,
+      ...(user.outreachOpen && !contact.outreachOpen ? { outreachOpen: user.outreachOpen } : {}),
+    };
     const index = list.findIndex((item) => item.id === normalized.id);
     if (index >= 0) list[index] = { ...list[index], ...normalized };
     else list.push(normalized);

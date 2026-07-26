@@ -5,9 +5,9 @@ window.GameModules.realWorldAgentWechat = {
     if (method === 'listWechatSkills') return [
       'wechat.query.listContacts：读取微信联系人清单。',
       'wechat.query.getThread：读取某联系人最近微信消息。',
-      'wechat.message.incoming.sendIncomingNow：已是好友时，在当前手机时间写入角色主动发给玩家的微信消息。',
-      'wechat.message.incoming.sendIncomingPast：已是好友时，在指定过去时间写入未读微信消息。',
-      'wechat.friend.request.requestWechatFriend：尚非好友时发起好友申请（final.wechatActions）；只产生待处理申请，禁止直接加为好友。',
+      'wechat.message.incoming.sendIncomingNow：已是好友时主动发微信；必须带 intentChain（cause/process/result/whyPlayer）；系统会挂本轮记录ID。',
+      'wechat.message.incoming.sendIncomingPast：已是好友时写过去未读微信；同样必须带完整 intentChain。',
+      'wechat.friend.request.requestWechatFriend：尚非好友时发起申请；只产生 pending；必须带完整 intentChain；禁止直接加为好友。',
     ].join('\n');
     const contacts = (store.wechatContacts?.() || []).filter((c) => !c.group);
     if (method === 'listContacts') return this.contactsText(contacts);

@@ -174,23 +174,101 @@ test('friend request stores sourceRecordId+intentChain; accept keeps agenda and 
   assert.ok(contact.outreachOpen?.sourceRecordId || contact.outreachOpen?.intentChain);
 });
 
-test('skip AI sendIncoming when inbox will deliver same contact', () => {
+test('closeOutreach marks thread done so later replies skip block', () => {
   const context = createContext();
   load('publish/wechat-outreach-context.js', context);
   const mod = context.window.GameModules.wechatOutreachContext;
   const store = {
-    socialInbox: [{
-      id: 'inbox-wx',
-      actorId: 'npc-a',
-      actorName: '陈默',
-      channel: 'wechat',
-      hasWechatContact: true,
-      status: 'prepared',
+    wechatUsers: [{
+      id: 'wx-chen',
+      characterId: 'npc-a',
+      name: '陈默',
+      outreachOpen: {
+        status: 'open',
+        sourceRecordId: 'real-1',
+        intentChain: { cause: 'a', process: 'b', result: 'c', whyPlayer: 'd' },
+        openedAt: '2026-07-25T10:00:00.000Z',
+        source: 'incoming',
+      },
     }],
-    socialInboxPreparedIds: ['inbox-wx'],
+    wechatMessagesByContact: {
+      'wx-chen': [{ side: 'other', text: '在吗', sourceRecordId: 'real-1', intentChain: { cause: 'a', process: 'b', result: 'c', whyPlayer: 'd' } }],
+    },
   };
-  assert.strictEqual(mod.shouldSkipAiIncoming(store, { contactId: 'npc-a', action: 'sendIncomingNow' }), true);
-  assert.strictEqual(mod.shouldSkipAiIncoming(store, { contactId: 'npc-b', action: 'sendIncomingNow' }), false);
+  const contact = store.wechatUsers[0];
+  assert.ok(mod.findOpenOutreach(store, contact));
+  assert.strictEqual(mod.closeOutreach(store, contact), true);
+  assert.strictEqual(store.wechatUsers[0].outreachOpen.status, 'done');
+  assert.strictEqual(mod.findOpenOutreach(store, store.wechatUsers[0]), null);
+});
+
+test('deliverWechatItems skips when sourceRecordId missing', () => {
+  const context = createContext();
+  load('publish/character-social-drive.js', context);
+  load('publish/wechat-outreach-context.js', context);
+  load('publish/social-inbox.js', context);
+  const inbox = context.window.GameModules.socialInbox;
+  const appended = [];
+  const store = {
+    realWorldSettlementLogId: '',
+    phoneDate: () => new Date('2026-07-26T15:00:00+08:00'),
+    wechatUsers: [{ id: 'wx-chen', characterId: 'npc-a', name: '陈默', group: false }],
+    findWechatIncomingContact(v) {
+      return this.wechatUsers.find((c) => c.id === v || c.characterId === v || c.name === v) || null;
+    },
+    appendWechatMessage(id, msg) { appended.push({ id, msg }); },
+  };
+  const delivered = inbox.deliverWechatItems(store, [{
+    id: 'inbox-1',
+    actorId: 'npc-a',
+    actorName: '陈默',
+    channel: 'wechat',
+    hasWechatContact: true,
+    want: '赶方案',
+    needPlayerWhy: '要表格',
+  }]);
+  assert.strictEqual(delivered.length, 0);
+  assert.strictEqual(appended.length, 0);
+});
+
+test('normalizeWechatActions only reads explicit intentChain object', () => {
+  const context = createContext();
+  context.window.GameModules.jsonUtils = { parseLoose(text) { return JSON.parse(String(text)); } };
+  context.window.GameModules.updateRegistry = {
+    ensureNormalizedUpdates(raw) { return []; },
+    migrateLegacyFactionUpdates(raw) { return raw; },
+  };
+  context.window.GameModules.ai = {
+    clampElapsed: (v, d) => Number(v) || d,
+    normalizeMetricUpdates: () => ({}),
+    normalizeLexiconUpdates: () => [],
+    normalizeCharacter: (item) => item,
+  };
+  context.window.GameModules.realWorldVitals = { normalize: () => [] };
+  context.window.GameModules.eventSystem = { normalizeType: (t) => t, isWritableType: () => true };
+  load('publish/wechat-outreach-context.js', context);
+  load('publish/real-world-ai.js', context);
+  const actions = context.window.GameModules.realWorldAi.normalizeWechatActions([{
+    action: 'sendIncomingNow',
+    contactId: 'npc-a',
+    text: '在吗',
+    reason: '找你要表',
+    result: 'should-not-become-intent-result',
+    intentChain: {
+      cause: '缺表',
+      process: '找过',
+      result: '仍缺',
+      whyPlayer: '只有你有',
+    },
+  }, {
+    action: 'sendIncomingNow',
+    contactId: 'npc-b',
+    text: '嗨',
+    reason: '打招呼',
+    result: 'polluted',
+  }]);
+  assert.strictEqual(actions[0].intentChain.result, '仍缺');
+  assert.notStrictEqual(actions[1].intentChain.result, 'polluted');
 });
 
 test('realWorldAi.parse passes events through', () => {

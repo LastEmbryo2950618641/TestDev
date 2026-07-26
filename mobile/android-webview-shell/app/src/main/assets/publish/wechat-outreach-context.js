@@ -128,25 +128,30 @@ window.GameModules.wechatOutreachContext = {
 
   findOpenOutreach(store = {}, contact = {}) {
     const key = store.wechatMessageKey?.(contact) || contact?.id || contact?.characterId || '';
-    if (contact?.outreachOpen?.sourceRecordId || contact?.outreachOpen?.intentChain) {
-      return contact.outreachOpen;
+    const open = contact?.outreachOpen;
+    if (open && open.status === 'done') return null;
+    if (open?.sourceRecordId || open?.intentChain) {
+      return { ...open, status: open.status || 'open' };
     }
     const messages = store.wechatMessagesByContact?.[key] || [];
     for (let i = messages.length - 1; i >= 0; i -= 1) {
       const msg = messages[i];
       if (msg?.side !== 'other') continue;
+      if (msg.outreachStatus === 'done') continue;
       if (msg.sourceRecordId || msg.intentChain) {
         return {
           sourceRecordId: msg.sourceRecordId || '',
           intentChain: msg.intentChain || null,
           openedAt: msg.openedAt || msg.atIso || msg.createdAt || '',
           source: msg.outreachSource || 'incoming',
+          status: 'open',
         };
       }
     }
     const req = (store.wechatFriendRequests || []).find((item) => (
       item
       && item.status === 'accepted'
+      && !item.outreachClosed
       && (
         (contact.characterId && item.fromCharacterId === contact.characterId)
         || (contact.id && item.fromCharacterId === contact.id)
@@ -159,9 +164,51 @@ window.GameModules.wechatOutreachContext = {
         intentChain: req.intentChain || this.intentChainFromReason(req.reason),
         openedAt: req.createdAt || req.resolvedAt || '',
         source: 'friend-accept',
+        status: 'open',
       };
     }
     return null;
+  },
+
+  closeOutreach(store = {}, contact = {}) {
+    if (!contact || !Array.isArray(store.wechatUsers)) return false;
+    const id = String(contact.id || '').trim();
+    const characterId = String(contact.characterId || '').trim();
+    let closed = false;
+    store.wechatUsers = store.wechatUsers.map((item) => {
+      if (!item || item.group) return item;
+      const match = (id && item.id === id)
+        || (characterId && (item.characterId === characterId || item.id === characterId));
+      if (!match) return item;
+      if (!item.outreachOpen || item.outreachOpen.status === 'done') return item;
+      closed = true;
+      return {
+        ...item,
+        outreachOpen: { ...item.outreachOpen, status: 'done' },
+      };
+    });
+    const key = store.wechatMessageKey?.(contact) || id;
+    const list = store.wechatMessagesByContact?.[key];
+    if (Array.isArray(list) && list.length) {
+      store.wechatMessagesByContact = {
+        ...(store.wechatMessagesByContact || {}),
+        [key]: list.map((msg) => (
+          msg?.side === 'other' && (msg.sourceRecordId || msg.intentChain)
+            ? { ...msg, outreachStatus: 'done' }
+            : msg
+        )),
+      };
+    }
+    if (Array.isArray(store.wechatFriendRequests)) {
+      store.wechatFriendRequests = store.wechatFriendRequests.map((item) => {
+        if (!item || item.status !== 'accepted') return item;
+        const match = (characterId && item.fromCharacterId === characterId)
+          || (id && item.fromCharacterId === id)
+          || (contact.name && item.fromName === contact.name);
+        return match ? { ...item, outreachClosed: true } : item;
+      });
+    }
+    return closed;
   },
 
   shouldSkipAiIncoming(store = {}, action = {}) {

@@ -13,6 +13,8 @@ window.GameModules.app.wechat.incomingOrchestration = {
     if (outreach?.shouldSkipAiIncoming?.(this, action)) return;
     const type = String(action.action || action.method || '').trim();
     if (type === 'requestWechatFriend' || type === 'requestFriend') {
+      const sourceRecordId = action.sourceRecordId || outreach?.resolveSourceRecordId?.(this) || '';
+      if (!sourceRecordId) return;
       this.requestWechatFriend?.({
         fromCharacterId: action.characterId || action.contactId || action.fromCharacterId || '',
         fromName: action.name || action.fromName || action.contactId || '',
@@ -20,7 +22,7 @@ window.GameModules.app.wechat.incomingOrchestration = {
         reason: action.reason || action.text || action.message || '希望添加你为微信好友',
         source: action.source || 'narration',
         inboxId: action.inboxId || '',
-        sourceRecordId: action.sourceRecordId || outreach?.resolveSourceRecordId?.(this) || '',
+        sourceRecordId,
         intentChain: action.intentChain || outreach?.intentChainFromReason?.(action.reason || action.text || ''),
       });
       return;
@@ -33,6 +35,7 @@ window.GameModules.app.wechat.incomingOrchestration = {
     const text = String(action.text || '').trim().slice(0, 180);
     if (!text) return;
     const sourceRecordId = outreach?.resolveSourceRecordId?.(this, action.sourceRecordId) || '';
+    if (!sourceRecordId) return;
     const intentChain = outreach?.normalizeIntentChain?.(action.intentChain)
       || outreach?.intentChainFromReason?.(action.reason || text);
     const openedAt = type === 'sendIncomingPast' && action.timeIso
@@ -50,7 +53,7 @@ window.GameModules.app.wechat.incomingOrchestration = {
       openedAt,
       outreachSource: 'inference',
     });
-    const outreachOpen = { sourceRecordId, intentChain, openedAt, source: 'incoming' };
+    const outreachOpen = { status: 'open', sourceRecordId, intentChain, openedAt, source: 'incoming' };
     if (Array.isArray(this.wechatUsers)) {
       this.wechatUsers = this.wechatUsers.map((c) => (c.id === contact.id ? { ...c, outreachOpen } : c));
     }

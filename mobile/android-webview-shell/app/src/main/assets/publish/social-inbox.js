@@ -454,11 +454,12 @@ window.GameModules.socialInbox = {
           !c?.group && (c.characterId === item.actorId || c.id === item.actorId || c.name === item.actorName)
         ));
       if (!contact) return;
-      const text = this.buildDeliveryText(item);
-      const key = store.wechatMessageKey?.(contact) || contact.id;
       const intentChain = outreach?.normalizeIntentChain?.(item.intentChain)
         || outreach?.intentChainFromInboxItem?.(item);
       const sourceRecordId = outreach?.resolveSourceRecordId?.(store, item.sourceRecordId) || '';
+      if (!sourceRecordId) return;
+      const text = this.buildDeliveryText(item);
+      const key = store.wechatMessageKey?.(contact) || contact.id;
       const meta = {
         side: 'other',
         name: item.actorName || contact.name,
@@ -474,6 +475,7 @@ window.GameModules.socialInbox = {
       const nextContact = {
         ...contact,
         outreachOpen: {
+          status: 'open',
           sourceRecordId,
           intentChain,
           openedAt: nowIso,

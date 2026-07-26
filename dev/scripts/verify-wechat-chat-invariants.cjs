@@ -431,6 +431,7 @@ assertOrder(replyBlock, [
   'window.GameModules.factionArchive?.recordWechat?.',
   'await this.recordWechatWorldline',
   'this.debugWechatMemory?.',
+  'window.GameModules.wechatOutreachContext?.closeOutreach?.',
   'await this.save?.();',
 ], 'replyWechatContact success order');
 
@@ -446,6 +447,7 @@ assertOrder(replyBlock, [
   'await window.GameModules.characterMemory?.recordWechatExchange?.',
   'window.GameModules.factionArchive?.recordWechat?.',
   'await this.recordWechatWorldline',
+  'window.GameModules.wechatOutreachContext?.closeOutreach?.',
   'await this.save?.();',
   '} finally {',
   'if (reqId === this.wechatReplyRequestId) this.wechatSending = false;',

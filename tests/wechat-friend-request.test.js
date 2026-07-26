@@ -49,6 +49,7 @@ async function run() {
     wechatUsers: [],
     socialInbox: [],
     socialInboxPreparedIds: [],
+    realWorldSettlementLogId: 'real-test-ai',
     async save() {},
     normalizeWechatContact(user = {}) {
       const name = String(user.name || '').trim();
@@ -64,6 +65,7 @@ async function run() {
         unread: 0,
         source: user.source || 'friend-request',
         group: false,
+        ...(user.outreachOpen ? { outreachOpen: user.outreachOpen } : {}),
       };
     },
     async addWechatUser(user = {}, options = {}) {
@@ -119,6 +121,7 @@ async function run() {
     status: 'prepared',
   }];
   store.socialInboxPreparedIds = ['inbox-3'];
+  store.realWorldSettlementLogId = 'real-test-ai';
   const cleared = await store.clearPreparedSocialInbox();
   const promoted = cleared?.friendRequests || cleared;
   assert.ok(Array.isArray(promoted) && promoted.some((x) => x.fromName === '钱进'));

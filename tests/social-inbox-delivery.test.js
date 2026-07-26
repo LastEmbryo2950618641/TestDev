@@ -71,6 +71,7 @@ const store = {
   wechatFriendRequests: [],
   wechatUsers: [{ id: 'wx-chen', characterId: 'npc-a', name: '陈默', group: false }],
   wechatMessagesByContact: {},
+  realWorldSettlementLogId: 'real-settle-ai',
   rpgStates: {
     'npc-a': {
       id: 'npc-a',

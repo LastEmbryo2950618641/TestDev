@@ -72,9 +72,11 @@ window.GameModules.wechatFriendRequestActions = {
   requestWechatFriend(raw = {}) {
     const tool = window.GameModules.wechatFriendRequest;
     const outreach = window.GameModules.wechatOutreachContext;
+    const sourceRecordId = outreach?.resolveSourceRecordId?.(this, raw.sourceRecordId) || raw.sourceRecordId || '';
+    if (!String(sourceRecordId || '').trim()) return null;
     const withMeta = {
       ...raw,
-      sourceRecordId: outreach?.resolveSourceRecordId?.(this, raw.sourceRecordId) || raw.sourceRecordId || '',
+      sourceRecordId,
       intentChain: raw.intentChain || outreach?.intentChainFromReason?.(raw.reason || raw.needPlayerWhy || raw.want || ''),
     };
     const req = tool.normalize(withMeta);
@@ -107,6 +109,7 @@ window.GameModules.wechatFriendRequestActions = {
       source: 'friend-request',
       context: req.reason,
       outreachOpen: {
+        status: 'open',
         sourceRecordId,
         intentChain,
         openedAt,
@@ -115,6 +118,7 @@ window.GameModules.wechatFriendRequestActions = {
     }, { generateProfile: false, save: false });
     if (contact) {
       contact.outreachOpen = {
+        status: 'open',
         sourceRecordId,
         intentChain,
         openedAt,

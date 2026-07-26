@@ -36,6 +36,7 @@ window.GameModules.app.wechat.chatOrchestration = {
       window.GameModules.factionArchive?.recordWechat?.(this, { ...contact, id: characterId, characterId }, playerText, result.reply, result);
       await this.recordWechatWorldline({ ...contact, id: characterId, characterId }, playerText, result.reply, result);
       this.debugWechatMemory?.({ ...contact, id: characterId, characterId });
+      window.GameModules.wechatOutreachContext?.closeOutreach?.(this, { ...contact, id: characterId, characterId: state?.id || contact.characterId || characterId });
       await this.save?.();
     } catch (err) {
       if (reqId !== this.wechatReplyRequestId) return;
@@ -49,6 +50,7 @@ window.GameModules.app.wechat.chatOrchestration = {
       await window.GameModules.characterMemory?.recordWechatExchange?.(this, { ...contact, id: characterId, characterId }, playerText, fallback, { mood: '通讯异常' });
       window.GameModules.factionArchive?.recordWechat?.(this, { ...contact, id: characterId, characterId }, playerText, fallback, { mood: '通讯异常' });
       await this.recordWechatWorldline({ ...contact, id: characterId, characterId }, playerText, fallback, { mood: '通讯异常' });
+      window.GameModules.wechatOutreachContext?.closeOutreach?.(this, { ...contact, id: characterId });
       await this.save?.();
     } finally {
       if (reqId === this.wechatReplyRequestId) this.wechatSending = false;

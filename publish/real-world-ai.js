@@ -210,7 +210,8 @@ window.GameModules.realWorldAi = {
     const outreach = window.GameModules.wechatOutreachContext;
     return (Array.isArray(value) ? value : []).map((item) => {
       const action = String(item?.action || item?.method || '').trim();
-      const intentChain = outreach?.normalizeIntentChain?.(item.intentChain || item.意图链 || item)
+      const rawChain = item?.intentChain || item?.意图链;
+      const intentChain = outreach?.normalizeIntentChain?.(rawChain && typeof rawChain === 'object' ? rawChain : null)
         || outreach?.intentChainFromReason?.(item.reason || item.text || item.message || '');
       const sourceRecordId = String(item.sourceRecordId || item.recordId || item.logId || '').trim().slice(0, 120);
       if (action === 'requestWechatFriend' || action === 'requestFriend') {

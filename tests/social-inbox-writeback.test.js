@@ -113,6 +113,7 @@ const store = {
   wechatUsers: [{ id: 'wx-chen', characterId: 'npc-a', name: '陈默', group: false }],
   wechatMessagesByContact: {},
   phoneFixedTime: Date.parse('2026-07-26T12:00:00.000Z'),
+  realWorldSettlementLogId: 'real-settle-ai',
   rpgStates: {
     'npc-a': {
       id: 'npc-a',
