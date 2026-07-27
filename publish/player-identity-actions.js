@@ -120,16 +120,28 @@ window.GameModules.playerIdentityActions = {
       storeApi?.mergeOntoLive?.(state, this);
     }
     const row = (key, label, value, desc, extra = {}) => ({ key: `id-${targetId}-${key}`, stateId: targetId, label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: '角色', commonField: true, ...extra });
+    const listRow = (key, label, value, desc, extra = {}) => {
+      const list = Array.isArray(value) ? value : [];
+      return row(key, label, list, desc, { raw: list, ...extra });
+    };
     const fields = [
       row('name', '姓名', p.name, '角色卡固化姓名。'),
       row('presenceKind', '人物形态', window.GameModules.characterSocialDrive?.presenceKindLabel?.(p.presenceKind) || '具体的一个人', '具体的一个人＝个人档案；一类人＝团体原型，字段表示群体意识，行动视为团队行动。'),
       row('work', '所属世界', worldTag, '角色出身作品或世界。'),
       row('currentLocation', '当前位置', locationText, '角色卡当前位置；格式为[势力层级链...]·地点·地点内位置（倒数第2段=地图节点，最后1段=尽量精确的室内位置）。'),
+      row('age', '年龄', p.age && typeof p.age === 'object' ? p.age.value : p.age, '角色卡固化年龄。'),
+      row('gender', '性别', p.gender, '角色卡固化性别。'),
+      row('birthday', '生日', p.birthday, '角色卡固化生日。'),
       row('role', '身份', p.role, '角色卡固化身份。'),
+      row('relationships', '人际关系', p.relationships, '关系必须使用“关系：姓名”的格式。'),
       row('appearance', '外貌', p.appearance, '角色卡固化外貌。'),
       row('preferences', '喜好', p.preferences, '角色稳定喜好和穿着偏好。'),
       row('personality', '性格', p.personality, '角色卡固化性格。'),
       row('job', '职业', p.job, '角色真实职业、训练身份或社会功能。'),
+      listRow('factions', '社群角色', p.factions, '角色在家庭、社区、朋友圈、兴趣小组或临时群体等软性社会关系网中的位置。'),
+      listRow('memberships', '人事归属', p.memberships, '角色在学校、公司、机关、国家等可指认组织中的正式或准正式身份。'),
+      listRow('certificates', '证书', p.certificates, '某个组织或势力对人物在某个领域的资格认证；显示为“组织 / 领域 / 资格认证等级”。'),
+      listRow('titles', '称号', p.titles, '社会群体对人物成就、名望或过往功绩的认可；显示为“社会群体 / 领域 / 称号名”。'),
     ];
     // 日常驱动（Part8 socialDrive）：身份证单独分区展示
     if ((this.identityTargetId || 'player-self') !== 'player-self') {

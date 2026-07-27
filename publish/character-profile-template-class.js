@@ -39,6 +39,8 @@ window.GameModules.characterProfileTemplateClass = {
       personality: '性格倾向、行为习惯和面对压力时的表现。',
       factions: [{ faction: '所属社群', role: '成员身份', reason: '该社群角色由人物生活处境和关系证据确定。' }],
       memberships: [{ orgName: '所属组织', title: '人事身份', department: '', departmentFog: true, reason: '该人事归属由人物身份、职位或组织关系确定。' }],
+      certificates: [{ orgName: '认证组织', field: '认证领域', level: '资格认证等级', reason: '该证书由可指认组织或势力对人物领域资格的认证确定。' }],
+      titles: [{ society: '认可群体', field: '认可领域', title: '称号名', reason: '该称号由社会群体对人物成就、名望或过往功绩的认可确定。' }],
       job: '',
       jobConfirmed: false,
       rank: '普通成员',

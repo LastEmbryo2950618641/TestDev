@@ -66,6 +66,21 @@ test('memberships do not fabricate China citizenship for non-real-world characte
   assert.strictEqual(result.length, 0);
 });
 
+test('certificates and titles are profile-only identity facts with exact dedupe keys', () => {
+  const context = createContext();
+  const tool = context.window.GameModules.characterProfile;
+  const certificates = tool.uniqueCertificates([
+    { orgName: '中华人民共和国', field: '机动车驾驶证', level: 'C类', reason: '已取得C类驾驶资格。' },
+    { orgName: '中华人民共和国', field: '机动车驾驶证', level: 'C类', reason: '重复证书。' },
+  ]);
+  const titles = tool.uniqueTitles([
+    { society: '中华人民共和国群众', field: '农业', title: '杂交水稻之父', reason: '公众认可其农业贡献。' },
+    { society: '中华人民共和国群众', field: '农业', title: '杂交水稻之父', reason: '重复称号。' },
+  ]);
+  assert.strictEqual(JSON.stringify(certificates), JSON.stringify([{ orgName: '中华人民共和国', field: '机动车驾驶证', level: 'C类', reason: '已取得C类驾驶资格。' }]));
+  assert.strictEqual(JSON.stringify(titles), JSON.stringify([{ society: '中华人民共和国群众', field: '农业', title: '杂交水稻之父', reason: '公众认可其农业贡献。' }]));
+});
+
 (async () => {
   for (const item of tests) {
     await item.fn();

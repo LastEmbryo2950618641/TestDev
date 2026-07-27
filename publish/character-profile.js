@@ -697,7 +697,7 @@ window.GameModules.characterProfile = {
 
   partRequiredRawFields(partIndex, fields = null) {
     const byPart = {
-      1: ['name', 'worldTag', 'age', 'gender', 'factions', 'memberships'],
+      1: ['name', 'worldTag', 'age', 'gender', 'factions', 'memberships', 'certificates', 'titles'],
       2: ['name', 'feeling', 'emotions', 'playerFeelings'],
       3: ['name', 'skills', 'knowledge', 'professions', 'level', 'reason'],
       4: ['name', 'items', 'wearing', 'head', 'top', 'bottom', 'socks', 'shoes'],
@@ -902,6 +902,8 @@ window.GameModules.characterProfile = {
     if (partIndex === 1 && key === 'control_experience') return value && typeof value === 'object' && Number.isInteger(Number(value.上线次数)) && typeof value.习惯程度 === 'string';
     if (partIndex === 1 && key === 'factions') return this.arrayItemsComplete(value, ['faction', 'role', 'reason'], false);
     if (partIndex === 1 && key === 'memberships') return this.arrayItemsComplete(value, ['orgName', 'title', 'reason'], true);
+    if (partIndex === 1 && key === 'certificates') return this.arrayItemsComplete(value, ['orgName', 'field', 'level', 'reason'], true);
+    if (partIndex === 1 && key === 'titles') return this.arrayItemsComplete(value, ['society', 'field', 'title', 'reason'], true);
     if (partIndex === 1 && key === 'initialMetrics') return this.initialMetricsComplete(value);
     if (partIndex === 2 && key === 'feeling') return this.feelingComplete(value);
     if (partIndex === 3 && ['skills', 'knowledge', 'professions'].includes(key)) return this.arrayItemsComplete(value, ['name', 'desc', 'level', 'levelEffects', 'reason'], key === 'professions', (item) => this.learnedItemComplete(item));
@@ -1001,6 +1003,8 @@ window.GameModules.characterProfile = {
       const memberships = this.memberships(out, base, store);
       if (memberships.length) out.memberships = memberships;
     }
+    out.certificates = this.uniqueCertificates(out.certificates || []);
+    out.titles = this.uniqueTitles(out.titles || []);
     return out;
   },
 
@@ -1636,6 +1640,8 @@ window.GameModules.characterProfile = {
     const feeling = { emotions: part2.feeling?.emotions, playerFeelings: part2.feeling?.playerFeelings };
     const merged = { ...part1, ...part3, ...part4, initialMetrics: this.sanitizeInitialMetrics(feeling) };
     merged.memberships = part1.memberships || [];
+    merged.certificates = part1.certificates || [];
+    merged.titles = part1.titles || [];
     if (part4.essentialPreferenceLayers) {
       merged.essentialPreferenceLayers = window.GameModules.playerAspirationPreferenceLayers?.normalizeLayers?.(part4.essentialPreferenceLayers) || part4.essentialPreferenceLayers;
       merged.essentialPreferenceLayersLocked = part4.essentialPreferenceLayersLocked !== false;
@@ -1652,6 +1658,8 @@ window.GameModules.characterProfile = {
   roleReasonsFromParts(profile = {}) {
     const factionText = (profile.factions || []).map((x) => `${x.faction}/${x.role}：${x.reason || ''}`).join('；');
     const membershipText = (profile.memberships || []).map((x) => [x.orgName, x.department, x.title].filter(Boolean).join('/') + `：${x.reason || ''}`).join('；');
+    const certificateText = (profile.certificates || []).map((x) => [x.orgName, x.field, x.level].filter(Boolean).join('/') + `：${x.reason || ''}`).join('；');
+    const titleText = (profile.titles || []).map((x) => [x.society, x.field, x.title].filter(Boolean).join('/') + `：${x.reason || ''}`).join('；');
     return {
       姓名: `${profile.name || '该人物'}的姓名来自 Part1 固化身份字段。`,
       所属世界: profile.worldTag?.reason || `${profile.name || '该人物'}的所属世界来自 Part1 worldTag。`,
@@ -1667,6 +1675,8 @@ window.GameModules.characterProfile = {
       人物说明: profile.detail || '人物说明来自 Part1 detail。',
       社群角色: factionText || '社群角色来自 Part1 factions。',
       人事归属: membershipText || '人事归属来自 Part1 memberships。',
+      证书: certificateText || '证书来自 Part1 certificates。',
+      称号: titleText || '称号来自 Part1 titles。',
       本质偏好: window.GameModules.playerAspirationPreferenceLayers?.summaryText?.(profile.essentialPreferenceLayers) || '本质偏好五层在角色卡生成时固化。',
     };
   },
@@ -2523,6 +2533,8 @@ window.GameModules.characterProfile = {
     const confirmedJob = profile.jobConfirmed === true ? window.GameModules.professionInfo.normalizeJobName(profile.job) : '';
     const factions = this.factionRoles(profile, base, store);
     const memberships = this.memberships(profile, base, store);
+    const certificates = this.uniqueCertificates(profile.certificates || base.certificates || []);
+    const titles = this.uniqueTitles(profile.titles || base.titles || []);
     const validated = {
       ...base,
       name: this.validName(profile.name, base),
@@ -2548,6 +2560,8 @@ window.GameModules.characterProfile = {
       rank: String(memberships[0]?.title || profile.rank || '').slice(0, 30),
       factions,
       memberships,
+      certificates,
+      titles,
       skills: skills.slice(0, 10).map((skill, index) => {
         const name = String(skill.name || `能力${index + 1}`).slice(0, 16);
         const desc = String(skill.desc || '').slice(0, 60);
@@ -2594,7 +2608,7 @@ window.GameModules.characterProfile = {
       wearingRawRows: Array.isArray(profile._csvRows) ? profile._csvRows.filter((row) => String(row || '').startsWith('wearing,')) : [],
       worldValues: this.worldValues(profile.worldValues, attrs, base.name),
       worldAttributes: attrs,
-      rpgFieldReasons: this.rpgFieldReasons(profile.rpgFieldReasons, attrs, { ...base, ...profile, factions, memberships }),
+      rpgFieldReasons: this.rpgFieldReasons(profile.rpgFieldReasons, attrs, { ...base, ...profile, factions, memberships, certificates, titles }),
       initialMetrics: options.skipInitialMetrics ? null : this.initialMetrics(profile.initialMetrics, { ...base, ...profile }),
       essentialPreferenceLayers: profile.essentialPreferenceLayers
         ? window.GameModules.playerAspirationPreferenceLayers?.normalizeLayers?.(profile.essentialPreferenceLayers)
@@ -2753,6 +2767,38 @@ window.GameModules.characterProfile = {
     return items.slice(0, 16);
   },
 
+  uniqueCertificates(value = []) {
+    const seen = new Set();
+    return (Array.isArray(value) ? value : []).map((item) => {
+      const source = item && typeof item === 'object' ? item : {};
+      const orgName = String(source.orgName || source.org || source.organization || source.name || '').trim().slice(0, 40);
+      const field = String(source.field || source.domain || source.major || '').trim().slice(0, 40);
+      const level = String(source.level || source.grade || source.title || '').trim().slice(0, 40);
+      const reason = String(source.reason || source.changeMode || '').trim().slice(0, 120);
+      if (!orgName || !field || !level || !reason) return null;
+      const key = `${orgName}/${field}/${level}`.toLowerCase();
+      if (seen.has(key)) return null;
+      seen.add(key);
+      return { orgName, field, level, reason };
+    }).filter(Boolean).slice(0, 16);
+  },
+
+  uniqueTitles(value = []) {
+    const seen = new Set();
+    return (Array.isArray(value) ? value : []).map((item) => {
+      const source = item && typeof item === 'object' ? item : {};
+      const society = String(source.society || source.group || source.community || source.orgName || source.name || '').trim().slice(0, 40);
+      const field = String(source.field || source.domain || '').trim().slice(0, 40);
+      const title = String(source.title || source.level || source.name || '').trim().slice(0, 40);
+      const reason = String(source.reason || source.changeMode || '').trim().slice(0, 120);
+      if (!society || !field || !title || !reason) return null;
+      const key = `${society}/${field}/${title}`.toLowerCase();
+      if (seen.has(key)) return null;
+      seen.add(key);
+      return { society, field, title, reason };
+    }).filter(Boolean).slice(0, 16);
+  },
+
   carryItemsLoose(value, kind) {
     const p = window.GameModules.progression;
     const list = Array.isArray(value) ? value : [];
@@ -2876,7 +2922,7 @@ window.GameModules.characterProfile = {
   },
 
   roleCardFieldKeys() {
-    return ['姓名', '所属世界', '身份', '职业', '性别', '生日', '人际关系', '外貌', '喜好', '性格', '人物说明', '社群角色', '人事归属'];
+    return ['姓名', '所属世界', '身份', '职业', '性别', '生日', '人际关系', '外貌', '喜好', '性格', '人物说明', '社群角色', '人事归属', '证书', '称号'];
   },
 
   abstractReason(text) {
@@ -2921,7 +2967,7 @@ window.GameModules.characterProfile = {
       const customOk = !Array.isArray(wearing.slot) || wearing.slot.every((item) => String(item?.reason || '').trim());
       return fixedOk && customOk;
     };
-    return hasReason(profile?.factions) && hasReason(profile?.memberships) && optionalReason(profile?.items) && wearingReason(profile?.wearing) && optionalReason(profile?.wearingItems) && optionalReason(profile?.skills);
+    return hasReason(profile?.factions) && hasReason(profile?.memberships) && optionalReason(profile?.certificates) && optionalReason(profile?.titles) && optionalReason(profile?.items) && wearingReason(profile?.wearing) && optionalReason(profile?.wearingItems) && optionalReason(profile?.skills);
   },
 
   ensureInventoryReasons(profile) {

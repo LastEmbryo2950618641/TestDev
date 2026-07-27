@@ -80,17 +80,17 @@ window.GameModules.rpgFieldUi = {
   },
   isRpgFieldOpen(field) { return this.expandedRpgFieldKey === this.rpgFieldKey(field); },
   isRpgItemOpen(field, index) { return this.expandedRpgFieldKey === this.rpgItemKey(field, index); },
-  isRpgListField(field) { return ['knowledge', 'skills', 'professions', 'factions', 'memberships', 'items', 'wearing', 'bodyProfile', 'dressedProfile', 'bodyStatus', 'sexualExperienceParts', 'sexualPartners', 'status_tags'].includes(field?.key) && Array.isArray(field.raw); },
+  isRpgListField(field) { return ['knowledge', 'skills', 'professions', 'factions', 'memberships', 'certificates', 'titles', 'items', 'wearing', 'bodyProfile', 'dressedProfile', 'bodyStatus', 'sexualExperienceParts', 'sexualPartners', 'status_tags'].includes(field?.key) && Array.isArray(field.raw); },
   isIdentityInfoStyledField(field = {}) {
     const label = String(field?.label || '').trim();
     const key = String(field?.key || '').trim();
-    return /姓名|身份|职业|所属世界|年龄|生日|性别|思念度|当前位置|外貌|喜好|性格|人物说明|备注|社群角色|阵营|人事归属|world_tag|current_location|appearance|preferences|personality|detail|factions|memberships|longing|(^|[-_])(name|role|job|work|age|birthday|gender)$/.test(`${label} ${key}`);
+    return /姓名|身份|职业|所属世界|年龄|生日|性别|思念度|当前位置|外貌|喜好|性格|人物说明|备注|社群角色|阵营|人事归属|证书|称号|world_tag|current_location|appearance|preferences|personality|detail|factions|memberships|certificates|titles|longing|(^|[-_])(name|role|job|work|age|birthday|gender)$/.test(`${label} ${key}`);
   },
   identityInfoSummary(field = {}) {
     const meta = this.identityInfoFieldMeta(field);
     const label = String(field?.label || field?.key || '未记录').trim();
     if (this.isRpgListField(field)) {
-      const unit = { factions: '项', memberships: '项', sexualPartners: '人' }[field.key] || '项';
+      const unit = { factions: '项', memberships: '项', certificates: '项', titles: '项', sexualPartners: '人' }[field.key] || '项';
       return `${meta.icon} ${label} · ${this.rpgListItems(field).length}${unit}`;
     }
     const preview = this.identityInfoPreview(field, /外貌|喜好|性格|人物说明|detail|appearance|preferences|personality/.test(`${label} ${field?.key || ''}`) ? 26 : 18);
@@ -291,7 +291,7 @@ window.GameModules.rpgFieldUi = {
       { title: '盛装', fields: dressedState ? [dressedState] : [] },
       { title: '状态标签', fields: take(['status_tags']) },
       { title: '人际关系', fields: relations },
-      { title: '身份信息', fields: [...identityRest, ...(longing ? [longing] : []), ...take(['world_tag', 'age', 'factions', 'memberships'])] },
+      { title: '身份信息', fields: [...identityRest, ...(longing ? [longing] : [])] },
     ];
     let insertAt = groups.findIndex((group) => group.title === '人际关系');
     if (insertAt < 0) insertAt = groups.findIndex((group) => group.title === '身份信息');
@@ -510,9 +510,9 @@ window.GameModules.rpgFieldUi = {
 
   lexiconKind(field, item = null) {
     if (item?.type) return item.type;
-    if (field?.key && !item) return { knowledge: '知识树', skills: '技能树', professions: '职业树', factions: '社群角色', memberships: '人事归属', items: '物品', wearing: '穿着', bodyProfile: '身体原貌', dressedProfile: '盛装状态', status_tags: '状态' }[field.key] || field.kind || '属性';
+    if (field?.key && !item) return { knowledge: '知识树', skills: '技能树', professions: '职业树', factions: '社群角色', memberships: '人事归属', certificates: '证书', titles: '称号', items: '物品', wearing: '穿着', bodyProfile: '身体原貌', dressedProfile: '盛装状态', status_tags: '状态' }[field.key] || field.kind || '属性';
     if (field?.kind) return field.kind;
-    return { factions: '社群角色', memberships: '人事归属', items: '物品', wearing: '穿着', bodyProfile: '身体原貌', dressedProfile: '盛装状态', status_tags: '状态' }[field?.key] || '属性';
+    return { factions: '社群角色', memberships: '人事归属', certificates: '证书', titles: '称号', items: '物品', wearing: '穿着', bodyProfile: '身体原貌', dressedProfile: '盛装状态', status_tags: '状态' }[field?.key] || '属性';
   },
 
   lexiconFor(field, item = null) {
@@ -677,6 +677,18 @@ window.GameModules.rpgFieldUi = {
       const department = obj.department || info.department || '';
       return `组织：${orgName}；${department ? `部门：${department}；` : ''}身份：${title}。该词条说明角色在势力或社群组织架构中的部门、职位、身份或成员关系。`;
     }
+    if (kind === '证书') {
+      const orgName = obj.orgName || info.orgName || name.split('/')[0]?.trim();
+      const field = obj.field || info.field || name.split('/')[1]?.trim() || '领域未记录';
+      const level = obj.level || info.level || name.split('/')[2]?.trim() || '资格未记录';
+      return `认证组织：${orgName}；领域：${field}；资格认证等级：${level}。该词条说明某个组织或势力对人物在某个领域的资格认证。`;
+    }
+    if (kind === '称号') {
+      const society = obj.society || info.society || name.split('/')[0]?.trim();
+      const field = obj.field || info.field || name.split('/')[1]?.trim() || '领域未记录';
+      const title = obj.title || info.title || name.split('/')[2]?.trim() || '称号未记录';
+      return `认可群体：${society}；领域：${field}；称号：${title}。该词条说明社会群体对角色过往成就、名望或功绩的认可，不要求证书证明。`;
+    }
     return `执行“${name}”相关行动时所需的理解、操作熟练度和稳定发挥能力。`;
   },
 
@@ -716,6 +728,8 @@ window.GameModules.rpgFieldUi = {
     if ((kind === '物品' || kind === '穿着' || kind === '装备') && (obj?.id || obj?.ownerId || obj?.characterId)) lines.push(`唯一ID: ${obj.id || '未记录'}`, `所属角色ID: ${obj.ownerId || obj.characterId || '未记录'}`);
     if ((kind === '社群角色' || kind === '阵营') && (obj?.community || obj?.faction || info.community || info.faction)) lines.push(`社群: ${obj.community || obj.faction || info.community || info.faction}`, `角色: ${obj.role || info.role || obj.position || info.position || '成员'}`);
     if (kind === '人事归属' && (obj?.orgName || info.orgName)) lines.push(`组织: ${obj.orgName || info.orgName}`, `部门: ${obj.department || info.department || '未记录'}`, `身份: ${obj.title || info.title || '成员'}`);
+    if (kind === '证书' && (obj?.orgName || info.orgName)) lines.push(`认证组织: ${obj.orgName || info.orgName}`, `领域: ${obj.field || info.field || '未记录'}`, `资格认证等级: ${obj.level || info.level || '未记录'}`);
+    if (kind === '称号' && (obj?.society || info.society)) lines.push(`认可群体: ${obj.society || info.society}`, `领域: ${obj.field || info.field || '未记录'}`, `称号: ${obj.title || info.title || '未记录'}`);
     if (hasLevel) {
       const p = window.GameModules.progression;
       const lv = Number(obj?.level) || 1;
@@ -928,6 +942,8 @@ window.GameModules.rpgFieldUi = {
     if (match(/人物说明|detail|备注/)) return { icon: '📜', section: 'lore', tone: 'gold' };
     if (match(/社群角色|阵营|factions/)) return { icon: '🏘️', section: 'list', tone: 'cyan', itemIcon: '◈' };
     if (match(/人事归属|memberships/)) return { icon: '🪪', section: 'list', tone: 'gold', itemIcon: '✦' };
+    if (match(/证书|certificates/)) return { icon: '📜', section: 'list', tone: 'gold', itemIcon: '◆' };
+    if (match(/称号|titles/)) return { icon: '🏅', section: 'list', tone: 'violet', itemIcon: '✦' };
     return { icon: '✧', section: 'core', tone: 'violet' };
   },
 
@@ -943,6 +959,12 @@ window.GameModules.rpgFieldUi = {
       const title = item.title || '';
       const department = item.department || '';
       return [orgName, department, title].filter(Boolean).join(' / ');
+    }
+    if (/证书|certificates/.test(`${label} ${field?.key || ''}`)) {
+      return [item.orgName || item.name || '未记录', item.field || '', item.level || ''].filter(Boolean).join(' / ');
+    }
+    if (/称号|titles/.test(`${label} ${field?.key || ''}`)) {
+      return [item.society || item.name || '未记录', item.field || '', item.title || ''].filter(Boolean).join(' / ');
     }
     return this.rpgItemSummary(item, field);
   },

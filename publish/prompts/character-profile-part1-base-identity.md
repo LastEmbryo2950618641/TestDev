@@ -62,7 +62,7 @@ Rules：
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "required": ["name", "worldTag", "age", "gender", "learningAbility", "mentalStability", "growthPotential", "actionAbility", "relationships", "role", "detail", "appearance", "preferences", "personality", "factions", "memberships", "job", "jobConfirmed", "rank", "control_experience"],
+  "required": ["name", "worldTag", "age", "gender", "learningAbility", "mentalStability", "growthPotential", "actionAbility", "relationships", "role", "detail", "appearance", "preferences", "personality", "factions", "memberships", "certificates", "titles", "job", "jobConfirmed", "rank", "control_experience"],
   "additionalProperties": false,
   "properties": {
     "name": { "type": "string", "minLength": 1, "description": "当前人物正式姓名。当人物基础区给出正式姓名时必须逐字复制，不得同音改字、近形改字。" },
@@ -79,8 +79,10 @@ Rules：
     "appearance": { "type": "string", "minLength": 1, "maxLength": 50, "description": "外貌。50字以内，感官细节优先，不承载详细穿着偏好。" },
     "preferences": { "type": "string", "minLength": 1, "description": "稳定喜好。必须提取穿着偏好、颜色偏好、审美习惯和随身物偏好；没有明确喜好时写可由身份和性格推断的保守喜好。" },
     "personality": { "type": "string", "minLength": 1, "description": "性格与关系边界。一句话，不写外貌。" },
-    "factions": { "type": "array", "items": { "type": "object", "required": ["faction", "role", "reason"], "additionalProperties": false, "properties": { "faction": { "type": "string", "minLength": 1 }, "role": { "type": "string", "minLength": 1 }, "reason": { "type": "string", "minLength": 1 } } }, "description": "社群角色列表。见下方「社群角色 / 人事归属」定义与归类要求。" },
-    "memberships": { "type": "array", "items": { "type": "object", "required": ["orgName", "title", "department", "departmentFog", "reason"], "additionalProperties": false, "properties": { "orgName": { "type": "string", "minLength": 1 }, "title": { "type": "string", "minLength": 1 }, "department": { "type": "string" }, "departmentFog": { "type": "boolean" }, "reason": { "type": "string", "minLength": 1 } } }, "description": "人事归属列表。见下方「社群角色 / 人事归属」定义与归类要求。" },
+    "factions": { "type": "array", "items": { "type": "object", "required": ["faction", "role", "reason"], "additionalProperties": false, "properties": { "faction": { "type": "string", "minLength": 1 }, "role": { "type": "string", "minLength": 1 }, "reason": { "type": "string", "minLength": 1 } } }, "description": "社群角色列表。见下方「社群角色 / 人事归属 / 证书 / 称号」定义与归类要求。" },
+    "memberships": { "type": "array", "items": { "type": "object", "required": ["orgName", "title", "department", "departmentFog", "reason"], "additionalProperties": false, "properties": { "orgName": { "type": "string", "minLength": 1 }, "title": { "type": "string", "minLength": 1 }, "department": { "type": "string" }, "departmentFog": { "type": "boolean" }, "reason": { "type": "string", "minLength": 1 } } }, "description": "人事归属列表。见下方「社群角色 / 人事归属 / 证书 / 称号」定义与归类要求。" },
+    "certificates": { "type": "array", "items": { "type": "object", "required": ["orgName", "field", "level", "reason"], "additionalProperties": false, "properties": { "orgName": { "type": "string", "minLength": 1 }, "field": { "type": "string", "minLength": 1 }, "level": { "type": "string", "minLength": 1 }, "reason": { "type": "string", "minLength": 1 } } }, "description": "证书列表：某个组织或势力对人物在某个领域的资格认证，显示为 组织/领域/资格认证等级。" },
+    "titles": { "type": "array", "items": { "type": "object", "required": ["society", "field", "title", "reason"], "additionalProperties": false, "properties": { "society": { "type": "string", "minLength": 1 }, "field": { "type": "string", "minLength": 1 }, "title": { "type": "string", "minLength": 1 }, "reason": { "type": "string", "minLength": 1 } } }, "description": "称号列表：社会群体对人物成就、名望或过往功绩的认可，显示为 社会群体/领域/称号名。" },
     "job": { "type": "string", "description": "已内化职业。不确定时返回空字符串。" },
     "jobConfirmed": { "type": "boolean", "description": "job是否有确认证据。job为空时必须false。" },
     "rank": { "type": "string", "description": "首要人事身份。通常取memberships[0].title；没有组织归属时可取role中的身份定位。" },
@@ -95,14 +97,16 @@ Rules：
 3. `detail`/`personality` 各一句话，不混写。
 4. `appearance` 必须以感官细节优先，50字以内：调动视觉、触觉、听觉等多维度感知而非单一维度的直白叙述；善用隐喻和类比，通过环境、光线、动态等间接元素烘托；控制节奏与聚焦，聚焦某一局部（如指尖、颈侧、发梢）逐步展开，而非全景扫描式罗列。示例：“黑直长发垂落肩侧，校服领口露出细白颈线，低垂的睫毛在颧骨上投下一小片阴影。”
 5. `preferences` 必须专门承接稳定喜好，尤其是穿着偏好。输入出现“JK/制服/过膝袜/连裤袜/丝袜/黑丝/白丝/黑色/白色”等词时必须逐字保留到 preferences，不得只塞进 appearance 或忽略。例如“偏爱JK制服、百褶裙、黑色过膝袜或连裤袜，审美干净少女系”。
-6. **社群角色 / 人事归属（先理解含义，再填构成要素，再求全）**
+6. **社群角色 / 人事归属 / 证书 / 称号（先理解含义，再填构成要素，再求全）**
 
 ### 6.1 定义（含义）
 
 - **社群角色 `factions`**：角色在相对软性、日常社会关系网中的位置——“我在这个圈子里是谁”。强调社会角色与归属感，不要求正式编制或劳动合同。
 - **人事归属 `memberships`**：角色在可指认组织实体中的正式或准正式身份——“我在这个组织里担任什么”。强调组织编制、学籍、职级、成员身份等可核对关系。
+- **证书 `certificates`**：某个组织或势力对人物在某个领域的资格认证——“谁证明我具备什么资格/等级”。强调认证主体、领域、资格等级，不等同于职位。
+- **称号 `titles`**：社会群体对人物成就、名望或过往功绩的认可——“某个群体怎样称呼/认可我”。不要求证书证明，但必须有认可主体、领域、称号名。
 
-判断时先看含义是否贴近，不要因为措辞不够“硬”或不够“官方”就整条丢掉；边界模糊时选更贴近的一类写入，**禁止因过严分类把本有事实依据的身份判成“都不是”**。
+判断时先看含义是否贴近，不要因为措辞不够“硬”或不够“官方”就整条丢掉；边界模糊时选更贴近的一类写入，**禁止因过严分类把本有事实依据的身份判成“都不是”**。若同一事实同时像多类，优先按事实核心二选一：组织职位写人事归属，资格认证写证书，社会认可名号写称号，软性圈层位置写社群角色。
 
 ### 6.2 构成要素
 
@@ -112,19 +116,24 @@ Rules：
 - **人事归属**每项：`orgName`（组织名）+ `title`（职位/学籍/成员身份）+ `department`（部门；未知则 `""` 且 `departmentFog=true`）+ `reason`。
   - 组织名可为：具体国家、学校、院系、公司、部门、机关、社团正式编制、家庭组织实体等。
   - 同一实体若既有软性角色又有编制身份（如学校：社群侧“学生朋友圈中的同学”，人事侧“某校高二学生”），允许两边各写一条，要素不同即可。
+- **证书**每项：`orgName`（认证组织/势力）+ `field`（认证领域）+ `level`（资格认证等级）+ `reason`。
+  - 用于学历学位、执照、资质、等级考试、职业资格、驾驶证、魔法/武道/异能认证等有认证主体的稳定资格。
+- **称号**每项：`society`（认可群体）+ `field`（认可领域）+ `title`（称号名）+ `reason`。
+  - 用于公众、行业圈、族群、国家群众、门派、帮派、同人圈等对其功绩、名望或代表性身份的稳定认可。
 
 ### 6.3 归类完备性（尽可能全）
 
-- 资料/上下文中**已经出现**、且有事实依据、**非胡编乱造**的身份与归属，**必须**归入社群角色或人事归属二者之一（或按 6.2 合理双边各写）。
+- 资料/上下文中**已经出现**、且有事实依据、**非胡编乱造**的稳定身份、归属、资格认证、社会称号，**必须**归入社群角色、人事归属、证书、称号四者之一（或要素不同时合理多边各写）。
 - 求全优先于过严过滤：宁可按定义归入更贴近的一类，也不要因“不够典型”而省略。
 - 仍不要编造未出现的组织或角色；不要写无主体的空壳身份（如单独的“现实社会/现代社会/成年人”且无具体组织或圈子名）。
 - 当前世界为“2026 现代都市现实世界”且无其他国家证据时，可写 `中华人民共和国 / 公民` 人事归属；非现实世界不要因现代生活描写自动补现实国籍。
 - 学生尽量写到学校/院系/年级；职场尽量写到公司/部门/岗位；部门未知时 `departmentFog=true`。
+- 证书和称号禁止重复；同一 `组织/领域/等级` 或同一 `认可群体/领域/称号名` 只写一次。
 
-7. 所有含 `reason` 的字段（`worldTag.reason`/`age.reason`/`learningAbility.reason`/`mentalStability.reason`/`growthPotential.reason`/`actionAbility.reason`/`factions[].reason`/`memberships[].reason`）必须结合角色动机、处境、性格与过去经历来写，不得使用固定句式模板，不得写空话。
+7. 所有含 `reason` 的字段（`worldTag.reason`/`age.reason`/`learningAbility.reason`/`mentalStability.reason`/`growthPotential.reason`/`actionAbility.reason`/`factions[].reason`/`memberships[].reason`/`certificates[].reason`/`titles[].reason`）必须结合角色动机、处境、性格与过去经历来写，不得使用固定句式模板，不得写空话。
 
 ## 完整 JSON 示例
 
-{"name":"刘思琪","worldTag":{"value":"2026 现代都市现实世界","reason":"刘思琪所属世界来自默认账号激活的2026现代都市现实世界。"},"age":{"value":16,"reason":"刘思琪年龄按2026年推算约为16-17岁。"},"gender":"女","learningAbility":{"value":8,"reason":"刘思琪学习能力来自外国语学校训练和高中阶段学习经验。"},"mentalStability":{"value":6,"reason":"刘思琪精神稳定来自家庭支持，但内向性格使压力积累。"},"growthPotential":{"value":9,"reason":"刘思琪成长潜力来自年轻年龄和尚未定型的发展方向。"},"actionAbility":{"value":5,"reason":"刘思琪行动能力由年轻女性体能和校园生活经验决定。"},"relationships":"姐姐：刘思瑶；母亲：张惠兰","role":"高中二年级学生、妹妹","detail":"住在深圳市南山区粤海街道，就读于深圳外国语学校高二，与母亲和姐姐同住。","appearance":"黑直长发垂落肩侧，校服领口露出细白颈线，低垂的睫毛在颧骨上投下一小片阴影。","preferences":"偏爱JK制服、百褶裙、黑色过膝袜或连裤袜，审美干净少女系。","personality":"安静内向但心思细腻，对亲近的人温柔体贴，对陌生人保持距离。","factions":[{"faction":"刘家","role":"小女儿","reason":"张惠兰与刘建国的次女，自幼在刘家长大。"},{"faction":"深圳外国语学校","role":"学生","reason":"就读于该校高中部二年级。"}],"memberships":[{"orgName":"中华人民共和国","title":"公民","department":"","departmentFog":false,"reason":"刘思琪没有明确指向其他国家，按2026现代都市现实世界背景登记为中华人民共和国公民。"},{"orgName":"深圳外国语学校-高中部","title":"高二学生","department":"高中部","departmentFog":false,"reason":"目前就读于该校高中部二年级。"}],"job":"","jobConfirmed":false,"rank":"公民","control_experience":{"上线次数":0,"习惯程度":"初次操控尚不熟悉"}}
+{"name":"刘思琪","worldTag":{"value":"2026 现代都市现实世界","reason":"刘思琪所属世界来自默认账号激活的2026现代都市现实世界。"},"age":{"value":16,"reason":"刘思琪年龄按2026年推算约为16-17岁。"},"gender":"女","learningAbility":{"value":8,"reason":"刘思琪学习能力来自外国语学校训练和高中阶段学习经验。"},"mentalStability":{"value":6,"reason":"刘思琪精神稳定来自家庭支持，但内向性格使压力积累。"},"growthPotential":{"value":9,"reason":"刘思琪成长潜力来自年轻年龄和尚未定型的发展方向。"},"actionAbility":{"value":5,"reason":"刘思琪行动能力由年轻女性体能和校园生活经验决定。"},"relationships":"姐姐：刘思瑶；母亲：张惠兰","role":"高中二年级学生、妹妹","detail":"住在深圳市南山区粤海街道，就读于深圳外国语学校高二，与母亲和姐姐同住。","appearance":"黑直长发垂落肩侧，校服领口露出细白颈线，低垂的睫毛在颧骨上投下一小片阴影。","preferences":"偏爱JK制服、百褶裙、黑色过膝袜或连裤袜，审美干净少女系。","personality":"安静内向但心思细腻，对亲近的人温柔体贴，对陌生人保持距离。","factions":[{"faction":"刘家","role":"小女儿","reason":"张惠兰与刘建国的次女，自幼在刘家长大。"},{"faction":"深圳外国语学校","role":"学生","reason":"就读于该校高中部二年级。"}],"memberships":[{"orgName":"中华人民共和国","title":"公民","department":"","departmentFog":false,"reason":"刘思琪没有明确指向其他国家，按2026现代都市现实世界背景登记为中华人民共和国公民。"},{"orgName":"深圳外国语学校-高中部","title":"高二学生","department":"高中部","departmentFog":false,"reason":"目前就读于该校高中部二年级。"}],"certificates":[],"titles":[],"job":"","jobConfirmed":false,"rank":"公民","control_experience":{"上线次数":0,"习惯程度":"初次操控尚不熟悉"}}
 
 注意：Schema优先级高于示例。当示例与字段定义冲突时，以Schema为准。
