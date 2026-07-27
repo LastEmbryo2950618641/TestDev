@@ -1313,6 +1313,14 @@ window.GameModules.realWorldAgentLoop = {
     return String(item?.id || item?.idOrName || item?.name || item?.characterName || '').trim();
   },
 
+  participantBlockKeys(item = {}) {
+    return [
+      this.participantDisplayName(item),
+      this.participantKey(item),
+      String(item?.name || item?.characterName || '').trim(),
+    ].filter(Boolean);
+  },
+
   dedupeParticipants(items = [], options = {}) {
     const seen = new Set();
     const blockedNames = options.blockedNames || new Set();
@@ -1360,19 +1368,19 @@ window.GameModules.realWorldAgentLoop = {
     const forcedBase = this.latestLayer(items, 'forcedParticipants').map((item) => ({ ...item, role: item.role || 'forced', canSettle: item.canSettle === false ? false : true }));
     const systemForced = this.currentForcedParticipants(store, config).map((item) => ({ ...item, role: item.role || 'actor', canSettle: true, reason: item.reason || '系统固定强制出场' }));
     const forcedParticipants = this.dedupeParticipants([...forcedBase, ...systemForced]);
-    const forcedNames = new Set(forcedParticipants.flatMap((item) => [this.participantDisplayName(item), this.participantKey(item)]).filter(Boolean));
+    const forcedNames = new Set(forcedParticipants.flatMap((item) => this.participantBlockKeys(item)));
 
     const forbiddenRaw = this.latestLayer(items, 'forbiddenParticipants').map((item) => ({ ...item, role: item.role || 'forbidden', canLoadRoleCard: false, canEnterNarration: false, canSettle: false }));
     const forbiddenParticipants = this.dedupeParticipants(forbiddenRaw, { blockedNames: forcedNames });
-    const forbiddenNames = new Set(forbiddenParticipants.flatMap((item) => [this.participantDisplayName(item), this.participantKey(item)]).filter(Boolean));
+    const forbiddenNames = new Set(forbiddenParticipants.flatMap((item) => this.participantBlockKeys(item)));
 
     const priorityBlocked = new Set([...forcedNames, ...forbiddenNames]);
     const priorityCandidates = this.dedupeParticipants(this.latestLayer(items, 'priorityCandidates').map((item) => ({ ...item, role: item.role || 'priority-candidate', canSettle: false })), { blockedNames: priorityBlocked });
-    const priorityNames = new Set(priorityCandidates.flatMap((item) => [this.participantDisplayName(item), this.participantKey(item)]).filter(Boolean));
+    const priorityNames = new Set(priorityCandidates.flatMap((item) => this.participantBlockKeys(item)));
 
     const dramaBlocked = new Set([...priorityBlocked, ...priorityNames]);
     const dramaCandidates = this.dedupeParticipants(this.latestLayer(items, 'dramaCandidates').map((item) => ({ ...item, role: item.role || 'drama-candidate', canSettle: false })), { blockedNames: dramaBlocked });
-    const dramaNames = new Set(dramaCandidates.flatMap((item) => [this.participantDisplayName(item), this.participantKey(item)]).filter(Boolean));
+    const dramaNames = new Set(dramaCandidates.flatMap((item) => this.participantBlockKeys(item)));
 
     const randomBlocked = new Set([...dramaBlocked, ...dramaNames]);
     const randomActiveEvents = this.dedupeParticipants(this.latestLayer(items, 'randomActiveEvents'), { blockedNames: randomBlocked });
