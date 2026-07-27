@@ -26,12 +26,13 @@ test('faction audit prompt requires worldTag and forbids hardcoded China seed', 
   assert.ok(!md.includes('中国人、中国地址或无明确国家证据时默认“中华人民共和国”'));
 });
 
-test('faction query skill documents Stage6 create/patch and Stage1 field read', () => {
+test('faction query skill documents Stage9 create/patch and Stage1 field read', () => {
   const skill = read('publish/skills/faction-query/SKILL.md');
   const inline = read('publish/skill-docs-inline.js');
   assert.ok(skill.includes('createFaction'));
   assert.ok(skill.includes('patchFactionField'));
   assert.ok(skill.includes('getFactionField'));
+  assert.ok(skill.includes('Stage9'));
   assert.ok(inline.includes('createFaction'));
   assert.ok(inline.includes('patchFactionField'));
 });

@@ -310,7 +310,7 @@ window.GameModules = window.GameModules || {};
       const panel = this.panelKeyAlias(params.panel || params.面板 || '');
       const field = String(params.field || params.字段 || params.key || '').trim();
       const op = String(params.op || params.operation || 'set').trim().toLowerCase();
-      const reason = String(params.reason || 'Stage6 字段更新').slice(0, 200);
+      const reason = String(params.reason || 'Stage9 势力字段更新').slice(0, 200);
       const now = store.phoneDate?.().toISOString?.() || new Date().toISOString();
       if (!field) return '更新失败：缺少 field。';
 

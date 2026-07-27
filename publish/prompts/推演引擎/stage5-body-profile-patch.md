@@ -1,4 +1,4 @@
-# Stage6 自然外观补丁
+# Stage7 自然外观补丁
 
 ## System Prompt
 

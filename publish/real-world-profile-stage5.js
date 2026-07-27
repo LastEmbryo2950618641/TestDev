@@ -191,9 +191,9 @@ window.GameModules.realWorldProfileStage5 = {
     agentLoop.markConfiguredStep(store, logId, `${config.label}并行判定外观更新…`, config, { keepNarration: true });
     const raw = await agentLoop.completeConfiguredStep(store, prompt, logId, false, {
       ...config,
-      sourceTitle: `${config.label}Stage5 外观判定`,
+      sourceTitle: `${config.label}Stage6 外观判定`,
       promptId: 'inference-stage5-profile-gate',
-      reasoningPhase: 'stage5',
+      reasoningPhase: 'stage6',
       jsonMode: true,
     });
     return window.GameModules.jsonUtils.parseLoose(raw);
@@ -265,8 +265,8 @@ window.GameModules.realWorldProfileStage5 = {
     if (!state?.profile) return null;
     const profileType = target.profileType || 'dressedProfile';
     const updateScope = target.updateScope || 'parts';
-    const reasoningPhase = profileType === 'bodyProfile' ? 'stage6' : 'stage7';
-    const stageTitle = profileType === 'bodyProfile' ? 'Stage6 自然外观补丁' : 'Stage7 盛装外观补丁';
+    const reasoningPhase = profileType === 'bodyProfile' ? 'stage7' : 'stage8';
+    const stageTitle = profileType === 'bodyProfile' ? 'Stage7 自然外观补丁' : 'Stage8 盛装外观补丁';
     agentLoop.markConfiguredStep(store, logId, `${config.label}${stageTitle}：${target.subject}（${updateScope}）…`, config, { keepNarration: true });
     const profile = state.profile;
     const base = { id: state.id, name: profile.name || state.name };
@@ -344,7 +344,7 @@ window.GameModules.realWorldProfileStage5 = {
       ].filter(Boolean).join('\n');
       return patch;
     } catch (err) {
-      console.warn('Stage5 patch 解析失败:', err.message, raw ? raw.slice(0, 120) : '');
+      console.warn('Stage6–8 外观 patch 解析失败:', err.message, raw ? raw.slice(0, 120) : '');
       return null;
     }
   },
@@ -368,7 +368,7 @@ window.GameModules.realWorldProfileStage5 = {
       }
       return { patches, gate, skipped: !patches.length };
     } catch (err) {
-      console.warn('Stage5 外观更新失败:', err.message);
+      console.warn('Stage6–8 外观更新失败:', err.message);
       return { patches: [], gate: null, skipped: true, error: err.message };
     }
   },

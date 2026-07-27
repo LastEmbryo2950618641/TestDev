@@ -200,7 +200,7 @@ window.GameModules.realWorldActions = {
     try {
       fogResult = await window.GameModules.realWorldMapFog?.afterLocationUpdate?.(this, { ...result, logId: id }) || {};
     } finally {
-      // Stage9 可能已追加到 pending 会话；回写存档后再清，保证续玩能续上前缀。
+      // Stage10 可能已追加到 pending 会话；回写存档后再清，保证续玩能续上前缀。
       const pending = window.GameModules.realWorldAgentLoop?.pendingKvCacheSession?.(this, 'real');
       if (pending) window.GameModules.realWorldAgentLoop?.persistAgentConversation?.(this, pending, 'real');
       window.GameModules.realWorldAgentLoop?.clearPendingKvCacheSession?.(this, 'real');

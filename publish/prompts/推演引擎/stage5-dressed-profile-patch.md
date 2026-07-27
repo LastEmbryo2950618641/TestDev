@@ -1,4 +1,4 @@
-# Stage7 盛装外观补丁
+# Stage8 盛装外观补丁
 
 ## System Prompt
 

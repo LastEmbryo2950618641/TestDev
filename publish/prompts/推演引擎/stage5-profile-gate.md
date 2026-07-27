@@ -1,10 +1,10 @@
-# Stage5 外观判定
+# Stage6 外观判定
 
 任务：只输出一个合法 JSON 对象，不输出 Markdown、代码块、正文或解释。
 
 ## 目标
 
-根据本轮正文与 Stage4 结算结果，判断哪些出场角色的外观档案需要局部更新：
+根据本轮正文、Stage4 结算结果与 Stage5 介绍卡更新结果，判断哪些出场角色的外观档案需要局部更新：
 
 - `dressedProfile` + `dressedProfileMeta`（盛装 Part6，临时打扮变化，**优先**）
 - `bodyProfile` + `bodyProfileMeta`（自然 Part5，**永久**体貌变化，**极从严**）

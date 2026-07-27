@@ -52,7 +52,7 @@ const prompt = gm.inferenceNewsDriverStageUpdate.buildPrompt({
   narration: '你打开手机，看到小区群里有人讨论新开的折扣超市。',
 });
 
-assert.match(prompt, /# Stage11 世界新闻热榜结算/u);
+assert.match(prompt, /# Stage12 世界新闻热榜结算/u);
 assert.match(prompt, /固定频道/u);
 assert.match(prompt, /邻里仓折扣超市/u);
 assert.match(prompt, /刷手机看看附近有什么动静/u);

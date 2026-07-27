@@ -90,7 +90,21 @@ window.GameModules.realWorldThinkingActions = {
       group.traceLines.push(...this.realWorldTraceItemLines(item).map((line) => this.cleanRealWorldThinkingText(line)).filter(Boolean));
     });
 
-    const order = { stage1: 10, stage2: 20, stage3: 30, stage4: 40, stage5: 50, unknown: 90 };
+    const order = {
+      stage1: 10,
+      stage2: 20,
+      stage3: 30,
+      stage4: 40,
+      stage5: 50,
+      stage6: 60,
+      stage7: 70,
+      stage8: 80,
+      stage9: 90,
+      stage10: 100,
+      stage11: 110,
+      stage12: 120,
+      unknown: 900,
+    };
     return [...groupMap.values()]
       .map((group) => ({
         ...group,

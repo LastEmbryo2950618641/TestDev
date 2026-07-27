@@ -222,17 +222,20 @@ test('index and asset sync do not use old prompt inline or prompt script paths',
   assert.ok(!html.includes('src="update/body-status-update-prompt.js"'));
   assert.ok(!html.includes('src="init/intimacy-body-init-prompt.js"'));
   assert.ok(!html.includes('src="prompts/推演引擎/'));
-  assert.ok(html.includes('src="inference-prompts-runtime.js"'));
+  assert.ok(html.includes('src="boot/script-manifest.js'));
+  const scripts = JSON.parse(fs.readFileSync(path.join(root, 'publish/boot/scripts.json'), 'utf8'));
+  assert.ok(scripts.includes('inference-prompts-runtime.js'));
+  assert.ok(scripts.indexOf('inference/intro-card-stage-update.js') < scripts.indexOf('real-world-agent-loop.js'));
 });
 
-test('inference runtime bundle registers stage update and init prompts from ASCII path', () => {
+test('inference runtime bundle registers stage, update, and init prompts from ASCII path', () => {
   const context = createContext();
   loadScript(context, 'publish/update/update-registry.js');
   loadScript(context, 'publish/init/intimacy-body-init-template.js');
   loadScript(context, 'publish/inference-prompts-runtime.js');
   assert.ok(context.window.GameModules.promptTemplates.inline['inference-stage1-guided-query'].includes('查询规划'));
-  assert.ok(context.window.GameModules.updateRegistry.prompts['body-status-update'].includes('# body-status-update'));
-  assert.strictEqual(context.window.GameModules.initPromptSources['intimacy-body'].templateKey, 'intimacyBody');
+  assert.ok(context.window.GameModules.promptTemplates.inline['inference-update-body-status'].includes('# Stage4 身体状态更新'));
+  assert.ok(context.window.GameModules.promptTemplates.inline['inference-init-intimacy-body'].includes('# Stage4 亲密身体初始化'));
 });
 
 test('inference runtime bundle keeps Stage1 Stage2 Stage3 slim template fields clean', () => {
@@ -258,21 +261,21 @@ test('inference runtime bundle keeps Stage1 Stage2 Stage3 slim template fields c
   });
   assert.ok(stage1.includes('{{路由上下文}}'), 'Stage1 runtime template should include {{路由上下文}}');
   assert.ok(stage2.includes('{{场景锚定上下文}}'), 'Stage2 runtime template should include {{场景锚定上下文}}');
-  assert.ok(stage2.includes('当前场景影响对象：'), 'Stage2 runtime template should include 当前场景影响对象：');
+  assert.ok(stage2.includes('当前场景影响对象'), 'Stage2 runtime template should include 当前场景影响对象');
   assert.ok(stage2.includes('最终有效候选层'), 'Stage2 runtime template should mention final effective candidate layers');
   assert.ok(stage2.includes('不得从历史 trace 中恢复已被后轮清除的候选'), 'Stage2 runtime template should forbid restoring cleared trace candidates');
   assert.ok(stage3.includes('当前场景影响对象'), 'Stage3 runtime template should reference current scene impact objects');
   assert.ok(runtime.includes('{{路由上下文}}'));
   assert.ok(runtime.includes('{{场景锚定上下文}}'));
-  assert.ok(runtime.includes('当前场景影响对象：'));
+  assert.ok(runtime.includes('当前场景影响对象'));
 });
 
-test('colocated generated update prompts register into updateRegistry', () => {
+test('colocated generated update prompts register into promptTemplates inline registry', () => {
   const context = createContext();
-  loadScript(context, 'publish/update/update-registry.js');
+  loadScript(context, 'publish/prompt-templates.js');
   loadScript(context, 'publish/prompts/推演引擎/update/body-status-update-prompt.js');
-  const body = context.window.GameModules.updateRegistry.prompts['body-status-update'];
-  assert.ok(body.includes('# body-status-update'));
+  const body = context.window.GameModules.promptTemplates.inline['inference-update-body-status'];
+  assert.ok(body.includes('# Stage4 身体状态更新'));
 });
 
 test('colocated generated stage prompts register into promptTemplates inline registry', () => {
@@ -416,7 +419,7 @@ test('colocated generated prompt scripts are tracked for publishing', () => {
     'publish/prompts/推演引擎/init/intimacy-body-init-prompt.js',
     ...templateScripts,
   ];
-  const tracked = new Set(require('child_process').execFileSync('git', ['ls-files', ...files], { cwd: root, encoding: 'utf8' }).trim().split('\n').filter(Boolean));
+  const tracked = new Set(require('child_process').execFileSync('git', ['ls-files', '-z', '--', ...files], { cwd: root, encoding: 'utf8' }).split('\0').filter(Boolean));
   files.forEach((file) => assert.ok(tracked.has(file), `${file} is not tracked and will be missing from publish`));
 });
 
@@ -450,13 +453,10 @@ test('colocated generated init prompt keeps intimacyBody template binding', () =
   assert.ok(JSON.stringify(context.window.GameModules.initPromptRegistry.schema(['intimacy-body'])).includes('initUpdates'));
 });
 
-test('Stage 1 prompt requires Chinese K:V guided query planning', async () => {
+test('Stage 1 prompt requires JSON guided query planning', async () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
-  context.window.GameModules.promptTemplates.render = async (id, vars) => (id === 'inference-stage1-guided-query'
-    ? `只输出中文 K:V\n查询规划：\n资料状态：\n强制出场：\n资料请求1：角色查询，搜索角色卡，角色全称，世界全称\n随机场外角色候选：${vars.随机场外角色候选}`
-    : JSON.stringify(vars));
   const config = loop.realConfig();
   config.ctx = {
     buildLoadedText: () => '',
@@ -466,14 +466,15 @@ test('Stage 1 prompt requires Chinese K:V guided query planning', async () => {
     randomActiveEventCandidates: () => [{ id: 'boss', name: '王主管' }],
   };
   const prompt = await loop.buildConfiguredPrompt({ store: makeStore(), action: '和刘思琪对话', base: '基础', loaded: [], skills: '', step: 1, config });
-  assert.ok(prompt.includes('只输出中文 K:V'));
-  assert.ok(prompt.includes('查询规划：'));
-  assert.ok(prompt.includes('资料状态：'));
-  assert.ok(prompt.includes('强制出场：'));
-  assert.ok(prompt.includes('资料请求1：角色查询，搜索角色卡'));
-  assert.ok(prompt.includes('随机场外角色候选'));
-  assert.ok(prompt.includes('王主管'));
-  assert.ok(!prompt.includes('只允许返回一个合法 JSON 对象'));
+  const promptText = prompt.map((message) => message.content).join('\n');
+  assert.ok(promptText.includes('只输出一个合法 JSON 对象'));
+  assert.ok(promptText.includes('"plan":"查询规划摘要"'));
+  assert.ok(promptText.includes('"status":"继续请求资料|资料已足够"'));
+  assert.ok(promptText.includes('"participants":{"forced"'));
+  assert.ok(promptText.includes('"materialRequests"'));
+  assert.ok(promptText.includes('随机场外角色候选'));
+  assert.ok(promptText.includes('王主管'));
+  assert.ok(!promptText.includes('只输出中文 K:V'));
 });
 
 test('Stage 1 real template render does not include Stage 3 narration instructions', async () => {
@@ -487,17 +488,17 @@ test('Stage 1 real template render does not include Stage 3 narration instructio
   config.ctx = { buildLoadedText: () => '', limit: (text) => String(text || ''), randomActiveEventCandidates: () => [] };
 
   const prompt = await loop.buildConfiguredPrompt({ store: makeStore(), action: '观察门口', base: '基础', loaded: [], skills: '', step: 1, config });
+  const promptText = prompt.map((message) => message.content).join('\n');
 
-  assert.ok(prompt.includes('只输出中文 K:V'));
-  assert.ok(prompt.includes('查询规划：'));
-  assert.ok(prompt.includes('即使资料状态为“资料已足够”，也必须逐行输出固定输出顺序中的每个字段'));
-  assert.ok(prompt.includes('没有内容的字段写“无”'));
-  assert.ok(!prompt.includes('你只输出现实正文'));
-  assert.ok(!prompt.includes('场景锚定报告：'));
-  assert.ok(!prompt.includes('输出示例：'));
-  assert.ok(!prompt.includes('sceneTitle'));
-  assert.ok(!prompt.includes('genericUpdates'));
-  assert.ok(!prompt.includes('updateType'));
+  assert.ok(promptText.includes('只输出一个紧凑 JSON 对象'));
+  assert.ok(promptText.includes('"plan":"查询规划摘要"'));
+  assert.ok(promptText.includes('"sceneQueries"'));
+  assert.ok(promptText.includes('"participants"'));
+  assert.ok(!promptText.includes('你只输出现实正文'));
+  assert.ok(!promptText.includes('场景锚定报告：'));
+  assert.ok(!promptText.includes('sceneTitle'));
+  assert.ok(!promptText.includes('genericUpdates'));
+  assert.ok(!promptText.includes('updateType'));
 });
 
 test('Stage 1 prompt uses slim routing context without final narration settlement or skill manuals', async () => {
@@ -511,6 +512,8 @@ test('Stage 1 prompt uses slim routing context without final narration settlemen
   store.phoneTimeText = () => '01:20';
   store.playerSetupSummary = () => '姓名：刘悠\n生日：1998-11-19\n具体地址：锦苑小区3栋2单元601号\n财富等级：中产\n父母去世原因：交通事故';
   const config = loop.realConfig();
+  config.ctx.buildLoadedText = () => '';
+  config.ctx.buildStage1RoutingContext = () => '路由上下文';
   config.ctx.randomActiveEventCandidates = () => [{ id: 'boss', name: '王主管' }];
 
   const prompt = await loop.buildConfiguredPrompt({
@@ -523,16 +526,14 @@ test('Stage 1 prompt uses slim routing context without final narration settlemen
     config,
   });
 
+  const promptText = prompt.map((message) => message.content).join('\n');
   ['elapsedSeconds', 'final.wechatActions', 'subject.id', '结算对象', '类型完成', '正文必须', '场景锚定报告', 'Skill：', '激活条件', '返回格式', '全部情绪值', '全部穿着槽', 'character.query.searchCharacterProfile'].forEach((bad) => {
-    assert.ok(!prompt.includes(bad), `${bad} leaked into Stage1 prompt`);
+    assert.ok(!promptText.includes(bad), `${bad} leaked into Stage1 prompt`);
   });
-  ['查询规划：', '资料状态：', '地点查询理由1：', '因果查询理由1：', '冲突查询理由1：', '强制出场：', '高优先候选：', '戏剧候选：', '禁止出场：', '随机事件候选：', '随机事件闯入条件：', '资料请求：', '资料请求结束：是', '可请求资料目录', '角色查询：搜索角色卡'].forEach((good) => {
-    assert.ok(prompt.includes(good), `${good} missing from Stage1 prompt`);
+  ['"plan"', '"status"', '"sceneQueries"', '"forced"', '"priority"', '"drama"', '"forbidden"', '"randomEvents"', '"randomIntrusionCondition"', '"materialRequests"', '可请求资料目录', '角色查询，搜索角色卡'].forEach((good) => {
+    assert.ok(promptText.includes(good), `${good} missing from Stage1 prompt`);
   });
-  const outputOrder = prompt.slice(prompt.indexOf('固定输出顺序：'));
-  ['地点查询', '因果查询', '冲突查询'].forEach((bad) => {
-    assert.ok(!new RegExp(`^${bad}：`, 'mu').test(outputOrder), `${bad} should not appear as a Stage1 output field`);
-  });
+  assert.ok(!promptText.includes('资料请求结束：是'));
 });
 
 test('Stage 1 parses numbered query reasons without requiring query target fields', () => {

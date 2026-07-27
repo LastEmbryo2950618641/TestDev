@@ -781,9 +781,9 @@ window.GameModules.realWorldMapFog = {
 
       source: 'real-world-map-surround-unlock',
 
-      sourceTitle: 'Stage9 电子地图周围解锁',
+      sourceTitle: 'Stage10 电子地图周围解锁',
 
-      reasoningPhase: 'stage9',
+      reasoningPhase: 'stage10',
 
       promptId: 'real-world-map-surround-unlock',
 

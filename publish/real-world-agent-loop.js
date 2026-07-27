@@ -347,22 +347,26 @@ window.GameModules.realWorldAgentLoop = {
       'inference-stage2-scene-anchor': 'stage2',
       'inference-stage3-narration': 'stage3',
       'inference-stage4-settlement-window': 'stage4',
-      'inference-stage5-profile-gate': 'stage5',
-      'inference-stage5-body-profile-patch': 'stage6',
-      'inference-stage5-dressed-profile-patch': 'stage7',
-      'inference-stage6-faction-update': 'stage8',
-      'inference-stage10-life-energy-exp': 'stage10',
-      'real-world-map-surround-unlock': 'stage9',
+      'inference-stage5-intro-card-update': 'stage5',
+      'inference-stage5-profile-gate': 'stage6',
+      'inference-stage5-body-profile-patch': 'stage7',
+      'inference-stage5-dressed-profile-patch': 'stage8',
+      'inference-stage6-faction-update': 'stage9',
+      'real-world-map-surround-unlock': 'stage10',
+      'inference-stage10-life-energy-exp': 'stage11',
+      'inference-stage11-world-news-update': 'stage12',
     };
     if (byPromptId[promptId]) return byPromptId[promptId];
     if (config.guidedStep) return 'stage1';
     const sourceTitle = String(config.sourceTitle || '');
-    if (/Stage\s*10|生命层次/iu.test(sourceTitle)) return 'stage10';
-    if (/Stage\s*9|周围解锁/iu.test(sourceTitle)) return 'stage9';
-    if (/Stage\s*8|势力更新/iu.test(sourceTitle)) return 'stage8';
-    if (/Stage\s*7|盛装外观补丁/iu.test(sourceTitle)) return 'stage7';
-    if (/Stage\s*6|自然外观补丁/iu.test(sourceTitle)) return 'stage6';
-    if (/Stage\s*5|外观判定/iu.test(sourceTitle)) return 'stage5';
+    if (/Stage\s*12\b|世界新闻热榜/iu.test(sourceTitle)) return 'stage12';
+    if (/Stage\s*11\b|生命层次|经验结算/iu.test(sourceTitle)) return 'stage11';
+    if (/Stage\s*10\b|周围解锁/iu.test(sourceTitle)) return 'stage10';
+    if (/Stage\s*9\b|势力更新/iu.test(sourceTitle)) return 'stage9';
+    if (/Stage\s*8\b|盛装外观补丁/iu.test(sourceTitle)) return 'stage8';
+    if (/Stage\s*7\b|自然外观补丁/iu.test(sourceTitle)) return 'stage7';
+    if (/Stage\s*6\b|外观判定/iu.test(sourceTitle)) return 'stage6';
+    if (/Stage\s*5\b|介绍卡更新/iu.test(sourceTitle)) return 'stage5';
     if (sourceTitle.includes('场景锚定') || /Stage\s*2/iu.test(sourceTitle)) return 'stage2';
     if (/Stage\s*4|滑动结算|状态结算/iu.test(sourceTitle)) return 'stage4';
     if (config.streamToUi) return 'stage3';
@@ -375,12 +379,14 @@ window.GameModules.realWorldAgentLoop = {
       stage2: 'Stage2 场景锚定',
       stage3: 'Stage3 正文生成',
       stage4: step > 0 ? `Stage4 状态结算 - ${step + 1}` : 'Stage4 状态结算',
-      stage5: 'Stage5 外观判定',
-      stage6: 'Stage6 自然外观补丁',
-      stage7: 'Stage7 盛装外观补丁',
-      stage8: 'Stage8 势力更新',
-      stage9: 'Stage9 电子地图周围解锁',
-      stage10: 'Stage10 经验结算',
+      stage5: 'Stage5 介绍卡更新',
+      stage6: 'Stage6 外观判定',
+      stage7: 'Stage7 自然外观补丁',
+      stage8: 'Stage8 盛装外观补丁',
+      stage9: 'Stage9 势力更新',
+      stage10: 'Stage10 电子地图周围解锁',
+      stage11: 'Stage11 经验结算',
+      stage12: 'Stage12 世界新闻热榜',
     };
     return labels[phase] || '未知阶段';
   },
@@ -401,7 +407,7 @@ window.GameModules.realWorldAgentLoop = {
         id: attempt > 0 ? `stage4-${attempt}` : 'stage4',
       };
     }
-    if (/^stage(?:[2-9]|10)$/u.test(phase)) {
+    if (/^stage(?:[2-9]|1[0-2])$/u.test(phase)) {
       return { phase, step: 0, label: this.stagePhaseLabel(phase), id: phase };
     }
     return { phase: 'unknown', step: 0, label: '未知阶段', id: `reasoning-${Date.now()}` };
@@ -416,7 +422,7 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   parseReasoningLabel(label = '') {
-    const match = String(label || '').trim().match(/^Stage\s*([1-9])(?:\s*[^\d-]*?)?(?:\s*[-–—]\s*(\d+))?/iu);
+    const match = String(label || '').trim().match(/^Stage\s*(1[0-2]|[1-9])(?:\s*[^\d-]*?)?(?:\s*[-–—]\s*(\d+))?/iu);
     if (!match) return null;
     const phase = `stage${match[1]}`;
     const step = Number(match[2]) || 0;
@@ -451,12 +457,14 @@ window.GameModules.realWorldAgentLoop = {
       const fallbackLabels = {
         stage2: 'Stage2 场景锚定',
         stage3: 'Stage3 正文生成',
-        stage5: 'Stage5 外观判定',
-        stage6: 'Stage6 自然外观补丁',
-        stage7: 'Stage7 盛装外观补丁',
-        stage8: 'Stage8 势力更新',
-        stage9: 'Stage9 电子地图周围解锁',
-        stage10: 'Stage10 经验结算',
+        stage5: 'Stage5 介绍卡更新',
+        stage6: 'Stage6 外观判定',
+        stage7: 'Stage7 自然外观补丁',
+        stage8: 'Stage8 盛装外观补丁',
+        stage9: 'Stage9 势力更新',
+        stage10: 'Stage10 电子地图周围解锁',
+        stage11: 'Stage11 经验结算',
+        stage12: 'Stage12 世界新闻热榜',
       };
       return {
         phase: storedPhase,
@@ -470,7 +478,7 @@ window.GameModules.realWorldAgentLoop = {
       const step = Number(stage1Match[1]) || 1;
       return { phase: 'stage1', step, label: this.stagePhaseLabel('stage1', step), id: `stage1-${step}` };
     }
-    if (/^stage(?:[2-9]|10)$/u.test(id)) {
+    if (/^stage(?:[2-9]|1[0-2])$/u.test(id)) {
       return { phase: id, step: 0, label: this.stagePhaseLabel(id), id };
     }
     if (/^stage4(?:-attempt-|-)?(\d+)?$/iu.test(id) || id === 'stage4') {
@@ -728,7 +736,7 @@ window.GameModules.realWorldAgentLoop = {
       this.persistAgentConversation(store, config.kvCacheSession, config.mode);
       return final;
     } finally {
-      // 主循环结束后把本轮 KV 暂存为 pending，供 Stage9 地图周围解锁继续追加命中前缀缓存。
+      // 主循环结束后把本轮 KV 暂存为 pending，供 Stage10 地图周围解锁继续追加命中前缀缓存。
       if (store.realWorldAgentActiveKvByMode?.[config.mode] === (config.kvCacheSession || null)) {
         store.realWorldAgentPendingKvByMode = store.realWorldAgentPendingKvByMode || {};
         if (config.kvCacheSession) store.realWorldAgentPendingKvByMode[config.mode] = config.kvCacheSession;
@@ -794,7 +802,7 @@ window.GameModules.realWorldAgentLoop = {
     const participants = this.mergeNarrationParticipants(this.stageParticipants(effectiveSceneLayers, loaded, store), narration, store, sceneAnchor.data);
     try {
       this.markConfiguredStep(store, logId, `${config.label}正文已完成，正在串行结算…`, config, { keepNarration: true });
-      this.patchConfiguredSettlementThinking(store, logId, '正文已完成，正在串行结算（Stage4 状态结算 → Stage5–7 外观 → Stage8 势力更新 → Stage10 经验结算 → Stage11 新闻热榜；地图周围解锁为 Stage9）。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
+      this.patchConfiguredSettlementThinking(store, logId, '正文已完成，正在串行结算（Stage4 状态结算 → Stage5 介绍卡 → Stage6–8 外观 → Stage9 势力更新 → Stage10 地图 → Stage11 经验结算 → Stage12 新闻热榜）。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
       let stage4Updates;
       try {
         const settled = await this.completeConfiguredSettlementKvWindow({ store, action, base, loaded, skills, materialSession, narration, trace, participants, logId, config });
@@ -924,7 +932,7 @@ window.GameModules.realWorldAgentLoop = {
         }
       }
       this.patchConfiguredSettlementThinking(store, logId, '结算完成，正在写入本回合状态与日志。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
-      settlementPrompt = 'Stage4 状态结算 → Stage5–7 外观 → Stage8 势力更新 → Stage10 经验结算 → Stage11 新闻热榜（Stage9 地图周围解锁在落库后）';
+      settlementPrompt = 'Stage4 状态结算 → Stage5 介绍卡 → Stage6–8 外观 → Stage9 势力更新 → Stage10 地图 → Stage11 经验结算 → Stage12 新闻热榜';
       settlementRaw = JSON.stringify({
         settlement: updates,
         introStage5: {
@@ -1020,7 +1028,7 @@ window.GameModules.realWorldAgentLoop = {
         '任务：只输出一个合法 JSON 对象，不输出中文 K:V、Markdown、正文或解释。',
         '你只负责判断本次行动生成正文前还需要哪些已有资料；不得写正文，不得锚定场景，不得结算状态，不得推进后续结果。',
         '资料请求规则：',
-        '- 使用中文资料请求，不得输出英文 skill/method。地点查询未命中时，不要请求地点图补全；基于上下文进行符合逻辑的保守推演，地图持久化交给 Stage4 地图更新 / Stage9 电子地图周围解锁。',
+        '- 使用中文资料请求，不得输出英文 skill/method。地点查询未命中时，不要请求地点图补全；基于上下文进行符合逻辑的保守推演，地图持久化交给 Stage10 电子地图更新与周围解锁。',
         '- 资料请求最多 Top3；超过 Top3 的候选必须丢弃，不得输出资料请求4或更多编号。',
         '- 角色卡请求只代表可作为参考资料；不得因此把角色写入强制出场。',
         '- 资料是否够用由你综合判断：对话链里的旧资料 + 之后的结算/正文变更 + 当前桌面时间 + 本次行动。不要机械“见过就不请求”，也不要仅因发生过结算/时间推进就强制重载。',

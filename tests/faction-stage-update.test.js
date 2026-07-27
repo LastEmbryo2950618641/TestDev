@@ -151,7 +151,7 @@ test('listFactions default text includes id and structure', () => {
   assert.ok(text.includes('内阁') || text.includes('组织架构'));
 });
 
-test('Stage8 prompt creates on appearance and patches only on factual change', () => {
+test('Stage9 prompt creates on appearance and patches only on factual change', () => {
   const root = path.join(__dirname, '..');
   const md = fs.readFileSync(path.join(root, 'publish/prompts/推演引擎/stage6-faction-update.md'), 'utf8');
   assert.ok(md.includes('出现且未入库'));
