@@ -166,14 +166,10 @@ Object.assign(window.GameModules.updateRegistry, {
       state.profile.wearing = next;
       state.profile.roleCardUpdatedAt = new Date().toISOString();
     }
-    if ((field === 'profile.factions' || path === 'profile.factions') && state.profile) {
-      state.values = state.values || {};
-      state.values.factions = Array.isArray(state.profile.factions) ? state.profile.factions.slice() : [];
-      state.profile.roleCardUpdatedAt = new Date().toISOString();
-    }
-    if ((field === 'profile.memberships' || path === 'profile.memberships') && state.values) {
-      state.values.memberships = Array.isArray(state.profile.memberships) ? state.profile.memberships.slice() : [];
-      state.profile.roleCardUpdatedAt = new Date().toISOString();
+    if (/^profile\.(?:factions|memberships)$/u.test(field)) {
+      window.GameModules.rpgState?.syncSocialFields?.(state, 'profile', store);
+    } else if (/^(?:values\.)?(?:factions|memberships)$/u.test(field)) {
+      window.GameModules.rpgState?.syncSocialFields?.(state, 'values', store);
     }
     if (/(?:^|\.)sexualPartners$/u.test(path) || /(?:^|\.)intimacy\.sexualPartners$/u.test(field)) {
       this.syncSexualPartnerCountFromList(state);

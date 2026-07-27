@@ -58,6 +58,15 @@ function createStore(overrides = {}) {
             profile: character,
             values: { items: [] },
           }),
+          syncSocialFields(state, source = 'profile') {
+            const input = source === 'values' ? state.values : state.profile;
+            const clone = (value) => (Array.isArray(value) ? value.map((item) => ({ ...item })) : []);
+            state.profile.factions = clone(input.factions);
+            state.profile.memberships = clone(input.memberships);
+            state.values.factions = clone(input.factions);
+            state.values.memberships = clone(input.memberships);
+            return true;
+          },
         },
         progression: {
           syncInventoryFromProfile: () => {},
@@ -86,6 +95,7 @@ function createStore(overrides = {}) {
   });
   context.window.window = context.window;
   loadScript(context, 'publish/player-identity-actions.js');
+  loadScript(context, 'publish/rpg-actions.js');
   const store = {
     playerProfile: { name: '测试玩家', refinedCity: '上海', refinedRole: '记者', gender: '男' },
     playerName: '测试玩家',
@@ -100,6 +110,7 @@ function createStore(overrides = {}) {
     startRoleCardLoadingBatch: () => {},
     updateRoleCardLoading: () => {},
     ...context.window.GameModules.playerIdentityActions,
+    ...context.window.GameModules.rpgActions,
   };
   return { context, store, saveCalls, generatedProfile };
 }
@@ -115,6 +126,8 @@ test('new player state reuses generated profile factions', async () => {
     JSON.parse(JSON.stringify(state.values.memberships)),
     JSON.parse(JSON.stringify(generatedProfile.memberships)),
   );
+  assert.notStrictEqual(state.profile.factions, state.values.factions);
+  assert.notStrictEqual(state.profile.memberships, state.values.memberships);
 });
 
 test('saved player state backfills factions from generated profile', async () => {

@@ -58,7 +58,11 @@ window.GameModules.rpgActions = {
 
   async ensurePlayerRpgState(refresh = false, loadMetrics = false, overrideSource = null) {
     const existing = this.playerIdentityState?.();
-    if (existing && !refresh && !overrideSource?.forceRoleCardRegenerate) return existing;
+    if (existing && !refresh && !overrideSource?.forceRoleCardRegenerate) {
+      const changed = this.syncPlayerSocialFields?.(existing) || false;
+      if (changed) await window.GameModules.characterStateStore?.save?.(existing);
+      return existing;
+    }
     const source = overrideSource || this.playerCharacterBase?.() || { id: 'player-self', name: this.playerName || 'player-self', isPlayer: true };
     const context = this.playerSetupSummary?.() || this.playerProfile?.notes || '';
     const state = await this.ensureRpgForCharacter(

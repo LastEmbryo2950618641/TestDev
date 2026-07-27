@@ -104,11 +104,8 @@ window.GameModules.companyFactionActions = {
       since: this.phoneDate?.()?.toISOString?.() || new Date().toISOString(),
       source: 'Boss招聘同步',
     };
-    const mem = ot?.upsertCharacterMembership?.(state, row, this) || row;
-    if (state.profile) {
-      const profileList = Array.isArray(state.profile.memberships) ? state.profile.memberships : [];
-      if (!profileList.some((item) => (mem.orgId && item.orgId === mem.orgId) || (item.orgName === mem.orgName && item.title === mem.title))) state.profile.memberships = [...profileList, mem];
-    }
+    ot?.upsertCharacterMembership?.(state, row, this);
+    window.GameModules.rpgState?.syncSocialFields?.(state, 'values', this);
     window.GameModules.characterStateStore?.save?.(state).catch((err) => console.warn('[人事归属] 保存失败:', err.message, err.stack));
   },
 };

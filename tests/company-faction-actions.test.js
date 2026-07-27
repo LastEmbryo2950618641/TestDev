@@ -41,6 +41,17 @@ function loadActions(overrides = {}) {
             return row;
           },
         },
+        rpgState: {
+          syncSocialFields(state, source = 'profile') {
+            const input = source === 'values' ? state.values : state.profile;
+            const clone = (value) => (Array.isArray(value) ? value.map((item) => ({ ...item })) : []);
+            state.profile.factions = clone(input.factions);
+            state.profile.memberships = clone(input.memberships);
+            state.values.factions = clone(input.factions);
+            state.values.memberships = clone(input.memberships);
+            return true;
+          },
+        },
         app: {
           orgTerritory: {
             economyActions: {
@@ -118,6 +129,8 @@ async function run() {
 
   assert.strictEqual(identityState.profile.memberships[0].source, 'Boss招聘同步');
   assert.strictEqual(identityState.values.memberships[0].reason, '由现实职场事项确认。');
+  assert.notStrictEqual(identityState.profile.memberships, identityState.values.memberships);
+  assert.notStrictEqual(identityState.profile.memberships[0], identityState.values.memberships[0]);
   assert.strictEqual(savedStates.length, 1);
   assert.strictEqual(savedStates[0], identityState);
 

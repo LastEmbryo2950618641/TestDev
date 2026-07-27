@@ -128,25 +128,42 @@ window.GameModules.rpgState = {
     window.GameModules.rpgProfileMetrics?.apply(state, state.profile);
     return before !== JSON.stringify(state.metrics);
   },
-  syncSocialPositions(state) {
-    if (!state?.values || !state?.profile) return false;
-    let changed = false;
-    const profile = state.profile;
-    const factions = Array.isArray(profile.factions) ? profile.factions : [];
-    const memberships = Array.isArray(profile.memberships) ? profile.memberships : [];
-    if ((!Array.isArray(state.values.factions) || !state.values.factions.length) && factions.length) {
-      state.values.factions = factions;
-      changed = true;
+  syncSocialFields(state, source = 'profile', store = null, options = {}) {
+    if (!state?.profile) return false;
+    state.values = state.values && typeof state.values === 'object' ? state.values : {};
+    const input = source === 'values' ? state.values : state.profile;
+    const clone = (value) => (Array.isArray(value) ? value.map((item) => (
+      item && typeof item === 'object' ? { ...item } : item
+    )) : []);
+    const before = JSON.stringify({
+      profileFactions: state.profile.factions || [],
+      profileMemberships: state.profile.memberships || [],
+      valueFactions: state.values.factions || [],
+      valueMemberships: state.values.memberships || [],
+    });
+    state.values.factions = clone(input.factions);
+    state.values.memberships = clone(input.memberships);
+    if (!options.skipOrgNormalization) {
+      window.GameModules.orgTerritory?.syncCharacterOrgMemberships?.(state, store, { skipSocialSync: true });
     }
-    if ((!Array.isArray(state.values.memberships) || !state.values.memberships.length) && memberships.length) {
-      state.values.memberships = memberships;
-      changed = true;
-    }
-    if (state.values.memberships?.length) {
-      window.GameModules.orgTerritory?.syncCharacterOrgMemberships?.(state, null);
-      changed = true;
-    }
+    const factions = clone(state.values.factions);
+    const memberships = clone(state.values.memberships);
+    state.profile.factions = clone(factions);
+    state.profile.memberships = clone(memberships);
+    state.values.factions = clone(factions);
+    state.values.memberships = clone(memberships);
+    const changed = before !== JSON.stringify({
+      profileFactions: state.profile.factions,
+      profileMemberships: state.profile.memberships,
+      valueFactions: state.values.factions,
+      valueMemberships: state.values.memberships,
+    });
+    if (changed) state.profile.roleCardUpdatedAt = store?.phoneDateText?.() || new Date().toISOString();
     return changed;
+  },
+
+  syncSocialPositions(state) {
+    return this.syncSocialFields(state, 'profile', null);
   },
 
   isInvalidLocationName(name = '') {

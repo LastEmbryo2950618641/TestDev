@@ -19,11 +19,13 @@ window.GameModules.playerIdentityActions = {
     if (!changed) return false;
     current.profile.factions = nextFactions;
     current.profile.memberships = nextMemberships;
+    const synced = window.GameModules.rpgState?.syncSocialFields?.(current, 'profile', this);
+    if (typeof synced === 'boolean') return changed || synced;
     current.values = current.values || {};
-    current.values.factions = nextFactions;
-    current.values.memberships = nextMemberships;
+    current.values.factions = nextFactions.map((item) => ({ ...item }));
+    current.values.memberships = nextMemberships.map((item) => ({ ...item }));
     window.GameModules.orgTerritory?.syncCharacterOrgMemberships?.(current, this);
-    return true;
+    return changed;
   },
 
   backfillPlayerMemberships(state = null) {
@@ -122,7 +124,7 @@ window.GameModules.playerIdentityActions = {
     const row = (key, label, value, desc, extra = {}) => ({ key: `id-${targetId}-${key}`, stateId: targetId, label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: '角色', commonField: true, ...extra });
     const listRow = (key, label, value, desc, extra = {}) => {
       const list = Array.isArray(value) ? value : [];
-      return row(key, label, list, desc, { raw: list, ...extra });
+      return row(key, label, list, desc, { raw: list, profileListKey: key, ...extra });
     };
     const fields = [
       row('name', '姓名', p.name, '角色卡固化姓名。'),

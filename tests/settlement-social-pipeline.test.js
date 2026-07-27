@@ -56,6 +56,7 @@ function loadScript(context, relativePath) {
 
 function loadPipeline(context) {
   loadScript(context, 'publish/social-position.js');
+  loadScript(context, 'publish/rpg-state.js');
   loadScript(context, 'publish/update/update-registry.js');
   loadScript(context, 'publish/update/generic-update-applier.js');
   loadScript(context, 'publish/update/membership-update.js');
@@ -79,37 +80,13 @@ function loadPipeline(context) {
       state.values.memberships = list;
       return mem;
     },
+    syncCharacterOrgMemberships(state) {
+      state.values.memberships = (state.values.memberships || []).map((item) => ({ ...item }));
+      return state;
+    },
     findCharacterStateByName: () => null,
   };
-  context.window.GameModules.app = {
-    orgTerritory: {
-      settlementActions: {
-        ot() { return context.window.GameModules.orgTerritory; },
-        reasonText(update = {}) {
-          return String(update?.reasons?.[0]?.evidence || update?.change?.value?.reason || '').trim();
-        },
-        applyMembershipUpdate(store, update = {}) {
-          const ot = this.ot();
-          const subject = update.subject || {};
-          const characterName = String(subject.name || '').trim();
-          let state = subject.id === 'player-self' || !characterName
-            ? store.playerIdentityState?.()
-            : store.itemSkillState?.(subject.id);
-          if (!state?.values) return { ok: false, text: 'missing' };
-          const change = update.change || {};
-          const patch = typeof change.value === 'object' && change.value ? change.value : {};
-          const reason = this.reasonText(update);
-          const now = ot.nowLabel(store);
-          ot.upsertCharacterMembership(state, { ...patch, since: patch.since || now, reason: patch.reason || reason }, store);
-          if (state.profile) {
-            state.profile.memberships = Array.isArray(state.values.memberships) ? state.values.memberships.slice() : [];
-            state.profile.roleCardUpdatedAt = now;
-          }
-          return { ok: true, text: 'ok' };
-        },
-      },
-    },
-  };
+  loadScript(context, 'publish/app/org-territory/settlement-actions.js');
 }
 
 function makeStore() {
@@ -170,6 +147,8 @@ test('Stage4 JSON 人事归属 orgName/title 可解析并写 values+profile.memb
   const state = store.playerIdentityState();
   assert.strictEqual(state.values.memberships[0].orgName, '成都市高新区科创有限公司');
   assert.strictEqual(state.profile.memberships[0].title, '程序工程师');
+  assert.notStrictEqual(state.profile.memberships, state.values.memberships);
+  assert.notStrictEqual(state.profile.memberships[0], state.values.memberships[0]);
 });
 
 test('Stage4 JSON 角色卡社群角色写入 profile.factions 而非中文幽灵字段', () => {
@@ -201,6 +180,24 @@ test('Stage4 JSON 角色卡社群角色写入 profile.factions 而非中文幽�
   assert.ok(Array.isArray(state.profile.factions) && state.profile.factions.length >= 1);
   assert.strictEqual(state.profile['社群角色'], undefined);
   assert.ok(Array.isArray(state.values.factions) && state.values.factions.length >= 1);
+  assert.notStrictEqual(state.profile.factions[0], state.values.factions[0]);
+});
+
+test('RPG 社群角色更新会反向同步到 profile', () => {
+  const context = createContext();
+  loadPipeline(context);
+  const store = makeStore();
+  const update = {
+    updateType: 'role-card',
+    subject: { id: 'player-self' },
+    field: 'values.factions',
+    change: { mode: 'set', value: [{ faction: '夜跑群', role: '成员', reason: '剧情确认。' }] },
+  };
+
+  assert.strictEqual(context.window.GameModules.updateRegistry.applyOne(store, update), true);
+  const state = store.playerIdentityState();
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(state.profile.factions)), JSON.parse(JSON.stringify(state.values.factions)));
+  assert.notStrictEqual(state.profile.factions[0], state.values.factions[0]);
 });
 
 test('Stage4 JSON 角色卡人事归属路由到 membership upsert', () => {

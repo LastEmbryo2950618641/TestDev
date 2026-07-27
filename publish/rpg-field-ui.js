@@ -80,7 +80,10 @@ window.GameModules.rpgFieldUi = {
   },
   isRpgFieldOpen(field) { return this.expandedRpgFieldKey === this.rpgFieldKey(field); },
   isRpgItemOpen(field, index) { return this.expandedRpgFieldKey === this.rpgItemKey(field, index); },
-  isRpgListField(field) { return ['knowledge', 'skills', 'professions', 'factions', 'memberships', 'certificates', 'titles', 'items', 'wearing', 'bodyProfile', 'dressedProfile', 'bodyStatus', 'sexualExperienceParts', 'sexualPartners', 'status_tags'].includes(field?.key) && Array.isArray(field.raw); },
+  isRpgListField(field) {
+    const key = String(field?.profileListKey || field?.key || '');
+    return ['knowledge', 'skills', 'professions', 'factions', 'memberships', 'certificates', 'titles', 'items', 'wearing', 'bodyProfile', 'dressedProfile', 'bodyStatus', 'sexualExperienceParts', 'sexualPartners', 'status_tags'].includes(key) && Array.isArray(field?.raw);
+  },
   isIdentityInfoStyledField(field = {}) {
     const label = String(field?.label || '').trim();
     const key = String(field?.key || '').trim();
