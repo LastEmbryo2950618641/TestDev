@@ -102,6 +102,33 @@ function loadPlayerIdentityActionsModule() {
   return context.window.GameModules;
 }
 
+test('predefined exported role cards keep exact profile fields', async () => {
+  const exportData = JSON.parse(fs.readFileSync('publish/predefined-role-card-support/slot-4-export.json', 'utf8'));
+  const filesById = {
+    'rel-ai-247528': '01-刘思琪-rel-ai-247528',
+    'rel-ai-242269': '02-刘思怡-rel-ai-242269',
+    'rel-ai-247463': '03-刘思瑶-rel-ai-247463',
+    'player-self': '04-刘悠-player-self',
+  };
+  const data = {};
+  for (const [id, fileKey] of Object.entries(filesById)) {
+    const stored = JSON.parse(fs.readFileSync(`publish/predefined-role-cards/${fileKey}.json`, 'utf8'));
+    const exported = exportData.characters.find((item) => item.id === id);
+    assert.ok(exported, `missing exported ${id}`);
+    assert.deepStrictEqual(Object.keys(stored.profile), Object.keys(exported.profile), `${id} JSON profile keys`);
+    assert.deepStrictEqual(stored.profile, exported.profile, `${id} JSON profile`);
+    data[fileKey] = stored;
+  }
+
+  const modules = loadPredefinedRoleCardsModule(data);
+  const cards = await modules.predefinedRoleCards.loadAll();
+  for (const card of cards) {
+    const exported = exportData.characters.find((item) => item.id === card.id);
+    assert.ok(exported, `missing loaded ${card.id}`);
+    assert.deepStrictEqual(Object.keys(card), Object.keys(exported.profile), `${card.id} loaded profile keys`);
+  }
+});
+
 function loadIdentityUiModules() {
   const context = {
     console,

@@ -7,6 +7,36 @@ window.GameModules.predefinedRoleCards = {
     return record?.profile && typeof record.profile === 'object' ? record.profile : record;
   },
 
+  isFullExportRecord(record = {}) {
+    return Boolean(
+      record
+      && typeof record === 'object'
+      && record.profile
+      && typeof record.profile === 'object'
+      && record.values
+      && typeof record.values === 'object'
+      && record.schema
+      && typeof record.schema === 'object',
+    );
+  },
+
+  exportedRecordForCard(card = {}) {
+    const source = window.GameModules.predefinedRoleCardData || {};
+    const cardId = this.roleCardId(card);
+    const cardName = String(card?.name || '').trim();
+    const key = this.cardKeyFor(card);
+    const candidates = [
+      key ? source[key] : null,
+      ...this.loadedKeys().map((item) => source[item]),
+    ].filter(Boolean);
+    return candidates.find((record) => {
+      if (!this.isFullExportRecord(record)) return false;
+      const profile = this.roleProfile(record);
+      return (cardId && this.roleCardId(profile) === cardId)
+        || (cardName && profile?.name === cardName);
+    }) || null;
+  },
+
   roleCardId(card = {}) {
     return String(card?.id || card?.name || '').trim();
   },
@@ -193,9 +223,11 @@ window.GameModules.predefinedRoleCards = {
     const source = window.GameModules.predefinedRoleCardData || {};
     const clone = (card) => window.GameModules.predefinedRoleCardActions?.cloneRoleCardForEditing?.(card) || JSON.parse(JSON.stringify(card));
     const cards = Object.keys(source).map((key) => {
-      const card = this.roleProfile(source[key]);
+      const record = source[key];
+      const card = this.roleProfile(record);
       if (!card?.name) return null;
       const cloned = clone(card);
+      if (this.isFullExportRecord(record)) return cloned;
       const layers = this.isTripletSisterKey(key)
         ? window.GameModules.predefinedTripletEssentialLayers?.[key]
         : this.resolveEssentialPreferenceLayers(cloned, key);
@@ -295,8 +327,14 @@ window.GameModules.predefinedRoleCards = {
     return Boolean(window.GameModules.platform.storage.capabilities.isReady?.());
   },
 
-  buildRoleCardProfile(card = {}, existing = null, id = '') {
-    let profile = { ...card, id, roleCard: true, roleCardSource: card.roleCardSource || 'predefined-edited', roleCardUpdatedAt: card.roleCardUpdatedAt || existing?.profile?.roleCardUpdatedAt || new Date().toISOString() };
+  buildRoleCardProfile(card = {}, existing = null, id = '', options = {}) {
+    const preserveExportShape = Boolean(options.preserveExportShape);
+    let profile = preserveExportShape
+      ? { ...card }
+      : { ...card, id, roleCard: true, roleCardSource: card.roleCardSource || 'predefined-edited', roleCardUpdatedAt: card.roleCardUpdatedAt || existing?.profile?.roleCardUpdatedAt || new Date().toISOString() };
+    if (!profile.id) profile.id = id;
+    if (profile.roleCard !== true) profile.roleCard = true;
+    if (preserveExportShape) return profile;
     if (window.GameModules.characterProfile?.hasRequiredInitialMetrics?.(existing?.profile?.initialMetrics)) profile.initialMetrics = existing.profile.initialMetrics;
     const existingLocation = String(existing?.profile?.currentLocation || '').trim();
     if (existingLocation && !String(profile.currentLocation || '').trim()) profile.currentLocation = existingLocation;
@@ -330,23 +368,29 @@ window.GameModules.predefinedRoleCards = {
     const id = idOverride || card.id || card.name;
     const storeApi = window.GameModules.characterStateStore;
     const existing = this.getExistingState(id, store);
+    const exportedRecord = this.exportedRecordForCard(card);
+    const preserveExportShape = this.isFullExportRecord(exportedRecord);
     const liveLocation = String(
       store?.rpgStates?.[id]?.profile?.currentLocation
       || store?.appearingLocationById?.[id]
       || store?.characterSchedules?.[id]?.profileCurrentLocation
       || '',
     ).trim();
-    const profile = this.buildRoleCardProfile(card, existing, id);
-    if (liveLocation && !String(profile.currentLocation || '').trim()) profile.currentLocation = liveLocation;
-    this.refreshSocialFields(profile, store);
-    this.refreshDerivedIdentityFields(profile);
+    const profile = this.buildRoleCardProfile(card, existing, id, { preserveExportShape });
+    if (!preserveExportShape && liveLocation && !String(profile.currentLocation || '').trim()) profile.currentLocation = liveLocation;
+    if (!preserveExportShape) {
+      this.refreshSocialFields(profile, store);
+      this.refreshDerivedIdentityFields(profile);
+    }
     const schema = await window.GameModules.rpgState.ensureSchema(profile.work || window.GameModules.realWorld2026?.label || '2026 现代都市现实世界');
     // Reuse the existing live object when present — never orphan rpgStates[id] with a new reference.
-    const state = existing || window.GameModules.rpgState.createCharacterState(profile, schema, store);
+    const state = preserveExportShape
+      ? JSON.parse(JSON.stringify(exportedRecord))
+      : (existing || window.GameModules.rpgState.createCharacterState(profile, schema, store));
     state.id = profile.id;
     state.name = profile.name;
-    state.worldTag = schema.worldTag;
-    state.schema = schema;
+    state.worldTag = preserveExportShape ? (state.worldTag || profile.work || schema.worldTag) : schema.worldTag;
+    state.schema = preserveExportShape ? (state.schema || schema) : schema;
     const preservedLocation = String(
       profile.currentLocation
       || existing?.profile?.currentLocation
@@ -354,23 +398,26 @@ window.GameModules.predefinedRoleCards = {
       || liveLocation
       || '',
     ).trim();
-    state.profile = {
-      ...(existing?.profile || {}),
-      ...profile,
-      ...(preservedLocation ? { currentLocation: preservedLocation } : {}),
-    };
+    state.profile = preserveExportShape
+      ? { ...profile }
+      : {
+        ...(existing?.profile || {}),
+        ...profile,
+        ...(preservedLocation ? { currentLocation: preservedLocation } : {}),
+      };
     state.note = profile.detail || state.note || '';
-    window.GameModules.rpgState.upgradeCharacterState(state, schema);
+    if (!preserveExportShape) window.GameModules.rpgState.upgradeCharacterState(state, schema);
     if (profile.isPlayer) {
-      state.values.status_tags = ['玩家本人', '手机主人', profile.work, profile.role];
+      if (!preserveExportShape) state.values.status_tags = ['玩家本人', '手机主人', profile.work, profile.role];
       state.profile.isPlayer = true;
     }
     if (state.values && Object.prototype.hasOwnProperty.call(state.values, 'current_location')) delete state.values.current_location;
-    window.GameModules.rpgProfileMetrics?.rebase?.(state, profile, existing?.profile || {});
+    if (!preserveExportShape) window.GameModules.rpgProfileMetrics?.rebase?.(state, profile, existing?.profile || {});
     store.initFactionSystem?.();
     window.GameModules.orgTerritory?.ensurePresetFamilyMemberships?.(store);
-    await window.GameModules.rpgLexicon.syncState(state);
-    const live = storeApi?.mergeOntoLive?.(state, store) || state;
+    if (!preserveExportShape) await window.GameModules.rpgLexicon.syncState(state);
+    if (preserveExportShape && store?.rpgStates && typeof store.rpgStates === 'object') store.rpgStates[state.id] = state;
+    const live = preserveExportShape ? state : (storeApi?.mergeOntoLive?.(state, store) || state);
     await this.saveState(live, store);
     return live;
   },
