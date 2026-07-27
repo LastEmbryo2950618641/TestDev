@@ -22,6 +22,10 @@ window.GameModules.characterIntroStore = {
     return this.source()?.list?.() || [];
   },
 
+  normalize(card = null, store = null, source = 'ai') {
+    return window.GameModules.characterIntroCard?.normalize?.(card, store, source) || card;
+  },
+
   save(card = null) {
     return this.source()?.save?.(card);
   },

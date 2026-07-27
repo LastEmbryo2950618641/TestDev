@@ -87,6 +87,7 @@
   "rpg-lexicon-update.js",
   "character-card-lexicon.js",
   "character-intro-card.js",
+  "character-intro-update-operations.js",
   "character-query.js",
   "past-event-query.js",
   "org-territory-system.js",

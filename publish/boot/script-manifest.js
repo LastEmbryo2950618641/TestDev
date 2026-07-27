@@ -87,6 +87,7 @@ window.GameScriptManifest = {
       "rpg-lexicon-update.js",
       "character-card-lexicon.js",
       "character-intro-card.js",
+      "character-intro-update-operations.js",
       "character-query.js",
       "past-event-query.js",
       "body-silhouette.js",
@@ -456,5 +457,5 @@ window.GameScriptManifest = {
     ]
   },
   "generatedAt": "2026-07-26T07:04:46.100Z",
-  "total": 437
+  "total": 438
 };

@@ -271,6 +271,22 @@ window.GameModules.characterCardUpdateOperations = {
 
   async applyMany(store, operations = []) {
     const results = (Array.isArray(operations) ? operations : []).map((operation) => this.apply(store, operation));
+    const synced = new Set();
+    for (const result of results) {
+      const state = result.applied ? result.state : null;
+      const id = this.text(state?.id || state?.profile?.id);
+      if (!state || !id || synced.has(id)) continue;
+      const introStore = window.GameModules.characterIntroStore;
+      const intro = introStore?.getById?.(id)
+        || introStore?.get?.(state.profile?.name || state.name || '', state.profile?.worldTag || state.worldTag || '');
+      if (!intro) continue;
+      synced.add(id);
+      try {
+        await window.GameModules.characterIntroUpdateOperations?.syncRoleToIntro?.(state, intro, store);
+      } catch (error) {
+        console.warn('[角色卡] 同步介绍卡失败:', error);
+      }
+    }
     return {
       results,
       applied: results.filter((result) => result.applied),

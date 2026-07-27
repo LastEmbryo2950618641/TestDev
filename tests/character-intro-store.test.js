@@ -24,6 +24,12 @@ for (const relativePath of [
   }
 }
 
+const publishScripts = JSON.parse(fs.readFileSync(path.join(root, 'publish/boot/scripts.json'), 'utf8'));
+const introCardIndex = publishScripts.indexOf('character-intro-card.js');
+const introOperationsIndex = publishScripts.indexOf('character-intro-update-operations.js');
+assert.ok(introOperationsIndex > introCardIndex, 'intro update operations must load after intro card normalization');
+assert.ok(introOperationsIndex < publishScripts.indexOf('real-world-agent-loop.js'));
+
 const calls = [];
 const intro = { name: 'Alice', worldTag: 'world-a', intro: 'Known character' };
 const context = vm.createContext({
