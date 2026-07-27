@@ -119,17 +119,28 @@ Object.assign(window.GameModules.updateRegistry, {
     }
     if (mode === 'append') {
       const values = [...(Array.isArray(current) ? current : []), ...(Array.isArray(raw) ? raw : [raw])].filter(Boolean);
-      const keyFields = {
-        'profile.factions': ['faction', 'role'],
-        'profile.certificates': ['orgName', 'field', 'level'],
-        'profile.titles': ['society', 'field', 'title'],
+      const keyAliases = {
+        'profile.factions': [['faction', 'community', 'name'], ['role', 'position']],
+        'profile.certificates': [['orgName', 'organization', 'org', 'name'], ['field', 'domain', 'major'], ['level', 'qualification', 'grade', 'title']],
+        'profile.titles': [['society', 'group', 'community', 'orgName', 'name'], ['field', 'domain'], ['title', 'level']],
       }[String(update.field || '')];
-      if (!keyFields) return [...new Set(values)];
+      if (!keyAliases) return [...new Set(values)];
       const seen = new Set();
       return values.filter((item) => {
-        if (!item || typeof item !== 'object' || Array.isArray(item)) return true;
-        const key = keyFields.map((field) => String(item[field] || '').trim().toLowerCase()).join('/');
-        if (!key.replaceAll('/', '') || seen.has(key)) return false;
+        const stringParts = typeof item === 'string'
+          ? item.split(/[/／]/).map((part) => String(part || '').trim().toLowerCase())
+          : [];
+        const source = item && typeof item === 'object' && !Array.isArray(item) ? item : {};
+        const parts = stringParts.length
+          ? stringParts
+          : keyAliases.map((aliases) => {
+            const key = aliases.find((alias) => source[alias] !== undefined && source[alias] !== null && String(source[alias]).trim());
+            return key ? String(source[key]).trim().toLowerCase() : '';
+          });
+        const businessKey = parts.length === keyAliases.length && parts.every(Boolean) ? parts.join('/') : '';
+        const fallbackKey = `raw:${typeof item}:${typeof item === 'string' ? item.trim().toLowerCase() : JSON.stringify(item)}`;
+        const key = businessKey ? `business:${businessKey}` : fallbackKey;
+        if (seen.has(key)) return false;
         seen.add(key);
         return true;
       });

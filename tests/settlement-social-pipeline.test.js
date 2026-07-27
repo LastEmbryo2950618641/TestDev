@@ -249,4 +249,31 @@ test('Stage4 JSON 证书与称号写入 profile 且不进入 RPG values', () => 
   assert.strictEqual(state.values.titles, undefined);
 });
 
+test('身份列表追加按旧字符串和别名业务键去重且保留无法识别条目', () => {
+  const context = createContext();
+  loadPipeline(context);
+  const registry = context.window.GameModules.updateRegistry;
+  const store = makeStore();
+  const state = store.playerIdentityState();
+  state.profile.factions = ['刘家/长兄'];
+  state.profile.certificates = [
+    { organization: '四川大学', domain: '计算机科学与技术', title: '工学硕士学位' },
+    { legacyUnknown: '保留此条' },
+  ];
+
+  assert.strictEqual(registry.applyOne(store, {
+    subject: { type: 'player', id: 'player-self', name: '刘悠' },
+    field: 'profile.factions',
+    change: { mode: 'append', value: { faction: '刘家', role: '长兄', reason: '重复语义' } },
+  }), false);
+  assert.strictEqual(registry.applyOne(store, {
+    subject: { type: 'player', id: 'player-self', name: '刘悠' },
+    field: 'profile.certificates',
+    change: { mode: 'append', value: { orgName: '四川大学', field: '计算机科学与技术', level: '工学硕士学位', reason: '重复语义' } },
+  }), false);
+  assert.strictEqual(state.profile.factions.length, 1);
+  assert.strictEqual(state.profile.certificates.length, 2);
+  assert.strictEqual(state.profile.certificates[1].legacyUnknown, '保留此条');
+});
+
 console.log('all settlement social pipeline tests passed');

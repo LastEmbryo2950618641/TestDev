@@ -49,6 +49,12 @@ const malformed = loop.parseSettlementJson(JSON.stringify({
 assert.deepStrictEqual(Array.from(malformed.completeTypes), []);
 assert.deepStrictEqual(Array.from(malformed.incompleteTypes), ['角色卡']);
 
+const missingReason = loop.parseSettlementJson(JSON.stringify({
+  角色卡: [{ subject: '刘悠', field: '证书', op: '增加', value: '四川大学/计算机科学与技术/工学硕士学位' }],
+}), { requestedTypes: ['角色卡'], participants });
+assert.deepStrictEqual(Array.from(missingReason.completeTypes), []);
+assert.deepStrictEqual(Array.from(missingReason.incompleteTypes), ['角色卡']);
+
 const malformedKv = loop.parseSettlementKv(`角色卡结算{
 结算对象：刘悠
 更新1：角色卡，证书，增加，工学硕士学位，缺少三段结构

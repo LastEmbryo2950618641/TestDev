@@ -2283,39 +2283,42 @@ window.GameModules.realWorldAgentLoop = {
 
   buildRoleCardSettlementUpdate(subject, field = '', op = '增加', value = '', reason = '', result = '') {
     const mode = op === '替换' ? 'set' : 'append';
+    const identityFields = ['社群角色', '人事归属', '证书', '称号'];
+    const effectiveReason = String(reason || (value && typeof value === 'object' && !Array.isArray(value) ? value.reason : '') || '').trim();
+    if (identityFields.includes(field) && !effectiveReason) return null;
     if (field === '社群角色') {
-      const item = this.normalizeFactionRoleSettlementValue(value, reason);
+      const item = this.normalizeFactionRoleSettlementValue(value, effectiveReason);
       if (!item) return null;
       return {
         updateType: 'role-card',
         subject,
         field: 'profile.factions',
         change: { mode, value: mode === 'set' ? (Array.isArray(item) ? item : [item]) : item },
-        reasons: [{ trigger: `角色卡${op}`, evidence: reason || value, confidence: 'confirmed' }],
+        reasons: [{ trigger: `角色卡${op}`, evidence: effectiveReason, confidence: 'confirmed' }],
       };
     }
     if (field === '人事归属') {
-      const patch = this.normalizeMembershipSettlementValue(value, reason);
+      const patch = this.normalizeMembershipSettlementValue(value, effectiveReason);
       if (!patch) return null;
       return {
         updateType: 'membership',
         subject,
         field: 'values.memberships',
         change: { mode: 'upsert', value: patch },
-        reasons: [{ trigger: `角色卡${op}`, evidence: reason || value, confidence: 'confirmed' }],
+        reasons: [{ trigger: `角色卡${op}`, evidence: effectiveReason, confidence: 'confirmed' }],
       };
     }
     if (field === '证书' || field === '称号') {
       const item = field === '证书'
-        ? this.normalizeCertificateSettlementValue(value, reason)
-        : this.normalizeTitleSettlementValue(value, reason);
+        ? this.normalizeCertificateSettlementValue(value, effectiveReason)
+        : this.normalizeTitleSettlementValue(value, effectiveReason);
       if (!item) return null;
       return {
         updateType: 'role-card',
         subject,
         field: field === '证书' ? 'profile.certificates' : 'profile.titles',
         change: { mode, value: mode === 'set' ? [item] : item },
-        reasons: [{ trigger: `角色卡${op}`, evidence: reason || value, confidence: 'confirmed' }],
+        reasons: [{ trigger: `角色卡${op}`, evidence: effectiveReason, confidence: 'confirmed' }],
       };
     }
     const path = this.roleCardFieldPath(field);
