@@ -116,6 +116,8 @@ function syncInferencePromptRuntime() {
     'prompts/推演引擎/stage2-scene-anchor.js',
     'prompts/推演引擎/stage3-narration.js',
     'prompts/推演引擎/stage4-settlement-window.js',
+    'prompts/推演引擎/shared-character-card-update-policy.js',
+    'prompts/推演引擎/stage5-intro-card-update.js',
     'prompts/推演引擎/stage5-profile-gate.js',
     'prompts/推演引擎/stage5-body-profile-patch.js',
     'prompts/推演引擎/stage5-dressed-profile-patch.js',

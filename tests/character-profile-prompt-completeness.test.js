@@ -25,11 +25,12 @@ assert.ok(missing.includes('完全没有事实或背景依据时才允许为空'
 assert.ok(missing.includes('禁止模糊占位'));
 assert.ok(missing.includes('输出前逐项自检'));
 
-assert.ok(roleCardUpdate.includes('仅处理本轮新确认或发生变化的稳定事实'));
-assert.ok(roleCardUpdate.includes('有事实或背景依据时必须完整补全'));
-assert.ok(roleCardUpdate.includes('完整社群名 / 具体角色'));
-assert.ok(roleCardUpdate.includes('完整授予组织 / 具体领域 / 具体资格或等级'));
-assert.ok(roleCardUpdate.includes('输出前逐项自检'));
+assert.ok(roleCardUpdate.includes('仅更新玩家或已有完整角色卡的人物'));
+assert.ok(roleCardUpdate.includes('类型化操作合约'));
+assert.ok(roleCardUpdate.includes('`factions`'));
+assert.ok(roleCardUpdate.includes('`certificates`'));
+assert.ok(roleCardUpdate.includes('禁止整组替换'));
+assert.ok(!roleCardUpdate.includes('change.mode'));
 
 assert.ok(membershipUpdate.includes('仅处理本轮新确认或发生变化的稳定事实'));
 assert.ok(membershipUpdate.includes('有事实或背景依据时必须完整补全'));

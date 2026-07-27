@@ -10,11 +10,19 @@ window.GameModules.promptTemplates = {
     'real-world-final-style-polish',
   ],
   sharedAspirationFidelityPriorityId: 'shared-aspiration-fidelity-priority',
+  characterCardUpdatePolicyPromptIds: [
+    'inference-stage4-settlement-window',
+    'inference-update-role-card',
+    'inference-stage5-intro-card-update',
+  ],
+  sharedCharacterCardUpdatePolicyId: 'shared-character-card-update-policy',
   items: [
+    { id: 'shared-character-card-update-policy', title: '角色卡与介绍卡共享更新规则', category: '共享约束', file: 'prompts/推演引擎/shared-character-card-update-policy.md', summary: 'Stage4 与 Stage5 共用的字段完整性和所有权规则。' },
     { id: 'inference-stage1-guided-query', title: 'Stage1 资料查询', category: '剧情推演', file: 'prompts/推演引擎/stage1-guided-query.md', summary: '正文前资料路由与出场候选收敛。' },
     { id: 'inference-stage2-scene-anchor', title: 'Stage2 场景锚定', category: '剧情推演', file: 'prompts/推演引擎/stage2-scene-anchor.md', summary: '正文前锚定地点、时间、出场边界与写作重点。' },
     { id: 'inference-stage3-narration', title: 'Stage3 正文生成', category: '剧情推演', file: 'prompts/推演引擎/stage3-narration.md', summary: '服从场景锚定的单段正文。' },
     { id: 'inference-stage4-settlement-window', title: 'Stage4 状态结算', category: '剧情推演', file: 'prompts/推演引擎/stage4-settlement-window.md', summary: '正文后滑动窗口状态结算（含地图/领土控势）。' },
+    { id: 'inference-stage5-intro-card-update', title: 'Stage5 介绍卡更新', category: '剧情推演', file: 'prompts/推演引擎/stage5-intro-card-update.md', summary: '更新没有完整角色卡的人物介绍卡。' },
     { id: 'inference-stage5-profile-gate', title: 'Stage5 外观判定', category: '剧情推演', file: 'prompts/推演引擎/stage5-profile-gate.md', summary: '判断自然/盛装外观是否需局部更新。' },
     { id: 'inference-stage5-body-profile-patch', title: 'Stage6 自然外观补丁', category: '剧情推演', file: 'prompts/推演引擎/stage5-body-profile-patch.md', summary: '局部重写 Part5 bodyProfileMeta/bodyProfile。' },
     { id: 'inference-stage5-dressed-profile-patch', title: 'Stage7 盛装外观补丁', category: '剧情推演', file: 'prompts/推演引擎/stage5-dressed-profile-patch.md', summary: '局部重写 Part6 dressedProfileMeta/dressedProfile。' },
@@ -209,6 +217,15 @@ window.GameModules.promptTemplates = {
         source = `${String(priority || '').trim()}\n\n---\n\n${source}`;
       } catch (err) {
         console.warn('[提示词] P0 人生取向约束注入失败:', err?.message || err);
+      }
+    }
+    const cardPolicyIds = this.characterCardUpdatePolicyPromptIds || [];
+    if (cardPolicyIds.includes(id)) {
+      try {
+        const policy = await this.load(this.sharedCharacterCardUpdatePolicyId);
+        source = `${String(policy || '').trim()}\n\n---\n\n${source}`;
+      } catch (err) {
+        console.warn('[提示词] 角色卡与介绍卡共享规则注入失败:', err?.message || err);
       }
     }
     const rendered = window.GameModules.promptSkills?.templateEngine

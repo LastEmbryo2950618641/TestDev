@@ -63,10 +63,10 @@ assert.deepStrictEqual(Array.from(malformedKv.completeTypes), []);
 assert.deepStrictEqual(Array.from(malformedKv.incompleteTypes), ['角色卡']);
 
 const stage4 = fs.readFileSync(path.join(root, 'publish/prompts/推演引擎/stage4-settlement-window.md'), 'utf8');
-assert.ok(stage4.includes('角色卡四类身份字段例外'));
-assert.ok(stage4.includes('仅处理本轮新确认或发生变化的稳定事实'));
+assert.ok(stage4.includes('角色卡完整性'));
+assert.ok(stage4.includes('已经加载的完整上下文'));
+assert.ok(stage4.includes('类型化 `field/op/target/value/delta` 合约'));
 
-const androidStage4 = fs.readFileSync(path.join(root, 'mobile/android-webview-shell/app/src/main/assets/publish/prompts/推演引擎/stage4-settlement-window.js'), 'utf8');
 const webStage4 = fs.readFileSync(path.join(root, 'publish/prompts/推演引擎/stage4-settlement-window.js'), 'utf8');
 const registeredPrompt = source => {
   const promptContext = vm.createContext({ window: {} });
@@ -74,6 +74,6 @@ const registeredPrompt = source => {
   return promptContext.window.GameModules.promptTemplates.inline['inference-stage4-settlement-window']
     .replace(/\r\n/g, '\n');
 };
-assert.strictEqual(registeredPrompt(androidStage4), registeredPrompt(webStage4));
+assert.strictEqual(registeredPrompt(webStage4), stage4.replace(/\r\n/g, '\n'));
 
 console.log('PASS Stage4 role card completeness rules and four-field parsing');
