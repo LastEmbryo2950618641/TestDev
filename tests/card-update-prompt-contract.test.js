@@ -9,9 +9,11 @@ const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'u
 const sharedPath = 'publish/prompts/推演引擎/shared-character-card-update-policy.md';
 const rolePath = 'publish/prompts/推演引擎/update/role-card-update-prompt.md';
 const introPath = 'publish/prompts/推演引擎/stage5-intro-card-update.md';
+const membershipPath = 'publish/prompts/推演引擎/update/membership-update-prompt.md';
 const shared = read(sharedPath);
 const rolePrompt = read(rolePath);
 const introPrompt = read(introPath);
+const membershipPrompt = read(membershipPath);
 
 assert.match(shared, /存在推演锚点[\s\S]*必须[\s\S]*完整补全/);
 assert.match(shared, /缺少具体名称[\s\S]*不是[“"]?没有依据/);
@@ -43,6 +45,10 @@ for (const id of ['inference-stage4-settlement-window', 'inference-update-role-c
 for (const field of ['social.affection', 'social.familiarity', 'persona.preferences', 'persona.attraction', 'routine.tags', 'memory.facts']) {
   assert.ok(introPrompt.includes(`\`${field}\``), `介绍卡提示词必须声明 ${field}`);
 }
+assert.match(membershipPrompt, /"field"\s*:\s*"memberships"/);
+assert.match(membershipPrompt, /"op"\s*:\s*"add\|replace\|delete"/);
+assert.match(membershipPrompt, /"target"/);
+assert.doesNotMatch(membershipPrompt, /upsert|change\.mode/);
 
 const generated = [
   ['shared-character-card-update-policy', sharedPath],

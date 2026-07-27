@@ -163,6 +163,7 @@ Object.assign(window.GameModules.updateRegistry, {
   },
 
   applyOne(store, update = {}) {
+    if (update.updateType === 'role-card-operation') return false;
     if (update.updateType === 'character-schedule') return this.applyCharacterScheduleUpdate(store, update);
     if (update.updateType === 'character-goal') return this.applyCharacterGoalUpdate(store, update);
     if (update.updateType === 'system') return this.applySystemUpdate(store, update);

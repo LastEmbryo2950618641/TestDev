@@ -78,6 +78,7 @@
   "progression-wearables.js",
   "rpg-schema.js",
   "progression-definitions.js",
+  "character-card-update-operations.js",
   "profession-info.js",
   "rpg-profession-state.js",
   "rpg-lexicon.js",

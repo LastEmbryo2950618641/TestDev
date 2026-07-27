@@ -259,35 +259,14 @@ window.GameModules.app.orgTerritory.settlementActions = {
   },
 
   applyMembershipUpdate(store, update = {}) {
-    const ot = this.ot();
-    const subject = update.subject || {};
-    const characterName = String(subject.name || subject.characterName || update.characterName || '').trim();
-    const characterId = String(subject.characterId || subject.id || '').trim();
-    let state = characterId && characterId !== 'player-self' ? store.itemSkillState?.(characterId) : store.playerIdentityState?.();
-    if (!state && characterName) state = ot.findCharacterStateByName(store, characterName);
-    if (!state && (characterId === 'player-self' || !characterName)) state = store.playerIdentityState?.();
-    if (!state?.values) return { ok: false, text: `人事：未找到角色「${characterName || characterId || '未知'}」` };
-
-    const change = update.change || {};
-    const value = change.value ?? update.value ?? {};
-    const patch = typeof value === 'object' && !Array.isArray(value) ? value : {};
-    const reason = this.reasonText(update);
-    const now = ot.nowLabel(store);
-
-    if (change.mode === 'remove') {
-      const orgId = patch.orgId || ot.resolveOrgIdByName(store, patch.orgName || patch.force);
-      state.values.memberships = (state.values.memberships || []).filter((m) => m.orgId !== orgId && m.orgName !== patch.orgName);
-
-    } else {
-      ot.upsertCharacterMembership(state, { ...patch, since: patch.since || now, reason: patch.reason || reason }, store);
-    }
-
-    window.GameModules.rpgState?.syncSocialFields?.(state, 'values', store);
-
-    store.rpgStates = { ...(store.rpgStates || {}), [state.id]: state };
-    window.GameModules.characterStateStore?.save?.(state);
-    const mem = (state.values.memberships || []).slice(-1)[0];
-    return { ok: true, text: `人事归属：${state.profile?.name || characterName} → ${mem?.displayLine || patch.orgName || '组织'}` };
+    const operation = update.operation;
+    if (!operation || operation.field !== 'memberships') return { ok: false, text: '人事归属：缺少类型化 memberships 操作' };
+    const result = window.GameModules.characterCardUpdateOperations?.apply?.(store, operation)
+      || { applied: false, reason: '角色卡操作模块未加载' };
+    const name = String(operation.subject?.name || operation.subject?.id || '未知角色').trim();
+    return result.applied
+      ? { ok: true, text: `人事归属：${name} 的 ${operation.op} 已应用` }
+      : { ok: false, text: `人事归属：${name} 的 ${operation.op} 已拒绝：${String(result.reason || '操作无效').trim()}` };
   },
 
   applyOrgStatus(store, update = {}) {

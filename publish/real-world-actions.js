@@ -9,6 +9,32 @@ window.GameModules.realWorldActions = {
     return String(value || '').trim();
   },
 
+  async applyRoleCardOperations(store, updates = []) {
+    const list = Array.isArray(updates) ? updates : [];
+    const roleUpdates = list.filter((item) => item?.updateType === 'role-card-operation');
+    const remaining = list.filter((item) => item?.updateType !== 'role-card-operation');
+    if (!roleUpdates.length) return { remaining, applied: [], rejected: [], lines: [] };
+    const operations = roleUpdates.map((item) => item.operation).filter(Boolean);
+    const outcome = await window.GameModules.characterCardUpdateOperations?.applyMany?.(store, operations)
+      || { applied: [], rejected: operations.map((operation) => ({ operation, reason: '角色卡操作模块未加载' })) };
+    const lineFor = (result, applied) => {
+      const operation = result.operation || {};
+      const name = String(operation.subject?.name || operation.subject?.id || '未知角色').trim();
+      const field = String(operation.field || '未知字段').trim();
+      return applied
+        ? `角色卡：${name} 的 ${field} 已更新。`
+        : `角色卡：${name} 的 ${field} 已拒绝：${String(result.reason || '操作无效').trim()}。`;
+    };
+    const applied = Array.isArray(outcome.applied) ? outcome.applied : [];
+    const rejected = Array.isArray(outcome.rejected) ? outcome.rejected : [];
+    return {
+      remaining,
+      applied,
+      rejected,
+      lines: [...applied.map((item) => lineFor(item, true)), ...rejected.map((item) => lineFor(item, false))],
+    };
+  },
+
   async submitRealWorldAction(action = '') {
     if (!this.isRealCurrentWorld?.()) {
       const text = this.realWorldActionText(action) || this.realWorldActionText(this.realWorldInput);
@@ -115,14 +141,17 @@ window.GameModules.realWorldActions = {
     settlement.push(...this.realWorldFactionSettlement(
       window.GameModules.updateRegistry?.orgNamesFromGenericUpdates?.(result.genericUpdates, this)?.map((name) => ({ factionName: name, action: 'generic' })) || [],
     ));
+    const roleCardOutcome = await this.applyRoleCardOperations(this, result.genericUpdates || []);
+    settlement.push(...roleCardOutcome.lines);
+    const genericAfterRoleCards = roleCardOutcome.remaining;
     const orgTerritoryTypes = new Set(['territory-control', 'org-structure-node', 'org-overview-panel', 'membership', 'org-status', 'faction-structure', 'faction-overview']);
-    const orgTerritoryUpdates = (result.genericUpdates || []).filter((item) => orgTerritoryTypes.has(item?.updateType));
+    const orgTerritoryUpdates = genericAfterRoleCards.filter((item) => orgTerritoryTypes.has(item?.updateType));
     const legacyHandled = new Set(['vital', 'emotion', 'feeling', 'item', 'faction-structure', 'faction-overview', 'territory-control', 'org-structure-node', 'org-overview-panel', 'membership', 'org-status']);
     if (orgTerritoryUpdates.length) {
       const orgLines = window.GameModules.app?.orgTerritory?.settlementActions?.applySettlementUpdates?.(this, orgTerritoryUpdates) || [];
       orgLines.forEach((line) => { if (line) settlement.push(line); });
     }
-    const remainingGeneric = (result.genericUpdates || []).filter((item) => !legacyHandled.has(item?.updateType));
+    const remainingGeneric = genericAfterRoleCards.filter((item) => !legacyHandled.has(item?.updateType));
     await window.GameModules.updateRegistry?.applyGeneric?.(this, remainingGeneric);
     const settledEvents = this.addEventsFromSettlement?.(result.events || [], { logId: id }) || [];
     if (settledEvents.length) settlement.push(`事件：已写入${settledEvents.length}条事件。`);

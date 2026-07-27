@@ -78,6 +78,7 @@ window.GameScriptManifest = {
       "progression-wearables.js",
       "rpg-schema.js",
       "progression-definitions.js",
+      "character-card-update-operations.js",
       "profession-info.js",
       "rpg-profession-state.js",
       "rpg-lexicon.js",
@@ -455,5 +456,5 @@ window.GameScriptManifest = {
     ]
   },
   "generatedAt": "2026-07-26T07:04:46.100Z",
-  "total": 436
+  "total": 437
 };
