@@ -684,7 +684,7 @@ function registerGameStore() {
     initPromise: null, startupWarmupPromise: null, startupWarmupDone: false, phoneSetupDone: false, phoneActivationChoice: '', profileSetupBusy: false, setupError: '', phoneFixedTime: 0, phoneClockStamp: 0, phoneClockLabelShort: '--:--', phoneClockLabelFull: '--:--:--', phoneClockTimer: null, existingProfileExpanded: false,
     roleCardSetup: { loaded: false, usePredefinedPlayerCard: false, cards: [], selectedPlayerId: '', selectedPlayerName: '', selectedCardIds: [], selectedCardId: '', detailOpen: false, cardDetailOpen: '' },
     knownProfessionState: { open: false, query: '', message: '', selectedName: '', detailOpen: false },
-    characterRosterState: { open: false, query: '', message: '', selectedKey: '', tab: 'role' },
+    characterRosterState: { open: false, query: '', message: '', selectedKey: '', suppressSelectUntil: 0, tab: 'role' },
     taobaoState: { open: false, slots: [], selectedId: '', generatingId: '', buyingId: '', requestId: 0, message: '', error: '', walletOpen: false, searchText: '', filterSlot: '' },
     settingsState: {
       open: false,
@@ -924,3 +924,4 @@ function registerGameStore() {
 }
 
 document.addEventListener('alpine:init', registerGameStore); window.addEventListener('load', registerGameStore); setTimeout(registerGameStore, 0);
+

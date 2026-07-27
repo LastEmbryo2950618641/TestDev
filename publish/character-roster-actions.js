@@ -5,38 +5,41 @@ window.GameModules = window.GameModules || {};
  * 升格后介绍卡保留；查询仍优先角色卡。
  */
 window.GameModules.characterRosterActions = {
-  initCharacterRosterApp() {
+  patchCharacterRosterState(patch = {}) {
     this.characterRosterState = {
       open: false,
       query: '',
       message: '',
       selectedKey: '',
-      tab: 'role', // role | intro
+      suppressSelectUntil: 0,
+      tab: 'role',
       ...(this.characterRosterState || {}),
+      ...(patch || {}),
     };
+    return this.characterRosterState;
+  },
+
+  initCharacterRosterApp() {
+    this.patchCharacterRosterState();
   },
 
   openCharacterRosterApp(options = {}) {
     this.initCharacterRosterApp();
     this.closeDesktopApps?.();
-    if (this.characterRosterState) this.characterRosterState.open = false;
-    this.characterRosterState.open = true;
+    this.patchCharacterRosterState({
+      open: true,
+      message: '',
+      selectedKey: options.selectedKey || '',
+      tab: options.selectedKey && options.tab === 'intro' ? 'intro' : 'role',
+      suppressSelectUntil: 0,
+    });
     this.desktopUnlocked = true;
-    if (options.selectedKey) {
-      this.characterRosterState.selectedKey = options.selectedKey;
-      this.characterRosterState.tab = options.tab === 'intro' ? 'intro' : 'role';
-    }
   },
 
   closeCharacterRosterApp() {
-    if (this.characterRosterState) {
-      this.characterRosterState.open = false;
-      this.characterRosterState.selectedKey = '';
-      this.characterRosterState.tab = 'role';
-    }
+    this.patchCharacterRosterState({ open: false, message: '', selectedKey: '', tab: 'role', suppressSelectUntil: 0 });
     this.closeAppToDesktop?.();
   },
-
   characterRosterPersonKey(name = '', worldTag = '', id = '') {
     const shared = String(id || '').trim();
     if (shared && window.GameModules.characterSocialDrive?.isSharedCharacterId?.(shared)) {
@@ -125,24 +128,28 @@ window.GameModules.characterRosterActions = {
 
   selectCharacterRosterPerson(key = '') {
     this.initCharacterRosterApp();
+    if (Number(this.characterRosterState.suppressSelectUntil) > Date.now()) return;
     const person = this.characterRosterPeople().find((item) => item.key === key);
     if (!person) return;
-    this.characterRosterState.selectedKey = person.key;
-    // 有角色卡默认看角色卡页；仅介绍卡则看介绍卡
-    this.characterRosterState.tab = person.hasRole ? 'role' : 'intro';
+    this.patchCharacterRosterState({
+      selectedKey: person.key,
+      tab: person.hasRole ? 'role' : 'intro',
+      suppressSelectUntil: 0,
+    });
   },
 
   setCharacterRosterTab(tab = 'role') {
     this.initCharacterRosterApp();
-    this.characterRosterState.tab = tab === 'intro' ? 'intro' : 'role';
+    this.patchCharacterRosterState({ tab: tab === 'intro' ? 'intro' : 'role' });
   },
 
   clearCharacterRosterSelection() {
-    if (!this.characterRosterState) return;
-    this.characterRosterState.selectedKey = '';
-    this.characterRosterState.tab = 'role';
+    this.patchCharacterRosterState({
+      selectedKey: '',
+      tab: 'role',
+      suppressSelectUntil: Date.now() + 250,
+    });
   },
-
   /** 介绍卡展示行（设计用轻量字段） */
   characterRosterIntroRows(card = null) {
     if (!card) return [];
@@ -188,22 +195,36 @@ window.GameModules.characterRosterActions = {
   async solidifyRosterIntroCard() {
     const person = this.selectedCharacterRosterPerson();
     if (!person?.introCard || person.hasRole) {
-      this.characterRosterState.message = person?.hasRole ? '已有角色卡，无需重复升格。' : '没有可升格的介绍卡。';
+      this.patchCharacterRosterState({
+        message: person?.hasRole ? '已有角色卡，无需重复升格。' : '没有可升格的介绍卡。',
+      });
       return;
     }
     await this.solidifySelectedIntroCard?.(person.introCard, null);
-    this.characterRosterState.message = `已开始为「${person.name}」生成独立角色卡；介绍卡仍保留。`;
-    this.characterRosterState.tab = 'role';
+    this.patchCharacterRosterState({
+      message: `已开始为「${person.name}」生成独立角色卡；介绍卡仍保留。`,
+      tab: 'role',
+    });
   },
 
-  openRosterRoleAsIdentity() {
+  openRosterRoleAsIdentity(roleId = '') {
     const person = this.selectedCharacterRosterPerson();
-    if (!person?.roleId) {
-      this.characterRosterState.message = '尚无角色卡，请先在介绍卡页升格。';
+    const id = roleId || person?.roleId || '';
+    if (!id) {
+      this.patchCharacterRosterState({ message: '尚无角色卡，请先在介绍卡页升格。' });
       return;
     }
     // 身份证界面查看角色卡；返回时回角色管理
-    this.characterRosterState.open = false;
-    this.openIdentityApp?.(person.roleId, 'character-roster');
+    this.patchCharacterRosterState({ open: false });
+    if (typeof this.showIdentityAppShell === 'function') {
+      this.showIdentityAppShell(id, 'character-roster');
+    } else {
+      this.identityReturnTo = 'character-roster';
+      this.identityTargetId = id;
+      this.identityAppOpen = true;
+      this.desktopUnlocked = true;
+    }
+    void this.hydrateIdentityTargetForApp?.(id);
   },
 };
+

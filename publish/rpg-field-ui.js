@@ -703,8 +703,11 @@ window.GameModules.rpgFieldUi = {
     if (kind === '当前身体状态') {
       const uiRow = this.initUiRow(field, obj);
       const defaults = window.GameModules.initDefaults?.intimacyBody, text = defaults?.displayTexts || {}, values = defaults?.valueDefaults || {};
-      const statusText = obj.pendingAiInit ? '未知' : (obj.status || values.bodyStatus || '未知');
-      const lines = [`部位: ${uiRow?.name || obj.part || name}`, `状态: ${statusText}`, `初始化: ${obj.pendingAiInit ? '否，当前未知' : (obj.initializedByAi ? '是，已由AI初始化' : '未标记')}`, `初始见面: ${obj.initialMeeting || text.noRecord || ''}`, `描述状态: ${obj.pendingAiInit ? '未知' : (obj.description || text.noRecord || '')}`];
+      const hasStatus = Boolean(String(obj?.status || '').trim());
+      const hasDescription = Boolean(String(obj?.description || obj?.['描述状态'] || '').trim());
+      const statusText = hasStatus ? String(obj.status).trim() : (values.bodyStatus || '未知');
+      const descriptionText = hasDescription ? String(obj.description || obj?.['描述状态'] || '').trim() : text.noRecord || '';
+      const lines = [`部位: ${uiRow?.name || obj.part || name}`, `状态: ${statusText}`, `初始化: ${obj.pendingAiInit ? '待确认（当前有记录）' : (obj.initializedByAi ? '是，已由AI初始化' : '未标记')}`, `初始见面: ${obj.initialMeeting || text.noRecord || ''}`, `描述状态: ${descriptionText || '未知'}`];
       if (Array.isArray(uiRow?.detailLines)) lines.push(...uiRow.detailLines);
       lines.push(`变化原因: ${obj.reason || text.currentRecord || ''}`, `更新时间: ${obj.updatedAt || text.noRecord || ''}`, `所属世界: ${field?.worldTag || text.publicWorld || '公共'}`);
       return lines.join('\n');
@@ -1391,8 +1394,8 @@ window.GameModules.rpgFieldUi = {
     }));
     const bodyRows = this.rpgListItems(bodyField).map((item, index) => {
       const row = this.initUiRow(bodyField, item) || {};
-      const pending = Boolean(item?.pendingAiInit || bodyField?.pendingAiInit);
-      const rawDesc = pending ? '' : (item?.description || item?.['描述状态'] || '');
+      const rawStatus = String(row.value || item?.status || '').trim();
+      const rawDesc = String(item?.description || item?.['描述状态'] || '').trim();
       const desc = this.sanitizeIntimacyDisplayText(rawDesc);
       return {
         field: bodyField,
@@ -1400,8 +1403,8 @@ window.GameModules.rpgFieldUi = {
         index,
         icon: this.bodyPartEmoji(item?.part || item?.partKey || row.name || item?.name || ''),
         title: row.name || item?.part || item?.partKey || item?.name || ('状态' + (index + 1)),
-        value: pending ? '未知' : (row.value || item?.status || '未记录'),
-        preview: pending ? '未知' : (desc || row.value || '暂无额外说明'),
+        value: rawStatus || '未知',
+        preview: desc || rawStatus || '未知',
       };
     });
     const visiblePartnerRows = isMalePlayer

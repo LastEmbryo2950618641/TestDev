@@ -2469,85 +2469,120 @@
         </div>
         <button class="small-btn" type="button" @click="$store.game.closeCharacterRosterApp()">回到桌面</button>
       </header>
-      <section class="skills-toolbar dev-section" data-section-title="角色管理筛选区">
+      <section class="skills-toolbar roster-toolbar dev-section" data-section-title="角色管理筛选区">
         <input x-model="$store.game.characterRosterState.query" placeholder="搜索姓名、世界、关系、事务">
         <p class="skills-note" x-show="$store.game.characterRosterState.message" x-text="$store.game.characterRosterState.message"></p>
       </section>
-      <main class="skills-body character-roster-body" x-show="!$store.game.characterRosterState.selectedKey">
-        <section class="skills-list dev-section" data-section-title="角色列表区">
-          <p class="skills-note" x-show="!$store.game.characterRosterPeople().length">暂无角色或介绍卡。推演出场人物会先写入介绍卡；固化后生成独立角色卡。</p>
-          <template x-for="person in $store.game.characterRosterPeople()" :key="person.key">
-            <button class="skill-row prompt-row character-roster-row" type="button" @click="$store.game.selectCharacterRosterPerson(person.key)">
-              <span class="skill-row-title prompt-title">
-                <strong x-text="person.name"></strong>
-                <em class="roster-badges">
-                  <i x-show="person.hasRole">角色卡</i>
-                  <i x-show="person.hasIntro">介绍卡</i>
-                </em>
-              </span>
-              <small x-text="`${person.worldTag}｜${person.relation || '关系未记'}｜${person.agendaShort || '暂无议程'}`"></small>
-            </button>
-          </template>
-        </section>
-      </main>
-      <main class="skills-body character-roster-detail" x-show="$store.game.characterRosterState.selectedKey">
-        <header class="roster-detail-head">
-          <button class="small-btn" type="button" @click="$store.game.clearCharacterRosterSelection()">返回列表</button>
-          <div>
-            <strong x-text="$store.game.selectedCharacterRosterPerson()?.name || '角色'"></strong>
-            <small x-text="$store.game.selectedCharacterRosterPerson()?.worldTag || ''"></small>
-          </div>
-        </header>
-        <nav class="roster-tabs" aria-label="角色卡与介绍卡">
-          <button type="button" class="roster-tab" :class="{ active: $store.game.characterRosterState.tab === 'role' }" @click="$store.game.setCharacterRosterTab('role')">角色卡</button>
-          <button type="button" class="roster-tab" :class="{ active: $store.game.characterRosterState.tab === 'intro' }" @click="$store.game.setCharacterRosterTab('intro')">介绍卡</button>
-        </nav>
-        <section class="roster-pane" x-show="$store.game.characterRosterState.tab === 'role'">
-          <template x-if="$store.game.selectedCharacterRosterPerson()?.hasRole">
-            <div class="roster-role-pane">
-              <p class="skills-note">角色卡使用身份证界面查看完整档案与「社交驱动」分区。</p>
-              <dl class="roster-intro-grid">
-                <div><dt>角色卡ID</dt><dd x-text="$store.game.selectedCharacterRosterPerson()?.roleId || '—'"></dd></div>
-                <div><dt>与主角关系</dt><dd x-text="$store.game.selectedCharacterRosterPerson()?.relation || '未记录'"></dd></div>
-                <div><dt>当前事务</dt><dd x-text="$store.game.selectedCharacterRosterPerson()?.agendaShort || '暂无'"></dd></div>
-              </dl>
-              <button class="primary-btn" type="button" @click="$store.game.openRosterRoleAsIdentity()">打开身份证（角色卡）</button>
-            </div>
-          </template>
-          <template x-if="!$store.game.selectedCharacterRosterPerson()?.hasRole">
-            <div class="roster-role-pane empty">
-              <p class="skills-note">尚未生成角色卡。可在「介绍卡」页手动升格；升格后介绍卡仍保留。</p>
-              <button class="primary-btn" type="button" x-show="$store.game.selectedCharacterRosterPerson()?.hasIntro" @click="$store.game.setCharacterRosterTab('intro')">前往介绍卡升格</button>
-            </div>
-          </template>
-        </section>
-        <section class="roster-pane" x-show="$store.game.characterRosterState.tab === 'intro'">
-          <template x-if="$store.game.selectedCharacterRosterPerson()?.hasIntro">
-            <div class="roster-intro-pane">
-              <div class="roster-intro-card">
-                <header class="roster-intro-card-head">
-                  <p class="eyebrow">INTRO CARD</p>
-                  <h3 x-text="$store.game.selectedCharacterRosterPerson()?.introCard?.name"></h3>
-                  <small x-text="$store.game.selectedCharacterRosterPerson()?.introCard?.identity?.role || $store.game.selectedCharacterRosterPerson()?.introCard?.role || '出场人物'"></small>
-                </header>
-                <dl class="roster-intro-grid">
-                  <template x-for="row in $store.game.characterRosterIntroRows($store.game.selectedCharacterRosterPerson()?.introCard)" :key="row.label">
-                    <div><dt x-text="row.label"></dt><dd x-text="row.value"></dd></div>
-                  </template>
-                </dl>
+      <template x-if="!$store.game.characterRosterState.selectedKey">
+        <main class="skills-body character-roster-body">
+          <section class="skills-list roster-list-shell dev-section" data-section-title="角色列表区">
+            <div class="roster-summary-strip" aria-label="角色卡统计">
+              <div class="roster-summary-pill">
+                <strong>角色卡</strong>
+                <small x-text="`${$store.game.characterRosterPeople().filter((person) => person.hasRole).length} 张`"></small>
               </div>
-              <button class="primary-btn" type="button" x-show="!$store.game.selectedCharacterRosterPerson()?.hasRole" @click="$store.game.solidifyRosterIntroCard()">升格为角色卡</button>
-              <p class="skills-note" x-show="$store.game.selectedCharacterRosterPerson()?.hasRole">已升格：角色卡独立存在；本介绍卡不会被覆盖或删除。</p>
+              <div class="roster-summary-pill alt">
+                <strong>介绍卡</strong>
+                <small x-text="`${$store.game.characterRosterPeople().filter((person) => person.hasIntro).length} 张`"></small>
+              </div>
             </div>
-          </template>
-          <template x-if="!$store.game.selectedCharacterRosterPerson()?.hasIntro">
-            <p class="skills-note">没有介绍卡。此人可能来自预定义角色卡或开局种子。</p>
-          </template>
-        </section>
-      </main>
+            <p class="skills-note" x-show="!$store.game.characterRosterPeople().length">暂无角色或介绍卡。推演出场人物会先写入介绍卡；固化后生成独立角色卡。</p>
+            <template x-for="person in $store.game.characterRosterPeople()" :key="person.key">
+              <button class="skill-row prompt-row character-roster-row" type="button" @click="$store.game.selectCharacterRosterPerson(person.key)">
+                <span class="roster-row-top">
+                  <span class="roster-row-heading">
+                    <strong x-text="person.name"></strong>
+                    <em class="roster-badges">
+                      <i x-show="person.hasRole">角色卡</i>
+                      <i x-show="person.hasIntro">介绍卡</i>
+                    </em>
+                  </span>
+                </span>
+                <small class="roster-row-note" x-text="`${person.worldTag || '原创世界'}｜${person.relation || '关系未记'}｜${person.agendaShort || '暂无议程'}`"></small>
+              </button>
+            </template>
+          </section>
+        </main>
+      </template>
+      <template x-if="$store.game.characterRosterState.selectedKey">
+        <main class="skills-body character-roster-detail">
+          <section class="roster-detail-shell">
+            <header class="roster-detail-hero">
+              <div class="roster-detail-topbar">
+                <button class="small-btn roster-back-btn" type="button" @click.stop.prevent="$store.game.clearCharacterRosterSelection()">返回列表</button>
+                <div class="roster-detail-copy">
+                  <strong x-text="$store.game.selectedCharacterRosterPerson()?.name || '角色'"></strong>
+                  <small x-text="$store.game.selectedCharacterRosterPerson()?.worldTag || '原创世界'"></small>
+                </div>
+                <button class="small-btn roster-open-id-btn" type="button" x-show="$store.game.selectedCharacterRosterPerson()?.hasRole" @click.stop.prevent="$store.game.openRosterRoleAsIdentity($store.game.selectedCharacterRosterPerson()?.roleId)">打开身份证</button>
+              </div>
+              <div class="roster-detail-brief">
+                <span><b>关系</b><i x-text="$store.game.selectedCharacterRosterPerson()?.relation || '未记录'"></i></span>
+                <span><b>事务</b><i x-text="$store.game.selectedCharacterRosterPerson()?.agendaShort || '暂无议程'"></i></span>
+              </div>
+            </header>
+            <nav class="roster-tabs" aria-label="角色卡与介绍卡">
+              <button type="button" class="roster-tab" :class="{ active: $store.game.characterRosterState.tab === 'role' }" @click="$store.game.setCharacterRosterTab('role')">
+                <span>角色卡</span>
+                <small x-text="$store.game.selectedCharacterRosterPerson()?.hasRole ? '1' : '0'"></small>
+              </button>
+              <button type="button" class="roster-tab" :class="{ active: $store.game.characterRosterState.tab === 'intro' }" @click="$store.game.setCharacterRosterTab('intro')">
+                <span>介绍卡</span>
+                <small x-text="$store.game.selectedCharacterRosterPerson()?.hasIntro ? '1' : '0'"></small>
+              </button>
+            </nav>
+            <section class="roster-pane" x-show="$store.game.characterRosterState.tab === 'role'">
+              <template x-if="$store.game.selectedCharacterRosterPerson()?.hasRole">
+                <div class="roster-role-pane">
+                  <div class="roster-pane-card">
+                    <p class="skills-note">角色卡使用身份证界面查看完整档案与「社交驱动」分区。</p>
+                    <dl class="roster-intro-grid roster-compact-grid">
+                      <div><dt>角色卡ID</dt><dd x-text="$store.game.selectedCharacterRosterPerson()?.roleId || '—'"></dd></div>
+                      <div><dt>与主角关系</dt><dd x-text="$store.game.selectedCharacterRosterPerson()?.relation || '未记录'"></dd></div>
+                      <div><dt>当前事务</dt><dd x-text="$store.game.selectedCharacterRosterPerson()?.agendaShort || '暂无'"></dd></div>
+                    </dl>
+                  </div>
+                </div>
+              </template>
+              <template x-if="!$store.game.selectedCharacterRosterPerson()?.hasRole">
+                <div class="roster-role-pane empty">
+                  <div class="roster-pane-card">
+                    <p class="skills-note">尚未生成角色卡。可在「介绍卡」页手动升格；升格后介绍卡仍保留。</p>
+                  </div>
+                  <button class="primary-btn" type="button" x-show="$store.game.selectedCharacterRosterPerson()?.hasIntro" @click="$store.game.setCharacterRosterTab('intro')">前往介绍卡升格</button>
+                </div>
+              </template>
+            </section>
+            <section class="roster-pane" x-show="$store.game.characterRosterState.tab === 'intro'">
+              <template x-if="$store.game.selectedCharacterRosterPerson()?.hasIntro">
+                <div class="roster-intro-pane">
+                  <div class="roster-intro-card">
+                    <header class="roster-intro-card-head">
+                      <p class="eyebrow">INTRO CARD</p>
+                      <h3 x-text="$store.game.selectedCharacterRosterPerson()?.introCard?.name"></h3>
+                      <small x-text="$store.game.selectedCharacterRosterPerson()?.introCard?.identity?.role || $store.game.selectedCharacterRosterPerson()?.introCard?.role || '出场人物'"></small>
+                    </header>
+                    <dl class="roster-intro-grid">
+                      <template x-for="row in $store.game.characterRosterIntroRows($store.game.selectedCharacterRosterPerson()?.introCard)" :key="row.label">
+                        <div><dt x-text="row.label"></dt><dd x-text="row.value"></dd></div>
+                      </template>
+                    </dl>
+                  </div>
+                  <button class="primary-btn" type="button" x-show="!$store.game.selectedCharacterRosterPerson()?.hasRole" @click="$store.game.solidifyRosterIntroCard()">升格为角色卡</button>
+                  <p class="skills-note" x-show="$store.game.selectedCharacterRosterPerson()?.hasRole">已升格：角色卡独立存在；本介绍卡不会被覆盖或删除。</p>
+                </div>
+              </template>
+              <template x-if="!$store.game.selectedCharacterRosterPerson()?.hasIntro">
+                <div class="roster-pane-card roster-empty-card">
+                  <p class="skills-note">没有介绍卡。此人可能来自预定义角色卡或开局种子。</p>
+                </div>
+              </template>
+            </section>
+          </section>
+        </main>
+      </template>
     </div>
   </section>
-
   <section class="skills-modal-backdrop" x-show="$store.game.knownProfessionState?.detailOpen" @click.self="$store.game.closeKnownProfessionDetail()" x-cloak>
     <article class="skills-detail dev-section" data-section-title="已知职业详情弹窗" x-show="$store.game.selectedKnownProfession()" @click.stop>
       <header class="identity-header"><div><p class="eyebrow">JOB LV.1</p><h3 x-text="$store.game.selectedKnownProfession()?.name"></h3><small x-text="$store.game.selectedKnownProfession()?.description"></small></div><button class="small-btn" type="button" @click.stop="$store.game.closeKnownProfessionDetail()">关闭</button></header>
@@ -4011,4 +4046,5 @@
   <script src="root-key-autofill.js?v=2026-07-23-db-write-fix-v15"></script>
 </body>
 </html>
+
 

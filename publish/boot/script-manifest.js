@@ -8,10 +8,10 @@ window.GameScriptManifest = {
       "asset-loader.js",
       "remerge-game-store.js",
       "config/default-existing-profile.js",
-      "predefined-role-cards/01-鍒樻€濈惇-rel-ai-247528.js",
-      "predefined-role-cards/02-鍒樻€濇€?rel-ai-242269.js",
-      "predefined-role-cards/03-鍒樻€濈懚-rel-ai-247463.js",
-      "predefined-role-cards/04-鍒樻偁-player-self.js",
+      "predefined-role-cards/01-刘思琪-rel-ai-247528.js",
+      "predefined-role-cards/02-刘思怡-rel-ai-242269.js",
+      "predefined-role-cards/03-刘思瑶-rel-ai-247463.js",
+      "predefined-role-cards/04-刘悠-player-self.js",
       "predefined-role-card-support/triplet-essential-preference-layers.js",
       "predefined-role-card-support/predefined-appearance-profiles.js",
       "predefined-role-cards.js",
@@ -273,7 +273,7 @@ window.GameScriptManifest = {
       "ui/faction/overview-view-helpers.js",
       "prompts/location-tree-audit-fill.js",
       "prompts/real-world-map-surround-unlock.js",
-      "prompts/鎺ㄦ紨寮曟搸/stage6-faction-update.js"
+      "prompts/推演引擎/stage6-faction-update.js"
     ],
     "gameplay": [
       "real-world-log-store.js",

@@ -1,28 +1,55 @@
 window.GameModules = window.GameModules || {};
 window.GameModules.identityAppActions = {
-  async openIdentityApp(targetId = 'player-self', returnTo = '') {
-    if ((targetId || 'player-self') === 'player-self') await this.repairSelectedPlayerRoleCardState?.();
+  showIdentityAppShell(targetId = 'player-self', returnTo = '') {
     const id = targetId || 'player-self';
-    const storeApi = window.GameModules.characterStateStore;
-    const locField = window.GameModules.currentLocationField;
-    // Always prefer live registry; hydrate from store when missing.
-    let live = storeApi?.get?.(id, this) || this.rpgStates?.[id] || null;
-    if (!live && id !== 'player-self') {
-      live = storeApi?.resolve?.(id, this) || null;
+    this.identityReturnTo = returnTo;
+    this.wechatAppOpen = false;
+    this.saveAppOpen = false;
+    this.roleCardJsonAppOpen = false;
+    this.worldlineAppOpen = false;
+    if (this.companyState) this.companyState.open = false;
+    if (this.bossState) this.bossState.open = false;
+    if (this.calendarState) this.calendarState.open = false;
+    if (this.factionState) this.factionState.open = false;
+    if (this.skillsState) this.skillsState.open = false;
+    if (this.knownProfessionState) this.knownProfessionState.open = false;
+    if (this.characterRosterState) this.characterRosterState.open = false;
+    if (this.promptState) this.promptState.open = false;
+    if (this.tokenStatsState) this.tokenStatsState.open = false;
+    this.identityTargetId = id;
+    this.identityAppOpen = true;
+    this.desktopUnlocked = true;
+    try {
+      this.ensureIdentityMetricSources(this.identityTargetId);
+    } catch (err) {
+      console.warn('[身份证] 指标源初始化失败：', err?.message || err, err?.stack || '');
     }
-    if (live?.id) {
+    return id;
+  },
+
+  async hydrateIdentityTargetForApp(targetId = 'player-self') {
+    const id = targetId || 'player-self';
+    try {
+      if (id === 'player-self') await this.repairSelectedPlayerRoleCardState?.();
+      const storeApi = window.GameModules.characterStateStore;
+      const locField = window.GameModules.currentLocationField;
+      let live = storeApi?.get?.(id, this) || this.rpgStates?.[id] || null;
+      if (!live && id !== 'player-self') {
+        live = storeApi?.resolve?.(id, this) || null;
+      }
+      if (!live?.id) return null;
+
       this.rpgStates = { ...(this.rpgStates || {}), [live.id]: live };
       const poolsChanged = Boolean(window.GameModules.progression?.ensureStateMechanics?.(live, live.profile || {}));
       if (poolsChanged) {
         storeApi?.mergeOntoLive?.(live, this);
-        // Force Alpine to see nested pool max changes on the same object reference.
         this.rpgStates = { ...(this.rpgStates || {}), [live.id]: live };
         await storeApi?.save?.(live, this);
         if (typeof this.save === 'function') {
           try { await Promise.resolve(this.save()); } catch (_) { /* ignore */ }
         }
       }
-      // Prefer any recorded AI/card text. Only fill blanks from appearing/schedule/scene.
+
       const recorded = locField?.fromCharacterState?.(live)
         || locField?.normalize?.(live.profile?.currentLocation || '')
         || '';
@@ -55,21 +82,18 @@ window.GameModules.identityAppActions = {
           try { await Promise.resolve(this.save()); } catch (_) { /* ignore */ }
         }
       }
+      return live;
+    } catch (err) {
+      console.warn('[身份证] 打开前预处理失败，已跳过：', err?.message || err, err?.stack || '');
+      return null;
     }
-    this.identityReturnTo = returnTo;
-    this.wechatAppOpen = false; this.saveAppOpen = false; this.roleCardJsonAppOpen = false; this.worldlineAppOpen = false;
-    if (this.companyState) this.companyState.open = false;
-    if (this.bossState) this.bossState.open = false;
-    if (this.calendarState) this.calendarState.open = false;
-    if (this.factionState) this.factionState.open = false;
-    if (this.skillsState) this.skillsState.open = false;
-    if (this.knownProfessionState) this.knownProfessionState.open = false;
-    if (this.characterRosterState) this.characterRosterState.open = false;
-    if (this.promptState) this.promptState.open = false; if (this.tokenStatsState) this.tokenStatsState.open = false;
-    this.identityTargetId = id; this.identityAppOpen = true;
-    this.desktopUnlocked = true;
-    this.ensureIdentityMetricSources(this.identityTargetId);
   },
+
+  async openIdentityApp(targetId = 'player-self', returnTo = '') {
+    const id = this.showIdentityAppShell(targetId, returnTo);
+    void Promise.resolve().then(() => this.hydrateIdentityTargetForApp(id));
+  },
+
   closeIdentityApp() { this.identityReturnTo = ''; this.closeAppToDesktop(); },
   backFromIdentityApp() {
     if (this.identityReturnTo === 'character-roster') {
