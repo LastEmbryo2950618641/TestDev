@@ -224,4 +224,26 @@ test('Stage4 JSON 角色卡人事归属路由到 membership upsert', () => {
   assert.strictEqual(update.change.value.title, '教师');
 });
 
+test('Stage4 JSON 证书与称号写入 profile 且不进入 RPG values', () => {
+  const context = createContext();
+  loadPipeline(context);
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  const store = makeStore();
+  const participants = [{ type: 'player', id: 'player-self', name: '刘悠' }];
+  const parsed = loop.parseSettlementJson(JSON.stringify({
+    角色卡: [
+      { subject: '刘悠', field: '证书', op: '增加', value: '四川大学/计算机科学与技术/工学硕士学位', reason: '本轮确认学历', result: '写入证书' },
+      { subject: '刘悠', field: '称号', op: '增加', value: '成都程序员社区/开源贡献/年度贡献者', reason: '本轮确认认可', result: '写入称号' },
+    ],
+  }), { requestedTypes: ['角色卡'], participants, store });
+
+  assert.strictEqual(parsed.genericUpdates.length, 2);
+  parsed.genericUpdates.forEach((update) => assert.strictEqual(context.window.GameModules.updateRegistry.applyOne(store, update), true));
+  const state = store.playerIdentityState();
+  assert.strictEqual(state.profile.certificates[0].orgName, '四川大学');
+  assert.strictEqual(state.profile.titles[0].title, '年度贡献者');
+  assert.strictEqual(state.values.certificates, undefined);
+  assert.strictEqual(state.values.titles, undefined);
+});
+
 console.log('all settlement social pipeline tests passed');
