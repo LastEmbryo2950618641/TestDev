@@ -37,6 +37,33 @@ window.GameModules.characterIntroUpdateOperations = {
     return Math.max(0, Math.min(100, Number(value) || 0));
   },
 
+  appearanceProfileSection(label = '', list = []) {
+    const rows = (Array.isArray(list) ? list : [])
+      .filter((item) => this.text(item?.description || item?.summary || item?.value))
+      .slice(0, 2)
+      .map((item) => {
+        const part = this.text(item?.part || item?.name || item?.label);
+        const description = this.text(item?.description || item?.summary || item?.value).slice(0, 42);
+        return `${part ? `${part}：` : ''}${description}`;
+      });
+    return rows.length ? `${label}：${rows.join('；')}` : '';
+  },
+
+  roleAppearanceSummary(profile = {}) {
+    const sections = [
+      {
+        text: this.appearanceProfileSection('自然外观', profile.bodyProfile),
+        updatedAt: Date.parse(profile.bodyProfileMeta?.updatedAt || '') || 0,
+      },
+      {
+        text: this.appearanceProfileSection('盛装外观', profile.dressedProfile),
+        updatedAt: Date.parse(profile.dressedProfileMeta?.updatedAt || '') || 0,
+      },
+    ].filter((item) => item.text).sort((a, b) => b.updatedAt - a.updatedAt);
+    const base = this.text(profile.appearance);
+    return [...sections.map((item) => item.text), base].filter(Boolean).join('；').slice(0, 120);
+  },
+
   reject(reason = '操作无效', operation = null) {
     return { applied: false, rejected: true, reason, operation };
   },
@@ -210,7 +237,7 @@ window.GameModules.characterIntroUpdateOperations = {
       },
       persona: {
         ...(current.persona || {}),
-        appearance: profile.appearance || current.persona?.appearance || '',
+        appearance: this.roleAppearanceSummary(profile) || current.persona?.appearance || '',
         personality: profile.personality || current.persona?.personality || '',
         background: profile.detail || current.persona?.background || '',
         preferences: profile.preferences ? [profile.preferences] : (current.persona?.preferences || []),

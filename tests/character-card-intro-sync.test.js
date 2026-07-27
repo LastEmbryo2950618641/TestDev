@@ -42,6 +42,7 @@ const sync = context.window.GameModules.characterIntroUpdateOperations;
 load('publish/progression.js');
 load('publish/progression-definitions.js');
 load('publish/character-card-update-operations.js');
+load('publish/real-world-profile-stage5.js');
 const role = {
   id: 'rel-ai-200',
   profile: {
@@ -125,6 +126,20 @@ const role = {
   ]);
   assert.strictEqual(batch.applied.length, 2);
   assert.strictEqual(roleToIntroSyncCount, 1, 'one role-card batch must synchronize its intro card once');
+  const syncCountBeforeAppearance = roleToIntroSyncCount;
+  const appearanceRows = await context.window.GameModules.realWorldProfileStage5.applyPatches(store, [{
+    subject: role.profile.name,
+    subjectId: role.id,
+    profileType: 'bodyProfile',
+    bodyProfile: [{ part: '头发', description: '银灰色齐肩短发，发尾整齐。' }],
+    bodyProfileMeta: { updatedAt: '2026-07-28T12:00:00Z' },
+    parts: ['头发'],
+    reason: '本轮正文确认发色变化',
+    descriptionText: '银灰色齐肩短发',
+  }]);
+  assert.strictEqual(roleToIntroSyncCount, syncCountBeforeAppearance + 1, 'appearance save must synchronize the intro card immediately');
+  assert.match(intro.persona.appearance, /银灰色齐肩短发/);
+  assert.strictEqual(appearanceRows.length, 1);
   assert.strictEqual(intro.persona.background, '更新后说明');
   assert.strictEqual(intro.persona.personality, '更新后性格');
 

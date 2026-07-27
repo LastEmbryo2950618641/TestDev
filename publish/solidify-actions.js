@@ -418,7 +418,7 @@ window.GameModules.solidifyActions = {
     const context = persona.background || card.intro || '';
     this.startRoleCardLoadingBatch?.([{ id: source.id, name: card.name, type: '角色卡', source, context }]);
     await this.ensureRpgForCharacter(source, context, { loadMetrics: false, allowManualSolidify: true });
-    // 升格后清 stub 标记
+    // 升格后按统一字段所有权完成介绍卡 → 角色卡 → 介绍卡同步。
     try {
       const live = window.GameModules.characterStateStore?.get?.(source.id) || this.rpgStates?.[source.id];
       if (live?.profile) {
@@ -426,37 +426,18 @@ window.GameModules.solidifyActions = {
         live.profile.roleCardStub = false;
         live.profile.solidifyComplete = true;
         if (live.meta) live.meta.roleCardStub = false;
+        const introStore = window.GameModules.characterIntroStore;
+        const intro = introStore?.getById?.(card.id)
+          || introStore?.get?.(card.name)
+          || (introStore?.list?.() || []).find((item) => item.id === card.id || item.name === card.name)
+          || card;
+        const sync = window.GameModules.characterIntroUpdateOperations;
+        await sync?.syncIntroToRole?.(intro, live);
         await window.GameModules.characterStateStore?.save?.(live, this);
+        await sync?.syncRoleToIntro?.(live, intro, this);
       }
     } catch (err) {
-      console.warn('[介绍卡升格] 清除 stub 标记失败:', err?.message || err);
-    }
-    // 升格：介绍卡与角色卡共用同一 ID；保留介绍卡正文，只回写链接与状态
-    try {
-      const introStore = window.GameModules.characterIntroStore;
-      const intro = introStore?.getById?.(card.id)
-        || introStore?.get?.(card.name)
-        || (introStore?.list?.() || []).find((item) => item.id === card.id || item.name === card.name);
-      if (intro) {
-        const next = window.GameModules.characterIntroCard?.normalize?.({
-          ...intro,
-          id: source.id,
-          presenceKind,
-          links: {
-            ...(intro.links || {}),
-            roleCardId: source.id,
-            scheduleId: source.id,
-          },
-          meta: {
-            ...(intro.meta || {}),
-            solidifyStatus: 'solidified',
-            updatedAt: new Date().toISOString(),
-          },
-        }, this, intro.meta?.source || 'ai');
-        if (next) await introStore?.save?.(next);
-      }
-    } catch (err) {
-      console.warn('[介绍卡升格] 回写介绍卡链接失败:', err?.message || err);
+      console.warn('[介绍卡升格] 双向同步失败:', err?.message || err);
     }
     if (entry) {
       entry.solidifyCards = this.solidifyDisplayCards(entry.solidifyCards || []);

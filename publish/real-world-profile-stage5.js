@@ -417,6 +417,7 @@ window.GameModules.realWorldProfileStage5 = {
       }
       if (store?.rpgStates && state.id) store.rpgStates[state.id] = state;
       await window.GameModules.characterStateStore?.save?.(state);
+      await window.GameModules.characterIntroUpdateOperations?.syncRoleToIntro?.(state, null, store);
       const subjectName = patch.subject || state.profile?.name || state.name || '角色';
       const card = settlement?.resolveCharacterSettlementCard?.(store, state.id || patch.subjectId || patch.subject, subjectName)
         || { id: `role:${state.id}`, title: subjectName, section: '角色卡' };
