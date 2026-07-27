@@ -110,6 +110,26 @@ test('normalize snapshots evidence arrays with bounded structural fields', () =>
   assert.strictEqual(Object.hasOwn(normalized.factions[0], 'ignored'), false);
 });
 
+test('normalize preserves legacy string and alias forms as canonical inference evidence', () => {
+  const tool = createContext().window.GameModules.characterProfile;
+  const normalized = tool.normalize({
+    name: '刘悠',
+    factions: ['刘家/长兄'],
+    memberships: [{ name: '成都悠云科技有限公司', position: '程序工程师', changeMode: '已有任职依据' }],
+    certificates: [{ organization: '四川大学', domain: '计算机科学与技术', title: '工学硕士学位', changeMode: '已有学历依据' }],
+    titles: [{ community: '成都程序员社区', domain: '开源贡献', level: '年度贡献者', changeMode: '已有认可依据' }],
+  });
+
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(normalized.factions[0])), { faction: '刘家', role: '长兄', reason: '' });
+  assert.strictEqual(normalized.memberships[0].orgName, '成都悠云科技有限公司');
+  assert.strictEqual(normalized.memberships[0].title, '程序工程师');
+  assert.strictEqual(normalized.certificates[0].orgName, '四川大学');
+  assert.strictEqual(normalized.certificates[0].field, '计算机科学与技术');
+  assert.strictEqual(normalized.certificates[0].level, '工学硕士学位');
+  assert.strictEqual(normalized.titles[0].society, '成都程序员社区');
+  assert.strictEqual(normalized.titles[0].title, '年度贡献者');
+});
+
 test('inputSignature changes for every organizational and educational evidence field', () => {
   const tool = createContext().window.GameModules.characterProfile;
   const base = tool.normalize(makeRaw());

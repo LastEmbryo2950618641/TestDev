@@ -132,11 +132,20 @@ window.GameModules.characterProfile = {
     const name = String(data.name || '无名路人').slice(0, 16);
     const work = String(store?.currentWorldTag?.() || data.work || store?.character?.work || '原创世界').slice(0, 40);
     const id = data.id || `npc-${this.slug(work)}-${this.slug(name)}`;
-    const evidence = (items, fields, booleanFields = [], optionalFields = []) => {
+    const evidence = (items, fields, booleanFields = [], optionalFields = [], aliases = {}) => {
       if (!Array.isArray(items)) return [];
       return items.slice(0, 16).map((item) => {
         const source = item && typeof item === 'object' && !Array.isArray(item) ? item : {};
-        const normalized = Object.fromEntries(fields.map(([key, limit]) => [key, String(source[key] ?? '').trim().slice(0, limit)]));
+        const stringParts = typeof item === 'string'
+          ? item.split(/[/／]/).map((part) => String(part || '').trim())
+          : [];
+        const valueFor = (key, index) => {
+          if (stringParts.length) return stringParts[index] ?? '';
+          const candidates = [key, ...(aliases[key] || [])];
+          const matched = candidates.find((candidate) => source[candidate] !== undefined && source[candidate] !== null && String(source[candidate]).trim());
+          return matched ? source[matched] : '';
+        };
+        const normalized = Object.fromEntries(fields.map(([key, limit], index) => [key, String(valueFor(key, index)).trim().slice(0, limit)]));
         optionalFields.forEach(([key, limit]) => {
           if (Object.prototype.hasOwnProperty.call(source, key)) normalized[key] = String(source[key] ?? '').trim().slice(0, limit);
         });
@@ -168,10 +177,10 @@ window.GameModules.characterProfile = {
       birthday: String(data.birthday || '').slice(0, 20),
       aliases: Array.isArray(data.aliases) ? data.aliases.slice(0, 4).map(String) : [],
       skills: Array.isArray(data.skills) ? data.skills.slice(0, 10) : [],
-      factions: evidence(data.factions, [['faction', 80], ['role', 48], ['reason', 120]]),
-      memberships: evidence(data.memberships, [['orgName', 80], ['title', 48], ['reason', 120]], ['departmentFog'], [['department', 80], ['orgId', 80], ['state', 24], ['source', 48], ['name', 80], ['position', 48], ['changeMode', 120]]),
-      certificates: evidence(data.certificates, [['orgName', 80], ['field', 80], ['level', 48], ['reason', 120]]),
-      titles: evidence(data.titles, [['society', 80], ['field', 80], ['title', 48], ['reason', 120]]),
+      factions: evidence(data.factions, [['faction', 80], ['role', 48], ['reason', 120]], [], [], { faction: ['community', 'name'], role: ['position'], reason: ['changeMode'] }),
+      memberships: evidence(data.memberships, [['orgName', 80], ['title', 48], ['reason', 120]], ['departmentFog'], [['department', 80], ['orgId', 80], ['state', 24], ['source', 48], ['name', 80], ['position', 48], ['changeMode', 120]], { orgName: ['organization', 'org', 'name'], title: ['position'], reason: ['changeMode'] }),
+      certificates: evidence(data.certificates, [['orgName', 80], ['field', 80], ['level', 48], ['reason', 120]], [], [], { orgName: ['org', 'organization', 'name'], field: ['domain', 'major'], level: ['grade', 'title'], reason: ['changeMode'] }),
+      titles: evidence(data.titles, [['society', 80], ['field', 80], ['title', 48], ['reason', 120]], [], [], { society: ['group', 'community', 'orgName', 'name'], field: ['domain'], title: ['level', 'name'], reason: ['changeMode'] }),
       items: this.carryItemsLoose(data.items, '物品'),
       wearing: this.wearingItemsLoose(data.wearing),
       importance: data.importance || (data.isMinor ? 'minor' : 'support'),

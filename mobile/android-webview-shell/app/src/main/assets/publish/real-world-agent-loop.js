@@ -2758,9 +2758,14 @@ window.GameModules.realWorldAgentLoop = {
             if (!update) {
               update = this.remapRoleCardEntryToSchedule(entry, subject, participants);
               if (!update) {
+                const field = String(entry?.field ?? entry?.字段 ?? entry?.key ?? '').trim();
+                if (['社群角色', '人事归属', '证书', '称号'].includes(field)) {
+                  console.warn('[Stage4] 角色卡身份字段结构不完整，保留为未完成以触发重试:', field);
+                  return;
+                }
                 // 非法字段（如当前地点）若未能改写：计为已处理，避免滑动窗口死循环重试。
                 patch.__parsedUpdates += 1;
-                console.warn('[Stage4] 跳过无效角色卡字段:', entry?.field || entry?.字段 || entry);
+                console.warn('[Stage4] 跳过无效角色卡字段:', field || entry);
                 return;
               }
             }
@@ -2893,6 +2898,10 @@ window.GameModules.realWorldAgentLoop = {
               patch.__parsedUpdates += 1;
               patch.genericUpdates.push(remapped);
             } else {
+              if (['社群角色', '人事归属', '证书', '称号'].includes(field)) {
+                console.warn('[Stage4] 角色卡身份字段结构不完整，保留为未完成以触发重试(KV):', field);
+                return;
+              }
               patch.__parsedUpdates += 1;
               console.warn('[Stage4] 跳过无效角色卡字段(KV):', field || updateLine);
             }

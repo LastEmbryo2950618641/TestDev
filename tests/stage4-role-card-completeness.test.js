@@ -43,8 +43,31 @@ assert.strictEqual(title.change.value.title, '年度贡献者');
 assert.strictEqual(loop.buildRoleCardSettlementUpdate(subject, '社群角色', '增加', '刘家', '格式不完整'), null);
 assert.strictEqual(loop.buildRoleCardSettlementUpdate(subject, '证书', '增加', '工学硕士学位', '格式不完整'), null);
 
+const malformed = loop.parseSettlementJson(JSON.stringify({
+  角色卡: [{ subject: '刘悠', field: '证书', op: '增加', value: '工学硕士学位', reason: '缺少三段结构' }],
+}), { requestedTypes: ['角色卡'], participants });
+assert.deepStrictEqual(Array.from(malformed.completeTypes), []);
+assert.deepStrictEqual(Array.from(malformed.incompleteTypes), ['角色卡']);
+
+const malformedKv = loop.parseSettlementKv(`角色卡结算{
+结算对象：刘悠
+更新1：角色卡，证书，增加，工学硕士学位，缺少三段结构
+}`, { requestedTypes: ['角色卡'], participants });
+assert.deepStrictEqual(Array.from(malformedKv.completeTypes), []);
+assert.deepStrictEqual(Array.from(malformedKv.incompleteTypes), ['角色卡']);
+
 const stage4 = fs.readFileSync(path.join(root, 'publish/prompts/推演引擎/stage4-settlement-window.md'), 'utf8');
 assert.ok(stage4.includes('角色卡四类身份字段例外'));
 assert.ok(stage4.includes('仅处理本轮新确认或发生变化的稳定事实'));
+
+const androidStage4 = fs.readFileSync(path.join(root, 'mobile/android-webview-shell/app/src/main/assets/publish/prompts/推演引擎/stage4-settlement-window.js'), 'utf8');
+const webStage4 = fs.readFileSync(path.join(root, 'publish/prompts/推演引擎/stage4-settlement-window.js'), 'utf8');
+const registeredPrompt = source => {
+  const promptContext = vm.createContext({ window: {} });
+  vm.runInContext(source, promptContext);
+  return promptContext.window.GameModules.promptTemplates.inline['inference-stage4-settlement-window']
+    .replace(/\r\n/g, '\n');
+};
+assert.strictEqual(registeredPrompt(androidStage4), registeredPrompt(webStage4));
 
 console.log('PASS Stage4 role card completeness rules and four-field parsing');

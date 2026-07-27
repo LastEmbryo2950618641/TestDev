@@ -117,7 +117,23 @@ Object.assign(window.GameModules.updateRegistry, {
       if (raw && typeof raw === 'object' && raw.totalDelta !== undefined) return Math.max(0, Math.round((Number(current) || 0) + (Number(raw.totalDelta) || 0)));
       return Math.max(0, Math.min(100, Math.round((Number(current) || 0) + (Number(raw) || 0))));
     }
-    if (mode === 'append') return [...new Set([...(Array.isArray(current) ? current : []), ...(Array.isArray(raw) ? raw : [raw])].filter(Boolean))];
+    if (mode === 'append') {
+      const values = [...(Array.isArray(current) ? current : []), ...(Array.isArray(raw) ? raw : [raw])].filter(Boolean);
+      const keyFields = {
+        'profile.factions': ['faction', 'role'],
+        'profile.certificates': ['orgName', 'field', 'level'],
+        'profile.titles': ['society', 'field', 'title'],
+      }[String(update.field || '')];
+      if (!keyFields) return [...new Set(values)];
+      const seen = new Set();
+      return values.filter((item) => {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) return true;
+        const key = keyFields.map((field) => String(item[field] || '').trim().toLowerCase()).join('/');
+        if (!key.replaceAll('/', '') || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
     if (mode === 'remove') return Array.isArray(current) ? current.filter((item) => item !== raw) : current;
     if ((mode === 'merge' || mode === 'upsert') && current && typeof current === 'object' && raw && typeof raw === 'object') return { ...current, ...raw };
     if (mode === 'upsert' && raw && typeof raw === 'object') return raw;

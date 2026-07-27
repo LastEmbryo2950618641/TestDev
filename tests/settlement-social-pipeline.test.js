@@ -239,9 +239,12 @@ test('Stage4 JSON 证书与称号写入 profile 且不进入 RPG values', () => 
 
   assert.strictEqual(parsed.genericUpdates.length, 2);
   parsed.genericUpdates.forEach((update) => assert.strictEqual(context.window.GameModules.updateRegistry.applyOne(store, update), true));
+  parsed.genericUpdates.forEach((update) => assert.strictEqual(context.window.GameModules.updateRegistry.applyOne(store, update), false));
   const state = store.playerIdentityState();
   assert.strictEqual(state.profile.certificates[0].orgName, '四川大学');
   assert.strictEqual(state.profile.titles[0].title, '年度贡献者');
+  assert.strictEqual(state.profile.certificates.length, 1);
+  assert.strictEqual(state.profile.titles.length, 1);
   assert.strictEqual(state.values.certificates, undefined);
   assert.strictEqual(state.values.titles, undefined);
 });
