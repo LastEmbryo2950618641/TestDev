@@ -897,7 +897,7 @@ window.GameModules.characterProfile = {
     }
     if (partIndex === 1 && ['worldTag', 'age', 'learningAbility', 'mentalStability', 'growthPotential', 'actionAbility'].includes(key)) return this.valueReasonComplete(value);
     if (partIndex === 1 && ['gender', 'job'].includes(key)) return typeof value === 'string';
-    if (partIndex === 1 && ['relationships', 'role', 'detail', 'appearance', 'preferences', 'personality', 'rank'].includes(key)) return typeof value === 'string' && String(value).trim();
+    if (partIndex === 1 && ['relationships', 'role', 'currentLocation', 'detail', 'appearance', 'preferences', 'personality', 'rank'].includes(key)) return typeof value === 'string' && String(value).trim();
     if (partIndex === 1 && key === 'jobConfirmed') return typeof value === 'boolean';
     if (partIndex === 1 && key === 'control_experience') return value && typeof value === 'object' && Number.isInteger(Number(value.上线次数)) && typeof value.习惯程度 === 'string';
     if (partIndex === 1 && key === 'factions') return this.arrayItemsComplete(value, ['faction', 'role', 'reason'], false);
@@ -1656,6 +1656,7 @@ window.GameModules.characterProfile = {
       姓名: `${profile.name || '该人物'}的姓名来自 Part1 固化身份字段。`,
       所属世界: profile.worldTag?.reason || `${profile.name || '该人物'}的所属世界来自 Part1 worldTag。`,
       身份: `${profile.role || '身份'}来自 Part1 role 与人物背景。`,
+      当前位置: profile.currentLocation ? `${profile.name || '该人物'}当前位置来自 Part1 currentLocation。` : 'Part1 未提供当前位置。',
       职业: profile.job ? `${profile.job}由 Part1 jobConfirmed 确认。` : 'Part1 未确认内化职业，职业保持为空。',
       性别: profile.gender ? `${profile.name || '该人物'}的性别由 Part1 gender 固化为${profile.gender}。` : 'Part1 未给出可确认性别。',
       生日: profile.birthday ? `${profile.name || '该人物'}生日来自人物基础资料。` : (profile.age?.reason || 'Part1 只固化年龄，未提供生日。'),
@@ -2535,6 +2536,8 @@ window.GameModules.characterProfile = {
       control_experience: profile.control_experience || { 上线次数: 0, 习惯程度: '初次操控尚不熟悉' },
       relationships: this.formatRelationships(profile.relationships || base.relationships || '', base),
       role: String(profile.role || base.role).slice(0, 18),
+      currentLocation: window.GameModules.currentLocationField?.normalize?.(profile.currentLocation || base.currentLocation || '')
+        || String(profile.currentLocation || base.currentLocation || '').trim().slice(0, 280),
       detail: String(profile.detail || base.detail).slice(0, 160),
       appearance: String(profile.appearance || base.appearance || '外貌尚未固化。').slice(0, 140),
       preferences: String(profile.preferences || base.preferences || '').slice(0, 140),
@@ -2621,7 +2624,7 @@ window.GameModules.characterProfile = {
     ['gender', 'age', 'birthday'].forEach((key) => {
       if (base[key] !== undefined && base[key] !== null && String(base[key]).trim()) locked[key] = base[key];
     });
-    ['work', 'role', 'job', 'faction', 'workplace', 'position', 'rank'].forEach((key) => {
+    ['work', 'role', 'job', 'faction', 'workplace', 'position', 'rank', 'currentLocation'].forEach((key) => {
       if (base[key] !== undefined && base[key] !== null && String(base[key]).trim()) locked[key] = base[key];
     });
     if (locked.worldTag || locked.work || base.work) locked.worldTag = this.normalizedWorldTagField(locked.worldTag, { ...base, work: locked.work || base.work });

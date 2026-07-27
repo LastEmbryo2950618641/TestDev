@@ -309,10 +309,7 @@ Object.assign(window.GameModules.playerSetupActions, {
     const state = this.rpgStates?.['player-self'] || window.GameModules.characterStateStore?.get?.('player-self') || null;
     if (!state) return false;
     state.profile = { ...(state.profile || {}), currentLocation: location, isPlayer: true };
-    state.values = state.values || {};
-    if (window.GameModules.currentLocationField?.stateValue) {
-      state.values.current_location = window.GameModules.currentLocationField.stateValue(state.profile, this, '玩家激活当前位置写入身份信息。');
-    }
+    if (state.values && Object.prototype.hasOwnProperty.call(state.values, 'current_location')) delete state.values.current_location;
     this.rpgStates = { ...(this.rpgStates || {}), 'player-self': state };
     await window.GameModules.characterStateStore?.save?.(state);
     return true;

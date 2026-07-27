@@ -325,12 +325,14 @@ window.GameModules.playerAspirationPreferenceLayers = {
     });
 
     const psychBody = this.stripLayerPrefix(normalized.layer5, '心理偏好');
-    const psychGroups = String(psychBody || '').split(';').map((chunk) => chunk.trim()).filter(Boolean).map((chunk, index) => {
-      const splitAt = chunk.indexOf(':');
-      if (splitAt < 0) return { groupLabel: `偏好${index + 1}`, tags: [chunk] };
+    const psychGroups = String(psychBody || '').split(/[;；]/u).map((chunk) => chunk.trim()).filter(Boolean).map((chunk, index) => {
+      const asciiAt = chunk.indexOf(':');
+      const zhAt = chunk.indexOf('：');
+      const splitAt = asciiAt >= 0 && zhAt >= 0 ? Math.min(asciiAt, zhAt) : Math.max(asciiAt, zhAt);
+      if (splitAt < 0) return { key: `psych-${index}`, groupLabel: `偏好${index + 1}`, tags: [chunk] };
       const groupLabel = chunk.slice(0, splitAt).trim();
-      const tags = chunk.slice(splitAt + 1).split(',').map((tag) => tag.trim()).filter(Boolean);
-      return { groupLabel, tags };
+      const tags = chunk.slice(splitAt + 1).split(/[,，、]/u).map((tag) => tag.trim()).filter(Boolean);
+      return { key: `psych-${index}-${groupLabel || 'group'}`, groupLabel, tags };
     }).filter((group) => group.tags.length);
 
     return {

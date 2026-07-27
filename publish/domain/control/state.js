@@ -60,41 +60,13 @@ window.GameModules.domain.control.state = {
   },
 
   realWorldLocationLabel() {
-    const invalid = (value) => {
-      const text = String(value || '').trim();
-      return !text || /^(?:当前位置未登记|现实位置未登记|现实地点|当前位置|未知地点|当前位置未知)$/u.test(text);
-    };
-    const scheduleLocation = (id = '') => {
-      const key = String(id || '').trim();
-      if (!key) return '';
-      return String(this.characterSchedules?.[key]?.currentLocation || '').trim();
-    };
-    const graphLocation = (id = '') => {
-      const node = window.GameModules.realWorldLocationGraph?.getCharacterCurrentNode?.(this, id);
-      return String(node?.displayName || node?.name || '').trim();
-    };
+    const locField = window.GameModules.currentLocationField;
     if (this.hasActiveControlTarget?.()) {
       const state = this.sharedControlState?.() || this.activeControlTargetState?.();
-      const id = state?.id || this.sharedControlTargetId || '';
-      const hit = [
-        this.controlLinkLocationText?.(state),
-        scheduleLocation(id),
-        graphLocation(id),
-        state?.profile?.currentLocation,
-      ].map((item) => String(item || '').trim()).find((item) => !invalid(item));
-      return hit || '现实位置未登记';
+      return locField?.displayFromCharacterState?.(state) || '现实位置未登记';
     }
     const playerState = this.playerIdentityState?.();
-    const hit = [
-      this.realWorldLocationName,
-      this.realWorldMap?.current,
-      this.controlLinkLocationText?.(playerState),
-      this.playerProfile?.currentLocation,
-      scheduleLocation('player-self'),
-      scheduleLocation(playerState?.id),
-      graphLocation('player-self'),
-    ].map((item) => String(item || '').trim()).find((item) => !invalid(item));
-    return hit || '现实地点';
+    return locField?.displayFromCharacterState?.(playerState) || '现实地点';
   },
 
   realWorldProfileHeading() {

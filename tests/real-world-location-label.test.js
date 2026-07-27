@@ -12,62 +12,62 @@ function loadScript(context, relativePath) {
 }
 
 const context = { window: { GameModules: {} }, console };
+context.window.GameModules.currentLocationField = {
+  displayFromCharacterState(state = null) {
+    return String(state?.profile?.currentLocation || '').trim();
+  },
+};
 loadScript(context, 'publish/domain/control/state.js');
 const api = context.window.GameModules.domain.control.state;
 
-test('player location label prefers map/current when not controlling', () => {
+test('player location label reads player role-card currentLocation only', () => {
   const store = {
     hasActiveControlTarget: () => false,
     realWorldLocationName: '锦苑小区3栋',
     realWorldMap: { current: '锦苑小区3栋' },
-    playerIdentityState: () => ({ id: 'player-self', values: { current_location: { name: '当前位置未登记' } } }),
+    playerIdentityState: () => ({ id: 'player-self', profile: { currentLocation: '角色卡地址' }, values: { current_location: { name: '当前位置未登记' } } }),
     playerProfile: { currentLocation: '' },
     characterSchedules: {},
-    controlLinkLocationText(state) {
-      const location = state?.values?.current_location;
-      return location?.name || '当前位置未登记';
-    },
   };
-  assert.strictEqual(api.realWorldLocationLabel.call(store), '锦苑小区3栋');
+  assert.strictEqual(api.realWorldLocationLabel.call(store), '角色卡地址');
 });
 
-test('controlled role location label uses shared control location', () => {
+test('controlled role location label reads controlled role-card currentLocation only', () => {
   const store = {
     hasActiveControlTarget: () => true,
     sharedControlTargetId: 'sis',
     sharedControlState: () => ({
       id: 'sis',
       name: '刘思琪',
+      profile: { currentLocation: '被控者角色卡地址' },
       values: { current_location: { name: '锦苑小区2栋' } },
     }),
     activeControlTargetState: () => store.sharedControlState(),
     characterSchedules: { sis: { currentLocation: '旧日程地点' } },
-    controlLinkLocationText(state) {
-      return state?.values?.current_location?.name || '当前位置未登记';
-    },
   };
-  assert.strictEqual(api.realWorldLocationLabel.call(store), '锦苑小区2栋');
+  assert.strictEqual(api.realWorldLocationLabel.call(store), '被控者角色卡地址');
 });
 
-test('controlled role falls back to character schedule location', () => {
+test('controlled role without profile location ignores schedule fallback', () => {
   const store = {
     hasActiveControlTarget: () => true,
     sharedControlTargetId: 'sis',
     sharedControlState: () => ({
       id: 'sis',
       name: '刘思琪',
+      profile: { currentLocation: '' },
       values: { current_location: { name: '当前位置未登记' } },
     }),
     activeControlTargetState: () => store.sharedControlState(),
     characterSchedules: { sis: { currentLocation: '锦苑小区正门' } },
     controlLinkLocationText() { return '当前位置未登记'; },
   };
-  assert.strictEqual(api.realWorldLocationLabel.call(store), '锦苑小区正门');
+  assert.strictEqual(api.realWorldLocationLabel.call(store), '现实位置未登记');
 });
 
-test('scene title binds realWorldLocationLabel', () => {
+test('scene title binds realWorldSceneLocationText', () => {
   const html = read('publish/index.html');
-  assert.ok(html.includes('$store.game.realWorldLocationLabel()'));
+  assert.ok(html.includes('$store.game.realWorldSceneLocationText()'));
   assert.ok(!html.includes("realWorldLocationName || '现实地点'"));
 });
 

@@ -52,7 +52,13 @@ window.GameModules.controlLinkActions = {
   async summonControlRole(id) {
     const state = this.controlLinkState(id);
     if (!state || !this.isControlRoleLinked(state)) return;
-    state.values.current_location = this.buildSummonLocationPatch();
+    const summonLocation = this.buildSummonLocationPatch();
+    const summonFull = String(summonLocation?.currentLocation || '').trim();
+    if (summonFull) {
+      state.profile = state.profile && typeof state.profile === 'object' ? state.profile : {};
+      state.profile.currentLocation = summonFull;
+    }
+    if (state.values && Object.prototype.hasOwnProperty.call(state.values, 'current_location')) delete state.values.current_location;
     state.values.control_link = this.buildSummonControlLinkPatch(state);
     await window.GameModules.characterStateStore?.save?.(state);
     this.closeControlLinkMenu();

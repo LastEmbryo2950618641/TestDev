@@ -39,6 +39,10 @@ assert.strictEqual(
   true,
 );
 assert.strictEqual(api.isRecordedLocation('当前位置未知'), false);
+assert.strictEqual(api.fromCharacterState({ values: { current_location: { name: '当前位置未知' } } }), '');
+assert.strictEqual(api.displayFromCharacterState({ values: { current_location: { name: '当前位置未知' } } }), '');
+assert.strictEqual(api.displayFromCharacterState({ values: { current_location: { currentLocation: '锦苑小区3栋' } } }), '');
+assert.strictEqual(api.displayFromCharacterState({ profile: { currentLocation: '锦苑小区3栋' } }), '锦苑小区3栋');
 assert.strictEqual(
   api.coerceToProfileFormat('中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋·2单元601室'),
   '中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋·2单元601室',

@@ -4650,13 +4650,7 @@ window.GameModules.predefinedRoleCardData["04-刘悠-player-self"] = {
       "effectiveDamage": 0
     },
     "age": 27,
-    "age_label": "27岁",
-    "current_location": {
-      "name": "当前位置未知",
-      "worldTag": "2026 现代都市现实世界",
-      "updatedAt": "",
-      "reason": "创建角色卡时根据明确上下文登记；资料不足则等待后续剧情推演填充。"
-    }
+    "age_label": "27岁"
   },
   "metrics": {
     "emotions": {
@@ -4854,26 +4848,6 @@ window.GameModules.predefinedRoleCardData["04-刘悠-player-self"] = {
             "min": 0,
             "max": 100,
             "desc": "可执行行动的灵活度、协调性与主动性。",
-            "grade": false
-          },
-          {
-            "key": "current_location",
-            "label": "当前位置",
-            "type": "text",
-            "desc": "玩家位置字段同步；完整值为“势力·势力层级1·势力层级2·地点·地点内位置”。"
-          }
-        ]
-      },
-      {
-        "title": "身内能力",
-        "fields": [
-          {
-            "key": "strength",
-            "label": "力量",
-            "type": "number",
-            "min": 0,
-            "max": 100,
-            "desc": "肌肉力量、爆发力与近战压制能力。",
             "grade": false
           },
           {

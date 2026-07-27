@@ -165,19 +165,14 @@ window.GameModules.rpgState = {
   ensureCurrentLocation(state) {
     let changed = false;
     if (!state.values) state.values = {};
-    if (!state.values.current_location || this.isInvalidLocationName(state.values.current_location?.name || state.values.current_location)) {
-      const profileLocation = state.id === 'player-self' && state.profile?.currentLocation && window.GameModules.currentLocationField?.stateValue
-        ? window.GameModules.currentLocationField.stateValue(state.profile, null, '从玩家角色卡当前位置字段同步。')
-        : null;
-      state.values.current_location = profileLocation?.currentLocation
-        ? profileLocation
-        : { name: '当前位置未知', worldTag: state.worldTag || state.profile?.work || '未知世界', updatedAt: '', reason: '资料不足，等待后续剧情推演给出具体位置。' };
+    if (Object.prototype.hasOwnProperty.call(state.values, 'current_location')) {
+      delete state.values.current_location;
       changed = true;
     }
     const sections = state.schema?.sections || [];
     const identity = sections.find((section) => section.title === '身份信息' || section.fields.some((field) => field.key === 'world_tag')) || sections[0];
-    if (identity && !identity.fields.some((field) => field.key === 'current_location')) {
-      identity.fields.push({ key: 'current_location', label: '当前位置', type: 'text', desc: '玩家位置字段同步；完整值为“势力·势力层级1·势力层级2·地点·地点内位置”。' });
+    if (identity?.fields?.some((field) => field.key === 'current_location')) {
+      identity.fields = identity.fields.filter((field) => field.key !== 'current_location');
       changed = true;
     }
     return changed;
@@ -236,9 +231,6 @@ window.GameModules.rpgState = {
     Object.assign(values, character.worldValues || {});
     window.GameModules.rpgAge.sync(values, character, store);
     values.status_tags = [character.role, character.importance === 'minor' ? '路人' : '可被操控', schema.worldTag];
-    values.current_location = character.id === 'player-self' && character.currentLocation && window.GameModules.currentLocationField?.stateValue
-      ? window.GameModules.currentLocationField.stateValue(character, store, '创建玩家角色卡时从角色卡当前位置字段登记。')
-      : { name: this.initialLocationName(character, store), worldTag: schema.worldTag, updatedAt: store?.phoneDateText?.() || '', reason: '创建角色卡时根据明确上下文登记；资料不足则等待后续剧情推演填充。' };
     values.control_experience = {
       onlineCount: 0,
       feeling: '未知',

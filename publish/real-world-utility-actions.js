@@ -108,21 +108,16 @@ window.GameModules.realWorldUtilityActions = {
       || this.playerIdentityState?.()
       || this.rpgStates?.['player-self']
       || null;
-    const id = String(subject?.id || (!shared ? 'player-self' : '') || '').trim();
     const candidates = [
+      locField?.displayFromCharacterState?.(subject),
       locField?.fromCharacterState?.(subject),
       subject?.profile?.currentLocation,
-      id ? this.appearingLocationById?.[id] : '',
-      id ? this.characterSchedules?.[id]?.profileCurrentLocation : '',
-      !shared ? this.playerProfile?.currentLocation : '',
-      this.controlLinkLocationText?.(subject),
     ];
     for (const item of candidates) {
       const text = locField?.normalize?.(item) || String(item || '').trim();
-      if (locField?.isRecordedLocation?.(text)) return text;
-      if (!locField && text && text !== '当前位置未登记') return text;
+      if (text) return text;
     }
-    return this.realWorldLocationName || '现实地点';
+    return '';
   },
 
   realWorldChoiceIcon(choice = '') {

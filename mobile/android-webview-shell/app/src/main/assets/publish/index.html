@@ -1162,7 +1162,7 @@
         </aside>
 
         <section class="panel story-panel dev-section" data-section-title="现实推演日志区">
-          <div class="scene-title real-world-scene-title dev-section" data-section-title="现实场景标题栏"><span><i aria-hidden="true">📖</i><em x-text="$store.game.realWorldSceneTitle"></em></span><b><i aria-hidden="true">📍</i><em x-text="$store.game.realWorldSceneLocationText() || '现实地点'"></em></b></div>
+          <div class="scene-title real-world-scene-title dev-section" data-section-title="现实场景标题栏"><span><i aria-hidden="true">📖</i><em x-text="$store.game.realWorldSceneTitle"></em></span><b><i aria-hidden="true">📍</i><em x-text="$store.game.realWorldSceneLocationText() || '未记录'"></em></b></div>
           <div class="story-log scroll-area dev-section" data-section-title="现实记录列表">
             <template x-for="entry in $store.game.realWorldDisplayLog()" :key="`${entry.id}-${entry.type}-${entry.createdAt || entry.time?.label || ''}`">
               <article class="novel-entry" :class="entry.type === 'user' ? 'player' : 'advice'">
@@ -1170,7 +1170,7 @@
                 <div class="novel-story real-world-ai-entry dev-section" data-section-title="现实AI生成内容" x-show="entry.type !== 'user'" :class="{ streaming: entry.streaming }">
                   <i class="real-world-stream-spinner" x-show="entry.streaming" aria-hidden="true">◌</i>
                   <span class="real-world-log-avatar real-world-log-avatar-ai" aria-hidden="true" x-text="$store.game.realWorldEntryIcon(entry)"></span>
-                  <small class="real-world-entry-location" x-show="entry.locationName"><span aria-hidden="true">📍</span><span x-text="`地点｜${entry.locationName}`"></span></small>
+                  <small class="real-world-entry-location" x-show="$store.game.realWorldSceneLocationText()"><span aria-hidden="true">📍</span><span x-text="`地点｜${$store.game.realWorldSceneLocationText()}`"></span></small>
                   <div class="novel-tool-row" x-show="!entry.transientError && ($store.game.hasRealWorldThinking(entry) || entry.promptPack)"><button type="button" class="card-change-toggle" :class="{ open: entry.thinkingOpen }" x-show="$store.game.hasRealWorldThinking(entry)" @click.stop="$store.game.toggleRealWorldThinking(entry)" x-text="entry.thinkingOpen ? 'ai思考 ▼' : 'ai思考 ▶'"></button><button type="button" class="prompt-toggle" x-show="entry.promptPack" @click.stop="$store.game.openRealWorldPrompt(entry.id)" title="查看生成提示词" aria-label="查看生成提示词">提示词</button></div>
                   <template x-if="!entry.transientError && entry.thinkingOpen && $store.game.hasRealWorldThinking(entry)"><div class="real-world-thinking-panel dev-section" data-section-title="现实AI思考"><template x-for="line in $store.game.realWorldThinkingLines(entry)" :key="`${entry.id}-${line.id}`"><p x-show="line.text"><b x-text="`【${line.label}】`"></b><span x-text="line.text"></span></p></template></div></template>
                   <p class="novel-body-text" x-html="$store.game.realWorldNarrationHtml(entry)"></p>
@@ -1229,7 +1229,7 @@
 
         <aside class="panel mind-panel dev-section" data-section-title="现实信息栏">
           <h3><span aria-hidden="true">🗺️</span>当前位置</h3>
-          <p class="quest-text dev-section" data-section-title="现实地点区" x-text="$store.game.realWorldSceneLocationText() || '现实地点'"></p>
+          <p class="quest-text dev-section" data-section-title="现实地点区" x-text="$store.game.realWorldSceneLocationText() || '未记录'"></p>
           <h3><span aria-hidden="true">🛡️</span>现实状态</h3>
           <div class="mind-box real-world-info-box dev-section" data-section-title="现实状态区"><span class="real-world-info-icon" aria-hidden="true" x-text="$store.game.realWorldStatusIcon($store.game.realWorldStatus)"></span><p x-text="$store.game.realWorldStatus"></p></div>
           <h3><span aria-hidden="true">🎯</span>当前目标</h3>
@@ -1858,7 +1858,7 @@
                 <section class="pref-psych-section" x-show="(pref?.psychGroups || []).length">
                   <header class="pref-group-head"><strong>心理偏好簇</strong><small>长期触发标签</small></header>
                   <div class="pref-psych-grid">
-                    <template x-for="group in pref?.psychGroups || []" :key="`pref-psych-${group.groupLabel}`">
+                    <template x-for="group in pref?.psychGroups || []" :key="`pref-psych-${group.key || group.groupLabel}`">
                       <button type="button" class="pref-psych-group ability-expandable" :class="{ open: group.field && $store.game.isAbilityDetailOpen(group.field) }" @click="group.field && $store.game.toggleAbilityDetail(group.field)">
                         <strong x-text="group.groupLabel"></strong>
                         <div class="pref-tag-cloud">
@@ -3850,7 +3850,7 @@
                 <section class="pref-psych-section" x-show="(pref?.psychGroups || []).length">
                   <header class="pref-group-head"><strong>心理偏好簇</strong><small>长期触发标签</small></header>
                   <div class="pref-psych-grid">
-                    <template x-for="group in pref?.psychGroups || []" :key="`entry-pref-psych-${group.groupLabel}`">
+                    <template x-for="group in pref?.psychGroups || []" :key="`entry-pref-psych-${group.key || group.groupLabel}`">
                       <button type="button" class="pref-psych-group ability-expandable" :class="{ open: group.field && $store.game.isAbilityDetailOpen(group.field) }" @click="group.field && $store.game.toggleAbilityDetail(group.field)">
                         <strong x-text="group.groupLabel"></strong>
                         <div class="pref-tag-cloud">

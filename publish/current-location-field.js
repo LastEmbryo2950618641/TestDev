@@ -59,12 +59,12 @@ window.GameModules.currentLocationField = {
     if (!character) return '';
     const fromProfile = this.fromProfile(character.profile || {});
     if (this.isRecordedLocation(fromProfile)) return fromProfile;
-    const raw = character.values?.current_location;
-    const fromValues = typeof raw === 'string'
-      ? this.normalize(raw)
-      : this.normalize(raw?.currentLocation || '');
-    if (this.isRecordedLocation(fromValues)) return fromValues;
     return '';
+  },
+
+  displayFromCharacterState(character = null) {
+    if (!character) return '';
+    return this.fromProfile(character.profile || {});
   },
 
   roleProfile(store = null) {

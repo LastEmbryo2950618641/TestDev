@@ -298,8 +298,7 @@ window.GameModules.predefinedRoleCards = {
   buildRoleCardProfile(card = {}, existing = null, id = '') {
     let profile = { ...card, id, roleCard: true, roleCardSource: card.roleCardSource || 'predefined-edited', roleCardUpdatedAt: card.roleCardUpdatedAt || existing?.profile?.roleCardUpdatedAt || new Date().toISOString() };
     if (window.GameModules.characterProfile?.hasRequiredInitialMetrics?.(existing?.profile?.initialMetrics)) profile.initialMetrics = existing.profile.initialMetrics;
-    // Preserve runtime location chain written by map/surround-unlock; predefined cards usually omit it.
-    const existingLocation = String(existing?.profile?.currentLocation || existing?.values?.current_location?.currentLocation || '').trim();
+    const existingLocation = String(existing?.profile?.currentLocation || '').trim();
     if (existingLocation && !String(profile.currentLocation || '').trim()) profile.currentLocation = existingLocation;
     const cardKey = this.cardKeyFor(card);
     const presetLayers = this.isTripletSisterKey(cardKey)
@@ -362,23 +361,11 @@ window.GameModules.predefinedRoleCards = {
     };
     state.note = profile.detail || state.note || '';
     window.GameModules.rpgState.upgradeCharacterState(state, schema);
-    const locField = window.GameModules.currentLocationField;
     if (profile.isPlayer) {
       state.values.status_tags = ['玩家本人', '手机主人', profile.work, profile.role];
       state.profile.isPlayer = true;
     }
-    if (preservedLocation && locField?.isValidProfileFormat?.(preservedLocation) && locField?.stateValueFromText) {
-      state.values = state.values && typeof state.values === 'object' ? state.values : {};
-      state.values.current_location = {
-        ...(state.values.current_location || {}),
-        ...locField.stateValueFromText(
-          preservedLocation,
-          store,
-          '角色卡重建时保留当前位置链。',
-          state.worldTag || state.profile?.work || window.GameModules.realWorld2026?.label || '未知世界',
-        ),
-      };
-    }
+    if (state.values && Object.prototype.hasOwnProperty.call(state.values, 'current_location')) delete state.values.current_location;
     window.GameModules.rpgProfileMetrics?.rebase?.(state, profile, existing?.profile || {});
     store.initFactionSystem?.();
     window.GameModules.orgTerritory?.ensurePresetFamilyMemberships?.(store);
@@ -389,9 +376,7 @@ window.GameModules.predefinedRoleCards = {
   },
 
   scheduleLocationName(state = {}, store = {}) {
-    const raw = state?.values?.current_location;
-    const name = typeof raw === 'string' ? raw : raw?.name;
-    const clean = String(name || '').trim();
+    const clean = String(window.GameModules.currentLocationField?.mapNodeName?.(state?.profile?.currentLocation || '') || state?.profile?.currentLocation || '').trim();
     if (clean && !/^当前位置未知|未知地点|现实地点|当前位置$/u.test(clean)) return clean;
     return String(store?.realWorldLocationName || store?.realWorldMap?.current || '当前位置未知').trim() || '当前位置未知';
   },

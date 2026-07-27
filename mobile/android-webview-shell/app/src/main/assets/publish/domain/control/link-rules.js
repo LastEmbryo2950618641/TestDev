@@ -38,7 +38,7 @@ window.GameModules.domain.control.linkRules = {
   isSameWorldControlTarget(state = null) {
     const target = this.controlLinkState(state);
     const realWorld = window.GameModules.realWorld2026?.label || '';
-    const worldTag = String(target?.values?.current_location?.worldTag || target?.worldTag || target?.profile?.work || '').trim();
+    const worldTag = String(target?.worldTag || target?.profile?.work || '').trim();
     return Boolean(target && realWorld && worldTag && worldTag === realWorld);
   },
 

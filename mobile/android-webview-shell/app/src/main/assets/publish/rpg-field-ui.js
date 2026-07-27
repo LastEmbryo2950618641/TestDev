@@ -127,9 +127,7 @@ window.GameModules.rpgFieldUi = {
     const p = state?.profile || {};
     const worldTag = p.work || state?.worldTag || '原创世界';
     const reasonFor = this.roleCardReasonGetter(p);
-    const locationText = p.currentLocation
-      || window.GameModules.currentLocationField?.fromCharacterState?.(state)
-      || '';
+    const locationText = p.currentLocation || '';
     const row = (key, label, value, desc) => ({ key: `profile-${state?.id || 'target'}-${key}`, stateId: state?.id || '', label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: key !== 'work' });
     return [
       row('name', '姓名', p.name || state?.name, '角色卡固化姓名。'), row('work', '所属世界', worldTag, '角色出身作品或世界。'),
@@ -157,7 +155,6 @@ window.GameModules.rpgFieldUi = {
     const labels = {
       world_tag: '世界',
       age: '年龄',
-      current_location: '当前位置',
       level: '等级',
       level: '生命层次',
       exp: '能量',
@@ -210,7 +207,7 @@ window.GameModules.rpgFieldUi = {
     const existing = (key) => Object.prototype.hasOwnProperty.call(values, key);
     const take = (keys, kind) => keys.filter(existing).map((key) => field(key, kind));
     return [
-      { title: '基础状态', fields: take(['world_tag', 'age', 'current_location', 'level', 'exp', 'free_attribute_points', 'health', 'stamina', 'vitality', 'stamina_pool', 'satiety', 'hydration', 'fatigue', 'learning_ability', 'mental_stability', 'growth_potential', 'action_ability', 'control_experience'], '基础状态') },
+      { title: '基础状态', fields: take(['world_tag', 'age', 'level', 'exp', 'free_attribute_points', 'health', 'stamina', 'vitality', 'stamina_pool', 'satiety', 'hydration', 'fatigue', 'learning_ability', 'mental_stability', 'growth_potential', 'action_ability', 'control_experience'], '基础状态') },
       { title: '身内能力', fields: take(['strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma'], '身内能力') },
       { title: '习得能力', fields: take(['knowledge', 'skills', 'professions'], '习得能力') },
       { title: '关系归属', fields: take(['factions', 'memberships'], '身份归属') },
@@ -284,7 +281,7 @@ window.GameModules.rpgFieldUi = {
     const intimacyFields = intimacyAllFields.filter((field) => intimacyFieldKeys.has(field.key));
     if (!intimacyFields.length) intimacyFields.push(...this.defaultIntimacyBodyFields(displayState));
     const longing = this.profileLongingField(state);
-    const used = new Set(['world_tag', 'age', 'factions', 'memberships', 'current_location', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'items', 'wearing', 'bodyProfile', 'dressedProfile', 'bodyStatus', 'intimacy', 'status_tags']);
+    const used = new Set(['world_tag', 'age', 'factions', 'memberships', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'items', 'wearing', 'bodyProfile', 'dressedProfile', 'bodyStatus', 'intimacy', 'status_tags']);
     const personal = all.filter((field) => !used.has(field.key));
     const groups = [
       { title: '个人能力', fields: personal },
@@ -752,14 +749,8 @@ window.GameModules.rpgFieldUi = {
 
   rpgFieldDetail(field) {
     const lexicon = this.lexiconFor(field);
-    const rawValue = field?.key === 'current_location' && field?.raw && typeof field.raw === 'object'
-      ? (window.GameModules.characterQuery?.locationText?.(field.raw) || [field.raw.name, field.raw.worldTag, field.raw.reason].filter(Boolean).join('｜'))
-      : (Array.isArray(field?.value) ? field.value.join('、') : (field?.value ?? field?.raw ?? '未记录'));
+    const rawValue = Array.isArray(field?.value) ? field.value.join('、') : (field?.value ?? field?.raw ?? '未记录');
     const lines = [`完整内容: ${rawValue || '未记录'}`, `说明: ${lexicon?.description || lexicon?.summary || field?.desc || this.fallbackDesc(field)}`];
-    if (field?.key === 'current_location' && field?.raw && typeof field.raw === 'object') {
-      if (field.raw.updatedAt) lines.push(`更新时间: ${field.raw.updatedAt}`);
-      if (field.raw.reason && !String(rawValue || '').includes(field.raw.reason)) lines.push(`登记依据: ${field.raw.reason}`);
-    }
     if (field?.pendingAiInit) lines.push('初始化: 否，当前未知');
     if (field && Object.prototype.hasOwnProperty.call(field, 'initialMeeting')) lines.push(`初始见面: ${Array.isArray(field.initialMeeting) ? field.initialMeeting.join('、') || '无' : field.initialMeeting}`);
     lines.push(`变化原因: ${this.fieldChangeReason(field, lexicon)}`);
@@ -1331,8 +1322,9 @@ window.GameModules.rpgFieldUi = {
         tone: this.preferenceBalanceTone(item.value),
         field: fieldByKey('layer4'),
       })),
-      psychGroups: (view?.psychGroups || []).map((item) => ({
+      psychGroups: (view?.psychGroups || []).map((item, index) => ({
         ...item,
+        key: item.key || `psych-${index}-${item.groupLabel || 'group'}`,
         field: fieldByKey('layer5'),
       })),
     };

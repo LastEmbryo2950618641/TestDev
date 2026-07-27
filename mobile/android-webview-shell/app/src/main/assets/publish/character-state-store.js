@@ -128,8 +128,6 @@ window.GameModules.characterStateStore = {
     const chosenLocation = this.pickLocation(
       liveProfile.currentLocation,
       nextProfile.currentLocation,
-      state.values?.current_location?.currentLocation,
-      live.values?.current_location?.currentLocation,
     );
     if (chosenLocation) profile.currentLocation = chosenLocation;
     else if (!this.isBlank(liveProfile.currentLocation)) profile.currentLocation = liveProfile.currentLocation;
@@ -141,34 +139,7 @@ window.GameModules.characterStateStore = {
       if (key === 'current_location') return;
       if (this.isBlank(values[key]) && !this.isBlank(nextValues[key])) values[key] = nextValues[key];
     });
-    const liveLocObj = liveValues.current_location && typeof liveValues.current_location === 'object'
-      ? liveValues.current_location
-      : null;
-    const nextLocObj = nextValues.current_location && typeof nextValues.current_location === 'object'
-      ? nextValues.current_location
-      : null;
-    if (chosenLocation) {
-      const locField = window.GameModules.currentLocationField;
-      values.current_location = {
-        ...(liveLocObj || {}),
-        ...(nextLocObj || {}),
-        ...(locField?.stateValueFromText
-          ? locField.stateValueFromText(
-            chosenLocation,
-            this.liveHost(explicitHost),
-            '合并到 live 角色卡时保留合法当前位置。',
-            profile.work || live.worldTag || '',
-          )
-          : {}),
-        currentLocation: chosenLocation,
-        name: locField?.mapNodeName?.(chosenLocation)
-          || liveLocObj?.name
-          || nextLocObj?.name
-          || chosenLocation,
-      };
-    } else if (liveLocObj) {
-      values.current_location = liveLocObj;
-    }
+    if (Object.prototype.hasOwnProperty.call(values, 'current_location')) delete values.current_location;
 
     live.id = id;
     live.profile = profile;

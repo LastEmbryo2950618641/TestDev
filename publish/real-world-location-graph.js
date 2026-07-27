@@ -608,9 +608,7 @@ window.GameModules.realWorldLocationGraph = {
         state.realWorldMap.currentId = node.legacyMapNodeId || node.id;
       }
       const playerState = state.playerIdentityState?.();
-      if (playerState?.values) {
-        playerState.values.current_location = { ...(playerState.values.current_location || {}), name: row.locationName, nodeId: row.nodeId, identityKey: row.identityKey };
-      }
+      if (playerState?.values && Object.prototype.hasOwnProperty.call(playerState.values, 'current_location')) delete playerState.values.current_location;
     }
     return row;
   },

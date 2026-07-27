@@ -328,8 +328,7 @@ test('predefined player current location is synced into identity state', async (
 
   assert.strictEqual(changed, true);
   assert.strictEqual(store.rpgStates['player-self'].profile.currentLocation, location);
-  assert.strictEqual(store.rpgStates['player-self'].values.current_location.name, '锦苑小区3栋');
-  assert.strictEqual(store.rpgStates['player-self'].values.current_location.currentLocation, location);
+  assert.strictEqual(store.rpgStates['player-self'].values.current_location, undefined);
   assert.strictEqual(savedState.profile.currentLocation, location);
 });
 
@@ -452,6 +451,10 @@ test('predefined player state opens storage before creation', async () => {
     },
     characterStateStore: {
       get: () => null,
+      adopt: (state, host) => {
+        host.rpgStates = { ...(host.rpgStates || {}), [state.id]: state };
+        return state;
+      },
       save: async (state) => {
         saved = JSON.parse(JSON.stringify(state));
       },
@@ -482,7 +485,7 @@ test('predefined player state opens storage before creation', async () => {
 
   assert.strictEqual(opened, true);
   assert.strictEqual(states[0].id, 'player-self');
-  assert.strictEqual(store.rpgStates['player-self'].profile.name, '刘悠');
+  assert.strictEqual(states[0].profile.name, '刘悠');
   assert.strictEqual(saved.id, 'player-self');
 });
 
@@ -533,7 +536,7 @@ test('predefined player repair restores profile without replacing values', async
   assert.strictEqual(state.profile.name, '刘悠');
   assert.strictEqual(state.profile.roleCard, true);
   assert.strictEqual(state.values.level, 12);
-  assert.strictEqual(state.values.current_location.name, '锦苑小区3栋');
+  assert.strictEqual(state.values.current_location, undefined);
 });
 
 test('real world panel does not auto-submit location fill as narration action', () => {

@@ -174,7 +174,7 @@ window.GameModules.characterQuery = {
 
   schemaSectionText(state = {}) {
     const values = state.values || {};
-    const covered = new Set(['world_tag', 'gender', 'age', 'current_location', 'factions', 'memberships', 'status_tags', 'level', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'health', 'stamina', 'bodyStatus', 'intimacy', 'vitality', 'stamina_pool', 'satiety', 'hydration', 'fatigue', 'mental_stability', 'wearing', 'items', 'skills', 'knowledge', 'control_experience']);
+    const covered = new Set(['world_tag', 'gender', 'age', 'factions', 'memberships', 'status_tags', 'level', 'strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma', 'health', 'stamina', 'bodyStatus', 'intimacy', 'vitality', 'stamina_pool', 'satiety', 'hydration', 'fatigue', 'mental_stability', 'wearing', 'items', 'skills', 'knowledge', 'control_experience']);
     return (state.schema?.sections || []).map((section) => {
       const rows = (section.fields || []).map((field) => {
         if (!field?.key || covered.has(field.key) || values[field.key] === undefined) return '';
@@ -228,7 +228,7 @@ window.GameModules.characterQuery = {
       this.line('性别', profile.gender || values.gender),
       this.line('年龄/生日', [values.age ?? profile.age, profile.birthday].filter(Boolean).join(' / ')),
       this.line('职业', profile.job || this.valueText(values.profession || values.professions)),
-      this.line('当前地点', this.locationText(values.current_location)),
+      this.line('当前地点', profile.currentLocation),
       this.line('人际关系', profile.relationships),
       this.line('外貌', profile.appearance),
       this.line('性格', profile.personality),

@@ -112,48 +112,11 @@ window.GameModules.playerIdentityActions = {
     const state = live || this.identityTargetState();
     const worldTag = p.work || state?.worldTag || '原创世界';
     const reasonFor = this.roleCardReasonGetter?.(p) || (() => '');
-    const scheduleById = String(
-      this.characterSchedules?.[targetId || state?.id || '']?.profileCurrentLocation
-      || '',
-    ).trim();
-    const scheduleByName = Object.values(this.characterSchedules || {}).find((row) => {
-      const rowName = String(row?.characterName || '').trim();
-      const profileName = String(p?.name || state?.name || '').trim();
-      return rowName && profileName && rowName === profileName
-        && locField?.isRecordedLocation?.(row?.profileCurrentLocation);
-    });
-    const byAppearingId = String(
-      this.appearingLocationById?.[targetId]
-      || this.appearingLocationById?.[`name:${p?.name || state?.name || ''}`]
-      || '',
-    ).trim();
-    const pickRecorded = (...candidates) => {
-      for (const item of candidates) {
-        const text = locField?.normalize?.(item || '') || String(item || '').trim();
-        if (locField?.isRecordedLocation?.(text) || (!locField && text)) return text;
-      }
-      return '';
-    };
-    let locationText = pickRecorded(
-      byAppearingId,
-      p.currentLocation,
-      locField?.fromCharacterState?.(state),
-      scheduleById,
-      scheduleByName?.profileCurrentLocation,
-      locField?.buildSceneProfileLocation?.(this, state),
-    );
-    // Heal empty profile from schedule / values so 叙事档案 and persistence stay aligned.
-    if (locationText && state?.profile && !locField?.isRecordedLocation?.(state.profile.currentLocation || '')) {
-      state.profile.currentLocation = locationText;
-      if (locField?.stateValueFromText) {
-        state.values = state.values && typeof state.values === 'object' ? state.values : {};
-        state.values.current_location = locField.stateValueFromText(
-          locationText,
-          this,
-          '身份证展示时回填角色卡当前位置。',
-          worldTag,
-        );
-      }
+    const cardLocationText = locField?.displayFromCharacterState?.(state)
+      || String(p?.currentLocation || '').trim();
+    const locationText = cardLocationText || '';
+    if (state?.values && Object.prototype.hasOwnProperty.call(state.values, 'current_location')) {
+      if (state.values && Object.prototype.hasOwnProperty.call(state.values, 'current_location')) delete state.values.current_location;
       storeApi?.mergeOntoLive?.(state, this);
     }
     const row = (key, label, value, desc, extra = {}) => ({ key: `id-${targetId}-${key}`, stateId: targetId, label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: '角色', commonField: true, ...extra });

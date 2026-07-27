@@ -1992,13 +1992,12 @@ window.GameModules.orgTerritory = {
     const mapLoc = String(map.current || store?.realWorldLocationName || '').trim();
     if (!mapLoc) return;
     const playerState = store?.playerIdentityState?.() || store?.rpgStates?.['player-self'];
-    const playerRaw = playerState?.values?.current_location;
-    const playerLoc = typeof playerRaw === 'object' ? String(playerRaw?.name || '').trim() : String(playerRaw || '').trim();
+    const playerLoc = String(window.GameModules.currentLocationField?.mapNodeName?.(playerState?.profile?.currentLocation || '') || playerState?.profile?.currentLocation || '').trim();
     const schedule = store?.characterSchedules?.['player-self'] || store?.characterSchedules?.[playerState?.id];
     const scheduleLoc = String(schedule?.currentLocation || '').trim();
 
     if (playerLoc && !this.locationsCompatible(mapLoc, playerLoc)) {
-      warnings.push(`玩家地图位置「${mapLoc}」与身份 current_location「${playerLoc}」不一致`);
+      warnings.push(`玩家地图位置「${mapLoc}」与角色卡当前位置「${playerLoc}」不一致`);
     }
     if (scheduleLoc && !this.locationsCompatible(mapLoc, scheduleLoc)) {
       warnings.push(`玩家地图位置「${mapLoc}」与人事安排 currentLocation「${scheduleLoc}」不一致`);

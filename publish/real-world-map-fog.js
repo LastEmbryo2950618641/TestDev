@@ -1118,6 +1118,7 @@ window.GameModules.realWorldMapFog = {
     character.profile.id = character.profile.id || characterId;
     character.profile.currentLocation = location;
     character.values = character.values && typeof character.values === 'object' ? character.values : {};
+    if (Object.prototype.hasOwnProperty.call(character.values, 'current_location')) delete character.values.current_location;
 
     // Map merge only: validate chain; on failure skip map side entirely (card write still stands).
     const mapOk = Boolean(locField?.isValidProfileFormat?.(location));
@@ -1138,18 +1139,6 @@ window.GameModules.realWorldMapFog = {
       });
     }
 
-    character.values.current_location = {
-      ...locField.stateValueFromText(
-        location,
-        state,
-        meta.reason || '电子地图周围解锁覆盖角色卡当前位置。',
-        character.worldTag || character.profile?.work || window.GameModules.realWorld2026?.label || '未知世界',
-      ),
-      nodeId: node?.id || character.values.current_location?.nodeId || '',
-      identityKey: node?.identityKey || character.values.current_location?.identityKey || '',
-      mapNodeName: mapNodeName || character.values.current_location?.mapNodeName || '',
-      interiorPosition: interiorPosition || character.values.current_location?.interiorPosition || '',
-    };
     // Merge onto live slot by id so stale copies cannot drop profile.currentLocation.
     if (storeApi?.mergeOntoLive) character = storeApi.mergeOntoLive(character, state);
     else if (storeApi?.adopt) character = storeApi.adopt(character, state);
@@ -2334,4 +2323,3 @@ window.GameModules.realWorldMapFog = {
   },
 
 };
-

@@ -103,11 +103,10 @@ persisted.set('rel-ai-247528', JSON.parse(JSON.stringify(host.rpgStates['rel-ai-
     full,
     'live rpgStates must keep currentLocation after rebuild',
   );
-  assert.ok(
-    context.window.GameModules.currentLocationField.isValidProfileFormat(
-      host.rpgStates['rel-ai-247528'].values.current_location.currentLocation,
-    ),
-    'values.current_location.currentLocation must remain a valid chain',
+  assert.strictEqual(
+    host.rpgStates['rel-ai-247528'].values.current_location,
+    undefined,
+    'values.current_location must not be recreated',
   );
 
   console.log('PASS createState preserves currentLocation');

@@ -101,6 +101,18 @@ const view = api.viewFromLayers(repaired);
 assert.ok((view.psychGroups || []).length >= 1);
 assert.strictEqual(view.rationality, 0);
 assert.strictEqual(view.axes[0].value, 0);
+const chinesePunctuationView = api.viewFromLayers({
+  layer1: '价值立场偏好: 守序邪恶',
+  layer2: '决策风格偏好: 偏绝对理性,0',
+  layer3: '人生六维偏好: 权力/自由偏掌控0',
+  layer4: '底线锚点偏好: 伦理·普世是非偏无伦理0',
+  layer5: '心理偏好: 情感偏好：妹控，主动对异性、保护型；穿着偏好：制服感，过膝袜控；穿着偏好：短发，干练风',
+});
+assert.ok(chinesePunctuationView.psychGroups.length >= 3);
+assert.strictEqual(Array.from(chinesePunctuationView.psychGroups[0].tags).join('|'), '妹控|主动对异性|保护型');
+const duplicatedLabels = chinesePunctuationView.psychGroups.filter((group) => group.groupLabel === '穿着偏好');
+assert.strictEqual(duplicatedLabels.length, 2);
+assert.notStrictEqual(duplicatedLabels[0].key, duplicatedLabels[1].key);
 
 // Continue-game: profile exists without layers → rebuild from lifeOrientation.
 const continued = {

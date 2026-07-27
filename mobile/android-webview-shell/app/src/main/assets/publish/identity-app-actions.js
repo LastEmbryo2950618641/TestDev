@@ -50,37 +50,10 @@ window.GameModules.identityAppActions = {
         }
       }
 
-      const recorded = locField?.fromCharacterState?.(live)
-        || locField?.normalize?.(live.profile?.currentLocation || '')
-        || '';
-      let healed = '';
-      if (locField?.isRecordedLocation?.(recorded)) {
-        healed = recorded;
-      } else {
-        const appearing = locField?.normalize?.(this.appearingLocationById?.[live.id] || '')
-          || String(this.appearingLocationById?.[live.id] || '').trim();
-        const scheduleFull = locField?.normalize?.(
-          this.characterSchedules?.[live.id]?.profileCurrentLocation || '',
-        ) || String(this.characterSchedules?.[live.id]?.profileCurrentLocation || '').trim();
-        if (locField?.isRecordedLocation?.(appearing)) healed = appearing;
-        else if (locField?.isRecordedLocation?.(scheduleFull)) healed = scheduleFull;
-        else healed = locField?.buildSceneProfileLocation?.(this, live) || '';
-      }
-      if (healed && locField?.isRecordedLocation?.(healed) && healed !== recorded) {
-        window.GameModules.realWorldMapFog?.writeCharacterProfileLocation?.(this, live, healed, {
-          characterId: live.id,
-          reason: '打开身份证时回填并固化当前位置到角色卡库。',
-          source: '身份证打开回填',
-        });
-        this.appearingLocationById = this.appearingLocationById && typeof this.appearingLocationById === 'object'
-          ? this.appearingLocationById
-          : {};
-        this.appearingLocationById[live.id] = healed;
+      if (live.values && Object.prototype.hasOwnProperty.call(live.values, 'current_location')) {
+        delete live.values.current_location;
         storeApi?.mergeOntoLive?.(live, this);
         await storeApi?.save?.(live, this);
-        if (typeof this.save === 'function') {
-          try { await Promise.resolve(this.save()); } catch (_) { /* ignore */ }
-        }
       }
       return live;
     } catch (err) {
