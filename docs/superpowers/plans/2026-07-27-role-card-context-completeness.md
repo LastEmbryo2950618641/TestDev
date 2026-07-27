@@ -4,7 +4,7 @@
 
 **Goal:** 让角色卡所有可推演字段在存在事实或背景依据时一次性生成完整具体内容，同时让代码只校验结构、不判断自然语言名称是否足够完整。
 
-**Architecture:** 在 `characterProfile.normalize()` 与 `promptSections.characterBase()` 中保留并传递组织、职位、学校、年级、学历和既有社会字段依据；在所有角色卡分段提示词的公共组装处注入统一完整性规则，并强化 Part1、缺失字段及结算更新提示词。现有字段完整性函数继续只检查类型、必填子字段和非空字符串，不新增组织名称词典、模糊词黑名单或额外 AI 请求。
+**Architecture:** 在 `characterProfile.normalize()` 与 `promptSections.characterBase()` 中保留并传递组织、职位、学校、年级、学历和既有社会字段依据；在所有角色卡分段提示词的公共组装处注入统一完整性规则，并强化 Part1、缺失字段及 Stage4 结算提示词。Stage4 主提示词、专用提示词、动态短规则、JSON 合约、示例和反例使用同一套四类身份格式；现有代码继续只检查结构，不新增组织名称词典、模糊词黑名单、旧存档迁移或额外 AI 请求。
 
 **Tech Stack:** 浏览器全局模块 `window.GameModules`、原生 JavaScript、Markdown 提示词、Node.js `assert`/`vm` 测试、`tools/sync-prompt-md.js`、`scripts/sync-inline-assets.js`、Android WebView 静态资源镜像。
 
@@ -18,10 +18,13 @@
 - `publish/prompts/character-profile-missing-fields.md`：确保结构缺失修复同样遵守“有依据必补全、禁止模糊占位”。
 - `publish/prompts/推演引擎/update/role-card-update-prompt.md`：稳定事实更新时完整归类并补齐角色卡字段。
 - `publish/prompts/推演引擎/update/membership-update-prompt.md`：删除“未逐字出现就禁止生成”的歧义，要求依据上下文补成完整组织与具体身份。
+- `publish/prompts/推演引擎/stage4-settlement-window.md`：本轮存在角色卡稳定变化时不得以空数组为由省略更新，同时保留“无本轮变化可为空”的边界。
+- `publish/real-world-agent-loop.js`：统一 Stage4 动态类型短规则、JSON 合约、正确示例和反例中的四类身份格式。
 - 上述 Markdown 对应 `.js`、`publish/inference-prompts-runtime.js`：生成文件，不直接手工编辑。
 - `mobile/android-webview-shell/app/src/main/assets/publish/**`：通过资产同步命令生成的 Android 镜像，不直接手工编辑。
 - `tests/character-profile-context-completeness.test.js`：验证依据保留、公共规则注入和纯结构校验边界。
 - `tests/character-profile-prompt-completeness.test.js`：验证提示词强制规则、事实读取边界及 Markdown/JS 内容一致。
+- `tests/stage4-role-card-completeness.test.js`：验证 Stage4 主提示词和动态输出规则完整覆盖四类身份，并保持介绍卡与旧存档边界。
 
 ### Task 1: 用测试锁定原始依据保留与结构校验边界
 
@@ -400,7 +403,164 @@ git add publish/prompts/推演引擎/update/role-card-update-prompt.md publish/p
 git commit -m "fix(prompts): complete contextual membership updates"
 ```
 
-### Task 5: 同步 Android 镜像并完成回归验证
+### Task 5: 统一 Stage4 主提示词与动态输出规则
+
+**Files:**
+- Create: `tests/stage4-role-card-completeness.test.js`
+- Modify: `publish/prompts/推演引擎/stage4-settlement-window.md`
+- Modify: `publish/real-world-agent-loop.js:2911-2970,3000-3040,3180-3265`
+- Generate: `publish/prompts/推演引擎/stage4-settlement-window.js`
+- Generate: `publish/inference-prompts-runtime.js`
+
+- [ ] **Step 1: 编写失败测试，锁定 Stage4 完整链路要求**
+
+创建 `tests/stage4-role-card-completeness.test.js`：
+
+```js
+const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+
+const root = path.join(__dirname, '..');
+const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
+const stage4 = read('publish/prompts/推演引擎/stage4-settlement-window.md');
+const loopSource = read('publish/real-world-agent-loop.js');
+
+assert.ok(stage4.includes('本轮存在角色卡稳定事实时不得返回空数组'));
+assert.ok(stage4.includes('只处理本轮新确认或发生变化的稳定事实'));
+assert.ok(stage4.includes('不能借机扫描或修复旧角色卡缺项'));
+assert.ok(stage4.includes('介绍卡人物不得自动升格'));
+
+[
+  '<完整社群名>/<具体角色>',
+  '<完整组织名>/<具体职位、学籍或成员身份>',
+  '<完整授予组织>/<具体领域>/<具体资格或等级>',
+  '<完整认可群体>/<具体领域>/<具体称号>',
+].forEach((rule) => assert.ok(loopSource.includes(rule), `动态 Stage4 规则缺少：${rule}`));
+
+const context = vm.createContext({
+  console,
+  window: { GameModules: {} },
+  setTimeout,
+  clearTimeout,
+});
+context.window.window = context.window;
+vm.runInContext(loopSource, context, { filename: 'publish/real-world-agent-loop.js' });
+const loop = context.window.GameModules.realWorldAgentLoop;
+const roleRule = loop.settlementTypeShortRule('角色卡');
+const membershipRule = loop.settlementTypeShortRule('人事归属');
+const roleExample = loop.settlementTypeJsonExample('角色卡', [{ type: 'character', name: '刘悠' }], {});
+const roleAntiExample = loop.settlementTypeAntiExample('角色卡');
+
+['社群角色', '人事归属', '证书', '称号'].forEach((field) => {
+  assert.ok(roleRule.includes(field), `角色卡短规则缺少：${field}`);
+});
+assert.ok(membershipRule.includes('完整组织名'));
+assert.ok(membershipRule.includes('只补全已经成立的本轮稳定事实'));
+assert.ok(roleExample.includes('证书'));
+assert.ok(roleExample.includes('称号'));
+assert.ok(roleAntiExample.includes('某公司/职员'));
+assert.ok(roleAntiExample.includes('某学校/学生'));
+assert.ok(roleAntiExample.includes('相关机构/证书'));
+
+console.log('PASS Stage4 role card chain requires complete contextual updates');
+```
+
+如果直接加载完整循环模块需要额外浏览器桩，只补齐模块初始化所需的最小空对象或函数；不得跳过对四个公开 helper 返回文本的断言，也不得改成只搜索源码。
+
+- [ ] **Step 2: 运行测试并确认 Stage4 主提示词或动态规则缺失**
+
+Run: `node tests/stage4-role-card-completeness.test.js`
+
+Expected: FAIL，首个失败为主提示词缺少“本轮存在角色卡稳定事实时不得返回空数组”，或动态规则缺少证书/称号格式；不得是语法或路径错误。
+
+- [ ] **Step 3: 强化 Stage4 主结算提示词**
+
+在 `stage4-settlement-window.md` 的“内部稳定事实”和“输出硬规则”中加入：
+
+```markdown
+【角色卡稳定事实完整性】
+- Stage4 只处理本轮新确认或发生变化的稳定事实；不能借机扫描或修复旧角色卡缺项。
+- 本轮存在角色卡稳定事实时不得返回空数组；必须按角色卡或人事归属类型完整写入。
+- 缺少组织专名、部门、年级、授予主体等次要细节时，可依据当前世界观、年代、地区、人物身份和已有经历作最小充分推演；合理推演只补全已经成立的本轮稳定事实，不能制造新的入职、转学、获证或获奖事件。
+- 没有本轮角色卡稳定变化时对应类型输出 []。
+- 角色卡更新只作用于玩家卡和已有完整角色卡；介绍卡人物不得自动升格，空壳 stub 仍不得作为完整角色卡更新。
+```
+
+保留通用“空数组合法”规则，但紧随其后补充“角色卡/人事归属在本轮存在稳定变化时不得为空”的特例，避免两条规则互相覆盖。
+
+- [ ] **Step 4: 扩展角色卡与人事归属动态短规则**
+
+在 `settlementTypeShortRule()` 中将 `角色卡` 规则替换为包含以下完整文本的数组，并同步强化 `人事归属`：
+
+```js
+'角色卡': [
+  '只更新玩家卡和已有完整角色卡的本轮新确认或变化稳定事实；介绍卡/空壳 stub 不得自动升格，也不扫描旧角色卡缺项。',
+  '本轮存在稳定变化时必须写入；只有本轮完全没有相关变化时才输出空数组。',
+  '合理推演只补全已经成立的本轮稳定事实所缺少的专名和次要细节，不能制造新事件，且不得与正文或当前设定冲突。',
+  '社群角色格式=<完整社群名>/<具体角色>。',
+  '人事归属格式=<完整组织名>/<具体职位、学籍或成员身份>；同一组织身份优先走人事归属专用类型，禁止重复写两次。',
+  '证书格式=<完整授予组织>/<具体领域>/<具体资格或等级>。',
+  '称号格式=<完整认可群体>/<具体领域>/<具体称号>。',
+  '禁止用某公司、未知学校、相关机构、初中生、普通职员、成员等模糊占位或上位概念规避补全。',
+].join(''),
+'人事归属': [
+  '只处理本轮正文新确认或变化的组织身份；不扫描旧角色卡缺项。',
+  '每项必须包含完整组织名、具体职位/学籍/年级/成员身份、部门或 departmentFog、reason；可带 orgId。',
+  '合理推演只补全已经成立的本轮稳定事实，不能制造新任职或转学事件。',
+  '本轮有组织身份稳定变化时必须写；只有没有本轮变化时才输出空数组。',
+  '与势力 structure 占坑可同时存在但需一致；与角色卡中的相同人事归属不得重复。',
+].join(''),
+```
+
+- [ ] **Step 5: 扩展 JSON 合约、正确示例和错误反例**
+
+将角色卡 JSON 合约说明改为：
+
+```js
+if (type === '角色卡') return '角色卡：数组；每项 {"subject":"姓名","field":"字段","op":"替换/增加","value":"内容","reason":"证据","result":"结果"}；社群角色=<完整社群名>/<具体角色>；人事归属=<完整组织名>/<具体职位、学籍或成员身份>；证书=<完整授予组织>/<具体领域>/<具体资格或等级>；称号=<完整认可群体>/<具体领域>/<具体称号>；本轮无变化 []。';
+```
+
+把 `settlementTypeJsonExample('角色卡')` 改为同一数组内展示四项，使用具体但非固定业务数据：
+
+```js
+if (type === '角色卡') return `"角色卡":[{"subject":"${subject}","field":"社群角色","op":"增加","value":"刘家/长兄","reason":"正文明确家庭身份","result":"写入社群角色"},{"subject":"${subject}","field":"人事归属","op":"增加","value":"成都悠云科技有限公司/程序工程师","reason":"正文明确任职事实","result":"写入人事归属"},{"subject":"${subject}","field":"证书","op":"增加","value":"电子科技大学/计算机科学与技术/硕士","reason":"正文明确学历事实","result":"写入证书"},{"subject":"${subject}","field":"称号","op":"增加","value":"成都市软件行业协会/软件工程/优秀青年工程师","reason":"正文明确行业认可","result":"写入称号"}]`;
+```
+
+将角色卡反例扩展为明确包含 `某公司/职员`、`某学校/学生`、`相关机构/证书`、缺少本轮事实却凭空新增，以及将介绍卡自动升格；正确说明必须指出“依据存在则补成完整格式，无本轮变化则 []”。
+
+- [ ] **Step 6: 生成 Stage4 脚本与推演运行时包**
+
+Run:
+
+```bash
+node tools/sync-prompt-md.js "publish/prompts/推演引擎/stage4-settlement-window.md" --kind template --id inference-stage4-settlement-window
+node scripts/sync-inline-assets.js
+```
+
+Expected: 输出 Stage4 `.js` 路径和 `inline assets synced`；`publish/inference-prompts-runtime.js` 包含新的 Stage4 主规则。
+
+- [ ] **Step 7: 运行 Stage4 定向测试**
+
+Run:
+
+```bash
+node tests/stage4-role-card-completeness.test.js
+node tests/real-world-loop-update.test.js
+node tests/settlement-social-pipeline.test.js
+```
+
+Expected: 三条命令退出码均为 0；新测试打印 `PASS Stage4 role card chain requires complete contextual updates`。
+
+- [ ] **Step 8: 提交 Stage4 完整链路改动**
+
+```bash
+git add publish/prompts/推演引擎/stage4-settlement-window.md publish/prompts/推演引擎/stage4-settlement-window.js publish/real-world-agent-loop.js publish/inference-prompts-runtime.js tests/stage4-role-card-completeness.test.js
+git commit -m "fix(stage4): require complete role card updates"
+```
+
+### Task 6: 同步 Android 镜像并完成回归验证
 
 **Files:**
 - Generate: `mobile/android-webview-shell/app/src/main/assets/publish/character-profile.js`
@@ -410,6 +570,8 @@ git commit -m "fix(prompts): complete contextual membership updates"
 - Generate: `mobile/android-webview-shell/app/src/main/assets/publish/prompts/推演引擎/update/role-card-update-prompt.{md,js}`
 - Generate: `mobile/android-webview-shell/app/src/main/assets/publish/prompts/推演引擎/update/membership-update-prompt.{md,js}`
 - Generate: `mobile/android-webview-shell/app/src/main/assets/publish/inference-prompts-runtime.js`
+- Generate: `mobile/android-webview-shell/app/src/main/assets/publish/real-world-agent-loop.js`
+- Generate: `mobile/android-webview-shell/app/src/main/assets/publish/prompts/推演引擎/stage4-settlement-window.{md,js}`
 
 - [ ] **Step 1: 同步 Web 权威实现到 Android WebView 资产**
 
@@ -428,6 +590,9 @@ node tests/character-profile-country-membership.test.js
 node tests/profile-identity-section-source.test.js
 node tests/rpg-social-field-consistency.test.js
 node tests/player-identity-profile-list-fields.test.js
+node tests/stage4-role-card-completeness.test.js
+node tests/real-world-loop-update.test.js
+node tests/settlement-social-pipeline.test.js
 ```
 
 Expected: 全部退出码 0；新测试打印各自 PASS，既有四类字段显示与双向一致性测试继续通过。
