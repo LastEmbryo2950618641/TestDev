@@ -88,6 +88,7 @@ window.GameModules.characterProfile = {
     if (!this.roleCardMatchesTarget(profile, base)) return false;
     const savedWorld = profile.work || state.worldTag;
     if (base.work && savedWorld && savedWorld !== base.work) return false;
+    if (String(profile?.roleCardInputSignature || '').trim()) return false;
     return this.isReusableRoleCard(profile, null);
   },
 
@@ -131,6 +132,20 @@ window.GameModules.characterProfile = {
     const name = String(data.name || '无名路人').slice(0, 16);
     const work = String(store?.currentWorldTag?.() || data.work || store?.character?.work || '原创世界').slice(0, 40);
     const id = data.id || `npc-${this.slug(work)}-${this.slug(name)}`;
+    const evidence = (items, fields, booleanFields = [], optionalFields = []) => {
+      if (!Array.isArray(items)) return [];
+      return items.slice(0, 16).map((item) => {
+        const source = item && typeof item === 'object' && !Array.isArray(item) ? item : {};
+        const normalized = Object.fromEntries(fields.map(([key, limit]) => [key, String(source[key] ?? '').trim().slice(0, limit)]));
+        optionalFields.forEach(([key, limit]) => {
+          if (Object.prototype.hasOwnProperty.call(source, key)) normalized[key] = String(source[key] ?? '').trim().slice(0, limit);
+        });
+        booleanFields.forEach((key) => {
+          if (Object.prototype.hasOwnProperty.call(source, key)) normalized[key] = Boolean(source[key]);
+        });
+        return normalized;
+      });
+    };
     return {
       id,
       name,
@@ -153,10 +168,10 @@ window.GameModules.characterProfile = {
       birthday: String(data.birthday || '').slice(0, 20),
       aliases: Array.isArray(data.aliases) ? data.aliases.slice(0, 4).map(String) : [],
       skills: Array.isArray(data.skills) ? data.skills.slice(0, 10) : [],
-      factions: Array.isArray(data.factions) ? data.factions.slice(0, 16) : [],
-      memberships: Array.isArray(data.memberships) ? data.memberships.slice(0, 16) : [],
-      certificates: Array.isArray(data.certificates) ? data.certificates.slice(0, 16) : [],
-      titles: Array.isArray(data.titles) ? data.titles.slice(0, 16) : [],
+      factions: evidence(data.factions, [['faction', 80], ['role', 48], ['reason', 120]]),
+      memberships: evidence(data.memberships, [['orgName', 80], ['title', 48], ['reason', 120]], ['departmentFog'], [['department', 80]]),
+      certificates: evidence(data.certificates, [['orgName', 80], ['field', 80], ['level', 48], ['reason', 120]]),
+      titles: evidence(data.titles, [['society', 80], ['field', 80], ['title', 48], ['reason', 120]]),
       items: this.carryItemsLoose(data.items, '物品'),
       wearing: this.wearingItemsLoose(data.wearing),
       importance: data.importance || (data.isMinor ? 'minor' : 'support'),
