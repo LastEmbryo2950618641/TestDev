@@ -169,7 +169,7 @@ window.GameModules.characterProfile = {
       aliases: Array.isArray(data.aliases) ? data.aliases.slice(0, 4).map(String) : [],
       skills: Array.isArray(data.skills) ? data.skills.slice(0, 10) : [],
       factions: evidence(data.factions, [['faction', 80], ['role', 48], ['reason', 120]]),
-      memberships: evidence(data.memberships, [['orgName', 80], ['title', 48], ['reason', 120]], ['departmentFog'], [['department', 80]]),
+      memberships: evidence(data.memberships, [['orgName', 80], ['title', 48], ['reason', 120]], ['departmentFog'], [['department', 80], ['orgId', 80], ['state', 24], ['source', 48], ['name', 80], ['position', 48], ['changeMode', 120]]),
       certificates: evidence(data.certificates, [['orgName', 80], ['field', 80], ['level', 48], ['reason', 120]]),
       titles: evidence(data.titles, [['society', 80], ['field', 80], ['title', 48], ['reason', 120]]),
       items: this.carryItemsLoose(data.items, '物品'),
@@ -335,10 +335,11 @@ window.GameModules.characterProfile = {
       }, base) || tool?.empty?.() || {},
     });
     try {
-      const prompt = await window.GameModules.renderPrompt('character-profile-part8-social-drive', {
+      const renderedPrompt = await window.GameModules.renderPrompt('character-profile-part8-social-drive', {
         ...commonVars,
         part1Summary: p1Summary,
       });
+      const prompt = this.promptWithCompletenessRules(renderedPrompt);
       const raw = await window.GameModules.jsonUtils.generateJsonWithRetry({
         source: 'character-profile-part8-social-drive',
         promptId: 'character-profile-part8-social-drive',
@@ -752,11 +753,13 @@ window.GameModules.characterProfile = {
     ].join('\n');
   },
 
+  promptWithCompletenessRules(prompt = '') {
+    return [prompt, '', this.roleCardCompletenessRules()].join('\n');
+  },
+
   partPromptWithTemplate(prompt, template, partIndex) {
     return [
-      prompt,
-      '',
-      this.roleCardCompletenessRules(),
+      this.promptWithCompletenessRules(prompt),
       '',
       '## MD角色卡模板字段骨架',
       '下方模板由 MD 文档结构生成，本次输出必须严格遵守这些字段名、嵌套结构和数组元素字段。',

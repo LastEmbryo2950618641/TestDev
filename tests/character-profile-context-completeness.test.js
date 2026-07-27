@@ -94,13 +94,13 @@ test('normalize snapshots evidence arrays with bounded structural fields', () =>
   const tool = createContext().window.GameModules.characterProfile;
   const raw = makeRaw();
   raw.factions = [{ faction: ` ${'社'.repeat(100)} `, role: ` ${'员'.repeat(60)} `, reason: ` ${'据'.repeat(160)} `, ignored: { mutable: true } }];
-  raw.memberships = [{ orgName: ` ${'组'.repeat(100)} `, department: ` ${'部'.repeat(100)} `, title: ` ${'职'.repeat(60)} `, reason: ` ${'据'.repeat(160)} `, departmentFog: false, ignored: { mutable: true } }];
+  raw.memberships = [{ orgName: ` ${'组'.repeat(100)} `, department: ` ${'部'.repeat(100)} `, title: ` ${'职'.repeat(60)} `, reason: ` ${'据'.repeat(160)} `, departmentFog: false, orgId: ' org-001 ', state: 'established', source: 'preset', ignored: { mutable: true } }];
   raw.certificates = [{ orgName: ` ${'证'.repeat(100)} `, field: ` ${'域'.repeat(100)} `, level: ` ${'级'.repeat(60)} `, reason: ` ${'据'.repeat(160)} `, ignored: { mutable: true } }];
   raw.titles = [{ society: ` ${'群'.repeat(100)} `, field: ` ${'域'.repeat(100)} `, title: ` ${'号'.repeat(60)} `, reason: ` ${'据'.repeat(160)} `, ignored: { mutable: true } }];
 
   const normalized = tool.normalize(raw);
   assert.deepStrictEqual(JSON.parse(JSON.stringify(normalized.factions[0])), { faction: '社'.repeat(80), role: '员'.repeat(48), reason: '据'.repeat(120) });
-  assert.deepStrictEqual(JSON.parse(JSON.stringify(normalized.memberships[0])), { orgName: '组'.repeat(80), department: '部'.repeat(80), title: '职'.repeat(48), reason: '据'.repeat(120), departmentFog: false });
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(normalized.memberships[0])), { orgName: '组'.repeat(80), department: '部'.repeat(80), title: '职'.repeat(48), reason: '据'.repeat(120), departmentFog: false, orgId: 'org-001', state: 'established', source: 'preset' });
   assert.deepStrictEqual(JSON.parse(JSON.stringify(normalized.certificates[0])), { orgName: '证'.repeat(80), field: '域'.repeat(80), level: '级'.repeat(48), reason: '据'.repeat(120) });
   assert.deepStrictEqual(JSON.parse(JSON.stringify(normalized.titles[0])), { society: '群'.repeat(80), field: '域'.repeat(80), title: '号'.repeat(48), reason: '据'.repeat(120) });
 
@@ -118,6 +118,8 @@ test('inputSignature changes for every organizational and educational evidence f
   evidenceChanges(base).forEach(([key, value]) => {
     assert.notStrictEqual(tool.inputSignature({ ...base, [key]: value }, '', null), original, `signature should include ${key}`);
   });
+  const withOrgId = { ...base, memberships: base.memberships.map((item, index) => index ? item : { ...item, orgId: 'org-new' }) };
+  assert.notStrictEqual(tool.inputSignature(withOrgId, '', null), original, 'signature should include membership orgId');
 });
 
 test('findSavedRoleCard rejects stale signed cards after evidence changes', () => {
@@ -152,6 +154,28 @@ test('all role card parts receive shared completeness rules', () => {
   assert.ok(wrapped.includes('输出前逐项自检'));
   assert.ok(wrapped.includes('PART3 原始提示'));
   assert.ok(wrapped.includes('"skills"'));
+});
+
+test('Part8 social drive request receives shared completeness rules without an extra AI request', async () => {
+  const context = createContext();
+  const tool = context.window.GameModules.characterProfile;
+  let calls = 0;
+  let receivedPrompt = '';
+  context.window.GameModules.renderPrompt = async () => 'PART8 原始提示';
+  context.window.GameModules.aiRequest = { selectedTextModel: () => 'test-model' };
+  context.window.GameModules.jsonUtils = {
+    async generateJsonWithRetry(options) {
+      calls += 1;
+      receivedPrompt = options.prompt;
+      return { name: '刘悠', socialDrive: { relationToPlayer: '本人' } };
+    },
+  };
+  context.window.GameModules.characterSocialDrive = { normalizeForRoleCard: (value) => value };
+
+  await tool.generateSocialDrive({ name: '刘悠', id: 'player-self' }, {}, { name: '刘悠' }, '摘要');
+  assert.strictEqual(calls, 1);
+  assert.ok(receivedPrompt.includes('PART8 原始提示'));
+  assert.ok(receivedPrompt.includes('有事实或背景依据时必须完整生成'));
 });
 
 (async () => {
