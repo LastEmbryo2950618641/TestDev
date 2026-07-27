@@ -803,6 +803,44 @@ window.GameModules.realWorldAgentLoop = {
         console.warn(`${config.label}状态更新生成失败，保留已生成正文并使用最小结算:`, err.message);
         stage4Updates = this.fallbackUpdateJson(store, action, config);
       }
+      let introStage5Result = {
+        aiRequested: false,
+        candidateCount: 0,
+        synced: [],
+        ops: [],
+        applied: [],
+        rejected: [],
+        lines: [],
+        skipped: true,
+      };
+      try {
+        const introStage5 = window.GameModules.introCardStageUpdate;
+        if (introStage5?.runAfterStage4) {
+          introStage5Result = await introStage5.runAfterStage4({
+            store,
+            action,
+            narration,
+            participants,
+            logId,
+            config: stage5KvConfig,
+            loop: this,
+            updates: stage4Updates,
+          });
+          if (introStage5Result?.lines?.length) {
+            stage4Updates = {
+              ...stage4Updates,
+              characterCardChanges: [...(stage4Updates.characterCardChanges || []), ...introStage5Result.lines],
+            };
+          }
+        }
+      } catch (err) {
+        console.warn(`${config.label}Stage5 介绍卡更新失败，继续后续结算`, err?.message || err);
+        introStage5Result = {
+          ...introStage5Result,
+          skipped: false,
+          error: String(err?.message || err || '未知错误'),
+        };
+      }
       const stage5 = window.GameModules.realWorldProfileStage5;
       const stage5Result = stage5?.runAfterStage4
         ? await stage5.runAfterStage4({ store, narration, participants, logId, config: stage5KvConfig, loop: this, updates: stage4Updates })
@@ -889,6 +927,13 @@ window.GameModules.realWorldAgentLoop = {
       settlementPrompt = 'Stage4 状态结算 → Stage5–7 外观 → Stage8 势力更新 → Stage10 经验结算 → Stage11 新闻热榜（Stage9 地图周围解锁在落库后）';
       settlementRaw = JSON.stringify({
         settlement: updates,
+        introStage5: {
+          aiRequested: Boolean(introStage5Result?.aiRequested),
+          candidateCount: Number(introStage5Result?.candidateCount) || 0,
+          appliedCount: Array.isArray(introStage5Result?.applied) ? introStage5Result.applied.length : 0,
+          rejectedCount: Array.isArray(introStage5Result?.rejected) ? introStage5Result.rejected.length : 0,
+          error: introStage5Result?.error || '',
+        },
         stage5Gate: stage5Result.gate || null,
         profilePatches: profilePatches.map((item) => ({ subject: item.subject, parts: item.parts })),
         factionOps,

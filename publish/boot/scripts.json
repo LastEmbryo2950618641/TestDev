@@ -88,6 +88,7 @@
   "character-card-lexicon.js",
   "character-intro-card.js",
   "character-intro-update-operations.js",
+  "inference/intro-card-stage-update.js",
   "character-query.js",
   "past-event-query.js",
   "org-territory-system.js",

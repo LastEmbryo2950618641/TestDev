@@ -280,6 +280,7 @@ window.GameScriptManifest = {
     ],
     "gameplay": [
       "real-world-log-store.js",
+      "inference/intro-card-stage-update.js",
       "org-territory-system.js",
       "update/territory-control-update.js",
       "update/org-status-update.js",
@@ -457,5 +458,5 @@ window.GameScriptManifest = {
     ]
   },
   "generatedAt": "2026-07-26T07:04:46.100Z",
-  "total": 438
+  "total": 439
 };
