@@ -48,6 +48,8 @@ window.GameModules.promptSections = {
     return this.lines([
       ['候选姓名', base.name], ['候选性别', base.gender], ['候选年龄', base.age], ['身份/关系/叙事定位', base.role], ['人物背景摘要', base.detail],
       ['外貌线索', base.appearance], ['性格线索', base.personality], ['所属作品或世界', base.work], ['命名要求', base.nameRule], ['已整理关系', base.relationships],
+      ['工作/学校/组织依据', base.workplace || base.school], ['职位/学籍/年级依据', base.position || base.grade], ['部门依据', base.department], ['学校依据', base.school], ['年级依据', base.grade], ['学历/资格依据', base.education],
+      ['已有社群角色依据', JSON.stringify(base.factions || [])], ['已有人事归属依据', JSON.stringify(base.memberships || [])], ['已有证书依据', JSON.stringify(base.certificates || [])], ['已有称号依据', JSON.stringify(base.titles || [])],
     ]);
   },
 

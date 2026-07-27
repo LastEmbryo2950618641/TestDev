@@ -88,6 +88,7 @@ window.GameModules.characterProfile = {
     if (!this.roleCardMatchesTarget(profile, base)) return false;
     const savedWorld = profile.work || state.worldTag;
     if (base.work && savedWorld && savedWorld !== base.work) return false;
+    if (String(profile?.roleCardInputSignature || '').trim()) return false;
     return this.isReusableRoleCard(profile, null);
   },
 
@@ -131,11 +132,31 @@ window.GameModules.characterProfile = {
     const name = String(data.name || '无名路人').slice(0, 16);
     const work = String(store?.currentWorldTag?.() || data.work || store?.character?.work || '原创世界').slice(0, 40);
     const id = data.id || `npc-${this.slug(work)}-${this.slug(name)}`;
+    const evidence = (items, fields, booleanFields = [], optionalFields = []) => {
+      if (!Array.isArray(items)) return [];
+      return items.slice(0, 16).map((item) => {
+        const source = item && typeof item === 'object' && !Array.isArray(item) ? item : {};
+        const normalized = Object.fromEntries(fields.map(([key, limit]) => [key, String(source[key] ?? '').trim().slice(0, limit)]));
+        optionalFields.forEach(([key, limit]) => {
+          if (Object.prototype.hasOwnProperty.call(source, key)) normalized[key] = String(source[key] ?? '').trim().slice(0, limit);
+        });
+        booleanFields.forEach((key) => {
+          if (Object.prototype.hasOwnProperty.call(source, key)) normalized[key] = Boolean(source[key]);
+        });
+        return normalized;
+      });
+    };
     return {
       id,
       name,
       work,
       role: String(data.role || (data.isMinor ? '路人' : '出场人物')).slice(0, 18),
+      workplace: String(data.workplace || '').trim().slice(0, 80),
+      position: String(data.position || '').trim().slice(0, 48),
+      department: String(data.department || '').trim().slice(0, 80),
+      school: String(data.school || '').trim().slice(0, 80),
+      grade: String(data.grade || '').trim().slice(0, 48),
+      education: String(data.education || '').trim().slice(0, 120),
       gender: String(data.gender || '').slice(0, 8),
       relationships: this.formatRelationships(data.relationships || ''),
       nameRule: String(data.nameRule || '').slice(0, 80),
@@ -147,6 +168,10 @@ window.GameModules.characterProfile = {
       birthday: String(data.birthday || '').slice(0, 20),
       aliases: Array.isArray(data.aliases) ? data.aliases.slice(0, 4).map(String) : [],
       skills: Array.isArray(data.skills) ? data.skills.slice(0, 10) : [],
+      factions: evidence(data.factions, [['faction', 80], ['role', 48], ['reason', 120]]),
+      memberships: evidence(data.memberships, [['orgName', 80], ['title', 48], ['reason', 120]], ['departmentFog'], [['department', 80], ['orgId', 80], ['state', 24], ['source', 48], ['name', 80], ['position', 48], ['changeMode', 120]]),
+      certificates: evidence(data.certificates, [['orgName', 80], ['field', 80], ['level', 48], ['reason', 120]]),
+      titles: evidence(data.titles, [['society', 80], ['field', 80], ['title', 48], ['reason', 120]]),
       items: this.carryItemsLoose(data.items, '物品'),
       wearing: this.wearingItemsLoose(data.wearing),
       importance: data.importance || (data.isMinor ? 'minor' : 'support'),
@@ -310,10 +335,11 @@ window.GameModules.characterProfile = {
       }, base) || tool?.empty?.() || {},
     });
     try {
-      const prompt = await window.GameModules.renderPrompt('character-profile-part8-social-drive', {
+      const renderedPrompt = await window.GameModules.renderPrompt('character-profile-part8-social-drive', {
         ...commonVars,
         part1Summary: p1Summary,
       });
+      const prompt = this.promptWithCompletenessRules(renderedPrompt);
       const raw = await window.GameModules.jsonUtils.generateJsonWithRetry({
         source: 'character-profile-part8-social-drive',
         promptId: 'character-profile-part8-social-drive',
@@ -715,9 +741,25 @@ window.GameModules.characterProfile = {
     return [...new Set([...fields, ...nested])];
   },
 
+  roleCardCompletenessRules() {
+    return [
+      '## 角色卡通用完整性规则（强制）',
+      '- 明确事实优先，禁止覆盖或改写输入已确定的内容。',
+      '- 所有可推演字段有事实或背景依据时必须完整生成；完全没有事实或背景依据时才允许为空。',
+      '- 缺少次要细节时，依据世界观、年代、地区、年龄、职业、教育经历、家庭与组织关系作最小充分推演。',
+      '- 不得使用“某公司”“未知学校”“相关机构”“普通职员”“成员”等模糊占位或上位概念规避补全。',
+      '- 推演的具体名称必须与时代、地区、组织类型和人物经历一致，不得制造冲突或无关扩张。',
+      '- 输出前逐项自检：检查全部模板字段是否存在有依据却遗漏、留空、简写或模糊化的内容；完成后只输出最终结果。',
+    ].join('\n');
+  },
+
+  promptWithCompletenessRules(prompt = '') {
+    return [prompt, '', this.roleCardCompletenessRules()].join('\n');
+  },
+
   partPromptWithTemplate(prompt, template, partIndex) {
     return [
-      prompt,
+      this.promptWithCompletenessRules(prompt),
       '',
       '## MD角色卡模板字段骨架',
       '下方模板由 MD 文档结构生成，本次输出必须严格遵守这些字段名、嵌套结构和数组元素字段。',
@@ -2674,7 +2716,9 @@ window.GameModules.characterProfile = {
         id: base.id, name: base.name, work: base.work, role: base.role, gender: base.gender, age: base.age, birthday: base.birthday,
         relationships: base.relationships, nameRule: base.nameRule, detail: base.detail,
         appearance: base.appearance, preferences: base.preferences, personality: base.personality, presetProfilePath: base.presetProfilePath,
-        factions: base.factions, memberships: base.memberships,
+        workplace: base.workplace, position: base.position, department: base.department, school: base.school,
+        grade: base.grade, education: base.education, factions: base.factions, memberships: base.memberships,
+        certificates: base.certificates, titles: base.titles,
       },
       preset: { path: preset?.path || '', summary: preset?.summary || '' },
       player: {
