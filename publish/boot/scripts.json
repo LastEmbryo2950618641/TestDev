@@ -285,6 +285,7 @@
   "inference/scene-boundary.js",
   "inference/material-loader.js",
   "inference/faction-stage-update.js",
+  "inference/news-driver-stage-update.js",
   "real-world-agent-context.js",
   "prompts/materials/real-world-materials.js",
   "prompts/materials/real-world-material-query.js",
@@ -394,6 +395,8 @@
   "ui/calendar/view-helpers.js",
   "calendar-actions.js",
   "event-system.js",
+  "news-driver-system.js",
+  "news-driver-actions.js",
   "ui/event/panel-view-helpers.js",
   "ui/event/label-view-helpers.js",
   "ui/event/view-helpers.js",
@@ -435,5 +438,6 @@
   "prompts/picture_generate/draw-tag-prompt.js",
   "prompts/picture_generate/common-image-edit-generate.js",
   "prompts/推演引擎/stage6-faction-update.js",
+  "prompts/推演引擎/stage11-world-news-update.js",
   "inference-prompts-runtime.js"
 ]

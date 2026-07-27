@@ -8,10 +8,10 @@ window.GameScriptManifest = {
       "asset-loader.js",
       "remerge-game-store.js",
       "config/default-existing-profile.js",
-      "predefined-role-cards/01-鍒樻€濈惇-rel-ai-247528.js",
-      "predefined-role-cards/02-鍒樻€濇€?rel-ai-242269.js",
-      "predefined-role-cards/03-鍒樻€濈懚-rel-ai-247463.js",
-      "predefined-role-cards/04-鍒樻偁-player-self.js",
+      "predefined-role-cards/01-刘思琪-rel-ai-247528.js",
+      "predefined-role-cards/02-刘思怡-rel-ai-242269.js",
+      "predefined-role-cards/03-刘思瑶-rel-ai-247463.js",
+      "predefined-role-cards/04-刘悠-player-self.js",
       "predefined-role-card-support/triplet-essential-preference-layers.js",
       "predefined-role-card-support/predefined-appearance-profiles.js",
       "predefined-role-cards.js",
@@ -273,7 +273,8 @@ window.GameScriptManifest = {
       "ui/faction/overview-view-helpers.js",
       "prompts/location-tree-audit-fill.js",
       "prompts/real-world-map-surround-unlock.js",
-      "prompts/鎺ㄦ紨寮曟搸/stage6-faction-update.js"
+      "prompts/推演引擎/stage6-faction-update.js",
+      "prompts/推演引擎/stage11-world-news-update.js"
     ],
     "gameplay": [
       "real-world-log-store.js",
@@ -301,6 +302,7 @@ window.GameScriptManifest = {
       "inference/scene-boundary.js",
       "inference/material-loader.js",
       "inference/faction-stage-update.js",
+      "inference/news-driver-stage-update.js",
       "real-world-agent-context.js",
       "prompts/materials/real-world-materials.js",
       "prompts/materials/real-world-material-query.js",
@@ -416,6 +418,8 @@ window.GameScriptManifest = {
       "calendar-system.js",
       "calendar-actions.js",
       "event-system.js",
+      "news-driver-system.js",
+      "news-driver-actions.js",
       "event-actions.js",
       "faction-system.js",
       "faction-archive.js",
@@ -452,18 +456,4 @@ window.GameScriptManifest = {
   },
   "generatedAt": "2026-07-26T07:04:46.100Z",
   "total": 436
-};
-
-window.GameScriptManifest.classify = function classify(url) {
-  const p = String(url || '').replace(/^\.\//, '').toLowerCase();
-  if (/^https?:\/\//.test(p)) return 'core';
-  // 手机激活 / 身份补全 / 玩家卡生成在 core 启动后就会调用，须与 __game-core.js 一致随 core 加载
-  if (/^prompt-fallback\.js$|^prompt-templates\.js$|^prompt-skills\.js$|^prompt-sections\.js$/.test(p)) return 'core';
-  if (/(^|\/)wechat|player-wechat-setup|real-world-agent-wechat|prompts\/wechat|wechat-album-photo/.test(p)) return 'wechat';
-  if (/^(company-|boss-|calendar-|event-|faction-|skills-|skill-|known-profession-|taobao-|prompt-actions|token-stats|alert-log|faction-membership|role-card-json-app\/)/.test(p)) return 'apps';
-  // Stage1/8 推演依赖势力/资料查询；继续游戏只加载 gameplayReady，不能等 prompts 分包
-  if (/^prompts\/materials\/real-world-(?:faction|material)-query\.js$|^prompts\/materials\/real-world-materials\.js$/.test(p)) return 'gameplay';
-  if (/^prompt\.js$|^real-world-prompt\.js$|^prompts\/materials\/|^prompts\/picture_generate\/|^inference-prompts-runtime\.js$/.test(p)) return 'prompts';
-  if (/^real-world-|^org-territory|^(?:app|domain)\/org-territory\/|^inference\/|^story-agent-context\.js$|^assets\/data\/real-world|^game-premise\.js$|^update\/(territory|org-|membership|character-schedule|character-goal|org-status)/.test(p)) return 'gameplay';
-  return 'core';
 };

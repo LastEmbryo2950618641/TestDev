@@ -133,6 +133,14 @@ window.GameModules.realWorldActions = {
     result.characterCardChanges = settlement;
     const startedAt = this.phoneDate().toISOString();
     this.advancePhoneTime(elapsedSeconds);
+    const newsTick = this.tickWorldNewsDriver?.(elapsedSeconds, { logId: id, startedAt, endedAt: this.phoneDate().toISOString() }) || null;
+    if (newsTick && (newsTick.created || newsTick.updated || newsTick.promoted)) {
+      const parts = [];
+      if (newsTick.created) parts.push(`新增${newsTick.created}条`);
+      if (newsTick.updated) parts.push(`更新${newsTick.updated}条`);
+      if (newsTick.promoted) parts.push(`升格${newsTick.promoted}条事件`);
+      settlement.push(`新闻热榜：${parts.join('，')}。`);
+    }
     const propertySettlement = window.GameModules.realWorldLocationGraph?.settleUsageContracts?.(this, this.phoneDate?.() || new Date()) || null;
     if (propertySettlement?.settled?.length || propertySettlement?.debts?.length) {
       const settledCount = propertySettlement.settled?.length || 0;

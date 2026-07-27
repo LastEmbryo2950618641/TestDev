@@ -22,7 +22,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding-bottom: 54px;
+  padding-bottom: 72px;
   border: 9px solid rgba(3, 6, 17, .96);
   border-radius: 42px;
   background:
@@ -146,6 +146,7 @@
 
 .desktop-pages {
   display: flex;
+  height: 100%;
   width: 100%;
   transition: transform .28s cubic-bezier(.22, .9, .28, 1);
   will-change: transform;
@@ -153,12 +154,15 @@
 
 .desktop-apps {
   min-width: 100%;
+  height: 100%;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-template-rows: repeat(6, minmax(0, auto));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
   align-items: start;
-  gap: 8px 8px;
+  align-content: start;
+  gap: clamp(4px, 1.25vh, 8px) 8px;
   padding: 0 16px 2px;
+  overflow: hidden;
 }
 
 .desktop-app-icon {
@@ -166,9 +170,10 @@
   min-height: 0;
   display: grid;
   justify-items: center;
+  align-content: start;
   gap: 4px;
   margin: 0;
-  padding: 4px 2px;
+  padding: clamp(2px, .75vh, 4px) 2px;
   border: 0;
   border-radius: 10px;
   background: transparent;
@@ -286,9 +291,10 @@
 
 .desktop-page-dots {
   display: flex;
+  align-items: center;
   justify-content: center;
   gap: 4px;
-  margin: 4px 0 0;
+  margin: 4px 0 8px;
   flex-shrink: 0;
 }
 
@@ -299,15 +305,24 @@
 .desktop-page-dots button {
   width: 5px;
   height: 5px;
+  min-width: 0;
+  min-height: 0;
   padding: 0;
   border: 0;
   border-radius: 999px;
   background: rgba(255, 255, 255, .42);
+  cursor: pointer;
+  line-height: 1;
+  transition: width .18s ease, background .18s ease, transform .18s ease;
 }
 
 .desktop-page-dots button.active {
   width: 11px;
   background: rgba(255, 255, 255, .9);
+}
+
+.desktop-page-dots button:active {
+  transform: scale(.9);
 }
 
 .phone-dock {
@@ -3356,7 +3371,7 @@
 @media (max-height: 620px) {
   .phone-frame {
     min-height: 0;
-    padding-bottom: 48px;
+    padding-bottom: 58px;
   }
 
   .desktop-time-card {
@@ -3370,6 +3385,10 @@
 
   .desktop-apps {
     gap: 6px 6px;
+  }
+
+  .desktop-page-dots {
+    margin-bottom: 6px;
   }
 
   .phone-dock {

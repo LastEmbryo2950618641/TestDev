@@ -23,6 +23,7 @@ window.GameModules.realWorldAgentContextParts.materialRequestCatalog = {
       { mode: 'real', category: '地点查询', action: '搜索地点', skill: 'realworld.location.query', method: 'searchLocationOne', requiredParams: ['keyword'], buildParams: (p) => ({ keyword: p[0] || '', world: p[1] || world() }) },
       { mode: 'both', category: '世界线查询', action: '按关键词搜索', skill: 'realworld.history.query', method: 'searchWorldlineByKeyword', requiredParams: ['keyword'], buildParams: (p) => ({ keyword: p[0] || '', world: p[1] || world() }) },
       { mode: 'both', category: '世界线查询', action: '按时间搜索', skill: 'realworld.history.query', method: 'searchWorldlineByTime', requiredParams: ['time'], buildParams: (p) => ({ time: p[0] || '', keyword: p[1] || '', world: p[2] || world() }) },
+      { mode: 'real', category: '新闻查询', action: '最新热榜', skill: 'news.query', method: 'getLatestHotlist', requiredParams: [], buildParams: (p) => ({ world: p[0] || world() }) },
       { mode: 'both', category: '记忆查询', action: '搜索角色记忆窗口', skill: 'memory.query', method: 'searchCharacterMemoryWindow', requiredParams: ['keyword'], buildParams: (p) => ({ characterId: p[0] || '', keyword: p[1] || '' }) },
       { mode: 'real', category: '微信查询', action: '联系人列表', skill: 'wechat.query', method: 'listContacts', requiredParams: [], buildParams: (p) => ({ world: p[0] || world() }) },
       { mode: 'real', category: '微信查询', action: '会话片段', skill: 'wechat.query', method: 'getThread', requiredParams: ['contactId'], buildParams: (p) => ({ contactId: p[0] || '', count: Number(p[1]) || 5 }) },

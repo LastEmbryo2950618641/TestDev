@@ -1324,12 +1324,16 @@ test('parseChineseMaterialRequest maps real Chinese requests to whitelist calls'
 
   const role = ctx.parseChineseMaterialRequest('资料请求1：角色查询，搜索角色卡，刘思琪，2026现代都市现实世界', { mode: 'real' });
   const nearby = ctx.parseChineseMaterialRequest('资料请求2：地点查询，查询附近地点，刘思琪房间门口', { mode: 'real' });
+  const news = ctx.parseChineseMaterialRequest('资料请求3：新闻查询，最新热榜，当前世界', { mode: 'real' });
   const bad = ctx.parseChineseMaterialRequest('资料请求3：未知查询，删除资料，刘思琪', { mode: 'real' });
 
   assert.deepStrictEqual(JSON.parse(JSON.stringify(role)), { skill: 'character.query', method: 'searchCharacterProfile', params: { name: '刘思琪', world: '2026现代都市现实世界' }, sourceText: '资料请求1：角色查询，搜索角色卡，刘思琪，2026现代都市现实世界' });
   assert.strictEqual(nearby.skill, 'realworld.location.query');
   assert.strictEqual(nearby.method, 'getNearbyLocations');
   assert.strictEqual(nearby.params.locationName, '刘思琪房间门口');
+  assert.strictEqual(news.skill, 'news.query');
+  assert.strictEqual(news.method, 'getLatestHotlist');
+  assert.strictEqual(news.params.world, '当前世界');
   assert.strictEqual(bad, null);
 });
 

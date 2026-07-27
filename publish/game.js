@@ -91,6 +91,17 @@ function registerGameStore() {
     events: [],
     draft: {},
   };
+  const defaultNewsDriverState = gm.newsDriverSystem?.defaultState?.() || {
+    open: false,
+    enabled: true,
+    channelId: 'all',
+    filter: 'all',
+    selectedId: '',
+    items: [],
+    channels: [],
+    promotedEventIds: [],
+    recentOps: [],
+  };
   const defaultRealWorldMapState = gm.realWorldMap?.defaultState?.({}) || {
     nodes: [],
     selectedId: '',
@@ -210,6 +221,19 @@ function registerGameStore() {
     eventStatusLabel(event = {}) { return event.status || '未开始'; },
     setEventTab(type = 'random') { this.eventState = { ...(this.eventState || {}), tab: type }; },
     setEventRandomProbability(value = 10) { this.eventState = { ...(this.eventState || {}), randomProbability: Math.max(0, Math.min(100, Math.round(Number(value) || 0))) }; },
+    newsChannelTabs() { return [{ id: 'all', label: '全部', count: 0 }]; },
+    newsFilterTabs() { return [{ id: 'all', label: '全部' }]; },
+    currentNewsList() { return []; },
+    selectedNewsItem() { return null; },
+    newsChannelLabel(channelId = '') { return channelId || '未知频道'; },
+    newsScopeLabel(scope = '') { return scope || '未知'; },
+    newsTaskPotentialLabel(value = '') { return value || '背景'; },
+    newsTrendLabel(value = '') { return value || '稳定'; },
+    newsHeatClass() { return 'cool'; },
+    setNewsChannel() {},
+    setNewsFilter() {},
+    selectNewsItem() {},
+    newsNarrationPromptContext() { return ''; },
     wechatAlbumKindLabel(kind = '') { return kind === 'dressed' ? '盛装状态' : kind === 'custom' ? '自定义状态' : '自然状态'; },
     wechatAlbumSelectedPrompt() { return null; },
     wechatAlbumPromptListPreview() { return ''; },
@@ -637,7 +661,7 @@ function registerGameStore() {
   const modules = [
     criticalActionFallback, gm.actions, gm.rpgFieldUi, gm.resultActions, gm.loadingActions, gm.roleCardLoadingActions, gm.solidifyActions, gm.wearingSyncActions, gm.saveActions, gm.styleActions,
     gm.worldlineActions, gm.domain?.worldline?.stateService, gm.predefinedRoleCardActions, gm.homeActions, gm.playerSetupActions, gm.playerAspirationActions, gm.playerIdentityActions, gm.rpgActions, gm.identityMemoryActions, gm.identityAppActions, gm.memoryQueryActions,     gm.wechatActions, gm.wechatFriendRequestActions, gm.wechatViewActions, gm.wechatMemoryContextActions, gm.wechatChatActions, gm.wechatIncomingActions, gm.wechatImageActions, gm.wechatMentionActions, gm.wechatWorldlineActions, gm.wechatMemoryDebugActions, gm.wechatAppActions, gm.wechatAlbumTagActions, gm.wechatAlbumPromptListActions, gm.wechatAvatarCropActions, gm.wechatAlbumActions, gm.wechatChangePanelActions, gm.controlEntryActions, gm.entryActions, gm.realWorldClockActions,
-    gm.catalogActions, gm.coreActions, gm.controlState, gm.controlLinkActions, gm.appSwitchActions, gm.currentWorldActions, gm.inventoryActions, gm.inventoryEquipActions, gm.itemSkillActions, gm.realWorldStreamActions, gm.realWorldThinkingActions, gm.realWorldSettlementActions, gm.realWorldUtilityActions, gm.realWorldActions, gm.realWorldLongingActions, gm.realWorldSocialInboxActions, gm.realWorldMapActions, gm.realWorldFactionActions, gm.realWorldMatterActions, gm.companyActions, gm.companyAttendanceActions, gm.companyFactionActions,
+    gm.catalogActions, gm.coreActions, gm.controlState, gm.controlLinkActions, gm.appSwitchActions, gm.currentWorldActions, gm.inventoryActions, gm.inventoryEquipActions, gm.itemSkillActions, gm.realWorldStreamActions, gm.realWorldThinkingActions, gm.realWorldSettlementActions, gm.realWorldUtilityActions, gm.realWorldActions, gm.realWorldLongingActions, gm.realWorldSocialInboxActions, gm.newsDriverActions, gm.realWorldMapActions, gm.realWorldFactionActions, gm.realWorldMatterActions, gm.companyActions, gm.companyAttendanceActions, gm.companyFactionActions,
     gm.bossActions, gm.bossAppointmentActions, gm.bossAiActions, gm.calendarActions, gm.eventActions, gm.factionActions, gm.factionArchiveActions, gm.factionOrgActions, gm.factionAiActions, gm.factionMembershipActions, gm.skillsActions, gm.knownProfessionActions, gm.characterRosterActions, gm.taobaoActions, gm.taobaoGenerateActions, gm.taobaoBuyActions, gm.promptActions, gm.controlExperienceConfigApp, gm.settingsActions, gm.systemTestActions, gm.tokenStatsActions, gm.uiThemeActions, gm.roleCardJsonApp?.actions,
     {
       async openWechatApp(...args) {
@@ -765,7 +789,7 @@ function registerGameStore() {
     mindText: '', feedbackSource: 'pending',
     characterIntent: '',
     choices: cfg.openingChoices,
-    log: [], realWorldOpen: false, realWorldBusy: false, realWorldInput: '', realWorldThinkMode: false, realWorldFreedomMode: 'scope', realWorldWordCount: 1000, realWorldFunctionOpen: false, realWorldFunctionView: 'menu', realWorldMatterState: { open: false, activeId: '' }, realWorldSceneTitle: '现实世界', realWorldLocationName: '', realWorldMap: defaultRealWorldMapState, locationGraph: null, realWorldQuest: '确认手机异常与现实处境', realWorldStatus: '现实稳定', realWorldChoices: ['检查手机记录', '观察居住环境', '联系熟人确认', '暂时休息'], realWorldLog: [], realWorldLogPage: 1, realWorldLogPageSize: 12, realWorldLogTotal: 0, realWorldLongingEvents: [], realWorldLongingPreparedIds: [], socialInbox: [], socialInboxPreparedIds: [], realWorldlineState: { events: [], plots: [], pendingPlot: null }, realWorldProfileOpen: false, companyState: defaultCompanyState, bossState: defaultBossState, calendarState: defaultCalendarState, eventState: defaultEventState, factionState: defaultFactionState, skillsState: gm.skillsApp?.defaultState?.() || {}, promptState: gm.promptTemplates?.defaultState?.() || {}, tokenStatsState: gm.tokenStats?.defaultState?.() || {},
+    log: [], realWorldOpen: false, realWorldBusy: false, realWorldInput: '', realWorldThinkMode: false, realWorldFreedomMode: 'scope', realWorldWordCount: 1000, realWorldFunctionOpen: false, realWorldFunctionView: 'menu', realWorldMatterState: { open: false, activeId: '' }, realWorldSceneTitle: '现实世界', realWorldLocationName: '', realWorldMap: defaultRealWorldMapState, locationGraph: null, realWorldQuest: '确认手机异常与现实处境', realWorldStatus: '现实稳定', realWorldChoices: ['检查手机记录', '观察居住环境', '联系熟人确认', '暂时休息'], realWorldLog: [], realWorldLogPage: 1, realWorldLogPageSize: 12, realWorldLogTotal: 0, realWorldLongingEvents: [], realWorldLongingPreparedIds: [], socialInbox: [], socialInboxPreparedIds: [], newsDriverState: defaultNewsDriverState, realWorldlineState: { events: [], plots: [], pendingPlot: null }, realWorldProfileOpen: false, companyState: defaultCompanyState, bossState: defaultBossState, calendarState: defaultCalendarState, eventState: defaultEventState, factionState: defaultFactionState, skillsState: gm.skillsApp?.defaultState?.() || {}, promptState: gm.promptTemplates?.defaultState?.() || {}, tokenStatsState: gm.tokenStats?.defaultState?.() || {},
     nextId: 1,
     ragQuery: '',
     ragContext: '',

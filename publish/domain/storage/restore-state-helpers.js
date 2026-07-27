@@ -54,6 +54,9 @@ window.GameModules.domain.storage.restoreStateHelpers = {
     store.bossState = save.bossState ? { ...save.bossState, open: false, companyDetailOpen: false, generating: false } : store.bossState;
     store.calendarState = save.calendarState ? { ...save.calendarState, open: false } : store.calendarState;
     store.eventState = save.eventState ? { ...save.eventState, open: false, message: '' } : store.eventState;
+    store.newsDriverState = save.newsDriverState
+      ? { ...(store.newsDriverState || {}), ...save.newsDriverState, open: false, message: '' }
+      : (store.newsDriverState || window.GameModules.newsDriverSystem?.defaultState?.() || {});
     store.factionState = save.factionState
       ? { ...save.factionState, open: false, detailOpen: false, generating: false, archives: save.factionState.archives || save.factionArchives || {} }
       : store.factionState;
@@ -179,5 +182,4 @@ window.GameModules.domain.storage.restoreStateHelpers = {
     store.controlExperienceConfigState.previewItems = window.GameModules.controlExperienceConfigApp?.controlExperiencePreviewItems?.(store.controlExperienceConfigState) || [];
   },
 };
-
 

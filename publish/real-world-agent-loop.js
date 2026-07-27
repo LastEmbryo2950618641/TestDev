@@ -794,7 +794,7 @@ window.GameModules.realWorldAgentLoop = {
     const participants = this.mergeNarrationParticipants(this.stageParticipants(effectiveSceneLayers, loaded, store), narration, store, sceneAnchor.data);
     try {
       this.markConfiguredStep(store, logId, `${config.label}正文已完成，正在串行结算…`, config, { keepNarration: true });
-      this.patchConfiguredSettlementThinking(store, logId, '正文已完成，正在串行结算（Stage4 状态结算 → Stage5–7 外观 → Stage8 势力更新 → Stage10 经验结算；地图周围解锁为 Stage9）。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
+      this.patchConfiguredSettlementThinking(store, logId, '正文已完成，正在串行结算（Stage4 状态结算 → Stage5–7 外观 → Stage8 势力更新 → Stage10 经验结算 → Stage11 新闻热榜；地图周围解锁为 Stage9）。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
       let stage4Updates;
       try {
         const settled = await this.completeConfiguredSettlementKvWindow({ store, action, base, loaded, skills, materialSession, narration, trace, participants, logId, config });
@@ -864,8 +864,29 @@ window.GameModules.realWorldAgentLoop = {
           };
         }
       }
+      const stageNews = window.GameModules.inferenceNewsDriverStageUpdate;
+      let newsOps = [];
+      if (stageNews?.runAfterSettlement) {
+        const newsResult = await stageNews.runAfterSettlement({
+          store,
+          action,
+          narration,
+          updates,
+          participants,
+          logId,
+          config,
+          loop: this,
+        });
+        newsOps = Array.isArray(newsResult?.ops) ? newsResult.ops : [];
+        if (newsResult?.lines?.length) {
+          updates = {
+            ...updates,
+            characterCardChanges: [...(updates.characterCardChanges || []), ...newsResult.lines],
+          };
+        }
+      }
       this.patchConfiguredSettlementThinking(store, logId, '结算完成，正在写入本回合状态与日志。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
-      settlementPrompt = 'Stage4 状态结算 → Stage5–7 外观 → Stage8 势力更新 → Stage10 经验结算（生命层次+习得；Stage9 地图周围解锁在落库后）';
+      settlementPrompt = 'Stage4 状态结算 → Stage5–7 外观 → Stage8 势力更新 → Stage10 经验结算 → Stage11 新闻热榜（Stage9 地图周围解锁在落库后）';
       settlementRaw = JSON.stringify({
         settlement: updates,
         stage5Gate: stage5Result.gate || null,
@@ -873,6 +894,7 @@ window.GameModules.realWorldAgentLoop = {
         factionOps,
         lifeEnergyGains,
         learnedGains,
+        newsOps,
       });
     } catch (err) {
       console.warn(`${config.label}串行结算失败，保留已生成正文并使用最小结算:`, err.message);
@@ -1330,13 +1352,14 @@ window.GameModules.realWorldAgentLoop = {
     const actionText = this.actionText(action, config.mode === 'story' ? '继续推进操控剧情' : '继续观察现实世界');
     const layers = effectiveSceneLayers || this.resolveEffectiveSceneLayers(trace, store, config);
     const eventNarrationContext = store.eventNarrationPromptContext?.(actionText) || '';
+    const newsNarrationContext = store.newsNarrationPromptContext?.(actionText) || '';
     const anchorContext = config.ctx.buildSceneAnchorContext?.({ store, action: actionText, loaded, trace, effectiveSceneLayers: layers, materialSession, config }) || [
       `模式：${config.label}`,
       `本次行动：${actionText}`,
       `参与者边界：\n${this.sceneLayerSummary(layers, store, config)}`,
     ].join('\n');
     const controlPerspectiveContext = this.configuredControlPerspectiveRule(store, config);
-    const anchorContextWithEvents = [anchorContext, eventNarrationContext, controlPerspectiveContext].filter(Boolean).join('\n');
+    const anchorContextWithEvents = [anchorContext, eventNarrationContext, newsNarrationContext, controlPerspectiveContext].filter(Boolean).join('\n');
     const body = await this.renderPrompt('inference-stage2-scene-anchor', {
       模式标签: config.label,
       本次行动: actionText,
@@ -1501,6 +1524,7 @@ window.GameModules.realWorldAgentLoop = {
     const loadedText = config.ctx.loadedNarrationSummary?.(loaded) || config.ctx.buildLoadedText(loaded) || '无';
     const writingStyle = store.selectedWritingStylePrompt?.() || store.writingStylePrompt?.() || '正文采用小说文风，重视画面、动作、感官和心理反应，避免复述玩家指令。';
     const eventNarrationContext = store.eventNarrationPromptContext?.(actionText) || '';
+    const newsNarrationContext = store.newsNarrationPromptContext?.(actionText) || '';
     const controlPerspectiveRule = this.configuredControlPerspectiveRule(store, config);
     const modeRule = config.mode === 'story'
       ? `推演自由度：${this.storyFreedomRule(store)}\n玩家不是角色本人，而是操控/影响被操控者行动的存在；正文必须写出本次行动的动作过程、环境变化、其他人物反应、被操控者身体与心理张力、直接结果。`
@@ -1528,7 +1552,7 @@ window.GameModules.realWorldAgentLoop = {
     return this.renderPrompt('inference-stage3-narration', {
       模式标签: config.label,
       本次行动: actionText,
-      基础上下文: [this.continuityFallbackRule(), `小说笔风：${writingStyle}`, modeRule, controlPerspectiveRule, narrationRules, completenessRules, eventNarrationContext, narrationContext].filter(Boolean).join('\n'),
+      基础上下文: [this.continuityFallbackRule(), `小说笔风：${writingStyle}`, modeRule, controlPerspectiveRule, narrationRules, completenessRules, eventNarrationContext, newsNarrationContext, narrationContext].filter(Boolean).join('\n'),
       场景锚定报告: sceneAnchorReport || '无',
       已动态载入资料: loadedText || '无',
       出场角色标签清单: roleTagGuide,

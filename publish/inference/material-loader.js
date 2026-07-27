@@ -136,6 +136,7 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
     if (String(skill || '').startsWith('realworld.property.')) return 1800;
     if (skill === 'memory.query') return 1600;
     if (skill === 'realworld.history.query') return 1800;
+    if (skill === 'news.query') return 1800;
     if (skill === 'company.query') return 1400;
     if (skill === 'faction.query') return 1600;
     if (skill === 'worklore.query') return 1800;
@@ -145,7 +146,7 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
 
 
   unsupportedMaterialText(skill = '', method = '') {
-    const allowed = ['company.query', 'faction.query', 'realworld.location.query', 'realworld.history.query', 'memory.query', 'character.query', 'past.event.query', 'lexicon.query', 'item.query', 'wechat.query', 'worklore.query'];
+    const allowed = ['company.query', 'faction.query', 'realworld.location.query', 'realworld.history.query', 'news.query', 'memory.query', 'character.query', 'past.event.query', 'lexicon.query', 'item.query', 'wechat.query', 'worklore.query'];
     return [
       `资料请求未执行：${skill || '未知 skill'}.${method || '未知 method'} 不是当前资料阶段可用 skill。`,
       `可用 skill：${allowed.join('、')}。`,
@@ -174,6 +175,7 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
       if (typeof realContext?.history === 'function') return realContext.history(store, method, params);
       return '现实历史查询模块未加载。';
     }
+    if (skill === 'news.query') return this.news(store, method, params, action);
     if (skill === 'memory.query') return await this.memory(store, action, method, params);
     if (skill === 'character.query') return window.GameModules.characterQuery?.query?.(store, method, params) || '';
     if (skill === 'past.event.query') return window.GameModules.pastEventQuery?.query?.(store, method, { question: action, ...params }) || '';
@@ -188,6 +190,16 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
     if (skill === 'wechat.query') return window.GameModules.realWorldAgentWechat?.wechat?.(store, method, params) || '';
     if (skill === 'worklore.query') return await window.GameModules.workLoreQuery?.dispatch?.(store, action, method, params) || '';
     return this.unsupportedMaterialText(skill, method);
+  },
+
+
+  news(store, method, params = {}, action = '') {
+    if (method !== 'getLatestHotlist') return `新闻查询不支持的方法：${method || '未知'}`;
+    store?.initNewsDriver?.();
+    const text = store?.newsNarrationPromptContext?.(action)
+      || window.GameModules.newsDriverSystem?.formatPromptContext?.(store?.newsDriverState || {}, { action, limit: 18 })
+      || '';
+    return text || '暂无新闻热榜资料。';
   },
 
 

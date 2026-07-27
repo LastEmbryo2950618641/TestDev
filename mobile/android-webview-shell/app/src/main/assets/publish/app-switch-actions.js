@@ -1,7 +1,14 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.appSwitchActions = {
-  setDesktopPage(page) { this.desktopPage = Math.max(0, Math.min(2, Number(page) || 0)); },
+  desktopPageCount() {
+    const count = document.querySelectorAll?.('.desktop-pages .desktop-apps')?.length || 0;
+    return Math.max(1, count || 2);
+  },
+  setDesktopPage(page) {
+    const maxPage = Math.max(0, this.desktopPageCount() - 1);
+    this.desktopPage = Math.max(0, Math.min(maxPage, Number(page) || 0));
+  },
   startDesktopSwipe(event) { this.desktopSwipeStart = { x: event.clientX, y: event.clientY }; },
   cancelDesktopSwipe() { this.desktopSwipeStart = null; },
   endDesktopSwipe(event) {
@@ -24,6 +31,7 @@ window.GameModules.appSwitchActions = {
     this.controlSelectOpen = false;
     this.controlLinkMenuId = '';
     if (this.eventState) this.eventState.open = false;
+    if (this.newsDriverState) this.newsDriverState.open = false;
     if (this.settingsState) this.settingsState.open = false;
     if (this.systemTestState) this.systemTestState.open = false;
     if (this.controlExperienceConfigState) Object.assign(this.controlExperienceConfigState, { open: false, message: '', error: '' });
@@ -71,6 +79,27 @@ window.GameModules.appSwitchActions = {
     void (this.ensureDesktopModulesReady?.({ showOverlay: true }) || Promise.resolve())
       .then(open)
       .catch((err) => console.warn('[桌面] 打开事件APP失败:', err?.message || err));
+  },
+
+  async openNewsApp() {
+    await window.GameModules.assetLoader?.ensureChunks?.(['apps'], this);
+    window.GameModules.remergeGameStore?.();
+    const actions = window.GameModules.newsDriverActions;
+    if (typeof actions?.openNewsApp === 'function') {
+      Object.assign(this, actions);
+      return actions.openNewsApp.call(this);
+    }
+    this.closeDesktopApps?.();
+    this.newsDriverState = this.newsDriverState || window.GameModules.newsDriverSystem?.defaultState?.() || { open: false };
+    this.newsDriverState.open = true;
+    this.desktopUnlocked = true;
+    this.save?.();
+    return undefined;
+  },
+
+  closeNewsApp() {
+    if (this.newsDriverState) this.newsDriverState.open = false;
+    this.closeAppToDesktop?.();
   },
 
   openSaveApp() {
