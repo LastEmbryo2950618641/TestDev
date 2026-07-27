@@ -142,6 +142,18 @@ test('partFieldComplete only checks membership and certificate structure', () =>
   assert.strictEqual(tool.partFieldComplete(1, 'certificates', [], [], {}), true);
 });
 
+test('all role card parts receive shared completeness rules', () => {
+  const tool = createContext().window.GameModules.characterProfile;
+  const wrapped = tool.partPromptWithTemplate('PART3 原始提示', { skills: [] }, 3);
+
+  assert.ok(wrapped.includes('有事实或背景依据时必须完整生成'));
+  assert.ok(wrapped.includes('完全没有事实或背景依据时才允许为空'));
+  assert.ok(wrapped.includes('不得使用“某公司”“未知学校”“相关机构”'));
+  assert.ok(wrapped.includes('输出前逐项自检'));
+  assert.ok(wrapped.includes('PART3 原始提示'));
+  assert.ok(wrapped.includes('"skills"'));
+});
+
 (async () => {
   for (const item of tests) {
     await item.fn();
