@@ -9,8 +9,16 @@ function readText(file) {
   return fs.readFileSync(file, 'utf8');
 }
 
+function comparableGeneratedText(content) {
+  return String(content || '')
+    .replace(/\r\n?/gu, '\n')
+    .replace(/\\r\\n/gu, '\\n');
+}
+
 function writeText(file, content) {
-  fs.writeFileSync(file, `${content.replace(/\s*$/, '')}\n`, 'utf8');
+  const next = `${content.replace(/\s*$/, '')}\n`;
+  if (fs.existsSync(file) && comparableGeneratedText(readText(file)) === comparableGeneratedText(next)) return;
+  fs.writeFileSync(file, next, 'utf8');
 }
 
 function readJson(file) {

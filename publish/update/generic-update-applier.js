@@ -209,7 +209,7 @@ Object.assign(window.GameModules.updateRegistry, {
     const part = String(raw.part || raw.slot || '').trim();
     const slot = String(raw.slot || '').trim();
     if (/^(?:全身|整体|整身|全体|全套|全身衣物|全身穿着|整体穿着)$/u.test(part)) return 'outerwear';
-    if (['bra', 'top', 'outerwear', 'bottom', 'legwear', 'shoes', 'panties', '楗板搧'].includes(slot)) return slot;
+    if (['bra', 'top', 'outerwear', 'bottom', 'legwear', 'shoes', 'panties', '饰品'].includes(slot)) return slot;
     if (/胸部|胸口|乳房|胸罩|内衣/u.test(part)) return 'bra';
     if (/上身|上衣|衬衫|睡衣/u.test(part)) return 'top';
     if (/外套|罩衫|连衣裙|睡袍|裙装/u.test(part)) return 'outerwear';
@@ -217,8 +217,8 @@ Object.assign(window.GameModules.updateRegistry, {
     if (/腿部|大腿|丝袜|裤袜|袜裤/u.test(part)) return 'legwear';
     if (/足部|脚部|鞋|靴/u.test(part)) return 'shoes';
     if (/内裤|底裤/u.test(part)) return 'panties';
-    if (/楗板搧|棣栭グ|閰嶉グ/u.test(part)) return '楗板搧';
-    return slot || '楗板搧';
+    if (/饰品|首饰|配饰/u.test(part)) return '饰品';
+    return slot || '饰品';
   },
 
   applyWearingStateUpdate(store, update = {}) {
@@ -231,9 +231,9 @@ Object.assign(window.GameModules.updateRegistry, {
     else if (raw && typeof raw === 'object') {
       const slot = this.normalizeWearingSlot(raw);
       next = raw.fullBody
-        ? current.filter((item) => String(item?.slot || '').trim() === '楗板搧')
+        ? current.filter((item) => /^饰品\d*$/u.test(String(item?.slot || '').trim()))
         : current.slice();
-      const index = next.findIndex((item) => String(item?.slot || '').trim() === slot && (slot !== '楗板搧' || String(item?.name || '').trim() === String(raw.name || '').trim()));
+      const index = next.findIndex((item) => String(item?.slot || '').trim() === slot && (slot !== '饰品' || String(item?.name || '').trim() === String(raw.name || '').trim()));
       const item = { ...(index >= 0 ? next[index] : {}), ...raw, slot };
       if (index >= 0) next[index] = item;
       else next.push(item);
@@ -275,7 +275,7 @@ Object.assign(window.GameModules.updateRegistry, {
 
   normalizeScheduleAvailability(value = '') {
     const clean = String(value || '').trim();
-    return ['鍦ㄥ満', '鍦哄', '鏈煡', '鏆備笉鍙敤'].includes(clean) ? clean : '鏈煡';
+    return ['在场', '场外', '未知', '暂不可用'].includes(clean) ? clean : '未知';
   },
 
   systemRecordPayload(raw = {}) {
@@ -351,9 +351,9 @@ Object.assign(window.GameModules.updateRegistry, {
       characterId: id,
       characterName: current.characterName || subject.name || subject.characterName || id,
       availability: this.normalizeScheduleAvailability(patch.availability ?? current.availability),
-      confidence: '纭',
-      source: '缁撶畻浜嬩欢',
-      stability: '浜嬩欢閿佸畾',
+      confidence: '确认',
+      source: '结算事件',
+      stability: '事件锁定',
       updatedAt,
     };
     if (JSON.stringify(current) === JSON.stringify(next)) return false;

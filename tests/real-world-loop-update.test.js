@@ -62,14 +62,25 @@ function loadScript(context, relativePath) {
 }
 
 function loadCore(context) {
+  loadScript(context, 'publish/metrics.js');
   loadScript(context, 'publish/update/update-registry.js');
   loadScript(context, 'publish/update/generic-update-applier.js');
   loadScript(context, 'publish/update/sexual-experience-update.js');
   loadScript(context, 'publish/update/sexual-history-update.js');
   loadScript(context, 'publish/update/body-status-update.js');
   if (fs.existsSync(path.join(root, 'publish/update/wearing-state-update.js'))) loadScript(context, 'publish/update/wearing-state-update.js');
+  loadScript(context, 'publish/inference/agent-context-core.js');
+  loadScript(context, 'publish/inference/material-dedup.js');
+  loadScript(context, 'publish/inference/material-request-catalog.js');
+  loadScript(context, 'publish/inference/scene-boundary.js');
+  loadScript(context, 'publish/inference/material-loader.js');
   loadScript(context, 'publish/real-world-agent-context.js');
   loadScript(context, 'publish/real-world-agent-loop.js');
+}
+
+async function settlementPromptText(loop, args) {
+  const messages = await loop.buildSettlementTypeWindowMessages(args);
+  return messages.map((message) => String(message?.content || '')).join('\n');
 }
 
 function makeStore() {
@@ -571,8 +582,9 @@ test('Stage 1 real routing stops after two steps and carries query reasons into 
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
   const store = makeStore();
+  store.settingsState = { stage1MaterialIterationLimited: true, stage1MaterialMaxIterations: 2 };
   const config = loop.realConfig();
-  const stagePrompts = [];
+  const guidedSteps = [];
   let anchorPrompt = '';
   config.ctx = {
     buildLoadedText: () => '',
@@ -592,7 +604,6 @@ test('Stage 1 real routing stops after two steps and carries query reasons into 
   };
   context.window.GameModules.promptTemplates.render = async (id, vars) => {
     if (id === 'inference-stage1-guided-query') {
-      stagePrompts.push(vars.当前步骤);
       return `Stage1 ${vars.当前步骤}`;
     }
     if (id === 'inference-stage2-scene-anchor') {
@@ -602,19 +613,19 @@ test('Stage 1 real routing stops after two steps and carries query reasons into 
     if (id === 'inference-stage3-narration') return 'Stage3 prompt';
     return JSON.stringify(vars);
   };
-  const stageReplies = [1, 2].map((step) => `查询规划：第${step}步收集场景锚定理由
-资料状态：继续请求资料
-地点查询理由1：第${step}步地点理由
-因果查询理由1：第${step}步因果理由
-冲突查询理由1：第${step}步冲突理由
-强制出场：刘思琪（本次行动目标）
-高优先候选：无
-戏剧候选：无
-禁止出场：无
-随机事件候选：无
-随机事件闯入条件：无明确条件则禁止闯入
-资料请求：无
-资料请求结束：是`);
+  const stageReplies = [1, 2].map((step) => JSON.stringify({
+    plan: `第${step}步收集场景锚定理由`,
+    status: '继续请求资料',
+    sceneQueries: {
+      location: [`第${step}步地点理由`],
+      causality: [`第${step}步因果理由`],
+      conflict: [`第${step}步冲突理由`],
+    },
+    participants: { forced: ['刘思琪(待建卡)'], priority: [], drama: [], forbidden: [] },
+    randomEvents: [],
+    randomIntrusionCondition: '无明确条件则禁止闯入',
+    materialRequests: [],
+  }));
   const outputs = [
     ...stageReplies,
     `场景锚定报告：锚定刘思琪房间门口
@@ -631,12 +642,15 @@ test('Stage 1 real routing stops after two steps and carries query reasons into 
 当前场景影响对象：刘思琪、房门`,
     '你来到刘思琪房间门口，抬手轻敲房门。',
   ];
-  loop.completeConfiguredStep = async () => outputs.shift();
+  loop.completeConfiguredStep = async (_store, _prompt, _logId, _streamToUi, options = {}) => {
+    if (options.reasoningPhase === 'stage1') guidedSteps.push(options.guidedStep);
+    return outputs.shift();
+  };
   loop.completeConfiguredSettlementKvWindow = async () => ({ type: 'final', sceneTitle: '测试', locationName: '刘思琪房间门口', choices: ['观察', '交流', '等待', '离开'] });
 
   const out = await loop.runConfigured(store, '前往刘思琪房间', null, config);
 
-  assert.deepStrictEqual(stagePrompts, ['1/2', '2/2']);
+  assert.deepStrictEqual(guidedSteps, [1, 2]);
   assert.ok(anchorPrompt.includes('第1步地点理由'));
   assert.ok(anchorPrompt.includes('第2步地点理由'));
   assert.ok(anchorPrompt.includes('第1步因果理由'));
@@ -644,28 +658,20 @@ test('Stage 1 real routing stops after two steps and carries query reasons into 
   assert.ok(out.result.narration.includes('轻敲房门'));
 });
 
-test('Stage 1 follow-up prompt remains Chinese K:V and never asks for JSON', async () => {
+test('Stage 1 follow-up prompt keeps the JSON contract', async () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
-  const renderedIds = [];
-  context.window.GameModules.promptTemplates.render = async (id, vars) => {
-    renderedIds.push(id);
-    return id === 'inference-stage1-guided-query'
-      ? `Stage1模板\n查询规划：\n资料状态：\n输出要求：${vars.当前步骤输出要求}`
-      : `基础模板\n输出要求：${vars.当前步骤输出要求}`;
-  };
   const config = loop.realConfig();
   config.ctx = { buildLoadedText: () => '', limit: (text) => String(text || '') };
 
   const prompt = await loop.buildConfiguredPrompt({ store: makeStore(), action: '继续查询', base: '基础', loaded: [{ title: '角色卡', text: '刘思琪' }], skills: '', step: 2, config });
 
-  assert.ok(renderedIds.includes('inference-stage1-guided-query'));
-  assert.ok(prompt.includes('中文 K:V'));
-  assert.ok(prompt.includes('查询规划'));
-  assert.ok(prompt.includes('资料状态'));
-  assert.ok(!prompt.includes('只允许返回一个合法 JSON 对象'));
-  assert.ok(!prompt.includes('第一个字符必须是 {'));
+  const promptText = prompt.map((message) => message.content).join('\n');
+  assert.ok(promptText.includes('只输出一个紧凑 JSON 对象'));
+  assert.ok(promptText.includes('"plan"'));
+  assert.ok(promptText.includes('"status"'));
+  assert.ok(!promptText.includes('只输出中文 K:V'));
 });
 
 test('Stage 1 prompt passes known participant layers to random candidate provider', async () => {
@@ -734,11 +740,12 @@ test('buildConfiguredPrompt includes previous Stage1 planning summary for later 
     },
   });
 
-  assert.ok(prompt.includes('上一轮查询规划摘要：'));
-  assert.ok(prompt.includes('强制出场：刘思琪'));
-  assert.ok(prompt.includes('高优先候选：刘思瑶'));
-  assert.ok(prompt.includes('禁止出场：王主管'));
-  assert.ok(prompt.includes('随机主动事件：路人甲'));
+  const promptText = prompt.map((message) => message.content).join('\n');
+  assert.ok(promptText.includes('上一轮查询规划摘要'));
+  assert.ok(promptText.includes('强制出场：刘思琪'));
+  assert.ok(promptText.includes('高优先候选：刘思瑶'));
+  assert.ok(promptText.includes('禁止出场：王主管'));
+  assert.ok(promptText.includes('随机主动事件：路人甲'));
 });
 test('scheduleParticipantHints classifies same nearby offstage and unknown schedules', () => {
   const context = createContext();
@@ -962,7 +969,7 @@ test('scene anchor report prompt uses slim anchor context and current-scene impa
     config,
   });
 
-  ['场景锚定报告：', '当前地点：', '空间状态：', '正文写作重点：', '当前场景影响对象：', '刘思琪', '王主管'].forEach((good) => {
+  ['"sceneAnchorReport"', '"currentLocation"', '"spatialState"', '"writingFocus"', '"currentSceneImpactObjects"', '刘思琪', '王主管'].forEach((good) => {
     assert.ok(prompt.includes(good), `${good} missing from Stage2 prompt`);
   });
   ['elapsedSeconds', 'final.wechatActions', '结算对象', '类型完成', '更新N', '生日：', '具体地址：锦苑小区3栋2单元601号', '财富等级', '性经验次数', '父母去世原因', '需严格跟着世界线续写', '地点查询：', '因果查询：', '冲突查询：', '全部情绪值', '全部对玩家感觉值', '全部穿着槽', '全部物品', '全部技能', '全部核心属性数值', '全部身体状态细项', '结算边界：', 'character.query.searchCharacterProfile'].forEach((bad) => {
@@ -996,10 +1003,10 @@ test('resolveEffectiveSceneLayers supports multiple forced participants shared c
   const loop = context.window.GameModules.realWorldAgentLoop;
   const store = { ...makeStore(), playerName: '刘悠', playerProfile: { name: '刘悠' }, sharedControlState: () => ({ id: 'siqi', profile: { name: '刘思琪' } }) };
   const trace = [{
-    forcedParticipants: [{ name: '刘思琪', reason: '本次行动明确目标' }],
+    forcedParticipants: [{ id: 'siqi', name: '刘思琪', reason: '本次行动明确目标' }],
     priorityCandidates: [{ name: '刘思瑶', reason: '同住相邻' }],
     dramaCandidates: [{ name: '刘思瑶', reason: '重复层级，应被高优先覆盖' }, { name: '刘思怡', reason: '可能听见' }],
-    forbiddenParticipants: [{ name: '王主管', reason: '只能场外微信' }, { name: '刘悠', reason: '模型误判玩家不在场' }],
+    forbiddenParticipants: [{ name: '王主管', reason: '只能场外微信' }, { id: 'player-self', name: '刘悠', reason: '模型误判玩家不在场' }],
     randomActiveEvents: [
       { characterName: '刘思琪', eventType: 'background_only', motivation: '与强制冲突' },
       { characterName: '王主管', eventType: 'wechat', motivation: '与禁止冲突' },
@@ -1015,6 +1022,22 @@ test('resolveEffectiveSceneLayers supports multiple forced participants shared c
   assert.strictEqual(JSON.stringify(layers.dramaCandidates.map((item) => item.name)), JSON.stringify(['刘思怡']));
   assert.strictEqual(JSON.stringify(layers.forbiddenParticipants.map((item) => item.name)), JSON.stringify(['王主管']));
   assert.strictEqual(JSON.stringify(layers.randomActiveEvents.map((item) => item.characterName)), JSON.stringify(['路人甲']));
+});
+
+test('dedupeParticipants keeps distinct pending participants and prefers the real identity for the same name', () => {
+  const context = createContext();
+  loadCore(context);
+  const loop = context.window.GameModules.realWorldAgentLoop;
+
+  const result = loop.dedupeParticipants([
+    { id: '待建卡', name: '短发女生' },
+    { id: '待建卡', name: '戴眼镜男生' },
+    { id: 'real-short-hair', name: '短发女生' },
+  ]);
+
+  assert.strictEqual(result.length, 2);
+  assert.deepStrictEqual(Array.from(result, (item) => item.name), ['短发女生', '戴眼镜男生']);
+  assert.strictEqual(result.find((item) => item.name === '短发女生').id, 'real-short-hair');
 });
 
 
@@ -1259,11 +1282,21 @@ test('parseStep normalizes Chinese K:V participants into trace items', () => {
   assert.strictEqual(JSON.stringify(traced.droppedMaterialRequests), JSON.stringify([]));
 });
 
-test('parseStep rejects legacy JSON Stage1 payloads on strict Chinese K:V path', () => {
+test('parseStep accepts the current Stage1 JSON payload', () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
-  assert.throws(() => loop.parseStep('{"type":"request_context","participants":["刘思琪"],"requests":[]}', loop.realConfig()), /缺少中文 K:V 查询规划字段/u);
+  const data = loop.parseStep(JSON.stringify({
+    plan: '确认当前行动对象',
+    status: '继续请求资料',
+    sceneQueries: { location: ['确认刘思琪房间位置'], causality: [], conflict: [] },
+    participants: { forced: ['刘思琪(待建卡)'], priority: [], drama: [], forbidden: [] },
+    randomEvents: [],
+    randomIntrusionCondition: '无明确条件则禁止闯入',
+    materialRequests: [],
+  }), loop.realConfig());
+  assert.strictEqual(data.type, 'request_context');
+  assert.strictEqual(data.forcedParticipants[0].name, '刘思琪');
 });
 
 test('parseChineseKvBlock parses fixed Chinese keys and aliases with score', () => {
@@ -1358,7 +1391,7 @@ test('promptTemplates render expands double-brace markdown variables cleanly', a
   assert.ok(!out.includes('{{现有Update提示词摘要}}'));
 });
 
-test('colocated Stage K:V templates register inline and contain no old guided JSON protocol', () => {
+test('colocated Stage templates register inline and use the current Stage1 JSON protocol', () => {
   const context = createContext();
   loadScript(context, 'publish/prompt-templates.js');
   loadScript(context, 'publish/prompts/推演引擎/stage1-guided-query.js');
@@ -1377,8 +1410,10 @@ test('colocated Stage K:V templates register inline and contain no old guided JS
   ].join('\n');
   assert.ok(!guidedText.includes('资料收集阶段只能返回一个合法 JSON 对象'));
   assert.ok(!guidedText.includes('只允许输出 `request_context`'));
-  assert.ok(!guidedText.includes('第一个字符必须是 `{`'));
-  assert.ok(String(inline['inference-stage1-guided-query']).includes('只输出中文 K:V'));
+  const stage1 = String(inline['inference-stage1-guided-query']);
+  assert.ok(stage1.includes('只输出一个合法 JSON 对象'));
+  assert.ok(stage1.includes('"materialRequests"'));
+  assert.ok(stage1.includes('不得输出旧 K:V 字段'));
   const stage4 = String(inline['inference-stage4-settlement-window']);
   [
     '现有 Update 提示词摘要',
@@ -1400,13 +1435,12 @@ test('colocated Stage K:V templates register inline and contain no old guided JS
     '明确事实：可直接结算',
     '强暗示事实：可保守结算',
     '弱氛围暗示：不得结算',
-    '未完成类型必须从该类型标题开始完整重输',
-    '同一类型标题在本轮输出中只能出现一次',
-    '完成一个类型后必须继续下一个类型，不得回到已输出类型',
-    '不表示你可以逐个类型分多轮输出',
-    '只输出一个类型，系统会判定失败',
-    '必须输出块数量',
-    '必须输出块顺序',
+    '系统只会在下一轮要求补齐未完成 key',
+    '必须输出 key 数量',
+    '必须输出 key 顺序',
+    '顶层 key 必须且只能包含“本次必须返回的类型”列出的类型',
+    '非基础类型必须输出数组',
+    '角色卡完整性',
     '内部自检，不得输出',
   ].forEach((good) => {
     assert.ok(stage4.includes(good), `Stage4 runtime template should include ${good}`);
@@ -1439,7 +1473,7 @@ test('Stage4 settlement window prompt uses slim fact context without Update Init
     return { initUpdates: [{ type: 'INIT_SCHEMA_GUIDANCE_SHOULD_NOT_APPEAR' }] };
   };
 
-  const prompt = await loop.buildSettlementTypeWindowPrompt({
+  const prompt = await settlementPromptText(loop, {
     requestedTypes: ['情绪', '物品'],
     completedTypes: ['感觉'],
     incompleteTypes: ['物品'],
@@ -1479,10 +1513,10 @@ test('Stage4 settlement window prompt uses slim fact context without Update Init
     '弱氛围暗示：不得结算',
     '情绪结算规则',
     '物品结算规则',
-    '需从“物品结算{”开始整块重输',
-    '必须输出块数量',
-    '必须输出块顺序',
-    '情绪结算{ → 物品结算{',
+    '物品：上轮 JSON 缺失或字段未通过解析',
+    '必须输出 key 数量',
+    '必须输出 key 顺序',
+    '情绪 → 物品',
     '她侧身让路，手机屏幕亮起',
   ].forEach((good) => assert.ok(prompt.includes(good), `${good} missing from Stage4 prompt`));
 });
@@ -1500,7 +1534,7 @@ test('Stage4 settlement fact context includes current emotion and player-feeling
   };
   context.window.GameModules.promptTemplates.render = async (_id, vars) => JSON.stringify(vars);
 
-  const prompt = await loop.buildSettlementTypeWindowPrompt({
+  const prompt = await settlementPromptText(loop, {
     requestedTypes: ['情绪', '感觉'],
     completedTypes: [],
     incompleteTypes: [],
@@ -1518,20 +1552,20 @@ test('Stage4 settlement fact context includes current emotion and player-feeling
   assert.ok(prompt.includes('刘思琪：情绪：紧张=18、好奇=12'), 'current emotion values missing');
   assert.ok(prompt.includes('对玩家感觉基线'), 'player-feeling baseline missing from Stage4 prompt');
   assert.ok(prompt.includes('刘思琪：对玩家感觉：信任=35、警惕=45'), 'current player-feeling values missing');
-  assert.ok(prompt.includes('感觉只表示该角色对玩家的感觉'), 'feeling boundary missing');
-  assert.ok(prompt.includes('情绪指标只能使用当前情绪基线中已经存在的指标名：紧张、好奇'), 'emotion metric whitelist missing');
-  assert.ok(prompt.includes('感觉指标只能使用对玩家感觉基线中已经存在的指标名：信任、警惕'), 'feeling metric whitelist missing');
+  assert.ok(prompt.includes('感觉只表示出场角色对玩家的感觉'), 'feeling boundary missing');
+  assert.ok(prompt.includes('情绪指标只能使用上述情绪基线中已经存在的指标名：紧张、好奇'), 'emotion metric whitelist missing');
+  assert.ok(prompt.includes('感觉指标只能使用出场角色对玩家感觉基线中已经存在的指标名：信任、警惕'), 'feeling metric whitelist missing');
   assert.ok(prompt.includes('若稳定事实不对应上述已有指标名，必须写“无变化”，不得新造情绪/感觉指标'), 'new metric guard missing');
 });
 
-test('Stage4 prompt shows exact brace-only block examples', async () => {
+test('Stage4 prompt shows exact JSON examples for requested types', async () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
   const store = makeStore();
   context.window.GameModules.promptTemplates.render = async (_id, vars) => JSON.stringify(vars);
 
-  const prompt = await loop.buildSettlementTypeWindowPrompt({
+  const prompt = await settlementPromptText(loop, {
     requestedTypes: ['情绪', '感觉'],
     completedTypes: [],
     incompleteTypes: [],
@@ -1545,11 +1579,10 @@ test('Stage4 prompt shows exact brace-only block examples', async () => {
     config: loop.realConfig(),
   });
 
-  const rendered = JSON.parse(prompt);
-  assert.ok(rendered.类型合约.includes('严格块格式示例'), 'brace-only example section missing');
-  assert.ok(rendered.类型合约.includes('情绪结算{\n无变化\n}'), 'emotion brace example missing');
-  assert.ok(rendered.类型合约.includes('感觉结算{\n无变化\n}'), 'feeling brace example missing');
-  assert.ok(rendered.类型合约.includes('禁止写成“情绪结算：”或单独一行“情绪结算”'), 'legacy heading ban missing');
+  assert.ok(prompt.includes('本次窗口合法 JSON 示例'), 'JSON example section missing');
+  assert.ok(prompt.includes('"情绪":[]'), 'emotion JSON example missing');
+  assert.ok(prompt.includes('"感觉":[]'), 'feeling JSON example missing');
+  assert.ok(prompt.includes('顶层 key 必须且只能包含本次必须返回的类型'), 'top-level key boundary missing');
 });
 
 test('Stage4 base settlement prompt requires mandatory fields and forbids no-change base example', async () => {
@@ -1559,7 +1592,7 @@ test('Stage4 base settlement prompt requires mandatory fields and forbids no-cha
   const store = makeStore();
   context.window.GameModules.promptTemplates.render = async (_id, vars) => JSON.stringify(vars);
 
-  const prompt = await loop.buildSettlementTypeWindowPrompt({
+  const prompt = await settlementPromptText(loop, {
     requestedTypes: ['基础结算', '情绪', '感觉'],
     completedTypes: [],
     incompleteTypes: [],
@@ -1573,32 +1606,27 @@ test('Stage4 base settlement prompt requires mandatory fields and forbids no-cha
     config: loop.realConfig(),
   });
 
-  const rendered = JSON.parse(prompt);
-  const baseContract = rendered.类型合约.split('情绪结算{')[0];
+  const baseContract = prompt.split('情绪：数组')[0];
   [
-    '经过时间：秒数',
-    '当前状态：状态文本',
-    '当前目标：目标文本',
-    '场景标题：标题',
-    '地点名称：地点全称',
-    '备选行动1：行动文本',
-    '备选行动2：行动文本',
-    '备选行动3：行动文本',
-    '备选行动4：行动文本',
-    '基础结算禁止写“无变化”',
+    '经过时间',
+    '当前状态',
+    '当前目标',
+    '场景标题',
+    '地点名称',
+    '备选行动',
   ].forEach((required) => assert.ok(baseContract.includes(required), `${required} missing from base contract`));
-  assert.ok(!baseContract.includes('基础结算{\n无变化\n}'), 'base no-change example should not be advertised');
-  assert.ok(prompt.includes('基础结算即使没有稳定变化，也必须完整输出全部基础字段'), 'base no-change exemption missing');
+  assert.ok(!baseContract.includes('"基础结算":[]'), 'base must not use an empty array example');
+  assert.ok(prompt.includes('基础结算必须输出完整对象'), 'base object requirement missing');
 });
 
-test('Stage4 prompt uses dynamic minimum length based on requested type count', async () => {
+test('Stage4 prompt requires compact JSON without padding rules', async () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
   const store = makeStore();
   context.window.GameModules.promptTemplates.render = async (_id, vars) => JSON.stringify(vars);
 
-  const prompt = await loop.buildSettlementTypeWindowPrompt({
+  const prompt = await settlementPromptText(loop, {
     requestedTypes: ['基础结算', '情绪', '感觉'],
     completedTypes: [],
     incompleteTypes: [],
@@ -1612,9 +1640,9 @@ test('Stage4 prompt uses dynamic minimum length based on requested type count', 
     config: loop.realConfig(),
   });
 
-  const rendered = JSON.parse(prompt);
-  assert.strictEqual(rendered.最低输出字数, '1000');
-  assert.ok(rendered.输出长度规则.includes('不得用解释、总结、重复文本凑字数'), 'anti-padding length rule missing');
+  assert.ok(prompt.includes('只输出一个紧凑 JSON 对象'));
+  assert.ok(prompt.includes('不要为了凑长度创造更新'));
+  assert.ok(!prompt.includes('最低输出字数'));
 });
 
 test('parseSettlementKv rejects legacy colon headings even with completion markers', () => {
@@ -1677,7 +1705,7 @@ test('parseSettlementKv rejects legacy colon base heading even with completion m
   assert.deepStrictEqual(JSON.parse(JSON.stringify(parsed.incompleteTypes)), ['基础结算']);
 });
 
-test('Stage4 keeps complete settlement blocks from short partial output before retrying missing types', async () => {
+test('Stage4 keeps complete JSON keys before retrying missing types', async () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
@@ -1688,24 +1716,23 @@ test('Stage4 keeps complete settlement blocks from short partial output before r
   context.window.GameModules.promptTemplates.render = async (_id, vars) => JSON.stringify(vars);
   const rendered = [];
   const outputs = [
-    '情绪结算{\n无变化\n}',
-    '感觉结算{\n无变化\n}',
+    '{"情绪":[]}',
+    '{"感觉":[]}',
   ];
   loop.completeConfiguredStep = async (_store, prompt) => {
-    rendered.push(JSON.parse(prompt));
+    rendered.push(prompt.map((message) => String(message?.content || '')).join('\n'));
     return outputs.shift();
   };
 
   await loop.completeConfiguredSettlementKvWindow({ store, action: '行动', base: '基础', loaded: [], narration: '正文', trace: [], participants, config });
 
   assert.strictEqual(rendered.length, 2);
-  assert.strictEqual(rendered[1].本次必须返回的类型, '感觉');
-  assert.strictEqual(rendered[1].已完成类型, '情绪');
-  assert.ok(!rendered[1].类型合约.includes('情绪结算{'), 'completed short-block type should not be requested again');
-  assert.ok(rendered[1].未完成类型原因.includes('长度不足，但已验收完整块'), 'retry should explain accepted complete blocks');
+  assert.ok(rendered[1].includes('本次必须返回的类型：感觉'));
+  assert.ok(rendered[1].includes('已完成类型：情绪'));
+  assert.ok(!rendered[1].includes('情绪：数组'), 'completed JSON key should not be requested again');
 });
 
-test('Stage4 short partial output without complete blocks is discarded before retry', async () => {
+test('Stage4 malformed partial JSON is discarded before retry', async () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
@@ -1716,22 +1743,20 @@ test('Stage4 short partial output without complete blocks is discarded before re
   context.window.GameModules.promptTemplates.render = async (_id, vars) => JSON.stringify(vars);
   const rendered = [];
   const outputs = [
-    '情绪结算{\n结算状态：无变化',
-    '情绪结算{\n无变化\n}\n感觉结算{\n无变化\n}',
+    '{"情绪":[',
+    '{"情绪":[],"感觉":[]}',
   ];
   loop.completeConfiguredStep = async (_store, prompt) => {
-    rendered.push(JSON.parse(prompt));
+    rendered.push(prompt.map((message) => String(message?.content || '')).join('\n'));
     return outputs.shift();
   };
 
   await loop.completeConfiguredSettlementKvWindow({ store, action: '行动', base: '基础', loaded: [], narration: '正文', trace: [], participants, config });
 
   assert.strictEqual(rendered.length, 2);
-  assert.strictEqual(rendered[1].本次必须返回的类型, '情绪、感觉');
-  assert.strictEqual(rendered[1].已完成类型, '无');
-  assert.ok(rendered[1].类型合约.includes('情绪结算{'), 'discarded emotion contract should still be requested');
-  assert.ok(rendered[1].未完成类型原因.includes('整轮已丢弃'), 'retry should explain whole-attempt discard');
-  assert.strictEqual((rendered[1].未完成类型原因.match(/返回过短/gu) || []).length, 1);
+  assert.ok(rendered[1].includes('本次必须返回的类型：情绪、感觉'));
+  assert.ok(rendered[1].includes('已完成类型：无'));
+  assert.ok(rendered[1].includes('情绪：数组'), 'discarded emotion key should still be requested');
 });
 
 test('scene anchor accepts parse-degraded report without a second AI request', async () => {
@@ -1772,7 +1797,7 @@ test('parseSettlementKv accepts brace-delimited settlement blocks without type m
   assert.strictEqual(parsed.baseFields['当前状态'], '测试状态');
 });
 
-test('Stage4 treats brace block as complete when followed by next heading', async () => {
+test('Stage4 treats a complete multi-key JSON response as complete', async () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
@@ -1784,17 +1809,17 @@ test('Stage4 treats brace block as complete when followed by next heading', asyn
   context.window.GameModules.promptTemplates.render = async (_id, vars) => JSON.stringify(vars);
   const rendered = [];
   const outputs = [
-    '基础结算{\n经过时间：90\n当前状态：测试状态\n当前目标：测试目标\n场景标题：测试标题\n地点名称：测试地点\n备选行动1：一\n备选行动2：二\n备选行动3：三\n备选行动4：四\n}\n情绪结算{\n无变化\n}',
+    '{"基础结算":{"经过时间":90,"当前状态":"测试状态","当前目标":"测试目标","场景标题":"测试标题","地点名称":"测试地点","备选行动":["一","二","三","四"]},"情绪":[]}',
   ];
   loop.completeConfiguredStep = async (_store, prompt) => {
-    rendered.push(JSON.parse(prompt));
+    rendered.push(prompt.map((message) => String(message?.content || '')).join('\n'));
     return outputs.shift();
   };
 
   await loop.completeConfiguredSettlementKvWindow({ store, action: '行动', base: '基础', loaded: [], narration: '正文', trace: [], participants, config });
 
   assert.strictEqual(rendered.length, 1);
-  assert.strictEqual(rendered[0].本次必须返回的类型, '基础结算、情绪');
+  assert.ok(rendered[0].includes('本次必须返回的类型：基础结算、情绪'));
 });
 
 test('Stage4 keeps tail brace block incomplete without closing brace', () => {
@@ -1839,7 +1864,7 @@ test('Stage4 keeps tail block incomplete without settlement end marker or next h
   assert.deepStrictEqual(JSON.parse(JSON.stringify(parsed.incompleteTypes)), ['基础结算']);
 });
 
-test('Stage4 completed base settlement is removed from retry prompt when later type is incomplete', async () => {
+test('Stage4 completed base JSON key is removed from retry prompt when later type is missing', async () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
@@ -1850,24 +1875,21 @@ test('Stage4 completed base settlement is removed from retry prompt when later t
   loop.settlementTypeQueue = () => ['基础结算', '情绪'];
   context.window.GameModules.promptTemplates.render = async (_id, vars) => JSON.stringify(vars);
   const rendered = [];
-  const longEvidence = '正文确认她紧张'.repeat(150);
   const outputs = [
-    `基础结算{\n经过时间：90\n当前状态：测试状态\n当前目标：测试目标\n场景标题：测试标题\n地点名称：测试地点\n备选行动1：一\n备选行动2：二\n备选行动3：三\n备选行动4：四\n}\n情绪结算{\n更新1：刘思琪，紧张，+2，${longEvidence}`,
-    '情绪结算{\n无变化\n}',
+    '{"基础结算":{"经过时间":90,"当前状态":"测试状态","当前目标":"测试目标","场景标题":"测试标题","地点名称":"测试地点","备选行动":["一","二","三","四"]}}',
+    '{"情绪":[]}',
   ];
   loop.completeConfiguredStep = async (_store, prompt) => {
-    rendered.push(JSON.parse(prompt));
+    rendered.push(prompt.map((message) => String(message?.content || '')).join('\n'));
     return outputs.shift();
   };
 
   await loop.completeConfiguredSettlementKvWindow({ store, action: '行动', base: '基础', loaded: [], narration: '正文', trace: [], participants, config });
 
   assert.strictEqual(rendered.length, 2);
-  assert.strictEqual(rendered[1].本次必须返回的类型, '情绪');
-  assert.strictEqual(rendered[1].已完成类型, '基础结算');
-  assert.ok(!rendered[1].类型短规则.includes('备选行动1'), 'completed base short rule should be absent');
-  assert.ok(!rendered[1].类型合约.includes('基础结算{'), 'completed base contract should be absent');
-  assert.ok(!rendered[1].未完成类型原因.includes('基础结算'), 'completed base retry reason should be absent');
+  assert.ok(rendered[1].includes('本次必须返回的类型：情绪'));
+  assert.ok(rendered[1].includes('已完成类型：基础结算'));
+  assert.ok(!rendered[1].includes('基础结算：对象'), 'completed base contract should be absent');
 });
 
 test('Stage4 settlement window requests all unfinished types together on first attempt', async () => {
@@ -1881,20 +1903,20 @@ test('Stage4 settlement window requests all unfinished types together on first a
   context.window.GameModules.promptTemplates.render = async (_id, vars) => JSON.stringify(vars);
   const rendered = [];
   loop.completeConfiguredStep = async (_store, prompt) => {
-    rendered.push(JSON.parse(prompt));
-    return '基础结算{\n经过时间：90\n当前状态：测试状态\n当前目标：测试目标\n场景标题：测试标题\n地点名称：测试地点\n备选行动1：一\n备选行动2：二\n备选行动3：三\n备选行动4：四\n}\n情绪结算{\n无变化\n}\n感觉结算{\n无变化\n}';
+    rendered.push(prompt.map((message) => String(message?.content || '')).join('\n'));
+    return '{"基础结算":{"经过时间":90,"当前状态":"测试状态","当前目标":"测试目标","场景标题":"测试标题","地点名称":"测试地点","备选行动":["一","二","三","四"]},"情绪":[],"感觉":[]}';
   };
 
   await loop.completeConfiguredSettlementKvWindow({ store, action: '行动', base: '基础', loaded: [], narration: '正文', trace: [], participants, config });
 
   assert.strictEqual(rendered.length, 1);
-  assert.strictEqual(rendered[0].本次必须返回的类型, '基础结算、情绪、感觉');
-  assert.ok(rendered[0].类型合约.includes('基础结算{'));
-  assert.ok(rendered[0].类型合约.includes('情绪结算{'));
-  assert.ok(rendered[0].类型合约.includes('感觉结算{'));
+  assert.ok(rendered[0].includes('本次必须返回的类型：基础结算、情绪、感觉'));
+  assert.ok(rendered[0].includes('基础结算：对象'));
+  assert.ok(rendered[0].includes('情绪：数组'));
+  assert.ok(rendered[0].includes('感觉：数组'));
 });
 
-test('Stage4 settlement window awaits rendered prompt on real call chain', async () => {
+test('Stage4 settlement window passes structured messages on real call chain', async () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
@@ -1902,18 +1924,18 @@ test('Stage4 settlement window awaits rendered prompt on real call chain', async
   const config = loop.realConfig();
   const participants = [{ type: 'player', id: 'player-self', name: '玩家', role: 'actor' }];
   loop.settlementTypeQueue = () => ['基础结算'];
-  context.window.GameModules.promptTemplates.render = async () => '渲染完成提示';
   let receivedPrompt = null;
   loop.completeConfiguredStep = async (_store, prompt) => {
     receivedPrompt = prompt;
-    assert.strictEqual(typeof prompt, 'string');
-    assert.ok(prompt.includes('渲染完成提示'));
-    return '基础结算{\n经过时间：90\n当前状态：测试状态\n当前目标：测试目标\n场景标题：测试标题\n地点名称：测试地点\n备选行动1：一\n备选行动2：二\n备选行动3：三\n备选行动4：四\n}';
+    assert.ok(Array.isArray(prompt));
+    assert.strictEqual(JSON.stringify(prompt.map((message) => message.role)), JSON.stringify(['user', 'assistant', 'user']));
+    assert.ok(prompt[2].content.includes('本次必须返回的类型：基础结算'));
+    return '{"基础结算":{"经过时间":90,"当前状态":"测试状态","当前目标":"测试目标","场景标题":"测试标题","地点名称":"测试地点","备选行动":["一","二","三","四"]}}';
   };
 
   const out = await loop.completeConfiguredSettlementKvWindow({ store, action: '行动', base: '基础', loaded: [], narration: '正文', trace: [], participants, config });
 
-  assert.strictEqual(receivedPrompt, '渲染完成提示');
+  assert.ok(Array.isArray(receivedPrompt));
   assert.strictEqual(out.elapsedSeconds, 90);
 });
 
@@ -1928,25 +1950,20 @@ test('Stage4 sliding window retries only the incomplete type without raw polluti
   loop.settlementTypeQueue = () => ['情绪', '感觉'];
   context.window.GameModules.promptTemplates.render = async (_id, vars) => JSON.stringify(vars);
   const rendered = [];
-  const longEvidence = '正文确认她紧张'.repeat(150);
   const outputs = [
-    `情绪结算{\n更新1：刘思琪，紧张，+2，${longEvidence}\n}\n感觉结算{\n更新1：刘思琪，警惕，+1`,
-    '感觉结算{\n更新1：刘思琪，信任，+2，正文确认她放松\n}',
+    '{"情绪":[{"subject":"刘思琪","field":"紧张","value":"+2","status":"略显紧张","reason":"正文确认她紧张"}]}',
+    '{"感觉":[{"subject":"刘思琪","field":"信任","value":"+2","status":"稍微信任","reason":"正文确认她放松"}]}',
   ];
   loop.completeConfiguredStep = async (_store, prompt) => {
-    rendered.push(JSON.parse(prompt));
+    rendered.push(prompt.map((message) => String(message?.content || '')).join('\n'));
     return outputs.shift();
   };
 
   const out = await loop.completeConfiguredSettlementKvWindow({ store, action: '行动', base: '基础', loaded: [], narration: '正文', trace: [], participants, config });
 
-  assert.strictEqual(JSON.stringify(rendered[1].本次必须返回的类型), JSON.stringify('感觉'));
-  assert.strictEqual(rendered[1].未完成类型, '感觉');
-  assert.ok(rendered[1].未完成类型原因.includes('感觉：'));
-  assert.ok(rendered[1].未完成类型原因.includes('需从“感觉结算{”开始整块重输'));
-  assert.ok(!rendered[1].未完成类型原因.includes('更新1：感觉，警惕，+1'));
-  assert.ok(!rendered[1].未完成类型原因.includes(longEvidence));
-  assert.ok(!rendered[1].未完成类型原因.includes('情绪：'));
+  assert.ok(rendered[1].includes('本次必须返回的类型：感觉'));
+  assert.ok(rendered[1].includes('未完成类型：感觉'));
+  assert.ok(!rendered[1].includes('正文确认她紧张'));
   assert.strictEqual(out.genericUpdates.length, 2);
 });
 
@@ -1972,13 +1989,13 @@ test('stageParticipants promotes character entries that match existing role card
   ]));
 });
 
-test('stageParticipants promotes character entries found by sqliteSave name lookup', () => {
+test('stageParticipants promotes character entries found by character state store name lookup', () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
   const store = { ...makeStore(), rpgStates: {}, itemSkillState: () => null };
-  store.sqliteSave = {
-    getCharacterStateByName(name) {
+  context.window.GameModules.characterStateStore = {
+    getByName(name) {
       return name === '刘思琪' ? store.__npc : null;
     },
   };
@@ -2268,8 +2285,9 @@ test('auto-loaded character cards carry structured participants for Stage 3', as
   const store = makeStore();
   const out = await context.window.GameModules.realWorldAgentContext.autoLoadForStep(store, '我前往妹妹刘思琪的房间', new Set(), null, null, new Set(), 1, [], []);
 
-  assert.strictEqual(out.length, 1);
-  assert.strictEqual(JSON.stringify(out[0].participants), JSON.stringify([{ type: 'character', id: 'rushiqi', name: '刘思琪', role: 'loaded-role-card' }]));
+  const roleLoads = out.filter((item) => Array.isArray(item?.participants) && item.participants.length);
+  assert.strictEqual(roleLoads.length, 1);
+  assert.strictEqual(JSON.stringify(roleLoads[0].participants), JSON.stringify([{ type: 'character', id: 'rushiqi', name: '刘思琪', role: 'loaded-role-card' }]));
 });
 
 test('harness loads core modules', () => {
@@ -2297,9 +2315,8 @@ test('legacy Stage3 JSON settlement methods are removed from inference loop', ()
 
 test('sexual-experience prompt clarifies per-target participant rules', () => {
   const context = createContext();
-  loadScript(context, 'publish/update/update-registry.js');
   loadScript(context, 'publish/prompts/推演引擎/update/sexual-experience-update-prompt.js');
-  const body = context.window.GameModules.updateRegistry.prompts['sexual-experience-update'];
+  const body = context.window.GameModules.promptTemplates.inline['inference-update-sexual-experience'];
   assert.ok(body.includes('结算对象永远表示这条性经历记录写入谁的角色卡。'));
   assert.ok(body.includes('同一亲密/性事件若玩家与角色双方都参与，则玩家一条，对方角色一条。'));
   assert.ok(body.includes('多人参与时，每个 Stage1 参与者清单和 Stage2 正文明确确认参与的人各自一条。'));
@@ -2311,10 +2328,9 @@ test('sexual-experience prompt clarifies per-target participant rules', () => {
 
 test('sexual-experience prompt stays abstract and non-process', () => {
   const context = createContext();
-  loadScript(context, 'publish/update/update-registry.js');
   loadScript(context, 'publish/prompts/推演引擎/update/sexual-experience-update-prompt.js');
-  const body = context.window.GameModules.updateRegistry.prompts['sexual-experience-update'];
-  assert.ok(body.includes('只记录总数与分类次数，不记录过程'));
+  const body = context.window.GameModules.promptTemplates.inline['inference-update-sexual-experience'];
+  assert.ok(body.includes('只记录分类次数，不记录过程'));
   assert.ok(!body.includes('露骨'));
   assert.ok(!body.includes('对未成年'));
   assert.ok(!body.includes('详述'));
@@ -2384,7 +2400,8 @@ test('settlementTypeQueue includes character schedule after map settlement', () 
 
   assert.ok(queue.includes('人事安排'));
   assert.ok(queue.indexOf('人事安排') > queue.indexOf('地图'));
-  assert.ok(queue.indexOf('人事安排') < queue.indexOf('势力总览'));
+  assert.ok(queue.indexOf('人事安排') < queue.indexOf('政体状态'));
+  assert.ok(!queue.includes('势力总览'));
 });
 
 test('parseSettlementKv parses character schedule updates', () => {
@@ -2552,28 +2569,27 @@ test('parseSettlementKv keeps malformed special update incomplete instead of gen
   assert.strictEqual(JSON.stringify(parsed.incompleteTypes), JSON.stringify(['关系']));
 });
 
-test('parseSettlementKv handles sexual history relationship and role-card special formats', () => {
+test('parseSettlementJson handles sexual history relationship and role-card special formats', () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
   const store = makeStore();
   const participants = [{ type: 'character', id: 'rushiqi', name: '刘思琪', role: 'forced' }];
-  const parsed = loop.parseSettlementKv(`性历史结算{
-结算对象：刘思琪｜角色｜允许结算
-更新1：性历史，亲密身份状态变化，刘悠，正文明确确认关系进入新的稳定亲密阶段
-}
-关系结算{
-结算对象：刘思琪｜角色｜允许结算
-更新1：关系，刘悠(兄)，刘思琪(妹妹)，信任边界，轻微受损，动作越过舒适距离，关系短暂紧张
-}
-角色卡结算{
-结算对象：刘思琪｜角色｜允许结算
-更新1：角色卡，性格，增加，边界感更强，面对越界动作紧张防备，偏向退缩
-}`, { requestedTypes: ['性历史', '关系', '角色卡'], participants, store, config: loop.realConfig() });
+  const parsed = loop.parseSettlementJson(JSON.stringify({
+    性历史: [{ subject: '刘思琪', transition: '亲密身份状态变化', partner: '刘悠', evidence: '正文明确确认关系进入新的稳定亲密阶段' }],
+    关系: [{ subject: '刘思琪', left: '刘悠(兄)', right: '刘思琪(妹妹)', dimension: '信任边界', status: '轻微受损', reason: '动作越过舒适距离', result: '关系短暂紧张' }],
+    角色卡: [{
+      subject: { id: 'rushiqi', name: '刘思琪' },
+      field: 'personality',
+      op: 'set',
+      value: '边界感更强，面对越界动作紧张防备，偏向退缩',
+      reason: '正文确认其稳定性格表现',
+    }],
+  }), { requestedTypes: ['性历史', '关系', '角色卡'], participants, store, config: loop.realConfig() });
   assert.strictEqual(JSON.stringify(parsed.completeTypes), JSON.stringify(['性历史', '关系', '角色卡']));
   assert.ok(parsed.genericUpdates.some((item) => item.updateType === 'sexual-history'));
   assert.ok(parsed.genericUpdates.some((item) => item.updateType === 'relationship'));
-  assert.ok(parsed.genericUpdates.some((item) => item.updateType === 'role-card'));
+  assert.ok(parsed.genericUpdates.some((item) => item.updateType === 'role-card-operation'));
 });
 
 test('wearing-state update writes values and mirrors profile wearing', async () => {
@@ -2592,6 +2608,29 @@ test('wearing-state update writes values and mirrors profile wearing', async () 
   assert.strictEqual(store.__npc.values.wearing[0].state, '仍穿着但被推开，胸部外露');
   assert.strictEqual(store.__npc.profile.wearingItems[0].state, '仍穿着但被推开，胸部外露');
   assert.strictEqual(store.__npc.profile.wearing[0].state, '仍穿着但被推开，胸部外露');
+});
+
+test('full-body wearing update preserves numbered accessory slots', async () => {
+  const context = createContext();
+  loadCore(context);
+  const store = makeStore();
+  store.__npc.values.wearing = [
+    { slot: '饰品1', name: '项链', state: '佩戴中' },
+    { slot: '饰品2', name: '戒指', state: '佩戴中' },
+    { slot: 'top', name: '衬衫', state: '穿着中' },
+  ];
+
+  await context.window.GameModules.updateRegistry.applyGeneric(store, [{
+    updateType: 'wearing-state',
+    subject: { type: 'character', id: 'rushiqi', name: '刘思琪' },
+    field: 'values.wearing',
+    change: { mode: 'upsert', value: { part: '全身', name: '连衣裙', state: '穿着中', fullBody: true } },
+  }]);
+
+  assert.deepStrictEqual(
+    Array.from(store.__npc.values.wearing, (item) => item.slot),
+    ['饰品1', '饰品2', 'outerwear'],
+  );
 });
 
 test('Stage4 wearing settlement maps aliases and preserves unknown ornament slots', async () => {
@@ -2642,7 +2681,6 @@ test('Stage4 sexual-experience settlement maps aliases and preserves unknown cat
 结算对象：刘思琪｜角色｜允许结算
 更新1：性经历，胸部，+1，稳定事实确认胸部相关抽象次数
 更新2：性经历，耳垂，+1，稳定事实确认耳垂相关抽象次数
-更新3：性经历，总次数，+9，应被忽略的总数写入
 }`, { requestedTypes: ['性经历'], participants, store, config: loop.realConfig() });
 
   assert.strictEqual(JSON.stringify(parsed.completeTypes), JSON.stringify(['性经历']));
@@ -2981,22 +3019,21 @@ test('Stage 3 participants keep forced participants even when also listed as can
   assert.strictEqual(JSON.stringify(participants.map((item) => item.name)), JSON.stringify(['刘思琪', '玩家']));
 });
 
-test('real world materials mention Chinese requests, scene anchoring, and Top3 role card rule', () => {
+test('real world materials mention Chinese requests and scene anchoring boundaries', () => {
   const context = createContext();
   loadCore(context);
   loadScript(context, 'publish/prompts/materials/real-world-materials.js');
   const text = JSON.stringify(context.window.GameModules.realWorldMaterials || {});
   assert.ok(text.includes('中文资料请求'));
   assert.ok(text.includes('场景锚定'));
-  assert.ok(text.includes('Top3'));
-  assert.ok(text.includes('加载角色卡不等于出场或结算'));
+  assert.ok(text.includes('加载资料不等于出场或结算'));
   assert.ok(text.includes('不得输出英文 skill/method'));
 });
 
 test('Stage 1 prompt tells model not to copy material request placeholders', () => {
   const body = fs.readFileSync(path.join(root, 'publish/prompts/推演引擎/stage1-guided-query.md'), 'utf8');
-  assert.ok(body.includes('不得照抄示例中的占位词'));
-  assert.ok(body.includes('角色全称、世界全称、地点全称、人物全称、作品全称都必须替换为本次行动中的真实名称'));
+  assert.ok(body.includes('不得照抄提示词中的占位词'));
+  assert.ok(body.includes('角色全称、世界全称、地点全称、出场对象全称、作品全称都必须替换为本次行动中的真实名称'));
   assert.ok(!body.includes('资料请求1：角色查询，搜索角色卡，角色全称，世界全称'));
 });
 
@@ -3099,7 +3136,7 @@ test('completeConfiguredParsedStep condenses dropped material requests in retry 
 
 test('Stage 1 prompt forbids repeated and irrelevant material requests after context is enough', () => {
   const body = fs.readFileSync(path.join(root, 'publish/prompts/推演引擎/stage1-guided-query.md'), 'utf8');
-  assert.ok(body.includes('已加载资料摘要已经覆盖的人物、地点、路线不得重复请求'));
+  assert.ok(body.includes('把旧资料与后续变更合在一起后，已能稳定支撑本次行动正文，且无明显缺口或冲突'));
   assert.ok(body.includes('不得请求衣着、鞋袜、随身物品等细节'));
   assert.ok(!body.includes('{{基础上下文}}'));
   assert.ok(!body.includes('{{动态Skills}}'));
@@ -3219,7 +3256,7 @@ test('parseSettlementKv accepts 更新N placeholder update lines from model outp
   assert.strictEqual(parsed.genericUpdates.length, 1);
 });
 
-test('Stage4 settlement gate keeps complete short non-final blocks before retry', async () => {
+test('Stage4 settlement gate keeps complete JSON keys before retry', async () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
@@ -3227,27 +3264,24 @@ test('Stage4 settlement gate keeps complete short non-final blocks before retry'
   const config = loop.realConfig();
   const participants = [{ type: 'character', id: 'rushiqi', name: '刘思琪', role: 'forced' }];
   loop.settlementTypeQueue = () => ['情绪', '感觉'];
-  context.window.GameModules.promptTemplates.render = async (_id, vars) => JSON.stringify(vars);
   const rendered = [];
   let calls = 0;
-  loop.completeConfiguredStep = async (_store, prompt) => {
-    rendered.push(JSON.parse(prompt));
+  loop.completeConfiguredStep = async (_store, messages) => {
+    rendered.push(messages.map((message) => message.content).join('\n'));
     calls += 1;
-    if (calls === 1) return '情绪结算{\n结算状态：无变化\n}';
-    return '情绪结算{\n结算状态：无变化\n}\n感觉结算{\n结算状态：无变化\n}';
+    if (calls === 1) return JSON.stringify({ 情绪: [] });
+    return JSON.stringify({ 感觉: [] });
   };
 
   await loop.completeConfiguredSettlementKvWindow({ store, action: '行动', base: '基础', loaded: [], narration: '正文', trace: [], participants, config });
 
   assert.strictEqual(calls, 2);
-  assert.strictEqual(rendered[1].本次必须返回的类型, '感觉');
-  assert.strictEqual(rendered[1].未完成类型, '感觉');
-  assert.ok(rendered[1].未完成类型原因.includes('长度不足，但已验收完整块'));
-  assert.ok(!rendered[1].类型合约.includes('情绪结算{'));
-  assert.ok(rendered[1].类型合约.includes('感觉结算{'));
+  assert.ok(rendered[1].includes('本次必须返回的类型：感觉'));
+  assert.ok(rendered[1].includes('已完成类型：情绪'));
+  assert.ok(rendered[1].includes('未完成类型：感觉'));
 });
 
-test('Stage4 keeps repeated short complete single-type replies and reports remaining types', async () => {
+test('Stage4 keeps repeated complete single-type JSON replies and reports remaining types', async () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
@@ -3255,26 +3289,24 @@ test('Stage4 keeps repeated short complete single-type replies and reports remai
   const config = loop.realConfig();
   const participants = [{ type: 'character', id: 'rushiqi', name: '刘思琪', role: 'forced' }];
   loop.settlementTypeQueue = () => ['基础结算', '情绪', '感觉'];
-  context.window.GameModules.promptTemplates.render = async (_id, vars) => JSON.stringify(vars);
   const rendered = [];
   const outputs = [
-    '基础结算{\n结算状态：需要更新\n经过时间：90\n当前状态：测试状态\n当前目标：测试目标\n场景标题：测试标题\n地点名称：测试地点\n备选行动1：一\n备选行动2：二\n备选行动3：三\n备选行动4：四\n}',
-    '情绪结算{\n无变化\n}',
-    '感觉结算{\n无变化\n}',
+    JSON.stringify({ 基础结算: { 经过时间: 90, 当前状态: '测试状态', 当前目标: '测试目标', 场景标题: '测试标题', 地点名称: '测试地点', 备选行动1: '一', 备选行动2: '二', 备选行动3: '三', 备选行动4: '四' } }),
+    JSON.stringify({ 情绪: [] }),
+    JSON.stringify({ 感觉: [] }),
   ];
-  loop.completeConfiguredStep = async (_store, prompt) => {
-    rendered.push(JSON.parse(prompt));
+  loop.completeConfiguredStep = async (_store, messages) => {
+    rendered.push(messages.map((message) => message.content).join('\n'));
     return outputs.shift();
   };
 
   await loop.completeConfiguredSettlementKvWindow({ store, action: '行动', base: '基础', loaded: [], narration: '正文', trace: [], participants, config });
 
   assert.strictEqual(rendered.length, 3);
-  assert.strictEqual(rendered[1].本次必须返回的类型, '情绪、感觉');
-  assert.strictEqual(rendered[2].本次必须返回的类型, '感觉');
-  assert.ok(rendered[1].未完成类型原因.includes('长度不足，但已验收完整块'));
-  assert.ok(!rendered[1].类型合约.includes('基础结算{'));
-  assert.ok(!rendered[2].类型合约.includes('情绪结算{'));
+  assert.ok(rendered[1].includes('本次必须返回的类型：情绪、感觉'));
+  assert.ok(rendered[1].includes('已完成类型：基础结算'));
+  assert.ok(rendered[2].includes('本次必须返回的类型：感觉'));
+  assert.ok(rendered[2].includes('已完成类型：基础结算、情绪'));
 });
 
 (async () => {

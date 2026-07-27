@@ -1308,9 +1308,15 @@ window.GameModules.realWorldAgentLoop = {
   participantKey(item = {}) {
     if (typeof item === 'string') {
       const parsed = this.parseParticipantToken(item);
-      return String(parsed?.id || parsed?.name || item || '').trim();
+      const id = String(parsed?.id || '').trim();
+      return id && id !== '待建卡'
+        ? id
+        : String(parsed?.name || item || '').trim();
     }
-    return String(item?.id || item?.idOrName || item?.name || item?.characterName || '').trim();
+    const id = String(item?.id || '').trim();
+    return id && id !== '待建卡'
+      ? id
+      : String(item?.name || item?.characterName || item?.idOrName || '').trim();
   },
 
   participantBlockKeys(item = {}) {
@@ -1322,16 +1328,44 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   dedupeParticipants(items = [], options = {}) {
-    const seen = new Set();
     const blockedNames = options.blockedNames || new Set();
-    return (Array.isArray(items) ? items : []).filter((item) => {
-      const name = this.participantDisplayName(item);
-      const key = this.participantKey(item) || name;
-      if (!name || blockedNames.has(name) || blockedNames.has(key) || seen.has(key) || seen.has(name)) return false;
-      seen.add(key);
-      seen.add(name);
-      return true;
-    });
+    const result = [];
+    for (const item of Array.isArray(items) ? items : []) {
+      const parsed = typeof item === 'string' ? this.parseParticipantToken(item) : null;
+      const rawName = String(parsed?.name || item?.name || item?.characterName || '').trim();
+      const id = String(parsed?.id || item?.id || '').trim();
+      const pendingIdentity = !id || id === '待建卡';
+      const displayName = this.participantDisplayName(item);
+      const key = this.participantKey(item) || displayName;
+      const blockKeys = this.participantBlockKeys(item);
+      if (!displayName || blockKeys.some((blockKey) => blockedNames.has(blockKey))) continue;
+
+      const sameRealId = !pendingIdentity && result.some((existing) => {
+        const existingParsed = typeof existing === 'string' ? this.parseParticipantToken(existing) : null;
+        return String(existingParsed?.id || existing?.id || '').trim() === id;
+      });
+      if (sameRealId) continue;
+
+      const samePendingNameIndex = rawName
+        ? result.findIndex((existing) => {
+          const existingParsed = typeof existing === 'string' ? this.parseParticipantToken(existing) : null;
+          const existingName = String(existingParsed?.name || existing?.name || existing?.characterName || '').trim();
+          const existingId = String(existingParsed?.id || existing?.id || '').trim();
+          return existingName === rawName && (pendingIdentity || !existingId || existingId === '待建卡');
+        })
+        : -1;
+      if (samePendingNameIndex >= 0) {
+        const existing = result[samePendingNameIndex];
+        const existingParsed = typeof existing === 'string' ? this.parseParticipantToken(existing) : null;
+        const existingId = String(existingParsed?.id || existing?.id || '').trim();
+        if (!pendingIdentity && (!existingId || existingId === '待建卡')) result[samePendingNameIndex] = item;
+        continue;
+      }
+
+      if (result.some((existing) => this.participantDisplayName(existing) === displayName || this.participantKey(existing) === key)) continue;
+      result.push(item);
+    }
+    return result;
   },
 
   currentForcedParticipants(store = null, config = this.realConfig()) {
