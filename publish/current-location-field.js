@@ -16,6 +16,32 @@ window.GameModules.currentLocationField = {
     return this.normalize(value).split(this.separator).map((part) => part.trim()).filter(Boolean);
   },
 
+  parse(value = '') {
+    const normalized = this.normalize(value);
+    const parts = this.parts(normalized);
+    const valid = parts.length >= 4 && !parts.some((part) => this.isPlaceholderPart(part));
+    if (!valid) {
+      return {
+        valid: false,
+        value: normalized,
+        currentWorld: '',
+        currentFaction: '',
+        hierarchyParts: [],
+        mapNodeName: '',
+        detailPosition: '',
+      };
+    }
+    return {
+      valid: true,
+      value: normalized,
+      currentWorld: parts[0],
+      currentFaction: parts[1],
+      hierarchyParts: parts.slice(2, -2),
+      mapNodeName: parts.at(-2),
+      detailPosition: parts.at(-1),
+    };
+  },
+
   isPlaceholderPart(part = '') {
     return /^(?:未知|某处|附近|普通地点|当前位置未知|未知地点|现实地点|当前位置|未登记|无)$/u.test(String(part || '').trim());
   },
@@ -35,12 +61,24 @@ window.GameModules.currentLocationField = {
     return text;
   },
 
-  /** Valid when >=3 parts: at least one force segment + place + interior. */
+  /** World + faction + optional local hierarchy + map node + detailed position. */
   isValidProfileFormat(value = '') {
-    const parts = this.parts(this.coerceToProfileFormat(value));
-    if (parts.length < 3) return false;
-    if (parts.some((part) => !part || this.isPlaceholderPart(part))) return false;
-    return true;
+    return this.parse(value).valid;
+  },
+
+  currentWorld(valueOrProfile = '') {
+    const value = typeof valueOrProfile === 'object' ? this.fromProfile(valueOrProfile) : valueOrProfile;
+    return this.parse(value).currentWorld;
+  },
+
+  currentFaction(valueOrProfile = '') {
+    const value = typeof valueOrProfile === 'object' ? this.fromProfile(valueOrProfile) : valueOrProfile;
+    return this.parse(value).currentFaction;
+  },
+
+  hierarchyParts(valueOrProfile = '') {
+    const value = typeof valueOrProfile === 'object' ? this.fromProfile(valueOrProfile) : valueOrProfile;
+    return this.parse(value).hierarchyParts.slice();
   },
 
   fromProfile(profile = {}) {
@@ -75,27 +113,23 @@ window.GameModules.currentLocationField = {
     const value = typeof valueOrProfile === 'object'
       ? this.fromProfile(valueOrProfile)
       : this.normalize(valueOrProfile);
-    const parts = this.parts(value);
-    if (parts.length < 2) return '';
-    return this.normalize(parts[parts.length - 2] || '').slice(0, 28);
+    return this.normalize(this.parse(value).mapNodeName).slice(0, 28);
   },
 
   interiorPosition(valueOrProfile = '') {
     const value = typeof valueOrProfile === 'object'
       ? this.fromProfile(valueOrProfile)
       : this.normalize(valueOrProfile);
-    const parts = this.parts(value);
-    if (!parts.length) return '';
-    return this.normalize(parts[parts.length - 1] || '').slice(0, 120);
+    return this.normalize(this.parse(value).detailPosition).slice(0, 120);
   },
 
   forceChain(valueOrProfile = '') {
     const value = typeof valueOrProfile === 'object'
       ? this.fromProfile(valueOrProfile)
       : this.normalize(valueOrProfile);
-    const parts = this.parts(value);
-    if (parts.length < 3) return '';
-    return parts.slice(0, -2).join(this.separator);
+    const parsed = this.parse(value);
+    if (!parsed.valid) return '';
+    return [parsed.currentWorld, parsed.currentFaction, ...parsed.hierarchyParts].join(this.separator);
   },
 
   /**
@@ -137,6 +171,13 @@ window.GameModules.currentLocationField = {
         .find((item) => item.startsWith('势力：') || item.startsWith('势力:'));
       if (factionFact) {
         force = this.normalize(factionFact.replace(/^势力\s*[:：]\s*/u, ''));
+        const currentWorld = this.normalize(
+          store.selectedWork
+          || window.GameModules.realWorld2026?.label
+          || character?.profile?.worldTag
+          || '',
+        );
+        if (currentWorld && this.parts(force)[0] !== currentWorld) force = `${currentWorld}${this.separator}${force}`;
       }
     }
     if (!force || this.parts(force).some((part) => this.isPlaceholderPart(part))) return '';
@@ -154,14 +195,18 @@ window.GameModules.currentLocationField = {
   stateValueFromText(text = '', store = null, reason = '', worldTag = '') {
     // Store AI / card text as-is (normalize separators only). Map-node parsing is optional.
     const currentLocation = this.normalize(text);
-    const mapOk = this.isValidProfileFormat(currentLocation);
-    const mapNodeName = mapOk ? this.mapNodeName(currentLocation) : '';
+    const parsed = this.parse(currentLocation);
+    const mapNodeName = parsed.mapNodeName;
     return {
       name: mapNodeName || currentLocation || '当前位置未知',
       currentLocation,
       mapNodeName,
-      interiorPosition: mapOk ? this.interiorPosition(currentLocation) : '',
-      forceChain: mapOk ? this.forceChain(currentLocation) : '',
+      interiorPosition: parsed.detailPosition,
+      detailPosition: parsed.detailPosition,
+      currentWorld: parsed.currentWorld,
+      currentFaction: parsed.currentFaction,
+      hierarchyParts: parsed.hierarchyParts.slice(),
+      forceChain: parsed.valid ? this.forceChain(currentLocation) : '',
       worldTag: worldTag
         || window.GameModules.realWorld2026?.label
         || store?.selectedWork

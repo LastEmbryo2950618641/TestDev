@@ -62,7 +62,7 @@ Rules：
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "required": ["name", "worldTag", "age", "gender", "learningAbility", "mentalStability", "growthPotential", "actionAbility", "relationships", "role", "detail", "appearance", "preferences", "personality", "factions", "memberships", "certificates", "titles", "job", "jobConfirmed", "rank", "control_experience"],
+  "required": ["name", "worldTag", "age", "gender", "learningAbility", "mentalStability", "growthPotential", "actionAbility", "relationships", "role", "currentLocation", "detail", "appearance", "preferences", "personality", "factions", "memberships", "certificates", "titles", "job", "jobConfirmed", "rank", "control_experience"],
   "additionalProperties": false,
   "properties": {
     "name": { "type": "string", "minLength": 1, "description": "当前人物正式姓名。当人物基础区给出正式姓名时必须逐字复制，不得同音改字、近形改字。" },
@@ -75,6 +75,7 @@ Rules：
     "actionAbility": { "type": "object", "required": ["value", "reason"], "additionalProperties": false, "properties": { "value": { "type": "integer", "minimum": 1, "maximum": 20 }, "reason": { "type": "string", "minLength": 1 } } },
     "relationships": { "type": "string", "description": "与他人关系。格式为'关系：姓名'，多项用中文分号分隔。关系对象不得写成当前人物本人。" },
     "role": { "type": "string", "minLength": 1, "description": "身份、社会角色或关系定位。简短定位，不要写长背景。" },
+    "currentLocation": { "type": "string", "minLength": 1, "description": "当前所在位置。严格写为：所在世界·所在势力·动态层级链·地图地点·详细位置。" },
     "detail": { "type": "string", "minLength": 1, "description": "背景、住址、处境。一句话，不混入外貌和性格。" },
     "appearance": { "type": "string", "minLength": 1, "maxLength": 50, "description": "外貌。50字以内，感官细节优先，不承载详细穿着偏好。" },
     "preferences": { "type": "string", "minLength": 1, "description": "稳定喜好。必须提取穿着偏好、颜色偏好、审美习惯和随身物偏好；没有明确喜好时写可由身份和性格推断的保守喜好。" },
@@ -96,6 +97,7 @@ Rules：
 
 1. `name` 必须逐字复制人物基础区的正式姓名；若人物基础区给了 `age` 或“X岁”，`age.value` 必须等于该年龄数字。`relationships` 严禁链式冒号，必须写“关系：姓名”用中文分号分隔；冒号右侧只能写“别人姓名”，绝对不能写当前人物自己的 `name`。当前人物自己的身份称谓写入 `role`，例如当前人物是刘悠时不要写“长兄：刘悠”，应写 `role` 为“长兄/家庭支柱”，`relationships` 写“妹妹：刘思瑶；妹妹：刘思琪”。
 2. `role` 写身份；`job` 只写已确认职业；学生、亲属不是职业；不确定时 `job=""` 且 `jobConfirmed=false`。
+2.1 `currentLocation` 必须写为“所在世界·所在势力·动态层级链·地图地点·详细位置”。第1段是当前所在世界，第2段是当前所在势力；中间层级名称与段数由该势力本地定义，可以为零段或任意多段；倒数第2段必须是电子地图可使用的建筑、街道或同级具体地点；最后1段才写房间、工位、床边等详细位置。`worldTag` 表示人物出生世界，不因人物当前跨世界移动而修改；`currentLocation` 第1段才表示当前所在世界。
 3. `detail`/`personality` 各一句话，不混写。
 4. `appearance` 必须以感官细节优先，50字以内：调动视觉、触觉、听觉等多维度感知而非单一维度的直白叙述；善用隐喻和类比，通过环境、光线、动态等间接元素烘托；控制节奏与聚焦，聚焦某一局部（如指尖、颈侧、发梢）逐步展开，而非全景扫描式罗列。示例：“黑直长发垂落肩侧，校服领口露出细白颈线，低垂的睫毛在颧骨上投下一小片阴影。”
 5. `preferences` 必须专门承接稳定喜好，尤其是穿着偏好。输入出现“JK/制服/过膝袜/连裤袜/丝袜/黑丝/白丝/黑色/白色”等词时必须逐字保留到 preferences，不得只塞进 appearance 或忽略。例如“偏爱JK制服、百褶裙、黑色过膝袜或连裤袜，审美干净少女系”。
@@ -144,6 +146,6 @@ Rules：
 
 ## 完整 JSON 示例
 
-{"name":"刘思琪","worldTag":{"value":"2026 现代都市现实世界","reason":"刘思琪所属世界来自默认账号激活的2026现代都市现实世界。"},"age":{"value":16,"reason":"刘思琪年龄按2026年推算约为16-17岁。"},"gender":"女","learningAbility":{"value":8,"reason":"刘思琪学习能力来自外国语学校训练和高中阶段学习经验。"},"mentalStability":{"value":6,"reason":"刘思琪精神稳定来自家庭支持，但内向性格使压力积累。"},"growthPotential":{"value":9,"reason":"刘思琪成长潜力来自年轻年龄和尚未定型的发展方向。"},"actionAbility":{"value":5,"reason":"刘思琪行动能力由年轻女性体能和校园生活经验决定。"},"relationships":"姐姐：刘思瑶；母亲：张惠兰","role":"高中二年级学生、妹妹","detail":"住在深圳市南山区粤海街道，就读于深圳外国语学校高二，与母亲和姐姐同住。","appearance":"黑直长发垂落肩侧，校服领口露出细白颈线，低垂的睫毛在颧骨上投下一小片阴影。","preferences":"偏爱JK制服、百褶裙、黑色过膝袜或连裤袜，审美干净少女系。","personality":"安静内向但心思细腻，对亲近的人温柔体贴，对陌生人保持距离。","factions":[{"faction":"刘家","role":"小女儿","reason":"张惠兰与刘建国的次女，自幼在刘家长大。"},{"faction":"深圳外国语学校","role":"学生","reason":"就读于该校高中部二年级。"}],"memberships":[{"orgName":"中华人民共和国","title":"公民","department":"","departmentFog":false,"reason":"刘思琪没有明确指向其他国家，按2026现代都市现实世界背景登记为中华人民共和国公民。"},{"orgName":"深圳外国语学校-高中部","title":"高二学生","department":"高中部","departmentFog":false,"reason":"目前就读于该校高中部二年级。"}],"certificates":[],"titles":[],"job":"","jobConfirmed":false,"rank":"公民","control_experience":{"上线次数":0,"习惯程度":"初次操控尚不熟悉"}}
+{"name":"刘思琪","worldTag":{"value":"2026 现代都市现实世界","reason":"刘思琪所属世界来自默认账号激活的2026现代都市现实世界。"},"age":{"value":16,"reason":"刘思琪年龄按2026年推算约为16-17岁。"},"gender":"女","learningAbility":{"value":8,"reason":"刘思琪学习能力来自外国语学校训练和高中阶段学习经验。"},"mentalStability":{"value":6,"reason":"刘思琪精神稳定来自家庭支持，但内向性格使压力积累。"},"growthPotential":{"value":9,"reason":"刘思琪成长潜力来自年轻年龄和尚未定型的发展方向。"},"actionAbility":{"value":5,"reason":"刘思琪行动能力由年轻女性体能和校园生活经验决定。"},"relationships":"姐姐：刘思瑶；母亲：张惠兰","role":"高中二年级学生、妹妹","currentLocation":"2026现代都市现实世界·中华人民共和国·广东省·深圳市·南山区·粤海街道住宅楼·家中卧室书桌旁","detail":"住在深圳市南山区粤海街道，就读于深圳外国语学校高二，与母亲和姐姐同住。","appearance":"黑直长发垂落肩侧，校服领口露出细白颈线，低垂的睫毛在颧骨上投下一小片阴影。","preferences":"偏爱JK制服、百褶裙、黑色过膝袜或连裤袜，审美干净少女系。","personality":"安静内向但心思细腻，对亲近的人温柔体贴，对陌生人保持距离。","factions":[{"faction":"刘家","role":"小女儿","reason":"张惠兰与刘建国的次女，自幼在刘家长大。"},{"faction":"深圳外国语学校","role":"学生","reason":"就读于该校高中部二年级。"}],"memberships":[{"orgName":"中华人民共和国","title":"公民","department":"","departmentFog":false,"reason":"刘思琪没有明确指向其他国家，按2026现代都市现实世界背景登记为中华人民共和国公民。"},{"orgName":"深圳外国语学校-高中部","title":"高二学生","department":"高中部","departmentFog":false,"reason":"目前就读于该校高中部二年级。"}],"certificates":[],"titles":[],"job":"","jobConfirmed":false,"rank":"公民","control_experience":{"上线次数":0,"习惯程度":"初次操控尚不熟悉"}}
 
 注意：Schema优先级高于示例。当示例与字段定义冲突时，以Schema为准。

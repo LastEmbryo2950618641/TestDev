@@ -12,6 +12,9 @@ const context = {
         normalize(value) {
           return String(value || '').trim();
         },
+        isValidProfileFormat(value) {
+          return String(value || '').split('·').filter(Boolean).length >= 4;
+        },
       },
       characterReasonFallback: {
         apply(profile) {
@@ -47,7 +50,7 @@ vm.createContext(context);
 vm.runInContext(fs.readFileSync(path.join(root, 'publish', 'character-profile.js'), 'utf8'), context);
 
 const profileTool = context.window.GameModules.characterProfile;
-const location = '中华人民共和国·四川省·成都市武侯区·锦苑小区3栋·2单元601号';
+const location = '2026现代都市现实世界·中华人民共和国·四川省·成都市武侯区·锦苑小区3栋·2单元601号';
 const validated = profileTool.validate({
   name: '刘悠',
   gender: '男',
@@ -99,5 +102,29 @@ const inherited = profileTool.validate({
 }, {}, null, null, { skipInitialMetrics: true });
 
 assert.strictEqual(inherited.currentLocation, location);
+
+assert.throws(() => profileTool.validate({
+  name: '刘悠',
+  gender: '男',
+  age: 27,
+  worldTag: '2026 现代都市现实世界',
+  relationships: '本人：刘悠',
+  role: '程序工程师',
+  currentLocation: '2026现代都市现实世界·中华人民共和国·锦苑小区3栋',
+  detail: '玩家本人。',
+  appearance: '黑发。',
+  preferences: '简约。',
+  personality: '沉稳。',
+  factions: [],
+  memberships: [],
+  skills: [],
+  knowledge: [],
+  professions: [],
+}, {
+  id: 'player-self',
+  name: '刘悠',
+  isPlayer: true,
+  work: '2026 现代都市现实世界',
+}, {}, null, null, { skipInitialMetrics: true }), /currentLocation/);
 
 console.log('PASS character profile preserves currentLocation');

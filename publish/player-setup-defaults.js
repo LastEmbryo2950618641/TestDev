@@ -129,9 +129,9 @@ Object.assign(window.GameModules.playerSetupActions, {
 
   isCompletePlayerCurrentLocation(value = '', profile = {}) {
     const tool = window.GameModules.currentLocationField;
-    const parts = tool?.parts ? tool.parts(value) : String(value || '').split('·').map((part) => part.trim()).filter(Boolean);
-    if (parts.length < 5) return false;
-    const mapNode = String(parts[3] || '').trim();
+    const parsed = tool?.parse?.(value);
+    if (!parsed?.valid) return false;
+    const mapNode = String(parsed.mapNodeName || '').trim();
     if (!mapNode || /未知|某处|某地|附近|一处|普通/u.test(mapNode)) return false;
     const name = String(profile?.name || '').trim();
     if (name && mapNode.includes(name)) return false;
@@ -233,11 +233,13 @@ Object.assign(window.GameModules.playerSetupActions, {
       '你是严格的结构化数据生成器，只负责根据玩家角色卡上下文补全进入游戏时的当前位置。',
       '只输出合法 JSON 对象，不输出 Markdown、解释或额外文字。',
       'JSON Schema：{"type":"object","required":["currentLocation"],"additionalProperties":false,"properties":{"currentLocation":{"type":"string"},"refinedCity":{"type":"string"}}}',
-      'currentLocation 格式固定为：势力·势力层级1·势力层级2·地点·地点内位置。',
-      '第4段“地点”必须是正式地图地点名，可作为电子地图节点名，例如“锦苑小区3栋”“星河云栈科技园B座”“青石镇东市”“王都白塔宫”。',
-      '第5段“地点内位置”才允许写门牌、房间、工位、宿舍床位、宫殿内殿等内部位置。',
-      '不得把人物姓名拼进第4段地点；不得用“未知、某处、附近、普通地点”等模糊词。',
-      '势力与层级必须是真实控制/管辖结构；现代现实可用国家/省级/区县级，异世界可用王国/行省/郡县/宗门等对应结构。',
+      'currentLocation 格式固定为：所在世界·所在势力·动态层级链·地图地点·详细位置。',
+      '第1段是当前所在世界，不是出生世界；第2段是当前所在势力。',
+      '中间层级链的名称和段数由当前势力本地定义，可以没有，也可以有任意多段，禁止硬套固定行政层级。',
+      '倒数第2段“地图地点”必须是正式地图地点名，可作为电子地图节点名，例如“锦苑小区3栋”“星河云栈科技园B座”“青石镇东市”“王都白塔宫”。',
+      '最后1段“详细位置”才允许写门牌、房间、工位、宿舍床位、宫殿内殿等内部位置。',
+      '不得把人物姓名拼进地图地点；不得用“未知、某处、附近、普通地点”等模糊词。',
+      '所在势力与层级链必须符合当前世界真实控制、管辖或组织结构。',
       `玩家角色卡上下文：${JSON.stringify(context)}`,
     ].join('\n');
     let timeoutId = null;
@@ -246,7 +248,7 @@ Object.assign(window.GameModules.playerSetupActions, {
       this.setCurrentLocationFillProgress({
         percent: 35,
         step: '正在请求 AI 获取地点',
-        detail: '只请求 currentLocation：势力·势力层级1·势力层级2·地点·地点内位置。',
+        detail: '只请求 currentLocation：所在世界·所在势力·动态层级链·地图地点·详细位置。',
       });
       data = await Promise.race([
         window.GameModules.jsonUtils.generateJsonWithRetry({ source: 'player-current-location-fill', promptId: 'player-current-location-fill', model: this.modelId, timeoutMs: 60000, prompt, format: prompt, max: 2 }),

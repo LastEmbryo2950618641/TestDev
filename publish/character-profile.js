@@ -2586,6 +2586,12 @@ window.GameModules.characterProfile = {
     const memberships = this.memberships(profile, base, store);
     const certificates = this.uniqueCertificates(profile.certificates || base.certificates || []);
     const titles = this.uniqueTitles(profile.titles || base.titles || []);
+    const currentLocation = window.GameModules.currentLocationField?.normalize?.(profile.currentLocation || base.currentLocation || '')
+      || String(profile.currentLocation || base.currentLocation || '').trim().slice(0, 280);
+    if (currentLocation && window.GameModules.currentLocationField?.isValidProfileFormat
+      && !window.GameModules.currentLocationField.isValidProfileFormat(currentLocation)) {
+      throw new Error('currentLocation 结构不完整，必须为“所在世界·所在势力·动态层级链·地图地点·详细位置”');
+    }
     const validated = {
       ...base,
       name: this.validName(profile.name, base),
@@ -2599,8 +2605,7 @@ window.GameModules.characterProfile = {
       control_experience: profile.control_experience || { 上线次数: 0, 习惯程度: '初次操控尚不熟悉' },
       relationships: this.formatRelationships(profile.relationships || base.relationships || '', base),
       role: String(profile.role || base.role).slice(0, 18),
-      currentLocation: window.GameModules.currentLocationField?.normalize?.(profile.currentLocation || base.currentLocation || '')
-        || String(profile.currentLocation || base.currentLocation || '').trim().slice(0, 280),
+      currentLocation,
       detail: String(profile.detail || base.detail).slice(0, 160),
       appearance: String(profile.appearance || base.appearance || '外貌尚未固化。').slice(0, 140),
       preferences: String(profile.preferences || base.preferences || '').slice(0, 140),

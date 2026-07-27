@@ -198,9 +198,44 @@ window.GameModules.characterCardUpdateOperations = {
     return this.accept(state, operation, learned);
   },
 
-  applyScalar(state, operation) {
+  applyCurrentLocation(store, state, operation) {
+    const parsed = window.GameModules.currentLocationField?.parse?.(operation.value);
+    if (!parsed?.valid) {
+      return this.reject('currentLocation 结构不完整，必须为“所在世界·所在势力·动态层级链·地图地点·详细位置”', operation);
+    }
+    state.profile = state.profile && typeof state.profile === 'object' ? state.profile : {};
+    state.profile.currentLocation = parsed.value;
+    if (store) {
+      const id = this.text(state.id || operation.subject.id);
+      store.characterSchedules = store.characterSchedules && typeof store.characterSchedules === 'object'
+        ? store.characterSchedules
+        : {};
+      if (id) {
+        const previous = store.characterSchedules[id] || {};
+        store.characterSchedules[id] = {
+          ...previous,
+          characterId: id,
+          characterName: state.profile.name || operation.subject.name || previous.characterName || '',
+          profileCurrentLocation: parsed.value,
+          currentLocation: parsed.mapNodeName,
+          interiorPosition: parsed.detailPosition,
+        };
+      }
+      if (id === 'player-self' || operation.subject.type === 'player') {
+        store.realWorldMap = store.realWorldMap && typeof store.realWorldMap === 'object' ? store.realWorldMap : {};
+        store.realWorldMap.current = parsed.mapNodeName;
+        const node = (Array.isArray(store.realWorldMap.nodes) ? store.realWorldMap.nodes : [])
+          .find((item) => item?.name === parsed.mapNodeName);
+        if (node?.id) store.realWorldMap.currentId = node.id;
+      }
+    }
+    return this.accept(state, operation, parsed.value);
+  },
+
+  applyScalar(store, state, operation) {
     const path = this.scalarPaths[operation.field];
     if (!path || operation.op !== 'set') return this.reject(`${operation.field} 不允许 ${operation.op} 操作`, operation);
+    if (operation.field === 'currentLocation') return this.applyCurrentLocation(store, state, operation);
     let value = operation.value;
     if (operation.field === 'socialDrive.agenda.needPlayer') value = Boolean(value);
     else if (operation.field === 'socialDrive.agenda.urgency') {
@@ -231,7 +266,7 @@ window.GameModules.characterCardUpdateOperations = {
       state.profile.socialDrive.familiarity = Math.max(0, Math.min(100, current + operation.delta));
       return this.accept(state, operation, state.profile.socialDrive.familiarity);
     }
-    return this.applyScalar(state, operation);
+    return this.applyScalar(store, state, operation);
   },
 
   async applyMany(store, operations = []) {

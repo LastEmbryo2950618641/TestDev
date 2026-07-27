@@ -95,7 +95,7 @@
         row('性别', p.gender, '玩家登记的性别。'),
         row('生日', p.birthday, '玩家登记生日，用于计算年龄与现实身份。'),
         row('年龄', p.age ? `${p.age}岁` : '', '由生日按 2026-06-12 计算得到。'),
-        row('当前位置', window.GameModules.currentLocationField?.display?.(p) || p.currentLocation, '玩家当前所在位置，格式为“势力·势力层级1·势力层级2·地点·地点内位置”；其中“地点”直接作为电子地图节点名。'),
+        row('当前位置', window.GameModules.currentLocationField?.display?.(p) || p.currentLocation, '玩家当前所在位置，格式为“所在世界·所在势力·动态层级链·地图地点·详细位置”；其中倒数第2段直接作为电子地图节点名。'),
         row('现实身份', p.refinedRole || p.dailyRole, '玩家在现实世界中的日常身份。'),
         row('人事归属', [p.workplace, p.position].filter(Boolean).join(' / '), '玩家当前工作、学习或组织归属。'),
         row('居住状态', p.refinedLivingStatus || p.livingStatus, '玩家当前居住与生活状态。'),

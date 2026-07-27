@@ -54,7 +54,7 @@ function loadPlayerSetupDefaultsModule() {
         },
         jsonUtils: {
           generateJsonWithRetry: async () => ({
-            currentLocation: '中华人民共和国·四川省·成都市武侯区·锦苑小区3栋·2单元601号',
+            currentLocation: '2026现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋·2单元601号',
             refinedCity: '四川省-成都市-武侯区-锦苑小区-3栋-2单元601号',
           }),
         },
@@ -300,7 +300,7 @@ test('missing predefined player current location is inferred and written to card
 
   const location = await store.fillMissingPlayerCurrentLocationFromCard();
 
-  assert.strictEqual(location, '中华人民共和国·四川省·成都市武侯区·锦苑小区3栋·2单元601号');
+  assert.strictEqual(location, '2026现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋·2单元601号');
   assert.strictEqual(store.playerProfile.currentLocation, location);
   assert.strictEqual(card.currentLocation, location);
   assert.strictEqual(store.currentLocationFillState.status, 'done');

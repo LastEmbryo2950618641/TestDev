@@ -130,7 +130,7 @@ window.GameModules.playerIdentityActions = {
       row('name', '姓名', p.name, '角色卡固化姓名。'),
       row('presenceKind', '人物形态', window.GameModules.characterSocialDrive?.presenceKindLabel?.(p.presenceKind) || '具体的一个人', '具体的一个人＝个人档案；一类人＝团体原型，字段表示群体意识，行动视为团队行动。'),
       row('work', '所属世界', worldTag, '角色出身作品或世界。'),
-      row('currentLocation', '当前位置', locationText, '角色卡当前位置；格式为[势力层级链...]·地点·地点内位置（倒数第2段=地图节点，最后1段=尽量精确的室内位置）。'),
+      row('currentLocation', '当前位置', locationText, '角色卡当前位置；格式为所在世界·所在势力·动态层级链·地图地点·详细位置（倒数第2段=地图节点，最后1段=详细位置）。'),
       row('age', '年龄', p.age && typeof p.age === 'object' ? p.age.value : p.age, '角色卡固化年龄。'),
       row('gender', '性别', p.gender, '角色卡固化性别。'),
       row('birthday', '生日', p.birthday, '角色卡固化生日。'),

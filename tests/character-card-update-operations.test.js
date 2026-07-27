@@ -35,6 +35,12 @@ const state = {
   },
 };
 
+const store = {
+  itemSkillState: (id) => id === state.id ? state : null,
+  characterSchedules: {},
+  realWorldMap: { current: '', currentId: '', nodes: [{ id: 'home-node', name: '锦苑小区3栋' }] },
+};
+
 const saved = [];
 const context = vm.createContext({
   console,
@@ -57,7 +63,7 @@ const context = vm.createContext({
   },
 });
 context.window.window = context.window;
-for (const file of ['publish/progression.js', 'publish/progression-definitions.js', 'publish/character-card-update-operations.js']) {
+for (const file of ['publish/current-location-field.js', 'publish/progression.js', 'publish/progression-definitions.js', 'publish/character-card-update-operations.js']) {
   vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
 }
 
@@ -65,7 +71,7 @@ const operations = context.window.GameModules.characterCardUpdateOperations;
 const subject = { id: state.id, name: state.profile.name };
 
 function apply(field, op, value, target, extra = {}) {
-  return operations.apply(null, { subject, field, op, value, target, reason: '测试依据', ...extra });
+  return operations.apply(store, { subject, field, op, value, target, reason: '测试依据', ...extra });
 }
 
 let result = apply(
@@ -127,6 +133,18 @@ for (const op of ['replace', 'delete', 'set']) {
 result = apply('detail', 'set', '新的完整人物说明');
 assert.strictEqual(result.applied, true);
 assert.strictEqual(state.profile.detail, '新的完整人物说明');
+
+const fullLocation = '2026现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋·2单元601号卧室右侧床边';
+result = apply('currentLocation', 'set', fullLocation);
+assert.strictEqual(result.applied, true);
+assert.strictEqual(state.profile.currentLocation, fullLocation);
+assert.strictEqual(store.characterSchedules[state.id].profileCurrentLocation, fullLocation);
+assert.strictEqual(store.characterSchedules[state.id].currentLocation, '锦苑小区3栋');
+assert.strictEqual(store.characterSchedules[state.id].interiorPosition, '2单元601号卧室右侧床边');
+
+result = apply('currentLocation', 'set', '2026现代都市现实世界·中华人民共和国·锦苑小区3栋');
+assert.strictEqual(result.applied, false);
+assert.strictEqual(state.profile.currentLocation, fullLocation, 'invalid location must preserve the previous value');
 
 result = apply('socialDrive.familiarity', 'delta', null, null, { delta: 60 });
 assert.strictEqual(result.applied, true);
