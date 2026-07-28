@@ -37,7 +37,7 @@ function loadActions(overrides = {}) {
           normalizeFaction: (faction) => faction,
           resolveOrgIdByName: () => 'company-acme',
           upsertCharacterMembership: (state, row) => {
-            state.values.memberships = [...(state.values.memberships || []), row];
+            state.profile.memberships = [...(state.profile.memberships || []), row];
             return row;
           },
         },
@@ -47,8 +47,8 @@ function loadActions(overrides = {}) {
             const clone = (value) => (Array.isArray(value) ? value.map((item) => ({ ...item })) : []);
             state.profile.factions = clone(input.factions);
             state.profile.memberships = clone(input.memberships);
-            state.values.factions = clone(input.factions);
-            state.values.memberships = clone(input.memberships);
+            delete state.values.factions;
+            delete state.values.memberships;
             return true;
           },
         },
@@ -121,16 +121,15 @@ async function run() {
     [{ name: '内容部', level: '部门级别', roles: [{ title: '编剧', count: 1, characters: ['林青'] }] }],
   );
 
-  const identityState = { profile: { memberships: [] }, values: { memberships: [] } };
+  const identityState = { profile: { memberships: [] }, values: {} };
   store.playerIdentityState = () => identityState;
   store.phoneDate = () => new Date('2026-07-14T10:00:00.000Z');
   store.addPlayerForcePosition({ force: '星河工作室', position: '应聘编剧' });
   await Promise.resolve();
 
   assert.strictEqual(identityState.profile.memberships[0].source, 'Boss招聘同步');
-  assert.strictEqual(identityState.values.memberships[0].reason, '由现实职场事项确认。');
-  assert.notStrictEqual(identityState.profile.memberships, identityState.values.memberships);
-  assert.notStrictEqual(identityState.profile.memberships[0], identityState.values.memberships[0]);
+  assert.strictEqual(identityState.profile.memberships[0].reason, '由现实职场事项确认。');
+  assert.strictEqual(identityState.values.memberships, undefined);
   assert.strictEqual(savedStates.length, 1);
   assert.strictEqual(savedStates[0], identityState);
 

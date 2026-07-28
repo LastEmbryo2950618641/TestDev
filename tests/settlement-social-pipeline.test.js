@@ -73,15 +73,15 @@ function loadPipeline(context) {
     }),
     upsertCharacterMembership(state, patch = {}) {
       const mem = this.normalizeMembership(patch);
-      const list = Array.isArray(state.values.memberships) ? state.values.memberships : [];
+      const list = Array.isArray(state.profile.memberships) ? state.profile.memberships : [];
       const idx = list.findIndex((m) => m.orgName === mem.orgName && m.title === mem.title);
       if (idx >= 0) list[idx] = { ...list[idx], ...mem };
       else list.push(mem);
-      state.values.memberships = list;
+      state.profile.memberships = list;
       return mem;
     },
     syncCharacterOrgMemberships(state) {
-      state.values.memberships = (state.values.memberships || []).map((item) => ({ ...item }));
+      state.profile.memberships = (state.profile.memberships || []).map((item) => ({ ...item }));
       return state;
     },
     findCharacterStateByName: () => null,
@@ -93,7 +93,7 @@ function makeStore() {
   const player = {
     id: 'player-self',
     profile: { name: '刘悠', factions: [], memberships: [] },
-    values: { factions: [], memberships: [] },
+    values: {},
   };
   return {
     playerName: '刘悠',
@@ -114,7 +114,7 @@ function test(name, fn) {
   }
 }
 
-test('Stage4 JSON 人事归属 orgName/title 可解析并写 values+profile.memberships', () => {
+test('Stage4 JSON 人事归属 orgName/title 可解析并写 profile.memberships', () => {
   const context = createContext();
   loadPipeline(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
@@ -137,7 +137,7 @@ test('Stage4 JSON 人事归属 orgName/title 可解析并写 values+profile.memb
   assert.strictEqual(parsed.genericUpdates.length, 1);
   const update = parsed.genericUpdates[0];
   assert.strictEqual(update.updateType, 'membership');
-  assert.strictEqual(update.field, 'values.memberships');
+  assert.strictEqual(update.field, 'profile.memberships');
   assert.strictEqual(update.change.mode, 'upsert');
   assert.strictEqual(update.change.value.orgName, '成都市高新区科创有限公司');
   assert.strictEqual(update.change.value.title, '程序工程师');
@@ -145,10 +145,9 @@ test('Stage4 JSON 人事归属 orgName/title 可解析并写 values+profile.memb
   const applied = context.window.GameModules.app.orgTerritory.settlementActions.applyMembershipUpdate(store, update);
   assert.strictEqual(applied.ok, true);
   const state = store.playerIdentityState();
-  assert.strictEqual(state.values.memberships[0].orgName, '成都市高新区科创有限公司');
+  assert.strictEqual(state.profile.memberships[0].orgName, '成都市高新区科创有限公司');
   assert.strictEqual(state.profile.memberships[0].title, '程序工程师');
-  assert.notStrictEqual(state.profile.memberships, state.values.memberships);
-  assert.notStrictEqual(state.profile.memberships[0], state.values.memberships[0]);
+  assert.strictEqual(state.values.memberships, undefined);
 });
 
 test('Stage4 JSON 角色卡社群角色写入 profile.factions 而非中文幽灵字段', () => {
@@ -179,11 +178,10 @@ test('Stage4 JSON 角色卡社群角色写入 profile.factions 而非中文幽�
   const state = store.playerIdentityState();
   assert.ok(Array.isArray(state.profile.factions) && state.profile.factions.length >= 1);
   assert.strictEqual(state.profile['社群角色'], undefined);
-  assert.ok(Array.isArray(state.values.factions) && state.values.factions.length >= 1);
-  assert.notStrictEqual(state.profile.factions[0], state.values.factions[0]);
+  assert.strictEqual(state.values.factions, undefined);
 });
 
-test('RPG 社群角色更新会反向同步到 profile', () => {
+test('旧 RPG 社群角色字段兼容转写到 profile', () => {
   const context = createContext();
   loadPipeline(context);
   const store = makeStore();
@@ -196,8 +194,8 @@ test('RPG 社群角色更新会反向同步到 profile', () => {
 
   assert.strictEqual(context.window.GameModules.updateRegistry.applyOne(store, update), true);
   const state = store.playerIdentityState();
-  assert.deepStrictEqual(JSON.parse(JSON.stringify(state.profile.factions)), JSON.parse(JSON.stringify(state.values.factions)));
-  assert.notStrictEqual(state.profile.factions[0], state.values.factions[0]);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(state.profile.factions)), [{ faction: '夜跑群', role: '成员', reason: '剧情确认。' }]);
+  assert.strictEqual(state.values.factions, undefined);
 });
 
 test('Stage4 JSON 角色卡人事归属路由到 membership upsert', () => {

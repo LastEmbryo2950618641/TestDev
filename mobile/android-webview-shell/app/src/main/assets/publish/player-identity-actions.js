@@ -12,7 +12,7 @@ window.GameModules.playerIdentityActions = {
     const prevProfileMemberships = Array.isArray(current.profile.memberships) ? current.profile.memberships : [];
     const changed = JSON.stringify(prevProfileFactions) !== JSON.stringify(nextFactions)
       || JSON.stringify(prevProfileMemberships) !== JSON.stringify(nextMemberships);
-    if (!changed) return false;
+    if (!changed) return window.GameModules.rpgState?.stripProfileOwnedValues?.(current) || false;
     current.profile.factions = nextFactions;
     current.profile.memberships = nextMemberships;
     const synced = window.GameModules.rpgState?.syncSocialFields?.(current, 'profile', this);

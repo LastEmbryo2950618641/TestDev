@@ -263,7 +263,8 @@ window.GameModules.characterFeedback = {
 
   ensureExperience(store) {
     const state = store.characterRpgState;
-    if (!state?.profile) return null;
+    if (!state) return null;
+    state.profile = state.profile && typeof state.profile === 'object' ? state.profile : {};
     if (!state.profile.control_experience) state.profile.control_experience = window.GameModules.rpgState?.defaultControlExperience?.() || {};
     const exp = state.profile.control_experience;
     const awareness = window.GameModules.controlExperienceStage?.normalizeControllerAwareness?.(exp, {

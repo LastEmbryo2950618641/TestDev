@@ -60,7 +60,7 @@ async function main() {
   load('publish/update/generic-update-applier.js', context);
 
   context.window.GameModules.characterStateStore = {
-    async save(state) { saves.push({ id: state.id, metrics: JSON.parse(JSON.stringify(state.metrics || {})), values: JSON.parse(JSON.stringify(state.values || {})) }); },
+    async save(state) { saves.push({ id: state.id, metrics: JSON.parse(JSON.stringify(state.metrics || {})), profile: JSON.parse(JSON.stringify(state.profile || {})), values: JSON.parse(JSON.stringify(state.values || {})) }); },
   };
   context.window.GameModules.initPromptRegistry = {
     ensureTemplateState() {},
@@ -95,6 +95,8 @@ async function main() {
   store.applyMetricUpdatesToState = resultActions.applyMetricUpdatesToState;
   store.applyInventoryUpdatesToState = inventory.applyInventoryUpdatesToState;
   store.persistInventoryState = inventory.persistInventoryState;
+  store.inventoryValues = inventory.inventoryValues;
+  store.ensureProfileInventoryFields = inventory.ensureProfileInventoryFields;
   store.writeWearingItem = inventory.writeWearingItem;
   store.ensureWearSlot = inventory.ensureWearSlot;
   store.isEmptyWear = inventory.isEmptyWear;
@@ -109,16 +111,16 @@ async function main() {
   const state = {
     id: 'npc-a',
     name: '陈默',
-    profile: { name: '陈默', role: '同事', personality: '稳重' },
-    values: { items: [], wearing: [], bodyStatus: {} },
+    profile: { name: '陈默', role: '同事', personality: '稳重', items: [], wearingItems: [] },
+    values: { bodyStatus: {} },
     metrics: null,
   };
   store.rpgStates['npc-a'] = state;
-  progression.ensureInventoryFields(state.values, state.id);
+  inventory.ensureProfileInventoryFields(state);
   store.ensureStateMetrics(state);
   const beforeJoy = state.metrics.emotions['高兴'];
   const beforeAffection = state.metrics.playerFeelings['好感'];
-  const beforeTop = state.values.wearing.find((w) => w.slot === 'top');
+  const beforeTop = state.profile.wearingItems.find((w) => w.slot === 'top');
 
   const raw = {
     reply: '刚发你了',
@@ -184,15 +186,17 @@ async function main() {
   assert.ok(cardChanges.some((x) => x.applied && String(x.field).includes('性格') || x.field === '性格' || x.name === 'personality' || x.applied));
 
   // Wearing: 上衣 must land on canonical slot `top`, not a parallel `上衣` slot
-  const top = state.values.wearing.find((w) => w.slot === 'top');
-  const rogue = state.values.wearing.find((w) => w.slot === '上衣');
+  const top = state.profile.wearingItems.find((w) => w.slot === 'top');
+  const rogue = state.profile.wearingItems.find((w) => w.slot === '上衣');
   assert.ok(top, 'expected top slot');
   assert.strictEqual(top.name, '未穿戴');
   assert.ok(!rogue, 'must not create duplicate Chinese slot 上衣');
   assert.match(String(top.reason || top.changeMode || ''), /外套|脱|聊天/);
 
   // Item
-  assert.ok(state.values.items.some((item) => item.name === '工牌'));
+  assert.ok(state.profile.items.some((item) => item.name === '工牌'));
+  assert.strictEqual(state.values.items, undefined);
+  assert.strictEqual(state.values.wearing, undefined);
 
   // Body status
   assert.strictEqual(bodyApplied.length, 1);
@@ -212,7 +216,7 @@ async function main() {
     affection: state.metrics.playerFeelings['好感'],
     topSlot: top.slot,
     topName: top.name,
-    itemNames: state.values.items.map((i) => i.name),
+    itemNames: state.profile.items.map((i) => i.name),
     bodyOverall: state.values.bodyStatus.overall.status,
     saves: saves.length,
   }, null, 2));

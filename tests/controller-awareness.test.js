@@ -23,6 +23,7 @@ test('control experience defaults include controller awareness unknown', () => {
   const store = {
     characterRpgState: {
       id: 'rel-ai-247528',
+      profile: {},
       values: {},
     },
     rpgStates: {},
@@ -60,6 +61,7 @@ test('applyExperience persists controller awareness from feedback', async () => 
   const store = {
     characterRpgState: {
       id: 'rel-ai-247528',
+      profile: {},
       values: {},
     },
     rpgStates: {},
@@ -71,7 +73,7 @@ test('applyExperience persists controller awareness from feedback', async () => 
     controllerAwarenessLevel: 'traitKnown',
     controllerAwareness: '察觉操控者冷静强势但不知是谁',
   });
-  const exp = store.characterRpgState.values.control_experience;
+  const exp = store.characterRpgState.profile.control_experience;
   assert.equal(exp.controllerAwarenessLevel, 'traitKnown');
   assert.equal(exp.controllerAwareness, '察觉操控者冷静强势但不知是谁');
   assert.equal(exp.feeling, '紧绷');

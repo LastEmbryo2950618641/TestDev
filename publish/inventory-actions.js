@@ -166,7 +166,8 @@ window.GameModules.inventoryActions = {
   },
 
   async applyInventoryUpdatesToState(state, updates = []) {
-    const inventory = this.inventoryValues(state);
+    const owner = typeof this.ensureProfileInventoryFields === 'function' ? this : window.GameModules.inventoryActions;
+    const inventory = owner?.inventoryValues?.(state);
     if (!inventory) return;
     let changed = false;
     const upsert = (list, item) => {

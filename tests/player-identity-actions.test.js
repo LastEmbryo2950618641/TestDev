@@ -56,15 +56,21 @@ function createStore(overrides = {}) {
           ensureCharacter: async (character) => ({
             id: character.id || 'player-self',
             profile: character,
-            values: { items: [] },
+            values: {},
           }),
           syncSocialFields(state, source = 'profile') {
             const input = source === 'values' ? state.values : state.profile;
             const clone = (value) => (Array.isArray(value) ? value.map((item) => ({ ...item })) : []);
             state.profile.factions = clone(input.factions);
             state.profile.memberships = clone(input.memberships);
-            state.values.factions = clone(input.factions);
-            state.values.memberships = clone(input.memberships);
+            delete state.values.factions;
+            delete state.values.memberships;
+            return true;
+          },
+          stripProfileOwnedValues(state) {
+            delete state.values.factions;
+            delete state.values.memberships;
+            delete state.values.items;
             return true;
           },
         },
@@ -119,15 +125,15 @@ test('new player state reuses generated profile factions', async () => {
   const { store, generatedProfile } = createStore();
   const state = await store.ensurePlayerRpgState(true);
   assert.deepStrictEqual(
-    JSON.parse(JSON.stringify(state.values.factions)),
+    JSON.parse(JSON.stringify(state.profile.factions)),
     JSON.parse(JSON.stringify(generatedProfile.factions)),
   );
   assert.deepStrictEqual(
-    JSON.parse(JSON.stringify(state.values.memberships)),
+    JSON.parse(JSON.stringify(state.profile.memberships)),
     JSON.parse(JSON.stringify(generatedProfile.memberships)),
   );
-  assert.notStrictEqual(state.profile.factions, state.values.factions);
-  assert.notStrictEqual(state.profile.memberships, state.values.memberships);
+  assert.strictEqual(state.values.factions, undefined);
+  assert.strictEqual(state.values.memberships, undefined);
 });
 
 test('saved player state backfills factions from generated profile', async () => {
@@ -153,9 +159,10 @@ test('saved player state backfills factions from generated profile', async () =>
   const { store } = createStore({ savedStates: { 'player-self': savedState } });
   const state = await store.ensurePlayerRpgState(false);
   assert.deepStrictEqual(
-    JSON.parse(JSON.stringify(state.values.factions)),
+    JSON.parse(JSON.stringify(state.profile.factions)),
     JSON.parse(JSON.stringify(savedState.profile.factions)),
   );
+  assert.strictEqual(state.values.factions, undefined);
 });
 
 test('saved player state still backfills memberships from character profile logic', async () => {
@@ -188,9 +195,10 @@ test('saved player state still backfills memberships from character profile logi
   });
   const state = await store.ensurePlayerRpgState(false);
   assert.deepStrictEqual(
-    JSON.parse(JSON.stringify(state.values.memberships)),
+    JSON.parse(JSON.stringify(state.profile.memberships)),
     JSON.parse(JSON.stringify(backfilledMemberships)),
   );
+  assert.strictEqual(state.values.memberships, undefined);
 });
 
 (async () => {
