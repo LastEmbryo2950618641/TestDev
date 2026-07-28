@@ -1,9 +1,9 @@
 ---
-name: stage10-life-energy-exp
+name: Stage11-life-energy-exp
 description: 正文后串行结算生命层次经验与知识/技能/职业经验；生命层次仅击杀/吸收，习得经验仅 AI 按正文实操结算
 ---
 
-# Stage10 经验结算（生命层次 + 习得）
+# Stage11 经验结算（生命层次 + 习得）
 
 只输出一个合法 JSON 对象，不要 Markdown、解释或正文。
 
@@ -99,3 +99,4 @@ description: 正文后串行结算生命层次经验与知识/技能/职业经�
 ```json
 { "gains": [], "learnedGains": [], "done": true }
 ```
+

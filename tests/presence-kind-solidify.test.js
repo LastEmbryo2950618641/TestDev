@@ -67,4 +67,10 @@ context.window.GameModules.characterIntroCard.roleCardState = () => stubState;
 const stubCard = store.solidifyDisplayCard({ name: '陈默', worldTag: 'w', intro: '空壳' });
 assert.strictEqual(stubCard.displayType, 'intro', 'Stage1 stub must still show as intro for solidify');
 
+const impactPeople = store.solidifyPeopleFromAnchorReport({
+  sceneImpactObjects: { people: ['刘思琪'], locations: ['门口'], items: [], systems: [], summary: '只影响门口。' },
+});
+assert.strictEqual(JSON.stringify(impactPeople), JSON.stringify([{ name: '刘思琪', role: 'current-scene' }]));
+assert.strictEqual(JSON.stringify(store.solidifyPeopleFromAnchorReport({ values: { '当前场景影响对象': '刘思琪在家中备战中考' } })), JSON.stringify([]));
+
 console.log('PASS presence-kind-solidify');

@@ -134,7 +134,7 @@ window.GameModules.rpgFieldUi = {
     const row = (key, label, value, desc) => ({ key: `profile-${state?.id || 'target'}-${key}`, stateId: state?.id || '', label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: key !== 'work' });
     return [
       row('name', '姓名', p.name || state?.name, '角色卡固化姓名。'), row('work', '所属世界', worldTag, '角色出身作品或世界。'),
-      row('currentLocation', '当前位置', locationText, '角色卡当前位置；格式为[势力层级链...]·地点·地点内位置（倒数第2段=地图节点，最后1段=室内细节）。'),
+      row('currentLocation', '当前位置', locationText, '角色卡当前位置；格式为所在世界·势力·层级1·层级2·地点·详细的具体位置（倒数第2段=地图节点，最后1段=室内细节）。'),
       row('role', '身份', p.role || p.job, '角色当前身份。'),
       row('job', '职业', p.job, '角色真实职业、训练身份或社会功能。'),
       row('gender', '性别', p.gender, '角色性别资料。'), row('birthday', '生日', p.birthday, '角色生日资料。'),

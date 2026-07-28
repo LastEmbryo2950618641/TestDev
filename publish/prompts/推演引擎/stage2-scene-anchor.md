@@ -56,5 +56,7 @@ JSON 合约：
 - 首字符必须是 `{`，末字符必须是 `}`。
 - 顶层 key 必须且只能使用 JSON 合约列出的 key。
 - currentLocation、currentTime、spatialState、currentAction、writingFocus、currentSceneImpactObjects 必须非空。
-- currentSceneImpactObjects 可以按合约输出对象；如果确实无法分组，也可以输出一个非空字符串，但优先输出对象。
+- currentSceneImpactObjects 必须是 JSON object，不允许输出字符串、数组、Markdown 或自然语言段落。
+- currentSceneImpactObjects.people / locations / items / systems 必须始终是数组；没有内容就输出 []，不要省略 key，不要把多个对象塞进一个字符串。
+- currentSceneImpactObjects.summary 必须是字符串，用一句话说明本轮正文和结算的影响边界。
 - 不要输出额外字段、标题、注释或自然语言前后缀。

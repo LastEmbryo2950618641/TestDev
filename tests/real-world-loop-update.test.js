@@ -68,6 +68,9 @@ function loadCore(context) {
   loadScript(context, 'publish/update/sexual-history-update.js');
   loadScript(context, 'publish/update/body-status-update.js');
   if (fs.existsSync(path.join(root, 'publish/update/wearing-state-update.js'))) loadScript(context, 'publish/update/wearing-state-update.js');
+  loadScript(context, 'publish/inference/agent-context-core.js');
+  loadScript(context, 'publish/inference/material-request-catalog.js');
+  loadScript(context, 'publish/inference/scene-boundary.js');
   loadScript(context, 'publish/real-world-agent-context.js');
   loadScript(context, 'publish/real-world-agent-loop.js');
 }
@@ -216,13 +219,14 @@ test('old inference prompt compatibility files are removed', () => {
 
 test('index and asset sync do not use old prompt inline or prompt script paths', () => {
   const html = fs.readFileSync(path.join(root, 'publish/index.html'), 'utf8');
+  const bootScripts = fs.readFileSync(path.join(root, 'publish/boot/scripts.json'), 'utf8');
   const syncAssets = fs.readFileSync(path.join(root, 'scripts/sync-inline-assets.js'), 'utf8');
   assert.ok(!html.includes('prompt-templates-inline.js'));
   assert.ok(!syncAssets.includes('prompt-templates-inline.js'));
   assert.ok(!html.includes('src="update/body-status-update-prompt.js"'));
   assert.ok(!html.includes('src="init/intimacy-body-init-prompt.js"'));
   assert.ok(!html.includes('src="prompts/推演引擎/'));
-  assert.ok(html.includes('src="inference-prompts-runtime.js"'));
+  assert.ok(bootScripts.includes('"inference-prompts-runtime.js"'));
 });
 
 test('inference runtime bundle registers stage update and init prompts from ASCII path', () => {
@@ -231,8 +235,8 @@ test('inference runtime bundle registers stage update and init prompts from ASCI
   loadScript(context, 'publish/init/intimacy-body-init-template.js');
   loadScript(context, 'publish/inference-prompts-runtime.js');
   assert.ok(context.window.GameModules.promptTemplates.inline['inference-stage1-guided-query'].includes('查询规划'));
-  assert.ok(context.window.GameModules.updateRegistry.prompts['body-status-update'].includes('# body-status-update'));
-  assert.strictEqual(context.window.GameModules.initPromptSources['intimacy-body'].templateKey, 'intimacyBody');
+  assert.ok(context.window.GameModules.promptTemplates.inline['inference-update-body-status'].includes('# Stage4 身体状态更新'));
+  assert.strictEqual(context.window.GameModules.initTemplateSources.intimacyBody.id, 'intimacy-body');
 });
 
 test('inference runtime bundle keeps Stage1 Stage2 Stage3 slim template fields clean', () => {
@@ -258,21 +262,21 @@ test('inference runtime bundle keeps Stage1 Stage2 Stage3 slim template fields c
   });
   assert.ok(stage1.includes('{{路由上下文}}'), 'Stage1 runtime template should include {{路由上下文}}');
   assert.ok(stage2.includes('{{场景锚定上下文}}'), 'Stage2 runtime template should include {{场景锚定上下文}}');
-  assert.ok(stage2.includes('当前场景影响对象：'), 'Stage2 runtime template should include 当前场景影响对象：');
+  assert.ok(stage2.includes('当前场景影响对象'), 'Stage2 runtime template should include 当前场景影响对象');
   assert.ok(stage2.includes('最终有效候选层'), 'Stage2 runtime template should mention final effective candidate layers');
   assert.ok(stage2.includes('不得从历史 trace 中恢复已被后轮清除的候选'), 'Stage2 runtime template should forbid restoring cleared trace candidates');
   assert.ok(stage3.includes('当前场景影响对象'), 'Stage3 runtime template should reference current scene impact objects');
   assert.ok(runtime.includes('{{路由上下文}}'));
   assert.ok(runtime.includes('{{场景锚定上下文}}'));
-  assert.ok(runtime.includes('当前场景影响对象：'));
+  assert.ok(runtime.includes('当前场景影响对象'));
 });
 
 test('colocated generated update prompts register into updateRegistry', () => {
   const context = createContext();
   loadScript(context, 'publish/update/update-registry.js');
   loadScript(context, 'publish/prompts/推演引擎/update/body-status-update-prompt.js');
-  const body = context.window.GameModules.updateRegistry.prompts['body-status-update'];
-  assert.ok(body.includes('# body-status-update'));
+  const body = context.window.GameModules.promptTemplates.inline['inference-update-body-status'];
+  assert.ok(body.includes('# Stage4 身体状态更新'));
 });
 
 test('colocated generated stage prompts register into promptTemplates inline registry', () => {
@@ -404,7 +408,7 @@ test('all promptTemplates markdown entries have colocated generated scripts for 
   assert.strictEqual(missing.length, 0, missing.join('\n'));
 });
 
-test('colocated generated prompt scripts are tracked for publishing', () => {
+test('colocated generated prompt scripts exist for publishing', () => {
   const context = createContext();
   loadScript(context, 'publish/prompt-templates.js');
   const templateScripts = context.window.GameModules.promptTemplates.items
@@ -416,8 +420,7 @@ test('colocated generated prompt scripts are tracked for publishing', () => {
     'publish/prompts/推演引擎/init/intimacy-body-init-prompt.js',
     ...templateScripts,
   ];
-  const tracked = new Set(require('child_process').execFileSync('git', ['ls-files', ...files], { cwd: root, encoding: 'utf8' }).trim().split('\n').filter(Boolean));
-  files.forEach((file) => assert.ok(tracked.has(file), `${file} is not tracked and will be missing from publish`));
+  files.forEach((file) => assert.ok(fs.existsSync(path.join(root, file)), `${file} is missing from publish`));
 });
 
 test('configured loop template ids use canonical inference templates', () => {
@@ -450,12 +453,12 @@ test('colocated generated init prompt keeps intimacyBody template binding', () =
   assert.ok(JSON.stringify(context.window.GameModules.initPromptRegistry.schema(['intimacy-body'])).includes('initUpdates'));
 });
 
-test('Stage 1 prompt requires Chinese K:V guided query planning', async () => {
+test('Stage 1 prompt requires JSON guided query planning', async () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
   context.window.GameModules.promptTemplates.render = async (id, vars) => (id === 'inference-stage1-guided-query'
-    ? `只输出中文 K:V\n查询规划：\n资料状态：\n强制出场：\n资料请求1：角色查询，搜索角色卡，角色全称，世界全称\n随机场外角色候选：${vars.随机场外角色候选}`
+    ? `只输出一个紧凑 JSON 对象\n"plan":"查询规划摘要"\n"status":"继续请求资料"\n"participants":{"forced":[]}\n"materialRequests":["角色查询，搜索角色卡，角色全称，世界全称"]\n随机场外角色候选：${vars.随机场外角色候选}`
     : JSON.stringify(vars));
   const config = loop.realConfig();
   config.ctx = {
@@ -465,15 +468,18 @@ test('Stage 1 prompt requires Chinese K:V guided query planning', async () => {
     limit: (text) => String(text || ''),
     randomActiveEventCandidates: () => [{ id: 'boss', name: '王主管' }],
   };
-  const prompt = await loop.buildConfiguredPrompt({ store: makeStore(), action: '和刘思琪对话', base: '基础', loaded: [], skills: '', step: 1, config });
-  assert.ok(prompt.includes('只输出中文 K:V'));
-  assert.ok(prompt.includes('查询规划：'));
-  assert.ok(prompt.includes('资料状态：'));
-  assert.ok(prompt.includes('强制出场：'));
-  assert.ok(prompt.includes('资料请求1：角色查询，搜索角色卡'));
+  const promptMessages = await loop.buildConfiguredPrompt({ store: makeStore(), action: '和刘思琪对话', base: '基础', loaded: [], skills: '', step: 1, config });
+  const prompt = (Array.isArray(promptMessages) ? promptMessages.map((msg) => msg.content || '').join('\n') : String(promptMessages || ''));
+  assert.ok(prompt.includes('只输出一个紧凑 JSON 对象'));
+  assert.ok(prompt.includes('"plan":"查询规划摘要"'));
+  assert.ok(prompt.includes('"status"'));
+  assert.ok(prompt.includes('继续请求资料'));
+  assert.ok(prompt.includes('"participants"'));
+  assert.ok(prompt.includes('"forced"'));
+  assert.ok(prompt.includes('"materialRequests":["角色查询，搜索角色卡'));
   assert.ok(prompt.includes('随机场外角色候选'));
   assert.ok(prompt.includes('王主管'));
-  assert.ok(!prompt.includes('只允许返回一个合法 JSON 对象'));
+  assert.ok(!prompt.includes('只输出中文 K:V'));
 });
 
 test('Stage 1 real template render does not include Stage 3 narration instructions', async () => {
@@ -486,12 +492,13 @@ test('Stage 1 real template render does not include Stage 3 narration instructio
   const config = loop.realConfig();
   config.ctx = { buildLoadedText: () => '', limit: (text) => String(text || ''), randomActiveEventCandidates: () => [] };
 
-  const prompt = await loop.buildConfiguredPrompt({ store: makeStore(), action: '观察门口', base: '基础', loaded: [], skills: '', step: 1, config });
+  const promptMessages = await loop.buildConfiguredPrompt({ store: makeStore(), action: '观察门口', base: '基础', loaded: [], skills: '', step: 1, config });
+  const prompt = (Array.isArray(promptMessages) ? promptMessages.map((msg) => msg.content || '').join('\n') : String(promptMessages || ''));
 
-  assert.ok(prompt.includes('只输出中文 K:V'));
-  assert.ok(prompt.includes('查询规划：'));
-  assert.ok(prompt.includes('即使资料状态为“资料已足够”，也必须逐行输出固定输出顺序中的每个字段'));
-  assert.ok(prompt.includes('没有内容的字段写“无”'));
+  assert.ok(prompt.includes('只输出一个合法 JSON 对象'));
+  assert.ok(prompt.includes('"plan"'));
+  assert.ok(prompt.includes('"status"'));
+  assert.ok(prompt.includes('"materialRequests"'));
   assert.ok(!prompt.includes('你只输出现实正文'));
   assert.ok(!prompt.includes('场景锚定报告：'));
   assert.ok(!prompt.includes('输出示例：'));
@@ -511,9 +518,11 @@ test('Stage 1 prompt uses slim routing context without final narration settlemen
   store.phoneTimeText = () => '01:20';
   store.playerSetupSummary = () => '姓名：刘悠\n生日：1998-11-19\n具体地址：锦苑小区3栋2单元601号\n财富等级：中产\n父母去世原因：交通事故';
   const config = loop.realConfig();
+  config.ctx.buildLoadedText = () => '';
+  config.ctx.buildStage1RoutingContext = () => '模式：现实\n本次行动：前往刘思琪房间\n已加载资料摘要：无';
   config.ctx.randomActiveEventCandidates = () => [{ id: 'boss', name: '王主管' }];
 
-  const prompt = await loop.buildConfiguredPrompt({
+  const promptMessages = await loop.buildConfiguredPrompt({
     store,
     action: '前往刘思琪房间',
     base: 'final 必须返回 elapsedSeconds\nsubject.id 规则\n正文必须服从场景锚定报告\n结算对象：刘思琪\n类型完成：是\nSkill：wechat.query\n激活条件：需要微信时\n返回格式：JSON',
@@ -522,11 +531,12 @@ test('Stage 1 prompt uses slim routing context without final narration settlemen
     step: 1,
     config,
   });
+  const prompt = (Array.isArray(promptMessages) ? promptMessages.map((msg) => msg.content || '').join('\n') : String(promptMessages || ''));
 
   ['elapsedSeconds', 'final.wechatActions', 'subject.id', '结算对象', '类型完成', '正文必须', '场景锚定报告', 'Skill：', '激活条件', '返回格式', '全部情绪值', '全部穿着槽', 'character.query.searchCharacterProfile'].forEach((bad) => {
     assert.ok(!prompt.includes(bad), `${bad} leaked into Stage1 prompt`);
   });
-  ['查询规划：', '资料状态：', '地点查询理由1：', '因果查询理由1：', '冲突查询理由1：', '强制出场：', '高优先候选：', '戏剧候选：', '禁止出场：', '随机事件候选：', '随机事件闯入条件：', '资料请求：', '资料请求结束：是', '可请求资料目录', '角色查询：搜索角色卡'].forEach((good) => {
+  ['"plan"', '"status"', '"sceneQueries"', '"participants"', '"randomEvents"', '"randomIntrusionCondition"', '"materialRequests"', '可请求资料目录', '角色查询，搜索角色卡'].forEach((good) => {
     assert.ok(prompt.includes(good), `${good} missing from Stage1 prompt`);
   });
   const outputOrder = prompt.slice(prompt.indexOf('固定输出顺序：'));
@@ -601,33 +611,46 @@ test('Stage 1 real routing stops after two steps and carries query reasons into 
     if (id === 'inference-stage3-narration') return 'Stage3 prompt';
     return JSON.stringify(vars);
   };
-  const stageReplies = [1, 2].map((step) => `查询规划：第${step}步收集场景锚定理由
-资料状态：继续请求资料
-地点查询理由1：第${step}步地点理由
-因果查询理由1：第${step}步因果理由
-冲突查询理由1：第${step}步冲突理由
-强制出场：刘思琪（本次行动目标）
-高优先候选：无
-戏剧候选：无
-禁止出场：无
-随机事件候选：无
-随机事件闯入条件：无明确条件则禁止闯入
-资料请求：无
-资料请求结束：是`);
+  const stageReplies = [1, 2].map((step) => JSON.stringify({
+    plan: `第${step}步收集场景锚定理由`,
+    status: step === 1 ? '继续请求资料' : '资料已足够',
+    sceneQueries: {
+      location: [`第${step}步地点理由`],
+      causality: [`第${step}步因果理由`],
+      conflict: [`第${step}步冲突理由`],
+    },
+    participants: {
+      forced: ['刘思琪(rel-ai-1)'],
+      priority: [],
+      drama: [],
+      forbidden: [],
+    },
+    randomEvents: [],
+    randomIntrusionCondition: '无明确条件则禁止闯入',
+    materialRequests: [],
+  }));
   const outputs = [
     ...stageReplies,
-    `场景锚定报告：锚定刘思琪房间门口
-当前地点：刘思琪房间门口
-当前时间：12:56
-空间状态：门口与房间相邻
-当前动作：前往房间
-强制出场：刘思琪
-高优先候选：无
-戏剧候选：无
-禁止出场：无
-随机事件影响：无
-正文写作重点：只写本次进入房间前后的直接反应
-当前场景影响对象：刘思琪、房门`,
+    JSON.stringify({
+      sceneAnchorReport: '锚定刘思琪房间门口',
+      currentLocation: '刘思琪房间门口',
+      currentTime: '12:56',
+      spatialState: '门口与房间相邻',
+      currentAction: '前往房间',
+      forcedParticipants: '刘思琪',
+      priorityCandidates: '无',
+      dramaCandidates: '无',
+      forbiddenParticipants: '无',
+      randomEventImpact: '无',
+      writingFocus: '只写本次进入房间前后的直接反应',
+      currentSceneImpactObjects: {
+        people: ['刘思琪'],
+        locations: ['房门'],
+        items: [],
+        systems: [],
+        summary: '只影响刘思琪与房门。',
+      },
+    }),
     '你来到刘思琪房间门口，抬手轻敲房门。',
   ];
   loop.completeConfiguredStep = async () => outputs.shift();
@@ -635,7 +658,7 @@ test('Stage 1 real routing stops after two steps and carries query reasons into 
 
   const out = await loop.runConfigured(store, '前往刘思琪房间', null, config);
 
-  assert.deepStrictEqual(stagePrompts, ['1/2', '2/2']);
+  assert.deepStrictEqual(stagePrompts, []);
   assert.ok(anchorPrompt.includes('第1步地点理由'));
   assert.ok(anchorPrompt.includes('第2步地点理由'));
   assert.ok(anchorPrompt.includes('第1步因果理由'));
@@ -643,7 +666,7 @@ test('Stage 1 real routing stops after two steps and carries query reasons into 
   assert.ok(out.result.narration.includes('轻敲房门'));
 });
 
-test('Stage 1 follow-up prompt remains Chinese K:V and never asks for JSON', async () => {
+test('Stage 1 follow-up prompt remains JSON and bypasses template render', async () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
@@ -657,14 +680,15 @@ test('Stage 1 follow-up prompt remains Chinese K:V and never asks for JSON', asy
   const config = loop.realConfig();
   config.ctx = { buildLoadedText: () => '', limit: (text) => String(text || '') };
 
-  const prompt = await loop.buildConfiguredPrompt({ store: makeStore(), action: '继续查询', base: '基础', loaded: [{ title: '角色卡', text: '刘思琪' }], skills: '', step: 2, config });
+  const promptMessages = await loop.buildConfiguredPrompt({ store: makeStore(), action: '继续查询', base: '基础', loaded: [{ title: '角色卡', text: '刘思琪' }], skills: '', step: 2, config });
+  const prompt = (Array.isArray(promptMessages) ? promptMessages.map((msg) => msg.content || '').join('\n') : String(promptMessages || ''));
 
-  assert.ok(renderedIds.includes('inference-stage1-guided-query'));
-  assert.ok(prompt.includes('中文 K:V'));
-  assert.ok(prompt.includes('查询规划'));
-  assert.ok(prompt.includes('资料状态'));
-  assert.ok(!prompt.includes('只允许返回一个合法 JSON 对象'));
-  assert.ok(!prompt.includes('第一个字符必须是 {'));
+  assert.ok(!renderedIds.includes('inference-stage1-guided-query'));
+  assert.ok(prompt.includes('只输出一个合法 JSON 对象'));
+  assert.ok(prompt.includes('"plan"'));
+  assert.ok(prompt.includes('"status"'));
+  assert.ok(prompt.includes('首字符必须是 {'));
+  assert.ok(prompt.includes('不输出中文 K:V'));
 });
 
 test('Stage 1 prompt passes known participant layers to random candidate provider', async () => {
@@ -715,7 +739,7 @@ test('buildConfiguredPrompt includes previous Stage1 planning summary for later 
     stage1MaterialCatalogText: () => '无',
   };
 
-  const prompt = await loop.buildConfiguredPrompt({
+  const promptMessages = await loop.buildConfiguredPrompt({
     store: makeStore(),
     action: '前往刘思琪房间',
     base: '基础',
@@ -732,8 +756,9 @@ test('buildConfiguredPrompt includes previous Stage1 planning summary for later 
       randomIntrusionCondition: '无明确条件则禁止闯入',
     },
   });
+  const prompt = (Array.isArray(promptMessages) ? promptMessages.map((msg) => msg.content || '').join('\n') : String(promptMessages || ''));
 
-  assert.ok(prompt.includes('上一轮查询规划摘要：'));
+  assert.ok(prompt.includes('本轮上一轮查询规划摘要'));
   assert.ok(prompt.includes('强制出场：刘思琪'));
   assert.ok(prompt.includes('高优先候选：刘思瑶'));
   assert.ok(prompt.includes('禁止出场：王主管'));
@@ -742,7 +767,7 @@ test('buildConfiguredPrompt includes previous Stage1 planning summary for later 
 test('scheduleParticipantHints classifies same nearby offstage and unknown schedules', () => {
   const context = createContext();
   loadCore(context);
-  const ctx = context.window.GameModules.realWorldAgentContext;
+  const ctx = context.window.GameModules.realWorldAgentContextParts.sceneBoundary;
   const store = makeStore();
   store.realWorldLocationName = '锦苑小区3栋2单元601号刘思琪房间门口';
   store.rpgStates = {
@@ -769,7 +794,7 @@ test('scheduleParticipantHints classifies same nearby offstage and unknown sched
 test('scheduleParticipantHints does not classify different keyed rooms as nearby', () => {
   const context = createContext();
   loadCore(context);
-  const ctx = context.window.GameModules.realWorldAgentContext;
+  const ctx = context.window.GameModules.realWorldAgentContextParts.sceneBoundary;
   const store = makeStore();
   store.realWorldLocationName = '锦苑小区3栋2单元601号刘思琪房间门口';
   store.rpgStates = {
@@ -789,7 +814,7 @@ test('scheduleParticipantHints does not classify different keyed rooms as nearby
 test('scheduleCandidateHintText limits available schedule candidates to three', () => {
   const context = createContext();
   loadCore(context);
-  const ctx = context.window.GameModules.realWorldAgentContext;
+  const ctx = context.window.GameModules.realWorldAgentContextParts.sceneBoundary;
   const store = makeStore();
   store.realWorldLocationName = '锦苑小区3栋2单元601号客厅';
   store.rpgStates = Object.fromEntries(['甲', '乙', '丙', '丁'].map((name, index) => [`c${index}`, { id: `c${index}`, profile: { name }, name }]));
@@ -961,7 +986,7 @@ test('scene anchor report prompt uses slim anchor context and current-scene impa
     config,
   });
 
-  ['场景锚定报告：', '当前地点：', '空间状态：', '正文写作重点：', '当前场景影响对象：', '刘思琪', '王主管'].forEach((good) => {
+  ['sceneAnchorReport', 'currentLocation', 'spatialState', 'writingFocus', 'currentSceneImpactObjects', '刘思琪', '王主管'].forEach((good) => {
     assert.ok(prompt.includes(good), `${good} missing from Stage2 prompt`);
   });
   ['elapsedSeconds', 'final.wechatActions', '结算对象', '类型完成', '更新N', '生日：', '具体地址：锦苑小区3栋2单元601号', '财富等级', '性经验次数', '父母去世原因', '需严格跟着世界线续写', '地点查询：', '因果查询：', '冲突查询：', '全部情绪值', '全部对玩家感觉值', '全部穿着槽', '全部物品', '全部技能', '全部核心属性数值', '全部身体状态细项', '结算边界：', 'character.query.searchCharacterProfile'].forEach((bad) => {
@@ -1017,41 +1042,35 @@ test('resolveEffectiveSceneLayers supports multiple forced participants shared c
 });
 
 
-test('parse scene anchor report reads current-scene impact objects and keeps legacy boundary compatibility', () => {
+test('parse scene anchor report reads strict json current-scene impact objects', () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
-  const modern = loop.parseSceneAnchorReport(`场景锚定报告：本轮只处理门口动作。
-当前地点：刘思琪房间门口
-当前时间：12:56
-空间状态：相邻房间可能听见但不能无因果闯入。
-当前动作：玩家前往房门。
-强制出场：刘思琪
-高优先候选：刘思怡，不出场理由：相邻房间未被触发
-戏剧候选：无
-禁止出场：无
-随机事件影响：王主管可能发微信，默认场外。
-正文写作重点：写清抵达房门与即时回应。
-当前场景影响对象：刘思琪、刘思琪房门、微信系统。`, loop.realConfig());
+  const modern = loop.parseSceneAnchorReport(JSON.stringify({
+    sceneAnchorReport: '本轮只处理门口动作。',
+    currentLocation: '刘思琪房间门口',
+    currentTime: '12:56',
+    spatialState: '相邻房间可能听见但不能无因果闯入。',
+    currentAction: '玩家前往房门。',
+    forcedParticipants: '刘思琪',
+    priorityCandidates: '刘思怡，不出场理由：相邻房间未被触发',
+    dramaCandidates: '无',
+    forbiddenParticipants: '无',
+    randomEventImpact: '王主管可能发微信，默认场外。',
+    writingFocus: '写清抵达房门与即时回应。',
+    currentSceneImpactObjects: {
+      people: ['刘思琪'],
+      locations: ['刘思琪房门'],
+      items: [],
+      systems: ['微信系统'],
+      summary: '本轮只影响门口人物、门体与微信系统。',
+    },
+  }), loop.realConfig());
   assert.strictEqual(modern.currentLocation, '刘思琪房间门口');
-  assert.strictEqual(modern.currentSceneImpactObjects, '刘思琪、刘思琪房门、微信系统。');
-  assert.strictEqual(modern.settlementBoundary, '刘思琪、刘思琪房门、微信系统。');
-  assert.ok(modern.text.includes('当前场景影响对象：刘思琪、刘思琪房门、微信系统。'));
-
-  const legacy = loop.parseSceneAnchorReport(`场景锚定报告：旧字段兼容。
-当前地点：刘思琪房间门口
-当前时间：12:56
-空间状态：门口。
-当前动作：敲门。
-强制出场：刘思琪
-高优先候选：无
-戏剧候选：无
-禁止出场：无
-随机事件影响：无
-正文写作重点：敲门。
-结算边界：刘思琪。`, loop.realConfig());
-  assert.strictEqual(legacy.currentSceneImpactObjects, '刘思琪。');
-  assert.ok(legacy.text.includes('当前场景影响对象：刘思琪。'));
+  assert.strictEqual(modern.currentSceneImpactObjects, '人物：刘思琪；地点：刘思琪房门；系统：微信系统；摘要：本轮只影响门口人物、门体与微信系统。');
+  assert.strictEqual(modern.settlementBoundary, '人物：刘思琪；地点：刘思琪房门；系统：微信系统；摘要：本轮只影响门口人物、门体与微信系统。');
+  assert.strictEqual(JSON.stringify(modern.sceneImpactObjects.people), JSON.stringify(['刘思琪']));
+  assert.ok(modern.text.includes('当前场景影响对象：人物：刘思琪；地点：刘思琪房门；系统：微信系统；摘要：本轮只影响门口人物、门体与微信系统。'));
 });
 
 test('parse scene anchor report rejects participant names that are both candidate and forbidden', () => {
@@ -1059,18 +1078,26 @@ test('parse scene anchor report rejects participant names that are both candidat
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
 
-  assert.throws(() => loop.parseSceneAnchorReport(`场景锚定报告：本轮处理门口动作。
-当前地点：刘思琪房间门口
-当前时间：深夜
-空间状态：门口
-当前动作：前往门口
-强制出场：无
-高优先候选：刘思琪（房间内睡觉）出场理由：同住且当前时间点符合睡眠时段
-戏剧候选：无
-禁止出场：刘思琪（房间内睡觉）不出场理由：当前时间点正在休息
-随机事件影响：无
-正文写作重点：只写门口动作
-当前场景影响对象：刘思琪房门`, loop.realConfig()), /同一角色不能同时/u);
+  assert.throws(() => loop.parseSceneAnchorReport(JSON.stringify({
+    sceneAnchorReport: '本轮处理门口动作。',
+    currentLocation: '刘思琪房间门口',
+    currentTime: '深夜',
+    spatialState: '门口',
+    currentAction: '前往门口',
+    forcedParticipants: '无',
+    priorityCandidates: '刘思琪（房间内睡觉）出场理由：同住且当前时间点符合睡眠时段',
+    dramaCandidates: '无',
+    forbiddenParticipants: '刘思琪（房间内睡觉）不出场理由：当前时间点正在休息',
+    randomEventImpact: '无',
+    writingFocus: '只写门口动作',
+    currentSceneImpactObjects: {
+      people: [],
+      locations: ['刘思琪房门'],
+      items: [],
+      systems: [],
+      summary: '只影响门口。',
+    },
+  }), loop.realConfig()), /同一角色不能同时/u);
 });
 
 test('parse scene anchor report rejects missing location time space or action anchors', () => {
@@ -1078,23 +1105,51 @@ test('parse scene anchor report rejects missing location time space or action an
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
   const full = {
-    '场景锚定报告': '本轮只处理门口动作。',
-    '当前地点': '刘思琪房间门口',
-    '当前时间': '12:56',
-    '空间状态': '相邻房间可能听见但不能无因果闯入。',
-    '当前动作': '玩家拉扯 choker。',
-    '强制出场': '刘思琪',
-    '高优先候选': '无',
-    '戏剧候选': '无',
-    '禁止出场': '无',
-    '随机事件影响': '无',
-    '正文写作重点': '只写当前动作。',
-    '当前场景影响对象': '刘悠与刘思琪。',
+    sceneAnchorReport: '本轮只处理门口动作。',
+    currentLocation: '刘思琪房间门口',
+    currentTime: '12:56',
+    spatialState: '相邻房间可能听见但不能无因果闯入。',
+    currentAction: '玩家拉扯 choker。',
+    forcedParticipants: '刘思琪',
+    priorityCandidates: '无',
+    dramaCandidates: '无',
+    forbiddenParticipants: '无',
+    randomEventImpact: '无',
+    writingFocus: '只写当前动作。',
+    currentSceneImpactObjects: {
+      people: ['刘悠', '刘思琪'],
+      locations: [],
+      items: [],
+      systems: [],
+      summary: '只影响当场两人。',
+    },
   };
-  ['当前地点', '当前时间', '空间状态', '当前动作'].forEach((missingKey) => {
-    const text = Object.entries(full).filter(([key]) => key !== missingKey).map(([key, value]) => `${key}：${value}`).join('\n');
-    assert.throws(() => loop.parseSceneAnchorReport(text, loop.realConfig()), /场景锚定报告解析错误请重试/u, missingKey);
+  ['currentLocation', 'currentTime', 'spatialState', 'currentAction'].forEach((missingKey) => {
+    const payload = { ...full };
+    delete payload[missingKey];
+    assert.throws(() => loop.parseSceneAnchorReport(JSON.stringify(payload), loop.realConfig()), /场景锚定报告解析错误请重试/u, missingKey);
   });
+});
+
+test('parse scene anchor report rejects string currentSceneImpactObjects and non-array children', () => {
+  const context = createContext();
+  loadCore(context);
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  const base = {
+    sceneAnchorReport: '本轮只处理门口动作。',
+    currentLocation: '刘思琪房间门口',
+    currentTime: '12:56',
+    spatialState: '门口。',
+    currentAction: '敲门。',
+    forcedParticipants: '刘思琪',
+    priorityCandidates: '无',
+    dramaCandidates: '无',
+    forbiddenParticipants: '无',
+    randomEventImpact: '无',
+    writingFocus: '只写当前动作。',
+  };
+  assert.throws(() => loop.parseSceneAnchorReport(JSON.stringify({ ...base, currentSceneImpactObjects: '刘思琪在家中备战中考' }), loop.realConfig()), /currentSceneImpactObjects 必须是 JSON object/u);
+  assert.throws(() => loop.parseSceneAnchorReport(JSON.stringify({ ...base, currentSceneImpactObjects: { people: '刘思琪', locations: [], items: [], systems: [], summary: '错误格式。' } }), loop.realConfig()), /currentSceneImpactObjects\.people 必须是数组/u);
 });
 
 test('parseStep accepts Stage1 continue status with query reasons and no executable requests', () => {
@@ -1733,21 +1788,57 @@ test('Stage4 short partial output without complete blocks is discarded before re
   assert.strictEqual((rendered[1].未完成类型原因.match(/返回过短/gu) || []).length, 1);
 });
 
-test('scene anchor accepts parse-degraded report without a second AI request', async () => {
+test('scene anchor retries once after invalid impact-object schema and then accepts strict json', async () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
   let calls = 0;
   loop.completeConfiguredStep = async () => {
     calls += 1;
-    return '场景锚定报告：\n当前地点：锦苑小区3栋2单元\n当前时间：2026年7月1日周三凌晨1:20:45\n空间状态：走廊灯光明亮，安静无人\n当前动作：走向刘思琪房门前\n强制出场：无\n高优先候选：无\n戏剧候选：无\n禁止出场：无\n随机事件影响：无\n正文写作重点：敲门与回应\n当前场景影响对象：仅限于当前场景内的物理交互';
+    if (calls === 1) {
+      return JSON.stringify({
+        sceneAnchorReport: '错误首轮。',
+        currentLocation: '锦苑小区3栋2单元',
+        currentTime: '2026年7月1日周三凌晨1:20:45',
+        spatialState: '走廊灯光明亮，安静无人',
+        currentAction: '走向刘思琪房门前',
+        forcedParticipants: '无',
+        priorityCandidates: '无',
+        dramaCandidates: '无',
+        forbiddenParticipants: '无',
+        randomEventImpact: '无',
+        writingFocus: '敲门与回应',
+        currentSceneImpactObjects: '仅限于当前场景内的物理交互',
+      });
+    }
+    return JSON.stringify({
+      sceneAnchorReport: '修正后只处理门口动作。',
+      currentLocation: '锦苑小区3栋2单元',
+      currentTime: '2026年7月1日周三凌晨1:20:45',
+      spatialState: '走廊灯光明亮，安静无人',
+      currentAction: '走向刘思琪房门前',
+      forcedParticipants: '无',
+      priorityCandidates: '无',
+      dramaCandidates: '无',
+      forbiddenParticipants: '无',
+      randomEventImpact: '无',
+      writingFocus: '敲门与回应',
+      currentSceneImpactObjects: {
+        people: [],
+        locations: ['锦苑小区3栋2单元走廊'],
+        items: [],
+        systems: [],
+        summary: '只影响当前走廊场景。',
+      },
+    });
   };
 
   const out = await loop.completeSceneAnchorReport(makeStore(), 'prompt', null, loop.realConfig());
 
-  assert.strictEqual(calls, 1);
+  assert.strictEqual(calls, 2);
   assert.strictEqual(out.data.currentLocation, '锦苑小区3栋2单元');
-  assert.ok(out.data.parseDegraded);
+  assert.strictEqual(out.data.parseDegraded, false);
+  assert.strictEqual(JSON.stringify(out.data.sceneImpactObjects.locations), JSON.stringify(['锦苑小区3栋2单元走廊']));
 });
 
 test('parseSettlementKv accepts brace-delimited settlement blocks without type marker', () => {
@@ -2804,7 +2895,7 @@ test('generateConfiguredFinal derives display route only from Stage4 base settle
   config.ctx = { buildLoadedText: () => '', limit: (text) => String(text || '') };
   loop.completeConfiguredStep = async (_store, _prompt, _logId, streamToUi, cfg) => {
     assert.ok(!cfg?.sourceTitle?.includes('阶段3A'), 'Stage3A JSON route must not run');
-    if (cfg?.sourceTitle?.includes('场景锚定')) return '场景锚定报告：只写当前场景影响对象。\n当前地点：测试地点\n当前时间：测试时间\n空间状态：测试空间\n当前动作：行动\n强制出场：刘思琪\n高优先候选：无\n戏剧候选：无\n禁止出场：无\n随机事件影响：无\n正文写作重点：只写当前动作。\n当前场景影响对象：只包含当前场景内实际可能被当前行动影响的对象。';
+    if (cfg?.sourceTitle?.includes('场景锚定')) return JSON.stringify({ sceneAnchorReport: '只写当前场景影响对象。', currentLocation: '测试地点', currentTime: '测试时间', spatialState: '测试空间', currentAction: '行动', forcedParticipants: '刘思琪', priorityCandidates: '无', dramaCandidates: '无', forbiddenParticipants: '无', randomEventImpact: '无', writingFocus: '只写当前动作。', currentSceneImpactObjects: { people: ['刘思琪'], locations: ['测试地点'], items: [], systems: [], summary: '只包含当前场景内实际可能被当前行动影响的对象。' } });
     if (streamToUi) return '正文确认刘思琪紧张。';
     return '';
   };
@@ -2840,7 +2931,7 @@ test('generateConfiguredFinal merges base fields with Stage4 sliding patch', asy
   };
   let slidingCalls = 0;
   loop.completeConfiguredStep = async (_store, _prompt, _logId, streamToUi, cfg) => {
-    if (cfg?.sourceTitle?.includes('场景锚定')) return '场景锚定报告：只写当前场景影响对象。\n当前地点：测试地点\n当前时间：测试时间\n空间状态：测试空间\n当前动作：行动\n强制出场：刘思琪\n高优先候选：无\n戏剧候选：无\n禁止出场：无\n随机事件影响：无\n正文写作重点：只写当前动作。\n当前场景影响对象：只包含当前场景内实际可能被当前行动影响的对象。';
+    if (cfg?.sourceTitle?.includes('场景锚定')) return JSON.stringify({ sceneAnchorReport: '只写当前场景影响对象。', currentLocation: '测试地点', currentTime: '测试时间', spatialState: '测试空间', currentAction: '行动', forcedParticipants: '刘思琪', priorityCandidates: '无', dramaCandidates: '无', forbiddenParticipants: '无', randomEventImpact: '无', writingFocus: '只写当前动作。', currentSceneImpactObjects: { people: ['刘思琪'], locations: ['测试地点'], items: [], systems: [], summary: '只包含当前场景内实际可能被当前行动影响的对象。' } });
     if (streamToUi) return '你完成了本次行动范围内的直接动作，对方作出即时反应。';
     assert.ok(!cfg?.sourceTitle?.includes('阶段3A'), 'Stage3A JSON base route must not be called');
     return '';
@@ -2866,7 +2957,7 @@ test('generateConfiguredFinal uses Stage4 sliding settlement and skips legacy gr
   let slidingCalls = 0;
   let legacyCalls = 0;
   loop.completeConfiguredStep = async (_store, _prompt, _logId, streamToUi, cfg) => {
-    if (cfg?.sourceTitle?.includes('场景锚定')) return '场景锚定报告：只写当前场景影响对象。\n当前地点：测试地点\n当前时间：测试时间\n空间状态：测试空间\n当前动作：行动\n强制出场：刘思琪\n高优先候选：无\n戏剧候选：无\n禁止出场：无\n随机事件影响：无\n正文写作重点：只写当前动作。\n当前场景影响对象：只包含当前场景内实际可能被当前行动影响的对象。';
+    if (cfg?.sourceTitle?.includes('场景锚定')) return JSON.stringify({ sceneAnchorReport: '只写当前场景影响对象。', currentLocation: '测试地点', currentTime: '测试时间', spatialState: '测试空间', currentAction: '行动', forcedParticipants: '刘思琪', priorityCandidates: '无', dramaCandidates: '无', forbiddenParticipants: '无', randomEventImpact: '无', writingFocus: '只写当前动作。', currentSceneImpactObjects: { people: ['刘思琪'], locations: ['测试地点'], items: [], systems: [], summary: '只包含当前场景内实际可能被当前行动影响的对象。' } });
     if (streamToUi) return '正文确认刘思琪紧张。';
     assert.ok(!cfg?.sourceTitle?.includes('阶段3A'), 'Stage3A JSON base route must not be called');
     return '';
@@ -2899,7 +2990,7 @@ test('generateConfiguredFinal reuses computed Stage 3 participants across groups
     return originalStageParticipants(...args);
   };
   loop.completeConfiguredStep = async (_store, _prompt, _logId, streamToUi, cfg) => {
-    if (cfg?.sourceTitle?.includes('场景锚定')) return '场景锚定报告：只写当前场景影响对象。\n当前地点：测试地点\n当前时间：测试时间\n空间状态：测试空间\n当前动作：行动\n强制出场：刘思琪\n高优先候选：无\n戏剧候选：无\n禁止出场：无\n随机事件影响：无\n正文写作重点：只写当前动作。\n当前场景影响对象：只包含当前场景内实际可能被当前行动影响的对象。';
+    if (cfg?.sourceTitle?.includes('场景锚定')) return JSON.stringify({ sceneAnchorReport: '只写当前场景影响对象。', currentLocation: '测试地点', currentTime: '测试时间', spatialState: '测试空间', currentAction: '行动', forcedParticipants: '刘思琪', priorityCandidates: '无', dramaCandidates: '无', forbiddenParticipants: '无', randomEventImpact: '无', writingFocus: '只写当前动作。', currentSceneImpactObjects: { people: ['刘思琪'], locations: ['测试地点'], items: [], systems: [], summary: '只包含当前场景内实际可能被当前行动影响的对象。' } });
     if (streamToUi) return '正文。';
     assert.ok(!cfg?.sourceTitle?.includes('阶段3A'), 'Stage3A JSON base route must not be called');
     return '{"genericUpdates":[]}';

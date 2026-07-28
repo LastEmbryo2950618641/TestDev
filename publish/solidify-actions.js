@@ -90,23 +90,10 @@ window.GameModules.solidifyActions = {
         const name = this.solidifyCleanPersonToken(raw);
         if (name) out.push({ name, role: 'current-scene' });
       });
+      try { console.debug('[介绍卡调试] sceneImpactObjects.people', { people: structured.people, out }); } catch (_) { /* ignore */ }
       return out;
     }
-    const anchor = anchorRoot.values || anchorRoot;
-    const text = String(anchor['当前场景影响对象'] || anchor.currentSceneImpactObjects || '').trim();
-    if (!text) return out;
-    const peopleMatch = text.match(/(?:人物|角色|人员)[:：]\s*([^；;|｜]+)/u);
-    if (peopleMatch) {
-      peopleMatch[1].split(/[、,，]/u).forEach((raw) => {
-        const name = this.solidifyCleanPersonToken(raw);
-        if (name) out.push({ name, role: 'current-scene' });
-      });
-      return out;
-    }
-    text.split(/[、,，；;\n]/u).forEach((raw) => {
-      const name = this.solidifyCleanPersonToken(raw);
-      if (name) out.push({ name, role: 'current-scene' });
-    });
+    try { console.debug('[介绍卡调试] missing-structured-sceneImpactObjects', { anchorRoot }); } catch (_) { /* ignore */ }
     return out;
   },
 

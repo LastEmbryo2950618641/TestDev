@@ -1,4 +1,4 @@
-# Stage6 自然外观补丁
+# Stage7 自然外观补丁
 
 ## System Prompt
 
@@ -61,3 +61,4 @@ Rules：
 
 index 必须与固定列表一致：头发1、脸部2、耳朵3、脖颈4、胸部5、双臂6、小腹7、臀部8、神秘花园9、双大腿10、双小腿11。
 只输出本次更新范围要求的字段；不更新 meta 时不要返回 bodyProfileMeta；不更新部位时不要返回 bodyProfile。
+

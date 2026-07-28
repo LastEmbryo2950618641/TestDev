@@ -1,7 +1,7 @@
 window.GameModules = window.GameModules || {};
 
 /**
- * Stage10：正文后串行结算
+ * Stage11：正文后串行结算
  * 1) 生命层次经验（击杀吸收 / 能力吸收）
  * 2) 知识/技能/职业经验（AI 按正文练习与使用结算）
  */
@@ -96,7 +96,7 @@ window.GameModules.inferenceLifeEnergyStage = {
 
   buildPrompt({ narration = '', action = '', levelSnapshot = '', learnedSnapshot = '' } = {}) {
     return [
-      '# Stage10 经验结算（生命层次 + 习得）',
+      '# Stage11 经验结算（生命层次 + 习得）',
       '角色：经验结算器。只输出一个合法 JSON 对象，不要 Markdown、解释或正文。',
       '',
       '## A. 生命层次经验 gains（能量积累）',
@@ -139,8 +139,8 @@ window.GameModules.inferenceLifeEnergyStage = {
     const levelSnapshot = this.participantLevelLines(store, participants);
     const learnedSnapshot = this.participantLearnedLines(store, participants);
     const prompt = this.buildPrompt({ narration, action, levelSnapshot, learnedSnapshot });
-    loop?.markConfiguredStep?.(store, logId, `${config?.label || ''}正在进行 Stage10 经验结算…`, config, { keepNarration: true });
-    loop?.patchConfiguredSettlementThinking?.(store, logId, 'Stage10：结算生命层次经验与知识/技能/职业经验。', {
+    loop?.markConfiguredStep?.(store, logId, `${config?.label || ''}正在进行 Stage11 经验结算…`, config, { keepNarration: true });
+    loop?.patchConfiguredSettlementThinking?.(store, logId, 'Stage11：结算生命层次经验与知识/技能/职业经验。', {
       ...config,
       settlementThinking: true,
       settlementThinkingKey: 'settlement-status',
@@ -149,18 +149,18 @@ window.GameModules.inferenceLifeEnergyStage = {
     });
     let raw = '';
     try {
-      raw = await loop.completeConfiguredStep(store, prompt, logId, false, {
+      raw = await loop.completeCachedJsonPrompt(store, {
+        prompt,
+        logId,
         ...config,
-        sourceTitle: `${config?.label || ''}Stage10 经验结算`,
+        sourceTitle: `${config?.label || ''}Stage11 经验结算`,
         promptId: 'inference-stage10-life-energy-exp',
-        reasoningPhase: 'stage10',
-        streamToUi: false,
+        reasoningPhase: 'stage11',
         jsonMode: true,
-        responseFormat: { type: 'json_object' },
         outputLimitKind: 'stage4',
       });
     } catch (err) {
-      console.warn('[Stage10经验] 生成失败:', err?.message || err);
+      console.warn('[Stage11经验] 生成失败:', err?.message || err);
       return { gains: [], learnedGains: [], lines: [`经验结算失败：${err?.message || '未知错误'}`], skipped: true, error: err?.message };
     }
     const parsed = this.parseGainsPayload(raw);
@@ -176,3 +176,4 @@ window.GameModules.inferenceLifeEnergyStage = {
     };
   },
 };
+

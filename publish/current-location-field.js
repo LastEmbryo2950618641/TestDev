@@ -22,7 +22,7 @@ window.GameModules.currentLocationField = {
 
   /**
    * Profile location chain:
-   * [势力层级链...] · 地点 · 地点内位置
+   * 所在世界 · 势力 · 层级1 · 层级2 · 地点 · 详细的具体位置
    * Fix common model/card mistakes like「武侯区锦苑小区3栋」(missing · between district and POI).
    */
   coerceToProfileFormat(value = '') {
@@ -35,10 +35,10 @@ window.GameModules.currentLocationField = {
     return text;
   },
 
-  /** Valid when >=3 parts: at least one force segment + place + interior. */
+  /** Valid when >=6 parts: world + force chain + map node + interior. */
   isValidProfileFormat(value = '') {
     const parts = this.parts(this.coerceToProfileFormat(value));
-    if (parts.length < 3) return false;
+    if (parts.length < 6) return false;
     if (parts.some((part) => !part || this.isPlaceholderPart(part))) return false;
     return true;
   },

@@ -116,25 +116,23 @@ test('surround unlock prompt documents five-field response with neighbor faction
   assert.ok(prompt.includes('越具体越好') || prompt.includes('尽量精确'));
   assert.ok(prompt.includes('不需要更新（禁止输出）'));
   assert.ok(prompt.includes('需要更新（必须输出）'));
-  assert.ok(prompt.includes('[势力层级链...]·地点·地点内位置'));
-  assert.ok(prompt.includes('倒数第 2 段'));
-  assert.ok(prompt.includes('最后 1 段'));
-  assert.ok(prompt.includes('段数不固定'));
+  assert.ok(prompt.includes('所在世界·势力·层级1·层级2·地点·详细的具体位置'));
+  assert.ok(prompt.includes('角色卡当前位置格式为固定六段链式'));
   assert.ok(prompt.includes('"距离"'));
   assert.ok(prompt.includes('"地点名"'));
   assert.ok(prompt.includes('每项必须写 `距离`、`地点名`、`势力`'));
   assert.ok(prompt.includes('出场人物：{{出场人物}}'));
   assert.ok(prompt.includes('正式地图地点名'));
-  assert.ok(prompt.includes('中华人民共和国·四川省成都市·武侯区·锦苑小区3栋·2单元601室内楼梯上第一间房间床上'));
+  assert.ok(prompt.includes('2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋·2单元601室内楼梯上第一间房间床上'));
   assert.ok(prompt.includes('"出场人物位置": []'));
 });
 
 test('surround unlock prompt is simple and inline synced', () => {
   const prompt = read('publish/prompts/real-world-map-surround-unlock.md');
   const inline = read('publish/prompts/real-world-map-surround-unlock.js');
-  assert.ok(prompt.includes('Stage9 电子地图周围解锁') || prompt.includes('电子地图周围解锁'));
+  assert.ok(prompt.includes('Stage10 电子地图周围解锁') || prompt.includes('电子地图周围解锁'));
   assert.ok(prompt.includes('字段固定只有五个'));
-  assert.ok(inline.includes('Stage9 电子地图周围解锁') || inline.includes('电子地图周围解锁'));
+  assert.ok(inline.includes('Stage10 电子地图周围解锁') || inline.includes('电子地图周围解锁'));
   assert.ok(inline.includes('字段固定只有五个'));
   assert.ok(inline.includes('出场人物位置'));
   assert.ok(!prompt.includes('\ufffd'));
@@ -886,7 +884,7 @@ test('surround unlock debug is enabled by default and records raw shape', () => 
     周围地点: [{ 距离: '约30米', 地点名: '锦苑小区2栋', 势力: '中华人民共和国·四川省成都市·武侯区' }],
     势力: ['锦苑小区物业·社区管理组织·楼栋管理'],
     地点信息: ['1. 当前节点位于小区内部。'],
-    出场人物位置: [{ 姓名: '刘思琪', 当前位置: '中华人民共和国·四川省成都市·武侯区·锦苑小区3栋·2单元202' }],
+    出场人物位置: [{ 姓名: '刘思琪', 当前位置: '2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋·2单元202' }],
   }, { name: '锦苑小区3栋' }, {}, 'full');
   assert.strictEqual(payload.debugShape.hasInteriorLayout, false);
   assert.strictEqual(payload.currentNode, '锦苑小区3栋');
@@ -897,7 +895,7 @@ test('surround unlock debug is enabled by default and records raw shape', () => 
   assert.strictEqual(payload.surroundLocations[0].distanceText, '约30米');
   assert.strictEqual(payload.surroundLocations[0].faction, '中华人民共和国·四川省成都市·武侯区');
   assert.strictEqual(payload.characterLocations[0].name, '刘思琪');
-  assert.strictEqual(payload.characterLocations[0].location, '中华人民共和国·四川省成都市·武侯区·锦苑小区3栋·2单元202');
+  assert.strictEqual(payload.characterLocations[0].location, '2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋·2单元202');
   assert.strictEqual(payload.characterLocations[0].mapNodeName, '锦苑小区3栋');
 });
 
@@ -1030,7 +1028,7 @@ test('surround unlock applies neighbor faction and appearing character locations
   loadScript(context, 'publish/current-location-field.js');
   loadScript(context, 'publish/real-world-map-fog.js');
   const fog = context.window.GameModules.realWorldMapFog;
-  const fullLocation = '中华人民共和国·四川省成都市·武侯区·锦苑小区3栋·2单元202';
+  const fullLocation = '2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋·2单元202';
   const state = {
     locationGraph: {
       nodesById: {
@@ -1072,8 +1070,7 @@ test('surround unlock applies neighbor faction and appearing character locations
   assert.ok(anchor.descriptionFacts.some((item) => item.includes('势力：中华人民共和国·四川省成都市·武侯区')));
   assert.strictEqual(state.characterSchedules.sis.currentLocation, '锦苑小区3栋');
   assert.strictEqual(state.rpgStates.sis.profile.currentLocation, fullLocation);
-  assert.strictEqual(state.rpgStates.sis.values.current_location.currentLocation, fullLocation);
-  assert.strictEqual(state.rpgStates.sis.values.current_location.name, '锦苑小区3栋');
+  assert.ok(!Object.prototype.hasOwnProperty.call(state.rpgStates.sis.values, 'current_location'));
 });
 
 test('surround unlock keeps AI character location text even when map format is invalid', () => {
@@ -1172,7 +1169,7 @@ test('surround unlock writes profile.currentLocation for matched character', asy
   loadScript(context, 'publish/current-location-field.js');
   loadScript(context, 'publish/real-world-map-fog.js');
   const fog = context.window.GameModules.realWorldMapFog;
-  const full = '中华人民共和国·四川省成都市·武侯区·锦苑小区3栋·2单元601';
+  const full = '2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋·2单元601';
   const state = {
     rpgStates: {
       sis: { id: 'sis', name: '刘思琪', profile: { name: '刘思琪' }, values: { current_location: { name: '当前位置未知' } } },
@@ -1187,7 +1184,7 @@ test('surround unlock writes profile.currentLocation for matched character', asy
   }, map.nodes[0], map, 'full');
   await fog.applySurroundUnlock(state, map, map.nodes[0], map.nodes[0], payload);
   assert.strictEqual(state.rpgStates.sis.profile.currentLocation, full);
-  assert.strictEqual(state.rpgStates.sis.values.current_location.currentLocation, full);
+  assert.ok(!Object.prototype.hasOwnProperty.call(state.rpgStates.sis.values, 'current_location'));
   assert.strictEqual(context.window.GameModules.characterStateStore.saved[0]?.profile?.currentLocation, full);
 });
 
@@ -1229,7 +1226,7 @@ test('surround unlock matches by ID and merges onto live card', async () => {
   loadScript(context, 'publish/real-world-map-fog.js');
   const fog = context.window.GameModules.realWorldMapFog;
   const storeApi = context.window.GameModules.characterStateStore;
-  const full = '中华人民共和国·四川省成都市·武侯区·锦苑小区3栋·2单元601室内楼梯上第一间房间床上';
+  const full = '2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋·2单元601室内楼梯上第一间房间床上';
   const live = {
     id: 'rel-ai-247528',
     name: '刘思琪',
@@ -1261,7 +1258,7 @@ test('surround unlock matches by ID and merges onto live card', async () => {
   assert.strictEqual(state.rpgStates['rel-ai-247528'].profile.currentLocation, full);
   assert.strictEqual(state.characterSchedules['rel-ai-247528'].profileCurrentLocation, full);
   // adopt/mergeOntoLive must not clobber a live recorded location with a stale clone's alternate value
-  stale.profile.currentLocation = '中华人民共和国·四川省成都市·武侯区·锦苑小区3栋·客厅沙发上';
+  stale.profile.currentLocation = '2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋·客厅沙发上';
   storeApi.adopt(stale, state);
   assert.strictEqual(live.profile.currentLocation, full);
 });

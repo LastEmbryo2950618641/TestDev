@@ -1,4 +1,4 @@
-﻿/**
+/**
 
  * 电子地图迷雾：已访问建筑物 + 其一圈邻域可见；首次抵达且无同级邻点时 AI 解锁周围。
 
@@ -773,7 +773,7 @@ window.GameModules.realWorldMapFog = {
       promptForbidsInteriorLayout: String(prompt || '').includes('禁止返回 `interiorLayout`'),
       promptHasSurroundFactionRule: String(prompt || '').includes('每项必须写 `距离`、`地点名`、`势力`'),
       promptHasCharacterLocationField: String(prompt || '').includes('出场人物位置'),
-      promptHasProfileLocationFormat: String(prompt || '').includes('[势力层级链...]·地点·地点内位置'),
+      promptHasProfileLocationFormat: String(prompt || '').includes('所在世界·势力·层级1·层级2·地点·详细的具体位置'),
       promptPreview: String(prompt || '').slice(0, 1200),
     });
 
@@ -781,9 +781,9 @@ window.GameModules.realWorldMapFog = {
 
       source: 'real-world-map-surround-unlock',
 
-      sourceTitle: 'Stage9 电子地图周围解锁',
+      sourceTitle: 'Stage10 电子地图周围解锁',
 
-      reasoningPhase: 'stage9',
+      reasoningPhase: 'Stage10',
 
       promptId: 'real-world-map-surround-unlock',
 
@@ -2323,3 +2323,4 @@ window.GameModules.realWorldMapFog = {
   },
 
 };
+

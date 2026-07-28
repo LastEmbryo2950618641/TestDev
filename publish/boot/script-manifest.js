@@ -321,6 +321,7 @@ window.GameScriptManifest = {
       "real-world-target-updates.js",
       "real-world-thinking-actions.js",
       "real-world-settlement-actions.js",
+      "inference/intro-card-stage-update.js",
       "real-world-profile-stage5.js",
       "real-world-utility-actions.js",
       "real-world-actions.js",

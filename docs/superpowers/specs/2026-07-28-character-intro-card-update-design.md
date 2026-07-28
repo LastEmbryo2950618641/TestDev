@@ -254,6 +254,33 @@ Stage5 完成一次基线同步。后续外观等专项阶段如果在同一回�
 - 原 Stage10 经验结算顺延为 Stage11。
 - 原 Stage11 新闻更新顺延为 Stage12。
 
+## Stage5 运行设计
+
+Stage5 是正文后串行结算的一部分，不是单纯的 `ensure` 同步步骤。
+
+| 环节 | 输入 | AI/KV | 输出 | 写入边界 |
+| --- | --- | --- | --- | --- |
+| 候选收集 | Stage4 的 `appearedCharacters`、`solidifiableCharacters` 与本轮参与者 | 不请求 AI | 去重后的本轮人物/存在候选 | 只确保介绍卡存在 |
+| 完整卡判定 | 候选介绍卡与同 ID/同名角色卡 | 不请求 AI | 分成“完整角色卡”和“仅介绍卡/空壳” | 完整角色卡只同步介绍卡，不独立推演 |
+| Stage5 AI 更新 | 仅介绍卡/空壳候选、正文、Stage4 摘要、本轮参与者 | 使用正文后共享 KV fork；每回合最多一次请求 | `ops` 单字段操作 | 只允许修改介绍卡可维护字段 |
+| 操作应用 | AI 返回的 `ops` | 不请求 AI | applied/rejected 结果行 | 非法字段、整组覆盖、零增量、目标不存在的替换/删除逐条拒绝 |
+| 后续串联 | Stage5 结果进入 `characterCardChanges` | 与 Stage6–9、Stage11–12 共用同一个正文后 KV fork | 后续阶段可读取前一阶段上下文 | Stage10 地图周围解锁在主循环落库后使用 pending KV 继续追加 |
+
+正文后主链路必须保持：
+
+```text
+Stage4 状态结算
+→ Stage5 介绍卡更新
+→ Stage6 外观门控
+→ Stage7 自然外观补丁
+→ Stage8 盛装外观补丁
+→ Stage9 势力更新
+→ Stage11 经验结算
+→ Stage12 新闻热榜
+```
+
+Stage10 电子地图周围解锁在正文后状态落库完成后运行，但仍应通过 `realWorldAgentPendingKvByMode.real` 继承本轮主推演 KV 上下文。
+
 ## 共享总提示词
 
 以下文本作为角色卡 Stage4 与介绍卡 Stage5 的共同规则源。阶段提示词只补充目标卡类型、候选人物、当前卡片资料和输出 JSON 合约。

@@ -1,13 +1,13 @@
 ---
-name: stage8-faction-update
-description: 正文与 Stage4–7 之后串行执行的势力创建/字段更新（Skill 写库）
+name: Stage9-faction-update
+description: 正文与 Stage4–8 之后串行执行的势力创建/字段更新（Skill 写库）
 ---
 
-# Stage8 势力更新
+# Stage9 势力更新
 
 只输出一个合法 JSON 对象，不要 Markdown、解释或正文。
 
-本阶段在 Stage4–7 **之后串行**执行，可利用上文正文与结算上下文。
+本阶段在 Stage4–8 **之后串行**执行，可利用上文正文与结算上下文。
 
 ## 规则
 
@@ -31,3 +31,4 @@ description: 正文与 Stage4–7 之后串行执行的势力创建/字段更新
 ```json
 { "ops": [ { "method": "createFaction|patchFactionField", "params": {} } ], "done": true }
 ```
+

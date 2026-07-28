@@ -1,7 +1,7 @@
 window.GameModules = window.GameModules || {};
 
 /**
- * Stage8：正文与 Stage4–7 之后的势力创建/字段更新（串行）。
+ * Stage9：正文与 Stage4–8 之后的势力创建/字段更新（串行）。
  * 强制 JSON，只追加 user 消息到主 KV 会话，避免中途插入 system / 切深度思考导致缓存 miss。
  * 写库只走 faction.query skill：createFaction（完整）/ patchFactionField（增量）。
  */
@@ -29,7 +29,7 @@ window.GameModules.inferenceFactionStageUpdate = {
       const params = op?.params && typeof op.params === 'object' ? op.params : {};
       if (!method || !ctx?.faction) continue;
       if (!['createFaction', 'patchFactionField', 'getFactionField'].includes(method)) {
-        lines.push(`势力Stage8：跳过未知 method ${method}`);
+        lines.push(`势力Stage9：跳过未知 method ${method}`);
         continue;
       }
       const text = typeof ctx.faction === 'function'
@@ -43,7 +43,7 @@ window.GameModules.inferenceFactionStageUpdate = {
 
   buildPrompt({ narration = '', action = '', factionIndex = '' } = {}) {
     return [
-      '# Stage8 势力更新',
+      '# Stage9 势力更新',
       '角色：势力写库器。只返回合法 JSON ops，通过 skill 创建或补丁更新势力。',
       '只输出一个合法 JSON 对象，不要 Markdown、解释或正文。',
       '本阶段串行接在上文推演上下文之后；请利用上文正文与结算上下文。',
@@ -84,8 +84,8 @@ window.GameModules.inferenceFactionStageUpdate = {
     const factionIndex = ctx?.factionList?.(store) || '暂无势力。';
     // 只追加 user，不中途插 system，才能命中主会话前缀缓存。
     const prompt = this.buildPrompt({ narration, action, factionIndex });
-    loop?.markConfiguredStep?.(store, logId, `${config?.label || ''}正在进行 Stage8 势力更新…`, config, { keepNarration: true });
-    loop?.patchConfiguredSettlementThinking?.(store, logId, 'Stage8 势力更新：按势力 ID/字段创建或更新。', {
+    loop?.markConfiguredStep?.(store, logId, `${config?.label || ''}正在进行 Stage9 势力更新…`, config, { keepNarration: true });
+    loop?.patchConfiguredSettlementThinking?.(store, logId, 'Stage9 势力更新：按势力 ID/字段创建或更新。', {
       ...config,
       settlementThinking: true,
       settlementThinkingKey: 'settlement-status',
@@ -94,22 +94,23 @@ window.GameModules.inferenceFactionStageUpdate = {
     });
     let raw = '';
     try {
-      raw = await loop.completeConfiguredStep(store, prompt, logId, false, {
+      raw = await loop.completeCachedJsonPrompt(store, {
+        prompt,
+        logId,
         ...config,
-        sourceTitle: `${config?.label || ''}Stage8 势力更新`,
+        sourceTitle: `${config?.label || ''}Stage9 势力更新`,
         promptId: 'inference-stage6-faction-update',
-        reasoningPhase: 'stage8',
-        streamToUi: false,
+        reasoningPhase: 'stage9',
         jsonMode: true,
-        responseFormat: { type: 'json_object' },
         outputLimitKind: 'stage4',
       });
     } catch (err) {
-      console.warn('[Stage8势力] 生成失败:', err?.message || err);
-      return { ops: [], lines: [`势力Stage8失败：${err?.message || '未知错误'}`], skipped: true, error: err?.message };
+      console.warn('[Stage9势力] 生成失败:', err?.message || err);
+      return { ops: [], lines: [`势力Stage9失败：${err?.message || '未知错误'}`], skipped: true, error: err?.message };
     }
     const parsed = this.parseOpsPayload(raw);
     const applied = this.applyOps(store, parsed.ops);
     return { ops: parsed.ops, lines: applied.lines, applied: applied.applied, raw };
   },
 };
+

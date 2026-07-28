@@ -94,30 +94,33 @@ Object.assign(window.GameModules.playerSetupActions, {
     try {
       this.setupError = '';
       if (this.roleCardSetup) this.roleCardSetup.usePredefinedPlayerCard = false;
-      const example = await this.defaultExistingAccountProfile();
-      const initializeTraits = !this.playerProfileTraitDefaultsApplied;
+      const current = this.playerProfile || {};
       this.playerProfile = {
-        ...this.playerProfile,
-        name: this.playerProfile.name || example.name || '',
-        gender: this.playerProfile.gender || example.gender || '',
-        birthday: this.playerProfile.birthday || example.birthday || '',
-        city: this.playerProfile.city || example.city || '',
-        currentLocation: this.playerProfile.currentLocation || example.currentLocation || '',
-        dailyRole: this.playerProfile.dailyRole || example.dailyRole || '',
-        livingStatus: this.playerProfile.livingStatus || example.livingStatus || '',
-        ...this.normalizePlayerWealth?.(this.playerProfile),
-        parents: this.playerProfile.parents || example.parents || '',
-        parentDeathCause: this.playerProfile.parentDeathCause || example.parentDeathCause || '',
-        relationships: this.playerProfile.relationships || example.relationships || '',
-        relationshipEntries: this.playerProfile.relationshipEntries?.length ? this.playerProfile.relationshipEntries : example.relationshipEntries || [],
-        appearance: initializeTraits ? (example.appearance || '') : (this.playerProfile.appearance ?? ''),
-        preferences: initializeTraits ? (example.preferences || '') : (this.playerProfile.preferences ?? ''),
-        personality: initializeTraits ? (example.personality || '') : (this.playerProfile.personality ?? ''),
-        notes: this.playerProfile.notes || example.notes || '',
+        name: (current.name || this.playerName || '').trim(),
+        gender: (current.gender || '').trim(),
+        birthday: (current.birthday || '').trim(),
+        wealthTier: current.wealthTier || '中产',
+        relationshipEntries: this.normalizeRelationshipEntries(current.relationshipEntries, current.relationships),
+        relationships: (current.relationships || '').trim(),
+        notes: (current.notes || '').trim(),
+        currentLocation: '',
+        city: '',
+        dailyRole: '',
+        livingStatus: '',
+        parents: '',
+        parentDeathCause: '',
+        appearance: '',
+        preferences: '',
+        personality: '',
       };
-      this.playerProfileTraitDefaultsApplied = true;
-      this.playerProfile.relationshipEntries = this.normalizeRelationshipEntries(this.playerProfile.relationshipEntries, this.playerProfile.relationships);
-      this.existingProfileExpanded = true;
+      this.playerProfileTraitDefaultsApplied = false;
+      this.existingProfileExpanded = false;
+      if (this.roleCardSetup) {
+        this.roleCardSetup.detailOpen = false;
+        this.roleCardSetup.cardDetailOpen = '';
+        this.roleCardSetup.selectedPlayerId = '';
+        this.roleCardSetup.selectedCardId = '';
+      }
       this.phoneActivationChoice = 'new';
     } catch (err) {
       console.error('[玩家身份] 新账号默认资料读取失败:', err.message, err.stack);
@@ -130,8 +133,8 @@ Object.assign(window.GameModules.playerSetupActions, {
   isCompletePlayerCurrentLocation(value = '', profile = {}) {
     const tool = window.GameModules.currentLocationField;
     const parts = tool?.parts ? tool.parts(value) : String(value || '').split('·').map((part) => part.trim()).filter(Boolean);
-    if (parts.length < 5) return false;
-    const mapNode = String(parts[3] || '').trim();
+    if (parts.length < 6) return false;
+    const mapNode = String(parts.at(-2) || '').trim();
     if (!mapNode || /未知|某处|某地|附近|一处|普通/u.test(mapNode)) return false;
     const name = String(profile?.name || '').trim();
     if (name && mapNode.includes(name)) return false;
@@ -233,11 +236,11 @@ Object.assign(window.GameModules.playerSetupActions, {
       '你是严格的结构化数据生成器，只负责根据玩家角色卡上下文补全进入游戏时的当前位置。',
       '只输出合法 JSON 对象，不输出 Markdown、解释或额外文字。',
       'JSON Schema：{"type":"object","required":["currentLocation"],"additionalProperties":false,"properties":{"currentLocation":{"type":"string"},"refinedCity":{"type":"string"}}}',
-      'currentLocation 格式固定为：势力·势力层级1·势力层级2·地点·地点内位置。',
-      '第4段“地点”必须是正式地图地点名，可作为电子地图节点名，例如“锦苑小区3栋”“星河云栈科技园B座”“青石镇东市”“王都白塔宫”。',
-      '第5段“地点内位置”才允许写门牌、房间、工位、宿舍床位、宫殿内殿等内部位置。',
-      '不得把人物姓名拼进第4段地点；不得用“未知、某处、附近、普通地点”等模糊词。',
-      '势力与层级必须是真实控制/管辖结构；现代现实可用国家/省级/区县级，异世界可用王国/行省/郡县/宗门等对应结构。',
+      'currentLocation 格式固定为：所在世界·势力·层级1·层级2·地点·详细的具体位置，并按段分开写清每一层级。',
+      '第5段“地点”必须是正式地图地点名，可作为电子地图节点名，例如“锦苑小区3栋”“星河云栈科技园B座”“青石镇东市”“王都白塔宫”。',
+      '第6段“详细的具体位置”才允许写门牌、房间、工位、宿舍床位、宫殿内殿等内部位置。',
+      '不得把人物姓名拼进第5段地点；不得把两个层级合并进同一段；不得用“未知、某处、附近、普通地点”等模糊词。',
+      '势力与层级必须是真实控制/管辖结构；现代现实可用国家/省级/市级/区县级等分段结构，异世界可用王国/行省/郡县/宗门等对应结构。',
       `玩家角色卡上下文：${JSON.stringify(context)}`,
     ].join('\n');
     let timeoutId = null;
@@ -246,7 +249,7 @@ Object.assign(window.GameModules.playerSetupActions, {
       this.setCurrentLocationFillProgress({
         percent: 35,
         step: '正在请求 AI 获取地点',
-        detail: '只请求 currentLocation：势力·势力层级1·势力层级2·地点·地点内位置。',
+      detail: '只请求 currentLocation：所在世界·势力·层级1·层级2·地点·详细的具体位置。',
       });
       data = await Promise.race([
         window.GameModules.jsonUtils.generateJsonWithRetry({ source: 'player-current-location-fill', promptId: 'player-current-location-fill', model: this.modelId, timeoutMs: 60000, prompt, format: prompt, max: 2 }),
