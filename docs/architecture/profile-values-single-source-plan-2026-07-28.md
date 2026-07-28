@@ -120,3 +120,22 @@
 - 组织、人事、技能、知识、职业、穿着更新后，只改 `profile`。
 - 旧存档加载后自动迁移，不需要用户手动重开。
 - Android assets 与 `publish` 保持一致。
+
+## 2026-07-28 实施记录
+
+当前安全点提交：`8524997c refactor(profile): keep mutable facts in profile`。
+
+已完成：
+
+- `rpg-state.js` 增加 `migrateProfileOwnedFields(state)` 与 `stripProfileOwnedValues(state)`，加载 / 保存时将旧 `values` 重复字段迁移到 `profile` 后删除。
+- 背包、穿戴、社群角色、人事归属、知识、技能、职业、年龄、上线体验等入口已切到 `profile` 读写。
+- 结算 update 兼容层可以接受旧 `values.*` 输入，但落盘路径转写为 `profile.*`，不再写回 `values`。
+- 预定义角色卡与 Android assets 已同步清理重复字段。
+- 已通过 `android:sync-assets -- --check`、`verify:assets` 与核心 profile 迁移测试。
+
+后续继续修改前必须遵守：
+
+- 不新增 `profile` / `values` 双写，不用“兜底同步”重新制造两份资料。
+- 如果发现旧逻辑仍读写 `values.items`、`values.wearing`、`values.memberships` 等字段，应改为直接读写对应 `profile` 字段。
+- 兼容旧存档只能发生在迁移 / update applier 层，业务模块不应继续依赖旧 `values.*` 资料字段。
+- 搜索命中 `values.*` 时要区分“本地变量名 values”和真正的 `state.values`；前者不是数据源重复，但后续可按可读性单独重命名。
