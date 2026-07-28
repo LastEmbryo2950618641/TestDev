@@ -280,6 +280,60 @@ test('new account applies player trait defaults only once', async () => {
   assert.strictEqual(store.playerProfile.appearance, '');
 });
 
+test('new account pre-fills default profile without selecting predefined cards', async () => {
+  const modules = loadPlayerSetupDefaultsModule();
+  const defaults = {
+    name: 'Default Name',
+    gender: 'Default Gender',
+    birthday: '1998-11-19',
+    city: 'Default City',
+    currentLocation: 'Default World·Default Faction·Default Layer·Default Area·Default Place·Default Detail',
+    dailyRole: 'Default Role',
+    livingStatus: 'Default Living Status',
+    parents: 'Default Parents',
+    parentDeathCause: 'Default Cause',
+    wealthTier: 'Default Wealth',
+    relationships: 'Default Relations',
+    relationshipEntries: [{ relation: 'Default Relation', name: 'Default Person', detail: 'Default Detail' }],
+    appearance: 'Default Appearance',
+    preferences: 'Default Preferences',
+    personality: 'Default Personality',
+    notes: 'Default Notes',
+  };
+  const store = {
+    profileSetupBusy: false,
+    playerProfileTraitDefaultsApplied: false,
+    playerProfile: {},
+    roleCardSetup: { usePredefinedPlayerCard: true },
+    defaultExistingAccountProfile: async () => defaults,
+    normalizeRelationshipEntries: (entries) => entries || [],
+    normalizePlayerWealth: (profile) => ({ wealthTier: profile.wealthTier || 'Normalized Wealth' }),
+  };
+  Object.assign(store, modules.playerSetupActions);
+  store.defaultExistingAccountProfile = async () => defaults;
+
+  await store.chooseNewAccountSetup();
+  assert.strictEqual(store.playerProfile.name, 'Default Name');
+  assert.strictEqual(store.playerProfile.gender, 'Default Gender');
+  assert.strictEqual(store.playerProfile.birthday, '1998-11-19');
+  assert.strictEqual(store.playerProfile.currentLocation, 'Default World·Default Faction·Default Layer·Default Area·Default Place·Default Detail');
+  assert.strictEqual(store.playerProfile.dailyRole, 'Default Role');
+  assert.strictEqual(store.playerProfile.livingStatus, 'Default Living Status');
+  assert.strictEqual(store.playerProfile.parents, 'Default Parents');
+  assert.strictEqual(store.playerProfile.relationships, 'Default Relations');
+  assert.strictEqual(store.playerProfile.relationshipEntries.length, 1);
+  assert.strictEqual(store.playerProfile.appearance, 'Default Appearance');
+  assert.strictEqual(store.playerProfile.preferences, 'Default Preferences');
+  assert.strictEqual(store.playerProfile.personality, 'Default Personality');
+  assert.strictEqual(store.playerProfile.notes, 'Default Notes');
+  assert.strictEqual(store.roleCardSetup.usePredefinedPlayerCard, false);
+  assert.strictEqual(store.playerProfileTraitDefaultsApplied, true);
+
+  store.playerProfile.appearance = 'User Appearance';
+  await store.chooseNewAccountSetup();
+  assert.strictEqual(store.playerProfile.appearance, 'User Appearance');
+});
+
 test('game declares and new game resets player trait default initialization', () => {
   const gameSource = fs.readFileSync('publish/game.js', 'utf8');
   const homeSource = fs.readFileSync('publish/home-actions.js', 'utf8');

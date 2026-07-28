@@ -95,25 +95,29 @@ Object.assign(window.GameModules.playerSetupActions, {
       this.setupError = '';
       if (this.roleCardSetup) this.roleCardSetup.usePredefinedPlayerCard = false;
       const current = this.playerProfile || {};
+      const example = await this.defaultExistingAccountProfile();
+      const initializeTraits = !this.playerProfileTraitDefaultsApplied;
       this.playerProfile = {
-        name: (current.name || this.playerName || '').trim(),
-        gender: (current.gender || '').trim(),
-        birthday: (current.birthday || '').trim(),
-        wealthTier: current.wealthTier || '中产',
-        relationshipEntries: this.normalizeRelationshipEntries(current.relationshipEntries, current.relationships),
-        relationships: (current.relationships || '').trim(),
-        notes: (current.notes || '').trim(),
-        currentLocation: '',
-        city: '',
-        dailyRole: '',
-        livingStatus: '',
-        parents: '',
-        parentDeathCause: '',
-        appearance: '',
-        preferences: '',
-        personality: '',
+        ...current,
+        name: current.name || this.playerName || example.name || '',
+        gender: current.gender || example.gender || '',
+        birthday: current.birthday || example.birthday || '',
+        city: current.city || example.city || '',
+        currentLocation: current.currentLocation || example.currentLocation || '',
+        dailyRole: current.dailyRole || example.dailyRole || '',
+        livingStatus: current.livingStatus || example.livingStatus || '',
+        ...this.normalizePlayerWealth?.(current),
+        parents: current.parents || example.parents || '',
+        parentDeathCause: current.parentDeathCause || example.parentDeathCause || '',
+        relationships: current.relationships || example.relationships || '',
+        relationshipEntries: current.relationshipEntries?.length ? current.relationshipEntries : example.relationshipEntries || [],
+        appearance: initializeTraits ? (example.appearance || '') : (current.appearance ?? ''),
+        preferences: initializeTraits ? (example.preferences || '') : (current.preferences ?? ''),
+        personality: initializeTraits ? (example.personality || '') : (current.personality ?? ''),
+        notes: current.notes || example.notes || '',
       };
-      this.playerProfileTraitDefaultsApplied = false;
+      this.playerProfile.relationshipEntries = this.normalizeRelationshipEntries(this.playerProfile.relationshipEntries, this.playerProfile.relationships);
+      this.playerProfileTraitDefaultsApplied = true;
       this.existingProfileExpanded = false;
       if (this.roleCardSetup) {
         this.roleCardSetup.detailOpen = false;

@@ -73,4 +73,26 @@ const impactPeople = store.solidifyPeopleFromAnchorReport({
 assert.strictEqual(JSON.stringify(impactPeople), JSON.stringify([{ name: '刘思琪', role: 'current-scene' }]));
 assert.strictEqual(JSON.stringify(store.solidifyPeopleFromAnchorReport({ values: { '当前场景影响对象': '刘思琪在家中备战中考' } })), JSON.stringify([]));
 
+const tracePeople = store.solidifyParticipantsFromTrace([{
+  forcedParticipants: [{ name: 'Should Not Read' }],
+  priorityCandidates: [{ name: 'Also Ignored' }],
+  dramaCandidates: [{ name: 'Drama Ignored' }],
+  characters: [{ name: 'Character Ignored' }],
+  participants: [{ name: 'Participant Ignored' }],
+  anchorReport: {
+    values: {
+      '强制出场': '刘悠(player-self)：出场理由：本次行动的执行主体，必然在场；刘思琪(rel-ai-247528)：出场理由：目标房间主人，必然在房间内',
+    },
+    sceneImpactObjects: {
+      people: ['刘悠', '刘思琪', '刘思瑶'],
+      locations: [],
+      items: [],
+      systems: [],
+      summary: '只影响三人。',
+    },
+  },
+}]);
+assert.strictEqual(JSON.stringify(tracePeople.map((item) => item.name)), JSON.stringify(['刘悠', '刘思琪', '刘思瑶']));
+assert.ok(!tracePeople.some((item) => item.name === '必然在场' || item.name === '必然在房间内'));
+
 console.log('PASS presence-kind-solidify');

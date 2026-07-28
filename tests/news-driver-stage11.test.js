@@ -60,4 +60,9 @@ assert.doesNotMatch(prompt, /\{\{当前新闻热榜\}\}/u);
 assert.strictEqual(gm.promptTemplates.inline['inference-stage-world-news-update'], undefined);
 assert.ok(gm.promptTemplates.inline['inference-stage11-world-news-update']);
 
+const updatePrompt = fs.readFileSync(path.join(root, 'publish/prompts/推演引擎/stage11-world-news-update.md'), 'utf8');
+assert.match(updatePrompt, /每轮必须输出至少 1 条新闻动态操作/u);
+assert.match(updatePrompt, /热榜是世界公共信息流驱动/u);
+assert.doesNotMatch(updatePrompt, /\{ "ops": \[\], "done": true \}/u);
+
 console.log('news-driver-stage11 tests passed');

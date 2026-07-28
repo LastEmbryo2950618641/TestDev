@@ -38,6 +38,10 @@ window.GameModules.solidifyActions = {
 
   solidifyParticipantsFromTrace(trace = []) {
     const out = [];
+    (Array.isArray(trace) ? trace : []).forEach((item) => {
+      this.solidifyPeopleFromAnchorReport(item?.anchorReport || {}).forEach((row) => out.push(row));
+    });
+    return out;
     const groups = ['forcedParticipants', 'priorityCandidates', 'dramaCandidates', 'characters'];
     const anchorFields = ['强制出场'];
     (Array.isArray(trace) ? trace : []).forEach((item) => {
