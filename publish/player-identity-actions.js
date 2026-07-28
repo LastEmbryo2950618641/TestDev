@@ -10,21 +10,15 @@ window.GameModules.playerIdentityActions = {
     const nextMemberships = tool.memberships?.(current.profile, base, this) || (Array.isArray(current.profile.memberships) ? current.profile.memberships : []);
     const prevProfileFactions = Array.isArray(current.profile.factions) ? current.profile.factions : [];
     const prevProfileMemberships = Array.isArray(current.profile.memberships) ? current.profile.memberships : [];
-    const prevValueFactions = Array.isArray(current.values?.factions) ? current.values.factions : [];
-    const prevValueMemberships = Array.isArray(current.values?.memberships) ? current.values.memberships : [];
     const changed = JSON.stringify(prevProfileFactions) !== JSON.stringify(nextFactions)
-      || JSON.stringify(prevProfileMemberships) !== JSON.stringify(nextMemberships)
-      || JSON.stringify(prevValueFactions) !== JSON.stringify(nextFactions)
-      || JSON.stringify(prevValueMemberships) !== JSON.stringify(nextMemberships);
+      || JSON.stringify(prevProfileMemberships) !== JSON.stringify(nextMemberships);
     if (!changed) return false;
     current.profile.factions = nextFactions;
     current.profile.memberships = nextMemberships;
     const synced = window.GameModules.rpgState?.syncSocialFields?.(current, 'profile', this);
     if (typeof synced === 'boolean') return changed || synced;
-    current.values = current.values || {};
-    current.values.factions = nextFactions.map((item) => ({ ...item }));
-    current.values.memberships = nextMemberships.map((item) => ({ ...item }));
     window.GameModules.orgTerritory?.syncCharacterOrgMemberships?.(current, this);
+    window.GameModules.rpgState?.stripProfileOwnedValues?.(current);
     return changed;
   },
 

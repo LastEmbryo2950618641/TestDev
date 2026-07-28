@@ -4,7 +4,6 @@ window.GameModules.progression = {
   schemaSections(attrs) {
     return [
       { title: '基础能力', fields: [
-        this.field('world_tag', '所属世界', 'text', 0, 100, '角色所属的作品或世界。'), this.field('age', '年龄', 'number', 0, 999, '角色在当前进入时间点的年龄。'),
         this.field('level', '生命层次', 'number', 1, 100, '生命层次；由能量积累升级提升。'), this.field('exp', '能量经验', 'text', 0, 100, '能量积累进度；击杀生命体吸收能量或吸收能力可增加，升级所需经验随层次提高。'),
         this.field('free_attribute_points', '自由属性点', 'number', 0, 999, '生命层次提升时获得、可用于分配到身内能力的点数。'), this.field('level_growth', '层次成长记录', 'text', 0, 100, '生命层次提升时自动加点与自由属性点记录。'),
         this.field('vitality', '生命力', 'text', 0, 100, '当前承伤、生存与身体完整状态。'), this.field('stamina_pool', '精力池', 'text', 0, 100, '体能、耐力与持续行动余量。'),
@@ -20,11 +19,9 @@ window.GameModules.progression = {
         ['charisma', '魅力', '五官容貌与长相印象（是否漂亮、可爱、清秀等）、气质仪态，以及表达力与影响他人的社交能力。'],
       ].map(([key, label, desc]) => this.field(key, label, 'number', 0, 100, desc)) },
       { title: '习得与职业', fields: [
-        this.field('knowledge', '知识储备', 'list', 0, 100, '已掌握的知识领域及等级。'), this.field('skills', '技能等级', 'list', 0, 100, '经过学习或训练获得的技能等级。'),
-        this.field('professions', '职业等级', 'list', 0, 100, '已内化的职业能力、经验与胜任资格。'), this.field('factions', '社群角色', 'list', 0, 100, '所属社群与在其中承担的社会角色。'),
-        this.field('memberships', '人事归属', 'list', 0, 100, '角色在势力或社群组织架构中的部门、职位、身份或成员关系。'), this.field('status_tags', '状态标签', 'list', 0, 100, '当前处境、身份标签或剧情状态。'),
+        this.field('status_tags', '状态标签', 'list', 0, 100, '当前处境、身份标签或剧情状态。'),
         this.field('intimacy', '亲密经历', 'text', 0, 100, '成人虚构角色的抽象经历次数记录。'), this.field('bodyStatus', '身体状态', 'list', 0, 100, '各身体部位的中性短状态。'),
-        this.field('control_experience', '上线体验', 'text', 0, 100, '角色对被玩家上线操控的经历记录。'), this.field('derived', '攻防衍生', 'text', 0, 100, '由基础能力推导出的攻防表现。'),
+        this.field('derived', '攻防衍生', 'text', 0, 100, '由基础能力推导出的攻防表现。'),
         this.field('combat_simulation', '战斗模拟', 'text', 0, 100, '基于当前状态估算的一次战斗表现。'),
       ] },
       { title: '世界固有属性', fields: (attrs?.fields || []).slice(0, 16).map((field, index) => ({
@@ -41,7 +38,7 @@ window.GameModules.progression = {
   normalizeCharacterExp(exp, level, fallbackCurrent = 0) { const next = this.nextCharacterExp(level); return { current: this.clamp(exp?.current ?? fallbackCurrent, 0, next), next, curve: 'nextExp=round(100*level^1.65)' }; },
   ensureProgressionNotes(values) {
     if (!values) return; if (values.exp) values.exp.curve = 'nextExp=round(100*level^1.65)';
-    for (const item of [...(values.factions || []), ...(values.memberships || []), ...(values.items || []), ...(values.wearing || []), ...(values.status_tags || [])]) if (item && typeof item === 'object' && Object.prototype.hasOwnProperty.call(item, 'level')) item.level = -1;
+    for (const item of [...(values.status_tags || [])]) if (item && typeof item === 'object' && Object.prototype.hasOwnProperty.call(item, 'level')) item.level = -1;
   },
 
   ensureStateMechanics(state, character = state?.profile || {}) {
@@ -49,16 +46,13 @@ window.GameModules.progression = {
     const values = state.values;
     const seed = window.GameModules.rpgState.seed(`${state.name}${state.worldTag}${character.role || ''}`);
     let changed = false;
-    const incomplete = !values.level || !values.exp?.next || !values.skills?.[0]?.level;
+    const incomplete = !values.level || !values.exp?.next;
     if (incomplete) { Object.assign(values, this.createValues(character, seed, values)); changed = true; }
     const normalizedExp = this.normalizeCharacterExp(values.exp, values.level, seed % 60);
     if (!values.exp?.next || values.exp.next !== normalizedExp.next || values.exp.curve !== normalizedExp.curve) { values.exp = normalizedExp; changed = true; }
     if (!values.level_growth) { values.free_attribute_points = 0; values.level_growth = { totalLevelUps: 0, autoPointsPerLevel: 1, freePointsPerLevel: 1, history: [] }; changed = true; }
     if (this.ensureIntrinsicSources(values)) changed = true;
     if (this.normalizeFreeAttributePoints(values)) changed = true;
-    if (this.normalizeLearnedLists(values)) changed = true;
-    if (this.normalizeAllLearnedExp(values)) changed = true;
-    if (window.GameModules.progressionLearnedSync?.syncFromProfile?.(values, character, seed)) changed = true;
     {
       const caps = this.poolCaps(values, character);
       const needsPoolRefresh = !values.vitality?.max || !values.stamina_pool?.max
@@ -115,11 +109,6 @@ window.GameModules.progression = {
       growth_potential: existing.growth_potential ?? this.clamp(character.growthPotential?.value ?? (82 - level * 4 + seed % 25), 0, 100),
       action_ability: existing.action_ability?.max ? existing.action_ability : this.pool(character.actionAbility?.value ?? (35 + intrinsic.agility * 5 + intrinsic.constitution * 2), Math.max(1, 35 + intrinsic.agility * 5 + intrinsic.constitution * 2)),
       ...intrinsic,
-      knowledge: this.profileLearnedList(character, 'knowledge', '知识', seed, existing.knowledge),
-      skills: existing.skills?.[0]?.level ? existing.skills : this.profileLearnedList(character, 'skills', '技能', seed, existing.skills),
-      professions: existing.professions?.length ? existing.professions : this.profileLearnedList(character, 'professions', '职业', seed, existing.professions),
-      factions: existing.factions?.length ? existing.factions : this.factions(character),
-      memberships: existing.memberships?.length ? existing.memberships : this.memberships(character),
       derived: {},
     };
   },
@@ -163,13 +152,7 @@ window.GameModules.progression = {
     return [];
   },
   normalizeLearnedLists(values) {
-    if (!values) return false; let changed = false;
-    const clean = (list) => (list || []).filter((item) => {
-      const keep = !this.isStageIdentity(typeof item === 'string' ? item : item?.name); if (!keep) changed = true; return keep;
-    });
-    values.skills = clean(values.skills);
-    values.professions = clean(values.professions);
-    return changed;
+    return window.GameModules.rpgState?.stripProfileOwnedValues?.({ values }) || false;
   },
   learned(name, type, level, linkedStats, source) {
     const lv = this.clamp(level, 1, 7);
@@ -209,12 +192,7 @@ window.GameModules.progression = {
   },
 
   normalizeAllLearnedExp(values) {
-    if (!values) return false;
-    let changed = false;
-    for (const item of [...(values.knowledge || []), ...(values.skills || []), ...(values.professions || [])]) {
-      if (this.normalizeLearnedExp(item)) changed = true;
-    }
-    return changed;
+    return window.GameModules.rpgState?.stripProfileOwnedValues?.({ values }) || false;
   },
   linkedStats(name) {
     if (/剑|战|拳|武|射|枪/.test(name)) return ['strength', 'agility', 'perception']; if (/魔|术|医|学|分析/.test(name)) return ['intelligence', 'perception', 'willpower'];

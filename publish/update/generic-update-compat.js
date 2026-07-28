@@ -134,7 +134,7 @@ Object.assign(window.GameModules.updateRegistry, {
       return {
         updateType: 'membership',
         subject: { type: 'character', characterName: item.characterName || item.character || '未知', name: item.characterName || item.character },
-        field: 'values.memberships',
+        field: 'profile.memberships',
         change: {
           mode: 'upsert',
           value: {

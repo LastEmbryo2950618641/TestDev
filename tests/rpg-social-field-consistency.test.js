@@ -41,10 +41,10 @@ const state = {
 };
 
 assert.strictEqual(api.syncSocialFields(state, 'profile', { phoneDateText: () => '2026-07-27 12:00' }), true);
-assert.deepStrictEqual(json(state.values.factions), json(profileFactions));
-assert.deepStrictEqual(json(state.values.memberships), json(profileMemberships));
-assert.notStrictEqual(state.profile.factions, state.values.factions);
-assert.notStrictEqual(state.profile.memberships, state.values.memberships);
+assert.deepStrictEqual(json(state.profile.factions), json(profileFactions));
+assert.deepStrictEqual(json(state.profile.memberships), json(profileMemberships));
+assert.strictEqual(state.values.factions, undefined);
+assert.strictEqual(state.values.memberships, undefined);
 assert.ok(!Object.prototype.hasOwnProperty.call(state.values, 'certificates'));
 assert.ok(!Object.prototype.hasOwnProperty.call(state.values, 'titles'));
 assert.strictEqual(state.profile.roleCardUpdatedAt, '2026-07-27 12:00');
@@ -56,16 +56,16 @@ state.values.memberships = valueMemberships;
 assert.strictEqual(api.syncSocialFields(state, 'values', { phoneDateText: () => '2026-07-27 12:01' }), true);
 assert.deepStrictEqual(json(state.profile.factions), json(valueFactions));
 assert.deepStrictEqual(json(state.profile.memberships), json(valueMemberships));
-assert.notStrictEqual(state.profile.factions, state.values.factions);
-assert.notStrictEqual(state.profile.memberships, state.values.memberships);
+assert.strictEqual(state.values.factions, undefined);
+assert.strictEqual(state.values.memberships, undefined);
 
 state.values.factions = [];
 state.values.memberships = [];
 assert.strictEqual(api.syncSocialFields(state, 'values', { phoneDateText: () => '2026-07-27 12:02' }), true);
 assert.deepStrictEqual(json(state.profile.factions), []);
 assert.deepStrictEqual(json(state.profile.memberships), []);
-assert.deepStrictEqual(json(state.values.factions), []);
-assert.deepStrictEqual(json(state.values.memberships), []);
+assert.strictEqual(state.values.factions, undefined);
+assert.strictEqual(state.values.memberships, undefined);
 assert.ok(orgSyncCalls >= 2);
 
 console.log('PASS profile and RPG social fields stay consistent with explicit source direction');

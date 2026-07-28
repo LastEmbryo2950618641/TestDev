@@ -174,7 +174,18 @@ Object.assign(window.GameModules.updateRegistry, {
     if (update.updateType === 'wearing-state') return this.applyWearingStateUpdate(store, update);
     if (update.updateType === 'emotion' || update.updateType === 'feeling') return this.applyMetricUpdate(store, update);
     const direct = this.targetState(store, update), generic = direct ? null : this.genericTarget(store, update);
-    const state = direct || generic?.state, field = String(update.field || '').trim();
+    const state = direct || generic?.state, rawField = String(update.field || '').trim();
+    const profileFieldMap = {
+      'values.factions': 'profile.factions',
+      'values.memberships': 'profile.memberships',
+      'values.wearing': 'profile.wearingItems',
+      'values.items': 'profile.items',
+      'values.knowledge': 'profile.knowledge',
+      'values.skills': 'profile.skills',
+      'values.professions': 'profile.professions',
+      'values.control_experience': 'profile.control_experience',
+    };
+    const field = profileFieldMap[rawField] || rawField;
     if (!state || !field) return false;
     // 经历人数由经历对象名单自动派生，忽略单独写入。
     if (/(?:^|\.)sexualPartnerCount$/u.test(field)) {
@@ -188,16 +199,15 @@ Object.assign(window.GameModules.updateRegistry, {
     this.set(root, path, next);
     const note = this.notePath(path), reason = this.reasonText(update, '现实推演确认了状态变化。');
     if (note) this.set(root, note, this.noteValue(path, next, reason));
-    if (/^(values\.)?wearing$/u.test(field) && state.profile) {
+    if (/^profile\.wearingItems$/u.test(field) && state.profile) {
       state.profile.wearingItems = next;
       state.profile.wearing = next;
       state.profile.roleCardUpdatedAt = new Date().toISOString();
     }
     if (/^profile\.(?:factions|memberships)$/u.test(field)) {
       window.GameModules.rpgState?.syncSocialFields?.(state, 'profile', store);
-    } else if (/^(?:values\.)?(?:factions|memberships)$/u.test(field)) {
-      window.GameModules.rpgState?.syncSocialFields?.(state, 'values', store);
     }
+    window.GameModules.rpgState?.stripProfileOwnedValues?.(state);
     if (/(?:^|\.)sexualPartners$/u.test(path) || /(?:^|\.)intimacy\.sexualPartners$/u.test(field)) {
       this.syncSexualPartnerCountFromList(state);
     }
@@ -222,10 +232,11 @@ Object.assign(window.GameModules.updateRegistry, {
 
   applyWearingStateUpdate(store, update = {}) {
     const state = this.targetState(store, update);
-    if (!state?.values) return false;
+    if (!state) return false;
+    state.profile = state.profile || {};
     const raw = this.changeValue(update);
     let next;
-    const current = Array.isArray(state.values.wearing) ? state.values.wearing : [];
+    const current = Array.isArray(state.profile.wearingItems) ? state.profile.wearingItems : (Array.isArray(state.profile.wearing) ? state.profile.wearing : []);
     if (Array.isArray(raw)) next = raw;
     else if (raw && typeof raw === 'object') {
       const slot = this.normalizeWearingSlot(raw);
@@ -238,12 +249,10 @@ Object.assign(window.GameModules.updateRegistry, {
       else next.push(item);
     } else return false;
     if (JSON.stringify(current) === JSON.stringify(next)) return false;
-    state.values.wearing = next;
-    if (state.profile) {
-      state.profile.wearingItems = next;
-      state.profile.wearing = next;
-      state.profile.roleCardUpdatedAt = new Date().toISOString();
-    }
+    state.profile.wearingItems = next;
+    state.profile.wearing = next;
+    state.profile.roleCardUpdatedAt = new Date().toISOString();
+    window.GameModules.rpgState?.stripProfileOwnedValues?.(state);
     return true;
   },
 
@@ -426,8 +435,8 @@ Object.assign(window.GameModules.updateRegistry, {
     if (!needUpdate) return false;
 
     const stage = window.GameModules.controlExperienceStage;
-    const current = state.values.control_experience && typeof state.values.control_experience === 'object'
-      ? { ...state.values.control_experience }
+    const current = state.profile.control_experience && typeof state.profile.control_experience === 'object'
+      ? { ...state.profile.control_experience }
       : {
         onlineCount: 0,
         feeling: '未知',
@@ -508,7 +517,8 @@ Object.assign(window.GameModules.updateRegistry, {
     }
 
     current.lastUpdated = new Date().toISOString();
-    state.values.control_experience = current;
+    state.profile.control_experience = current;
+    window.GameModules.rpgState?.stripProfileOwnedValues?.(state);
     return changed;
   },
 

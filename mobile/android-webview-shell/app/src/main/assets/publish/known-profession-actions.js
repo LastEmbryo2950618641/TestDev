@@ -121,10 +121,11 @@ window.GameModules.knownProfessionActions = {
   professionExamResult(job) {
     const state = this.playerIdentityState?.() || this.characterRpgState;
     const values = state?.values || {};
+    const profile = state?.profile || {};
     const has = (list, name) => (list || []).some((item) => String(item?.name || item).includes(name) || name.includes(String(item?.name || item)));
     const req = job?.requirements || job || {};
-    const missingSkills = (req.learnedAbilities || []).filter((name) => !has(values.skills, name));
-    const missingKnowledge = (req.knowledgeAreas || []).filter((name) => !has(values.knowledge, name));
+    const missingSkills = (req.learnedAbilities || []).filter((name) => !has(profile.skills, name));
+    const missingKnowledge = (req.knowledgeAreas || []).filter((name) => !has(profile.knowledge, name));
     const missingStats = (req.intrinsicStats || []).filter((key) => values[key] === undefined || Number(values[key]?.value ?? values[key]) <= 0);
     const missingWorld = (req.worldAbilities || []).filter((name) => values[name] === undefined && !has(values.worldValues, name));
     return { pass: !missingSkills.length && !missingKnowledge.length && !missingStats.length && !missingWorld.length, missingSkills, missingKnowledge, missingStats, missingWorld };
@@ -132,20 +133,22 @@ window.GameModules.knownProfessionActions = {
 
   async addProfessionToPlayer(job) {
     const state = await this.ensurePlayerRpgState?.(true);
-    if (!state?.values || !job?.name) return false;
+    if (!state?.profile || !job?.name) return false;
     window.GameModules.rpgProfessionState.ensurePrerequisites(state, job);
     const result = this.professionExamResult(job);
     if (!result.pass) {
       this.knownProfessionState.message = `考核未通过：缺少 ${[...result.missingStats, ...result.missingWorld, ...result.missingSkills, ...result.missingKnowledge].join('、')}`;
       return false;
     }
-    const exists = (state.values.professions || []).some((item) => item.name === job.name);
-    if (!exists) state.values.professions = [...(state.values.professions || []), window.GameModules.progression.learned(job.name, '职业', 1, job.intrinsicStats || ['intelligence'], job.description || job.summary)];
-    const target = state.values.professions.find((item) => item.name === job.name);
+    state.profile.professions = state.profile.professions || [];
+    const exists = (state.profile.professions || []).some((item) => item.name === job.name);
+    if (!exists) state.profile.professions = [...(state.profile.professions || []), window.GameModules.progression.learned(job.name, '职业', 1, job.intrinsicStats || ['intelligence'], job.description || job.summary)];
+    const target = state.profile.professions.find((item) => item.name === job.name);
     target.info = job;
     target.linkedStats = job.intrinsicStats || target.linkedStats;
     target.levelDescription = job.levelDescription || target.levelDescription;
     target.effect = job.effect || target.effect;
+    window.GameModules.rpgState?.stripProfileOwnedValues?.(state);
     await window.GameModules.characterStateStore?.save?.(state);
     await window.GameModules.rpgLexicon.syncState(state);
     this.knownProfessionState.message = `已获得职业：${job.name} lv.1`;

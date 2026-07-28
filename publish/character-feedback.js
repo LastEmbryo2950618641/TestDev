@@ -263,19 +263,9 @@ window.GameModules.characterFeedback = {
 
   ensureExperience(store) {
     const state = store.characterRpgState;
-    if (!state?.values) return null;
-    if (!state.values.control_experience) {
-      state.values.control_experience = {
-        onlineCount: 0,
-        feeling: '未知',
-        adaptation: 0,
-        summary: '尚未经历上线操控。',
-        controllerAwarenessLevel: 'unknown',
-        controllerAwareness: '尚不知晓控制者是谁',
-        lastUpdated: '',
-      };
-    }
-    const exp = state.values.control_experience;
+    if (!state?.profile) return null;
+    if (!state.profile.control_experience) state.profile.control_experience = window.GameModules.rpgState?.defaultControlExperience?.() || {};
+    const exp = state.profile.control_experience;
     const awareness = window.GameModules.controlExperienceStage?.normalizeControllerAwareness?.(exp, {
       controllerAwarenessLevel: 'unknown',
       controllerAwareness: '尚不知晓控制者是谁',
@@ -285,6 +275,7 @@ window.GameModules.characterFeedback = {
     };
     exp.controllerAwarenessLevel = awareness.controllerAwarenessLevel;
     exp.controllerAwareness = awareness.controllerAwareness;
+    window.GameModules.rpgState?.stripProfileOwnedValues?.(state);
     return exp;
   },
 

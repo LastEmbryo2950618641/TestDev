@@ -1,12 +1,14 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.rpgAge = {
-  sync(values, character, store = null) {
-    if (!values) return false;
+  sync(state, character, store = null) {
+    if (!state) return false;
+    const profile = state.profile || character || {};
     const age = this.forCharacter(character, store);
-    const changed = values.age !== age || values.age_label !== `${age}岁`;
-    values.age = age;
-    values.age_label = `${age}岁`;
+    const ageLabel = `${age}岁`;
+    const changed = profile.age !== ageLabel;
+    profile.age = ageLabel;
+    if (state.profile) window.GameModules.rpgState?.stripProfileOwnedValues?.(state);
     return changed;
   },
 

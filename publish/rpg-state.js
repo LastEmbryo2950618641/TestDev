@@ -32,10 +32,10 @@ window.GameModules.rpgState = {
       const profileChanged = this.ensureRoleCard(existing, character);
       const upgraded = this.upgradeCharacterState(existing, schema);
       const updated = this.updateExistingCharacter(existing, character, store);
-      const inventorySynced = window.GameModules.progression.syncInventoryFromProfile?.(existing, existing.profile || character);
+      const migrated = this.migrateProfileOwnedFields(existing);
       const professionChanged = await window.GameModules.rpgProfessionState?.ensureInfo?.call(window.GameModules.rpgProfessionState, existing, character, schema);
       await window.GameModules.rpgLexicon.syncState(existing);
-      if (profileChanged || upgraded || updated || inventorySynced || professionChanged) await stateStore?.save?.(existing);
+      if (profileChanged || upgraded || updated || migrated || professionChanged) await stateStore?.save?.(existing);
       return existing;
     }
     const worldTag = stateStore?.getWorld?.(id) || character.work || '原创世界';
@@ -68,12 +68,95 @@ window.GameModules.rpgState = {
     state.note = state.profile.detail || state.profile.personality || state.note || '';
     return true;
   },
+  profileOwnedValueKeys() {
+    return ['world_tag', 'age', 'age_label', 'factions', 'memberships', 'items', 'wearing', 'knowledge', 'skills', 'professions', 'control_experience'];
+  },
+  cloneProfileValue(value) {
+    if (Array.isArray(value)) return value.map((item) => (item && typeof item === 'object' ? { ...item } : item));
+    if (value && typeof value === 'object') return { ...value };
+    return value;
+  },
+  defaultControlExperience() {
+    return {
+      onlineCount: 0,
+      feeling: '未知',
+      adaptation: 0,
+      summary: '尚未经历上线操控。',
+      controllerAwarenessLevel: 'unknown',
+      controllerAwareness: '尚不知晓控制者是谁',
+      lastUpdated: '',
+    };
+  },
+  emptyProfileValue(value) {
+    return value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0);
+  },
+  stripProfileOwnedValues(state) {
+    if (!state?.values) return false;
+    let changed = false;
+    for (const key of this.profileOwnedValueKeys()) {
+      if (Object.prototype.hasOwnProperty.call(state.values, key)) {
+        delete state.values[key];
+        changed = true;
+      }
+    }
+    return changed;
+  },
+  migrateProfileOwnedFields(state) {
+    if (!state) return false;
+    state.profile = state.profile && typeof state.profile === 'object' ? state.profile : {};
+    state.values = state.values && typeof state.values === 'object' ? state.values : {};
+    const profile = state.profile;
+    const values = state.values;
+    let changed = false;
+    const fill = (profileKey, valueKey = profileKey) => {
+      if (!this.emptyProfileValue(profile[profileKey]) || this.emptyProfileValue(values[valueKey])) return;
+      profile[profileKey] = this.cloneProfileValue(values[valueKey]);
+      changed = true;
+    };
+    if (this.emptyProfileValue(profile.worldTag) && !this.emptyProfileValue(values.world_tag)) {
+      profile.worldTag = this.cloneProfileValue(values.world_tag);
+      changed = true;
+    }
+    fill('age');
+    fill('factions');
+    fill('memberships');
+    fill('items');
+    fill('knowledge');
+    fill('skills');
+    fill('professions');
+    fill('control_experience');
+    if (this.emptyProfileValue(profile.wearingItems) && !this.emptyProfileValue(values.wearing)) {
+      profile.wearingItems = this.cloneProfileValue(values.wearing);
+      changed = true;
+    }
+    if (this.emptyProfileValue(profile.wearing) && !this.emptyProfileValue(profile.wearingItems)) {
+      profile.wearing = this.cloneProfileValue(profile.wearingItems);
+      changed = true;
+    }
+    if (this.emptyProfileValue(profile.control_experience)) {
+      profile.control_experience = this.defaultControlExperience();
+      changed = true;
+    } else {
+      const awareness = window.GameModules.controlExperienceStage?.normalizeControllerAwareness?.(profile.control_experience);
+      if (awareness && (
+        profile.control_experience.controllerAwarenessLevel !== awareness.controllerAwarenessLevel
+        || profile.control_experience.controllerAwareness !== awareness.controllerAwareness
+      )) {
+        profile.control_experience.controllerAwarenessLevel = awareness.controllerAwarenessLevel;
+        profile.control_experience.controllerAwareness = awareness.controllerAwareness;
+        changed = true;
+      }
+    }
+    const stripped = this.stripProfileOwnedValues(state);
+    if ((changed || stripped) && profile) profile.roleCardUpdatedAt = profile.roleCardUpdatedAt || new Date().toISOString();
+    return changed || stripped;
+  },
   updateExistingCharacter(state, character, store = null) {
     if (!state?.values || !store) return false;
     const profile = character || state.profile || {};
     const seed = this.seed(`${state.name}${state.worldTag}${store.entryCurrentAction || ''}${store.entryTimeLabel?.() || ''}`);
     const updated = Boolean(window.GameModules.rpgInitializer?.updateExisting(state, profile, store, seed));
-    return window.GameModules.rpgAge.sync(state.values, profile, store) || updated;
+    return window.GameModules.rpgAge.sync(state, profile, store) || updated || this.migrateProfileOwnedFields(state);
   },
   upgradeCharacterState(state, schema) {
     let changed = false;
@@ -83,9 +166,9 @@ window.GameModules.rpgState = {
       changed = true;
     }
     if (!state.values) state.values = {};
-    state.values.world_tag = state.worldTag;
     const seed = this.seed(state.name + state.worldTag);
     schema.sections.forEach((section) => section.fields.forEach((field) => {
+      if (this.profileOwnedValueKeys().includes(field.key)) return;
       if (state.values[field.key] === undefined) {
         if (field.key === 'free_attribute_points') state.values[field.key] = 0;
         else if (field.key === 'level_growth') state.values[field.key] = { totalLevelUps: 0, autoPointsPerLevel: 1, freePointsPerLevel: 1, history: [] };
@@ -93,13 +176,13 @@ window.GameModules.rpgState = {
         changed = true;
       }
     }));
+    const profileMigrationChanged = this.migrateProfileOwnedFields(state);
     const worldChanged = this.normalizeWorldValues(state), jobChanged = window.GameModules.rpgProfessionState.normalizeProfessions(state), controlChanged = this.ensureControlExperience(state), locationChanged = this.ensureCurrentLocation(state), metricsChanged = this.ensureCharacterMetrics(state);
     const intimacyChanged = window.GameModules.initPromptRegistry?.ensureTemplateState?.('intimacyBody', state);
     const reasonChanged = this.ensureRpgFieldReasons(state);
     const socialChanged = this.syncSocialPositions(state);
-    const inventoryChanged = window.GameModules.progression.ensureInventoryFields?.(state.values, state.id || '');
     const mechanicsChanged = window.GameModules.progression.ensureStateMechanics(state);
-    return worldChanged || jobChanged || controlChanged || locationChanged || intimacyChanged || metricsChanged || reasonChanged || socialChanged || inventoryChanged || mechanicsChanged || changed;
+    return worldChanged || jobChanged || controlChanged || locationChanged || intimacyChanged || metricsChanged || reasonChanged || socialChanged || profileMigrationChanged || mechanicsChanged || changed;
   },
   ensureRpgFieldReasons(state) {
     if (!state?.profile) throw new Error('个人资料缺失，无法校验RPG变化原因');
@@ -138,28 +221,19 @@ window.GameModules.rpgState = {
     const before = JSON.stringify({
       profileFactions: state.profile.factions || [],
       profileMemberships: state.profile.memberships || [],
-      valueFactions: state.values.factions || [],
-      valueMemberships: state.values.memberships || [],
     });
-    state.values.factions = clone(input.factions);
-    state.values.memberships = clone(input.memberships);
+    state.profile.factions = clone(input.factions);
+    state.profile.memberships = clone(input.memberships);
     if (!options.skipOrgNormalization) {
       window.GameModules.orgTerritory?.syncCharacterOrgMemberships?.(state, store, { skipSocialSync: true });
     }
-    const factions = clone(state.values.factions);
-    const memberships = clone(state.values.memberships);
-    state.profile.factions = clone(factions);
-    state.profile.memberships = clone(memberships);
-    state.values.factions = clone(factions);
-    state.values.memberships = clone(memberships);
+    const stripped = this.stripProfileOwnedValues(state);
     const changed = before !== JSON.stringify({
       profileFactions: state.profile.factions,
       profileMemberships: state.profile.memberships,
-      valueFactions: state.values.factions,
-      valueMemberships: state.values.memberships,
     });
-    if (changed) state.profile.roleCardUpdatedAt = store?.phoneDateText?.() || new Date().toISOString();
-    return changed;
+    if (changed || stripped) state.profile.roleCardUpdatedAt = store?.phoneDateText?.() || new Date().toISOString();
+    return changed || stripped;
   },
 
   syncSocialPositions(state) {
@@ -197,26 +271,18 @@ window.GameModules.rpgState = {
 
   ensureControlExperience(state) {
     let changed = false;
-    if (!state.values) state.values = {};
-    if (!state.values.control_experience) {
-      state.values.control_experience = {
-        onlineCount: 0,
-        feeling: '未知',
-        adaptation: 0,
-        summary: '尚未经历上线操控。',
-        controllerAwarenessLevel: 'unknown',
-        controllerAwareness: '尚不知晓控制者是谁',
-        lastUpdated: '',
-      };
+    if (!state.profile) state.profile = {};
+    if (!state.profile.control_experience) {
+      state.profile.control_experience = this.defaultControlExperience();
       changed = true;
     } else {
-      const awareness = window.GameModules.controlExperienceStage?.normalizeControllerAwareness?.(state.values.control_experience);
+      const awareness = window.GameModules.controlExperienceStage?.normalizeControllerAwareness?.(state.profile.control_experience);
       if (awareness && (
-        state.values.control_experience.controllerAwarenessLevel !== awareness.controllerAwarenessLevel
-        || state.values.control_experience.controllerAwareness !== awareness.controllerAwareness
+        state.profile.control_experience.controllerAwarenessLevel !== awareness.controllerAwarenessLevel
+        || state.profile.control_experience.controllerAwareness !== awareness.controllerAwareness
       )) {
-        state.values.control_experience.controllerAwarenessLevel = awareness.controllerAwarenessLevel;
-        state.values.control_experience.controllerAwareness = awareness.controllerAwareness;
+        state.profile.control_experience.controllerAwarenessLevel = awareness.controllerAwarenessLevel;
+        state.profile.control_experience.controllerAwareness = awareness.controllerAwareness;
         changed = true;
       }
     }
@@ -226,14 +292,14 @@ window.GameModules.rpgState = {
       itemSection.fields.push({ key: 'control_experience', label: '上线体验', type: 'text' });
       changed = true;
     }
-    return changed;
+    return this.stripProfileOwnedValues(state) || changed;
   },
   createCharacterState(character, schema, store = null) {
     const seed = this.seed(character.name + character.role + schema.worldTag + (character.detail || '') + (store?.entryCurrentAction || ''));
-    const values = { world_tag: schema.worldTag, health: 100, stamina: 100 };
+    const values = { health: 100, stamina: 100 };
     for (const section of schema.sections) {
       for (const field of section.fields) {
-        if (['world_tag', 'health', 'stamina', 'age'].includes(field.key)) continue;
+        if (['health', 'stamina'].includes(field.key) || this.profileOwnedValueKeys().includes(field.key)) continue;
         values[field.key] = this.valueFor(field, seed + field.key.length);
       }
     }
@@ -246,17 +312,9 @@ window.GameModules.rpgState = {
     values.derived = window.GameModules.progression.derived(values);
     values.combat_simulation = window.GameModules.progression.defaultCombat(values);
     Object.assign(values, character.worldValues || {});
-    window.GameModules.rpgAge.sync(values, character, store);
+    window.GameModules.rpgAge.sync({ values, profile: character }, character, store);
     values.status_tags = [character.role, character.importance === 'minor' ? '路人' : '可被操控', schema.worldTag];
-    values.control_experience = {
-      onlineCount: 0,
-      feeling: '未知',
-      adaptation: 0,
-      summary: '尚未经历上线操控。',
-      controllerAwarenessLevel: 'unknown',
-      controllerAwareness: '尚不知晓控制者是谁',
-      lastUpdated: '',
-    };
+    character.control_experience = character.control_experience || this.defaultControlExperience();
     values.intimacy = window.GameModules.initPromptRegistry?.markPendingInit?.(window.GameModules.initPromptRegistry?.defaultValue?.('intimacyBody', 'intimacy') || {});
     values.bodyStatus = window.GameModules.initPromptRegistry?.markPendingInit?.(window.GameModules.initPromptRegistry?.defaultValue?.('intimacyBody', 'bodyStatus') || {});
     const state = {
@@ -272,7 +330,7 @@ window.GameModules.rpgState = {
     };
     this.ensureControlExperience(state);
     this.ensureCurrentLocation(state);
-    window.GameModules.progression.syncInventoryFromProfile?.(state, character);
+    this.migrateProfileOwnedFields(state);
     this.ensureCharacterMetrics(state);
     return state;
   }, valueFor(field, seed) {

@@ -14,7 +14,7 @@ window.GameModules.updateRegistry?.register?.({
   examples: [{
     updateType: 'control-experience',
     subject: { type: 'character', id: '角色ID', name: '角色名' },
-    field: 'values.control_experience',
+    field: 'profile.control_experience',
     change: {
       mode: 'merge',
       value: {

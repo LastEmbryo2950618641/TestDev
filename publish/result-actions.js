@@ -131,16 +131,8 @@ window.GameModules.resultActions = {
   async applyControlExperience(result) {
     if (!this.online || this.controlMode !== 'possess') return;
     const state = this.characterRpgState;
-    if (!state?.values) return;
-    const exp = state.values.control_experience || {
-      onlineCount: 0,
-      feeling: '未知',
-      adaptation: 0,
-      summary: '',
-      controllerAwarenessLevel: 'unknown',
-      controllerAwareness: '尚不知晓控制者是谁',
-      lastUpdated: '',
-    };
+    if (!state?.profile) return;
+    const exp = state.profile.control_experience || window.GameModules.rpgState?.defaultControlExperience?.() || {};
     exp.onlineCount = Math.max(0, Number(exp.onlineCount) || 0);
     exp.feeling = result.controlFeeling || exp.feeling || '疑惑';
     exp.adaptation = Math.max(0, Math.min(100, Math.round(Number(result.controlAdaptation ?? exp.adaptation) || 0)));
@@ -152,7 +144,8 @@ window.GameModules.resultActions = {
     exp.controllerAwarenessLevel = awareness.controllerAwarenessLevel;
     exp.controllerAwareness = awareness.controllerAwareness;
     exp.lastUpdated = new Date().toISOString();
-    state.values.control_experience = exp;
+    state.profile.control_experience = exp;
+    window.GameModules.rpgState?.stripProfileOwnedValues?.(state);
     window.GameModules.rpgInitializer?.touch(state.values, this);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
     await window.GameModules.characterStateStore?.save?.(state);

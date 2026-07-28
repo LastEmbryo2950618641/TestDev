@@ -87,6 +87,7 @@ window.GameModules.characterStateStore = {
     const id = this.characterId(state);
     if (!id) return state;
     state.id = id;
+    window.GameModules.rpgState?.migrateProfileOwnedFields?.(state);
     const map = this.liveMap(explicitHost);
     if (!map) return state;
     if (map[id] && map[id] !== state) return this.mergeOntoLive(state, explicitHost);
@@ -145,6 +146,7 @@ window.GameModules.characterStateStore = {
     live.profile = profile;
     live.values = values;
     if (!live.name) live.name = state.name || profile.name || id;
+    window.GameModules.rpgState?.migrateProfileOwnedFields?.(live);
     map[id] = live;
     return live;
   },
@@ -217,6 +219,7 @@ window.GameModules.characterStateStore = {
   save(state = null, explicitHost = null) {
     if (!state) return null;
     const live = this.mergeOntoLive(state, explicitHost);
+    window.GameModules.rpgState?.migrateProfileOwnedFields?.(live);
     const viaSource = this.source()?.save?.(live);
     if (viaSource && typeof viaSource.then === 'function') {
       return viaSource.then(() => live).catch((err) => {

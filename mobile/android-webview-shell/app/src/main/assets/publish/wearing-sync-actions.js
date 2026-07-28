@@ -47,20 +47,16 @@ window.GameModules.wearingSyncActions = {
   async syncWearingForName(name = '', raw = '', card = {}) {
     const state = window.GameModules.characterIntroCard.roleCardState({ ...card, name }) || this.itemSkillState?.(name);
     const items = this.solidifyWearingItems({ ...card, wearing: raw }, state);
-    if (!state?.values || !items.length) return false;
+    if (!state?.profile || !items.length) return false;
 
     const p = window.GameModules.progression;
-    p.ensureInventoryFields?.(state.values, state.id || '');
-    const before = JSON.stringify(state.values.wearing || []);
-    state.values.wearing = p.mergeProfileWearing?.(state.values.wearing || [], items) || items;
+    const before = JSON.stringify(state.profile.wearingItems || state.profile.wearing || []);
+    state.profile.wearingItems = p.mergeProfileWearing?.(state.profile.wearingItems || [], items) || items;
+    state.profile.wearing = state.profile.wearingItems;
+    state.profile.roleCardUpdatedAt = new Date().toISOString();
+    window.GameModules.rpgState?.stripProfileOwnedValues?.(state);
 
-    if (state.profile) {
-      state.profile.wearingItems = p.mergeProfileWearing?.(state.profile.wearingItems || [], items) || items;
-      state.profile.wearing = p.mergeProfileWearing?.(state.profile.wearing || [], items) || items;
-      state.profile.roleCardUpdatedAt = new Date().toISOString();
-    }
-
-    if (before === JSON.stringify(state.values.wearing || [])) return false;
+    if (before === JSON.stringify(state.profile.wearingItems || [])) return false;
     this.rpgStates = { ...(this.rpgStates || {}), [state.id]: state };
     await window.GameModules.characterStateStore?.save?.(state);
     return true;

@@ -19,7 +19,7 @@ function createApplySandbox() {
         register(type) { this.types = this.types.filter((item) => item.id !== type.id).concat(type); },
         typeForChange() { return null; },
       },
-    },
+    }
   };
   window.window = window;
   const sandbox = vm.createContext({ console, window, performance: { now: () => 0 } });
@@ -77,7 +77,7 @@ test('apply control-experience: adaptation delta, text overwrite, onlineCount +1
   const state = {
     id: 'rel-ai-247528',
     name: '刘思琪',
-    values: {
+    profile: {
       control_experience: {
         onlineCount: 2,
         feeling: '疑惑',
@@ -88,12 +88,13 @@ test('apply control-experience: adaptation delta, text overwrite, onlineCount +1
         lastUpdated: '',
       },
     },
+    values: {},
   };
   const store = createStore(state);
   const ok = window.GameModules.updateRegistry.applyOne(store, {
     updateType: 'control-experience',
     subject: { type: 'character', id: 'rel-ai-247528', name: '刘思琪' },
-    field: 'values.control_experience',
+    field: 'profile.control_experience',
     change: {
       mode: 'merge',
       value: {
@@ -110,7 +111,7 @@ test('apply control-experience: adaptation delta, text overwrite, onlineCount +1
     reasons: [{ evidence: '正文证据' }],
   });
   assert.equal(ok, true);
-  const exp = state.values.control_experience;
+  const exp = state.profile.control_experience;
   assert.equal(exp.onlineCount, 3);
   assert.equal(exp.adaptation, 15);
   assert.equal(exp.feeling, '紧绷抗拒');
@@ -123,7 +124,7 @@ test('needUpdate false does not change experience', () => {
   const window = createApplySandbox();
   const state = {
     id: 'rel-ai-247528',
-    values: {
+    profile: {
       control_experience: {
         onlineCount: 1,
         feeling: '疑惑',
@@ -133,17 +134,18 @@ test('needUpdate false does not change experience', () => {
         controllerAwareness: '尚不知晓控制者是谁',
       },
     },
+    values: {},
   };
   const store = createStore(state);
   const ok = window.GameModules.updateRegistry.applyOne(store, {
     updateType: 'control-experience',
     subject: { type: 'character', id: 'rel-ai-247528' },
-    field: 'values.control_experience',
+    field: 'profile.control_experience',
     change: { mode: 'merge', value: { needUpdate: false } },
   });
   assert.equal(ok, false);
-  assert.equal(state.values.control_experience.onlineCount, 1);
-  assert.equal(state.values.control_experience.adaptation, 8);
+  assert.equal(state.profile.control_experience.onlineCount, 1);
+  assert.equal(state.profile.control_experience.adaptation, 8);
 });
 
 test('Stage4 parseSettlementJson + queue for 操控体验', () => {

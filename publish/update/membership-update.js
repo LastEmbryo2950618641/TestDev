@@ -14,7 +14,7 @@ window.GameModules.updateRegistry?.register?.({
   examples: [{
     updateType: 'membership',
     subject: { type: 'character', id: 'player-self', name: '角色名' },
-    field: 'values.memberships',
+    field: 'profile.memberships',
     change: {
       mode: 'upsert',
       value: {

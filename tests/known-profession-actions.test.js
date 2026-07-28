@@ -37,12 +37,14 @@ vm.runInContext(
 (async () => {
   const actions = context.window.GameModules.knownProfessionActions;
   const state = {
-    values: {
-      intelligence: 5,
+    profile: {
       skills: [{ name: '采访' }],
       knowledge: [{ name: '新闻学' }],
-      worldValues: [],
       professions: [],
+    },
+    values: {
+      intelligence: 5,
+      worldValues: [],
     },
   };
   const store = {
@@ -76,7 +78,8 @@ vm.runInContext(
     '身内能力：智力\n世界专属能力：无\n技能：采访\n知识储备：新闻学\n原因：需要完成采访训练',
   );
   assert.strictEqual(await store.addProfessionToPlayer(job), true);
-  assert.strictEqual(state.values.professions[0].name, '调查记者');
+  assert.strictEqual(state.profile.professions[0].name, '调查记者');
+  assert.strictEqual(state.values.professions, undefined);
   assert.deepStrictEqual(calls, ['save', 'sync']);
   assert.strictEqual(store.knownProfessionState.message, '已获得职业：调查记者 lv.1');
 

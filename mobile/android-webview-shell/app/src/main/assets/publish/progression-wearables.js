@@ -199,46 +199,22 @@ window.GameModules = window.GameModules || {};
       return [...bySlot.values()];
     },
 
-    syncInventoryFromProfile(state, profile = state?.profile || {}) {
-      if (!state?.values || !profile) return false;
-      let changed = false;
-      const before = JSON.stringify({ items: state.values.items, wearing: state.values.wearing });
-      if (Array.isArray(profile.items) && profile.items.length && (!Array.isArray(state.values.items) || !state.values.items.length)) state.values.items = profile.items;
-      const wearing = this.profileWearingItems(profile);
-      const replaceAi = profile.roleCardSource === 'ai' && wearing.length && wearing.every((item) => this.bodyWearSlots().includes(item.slot) || item.name !== '未穿戴' || item.reason);
-      if (replaceAi || this.shouldReplaceWearing(state.values.wearing, wearing)) state.values.wearing = wearing;
-      else state.values.wearing = this.mergeProfileWearing(state.values.wearing, wearing);
-      this.ensureInventoryFields(state.values, state.id || profile.id || '');
-      changed = before !== JSON.stringify({ items: state.values.items, wearing: state.values.wearing });
-      return changed;
-    },
-
     ensureInventoryFields(values, ownerId = '') {
-      if (!values) return false; const before = JSON.stringify({ items: values.items, wearing: values.wearing });
-      values.items = (Array.isArray(values.items) ? values.items : []).map((item) => this.normalizeCarryItem(item, item.type || '物品', ownerId)); values.wearing = this.defaultWearing(values.wearing, ownerId);
-      return before !== JSON.stringify({ items: values.items, wearing: values.wearing });
+      if (!values) return false;
+      return window.GameModules.rpgState?.stripProfileOwnedValues?.({ values }) || false;
     },
 
     schemaSections(attrs) {
       return baseSchemaSections(attrs).map((section) => {
         if (section.title !== '习得与职业') return section;
         const fields = [...section.fields];
-        const insertAfter = fields.findIndex((field) => field.key === 'memberships') + 1;
-        const additions = [
-          this.field('items', '物品', 'list', 0, 100, '当前持有、可消耗、可转让或可用于现实行动的物品与装备。'),
-          this.field('wearing', '穿着', 'list', 0, 100, '当前穿戴在各人体着装部位、饰品位和装备位的衣物、装备、饰品与包具。'),
-        ].filter((field) => !fields.some((item) => item.key === field.key));
-        fields.splice(insertAfter || fields.length, 0, ...additions);
         return { ...section, fields };
       });
     },
 
     createValues(character, seed, existing) {
       const values = baseCreateValues(character, seed, existing || {});
-      values.items = values.items?.length ? values.items : (character.items || []);
-      const profileWearing = this.profileWearingItems(character);
-      values.wearing = values.wearing?.length ? this.mergeProfileWearing(values.wearing, profileWearing) : profileWearing;
-      this.ensureInventoryFields(values, character.id || '');
+      window.GameModules.rpgState?.stripProfileOwnedValues?.({ values });
       return values;
     },
 

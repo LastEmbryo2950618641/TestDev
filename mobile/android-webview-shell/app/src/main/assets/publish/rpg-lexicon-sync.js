@@ -12,16 +12,17 @@ Object.assign(window.GameModules.rpgLexicon, {
         entries.push({ worldTag, kind: treeKind || '属性', name: field.label, value: values[field.key], desc: field.desc, reason, nameAiGenerated: false, valueAiGenerated: false, changeMode: reason, hierarchy: treeKind ? 'tree' : 'leaf', source: 'schema', meta: { key: field.key, type: field.type, grade: Boolean(field.grade), targetType: state?.profile?.isPlayer ? '非角色' : '角色', commonField: section.title !== '世界固有属性' && field.key !== 'world_tag' } });
       }
     }
-    this.collectLearned(entries, worldTag, '知识', values.knowledge, state?.profile?.rpgFieldReasons?.knowledge, state);
-    this.collectLearned(entries, worldTag, '技能', values.skills, state?.profile?.rpgFieldReasons?.skills, state);
-    this.collectLearned(entries, worldTag, '职业', values.professions, state?.profile?.rpgFieldReasons?.professions, state);
-    this.collectLearned(entries, worldTag, '物品', values.items, state?.profile?.rpgFieldReasons?.items, state);
-    this.collectLearned(entries, worldTag, '穿着', values.wearing, state?.profile?.rpgFieldReasons?.wearing, state);
-    for (const item of values.factions || []) {
+    const profile = state?.profile || {};
+    this.collectLearned(entries, worldTag, '知识', profile.knowledge, profile.rpgFieldReasons?.knowledge, state);
+    this.collectLearned(entries, worldTag, '技能', profile.skills, profile.rpgFieldReasons?.skills, state);
+    this.collectLearned(entries, worldTag, '职业', profile.professions, profile.rpgFieldReasons?.professions, state);
+    this.collectLearned(entries, worldTag, '物品', profile.items, profile.rpgFieldReasons?.items, state);
+    this.collectLearned(entries, worldTag, '穿着', profile.wearingItems || profile.wearing, profile.rpgFieldReasons?.wearing, state);
+    for (const item of profile.factions || []) {
       const entry = this.factionEntry(worldTag, item, state);
       if (entry) entries.push(entry);
     }
-    for (const item of values.memberships || []) {
+    for (const item of profile.memberships || []) {
       const entry = this.membershipEntry(worldTag, item, state);
       if (entry) entries.push(entry);
     }

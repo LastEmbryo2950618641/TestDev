@@ -16,9 +16,9 @@ Object.assign(window.GameModules.entryTime, {
     const state = store.rpgStates[store.character.id];
     if (age === null) {
       store.characterAge = at ? '鍑虹敓鏃ユ湡缂哄け' : '';
-      if (state?.values) {
-        delete state.values.age;
-        delete state.values.age_label;
+      if (state?.profile) {
+        state.profile.age = '';
+        window.GameModules.rpgState?.stripProfileOwnedValues?.(state);
         store.rpgStates = { ...store.rpgStates, [state.id]: state };
         if (window.GameModules.platform.storage.capabilities.isReady?.()) window.GameModules.characterStateStore?.save?.(state);
       }
@@ -26,10 +26,10 @@ Object.assign(window.GameModules.entryTime, {
     }
     const ageLabel = birth.month && birth.day ? `${age}岁` : `约${age}岁`;
     store.characterAge = ageLabel;
-    if (state?.values) {
+    if (state?.profile) {
       this.ensureAgeField(state);
-      state.values.age = age;
-      state.values.age_label = ageLabel;
+      state.profile.age = ageLabel;
+      window.GameModules.rpgState?.stripProfileOwnedValues?.(state);
       store.rpgStates = { ...store.rpgStates, [state.id]: state };
       if (window.GameModules.platform.storage.capabilities.isReady?.()) window.GameModules.characterStateStore?.save?.(state);
     }
@@ -37,8 +37,8 @@ Object.assign(window.GameModules.entryTime, {
 
   ensureAgeField(state) {
     const section = state.schema?.sections?.[0];
-    if (!section || section.fields.some((field) => field.key === 'age')) return;
-    section.fields.unshift({ key: 'age', label: '骞撮緞', type: 'number', min: 0, max: 999 });
+    if (!section) return;
+    section.fields = section.fields.filter((field) => field.key !== 'age');
   },
 
   async birthDateFor(store) {

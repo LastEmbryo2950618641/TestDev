@@ -74,9 +74,9 @@ window.GameModules.inferenceLifeEnergyStage = {
       seen.add(id);
       const name = state.profile?.name || state.name || id;
       lines.push(`${name}｜${id}`);
-      lines.push(`  ${this.formatLearnedList('知识', state.values.knowledge)}`);
-      lines.push(`  ${this.formatLearnedList('技能', state.values.skills)}`);
-      lines.push(`  ${this.formatLearnedList('职业', state.values.professions)}`);
+      lines.push(`  ${this.formatLearnedList('知识', state.profile?.knowledge)}`);
+      lines.push(`  ${this.formatLearnedList('技能', state.profile?.skills)}`);
+      lines.push(`  ${this.formatLearnedList('职业', state.profile?.professions)}`);
     };
     for (const item of Array.isArray(participants) ? participants : []) {
       pushState(energy?.resolveSubjectState?.(store, item) || null);

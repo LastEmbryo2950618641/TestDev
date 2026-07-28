@@ -266,7 +266,7 @@ window.GameModules.app.orgTerritory.settlementActions = {
     let state = characterId && characterId !== 'player-self' ? store.itemSkillState?.(characterId) : store.playerIdentityState?.();
     if (!state && characterName) state = ot.findCharacterStateByName(store, characterName);
     if (!state && (characterId === 'player-self' || !characterName)) state = store.playerIdentityState?.();
-    if (!state?.values) return { ok: false, text: `人事：未找到角色「${characterName || characterId || '未知'}」` };
+    if (!state?.profile) return { ok: false, text: `人事：未找到角色「${characterName || characterId || '未知'}」` };
 
     const change = update.change || {};
     const value = change.value ?? update.value ?? {};
@@ -276,17 +276,17 @@ window.GameModules.app.orgTerritory.settlementActions = {
 
     if (change.mode === 'remove') {
       const orgId = patch.orgId || ot.resolveOrgIdByName(store, patch.orgName || patch.force);
-      state.values.memberships = (state.values.memberships || []).filter((m) => m.orgId !== orgId && m.orgName !== patch.orgName);
+      state.profile.memberships = (state.profile.memberships || []).filter((m) => m.orgId !== orgId && m.orgName !== patch.orgName);
 
     } else {
       ot.upsertCharacterMembership(state, { ...patch, since: patch.since || now, reason: patch.reason || reason }, store);
     }
 
-    window.GameModules.rpgState?.syncSocialFields?.(state, 'values', store);
+    window.GameModules.rpgState?.syncSocialFields?.(state, 'profile', store);
 
     store.rpgStates = { ...(store.rpgStates || {}), [state.id]: state };
     window.GameModules.characterStateStore?.save?.(state);
-    const mem = (state.values.memberships || []).slice(-1)[0];
+    const mem = (state.profile.memberships || []).slice(-1)[0];
     return { ok: true, text: `人事归属：${state.profile?.name || characterName} → ${mem?.displayLine || patch.orgName || '组织'}` };
   },
 

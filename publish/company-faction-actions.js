@@ -93,7 +93,7 @@ window.GameModules.companyFactionActions = {
 
   addPlayerForcePosition(entry = {}) {
     const state = this.playerIdentityState?.();
-    if (!state?.values || !entry.force || !entry.position) return;
+    if (!state?.profile || !entry.force || !entry.position) return;
     const ot = window.GameModules.orgTerritory;
     const orgId = entry.orgId || ot?.resolveOrgIdByName?.(this, entry.force) || '';
     const row = {
@@ -105,7 +105,7 @@ window.GameModules.companyFactionActions = {
       source: 'Boss招聘同步',
     };
     ot?.upsertCharacterMembership?.(state, row, this);
-    window.GameModules.rpgState?.syncSocialFields?.(state, 'values', this);
+    window.GameModules.rpgState?.syncSocialFields?.(state, 'profile', this);
     window.GameModules.characterStateStore?.save?.(state).catch((err) => console.warn('[人事归属] 保存失败:', err.message, err.stack));
   },
 };

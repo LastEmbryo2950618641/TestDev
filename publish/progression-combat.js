@@ -16,10 +16,10 @@ Object.assign(window.GameModules.progression, {
 
   ensureProgressionNotes(values) {
     values.exp.curve = 'nextExp=round(100*level^1.65)';
-    for (const item of [...(values.factions || []), ...(values.memberships || []), ...(values.items || []), ...(values.wearing || []), ...(values.status_tags || [])]) {
+    for (const item of [...(values.status_tags || [])]) {
       if (item && typeof item === 'object' && Object.prototype.hasOwnProperty.call(item, 'level')) item.level = -1;
     }
-    for (const item of [...(values.knowledge || []), ...(values.skills || []), ...(values.professions || [])]) {
+    for (const item of []) {
       item.description = this.learnedDefinition(item.name, item.type, item.description || item.source);
       item.source = item.description;
       if (!this.hasLearnedLevel(item)) {
@@ -124,7 +124,7 @@ Object.assign(window.GameModules.progression, {
     if (/战|武|剑|骑士|士兵|军人|运动|拳|枪/.test(text)) add(['strength', 'agility', 'constitution'], 3);
     if (/学生|学者|医生|教师|魔术|研究|技术|工程/.test(text)) add(['intelligence', 'perception', 'willpower'], 3);
     if (/领袖|偶像|贵族|王|交涉|销售|主播|演员/.test(text)) add(['charisma', 'willpower', 'perception'], 3);
-    for (const item of [...(values.skills || []), ...(values.knowledge || []), ...(values.professions || [])]) add((item.linkedStats || []).filter((k) => w[k] !== undefined), 1.2);
+    for (const item of [...(character.skills || []), ...(character.knowledge || []), ...(character.professions || [])]) add((item.linkedStats || []).filter((k) => w[k] !== undefined), 1.2);
     return w;
   },
 });

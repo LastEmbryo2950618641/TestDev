@@ -338,9 +338,9 @@ window.GameModules.sqliteSave = {
     const now = new Date().toISOString();
     const worldTag = this.normalizeQueryWorldTag(character.worldTag || character.profile?.work || '鏈煡涓栫晫');
     character.worldTag = worldTag;
-    if (character.values) character.values.world_tag = worldTag;
+    window.GameModules.rpgState?.migrateProfileOwnedFields?.(character);
     if (character.profile?.work) character.profile.work = worldTag;
-    const normalized = { ...character, worldTag, values: character.values ? { ...character.values, world_tag: worldTag } : character.values, updatedAt: now };
+    const normalized = { ...character, worldTag, values: character.values ? { ...character.values } : character.values, updatedAt: now };
     if (normalized.profile?.work) normalized.profile = { ...normalized.profile, work: worldTag };
     if (this.fallback) {
       this.fallbackState = this.fallbackState || { version: 1, main: null, updatedAt: '' };

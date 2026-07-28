@@ -1656,25 +1656,26 @@ window.GameModules.orgTerritory = {
   },
 
   syncCharacterOrgMemberships(state, store, options = {}) {
-    if (!state?.values) return state;
-    const list = Array.isArray(state.values.memberships) ? state.values.memberships : [];
-    state.values.memberships = list.map((m) => this.normalizeMembership(m, store));
+    if (!state?.profile) return state;
+    const list = Array.isArray(state.profile.memberships) ? state.profile.memberships : [];
+    state.profile.memberships = list.map((m) => this.normalizeMembership(m, store));
     if (!options.skipSocialSync) {
-      window.GameModules.rpgState?.syncSocialFields?.(state, 'values', store, { skipOrgNormalization: true });
+      window.GameModules.rpgState?.syncSocialFields?.(state, 'profile', store, { skipOrgNormalization: true });
     }
+    window.GameModules.rpgState?.stripProfileOwnedValues?.(state);
     return state;
   },
 
   upsertCharacterMembership(state, patch = {}, store) {
-    if (!state?.values) return null;
+    if (!state?.profile) return null;
     const mem = this.normalizeMembership(patch, store);
     if (!mem.orgId && !mem.orgName) return null;
-    const list = Array.isArray(state.values.memberships) ? state.values.memberships : [];
+    const list = Array.isArray(state.profile.memberships) ? state.profile.memberships : [];
     const idx = list.findIndex((m) => (mem.orgId && m.orgId === mem.orgId) || (m.orgName === mem.orgName && m.title === mem.title));
     if (idx >= 0) list[idx] = { ...list[idx], ...mem };
     else list.push(mem);
-    state.values.memberships = list.map((m) => this.normalizeMembership(m, store));
-    window.GameModules.rpgState?.syncSocialFields?.(state, 'values', store, { skipOrgNormalization: true });
+    state.profile.memberships = list.map((m) => this.normalizeMembership(m, store));
+    window.GameModules.rpgState?.syncSocialFields?.(state, 'profile', store, { skipOrgNormalization: true });
     return mem;
   },
 

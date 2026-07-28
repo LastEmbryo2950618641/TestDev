@@ -6,21 +6,35 @@ window.GameModules.inventoryActions = {
   },
 
   inventoryValues(state = this.inventoryTargetState()) {
-    const values = state?.values || {};
-    window.GameModules.progression.ensureInventoryFields?.(values, state?.id || '');
-    return values;
+    const profile = state?.profile || {};
+    this.ensureProfileInventoryFields?.(state);
+    return profile;
+  },
+
+  ensureProfileInventoryFields(state = this.inventoryTargetState()) {
+    if (!state?.profile) return false;
+    window.GameModules.rpgState?.migrateProfileOwnedFields?.(state);
+    const profile = state.profile;
+    const progression = window.GameModules.progression;
+    const before = JSON.stringify({ items: profile.items, wearingItems: profile.wearingItems, wearing: profile.wearing });
+    profile.items = (Array.isArray(profile.items) ? profile.items : []).map((item) => progression.normalizeCarryItem(item, item?.type || item?.kind || '物品', state.id || ''));
+    const rawWearing = Array.isArray(profile.wearingItems)
+      ? profile.wearingItems
+      : (Array.isArray(profile.wearing) ? profile.wearing : (progression.profileWearingItems?.(profile) || []));
+    profile.wearingItems = progression.defaultWearing(rawWearing, state.id || '');
+    profile.wearing = profile.wearingItems;
+    return before !== JSON.stringify({ items: profile.items, wearingItems: profile.wearingItems, wearing: profile.wearing });
   },
 
   inventoryItems(state = this.inventoryTargetState()) {
-    const values = this.inventoryValues(state);
+    const inventory = this.inventoryValues(state);
     const tag = (kind, list) => (Array.isArray(list) ? list : []).map((item) => (typeof item === 'string' ? { name: item, kind } : { kind, ...item }));
-    return [...tag('item', values.items)];
+    return [...tag('item', inventory.items)];
   },
 
   wearingItems(state = this.inventoryTargetState()) {
-    const values = this.inventoryValues(state);
-    window.GameModules.progression.ensureInventoryFields?.(values, state?.id || '');
-    return Array.isArray(values.wearing) ? values.wearing : [];
+    const inventory = this.inventoryValues(state);
+    return Array.isArray(inventory.wearingItems) ? inventory.wearingItems : [];
   },
 
   inventoryName(item) {
@@ -51,15 +65,18 @@ window.GameModules.inventoryActions = {
   },
 
   async addWearSlot(base = 'equipment', state = this.inventoryTargetState()) {
-    if (!state?.values) return '';
-    const slot = this.ensureWearSlot(state.values, base, true, state.id || '');
+    if (!state?.profile) return '';
+    const slot = this.ensureWearSlot(this.inventoryValues(state), base, true, state.id || '');
+    if (state.profile) state.profile.roleCardUpdatedAt = new Date().toISOString();
     await this.persistInventoryState(state);
     return slot;
   },
 
   ensureWearSlot(values, slot, alwaysNew = false, ownerId = '') {
     const p = window.GameModules.progression;
-    p.ensureInventoryFields?.(values, ownerId);
+    values.items = Array.isArray(values.items) ? values.items : [];
+    values.wearing = Array.isArray(values.wearing) ? values.wearing : [];
+    values.wearingItems = values.wearing;
     const raw = String(slot || 'equipment').trim();
     const base = p.slotBase(raw);
     const dynamic = ['accessory', 'equipment'].includes(base) && !/\d+$/u.test(raw);
@@ -94,24 +111,26 @@ window.GameModules.inventoryActions = {
   },
 
   async equipItemToSlot(itemName, slot, state = this.inventoryTargetState()) {
-    if (!state?.values || !itemName || !slot) return false;
-    const values = this.inventoryValues(state);
-    const index = values.items.findIndex((entry) => this.inventoryName(entry) === itemName);
-    const item = index >= 0 ? values.items[index] : null;
+    if (!state?.profile || !itemName || !slot) return false;
+    const inventory = this.inventoryValues(state);
+    const index = inventory.items.findIndex((entry) => this.inventoryName(entry) === itemName);
+    const item = index >= 0 ? inventory.items[index] : null;
     if (!item) return false;
-    const target = this.ensureWearSlot(values, slot, false, state.id || '');
+    const target = this.ensureWearSlot(inventory, slot, false, state.id || '');
     if (!this.canEquipToSlot(item, target)) return false;
-    const current = values.wearing.find((entry) => entry.slot === target);
-    if (current && !this.isEmptyWear(current)) values.items.push({ ...current, type: 'equipment', kind: 'equipment' });
-    values.items.splice(index, 1);
-    this.writeWearingItem(values, { ...item, slot: target }, state.id || '');
+    const current = inventory.wearing.find((entry) => entry.slot === target);
+    if (current && !this.isEmptyWear(current)) inventory.items.push({ ...current, type: 'equipment', kind: 'equipment' });
+    inventory.items.splice(index, 1);
+    this.writeWearingItem(inventory, { ...item, slot: target }, state.id || '');
+    if (state.profile) state.profile.roleCardUpdatedAt = new Date().toISOString();
     await this.persistInventoryState(state);
     return true;
   },
 
   async unequipSlot(slot, state = this.inventoryTargetState()) {
-    if (!state?.values || !slot) return false;
-    const item = state.values.wearing?.find((entry) => entry.slot === slot);
+    if (!state?.profile || !slot) return false;
+    const inventory = this.inventoryValues(state);
+    const item = inventory.wearingItems?.find((entry) => entry.slot === slot);
     if (!item) return false;
     Object.assign(item, {
       name: 'empty-slot',
@@ -121,6 +140,7 @@ window.GameModules.inventoryActions = {
       changeMode: `item removed from slot ${slot}`,
       level: -1,
     });
+    if (state.profile) state.profile.roleCardUpdatedAt = new Date().toISOString();
     await this.persistInventoryState(state);
     return true;
   },
@@ -146,9 +166,8 @@ window.GameModules.inventoryActions = {
   },
 
   async applyInventoryUpdatesToState(state, updates = []) {
-    const values = state?.values;
-    if (!values) return;
-    window.GameModules.progression.ensureInventoryFields?.(values, state.id || '');
+    const inventory = this.inventoryValues(state);
+    if (!inventory) return;
     let changed = false;
     const upsert = (list, item) => {
       const name = this.inventoryName(item);
@@ -161,42 +180,27 @@ window.GameModules.inventoryActions = {
       const kind = raw?.kind;
       const value = raw?.value && typeof raw.value === 'object' ? raw.value : {};
       const item = window.GameModules.progression.normalizeCarryItem({ ...value, name: raw?.name || value.name, slot: raw?.slot || value.slot, description: raw?.description || raw?.summary || value.description, changeMode: raw?.reason || raw?.changeMode || 'AI merge' }, kind, state.id || '');
-      if (kind === 'item' || kind === 'equipment' || kind === '物品' || kind === '装备') upsert(values.items, item);
+      if (kind === 'item' || kind === 'equipment' || kind === '物品' || kind === '装备') upsert(inventory.items, item);
       if (kind === 'wearing' || kind === '穿着') {
-        this.writeWearingItem(values, item, state.id || '');
+        this.writeWearingItem(inventory, item, state.id || '');
         changed = true;
       }
     }
-    if (changed) await this.persistInventoryState(state);
+    if (changed) {
+      if (state.profile) state.profile.roleCardUpdatedAt = new Date().toISOString();
+      await this.persistInventoryState(state);
+    }
   },
 
-  syncInventoryProfileFromValues(state) {
-    if (!state?.profile || !state?.values) return false;
-    const progression = window.GameModules.progression;
-    progression.ensureInventoryFields?.(state.values, state.id || '');
-    const clone = (value) => JSON.parse(JSON.stringify(value || []));
-    const nextItems = clone(state.values.items);
-    const nextWearing = clone(state.values.wearing);
-    const before = JSON.stringify({
-      items: state.profile.items,
-      wearing: state.profile.wearing,
-      wearingItems: state.profile.wearingItems,
-    });
-    state.profile.items = nextItems;
-    state.profile.wearingItems = nextWearing;
-    state.profile.wearing = progression.mergeProfileWearing?.(state.profile.wearing || [], nextWearing) || nextWearing;
-    state.profile.roleCardUpdatedAt = new Date().toISOString();
-    return before !== JSON.stringify({
-      items: state.profile.items,
-      wearing: state.profile.wearing,
-      wearingItems: state.profile.wearingItems,
-    });
+  normalizeProfileInventoryFields(state) {
+    return this.ensureProfileInventoryFields?.(state) || false;
   },
 
   async persistInventoryState(state) {
     if (!state?.id) return;
-    window.GameModules.progression.ensureInventoryFields?.(state.values, state.id || '');
-    this.syncInventoryProfileFromValues?.(state);
+    const changed = this.ensureProfileInventoryFields?.(state);
+    window.GameModules.rpgState?.stripProfileOwnedValues?.(state);
+    if (changed && state.profile) state.profile.roleCardUpdatedAt = new Date().toISOString();
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
     await window.GameModules.characterStateStore?.save?.(state);
   },

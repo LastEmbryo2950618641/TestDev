@@ -156,8 +156,6 @@ window.GameModules.rpgFieldUi = {
     const profile = state?.profile || {};
     const stateId = state?.id || profile.id || this.identityTargetId || 'player-self';
     const labels = {
-      world_tag: '世界',
-      age: '年龄',
       level: '等级',
       level: '生命层次',
       exp: '能量',
@@ -190,27 +188,40 @@ window.GameModules.rpgFieldUi = {
       status_tags: '状态标签',
       control_experience: '上线体验',
     };
+    const profileOwnedValue = (key) => {
+      if (key === 'wearing') return profile.wearingItems || profile.wearing || [];
+      if (key === 'control_experience') return profile.control_experience;
+      return profile[key];
+    };
+    const profileOwnedKeys = ['knowledge', 'skills', 'professions', 'factions', 'memberships', 'items', 'wearing', 'control_experience'];
     const formatValue = (value) => {
       if (Array.isArray(value)) return value;
       if (value && typeof value === 'object') return this.rpgFieldValue?.(value) || JSON.stringify(value);
       return value ?? '';
     };
-    const field = (key, kind = '角色状态') => ({
-      key,
-      stateId,
-      label: labels[key] || key,
-      kind,
-      type: kind,
-      value: formatValue(values[key]),
-      raw: Array.isArray(values[key]) ? values[key] : values[key],
-      desc: profile.rpgFieldReasons?.[key] || profile.roleCardFieldReasons?.[labels[key]] || '',
-      reason: profile.rpgFieldReasons?.[key] || profile.roleCardFieldReasons?.[labels[key]] || '',
-      worldTag: values.world_tag || state.worldTag || profile.work || '',
-    });
-    const existing = (key) => Object.prototype.hasOwnProperty.call(values, key);
+    const fieldValue = (key) => (profileOwnedKeys.includes(key) ? profileOwnedValue(key) : values[key]);
+    const field = (key, kind = '角色状态') => {
+      const rawValue = fieldValue(key);
+      return {
+        key,
+        stateId,
+        label: labels[key] || key,
+        kind,
+        type: kind,
+        value: formatValue(rawValue),
+        raw: Array.isArray(rawValue) ? rawValue : rawValue,
+        desc: profile.rpgFieldReasons?.[key] || profile.roleCardFieldReasons?.[labels[key]] || '',
+        reason: profile.rpgFieldReasons?.[key] || profile.roleCardFieldReasons?.[labels[key]] || '',
+        worldTag: state.worldTag || profile.worldTag?.value || profile.work || '',
+      };
+    };
+    const existing = (key) => {
+      if (profileOwnedKeys.includes(key)) return ![undefined, null, ''].includes(profileOwnedValue(key)) && (!Array.isArray(profileOwnedValue(key)) || profileOwnedValue(key).length);
+      return Object.prototype.hasOwnProperty.call(values, key);
+    };
     const take = (keys, kind) => keys.filter(existing).map((key) => field(key, kind));
     return [
-      { title: '基础状态', fields: take(['world_tag', 'age', 'level', 'exp', 'free_attribute_points', 'health', 'stamina', 'vitality', 'stamina_pool', 'satiety', 'hydration', 'fatigue', 'learning_ability', 'mental_stability', 'growth_potential', 'action_ability', 'control_experience'], '基础状态') },
+      { title: '基础状态', fields: take(['level', 'exp', 'free_attribute_points', 'health', 'stamina', 'vitality', 'stamina_pool', 'satiety', 'hydration', 'fatigue', 'learning_ability', 'mental_stability', 'growth_potential', 'action_ability'], '基础状态') },
       { title: '身内能力', fields: take(['strength', 'agility', 'constitution', 'intelligence', 'perception', 'willpower', 'charisma'], '身内能力') },
       { title: '习得能力', fields: take(['knowledge', 'skills', 'professions'], '习得能力') },
       { title: '关系归属', fields: take(['factions', 'memberships'], '身份归属') },
@@ -1556,6 +1567,7 @@ window.GameModules.rpgFieldUi = {
   },
 
   intrinsicLinkedItems(values = {}) {
+    const profile = values?.profile || values || {};
     const sync = window.GameModules.progressionLearnedSync;
     const labelByKey = sync?.intrinsicLabelByKey || {};
     const keys = window.GameModules.progression?.intrinsicKeys?.() || [];
@@ -1575,9 +1587,9 @@ window.GameModules.rpgFieldUi = {
         }
       }
     };
-    collect(values.skills, '技能');
-    collect(values.knowledge, '知识');
-    collect(values.professions, '职业');
+    collect(profile.skills, '技能');
+    collect(profile.knowledge, '知识');
+    collect(profile.professions, '职业');
     return keys.map((key) => map[key]).filter((row) => row.items.length);
   },
 
@@ -1620,7 +1632,7 @@ window.GameModules.rpgFieldUi = {
     return {
       stats,
       groups,
-      links: this.intrinsicLinkedItems(values),
+      links: this.intrinsicLinkedItems(state || values),
       summary: { total, average, peak, low },
     };
   },

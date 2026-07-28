@@ -309,7 +309,7 @@ window.GameModules.solidifyActions = {
   solidifyRawWearing(source = {}) {
     const values = source.values || {};
     const profile = source.profile || {};
-    return values.wearing || source.wearingItems || source.wearing || profile.wearingItems || profile.wearing || source.clothing || source.outfit || source.dressedProfile || profile.dressedProfile || '';
+    return source.wearingItems || source.wearing || profile.wearingItems || profile.wearing || source.clothing || source.outfit || source.dressedProfile || profile.dressedProfile || '';
   },
 
   solidifyWearingItems(source = {}, state = null) {

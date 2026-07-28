@@ -1800,7 +1800,7 @@ window.GameModules.realWorldAgentLoop = {
       '感觉': { updateType: 'feeling', fieldPrefix: 'metrics.playerFeelings' },
       '生命体征': { updateType: 'vital', fieldMap: { '生命力': 'vitals.vitality', '精力': 'vitals.stamina_pool', '饱食度': 'vitals.satiety', '水分': 'vitals.hydration', '疲劳': 'vitals.fatigue', '精神稳定': 'vitals.mental_stability' } },
       '身体状态': { updateType: 'body-status', fieldPrefix: 'bodyStatus' },
-      '穿着状态': { updateType: 'wearing-state', fieldPrefix: 'values.wearing' },
+      '穿着状态': { updateType: 'wearing-state', fieldPrefix: 'profile.wearingItems' },
       '性经历': { updateType: 'sexual-experience', fieldPrefix: 'intimacy.sexualExperienceParts' },
       '性历史': { updateType: 'sexual-history', fieldPrefix: 'intimacy.sexualHistory' },
       '关系': { updateType: 'relationship', fieldPrefix: 'relationships' },
@@ -1813,10 +1813,10 @@ window.GameModules.realWorldAgentLoop = {
       '政体状态': { updateType: 'org-status', fieldPrefix: 'status' },
       '势力结构': { updateType: 'faction-structure', fieldPrefix: 'structure' },
       '组织能力': { updateType: 'org-overview-panel', fieldPrefix: 'overviewPanels' },
-      '人事归属': { updateType: 'membership', fieldPrefix: 'values.memberships' },
+      '人事归属': { updateType: 'membership', fieldPrefix: 'profile.memberships' },
       '系统记录': { updateType: 'system', fieldPrefix: 'events' },
       '通用固化': { updateType: 'generic', fieldPrefix: 'status_tags' },
-      '操控体验': { updateType: 'control-experience', fieldPrefix: 'values.control_experience' },
+      '操控体验': { updateType: 'control-experience', fieldPrefix: 'profile.control_experience' },
     };
   },
 
@@ -1965,7 +1965,7 @@ window.GameModules.realWorldAgentLoop = {
     if (label !== '穿着状态' || !subject || !part || !itemName || !state || !reason) return null;
     const slot = this.wearingSlotAlias(part, itemName);
     if (!this.allowedWearingSlots().includes(slot)) return null;
-    return { updateType: 'wearing-state', subject, field: 'values.wearing', change: { mode: 'upsert', value: { slot, part, name: itemName, state, reason, fullBody: this.isFullBodyWearingPart(part) } }, reasons: [{ trigger: '穿着状态', evidence: reason, confidence: 'confirmed' }] };
+    return { updateType: 'wearing-state', subject, field: 'profile.wearingItems', change: { mode: 'upsert', value: { slot, part, name: itemName, state, reason, fullBody: this.isFullBodyWearingPart(part) } }, reasons: [{ trigger: '穿着状态', evidence: reason, confidence: 'confirmed' }] };
   },
 
   parseBodyStatusSettlementLine(line = '', subject = null, participants = []) {
@@ -2190,7 +2190,7 @@ window.GameModules.realWorldAgentLoop = {
       喜好: 'profile.preferences',
       人物说明: 'profile.detail',
       社群角色: 'profile.factions',
-      人事归属: 'values.memberships',
+      人事归属: 'profile.memberships',
       证书: 'profile.certificates',
       称号: 'profile.titles',
       人际关系: 'profile.relationships',
@@ -2303,7 +2303,7 @@ window.GameModules.realWorldAgentLoop = {
       return {
         updateType: 'membership',
         subject,
-        field: 'values.memberships',
+        field: 'profile.memberships',
         change: { mode: 'upsert', value: patch },
         reasons: [{ trigger: `角色卡${op}`, evidence: effectiveReason, confidence: 'confirmed' }],
       };
@@ -2410,7 +2410,7 @@ window.GameModules.realWorldAgentLoop = {
     return {
       updateType: 'membership',
       subject,
-      field: 'values.memberships',
+      field: 'profile.memberships',
       change: { mode: 'upsert', value: patch },
       reasons: [{ trigger: '人事归属', evidence: reason, confidence: 'confirmed' }],
     };
@@ -2675,7 +2675,7 @@ window.GameModules.realWorldAgentLoop = {
     return {
       updateType: 'control-experience',
       subject: resolvedSubject,
-      field: 'values.control_experience',
+      field: 'profile.control_experience',
       change: {
         mode: 'merge',
         value: {
@@ -3011,7 +3011,7 @@ window.GameModules.realWorldAgentLoop = {
       '人事归属': [
         '含义：可指认组织中的正式或准正式身份（编制/学籍/职级/成员等），不是软性圈子角色。',
         '仅处理本轮新确认或发生变化的稳定事实，不扫描或补写本轮未变化的旧归属。',
-        '构成要素：完整组织名/orgId + 具体职位、学籍或成员身份 + 部门（确无依据才写 departmentFog）；对应 values.memberships。',
+        '构成要素：完整组织名/orgId + 具体职位、学籍或成员身份 + 部门（确无依据才写 departmentFog）；对应 profile.memberships。',
         '触发：正文或资料确认的入职、任职、调岗、离职、升学/转学、入籍或其它稳定组织身份变化均可写，不要把门槛收得过死。',
         '完备性：有事实或背景依据时必须完整补全；缺少次要细节时依据世界观、年代、地区、教育与职业经历作最小充分推演；完全没有依据时才输出空数组。',
         '禁止使用某公司、未知学校、相关机构、普通职员、初中生、成员等模糊占位规避完整名称和具体身份；求全优先于过严过滤。',
@@ -3020,7 +3020,7 @@ window.GameModules.realWorldAgentLoop = {
       '系统记录': '只写系统级、跨角色、且没有专门类型承载的长期事实：日历变更、微信/短信通信、世界线节点、不可逆公共事件、全局状态。禁止把角色当前行动、所在地点、身体反应、感觉、关系、场景描写复述写进系统记录；这些必须分别写人事安排、身体状态、感觉、关系。若正文事实已被世界线记录覆盖，系统记录写空数组 []。',
       '通用固化': '只能写没有专门类型承载的长期稳定标签；情绪、感觉、生命体征、身体、穿着、性经历、性历史、关系、物品、地图、人事、势力、长期目标、系统记录有专门类型时不得写通用固化。',
       '操控体验': [
-        '只结算当前被控角色的上线体验（values.control_experience）。',
+        '只结算当前被控角色的上线体验（profile.control_experience）。',
         '流程：1）先确认本轮是否需要更新（needUpdate）以及要更新哪些字段（updateFields）；2）再生成对应字段值。',
         '可更新字段仅限：feeling（操控感觉）、adaptation（适应度）、summary（体验摘要）、controllerAwarenessLevel（unknown|traitKnown|identityGuessed）、controllerAwareness（≤20字）。',
         'adaptation 只写本回合增量，如 +3 或 -1，禁止写绝对值；其余文本字段基于“操控体验基线”生成完整新文本并直接覆盖。',
