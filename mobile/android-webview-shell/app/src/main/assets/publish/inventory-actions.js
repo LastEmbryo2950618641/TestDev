@@ -170,9 +170,33 @@ window.GameModules.inventoryActions = {
     if (changed) await this.persistInventoryState(state);
   },
 
+  syncInventoryProfileFromValues(state) {
+    if (!state?.profile || !state?.values) return false;
+    const progression = window.GameModules.progression;
+    progression.ensureInventoryFields?.(state.values, state.id || '');
+    const clone = (value) => JSON.parse(JSON.stringify(value || []));
+    const nextItems = clone(state.values.items);
+    const nextWearing = clone(state.values.wearing);
+    const before = JSON.stringify({
+      items: state.profile.items,
+      wearing: state.profile.wearing,
+      wearingItems: state.profile.wearingItems,
+    });
+    state.profile.items = nextItems;
+    state.profile.wearingItems = nextWearing;
+    state.profile.wearing = progression.mergeProfileWearing?.(state.profile.wearing || [], nextWearing) || nextWearing;
+    state.profile.roleCardUpdatedAt = new Date().toISOString();
+    return before !== JSON.stringify({
+      items: state.profile.items,
+      wearing: state.profile.wearing,
+      wearingItems: state.profile.wearingItems,
+    });
+  },
+
   async persistInventoryState(state) {
     if (!state?.id) return;
     window.GameModules.progression.ensureInventoryFields?.(state.values, state.id || '');
+    this.syncInventoryProfileFromValues?.(state);
     this.rpgStates = { ...this.rpgStates, [state.id]: state };
     await window.GameModules.characterStateStore?.save?.(state);
   },

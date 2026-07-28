@@ -18,6 +18,8 @@ const alwaysSyncFiles = [
   'boot/scripts.json',
   'boot/script-manifest.js',
   'phone-desktop.css',
+  'taobao-app.css',
+  'prompts/taobao-product-generate.js',
   'skills-app.css',
   'ui-theme-overrides.css',
 ];

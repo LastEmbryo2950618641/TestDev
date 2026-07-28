@@ -26,10 +26,10 @@ const ANDROID_MANIFEST = path.join(ROOT, 'mobile', 'android-webview-shell', 'app
 const SUPPORT_SCRIPT_ANCHOR = 'predefined-role-card-support/triplet-essential-preference-layers.js';
 
 const NAME_TO_KEY = {
-  刘悠: 'liu-you',
-  刘思瑶: 'liu-siyao',
-  刘思琪: 'liu-siqi',
-  刘思怡: 'liu-siyi',
+  刘思琪: '01-刘思琪-rel-ai-247528',
+  刘思怡: '02-刘思怡-rel-ai-242269',
+  刘思瑶: '03-刘思瑶-rel-ai-247463',
+  刘悠: '04-刘悠-player-self',
 };
 
 function stripBom(text = '') {

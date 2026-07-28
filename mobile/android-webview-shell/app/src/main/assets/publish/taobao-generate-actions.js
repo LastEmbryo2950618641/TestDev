@@ -5,6 +5,7 @@ window.GameModules.taobaoGenerateActions = {
     const bodySlots = window.GameModules.progression.bodyWearSlots();
     const slots = bodySlots.join('、');
     const filter = this.taobaoState?.filterSlot;
+    const productCount = Math.max(1, Math.min(12, Number(slot.batchCount || 1) || 1));
     const query = String(this.taobaoState?.searchText || '').trim();
     const queryText = query ? `用户搜索词：${query}。这是硬性搜索条件，商品name、category、description必须明确体现“${query}”；若搜索词是JK、洛丽塔、汉服等风格，必须生成该风格商品，不允许生成无关日用品或普通服饰。` : '';
     const filterText = filter && filter !== '__set' ? `当前搜索筛选部位：${this.taobaoFilterLabel(filter)}（${filter}），必须生成可穿戴在该部位的装备商品。` : '';
@@ -22,6 +23,7 @@ window.GameModules.taobaoGenerateActions = {
       styleSlotText,
       setText,
       slots,
+      productCount,
     });
   },
 

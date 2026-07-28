@@ -566,6 +566,79 @@ test('predefined player repair restores profile without replacing values', async
   assert.strictEqual(state.values.current_location, undefined);
 });
 
+test('default account activation preserves full exported predefined role card shape', async () => {
+  const exported = {
+    id: 'player-self',
+    name: '刘悠',
+    worldTag: '2026 现代都市现实世界',
+    profile: {
+      id: 'player-self',
+      name: '刘悠',
+      roleCard: true,
+      isPlayer: true,
+      work: '2026 现代都市现实世界',
+      currentLocation: '中华人民共和国·四川省·成都市武侯区·锦苑小区3栋·2单元601号',
+      certificates: [{ name: '中华人民共和国/计算机科学与技术/硕士', reason: '测试证书' }],
+      titles: [{ name: '成都程序员社区/开源贡献/年度贡献者', reason: '测试称号' }],
+    },
+    values: {
+      world_tag: '2026 现代都市现实世界',
+      level: 3,
+      custom_latest_field: { nested: true },
+    },
+    metrics: { emotions: { calm: { value: 8 } } },
+    schema: { worldTag: '2026 现代都市现实世界', sections: [{ title: '身份信息', fields: [{ key: 'custom_latest_field' }] }] },
+    updatedAt: '2026-07-28T02:54:24.392Z',
+  };
+  const modules = loadPredefinedRoleCardsModule({ '04-刘悠-player-self': exported });
+  let saved = null;
+  Object.assign(modules, {
+    platform: {
+      storage: {
+        capabilities: { isReady: () => true },
+        backend: { currentSlot: () => 'slot-1' },
+      },
+    },
+    storage: { open: async () => {} },
+    characterStateStore: {
+      get: () => null,
+      save: async (state) => { saved = JSON.parse(JSON.stringify(state)); },
+    },
+    rpgState: {
+      ensureSchema: async (worldTag) => ({ worldTag, sections: [{ title: '身份信息', fields: [{ key: 'world_tag' }] }] }),
+      createCharacterState: () => { throw new Error('full exported predefined card must not be recreated from schema'); },
+      upgradeCharacterState: () => { throw new Error('full exported predefined card must not be schema-upgraded'); },
+    },
+    rpgLexicon: { syncState: async () => { throw new Error('full exported predefined card must not be lexicon-rebased'); } },
+    currentLocationField: {
+      mapNodeName: (value) => String(value || '').split('·').pop(),
+    },
+    realWorld2026: { label: '2026 现代都市现实世界' },
+  });
+  const cards = await modules.predefinedRoleCards.loadAll();
+  const store = {
+    selectedSlot: 'slot-1',
+    roleCardSetup: {
+      usePredefinedPlayerCard: true,
+      cards,
+      selectedPlayerId: 'player-self',
+      selectedCardIds: ['player-self'],
+    },
+    rpgStates: {},
+  };
+
+  const states = await modules.predefinedRoleCards.saveSelectedRoleCardStates(store);
+
+  assert.strictEqual(states.length, 1);
+  assert.deepStrictEqual(Object.keys(states[0]), Object.keys(exported));
+  assert.deepStrictEqual(Object.keys(states[0].profile), Object.keys(exported.profile));
+  assert.deepStrictEqual(Object.keys(states[0].values), Object.keys(exported.values));
+  assert.strictEqual(JSON.stringify(states[0].values.custom_latest_field), JSON.stringify({ nested: true }));
+  assert.strictEqual(JSON.stringify(states[0].profile.certificates), JSON.stringify(exported.profile.certificates));
+  assert.strictEqual(JSON.stringify(states[0].profile.titles), JSON.stringify(exported.profile.titles));
+  assert.strictEqual(JSON.stringify(saved), JSON.stringify(states[0]));
+});
+
 test('real world panel does not auto-submit location fill as narration action', () => {
   const source = fs.readFileSync('publish/real-world-clock-actions.js', 'utf8');
   assert.ok(!source.includes("submitRealWorldAction('根据我的现实资料确认当前所在的具体地点，并建立电子地图根节点')"));

@@ -405,7 +405,7 @@ window.GameModules.predefinedRoleCards = {
         ...profile,
         ...(preservedLocation ? { currentLocation: preservedLocation } : {}),
       };
-    state.note = profile.detail || state.note || '';
+    if (!preserveExportShape) state.note = profile.detail || state.note || '';
     if (!preserveExportShape) window.GameModules.rpgState.upgradeCharacterState(state, schema);
     if (profile.isPlayer) {
       if (!preserveExportShape) state.values.status_tags = ['玩家本人', '手机主人', profile.work, profile.role];
