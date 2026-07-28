@@ -22,20 +22,22 @@ window.GameModules.promptActions = {
     ];
   },
   promptRuntimeItems() {
-    return (window.GameModules.tokenStats?.records || []).filter((record) => record.kind === 'draw').map((record) => ({
+    return (window.GameModules.tokenStats?.records || []).map((record) => ({
       id: `runtime-${record.id}`,
       title: record.title || '运行时 AI 请求',
       category: record.category || '图片生成',
       file: record.file || '运行时请求',
       summary: record.summary || '运行时生成的完整提示词。',
+      updatedAt: record.updatedAt || '',
       runtimeRecordId: record.id,
     }));
   },
   promptAllItems() {
-    return [...window.GameModules.promptTemplates.list(), ...this.promptDrawItems(), ...this.promptRuntimeItems()];
+    return [...this.promptRuntimeItems(), ...window.GameModules.promptTemplates.list(), ...this.promptDrawItems()];
   },
   promptList() {
     this.initPromptApp();
+    this.tokenStatsState?.version;
     const q = String(this.promptState.query || '').trim().toLowerCase();
     return this.promptAllItems().filter((item) => {
       const inCategory = !this.promptState.category || item.category === this.promptState.category;
@@ -47,6 +49,16 @@ window.GameModules.promptActions = {
     return [...new Set(this.promptAllItems().map((item) => item.category).filter(Boolean))];
   },
   promptCategoryLabel() { return this.promptState?.category || '全部分类'; },
+  promptItemMetaText(item = {}) {
+    const parts = [item.category || '', item.summary || ''].filter(Boolean);
+    if (item.runtimeRecordId) {
+      const record = window.GameModules.tokenStats?.item?.(item.runtimeRecordId);
+      const cost = window.GameModules.tokenStats?.rowCostText?.(record) || '';
+      if (item.updatedAt) parts.push(item.updatedAt);
+      if (cost) parts.push(cost);
+    }
+    return parts.join('｜');
+  },
   setPromptQuery(value = '') {
     this.initPromptApp();
     this.promptState.query = String(value || '');

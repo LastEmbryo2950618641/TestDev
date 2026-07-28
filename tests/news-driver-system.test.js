@@ -130,9 +130,21 @@ const stage2Prompt = fs.readFileSync(path.join(root, 'publish/prompts/推演引�
 const stage3Prompt = fs.readFileSync(path.join(root, 'publish/prompts/推演引擎/stage3-narration.md'), 'utf8');
 assert.match(stage2Prompt, /新闻热榜场景锚定规则/u, 'Stage2 md should own news scene-anchor rules');
 assert.match(stage2Prompt, /公共信息流与环境驱动源/u, 'Stage2 md should explain news driver purpose');
+assert.match(stage2Prompt, /角色主动性推演规则/u, 'Stage2 md should require proactive character reasoning');
+assert.match(stage2Prompt, /会主动做什么/u, 'Stage2 md should judge what characters proactively do');
+assert.match(stage2Prompt, /基于已有上下文和合理推演/u, 'Stage2 md should keep proactive reasoning grounded');
+assert.match(stage2Prompt, /角色认知必须受限于其已知信息/u, 'Stage2 md should enforce character knowledge boundaries');
+assert.match(stage2Prompt, /角色动机可能冲突/u, 'Stage2 md should model conflicting character motives');
+assert.match(stage2Prompt, /情绪与关系有惯性/u, 'Stage2 md should preserve emotional inertia');
 assert.match(stage3Prompt, /新闻热榜正文联动规则/u, 'Stage3 md should own news narration rules');
 assert.match(stage3Prompt, /自然相关，必须体现合理联动/u, 'Stage3 md should require relevant character-world linkage');
 assert.match(stage3Prompt, /禁止强行把无关新闻塞进当前场景/u, 'Stage3 md should avoid forced irrelevant linkage');
+assert.match(stage3Prompt, /角色主动性推演规则/u, 'Stage3 md should require proactive character behavior');
+assert.match(stage3Prompt, /不是等待玩家继续输入才回应的道具/u, 'Stage3 md should forbid passive waiting characters');
+assert.match(stage3Prompt, /主动行为必须基于已有上下文和连续性/u, 'Stage3 md should keep proactive behavior continuous');
+assert.match(stage3Prompt, /创造性必须服务于栩栩如生而不是破坏设定/u, 'Stage3 md should allow grounded creative lifelike details');
+assert.match(stage3Prompt, /角色动机可以互相拉扯/u, 'Stage3 md should write motive tension');
+assert.match(stage3Prompt, /主动性不能抢夺玩家控制权/u, 'Stage3 md should preserve player agency');
 assert.doesNotMatch(fs.readFileSync(path.join(root, 'publish/news-driver-system.js'), 'utf8'), /正文生成时，若当前行动/u, 'news driver system should not hard-code Stage3 usage rules');
 
 const updatePrompt = fs.readFileSync(path.join(root, 'publish/prompts/推演引擎/stage11-world-news-update.md'), 'utf8');

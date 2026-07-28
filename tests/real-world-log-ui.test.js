@@ -16,6 +16,7 @@ assert.ok(html.indexOf('entry.narration || entry.statusText || entry.text') < ht
 assert.ok(html.indexOf('现实AI结算思考') < html.indexOf('real-world-settlement-btn'));
 assert.ok(html.includes('&& entry.settlementThinkingOpen'));
 assert.ok(html.includes('<template x-if="!entry.transientError && $store.game.hasRealWorldSettlementThinking(entry) && entry.settlementThinkingOpen"'));
+assert.ok(html.includes("entry.settlementThinkingOpen ? 'AI结算思考 ▼' : 'AI结算思考 ▶'"));
 assert.ok(html.includes('<template x-if="entry.cardChangesOpen"'));
 assert.ok(!html.includes('entry.streaming || entry.settlementThinkingOpen'));
 assert.ok(!html.includes('realWorldTraceLines(entry)"'));
@@ -91,7 +92,8 @@ assert.deepStrictEqual(JSON.parse(JSON.stringify(store.realWorldSettlementThinki
   settlementThinkingSections: [{ id: 'stage4', label: 'Stage4 状态结算', text: '检查更新' }],
 }))), [{ id: 'stage4', label: 'Stage4 状态结算', text: '检查更新' }]);
 assert.strictEqual(store.normalizeRealWorldLog([{ id: 'done', settlementThinking: '已完成' }])[0].settlementThinkingOpen, false);
-assert.strictEqual(store.normalizeRealWorldLog([{ id: 'live', streaming: true, settlementThinking: '进行中' }])[0].settlementThinkingOpen, true);
+assert.strictEqual(store.normalizeRealWorldLog([{ id: 'live', streaming: true, settlementThinking: '进行中' }])[0].settlementThinkingOpen, false);
+assert.strictEqual(store.normalizeRealWorldLog([{ id: 'opened', settlementThinkingOpen: true, settlementThinking: '已点开' }])[0].settlementThinkingOpen, true);
 assert.strictEqual(store.realWorldDisplayLog([
   { id: 'u1', type: 'user', text: 'same action' },
   { id: 'u2', type: 'user', text: 'same action' },

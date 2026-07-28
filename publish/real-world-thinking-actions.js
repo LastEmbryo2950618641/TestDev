@@ -216,7 +216,7 @@ window.GameModules.realWorldThinkingActions = {
         id: entry?.id || `real-log-${index}`,
         type: entry?.type || 'ai',
         thinkingOpen: Boolean(entry?.thinkingOpen),
-        settlementThinkingOpen: Boolean(entry?.settlementThinkingOpen || entry?.streaming),
+        settlementThinkingOpen: Boolean(entry?.settlementThinkingOpen),
         thinkingStageOpen: entry?.thinkingStageOpen && typeof entry.thinkingStageOpen === 'object' ? { ...entry.thinkingStageOpen } : {},
         cardChangesOpen: Boolean(entry?.cardChangesOpen),
         settlementTab: entry?.settlementTab || '',

@@ -604,7 +604,7 @@ window.GameModules.realWorldAgentLoop = {
     store.patchRealWorldLogEntry?.(logId, {
       settlementThinkingSections: sections,
       settlementThinking: this.joinSettlementThinkingSections(sections),
-      settlementThinkingOpen: entry.settlementThinkingOpen !== false,
+      settlementThinkingOpen: Boolean(entry.settlementThinkingOpen),
     }, { live: Boolean(config.livePatch) });
   },
 
@@ -1625,6 +1625,21 @@ window.GameModules.realWorldAgentLoop = {
     const modeRule = config.mode === 'story'
       ? `推演自由度：${this.storyFreedomRule(store)}\n玩家不是角色本人，而是操控/影响被操控者行动的存在；正文必须写出本次行动的动作过程、环境变化、其他人物反应、被操控者身体与心理张力、直接结果。`
       : `推演自由度：${store.realWorldFreedomRule?.() || '只推演玩家本次输入行动自然抵达的直接结果。'}`;
+    const activeRoleRules = [
+      '角色主动性推演规则：',
+      '- 正文必须把出场角色写成会自主判断和行动的人，而不是等待玩家继续输入才回应的道具。',
+      '- 角色反应必须广而全地综合性格、爱好、背景、成长经历、价值取向、当前处境、地点、时间、与玩家关系、好感/信任/依赖/警惕/反感、欲望/肉欲、身体状态、已知信息、近期事件、长期目标和当前压力。',
+      '- 主动行为必须基于已有上下文和连续性，不能凭空改写角色性格、关系、记忆、地点或已发生事实。',
+      '- 角色认知必须有边界：只能依据自己看见、听见、记得、推断得到或被告知的内容行动；未知秘密不能当作已知，但可以写出误会、试探、猜测、戒备或装作不知道。',
+      '- 主动性要有生活真实感：主动不只等于靠近或推进，也包括拒绝、沉默、观察、拖延、逃避、找借口、讲条件、试探、转移话题、整理物品、关灯、看手机、确认时间或压低声音。',
+      '- 角色动机可以互相拉扯：亲近与害羞、欲望与矜持、好感与警惕、疲惫与责任、讨好与自尊、依赖与防备都可以同时存在，并通过动作、语气、停顿、眼神或选择体现。',
+      '- 情绪和关系必须有惯性：不要让角色因为一句话瞬间完全转向；除非有强触发，否则用细微变化、试探、克制、压抑、犹豫、回避或逐步升级表现变化。',
+      '- 主动性不能抢夺玩家控制权：角色可以主动提出、拒绝、靠近、离开、设条件或诱导，但不要替玩家决定下一步新行动。',
+      '- 时间很晚、地点不合适、关系不足、好感不够、性格高冷/谨慎/警惕或边界被触碰时，角色应主动设限、要求休息/睡觉、要求离开、拒绝接触、保持距离或明确制止。',
+      '- 气氛、关系、好感/信任、欲望/肉欲、私密性、性格主动性与 consent 都支持时，角色可以自然主动靠近、讨好、诱导、表达需求或提出亲密要求；不得跳过必要条件或自动扩展到未输入的新阶段。',
+      '- 若角色足够了解玩家，并且性格与关系支持，应让角色利用这份了解主动投其所好、安抚弱点、迎合偏好或用玩家在意的事物讨好/诱导。',
+      '- 创造性必须服务于栩栩如生而不是破坏设定：可以补全符合上下文的小动作、停顿、语气、眼神、身体距离、生活物件、惯用表达、临场选择和微妙心理变化。',
+    ].join('\n');
     const narrationRules = '行动范围内充分推演：写出本次行动的动作过程、身体感受、周围环境变化、可见细节、他人反应、对话回应和直接短期连锁影响；场景锚定报告中的强制出场必须在正文中实际出现、行动或回应；不替玩家执行下一步新行动；不把亲吻、抚摸、摩擦、按住等行为自动扩展为脱衣、转移地点、插入、高潮等未输入的新阶段。除“你”外每次写角色姓名必须使用 <role id="真实ID">姓名</role>。';
     const completenessRules = [
       '正文完整性规则：',
@@ -1648,7 +1663,7 @@ window.GameModules.realWorldAgentLoop = {
     return this.renderPrompt('inference-stage3-narration', {
       模式标签: config.label,
       本次行动: actionText,
-      基础上下文: [this.continuityFallbackRule(), `小说笔风：${writingStyle}`, modeRule, controlPerspectiveRule, narrationRules, completenessRules, eventNarrationContext, newsNarrationContext, narrationContext].filter(Boolean).join('\n'),
+      基础上下文: [this.continuityFallbackRule(), `小说笔风：${writingStyle}`, modeRule, controlPerspectiveRule, activeRoleRules, narrationRules, completenessRules, eventNarrationContext, newsNarrationContext, narrationContext].filter(Boolean).join('\n'),
       场景锚定报告: sceneAnchorReport || '无',
       已动态载入资料: loadedText || '无',
       出场角色标签清单: roleTagGuide,

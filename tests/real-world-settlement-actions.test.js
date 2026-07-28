@@ -56,9 +56,29 @@ function json(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function loadUpdateRegistry() {
+  const context = vm.createContext({
+    console,
+    Date,
+    JSON,
+    Math,
+    Number,
+    Object,
+    String,
+    window: { GameModules: {} },
+  });
+  ['publish/update/update-registry.js', 'publish/update/system-update.js', 'publish/update/system-update-ui.js', 'publish/update/character-schedule-update.js', 'publish/update/character-schedule-update-ui.js', 'publish/update/settlement-ui-bridge.js'].forEach((relativePath) => {
+    const source = fs.readFileSync(path.join(root, relativePath), 'utf8');
+    vm.runInContext(source, context, { filename: relativePath });
+  });
+  return context.window.GameModules.updateRegistry;
+}
+
 async function run() {
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'publish', 'boot', 'scripts.json'), 'utf8'));
   assert.ok(manifest.includes(relativeScriptPath), 'real-world settlement actions must load at runtime');
+  assert.ok(manifest.includes('update/character-schedule-update.js'), 'character schedule update type must load at runtime');
+  assert.ok(manifest.includes('update/character-schedule-update-ui.js'), 'character schedule settlement UI must load at runtime');
 
   const npc = { id: 'npc-1', profile: { name: '刘思琪' }, values: {} };
   const { actions, calls } = loadActions(npc);
@@ -81,6 +101,29 @@ async function run() {
   assert.strictEqual(runtime.realWorldSettlementCardForGroup('公司：星河工作室').section, '势力卡');
   assert.strictEqual(runtime.realWorldSettlementCardForGroup('地图地点').section, '地图卡');
   assert.strictEqual(runtime.realWorldSettlementGroup('穿着', '外套'), '物品');
+
+  const registry = loadUpdateRegistry();
+  const grouped = registry.settlementGroups({
+    characterCardChanges: [
+      { cardId: 'role:npc-1', cardTitle: '刘思琪', section: '角色卡', field: 'characterSchedules', name: 'characterSchedules', value: { currentLocation: '刘思琪房间床上', currentAction: '坐在两人中间', availability: '在场', reason: '正文确认' }, reason: '人事安排确认' },
+      { cardId: 'role:npc-1', cardTitle: '刘思琪', section: '角色卡', field: 'currentAction', name: '当前行动', value: '看书', reason: '正文确认' },
+    ],
+    genericUpdates: [
+      {
+        updateType: 'system',
+        subject: { type: 'calendar', id: 'calendar', name: '日历' },
+        field: 'events',
+        change: { mode: 'append', value: '新闻热榜：更新75条' },
+        reasons: [{ trigger: '新闻热榜', evidence: '新闻热榜：更新75条', confidence: 'confirmed' }],
+      },
+    ],
+  }, runtime);
+  assert.deepStrictEqual(json(grouped.map((group) => group.title)), ['人事安排', '刘思琪', '系统记录']);
+  const scheduleRow = grouped.find((group) => group.id === 'schedule:real-world')?.items[0];
+  assert.strictEqual(scheduleRow?.uiTitle, '人事安排');
+  assert.doesNotMatch(scheduleRow?.uiValue || '', /^\{/u);
+  assert.match(scheduleRow?.uiValue || '', /坐在两人中间/u);
+  assert.strictEqual(grouped.find((group) => group.id === 'system-records')?.items[0]?.uiTitle, '系统记录');
 
   const metricRows = runtime.realWorldMetricSettlement(
     { id: 'npc-1' },
