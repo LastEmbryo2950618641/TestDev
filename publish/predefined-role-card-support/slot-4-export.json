@@ -448,9 +448,9 @@
             "description": "工作用的笔记本，黑色，14英寸，性能适中。",
             "quantity": 1,
             "reason": "作为软件工程师，随时可能需要处理工作或查看代码。",
-            "id": "",
-            "ownerId": "",
-            "characterId": "",
+            "id": "item_209010",
+            "ownerId": "player-self",
+            "characterId": "player-self",
             "type": "物品",
             "kind": "物品",
             "equipSlots": [],
@@ -462,9 +462,9 @@
             "description": "黑色智能手机，屏幕有细微划痕。",
             "quantity": 1,
             "reason": "日常通讯和获取信息必备，程序工程师常用来查阅资料。",
-            "id": "",
-            "ownerId": "",
-            "characterId": "",
+            "id": "item_103873",
+            "ownerId": "player-self",
+            "characterId": "player-self",
             "type": "物品",
             "kind": "物品",
             "equipSlots": [],
@@ -476,9 +476,9 @@
             "description": "黑色短款钱包，内含少量现金和银行卡。",
             "quantity": 1,
             "reason": "携带身份证、银行卡及零钱，以备日常小额支付。",
-            "id": "",
-            "ownerId": "",
-            "characterId": "",
+            "id": "item_111602",
+            "ownerId": "player-self",
+            "characterId": "player-self",
             "type": "物品",
             "kind": "物品",
             "equipSlots": [
@@ -492,9 +492,9 @@
             "description": "包含家门钥匙、公司门禁卡和一个小U盘。",
             "quantity": 1,
             "reason": "回家和进入公司必须使用，U盘可用于临时数据传输。",
-            "id": "",
-            "ownerId": "",
-            "characterId": "",
+            "id": "item_131628",
+            "ownerId": "player-self",
+            "characterId": "player-self",
             "type": "物品",
             "kind": "物品",
             "equipSlots": [
@@ -504,81 +504,188 @@
             "level": -1
           }
         ],
-        "wearing": {
-          "head": {
+        "wearing": [
+          {
+            "slot": "head",
             "clothing_position": "头部",
             "name": "金属框眼镜",
+            "type": "穿着",
             "description": "银色金属半框眼镜，镜片干净透明。",
-            "reason": "轻度近视，日常办公和阅读需要佩戴眼镜。"
+            "reason": "轻度近视，日常办公和阅读需要佩戴眼镜。",
+            "changeMode": "轻度近视，日常办公和阅读需要佩戴眼镜。",
+            "source": "AI生成",
+            "level": -1,
+            "id": "item_220016",
+            "ownerId": "player-self",
+            "characterId": "player-self",
+            "slotLabel": "头部"
           },
-          "neck": {
+          {
+            "slot": "neck",
             "clothing_position": "颈部",
             "name": "--",
+            "type": "穿着",
             "description": "--",
-            "reason": "刘悠没有佩戴项链或围巾的习惯，颈部保持整洁。"
+            "reason": "刘悠没有佩戴项链或围巾的习惯，颈部保持整洁。",
+            "changeMode": "刘悠没有佩戴项链或围巾的习惯，颈部保持整洁。",
+            "source": "AI生成",
+            "level": -1,
+            "id": "item_63692",
+            "ownerId": "player-self",
+            "characterId": "player-self",
+            "slotLabel": "颈部"
           },
-          "innerwearTop": {
+          {
+            "slot": "innerwearTop",
             "clothing_position": "内衣",
             "name": "白色圆领T恤",
+            "type": "穿着",
             "description": "纯棉白色圆领内衣，简洁贴身。",
-            "reason": "作为内搭吸汗，外穿格子衬衫时不会露出过多皮肤。"
+            "reason": "作为内搭吸汗，外穿格子衬衫时不会露出过多皮肤。",
+            "changeMode": "作为内搭吸汗，外穿格子衬衫时不会露出过多皮肤。",
+            "source": "AI生成",
+            "level": -1,
+            "id": "item_214274",
+            "ownerId": "player-self",
+            "characterId": "player-self",
+            "slotLabel": "内衣"
           },
-          "top": {
+          {
+            "slot": "top",
             "clothing_position": "上衣",
             "name": "深色格子衬衫",
+            "type": "穿着",
             "description": "红黑格纹长袖衬衫，面料略微磨损。",
-            "reason": "刘悠常穿的休闲衬衫，方便活动且适合居家或上班。"
+            "reason": "刘悠常穿的休闲衬衫，方便活动且适合居家或上班。",
+            "changeMode": "刘悠常穿的休闲衬衫，方便活动且适合居家或上班。",
+            "source": "AI生成",
+            "level": -1,
+            "id": "item_244970",
+            "ownerId": "player-self",
+            "characterId": "player-self",
+            "slotLabel": "上衣"
           },
-          "outerwear": {
+          {
+            "slot": "outerwear",
             "clothing_position": "外套",
             "name": "--",
+            "type": "穿着",
             "description": "--",
-            "reason": "当前室内环境温度适宜，无需额外外套。"
+            "reason": "当前室内环境温度适宜，无需额外外套。",
+            "changeMode": "当前室内环境温度适宜，无需额外外套。",
+            "source": "AI生成",
+            "level": -1,
+            "id": "item_64265",
+            "ownerId": "player-self",
+            "characterId": "player-self",
+            "slotLabel": "外套"
           },
-          "gloves": {
+          {
+            "slot": "gloves",
             "clothing_position": "手套",
             "name": "--",
+            "type": "穿着",
             "description": "--",
-            "reason": "非冬季且无需防护，不戴手套。"
+            "reason": "非冬季且无需防护，不戴手套。",
+            "changeMode": "非冬季且无需防护，不戴手套。",
+            "source": "AI生成",
+            "level": -1,
+            "id": "item_63931",
+            "ownerId": "player-self",
+            "characterId": "player-self",
+            "slotLabel": "手套"
           },
-          "waist": {
+          {
+            "slot": "waist",
             "clothing_position": "腰部",
             "name": "黑色皮带",
+            "type": "穿着",
             "description": "黑色皮质腰带，银色扣头。",
-            "reason": "牛仔裤需要皮带固定，同时提升整体穿着整洁度。"
+            "reason": "牛仔裤需要皮带固定，同时提升整体穿着整洁度。",
+            "changeMode": "牛仔裤需要皮带固定，同时提升整体穿着整洁度。",
+            "source": "AI生成",
+            "level": -1,
+            "id": "item_192272",
+            "ownerId": "player-self",
+            "characterId": "player-self",
+            "slotLabel": "腰部"
           },
-          "innerwearBottom": {
+          {
+            "slot": "innerwearBottom",
             "clothing_position": "内衣",
             "name": "深灰色棉质内裤",
+            "type": "穿着",
             "description": "平角内裤，纯棉材质，舒适透气。",
-            "reason": "基本贴身衣物，保持卫生和舒适。"
+            "reason": "基本贴身衣物，保持卫生和舒适。",
+            "changeMode": "基本贴身衣物，保持卫生和舒适。",
+            "source": "AI生成",
+            "level": -1,
+            "id": "item_273982",
+            "ownerId": "player-self",
+            "characterId": "player-self",
+            "slotLabel": "内衣"
           },
-          "bottom": {
+          {
+            "slot": "bottom",
             "clothing_position": "下装",
             "name": "深蓝色牛仔裤",
+            "type": "穿着",
             "description": "直筒牛仔裤，膝盖处有轻微褪色。",
-            "reason": "日常休闲最常穿的下装，耐磨且行动方便。"
+            "reason": "日常休闲最常穿的下装，耐磨且行动方便。",
+            "changeMode": "日常休闲最常穿的下装，耐磨且行动方便。",
+            "source": "AI生成",
+            "level": -1,
+            "id": "item_243897",
+            "ownerId": "player-self",
+            "characterId": "player-self",
+            "slotLabel": "下装"
           },
-          "socks": {
+          {
+            "slot": "socks",
             "clothing_position": "袜子",
             "name": "黑色短棉袜",
+            "type": "穿着",
             "description": "黑色纯棉短袜，长度到脚踝。",
-            "reason": "搭配运动鞋，舒适吸汗，适合室内外活动。"
+            "reason": "搭配运动鞋，舒适吸汗，适合室内外活动。",
+            "changeMode": "搭配运动鞋，舒适吸汗，适合室内外活动。",
+            "source": "AI生成",
+            "level": -1,
+            "id": "item_230281",
+            "ownerId": "player-self",
+            "characterId": "player-self",
+            "slotLabel": "袜子"
           },
-          "shoes": {
+          {
+            "slot": "shoes",
             "clothing_position": "鞋子",
             "name": "白色运动鞋",
+            "type": "穿着",
             "description": "白色低帮板鞋，鞋带系紧。",
-            "reason": "日常通勤和休闲首选，轻便舒适。"
+            "reason": "日常通勤和休闲首选，轻便舒适。",
+            "changeMode": "日常通勤和休闲首选，轻便舒适。",
+            "source": "AI生成",
+            "level": -1,
+            "id": "item_224229",
+            "ownerId": "player-self",
+            "characterId": "player-self",
+            "slotLabel": "鞋子"
           },
-          "wrist": {
+          {
+            "slot": "wrist",
             "clothing_position": "手腕",
             "name": "黑色电子手表",
+            "type": "穿着",
             "description": "黑色硅胶表带电子表，显示时间日期。",
-            "reason": "习惯戴表看时间，电子表方便工作计时。"
-          },
-          "slot": []
-        },
+            "reason": "习惯戴表看时间，电子表方便工作计时。",
+            "changeMode": "习惯戴表看时间，电子表方便工作计时。",
+            "source": "AI生成",
+            "level": -1,
+            "id": "item_251269",
+            "ownerId": "player-self",
+            "characterId": "player-self",
+            "slotLabel": "手腕"
+          }
+        ],
         "importance": "main",
         "isMinor": false,
         "roleCard": true,
@@ -608,7 +715,9 @@
         },
         "control_experience": {
           "上线次数": 0,
-          "习惯程度": "初次操控尚不熟悉"
+          "习惯程度": "初次操控尚不熟悉",
+          "controllerAwarenessLevel": "unknown",
+          "controllerAwareness": "尚不知晓控制者是谁"
         },
         "faction": "刘家",
         "factionRole": "长兄/家庭支柱",
@@ -707,7 +816,7 @@
             "description": "组织：刘悠家庭（成都市）；身份：户主/同住者。组织ID：family-player-home。人事归属表示角色在可指认组织中的正式或准正式身份（组织名+职位/学籍等）。",
             "source": "preset-family",
             "reason": "玩家家庭 org 绑定（仅当 AI 已创建家庭势力）。",
-            "changeMode": "玩家家庭 org 预绑定。",
+            "changeMode": "玩家家庭 org 绑定（仅当 AI 已创建家庭势力）。",
             "since": "",
             "displayLine": "刘悠家庭（成都市） / 家庭 / 户主/同住者"
           }
@@ -1486,7 +1595,11 @@
             "reason": "轻度近视，日常办公和阅读需要佩戴眼镜。",
             "changeMode": "轻度近视，日常办公和阅读需要佩戴眼镜。",
             "source": "AI生成",
-            "level": -1
+            "level": -1,
+            "id": "item_220016",
+            "ownerId": "player-self",
+            "characterId": "player-self",
+            "slotLabel": "头部"
           },
           {
             "slot": "neck",
@@ -1497,7 +1610,11 @@
             "reason": "刘悠没有佩戴项链或围巾的习惯，颈部保持整洁。",
             "changeMode": "刘悠没有佩戴项链或围巾的习惯，颈部保持整洁。",
             "source": "AI生成",
-            "level": -1
+            "level": -1,
+            "id": "item_63692",
+            "ownerId": "player-self",
+            "characterId": "player-self",
+            "slotLabel": "颈部"
           },
           {
             "slot": "innerwearTop",
@@ -1508,7 +1625,11 @@
             "reason": "作为内搭吸汗，外穿格子衬衫时不会露出过多皮肤。",
             "changeMode": "作为内搭吸汗，外穿格子衬衫时不会露出过多皮肤。",
             "source": "AI生成",
-            "level": -1
+            "level": -1,
+            "id": "item_214274",
+            "ownerId": "player-self",
+            "characterId": "player-self",
+            "slotLabel": "内衣"
           },
           {
             "slot": "top",
@@ -1519,7 +1640,11 @@
             "reason": "刘悠常穿的休闲衬衫，方便活动且适合居家或上班。",
             "changeMode": "刘悠常穿的休闲衬衫，方便活动且适合居家或上班。",
             "source": "AI生成",
-            "level": -1
+            "level": -1,
+            "id": "item_244970",
+            "ownerId": "player-self",
+            "characterId": "player-self",
+            "slotLabel": "上衣"
           },
           {
             "slot": "outerwear",
@@ -1530,7 +1655,11 @@
             "reason": "当前室内环境温度适宜，无需额外外套。",
             "changeMode": "当前室内环境温度适宜，无需额外外套。",
             "source": "AI生成",
-            "level": -1
+            "level": -1,
+            "id": "item_64265",
+            "ownerId": "player-self",
+            "characterId": "player-self",
+            "slotLabel": "外套"
           },
           {
             "slot": "gloves",
@@ -1541,7 +1670,11 @@
             "reason": "非冬季且无需防护，不戴手套。",
             "changeMode": "非冬季且无需防护，不戴手套。",
             "source": "AI生成",
-            "level": -1
+            "level": -1,
+            "id": "item_63931",
+            "ownerId": "player-self",
+            "characterId": "player-self",
+            "slotLabel": "手套"
           },
           {
             "slot": "waist",
@@ -1552,7 +1685,11 @@
             "reason": "牛仔裤需要皮带固定，同时提升整体穿着整洁度。",
             "changeMode": "牛仔裤需要皮带固定，同时提升整体穿着整洁度。",
             "source": "AI生成",
-            "level": -1
+            "level": -1,
+            "id": "item_192272",
+            "ownerId": "player-self",
+            "characterId": "player-self",
+            "slotLabel": "腰部"
           },
           {
             "slot": "innerwearBottom",
@@ -1563,7 +1700,11 @@
             "reason": "基本贴身衣物，保持卫生和舒适。",
             "changeMode": "基本贴身衣物，保持卫生和舒适。",
             "source": "AI生成",
-            "level": -1
+            "level": -1,
+            "id": "item_273982",
+            "ownerId": "player-self",
+            "characterId": "player-self",
+            "slotLabel": "内衣"
           },
           {
             "slot": "bottom",
@@ -1574,7 +1715,11 @@
             "reason": "日常休闲最常穿的下装，耐磨且行动方便。",
             "changeMode": "日常休闲最常穿的下装，耐磨且行动方便。",
             "source": "AI生成",
-            "level": -1
+            "level": -1,
+            "id": "item_243897",
+            "ownerId": "player-self",
+            "characterId": "player-self",
+            "slotLabel": "下装"
           },
           {
             "slot": "socks",
@@ -1585,7 +1730,11 @@
             "reason": "搭配运动鞋，舒适吸汗，适合室内外活动。",
             "changeMode": "搭配运动鞋，舒适吸汗，适合室内外活动。",
             "source": "AI生成",
-            "level": -1
+            "level": -1,
+            "id": "item_230281",
+            "ownerId": "player-self",
+            "characterId": "player-self",
+            "slotLabel": "袜子"
           },
           {
             "slot": "shoes",
@@ -1596,7 +1745,11 @@
             "reason": "日常通勤和休闲首选，轻便舒适。",
             "changeMode": "日常通勤和休闲首选，轻便舒适。",
             "source": "AI生成",
-            "level": -1
+            "level": -1,
+            "id": "item_224229",
+            "ownerId": "player-self",
+            "characterId": "player-self",
+            "slotLabel": "鞋子"
           },
           {
             "slot": "wrist",
@@ -1607,7 +1760,11 @@
             "reason": "习惯戴表看时间，电子表方便工作计时。",
             "changeMode": "习惯戴表看时间，电子表方便工作计时。",
             "source": "AI生成",
-            "level": -1
+            "level": -1,
+            "id": "item_251269",
+            "ownerId": "player-self",
+            "characterId": "player-self",
+            "slotLabel": "手腕"
           }
         ],
         "wearingRawRows": [],
@@ -4138,12 +4295,6 @@
                 "max": 100,
                 "desc": "可执行行动的灵活度、协调性与主动性。",
                 "grade": false
-              },
-              {
-                "key": "current_location",
-                "label": "当前位置",
-                "type": "text",
-                "desc": "玩家位置字段同步；完整值为“势力·势力层级1·势力层级2·地点·地点内位置”。"
               }
             ]
           },
@@ -4330,7 +4481,7 @@
           }
         ]
       },
-      "updatedAt": "2026-07-22T13:23:14.433Z"
+      "updatedAt": "2026-07-28T07:27:33.301Z"
     },
     {
       "id": "rel-ai-242269",
@@ -6707,12 +6858,6 @@
                 "max": 100,
                 "desc": "可执行行动的灵活度、协调性与主动性。",
                 "grade": false
-              },
-              {
-                "key": "current_location",
-                "label": "当前位置",
-                "type": "text",
-                "desc": "玩家位置字段同步；完整值为“势力·势力层级1·势力层级2·地点·地点内位置”。"
               }
             ]
           },
@@ -9326,12 +9471,6 @@
                 "max": 100,
                 "desc": "可执行行动的灵活度、协调性与主动性。",
                 "grade": false
-              },
-              {
-                "key": "current_location",
-                "label": "当前位置",
-                "type": "text",
-                "desc": "玩家位置字段同步；完整值为“势力·势力层级1·势力层级2·地点·地点内位置”。"
               }
             ]
           },
@@ -11952,12 +12091,6 @@
                 "max": 100,
                 "desc": "可执行行动的灵活度、协调性与主动性。",
                 "grade": false
-              },
-              {
-                "key": "current_location",
-                "label": "当前位置",
-                "type": "text",
-                "desc": "玩家位置字段同步；完整值为“势力·势力层级1·势力层级2·地点·地点内位置”。"
               }
             ]
           },

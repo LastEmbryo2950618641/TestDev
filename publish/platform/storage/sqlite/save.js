@@ -250,28 +250,35 @@ window.GameModules.sqliteSave = {
     return !query || state === query;
   },
 
+  sanitizeCharacterState(character = null) {
+    if (!character || typeof character !== 'object') return character;
+    window.GameModules.rpgState?.migrateProfileOwnedFields?.(character);
+    window.GameModules.rpgState?.ensureCurrentLocation?.(character);
+    return character;
+  },
+
   getCharacterStateByName(name, worldTag = '') {
     if (!name) return null;
     const queryWorld = this.normalizeQueryWorldTag(worldTag);
     if (this.fallback) {
       const states = Object.values(this.fallbackState?.characterStates || {}).filter((state) => state?.name === name && this.worldTagMatchesQuery(state.worldTag || state.profile?.work, queryWorld));
-      return states.sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')))[0] || null;
+      return this.sanitizeCharacterState(states.sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')))[0] || null);
     }
     if (!this.db) return null;
     if (queryWorld) {
       const aliases = this.realWorldAliases().includes(queryWorld) ? this.realWorldAliases() : [queryWorld];
       const placeholders = aliases.map(() => '?').join(',');
-      return this.getJson(`SELECT state_json FROM character_state WHERE name=? AND world_tag IN (${placeholders}) ORDER BY updated_at DESC LIMIT 1`, [name, ...aliases]);
+      return this.sanitizeCharacterState(this.getJson(`SELECT state_json FROM character_state WHERE name=? AND world_tag IN (${placeholders}) ORDER BY updated_at DESC LIMIT 1`, [name, ...aliases]));
     }
-    return this.getJson('SELECT state_json FROM character_state WHERE name=? ORDER BY updated_at DESC LIMIT 1', [name]);
+    return this.sanitizeCharacterState(this.getJson('SELECT state_json FROM character_state WHERE name=? ORDER BY updated_at DESC LIMIT 1', [name]));
   },
 
   listCharacterStates() {
-    if (this.fallback) return Object.values(this.fallbackState?.characterStates || {});
+    if (this.fallback) return Object.values(this.fallbackState?.characterStates || {}).map((state) => this.sanitizeCharacterState(state));
     if (!this.db) return [];
     const rows = [];
     const stmt = this.db.prepare('SELECT state_json FROM character_state ORDER BY created_at');
-    while (stmt.step()) rows.push(JSON.parse(stmt.getAsObject().state_json));
+    while (stmt.step()) rows.push(this.sanitizeCharacterState(JSON.parse(stmt.getAsObject().state_json)));
     stmt.free(); return rows;
   },
 
@@ -338,6 +345,7 @@ window.GameModules.sqliteSave = {
     const now = new Date().toISOString();
     const worldTag = this.normalizeQueryWorldTag(character.worldTag || character.profile?.work || '鏈煡涓栫晫');
     character.worldTag = worldTag;
+    this.sanitizeCharacterState(character);
     window.GameModules.rpgState?.migrateProfileOwnedFields?.(character);
     if (character.profile?.work) character.profile.work = worldTag;
     const normalized = { ...character, worldTag, values: character.values ? { ...character.values } : character.values, updatedAt: now };

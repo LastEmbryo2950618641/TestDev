@@ -87,7 +87,7 @@ window.GameModules.rpgFieldUi = {
   isIdentityInfoStyledField(field = {}) {
     const label = String(field?.label || '').trim();
     const key = String(field?.key || '').trim();
-    return /姓名|身份|职业|所属世界|年龄|生日|性别|思念度|当前位置|外貌|喜好|性格|人物说明|备注|社群角色|阵营|人事归属|证书|称号|world_tag|current_location|appearance|preferences|personality|detail|factions|memberships|certificates|titles|longing|(^|[-_])(name|role|job|work|age|birthday|gender)$/.test(`${label} ${key}`);
+    return /姓名|身份|职业|所属世界|年龄|生日|性别|思念度|当前位置|外貌|喜好|性格|人物说明|备注|社群角色|阵营|人事归属|证书|称号|world_tag|appearance|preferences|personality|detail|factions|memberships|certificates|titles|longing|(^|[-_])(name|role|job|work|age|birthday|gender)$/.test(`${label} ${key}`);
   },
   identityInfoSummary(field = {}) {
     const meta = this.identityInfoFieldMeta(field);
@@ -949,7 +949,7 @@ window.GameModules.rpgFieldUi = {
     if (match(/生日|(^|[-_])birthday$/)) return { icon: '🎂', section: 'tag', tone: 'pink' };
     if (match(/性别|(^|[-_])gender$/)) return { icon: '⚥', section: 'tag', tone: 'violet' };
     if (match(/思念度|longing/)) return { icon: '💞', section: 'tag', tone: 'pink' };
-    if (match(/当前位置|current_location/)) return { icon: '📍', section: 'lore', tone: 'cyan' };
+    if (match(/当前位置/)) return { icon: '📍', section: 'lore', tone: 'cyan' };
     if (match(/外貌|appearance/)) return { icon: '🧬', section: 'lore', tone: 'violet' };
     if (match(/喜好|preferences/)) return { icon: '🎀', section: 'lore', tone: 'pink' };
     if (match(/性格|personality/)) return { icon: '🧠', section: 'lore', tone: 'cyan' };
