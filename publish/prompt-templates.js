@@ -22,6 +22,7 @@ window.GameModules.promptTemplates = {
     { id: 'inference-stage6-faction-update', title: 'Stage9 势力更新', category: '剧情推演', file: 'prompts/推演引擎/stage6-faction-update.md', summary: '串行势力创建与字段补丁（Skill 写库）。' },
     { id: 'inference-stage10-life-energy-exp', title: 'Stage11 经验结算', category: '剧情推演', file: 'prompts/推演引擎/stage10-life-energy-exp.md', summary: '击杀/吸收结算生命层次经验；正文练习/使用结算知识技能职业经验。' },
     { id: 'inference-stage11-world-news-update', title: 'Stage12 世界新闻热榜', category: '剧情推演', file: 'prompts/推演引擎/stage11-world-news-update.md', summary: '正文后调整世界新闻热榜排名与条目。' },
+    { id: 'work-unit-from-faction', title: '工作App单位生成', category: '工作与任职', file: 'prompts/工作与任职/work-unit-from-faction.md', summary: '以势力为唯一组织真源，AI 生成当前单位的工作视图字段。' },
     { id: 'inference-init-intimacy-body', title: 'Stage4 亲密身体初始化', category: '结算初始化', file: 'prompts/推演引擎/init/intimacy-body-init-prompt.md', summary: 'Stage4 亲密与身体状态初始化说明。' },
     { id: 'inference-update-generic', title: 'Stage4 通用固化', category: '结算更新', file: 'prompts/推演引擎/update/generic-update-prompt.md', summary: 'Stage4 通用固化更新说明。' },
     { id: 'inference-update-emotion', title: 'Stage4 情绪更新', category: '结算更新', file: 'prompts/推演引擎/update/emotion-update-prompt.md', summary: 'Stage4 情绪变化更新说明。' },

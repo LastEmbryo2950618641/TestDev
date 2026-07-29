@@ -133,7 +133,34 @@ test('deepseek listTextModels normalizes model payload', async () => {
   );
 });
 
-test('deepseek complete maps chat completion response to text buffer', async () => {
+
+test('deepseek keeps selected flash model when deep thinking is enabled', async () => {
+  const context = createContext();
+  let payload = null;
+  context.fetch = async (_url, request) => {
+    payload = JSON.parse(request.body);
+    return {
+      ok: true,
+      async json() {
+        return {
+          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+          choices: [{ message: { content: 'ok' } }],
+        };
+      },
+    };
+  };
+  loadScript(context, 'publish/ai-provider.js');
+  loadScript(context, 'publish/ai-provider-deepseek.js');
+  const provider = context.window.GameModules.aiProvider.get('deepseek');
+  const text = await provider.complete({
+    model: 'deepseek-v4-flash',
+    messages: [{ role: 'user', content: 'hello' }],
+    deepThinking: true,
+  });
+  assert.strictEqual(text, 'ok');
+  assert.strictEqual(payload.model, 'deepseek-v4-flash');
+  assert.strictEqual(payload.reasoning_effort, 'high');
+});test('deepseek complete maps chat completion response to text buffer', async () => {
   const seen = [];
   const context = createContext({
     fetch: async (url, options) => {
@@ -183,3 +210,4 @@ test('deepseek complete maps chat completion response to text buffer', async () 
   console.error(err);
   process.exit(1);
 });
+

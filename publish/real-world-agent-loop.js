@@ -341,7 +341,7 @@ window.GameModules.realWorldAgentLoop = {
 
   normalizeReasoningPhase(phase = '') {
     const text = String(phase || '').trim();
-    const match = text.match(/^stage\s*(1[0-2]|[1-9])$/iu);
+    const match = text.match(/^stage\s*(1[0-3]|[1-9])$/iu);
     if (match) return `stage${Number(match[1])}`;
     return text.toLowerCase();
   },
@@ -362,10 +362,12 @@ window.GameModules.realWorldAgentLoop = {
       'inference-stage10-life-energy-exp': 'stage11',
       'real-world-map-surround-unlock': 'stage10',
       'inference-stage11-world-news-update': 'stage12',
+      'inference-stage13-work-performance-update': 'stage13',
     };
     if (byPromptId[promptId]) return byPromptId[promptId];
     if (config.guidedStep) return 'stage1';
     const sourceTitle = String(config.sourceTitle || '');
+    if (/Stage\s*13|工作与绩效|评绩效/iu.test(sourceTitle)) return 'stage13';
     if (/Stage\s*12|新闻热榜/iu.test(sourceTitle)) return 'stage12';
     if (/Stage\s*11|生命层次|经验结算/iu.test(sourceTitle)) return 'stage11';
     if (/Stage\s*10|周围解锁/iu.test(sourceTitle)) return 'stage10';
@@ -394,6 +396,7 @@ window.GameModules.realWorldAgentLoop = {
       stage10: 'Stage10 电子地图周围解锁',
       stage11: 'Stage11 经验结算',
       stage12: 'Stage12 世界新闻热榜',
+      stage13: 'Stage13 工作与绩效',
     };
     return labels[phase] || '未知阶段';
   },
@@ -414,7 +417,7 @@ window.GameModules.realWorldAgentLoop = {
         id: attempt > 0 ? `stage4-${attempt}` : 'stage4',
       };
     }
-    if (/^stage(?:[2-9]|1[0-2])$/u.test(phase)) {
+    if (/^stage(?:[2-9]|1[0-3])$/u.test(phase)) {
       return { phase, step: 0, label: this.stagePhaseLabel(phase), id: phase };
     }
     return { phase: 'unknown', step: 0, label: '未知阶段', id: `reasoning-${Date.now()}` };
@@ -429,7 +432,7 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   parseReasoningLabel(label = '') {
-    const match = String(label || '').trim().match(/^Stage\s*(1[0-2]|[1-9])(?:\s*[^\d-]*?)?(?:\s*[-–—]\s*(\d+))?/iu);
+    const match = String(label || '').trim().match(/^Stage\s*(1[0-3]|[1-9])(?:\s*[^\d-]*?)?(?:\s*[-–—]\s*(\d+))?/iu);
     if (!match) return null;
     const phase = `stage${match[1]}`;
     const step = Number(match[2]) || 0;
@@ -472,6 +475,7 @@ window.GameModules.realWorldAgentLoop = {
         stage10: 'Stage10 电子地图周围解锁',
         stage11: 'Stage11 经验结算',
         stage12: 'Stage12 世界新闻热榜',
+        stage13: 'Stage13 工作与绩效',
       };
       return {
         phase: storedPhase,
@@ -578,7 +582,7 @@ window.GameModules.realWorldAgentLoop = {
   isSettlementReasoning(config = {}) {
     if (config.settlementThinking) return true;
     const phase = this.inferReasoningPhase(config);
-    return /^(stage(?:[4-9]|1[0-2]))$/u.test(phase);
+    return /^(stage(?:[4-9]|1[0-3]))$/u.test(phase);
   },
 
   settlementReasoningLabel(meta = {}, config = {}) {
@@ -761,8 +765,8 @@ window.GameModules.realWorldAgentLoop = {
     try {
       const batch = await window.GameModules.characterIdEnsure?.ensureBatch?.(store, effectiveSceneLayers);
       if (batch?.count) {
-        this.markConfiguredStep?.(store, logId, `${config.label}Stage1后批量建卡 ${batch.count} 人…`, config);
-        console.info('[characterIdEnsure] Stage1后批量建卡:', batch.ensured);
+        this.markConfiguredStep?.(store, logId, `${config.label}Stage1后批量分配ID ${batch.count} 人…`, config);
+        console.info('[characterIdEnsure] Stage1后批量分配ID:', batch.ensured);
       }
       effectiveSceneLayers = this.resolveEffectiveSceneLayers(trace, store, config);
       // Re-apply ensured ids onto latest layer objects by name.
@@ -777,7 +781,7 @@ window.GameModules.realWorldAgentLoop = {
         });
       });
     } catch (err) {
-      console.warn('[characterIdEnsure] Stage1后批量建卡失败:', err?.message || err);
+      console.warn('[characterIdEnsure] Stage1后批量分配ID失败:', err?.message || err);
     }
     const sceneAnchorPrompt = await this.buildConfiguredSceneAnchorPrompt({ store, action, base, loaded, trace, effectiveSceneLayers, materialSession, config });
     this.markConfiguredStep(store, logId, `${config.label}资料已载入，正在生成场景锚定报告…`, config);
@@ -819,7 +823,7 @@ window.GameModules.realWorldAgentLoop = {
       };
       const introStage5 = window.GameModules.inferenceIntroCardStageUpdate;
       const introStage5Result = introStage5?.runAfterSettlement
-        ? await introStage5.runAfterSettlement({ store, action, narration, participants, logId, config: postBodyKvConfig, loop: this, updates: stage4Updates })
+        ? await introStage5.runAfterSettlement({ store, action, narration, participants, logId, config: postBodyKvConfig, loop: this, updates: stage4Updates, materialSession })
         : { lines: [], skipped: true };
       if (introStage5Result?.lines?.length) {
         stage4Updates = {
@@ -856,6 +860,7 @@ window.GameModules.realWorldAgentLoop = {
           logId,
           config: postBodyKvConfig,
           loop: this,
+          materialSession,
         });
         factionOps = Array.isArray(stage6Result?.ops) ? stage6Result.ops : [];
         if (stage6Result?.lines?.length) {
@@ -878,6 +883,7 @@ window.GameModules.realWorldAgentLoop = {
           logId,
           config: postBodyKvConfig,
           loop: this,
+          materialSession,
         });
         lifeEnergyGains = Array.isArray(stage10Result?.gains) ? stage10Result.gains : [];
         learnedGains = Array.isArray(stage10Result?.learnedGains) ? stage10Result.learnedGains : [];
@@ -900,6 +906,7 @@ window.GameModules.realWorldAgentLoop = {
           logId,
           config: postBodyKvConfig,
           loop: this,
+          materialSession,
         });
         newsOps = Array.isArray(newsResult?.ops) ? newsResult.ops : [];
         if (newsResult?.lines?.length) {
@@ -909,8 +916,30 @@ window.GameModules.realWorldAgentLoop = {
           };
         }
       }
+      const stageWorkPerformance = window.GameModules.inferenceWorkPerformanceStageUpdate;
+      let workPerformanceUpdate = null;
+      if (stageWorkPerformance?.runAfterSettlement) {
+        const stage13Result = await stageWorkPerformance.runAfterSettlement({
+          store,
+          action,
+          narration,
+          updates,
+          participants,
+          logId,
+          config: postBodyKvConfig,
+          loop: this,
+          materialSession,
+        });
+        workPerformanceUpdate = stage13Result?.applied || stage13Result?.update || null;
+        if (stage13Result?.lines?.length) {
+          updates = {
+            ...updates,
+            characterCardChanges: [...(updates.characterCardChanges || []), ...stage13Result.lines],
+          };
+        }
+      }
       this.patchConfiguredSettlementThinking(store, logId, '结算完成，正在写入本回合状态与日志。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
-      settlementPrompt = 'Stage4 状态结算 → Stage5 介绍卡 → Stage6–8 外观 → Stage9 势力更新 → Stage11 经验结算 → Stage12 新闻热榜（Stage10 地图周围解锁在落库后）';
+      settlementPrompt = 'Stage4 状态结算 → Stage5 介绍卡 → Stage6–8 外观 → Stage9 势力更新 → Stage11 经验结算 → Stage12 新闻热榜 → Stage13 工作与绩效（Stage10 地图周围解锁在落库后）';
       settlementRaw = JSON.stringify({
         settlement: updates,
         introStage5: { cards: introStage5Result.cards?.map((card) => ({ id: card.id, name: card.name, displayType: card.displayType })) || [] },
@@ -920,6 +949,7 @@ window.GameModules.realWorldAgentLoop = {
         lifeEnergyGains,
         learnedGains,
         newsOps,
+        workPerformanceUpdate,
       });
     } catch (err) {
       console.warn(`${config.label}串行结算失败，保留已生成正文并使用最小结算:`, err.message);
@@ -4167,7 +4197,10 @@ window.GameModules.realWorldAgentLoop = {
       const wantsDeepThinking = config.deepThinking !== false;
       const apiJsonMode = expectsJson && !wantsDeepThinking;
       const shouldStream = !apiJsonMode || providerId === 'deepseek' || wantsDeepThinking;
-      const defaultTimeoutMs = streamToUi ? 240000 : 90000;
+      const normalizedPhase = this.normalizeReasoningPhase(config.reasoningPhase || (streamToUi ? 'stage3' : 'unknown'));
+      const defaultTimeoutMs = normalizedPhase === 'stage3'
+        ? (streamToUi ? 480000 : 180000)
+        : (streamToUi ? 240000 : 90000);
       const requestOptions = {
         source: config.sourceTitle
           || (reasoningMeta.phase && reasoningMeta.phase !== 'unknown'
@@ -4617,7 +4650,7 @@ window.GameModules.realWorldAgentLoop = {
     if (!text) return true;
     if (text.length >= 200) return false;
     return /^(?:作者正在续写这一段剧情|操控剧情正在识别|操控剧情正在推演|已识别相关角色|已追加资料)/u.test(text)
-      || /资料已载入|场景锚定|正在生成正文|正文已完成|批量建卡|正在推演|正在识别|正在结算/u.test(text);
+      || /资料已载入|场景锚定|正在生成正文|正文已完成|批量分配ID|正在推演|正在识别|正在结算/u.test(text);
   },
 
   shouldUseStatusAsRealNarration(entry = {}) {
@@ -4626,7 +4659,7 @@ window.GameModules.realWorldAgentLoop = {
     // 真实正文通常很长；短进度文案应允许被后续状态覆盖（含“正在生成场景锚定报告”→“正在生成正文”）。
     if (text.length >= 200) return false;
     return /^(?:现实世界正在推演|现实正在识别|现实正在推演|已识别相关角色|已追加资料)/u.test(text)
-      || /资料已载入|场景锚定|正在生成正文|正文已完成|批量建卡|正在推演|正在识别|正在结算|正在写入/u.test(text);
+      || /资料已载入|场景锚定|正在生成正文|正文已完成|批量分配ID|正在推演|正在识别|正在结算|正在写入/u.test(text);
   },
   loadedContextText(data = {}, loaded = [], step = 1, config = this.realConfig()) {
     const fallback = config.mode === 'story' ? '被操控角色' : '玩家本人';
@@ -4635,4 +4668,5 @@ window.GameModules.realWorldAgentLoop = {
     return `${step === 1 ? '已识别相关角色' : '已追加资料'}：${chars}；已载入${titles}${data.reason ? `：${data.reason}` : ''}`;
   },
 };
+
 

@@ -36,14 +36,7 @@ window.GameModules.aiProvider.register('deepseek', {
   },
 
   requestModel(options = {}) {
-    const model = this.normalizeModel(options.model);
-    const thinking = this.thinkingPayload(options);
-    if (thinking?.type !== 'enabled' || /reasoner|v4-pro/i.test(model)) return model;
-    const configured = String(this.settings().deepseekReasoningModel || '').trim();
-    if (configured) return configured;
-    if (/v4-flash/i.test(model)) return model.replace(/v4-flash/ig, 'v4-pro');
-    if (/deepseek-chat/i.test(model)) return 'deepseek-reasoner';
-    return model;
+    return this.normalizeModel(options.model);
   },
 
   thinkingPayload(options = {}) {
@@ -108,7 +101,7 @@ window.GameModules.aiProvider.register('deepseek', {
         internalName: id,
         displayName: id,
         description: id === 'deepseek-v4-flash' ? 'DeepSeek 推荐快速文本模型' : (id === 'deepseek-v4-pro' ? 'DeepSeek 推荐高质量文本模型' : 'DeepSeek 文本模型'),
-        thinkingSupported: /reasoner|v4-pro/i.test(id),
+        thinkingSupported: /reasoner|v4-pro|v4-flash/i.test(id),
       }));
     const defaultModel = models.find((item) => item.internalName === this.normalizeModel())?.internalName
       || models.find((item) => item.internalName === 'deepseek-v4-flash')?.internalName
@@ -224,3 +217,4 @@ window.GameModules.aiProvider.register('deepseek', {
     return text;
   },
 });
+

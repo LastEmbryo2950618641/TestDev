@@ -14,7 +14,7 @@ window.GameModules.ui.company.fieldSectionViewHelpers = {
 
     return {
       showEmpty: this.companyState?.employment?.active === false,
-      emptyText: '暂无在职公司信息',
+      emptyText: this.companyState?.generating ? '单位资料生成中…' : (this.companyState?.generationError || '暂无在职单位信息'),
       rows,
     };
   },

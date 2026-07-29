@@ -380,13 +380,13 @@ function registerGameStore() {
     taobaoWearFilters() { return gm.taobaoActions?.taobaoWearFilters?.call(this) || [{ slot: '', label: '全部' }]; },
     currentCompany() {
       return {
-        name: '暂无在职公司',
+        name: '暂无在职单位',
         organization: [],
         salary: { base: 0, performanceRate: 0, performanceMonths: 0 },
       };
     },
     workStatusText() {
-      return this.companyState?.employment?.active === false ? '当前未处于在职状态。' : '公司资料加载中';
+      return this.companyState?.employment?.active === false ? '当前未处于在职状态。' : '单位资料加载中';
     },
     currentWorkAttendance() {
       return { className: 'idle', status: '未记录', detail: '上班状态尚未加载。', canCheckIn: false };

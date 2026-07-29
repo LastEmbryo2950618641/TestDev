@@ -12,11 +12,12 @@ function loadScript(context, relativePath) {
 }
 
 const prompt = read('publish/prompts/推演引擎/stage1-guided-query.md');
-assert.ok(prompt.includes('角色名(ID)'));
+assert.ok(prompt.includes('可区分称呼(ID)'));
 assert.ok(prompt.includes('待建卡'));
 assert.ok(prompt.includes('一次性批量') || prompt.includes('批量'));
 assert.ok(prompt.includes('介绍卡'));
-assert.ok(prompt.includes('刘思琪(rel-ai-247528)'));
+assert.ok(prompt.includes('rel-ai-*') || /rel-ai-/u.test(prompt));
+assert.ok(prompt.includes('不会在 Stage1 真正建介绍卡'));
 
 const context = {
   window: {
@@ -37,6 +38,7 @@ const context = {
       },
       rpgState: { seed: (text) => [...String(text)].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) },
       characterStateStore: null,
+      characterIntroStore: { get() { return null; } },
     },
   },
   console,
@@ -62,13 +64,7 @@ const loopContext = {
   Map,
   Promise,
 };
-// Minimal stub of agent loop methods under test via loading is heavy; test parse helpers by copying module pieces.
 loadScript(loopContext, 'publish/real-world-agent-loop.js');
-const loop = loopContext.window.GameModules.realWorldAgentLoop
-  || loopContext.window.GameModules.realWorldAi
-  || null;
-
-// real-world-agent-loop may attach differently
 const api = loopContext.window.GameModules.realWorldAgentLoop
   || Object.values(loopContext.window.GameModules).find((item) => item && typeof item.parseParticipantToken === 'function');
 
@@ -99,9 +95,11 @@ const layers = {
   const batch = await context.window.GameModules.characterIdEnsure.ensureBatch(host, layers);
   assert.ok(batch.count >= 1);
   assert.ok(String(layers.forcedParticipants[0].id).startsWith('rel-ai-'));
-  assert.strictEqual(host.rpgStates[layers.forcedParticipants[0].id].profile.name, '测试新人');
-  console.log('PASS stage1 participant id format + batch ensure');
+  assert.strictEqual(Object.keys(host.rpgStates).length, 0, 'Stage1 should only assign shared ids, not create stub cards');
+  console.log('PASS stage1 participant id format + batch assign');
 })().catch((err) => {
   console.error(err);
   process.exit(1);
 });
+
+

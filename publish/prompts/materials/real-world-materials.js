@@ -18,8 +18,8 @@ window.GameModules.realWorldMaterials = {
     { id: 'faction-memberships', title: '人事归属清单', size: 'small', maxChars: 1000, skill: 'faction.query', method: 'listMemberships', paramsHint: { world: '世界名', name: '势力名或空' }, when: '行动涉及谁在哪家组织任职、membership 或 structure 占坑。' },
     { id: 'territory-brief', title: '控势摘要', size: 'small', maxChars: 900, skill: 'faction.query', method: 'resolveTerritoryBrief', paramsHint: { world: '世界名', locationName: '地点名或空' }, when: '行动涉及夺控、法域、治安归属或某地点是否在争议区；优先读 brief。' },
     { id: 'territory-control-detail', title: '地点控势与时间轴', size: 'medium', maxChars: 1400, skill: 'faction.query', method: 'getTerritoryControl', stage1Policy: 'deep', paramsHint: { world: '世界名', locationName: '地点名' }, when: '控势摘要不足且需某已揭示地点完整控势一行与变更时间轴。' },
-    { id: 'faction-create', title: '创建完整势力', size: 'medium', maxChars: 1600, skill: 'faction.query', method: 'createFaction', stage1Policy: 'allow', paramsHint: { id: '势力ID', name: '势力名', type: '类型（公司/学校/家庭/机关等）', kind: 'family可选', worldTag: '所属世界', structure: [], solid: {}, reason: '依据' }, when: 'Stage1：上下文出现现实组织实体但列表未收录时创建。势力范围几乎覆盖一切组织实体：公司、学校、机关、社群、以及家庭/家族（如刘家、某某家庭）。家庭也是正式势力，type=家庭且可设 kind=family、id=family-player-home。须尽量补全已知字段；正文后 Stage8 也可创建。' },
-    { id: 'faction-patch-field', title: '按ID/字段补丁更新势力', size: 'small', maxChars: 1000, skill: 'faction.query', method: 'patchFactionField', stage1Policy: 'deny', paramsHint: { id: '势力ID', panel: 'ideology|economy|…', field: '字段名', op: 'set|append|delete', value: '覆盖或追加值', index: 0, reason: '依据' }, when: 'Stage8：已有势力字段更新；列表追加/按索引删除/字符串覆盖。' },
+    { id: 'faction-create', title: '登记待建势力候选', size: 'medium', maxChars: 1600, skill: 'faction.query', method: 'createFaction', stage1Policy: 'allow', paramsHint: { id: '势力ID', name: '势力名', type: '类型（公司/学校/家庭/机关等）', kind: 'family可选', worldTag: '所属世界', structure: [], solid: {}, reason: '依据' }, when: 'Stage1：上下文出现现实组织实体但列表未收录时，只登记为待建势力候选，不立即写库。势力范围几乎覆盖一切组织实体：公司、学校、机关、社群、以及家庭/家族（如刘家、某某家庭）。候选会带上首建建议参数，供正文推演与后续 Stage9 真正创建、补全。' },
+    { id: 'faction-patch-field', title: '按ID/字段补丁更新势力', size: 'small', maxChars: 1000, skill: 'faction.query', method: 'patchFactionField', stage1Policy: 'deny', paramsHint: { id: '势力ID', panel: 'ideology|economy|…', field: '字段名', op: 'set|append|delete', value: '覆盖或追加值', index: 0, reason: '依据' }, when: 'Stage9：已有势力字段更新；必须有正文事实变化依据；列表追加/按索引删除/字符串覆盖。' },
     { id: 'faction-upsert', title: '新增或调整势力（兼容）', size: 'medium', maxChars: 1600, skill: 'faction.query', method: 'upsertFaction', stage1Policy: 'deny', paramsHint: { world: '世界名', name: '势力名', type: '组织类型', parentName: '上级势力名', reason: '新增或调整依据' }, when: '兼容旧调用；优先 createFaction / patchFactionField。' },
     { id: 'faction-position-add', title: '新增势力职位角色', size: 'small', maxChars: 1000, skill: 'faction.query', method: 'addFactionPosition', stage1Policy: 'deny', paramsHint: { world: '世界名', factionName: '势力名', position: '职位/地位', characterName: '角色名或未知', reason: '依据' }, when: '确认某势力下存在某个职位或某角色占据该职位；角色未知时写未知。' },
     { id: 'current-location', title: '当前地点上下文', size: 'small', maxChars: 1200, skill: 'realworld.location.query', method: 'getCurrentLocationContext', paramsHint: { world: '世界名',}, when: '中文资料请求：地点查询，当前地点上下文，世界全称。场景锚定需要确认当前地点、空间边界、门口/相邻房间/可听见范围，以及谁具备自然入场条件；不得输出英文 skill/method。' },
@@ -110,7 +110,36 @@ window.GameModules.realWorldMaterials = {
   },
 
   createSession(action = '') {
-    return { action: String(action || ''), acquired: [], acquiredKeys: {}, createdAt: Date.now() };
+    return { action: String(action || ''), acquired: [], acquiredKeys: {}, pendingFactionCandidates: [], createdAt: Date.now() };
+  },
+
+  deferStage1FactionCandidate(session, params = {}, sourceText = '') {
+    if (!session) return null;
+    const candidate = {
+      id: String(params.id || '').trim(),
+      name: String(params.name || '').trim(),
+      type: String(params.type || '').trim() || '组织',
+      classification: String(params.classification || '').trim() || 'community',
+      worldTag: String(params.worldTag || params.world || '').trim(),
+      params: params && typeof params === 'object' ? JSON.parse(JSON.stringify(params)) : {},
+      sourceText: String(sourceText || '').trim(),
+    };
+    if (!candidate.name) return null;
+    session.pendingFactionCandidates = Array.isArray(session.pendingFactionCandidates) ? session.pendingFactionCandidates : [];
+    const exists = session.pendingFactionCandidates.find((item) => (candidate.id && item.id === candidate.id) || item.name === candidate.name);
+    if (exists) return exists;
+    session.pendingFactionCandidates.push(candidate);
+    return candidate;
+  },
+
+  pendingFactionCandidates(session) {
+    return Array.isArray(session?.pendingFactionCandidates) ? session.pendingFactionCandidates.slice() : [];
+  },
+
+  pendingFactionSummary(session) {
+    const rows = this.pendingFactionCandidates(session);
+    if (!rows.length) return '';
+    return rows.map((item, index) => `${index + 1}. ${item.name}｜${item.type || '组织'}｜${item.worldTag || '未知世界'}｜Stage1待建候选`).join('\n');
   },
 
   record(session, req = {}, title = '', text = '') {
@@ -166,7 +195,9 @@ window.GameModules.realWorldMaterials = {
 
   acquiredSummary(session) {
     const acquired = session?.acquired || [];
-    return acquired.length ? acquired.map((item, i) => `${i + 1}. ${item.title}｜${item.skill}.${item.method}｜${item.size}｜上限${item.maxChars}字`).join('\n') : '尚未通过 skills 动态获取额外资料。';
+    const acquiredText = acquired.length ? acquired.map((item, i) => `${i + 1}. ${item.title}｜${item.skill}.${item.method}｜${item.size}｜上限${item.maxChars}字`).join('\n') : '尚未通过 skills 动态获取额外资料。';
+    const pendingFactions = this.pendingFactionSummary(session);
+    return pendingFactions ? `${acquiredText}\n待建势力候选：\n${pendingFactions}` : acquiredText;
   },
 
   summary(session, options = {}) {

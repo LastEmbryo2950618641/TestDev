@@ -27,8 +27,30 @@ window.GameModules.ui.company.contractViewHelpers = {
   },
 
   companyPayPanelView() {
+    const stats = typeof this.normalizeCompanyWorkStats === 'function' ? this.normalizeCompanyWorkStats() : (this.companyState?.workStats || {});
+    const attendance = this.currentWorkAttendance();
+    const leader = stats.leaderReview || {};
+    const employee = stats.employeeReview || {};
+    const contributions = (Array.isArray(stats.contributionItems) ? stats.contributionItems : []).map((item = {}, index) => ({
+      key: item.id || `${item.type || 'contribution'}-${index}`,
+      title: item.title || item.type || '贡献价值',
+      body: item.detail || '暂无描述。',
+      meta: item.valueText || '',
+    }));
     return {
       summary: this.companyPayPreviewView(),
+      performance: {
+        title: '工作与绩效',
+        nextReviewAt: stats.nextPerformanceReviewAt || '',
+        attendanceStatus: attendance.status || '未更新',
+        attendanceDetail: attendance.detail || '暂无上班状态说明。',
+        leaderSummary: leader.summary || '暂无领导评价。',
+        leaderDetail: leader.detail || '',
+        leaderScore: leader.score ?? 0,
+        employeeSummary: employee.summary || '暂无员工评价。',
+        employeeDetail: employee.detail || '',
+        contributionItems: contributions,
+      },
       section: this.companyContractSectionView(),
     };
   },

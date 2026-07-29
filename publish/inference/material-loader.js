@@ -63,7 +63,7 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
     if (policy === 'deny') {
       return [
         `资料请求未执行：${pair} 属于 Stage1 禁止的写库/结算/侧效应 skill。`,
-        '势力字段补丁请走正文后 Stage8（patchFactionField）；新势力可在 Stage1 用「势力查询，创建势力，势力名」创建。其它变更走 Stage4 结算。',
+        '势力字段补丁请走正文后 Stage9（patchFactionField）；Stage1 的「势力查询，创建势力，势力名，类型」现在只登记待建候选，不立即写库；真正创建与补全由 Stage9 完成。其它变更走 Stage4 结算。',
       ].join('\n');
     }
     if (policy === 'deep') {
@@ -105,6 +105,17 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
       if (loadedKeys.has(key)) continue;
       loadedKeys.add(key);
       const material = materials?.optionFor?.({ skill, method, params });
+      if (Number(options?.step || 1) === 1 && skill === 'faction.query' && method === 'createFaction') {
+        const candidate = materials?.deferStage1FactionCandidate?.(materialSession, params, req?.sourceText || '');
+        const title = 'pending:faction.query.createFaction';
+        const text = candidate
+          ? `已登记待建势力候选：${candidate.name}｜${candidate.type || '组织'}。Stage1 不立即创建；正文与上下文将在 Stage9 势力更新中用于真正创建与补全。`
+          : '已跳过：待建势力候选缺少名称。';
+        materials?.record?.(materialSession, { skill, method, params, pending: true }, title, text);
+        out.push({ title, text, max: 260 });
+        console.log('[Stage1资料] 已登记待建势力候选:', candidate || params);
+        continue;
+      }
       const configuredMax = material && Object.prototype.hasOwnProperty.call(material, 'maxChars')
         ? Number(material.maxChars)
         : this.maxFor(skill);
@@ -220,14 +231,27 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
     const work = company.workMode || {};
     const salary = company.salary || {};
     const org = (company.organization || []).slice(0, 4).map((d) => `${d.name}：${(d.jobs || []).map((j) => `${j.title}(${(j.people || []).join('、')})`).join('；')}`).join('\n');
-    return [`公司：${company.name}`, `类型/行业：${company.type || '未知'}｜${company.industry || '未知'}`, `地点：${company.location || '未知'}`, `规模：${company.scale || '未知'}`, `制度：${work.type || '员工'}｜${work.workDays || ''}｜${work.startTime || ''}-${work.endTime || ''}`, `薪资：${salary.monthlyBase || 0}${salary.currency || 'CNY'}｜绩效${salary.performanceMonths || 0}个月`, `组织：\n${org || '暂无组织架构。'}`, `规则：${(company.rules || []).join('；') || '暂无规则。'}`].join('\n');
+    return [`单位：${company.name || '未生成单位资料'}`, `绑定势力：${company.sourceFactionName || company.name || '无'}｜ID：${company.sourceFactionId || company.factionId || '无'}`, `类型/行业：${company.type || '未知'}｜${company.industry || '未知'}`, `地点：${company.location || '未知'}`, `规模：${company.scale || '未知'}`, `制度：${work.type || '未设定'}｜${work.workDays || ''}｜${work.startTime || ''}-${work.endTime || ''}`, `薪资：${salary.monthlyBase || 0}${salary.currency || 'CNY'}｜绩效${salary.performanceMonths || 0}个月`, `组织：\n${org || '暂无组织架构。'}`, `规则：${(company.rules || []).join('；') || '暂无规则。'}`].join('\n');
   },
 
 
   workContext(store, company = {}) {
-    const stats = store.companyState?.workStats || {};
+    const stats = typeof store.normalizeCompanyWorkStats === 'function' ? store.normalizeCompanyWorkStats() : (store.companyState?.workStats || {});
     const pay = store.monthlyPayPreview?.() || {};
-    return [this.companySummary(store, company), `本月状态：迟到${stats.lateCount || 0}次｜旷班${stats.absentCount || 0}次｜绩效${stats.performance ?? 100}/100`, `收入预估：底薪${pay.base || 0}｜日薪${pay.daily || 0}｜本月完整上班${pay.workDays || 0}天`].join('\n');
+    const attendance = stats.attendanceStatus || {};
+    const leader = stats.leaderReview || {};
+    const employee = stats.employeeReview || {};
+    const contributions = (Array.isArray(stats.contributionItems) ? stats.contributionItems : []).slice(0, 6).map((item, index) => `${index + 1}. ${(item.title || item.type || '贡献')}｜${item.valueText || item.detail || '未填写'}`).join('；') || '暂无贡献价值记录';
+    return [
+      this.companySummary(store, company),
+      `本月状态：迟到${stats.lateCount || 0}次｜旷班${stats.absentCount || 0}次｜绩效${stats.performance ?? 100}/100`,
+      `当前上班状态：${attendance.status || '未更新'}｜${attendance.detail || '无'}`,
+      `下一次评绩效日期：${stats.nextPerformanceReviewAt || '未设置'}`,
+      `领导评价：${leader.summary || '暂无'}｜评分${leader.score ?? 0}`,
+      `员工评价：${employee.summary || '暂无'}`,
+      `贡献价值：${contributions}`,
+      `收入预估：底薪${pay.base || 0}｜日薪${pay.daily || 0}｜本月完整上班${pay.workDays || 0}天`,
+    ].join('\n');
   },
 
 

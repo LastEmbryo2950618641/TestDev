@@ -68,7 +68,7 @@ test('faction skill supports createFaction / patchFactionField / getFactionField
     initFactionSystem() {},
     currentWorldTag: () => '测试世界',
     phoneDate: () => new Date('2026-07-24T00:00:00.000Z'),
-    factionIdByName: (name) => `force-${name}`,
+    factionIdByName: (name) => 'force-' + name,
     completeFactionReasons: () => ({}),
     normalizeFactionStructure: (f) => f,
     factionParentName: () => '无',
@@ -151,16 +151,81 @@ test('listFactions default text includes id and structure', () => {
   assert.ok(text.includes('内阁') || text.includes('组织架构'));
 });
 
-test('Stage8 prompt creates on appearance and patches only on factual change', () => {
+test('Stage9 prompt is split into create and update phases', () => {
   const root = path.join(__dirname, '..');
   const md = fs.readFileSync(path.join(root, 'publish/prompts/推演引擎/stage6-faction-update.md'), 'utf8');
-  assert.ok(md.includes('出现且未入库'));
-  assert.ok(md.includes('已入库且正文有事实变化'));
-  assert.ok(md.includes('仅出现、无事实变化'));
-  assert.ok(md.includes('不得以“本轮未互动'));
+  assert.ok(md.includes('Stage9-1 势力创建'));
+  assert.ok(md.includes('Stage9-2 势力更新'));
+  assert.ok(md.includes('只允许输出 createFaction'));
+  assert.ok(md.includes('只允许输出 patchFactionField'));
+  assert.ok(md.includes('明显不合理、空白、占位、壳化'));
+  assert.ok(md.includes('已合理字段'));
   const runtime = fs.readFileSync(path.join(root, 'publish/inference/faction-stage-update.js'), 'utf8');
-  assert.ok(runtime.includes('出现且未入库'));
-  assert.ok(runtime.includes('仅出现、无事实变化'));
+  assert.ok(runtime.includes('buildCreatePrompt'));
+  assert.ok(runtime.includes('buildUpdatePrompt'));
+  assert.ok(runtime.includes('Stage9-1 势力创建'));
+  assert.ok(runtime.includes('Stage9-2 势力更新'));
+  assert.ok(runtime.includes('当前势力完整快照'));
+  assert.ok(runtime.includes('明显不合理、空白、占位、壳化'));
+});
+
+test('Stage9 runs create phase before update phase', async () => {
+  const context = vm.createContext({
+    console,
+    Set,
+    Map,
+    Date,
+    JSON,
+    window: {
+      GameModules: {
+        realWorldAgentContext: {
+          factionList: (store) => (store.factionState.factions.length ? '已有势力：成都市高新区科创有限公司' : '已有势力：无'),
+          faction: (store, method, params) => {
+            if (method === 'createFaction') {
+              store.factionState.factions.push({ id: params.id || params.name, name: params.name || '未命名势力' });
+              return '已创建势力：' + (params.name || '');
+            }
+            if (method === 'patchFactionField') return '已更新势力：' + (params.id || 'unknown');
+            return 'noop';
+          },
+        },
+        realWorldMaterials: {
+          pendingFactionCandidates: () => ([{ name: '成都市高新区科创有限公司', type: '公司', worldTag: '2026现代都市现实世界' }]),
+        },
+      },
+    },
+  });
+  context.window.window = context.window;
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'publish/inference/faction-stage-update.js'), 'utf8'), context, { filename: 'publish/inference/faction-stage-update.js' });
+  const stage = context.window.GameModules.inferenceFactionStageUpdate;
+  const store = { factionState: { factions: [] }, initFactionSystem() {} };
+  const prompts = [];
+  const loop = {
+    completeCachedJsonPrompt: async (_store, options) => {
+      prompts.push(options.prompt);
+      if (prompts.length === 1) return '{"ops":[{"method":"createFaction","params":{"id":"faction-tech-company","name":"成都市高新区科创有限公司","type":"公司","classification":"company","worldTag":"2026现代都市现实世界","structure":[{"name":"管理层","roles":[]}],"solid":{"overviewPanels":{"ideology":{"core":{"value":"商业导向"}}}}}}],"done":true}';
+      return '{"ops":[{"method":"patchFactionField","params":{"id":"faction-tech-company","field":"description","op":"set","value":"新增组织说明","reason":"正文确认"}}],"done":true}';
+    },
+    markConfiguredStep() {},
+    patchConfiguredSettlementThinking() {},
+  };
+  const result = await stage.runAfterSettlement({
+    store,
+    action: '去公司处理项目',
+    narration: '刘悠准备去成都市高新区科创有限公司处理项目事务。',
+    updates: {},
+    participants: [],
+    logId: 'test-log',
+    config: { label: '现实', mode: 'real' },
+    loop,
+    materialSession: {},
+  });
+  assert.strictEqual(prompts.length, 2);
+  assert.ok(prompts[0].includes('Stage9-1 势力创建'));
+  assert.ok(prompts[1].includes('Stage9-2 势力更新'));
+  assert.strictEqual(result.ops.length, 2);
+  assert.strictEqual(result.ops[0].method, 'createFaction');
+  assert.strictEqual(result.ops[1].method, 'patchFactionField');
 });
 
 (async () => {
@@ -172,3 +237,7 @@ test('Stage8 prompt creates on appearance and patches only on factual change', (
   console.error(err);
   process.exit(1);
 });
+
+
+
+

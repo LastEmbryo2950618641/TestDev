@@ -305,6 +305,7 @@ window.GameScriptManifest = {
       "inference/material-loader.js",
       "inference/faction-stage-update.js",
       "inference/news-driver-stage-update.js",
+      "inference/work-performance-stage-update.js",
       "real-world-agent-context.js",
       "prompts/materials/real-world-materials.js",
       "prompts/materials/real-world-material-query.js",
@@ -457,6 +458,6 @@ window.GameScriptManifest = {
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-26T07:04:46.100Z",
-  "total": 436
+  "generatedAt": "2026-07-29T00:00:00.000Z",
+  "total": 437
 };

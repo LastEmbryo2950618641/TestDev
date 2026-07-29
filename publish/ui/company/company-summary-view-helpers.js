@@ -4,9 +4,13 @@ window.GameModules.ui.company = window.GameModules.ui.company || {};
 
 window.GameModules.ui.company.summaryViewHelpers = {
   companyHeaderView() {
+    const generating = !!this.companyState?.generating;
+    const title = generating
+      ? '单位资料生成中…'
+      : (this.companyState?.employment?.active === false ? '暂无在职单位' : (this.currentCompany().name || '未生成单位资料'));
     return {
-      eyebrow: 'COMPANY',
-      title: this.companyState?.employment?.active === false ? '暂无在职公司' : this.currentCompany().name,
+      eyebrow: 'WORK',
+      title,
       subtitle: this.workStatusText(),
       closeLabel: '回到桌面',
     };

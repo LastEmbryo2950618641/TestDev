@@ -14,18 +14,6 @@ function loadActions(overrides = {}) {
     Set,
     window: {
       GameModules: {
-        companySystem: {
-          defaultCompany: (name) => ({
-            id: '',
-            name,
-            type: '公司',
-            industry: '未知行业',
-            scale: '未知规模',
-            location: '未知地点',
-            openings: [],
-            organization: [],
-          }),
-        },
         factionSystem: {
           countryFaction: () => null,
         },
@@ -76,7 +64,7 @@ function createStore(actions, factions = []) {
   return {
     ...actions,
     playerProfile: { name: '测试玩家' },
-    companyState: { companies: [] },
+    companyState: { unitProfilesByFactionId: {}, employment: { activeCompanyId: '' }, currentCompanyId: '' },
     factionState: { factions },
     factionIdByName: () => 'company-acme',
     normalizeFactionStructure: (faction) => faction,
@@ -91,7 +79,6 @@ async function run() {
 
   const { actions, savedStates } = loadActions();
 
-  // Boss sync must not invent a company faction when none exists yet.
   const emptyStore = createStore(actions);
   const company = emptyStore.upsertCompanyFromBossJob({
     id: 'job-1',
@@ -105,13 +92,11 @@ async function run() {
   assert.strictEqual(company.type, '文创机构');
   assert.strictEqual(emptyStore.factionState.factions.length, 0, 'Boss company must not auto-create factions');
 
-  // When AI already created the faction, ensureCompanyFaction may refresh fields/org chart.
   const store = createStore(actions, [
     { id: 'country-china', name: '中国', type: '国家', parentId: '' },
     { id: 'country-china-corp', name: '经济组织', type: '组织域', parentId: 'country-china' },
     { id: 'company-acme', name: '星河工作室', type: '公司', parentId: 'country-china-corp', structure: [] },
   ]);
-  store.companyState.companies = [company];
   company.organization = [{ name: '内容部', jobs: [{ title: '编剧', people: ['林青'] }] }];
   const faction = store.ensureCompanyFaction(company, '组织同步测试');
   assert.ok(faction, 'existing AI faction should sync');
@@ -121,9 +106,17 @@ async function run() {
     [{ name: '内容部', level: '部门级别', roles: [{ title: '编剧', count: 1, characters: ['林青'] }] }],
   );
 
+  const syncedStore = createStore(actions, [
+    { id: 'company-acme', name: '星河工作室', type: '公司', parentId: 'country-china-corp', structure: [] },
+  ]);
+  syncedStore.companyState.unitProfilesByFactionId['company-acme'] = { factionId: 'company-acme', unitName: '旧资料' };
+  syncedStore.upsertCompanyFromBossJob({ id: 'job-2', company: '星河工作室', title: '编剧', payType: '创作者' });
+  assert.strictEqual(syncedStore.companyState.currentCompanyId, 'company-acme');
+  assert.strictEqual(syncedStore.companyState.unitProfilesByFactionId['company-acme'], undefined, 'existing unit profile should be cleared for AI regeneration');
+
   const identityState = { profile: { memberships: [] }, values: {} };
   store.playerIdentityState = () => identityState;
-  store.phoneDate = () => new Date('2026-07-14T10:00:00.000Z');
+  store.phoneDate = () => new Date('2026-07-29T10:00:00.000Z');
   store.addPlayerForcePosition({ force: '星河工作室', position: '应聘编剧' });
   await Promise.resolve();
 
@@ -133,7 +126,7 @@ async function run() {
   assert.strictEqual(savedStates.length, 1);
   assert.strictEqual(savedStates[0], identityState);
 
-  console.log('PASS company faction runtime syncs existing factions only');
+  console.log('PASS company faction runtime keeps faction as single organization source');
 }
 
 run().catch((error) => {

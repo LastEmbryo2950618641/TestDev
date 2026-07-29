@@ -194,12 +194,12 @@ window.GameModules.settingsActions = {
     const providerId = this.settingsState?.textProvider || window.GameModules.aiProvider?.currentProviderId?.() || 'deepseek';
     if (providerId === 'deepseek') {
       return [
-        { internalName: 'deepseek-v4-flash', displayName: 'DeepSeek V4 Flash', description: 'DeepSeek 默认备用文本模型', thinkingSupported: false },
+        { internalName: 'deepseek-v4-flash', displayName: 'DeepSeek V4 Flash', description: 'DeepSeek 默认备用文本模型', thinkingSupported: true },
         { internalName: 'deepseek-v4-pro', displayName: 'DeepSeek V4 Pro', description: 'DeepSeek 高质量文本模型', thinkingSupported: true },
       ];
     }
     return [
-      { internalName: 'deepseek-v4-flash', displayName: 'DeepSeek V4 Flash', description: 'DeepSeek 默认备用文本模型', thinkingSupported: false },
+      { internalName: 'deepseek-v4-flash', displayName: 'DeepSeek V4 Flash', description: 'DeepSeek 默认备用文本模型', thinkingSupported: true },
       { internalName: 'nalang-medium-0826', displayName: '均衡性能', description: '默认备用文本模型', thinkingSupported: false },
     ];
   },
@@ -425,3 +425,4 @@ SETTINGS_VIEW_HELPER_METHODS.forEach((method) => {
     return callSettingsViewHelper(this, method, ...args);
   };
 });
+

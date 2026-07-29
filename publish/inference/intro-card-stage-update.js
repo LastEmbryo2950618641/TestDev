@@ -2,9 +2,7 @@ window.GameModules = window.GameModules || {};
 
 /**
  * Stage5：介绍卡更新入口。
- *
- * 把 Stage4 发现的 appearedCharacters / solidifiableCharacters 落到介绍卡存储；
- * 对仍没有完整角色卡的人物/存在，使用正文后共享 KV 上下文做一次 AI 增量更新。
+ * Stage5-1 负责真正建介绍卡；Stage5-2 负责已有介绍卡的增量更新。
  */
 window.GameModules.inferenceIntroCardStageUpdate = {
   scalarFields: new Set([
@@ -54,6 +52,20 @@ window.GameModules.inferenceIntroCardStageUpdate = {
       return { ops, done: data.done !== false, raw: data };
     } catch (_) {
       return { ops: [], done: true };
+    }
+  },
+
+  parseCreatePayload(raw = '') {
+    const source = String(raw || '').replace(/```(?:json)?|```/gi, '').trim();
+    const start = source.indexOf('{');
+    const end = source.lastIndexOf('}');
+    if (start < 0 || end <= start) return { cards: [], done: true };
+    try {
+      const data = JSON.parse(source.slice(start, end + 1));
+      const cards = Array.isArray(data.cards) ? data.cards : (Array.isArray(data.creates) ? data.creates : []);
+      return { cards, done: data.done !== false, raw: data };
+    } catch (_) {
+      return { cards: [], done: true };
     }
   },
 
@@ -161,6 +173,19 @@ window.GameModules.inferenceIntroCardStageUpdate = {
     return JSON.stringify(slim, null, 2).slice(0, 8000);
   },
 
+  candidateText(cards = []) {
+    const slim = (cards || []).map((card) => ({
+      id: card.id,
+      name: card.name,
+      worldTag: card.worldTag,
+      presenceKind: card.presenceKind,
+      roleHint: card.identity?.role || '',
+      introHint: card.persona?.background || '',
+      relationHint: card.social?.relationToPlayer || '',
+    }));
+    return JSON.stringify(slim, null, 2).slice(0, 6000);
+  },
+
   tagList(value = [], max = 8, each = 12) {
     const list = Array.isArray(value)
       ? value
@@ -235,15 +260,64 @@ window.GameModules.inferenceIntroCardStageUpdate = {
     return next;
   },
 
-  async buildPrompt({ loop, participants, introCards, narration, updates }) {
-    const vars = {
-      本回合参与者: this.participantsText(participants),
-      候选介绍卡: this.cardsText(introCards),
-      本轮正文: String(narration || '').slice(0, 5000),
-      Stage4结算摘要: this.stage4Summary(updates),
-    };
-    if (loop?.renderPrompt) return await loop.renderPrompt('inference-stage5-intro-card-update', vars);
-    return await window.GameModules.renderPrompt?.('inference-stage5-intro-card-update', vars);
+  buildCreatePrompt({ participants = [], candidateCards = [], narration = '', updates = {} } = {}) {
+    return [
+      '# Stage5-1 介绍卡建卡',
+      '角色：介绍卡首建器。你这一阶段只负责为本轮新出现、尚不存在介绍卡的人物/存在创建完整介绍卡。',
+      '只输出一个合法 JSON 对象，不要 Markdown、解释或正文。',
+      '',
+      '## 规则',
+      '1. 只创建当前“待建介绍卡候选”里的条目；不要更新已有介绍卡。',
+      '2. 每张新卡必须尽量一次性补全：id、name、worldTag、presenceKind、identity、persona、social、agenda、routine、memory。',
+      '3. 可以结合正文与 Stage4 结算摘要做稳定推演；但不要编造与上下文无关的设定。',
+      '4. 若某项细节无法稳定判断，可留空字符串、空数组或 0。',
+      '5. 若没有需要新建的介绍卡，返回 { "cards": [], "done": true }。',
+      '',
+      '## 本回合参与者',
+      this.participantsText(participants),
+      '',
+      '## 待建介绍卡候选',
+      this.candidateText(candidateCards),
+      '',
+      '## 本轮正文',
+      String(narration || '').slice(0, 5000),
+      '',
+      '## Stage4 结算摘要',
+      this.stage4Summary(updates),
+      '',
+      '## 输出 JSON Schema',
+      '{ "cards": [ { "id": "介绍卡ID", "name": "姓名", "worldTag": "世界", "presenceKind": "individual|group", "identity": {}, "persona": {}, "social": {}, "agenda": {}, "routine": { "tags": [] }, "memory": { "facts": [] } } ], "done": true }',
+    ].join('\n');
+  },
+
+  buildUpdatePrompt({ participants = [], introCards = [], narration = '', updates = {} } = {}) {
+    return [
+      '# Stage5-2 介绍卡更新',
+      '角色：介绍卡字段更新器。你这一阶段只负责更新已有介绍卡。',
+      '只输出一个合法 JSON 对象，不要 Markdown、解释或正文。',
+      '',
+      '## 规则',
+      '1. 只允许输出介绍卡字段更新 ops；不要创建新卡。',
+      '2. 仅在正文或结算摘要提供明确事实变化时更新。',
+      '3. 已有完整角色卡的人物，不要在此独立推演介绍卡字段。',
+      '4. 标量字段只允许 set；数值字段只允许 delta；集合字段只允许 add/replace/delete。',
+      '5. 没有可更新内容时返回 { "ops": [], "done": true }。',
+      '',
+      '## 本回合参与者',
+      this.participantsText(participants),
+      '',
+      '## 候选介绍卡',
+      this.cardsText(introCards),
+      '',
+      '## 本轮正文',
+      String(narration || '').slice(0, 5000),
+      '',
+      '## Stage4 结算摘要',
+      this.stage4Summary(updates),
+      '',
+      '## 输出 JSON Schema',
+      '{ "ops": [ { "id": "介绍卡ID", "field": "identity.role", "op": "set", "value": "完整新值", "reason": "正文或资料依据" } ], "done": true }',
+    ].join('\n');
   },
 
   async saveCard(card = null) {
@@ -261,6 +335,118 @@ window.GameModules.inferenceIntroCardStageUpdate = {
       },
     };
     return await introStore?.save?.(next);
+  },
+
+  async requestStage5(loop, store, prompt, logId, config = {}, sourceTitle = '') {
+    if (loop?.completeCachedJsonPrompt) {
+      return await loop.completeCachedJsonPrompt(store, {
+        prompt,
+        logId,
+        ...config,
+        sourceTitle,
+        promptId: 'inference-stage5-intro-card-update',
+        reasoningPhase: 'stage5',
+        jsonMode: true,
+        outputLimitKind: 'stage4',
+      });
+    }
+    return await loop?.completeConfiguredStep?.(store, prompt, logId, false, {
+      ...config,
+      sourceTitle,
+      promptId: 'inference-stage5-intro-card-update',
+      reasoningPhase: 'stage5',
+      jsonMode: true,
+      outputLimitKind: 'stage4',
+    });
+  },
+
+  existingIntroCard(card = {}, store = null) {
+    const introStore = window.GameModules.characterIntroStore;
+    const id = String(card?.id || '').trim();
+    const name = String(card?.name || '').trim();
+    const worldTag = String(card?.worldTag || card?.work || store?.currentWorldTag?.() || window.GameModules.realWorld2026?.label || '').trim();
+    return (id && introStore?.getById?.(id)) || introStore?.get?.(name, worldTag) || null;
+  },
+
+  mergeCreateCard(candidate = {}, raw = {}) {
+    const merged = {
+      ...candidate,
+      ...raw,
+      id: String(raw.id || candidate.id || '').trim(),
+      name: String(raw.name || candidate.name || '').trim(),
+      worldTag: String(raw.worldTag || candidate.worldTag || candidate.work || '').trim(),
+      presenceKind: String(raw.presenceKind || candidate.presenceKind || 'individual').trim() || 'individual',
+      identity: {
+        ...(candidate.identity || {}),
+        ...(raw.identity || {}),
+      },
+      persona: {
+        ...(candidate.persona || {}),
+        ...(raw.persona || {}),
+      },
+      social: {
+        ...(candidate.social || {}),
+        ...(raw.social || {}),
+      },
+      agenda: {
+        ...(candidate.agenda || {}),
+        ...(raw.agenda || {}),
+      },
+      routine: {
+        ...(candidate.routine || {}),
+        ...(raw.routine || {}),
+      },
+      memory: {
+        ...(candidate.memory || {}),
+        ...(raw.memory || {}),
+      },
+    };
+    merged.role = merged.identity?.role || merged.role || '';
+    merged.intro = merged.persona?.background || merged.intro || '';
+    merged.work = merged.worldTag || merged.work || '';
+    return merged;
+  },
+
+  async applyCreateCards(store, candidateCards = [], payloadCards = []) {
+    const introApi = window.GameModules.characterIntroCard;
+    const lines = [];
+    const created = [];
+    const rejected = [];
+    const usedKeys = new Set();
+    for (const raw of (Array.isArray(payloadCards) ? payloadCards : []).slice(0, 24)) {
+      const rawId = String(raw?.id || '').trim();
+      const rawName = String(raw?.name || '').trim();
+      const candidate = candidateCards.find((item) => ((rawId && item.id === rawId) || (rawName && item.name === rawName))) || null;
+      if (!candidate) {
+        rejected.push({ raw, reason: '不在待建介绍卡候选中' });
+        continue;
+      }
+      const merged = this.mergeCreateCard(candidate, raw);
+      if (!merged.id || !merged.name) {
+        rejected.push({ raw, reason: '缺少 id/name' });
+        continue;
+      }
+      if (introApi?.roleCardExists?.(merged)) {
+        rejected.push({ raw, reason: '已有完整角色卡，不走介绍卡首建' });
+        continue;
+      }
+      try {
+        const saved = await introApi?.ensure?.(store, merged, 'stage5-create');
+        if (!saved) {
+          rejected.push({ raw, reason: '保存失败' });
+          continue;
+        }
+        created.push(saved);
+        usedKeys.add(saved.id || saved.name);
+      } catch (err) {
+        rejected.push({ raw, reason: err?.message || '保存异常' });
+      }
+    }
+    const unresolved = candidateCards.filter((item) => !usedKeys.has(item.id || item.name));
+    if (created.length) lines.push(`介绍卡Stage5-1：新建 ${created.length} 张介绍卡`);
+    if (rejected.length) lines.push(`介绍卡Stage5-1：拒绝 ${rejected.length} 条非法建卡输出`);
+    if (unresolved.length) lines.push(`介绍卡Stage5-1：仍有 ${unresolved.length} 个待建介绍卡候选未被创建`);
+    return { lines, created, rejected, unresolved };
   },
 
   async applyOps(store, cards = [], ops = []) {
@@ -282,7 +468,7 @@ window.GameModules.inferenceIntroCardStageUpdate = {
         continue;
       }
       if (window.GameModules.characterIntroCard?.roleCardExists?.(card)) {
-        rejected.push({ op, reason: '已有完整角色卡，Stage5 不独立推演' });
+        rejected.push({ op, reason: '已有完整角色卡，Stage5-2 不独立推演' });
         continue;
       }
       if (this.scalarFields.has(field)) {
@@ -360,14 +546,86 @@ window.GameModules.inferenceIntroCardStageUpdate = {
       const result = await this.saveCard(card);
       if (result) saved.push(result);
     }
-    if (applied.length) lines.push(`介绍卡Stage5：AI 更新 ${applied.length} 条`);
-    if (rejected.length) lines.push(`介绍卡Stage5：拒绝 ${rejected.length} 条非法操作`);
+    if (applied.length) lines.push(`介绍卡Stage5-2：AI 更新 ${applied.length} 条`);
+    if (rejected.length) lines.push(`介绍卡Stage5-2：拒绝 ${rejected.length} 条非法操作`);
     return { lines, applied, rejected, saved };
   },
 
   async runAfterSettlement({ store, updates = {}, logId, config = {}, loop = null, participants = [], narration = '' } = {}) {
-    loop?.markConfiguredStep?.(store, logId, `${config?.label || ''}正在进行 Stage5 介绍卡更新…`, config, { keepNarration: true });
-    loop?.patchConfiguredSettlementThinking?.(store, logId, 'Stage5：同步本轮新出现人物/存在的介绍卡；已有完整角色卡不再由介绍卡独立推演。', {
+    const introApi = window.GameModules.characterIntroCard;
+    const introStore = window.GameModules.characterIntroStore;
+    if (!introApi?.ensure || !introStore) return { lines: [], cards: [], skipped: true };
+
+    const lines = [];
+    const roleSyncedCards = [];
+    const existingIntroCards = [];
+    const missingCreateCandidates = [];
+
+    for (const item of this.candidates(updates)) {
+      const normalized = introApi.normalize?.(item, store, 'stage5-candidate') || item;
+      if (!normalized?.name) continue;
+      try {
+        if (introApi.roleCardExists?.(normalized)) {
+          const saved = await introApi.ensure(store, item, 'stage5-sync-role');
+          if (!saved) continue;
+          const synced = saved.displayType === 'role' ? await this.saveCard(this.syncRoleToIntro(saved) || saved) : saved;
+          const finalCard = saved.displayType === 'role' && synced ? { ...synced, displayType: 'role', roleState: saved.roleState } : saved;
+          roleSyncedCards.push(finalCard);
+          lines.push(`介绍卡Stage5：${finalCard.name} 已同步为已有完整角色卡镜像`);
+          continue;
+        }
+        const existing = this.existingIntroCard(normalized, store);
+        if (existing) {
+          existingIntroCards.push(existing);
+          lines.push(`介绍卡Stage5：${existing.name} 已存在介绍卡，进入 Stage5-2 更新`);
+          continue;
+        }
+        missingCreateCandidates.push(normalized);
+      } catch (err) {
+        lines.push(`介绍卡Stage5：${item?.name || '未知人物'} 预处理失败：${err?.message || '未知错误'}`);
+      }
+    }
+
+    let createdCards = [];
+    let createRaw = '';
+    if (missingCreateCandidates.length && loop) {
+      loop?.markConfiguredStep?.(store, logId, `${config?.label || ''}正在进行 Stage5-1 介绍卡建卡…`, config, { keepNarration: true });
+      loop?.patchConfiguredSettlementThinking?.(store, logId, 'Stage5-1：为本轮新出现且尚不存在介绍卡的人物/存在真正建卡。', {
+        ...config,
+        settlementThinking: true,
+        settlementThinkingKey: 'settlement-status',
+        settlementThinkingLabel: '结算状态',
+        livePatch: true,
+      });
+      try {
+        createRaw = await this.requestStage5(loop, store, this.buildCreatePrompt({ participants, candidateCards: missingCreateCandidates, narration, updates }), logId, config, `${config?.label || ''}Stage5-1 介绍卡建卡`);
+        const parsedCreate = this.parseCreatePayload(createRaw);
+        const appliedCreate = await this.applyCreateCards(store, missingCreateCandidates, parsedCreate.cards);
+        lines.push(...appliedCreate.lines);
+        createdCards = appliedCreate.created;
+      } catch (err) {
+        console.warn('[Stage5-1介绍卡建卡] 生成失败:', err?.message || err);
+        lines.push(`介绍卡Stage5-1失败：${err?.message || '未知错误'}`);
+      }
+    }
+
+    const updateCards = [...existingIntroCards, ...createdCards].filter((card, index, arr) => {
+      if (!card || card.displayType === 'role' || introApi.roleCardExists?.(card)) return false;
+      return arr.findIndex((item) => item && item.id === card.id) === index;
+    });
+    if (!updateCards.length || !loop) {
+      return {
+        lines,
+        cards: [...roleSyncedCards, ...existingIntroCards, ...createdCards],
+        applied: [],
+        rejected: [],
+        createRaw,
+        skipped: !lines.length,
+      };
+    }
+
+    loop?.markConfiguredStep?.(store, logId, `${config?.label || ''}正在进行 Stage5-2 介绍卡更新…`, config, { keepNarration: true });
+    loop?.patchConfiguredSettlementThinking?.(store, logId, 'Stage5-2：只根据正文事实变化更新已有介绍卡字段。', {
       ...config,
       settlementThinking: true,
       settlementThinkingKey: 'settlement-status',
@@ -375,62 +633,34 @@ window.GameModules.inferenceIntroCardStageUpdate = {
       livePatch: true,
     });
 
-    const introApi = window.GameModules.characterIntroCard;
-    if (!introApi?.ensure) return { lines: [], cards: [], skipped: true };
-
-    const cards = [];
-    const lines = [];
-    for (const item of this.candidates(updates)) {
-      try {
-        const saved = await introApi.ensure(store, item, 'stage5');
-        if (!saved) continue;
-        const synced = saved.displayType === 'role' ? await this.saveCard(this.syncRoleToIntro(saved) || saved) : saved;
-        const finalCard = saved.displayType === 'role' && synced ? { ...synced, displayType: 'role', roleState: saved.roleState } : saved;
-        cards.push(finalCard);
-        const type = saved.displayType === 'role' ? '已有完整角色卡' : '介绍卡';
-        lines.push(`介绍卡Stage5：${saved.name} 已同步为${type}`);
-      } catch (err) {
-        lines.push(`介绍卡Stage5：${item?.name || '未知人物'} 同步失败：${err?.message || '未知错误'}`);
-      }
-    }
-    const aiCards = cards.filter((card) => card?.displayType !== 'role' && !introApi.roleCardExists?.(card));
-    if (!aiCards.length || !loop?.completeConfiguredStep) {
-      return { lines, cards, applied: [], rejected: [], skipped: !cards.length };
-    }
-
-    let raw = '';
+    let updateRaw = '';
+    let parsedUpdate = { ops: [] };
     try {
-      const prompt = await this.buildPrompt({
-        loop,
-        participants,
-        introCards: aiCards,
-        narration,
-        updates,
-      });
-      raw = await loop.completeCachedJsonPrompt(store, {
-        prompt,
-        logId,
-        ...config,
-        sourceTitle: `${config?.label || ''}Stage5 介绍卡更新`,
-        promptId: 'inference-stage5-intro-card-update',
-        reasoningPhase: 'stage5',
-        jsonMode: true,
-        outputLimitKind: 'stage4',
-      });
+      updateRaw = await this.requestStage5(loop, store, this.buildUpdatePrompt({ participants, introCards: updateCards, narration, updates }), logId, config, `${config?.label || ''}Stage5-2 介绍卡更新`);
+      parsedUpdate = this.parseOpsPayload(updateRaw);
     } catch (err) {
-      console.warn('[Stage5介绍卡] 生成失败:', err?.message || err);
-      return { lines: [...lines, `介绍卡Stage5失败：${err?.message || '未知错误'}`], cards, applied: [], rejected: [], skipped: false, error: err?.message };
+      console.warn('[Stage5-2介绍卡更新] 生成失败:', err?.message || err);
+      return {
+        lines: [...lines, `介绍卡Stage5-2失败：${err?.message || '未知错误'}`],
+        cards: [...roleSyncedCards, ...existingIntroCards, ...createdCards],
+        applied: [],
+        rejected: [],
+        createRaw,
+        updateRaw,
+        skipped: false,
+        error: err?.message,
+      };
     }
-    const parsed = this.parseOpsPayload(raw);
-    const applied = await this.applyOps(store, aiCards, parsed.ops);
+    const applied = await this.applyOps(store, updateCards, parsedUpdate.ops);
     return {
       lines: [...lines, ...applied.lines],
-      cards,
-      ops: parsed.ops,
+      cards: [...roleSyncedCards, ...existingIntroCards, ...createdCards],
+      ops: parsedUpdate.ops,
       applied: applied.applied,
       rejected: applied.rejected,
-      raw,
-      skipped: !cards.length,
+      createRaw,
+      updateRaw,
+      skipped: false,
     };
   },
 };

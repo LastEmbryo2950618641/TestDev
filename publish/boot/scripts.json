@@ -288,6 +288,7 @@
   "inference/material-loader.js",
   "inference/faction-stage-update.js",
   "inference/news-driver-stage-update.js",
+  "inference/work-performance-stage-update.js",
   "real-world-agent-context.js",
   "prompts/materials/real-world-materials.js",
   "prompts/materials/real-world-material-query.js",

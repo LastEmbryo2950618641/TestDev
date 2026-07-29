@@ -1282,7 +1282,7 @@
             <button class="desktop-app-icon identity-icon" type="button" @click="$store.game.openIdentityApp('player-self')" aria-label="打开身份证"><span class="app-glyph-emoji" aria-hidden="true">🪪</span><b>身份证</b></button>
             <button class="desktop-app-icon character-roster-icon" type="button" @click="$store.game.openCharacterRosterApp()" aria-label="打开角色管理"><span class="app-glyph-emoji" aria-hidden="true">👥</span><b>角色管理</b></button>
             <button class="desktop-app-icon wechat-icon" type="button" @click="$store.game.openWechatApp()" aria-label="打开微信"><span class="app-glyph-emoji" aria-hidden="true">💬</span><b>微信</b></button>
-            <button class="desktop-app-icon company-icon" type="button" @click="$store.game.openCompanyApp()" aria-label="打开公司"><span class="app-glyph-emoji" aria-hidden="true">🏢</span><b>公司</b></button>
+            <button class="desktop-app-icon company-icon" type="button" @click="$store.game.openWorkApp()" aria-label="打开工作"><span class="app-glyph-emoji" aria-hidden="true">🏢</span><b>工作</b></button>
             <button class="desktop-app-icon boss-icon" type="button" @click="$store.game.openBossApp()" aria-label="打开BOSS招聘"><span class="app-glyph-emoji" aria-hidden="true">💼</span><b>BOSS招聘</b></button>
             <button class="desktop-app-icon calendar-icon" type="button" @click="$store.game.openCalendarApp()" aria-label="打开日历"><span class="app-glyph-emoji" aria-hidden="true">📅</span><b>日历</b></button>
             <button class="desktop-app-icon event-icon" type="button" onclick="window.openEventAppNative && window.openEventAppNative(event)" @click="$store.game.openEventDesktopApp && $store.game.openEventDesktopApp()" aria-label="打开日常驱动"><span class="app-glyph-emoji" aria-hidden="true">🗓️</span><b>日常驱动</b></button>
@@ -2004,14 +2004,14 @@
   </section>
 
   <section x-show="!$store.game.loading && $store.game.companyState?.open" class="company-app-screen app-window section-hints" x-cloak>
-    <div class="company-card dev-section" data-section-title="公司系统主面板">
-      <header class="identity-header dev-section" data-section-title="公司标题区">
-        <div><p class="eyebrow">COMPANY</p><h2 x-text="$store.game.companyState.employment?.active === false ? '暂无在职公司' : $store.game.currentCompany().name"></h2><small x-text="$store.game.workStatusText()"></small></div>
-        <button class="small-btn" type="button" @click="$store.game.closeCompanyApp()">回到桌面</button>
+    <div class="company-card dev-section" data-section-title="工作系统主面板">
+      <header class="identity-header dev-section" data-section-title="工作标题区">
+        <div><p class="eyebrow">WORK</p><h2 x-text="$store.game.companyHeaderView().title"></h2><small x-text="$store.game.companyHeaderView().subtitle"></small></div>
+        <button class="small-btn" type="button" @click="$store.game.closeWorkApp()">回到桌面</button>
       </header>
-      <nav class="company-tabs dev-section" data-section-title="公司系统分页">
-        <button type="button" :class="{ active: $store.game.companyState.panelTab === 'profile' }" @click="$store.game.companyState.panelTab = 'profile'">公司词条</button>
-        <button type="button" :class="{ active: $store.game.companyState.panelTab === 'recruit' }" @click="$store.game.companyState.panelTab = 'recruit'">招聘制度</button>
+      <nav class="company-tabs dev-section" data-section-title="工作系统分页">
+        <button type="button" :class="{ active: $store.game.companyState.panelTab === 'profile' }" @click="$store.game.companyState.panelTab = 'profile'">单位信息</button>
+        <button type="button" :class="{ active: $store.game.companyState.panelTab === 'recruit' }" @click="$store.game.companyState.panelTab = 'recruit'">任职模式</button>
         <button type="button" :class="{ active: $store.game.companyState.panelTab === 'org' }" @click="$store.game.companyState.panelTab = 'org'">组织架构</button>
         <button type="button" :class="{ active: $store.game.companyState.panelTab === 'pay' }" @click="$store.game.companyState.panelTab = 'pay'">薪酬绩效</button>
         <button type="button" :class="{ active: $store.game.companyState.panelTab === 'records' }" @click="$store.game.companyState.panelTab = 'records'">入职记录</button>
@@ -2022,17 +2022,19 @@
           <div><small>今日上班状态</small><strong x-text="$store.game.currentWorkAttendance().status"></strong><p x-text="$store.game.currentWorkAttendance().detail"></p></div>
           <button class="small-btn" type="button" x-show="$store.game.currentWorkAttendance().canCheckIn" @click="$store.game.checkInWork()">记录到岗</button>
         </article>
+        <article class="contract-card" x-show="$store.game.companyState.generating"><h3>单位资料生成中</h3><p>当前日期：2026年7月29日（周三）</p><small>正在根据当前任职势力生成单位资料，请稍候。</small></article>
+        <article class="contract-card" x-show="$store.game.companyState.generationError"><h3>单位资料生成失败</h3><p x-text="$store.game.companyState.generationError"></p><button class="small-btn" type="button" @click="$store.game.ensureCurrentUnitGenerated(true)">重新生成</button></article>
         <section class="company-grid" x-show="$store.game.companyState.panelTab === 'profile'">
-          <p class="company-empty" x-show="$store.game.companyState.employment?.active === false">暂无在职公司信息</p>
+          <p class="company-empty" x-show="$store.game.companyState.employment?.active === false">暂无在职单位信息</p>
           <template x-for="field in $store.game.companyFields()" :key="field.key">
             <button class="rpg-item-card lexicon-tag" type="button" @click="$store.game.toggleRpgField(field)"><strong x-text="$store.game.rpgFieldSummary(field)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
           </template>
         </section>
         <section class="recruit-grid" x-show="$store.game.companyState.panelTab === 'recruit'">
-          <p class="company-empty" x-show="$store.game.companyState.employment?.active === false">离职后公司招聘制度已清空</p>
-          <article class="recruit-card" x-show="$store.game.companyState.employment?.active !== false"><h3>员工制</h3><p>按公司规章制度上班，双休制；每月收入为底薪，年底按绩效月数×底薪×绩效提成结算。</p><button class="story-choice-btn" @click="$store.game.applyRecruitment('employee')">申请员工岗位</button></article>
+          <p class="company-empty" x-show="$store.game.companyState.employment?.active === false">离职后当前单位的任职模式记录已清空</p>
+          <article class="recruit-card" x-show="$store.game.companyState.employment?.active !== false"><h3>员工制</h3><p>按单位制度上班，双休制；每月收入为底薪，年底按绩效月数×底薪×绩效提成结算。</p><button class="story-choice-btn" @click="$store.game.applyRecruitment('employee')">申请员工岗位</button></article>
           <article class="recruit-card" x-show="$store.game.companyState.employment?.active !== false"><h3>定时工</h3><p>规定时间内完成一件事，不合格无报酬，合格拿100%，超预期额外奖励。</p><button class="story-choice-btn" @click="$store.game.applyRecruitment('timed')">接定时工任务</button></article>
-          <article class="recruit-card" x-show="$store.game.companyState.employment?.active !== false"><h3>创作者模式</h3><p>向公司投稿方案、小说、作品，通过后可签合同。</p><button class="story-choice-btn" @click="$store.game.applyRecruitment('creator-low')">签稳定低分成</button><button class="story-choice-btn" @click="$store.game.applyRecruitment('creator-high')">签低保高分成</button></article>
+          <article class="recruit-card" x-show="$store.game.companyState.employment?.active !== false"><h3>创作者模式</h3><p>向单位提交方案、小说、作品，通过后可签合同。</p><button class="story-choice-btn" @click="$store.game.applyRecruitment('creator-low')">签稳定低分成</button><button class="story-choice-btn" @click="$store.game.applyRecruitment('creator-high')">签低保高分成</button></article>
         </section>
         <section class="org-chart" x-show="$store.game.companyState.panelTab === 'org'">
           <p class="company-empty" x-show="!$store.game.companyOrganization().length">暂无组织架构</p>
@@ -2042,9 +2044,13 @@
         </section>
         <section class="contract-list" x-show="$store.game.companyState.panelTab === 'pay'">
           <p class="company-empty" x-show="$store.game.companyState.employment?.active === false">暂无薪酬绩效信息</p>
-          <article class="contract-card" x-show="$store.game.companyState.employment?.active !== false"><h3>薪酬绩效预览</h3><p x-text="`底薪：${$store.game.monthlyPayPreview().base}元｜本月完整上班天数：${$store.game.monthlyPayPreview().workDays}天｜日薪：${$store.game.monthlyPayPreview().daily}元`"></p><p x-text="`每月收入：${$store.game.monthlyPayPreview().total}元｜年底绩效：${$store.game.monthlyPayPreview().annualPerformance}元｜绩效提成：${Math.round($store.game.monthlyPayPreview().rate * 100)}%`"></p></article>
-          <template x-for="item in $store.game.companyState.contracts" :key="item.id"><article class="contract-card"><h3 x-text="item.type"></h3><p x-text="item.terms"></p><small x-text="item.signedAt"></small></article></template>
-          <template x-for="item in $store.game.companyState.submissions" :key="item.id"><article class="contract-card"><h3 x-text="item.type"></h3><p x-text="`${item.target}｜${item.rewardRule}`"></p><small x-text="item.status"></small></article></template>
+          <article class="contract-card" x-show="$store.game.companyState.employment?.active !== false"><h3 x-text="$store.game.companyPayPanelView().summary.title"></h3><p x-text="$store.game.companyPayPanelView().summary.summaryLine"></p><p x-text="$store.game.companyPayPanelView().summary.performanceLine"></p></article>
+          <article class="contract-card" x-show="$store.game.companyState.employment?.active !== false"><h3 x-text="$store.game.companyPayPanelView().performance.title"></h3><p x-text="`下一次评绩效日期：${$store.game.companyPayPanelView().performance.nextReviewAt || '未设置'}`"></p><p x-text="`当前上班状态：${$store.game.companyPayPanelView().performance.attendanceStatus}`"></p><small x-text="$store.game.companyPayPanelView().performance.attendanceDetail"></small></article>
+          <article class="contract-card" x-show="$store.game.companyState.employment?.active !== false"><h3>领导评价</h3><p x-text="`${$store.game.companyPayPanelView().performance.leaderSummary}｜评分：${$store.game.companyPayPanelView().performance.leaderScore}`"></p><small x-text="$store.game.companyPayPanelView().performance.leaderDetail"></small></article>
+          <article class="contract-card" x-show="$store.game.companyState.employment?.active !== false"><h3>员工评价</h3><p x-text="$store.game.companyPayPanelView().performance.employeeSummary"></p><small x-text="$store.game.companyPayPanelView().performance.employeeDetail"></small></article>
+          <article class="contract-card" x-show="$store.game.companyState.employment?.active !== false"><h3>贡献价值</h3><p class="company-empty" x-show="!$store.game.companyPayPanelView().performance.contributionItems.length">暂无贡献价值记录</p><template x-for="item in $store.game.companyPayPanelView().performance.contributionItems" :key="item.key"><section class="org-job-card"><strong x-text="item.title"></strong><p x-text="item.body"></p><small x-text="item.meta"></small></section></template></article>
+          <template x-for="item in $store.game.companyPayPanelView().section.contractRows" :key="item.key"><article class="contract-card"><h3 x-text="item.title"></h3><p x-text="item.body"></p><small x-text="item.meta"></small></article></template>
+          <template x-for="item in $store.game.companyPayPanelView().section.submissionRows" :key="item.key"><article class="contract-card"><h3 x-text="item.title"></h3><p x-text="item.body"></p><small x-text="item.meta"></small></article></template>
         </section>
         <section class="employment-records" x-show="$store.game.companyState.panelTab === 'records'">
           <template x-for="record in $store.game.companyState.employmentRecords" :key="record.id">
@@ -2052,7 +2058,7 @@
           </template>
         </section>
         <section class="company-tools" x-show="$store.game.companyState.panelTab === 'tools'">
-          <article class="tool-card dev-section" data-section-title="辞职功能区"><h3>辞职</h3><p x-text="$store.game.companyState.employment?.active === false ? `已于${new Date($store.game.companyState.employment.resignedAt).toLocaleString()}从${$store.game.companyState.employment.resignedCompany || '公司'}离职。` : '离职后将停止上班提醒，公司信息面板清空，并在入职记录中标记为已离职。'"></p><button class="danger-btn" type="button" @click="$store.game.resignCompany()" :disabled="$store.game.companyState.employment?.active === false">确认辞职</button></article>
+          <article class="tool-card dev-section" data-section-title="辞职功能区"><h3>辞职</h3><p x-text="$store.game.companyState.employment?.active === false ? `已于${new Date($store.game.companyState.employment.resignedAt).toLocaleString()}从${$store.game.companyState.employment.resignedCompany || '当前单位'}离职。` : '离职后将停止上班提醒，单位工作视图清空，并在入职记录中标记为已离职。'"></p><button class="danger-btn" type="button" @click="$store.game.resignCompany()" :disabled="$store.game.companyState.employment?.active === false">确认辞职</button></article>
         </section>
       </main>
     </div>
@@ -2352,7 +2358,7 @@
     <div class="faction-card dev-section" data-section-title="势力主面板">
       <header class="identity-header"><div><p class="eyebrow">FACTIONS</p><h2>势力</h2><small>国家、公司、工作室、学校等组织均为势力，必须有归属字段</small></div><button class="small-btn" type="button" @click="$store.game.closeFactionApp()">回到桌面</button></header>
       <section class="faction-toolbar dev-section" data-section-title="势力说明区">
-        <p class="faction-note">势力由正文后 Stage6 推演写入（创建需完整资料；更新按势力 ID/字段追加、删除或覆盖）。正文前资料默认载入全部势力名/ID 与组织架构。</p>
+        <p class="faction-note">势力由正文后 Stage9 推演写入（首次创建需尽量补全完整资料；后续更新必须基于正文事实变化，按势力 ID/字段追加、删除或覆盖）。正文前资料默认载入全部势力名/ID 与组织架构。</p>
       </section>
       <main class="faction-body">
         <section class="faction-list dev-section" data-section-title="势力列表区">
