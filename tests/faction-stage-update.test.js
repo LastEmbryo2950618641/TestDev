@@ -45,6 +45,76 @@ function loadFactionQuery() {
   return context.window.GameModules.realWorldAgentContext;
 }
 
+function fullOverviewPanels() {
+  const field = (value = '已根据上下文补全') => ({ value, reason: '测试依据' });
+  const nameList = [{ name: '测试机构', description: '测试职责' }];
+  const relationList = [{ name: '测试对象', description: '测试关系', viewOfSelf: '视为普通合作方' }];
+  return {
+    ideology: {
+      core: field('商业导向'),
+      reason: field('由组织目标形成'),
+      description: field('以持续运作为核心'),
+      base: field('成员与岗位协作'),
+      legitimacy: { value: 50, unit: '/100', reason: '测试依据' },
+    },
+    economy: { entries: {
+      gdp: field('非国家组织不适用，按营收规模评估'),
+      income: field('项目收入'),
+      expenditure: field('薪酬与运营支出'),
+      assets: field('办公资产与知识产权'),
+      resources: field('人力与技术资源'),
+      production: field('软件交付'),
+      system: field('市场化公司制度'),
+      institutions: { value: nameList, reason: '测试依据' },
+      laws: { value: nameList, reason: '测试依据' },
+      works: { value: nameList, reason: '测试依据' },
+    } },
+    politics: { entries: {
+      regime: field('公司治理'),
+      powerStructure: field('管理层负责'),
+      rulemaking: field('制度由管理层制定'),
+      adjudication: field('内部流程处理'),
+      execution: field('部门执行'),
+      participation: field('员工参与有限'),
+      leadership: field('负责人管理'),
+      institutions: { value: nameList, reason: '测试依据' },
+      laws: { value: nameList, reason: '测试依据' },
+      works: { value: nameList, reason: '测试依据' },
+    } },
+    military: { entries: {
+      posture: field('无军事职能'),
+      forces: { value: [{ name: '无武装力量', items: ['仅办公安保'] }], reason: '测试依据' },
+      personnel: field('无军事人员'),
+      quality: field('无战备要求'),
+      sustainment: field('无军事后勤'),
+      projection: field('无投送能力'),
+      equipment: field('无军事装备'),
+      institutions: { value: nameList, reason: '测试依据' },
+      laws: { value: nameList, reason: '测试依据' },
+      works: { value: nameList, reason: '测试依据' },
+    } },
+    diplomacy: { entries: {
+      posture: field('客户合作导向'),
+      orientation: field('市场合作'),
+      allies: { value: relationList, reason: '测试依据' },
+      rivals: { value: relationList, reason: '测试依据' },
+      memberships: { value: nameList, reason: '测试依据' },
+      treaties: { value: nameList, reason: '测试依据' },
+      presence: field('本地业务网络'),
+      institutions: { value: nameList, reason: '测试依据' },
+      laws: { value: nameList, reason: '测试依据' },
+      works: { value: nameList, reason: '测试依据' },
+    } },
+    territory: { entries: {
+      capital: field('无首都，办公地为核心地点'),
+      area: field('办公区域规模'),
+      population: field('员工规模'),
+      adminDivision: field('公司部门层级'),
+      regions: { value: [{ name: '办公区域', capital: '无', area: '办公区', controlRate: '内部管理', population: '员工', description: '日常办公空间', garrison: '无' }], reason: '测试依据' },
+    } },
+  };
+}
+
 test('UI no longer exposes manual generateFactionsByAI button', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'publish/index.html'), 'utf8');
   assert.ok(!html.includes('generateFactionsByAI()'));
@@ -169,6 +239,79 @@ test('Stage9 prompt is split into create and update phases', () => {
   assert.ok(runtime.includes('明显不合理、空白、占位、壳化'));
 });
 
+test('Stage9-1 independently rechecks full context and requests batch creation JSON', () => {
+  const context = vm.createContext({
+    console,
+    Set,
+    Map,
+    Date,
+    JSON,
+    window: { GameModules: {} },
+  });
+  context.window.window = context.window;
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'publish/inference/faction-stage-update.js'), 'utf8'), context, { filename: 'publish/inference/faction-stage-update.js' });
+  const stage = context.window.GameModules.inferenceFactionStageUpdate;
+  const prompt = stage.buildCreatePrompt({
+    action: '前往刘思琪房间',
+    narration: '刘思琪把英语作业放到桌边。',
+    factionIndex: '暂无势力。',
+    pendingFactionCandidates: [],
+    contextReview: '角色卡：刘思琪是某中学学生；刘悠任职于成都市高新区科创有限公司。',
+  });
+  assert.ok(prompt.includes('即使 Stage1 候选为空'));
+  assert.ok(prompt.includes('重新检查本轮完整上下文'));
+  assert.ok(prompt.includes('角色卡：刘思琪是某中学学生'));
+  assert.ok(prompt.includes('一次性批量'));
+  assert.ok(prompt.includes('candidateName'));
+  assert.ok(prompt.includes('必须沿用该 id'));
+  assert.ok(prompt.includes('overviewPanels 严格字段契约'));
+  assert.ok(prompt.includes('economy.entries 固定字段'));
+  assert.ok(prompt.includes('territory.entries 固定字段'));
+  assert.ok(prompt.includes('禁止 `teritory` 拼写'));
+  assert.ok(prompt.includes('禁止输出空对象 `{}`'));
+});
+
+test('Stage9 createFaction rejects overviewPanels that do not match UI schema', () => {
+  const context = vm.createContext({
+    console,
+    Set,
+    Map,
+    Date,
+    JSON,
+    window: {
+      GameModules: {
+        realWorldAgentContext: {
+          faction: (store, method, params) => {
+            store.factionState.factions.push({ id: params.id, name: params.name });
+            return '已创建势力';
+          },
+        },
+      },
+    },
+  });
+  context.window.window = context.window;
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'publish/inference/faction-stage-update.js'), 'utf8'), context, { filename: 'publish/inference/faction-stage-update.js' });
+  const stage = context.window.GameModules.inferenceFactionStageUpdate;
+  const store = { factionState: { factions: [] } };
+  const result = stage.applyOps(store, [{
+    method: 'createFaction',
+    params: {
+      id: 'force-bad',
+      name: '错形状势力',
+      solid: {
+        overviewPanels: {
+          ideology: { value: '技术创新驱动' },
+          economy: { entries: { 主要收入: '软件定制开发' } },
+          teritory: { entries: { 办公地点: '高新区' } },
+        },
+      },
+    },
+  }]);
+  assert.strictEqual(store.factionState.factions.length, 0);
+  assert.ok(result.lines[0].includes('拒绝不完整 createFaction'));
+  assert.ok(result.lines[0].includes('teritory'));
+});
+
 test('Stage9 runs create phase before update phase', async () => {
   const context = vm.createContext({
     console,
@@ -190,7 +333,7 @@ test('Stage9 runs create phase before update phase', async () => {
           },
         },
         realWorldMaterials: {
-          pendingFactionCandidates: () => ([{ name: '成都市高新区科创有限公司', type: '公司', worldTag: '2026现代都市现实世界' }]),
+          pendingFactionCandidates: () => ([{ id: 'force-pending-tech', name: '成都市高新区科创有限公司', status: '待创建', type: '公司', worldTag: '2026现代都市现实世界' }]),
         },
       },
     },
@@ -200,10 +343,12 @@ test('Stage9 runs create phase before update phase', async () => {
   const stage = context.window.GameModules.inferenceFactionStageUpdate;
   const store = { factionState: { factions: [] }, initFactionSystem() {} };
   const prompts = [];
+  const requestOptions = [];
   const loop = {
     completeCachedJsonPrompt: async (_store, options) => {
       prompts.push(options.prompt);
-      if (prompts.length === 1) return '{"ops":[{"method":"createFaction","params":{"id":"faction-tech-company","name":"成都市高新区科创有限公司","type":"公司","classification":"company","worldTag":"2026现代都市现实世界","structure":[{"name":"管理层","roles":[]}],"solid":{"overviewPanels":{"ideology":{"core":{"value":"商业导向"}}}}}}],"done":true}';
+      requestOptions.push(options);
+      if (prompts.length === 1) return JSON.stringify({ ops: [{ method: 'createFaction', params: { id: 'force-pending-tech', candidateName: '成都市高新区科创有限公司', name: '成都市高新区科创有限公司', type: '公司', classification: 'company', worldTag: '2026现代都市现实世界', structure: [{ name: '管理层', roles: [] }], solid: { overviewPanels: fullOverviewPanels() } } }], done: true });
       return '{"ops":[{"method":"patchFactionField","params":{"id":"faction-tech-company","field":"description","op":"set","value":"新增组织说明","reason":"正文确认"}}],"done":true}';
     },
     markConfiguredStep() {},
@@ -219,10 +364,14 @@ test('Stage9 runs create phase before update phase', async () => {
     config: { label: '现实', mode: 'real' },
     loop,
     materialSession: {},
+    contextReview: 'Stage1 查询链与场景锚定完整上下文',
   });
   assert.strictEqual(prompts.length, 2);
   assert.ok(prompts[0].includes('Stage9-1 势力创建'));
+  assert.ok(prompts[0].includes('Stage1 查询链与场景锚定完整上下文'));
   assert.ok(prompts[1].includes('Stage9-2 势力更新'));
+  assert.ok(requestOptions[0].sourceTitle.includes('Stage9-1'));
+  assert.ok(requestOptions[1].sourceTitle.includes('Stage9-2'));
   assert.strictEqual(result.ops.length, 2);
   assert.strictEqual(result.ops[0].method, 'createFaction');
   assert.strictEqual(result.ops[1].method, 'patchFactionField');

@@ -719,6 +719,8 @@ window.GameModules.realWorldAgentLoop = {
       let lastGuidance = null;
 
       const guidedMaxSteps = this.guidedMaxSteps(store, config);
+      const autoLoadedStart = await ctx.autoLoadForStep?.(store, action, loadedKeys, materialSession, config.materials, memoryIds, 1, loaded, []) || [];
+      loaded.push(...autoLoadedStart);
       for (let step = 1; step <= guidedMaxSteps; step += 1) {
         const prompt = await this.buildConfiguredPrompt({ store, action, base, loaded, skills, step, materialSession, config, guidance: lastGuidance, logId });
         lastPrompt = prompt;
@@ -728,10 +730,12 @@ window.GameModules.realWorldAgentLoop = {
         const data = raw.data;
         if (!data) throw new Error(`${config.label || 'Loop'}返回格式错误`);
         lastGuidance = data;
+        this.recordStage1PendingFactions(materialSession, data.factions, raw.raw);
         const traceItem = this.traceItem(step, data, raw.raw, ctx);
         trace.push(traceItem);
 
         const results = await this.loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step, materialSession, config.materials, config);
+        traceItem.factions = data.factions || traceItem.factions;
         traceItem.loaded = results.map((item) => ({ title: item.title, text: ctx.limit(item.text, 800) }));
         this.updateConfiguredTrace(store, logId, trace, config);
         if (results.length) {
@@ -739,7 +743,7 @@ window.GameModules.realWorldAgentLoop = {
           this.markConfiguredStep(store, logId, this.loadedContextText(data, results, step, config), config);
         }
 
-        if (data.type === 'request_context' && step < guidedMaxSteps) continue;
+        if ((data.type === 'request_context' || results.some((item) => item?.stage1MustReview)) && step < guidedMaxSteps) continue;
         if (step < this.minSteps && data.type !== 'context_done') continue;
         break;
       }
@@ -965,6 +969,8 @@ window.GameModules.realWorldAgentLoop = {
 
   async loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step, materialSession = null, materials = window.GameModules.realWorldMaterials, config = this.realConfig()) {
     const out = [];
+    const factionResolve = this.resolveStage1Factions(materialSession, data.factions, store, loadedKeys, materials);
+    if (factionResolve.loaded.length) out.push(...factionResolve.loaded);
     if (data.type === 'request_context') {
       const autoLoaded = await ctx.autoLoadForStep?.(store, action, loadedKeys, materialSession, materials, memoryIds, step, loaded, out) || [];
       out.push(...autoLoaded);
@@ -977,7 +983,7 @@ window.GameModules.realWorldAgentLoop = {
       const anchorRequests = data.sceneQueriesAreReasons ? [] : (ctx.sceneAnchorRequests?.(data, store, { mode: data.mode }) || []);
       out.push(...await load(anchorRequests, 4));
       const requestList = Array.isArray(data.requests) && data.requests.length ? data.requests : (Array.isArray(data.needed) ? data.needed : []);
-      out.push(...await load(requestList, 2));
+      out.push(...await load(requestList, 3));
     }
     const memoryItem = ctx.characterMemoriesForStep?.(store, action, data.characters || data.relatedCharacters || [], [...loaded, ...out], memoryIds, step === 1);
     if (memoryItem?.text) {
@@ -986,6 +992,152 @@ window.GameModules.realWorldAgentLoop = {
       out.push(memoryItem);
     }
     return out;
+  },
+
+  parseFactionToken(raw = "") {
+    const text = String(raw || "").trim();
+    if (!text || text === "无") return null;
+    const match = text.match(/^(.+?)\(([^()]+)\)$/u);
+    if (!match) return null;
+    const name = String(match[1] || "").trim();
+    const id = String(match[2] || "").trim();
+    if (!name) return null;
+    return { name, id, pending: /待(?:创建|建)|未创建|pending/i.test(id) };
+  },
+
+  normalizeFactionReferenceItem(item = null) {
+    if (typeof item === 'string') {
+      return null;
+    }
+    if (!item || typeof item !== 'object') return null;
+    const name = String(item.name || item.factionName || item['势力名'] || '').trim();
+    const id = String(item.id || item.factionId || item['势力ID'] || '').trim();
+    const statusRaw = String(item.status || item['状态'] || '').trim();
+    if (!name) return null;
+    const pending = /待(?:创建|建)|未创建|pending/i.test(statusRaw || id);
+    return {
+      name,
+      id: pending ? '' : id,
+      type: String(item.type || item.factionType || item['类型'] || '').trim() || '组织',
+      status: pending ? '待创建' : (statusRaw === '已获取' ? '已获取' : (id ? '已获取' : '待创建')),
+      pending,
+    };
+  },
+
+  normalizeFactionReferenceList(value = []) {
+    const list = Array.isArray(value) ? value : this.splitNameList(value);
+    const seen = new Set();
+    return list.map((item) => {
+      const parsed = this.normalizeFactionReferenceItem(item);
+      if (!parsed) return null;
+      const id = parsed.id;
+      const pending = parsed.pending || parsed.status === '待创建' || !id;
+      const name = parsed.name;
+      const key = name + "::" + (pending ? "pending" : id);
+      if (seen.has(key)) return null;
+      seen.add(key);
+      return { name, id: pending ? "" : id, type: parsed.type || "组织", status: pending ? "待创建" : "已获取", pending };
+    }).filter(Boolean).slice(0, 12);
+  },
+
+  factionReferencesText(value = []) {
+    const rows = this.normalizeFactionReferenceList(value);
+    return rows.length ? rows.map((item) => item.name + "(" + (item.pending ? "待创建" : item.id) + ")").join("、") : "无";
+  },
+
+  recordStage1PendingFactions(materialSession = null, factions = [], sourceText = "") {
+    if (!materialSession || !Array.isArray(factions) || !factions.length) return [];
+    return (Array.isArray(factions) ? factions : [])
+      .filter((item) => item?.pending && item.name)
+      .map((item) => window.GameModules.realWorldMaterials?.deferStage1FactionCandidate?.(
+        materialSession,
+        { id: item.id || "", name: item.name, status: "待创建", type: item.type || "组织", worldTag: window.GameModules.realWorld2026?.label || "2026 现代都市现实世界" },
+        sourceText || "Stage1 factions：" + item.name + "(待创建)",
+      ))
+      .filter(Boolean);
+  },
+
+  pendingFactionInferenceContext(materialSession = null, config = this.realConfig()) {
+    const materials = config?.materials || window.GameModules.realWorldMaterials;
+    const rows = materials?.pendingFactionCandidates?.(materialSession) || [];
+    if (!rows.length) return "";
+    const candidates = rows.map((item, index) => (index + 1) + ". " + item.name + "｜" + (item.type || "组织") + "｜" + (item.worldTag || "未知世界"));
+    return [
+      "Stage1 待创建势力推演上下文：",
+      candidates.join("\n"),
+      "以上势力可以在场景锚定与正文中作为有效背景线索正常使用，并结合上下文合理推演，但不得编造势力ID。Stage9-1 会根据完整上下文统一创建。",
+    ].join("\n");
+  },
+
+  stage1PendingFactionId(name = '') {
+    const text = String(name || '').trim() || 'unknown';
+    let hash = 0;
+    for (const ch of text) hash = ((hash << 5) - hash + ch.charCodeAt(0)) | 0;
+    return `force-pending-${Math.abs(hash).toString(36)}`;
+  },
+
+  resolveStage1Factions(materialSession = null, factions = [], store = null, loadedKeys = null, materials = null) {
+    if (!materialSession || !Array.isArray(factions) || !factions.length) return { items: [], loaded: [], statusSummary: "" };
+    const ctx = window.GameModules.realWorldAgentContext;
+    const items = [];
+    const loaded = [];
+    const members = materials || window.GameModules.realWorldMaterials;
+    factions.forEach((item) => {
+      if (!item || !item.name) return;
+      const entry = { name: item.name, id: item.id || "", status: "待创建", sourceId: item.id || "" };
+      const factionRows = store?.factionState?.factions || [];
+      const hit = factionRows.find((f) => (item.id && f.id === item.id) || (item.name && f.name === item.name));
+      if (hit) {
+        entry.id = hit.id;
+        entry.status = "已获取";
+        const key = "faction:verified:" + hit.id;
+        if (loadedKeys && !loadedKeys.has(key)) {
+          loadedKeys.add(key);
+          const text = ctx?.factionDetail?.(store, hit.id) || ctx?.factionText?.(store, hit) || "";
+          if (text) {
+            loaded.push({ title: "势力核验：" + hit.name, text, max: 1600, stage1MustReview: true });
+            members?.record?.(materialSession, { skill: "faction.query", method: "getFactionDetail", params: { id: hit.id } }, "势力核验：" + hit.name, text);
+          }
+        }
+      } else {
+        entry.id = this.stage1PendingFactionId(item.name);
+        entry.status = "待创建";
+      }
+      members?.deferStage1FactionCandidate?.(materialSession, { ...entry, type: item.type || "组织", worldTag: item.worldTag || "" }, "Stage1 factions 核验");
+      items.push(entry);
+    });
+    if (items.length) factions.splice(0, factions.length, ...items.map((item) => ({ ...item, pending: item.status === "待创建" })));
+    const statusSummary = items.map((it) => it.name + "(" + it.id + "，" + it.status + ")").join("、");
+    if (statusSummary) loaded.push({ title: "势力核验状态", text: "Stage1 势力核验结果：" + statusSummary, max: 1000 });
+    return { items, loaded, statusSummary };
+  },
+
+  buildFactionStage9Context({ base = "", loaded = [], trace = [], sceneAnchor = null, updates = {}, participants = [], materialSession = null, config = null } = {}) {
+    const loadText = (Array.isArray(loaded) ? loaded : []).map((item, i) => {
+      const title = String(item?.title || '').trim();
+      const text = String(item?.text || '').trim();
+      return (i + 1) + ". " + [title, text].filter(Boolean).join("：").slice(0, 900);
+    }).join("\n");
+    const factionHints = [];
+    (Array.isArray(trace) ? trace : []).forEach((item) => {
+      if (Array.isArray(item?.factions)) {
+        item.factions.forEach((f) => {
+          if (f && f.name) factionHints.push(f.name + (f.id ? "(" + f.id + ")" : "") + (f.reason || item.reason ? " 理由=" + (f.reason || item.reason) : ""));
+        });
+      }
+    });
+    const pendingSummary = window.GameModules.realWorldMaterials?.pendingFactionSummary?.(materialSession) || "";
+    return [
+      base || "",
+      "已加载资料摘要：",
+      loadText || "无",
+      "Stage1势力线索：",
+      factionHints.join("\n") || "无",
+      pendingSummary ? "Stage1待建候选：\n" + pendingSummary : "",
+      "场景锚定：",
+      sceneAnchor?.data?.currentLocation || "",
+      sceneAnchor?.data?.currentAction || "",
+    ].filter(Boolean).join("\n");
   },
 
   async buildPrompt(args) {
@@ -1013,7 +1165,6 @@ window.GameModules.realWorldAgentLoop = {
       推演自由度规则: [config.mode === 'story' ? this.storyFreedomRule(store) : (store.realWorldFreedomRule?.() || '推演自由度：行动范围内。只推演玩家本次输入行动自然抵达的直接结果。'), configuredControlPerspectiveRule].filter(Boolean).join('\n'),
       当前步骤输出要求: this.stepOutputRule(step, forceFinal),
       随机场外角色候选: randomActiveCandidateText,
-      ['\u8d44\u6599\u8fed\u4ee3\u9650\u5236\u89c4\u5219']: this.stage1IterationRule(store),
     };
     if (!forceFinal) {
       const stage1RoutingContext = config.ctx.buildStage1RoutingContext?.({ store, action: actionText, loaded, materialSession, config }) || [
@@ -1025,96 +1176,15 @@ window.GameModules.realWorldAgentLoop = {
       const previousGuidance = this.previousGuidanceSummary(guidance);
       const loadedRoutingSummary = config.ctx.loadedRoutingSummary?.(loaded) || '无';
       const materialCatalog = config.ctx.stage1MaterialCatalogText?.(config.mode) || '无';
-      const rulesText = [
-        '# Stage1 资料查询',
-        '任务：只输出一个合法 JSON 对象，不输出中文 K:V、Markdown、正文或解释。',
-        '你只负责判断本次行动生成正文前还需要哪些已有资料；不得写正文，不得锚定场景，不得结算状态，不得推进后续结果。',
-        '资料请求规则：',
-        '- 使用中文资料请求，不得输出英文 skill/method。地点查询未命中时，不要请求地点图补全；基于上下文进行符合逻辑的保守推演，地图持久化交给 Stage4 地图更新 / Stage10 电子地图周围解锁。',
-        '- 资料请求最多 Top3；超过 Top3 的候选必须丢弃，不得输出资料请求4或更多编号。',
-        '- 角色卡请求只代表可作为参考资料；不得因此把角色写入强制出场。',
-        '- 资料是否够用由你综合判断：对话链里的旧资料 + 之后的结算/正文变更 + 当前桌面时间 + 本次行动。不要机械“见过就不请求”，也不要仅因发生过结算/时间推进就强制重载。',
-        '- 需要重新请求的情况：关键出场对象/地点/路线在上下文中缺失；或旧资料与后续变更互相冲突、碎片化，无法可靠还原出支撑本次正文的最新状态；或切换被控者后上下文里根本没有该角色可用资料。',
-        '- 可跳过重复请求的情况：把旧资料与后续变更合在一起后，已能稳定支撑本次行动正文，且无明显缺口或冲突。',
-        '- 不得请求衣着、鞋袜、随身物品等细节；这些细节不属于本阶段必要资料。',
-        '- 不得照抄提示词中的占位词；角色全称、世界全称、地点全称、出场对象全称、作品全称都必须替换为本次行动中的真实名称。',
-        '- 资料请求格式：资料请求N：资料类型，查询动作，查询对象全称，世界或范围全称。',
-        '随机事件规则：',
-        '- 随机主动事件默认是场外背景，不自动入场。',
-        '- 随机场外角色候选不等于禁止出场；不得仅因角色出现在随机场外角色候选中，就写入禁止出场。',
-        '- 若随机角色已在强制出场、高优先候选、戏剧候选或禁止出场中，必须移除该随机事件。',
-        '- 无明确自然闯入条件时，随机事件闯入条件必须写“无明确条件则禁止闯入”。',
-        window.GameModules.socialEventBoundary?.stage1Ops?.() || '',
-        '势力资料规则：',
-        '- 系统已自动载入全部势力名/ID与组织架构；先对照该列表，不要重复请求势力列表。',
-        '- 若行动/资料/角色卡中出现现实世界真实组织、公司、学校、机关、社群等势力名，且不在已知列表中：必须请求「势力查询，创建势力，势力名，公司」。',
-        '- 创建时按上下文与常识补全可知字段；禁止因“本轮未打电话/未拜访/未改字段”而跳过创建。',
-        '- 禁止抽象身份（现实社会/公民）造势力；禁止批量灌库无关势力。',
-        '- 已存在势力只查询，不要重复创建。',
-        '自然出场规则：',
-        '- 不要只在玩家明确点名角色时才判断出场；任何现实或设定世界中的行动，都可能自然牵涉其他存在。',
-        '- 自然出现不是固定清单，而是根据当前世界状态推导；候选不限定为人类，只要符合世界规则并与本次行动形成合理关联，就可以进入候选。',
-        '- 有合理候选写入高优先候选或戏剧候选；只有本次行动必然涉及、出现、回应或受影响的存在才写入强制出场。',
-        '- 禁止为了热闹强行塞候选；每个候选都必须能被当前世界状态解释。',
-        '出场边界规则：',
-        '- 本轮必须基于上一轮查询规划摘要继续收敛；若候选层发生变化，以本轮字段作为当前判断，不要无理由重置候选层。',
-        '- 玩家/当前被控主体由系统最终兜底为强制出场；强制出场允许多个存在，表示本次行动必然涉及、出现、回应或受影响的集合。',
-        '- 不强制出场不等于禁止出场；禁止出场只用于明确场外、明确不可到达或被用户/资料规则明确禁止进入当前场景的存在。',
-        '- 同地点/同住/相邻候选不得仅因未强制出场而写入禁止出场；可按相关性放入高优先候选或戏剧候选，或写“无”。',
-        '- 玩家行动明确目标不得写入禁止出场，除非已加载资料明确显示其场外、不可到达或被规则禁止进入当前场景。',
-        '角色唯一标识与介绍卡：',
-        '- participants 每一项必须是可区分称呼(ID)；已知用真实ID，首次无真实ID写可区分称呼(待建卡)。',
-        '- Stage1整段结束后系统一次性批量分配 rel-ai-* 共享ID：先写同ID介绍卡再写空壳；不是完整角色卡，完整卡仅玩家手动升格（同一ID）。',
-        '- 称呼必须可区分：禁止无名纯「路人」、空泛“某人/某物”或不可追踪占位；一类存在/团体原型按群体意识理解。',
-        '- 角色查询可命中完整角色卡或介绍卡；不得因查到资料就强制写入出场。',
-      ].filter(Boolean).join('\n');
-      const contextText = [
-        `本次行动：${actionText}`,
-        `当前步骤：${commonVars.当前步骤} / ${commonVars.最大步骤}`,
-        '路由上下文：',
-        stage1RoutingContext,
-        '本轮上一轮查询规划摘要（同轮 Stage1 步骤间）：',
-        previousGuidance,
-        '已加载资料摘要：',
-        loadedRoutingSummary,
-        '可请求资料目录：',
-        materialCatalog,
-        eventStage1Context,
-        '推演自由度规则：',
-        commonVars.推演自由度规则,
-        `随机场外角色候选：${randomActiveCandidateText}`,
-      ].join('\n');
-      const requestText = [
-        '当前步骤输出要求：',
-        commonVars.当前步骤输出要求,
-        '固定输出规则：',
-        '- 只输出一个紧凑 JSON 对象，首字符必须是 {，末字符必须是 }。',
-        '- 不要 Markdown，不要 ```json 代码块，不要换行解释。',
-        '- status 只能二选一：资料已足够 / 继续请求资料。',
-        '- sceneQueries.location / sceneQueries.causality / sceneQueries.conflict 必须是字符串数组；没有则 []。',
-        '- 若 status 为“继续请求资料”，优先输出 materialRequests，最多 3 条；没有可执行资料请求时 materialRequests 输出 []，但必须保留 sceneQueries 理由或明确参与者候选。',
-        this.stage1IterationRule(store),
-        '- participants.forced / priority / drama / forbidden 都必须是字符串数组；没有则 []。',
-        '- 【强制】participants 每一项必须是可区分称呼(ID)。已知用真实ID（角色卡/介绍卡均可）；首次无真实ID写可区分称呼(待建卡)。禁止裸姓名或裸称呼。',
-        '- Stage1整段结束后系统一次性批量：分配 rel-ai-* 共享ID，先写同ID介绍卡再写空壳（不是完整角色卡；完整卡仅玩家手动升格且仍用同一ID）。禁止Stage1多轮逐个申请建卡或编造完整角色卡。',
-        '- 称呼必须可区分：禁止无名纯「路人」、空泛“某人/某物”或不可追踪占位。一类存在/团体原型按群体意识与团队行动理解（presenceKind=group）。',
-        '- randomEvents 必须是字符串数组；randomIntrusionCondition 没有明确条件时写“无明确条件则禁止闯入”。',
-        '- 资料请求只能使用中文结构，不得输出英文 skill/method；不得在 Stage1 请求地点图新增、地点图补全或 ensure。',
-        'JSON schema：',
-        '{"plan":"查询规划摘要","status":"继续请求资料|资料已足够","sceneQueries":{"location":["地点查询理由"],"causality":["因果查询理由"],"conflict":["冲突查询理由"]},"participants":{"forced":["玩家名(player-self)","已知出场对象名(真实ID)"],"priority":["可区分候选称呼(待建卡)"],"drama":[],"forbidden":[]},"randomEvents":["候选事件"],"randomIntrusionCondition":"无明确条件则禁止闯入","materialRequests":["角色查询，搜索角色卡，角色全称，世界全称","势力查询，创建势力，势力全称，势力类型"]}',
-        '【AI自检】：',
-        '- 输出前必须自检 status 与 materialRequests、sceneQueries、participants 是否一致。',
-        '- 输出前必须自检 participants 每一项都是可区分称呼(ID)，没有裸姓名或裸称呼。',
-        '- 输出前必须自检：本次行动相关关键资料是否已能从「本轮已加载摘要 / materialRequests / 对话链中的旧资料+后续变更」可靠覆盖；若仍有缺口或冲突会影响正文，不得写“资料已足够”。',
-        '- 输出前必须自检：行动/资料/角色卡中出现的现实组织/公司/学校等势力名，若已载入势力列表未收录，须在 materialRequests 写「势力查询，创建势力，势力名，类型」；不得因本轮未互动/无字段更新而跳过。',
-        '- 若 materialRequests、sceneQueries、participants.forced、participants.priority、participants.drama 全为空，status 必须为“资料已足够”。',
-        '- 不得输出旧 K:V 字段，例如“资料状态：”“资料请求1：”。',
-      ].join('\n');
-      return [
-        { role: 'user', content: rulesText },
-        { role: 'assistant', content: contextText },
-        { role: 'user', content: requestText },
-      ];
+      const prompt = await this.renderPrompt(config.firstTemplateId || 'inference-stage1-guided-query', {
+        ...commonVars,
+        路由上下文: stage1RoutingContext,
+        上一轮查询规划摘要: previousGuidance,
+        已加载资料摘要: loadedRoutingSummary,
+        可请求资料目录: materialCatalog,
+        日常驱动与事件Stage1要点: eventStage1Context,
+      });
+      return [{ role: 'user', content: prompt }];
     }
     return this.renderPrompt(config.templateId, {
       ...commonVars,
@@ -1126,7 +1196,7 @@ window.GameModules.realWorldAgentLoop = {
 
   guidedMaxSteps(store = {}, config = this.realConfig()) {
     if (!store?.settingsState?.stage1MaterialIterationLimited) return this.maxSteps;
-    const configured = Math.max(1, Math.min(8, Math.round(Number(store?.settingsState?.stage1MaterialMaxIterations) || 2)));
+    const configured = Math.max(1, Math.min(8, Math.round(Number(store?.settingsState?.stage1MaterialMaxIterations) || 3)));
     return configured;
   },
 
@@ -1135,15 +1205,7 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   guidedStepText(store = {}, step, config = this.realConfig()) {
-    return `${step}/${this.guidedMaxStepText(store, config)}`;
-  },
-
-  stage1IterationRule(store = {}) {
-    if (!store?.settingsState?.stage1MaterialIterationLimited) {
-      return '- 资料收集迭代默认不限制；只要仍有必要且有可执行资料请求，可以继续请求资料。若资料足够、无法继续获取或请求开始重复，必须进入场景锚定。';
-    }
-    const max = Math.max(1, Math.min(8, Math.round(Number(store?.settingsState?.stage1MaterialMaxIterations) || 2)));
-    return `- 最多${max}步后进入场景锚定；第${max}步不得为了重复确认而继续扩展资料循环。`;
+    return String(Math.max(1, Number(step) || 1));
   },
 
   storyFreedomRule(store) {
@@ -1190,27 +1252,19 @@ window.GameModules.realWorldAgentLoop = {
       return '当前为收敛步骤：禁止继续请求资料。只输出一个紧凑 JSON 对象；status 必须为“资料已足够”，materialRequests 必须为 []，sceneQueries 与 participants 按已确认事实填写；不得输出正文、旁白、Markdown、代码块或 final JSON。';
     }
     if (step === 1) {
-      return '当前是第1步：你是上下文路由器，只判断为了准确生成本次行动范围内正文需要载入哪些已有资料，并尽可能多而全地列出 sceneQueries 中的地点/因果/冲突查询理由。只输出 Stage1 JSON schema；不要写正文，不要结算状态，不要推演后续结果。';
+      return '当前是第1步：你是上下文路由器，只判断为了准确生成本次行动范围内正文需要载入哪些已有资料，并尽可能多而全地列出 sceneQueries 中的地点/因果/冲突查询理由。只输出符合字段契约的 Stage1 JSON 对象；不要写正文，不要结算状态，不要推演后续结果。';
     }
     if (step >= 2) {
-      return `当前是第${step}步/后续资料路由步骤：继续使用 Stage1 JSON schema 收敛资料需求。达到设置的资料收集迭代最大次数后，系统会带着已加载资料与 sceneQueries 进入场景锚定；若没有可执行 materialRequests，允许 materialRequests 为 [] 但保留 sceneQueries 或 participants 候选。不要输出中文 K:V、正文、旁白、Markdown、代码块和 final JSON。`;
+      return `当前是第${step}步/后续资料路由步骤：继续使用 Stage1 字段契约收敛资料需求。达到设置的资料收集迭代最大次数后，系统会带着已加载资料与 sceneQueries 进入场景锚定；若没有可执行 materialRequests，允许 materialRequests 为 [] 但保留 sceneQueries 或 participants 候选。不要输出正文、旁白、Markdown、代码块和 final JSON。`;
     }
-    return '当前只负责判断是否继续收集资料：只输出 Stage1 JSON schema。仍缺关键资料就写 status“继续请求资料”并列出 materialRequests；资料足够或无法继续获取时写 status“资料已足够”且 materialRequests 为 []。不要输出中文 K:V、正文、旁白、Markdown、代码块和 final JSON。';
+    return '当前只负责判断是否继续收集资料：只输出符合字段契约的 Stage1 JSON 对象。仍缺关键资料就写 status“继续请求资料”并列出 materialRequests；资料足够或无法继续获取时写 status“资料已足够”且 materialRequests 为 []。不要输出正文、旁白、Markdown、代码块和 final JSON。';
   },
 
   stage1JsonRetryInstruction(err = {}, semanticSelfCheckFailed = false) {
-    const droppedSummary = this.summarizeDroppedMaterialRequests(err.parseResult?.droppedMaterialRequests || []);
-    const parseDetail = err.parseResult
-      ? `score=${err.parseResult.score}/${err.parseResult.maxScore} successRate=${err.parseResult.successRate} missing=${err.parseResult.missing?.join('、') || '无'} droppedMaterialRequests=${droppedSummary}`
-      : '';
     return [
-      `上次 Stage1 JSON ${semanticSelfCheckFailed ? '语义自检失败' : '解析失败'}：${err.message}${parseDetail ? `（${parseDetail}）` : ''}`,
-      `已确认字段：${err.parseResult?.keyHits?.join('、') || '无'}`,
-      `已确认字段值：\n${this.confirmedKvValuesText(err.parseResult)}`,
-      `缺失字段：${err.parseResult?.missing?.join('、') || '未知'}`,
-      `已丢弃资料请求：${droppedSummary}`,
-      '请重新输出完整 Stage1 JSON 对象；必须保留已确认字段值，只补齐或修正缺失/错误字段；不得删除用户明确约束、forbidden 或已确认 forced；不要重复输出已丢弃 materialRequests。',
-      '【AI自检】若 status 为“继续请求资料”，优先输出最多 3 条 materialRequests 或明确 participants 候选；若没有可执行 materialRequests，必须保留尽可能多而全的 sceneQueries，系统会带着这些理由进入场景锚定。不得输出中文 K:V 或旧字段“资料状态：”“资料请求1：”。',
+      `上次 Stage1 JSON ${semanticSelfCheckFailed ? '语义自检失败' : '解析失败'}：${err.message}`,
+      '请重新输出完整 Stage1 JSON 对象；字段必须符合 Stage1 字段契约；不得删除用户明确约束、participants.forbidden 或已确认 participants.forced。',
+      '【AI自检】若 status 为“继续请求资料”，优先输出最多 3 条 materialRequests 对象或明确 participants 候选；若没有可执行 materialRequests，必须保留尽可能多而全的 sceneQueries，系统会带着这些理由进入场景锚定。不得输出 JSON 外解释或 materialRequests 字符串壳。',
     ].join('\n\n');
   },
 
@@ -1218,29 +1272,38 @@ window.GameModules.realWorldAgentLoop = {
     const ctx = window.GameModules.realWorldAgentContext;
     if (ctx?.stage1GuidanceSummary) return ctx.stage1GuidanceSummary(guidance);
     if (!guidance) return '无';
-    const names = (group = [], reasonLabel = '理由') => (Array.isArray(group) ? group : []).map((item) => {
-      const name = item.name || item.idOrName || item.id || item.characterName;
-      return `${name}${item.reason ? `（${reasonLabel}：${item.reason}）` : ''}`;
-    }).join('、') || '无';
-    const random = (Array.isArray(guidance.randomActiveEvents) ? guidance.randomActiveEvents : [])
-      .map((item) => `${item.characterName || item.name}：${item.eventType || item.actionMethod || '背景行动'}｜${item.motivation || item.reason || ''}`)
-      .join('；') || '无';
-    const queryReasons = (label, key) => {
-      const items = [...new Set(Array.isArray(guidance.sceneQueries?.[key]) ? guidance.sceneQueries[key] : [])];
-      return items.length ? items.map((item, index) => `${label}${index + 1}：${item}`).join('\n') : `${label}1：无`;
-    };
-    return [
-      `资料状态：${guidance.type === 'context_done' ? '资料已足够' : '继续请求资料'}`,
-      queryReasons('地点查询理由', 'location'),
-      queryReasons('因果查询理由', 'causality'),
-      queryReasons('冲突查询理由', 'conflict'),
-      `强制出场：${names(guidance.forcedParticipants, '出场理由')}`,
-      `高优先候选：${names(guidance.priorityCandidates, '候选理由')}`,
-      `戏剧候选：${names(guidance.dramaCandidates, '候选理由')}`,
-      `禁止出场：${names(guidance.forbiddenParticipants, '不在场理由')}`,
-      `随机主动事件：${random}`,
-      `随机事件闯入条件：${guidance.randomIntrusionCondition || '无明确条件则禁止闯入'}`,
-    ].join('\n');
+    const compactParticipant = (item = {}) => ({
+      name: String(item.name || item.idOrName || item.characterName || '').trim(),
+      id: String(item.id || '').trim(),
+      reason: String(item.reason || '').trim(),
+    });
+    const compactEvent = (item = {}) => ({
+      name: String(item.characterName || item.name || '').trim(),
+      type: String(item.eventType || item.actionMethod || '背景行动').trim(),
+      reason: String(item.motivation || item.reason || '').trim(),
+    });
+    const uniqueStrings = (items = []) => [...new Set((Array.isArray(items) ? items : []).map((item) => String(item || '').trim()).filter(Boolean))];
+    return JSON.stringify({
+      status: guidance.type === 'context_done' ? '资料已足够' : '继续请求资料',
+      sceneQueries: {
+        location: uniqueStrings(guidance.sceneQueries?.location),
+        causality: uniqueStrings(guidance.sceneQueries?.causality),
+        conflict: uniqueStrings(guidance.sceneQueries?.conflict),
+      },
+      participants: {
+        forced: (guidance.forcedParticipants || []).map(compactParticipant).filter((item) => item.name || item.id),
+        priority: (guidance.priorityCandidates || []).map(compactParticipant).filter((item) => item.name || item.id),
+        drama: (guidance.dramaCandidates || []).map(compactParticipant).filter((item) => item.name || item.id),
+        forbidden: (guidance.forbiddenParticipants || []).map(compactParticipant).filter((item) => item.name || item.id),
+      },
+      factions: (guidance.factions || []).map((item) => ({
+        name: String(item.name || '').trim(),
+        id: String(item.id || '').trim(),
+        status: String(item.status || (item.pending ? '待创建' : '')).trim(),
+      })).filter((item) => item.name),
+      randomEvents: (guidance.randomActiveEvents || []).map(compactEvent).filter((item) => item.name || item.type),
+      randomIntrusionCondition: String(guidance.randomIntrusionCondition || '无明确条件则禁止闯入').trim(),
+    });
   },
 
   async buildNarrationPrompt(args) {
@@ -3407,6 +3470,7 @@ window.GameModules.realWorldAgentLoop = {
       '明确事实：可直接结算。',
       '强暗示事实：可保守结算，但必须有明确行为、对话或连续动作支撑。',
       '弱氛围暗示：不得结算。',
+      '玩家输入可信度与可行性规则：玩家输入中的行动意图照常推演；夹带的既成结果、背景改写、状态突变或超出当前因果能力的宣称，只有在已加载上下文、角色设定、世界规则或可核验资料支持时，才可当作真实事实进入结算；若缺少支持，不得当真落库，只能结算正文中实际成立的可观察后果。',
     ].join('\n');
     const requiredKeyOrder = requestedTypes.join(' → ');
     const jsonExamples = `{${requestedTypes.map((type) => this.settlementTypeJsonExample(type, participants, store, config)).join(',')}}`;
@@ -3585,10 +3649,6 @@ window.GameModules.realWorldAgentLoop = {
     };
   },
 
-  guidedStepFields() {
-    return ['查询规划', '资料状态', '地点查询理由', '因果查询理由', '冲突查询理由', '强制出场', '高优先候选', '戏剧候选', '禁止出场', '随机事件候选', '随机事件闯入条件', '资料请求', '资料请求结束', '地点查询', '因果查询', '冲突查询'];
-  },
-
   sceneAnchorFields() {
     return ['场景锚定报告', '当前地点', '当前时间', '空间状态', '当前动作', '强制出场', '高优先候选', '戏剧候选', '禁止出场', '随机事件影响', '正文写作重点', '当前场景影响对象'];
   },
@@ -3597,80 +3657,16 @@ window.GameModules.realWorldAgentLoop = {
     return ['基础结算', '结算状态', '经过时间', '当前状态', '当前目标', '场景标题', '地点名称', '备选行动1', '备选行动2', '备选行动3', '备选行动4', '结算结束'];
   },
 
-  kvFieldAliases() {
-    return {
-      '必须出场': '强制出场',
-      '当前参与者': '强制出场',
-      '不能出场': '禁止出场',
-      '禁止角色': '禁止出场',
-      '场外随机事件': '随机事件候选',
-      '随机主动事件': '随机事件候选',
-      '随机主动事件影响': '随机事件影响',
-      '写作重点': '正文写作重点',
-      '正文重点': '正文写作重点',
-      '结算限制': '当前场景影响对象',
-      '结算边界': '当前场景影响对象',
-      '资料是否足够': '资料状态',
-    };
-  },
-
-  normalizeKvKey(key = '', allowed = []) {
-    const clean = String(key || '').trim().replace(/[\s　]+/gu, '');
-    const numberedReason = clean.replace(/^(地点查询理由|因果查询理由|冲突查询理由)\d+$/u, '$1');
-    const direct = allowed.find((item) => item === clean || item === numberedReason);
-    if (direct) return direct;
-    const alias = this.kvFieldAliases()[clean];
-    return allowed.includes(alias) ? alias : '';
-  },
-
   splitKvLine(line = '') {
     const text = String(line || '').trim();
     const match = text.match(/^([^：:\n]{1,40})[：:]\s*([\s\S]*)$/u);
     return match ? { key: match[1].trim(), value: match[2].trim() } : null;
   },
 
-  requiredKvFields(allowed = []) {
-    const sceneAnchorRequired = ['场景锚定报告', '当前地点', '当前时间', '空间状态', '当前动作', '强制出场', '禁止出场', '随机事件影响', '正文写作重点', '当前场景影响对象'];
-    if (sceneAnchorRequired.every((key) => allowed.includes(key))) return sceneAnchorRequired;
-    const preferred = ['资料状态', '强制出场', '禁止出场', '随机事件闯入条件', '正文写作重点', '结算边界'];
-    const required = preferred.filter((key) => allowed.includes(key));
-    return required.length ? required : allowed.slice(0, Math.min(allowed.length, 6));
-  },
-
-  materialRequestPlaceholderReason(line = '') {
-    const placeholders = ['角色全称', '世界全称', '地点全称', '人物全称', '作品全称'];
-    const body = String(line || '').replace(/^资料请求\d+\s*[：:]/u, '').trim();
-    const parts = body.split(/[，,、；;]/u).map((part) => part.trim()).filter(Boolean).slice(2);
-    const hit = parts.find((part) => placeholders.includes(part));
-    return hit ? `资料请求包含未替换占位词：${hit}` : '';
-  },
-
-  fallbackChineseMaterialRequest(line = '', options = {}) {
-    if (this.materialRequestPlaceholderReason(line)) return null;
+  parseJsonMaterialRequest(item = null, options = {}) {
     const ctx = options.config?.ctx || window.GameModules.realWorldAgentContext;
-    if (typeof ctx?.parseChineseMaterialRequest === 'function') return ctx.parseChineseMaterialRequest(line, { mode: options.config?.mode, store: options.store });
-    const body = String(line || '').replace(/^资料请求\d+\s*[：:]/u, '').trim();
-    const parts = body.split(/[，,、；;]/u).map((part) => part.trim()).filter(Boolean);
-    if (parts[0] === '角色查询' && parts[1] === '搜索角色卡' && parts[2]) {
-      return { skill: 'character.query', method: 'searchCharacterProfile', params: { name: parts[2], world: parts[3] || window.GameModules.realWorld2026?.label || '2026现代都市现实世界' }, sourceText: String(line || '').trim() };
-    }
+    if (typeof ctx?.parseJsonMaterialRequest === 'function') return ctx.parseJsonMaterialRequest(item, { mode: options.config?.mode, store: options.store });
     return null;
-  },
-
-  scoreChineseKvParse(values = {}, allowed = [], materialLines = [], materialRequests = []) {
-    const required = this.requiredKvFields(allowed);
-    const isGuidedStep = this.guidedStepFields().every((key) => allowed.includes(key));
-    const hasCoreGuidedValues = isGuidedStep && ['资料状态', '随机事件闯入条件'].every((key) => String(values[key] || '').trim());
-    const hasUsefulValue = (key) => {
-      const value = String(values[key] || '').trim();
-      if (value) return true;
-      return hasCoreGuidedValues && ['强制出场', '禁止出场'].includes(key) && Object.prototype.hasOwnProperty.call(values, key);
-    };
-    const criticalHits = required.filter((key) => Object.prototype.hasOwnProperty.call(values, key) && hasUsefulValue(key));
-    const uniqueValidRequests = [...new Set((materialRequests || []).map((item) => JSON.stringify([item.skill, item.method, item.params])))];
-    const maxScore = Math.max(1, required.length + uniqueValidRequests.length);
-    const score = criticalHits.length + uniqueValidRequests.length;
-    return { score, maxScore, successRate: score / maxScore, criticalHits };
   },
 
   summarizeDroppedMaterialRequests(lines = [], limit = 3) {
@@ -3678,79 +3674,6 @@ window.GameModules.realWorldAgentLoop = {
     if (!unique.length) return '无';
     const shown = unique.slice(0, limit).join('；');
     return unique.length > limit ? `${shown}；等${unique.length}条` : shown;
-  },
-
-  parseChineseKvBlock(raw, fields = [], options = {}) {
-    const allowed = fields.slice();
-    const values = {};
-    const keyHits = new Set();
-    const lines = String(raw || '').replace(/```[\s\S]*?```/gu, (block) => block.replace(/```(?:text|markdown|json)?|```/gu, '')).split(/\r?\n/u);
-    const materialLines = [];
-    const droppedMaterialRequests = [];
-    lines.forEach((line) => {
-      const parsed = this.splitKvLine(line);
-      if (!parsed) return;
-      if (/^资料请求\d+$/u.test(parsed.key)) {
-        materialLines.push(`${parsed.key}：${parsed.value}`);
-        return;
-      }
-      const key = this.normalizeKvKey(parsed.key, allowed);
-      if (!key) return;
-      const existing = String(values[key] || '').trim();
-      const next = String(parsed.value || '').trim();
-      values[key] = existing && next && existing !== '无' ? `${existing}；${next}` : parsed.value;
-      keyHits.add(key);
-    });
-    const materialRequestErrors = [];
-    const materialRequests = options.parseMaterialRequests ? materialLines.map((line) => {
-      const placeholderReason = this.materialRequestPlaceholderReason(line);
-      const req = this.fallbackChineseMaterialRequest(line, options);
-      if (!req) {
-        droppedMaterialRequests.push(line);
-        if (placeholderReason) materialRequestErrors.push(placeholderReason);
-      }
-      return req;
-    }).filter(Boolean) : [];
-    const scored = this.scoreChineseKvParse(values, allowed, materialLines, materialRequests);
-    return { values, lines, missing: allowed.filter((key) => !keyHits.has(key)), score: scored.score, maxScore: scored.maxScore, successRate: scored.successRate, keyHits: [...keyHits], criticalHits: scored.criticalHits, parseDegraded: scored.successRate < 1, droppedMaterialRequests, materialRequestErrors, materialRequests };
-  },
-
-  confirmedKvValuesText(parsed = {}) {
-    const values = parsed.values || {};
-    const keys = parsed.keyHits || Object.keys(values);
-    const lines = keys
-      .filter((key) => Object.prototype.hasOwnProperty.call(values, key))
-      .map((key) => `${key}：${String(values[key] ?? '').trim()}`)
-      .filter((line) => line.trim());
-    return lines.length ? lines.join('\n') : '无';
-  },
-
-  mergeGuidedParseResults(primary = {}, secondary = {}) {
-    const values = { ...(primary.values || {}) };
-    const mergeConflicts = [...(primary.mergeConflicts || [])];
-    Object.entries(secondary.values || {}).forEach(([key, value]) => {
-      const primaryValue = String(values[key] || '').trim();
-      const secondaryValue = String(value || '').trim();
-      if (!Object.prototype.hasOwnProperty.call(values, key) || !primaryValue || (primaryValue === '无' && secondaryValue && secondaryValue !== '无')) values[key] = value;
-      else if (value && values[key] !== value) mergeConflicts.push({ key, primary: values[key], secondary: value });
-    });
-    const requests = [...(primary.materialRequests || [])];
-    const seenRequests = new Set(requests.map((item) => JSON.stringify([item.skill, item.method, item.params])));
-    (secondary.materialRequests || []).forEach((item) => {
-      const key = JSON.stringify([item.skill, item.method, item.params]);
-      if (!seenRequests.has(key)) {
-        seenRequests.add(key);
-        requests.push(item);
-      }
-    });
-    const fields = [...new Set([...(primary.keyHits || []), ...(primary.missing || []), ...(secondary.keyHits || []), ...(secondary.missing || [])])];
-    const materialLines = [...(primary.lines || []), ...(secondary.lines || [])].filter((line) => /^资料请求\d+[：:]/u.test(String(line || '').trim()));
-    const scored = this.scoreChineseKvParse(values, fields, materialLines, requests);
-    return { ...primary, values, materialRequests: requests, droppedMaterialRequests: [...(primary.droppedMaterialRequests || []), ...(secondary.droppedMaterialRequests || [])], keyHits: fields.filter((key) => Object.prototype.hasOwnProperty.call(values, key)), missing: fields.filter((key) => !Object.prototype.hasOwnProperty.call(values, key)), score: scored.score, maxScore: scored.maxScore, successRate: scored.successRate, criticalHits: scored.criticalHits, parseDegraded: scored.successRate < 1, mergeConflicts };
-  },
-
-  bestGuidedParseResult(results = []) {
-    return results.filter(Boolean).sort((a, b) => (b.successRate - a.successRate) || (b.score - a.score))[0] || null;
   },
 
   async completeParsedStep(store, prompt, logId, streamToUi = false, allowProseFinal = false) {
@@ -3761,7 +3684,6 @@ window.GameModules.realWorldAgentLoop = {
     let lastRaw = '';
     let bestRaw = '';
     let lastErr = null;
-    const parseResults = [];
     for (let i = 0; i < 2; i += 1) {
       const stageStep = Math.max(1, Number(config.guidedStep) || 1);
       lastRaw = await this.completeConfiguredStep(store, prompt, logId, streamToUi, {
@@ -3778,17 +3700,11 @@ window.GameModules.realWorldAgentLoop = {
       }
       try {
         const data = this.parseStep(lastRaw, config);
-        if (data) {
-          if (!parseResults.length) return { raw: lastRaw, data };
-          const current = this.parseChineseKvBlock(lastRaw, this.guidedStepFields(), { parseMaterialRequests: true, config });
-          const mergedParsed = [...parseResults.map((item) => item.parsed), current].reduce((merged, item) => this.mergeGuidedParseResults(merged, item));
-          return { raw: [...parseResults.map((item) => item.raw), lastRaw].join('\n\n'), data: this.guidedStepDataFromParsed(mergedParsed, [...parseResults.map((item) => item.raw), lastRaw].join('\n\n')) };
-        }
+        if (data) return { raw: lastRaw, data };
         if (i === 1) return { raw: lastRaw, data: allowProseFinal ? this.proseFinal(store, bestRaw || lastRaw) : null };
         console.warn(`${config.label}格式不完整，自动重试一次`);
       } catch (err) {
         lastErr = err;
-        if (err.parseResult && !err.skipMerge && !this.isGuidedStepSemanticSelfCheckError(err)) parseResults.push({ raw: lastRaw, parsed: err.parseResult });
         if (allowContextDoneOnProse && this.looksLikeProseInsteadOfStepJson(lastRaw)) {
           console.warn(`${config.label}资料阶段解析到正文内容，视为资料已足够并进入正文阶段。`);
           return { raw: lastRaw, data: this.contextDoneFromProse(lastRaw) };
@@ -3801,18 +3717,6 @@ window.GameModules.realWorldAgentLoop = {
         prompt = Array.isArray(prompt)
           ? [...prompt, { role: 'user', content: retryInstruction }]
           : [prompt, retryInstruction].join('\n\n');
-      }
-    }
-    const mergeableParseResults = lastErr?.parseResult && !lastErr?.skipMerge ? [...parseResults, { raw: lastRaw, parsed: lastErr.parseResult }] : parseResults;
-    if (mergeableParseResults.length >= 2) {
-      const merged = mergeableParseResults.map((item) => item.parsed).reduce((out, item) => this.mergeGuidedParseResults(out, item));
-      if (merged.successRate >= 0.8) {
-        const raw = mergeableParseResults.map((item) => item.raw).join('\n\n');
-        try {
-          return { raw, data: this.guidedStepDataFromParsed(merged, raw) };
-        } catch (_) {
-          // 合并后仍未通过语义自检，继续走原失败路径。
-        }
       }
     }
     if (allowProseFinal) return { raw: bestRaw || lastRaw, data: this.proseFinal(store, bestRaw || lastRaw) };
@@ -4380,40 +4284,45 @@ window.GameModules.realWorldAgentLoop = {
     return set;
   },
 
-  guidedStepDataFromParsed(parsed = {}, raw = '') {
-    const v = parsed.values || {};
-    const forcedParticipants = this.normalizeParticipantList(v['强制出场'], 'forced');
-    const priorityCandidates = this.normalizeParticipantList(v['高优先候选'], 'priority-candidate').map((item) => ({ ...item, canSettle: false }));
-    const dramaCandidates = this.normalizeParticipantList(v['戏剧候选'], 'drama-candidate').map((item) => ({ ...item, canSettle: false }));
-    const forbiddenParticipants = this.normalizeParticipantList(v['禁止出场'], 'forbidden').map((item) => ({ ...item, canLoadRoleCard: false, canEnterNarration: false, canSettle: false }));
+  guidedStepDataFromJson(data = {}, raw = '', config = this.realConfig()) {
+    const sceneQueriesRaw = data.sceneQueries || {};
+    const participantsRaw = data.participants || {};
+    const forcedParticipants = this.normalizeParticipantList(participantsRaw.forced || [], 'forced');
+    const priorityCandidates = this.normalizeParticipantList(participantsRaw.priority || [], 'priority-candidate').map((item) => ({ ...item, canSettle: false }));
+    const dramaCandidates = this.normalizeParticipantList(participantsRaw.drama || [], 'drama-candidate').map((item) => ({ ...item, canSettle: false }));
+    const forbiddenParticipants = this.normalizeParticipantList(participantsRaw.forbidden || [], 'forbidden').map((item) => ({ ...item, canLoadRoleCard: false, canEnterNarration: false, canSettle: false }));
+    const factions = this.normalizeFactionReferenceList(data.factions || []);
     this.assertParticipantIdTokens(forcedParticipants, 'forced');
     this.assertParticipantIdTokens(priorityCandidates, 'priority');
     this.assertParticipantIdTokens(dramaCandidates, 'drama');
     this.assertParticipantIdTokens(forbiddenParticipants, 'forbidden');
-    const blocked = this.participantNameSet(forcedParticipants, priorityCandidates, dramaCandidates, forbiddenParticipants);
-    const status = String(v['资料状态'] || '').trim();
-    const requestText = String(v['资料请求'] || '').trim();
-    const sceneQueries = {
-      location: this.splitQueryReasonList(v['地点查询理由'] || v['地点查询']),
-      causality: this.splitQueryReasonList(v['因果查询理由'] || v['因果查询']),
-      conflict: this.splitQueryReasonList(v['冲突查询理由'] || v['冲突查询']),
-    };
-    const hasActionableRequests = Array.isArray(parsed.materialRequests) && parsed.materialRequests.length > 0;
-    const hasRoleCardCandidates = forcedParticipants.length > 0 || priorityCandidates.length > 0 || dramaCandidates.length > 0;
-    const hasSceneQueryReasons = Object.values(sceneQueries).some((items) => items.length > 0);
-    const hasDeclaredRequests = Boolean(requestText && requestText !== '无' && !/^无(?:\s*\/\s*0)?$/u.test(requestText));
-    if (status === '继续请求资料' && hasDeclaredRequests && !hasActionableRequests && !hasRoleCardCandidates && !hasSceneQueryReasons) {
-      const err = new Error('解析错误请重试');
-      err.parseResult = parsed;
+    const materialRequestErrors = [];
+    const materialRequests = (data.materialRequests || []).slice(0, 3).map((item) => {
+      const req = this.parseJsonMaterialRequest(item, { config });
+      if (!req) materialRequestErrors.push(`Stage1 materialRequests 无法映射到可用资料目录：${JSON.stringify(item)}`);
+      return req;
+    }).filter(Boolean);
+    if (materialRequestErrors.length) {
+      const err = new Error(materialRequestErrors[0]);
       err.skipMerge = true;
       throw err;
     }
-    const isContextDone = status === '资料已足够' || (!hasRoleCardCandidates && !hasActionableRequests && !hasSceneQueryReasons && (!requestText || requestText === '无'));
+    const sceneQueries = {
+      location: Array.isArray(sceneQueriesRaw.location) ? sceneQueriesRaw.location.map((item) => String(item || '').trim()).filter((item) => this.isUsefulQueryReason(item)).slice(0, 12) : [],
+      causality: Array.isArray(sceneQueriesRaw.causality) ? sceneQueriesRaw.causality.map((item) => String(item || '').trim()).filter((item) => this.isUsefulQueryReason(item)).slice(0, 12) : [],
+      conflict: Array.isArray(sceneQueriesRaw.conflict) ? sceneQueriesRaw.conflict.map((item) => String(item || '').trim()).filter((item) => this.isUsefulQueryReason(item)).slice(0, 12) : [],
+    };
+    const blocked = this.participantNameSet(forcedParticipants, priorityCandidates, dramaCandidates, forbiddenParticipants);
+    const status = String(data.status || '').trim();
+    const hasActionableRequests = materialRequests.length > 0;
+    const hasRoleCardCandidates = forcedParticipants.length > 0 || priorityCandidates.length > 0 || dramaCandidates.length > 0;
+    const hasSceneQueryReasons = Object.values(sceneQueries).some((items) => items.length > 0);
+    const isContextDone = status === '资料已足够' || (!hasRoleCardCandidates && !hasActionableRequests && !hasSceneQueryReasons);
     return {
       type: isContextDone ? 'context_done' : 'request_context',
       guidanceText: String(raw || '').trim(),
-      reason: v['查询规划'] || '',
-      requests: parsed.materialRequests || [],
+      reason: String(data.plan || '').trim(),
+      requests: materialRequests,
       needed: [],
       characters: [],
       participants: forcedParticipants,
@@ -4421,156 +4330,68 @@ window.GameModules.realWorldAgentLoop = {
       priorityCandidates,
       dramaCandidates,
       forbiddenParticipants,
-      randomActiveEvents: this.normalizeRandomActiveEvents(v['随机事件候选'], blocked),
+      factions,
+      randomActiveEvents: this.normalizeRandomActiveEvents(data.randomEvents || [], blocked),
       sceneQueries,
       sceneQueriesAreReasons: true,
-      randomIntrusionCondition: v['随机事件闯入条件'] || '无明确条件则禁止闯入',
-      parseScore: { score: parsed.score, maxScore: parsed.maxScore, successRate: parsed.successRate },
-      parseDegraded: parsed.successRate < 1,
-      droppedMaterialRequests: parsed.droppedMaterialRequests || [],
-      mergeConflicts: parsed.mergeConflicts || [],
+      randomIntrusionCondition: String(data.randomIntrusionCondition || '').trim() || '无明确条件则禁止闯入',
+      parseScore: { score: 1, maxScore: 1, successRate: 1 },
+      parseDegraded: false,
+      droppedMaterialRequests: [],
+      mergeConflicts: [],
       missingContext: status === '继续请求资料' && (hasActionableRequests || hasRoleCardCandidates),
     };
   },
 
   parseGuidedStepJson(raw, config = this.realConfig()) {
-    const data = this.parseCompactSettlementJson(raw);
+    const data = this.parseStrictStage1Json(raw);
     if (!data || Array.isArray(data) || typeof data !== 'object') return null;
-    const sceneQueries = data.sceneQueries && typeof data.sceneQueries === 'object' ? data.sceneQueries : {};
-    const participants = data.participants && typeof data.participants === 'object' ? data.participants : {};
-    const arrayText = (value, sep = '；') => (Array.isArray(value) ? value : this.splitQueryReasonList(value)).map((item) => String(item || '').trim()).filter(Boolean).join(sep) || '无';
-    const nameText = (value) => (Array.isArray(value) ? value : this.splitNameList(value)).map((item) => {
-      if (typeof item === 'string') return String(item || '').trim();
-      const name = String(item?.name || item?.characterName || '').trim();
-      const id = String(item?.id || '').trim();
-      if (name && id) return `${name}(${id})`;
-      return name || String(item?.idOrName || item?.id || '').trim();
-    }).map((item) => String(item || '').trim()).filter(Boolean).join('、') || '无';
-    const rawMaterialRequestItems = (Array.isArray(data.materialRequests) ? data.materialRequests : []).slice(0, 3).filter((item) => typeof item === 'string');
-    const directMaterialRequests = rawMaterialRequestItems.map(() => null);
-    const requestRows = rawMaterialRequestItems.map((item, index) => {
-      const body = typeof item === 'string'
-        ? item
-        : directMaterialRequests[index]
-          ? [directMaterialRequests[index].skill, directMaterialRequests[index].method].filter(Boolean).join('，')
-          : [item?.type || item?.skill || item?.kind, item?.method, item?.name || item?.target || item?.keyword, item?.world || item?.scope].filter(Boolean).join('，');
-      return `资料请求${index + 1}：${String(body || '').trim()}`;
-    }).filter((line) => !/^资料请求\d+[：:]\s*$/u.test(line)).slice(0, 3);
-    const materialRequestErrors = [];
-    const droppedMaterialRequests = [];
-    const materialRequests = [];
-    requestRows.forEach((line, index) => {
-      if (directMaterialRequests[index]) {
-        materialRequests.push(directMaterialRequests[index]);
-        return;
-      }
-      const placeholderReason = this.materialRequestPlaceholderReason(line);
-      const req = this.fallbackChineseMaterialRequest(line, { config });
-      if (!req) {
-        droppedMaterialRequests.push(line);
-        if (placeholderReason) materialRequestErrors.push(placeholderReason);
-        return;
-      }
-      materialRequests.push(req);
-    });
-    const values = {
-      '查询规划': String(data.plan || data['查询规划'] || 'JSON资料路由').trim(),
-      '资料状态': String(data.status || data['资料状态'] || '').trim(),
-      '地点查询理由': arrayText(sceneQueries.location ?? data.locationReasons ?? data['地点查询理由']),
-      '因果查询理由': arrayText(sceneQueries.causality ?? data.causalityReasons ?? data['因果查询理由']),
-      '冲突查询理由': arrayText(sceneQueries.conflict ?? data.conflictReasons ?? data['冲突查询理由']),
-      '强制出场': nameText(participants.forced ?? data.forcedParticipants ?? data['强制出场']),
-      '高优先候选': nameText(participants.priority ?? data.priorityCandidates ?? data['高优先候选']),
-      '戏剧候选': nameText(participants.drama ?? data.dramaCandidates ?? data['戏剧候选']),
-      '禁止出场': nameText(participants.forbidden ?? data.forbiddenParticipants ?? data['禁止出场']),
-      '随机事件候选': arrayText(data.randomEvents ?? data.randomActiveEvents ?? data['随机事件候选']),
-      '随机事件闯入条件': String(data.randomIntrusionCondition || data['随机事件闯入条件'] || '无明确条件则禁止闯入').trim(),
-      '资料请求': requestRows.length ? `${requestRows.length}条` : '无',
-      '资料请求结束': '是',
-    };
-    if (!values['资料状态']) {
-      const hasQueryReason = ['地点查询理由', '因果查询理由', '冲突查询理由'].some((key) => this.isUsefulQueryReason(values[key]));
-      const hasParticipants = ['强制出场', '高优先候选', '戏剧候选'].some((key) => String(values[key] || '').trim() && values[key] !== '无');
-      values['资料状态'] = requestRows.length || hasQueryReason || hasParticipants ? '继续请求资料' : '资料已足够';
-    }
-    const keyHits = Object.keys(values).filter((key) => String(values[key] || '').trim());
-    const scored = this.scoreChineseKvParse(values, this.guidedStepFields(), requestRows, materialRequests);
-    const parsed = { values, lines: requestRows, missing: this.guidedStepFields().filter((key) => !keyHits.includes(key)), score: scored.score, maxScore: scored.maxScore, successRate: scored.successRate, keyHits, criticalHits: scored.criticalHits, parseDegraded: scored.successRate < 1, droppedMaterialRequests, materialRequestErrors, materialRequests };
-    if (materialRequestErrors.length) {
-      const err = new Error(materialRequestErrors[0]);
-      err.parseResult = parsed;
-      throw err;
-    }
-    return this.guidedStepDataFromParsed(parsed, JSON.stringify(data));
+    return this.guidedStepDataFromJson(data, JSON.stringify(data), config);
   },
 
-  normalizeGuidedStepText(raw = '') {
-    const text = String(raw || '').replace(this.invisibleCharsPattern(), '').replace(/```(?:text|markdown|json)?|```/giu, '').trim();
-    if (!text) return '';
-    const fields = this.guidedStepFields();
-    const allowed = fields.slice();
-    const values = {};
-    const lines = text.split(/\r?\n/u).map((line) => line.trim()).filter(Boolean);
-    lines.forEach((line) => {
-      const parsed = this.splitKvLine(line);
-      const key = parsed ? this.normalizeKvKey(parsed.key, allowed) : '';
-      if (key && !Object.prototype.hasOwnProperty.call(values, key)) values[key] = parsed.value;
-    });
-    const hasGuidedField = fields.some((key) => Object.prototype.hasOwnProperty.call(values, key)) || lines.some((line) => /^资料请求\d+[：:]/u.test(line));
-    if (!hasGuidedField) return text;
-    const out = lines.slice();
-    const addIfMissing = (key, value) => {
-      if (!Object.prototype.hasOwnProperty.call(values, key)) {
-        values[key] = value;
-        out.push(`${key}：${value}`);
+  parseStrictStage1Json(raw = '') {
+    const text = String(raw || '').replace(this.invisibleCharsPattern(), '').trim();
+    if (!text || text[0] !== '{' || text[text.length - 1] !== '}') return null;
+    try {
+      const data = JSON.parse(text);
+      if (!data || Array.isArray(data) || typeof data !== 'object') return null;
+      const requiredKeys = ['plan', 'status', 'sceneQueries', 'participants', 'factions', 'randomEvents', 'randomIntrusionCondition', 'materialRequests'];
+      const missingKey = requiredKeys.find((key) => !Object.prototype.hasOwnProperty.call(data, key));
+      if (missingKey) throw new Error(`Stage1 JSON 缺少必要字段：${missingKey}`);
+      if (!data.sceneQueries || typeof data.sceneQueries !== 'object' || Array.isArray(data.sceneQueries)) throw new Error('Stage1 sceneQueries 必须是 JSON object');
+      if (!data.participants || typeof data.participants !== 'object' || Array.isArray(data.participants)) throw new Error('Stage1 participants 必须是 JSON object');
+      if (!Array.isArray(data.factions)) throw new Error('Stage1 factions 必须是标准 JSON 对象数组，禁止使用“势力名(ID)”字符串壳');
+      if (!Array.isArray(data.randomEvents)) throw new Error('Stage1 randomEvents 必须是字符串数组');
+      if (!Array.isArray(data.materialRequests)) throw new Error('Stage1 materialRequests 必须是标准 JSON 对象数组，禁止使用字符串壳');
+      if (data.factions.some((item) => !item || typeof item !== 'object' || Array.isArray(item))) {
+        throw new Error('Stage1 factions 必须是标准 JSON 对象数组，禁止使用“势力名(ID)”字符串壳');
       }
-    };
-    const isNone = (value) => !String(value || '').trim() || String(value || '').trim() === '无';
-    const numberedRequests = lines.filter((line) => /^资料请求\d+[：:]/u.test(line));
-    const hasExplicitRequestField = Object.prototype.hasOwnProperty.call(values, '资料请求') || numberedRequests.length > 0;
-    const requestText = String(values['资料请求'] || '').trim();
-    const hasQueryReason = ['地点查询理由', '因果查询理由', '冲突查询理由'].some((key) => this.isUsefulQueryReason(values[key]));
-    if (!hasExplicitRequestField) return out.join('\n');
-    addIfMissing('查询规划', requestText === '无' && !hasQueryReason ? '资料已足够，进入正文推演' : '补齐资料路由字段');
-    if (!Object.prototype.hasOwnProperty.call(values, '资料状态')) {
-      const shouldContinue = numberedRequests.length > 0 || hasQueryReason || (requestText && requestText !== '无' && !/^无(?:\s*\/\s*0)?$/u.test(requestText));
-      addIfMissing('资料状态', shouldContinue ? '继续请求资料' : '资料已足够');
+      if (data.materialRequests.some((item) => !item || typeof item !== 'object' || Array.isArray(item))) {
+        throw new Error('Stage1 materialRequests 必须是标准 JSON 对象数组，禁止使用字符串壳');
+      }
+      if (data.materialRequests.some((item) => typeof item.type !== 'string' || typeof item.action !== 'string' || !Array.isArray(item.params))) {
+        throw new Error('Stage1 materialRequests 每项必须包含 type/action/params，且 params 必须是数组');
+      }
+      return data;
+    } catch (err) {
+      const error = new Error(`Stage1 JSON 解析失败：${err?.message || '未知错误'}`);
+      error.skipMerge = true;
+      throw error;
     }
-    ['地点查询理由', '因果查询理由', '冲突查询理由', '强制出场', '高优先候选', '戏剧候选', '禁止出场', '随机事件候选'].forEach((key) => addIfMissing(key, '无'));
-    addIfMissing('随机事件闯入条件', '无明确条件则禁止闯入');
-    if (!Object.prototype.hasOwnProperty.call(values, '资料请求')) addIfMissing('资料请求', `${numberedRequests.length}条`);
-    addIfMissing('资料请求结束', '是');
-    return out.join('\n');
-  },
-
-  parseGuidedStepKv(raw, config = this.realConfig(), options = {}) {
-    const normalized = options.normalized ? String(raw || '').trim() : this.normalizeGuidedStepText(raw);
-    const parsed = this.parseChineseKvBlock(normalized, this.guidedStepFields(), { parseMaterialRequests: true, config });
-    if (parsed.materialRequestErrors?.length || parsed.successRate < 0.8) {
-      const detail = parsed.materialRequestErrors?.[0] || '解析错误请重试';
-      const err = new Error(detail);
-      err.parseResult = parsed;
-      throw err;
-    }
-    return this.guidedStepDataFromParsed(parsed, normalized);
   },
 
   parseStep(raw, config = this.realConfig()) {
     const jsonData = this.parseGuidedStepJson(raw, config);
     if (jsonData) return jsonData;
-    const text = this.normalizeGuidedStepText(raw);
-    if (!/查询规划[：:]|资料状态[：:]/u.test(text)) {
-      throw new Error(`${config.label}返回缺少 Stage1 JSON 或中文 K:V 查询规划字段`);
-    }
-    return this.parseGuidedStepKv(text, config, { normalized: true });
+    throw new Error(`${config.label}Stage1 必须返回标准 JSON 对象，禁止 JSON 外壳文本`);
   },
 
   isGuidedStepSemanticSelfCheckError(err) {
-    return String(err?.message || '').includes('资料状态为继续请求资料时，必须输出可执行的资料请求1、结构化查询或明确参与者候选');
+    return String(err?.message || '').includes('资料状态为继续请求资料时，必须输出可执行的 materialRequests 对象、结构化查询或明确参与者候选');
   },
 
   isRetryableParseError(err) {
-    return this.isGuidedStepSemanticSelfCheckError(err) || ['截断', '分隔符后缺少 JSON', '缺少正文', 'JSON missing', '解析错误请重试'].some((text) => String(err?.message || '').includes(text));
+    return this.isGuidedStepSemanticSelfCheckError(err) || ['截断', '分隔符后缺少 JSON', '缺少正文', 'JSON missing', '解析错误请重试', 'Stage1 JSON', '必须返回标准 JSON'].some((text) => String(err?.message || '').includes(text));
   },
   traceItem(step, data, raw, ctx = window.GameModules.realWorldAgentContext) {
     const limiter = typeof ctx?.limit === 'function' ? ctx.limit.bind(ctx) : (text, max = 1200) => String(text || '').slice(0, max);
@@ -4585,6 +4406,7 @@ window.GameModules.realWorldAgentLoop = {
       priorityCandidates: data?.priorityCandidates || [],
       dramaCandidates: data?.dramaCandidates || [],
       forbiddenParticipants: data?.forbiddenParticipants || [],
+      factions: data?.factions || [],
       randomActiveEvents: data?.randomActiveEvents || [],
       sceneQueries: data?.sceneQueries || { location: [], causality: [], conflict: [] },
       sceneQueriesAreReasons: data?.sceneQueriesAreReasons ?? false,

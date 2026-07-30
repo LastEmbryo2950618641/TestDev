@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content, user-scalable=no">
   <title>我狠狠操控</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="phone-desktop.css?v=2026-07-25-learned-stage10-v26">
+  <link rel="stylesheet" href="phone-desktop.css?v=2026-07-30-stage9-faction-v27">
   <link rel="stylesheet" href="taobao-app.css">
   <link rel="stylesheet" href="real-world.css">
   <link rel="stylesheet" href="real-world-settlement.css">
@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="event-system.css">
   <link rel="stylesheet" href="news-driver.css">
   <link rel="stylesheet" href="faction-system.css">
-  <link rel="stylesheet" href="skills-app.css?v=2026-07-25-learned-stage10-v26">
+  <link rel="stylesheet" href="skills-app.css?v=2026-07-30-stage9-faction-v27">
   <link rel="stylesheet" href="character-select.css">
   <link rel="stylesheet" href="player-aspiration.css">
   <link rel="stylesheet" href="profile-preview.css">
@@ -170,11 +170,11 @@
   </script>
   <script src="../deepseek_key.js"></script>
   <script src="../pixatart_key.js"></script>
-  <script src="boot/script-loader.js?v=2026-07-25-learned-stage10-v26"></script>
+  <script src="boot/script-loader.js?v=2026-07-30-stage9-faction-v27"></script>
   <script src="boot/store-modules.js"></script>
-  <script src="boot/script-manifest.js?v=2026-07-25-learned-stage10-v26"></script>
-  <script src="boot/boot-actions.js?v=2026-07-25-learned-stage10-v26"></script>
-  <script src="boot/boot.js?v=2026-07-25-learned-stage10-v26"></script>
+  <script src="boot/script-manifest.js?v=2026-07-30-stage9-faction-v27"></script>
+  <script src="boot/boot-actions.js?v=2026-07-30-stage9-faction-v27"></script>
+  <script src="boot/boot.js?v=2026-07-30-stage9-faction-v27"></script>
   <script>
     window.openEventAppNative = async function openEventAppNative(event) {
       try {
@@ -969,7 +969,12 @@
               <label :class="{ active: $store.game.realWorldFreedomMode === 'words' }"><input type="radio" value="words" x-model="$store.game.realWorldFreedomMode">要求字数</label>
               <input class="real-world-word-count-input" type="number" min="200" step="50" inputmode="numeric" x-show="$store.game.realWorldFreedomMode === 'words'" x-model.number="$store.game.realWorldWordCount" :disabled="$store.game.realWorldBusy" placeholder="最少200">
             </div>
-            <p class="real-world-empty">当前设置会影响下一次现实推演。要求字数最低 200，默认 1000。</p>
+            <div class="real-world-freedom-controls" aria-label="Stage1资料查询深度">
+              <label :class="{ active: $store.game.settingsState.stage1MaterialIterationLimited }"><input type="checkbox" :checked="$store.game.settingsState.stage1MaterialIterationLimited" @change="$store.game.setStage1MaterialIterationLimited($event.target.checked)" :disabled="$store.game.realWorldBusy">限制资料查询深度</label>
+              <input class="real-world-word-count-input" type="number" min="1" max="8" step="1" inputmode="numeric" :disabled="$store.game.realWorldBusy || !$store.game.settingsState.stage1MaterialIterationLimited" :value="$store.game.stage1MaterialMaxIterations()" @change="$store.game.setStage1MaterialMaxIterations($event.target.value)" placeholder="默认3">
+              <small>当前 <b x-text="$store.game.stage1MaterialIterationLimitText()"></b></small>
+            </div>
+            <p class="real-world-empty">当前设置会影响下一次现实推演。要求字数最低 200，默认 1000；资料查询深度默认限制 3 次。</p>
           </div>
           <div class="real-world-inventory" x-show="$store.game.realWorldFunctionView === 'inventory'">
             <button class="small-btn" type="button" @click="$store.game.realWorldFunctionView = 'menu'">返回功能</button>
@@ -2712,9 +2717,9 @@
 
   <section class="prompt-app-modal-backdrop" x-show="$store.game.tokenStatsState?.open && $store.game.tokenStatsState?.selectedId" @click.self="$store.game.closeTokenPromptDetail()" @keydown.escape.window="$store.game.closeTokenPromptDetail()" x-cloak>
     <article class="prompt-app-modal dev-section" data-section-title="完整提示词弹窗" role="dialog" aria-modal="true">
-      <header><div><p class="eyebrow">FINAL PROMPT</p><h3 x-text="$store.game.currentTokenPromptRecord()?.title || '完整提示词'"></h3><small x-text="$store.game.currentTokenPromptRecord() ? `${$store.game.tokenPromptCostText($store.game.tokenStatsState?.selectedId)}｜${$store.game.currentTokenPromptRecord().updatedAt}` : '未生成'"></small></div><button class="small-btn" type="button" @click="$store.game.closeTokenPromptDetail()">关闭</button></header>
+      <header><div><p class="eyebrow">FINAL PROMPT</p><h3 x-text="$store.game.currentTokenPromptRecord()?.title || '完整提示词'"></h3><small x-text="$store.game.currentTokenPromptRecord() ? `${$store.game.tokenPromptCostText($store.game.tokenStatsState?.selectedId)}｜${$store.game.currentTokenPromptRecord().updatedAt}` : '未生成'"></small></div><div class="prompt-modal-actions"><button class="small-btn" type="button" @click="$store.game.copyTokenPromptDetailText()">复制全文</button><button class="small-btn" type="button" @click="$store.game.closeTokenPromptDetail()">关闭</button></div></header>
       <div class="prompt-tabs"><button :class="{ active: $store.game.tokenStatsState?.selectedTab !== 'response' }" @click="$store.game.tokenStatsState.selectedTab = 'prompt'">完整提示词</button><button :class="{ active: $store.game.tokenStatsState?.selectedTab === 'response' }" @click="$store.game.tokenStatsState.selectedTab = 'response'">AI返回值</button></div>
-      <pre class="prompt-markdown" x-show="$store.game.tokenStatsState?.selectedTab !== 'response'" x-text="$store.game.tokenPromptDetailText()" x-cloak></pre>
+      <textarea class="prompt-markdown token-response-textarea" x-show="$store.game.tokenStatsState?.selectedTab !== 'response'" readonly spellcheck="false" :value="$store.game.tokenPromptDetailText()" @focus="$event.target.select()" x-cloak></textarea>
       <textarea class="prompt-markdown token-response-textarea" x-show="$store.game.tokenStatsState?.selectedTab === 'response'" readonly spellcheck="false" :value="$store.game.tokenPromptDetailText()" @focus="$event.target.select()" x-cloak></textarea>
       <div class="token-response-images" x-show="$store.game.tokenStatsState?.selectedTab === 'response' && $store.game.tokenResponseImages($store.game.tokenStatsState?.selectedId).length" x-cloak><template x-for="(url, index) in $store.game.tokenResponseImages($store.game.tokenStatsState?.selectedId)" :key="`token-image-${index}-${url}`"><img :src="url" alt="AI返回图片"></template></div>
     </article>
@@ -2884,7 +2889,7 @@
       </section>
       <section class="model-setting-group">
         <h3>Stage1 资料收集迭代最大次数</h3>
-        <small>用于现实与异世界推演的 Stage1 资料路由。默认不限制，只在需要控制请求时开启。</small>
+        <small>用于现实与异世界推演的 Stage1 资料路由。默认限制 3 次，避免资料查询反复轮询。</small>
         <label class="dev-toggle">
           <input type="checkbox" :checked="$store.game.settingsState.stage1MaterialIterationLimited" @change="$store.game.setStage1MaterialIterationLimited($event.target.checked)">
           <span>限制迭代次数</span>

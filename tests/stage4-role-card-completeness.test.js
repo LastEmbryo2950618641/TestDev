@@ -65,6 +65,8 @@ assert.deepStrictEqual(Array.from(malformedKv.incompleteTypes), ['角色卡']);
 const stage4 = fs.readFileSync(path.join(root, 'publish/prompts/推演引擎/stage4-settlement-window.md'), 'utf8');
 assert.ok(stage4.includes('角色卡四类身份字段例外'));
 assert.ok(stage4.includes('仅处理本轮新确认或发生变化的稳定事实'));
+assert.ok(stage4.includes('玩家输入可信度与可行性规则'));
+assert.ok(stage4.includes('超出当前因果能力的宣称'));
 
 const androidStage4 = fs.readFileSync(path.join(root, 'mobile/android-webview-shell/app/src/main/assets/publish/prompts/推演引擎/stage4-settlement-window.js'), 'utf8');
 const webStage4 = fs.readFileSync(path.join(root, 'publish/prompts/推演引擎/stage4-settlement-window.js'), 'utf8');

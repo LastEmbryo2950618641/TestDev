@@ -169,13 +169,6 @@ window.GameModules.realWorldAgentContextParts.materialRequestCatalog = {
     };
   },
 
-
-  splitChineseRequestLine(line = '') {
-    const body = String(line || '').replace(/^资料请求\d+\s*[：:]/u, '').trim();
-    return body.split(/[，,、；;]/u).map((part) => part.trim()).filter(Boolean);
-  },
-
-
   guidedMaterialRequestCatalog(mode = 'real') {
     const world = () => this.worldLabel();
     return [
@@ -190,45 +183,13 @@ window.GameModules.realWorldAgentContextParts.materialRequestCatalog = {
       { mode: 'both', category: '记忆查询', action: '搜索角色记忆窗口', skill: 'memory.query', method: 'searchCharacterMemoryWindow', requiredParams: ['keyword'], buildParams: (p) => ({ characterId: p[0] || '', keyword: p[1] || '' }) },
       { mode: 'real', category: '微信查询', action: '联系人列表', skill: 'wechat.query', method: 'listContacts', requiredParams: [], buildParams: (p) => ({ world: p[0] || world() }) },
       { mode: 'real', category: '微信查询', action: '会话片段', skill: 'wechat.query', method: 'getThread', requiredParams: ['contactId'], buildParams: (p) => ({ contactId: p[0] || '', count: Number(p[1]) || 5 }) },
-      { mode: 'real', category: '公司查询', action: '工作上下文', skill: 'company.query', method: 'getWorkContext', requiredParams: [], buildParams: (p) => ({ companyName: p[0] || '' }) },
+      { mode: 'real', category: '工作查询', action: '工作上下文', skill: 'company.query', method: 'getWorkContext', requiredParams: [], buildParams: (p) => ({ companyName: p[0] || '' }) },
       { mode: 'real', category: '势力查询', action: '势力列表', skill: 'faction.query', method: 'listFactions', requiredParams: [], buildParams: (p) => ({ world: p[0] || world() }) },
       { mode: 'real', category: '势力查询', action: '搜索势力', skill: 'faction.query', method: 'searchFactionOne', requiredParams: ['keyword'], buildParams: (p) => ({ keyword: p[0] || '' }) },
       { mode: 'real', category: '势力查询', action: '势力字段', skill: 'faction.query', method: 'getFactionField', requiredParams: ['id'], buildParams: (p) => ({ id: p[0] || '', panel: p[1] || '', field: p[2] || '', world: p[3] || world() }) },
       { mode: 'real', category: '势力查询', action: '势力档案', skill: 'faction.query', method: 'searchFactionArchive', requiredParams: ['keyword'], buildParams: (p) => ({ keyword: p[0] || '', world: p[1] || world() }) },
       { mode: 'real', category: '势力查询', action: '人事归属', skill: 'faction.query', method: 'listMemberships', requiredParams: [], buildParams: (p) => ({ name: p[0] || '', world: p[1] || world() }) },
       { mode: 'real', category: '势力查询', action: '势力详情', skill: 'faction.query', method: 'getFactionDetail', requiredParams: ['name'], buildParams: (p) => ({ name: p[0] || '', world: p[1] || world() }) },
-      {
-        mode: 'real',
-        category: '势力查询',
-        action: '创建势力',
-        skill: 'faction.query',
-        method: 'createFaction',
-        requiredParams: ['name'],
-        buildParams: (p, options = {}) => {
-          const name = p[0] || '';
-          const type = this.inferFactionType(name, p[1] || '');
-          const classification = p[2] || (/国家|政府|机关/.test(type) ? 'country' : 'community');
-          const worldTag = p[3] || world();
-          const store = options.store || null;
-          const location = p[4] || this.inferFactionLocation(name, store);
-          const reason = this.factionRequestReason(name, type);
-          return {
-            name,
-            type,
-            kind: type === '家庭' ? 'family' : '',
-            classification,
-            worldTag,
-            level: '组织级',
-            location,
-            domain: type === '公司' ? '经营与工作协作' : (type === '家庭' ? '共同生活与家庭关系' : (type === '学校' ? '教学与校园管理' : (type === '机关' ? '行政与公共事务' : '现实组织关系'))),
-            scale: '待观察',
-            structure: this.defaultFactionStructure(name, type),
-            solid: { overviewPanels: this.defaultFactionOverview(name, type, location, worldTag) },
-            description: `Stage1 据上下文补全创建的现实势力：${name}`,
-            reason,
-          };
-        },
-      },
       { mode: 'real', category: '控势查询', action: '控势摘要', skill: 'faction.query', method: 'resolveTerritoryBrief', requiredParams: [], buildParams: (p) => ({ locationName: p[0] || '', world: p[1] || world() }) },
       { mode: 'real', category: '控势查询', action: '地点控势详情', skill: 'faction.query', method: 'getTerritoryControl', requiredParams: ['locationName'], buildParams: (p) => ({ locationName: p[0] || '', world: p[1] || world() }) },
       { mode: 'both', category: '物品查询', action: '角色物品', skill: 'item.query', method: 'listCharacterItems', requiredParams: ['target'], buildParams: (p) => ({ target: p[0] || '' }) },
@@ -238,34 +199,38 @@ window.GameModules.realWorldAgentContextParts.materialRequestCatalog = {
 
 
   stage1MaterialCatalogText(mode = 'real') {
-    const lines = [];
-    const seen = new Map();
-    this.guidedMaterialRequestCatalog(mode).forEach((item) => {
-      if (!(item.mode === 'both' || item.mode === mode)) return;
-      const list = seen.get(item.category) || [];
-      if (!list.includes(item.action)) list.push(item.action);
-      seen.set(item.category, list);
+    const visible = this.guidedMaterialRequestCatalog(mode)
+      .filter((item) => (item.mode === 'both' || item.mode === mode) && !/^创建|新增|写入|修改|删除|发送|转移|patch|create|upsert|add|set|delete/u.test(`${item.action} ${item.method}`));
+    const lines = visible.map((item) => {
+      const params = Array.isArray(item.requiredParams) ? item.requiredParams : [];
+      return `- type=${item.category}；action=${item.action}；params顺序=${params.length ? params.join('、') : '无必填参数'}`;
     });
-    seen.forEach((actions, category) => lines.push(`${category}：${actions.join('、')}`));
     return lines.join('\n') || '无可请求资料';
   },
 
-
-  parseChineseMaterialRequest(line = '', options = {}) {
+  parseJsonMaterialRequest(request = null, options = {}) {
+    if (!request || typeof request !== 'object' || Array.isArray(request)) return null;
     const mode = options.mode || 'real';
-    const parts = this.splitChineseRequestLine(line);
-    if (parts.length < 2) return null;
-    let [category, action, ...params] = parts;
-    if (category === '地点查询' && /^查询[^附近]/u.test(action)) {
-      params = [action.replace(/^查询/u, '').trim(), ...params];
-      action = '搜索地点';
-    }
-    const entry = this.guidedMaterialRequestCatalog(mode).find((item) => (item.mode === 'both' || item.mode === mode) && item.category === category && item.action === action);
+    const category = String(request.type || '').trim();
+    const action = String(request.action || '').trim();
+    const params = (Array.isArray(request.params) ? request.params : [])
+      .map((item) => String(item || '').trim())
+      .filter(Boolean);
+    const placeholders = new Set(['角色全称', '世界全称', '地点全称', '人物全称', '作品全称', '参数1', '参数2', '参数3']);
+    if (params.some((item) => placeholders.has(item))) return null;
+    if (!category || !action) return null;
+    const entry = this.guidedMaterialRequestCatalog(mode)
+      .find((item) => (item.mode === 'both' || item.mode === mode) && item.category === category && item.action === action);
     if (!entry) return null;
     const built = entry.buildParams(params, options);
     const required = Array.isArray(entry.requiredParams) ? entry.requiredParams : Object.keys(built).filter((key) => key !== 'world');
     if (required.some((key) => built[key] === '' || built[key] === undefined)) return null;
-    return { skill: entry.skill, method: entry.method, params: built, sourceText: String(line || '').trim() };
+    return {
+      skill: entry.skill,
+      method: entry.method,
+      params: built,
+      sourceJson: { type: category, action, params },
+    };
   },
 
 

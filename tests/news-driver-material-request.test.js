@@ -28,12 +28,12 @@ const catalog = context.window.GameModules.realWorldAgentContextParts.materialRe
 const loader = context.window.GameModules.realWorldAgentContextParts.materialLoader;
 const news = context.window.GameModules.newsDriverSystem;
 
-const req = catalog.parseChineseMaterialRequest('资料请求1：新闻查询，最新热榜，当前世界', { mode: 'real' });
+const req = catalog.parseJsonMaterialRequest({ type: '新闻查询', action: '最新热榜', params: ['当前世界'] }, { mode: 'real' });
 assert.deepStrictEqual(JSON.parse(JSON.stringify(req)), {
   skill: 'news.query',
   method: 'getLatestHotlist',
   params: { world: '当前世界' },
-  sourceText: '资料请求1：新闻查询，最新热榜，当前世界',
+  sourceJson: { type: '新闻查询', action: '最新热榜', params: ['当前世界'] },
 });
 
 const stage1 = fs.readFileSync(path.join(root, 'publish/prompts/推演引擎/stage1-guided-query.md'), 'utf8');

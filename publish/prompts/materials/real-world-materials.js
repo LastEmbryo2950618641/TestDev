@@ -2,7 +2,7 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldMaterials = {
   items: [
-    { id: 'character-profile-search', title: '查询角色完整身份资料', size: 'medium', maxChars: 0, skill: 'character.query', method: 'searchCharacterProfile', paramsHint: { world: '世界名', name: '角色名' }, when: '中文资料请求：角色查询，搜索角色卡，角色全称，世界全称。优先完整角色卡，没有则返回介绍卡；场景锚定确认强制出场、高优先候选或戏剧候选时查询。加载资料不等于出场或结算；不得输出英文 skill/method。角色卡整卡放行，不截断长度。' },
+    { id: 'character-profile-search', title: '查询角色完整身份资料', size: 'medium', maxChars: 0, skill: 'character.query', method: 'searchCharacterProfile', paramsHint: { world: '世界名', name: '角色名' }, when: 'Stage1 请求：type=角色查询；action=搜索角色卡；params 按角色名、世界名填写。优先完整角色卡，没有则返回介绍卡；场景锚定确认强制出场、高优先候选或戏剧候选时查询。加载资料不等于出场或结算；不得输出英文 skill/method。角色卡整卡放行，不截断长度。' },
     { id: 'character-known-list', title: '已知角色资料清单', size: 'small', maxChars: 1200, skill: 'character.query', method: 'listKnownCharacters', paramsHint: { world: '世界名' }, when: '需要先了解当前世界已有角色卡和介绍卡。' },
     { id: 'past-event-search', title: '统一查询过去事件', size: 'large', maxChars: 5200, skill: 'past.event.query', method: 'searchPastEvent', paramsHint: { world: '世界名', question: '用户问题', keywords: ['角色名', '事件词', '地点或时间'], characterName: '角色名', timeHint: '几天前/昨天/某日期', contactId: '微信联系人id可选' }, when: '玩家询问几天前、之前、上次、记不记得、旧承诺、图片、地点、物品、微信原文或角色过去经历。' },
     { id: 'company-list', title: '玩家相关公司列表', size: 'small', maxChars: 800, skill: 'company.query', method: 'listPlayerCompanies', paramsHint: { world: '世界名',}, when: '确认玩家有哪些公司、组织或雇主资料。' },
@@ -18,15 +18,15 @@ window.GameModules.realWorldMaterials = {
     { id: 'faction-memberships', title: '人事归属清单', size: 'small', maxChars: 1000, skill: 'faction.query', method: 'listMemberships', paramsHint: { world: '世界名', name: '势力名或空' }, when: '行动涉及谁在哪家组织任职、membership 或 structure 占坑。' },
     { id: 'territory-brief', title: '控势摘要', size: 'small', maxChars: 900, skill: 'faction.query', method: 'resolveTerritoryBrief', paramsHint: { world: '世界名', locationName: '地点名或空' }, when: '行动涉及夺控、法域、治安归属或某地点是否在争议区；优先读 brief。' },
     { id: 'territory-control-detail', title: '地点控势与时间轴', size: 'medium', maxChars: 1400, skill: 'faction.query', method: 'getTerritoryControl', stage1Policy: 'deep', paramsHint: { world: '世界名', locationName: '地点名' }, when: '控势摘要不足且需某已揭示地点完整控势一行与变更时间轴。' },
-    { id: 'faction-create', title: '登记待建势力候选', size: 'medium', maxChars: 1600, skill: 'faction.query', method: 'createFaction', stage1Policy: 'allow', paramsHint: { id: '势力ID', name: '势力名', type: '类型（公司/学校/家庭/机关等）', kind: 'family可选', worldTag: '所属世界', structure: [], solid: {}, reason: '依据' }, when: 'Stage1：上下文出现现实组织实体但列表未收录时，只登记为待建势力候选，不立即写库。势力范围几乎覆盖一切组织实体：公司、学校、机关、社群、以及家庭/家族（如刘家、某某家庭）。候选会带上首建建议参数，供正文推演与后续 Stage9 真正创建、补全。' },
+    { id: 'faction-create', title: '创建势力（Stage9-1专用）', size: 'medium', maxChars: 1600, skill: 'faction.query', method: 'createFaction', stage1Policy: 'deny', paramsHint: { id: '势力ID', name: '势力名', type: '类型', kind: '类型细分', worldTag: '所属世界', structure: [], solid: {}, reason: '依据' }, when: '禁止 Stage1 资料请求调用。Stage1 只能在标准 JSON 的 factions 字段登记 {name,id,status}；代码核验后把查不到的势力标为待创建并生成唯一ID，正文后 Stage9-1 才根据待创建候选批量 createFaction。' },
     { id: 'faction-patch-field', title: '按ID/字段补丁更新势力', size: 'small', maxChars: 1000, skill: 'faction.query', method: 'patchFactionField', stage1Policy: 'deny', paramsHint: { id: '势力ID', panel: 'ideology|economy|…', field: '字段名', op: 'set|append|delete', value: '覆盖或追加值', index: 0, reason: '依据' }, when: 'Stage9：已有势力字段更新；必须有正文事实变化依据；列表追加/按索引删除/字符串覆盖。' },
     { id: 'faction-upsert', title: '新增或调整势力（兼容）', size: 'medium', maxChars: 1600, skill: 'faction.query', method: 'upsertFaction', stage1Policy: 'deny', paramsHint: { world: '世界名', name: '势力名', type: '组织类型', parentName: '上级势力名', reason: '新增或调整依据' }, when: '兼容旧调用；优先 createFaction / patchFactionField。' },
     { id: 'faction-position-add', title: '新增势力职位角色', size: 'small', maxChars: 1000, skill: 'faction.query', method: 'addFactionPosition', stage1Policy: 'deny', paramsHint: { world: '世界名', factionName: '势力名', position: '职位/地位', characterName: '角色名或未知', reason: '依据' }, when: '确认某势力下存在某个职位或某角色占据该职位；角色未知时写未知。' },
-    { id: 'current-location', title: '当前地点上下文', size: 'small', maxChars: 1200, skill: 'realworld.location.query', method: 'getCurrentLocationContext', paramsHint: { world: '世界名',}, when: '中文资料请求：地点查询，当前地点上下文，世界全称。场景锚定需要确认当前地点、空间边界、门口/相邻房间/可听见范围，以及谁具备自然入场条件；不得输出英文 skill/method。' },
+    { id: 'current-location', title: '当前地点上下文', size: 'small', maxChars: 1200, skill: 'realworld.location.query', method: 'getCurrentLocationContext', paramsHint: { world: '世界名',}, when: 'Stage1 请求：type=地点查询；action=当前地点上下文；params 按世界名填写。场景锚定需要确认当前地点、空间边界、门口/相邻房间/可听见范围，以及谁具备自然入场条件；不得输出英文 skill/method。' },
     { id: 'location-detail', title: '地点详情', size: 'medium', maxChars: 1500, skill: 'realworld.location.query', method: 'getLocationDetail', paramsHint: { world: '世界名', locationName: '地点名' }, when: '已经知道地点名，需要读取地点说明、上级和子地点。' },
     { id: 'location-search-one', title: '按关键词查询一条地点记录', size: 'small', maxChars: 900, skill: 'realworld.location.query', method: 'searchLocationOne', paramsHint: { world: '世界名', keyword: '地点或人物房间关键词' }, when: '只需要确认一个地点命中项。' },
     { id: 'location-search-window', title: '按关键词加载地点前后片段', size: 'medium', maxChars: 1400, skill: 'realworld.location.query', method: 'searchLocationWindow', paramsHint: { world: '世界名', keyword: '地点关键词', beforeChars: 300, afterChars: 700 }, when: '地点说明较长，只加载关键词附近内容。' },
-    { id: 'nearby-locations', title: '附近地点', size: 'small', maxChars: 900, skill: 'realworld.location.query', method: 'getNearbyLocations', paramsHint: { world: '世界名', locationName: '当前或目标地点名' }, when: '中文资料请求：地点查询，查询附近地点，地点全称。场景锚定需要确认邻近空间、候选角色能否合理听见、路过、等待或延迟到场；不得输出英文 skill/method。' },
+    { id: 'nearby-locations', title: '附近地点', size: 'small', maxChars: 900, skill: 'realworld.location.query', method: 'getNearbyLocations', paramsHint: { world: '世界名', locationName: '当前或目标地点名' }, when: 'Stage1 请求：type=地点查询；action=查询附近地点；params 按当前或目标地点名、世界名填写。场景锚定需要确认邻近空间、候选角色能否合理听见、路过、等待或延迟到场；不得输出英文 skill/method。' },
     { id: 'top-locations', title: '顶层地点列表', size: 'small', maxChars: 800, skill: 'realworld.location.query', method: 'listTopLocations', paramsHint: { world: '世界名',}, when: '先了解现实地图有哪些顶层区域。' },
     { id: 'recent-log', title: '获取最近指定数量现实记录', size: 'medium', maxChars: 1800, skill: 'realworld.history.query', method: 'getRecentRealWorldLog', paramsHint: { world: '世界名', count: 5 }, when: '确认刚才或最近几次现实推演发生了什么。' },
     { id: 'history-search-one', title: '按关键词查询一条现实记录', size: 'small', maxChars: 900, skill: 'realworld.history.query', method: 'searchRealWorldLogOne', paramsHint: { world: '世界名', keyword: '历史关键词' }, when: '只需要确认一条旧现实事件。' },
@@ -34,7 +34,7 @@ window.GameModules.realWorldMaterials = {
     { id: 'worldline-index', title: '世界线清单', size: 'small', maxChars: 1400, skill: 'realworld.history.query', method: 'listWorldlineIndex', paramsHint: { world: '世界名',}, when: '需要先了解正在记录与已归纳现实世界线有哪些记录、情节、时间段和关键词。' },
     { id: 'worldline-keyword-search', title: '按关键词查询世界线资料', size: 'medium', maxChars: 1800, skill: 'realworld.history.query', method: 'searchWorldlineByKeyword', paramsHint: { world: '世界名', keyword: '人物/地点/事件/物品/组织关键词' }, when: '需要根据关键词加载具体世界线记录或归纳情节资料。' },
     { id: 'worldline-time-search', title: '按时间段查询世界线资料', size: 'medium', maxChars: 1800, skill: 'realworld.history.query', method: 'searchWorldlineByTime', paramsHint: { world: '世界名', startTime: 'YYYY-MM-DD HH:mm', endTime: 'YYYY-MM-DD HH:mm', keyword: '可选关键词', time: '无法推断范围时的时间关键词' }, when: '需要根据昨天晚上、三天前、上周五、具体时间段或当天等线索加载具体世界线资料。' },
-    { id: 'news-hotlist', title: '最新新闻热榜', size: 'medium', maxChars: 1800, skill: 'news.query', method: 'getLatestHotlist', paramsHint: { world: '世界名' }, when: '中文资料请求：新闻查询，最新热榜，当前世界。仅当公共信息流可能影响本次行动，且旧热榜 + 增量更新 + 当前时间不足以推导当前热榜时请求。' },
+    { id: 'news-hotlist', title: '最新新闻热榜', size: 'medium', maxChars: 1800, skill: 'news.query', method: 'getLatestHotlist', paramsHint: { world: '世界名' }, when: 'Stage1 请求：type=新闻查询；action=最新热榜；params 按当前世界填写。仅当公共信息流可能影响本次行动，且旧热榜 + 增量更新 + 当前时间不足以推导当前热榜时请求。' },
     { id: 'worldline-plots', title: '已归纳情节目录', size: 'medium', maxChars: 1600, skill: 'realworld.history.query', method: 'listWorldlinePlots', paramsHint: { world: '世界名',}, when: '只需要查看已归纳现实情节目录。' },
     { id: 'plot-records', title: '情节关联记录', size: 'large', maxChars: 2200, skill: 'realworld.history.query', method: 'getWorldlinePlotRecords', paramsHint: { world: '世界名', plotId: '情节编号或名称' }, when: '需要某个已归纳情节的具体记录。' },
     { id: 'memory-search-one', title: '按关键词查询一条人物记忆', size: 'small', maxChars: 900, skill: 'memory.query', method: 'searchCharacterMemoryOne', paramsHint: { world: '世界名', characterId: 'player-self或角色id', keyword: '记忆关键词' }, when: '只需要确认一个人物记忆命中项。' },
@@ -63,6 +63,7 @@ window.GameModules.realWorldMaterials = {
 
   STAGE1_DENY_PAIRS: new Set([
     'faction.query.upsertFaction',
+    'faction.query.createFaction',
     'faction.query.patchFactionField',
     'faction.query.addFactionPosition',
     'lexicon.query.addSpecialTerm',
@@ -121,13 +122,20 @@ window.GameModules.realWorldMaterials = {
       type: String(params.type || '').trim() || '组织',
       classification: String(params.classification || '').trim() || 'community',
       worldTag: String(params.worldTag || params.world || '').trim(),
+      status: String(params.status || '').trim() || '待创建',
       params: params && typeof params === 'object' ? JSON.parse(JSON.stringify(params)) : {},
       sourceText: String(sourceText || '').trim(),
     };
     if (!candidate.name) return null;
     session.pendingFactionCandidates = Array.isArray(session.pendingFactionCandidates) ? session.pendingFactionCandidates : [];
     const exists = session.pendingFactionCandidates.find((item) => (candidate.id && item.id === candidate.id) || item.name === candidate.name);
-    if (exists) return exists;
+    if (exists) {
+      Object.assign(exists, {
+        ...candidate,
+        params: { ...(exists.params || {}), ...(candidate.params || {}) },
+      });
+      return exists;
+    }
     session.pendingFactionCandidates.push(candidate);
     return candidate;
   },
@@ -139,7 +147,7 @@ window.GameModules.realWorldMaterials = {
   pendingFactionSummary(session) {
     const rows = this.pendingFactionCandidates(session);
     if (!rows.length) return '';
-    return rows.map((item, index) => `${index + 1}. ${item.name}｜${item.type || '组织'}｜${item.worldTag || '未知世界'}｜Stage1待建候选`).join('\n');
+    return rows.map((item, index) => `${index + 1}. ${item.name}｜${item.type || '组织'}｜${item.worldTag || '未知世界'}｜${item.status || '待创建'}｜${item.id || '无ID'}`).join('\n');
   },
 
   record(session, req = {}, title = '', text = '') {
@@ -254,7 +262,7 @@ window.GameModules.realWorldMaterials = {
     return [
       '当前资料清单说明：request_context 只用于获取能回答本次行动所必需的资料，不用于补全全部世界。',
       step >= 3 ? '软收敛说明：后续步骤只保留高价值候选；若缺口不会直接改变本次行动结果、人物反应或旧事实判定，必须 context_done。' : '资料长度规则：small 可直接读取；medium 只在必要时读取；large 禁止一次性完整加载，必须优先用关键词查询一条记录、关键词前后片段或最近指定数量。',
-      '组织/控势资料规则：默认上下文已含 Org Index、Territory Hot；优先用「控势查询，控势摘要」或「势力查询，势力档案」；未揭示地点无控势资料；势力详情/地点控势详情仅 step≥3 且 brief 不足时。',
+      '组织/控势资料规则：默认上下文已含 Org Index、Territory Hot；优先用 materialRequests 对象请求控势摘要或势力档案；未揭示地点无控势资料；势力详情/地点控势详情仅 step≥3 且 brief 不足时。',
       blocked ? `本轮被 Stage1 策略拦截的资料请求：\n${blocked}` : '',
       `已获取资料：\n${this.acquiredSummary(session)}`,
       `仍可获取资料：\n${left || '暂无剩余高价值资料选项；请基于已有资料收敛。'}`,

@@ -63,7 +63,7 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
     if (policy === 'deny') {
       return [
         `资料请求未执行：${pair} 属于 Stage1 禁止的写库/结算/侧效应 skill。`,
-        '势力字段补丁请走正文后 Stage9（patchFactionField）；Stage1 的「势力查询，创建势力，势力名，类型」现在只登记待建候选，不立即写库；真正创建与补全由 Stage9 完成。其它变更走 Stage4 结算。',
+        '势力字段补丁请走正文后 Stage9（patchFactionField）；势力首建请走正文后 Stage9-1，不要在 Stage1 请求 createFaction。其它变更走 Stage4 结算。',
       ].join('\n');
     }
     if (policy === 'deep') {
@@ -105,17 +105,6 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
       if (loadedKeys.has(key)) continue;
       loadedKeys.add(key);
       const material = materials?.optionFor?.({ skill, method, params });
-      if (Number(options?.step || 1) === 1 && skill === 'faction.query' && method === 'createFaction') {
-        const candidate = materials?.deferStage1FactionCandidate?.(materialSession, params, req?.sourceText || '');
-        const title = 'pending:faction.query.createFaction';
-        const text = candidate
-          ? `已登记待建势力候选：${candidate.name}｜${candidate.type || '组织'}。Stage1 不立即创建；正文与上下文将在 Stage9 势力更新中用于真正创建与补全。`
-          : '已跳过：待建势力候选缺少名称。';
-        materials?.record?.(materialSession, { skill, method, params, pending: true }, title, text);
-        out.push({ title, text, max: 260 });
-        console.log('[Stage1资料] 已登记待建势力候选:', candidate || params);
-        continue;
-      }
       const configuredMax = material && Object.prototype.hasOwnProperty.call(material, 'maxChars')
         ? Number(material.maxChars)
         : this.maxFor(skill);

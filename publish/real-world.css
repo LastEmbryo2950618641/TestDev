@@ -155,7 +155,8 @@
   color: #eafcff;
 }
 
-.real-world-freedom-controls input[type="radio"] {
+.real-world-freedom-controls input[type="radio"],
+.real-world-freedom-controls input[type="checkbox"] {
   width: 12px;
   height: 12px;
   accent-color: #74f6ff;

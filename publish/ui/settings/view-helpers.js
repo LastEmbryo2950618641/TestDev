@@ -33,7 +33,7 @@ window.GameModules.ui.settings.viewHelpers = {
   },
 
   stage1MaterialMaxIterations() {
-    return Math.max(1, Math.min(8, Math.round(Number(this.settingsState?.stage1MaterialMaxIterations) || 2)));
+    return Math.max(1, Math.min(8, Math.round(Number(this.settingsState?.stage1MaterialMaxIterations) || 3)));
   },
 
   stage1MaterialIterationLimitText() {

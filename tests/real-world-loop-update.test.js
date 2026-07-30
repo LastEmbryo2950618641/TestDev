@@ -328,7 +328,6 @@ test('inference main-chain prompts contain no AI-facing JSON output contract', (
     'publish/prompts/推演引擎/stage2-scene-anchor.js',
     'publish/prompts/推演引擎/stage3-narration.js',
     'publish/prompts/推演引擎/stage4-settlement-window.js',
-    'publish/inference-prompts-runtime.js',
   ];
   const forbidden = [
     '只输出合法 JSON',
@@ -458,7 +457,7 @@ test('Stage 1 prompt requires JSON guided query planning', async () => {
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
   context.window.GameModules.promptTemplates.render = async (id, vars) => (id === 'inference-stage1-guided-query'
-    ? `只输出一个紧凑 JSON 对象\n"plan":"查询规划摘要"\n"status":"继续请求资料"\n"participants":{"forced":[]}\n"materialRequests":["角色查询，搜索角色卡，角色全称，世界全称"]\n随机场外角色候选：${vars.随机场外角色候选}`
+    ? `只输出一个紧凑 JSON 对象\n字段契约："plan"、"status"、"participants"、"materialRequests"\nstatus 只能是：资料已足够 / 继续请求资料\nmaterialRequests 每项包含 type/action/params\n目录项：type=角色查询；action=搜索角色卡；params顺序=name\n随机场外角色候选：${vars.随机场外角色候选}`
     : JSON.stringify(vars));
   const config = loop.realConfig();
   config.ctx = {
@@ -471,12 +470,12 @@ test('Stage 1 prompt requires JSON guided query planning', async () => {
   const promptMessages = await loop.buildConfiguredPrompt({ store: makeStore(), action: '和刘思琪对话', base: '基础', loaded: [], skills: '', step: 1, config });
   const prompt = (Array.isArray(promptMessages) ? promptMessages.map((msg) => msg.content || '').join('\n') : String(promptMessages || ''));
   assert.ok(prompt.includes('只输出一个紧凑 JSON 对象'));
-  assert.ok(prompt.includes('"plan":"查询规划摘要"'));
+  assert.ok(prompt.includes('字段契约："plan"'));
   assert.ok(prompt.includes('"status"'));
   assert.ok(prompt.includes('继续请求资料'));
   assert.ok(prompt.includes('"participants"'));
-  assert.ok(prompt.includes('"forced"'));
-  assert.ok(prompt.includes('"materialRequests":["角色查询，搜索角色卡'));
+  assert.ok(prompt.includes('materialRequests 每项包含 type/action/params'));
+  assert.ok(prompt.includes('type=角色查询；action=搜索角色卡'));
   assert.ok(prompt.includes('随机场外角色候选'));
   assert.ok(prompt.includes('王主管'));
   assert.ok(!prompt.includes('只输出中文 K:V'));
@@ -496,9 +495,9 @@ test('Stage 1 real template render does not include Stage 3 narration instructio
   const prompt = (Array.isArray(promptMessages) ? promptMessages.map((msg) => msg.content || '').join('\n') : String(promptMessages || ''));
 
   assert.ok(prompt.includes('只输出一个合法 JSON 对象'));
-  assert.ok(prompt.includes('"plan"'));
-  assert.ok(prompt.includes('"status"'));
-  assert.ok(prompt.includes('"materialRequests"'));
+  assert.ok(prompt.includes('plan：字符串'));
+  assert.ok(prompt.includes('status：字符串'));
+  assert.ok(prompt.includes('materialRequests：对象数组'));
   assert.ok(!prompt.includes('你只输出现实正文'));
   assert.ok(!prompt.includes('场景锚定报告：'));
   assert.ok(!prompt.includes('输出示例：'));
@@ -519,7 +518,7 @@ test('Stage 1 prompt uses slim routing context without final narration settlemen
   store.playerSetupSummary = () => '姓名：刘悠\n生日：1998-11-19\n具体地址：锦苑小区3栋2单元601号\n财富等级：中产\n父母去世原因：交通事故';
   const config = loop.realConfig();
   config.ctx.buildLoadedText = () => '';
-  config.ctx.buildStage1RoutingContext = () => '模式：现实\n本次行动：前往刘思琪房间\n已加载资料摘要：无';
+  config.ctx.buildStage1RoutingContext = () => '模式：现实\n本次行动：前往刘思琪房间\n当前被控主体：刘悠(player-self)';
   config.ctx.randomActiveEventCandidates = () => [{ id: 'boss', name: '王主管' }];
 
   const promptMessages = await loop.buildConfiguredPrompt({
@@ -536,34 +535,45 @@ test('Stage 1 prompt uses slim routing context without final narration settlemen
   ['elapsedSeconds', 'final.wechatActions', 'subject.id', '结算对象', '类型完成', '正文必须', '场景锚定报告', 'Skill：', '激活条件', '返回格式', '全部情绪值', '全部穿着槽', 'character.query.searchCharacterProfile'].forEach((bad) => {
     assert.ok(!prompt.includes(bad), `${bad} leaked into Stage1 prompt`);
   });
-  ['"plan"', '"status"', '"sceneQueries"', '"participants"', '"randomEvents"', '"randomIntrusionCondition"', '"materialRequests"', '可请求资料目录', '角色查询，搜索角色卡'].forEach((good) => {
+  ['plan：字符串', 'status：字符串', 'sceneQueries：对象', 'participants：对象', 'randomEvents：字符串数组', 'randomIntrusionCondition：字符串', 'materialRequests：对象数组', '可请求资料目录', 'type=角色查询；action=搜索角色卡'].forEach((good) => {
     assert.ok(prompt.includes(good), `${good} missing from Stage1 prompt`);
   });
+  assert.ok(prompt.includes('当前步骤：1 / 不限制'));
+  assert.ok(!prompt.includes('当前步骤：1/不限制 / 不限制'));
+  assert.strictEqual((prompt.match(/已加载资料摘要：/g) || []).length, 1);
+  assert.strictEqual((prompt.match(/可请求资料目录：/g) || []).length, 1);
+  assert.ok(prompt.includes('当前被控主体：刘悠(player-self)'));
+  assert.ok(prompt.includes('participants.forced 必须包含完全一致的 `名称(player-self)`'));
   const outputOrder = prompt.slice(prompt.indexOf('固定输出顺序：'));
   ['地点查询', '因果查询', '冲突查询'].forEach((bad) => {
     assert.ok(!new RegExp(`^${bad}：`, 'mu').test(outputOrder), `${bad} should not appear as a Stage1 output field`);
   });
 });
 
-test('Stage 1 parses numbered query reasons without requiring query target fields', () => {
+test('Stage 1 parses JSON query reasons without requiring query target fields', () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
   const config = loop.realConfig();
-  const data = loop.parseStep(`查询规划：需要确认房间状态与潜在干扰，但不再输出单独查询目标字段
-资料状态：继续请求资料
-地点查询理由1：确认刘思琪房间门口、房间内与走廊的空间边界
-地点查询理由2：判断玩家本次敲门或进入动作能否自然发生
-因果查询理由1：承接最近世界线里刘思琪为什么会在房间附近
-冲突查询理由1：确认是否存在家人、微信或其他事件打断当前行动
-强制出场：刘思琪（本次行动目标）
-高优先候选：无
-戏剧候选：无
-禁止出场：王主管（场外微信）
-随机事件候选：无
-随机事件闯入条件：无明确条件则禁止闯入
-资料请求：无
-资料请求结束：是`, config);
+  const data = loop.parseStep(JSON.stringify({
+    plan: '需要确认房间状态与潜在干扰，但不再输出单独查询目标字段',
+    status: '继续请求资料',
+    sceneQueries: {
+      location: ['确认刘思琪房间门口、房间内与走廊的空间边界', '判断玩家本次敲门或进入动作能否自然发生'],
+      causality: ['承接最近世界线里刘思琪为什么会在房间附近'],
+      conflict: ['确认是否存在家人、微信或其他事件打断当前行动'],
+    },
+    participants: {
+      forced: ['刘思琪(rel-ai-1)'],
+      priority: [],
+      drama: [],
+      forbidden: ['王主管(rel-ai-2)'],
+    },
+    factions: [],
+    randomEvents: [],
+    randomIntrusionCondition: '无明确条件则禁止闯入',
+    materialRequests: [],
+  }), config);
 
   assert.strictEqual(data.type, 'request_context');
   assert.strictEqual(JSON.stringify(data.sceneQueries.location), JSON.stringify([
@@ -572,7 +582,7 @@ test('Stage 1 parses numbered query reasons without requiring query target field
   ]));
   assert.strictEqual(JSON.stringify(data.sceneQueries.causality), JSON.stringify(['承接最近世界线里刘思琪为什么会在房间附近']));
   assert.strictEqual(JSON.stringify(data.sceneQueries.conflict), JSON.stringify(['确认是否存在家人、微信或其他事件打断当前行动']));
-  assert.ok(data.guidanceText.includes('地点查询理由2：判断玩家本次敲门或进入动作能否自然发生'));
+  assert.ok(data.guidanceText.includes('判断玩家本次敲门或进入动作能否自然发生'));
 });
 
 test('Stage 1 real routing stops after two steps and carries query reasons into scene anchor', async () => {
@@ -625,6 +635,7 @@ test('Stage 1 real routing stops after two steps and carries query reasons into 
       drama: [],
       forbidden: [],
     },
+    factions: [],
     randomEvents: [],
     randomIntrusionCondition: '无明确条件则禁止闯入',
     materialRequests: [],
@@ -658,7 +669,7 @@ test('Stage 1 real routing stops after two steps and carries query reasons into 
 
   const out = await loop.runConfigured(store, '前往刘思琪房间', null, config);
 
-  assert.deepStrictEqual(stagePrompts, []);
+  assert.deepStrictEqual(stagePrompts, ['1', '2']);
   assert.ok(anchorPrompt.includes('第1步地点理由'));
   assert.ok(anchorPrompt.includes('第2步地点理由'));
   assert.ok(anchorPrompt.includes('第1步因果理由'));
@@ -666,7 +677,7 @@ test('Stage 1 real routing stops after two steps and carries query reasons into 
   assert.ok(out.result.narration.includes('轻敲房门'));
 });
 
-test('Stage 1 follow-up prompt remains JSON and bypasses template render', async () => {
+test('Stage 1 follow-up prompt remains JSON through markdown template render', async () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
@@ -674,7 +685,7 @@ test('Stage 1 follow-up prompt remains JSON and bypasses template render', async
   context.window.GameModules.promptTemplates.render = async (id, vars) => {
     renderedIds.push(id);
     return id === 'inference-stage1-guided-query'
-      ? `Stage1模板\n查询规划：\n资料状态：\n输出要求：${vars.当前步骤输出要求}`
+      ? `Stage1模板\n只输出一个合法 JSON 对象\n"plan"\n"status"\n首字符必须是 {\n字段契约\n输出要求：${vars.当前步骤输出要求}`
       : `基础模板\n输出要求：${vars.当前步骤输出要求}`;
   };
   const config = loop.realConfig();
@@ -683,12 +694,12 @@ test('Stage 1 follow-up prompt remains JSON and bypasses template render', async
   const promptMessages = await loop.buildConfiguredPrompt({ store: makeStore(), action: '继续查询', base: '基础', loaded: [{ title: '角色卡', text: '刘思琪' }], skills: '', step: 2, config });
   const prompt = (Array.isArray(promptMessages) ? promptMessages.map((msg) => msg.content || '').join('\n') : String(promptMessages || ''));
 
-  assert.ok(!renderedIds.includes('inference-stage1-guided-query'));
+  assert.ok(renderedIds.includes('inference-stage1-guided-query'));
   assert.ok(prompt.includes('只输出一个合法 JSON 对象'));
   assert.ok(prompt.includes('"plan"'));
   assert.ok(prompt.includes('"status"'));
   assert.ok(prompt.includes('首字符必须是 {'));
-  assert.ok(prompt.includes('不输出中文 K:V'));
+  assert.ok(prompt.includes('字段契约'));
 });
 
 test('Stage 1 prompt passes known participant layers to random candidate provider', async () => {
@@ -758,11 +769,17 @@ test('buildConfiguredPrompt includes previous Stage1 planning summary for later 
   });
   const prompt = (Array.isArray(promptMessages) ? promptMessages.map((msg) => msg.content || '').join('\n') : String(promptMessages || ''));
 
-  assert.ok(prompt.includes('本轮上一轮查询规划摘要'));
-  assert.ok(prompt.includes('强制出场：刘思琪'));
-  assert.ok(prompt.includes('高优先候选：刘思瑶'));
-  assert.ok(prompt.includes('禁止出场：王主管'));
-  assert.ok(prompt.includes('随机主动事件：路人甲'));
+  assert.ok(prompt.includes('上一轮查询规划摘要'));
+  assert.ok(prompt.includes('"forced"'));
+  assert.ok(prompt.includes('"刘思琪"'));
+  assert.ok(prompt.includes('"priority"'));
+  assert.ok(prompt.includes('"刘思瑶"'));
+  assert.ok(prompt.includes('"forbidden"'));
+  assert.ok(prompt.includes('"王主管"'));
+  assert.ok(prompt.includes('"randomEvents"'));
+  assert.ok(prompt.includes('"路人甲"'));
+  assert.ok(!prompt.includes('资料状态：'));
+  assert.ok(!prompt.includes('强制出场：刘思琪'));
 });
 test('scheduleParticipantHints classifies same nearby offstage and unknown schedules', () => {
   const context = createContext();
@@ -848,6 +865,9 @@ test('Stage 1 routing context includes schedule candidate hints for nearby house
 
   const routing = ctx.buildStage1RoutingContext({ store, action: '前往刘思琪房间', loaded: [], config: { mode: 'real', label: '现实' } });
 
+  assert.ok(routing.includes('当前被控主体：玩家(player-self)'));
+  assert.ok(!routing.includes('已加载资料摘要：'));
+  assert.ok(!routing.includes('可请求资料目录：'));
   assert.ok(routing.includes('日程候选提示：'));
   assert.ok(routing.includes('同住/相邻：刘思瑶'));
   assert.ok(routing.includes('不得作为可出场候选') || routing.includes('明确场外'));
@@ -1157,19 +1177,20 @@ test('parseStep accepts Stage1 continue status with query reasons and no executa
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
 
-  const data = loop.parseStep(`查询规划：
-资料状态：继续请求资料
-地点查询理由：前往刘思琪房间的路上，需要了解当前位置周边环境，以及刘思琪房间可能的位置关系
-因果查询理由：手机异常导致的困惑感仍未消除，需要确认这个异常与即将前往的房间是否有潜在关联
-冲突查询理由：尚未明确检测到任何冲突，但内心存在对异常现象的担忧
-强制出场：
-高优先候选：
-戏剧候选：
-禁止出场：
-随机事件候选：
-随机事件闯入条件：无明确条件则禁止闯入
-资料请求：无
-资料请求结束：是`, loop.realConfig());
+  const data = loop.parseStep(JSON.stringify({
+    plan: '继续核对场景资料',
+    status: '继续请求资料',
+    sceneQueries: {
+      location: ['前往刘思琪房间的路上，需要了解当前位置周边环境，以及刘思琪房间可能的位置关系'],
+      causality: ['手机异常导致的困惑感仍未消除，需要确认这个异常与即将前往的房间是否有潜在关联'],
+      conflict: ['尚未明确检测到任何冲突，但内心存在对异常现象的担忧'],
+    },
+    participants: { forced: [], priority: [], drama: [], forbidden: [] },
+    factions: [],
+    randomEvents: [],
+    randomIntrusionCondition: '无明确条件则禁止闯入',
+    materialRequests: [],
+  }), loop.realConfig());
 
   assert.strictEqual(data.type, 'request_context');
   assert.ok(data.sceneQueries.location.includes('前往刘思琪房间的路上，需要了解当前位置周边环境，以及刘思琪房间可能的位置关系'));
@@ -1179,48 +1200,45 @@ test('parseStep fills omitted soft-convergence fields when requests are none', (
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
-  const data = loop.parseStep(`地点查询：无
-地点查询理由：无需查询，目标地点已明确为刘思琪的房间
-因果查询：无
-因果查询理由：无因果链条需要推演
-冲突查询：无
-冲突查询理由：当前路线无潜在冲突
-强制出场：刘思琪（房间主人必然在房间内）
-高优先候选：无
-戏剧候选：无
-随机事件候选：无
-随机事件闯入条件：无明确条件则禁止闯入
-资料请求：无`, loop.realConfig());
+  const data = loop.parseStep(JSON.stringify({
+    plan: '目标地点已明确为刘思琪的房间',
+    status: '资料已足够',
+    sceneQueries: { location: [], causality: [], conflict: [] },
+    participants: { forced: ['刘思琪(rel-ai-1)'], priority: [], drama: [], forbidden: [] },
+    factions: [],
+    randomEvents: [],
+    randomIntrusionCondition: '无明确条件则禁止闯入',
+    materialRequests: [],
+  }), loop.realConfig());
 
   assert.strictEqual(data.type, 'context_done');
   assert.strictEqual(data.requests.length, 0);
   assert.ok(data.parseScore.successRate >= 0.8);
-  assert.ok(data.guidanceText.includes('资料状态：资料已足够'));
-  assert.ok(data.guidanceText.includes('资料请求结束：是'));
+  assert.ok(data.guidanceText.includes('"status":"资料已足够"'));
+  assert.ok(data.guidanceText.includes('"materialRequests":[]'));
 });
 
-test('parseStep accepts Stage1 continue status with executable numbered requests', () => {
+test('parseStep accepts Stage1 continue status with executable JSON requests', () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
-  const data = loop.parseStep(`查询规划：
-资料状态：继续请求资料
-地点查询：
-地点查询理由：前往刘思琪房间前需要确认其房间位置和内部状况
-因果查询：
-因果查询理由：刘思琪房间可能是异常源头之一，需要了解其具体情况
-冲突查询：
-冲突查询理由：三胞胎姐妹对哥哥的特殊感情可能与异常现象有关
-强制出场：
-高优先候选：
-戏剧候选：
-禁止出场：刘思瑶、刘思怡（当前场景无需她们出场）
-随机事件候选：刘思琪房间内的异常物品/设备/装饰品
-随机事件闯入条件：无明确条件则禁止闯入
-资料请求：无 / 2
-资料请求1：角色查询，搜索角色卡，刘思琪，2026现代都市现实世界
-资料请求2：地点查询，查询刘思琪房间，四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号
-资料请求结束：是`, loop.realConfig());
+  const data = loop.parseStep(JSON.stringify({
+    plan: '需要角色与地点资料',
+    status: '继续请求资料',
+    sceneQueries: {
+      location: ['前往刘思琪房间前需要确认其房间位置和内部状况'],
+      causality: ['刘思琪房间可能是异常源头之一，需要了解其具体情况'],
+      conflict: ['三胞胎姐妹对哥哥的特殊感情可能与异常现象有关'],
+    },
+    participants: { forced: [], priority: [], drama: [], forbidden: ['刘思瑶(待建卡)', '刘思怡(待建卡)'] },
+    factions: [],
+    randomEvents: ['刘思琪房间内的异常物品/设备/装饰品'],
+    randomIntrusionCondition: '无明确条件则禁止闯入',
+    materialRequests: [
+      { type: '角色查询', action: '搜索角色卡', params: ['刘思琪', '2026现代都市现实世界'] },
+      { type: '地点查询', action: '搜索地点', params: ['刘思琪房间', '四川省成都市武侯区玉林街道玉林北路社区锦苑小区3栋2单元601号'] },
+    ],
+  }), loop.realConfig());
 
   assert.strictEqual(data.type, 'request_context');
   assert.strictEqual(data.requests.length, 2);
@@ -1231,71 +1249,70 @@ test('parseStep accepts Stage1 continue status with location query reason', () =
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
-  const data = loop.parseStep(`查询规划：需要地点资料
-资料状态：继续请求资料
-地点查询理由1：需要了解周边环境布局
-地点查询理由2：判断通往刘思琪房间的最佳路径
-因果查询理由1：无
-冲突查询理由1：无
-强制出场：无
-高优先候选：无
-戏剧候选：无
-禁止出场：无
-随机事件候选：无
-随机事件闯入条件：无明确条件则禁止闯入
-资料请求：无
-资料请求结束：是`, loop.realConfig());
+  const data = loop.parseStep(JSON.stringify({
+    plan: '需要地点资料',
+    status: '继续请求资料',
+    sceneQueries: { location: ['需要了解周边环境布局', '判断通往刘思琪房间的最佳路径'], causality: [], conflict: [] },
+    participants: { forced: [], priority: [], drama: [], forbidden: [] },
+    factions: [],
+    randomEvents: [],
+    randomIntrusionCondition: '无明确条件则禁止闯入',
+    materialRequests: [],
+  }), loop.realConfig());
 
   assert.strictEqual(data.type, 'request_context');
   assert.strictEqual(JSON.stringify(data.sceneQueries.location), JSON.stringify(['需要了解周边环境布局', '判断通往刘思琪房间的最佳路径']));
   assert.strictEqual(data.requests.length, 0);
 });
 
-test('parseStep keeps later non-empty duplicate participant fields for role-card loading', () => {
+test('parseStep keeps JSON participant fields for role-card loading', () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
-  const data = loop.parseStep(`查询规划：确认人物与地点
-资料状态：继续请求资料
-地点查询：
-地点查询理由：确认刘思琪房间位置
-因果查询：
-因果查询理由：确认深夜前往原因
-冲突查询：
-冲突查询理由：确认潜在冲突
-强制出场：
-强制出场：刘思琪 - 她是本次行动目标
-高优先候选：
-高优先候选：刘思瑶 - 同住相邻空间
-戏剧候选：
-戏剧候选：刘思怡 - 同住相邻空间
-禁止出场：
-禁止出场：父母 - 已故
-随机事件候选：
-随机事件闯入条件：无明确条件则禁止闯入
-资料请求：无
-资料请求结束：是`, loop.realConfig());
+  const data = loop.parseStep(JSON.stringify({
+    plan: '确认人物与地点',
+    status: '继续请求资料',
+    sceneQueries: {
+      location: ['确认刘思琪房间位置'],
+      causality: ['确认深夜前往原因'],
+      conflict: ['确认潜在冲突'],
+    },
+    participants: {
+      forced: ['刘思琪(rel-ai-1)'],
+      priority: ['刘思瑶(rel-ai-2)'],
+      drama: ['刘思怡(rel-ai-3)'],
+      forbidden: ['父母(待建卡)'],
+    },
+    factions: [],
+    randomEvents: [],
+    randomIntrusionCondition: '无明确条件则禁止闯入',
+    materialRequests: [],
+  }), loop.realConfig());
   const requests = context.window.GameModules.realWorldAgentContext.participantProfileRequests(data);
 
   assert.strictEqual(JSON.stringify(data.forcedParticipants.map((item) => item.name)), JSON.stringify(['刘思琪']));
-  assert.strictEqual(data.forcedParticipants[0].reason, '她是本次行动目标');
   assert.strictEqual(JSON.stringify(requests.map((item) => item.params.name)), JSON.stringify(['刘思琪', '刘思瑶', '刘思怡']));
 });
 
-test('parseStep normalizes Chinese K:V participants into trace items', () => {
+test('parseStep normalizes JSON participants into trace items', () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
-  const data = loop.parseStep(`查询规划：确认互动边界
-资料状态：继续请求资料
-强制出场：刘悠；刘思琪
-高优先候选：赵敏
-戏剧候选：无
-禁止出场：王主管
-随机事件候选：王主管｜wechat｜工作确认；路人甲｜background｜经过门口
-随机事件闯入条件：无明确条件则禁止闯入
-资料请求1：角色查询，搜索角色卡，刘思琪，2026现代都市现实世界
-资料请求结束：是`, loop.realConfig());
+  const data = loop.parseStep(JSON.stringify({
+    plan: '确认互动边界',
+    status: '继续请求资料',
+    sceneQueries: { location: [], causality: [], conflict: [] },
+    participants: {
+      forced: ['刘悠(player-self)', '刘思琪(rel-ai-1)'],
+      priority: ['赵敏(待建卡)'],
+      drama: [],
+      forbidden: ['王主管(待建卡)'],
+    },
+    factions: [],
+    randomEvents: ['王主管｜wechat｜工作确认', '路人甲｜background｜经过门口'],
+    randomIntrusionCondition: '无明确条件则禁止闯入',
+    materialRequests: [{ type: '角色查询', action: '搜索角色卡', params: ['刘思琪', '2026现代都市现实世界'] }],
+  }), loop.realConfig());
   const traced = loop.traceItem(1, data, '查询规划：确认互动边界', context.window.GameModules.realWorldAgentContext);
 
   assert.strictEqual(data.type, 'request_context');
@@ -1313,76 +1330,25 @@ test('parseStep normalizes Chinese K:V participants into trace items', () => {
   assert.strictEqual(JSON.stringify(traced.droppedMaterialRequests), JSON.stringify([]));
 });
 
-test('parseStep rejects legacy JSON Stage1 payloads on strict Chinese K:V path', () => {
+test('parseStep rejects legacy JSON Stage1 payloads outside the strict schema', () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
-  assert.throws(() => loop.parseStep('{"type":"request_context","participants":["刘思琪"],"requests":[]}', loop.realConfig()), /缺少中文 K:V 查询规划字段/u);
+  assert.throws(() => loop.parseStep('{"type":"request_context","participants":["刘思琪"],"requests":[]}', loop.realConfig()), /Stage1 JSON 缺少必要字段/u);
 });
 
-test('parseChineseKvBlock parses fixed Chinese keys and aliases with score', () => {
-  const context = createContext();
-  loadCore(context);
-  const loop = context.window.GameModules.realWorldAgentLoop;
-  const parsed = loop.parseChineseKvBlock(`查询规划：确认地点和直接互动对象\n资料状态：继续请求资料\n必须出场：刘悠；刘思琪\n不能出场：王主管\n随机事件闯入条件：无明确条件则禁止闯入\n资料请求1：角色查询，搜索角色卡，刘思琪，2026现代都市现实世界\n资料请求结束：是`, loop.guidedStepFields(), { parseMaterialRequests: true, config: loop.realConfig() });
-
-  assert.strictEqual(parsed.values['强制出场'], '刘悠；刘思琪');
-  assert.strictEqual(parsed.values['禁止出场'], '王主管');
-  assert.strictEqual(parsed.materialRequests.length, 1);
-  assert.ok(parsed.successRate >= 0.8);
-});
-
-test('mergeGuidedParseResults combines complementary fields before scoring threshold', () => {
-  const context = createContext();
-  loadCore(context);
-  const loop = context.window.GameModules.realWorldAgentLoop;
-  const first = loop.parseChineseKvBlock('查询规划：先确认参与者\n资料状态：继续请求资料\n强制出场：刘悠', loop.guidedStepFields());
-  const second = loop.parseChineseKvBlock('禁止出场：王主管\n随机事件闯入条件：无明确条件则禁止闯入\n资料请求结束：是', loop.guidedStepFields());
-  const merged = loop.mergeGuidedParseResults(first, second);
-
-  assert.strictEqual(merged.values['强制出场'], '刘悠');
-  assert.strictEqual(merged.values['禁止出场'], '王主管');
-  assert.ok(merged.successRate >= first.successRate);
-  assert.ok(merged.successRate >= second.successRate);
-});
-
-test('parseChineseKvBlock does not count empty critical values as successful hits', () => {
-  const context = createContext();
-  loadCore(context);
-  const loop = context.window.GameModules.realWorldAgentLoop;
-  const parsed = loop.parseChineseKvBlock('资料状态：\n强制出场：\n禁止出场：\n随机事件闯入条件：', loop.guidedStepFields());
-
-  assert.ok(parsed.keyHits.includes('资料状态'));
-  assert.strictEqual(parsed.criticalHits.length, 0);
-  assert.ok(parsed.successRate < 0.8);
-});
-
-test('mergeGuidedParseResults deduplicates material request scoring and best result picks highest score', () => {
-  const context = createContext();
-  loadCore(context);
-  const loop = context.window.GameModules.realWorldAgentLoop;
-  const first = loop.parseChineseKvBlock('资料状态：继续请求资料\n资料请求1：角色查询，搜索角色卡，刘思琪，2026现代都市现实世界', loop.guidedStepFields(), { parseMaterialRequests: true, config: loop.realConfig() });
-  const second = loop.parseChineseKvBlock('资料状态：继续请求资料\n强制出场：刘思琪\n资料请求1：角色查询，搜索角色卡，刘思琪，2026现代都市现实世界', loop.guidedStepFields(), { parseMaterialRequests: true, config: loop.realConfig() });
-  const merged = loop.mergeGuidedParseResults(first, second);
-
-  assert.strictEqual(merged.materialRequests.length, 1);
-  assert.ok(merged.successRate >= first.successRate);
-  assert.ok(merged.successRate >= second.successRate);
-  assert.strictEqual(loop.bestGuidedParseResult([first, merged]), merged);
-});
-
-test('parseChineseMaterialRequest maps real Chinese requests to whitelist calls', () => {
+test('parseJsonMaterialRequest maps Stage1 request objects to whitelist calls', () => {
   const context = createContext();
   loadCore(context);
   context.window.GameModules.realWorld2026 = { label: '2026现代都市现实世界' };
   const ctx = context.window.GameModules.realWorldAgentContext;
 
-  const role = ctx.parseChineseMaterialRequest('资料请求1：角色查询，搜索角色卡，刘思琪，2026现代都市现实世界', { mode: 'real' });
-  const nearby = ctx.parseChineseMaterialRequest('资料请求2：地点查询，查询附近地点，刘思琪房间门口', { mode: 'real' });
-  const news = ctx.parseChineseMaterialRequest('资料请求3：新闻查询，最新热榜，当前世界', { mode: 'real' });
-  const bad = ctx.parseChineseMaterialRequest('资料请求3：未知查询，删除资料，刘思琪', { mode: 'real' });
+  const role = ctx.parseJsonMaterialRequest({ type: '角色查询', action: '搜索角色卡', params: ['刘思琪', '2026现代都市现实世界'] }, { mode: 'real' });
+  const nearby = ctx.parseJsonMaterialRequest({ type: '地点查询', action: '查询附近地点', params: ['刘思琪房间门口'] }, { mode: 'real' });
+  const news = ctx.parseJsonMaterialRequest({ type: '新闻查询', action: '最新热榜', params: ['当前世界'] }, { mode: 'real' });
+  const bad = ctx.parseJsonMaterialRequest({ type: '未知查询', action: '删除资料', params: ['刘思琪'] }, { mode: 'real' });
 
-  assert.deepStrictEqual(JSON.parse(JSON.stringify(role)), { skill: 'character.query', method: 'searchCharacterProfile', params: { name: '刘思琪', world: '2026现代都市现实世界' }, sourceText: '资料请求1：角色查询，搜索角色卡，刘思琪，2026现代都市现实世界' });
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(role)), { skill: 'character.query', method: 'searchCharacterProfile', params: { name: '刘思琪', world: '2026现代都市现实世界' }, sourceJson: { type: '角色查询', action: '搜索角色卡', params: ['刘思琪', '2026现代都市现实世界'] } });
   assert.strictEqual(nearby.skill, 'realworld.location.query');
   assert.strictEqual(nearby.method, 'getNearbyLocations');
   assert.strictEqual(nearby.params.locationName, '刘思琪房间门口');
@@ -1412,7 +1378,7 @@ test('promptTemplates render expands double-brace markdown variables cleanly', a
   assert.ok(!out.includes('{{现有Update提示词摘要}}'));
 });
 
-test('colocated Stage K:V templates register inline and contain no old guided JSON protocol', () => {
+test('colocated Stage templates register inline and Stage1 uses strict JSON protocol', () => {
   const context = createContext();
   loadScript(context, 'publish/prompt-templates.js');
   loadScript(context, 'publish/prompts/推演引擎/stage1-guided-query.js');
@@ -1432,7 +1398,7 @@ test('colocated Stage K:V templates register inline and contain no old guided JS
   assert.ok(!guidedText.includes('资料收集阶段只能返回一个合法 JSON 对象'));
   assert.ok(!guidedText.includes('只允许输出 `request_context`'));
   assert.ok(!guidedText.includes('第一个字符必须是 `{`'));
-  assert.ok(String(inline['inference-stage1-guided-query']).includes('只输出中文 K:V'));
+  assert.ok(String(inline['inference-stage1-guided-query']).includes('只输出一个合法 JSON 对象'));
   const stage4 = String(inline['inference-stage4-settlement-window']);
   [
     '现有 Update 提示词摘要',
@@ -1454,13 +1420,8 @@ test('colocated Stage K:V templates register inline and contain no old guided JS
     '明确事实：可直接结算',
     '强暗示事实：可保守结算',
     '弱氛围暗示：不得结算',
-    '未完成类型必须从该类型标题开始完整重输',
-    '同一类型标题在本轮输出中只能出现一次',
-    '完成一个类型后必须继续下一个类型，不得回到已输出类型',
-    '不表示你可以逐个类型分多轮输出',
-    '只输出一个类型，系统会判定失败',
-    '必须输出块数量',
-    '必须输出块顺序',
+    '必须输出 key 数量',
+    '必须输出 key 顺序',
     '内部自检，不得输出',
   ].forEach((good) => {
     assert.ok(stage4.includes(good), `Stage4 runtime template should include ${good}`);
@@ -2144,7 +2105,16 @@ test('parseStep treats continue-without-actionable-requests as done when only em
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
 
-  const data = loop.parseStep('资料状态：继续请求资料\n查询规划：\n地点查询理由：已知地点，无需进一步查询\n因果查询理由：无\n冲突查询理由：无\n强制出场：\n高优先候选：\n戏剧候选：\n禁止出场：\n随机事件候选：\n随机事件闯入条件：无明确条件则禁止闯入\n资料请求：无\n资料请求结束：是', loop.realConfig());
+  const data = loop.parseStep(JSON.stringify({
+    plan: '资料已经足够',
+    status: '资料已足够',
+    sceneQueries: { location: [], causality: [], conflict: [] },
+    participants: { forced: [], priority: [], drama: [], forbidden: [] },
+    factions: [],
+    randomEvents: [],
+    randomIntrusionCondition: '无明确条件则禁止闯入',
+    materialRequests: [],
+  }), loop.realConfig());
 
   assert.strictEqual(data.type, 'context_done');
   assert.strictEqual(JSON.stringify(data.sceneQueries.location), JSON.stringify([]));
@@ -2156,7 +2126,16 @@ test('completeConfiguredParsedStep accepts query-reason handoff without semantic
   const loop = context.window.GameModules.realWorldAgentLoop;
   const prompts = [];
   const outputs = [
-    '查询规划：保留理由进入锚定\n资料状态：继续请求资料\n地点查询理由1：确认门口边界\n因果查询理由1：无\n冲突查询理由1：无\n强制出场：无\n高优先候选：无\n戏剧候选：无\n禁止出场：无\n随机事件候选：无\n随机事件闯入条件：无明确条件则禁止闯入\n资料请求：无\n资料请求结束：是',
+    JSON.stringify({
+      plan: '保留理由进入锚定',
+      status: '继续请求资料',
+      sceneQueries: { location: ['确认门口边界'], causality: [], conflict: [] },
+      participants: { forced: [], priority: [], drama: [], forbidden: [] },
+      factions: [],
+      randomEvents: [],
+      randomIntrusionCondition: '无明确条件则禁止闯入',
+      materialRequests: [],
+    }),
   ];
   loop.completeConfiguredStep = async (_store, prompt) => {
     prompts.push(prompt);
@@ -2174,21 +2153,29 @@ test('parseStep derives mapped material requests and keeps missingContext boolea
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
-  const data = loop.parseStep(`查询规划：需要角色和地点资料
-资料状态：继续请求资料
-强制出场：刘思琪
-禁止出场：无
-随机事件闯入条件：无明确条件则禁止闯入
-资料请求1：角色查询，搜索角色卡，刘思琪，2026现代都市现实世界
-资料请求2：地点查询，查询附近地点，测试地点
-资料请求结束：是`, loop.realConfig());
-  const done = loop.parseStep(`查询规划：资料足够
-资料状态：资料已足够
-强制出场：刘思琪
-禁止出场：无
-随机事件闯入条件：无明确条件则禁止闯入
-资料请求：无
-资料请求结束：是`, loop.realConfig());
+  const data = loop.parseStep(JSON.stringify({
+    plan: '需要角色和地点资料',
+    status: '继续请求资料',
+    sceneQueries: { location: [], causality: [], conflict: [] },
+    participants: { forced: ['刘思琪(rel-ai-1)'], priority: [], drama: [], forbidden: [] },
+    factions: [],
+    randomEvents: [],
+    randomIntrusionCondition: '无明确条件则禁止闯入',
+    materialRequests: [
+      { type: '角色查询', action: '搜索角色卡', params: ['刘思琪', '2026现代都市现实世界'] },
+      { type: '地点查询', action: '查询附近地点', params: ['测试地点'] },
+    ],
+  }), loop.realConfig());
+  const done = loop.parseStep(JSON.stringify({
+    plan: '资料足够',
+    status: '资料已足够',
+    sceneQueries: { location: [], causality: [], conflict: [] },
+    participants: { forced: ['刘思琪(rel-ai-1)'], priority: [], drama: [], forbidden: [] },
+    factions: [],
+    randomEvents: [],
+    randomIntrusionCondition: '无明确条件则禁止闯入',
+    materialRequests: [],
+  }), loop.realConfig());
   const traced = loop.traceItem(1, data, '查询规划：需要角色和地点资料', context.window.GameModules.realWorldAgentContext);
 
   assert.strictEqual(JSON.stringify(data.requests.map((item) => item.method)), JSON.stringify(['searchCharacterProfile', 'getNearbyLocations']));
@@ -2198,13 +2185,38 @@ test('parseStep derives mapped material requests and keeps missingContext boolea
   assert.strictEqual(traced.missingContext, true);
 });
 
-test('completeConfiguredParsedStep retries K:V parse and accepts merged successful fields', async () => {
+test('parseStep rejects material request string shells', () => {
+  const context = createContext();
+  loadCore(context);
+  const loop = context.window.GameModules.realWorldAgentLoop;
+  assert.throws(() => loop.parseStep(JSON.stringify({
+    plan: '需要角色资料',
+    status: '继续请求资料',
+    sceneQueries: { location: [], causality: [], conflict: [] },
+    participants: { forced: ['刘思琪(rel-ai-1)'], priority: [], drama: [], forbidden: [] },
+    factions: [],
+    randomEvents: [],
+    randomIntrusionCondition: '无明确条件则禁止闯入',
+    materialRequests: ['角色查询，搜索角色卡，刘思琪，2026现代都市现实世界'],
+  }), loop.realConfig()), /materialRequests 必须是标准 JSON 对象数组/u);
+});
+
+test('completeConfiguredParsedStep rejects K:V output and accepts retry JSON', async () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
   const outputs = [
     '查询规划：先锁定强制出场\n强制出场：刘思琪',
-    '查询规划：补齐边界\n资料状态：继续请求资料\n禁止出场：王主管\n随机事件闯入条件：无明确条件则禁止闯入\n资料请求结束：是',
+    JSON.stringify({
+      plan: '补齐边界',
+      status: '继续请求资料',
+      sceneQueries: { location: [], causality: [], conflict: [] },
+      participants: { forced: ['刘思琪(待建卡)'], priority: [], drama: [], forbidden: ['王主管(待建卡)'] },
+      factions: [],
+      randomEvents: [],
+      randomIntrusionCondition: '无明确条件则禁止闯入',
+      materialRequests: [],
+    }),
   ];
   loop.completeConfiguredStep = async () => outputs.shift();
 
@@ -2216,14 +2228,23 @@ test('completeConfiguredParsedStep retries K:V parse and accepts merged successf
   assert.ok(out.data.parseScore.successRate >= 0.8);
 });
 
-test('completeConfiguredParsedStep carries successful K:V values into retry and preserves first values', async () => {
+test('completeConfiguredParsedStep retry prompt does not carry K:V merge state', async () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
   const prompts = [];
   const outputs = [
     '查询规划：首次判断\n资料状态：继续请求资料\n强制出场：刘思琪\n高优先候选：刘思瑶\n随机事件闯入条件：无明确条件则禁止闯入',
-    '查询规划：补齐字段但误改已有值\n资料状态：继续请求资料\n强制出场：刘悠\n高优先候选：无\n禁止出场：无\n随机事件闯入条件：无明确自然闯入条件则禁止闯入\n资料请求：1\n资料请求1：地点查询，查询附近地点，锦苑小区3栋2单元\n资料请求结束：是',
+    JSON.stringify({
+      plan: '补齐字段',
+      status: '继续请求资料',
+      sceneQueries: { location: [], causality: [], conflict: [] },
+      participants: { forced: ['刘悠(player-self)'], priority: [], drama: [], forbidden: [] },
+      factions: [],
+      randomEvents: [],
+      randomIntrusionCondition: '无明确条件则禁止闯入',
+      materialRequests: [{ type: '地点查询', action: '查询附近地点', params: ['锦苑小区3栋2单元'] }],
+    }),
   ];
   loop.completeConfiguredStep = async (_store, prompt) => {
     prompts.push(prompt);
@@ -2232,10 +2253,10 @@ test('completeConfiguredParsedStep carries successful K:V values into retry and 
 
   const out = await loop.completeConfiguredParsedStep(makeStore(), '原始 prompt', null, false, false, loop.realConfig());
 
-  assert.ok(prompts[1].includes('强制出场：刘思琪'));
-  assert.ok(prompts[1].includes('高优先候选：刘思瑶'));
-  assert.strictEqual(JSON.stringify(out.data.forcedParticipants.map((item) => item.name)), JSON.stringify(['刘思琪']));
-  assert.strictEqual(JSON.stringify(out.data.priorityCandidates.map((item) => item.name)), JSON.stringify(['刘思瑶']));
+  assert.ok(!prompts[1].includes('强制出场：刘思琪'));
+  assert.ok(!prompts[1].includes('高优先候选：刘思瑶'));
+  assert.strictEqual(JSON.stringify(out.data.forcedParticipants.map((item) => item.name)), JSON.stringify(['刘悠']));
+  assert.strictEqual(JSON.stringify(out.data.priorityCandidates.map((item) => item.name)), JSON.stringify([]));
   assert.strictEqual(out.data.randomIntrusionCondition, '无明确条件则禁止闯入');
 });
 
@@ -2270,22 +2291,25 @@ test('loadStepContext loads role cards from parsed participant candidates with r
   context.window.GameModules.realWorld2026 = { label: '2026现代都市现实世界' };
   const loop = context.window.GameModules.realWorldAgentLoop;
   const store = makeStore();
-  const data = loop.parseStep(`查询规划：确认人物与地点
-资料状态：继续请求资料
-地点查询：
-地点查询理由：确认刘思琪房间位置
-因果查询：
-因果查询理由：确认深夜前往原因
-冲突查询：
-冲突查询理由：确认潜在冲突
-强制出场：刘思琪 - 她是本次行动目标
-高优先候选：刘思瑶 - 同住相邻空间
-戏剧候选：刘思怡 - 同住相邻空间
-禁止出场：父母 - 已故
-随机事件候选：
-随机事件闯入条件：无明确条件则禁止闯入
-资料请求：无
-资料请求结束：是`, loop.realConfig());
+  const data = loop.parseStep(JSON.stringify({
+    plan: '确认人物与地点',
+    status: '继续请求资料',
+    sceneQueries: {
+      location: ['确认刘思琪房间位置'],
+      causality: ['确认深夜前往原因'],
+      conflict: ['确认潜在冲突'],
+    },
+    participants: {
+      forced: ['刘思琪(rel-ai-1)'],
+      priority: ['刘思瑶(rel-ai-2)'],
+      drama: ['刘思怡(rel-ai-3)'],
+      forbidden: ['父母(待建卡)'],
+    },
+    factions: [],
+    randomEvents: [],
+    randomIntrusionCondition: '无明确条件则禁止闯入',
+    materialRequests: [],
+  }), loop.realConfig());
 
   const out = await loop.loadStepContext(context.window.GameModules.realWorldAgentContext, store, '我前往刘思琪的房间', data, new Set(), [], new Set(), 1, null, context.window.GameModules.realWorldMaterials);
   const text = out.map((item) => item.text).join('\n');
@@ -3071,12 +3095,13 @@ test('Stage 3 participants keep forced participants even when also listed as can
   assert.strictEqual(JSON.stringify(participants.map((item) => item.name)), JSON.stringify(['刘思琪', '玩家']));
 });
 
-test('real world materials mention Chinese requests, scene anchoring, and Top3 role card rule', () => {
+test('real world materials mention field-contract requests, scene anchoring, and Top3 role card rule', () => {
   const context = createContext();
   loadCore(context);
   loadScript(context, 'publish/prompts/materials/real-world-materials.js');
   const text = JSON.stringify(context.window.GameModules.realWorldMaterials || {});
-  assert.ok(text.includes('中文资料请求'));
+  assert.ok(text.includes('Stage1 请求：type='));
+  assert.ok(!text.includes('Stage1 JSON 请求示例'));
   assert.ok(text.includes('场景锚定'));
   assert.ok(text.includes('Top3'));
   assert.ok(text.includes('加载角色卡不等于出场或结算'));
@@ -3085,35 +3110,29 @@ test('real world materials mention Chinese requests, scene anchoring, and Top3 r
 
 test('Stage 1 prompt tells model not to copy material request placeholders', () => {
   const body = fs.readFileSync(path.join(root, 'publish/prompts/推演引擎/stage1-guided-query.md'), 'utf8');
-  assert.ok(body.includes('不得照抄示例中的占位词'));
-  assert.ok(body.includes('角色全称、世界全称、地点全称、人物全称、作品全称都必须替换为本次行动中的真实名称'));
-  assert.ok(!body.includes('资料请求1：角色查询，搜索角色卡，角色全称，世界全称'));
+  assert.ok(body.includes('不得照抄提示词中的占位词'));
+  assert.ok(body.includes('所有 params 都必须替换为本次行动中的真实名称、真实世界或真实范围'));
+  assert.ok(!body.includes('资料请求1：'));
+  assert.ok(!body.includes('materialRequests:["角色查询'));
 });
 
-test('parseGuidedStepKv rejects copied placeholder material requests with diagnostics', () => {
+test('parseStep rejects copied placeholder material request params', () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
-  assert.throws(() => loop.parseGuidedStepKv(`查询规划：需要角色卡
-资料状态：继续请求资料
-地点查询：无
-地点查询理由：无
-因果查询：无
-因果查询理由：无
-冲突查询：无
-冲突查询理由：无
-强制出场：刘思琪
-高优先候选：无
-戏剧候选：无
-禁止出场：无
-随机事件候选：无
-随机事件闯入条件：无明确条件则禁止闯入
-资料请求：1条
-资料请求1：角色查询，搜索角色卡，角色全称，世界全称
-资料请求结束：是`, loop.realConfig()), /资料请求包含未替换占位词/);
+  assert.throws(() => loop.parseStep(JSON.stringify({
+    plan: '需要角色卡',
+    status: '继续请求资料',
+    sceneQueries: { location: [], causality: [], conflict: [] },
+    participants: { forced: ['刘思琪(待建卡)'], priority: [], drama: [], forbidden: [] },
+    factions: [],
+    randomEvents: [],
+    randomIntrusionCondition: '无明确条件则禁止闯入',
+    materialRequests: [{ type: '角色查询', action: '搜索角色卡', params: ['角色全称', '世界全称'] }],
+  }), loop.realConfig()), /无法映射到可用资料目录/);
 });
 
-test('completeConfiguredParsedStep logs parse score diagnostics before retry recovery', async () => {
+test('completeConfiguredParsedStep retries invalid Stage1 JSON before recovery', async () => {
   const context = createContext();
   const warnings = [];
   context.console = { ...console, warn: (...args) => warnings.push(args.map((item) => String(item)).join(' ')), error: console.error, log: console.log };
@@ -3121,8 +3140,26 @@ test('completeConfiguredParsedStep logs parse score diagnostics before retry rec
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
   const outputs = [
-    '资料状态：继续请求资料\n资料请求：1条\n资料请求1：未知查询，未知动作，锦苑小区3栋2单元',
-    '查询规划：资料足够\n资料状态：资料已足够\n地点查询理由1：无\n因果查询理由1：无\n冲突查询理由1：无\n强制出场：无\n高优先候选：无\n戏剧候选：无\n禁止出场：无\n随机事件候选：无\n随机事件闯入条件：无明确条件则禁止闯入\n资料请求：无\n资料请求结束：是',
+    JSON.stringify({
+      plan: '错误资料请求',
+      status: '继续请求资料',
+      sceneQueries: { location: [], causality: [], conflict: [] },
+      participants: { forced: [], priority: [], drama: [], forbidden: [] },
+      factions: [],
+      randomEvents: [],
+      randomIntrusionCondition: '无明确条件则禁止闯入',
+      materialRequests: [{ type: '未知查询', action: '未知动作', params: ['锦苑小区3栋2单元'] }],
+    }),
+    JSON.stringify({
+      plan: '资料足够',
+      status: '资料已足够',
+      sceneQueries: { location: [], causality: [], conflict: [] },
+      participants: { forced: [], priority: [], drama: [], forbidden: [] },
+      factions: [],
+      randomEvents: [],
+      randomIntrusionCondition: '无明确条件则禁止闯入',
+      materialRequests: [],
+    }),
   ];
   loop.completeConfiguredStep = async () => outputs.shift();
 
@@ -3130,61 +3167,33 @@ test('completeConfiguredParsedStep logs parse score diagnostics before retry rec
 
   assert.strictEqual(out.data.type, 'context_done');
   const text = warnings.join('\n');
-  assert.ok(text.includes('score='));
-  assert.ok(text.includes('successRate='));
-  assert.ok(text.includes('missing='));
-  assert.ok(text.includes('droppedMaterialRequests='));
+  assert.ok(text.includes('解析异常'));
+  assert.ok(text.includes('Stage1 materialRequests 无法映射到可用资料目录'));
 });
 
-test('parseGuidedStepKv ignores invalid request explosion when core K:V fields are present', () => {
+test('parseStep limits valid materialRequests to Top3 direct JSON objects', () => {
   const context = createContext();
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
-  const invalidRequests = Array.from({ length: 38 }, (_, index) => `资料请求${index + 2}：作品设定查询，搜索物品，衣物${index + 1}，2026现代都市现实世界`).join('\n');
-  const data = loop.parseGuidedStepKv(`查询规划：核心资料已明确，只保留可执行请求
-资料状态：继续请求资料
-地点查询：无
-地点查询理由：无
-因果查询：无
-因果查询理由：无
-冲突查询：无
-冲突查询理由：无
-强制出场：刘思琪
-高优先候选：无
-戏剧候选：无
-禁止出场：无
-随机事件候选：无
-随机事件闯入条件：无明确条件则禁止闯入
-资料请求：39条
-资料请求1：角色查询，搜索角色卡，刘思琪，2026现代都市现实世界
-${invalidRequests}
-资料请求结束：是`, loop.realConfig());
+  const data = loop.parseStep(JSON.stringify({
+    plan: '核心资料已明确，只保留可执行请求',
+    status: '继续请求资料',
+    sceneQueries: { location: [], causality: [], conflict: [] },
+    participants: { forced: ['刘思琪(待建卡)'], priority: [], drama: [], forbidden: [] },
+    factions: [],
+    randomEvents: [],
+    randomIntrusionCondition: '无明确条件则禁止闯入',
+    materialRequests: [
+      { type: '角色查询', action: '搜索角色卡', params: ['刘思琪', '2026现代都市现实世界'] },
+      { type: '新闻查询', action: '最新热榜', params: ['当前世界'] },
+      { type: '地点查询', action: '搜索地点', params: ['刘思琪房间'] },
+      { type: '角色查询', action: '已知角色列表', params: ['2026现代都市现实世界'] },
+    ],
+  }), loop.realConfig());
 
   assert.strictEqual(data.type, 'request_context');
-  assert.strictEqual(JSON.stringify(data.requests.map((item) => item.method)), JSON.stringify(['searchCharacterProfile']));
-  assert.ok(data.parseScore.successRate >= 0.8);
-});
-
-test('completeConfiguredParsedStep condenses dropped material requests in retry prompt', async () => {
-  const context = createContext();
-  loadCore(context);
-  const loop = context.window.GameModules.realWorldAgentLoop;
-  const prompts = [];
-  const invalidRequests = Array.from({ length: 20 }, (_, index) => `资料请求${index + 1}：作品设定查询，搜索物品，衣物${index + 1}，2026现代都市现实世界`).join('\n');
-  const outputs = [
-    `资料状态：继续请求资料\n资料请求：20条\n${invalidRequests}`,
-    '资料状态：资料已足够',
-  ];
-  loop.completeConfiguredStep = async (store, prompt) => {
-    prompts.push(prompt);
-    return outputs.shift();
-  };
-
-  await assert.rejects(() => loop.completeConfiguredParsedStep(makeStore(), '原始 prompt', null, false, false, loop.realConfig()), /解析错误请重试/);
-
-  assert.ok(prompts[1].includes('已丢弃资料请求：'));
-  assert.ok(prompts[1].includes('等20条'));
-  assert.ok(!prompts[1].includes('资料请求20'));
+  assert.strictEqual(JSON.stringify(data.requests.map((item) => item.method)), JSON.stringify(['searchCharacterProfile', 'getLatestHotlist', 'searchLocationOne']));
+  assert.strictEqual(data.parseScore.successRate, 1);
 });
 
 test('Stage 1 prompt forbids repeated and irrelevant material requests after context is enough', () => {

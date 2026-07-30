@@ -521,7 +521,7 @@ test('identity fields include owned and used real-world properties', () => {
   assert.ok(using.value.includes('-1000租金'));
 });
 
-test('stage1 JSON parser ignores object-style node ensure requests', () => {
+test('stage1 JSON parser rejects skill-method material request objects', () => {
   const context = { window: { GameModules: {} }, console };
   loadScript(context, 'publish/real-world-agent-loop.js');
   const payload = {
@@ -534,6 +534,7 @@ test('stage1 JSON parser ignores object-style node ensure requests', () => {
     status: '继续请求资料',
     sceneQueries: { location: [], causality: [], conflict: [] },
     participants: { forced: [], priority: [], drama: [], forbidden: [] },
+    factions: [],
     randomEvents: [],
     randomIntrusionCondition: '无明确条件则禁止闯入',
     materialRequests: [{
@@ -542,9 +543,7 @@ test('stage1 JSON parser ignores object-style node ensure requests', () => {
       params: { stage: 'stage1', targetKeyword: 'Explicit Building', auditFillPayload: payload },
     }],
   });
-  const parsed = context.window.GameModules.realWorldAgentLoop.parseGuidedStepJson(raw);
-  assert.strictEqual(parsed.requests.length, 0);
-  assert.ok(parsed.type === 'context_done' || parsed.type === 'request_context');
+  assert.throws(() => context.window.GameModules.realWorldAgentLoop.parseGuidedStepJson(raw), /materialRequests 每项必须/);
 });
 
 test('material loader dispatches node ensure through async audit entry', async () => {

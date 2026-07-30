@@ -141,7 +141,8 @@ html[data-ui-theme] .real-world-freedom-controls label.active {
 }
 
 html[data-ui-theme] .real-world-word-count-input,
-html[data-ui-theme] .real-world-freedom-controls input[type="radio"] {
+html[data-ui-theme] .real-world-freedom-controls input[type="radio"],
+html[data-ui-theme] .real-world-freedom-controls input[type="checkbox"] {
   accent-color: var(--ui-accent) !important;
 }
 

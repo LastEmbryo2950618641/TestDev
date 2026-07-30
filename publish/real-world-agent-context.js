@@ -86,7 +86,9 @@ window.GameModules.realWorldAgentContext = {
     const map = window.GameModules.realWorldMap?.ensure?.(store, store?.playerProfile || {}) || {};
     const location = store?.realWorldLocationName || map.current || '未知地点';
     const time = [store?.phoneDateText?.(), store?.phoneTimeText?.()].filter(Boolean).join(' ') || '未知时间';
-    const player = store?.playerName || store?.playerProfile?.name || '玩家';
+    const playerState = store?.playerIdentityState?.() || store?.rpgStates?.['player-self'] || null;
+    const player = store?.playerName || store?.playerProfile?.name || playerState?.profile?.name || playerState?.name || '玩家';
+    const playerLocation = playerState?.profile?.currentLocation || playerState?.values?.current_location?.name || '';
     const priorCount = store?.realWorldAgentKvByMode?.[config?.mode || 'real']?.messages?.length || 0;
     const wechatInContext = window.GameModules.realWorldAgentLoop?.summarizeWechatInAgentContext?.(store, config?.mode || 'real');
     const actionText = String(action || '');
@@ -98,15 +100,14 @@ window.GameModules.realWorldAgentContext = {
       `本次行动：${action || '继续观察现实世界'}`,
       `当前位置：${location}`,
       `当前时间：${time}`,
-      `当前对象线索：${player}`,
+      `当前被控主体：${player}(player-self)`,
+      playerLocation ? `玩家角色卡当前位置：${playerLocation}` : '',
       orgTerritoryHint,
       this.scheduleCandidateHintText(store, action, location),
       priorCount
         ? `前轮完整推演上下文：已通过对话链继承（${priorCount} 条消息，持久化不压缩）。前轮资料、微信对话追加与之后的结算/正文变更都可综合使用；请对照当前桌面时间与本轮行动，判断现有上下文是否已能支撑正文。仅当缺失、冲突或无法可靠还原时才重新请求。`
         : '',
       ...(wechatInContext?.hint ? [wechatInContext.hint] : []),
-      `已加载资料摘要：\n${this.loadedRoutingSummary(loaded)}`,
-      `可请求资料目录：\n${this.stage1MaterialCatalogText(config?.mode || 'real')}`,
     ].filter(Boolean).join('\n');
   },
 

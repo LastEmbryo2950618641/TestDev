@@ -44,8 +44,10 @@ window.GameModules.inferenceFactionStageUpdate = {
       const params = op?.params && typeof op.params === 'object' ? op.params : {};
       const id = this.normalizeKey(params.id);
       const name = this.normalizeKey(params.name);
+      const candidateName = this.normalizeKey(params.candidateName || params.sourceCandidate);
       if (id) set.add(id);
       if (name) set.add(name);
+      if (candidateName) set.add(candidateName);
     });
     return set;
   },
@@ -76,25 +78,46 @@ window.GameModules.inferenceFactionStageUpdate = {
     return { picked, skipped };
   },
 
-  buildCreatePrompt({ narration = '', action = '', factionIndex = '', pendingFactionCandidates = [] } = {}) {
+  buildCreatePrompt({ narration = '', action = '', factionIndex = '', pendingFactionCandidates = [], contextReview = '' } = {}) {
+    const overviewContract = [
+      'solid.overviewPanels 必须严格使用 UI 固定 schema；禁止中文 key、禁止 entries 里写“主要收入/支出结构”等非固定 key，禁止 `teritory` 拼写。',
+      'ideology 固定字段：core、reason、description、base、legitimacy；每项都是对象，形如 `{ "value": "...", "reason": "..." }`，legitimacy.value 必须是数字。',
+      'economy.entries 固定字段：gdp、income、expenditure、assets、resources、production、system、institutions、laws、works；每项都是 `{ "value": ..., "reason": "..." }`。',
+      'politics.entries 固定字段：regime、powerStructure、rulemaking、adjudication、execution、participation、leadership、institutions、laws、works。',
+      'military.entries 固定字段：posture、forces、personnel、quality、sustainment、projection、equipment、institutions、laws、works。',
+      'diplomacy.entries 固定字段：posture、orientation、allies、rivals、memberships、treaties、presence、institutions、laws、works。',
+      'territory.entries 固定字段：capital、area、population、adminDivision、regions。',
+      '列表字段 value 形状：institutions/laws/works/memberships/treaties 为 `[{ "name": "...", "description": "..." }]`；allies/rivals 为 `[{ "name": "...", "description": "...", "viewOfSelf": "..." }]`；forces 为 `[{ "name": "...", "items": ["..."] }]`；regions 为 `[{ "name": "...", "capital": "...", "area": "...", "controlRate": "...", "population": "...", "description": "...", "garrison": "..." }]`。',
+      '若某字段对该势力不适用，也必须给出基于上下文的保守说明，而不是留空或写“待推演补全”。',
+    ].join('\n');
     return [
       '# Stage9-1 势力创建',
-      '角色：势力首建器。你这一阶段只负责 createFaction。',
+      '角色：势力识别与批量首建器。你这一阶段只负责 createFaction。',
       '只输出一个合法 JSON 对象，不要 Markdown、解释或正文。',
-      '若 Stage1 待建势力候选里仍有未入库项，本阶段必须为其输出 createFaction。',
+      '你必须重新检查本轮完整上下文；只要稍微识别到可作为势力的组织线索，且尚未入库，就必须创建，并一次性批量返回完整势力 JSON。即使 Stage1 候选为空，也不能跳过这次上下文复查。',
       '',
       '## 规则',
       '1. 只允许输出 createFaction；禁止输出 patchFactionField。',
-      '2. Stage1 待建势力候选优先：若下方候选中某条当前仍不在势力索引里，必须创建。不能因“本轮未互动/只是先登记/只是背景提及”而跳过。',
-      '3. 正文里若出现新的现实组织/公司/学校/机关/社群正式名，且当前势力索引没有，也应在本阶段 createFaction。',
-      '4. 首次 createFaction 必须尽量补全完整：id、name、type、classification、worldTag、structure、solid.overviewPanels 等所有可稳定推断字段。不要只建空壳。',
-      '5. 若没有任何未入库势力需要创建，返回 { "ops": [], "done": true }。',
+      '2. 先检查当前势力索引，再检查 Stage1 查询链、角色卡/介绍卡、已加载资料、场景锚定、行动、正文与前序结算；识别所有在这些上下文中成立、需要持久化、且索引尚未收录的势力线索。Stage1 候选是重要线索，但不是唯一来源。',
+      '3. Stage1 待建候选若仍未入库必须创建；正文或完整上下文中新出现但 Stage1 漏记的势力线索也必须创建。不能因“本轮未互动/只是背景提及/候选为空”跳过。',
+      '4. 候选称呼只是线索，不是最终势力名；必须基于完整上下文合理推演并补全正式名称。每个 op 的 params.candidateName 写对应的 Stage1 原候选名；若该势力来自重新检查而非 Stage1，则 candidateName 写识别到的原始称呼。',
+      '5. 若 Stage1 待建候选已带 `id`，createFaction 必须沿用该 id；不要自行改 ID、不要把候选 ID 丢掉。若是 Stage9-1 重新检查发现的新势力，才自行生成稳定唯一ID。',
+      '6. 首次 createFaction 必须一次补全完整，不得建空壳：id、candidateName、name、type、kind、classification、worldTag、parentId、parentName、level、location、domain、scale、stance、influence、description、structure、rules、resources、relations、solid.overviewPanels、reason。',
+      '7. structure 必须包含可稳定推演的部门/层级与 roles；solid.overviewPanels 必须包含 ideology、economy、politics、military、diplomacy、territory 六个面板及其可稳定推演字段。禁止“未知”“某公司”“某中学”“暂无说明”等占位。',
+      '8. 同一响应中把全部待创建势力分别写成 createFaction op，一次性批量返回；不要逐个等待下一轮，不要返回重试请求。',
+      '9. 若重新检查完整上下文后确实没有任何未入库势力，才返回 { "ops": [], "done": true }。',
+      '',
+      '## overviewPanels 严格字段契约',
+      overviewContract,
       '',
       '## Stage1 待建势力候选',
       (Array.isArray(pendingFactionCandidates) && pendingFactionCandidates.length ? JSON.stringify(pendingFactionCandidates, null, 2).slice(0, 4000) : '无'),
       '',
       '## 当前势力索引',
       factionIndex || '暂无势力。',
+      '',
+      '## 本轮完整上下文复查材料',
+      String(contextReview || '无').slice(0, 36000),
       '',
       '## 本次行动',
       String(action || '').slice(0, 800),
@@ -103,8 +126,36 @@ window.GameModules.inferenceFactionStageUpdate = {
       String(narration || '').slice(0, 4000),
       '',
       '## 输出合约',
-      '{ "ops": [ { "method": "createFaction", "params": {} } ], "done": true }',
+      '顶层必须是：{ "ops": [ { "method": "createFaction", "params": { ...完整首建字段... } } ], "done": true }',
+      'params 必须包含：candidateName、id、name、type、kind、classification、worldTag、parentId、parentName、level、location、domain、scale、stance、influence、description、structure、rules、resources、relations、solid、reason。',
+      'solid.overviewPanels 必须按上方“overviewPanels 严格字段契约”把 ideology、economy、politics、military、diplomacy、territory 的全部固定字段都写满；禁止输出空对象 `{}` 或省略字段。',
     ].join('\n');
+  },
+
+  validateCreateFactionPayload(params = {}) {
+    const overview = params?.solid?.overviewPanels;
+    if (!overview || typeof overview !== 'object' || Array.isArray(overview)) return '缺少 solid.overviewPanels';
+    if (overview.teritory) return 'overviewPanels 使用了错误 key teritory，必须是 territory';
+    const requiredPanels = ['ideology', 'economy', 'politics', 'military', 'diplomacy', 'territory'];
+    const missingPanel = requiredPanels.find((key) => !overview[key] || typeof overview[key] !== 'object' || Array.isArray(overview[key]));
+    if (missingPanel) return `缺少 overviewPanels.${missingPanel}`;
+    const ideologyKeys = ['core', 'reason', 'description', 'base', 'legitimacy'];
+    const missingIdeology = ideologyKeys.find((key) => !overview.ideology[key] || typeof overview.ideology[key] !== 'object' || !Object.prototype.hasOwnProperty.call(overview.ideology[key], 'value'));
+    if (missingIdeology) return `overviewPanels.ideology.${missingIdeology} 必须是包含 value 的对象`;
+    const schema = {
+      economy: ['gdp', 'income', 'expenditure', 'assets', 'resources', 'production', 'system', 'institutions', 'laws', 'works'],
+      politics: ['regime', 'powerStructure', 'rulemaking', 'adjudication', 'execution', 'participation', 'leadership', 'institutions', 'laws', 'works'],
+      military: ['posture', 'forces', 'personnel', 'quality', 'sustainment', 'projection', 'equipment', 'institutions', 'laws', 'works'],
+      diplomacy: ['posture', 'orientation', 'allies', 'rivals', 'memberships', 'treaties', 'presence', 'institutions', 'laws', 'works'],
+      territory: ['capital', 'area', 'population', 'adminDivision', 'regions'],
+    };
+    for (const [panelKey, fields] of Object.entries(schema)) {
+      const entries = overview[panelKey]?.entries;
+      if (!entries || typeof entries !== 'object' || Array.isArray(entries)) return `overviewPanels.${panelKey}.entries 必须存在`;
+      const missingField = fields.find((field) => !entries[field] || typeof entries[field] !== 'object' || !Object.prototype.hasOwnProperty.call(entries[field], 'value'));
+      if (missingField) return `overviewPanels.${panelKey}.entries.${missingField} 必须是包含 value 的对象`;
+    }
+    return '';
   },
 
   factionSnapshot(store, maxChars = 6000) {
@@ -169,11 +220,13 @@ window.GameModules.inferenceFactionStageUpdate = {
       const params = op?.params && typeof op.params === 'object' ? op.params : {};
       if (!method || !ctx?.faction) continue;
       if (method === 'createFaction') {
-        const overview = params?.solid?.overviewPanels;
-        const missingOverview = !overview || typeof overview !== 'object';
-        const ideologyCore = String(overview?.ideology?.core?.value || '').trim();
-        if (missingOverview || !ideologyCore) {
-          console.warn('[Stage9势力] createFaction 可能仍是不完整首建:', { id: params?.id, name: params?.name, hasOverview: !missingOverview, ideologyCore });
+        const invalidReason = this.validateCreateFactionPayload(params);
+        if (invalidReason) {
+          const text = `势力Stage9：拒绝不完整 createFaction（${params?.name || params?.candidateName || '未命名'}）：${invalidReason}`;
+          console.warn('[Stage9势力] createFaction 首建 JSON 不符合 UI schema，已拒绝落库:', { reason: invalidReason, id: params?.id, name: params?.name });
+          lines.push(text);
+          applied.push({ method, params, text });
+          continue;
         }
       }
       if (!['createFaction', 'patchFactionField', 'getFactionField'].includes(method)) {
@@ -189,7 +242,7 @@ window.GameModules.inferenceFactionStageUpdate = {
     return { lines, applied };
   },
 
-  async requestStage9(loop, store, config, logId, prompt, phaseTitle) {
+  async requestStage9(loop, store, config, logId, prompt, phaseTitle, reasoningStep = 0) {
     return await loop.completeCachedJsonPrompt(store, {
       prompt,
       logId,
@@ -197,12 +250,14 @@ window.GameModules.inferenceFactionStageUpdate = {
       sourceTitle: `${config?.label || ''}${phaseTitle}`,
       promptId: 'inference-stage6-faction-update',
       reasoningPhase: 'stage9',
+      reasoningStep,
+      reasoningKey: reasoningStep > 0 ? `stage9-${reasoningStep}` : 'stage9',
       jsonMode: true,
       outputLimitKind: 'stage4',
     });
   },
 
-  async runAfterSettlement({ store, action, narration, updates, participants, logId, config, loop, materialSession = null }) {
+  async runAfterSettlement({ store, action, narration, updates, participants, logId, config, loop, materialSession = null, contextReview = '' }) {
     if (config?.mode === 'story') return { ops: [], lines: [], skipped: true };
     const ctx = window.GameModules.realWorldAgentContext;
     store?.initFactionSystem?.();
@@ -212,11 +267,11 @@ window.GameModules.inferenceFactionStageUpdate = {
     console.log('[Stage9-1势力创建] 待建候选=', pendingFactionCandidates, '未入库候选=', unresolvedBeforeCreate);
 
     loop?.markConfiguredStep?.(store, logId, `${config?.label || ''}正在进行 Stage9-1 势力创建…`, config, { keepNarration: true });
-    loop?.patchConfiguredSettlementThinking?.(store, logId, 'Stage9-1 势力创建：先消费待建势力候选并创建未入库势力。', {
+    loop?.patchConfiguredSettlementThinking?.(store, logId, 'Stage9-1 势力创建：重新检查本轮完整上下文，并一次性批量创建全部未入库势力。', {
       ...config,
       settlementThinking: true,
-      settlementThinkingKey: 'settlement-status',
-      settlementThinkingLabel: '结算状态',
+      settlementThinkingKey: 'stage9-1-status',
+      settlementThinkingLabel: 'Stage9-1 势力创建',
       livePatch: true,
     });
 
@@ -227,8 +282,9 @@ window.GameModules.inferenceFactionStageUpdate = {
         store,
         config,
         logId,
-        this.buildCreatePrompt({ narration, action, factionIndex: factionIndexBeforeCreate, pendingFactionCandidates }),
+        this.buildCreatePrompt({ narration, action, factionIndex: factionIndexBeforeCreate, pendingFactionCandidates, contextReview }),
         'Stage9-1 势力创建',
+        1,
       );
     } catch (err) {
       console.warn('[Stage9-1势力创建] 生成失败:', err?.message || err);
@@ -247,8 +303,8 @@ window.GameModules.inferenceFactionStageUpdate = {
     loop?.patchConfiguredSettlementThinking?.(store, logId, 'Stage9-2 势力更新：只根据正文事实变化 patch 已存在势力字段。', {
       ...config,
       settlementThinking: true,
-      settlementThinkingKey: 'settlement-status',
-      settlementThinkingLabel: '结算状态',
+      settlementThinkingKey: 'stage9-2-status',
+      settlementThinkingLabel: 'Stage9-2 势力更新',
       livePatch: true,
     });
 
@@ -261,6 +317,7 @@ window.GameModules.inferenceFactionStageUpdate = {
         logId,
         this.buildUpdatePrompt({ narration, action, factionIndex: factionIndexBeforeUpdate, factionSnapshot: this.factionSnapshot(store), pendingFactionCandidates }),
         'Stage9-2 势力更新',
+        2,
       );
     } catch (err) {
       console.warn('[Stage9-2势力更新] 生成失败:', err?.message || err);

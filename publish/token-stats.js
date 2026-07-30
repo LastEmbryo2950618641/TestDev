@@ -256,6 +256,18 @@ window.GameModules.tokenStatsActions = {
   tokenResponseText(id) { return window.GameModules.tokenStats.item(id)?.responseText || '暂无 AI 返回值。请求完成后这里会显示原始返回内容。'; },
   tokenResponseImages(id) { return window.GameModules.tokenStats.item(id)?.responseImages || []; },
   tokenPromptDetailText() { const id = this.tokenStatsState?.selectedId; return this.tokenStatsState?.selectedTab === 'response' ? this.tokenResponseText(id) : this.tokenPromptText(id); },
+  async copyTokenPromptDetailText() {
+    const text = String(this.tokenPromptDetailText?.() || '');
+    if (!text.trim()) return;
+    try {
+      await navigator.clipboard?.writeText(text);
+      window.dzmm?.toast?.success?.('已复制完整文本') || console.info('已复制完整文本');
+    } catch (err) {
+      const target = document.querySelector('.prompt-app-modal textarea.prompt-markdown:not([style*="display: none"])');
+      if (target?.select) target.select();
+      window.dzmm?.toast?.warning?.('已选中文本，请按 Ctrl+C 复制') || console.warn('已选中文本，请按 Ctrl+C 复制', err);
+    }
+  },
   tokenPromptRowCostText(item) {
     this.tokenStatsState?.version;
     return window.GameModules.tokenStats.rowCostText(item);

@@ -37,21 +37,29 @@ test('faction query skill documents Stage9 create/patch and Stage1 pending-candi
   assert.ok(inline.includes('patchFactionField'));
 });
 
-test('Stage1 allows createFaction and auto-loads faction list', () => {
+test('Stage1 uses factions field and keeps createFaction out of Stage1 requests', () => {
   const materials = read('publish/prompts/materials/real-world-materials.js');
-  assert.ok(materials.includes("method: 'createFaction', stage1Policy: 'allow'"));
-  assert.ok(!materials.includes("faction.query.createFaction"));
+  assert.ok(materials.includes("method: 'createFaction', stage1Policy: 'deny'"));
   assert.ok(materials.includes('faction.query.patchFactionField'));
   const loader = read('publish/inference/material-loader.js');
   assert.ok(loader.includes('listFactions'));
   assert.ok(loader.includes('自动资料：全部势力名/ID与组织架构'));
   const catalog = read('publish/inference/material-request-catalog.js');
-  assert.ok(catalog.includes("action: '创建势力'"));
-  assert.ok(catalog.includes("method: 'createFaction'"));
   const stage1 = read('publish/prompts/推演引擎/stage1-guided-query.md');
   assert.ok(stage1.includes('势力资料规则'));
-  assert.ok(stage1.includes('创建势力'));
-  assert.ok(stage1.includes('不得因本轮未互动'));
+  assert.ok(stage1.includes('factions：对象数组'));
+  assert.ok(stage1.includes('status 只能是“已获取”或“待创建”'));
+  assert.ok(stage1.includes('不是资料请求，也不是创建指令'));
+  assert.ok(stage1.includes('字符串壳'));
+  assert.ok(stage1.includes('API 选择路由'));
+  assert.ok(stage1.includes('玩家输入可信度与可行性规则'));
+  assert.ok(stage1.includes('既成结果、背景改写、状态突变或超出当前因果能力的宣称'));
+  assert.ok(stage1.includes('只要稍微识别到可作为势力的组织线索'));
+  assert.ok(!stage1.includes('判断标准只看该线索是否已经在上下文中出现'));
+  assert.ok(!stage1.includes('禁止把没有具体名称、没有稳定指代、不能承载归属/规则/资源/关系的抽象标签造势力'));
+  assert.ok(catalog.includes('工作查询'));
+  assert.ok(stage1.includes('禁止写入 API'));
+  assert.ok(!catalog.includes("action: '创建势力'"));
 });
 
 test('real-world faction query no longer blocks China as a concrete faction name or forces China parent fallback', () => {
@@ -62,7 +70,7 @@ test('real-world faction query no longer blocks China as a concrete faction name
 });
 
 
-test('Stage1 createFaction request builds usable first-create payload instead of shell only', () => {
+test('Stage1 catalog exposes work query but not createFaction request', () => {
   const context = vm.createContext({
     console,
     window: {
@@ -74,19 +82,17 @@ test('Stage1 createFaction request builds usable first-create payload instead of
   });
   vm.runInContext(read('publish/inference/material-request-catalog.js'), context, { filename: 'publish/inference/material-request-catalog.js' });
   const catalog = context.window.GameModules.realWorldAgentContextParts.materialRequestCatalog;
-  const req = catalog.parseChineseMaterialRequest('资料请求2：势力查询，创建势力，成都市高新区科创有限公司，公司', { mode: 'real', store: { realWorldLocationName: '锦苑小区3栋2单元601号' } });
-  assert.ok(req);
-  assert.strictEqual(req.skill, 'faction.query');
-  assert.strictEqual(req.method, 'createFaction');
-  assert.strictEqual(req.params.type, '公司');
-  assert.ok(Array.isArray(req.params.structure) && req.params.structure.length >= 1);
-  assert.ok(req.params.solid && req.params.solid.overviewPanels);
-  assert.ok(req.params.solid.overviewPanels.ideology.core.value);
-  assert.ok(req.params.solid.overviewPanels.politics.entries.regime.value);
+  const workReq = catalog.parseJsonMaterialRequest({ type: '工作查询', action: '工作上下文', params: ['刘悠'] }, { mode: 'real' });
+  assert.ok(workReq);
+  assert.strictEqual(workReq.skill, 'company.query');
+  assert.strictEqual(workReq.method, 'getWorkContext');
+  assert.strictEqual(workReq.params.companyName, '刘悠');
+  const createReq = catalog.parseJsonMaterialRequest({ type: '势力查询', action: '创建势力', params: ['成都市高新区科创有限公司', '公司'] }, { mode: 'real' });
+  assert.strictEqual(createReq, null);
 });
 
 
-test('Stage1 createFaction request becomes pending candidate instead of immediate write', async () => {
+test('Stage1 createFaction request is blocked and must not become a pending candidate', async () => {
   const context = vm.createContext({
     console,
     Date,
@@ -101,14 +107,14 @@ test('Stage1 createFaction request becomes pending candidate instead of immediat
   vm.runInContext(read('publish/inference/material-loader.js'), context, { filename: 'publish/inference/material-loader.js' });
   const materials = context.window.GameModules.realWorldMaterials;
   const loader = context.window.GameModules.realWorldAgentContextParts.materialLoader;
+  loader.materialReferenceCandidates = () => [];
+  loader.materialReferenceFor = () => null;
+  loader.materialReferenceText = (text) => text;
   loader.materialRequestKey = (skill, method, params) => `${skill}:${method}:${JSON.stringify(params || {})}`;
-  let called = 0;
   const store = {};
-  const reqs = [{ skill: 'faction.query', method: 'createFaction', params: { name: '成都市高新区科创有限公司', type: '公司', worldTag: '2026现代都市现实世界' }, sourceText: '资料请求2：势力查询，创建势力，成都市高新区科创有限公司，公司' }];
-  loader.dispatch = async () => { called += 1; return 'should-not-run'; };
+  const reqs = [{ skill: 'faction.query', method: 'createFaction', params: { name: '成都市高新区科创有限公司', type: '公司', worldTag: '2026现代都市现实世界' }, sourceJson: { type: '势力查询', action: '创建势力', params: ['成都市高新区科创有限公司', '公司'] } }];
   const session = materials.createSession('行动');
   const out = await loader.loadRequests(store, '行动', reqs, new Set(), session, materials, new Set(), [], [], { limit: 3, step: 1, label: '现实' });
-  assert.strictEqual(called, 0);
-  assert.strictEqual((session.pendingFactionCandidates || []).length, 1);
-  assert.ok(String(out[0].text || '').includes('待建势力候选'));
+  assert.strictEqual((session.pendingFactionCandidates || []).length, 0);
+  assert.ok(String(out[0].text || '').includes('Stage1 禁止'));
 });
