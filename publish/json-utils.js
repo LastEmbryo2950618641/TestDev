@@ -101,6 +101,7 @@ window.GameModules.jsonUtils = {
     if (Object.prototype.hasOwnProperty.call(options, 'jsonMode')) overrides.jsonMode = options.jsonMode;
     if (Object.prototype.hasOwnProperty.call(options, 'outputLimitKind')) overrides.outputLimitKind = options.outputLimitKind;
     if (Object.prototype.hasOwnProperty.call(options, 'responseFormat')) overrides.responseFormat = options.responseFormat;
+    if (Object.prototype.hasOwnProperty.call(options, 'deepThinking')) overrides.deepThinking = options.deepThinking;
     if (promptId && window.GameModules.promptSkills?.completionOptions) {
       return window.GameModules.promptSkills.completionOptions(promptId, overrides);
     }
@@ -109,6 +110,7 @@ window.GameModules.jsonUtils = {
       outputLimitKind: options.outputLimitKind || 'other',
       jsonMode,
       responseFormat: options.responseFormat || (jsonMode ? { type: 'json_object' } : undefined),
+      deepThinking: Object.prototype.hasOwnProperty.call(options, 'deepThinking') ? options.deepThinking : jsonMode,
     };
   },
 
@@ -188,7 +190,7 @@ window.GameModules.jsonUtils = {
     throw error;
   },
 
-  async requestCompletion({ model, prompt, promptId = '', maxTokens, source = 'json-utils', sourceTitle = '', timeoutMs = 90000, maxAttempts, jsonMode = true, outputLimitKind = 'other', responseFormat, store = null, useRealWorldKvCache = false, kvCacheSession = null, reasoningPhase = '', logId = null, tokenMeta = null }) {
+  async requestCompletion({ model, prompt, promptId = '', maxTokens, source = 'json-utils', sourceTitle = '', timeoutMs = 90000, maxAttempts, jsonMode = true, outputLimitKind = 'other', responseFormat, deepThinking = jsonMode, store = null, useRealWorldKvCache = false, kvCacheSession = null, reasoningPhase = '', logId = null, tokenMeta = null }) {
     if (useRealWorldKvCache && store && window.GameModules.realWorldAgentLoop?.completeCachedJsonPrompt) {
       return await window.GameModules.realWorldAgentLoop.completeCachedJsonPrompt(store, {
         prompt,
@@ -200,6 +202,7 @@ window.GameModules.jsonUtils = {
         timeoutMs,
         maxAttempts,
         jsonMode,
+        deepThinking,
         outputLimitKind,
         responseFormat: responseFormat || (jsonMode ? { type: 'json_object' } : undefined),
         kvCacheSession,
@@ -208,7 +211,7 @@ window.GameModules.jsonUtils = {
         tokenMeta,
       });
     }
-    return window.GameModules.aiRequest.complete({ source, model, maxTokens, prompt, timeoutMs, maxAttempts, jsonMode, responseFormat: responseFormat || (jsonMode ? { type: 'json_object' } : undefined), outputLimitKind, tokenMeta });
+    return window.GameModules.aiRequest.complete({ source, model, maxTokens, prompt, timeoutMs, maxAttempts, jsonMode, deepThinking, responseFormat: responseFormat || (jsonMode ? { type: 'json_object' } : undefined), outputLimitKind, tokenMeta });
   },
 
   async repairPrompt(format, badOutput, err, hint = '') {

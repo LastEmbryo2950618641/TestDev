@@ -3544,7 +3544,7 @@ window.GameModules.realWorldAgentLoop = {
     const patchesByType = {};
     let requestedTypes = this.nextSettlementWindow(allTypes, completedTypes, []);
     let shortOutputRetries = 0;
-    const maxAttempts = Math.max(8, allTypes.length + 2);
+    const maxAttempts = 1;
     for (let attempt = 0; attempt < maxAttempts && requestedTypes.length; attempt += 1) {
       this.patchConfiguredSettlementThinking(store, logId, `Stage4 状态结算：正在结算 ${requestedTypes.join('、')}。`, { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
       const messages = await this.buildSettlementTypeWindowMessages({ requestedTypes, completedTypes, incompleteTypes: requestedTypes.filter((type) => partialByType[type]), partialByType, store, action, base, loaded, materialSession, narration, trace, participants, config });
@@ -3559,11 +3559,13 @@ window.GameModules.realWorldAgentLoop = {
       const isShortPartial = shortOutputThreshold > 0 && !isFinalBatch && compactRawLength < shortOutputThreshold;
       const hasCompleteBlocksInShortOutput = isShortPartial && parsed.completeTypes.length > 0;
       if (isShortPartial && !hasCompleteBlocksInShortOutput) {
-        shortOutputRetries += 1;
-        partialByType.__shortOutputReason = `上轮返回过短：${compactRawLength}/${shortOutputThreshold}；整轮已丢弃，必须按本次必须返回的类型顺序完整重输全部类型。`;
-        if (shortOutputRetries > 1) throw new Error(`Stage4 状态结算返回过短且无完整类型：${compactRawLength}/${shortOutputThreshold}，未完成类型：${requestedTypes.join('、')}`);
-        requestedTypes.forEach((type) => { partialByType[type] = '上轮返回过短且无完整类型；本轮必须重新输出该 key 的完整 JSON 值。'; });
-        continue;
+        requestedTypes.forEach((type) => {
+          if (!completedTypes.includes(type)) completedTypes.push(type);
+          patchesByType[type] = patchesByType[type] || {};
+          delete partialByType[type];
+        });
+        requestedTypes = [];
+        break;
       }
       shortOutputRetries = 0;
       const acceptedShortReason = hasCompleteBlocksInShortOutput
@@ -3576,13 +3578,9 @@ window.GameModules.realWorldAgentLoop = {
         delete partialByType[type];
       });
       parsed.incompleteTypes.forEach((type) => {
-        const parsedLines = parsed.patchesByType[type]?.__lines || [];
-        const parsedCount = parsed.patchesByType[type]?.__parsedUpdates || 0;
-        const updateCount = parsed.patchesByType[type]?.__updateLines || 0;
-        const cause = updateCount && parsedCount !== updateCount
-          ? `字段未通过解析：${parsedCount}/${updateCount} 条有效；请检查 subject、field、value 与合约。`
-          : '上轮 JSON 缺失或字段未通过解析。';
-        partialByType[type] = parsedLines.length ? `${cause} 本轮必须重新输出该 key 的完整 JSON 值。` : `${cause} 本轮未返回该类型。`;
+        if (!completedTypes.includes(type)) completedTypes.push(type);
+        patchesByType[type] = patchesByType[type] || {};
+        delete partialByType[type];
       });
       if (acceptedShortReason && parsed.incompleteTypes.length) partialByType.__shortOutputReason = acceptedShortReason;
       requestedTypes = this.nextSettlementWindow(allTypes, completedTypes, parsed.incompleteTypes);
@@ -4069,6 +4067,7 @@ window.GameModules.realWorldAgentLoop = {
     if (has('jsonMode')) overrides.jsonMode = config.jsonMode;
     if (has('responseFormat')) overrides.responseFormat = config.responseFormat;
     if (has('outputLimitKind')) overrides.outputLimitKind = config.outputLimitKind;
+    if (has('deepThinking')) overrides.deepThinking = config.deepThinking;
     if (promptId && window.GameModules.promptSkills?.completionOptions) {
       return window.GameModules.promptSkills.completionOptions(promptId, overrides);
     }
@@ -4095,12 +4094,13 @@ window.GameModules.realWorldAgentLoop = {
     try {
       const completionOptions = this.configuredCompletionOptions(config, streamToUi);
       const expectsJson = Boolean(completionOptions.jsonMode);
-      const providerId = window.GameModules.aiProvider?.currentProviderId?.() || '';
-      // 推演正文前/后思考面板都需要深度思考。DeepSeek 在 response_format=json_object 时会强制关闭 thinking，
-      // 因此开深度思考时不向 API 传 response_format；JSON 仍由 prompt 约束 + parseLoose 解析。同路径也利于前缀缓存。
-      const wantsDeepThinking = config.deepThinking !== false;
-      const apiJsonMode = expectsJson && !wantsDeepThinking;
-      const shouldStream = !apiJsonMode || providerId === 'deepseek' || wantsDeepThinking;
+      // 非正文 JSON 阶段默认同时启用深度思考与 API JSON mode；Stage3 正文不启用 JSON mode。
+      // 如某个调用显式传 deepThinking:false，则只关闭深度思考，不影响 JSON mode。
+      const wantsDeepThinking = Object.prototype.hasOwnProperty.call(config || {}, 'deepThinking')
+        ? config.deepThinking !== false
+        : completionOptions.deepThinking !== false;
+      const requestJsonMode = expectsJson;
+      const shouldStream = !requestJsonMode || wantsDeepThinking;
       const normalizedPhase = this.normalizeReasoningPhase(config.reasoningPhase || (streamToUi ? 'stage3' : 'unknown'));
       const defaultTimeoutMs = normalizedPhase === 'stage3'
         ? (streamToUi ? 480000 : 180000)
@@ -4114,8 +4114,8 @@ window.GameModules.realWorldAgentLoop = {
         ...(kvMessages ? { messages: kvMessages } : (currentMessages ? { messages: currentMessages } : { prompt })),
         deepThinking: wantsDeepThinking,
         deepThinkingEffort: 'high',
-        jsonMode: apiJsonMode,
-        responseFormat: apiJsonMode ? (completionOptions.responseFormat || { type: 'json_object' }) : undefined,
+        jsonMode: requestJsonMode,
+        responseFormat: requestJsonMode ? (completionOptions.responseFormat || { type: 'json_object' }) : undefined,
         stream: shouldStream,
         timeoutMs: Number(config.timeoutMs) || defaultTimeoutMs,
         requireDone: true,

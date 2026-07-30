@@ -102,16 +102,16 @@ assert.strictEqual(withId.links.scheduleId, 'rel-ai-shared1');
     forbiddenParticipants: [],
   };
   const batch = await GM.characterIdEnsure.ensureBatch(host, layers);
-  assert.ok(batch.count >= 1);
+  assert.strictEqual(batch.count, 0);
   const id = layers.forcedParticipants[0].id;
-  assert.ok(String(id).startsWith('rel-ai-'));
+  assert.strictEqual(id, '待建卡');
   assert.strictEqual(host.rpgStates[id], undefined, 'Stage1 no longer creates role stub');
 
   const intro = GM.characterIntroStore.getById?.(id)
     || GM.characterIntroStore.list().find((c) => c.id === id);
   assert.ok(!intro, 'Stage1 no longer creates intro card');
 
-  const byIdText = GM.characterQuery.searchCharacter(host, { name: id, id });
+  const byIdText = GM.characterQuery.searchCharacter(host, { name: '测试新人', id });
   assert.ok(/未找到角色资料/u.test(byIdText), 'before Stage5 there is no intro or role card yet');
 
   console.log('PASS unified-character-id');

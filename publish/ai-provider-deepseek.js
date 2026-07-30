@@ -112,10 +112,9 @@ window.GameModules.aiProvider.register('deepseek', {
 
   async complete(options = {}) {
     const responseFormat = this.jsonResponseFormat(options);
-    const requestOptions = responseFormat ? { ...options, thinking: { type: 'disabled' }, deepThinking: false } : options;
-    const thinking = responseFormat ? null : this.thinkingPayload(options);
+    const thinking = this.thinkingPayload(options);
     const payload = {
-      model: this.requestModel(requestOptions),
+      model: this.requestModel(options),
       messages: this.jsonMessages(options.messages || [], options),
       max_tokens: options.maxTokens,
       stream: Boolean(options.stream),

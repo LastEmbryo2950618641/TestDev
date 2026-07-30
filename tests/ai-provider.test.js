@@ -160,7 +160,40 @@ test('deepseek keeps selected flash model when deep thinking is enabled', async 
   assert.strictEqual(text, 'ok');
   assert.strictEqual(payload.model, 'deepseek-v4-flash');
   assert.strictEqual(payload.reasoning_effort, 'high');
-});test('deepseek complete maps chat completion response to text buffer', async () => {
+});
+
+test('deepseek keeps JSON response format and deep thinking together', async () => {
+  const context = createContext();
+  let payload = null;
+  context.fetch = async (_url, request) => {
+    payload = JSON.parse(request.body);
+    return {
+      ok: true,
+      async json() {
+        return {
+          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+          choices: [{ message: { content: '{"ok":true}', reasoning_content: 'reasoning' } }],
+        };
+      },
+    };
+  };
+  loadScript(context, 'publish/ai-provider.js');
+  loadScript(context, 'publish/ai-provider-deepseek.js');
+  const provider = context.window.GameModules.aiProvider.get('deepseek');
+  const text = await provider.complete({
+    model: 'deepseek-v4-flash',
+    messages: [{ role: 'user', content: 'return json' }],
+    jsonMode: true,
+    responseFormat: { type: 'json_object' },
+    deepThinking: true,
+  });
+  assert.strictEqual(text, '{"ok":true}');
+  assert.deepStrictEqual(payload.response_format, { type: 'json_object' });
+  assert.deepStrictEqual(payload.thinking, { type: 'enabled' });
+  assert.strictEqual(payload.reasoning_effort, 'high');
+});
+
+test('deepseek complete maps chat completion response to text buffer', async () => {
   const seen = [];
   const context = createContext({
     fetch: async (url, options) => {

@@ -354,7 +354,7 @@ test('map auxiliary AI requests reuse real world KV cache path', () => {
   assert.ok(fog.includes("outputLimitKind: 'stage4'"));
   assert.ok(actions.includes('clearPendingKvCacheSession'));
   assert.ok(loop.includes('wantsDeepThinking') || loop.includes('deepThinking: wantsDeepThinking') || loop.includes('deepThinking !== false'));
-  assert.ok(loop.includes('apiJsonMode'));
+  assert.ok(!loop.includes('expectsJson && !wantsDeepThinking'));
   assert.ok(locationFill.includes("source: 'real-world-location-fill'"));
   assert.ok(locationFill.includes('useRealWorldKvCache: true'));
   assert.ok(locationFill.includes('locationFillRequestOptions(options = {})'));

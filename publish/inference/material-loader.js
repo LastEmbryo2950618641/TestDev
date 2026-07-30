@@ -24,14 +24,17 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
       .map((item) => (typeof item === 'string' ? item : (item?.name || item?.idOrName || item?.characterName || '')).trim())
       .filter(Boolean);
     const states = [...Object.values(store?.rpgStates || {}), ...(window.GameModules.characterStateStore?.list?.() || [])];
+    const playerState = store?.playerIdentityState?.() || store?.rpgStates?.['player-self'] || null;
     const seen = new Set();
     const worldOk = (state) => window.GameModules.characterQuery?.worldMatches?.(window.GameModules.realWorld2026?.label || '2026 现代都市现实世界', state.worldTag || state.profile?.work);
     const nameHit = (name) => actionText.includes(name) || priorParticipantNames.includes(name);
-    const hits = states.filter((state) => {
+    const candidates = playerState ? [playerState, ...states] : states;
+    const hits = candidates.filter((state) => {
       const name = String(state?.profile?.name || state?.name || '').trim();
       const id = String(state?.id || '').trim();
       const key = id || name;
-      if (!name || seen.has(key) || !nameHit(name) || !worldOk(state)) return false;
+      const isPlayer = id === 'player-self';
+      if (!name || seen.has(key) || (!isPlayer && !nameHit(name)) || !worldOk(state)) return false;
       seen.add(key);
       return true;
     }).slice(0, 3);

@@ -93,10 +93,10 @@ const layers = {
 };
 (async () => {
   const batch = await context.window.GameModules.characterIdEnsure.ensureBatch(host, layers);
-  assert.ok(batch.count >= 1);
-  assert.ok(String(layers.forcedParticipants[0].id).startsWith('rel-ai-'));
+  assert.strictEqual(batch.count, 0);
+  assert.strictEqual(layers.forcedParticipants[0].id, '待建卡');
   assert.strictEqual(Object.keys(host.rpgStates).length, 0, 'Stage1 should only assign shared ids, not create stub cards');
-  console.log('PASS stage1 participant id format + batch assign');
+  console.log('PASS stage1 participant id format + no pending id allocation');
 })().catch((err) => {
   console.error(err);
   process.exit(1);

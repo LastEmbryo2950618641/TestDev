@@ -1,8 +1,8 @@
 window.GameModules = window.GameModules || {};
 
 /**
- * After Stage1: one batch assign for participants missing a real character id.
- * Stage1 only allocates shared ids; real intro-card creation happens in Stage5.
+ * After Stage1: only reconcile participants with already-existing real ids.
+ * Unknown pending participants keep 待建卡; Stage5 decides intro-card candidates and allocates ids.
  */
 window.GameModules.characterIdEnsure = {
   pendingIdPattern: /^(?:pending|new|待建卡|\?)$/iu,
@@ -37,6 +37,8 @@ window.GameModules.characterIdEnsure = {
     const storeApi = window.GameModules.characterStateStore;
     const state = storeApi?.getByName?.(clean, world, store);
     if (state?.id && this.isRealCharacterId(state.id)) return state.id;
+    const queryState = window.GameModules.characterQuery?.stateByName?.(store, clean, world);
+    if (queryState?.id && this.isRealCharacterId(queryState.id)) return queryState.id;
     const introStore = window.GameModules.characterIntroStore;
     const intro = introStore?.get?.(clean, world) || null;
     if (intro?.id && this.isRealCharacterId(intro.id)) return intro.id;
@@ -92,36 +94,23 @@ window.GameModules.characterIdEnsure = {
         },
       };
     }
-    const id = this.allocateId(clean, world);
-    return {
-      id,
-      name: clean,
-      worldTag: world,
-      profile: {
-        id,
-        name: clean,
-        work: world,
-        presenceKind: window.GameModules.characterSocialDrive?.inferPresenceKind?.({ name: clean }) || 'individual',
-      },
-      meta: {
-        pendingIntroCandidate: true,
-      },
-    };
+    return null;
   },
 
   /**
-   * One batch after Stage1. Mutates layer participant objects to real ids.
+   * One batch after Stage1. Mutates only participants that match existing real ids.
    * Returns { ensured: [{name,id}], skipped: [] }.
    */
   async ensureBatch(store, layers = {}) {
     const need = this.collectNeedEnsure(layers, store);
     if (!need.length) return { ensured: [], skipped: [], count: 0 };
     const ensured = [];
+    const skipped = [];
     for (const row of need) {
       try {
         const state = await this.ensureOne(store, row.name);
         if (!state?.id) {
-          console.warn('[characterIdEnsure] 批量分配ID失败:', row.name);
+          skipped.push({ name: row.name, layer: row.layer, reason: '待建卡保留到Stage5建介绍卡' });
           continue;
         }
         row.item.id = state.id;
@@ -132,6 +121,6 @@ window.GameModules.characterIdEnsure = {
         console.warn('[characterIdEnsure] 批量分配ID异常:', row.name, err?.message || err);
       }
     }
-    return { ensured, skipped: [], count: ensured.length };
+    return { ensured, skipped, count: ensured.length };
   },
 };

@@ -83,6 +83,7 @@ window.GameModules.realWorldAgentContext = {
   },
 
   buildStage1RoutingContext({ store, action, loaded = [], config = null } = {}) {
+    const realWorld = window.GameModules.realWorld2026 || {};
     const map = window.GameModules.realWorldMap?.ensure?.(store, store?.playerProfile || {}) || {};
     const location = store?.realWorldLocationName || map.current || '未知地点';
     const time = [store?.phoneDateText?.(), store?.phoneTimeText?.()].filter(Boolean).join(' ') || '未知时间';
@@ -97,6 +98,8 @@ window.GameModules.realWorldAgentContext = {
       : '';
     return [
       `模式：${config?.label || '现实'}`,
+      `当前世界：${realWorld.label || '2026 现代都市现实世界'}`,
+      `背景设定：${realWorld.summary || '玩家生活在现代都市，个人信息由玩家自行设定。'}`,
       `本次行动：${action || '继续观察现实世界'}`,
       `当前位置：${location}`,
       `当前时间：${time}`,
