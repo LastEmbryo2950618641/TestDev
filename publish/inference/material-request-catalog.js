@@ -5,6 +5,20 @@ window.GameModules.realWorldAgentContextParts.materialRequestCatalog = {
   worldLabel() {
     return window.GameModules.realWorld2026?.label || '2026现代都市现实世界';
   },
+  looksLikeCharacterIdToken(value = '') {
+    const text = String(value || '').trim();
+    return /^(?:player-self|rel-ai-|force-|npc-|boss-|c\\d+|[a-z][a-z0-9_-]{3,})/iu.test(text);
+  },
+
+  normalizeMemoryWindowParams(params = []) {
+    const first = String(params?.[0] || '').trim();
+    const second = String(params?.[1] || '').trim();
+    if (!second) return { characterId: '', keyword: first };
+    if (this.looksLikeCharacterIdToken(first)) {
+      return { characterId: first, keyword: second };
+    }
+    return { characterId: '', keyword: [first, second].filter(Boolean).join(' ') };
+  },
 
   factionRequestReason(name = '', type = '') {
     const typeText = String(type || '').trim() || '组织';
@@ -180,7 +194,16 @@ window.GameModules.realWorldAgentContextParts.materialRequestCatalog = {
       { mode: 'both', category: '世界线查询', action: '按关键词搜索', skill: 'realworld.history.query', method: 'searchWorldlineByKeyword', requiredParams: ['keyword'], buildParams: (p) => ({ keyword: p[0] || '', world: p[1] || world() }) },
       { mode: 'both', category: '世界线查询', action: '按时间搜索', skill: 'realworld.history.query', method: 'searchWorldlineByTime', requiredParams: ['time'], buildParams: (p) => ({ time: p[0] || '', keyword: p[1] || '', world: p[2] || world() }) },
       { mode: 'real', category: '新闻查询', action: '最新热榜', skill: 'news.query', method: 'getLatestHotlist', requiredParams: [], buildParams: (p) => ({ world: p[0] || world() }) },
-      { mode: 'both', category: '记忆查询', action: '搜索角色记忆窗口', skill: 'memory.query', method: 'searchCharacterMemoryWindow', requiredParams: ['keyword'], buildParams: (p) => ({ characterId: p[0] || '', keyword: p[1] || '' }) },
+      {
+        mode: 'both',
+        category: '记忆查询',
+        action: '搜索角色记忆窗口',
+        skill: 'memory.query',
+        method: 'searchCharacterMemoryWindow',
+        requiredParams: ['keyword'],
+        buildParams: (p) => this.normalizeMemoryWindowParams(p),
+        validateParams: (built) => Boolean(String(built?.characterId || '').trim() || String(built?.keyword || '').trim()),
+      },
       { mode: 'real', category: '微信查询', action: '联系人列表', skill: 'wechat.query', method: 'listContacts', requiredParams: [], buildParams: (p) => ({ world: p[0] || world() }) },
       { mode: 'real', category: '微信查询', action: '会话片段', skill: 'wechat.query', method: 'getThread', requiredParams: ['contactId'], buildParams: (p) => ({ contactId: p[0] || '', count: Number(p[1]) || 5 }) },
       { mode: 'real', category: '工作查询', action: '工作上下文', skill: 'company.query', method: 'getWorkContext', requiredParams: [], buildParams: (p) => ({ companyName: p[0] || '' }) },
@@ -224,7 +247,10 @@ window.GameModules.realWorldAgentContextParts.materialRequestCatalog = {
     if (!entry) return null;
     const built = entry.buildParams(params, options);
     const required = Array.isArray(entry.requiredParams) ? entry.requiredParams : Object.keys(built).filter((key) => key !== 'world');
-    if (required.some((key) => built[key] === '' || built[key] === undefined)) return null;
+    const valid = typeof entry.validateParams === 'function'
+      ? entry.validateParams(built, params, options)
+      : !required.some((key) => built[key] === '' || built[key] === undefined);
+    if (!valid) return null;
     return {
       skill: entry.skill,
       method: entry.method,
@@ -272,3 +298,4 @@ window.GameModules.realWorldAgentContextParts.materialRequestCatalog = {
   },
 
 };
+

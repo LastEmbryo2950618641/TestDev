@@ -1346,6 +1346,8 @@ test('parseJsonMaterialRequest maps Stage1 request objects to whitelist calls', 
   const role = ctx.parseJsonMaterialRequest({ type: '角色查询', action: '搜索角色卡', params: ['刘思琪', '2026现代都市现实世界'] }, { mode: 'real' });
   const nearby = ctx.parseJsonMaterialRequest({ type: '地点查询', action: '查询附近地点', params: ['刘思琪房间门口'] }, { mode: 'real' });
   const news = ctx.parseJsonMaterialRequest({ type: '新闻查询', action: '最新热榜', params: ['当前世界'] }, { mode: 'real' });
+  const memorySingle = ctx.parseJsonMaterialRequest({ type: '记忆查询', action: '搜索角色记忆窗口', params: ['刘思琪'] }, { mode: 'real' });
+  const memoryWithId = ctx.parseJsonMaterialRequest({ type: '记忆查询', action: '搜索角色记忆窗口', params: ['rel-ai-247528', '房间'] }, { mode: 'real' });
   const bad = ctx.parseJsonMaterialRequest({ type: '未知查询', action: '删除资料', params: ['刘思琪'] }, { mode: 'real' });
 
   assert.deepStrictEqual(JSON.parse(JSON.stringify(role)), { skill: 'character.query', method: 'searchCharacterProfile', params: { name: '刘思琪', world: '2026现代都市现实世界' }, sourceJson: { type: '角色查询', action: '搜索角色卡', params: ['刘思琪', '2026现代都市现实世界'] } });
@@ -1355,6 +1357,10 @@ test('parseJsonMaterialRequest maps Stage1 request objects to whitelist calls', 
   assert.strictEqual(news.skill, 'news.query');
   assert.strictEqual(news.method, 'getLatestHotlist');
   assert.strictEqual(news.params.world, '当前世界');
+  assert.strictEqual(memorySingle.skill, 'memory.query');
+  assert.strictEqual(memorySingle.method, 'searchCharacterMemoryWindow');
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(memorySingle.params)), { characterId: '', keyword: '刘思琪' });
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(memoryWithId.params)), { characterId: 'rel-ai-247528', keyword: '房间' });
   assert.strictEqual(bad, null);
 });
 
@@ -3385,3 +3391,5 @@ test('Stage4 keeps repeated short complete single-type replies and reports remai
   console.error(err);
   process.exit(1);
 });
+
+

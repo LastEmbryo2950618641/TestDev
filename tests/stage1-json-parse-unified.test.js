@@ -100,12 +100,15 @@ assert.throws(
 );
 console.log('PASS stage1 parser rejects string-shell factions and JSON wrapper text');
 
+const nullFactionRaw = '{"plan":"资料足够但有待建势力","status":"资料已足够","sceneQueries":{"location":[],"causality":[],"conflict":[]},"participants":{"forced":[],"priority":[],"drama":[],"forbidden":[]},"factions":[{"name":"成都市高新区科创有限公司","id":null,"status":"待创建"},{"name":"中华人民共和国","id":"country-china","status":"已获取"}],"randomEvents":[],"randomIntrusionCondition":"无明确条件则禁止闯入","materialRequests":[]}';
 const factionRaw = '{"plan":"资料足够但有待建势力","status":"资料已足够","sceneQueries":{"location":[],"causality":[],"conflict":[]},"participants":{"forced":[],"priority":[],"drama":[],"forbidden":[]},"factions":[{"name":"成都市高新区科创有限公司","id":"","status":"待创建"},{"name":"中华人民共和国","id":"country-china","status":"已获取"}],"randomEvents":[],"randomIntrusionCondition":"无明确条件则禁止闯入","materialRequests":[]}';
 const factionParsed = loop.parseStep(factionRaw, loop.realConfig());
 assert.strictEqual(factionParsed.type, 'context_done');
 assert.strictEqual(Array.from(factionParsed.factions).map((item) => `${item.name}:${item.pending ? 'pending' : item.id}`).join('|'), '成都市高新区科创有限公司:pending|中华人民共和国:country-china');
 assert.strictEqual(factionParsed.requests.length, 0);
 const materialSession = context.window.GameModules.realWorldMaterials.createSession('行动');
+const nullParsed = loop.parseStep(nullFactionRaw, loop.realConfig());
+assert.strictEqual(Array.from(nullParsed.factions).map((item) => `${item.name}:${item.pending ? 'pending' : item.id}`).join('|') , '成都市高新区科创有限公司:pending|中华人民共和国:country-china');
 const pending = loop.recordStage1PendingFactions(materialSession, factionParsed.factions, factionRaw);
 assert.strictEqual(pending.length, 1);
 assert.strictEqual(materialSession.pendingFactionCandidates[0].name, '成都市高新区科创有限公司');
@@ -148,3 +151,4 @@ assert.ok(stage9Context.includes('识别工作单位'));
 assert.ok(stage9Context.includes('成都市高新区科创有限公司'));
 assert.ok(stage9Context.includes('刘悠家中'));
 console.log('PASS Stage9 review context contains the complete inference chain');
+

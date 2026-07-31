@@ -63,7 +63,7 @@ API 选择路由：
 - 角色资料中出现工作、上学、人事归属、社群归属或稳定组织关系时，先判断它是否影响本轮正文；影响正文则通过角色名/ID、单位名、岗位或组织线索查询相关资料。
 - 工作细节使用目录中的“工作查询 / 工作上下文”；参数填写角色名、角色ID、单位名或岗位线索中最能命中的真实值。它读取工作单位、岗位、考勤、薪酬绩效与工作关系，不在 Stage1 写库。
 - 势力资料使用目录中的“势力查询 / 搜索势力”或“势力查询 / 势力详情”；参数填写势力名、组织线索或已核验势力ID。查到后在 factions 写真实 id 与 status="已获取"。
-- 若势力查询已执行但未命中，或当前只有可稳定指代的组织线索尚无真实势力记录，在 factions 写标准对象，name 为候选名，id 为空字符串，status 为“待创建”；代码会生成唯一待建 ID，Stage9-1 再补全创建。
+- 若势力查询已执行但未命中，或当前只有可稳定指代的组织线索尚无真实势力记录，在 factions 写标准对象，name 为候选名，id 写 null，status 为“待创建”；不要写空字符串；代码会生成唯一待建 ID，Stage9-1 再补全创建。
 - factions 清单应覆盖本轮正文可用到或资料上下文已暴露的相关势力；它不要求正文一定互动，也不要求本轮发生字段变化。
 
 新闻热榜资料规则：
@@ -81,11 +81,11 @@ API 选择路由：
 
 势力资料规则：
 - 系统已在首轮前自动载入全部势力名/ID与组织架构，注入到已加载资料中；对照后仍不确定可请求势力查询。
-- `factions` 是标准 JSON 对象数组；每一项只表达 name、id、status 三类核心字段，禁止输出 `势力名(ID)` 字符串壳。
+- `factions` 是标准 JSON 对象数组；每一项只表达 name、id、status 三类核心字段，禁止输出 `势力名(ID)` 字符串壳；待创建时 id 必须写 null，不要留空或写空字符串。
 - `factions` 不是资料请求，也不是创建指令；它是 Stage1 对所有相关势力线索的结构化核验清单。代码会按 `id` 优先、`name` 次之查询势力库：查到则载入势力资料并反馈“已获取”，查不到则生成唯一待建 ID 并反馈“待创建”。
 - 你必须主动检查全部资料上下文中的现实组织线索；只要稍微识别到可作为势力的组织线索，就必须写入 `factions`，不得因本轮正文资料足够而跳过。
 - 角色卡或人事归属里的 `orgId` 只是组织线索，不等于势力库 ID；只有已加载的势力索引明确命中，才允许写“已获取”与真实势力ID。
-- 若势力索引未明确命中，status 写“待创建”且 id 写空字符串；代码会完成核验、生成唯一待建ID，并把状态反馈给后续阶段。
+- 若势力索引未明确命中，status 写“待创建”且 id 写 null，不要写空字符串；代码会完成核验、生成唯一待建ID，并把状态反馈给后续阶段。
 - Stage1 禁止 `createFaction` / `patchFactionField`；真正创建只在正文后 Stage9-1 针对 `status="待创建"` 的势力执行。
 - 禁止把纯抽象身份本身造势力；禁止批量灌库无关势力。
 
@@ -125,7 +125,7 @@ API 选择路由：
 - 不要 Markdown，不要 ```json 代码块，不要换行解释。
 - status 只能二选一：资料已足够 / 继续请求资料。
 - sceneQueries.location / sceneQueries.causality / sceneQueries.conflict 必须是字符串数组；没有则 []。
-- factions 必须是对象数组；没有则 []；每项必须包含 name、id、status，id 没有核验命中时为空字符串。
+- factions 必须是对象数组；没有则 []；每项必须包含 name、id、status，id 没有核验命中时写 null。
 - factions 可以和 `status:"资料已足够"` 同时存在；不要因为只剩势力核验/待创建登记就让 Stage1 反复继续请求资料。
 - 若 status 为“继续请求资料”，优先输出 materialRequests，最多 3 条；没有可执行资料请求时 materialRequests 输出 []，但必须保留 sceneQueries 理由或明确 participants 候选。
 - materialRequests 必须是对象数组；禁止把整条资料请求塞成一个字符串。
@@ -139,7 +139,7 @@ API 选择路由：
 - status：字符串；只能是“继续请求资料”或“资料已足够”。
 - sceneQueries：对象；必须包含 location、causality、conflict 三个字符串数组。
 - participants：对象；必须包含 forced、priority、drama、forbidden 四个字符串数组；数组元素必须是“可区分称呼(ID)”。
-- factions：对象数组；每项必须包含 name、id、status；status 只能是“已获取”或“待创建”。
+- factions：对象数组；每项必须包含 name、id、status；status 只能是“已获取”或“待创建”；待创建时 id 写 null。
 - randomEvents：字符串数组。
 - randomIntrusionCondition：字符串；没有明确条件时写“无明确条件则禁止闯入”。
 - materialRequests：对象数组；每项必须包含 type、action、params；type/action 从可请求资料目录选择，params 是按目录参数顺序填写的字符串数组。
@@ -147,12 +147,14 @@ API 选择路由：
 【AI自检】：
 - 输出前必须自检 status 与 materialRequests、sceneQueries、participants 是否一致。
 - 输出前必须自检 participants 每一项都是 `可区分称呼(ID)`，没有裸姓名或裸称呼。
-- 输出前必须自检 factions 每一项都是标准对象，不是字符串；角色卡 `orgId` 未经势力索引命中时必须写待创建状态且 id 为空字符串。
+- 输出前必须自检 factions 每一项都是标准对象，不是字符串；角色卡 `orgId` 未经势力索引命中时必须写待创建状态且 id 为 null。
 - 输出前必须自检没有 `factions:["势力名(ID)"]`、没有 `相关势力：...` 这类字符串壳或解释文本。
 - 输出前必须自检没有 materialRequests 字符串壳；每条请求都必须是对象。
 - 输出前必须自检：本次行动相关关键资料是否已能从「本轮已加载摘要 / materialRequests / 对话链中的旧资料+后续变更」可靠覆盖；若仍有缺口或冲突会影响正文，不得写“资料已足够”。
 - 输出前必须自检：行动或资料上下文中只要出现任何可作为势力的组织线索，就必须在 factions 写对应对象；不得因本轮未互动/无字段更新而跳过。
 - 若 materialRequests、sceneQueries、participants.forced、participants.priority、participants.drama、factions 全为空，status 必须为“资料已足够”。
 - 不得输出 Markdown、自然语言解释或 JSON 外壳文本。
+
+
 
 
