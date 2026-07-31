@@ -113,12 +113,21 @@ window.GameModules.realWorldThinkingActions = {
 
   realWorldThinkingLines(entry = {}) {
     const groups = this.realWorldThinkingStageGroups(entry);
-    return groups.map((group, index) => ({
+    const lines = groups.map((group, index) => ({
       id: group.id,
       label: group.label,
       text: [group.reasoning, group.traceText].filter(Boolean).join('\n\n'),
       open: this.realWorldThinkingStageOpen(entry, group.id, index),
     }));
+    if (!lines.length && entry?.streaming) {
+      lines.push({
+        id: 'live-status',
+        label: '当前进度',
+        text: String(entry?.statusText || '正在等待 AI 返回…').trim(),
+        open: true,
+      });
+    }
+    return lines;
   },
 
   hasRealWorldSettlementThinking(entry) {

@@ -521,9 +521,7 @@ window.GameModules.realWorldAgentLoop = {
     const occupy = (meta, section) => {
       const key = this.reasoningStageGroupKey(meta);
       const sectionId = String(section?.id || '');
-      const existing = occupied.get(key);
-      if (existing && existing.sectionId && sectionId && existing.sectionId !== sectionId) return false;
-      occupied.set(key, { sectionId, meta });
+      if (!occupied.has(key)) occupied.set(key, { sectionId, meta });
       assigned.push({ meta, section });
       return true;
     };
@@ -1656,7 +1654,11 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   sceneAnchorNameSet(value = '') {
-    return new Set(this.splitNameList(value).map((item) => String(this.parseParticipantToken(item)?.name || item || '').replace(/[（(].*$/u, '').trim()).filter(Boolean));
+    return new Set(this.splitNameList(value).map((item) => {
+      const text = String(item || '').trim();
+      if (/^无\s*(?:[（(].*[）)])?\s*$/u.test(text)) return '';
+      return String(this.parseParticipantToken(text)?.name || text).replace(/[（(].*$/u, '').trim();
+    }).filter(Boolean));
   },
 
   assertSceneParticipantBoundary(values = {}) {
@@ -1690,7 +1692,7 @@ window.GameModules.realWorldAgentLoop = {
     const recent = priorKvCount ? '' : this.recentNarrationForMessages(store, config);
     const messages = [{ role: 'user', content: String(prompt || '') }];
     if (recent) messages.push({ role: 'assistant', content: recent });
-    messages.push({ role: 'user', content: `根据前面的规则与资料，推演“本次行动”，字数必须在1000 - 1400字之间。\n本次行动：${actionText}` });
+    messages.push({ role: 'user', content: `根据前面的规则与资料，推演“本次行动”，字数必须在2000 - 3000字之间。\n本次行动：${actionText}` });
     return messages;
   },
 
@@ -1740,13 +1742,13 @@ window.GameModules.realWorldAgentLoop = {
       '- 即使本次行动因边界、consent、年龄、关系或安全限制不能继续描写，也不得短输出。',
       '- 若不能描写玩家输入中的某些肢体或性化细节，必须改写为允许描写的现场反应：角色察觉、制止、后退、质问、沉默、情绪变化、房间环境声响变化、进入方式、触发反应、双方距离变化、语言/沉默、身体姿态，但必须根据已有资料符合逻辑。',
       '- 不要只写“她在房间里”或只写场景开头；必须把本次行动推演到一个明确的即时落点。',
-      '- 目标长度 1000-1400 中文字符；低于 1000 汉字视为不合格，不要提前停止。',
+      '- 目标长度 2000 - 3000 字；低于 2000 字视为不合格，不要提前停止。',
       '- 强制输出结构只作为内部写作配比，最终正文仍必须是无标题、无编号、无换行的单段小说正文；唯一允许的标记是 <role id="…">姓名</role> 与 <force id="…">势力名</force>。',
       '- 每一次写出势力/组织/公司正式名称时，必须使用势力标签 <force id="真实ID">势力名</force>；id 必须来自势力标签清单。',
-      '- 环境五感渲染约100-150字：写出此刻场景中的气味、光线、触感。',
-      '- 角色内心独白约200-250字：围绕上一轮事件或本次行动带来的心理挣扎、试探或算计展开，必须使用比喻句。',
-      '- 对话与动作细节约400-450字：放慢动作，写清楚衣料摩擦声、眼神偏移、手部小动作、距离变化和对话回应。',
-      '- 悬念/决策钩子约150字：本轮结束时写出心理转向或下一步压力，但不替玩家执行下一步行动。',
+      '- 环境五感渲染约300-400字：写出此刻场景中的气味、光线、触感。',
+      '- 角色内心独白约500-700字：围绕上一轮事件或本次行动带来的心理挣扎、试探或算计展开，必须使用比喻句。',
+      '- 对话与动作细节约占正文一半：放慢动作，写清楚衣料摩擦声、眼神偏移、手部小动作、距离变化和对话回应。',
+      '- 悬念/决策钩子约200-300字：本轮结束时写出心理转向或下一步压力，但不替玩家执行下一步行动。',
       '- 若动作本身很短，就按上述四块扩展当前阶段内部细节，而不是开启下一步新行动。',
       '- 禁止把“NPC反问玩家/等待玩家说明来意/门口刚打开”当作最终落点；必须继续写到进入、被拒、落座、对峙、距离变化或关系张力变化等本次行动的直接结果。',
       '禁止越界不是禁止写长：不允许为了字数推进到新阶段；但必须充分描写当前阶段内部细节。',
@@ -4040,8 +4042,8 @@ window.GameModules.realWorldAgentLoop = {
       promptId,
       sourceTitle: options.sourceTitle || options.source || promptId,
       reasoningPhase: options.reasoningPhase,
-      // 推演 KV 路径默认开深度思考；JSON 仍靠 prompt + parseLoose（DeepSeek 的 response_format 与 thinking 互斥）。
-      deepThinking: options.deepThinking !== false,
+      // JSON 阶段统一开启 API JSON mode，并默认关闭思考模式，避免与 DeepSeek JSON 返回互斥。
+      deepThinking: false,
       jsonMode: options.jsonMode !== false,
       responseFormat: options.responseFormat || (options.jsonMode === false ? undefined : { type: 'json_object' }),
       outputLimitKind: options.outputLimitKind || 'stage4',
@@ -4094,13 +4096,13 @@ window.GameModules.realWorldAgentLoop = {
     try {
       const completionOptions = this.configuredCompletionOptions(config, streamToUi);
       const expectsJson = Boolean(completionOptions.jsonMode);
-      // 非正文 JSON 阶段默认同时启用深度思考与 API JSON mode；Stage3 正文不启用 JSON mode。
-      // 如某个调用显式传 deepThinking:false，则只关闭深度思考，不影响 JSON mode。
-      const wantsDeepThinking = Object.prototype.hasOwnProperty.call(config || {}, 'deepThinking')
-        ? config.deepThinking !== false
-        : completionOptions.deepThinking !== false;
+      // JSON 阶段一律禁用思考模式；Stage3 正文等非 JSON 阶段按原逻辑决定是否启用。
       const requestJsonMode = expectsJson;
-      const shouldStream = !requestJsonMode || wantsDeepThinking;
+      const wantsDeepThinking = requestJsonMode ? false : (Object.prototype.hasOwnProperty.call(config || {}, 'deepThinking')
+        ? config.deepThinking !== false
+        : completionOptions.deepThinking !== false);
+      // JSON mode 与思考模式互斥，但不与流式响应互斥；Stage1/Stage2 等 JSON 阶段仍实时接收 JSON 文本。
+      const shouldStream = true;
       const normalizedPhase = this.normalizeReasoningPhase(config.reasoningPhase || (streamToUi ? 'stage3' : 'unknown'));
       const defaultTimeoutMs = normalizedPhase === 'stage3'
         ? (streamToUi ? 480000 : 180000)
@@ -4155,6 +4157,25 @@ window.GameModules.realWorldAgentLoop = {
             } else {
               this.patchConfiguredReasoning(store, logId, reasoningText, { ...config, ...reasoningMeta, reasoningKey, livePatch: true });
             }
+          }
+          if (requestJsonMode && info.buffer && (done || now - lastPaint > 120)) {
+            const liveJson = `正在接收 JSON：\n${info.buffer}`;
+            if (this.isSettlementReasoning(config)) {
+              this.patchConfiguredSettlementThinking(store, logId, liveJson, {
+                ...config,
+                ...reasoningMeta,
+                settlementThinkingKey: `settlement-${reasoningKey}-json`,
+                livePatch: true,
+              });
+            } else {
+              this.patchConfiguredReasoning(store, logId, liveJson, {
+                ...config,
+                ...reasoningMeta,
+                reasoningKey: `${reasoningKey}-json`,
+                livePatch: true,
+              });
+            }
+            lastPaint = now;
           }
           if (!streamToUi || !logId) return;
           if (!done && now - lastPaint <= 120) return;
@@ -4490,5 +4511,3 @@ window.GameModules.realWorldAgentLoop = {
     return `${step === 1 ? '已识别相关角色' : '已追加资料'}：${chars}；已载入${titles}${data.reason ? `：${data.reason}` : ''}`;
   },
 };
-
-

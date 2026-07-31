@@ -1120,6 +1120,36 @@ test('parse scene anchor report rejects participant names that are both candidat
   }), loop.realConfig()), /同一角色不能同时/u);
 });
 
+test('parse scene anchor report treats explained none values as empty participant groups', () => {
+  const context = createContext();
+  loadCore(context);
+  const loop = context.window.GameModules.realWorldAgentLoop;
+
+  const parsed = loop.parseSceneAnchorReport(JSON.stringify({
+    sceneAnchorReport: '本轮处理房间内动作。',
+    currentLocation: '刘思琪房间',
+    currentTime: '19:37',
+    spatialState: '房门虚掩。',
+    currentAction: '进入房间。',
+    forcedParticipants: '刘悠(player-self)——行动者；刘思琪(rel-ai-247528)——直接回应',
+    priorityCandidates: '无（无高优先候选）',
+    dramaCandidates: '无（无戏剧候选）',
+    forbiddenParticipants: '无（没有明确禁止出场的角色）',
+    randomEventImpact: '无（本轮无随机事件）',
+    writingFocus: '只写当前动作。',
+    currentSceneImpactObjects: {
+      people: ['刘悠(player-self)', '刘思琪(rel-ai-247528)'],
+      locations: ['刘思琪房间'],
+      items: [],
+      systems: [],
+      summary: '只影响房间内两人。',
+    },
+  }), loop.realConfig());
+
+  assert.strictEqual(parsed.currentLocation, '刘思琪房间');
+  assert.ok(parsed.text.includes('禁止出场：无（没有明确禁止出场的角色）'));
+});
+
 test('parse scene anchor report rejects missing location time space or action anchors', () => {
   const context = createContext();
   loadCore(context);

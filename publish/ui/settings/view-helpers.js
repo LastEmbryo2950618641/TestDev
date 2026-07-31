@@ -50,7 +50,7 @@ window.GameModules.ui.settings.viewHelpers = Object.assign(window.GameModules.ui
       { kind: 'global', title: '统一配置', desc: '作为各阶段选择跟随统一时的默认输出限制。' },
       { kind: 'stage1', title: 'Stage1 资料路由', desc: '资料请求规划、人物、地点、记忆加载等路由。' },
       { kind: 'stage2', title: 'Stage2 场景锚定', desc: '场景锚定报告与 JSON 生成。' },
-      { kind: 'stage3', title: 'Stage3 正文阶段', desc: '最终正文生成与正文补全。默认限制 3000。' },
+      { kind: 'stage3', title: 'Stage3 正文阶段', desc: '最终正文生成与正文补全。默认限制 12000。' },
       { kind: 'stage4', title: 'Stage4 结算', desc: '状态更新、滑动结算与结果 JSON 更新。' },
       { kind: 'other', title: '其他 AI 响应', desc: '微信、角色资料、BOSS、势力、标签等未显式归类请求。' },
     ];

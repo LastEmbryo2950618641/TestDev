@@ -252,7 +252,6 @@ window.GameModules = window.GameModules || {};
       const ot = window.GameModules.orgTerritory;
       const name = String(params.name || params.factionName || '').trim();
       if (!name) return '创建势力失败：缺少 name。';
-      if (this.isAbstractFactionName(name)) return `跳过抽象势力：${name}。`;
       const typeText = String(params.type || '').trim();
       const looksFamily = params.kind === 'family'
         || /家庭|家族|家族势力/.test(typeText)
@@ -264,9 +263,6 @@ window.GameModules = window.GameModules || {};
         || store.factionIdByName?.(name)
         || (looksFamily ? 'family-player-home' : `force-${Date.now()}`)
       ).trim();
-      if (this.findFaction(store, id) || this.findFaction(store, name)) {
-        return `创建失败：势力已存在（${id}/${name}）。请改用 patchFactionField。`;
-      }
       const now = store.phoneDate?.().toISOString?.() || new Date().toISOString();
       const parent = this.findFaction(store, params.parentName || params.parentId || '') || null;
       const patch = this.factionPatch(params, parent, now, store);
@@ -298,6 +294,11 @@ window.GameModules = window.GameModules || {};
       faction = ot?.normalizeFaction?.(store.normalizeFactionStructure?.(faction) || faction, store)
         || store.normalizeFactionStructure?.(faction)
         || faction;
+      const existingIndex = store.factionState.factions.findIndex((item) => item?.id === id);
+      if (existingIndex >= 0) {
+        store.factionState.factions.splice(existingIndex, 1, faction);
+        return `已覆盖势力：${name}（${faction.id}）\n${this.factionText(store, faction)}`;
+      }
       store.factionState.factions.push(faction);
       return `已创建势力：${name}（${faction.id}）\n${this.factionText(store, faction)}`;
     },

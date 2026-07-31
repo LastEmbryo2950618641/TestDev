@@ -79,4 +79,5 @@ JSON 合约：
 - currentSceneImpactObjects 必须是 JSON object，不允许输出字符串、数组、Markdown 或自然语言段落。
 - currentSceneImpactObjects.people / locations / items / systems 必须始终是数组；没有内容就输出 []，不要省略 key，不要把多个对象塞进一个字符串。
 - currentSceneImpactObjects.summary 必须是字符串，用一句话说明本轮正文和结算的影响边界。
+- forcedParticipants / priorityCandidates / dramaCandidates / forbiddenParticipants 没有对象时必须只输出精确字符串“无”；禁止输出“无（说明）”“无（无候选）”等带解释的空值。
 - 不要输出额外字段、标题、注释或自然语言前后缀。

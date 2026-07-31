@@ -378,7 +378,7 @@ window.GameModules.settingsActions = {
       aiOutputLimitStage2Mode: 'global',
       aiOutputLimitStage2MaxTokens: 3000,
       aiOutputLimitStage3Mode: 'limited',
-      aiOutputLimitStage3MaxTokens: 3000,
+      aiOutputLimitStage3MaxTokens: 12000,
       aiOutputLimitStage4Mode: 'global',
       aiOutputLimitStage4MaxTokens: 3000,
       aiOutputLimitOtherMode: 'global',
@@ -387,6 +387,10 @@ window.GameModules.settingsActions = {
     Object.entries(defaults).forEach(([key, value]) => {
       if (s[key] === undefined || s[key] === null || s[key] === '') s[key] = value;
     });
+    if (Number(s.aiOutputLimitStage3BudgetVersion || 0) < 3) {
+      if ([3000, 8000].includes(Number(s.aiOutputLimitStage3MaxTokens))) s.aiOutputLimitStage3MaxTokens = 12000;
+      s.aiOutputLimitStage3BudgetVersion = 3;
+    }
   },
 
   aiOutputLimitMode(kind = 'other') {

@@ -145,7 +145,7 @@ window.GameModules.promptSkills = {
       outputLimitKind: overrides.outputLimitKind || behavior.outputLimitKind || 'other',
       jsonMode,
       responseFormat: overrides.responseFormat || (jsonMode ? { type: 'json_object' } : undefined),
-      deepThinking: Object.prototype.hasOwnProperty.call(overrides, 'deepThinking') ? overrides.deepThinking !== false : jsonMode,
+      deepThinking: Object.prototype.hasOwnProperty.call(overrides, 'deepThinking') ? (jsonMode ? false : overrides.deepThinking !== false) : !jsonMode,
     };
   },
 

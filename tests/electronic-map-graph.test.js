@@ -1,4 +1,4 @@
-﻿const assert = require('assert');
+const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
@@ -353,8 +353,9 @@ test('map auxiliary AI requests reuse real world KV cache path', () => {
   assert.ok(fog.includes('logId: result.logId'));
   assert.ok(fog.includes("outputLimitKind: 'stage4'"));
   assert.ok(actions.includes('clearPendingKvCacheSession'));
-  assert.ok(loop.includes('wantsDeepThinking') || loop.includes('deepThinking: wantsDeepThinking') || loop.includes('deepThinking !== false'));
-  assert.ok(!loop.includes('expectsJson && !wantsDeepThinking'));
+  assert.ok(loop.includes('requestJsonMode = expectsJson'));
+  assert.ok(loop.includes('const wantsDeepThinking = requestJsonMode ? false'));
+  assert.ok(loop.includes('const shouldStream = true'));
   assert.ok(locationFill.includes("source: 'real-world-location-fill'"));
   assert.ok(locationFill.includes('useRealWorldKvCache: true'));
   assert.ok(locationFill.includes('locationFillRequestOptions(options = {})'));

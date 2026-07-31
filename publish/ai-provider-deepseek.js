@@ -112,7 +112,7 @@ window.GameModules.aiProvider.register('deepseek', {
 
   async complete(options = {}) {
     const responseFormat = this.jsonResponseFormat(options);
-    const thinking = this.thinkingPayload(options);
+    const thinking = responseFormat ? null : this.thinkingPayload(options);
     const payload = {
       model: this.requestModel(options),
       messages: this.jsonMessages(options.messages || [], options),

@@ -189,8 +189,8 @@ test('deepseek keeps JSON response format and deep thinking together', async () 
   });
   assert.strictEqual(text, '{"ok":true}');
   assert.deepStrictEqual(payload.response_format, { type: 'json_object' });
-  assert.deepStrictEqual(payload.thinking, { type: 'enabled' });
-  assert.strictEqual(payload.reasoning_effort, 'high');
+  assert.strictEqual(Object.prototype.hasOwnProperty.call(payload, 'thinking'), false);
+  assert.strictEqual(Object.prototype.hasOwnProperty.call(payload, 'reasoning_effort'), false);
 });
 
 test('deepseek complete maps chat completion response to text buffer', async () => {

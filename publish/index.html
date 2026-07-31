@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content, user-scalable=no">
   <title>我狠狠操控</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="phone-desktop.css?v=2026-07-30-stage9-faction-v27">
+  <link rel="stylesheet" href="phone-desktop.css?v=2026-07-31-stage2-none-v36">
   <link rel="stylesheet" href="taobao-app.css">
   <link rel="stylesheet" href="real-world.css">
   <link rel="stylesheet" href="real-world-settlement.css">
@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="event-system.css">
   <link rel="stylesheet" href="news-driver.css">
   <link rel="stylesheet" href="faction-system.css">
-  <link rel="stylesheet" href="skills-app.css?v=2026-07-30-stage9-faction-v27">
+  <link rel="stylesheet" href="skills-app.css?v=2026-07-31-stage2-none-v36">
   <link rel="stylesheet" href="character-select.css">
   <link rel="stylesheet" href="player-aspiration.css">
   <link rel="stylesheet" href="profile-preview.css">
@@ -170,11 +170,11 @@
   </script>
   <script src="../deepseek_key.js"></script>
   <script src="../pixatart_key.js"></script>
-  <script src="boot/script-loader.js?v=2026-07-30-stage9-faction-v27"></script>
+  <script src="boot/script-loader.js?v=2026-07-31-stage2-none-v36"></script>
   <script src="boot/store-modules.js"></script>
-  <script src="boot/script-manifest.js?v=2026-07-30-stage9-faction-v27"></script>
-  <script src="boot/boot-actions.js?v=2026-07-30-stage9-faction-v27"></script>
-  <script src="boot/boot.js?v=2026-07-30-stage9-faction-v27"></script>
+  <script src="boot/script-manifest.js?v=2026-07-31-stage2-none-v36"></script>
+  <script src="boot/boot-actions.js?v=2026-07-31-stage2-none-v36"></script>
+  <script src="boot/boot.js?v=2026-07-31-stage2-none-v36"></script>
   <script>
     window.openEventAppNative = async function openEventAppNative(event) {
       try {
@@ -2898,7 +2898,7 @@
       </section>
       <section class="model-setting-group">
         <h3>AI 输出长度限制</h3>
-        <small>无限制时不发送 max_tokens；限制时会作为该次 AI 响应的最大输出预算。Stage3 正文默认限制 3000 tokens，其它默认跟随统一。</small>
+        <small>无限制时不发送 max_tokens；限制时会作为该次 AI 响应的最大输出预算。Stage3 正文默认限制 12000 tokens，其它默认跟随统一。</small>
         <template x-for="item in $store.game.aiOutputLimitKinds()" :key="item.kind">
           <div class="settings-status">
             <h4><span x-text="item.title"></span>｜<b x-text="$store.game.aiOutputLimitEffectiveText(item.kind)"></b></h4>

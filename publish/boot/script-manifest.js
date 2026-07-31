@@ -1,5 +1,5 @@
 window.GameScriptManifest = {
-  "version": "2026-07-30-stage9-faction-v27",
+  "version": "2026-07-31-stage2-none-v36",
   "chunks": {
     "core": [
       "https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js",
@@ -275,7 +275,8 @@ window.GameScriptManifest = {
       "ui/faction/overview-view-helpers.js",
       "prompts/location-tree-audit-fill.js",
       "prompts/real-world-map-surround-unlock.js",
-      "prompts/推演引擎/stage6-faction-update.js",
+      "prompts/推演引擎/stage9-1-faction-create.js",
+      "prompts/推演引擎/stage9-2-faction-update.js",
       "prompts/推演引擎/stage11-world-news-update.js"
     ],
     "gameplay": [

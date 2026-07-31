@@ -24,7 +24,7 @@ function loadActions(storeRows = []) {
     window: {
       GameModules: {
         realWorldAgentLoop: {
-          reasoningStageGroupKey: (meta) => meta.id || `${meta.phase || 'unknown'}-${meta.step || 0}`,
+          reasoningStageGroupKey: (meta) => `${meta.phase || 'unknown'}-${meta.step || 0}`,
           assignReasoningSectionMetas: (sections) => sections.map((section, index) => ({
             section,
             meta: { id: section.id || `stage-${index}`, phase: section.phase || 'stage1', step: section.step || index + 1, label: section.label || `阶段 ${index + 1}` },
@@ -89,6 +89,15 @@ function run() {
   assert.strictEqual(reasoningGroup.label, '资料整合');
   assert.strictEqual(reasoningGroup.reasoning, '整理人物资料');
   assert.strictEqual(traceGroup.traceLines[0], '阶段 1｜请求外部资料');
+
+  const combinedStage = runtime.realWorldThinkingStageGroups({
+    thinkingSections: [
+      { id: 'stage1-1', phase: 'stage1', step: 1, label: 'Stage1 资料查询 - 1', text: '资料判断过程' },
+      { id: 'stage1-1-json', phase: 'stage1', step: 1, label: 'Stage1 资料查询 - 1', text: '正在接收 JSON：\n{}' },
+    ],
+  });
+  assert.strictEqual(combinedStage.length, 1);
+  assert.strictEqual(combinedStage[0].reasoning, '资料判断过程\n\n正在接收 JSON：\n{}');
 
   assert.strictEqual(runtime.patchRealWorldLogEntry('saved-only', { narration: '已更新' }), true);
   assert.deepStrictEqual(calls.get, ['saved-only']);

@@ -86,6 +86,7 @@ window.GameModules.storage = {
         aiOutputLimitStage2MaxTokens: store.settingsState.aiOutputLimitStage2MaxTokens,
         aiOutputLimitStage3Mode: store.settingsState.aiOutputLimitStage3Mode,
         aiOutputLimitStage3MaxTokens: store.settingsState.aiOutputLimitStage3MaxTokens,
+        aiOutputLimitStage3BudgetVersion: store.settingsState.aiOutputLimitStage3BudgetVersion,
         aiOutputLimitStage4Mode: store.settingsState.aiOutputLimitStage4Mode,
         aiOutputLimitStage4MaxTokens: store.settingsState.aiOutputLimitStage4MaxTokens,
         aiOutputLimitOtherMode: store.settingsState.aiOutputLimitOtherMode,
