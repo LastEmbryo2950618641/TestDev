@@ -42,8 +42,7 @@ window.GameModules.aiProvider.register('deepseek', {
   thinkingPayload(options = {}) {
     if (options.thinking && typeof options.thinking === 'object') return options.thinking;
     if (options.deepThinking === true) return { type: 'enabled' };
-    if (options.deepThinking === false) return { type: 'disabled' };
-    return null;
+    return { type: 'disabled' };
   },
 
   jsonModeEnabled(options = {}) {
@@ -112,7 +111,7 @@ window.GameModules.aiProvider.register('deepseek', {
 
   async complete(options = {}) {
     const responseFormat = this.jsonResponseFormat(options);
-    const thinking = responseFormat ? null : this.thinkingPayload(options);
+    const thinking = this.thinkingPayload(options);
     const payload = {
       model: this.requestModel(options),
       messages: this.jsonMessages(options.messages || [], options),

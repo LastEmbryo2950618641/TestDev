@@ -73,6 +73,7 @@ async function testStage3StillDoesNotUseJsonMode() {
   });
   assert.strictEqual(requests.length, 1);
   assert.strictEqual(requests[0].deepThinking, true);
+  assert.strictEqual(requests[0].deepThinkingEffort, 'low');
   assert.strictEqual(requests[0].jsonMode, false);
   assert.strictEqual(requests[0].responseFormat, undefined);
 }
@@ -141,6 +142,9 @@ function testPromptSkillsDefaultPolicy() {
   assert.strictEqual(stage3.jsonMode, false);
   assert.strictEqual(stage3.responseFormat, undefined);
   assert.strictEqual(stage3.deepThinking, true);
+  const auxiliaryText = skills.completionOptions('memory-intent-query');
+  assert.strictEqual(auxiliaryText.jsonMode, false);
+  assert.strictEqual(auxiliaryText.deepThinking, false);
 }
 
 async function run() {

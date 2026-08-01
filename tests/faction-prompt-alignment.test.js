@@ -55,11 +55,58 @@ test('Stage1 uses factions field and keeps createFaction out of Stage1 requests'
   assert.ok(stage1.includes('玩家输入可信度与可行性规则'));
   assert.ok(stage1.includes('既成结果、背景改写、状态突变或超出当前因果能力的宣称'));
   assert.ok(stage1.includes('只要稍微识别到可作为势力的组织线索'));
+  assert.ok(stage1.includes('同一组织主体只能在 `factions` 中出现一次'));
+  assert.ok(stage1.includes('括号里的地点补充'));
+  assert.ok(stage1.includes('地点与地址不是名称本体时不要写进 `name`'));
   assert.ok(!stage1.includes('判断标准只看该线索是否已经在上下文中出现'));
   assert.ok(!stage1.includes('禁止把没有具体名称、没有稳定指代、不能承载归属/规则/资源/关系的抽象标签造势力'));
   assert.ok(catalog.includes('工作查询'));
   assert.ok(stage1.includes('禁止写入 API'));
   assert.ok(!catalog.includes("action: '创建势力'"));
+});
+
+test('Stage9 create prompt asks AI to merge duplicate aliases before creation', () => {
+  const createMd = read('publish/prompts/推演引擎/stage9-1-faction-create.md');
+  assert.ok(createMd.includes('同一组织主体的不同叫法'));
+  assert.ok(createMd.includes('地点括号补充'));
+  assert.ok(createMd.includes('只能保留一个最终势力'));
+  assert.ok(createMd.includes('地点、辖区、门牌号放入 `location`'));
+});
+
+test('Stage9 faction prompts constrain parent to internal containment', () => {
+  const createMd = read('publish/prompts/推演引擎/stage9-1-faction-create.md');
+  const updateMd = read('publish/prompts/推演引擎/stage9-2-faction-update.md');
+  assert.ok(createMd.includes('直接上级组织指针'));
+  assert.ok(createMd.includes('多层归属由多条直接 parent 自动组成'));
+  assert.ok(createMd.includes('不是关系说明字段'));
+  assert.ok(!createMd.includes('例如 A'));
+  assert.ok(updateMd.includes('归属审计规则'));
+  assert.ok(updateMd.includes('直接上级组织指针'));
+  assert.ok(updateMd.includes('无势力归属'));
+});
+
+test('Stage9 faction overview prompts require scale-based value max scores', () => {
+  const createMd = read('publish/prompts/推演引擎/stage9-1-faction-create.md');
+  const updateMd = read('publish/prompts/推演引擎/stage9-2-faction-update.md');
+  assert.ok(createMd.includes('"max": 规模上限'));
+  assert.ok(createMd.includes('家庭上限远小于国家上限'));
+  assert.ok(createMd.includes('民生率×4'));
+  assert.ok(createMd.includes('`rulerTitle` | 最高统治者或最高负责人头衔，只写头衔本身'));
+  assert.ok(createMd.includes('`rulerName` | 最高统治者或最高负责人具体姓名，只写姓名本身'));
+  assert.ok(createMd.includes('现任国家主席'));
+  assert.ok(updateMd.includes('value/max'));
+  assert.ok(updateMd.includes('max` 必须随势力规模变化'));
+  assert.ok(updateMd.includes('`rulerTitle` 只写头衔，`rulerName` 只写具体姓名'));
+});
+
+test('Stage9 faction prompts require top formations and top administrative regions', () => {
+  const createMd = read('publish/prompts/推演引擎/stage9-1-faction-create.md');
+  const updateMd = read('publish/prompts/推演引擎/stage9-2-faction-update.md');
+  assert.ok(createMd.includes('每条必须是顶级编制'));
+  assert.ok(createMd.includes('顶级编制|姓名(负责人头衔)|姓名(关键头衔1)|姓名(关键头衔2)|人数规模|兵种构成|当前任务'));
+  assert.ok(createMd.includes('顶级行政区|行政区省会|面积|控制率百分比(原因)|人口|特产/定位|驻军'));
+  assert.ok(updateMd.includes('顶级编制格式'));
+  assert.ok(updateMd.includes('顶级行政区格式'));
 });
 
 test('real-world faction query no longer blocks China as a concrete faction name or forces China parent fallback', () => {

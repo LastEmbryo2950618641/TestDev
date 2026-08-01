@@ -110,7 +110,7 @@ window.GameModules.jsonUtils = {
       outputLimitKind: options.outputLimitKind || 'other',
       jsonMode,
       responseFormat: options.responseFormat || (jsonMode ? { type: 'json_object' } : undefined),
-      deepThinking: Object.prototype.hasOwnProperty.call(options, 'deepThinking') ? options.deepThinking : jsonMode,
+      deepThinking: false,
     };
   },
 
@@ -190,7 +190,7 @@ window.GameModules.jsonUtils = {
     throw error;
   },
 
-  async requestCompletion({ model, prompt, promptId = '', maxTokens, source = 'json-utils', sourceTitle = '', timeoutMs = 90000, maxAttempts, jsonMode = true, outputLimitKind = 'other', responseFormat, deepThinking = jsonMode, store = null, useRealWorldKvCache = false, kvCacheSession = null, reasoningPhase = '', logId = null, tokenMeta = null }) {
+  async requestCompletion({ model, prompt, promptId = '', maxTokens, source = 'json-utils', sourceTitle = '', timeoutMs = 90000, maxAttempts, jsonMode = true, outputLimitKind = 'other', responseFormat, deepThinking = false, store = null, useRealWorldKvCache = false, kvCacheSession = null, reasoningPhase = '', logId = null, tokenMeta = null }) {
     if (useRealWorldKvCache && store && window.GameModules.realWorldAgentLoop?.completeCachedJsonPrompt) {
       return await window.GameModules.realWorldAgentLoop.completeCachedJsonPrompt(store, {
         prompt,

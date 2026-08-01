@@ -8,12 +8,34 @@
 
 - 当前字段明显不合理、空白、占位、壳化或过于模糊，且上下文足以稳定推断时，可以直接补齐更新。
 - 当前字段已经具体、合理、成型时，必须有正文或上下文中的明确事实变化依据才允许更新。
+- 可更新字段、字段语义、面板固定 key 与紧凑列表格式，全部沿用 Stage9-1 的“字段定义”；不要只参考示例形状。
+- 更新目标是把已存在势力补到 Stage9-1 的完整信息标准，但不能为了补全而硬编无法稳定确定的事实。
+- 若现有字段只有抽象职责、泛泛目的、简单名单，或只有“明确、规范、保障、确保、促进、维护、提升、加强、负责、统筹、管理、监督”等结果词却没有实际执行方式，应按 Stage9-1 的高密度字段定义补齐。
 - 每个数组元素只表示一个字段补丁；`reason` 必填。
-- `field` 可以是顶层字段或短路径，例如 `ideo.core`、`ideo.legit`、`econ.income`、`pol.power`、`mil.forces`、`dip.allies`、`ter.regions`。
+- `field` 可以是顶层字段或短路径，例如 `overview`、`ideo.core`、`ideo.legit`、`econ.income`、`pol.power`、`mil.forces`、`dip.allies`、`ter.regions`。
 - `op` 只使用 `set`、`append`、`remove`、`merge`。删除列表项时提供 `match` 或 `index`。
 - 列表值使用 Stage9-1 的紧凑字符串格式，不要嵌套深层对象。
 - 禁止使用 `ops`、`done`、`method`、`params` 或任何操作外壳。
-- JSON 容器最多四层。没有可更新字段时返回 `[]`。
+- JSON 容器最多四层；更新 `overview` 时按 Stage9-1 的对象字段定义输出完整总览对象。没有可更新字段时返回 `[]`。
+
+## 归属审计规则
+
+- `parentId` / `parentName` 是当前势力的直接上级组织指针，不是关系说明字段。
+- 多层归属由多条直接 parent 自动组成，不要用单个 parent 表达完整链路。
+- 只在当前势力确实属于某个直接上级组织内部时填写或保留 parent；没有直接上级时清空 `parentId`，`parentName` 写 `无势力归属`。
+- 其他非直接上级组织关系不写入 parent。
+
+## 字段范围
+
+- 顶层字段：`name`、`type`、`kind`、`class`、`world`、`parent_id`、`parent_name`、`level`、`location`、`domain`、`scale`、`stance`、`influence`、`desc`、`structure`、`rules`、`resources`、`relations`、`overview`。
+- `overview` 是势力总览对象，字段语义沿用 Stage9-1：最高统治者、权力分布、民生/经济/军事/声誉四项 `value/max` 得分、综合 `value/max` 得分、稳定度 0-100 得分、国内/内部阶级构成和认可度。四项与综合数值不是百分比，`max` 必须随势力规模变化；百分比只用于权力分布与阶级构成，稳定度是按四项 `value/max` 折算后的百分制数值。
+- 更新 `overview.rulerTitle` / `overview.rulerName` 时必须沿用 Stage9-1 语义：`rulerTitle` 只写头衔，`rulerName` 只写具体姓名；不得把“现任领导”“现任国家主席”“依现实背景”等说明文字写入任何姓名字段。
+- 面板字段：`ideo`、`econ`、`pol`、`mil`、`dip`、`ter` 及其内部固定 key，含义沿用 Stage9-1。
+- 列表值使用 Stage9-1 的紧凑字符串格式；面板对象只允许浅层 `merge`。
+- 更新 `mil.forces` 时沿用 Stage9-1 的顶级编制格式；更新 `ter.regions` 时沿用 Stage9-1 的顶级行政区格式。
+- 列表说明必须具体而简练，写“具体方案/执行方式 + 具体作用”；执行方式必须包含可操作细节，如负责人/执行主体、流程步骤、审批链路、频率周期、工具载体、阈值指标、奖惩方式、覆盖对象或交付物中的至少两类；禁止只写抽象职责、价值宣言、泛泛目的或常识释义。
+- 若更新任何面板的机构类字段，保留或补齐“姓名(头衔)”负责人串；机构条目不要只剩机构名和职责。
+- 字段定义优先级高于示例。示例只说明 JSON 形状；是否更新和如何更新，以“更新规则”和“字段范围”为准。
 
 EXAMPLE JSON OUTPUT:
 
@@ -42,7 +64,7 @@ EXAMPLE JSON OUTPUT:
     "op": "merge",
     "value": {
       "income": "新的收入结构",
-      "orgs": ["机构名|职责说明"]
+      "orgs": ["机构名：姓名(负责人头衔)，姓名(关键头衔)；执行方式+作用"]
     },
     "reason": "依据说明"
   }

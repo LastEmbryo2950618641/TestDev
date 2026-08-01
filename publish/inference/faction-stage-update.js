@@ -70,6 +70,10 @@ window.GameModules.inferenceFactionStageUpdate = {
       world: 'worldTag', worldtag: 'worldTag',
       class: 'classification',
       faction_id: 'id', factionid: 'id',
+      overview: 'overview',
+      summary: 'overview',
+      总览: 'overview',
+      势力总览: 'overview',
     };
   },
 
@@ -78,7 +82,7 @@ window.GameModules.inferenceFactionStageUpdate = {
       ideology: { core: 'core', reason: 'reason', desc: 'description', description: 'description', base: 'base', legit: 'legitimacy', legitimacy: 'legitimacy' },
       economy: { gdp: 'gdp', income: 'income', expense: 'expenditure', expenditure: 'expenditure', assets: 'assets', res: 'resources', resources: 'resources', output: 'production', production: 'production', system: 'system', orgs: 'institutions', institutions: 'institutions', laws: 'laws', works: 'works' },
       politics: { regime: 'regime', power: 'powerStructure', powerstructure: 'powerStructure', rule: 'rulemaking', rulemaking: 'rulemaking', judge: 'adjudication', adjudication: 'adjudication', exec: 'execution', execution: 'execution', part: 'participation', participation: 'participation', lead: 'leadership', leadership: 'leadership', orgs: 'institutions', institutions: 'institutions', laws: 'laws', works: 'works' },
-      military: { posture: 'posture', forces: 'forces', troops: 'personnel', personnel: 'personnel', quality: 'quality', supply: 'sustainment', sustainment: 'sustainment', reach: 'projection', projection: 'projection', equip: 'equipment', equipment: 'equipment', orgs: 'institutions', institutions: 'institutions', laws: 'laws', works: 'works' },
+      military: { posture: 'posture', forces: 'forces', troops: 'personnel', personnel: 'personnel', personel: 'personnel', quality: 'quality', supply: 'sustainment', sustainment: 'sustainment', reach: 'projection', projection: 'projection', equip: 'equipment', equipment: 'equipment', orgs: 'institutions', institutions: 'institutions', laws: 'laws', works: 'works' },
       diplomacy: { posture: 'posture', orient: 'orientation', orientation: 'orientation', allies: 'allies', rivals: 'rivals', members: 'memberships', memberships: 'memberships', treaties: 'treaties', presence: 'presence', orgs: 'institutions', institutions: 'institutions', laws: 'laws', works: 'works' },
       territory: { capital: 'capital', area: 'area', pop: 'population', population: 'population', admin: 'adminDivision', admindivision: 'adminDivision', regions: 'regions' },
     };
@@ -155,14 +159,23 @@ window.GameModules.inferenceFactionStageUpdate = {
     return raw.map((item) => {
       if (item == null) return null;
       if (typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean') {
-        const [name, members = ''] = String(item).split('|').map((part) => part.trim());
-        return name ? { name, items: members.split(',').map((part) => part.trim()).filter(Boolean) } : null;
+        const [name = '', commander = '', deputy = '', staff = '', size = '', arms = '', task = ''] = String(item).split('|').map((part) => part.trim());
+        return name ? { name, commander, deputy, staff, size, arms, task } : null;
       }
       if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
       const name = String(item.name || item.group || item.title || '').trim();
       if (!name) return null;
       const items = this.toStringList(Array.isArray(item.items) ? item.items : (Array.isArray(item.members) ? item.members : []));
-      return { name, items };
+      return {
+        name,
+        commander: String(item.commander || item.leader || item.chief || item.负责人 || '').trim(),
+        deputy: String(item.deputy || item.second || item.副手 || '').trim(),
+        staff: String(item.staff || item.third || item.参谋 || '').trim(),
+        size: String(item.size || item.population || item.personnel || item.人数规模 || item.人数 || '').trim(),
+        arms: String(item.arms || item.composition || item.branchComposition || item.兵种构成 || '').trim(),
+        task: String(item.task || item.currentTask || item.mission || item.当前任务 || '').trim(),
+        items,
+      };
     }).filter(Boolean);
   },
 
@@ -172,7 +185,8 @@ window.GameModules.inferenceFactionStageUpdate = {
       if (item == null) return null;
       if (typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean') {
         const [name, capital = '', area = '', controlRate = '', population = '', description = '', garrison = ''] = String(item).split('|').map((part) => part.trim());
-        return name ? { name, capital, area, controlRate, population, description, garrison } : null;
+        const match = controlRate.match(/^([^()（）]+)[(（]([^()（）]+)[)）]$/u);
+        return name ? { name, capital, area, controlRate: match ? match[1].trim() : controlRate, controlReason: match ? match[2].trim() : '', population, description, garrison } : null;
       }
       if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
       const name = String(item.name || item.region || item.title || '').trim();
@@ -182,8 +196,9 @@ window.GameModules.inferenceFactionStageUpdate = {
         capital: String(item.capital || item.center || '').trim(),
         area: String(item.area || '').trim(),
         controlRate: String(item.controlRate || item.ctrl || '').trim(),
+        controlReason: String(item.controlReason || item.reason || item.控制原因 || '').trim(),
         population: String(item.population || item.pop || '').trim(),
-        description: String(item.description || item.desc || '').trim(),
+        description: String(item.description || item.specialty || item.role || item.特产 || item.desc || '').trim(),
         garrison: String(item.garrison || '').trim(),
       };
     }).filter(Boolean);
@@ -252,6 +267,20 @@ window.GameModules.inferenceFactionStageUpdate = {
     return ot?.normalizeOverviewPanels?.(result) || result;
   },
 
+  fieldHasValue(field = {}) {
+    const value = field?.value;
+    if (Array.isArray(value)) return value.length > 0;
+    return String(value ?? '').trim() !== '';
+  },
+
+  fillPanelFallbacksFromTopLevel(panels = {}, raw = {}, fallbackReason = '') {
+    const topResources = this.toStringList(raw.resources);
+    if (topResources.length && !this.fieldHasValue(panels?.economy?.entries?.resources)) {
+      panels.economy.entries.resources = this.makeOverviewField('text', topResources.join('、'), fallbackReason);
+    }
+    return panels;
+  },
+
   normalizeStructureInput(raw) {
     if (!Array.isArray(raw)) return [];
     return raw.map((node, index) => {
@@ -290,6 +319,11 @@ window.GameModules.inferenceFactionStageUpdate = {
     const reason = this.normalizeKey(raw.reason) || `Stage9-1 根据完整上下文补全并创建势力：${name || candidateName || id || '未命名势力'}`;
     const type = this.normalizeKey(raw.type) || '组织';
     const kind = this.normalizeKey(raw.kind) || (/家庭|家族/.test(type) || /家庭|家族/.test(name) ? 'family' : '');
+    const overviewPanels = this.fillPanelFallbacksFromTopLevel(
+      this.buildOverviewPanelsFromInput({ ideo: raw.ideo, econ: raw.econ, pol: raw.pol, mil: raw.mil, dip: raw.dip, ter: raw.ter }, reason),
+      raw,
+      reason,
+    );
     return {
       candidateName,
       id,
@@ -311,7 +345,10 @@ window.GameModules.inferenceFactionStageUpdate = {
       rules: this.toStringList(raw.rules),
       resources: this.toStringList(raw.resources),
       relations: this.toRelationList(raw.relations),
-      solid: { overviewPanels: this.buildOverviewPanelsFromInput({ ideo: raw.ideo, econ: raw.econ, pol: raw.pol, mil: raw.mil, dip: raw.dip, ter: raw.ter }, reason) },
+      solid: {
+        overview: window.GameModules.orgTerritory?.normalizeFactionOverview?.(raw.overview || raw.summary || raw.势力总览 || {}, raw) || (raw.overview || {}),
+        overviewPanels,
+      },
       reason,
     };
   },
@@ -376,9 +413,10 @@ window.GameModules.inferenceFactionStageUpdate = {
     return -1;
   },
 
-  normalizePatchValue(panel = '', field = '', raw) {
+  normalizePatchValue(panel = '', field = '', raw, faction = null) {
     const rawObj = this.plainObject(raw);
     const valueSource = Object.prototype.hasOwnProperty.call(rawObj, 'value') ? rawObj.value : raw;
+    if (!panel && field === 'overview') return window.GameModules.orgTerritory?.normalizeFactionOverview?.(valueSource, faction || {}) || valueSource;
     if (!panel) return valueSource;
     const kind = this.overviewFieldKinds()?.[panel]?.[field] || 'text';
     return this.normalizeKindValue(kind, valueSource);
@@ -388,11 +426,12 @@ window.GameModules.inferenceFactionStageUpdate = {
     const source = this.plainObject(value);
     const ops = [];
     const reason = this.normalizeKey(baseParams.reason) || 'Stage9-2 合并更新';
+    const faction = this.findFaction(store, baseParams.id || baseParams.name || baseParams.factionId || baseParams.factionName || '');
     if (path.panel) {
       Object.entries(source).forEach(([key, item]) => {
         const field = this.resolveInputFieldKey(path.panel, key);
         if (!field) return;
-        ops.push({ method: 'patchFactionField', params: { id: this.normalizeKey(baseParams.id || baseParams.factionId), name: this.normalizeKey(baseParams.name || baseParams.factionName), panel: path.panel, field, op: 'set', value: this.normalizePatchValue(path.panel, field, item), reason } });
+        ops.push({ method: 'patchFactionField', params: { id: this.normalizeKey(baseParams.id || baseParams.factionId), name: this.normalizeKey(baseParams.name || baseParams.factionName), panel: path.panel, field, op: 'set', value: this.normalizePatchValue(path.panel, field, item, faction), reason } });
       });
       return ops;
     }
@@ -412,6 +451,7 @@ window.GameModules.inferenceFactionStageUpdate = {
   normalizePatchItem(store, item = {}) {
     const params = this.plainObject(item);
     const target = { id: this.normalizeKey(params.id || params.factionId), name: this.normalizeKey(params.name || params.factionName) };
+    const faction = this.findFaction(store, target.id || target.name || '');
     const path = this.resolvePatchFieldPath(params);
     const opText = this.normalizeKey(params.op || params.operation || 'set').toLowerCase();
     const reason = this.normalizeKey(params.reason) || 'Stage9-2 字段更新';
@@ -426,7 +466,7 @@ window.GameModules.inferenceFactionStageUpdate = {
       else if (Number.isInteger(Number(params.index))) finalOp.params.index = Number(params.index);
       else finalOp.params.index = -1;
     } else {
-      finalOp.params.value = this.normalizePatchValue(path.panel, path.field, params.value);
+      finalOp.params.value = this.normalizePatchValue(path.panel, path.field, params.value, faction);
     }
     return [finalOp];
   },
@@ -457,6 +497,11 @@ window.GameModules.inferenceFactionStageUpdate = {
     return set;
   },
 
+  createTargetLabel(item = {}, index = 0, total = 0) {
+    const name = this.normalizeKey(item?.name || item?.candidate || item?.candidateName || item?.id) || `目标${index + 1}`;
+    return `${name} ${index + 1}/${Math.max(1, total)}`;
+  },
+
   unresolvedPendingCandidates(store, pendingFactionCandidates = [], items = []) {
     const existing = this.existingFactionKeys(store);
     const creating = this.createFactionKeysFromItems(items);
@@ -470,9 +515,10 @@ window.GameModules.inferenceFactionStageUpdate = {
     });
   },
 
-  async buildCreatePrompt({ narration = '', action = '', factionIndex = '', pendingFactionCandidates = [], contextReview = '' } = {}) {
+  async buildCreatePrompt({ narration = '', action = '', factionIndex = '', pendingFactionCandidates = [], targetFactionCandidate = null, contextReview = '' } = {}) {
     return await window.GameModules.renderPrompt('inference-stage9-faction-create', {
       Stage1待建势力候选: Array.isArray(pendingFactionCandidates) && pendingFactionCandidates.length ? JSON.stringify(pendingFactionCandidates, null, 2).slice(0, 4000) : '无',
+      本次目标势力: targetFactionCandidate ? JSON.stringify(targetFactionCandidate, null, 2).slice(0, 1200) : '请从完整上下文复查中新发现的单个未入库势力中选择最重要的一个；若没有则返回 []。',
       当前势力索引: factionIndex || '暂无势力。',
       完整上下文复查材料: String(contextReview || '无').slice(0, 36000),
       本次行动: String(action || '').slice(0, 800),
@@ -491,6 +537,8 @@ window.GameModules.inferenceFactionStageUpdate = {
       level: item.level || '',
       location: item.location || '',
       domain: item.domain || '',
+      parentId: item.parentId || '',
+      parentName: item.parentName || '',
       description: item.description || '',
       structure: Array.isArray(item.structure) ? item.structure : [],
       solid: item.solid && typeof item.solid === 'object' ? item.solid : {},
@@ -554,7 +602,7 @@ window.GameModules.inferenceFactionStageUpdate = {
     console.log('[Stage9-1势力创建] 待建候选=', pendingFactionCandidates, '未入库候选=', unresolvedBeforeCreate);
 
     loop?.markConfiguredStep?.(store, logId, `${config?.label || ''}正在进行 Stage9-1 势力创建…`, config, { keepNarration: true });
-    loop?.patchConfiguredSettlementThinking?.(store, logId, 'Stage9-1 势力创建：重新检查完整上下文，并一次性批量创建全部未入库势力。', {
+    loop?.patchConfiguredSettlementThinking?.(store, logId, 'Stage9-1 势力创建：重新检查完整上下文，按候选逐个创建完整势力，避免长 JSON 被截断。', {
       ...config,
       settlementThinking: true,
       settlementThinkingKey: 'stage9-1-status',
@@ -562,21 +610,40 @@ window.GameModules.inferenceFactionStageUpdate = {
       livePatch: true,
     });
 
-    let createRaw = '';
+    const createRawParts = [];
     let createItems = [];
+    const appliedCreate = { lines: [], applied: [] };
     try {
-      const createPrompt = await this.buildCreatePrompt({ narration, action, factionIndex: factionIndexBeforeCreate, pendingFactionCandidates, contextReview });
-      createRaw = await this.requestStage9(
-        loop,
-        store,
-        config,
-        logId,
-        createPrompt,
-        'Stage9-1 势力创建',
-        'inference-stage9-faction-create',
-        1,
-      );
-      createItems = this.parseArrayPayload(createRaw);
+      const targets = unresolvedBeforeCreate.length ? unresolvedBeforeCreate : [null];
+      for (let index = 0; index < targets.length; index += 1) {
+        const target = targets[index];
+        const phaseTitle = target ? `Stage9-1【${this.createTargetLabel(target, index, targets.length)}】` : 'Stage9-1【上下文复查 1/1】';
+        const createPrompt = await this.buildCreatePrompt({
+          narration,
+          action,
+          factionIndex: ctx?.factionList?.(store) || factionIndexBeforeCreate,
+          pendingFactionCandidates,
+          targetFactionCandidate: target,
+          contextReview,
+        });
+        const raw = await this.requestStage9(
+          loop,
+          store,
+          config,
+          logId,
+          createPrompt,
+          phaseTitle,
+          'inference-stage9-faction-create',
+          1 + index,
+        );
+        createRawParts.push(raw);
+        const items = this.parseArrayPayload(raw);
+        const accepted = items.slice(0, target ? 1 : items.length);
+        createItems.push(...accepted);
+        const applied = this.applyItems(store, accepted, 'create');
+        appliedCreate.lines.push(...applied.lines);
+        appliedCreate.applied.push(...applied.applied);
+      }
     } catch (err) {
       console.warn('[Stage9-1势力创建] 生成失败:', err?.message || err);
       return { ops: [], lines: [`势力Stage9-1失败：${err?.message || '未知错误'}`], skipped: true, error: err?.message };
@@ -584,7 +651,6 @@ window.GameModules.inferenceFactionStageUpdate = {
 
     const unresolvedAfterCreate = this.unresolvedPendingCandidates(store, pendingFactionCandidates, createItems);
     console.log('[Stage9-1势力创建] 完整势力数组=', createItems, '未消费候选=', unresolvedAfterCreate);
-    const appliedCreate = this.applyItems(store, createItems, 'create');
 
     const factionIndexBeforeUpdate = ctx?.factionList?.(store) || '暂无势力。';
     loop?.markConfiguredStep?.(store, logId, `${config?.label || ''}正在进行 Stage9-2 势力更新…`, config, { keepNarration: true });
@@ -617,7 +683,7 @@ window.GameModules.inferenceFactionStageUpdate = {
         ops: appliedCreate.applied.map(({ method, params }) => ({ method, params })),
         lines: [...appliedCreate.lines, `势力Stage9-2失败：${err?.message || '未知错误'}`],
         applied: appliedCreate.applied,
-        createRaw,
+        createRaw: createRawParts.join('\n\n'),
         error: err?.message,
       };
     }
@@ -635,7 +701,7 @@ window.GameModules.inferenceFactionStageUpdate = {
       ops: [...appliedCreate.applied, ...appliedUpdate.applied].map(({ method, params }) => ({ method, params })),
       lines,
       applied: [...appliedCreate.applied, ...appliedUpdate.applied],
-      createRaw,
+      createRaw: createRawParts.join('\n\n'),
       updateRaw,
       unresolvedPendingCandidates: unresolvedAfterCreate,
     };

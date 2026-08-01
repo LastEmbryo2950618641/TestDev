@@ -200,7 +200,24 @@ window.GameModules.aiRequest = {
     }, ms))]);
   },
 
+  isNarrationThinkingRequest(options = {}) {
+    const responseFormat = options.responseFormat || options.response_format;
+    return String(options.outputLimitKind || '') === 'stage3'
+      && options.jsonMode !== true
+      && responseFormat?.type !== 'json_object';
+  },
+
+  applyThinkingPolicy(options = {}) {
+    const enabled = this.isNarrationThinkingRequest(options) && options.deepThinking !== false;
+    return {
+      ...options,
+      deepThinking: enabled,
+      thinking: { type: enabled ? 'enabled' : 'disabled' },
+    };
+  },
+
   async complete(options = {}) {
+    options = this.applyThinkingPolicy(options);
     const providerId = window.GameModules.aiProvider?.currentProviderId?.() || 'deepseek';
     const provider = window.GameModules.aiProvider?.currentProvider?.();
     if (typeof provider?.complete !== 'function') {

@@ -1,5 +1,5 @@
 window.GameScriptManifest = {
-  "version": "2026-07-31-stage2-none-v36",
+  "version": "2026-07-31-stage3-action-gate-v38",
   "chunks": {
     "core": [
       "https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js",

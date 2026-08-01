@@ -272,6 +272,7 @@ test('Stage9-1 independently rechecks full context and requests complete faction
   });
   context.window.window = context.window;
   installStage9Prompts(context);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'publish/org-territory-system.js'), 'utf8'), context, { filename: 'publish/org-territory-system.js' });
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'publish/inference/faction-stage-update.js'), 'utf8'), context, { filename: 'publish/inference/faction-stage-update.js' });
   const stage = context.window.GameModules.inferenceFactionStageUpdate;
   const prompt = await stage.buildCreatePrompt({
@@ -285,9 +286,106 @@ test('Stage9-1 independently rechecks full context and requests complete faction
   assert.ok(prompt.includes('重新检查本轮完整上下文'));
   assert.ok(prompt.includes('角色卡：刘思琪是某中学学生'));
   assert.ok(prompt.includes('一次补全每个势力的完整信息'));
+  assert.ok(prompt.includes('每次响应只返回“本次只创建的目标势力”对应的 1 个势力对象'));
+  assert.ok(prompt.includes('## 本次只创建的目标势力'));
   assert.ok(prompt.includes('EXAMPLE JSON OUTPUT:'));
   assert.ok(prompt.includes('JSON 容器最多四层'));
+  assert.ok(prompt.includes('## 字段定义'));
+  assert.ok(prompt.includes('## 完整性与推演边界'));
+  assert.ok(prompt.includes('### 顶层字段'));
+  assert.ok(prompt.includes('### 面板字段'));
+  assert.ok(prompt.includes('字段定义用于说明信息范围，示例用于说明表达方式'));
+  assert.ok(prompt.includes('字段定义说明含义，示例说明写法'));
+  assert.ok(prompt.includes('收入格式可写成金额与来源拆分'));
+  assert.ok(prompt.includes('支出格式可写成金额与开销拆分'));
+  assert.ok(prompt.includes('根据上下文背景、组织规模、所在地、时代与行业合理推演补全明确数值'));
+  assert.ok(prompt.includes('周期产量/处理量/覆盖量'));
+  assert.ok(prompt.includes('所有制/控制权、计划与市场或预算机制'));
+  assert.ok(prompt.includes('不多于40字一句话总结'));
+  assert.ok(prompt.includes('资产可量化'));
+  assert.ok(prompt.includes('颗粒度匹配组织已揭示程度'));
+  assert.ok(prompt.includes('可用经济资源可量化'));
+  assert.ok(prompt.includes('规则制定权、解释/裁决权、执行权如何分配'));
+  assert.ok(prompt.includes('谁提案、谁审议、谁批准、如何修废'));
+  assert.ok(prompt.includes('政体名称；最高头衔：姓名'));
+  assert.ok(prompt.includes('政体名称、最高头衔、最高负责人姓名、权力范围、产生方式、任期/交接'));
+  assert.ok(prompt.includes('具体、简练、一眼能看出含义'));
+  assert.ok(prompt.includes('可写“具体方案/执行方式 + 具体作用”'));
+  assert.ok(prompt.includes('避免只有“明确、规范、保障、确保'));
+  assert.ok(prompt.includes('需要时可补充实际做法'));
+  assert.ok(prompt.includes('已经成立的经济相关机构/岗位/账本/部门'));
+  assert.ok(prompt.includes('该机构的具体执行内容如何执行，目的是什么，不多于40字'));
+  assert.ok(prompt.includes('已经颁布的经济相关规则、合同、制度或法律依据'));
+  assert.ok(prompt.includes('法律名：不多于40字法案内容总结'));
+  assert.ok(prompt.includes('已经公布的关键的经济相关作品、方案、产品、项目或理论'));
+  assert.ok(prompt.includes('作品名：不多于40字作品内容总结'));
+  assert.ok(prompt.includes('机构名称：姓名(最高负责人头衔)，姓名(关键位置头衔1)，姓名(关键位置头衔2)，执行方式+作用'));
+  assert.ok(prompt.includes('法案/制度名：适用对象，执行方式，直接作用'));
+  assert.ok(prompt.includes('文件/方案名：怎么实施，影响什么'));
+  assert.ok(prompt.includes('名称|执行方式；作用'));
+  assert.ok(prompt.includes('每条必须是顶级编制'));
+  assert.ok(prompt.includes('不写成陆军/海军/空军等兵种分类'));
+  assert.ok(prompt.includes('顶级编制|姓名(负责人头衔)|姓名(关键头衔1)|姓名(关键头衔2)|人数规模|兵种构成|当前任务'));
+  assert.ok(prompt.includes('多个顶级编制分别写多条'));
+  assert.ok(prompt.includes('物资可维持时长、补给/维修/医疗或替补能力'));
+  assert.ok(prompt.includes('快反半径/时间、外部投送或威慑边界'));
+  assert.ok(prompt.includes('关系性质、紧密程度、合作领域、对方如何看待本方'));
+  assert.ok(prompt.includes('争议焦点、烈度、是否制度化/安全化/商业化'));
+  assert.ok(prompt.includes('外部驻点/分支/联系人/公开渠道数量或覆盖范围'));
+  assert.ok(prompt.includes('可带单位并说明是控制、使用、服务或影响范围'));
+  assert.ok(prompt.includes('顶级行政区|行政区省会|面积|控制率百分比(原因)|人口|特产/定位|驻军'));
+  assert.ok(prompt.includes('驻军应与 `mil.forces` 的顶级编制温和对应'));
+  assert.ok(!prompt.includes('保守估算'));
+  assert.ok(prompt.includes('### `class` 分类语义'));
+  assert.ok(prompt.includes('面板内部 key 参考“字段定义”列出的固定字段'));
+  assert.ok(prompt.includes('"expenditure"'));
+  assert.ok(prompt.includes('"production"'));
+  assert.ok(prompt.includes('"power"'));
+  assert.ok(prompt.includes('"personnel"'));
+  assert.ok(prompt.includes('"presence"'));
+  assert.ok(prompt.includes('"admin"'));
+  assert.ok(prompt.includes('| `assets` | 资产可量化'));
+  assert.ok(prompt.includes('| `lead` | 领导、继承、任免或负责人产生方式；写政体名称、最高头衔、最高负责人姓名'));
+  assert.ok(prompt.includes('直接上级组织指针'));
+  assert.ok(prompt.includes('多层归属由多条直接 parent 自动组成'));
+  assert.ok(prompt.includes('不是关系说明字段'));
+  assert.ok(!prompt.includes('例如 A'));
   assert.ok(prompt.includes('面板 key 只使用'));
+  assert.ok(!prompt.includes('createFactionDraft'));
+});
+
+test('Stage9-2 inherits Stage9-1 field semantics for patches', async () => {
+  const context = vm.createContext({
+    console,
+    Set,
+    Map,
+    Date,
+    JSON,
+    window: { GameModules: {} },
+  });
+  context.window.window = context.window;
+  installStage9Prompts(context);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'publish/org-territory-system.js'), 'utf8'), context, { filename: 'publish/org-territory-system.js' });
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'publish/inference/faction-stage-update.js'), 'utf8'), context, { filename: 'publish/inference/faction-stage-update.js' });
+  const stage = context.window.GameModules.inferenceFactionStageUpdate;
+  const prompt = await stage.buildUpdatePrompt({
+    action: '前往刘思琪房间',
+    narration: '刘思琪把英语作业放到桌边。',
+    factionIndex: '已有势力：刘家',
+    factionSnapshot: '刘家：经济面板缺少资源说明',
+    pendingFactionCandidates: [],
+  });
+  assert.ok(prompt.includes('可更新字段、字段语义、面板固定 key 与紧凑列表格式，全部沿用 Stage9-1'));
+  assert.ok(prompt.includes('## 字段范围'));
+  assert.ok(prompt.includes('字段定义优先级高于示例'));
+  assert.ok(prompt.includes('不能为了补全而硬编无法稳定确定的事实'));
+  assert.ok(prompt.includes('抽象职责、泛泛目的、简单名单'));
+  assert.ok(prompt.includes('没有实际执行方式，应按 Stage9-1 的高密度字段定义补齐'));
+  assert.ok(prompt.includes('列表说明必须具体而简练'));
+  assert.ok(prompt.includes('执行方式必须包含可操作细节'));
+  assert.ok(prompt.includes('若更新任何面板的机构类字段，保留或补齐“姓名(头衔)”负责人串'));
+  assert.ok(prompt.includes('机构条目不要只剩机构名和职责'));
+  assert.ok(prompt.includes('机构名：姓名(负责人头衔)，姓名(关键头衔)；执行方式+作用'));
   assert.ok(!prompt.includes('createFactionDraft'));
 });
 
@@ -315,6 +413,7 @@ test('Stage9 direct arrays map complete factions and patches to storage operatio
   });
   context.window.window = context.window;
   installStage9Prompts(context);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'publish/org-territory-system.js'), 'utf8'), context, { filename: 'publish/org-territory-system.js' });
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'publish/inference/faction-stage-update.js'), 'utf8'), context, { filename: 'publish/inference/faction-stage-update.js' });
   const stage = context.window.GameModules.inferenceFactionStageUpdate;
   const store = { factionState: { factions: [] } };
@@ -325,16 +424,55 @@ test('Stage9 direct arrays map complete factions and patches to storage operatio
       type: '学校',
       class: 'faction',
       structure: ['校务处|校长,教导主任'],
+      resources: ['教学设施', '教师队伍'],
+      overview: {
+        rulerTitle: '校长',
+        rulerName: '张明',
+        powerDistribution: [{ label: '校长', percent: 40 }, { label: '教务处', percent: 35 }, { label: '年级组', percent: 25 }],
+        livelihood: { value: 70, max: 300, level: '较强', comment: '学生保障稳定' },
+        economy: { value: 55, max: 345, level: '一般', comment: '财政拨款为主' },
+        military: { value: 20, max: 315, level: '弱', comment: '仅校园安保' },
+        reputation: { value: 65, max: 255, level: '友善', comment: '社区口碑尚可' },
+        classes: [{ label: '教师', percent: 15, approval: 72, view: '认可校务安排。' }, { label: '学生', percent: 85, approval: 60, view: '接受管理但压力较大。' }],
+      },
       econ: { income: '财政拨款', orgs: ['总务处|负责后勤保障'] },
+      mil: { personel: '保安与值班教师共12人' },
       ter: { regions: ['校本部|武侯区|约3公顷|稳定|约1500人|教学区域|保安室'] },
   }], 'create');
   assert.strictEqual(created.applied[0].method, 'createFaction');
   assert.ok(created.applied[0].params.solid.overviewPanels.economy.entries.income);
+  assert.strictEqual(created.applied[0].params.solid.overview.rulerTitle, '校长');
+  assert.strictEqual(created.applied[0].params.solid.overview.livelihood.value, 70);
+  assert.strictEqual(created.applied[0].params.solid.overview.livelihood.max, 300);
+  assert.strictEqual(created.applied[0].params.solid.overview.composite.max, 313);
+  assert.strictEqual(created.applied[0].params.solid.overview.metrics, undefined);
+  assert.strictEqual(created.applied[0].params.solid.overview.classes[0].approval, 72);
   assert.ok(created.applied[0].params.solid.overviewPanels.territory.entries.regions);
   assert.strictEqual(created.applied[0].params.structure[0].roles[0].title, '校长');
   assert.strictEqual(created.applied[0].params.solid.overviewPanels.economy.entries.institutions.value[0].description, '负责后勤保障');
+  assert.strictEqual(created.applied[0].params.solid.overviewPanels.economy.entries.resources.value, '教学设施、教师队伍');
+  assert.strictEqual(created.applied[0].params.solid.overviewPanels.military.entries.personnel.value, '保安与值班教师共12人');
   assert.strictEqual(created.applied[0].params.solid.overviewPanels.territory.entries.regions.value[0].capital, '武侯区');
   store.factionState.factions[0].solid = created.applied[0].params.solid;
+  const structuredPatch = stage.applyItems(store, [{
+      id: 'force-school',
+      field: 'mil.forces',
+      op: 'set',
+      value: ['校园安保队|赵安(队长)|钱宁(副队长)|孙勤(值班长)|12人|门禁70%、巡逻30%|维持校门与夜间巡查'],
+      reason: '补齐安保编制',
+  }, {
+      id: 'force-school',
+      field: 'ter.regions',
+      op: 'set',
+      value: ['校本部|行政楼|约3公顷|90%(围墙门禁可控)|约1500人|教学中心|校园安保队驻守'],
+      reason: '补齐统治区域',
+  }], 'update');
+  assert.strictEqual(structuredPatch.applied[0].params.value[0].name, '校园安保队');
+  assert.strictEqual(structuredPatch.applied[0].params.value[0].commander, '赵安(队长)');
+  assert.strictEqual(structuredPatch.applied[0].params.value[0].arms, '门禁70%、巡逻30%');
+  assert.strictEqual(structuredPatch.applied[0].params.value[0].task, '维持校门与夜间巡查');
+  assert.strictEqual(structuredPatch.applied[1].params.value[0].controlRate, '90%');
+  assert.strictEqual(structuredPatch.applied[1].params.value[0].controlReason, '围墙门禁可控');
   const patched = stage.applyItems(store, [{
       id: 'force-school',
       field: 'econ.income',
@@ -345,6 +483,15 @@ test('Stage9 direct arrays map complete factions and patches to storage operatio
   assert.strictEqual(patched.applied[0].method, 'patchFactionField');
   assert.strictEqual(patched.applied[0].params.panel, 'economy');
   assert.strictEqual(patched.applied[0].params.field, 'income');
+  const overviewPatched = stage.applyItems(store, [{
+      id: 'force-school',
+      field: 'overview',
+      op: 'set',
+      value: { rulerTitle: '校长', rulerName: '李明', livelihood: { value: 80, max: 300, level: '较强', comment: '教学秩序稳定' } },
+      reason: '补齐总览',
+  }], 'update');
+  assert.strictEqual(overviewPatched.applied[0].params.field, 'overview');
+  assert.strictEqual(overviewPatched.applied[0].params.value.rulerName, '李明');
 });
 
 test('Stage9 rejects malformed JSON arrays instead of silently returning no operations', () => {
@@ -448,6 +595,96 @@ test('createFaction writes every draft and replaces an existing matching id', ()
   assert.strictEqual(store.factionState.factions[1].description, '更新后的公司资料');
 });
 
+test('createFaction only keeps confirmed internal parent links', () => {
+  const ctx = loadFactionQuery();
+  const store = {
+    factionState: { factions: [] },
+    initFactionSystem() {},
+    phoneDate() { return new Date('2026-07-31T10:00:00.000Z'); },
+    factionIdByName(name = '') { return `force-${String(name || '').trim()}`; },
+    factionParentName(faction) { return faction.parentName || '无势力归属'; },
+    normalizeFactionStructure(faction) { return faction; },
+    completeFactionReasons(_faction, reasons = {}, _reason = '') { return reasons; },
+  };
+
+  ctx.createFaction(store, {
+    id: 'family-liu',
+    name: '刘悠家庭',
+    type: '家庭',
+    kind: 'family',
+    classification: 'community',
+    worldTag: '测试世界',
+    solid: { overviewPanels: fullOverviewPanels() },
+  });
+  ctx.createFaction(store, {
+    id: 'country-cn',
+    name: '中华人民共和国',
+    type: '国家',
+    classification: 'country',
+    parentName: '刘悠家庭',
+    worldTag: '测试世界',
+    solid: { overviewPanels: fullOverviewPanels() },
+  });
+  assert.strictEqual(store.factionState.factions.find((item) => item.id === 'country-cn').parentId, '');
+  assert.strictEqual(store.factionState.factions.find((item) => item.id === 'country-cn').parentName, '无势力归属');
+
+  ctx.createFaction(store, {
+    id: 'gov-cn-state-council',
+    name: '中华人民共和国国务院',
+    type: '政府机关',
+    classification: 'faction',
+    level: '国家级',
+    parentName: '中华人民共和国',
+    worldTag: '测试世界',
+    solid: { overviewPanels: fullOverviewPanels() },
+  });
+  assert.strictEqual(store.factionState.factions.find((item) => item.id === 'gov-cn-state-council').parentId, 'country-cn');
+
+  ctx.createFaction(store, {
+    id: 'company-tech',
+    name: '成都市高新区科创有限公司',
+    type: '公司',
+    classification: 'faction',
+    worldTag: '测试世界',
+    solid: { overviewPanels: fullOverviewPanels() },
+  });
+  ctx.createFaction(store, {
+    id: 'company-tech-dev',
+    name: '成都市高新区科创有限公司技术部',
+    type: '部门',
+    classification: 'faction',
+    parentName: '成都市高新区科创有限公司',
+    worldTag: '测试世界',
+    solid: { overviewPanels: fullOverviewPanels() },
+  });
+  const department = store.factionState.factions.find((item) => item.id === 'company-tech-dev');
+  assert.strictEqual(department.parentId, 'company-tech');
+  assert.strictEqual(department.parentName, '成都市高新区科创有限公司');
+});
+
+test('patchFactionField audits parent fields before persisting', () => {
+  const ctx = loadFactionQuery();
+  const store = {
+    factionState: { factions: [
+      { id: 'family-liu', name: '刘悠家庭', type: '家庭', kind: 'family', classification: 'community', parentId: '', parentName: '无势力归属' },
+      { id: 'country-cn', name: '中华人民共和国', type: '国家', classification: 'country', parentId: '', parentName: '无势力归属' },
+    ] },
+    initFactionSystem() {},
+    phoneDate() { return new Date('2026-07-31T10:00:00.000Z'); },
+  };
+
+  ctx.patchFactionField(store, {
+    id: 'country-cn',
+    field: 'parentName',
+    op: 'set',
+    value: '刘悠家庭',
+    reason: '测试错误 parent 修复',
+  });
+  const country = store.factionState.factions.find((item) => item.id === 'country-cn');
+  assert.strictEqual(country.parentId, '');
+  assert.strictEqual(country.parentName, '无势力归属');
+});
+
 test('Stage9 runs create phase before update phase', async () => {
   const context = vm.createContext({
     console,
@@ -469,7 +706,10 @@ test('Stage9 runs create phase before update phase', async () => {
           },
         },
         realWorldMaterials: {
-          pendingFactionCandidates: () => ([{ id: 'force-pending-tech', name: '成都市高新区科创有限公司', status: '待创建', type: '公司', worldTag: '2026现代都市现实世界' }]),
+          pendingFactionCandidates: () => ([
+            { id: 'force-pending-tech', name: '成都市高新区科创有限公司', status: '待创建', type: '公司', worldTag: '2026现代都市现实世界' },
+            { id: 'force-pending-school', name: '成都市某中学', status: '待创建', type: '学校', worldTag: '2026现代都市现实世界' },
+          ]),
         },
       },
     },
@@ -486,6 +726,7 @@ test('Stage9 runs create phase before update phase', async () => {
       prompts.push(options.prompt);
       requestOptions.push(options);
       if (prompts.length === 1) return JSON.stringify([{ id: 'force-pending-tech', candidate: '成都市高新区科创有限公司', name: '成都市高新区科创有限公司', type: '公司', class: 'faction', world: '2026现代都市现实世界', structure: ['管理层|负责人'], econ: { income: '项目收入' } }]);
+      if (prompts.length === 2) return JSON.stringify([{ id: 'force-pending-school', candidate: '成都市某中学', name: '成都市某中学', type: '学校', class: 'faction', world: '2026现代都市现实世界', structure: ['校长室|校长'], econ: { income: '财政拨款' } }]);
       return JSON.stringify([{ id: 'force-pending-tech', field: 'desc', op: 'set', value: '新增组织说明', reason: '正文确认' }]);
     },
     markConfiguredStep() {},
@@ -503,15 +744,19 @@ test('Stage9 runs create phase before update phase', async () => {
     materialSession: {},
     contextReview: 'Stage1 查询链与场景锚定完整上下文',
   });
-  assert.strictEqual(prompts.length, 2);
+  assert.strictEqual(prompts.length, 3);
   assert.ok(prompts[0].includes('Stage9-1 势力完整创建'));
   assert.ok(prompts[0].includes('Stage1 查询链与场景锚定完整上下文'));
-  assert.ok(prompts[1].includes('Stage9-2 势力字段更新'));
-  assert.ok(requestOptions[0].sourceTitle.includes('Stage9-1'));
-  assert.ok(requestOptions[1].sourceTitle.includes('Stage9-2'));
-  assert.strictEqual(result.ops.length, 2);
+  assert.ok(prompts[0].includes('本次只创建的目标势力'));
+  assert.ok(prompts[1].includes('成都市某中学'));
+  assert.ok(prompts[2].includes('Stage9-2 势力字段更新'));
+  assert.ok(requestOptions[0].sourceTitle.includes('Stage9-1【成都市高新区科创有限公司 1/2】'));
+  assert.ok(requestOptions[1].sourceTitle.includes('Stage9-1【成都市某中学 2/2】'));
+  assert.ok(requestOptions[2].sourceTitle.includes('Stage9-2'));
+  assert.strictEqual(result.ops.length, 3);
   assert.strictEqual(result.ops[0].method, 'createFaction');
-  assert.strictEqual(result.ops[1].method, 'patchFactionField');
+  assert.strictEqual(result.ops[1].method, 'createFaction');
+  assert.strictEqual(result.ops[2].method, 'patchFactionField');
 });
 
 (async () => {

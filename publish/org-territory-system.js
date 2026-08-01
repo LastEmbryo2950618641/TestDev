@@ -199,6 +199,190 @@ window.GameModules.orgTerritory = {
     };
   },
 
+  defaultFactionOverview() {
+    return {
+      rulerTitle: '',
+      rulerName: '',
+      powerDistribution: [],
+      livelihood: { value: 0, max: 100, level: '', comment: '' },
+      economy: { value: 0, max: 100, level: '', comment: '' },
+      military: { value: 0, max: 100, level: '', comment: '' },
+      reputation: { value: 0, max: 100, level: '', comment: '' },
+      composite: { value: 0, max: 100, formula: '(民生×3.5 + 经济×3 + 军事×2.5 + 声誉) ÷ 10' },
+      rank: 0,
+      stability: { value: 0, formula: '(民生率×4 + 经济率×3 + 军事率×2 + 声誉率) ÷ 10 × 100' },
+      classes: [],
+      reason: '',
+    };
+  },
+
+  clampScore(value, fallback = 0) {
+    if (value == null || String(value).trim() === '') return Math.max(0, Math.min(100, Math.round(fallback)));
+    const n = typeof value === 'number' ? value : Number(String(value ?? '').trim());
+    if (!Number.isFinite(n)) return fallback;
+    return Math.max(0, Math.min(100, Math.round(n)));
+  },
+
+  clampMetricValue(value, max = 100, fallback = 0) {
+    const ceiling = Math.max(1, Math.round(Number(max) || 100));
+    if (value == null || String(value).trim() === '') return Math.max(0, Math.min(ceiling, Math.round(fallback)));
+    const n = typeof value === 'number' ? value : Number(String(value ?? '').trim());
+    if (!Number.isFinite(n)) return Math.max(0, Math.min(ceiling, Math.round(fallback)));
+    return Math.max(0, Math.min(ceiling, Math.round(n)));
+  },
+
+  factionScaleCeiling(faction = {}) {
+    const descriptor = [
+      faction?.type,
+      faction?.kind,
+      faction?.class,
+      faction?.classification,
+      faction?.level,
+      faction?.scale,
+      faction?.domain,
+    ].filter(Boolean).join(' ');
+    if (this.normalizeClassification(faction?.classification || faction?.class) === 'country') return 10000;
+    const profiles = [
+      [/家庭|家族|住户|单户|family|household/i, 80],
+      [/小型|部门|科室|班级|门店|工作室|team|department/i, 180],
+      [/中型|公司|企业|学校|中学|小学|社团|协会|company|corp|school/i, 300],
+      [/大型|集团|大学|高校|corporation|集团公司/i, 500],
+      [/区|县|郡|district|county/i, 700],
+      [/市级|城市|都市|city/i, 1600],
+      [/省|州|邦|自治区|直辖|province|state/i, 3500],
+      [/国家|帝国|王国|共和国|联邦|country|sovereign/i, 10000],
+    ];
+    let matched = profiles.find(([pattern]) => pattern.test(descriptor));
+    if (matched) return matched[1];
+    const text = [faction?.name, faction?.location].filter(Boolean).join(' ');
+    matched = profiles.find(([pattern]) => pattern.test(text));
+    return matched ? matched[1] : 200;
+  },
+
+  factionMetricCeilings(faction = {}) {
+    const base = this.factionScaleCeiling(faction);
+    return {
+      livelihood: base,
+      economy: Math.round(base * 1.15),
+      military: Math.round(base * 1.05),
+      reputation: Math.round(base * 0.85),
+    };
+  },
+
+  weightedOverviewScore(metrics = {}, weights = {}) {
+    const entries = Object.entries(weights);
+    const totalWeight = entries.reduce((sum, [, weight]) => sum + weight, 0) || 1;
+    return Math.round(entries.reduce((sum, [key, weight]) => sum + (Number(metrics[key]?.value) || 0) * weight, 0) / totalWeight);
+  },
+
+  weightedOverviewMax(metrics = {}, weights = {}) {
+    const entries = Object.entries(weights);
+    const totalWeight = entries.reduce((sum, [, weight]) => sum + weight, 0) || 1;
+    return Math.max(1, Math.round(entries.reduce((sum, [key, weight]) => sum + (Number(metrics[key]?.max) || 1) * weight, 0) / totalWeight));
+  },
+
+  weightedOverviewPercent(metrics = {}, weights = {}) {
+    const entries = Object.entries(weights);
+    const totalWeight = entries.reduce((sum, [, weight]) => sum + weight, 0) || 1;
+    const value = entries.reduce((sum, [key, weight]) => {
+      const max = Math.max(1, Number(metrics[key]?.max) || 1);
+      const ratio = Math.max(0, Math.min(1, (Number(metrics[key]?.value) || 0) / max));
+      return sum + ratio * weight;
+    }, 0) / totalWeight;
+    return this.clampScore(value * 100, 0);
+  },
+
+  normalizePercentList(raw = [], fallback = []) {
+    const source = Array.isArray(raw) ? raw : fallback;
+    return source.map((item) => {
+      if (typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean') {
+        const text = String(item).trim();
+        const percent = Number((text.match(/(\d+(?:\.\d+)?)\s*%/) || [])[1]);
+        const label = text.replace(/[:：|，,]?\s*\d+(?:\.\d+)?\s*%.*$/u, '').trim() || text;
+        return label ? { label, percent: Number.isFinite(percent) ? percent : 0 } : null;
+      }
+      if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
+      const label = String(item.label || item.name || item.title || item.group || '').trim();
+      if (!label) return null;
+      return {
+        ...item,
+        label,
+        percent: this.clampScore(item.percent ?? item.rate ?? item.share, 0),
+      };
+    }).filter(Boolean);
+  },
+
+  normalizeMetric(raw = {}, max = 100, fallbackValue = 0) {
+    const ceiling = Math.max(1, Math.round(Number(max) || 100));
+    if (typeof raw === 'number' || typeof raw === 'string') {
+      return { value: this.clampMetricValue(raw, ceiling, fallbackValue), max: ceiling, level: '', comment: '' };
+    }
+    const value = this.clampMetricValue(raw?.value ?? raw?.score, ceiling, fallbackValue);
+    return {
+      value,
+      max: ceiling,
+      level: String(raw?.level || raw?.grade || raw?.degree || '').trim(),
+      comment: String(raw?.comment || raw?.desc || raw?.description || raw?.text || '').trim().slice(0, 24),
+    };
+  },
+
+  normalizeFactionOverview(raw = {}, faction = {}) {
+    const base = this.defaultFactionOverview();
+    const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+    const metricsRaw = source.metrics && typeof source.metrics === 'object' ? source.metrics : source;
+    const {
+      metrics: _legacyMetrics,
+      ...restSource
+    } = source;
+    const ceilings = this.factionMetricCeilings(faction);
+    const flatMetrics = {
+      livelihood: this.normalizeMetric(metricsRaw.livelihood || metricsRaw.people || metricsRaw['民生'], ceilings.livelihood),
+      economy: this.normalizeMetric(metricsRaw.economy || metricsRaw['经济'], ceilings.economy),
+      military: this.normalizeMetric(metricsRaw.military || metricsRaw['军事'], ceilings.military),
+      reputation: this.normalizeMetric(metricsRaw.reputation || metricsRaw['声誉'], ceilings.reputation),
+    };
+    const compositeWeights = { livelihood: 3.5, economy: 3, military: 2.5, reputation: 1 };
+    const stabilityWeights = { livelihood: 4, economy: 3, military: 2, reputation: 1 };
+    const compositeMax = this.weightedOverviewMax(flatMetrics, compositeWeights);
+    const composite = this.clampMetricValue(
+      source.composite?.value ?? source.compositeScore ?? source.composite ?? source['国家综合数值'],
+      compositeMax,
+      this.weightedOverviewScore(flatMetrics, compositeWeights),
+    );
+    const stability = this.clampScore(
+      source.stability?.value ?? source.stability ?? source['稳定度'],
+      this.weightedOverviewPercent(flatMetrics, stabilityWeights),
+    );
+    return {
+      ...base,
+      ...restSource,
+      rulerTitle: String(source.rulerTitle || source.supremeTitle || source.title || source['最高统治者头衔'] || '').trim(),
+      rulerName: String(source.rulerName || source.supremeRuler || source.name || source['最高统治者姓名'] || '').trim(),
+      powerDistribution: this.normalizePercentList(source.powerDistribution || source.power || source['权力分布']),
+      livelihood: flatMetrics.livelihood,
+      economy: flatMetrics.economy,
+      military: flatMetrics.military,
+      reputation: flatMetrics.reputation,
+      composite: {
+        value: composite,
+        max: compositeMax,
+        formula: String(source.composite?.formula || source.compositeFormula || base.composite.formula).trim(),
+      },
+      rank: Number.isInteger(Number(source.rank)) ? Number(source.rank) : 0,
+      stability: {
+        value: stability,
+        formula: String(source.stability?.formula || source.stabilityFormula || base.stability.formula).trim(),
+      },
+      classes: this.normalizePercentList(source.classes || source.classDistribution || source.socialClasses || source['国内阶级构成']).map((item) => ({
+        label: item.label,
+        percent: item.percent,
+        approval: this.clampScore(item.approval ?? item.recognition ?? item.support ?? item.value, 0),
+        view: String(item.view || item.comment || item.desc || item.description || '').trim().slice(0, 60),
+      })),
+      reason: String(source.reason || faction?.reason || '').trim(),
+    };
+  },
+
   /** Standard overview value kinds. Parse accepts only this JSON shape — no markdown / legacy shape compat. */
   overviewValueKinds() {
     return {
@@ -290,26 +474,45 @@ window.GameModules.orgTerritory = {
         parse(raw) {
           if (!Array.isArray(raw)) return [];
           return raw.map((item) => {
+            if (typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean') {
+              const [name = '', commander = '', deputy = '', staff = '', size = '', arms = '', task = ''] = String(item).split('|').map((part) => part.trim());
+              return name ? { name, commander, deputy, staff, size, arms, task } : null;
+            }
             if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
             const name = String(item.name ?? '').trim();
             if (!name) return null;
-            const items = Array.isArray(item.items)
-              ? item.items.map((row) => String(row ?? '').trim()).filter(Boolean)
-              : [];
-            return { name, items };
+            return {
+              name,
+              commander: String(item.commander ?? item.leader ?? item.chief ?? item.负责人 ?? '').trim(),
+              deputy: String(item.deputy ?? item.second ?? item.副手 ?? '').trim(),
+              staff: String(item.staff ?? item.third ?? item.参谋 ?? '').trim(),
+              size: String(item.size ?? item.population ?? item.personnel ?? item.人数规模 ?? item.人数 ?? '').trim(),
+              arms: String(item.arms ?? item.composition ?? item.branchComposition ?? item.兵种构成 ?? '').trim(),
+              task: String(item.task ?? item.currentTask ?? item.mission ?? item.当前任务 ?? '').trim(),
+              items: Array.isArray(item.items) ? item.items.map((row) => String(row ?? '').trim()).filter(Boolean) : [],
+            };
           }).filter(Boolean);
         },
         format(rows) {
           if (!Array.isArray(rows) || !rows.length) return '待推演补全';
-          const lines = [];
-          rows.forEach((row) => {
-            lines.push(`- ${row.name}`);
-            (row.items || []).forEach((item) => lines.push(`-- ${item}`));
-          });
-          return lines.join('\n');
+          return rows.map((row) => {
+            const structured = [
+              row.commander || '',
+              row.deputy || '',
+              row.staff || '',
+              row.size ? `人数规模：${row.size}` : '',
+              row.arms ? `兵种构成：${row.arms}` : '',
+              row.task ? `当前任务：${row.task}` : '',
+            ].filter(Boolean).join('；');
+            if (structured) return `- ${row.name}: ${structured}`;
+            const items = Array.isArray(row.items) && row.items.length ? `: ${row.items.join('；')}` : '';
+            return `- ${row.name}${items}`;
+          }).join('\n');
         },
         hasValue(rows) {
-          return Array.isArray(rows) && rows.some((row) => row?.name && Array.isArray(row.items) && row.items.length > 0);
+          return Array.isArray(rows) && rows.some((row) => row?.name && (
+            row.commander || row.deputy || row.staff || row.size || row.arms || row.task || (Array.isArray(row.items) && row.items.length > 0)
+          ));
         },
       },
       regionList: {
@@ -325,8 +528,9 @@ window.GameModules.orgTerritory = {
               capital: String(item.capital ?? item.省会 ?? '').trim(),
               area: String(item.area ?? item.面积 ?? '').trim(),
               controlRate: String(item.controlRate ?? item.控制率 ?? '').trim(),
+              controlReason: String(item.controlReason ?? item.reason ?? item.控制原因 ?? '').trim(),
               population: String(item.population ?? item.人数 ?? '').trim(),
-              description: String(item.description ?? item.描述 ?? '').trim(),
+              description: String(item.description ?? item.specialty ?? item.role ?? item.特产 ?? item.描述 ?? '').trim(),
               garrison: String(item.garrison ?? item.驻军 ?? '').trim(),
             };
           }).filter(Boolean);
@@ -337,7 +541,7 @@ window.GameModules.orgTerritory = {
             const parts = [
               row.capital ? `省会${row.capital}` : '',
               row.area || '',
-              row.controlRate ? `控制率${row.controlRate}` : '',
+              row.controlRate ? `控制率${row.controlRate}${row.controlReason ? `(${row.controlReason})` : ''}` : '',
               row.population || '',
               row.description || '',
               row.garrison || '',
@@ -1066,9 +1270,13 @@ window.GameModules.orgTerritory = {
     const resolution = faction.resolution || (faction.structure?.length ? 'L2' : 'L1');
     const status = faction.status || 'active';
     const stub = faction.stub && typeof faction.stub === 'object' ? faction.stub : this.defaultStub(faction);
-    const solid = faction.solid && typeof faction.solid === 'object'
-      ? { overviewPanels: this.normalizeOverviewPanels(faction.solid.overviewPanels || {}) }
-      : { overviewPanels: this.defaultOverviewPanels() };
+    const existingSolid = faction.solid && typeof faction.solid === 'object' ? faction.solid : {};
+    const overviewSource = existingSolid.overview || faction.overview || {};
+    const solid = {
+      ...existingSolid,
+      overviewPanels: this.normalizeOverviewPanels(existingSolid.overviewPanels || {}),
+      overview: this.normalizeFactionOverview(overviewSource, faction),
+    };
     const structure = (Array.isArray(faction.structure) ? faction.structure : []).map((node, index) => this.normalizeStructureNode(node, faction, index, store));
     const territoryAnchors = (Array.isArray(faction.territoryAnchors) ? faction.territoryAnchors : [])
       .map((id) => String(id || '').trim()).filter(Boolean).slice(0, 8);

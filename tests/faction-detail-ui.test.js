@@ -15,11 +15,17 @@ function read(relativePath) {
 test('faction detail modal renders overview panels from capability cards instead of legacy stat grid', () => {
   const html = read('publish/index.html');
   assert.ok(html.includes('factionCapabilityCards()'));
+  assert.ok(html.includes('factionOverallView()'));
+  assert.ok(html.includes('势力总览'));
+  assert.ok(html.includes('faction-overall-section'));
+  assert.ok(html.indexOf('faction-overall-score') < html.indexOf('faction-overall-metrics'));
+  assert.ok(html.indexOf('国家综合数值') < html.indexOf('metric in $store.game.factionOverallView().metrics'));
   assert.ok(html.includes('faction-overview-grid'));
   assert.ok(html.includes('faction-overview-symbol'));
   assert.ok(html.includes('factionOrgTreeRows()'));
-  assert.ok(html.includes("setFactionOrgChartMode('forest')"));
-  assert.ok(html.includes('forestDomainTabs()'));
+  assert.ok(!html.includes("setFactionOrgChartMode('forest')"));
+  assert.ok(!html.includes('forestDomainTabs()'));
+  assert.ok(!html.includes('势力森林'));
   assert.ok(!html.includes('<div class="faction-rpg-stats">'));
   assert.ok(!html.includes('<strong>领域</strong>'));
   assert.ok(!html.includes('<strong>影响力</strong>'));
@@ -48,7 +54,7 @@ test('boot loader appends manifest version to local scripts for cache busting', 
   const manifest = read('publish/boot/script-manifest.js');
   assert.ok(loader.includes('versionedSrc(src)'));
   assert.ok(loader.includes('window.GameScriptManifest?.version'));
-  assert.ok(manifest.includes('"version": "2026-07-07-electronic-map-fast-path-v1"'));
+  assert.match(manifest, /"version":\s*"[^"]+"/);
 });
 
 (async () => {

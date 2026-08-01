@@ -97,6 +97,50 @@ test('aiRequest.complete delegates to current provider and returns merged buffer
   }]);
 });
 
+test('aiRequest enables thinking only for Stage3 narration', async () => {
+  const seen = [];
+  const context = createContext();
+  loadScript(context, 'publish/ai-provider.js');
+  context.window.GameModules.aiProvider.register('deepseek', {
+    async complete(options) {
+      seen.push({
+        source: options.source,
+        deepThinking: options.deepThinking,
+        thinking: options.thinking,
+      });
+      await options.onChunk?.('ok', true, {});
+      return 'ok';
+    },
+  });
+  loadScript(context, 'publish/ai-request.js');
+  context.window.GameModules.aiRequest.minGapMs = 0;
+
+  await context.window.GameModules.aiRequest.complete({
+    source: 'auxiliary-request',
+    prompt: '辅助请求',
+    deepThinking: true,
+    timeoutMs: 2000,
+  });
+  await context.window.GameModules.aiRequest.complete({
+    source: 'stage3-narration',
+    prompt: '正文请求',
+    outputLimitKind: 'stage3',
+    deepThinking: true,
+    timeoutMs: 2000,
+  });
+
+  assert.strictEqual(JSON.stringify(seen[0]), JSON.stringify({
+    source: 'auxiliary-request',
+    deepThinking: false,
+    thinking: { type: 'disabled' },
+  }));
+  assert.strictEqual(JSON.stringify(seen[1]), JSON.stringify({
+    source: 'stage3-narration',
+    deepThinking: true,
+    thinking: { type: 'enabled' },
+  }));
+});
+
 test('aiRequest.complete reports token record id before provider starts', async () => {
   const events = [];
   const context = createContext();

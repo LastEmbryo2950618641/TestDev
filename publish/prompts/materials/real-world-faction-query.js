@@ -78,6 +78,50 @@ window.GameModules = window.GameModules || {};
       return /^(公民|居民|成年人|成年学生|成员)$/.test(String(position || '').trim());
     },
 
+    isTopLevelSovereign(params = {}) {
+      const classificationText = [
+        params.classification,
+        params.class,
+        params.kind,
+        params.orgDomain,
+      ].map((item) => String(item || '').trim()).join('|').toLowerCase();
+      const typeText = String(params.type || '').trim();
+      const levelText = String(params.level || '').trim();
+      return params.sovereign === true
+        || /\bcountry\b|\bsovereign\b/.test(classificationText)
+        || /^(国家|主权国家|国家政权)$/.test(typeText)
+        || /^主权/.test(levelText);
+    },
+
+    parentChainContains(store, parentId = '', childId = '') {
+      const target = String(childId || '').trim();
+      let cursor = String(parentId || '').trim();
+      const seen = new Set();
+      while (cursor) {
+        if (cursor === target) return true;
+        if (seen.has(cursor)) return true;
+        seen.add(cursor);
+        const next = this.findFaction(store, cursor);
+        cursor = String(next?.parentId || '').trim();
+      }
+      return false;
+    },
+
+    validatedParentRef(store, params = {}, parent = null) {
+      const explicitParentKey = String(params.parentId || params.parentName || '').trim();
+      if (!explicitParentKey) return { parentId: '', parentName: '无势力归属' };
+      const resolvedParent = parent || this.findFaction(store, explicitParentKey);
+      if (!resolvedParent) return { parentId: '', parentName: '无势力归属' };
+      const childId = String(params.id || params.factionId || '').trim();
+      const childName = String(params.name || params.factionName || '').trim();
+      const parentId = String(resolvedParent.id || '').trim();
+      const parentName = String(resolvedParent.name || '').trim();
+      if ((childId && childId === parentId) || (childName && childName === parentName)) return { parentId: '', parentName: '无势力归属' };
+      if (this.isTopLevelSovereign(params)) return { parentId: '', parentName: '无势力归属' };
+      if (childId && parentId && this.parentChainContains(store, parentId, childId)) return { parentId: '', parentName: '无势力归属' };
+      return { parentId, parentName: parentName || '无势力归属' };
+    },
+
     factionText(store, f = {}) {
       const structure = (f.structure || []).map((node) => {
         const roles = store.normalizeFactionRoles?.(node.roles)?.map((role) => `${role.title}：${(role.characters || ['未知']).join('、')}`).join('；') || '职位未记录';
@@ -126,10 +170,11 @@ window.GameModules = window.GameModules || {};
         roles: (Array.isArray(node.roles) ? node.roles : []).filter((role) => !this.isAbstractPosition(role?.title || role?.name || role?.position || role)),
       })).filter((node) => !this.isAbstractFactionName(node.name));
       const explicitWorld = String(params.worldTag || params.所属世界 || params.world || '').trim().slice(0, 40);
+      const parentRef = this.validatedParentRef(store, params, parent);
       const patch = {
         type: params.type || '组织',
-        parentId: params.parentId || parent?.id || '',
-        parentName: params.parentName || parent?.name || '无势力归属',
+        parentId: parentRef.parentId,
+        parentName: parentRef.parentName,
         level: params.level || '组织级',
         location: params.location || '未知',
         domain: params.domain || '现实组织关系',
@@ -231,6 +276,7 @@ window.GameModules = window.GameModules || {};
           worldTag: faction.worldTag,
           type: faction.type,
           structure: faction.structure || [],
+          overview: faction.solid?.overview || {},
           overviewPanels: faction.solid?.overviewPanels || {},
         }, null, 0), 2400);
       }
@@ -286,8 +332,12 @@ window.GameModules = window.GameModules || {};
         faction.kind = 'family';
         faction.type = typeText || patch.type || '家庭';
       }
-      if (params.solid?.overviewPanels) {
-        faction.solid = { overviewPanels: ot?.normalizeOverviewPanels?.(params.solid.overviewPanels) || params.solid.overviewPanels };
+      if (params.solid?.overview || params.solid?.overviewPanels) {
+        faction.solid = {
+          ...(faction.solid || {}),
+          overview: ot?.normalizeFactionOverview?.(params.solid.overview || {}, faction) || params.solid.overview || {},
+          overviewPanels: ot?.normalizeOverviewPanels?.(params.solid.overviewPanels || faction.solid?.overviewPanels || {}) || params.solid.overviewPanels || {},
+        };
       }
       faction.fieldReasons = store.completeFactionReasons?.(faction, params.fieldReasons || {}, params.reason || '创建完整势力。') || {};
       faction.changeLog = [{ field: 'all', reason: params.reason || '创建完整势力。', at: now, action: 'create' }];
@@ -316,7 +366,16 @@ window.GameModules = window.GameModules || {};
       if (!field) return '更新失败：缺少 field。';
 
       if (!panel) {
-        if (op === 'set') {
+        if (field === 'overview' && op === 'set') {
+          faction.solid = faction.solid && typeof faction.solid === 'object' ? faction.solid : {};
+          faction.solid.overview = ot?.normalizeFactionOverview?.(params.value || {}, faction) || params.value || {};
+        } else if ((field === 'parentId' || field === 'parentName') && op === 'set') {
+          const nextValue = String(params.value || '').trim();
+          const parent = nextValue ? this.findFaction(store, nextValue) : null;
+          const ref = nextValue ? this.validatedParentRef(store, { ...faction, [field]: nextValue }, parent) : { parentId: '', parentName: '无势力归属' };
+          faction.parentId = ref.parentId;
+          faction.parentName = ref.parentName;
+        } else if (op === 'set') {
           faction[field] = params.value;
         } else if (op === 'append') {
           const list = Array.isArray(faction[field]) ? faction[field].slice() : [];

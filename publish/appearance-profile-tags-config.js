@@ -308,11 +308,12 @@ window.GameModules.appearanceProfileTags = {
   /** Stage5 判定提示：写入 gate prompt */
   stage5GateTriggerGuide() {
     return [
-      '## 盛装 dressedProfile（优先）',
-      '- 换穿/脱卸/弄乱/补妆/造型饰品变化 → 对应 11 部位',
-      '- 仅视觉塑形、未改变真实体貌 → 只改盛装，不改 Part5',
+      '## 盛装 dressedProfile',
+      '- 衣着、饰品、妆容、刻意发型或造型变化 → 对应 11 部位',
+      '- 仅由衣物、妆造、饰品、面料、遮挡或视觉塑形造成的外观变化 → 只改盛装',
       '',
       '## 自然 bodyProfile（11 部位 + meta 同等规则；对可见体貌变化更灵敏）',
+      '- 洗澡、刚洗完、湿发、滴水、水汽、卸妆、素颜、自然脸色、睡意疲态等当前可见的身体/脸/头发状态 → 改自然外观',
       this.bodyChangeFactGuide(),
       '',
       '### meta（updateScope: meta）',

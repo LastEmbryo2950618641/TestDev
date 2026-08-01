@@ -162,7 +162,7 @@ test('deepseek keeps selected flash model when deep thinking is enabled', async 
   assert.strictEqual(payload.reasoning_effort, 'high');
 });
 
-test('deepseek keeps JSON response format and deep thinking together', async () => {
+test('deepseek keeps JSON response format and explicitly disables thinking', async () => {
   const context = createContext();
   let payload = null;
   context.fetch = async (_url, request) => {
@@ -185,11 +185,11 @@ test('deepseek keeps JSON response format and deep thinking together', async () 
     messages: [{ role: 'user', content: 'return json' }],
     jsonMode: true,
     responseFormat: { type: 'json_object' },
-    deepThinking: true,
+    deepThinking: false,
   });
   assert.strictEqual(text, '{"ok":true}');
   assert.deepStrictEqual(payload.response_format, { type: 'json_object' });
-  assert.strictEqual(Object.prototype.hasOwnProperty.call(payload, 'thinking'), false);
+  assert.deepStrictEqual(payload.thinking, { type: 'disabled' });
   assert.strictEqual(Object.prototype.hasOwnProperty.call(payload, 'reasoning_effort'), false);
 });
 

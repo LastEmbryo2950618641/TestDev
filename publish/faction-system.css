@@ -3,7 +3,7 @@
 }
 
 .faction-app-screen { display: grid; place-items: center; padding: max(14px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
-.faction-card { width: min(980px, 100%); max-height: min(780px, 96dvh); display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 10px; overflow: hidden; padding: 16px; border: 1px solid rgba(98,255,184,.26); border-radius: 22px; background: rgba(7, 18, 25, .94); box-shadow: 0 22px 80px rgba(0,0,0,.36); }
+.faction-card { width: min(980px, 100%); max-height: min(780px, 96dvh); display: grid; grid-template-rows: auto auto auto minmax(0, 1fr); gap: 10px; overflow: hidden; padding: 16px; border: 1px solid rgba(98,255,184,.26); border-radius: 22px; background: rgba(7, 18, 25, .94); box-shadow: 0 22px 80px rgba(0,0,0,.36); }
 .faction-toolbar { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; }
 .faction-toolbar .faction-note { grid-column: 1 / -1; margin: 0; }
 .faction-toolbar input { min-height: 38px; border: 1px solid rgba(166,188,255,.28); border-radius: 12px; padding: 0 10px; color: #fff; background: rgba(255,255,255,.08); }
@@ -26,6 +26,28 @@
 .faction-archive-detail h4 { margin: 0; }
 .faction-back-btn { justify-self: start; }
 .faction-note { color: #aeb9d6; font-size: 12px; font-weight: 800; }
+.faction-child-list { display: grid; gap: 7px; }
+.faction-child-row { padding: 9px 10px; border-radius: 12px; }
+.faction-child-row strong { font-size: 13px; }
+.faction-child-row small { font-size: 11px; }
+.faction-overall-section { display: grid; gap: 10px; }
+.faction-overall-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.faction-overall-card { display: grid; gap: 4px; padding: 9px 10px; border: 1px solid rgba(114,228,255,.16); border-radius: 13px; background: rgba(255,255,255,.045); }
+.faction-overall-score { grid-column: span 2; }
+.faction-overall-card small { color: #72e4ff; font-size: 10px; font-weight: 900; letter-spacing: .08em; }
+.faction-overall-card strong { color: #fff6db; font-size: 14px; line-height: 1.25; }
+.faction-overall-card em { color: #aeb9d6; font-size: 10px; font-style: normal; line-height: 1.25; }
+.faction-overall-chart-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.faction-overall-chart { min-width: 0; display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 10px; align-items: center; padding: 10px; border-radius: 14px; background: rgba(10,24,45,.52); border: 1px solid rgba(255,255,255,.08); }
+.faction-pie { width: 76px; height: 76px; border-radius: 50%; box-shadow: inset 0 0 0 12px rgba(7,18,25,.72), 0 0 0 1px rgba(255,255,255,.16); }
+.faction-overall-chart h4 { margin: 0 0 5px; color: #fff6db; font-size: 13px; }
+.faction-overall-chart p { margin: 2px 0; display: flex; gap: 6px; align-items: baseline; color: #b8c8e8; font-size: 11px; line-height: 1.3; }
+.faction-overall-chart p b { flex: 0 0 auto; color: #72e4ff; font-size: 11px; }
+.faction-overall-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-top: 4px; }
+.faction-overall-metric { display: grid; grid-template-columns: 42px minmax(70px, .8fr) minmax(0, 1.4fr); gap: 8px; align-items: center; padding: 7px 9px; border-radius: 12px; background: rgba(255,255,255,.04); }
+.faction-overall-metric span { color: #72e4ff; font-size: 12px; font-weight: 900; }
+.faction-overall-metric b { color: #dbe7ff; font-size: 11px; line-height: 1.25; }
+.faction-overall-metric meter { width: 100%; height: 8px; }
 .faction-org-modal { width: min(860px, 100%); max-height: min(760px, 90dvh); display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; overflow: hidden; padding: 14px; border: 1px solid rgba(98,255,184,.28); border-radius: 22px; background: rgba(7,18,25,.98); box-shadow: 0 26px 90px rgba(0,0,0,.45); }
 .faction-org-scroll { min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 8px; }
 .faction-tree, .faction-tree ul { margin: 0; padding-left: 26px; list-style: none; position: relative; }
@@ -166,8 +188,8 @@
 .faction-reasons b { display: block; color: #eafff5; margin-bottom: 4px; }
 
 .faction-rpg-detail {
-  gap: 12px;
-  padding: 12px;
+  gap: 8px;
+  padding: 10px;
   border-color: rgba(255, 205, 112, .34);
   background:
     radial-gradient(circle at 18% 0%, rgba(255, 205, 112, .20), transparent 32%),
@@ -179,9 +201,9 @@
 .faction-rpg-hero {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 12px;
+  gap: 9px;
   align-items: center;
-  padding: 12px;
+  padding: 9px;
   border: 1px solid rgba(255, 205, 112, .28);
   border-radius: 18px;
   background:
@@ -193,19 +215,19 @@
 .faction-rpg-crest {
   display: grid;
   place-items: center;
-  width: 54px;
-  height: 54px;
+  width: 46px;
+  height: 46px;
   border: 1px solid rgba(255, 205, 112, .72);
   border-radius: 16px;
   color: #ffe2a3;
-  font-size: 28px;
+  font-size: 24px;
   background: radial-gradient(circle at 35% 25%, rgba(255,255,255,.35), transparent 26%), linear-gradient(145deg, #52371b, #16284c);
   box-shadow: inset 0 0 18px rgba(255, 205, 112, .16), 0 0 22px rgba(255, 205, 112, .16);
 }
 
 .faction-rpg-title { min-width: 0; }
-.faction-rpg-title h3 { margin: 1px 0 4px; color: #fff6db; font-size: clamp(20px, 4.2vw, 28px); letter-spacing: .02em; }
-.faction-rpg-title small { display: block; color: #b8c8e8; line-height: 1.45; }
+.faction-rpg-title h3 { margin: 1px 0 3px; color: #fff6db; font-size: clamp(18px, 3.6vw, 24px); letter-spacing: .02em; }
+.faction-rpg-title small { display: block; color: #b8c8e8; font-size: 12px; line-height: 1.35; }
 .faction-rpg-title .eyebrow { margin: 0; color: #72e4ff; letter-spacing: .18em; }
 
 .faction-rpg-tags,
@@ -215,15 +237,15 @@
   gap: 7px;
 }
 
-.faction-rpg-tags { margin-top: 9px; }
+.faction-rpg-tags { margin-top: 6px; }
 .faction-rpg-tags span,
 .faction-rpg-chipset span {
   border: 1px solid rgba(255, 205, 112, .28);
   border-radius: 999px;
-  padding: 5px 9px;
+  padding: 4px 8px;
   color: #ffe7ac;
   background: rgba(255, 205, 112, .10);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 900;
 }
 
@@ -234,17 +256,17 @@
   background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.035));
 }
 
-.faction-rpg-section h3 { margin: 0 0 8px; color: #fff6db; }
+.faction-rpg-section h3 { margin: 0 0 6px; color: #fff6db; font-size: 16px; }
 
 .faction-overview-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
 }
 
 .faction-overview-card {
   position: relative;
-  padding: 12px;
+  padding: 9px;
   border: 1px solid rgba(114, 228, 255, .16);
   border-radius: 16px;
   background:
@@ -273,15 +295,15 @@
   align-items: flex-start;
   justify-content: flex-start;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 7px;
 }
 
 .faction-overview-symbol {
   --meter: 0;
   position: relative;
-  flex: 0 0 58px;
-  width: 58px;
-  height: 58px;
+  flex: 0 0 46px;
+  width: 46px;
+  height: 46px;
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -294,14 +316,14 @@
 .faction-overview-symbol span {
   position: relative;
   z-index: 1;
-  font-size: 24px;
+  font-size: 20px;
   line-height: 1;
   text-shadow: 0 0 12px rgba(255,255,255,.18);
 }
 
 .faction-overview-symbol i {
   position: absolute;
-  inset: 10px;
+  inset: 8px;
   border-radius: 50%;
   border: 1px solid rgba(255,255,255,.08);
 }
@@ -316,11 +338,11 @@
 .faction-overview-head h4 {
   margin: 4px 0 0;
   color: #fff6db;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .faction-overview-head p {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   color: #aeb9d6;
   font-size: 12px;
   font-weight: 800;
@@ -329,7 +351,7 @@
 .faction-overview-count {
   border: 1px solid rgba(255, 205, 112, .24);
   border-radius: 999px;
-  padding: 4px 8px;
+  padding: 3px 7px;
   color: #ffe7ac;
   background: rgba(255, 205, 112, .08);
   font-size: 11px;
@@ -342,7 +364,7 @@
 }
 
 .faction-overview-item {
-  padding: 9px 10px;
+  padding: 7px 8px;
   border-radius: 12px;
   background: rgba(0,0,0,.18);
   border: 1px solid rgba(255,255,255,.06);
@@ -361,7 +383,7 @@
   align-items: center;
   gap: 6px;
   color: #fff6db;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .faction-overview-item-head span {
@@ -373,14 +395,14 @@
 .faction-overview-item p {
   margin: 0;
   color: #eef4ff;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 900;
 }
 
 .faction-overview-item p.multiline {
   white-space: pre-wrap;
   font-weight: 700;
-  line-height: 1.45;
+  line-height: 1.35;
 }
 
 .faction-overview-card.empty .faction-note {
@@ -395,9 +417,10 @@
 
 .faction-overview-item small {
   display: block;
-  margin-top: 5px;
+  margin-top: 4px;
   color: #aeb9d6;
-  line-height: 1.45;
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .faction-rpg-structure article {
@@ -453,9 +476,161 @@
   .faction-rpg-hero { grid-template-columns: auto minmax(0, 1fr); }
   .faction-rpg-close { grid-column: 1 / -1; width: 100%; }
   .faction-overview-grid { grid-template-columns: 1fr; }
+  .faction-overall-grid,
+  .faction-overall-chart-row,
+  .faction-overall-metrics { grid-template-columns: 1fr; }
+  .faction-overall-score { grid-column: auto; }
 }
 
 @media (max-width: 420px) {
   .faction-overview-card { padding: 10px; }
 }
 @media (max-width: 760px) { .faction-card { padding: 12px; } .faction-toolbar, .faction-body, .faction-meta { grid-template-columns: 1fr; } .faction-body { overflow-y: auto; } .faction-list { overflow: visible; } .faction-detail { max-height: 88dvh; overflow-y: auto; } }
+
+/* Dense faction dossier layout: show more overview information per screen. */
+.faction-rpg-detail {
+  gap: 6px;
+  padding: 8px;
+  font-size: 12px;
+}
+
+.faction-rpg-hero {
+  gap: 7px;
+  padding: 7px;
+  border-radius: 15px;
+}
+
+.faction-rpg-crest {
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  font-size: 20px;
+}
+
+.faction-rpg-title h3 {
+  margin: 0 0 2px;
+  font-size: clamp(16px, 3.1vw, 21px);
+  letter-spacing: .01em;
+}
+
+.faction-rpg-title small {
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.faction-rpg-title .eyebrow {
+  font-size: 10px;
+  letter-spacing: .16em;
+}
+
+.faction-rpg-tags,
+.faction-rpg-chipset {
+  gap: 5px;
+}
+
+.faction-rpg-tags { margin-top: 4px; }
+
+.faction-rpg-tags span,
+.faction-rpg-chipset span {
+  padding: 2px 7px;
+  font-size: 10px;
+}
+
+.faction-rpg-section {
+  padding: 8px;
+}
+
+.faction-rpg-section h3 {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+
+.faction-overview-grid {
+  gap: 6px;
+}
+
+.faction-overview-card {
+  padding: 7px 8px;
+  border-radius: 13px;
+}
+
+.faction-overview-card::before {
+  width: 3px;
+}
+
+.faction-overview-head {
+  gap: 6px;
+  margin-bottom: 5px;
+}
+
+.faction-overview-symbol {
+  flex-basis: 36px;
+  width: 36px;
+  height: 36px;
+}
+
+.faction-overview-symbol span {
+  font-size: 16px;
+}
+
+.faction-overview-symbol i {
+  inset: 6px;
+}
+
+.faction-overview-head small {
+  font-size: 9px;
+  letter-spacing: .11em;
+}
+
+.faction-overview-head h4 {
+  margin: 2px 0 0;
+  font-size: 14px;
+}
+
+.faction-overview-head p {
+  margin: 2px 0 0;
+  font-size: 11px;
+}
+
+.faction-overview-count {
+  padding: 2px 6px;
+  font-size: 10px;
+}
+
+.faction-overview-list {
+  gap: 5px;
+}
+
+.faction-overview-item {
+  padding: 5px 7px;
+  border-radius: 10px;
+}
+
+.faction-overview-item-head {
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.faction-overview-item-head strong {
+  gap: 4px;
+  font-size: 11px;
+}
+
+.faction-overview-item-head span {
+  font-size: 10px;
+}
+
+.faction-overview-item p {
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.faction-overview-item p.multiline {
+  line-height: 1.25;
+}
+
+.faction-overview-item small {
+  margin-top: 2px;
+  font-size: 10px;
+  line-height: 1.22;
+}

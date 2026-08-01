@@ -65,9 +65,6 @@ function registerGameStore() {
     open: false,
     selectedId: '',
     factions: [],
-    orgChartMode: 'forest',
-    forestTab: 'corp',
-    forestData: { viewportRoot: null, domains: [], activeTree: null, breadcrumb: '' },
     orgTree: null,
     orgNodes: [],
     structureCards: [],
@@ -516,6 +513,85 @@ function registerGameStore() {
       if (summary) return summary;
       return faction.stub?.oneLine || faction.description || '尚未推演出稳定的宏观总览事实。';
     },
+    factionOverallView(faction = this.selectedFaction?.()) {
+      const ot = window.GameModules.orgTerritory;
+      const overview = ot?.normalizeFactionOverview?.(faction?.solid?.overview || {}, faction) || {};
+      const formatMetricLine = (item = {}) => {
+        const value = Number(item.value) || 0;
+        const max = Math.max(1, Number(item.max) || 100);
+        return `${value}/${max}（${item.level || '待评估'}，${item.comment || '等待推演补全'}）`;
+      };
+      const metrics = {
+        livelihood: overview.livelihood || overview.metrics?.livelihood || {},
+        economy: overview.economy || overview.metrics?.economy || {},
+        military: overview.military || overview.metrics?.military || {},
+        reputation: overview.reputation || overview.metrics?.reputation || {},
+      };
+      const composite = Number(overview.composite?.value) || 0;
+      const compositeMax = Math.max(1, Number(overview.composite?.max) || 100);
+      const rank = this.factionOverallRank(faction);
+      return {
+        rulerLine: overview.rulerTitle || overview.rulerName ? `${overview.rulerTitle || '最高负责人'}：${overview.rulerName || '未知'}` : '最高负责人：待推演补全',
+        power: this.factionPieRows(overview.powerDistribution),
+        powerStyle: this.factionPieStyle(overview.powerDistribution),
+        composite,
+        compositeMax,
+        compositeLabel: `${composite}/${compositeMax}`,
+        compositeFormula: '(民生×3.5 + 经济×3 + 军事×2.5 + 声誉) ÷ 10',
+        rank: rank ? `第 ${rank} 名` : '未入榜',
+        stability: Number(overview.stability?.value) || 0,
+        stabilityLabel: `${Number(overview.stability?.value) || 0}/100`,
+        stabilityFormula: '(民生率×4 + 经济率×3 + 军事率×2 + 声誉率) ÷ 10 × 100',
+        metrics: [
+          { key: 'livelihood', label: '民生', ...(metrics.livelihood || {}) },
+          { key: 'economy', label: '经济', ...(metrics.economy || {}) },
+          { key: 'military', label: '军事', ...(metrics.military || {}) },
+          { key: 'reputation', label: '声誉', ...(metrics.reputation || {}) },
+        ].map((item) => ({
+          ...item,
+          value: Number(item.value) || 0,
+          max: Math.max(1, Number(item.max) || 100),
+          line: formatMetricLine(item),
+        })),
+        classes: this.factionPieRows(overview.classes).map((item) => ({
+          ...item,
+          approval: Number(item.approval) || 0,
+          view: item.view || '等待推演补全',
+        })),
+        classStyle: this.factionPieStyle(overview.classes),
+      };
+    },
+    factionOverallRank(faction = this.selectedFaction?.()) {
+      const id = faction?.id;
+      const ot = window.GameModules.orgTerritory;
+      const rows = (Array.isArray(this.factionState?.factions) ? this.factionState.factions : [])
+        .map((item) => ({
+          id: item.id,
+          score: Number(ot?.normalizeFactionOverview?.(item?.solid?.overview || {}, item)?.composite?.value) || 0,
+        }))
+        .filter((item) => item.id && item.score > 0)
+        .sort((a, b) => b.score - a.score || String(a.id).localeCompare(String(b.id), 'zh-CN'));
+      const index = rows.findIndex((item) => item.id === id);
+      return index >= 0 ? index + 1 : 0;
+    },
+    factionPieRows(rows = []) {
+      return (Array.isArray(rows) ? rows : []).map((item, index) => ({
+        ...item,
+        key: `${index}-${item.label || item.name || 'row'}`,
+        label: item.label || item.name || '未命名',
+        percent: Math.max(0, Math.min(100, Number(item.percent) || 0)),
+      })).filter((item) => item.label && item.percent > 0);
+    },
+    factionPieStyle(rows = []) {
+      const colors = ['#72e4ff', '#ffe3a3', '#6fffb0', '#ff8f8f', '#b79cff', '#ffb86b', '#9af7df'];
+      let cursor = 0;
+      const stops = this.factionPieRows(rows).map((row, index) => {
+        const start = cursor;
+        cursor += row.percent;
+        return `${colors[index % colors.length]} ${start}% ${Math.min(100, cursor)}%`;
+      });
+      return `background:${stops.length ? `conic-gradient(${stops.join(', ')})` : 'rgba(255,255,255,.08)'};`;
+    },
     factionCapabilityCards() {
       const faction = this.selectedFaction?.();
       const ot = window.GameModules.orgTerritory;
@@ -523,7 +599,7 @@ function registerGameStore() {
         || ot?.defaultOverviewPanels?.()
         || { ideology: {}, economy: { entries: {} }, politics: { entries: {} }, military: { entries: {} }, diplomacy: { entries: {} } };
       const meta = this.factionOverviewModeMeta(faction);
-      return ['ideology', 'economy', 'politics', 'military', 'diplomacy'].map((panelKey) => {
+      return ['ideology', 'politics', 'economy', 'military', 'diplomacy'].map((panelKey) => {
         const skin = this.factionOverviewPanelSkin(panelKey);
         if (panelKey === 'ideology') {
           const ideology = panels.ideology || {};
@@ -573,29 +649,6 @@ function registerGameStore() {
       const resolution = String(faction.resolution || 'L1').toUpperCase();
       if (resolution === 'L1' && !(faction.structure || []).length) return '尚未接触，无法审计结构；仅显示 stub。';
       return '';
-    },
-    forestDomainTabs() {
-      const forest = window.GameModules.factionOrgForest;
-      return forest?.DOMAIN_KEYS?.map((key) => ({ key, label: forest.DOMAIN_LABELS?.[key] || key }))
-        || [
-          { key: 'gov', label: '国家机构' },
-          { key: 'geo', label: '行政区划' },
-          { key: 'corp', label: '经济组织' },
-          { key: 'community', label: '社群' },
-        ];
-    },
-    factionOrgChartMode() { return this.factionState?.orgChartMode || 'forest'; },
-    setFactionOrgChartMode(mode = 'forest') {
-      this.factionState = this.factionState || {};
-      this.factionState.orgChartMode = mode === 'detail' ? 'detail' : 'forest';
-    },
-    setFactionForestTab(domain = 'corp') {
-      this.factionState = this.factionState || {};
-      this.factionState.forestTab = domain || 'corp';
-    },
-    factionForestTab() { return this.factionState?.forestTab || 'corp'; },
-    factionForestViewportTitle() {
-      return this.factionState?.forestData?.viewportRoot?.name || this.selectedFaction?.()?.name || '';
     },
     factionOrgTreeRows() { return []; },
     skillCategories() { return gm.skillsActions?.skillCategories?.call(this) || []; },

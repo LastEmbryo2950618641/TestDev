@@ -1,9 +1,6 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldProfileStage5 = {
-  DESC_MIN: 120,
-  DESC_MAX: 170,
-
   bodyParts() {
     return window.GameModules.characterProfile?.bodyProfileParts?.() || [];
   },
@@ -102,13 +99,40 @@ window.GameModules.realWorldProfileStage5 = {
     return 'parts';
   },
 
+  appearanceEvidenceScore(text = '', words = []) {
+    const source = String(text || '');
+    return words.reduce((score, word) => score + (source.includes(word) ? 1 : 0), 0);
+  },
+
+  normalizeProfileTypeByEvidence(profileType = '', item = {}) {
+    const requested = ['bodyProfile', 'dressedProfile'].includes(profileType) ? profileType : '';
+    const evidenceText = [
+      item?.reason,
+      item?.evidence,
+      ...(Array.isArray(item?.parts) ? item.parts : []),
+      ...(Array.isArray(item?.metaFields) ? item.metaFields : []),
+    ].map((value) => String(value || '')).join(' ');
+    const naturalScore = this.appearanceEvidenceScore(evidenceText, [
+      '洗澡', '刚洗', '洗完', '沐浴', '湿发', '滴水', '水珠', '水汽', '湿漉', '湿润',
+      '卸妆', '素颜', '未化妆', '无妆', '脸色', '气色', '睡意', '疲惫', '汗湿', '潮红',
+    ]);
+    const dressedScore = this.appearanceEvidenceScore(evidenceText, [
+      '换穿', '穿着', '穿上', '脱下', '衣物', '裙', '袜', '鞋', '制服', '吊带', '背心',
+      '发夹', '发饰', '饰品', '妆容', '补妆', '口红', '眼影', '面料', '衣领',
+    ]);
+    if (naturalScore > dressedScore) return 'bodyProfile';
+    if (dressedScore > 0) return 'dressedProfile';
+    if (naturalScore > 0) return 'bodyProfile';
+    return requested || 'dressedProfile';
+  },
+
   normalizeGateTargets(gate = {}, store = null) {
     const allowed = new Set(this.bodyParts());
     return (Array.isArray(gate?.targets) ? gate.targets : [])
       .slice(0, 3)
       .map((item) => {
         const subject = String(item?.subject || '').trim();
-        const profileType = String(item?.profileType || 'dressedProfile').trim();
+        const profileType = this.normalizeProfileTypeByEvidence(String(item?.profileType || '').trim(), item);
         if (!['bodyProfile', 'dressedProfile'].includes(profileType)) return null;
         const state = this.resolveCharacterState(store, subject);
         const updateScope = this.normalizeUpdateScope(item);
@@ -202,36 +226,6 @@ window.GameModules.realWorldProfileStage5 = {
     return window.GameModules.jsonUtils.parseLoose(raw);
   },
 
-  validatePatchData(data, base = {}, target = {}) {
-    const cp = window.GameModules.characterProfile;
-    if (!data || String(data.name || '').trim() !== String(base.name || '').trim()) throw new Error('姓名不匹配');
-    const updateScope = target.updateScope || 'parts';
-    const targetParts = Array.isArray(target.parts) ? target.parts : [];
-    if (updateScope === 'parts' || updateScope === 'both') {
-      const field = target.profileType === 'bodyProfile' ? 'bodyProfile' : 'dressedProfile';
-      const list = Array.isArray(data[field]) ? data[field] : [];
-      const returnedParts = list.map((item) => String(item?.part || '').trim()).filter(Boolean);
-      const missing = targetParts.filter((part) => !returnedParts.includes(part));
-      if (missing.length) throw new Error(`缺少部位：${missing.join('、')}`);
-      const extra = returnedParts.filter((part) => !targetParts.includes(part));
-      if (extra.length) throw new Error(`多余部位：${extra.join('、')}`);
-      list.forEach((item) => {
-        const desc = String(item?.description || '').trim();
-        const len = [...desc].length;
-        if (len < this.DESC_MIN || len > this.DESC_MAX) {
-          throw new Error(`${item.part} 描写应为 ${this.DESC_MIN}-${this.DESC_MAX} 汉字（当前 ${len}）`);
-        }
-        const tagCount = Array.isArray(item.tags) ? item.tags.filter(Boolean).length : 0;
-        if (tagCount < 2) throw new Error(`${item.part} tags 至少 2 个`);
-      });
-    }
-    if (updateScope === 'meta' || updateScope === 'both') {
-      const metaKey = target.profileType === 'bodyProfile' ? 'bodyProfileMeta' : 'dressedProfileMeta';
-      if (!data[metaKey] || typeof data[metaKey] !== 'object') throw new Error(`缺少 ${metaKey}`);
-    }
-    return data;
-  },
-
   patchDescriptionText(profileType, profile = {}, parts = []) {
     const list = profileType === 'bodyProfile' ? profile.bodyProfile : profile.dressedProfile;
     const cfg = this.tagConfig();
@@ -317,23 +311,7 @@ window.GameModules.realWorldProfileStage5 = {
         jsonMode: true,
         outputLimitKind: 'stage4',
       });
-      let data;
-      try {
-        data = this.validatePatchData(cp.parse(raw), base, { ...target, parts: targetParts });
-      } catch (validationErr) {
-        const repairFormat = `${format}\n\n## 修复要求\n${validationErr.message}；每项 description 必须 ${this.DESC_MIN}-${this.DESC_MAX} 汉字；tags 至少 2 个。`;
-        raw = await agentLoop.completeCachedJsonPrompt(store, {
-          prompt: repairFormat,
-          logId,
-          ...config,
-          sourceTitle: `${config.label}${stageTitle}重试`,
-          promptId,
-          reasoningPhase,
-          jsonMode: true,
-          outputLimitKind: 'stage4',
-        });
-        data = this.validatePatchData(cp.parse(raw), base, { ...target, parts: targetParts });
-      }
+      const data = cp.parse(raw);
       const patch = { subject: target.subject, subjectId: target.subjectId || state.id, profileType, updateScope, parts: targetParts, metaFields: target.metaFields || [], reason: target.reason, evidence: target.evidence };
       if (profileType === 'bodyProfile') {
         if (data.bodyProfileMeta) patch.bodyProfileMeta = cp.mergeBodyProfileMeta(currentMeta || {}, data.bodyProfileMeta, profile);

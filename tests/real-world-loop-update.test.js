@@ -975,6 +975,7 @@ test('Stage3 narration prompt uses slim prose context without final writeback or
     '场景锚定报告：门口场景。',
     '当前场景影响对象：刘思琪、房门。',
     '正文承接最近已发生事实，不改写已发送内容；只写本次行动直接结果。',
+    '不要写草稿正文',
   ].forEach((good) => assert.ok(prompt.includes(good), `${good} missing from Stage3 prompt`));
 });
 

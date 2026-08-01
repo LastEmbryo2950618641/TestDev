@@ -1735,7 +1735,7 @@ window.GameModules.realWorldAgentLoop = {
       '- 若角色足够了解玩家，并且性格与关系支持，应让角色利用这份了解主动投其所好、安抚弱点、迎合偏好或用玩家在意的事物讨好/诱导。',
       '- 创造性必须服务于栩栩如生而不是破坏设定：可以补全符合上下文的小动作、停顿、语气、眼神、身体距离、生活物件、惯用表达、临场选择和微妙心理变化。',
     ].join('\n');
-    const narrationRules = '行动范围内充分推演：写出本次行动的动作过程、身体感受、周围环境变化、可见细节、他人反应、对话回应和直接短期连锁影响；场景锚定报告中的强制出场必须在正文中实际出现、行动或回应；不替玩家执行下一步新行动；不把亲吻、抚摸、摩擦、按住等行为自动扩展为脱衣、转移地点、插入、高潮等未输入的新阶段。除“你”外每次写角色姓名必须使用 <role id="真实ID">姓名</role>。';
+    const narrationRules = '行动范围内充分推演：先做一次紧凑内部梗概，不逐句解释或逐 token 分析；梗概要判断玩家意图、行动可行性、关键角色反应、行动是否成立和即时落点。若行动在任何一步被角色、现实条件、能力边界、关系边界或场景因果打断，确定具体打断点，正文只写到打断事实及即时反应；不替玩家执行下一步新行动，也不得替玩家决定继续尝试、解释、道歉、反抗、接受、离开或其它后续选择，等待下一轮玩家行动。行动完整成立时也只写本次输入的直接短期结果，不自动开启下一步新行动。写出本次行动的动作过程、身体感受、周围环境变化、可见细节、他人反应和对话回应；场景锚定报告中的强制出场必须在正文中实际出现、行动或回应；不把亲吻、抚摸、摩擦、按住等行为自动扩展为脱衣、转移地点、插入、高潮等未输入的新阶段。除“你”外每次写角色姓名必须使用 <role id="真实ID">姓名</role>。';
     const completenessRules = [
       '正文完整性规则：',
       '- 正文必须形成完整小段落：进入动作 → 现场反馈 → 对方反应 → 短期结果落点。',
@@ -4096,14 +4096,15 @@ window.GameModules.realWorldAgentLoop = {
     try {
       const completionOptions = this.configuredCompletionOptions(config, streamToUi);
       const expectsJson = Boolean(completionOptions.jsonMode);
-      // JSON 阶段一律禁用思考模式；Stage3 正文等非 JSON 阶段按原逻辑决定是否启用。
+      // 仅 Stage3 正文启用思考模式；其余阶段无论是否 JSON 都明确关闭。
+      const normalizedPhase = this.normalizeReasoningPhase(config.reasoningPhase || (streamToUi ? 'stage3' : 'unknown'));
       const requestJsonMode = expectsJson;
-      const wantsDeepThinking = requestJsonMode ? false : (Object.prototype.hasOwnProperty.call(config || {}, 'deepThinking')
-        ? config.deepThinking !== false
-        : completionOptions.deepThinking !== false);
+      const wantsDeepThinking = normalizedPhase === 'stage3'
+        && !requestJsonMode
+        && completionOptions.deepThinking !== false
+        && config.deepThinking !== false;
       // JSON mode 与思考模式互斥，但不与流式响应互斥；Stage1/Stage2 等 JSON 阶段仍实时接收 JSON 文本。
       const shouldStream = true;
-      const normalizedPhase = this.normalizeReasoningPhase(config.reasoningPhase || (streamToUi ? 'stage3' : 'unknown'));
       const defaultTimeoutMs = normalizedPhase === 'stage3'
         ? (streamToUi ? 480000 : 180000)
         : (streamToUi ? 240000 : 90000);
@@ -4115,7 +4116,7 @@ window.GameModules.realWorldAgentLoop = {
         model: config.model || store.modelId,
         ...(kvMessages ? { messages: kvMessages } : (currentMessages ? { messages: currentMessages } : { prompt })),
         deepThinking: wantsDeepThinking,
-        deepThinkingEffort: 'high',
+        deepThinkingEffort: config.deepThinkingEffort || (normalizedPhase === 'stage3' ? 'low' : 'high'),
         jsonMode: requestJsonMode,
         responseFormat: requestJsonMode ? (completionOptions.responseFormat || { type: 'json_object' }) : undefined,
         stream: shouldStream,

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content, user-scalable=no">
   <title>我狠狠操控</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="phone-desktop.css?v=2026-07-31-stage2-none-v36">
+  <link rel="stylesheet" href="phone-desktop.css?v=2026-07-31-stage3-action-gate-v38">
   <link rel="stylesheet" href="taobao-app.css">
   <link rel="stylesheet" href="real-world.css">
   <link rel="stylesheet" href="real-world-settlement.css">
@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="event-system.css">
   <link rel="stylesheet" href="news-driver.css">
   <link rel="stylesheet" href="faction-system.css">
-  <link rel="stylesheet" href="skills-app.css?v=2026-07-31-stage2-none-v36">
+  <link rel="stylesheet" href="skills-app.css?v=2026-07-31-stage3-action-gate-v38">
   <link rel="stylesheet" href="character-select.css">
   <link rel="stylesheet" href="player-aspiration.css">
   <link rel="stylesheet" href="profile-preview.css">
@@ -170,11 +170,11 @@
   </script>
   <script src="../deepseek_key.js"></script>
   <script src="../pixatart_key.js"></script>
-  <script src="boot/script-loader.js?v=2026-07-31-stage2-none-v36"></script>
+  <script src="boot/script-loader.js?v=2026-07-31-stage3-action-gate-v38"></script>
   <script src="boot/store-modules.js"></script>
-  <script src="boot/script-manifest.js?v=2026-07-31-stage2-none-v36"></script>
-  <script src="boot/boot-actions.js?v=2026-07-31-stage2-none-v36"></script>
-  <script src="boot/boot.js?v=2026-07-31-stage2-none-v36"></script>
+  <script src="boot/script-manifest.js?v=2026-07-31-stage3-action-gate-v38"></script>
+  <script src="boot/boot-actions.js?v=2026-07-31-stage3-action-gate-v38"></script>
+  <script src="boot/boot.js?v=2026-07-31-stage3-action-gate-v38"></script>
   <script>
     window.openEventAppNative = async function openEventAppNative(event) {
       try {
@@ -2392,6 +2392,61 @@
               </div>
               <button class="small-btn faction-rpg-close" type="button" @click.stop="$store.game.closeFactionDetail()">关闭</button>
             </header>
+            <section class="faction-panel faction-rpg-section faction-overall-section">
+              <div class="faction-panel-head"><h3>势力总览</h3><small>POWER / SCORE</small></div>
+              <div class="faction-overall-grid">
+                <article class="faction-overall-card faction-overall-ruler">
+                  <small>最高统治者</small>
+                  <strong x-text="$store.game.factionOverallView().rulerLine"></strong>
+                </article>
+                <article class="faction-overall-card faction-overall-score">
+                  <small>国家综合数值</small>
+                  <strong x-text="$store.game.factionOverallView().compositeLabel"></strong>
+                  <em x-text="$store.game.factionOverallView().compositeFormula"></em>
+                  <div class="faction-overall-metrics">
+                    <template x-for="metric in $store.game.factionOverallView().metrics" :key="metric.key">
+                      <div class="faction-overall-metric">
+                        <span x-text="metric.label"></span>
+                        <meter min="0" :max="metric.max" :value="metric.value"></meter>
+                        <b x-text="metric.line"></b>
+                      </div>
+                    </template>
+                  </div>
+                </article>
+                <article class="faction-overall-card">
+                  <small>国家排名</small>
+                  <strong x-text="$store.game.factionOverallView().rank"></strong>
+                  <em>按已知势力综合数值排序</em>
+                </article>
+                <article class="faction-overall-card">
+                  <small>稳定度</small>
+                  <strong x-text="$store.game.factionOverallView().stabilityLabel"></strong>
+                  <em x-text="$store.game.factionOverallView().stabilityFormula"></em>
+                </article>
+              </div>
+              <div class="faction-overall-chart-row">
+                <article class="faction-overall-chart">
+                  <div class="faction-pie" :style="$store.game.factionOverallView().powerStyle"></div>
+                  <div>
+                    <h4>权力分布</h4>
+                    <template x-for="item in $store.game.factionOverallView().power" :key="item.key">
+                      <p><b x-text="`${item.percent}%`"></b><span x-text="item.label"></span></p>
+                    </template>
+                    <p class="faction-note" x-show="!$store.game.factionOverallView().power.length">暂无权力分布。</p>
+                  </div>
+                </article>
+                <article class="faction-overall-chart">
+                  <div class="faction-pie" :style="$store.game.factionOverallView().classStyle"></div>
+                  <div>
+                    <h4>国内阶级构成</h4>
+                    <template x-for="item in $store.game.factionOverallView().classes" :key="item.key">
+                      <p><b x-text="`${item.label} ${item.percent}%`"></b><span x-text="`${item.approval}/100，${item.view}`"></span></p>
+                    </template>
+                    <p class="faction-note" x-show="!$store.game.factionOverallView().classes.length">暂无阶级构成。</p>
+                  </div>
+                </article>
+              </div>
+            </section>
             <section class="faction-panel faction-rpg-section">
               <div class="faction-panel-head"><h3>战略态势图</h3><small>OVERVIEW PANELS</small></div>
               <div class="faction-overview-grid">
@@ -2443,7 +2498,22 @@
               </div>
               <p class="faction-note" x-show="!$store.game.factionTerritoryEntries().some((entry) => entry.filled)">暂无统治区域事实，等待推演补全。</p>
             </section>
-            <section class="faction-panel faction-rpg-section"><h3>规则 / 资源 / 下级势力</h3><div class="faction-rpg-chipset"><template x-for="rule in ($store.game.selectedFaction()?.rules || [])" :key="`rule-${rule}`"><span x-text="`律令｜${rule}`"></span></template><template x-for="resource in ($store.game.selectedFaction()?.resources || [])" :key="`resource-${resource}`"><span x-text="`资源｜${resource}`"></span></template><template x-for="child in $store.game.factionChildren($store.game.selectedFaction()?.id)" :key="child.id"><span x-text="`下级｜${child.name}`"></span></template><span x-show="!($store.game.selectedFaction()?.rules || []).length && !($store.game.selectedFaction()?.resources || []).length && !$store.game.factionChildren($store.game.selectedFaction()?.id).length">暂无已揭示条目</span></div></section>
+            <section class="faction-panel faction-rpg-section">
+              <div class="faction-panel-head">
+                <h3>下级势力</h3>
+                <small x-text="`数量：${$store.game.factionChildren($store.game.selectedFaction()?.id).length}`"></small>
+              </div>
+              <div class="faction-child-list" x-show="$store.game.factionChildren($store.game.selectedFaction()?.id).length">
+                <template x-for="child in $store.game.factionChildren($store.game.selectedFaction()?.id)" :key="child.id">
+                  <button class="faction-row faction-child-row" type="button" @click.stop="$store.game.selectFaction(child.id); $store.game.closeFactionArchiveDoc()">
+                    <strong x-text="child.name || '未命名下级势力'"></strong>
+                    <small x-text="`${child.worldTag || '未知世界'}｜${child.type || '势力'}｜${child.level || '层级未知'}`"></small>
+                    <em>查看下级详情</em>
+                  </button>
+                </template>
+              </div>
+              <p class="faction-note" x-show="!$store.game.factionChildren($store.game.selectedFaction()?.id).length">暂无已揭示下级势力。</p>
+            </section>
             <section class="faction-panel faction-rpg-section"><div class="faction-panel-head"><h3>资料库</h3><small x-text="`档案：${$store.game.factionArchiveDocs($store.game.selectedFaction()).length}`"></small></div><div class="faction-archive-detail" x-show="$store.game.selectedFactionArchiveDoc()"><button class="small-btn faction-back-btn" type="button" @click.stop="$store.game.closeFactionArchiveDoc()">返回档案列表</button><h4 x-text="$store.game.selectedFactionArchiveDoc()?.title"></h4><p class="faction-note" x-text="$store.game.factionArchiveDocMeta($store.game.selectedFactionArchiveDoc())"></p><div class="faction-reasons faction-rpg-log"><template x-for="item in ($store.game.selectedFactionArchiveDoc()?.paragraphs || [])" :key="`${item.at}-${item.text}`"><p><b x-text="$store.game.factionArchiveParagraphTime(item)"></b><span x-text="item.text"></span></p></template></div></div><div class="faction-archive-list" x-show="!$store.game.selectedFactionArchiveDoc()"><p class="faction-note" x-show="!$store.game.factionArchiveDocs($store.game.selectedFaction()).length">该势力暂无档案。现实推演或微信对话涉及该势力后，会自动写入这里。</p><template x-for="doc in $store.game.factionArchiveDocs($store.game.selectedFaction())" :key="doc.archiveKey"><button class="faction-row faction-rpg-archive-row" type="button" @click.stop="$store.game.openFactionArchiveDoc(doc.archiveKey)"><strong x-text="doc.title"></strong><small x-text="$store.game.factionArchiveDocMeta(doc)"></small><em>展开卷宗</em></button></template></div></section>
             <section class="faction-panel faction-rpg-section"><h3>调整/新增记录</h3><div class="faction-reasons faction-rpg-log"><template x-for="(log, index) in ($store.game.selectedFaction()?.changeLog || []).filter(Boolean).slice(0, 12)" :key="`${index}-${log.at || 'unknown'}-${log.field || 'field'}-${log.action || 'change'}`"><p><b x-text="`${log.action || 'change'}:${log.field || 'unknown'}`"></b><span x-text="log.reason || '已记录调整。'"></span></p></template><p x-show="!($store.game.selectedFaction()?.changeLog || []).filter(Boolean).length">暂无调整记录。</p></div></section>
           </div>
@@ -2454,7 +2524,7 @@
               <div>
                 <p class="eyebrow">ORG CHART</p>
                 <h3 x-text="$store.game.selectedFaction()?.name + ' 组织架构图'"></h3>
-                <small x-text="$store.game.factionOrgChartMode() === 'forest' ? '按势力森林展示域根、归属链和已揭示组织节点。' : '展示当前势力的内部结构、职位与下级势力。'"></small>
+                <small x-text="'展示当前势力的内部结构、职位与下级势力。'"></small>
               </div>
               <div class="faction-org-header-actions">
                 <button class="small-btn" type="button" data-faction-org-back onpointerdown="window.closeFactionOrgChartNative?.(event)" onmousedown="window.closeFactionOrgChartNative?.(event)" onclick="window.closeFactionOrgChartNative?.(event)" @pointerdown.stop.prevent="$store.game.backFactionOrgChart()" @click.stop.prevent="$store.game.backFactionOrgChart()" x-text="$store.game.factionOrgChartBackButtonText?.() || '返回上一级'"></button>
@@ -2462,16 +2532,7 @@
               </div>
             </header>
             <div class="faction-org-toolbar">
-              <div class="faction-org-mode-switch">
-                <button type="button" :class="{ active: $store.game.factionOrgChartMode() === 'forest' }" @click.stop="$store.game.setFactionOrgChartMode('forest')">势力森林</button>
-                <button type="button" :class="{ active: $store.game.factionOrgChartMode() === 'detail' }" @click.stop="$store.game.setFactionOrgChartMode('detail')">内部结构</button>
-              </div>
-              <div class="faction-org-domain-tabs" x-show="$store.game.factionOrgChartMode() === 'forest'">
-                <template x-for="tab in $store.game.forestDomainTabs()" :key="tab.key">
-                  <button type="button" :class="{ active: $store.game.factionForestTab() === tab.key }" @click.stop="$store.game.setFactionForestTab(tab.key)" x-text="tab.label"></button>
-                </template>
-              </div>
-              <p class="faction-org-breadcrumb" x-text="$store.game.factionOrgChartMode() === 'forest' ? ($store.game.factionState?.forestData?.breadcrumb || $store.game.factionForestViewportTitle()) : ($store.game.factionState?.orgBreadcrumb || $store.game.selectedFaction()?.name || '')"></p>
+              <p class="faction-org-breadcrumb" x-text="$store.game.factionState?.orgBreadcrumb || $store.game.selectedFaction()?.name || ''"></p>
             </div>
             <div class="faction-org-scroll">
               <div class="faction-org-rows" x-show="$store.game.factionOrgTreeRows().length">

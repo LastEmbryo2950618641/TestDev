@@ -141,11 +141,12 @@ window.GameModules.promptSkills = {
   completionOptions(id, overrides = {}) {
     const behavior = this.behavior(id);
     const jsonMode = overrides.jsonMode !== undefined ? Boolean(overrides.jsonMode) : Boolean(behavior.jsonMode);
+    const narrationThinking = behavior.stage === 'stage3' && !jsonMode;
     return {
       outputLimitKind: overrides.outputLimitKind || behavior.outputLimitKind || 'other',
       jsonMode,
       responseFormat: overrides.responseFormat || (jsonMode ? { type: 'json_object' } : undefined),
-      deepThinking: Object.prototype.hasOwnProperty.call(overrides, 'deepThinking') ? (jsonMode ? false : overrides.deepThinking !== false) : !jsonMode,
+      deepThinking: narrationThinking && overrides.deepThinking !== false,
     };
   },
 

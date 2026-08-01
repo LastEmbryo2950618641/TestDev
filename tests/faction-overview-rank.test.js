@@ -25,6 +25,46 @@ function loadFactionOrgActions() {
   return context.window.GameModules.factionOrgActions;
 }
 
+function loadOrgTerritory() {
+  const context = vm.createContext({
+    console,
+    window: {
+      GameModules: {},
+    },
+  });
+  context.window.window = context.window;
+  const otCode = fs.readFileSync(path.join(__dirname, '..', 'publish/org-territory-system.js'), 'utf8');
+  vm.runInContext(otCode, context, { filename: 'publish/org-territory-system.js' });
+  return context.window.GameModules.orgTerritory;
+}
+
+test('faction overview scores use scale-dependent ceilings and ratio stability', () => {
+  const ot = loadOrgTerritory();
+  const familyOverview = ot.normalizeFactionOverview({
+    livelihood: { value: 70, max: 100, level: '较强', comment: '家庭稳定' },
+    economy: { value: 70, max: 100, level: '一般', comment: '收入稳定' },
+    military: { value: 70, max: 100, level: '弱', comment: '家庭安保' },
+    reputation: { value: 70, max: 100, level: '友善', comment: '邻里平稳' },
+  }, { name: '刘悠家庭', type: '家庭', scale: '成员4人', classification: 'community' });
+  assert.strictEqual(familyOverview.livelihood.max, 80);
+  assert.strictEqual(familyOverview.economy.max, 92);
+  assert.strictEqual(familyOverview.military.max, 84);
+  assert.strictEqual(familyOverview.reputation.max, 68);
+  assert.strictEqual(familyOverview.reputation.value, 68);
+  assert.strictEqual(familyOverview.composite.max, 83);
+  assert.strictEqual(familyOverview.stability.value, 84);
+
+  const countryOverview = ot.normalizeFactionOverview({
+    livelihood: { value: 70, max: 100, level: '弱', comment: '民生承压' },
+    economy: { value: 70, max: 100, level: '弱', comment: '经济承压' },
+    military: { value: 70, max: 100, level: '弱', comment: '军事有限' },
+    reputation: { value: 70, max: 100, level: '一般', comment: '声誉普通' },
+  }, { name: '测试共和国', type: '国家', level: '国家级', classification: 'country' });
+  assert.strictEqual(countryOverview.livelihood.max, 10000);
+  assert.strictEqual(countryOverview.composite.max, 10425);
+  assert.strictEqual(countryOverview.stability.value, 1);
+});
+
 test('country ideology panel always reserves five fields and stays fogged when only legitimacy placeholder exists', () => {
   const actions = loadFactionOrgActions();
   const faction = {
@@ -141,7 +181,7 @@ test('country politics panel always reserves the fixed checklist fields', () => 
   assert.strictEqual(politicsCard.entries.find((entry) => entry.name === 'leadership').display, '待推演补全');
 });
 
-test('country military panel always reserves checklist and formats groupItemsList forces json', () => {
+test('country military panel always reserves checklist and formats top formation forces json', () => {
   const actions = loadFactionOrgActions();
   const faction = {
     id: 'country-china',
@@ -158,12 +198,13 @@ test('country military panel always reserves checklist and formats groupItemsLis
             forces: {
               value: [
                 {
-                  name: '陆军',
-                  items: ['第一集团军：规模约10万人；诸兵种合成；训练率约70%；物资充足率约75%；恢复效率中等'],
-                },
-                {
-                  name: '海军',
-                  items: ['某舰队：近海防御与远海护航'],
+                  name: '第一集团军',
+                  commander: '张伟(司令员)',
+                  deputy: '李强(政委)',
+                  staff: '王勇(参谋长)',
+                  size: '约10万人',
+                  arms: '陆军70%、火箭军20%、后勤10%',
+                  task: '拱卫首都并承担北部防线',
                 },
               ],
             },
@@ -186,8 +227,10 @@ test('country military panel always reserves checklist and formats groupItemsLis
   );
   assert.strictEqual(militaryCard.statusLabel, '2/10项');
   const forcesDisplay = String(militaryCard.entries.find((entry) => entry.name === 'forces').display);
-  assert.ok(forcesDisplay.includes('- 陆军'));
-  assert.ok(forcesDisplay.includes('-- 第一集团军'));
+  assert.ok(forcesDisplay.includes('- 第一集团军'));
+  assert.ok(forcesDisplay.includes('张伟(司令员)'));
+  assert.ok(forcesDisplay.includes('兵种构成：陆军70%、火箭军20%、后勤10%'));
+  assert.ok(forcesDisplay.includes('当前任务：拱卫首都并承担北部防线'));
   assert.strictEqual(militaryCard.entries.find((entry) => entry.name === 'personnel').display, '待推演补全');
 });
 
@@ -266,10 +309,11 @@ test('country territory panel replaces structure section with ruling region chec
                   name: '四川省',
                   capital: '成都',
                   area: '约48.6万平方千米',
-                  controlRate: '全境',
+                  controlRate: '96%',
+                  controlReason: '省级行政体系稳定',
                   population: '约8300万人',
-                  description: '盆地与高原并存，湿热夏季、多云雾',
-                  garrison: '驻军西部战区相关集团军，规模约XX万人',
+                  description: '经济中心与粮食基地',
+                  garrison: '第一集团军驻军',
                 },
               ],
             },
@@ -289,8 +333,9 @@ test('country territory panel replaces structure section with ruling region chec
   const regionsDisplay = String(entries.find((entry) => entry.name === 'regions').display);
   assert.ok(regionsDisplay.includes('四川省'));
   assert.ok(regionsDisplay.includes('省会成都'));
-  assert.ok(regionsDisplay.includes('控制率全境'));
-  assert.ok(regionsDisplay.includes('驻军西部战区'));
+  assert.ok(regionsDisplay.includes('控制率96%(省级行政体系稳定)'));
+  assert.ok(regionsDisplay.includes('经济中心与粮食基地'));
+  assert.ok(regionsDisplay.includes('第一集团军驻军'));
 });
 
 (async () => {

@@ -24,6 +24,7 @@ const context = vm.createContext({
           return [
             { id: 'literary', name: 'Literary', prompt: 'Literary prompt' },
             { id: 'dark', name: 'Dark', prompt: 'Dark prompt' },
+            { id: 'spring-heart', name: 'Spring Heart', prompt: 'Spring prompt' },
           ];
         },
       },
@@ -50,6 +51,19 @@ async function run() {
   const saveCall = calls.find(([name, key]) => name === 'save' && key === 'writing_styles');
   assert.ok(saveCall, 'style actions must save through metadataStore');
   assert.deepStrictEqual(JSON.parse(JSON.stringify(saveCall[3])), options);
+  assert.strictEqual(saveCall[2].defaultWritingStyleId, 'spring-heart');
+
+  values.writing_styles = { active: ['literary'], custom: [] };
+  calls.length = 0;
+  const legacyStore = { ...styleActions };
+  await legacyStore.loadWritingStyles(options);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(legacyStore.activeStyleIds)), ['spring-heart']);
+
+  values.writing_styles = { active: ['literary'], defaultWritingStyleId: 'spring-heart', custom: [] };
+  calls.length = 0;
+  const explicitLiteraryStore = { ...styleActions };
+  await explicitLiteraryStore.loadWritingStyles(options);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(explicitLiteraryStore.activeStyleIds)), ['literary']);
 
   for (const relativePath of ['publish/known-profession-actions.js', 'publish/style-actions.js']) {
     const source = fs.readFileSync(path.join(root, relativePath), 'utf8');

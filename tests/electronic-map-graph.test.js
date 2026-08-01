@@ -236,6 +236,26 @@ test('standard graph exports structural poi nodes only when distance-linked', ()
   assert.strictEqual(graph.currentId, 'building3');
 });
 
+test('map canvas hides administrative authority stubs but keeps place nodes', () => {
+  const context = {
+    window: { GameModules: {} },
+    console,
+  };
+  loadScript(context, 'publish/real-world-map-graph.js');
+  const graph = context.window.GameModules.realWorldMapGraph.build({
+    currentId: 'home',
+    mapAnchorId: 'home',
+    nodes: [
+      { id: 'home', name: '锦苑小区3栋', mapVisible: true },
+      { id: 'city', name: '成都市', mapVisible: true, geopoliticalStub: true, geopoliticalKind: 'admin' },
+      { id: 'community', name: '锦苑小区', mapVisible: true, geopoliticalStub: true, geopoliticalKind: 'community' },
+    ],
+    edges: [],
+  });
+
+  assert.deepStrictEqual(graph.nodes.map((node) => node.name), ['锦苑小区3栋', '锦苑小区']);
+});
+
 test('map drag moves cached canvas with transform only', () => {
   const actions = read('publish/real-world-map-actions.js');
   const moveBody = methodBody(actions, 'realWorldMapPanMove', 'realWorldMapPanEnd');
@@ -354,7 +374,7 @@ test('map auxiliary AI requests reuse real world KV cache path', () => {
   assert.ok(fog.includes("outputLimitKind: 'stage4'"));
   assert.ok(actions.includes('clearPendingKvCacheSession'));
   assert.ok(loop.includes('requestJsonMode = expectsJson'));
-  assert.ok(loop.includes('const wantsDeepThinking = requestJsonMode ? false'));
+  assert.ok(loop.includes("const wantsDeepThinking = normalizedPhase === 'stage3'"));
   assert.ok(loop.includes('const shouldStream = true'));
   assert.ok(locationFill.includes("source: 'real-world-location-fill'"));
   assert.ok(locationFill.includes('useRealWorldKvCache: true'));

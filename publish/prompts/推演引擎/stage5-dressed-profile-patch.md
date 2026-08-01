@@ -11,7 +11,7 @@ Rules：
 1. 顶层 required：`name`；按更新范围返回 `dressedProfileMeta` 和/或 `dressedProfile`。
 2. 若更新 meta：返回完整 `dressedProfileMeta`（styleBase、makeupBase 等），只改需变字段。
 3. 若更新部位：`dressedProfile` **只包含**本次要求更新的部位，每项 `{ index, part, tags, description }`。
-4. tags 每部位 2-4 个；description 120-170 汉字：造型、妆容、饰品、面料、位移、凌乱或遮挡效果。
+4. tags 每部位 2-4 个；description 60-180 汉字：造型、妆容、饰品、面料、位移、凌乱或遮挡效果。
 5. 必须继承 Part1 身份、Part4 穿着、Part5 身体原貌。
 6. `name` 必须逐字等于「{{角色姓名}}」。
 7. 严禁尾随逗号。

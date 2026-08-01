@@ -58,110 +58,15 @@ const _factionOrgActionsBase = {
     return this.normalizeFactionRoles(roles).map((role) => `${role.title}｜数量:${role.count}｜角色:${role.preview}`).join('；') || '职位未记录';
   },
 
-  forestDomainTabs() {
-    return window.GameModules.factionOrgForest?.DOMAIN_KEYS?.map((key) => ({
-      key,
-      label: window.GameModules.factionOrgForest.DOMAIN_LABELS[key] || key,
-    })) || [];
-  },
-
-  factionOrgChartMode() {
-    return this.factionState?.orgChartMode || 'forest';
-  },
-
-  setFactionOrgChartMode(mode = 'forest') {
-    if (!this.factionState) return;
-    this.factionState.orgChartMode = mode === 'detail' ? 'detail' : 'forest';
-    this.factionState.orgCacheSelectedId = '';
-    this.refreshFactionOrgCache?.();
-  },
-
-  setFactionForestTab(domain = 'corp') {
-    if (!this.factionState) return;
-    this.factionState.forestTab = domain;
-    this.refreshFactionOrgCache?.();
-  },
-
-  factionForestTab() {
-    return this.factionState?.forestTab || 'corp';
-  },
-
   refreshFactionOrgCache() {
     if (!this.factionState) return;
     const faction = this.selectedFaction();
     this.factionState.orgCacheSelectedId = faction?.id || '';
     this.factionState.structureCards = this.buildFactionStructureCards(faction);
-    const mode = this.factionOrgChartMode();
-    if (mode === 'forest') {
-      const forestData = this.buildFactionOrgForest();
-      this.factionState.forestData = forestData;
-      this.factionState.orgTree = forestData?.activeTree || null;
-      this.factionState.orgNodes = this.flattenFactionOrgTree(this.factionState.orgTree, 0, []);
-    } else {
-      this.factionState.orgTree = this.buildFactionOrgTree(faction);
-      this.factionState.orgNodes = this.factionState.orgTree?.children || [];
-    }
+    this.factionState.orgTree = this.buildFactionOrgTree(faction);
+    this.factionState.orgNodes = this.factionState.orgTree?.children || [];
     this.factionState.capabilityCards = this.buildFactionCapabilityCards(faction);
     this.factionState.territoryEntries = this.buildFactionTerritoryEntries(faction);
-  },
-
-  buildFactionOrgForest() {
-    const forest = window.GameModules.factionOrgForest;
-    if (!forest) return { viewportRoot: null, domains: [], activeTree: null };
-    const factions = this.factionState?.factions || [];
-    const viewportRoot = forest.resolveViewportRoot(factions);
-    if (!viewportRoot) return { viewportRoot: null, domains: [], activeTree: null };
-
-    const visible = forest.filterForestByExposure(factions, this);
-    const domains = forest.DOMAIN_KEYS.map((domainKey) => {
-      const rootId = forest.domainRootId(viewportRoot.id, domainKey);
-      const domainRoot = visible.find((f) => f.id === rootId) || factions.find((f) => f.id === rootId);
-      const label = domainRoot?.name || forest.DOMAIN_LABELS[domainKey];
-      const tree = this.buildForestDomainTree(domainKey, rootId, visible, viewportRoot);
-      return { domain: domainKey, label, rootId, tree };
-    });
-
-    const activeTab = this.factionForestTab();
-    const active = domains.find((d) => d.domain === activeTab) || domains.find((d) => d.domain === 'corp') || domains[0];
-    return {
-      viewportRoot,
-      domains,
-      activeTree: active?.tree || null,
-      breadcrumb: [viewportRoot.name, active?.label].filter(Boolean).join(' / '),
-    };
-  },
-
-  buildForestDomainTree(domainKey, rootId, factions = [], viewportRoot = {}) {
-    const forest = window.GameModules.factionOrgForest;
-    const rootFaction = factions.find((f) => f.id === rootId);
-    const buildNode = (item, kind = 'faction') => {
-      const resolution = String(item.resolution || 'L1').toUpperCase();
-      const isFog = resolution === 'L1' && !(item.structure || []).length;
-      const children = this.sortFactionHierarchy(
-        factions.filter((f) => f.parentId === item.id && !f.isDomainRoot && forest.inferOrgDomain(f) === domainKey),
-      ).map((child) => buildNode(child, 'faction'));
-      return {
-        key: `forest-${item.id}`,
-        name: isFog && item.fogLabel ? item.fogLabel : item.name,
-        kind: item.isDomainRoot ? 'domain-root' : (isFog ? 'fog' : kind),
-        meta: [item.level, item.type, item.resolutionBadge || ''].filter(Boolean).join(' · '),
-        factionId: item.id,
-        orgDomain: domainKey,
-        children,
-      };
-    };
-
-    if (!rootFaction) {
-      return {
-        key: `forest-${rootId}`,
-        name: forest.DOMAIN_LABELS[domainKey],
-        kind: 'domain-root',
-        meta: '域根',
-        factionId: rootId,
-        children: [],
-      };
-    }
-    return buildNode(rootFaction, 'domain-root');
   },
 
   buildFactionStructureCards(faction = this.selectedFaction()) {
@@ -323,9 +228,6 @@ const _factionOrgActionsBase = {
     if (this.factionState?.orgCacheSelectedId === faction?.id && this.factionState?.orgTree) {
       return this.factionState.orgTree;
     }
-    if (this.factionOrgChartMode() === 'forest') {
-      return this.buildFactionOrgForest()?.activeTree || null;
-    }
     return this.buildFactionOrgTree(faction);
   },
 
@@ -334,27 +236,13 @@ const _factionOrgActionsBase = {
   },
 
   buildFactionOrgNodes(faction = this.selectedFaction(), cards = this.buildFactionStructureCards(faction)) {
-    if (this.factionOrgChartMode() === 'forest') {
-      return this.flattenFactionOrgTree(this.factionOrgTreeRoot(), 0, []);
-    }
     return this.buildFactionOrgTree(faction)?.children || this.buildStructureBranchNodes(faction);
   },
 
   factionOrgNodes() {
     const faction = this.selectedFaction();
     if (this.factionState?.orgCacheSelectedId === faction?.id && this.factionState?.orgNodes) return this.factionState.orgNodes;
-    if (this.factionOrgChartMode() === 'forest') {
-      return this.flattenFactionOrgTree(this.factionOrgTreeRoot(), 0, []);
-    }
     return this.buildFactionOrgTree(faction)?.children || [];
-  },
-
-  factionForestDomains() {
-    return this.factionState?.forestData?.domains || this.buildFactionOrgForest()?.domains || [];
-  },
-
-  factionForestViewportTitle() {
-    return this.factionState?.forestData?.viewportRoot?.name || window.GameModules.factionOrgForest?.resolveViewportRoot(this.factionState?.factions || [])?.name || '';
   },
 
   factionOverviewModeMeta(faction = this.selectedFaction()) {
@@ -585,7 +473,7 @@ const _factionOrgActionsBase = {
       || ot?.defaultOverviewPanels?.()
       || { ideology: {}, economy: { entries: {} }, politics: { entries: {} }, military: { entries: {} }, diplomacy: { entries: {} } };
     const meta = this.factionOverviewModeMeta(faction);
-    return ['ideology', 'economy', 'politics', 'military', 'diplomacy'].map((panelKey) => {
+    return ['ideology', 'politics', 'economy', 'military', 'diplomacy'].map((panelKey) => {
       const skin = this.factionOverviewPanelSkin(panelKey);
       if (panelKey === 'ideology') {
         const ideology = panels.ideology || {};
