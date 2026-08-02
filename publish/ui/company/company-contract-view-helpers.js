@@ -19,7 +19,7 @@ window.GameModules.ui.company.contractViewHelpers = {
     }));
 
     return {
-      showEmpty: this.companyState?.employment?.active === false,
+      showEmpty: !this.hasActiveCareerProfile?.(),
       emptyText: '暂无薪酬绩效信息',
       contractRows,
       submissionRows,
@@ -27,7 +27,7 @@ window.GameModules.ui.company.contractViewHelpers = {
   },
 
   companyPayPanelView() {
-    const stats = typeof this.normalizeCompanyWorkStats === 'function' ? this.normalizeCompanyWorkStats() : (this.companyState?.workStats || {});
+    const stats = typeof this.currentCareerStats === 'function' ? this.currentCareerStats() : (typeof this.normalizeCompanyWorkStats === 'function' ? this.normalizeCompanyWorkStats() : (this.companyState?.workStats || {}));
     const attendance = this.currentWorkAttendance();
     const leader = stats.leaderReview || {};
     const employee = stats.employeeReview || {};

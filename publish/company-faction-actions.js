@@ -22,7 +22,6 @@ window.GameModules.companyFactionActions = {
     if (faction) {
       this.companyState.currentCompanyId = faction.id;
       this.companyState.employment.activeCompanyId = faction.id;
-      if (this.companyState.unitProfilesByFactionId?.[faction.id]) delete this.companyState.unitProfilesByFactionId[faction.id];
     }
     return company;
   },

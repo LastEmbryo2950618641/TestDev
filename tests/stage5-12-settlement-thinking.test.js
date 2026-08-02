@@ -28,8 +28,8 @@ assert.ok(faction.includes("reasoningPhase: 'stage9'"));
 assert.ok(life.includes("promptId: 'inference-stage10-life-energy-exp'"));
 assert.ok(life.includes("reasoningPhase: 'stage11'"));
 assert.ok(news.includes("reasoningPhase: 'stage12'"));
-assert.ok(work.includes("promptId: 'inference-stage13-work-performance-update'"));
+assert.ok(work.includes("promptId: 'inference-stage13-career-update'"));
 assert.ok(work.includes("reasoningPhase: 'stage13'"));
-assert.ok(loop.includes('Stage13 工作与绩效'));
+assert.ok(loop.includes('Stage13 职业生涯'));
 
 console.log('stage5-13 settlement thinking wiring verified');

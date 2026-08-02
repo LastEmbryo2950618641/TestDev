@@ -6,7 +6,8 @@
 
 .company-card {
   width: min(920px, 100%);
-  max-height: min(760px, 96dvh);
+  height: min(760px, calc(100dvh - 28px));
+  max-height: 96dvh;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   gap: 10px;
@@ -60,6 +61,128 @@
 
 .company-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.freelance-card-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 180px);
+  grid-auto-rows: 132px;
+  justify-content: start;
+  align-content: start;
+  gap: 10px;
+}
+
+.freelance-card-list-title {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #eafcff;
+  font-size: 15px;
+}
+
+.freelance-profile-card {
+  width: 180px;
+  min-height: 132px;
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid rgba(116, 246, 255, .2);
+  border-radius: 16px;
+  color: #eafcff;
+  background: rgba(255, 255, 255, .06);
+}
+
+.freelance-profile-card.active {
+  border-color: #74f6ff;
+  background: linear-gradient(135deg, rgba(116, 246, 255, .22), rgba(255, 105, 217, .12));
+  box-shadow: inset 0 0 0 1px rgba(116, 246, 255, .14);
+}
+
+.freelance-profile-card.add {
+  place-content: center;
+  text-align: center;
+  border-style: dashed;
+  border-color: rgba(116, 246, 255, .28);
+  background: rgba(255, 255, 255, .045);
+}
+
+.freelance-profile-card.add strong {
+  font-size: 34px;
+  line-height: 1;
+  color: #74f6ff;
+}
+
+.freelance-profile-card span,
+.freelance-profile-card small {
+  color: #aeb9d6;
+}
+
+.freelance-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, .55);
+}
+
+.freelance-picker-modal {
+  width: min(720px, 100%);
+  max-height: min(680px, calc(100dvh - 32px));
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(116, 246, 255, .28);
+  border-radius: 22px;
+  background: rgba(8, 14, 32, .96);
+  box-shadow: 0 22px 90px rgba(0, 0, 0, .46);
+}
+
+.freelance-picker-modal header,
+.freelance-picker-search {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.freelance-picker-search input {
+  flex: 1;
+  min-height: 40px;
+  border: 1px solid rgba(116, 246, 255, .22);
+  border-radius: 999px;
+  padding: 0 14px;
+  color: #eafcff;
+  background: rgba(255, 255, 255, .07);
+}
+
+.freelance-candidate-list {
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  gap: 8px;
+}
+
+.freelance-candidate-card {
+  display: grid;
+  gap: 5px;
+  text-align: left;
+  padding: 12px;
+  border: 1px solid rgba(116, 246, 255, .2);
+  border-radius: 16px;
+  color: #eafcff;
+  background: rgba(255, 255, 255, .06);
+}
+
+.freelance-candidate-card small {
+  color: #aeb9d6;
+}
+
+.company-grid-full {
+  grid-column: 1 / -1;
 }
 
 .recruit-card,
@@ -153,9 +276,182 @@
   line-height: 1.45;
 }
 
+.company-card {
+  gap: 6px;
+  padding: 10px;
+  border-radius: 14px;
+}
+
+.company-card .identity-header {
+  min-height: 0;
+  padding: 10px 14px;
+  border-radius: 0;
+}
+
+.company-card .identity-header h2 {
+  margin: 0 0 4px;
+  font-size: 22px;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.company-card .identity-header small {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.company-card .eyebrow {
+  margin-bottom: 4px;
+  font-size: 11px;
+  letter-spacing: .22em;
+}
+
+.company-card .small-btn {
+  min-height: 30px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.company-tabs {
+  gap: 5px;
+  padding: 3px 0;
+}
+
+.company-tabs button {
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.company-body {
+  align-content: start;
+  gap: 6px;
+}
+
+.company-grid,
+.recruit-grid,
+.contract-list,
+.org-chart,
+.org-job-list,
+.company-tools,
+.employment-records {
+  gap: 6px;
+}
+
+.freelance-card-list {
+  grid-template-columns: repeat(auto-fill, 168px);
+  grid-auto-rows: auto;
+  gap: 8px;
+}
+
+.freelance-card-list-title {
+  margin: 0 0 2px;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.freelance-profile-card {
+  width: 168px;
+  min-height: 104px;
+  gap: 3px;
+  padding: 8px 10px;
+  border-radius: 12px;
+}
+
+.freelance-profile-card strong {
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.freelance-profile-card.add strong {
+  font-size: 28px;
+}
+
+.freelance-profile-card span,
+.freelance-profile-card small {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.recruit-card,
+.contract-card,
+.org-dept-card,
+.org-job-card,
+.record-card,
+.tool-card,
+.company-empty,
+.attendance-card {
+  padding: 10px;
+  border-radius: 12px;
+}
+
+.recruit-card h3,
+.contract-card h3,
+.org-dept-card h3,
+.tool-card h3 {
+  margin: 0 0 5px;
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.recruit-card p,
+.contract-card p,
+.tool-card p,
+.company-empty {
+  margin: 0 0 5px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.recruit-card small,
+.contract-card small,
+.org-job-card small,
+.tool-card small {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.freelance-level-card {
+  min-height: 0;
+}
+
+.freelance-level-card .company-empty {
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+
+.freelance-order-card {
+  display: grid;
+  gap: 3px;
+}
+
+.freelance-order-card strong {
+  margin-top: 2px;
+  font-size: 13px;
+  color: #eafcff;
+}
+
+.freelance-work-row {
+  padding: 8px 10px;
+}
+
+.freelance-work-row p {
+  margin: 0;
+  color: #c8d3ef;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.freelance-work-row strong {
+  color: #eafcff;
+}
+
 
 @media (max-width: 640px) {
   .company-grid,
   .org-job-list { grid-template-columns: 1fr; }
-  .company-card { padding: 12px; }
+  .company-card {
+    height: calc(100dvh - 24px);
+    padding: 12px;
+  }
 }

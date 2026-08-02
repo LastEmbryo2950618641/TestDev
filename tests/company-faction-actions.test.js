@@ -64,7 +64,7 @@ function createStore(actions, factions = []) {
   return {
     ...actions,
     playerProfile: { name: '测试玩家' },
-    companyState: { unitProfilesByFactionId: {}, employment: { activeCompanyId: '' }, currentCompanyId: '' },
+    companyState: { employment: { activeCompanyId: '' }, currentCompanyId: '' },
     factionState: { factions },
     factionIdByName: () => 'company-acme',
     normalizeFactionStructure: (faction) => faction,
@@ -109,10 +109,8 @@ async function run() {
   const syncedStore = createStore(actions, [
     { id: 'company-acme', name: '星河工作室', type: '公司', parentId: 'country-china-corp', structure: [] },
   ]);
-  syncedStore.companyState.unitProfilesByFactionId['company-acme'] = { factionId: 'company-acme', unitName: '旧资料' };
   syncedStore.upsertCompanyFromBossJob({ id: 'job-2', company: '星河工作室', title: '编剧', payType: '创作者' });
   assert.strictEqual(syncedStore.companyState.currentCompanyId, 'company-acme');
-  assert.strictEqual(syncedStore.companyState.unitProfilesByFactionId['company-acme'], undefined, 'existing unit profile should be cleared for AI regeneration');
 
   const identityState = { profile: { memberships: [] }, values: {} };
   store.playerIdentityState = () => identityState;

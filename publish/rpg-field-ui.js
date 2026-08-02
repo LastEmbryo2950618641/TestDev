@@ -134,7 +134,7 @@ window.GameModules.rpgFieldUi = {
     const row = (key, label, value, desc) => ({ key: `profile-${state?.id || 'target'}-${key}`, stateId: state?.id || '', label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: key !== 'work' });
     return [
       row('name', '姓名', p.name || state?.name, '角色卡固化姓名。'), row('work', '所属世界', worldTag, '角色出身作品或世界。'),
-      row('currentLocation', '当前位置', locationText, '角色卡当前位置；格式为所在世界·势力·层级1·层级2·地点·详细的具体位置（倒数第2段=地图节点，最后1段=室内细节）。'),
+      row('currentLocation', '当前位置', locationText, '角色卡当前位置；格式为所在世界·势力·层级1·层级2·地点|位置1·位置2·位置3（| 前最后一段=地图节点，| 后=空间所属位置链）。'),
       row('role', '身份', p.role || p.job, '角色当前身份。'),
       row('job', '职业', p.job, '角色真实职业、训练身份或社会功能。'),
       row('gender', '性别', p.gender, '角色性别资料。'), row('birthday', '生日', p.birthday, '角色生日资料。'),
@@ -1042,6 +1042,98 @@ window.GameModules.rpgFieldUi = {
       lore,
       lists: listCards,
     };
+  },
+
+  isLocationInfoCard(card = {}) {
+    return /当前位置|currentLocation/.test(`${card?.label || ''} ${card?.field?.key || ''}`);
+  },
+
+  locationSpacePresentation(field = {}) {
+    const api = window.GameModules.currentLocationField;
+    const graphApi = window.GameModules.realWorldLocationGraph;
+    const value = this.identityInfoValueText(field);
+    const parsed = api?.parseProfileLocation ? api.parseProfileLocation(value) : { text: value, placeText: value, positionText: '', placeParts: [], positionParts: [] };
+    const mapNodeName = api?.mapNodeName?.(value) || parsed.placeParts?.[parsed.placeParts.length - 1] || '';
+    const graphNode = graphApi?.getNode?.(this, mapNodeName);
+    const graphState = graphApi?.ensureGraphState?.(this);
+    const graphNodes = Object.values(graphState?.nodesById || {});
+    const childMap = graphNodes.reduce((map, node) => {
+      if (!node?.parentId) return map;
+      if (!map[node.parentId]) map[node.parentId] = [];
+      map[node.parentId].push(node);
+      return map;
+    }, {});
+    Object.values(childMap).forEach((items) => items.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0) || String(a.name || '').localeCompare(String(b.name || ''))));
+    const graphPath = graphNode?.id ? graphApi.pathByNodeId(this, graphNode.id) : [];
+    const chainSource = graphPath.length ? graphPath : (parsed.placeParts || []).map((name, index) => ({
+      id: `chain-${index}`,
+      name,
+      displayName: name,
+      type: index === 0 ? 'world' : (index === 1 ? 'faction' : (index === parsed.placeParts.length - 1 ? 'poi' : 'level')),
+      synthetic: true,
+    }));
+    const chainNodes = chainSource.map((node, index) => this.locationSpaceNodeRecord(node, index, childMap[node.id] || [], parsed, false));
+    const positionNodes = (parsed.positionParts || []).map((name, index) => this.locationSpaceNodeRecord({
+      id: `position-${index}`,
+      name,
+      displayName: name,
+      type: index === parsed.positionParts.length - 1 ? 'current-position' : 'position',
+      synthetic: true,
+    }, index, [], parsed, true));
+    const tree = [...chainNodes, ...positionNodes];
+    const selected = [...tree].reverse().find((node) => node.children.length || node.items.length) || tree[tree.length - 1] || null;
+    return {
+      raw: parsed.text || value || '未记录',
+      placeText: parsed.placeText || '',
+      positionText: parsed.positionText || '',
+      mapNodeName,
+      tree,
+      selectedId: selected?.id || '',
+    };
+  },
+
+  locationSpaceNodeRecord(node = {}, index = 0, children = [], parsed = {}, isPosition = false) {
+    const name = String(node.displayName || node.name || node.id || '未命名空间').trim();
+    const type = String(node.type || '').trim();
+    const typeLabel = {
+      world: '世界', faction: '势力', level: '层级', poi: '地点', floor: '楼层', room: '房间', zone: '区域', object: '物品', position: '位置', 'current-position': '当前位置',
+    }[type] || (isPosition ? '位置' : '空间');
+    const intro = String(node.description || (Array.isArray(node.descriptionFacts) ? node.descriptionFacts[0] : '') || `${typeLabel}：${name}`).replace(/^地点[:：]\s*/u, '').slice(0, 20);
+    const objectChildren = children.filter((child) => ['object', 'container-item'].includes(String(child.type || '')));
+    const spaceChildren = children.filter((child) => !['object', 'container-item'].includes(String(child.type || '')));
+    const items = objectChildren.map((child) => ({
+      name: child.displayName || child.name || child.id,
+      place: child.position || child.placement || child.description || '位于该空间内。',
+    }));
+    if (isPosition && !items.length) {
+      items.push({ name, place: index === (parsed.positionParts || []).length - 1 ? '角色当前所在位置。' : '上级空间位置。' });
+    }
+    return {
+      id: String(node.id || `${isPosition ? 'position' : 'chain'}-${index}`),
+      name,
+      type,
+      typeLabel,
+      intro,
+      items,
+      children: spaceChildren.map((child) => ({
+        id: String(child.id || ''),
+        name: child.displayName || child.name || child.id,
+        typeLabel: { floor: '楼层', room: '房间', zone: '区域', poi: '地点' }[String(child.type || '')] || '下级空间',
+      })),
+    };
+  },
+
+  locationSpaceSelected(space = {}, activeNodeId = '') {
+    const found = (space?.tree || []).find((node) => node.id === activeNodeId);
+    if (found) return found;
+    const graphApi = window.GameModules.realWorldLocationGraph;
+    const node = graphApi?.getNode?.(this, activeNodeId);
+    if (node?.id) {
+      const graphNodes = Object.values(graphApi.ensureGraphState?.(this)?.nodesById || {});
+      const children = graphNodes.filter((child) => child.parentId === node.id);
+      return this.locationSpaceNodeRecord(node, 0, children, {}, false);
+    }
+    return (space?.tree || [])[0] || null;
   },
 
   preferenceBalanceTone(value = 50) {

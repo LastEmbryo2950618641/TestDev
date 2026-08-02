@@ -575,7 +575,7 @@
           <label class="dev-section" data-section-title="姓名代号输入"><span>姓名 / 代号</span><input class="text-input" x-model="$store.game.playerProfile.name" placeholder="例如：刘悠"><small>参考默认账号：刘悠</small></label>
           <label class="dev-section" data-section-title="性别输入"><span>性别</span><select class="text-input" x-model="$store.game.playerProfile.gender"><option value="">请选择</option><option>男</option><option>女</option><option>其他</option></select><small>参考默认账号：男</small></label>
           <label class="dev-section" data-section-title="生日输入"><span>生日（必填）</span><input class="text-input" type="date" x-model="$store.game.playerProfile.birthday"><small>参考默认账号：1998-11-19</small></label>
-          <label class="dev-section" data-section-title="当前位置输入"><span>当前位置</span><input class="text-input" x-model="$store.game.playerProfile.currentLocation" placeholder="格式：所在世界·势力·层级1·层级2·地点·详细的具体位置，例如：2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋·2单元601号"><small>第5段“地点”会直接作为电子地图节点名。</small></label>
+          <label class="dev-section" data-section-title="当前位置输入"><span>当前位置</span><input class="text-input" x-model="$store.game.playerProfile.currentLocation" placeholder="格式：所在世界·势力·层级1·层级2·地点|位置1·位置2·位置3，例如：2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋|2单元·601室·卧室门口"><small>| 前为世界/势力/地点链，| 后为空间所属位置链。</small></label>
           <label class="dev-section" data-section-title="现实身份输入"><span>现实身份</span><input class="text-input" x-model="$store.game.playerProfile.dailyRole" placeholder="例如：程序工程师，计算机科学与技术硕士"><small>参考默认账号：程序工程师，计算机科学与技术硕士</small></label>
           <label class="dev-section" data-section-title="居住状态输入"><span>居住状态</span><input class="text-input" x-model="$store.game.playerProfile.livingStatus" placeholder="例如：与18岁成年三胞胎妹妹刘思瑶、刘思琪、刘思怡同居"><small>参考默认账号：与18岁成年三胞胎妹妹刘思瑶、刘思琪、刘思怡同居</small></label>
           <label class="dev-section" data-section-title="财富等级输入"><span>财富等级</span><select class="text-input" x-model="$store.game.playerProfile.wealthTier" @change="$store.game.syncPlayerWealthDefaults()"><template x-for="option in $store.game.playerWealthOptions()" :key="option.tier"><option :value="option.tier" x-text="`${option.tier}（默认${option.amount.toLocaleString('zh-CN')}元）`"></option></template></select><small x-text="$store.game.playerWealthText()"></small></label>
@@ -1288,7 +1288,7 @@
             <button class="desktop-app-icon character-roster-icon" type="button" @click="$store.game.openCharacterRosterApp()" aria-label="打开角色管理"><span class="app-glyph-emoji" aria-hidden="true">👥</span><b>角色管理</b></button>
             <button class="desktop-app-icon wechat-icon" type="button" @click="$store.game.openWechatApp()" aria-label="打开微信"><span class="app-glyph-emoji" aria-hidden="true">💬</span><b>微信</b></button>
             <button class="desktop-app-icon company-icon" type="button" @click="$store.game.openWorkApp()" aria-label="打开工作"><span class="app-glyph-emoji" aria-hidden="true">🏢</span><b>工作</b></button>
-            <button class="desktop-app-icon boss-icon" type="button" @click="$store.game.openBossApp()" aria-label="打开BOSS招聘"><span class="app-glyph-emoji" aria-hidden="true">💼</span><b>BOSS招聘</b></button>
+            <button class="desktop-app-icon company-icon" type="button" @click="$store.game.openFreelanceApp()" aria-label="打开自由职业"><span class="app-glyph-emoji" aria-hidden="true">🎨</span><b>自由职业</b></button>
             <button class="desktop-app-icon calendar-icon" type="button" @click="$store.game.openCalendarApp()" aria-label="打开日历"><span class="app-glyph-emoji" aria-hidden="true">📅</span><b>日历</b></button>
             <button class="desktop-app-icon event-icon" type="button" onclick="window.openEventAppNative && window.openEventAppNative(event)" @click="$store.game.openEventDesktopApp && $store.game.openEventDesktopApp()" aria-label="打开日常驱动"><span class="app-glyph-emoji" aria-hidden="true">🗓️</span><b>日常驱动</b></button>
             <button class="desktop-app-icon news-icon" type="button" @click="$store.game.openNewsApp()" aria-label="打开新闻"><span class="app-glyph-emoji" aria-hidden="true">📰</span><b>新闻</b></button>
@@ -1662,10 +1662,40 @@
                   <header class="identity-info-group-head"><strong><span class="identity-info-group-symbol">✦</span>叙事档案</strong><small>背景与人格</small></header>
                   <div class="identity-info-lore-grid">
                     <template x-for="card in dossier?.lore || []" :key="`identity-lore-${card.label}`">
-                      <button type="button" class="identity-info-lore-card ability-expandable" :class="[`tone-${card.meta.tone}`, { open: card.field && $store.game.isAbilityDetailOpen(card.field) }]" @click="card.field && $store.game.toggleAbilityDetail(card.field)">
-                        <div class="identity-info-lore-head"><span class="identity-info-lore-icon" aria-hidden="true" x-text="card.meta.icon"></span><strong x-text="card.label"></strong></div>
-                        <p x-text="card.preview"></p>
-                      </button>
+                      <div>
+                        <template x-if="!$store.game.isLocationInfoCard(card)">
+                          <button type="button" class="identity-info-lore-card ability-expandable" :class="[`tone-${card.meta.tone}`, { open: card.field && $store.game.isAbilityDetailOpen(card.field) }]" @click="card.field && $store.game.toggleAbilityDetail(card.field)">
+                            <div class="identity-info-lore-head"><span class="identity-info-lore-icon" aria-hidden="true" x-text="card.meta.icon"></span><strong x-text="card.label"></strong></div>
+                            <p x-text="card.preview"></p>
+                          </button>
+                        </template>
+                        <template x-if="$store.game.isLocationInfoCard(card)">
+                          <article class="location-space-card" x-data="{ space: null, activeNodeId: '' }" x-init="space = $store.game.locationSpacePresentation(card.field); activeNodeId = space.selectedId" x-effect="space = $store.game.locationSpacePresentation(card.field); if (!activeNodeId) activeNodeId = space.selectedId">
+                            <header class="location-space-head"><span class="identity-info-lore-icon" aria-hidden="true">📍</span><div><strong>当前位置</strong><p x-text="space?.raw || '未记录'"></p></div></header>
+                            <div class="location-space-body">
+                              <section class="location-space-info">
+                                <small>空间信息</small>
+                                <h4 x-text="$store.game.locationSpaceSelected(space, activeNodeId)?.name || space?.mapNodeName || '当前位置'"></h4>
+                                <p x-text="$store.game.locationSpaceSelected(space, activeNodeId)?.intro || '当前位置空间。'"></p>
+                                <div class="location-space-items">
+                                  <strong>这里有什么</strong>
+                                  <template x-for="item in ($store.game.locationSpaceSelected(space, activeNodeId)?.items || [])" :key="`${item.name}-${item.place}`"><p><b x-text="`${item.name}：`"></b><span x-text="item.place"></span></p></template>
+                                  <p x-show="!($store.game.locationSpaceSelected(space, activeNodeId)?.items || []).length">暂无已记录物品。</p>
+                                </div>
+                              </section>
+                              <aside class="location-space-drawer">
+                                <small>上下级空间</small>
+                                <template x-for="node in space?.tree || []" :key="node.id">
+                                  <button type="button" :class="{ active: activeNodeId === node.id }" @click="activeNodeId = node.id"><span x-text="node.typeLabel"></span><strong x-text="node.name"></strong><em x-show="node.children.length" x-text="`${node.children.length}个下级`"></em></button>
+                                </template>
+                                <div class="location-space-children" x-show="($store.game.locationSpaceSelected(space, activeNodeId)?.children || []).length">
+                                  <template x-for="child in ($store.game.locationSpaceSelected(space, activeNodeId)?.children || [])" :key="child.id"><button type="button" @click="activeNodeId = child.id"><span x-text="child.typeLabel"></span><strong x-text="child.name"></strong></button></template>
+                                </div>
+                              </aside>
+                            </div>
+                          </article>
+                        </template>
+                      </div>
                     </template>
                   </div>
                 </section>
@@ -2009,51 +2039,108 @@
   </section>
 
   <section x-show="!$store.game.loading && $store.game.companyState?.open" class="company-app-screen app-window section-hints" x-cloak>
-    <div class="company-card dev-section" data-section-title="工作系统主面板">
-      <header class="identity-header dev-section" data-section-title="工作标题区">
-        <div><p class="eyebrow">WORK</p><h2 x-text="$store.game.companyHeaderView().title"></h2><small x-text="$store.game.companyHeaderView().subtitle"></small></div>
+    <div class="company-card dev-section" :data-section-title="`${$store.game.careerAppName ? $store.game.careerAppName() : '职业生涯'}APP主面板`">
+      <header class="identity-header dev-section" :data-section-title="`${$store.game.careerAppName ? $store.game.careerAppName() : '职业生涯'}APP标题区`">
+        <div><p class="eyebrow" x-text="$store.game.isFreelanceCareer && $store.game.isFreelanceCareer() ? 'FREELANCE' : 'CAREER'">CAREER</p><h2 x-text="$store.game.companyHeaderView().title"></h2><small x-text="$store.game.companyHeaderView().subtitle"></small></div>
         <button class="small-btn" type="button" @click="$store.game.closeWorkApp()">回到桌面</button>
       </header>
-      <nav class="company-tabs dev-section" data-section-title="工作系统分页">
-        <button type="button" :class="{ active: $store.game.companyState.panelTab === 'profile' }" @click="$store.game.companyState.panelTab = 'profile'">单位信息</button>
-        <button type="button" :class="{ active: $store.game.companyState.panelTab === 'recruit' }" @click="$store.game.companyState.panelTab = 'recruit'">任职模式</button>
-        <button type="button" :class="{ active: $store.game.companyState.panelTab === 'org' }" @click="$store.game.companyState.panelTab = 'org'">组织架构</button>
-        <button type="button" :class="{ active: $store.game.companyState.panelTab === 'pay' }" @click="$store.game.companyState.panelTab = 'pay'">薪酬绩效</button>
-        <button type="button" :class="{ active: $store.game.companyState.panelTab === 'records' }" @click="$store.game.companyState.panelTab = 'records'">入职记录</button>
-        <button type="button" :class="{ active: $store.game.companyState.panelTab === 'tools' }" @click="$store.game.companyState.panelTab = 'tools'">功能面板</button>
+      <nav class="company-tabs dev-section" data-section-title="职业生涯分页">
+        <button type="button" :class="{ active: $store.game.companyState.panelTab === 'profile' }" @click="$store.game.companyState.panelTab = 'profile'" x-text="$store.game.isFreelanceCareer() ? '当前自由职业者' : '职业概览'">职业概览</button>
+        <button type="button" :class="{ active: $store.game.companyState.panelTab === 'recruit' }" @click="$store.game.companyState.panelTab = 'recruit'" x-text="$store.game.isFreelanceCareer() ? '职业等级' : '任职模式'">任职模式</button>
+        <button type="button" :class="{ active: $store.game.companyState.panelTab === 'org' }" @click="$store.game.companyState.panelTab = 'org'" x-text="$store.game.isFreelanceCareer() ? '成果' : '职业晋级'">职业晋级</button>
+        <button type="button" x-show="!$store.game.isFreelanceCareer()" :class="{ active: $store.game.companyState.panelTab === 'pay' }" @click="$store.game.companyState.panelTab = 'pay'">薪酬绩效</button>
+        <button type="button" x-show="!$store.game.isFreelanceCareer()" :class="{ active: $store.game.companyState.panelTab === 'records' }" @click="$store.game.companyState.panelTab = 'records'">履历记录</button>
+        <button type="button" x-show="!$store.game.isFreelanceCareer()" :class="{ active: $store.game.companyState.panelTab === 'tools' }" @click="$store.game.companyState.panelTab = 'tools'">功能面板</button>
       </nav>
       <main class="company-body scroll-area">
-        <article class="attendance-card dev-section" :class="$store.game.currentWorkAttendance().className" data-section-title="上班状态区">
-          <div><small>今日上班状态</small><strong x-text="$store.game.currentWorkAttendance().status"></strong><p x-text="$store.game.currentWorkAttendance().detail"></p></div>
-          <button class="small-btn" type="button" x-show="$store.game.currentWorkAttendance().canCheckIn" @click="$store.game.checkInWork()">记录到岗</button>
-        </article>
-        <article class="contract-card" x-show="$store.game.companyState.generating"><h3>单位资料生成中</h3><p>当前日期：2026年7月29日（周三）</p><small>正在根据当前任职势力生成单位资料，请稍候。</small></article>
-        <article class="contract-card" x-show="$store.game.companyState.generationError"><h3>单位资料生成失败</h3><p x-text="$store.game.companyState.generationError"></p><button class="small-btn" type="button" @click="$store.game.ensureCurrentUnitGenerated(true)">重新生成</button></article>
-        <section class="company-grid" x-show="$store.game.companyState.panelTab === 'profile'">
-          <p class="company-empty" x-show="$store.game.companyState.employment?.active === false">暂无在职单位信息</p>
+        <article class="contract-card" x-show="!$store.game.isFreelanceCareer() && !$store.game.hasActiveCareerProfile()"><h3>等待推演同步</h3><p>工作 APP 暂无工作单位档案。</p><small>职业生涯只在现实推演 Stage13 中创建与更新，打开 APP 不会单独请求 AI。</small></article>
+        <section class="freelance-card-list" x-show="$store.game.isFreelanceCareer() && $store.game.companyState.panelTab === 'profile'">
+          <h3 class="freelance-card-list-title">当前自由职业者</h3>
+          <template x-for="profile in $store.game.freelanceProfiles()" :key="profile.id">
+            <button class="freelance-profile-card" type="button" :class="{ active: $store.game.companyState.selectedFreelanceId === profile.id }" @click="$store.game.selectFreelanceProfile(profile.id)">
+              <strong x-text="profile.positionTitle || profile.organizationName || '自由职业者'"></strong>
+              <span x-text="profile.organizationName || '个人接单'"></span>
+              <small x-text="profile.careerSummary || profile.industry || '自由职业者卡片'"></small>
+            </button>
+          </template>
+          <button class="freelance-profile-card add" type="button" @click="$store.game.openFreelancePicker()">
+            <strong>＋</strong>
+            <span>添加自由职业者</span>
+            <small>搜索当前世界可选自由职业者</small>
+          </button>
+        </section>
+        <section class="company-grid" x-show="$store.game.companyState.panelTab === 'profile' && !$store.game.isFreelanceCareer()">
+          <article class="attendance-card dev-section company-grid-full" :class="$store.game.currentWorkAttendance().className" :data-section-title="$store.game.companyAttendanceView().label">
+            <div><small x-text="$store.game.companyAttendanceView().label"></small><strong x-text="$store.game.currentWorkAttendance().status"></strong><p x-text="$store.game.currentWorkAttendance().detail"></p></div>
+            <button class="small-btn" type="button" x-show="$store.game.currentWorkAttendance().canCheckIn" @click="$store.game.checkInWork()">记录到岗</button>
+          </article>
+          <p class="company-empty" x-show="!$store.game.hasActiveCareerProfile()">暂无活跃职业生涯信息</p>
           <template x-for="field in $store.game.companyFields()" :key="field.key">
             <button class="rpg-item-card lexicon-tag" type="button" @click="$store.game.toggleRpgField(field)"><strong x-text="$store.game.rpgFieldSummary(field)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
           </template>
         </section>
         <section class="recruit-grid" x-show="$store.game.companyState.panelTab === 'recruit'">
-          <p class="company-empty" x-show="$store.game.companyState.employment?.active === false">离职后当前单位的任职模式记录已清空</p>
-          <article class="recruit-card" x-show="$store.game.companyState.employment?.active !== false"><h3>员工制</h3><p>按单位制度上班，双休制；每月收入为底薪，年底按绩效月数×底薪×绩效提成结算。</p><button class="story-choice-btn" @click="$store.game.applyRecruitment('employee')">申请员工岗位</button></article>
-          <article class="recruit-card" x-show="$store.game.companyState.employment?.active !== false"><h3>定时工</h3><p>规定时间内完成一件事，不合格无报酬，合格拿100%，超预期额外奖励。</p><button class="story-choice-btn" @click="$store.game.applyRecruitment('timed')">接定时工任务</button></article>
-          <article class="recruit-card" x-show="$store.game.companyState.employment?.active !== false"><h3>创作者模式</h3><p>向单位提交方案、小说、作品，通过后可签合同。</p><button class="story-choice-btn" @click="$store.game.applyRecruitment('creator-low')">签稳定低分成</button><button class="story-choice-btn" @click="$store.game.applyRecruitment('creator-high')">签低保高分成</button></article>
+          <p class="company-empty" x-show="!$store.game.hasActiveCareerProfile()" x-text="$store.game.isFreelanceCareer() ? '当前没有选中的自由职业者，职业等级为空' : '当前没有活跃职业生涯，任职模式为空'">当前没有活跃职业生涯，任职模式为空</p>
+          <article class="recruit-card" x-show="$store.game.hasActiveCareerProfile() && !$store.game.isFreelanceCareer()"><h3>员工制</h3><p>按单位制度上班，双休制；每月收入为底薪，年底按年收入总包×当前绩效百分比结算。</p><button class="story-choice-btn" @click="$store.game.applyRecruitment('employee')">申请员工岗位</button></article>
+          <article class="recruit-card freelance-level-card" x-show="$store.game.hasActiveCareerProfile() && $store.game.isFreelanceCareer()">
+            <h3>业内名声称号</h3>
+            <p x-text="$store.game.freelanceLevelSectionView().titleText"></p>
+            <small>达到称号上限后可在现实推演中晋级到下一级称号。</small>
+          </article>
+          <article class="recruit-card freelance-level-card" x-show="$store.game.hasActiveCareerProfile() && $store.game.isFreelanceCareer()">
+            <h3>知识/技能/职业</h3>
+            <p class="company-empty" x-show="!$store.game.freelanceLevelSectionView().abilities.length" x-text="$store.game.freelanceLevelSectionView().emptyText"></p>
+            <template x-for="ability in $store.game.freelanceLevelSectionView().abilities" :key="ability.key">
+              <p x-text="ability.text"></p>
+            </template>
+            <small>这里只展示角色已经拥有且与该自由职业匹配的知识、技能或职业等级；作品质量由接单后的实际完成结果决定。</small>
+          </article>
+          <article class="recruit-card freelance-level-card" x-show="$store.game.hasActiveCareerProfile() && $store.game.isFreelanceCareer()">
+            <h3>擅长</h3>
+            <p x-text="$store.game.freelanceLevelSectionView().specialty"></p>
+          </article>
         </section>
-        <section class="org-chart" x-show="$store.game.companyState.panelTab === 'org'">
-          <p class="company-empty" x-show="!$store.game.companyOrganization().length">暂无组织架构</p>
-          <template x-for="dept in $store.game.companyOrganization()" :key="dept.name">
-            <article class="org-dept-card dev-section" :data-section-title="`${dept.name}组织区`"><h3 x-text="dept.name"></h3><div class="org-job-list"><template x-for="job in dept.jobs" :key="`${dept.name}-${job.title}`"><section class="org-job-card"><strong x-text="job.title"></strong><p x-text="`在岗人员：${job.people.join('、')}`"></p></section></template></div></article>
+        <section class="org-chart" x-show="$store.game.companyState.panelTab === 'org' && !$store.game.isFreelanceCareer()">
+          <article class="contract-card dev-section" data-section-title="职业晋级当前状态">
+            <h3>当前职位</h3>
+            <p x-text="`当前职位：${$store.game.companyOrganizationSectionView().currentPosition}`"></p>
+            <p x-text="`直系领导：${$store.game.companyOrganizationSectionView().directLeader}`"></p>
+            <p x-text="`当前职位路线：${$store.game.companyOrganizationSectionView().currentRoute}`"></p>
+            <small>备注：可以在现实推演中找直系领导沟通商量晋级，也可以走关系或其他途径晋级。</small>
+          </article>
+          <p class="company-empty" x-show="!$store.game.companyOrganizationSectionView().routeRows.length" x-text="$store.game.companyOrganizationSectionView().emptyText"></p>
+          <template x-for="route in $store.game.companyOrganizationSectionView().routeRows" :key="route.key">
+            <article class="org-dept-card dev-section" :data-section-title="`${route.name}晋级路线`">
+              <h3 x-text="route.name"></h3>
+              <div class="org-job-list">
+                <section class="org-job-card">
+                  <strong x-text="`下一级职位：${route.nextPosition}`"></strong>
+                  <p x-text="`需要绩效：${route.performanceText}`"></p>
+                  <p x-text="`需要能力：${route.abilitiesText}`"></p>
+                  <p x-text="`所需人数：${route.vacanciesText}`"></p>
+                  <small x-text="route.notes"></small>
+                  <button class="story-choice-btn" type="button" @click="$store.game.promoteCareerRoute(route.id)" x-text="route.canPromote ? '点击直接晋升' : `条件不足：${route.blockedReason}`"></button>
+                </section>
+              </div>
+            </article>
+          </template>
+          <p class="company-empty" x-show="$store.game.companyOrganizationSectionView().promotionMessage" x-text="$store.game.companyOrganizationSectionView().promotionMessage"></p>
+        </section>
+        <section class="contract-list" x-show="$store.game.companyState.panelTab === 'org' && $store.game.isFreelanceCareer()">
+          <p class="company-empty" x-show="!$store.game.freelanceWorksSectionView().works.length" x-text="$store.game.freelanceWorksSectionView().emptyText"></p>
+          <template x-for="work in $store.game.freelanceWorksSectionView().works" :key="work.key">
+            <article class="contract-card freelance-work-row">
+              <p><strong x-text="`《${work.title}》`"></strong><span x-text="`：${work.intro}，${work.recognition}/100(业内认可度)，${work.review}`"></span></p>
+            </article>
           </template>
         </section>
         <section class="contract-list" x-show="$store.game.companyState.panelTab === 'pay'">
-          <p class="company-empty" x-show="$store.game.companyState.employment?.active === false">暂无薪酬绩效信息</p>
-          <article class="contract-card" x-show="$store.game.companyState.employment?.active !== false"><h3 x-text="$store.game.companyPayPanelView().summary.title"></h3><p x-text="$store.game.companyPayPanelView().summary.summaryLine"></p><p x-text="$store.game.companyPayPanelView().summary.performanceLine"></p></article>
-          <article class="contract-card" x-show="$store.game.companyState.employment?.active !== false"><h3 x-text="$store.game.companyPayPanelView().performance.title"></h3><p x-text="`下一次评绩效日期：${$store.game.companyPayPanelView().performance.nextReviewAt || '未设置'}`"></p><p x-text="`当前上班状态：${$store.game.companyPayPanelView().performance.attendanceStatus}`"></p><small x-text="$store.game.companyPayPanelView().performance.attendanceDetail"></small></article>
-          <article class="contract-card" x-show="$store.game.companyState.employment?.active !== false"><h3>领导评价</h3><p x-text="`${$store.game.companyPayPanelView().performance.leaderSummary}｜评分：${$store.game.companyPayPanelView().performance.leaderScore}`"></p><small x-text="$store.game.companyPayPanelView().performance.leaderDetail"></small></article>
-          <article class="contract-card" x-show="$store.game.companyState.employment?.active !== false"><h3>员工评价</h3><p x-text="$store.game.companyPayPanelView().performance.employeeSummary"></p><small x-text="$store.game.companyPayPanelView().performance.employeeDetail"></small></article>
-          <article class="contract-card" x-show="$store.game.companyState.employment?.active !== false"><h3>贡献价值</h3><p class="company-empty" x-show="!$store.game.companyPayPanelView().performance.contributionItems.length">暂无贡献价值记录</p><template x-for="item in $store.game.companyPayPanelView().performance.contributionItems" :key="item.key"><section class="org-job-card"><strong x-text="item.title"></strong><p x-text="item.body"></p><small x-text="item.meta"></small></section></template></article>
+          <p class="company-empty" x-show="!$store.game.hasActiveCareerProfile()">暂无薪酬绩效信息</p>
+          <article class="contract-card" x-show="$store.game.hasActiveCareerProfile()"><h3 x-text="$store.game.companyPayPanelView().summary.title"></h3><p x-text="$store.game.companyPayPanelView().summary.summaryLine"></p><p x-text="$store.game.companyPayPanelView().summary.performanceLine"></p></article>
+          <article class="contract-card" x-show="$store.game.hasActiveCareerProfile()"><h3 x-text="$store.game.companyPayPanelView().performance.title"></h3><p x-text="`下一次评绩效日期：${$store.game.companyPayPanelView().performance.nextReviewAt || '未设置'}`"></p><p x-text="`当前状态：${$store.game.companyPayPanelView().performance.attendanceStatus}`"></p><small x-text="$store.game.companyPayPanelView().performance.attendanceDetail"></small></article>
+          <article class="contract-card" x-show="$store.game.hasActiveCareerProfile()"><h3 x-text="$store.game.isFreelanceCareer() ? '客户/合作方评价' : '领导评价'"></h3><p x-text="`${$store.game.companyPayPanelView().performance.leaderSummary}｜评分：${$store.game.companyPayPanelView().performance.leaderScore}`"></p><small x-text="$store.game.companyPayPanelView().performance.leaderDetail"></small></article>
+          <article class="contract-card" x-show="$store.game.hasActiveCareerProfile()"><h3 x-text="$store.game.isFreelanceCareer() ? '自我复盘' : '员工评价'"></h3><p x-text="$store.game.companyPayPanelView().performance.employeeSummary"></p><small x-text="$store.game.companyPayPanelView().performance.employeeDetail"></small></article>
+          <article class="contract-card" x-show="$store.game.hasActiveCareerProfile()"><h3>贡献价值</h3><p class="company-empty" x-show="!$store.game.companyPayPanelView().performance.contributionItems.length">暂无贡献价值记录</p><template x-for="item in $store.game.companyPayPanelView().performance.contributionItems" :key="item.key"><section class="org-job-card"><strong x-text="item.title"></strong><p x-text="item.body"></p><small x-text="item.meta"></small></section></template></article>
           <template x-for="item in $store.game.companyPayPanelView().section.contractRows" :key="item.key"><article class="contract-card"><h3 x-text="item.title"></h3><p x-text="item.body"></p><small x-text="item.meta"></small></article></template>
           <template x-for="item in $store.game.companyPayPanelView().section.submissionRows" :key="item.key"><article class="contract-card"><h3 x-text="item.title"></h3><p x-text="item.body"></p><small x-text="item.meta"></small></article></template>
         </section>
@@ -2063,10 +2150,36 @@
           </template>
         </section>
         <section class="company-tools" x-show="$store.game.companyState.panelTab === 'tools'">
-          <article class="tool-card dev-section" data-section-title="辞职功能区"><h3>辞职</h3><p x-text="$store.game.companyState.employment?.active === false ? `已于${new Date($store.game.companyState.employment.resignedAt).toLocaleString()}从${$store.game.companyState.employment.resignedCompany || '当前单位'}离职。` : '离职后将停止上班提醒，单位工作视图清空，并在入职记录中标记为已离职。'"></p><button class="danger-btn" type="button" @click="$store.game.resignCompany()" :disabled="$store.game.companyState.employment?.active === false">确认辞职</button></article>
+          <article class="tool-card dev-section" x-show="!$store.game.isFreelanceCareer()" data-section-title="辞职功能区"><h3>辞职</h3><p x-text="$store.game.companyState.employment?.active === false ? `已于${new Date($store.game.companyState.employment.resignedAt).toLocaleString()}从${$store.game.companyState.employment.resignedCompany || '当前单位'}离职。` : '离职后将停止上班提醒，单位工作视图清空，并在入职记录中标记为已离职。'"></p><button class="danger-btn" type="button" @click="$store.game.resignCompany()" :disabled="$store.game.companyState.employment?.active === false">确认辞职</button></article>
+          <article class="tool-card dev-section" x-show="$store.game.isFreelanceCareer()" data-section-title="自由职业功能区"><h3>自由职业管理</h3><p>自由职业没有辞职操作；可在现实推演中停止接单、变更报价、拒绝客户或转为长期合作。</p></article>
         </section>
       </main>
     </div>
+  </section>
+
+  <section class="freelance-picker-backdrop" x-show="$store.game.companyState?.freelancePicker?.open" @click.self="$store.game.closeFreelancePicker()" @keydown.escape.window="$store.game.closeFreelancePicker()" x-cloak>
+    <article class="freelance-picker-modal dev-section" data-section-title="自由职业者添加弹窗" role="dialog" aria-modal="true" @click.stop>
+      <header>
+        <div><p class="eyebrow">FREELANCE PICKER</p><h3>添加自由职业者</h3><small>这里只创建名称与介绍，详细信息由现实推演 Stage13 后续补全。</small></div>
+        <button class="small-btn" type="button" @click="$store.game.closeFreelancePicker()">关闭</button>
+      </header>
+      <div class="freelance-picker-search">
+        <input x-model="$store.game.companyState.freelancePicker.query" placeholder="填写想要的自由职业者，例如：程序开发外包、二次元绘画接单、技术顾问" @keydown.enter="$store.game.searchFreelanceCandidates()">
+        <button type="button" class="story-choice-btn" @click="$store.game.searchFreelanceCandidates()" :disabled="$store.game.companyState.freelancePicker.loading" x-text="$store.game.companyState.freelancePicker.loading ? 'AI搜索中…' : '搜索'">搜索</button>
+      </div>
+      <section class="freelance-candidate-list">
+        <p class="company-empty" x-show="!$store.game.companyState.freelancePicker.searched">输入关键词后由 AI 根据当前世界与玩家资料生成可选自由职业者清单。</p>
+        <p class="company-empty" x-show="$store.game.companyState.freelancePicker.loading">AI 正在根据输入生成候选……</p>
+        <p class="company-empty" x-show="$store.game.companyState.freelancePicker.error" x-text="$store.game.companyState.freelancePicker.error"></p>
+        <p class="company-empty" x-show="$store.game.companyState.freelancePicker.searched && !$store.game.companyState.freelancePicker.loading && !$store.game.companyState.freelancePicker.error && !$store.game.companyState.freelancePicker.results.length">暂无候选，可换一个关键词。</p>
+        <template x-for="candidate in $store.game.companyState.freelancePicker.results" :key="candidate.id">
+          <button class="freelance-candidate-card" type="button" @click="$store.game.addFreelanceProfileFromCandidate(candidate)">
+            <strong x-text="candidate.name"></strong>
+            <small x-text="candidate.intro"></small>
+          </button>
+        </template>
+      </section>
+    </article>
   </section>
 
   <section x-show="!$store.game.loading && $store.game.bossState?.open" class="boss-app-screen app-window section-hints" x-cloak>
@@ -3721,10 +3834,40 @@
                         <header class="identity-info-group-head"><strong><span class="identity-info-group-symbol">✦</span>叙事档案</strong><small>背景与人格</small></header>
                         <div class="identity-info-lore-grid">
                           <template x-for="card in dossier?.lore || []" :key="`entry-identity-lore-${card.label}`">
-                            <button type="button" class="identity-info-lore-card ability-expandable" :class="[`tone-${card.meta.tone}`, { open: card.field && $store.game.isAbilityDetailOpen(card.field) }]" @click="card.field && $store.game.toggleAbilityDetail(card.field)">
-                              <div class="identity-info-lore-head"><span class="identity-info-lore-icon" aria-hidden="true" x-text="card.meta.icon"></span><strong x-text="card.label"></strong></div>
-                              <p x-text="card.preview"></p>
-                            </button>
+                            <div>
+                              <template x-if="!$store.game.isLocationInfoCard(card)">
+                                <button type="button" class="identity-info-lore-card ability-expandable" :class="[`tone-${card.meta.tone}`, { open: card.field && $store.game.isAbilityDetailOpen(card.field) }]" @click="card.field && $store.game.toggleAbilityDetail(card.field)">
+                                  <div class="identity-info-lore-head"><span class="identity-info-lore-icon" aria-hidden="true" x-text="card.meta.icon"></span><strong x-text="card.label"></strong></div>
+                                  <p x-text="card.preview"></p>
+                                </button>
+                              </template>
+                              <template x-if="$store.game.isLocationInfoCard(card)">
+                                <article class="location-space-card" x-data="{ space: null, activeNodeId: '' }" x-init="space = $store.game.locationSpacePresentation(card.field); activeNodeId = space.selectedId" x-effect="space = $store.game.locationSpacePresentation(card.field); if (!activeNodeId) activeNodeId = space.selectedId">
+                                  <header class="location-space-head"><span class="identity-info-lore-icon" aria-hidden="true">📍</span><div><strong>当前位置</strong><p x-text="space?.raw || '未记录'"></p></div></header>
+                                  <div class="location-space-body">
+                                    <section class="location-space-info">
+                                      <small>空间信息</small>
+                                      <h4 x-text="$store.game.locationSpaceSelected(space, activeNodeId)?.name || space?.mapNodeName || '当前位置'"></h4>
+                                      <p x-text="$store.game.locationSpaceSelected(space, activeNodeId)?.intro || '当前位置空间。'"></p>
+                                      <div class="location-space-items">
+                                        <strong>这里有什么</strong>
+                                        <template x-for="item in ($store.game.locationSpaceSelected(space, activeNodeId)?.items || [])" :key="`${item.name}-${item.place}`"><p><b x-text="`${item.name}：`"></b><span x-text="item.place"></span></p></template>
+                                        <p x-show="!($store.game.locationSpaceSelected(space, activeNodeId)?.items || []).length">暂无已记录物品。</p>
+                                      </div>
+                                    </section>
+                                    <aside class="location-space-drawer">
+                                      <small>上下级空间</small>
+                                      <template x-for="node in space?.tree || []" :key="node.id">
+                                        <button type="button" :class="{ active: activeNodeId === node.id }" @click="activeNodeId = node.id"><span x-text="node.typeLabel"></span><strong x-text="node.name"></strong><em x-show="node.children.length" x-text="`${node.children.length}个下级`"></em></button>
+                                      </template>
+                                      <div class="location-space-children" x-show="($store.game.locationSpaceSelected(space, activeNodeId)?.children || []).length">
+                                        <template x-for="child in ($store.game.locationSpaceSelected(space, activeNodeId)?.children || [])" :key="child.id"><button type="button" @click="activeNodeId = child.id"><span x-text="child.typeLabel"></span><strong x-text="child.name"></strong></button></template>
+                                      </div>
+                                    </aside>
+                                  </div>
+                                </article>
+                              </template>
+                            </div>
                           </template>
                         </div>
                       </section>

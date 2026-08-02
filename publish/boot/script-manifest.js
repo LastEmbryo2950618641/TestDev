@@ -277,6 +277,7 @@ window.GameScriptManifest = {
       "prompts/real-world-map-surround-unlock.js",
       "prompts/推演引擎/stage9-1-faction-create.js",
       "prompts/推演引擎/stage9-2-faction-update.js",
+      "prompts/推演引擎/stage13-career-update.js",
       "prompts/推演引擎/stage11-world-news-update.js"
     ],
     "gameplay": [
@@ -460,5 +461,5 @@ window.GameScriptManifest = {
     ]
   },
   "generatedAt": "2026-07-29T00:00:00.000Z",
-  "total": 437
+  "total": 439
 };

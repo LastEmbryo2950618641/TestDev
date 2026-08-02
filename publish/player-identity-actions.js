@@ -1,4 +1,4 @@
-﻿window.GameModules = window.GameModules || {};
+window.GameModules = window.GameModules || {};
 window.GameModules.playerIdentityActions = {
   syncPlayerSocialFields(state = null) {
     const current = state || this.playerIdentityState?.();
@@ -124,7 +124,7 @@ window.GameModules.playerIdentityActions = {
       row('name', '姓名', p.name, '角色卡固化姓名。'),
       row('presenceKind', '人物形态', window.GameModules.characterSocialDrive?.presenceKindLabel?.(p.presenceKind) || '具体的一个人', '具体的一个人＝个人档案；一类人＝团体原型，字段表示群体意识，行动视为团队行动。'),
       row('work', '所属世界', worldTag, '角色出身作品或世界。'),
-      row('currentLocation', '当前位置', locationText, '角色卡当前位置；格式为所在世界·势力·层级1·层级2·地点·详细的具体位置（倒数第2段=地图节点，最后1段=尽量精确的室内位置）。'),
+      row('currentLocation', '当前位置', locationText, '角色卡当前位置；格式为所在世界·势力·层级1·层级2·地点|位置1·位置2·位置3（| 前最后一段=地图节点，| 后=空间所属位置链）。'),
       row('age', '年龄', p.age && typeof p.age === 'object' ? p.age.value : p.age, '角色卡固化年龄。'),
       row('gender', '性别', p.gender, '角色卡固化性别。'),
       row('birthday', '生日', p.birthday, '角色卡固化生日。'),
@@ -356,3 +356,4 @@ window.GameModules.playerIdentityActions = {
     };
   }
 };
+

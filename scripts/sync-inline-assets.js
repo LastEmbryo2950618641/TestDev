@@ -123,6 +123,7 @@ function syncInferencePromptRuntime() {
     'prompts/推演引擎/stage9-1-faction-create.js',
     'prompts/推演引擎/stage9-2-faction-update.js',
     'prompts/推演引擎/stage10-life-energy-exp.js',
+    'prompts/推演引擎/stage13-career-update.js',
     'prompts/推演引擎/init/intimacy-body-init-prompt.js',
     'prompts/推演引擎/update/generic-update-prompt.js',
     'prompts/推演引擎/update/emotion-update-prompt.js',

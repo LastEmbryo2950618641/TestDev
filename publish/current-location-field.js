@@ -16,13 +16,25 @@ window.GameModules.currentLocationField = {
     return this.normalize(value).split(this.separator).map((part) => part.trim()).filter(Boolean);
   },
 
+  parseProfileLocation(value = '') {
+    const text = this.coerceToProfileFormat(value);
+    const [placeText = '', positionText = ''] = text.split('|').map((part) => this.normalize(part));
+    return {
+      text,
+      placeText,
+      positionText,
+      placeParts: this.parts(placeText),
+      positionParts: this.parts(positionText),
+    };
+  },
+
   isPlaceholderPart(part = '') {
     return /^(?:未知|某处|附近|普通地点|当前位置未知|未知地点|现实地点|当前位置|未登记|无)$/u.test(String(part || '').trim());
   },
 
   /**
    * Profile location chain:
-   * 所在世界 · 势力 · 层级1 · 层级2 · 地点 · 详细的具体位置
+   * 所在世界 · 势力 · 层级1 · 层级2 · 地点 | 位置1 · 位置2 · 位置3
    * Fix common model/card mistakes like「武侯区锦苑小区3栋」(missing · between district and POI).
    */
   coerceToProfileFormat(value = '') {
@@ -32,14 +44,20 @@ window.GameModules.currentLocationField = {
       '$1·',
     );
     text = text.replace(/·{2,}/g, '·');
+    if (!text.includes('|')) {
+      const parts = this.parts(text);
+      if (parts.length >= 6) {
+        return `${parts.slice(0, -1).join(this.separator)}|${parts.slice(-1).join(this.separator)}`;
+      }
+    }
     return text;
   },
 
-  /** Valid when >=6 parts: world + force chain + map node + interior. */
+  /** Valid when left side has world + force chain + map node and right side has spatial position. */
   isValidProfileFormat(value = '') {
-    const parts = this.parts(this.coerceToProfileFormat(value));
-    if (parts.length < 6) return false;
-    if (parts.some((part) => !part || this.isPlaceholderPart(part))) return false;
+    const parsed = this.parseProfileLocation(value);
+    if (parsed.placeParts.length < 5 || parsed.positionParts.length < 1) return false;
+    if ([...parsed.placeParts, ...parsed.positionParts].some((part) => !part || this.isPlaceholderPart(part))) return false;
     return true;
   },
 
@@ -75,27 +93,26 @@ window.GameModules.currentLocationField = {
     const value = typeof valueOrProfile === 'object'
       ? this.fromProfile(valueOrProfile)
       : this.normalize(valueOrProfile);
-    const parts = this.parts(value);
-    if (parts.length < 2) return '';
-    return this.normalize(parts[parts.length - 2] || '').slice(0, 28);
+    const parsed = this.parseProfileLocation(value);
+    if (parsed.placeParts.length < 1) return '';
+    return this.normalize(parsed.placeParts[parsed.placeParts.length - 1] || '').slice(0, 28);
   },
 
   interiorPosition(valueOrProfile = '') {
     const value = typeof valueOrProfile === 'object'
       ? this.fromProfile(valueOrProfile)
       : this.normalize(valueOrProfile);
-    const parts = this.parts(value);
-    if (!parts.length) return '';
-    return this.normalize(parts[parts.length - 1] || '').slice(0, 120);
+    const parsed = this.parseProfileLocation(value);
+    return this.normalize(parsed.positionParts.join(this.separator) || '').slice(0, 120);
   },
 
   forceChain(valueOrProfile = '') {
     const value = typeof valueOrProfile === 'object'
       ? this.fromProfile(valueOrProfile)
       : this.normalize(valueOrProfile);
-    const parts = this.parts(value);
-    if (parts.length < 3) return '';
-    return parts.slice(0, -2).join(this.separator);
+    const parsed = this.parseProfileLocation(value);
+    if (parsed.placeParts.length < 2) return '';
+    return parsed.placeParts.slice(0, -1).join(this.separator);
   },
 
   /**
@@ -147,13 +164,12 @@ window.GameModules.currentLocationField = {
       || '',
     ).slice(0, 120);
     if (!interior || this.isPlaceholderPart(interior)) interior = '同场景室内';
-    const full = [force, mapNode, interior].join(this.separator);
+    const full = `${[force, mapNode].join(this.separator)}|${interior}`;
     return this.isValidProfileFormat(full) ? full : '';
   },
 
   stateValueFromText(text = '', store = null, reason = '', worldTag = '') {
-    // Store AI / card text as-is (normalize separators only). Map-node parsing is optional.
-    const currentLocation = this.normalize(text);
+    const currentLocation = this.coerceToProfileFormat(text);
     const mapOk = this.isValidProfileFormat(currentLocation);
     const mapNodeName = mapOk ? this.mapNodeName(currentLocation) : '';
     return {

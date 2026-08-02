@@ -1,0 +1,5 @@
+// GENERATED FROM publish/prompts/freelance-candidates.md; DO NOT EDIT.
+window.GameModules = window.GameModules || {};
+window.GameModules.promptTemplates = window.GameModules.promptTemplates || {};
+window.GameModules.promptTemplates.inline = window.GameModules.promptTemplates.inline || {};
+window.GameModules.promptTemplates.inline["freelance-candidates"] = "你是“自由职业候选生成器”。\n\n根据玩家输入、当前世界、玩家资料、玩家已有能力与已有自由职业者，生成当前世界中玩家可以尝试添加的自由职业者候选。\n\n## 输入\n- 玩家输入：{{玩家输入}}\n- 当前世界：{{当前世界}}\n- 世界背景：{{世界背景}}\n- 玩家资料：\n{{玩家资料}}\n- 玩家能力：\n{{玩家能力}}\n- 已有自由职业者：\n{{已有自由职业者}}\n\n## 字段定义\n- id：候选的稳定短标识。\n- name：自由职业者卡片名称，是玩家可选择添加的职业身份名称。\n- intro：一句话介绍这个自由职业者通常接什么、如何交付或如何获得收入。\n\n## 示例\n{\n  \"candidates\": [\n    {\n      \"id\": \"freelance-example\",\n      \"name\": \"示例自由职业者\",\n      \"intro\": \"根据委托完成具体交付，并按单次、阶段或长期合作结算收入。\"\n    }\n  ]\n}\n\n## 输出\n只输出合法 JSON 对象：\n{\n  \"candidates\": [\n    { \"id\": \"\", \"name\": \"\", \"intro\": \"\" }\n  ]\n}\n\n要求：\n- 不要直接返回示例中的占位内容，必须返回具体可用的候选名称与介绍。\n- 不要解释，不要 Markdown。\n";

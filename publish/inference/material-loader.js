@@ -222,8 +222,8 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
   companySummary(store, company = {}) {
     const work = company.workMode || {};
     const salary = company.salary || {};
-    const org = (company.organization || []).slice(0, 4).map((d) => `${d.name}：${(d.jobs || []).map((j) => `${j.title}(${(j.people || []).join('、')})`).join('；')}`).join('\n');
-    return [`单位：${company.name || '未生成单位资料'}`, `绑定势力：${company.sourceFactionName || company.name || '无'}｜ID：${company.sourceFactionId || company.factionId || '无'}`, `类型/行业：${company.type || '未知'}｜${company.industry || '未知'}`, `地点：${company.location || '未知'}`, `规模：${company.scale || '未知'}`, `制度：${work.type || '未设定'}｜${work.workDays || ''}｜${work.startTime || ''}-${work.endTime || ''}`, `薪资：${salary.monthlyBase || 0}${salary.currency || 'CNY'}｜绩效${salary.performanceMonths || 0}个月`, `组织：\n${org || '暂无组织架构。'}`, `规则：${(company.rules || []).join('；') || '暂无规则。'}`].join('\n');
+    const routes = (company.promotionRoutes || []).slice(0, 6).map((route) => `${route.name || '路线'}：下一级${route.nextPosition || '未设定'}；绩效${Number(route.currentPerformance || 0)}/${Number(route.requiredPerformance || 0)}；空缺${Number(route.vacancies || 0)}`).join('\n');
+    return [`职业主体：${company.name || '未生成职业生涯'}`, `参考势力：${company.sourceFactionName || '未绑定'}｜ID：${company.sourceFactionId || company.factionId || '无'}`, `职位/路线：${company.positionTitle || '未知'}｜${company.currentRoute || '未知'}`, `类型/行业：${company.type || '未知'}｜${company.industry || '未知'}`, `地点：${company.location || '未知'}`, `规模：${company.scale || '未知'}`, `制度：${work.type || '未设定'}｜${work.workDays || ''}｜${work.startTime || ''}-${work.endTime || ''}`, `薪资：${salary.monthlyBase || 0}${salary.currency || 'CNY'}｜绩效${salary.performanceMonths || 0}个月`, `晋级路线：\n${routes || '暂无职业晋级路线。'}`, `规则：${(company.rules || []).join('；') || '暂无规则。'}`].join('\n');
   },
 
 

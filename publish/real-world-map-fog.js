@@ -773,7 +773,7 @@ window.GameModules.realWorldMapFog = {
       promptForbidsInteriorLayout: String(prompt || '').includes('禁止返回 `interiorLayout`'),
       promptHasSurroundFactionRule: String(prompt || '').includes('每项必须写 `距离`、`地点名`、`势力`'),
       promptHasCharacterLocationField: String(prompt || '').includes('出场人物位置'),
-      promptHasProfileLocationFormat: String(prompt || '').includes('所在世界·势力·层级1·层级2·地点·详细的具体位置'),
+      promptHasProfileLocationFormat: String(prompt || '').includes('所在世界·势力·层级1·层级2·地点|位置1·位置2·位置3'),
       promptPreview: String(prompt || '').slice(0, 1200),
     });
 
@@ -1453,7 +1453,7 @@ window.GameModules.realWorldMapFog = {
       `${item.name}(${item.characterId || '缺ID'})｜当前记录：${item.recorded}｜格式：${item.valid ? '合规链式' : '不合规'}｜需更新：${item.needUpdate ? '是（必须输出姓名+ID+当前位置覆盖）' : '否（格式已合规；正文未改地点则不要输出）'}｜场景提示：${item.sceneHint || '无'}`
     ));
     return [
-      '说明：需更新=否且正文未改地点 → 不要写入出场人物位置；需更新=是或正文确认搬迁 → 必须输出 {姓名,ID,当前位置}；ID 原样抄写括号内真实 ID；当前位置倒数第2段=地图地点，最后1段=尽量精确的室内位置（勿再拆·）。',
+      '说明：需更新=否且正文未改地点 → 不要写入出场人物位置；需更新=是或正文确认搬迁 → 必须输出 {姓名,ID,当前位置}；ID 原样抄写括号内真实 ID；当前位置使用 地点链|空间位置链，| 前最后一段=地图地点，| 后按空间所属关系拆分。',
       ...lines,
     ].join('\n');
   },
@@ -2323,4 +2323,5 @@ window.GameModules.realWorldMapFog = {
   },
 
 };
+
 

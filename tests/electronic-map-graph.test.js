@@ -116,14 +116,14 @@ test('surround unlock prompt documents five-field response with neighbor faction
   assert.ok(prompt.includes('越具体越好') || prompt.includes('尽量精确'));
   assert.ok(prompt.includes('不需要更新（禁止输出）'));
   assert.ok(prompt.includes('需要更新（必须输出）'));
-  assert.ok(prompt.includes('所在世界·势力·层级1·层级2·地点·详细的具体位置'));
-  assert.ok(prompt.includes('角色卡当前位置格式为固定六段链式'));
+  assert.ok(prompt.includes('所在世界·势力·层级1·层级2·地点|位置1·位置2·位置3'));
+  assert.ok(prompt.includes('角色卡当前位置格式为固定“地点链|空间位置链”格式'));
   assert.ok(prompt.includes('"距离"'));
   assert.ok(prompt.includes('"地点名"'));
   assert.ok(prompt.includes('每项必须写 `距离`、`地点名`、`势力`'));
   assert.ok(prompt.includes('出场人物：{{出场人物}}'));
   assert.ok(prompt.includes('正式地图地点名'));
-  assert.ok(prompt.includes('2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋·2单元601室内楼梯上第一间房间床上'));
+  assert.ok(prompt.includes('2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋|2单元·601室·室内楼梯上第一间房间床上'));
   assert.ok(prompt.includes('"出场人物位置": []'));
 });
 
@@ -1247,7 +1247,7 @@ test('surround unlock matches by ID and merges onto live card', async () => {
   loadScript(context, 'publish/real-world-map-fog.js');
   const fog = context.window.GameModules.realWorldMapFog;
   const storeApi = context.window.GameModules.characterStateStore;
-  const full = '2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋·2单元601室内楼梯上第一间房间床上';
+  const full = '2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋|2单元·601室·室内楼梯上第一间房间床上';
   const live = {
     id: 'rel-ai-247528',
     name: '刘思琪',
@@ -1271,7 +1271,7 @@ test('surround unlock matches by ID and merges onto live card', async () => {
     出场人物位置: [{ 姓名: '刘思琪', ID: 'rel-ai-247528', 当前位置: full }],
   }, state.realWorldMap.nodes[0], state.realWorldMap, 'full');
   assert.strictEqual(payload.characterLocations[0].id, 'rel-ai-247528');
-  assert.strictEqual(payload.characterLocations[0].interiorPosition, '2单元601室内楼梯上第一间房间床上');
+  assert.strictEqual(payload.characterLocations[0].interiorPosition, '2单元·601室·室内楼梯上第一间房间床上');
   // Simulate a stale copy being present; write must still land on live.
   state.rpgStates['rel-ai-247528'] = live;
   await fog.applyCharacterLocations(state, payload.characterLocations);

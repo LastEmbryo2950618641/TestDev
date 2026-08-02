@@ -1,4 +1,4 @@
-﻿window.GameModules = window.GameModules || {};
+window.GameModules = window.GameModules || {};
 window.GameModules.playerSetupActions = window.GameModules.playerSetupActions || {};
 Object.assign(window.GameModules.playerSetupActions, {
   defaultProfileData() {
@@ -240,10 +240,10 @@ Object.assign(window.GameModules.playerSetupActions, {
       '你是严格的结构化数据生成器，只负责根据玩家角色卡上下文补全进入游戏时的当前位置。',
       '只输出合法 JSON 对象，不输出 Markdown、解释或额外文字。',
       'JSON Schema：{"type":"object","required":["currentLocation"],"additionalProperties":false,"properties":{"currentLocation":{"type":"string"},"refinedCity":{"type":"string"}}}',
-      'currentLocation 格式固定为：所在世界·势力·层级1·层级2·地点·详细的具体位置，并按段分开写清每一层级。',
-      '第5段“地点”必须是正式地图地点名，可作为电子地图节点名，例如“锦苑小区3栋”“星河云栈科技园B座”“青石镇东市”“王都白塔宫”。',
-      '第6段“详细的具体位置”才允许写门牌、房间、工位、宿舍床位、宫殿内殿等内部位置。',
-      '不得把人物姓名拼进第5段地点；不得把两个层级合并进同一段；不得用“未知、某处、附近、普通地点”等模糊词。',
+      'currentLocation 格式固定为：所在世界·势力·层级1·层级2·地点|位置1·位置2·位置3，并按段分开写清每一层级。',
+      '`|` 前最后一段“地点”必须是正式地图地点名，可作为电子地图节点名，例如“锦苑小区3栋”“星河云栈科技园B座”“青石镇东市”“王都白塔宫”。',
+      '`|` 后位置链才允许写门牌、房间、工位、宿舍床位、宫殿内殿等内部位置。',
+      '不得把人物姓名拼进`|` 前最后一段地点；不得把两个层级合并进同一段；不得用“未知、某处、附近、普通地点”等模糊词。',
       '势力与层级必须是真实控制/管辖结构；现代现实可用国家/省级/市级/区县级等分段结构，异世界可用王国/行省/郡县/宗门等对应结构。',
       `玩家角色卡上下文：${JSON.stringify(context)}`,
     ].join('\n');
@@ -253,7 +253,7 @@ Object.assign(window.GameModules.playerSetupActions, {
       this.setCurrentLocationFillProgress({
         percent: 35,
         step: '正在请求 AI 获取地点',
-      detail: '只请求 currentLocation：所在世界·势力·层级1·层级2·地点·详细的具体位置。',
+      detail: '只请求 currentLocation：所在世界·势力·层级1·层级2·地点|位置1·位置2·位置3。',
       });
       data = await Promise.race([
         window.GameModules.jsonUtils.generateJsonWithRetry({ source: 'player-current-location-fill', promptId: 'player-current-location-fill', model: this.modelId, timeoutMs: 60000, prompt, format: prompt, max: 2 }),
@@ -373,3 +373,4 @@ Object.assign(window.GameModules.playerSetupActions, {
     }
   },
 });
+

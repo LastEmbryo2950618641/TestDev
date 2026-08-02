@@ -32,7 +32,7 @@ window.GameModules.characterProfileTemplateClass = {
       actionAbility: this.valueReason(8, '行动能力由身体状态、生活经验和训练程度判断。'),
       relationships: '与玩家或相关人物的关系',
       role: '当前身份',
-      currentLocation: '当前位置；格式为“势力层级链·地点·地点内位置”，未知则写“当前位置未知”。',
+      currentLocation: '当前位置；格式为“所在世界·势力·层级1·层级2·地点|位置1·位置2·位置3”，未知则写“当前位置未知”。',
       detail: '人物背景、生活处境和进入剧情的原因。',
       appearance: '外貌、体态和可识别特征。',
       preferences: '稳定喜好，尤其是穿着偏好、颜色偏好、审美习惯和随身物偏好。',
@@ -161,3 +161,4 @@ window.GameModules.characterProfileTemplateClass = {
 
   parts() { return { 1: this.clone(this.part1()), 2: this.clone(this.part2()), 3: this.clone(this.part3()), 4: this.clone(this.part4()), 5: this.clone(this.part5()), 6: this.clone(this.part6()), 7: this.clone(this.part7()) }; },
 };
+

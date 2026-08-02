@@ -362,12 +362,12 @@ window.GameModules.realWorldAgentLoop = {
       'inference-stage10-life-energy-exp': 'stage11',
       'real-world-map-surround-unlock': 'stage10',
       'inference-stage11-world-news-update': 'stage12',
-      'inference-stage13-work-performance-update': 'stage13',
+      'inference-stage13-career-update': 'stage13',
     };
     if (byPromptId[promptId]) return byPromptId[promptId];
     if (config.guidedStep) return 'stage1';
     const sourceTitle = String(config.sourceTitle || '');
-    if (/Stage\s*13|工作与绩效|评绩效/iu.test(sourceTitle)) return 'stage13';
+    if (/Stage\s*13|职业生涯|工作与绩效|评绩效/iu.test(sourceTitle)) return 'stage13';
     if (/Stage\s*12|新闻热榜/iu.test(sourceTitle)) return 'stage12';
     if (/Stage\s*11|生命层次|经验结算/iu.test(sourceTitle)) return 'stage11';
     if (/Stage\s*10|周围解锁/iu.test(sourceTitle)) return 'stage10';
@@ -396,7 +396,7 @@ window.GameModules.realWorldAgentLoop = {
       stage10: 'Stage10 电子地图周围解锁',
       stage11: 'Stage11 经验结算',
       stage12: 'Stage12 世界新闻热榜',
-      stage13: 'Stage13 工作与绩效',
+      stage13: 'Stage13 职业生涯',
     };
     return labels[phase] || '未知阶段';
   },
@@ -475,7 +475,7 @@ window.GameModules.realWorldAgentLoop = {
         stage10: 'Stage10 电子地图周围解锁',
         stage11: 'Stage11 经验结算',
         stage12: 'Stage12 世界新闻热榜',
-        stage13: 'Stage13 工作与绩效',
+        stage13: 'Stage13 职业生涯',
       };
       return {
         phase: storedPhase,
@@ -809,7 +809,7 @@ window.GameModules.realWorldAgentLoop = {
     const participants = this.mergeNarrationParticipants(this.stageParticipants(effectiveSceneLayers, loaded, store), narration, store, sceneAnchor.data);
     try {
       this.markConfiguredStep(store, logId, `${config.label}正文已完成，正在串行结算…`, config, { keepNarration: true });
-      this.patchConfiguredSettlementThinking(store, logId, '正文已完成，正在串行结算（Stage4 状态结算 → Stage5 介绍卡 → Stage6–8 外观 → Stage9 势力更新 → Stage11 经验结算 → Stage12 新闻热榜；地图周围解锁为 Stage10）。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
+      this.patchConfiguredSettlementThinking(store, logId, '正文已完成，正在串行结算（Stage4 状态结算 → Stage5 介绍卡 → Stage6–8 外观 → Stage9 势力更新 → Stage11 经验结算 → Stage12 新闻热榜 → Stage13 职业生涯；地图周围解锁为 Stage10）。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
       let stage4Updates;
       try {
         const settled = await this.completeConfiguredSettlementKvWindow({ store, action, base, loaded, skills, materialSession, narration, trace, participants, logId, config });
@@ -919,7 +919,7 @@ window.GameModules.realWorldAgentLoop = {
         }
       }
       const stageWorkPerformance = window.GameModules.inferenceWorkPerformanceStageUpdate;
-      let workPerformanceUpdate = null;
+      let careerUpdate = null;
       if (stageWorkPerformance?.runAfterSettlement) {
         const stage13Result = await stageWorkPerformance.runAfterSettlement({
           store,
@@ -932,7 +932,7 @@ window.GameModules.realWorldAgentLoop = {
           loop: this,
           materialSession,
         });
-        workPerformanceUpdate = stage13Result?.applied || stage13Result?.update || null;
+        careerUpdate = stage13Result?.applied || stage13Result?.update || null;
         if (stage13Result?.lines?.length) {
           updates = {
             ...updates,
@@ -941,7 +941,7 @@ window.GameModules.realWorldAgentLoop = {
         }
       }
       this.patchConfiguredSettlementThinking(store, logId, '结算完成，正在写入本回合状态与日志。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
-      settlementPrompt = 'Stage4 状态结算 → Stage5 介绍卡 → Stage6–8 外观 → Stage9 势力更新 → Stage11 经验结算 → Stage12 新闻热榜 → Stage13 工作与绩效（Stage10 地图周围解锁在落库后）';
+      settlementPrompt = 'Stage4 状态结算 → Stage5 介绍卡 → Stage6–8 外观 → Stage9 势力更新 → Stage11 经验结算 → Stage12 新闻热榜 → Stage13 职业生涯（Stage10 地图周围解锁在落库后）';
       settlementRaw = JSON.stringify({
         settlement: updates,
         introStage5: { cards: introStage5Result.cards?.map((card) => ({ id: card.id, name: card.name, displayType: card.displayType })) || [] },
@@ -951,7 +951,7 @@ window.GameModules.realWorldAgentLoop = {
         lifeEnergyGains,
         learnedGains,
         newsOps,
-        workPerformanceUpdate,
+        careerUpdate,
       });
     } catch (err) {
       console.warn(`${config.label}串行结算失败，保留已生成正文并使用最小结算:`, err.message);

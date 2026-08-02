@@ -9,6 +9,9 @@ const companyViewHelperForwarders = {
   companyPayPreviewView: 'companyPayPreviewView',
   companyPayPanelView: 'companyPayPanelView',
   companyOrganizationSectionView: 'companyOrganizationSectionView',
+  freelanceLevelSectionView: 'freelanceLevelSectionView',
+  freelanceOrderSectionView: 'freelanceOrderSectionView',
+  freelanceWorksSectionView: 'freelanceWorksSectionView',
   companyFieldSectionView: 'companyFieldSectionView',
   companyContractSectionView: 'companyContractSectionView',
   companyEmploymentRecordSectionView: 'companyEmploymentRecordSectionView',
@@ -26,19 +29,379 @@ window.GameModules.companyActions = {
     const base = window.GameModules.companySystem.defaultState();
     this.companyState = { ...base, ...(this.companyState || {}) };
     this.companyState.employment = { ...base.employment, ...(this.companyState.employment || {}) };
-    this.companyState.unitProfilesByFactionId = this.companyState.unitProfilesByFactionId && typeof this.companyState.unitProfilesByFactionId === 'object'
-      ? this.companyState.unitProfilesByFactionId
+    this.companyState.activeCareerApp = this.companyState.activeCareerApp === 'freelance' ? 'freelance' : 'work';
+    this.companyState.careerProfile = this.companyState.careerProfile && typeof this.companyState.careerProfile === 'object'
+      ? this.normalizeCareerProfile(this.companyState.careerProfile)
+      : null;
+    this.companyState.workUnitProfile = this.companyState.workUnitProfile && typeof this.companyState.workUnitProfile === 'object'
+      ? this.normalizeCareerProfile(this.companyState.workUnitProfile)
+      : null;
+    this.companyState.freelanceProfile = this.companyState.freelanceProfile && typeof this.companyState.freelanceProfile === 'object'
+      ? this.normalizeCareerProfile(this.companyState.freelanceProfile)
+      : null;
+    this.companyState.freelanceProfiles = Array.isArray(this.companyState.freelanceProfiles)
+      ? this.companyState.freelanceProfiles.map((item) => this.normalizeCareerProfile(item)).filter((item) => item.organizationName)
+      : [];
+    this.companyState.freelanceStatsById = this.companyState.freelanceStatsById && typeof this.companyState.freelanceStatsById === 'object'
+      ? this.companyState.freelanceStatsById
       : {};
+    this.companyState.freelancePicker = {
+      open: false,
+      query: '',
+      results: [],
+      searched: false,
+      loading: false,
+      error: '',
+      ...(this.companyState.freelancePicker || {}),
+    };
+    if (this.companyState.freelanceProfile?.organizationName && !this.companyState.freelanceProfiles.length) {
+      this.companyState.freelanceProfiles = [this.companyState.freelanceProfile];
+    }
+    if (!this.companyState.selectedFreelanceId && this.companyState.freelanceProfiles.length) {
+      this.companyState.selectedFreelanceId = this.companyState.freelanceProfiles[0].id;
+    }
+    if (this.companyState.careerProfile && !this.companyState.workUnitProfile && !this.companyState.freelanceProfiles.length) {
+      if (this.isFreelanceProfile(this.companyState.careerProfile)) {
+        this.companyState.freelanceProfile = this.companyState.careerProfile;
+        this.companyState.freelanceProfiles = [this.companyState.careerProfile];
+        this.companyState.selectedFreelanceId = this.companyState.careerProfile.id;
+      }
+      else this.companyState.workUnitProfile = this.companyState.careerProfile;
+    }
     this.companyState.companies = [];
     this.companyState.contracts = Array.isArray(this.companyState.contracts) ? this.companyState.contracts : [];
     this.companyState.submissions = Array.isArray(this.companyState.submissions) ? this.companyState.submissions : [];
     this.companyState.employmentRecords = Array.isArray(this.companyState.employmentRecords) ? this.companyState.employmentRecords : [];
     this._companySystemInitialized = true;
     this.normalizeCompanyWorkStats(base.workStats);
+    this.normalizeFreelanceStats?.();
     this.syncEmploymentFromFaction();
     this.normalizeEmploymentRecords();
     this.syncCompanyLexicon();
     return this.companyState;
+  },
+
+  isFreelanceProfile(profile = {}) {
+    const type = String(profile?.workMode?.type || profile?.workType || profile?.organizationType || '').trim();
+    return /自由|接单|外包|个人/u.test(type);
+  },
+
+  currentCareerProfile(app = this.companyState?.activeCareerApp || 'work') {
+    this.initCompanySystem();
+    if (app === 'freelance') return this.selectedFreelanceProfile() || null;
+    return this.companyState.workUnitProfile || (!this.isFreelanceProfile(this.companyState.careerProfile) ? this.companyState.careerProfile : null);
+  },
+
+  freelanceProfiles() {
+    this.initCompanySystem();
+    return Array.isArray(this.companyState.freelanceProfiles) ? this.companyState.freelanceProfiles : [];
+  },
+
+  selectedFreelanceProfile() {
+    const list = Array.isArray(this.companyState?.freelanceProfiles) ? this.companyState.freelanceProfiles : [];
+    if (!list.length) return null;
+    const selected = list.find((item) => item.id === this.companyState.selectedFreelanceId) || list[0];
+    if (selected && this.companyState.selectedFreelanceId !== selected.id) this.companyState.selectedFreelanceId = selected.id;
+    if (selected) this.ensureFreelanceProfileLocalDetails(selected);
+    this.companyState.freelanceProfile = selected || null;
+    return selected || null;
+  },
+
+  selectFreelanceProfile(id = '') {
+    this.initCompanySystem();
+    const hit = this.freelanceProfiles().find((item) => item.id === id);
+    if (!hit) return null;
+    this.companyState.selectedFreelanceId = hit.id;
+    this.ensureFreelanceProfileLocalDetails(hit);
+    this.companyState.freelanceProfile = hit;
+    this.syncCompanyLexicon?.();
+    this.save?.();
+    return hit;
+  },
+
+  playerCareerSources() {
+    const state = this.playerIdentityState?.() || this.rpgStates?.['player-self'] || {};
+    const profile = state.profile || this.playerProfile || {};
+    const values = state.values || {};
+    const collect = (items, type) => (Array.isArray(items) ? items : []).map((item) => ({
+      type: String(item?.type || type || '').trim(),
+      name: String(item?.name || item?.label || item || '').trim(),
+      level: Number(item?.level ?? item?.lv ?? item?.exp?.level ?? 0),
+    })).filter((item) => item.name);
+    return {
+      text: [profile.refinedRole, profile.dailyRole, profile.work, profile.notes, profile.worldbuildingNote, this.playerProfile?.refinedRole, this.playerProfile?.dailyRole].filter(Boolean).join(' '),
+      abilities: [
+        ...collect(profile.knowledge, '知识'),
+        ...collect(values.knowledge, '知识'),
+        ...collect(profile.skills, '技能'),
+        ...collect(values.skills, '技能'),
+        ...collect(profile.professions, '职业'),
+        ...collect(values.professions, '职业'),
+      ],
+    };
+  },
+
+  inferFreelanceKind(profile = {}) {
+    const player = this.playerCareerSources();
+    const text = [profile.organizationName, profile.positionTitle, profile.careerSummary, profile.industry, player.text].filter(Boolean).join(' ');
+    if (/画|绘|美术|插画|头像|立绘|表情|设定图|二次元/u.test(text)) return 'art';
+    if (/程序|开发|代码|软件|脚本|网站|前端|后端|数据库|游戏/u.test(text)) return 'code';
+    if (/顾问|咨询|架构|评审|排障/u.test(text)) return 'consult';
+    if (/文案|写作|剧情|策划|脚本|小说/u.test(text)) return 'writing';
+    if (/数据|表格|报表|自动化/u.test(text)) return 'data';
+    if (/家教|辅导|教学|课程/u.test(text)) return 'tutor';
+    return 'general';
+  },
+
+  freelanceAbilityLevel(name = '', fallback = 1) {
+    const sources = this.playerCareerSources().abilities;
+    const hit = sources.find((item) => item.name && (name.includes(item.name) || item.name.includes(name)));
+    return Math.max(1, Number(hit?.level || fallback));
+  },
+
+  freelanceRelevantAbility(profile = {}, ability = {}) {
+    const kind = this.inferFreelanceKind(profile);
+    const name = String(ability.name || '');
+    const type = String(ability.type || '');
+    const text = `${type}${name}`;
+    const patterns = {
+      art: /画|绘|美术|插画|头像|立绘|表情|设定|二次元/u,
+      code: /程序|开发|代码|软件|脚本|网站|前端|后端|数据库|游戏|编程/u,
+      consult: /顾问|咨询|架构|评审|排障|技术/u,
+      writing: /文案|写作|剧情|策划|脚本|小说/u,
+      data: /数据|表格|报表|自动化/u,
+      tutor: /家教|辅导|教学|课程|讲解/u,
+      general: /./u,
+    };
+    return (patterns[kind] || patterns.general).test(text);
+  },
+
+  buildFreelanceLocalDetails(profile = {}) {
+    const kind = this.inferFreelanceKind(profile);
+    const now = this.phoneDateText?.() || new Date().toLocaleString('zh-CN', { hour12: false });
+    const presets = {
+      art: {
+        specialty: '二次元角色立绘、头像与表情包绘制',
+        orders: [['二次元头像绘制', '同城桌游社群客户', '本地小型社群', '良', '清爽校园风', '300元', '业内名声 +2'], ['表情包草稿绘制', '个人社交账号运营者', '个人小客户', '一般', '可爱夸张风', '180元', '业内名声 +1']],
+      },
+      code: {
+        specialty: '游戏工具、网页功能与数据库脚本开发',
+        orders: [['小型后台功能开发', '本地小微企业', '小型企业客户', '较好', '稳定实用', '1200元', '业内名声 +4'], ['数据报表脚本', '个体商户', '个体客户', '良', '简洁可维护', '600元', '业内名声 +2']],
+      },
+      consult: {
+        specialty: '技术选型、代码评审与部署排障',
+        orders: [['项目技术选型咨询', '初创团队负责人', '初创团队', '较好', '清晰可执行', '500元', '业内名声 +3'], ['部署故障排查', '小型开发团队', '小型团队', '良', '快速定位', '800元', '业内名声 +3']],
+      },
+      writing: {
+        specialty: '剧情设定、宣传文案与短篇脚本',
+        orders: [['商品宣传文案', '网店店主', '小型网店', '良', '简洁卖点明确', '200元', '业内名声 +1'], ['短篇剧情梗概', '个人创作者', '个人创作者', '一般', '都市日常风', '150元', '业内名声 +1']],
+      },
+      data: {
+        specialty: '表格清洗、报表整理与自动化流程',
+        orders: [['销售表格清洗', '社区小店经营者', '社区小店', '良', '准确整洁', '260元', '业内名声 +1'], ['月度报表自动化', '小型工作室', '小型工作室', '较好', '可复用模板', '900元', '业内名声 +3']],
+      },
+      tutor: {
+        specialty: '线上答疑、课程辅导与专项训练',
+        orders: [['周末作业辅导', '学生家长', '个人客户', '良', '耐心清晰', '120元', '业内名声 +1'], ['专项知识点梳理', '线上学生', '个人客户', '一般', '条理化讲解', '180元', '业内名声 +1']],
+      },
+      general: {
+        specialty: '按客户需求承接小型项目与临时任务',
+        orders: [['临时项目协助', '本地客户', '普通客户', '一般', '按需交付', '200元', '业内名声 +1'], ['资料整理任务', '个人客户', '个人客户', '一般', '清晰准确', '120元', '业内名声 +1']],
+      },
+    };
+    const preset = presets[kind] || presets.general;
+    const playerAbilities = this.playerCareerSources().abilities;
+    const abilities = playerAbilities
+      .filter((item) => this.freelanceRelevantAbility(profile, item))
+      .map((item, index) => ({
+        id: `local-${kind}-${String(item.type || 'ability').toLowerCase()}-${index + 1}`,
+        type: item.type || '能力',
+        name: item.name,
+        level: Math.max(1, Number(item.level || 1)),
+      }));
+    return {
+      abilities,
+      specialty: preset.specialty,
+      orders: preset.orders.map(([title, publisher, publisherStatus, requiredQuality, requiredStyle, priceText, reputationReward], index) => ({
+        id: `local-order-${kind}-${index + 1}`,
+        title,
+        publisher,
+        publisherStatus,
+        publishedAt: now,
+        deadlineAt: this.freelanceOrderDeadlineText?.(index) || '',
+        requiredQuality,
+        requiredStyle,
+        priceText,
+        reputationReward,
+      })),
+    };
+  },
+
+  freelanceOrderDeadlineText(index = 0) {
+    const base = this.phoneDate?.() || new Date();
+    const deadline = new Date(base.getTime() + (3 + Number(index || 0) * 2) * 86400000);
+    return deadline.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
+  },
+
+  ensureFreelanceProfileLocalDetails(profile = {}) {
+    if (!profile || typeof profile !== 'object') return profile;
+    const titleValue = profile.reputationTitle;
+    const hasTitle = titleValue && typeof titleValue === 'object' && String(titleValue.title || '').trim() && String(titleValue.title || '').trim() !== '[object Object]';
+    const hasAbilities = Array.isArray(profile.abilities) && profile.abilities.length;
+    const hasSpecialty = String(profile.specialty || '').trim();
+    const hasOrders = Array.isArray(profile.orders) && profile.orders.length;
+    if (hasTitle && hasAbilities && hasSpecialty && hasOrders) return profile;
+    const details = this.buildFreelanceLocalDetails(profile);
+    if (!hasAbilities) profile.abilities = details.abilities;
+    if (!hasSpecialty) profile.specialty = details.specialty;
+    if (!hasOrders) profile.orders = details.orders;
+    return profile;
+  },
+
+  openFreelancePicker() {
+    this.initCompanySystem();
+    this.companyState.freelancePicker = {
+      ...(this.companyState.freelancePicker || {}),
+      open: true,
+      query: this.companyState.freelancePicker?.query || '',
+      results: this.companyState.freelancePicker?.results || [],
+      searched: false,
+      loading: false,
+      error: '',
+    };
+  },
+
+  closeFreelancePicker() {
+    this.initCompanySystem();
+    this.companyState.freelancePicker.open = false;
+  },
+
+  async freelanceCandidatePrompt(query = '') {
+    const playerState = this.playerIdentityState?.() || this.rpgStates?.['player-self'] || {};
+    const profile = playerState.profile || this.playerProfile || {};
+    const values = playerState.values || this.currentRpgState?.values || {};
+    const worldTag = this.currentWorldTag?.() || this.character?.work || this.selectedWork || window.GameModules.realWorld2026?.label || '未知世界';
+    const lore = window.GameModules.worldLoreStore?.get?.(worldTag) || {};
+    const abilityText = (items, label) => (Array.isArray(items) ? items : [])
+      .map((item) => `${item?.name || item}${item?.level || item?.lv ? ` lv.${item.level || item.lv}` : ''}`)
+      .filter(Boolean)
+      .slice(0, 20)
+      .join('、') || '无';
+    return window.GameModules.renderPrompt('freelance-candidates', {
+      玩家输入: String(query || '').trim(),
+      当前世界: worldTag,
+      世界背景: String(lore.background || lore.summary || lore.core || '').slice(0, 1200) || '无',
+      玩家资料: [
+        `姓名：${profile.name || this.playerName || '玩家'}`,
+        `身份：${profile.refinedRole || profile.dailyRole || profile.role || '未知'}`,
+        `地点：${profile.refinedCity || profile.city || profile.location || '未知'}`,
+        `备注：${[profile.work, profile.notes, profile.worldbuildingNote].filter(Boolean).join('；') || '无'}`,
+      ].join('\n'),
+      玩家能力: [
+        `知识：${abilityText(profile.knowledge || values.knowledge, '知识')}`,
+        `技能：${abilityText(profile.skills || values.skills, '技能')}`,
+        `职业：${abilityText(profile.professions || values.professions, '职业')}`,
+      ].join('\n'),
+      已有自由职业者: JSON.stringify(this.freelanceProfiles().map((item) => ({ name: item.organizationName, intro: item.careerSummary })).slice(0, 30)),
+    });
+  },
+
+  parseFreelanceCandidates(text = '') {
+    const source = String(text || '').replace(/```(?:json)?|```/gi, '').trim();
+    const compact = source.replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/，/g, ',').replace(/：/g, ':');
+    const start = compact.indexOf('[');
+    const end = compact.lastIndexOf(']');
+    const objectStart = compact.indexOf('{');
+    const objectEnd = compact.lastIndexOf('}');
+    const candidates = [
+      objectStart >= 0 && objectEnd >= objectStart ? compact.slice(objectStart, objectEnd + 1) : '',
+      start >= 0 && end >= start ? compact.slice(start, end + 1) : compact,
+    ].filter(Boolean);
+    for (const item of candidates) {
+      try {
+        const parsed = JSON.parse(item);
+        const list = Array.isArray(parsed) ? parsed : parsed?.candidates;
+        if (Array.isArray(list)) {
+          return list.map((candidate, index) => ({
+            id: String(candidate?.id || candidate?.name || `ai-candidate-${index + 1}`).trim(),
+            name: String(candidate?.name || candidate?.title || candidate?.职业 || '').trim(),
+            intro: String(candidate?.intro || candidate?.desc || candidate?.介绍 || '').trim(),
+          })).filter((candidate) => candidate.name);
+        }
+      } catch (_) {}
+    }
+    return [];
+  },
+
+  async searchFreelanceCandidates() {
+    this.initCompanySystem();
+    const query = String(this.companyState.freelancePicker?.query || '').trim();
+    Object.assign(this.companyState.freelancePicker, { searched: true, loading: true, error: '', results: [] });
+    if (!query) {
+      Object.assign(this.companyState.freelancePicker, { loading: false, error: '请输入想要搜索的自由职业者。' });
+      return [];
+    }
+    try {
+      const prompt = await this.freelanceCandidatePrompt(query);
+      let buffer = '';
+      const direct = await window.GameModules.aiRequest.complete({
+        source: 'freelance-candidates',
+        model: this.modelId || this.settingsState?.textModelId,
+        prompt,
+        timeoutMs: 60000,
+        ...(window.GameModules.promptSkills?.completionOptions?.('freelance-candidates') || { jsonMode: true, responseFormat: { type: 'json_object' }, outputLimitKind: 'other' }),
+        requireDone: true,
+        onChunk: (content, done, info) => { buffer = info?.buffer || buffer || content || ''; },
+      });
+      const results = this.parseFreelanceCandidates(buffer || direct);
+      this.companyState.freelancePicker.results = results;
+      if (!results.length) this.companyState.freelancePicker.error = 'AI没有返回可用候选，请换个说法再搜索。';
+      return results;
+    } catch (err) {
+      console.error('AI生成自由职业候选失败:', err);
+      this.companyState.freelancePicker.error = `AI搜索失败：${err?.message || '未知错误'}`;
+      return [];
+    } finally {
+      this.companyState.freelancePicker.loading = false;
+    }
+  },
+
+  addFreelanceProfileFromCandidate(candidate = {}) {
+    this.initCompanySystem();
+    const name = String(candidate.name || '').trim();
+    if (!name) return null;
+    const profile = this.normalizeCareerProfile({
+      id: `freelance-${name}`,
+      active: true,
+      organizationName: name,
+      organizationType: '自由职业',
+      positionTitle: name,
+      workMode: { type: '自由职业', orderMode: '待现实推演补全接单方式', availability: '待现实推演补全可接单时间' },
+      salary: { monthlyBase: 0, monthlyExpectedIncome: 0, orderIncomeText: '待现实推演补全收入构成', currency: 'CNY' },
+      careerSummary: candidate.intro || `${name}，待现实推演 Stage13 补全详细信息。`,
+      currentProjects: [],
+      currentTasks: [],
+      risks: [],
+      notes: '玩家手动添加自由职业者基础卡片；详细档案等待现实推演 Stage13 更新。',
+    });
+    const list = this.freelanceProfiles();
+    const index = list.findIndex((item) => item.id === profile.id || item.organizationName === profile.organizationName);
+    if (index >= 0) list[index] = { ...list[index], ...profile };
+    else list.push(profile);
+    this.companyState.freelanceProfiles = list;
+    this.companyState.selectedFreelanceId = profile.id;
+    this.companyState.freelanceProfile = profile;
+    this.closeFreelancePicker();
+    this.syncCompanyLexicon?.();
+    this.save?.();
+    return profile;
+  },
+
+  setActiveCareerApp(app = 'work') {
+    this.initCompanySystem();
+    this.companyState.activeCareerApp = app === 'freelance' ? 'freelance' : 'work';
+    if (this.companyState.activeCareerApp === 'freelance') this.companyState.panelTab = 'profile';
+    this.syncCompanyLexicon?.();
   },
 
   isWorkFaction(faction = {}) {
@@ -85,77 +448,175 @@ window.GameModules.companyActions = {
     return window.GameModules.companySystem.emptyUnit('');
   },
 
-  normalizeWorkUnitProfile(profile = {}, faction = {}) {
-    const base = {
-      factionId: faction.id || '',
-      unitName: faction.name || '',
-      workMode: {},
-      salary: {},
-      rules: [],
-      openings: [],
-      notes: '',
-      generatedAt: '',
-      source: '',
+  normalizeCareerProfile(profile = {}) {
+    const source = profile && typeof profile === 'object' ? profile : {};
+    const workMode = source.workMode && typeof source.workMode === 'object' ? source.workMode : {};
+    const salary = source.salary && typeof source.salary === 'object' ? source.salary : {};
+    const list = (value) => Array.isArray(value) ? value.map((item) => typeof item === 'string' ? item.trim() : item).filter(Boolean) : [];
+    const rawType = String(workMode.type || source.workType || '').trim();
+    const modeType = /自由|接单|外包|个人/u.test(rawType) ? '自由职业' : (/员工|雇员|全职|单位/u.test(rawType) ? '员工制' : rawType);
+    const idSeed = String(source.id || source.factionId || source.organizationName || source.positionTitle || `career-${Date.now()}`).trim();
+    const reputationSource = source.reputationTitle && typeof source.reputationTitle === 'object' ? source.reputationTitle : {};
+    const fameSource = source.fameTitle && typeof source.fameTitle === 'object' ? source.fameTitle : {};
+    const rawTitle = typeof source.reputationTitle === 'string' ? source.reputationTitle : (typeof source.fameTitle === 'string' ? source.fameTitle : '');
+    const safeId = idSeed
+      .toLowerCase()
+      .replace(/[^\w\u4e00-\u9fa5-]+/gu, '-')
+      .replace(/^-+|-+$/g, '')
+      || `career-${Date.now()}`;
+    return {
+      id: safeId,
+      active: source.active !== false,
+      organizationName: String(source.organizationName || '').trim(),
+      organizationType: String(source.organizationType || '').trim(),
+      factionId: String(source.factionId || '').trim(),
+      positionTitle: String(source.positionTitle || '').trim(),
+      directLeader: {
+        name: String(source.directLeader?.name || '').trim(),
+        title: String(source.directLeader?.title || '').trim(),
+      },
+      currentRoute: String(source.currentRoute || '').trim(),
+      department: String(source.department || '').trim(),
+      industry: String(source.industry || '').trim(),
+      location: String(source.location || '').trim(),
+      workMode: {
+        type: modeType,
+        schedule: String(workMode.schedule || '').trim(),
+        workDays: String(workMode.workDays || '').trim(),
+        startTime: String(workMode.startTime || '').trim(),
+        endTime: String(workMode.endTime || '').trim(),
+        lateGraceMinutes: Number(workMode.lateGraceMinutes || 0),
+        orderMode: String(workMode.orderMode || workMode.schedule || '').trim(),
+        availability: String(workMode.availability || workMode.workDays || '').trim(),
+      },
+      salary: {
+        monthlyBase: Number(salary.monthlyBase ?? 0),
+        base: Number(salary.monthlyBase ?? 0),
+        annualPackage: Number(salary.annualPackage ?? salary.annualTotalPackage ?? salary.totalAnnualPackage ?? salary.yearlyPackage ?? 0),
+        monthlyExpectedIncome: Number(salary.monthlyExpectedIncome ?? salary.expectedMonthlyIncome ?? salary.monthlyBase ?? 0),
+        orderIncomeText: String(salary.orderIncomeText || salary.pricing || '').trim(),
+        performanceMonths: Number(salary.performanceMonths ?? 0),
+        performanceRate: Number(salary.performanceRate ?? 0),
+        payday: String(salary.payday || '').trim(),
+        currency: String(salary.currency || 'CNY').trim(),
+      },
+      reputationTitle: {
+        title: String(reputationSource.title || fameSource.title || rawTitle || '').trim(),
+        current: Number(reputationSource.current ?? fameSource.current ?? 0),
+        max: Number(reputationSource.max ?? fameSource.max ?? 0),
+        nextTitle: String(reputationSource.nextTitle || fameSource.nextTitle || '').trim(),
+        review: String(reputationSource.review || reputationSource.evaluation || fameSource.review || fameSource.evaluation || '').trim(),
+      },
+      abilities: list(source.abilities || source.capabilities || source.skills).filter((item) => item && typeof item === 'object').map((item, index) => ({
+        id: String(item.id || '').trim() || `ability-${index + 1}`,
+        type: String(item.type || '').trim(),
+        name: String(item.name || '').trim(),
+        level: Number(item.level ?? item.currentLevel ?? 0),
+      })).filter((item) => item.name),
+      specialty: String(source.specialty || source.strength || '').trim(),
+      orders: list(source.orders || source.availableOrders).filter((item) => item && typeof item === 'object').map((item, index) => ({
+        id: String(item.id || '').trim() || `order-${index + 1}`,
+        title: String(item.title || item.name || '').trim(),
+        publisher: String(item.publisher || item.client || '').trim(),
+        publisherStatus: String(item.publisherStatus || item.publisherRank || item.industryStatus || '').trim(),
+        publishedAt: String(item.publishedAt || item.publishTime || item.time || '').trim(),
+        deadlineAt: String(item.deadlineAt || item.deadline || item.dueAt || '').trim(),
+        requiredQuality: String(item.requiredQuality || item.quality || '').trim(),
+        requiredStyle: String(item.requiredStyle || item.style || '').trim(),
+        priceText: String(item.priceText || item.price || '').trim(),
+        reputationReward: String(item.reputationReward || item.fameReward || item.reputationText || '').trim(),
+      })).filter((item) => item.title),
+      works: list(source.works || source.achievements || source.results).filter((item) => item && typeof item === 'object').map((item, index) => ({
+        id: String(item.id || '').trim() || `work-${index + 1}`,
+        title: String(item.title || item.name || '').trim(),
+        intro: String(item.intro || item.desc || item.description || '').trim(),
+        recognition: Number(item.recognition ?? item.score ?? 0),
+        review: String(item.review || item.evaluation || item.comment || '').trim(),
+      })).filter((item) => item.title),
+      rules: list(source.rules).map((item) => String(item || '').trim()).filter(Boolean),
+      openings: list(source.openings).filter((item) => item && typeof item === 'object').map((item, index) => ({
+        id: String(item.id || '').trim() || `opening-${index + 1}`,
+        name: String(item.name || '').trim(),
+        type: String(item.type || '').trim(),
+        desc: String(item.desc || item.description || '').trim(),
+      })).filter((item) => item.name),
+      promotionRoutes: list(source.promotionRoutes).filter((item) => item && typeof item === 'object').map((item, index) => this.normalizeCareerPromotionRoute(item, index)).filter((item) => item.name || item.nextPosition),
+      careerSummary: String(source.careerSummary || '').trim(),
+      currentProjects: list(source.currentProjects).filter((item) => item && typeof item === 'object').map((item, index) => ({
+        id: String(item.id || '').trim() || `project-${index + 1}`,
+        role: String(item.role || '').trim(),
+        description: String(item.description || '').trim(),
+      })).filter((item) => item.role || item.description),
+      currentTasks: list(source.currentTasks).map((item) => String(item || '').trim()).filter(Boolean),
+      risks: list(source.risks).map((item) => String(item || '').trim()).filter(Boolean),
+      notes: String(source.notes || '').trim(),
+      recordSummary: String(source.recordSummary || '').trim(),
+      createdAt: String(source.createdAt || '').trim(),
+      updatedAt: String(source.updatedAt || '').trim(),
+      source: String(source.source || 'ai-career').trim(),
     };
-    const out = { ...base, ...(profile && typeof profile === 'object' ? profile : {}) };
-    out.workMode = out.workMode && typeof out.workMode === 'object' ? out.workMode : {};
-    out.salary = out.salary && typeof out.salary === 'object' ? out.salary : {};
-    out.rules = Array.isArray(out.rules) ? out.rules.map((item) => String(item || '').trim()).filter(Boolean) : [];
-    out.openings = Array.isArray(out.openings) ? out.openings.filter((item) => item && typeof item === 'object').map((item) => ({
-      id: String(item.id || '').trim() || `opening-${Date.now()}`,
-      name: String(item.name || '').trim(),
-      type: String(item.type || '').trim(),
-      desc: String(item.desc || '').trim(),
-    })).filter((item) => item.name) : [];
-    out.salary.monthlyBase = Number(out.salary.monthlyBase ?? out.salary.base ?? 0);
-    out.salary.base = Number(out.salary.base ?? out.salary.monthlyBase ?? 0);
-    out.salary.performanceRate = Number(out.salary.performanceRate ?? out.salary.commissionRate ?? 0);
-    out.salary.performanceMonths = Number(out.salary.performanceMonths ?? out.salary.commissionMonths ?? 0);
-    out.salary.currency = String(out.salary.currency || 'CNY');
-    out.workMode.type = String(out.workMode.type || '').trim();
-    out.workMode.schedule = String(out.workMode.schedule || '').trim();
-    out.workMode.workDays = String(out.workMode.workDays || '').trim();
-    out.workMode.startTime = String(out.workMode.startTime || '').trim();
-    out.workMode.endTime = String(out.workMode.endTime || '').trim();
-    out.workMode.lateGraceMinutes = Number(out.workMode.lateGraceMinutes || 0);
-    return out;
   },
 
-  factionStructureAsOrganization(faction = {}) {
-    const structure = Array.isArray(faction?.structure) ? faction.structure : [];
-    return structure.map((dept = {}, index = 0) => ({
-      name: String(dept.name || `部门${index + 1}`).trim(),
-      jobs: (Array.isArray(dept.roles) ? dept.roles : []).map((role = {}, roleIndex = 0) => ({
-        title: String(role.title || `岗位${roleIndex + 1}`).trim(),
-        people: Array.isArray(role.characters) && role.characters.length ? role.characters.map((item) => String(item || '').trim()).filter(Boolean) : [],
-      })),
-    }));
+  normalizeCareerPromotionRoute(route = {}, index = 0) {
+    const reqs = Array.isArray(route.requirements) ? route.requirements : [];
+    const currentPerformance = Number(route.currentPerformance ?? this.companyState?.workStats?.performance ?? 0);
+    const requiredPerformance = Number(route.requiredPerformance ?? 0);
+    return {
+      id: String(route.id || '').trim() || `route-${index + 1}`,
+      name: String(route.name || '').trim(),
+      nextPosition: String(route.nextPosition || '').trim(),
+      currentPerformance,
+      requiredPerformance,
+      requirements: reqs.map((item = {}, reqIndex) => ({
+        id: String(item.id || '').trim() || `req-${index + 1}-${reqIndex + 1}`,
+        type: String(item.type || '').trim(),
+        name: String(item.name || '').trim(),
+        currentLevel: Number(item.currentLevel ?? 0),
+        requiredLevel: Number(item.requiredLevel ?? 0),
+      })).filter((item) => item.name),
+      vacancies: Number(route.vacancies ?? 0),
+      notes: String(route.notes || '').trim(),
+    };
   },
 
   currentCompany() {
     this.initCompanySystem();
-    const faction = this.currentWorkFaction();
-    if (!faction) return this.emptyCurrentCompany();
-    const profile = this.normalizeWorkUnitProfile(this.companyState.unitProfilesByFactionId?.[faction.id] || {}, faction);
+    const career = this.currentCareerProfile();
+    if (!career?.organizationName) return this.emptyCurrentCompany();
+    const factions = Array.isArray(this.factionState?.factions) ? this.factionState.factions : [];
+    const sourceFaction = career.factionId ? factions.find((item) => item.id === career.factionId) : null;
     const company = {
-      id: faction.id,
-      factionId: faction.id,
-      name: faction.name || profile.unitName || '',
-      type: faction.type || '',
-      industry: faction.domain || '',
-      scale: faction.scale || '',
-      location: faction.location || '',
-      workMode: profile.workMode,
-      salary: profile.salary,
-      rules: profile.rules,
-      openings: profile.openings,
-      notes: profile.notes || '',
-      organization: this.factionStructureAsOrganization(faction),
+      id: career.factionId || 'career-current',
+      factionId: career.factionId || '',
+      name: career.organizationName,
+      type: career.organizationType,
+      industry: career.industry,
+      scale: '',
+      location: career.location,
+      workMode: career.workMode,
+      salary: career.salary,
+      rules: career.rules,
+      openings: career.openings,
+      notes: career.notes || career.careerSummary || '',
       lexicon: [],
-      generatedAt: profile.generatedAt || '',
-      source: profile.source || '',
-      sourceFactionName: faction.name || '',
-      sourceFactionId: faction.id || '',
+      generatedAt: career.updatedAt || career.createdAt || '',
+      source: career.source || 'ai-career',
+      sourceFactionName: sourceFaction?.name || '',
+      sourceFactionId: sourceFaction?.id || '',
+      positionTitle: career.positionTitle,
+      directLeader: career.directLeader,
+      currentRoute: career.currentRoute,
+      department: career.department,
+      careerSummary: career.careerSummary,
+      currentProjects: career.currentProjects,
+      reputationTitle: career.reputationTitle,
+      abilities: career.abilities,
+      specialty: career.specialty,
+      orders: career.orders,
+      works: career.works,
+      promotionRoutes: career.promotionRoutes,
+      currentTasks: career.currentTasks,
+      risks: career.risks,
     };
     this.normalizeCompanyPolicy(company);
     return company;
@@ -164,28 +625,42 @@ window.GameModules.companyActions = {
   normalizeCompanyPolicy(company) {
     company.workMode = { ...(company.workMode || {}) };
     company.salary = { ...(company.salary || {}) };
+    const rawType = String(company.workMode.type || '').trim();
+    company.workMode.type = /自由|接单|外包|个人/u.test(rawType) ? '自由职业' : (/员工|雇员|全职|单位/u.test(rawType) ? '员工制' : rawType);
     company.salary.monthlyBase = Number(company.salary.monthlyBase ?? company.salary.base ?? 0);
     company.salary.base = Number(company.salary.base ?? company.salary.monthlyBase ?? 0);
+    company.salary.annualPackage = Number(company.salary.annualPackage ?? company.salary.annualTotalPackage ?? company.salary.totalAnnualPackage ?? company.salary.yearlyPackage ?? 0);
+    company.salary.monthlyExpectedIncome = Number(company.salary.monthlyExpectedIncome ?? company.salary.expectedMonthlyIncome ?? company.salary.monthlyBase ?? 0);
+    company.salary.orderIncomeText = String(company.salary.orderIncomeText || company.salary.pricing || '');
     company.salary.performanceRate = Number(company.salary.performanceRate ?? company.salary.commissionRate ?? 0);
     company.salary.performanceMonths = Number(company.salary.performanceMonths ?? company.salary.commissionMonths ?? 0);
     company.salary.currency = String(company.salary.currency || 'CNY');
     company.rules = Array.isArray(company.rules) ? company.rules : [];
     company.openings = Array.isArray(company.openings) ? company.openings : [];
-    company.organization = Array.isArray(company.organization) ? company.organization : [];
+    company.promotionRoutes = Array.isArray(company.promotionRoutes) ? company.promotionRoutes : [];
     return company;
   },
 
+  isFreelanceCareer() {
+    return this.companyState?.activeCareerApp === 'freelance';
+  },
+
+  careerAppName() {
+    return this.isFreelanceCareer() ? '自由职业' : '工作';
+  },
+
   syncEmploymentFromFaction() {
-    const faction = this.currentWorkFaction();
-    if (faction) {
-      this.companyState.currentCompanyId = faction.id;
+    const career = this.currentCareerProfile('work');
+    if (career?.organizationName) {
+      this.companyState.workUnitProfile = this.normalizeCareerProfile(career);
+      this.companyState.currentCompanyId = career.factionId || '';
       this.companyState.employment = {
         ...this.companyState.employment,
-        active: true,
-        activeCompanyId: faction.id,
-        resignedCompany: '',
+        active: career.active !== false,
+        activeCompanyId: career.factionId || '',
+        resignedCompany: career.active === false ? career.organizationName : '',
       };
-      return faction;
+      return career.factionId ? this.currentWorkFaction() : null;
     }
     this.companyState.employment = {
       ...this.companyState.employment,
@@ -209,6 +684,35 @@ window.GameModules.companyActions = {
     stats.commissionRate = Number(stats.commissionRate || 0);
     this.companyState.workStats = stats;
     return stats;
+  },
+
+  normalizeFreelanceStats(defaults = null) {
+    const base = defaults || window.GameModules.companySystem.defaultWorkStats();
+    const selectedId = this.selectedFreelanceProfile()?.id || this.companyState?.selectedFreelanceId || 'default';
+    const byId = this.companyState.freelanceStatsById && typeof this.companyState.freelanceStatsById === 'object' ? this.companyState.freelanceStatsById : {};
+    const stats = { ...base, ...(byId[selectedId] || this.companyState?.freelanceStats || {}) };
+    stats.attendanceStatus = { ...base.attendanceStatus, ...(stats.attendanceStatus || {}) };
+    stats.leaderReview = { ...base.leaderReview, ...(stats.leaderReview || {}) };
+    stats.employeeReview = { ...base.employeeReview, ...(stats.employeeReview || {}) };
+    stats.contributionItems = Array.isArray(stats.contributionItems) ? stats.contributionItems : [];
+    stats.performanceHistory = Array.isArray(stats.performanceHistory) ? stats.performanceHistory : [];
+    stats.lateCount = 0;
+    stats.absentCount = 0;
+    stats.performance = Number(stats.performance ?? 100);
+    stats.commissionRate = Number(stats.commissionRate || 0);
+    byId[selectedId] = stats;
+    this.companyState.freelanceStatsById = byId;
+    this.companyState.freelanceStats = stats;
+    return stats;
+  },
+
+  currentCareerStats() {
+    return this.isFreelanceCareer() ? this.normalizeFreelanceStats() : this.normalizeCompanyWorkStats();
+  },
+
+  hasActiveCareerProfile(app = this.companyState?.activeCareerApp || 'work') {
+    const profile = this.currentCareerProfile(app);
+    return !!(profile && profile.active !== false && profile.organizationName);
   },
 
   normalizeEmploymentRecords() {
@@ -245,8 +749,9 @@ window.GameModules.companyActions = {
       workDays: '完整上班天数用于计算当前月份工作日：' + v,
       dailySalary: '日薪用于反映按底薪和工作日折算后的日收入：' + v,
       annualPerformance: '绩效预估由当前单位规则与绩效提成计算得出：' + v,
-      sourceFaction: '当前单位信息以势力为唯一组织源，不得与势力主档冲突：' + v,
-      generatedAt: '单位资料由 AI 基于势力生成的时间：' + v,
+      sourceFaction: '当前职业生涯可参考已知势力，但不要求绑定：' + v,
+      generatedAt: '职业生涯由 AI 基于上下文生成或更新的时间：' + v,
+      currentProjects: '当前参与项目由 AI 基于职业上下文生成，说明玩家在项目中的角色与项目内容：' + v,
     };
     return map[key] || (label + '用于补充说明当前单位信息：' + v);
   },
@@ -259,19 +764,21 @@ window.GameModules.companyActions = {
   companyPromptContext() {
     const unit = this.currentCompany();
     const faction = this.currentWorkFaction();
-    const stats = this.normalizeCompanyWorkStats();
+    const stats = this.currentCareerStats();
     const attendance = stats.attendanceStatus || {};
     const leader = stats.leaderReview || {};
     const employee = stats.employeeReview || {};
     const contributions = (Array.isArray(stats.contributionItems) ? stats.contributionItems : []).slice(0, 8).map((item, index) => '- ' + (index + 1) + '. ' + (item.title || item.type || '贡献') + '：' + (item.detail || item.valueText || '未填写') + (item.valueText ? '｜价值：' + item.valueText : '')).join('\n') || '- 暂无贡献价值记录';
     const fields = this.companyFields().map((f) => '- ' + f.label + '：' + f.value + '｜' + f.desc).join('\n');
-    const org = this.companyOrganization().map((d) => '- ' + d.name + '：' + (Array.isArray(d.jobs) ? d.jobs.map((j) => (j.title || '未命名岗位') + '(' + ((Array.isArray(j.people) && j.people.length) ? j.people.join('、') : '暂无') + ')').join('、') : '暂无岗位')).join('\n') || '- 暂无组织结构';
-    return '# 单位词条\n'
-      + '- 组织唯一真源：势力\n'
-      + '- 当前单位绑定势力：' + (faction?.name || '无') + '｜ID：' + (faction?.id || '无') + '\n'
-      + '- 单位生成时间：' + (unit.generatedAt || '未生成') + '\n'
+    const promotionRoutes = this.careerPromotionRoutes().map((route) => {
+      const abilities = (Array.isArray(route.requirements) ? route.requirements : []).map((item) => `${item.name} lv.${Number(item.currentLevel || 0)}/lv.${Number(item.requiredLevel || 0)}`).join('，') || '无明确能力要求';
+      return `- ${route.name || '晋级路线'}：下一级 ${route.nextPosition || '未设定'}；绩效 ${Number(route.currentPerformance || 0)}/${Number(route.requiredPerformance || 0)}；能力 ${abilities}；空缺 ${Number(route.vacancies || 0)}；${route.notes || '可通过现实推演争取其他晋级途径。'}`;
+    }).join('\n') || '- 暂无职业晋级路线';
+    return '# 职业生涯词条\n'
+      + '- 职业生涯可选参考势力：' + (faction?.name || '无') + '｜ID：' + (faction?.id || '无') + '\n'
+      + '- 职业档案更新时间：' + (unit.generatedAt || '未生成') + '\n'
       + fields
-      + '\n# 单位组织结构（来自势力）\n' + org
+      + '\n# 职业晋级路线\n' + promotionRoutes
       + '\n# 工作状态\n'
       + '- 迟到次数：' + (stats.lateCount || 0) + '\n'
       + '- 旷班次数：' + (stats.absentCount || 0) + '\n'
@@ -281,7 +788,18 @@ window.GameModules.companyActions = {
       + '- 领导评价：' + (leader.summary || '暂无') + '｜评分：' + (leader.score ?? 0) + '\n'
       + '- 员工评价：' + (employee.summary || '暂无') + '\n'
       + '# 贡献价值\n' + contributions + '\n'
-      + '# 单位规则\n' + ((unit.rules || []).join('、') || '暂无单位规则。');
+      + '# 职业规则\n' + ((unit.rules || []).join('、') || '暂无职业规则。');
+  },
+
+  async buildCareerPrompt() {
+    return '';
+  },
+
+  async ensureCareerGenerated() {
+    this.initCompanySystem();
+    this.companyState.generating = false;
+    this.companyState.generationError = '';
+    return this.currentCompany();
   },
 
   currentMonthWorkDays() {
@@ -316,116 +834,70 @@ window.GameModules.companyActions = {
     this.save?.();
   },
 
-  async buildWorkUnitPrompt(faction = null) {
-    const currentFaction = faction || this.currentWorkFaction();
-    const profile = this.playerProfile || {};
-    const current = this.currentCompany();
-    return await window.GameModules.renderPrompt('work-unit-from-faction', {
-      当前日期: '2026年7月29日（周三）',
-      玩家姓名: profile.name || '玩家本人',
-      玩家身份: profile.refinedRole || profile.dailyRole || profile.role || '未知身份',
-      玩家城市: profile.refinedCity || profile.city || '未知城市',
-      势力名称: currentFaction?.name || '无',
-      势力ID: currentFaction?.id || '无',
-      势力类型: currentFaction?.type || '未知',
-      势力领域: currentFaction?.domain || '未知',
-      势力规模: currentFaction?.scale || '未知',
-      势力地点: currentFaction?.location || '未知',
-      势力描述: currentFaction?.description || '暂无描述',
-      势力组织结构: JSON.stringify(currentFaction?.structure || [], null, 2),
-      势力规则: JSON.stringify(currentFaction?.rules || [], null, 2),
-      玩家当前任职资料: JSON.stringify((this.playerIdentityState?.()?.profile?.memberships || []), null, 2),
-      当前单位旧资料: JSON.stringify({
-        workMode: current.workMode || {},
-        salary: current.salary || {},
-        rules: current.rules || [],
-        openings: current.openings || [],
-        notes: current.notes || '',
-      }, null, 2),
-    });
+  async ensureCurrentUnitGenerated() {
+    return this.currentCompany();
   },
 
-  parseWorkUnitProfile(raw = '') {
-    const source = String(raw || '').replace(/```(?:json)?|```/gi, '').trim();
-    const start = source.indexOf('{');
-    const end = source.lastIndexOf('}');
-    if (start < 0 || end <= start) return { profile: null, error: '未找到合法 JSON 对象' };
-    try {
-      const data = JSON.parse(source.slice(start, end + 1));
-      const profile = data?.unitProfile;
-      const error = this.validateWorkUnitProfile(profile);
-      return error ? { profile: null, error, raw: data } : { profile: this.normalizeWorkUnitProfile(profile), error: '', raw: data };
-    } catch (err) {
-      return { profile: null, error: `JSON解析失败：${err?.message || '未知错误'}` };
-    }
-  },
-
-  validateWorkUnitProfile(profile = null) {
-    if (!profile || typeof profile !== 'object') return '缺少 unitProfile 对象';
-    if (typeof profile.factionId !== 'string' || !profile.factionId.trim()) return 'unitProfile.factionId 必须为字符串';
-    if (typeof profile.unitName !== 'string' || !profile.unitName.trim()) return 'unitProfile.unitName 必须为字符串';
-    if (!profile.workMode || typeof profile.workMode !== 'object') return 'unitProfile.workMode 必须为对象';
-    if (!profile.salary || typeof profile.salary !== 'object') return 'unitProfile.salary 必须为对象';
-    if (!Array.isArray(profile.rules) || profile.rules.some((item) => typeof item !== 'string')) return 'unitProfile.rules 必须为字符串数组';
-    if (!Array.isArray(profile.openings)) return 'unitProfile.openings 必须为数组';
-    for (const opening of profile.openings) {
-      if (!opening || typeof opening !== 'object') return 'unitProfile.openings 项必须为对象';
-      if (typeof opening.name !== 'string') return 'opening.name 必须为字符串';
-      if (typeof opening.type !== 'string') return 'opening.type 必须为字符串';
-      if (typeof opening.desc !== 'string') return 'opening.desc 必须为字符串';
-    }
-    if (typeof profile.notes !== 'string') return 'unitProfile.notes 必须为字符串';
-    return '';
-  },
-
-  async ensureCurrentUnitGenerated(force = false) {
+  careerPromotionRoutes() {
     this.initCompanySystem();
-    const faction = this.currentWorkFaction();
-    if (!faction) {
-      this.companyState.generationError = '当前没有可绑定的在职单位势力，工作 App 不会再使用写死单位数据。';
-      return null;
+    const stats = this.currentCareerStats?.() || this.companyState?.workStats || {};
+    const performance = Math.max(0, Math.min(100, Number(stats.performance ?? 100)));
+    return (this.currentCompany().promotionRoutes || []).map((route) => ({ ...route, currentPerformance: performance }));
+  },
+
+  careerCurrentRouteName() {
+    const career = this.currentCareerProfile();
+    const routes = career?.promotionRoutes || [];
+    if (career?.currentRoute && routes.some((item) => item.name === career.currentRoute)) return career.currentRoute;
+    return routes[0]?.name || '';
+  },
+
+  canPromoteCareerRoute(route = {}) {
+    const stats = this.currentCareerStats?.() || this.companyState?.workStats || {};
+    const currentPerformance = Math.max(0, Math.min(100, Number(stats.performance ?? route.currentPerformance ?? 0)));
+    const requiredPerformance = Number(route.requiredPerformance || 0);
+    const performanceOk = currentPerformance >= requiredPerformance;
+    const abilities = Array.isArray(route.requirements) ? route.requirements : [];
+    const abilitiesOk = abilities.every((item) => Number(item.currentLevel || 0) >= Number(item.requiredLevel || 0));
+    const vacanciesOk = Number(route.vacancies || 0) > 0;
+    const missing = [];
+    if (!performanceOk) missing.push(`绩效不足 ${currentPerformance}/${requiredPerformance}`);
+    if (!abilitiesOk) missing.push('能力等级不足');
+    if (!vacanciesOk) missing.push('没有职位空缺');
+    return { ok: performanceOk && abilitiesOk && vacanciesOk, performanceOk, abilitiesOk, vacanciesOk, missing };
+  },
+
+  promoteCareerRoute(routeId = '') {
+    this.initCompanySystem();
+    const career = this.companyState?.careerProfile ? this.normalizeCareerProfile(this.companyState.careerProfile) : null;
+    if (!career) {
+      this.companyState.promotionMessage = '暂无职业生涯档案，无法晋升。';
+      return false;
     }
-    if (!force && this.companyState.unitProfilesByFactionId?.[faction.id]) return this.currentCompany();
-    if (this.companyState.generating) return null;
-    this.companyState.generating = true;
-    this.companyState.generationError = '';
-    console.log('[单位生成调试] start', { factionId: faction.id, factionName: faction.name, at: '2026-07-29' });
-    try {
-      const prompt = await this.buildWorkUnitPrompt(faction);
-      let buffer = '';
-      const raw = await window.GameModules.aiRequest.complete({
-        source: 'work-unit-from-faction',
-        model: this.modelId || this.settingsState?.textModelId || window.GameModules.aiRequest?.selectedTextModel?.(),
-        prompt,
-        timeoutMs: 60000,
-        ...(window.GameModules.promptSkills?.completionOptions?.('work-unit-from-faction') || { jsonMode: true, responseFormat: { type: 'json_object' }, outputLimitKind: 'other' }),
-        requireDone: true,
-        onChunk: (_content, _done, info) => {
-          buffer = info?.buffer || buffer;
-        },
-      });
-      const parsed = this.parseWorkUnitProfile(raw || buffer);
-      if (!parsed.profile) throw new Error(parsed.error || '单位资料返回无效');
-      if (parsed.profile.factionId !== faction.id || parsed.profile.unitName !== faction.name) throw new Error('单位资料必须严格绑定当前势力 ID 与名称');
-      this.companyState.unitProfilesByFactionId[faction.id] = {
-        ...parsed.profile,
-        generatedAt: this.phoneDate?.()?.toISOString?.() || new Date().toISOString(),
-        source: 'ai-faction',
-      };
-      this.companyState.currentCompanyId = faction.id;
-      this.companyState.employment.activeCompanyId = faction.id;
-      this.companyState.generating = false;
-      this.companyState.generationError = '';
-      this.syncCompanyLexicon();
-      console.log('[单位生成调试] success', this.companyState.unitProfilesByFactionId[faction.id]);
-      await this.save?.();
-      return this.currentCompany();
-    } catch (err) {
-      this.companyState.generating = false;
-      this.companyState.generationError = err?.message || '单位资料 AI 生成失败';
-      console.warn('[单位生成调试] failed:', err?.message || err);
-      return null;
+    const routes = career.promotionRoutes || [];
+    const route = routes.find((item) => item.id === routeId || item.name === routeId) || routes[0];
+    if (!route) {
+      this.companyState.promotionMessage = '暂无可用晋升路线。';
+      return false;
     }
+    const check = this.canPromoteCareerRoute(route);
+    if (!check.ok) {
+      this.companyState.promotionMessage = `暂不满足【${route.name || '晋升路线'}】晋升条件：${check.missing.join('、')}。`;
+      this.save?.();
+      return false;
+    }
+    const oldPosition = career.positionTitle || '当前职位';
+    career.positionTitle = route.nextPosition || career.positionTitle;
+    career.currentRoute = route.name || career.currentRoute;
+    career.promotionRoutes = routes.map((item) => item.id === route.id ? { ...item, vacancies: Math.max(0, Number(item.vacancies || 0) - 1) } : item);
+    career.recordSummary = `从${oldPosition}晋升为${career.positionTitle}`;
+    career.updatedAt = this.phoneDate?.()?.toISOString?.() || new Date().toISOString();
+    this.companyState.careerProfile = career;
+    this.companyState.promotionMessage = `已晋升：${oldPosition} → ${career.positionTitle}。`;
+    const record = (this.companyState.employmentRecords || []).find((item) => item.status === '在职') || this.companyState.employmentRecords?.[0];
+    if (record) record.positionTitle = career.positionTitle;
+    this.save?.();
+    return true;
   },
 
   applyRecruitment(type) {
@@ -460,8 +932,9 @@ window.GameModules.companyActions = {
     this.save?.();
   },
 
-  async openCompanyApp() {
+  async openCompanyApp(app = 'work') {
     this.initCompanySystem();
+    this.setActiveCareerApp(app);
     this.ensureAllCompanyFactions?.();
     this.identityAppOpen = false;
     this.wechatAppOpen = false;
@@ -477,11 +950,14 @@ window.GameModules.companyActions = {
     if (this.tokenStatsState) this.tokenStatsState.open = false;
     this.companyState.open = true;
     this.desktopUnlocked = true;
-    await this.ensureCurrentUnitGenerated(false);
   },
 
   async openWorkApp() {
-    return this.openCompanyApp();
+    return this.openCompanyApp('work');
+  },
+
+  async openFreelanceApp() {
+    return this.openCompanyApp('freelance');
   },
 
   closeCompanyApp() {
